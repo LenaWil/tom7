@@ -1,0 +1,35 @@
+
+BUG: nullary is wrong; we define LESS as nullary and later as exp * exp, and then we can never use LESS.
+
+
+BUG: exhaustiveness warning in bug-exhaust.uml
+
+PERF: (SPLIT) optimization in CPS is hurt by intervening "fix"; ie we can't
+      identify
+
+      fn x =>
+       let fun f = some crap that doesn't depend on x
+       in
+          (case x of
+            ....)
+       end
+
+      as a splitter. this affects our ability to apply the optimization
+      in MANY examples I look at, including the simplest (if x = 3) 
+      kind of stuff. Try first hoisting functions out as far as they
+      can go, then push them down as far as they can go right before
+      closure-conversion?
+
+      (actually, pushing them down is not necessarily important, since
+      in these examples all the calls are direct)
+
+self-test: allocate and then free (check early before gc)
+
+unsigned comparisons
+signed division
+
+VERY BAD: semantics of language-level div and machine-level div are
+different; this is probably true for sub and add too. It's critical
+that these match up!
+
+
