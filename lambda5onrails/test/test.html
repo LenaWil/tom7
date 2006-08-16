@@ -4,13 +4,18 @@
 <link rel="stylesheet" type="text/css" href="tom7.css" title="tom7" />
 </head>
 <body>
-<p>Welcome to my cool page!
+<p>Welcome to my cool page!</p>
+
+<p><div id="response">
+(NOT CONNECTED)
+</div></p>
 
 <script language="JavaScript">
 function connect(url) {
     var req;
 
     if (window.XMLHttpRequest) {
+
         try {
          netscape.security.PrivilegeManager.enablePrivilege("UniversalBrowserRead");
         } catch (e) {
@@ -23,20 +28,22 @@ function connect(url) {
         req.send(null);
 
     } else if (window.ActiveXObject) {
+
         req = new ActiveXObject("Microsoft.XMLHTTP");
         if (req) {
             req.onreadystatechange = think;
             req.open("GET", url, true);
             req.send();
         }
+
     }
     return req;
 }
 
-req = connect("http://spacebar.org:9999/hello");
+req = connect("http://localhost:9999/hello");
 function think() {
-    alert(req.readyState + ": " + req.responseText);
-    req.responseText = "";
+    // alert(req.readyState + ": " + req.responseText);
+    document.getElementById('response').innerHTML = req.responseText;
 }
 
 </script>
