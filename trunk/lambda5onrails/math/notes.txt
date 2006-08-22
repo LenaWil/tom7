@@ -1,0 +1,82 @@
+
+Want to specify the "attack model" so that we can prove that the
+client cannot get access to any server data (?) or some theorem along
+those lines. 
+
+cCPS is CPS after closure-conversion. It is like the full CPS language
+except that function declarations can only be at the top level, mapping
+labels (not bound variables) to each closed function body.
+
+Normal cCPS:
+
+(* the toplevel declares a set of labels, at world constants,
+   bound to closed functions *)
+t ::=  l @ w > \x.c ; t
+       c
+
+(* a continuation expression runs in straight line until
+   it performs a call to a local label or a go to a remote
+   one. *)
+c ::= 
+      leta x = v in c
+      letg u = v in c
+      lift u = v in c
+      let x = localhost() in c
+      (* remote closure call. given a closure-converted
+         unit cont typed @ w, run it at w *)
+      go_cc[w; v] v
+      call v1(v2)
+      halt
+
+v ::=
+      hold_w v
+      \x.c
+      /\w.v
+      /\a.v
+      cval w.v
+      _w_
+      u
+      x
+      l
+      ...
+
+A ::=
+      A cont | A at w | G A |  all w.A | exists w.A
+      w addr
+
+
+Operational semantics. 
+
+
+[[
+wawawait... is there any need to closure-convert? Javascript is a
+high-level language in which we can implement closures. The server can
+run whatever we want. So let's instead talk about CPS.
+
+
+c ::= 
+      leta x = v in c
+      letg u = v in c
+      lift u = v in c
+      let x = localhost() in c
+      (* ... *)
+      go[w; v] c
+      call v1(v2)
+      halt
+
+v ::=
+      hold_w v
+      \x.c
+      /\w.v
+      /\a.v
+      cval w.v
+      _w_
+      u
+      x
+      ...
+
+A ::=
+      A cont | A at w | G A |  all w.A | exists w.A
+      w addr
+
+]]
