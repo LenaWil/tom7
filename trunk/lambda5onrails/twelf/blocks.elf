@@ -1,0 +1,67 @@
+% Unfortunately, perhaps due to an overconservative world subsumption implementation,
+% some block and world declarations need to be made very early.
+
+
+world : type.                           %name world W w.
+%mode world.
+
+% internal language
+
+typ : type.                             %name typ A a.
+exp : type.
+val : type.
+
+ofv : val -> typ -> world -> type.
+
+% %block blockv : some {W:world}{A:typ} block {v:val}{ov:ofv v A W}.
+
+
+% cps language
+ctyp : type.    %name ctyp A a.
+cval : type.    %name cval V v.
+cvval : type.   %name cvval VV vv.
+ttoct : typ -> ctyp -> type.                      %name ttoct TTOCT ttoct.
+cofv : cval -> ctyp -> world -> type.             %name cofv WV wv.
+cofvv : cvval -> ctyp -> type.                    %name cofvv WVV wvv.
+
+
+% CPS conversion
+tocpsv- : {WV  : ofv V A W}
+	  {CT  : ttoct A CA}
+	  {WCV : cofv CV CA W}
+	  type.
+
+
+
+% almost everything is done with respect to hypothetical worlds
+%block blockw : block {w : world}.
+
+
+% when descending under a binding in the source language,
+% we'll assume that the variable can be translated to a cps
+% variable
+%block blockcvar : 
+	      some {A : typ} {A' : ctyp} {W : world} {CTA : ttoct A A'}
+	      block
+	       {x}{xof : ofv x A W}
+	       {x'}{x'of : cofv x' A' W}
+               % how to convert it
+	       {thm:tocpsv- xof CTA x'of}.
+
+% Since we end up having to make worlds declarations for like cexp, we
+% need these.
+%block blockcv : block {v : cval}.
+%block blockcvv : block {v : cvval}.
+
+
+%block blockwcv :
+             some {W : world} {CA : ctyp}
+             block {r}{rof : cofv r CA W}.
+
+%block blockwcvv :
+	     some {CA : ctyp}
+             block {v}{vof : cofvv v CA}.
+
+% some world declarations have to be done way early.
+
+%worlds (blockw | blockcvar | blockwcv | blockwcvv)  (world).

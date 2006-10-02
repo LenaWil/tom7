@@ -44,7 +44,7 @@ cofv_resp_ : cofv_resp D ceqtyp_ D.
 
 
 % convert an IL type to a CPS type.
-ttoct : typ -> ctyp -> type.                      %name ttoct TTOCT ttoct.
+% ttoct : typ -> ctyp -> type.                      %name ttoct TTOCT ttoct.
 %mode ttoct +T -CT.
 
 
@@ -98,6 +98,31 @@ ttoct_fun : ttoct A A' -> ttoct A A'' -> ceqtyp A' A'' -> type.
  <- ceqtyp_heart EQ EQ'
  <- ceqtyp_cont EQ' EQ''
  <- ceqtyp_cont EQ'' OUT.
+
+% moreover, it must be defined for all inputs
+ttoct_gimme : {A:typ} {A':ctyp} ttoct A A' -> type.
+%mode ttoct_gimme +A -A' -D.
+
+- : ttoct_gimme (A & B) _ (ttoct/& CT1 CT2)
+          <- ttoct_gimme A A' CT1
+          <- ttoct_gimme B B' CT2.
+
+- : ttoct_gimme (A => B) _ (ttoct/=> CT1 CT2)
+          <- ttoct_gimme A A' CT1
+          <- ttoct_gimme B B' CT2.
+
+- : ttoct_gimme (A at W) _ (ttoct/at CT)
+	  <- ttoct_gimme A A' CT.
+
+- : ttoct_gimme (addr W) _ ttoct/addr.
+
+- : ttoct_gimme (all A) _ (ttoct/all CT)
+	  <- ({w} ttoct_gimme (A w) (A' w) (CT w)).
+
+- : ttoct_gimme (exists A) _ (ttoct/exists CT)
+	  <- ({w} ttoct_gimme (A w) (A' w) (CT w)).
+
+
 
 %worlds (blockw) (ttoct_fun _ _ _) (ceqtyp_& _ _ _) (ceqtyp_cont _ _) (ceqtyp_at _ _ _)
                  (ceqtyp_all _ _) (ceqtyp_exists _ _) (ceqtyp_heart _ _).
@@ -172,3 +197,74 @@ tocps+/- : tocps+ V WV CTi CC K
         <- tocps- V WV CTo CC K'
         <- ttoct_fun CTo CTi EQ
         <- k_resp K' EQ K.
+
+% values are translated with a more standard-looking relation
+tocpsv+ : {WV  : ofv V A W}
+	  {CT  : ttoct A CA}
+	  {WCV : cofv CV CA W}
+	  type.
+%mode tocpsv+ +WV +CT -WCV.
+%mode tocpsv- +WV -CT -WCV.
+
+tocpsv+/- : tocpsv+ WV CTi WCV'
+	 <- tocpsv- WV CTo WCV
+	 <- ttoct_fun CTo CTi EQ
+	 <- cofv_resp WCV EQ WCV'.
+
+cv_pair : tocpsv- (&Iv WV1 WV2) (ttoct/& CT1 CT2)  (cov_pair WV1' WV2')
+       <- tocpsv- WV1 CT1 WV1'
+       <- tocpsv- WV2 CT2 WV2'.
+
+
+
+cv_hold : tocpsv- (atI WV) (ttoct/at CT)  (cov_hold WV')
+	   <- tocpsv- WV CT WV'.
+
+
+% this is essentially the crux of continuation *passing* style
+cv_lam : tocpsv- ((=>I WM) : ofv (lam M) (A => B) W) (ttoct/=> CTA CTB)
+	  (cov_lam [arg][argof : cofv arg (A' c& (B' ccont)) W]
+	     co_fst argof [x:cval][xof:cofv x A' W]
+	     co_snd argof [r:cval][rof:cofv r (B' ccont) W]
+	     F x xof r rof ([v:cval] ccall r v) 
+	        ([v:cval][wv:cofv v B' W] co_call rof wv)
+	     )
+    <- ttoct_gimme A A' CTA
+    <- ttoct_gimme B B' CTB
+    <- (% original argument
+	{x}{xof : ofv x A W}
+	{x'}{x'of : cofv x' A' W}
+	% how to convert it
+	{thm:tocpsv- xof CTA x'of}
+
+	% (object language) return continuation
+        {r}{rof : cofv r (B' ccont) W}
+
+	  tocps+ (M x) (WM x xof) CTB (CC x' r) (F x' x'of r rof)).
+
+cv_addr : tocpsv- addrI ttoct/addr cov_const.
+
+
+cv_all : tocpsv- (allI WV) (ttoct/all CT)  (cov_wlam V')
+	  <- ({w:world} tocpsv- (WV w) (CT w) (V' w)).
+
+cv_unit : tocpsv- unitI ttoct/unit cov_unit.
+
+cv_pack : tocpsv- (existsI A WV) (ttoct/exists CT)  (cov_pack A' WV')
+	  <- ({w} ttoct_gimme (A w) (A' w) (CT w))
+          <- (tocpsv+ WV (CT W') WV').
+
+%worlds (blockw | blockcvar | blockwcv) 
+                   (tocps+ _ _ _ _ _)
+                   (tocps- _ _ _ _ _)
+                   (tocpsv+ _ _ _)
+                   (tocpsv- _ _ _)
+                   (cofv_resp _ _ _)
+                   (ttoct_gimme _ _ _)
+                   (k_resp _ _ _).
+
+%covers tocpsv- +A -B -C.
+%covers tocpsv+ +A +B -C.
+
+%covers tocps+ +M +WM +CT -CC -K.
+%covers tocps- +M +WM -CT -CC -K.

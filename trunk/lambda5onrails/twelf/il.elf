@@ -8,7 +8,7 @@
 % on the ~ judgment in Sungwoo Park's "A Modal Language for the
 % safety of Mobile Values."
 
-typ : type.
+% typ : type.
 
 %%% Natural deduction with hybrids and quantification
 
@@ -28,8 +28,8 @@ unit : typ.
 
 %% expressions
 
-exp : type.
-val : type.
+% exp : type.
+% val : type.
 % valid expressions 
 vexp : type.
 vval : type.
@@ -117,7 +117,7 @@ existsM : ({w} mobile (A w)) ->
 
 % |- e : t @ w
 of : exp -> typ -> world -> type.
-ofv : val -> typ -> world -> type.
+% ofv : val -> typ -> world -> type.
 
 % |- e ~ t @ w
 ofs : vexp -> typ -> world -> type.
@@ -642,8 +642,6 @@ presv_letfr : presv (wf_mach (ofec_eleta WE WN) (ofvalue (atI WV)))
 presv_vvinst : usevalid _ WV WV' ->
                presv (wf_mach WE (ofvalue (ofvvalid WV))) step_vvinst
                (wf_mach WE (ofvalue WV')).
-
-%block blockw : block {w : world}.
 
 %block blockwewe : 
              some {A : typ} {W : world} {W' : world}
