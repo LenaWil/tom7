@@ -3,9 +3,9 @@
 % and its proof of safety.
 
 cexp : type.    %name cexp C c.
-cval : type.    %name cval V v.
-ctyp : type.    %name ctyp A a.
-cvval : type.   %name cvval VV vv.
+% cval : type.    %name cval V v.
+% ctyp : type.    %name ctyp A a.
+% cvval : type.   %name cvval VV vv.
 
 cat  : ctyp -> world -> ctyp.             %infix none 2 cat.
 % since this is unary, we'll use iterated tuples and
@@ -89,9 +89,9 @@ cof : cexp -> world -> type.              %name cof WC wc.
 %mode cof *C *W.
 
 % values and valid values
-cofv : cval -> ctyp -> world -> type.     %name cofv WV wv.
+% cofv : cval -> ctyp -> world -> type.     %name cofv WV wv.
 %mode cofv *A *B *C.
-cofvv : cvval -> ctyp -> type.            %name cofvv WVV wvv.
+% cofvv : cvval -> ctyp -> type.            %name cofvv WVV wvv.
 %mode cofvv *A *B.
 
 co_halt : cof chalt W.
@@ -458,6 +458,12 @@ cpresv : cof C W ->
 - : cpresv (co_letheart WV WC) (cs_letheart G) (WC _ WVV) <- ci_ch WV G WVV.
 - : cpresv (co_localhost WC) cs_localhost (WC _ cov_const).
 - : cpresv (co_mkpair WV1 WV2 WC) cs_mkpair (WC _ (cov_pair WV1 WV2)).
+
+% These are required because of overconservativity of world subsumption (I think) in TOCPS.
+% This is our last chance to declare worlds before they are auto-frozen.
+%worlds (blockw | blockcv | blockcvv) (cval) (cexp) (cvval).
+
+%worlds (blockw | blockwcv | blockwcvv) (cofv _ _ _) (cof _ _) (cofvv _ _) (cmobile _).
 
 %worlds (blockw) 
            (cf_pair _ _) 
