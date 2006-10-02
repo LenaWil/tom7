@@ -1,0 +1,497 @@
+
+% The ML5 CPS language, its static and dynamic semantics,
+% and its proof of safety.
+
+cexp : type.    %name cexp C c.
+cval : type.    %name cval V v.
+ctyp : type.    %name ctyp A a.
+cvval : type.   %name cvval VV vv.
+
+cat  : ctyp -> world -> ctyp.             %infix none 2 cat.
+% since this is unary, we'll use iterated tuples and
+% unit to implement multi-arg functions.
+ccont  : ctyp -> ctyp.                      %postfix 8 ccont.
+call : (world -> ctyp) -> ctyp.
+cexists : (world -> ctyp) -> ctyp.
+c& : ctyp -> ctyp -> ctyp.                 %infix none 9 c&.
+% representation for a world
+caddr : world -> ctyp.
+cunit : ctyp.
+cheart : ctyp -> ctyp.
+
+
+% continuation expressions
+cmkpair : cval -> cval -> (cval -> cexp) -> cexp.
+cfst : cval -> (cval -> cexp) -> cexp.
+csnd : cval -> (cval -> cexp) -> cexp.
+clocalhost : (cval -> cexp) -> cexp.
+
+cletheart : cval -> (cvval -> cexp) -> cexp.
+clift : cval -> (cvval -> cexp) -> cexp.
+cleta : cval -> (cval -> cexp) -> cexp.
+
+% let is not necessary because of the natural let-style
+% of continuation exps
+cunpack : cval -> (world -> cval -> cexp) -> cexp.
+cwapp : cval -> world -> (cval -> cexp) -> cexp.
+
+% this is the translation of 'get'
+cgo : world -> cval -> cexp -> cexp.
+% continuations can end with a call to a function
+ccall : cval -> cval -> cexp.
+chalt : cexp.
+
+
+% continuation values
+cpair : cval -> cval -> cval.
+chold : world -> cval -> cval.
+clam : (cval -> cexp) -> cval.
+cconst : world -> cval.
+cwlam : (world -> cval) -> cval.
+cpack : world -> cval -> cval.
+c1 : cval.
+% inclusion of cvvals in cvals
+cvalid : cvval -> cval.
+% internalization into heart modality
+ch : cvval -> cval.
+% the only vval
+cvv : (world -> cval) -> cvval.
+
+
+% need to redefine this, too
+cmobile : ctyp -> type.
+%mode cmobile *A.
+
+cmob_& : cmobile A -> cmobile B ->
+         cmobile (A c& B).
+
+cmob_addr : cmobile (caddr W).
+
+cmob_at : cmobile (A cat W).
+
+cmob_all : ({w} cmobile (A w)) ->
+           cmobile (call A).
+
+cmob_exists : ({w} cmobile (A w)) ->
+               cmobile (cexists A).
+
+% XXX could also include heart and unit,
+% but not necessary since they are not
+% mobile in the IL
+
+
+% ################
+% Static Semantics
+% ################
+
+% Well-formed continuation expressions
+cof : cexp -> world -> type.              %name cof WC wc.
+%mode cof *C *W.
+
+% values and valid values
+cofv : cval -> ctyp -> world -> type.     %name cofv WV wv.
+%mode cofv *A *B *C.
+cofvv : cvval -> ctyp -> type.            %name cofvv WVV wvv.
+%mode cofvv *A *B.
+
+co_halt : cof chalt W.
+
+co_go : cofv VW (caddr W') W ->
+        cof C W' ->
+        cof (cgo W' VW C) W.
+
+co_lift : cmobile A ->
+          cofv V A W ->
+          ({v} cofvv v A ->
+             cof (N v) W) ->
+          cof (clift V N) W.
+
+co_letheart : cofv V (cheart A) W ->
+              ({v} cofvv v A ->
+                cof (N v) W) ->
+              cof (cletheart V N) W.
+
+co_leta : cofv V (A cat W') W ->
+          ({v} cofv v A W' ->
+            cof (N v) W) ->
+          cof (cleta V N) W.
+
+co_wapp : cofv V (call A) W ->
+          ({v} cofv v (A W') W ->
+             cof (N v) W) ->
+          cof (cwapp V W' N) W.
+
+co_unpack : 
+          cofv V (cexists A) W ->
+          ({w}{v} cofv v (A w) W ->
+              cof (N w v) W) ->
+          cof (cunpack V N) W.
+
+co_localhost : ({v} cofv v (caddr W) W -> 
+                    cof (K v) W) ->
+               cof (clocalhost K) W.
+
+co_mkpair :  cofv V1 A W ->
+             cofv V2 B W ->
+             ({v:cval} cofv v (A c& B) W -> 
+                cof (K v) W) ->
+             cof (cmkpair V1 V2 K) W.
+
+co_call : cofv F (A ccont) W ->
+          cofv V A W ->
+          cof (ccall F V) W.
+
+co_fst : cofv V (A c& B) W ->
+         ({v}{ov : cofv v A W} cof (C v) W) ->
+         cof (cfst V C) W.
+
+co_snd : cofv V (A c& B) W ->
+         ({v}{ov : cofv v B W} cof (C v) W) ->
+         cof (csnd V C) W.
+
+cov_unit : cofv c1 cunit W.
+
+cov_pair : cofv V1 A W ->
+           cofv V2 B W ->
+           cofv (cpair V1 V2) (A c& B) W.
+
+cov_hold : cofv V A W' ->
+           cofv (chold W' V) (A cat W') W.
+
+cov_lam : ({x} cofv x A W ->
+               cof (M x) W) ->
+          cofv (clam M) (A ccont) W.
+
+cov_const : cofv (cconst W) (caddr W) W'.
+
+cov_wlam : ({w} cofv (V w) (A w) W) ->
+           cofv (cwlam V) (call A) W.
+
+cov_pack : {A : world -> ctyp} % sometimes need this annotation
+           cofv V (A W') W -> 
+           cofv (cpack W' V) (cexists A) W.
+
+cov_valid : cofvv VV A ->
+            cofv (cvalid VV) A W.
+
+cov_ch : cofvv VV A ->
+         cofv (ch VV) (cheart A) W.
+
+covv : ({w} cofv (VF w) A w) ->
+       cofvv (cvv VF) A.
+
+
+% dynamic semantics. Actually much simpler than the
+% dynamic semantics for the Internal Language.
+
+cmoval : cval -> cvval -> type.
+%mode cmoval *A *B.
+
+cmoat : cmoval (chold W' V) (cvv [_] chold W' V).
+
+cmopair : cmoval V1 V1' -> cmoval V2 V2' -> 
+         cmoval (cpair V1 V2) (cvv [_] cpair (cvalid V1') (cvalid V2')).
+cmoall : ({w:world} cmoval (V w) (V' w)) -> 
+	 cmoval (cwlam V) (cvv [_] cwlam [w] (cvalid (V' w))).
+cmoexists : cmoval V V' -> cmoval (cpack W' V) (cvv [_] cpack W' (cvalid V')).
+cmoaddr : cmoval (cconst M) (cvv [_] cconst M).
+cmovv : cmoval (cvalid V) V.
+
+% we need a bunch of canonical-forms lemmata,
+% because of valid values. We have a "get"
+% theorem for each canonical form, known to be 
+% total when the argument has a certain type
+
+cget_pair  : world -> cval ->  cval -> cval -> type.
+%mode cget_pair *W *A *B *C.
+cgpair-it : cget_pair _ (cpair V1 V2) V1 V2.
+cgpair-vv : cget_pair W (cvalid (cvv VV)) V1 V2
+         <- cget_pair W (VV W) V1 V2.
+
+cget_ch    : world -> cval ->  cvval -> type.
+%mode cget_ch *W *A *B.
+cgch-it : cget_ch _ (ch VV) VV.
+cgch-vv : cget_ch W (cvalid (cvv VV)) VV'
+       <- cget_ch W (VV W) VV'.
+
+cget_hold  : world -> cval ->  cval -> type.
+%mode cget_hold *W *A *C.
+cghold-it : cget_hold _ (chold W' V) V.
+cghold-vv : cget_hold W (cvalid (cvv VV)) V
+         <- cget_hold W (VV W) V.
+
+cget_pack  : world -> cval ->  world -> cval -> type.
+%mode cget_pack *W *A *B *C.
+cgpack-it : cget_pack _ (cpack W V) W V.
+cgpack-vv : cget_pack W (cvalid (cvv VV))  W' V'
+         <- cget_pack W (VV W) W' V'.
+
+cget_wlam  : world -> cval ->  (world -> cval) -> type.
+%mode cget_wlam *W *A *B.
+cgwlam-it : cget_wlam _ (cwlam V) V.
+cgwlam-vv : cget_wlam W (cvalid (cvv VV)) V
+         <- cget_wlam W (VV W) V.
+
+cget_const : world -> cval ->  world -> type.
+%mode cget_const *W *A *B.
+cgconst-it : cget_const _ (cconst W') W'.
+cgconst-vv : cget_const W (cvalid (cvv VV)) V
+          <- cget_const W (VV W) V.
+
+cget_lam   : world -> cval ->  (cval -> cexp) -> type.
+%mode cget_lam *W *A *B.
+cglam-it : cget_lam _ (clam C) C.
+cglam-vv : cget_lam W (cvalid (cvv VV)) C
+        <- cget_lam W (VV W) C.
+
+% stepping relation; indexed by current world
+cstep : world -> cexp ->    
+        world -> cexp -> type.
+%mode cstep *AW *A *BW *B.
+
+cs_mkpair     : cstep W (cmkpair V1 V2 C)  W (C (cpair V1 V2)).
+cs_fst        : cstep W (cfst VP C)  W (C V) <- cget_pair W VP V _.
+cs_snd        : cstep W (csnd VP C)  W (C V) <- cget_pair W VP _ V.
+cs_localhost  : cstep W (clocalhost C)  W (C (cconst W)).
+cs_letheart   : cstep W (cletheart VH C)  W (C V) <- cget_ch W VH V.
+cs_lift       : cstep W (clift V C)  W (C VV) <- cmoval V VV.
+cs_leta       : cstep W (cleta VA C)  W (C V) <- cget_hold W VA V.
+cs_unpack     : cstep W (cunpack VE C)  W (C W' V) <- cget_pack W VE W' V.
+cs_wapp       : cstep W (cwapp VL W' C)  W (C (V W')) <- cget_wlam W VL V.
+
+cs_go         : cstep W (cgo W' VA C)  W' C <- cget_const W VA W'.
+cs_call       : cstep W (ccall VL V)  W (C V) <- cget_lam W VL C.
+
+% self-transition, as usual
+cs_halt       : cstep W chalt  W chalt.
+
+
+% some canonical forms lemmata
+cf_pack : cofv V (cexists A) W ->
+          cget_pack W V  W' V' ->
+          type.
+%mode cf_pack +O -W.
+- : cf_pack (cov_pack _ _) cgpack-it.
+- : cf_pack ((cov_valid (covv D)) : cofv _ _ W) (cgpack-vv Z)
+ <- cf_pack (D W) Z.
+
+cf_const : cofv V (caddr W') W ->
+           cget_const W V W' ->
+           type.
+%mode cf_const +O -W.
+- : cf_const cov_const cgconst-it.
+- : cf_const ((cov_valid (covv D)) : cofv _ _ W) (cgconst-vv W')
+ <- cf_const (D W) W'.
+
+cf_wlam : cofv V (call A) W ->
+          cget_wlam W V V' ->
+          type.
+%mode cf_wlam +O -L.
+- : cf_wlam (cov_wlam _) cgwlam-it.
+- : cf_wlam ((cov_valid (covv D)) : cofv _ _ W) (cgwlam-vv L)
+ <- cf_wlam (D W) L.
+
+cf_lam : cofv V (A ccont) W ->
+         cget_lam W V C ->
+         type.
+%mode cf_lam +O -L.
+- : cf_lam (cov_lam _) cglam-it.
+- : cf_lam ((cov_valid (covv D)) : cofv _ _ W) (cglam-vv L)
+ <- cf_lam (D W) L.
+
+cf_hold : cofv V (A cat W') W ->
+          cget_hold W V  V' ->
+          type.
+%mode cf_hold +O -H.
+- : cf_hold (cov_hold _) cghold-it.
+- : cf_hold ((cov_valid (covv D)) : cofv _ _ W) (cghold-vv H)
+ <- cf_hold (D W) H.
+
+cf_pair : cofv V (A c& B) W -> 
+          cget_pair W V  V1 V2 ->
+          type.
+%mode cf_pair +O -P.
+- : cf_pair (cov_pair _ _) cgpair-it.
+- : cf_pair ((cov_valid (covv D)) : cofv _ _ W) (cgpair-vv P)
+ <- cf_pair (D W) P.
+
+cf_ch : cofv V (cheart A) W ->
+        cget_ch W V VV ->
+        type.
+%mode cf_ch +O -P.
+- : cf_ch (cov_ch _) cgch-it.
+- : cf_ch ((cov_valid (covv D)) : cofv _ _ W) (cgch-vv VV)
+ <- cf_ch (D W) VV.
+
+% lemma: if a value is of mobile type, then it is a
+% mobile value
+
+cmobmov : cmobile A -> cofv V A W -> cmoval V V' -> type.
+%mode cmobmov +MOB +WV -MOV.
+
+- : cmobmov cmob_at _ cmoat.
+- : cmobmov MA WA MOA ->
+    cmobmov MB WB MOB ->
+    cmobmov (cmob_& MA MB) (cov_pair WA WB) (cmopair MOA MOB).
+- : cmobmov cmob_addr _ cmoaddr.
+- : cmobmov (cmob_all MF) (cov_wlam WF) (cmoall MOF)
+ <- ({w} cmobmov (MF w) (WF w) (MOF w)).
+- : cmobmov (cmob_exists MF) (cov_pack _ WF : cofv (cpack W' _) _ _) (cmoexists MOF)
+ <- cmobmov (MF W') WF MOF.
+- : cmobmov MOB (cov_valid _) cmovv.
+
+% some "inversion" lemmata for preservation
+ci_ch : cofv V (cheart A) W ->
+        cget_ch W V VV ->
+        cofvv VV A ->
+        type.
+%mode ci_ch +O +P -D.
+- : ci_ch (cov_ch D) cgch-it D.
+- : ci_ch ((cov_valid (covv D)) : cofv _ _ W) (cgch-vv VV) DD
+ <- ci_ch (D W) VV DD.
+
+ci_pair : cofv V (A c& B) W ->
+          cget_pair W V  V1 V2 ->
+          cofv V1 A W ->
+          cofv V2 B W ->
+          type.
+%mode ci_pair +O +P -V1 -V2.
+- : ci_pair (cov_pair D1 D2) cgpair-it D1 D2.
+- : ci_pair ((cov_valid (covv D)) : cofv _ _ W) (cgpair-vv P) D1 D2
+ <- ci_pair (D W) P D1 D2.
+
+ci_lam : cofv V (A ccont) W ->
+         cget_lam W V C ->
+         ({x} cofv x A W ->
+               cof (C x) W) ->
+         type.
+%mode ci_lam +O +L -D.
+- : ci_lam (cov_lam D) cglam-it D.
+- : ci_lam ((cov_valid (covv D)) : cofv _ _ W) (cglam-vv L) DD
+ <- ci_lam (D W) L DD.
+
+
+ci_wlam : cofv V (call A) W ->
+          cget_wlam W V V' ->
+          ({w} cofv (V' w) (A w) W) ->
+          type.
+%mode ci_wlam +O +L -D.
+- : ci_wlam (cov_wlam D) cgwlam-it D.
+- : ci_wlam ((cov_valid (covv D)) : cofv _ _ W) (cgwlam-vv L) D'
+ <- ci_wlam (D W) L D'.
+
+ci_pack : cofv V (cexists A) W ->
+          cget_pack W V  W' V' ->
+          cofv V' (A W') W -> 
+          type.
+%mode ci_pack +O +P -B.
+- : ci_pack (cov_pack _ B : cofv (cpack _ _) _ _) cgpack-it B.
+- : ci_pack ((cov_valid (covv D)) : cofv _ _ W) (cgpack-vv Z) B
+ <- ci_pack (D W) Z B.
+
+ci_hold : cofv V (A cat W') W ->
+          cget_hold W V  V' ->
+          cofv V' A W' ->
+          type.
+%mode ci_hold +O +H -V.
+- : ci_hold (cov_hold D) cghold-it D.
+- : ci_hold ((cov_valid (covv D)) : cofv _ _ W) (cghold-vv H) DD
+ <- ci_hold (D W) H DD.
+
+
+% well-typed mobile values are valid values
+cmomo : cmoval V V' ->
+        cofv V A W ->
+        cofvv V' A ->
+        type.
+%mode cmomo +MV +OV -OV'.
+
+- : cmomo cmovv (cov_valid OV) OV.
+- : cmomo cmoaddr cov_const (covv [_] cov_const).
+- : cmomo cmoat (cov_hold M) (covv [_] cov_hold M).
+- : cmomo (cmopair MV1 MV2) (cov_pair WV1 WV2)
+           (covv [w] cov_pair (cov_valid D1) (cov_valid D2))
+ <- cmomo MV1 WV1 D1
+ <- cmomo MV2 WV2 D2.
+- : cmomo (cmoall MV) (cov_wlam WV) (covv [w'] cov_wlam ([w] cov_valid (D w)))
+ <- ({w} cmomo (MV w) (WV w) (D w)).
+- : cmomo (cmoexists MV) (cov_pack _ WF) (covv [w'] cov_pack _ (cov_valid F))
+ <- cmomo MV WF F.
+
+% progress
+cprog : cof C W ->
+        cstep W C  W' C' ->
+        type.
+%mode cprog +COF -CSTEP.
+
+- : cprog co_halt cs_halt.
+- : cprog (co_mkpair _ _ _) cs_mkpair.
+- : cprog (co_fst WV _) (cs_fst G) <- cf_pair WV G.
+- : cprog (co_snd WV _) (cs_snd G) <- cf_pair WV G.
+- : cprog (co_call WV _) (cs_call G) <- cf_lam WV G.
+- : cprog (co_localhost _) cs_localhost.
+- : cprog (co_unpack WV _) (cs_unpack G) <- cf_pack WV G.
+- : cprog (co_wapp WV _) (cs_wapp G) <- cf_wlam WV G.
+- : cprog (co_leta WV _) (cs_leta G) <- cf_hold WV G.
+- : cprog (co_letheart WV _) (cs_letheart G) <- cf_ch WV G.
+- : cprog (co_lift MOB WV _) (cs_lift CM) <- cmobmov MOB WV CM.
+- : cprog (co_go WV _) (cs_go G) <- cf_const WV G.
+
+% preservation
+cpresv : cof C W ->
+         cstep W C  W' C' ->
+         cof C' W' ->
+         type.
+%mode cpresv +COF +CSTEP -COF'.
+
+- : cpresv co_halt cs_halt co_halt.
+- : cpresv (co_go WV WC) (cs_go G) WC.
+- : cpresv (co_fst WV WC) (cs_fst G) (WC _ WV1) <- ci_pair WV G WV1 _.
+- : cpresv (co_snd WV WC) (cs_snd G) (WC _ WV2) <- ci_pair WV G _ WV2.
+- : cpresv (co_call WVF WVA) (cs_call G) (WC _ WVA) <- ci_lam WVF G WC.
+- : cpresv (co_wapp WV WC : cof (cwapp _ W' _) W) (cs_wapp G) (WC _ (WV' W')) 
+ <- ci_wlam WV G WV'.
+- : cpresv (co_unpack WV WC) (cs_unpack (G : cget_pack _ _ W' V)) (WC W' V WV') 
+ <- ci_pack WV G WV'.
+- : cpresv (co_leta WA WC) (cs_leta G) (WC _ WV) <- ci_hold WA G WV.
+- : cpresv (co_lift MOB WV WC) (cs_lift CM) (WC _ WVV) <- cmomo CM WV WVV.
+- : cpresv (co_letheart WV WC) (cs_letheart G) (WC _ WVV) <- ci_ch WV G WVV.
+- : cpresv (co_localhost WC) cs_localhost (WC _ cov_const).
+- : cpresv (co_mkpair WV1 WV2 WC) cs_mkpair (WC _ (cov_pair WV1 WV2)).
+
+%worlds (blockw) 
+           (cf_pair _ _) 
+           (cf_hold _ _)
+           (cf_lam _ _)
+           (cf_wlam _ _)
+           (cf_const _ _)
+           (cf_pack _ _)
+           (cf_ch _ _)
+           (ci_hold _ _ _)
+           (ci_pair _ _ _ _)
+           (ci_lam _ _ _)
+           (ci_wlam _ _ _)
+           (ci_pack _ _ _)
+           (ci_ch _ _ _)
+           (cmobmov _ _ _)
+           (cmomo _ _ _)
+           (cprog _ _)
+           (cpresv _ _ _).
+
+%total D (cmomo D _ _).
+%total D (cmobmov D _ _).
+%total D (ci_ch D _ _).
+%total D (ci_hold D _ _).
+%total D (ci_pack D _ _).
+%total D (ci_pair D _ _ _).
+%total D (ci_lam D _ _).
+%total D (ci_wlam D _ _).
+%total D (cf_pack D _).
+%total D (cf_pair D _).
+%total D (cf_ch D _).
+%total D (cf_hold D _).
+%total D (cf_lam D _).
+%total D (cf_wlam D _).
+%total D (cf_const D _).
+%total D (cprog D _).
+%total D (cpresv _ D _).
