@@ -137,11 +137,22 @@ ttoct_gimme : {A:typ} {A':ctyp} ttoct A A' -> type.
 - : ttoct_gimme (exists A) _ (ttoct/exists CT)
 	  <- ({w} ttoct_gimme (A w) (A' w) (CT w)).
 
+- : ttoct_gimme unit cunit ttoct/unit.
+
+- : ttoct_gimme (circ A) ((cheart A') ccont ccont) (ttoct/circ CT)
+          <- ttoct_gimme A A' CT.
+
 
 ttoct_gimme_at : {W:world} {A:typ} {A':ctyp} ttoct (A at W) (A' cat W) -> type.
 %mode ttoct_gimme_at +W +A -A' -D.
 
-ttoct_gimme_at_ : ttoct_gimme_at W A A' (ttoct/at D) <- ttoct_gimme A A' D.
+- : ttoct_gimme_at W A A' (ttoct/at D) <- ttoct_gimme A A' D.
+
+
+ttoct_gimme_cir : {A:typ} {A':ctyp} ttoct (circ A) ((cheart A') ccont ccont) -> type.
+%mode ttoct_gimme_cir +A -A' -D.
+
+- : ttoct_gimme_cir A A' (ttoct/circ D) <- ttoct_gimme A A' D.
 
 
 %worlds (blockw) (ttoct_fun _ _ _) (ceqtyp_& _ _ _) (ceqtyp_cont _ _) (ceqtyp_at _ _ _)
@@ -226,10 +237,10 @@ tocpsv+ : {WV  : ofv V A W}
 %mode tocpsv+ +WV +CT -WCV.
 %mode tocpsv- +WV -CT -WCV.
 
-tocpsvv- : {WV : ofvv V A}
-           {CT : ttoct A CA}
-           {WCV : cofvv CV CA}
-           type.
+% tocpsvv- : {WV : ofvv V A}
+%            {CT : ttoct A CA}
+%            {WCV : cofvv CV CA}
+%            type.
 % tocpsvv+ : {WV : ofvv V A}
 %            {CT : ttoct A CA}
 %            {WCV : cofvv CV CA}
@@ -347,10 +358,27 @@ c_get : tocps- (get W MA M) (ofget MOB WMA WM) CT _
 				% and go back...
 				co_go (cov_valid wuh) (wc (cvalid um) (cov_valid wum))))))
 
-%     <- ttoct_gimme A A' CT
      <- tocps- MA WMA CTaddr _ FMA
      <- tocps- M WM CT _ FM
      <- cmobmob CT MOB CMOB.
+
+c_letc : tocps- (letc M N) (cirE WM WN) CTN _
+	  ([c][wc]
+	     FM _ ([v][wv]
+		     co_call wv (cov_lam [x][wx] 
+				   co_letheart wx [u][wu]
+				   FN u wu c wc)))
+		     
+      <- ttoct_gimme_cir A A' (ttoct/circ CTM)
+      <- tocps+ M WM (ttoct/circ CTM) _ FM
+
+      <- ttoct_gimme B B' CTN
+      <- ( {x}{xof : ofvv x A}
+	   {x'}{x'of : cofvv x' A'}
+	   {thm:tocpsvv- xof CTM x'of}
+
+	  tocps+ (N x) (WN x xof) CTN (CC x') (FN x' x'of)).
+
 
 cv_pair : tocpsv- (&Iv WV1 WV2) (ttoct/& CT1 CT2)  (cov_pair WV1' WV2')
        <- tocpsv- WV1 CT1 WV1'
@@ -420,7 +448,7 @@ cvv_ : tocpsvv- (vvI WV) CT  (covv WV')
     <- ({w}
 	tocpsv- (WV w) CT  (WV' w)).
 
-%worlds (blockw | blockcvar | blockwcv) 
+%worlds (blockw | blockcvar | blockwcv | blockcvvar) 
                    (tocps+ _ _ _ _ _)
                    (tocps- _ _ _ _ _)
                    (tocpsv+ _ _ _)
@@ -429,6 +457,7 @@ cvv_ : tocpsvv- (vvI WV) CT  (covv WV')
                    (cofv_resp _ _ _)
                    (ttoct_gimme _ _ _)
                    (ttoct_gimme_at _ _ _ _)
+                   (ttoct_gimme_cir _ _ _)
                    (cmobmob _ _ _)
                    (k_resp _ _ _).
 
@@ -441,3 +470,5 @@ cvv_ : tocpsvv- (vvI WV) CT  (covv WV')
 
 %covers tocps+ +M +WM +CT -CC -K.
 %covers tocps- +M +WM -CT -CC -K.
+
+%total (B A C D) (tocpsv+ B _ _ _ _ _).

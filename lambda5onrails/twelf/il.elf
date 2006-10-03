@@ -32,7 +32,7 @@ unit : typ.
 % val : type.
 % valid expressions 
 vexp : type.
-vval : type.
+% vval : type.
 
 % a valid value is a suspended value
 % that can be used at any static world.
@@ -123,7 +123,7 @@ of : exp -> typ -> world -> type.
 ofs : vexp -> typ -> world -> type.
 
 % x ~ t   as hypothesis
-ofvv : vval -> typ -> type.
+% ofvv : vval -> typ -> type.
 
 vvI : ({w} ofv (V w) A w) ->
        ofvv (vv V) A.

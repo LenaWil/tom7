@@ -10,8 +10,11 @@ world : type.                           %name world W w.
 typ : type.                             %name typ A a.
 exp : type.
 val : type.
+vval : type.
 
 ofv : val -> typ -> world -> type.
+ofvv : vval -> typ -> type.
+
 
 % %block blockv : some {W:world}{A:typ} block {v:val}{ov:ofv v A W}.
 
@@ -31,6 +34,11 @@ tocpsv- : {WV  : ofv V A W}
 	  {WCV : cofv CV CA W}
 	  type.
 
+tocpsvv- : {WV : ofvv V A}
+           {CT : ttoct A CA}
+           {WCV : cofvv CV CA}
+           type.
+
 
 
 % almost everything is done with respect to hypothetical worlds
@@ -47,6 +55,11 @@ tocpsv- : {WV  : ofv V A W}
 	       {x'}{x'of : cofv x' A' W}
                % how to convert it
 	       {thm:tocpsv- xof CTA x'of}.
+%block blockcvvar :
+	      some {A : typ} {A' : ctyp} {CTA : ttoct A A'}
+	      block {x}{xof : ofvv x A}
+		    {x'}{x'of : cofvv x' A'}
+		    {thm:tocpsvv- xof CTA x'of}.
 
 % Since we end up having to make worlds declarations for like cexp, we
 % need these.
