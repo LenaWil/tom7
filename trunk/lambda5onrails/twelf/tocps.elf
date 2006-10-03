@@ -61,6 +61,21 @@ ttoct/& : ttoct (A & B) (A' c& B') <- ttoct B B' <- ttoct A A'.
 %worlds (blockw) (ttoct _ _).
 %total D (ttoct D _).
 
+% type translation preserves mobility.
+cmobmob : ttoct A A' -> mobile A -> cmobile A' -> type.
+%mode cmobmob +T +M -CM. 
+
+- : cmobmob _ atM cmob_at.
+- : cmobmob _ addrM cmob_addr.
+- : cmobmob (ttoct/& A B) (&M AM BM) (cmob_& ACM BCM)
+ <- cmobmob A AM ACM
+ <- cmobmob B BM BCM.
+- : cmobmob (ttoct/all A) (allM MOB) (cmob_all MOBC)
+ <- ({w} cmobmob (A w) (MOB w) (MOBC w)).
+- : cmobmob (ttoct/exists A) (existsM MOB) (cmob_exists MOBC)
+ <- ({w} cmobmob (A w) (MOB w) (MOBC w)).
+
+
 % it has to have unique outputs.
 ttoct_fun : ttoct A A' -> ttoct A A'' -> ceqtyp A' A'' -> type.
 %mode ttoct_fun +X +Y -Z.
@@ -206,6 +221,17 @@ tocpsv+ : {WV  : ofv V A W}
 %mode tocpsv+ +WV +CT -WCV.
 %mode tocpsv- +WV -CT -WCV.
 
+tocpsvv- : {WV : ofvv V A}
+           {CT : ttoct A CA}
+           {WCV : cofvv CV CA}
+           type.
+% tocpsvv+ : {WV : ofvv V A}
+%            {CT : ttoct A CA}
+%            {WCV : cofvv CV CA}
+%            type.
+%mode tocpsvv- +WV -CT -WCV.
+% %mode tocpsvv+ +WV +CT -WCV.
+
 tocpsv+/- : tocpsv+ WV CTi WCV'
 	 <- tocpsv- WV CTo WCV
 	 <- ttoct_fun CTo CTi EQ
@@ -219,7 +245,6 @@ cv_pair : tocpsv- (&Iv WV1 WV2) (ttoct/& CT1 CT2)  (cov_pair WV1' WV2')
 
 cv_hold : tocpsv- (atI WV) (ttoct/at CT)  (cov_hold WV')
 	   <- tocpsv- WV CT WV'.
-
 
 % this is essentially the crux of continuation *passing* style
 cv_lam : tocpsv- ((=>I WM) : ofv (lam M) (A => B) W) (ttoct/=> CTA CTB)
@@ -254,14 +279,46 @@ cv_pack : tocpsv- (existsI A WV) (ttoct/exists CT)  (cov_pack A' WV')
 	  <- ({w} ttoct_gimme (A w) (A' w) (CT w))
           <- (tocpsv+ WV (CT W') WV').
 
+cv_vvalid : tocpsv- (ofvvalid WVV) CT  (cov_valid WVV')
+	 <- tocpsvv- WVV CT  WVV'.
+
+cv_cirV : tocpsv- (cirI (ofscval WVV))  (ttoct/circ CTA)
+	   (cov_lam [k][wk]
+	      co_call wk (cov_ch WVV'))
+       <- tocpsvv- WVV CTA WVV'.
+
+% F : {v:cval} {wv:cofv v A' W} {c:cval -> cexp} ({v1:cval} cofv v1 A2 W1 -> cof (c v1) W1) -> 
+%      cof (C1 v wv c) W1
+
+
+cv_cirM : tocpsv- (cirI (ofsmobc MOB WM))  (ttoct/circ CTA)
+	   (cov_lam [k][wk]
+	      F _ ([cv'][wcv']
+		     co_lift CMOB wcv' [vv][wvv]
+		       co_call wk (cov_ch wvv)))
+       <- (% {x}{wx : cofv x A' W}
+	     tocps- _ WM CTA _ F)
+       <- cmobmob CTA MOB CMOB.
+
+
+cvv_ : tocpsvv- (vvI WV) CT  (covv WV')
+    <- ({w}
+	tocpsv- (WV w) CT  (WV' w)).
+
 %worlds (blockw | blockcvar | blockwcv) 
                    (tocps+ _ _ _ _ _)
                    (tocps- _ _ _ _ _)
                    (tocpsv+ _ _ _)
                    (tocpsv- _ _ _)
+                   (tocpsvv- _ _ _)
                    (cofv_resp _ _ _)
                    (ttoct_gimme _ _ _)
+                   (cmobmob _ _ _)
                    (k_resp _ _ _).
+
+%total D (cmobmob _ D _).
+
+%covers tocpsvv- +A -B -C.
 
 %covers tocpsv- +A -B -C.
 %covers tocpsv+ +A +B -C.
