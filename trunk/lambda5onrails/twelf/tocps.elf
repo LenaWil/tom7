@@ -358,8 +358,9 @@ c_get : tocps- (get W MA M) (ofget MOB WMA WM) CT _
 				% and go back...
 				co_go (cov_valid wuh) (wc (cvalid um) (cov_valid wum))))))
 
-     <- tocps- MA WMA CTaddr _ FMA
-     <- tocps- M WM CT _ FM
+     <- ttoct_gimme A A' CT
+     <- tocps+ MA WMA ttoct/addr _ FMA
+     <- tocps+ M WM CT _ FM
      <- cmobmob CT MOB CMOB.
 
 c_letc : tocps- (letc M N) (cirE WM WN) CTN _
@@ -445,8 +446,9 @@ cv_cirM : tocpsv- (cirI (ofsmobc MOB WM))  (ttoct/circ CTA)
 
 
 cvv_ : tocpsvv- (vvI WV) CT  (covv WV')
+    <- ttoct_gimme A A' CT
     <- ({w}
-	tocpsv- (WV w) CT  (WV' w)).
+	tocpsv+ (WV w) CT  (WV' w)).
 
 %worlds (blockw | blockcvar | blockwcv | blockcvvar) 
                    (tocps+ _ _ _ _ _)
@@ -471,4 +473,12 @@ cvv_ : tocpsvv- (vvI WV) CT  (covv WV')
 %covers tocps+ +M +WM +CT -CC -K.
 %covers tocps- +M +WM -CT -CC -K.
 
-%total (B A C D) (tocpsv+ B _ _ _ _ _).
+%total A (cofv_resp _ A _).
+%total A (k_resp _ A _).
+%total A (ttoct_gimme A _ _).
+%total A (ttoct_gimme_at _ A _ _).
+%total A (ttoct_gimme_cir A _ _).
+
+%total (A B C D E) 
+                   (tocpsv- A _ _) (tocpsv+ B _ _) (tocps- _ C _ _ _) (tocps+ _ D _ _ _)
+                   (tocpsvv- E _ _).
