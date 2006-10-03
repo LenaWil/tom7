@@ -138,6 +138,11 @@ ttoct_gimme : {A:typ} {A':ctyp} ttoct A A' -> type.
 	  <- ({w} ttoct_gimme (A w) (A' w) (CT w)).
 
 
+ttoct_gimme_at : {W:world} {A:typ} {A':ctyp} ttoct (A at W) (A' cat W) -> type.
+%mode ttoct_gimme_at +W +A -A' -D.
+
+ttoct_gimme_at_ : ttoct_gimme_at W A A' (ttoct/at D) <- ttoct_gimme A A' D.
+
 
 %worlds (blockw) (ttoct_fun _ _ _) (ceqtyp_& _ _ _) (ceqtyp_cont _ _) (ceqtyp_at _ _ _)
                  (ceqtyp_all _ _) (ceqtyp_exists _ _) (ceqtyp_heart _ _).
@@ -237,6 +242,116 @@ tocpsv+/- : tocpsv+ WV CTi WCV'
 	 <- ttoct_fun CTo CTi EQ
 	 <- cofv_resp WCV EQ WCV'.
 
+c_val : tocps- (value V) (ofvalue WV) CT _ ([c][wc] wc CV WCV)
+	  <- tocpsv- WV CT WCV.
+
+c_mkpair : tocps- (mkpair M1 M2) (&I WM1 WM2) (ttoct/& CT1 CT2) _
+	      ([c][wc] 
+		  F2 _ ([v2][wv2]
+			  F1 _ ([v1][wv1]
+				 co_mkpair wv1 wv2 wc)))
+	<- tocps- M1 WM1 CT1 _ F1
+	<- tocps- M2 WM2 CT2 _ F2.
+
+c_fst : tocps- (fst M) (&E1 WM) CT _
+	      ([c][wc]
+		 F _ ([v][wv] co_fst wv wc))
+     <- tocps- M WM (ttoct/& CT _) _ F.
+
+
+c_snd : tocps- (snd M) (&E2 WM) CT _
+	      ([c][wc]
+		 F _ ([v][wv] co_snd wv wc))
+     <- tocps- M WM (ttoct/& _ CT) _ F.
+
+
+c_localhost : tocps- _ oflocalhost ttoct/addr _ ([c][wc] co_localhost wc).
+
+
+c_unpack : tocps- (unpack M N) (existsE WM WN) CTN _
+	      ([c][wc] 
+		 FM _ ([v][wv]
+			 co_unpack wv ([w][x][xof]
+					 FN w x xof c wc)))
+	<- ttoct_gimme (exists A) (cexists A') (ttoct/exists CTM)
+	<- tocps+ M WM (ttoct/exists CTM) _ FM
+	<- ttoct_gimme B B' CTN
+	<- ( {w}
+	     {x}{xof : ofv x (A w) W}
+	     {x'}{x'of : cofv x' (A' w) W}
+	     {thm: tocpsv- xof (CTM w) x'of}
+
+	    tocps+ (N w x) (WN w x xof) CTN (CC w x') (FN w x' x'of)).
+
+
+c_app : tocps- (app M N) (=>E WM WN) CTB _
+	   ([c][wc]
+	      % eval function, then argument
+	      FM _ ([f][wf]
+		      FN _ ([a][wa]
+			      % making argument of type A' c& (B ccont)
+			      co_mkpair wa (cov_lam ([r][wr] wc r wr)) [p][wp]
+			      co_call wf wp)))
+       <- ttoct_gimme (A => B) (A' c& (B' ccont) ccont) (ttoct/=> CTA CTB)
+       <- tocps+ M WM (ttoct/=> CTA CTB) _ FM
+       <- tocps+ N WN CTA _ FN.
+
+
+c_wapp : tocps- (wapp M W') (allE WM) (CTM W') _ 
+	    ([c][wc]
+	       FM _ ([v][wv]
+		       co_wapp wv wc))
+	<- ttoct_gimme (all A) (call A') (ttoct/all CTM)
+	<- tocps+ M WM (ttoct/all CTM) _ FM.
+
+c_leta : tocps- (leta M N) (atE (WM : of M (A at W') W) WN) CTN _ 
+	    ([c][wc] 
+	       FM _ ([v][wv]
+		       co_leta wv ([x][xof] FN x xof c wc)))
+      <- ttoct_gimme_at W' A A' (ttoct/at CTA)
+      <- tocps+ M WM (ttoct/at CTA) _ FM
+      <- ttoct_gimme B B' CTN
+      <- ( {x}{xof : ofv x A _}
+	   {x'}{x'of : cofv x' A' _}
+	   {thm:tocpsv- xof CTA x'of}
+
+	  tocps+ (N x) (WN x xof) CTN (CC x') (FN x' x'of)).
+
+% we just translate away lets
+c_let : tocps- (let M N) (oflet WM WN) CTN _
+          ([c][wc] FM _ ([v][wv] FN v wv c wc))
+
+     <- ttoct_gimme A A' CTM
+     <- tocps+ M WM CTM _ FM
+     <- ttoct_gimme B B' CTN
+     <- ( {x}{xof : ofv x A _}
+	  {x'}{x'of : cofv x' A' _}
+	  {thm:tocpsv- xof CTM x'of}
+
+	 tocps+ (N x) (WN x xof) CTN (CC x') (FN x' x'of)).
+
+% interesting
+c_get : tocps- (get W MA M) (ofget MOB WMA WM) CT _
+	 ([c][wc]
+	    % eval remote addr
+	    FMA _ ([a][wa]
+		     % get our addr
+		     co_localhost [h][wh]
+		     % make it valid
+		     co_lift cmob_addr wh [uh][wuh]
+		     % head on over...
+		     co_go wa 
+		       (FM _ ([m][wm]
+				% make result valid
+				co_lift CMOB wm [um][wum]
+				% and go back...
+				co_go (cov_valid wuh) (wc (cvalid um) (cov_valid wum))))))
+
+%     <- ttoct_gimme A A' CT
+     <- tocps- MA WMA CTaddr _ FMA
+     <- tocps- M WM CT _ FM
+     <- cmobmob CT MOB CMOB.
+
 cv_pair : tocpsv- (&Iv WV1 WV2) (ttoct/& CT1 CT2)  (cov_pair WV1' WV2')
        <- tocpsv- WV1 CT1 WV1'
        <- tocpsv- WV2 CT2 WV2'.
@@ -313,6 +428,7 @@ cvv_ : tocpsvv- (vvI WV) CT  (covv WV')
                    (tocpsvv- _ _ _)
                    (cofv_resp _ _ _)
                    (ttoct_gimme _ _ _)
+                   (ttoct_gimme_at _ _ _ _)
                    (cmobmob _ _ _)
                    (k_resp _ _ _).
 
