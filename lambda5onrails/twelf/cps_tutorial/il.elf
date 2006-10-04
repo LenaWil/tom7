@@ -1,7 +1,5 @@
 typ : type.                             %name typ A a.
 
-%%% Natural deduction with hybrids and quantification
-
 =>  : typ -> typ -> typ.                %infix right 8 =>.
 & : typ -> typ -> typ.                  %infix none 9 &.
 unit : typ.

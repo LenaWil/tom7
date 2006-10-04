@@ -1,24 +1,21 @@
 
-% The ML5 CPS language, its static and dynamic semantics,
-% and its proof of safety.
+%% CPS language
 
 cexp : type.    %name cexp C c.
 ctyp : type.    %name ctyp A a.
 cval : type.    %name cval V v.
 
 
-% since this is unary, we'll use iterated tuples and
-% unit to implement multi-arg functions.
+
 ccont  : ctyp -> ctyp.                      %postfix 8 ccont.
-c& : ctyp -> ctyp -> ctyp.                 %infix none 9 c&.
-% representation for a world
-cunit : ctyp.
+c&     : ctyp -> ctyp -> ctyp.              %infix none 9 c&.
+cunit  : ctyp.
 
 
 % continuation expressions
 cmkpair : cval -> cval -> (cval -> cexp) -> cexp.
-cfst : cval -> (cval -> cexp) -> cexp.
-csnd : cval -> (cval -> cexp) -> cexp.
+cfst    : cval -> (cval -> cexp) -> cexp.
+csnd    : cval -> (cval -> cexp) -> cexp.
 
 % continuations can end with a call to a function
 ccall : cval -> cval -> cexp.
@@ -27,19 +24,19 @@ chalt : cexp.
 
 % continuation values
 cpair : cval -> cval -> cval.
-clam : (cval -> cexp) -> cval.
-c1 : cval.
+clam  : (cval -> cexp) -> cval.
+c1    : cval.
 
 
-% ################
-% Static Semantics
-% ################
 
-% Well-formed continuation expressions
+%% CPS Static Semantics
+
+
+% |- c ok
 cof : cexp -> type.              %name cof WC wc.
 %mode cof *C.
 
-% values and valid values
+% |- cv : A
 cofv : cval -> ctyp -> type.     %name cofv WV wv.
 %mode cofv *A *B.
 
@@ -70,7 +67,7 @@ cov_pair : cofv V1 A ->
            cofv (cpair V1 V2) (A c& B).
 
 cov_lam : ({x} cofv x A ->
-               cof (M x)) ->
-          cofv (clam M) (A ccont).
+               cof (C x)) ->
+          cofv (clam C) (A ccont).
 
 
