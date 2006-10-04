@@ -10,26 +10,26 @@ ceqtyp_ : ceqtyp A A.
 
 % equality is preserved under constructors
 ceqtyp_& : ceqtyp A A' -> ceqtyp B B' -> ceqtyp (A c& B) (A' c& B') -> type.
-- : ceqtyp_& ceqtyp_ ceqtyp_ ceqtyp_.
 %mode ceqtyp_& +A +B -C.
+- : ceqtyp_& ceqtyp_ ceqtyp_ ceqtyp_.
 
 ceqtyp_cont : ceqtyp A A' -> ceqtyp (A ccont) (A' ccont) -> type.
-- : ceqtyp_cont ceqtyp_ ceqtyp_.
 %mode ceqtyp_cont +A -C.
+- : ceqtyp_cont ceqtyp_ ceqtyp_.
 
 cofv_resp : cofv C A -> ceqtyp A A' -> cofv C A' -> type.
 %mode cofv_resp +COF +EQ -COF'.
-
-cofv_resp_ : cofv_resp D ceqtyp_ D.
+- : cofv_resp D ceqtyp_ D.
 
 
 
 % convert an IL type to a CPS type.
-% ttoct : typ -> ctyp -> type.                      %name ttoct TTOCT ttoct.
+ttoct : typ -> ctyp -> type.                      %name ttoct TTOCT ttoct.
 %mode ttoct +T -CT.
 
 
-ttoct/=> : ttoct (A => B) ((A' c& (B' ccont)) ccont) <- ttoct B B' <- ttoct A A'.
+ttoct/=> : ttoct (A => B) ((A' c& (B' ccont)) ccont) 
+	     <- ttoct B B' <- ttoct A A'.
 ttoct/unit : ttoct unit cunit.
 ttoct/& : ttoct (A & B) (A' c& B') <- ttoct B B' <- ttoct A A'.
 
@@ -47,11 +47,11 @@ ttoct_fun : ttoct A A' -> ttoct A A'' -> ceqtyp A' A'' -> type.
  <- ceqtyp_& EQ1 EQ2 OUT.
 
 - : ttoct_fun (ttoct/=> A B) (ttoct/=> C D) OUT
-    <- ttoct_fun A C EQ1
-    <- ttoct_fun B D EQ2
-    <- ceqtyp_cont EQ2 EQ3
-    <- ceqtyp_& EQ1 EQ3 EQ4
-    <- ceqtyp_cont EQ4 OUT.
+ <- ttoct_fun A C EQ1
+ <- ttoct_fun B D EQ2
+ <- ceqtyp_cont EQ2 EQ3
+ <- ceqtyp_& EQ1 EQ3 EQ4
+ <- ceqtyp_cont EQ4 OUT.
 
 - : ttoct_fun ttoct/unit ttoct/unit ceqtyp_.
 
@@ -60,12 +60,12 @@ ttoct_gimme : {A:typ} {A':ctyp} ttoct A A' -> type.
 %mode ttoct_gimme +A -A' -D.
 
 - : ttoct_gimme (A & B) _ (ttoct/& CT1 CT2)
-          <- ttoct_gimme A A' CT1
-          <- ttoct_gimme B B' CT2.
+ <- ttoct_gimme A A' CT1
+ <- ttoct_gimme B B' CT2.
 
 - : ttoct_gimme (A => B) _ (ttoct/=> CT1 CT2)
-          <- ttoct_gimme A A' CT1
-          <- ttoct_gimme B B' CT2.
+ <- ttoct_gimme A A' CT1
+ <- ttoct_gimme B B' CT2.
 
 - : ttoct_gimme unit cunit ttoct/unit.
 
@@ -144,6 +144,11 @@ tocpsv+ : {WV  : ofv V A}
 	  {WCV : cofv CV CA}
 	  type.
 %mode tocpsv+ +WV +CT -WCV.
+
+tocpsv- : {WV  : ofv V A}
+	  {CT  : ttoct A CA}
+	  {WCV : cofv CV CA}
+	  type.
 %mode tocpsv- +WV -CT -WCV.
 
 tocpsv+/- : tocpsv+ WV CTi WCV'
@@ -152,7 +157,7 @@ tocpsv+/- : tocpsv+ WV CTi WCV'
 	 <- cofv_resp WCV EQ WCV'.
 
 c_val : tocps- (value V) (ofvalue WV) CT _ ([c][wc] wc CV WCV)
-	  <- tocpsv- WV CT WCV.
+     <- tocpsv- WV CT WCV.
 
 c_mkpair : tocps- (mkpair M1 M2) (&I WM1 WM2) (ttoct/& CT1 CT2) _
 	      ([c][wc] 
@@ -183,9 +188,9 @@ c_app : tocps- (app M N) (=>E WM WN) CTB _
 			      % making argument of type A' c& (B ccont)
 			      co_mkpair wa (cov_lam ([r][wr] wc r wr)) [p][wp]
 			      co_call wf wp)))
-       <- ttoct_gimme (A => B) (A' c& (B' ccont) ccont) (ttoct/=> CTA CTB)
-       <- tocps+ M WM (ttoct/=> CTA CTB) _ FM
-       <- tocps+ N WN CTA _ FN.
+     <- ttoct_gimme (A => B) (A' c& (B' ccont) ccont) (ttoct/=> CTA CTB)
+     <- tocps+ M WM (ttoct/=> CTA CTB) _ FM
+     <- tocps+ N WN CTA _ FN.
 
 
 % we just translate away lets
@@ -211,8 +216,7 @@ cv_lam : tocpsv- ((=>I WM) : ofv (lam M) (A => B)) (ttoct/=> CTA CTB)
 	     co_fst argof [x:cval][xof:cofv x A']
 	     co_snd argof [r:cval][rof:cofv r (B' ccont)]
 	     F x xof r rof ([v:cval] ccall r v) 
-	        ([v:cval][wv:cofv v B'] co_call rof wv)
-	     )
+	        ([v:cval][wv:cofv v B'] co_call rof wv))
     <- ttoct_gimme A A' CTA
     <- ttoct_gimme B B' CTB
     <- (% original argument
@@ -222,11 +226,36 @@ cv_lam : tocpsv- ((=>I WM) : ofv (lam M) (A => B)) (ttoct/=> CTA CTB)
 	{thm:tocpsv- xof CTA x'of}
 
 	% (object language) return continuation
-        {r}{rof : cofv r (B' ccont)}
+	{r}{rof : cofv r (B' ccont)}
 
 	  tocps+ (M x) (WM x xof) CTB (CC x' r) (F x' x'of r rof)).
 
 cv_unit : tocpsv- unitI ttoct/unit cov_unit.
+
+
+% when descending under a binding in the source language,
+% we'll assume that the variable can be translated to a cps
+% variable
+%block blockcvar : 
+	      some {A : typ} {A' : ctyp} {CTA : ttoct A A'}
+	      block
+	       {x}{xof : ofv x A}
+	       {x'}{x'of : cofv x' A'}
+               % how to convert it
+	       {thm:tocpsv- xof CTA x'of}.
+
+% Since we end up having to make worlds declarations for like cexp, we
+% need these.
+%block blockcv : block {v : cval}.
+
+%block blockwcv :
+             some {CA : ctyp}
+             block {r}{rof : cofv r CA}.
+
+%worlds (blockcv) (cval) (cexp).
+
+%worlds (blockwcv) (cofv _ _) (cof _).
+
 
 %worlds (blockcvar | blockwcv) 
                    (tocps+ _ _ _ _ _)
@@ -248,4 +277,7 @@ cv_unit : tocpsv- unitI ttoct/unit cov_unit.
 %total A (ttoct_gimme A _ _).
 
 %total (A B C D) 
-                   (tocpsv- A _ _) (tocpsv+ B _ _) (tocps- _ C _ _ _) (tocps+ _ D _ _ _).
+          (tocpsv- A _ _) 
+          (tocpsv+ B _ _) 
+          (tocps- _ C _ _ _) 
+          (tocps+ _ D _ _ _).

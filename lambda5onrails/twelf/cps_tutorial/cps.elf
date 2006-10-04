@@ -3,8 +3,9 @@
 % and its proof of safety.
 
 cexp : type.    %name cexp C c.
-% cval : type.    %name cval V v.
-% ctyp : type.    %name ctyp A a.
+ctyp : type.    %name ctyp A a.
+cval : type.    %name cval V v.
+
 
 % since this is unary, we'll use iterated tuples and
 % unit to implement multi-arg functions.
@@ -39,7 +40,7 @@ cof : cexp -> type.              %name cof WC wc.
 %mode cof *C.
 
 % values and valid values
-% cofv : cval -> ctyp -> type.     %name cofv WV wv.
+cofv : cval -> ctyp -> type.     %name cofv WV wv.
 %mode cofv *A *B.
 
 co_halt : cof chalt.
@@ -72,9 +73,4 @@ cov_lam : ({x} cofv x A ->
                cof (M x)) ->
           cofv (clam M) (A ccont).
 
-% XXX false
-% These are required because of overconservativity of world subsumption (I think) in TOCPS.
-% This is our last chance to declare worlds before they are auto-frozen.
-%worlds (blockcv) (cval) (cexp).
 
-%worlds (blockwcv) (cofv _ _) (cof _).

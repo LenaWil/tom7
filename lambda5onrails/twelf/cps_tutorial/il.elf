@@ -1,16 +1,15 @@
-
-% typ : type.
+typ : type.                             %name typ A a.
 
 %%% Natural deduction with hybrids and quantification
 
-=>  : typ -> typ -> typ.               %infix right 8 =>.
-& : typ -> typ -> typ.                 %infix none 9 &.
+=>  : typ -> typ -> typ.                %infix right 8 =>.
+& : typ -> typ -> typ.                  %infix none 9 &.
 unit : typ.
 
 %% expressions
 
-% exp : type.
-% val : type.
+exp : type.
+val : type.
 
 % values are expressions, too.
 value : val -> exp.
@@ -33,8 +32,8 @@ let : exp -> (val -> exp) -> exp.
 
 % |- e : t
 of : exp -> typ -> type.
-% ofv : val -> typ -> type.
-
+% |- v : t
+ofv : val -> typ -> type.
 
 % containments
 ofvalue : of (value V) A <- ofv V A.
@@ -72,3 +71,4 @@ oflet :
      ({y:val}{ofy : ofv y A}
         of (N y) C) ->
      of (let M N) C.
+
