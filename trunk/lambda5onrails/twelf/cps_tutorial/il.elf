@@ -1,0 +1,141 @@
+
+% typ : type.
+
+%%% Natural deduction with hybrids and quantification
+
+at  : typ -> world -> typ.             %infix none 2 at.
+=>  : typ -> typ -> typ.               %infix right 8 =>.
+all : (world -> typ) -> typ.
+exists : (world -> typ) -> typ.
+& : typ -> typ -> typ.                 %infix none 9 &.
+circ : typ -> typ.
+% representation for a world
+% blocks.elf
+addr : world -> typ.
+unit : typ.
+
+%% expressions
+
+% exp : type.
+% val : type.
+
+% values are expressions, too.
+value : val -> exp.
+
+hold : val -> val.
+
+lam : (val -> exp) -> val.
+app : exp -> exp -> exp.
+mkpair : exp -> exp -> exp.
+pair : val -> val -> val.
+fst : exp -> exp.
+snd : exp -> exp.
+wlam : (world -> val) -> val.
+% XXX probably could be value
+wapp : exp -> world -> exp.
+const : world -> val.
+1 : val.
+
+pack : world -> val -> val.
+unpack : exp -> (world -> val -> exp) -> exp.
+
+% could be a derived form for an in-place
+% application, but it is much more convenient
+% to generate these in the translation and
+% quite easy to implement in this language
+let : exp -> (val -> exp) -> exp.
+
+localhost : exp.
+
+% eliminate 'at'
+leta : exp -> (val -> exp) -> exp.
+
+
+%% typing judgments for expressions
+
+% the mobility judgment tells us when
+% we can move a value of that type
+% efficiently with 'get'
+
+mobile : typ -> type.
+%mode mobile *A.
+
+addrM : mobile (addr W).
+atM  : mobile (A at W).
+&M   :  mobile A -> mobile B -> 
+        mobile (A & B).
+allM : ({w} mobile (A w)) ->
+       mobile (all [w] A w).
+existsM : ({w} mobile (A w)) ->
+          mobile (exists [w] A w).
+
+% |- e : t @ w
+of : exp -> typ -> world -> type.
+% ofv : val -> typ -> world -> type.
+
+
+% containments
+ofvalue : of (value V) A W <- ofv V A W.
+
+oflocalhost : of localhost (addr W) W.
+
+addrI : ofv (const W) (addr W) W'.
+
+existsI :  {A:world -> typ} % often need this annotation for Twelf's sake
+           ofv V (A W') W ->
+           ofv (pack W' V) (exists [w] A w) W.
+
+existsE : 
+     of M (exists A) W ->
+     ({w:world}{v:val} ofv v (A w) W ->
+       of (N w v) C W) ->
+     of (unpack M N) C W.
+
+atI : ofv (hold V) (A at W') W
+     <- ofv V A W'.
+
+atE : 
+     of M (A at W') W ->
+     ({v:val} ofv v A W' ->
+       of (N v) C W) ->
+     of (leta M N) C W.
+
+unitI : ofv 1 unit W.
+
+=>I : ofv (lam [x:val] M x) (A => B) W
+     <- ({x:val} ofv x A W ->
+                 of (M x) B W).
+
+=>E : 
+      of M1 (A => B) W ->
+      of M2 A W ->
+      of (app M1 M2) B W.
+
+
+&Iv : 
+       ofv V1 A W ->
+       ofv V2 B W ->
+       ofv (pair V1 V2) (A & B) W.
+
+&I : 
+     of M1 A W ->
+     of M2 B W ->
+     of (mkpair M1 M2) (A & B) W.
+
+&E1 : of (fst M) A W
+     <- of M (A & B) W.
+
+&E2 : of (snd M) B W
+     <- of M (A & B) W.
+
+allI : ofv (wlam [w] M w) (all [w] A w) W
+     <- ({w:world} ofv (M w) (A w) W).
+
+allE : of (wapp M W') (B W') W
+     <- of M (all [w] B w) W.
+
+oflet :
+     of M A W ->
+     ({y:val}{ofy : ofv y A W}
+        of (N y) C W) ->
+     of (let M N) C W.

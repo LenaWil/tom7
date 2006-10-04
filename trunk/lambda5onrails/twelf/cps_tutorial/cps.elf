@@ -1,0 +1,158 @@
+
+% The ML5 CPS language, its static and dynamic semantics,
+% and its proof of safety.
+
+cexp : type.    %name cexp C c.
+% cval : type.    %name cval V v.
+% ctyp : type.    %name ctyp A a.
+
+cat  : ctyp -> world -> ctyp.             %infix none 2 cat.
+% since this is unary, we'll use iterated tuples and
+% unit to implement multi-arg functions.
+ccont  : ctyp -> ctyp.                      %postfix 8 ccont.
+call : (world -> ctyp) -> ctyp.
+cexists : (world -> ctyp) -> ctyp.
+c& : ctyp -> ctyp -> ctyp.                 %infix none 9 c&.
+% representation for a world
+caddr : world -> ctyp.
+cunit : ctyp.
+cheart : ctyp -> ctyp.
+
+
+% continuation expressions
+cmkpair : cval -> cval -> (cval -> cexp) -> cexp.
+cfst : cval -> (cval -> cexp) -> cexp.
+csnd : cval -> (cval -> cexp) -> cexp.
+clocalhost : (cval -> cexp) -> cexp.
+
+cleta : cval -> (cval -> cexp) -> cexp.
+
+% let is not necessary because of the natural let-style
+% of continuation exps
+cunpack : cval -> (world -> cval -> cexp) -> cexp.
+cwapp : cval -> world -> (cval -> cexp) -> cexp.
+
+% this is the translation of 'get'
+cgo : world -> cval -> cexp -> cexp.
+% continuations can end with a call to a function
+ccall : cval -> cval -> cexp.
+chalt : cexp.
+
+
+% continuation values
+cpair : cval -> cval -> cval.
+chold : world -> cval -> cval.
+clam : (cval -> cexp) -> cval.
+cconst : world -> cval.
+cwlam : (world -> cval) -> cval.
+cpack : world -> cval -> cval.
+c1 : cval.
+
+
+% need to redefine this, too
+cmobile : ctyp -> type.
+%mode cmobile *A.
+
+cmob_& : cmobile A -> cmobile B ->
+         cmobile (A c& B).
+
+cmob_addr : cmobile (caddr W).
+
+cmob_at : cmobile (A cat W).
+
+cmob_all : ({w} cmobile (A w)) ->
+           cmobile (call A).
+
+cmob_exists : ({w} cmobile (A w)) ->
+               cmobile (cexists A).
+
+% XXX could also include heart and unit,
+% but not necessary since they are not
+% mobile in the IL
+
+
+% ################
+% Static Semantics
+% ################
+
+% Well-formed continuation expressions
+cof : cexp -> world -> type.              %name cof WC wc.
+%mode cof *C *W.
+
+% values and valid values
+% cofv : cval -> ctyp -> world -> type.     %name cofv WV wv.
+%mode cofv *A *B *C.
+
+co_halt : cof chalt W.
+
+co_go : cofv VW (caddr W') W ->
+        cof C W' ->
+        cof (cgo W' VW C) W.
+
+co_leta : cofv V (A cat W') W ->
+          ({v} cofv v A W' ->
+            cof (N v) W) ->
+          cof (cleta V N) W.
+
+co_wapp : cofv V (call A) W ->
+          ({v} cofv v (A W') W ->
+             cof (N v) W) ->
+          cof (cwapp V W' N) W.
+
+co_unpack : 
+          cofv V (cexists A) W ->
+          ({w}{v} cofv v (A w) W ->
+              cof (N w v) W) ->
+          cof (cunpack V N) W.
+
+co_localhost : ({v} cofv v (caddr W) W -> 
+                    cof (K v) W) ->
+               cof (clocalhost K) W.
+
+co_mkpair :  cofv V1 A W ->
+             cofv V2 B W ->
+             ({v:cval} cofv v (A c& B) W -> 
+                cof (K v) W) ->
+             cof (cmkpair V1 V2 K) W.
+
+co_call : cofv F (A ccont) W ->
+          cofv V A W ->
+          cof (ccall F V) W.
+
+co_fst : cofv V (A c& B) W ->
+         ({v}{ov : cofv v A W} cof (C v) W) ->
+         cof (cfst V C) W.
+
+co_snd : cofv V (A c& B) W ->
+         ({v}{ov : cofv v B W} cof (C v) W) ->
+         cof (csnd V C) W.
+
+cov_unit : cofv c1 cunit W.
+
+cov_pair : cofv V1 A W ->
+           cofv V2 B W ->
+           cofv (cpair V1 V2) (A c& B) W.
+
+cov_hold : cofv V A W' ->
+           cofv (chold W' V) (A cat W') W.
+
+cov_lam : ({x} cofv x A W ->
+               cof (M x) W) ->
+          cofv (clam M) (A ccont) W.
+
+cov_const : cofv (cconst W) (caddr W) W'.
+
+cov_wlam : ({w} cofv (V w) (A w) W) ->
+           cofv (cwlam V) (call A) W.
+
+cov_pack : {A : world -> ctyp} % sometimes need this annotation
+           cofv V (A W') W -> 
+           cofv (cpack W' V) (cexists A) W.
+
+
+
+% These are required because of overconservativity of world subsumption (I think) in TOCPS.
+% This is our last chance to declare worlds before they are auto-frozen.
+%worlds (blockw | blockcv) (cval) (cexp).
+
+%worlds (blockw | blockwcv) (cofv _ _ _) (cof _ _) (cmobile _).
