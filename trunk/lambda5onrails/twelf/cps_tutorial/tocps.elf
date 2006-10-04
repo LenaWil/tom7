@@ -48,7 +48,7 @@ tocps- : {M  : exp}
 	       {wcv : cofv cv CA}
 	       cof (C cv)) ->
 	      % result of course can depend on C
-	      cof (CC C))}
+	      cof (CC C)}
 	 type.
 %mode tocps- +M +WM -CT -CC -K.
 
