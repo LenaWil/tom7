@@ -1,0 +1,508 @@
+'''CPS conversion''' is the process of translating a [[direct style]] calculus into a [[continuation passing style]] (CPS) one. This tutorial describes one way of formalizing CPS conversion in Twelf. It is an advanced tutorial because it relies on techniques described in other tutorials, such as [[reversing the polarity]].
+
+We will define a direct style lambda calculus and its static semantics, then a CPS language and its static semantics. We will then prove that any well-formed direct style expression can be translated into a well-formed CPS expression.
+
+== Direct style language ==
+
+We begin with a direct style lambda calculus with products, unit, and a <tt>let</tt> construct.
+
+<twelf>typ : type.                             %name typ A a.
+
+=>   : typ -> typ -> typ.               %infix right 8 =>.
+&    : typ -> typ -> typ.               %infix none 9 &.
+unit : typ.
+
+%% expressions
+
+exp : type.
+val : type.
+
+%% values are expressions, too.
+value  : val -> exp.
+
+lam    : (val -> exp) -> val.
+app    : exp -> exp -> exp.
+mkpair : exp -> exp -> exp.
+pair   : val -> val -> val.
+fst    : exp -> exp.
+snd    : exp -> exp.
+1      : val.
+let    : exp -> (val -> exp) -> exp.</twelf>
+
+Here we make a syntactic distinction between values (of LF type <tt>val</tt>) and expressions (<tt>exp</tt>). A constructor <tt>value</tt> injects syntactic values into expressions. It would also be possible to do a more [[extrinsic encoding]] of values by instead defining a judgment over expressions that defined the subset that are values. This encoding makes more facts explicit in the typing (for instance it is immediately evident that the calculus is call-by-value since lambdas expect values as arguments) which resists mistakes and saves us some lemmas. Note that we distinguish between the expression <tt>mkpair</tt> whose evaluation creates a pair and the value that results, <tt>pair</tt>.
+
+The typing rules for this language are straightforward:
+
+<twelf>% |- e : t
+of : exp -> typ -> type.
+% |- v : t
+ofv : val -> typ -> type.
+
+ofvalue : of (value V) A <- ofv V A.
+
+unitI : ofv 1 unit.
+
+=>I : ofv (lam [x:val] M x) (A => B)
+     <- ({x:val} ofv x A ->
+                 of (M x) B).
+
+=>E : 
+      of M1 (A => B) ->
+      of M2 A ->
+      of (app M1 M2) B.
+
+
+&Iv : 
+     ofv V1 A ->
+     ofv V2 B ->
+     ofv (pair V1 V2) (A & B).
+
+&I : 
+     of M1 A ->
+     of M2 B ->
+     of (mkpair M1 M2) (A & B).
+
+&E1 : of (fst M) A
+   <- of M (A & B).
+
+&E2 : of (snd M) B
+   <- of M (A & B).
+
+oflet :
+     of M A ->
+     ({y:val}{ofy : ofv y A}
+        of (N y) C) ->
+     of (let M N) C.</twelf>
+
+The type family <tt>of M A</tt> encodes the typing judgment ? {{vdash}} M : A, and <tt>ofv M A</tt> the judgment ? {{vdash}} v : A.
+
+== CPS language ==
+
+We then define the syntax of the CPS language that will be the target of CPS conversion:
+
+<twelf>
+%% CPS language
+
+cexp : type.    %name cexp C c.
+ctyp : type.    %name ctyp A a.
+cval : type.    %name cval V v.
+
+ccont  : ctyp -> ctyp.                      %postfix 8 ccont.
+c&     : ctyp -> ctyp -> ctyp.              %infix none 9 c&.
+cunit  : ctyp.
+
+
+% continuation expressions
+cmkpair : cval -> cval -> (cval -> cexp) -> cexp.
+cfst    : cval -> (cval -> cexp) -> cexp.
+csnd    : cval -> (cval -> cexp) -> cexp.
+
+% continuations can end with a call to a function
+ccall : cval -> cval -> cexp.
+chalt : cexp.
+
+
+% continuation values
+cpair : cval -> cval -> cval.
+clam  : (cval -> cexp) -> cval.
+c1    : cval.</twelf>
+
+This language makes the same syntactic distinction between continuation expressions (<tt>cexp</tt>) and values (<tt>cval</tt>). A continuation expression is a linear sequence of operations on values (here <tt>cmkpair</tt>, <tt>cfst</tt> and <tt>csnd</tt>), each of which binds a variable. A continuation expression ends with a call to a continuation (<tt>ccall</tt>) or by halting (<tt>chalt</tt>). A continuation value is either a pair of values (<tt>cpair</tt>), the unit element (<tt>c1</tt>) or a lambda (<tt>clam</tt>) which abstracts a continuation expression. Because continuations never return, lambdas have type <tt>ccont A</tt> for some argument type A. Note that the constructor is written in postfix notation: A ccont. In some presentations of CPS, this is written as A ? 0, A ? ?, or ¬A.
+
+{{needs|an example of a CPS term}}
+
+The static semantics for the CPS language is as follows:
+
+<twelf>% |- c ok
+cof : cexp -> type.              %name cof WC wc.
+%mode cof *C.
+
+% |- cv : A
+cofv : cval -> ctyp -> type.     %name cofv WV wv.
+%mode cofv *A *B.
+
+co_halt : cof chalt.
+
+co_mkpair :  cofv V1 A ->
+             cofv V2 B ->
+             ({v:cval} cofv v (A c& B) -> 
+                cof (K v)) ->
+             cof (cmkpair V1 V2 K).
+
+co_call : cofv F (A ccont) ->
+          cofv V A ->
+          cof (ccall F V).
+
+co_fst : cofv V (A c& B) ->
+         ({v}{ov : cofv v A} cof (C v)) ->
+         cof (cfst V C).
+
+co_snd : cofv V (A c& B) ->
+         ({v}{ov : cofv v B} cof (C v)) ->
+         cof (csnd V C).
+
+cov_unit : cofv c1 cunit.
+
+cov_pair : cofv V1 A ->
+           cofv V2 B ->
+           cofv (cpair V1 V2) (A c& B).
+
+cov_lam : ({x} cofv x A ->
+               cof (C x)) ->
+          cofv (clam C) (A ccont).</twelf>
+
+The type family <tt>cof C</tt> encodes the typing judgment ? {{vdash}} C ''ok''. Continuations do not return, so they do not have a type. The type family <tt>ofv V A</tt> the judgment ? {{vdash}} V : A for CPS values V. The typing rules are straightforward.
+
+== Translation ==
+
+=== Type translation ===
+
+We can now translate from the direct style language to the CPS language. Because a translated value will have a different type in the source and destination languages (indeed, the types have different types in LF!), we start by defining a translation for the types of the source language.
+
+<twelf>ttoct : typ -> ctyp -> type.
+%mode ttoct +A -CA.
+
+ttoct/unit : ttoct unit cunit.
+ttoct/& : ttoct (A & B) (A' c& B') <- ttoct B B' <- ttoct A A'.
+ttoct/=> : ttoct (A => B) ((A' c& (B' ccont)) ccont) 
+	     <- ttoct B B' <- ttoct A A'.</twelf>
+
+The family <tt>ttoct A A'</tt> ("typ to ctyp") encodes the type translation, which is often written using [[:w:Dana Scott|Scott brackets]] like <nowiki>[[A]]</nowiki>. The unit type and product types simply translate recursively into their correspondents in the CPS types. An arrow type A ? B translates into (A' c& (B' ccont)) ccont. That is, a function is translated into a continuation that expects the (translated) argument paired with a return continuation for the (translated) result.
+
+To check our work, we can verify that type translation is [[%total|total]]. This result will not be important to our main theorem, but every type should certainly have a translation and it is an easy way to check for mistakes early.
+
+<twelf>%worlds () (ttoct _ _).
+%total D (ttoct D _).</twelf>
+
+=== Translation relation ===
+
+The translation for values is a three place relation:
+
+<twelf>tocpsv+ : {WV  : ofv V A}
+	  {CT  : ttoct A CA}
+	  {WCV : cofv CV CA}
+	  type.
+%mode tocpsv+ +WV +CT -WCV.</twelf>
+
+<tt>WV</tt> is a value typing derivation in the source language. Our translation will be type-directed, translating typing derivations to typing derivations. The terms, which are in the types of the typing derivations, can easily be recovered (in fact, they are [[implicit parameter]]s in this judgment). The middle place in the relation is the translation of the type; this is necessary to ensure that the translated value has the appropriate translated type.
+
+Sometimes it is necessary for the type translation to be an [[%mode|output]] of the relation, and sometimes it is necessary for it to be an input. As is standard for translations between languages, we will need to use the [[reversing the polarity]] technique to give two versions of this relation with two different modes. The second one is identical except for the mode of the middle argument:
+
+<twelf>tocpsv- : {WV  : ofv V A}
+	  {CT  : ttoct A CA}
+	  {WCV : cofv CV CA}
+	  type.
+%mode tocpsv- +WV -CT -WCV.</twelf>
+
+The CPS translation relation for expressions, which is the crux of this tutorial, is much less straightforward:
+
+<twelf>tocps- : {M  : exp}
+	 {WM : of M A}
+ 	 {CT : ttoct A CA}
+	 % term representing the result of conversion
+	 {CC : (cval -> cexp) -> cexp}
+	 % typing for result of conversion
+         {WCC : {C : cval -> cexp}
+                ({cv : cval}
+                 {wcv : cofv cv CA}
+                 cof (C cv)) ->
+                cof (CC C)}
+	 type.
+%mode tocps- +M +WM -CT -CC -WCC.</twelf>
+
+For this relation we will use explicit parameters for the terms. The first two arguments are the expression <tt>M</tt> to be translated and its typing <tt>WM</tt> (the letter w is often used in variable names within this code to stand for "well-formed"). The next argument is the translation for the type <tt>A</tt> of the expression, as in the translation for values. The argument <tt>CC</tt> is the continuation expression that is the result of CPS conversion. However, it is parameterized over the "tail" of the continuation (of type <tt>cval -> cexp</tt>), because an expression cannot be CPS-converted in isolation. For example, the direct style expression <tt>mkpair 1 1</tt> will translate into
+
+<twelf>[rest : cval -> cexp]
+  cmkpair c1 c1 [p : cval]
+  rest p</twelf>
+
+The output <tt>CC</tt> is accompanied by <tt>WCC</tt>, a typing derivation for it. The typing derivation is also parameterized. Its type is
+
+<twelf>
+{C : cval -> cexp}
+({cv : cval} {wcv : cofv cv CA} cof (C cv)) ->
+ cof (CC C)</twelf>
+
+The first parameter <tt>C</tt> is the tail of the continuation, as above. The second argument is a typing derivation for the tail. The tail must be well-formed for any well-formed <tt>cval</tt> we might pass to it, so that typing derivation is itself parameterized. To summarize, <tt>WCC</tt> is a parameterized typing derivation that allows us to instantiate it with any well-formed tail.
+
+We also need to give a version of this relation with reversed polarity.
+<twelf>tocps+ : {M  : exp}
+         {WM : of M A}
+         {CT : ttoct A CA}
+         {CC : (cval -> cexp) -> cexp}
+         {WCC : {C : cval -> cexp}
+                ({cv : cval}
+                 {wcv : cofv cv CA}
+                 cof (C cv)) ->
+                cof (CC C)}
+         type.
+%mode tocps+ +M +WM +CT -CC -WCC.</twelf>
+
+
+The type of this relation may be more clear when we see how it is used. But before we are able to give the translation for expressions and values, we need to prove some lemmas about the type translation relation.
+
+=== Lemmas ===
+
+First, we define a [[equality|shallow equality]] relation on continuation types and prove that it preserved when type constructors are applied:
+
+<twelf>ceqtyp : ctyp -> ctyp -> type.
+ceqtyp_ : ceqtyp A A.
+
+ceqtyp_& : ceqtyp A A' -> ceqtyp B B' -> ceqtyp (A c& B) (A' c& B') -> type.
+%mode ceqtyp_& +A +B -C.
+- : ceqtyp_& ceqtyp_ ceqtyp_ ceqtyp_.
+
+ceqtyp_cont : ceqtyp A A' -> ceqtyp (A ccont) (A' ccont) -> type.
+%mode ceqtyp_cont +A -C.
+- : ceqtyp_cont ceqtyp_ ceqtyp_.</twelf>
+
+We need to prove that continuation value typing respects equality, and that continuation tail typing respects equality. These theorems are trivial because equality is shallow.
+
+<twelf>cofv_resp : cofv C A -> ceqtyp A A' -> cofv C A' -> type.
+%mode cofv_resp +COF +EQ -COF'.
+- : cofv_resp D ceqtyp_ D.
+
+wcc_resp : {WCC :
+	     ({C  : cval -> cexp}
+	      ({cv : cval}
+	       {wcv : cofv cv A}
+	       cof (C cv)) ->
+	      cof (CC C))}
+
+	    {EQ : ceqtyp A A'} 
+
+	    {K' :
+	     ({C  : cval -> cexp}
+	      ({cv : cval}
+	       {wcv : cofv cv A'}
+	       cof (C cv)) ->
+	      cof (CC C))}
+
+	    type.
+%mode wcc_resp +K +EQ -K'.
+
+wcc_resp_ : wcc_resp D ceqtyp_ D.</twelf>
+
+It is also necessary that the type translation relation <tt>ttoct</tt> be a [[function (relation)|function]]. That means we must prove a [[uniqueness lemma]] and [[effectiveness lemma]] for it. 
+
+<twelf>% uniqueness
+ttoct_fun : ttoct A A' -> ttoct A A'' -> ceqtyp A' A'' -> type.
+%mode ttoct_fun +X +Y -Z.
+
+- : ttoct_fun (ttoct/& A B) (ttoct/& C D) OUT
+ <- ttoct_fun A C EQ1
+ <- ttoct_fun B D EQ2
+ <- ceqtyp_& EQ1 EQ2 OUT.
+
+- : ttoct_fun (ttoct/=> A B) (ttoct/=> C D) OUT
+ <- ttoct_fun A C EQ1
+ <- ttoct_fun B D EQ2
+ <- ceqtyp_cont EQ2 EQ3
+ <- ceqtyp_& EQ1 EQ3 EQ4
+ <- ceqtyp_cont EQ4 OUT.
+
+- : ttoct_fun ttoct/unit ttoct/unit ceqtyp_.
+
+% effectiveness
+ttoct_gimme : {A:typ} {A':ctyp} ttoct A A' -> type.
+%mode ttoct_gimme +A -A' -D.
+
+- : ttoct_gimme (A & B) _ (ttoct/& CT1 CT2)
+ <- ttoct_gimme A A' CT1
+ <- ttoct_gimme B B' CT2.
+
+- : ttoct_gimme (A => B) _ (ttoct/=> CT1 CT2)
+ <- ttoct_gimme A A' CT1
+ <- ttoct_gimme B B' CT2.
+
+- : ttoct_gimme unit cunit ttoct/unit.</twelf>
+
+We can then check that these are total:
+
+<twelf>%worlds () (ttoct_fun _ _ _) (ceqtyp_& _ _ _) (ceqtyp_cont _ _).
+
+%total D (ceqtyp_& D _ _).
+%total D (ceqtyp_cont D _).
+%total D (ttoct_fun D _ _).</twelf>
+
+
+=== Term translation ===
+
+We can now give the translation for expressions and values. We start by proving the <tt>tocpsv+</tt> and <tt>tocps+</tt> lemmas, since they are one case each:
+
+<twelf>tocps+/- : tocps+ V WV CTi CC K
+        <- tocps- V WV CTo CC K'
+        <- ttoct_fun CTo CTi EQ
+        <- wcc_resp K' EQ K.
+
+tocpsv+/- : tocpsv+ WV CTi WCV'
+         <- tocpsv- WV CTo WCV
+         <- ttoct_fun CTo CTi EQ
+         <- cofv_resp WCV EQ WCV'.</twelf>
+
+Both work the same way. We take the type translation as input (<tt>CTi</tt>), then invoke the version of the theorem that returns it as output (<tt>CTo</tt>). Suppose <tt>CTi : ttoct A A'</tt> and <tt>CTo : ttoct A A'<nowiki></nowiki>'</tt>. We just need to show that the output of that theorem (<tt>K</tt> or <tt>WCV</tt>), which depends on <tt>A'<nowiki></nowiki>'</tt>, works for the type <tt>A'</tt>. We simply verify that <tt>A'</tt> and <tt>A'<nowiki></nowiki>'</tt> are equal with our lemma <tt>ttoct_fun</tt>, and then use the fact that the outputs respect equality on types (<tt>wcc_resp</tt> or <tt>cofv_resp</tt>) to do so.
+
+
+The translation of the expressions <tt>fst</tt> and <tt>snd</tt> are illustrative:
+
+<twelf>c_fst : tocps- (fst M) (&E1 WM) CT
+              % parameterized expression resulting from translation
+              ([tail:cval -> cexp]
+                 CC ([v:cval] cfst v ([a:cval] tail a)))
+              % its parameterized typing derivation
+              ([c][wc]
+                 F _ ([v][wv] co_fst wv wc))
+     <- tocps- M WM (ttoct/& CT _) CC F.
+
+c_snd : tocps- (snd M) (&E2 WM) CT _
+              ([c][wc]
+                 F _ ([v][wv] co_snd wv wc))
+     <- tocps- M WM (ttoct/& _ CT) _ F.</twelf>
+
+To translate the expression <tt>fst M</tt>, we inductively translate the argument. Because it must have type <tt>A & B</tt> and the only case for translating it is <tt>ttoct/&</tt>, so this subgoal [[output coverage|covers all outputs]]. We return the translation for <tt>A</tt>, called <tt>CT</tt>. We must then build the continuation expression and its typing derivation. The expression is parameterized by a <tt>tail</tt> that takes the result of the <tt>fst</tt> operation, so the tail has type <tt>cval -> cexp</tt>. The resulting term first evaluates <tt>M</tt> by invoking its translation <tt>CC</tt> on a tail we write; that tail takes <tt>v</tt>, the pair value, performs <tt>cfst</tt> on it and binds the result to <tt>a</tt>. It finishes by invoking the outer <tt>tail</tt> argument on that projected first component.
+
+The parameterized typing derivation is similar. It takes a tail <tt>c</tt> and a typing derivation for the tail, <tt>wc</tt>. The derivation starts with the typing for the translation of <tt>M</tt>, which is represented by the function <tt>F</tt>. We apply <tt>F</tt> to the actual tail we produce&mdash;Twelf can deduce what this is by [[unification]], so we just write <tt>_</tt> to avoid repeating ourselves. The second argument is the typing derivation for that tail; it takes a variable <tt>v</tt> representing the result of evaluating <tt>M</tt> and a typing derivation for it <tt>wv</tt>. The derivation consists simply of the typing rule for <tt>c_fst</tt> applied to the well-formedness of its argument and the code that follows, both of which we get from arguments.
+
+The translation is challenging because it is so high-order (typing responsibilities pass from callee to caller and vice versa) but most of the cases follow the same pattern. The case for <tt>c_snd</tt> is symmetric, but we have now left out terms that Twelf can infer by type inference and unification. Because terms can be uniquely determined from the types of typing derivations, we almost never need to write them down explicitly.
+
+The translation for <tt>mkpair</tt> follows the same pattern.
+
+<twelf>c_mkpair : tocps- (mkpair M1 M2) (&I WM1 WM2) (ttoct/& CT1 CT2) _
+              ([c][wc] 
+                  F1 _ ([v1][wv1]
+                          F2 _ ([v2][wv2]
+                                 co_mkpair wv1 wv2 wc)))
+        <- tocps- M1 WM1 CT1 _ F1
+        <- tocps- M2 WM2 CT2 _ F2.
+</twelf>
+
+We translate the two subexpressions, string together the continuation expressions that evaluate them, build the pair and pass it to the tail. Application is interesting because of the way functions are represented:
+
+<twelf>c_app : tocps- (app M N) (=>E WM WN) CTB _
+           ([c][wc]
+              FM _ ([f][wf]
+                      FN _ ([a][wa]
+                              % making argument of type A' c& (B ccont)
+                              co_mkpair wa (cov_lam ([r][wr] wc r wr)) [p][wp]
+                              co_call wf wp)))
+     <- ttoct_gimme (A => B) (A' c& (B' ccont) ccont) (ttoct/=> CTA CTB)
+     <- tocps+ M WM (ttoct/=> CTA CTB) _ FM
+     <- tocps+ N WN CTA _ FN.</twelf>
+
+The first subgoal (<tt>ttoct_gimme</tt>) exists to reconcile the various type translations that will occur: We will have a translation for <tt>A</tt>, <tt>B</tt>, and <tt>A =&gt; B</tt> which all must agree. We therefore invoke the [[effectiveness lemma]] on the largest type (<tt>A =&gt; B</tt>) and the others will be subterms. We then invoke tocps inductively to translate the function and argument expressions (we use the + version here so that we need not do equality reasoning about the type translations). The resulting typing derivation begins with the derivations for the translation of <tt>M</tt> and <tt>N</tt>. Given these, it builds a pair of the argument <tt>wa</tt> and return continuation. The body of the return continuation is the outermost tail passed to the translation of the <tt>app</tt>. We then end with a call to the translated function value on the pair we created.
+
+==== Binding ====
+
+So far, everything in the source object language has been first order. We'll now translate the <tt>let</tt> construct, which is a simple binder.
+
+<twelf>c_let : tocps- (let M N) (oflet WM WN) CTN _
+          ([c][wc] FM _ ([v][wv] FN v wv c wc))
+
+     <- ttoct_gimme A A' CTM
+     <- tocps+ M WM CTM _ FM
+     <- ( {x}{xof : ofv x A}
+          {x'}{x'of : cofv x' A'}
+          {thm:tocpsv- xof CTM x'of}
+
+         tocps- (N x) (WN x xof) CTN (CC x') (FN x' x'of)).</twelf>
+
+This translation begins as before, by translating <tt>M</tt>. We then want to translate the body, <tt>N</tt>, but it has type <tt>val -&gt; exp</tt>, so it must be in a subgoal with a hypothetical value variable in context. The subgoal actually introduces five hypotheses: the direct style value <tt>x</tt>; a derivation that it is well-formed at type <tt>A</tt>, <tt>xof</tt>; the CPS value it will be translated to, <tt>x'</tt>; its derivation <tt>x'of</tt>; and the case of the theorem that relates the two. Once we have translated <tt>N</tt> and <tt>WN</tt> in this context, we build the result typing derivation. Because we have set up the translation such that the tail always takes a value as an argument, we do not need a CPS-level <tt>let</tt> construct; we simply invoke <tt>FM</tt>, which types the translation of <tt>M</tt>, and then invoke <tt>FN</tt> on the value and typing derivation resulting from that, and continue with the outermost tail.
+
+The final case of translation for expressions is the inclusion of values:
+
+<twelf>c_val : tocps- (value V) (ofvalue WV) CT _ ([c][wc] wc CV WCV)
+     <- tocpsv- WV CT WCV.</twelf>
+
+It simply invokes the mutually inductive translation <tt>tocpsv-</tt>, which we define next.
+
+=== Value translation ===
+
+Value translation is not continuation-based, so two of the three cases are very easy:
+
+<twelf>cv_pair : tocpsv- (&Iv WV1 WV2) (ttoct/& CT1 CT2)  (cov_pair WV1' WV2')
+       <- tocpsv- WV1 CT1 WV1'
+       <- tocpsv- WV2 CT2 WV2'.
+
+cv_unit : tocpsv- unitI ttoct/unit cov_unit.</twelf>
+
+Pairs are translated pointwise and unit is trivial.
+
+The final case in the theorem is the translation of lambda values:
+
+<twelf>cv_lam : tocpsv- ((=>I WM) : ofv (lam M) (A => B)) (ttoct/=> CTA CTB)
+          (cov_lam [arg][argof : cofv arg (A' c& (B' ccont))]
+             co_fst argof [x:cval][xof:cofv x A']
+             co_snd argof [r:cval][rof:cofv r (B' ccont)]
+             F x xof r rof ([v:cval] ccall r v) 
+                ([v:cval][wv:cofv v B'] co_call rof wv))
+    <- ttoct_gimme A A' CTA
+    <- (% original argument
+        {x}{xof : ofv x A}
+        {x'}{x'of : cofv x' A'}
+        % how to convert it
+        {thm:tocpsv- xof CTA x'of}
+
+        % (object language) return continuation
+        {r}{rof : cofv r (B' ccont)}
+
+          tocps- (M x) (WM x xof) CTB (CC x' r) (F x' x'of r rof)).</twelf>
+
+Recall that the <tt>tocpsv</tt> relations are between typing derivations only (the terms are implicit) but <tt>tocps</tt> takes them explicitly. Thus the first thing to notice is that we use type annotations to recover the implicit arguments so that we can pass them explicitly to <tt>tocps</tt>. (This is an instance of [[converting between implicit and explicit parameters]].) As before, we then use effectiveness to translate the type <tt>A</tt>. The inductive call to <tt>tocps</tt> has seven hypotheses. The first five are as in the case for <tt>let</tt>, which represent the bound argument variable and its translation. The last two represent the return continuation, which will be another argument to the continuation we generate. Also notice that in this case we do not have a wildcard <tt>_</tt> for the translated term in the subgoal&mdash;we write <tt>(CC x' r)</tt>&mdash;without this help Twelf's higher-order unification cannot resolve all of the constraints. (This one case is the reason that the terms cannot be implicit parameters as they are for the value translation.) The result of translation is a typing derivation for a continuation. The continuation's argument <tt>arg</tt> has type <tt>(A' c& (B' ccont))</tt>; we start by projecting the first and second components of the pair. We then use the derivation for the translated body, which depends on the argument and return continuation. Its tail takes the result of the body, <tt>v</tt> and calls the continuation on that value.
+
+
+We can now check our metatheorem, which is that these translations are total. We start by declaring [[%block|block]]s for use in the [[%world]] declarations:
+
+<twelf>%block blockcvar : 
+              some {A : typ} {A' : ctyp} {CTA : ttoct A A'}
+              block
+               {x}{xof : ofv x A}
+               {x'}{x'of : cofv x' A'}
+               {thm:tocpsv- xof CTA x'of}.
+
+%block blockwcv :
+             some {CA : ctyp}
+             block {r}{rof : cofv r CA}.</twelf>
+
+The first block corresponds to the five hypotheses we needed in the <tt>let</tt> and <tt>lam</tt> cases. The second is for the return continuation we assume in the <tt>lam</tt> case&mdash;it does not correspond to any direct style assumption so it need only be well-formed.
+
+For this proof to check we must also make world declarations for the type families <tt>cof</tt>, <tt>cofv</tt>, <tt>cval</tt> and <tt>cexp</tt>. I believe this has to do with Twelf's overconservativity of world subsumption on third-order metatheorems, but I am not sure of the exact cause.{{discuss|Strange world declarations}} Although they are strange (and meaningless, since we do not check the totality of these type families, whose modes are all <tt>[[%mode|*]]</tt>), they pose no problem here:
+
+<twelf>%block blockcv : block {v : cval}.
+
+%worlds (blockcv) (cval) (cexp).
+%worlds (blockwcv) (cofv _ _) (cof _).</twelf>
+
+Then, the world declarations for our theorems and lemmas:
+
+<twelf>%worlds (blockcvar | blockwcv) 
+                   (tocps+ _ _ _ _ _)
+                   (tocps- _ _ _ _ _)
+                   (tocpsv+ _ _ _)
+                   (tocpsv- _ _ _)
+                   (cofv_resp _ _ _)
+                   (ttoct_gimme _ _ _)
+                   (wcc_resp _ _ _).</twelf>
+
+We can check the lemmas individually for totality; they are simple inductions:
+
+<twelf>%total A (cofv_resp _ A _).
+%total A (wcc_resp _ A _).
+%total A (ttoct_gimme A _ _).</twelf>
+
+Finally, we can check the type-directed translations for totality:
+
+<twelf>%total (A B C D) 
+          (tocpsv- A _ _) 
+          (tocpsv+ B _ _) 
+          (tocps- _ C _ _ _) 
+          (tocps+ _ D _ _ _).</twelf>
+
+The termination order here is important. The <tt>+</tt> versions of each relation call the <tt>-</tt> versions on the same input derivation, so we must specify mutual recursion with parentheses in this order <tt>(A B C D)</tt> so that these forward calls{{discuss|Termination order backwards?}} are allowed. Other calls obey the strict [[subterm]] ordering. See {{guide|chapter=8|section=51|title=mutual recursion}} for more information.
+
+
+That's it! We showed how to define a CPS language with an intrinsic distinction between values and expressions, and translate a direct style language into it. The translation is given as a relation on typing derivations, which builds the type correctness of the translation into the translation itself. The translation makes use of LF's ability to encode higher-order reasoning to avoid generating object-level "administrate redices" that would need to be cleaned up and would complicate the metatheory. The code is brief by being simultaneously both proof and program: A metatheorem showing the translation works for all well-typed direct style terms is obtained simply by a [[%total]] declaration for the translation. Alternately, we can think of the computational content of our proof as being the translation itself. 
+
+<!-- See also Frank's CPS example in the twelf/examples source? -->
+
+
+{{tutorial}}
