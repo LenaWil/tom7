@@ -161,21 +161,14 @@ tocpsv+/- : tocpsv+ WV CTi WCV'
          <- ttoct_fun CTo CTi EQ
          <- cofv_resp WCV EQ WCV'.
 
-c_val : tocps- (value V) (ofvalue WV) CT _ ([c][wc] wc CV WCV)
-     <- tocpsv- WV CT WCV.
 
-c_mkpair : tocps- (mkpair M1 M2) (&I WM1 WM2) (ttoct/& CT1 CT2) _
-              ([c][wc] 
-                  F2 _ ([v2][wv2]
-                          F1 _ ([v1][wv1]
-                                 co_mkpair wv1 wv2 wc)))
-        <- tocps- M1 WM1 CT1 _ F1
-        <- tocps- M2 WM2 CT2 _ F2.
-
-c_fst : tocps- (fst M) (&E1 WM) CT _
+c_fst : tocps- (fst M) (&E1 WM) CT
+	      ([tail:cval -> cexp] 
+		 CC ([v:cval] cfst v ([a:cval] tail a)))
               ([c][wc]
-                 F _ ([v][wv] co_fst wv wc))
-     <- tocps- M WM (ttoct/& CT _) _ F.
+                 F _
+		 ([v][wv] co_fst wv wc))
+     <- tocps- M WM (ttoct/& CT _) CC F.
 
 
 c_snd : tocps- (snd M) (&E2 WM) CT _
@@ -183,6 +176,18 @@ c_snd : tocps- (snd M) (&E2 WM) CT _
                  F _ ([v][wv] co_snd wv wc))
      <- tocps- M WM (ttoct/& _ CT) _ F.
 
+
+c_mkpair : tocps- (mkpair M1 M2) (&I WM1 WM2) (ttoct/& CT1 CT2) _
+              ([c][wc] 
+                  F1 _ ([v1][wv1]
+                          F2 _ ([v2][wv2]
+                                 co_mkpair wv1 wv2 wc)))
+        <- tocps- M1 WM1 CT1 _ F1
+        <- tocps- M2 WM2 CT2 _ F2.
+
+
+c_val : tocps- (value V) (ofvalue WV) CT _ ([c][wc] wc CV WCV)
+     <- tocpsv- WV CT WCV.
 
 
 c_app : tocps- (app M N) (=>E WM WN) CTB _
@@ -204,16 +209,19 @@ c_let : tocps- (let M N) (oflet WM WN) CTN _
 
      <- ttoct_gimme A A' CTM
      <- tocps+ M WM CTM _ FM
-     <- ttoct_gimme B B' CTN
      <- ( {x}{xof : ofv x A}
           {x'}{x'of : cofv x' A'}
           {thm:tocpsv- xof CTM x'of}
 
-         tocps+ (N x) (WN x xof) CTN (CC x') (FN x' x'of)).
+         tocps- (N x) (WN x xof) CTN (CC x') (FN x' x'of)).
 
 cv_pair : tocpsv- (&Iv WV1 WV2) (ttoct/& CT1 CT2)  (cov_pair WV1' WV2')
        <- tocpsv- WV1 CT1 WV1'
        <- tocpsv- WV2 CT2 WV2'.
+
+
+cv_unit : tocpsv- unitI ttoct/unit cov_unit.
+
 
 % this is essentially the crux of continuation *passing* style
 cv_lam : tocpsv- ((=>I WM) : ofv (lam M) (A => B)) (ttoct/=> CTA CTB)
@@ -223,7 +231,6 @@ cv_lam : tocpsv- ((=>I WM) : ofv (lam M) (A => B)) (ttoct/=> CTA CTB)
              F x xof r rof ([v:cval] ccall r v) 
                 ([v:cval][wv:cofv v B'] co_call rof wv))
     <- ttoct_gimme A A' CTA
-    <- ttoct_gimme B B' CTB
     <- (% original argument
         {x}{xof : ofv x A}
         {x'}{x'of : cofv x' A'}
@@ -233,9 +240,7 @@ cv_lam : tocpsv- ((=>I WM) : ofv (lam M) (A => B)) (ttoct/=> CTA CTB)
         % (object language) return continuation
         {r}{rof : cofv r (B' ccont)}
 
-          tocps+ (M x) (WM x xof) CTB (CC x' r) (F x' x'of r rof)).
-
-cv_unit : tocpsv- unitI ttoct/unit cov_unit.
+          tocps- (M x) (WM x xof) CTB (CC x' r) (F x' x'of r rof)).
 
 
 % when descending under a binding in the source language,
@@ -249,13 +254,14 @@ cv_unit : tocpsv- unitI ttoct/unit cov_unit.
                % how to convert it
                {thm:tocpsv- xof CTA x'of}.
 
-% Since we end up having to make worlds declarations for like cexp, we
-% need these.
-%block blockcv : block {v : cval}.
-
 %block blockwcv :
              some {CA : ctyp}
              block {r}{rof : cofv r CA}.
+
+
+% Since we end up having to make worlds declarations for like cexp, we
+% need these.
+%block blockcv : block {v : cval}.
 
 %worlds (blockcv) (cval) (cexp).
 
@@ -270,12 +276,15 @@ cv_unit : tocpsv- unitI ttoct/unit cov_unit.
                    (cofv_resp _ _ _)
                    (ttoct_gimme _ _ _)
                    (wcc_resp _ _ _).
+%{
 
 %covers tocpsv- +A -B -C.
 %covers tocpsv+ +A +B -C.
 
 %covers tocps+ +M +WM +CT -CC -K.
 %covers tocps- +M +WM -CT -CC -K.
+
+}%
 
 %total A (cofv_resp _ A _).
 %total A (wcc_resp _ A _).
@@ -286,3 +295,4 @@ cv_unit : tocpsv- unitI ttoct/unit cov_unit.
           (tocpsv+ B _ _) 
           (tocps- _ C _ _ _) 
           (tocps+ _ D _ _ _).
+
