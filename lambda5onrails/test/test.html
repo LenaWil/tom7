@@ -40,7 +40,7 @@ function connect(url) {
     return req;
 }
 
-req = connect("http://localhost:9999/hello");
+req = connect("http://sparkman.spacebar.org:9999/hello");
 function think() {
     // alert(req.readyState + ": " + req.responseText);
     document.getElementById('response').innerHTML = req.responseText;
