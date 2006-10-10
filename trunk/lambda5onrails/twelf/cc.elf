@@ -1,0 +1,151 @@
+
+% closure conversion
+
+ccexp : type.    %name ccexp CC cc.
+ccval : type.    %name ccval V v.
+% cctyp : type.    %name cctyp A a.
+ccvval : type.   %name ccvval VV vv.
+
+% continuation expressions
+ccmkpair : ccval -> ccval -> (ccval -> ccexp) -> ccexp.
+ccfst : ccval -> (ccval -> ccexp) -> ccexp.
+ccsnd : ccval -> (ccval -> ccexp) -> ccexp.
+cclocalhost : (ccval -> ccexp) -> ccexp.
+
+ccletheart : ccval -> (ccvval -> ccexp) -> ccexp.
+cclift : ccval -> (ccvval -> ccexp) -> ccexp.
+ccleta : ccval -> (ccval -> ccexp) -> ccexp.
+
+% let is not necessary because of the natural let-style
+% of continuation exps
+ccunpack : ccval -> (world -> ccval -> ccexp) -> ccexp.
+ccwapp : ccval -> world -> (ccval -> ccexp) -> ccexp.
+
+% the closure-converted language has a different 'go'
+ccgo : world -> ccval -> ccexp -> ccexp.
+% continuations can end with a call to a function
+cccall : ccval -> ccval -> ccexp.
+cchalt : ccexp.
+
+
+% continuation values
+ccpair : ccval -> ccval -> ccval.
+cchold : world -> ccval -> ccval.
+
+%       argument -> environment -> body    env
+ccclosure : (ccval -> ccval -> ccexp) -> ccval -> ccval.
+ccconst : world -> ccval.
+ccwlam : (world -> ccval) -> ccval.
+ccpack : world -> ccval -> ccval.
+cc1 : ccval.
+% inclusion of cvvals in ccvals
+ccvalid : ccvval -> ccval.
+% internalization into heart modality
+cch : ccvval -> ccval.
+% the only vval
+ccvv : (world -> ccval) -> ccvval.
+
+
+ccof : ccexp -> world -> type.              %name ccof WC wc.
+ccofv : ccval -> ctyp -> world -> type.     %name ccofv WV wv.
+ccofvv : ccvval -> ctyp -> type.            %name ccofvv WVV wvv.
+
+
+cco_halt : ccof cchalt W.
+
+%% nb. post closure representation, this will have to be different.
+%% but not yet.
+cco_go : ccofv VW (caddr W') W ->
+        ccof C W' ->
+        ccof (ccgo W' VW C) W.
+
+cco_lift : cmobile A ->
+	   ccofv V A W ->
+	   ({v} ccofvv v A ->
+	      ccof (N v) W) ->
+	   ccof (cclift V N) W.
+
+cco_letheart : ccofv V (cheart A) W ->
+              ({v} ccofvv v A ->
+                ccof (N v) W) ->
+              ccof (ccletheart V N) W.
+
+cco_leta : ccofv V (A cat W') W ->
+          ({v} ccofv v A W' ->
+            ccof (N v) W) ->
+          ccof (ccleta V N) W.
+
+cco_wapp : ccofv V (call A) W ->
+          ({v} ccofv v (A W') W ->
+             ccof (N v) W) ->
+          ccof (ccwapp V W' N) W.
+
+cco_unpack : 
+          ccofv V (cexists A) W ->
+          ({w}{v} ccofv v (A w) W ->
+              ccof (N w v) W) ->
+          ccof (ccunpack V N) W.
+
+cco_localhost : ({v} ccofv v (caddr W) W -> 
+                    ccof (K v) W) ->
+               ccof (cclocalhost K) W.
+
+cco_mkpair :  ccofv V1 A W ->
+             ccofv V2 B W ->
+             ({v:ccval} ccofv v (A c& B) W -> 
+                ccof (K v) W) ->
+             ccof (ccmkpair V1 V2 K) W.
+
+cco_call : ccofv F (A ccont) W ->
+          ccofv V A W ->
+          ccof (cccall F V) W.
+
+cco_fst : ccofv V (A c& B) W ->
+         ({v}{ov : ccofv v A W} ccof (C v) W) ->
+         ccof (ccfst V C) W.
+
+cco_snd : ccofv V (A c& B) W ->
+         ({v}{ov : ccofv v B W} ccof (C v) W) ->
+         ccof (ccsnd V C) W.
+
+
+% this is new!
+ccov_closure : ccofv ENV ENVT W ->
+               ({x}{xof : ccofv x A W}
+		{e}{eof : ccofv e ENVT W}
+                ccof (BOD x e) W) ->
+               ccofv (ccclosure BOD ENV) (A ccont) W.
+
+ccov_unit : ccofv cc1 cunit W.
+
+ccov_pair : ccofv V1 A W ->
+	    ccofv V2 B W ->
+	    ccofv (ccpair V1 V2) (A c& B) W.
+
+ccov_hold : ccofv V A W' ->
+            ccofv (cchold W' V) (A cat W') W.
+
+ccov_const : ccofv (ccconst W) (caddr W) W'.
+
+ccov_wlam : ({w} ccofv (V w) (A w) W) ->
+            ccofv (ccwlam V) (call A) W.
+
+ccov_pack : {A : world -> ctyp} % sometimes need this annotation
+            ccofv V (A W') W -> 
+            ccofv (ccpack W' V) (cexists A) W.
+
+ccov_valid : ccofvv VV A ->
+             ccofv (ccvalid VV) A W.
+
+ccov_ch : ccofvv VV A ->
+          ccofv (cch VV) (cheart A) W.
+
+ccovv : ({w} ccofv (VF w) A w) ->
+        ccofvv (ccvv VF) A.
+
+% todo: dynamic semantics and safety.
+
+
+
+% todo: closure conversion
+
