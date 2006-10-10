@@ -253,7 +253,7 @@ eletc : ec -> (vval -> exp) -> ec.
 eletc2 : ec -> (vval -> exp) -> ec.
 
 % E is a continuation expecting A at W
-ofec : ec -> typ -> world -> type.    %name ofe WE.
+ofec : ec -> typ -> world -> type.    %name ofec WE.
 
 ofec_efinish : ofec efinish A W.
 
