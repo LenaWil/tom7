@@ -91,9 +91,9 @@ f/wapp : frozen ([x] ccwapp (V x) W ([y] C y x))
       <- ({y} frozen (C y))
       <- vfrozen V.
 
-f/ccgo : frozen ([x] ccgo W (V1 x) (V2 x))
-      <- vfrozen V2
-      <- vfrozen V1.
+f/go : frozen ([x] ccgo W (V1 x) (V2 x))
+    <- vfrozen V2
+    <- vfrozen V1.
 
 f/call : frozen ([x] cccall (V1 x) (V2 x))
       <- vfrozen V2
@@ -106,8 +106,8 @@ vf/valid : vfrozen ([x] ccvalid (VV x))
         <- vvfrozen V.
 
 vf/pair : vfrozen ([x] ccpair (V1 x) (V2 x))
-       <- vfrozen V1
-       <- vfrozen V2.
+       <- vfrozen V2
+       <- vfrozen V1.
 
 vf/hold : vfrozen ([x] cchold W (V x))
        <- vfrozen V.
@@ -122,6 +122,8 @@ vf/wlam : vfrozen ([x] ccwlam ([w] V w x))
 vf/pack : vfrozen ([x] ccpack W (V x))
        <- vfrozen V.
 
+vf/var : vfrozen ([x] x).
+vf/closed : vfrozen ([x] V).
 
 %% important: frozen variables cannot appear within the body
 %% of a closure.
@@ -202,6 +204,9 @@ vfvv/wlam : vfrozenvv ([x] ccwlam ([w] V w x))
 
 vfvv/pack : vfrozenvv ([x] ccpack W (V x))
        <- vfrozenvv V.
+
+vfvv/var : vvfrozenvv ([u] u).
+vfvv/closed : vvfrozenvv ([u] VV).
 
 vfvv/closure : vfrozenvv ([x] ccclosure ([a][e] BOD a e) (ENV x))
           <- vfrozenvv ENV.
@@ -346,109 +351,162 @@ ccovv : ({w} ccofv (VF w) A w) ->
 % todo: closure conversion
 
 
-% or a valid variable
-freezevv : 
-         {D:
-	  {v}{wv : ccofvv v A}
-	  ccof (N v) W}
-	 {D':
-	  {v}{wv : ccofvv v A}
-          ccof (N' v) W}
-         {F : frozenvv N'}
-         type.
-%mode freezevv +D -D' -F'.
+% freeze a regular variable within an expression
+freeze : {N  : ccval -> ccexp}
+	 {N' : ccval -> ccexp}
+	 {F  : frozen N'}
+	 type.
+%mode freeze +D -D' -F'.
 
-
-% freeze a regular variable within a value
-vfreeze : 
-         {D:
-	  {v}{wv : ccofv v A W'}
-	  ccofv (V v) B W}
-	 {D':
-	  {v}{wv : ccofv v A W'}
-          ccofv (V' v) B W}
-         {F : vfrozen N'}
-         type.
+vfreeze : {N  : ccval -> ccval}
+ 	  {N' : ccval -> ccval}
+	  {F  : vfrozen N'}
+	  type.
 %mode vfreeze +D -D' -F'.
 
-% or a valid variable
-vfreezevv : 
-         {D:
-	  {v}{wv : ccofvv v A}
-	  ccofv (V v) B W}
-	 {D':
-	  {v}{wv : ccofvv v A}
-          ccofv (V' v) B W}
-         {F : vfrozenvv N'}
-         type.
-%mode freezevv +D -D' -F'.
-
-% freeze a regular variable within an expression
-freeze : {D:
-	  {v}{wv : ccofv v A W'}
-	  ccof (N v) W}
-	 {D':
-	  {v}{wv : ccofv v A W'}
-          ccof (N' v) W}
-         {F : frozen N'}
-         type.
-%mode freeze +D -D' -F' -FF'.
+vvfreeze : {N  : ccval -> ccvval}
+  	   {N' : ccval -> ccvval}
+ 	   {F  : vvfrozen N'}
+	   type.
+%mode vvfreeze +D -D' -F'.
 
 
-fz/halt : freeze ([v][wv] cco_halt) ([v][wv] cco_halt) f/halt.
+fz/halt : freeze ([v] cchalt) ([v] cchalt) f/halt.
 
+fz/fst : freeze ([v] ccfst (V v) ([x] N x v)) 
+                ([v] ccfst (V' v) ([x] N' x v))
+	        (f/fst FV FN)
+      <- vfreeze V V' FV
+      <- ({x} freeze (N x) (N' x) (FN x)).
 
-fz/fst : freeze ([v][wv] cco_fst (WV v wv) ([x][wx] WC x wx v wv) (F v))
-	        ([v][wv] cco_fst (WV' v wv) ([x][wx] WC' x wx v wv) (F' v))
-	        (f/fst FV FK)
-      <- vfreeze WV WV' FV
-      <- ({x}{wx}
-	    freeze (WC x wx) (WC' x wx) (FK x)).
+fz/snd : freeze ([v] ccsnd (V v) ([x] N x v)) 
+                ([v] ccsnd (V' v) ([x] N' x v))
+	        (f/snd FV FN)
+      <- vfreeze V V' FV
+      <- ({x} freeze (N x) (N' x) (FN x)).
 
-% have: {F : {v:ccval} frozen ([v1:ccval] CC1 v v1)}
-% want: {F': {v:ccval} frozen ([v1:ccval] CC2 v v1)}
-% 
+fz/mkpair : freeze ([v] ccmkpair (V1 v) (V2 v) ([x] N x v))
+	           ([v] ccmkpair (V1' v) (V2' v) ([x] N' x v))
+	           (f/mkpair FV1 FV2 FN)
+         <- vfreeze V1 V1' FV1
+         <- vfreeze V2 V2' FV2
+         <- ({x} freeze (N x) (N' x) (FN x)).
 
-	        
+fz/call : freeze ([v] cccall (V1 v) (V2 v))
+                 ([v] cccall (V1' v) (V2' v))
+                 (f/call FV1 FV2)
+         <- vfreeze V1 V1' FV1
+         <- vfreeze V2 V2' FV2.
+
+fz/go : freeze ([v] ccgo W (V1 v) (V2 v))
+               ([v] ccgo W (V1' v) (V2' v))
+               (f/go FV1 FV2)
+     <- vfreeze V1 V1' FV1
+     <- vfreeze V2 V2' FV2.
+
+fz/wapp : freeze ([v] ccwapp (V v) W ([x] N x v))
+                 ([v] ccwapp (V' v) W ([x] N' x v))
+	         (f/wapp FV FN)
+       <- vfreeze V V' FV
+       <- ({x} freeze (N x) (N' x) (FN x)).
+
+fz/unpack : freeze ([v] ccunpack (V v) ([w][x] N w x v))
+	           ([v] ccunpack (V' v) ([w][x] N' w x v))
+	           (f/unpack FV FN)
+         <- vfreeze V V' FV
+         <- ({w}{x} freeze (N w x) (N' w x) (FN w x)).
+
+fz/leta : freeze ([v] ccleta (V v) ([x] N x v))
+                 ([v] ccleta (V' v) ([x] N' x v))
+                 (f/leta FV FN)
+       <- vfreeze V V' FV
+       <- ({x} freeze (N x) (N' x) (FN x)).
+
+fz/localhost : freeze ([v] cclocalhost ([x] N x v))
+		      ([v] cclocalhost ([x] N' x v))
+	              (f/localhost FN)
+	    <- ({x} freeze (N x) (N' x) (FN x)).
+
+fz/letheart : freeze ([v] ccletheart (V v) ([xx] N xx v))
+	             ([v] ccletheart (V' v) ([xx] N' xx v))
+	             (f/letheart FV FN)
+	   <- vfreeze V V' FV
+	   <- ({xx} freeze (N xx) (N' xx) (FN xx)).
+
+fz/lift : freeze ([v] cclift (V v) ([xx] N xx v))
+	         ([v] cclift (V' v) ([xx] N' xx v))
+	         (f/lift FV FN)
+       <- vfreeze V V' FV
+       <- ({xx} freeze (N xx) (N' xx) (FN xx)).
+
+fz/valid : vfreeze ([v] ccvalid (VV v))
+	           ([v] ccvalid (VV' v))
+	           (vf/valid FVV)
+       <- vvfreeze VV VV' FVV.
+
+fz/pair : vfreeze ([v] ccpair (V1 v) (V2 v))
+	          ([v] ccpair (V1' v) (V2' v))
+	          (vf/pair FV1 FV2)
+       <- vfreeze V1 V1' FV1
+       <- vfreeze V2 V2' FV2.
+
+fz/hold : vfreeze ([v] cchold W (V v))
+	          ([v] cchold W (V' v))
+	          (vf/hold FV)
+       <- vfreeze V V' FV.
+
+fz/const : vfreeze ([v] ccconst W) ([v] ccconst W) vf/const.
+
+fz/1 : vfreeze ([v] cc1) ([v] cc1) vf/1.
+
+fz/wlam : vfreeze ([x] ccwlam ([w] V w x))
+	          ([x] ccwlam ([w] V' w x))
+	          (vf/wlam FV)
+       <- ({w} vfreeze (V w) (V' w) (FV w)).
+
+fz/pack : vfreeze ([v] ccpack W (V v))
+	          ([v] ccpack W (V' v))
+	          (vf/pack FV)
+      <- vfreeze V V' FV.
+
+% this is the only interesting case of freeze.
+
+fz/closure : vfreeze ([x:ccval] ccclosure ([a:ccval][e:ccval] BOD a e x) (ENV x))
+	             % prepend body code with projection of the variable
+	             % from the environment; add variable as fst projection
+	             % of environment itself.
+	             ([x] ccclosure ([a:ccval][e:ccval]
+				       ccfst e [ex:ccval]
+				       ccsnd e [ee:ccval]
+				       BOD a ee ex) (ccpair x (ENV' x)))
+		     (vf/closure (vf/pair vf/var FENV))
+	  <- vfreeze ENV ENV' FENV.
+
+fz/var : vfreeze ([v] v) ([v] v) vf/var.
+
+fz/closed : vfreeze ([v] V) ([v] V) vf/closed.
+
+fz/ccch : vfreeze ([v] ccch (VV v)) ([v] ccch (VV' v)) (vf/ch FVV)
+       <- vvfreeze VV VV' FVV.
+
 %{
-cco_fst : ccofv V (A c& B) W ->
-	  ({v}{ov : ccofv v A W} ccof (C v) W) ->
-          frozen C ->
-	  ccof (ccfst V C) W.
+
+%% important: frozen variables cannot appear within the body
+%% of a closure.
+vf/closure : vfrozen ([x] ccclosure ([a][e] BOD a e) (ENV x))
+          <- vfrozen ENV.
+
+vf/ch : vfrozen ([x] ccch (VV x))
+     <- vvfrozen VV.
 }%
 
-%{
-fz/mkpair : freeze ([v][wv] cco_mkpair (WV1 v wv) (WV2 v wv) 
-                                       ([x][wx] (D x wx v wv) ) F)
 
-	           ([v][wv] cco_mkpair (WV1' v wv) (WV2' v wv)
-                                       ([x][wx] D' x wx v wv) F')
-	           (f/mkpair F1 F2 FK)
-.
-}%
+% %block blockwccv : some {w:world} {a:ctyp} block {x:ccval}{xof:ccofv x a w}.
+%block blockccv : block {x:ccval}.
+%block blockccvv : block {xx:ccvval}.
 
-%{
-         <- vfreeze WV1 WV1' F1
-         <- vfreeze WV2 WV2' F2
-         <- ({x}{wx}
-	       freeze (D x wx) (D' x wx) (FK x)).
-}%
-
-%  x = <v1, v2>
-%  in CC1(x)
-%  we know that CC1 is frozen in x.
-
-% have input CC1 : ccval -> ccexp,  frozen CC1
-% then we freeze 
-
-% XXX how to get F'??
-
-
-%block blockwccv : some {w:world} {a:ctyp} block {x:ccval}{xof:ccofv x a w}.
-
-%worlds (blockw | blockwccv) (freeze _ _ _) (vfreeze _ _ _).
-% %trustme %total D (vfreeze D _ _).
-%total (D E) (freeze D _ _) (vfreeze E _ _).
+%worlds (blockw | blockccv | blockccvv) (freeze _ _ _) (vfreeze _ _ _) (vvfreeze _ _ _).
+%total (D E F) (freeze D _ _) (vfreeze E _ _) (vvfreeze F _ _).
 
 %{
 cco_mkpair : ccofv V1 A W ->
