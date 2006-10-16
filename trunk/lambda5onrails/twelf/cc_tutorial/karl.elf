@@ -330,7 +330,7 @@ close-closed : ({x:exp} close A ([y] M y) ([y] N x y))
 
 
 %% if M closed by y is M', and x is modal in M, then x is modal in M'
-close-modal : ({x} modal ([y] M x y))
+close-modal :     ({x} modal ([y] M x y))
 	       -> ({y} close A ([x] M x y) ([x] M' x y))
 	       -> ({x} modal ([y] M' x y)) -> type.
 %mode close-modal +X1 +X2 -X3.

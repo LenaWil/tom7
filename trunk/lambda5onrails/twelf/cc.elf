@@ -282,7 +282,7 @@ cco_mkpair : ccofv V1 A W ->
 	     ccofv V2 B W ->
 	     ({v:ccval} ccofv v (A c& B) W -> 
 	       ccof (K v) W) ->
-             frozen N ->
+             frozen K ->
 	     ccof (ccmkpair V1 V2 K) W.
 
 cco_call : ccofv F (A ccont) W ->
@@ -345,16 +345,6 @@ ccovv : ({w} ccofv (VF w) A w) ->
 
 % todo: closure conversion
 
-% freeze a regular variable within an expression
-freeze : {D:
-	  {v}{wv : ccofv v A W'}
-	  ccof (N v) W}
-	 {D':
-	  {v}{wv : ccofv v A W'}
-          ccof (N' v) W}
-         {F : frozen N'}
-         type.
-%mode freeze +D -D' -F'.
 
 % or a valid variable
 freezevv : 
@@ -393,7 +383,7 @@ vfreezevv :
          type.
 %mode freezevv +D -D' -F'.
 
-%{
+% freeze a regular variable within an expression
 freeze : {D:
 	  {v}{wv : ccofv v A W'}
 	  ccof (N v) W}
@@ -402,20 +392,55 @@ freeze : {D:
           ccof (N' v) W}
          {F : frozen N'}
          type.
-}%
+%mode freeze +D -D' -F' -FF'.
+
 
 fz/halt : freeze ([v][wv] cco_halt) ([v][wv] cco_halt) f/halt.
 
+
+fz/fst : freeze ([v][wv] cco_fst (WV v wv) ([x][wx] WC x wx v wv) (F v))
+	        ([v][wv] cco_fst (WV' v wv) ([x][wx] WC' x wx v wv) (F' v))
+	        (f/fst FV FK)
+      <- vfreeze WV WV' FV
+      <- ({x}{wx}
+	    freeze (WC x wx) (WC' x wx) (FK x)).
+
+% have: {F : {v:ccval} frozen ([v1:ccval] CC1 v v1)}
+% want: {F': {v:ccval} frozen ([v1:ccval] CC2 v v1)}
+% 
+
+	        
+%{
+cco_fst : ccofv V (A c& B) W ->
+	  ({v}{ov : ccofv v A W} ccof (C v) W) ->
+          frozen C ->
+	  ccof (ccfst V C) W.
+}%
+
+%{
 fz/mkpair : freeze ([v][wv] cco_mkpair (WV1 v wv) (WV2 v wv) 
-                                       ([x][wx] D x wx v wv) F)
+                                       ([x][wx] (D x wx v wv) ) F)
 
 	           ([v][wv] cco_mkpair (WV1' v wv) (WV2' v wv)
                                        ([x][wx] D' x wx v wv) F')
 	           (f/mkpair F1 F2 FK)
+.
+}%
+
+%{
          <- vfreeze WV1 WV1' F1
          <- vfreeze WV2 WV2' F2
          <- ({x}{wx}
 	       freeze (D x wx) (D' x wx) (FK x)).
+}%
+
+%  x = <v1, v2>
+%  in CC1(x)
+%  we know that CC1 is frozen in x.
+
+% have input CC1 : ccval -> ccexp,  frozen CC1
+% then we freeze 
+
 % XXX how to get F'??
 
 
