@@ -136,6 +136,7 @@ vf/ch : vfrozen ([x] ccch (VV x))
 vvf/vv : vvfrozen ([x] ccvv ([w] V w x))
       <- ({w} vfrozen (V w)).
 
+vvf/closed : vvfrozen ([x] VV).
 
 %% duplicated: same as above, but for valid vars.
 fvv/mkpair : frozenvv ([x] ccmkpair (V1 x) (V2 x) ([y] C y x))
@@ -488,6 +489,14 @@ fz/closed : vfreeze ([v] V) ([v] V) vf/closed.
 
 fz/ccch : vfreeze ([v] ccch (VV v)) ([v] ccch (VV' v)) (vf/ch FVV)
        <- vvfreeze VV VV' FVV.
+
+fz/vv : vvfreeze ([v] ccvv ([w] V w v)) ([v] ccvv ([w] V' w v)) (vvf/vv FVV)
+     <- ({w} vfreeze (V w) (V' w) (FVV w)).
+
+% fz/vvar : vfreeze ([vv] vv) ([vv] vv) vfvv/var.
+% fz/vclosed : vvfreeze ([v] VV) ([v] VV) vfvv/closed.
+
+fz/vclosed : vvfreeze ([v] VV) ([v] VV) vvf/closed.
 
 %{
 
