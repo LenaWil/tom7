@@ -46,14 +46,14 @@ ccch : ccvval -> ccval.
 ccvv : (world -> ccval) -> ccvval.
 
 
-frozenvv   : (ccvval -> ccexp)  -> type.
-vfrozenvv  : (ccvval -> ccval)  -> type.
-vvfrozenvv : (ccvval -> ccvval) -> type.
+frozenvv   : (ccvval -> ccexp)  -> type.        %name frozenvv ZZ zz.  
+vfrozenvv  : (ccvval -> ccval)  -> type.        %name vfrozenvv ZZ zz. 
+vvfrozenvv : (ccvval -> ccvval) -> type.        %name vvfrozenvv ZZ zz.
 
 
-frozen     : (ccval  -> ccexp)  -> type.
-vfrozen    : (ccval  -> ccval)  -> type.
-vvfrozen   : (ccval  -> ccvval) -> type.
+frozen     : (ccval  -> ccexp)  -> type.        %name frozen Z z.  
+vfrozen    : (ccval  -> ccval)  -> type.        %name vfrozen Z z. 
+vvfrozen   : (ccval  -> ccvval) -> type.        %name vvfrozen Z z.
 
 f/mkpair : frozen ([x] ccmkpair (V1 x) (V2 x) ([y] C y x))
         <- ({y} frozen (C y))
@@ -657,116 +657,150 @@ fzvv/closure : vfreezevv ([u:ccvval] ccclosure ([a:ccval][e:ccval] BOD a e u) (E
 %worlds (blockw | blockccv | blockccvv) (freeze _ _ _) (vfreeze _ _ _) (vvfreeze _ _ _).
 %total (D E F) (freeze D _ _) (vfreeze E _ _) (vvfreeze F _ _).
 
-
 %block blockccv : block {x:ccval}.
 %block blockccvv : block {xx:ccvval}.
 
 %worlds (blockw | blockccv | blockccvv) (freezevv _ _ _) (vfreezevv _ _ _) (vvfreezevv _ _ _).
 %total (D E F) (freezevv D _ _) (vfreezevv E _ _) (vvfreezevv F _ _).
 
+
+% freezing needs to preserve frozenness
+permafrost : 
+      {ZN : {v:ccval} frozen ([y] N v y)}
+      {FN : {v:ccval} freeze ([y] N y v) ([y] N' y v) (F v)}
+      {ZN': {v:ccval} frozen ([y] N' v y)}
+      type.
+%mode permafrost +ZN +FN -ZN'.
+
+permavfrost : 
+      {ZN : {v:ccval} vfrozen ([y] N v y)}
+      {FN : {v:ccval} vfreeze ([y] N y v) ([y] N' y v) (F v)}
+      {ZN': {v:ccval} vfrozen ([y] N' v y)}
+      type.
+%mode permavfrost +ZN +FN -ZN'.
+
+permavvfrost : 
+      {ZN : {v:ccval} vvfrozen ([y] N v y)}
+      {FN : {v:ccval} vvfreeze ([y] N y v) ([y] N' y v) (F v)}
+      {ZN': {v:ccval} vvfrozen ([y] N' v y)}
+      type.
+%mode permavvfrost +ZN +FN -ZN'.
+
 %{
-cco_mkpair : ccofv V1 A W ->
-	     ccofv V2 B W ->
-	     ({v:ccval} ccofv v (A c& B) W -> 
-	       ccof (K v) W) ->
-             frozen N ->
-	     ccof (ccmkpair V1 V2 K) W.
+% freezing needs to preserve frozenvvness
+permafrostvv : 
+      {ZN : {v:ccvval} frozenvv ([y] N v y)}
+      {FN : {v:ccvval} freezevv ([y] N y v) ([y] N' y v) (F v)}
+      {ZN': {v:ccvval} frozenvv ([y] N' v y)}
+      type.
+%mode permafrostvv +ZN +FN -ZN'.
 
+permavfrostvv : 
+      {ZN : {v:ccvval} vfrozenvv ([y] N v y)}
+      {FN : {v:ccvval} vfreezevv ([y] N y v) ([y] N' y v) (F v)}
+      {ZN': {v:ccvval} vfrozenvv ([y] N' v y)}
+      type.
+%mode permavfrostvv +ZN +FN -ZN'.
 
-cco_halt : ccof cchalt W.
-
-% different now: needs a closed continuation value
-cco_go : ccofv VW (caddr W') W ->
-         ccofv VC (cunit ccont) W' ->
-         ccof (ccgo W' VW VC) W.
-
-cco_lift : cmobile A ->
-	   ccofv V A W ->
-	   ({v} ccofvv v A ->
-	      ccof (N v) W) ->
-	   frozenvv N ->
-	   ccof (cclift V N) W.
-
-cco_letheart : ccofv V (cheart A) W ->
-	       ({v} ccofvv v A ->
-		 ccof (N v) W) ->
-	       frozenvv N ->
-	       ccof (ccletheart V N) W.
-
-cco_leta : ccofv V (A cat W') W ->
-	   ({v} ccofv v A W' ->
-	     ccof (N v) W) ->
-	   frozen N ->
-	   ccof (ccleta V N) W.
-
-cco_wapp : ccofv V (call A) W ->
-	   ({v} ccofv v (A W') W ->
-	      ccof (N v) W) ->
-	   frozen N ->
-	   ccof (ccwapp V W' N) W.
-
-cco_unpack : 
-          ccofv V (cexists A) W ->
-          ({w}{v} ccofv v (A w) W ->
-              ccof (N w v) W) ->
-          ({w} frozen (N w)) ->
-          ccof (ccunpack V N) W.
-
-cco_localhost : ({v} ccofv v (caddr W) W -> 
-                    ccof (N v) W) ->
-               frozen N ->
-               ccof (cclocalhost N) W.
-
-
-cco_call : ccofv F (A ccont) W ->
-	   ccofv V A W ->
-	   ccof (cccall F V) W.
-
-cco_fst : ccofv V (A c& B) W ->
-	  ({v}{ov : ccofv v A W} ccof (C v) W) ->
-          frozen C ->
-	  ccof (ccfst V C) W.
-
-cco_snd : ccofv V (A c& B) W ->
-	  ({v}{ov : ccofv v B W} ccof (C v) W) ->
-          frozen C ->
-	  ccof (ccsnd V C) W.
-
-
-% this is new!
-ccov_closure : ccofv ENV ENVT W ->
-               ({x}{xof : ccofv x A W}
-		{e}{eof : ccofv e ENVT W}
-                ccof (BOD x e) W) ->
-	       ({x} frozen ([y] M x y)) ->
-	       ({y} frozen ([x] M x y)) ->
-               ccofv (ccclosure BOD ENV) (A ccont) W.
-
-ccov_unit : ccofv cc1 cunit W.
-
-ccov_pair : ccofv V1 A W ->
-	    ccofv V2 B W ->
-	    ccofv (ccpair V1 V2) (A c& B) W.
-
-ccov_hold : ccofv V A W' ->
-            ccofv (cchold W' V) (A cat W') W.
-
-ccov_const : ccofv (ccconst W) (caddr W) W'.
-
-ccov_wlam : ({w} ccofv (V w) (A w) W) ->
-            ccofv (ccwlam V) (call A) W.
-
-ccov_pack : {A : world -> ctyp} % sometimes need this annotation
-            ccofv V (A W') W -> 
-            ccofv (ccpack W' V) (cexists A) W.
-
-ccov_valid : ccofvv VV A ->
-             ccofv (ccvalid VV) A W.
-
-ccov_ch : ccofvv VV A ->
-          ccofv (ccch VV) (cheart A) W.
-
-ccovv : ({w} ccofv (VF w) A w) ->
-        ccofvv (ccvv VF) A.
-
+permavvfrostvv : 
+      {ZN : {v:ccvval} vvfrozenvv ([y] N v y)}
+      {FN : {v:ccvval} vvfreezevv ([y] N y v) ([y] N' y v) (F v)}
+      {ZN': {v:ccvval} vvfrozenvv ([y] N' v y)}
+      type.
+%mode permavvfrostvv +ZN +FN -ZN'.
 }%
+
+
+%{
+      {ZN:{v:ccval} {vv1:ccvval} frozen ([v1:ccval] N v1 vv1 v)}
+      {FN:{v:ccval} {vv1:ccvval}
+             freeze ([v1:ccval] N v vv1 v1) ([v1:ccval] N' v1 vv1 v)
+                (Z2 v vv1)}
+      {ZN':{v:ccval} {vv1:ccvval} frozen ([v1:ccval] N' v vv1 v1)}
+}%
+
+- : permafrost D ([_] fz/halt) D.
+- : permafrost ([x] f/call (Z1 x) (Z2 x)) ([x] fz/call (F2 x) (F1 x)) ([x] f/call (Z1' x) (Z2' x))
+     <- permavfrost Z1 F1 Z1'
+     <- permavfrost Z2 F2 Z2'.
+
+- : permafrost ([x] f/lift (ZV x) (ZN x)) ([x] fz/lift (FN x) (FV x)) ([x] f/lift (ZV' x) (ZN' x))
+     <- permavfrost ZV FV ZV'
+     <- ({vv} permafrost ([x] ZN x vv) ([x] FN x vv) ([x] ZN' x vv)).
+
+- : permafrost ([x] f/letheart (ZV x) (ZN x)) ([x] fz/letheart (FN x) (FV x)) ([x] f/letheart (ZV' x) (ZN' x))
+     <- permavfrost ZV FV ZV'
+     <- ({vv} permafrost ([x] ZN x vv) ([x] FN x vv) ([x] ZN' x vv)).
+
+- : permafrost ([x] f/localhost (ZN x)) ([x] fz/localhost (FN x)) ([x] f/localhost (ZN' x))
+     <- ({v} permafrost ([x] ZN x v) ([x] FN x v) ([x] ZN' x v)).
+
+- : permafrost ([x] f/leta (ZV x) (ZN x)) ([x] fz/leta (FN x) (FV x)) ([x] f/leta (ZV' x) (ZN' x))
+     <- permavfrost ZV FV ZV'
+     <- ({v} permafrost ([x] ZN x v) ([x] FN x v) ([x] ZN' x v)).
+
+- : permafrost ([x] f/fst (ZV x) (ZN x)) ([x] fz/fst (FN x) (FV x)) ([x] f/fst (ZV' x) (ZN' x))
+     <- permavfrost ZV FV ZV'
+     <- ({v} permafrost ([x] ZN x v) ([x] FN x v) ([x] ZN' x v)).
+
+- : permafrost ([x] f/snd (ZV x) (ZN x)) ([x] fz/snd (FN x) (FV x)) ([x] f/snd (ZV' x) (ZN' x))
+     <- permavfrost ZV FV ZV'
+     <- ({v} permafrost ([x] ZN x v) ([x] FN x v) ([x] ZN' x v)).
+
+- : permafrost ([x] f/unpack (ZV x) (ZN x)) ([x] fz/unpack (FN x) (FV x)) ([x] f/unpack (ZV' x) (ZN' x))
+     <- permavfrost ZV FV ZV'
+     <- ({w}{v} permafrost ([x] ZN x w v) ([x] FN x w v) ([x] ZN' x w v)).
+
+- : permafrost ([x] f/wapp (ZV x) (ZN x)) ([x] fz/wapp (FN x) (FV x)) ([x] f/wapp (ZV' x) (ZN' x))
+     <- permavfrost ZV FV ZV'
+     <- ({v} permafrost ([x] ZN x v) ([x] FN x v) ([x] ZN' x v)).
+
+- : permafrost ([x] f/go (Z1 x) (Z2 x)) ([x] fz/go (F2 x) (F1 x)) ([x] f/go (Z1' x) (Z2' x))
+     <- permavfrost Z1 F1 Z1'
+     <- permavfrost Z2 F2 Z2'.
+
+- : permafrost ([x] f/mkpair (ZV1 x) (ZV2 x) (ZN x)) ([x] fz/mkpair (FN x) (FV2 x) (FV1 x)) ([x] f/mkpair (ZV1' x) (ZV2' x) (ZN' x))
+     <- permavfrost ZV1 FV1 ZV1'
+     <- permavfrost ZV2 FV2 ZV2'
+     <- ({v} permafrost ([x] ZN x v) ([x] FN x v) ([x] ZN' x v)).
+
+%worlds (blockw | blockccv | blockccvv) (permafrost _ _ _) (permavfrost _ _ _).
+%total (D E) (permafrost _ D _) (permavfrost _ E _).
+
+
+% freezing needs to preserve well-formedness.
+
+% freeze a regular variable within an expression
+freeze/ok : {WN  : {x}{xok:ccofv x A W} ccof (N x) W'}
+	    {D   : freeze N N' F}
+	    {WN' : {x}{xok:ccofv x A W} ccof (N' x) W'}
+	    type.
+%mode freeze/ok +WN +D -WN'.
+
+vfreeze/ok : {WV  : {x}{xok:ccofv x A W} ccofv (V x) B W'}
+	     {D   : vfreeze V V' F}
+	     {WV' : {x}{xok:ccofv x A W} ccofv (V' x) B W'}
+	     type.
+%mode vfreeze/ok +WV +D -WV'.
+
+vvfreeze/ok : {WVV  : {x}{xok:ccofv x A W} ccofvv (VV x) B}
+ 	      {D    : vvfreeze VV VV' F}
+	      {WVV' : {x}{xok:ccofv x A W} ccofvv (VV' x) B}
+	      type.
+%mode vvfreeze/ok +WVV +D -WVV'.
+
+- : freeze/ok ([_][_] cco_halt) fz/halt ([_][_] cco_halt).
+- : freeze/ok ([x][wx] cco_call (WF x wx) (WA x wx)) (fz/call FA FF) ([x][wx] cco_call (WF' x wx) (WA' x wx))
+     <- vfreeze/ok WF FF WF'
+     <- vfreeze/ok WA FA WA'.
+
+- : freeze/ok ([x][wx] cco_fst (WV x wx) ([y][wy] WN y wy x wx) (ZN x)) (fz/fst FN FV) ([x][wx] cco_fst (WV' x wx) ([y][wy] WN' y wy x wx) (ZN' x))
+     <- vfreeze/ok WV FV WV'
+     <- ({x}{wx} freeze/ok (WN x wx) (FN x) (WN' x wx)).
+
+- : vfreeze/ok D fz/var D.
+
+%worlds (blockw) (freeze/ok _ _ _) (vfreeze/ok _ _ _) (vvfreeze/ok _ _ _).
+%total (D E F) (freeze/ok _ D _) (vfreeze/ok _ E _) (vvfreeze/ok _ F _).
+
+% now we can do the translation on typing derivations.
