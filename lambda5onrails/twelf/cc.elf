@@ -30,7 +30,7 @@ cchalt : ccexp.
 
 % continuation values
 ccpair : ccval -> ccval -> ccval.
-cchold : world -> ccval -> ccval.
+cchold : ccval -> ccval.
 
 %       argument -> environment -> body    env
 ccclosure : (ccval -> ccval -> ccexp) -> ccval -> ccval.
@@ -109,7 +109,7 @@ vf/pair : vfrozen ([x] ccpair (V1 x) (V2 x))
        <- vfrozen V2
        <- vfrozen V1.
 
-vf/hold : vfrozen ([x] cchold W (V x))
+vf/hold : vfrozen ([x] cchold (V x))
        <- vfrozen V.
 
 vf/const : vfrozen ([x] ccconst W).
@@ -175,7 +175,7 @@ fvv/wapp : frozenvv ([x] ccwapp (V x) W ([y] C y x))
       <- ({y} frozenvv (C y))
       <- vfrozenvv V.
 
-fvv/ccgo : frozenvv ([x] ccgo W (V1 x) (V2 x))
+fvv/go : frozenvv ([x] ccgo W (V1 x) (V2 x))
       <- vfrozenvv V2
       <- vfrozenvv V1.
 
@@ -190,10 +190,10 @@ vfvv/valid : vfrozenvv ([x] ccvalid (VV x))
         <- vvfrozenvv V.
 
 vfvv/pair : vfrozenvv ([x] ccpair (V1 x) (V2 x))
-       <- vfrozenvv V1
-       <- vfrozenvv V2.
+       <- vfrozenvv V2
+       <- vfrozenvv V1.
 
-vfvv/hold : vfrozenvv ([x] cchold W (V x))
+vfvv/hold : vfrozenvv ([x] cchold (V x))
        <- vfrozenvv V.
 
 vfvv/const : vfrozenvv ([x] ccconst W).
@@ -206,8 +206,7 @@ vfvv/wlam : vfrozenvv ([x] ccwlam ([w] V w x))
 vfvv/pack : vfrozenvv ([x] ccpack W (V x))
        <- vfrozenvv V.
 
-vfvv/var : vvfrozenvv ([u] u).
-vfvv/closed : vvfrozenvv ([u] VV).
+vfvv/closed : vfrozenvv ([u] V).
 
 vfvv/closure : vfrozenvv ([x] ccclosure ([a][e] BOD a e) (ENV x))
           <- vfrozenvv ENV.
@@ -217,6 +216,9 @@ vfvv/ch : vfrozenvv ([x] ccch (VV x))
 
 vvfvv/vv : vvfrozenvv ([x] ccvv ([w] V w x))
       <- ({w} vfrozenvv (V w)).
+
+vvfvv/var : vvfrozenvv ([u] u).
+vvfvv/closed : vvfrozenvv ([u] VV).
 
 %% important: frozen variables cannot appear within the body
 %% of a closure.
@@ -322,7 +324,7 @@ ccov_pair : ccofv V1 A W ->
 	    ccofv (ccpair V1 V2) (A c& B) W.
 
 ccov_hold : ccofv V A W' ->
-            ccofv (cchold W' V) (A cat W') W.
+            ccofv (cchold V) (A cat W') W.
 
 ccov_const : ccofv (ccconst W) (caddr W) W'.
 
@@ -451,8 +453,8 @@ fz/pair : vfreeze ([v] ccpair (V1 v) (V2 v))
        <- vfreeze V1 V1' FV1
        <- vfreeze V2 V2' FV2.
 
-fz/hold : vfreeze ([v] cchold W (V v))
-	          ([v] cchold W (V' v))
+fz/hold : vfreeze ([v] cchold (V v))
+	          ([v] cchold (V' v))
 	          (vf/hold FV)
        <- vfreeze V V' FV.
 
@@ -475,12 +477,14 @@ fz/pack : vfreeze ([v] ccpack W (V v))
 fz/closure : vfreeze ([x:ccval] ccclosure ([a:ccval][e:ccval] BOD a e x) (ENV x))
 	             % prepend body code with projection of the variable
 	             % from the environment; add variable as fst projection
-	             % of environment itself.
+	             % of environment itself. (It is "held" so that it can
+                     % be at any other world.)
 	             ([x] ccclosure ([a:ccval][e:ccval]
-				       ccfst e [ex:ccval]
+				       ccfst e [exh:ccval]
 				       ccsnd e [ee:ccval]
-				       BOD a ee ex) (ccpair x (ENV' x)))
-		     (vf/closure (vf/pair vf/var FENV))
+				       ccleta exh [ex:ccval]
+				       BOD a ee ex) (ccpair (cchold x) (ENV' x)))
+		     (vf/closure (vf/pair (vf/hold vf/var) FENV))
 	  <- vfreeze ENV ENV' FENV.
 
 fz/var : vfreeze ([v] v) ([v] v) vf/var.
@@ -493,21 +497,157 @@ fz/ccch : vfreeze ([v] ccch (VV v)) ([v] ccch (VV' v)) (vf/ch FVV)
 fz/vv : vvfreeze ([v] ccvv ([w] V w v)) ([v] ccvv ([w] V' w v)) (vvf/vv FVV)
      <- ({w} vfreeze (V w) (V' w) (FVV w)).
 
-% fz/vvar : vfreeze ([vv] vv) ([vv] vv) vfvv/var.
-% fz/vclosed : vvfreeze ([v] VV) ([v] VV) vfvv/closed.
-
 fz/vclosed : vvfreeze ([v] VV) ([v] VV) vvf/closed.
 
-%{
 
-%% important: frozen variables cannot appear within the body
-%% of a closure.
-vf/closure : vfrozen ([x] ccclosure ([a][e] BOD a e) (ENV x))
-          <- vfrozen ENV.
 
-vf/ch : vfrozen ([x] ccch (VV x))
-     <- vvfrozen VV.
-}%
+% mostly duplicated: same now for valid variables
+% freeze a regular variable within an expression
+freezevv : {N  : ccvval -> ccexp}
+	 {N' : ccvval -> ccexp}
+	 {F  : frozenvv N'}
+	 type.
+%mode freezevv +D -D' -F'.
+
+vfreezevv : {N  : ccvval -> ccval}
+ 	  {N' : ccvval -> ccval}
+	  {F  : vfrozenvv N'}
+	  type.
+%mode vfreezevv +D -D' -F'.
+
+vvfreezevv : {N  : ccvval -> ccvval}
+  	   {N' : ccvval -> ccvval}
+ 	   {F  : vvfrozenvv N'}
+	   type.
+%mode vvfreezevv +D -D' -F'.
+
+
+fzvv/halt : freezevv ([v] cchalt) ([v] cchalt) fvv/halt.
+
+fzvv/fst : freezevv ([v] ccfst (V v) ([x] N x v)) 
+                ([v] ccfst (V' v) ([x] N' x v))
+	        (fvv/fst FV FN)
+      <- vfreezevv V V' FV
+      <- ({x} freezevv (N x) (N' x) (FN x)).
+
+fzvv/snd : freezevv ([v] ccsnd (V v) ([x] N x v)) 
+                ([v] ccsnd (V' v) ([x] N' x v))
+	        (fvv/snd FV FN)
+      <- vfreezevv V V' FV
+      <- ({x} freezevv (N x) (N' x) (FN x)).
+
+fzvv/mkpair : freezevv ([v] ccmkpair (V1 v) (V2 v) ([x] N x v))
+	           ([v] ccmkpair (V1' v) (V2' v) ([x] N' x v))
+	           (fvv/mkpair FV1 FV2 FN)
+         <- vfreezevv V1 V1' FV1
+         <- vfreezevv V2 V2' FV2
+         <- ({x} freezevv (N x) (N' x) (FN x)).
+
+fzvv/call : freezevv ([v] cccall (V1 v) (V2 v))
+                 ([v] cccall (V1' v) (V2' v))
+                 (fvv/call FV1 FV2)
+         <- vfreezevv V1 V1' FV1
+         <- vfreezevv V2 V2' FV2.
+
+fzvv/go : freezevv ([v] ccgo W (V1 v) (V2 v))
+               ([v] ccgo W (V1' v) (V2' v))
+               (fvv/go FV1 FV2)
+     <- vfreezevv V1 V1' FV1
+     <- vfreezevv V2 V2' FV2.
+
+fzvv/wapp : freezevv ([v] ccwapp (V v) W ([x] N x v))
+                 ([v] ccwapp (V' v) W ([x] N' x v))
+	         (fvv/wapp FV FN)
+       <- vfreezevv V V' FV
+       <- ({x} freezevv (N x) (N' x) (FN x)).
+
+fzvv/unpack : freezevv ([v] ccunpack (V v) ([w][x] N w x v))
+	           ([v] ccunpack (V' v) ([w][x] N' w x v))
+	           (fvv/unpack FV FN)
+         <- vfreezevv V V' FV
+         <- ({w}{x} freezevv (N w x) (N' w x) (FN w x)).
+
+fzvv/leta : freezevv ([v] ccleta (V v) ([x] N x v))
+                 ([v] ccleta (V' v) ([x] N' x v))
+                 (fvv/leta FV FN)
+       <- vfreezevv V V' FV
+       <- ({x} freezevv (N x) (N' x) (FN x)).
+
+fzvv/localhost : freezevv ([v] cclocalhost ([x] N x v))
+		      ([v] cclocalhost ([x] N' x v))
+	              (fvv/localhost FN)
+	    <- ({x} freezevv (N x) (N' x) (FN x)).
+
+fzvv/letheart : freezevv ([v] ccletheart (V v) ([xx] N xx v))
+	             ([v] ccletheart (V' v) ([xx] N' xx v))
+	             (fvv/letheart FV FN)
+	   <- vfreezevv V V' FV
+	   <- ({xx} freezevv (N xx) (N' xx) (FN xx)).
+
+fzvv/lift : freezevv ([v] cclift (V v) ([xx] N xx v))
+	         ([v] cclift (V' v) ([xx] N' xx v))
+	         (fvv/lift FV FN)
+       <- vfreezevv V V' FV
+       <- ({xx} freezevv (N xx) (N' xx) (FN xx)).
+
+fzvv/valid : vfreezevv ([v] ccvalid (VV v))
+	           ([v] ccvalid (VV' v))
+	           (vfvv/valid FVV)
+       <- vvfreezevv VV VV' FVV.
+
+fzvv/pair : vfreezevv ([v] ccpair (V1 v) (V2 v))
+	          ([v] ccpair (V1' v) (V2' v))
+	          (vfvv/pair FV1 FV2)
+       <- vfreezevv V1 V1' FV1
+       <- vfreezevv V2 V2' FV2.
+
+fzvv/hold : vfreezevv ([v] cchold (V v))
+	          ([v] cchold (V' v))
+	          (vfvv/hold FV)
+       <- vfreezevv V V' FV.
+
+fzvv/const : vfreezevv ([v] ccconst W) ([v] ccconst W) vfvv/const.
+
+fzvv/1 : vfreezevv ([v] cc1) ([v] cc1) vfvv/1.
+
+fzvv/wlam : vfreezevv ([x] ccwlam ([w] V w x))
+	          ([x] ccwlam ([w] V' w x))
+	          (vfvv/wlam FV)
+       <- ({w} vfreezevv (V w) (V' w) (FV w)).
+
+fzvv/pack : vfreezevv ([v] ccpack W (V v))
+	          ([v] ccpack W (V' v))
+	          (vfvv/pack FV)
+      <- vfreezevv V V' FV.
+
+% fzvv/var : vfreezevv ([v] v) ([v] v) vfvv/var.
+
+fzvv/closed : vvfreezevv ([v] V) ([v] V) vvfvv/closed.
+
+fzvv/ccch : vfreezevv ([v] ccch (VV v)) ([v] ccch (VV' v)) (vfvv/ch FVV)
+       <- vvfreezevv VV VV' FVV.
+
+fzvv/vv : vvfreezevv ([v] ccvv ([w] V w v)) ([v] ccvv ([w] V' w v)) (vvfvv/vv FVV)
+     <- ({w} vfreezevv (V w) (V' w) (FVV w)).
+
+fzvv/closed : vfreezevv ([vv] V) ([vv] V) vfvv/closed.
+
+fzvv/var : vvfreezevv ([u] u) ([u] u) vvfvv/var.
+
+%% end duplicated
+% this case is different.
+fzvv/closure : vfreezevv ([u:ccvval] ccclosure ([a:ccval][e:ccval] BOD a e u) (ENV u))
+	             % prepend body code with projection of the variable
+	             % from the environment; add variable as fst projection
+	             % of environment itself. The variable is injected into the heart
+                     % modality. 
+	             ([u] ccclosure ([a:ccval][e:ccval]
+				       ccfst e [ehu:ccval]
+				       ccsnd e [ee:ccval]
+				       ccletheart ehu [u:ccvval]
+				       BOD a ee u) (ccpair (ccch u) (ENV' u)))
+		     (vfvv/closure (vfvv/pair (vfvv/ch vvfvv/var) FENV))
+	  <- vfreezevv ENV ENV' FENV.
 
 
 % %block blockwccv : some {w:world} {a:ctyp} block {x:ccval}{xof:ccofv x a w}.
@@ -516,6 +656,13 @@ vf/ch : vfrozen ([x] ccch (VV x))
 
 %worlds (blockw | blockccv | blockccvv) (freeze _ _ _) (vfreeze _ _ _) (vvfreeze _ _ _).
 %total (D E F) (freeze D _ _) (vfreeze E _ _) (vvfreeze F _ _).
+
+
+%block blockccv : block {x:ccval}.
+%block blockccvv : block {xx:ccvval}.
+
+%worlds (blockw | blockccv | blockccvv) (freezevv _ _ _) (vfreezevv _ _ _) (vvfreezevv _ _ _).
+%total (D E F) (freezevv D _ _) (vfreezevv E _ _) (vvfreezevv F _ _).
 
 %{
 cco_mkpair : ccofv V1 A W ->
