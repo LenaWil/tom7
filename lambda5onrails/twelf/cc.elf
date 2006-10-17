@@ -491,8 +491,8 @@ fz/var : vfreeze ([v] v) ([v] v) vf/var.
 
 fz/closed : vfreeze ([v] V) ([v] V) vf/closed.
 
-fz/ccch : vfreeze ([v] ccch (VV v)) ([v] ccch (VV' v)) (vf/ch FVV)
-       <- vvfreeze VV VV' FVV.
+fz/ch : vfreeze ([v] ccch (VV v)) ([v] ccch (VV' v)) (vf/ch FVV)
+     <- vvfreeze VV VV' FVV.
 
 fz/vv : vvfreeze ([v] ccvv ([w] V w v)) ([v] ccvv ([w] V' w v)) (vvf/vv FVV)
      <- ({w} vfreeze (V w) (V' w) (FVV w)).
@@ -663,6 +663,28 @@ fzvv/closure : vfreezevv ([u:ccvval] ccclosure ([a:ccval][e:ccval] BOD a e u) (E
 %worlds (blockw | blockccv | blockccvv) (freezevv _ _ _) (vfreezevv _ _ _) (vvfreezevv _ _ _).
 %total (D E F) (freezevv D _ _) (vfreezevv E _ _) (vvfreezevv F _ _).
 
+% some equalities necessary now...
+ccval-eq : ccval -> ccval -> type.
+ccval-eq/ : ccval-eq V V.
+
+vfrozen-resp : ({x} ccval-eq (V x) (V' x)) -> vfrozen V -> vfrozen V' -> type.
+%mode vfrozen-resp +E +F -F'.
+
+- : vfrozen-resp ([_] ccval-eq/) F F.
+
+%worlds (blockw | blockccv | blockccvv) (vfrozen-resp _ _ _).
+%total D (vfrozen-resp D _ _).
+
+% freezing needs to preserve closedness
+permavclosed : 
+      {F : {v:ccval} vfreeze ([x] V x) ([x] V' v x) (Z v)}
+      {E : {x} {y} ccval-eq (V'' y) (V' x y)}
+      type.
+%mode permavclosed +F -E.
+
+
+%worlds  (blockw | blockccv | blockccvv) (permavclosed G _).
+%total D (permavclosed D _).
 
 % freezing needs to preserve frozenness
 permafrost : 
@@ -764,8 +786,23 @@ permavvfrostvv :
      <- permavfrost ZV2 FV2 ZV2'
      <- ({v} permafrost ([x] ZN x v) ([x] FN x v) ([x] ZN' x v)).
 
-%worlds (blockw | blockccv | blockccvv) (permafrost _ _ _) (permavfrost _ _ _).
-%total (D E) (permafrost _ D _) (permavfrost _ E _).
+
+- : permavfrost ([x] vf/pair (Z1 x) (Z2 x)) ([x] fz/pair (F1 x) (F2 x)) ([x] vf/pair (Z1' x) (Z2' x))
+     <- permavfrost Z1 F1 Z1'
+     <- permavfrost Z2 F2 Z2'.
+
+- : permavfrost ([x] vf/closed) ([x] fz/var) ([x] vf/closed).
+
+- : permavfrost ([_] vf/closed) F Z'
+ <- permavclosed F EQ
+ <- ({x} vfrozen-resp ([y] EQ y x) vf/closed (Z' x)).
+
+- : permavfrost ([x] vf/ch (Z x)) ([x] fz/ch (FF x)) ([x] vf/ch (Z' x))
+     <- permavvfrost Z FF Z'.
+
+%worlds (blockw | blockccv | blockccvv)
+              (permafrost _ _ _) (permavfrost _ _ _) (permavvfrost _ _ _) (permavclosed _ _).
+%total (D E F) (permafrost _ D _) (permavfrost _ E _) (permavvfrost _ F _).
 
 
 % freezing needs to preserve well-formedness.
