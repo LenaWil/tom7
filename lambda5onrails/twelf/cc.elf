@@ -487,9 +487,9 @@ fz/closure : vfreeze ([x:ccval] ccclosure ([a:ccval][e:ccval] BOD a e x) (ENV x)
                      % be at any other world.)
 	             ([x] ccclosure ([a:ccval][e:ccval]
 				       ccfst e [exh:ccval]
-				       ccsnd e [ee:ccval]
+				       ccsnd e [envtail:ccval]
 				       ccleta exh [ex:ccval]
-				       BOD' a ee ex) (ccpair (cchold x) (ENV' x)))
+				       BOD' a envtail ex) (ccpair (cchold x) (ENV' x)))
 		     (vf/closure (vf/pair (vf/hold vf/var) FENV))
           <- ({a:ccval}{e:ccval} freeze ([x] BOD a e x) ([x] BOD' a e x) _)
 	  <- vfreeze ENV ENV' FENV.
@@ -743,6 +743,12 @@ cc2val-resp : ccval-eq V1 V1' -> ccval-eq V2 V2' ->
 %mode cc2val-resp +D1 +D2 +F -D3.
 - : cc2val-resp ccval-eq/ ccval-eq/ _ ccexp-eq/.
 
+ccclosure-resp : ({a}{e} ccexp-eq (E a e) (E' a e)) ->
+		 ccval-eq V V' ->
+		 ccval-eq (ccclosure E V) (ccclosure E' V') ->
+		 type.
+%mode ccclosure-resp +E +V -D.
+- : ccclosure-resp ([_][_] ccexp-eq/) ccval-eq/ ccval-eq/.
 
 ccch-resp : ccvval-eq VV VV' -> 
             ccval-eq (ccch VV) (ccch VV') -> type.
@@ -762,6 +768,7 @@ ccf-resp : ccexp-eq N N' -> {F : ccexp -> ccexp}
 
 %worlds (blockw | blockccv | blockccvv) 
         (cclocalhost-resp _ _)
+        (ccclosure-resp _ _ _)
         (cclift-resp _ _ _)
         (ccunpack-resp _ _ _)
         (ccletheart-resp _ _ _)
@@ -783,6 +790,7 @@ ccf-resp : ccexp-eq N N' -> {F : ccexp -> ccexp}
 %total D (cc2valv-resp D _ _ _).
 %total D (ccch-resp D _).
 %total D (ccf-resp D _ _).
+%total D (ccclosure-resp D _ _).
 
 - : permaclosed ([_] fz/halt) ([_][_] ccexp-eq/).
 - : permaclosed ([x] fz/localhost (F x)) EQ'
@@ -845,44 +853,90 @@ ccf-resp : ccexp-eq N N' -> {F : ccexp -> ccexp}
 - : permavclosed ([x] fz/ch (F x)) EQ'
  <- permavvclosed F EQ
  <- ({a} {x} ccch-resp (EQ a x) (EQ' a x)).
+
 - : permavclosed ([x] fz/closure (FE x) (FB x)) EQ'
- <- permavclosed FE EQE
- <- ({arg} {envtail} permaclosed ([x] FB x arg envtail) ([toss] [x] EQB toss x arg envtail))
-.
-
-%% urgh...
-%  <- ({arg} {env} {ccf-resp (EQB arg env) ([z] z) (EQB2 arg env)).
-
-
-%       {EQB:{v:ccval} {v1:ccval} {v2:ccval} {v3:ccval}
-%              ccexp-eq (CC3 v1 v2 v3) (CC2 v v1 v2 v3)}
+ <- permavclosed FE ([a][x] (EQE a x) : ccval-eq (ENV'' x) (ENV' a x))
+ <- ({toss} {x} cc2valv-resp (ccval-eq/ : ccval-eq x _) (EQE toss x) ([y][e] ccpair (cchold y) e) (EQE2 toss x))
+ <- ({arg} {envtail} 
+       permaclosed ([x] FB x arg envtail) ([toss] [x] EQB toss x arg envtail : ccexp-eq (BOD'' x arg envtail) (BOD' toss x arg envtail)))
+ <- ({arg} {envtail} {toss} {exh}
+       % unused eq
+       ccvalbind-resp (ccval-eq/ : ccval-eq cc1 cc1) ([ex] EQB toss ex arg envtail : ccexp-eq (BOD'' ex arg envtail) (BOD' toss ex arg envtail)) ([_][n] ccleta exh n) (EQB2 arg envtail toss exh))
+ <- ({arg} {toss} {exh} {e}
+       % unused eq
+       ccvalbind-resp (ccval-eq/ : ccval-eq cc1 cc1) ([envtail] EQB2 arg envtail toss exh) ([_][n] ccsnd e n) (EQB3 arg toss exh e))
+ <- ({arg} {toss} {e}
+       ccvalbind-resp (ccval-eq/ : ccval-eq cc1 cc1) ([exh] EQB3 arg toss exh e) ([_][n] ccfst e n) (EQB4 arg toss e))
+ <- ({toss} {x}
+       ccclosure-resp ([arg][e] EQB4 arg toss e) (EQE2 toss x) (EQ' toss x)).
 
 
 %{
 	             ([x] ccclosure ([a:ccval][e:ccval]
 				       ccfst e [exh:ccval]
-				       ccsnd e [ee:ccval]
+				       ccsnd e [envtail:ccval]
 				       ccleta exh [ex:ccval]
-				       BOD' a ee ex) (ccpair (cchold x) (ENV' x)))
+				       BOD' a envtail ex) (ccpair (cchold x) (ENV' x)))
 		     (vf/closure (vf/pair (vf/hold vf/var) FENV))
 
 }%
 
+%{
+Expected: {x:ccval} {y:ccval}
+             ccval-eq (V1 y)
+                (ccclosure
+                    ([a:ccval] [e:ccval]
+                        ccfst e
+                           ([exh:ccval]
+                               ccsnd e
+                                  ([envtail:ccval]
+                                      ccleta exh
+                                         ([ex:ccval] `BOD' x ex a envtail))))
+                    (ccpair (cchold y) (`ENV' x y)))
+Inferred: {x:ccval} {y:ccval}
+             ccval-eq
+                (ccclosure
+                    ([a:ccval] [e:ccval]
+                        ccfst e
+                           ([exh:ccval]
+                               ccsnd e
+                                  ([envtail:ccval]
+                                      ccleta exh ([ex:ccval] `BOD'' ex a envtail))))
+                    (`ENV'' y))
+                (ccclosure
+                    ([a:ccval] [e:ccval]
+                        ccfst e
+                           ([exh:ccval]
+                               ccsnd e
+                                  ([envtail:ccval]
+                                      ccleta exh ([ex:ccval] `BOD' v ex a envtail))))
+                    (`ENV' x y))
 
-%{
- <- ({a}{e} permaclosed ([x] FB x a e) ([y][x] EQB y x a e))
-%       {EQB:{v:ccval} {v1:ccval} {v2:ccval} {v3:ccval}
-%             ccexp-eq (CC3 v1 v2 v3) (CC2 v v1 v2 v3)}
- <- ({a}{e}{x} ccvalbind-resp ccval-eq/ ([y] EQB a e x y) ccleta (EQB2 a e x))
-%      {EQB2:{v:ccval} {v1:ccval} {v2:ccval}
-%               ccexp-eq (ccleta (V4 v v1 v2) ([v3:ccval] CC1 v1 v2 v3))
-%                  (ccleta (V4 v v1 v2) ([v3:ccval] CC2 v v1 v2 v3))}
- <- ({a}{e}{x} ccvalbind-resp ccval-eq/ ([y] EQB2 a e y) ccsnd (EQB3 a e x))
-%{
+uhh...
+
+expected:
+                (ccclosure
+                    ([a:ccval] [e:ccval]
+                        ccfst e
+                           ([exh:ccval]
+                               ccsnd e
+                                  ([envtail:ccval]
+                                      ccleta exh
+                                         ([ex:ccval] `BOD' x ex a envtail))))
+                    (ccpair (cchold y) (`ENV' x y)))
+got:
+                (ccclosure
+                    ([a:ccval] [e:ccval]
+                        ccfst e
+                           ([exh:ccval]
+                               ccsnd e
+                                  ([envtail:ccval]
+                                      ccleta exh ([ex:ccval] `BOD' x ex a envtail))))
+                    (`ENV' x y))
+
 
 }%
- <- ({a}{e} ccvalbind-resp ccval-eq/ ([y] EQB3 a e y) ccfst (EQB4 a e))
- <- ({a}{x} cc2valv-resp ccval-eq/ (EQE a x) ([1][2] ccpair (cchold 1) 2) (EQENV a x)).
+
 
 %{
        {EQ':{v:ccval} {v1:ccval}
@@ -897,7 +951,6 @@ ccf-resp : ccexp-eq N N' -> {F : ccexp -> ccexp}
                      (ccpair (cchold v1) (V3 v v1)))}
 }%
 
-}%
 %worlds  (blockw | blockccv | blockccvv) (permavclosed _ _) (permaclosed _ _) (permavvclosed _ _).
 %total (D E F) (permaclosed D _) (permavclosed E _) (permavvclosed F _).
 
