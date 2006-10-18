@@ -46,6 +46,12 @@ ccch : ccvval -> ccval.
 ccvv : (world -> ccval) -> ccvval.
 
 
+%block blockccv : block {x:ccval}.
+%block blockccvv : block {xx:ccvval}.
+
+%worlds (blockw | blockccv | blockccvv) (ccval) (ccvval) (ccexp).
+
+
 frozenvv   : (ccvval -> ccexp)  -> type.        %name frozenvv ZZ zz.  
 vfrozenvv  : (ccvval -> ccval)  -> type.        %name vfrozenvv ZZ zz. 
 vvfrozenvv : (ccvval -> ccvval) -> type.        %name vvfrozenvv ZZ zz.
@@ -483,8 +489,9 @@ fz/closure : vfreeze ([x:ccval] ccclosure ([a:ccval][e:ccval] BOD a e x) (ENV x)
 				       ccfst e [exh:ccval]
 				       ccsnd e [ee:ccval]
 				       ccleta exh [ex:ccval]
-				       BOD a ee ex) (ccpair (cchold x) (ENV' x)))
+				       BOD' a ee ex) (ccpair (cchold x) (ENV' x)))
 		     (vf/closure (vf/pair (vf/hold vf/var) FENV))
+          <- ({a:ccval}{e:ccval} freeze ([x] BOD a e x) ([x] BOD' a e x) _)
 	  <- vfreeze ENV ENV' FENV.
 
 fz/var : vfreeze ([v] v) ([v] v) vf/var.
@@ -650,15 +657,8 @@ fzvv/closure : vfreezevv ([u:ccvval] ccclosure ([a:ccval][e:ccval] BOD a e u) (E
 	  <- vfreezevv ENV ENV' FENV.
 
 
-% %block blockwccv : some {w:world} {a:ctyp} block {x:ccval}{xof:ccofv x a w}.
-%block blockccv : block {x:ccval}.
-%block blockccvv : block {xx:ccvval}.
-
 %worlds (blockw | blockccv | blockccvv) (freeze _ _ _) (vfreeze _ _ _) (vvfreeze _ _ _).
 %total (D E F) (freeze D _ _) (vfreeze E _ _) (vvfreeze F _ _).
-
-%block blockccv : block {x:ccval}.
-%block blockccvv : block {xx:ccvval}.
 
 %worlds (blockw | blockccv | blockccvv) (freezevv _ _ _) (vfreezevv _ _ _) (vvfreezevv _ _ _).
 %total (D E F) (freezevv D _ _) (vfreezevv E _ _) (vvfreezevv F _ _).
@@ -666,6 +666,13 @@ fzvv/closure : vfreezevv ([u:ccvval] ccclosure ([a:ccval][e:ccval] BOD a e u) (E
 % some equalities necessary now...
 ccval-eq : ccval -> ccval -> type.
 ccval-eq/ : ccval-eq V V.
+
+ccexp-eq : ccexp -> ccexp -> type.
+ccexp-eq/ : ccexp-eq V V.
+
+ccvval-eq : ccvval -> ccvval -> type.
+ccvval-eq/ : ccvval-eq V V.
+
 
 vfrozen-resp : ({x} ccval-eq (V x) (V' x)) -> vfrozen V -> vfrozen V' -> type.
 %mode vfrozen-resp +E +F -F'.
@@ -676,15 +683,223 @@ vfrozen-resp : ({x} ccval-eq (V x) (V' x)) -> vfrozen V -> vfrozen V' -> type.
 %total D (vfrozen-resp D _ _).
 
 % freezing needs to preserve closedness
+permaclosed : 
+      {F : {v:ccval} freeze ([x] N x) ([x] N' v x) (Z v)}
+      {E : {x} {y} ccexp-eq (N'' y) (N' x y)}
+      type.
+%mode permaclosed +F -E.
+
 permavclosed : 
       {F : {v:ccval} vfreeze ([x] V x) ([x] V' v x) (Z v)}
       {E : {x} {y} ccval-eq (V'' y) (V' x y)}
       type.
 %mode permavclosed +F -E.
 
+permavvclosed : 
+      {F : {v:ccval} vvfreeze ([x] VV x) ([x] VV' v x) (Z v)}
+      {E : {x} {y} ccvval-eq (VV'' y) (VV' x y)}
+      type.
+%mode permavvclosed +F -E.
 
-%worlds  (blockw | blockccv | blockccvv) (permavclosed G _).
-%total D (permavclosed D _).
+cclocalhost-resp : ({x} ccexp-eq (N x) (N' x)) -> ccexp-eq (cclocalhost N) (cclocalhost N') -> type.
+%mode cclocalhost-resp +D -E.
+- : cclocalhost-resp ([_] ccexp-eq/) ccexp-eq/.
+
+
+cclift-resp : ccval-eq V V' -> ({x} ccexp-eq (N x) (N' x)) -> ccexp-eq (cclift V N) (cclift V' N') -> type.
+%mode cclift-resp +D1 +D -E.
+- : cclift-resp ccval-eq/ ([_] ccexp-eq/) ccexp-eq/.
+
+ccunpack-resp : ccval-eq V V' -> ({w}{x} ccexp-eq (N w x) (N' w x)) -> ccexp-eq (ccunpack V N) (ccunpack V' N') -> type.
+%mode ccunpack-resp +D1 +D -E.
+- : ccunpack-resp ccval-eq/ ([_][_] ccexp-eq/) ccexp-eq/.
+
+
+ccletheart-resp : ccval-eq V V' -> ({x} ccexp-eq (N x) (N' x)) -> ccexp-eq (ccletheart V N) (ccletheart V' N') -> type.
+%mode ccletheart-resp +D1 +D -E.
+- : ccletheart-resp ccval-eq/ ([_] ccexp-eq/) ccexp-eq/.
+
+ccmkpair-resp : ccval-eq V1 V1' -> ccval-eq V2 V2' -> 
+               ({x} ccexp-eq (N x) (N' x)) -> 
+               ccexp-eq (ccmkpair V1 V2 N) (ccmkpair V1' V2' N') -> type.
+%mode ccmkpair-resp +D1 +D2 +D -E.
+- : ccmkpair-resp ccval-eq/ ccval-eq/ ([_] ccexp-eq/) ccexp-eq/.
+
+
+ccvalbind-resp : ccval-eq V V' -> ({x} ccexp-eq (N x) (N' x)) -> 
+		 {F : ccval -> (ccval -> ccexp) -> ccexp}
+		 ccexp-eq (F V N) (F V' N') -> type.
+%mode ccvalbind-resp +D1 +D +F -E.
+- : ccvalbind-resp ccval-eq/ ([_] ccexp-eq/) _ ccexp-eq/.
+
+
+cccall-resp : ccval-eq V1 V1' -> ccval-eq V2 V2' -> ccexp-eq (cccall V1 V2) (cccall V1' V2') -> type.
+%mode cccall-resp +D1 +D2 -D3.
+- : cccall-resp ccval-eq/ ccval-eq/ ccexp-eq/.
+
+cc2val-resp : ccval-eq V1 V1' -> ccval-eq V2 V2' -> 
+	      {F : ccval -> ccval -> ccexp}
+              ccexp-eq (F V1 V2) (F V1' V2') -> type.
+%mode cc2val-resp +D1 +D2 +F -D3.
+- : cc2val-resp ccval-eq/ ccval-eq/ _ ccexp-eq/.
+
+
+ccch-resp : ccvval-eq VV VV' -> 
+            ccval-eq (ccch VV) (ccch VV') -> type.
+%mode ccch-resp +D1 -D.
+- : ccch-resp ccvval-eq/ ccval-eq/.
+
+cc2valv-resp : ccval-eq V1 V1' -> ccval-eq V2 V2' -> 
+	       {F : ccval -> ccval -> ccval}
+               ccval-eq (F V1 V2) (F V1' V2') -> type.
+%mode cc2valv-resp +D1 +D2 +F -D3.
+- : cc2valv-resp ccval-eq/ ccval-eq/ _ ccval-eq/.
+
+ccf-resp : ccexp-eq N N' -> {F : ccexp -> ccexp}
+           ccexp-eq (F N) (F N') -> type.
+%mode ccf-resp +D +F -D'.
+- : ccf-resp ccexp-eq/ _ ccexp-eq/.
+
+%worlds (blockw | blockccv | blockccvv) 
+        (cclocalhost-resp _ _)
+        (cclift-resp _ _ _)
+        (ccunpack-resp _ _ _)
+        (ccletheart-resp _ _ _)
+        (ccvalbind-resp _ _ _ _)
+        (cc2val-resp _ _ _ _)
+        (cc2valv-resp _ _ _ _)
+        (ccmkpair-resp _ _ _ _)
+        (ccch-resp _ _)
+        (ccf-resp _ _ _)
+        (cccall-resp _ _ _).
+%total D (cclocalhost-resp D _).
+%total D (cccall-resp D _ _).
+%total D (cclift-resp D _ _).
+%total D (ccunpack-resp D _ _).
+%total D (ccletheart-resp D _ _).
+%total D (ccvalbind-resp D _ _ _).
+%total D (cc2val-resp D _ _ _).
+%total D (ccmkpair-resp D _ _ _).
+%total D (cc2valv-resp D _ _ _).
+%total D (ccch-resp D _).
+%total D (ccf-resp D _ _).
+
+- : permaclosed ([_] fz/halt) ([_][_] ccexp-eq/).
+- : permaclosed ([x] fz/localhost (F x)) EQ'
+ <- ({y:ccval} permaclosed ([x] F x y) ([v] [x] EQ v x y))
+ <- ({a} {x} cclocalhost-resp ([y] EQ a x y) (EQ' a x)).
+- : permaclosed ([x] fz/call (FA x) (FV x)) EQ'
+ <- permavclosed FA EQA
+ <- permavclosed FV EQV
+ <- ({a} {x} cc2val-resp (EQV a x) (EQA a x) cccall (EQ' a x)).
+- : permaclosed ([x] fz/lift (FN x) (FV x)) EQ'
+ <- permavclosed FV EQV
+ <- ({y} permaclosed ([x] FN x y) ([v][x] EQN v x y))
+ <- ({a} {x} cclift-resp (EQV a x) ([y] EQN a x y) (EQ' a x)).
+- : permaclosed ([x] fz/letheart (FN x) (FV x)) EQ'
+ <- permavclosed FV EQV
+ <- ({y} permaclosed ([x] FN x y) ([v][x] EQN v x y))
+ <- ({a} {x} ccletheart-resp (EQV a x) ([y] EQN a x y) (EQ' a x)).
+- : permaclosed ([x] fz/leta (FN x) (FV x)) EQ'
+ <- permavclosed FV EQV
+ <- ({y} permaclosed ([x] FN x y) ([v][x] EQN v x y))
+ <- ({a} {x} ccvalbind-resp (EQV a x) ([y] EQN a x y) ccleta (EQ' a x)).
+- : permaclosed ([x] fz/unpack ([w] FN w x) (FV x)) EQ'
+ <- permavclosed FV EQV
+ <- ({w:world} {y} permaclosed ([x] FN w x y) ([v][x] EQN w v x y))
+ <- ({a} {x} ccunpack-resp (EQV a x) ([w][y] EQN w a x y) (EQ' a x)).
+- : permaclosed ([x] fz/wapp (FN x) (FV x)) EQ'
+ <- permavclosed FV EQV
+ <- ({y} permaclosed ([x] FN x y) ([v][x] EQN v x y))
+ <- ({a} {x} ccvalbind-resp (EQV a x) ([y] EQN a x y) ([a][x] ccwapp a W x) (EQ' a x)).
+- : permaclosed ([x] fz/fst (FN x) (FV x)) EQ'
+ <- permavclosed FV EQV
+ <- ({y} permaclosed ([x] FN x y) ([v][x] EQN v x y))
+ <- ({a} {x} ccvalbind-resp (EQV a x) ([y] EQN a x y) ccfst (EQ' a x)).
+- : permaclosed ([x] fz/snd (FN x) (FV x)) EQ'
+ <- permavclosed FV EQV
+ <- ({y} permaclosed ([x] FN x y) ([v][x] EQN v x y))
+ <- ({a} {x} ccvalbind-resp (EQV a x) ([y] EQN a x y) ccsnd (EQ' a x)).
+- : permaclosed ([x] fz/go (FA x) (FV x)) EQ'
+ <- permavclosed FA EQA
+ <- permavclosed FV EQV
+ <- ({a} {x} cc2val-resp (EQA a x) (EQV a x) ([a][b] ccgo W b a) (EQ' a x)).
+- : permaclosed ([x] fz/mkpair (FN x) (FV2 x) (FV1 x)) EQ'
+ <- permavclosed FV1 EQV1
+ <- permavclosed FV2 EQV2
+ <- ({y:ccval} permaclosed ([x] FN x y) ([v] [x] EQN v x y))
+ <- ({a} {x} ccmkpair-resp (EQV1 a x) (EQV2 a x) ([y] EQN a x y) (EQ' a x)).
+
+
+- : permavclosed ([_] fz/var) ([_][_] ccval-eq/).
+- : permavclosed ([_] fz/closed) ([_][_] ccval-eq/).
+- : permavclosed ([x] fz/pair (F2 x) (F1 x)) EQ'
+ <- permavclosed F1 EQ1
+ <- permavclosed F2 EQ2
+ <- ({a} {x} cc2valv-resp (EQ1 a x) (EQ2 a x) ccpair (EQ' a x)).
+- : permavclosed ([x] fz/hold (F x)) EQ'
+ <- permavclosed F EQ
+ <- ({a} {x} cc2valv-resp (EQ a x) (EQ a x) ([1][2] cchold 1) (EQ' a x)).
+- : permavclosed ([_] fz/1) ([_][_] ccval-eq/).
+- : permavclosed ([_] fz/const) ([_][_] ccval-eq/).
+- : permavclosed ([x] fz/ch (F x)) EQ'
+ <- permavvclosed F EQ
+ <- ({a} {x} ccch-resp (EQ a x) (EQ' a x)).
+- : permavclosed ([x] fz/closure (FE x) (FB x)) EQ'
+ <- permavclosed FE EQE
+ <- ({arg} {envtail} permaclosed ([x] FB x arg envtail) ([toss] [x] EQB toss x arg envtail))
+.
+
+%% urgh...
+%  <- ({arg} {env} {ccf-resp (EQB arg env) ([z] z) (EQB2 arg env)).
+
+
+%       {EQB:{v:ccval} {v1:ccval} {v2:ccval} {v3:ccval}
+%              ccexp-eq (CC3 v1 v2 v3) (CC2 v v1 v2 v3)}
+
+
+%{
+	             ([x] ccclosure ([a:ccval][e:ccval]
+				       ccfst e [exh:ccval]
+				       ccsnd e [ee:ccval]
+				       ccleta exh [ex:ccval]
+				       BOD' a ee ex) (ccpair (cchold x) (ENV' x)))
+		     (vf/closure (vf/pair (vf/hold vf/var) FENV))
+
+}%
+
+
+%{
+ <- ({a}{e} permaclosed ([x] FB x a e) ([y][x] EQB y x a e))
+%       {EQB:{v:ccval} {v1:ccval} {v2:ccval} {v3:ccval}
+%             ccexp-eq (CC3 v1 v2 v3) (CC2 v v1 v2 v3)}
+ <- ({a}{e}{x} ccvalbind-resp ccval-eq/ ([y] EQB a e x y) ccleta (EQB2 a e x))
+%      {EQB2:{v:ccval} {v1:ccval} {v2:ccval}
+%               ccexp-eq (ccleta (V4 v v1 v2) ([v3:ccval] CC1 v1 v2 v3))
+%                  (ccleta (V4 v v1 v2) ([v3:ccval] CC2 v v1 v2 v3))}
+ <- ({a}{e}{x} ccvalbind-resp ccval-eq/ ([y] EQB2 a e y) ccsnd (EQB3 a e x))
+%{
+
+}%
+ <- ({a}{e} ccvalbind-resp ccval-eq/ ([y] EQB3 a e y) ccfst (EQB4 a e))
+ <- ({a}{x} cc2valv-resp ccval-eq/ (EQE a x) ([1][2] ccpair (cchold 1) 2) (EQENV a x)).
+
+%{
+       {EQ':{v:ccval} {v1:ccval}
+              ccval-eq (V5 v1)
+                 (ccclosure
+                     ([a:ccval] [e:ccval]
+                         ccfst e
+                            ([exh:ccval]
+                                ccsnd e
+                                   ([ee:ccval]
+                                       ccleta exh ([ex:ccval] CC2 v ex a ee))))
+                     (ccpair (cchold v1) (V3 v v1)))}
+}%
+
+}%
+%worlds  (blockw | blockccv | blockccvv) (permavclosed _ _) (permaclosed _ _) (permavvclosed _ _).
+%total (D E F) (permaclosed D _) (permavclosed E _) (permavvclosed F _).
 
 % freezing needs to preserve frozenness
 permafrost : 

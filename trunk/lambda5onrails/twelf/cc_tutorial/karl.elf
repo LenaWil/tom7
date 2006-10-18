@@ -1,104 +1,104 @@
 
 %%%%%  Syntax  %%%%%
 
-tp	: type.  %name tp A.
-exp	: type.  %name exp M.
+tp      : type.  %name tp A.
+exp     : type.  %name exp M.
 
-o	: tp.
-prod	: tp -> tp -> tp.
-arrow	: tp -> tp -> tp.
+o       : tp.
+prod    : tp -> tp -> tp.
+arrow   : tp -> tp -> tp.
 
-i	: exp.
+i       : exp.
 
-pair	: exp -> exp -> exp.
-fst	: exp -> exp.
-snd	: exp -> exp.
+pair    : exp -> exp -> exp.
+fst     : exp -> exp.
+snd     : exp -> exp.
 
-lam	: tp -> (exp -> exp) -> exp.
-app	: exp -> exp -> exp.
+lam     : tp -> (exp -> exp) -> exp.
+app     : exp -> exp -> exp.
 
 %% in closure A B ([env] [x] M env x) N:
 %%    A=environment type
 %%    B=argument type
 %%    M=closed code (binding the environment and argument)
 %%    N=environment
-closure	: tp -> tp -> (exp -> exp -> exp) -> exp -> exp.
+closure : tp -> tp -> (exp -> exp -> exp) -> exp -> exp.
 
-let	: tp -> exp -> (exp -> exp) -> exp.
+let     : tp -> exp -> (exp -> exp) -> exp.
 
 
 
 
 %%%%%  Modality  %%%%%
 
-modal	: (exp -> exp) -> type.
+modal   : (exp -> exp) -> type.
 
-modal/var	: modal ([x] x).
+modal/var       : modal ([x] x).
 
-modal/closed	: modal ([x] M).
+modal/closed    : modal ([x] M).
 
-modal/pair	: modal ([x] pair (M x) (N x))
-		   <- modal M
-		   <- modal N.
+modal/pair      : modal ([x] pair (M x) (N x))
+                   <- modal M
+                   <- modal N.
 
-modal/fst	: modal ([x] fst (M x))
-		   <- modal M.
+modal/fst       : modal ([x] fst (M x))
+                   <- modal M.
 
-modal/snd	: modal ([x] snd (M x))
-		   <- modal M.
+modal/snd       : modal ([x] snd (M x))
+                   <- modal M.
 
-modal/lam	: modal ([x] lam A ([y] M x y))
-		   <- ({y} modal ([x] M x y)).
+modal/lam       : modal ([x] lam A ([y] M x y))
+                   <- ({y} modal ([x] M x y)).
 
-modal/app	: modal ([x] app (M x) (N x))
-		   <- modal M
-		   <- modal N.
+modal/app       : modal ([x] app (M x) (N x))
+                   <- modal M
+                   <- modal N.
 
 %% Modal variables cannot appear within closed code.
-modal/closure	: modal ([x] closure A B M (N x))
-		   <- modal N.
+modal/closure   : modal ([x] closure A B M (N x))
+                   <- modal N.
 
-modal/let	: modal ([x] let A (M x) ([y] N x y))
-		   <- modal M
-		   <- ({y} modal ([x] N x y)).
+modal/let       : modal ([x] let A (M x) ([y] N x y))
+                   <- modal M
+                   <- ({y} modal ([x] N x y)).
 
 
 
 
 %%%%%  Typing  %%%%%
 
-of	: exp -> tp -> type.
+of      : exp -> tp -> type.
 
-of/i		: of i o.
+of/i            : of i o.
 
-of/pair		: of (pair M N) (prod A B)
-		   <- of M A
-		   <- of N B.
+of/pair         : of (pair M N) (prod A B)
+                   <- of M A
+                   <- of N B.
 
-of/fst		: of (fst M) A
-		   <- of M (prod A B).
+of/fst          : of (fst M) A
+                   <- of M (prod A B).
 
-of/snd		: of (snd M) B
-		   <- of M (prod A B).
+of/snd          : of (snd M) B
+                   <- of M (prod A B).
 
-of/lam		: of (lam A M) (arrow A B)
-		   <- ({x} of x A -> of (M x) B)
-		   <- modal M.
+of/lam          : of (lam A M) (arrow A B)
+                   <- ({x} of x A -> of (M x) B)
+                   <- modal M.
 
-of/app		: of (app M N) B
-		   <- of M (arrow A B)
-		   <- of N A.
+of/app          : of (app M N) B
+                   <- of M (arrow A B)
+                   <- of N A.
 
-of/closure	: of (closure A B M N) (arrow B C)
-		   <- ({x} of x A -> {y} of y B -> of (M x y) C)
-		   <- of N A
-		   <- ({y} modal ([x] M x y))
-		   <- ({x} modal ([y] M x y)).
+of/closure      : of (closure A B M N) (arrow B C)
+                   <- ({x} of x A -> {y} of y B -> of (M x y) C)
+                   <- of N A
+                   <- ({y} modal ([x] M x y))
+                   <- ({x} modal ([y] M x y)).
 
-of/let		: of (let A M N) B
-		   <- of M A
-		   <- ({x} of x A -> of (N x) B)
-		   <- modal N.
+of/let          : of (let A M N) B
+                   <- of M A
+                   <- ({x} of x A -> of (N x) B)
+                   <- modal N.
 
 
 
@@ -106,72 +106,72 @@ of/let		: of (let A M N) B
 %%%%%  Closure Conversion  %%%%%
 
 %%  change a bound variable from valid to modal
-close	: tp -> (exp -> exp) -> (exp -> exp) -> type.
+close   : tp -> (exp -> exp) -> (exp -> exp) -> type.
 
-cc	: exp -> exp -> type.
+cc      : exp -> exp -> type.
 
 
-close/var	: close _ ([x] x) ([x] x).
+close/var       : close _ ([x] x) ([x] x).
 
-close/i		: close _ ([x] i) ([x] i).
+close/i         : close _ ([x] i) ([x] i).
 
-close/pair	: close A ([x] pair (M x) (N x)) ([x] pair (M' x) (N' x))
-		   <- close A M M'
-		   <- close A N N'.
+close/pair      : close A ([x] pair (M x) (N x)) ([x] pair (M' x) (N' x))
+                   <- close A M M'
+                   <- close A N N'.
 
-close/fst	: close A ([x] fst (M x)) ([x] fst (M' x))
-		   <- close A M M'.
+close/fst       : close A ([x] fst (M x)) ([x] fst (M' x))
+                   <- close A M M'.
 
-close/snd	: close A ([x] snd (M x)) ([x] snd (M' x))
-		   <- close A M M'.
+close/snd       : close A ([x] snd (M x)) ([x] snd (M' x))
+                   <- close A M M'.
 
-close/app	: close A ([x] app (M x) (N x)) ([x] app (M' x) (N' x))
-		   <- close A M M'
-		   <- close A N N'.
+close/app       : close A ([x] app (M x) (N x)) ([x] app (M' x) (N' x))
+                   <- close A M M'
+                   <- close A N N'.
 
 %% The interesting case.  We need to cons x onto the environment, and 
 %% reacquire x and the old environment within the body.
-close/closure	: close A
-		   ([x] closure B C ([y] [z] M x y z) (N x))
-		   ([x]
-		      closure (prod A B) C
-		      ([w] [z]
-			 let A (fst w)
-			 ([x'] let B (snd w) ([y] M' x' y z)))
-		      (pair x (N' x)))
-		   <- ({y} {z} close A ([x] M x y z) ([x] M' x y z))
-		   <- close A N N'.
+close/closure   : close A
+                   ([x] closure B C ([y] [z] M x y z) (N x))
+                   ([x]
+                      closure (prod A B) C
+                      ([w] [z]
+                         let A (fst w)
+                         ([x'] let B (snd w) ([y] M' x' y z)))
+                      (pair x (N' x)))
+                   <- ({y} {z} close A ([x] M x y z) ([x] M' x y z))
+                   <- close A N N'.
 
-close/let	: close A ([x] let B (M x) ([y] N x y)) ([x] let B (M' x) ([y] N' x y))
-		   <- close A M M'
-		   <- ({y} close A ([x] N x y) ([x] N' x y)).
+close/let       : close A ([x] let B (M x) ([y] N x y)) ([x] let B (M' x) ([y] N' x y))
+                   <- close A M M'
+                   <- ({y} close A ([x] N x y) ([x] N' x y)).
 
 
 
-cc/i		: cc i i.
+cc/i            : cc i i.
 
-cc/pair		: cc (pair M N) (pair M' N')
-		   <- cc M M'
-		   <- cc N N'.
+cc/pair         : cc (pair M N) (pair M' N')
+                   <- cc M M'
+                   <- cc N N'.
 
-cc/fst		: cc (fst M) (fst M')
-		   <- cc M M'.
+cc/fst          : cc (fst M) (fst M')
+                   <- cc M M'.
 
-cc/snd		: cc (snd M) (snd M')
-		   <- cc M M'.
+cc/snd          : cc (snd M) (snd M')
+                   <- cc M M'.
 
-cc/lam		: cc (lam A ([x] M x)) (closure o A ([_] [x] M'' x) i)
-		   <- ({x} cc (M x) (M' x))
-		   <- close A M' M''.
+cc/lam          : cc (lam A ([x] M x)) (closure o A ([_] [x] M'' x) i)
+                   <- ({x} cc (M x) (M' x))
+                   <- close A M' M''.
 
-cc/app		: cc (app M N) (app M' N')
-		   <- cc M M'
-		   <- cc N N'.
+cc/app          : cc (app M N) (app M' N')
+                   <- cc M M'
+                   <- cc N N'.
 
-cc/let		: cc (let A M ([x] N x)) (let A M' ([x] N'' x))
-		   <- cc M M'
-		   <- ({x} cc (N x) (N' x))
-		   <- close A N' N''.
+cc/let          : cc (let A M ([x] N x)) (let A M' ([x] N'' x))
+                   <- cc M M'
+                   <- ({x} cc (N x) (N' x))
+                   <- close A N' N''.
 
 
 
@@ -197,7 +197,7 @@ exp-eq/i : exp-eq E E.
 exp-eq-symm : exp-eq M N -> exp-eq N M -> type.
 %mode exp-eq-symm +X1 -X2.
 
--	: exp-eq-symm exp-eq/i exp-eq/i.
+-       : exp-eq-symm exp-eq/i exp-eq/i.
 
 %worlds (var) (exp-eq-symm _ _).
 %total {} (exp-eq-symm _ _).
@@ -207,7 +207,7 @@ exp-eq-symm : exp-eq M N -> exp-eq N M -> type.
 exp-resp-exp4 : {M:(exp -> exp -> exp -> exp -> exp) -> exp} ({x} {y} {z} {w} exp-eq (N x y z w) (N' x y z w)) -> exp-eq (M N) (M N') -> type.
 %mode exp-resp-exp4 +X1 +X2 -X3.
 
--	: exp-resp-exp4 _ ([_] [_] [_] [_] exp-eq/i) exp-eq/i.
+-       : exp-resp-exp4 _ ([_] [_] [_] [_] exp-eq/i) exp-eq/i.
 
 %worlds (var) (exp-resp-exp4 _ _ _).
 %total {} (exp-resp-exp4 _ _ _).
@@ -217,7 +217,7 @@ exp-resp-exp4 : {M:(exp -> exp -> exp -> exp -> exp) -> exp} ({x} {y} {z} {w} ex
 exp-resp-2exp : {M:exp -> exp -> exp} exp-eq N N' -> exp-eq O O' -> exp-eq (M N O) (M N' O') -> type.
 %mode exp-resp-2exp +X1 +X2 +X3 -X4.
 
--	: exp-resp-2exp _ exp-eq/i exp-eq/i exp-eq/i.
+-       : exp-resp-2exp _ exp-eq/i exp-eq/i exp-eq/i.
 
 %worlds (var) (exp-resp-2exp _ _ _ _).
 %total {} (exp-resp-2exp _ _ _ _).
@@ -227,7 +227,7 @@ exp-resp-2exp : {M:exp -> exp -> exp} exp-eq N N' -> exp-eq O O' -> exp-eq (M N 
 exp-resp-exp : {M:exp -> exp} exp-eq N N' -> exp-eq (M N) (M N') -> type.
 %mode exp-resp-exp +X1 +X2 -X3.
 
--	: exp-resp-exp _ exp-eq/i exp-eq/i.
+-       : exp-resp-exp _ exp-eq/i exp-eq/i.
 
 %worlds (var) (exp-resp-exp _ _ _).
 %total {} (exp-resp-exp _ _ _).
@@ -241,7 +241,7 @@ closure-resp : ({x} {y} exp-eq (M x y) (M' x y)) -> exp-eq N N' -> exp-eq (closu
            (closure A B ([m:exp] [m1:exp] M' m m1) N')}
    (closure-resp X1 X2 X3).
 
--	: closure-resp ([_] [_] exp-eq/i) exp-eq/i exp-eq/i. 
+-       : closure-resp ([_] [_] exp-eq/i) exp-eq/i exp-eq/i. 
 
 %worlds (var) (closure-resp _ _ _).
 %total {} (closure-resp _ _ _).
@@ -254,7 +254,7 @@ let-resp : exp-eq M M' -> ({x} exp-eq (N x) (N' x)) -> exp-eq (let A M N) (let A
    -{X3:exp-eq (let A M ([m:exp] N m)) (let A M' ([m:exp] N' m))}
    (let-resp X1 X2 X3).
 
--	: let-resp exp-eq/i ([_] exp-eq/i) exp-eq/i.
+-       : let-resp exp-eq/i ([_] exp-eq/i) exp-eq/i.
 
 %worlds (var) (let-resp _ _ _).
 %total {} (let-resp _ _ _).
@@ -264,7 +264,7 @@ let-resp : exp-eq M M' -> ({x} exp-eq (N x) (N' x)) -> exp-eq (let A M N) (let A
 modal-resp : ({x} exp-eq (M x) (M' x)) -> modal M -> modal M' -> type.
 %mode modal-resp +X1 +X2 -X3.
 
--	: modal-resp ([_] exp-eq/i) D D.
+-       : modal-resp ([_] exp-eq/i) D D.
 
 %worlds (var) (modal-resp _ _ _).
 %total {} (modal-resp _ _ _).
@@ -274,7 +274,7 @@ modal-resp : ({x} exp-eq (M x) (M' x)) -> modal M -> modal M' -> type.
 close-resp : ({x} exp-eq (M x) (M' x)) -> ({x} exp-eq (N x) (N' x)) -> close A M N -> close A M' N' -> type.
 %mode close-resp +X1 +X2 +X3 -X4.
 
--	: close-resp ([_] exp-eq/i) ([_] exp-eq/i) D D.
+-       : close-resp ([_] exp-eq/i) ([_] exp-eq/i) D D.
 
 %worlds (var) (close-resp _ _ _ _).
 %total {} (close-resp _ _ _ _).
@@ -286,43 +286,43 @@ close-resp : ({x} exp-eq (M x) (M' x)) -> ({x} exp-eq (N x) (N' x)) -> close A M
 
 %% if M closed by y is N, and x is not free in M, then x is not free in N
 close-closed : ({x:exp} close A ([y] M y) ([y] N x y))
-		-> ({x} {y} exp-eq (N' y) (N x y)) -> type.
+                -> ({x} {y} exp-eq (N' y) (N x y)) -> type.
 %mode close-closed +X1 -X2.
 
--	: close-closed ([_] close/var) ([_] [_] exp-eq/i).
+-       : close-closed ([_] close/var) ([_] [_] exp-eq/i).
 
--	: close-closed ([_] close/i) ([_] [_] exp-eq/i).
+-       : close-closed ([_] close/i) ([_] [_] exp-eq/i).
 
--	: close-closed ([x] close/pair (D2 x) (D1 x)) Deq
-	   <- close-closed D1 Deq1
-	   <- close-closed D2 Deq2
-	   <- ({x} {y} exp-resp-2exp pair (Deq1 x y) (Deq2 x y) (Deq x y)).
+-       : close-closed ([x] close/pair (D2 x) (D1 x)) Deq
+           <- close-closed D1 Deq1
+           <- close-closed D2 Deq2
+           <- ({x} {y} exp-resp-2exp pair (Deq1 x y) (Deq2 x y) (Deq x y)).
 
--	: close-closed ([x] close/fst (D x)) Deq
-	   <- close-closed D Deq1
-	   <- ({x} {y} exp-resp-exp fst (Deq1 x y) (Deq x y)).
+-       : close-closed ([x] close/fst (D x)) Deq
+           <- close-closed D Deq1
+           <- ({x} {y} exp-resp-exp fst (Deq1 x y) (Deq x y)).
 
--	: close-closed ([x] close/snd (D x)) Deq
-	   <- close-closed D Deq1
-	   <- ({x} {y} exp-resp-exp snd (Deq1 x y) (Deq x y)).
+-       : close-closed ([x] close/snd (D x)) Deq
+           <- close-closed D Deq1
+           <- ({x} {y} exp-resp-exp snd (Deq1 x y) (Deq x y)).
 
--	: close-closed ([x] close/app (D2 x) (D1 x)) Deq
-	   <- close-closed D1 Deq1
-	   <- close-closed D2 Deq2
-	   <- ({x} {y} exp-resp-2exp app (Deq1 x y) (Deq2 x y) (Deq x y)).
+-       : close-closed ([x] close/app (D2 x) (D1 x)) Deq
+           <- close-closed D1 Deq1
+           <- close-closed D2 Deq2
+           <- ({x} {y} exp-resp-2exp app (Deq1 x y) (Deq2 x y) (Deq x y)).
 
--	: close-closed ([a] close/closure (D2 a) (D1 a)) Deq
-	   <- ({y} {z} close-closed ([x] D1 x y z) ([a] [x] Deq1 a x y z))
-	   <- close-closed D2 Deq2
-	   <- ({a} {x} {z} {w} let-resp (exp-eq/i : exp-eq (snd w) _) ([y] Deq1 a x y z) (Deq1' a x z w))
-	   <- ({a} {z} {w} let-resp (exp-eq/i : exp-eq (fst w) _) ([x] Deq1' a x z w) (Deq1'' a z w))
-	   <- ({a} {x} exp-resp-2exp pair exp-eq/i (Deq2 a x) (Deq2' a x))
-	   <- ({a} {x} closure-resp ([w] [z] Deq1'' a z w) (Deq2' a x) (Deq a x)).
+-       : close-closed ([a] close/closure (D2 a) (D1 a)) Deq
+           <- ({y} {z} close-closed ([x] D1 x y z) ([a] [x] Deq1 a x y z))
+           <- close-closed D2 Deq2
+           <- ({a} {x} {z} {w} let-resp (exp-eq/i : exp-eq (snd w) _) ([y] Deq1 a x y z) (Deq1' a x z w))
+           <- ({a} {z} {w} let-resp (exp-eq/i : exp-eq (fst w) _) ([x] Deq1' a x z w) (Deq1'' a z w))
+           <- ({a} {x} exp-resp-2exp pair exp-eq/i (Deq2 a x) (Deq2' a x))
+           <- ({a} {x} closure-resp ([w] [z] Deq1'' a z w) (Deq2' a x) (Deq a x)).
 
--	: close-closed ([a] close/let (D2 a) (D1 a)) Deq
-	   <- close-closed D1 Deq1
-	   <- ({y} close-closed ([a] D2 a y) ([a] [x] Deq2 a x y))
-	   <- ({a} {x} let-resp (Deq1 a x) ([y] Deq2 a x y) (Deq a x)).
+-       : close-closed ([a] close/let (D2 a) (D1 a)) Deq
+           <- close-closed D1 Deq1
+           <- ({y} close-closed ([a] D2 a y) ([a] [x] Deq2 a x y))
+           <- ({a} {x} let-resp (Deq1 a x) ([y] Deq2 a x y) (Deq a x)).
 
 %worlds (var | bind) (close-closed _ _).
 %total D (close-closed D _).
@@ -331,60 +331,60 @@ close-closed : ({x:exp} close A ([y] M y) ([y] N x y))
 
 %% if M closed by y is M', and x is modal in M, then x is modal in M'
 close-modal :     ({x} modal ([y] M x y))
-	       -> ({y} close A ([x] M x y) ([x] M' x y))
-	       -> ({x} modal ([y] M' x y)) -> type.
+               -> ({y} close A ([x] M x y) ([x] M' x y))
+               -> ({x} modal ([y] M' x y)) -> type.
 %mode close-modal +X1 +X2 -X3.
 
--	: close-modal ([_] modal/closed) Dcl Dmod
-	   <- close-closed Dcl Deq
-	   <- ({x} modal-resp ([y] Deq y x) modal/closed (Dmod x)).
+-       : close-modal ([_] modal/closed) Dcl Dmod
+           <- close-closed Dcl Deq
+           <- ({x} modal-resp ([y] Deq y x) modal/closed (Dmod x)).
 
--	: close-modal ([x] modal/pair (Dmod2 x) (Dmod1 x)) ([y] close/pair (Dcl2 y) (Dcl1 y))
-	   ([x] modal/pair (Dmod2' x) (Dmod1' x))
-	   <- close-modal Dmod1 Dcl1 Dmod1'
-	   <- close-modal Dmod2 Dcl2 Dmod2'.
+-       : close-modal ([x] modal/pair (Dmod2 x) (Dmod1 x)) ([y] close/pair (Dcl2 y) (Dcl1 y))
+           ([x] modal/pair (Dmod2' x) (Dmod1' x))
+           <- close-modal Dmod1 Dcl1 Dmod1'
+           <- close-modal Dmod2 Dcl2 Dmod2'.
 
--	: close-modal ([x] modal/fst (Dmod x)) ([y] close/fst (Dcl y))
-	   ([x] modal/fst (Dmod' x))
-	   <- close-modal Dmod Dcl Dmod'.
+-       : close-modal ([x] modal/fst (Dmod x)) ([y] close/fst (Dcl y))
+           ([x] modal/fst (Dmod' x))
+           <- close-modal Dmod Dcl Dmod'.
 
--	: close-modal ([x] modal/snd (Dmod x)) ([y] close/snd (Dcl y))
-	   ([x] modal/snd (Dmod' x))
-	   <- close-modal Dmod Dcl Dmod'.
+-       : close-modal ([x] modal/snd (Dmod x)) ([y] close/snd (Dcl y))
+           ([x] modal/snd (Dmod' x))
+           <- close-modal Dmod Dcl Dmod'.
 
--	: close-modal ([x] modal/app (Dmod2 x) (Dmod1 x)) ([y] close/app (Dcl2 y) (Dcl1 y))
-	   ([x] modal/app (Dmod2' x) (Dmod1' x))
-	   <- close-modal Dmod1 Dcl1 Dmod1'
-	   <- close-modal Dmod2 Dcl2 Dmod2'.
+-       : close-modal ([x] modal/app (Dmod2 x) (Dmod1 x)) ([y] close/app (Dcl2 y) (Dcl1 y))
+           ([x] modal/app (Dmod2' x) (Dmod1' x))
+           <- close-modal Dmod1 Dcl1 Dmod1'
+           <- close-modal Dmod2 Dcl2 Dmod2'.
 
--	: close-modal ([x] modal/closure (Dmod2 x)) ([y] close/closure (Dcl2 y) (Dcl1 y))
-	   Dmod'
-	   <- close-modal Dmod2 Dcl2 Dmod2'
-	   <- ({z} {w} close-closed ([y] Dcl1 y z w) ([y] [x] Deq x y z w))
-	   <- ({x} {y}
-		 exp-resp-exp4
-		 ([f]
-		    closure (prod A B) C
-		    ([w] [z]
-		       let A (fst w)
-		       ([x'] let B (snd w)
-			  ([v] f x' y v z)))
-		    (pair x (N' x y)))
-		 Deq
-		 (Deq' x y))
-	   <- ({x} modal-resp ([y] Deq' x y)
-		 (modal/closure
-		    (modal/pair
-		       (Dmod2' x)
-		       modal/closed))
-		 (Dmod' x)).
-		 
--	: close-modal ([x] modal/let (Dmod2 x) (Dmod1 x)) ([y] close/let (Dcl2 y) (Dcl1 y))
-	   ([x] modal/let
-	      (Dmod2' x)
-	      (Dmod1' x))
-	   <- close-modal Dmod1 Dcl1 Dmod1'
-	   <- ({z} close-modal ([x] Dmod2 x z) ([y] Dcl2 y z) ([x] Dmod2' x z)).
+-       : close-modal ([x] modal/closure (Dmod2 x)) ([y] close/closure (Dcl2 y) (Dcl1 y))
+           Dmod'
+           <- close-modal Dmod2 Dcl2 Dmod2'
+           <- ({z} {w} close-closed ([y] Dcl1 y z w) ([y] [x] Deq x y z w))
+           <- ({x} {y}
+                 exp-resp-exp4
+                 ([f]
+                    closure (prod A B) C
+                    ([w] [z]
+                       let A (fst w)
+                       ([x'] let B (snd w)
+                          ([v] f x' y v z)))
+                    (pair x (N' x y)))
+                 Deq
+                 (Deq' x y))
+           <- ({x} modal-resp ([y] Deq' x y)
+                 (modal/closure
+                    (modal/pair
+                       (Dmod2' x)
+                       modal/closed))
+                 (Dmod' x)).
+                 
+-       : close-modal ([x] modal/let (Dmod2 x) (Dmod1 x)) ([y] close/let (Dcl2 y) (Dcl1 y))
+           ([x] modal/let
+              (Dmod2' x)
+              (Dmod1' x))
+           <- close-modal Dmod1 Dcl1 Dmod1'
+           <- ({z} close-modal ([x] Dmod2 x z) ([y] Dcl2 y z) ([x] Dmod2' x z)).
 
 %worlds (var | bind) (close-modal _ _ _).
 %total D (close-modal _ D _).
@@ -392,123 +392,123 @@ close-modal :     ({x} modal ([y] M x y))
 
 
 close-ok : ({x} of x A -> of (M x) B)
-	    -> close A M M'
+            -> close A M M'
 %%
-	    -> ({x} of x A -> of (M' x) B)
-	    -> modal M' -> type.
+            -> ({x} of x A -> of (M' x) B)
+            -> modal M' -> type.
 %mode close-ok +X1 +X2 -X3 -X4.
 
--	: close-ok ([x] [d] d) close/var ([x] [d] d) modal/var.
+-       : close-ok ([x] [d] d) close/var ([x] [d] d) modal/var.
 
--	: close-ok ([_] [_] of/i) close/i ([_] [_] of/i) modal/closed.
+-       : close-ok ([_] [_] of/i) close/i ([_] [_] of/i) modal/closed.
 
--	: close-ok
-	   ([x] [d] of/pair (D2 x d) (D1 x d))
-	   (close/pair Dcl2 Dcl1)
-	   ([x] [d] of/pair (D2' x d) (D1' x d))
-	   (modal/pair Dmod2 Dmod1)
-	   <- close-ok D1 Dcl1 D1' Dmod1
-	   <- close-ok D2 Dcl2 D2' Dmod2.
+-       : close-ok
+           ([x] [d] of/pair (D2 x d) (D1 x d))
+           (close/pair Dcl2 Dcl1)
+           ([x] [d] of/pair (D2' x d) (D1' x d))
+           (modal/pair Dmod2 Dmod1)
+           <- close-ok D1 Dcl1 D1' Dmod1
+           <- close-ok D2 Dcl2 D2' Dmod2.
 
--	: close-ok
-	   ([x] [d] of/fst (D x d))
-	   (close/fst Dcl)
-	   ([x] [d] of/fst (D' x d))
-	   (modal/fst Dmod)
-	   <- close-ok D Dcl D' Dmod.
+-       : close-ok
+           ([x] [d] of/fst (D x d))
+           (close/fst Dcl)
+           ([x] [d] of/fst (D' x d))
+           (modal/fst Dmod)
+           <- close-ok D Dcl D' Dmod.
 
--	: close-ok
-	   ([x] [d] of/snd (D x d))
-	   (close/snd Dcl)
-	   ([x] [d] of/snd (D' x d))
-	   (modal/snd Dmod)
-	   <- close-ok D Dcl D' Dmod.
+-       : close-ok
+           ([x] [d] of/snd (D x d))
+           (close/snd Dcl)
+           ([x] [d] of/snd (D' x d))
+           (modal/snd Dmod)
+           <- close-ok D Dcl D' Dmod.
 
--	: close-ok
-	   ([x] [d] of/app (D2 x d) (D1 x d))
-	   (close/app Dcl2 Dcl1)
-	   ([x] [d] of/app (D2' x d) (D1' x d))
-	   (modal/app Dmod2 Dmod1)
-	   <- close-ok D1 Dcl1 D1' Dmod1
-	   <- close-ok D2 Dcl2 D2' Dmod2.
+-       : close-ok
+           ([x] [d] of/app (D2 x d) (D1 x d))
+           (close/app Dcl2 Dcl1)
+           ([x] [d] of/app (D2' x d) (D1' x d))
+           (modal/app Dmod2 Dmod1)
+           <- close-ok D1 Dcl1 D1' Dmod1
+           <- close-ok D2 Dcl2 D2' Dmod2.
 
 %% The interesting case.
--	: close-ok
-	   ([x] [d:of x A]
-	      of/closure
-	      (DmodZ x : {y} modal ([z] M x y z))
-	      (DmodY x : {z} modal ([y] M x y z))
-	      (D2 x d : of (N x) B)
-	      (D1 x d : {y} of y B -> {z} of z C -> of (M x y z) D))
-	   (close/closure
-	      (Dcl2 : close A N N')
-	      (Dcl1 : {y} {z} close A ([x] M x y z) ([x] M' x y z)))
+-       : close-ok
+           ([x] [d:of x A]
+              of/closure
+              (DmodZ x : {y} modal ([z] M x y z))
+              (DmodY x : {z} modal ([y] M x y z))
+              (D2 x d : of (N x) B)
+              (D1 x d : {y} of y B -> {z} of z C -> of (M x y z) D))
+           (close/closure
+              (Dcl2 : close A N N')
+              (Dcl1 : {y} {z} close A ([x] M x y z) ([x] M' x y z)))
 %%
-	   ([x] [d]
-	      of/closure
-	      ([y] modal/let
-		 ([x'] modal/let
-		    ([y] DmodZ' x' y)
-		    modal/closed)
-		 modal/closed)
-	      ([z] modal/let
-		 ([x'] modal/let
-		    ([y] modal/closed)
-		    (modal/snd modal/var))
-		 (modal/fst modal/var))
-	      (of/pair (D2' x d) d)
-	      ([w] [g:of w (prod A B)] [z] [f:of z C]
-		 of/let
-		 (modal/let 
-		    ([y] Dmod1 y z) 
-		    modal/closed)
-		 ([x'] [d':of x' A]
-		    of/let
-		    (DmodY' x' z)
-		    ([y] [e:of y B] D1' x' d' y e z f)
-		    (of/snd g))
-		 (of/fst g)))
-	   (modal/closure (modal/pair Dmod2 modal/var))
-	   <- ({y} {e:of y B} {z} {f:of z C}
-		 close-ok ([x] [d] D1 x d y e z f) (Dcl1 y z)
-		 ([x] [d] D1' x d y e z f : of (M' x y z) D)
-		 (Dmod1 y z : modal ([x] M' x y z)))
-	   <- close-ok D2 Dcl2
-	      (D2' : {x} of x A -> of (N' x) B)
-	      (Dmod2 : modal N')
-	   <- ({z}
-		 close-modal ([x] DmodY x z) ([y] Dcl1 y z)
-		 ([x] DmodY' x z : modal ([y] M' x y z)))
-	   <- ({y}
-		 close-modal ([x] DmodZ x y) ([z] Dcl1 y z)
-		 ([x] DmodZ' x y: modal ([z] M' x y z))).
+           ([x] [d]
+              of/closure
+              ([y] modal/let
+                 ([x'] modal/let
+                    ([y] DmodZ' x' y)
+                    modal/closed)
+                 modal/closed)
+              ([z] modal/let
+                 ([x'] modal/let
+                    ([y] modal/closed)
+                    (modal/snd modal/var))
+                 (modal/fst modal/var))
+              (of/pair (D2' x d) d)
+              ([w] [g:of w (prod A B)] [z] [f:of z C]
+                 of/let
+                 (modal/let 
+                    ([y] Dmod1 y z) 
+                    modal/closed)
+                 ([x'] [d':of x' A]
+                    of/let
+                    (DmodY' x' z)
+                    ([y] [e:of y B] D1' x' d' y e z f)
+                    (of/snd g))
+                 (of/fst g)))
+           (modal/closure (modal/pair Dmod2 modal/var))
+           <- ({y} {e:of y B} {z} {f:of z C}
+                 close-ok ([x] [d] D1 x d y e z f) (Dcl1 y z)
+                 ([x] [d] D1' x d y e z f : of (M' x y z) D)
+                 (Dmod1 y z : modal ([x] M' x y z)))
+           <- close-ok D2 Dcl2
+              (D2' : {x} of x A -> of (N' x) B)
+              (Dmod2 : modal N')
+           <- ({z}
+                 close-modal ([x] DmodY x z) ([y] Dcl1 y z)
+                 ([x] DmodY' x z : modal ([y] M' x y z)))
+           <- ({y}
+                 close-modal ([x] DmodZ x y) ([z] Dcl1 y z)
+                 ([x] DmodZ' x y: modal ([z] M' x y z))).
 
--	: close-ok
-	   ([x] [d]
-	      of/let
-	      (DmodY x : modal ([y] N x y))
-	      (D2 x d : {y} of y B -> of (N x y) C)
-	      (D1 x d : of (M x) B))
-	   (close/let
-	      (Dcl2 : {y} close A ([x] N x y) ([x] N' x y))
-	      (Dcl1 : close A M M'))
-	   ([x] [d]
-	      of/let
-	      (DmodY' x)
-	      (D2' x d)
-	      (D1' x d))
-	   (modal/let
-	      Dmod2
-	      Dmod1)
-	   <- close-ok D1 Dcl1
-	      (D1' : {x} of x A -> of (M' x) B)
-	      (Dmod1 : modal M')
-	   <- ({y} {e:of y B}
-		 close-ok ([x] [d] D2 x d y e) (Dcl2 y) 
-		 ([x] [d] D2' x d y e : of (N' x y) C)
-		 (Dmod2 y : modal ([x] N' x y)))
-	   <- close-modal DmodY Dcl2
-	      (DmodY' : {x} modal ([y] N' x y)).
+-       : close-ok
+           ([x] [d]
+              of/let
+              (DmodY x : modal ([y] N x y))
+              (D2 x d : {y} of y B -> of (N x y) C)
+              (D1 x d : of (M x) B))
+           (close/let
+              (Dcl2 : {y} close A ([x] N x y) ([x] N' x y))
+              (Dcl1 : close A M M'))
+           ([x] [d]
+              of/let
+              (DmodY' x)
+              (D2' x d)
+              (D1' x d))
+           (modal/let
+              Dmod2
+              Dmod1)
+           <- close-ok D1 Dcl1
+              (D1' : {x} of x A -> of (M' x) B)
+              (Dmod1 : modal M')
+           <- ({y} {e:of y B}
+                 close-ok ([x] [d] D2 x d y e) (Dcl2 y) 
+                 ([x] [d] D2' x d y e : of (N' x y) C)
+                 (Dmod2 y : modal ([x] N' x y)))
+           <- close-modal DmodY Dcl2
+              (DmodY' : {x} modal ([y] N' x y)).
 
 %worlds (bind) (close-ok _ _ _ _).
 %total D (close-ok _ D _ _).
@@ -516,50 +516,50 @@ close-ok : ({x} of x A -> of (M x) B)
 
 
 cc-ok : of M A
-	 -> cc M M'
-	 -> of M' A -> type.
+         -> cc M M'
+         -> of M' A -> type.
 %mode cc-ok +X1 +X2 -X3.
 
--	: cc-ok of/i cc/i of/i.
+-       : cc-ok of/i cc/i of/i.
 
--	: cc-ok (of/pair D2 D1) (cc/pair Dcc2 Dcc1) (of/pair D2' D1')
-	   <- cc-ok D1 Dcc1 D1'
-	   <- cc-ok D2 Dcc2 D2'.
+-       : cc-ok (of/pair D2 D1) (cc/pair Dcc2 Dcc1) (of/pair D2' D1')
+           <- cc-ok D1 Dcc1 D1'
+           <- cc-ok D2 Dcc2 D2'.
 
--	: cc-ok (of/fst D) (cc/fst Dcc) (of/fst D')
-	   <- cc-ok D Dcc D'.
+-       : cc-ok (of/fst D) (cc/fst Dcc) (of/fst D')
+           <- cc-ok D Dcc D'.
 
--	: cc-ok (of/snd D) (cc/snd Dcc) (of/snd D')
-	   <- cc-ok D Dcc D'.
+-       : cc-ok (of/snd D) (cc/snd Dcc) (of/snd D')
+           <- cc-ok D Dcc D'.
 
--	: cc-ok 
-	   (of/lam
-	      (Dmod : modal M)
-	      (Dof : {x} of x A -> of (M x) B))
-	   (cc/lam
-	      (Dclose : close A M' M'')
-	      (Dcc : {x} cc (M x) (M' x)))
-	   (of/closure
-	      ([_] Dmod')
-	      ([_] modal/closed)
-	      of/i
-	      ([_] [_] Dof''))
-	   <- ({x} {d}
-		 cc-ok (Dof x d) (Dcc x)
-		 (Dof' x d : of (M' x) B))
-	   <- close-ok Dof' Dclose
-	      (Dof'' : {x} of x A -> of (M'' x) B)
-	      (Dmod' : modal M'').
+-       : cc-ok 
+           (of/lam
+              (Dmod : modal M)
+              (Dof : {x} of x A -> of (M x) B))
+           (cc/lam
+              (Dclose : close A M' M'')
+              (Dcc : {x} cc (M x) (M' x)))
+           (of/closure
+              ([_] Dmod')
+              ([_] modal/closed)
+              of/i
+              ([_] [_] Dof''))
+           <- ({x} {d}
+                 cc-ok (Dof x d) (Dcc x)
+                 (Dof' x d : of (M' x) B))
+           <- close-ok Dof' Dclose
+              (Dof'' : {x} of x A -> of (M'' x) B)
+              (Dmod' : modal M'').
 
--	: cc-ok (of/app D2 D1) (cc/app Dcc2 Dcc1) (of/app D2' D1')
-	   <- cc-ok D1 Dcc1 D1'
-	   <- cc-ok D2 Dcc2 D2'.
+-       : cc-ok (of/app D2 D1) (cc/app Dcc2 Dcc1) (of/app D2' D1')
+           <- cc-ok D1 Dcc1 D1'
+           <- cc-ok D2 Dcc2 D2'.
 
--	: cc-ok (of/let D3 D2 D1) (cc/let Dcl Dcc2 Dcc1) (of/let Dmod D2'' D1')
-	   <- cc-ok D1 Dcc1 D1'
-	   <- ({x} {d}
-		 cc-ok (D2 x d) (Dcc2 x) (D2' x d))
-	   <- close-ok D2' Dcl D2'' Dmod.
+-       : cc-ok (of/let D3 D2 D1) (cc/let Dcl Dcc2 Dcc1) (of/let Dmod D2'' D1')
+           <- cc-ok D1 Dcc1 D1'
+           <- ({x} {d}
+                 cc-ok (D2 x d) (Dcc2 x) (D2' x d))
+           <- close-ok D2' Dcl D2'' Dmod.
 
 %worlds (bind) (cc-ok _ _ _).
 %total D (cc-ok _ D _).
