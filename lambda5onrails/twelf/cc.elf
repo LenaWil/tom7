@@ -109,7 +109,7 @@ f/halt : frozen ([x] cchalt).
 
 
 vf/valid : vfrozen ([x] ccvalid (VV x))
-        <- vvfrozen V.
+        <- vvfrozen VV.
 
 vf/pair : vfrozen ([x] ccpair (V1 x) (V2 x))
        <- vfrozen V2
@@ -676,11 +676,18 @@ ccvval-eq/ : ccvval-eq V V.
 
 vfrozen-resp : ({x} ccval-eq (V x) (V' x)) -> vfrozen V -> vfrozen V' -> type.
 %mode vfrozen-resp +E +F -F'.
-
 - : vfrozen-resp ([_] ccval-eq/) F F.
 
-%worlds (blockw | blockccv | blockccvv) (vfrozen-resp _ _ _).
+vvfrozen-resp : ({x} ccvval-eq (V x) (V' x)) -> vvfrozen V -> vvfrozen V' -> type.
+%mode vvfrozen-resp +E +F -F'.
+- : vvfrozen-resp ([_] ccvval-eq/) F F.
+
+
+%worlds (blockw | blockccv | blockccvv) 
+  (vfrozen-resp _ _ _)
+  (vvfrozen-resp _ _ _).
 %total D (vfrozen-resp D _ _).
+%total D (vvfrozen-resp D _ _).
 
 % freezing needs to preserve closedness
 permaclosed : 
@@ -1025,15 +1032,12 @@ permavvfrostvv :
  <- permavclosed F EQ
  <- ({x} vfrozen-resp ([y] EQ y x) vf/closed (Z' x)).
 
-77- : permavfrost Z ([_] fz/closed) Z.
+- : permavfrost Z ([_] fz/closed) Z.
 - : permavfrost Z ([_] fz/1) Z.
 - : permavfrost ([_] vf/const) ([v] fz/const) ([_] vf/const).
 
 - : permavfrost ([v] vf/hold (Z v)) ([v] fz/hold (F v)) ([v] vf/hold (Z' v))
  <- permavfrost Z F Z'.
-
-- : permavfrost ([v] vf/valid (Z v)) ([v] fz/valid (F v)) ([v] vf/valid (Z' v))
- <- permavvfrost Z F Z'.
 
 - : permavfrost ([v] vf/wlam ([w:world] Z v w)) ([v] fz/wlam ([w] F v w)) ([v] vf/wlam ([w] Z' v w))
  <- ({w:world} permavfrost ([v] Z v w) ([v] F v w) ([v] Z' v w)).
@@ -1055,26 +1059,25 @@ permavvfrostvv :
        (EQ2 toss x))
  <- ({x} vfrozen-resp ([y] EQ2 y x) (vf/closure (vf/pair vf/closed (ZENV x))) (Z'' x)).
 
+- : permavfrost ([v] vf/valid (Z v)) ([v] fz/valid (F v)) ([v] vf/valid (Z' v))
+ <- permavvfrost Z F Z'.
+
+- : permavvfrost ([v] vvf/vv ([w] Z v w)) ([v] fz/vv ([w] F v w)) ([v] vvf/vv ([w] Z' v w))
+ <- ({w} permavfrost ([v] Z v w) ([v] F v w) ([v] Z' v w)).
+
+- : permavvfrost Z ([_] fz/vclosed) Z.
+
+- : permavvfrost ([_] vvf/closed) F Z'
+ <- permavvclosed F EQ
+ <- ({x} vvfrozen-resp ([y] EQ y x) vvf/closed (Z' x)).
+
+
 %{
-vf/closure : vfrozen ([x] ccclosure ([a][e] BOD a e) (ENV x))
-          <- vfrozen ENV.
+fz/vv : vvfreeze ([v] ccvv ([w] V w v)) ([v] ccvv ([w] V' w v)) (vvf/vv FVV)
+     <- ({w} vfreeze (V w) (V' w) (FVV w)).
 
-fz/closure : vfreeze ([x:ccval] ccclosure ([a:ccval][e:ccval] BOD a e x) (ENV x))
-	             % prepend body code with projection of the variable
-	             % from the environment; add variable as fst projection
-	             % of environment itself. (It is "held" so that it can
-                     % be at any other world.)
-	             ([x] ccclosure ([a:ccval][e:ccval]
-				       ccfst e [exh:ccval]
-				       ccsnd e [envtail:ccval]
-				       ccleta exh [ex:ccval]
-				       BOD' a envtail ex) (ccpair (cchold x) (ENV' x)))
-		     (vf/closure (vf/pair (vf/hold vf/var) FENV))
-          <- ({a:ccval}{e:ccval} freeze ([x] BOD a e x) ([x] BOD' a e x) _)
-	  <- vfreeze ENV ENV' FENV.
+fz/vclosed : vvfreeze ([v] VV) ([v] VV) vvf/closed.
 }%
-
-
 
 %worlds (blockw | blockccv | blockccvv)
               (permafrost _ _ _) (permavfrost _ _ _) (permavvfrost _ _ _).
