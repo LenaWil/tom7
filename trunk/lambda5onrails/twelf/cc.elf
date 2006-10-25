@@ -1426,30 +1426,69 @@ vvfreeze/ok : {WVV  : {x}{xok:ccofv x A W} ccofvv (VV x) B}
 
 - : freeze/ok ([_][_] cco_halt) fz/halt ([_][_] cco_halt).
 - : freeze/ok ([x][wx] cco_call (WF x wx) (WA x wx)) (fz/call FA FF) ([x][wx] cco_call (WF' x wx) (WA' x wx))
-     <- vfreeze/ok WF FF WF'
-     <- vfreeze/ok WA FA WA'.
+ <- vfreeze/ok WF FF WF'
+ <- vfreeze/ok WA FA WA'.
+
+- : freeze/ok ([x][wx] cco_go (WF x wx) (WA x wx)) (fz/go FA FF) ([x][wx] cco_go (WF' x wx) (WA' x wx))
+ <- vfreeze/ok WF FF WF'
+ <- vfreeze/ok WA FA WA'.
 
 - : freeze/ok ([x][wx] cco_fst (WV x wx) ([y][wy] WN y wy x wx) (ZN x)) (fz/fst FN FV) ([x][wx] cco_fst (WV' x wx) ([y][wy] WN' y wy x wx) (ZN' x))
-     <- vfreeze/ok WV FV WV'
-     <- ({x}{wx} freeze/ok (WN x wx) (FN x) (WN' x wx))
-     <- permafrost ZN FN ZN'.
+ <- vfreeze/ok WV FV WV'
+ <- ({x}{wx} freeze/ok (WN x wx) (FN x) (WN' x wx))
+ <- permafrost ZN FN ZN'.
 
 - : freeze/ok ([x][wx] cco_snd (WV x wx) ([y][wy] WN y wy x wx) (ZN x)) (fz/snd FN FV) ([x][wx] cco_snd (WV' x wx) ([y][wy] WN' y wy x wx) (ZN' x))
-     <- vfreeze/ok WV FV WV'
-     <- ({x}{wx} freeze/ok (WN x wx) (FN x) (WN' x wx))
-     <- permafrost ZN FN ZN'.
+ <- vfreeze/ok WV FV WV'
+ <- ({x}{wx} freeze/ok (WN x wx) (FN x) (WN' x wx))
+ <- permafrost ZN FN ZN'.
 
 - : freeze/ok ([x][wx] cco_mkpair (WV1 x wx) (WV2 x wx) ([y][wy] WN y wy x wx) (ZN x)) (fz/mkpair FN FV2 FV1) ([x][wx] cco_mkpair (WV1' x wx) (WV2' x wx) ([y][wy] WN' y wy x wx) (ZN' x))
-     <- vfreeze/ok WV1 FV1 WV1'
-     <- vfreeze/ok WV2 FV2 WV2'
-     <- ({x}{wx} freeze/ok (WN x wx) (FN x) (WN' x wx))
-     <- permafrost ZN FN ZN'.
+ <- vfreeze/ok WV1 FV1 WV1'
+ <- vfreeze/ok WV2 FV2 WV2'
+ <- ({x}{wx} freeze/ok (WN x wx) (FN x) (WN' x wx))
+ <- permafrost ZN FN ZN'.
 
 - : freeze/ok ([x][wx] cco_lift MOB (WV x wx) ([yy:ccvval][wyy:ccofvv yy A] WN yy wyy x wx) (ZN x)) (fz/lift FN FV) ([x][wx] cco_lift MOB (WV' x wx) ([yy][wyy] WN' yy wyy x wx) (ZN' x))
-     <- vfreeze/ok WV FV WV'
-     <- ({xx}{wxx} freeze/ok ([y][wy] WN xx wxx y wy) (FN xx) ([y][wy] WN' xx wxx y wy))
-     <- vvpermafrost ZN FN ZN'.
+ <- vfreeze/ok WV FV WV'
+ <- ({xx}{wxx} freeze/ok ([y][wy] WN xx wxx y wy) (FN xx) ([y][wy] WN' xx wxx y wy))
+ <- vvpermafrost ZN FN ZN'.
 
+- : freeze/ok ([x][wx] cco_letheart (WV x wx) ([yy:ccvval][wyy:ccofvv yy A] WN yy wyy x wx) (ZN x)) (fz/letheart FN FV) ([x][wx] cco_letheart (WV' x wx) ([yy][wyy] WN' yy wyy x wx) (ZN' x))
+ <- vfreeze/ok WV FV WV'
+ <- ({xx}{wxx} freeze/ok ([y][wy] WN xx wxx y wy) (FN xx) ([y][wy] WN' xx wxx y wy))
+ <- vvpermafrost ZN FN ZN'.
+
+- : freeze/ok ([x][wx] cco_localhost ([y][wy] WN y wy x wx) (ZN x)) (fz/localhost FN) ([x][wx] cco_localhost ([y][wy] WN' y wy x wx) (ZN' x))
+ <- ({x}{wx} freeze/ok (WN x wx) (FN x) (WN' x wx))
+ <- permafrost ZN FN ZN'.
+
+- : freeze/ok ([x][wx] cco_leta (WV x wx) ([y][wy] WN y wy x wx) (ZN x)) (fz/leta FN FV) ([x][wx] cco_leta (WV' x wx) ([y][wy] WN' y wy x wx) (ZN' x))
+ <- vfreeze/ok WV FV WV'
+ <- ({x}{wx} freeze/ok (WN x wx) (FN x) (WN' x wx))
+ <- permafrost ZN FN ZN'.
+
+- : freeze/ok ([x][wx] cco_unpack (WV x wx) ([w][y][wy] WN w y wy x wx) ([w] ZN w x)) (fz/unpack FN FV) ([x][wx] cco_unpack (WV' x wx) ([w][y][wy] WN' w y wy x wx) ([w] ZN' w x))
+ <- vfreeze/ok WV FV WV'
+ <- ({w}{x}{wx} freeze/ok (WN w x wx) (FN w x) (WN' w x wx))
+ <- ({w} permafrost (ZN w) (FN w) (ZN' w)).
+
+
+- : freeze/ok ([x][wx] cco_wapp (WV x wx : ccofv _ (call A) _) ([y][wy : ccofv y (A W') W] WN y wy x wx) (ZN x)) (fz/wapp FN FV) ([x][wx] cco_wapp (WV' x wx) ([y][wy] WN' y wy x wx) (ZN' x))
+ <- vfreeze/ok WV FV WV'
+ <- ({x}{wx} freeze/ok (WN x wx) (FN x) (WN' x wx))
+ <- permafrost ZN FN ZN'.
+
+- : vfreeze/ok ([x][wx] ccov_pair (W1 x wx) (W2 x wx)) (fz/pair F2 F1) ([x][wx] ccov_pair (W1' x wx) (W2' x wx))
+ <- vfreeze/ok W1 F1 W1'
+ <- vfreeze/ok W2 F2 W2'.
+
+- : vfreeze/ok _ fz/1 ([x][wx] ccov_unit).
+- : vfreeze/ok ([x][wx] ccov_ch (WVV x wx)) (fz/ch F) ([x][wx] ccov_ch (WVV' x wx))
+ <- vvfreeze/ok WVV F WVV'.
+
+- : vfreeze/ok ([x][wx] ccov_closure (WENV x wx) ([a][wa][e][we] WBOD a wa e we x wx) (Z1 x) (Z2 x)) (fz/closure FENV ([a][e] FBOD a e)) ([x][wx] ccov_closure _ %{ ([x][wx] WBOD' a wa e we x wx) }% WBOD' (Z1' x) (Z2' x))
+ <- vfreeze/ok WENV FENV WENV'.
 
 %block blockccvok : some {W:world} {A:ctyp} block {x:ccval}{xok:ccofv x A W}.
 %block blockccvvok : some {A:ctyp} block {xx:ccvval}{xxok:ccofvv xx A}.
