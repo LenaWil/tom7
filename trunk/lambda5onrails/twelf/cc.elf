@@ -193,7 +193,7 @@ fvv/halt : frozenvv ([x] cchalt).
 
 
 vfvv/valid : vfrozenvv ([x] ccvalid (VV x))
-        <- vvfrozenvv V.
+        <- vvfrozenvv VV.
 
 vfvv/pair : vfrozenvv ([x] ccpair (V1 x) (V2 x))
        <- vfrozenvv V2
@@ -214,6 +214,8 @@ vfvv/pack : vfrozenvv ([x] ccpack W (V x))
 
 vfvv/closed : vfrozenvv ([u] V).
 
+%% important: frozen variables cannot appear within the body
+%% of a closure.
 vfvv/closure : vfrozenvv ([x] ccclosure ([a][e] BOD a e) (ENV x))
           <- vfrozenvv ENV.
 
@@ -225,11 +227,6 @@ vvfvv/vv : vvfrozenvv ([x] ccvv ([w] V w x))
 
 vvfvv/var : vvfrozenvv ([u] u).
 vvfvv/closed : vvfrozenvv ([u] VV).
-
-%% important: frozen variables cannot appear within the body
-%% of a closure.
-vfvv/closure : vfrozenvv ([x] ccclosure ([a][e] BOD a e) (ENV x))
-            <- vfrozenvv ENV.
 
 %% end duplicated
 
@@ -823,6 +820,16 @@ ccf4-resp : ({a}{b}{c}{d} ccexp-eq (N a b c d) (N' a b c d)) -> {F : (ccval -> c
 %mode ccf4-resp +D +F -D'.
 - : ccf4-resp ([_] [_] [_] [_] ccexp-eq/) _ ccval-eq/.
 
+ccf1u3-resp : ({a}{b}{c}{d} ccexp-eq (N a b c d) (N' a b c d)) -> {F : (ccval -> ccvval -> ccval -> ccval -> ccexp) -> ccval}
+           ccval-eq (F N) (F N') -> type.
+%mode ccf1u3-resp +D +F -D'.
+- : ccf1u3-resp ([_] [_] [_] [_] ccexp-eq/) _ ccval-eq/.
+
+ccfu3-resp : ({a}{b}{c}{d} ccexp-eq (N a b c d) (N' a b c d)) -> {F : (ccvval -> ccval -> ccval -> ccval -> ccexp) -> ccval}
+           ccval-eq (F N) (F N') -> type.
+%mode ccfu3-resp +D +F -D'.
+- : ccfu3-resp ([_] [_] [_] [_] ccexp-eq/) _ ccval-eq/.
+
 %worlds (blockw | blockccv | blockccvv) 
         (cclocalhost-resp _ _)
         (ccclosure-resp _ _ _)
@@ -838,6 +845,7 @@ ccf4-resp : ({a}{b}{c}{d} ccexp-eq (N a b c d) (N' a b c d)) -> {F : (ccval -> c
         (ccvv-resp _ _)
         (ccf-resp _ _ _)
         (ccf4-resp _ _ _)
+        (ccfu3-resp _ _ _)
         (ccvalid-resp _ _)
         (cccall-resp _ _ _).
 %total D (cclocalhost-resp D _).
@@ -852,6 +860,7 @@ ccf4-resp : ({a}{b}{c}{d} ccexp-eq (N a b c d) (N' a b c d)) -> {F : (ccval -> c
 %total D (ccch-resp D _).
 %total D (ccf-resp D _ _).
 %total D (ccf4-resp D _ _).
+%total D (ccfu3-resp D _ _).
 %total D (ccclosure-resp D _ _).
 %total D (ccwlam-resp D _).
 %total D (ccvalid-resp D _).
@@ -1166,10 +1175,64 @@ vvpermavvfrost :
  <- vvpermavclosed F EQ
  <- ({x} vfrozenvv-resp ([y] EQ y x) vfvv/closed (Z' x)).
 
-%{
-- : vvpermavfrost ([v] vfvv/closure (Z v)) ([v] fz/closure (F1 v) ([a][e] F2 v a e)) ([v] Z'' v)
+
+- : vvpermavfrost ([v] vfvv/closure (Z v)) ([y:ccvval] fz/closure (F1 y : vfreeze ([v:ccval] V1 v y) ([v:ccval] ENV' y v) (FZ y)) ([a][e] F2 y a e)) ([v] Z'' v)
  <- vvpermavfrost Z F1 ZENV
- <- ({a}{e} vvpermaclosed ([v] F2 v a e) ([toss][x] EQ x toss a e))
+ <- ({a}{e} vvpermaclosed ([v] F2 v a e) ([utoss:ccvval][x] EQ utoss x a e))
+ <- ({toss:ccvval}{x:ccval}
+       ccfu3-resp EQ 
+       ([f4]
+	  ccclosure ([arg][env]
+		       ccfst env [exh]
+		       ccsnd env [envtail]
+		       ccleta exh [ex]
+		       f4 toss ex arg envtail) (ccpair (cchold x) (ENV' toss x)))
+       (EQ2 toss x))
+ <- ({x} vfrozenvv-resp ([y] EQ2 y x) (vfvv/closure (vfvv/pair vfvv/closed (ZENV x))) (Z'' x)).
+
+
+
+%% want:
+%{
+      {EQ2:{vv1:ccvval} {v:ccval}
+              ccval-eq
+                 (ccclosure
+                     ([arg:ccval] [env:ccval]
+                         ccfst env
+                            ([exh:ccval]
+                                ccsnd env
+                                   ([envtail:ccval]
+                                       ccleta exh
+                                          ([ex:ccval] CC1 ex arg envtail))))
+                     (ccpair (cchold v) (ENV' vv1 v)))
+                 (ccclosure
+                     ([arg:ccval] [env:ccval]
+                         ccfst env
+                            ([exh:ccval]
+                                ccsnd env
+                                   ([envtail:ccval]
+                                       ccleta exh
+                                          ([ex:ccval] CC2 vv1 ex arg envtail))))
+                     (ccpair (cchold v) (ENV' vv1 v)))}
+
+      {ZENV:{v:ccval} vfrozenvv ([vv1:ccvval] V2 vv1 v)}
+      {Z'':{v:ccval}
+              vfrozenvv
+                 ([vv1:ccvval]
+                     ccclosure
+                        ([a:ccval] [e:ccval]
+                            ccfst e
+                               ([exh:ccval]
+                                   ccsnd e
+                                      ([envtail:ccval]
+                                          ccleta exh
+                                             ([ex:ccval] CC2 vv1 ex a envtail))))
+                        (ccpair (cchold v) (V2 vv1 v)))}
+
+
+}%
+
+%{
  <- ({toss}{x}
        ccf4-resp EQ 
        ([f4]
@@ -1179,13 +1242,27 @@ vvpermavvfrost :
 		       ccleta exh [ex]
 		       f4 ex toss arg envtail) (ccpair (cchold x) (ENV' toss x)))
        (EQ2 toss x))
+}%
+
+% <- ({x} vfrozen-resp ([y] EQ2 y x) (vf/closure (vf/pair vf/closed (ZENV x))) (Z'' x)).
+
+
+%{
  <- ({x} vfrozenvv-resp ([y] EQ2 y x) (vfvv/closure (vfvv/pair vfvv/closed (ZENV x))) (Z'' x)).
 }%
 
-%{
-- : permavfrost ([v] vf/valid (Z v)) ([v] fz/valid (F v)) ([v] vf/valid (Z' v))
- <- permavvfrost Z F Z'.
-}%
+- : vvpermavfrost ([v] vfvv/valid (Z v)) ([v] fz/valid (F v)) ([v] vfvv/valid (Z' v))
+ <- vvpermavvfrost Z F Z'.
+
+
+- : vvpermavvfrost ([v] vvfvv/vv ([w] Z v w)) ([v] fz/vv ([w] F v w)) ([v] vvfvv/vv ([w] Z' v w))
+ <- ({w} vvpermavfrost ([v] Z v w) ([v] F v w) ([v] Z' v w)).
+
+- : vvpermavvfrost Z ([_] fz/vclosed) Z.
+
+- : vvpermavvfrost ([_] vvfvv/closed) F Z'
+ <- vvpermavvclosed F EQ
+ <- ({x} vvfrozenvv-resp ([y] EQ y x) vvfvv/closed (Z' x)).
 
 
 %worlds (blockw | blockccv | blockccvv)
@@ -1371,14 +1448,14 @@ vvfreeze/ok : {WVV  : {x}{xok:ccofv x A W} ccofvv (VV x) B}
 - : freeze/ok ([x][wx] cco_lift MOB (WV x wx) ([yy:ccvval][wyy:ccofvv yy A] WN yy wyy x wx) (ZN x)) (fz/lift FN FV) ([x][wx] cco_lift MOB (WV' x wx) ([yy][wyy] WN' yy wyy x wx) (ZN' x))
      <- vfreeze/ok WV FV WV'
      <- ({xx}{wxx} freeze/ok ([y][wy] WN xx wxx y wy) (FN xx) ([y][wy] WN' xx wxx y wy))
-.
-%     <- permavvfrost ZN FN ZN'.
+     <- vvpermafrost ZN FN ZN'.
 
 
 %block blockccvok : some {W:world} {A:ctyp} block {x:ccval}{xok:ccofv x A W}.
+%block blockccvvok : some {A:ctyp} block {xx:ccvval}{xxok:ccofvv xx A}.
 
 
-%worlds (blockw | blockccvok) (freeze/ok _ _ _) (vfreeze/ok _ _ _) (vvfreeze/ok _ _ _).
+%worlds (blockw | blockccvok | blockccvvok) (freeze/ok _ _ _) (vfreeze/ok _ _ _) (vvfreeze/ok _ _ _).
 %total (D E F) (freeze/ok _ D _) (vfreeze/ok _ E _) (vvfreeze/ok _ F _).
 
 % now we can do the translation on typing derivations.
