@@ -1494,55 +1494,24 @@ vvfreeze/ok : {WVV  : {x}{xok:ccofv x A W} ccofvv (VV x) B}
 	 permafrost ([x] ZwrtENV? x y) ([z] FBOD y z)
 	 ([x] ZwrtENV' x y : frozen ([z] BOD' x y z))).
 
+- : vfreeze/ok ([x][wx] ccov_pack AF (W x wx)) (fz/pack F) ([x][wx] ccov_pack AF (W' x wx))
+ <- vfreeze/ok W F W'.
 
-%{
-      {Z6:{x:ccval}
-             ccofv x AFREE W'
-                -> ({v:ccval}
-                       ccval
-                          -> ({envtail:ccval} {ex:ccval}
-                                 frozen ([v1:ccval] BOD' ex v envtail)))}
+- : vfreeze/ok ([x][wx] ccov_wlam ([w] WV x wx w)) (fz/wlam ([w] F w)) ([x][wx] ccov_wlam ([w] WV' x wx w))
+ <- ({w} vfreeze/ok ([x][wx] WV x wx w) (F w) ([x][wx] WV' x wx w)).
 
+- : vfreeze/ok D fz/const D.
 
-%% have:
-      {ZwrtENV':{ex:ccval} {v1:ccval} frozen ([envtail:ccval] BOD' ex v1 envtail)}
-      {ZwrtARG':{v:ccval} {v1:ccval} frozen ([v2:ccval] BOD' v v2 v1)}
+- : vfreeze/ok ([x][wx] ccov_hold (W x wx)) (fz/hold F) ([x][wx] ccov_hold (W' x wx))
+ <- vfreeze/ok W F W'.
 
-      {Z7:{x:ccval} {wx:ccofv x AFREE W'} 
-              ccval -> ccval
-                -> ({envtail:ccval} {ex:ccval}
-                       frozen ([v1:ccval] BOD' ex v1 envtail))}
+- : vfreeze/ok ([x][wx] ccov_valid (WVV x wx)) (fz/valid F) ([x][wx] ccov_valid (WVV' x wx))
+ <- vvfreeze/ok WVV F WVV'.
 
+- : vvfreeze/ok ([x][wx] ccovv ([w] WV x wx w)) (fz/vv ([w] F w)) ([x][wx] ccovv ([w] WV' x wx w))
+ <- ({w} vfreeze/ok ([x][wx] WV x wx w) (F w) ([x][wx] WV' x wx w)).
 
-%% want:
-      {Z3:{x:ccval}
-             ccofv x AFREE W'
-                -> ({a:ccval}
-                       ccofv a AARG W
-                          -> ({e:ccval}
-                                 ccofv e ((AFREE cat W') c& AENV) W
-                                    -> ({exh:ccval}
-                                           ccofv exh (AFREE cat W') W
-                                              -> ({envtail:ccval}
-                                                     ccofv envtail AENV W
-                                                        -> frozen
-                                                              ([v:ccval]
-                                                                  BOD' v a
-                                                                     envtail)))))}
-
-
-}%
-
-%{
-	             ([x] ccclosure ([a:ccval][e:ccval]
-				       ccfst e [exh:ccval]
-				       ccsnd e [envtail:ccval]
-				       ccleta exh [ex:ccval]
-				       BOD' a envtail ex) (ccpair (cchold x) (ENV' x)))
-		     (vf/closure (vf/pair (vf/hold vf/var) FENV))
-}%
-
-
+- : vvfreeze/ok D fz/vclosed D.
 
 %block blockccvok : some {W:world} {A:ctyp} block {x:ccval}{xok:ccofv x A W}.
 %block blockccvvok : some {A:ctyp} block {xx:ccvval}{xxok:ccofvv xx A}.
