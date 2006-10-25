@@ -107,6 +107,7 @@ f/call : frozen ([x] cccall (V1 x) (V2 x))
 
 f/halt : frozen ([x] cchalt).
 
+f/closed : frozen ([x] M).
 
 vf/valid : vfrozen ([x] ccvalid (VV x))
         <- vvfrozen VV.
@@ -311,8 +312,8 @@ ccov_closure : ccofv ENV ENVT W ->
                ({x}{xof : ccofv x A W}
 		{e}{eof : ccofv e ENVT W}
                 ccof (BOD x e) W) ->
-	       ({x} frozen ([y] M x y)) ->
-	       ({y} frozen ([x] M x y)) ->
+	       ({x} frozen ([y] BOD x y)) ->
+	       ({y} frozen ([x] BOD x y)) ->
                ccofv (ccclosure BOD ENV) (A ccont) W.
 
 ccov_unit : ccofv cc1 cunit W.
@@ -665,6 +666,9 @@ ccexp-eq/ : ccexp-eq V V.
 ccvval-eq : ccvval -> ccvval -> type.
 ccvval-eq/ : ccvval-eq V V.
 
+frozen-resp : ({x} ccexp-eq (V x) (V' x)) -> frozen V -> frozen V' -> type.
+%mode frozen-resp +E +F -F'.
+- : frozen-resp ([_] ccexp-eq/) F F.
 
 vfrozen-resp : ({x} ccval-eq (V x) (V' x)) -> vfrozen V -> vfrozen V' -> type.
 %mode vfrozen-resp +E +F -F'.
@@ -673,6 +677,10 @@ vfrozen-resp : ({x} ccval-eq (V x) (V' x)) -> vfrozen V -> vfrozen V' -> type.
 vvfrozen-resp : ({x} ccvval-eq (V x) (V' x)) -> vvfrozen V -> vvfrozen V' -> type.
 %mode vvfrozen-resp +E +F -F'.
 - : vvfrozen-resp ([_] ccvval-eq/) F F.
+
+frozenvv-resp : ({x} ccexp-eq (V x) (V' x)) -> frozenvv V -> frozenvv V' -> type.
+%mode frozenvv-resp +E +F -F'.
+- : frozenvv-resp ([_] ccexp-eq/) F F.
 
 vfrozenvv-resp : ({x} ccval-eq (V x) (V' x)) -> vfrozenvv V -> vfrozenvv V' -> type.
 %mode vfrozenvv-resp +E +F -F'.
@@ -683,12 +691,16 @@ vvfrozenvv-resp : ({x} ccvval-eq (V x) (V' x)) -> vvfrozenvv V -> vvfrozenvv V' 
 - : vvfrozenvv-resp ([_] ccvval-eq/) F F.
 
 %worlds (blockw | blockccv | blockccvv) 
+  (frozenvv-resp _ _ _)
   (vfrozenvv-resp _ _ _)
   (vvfrozenvv-resp _ _ _)
+  (frozen-resp _ _ _)
   (vfrozen-resp _ _ _)
   (vvfrozen-resp _ _ _).
+%total D (frozenvv-resp D _ _).
 %total D (vfrozenvv-resp D _ _).
 %total D (vvfrozenvv-resp D _ _).
+%total D (frozen-resp D _ _).
 %total D (vfrozen-resp D _ _).
 %total D (vvfrozen-resp D _ _).
 
@@ -1191,66 +1203,6 @@ vvpermavvfrost :
  <- ({x} vfrozenvv-resp ([y] EQ2 y x) (vfvv/closure (vfvv/pair vfvv/closed (ZENV x))) (Z'' x)).
 
 
-
-%% want:
-%{
-      {EQ2:{vv1:ccvval} {v:ccval}
-              ccval-eq
-                 (ccclosure
-                     ([arg:ccval] [env:ccval]
-                         ccfst env
-                            ([exh:ccval]
-                                ccsnd env
-                                   ([envtail:ccval]
-                                       ccleta exh
-                                          ([ex:ccval] CC1 ex arg envtail))))
-                     (ccpair (cchold v) (ENV' vv1 v)))
-                 (ccclosure
-                     ([arg:ccval] [env:ccval]
-                         ccfst env
-                            ([exh:ccval]
-                                ccsnd env
-                                   ([envtail:ccval]
-                                       ccleta exh
-                                          ([ex:ccval] CC2 vv1 ex arg envtail))))
-                     (ccpair (cchold v) (ENV' vv1 v)))}
-
-      {ZENV:{v:ccval} vfrozenvv ([vv1:ccvval] V2 vv1 v)}
-      {Z'':{v:ccval}
-              vfrozenvv
-                 ([vv1:ccvval]
-                     ccclosure
-                        ([a:ccval] [e:ccval]
-                            ccfst e
-                               ([exh:ccval]
-                                   ccsnd e
-                                      ([envtail:ccval]
-                                          ccleta exh
-                                             ([ex:ccval] CC2 vv1 ex a envtail))))
-                        (ccpair (cchold v) (V2 vv1 v)))}
-
-
-}%
-
-%{
- <- ({toss}{x}
-       ccf4-resp EQ 
-       ([f4]
-	  ccclosure ([arg][env]
-		       ccfst env [exh]
-		       ccsnd env [envtail]
-		       ccleta exh [ex]
-		       f4 ex toss arg envtail) (ccpair (cchold x) (ENV' toss x)))
-       (EQ2 toss x))
-}%
-
-% <- ({x} vfrozen-resp ([y] EQ2 y x) (vf/closure (vf/pair vf/closed (ZENV x))) (Z'' x)).
-
-
-%{
- <- ({x} vfrozenvv-resp ([y] EQ2 y x) (vfvv/closure (vfvv/pair vfvv/closed (ZENV x))) (Z'' x)).
-}%
-
 - : vvpermavfrost ([v] vfvv/valid (Z v)) ([v] fz/valid (F v)) ([v] vfvv/valid (Z' v))
  <- vvpermavvfrost Z F Z'.
 
@@ -1349,6 +1301,10 @@ permavvfrostvv :
 - : permavfrost ([x] vf/pair (Z2 x) (Z1 x)) ([x] fz/pair (F1 x) (F2 x)) ([x] vf/pair (Z2' x) (Z1' x))
      <- permavfrost Z1 F1 Z1'
      <- permavfrost Z2 F2 Z2'.
+
+- : permafrost ([_] f/closed) F Z'
+ <- permaclosed F EQ
+ <- ({x} frozen-resp ([y] EQ y x) f/closed (Z' x)).
 
 % Z = vf/closed?
 - : permavfrost ([_] vf/closed) F Z'
@@ -1487,8 +1443,106 @@ vvfreeze/ok : {WVV  : {x}{xok:ccofv x A W} ccofvv (VV x) B}
 - : vfreeze/ok ([x][wx] ccov_ch (WVV x wx)) (fz/ch F) ([x][wx] ccov_ch (WVV' x wx))
  <- vvfreeze/ok WVV F WVV'.
 
-- : vfreeze/ok ([x][wx] ccov_closure (WENV x wx) ([a][wa][e][we] WBOD a wa e we x wx) (Z1 x) (Z2 x)) (fz/closure FENV ([a][e] FBOD a e)) ([x][wx] ccov_closure _ %{ ([x][wx] WBOD' a wa e we x wx) }% WBOD' (Z1' x) (Z2' x))
- <- vfreeze/ok WENV FENV WENV'.
+- : vfreeze/ok ([x][wx:ccofv x AFREE W'] 
+		  ccov_closure (WENV x wx : ccofv (ENV x) AENV W) 
+		               ([a][wa : ccofv a AARG W]
+				[e][we : ccofv e AENV W] 
+				  WBOD x wx a wa e we) (ZwrtENV? x : {a} frozen ([env] BOD x a env)) 
+		                                       (ZwrtARG? x : {e} frozen ([arg] BOD x arg e)))
+               (fz/closure FENV ([a][e] FBOD a e : freeze _ ([x] BOD' x a e) (ZBOD a e)))
+%%
+               ([x][wx:ccofv x AFREE W'] 
+		  ccov_closure (ccov_pair (ccov_hold wx) (WENV' x wx)) 
+		               ([a][wa : ccofv a AARG W]
+				[e][we : ccofv e ((AFREE cat W') c& AENV) W]
+				  cco_fst we 
+				  ([exh][wexh:ccofv exh (AFREE cat W') W]
+				     cco_snd we
+				     ([envtail][wenvtail:ccofv envtail AENV W]
+					cco_leta wexh
+					([ex][wex:ccofv ex AFREE W']
+					   WBOD' ex wex a wa envtail wenvtail
+					   ) % leta body
+					(ZBOD a envtail) % frozen wrt leta
+					) % snd body
+                                     (f/leta vf/closed
+					[y] ZwrtENV' y a) % frozen wrt snd proj
+				     ) % fst body
+				  (f/snd vf/closed [envtail]
+				     f/leta vf/var [ex]
+				     f/closed
+				     ) %{ frozen wrt fst proj }% )
+		               ([v]
+				  f/fst vf/var [exh]
+				  f/snd vf/var [envtail]
+				  f/leta vf/closed [ex]
+				  f/closed)
+		               ([v]
+				  f/fst vf/closed [exh]
+				  f/snd vf/closed [envtail]
+				  f/leta vf/closed [ex]
+				  ZwrtARG' ex envtail))
+%%
+ <- vfreeze/ok WENV FENV (WENV' : {x}{ofx} ccofv (ENV' x) AENV W)
+ <- ({a}{wa}{e}{we}
+       freeze/ok ([x][wx] WBOD x wx a wa e we) (FBOD a e) 
+                 ([x][wx] WBOD' x wx a wa e we : ccof (BOD' x a e) W))
+   <- ({z}
+	 permafrost ([x] ZwrtARG? x z) ([y] FBOD y z)
+	 ([x] ZwrtARG' x z : frozen ([y] BOD' x y z)))
+   <- ({y}
+	 permafrost ([x] ZwrtENV? x y) ([z] FBOD y z)
+	 ([x] ZwrtENV' x y : frozen ([z] BOD' x y z))).
+
+
+%{
+      {Z6:{x:ccval}
+             ccofv x AFREE W'
+                -> ({v:ccval}
+                       ccval
+                          -> ({envtail:ccval} {ex:ccval}
+                                 frozen ([v1:ccval] BOD' ex v envtail)))}
+
+
+%% have:
+      {ZwrtENV':{ex:ccval} {v1:ccval} frozen ([envtail:ccval] BOD' ex v1 envtail)}
+      {ZwrtARG':{v:ccval} {v1:ccval} frozen ([v2:ccval] BOD' v v2 v1)}
+
+      {Z7:{x:ccval} {wx:ccofv x AFREE W'} 
+              ccval -> ccval
+                -> ({envtail:ccval} {ex:ccval}
+                       frozen ([v1:ccval] BOD' ex v1 envtail))}
+
+
+%% want:
+      {Z3:{x:ccval}
+             ccofv x AFREE W'
+                -> ({a:ccval}
+                       ccofv a AARG W
+                          -> ({e:ccval}
+                                 ccofv e ((AFREE cat W') c& AENV) W
+                                    -> ({exh:ccval}
+                                           ccofv exh (AFREE cat W') W
+                                              -> ({envtail:ccval}
+                                                     ccofv envtail AENV W
+                                                        -> frozen
+                                                              ([v:ccval]
+                                                                  BOD' v a
+                                                                     envtail)))))}
+
+
+}%
+
+%{
+	             ([x] ccclosure ([a:ccval][e:ccval]
+				       ccfst e [exh:ccval]
+				       ccsnd e [envtail:ccval]
+				       ccleta exh [ex:ccval]
+				       BOD' a envtail ex) (ccpair (cchold x) (ENV' x)))
+		     (vf/closure (vf/pair (vf/hold vf/var) FENV))
+}%
+
+
 
 %block blockccvok : some {W:world} {A:ctyp} block {x:ccval}{xok:ccofv x A W}.
 %block blockccvvok : some {A:ctyp} block {xx:ccvval}{xxok:ccofvv xx A}.
