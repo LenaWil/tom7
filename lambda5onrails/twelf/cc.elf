@@ -1700,12 +1700,12 @@ permavvfrostvv :
      <- permavfrostvv Z2 F2 Z2'.
 
 - : permafrostvv ([_] f/closed) F Z'
- <- permaclosed F EQ
+ <- permaclosedvv F EQ
  <- ({x} frozen-resp ([y] EQ y x) f/closed (Z' x)).
 
 % Z = vf/closed?
 - : permavfrostvv ([_] vf/closed) F Z'
- <- permavclosed F EQ
+ <- permavclosedvv F EQ
  <- ({x} vfrozen-resp ([y] EQ y x) vf/closed (Z' x)).
 
 - : permavfrostvv Z ([_] fzvv/closed) Z.
@@ -1721,34 +1721,34 @@ permavvfrostvv :
 - : permavfrostvv ([v] vf/pack (Z v)) ([v] fzvv/pack (F v)) ([v] vf/pack (Z' v))
  <- permavfrostvv Z F Z'.
 
-- : permavfrostvv ([v] vf/closure (Z v)) ([v] fzvv/closure (F1 v) ([a][e] F2 v a e)) ([v] Z'' v)
- <- permavfrostvv Z F1 ZENV
- <- ({a}{e} permaclosed ([v] F2 v a e) ([toss][x] EQ x toss a e))
- <- ({toss:ccval}{x}
-       ccf4-resp EQ 
-       ([f4]
-	  ccclosure ([arg][env]
-		       ccfst env [exh]
-		       ccsnd env [envtail]
-		       ccleta exh [ex]
-		       f4 ex toss arg envtail) (ccpair (cchold x) (ENV' toss x)))
-       (EQ2 toss x))
- <- ({x} vfrozen-resp ([y] EQ2 y x) (vf/closure (vf/pair vf/closed (ZENV x))) (Z'' x)).
-
 - : permavfrostvv ([v] vf/valid (Z v)) ([v] fzvv/valid (F v)) ([v] vf/valid (Z' v))
  <- permavvfrostvv Z F Z'.
 
 - : permavvfrostvv ([v] vvf/vv ([w] Z v w)) ([v] fzvv/vv ([w] F v w)) ([v] vvf/vv ([w] Z' v w))
  <- ({w} permavfrostvv ([v] Z v w) ([v] F v w) ([v] Z' v w)).
 
-- : permavvfrostvv Z ([_] fzvv/vclosed) Z.
-
-- : permavvfrostvv ([_] vvf/closed) F Z'
- <- permavvclosed F EQ
- <- ({x} vvfrozen-resp ([y] EQ y x) vvf/closed (Z' x)).
-
 %%% end duplicated
 
+
+- : permavfrostvv ([v] vf/closure (Z v)) ([v] fzvv/closure (F1 v) ([a][e] F2 v a e)) ([v] Z'' v)
+ <- permavfrostvv Z F1 ZENV
+ <- ({a}{e} permaclosedvv ([v] F2 v a e) ([toss][x] EQ x toss a e))
+ <- ({toss:ccval}{x}
+       ccfu3-resp EQ 
+       ([f4]
+	  ccclosure ([arg][env]
+		       ccfst env [exh]
+		       ccsnd env [envtail]
+		       ccletheart exh [ex]
+		       f4 ex toss arg envtail) (ccpair (ccch x) (ENV' toss x)))
+       (EQ2 toss x))
+ <- ({x} vfrozen-resp ([y] EQ2 y x) (vf/closure (vf/pair vf/closed (ZENV x))) (Z'' x)).
+
+- : permavvfrostvv Z ([_] fzvv/closedvv) Z.
+
+- : permavvfrostvv ([_] vvf/closed) F Z'
+ <- permavvclosedvv F EQ
+ <- ({x} vvfrozen-resp ([y] EQ y x) vvf/closed (Z' x)).
 
 %worlds (blockw | blockccv | blockccvv)
               (permafrostvv _ _ _) (permavfrostvv _ _ _) (permavvfrostvv _ _ _).
