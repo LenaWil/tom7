@@ -1900,7 +1900,7 @@ freeze/ok : {WN  : {x}{xok:ccofv x A W} ccof (N x) W'}
 vfreeze/ok : {WV  : {x}{xok:ccofv x A W} ccofv (V x) B W'}
 	     {D   : vfreeze V V' F}
 	     {WV' : {x}{xok:ccofv x A W} ccofv (V' x) B W'}
-	      type.
+	     type.
 %mode vfreeze/ok +WV +D -WV'.
 
 vvfreeze/ok : {WVV  : {x}{xok:ccofv x A W} ccofvv (VV x) B}
@@ -2217,4 +2217,108 @@ vvfreezevv/ok : {WVV  : {u}{uok:ccofvv u A} ccofvv (VV u) B}
 %worlds (blockw | blockccvok | blockccvvok) (freezevv/ok _ _ _) (vfreezevv/ok _ _ _) (vvfreezevv/ok _ _ _).
 %total (D E F) (freezevv/ok _ D _) (vfreezevv/ok _ E _) (vvfreezevv/ok _ F _).
 
+% since we'll want to do translation on typing derivations, we'll
+% need to know that we can freeze anything.
+
+freeze-gimme   : {N : ccval -> ccexp}  {Z : freeze   N N' F} type.
+vfreeze-gimme  : {N : ccval -> ccval}  {Z : vfreeze  N N' F} type.
+vvfreeze-gimme : {N : ccval -> ccvval} {Z : vvfreeze N N' F} type.
+freezevv-gimme   : {N : ccvval -> ccexp}  {Z : freezevv   N N' F} type.
+vfreezevv-gimme  : {N : ccvval -> ccval}  {Z : vfreezevv  N N' F} type.
+vvfreezevv-gimme : {N : ccvval -> ccvval} {Z : vvfreezevv N N' F} type.
+
+%mode freeze-gimme +N -D.
+%mode vfreeze-gimme +N -D.
+%mode vvfreeze-gimme +N -D.
+%mode freezevv-gimme +N -D.
+%mode vfreezevv-gimme +N -D.
+%mode vvfreezevv-gimme +N -D.
+
+
+- : freeze-gimme ([v] cchalt) fz/halt.
+- : freeze-gimme ([v] ccgo _ (V1 v) (V2 v)) (fz/go Z2 Z1)
+ <- vfreeze-gimme V1 Z1
+ <- vfreeze-gimme V2 Z2.
+- : freeze-gimme ([v] cccall (V1 v) (V2 v)) (fz/call Z2 Z1)
+ <- vfreeze-gimme V1 Z1
+ <- vfreeze-gimme V2 Z2.
+
+
+% XXX worlds...
+%worlds (blockw)
+   (freeze-gimme D _)
+   (vfreeze-gimme D _)
+   (vvfreeze-gimme D _)
+   (freezevv-gimme D _)
+   (vfreezevv-gimme D _)
+   (vvfreezevv-gimme D _).
+
+%total (D E F)
+   (freeze-gimme D _)
+   (vfreeze-gimme E _)
+   (vvfreeze-gimme F _).
+
+%total (D E F)
+   (freezevv-gimme D _)
+   (vfreezevv-gimme E _)
+   (vvfreezevv-gimme F _).
+
+
+
 % now we can do the translation on typing derivations.
+
+cc : {D  : cof  M  W}
+     {D' : ccof M' W}
+     type.
+%mode cc +D -D'.
+
+ccv : {D  : cofv  V  A W}
+      {D' : ccofv V' A W}
+      type.
+%mode ccv +D -D'.
+
+ccvv : {D  : cofvv VV  A}
+       {D' : ccofvv VV' A}
+       type.
+%mode ccvv +D -D'.
+
+- : ccvv (covv VF) (ccovv VF')
+ <- ({w} ccv (VF w) (VF' w)).
+
+- : cc (co_call D1 D2) (cco_call D1' D2')
+ <- ccv D1 D1'
+ <- ccv D2 D2'.
+
+- : cc (co_call D1 D2) (cco_call D1' D2')
+ <- ccv D1 D1'
+ <- ccv D2 D2'.
+
+% termination violation -- need to do in-place lam translation
+% - : cc (co_go WA WC) (cco_go WA' WC')
+%  <- ccv WA WA'
+%  <- ccv (cov_lam ([x][wx : cofv x cunit W] WC)) WC'.
+
+%{
+               ccofv ENV ENVT W ->
+               ({x}{xof : ccofv x A W}
+		{e}{eof : ccofv e ENVT W}
+                ccof (BOD x e) W) ->
+	       ({x} frozen ([y] BOD x y)) ->
+	       ({y} frozen ([x] BOD x y)) ->
+               ccofv (ccclosure BOD ENV) (A ccont) W.
+}%
+
+- : ccv (cov_lam [x][wx] WM x wx) (ccov_closure ccov_unit 
+				    ([x][xof][e][eof] WM2 x xof)
+				    ([x] f/closed)
+				    FwrtBOD)
+ <- ({x}{wx}{x'}{wx' : ccofv x' A W}{thm : ccv wx wx'} cc (WM x wx) (WM' x' wx' : ccof (M' x') W))
+ <- freeze M' M2 F.
+% XXX now need effectiveness for freeze...
+
+- : ccv cov_unit ccov_unit.
+
+
+
+%worlds (blockw) (cc _ _) (ccv _ _) (ccvv _ _)
+%total (D E F) (cc D _) (ccv E _) (ccvv F _).
