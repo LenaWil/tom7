@@ -650,22 +650,6 @@ fzvv/closure : vfreezevv ([u:ccvval] ccclosure ([a:ccval][e:ccval] BOD a e u) (E
           <- ({a:ccval}{e:ccval} freezevv ([u] BOD a e u) ([u] BOD' a e u) _)
 	  <- vfreezevv ENV ENV' FENV.
 
-%{
-fz/closure : vfreeze ([x:ccval] ccclosure ([a:ccval][e:ccval] BOD a e x) (ENV x))
-	             % prepend body code with projection of the variable
-	             % from the environment; add variable as fst projection
-	             % of environment itself. (It is "held" so that it can
-                     % be at any other world.)
-	             ([x] ccclosure ([a:ccval][e:ccval]
-				       ccfst e [exh:ccval]
-				       ccsnd e [envtail:ccval]
-				       ccleta exh [ex:ccval]
-				       BOD' a envtail ex) (ccpair (cchold x) (ENV' x)))
-		     (vf/closure (vf/pair (vf/hold vf/var) FENV))
-          <- ({a:ccval}{e:ccval} freeze ([x] BOD a e x) ([x] BOD' a e x) _)
-	  <- vfreeze ENV ENV' FENV.
-}%
-
 %worlds (blockw | blockccv | blockccvv) (freeze _ _ _) (vfreeze _ _ _) (vvfreeze _ _ _).
 %total (D E F) (freeze D _ _) (vfreeze E _ _) (vvfreeze F _ _).
 
@@ -2242,10 +2226,121 @@ vvfreezevv-gimme : {N : ccvval -> ccvval} {Z : vvfreezevv N N' F} type.
 - : freeze-gimme ([v] cccall (V1 v) (V2 v)) (fz/call Z2 Z1)
  <- vfreeze-gimme V1 Z1
  <- vfreeze-gimme V2 Z2.
+- : freeze-gimme ([v] ccfst (V v) ([x] N v x)) (fz/fst ZN ZV)
+ <- vfreeze-gimme V ZV
+ <- ({x} freeze-gimme ([v] N v x) (ZN x)).
+- : freeze-gimme ([v] ccsnd (V v) ([x] N v x)) (fz/snd ZN ZV)
+ <- vfreeze-gimme V ZV
+ <- ({x} freeze-gimme ([v] N v x) (ZN x)).
+- : freeze-gimme ([v] ccmkpair (V1 v) (V2 v) ([x] N v x)) (fz/mkpair ZN ZV2 ZV1)
+ <- vfreeze-gimme V1 ZV1
+ <- vfreeze-gimme V2 ZV2
+ <- ({x} freeze-gimme ([v] N v x) (ZN x)).
+- : freeze-gimme ([v] ccwapp (V v) _ ([x] N v x)) (fz/wapp ZN ZV)
+ <- vfreeze-gimme V ZV
+ <- ({x} freeze-gimme ([v] N v x) (ZN x)).
+- : freeze-gimme ([v] ccunpack (V v) ([w][x] N v w x)) (fz/unpack ZN ZV)
+ <- vfreeze-gimme V ZV
+ <- ({x}{w} freeze-gimme ([v] N v w x) (ZN w x)).
+- : freeze-gimme ([v] ccleta (V v) ([x] N v x)) (fz/leta ZN ZV)
+ <- vfreeze-gimme V ZV
+ <- ({x} freeze-gimme ([v] N v x) (ZN x)).
+- : freeze-gimme ([v] cclift (V v) ([x] N v x)) (fz/lift ZN ZV)
+ <- vfreeze-gimme V ZV
+ <- ({x} freeze-gimme ([v] N v x) (ZN x)).
+- : freeze-gimme ([v] ccletheart (V v) ([x] N v x)) (fz/letheart ZN ZV)
+ <- vfreeze-gimme V ZV
+ <- ({x} freeze-gimme ([v] N v x) (ZN x)).
+- : freeze-gimme ([v] cclocalhost ([x] N v x)) (fz/localhost ZN)
+ <- ({x} freeze-gimme ([v] N v x) (ZN x)).
+
+- : vfreeze-gimme ([v] cc1) fz/1.
+- : vfreeze-gimme ([v] V) fz/closed.
+- : vfreeze-gimme ([v] v) fz/var.
+- : vfreeze-gimme ([v] ccch (VV v)) (fz/ch ZZ)
+ <- vvfreeze-gimme VV ZZ.
+- : vfreeze-gimme ([v] ccvalid (VV v)) (fz/valid ZZ)
+ <- vvfreeze-gimme VV ZZ.
+- : vfreeze-gimme ([v] ccpack W (V v)) (fz/pack Z)
+ <- vfreeze-gimme V Z.
+- : vfreeze-gimme ([v] ccwlam ([w] V v w)) (fz/wlam Z)
+ <- ({w} vfreeze-gimme ([v] V v w) (Z w)).
+- : vfreeze-gimme ([v] cchold (V v)) (fz/hold Z)
+ <- vfreeze-gimme V Z.
+- : vfreeze-gimme ([v] ccpair (V1 v) (V2 v)) (fz/pair Z2 Z1)
+ <- vfreeze-gimme V1 Z1
+ <- vfreeze-gimme V2 Z2.
+- : vfreeze-gimme ([v] ccclosure ([a][e] N v a e) (V v)) (fz/closure ZV ZN)
+ <- vfreeze-gimme V ZV
+ <- ({a}{e} freeze-gimme ([v] N v a e) (ZN a e)).
+
+- : vvfreeze-gimme ([v] ccvv ([w] V w v)) (fz/vv Z)
+ <- ({w} vfreeze-gimme ([v] V w v) (Z w)).
+- : vvfreeze-gimme ([v] VV) fz/vclosed.
 
 
-% XXX worlds...
-%worlds (blockw)
+- : freezevv-gimme ([v] cchalt) fzvv/halt.
+- : freezevv-gimme ([v] ccgo _ (V1 v) (V2 v)) (fzvv/go Z2 Z1)
+ <- vfreezevv-gimme V1 Z1
+ <- vfreezevv-gimme V2 Z2.
+- : freezevv-gimme ([v] cccall (V1 v) (V2 v)) (fzvv/call Z2 Z1)
+ <- vfreezevv-gimme V1 Z1
+ <- vfreezevv-gimme V2 Z2.
+- : freezevv-gimme ([v] ccfst (V v) ([x] N v x)) (fzvv/fst ZN ZV)
+ <- vfreezevv-gimme V ZV
+ <- ({x} freezevv-gimme ([v] N v x) (ZN x)).
+- : freezevv-gimme ([v] ccsnd (V v) ([x] N v x)) (fzvv/snd ZN ZV)
+ <- vfreezevv-gimme V ZV
+ <- ({x} freezevv-gimme ([v] N v x) (ZN x)).
+- : freezevv-gimme ([v] ccmkpair (V1 v) (V2 v) ([x] N v x)) (fzvv/mkpair ZN ZV2 ZV1)
+ <- vfreezevv-gimme V1 ZV1
+ <- vfreezevv-gimme V2 ZV2
+ <- ({x} freezevv-gimme ([v] N v x) (ZN x)).
+- : freezevv-gimme ([v] ccwapp (V v) _ ([x] N v x)) (fzvv/wapp ZN ZV)
+ <- vfreezevv-gimme V ZV
+ <- ({x} freezevv-gimme ([v] N v x) (ZN x)).
+- : freezevv-gimme ([v] ccunpack (V v) ([w][x] N v w x)) (fzvv/unpack ZN ZV)
+ <- vfreezevv-gimme V ZV
+ <- ({x}{w} freezevv-gimme ([v] N v w x) (ZN w x)).
+- : freezevv-gimme ([v] ccleta (V v) ([x] N v x)) (fzvv/leta ZN ZV)
+ <- vfreezevv-gimme V ZV
+ <- ({x} freezevv-gimme ([v] N v x) (ZN x)).
+- : freezevv-gimme ([v] cclift (V v) ([x] N v x)) (fzvv/lift ZN ZV)
+ <- vfreezevv-gimme V ZV
+ <- ({x} freezevv-gimme ([v] N v x) (ZN x)).
+- : freezevv-gimme ([v] ccletheart (V v) ([x] N v x)) (fzvv/letheart ZN ZV)
+ <- vfreezevv-gimme V ZV
+ <- ({x} freezevv-gimme ([v] N v x) (ZN x)).
+- : freezevv-gimme ([v] cclocalhost ([x] N v x)) (fzvv/localhost ZN)
+ <- ({x} freezevv-gimme ([v] N v x) (ZN x)).
+
+- : vfreezevv-gimme ([v] cc1) fzvv/1.
+- : vfreezevv-gimme ([v] V) fzvv/closed.
+% - : vfreezevv-gimme ([v] v) fzvv/var.
+- : vfreezevv-gimme ([v] ccch (VV v)) (fzvv/ch ZZ)
+ <- vvfreezevv-gimme VV ZZ.
+- : vfreezevv-gimme ([v] ccvalid (VV v)) (fzvv/valid ZZ)
+ <- vvfreezevv-gimme VV ZZ.
+- : vfreezevv-gimme ([v] ccpack W (V v)) (fzvv/pack Z)
+ <- vfreezevv-gimme V Z.
+- : vfreezevv-gimme ([v] ccwlam ([w] V v w)) (fzvv/wlam Z)
+ <- ({w} vfreezevv-gimme ([v] V v w) (Z w)).
+- : vfreezevv-gimme ([v] cchold (V v)) (fzvv/hold Z)
+ <- vfreezevv-gimme V Z.
+- : vfreezevv-gimme ([v] ccpair (V1 v) (V2 v)) (fzvv/pair Z2 Z1)
+ <- vfreezevv-gimme V1 Z1
+ <- vfreezevv-gimme V2 Z2.
+- : vfreezevv-gimme ([v] ccclosure ([a][e] N v a e) (V v)) (fzvv/closure ZV ZN)
+ <- vfreezevv-gimme V ZV
+ <- ({a}{e} freezevv-gimme ([v] N v a e) (ZN a e)).
+
+- : vvfreezevv-gimme ([v] ccvv ([w] V w v)) (fzvv/vv Z)
+ <- ({w} vfreezevv-gimme ([v] V w v) (Z w)).
+- : vvfreezevv-gimme ([v] VV) fzvv/closedvv.
+- : vvfreezevv-gimme ([v] v) fzvv/var.
+
+
+%worlds (blockw | blockccv | blockccvv)
    (freeze-gimme D _)
    (vfreeze-gimme D _)
    (vvfreeze-gimme D _)
@@ -2285,13 +2380,62 @@ ccvv : {D  : cofvv VV  A}
 - : ccvv (covv VF) (ccovv VF')
  <- ({w} ccv (VF w) (VF' w)).
 
-- : cc (co_call D1 D2) (cco_call D1' D2')
- <- ccv D1 D1'
- <- ccv D2 D2'.
+- : ccv (cov_lam [x][wx] WM x wx) (ccov_closure ccov_unit 
+				    ([x][xof][e][eof] WM'' x xof)
+				    ([x] f/closed)
+				    ([x] FwrtBOD))
+ <- ({x}{wx}{x'}{wx' : ccofv x' A W}{thm : ccv wx wx'} cc (WM x wx) (WM' x' wx' : ccof (M' x') W))
+ <- freeze-gimme M' (Z : freeze _ _ FwrtBOD)
+ <- freeze/ok WM' Z WM''.
+
+- : ccv cov_unit ccov_unit.
+
+- : ccv (cov_ch WVV) (ccov_ch WVV')
+ <- ccvv WVV WVV'.
+- : ccv (cov_valid WVV) (ccov_valid WVV')
+ <- ccvv WVV WVV'.
+- : ccv (cov_pack A WV) (ccov_pack A WV')
+ <- ccv WV WV'.
+- : ccv (cov_hold WV) (ccov_hold WV')
+ <- ccv WV WV'.
+- : ccv (cov_pair WV1 WV2) (ccov_pair WV1' WV2')
+ <- ccv WV1 WV1'
+ <- ccv WV2 WV2'.
+- : ccv (cov_wlam WV) (ccov_wlam WV')
+ <- ({w} ccv (WV w) (WV' w)).
+- : ccv cov_const ccov_const.
 
 - : cc (co_call D1 D2) (cco_call D1' D2')
  <- ccv D1 D1'
  <- ccv D2 D2'.
+
+- : cc (co_fst WV WN) (cco_fst WV' WN'' F)
+ <- ccv WV WV'
+ <- ({x}{wx}{x'}{wx' : ccofv x' A W}{thm : ccv wx wx'}
+       cc (WN x wx) (WN' x' wx'))
+ <- freeze-gimme M' (Z : freeze _ _ F)
+ <- freeze/ok WN' Z WN''.
+
+- : cc (co_snd WV WN) (cco_snd WV' WN'' F)
+ <- ccv WV WV'
+ <- ({x}{wx}{x'}{wx' : ccofv x' A W}{thm : ccv wx wx'}
+       cc (WN x wx) (WN' x' wx'))
+ <- freeze-gimme M' (Z : freeze _ _ F)
+ <- freeze/ok WN' Z WN''.
+
+- : cc (co_leta WV WN) (cco_leta WV' WN'' F)
+ <- ccv WV WV'
+ <- ({x}{wx}{x'}{wx' : ccofv x' A W}{thm : ccv wx wx'}
+       cc (WN x wx) (WN' x' wx'))
+ <- freeze-gimme M' (Z : freeze _ _ F)
+ <- freeze/ok WN' Z WN''.
+
+- : cc (co_localhost ([x][wx : cofv x (caddr W) W] WN x wx)) (cco_localhost WN'' F)
+ <- ({x}{wx}{x'}{wx' : ccofv x' (caddr W) W}{thm : ccv wx wx'}
+       cc (WN x wx) (WN' x' wx'))
+ <- freeze-gimme M' (Z : freeze _ _ F)
+ <- freeze/ok WN' Z WN''.
+
 
 % termination violation -- need to do in-place lam translation
 % - : cc (co_go WA WC) (cco_go WA' WC')
@@ -2308,17 +2452,8 @@ ccvv : {D  : cofvv VV  A}
                ccofv (ccclosure BOD ENV) (A ccont) W.
 }%
 
-- : ccv (cov_lam [x][wx] WM x wx) (ccov_closure ccov_unit 
-				    ([x][xof][e][eof] WM2 x xof)
-				    ([x] f/closed)
-				    FwrtBOD)
- <- ({x}{wx}{x'}{wx' : ccofv x' A W}{thm : ccv wx wx'} cc (WM x wx) (WM' x' wx' : ccof (M' x') W))
- <- freeze M' M2 F.
-% XXX now need effectiveness for freeze...
 
-- : ccv cov_unit ccov_unit.
+%block blockcc : some {W:world} {A:ctyp} block {x:cval}{xok:cofv x A W}{x':ccval}{x'ok:ccofv x' A W}{thm : ccv xok x'ok}.
 
-
-
-%worlds (blockw) (cc _ _) (ccv _ _) (ccvv _ _)
+%worlds (blockw | blockcc) (cc _ _) (ccv _ _) (ccvv _ _).
 %total (D E F) (cc D _) (ccv E _) (ccvv F _).
