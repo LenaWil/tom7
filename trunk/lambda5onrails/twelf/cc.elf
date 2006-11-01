@@ -345,12 +345,7 @@ ccovv : ({w} ccofv (VF w) A w) ->
 
 
 % todo: use blocks to verify frozen condition?
-
 % todo: dynamic semantics and safety.
-
-
-
-% todo: closure conversion
 
 
 % freeze a regular variable within an expression
@@ -1963,8 +1958,8 @@ vvfreeze/ok : {WVV  : {x}{xok:ccofv x A W} ccofvv (VV x) B}
 		  ccov_closure (WENV x wx : ccofv (ENV x) AENV W) 
 		               ([a][wa : ccofv a AARG W]
 				[e][we : ccofv e AENV W] 
-				  WBOD x wx a wa e we) (ZwrtENV? x : {a} frozen ([env] BOD x a env)) 
-		                                       (ZwrtARG? x : {e} frozen ([arg] BOD x arg e)))
+				  WBOD x wx a wa e we) (ZwrtENV x : {a} frozen ([env] BOD x a env)) 
+		                                       (ZwrtARG x : {e} frozen ([arg] BOD x arg e)))
                (fz/closure FENV ([a][e] FBOD a e : freeze _ ([x] BOD' x a e) (ZBOD a e)))
 %%
                ([x][wx:ccofv x AFREE W'] 
@@ -2004,10 +1999,10 @@ vvfreeze/ok : {WVV  : {x}{xok:ccofv x A W} ccofvv (VV x) B}
        freeze/ok ([x][wx] WBOD x wx a wa e we) (FBOD a e) 
                  ([x][wx] WBOD' x wx a wa e we : ccof (BOD' x a e) W))
    <- ({z}
-	 permafrost ([x] ZwrtARG? x z) ([y] FBOD y z)
+	 permafrost ([x] ZwrtARG x z) ([y] FBOD y z)
 	 ([x] ZwrtARG' x z : frozen ([y] BOD' x y z)))
    <- ({y}
-	 permafrost ([x] ZwrtENV? x y) ([z] FBOD y z)
+	 permafrost ([x] ZwrtENV x y) ([z] FBOD y z)
 	 ([x] ZwrtENV' x y : frozen ([z] BOD' x y z))).
 
 - : vfreeze/ok ([x][wx] ccov_pack AF (W x wx)) (fz/pack F) ([x][wx] ccov_pack AF (W' x wx))
@@ -2384,7 +2379,8 @@ ccvv : {D  : cofvv VV  A}
 				    ([x][xof][e][eof] WM'' x xof)
 				    ([x] f/closed)
 				    ([x] FwrtBOD))
- <- ({x}{wx}{x'}{wx' : ccofv x' A W}{thm : ccv wx wx'} cc (WM x wx) (WM' x' wx' : ccof (M' x') W))
+ <- ({x}{wx}{x'}{wx' : ccofv x' A W}{thm : ccv wx wx'} 
+       cc (WM x wx) (WM' x' wx' : ccof (M' x') W))
  <- freeze-gimme M' (Z : freeze _ _ FwrtBOD)
  <- freeze/ok WM' Z WM''.
 
@@ -2430,30 +2426,69 @@ ccvv : {D  : cofvv VV  A}
  <- freeze-gimme M' (Z : freeze _ _ F)
  <- freeze/ok WN' Z WN''.
 
+- : cc (co_wapp (WV : cofv V (call Af) W) ([x][wx:cofv x _ W] WN x wx)) 
+       (cco_wapp WV' WN'' F)
+ <- ccv WV WV'
+ <- ({x}{wx}{x'}{wx' : ccofv x' _ W}{thm : ccv wx wx'}
+       cc (WN x wx) (WN' x' wx'))
+ <- freeze-gimme M' (Z : freeze _ _ F)
+ <- freeze/ok WN' Z WN''.
+
 - : cc (co_localhost ([x][wx : cofv x (caddr W) W] WN x wx)) (cco_localhost WN'' F)
  <- ({x}{wx}{x'}{wx' : ccofv x' (caddr W) W}{thm : ccv wx wx'}
        cc (WN x wx) (WN' x' wx'))
  <- freeze-gimme M' (Z : freeze _ _ F)
  <- freeze/ok WN' Z WN''.
 
+- : cc (co_mkpair WV1 WV2 WN) (cco_mkpair WV1' WV2' WN'' F)
+ <- ccv WV1 WV1'
+ <- ccv WV2 WV2'
+ <- ({x}{wx}{x'}{wx' : ccofv x' _ W}{thm : ccv wx wx'}
+       cc (WN x wx) (WN' x' wx'))
+ <- freeze-gimme M' (Z : freeze _ _ F)
+ <- freeze/ok WN' Z WN''.
 
-% termination violation -- need to do in-place lam translation
+- : cc (co_unpack WV WN) (cco_unpack WV' WN'' F)
+ <- ccv WV WV'
+ <- ({w}{x}{wx}{x'}{wx' : ccofv x' _ _}{thm : ccv wx wx'}
+       cc (WN w x wx) (WN' w x' wx'))
+ <- ({w} freeze-gimme (M' w) (Z w : freeze _ _ (F w)))
+ <- ({w} freeze/ok (WN' w) (Z w) (WN'' w)).
+
+- : cc (co_letheart WV WN) (cco_letheart WV' WN'' F)
+ <- ccv WV WV'
+ <- ({x}{wx}{x'}{wx' : ccofvv x' _}{uthm : ccvv wx wx'}
+       cc (WN x wx) (WN' x' wx'))
+ <- freezevv-gimme M' (Z : freezevv _ _ F)
+ <- freezevv/ok WN' Z WN''.
+
+- : cc (co_lift MO WV WN) (cco_lift MO WV' WN'' F)
+ <- ccv WV WV'
+ <- ({x}{wx}{x'}{wx' : ccofvv x' _}{uthm : ccvv wx wx'}
+       cc (WN x wx) (WN' x' wx'))
+ <- freezevv-gimme M' (Z : freezevv _ _ F)
+ <- freezevv/ok WN' Z WN''.
+
+- : cc co_halt cco_halt.
+
+% would like to do this, but would need a fancier metric 
+% because % the lam in the inductive call is not a subderivation.
 % - : cc (co_go WA WC) (cco_go WA' WC')
 %  <- ccv WA WA'
 %  <- ccv (cov_lam ([x][wx : cofv x cunit W] WC)) WC'.
 
-%{
-               ccofv ENV ENVT W ->
-               ({x}{xof : ccofv x A W}
-		{e}{eof : ccofv e ENVT W}
-                ccof (BOD x e) W) ->
-	       ({x} frozen ([y] BOD x y)) ->
-	       ({y} frozen ([x] BOD x y)) ->
-               ccofv (ccclosure BOD ENV) (A ccont) W.
-}%
+% so instead, build in the lam case:
+
+- : cc (co_go WA WC) (cco_go WA' (ccov_closure ccov_unit
+				    ([x][xof][e][eof] WC')
+				    ([x] f/closed)
+				    ([x] f/closed)))
+ <- ccv WA WA'
+ <- cc WC (WC' : ccof M' W).
 
 
 %block blockcc : some {W:world} {A:ctyp} block {x:cval}{xok:cofv x A W}{x':ccval}{x'ok:ccofv x' A W}{thm : ccv xok x'ok}.
+%block blockccvv : some {A:ctyp} block {x:cvval}{xok:cofvv x A}{x':ccvval}{x'ok:ccofvv x' A}{thm : ccvv xok x'ok}.
 
-%worlds (blockw | blockcc) (cc _ _) (ccv _ _) (ccvv _ _).
+%worlds (blockw | blockcc | blockccvv) (cc _ _) (ccv _ _) (ccvv _ _).
 %total (D E F) (cc D _) (ccv E _) (ccvv F _).
