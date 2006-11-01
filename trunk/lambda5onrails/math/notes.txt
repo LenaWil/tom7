@@ -247,6 +247,13 @@ compile time, we need not fully perform closure conversion.
         not? ("Variables @server that are bound when executing on
         the server cannot be 'tampered with.'")
 
+     4. ...
+
+
+Another idea: in order to guarantee only certain control flow traces,
+we could support a high-level "checkpoint" primitive that ensures this
+dynamically (by passing runtime evidence)?
+
 
 [[
 wawawait... is there any need to closure-convert? Javascript is a
