@@ -1,7 +1,16 @@
 
+  Somewhat Fully Abstract web programming with ML5 on Rails
+
+
 Want to specify the "attack model" so that we can prove that the
 client cannot get access to any server data (?) or some theorem along
 those lines. 
+
+Actually, a theorem is probably impossible (a server can give access
+to its data). The goal is more to be able to say, "here is what your
+program means," by specifying its possible operational semantics in
+the presence of an attacker. The compiler should optimize with 
+respect to these attacker semantics, not the "official" semantics.
 
 cCPS is CPS after closure-conversion. It is like the full CPS language
 except that function declarations can only be at the top level, mapping
@@ -22,15 +31,15 @@ c ::=
       letg u = v in c
       lift u = v in c
       let x = localhost() in c
-      (* remote closure call. given a closure-converted
-         unit cont typed @ w, run it at w *)
-      go_cc[w; v] v
+      (* remote closure call. given a remote label (@w)
+         and argument, invoke the corresponding function *)
+      go_cc[w; v_a] v_l v_a
+      (* could just be self-go_cc, I guess? *)
       call v1(v2)
       halt
 
 v ::=
       hold_w v
-      \x.c
       /\w.v
       /\a.v
       cval w.v
@@ -45,7 +54,198 @@ A ::=
       w addr
 
 
-Operational semantics. 
+"Official" Operational semantics. 
+
+(first evaluate toplevel to form entry point table E :: world -> label -> lambda.
+ the operational semantics is parameterized on E)
+
+(( XXX probably also need valid labels for hoisting of cval w.\x.c ))
+
+Now, a stepping relation between machine states, which are a pair of the world
+constant and current continuation:
+
+ w :: leta x = hold_w v in c        -->     w :: [v/x] c
+ w :: letg u = cval w'.v in c       -->     w :: [[w'.v/u]]_w c
+ w :: lift u = v in c               -->     w :: [v/u] c
+ w :: let x = localhost () in c     -->     w :: [_w_/x] c
+ w :: go_cc[w'; _w'_] l v           -->     w':: [v/x] c     (when E(w')(l) = \x.c)
+ w :: call l(v)                     -->     w :: [v/x] c     (when E(w)(l)  = \x.c)
+
+"Attacker" Operational semantics.
+
+The attacker model is very simple. We separate world constants into
+two sets: "trusted" and "untrusted." Before the program is run, or at
+any moment after that, the attacker may modify the entry point table
+E(w) for any untrusted world w. Because the operational semantics are
+untyped, his modifications may introduce ill-typed code or untypable
+values. Because there are no abstract types at runtime, he may inspect
+any value in his possession, no matter what world it is typed at. That
+is, we can augment the machine state with the current E and then add
+a transition that applies at any time:
+
+ E ; w :: c      -->    E ++ E(w')(l) = \x.c0 ; w :: c       (when w untrusted)
+
+
+This model makes almost any program vulnerable to various attacks. For
+example:
+
+ (* assume format_hard_drive : unit -> unit @ server *)
+ let
+     val pass @ server = "secret"
+     val errormsg @ server = "wrong password"
+
+     val p = get[client] (prompt_password ())
+ in
+     if p = pass 
+     then let in
+            (get[client] print "formatting...");
+            format ()
+          end
+     else lift u = errormsg
+          in get[client] (print errormsg)
+          end
+ end
+
+This program contains several security problems. First, when control is
+transfered to the client, the client receives a continuation that contains
+the string "secret" in its environment; an attack that prints all of the
+data in memory in addition to running the original program would reveal
+the password.
+
+It also contains a more subtle vulnerability. The continuation that the
+client invokes (returning to the server a value for p) also contains
+the environment for the remainder of the program, namely bindings for
+pass, errormsg, and format. Instead of invoking the continuation as
+expected:
+
+ go_cc [server] l_k ("guess", { pass = "secret", 
+                                errormsg = "wrong password", 
+                                format = ... })
+
+The attacker can permute its structure:
+
+ go_cc [server] l_k ("guess", { pass = "wrong password", 
+                                errormsg = "secret", 
+                                format = ... })
+
+this causes the password check to fail, but then the password to be
+printed on the client. The client can mount this attack even if he
+does not know the representation that the server is using for strings
+(because they are encrypted, for instance). 
+
+Additionally, the representation of "format" includes a label for that
+procedure; if the client is able to construct a suitable environment for
+it, then he may be able to invoke the format function directly. If he
+can guess the label used for the format function, then he may simply
+write the following main() function:
+
+   go_cc [server] l_format ((), { .. env .. })
+
+If l_format is not published, there is still a published label
+equivalent to it, namely, the return from the print "formatting..."
+immediately before formatting.
+
+Our first revised model will close these holes by keeping as many labels
+secret as possible, and by always leaving server-side data on the server.
+
+
+ == HARDENED CC #1 ==
+
+We introduce a new primitive called addlab. The operational semantics
+is now given as a relation between machine states E ; w :: c, where E
+is the current set of published labels. By only creating labels as
+they become available, the set of possible entry points for an
+attacker is reduced. By not fixing the set of closed functions at
+compile time, we need not fully perform closure conversion.
+
+
+ E ; w :: let x = addlab y.c' in c      -->     E ++ E(w)(l) = \y.c' ; w :: [l/x] c
+                                                       (when forall w'. l notin dom(E(w')))
+ E ; w :: leta x = hold_w v in c        -->     E ; w :: [v/x] c
+ E ; w :: letg u = cval w'.v in c       -->     E ; w :: [[w'.v/u]]_w c
+ E ; w :: lift u = v in c               -->     E ; w :: [v/u] c
+ E ; w :: let x = localhost () in c     -->     E ; w :: [_w_/x] c
+ E ; w :: go_cc[w'; _w'_] l v           -->     E ; w':: [v/x] c     (when E(w')(l) = \x.c)
+ E ; w :: call l(v)                     -->     E ; w :: [v/x] c     (when E(w)(l)  = \x.c)
+
+** Problem: 
+   lambdas are supposed to be values, so we can't always 
+   convert to a form where we run addlab to insert the label. Consider
+   the following program @ client:
+
+   let in
+       print (get [server] time())
+   end 
+
+   To perform the get, the client must create a closure for the
+   function \x.time(), which means having a label l for it in E. l
+   can't be inserted by the client itself, since to allow it to insert
+   server code in the attacker model would be disastrous (the attacker
+   could induce any server behavior he wishes). Instead, the piece of
+   closed code must be inserted into the table when the program is
+   running on the server. There are several ways we might consider
+   doing this:
+
+     1. before the program starts.
+ 
+      .. the initial table E contains any labels that we won't be
+         able to insert at runtime. This is bad because it increases
+         the number of entry points that the attacker has access to.
+         Also, these lambdas might not be closed. Take the following
+         code (@ server):
+
+          let
+              val key : key @ server = generate_key ()
+              fun unlock (k : key) : unit @ server = ... k ...
+          in
+              get [client] ((* ... *)
+                            get [server] unlock key)
+          end
+
+         How can we insert closed code into E for "unlock key" before
+         the program runs? We must closure-convert so that free variables
+         "unlock" and "key" are part of the closure for this function,
+         and then pass those to the client. This is unworkable because
+         they may be secret.
+
+     2. as soon as we have bound all of the server-side free variables
+        of the function, we add it to the table. This moment may not
+        actually be when we are on the server; consider this code:
+
+         let
+             val key : key @ server = generate_key ()
+             fun unlock (k : key) : unit @ server = ... k ...
+             val hybridkey : key at server @ server = hold_server key
+         in
+             get [client]
+               (let
+                    leta key2 : key @ server = get [server] hybridkey
+                in
+                    get [server] (unlock key2)
+                end)
+         end
+
+        Here the free variables of the code are "unlock" and "key2",
+        but key2 is bound (by eliminating the hybridkey) at the
+        client, not at the server. (However, since it was once typed @
+        client, we shouldn't have any expectation of secrecy or
+        sanctity.)
+
+     3. The program is composed of a series of lexically nested
+        GOs from client to server and vice versa. For each get body
+        from client to server, we install that label at the innermost
+        enclosing get from server to client.
+
+        This appears to really be the "last possible moment" since it
+        is the last time that the server has control in the
+        computation.
+
+        Is it late enough to be implementable? It seems so, although
+        some variables @server are indeed bound by the client, and
+        so must be passed as closure arguments. How do we indicate
+        to the programmer which variables are safe and which are
+        not? ("Variables @server that are bound when executing on
+        the server cannot be 'tampered with.'")
 
 
 [[
