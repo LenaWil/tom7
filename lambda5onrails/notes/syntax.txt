@@ -1,0 +1,63 @@
+
+   New Syntax for ML5                       31 Oct 2006
+
+
+The SML core surface syntax (really, Aphasia2/UML syntax) is a good
+starting point for the ML5 syntax. This document contains a few ideas
+about what we need to change and add.
+
+== Network Signatures ==
+
+== Modal Judgment ==
+
+We reserve the identifier @ for writing the modal judgment. In type
+annotations, we have
+
+   e ::=   ...
+       |   (e : A @ W)
+       |   (e : A)
+
+... where the latter is some derived form for the first, but with a
+    fresh existential variable for W.
+
+We might be able to save @ in expressions, but let's not bother for now.
+
+We also have a typing judgment written ~ in the abstract syntax. I don't think
+there's any need for a unary minus operator, and negative integer constants
+can just be written -5 (no space), so we can claim the tilde for this judgment
+as well.
+
+   e ::=   ...
+       |   (e ~ A @ W)
+
+There's probably no reason for this annotation, actually, since there
+are only two things that the expression e can even be. It is more
+useful in declarations:
+
+  mob u ~ string = [hello, [name]!]
+  valid u ~ 'a -> 'a = (fn x => x)
+
+  (* is this really right? If we think of the ~ as being the annotation
+     on the body of the function, then it's bogus, because the body is
+     not necessarily valid *)
+  vfun f(x : int) ~ int = x
+
+== New Types ==
+
+There are a few important new types in ML5:
+
+  w addr
+  A at w
+  [] A                                         = box
+  <> A                                         = diamond
+  () A     (will this be ambiguous?)           = circle
+  {} A     (need to reject empty record type)  = heart
+
+ I can't resist these last four for their "ASCII duality," representing
+ all of the keyboard brackets.
+
+== HTML ==
+
+It may be worth thinking up some clever way to embed HTML in ML5
+programs, but this is not an important issue for the first prototype.
+
