@@ -220,17 +220,17 @@ struct
                     val ignored = V.namedvar "ignored"
 
                     val nctx =
-                        C.bindv ctx nfs (I.Mono (I.Arrow(false, 
-                                                         [I.TRec nil], 
-                                                         ilt))) nfv
-
+                        C.bindv ctx nfs (mono (I.Arrow(false, 
+                                                       [I.TRec nil], 
+                                                       ilt))) nfv
+                        
                     val (ke, kt) = k nctx nfs
                 in
                     (* would like to use nil arg list here rather
                        than single arg of unit, but need to be able
                        to call from the EL *)
                     (I.Let
-                     (I.Fix(I.Mono
+                     (I.Fix(mono
                             [{ name = nfv,
                                arg = [ignored],
                                dom = [I.TRec nil],
@@ -280,9 +280,10 @@ struct
                       val (defe, deft) = elab ctx ` doconst_default ()
 
                       (* must be status Normal *)
-                      val (objt, objv) = 
+                      val (objt, objv) =
                           case C.var ctx obj of
-                              (I.Mono tt, vv, Normal) => (tt, vv)
+                              (IL.Poly({worlds=nil, tys=nil}, tt),
+                               vv, Normal) => (tt, vv)
                             | _ => raise Pattern 
                                   "case object is poly or constructor (?)"
 
@@ -551,7 +552,8 @@ struct
                        it way too hairy to put them together. *)
 
                     case C.var nctx l of
-                      (I.Mono (I.Arrow (_, _, cod as I.TVar _)), _, 
+                      (IL.Poly({worlds=nil, tys=nil},
+                               (I.Arrow (_, _, cod as I.TVar _))), _, 
                        I.Tagger _) =>
                        (* ****** Exception Constructor **** *)
                        let
@@ -568,7 +570,8 @@ struct
                               onelab below *)
                            fun onelab (l, perl) =
                              case C.var nctx l of
-                               (I.Mono (I.Arrow (_, [ruledom], rulecod)), 
+                               (I.Poly ({worlds=nil, tys=nil}, 
+                                        (I.Arrow (_, [ruledom], rulecod))), 
                                 _, I.Tagger vtag) =>
                                  let
                                      (* objty = rulecod *)
@@ -576,7 +579,7 @@ struct
                                      (* every arm will have access to 
                                         the tagged innards *)
                                      val nctx = C.bindv nctx insidee 
-                                                  (I.Mono ruledom) insidev 
+                                                  (mono ruledom) insidev 
 
                                      val _ = unify nctx loc "tagcase codomain" 
                                                       cod rulecod
@@ -624,7 +627,7 @@ struct
 
                        in
                            (* unify object with codomain of constructors. *)
-                           unify nctx loc "tagcase arg" (evarize opt) cod;
+                           unify nctx loc "tagcase arg" (#1 (evarize opt)) cod;
                            unify nctx loc "tagcase default" rett dt; 
 
                            (I.Tagcase (cod, 
@@ -640,7 +643,7 @@ struct
                        (* ****** Datatype Constructor ***** *)
                        let
                          val cod =
-                           (case evarize pt of
+                           (case #1 (evarize pt) of
                               I.Arrow(_, _, cod) => cod
                             | (tt as (I.Mu _)) => tt
                             | _ => raise Pattern "bug:can't get codomain from first app pattern")
@@ -658,7 +661,7 @@ struct
                          fun onelab (l, perl) =
                            (case (C.var nctx l, new_evar ()) of
                              ((pt, _, I.Constructor), domvar) =>
-                               (case evarize pt of
+                               (case #1 (evarize pt) of
                                   (* nullary constructor *)
                                   (tt as (I.Mu _)) =>
                                    (case ElabUtil.unroll loc tt of
@@ -718,7 +721,7 @@ struct
                                                  | _ => raise Pattern "carrier not unary arrow"
 
                                                val nctx = C.bindv nctx insides 
-                                                             (I.Mono objty) insidev 
+                                                             (mono objty) insidev 
 
 
                                              (* XXX this is pretty suspect, 
@@ -797,7 +800,7 @@ struct
 
                        in
                            (* unify object with codomain of constructors. *)
-                           unify nctx loc "sum arg" (evarize opt) cod;
+                           unify nctx loc "sum arg" (#1 (evarize opt)) cod;
                            unify nctx loc "sum default" rett dt; 
 
                            (* if exhaustive, lose default and
@@ -1103,7 +1106,7 @@ struct
                          let
                              val ss = newstr ("pat_" ^ l)
                              val v = V.namedvar ss
-                             val nc = C.bindv c ss (I.Mono t) v
+                             val nc = C.bindv c ss (mono t) v
 
                              (* clean column *)
                              val (col, nes) = 
@@ -1113,7 +1116,7 @@ struct
                                  recurse rest 
                                     (nc, (markcolumn col, ss) :: cols, nes)
                          in
-                             (I.Let(I.Val(I.Mono
+                             (I.Let(I.Val(mono
                                          (v, t, I.Proj (l, objt, obje))),
                                    ee),
                               tt)

@@ -12,3 +12,8 @@ val _ =
                 print "Usage: humlock file.uml\n\n";
                 print (Params.usage ())
             end
+
+structure T =
+struct
+  fun test s = Compile.compile s "test.out"
+end

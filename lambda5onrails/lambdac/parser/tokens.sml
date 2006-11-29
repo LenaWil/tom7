@@ -20,8 +20,7 @@ struct
       | STR of string
 
     and token =
-        STRLIT of string (* XXX = TEXT[STR s] *)
-      | ID of string
+        ID of string
       | INT of intconst
       | CHAR of char
       | FLOAT of real
@@ -51,7 +50,6 @@ struct
       | DERIVING
       | EXCEPTION
       | HANDLE
-      | HANDLE1
       | TAGTYPE
       | NEWTAG
       | ANDALSO
@@ -85,6 +83,11 @@ struct
       | IMPORT
       | DATAFILE
 
+      (* ML5-specific *)
+      | GET
+      | EXTERN
+      | AT
+
       | LETCC
       | THROW
       | TO
@@ -112,7 +115,6 @@ struct
       | eq (DATATYPE, DATATYPE) = true
       | eq (EXCEPTION, EXCEPTION) = true
       | eq (HANDLE, HANDLE) = true
-      | eq (HANDLE1, HANDLE1) = true
       | eq (TAGTYPE, TAGTYPE) = true
       | eq (NEWTAG, NEWTAG) = true
       | eq (ANDALSO, ANDALSO) = true
@@ -150,5 +152,8 @@ struct
       | eq (THROW, THROW) = true
       | eq (TO, TO) = true
       | eq (DATAFILE, DATAFILE) = true
+      | eq (GET, GET) = true
+      | eq (EXTERN, EXTERN) = true
+      | eq (AT, AT) = true
       | eq _ = false
 end

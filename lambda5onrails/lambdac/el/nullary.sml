@@ -31,7 +31,6 @@ struct
                     if nullexp G s
                     then App(%exp, % `Record nil)
                     else exp
-              | Modvar _ => exp
               | Float _ => exp
               | App (a, b) => App(self a, self b)
               | Throw (a, b) => Throw(self a, self b)
@@ -47,7 +46,7 @@ struct
               | If (a, b, c) => If(self a, self b, self c)
      
               | Seq (a, b) => Seq(self a, self b)
-              | Constrain (e, t) => Constrain(self e, tul G t)
+              | Constrain (e, t, wo) => Constrain(self e, tul G t, wo)
               | Jointext el => Jointext ` map self el
               | Raise e => Raise ` self e
               | CompileWarn s => CompileWarn s
@@ -69,11 +68,11 @@ struct
         (case typ of
              TVar s =>
                  if ismono G s
-                 then TApp(nil, NONE, s)
+                 then TApp(nil, s)
                  else typ
            | TNum _ => typ
            | TModvar _ => typ
-           | TApp (tl, so, s) => TApp (map (tul G) tl, so, s)
+           | TApp (tl, s) => TApp (map (tul G) tl, s)
            | TRec stl => TRec ` ListUtil.mapsecond (tul G) stl
            | TArrow (a,b) => TArrow (tul G a, tul G b))
 
@@ -149,11 +148,8 @@ struct
            | Exception (a, NONE) => ((#1 G, SM.insert (#2 G, a, EXN)),
                                      Exception (a, SOME ` TRec nil))
 
-           | Signature (so, decs) =>
-                 (G, Signature (so, map
-                                (fn SVal (sl, s, t) => SVal(sl, s, tul G t)
-                                 |  SType (sl, t) => SType (sl, t)
-                                 |  SPrim (sl, s, t, p) => SPrim(sl, s, tul G t, p)) decs))
+           | ExternVal(sl, s, t, w) => (G, ExternVal(sl, s, tul G t, w))
+
            | Val (sl, p, e) => (G, Val (sl, pul G p, nul G e))
 
            | Fun fl =>

@@ -16,16 +16,24 @@ struct
             end
     end
 
+    (* actually, I think in situations where these are
+       called it will be the case that there are no
+       top-level "Bound"s *)
     fun same_evar r x =
         (case x of
              (Evar (ref (Bound t))) => same_evar r t
            | (Evar (r' as ref (Free _))) => r = r'
            | _ => false)
 
+    fun same_wevar r x =
+        (case x of
+             (WEvar (ref (Bound t))) => same_wevar r t
+           | (WEvar (r' as ref (Free _))) => r = r'
+           | _ => false)
 
     exception Unify of string
 
-    fun occurs r x =
+    fun occurs (r : typ ebind ref) x =
         (case x of
              TVar _ => false
            | TRec stl => ListUtil.existsecond (occurs r) stl
@@ -39,11 +47,18 @@ struct
            | TCont c => occurs r c
            | TTag (t, _) => occurs r t
            | (Evar (ref (Bound t))) => occurs r t
-           | (Evar (r' as ref (Free _))) => r = r')
+           | (Evar (r' as ref (Free _))) => r = r'
+           | At (t, w) => occurs r t)
+
+    (* occurs check for worlds is trivial, currently *)
+    fun woccursw r w = false
 
     (* r := Bound t  with path compression. *)
     fun set r (Evar (ref (Bound t))) = set r t
       | set r t = r := Bound t
+
+    fun wset r (WEvar (ref (Bound t))) = wset r t
+      | wset r t = r := Bound t
 
     fun mapif m v =
         case Variable.Map.find (m, v) of
@@ -134,4 +149,23 @@ struct
            | _ => raise Unify "tycon mismatch")
 
     fun unify ctx t1 t2 = unifyex ctx Variable.Map.empty t1 t2
+
+    fun unifyw ctx w1 w2 =
+      case (w1, w2) of
+        (WVar a, WVar b) => ignore (Variable.eq (a, b) orelse raise Unify "Var")
+      (* if either is bind, path compress... *)
+      | (WEvar (ref (Bound w1)), w2) => unifyw ctx w1 w2
+      | (w1, WEvar (ref (Bound w2))) => unifyw ctx w1 w2
+
+      | (WEvar (r as ref (Free _)), w2) =>
+          if same_wevar r w2 then ()
+          else if woccursw r w2 
+               then raise Unify "circularity"
+               else wset r w2
+      | (w1, WEvar (r as ref (Free _))) =>
+          if same_wevar r w1 then ()
+          else if woccursw r w1 
+               then raise Unify "circularity"
+               else wset r w1 
+
 end

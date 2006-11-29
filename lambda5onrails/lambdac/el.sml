@@ -5,12 +5,12 @@ structure EL =
 struct
 
   type intconst = Word32.word
+  type world = string
 
     datatype exp_ =
 
         Constant of constant
       | Var of string
-      | Modvar of string * string
       | Float of real
 
       | App of exp * exp
@@ -30,7 +30,7 @@ struct
       | If of exp * exp * exp
 
       | Seq of exp * exp
-      | Constrain of exp * typ
+      | Constrain of exp * typ * world option
 
       (* same as concat, maybe worth making efficient *)
       | Jointext of exp list
@@ -58,14 +58,14 @@ struct
       | PWild
       | PAs of string * pat
       | PRecord of (string * pat) list
-      | PConstrain of pat * typ
+      | PConstrain of pat * typ (* XXX allow @ w *)
       | PConstant of constant
       | PApp of string * pat option
       | PWhen of exp * pat
 
     and typ =
         TVar of string
-      | TApp of typ list * string option * string
+      | TApp of typ list * string
       | TRec of (string * typ) list
       | TArrow of typ * typ
       | TModvar of string * string
@@ -100,8 +100,10 @@ struct
       | Newtag of string * typ option * string
         (* just means newtag E of TO in "exn" *)
       | Exception of string * typ option
-        (* more like 'extern' than ML signatures *)
-      | Signature of string option * strdec list
+
+      (* extern val (a, b) loop : a -> b *)
+      | ExternVal of string list * string * typ * world
+
 
 
     and strdec =

@@ -5,6 +5,12 @@ struct
     open Variable
     structure P = Primop
 
+    val homename = "home"
+    val ilhome = namedvar homename
+
+    (* XXX validity context! *)
+
+
     (* we (should) disallow rebinding of true, false *)
 
     val truename = "true"
@@ -74,63 +80,68 @@ struct
 
          ]
 
+    (* XXX, just do it inline *)
+    fun mono x = IL.Poly({worlds=nil, tys=nil}, x)
+    fun quant (t, IL.Poly({worlds, tys}, x)) = IL.Poly({worlds = worlds, 
+                                                        tys = t :: tys}, x)
+
     val polyfuns =
         [
 
-         ("putc", P.PPutc, IL.Mono(IL.Arrow(false, [ilchar], tuple nil))),
-         ("getc_", P.PGetc, IL.Mono(IL.Arrow(false, [], ilint))),
+         ("putc", P.PPutc, mono(IL.Arrow(false, [ilchar], tuple nil))),
+         ("getc_", P.PGetc, mono(IL.Arrow(false, [], ilint))),
 
          (* XXX should really be exn cont, but there's no way to
             spell that type here. so make it unit cont and then the
             handler just can't use its argument. *)
          ("sethandler_", P.PSethandler, 
-          IL.Mono(IL.Arrow(false, [IL.TCont ilunit], ilunit))),
+          mono(IL.Arrow(false, [IL.TCont ilunit], ilunit))),
 
          (* coercions *)
-         ("ord", P.PBind, IL.Mono(IL.Arrow(true, [ilchar], ilint))),
-         ("chr_", P.PBind, IL.Mono(IL.Arrow(true, [ilint], ilchar))),
+         ("ord", P.PBind, mono(IL.Arrow(true, [ilchar], ilint))),
+         ("chr_", P.PBind, mono(IL.Arrow(true, [ilint], ilchar))),
          (* can only safely read 0..Runtime.DYNAMIC_WORDS-1 *)
-         ("dynamic_", P.PDynamic, IL.Mono(IL.Arrow(true, [ilint], ilint))),
+         ("dynamic_", P.PDynamic, mono(IL.Arrow(true, [ilint], ilint))),
 
-         ("halt", P.PHalt, IL.Quant(a, IL.Mono(IL.Arrow(false, [], IL.TVar a)))),
+         ("halt", P.PHalt, quant(a, mono(IL.Arrow(false, [], IL.TVar a)))),
 
-         ("showval_", P.PShowval, IL.Quant(a, IL.Mono(IL.Arrow(false, [IL.TVar a], ilunit)))),
+         ("showval_", P.PShowval, quant(a, mono(IL.Arrow(false, [IL.TVar a], ilunit)))),
 
-         ("^", P.PJointext, IL.Mono(IL.Arrow(false, [IL.TVec ilchar,
+         ("^", P.PJointext, mono(IL.Arrow(false, [IL.TVec ilchar,
                                                      IL.TVec ilchar], IL.TVec ilchar))),
 
-         ("!", P.PGet, IL.Quant(a, IL.Mono
+         ("!", P.PGet, quant(a, mono
                                 (IL.Arrow(false, [IL.TRef (IL.TVar a)],
                                           IL.TVar a)))),
 
-         (":=", P.PSet, IL.Quant(a, IL.Mono
+         (":=", P.PSet, quant(a, mono
                                  (IL.Arrow(false, [IL.TRef (IL.TVar a),
                                                    IL.TVar a],
                                            tuple nil)))),
 
-         ("ref", P.PRef, IL.Quant(a, IL.Mono
+         ("ref", P.PRef, quant(a, mono
                                   (IL.Arrow(false, [IL.TVar a],
                                             IL.TRef (IL.TVar a))))),
 
-         ("array0", P.PArray0, IL.Quant (a, IL.Mono
+         ("array0", P.PArray0, quant (a, mono
                                          (IL.Arrow(true, nil, 
                                                    IL.TVec (IL.TVar a))))),
 
-         ("array", P.PArray, IL.Quant(a, IL.Mono 
+         ("array", P.PArray, quant(a, mono 
                                       (IL.Arrow(false, [ilint, IL.TVar a],
                                                 IL.TVec (IL.TVar a))))),
          ("length", P.PArraylength,
-            IL.Quant(a, IL.Mono
+            quant(a, mono
                      (IL.Arrow(true, [IL.TVec (IL.TVar a)], ilint)))),
 
          (* unsafe versions *)
          ("sub_", P.PSub, 
-            IL.Quant(a, IL.Mono
+            quant(a, mono
                      (IL.Arrow(false, [IL.TVec (IL.TVar a), ilint],
                                IL.TVar a)))),
 
          ("update_", P.PUpdate, 
-            IL.Quant(a, IL.Mono
+            quant(a, mono
                      (IL.Arrow (false, [IL.TVec (IL.TVar a),
                                         ilint,
                                         IL.TVar a],
@@ -143,14 +154,15 @@ struct
              (name, ty, IL.Primitive prim)) polyfuns @
 
         map (fn (name, prim, cod, dom) =>
-             (name, IL.Mono (IL.Arrow(false, cod, dom)), 
+             (name, mono (IL.Arrow(false, cod, dom)), 
               IL.Primitive prim)) monofuns
 
     val initialc = foldl (fn ((s, c, k, t), ctx) =>
                           Context.bindc ctx s c k t) Context.empty cons
 
+    (* initial environment is all valid *)
     val initial = foldl (fn ((s, c, t), ctx) =>
-                         Context.bindex ctx NONE s c (namedvar "dummy") t) 
+                         Context.bindu ctx s c (namedvar "dummy") t) 
                         initialc vals
 
 
@@ -192,13 +204,8 @@ struct
                    %(EL.Let
                      (%(EL.Exception (matchname, NONE)),
                       e))))
-
-            fun addsig e = 
-                %(EL.Let
-                  (%(IFunc.toplevel),
-                   e))
         in
-            (declist o decbool o decexn o addsig) e
+            (declist o decbool o decexn) e
         end
 
     fun trueexp loc = (EL.Var truename,loc)
