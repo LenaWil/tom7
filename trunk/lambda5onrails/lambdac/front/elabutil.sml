@@ -17,7 +17,8 @@ struct
             raise Elaborate "error"
         end
 
-    fun new_evar () = IL.Evar ` Unify.new_ebind ()
+    fun new_evar ()  = IL.Evar  ` Unify.new_ebind ()
+    fun new_wevar () = IL.WEvar ` Unify.new_ebind ()
 
     (* unify context location message actual expected *)
     fun unify ctx loc msg t1 t2 =
@@ -33,6 +34,25 @@ struct
                         $": ", $msg],
                       %[$"expected:", Layout.indent 4 (ILPrint.ttolex ctx t2)],
                       %[$"actual:  ", Layout.indent 4 (ILPrint.ttolex ctx t1)]],
+                     print);
+                    print "\n";
+                    raise Elaborate "type error"
+                end
+
+    (* unify context location message actual expected *)
+    fun unifyw ctx loc msg w1 w2 =
+            Unify.unifyw ctx w1 w2
+            handle Unify.Unify s => 
+                let 
+                    val $ = Layout.str
+                    val % = Layout.mayAlign
+                in
+                    Layout.print
+                    (Layout.align
+                     [%[$("World mismatch (" ^ s ^ ") at "), $(Pos.toString loc),
+                        $": ", $msg],
+                      %[$"expected:", Layout.indent 4 (ILPrint.wtol w2)],
+                      %[$"actual:  ", Layout.indent 4 (ILPrint.wtol w1)]],
                      print);
                     print "\n";
                     raise Elaborate "type error"
@@ -98,36 +118,29 @@ struct
 
        *)
 
-
-    (* XXX implement!
-       only values are generalized, so always return argument (XXX
-       doesn't need to be in return)
-       return 
-       a list of type variables (to be bound in the polytype)
-       and the type, using those vars *)
-    fun generalize ctx e t = (e, nil, t)
-
-    fun evarize pt =
+    fun evarize (IL.Poly({worlds, tys}, mt)) =
         let
-            fun unpoly (IL.Quant (v, pt)) ts = unpoly pt (v::ts)
-              | unpoly (IL.Mono mt) ts =
-                let
-                    (* XXX don't need to build up evs list *)
-                    fun mkes nil = (nil, Variable.Map.empty)
-                      | mkes (tv::rest) =
-                        let val (ets, subst) = mkes rest
-                            val ev = new_evar ()
-                        in
-                            (ev :: ets, 
-                             Variable.Map.insert (subst, tv, ev))
-                        end
-                    
-                    val (ets, subst) = mkes ts
-                in
-                    Subst.tsubst subst mt
-                end
+          (* make the type and world substitutions *)
+            fun mkts nil m ts = (m, rev ts)
+              | mkts (tv::rest) m ts =
+              let val e = IL.Evar (Unify.new_ebind ())
+              in
+                mkts rest (Variable.Map.insert (m, tv, e)) (e :: ts)
+              end
+
+            fun mkws nil m ws = (m, rev ws)
+              | mkws (tv::rest) m ws =
+              let val e = IL.WEvar (Unify.new_ebind ())
+              in
+                mkws rest (Variable.Map.insert (m, tv, e)) (e :: ws)
+              end
+
+            val (wsubst, ws) = mkws worlds Variable.Map.empty nil
+            val (tsubst, ts) = mkts tys Variable.Map.empty nil
+
         in
-            unpoly pt nil
+          (Subst.wsubst wsubst
+           (Subst.tsubst tsubst mt), ws, ts)
         end
 
 
@@ -166,5 +179,7 @@ struct
     end handle Subscript =>
       raise Pattern "bad mu!"
         *)
+
+  fun mono t = IL.Poly({worlds= nil, tys = nil}, t)
 
 end

@@ -13,6 +13,8 @@ struct
   fun fromlist l =
       foldl Variable.Map.insert' Variable.Map.empty l
 
+  (* XXX5 these should be in IL *)
+  (* t/x in t *)
   fun tsubst s (x as (TVar v)) =
       (case Variable.Map.find (s, v) of
            SOME tt => tt
@@ -43,12 +45,38 @@ struct
                (case StringMap.find (s, v) of
                     SOME tt => tt
                   | NONE => x)
-         | E.TModvar _ => t
          | E.TNum n => t
-         | E.TApp (tl, so, str) => E.TApp (map (etsubst s) tl, so, str)
+         | E.TApp (tl, str) => E.TApp (map (etsubst s) tl, str)
          | E.TRec stl => E.TRec (ListUtil.mapsecond (etsubst s) stl)
          | E.TArrow (dom, cod) => E.TArrow(etsubst s dom, etsubst s cod))
 
+  (* w/x in t *)
+  fun wsubst s (x as (TVar v)) = x
+    | wsubst s (TRec ltl) = TRec (ListUtil.mapsecond (wsubst s) ltl)
+    | wsubst s (Arrow (b, dom, cod)) = Arrow (b, map (wsubst s) dom, 
+                                              wsubst s cod)
+    | wsubst s (Sum ltl) = Sum (ListUtil.mapsecond (arminfo_map (wsubst s)) ltl)
+    | wsubst s (Mu (i, vtl)) =
+           Mu (i, ListUtil.mapsecond (wsubst s) vtl)
+    | wsubst s (Evar(ref (Bound t))) = wsubst s t
+    | wsubst s (x as (Evar _)) = x
+
+    | wsubst s (TRef t) = TRef (wsubst s t)
+
+    | wsubst s (TVec t) = TVec (wsubst s t)
+    | wsubst s (TCont t) = TCont (wsubst s t)
+
+    | wsubst s (TTag (t, v)) = TTag (wsubst s t, v)
+
+    | wsubst s (At (t, w)) = At (wsubst s t, wsubsw s w)
+
+  (* w/x in w' *)
+  and wsubsw s (x as WVar v) =
+    (case Variable.Map.find (s, v) of
+       SOME ww => ww
+     | NONE => x)
+    | wsubsw s (WEvar(ref (Bound w))) = wsubsw s w
+    | wsubsw s (x as (WEvar _)) = x
 
   fun pbinds  E.PWild _ = false
     | pbinds (E.PAs (i, p)) v = i = v orelse pbinds p v
@@ -67,7 +95,6 @@ struct
       (fn x => (x, loc))
       (case e of
            E.Var v => if v = vv then ee else e
-         | E.Modvar _ => e
          | E.Constant _ => e
          | E.Float _ => e
          | E.Proj (l,t,e) => E.Proj (l, t, esubst s e)
@@ -91,7 +118,7 @@ struct
          | E.Otherwise (a,b) => E.Otherwise (esubst s a, esubst s b)
          | E.If (a,b,c) => E.If (esubst s a, esubst s b, esubst s c)
 
-         | E.Constrain (e,t) => E.Constrain (esubst s e, t)
+         | E.Constrain (e,t,wo) => E.Constrain (esubst s e, t, wo)
          | E.Case (el, pel, NONE) => E.Case (map (esubst s) el, 
                                              map (mlsubst s) pel, NONE)
          | E.Case _ => raise Subst "case SOME"
@@ -168,13 +195,6 @@ struct
          | E.Tagtype t => (d, false)
          | E.Newtag (i, _, _) => (d, i = vv)
          | E.Type _ => (d, false)
-         | E.Signature (SOME _, _) => (d, false)
-         | E.Signature (NONE, strdecs) => 
-               let fun one (E.SVal(_, id, _)) = vv = id
-                     | one (E.SPrim(_, id, _, _)) = vv = id
-                     | one (E.SType _) = false
-               in
-                   (d, List.exists one strdecs)
-               end)
+         | E.ExternVal (tv, id, t, w) => (d, id = vv))
 
 end

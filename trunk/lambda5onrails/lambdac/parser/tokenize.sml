@@ -4,8 +4,6 @@
    from a very old tokenizer for something else, so there are some
    aspects of it that are a little strange. *)
 
-(* XXX escape newlines? *)
-
 structure Tokenize :> TOKENIZE =
 struct
 
@@ -41,6 +39,7 @@ struct
   fun midchar #"_" = true
     | midchar #"'" = true
     | midchar #"-" = true
+    | midchar #"." = true
     | midchar _ = false
 
   (* note, [] are illegal chars except to bracket text *)
@@ -137,6 +136,9 @@ struct
        ("andalso", ANDALSO),
        ("andthen", ANDTHEN),
 
+       ("get", GET),
+       ("extern", EXTERN),
+
        ("throw", THROW),
        ("to", TO),
        ("letcc", LETCC),
@@ -153,7 +155,6 @@ struct
        ("fn", FN),
        ("fun", FUN),
        ("handle", HANDLE),
-       ("handle1", HANDLE1),
        ("if", IF),
        ("in", IN),
        ("infix", INFIX),
@@ -191,6 +192,7 @@ struct
        (":", COLON),
        (";", SEMICOLON),
        ("=", EQUALS),
+       ("@", AT),
        ("=>", DARROW)
        ]
 
@@ -213,7 +215,7 @@ struct
   fun goodtoken () = space >> !! (alt [char wth CHAR,
                                        float wth FLOAT,
                                        number wth INT,
-                                       stringlit wth STRLIT,
+                                       stringlit wth (fn s => TEXT [STR s]),
                                        
                                        literal #"[" >> 
                                        get(fn pos =>

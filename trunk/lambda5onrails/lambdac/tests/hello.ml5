@@ -1,0 +1,5 @@
+let
+    extern val js.alert : string -> unit @ home
+in
+    js.alert "Hello, World 2.0!"
+end

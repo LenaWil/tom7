@@ -1,7 +1,7 @@
 
 signature CONTEXT =
 sig
-    exception Absent of string
+    exception Absent of string * string
 
     type context
 
@@ -9,45 +9,43 @@ sig
 
 
     (* lookup operations *)
-
    
     (* resolve a value identifier in the current context, return its type and
-       status *)
-    val var : context -> string -> IL.typ IL.poly * Variable.var * IL.idstatus
+       status and world *)
+    datatype varsort =
+      Modal of IL.world
+    | Valid
 
-    val varex : context -> string option -> string -> 
-                  IL.typ IL.poly * Variable.var * IL.idstatus
+    val var : context -> string -> IL.typ IL.poly * Variable.var * IL.idstatus * varsort
 
     (* resolve a type/con identifer in the current context, return its kind
        and binding *)
     val con : context -> string -> IL.kind * IL.con * IL.tystatus
 
-    (* with module *)
-    val conex : context -> string option -> string -> IL.kind * IL.con * IL.tystatus
-
+    val world : context -> string -> Variable.var
 
     (* has_evar ctx n
        Does the context contain the free evar n in the type of any
        term? *)
     val has_evar : context -> int -> bool
 
+
+
     (* context extension operations *)
+    
+    (* bind a valid variable *)
+    val bindu : context -> string -> IL.typ IL.poly -> Variable.var -> IL.idstatus -> context
+
+    (* bind a world *)
+    val bindw : context -> string -> Variable.var -> context
 
     (* bind an identifier to a variable and give that variable 
-       the indicated type *)
-    val bindv : context -> string -> IL.typ IL.poly -> Variable.var -> context
+       the indicated type at the indicated world *)
+    val bindv : context -> string -> IL.typ IL.poly -> Variable.var -> IL.world -> context
+    (* also idstatus, if not Normal *)
+    val bindex : context -> string -> IL.typ IL.poly -> Variable.var -> IL.idstatus -> varsort -> context
 
-    (* as above, but more options.
-       context module external-var polytype il-var special-status
-       *)
-    val bindex : context -> string option -> string -> IL.typ IL.poly -> 
-                  Variable.var -> IL.idstatus -> context
-
-    (* bind an identifier to a constructor with the indicated kind *)
+    (* bind an identifier to a type constructor with the indicated kind *)
     val bindc : context -> string -> IL.con -> IL.kind -> IL.tystatus -> context
-
-    (* as above, but include optional module *)
-    val bindcex : context -> string option -> string -> IL.con -> IL.kind -> IL.tystatus -> context
-
 
 end

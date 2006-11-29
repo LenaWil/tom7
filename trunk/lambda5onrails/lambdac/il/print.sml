@@ -78,7 +78,7 @@ struct
                          handle _ => raise NoMu
 
                     val t = 
-                      (case Context.conex ctx NONE thisc of
+                      (case Context.con ctx thisc of
                          (kind, Lambda f, _) => 
                            (case kind of
                               0 => $ thisc
@@ -119,24 +119,33 @@ struct
            | Evar (ref (Free n)) => $("'a" ^ itos n))
       end
 
+    fun wtol (WEvar (ref (Bound t))) = wtol t
+      | wtol (WEvar (ref (Free n))) = $("'w" ^ itos n)
+      | wtol (WVar v) = $(V.show v)
+
     (* <t> *)
     fun bttol t = if !iltypes then L.seq[$"<", ttol t, $">"]
                   else $""
 
-    fun etol e =
-        (case e of
-             Int i => $("0x" ^ Word32.toString i)
-           | String s => $("\"" ^ String.toString s ^ "\"")
-           (* | Char c => $("?" ^ implode [c]) *)
-           | App (e1, [e2]) => L.paren(%[etol e1, etol e2])
-           | App (e1, e2) => L.paren(%[etol e1, L.list (map etol e2)])
+    fun vtol v =
+      (case v of
+         Int i => $("0x" ^ Word32.toString i)
+       | String s => $("\"" ^ String.toString s ^ "\"")
+       | Polyvar {worlds=nil, tys=nil, var} => $(V.show var)
+       | Polyvar {worlds, tys, var} => %[$(V.show var),
+                                         if !iltypes 
+                                         then 
+                                           (* XXX5 separate them? *)
+                                           L.listex "<" ">" "," (map wtol worlds @ map ttol tys)
+                                         else $""]
 
-           | Polyvar (nil, v) => $(V.show v)
-           | Polyvar (tl, v) => %[$(V.show v),
-                                  if !iltypes 
-                                  then 
-                                    L.listex "<" ">" "," (map ttol tl)
-                                  else $""]
+           )
+
+    and etol e =
+        (case e of
+           (* | Char c => $("?" ^ implode [c]) *)
+             App (e1, [e2]) => L.paren(%[etol e1, etol e2])
+           | App (e1, e2) => L.paren(%[etol e1, L.list (map etol e2)])
 
            (* print as if n-ary *)
            | Seq _ => 
@@ -249,28 +258,19 @@ struct
                                        $(V.tostring ext)]
            | Val vtep =>
                  let
-                     fun up (Quant (v, p)) =
-                         let val (quants, var, t, e) = up p
-                         in (v :: quants, var, t, e)
-                         end
-                       | up (Mono (v, t, e)) = (nil, v, t, e)
-
-                     val (quants, var, t, e) = up vtep
+                     val Poly ({worlds, tys}, (var, t, e)) = vtep
                  in
+                   (* XXX5 worlds too *)
                      %[%[%([$"val"]
-                           @ (case quants of
+                           @ (case tys of
                                   nil => nil
-                                | _ => [L.listex "(" ")" "," (map ($ o V.tostring) quants)])
+                                | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)])
                            @ [$(V.tostring var)]),
                          L.indent 4 (%[$":", ttol t, $"="])],
                        L.indent 4 (etol e)]
                  end
-           | Fix pfs =>
-                 let
-                     fun up (Quant (v, p)) =
-                       if !iltypes then %[$(V.tostring v), up p]
-                       else up p
-                       | up (Mono fl) =
+           | Fix (Poly ({worlds, tys}, fl)) =>
+                   %[$"fun", (* XXX5 worlds/tys *)
                          L.alignPrefix
                          (map (fn {name, arg, dom, cod, body, inline, recu, total} =>
                                %[
@@ -295,8 +295,7 @@ struct
                                   $"="]],
                                 L.indent 4 (etol body)]) fl,
                           "and ")
-                 in
-                     %[$"fun", up pfs]
-                 end)
+                         ]
+                 )
 
 end

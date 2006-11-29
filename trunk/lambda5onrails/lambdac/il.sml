@@ -7,16 +7,12 @@ struct
     type label = string
     type var = Variable.var
 
-    (* arm in a datatype(sum).
-       might be a carrier ("of t") 
-       or not. If a carrier, t
-       might be a type that is
-       always allocated (e.g.,
-       a non-empty record) or
-       it might be something
-       we can't determine the
-       allocation status of
-       (like a type variable). *)
+    (* arm in a datatype(sum). might be a carrier ("of
+       t") or not. If a carrier, t might be a type
+       that is always allocated (e.g., a non-empty
+       record) or it might be something we can't
+       determine the allocation status of (like a
+       type variable). *)
     datatype 'typ arminfo =
       NonCarrier
     | Carrier of { definitely_allocated : bool,
@@ -27,8 +23,13 @@ struct
       Carrier { definitely_allocated = definitely_allocated,
                 carried = f carried }
 
+    (* worlds : index the typing judgment *)
+    datatype world =
+      WEvar of world ebind ref
+    | WVar of var
+
     (* types : classifiers for values *)
-    datatype typ =
+    and typ =
         TVar of var
       | TRec of (label * typ) list
       (* bool true => total 
@@ -49,7 +50,7 @@ struct
                  ... ]
          *)
       | Mu of int * (var * typ) list 
-      | Evar of ebind ref
+      | Evar of typ ebind ref
 
       | TVec of typ
       | TCont of typ
@@ -58,27 +59,34 @@ struct
 
       | TTag of typ * var
 
+      | At of typ * world
+
     (* type constructors *)
     and con =
         Typ of typ
       | Lambda of typ list -> typ
 
     (* existential *)
-    and ebind =
+    and 'a ebind =
         Free of int
-      | Bound of typ
+      | Bound of 'a
 
     (* polymorphic type *)
-    and 'a poly =
-        Mono of 'a
-      | Quant of var * 'a poly
+    and 'a poly = Poly of { worlds : var list,
+                            tys : var list } * 'a
 
-    and exp =
-        (* type application is mixed with variables *)
-        Polyvar of typ list * var
+    and value = 
+        Polyvar  of { tys : typ list, worlds : world list, var : var }
+      | Polyuvar of { tys : typ list, worlds : world list, var : var }
       | Int of intconst
       | String of string
-      (* | Char of char -- is int now *)
+      | VRecord of (label * value) list
+      | VRoll of typ * value
+      | VInject of typ * label * value option
+
+    and exp =
+        Value of value
+      
       (* application is n-ary *)
       | App of exp * exp list
 
@@ -91,8 +99,9 @@ struct
 
       | Seq of exp * exp
       | Let of dec * exp
-      | Roll of typ * exp
       | Unroll of exp
+      | Roll of typ * exp
+
 
       | Throw of exp * exp
       | Letcc of var * typ * exp
@@ -138,7 +147,7 @@ struct
     withtype kind = int
 
     (* now a derived form *)
-    fun Var v = Polyvar (nil, v)
+    fun Var v = Polyvar { tys = nil, worlds = nil, var = v }
 
     datatype tystatus = Regular | Extensible
     datatype idstatus = 
