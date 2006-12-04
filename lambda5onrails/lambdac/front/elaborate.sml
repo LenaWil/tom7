@@ -4,7 +4,7 @@ struct
 
   val sequenceunit = Params.flag false
     (SOME ("-sequence-unit", 
-           "Require sequenced expressions to be of type unit")) "sequenceunit"
+           "Require sequenced expressions and 'do' declarations to be of type unit")) "sequenceunit"
 
   val warnmatch = Params.flag true
     (SOME ("-warn-match",
@@ -475,7 +475,7 @@ struct
                          val (ee, tt, ww) = elab ctx here e
                          val ret = new_evar ()
                      in
-                         unifyw ctx loc "raise" ww home;
+                         unifyw ctx loc "raise" ww here;
                          unify ctx loc "raise" tt exnt;
                          (Raise (ret, ee), ret, here)
                      end
@@ -488,35 +488,40 @@ struct
                     val es = newstr "exn"
                     val ev = V.namedvar es
                         
-                    val (ee, tt) = elab ctx e1
-                        
-                    val mctx = C.bindv ctx es (mono exnt) ev
+                    val (ee, tt, ww) = elab ctx here e1
+
+                    val mctx = C.bindv ctx es (mono exnt) ev here
 
                     (* re-raise exception if nothing matches *)
                     fun def () =
                         (EL.Raise (EL.Var es, loc), loc)
                         
+                    (* XXX5 and world.. *)
                     val (match, mt) = 
                         Pattern.elaborate true elab elabt mctx loc
                            ([es], ListUtil.mapfirst ListUtil.list pel, def)
                 in
+                    unifyw ctx loc "handle" ww here;
                     unify ctx loc "handle" tt mt;
-                    (Handle(ee, ev, match), tt)
+                    (Handle(ee, ev, match), tt, here)
                 end
             | _ => error loc "exn type not declared???")
 
         | E.CompileWarn s =>
-               (Primapp(Primop.PCompileWarn s, [], []), TRec nil)
+               (Primapp(Primop.PCompileWarn s, [], []), TRec nil, here)
 
-        (* makes slightly nicer code *)
-        | E.Let ((E.Do e, loc), e2) => elab ctx (E.Seq(e, e2), loc)
+        (* makes slightly nicer code
+           (nb, means that sequence-unit applies to do as well) *)
+        | E.Let ((E.Do e, loc), e2) => elab ctx here (E.Seq(e, e2), loc)
 
         | E.Let (d, e) =>
                let
-                   val (dd, nctx) = elabd ctx d
-                   val (ee, t) = elab nctx e
+                   val (dd, nctx, wwd) = elabd ctx here d
+                   val () = unifyw ctx loc "let" wwd here
+                   val (ee, t, ww) = elab nctx here e
                in
-                   (foldr Let ee dd, t)
+                   unifyw ctx loc "let" ww here;
+                   (foldr Let ee dd, t, ww)
                end
            
 
@@ -527,6 +532,7 @@ struct
             ctx tyvars
 
   and elabf ctx 
+            (here : world)
             (arg : string)
             (clauses : (EL.pat list * EL.typ option * EL.exp) list) 
             loc =
@@ -587,7 +593,7 @@ struct
                                    "codomain type constraint on fun" tt
                                    (elabt ctx loc t)
                      | _ => ());
-                  (exp, tt)
+                  (exp, tt, here)
               end
           | nil => raise Elaborate "impossible: *no* clauses in fn"
           | _ =>
@@ -611,7 +617,7 @@ struct
                    fun buildf nil =
                        (* build the case, slapping all of the
                           body constraints on its outside *)
-                       foldr (fn (t, e) => (E.Constrain(e, t), loc)) 
+                       foldr (fn (t, e) => (E.Constrain(e, t, NONE (* XXX5 *)), loc)) 
                              (E.Case (map (fn a => (E.Var a, loc)) args, 
                                       columns, NONE), loc)
                              constraints
@@ -625,7 +631,7 @@ struct
                             loc)
                        end
                in
-                   elab ctx ` buildf ` tl args
+                   elab ctx here ` buildf ` tl args
                end)
 
       end handle Pattern.Pattern s => 
@@ -633,19 +639,28 @@ struct
 
 
   (* return a new context, and an il.dec list *)
-  and elabd ctx ((d, loc) : EL.dec) here =  
+  and elabd ctx (here : world) ((d, loc) : EL.dec) =  
     case d of
-      E.Do e => ([Do ` #1 ` elab ctx e], ctx)
+      E.Do e => 
+        let val (ee, tt, ww) = elab ctx here e
+        in
+          (if !sequenceunit
+           then unify ctx loc "sequence unit" tt (IL.TRec nil)
+           else ());
+          unifyw ctx loc "do" ww here;
+          ([Do ee], ctx, here)
+        end
+
     | E.Type (nil, tv, typ) =>
           let val t = elabt ctx loc typ
-          in ([], C.bindc ctx tv (Typ t) 0 Regular)
+          in ([], C.bindc ctx tv (Typ t) 0 Regular, here)
           end
 
     | E.Tagtype t =>
           let
               val tv = V.namedvar t
           in
-              ([Tagtype tv], C.bindc ctx t (Typ (TVar tv)) 0 Extensible)
+              ([Tagtype tv], C.bindc ctx t (Typ (TVar tv)) 0 Extensible, here)
           end
 
     (* not like SML sigs. declares the availability of
@@ -728,7 +743,7 @@ struct
     (* some day we might add something to 'ty,' like a string list
        ref so that we can track the exception's history, or at least
        a string with its name and raise point. *)
-    | E.Exception (e, ty) => elabd ctx (E.Newtag(e, ty, Initial.exnname), loc)
+    | E.Exception (e, ty) => elabd ctx here (E.Newtag(e, ty, Initial.exnname), loc)
 
     (* Tags must be local, because the embodied type might not be 
        mobile. *)
@@ -751,8 +766,9 @@ struct
 
                 (* don't put the tag in the context, since
                    user code should never access it. *)
-                (* XXX not total for exns if we add locality
-                   info *)
+                (* XXX not total for exns if we later add locality
+                   info (probably a better translation would add
+                   the locality info at the site of a Raise?) *)
                 val nctx = C.bindex ctx NONE tag 
                             (mono ` Arrow(true, [d], cod))
                             ctor
@@ -771,7 +787,7 @@ struct
                          inline = false,
                          recu = false, total = true,
                          body = Tag(Var carg, Var tagv) }]],
-                 nctx)
+                 nctx, here)
             end
         | _ => error loc (ext ^ " is not an extensible type"))
 
@@ -1044,7 +1060,7 @@ struct
           in
               ListUtil.allpairssym op<> tyvars 
                  orelse error loc "duplicate tyvars in type dec";
-              ([], C.bindc ctx tv con kind Regular)
+              ([], C.bindc ctx tv con kind Regular, here)
           end
 
     | E.Fun bundle =>
@@ -1099,7 +1115,7 @@ struct
                       val xv = V.namedvar x
                       val nc = C.bindv c x (mono dom) xv
 
-                      val (exp, tt) = elabf nc x clauses loc
+                      val (exp, tt) = elabf nc here x clauses loc
                   in
                       unify c loc "fun body/codomain" tt cod;
                       (f, vv, xv, dom, cod, exp)
