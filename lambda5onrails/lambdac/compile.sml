@@ -14,7 +14,7 @@ struct
         (SOME ("-execcps",
                "Try interpreting the CPS language at various phases, for debugging")) "execcps"
 
-    val optil = Params.flag true
+    val optil = Params.flag false
         (SOME ("-optil", 
                "Optimize the intermediate language")) "optil"
 
@@ -163,7 +163,9 @@ struct
                         else ()
                     in
                         vprint "Optimizing IL...\n";
-                        ILOpt.optimize inter
+                        raise Compile "IL optimizer disabled!"
+                        (* XXX5 *)
+                        (* ILOpt.optimize inter *)
                     end
                 else inter
 
@@ -272,7 +274,7 @@ struct
                                       s ^ "'\n")
          | ILAlpha.Alpha s => fail ("\nIL Alpha: " ^ s ^ "\n")
          | CPSAlpha.Alpha s => fail ("\nCPS Alpha: " ^ s ^ "\n")
-         | ILOpt.ILOpt s => fail ("\nIL Optimizer: " ^ s ^ "\n")
+(*         | ILOpt.ILOpt s => fail ("\nIL Optimizer: " ^ s ^ "\n") *)
          | ToCPS.CPS s => fail ("\nCPS Conversion: " ^ s ^ "\n")
          | CPSOpt.CPSOpt s => fail ("\nCPS Optimizer: " ^ s ^ "\n")
          | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")

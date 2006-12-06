@@ -12,10 +12,10 @@ lambdac : makefile lambdac.cm *.sml front/*.sml el/*.sml parser/*.sml util/*.sml
 
 # should remove some generated files in runtime/...
 clean :
-	rm -f `find . -name "*~"` *.exe lambdac
+	rm -rf `find . -name "*~"` `find . -type d -name .cm` *.exe lambdac
 
 wc :
-	find . -name "*.sml" | grep -v CM | xargs wc -l
+	find . -name "*.sml" | grep -v CM | grep -v \\.cm | xargs wc -l
 
 linelen :
-	linelen `find . -name "*.sml" | grep -v CM`
+	linelen `find . -name "*.sml" | grep -v CM | grep -v \\.cm`

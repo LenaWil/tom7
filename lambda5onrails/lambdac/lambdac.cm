@@ -125,9 +125,11 @@ front/elaborate.sml
 il/util-sig.sml
 il/util.sml
 
+(* XXX5
 il/opt-sig.sml
 il/opt.sml
-
+*)
+(*
 cps.sml
 cps/alpha.sml
 cps/subst.sml
@@ -151,6 +153,6 @@ compile-sig.sml
 compile.sml
 
 main.sml
-
+*)
 (* lztest.sml *)
 
