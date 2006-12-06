@@ -3,21 +3,17 @@ struct
     open IL
     exception ILUtil of string
 
-    fun mappoly f (Mono x) = Mono (f x)
-      | mappoly f (Quant(v, x)) = Quant (v, mappoly f x)
+    fun mappoly f (Poly (p, x)) = Poly (p, f x)
 
     (* run f on all immediate subexpressions of exp,
        then rebuild it *)
     fun pointwise f exp = 
         (case exp of
-             Polyvar (tl, v) => exp
+             Value v => exp
            | Deferred os =>
                  (case Util.Oneshot.deref os of
                       SOME e => pointwise f e
                     | NONE => raise ILUtil "unset oneshot in pointwise")
-           | Int _ => exp
-           | String _ => exp
-           (* | Char _ => exp *)
            | Jointext el => Jointext (map f el)
            | Record lel => Record (ListUtil.mapsecond f lel)
            | Proj (l, t, e) => Proj(l, t, f e)
@@ -66,10 +62,17 @@ struct
         let 
             val self = tsubste s
             fun sub t = Subst.tsubst s t
+
+            fun tsubstv v =
+              (case v of
+                 (* anything that has a t in it *)
+                 Polyvar({worlds, tys, var}) => Polyvar({worlds=worlds, tys = map sub tys, var=var})
+               | Int _ => v
+               | String _ => v)
+
         in
             case exp of
-                (* anything that has a t in it *)
-                Polyvar(tl, v) => Polyvar(map sub tl, v)
+                Value v => Value (tsubstv v)
                 (* allow delayed *)
               | Deferred os =>
                     (Util.Oneshot.wrap self os; exp)

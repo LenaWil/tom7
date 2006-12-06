@@ -73,7 +73,7 @@ struct
 
     (* polymorphic type *)
     and 'a poly = Poly of { worlds : var list,
-                            tys : var list } * 'a
+                            tys    : var list } * 'a
 
     and value = 
         Polyvar  of { tys : typ list, worlds : world list, var : var }

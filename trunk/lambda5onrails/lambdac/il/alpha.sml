@@ -3,6 +3,9 @@
 structure ILAlpha =
 struct
 
+  infixr 9 `
+  fun a ` b = a b
+
   open IL
 
   exception Alpha of string
@@ -59,70 +62,50 @@ struct
         in
           (case d of
              Do e => (G, R, Do (alpha G R e))
-           | Val vtep =>
-               let
-                 fun dovte (Quant (t, vtep)) =
-                   let
-                     val (G, R, vtep) = dovte vtep
-                   in
-                     (G, R, Quant(t, vtep))
-                   end
-                   | dovte (Mono (v, t, e)) =
-                   (case dobindsgr (G, R, [v]) of
-                      (G', R', [v]) =>
-                        (* exp is in old scope *)
-                        (G', R', Mono(v, t, alpha G R e))
-                    | _ => err "impossible/dec")
-
-                 val (G, R, vtep) = dovte vtep
-               in
-                 (G, R, Val vtep)
-               end
+           | Val (Poly ({worlds, tys}, (v,t,e))) =>
+               (case dobindsgr (G, R, [v]) of
+                  (G', R', [v]) =>
+                    (* exp is in old scope *)
+                    (G', R', Val ` Poly ({worlds=worlds, tys=tys}, (v, t, alpha G R e)))
+                | _ => err "impossible/dec")
            | Tagtype v => (G, R, d)
            | Newtag (v, t, tv) =>
                (case dobindsgr (G, R, [v]) of
                   (G, R, [v]) =>
                     (G, R, Newtag(v, t, tv))
                 | _ => err "impossible/newtag")
-           | Fix flp =>
+           (* XXX We don't alpha-vary these bound world and type vars; perhaps we should. *)
+           | Fix (Poly ({worlds, tys}, fl)) =>
                   let
-                    fun doflp (Quant (t, flp)) =
+                    val (G, R, fs) = dobindsgr (G, R, map #name fl)
+                    fun onefun (name, { name=_, arg=args, dom, cod,
+                                        body, inline, recu, 
+                                        total }) =
                       let
-                        val (G, R, flp) = doflp flp
+                        val (G, R, args) = dobindsgr (G, R, args)
+                        val body = alpha G R body
                       in
-                        (G, R, Quant(t, flp))
+                        { name = name, arg = args, dom = dom,
+                          cod = cod, body = body, inline = inline,
+                          recu = recu, total = total }
                       end
-                      | doflp (Mono fl) =
-                      let
-                        (*  *)
-                        val (G, R, fs) = dobindsgr (G, R, map #name fl)
-                        fun onefun (name, { name=_, arg=args, dom, cod,
-                                            body, inline, recu, 
-                                            total }) =
-                          let
-                            val (G, R, args) = dobindsgr (G, R, args)
-                            val body = alpha G R body
-                          in
-                            { name = name, arg = args, dom = dom,
-                              cod = cod, body = body, inline = inline,
-                              recu = recu, total = total }
-                          end
-                      in
-                        (G, R, Mono (map onefun (ListPair.zip (fs, fl))))
-                      end
-                    val (G, R, flp) = doflp flp
                   in
-                    (G, R, Fix flp)
+                    (G, R, Fix ` Poly ({worlds=worlds, tys=tys}, map onefun ` ListPair.zip (fs, fl)))
                   end)
         end
 
+      fun doval v =
+        case v of
+          Polyvar {worlds, tys, var} => Polyvar { worlds=worlds, tys=tys, var = rename var }
+        | Int _ => v
+        | String _ => v
+
+
     in
       (case e of
-         Polyvar (tl, v) => Polyvar (tl, rename v)
-       | Int _ => e
-       | String _ => e
+         Value v => Value ` doval v
        | App (e, el) => App (self e, map self el)
-       | Record lel => Record (ListUtil.mapsecond self lel)
+       | Record lel => Record ` ListUtil.mapsecond self lel
        | Proj (l, t, e) => Proj(l, t, self e)
        | Raise (t, e) => Raise (t, self e)
        | Handle (e, v, e') =>

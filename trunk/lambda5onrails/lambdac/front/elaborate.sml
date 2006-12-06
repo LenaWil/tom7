@@ -25,7 +25,7 @@ struct
     (* XXX *)
     structure Pattern =
     struct
-      fun elaborate _ = raise Elaborate "pattern stub unimplemented"
+      fun elaborate _ _ _ _ _ _ = (raise Elaborate "pattern stub unimplemented") : IL.exp * IL.typ
       exception Pattern of string
     end
 
@@ -69,12 +69,7 @@ struct
   fun lookupt ctx loc str =
       (case C.con ctx str of
            (0, Typ t, _) => t
-         (* XXX this can't be the right way!
-            datatypes with no type args are
-            introduced this way...
-            
-            (nullary rewrites them now --
-            this should be an invt violation) *)
+         (* nullary rewrites these, so it should be impossible *)
          | (0, Lambda f, _) => (* f nil *) error loc ("invariant violation: lookupt got Lambda for " ^ str)
          | (kind, _, _) => 
                error loc (str ^ " expects " ^ 
@@ -124,7 +119,7 @@ struct
                                        [elabtex ctx prefix loc dom], 
                                        elabtex ctx prefix loc cod))
 
-    and dovar ctx here loc vv =
+    and dovar ctx loc vv =
     ((case C.var ctx vv of
 (* XXX5 not sure what to do with primitives. are there any?
       (pt, _, Primitive p) =>
@@ -210,7 +205,7 @@ struct
           (* See below *)
           val (tt, worlds, tys) = evarize pt
         in
-          (Polyuvar {tys = tys, worlds = worlds, var = v}, tt, here)
+          (Polyuvar {tys = tys, worlds = worlds, var = v}, tt, new_wevar())
         end
     | (pt, v, i, Context.Modal w) =>
         let
@@ -221,43 +216,44 @@ struct
 
             val (tt, worlds, tys) = evarize pt
         in
-            unifyw ctx loc "variable" w here;
-            (Polyvar {tys = tys, worlds = worlds, var = v}, tt, here)
+            (Polyvar {tys = tys, worlds = worlds, var = v}, tt, w)
         end) handle C.Absent _ => 
           error loc ("Unbound identifier: " ^ vv))
 
-  and value (v, t, w) = (Value v, t, w)
+  and value (v, t) = (Value v, t)
 
   and elab ctx here ((e, loc) : EL.exp) =
-    let fun %x = (x, loc)
-    in
       case e of
           E.Seq (e1, e2) => 
-              let val (e1, e1t, e1w) = elab ctx here e1
-                  val (e2, e2t, e2w) = elab ctx here e2
+              let val (e1, e1t) = elab ctx here e1
+                  val (e2, e2t) = elab ctx here e2
               in 
                 (if !sequenceunit
                  then unify ctx loc "sequence unit" e1t (IL.TRec nil)
                  else ());
-                unifyw ctx loc "sequence 1" here e1w;
-                unifyw ctx loc "sequence 2" here e2w;
-                (Seq(e1, e2), e2t, here)
+                (Seq(e1, e2), e2t)
               end
 
-        | E.Var vv => value ` dovar ctx here loc vv
+        | E.Var vv => 
+              let 
+                val (v, t, w) = dovar ctx loc vv
+              in
+                unifyw ctx loc "variable" here w;
+                value (v, t)
+              end
 
-        | E.Constant(E.CInt i) => value (Int i, Initial.ilint, here)
-        | E.Constant(E.CChar c) => value (Int (Word32.fromInt (ord c)), Initial.ilchar, here)
+        | E.Constant(E.CInt i) => value (Int i, Initial.ilint)
+        | E.Constant(E.CChar c) => value (Int (Word32.fromInt (ord c)), Initial.ilchar)
 
         | E.Float _ => error loc "Unsupported: floating point"
 
-        | E.Constant (E.CString s) => value (String s, Initial.ilstring, here)
+        | E.Constant (E.CString s) => value (String s, Initial.ilstring)
 
         | E.Vector nil => 
               let
                 val t = new_evar()
               in
-                (Primapp(P.PArray0, nil, [t]), TVec t, here)
+                (Primapp(P.PArray0, nil, [t]), TVec t)
               end
 
         (* XXX this is probably not good enough since it should be a value *)
@@ -335,12 +331,11 @@ struct
 
         | E.Jointext el =>
                let
-                   val (ees, tts, ws) = ListUtil.unzip3 (map (elab ctx here) el)
+                   val (ees, tts) = ListPair.unzip (map (elab ctx here) el)
                in
                    app (fn t => unify ctx loc "jointext" t Initial.ilstring) tts;
-                   app (fn w => unifyw ctx loc "jointext" w here) ws;
 
-                   (Primapp(Primop.PJointext, ees, nil), Initial.ilstring, here)
+                   (Primapp(Primop.PJointext, ees, nil), Initial.ilstring)
                end
 
         | E.Record lel =>
@@ -352,20 +347,16 @@ struct
                            orelse error loc 
                               "Duplicate labels in record expression"
                in
-                 app (fn (l, (e, t, w)) =>
-                      unifyw ctx loc ("record:" ^ l) w here) letl;
-                 (Record (map (fn (l, (e, t, w)) => (l, e)) letl),
-                  TRec (map (fn (l, (e, t, w)) => (l, t)) letl),
-                  here)
+                 (Record (map (fn (l, (e, t)) => (l, e)) letl),
+                  TRec (map (fn (l, (e, t)) => (l, t)) letl))
                end
 
         | E.Proj (s, t, e) =>
                let
-                   val (ee, tt, ww) = elab ctx here e
+                   val (ee, tt) = elab ctx here e
                    val ttt = elabt ctx loc t
                in
                    unify ctx loc "proj" tt ttt;
-                   unifyw ctx loc "proj" ww here;
 
                    case ttt of
                        TRec ltl =>
@@ -373,28 +364,26 @@ struct
                                NONE => error loc 
                                          ("label " ^ s ^ 
                                           " not in projection object type!")
-                             | SOME tres => (Proj(s, ttt, ee), tres, here))
+                             | SOME tres => (Proj(s, ttt, ee), tres))
                      | _ => error loc "projection must be of record type"
 
                end
 
         | E.App(ef, ea) =>
                let 
-                 val (ff, ft, fw) = elab ctx here ef
-                 val (aa, at, aw) = elab ctx here ea
+                 val (ff, ft) = elab ctx here ef
+                 val (aa, at) = elab ctx here ea
                  val dom = new_evar ()
                  val cod = new_evar ()
                in
                  unify ctx loc "app:function" ft (Arrow (false, [dom], cod));
                  unify ctx loc "app:arg" at dom;
-                 unifyw ctx loc "app" fw here;
-                 unifyw ctx loc "app" aw here;
-                 (App (ff, [aa]), cod, here)
+                 (App (ff, [aa]), cod)
                end
 
         | E.Constrain(e, t, wo) =>
                let 
-                   val (ee, tt, ww) = elab ctx here e
+                   val (ee, tt) = elab ctx here e
                    val tc = elabt ctx loc t
 
                    val cw = (case wo of 
@@ -402,9 +391,8 @@ struct
                              | SOME w => elabw ctx loc w)
                in
                    unify ctx loc "constraint" tt tc;
-                   unifyw ctx loc "constrain:world" ww cw;
-                   unifyw ctx loc "constrain:world" ww here;
-                   (ee, tc, here)
+                   unifyw ctx loc "constrain:world" cw cw;
+                   (ee, tc)
                end
 
         | E.Andalso (a,b) =>
@@ -454,15 +442,14 @@ struct
                             force rest nc (v::acc)
                      | force (e::rest) nc acc =
                             let
-                              val (ee, tt, ww) = elab ctx here e
+                              val (ee, tt) = elab ctx here e
                               val s = newstr "case"
                               val sv = V.namedvar s
                               val nctx = C.bindv ctx s (mono tt) sv here
-                              val (ein, tin, ww') = force rest nctx (s::acc)
+                              val (ein, tin) = force rest nctx (s::acc)
                             in
-                              unifyw ctx loc "case object" ww here;
                               (Let(Val(mono(sv, tt, ee)),
-                                   ein), tin, ww')
+                                   ein), tin)
                             end
                in
                    force es ctx nil
@@ -472,12 +459,11 @@ struct
             (case C.con ctx Initial.exnname of
                  (0, Typ exnt, Extensible) =>
                      let 
-                         val (ee, tt, ww) = elab ctx here e
+                         val (ee, tt) = elab ctx here e
                          val ret = new_evar ()
                      in
-                         unifyw ctx loc "raise" ww here;
                          unify ctx loc "raise" tt exnt;
-                         (Raise (ret, ee), ret, here)
+                         (Raise (ret, ee), ret)
                      end
                | _ => error loc "exn type not declared???")
 
@@ -488,7 +474,7 @@ struct
                     val es = newstr "exn"
                     val ev = V.namedvar es
                         
-                    val (ee, tt, ww) = elab ctx here e1
+                    val (ee, tt) = elab ctx here e1
 
                     val mctx = C.bindv ctx es (mono exnt) ev here
 
@@ -501,14 +487,13 @@ struct
                         Pattern.elaborate true elab elabt mctx loc
                            ([es], ListUtil.mapfirst ListUtil.list pel, def)
                 in
-                    unifyw ctx loc "handle" ww here;
                     unify ctx loc "handle" tt mt;
-                    (Handle(ee, ev, match), tt, here)
+                    (Handle(ee, ev, match), tt)
                 end
             | _ => error loc "exn type not declared???")
 
         | E.CompileWarn s =>
-               (Primapp(Primop.PCompileWarn s, [], []), TRec nil, here)
+               (Primapp(Primop.PCompileWarn s, [], []), TRec nil)
 
         (* makes slightly nicer code
            (nb, means that sequence-unit applies to do as well) *)
@@ -516,16 +501,11 @@ struct
 
         | E.Let (d, e) =>
                let
-                   val (dd, nctx, wwd) = elabd ctx here d
-                   val () = unifyw ctx loc "let" wwd here
-                   val (ee, t, ww) = elab nctx here e
+                   val (dd, nctx) = elabd ctx here d
+                   val (ee, t) = elab nctx here e
                in
-                   unifyw ctx loc "let" ww here;
-                   (foldr Let ee dd, t, ww)
+                   (foldr Let ee dd, t)
                end
-           
-
-    end
 
   and mktyvars ctx tyvars =
       foldl (fn (tv, ctx) => C.bindc ctx tv (Typ ` new_evar ()) 0 Regular)
@@ -593,7 +573,7 @@ struct
                                    "codomain type constraint on fun" tt
                                    (elabt ctx loc t)
                      | _ => ());
-                  (exp, tt, here)
+                  (exp, tt)
               end
           | nil => raise Elaborate "impossible: *no* clauses in fn"
           | _ =>
@@ -642,25 +622,24 @@ struct
   and elabd ctx (here : world) ((d, loc) : EL.dec) =  
     case d of
       E.Do e => 
-        let val (ee, tt, ww) = elab ctx here e
+        let val (ee, tt) = elab ctx here e
         in
           (if !sequenceunit
            then unify ctx loc "sequence unit" tt (IL.TRec nil)
            else ());
-          unifyw ctx loc "do" ww here;
-          ([Do ee], ctx, here)
+          ([Do ee], ctx)
         end
 
     | E.Type (nil, tv, typ) =>
           let val t = elabt ctx loc typ
-          in ([], C.bindc ctx tv (Typ t) 0 Regular, here)
+          in ([], C.bindc ctx tv (Typ t) 0 Regular)
           end
 
     | E.Tagtype t =>
           let
               val tv = V.namedvar t
           in
-              ([Tagtype tv], C.bindc ctx t (Typ (TVar tv)) 0 Extensible, here)
+              ([Tagtype tv], C.bindc ctx t (Typ (TVar tv)) 0 Extensible)
           end
 
     (* not like SML sigs. declares the availability of
@@ -769,11 +748,11 @@ struct
                 (* XXX not total for exns if we later add locality
                    info (probably a better translation would add
                    the locality info at the site of a Raise?) *)
-                val nctx = C.bindex ctx NONE tag 
+                val nctx = C.bindex ctx tag 
                             (mono ` Arrow(true, [d], cod))
                             ctor
                             (Tagger tagv)
-                            here
+                            (C.Modal here)
 
             in
                 ([Newtag (tagv, d, ev),
@@ -786,8 +765,8 @@ struct
                          (* inline it! *)
                          inline = false,
                          recu = false, total = true,
-                         body = Tag(Var carg, Var tagv) }]],
-                 nctx, here)
+                         body = Tag(Value ` Var carg, Value ` Var tagv) }]],
+                 nctx)
             end
         | _ => error loc (ext ^ " is not an extensible type"))
 
@@ -820,24 +799,13 @@ struct
                   ListUtil.alladjacent op <> `
                     ListUtil.sort String.compare atvs
                   orelse error loc "duplicate type vars in datatype decl"
-                  
+
               (* check: no overlap between tyvars and datatypes *)
               val _ =
                   ListUtil.alladjacent op <> `
                     ListUtil.sort String.compare (atvs @ map #1 dl)
                   orelse error loc 
                     "tyvar and datatype share same name in datatype decl"
-
-              (* check: arms are SOME (rewriting occurred earlier) *)
-              (* XXX we no longer want this rewriting since the IL supports
-                 inj/none now *)
-(*
-              val dl =
-                  ListUtil.mapsecond
-                     (map (fn (ctor, SOME stuff) => (ctor, SOME stuff)
-                           |  _ => error loc 
-                           "internal error: assume rewriting of nullary datatypes")) dl
-*)
 
               (* check: no duplicated constructors *)
               val _ =
@@ -1017,15 +985,15 @@ struct
                                         body =
                                         Roll(mu,
                                              Inject
-                                             (Sum arms, ctor, SOME ` Var x))}]))
+                                             (Sum arms, ctor, SOME ` Value ` Var x))}]))
 
                             end) arms) dl
 
-              (* bind the constructors *)
+              (* bind the constructors. Constructors should be valid. *)
               val nctx =
                   foldl
                   (fn ((ctor, v, at, _),c) =>
-                   C.bindex c NONE ctor at v Constructor) nctx ctors
+                   C.bindex c ctor at v Constructor C.Valid) nctx ctors
 
           in
               (map #4 ctors, nctx)
@@ -1033,19 +1001,9 @@ struct
 
     | E.Type (tyvars, tv, typ) =>
           let
-              (* XXX5 I can say type a t = bogus and it
-                 will be accepted unless I later do
-                 "int t". Should make a provisional
-                 call to the lambda, with the tyvars bound
-                 to evars or something, in order to
-                 trigger an exception if the body is
-                 bogus. *)
-
               val kind = length tyvars
 
-              val con =
-                  Lambda 
-                  (fn l =>
+              fun conf l =
                    if length l <> kind
                    then error loc "(bug) wrong number of args to Lambda"
                    else 
@@ -1056,13 +1014,19 @@ struct
                               ctx (tyvars, l)
                        in
                            elabt nc loc typ
-                       end)
+                       end
           in
+              (* provisional instantiation of type, to make sure its
+                 body is not bogus (unelaboratable) prima facie *)
+              ignore ` conf (List.tabulate (kind, fn _ => new_evar ()));
+
               ListUtil.allpairssym op<> tyvars 
                  orelse error loc "duplicate tyvars in type dec";
-              ([], C.bindc ctx tv con kind Regular, here)
+              ([], C.bindc ctx tv (Lambda conf) kind Regular)
           end
 
+    (* XXX5 it ought to be possible to write valid functions with this
+       syntax or a syntax like it. *)
     | E.Fun bundle =>
           let
 
@@ -1096,7 +1060,7 @@ struct
                           foldl (fn ((_, f, _, vv, dom, cod), ct) =>
                                  C.bindv ct f (mono (Arrow(false, 
                                                             [dom],
-                                                            cod))) vv)
+                                                            cod))) vv here)
                                 c binds
                   in
                       mktyvars nc tv
@@ -1113,7 +1077,7 @@ struct
                       val c = onectx ctx tv
                       val x = newstr "x"
                       val xv = V.namedvar x
-                      val nc = C.bindv c x (mono dom) xv
+                      val nc = C.bindv c x (mono dom) xv here
 
                       val (exp, tt) = elabf nc here x clauses loc
                   in
@@ -1144,13 +1108,14 @@ struct
               val (fs, efs, ps) = 
                   foldl folder (nil, nil, nil) ` map onef binds
 
+              (* FIXME5. Ought allow polymorphism over worlds. *)
               fun mkpoly ps at = Poly({worlds=nil, (* XXX5 *)
                                        tys = ps}, at)
 
               (* rebuild the context with these functions
                  bound polymorphically *)
               fun mkcontext ((f, vv, at), cc) =
-                  C.bindv cc f (mkpoly ps at) vv
+                  C.bindv cc f (mkpoly ps at) vv here
 
           in
               ([Fix ` mkpoly ps fs], foldl mkcontext ctx efs)
@@ -1177,7 +1142,7 @@ struct
                   (* we treat var patterns as (v as _),
                      so this optimization prevents us from
                      generating "do v" for each var binding *)
-                  epat ctx EL.PWild (Polyvar _) tt = ([], ctx)
+                  epat ctx EL.PWild (Value (Polyvar _)) tt = ([], ctx)
                 | epat ctx EL.PWild ee tt = ([Do ee], ctx)
                 | epat ctx (EL.PVar v) ee tt =
                   (* Did you know val x = e is just syntactic sugar 
@@ -1205,18 +1170,18 @@ struct
 
                       (* put in context as mono var *)
                       val ctx = C.bindv ctx v (Poly({worlds=nil,
-                                                     tys=nil}, tt)) vv
+                                                     tys=nil}, tt)) vv here
 
                       (* FIXME: this looks broken. we should be
                          making a polyvar here (?) *)
-                      val (ds, c) = epat ctx p (Var vv) tt
+                      val (ds, c) = epat ctx p (Value ` Var vv) tt
                   in
                       ([Val ` mono (vv, tt, ee)] @ ds,
                        c)
                   end
                 (* if the exp is valuable (particularly, a var), 
-                   we're all set *)
-                | epat ctx (EL.PRecord spl) (ee as (Polyvar _)) tt =
+                   we're all set. XXX5 could match just Values? *)
+                | epat ctx (EL.PRecord spl) (ee as (Value (Polyvar _))) tt =
                   let
                       val tys = map (fn (s,_) => (s,new_evar ())) spl
 
@@ -1246,7 +1211,7 @@ struct
                 | epat _ _ _ _ = 
                     error loc "patterns in val dec must be irrefutable"
 
-              val (ee, tt) = elab ctx exp
+              val (ee, tt) = elab ctx here exp
           in
               epat nctx pat ee tt
           end
