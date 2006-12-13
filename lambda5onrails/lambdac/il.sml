@@ -60,6 +60,7 @@ struct
       | TTag of typ * var
 
       | At of typ * world
+      | TAddr of world
 
     (* type constructors *)
     and con =
@@ -102,6 +103,7 @@ struct
       | Unroll of exp
       | Roll of typ * exp
 
+      | Get of exp * typ * exp
 
       | Throw of exp * exp
       | Letcc of var * typ * exp

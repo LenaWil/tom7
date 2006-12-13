@@ -440,6 +440,11 @@ struct
                       (* generalize these *)
                    `RAISE >> call G exp wth Raise,
 
+                   `FROM >> (* "expected EXP GET EXP after FROM" ** *)
+                   (call G exp &&
+                    `GET && (* "expected EXP after GET" **  *) call G exp)
+                   wth (fn (addr, (_, bod)) => Get(addr, bod)),
+
                    (* XXX should instead rewrite this to a function in place
                           so that we don't HAVE to write (#l/t e) *)
 
@@ -453,6 +458,7 @@ struct
                     `THEN && "expected EXP after THEN" ** call G exp && 
                     `ELSE && "expected EXP after ELSE" ** call G exp 
                       wth (fn (e as (_,l),(_,(t,(_,f)))) => If (e,t,f))),
+
                    !!(`FN) && (separate0 (repeat1 (call G mapat) && 
                                           (`DARROW return NONE) && 
                                           call G exp) (`BAR))
@@ -538,6 +544,8 @@ struct
                                         succeed nil && id << `COLON] 
                           && typ && `AT && world
                    wth (fn ((tv, i), (ty, (_, w))) => ExternVal(tv, i, ty, w)),
+
+                 (* XXX also extern type, extern world *)
 
                  `DO >> "expected EXP after DO" ** 
                    (call G exp wth Do),

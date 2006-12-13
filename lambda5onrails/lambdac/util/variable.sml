@@ -60,4 +60,8 @@ struct
                                     type ord_key = var
                                     val compare = compare
                                 end)
+    structure Set = SplaySetFn (struct
+                                    type ord_key = var
+                                    val compare = compare
+                                end)
 end

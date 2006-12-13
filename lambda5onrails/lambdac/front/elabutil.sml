@@ -3,6 +3,7 @@ structure ElabUtil :> ELABUTIL =
 struct
 
     exception Elaborate of string
+    structure V = Variable
 
     infixr 9 `
     fun a ` b = a b
@@ -19,6 +20,12 @@ struct
 
     fun new_evar ()  = IL.Evar  ` Unify.new_ebind ()
     fun new_wevar () = IL.WEvar ` Unify.new_ebind ()
+
+    (* XXX5 compile flag *)
+    fun warn loc s =
+      let in
+        print ("Warning at " ^ Pos.toString loc ^ ": " ^ s ^ "\n")
+      end
 
     (* unify context location message actual expected *)
     fun unify ctx loc msg t1 t2 =
@@ -77,6 +84,9 @@ struct
                    | IL.TCont tt => IL.TCont ` go tt
                    | IL.TTag (tt, v) => IL.TTag (go tt, v)
                    | IL.Mu (n, vtl) => IL.Mu (n, ListUtil.mapsecond go vtl)
+                   | IL.TAddr w => t
+                   (* XXX5 polygen worlds too? *)
+                   | IL.At (t, w) => IL.At(go t, w)
                    | IL.Evar er =>
                          (case !er of
                               IL.Free n =>
@@ -84,7 +94,7 @@ struct
                                   then t
                                   else
                                       let 
-                                          val tv = Variable.namedvar "poly"
+                                          val tv = V.namedvar "poly"
                                       in
                                           acc := tv :: !acc;
                                           er := IL.Bound (IL.TVar tv);
@@ -125,18 +135,18 @@ struct
               | mkts (tv::rest) m ts =
               let val e = IL.Evar (Unify.new_ebind ())
               in
-                mkts rest (Variable.Map.insert (m, tv, e)) (e :: ts)
+                mkts rest (V.Map.insert (m, tv, e)) (e :: ts)
               end
 
             fun mkws nil m ws = (m, rev ws)
               | mkws (tv::rest) m ws =
               let val e = IL.WEvar (Unify.new_ebind ())
               in
-                mkws rest (Variable.Map.insert (m, tv, e)) (e :: ws)
+                mkws rest (V.Map.insert (m, tv, e)) (e :: ws)
               end
 
-            val (wsubst, ws) = mkws worlds Variable.Map.empty nil
-            val (tsubst, ts) = mkts tys Variable.Map.empty nil
+            val (wsubst, ws) = mkws worlds V.Map.empty nil
+            val (tsubst, ts) = mkts tys V.Map.empty nil
 
         in
           (Subst.wsubst wsubst
@@ -150,9 +160,9 @@ struct
       (let val (_, t) = List.nth (tl, m)
            val (s, _) =
                List.foldl (fn((v,t),(mm,idx)) =>
-                           (Variable.Map.insert
+                           (V.Map.insert
                             (mm, v, (IL.Mu (idx, tl))), idx + 1))
-                          (Variable.Map.empty, 0)
+                          (V.Map.empty, 0)
                           tl
        in
            Subst.tsubst s t
@@ -181,5 +191,88 @@ struct
         *)
 
   fun mono t = IL.Poly({worlds= nil, tys = nil}, t)
+
+
+  local
+    val mobiles = ref nil : (Pos.pos * string * IL.typ) list ref
+
+    (* mobility test.
+       if force is true, then unset evars are set to unit
+       to force mobility.
+       if force is false and evars are seen, then defer this type for later *)
+    fun emobile pos s force t =
+      let
+
+        (* argument: set of mobile type variables *)
+        fun em G t =
+          case t of
+            IL.Evar (ref (IL.Bound t)) => em G t
+          | IL.Evar (ev as ref (IL.Free _)) => 
+              if force
+              then 
+                let in
+                  warn pos (s ^ ": unset evar in mobile check; setting to unit");
+                  ev := IL.Bound (IL.TRec nil);
+                  true
+                end
+              else (mobiles := (pos, s, t) :: !mobiles; true)
+
+          | IL.TVar v => V.Set.member (G, v)
+          | IL.TRec ltl => ListUtil.allsecond (em G) ltl
+          | IL.Arrow _ => false
+          | IL.Sum ltl => List.all (fn (_, IL.NonCarrier) => true 
+                                     | (_, IL.Carrier { carried = t, ...}) => em G t) ltl
+
+          (* no matter which projection this is, all types have to be mobile *)
+          | IL.Mu (i, vtl) => 
+              let val G = V.Set.addList(G, map #1 vtl)
+              in ListUtil.allsecond (em G) vtl
+              end
+
+          | IL.TVec t => false (* assuming mutable. perhapse there should be separate vec/array types *)
+          | IL.TCont t => raise Elaborate "unimplemented emobile/cont"
+          | IL.TRef _ => false
+          | IL.TTag _ => (* XXX5 ? *) false
+          | IL.At _ => true
+          | IL.TAddr _ => true
+
+      in
+        em V.Set.empty t
+      end
+
+
+    fun notmobile ctx loc msg t =
+      let 
+        val $ = Layout.str
+        val % = Layout.mayAlign
+      in
+        Layout.print
+        (Layout.align
+         [%[$("Error: Type is not mobile at "), $(Pos.toString loc),
+            $": ", $msg],
+          %[$"type:  ", Layout.indent 4 (ILPrint.ttolex ctx t)]],
+         print);
+        print "\n";
+        raise Elaborate "type error"
+      end
+
+  in
+    fun clear_mobile () = mobiles := nil
+
+    fun check_mobile () =
+      let in
+        List.app (fn (pos, msg, t) => 
+                  if emobile pos msg true t
+                  then () 
+                  else notmobile Context.empty pos msg t) (!mobiles);
+        clear_mobile ()
+      end
+ 
+    fun require_mobile ctx loc msg t =
+        if emobile loc msg false t
+        then ()
+        else notmobile ctx loc msg t
+
+  end
 
 end

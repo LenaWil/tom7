@@ -1,4 +1,3 @@
-
 signature ELABUTIL =
 sig
 
@@ -21,6 +20,9 @@ sig
     (* int to string *)
     val itos : int -> string
 
+    (* also consider using IL.CompileWarn expression *)
+    val warn : Pos.pos -> string -> unit
+
     (* generate a new string with arg as base *)
     val newstr : string -> string
 
@@ -38,5 +40,16 @@ sig
     val unroll : Pos.pos -> IL.typ -> IL.typ
 
     val mono : 'a -> 'a IL.poly
+
+
+    (* call this to clear the mobile check queue *)
+    val clear_mobile : unit -> unit
+
+    (* require that the type be mobile. If the type is not
+       yet determined, then it will be placed in a queue to
+       check after elaboration has finished. *)
+    val require_mobile : Context.context -> Pos.pos -> string -> IL.typ -> unit
+
+    val check_mobile : unit -> unit
 
 end

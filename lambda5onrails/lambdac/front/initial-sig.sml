@@ -9,6 +9,7 @@ sig
     val ilstring : IL.typ
 
     val initial : Context.context
+    val here : IL.world
 
     (* wrap with declarations needed by the compiler 
        (bool, exceptions) *)

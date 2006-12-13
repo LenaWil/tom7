@@ -138,6 +138,8 @@ struct
 
        ("get", GET),
        ("extern", EXTERN),
+       ("world", WORLD),
+       ("from", FROM),
 
        ("throw", THROW),
        ("to", TO),
@@ -196,6 +198,7 @@ struct
        ("=>", DARROW)
        ]
 
+  (* PERF could use hash table or other sub-linear search structure *)
   fun ident s =
       let
           fun id nil = ID s

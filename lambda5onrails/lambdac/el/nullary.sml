@@ -71,7 +71,6 @@ struct
                  then TApp(nil, s)
                  else typ
            | TNum _ => typ
-           | TModvar _ => typ
            | TApp (tl, s) => TApp (map (tul G) tl, s)
            | TRec stl => TRec ` ListUtil.mapsecond (tul G) stl
            | TArrow (a,b) => TArrow (tul G a, tul G b))

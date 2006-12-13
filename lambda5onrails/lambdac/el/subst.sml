@@ -38,6 +38,7 @@ struct
     | tsubst s (TCont t) = TCont (tsubst s t)
 
     | tsubst s (TTag (t, v)) = TTag (tsubst s t, v)
+    | tsubst s (At (t, w)) = At (tsubst s t, w)
 
   fun etsubst s t =
       (case t of

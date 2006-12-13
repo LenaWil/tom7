@@ -87,6 +87,8 @@ struct
       | GET
       | EXTERN
       | AT
+      | FROM
+      | WORLD
 
       | LETCC
       | THROW
@@ -152,8 +154,10 @@ struct
       | eq (THROW, THROW) = true
       | eq (TO, TO) = true
       | eq (DATAFILE, DATAFILE) = true
+      | eq (AT, AT) = true
       | eq (GET, GET) = true
       | eq (EXTERN, EXTERN) = true
-      | eq (AT, AT) = true
+      | eq (FROM, FROM) = true
+      | eq (WORLD, WORLD) = true
       | eq _ = false
 end

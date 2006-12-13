@@ -1,6 +1,7 @@
 
 signature CONTEXT =
 sig
+    (* what sort of thing (world, type, val), id *)
     exception Absent of string * string
 
     type context

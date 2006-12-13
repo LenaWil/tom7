@@ -48,7 +48,8 @@ struct
            | TTag (t, _) => occurs r t
            | (Evar (ref (Bound t))) => occurs r t
            | (Evar (r' as ref (Free _))) => r = r'
-           | At (t, w) => occurs r t)
+           | At (t, w) => occurs r t
+           | TAddr w => false)
 
     (* occurs check for worlds is trivial, currently *)
     fun woccursw r w = false
