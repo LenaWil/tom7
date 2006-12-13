@@ -1,5 +1,6 @@
 let
-(*    extern val js.alert : string -> unit @ home
+    extern val js.alert : string -> unit @ home
+(*
     extern world server 
     extern val server ~ server addr
     extern val version : unit -> string @ server *)

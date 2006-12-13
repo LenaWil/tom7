@@ -39,6 +39,7 @@ struct
 
     | tsubst s (TTag (t, v)) = TTag (tsubst s t, v)
     | tsubst s (At (t, w)) = At (tsubst s t, w)
+    | tsubst s (TAddr w) = TAddr w
 
   fun etsubst s t =
       (case t of
@@ -69,6 +70,7 @@ struct
 
     | wsubst s (TTag (t, v)) = TTag (wsubst s t, v)
 
+    | wsubst s (TAddr w) = TAddr (wsubsw s w)
     | wsubst s (At (t, w)) = At (wsubst s t, wsubsw s w)
 
   (* w/x in w' *)
@@ -130,6 +132,7 @@ struct
 
          | E.Vector el => E.Vector (map (esubst s) el)
          | E.CompileWarn s => E.CompileWarn s
+         | E.Get (a,b) => E.Get(esubst s a, esubst s b)
      )
 
 

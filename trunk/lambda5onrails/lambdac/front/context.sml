@@ -53,6 +53,7 @@ struct
                  | TCont t => has t
                  | TTag (t, _) => has t
                  | At (t, w) => has t
+                 | TAddr _ => false
                  | TRef t => has t)
       in
         SU.exists (fn (Poly({worlds, tys}, t), _, _, _) => has t) vars 

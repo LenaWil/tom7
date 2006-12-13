@@ -107,6 +107,7 @@ struct
        | App (e, el) => App (self e, map self el)
        | Record lel => Record ` ListUtil.mapsecond self lel
        | Proj (l, t, e) => Proj(l, t, self e)
+       | Get (a, t, e) => Get(self a, t, self e)
        | Raise (t, e) => Raise (t, self e)
        | Handle (e, v, e') =>
            (case dobinds [v] of

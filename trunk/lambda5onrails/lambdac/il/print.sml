@@ -61,6 +61,7 @@ struct
            | TCont t => L.paren (L.seq[self t, $" cont"])
            | TRef t => L.paren (L.seq[self t, $" ref"])
            | TVar v => L.str (V.show v)
+           | TAddr w => L.paren (L.seq[wtol w, $" addr"])
            | At (t, w) => L.paren (L.seq[self t, $"at", wtol w])
            | Sum ltl => L.listex "[" "]" "," (map (fn (l, Carrier { carried = t,
                                                                     definitely_allocated = b}) =>
@@ -245,6 +246,7 @@ struct
            | Handle (e, v, h) => %[L.paren(etol e),
                                    $"handle",
                                    %[%[$(V.tostring v), $"=>"], etol h]]
+           | Get (a, t, e) => %[$"from", etol a, $"get", etol e, $":", ttol t]
 
            | Jointext el =>
                  %[$"jointext",

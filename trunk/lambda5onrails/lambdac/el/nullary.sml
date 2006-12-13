@@ -44,7 +44,8 @@ struct
               | Andthen (a, b) => Andthen (self a, self b)
               | Otherwise (a, b) => Otherwise (self a, self b)
               | If (a, b, c) => If(self a, self b, self c)
-     
+
+              | Get (a, e) => Get(self a, self e)
               | Seq (a, b) => Seq(self a, self b)
               | Constrain (e, t, wo) => Constrain(self e, tul G t, wo)
               | Jointext el => Jointext ` map self el
