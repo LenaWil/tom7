@@ -61,6 +61,7 @@ struct
            | TCont t => L.paren (L.seq[self t, $" cont"])
            | TRef t => L.paren (L.seq[self t, $" ref"])
            | TVar v => L.str (V.show v)
+           | At (t, w) => L.paren (L.seq[self t, $"at", wtol w])
            | Sum ltl => L.listex "[" "]" "," (map (fn (l, Carrier { carried = t,
                                                                     definitely_allocated = b}) =>
                                                    L.seq[$l, $" : ", 
@@ -119,7 +120,7 @@ struct
            | Evar (ref (Free n)) => $("'a" ^ itos n))
       end
 
-    fun wtol (WEvar (ref (Bound t))) = wtol t
+    and wtol (WEvar (ref (Bound w))) = wtol w
       | wtol (WEvar (ref (Free n))) = $("'w" ^ itos n)
       | wtol (WVar v) = $(V.show v)
 
@@ -146,6 +147,8 @@ struct
            (* | Char c => $("?" ^ implode [c]) *)
              App (e1, [e2]) => L.paren(%[etol e1, etol e2])
            | App (e1, e2) => L.paren(%[etol e1, L.list (map etol e2)])
+
+           | Value v => vtol v
 
            (* print as if n-ary *)
            | Seq _ => 

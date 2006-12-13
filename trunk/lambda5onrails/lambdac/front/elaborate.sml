@@ -242,6 +242,17 @@ struct
                 value (v, t)
               end
 
+        | E.Get(addr, body) =>
+              let
+                val (aa, at) = elab ctx here addr
+                val there = new_wevar ()
+                val () = unify ctx loc "get addr" at (IL.TAddr there)
+                val (bb, bt) = elab ctx there body
+              in
+                require_mobile ctx loc "get" bt;
+                (Get (aa, bt, bb), bt)
+              end
+
         | E.Constant(E.CInt i) => value (Int i, Initial.ilint)
         | E.Constant(E.CChar c) => value (Int (Word32.fromInt (ord c)), Initial.ilchar)
 
@@ -1215,5 +1226,14 @@ struct
           in
               epat nctx pat ee tt
           end
+
+  fun elaborate el = 
+    let
+      val () = clear_mobile ()
+      val (ee, tt) = elab Initial.initial Initial.here el
+    in
+      check_mobile ();
+      (ee, tt)
+    end
 
 end

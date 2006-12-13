@@ -9,7 +9,9 @@ struct
     val ilhome = namedvar homename
 
     (* XXX validity context! *)
-
+    val herename = "here"
+    val herevar = namedvar herename
+    val here = IL.WVar herevar
 
     (* we (should) disallow rebinding of true, false *)
 
