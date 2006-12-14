@@ -1,9 +1,8 @@
 let
     extern val js.alert : string -> unit @ home
-(*
-    extern world server 
+    extern world server
     extern val server ~ server addr
-    extern val version : unit -> string @ server *)
+    extern val version : unit -> string @ server
 in
     js.alert "Hello, World 2.0!";
 

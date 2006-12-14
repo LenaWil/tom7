@@ -190,6 +190,7 @@ struct
        ("/", DIVIDE),
        ("#", HASH),
        ("|", BAR),
+       ("~", TILDE),
        ("_", UNDERSCORE),
        (":", COLON),
        (";", SEMICOLON),

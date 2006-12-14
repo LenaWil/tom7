@@ -728,7 +728,46 @@ struct
           end
 *)
 
-    | E.ExternVal _ => error loc "FIXME unimplemented: extern val"
+    | E.ExternWorld w => (nil, C.bindw ctx w (V.namedvar w))
+
+    | E.ExternVal (atvs, id, ty, wo) =>
+          let
+
+            fun checkdups atvs =
+              ListUtil.alladjacent op <> `
+              ListUtil.sort String.compare atvs
+              orelse 
+              error loc ("duplicate type vars in extern val declaration (" ^ id ^ ")")
+              
+            (* no dup tyvars *)
+            val _ = checkdups atvs
+              
+            (* augment atvs with real variables too *)
+            val atvs = map (fn x => (x, V.namedvar x)) atvs
+              
+            (* put tyvars in context for elaboration of type *)
+            val actx =
+              foldl (fn ((s, x),c) =>
+                     C.bindc c s (Typ (TVar x)) 0 
+                     Regular) ctx atvs
+              
+            (* now elaborate the type. *)
+            val tt = Poly ({ worlds = nil (* XXX5 *),
+                             tys = map #2 atvs }, 
+                           elabtex actx NONE loc ty)
+              
+            (* and world, if any *)
+            val ww = Option.map (elabw ctx loc) wo
+
+            val v = V.namedvar id
+
+          in
+            (nil,
+             (* XXX5 should these be bound with different idstatus (Extern? Prim?) *)
+             C.bindex ctx id tt v Normal (case ww of
+                                            NONE => C.Valid
+                                          | SOME w => C.Modal w))
+          end
 
     (* some day we might add something to 'ty,' like a string list
        ref so that we can track the exception's history, or at least
@@ -1230,7 +1269,7 @@ struct
   fun elaborate el = 
     let
       val () = clear_mobile ()
-      val (ee, tt) = elab Initial.initial Initial.here el
+      val (ee, tt) = elab Initial.initial Initial.home el
     in
       check_mobile ();
       (ee, tt)
