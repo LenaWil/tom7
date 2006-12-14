@@ -89,6 +89,7 @@ struct
       | AT
       | FROM
       | WORLD
+      | TILDE
 
       | LETCC
       | THROW
@@ -159,5 +160,6 @@ struct
       | eq (EXTERN, EXTERN) = true
       | eq (FROM, FROM) = true
       | eq (WORLD, WORLD) = true
+      | eq (TILDE, TILDE) = true
       | eq _ = false
 end

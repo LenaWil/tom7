@@ -7,11 +7,8 @@ struct
 
     val homename = "home"
     val ilhome = namedvar homename
-
-    (* XXX validity context! *)
-    val herename = "here"
-    val herevar = namedvar herename
-    val here = IL.WVar herevar
+    (* XXX address in validity context *)
+    val home = IL.WVar ilhome
 
     (* we (should) disallow rebinding of true, false *)
 
@@ -31,6 +28,7 @@ struct
 
     val ilunit = IL.TRec nil
 
+    (* XXX maybe IL.Lambda should take type and world args? *)
     val cons = 
         [("ref", IL.Lambda (IL.TRef o hd), 1, IL.Regular),
          ("cont", IL.Lambda (IL.TCont o hd), 1, IL.Regular),
@@ -159,8 +157,11 @@ struct
              (name, mono (IL.Arrow(false, cod, dom)), 
               IL.Primitive prim)) monofuns
 
+    val worlds = [(homename, ilhome)]
+    val initialw = foldl (fn ((id, w), ctx) => Context.bindw ctx id w) Context.empty worlds
+
     val initialc = foldl (fn ((s, c, k, t), ctx) =>
-                          Context.bindc ctx s c k t) Context.empty cons
+                          Context.bindc ctx s c k t) initialw cons
 
     (* initial environment is all valid *)
     val initial = foldl (fn ((s, c, t), ctx) =>

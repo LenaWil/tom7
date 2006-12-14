@@ -540,10 +540,14 @@ struct
 
                  `VAL >> error "expected val declaration after VAL",
 
-                 `EXTERN >> `VAL >> alt[tyvars && id << `COLON,
-                                        succeed nil && id << `COLON] 
-                          && typ && `AT && world
-                   wth (fn ((tv, i), (ty, (_, w))) => ExternVal(tv, i, ty, w)),
+                 `EXTERN >> `VAL >> alt[tyvars && id,
+                                        succeed nil && id]
+                   && alt[`COLON >> typ && `AT && world wth (fn (t, (_, w)) => (t, SOME w)),
+                          `TILDE >> typ wth (fn t => (t, NONE))]
+                   
+                   wth (fn ((tv, i), (t, m)) => ExternVal(tv, i, t, m)),
+
+                 `EXTERN >> `WORLD >> id wth ExternWorld,
 
                  (* XXX also extern type, extern world *)
 

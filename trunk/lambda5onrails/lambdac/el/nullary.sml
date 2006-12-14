@@ -148,6 +148,7 @@ struct
            | Exception (a, NONE) => ((#1 G, SM.insert (#2 G, a, EXN)),
                                      Exception (a, SOME ` TRec nil))
 
+           | ExternWorld w => (G, ExternWorld w)
            | ExternVal(sl, s, t, w) => (G, ExternVal(sl, s, tul G t, w))
 
            | Val (sl, p, e) => (G, Val (sl, pul G p, nul G e))

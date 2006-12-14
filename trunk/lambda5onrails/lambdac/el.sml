@@ -75,6 +75,7 @@ struct
       | TArrow of typ * typ
       (* shortcut for tuple length *)
       | TNum of int
+      | TAddr of id (* can only be the address of a world expression *)
 
     and dec_ =
         (* wish we had refinements here. 
@@ -105,9 +106,12 @@ struct
         (* just means newtag E of TO in "exn" *)
       | Exception of string * typ option
 
-      (* extern val (a, b) loop : a -> b *)
-      | ExternVal of string list * string * typ * world
-
+      (* extern val (a, b) loop : a -> b  @ w
+         or
+         extern val (a, b) loop ~ a -> b
+         *)
+      | ExternVal   of string list * string * typ * world option
+      | ExternWorld of string
 
 
     and strdec =
