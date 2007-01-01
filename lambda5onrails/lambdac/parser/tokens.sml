@@ -90,6 +90,7 @@ struct
       | FROM
       | WORLD
       | TILDE
+      | ADDR
 
       | LETCC
       | THROW
@@ -161,5 +162,6 @@ struct
       | eq (FROM, FROM) = true
       | eq (WORLD, WORLD) = true
       | eq (TILDE, TILDE) = true
+      | eq (ADDR, ADDR) = true
       | eq _ = false
 end

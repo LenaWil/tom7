@@ -50,7 +50,9 @@ struct
          | E.TNum n => t
          | E.TApp (tl, str) => E.TApp (map (etsubst s) tl, str)
          | E.TRec stl => E.TRec (ListUtil.mapsecond (etsubst s) stl)
+         | E.TAddr s => t
          | E.TArrow (dom, cod) => E.TArrow(etsubst s dom, etsubst s cod))
+
 
   (* w/x in t *)
   fun wsubst s (x as (TVar v)) = x

@@ -229,7 +229,8 @@ struct
               in ListUtil.allsecond (em G) vtl
               end
 
-          | IL.TVec t => false (* assuming mutable. perhapse there should be separate vec/array types *)
+          | IL.TVec t => true (* assuming immutable. 
+                                 there should be a separate array type *)
           | IL.TCont t => raise Elaborate "unimplemented emobile/cont"
           | IL.TRef _ => false
           | IL.TTag _ => (* XXX5 ? *) false

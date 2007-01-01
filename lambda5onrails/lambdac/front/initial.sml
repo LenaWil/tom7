@@ -32,7 +32,8 @@ struct
     val cons = 
         [("ref", IL.Lambda (IL.TRef o hd), 1, IL.Regular),
          ("cont", IL.Lambda (IL.TCont o hd), 1, IL.Regular),
-         ("array", IL.Lambda (IL.TVec o hd), 1, IL.Regular),
+         ("vector", IL.Lambda (IL.TVec o hd), 1, IL.Regular),
+         (* XXX array *)
          ("int", IL.Typ ilint, 0, IL.Regular),
          ("string", IL.Typ ilstring, 0, IL.Regular),
          ("char", IL.Typ ilchar, 0, IL.Regular),
@@ -122,14 +123,15 @@ struct
          ("ref", P.PRef, quant(a, mono
                                   (IL.Arrow(false, [IL.TVar a],
                                             IL.TRef (IL.TVar a))))),
-
+(*
          ("array0", P.PArray0, quant (a, mono
                                          (IL.Arrow(true, nil, 
                                                    IL.TVec (IL.TVar a))))),
 
-         ("array", P.PArray, quant(a, mono 
+         ("vector", P.PArray, quant(a, mono 
                                       (IL.Arrow(false, [ilint, IL.TVar a],
                                                 IL.TVec (IL.TVar a))))),
+*)
          ("length", P.PArraylength,
             quant(a, mono
                      (IL.Arrow(true, [IL.TVec (IL.TVar a)], ilint)))),
@@ -138,14 +140,15 @@ struct
          ("sub_", P.PSub, 
             quant(a, mono
                      (IL.Arrow(false, [IL.TVec (IL.TVar a), ilint],
-                               IL.TVar a)))),
-
+                               IL.TVar a))))
+(*
          ("update_", P.PUpdate, 
             quant(a, mono
                      (IL.Arrow (false, [IL.TVec (IL.TVar a),
                                         ilint,
                                         IL.TVar a],
                                 tuple nil))))
+*)
          ]
 
     val vals =

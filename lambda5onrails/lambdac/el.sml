@@ -75,7 +75,7 @@ struct
       | TArrow of typ * typ
       (* shortcut for tuple length *)
       | TNum of int
-      | TAddr of id (* can only be the address of a world expression *)
+      | TAddr of world (* can only be the address of a world expression *)
 
     and dec_ =
         (* wish we had refinements here. 

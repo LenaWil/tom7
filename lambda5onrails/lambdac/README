@@ -9,6 +9,6 @@ Hemlock is documented in "ML Grid Programming in ConCert" by
 Tom Murphy VII in the SIGPLAN ML Workshop 2006. Documentation for
 Humlock will be available soon.
 
-Right now it is just a gutted version of Humlock, so don't surprised
-that the compiler always fails.
+Right now it is a partially rewritten gutted version of Humlock, so
+don't surprised that the compiler always fails.
 
