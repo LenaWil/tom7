@@ -175,7 +175,10 @@ struct
                             (fn (t, n) => (itos (n+1), t)) l))
 
       and mostatomic () =
-          alt [number wth (TNum o Word32.toInt),
+          (* PERF backtracking since world is id 
+             (but lookahead is at most 1) *)
+          alt [world << `ADDR wth TAddr,
+               number wth (TNum o Word32.toInt),
                id wth TVar,
                `LBRACE >> separate0 (label && (`COLON >> $arrowtype)) (`COMMA) << `RBRACE wth TRec,
                `LPAREN >> $arrowtype << `RPAREN]

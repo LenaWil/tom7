@@ -196,6 +196,7 @@ struct
        (";", SEMICOLON),
        ("=", EQUALS),
        ("@", AT),
+       ("addr", ADDR),
        ("=>", DARROW)
        ]
 

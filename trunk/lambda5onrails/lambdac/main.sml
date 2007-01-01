@@ -9,7 +9,7 @@ val _ =
         [input] => OS.Process.exit(Compile.compile input (!outf))
       | _ =>
             let in
-                print "Usage: humlock file.uml\n\n";
+                print "Usage: lambdac file.ml5\n\n";
                 print (Params.usage ())
             end
 

@@ -57,7 +57,7 @@ struct
                  L.paren (%[L.list (map self dom),
                             $(if b then "=>" else "->"),
                             self cod])
-           | TVec t => L.paren (L.seq[self t, $" array"])
+           | TVec t => L.paren (L.seq[self t, $" vector"])
            | TCont t => L.paren (L.seq[self t, $" cont"])
            | TRef t => L.paren (L.seq[self t, $" ref"])
            | TVar v => L.str (V.show v)
@@ -133,6 +133,23 @@ struct
       (case v of
          Int i => $("0x" ^ Word32.toString i)
        | String s => $("\"" ^ String.toString s ^ "\"")
+       | VRecord lvl => recordortuple vtol "=" "(" ")" "," lvl
+       | VRoll (t, v) => %[$"roll", L.paren (ttol t), vtol v]
+       | VInject (t, l, vo) => %[$("inj_" ^ l), 
+                                 L.paren (ttol t),
+                                 (case vo of
+                                      NONE => $"NONE"
+                                    | SOME v => vtol v)]
+
+       | Polyuvar {worlds=nil, tys=nil, var} => $(V.show var)
+       | Polyuvar {worlds, tys, var} => 
+             %[$(V.show var),
+               if !iltypes 
+               then 
+                   (* XXX5 separate them? *)
+                   L.listex "<" ">" "," (map wtol worlds @ map ttol tys)
+               else $""]
+
        | Polyvar {worlds=nil, tys=nil, var} => $(V.show var)
        | Polyvar {worlds, tys, var} => %[$(V.show var),
                                          if !iltypes 

@@ -100,6 +100,7 @@ struct
                  | _ => error loc (str ^ " is not a type constructor."))
                    handle Context.Absent _ => 
                        error loc ("Unbound type constructor " ^ str))
+       | E.TAddr w => TAddr (elabw ctx loc w)
        | E.TRec ltl => let 
                            val ltl = ListUtil.sort 
                                      (ListUtil.byfirst HumlockUtil.labelcompare) ltl

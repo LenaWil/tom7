@@ -147,6 +147,7 @@ struct
             val inter = getil file
 
         in
+          Layout.print( ILPrint.etol inter, print);
           raise Test "backend unimplemented";
           OS.Process.success
         end)
@@ -176,3 +177,13 @@ struct
             (StreamUtil.stostream s)))))
 
 end
+
+
+val _ =
+    case Params.docommandline () of
+        [input] => OS.Process.exit(Test.compile input)
+      | _ =>
+            let in
+                print "Usage: lambdac file.ml5\n\n";
+                print (Params.usage ())
+            end

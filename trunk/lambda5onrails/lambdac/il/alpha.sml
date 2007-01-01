@@ -97,6 +97,8 @@ struct
       fun doval v =
         case v of
           Polyvar {worlds, tys, var} => Polyvar { worlds=worlds, tys=tys, var = rename var }
+        | Polyuvar {worlds, tys, var} => Polyuvar { worlds=worlds, tys=tys, var = rename var}
+        | VRecord lvl => VRecord ` ListUtil.mapsecond doval lvl
         | Int _ => v
         | String _ => v
 

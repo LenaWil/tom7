@@ -147,13 +147,43 @@ struct
                   (ListUtil.sort (ListUtil.byfirst String.compare) ltl1)
                   (ListUtil.sort (ListUtil.byfirst String.compare) ltl2))
                   orelse raise Unify "sum")
-           | _ => raise Unify "tycon mismatch")
+           | (TAddr w1, TAddr w2) => unifyw ctx w1 w2
+           | (At (t1, w1), At (t2, w2)) =>
+                 let in
+                     unify ctx eqmap t1 t2;
+                     unifyw w1 w2
+                 end
+           | (TAddr _, _) => raise Unify "tycon mismatch (addr)"
+           | (_, TAddr _) => raise Unify "tycon mismatch (addr)"
+           | (Sum _, _) => raise Unify "tycon mismatch (sum)"
+           | (_, Sum _) => raise Unify "tycon mismatch (sum)"
+           | (Mu _, _) => raise Unify "tycon mismatch (mu)"
+           | (_, Mu _) => raise Unify "tycon mismatch (mu)"
+           | (TRef _, _) => raise Unify "tycon mismatch (ref)"
+           | (_, TRef _) => raise Unify "tycon mismatch (ref)"
+           | (Arrow _, _) => raise Unify "tycon mismatch (arrow)"
+           | (_, Arrow _) => raise Unify "tycon mismatch (arrow)"
+           | (TCont _, _) => raise Unify "tycon mismatch (cont)"
+           | (_, TCont _) => raise Unify "tycon mismatch (cont)"
+           | (TVec _, _) => raise Unify "tycon mismatch (vec)"
+           | (_, TVec _) => raise Unify "tycon mismatch (vec)"
+           | (TTag _, _) => raise Unify "tycon mismatch (tag)"
+           | (_, TTag _) => raise Unify "tycon mismatch (tag)"
+           | (TVar _, _) => raise Unify "tycon mismatch (var)"
+           | (_, TVar _) => raise Unify "tycon mismatch (var)"
+           | (TRec _, _) => raise Unify "tycon mismatch (record)"
+           | (_, TRec _) => raise Unify "tycon mismatch (record)"
+           | (TAt _, _) => raise Unify "tycon mismatch (at)"
+           | (_, TAt _) => raise Unify "tycon mismatch (at)"
 
-    fun unify ctx t1 t2 = unifyex ctx Variable.Map.empty t1 t2
+                 (* no catch-all; dangerous if missing cases of unification! *)
+                 )
 
-    fun unifyw ctx w1 w2 =
+    and unify ctx t1 t2 = unifyex ctx Variable.Map.empty t1 t2
+
+    and unifyw ctx w1 w2 =
       case (w1, w2) of
-        (WVar a, WVar b) => ignore (Variable.eq (a, b) orelse raise Unify "Var")
+        (WVar a, WVar b) => ignore (Variable.eq (a, b) orelse raise Unify "world var")
       (* if either is bind, path compress... *)
       | (WEvar (ref (Bound w1)), w2) => unifyw ctx w1 w2
       | (w1, WEvar (ref (Bound w2))) => unifyw ctx w1 w2
