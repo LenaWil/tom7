@@ -116,10 +116,8 @@ il/alpha.sml
 front/elabutil-sig.sml
 front/elabutil.sml
 
-(* XXX5
 front/pattern-sig.sml
 front/pattern.sml
-*)
 
 front/elaborate-sig.sml
 front/elaborate.sml
