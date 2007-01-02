@@ -150,8 +150,8 @@ struct
            | (TAddr w1, TAddr w2) => unifyw ctx w1 w2
            | (At (t1, w1), At (t2, w2)) =>
                  let in
-                     unify ctx eqmap t1 t2;
-                     unifyw w1 w2
+                     unifyex ctx eqmap t1 t2;
+                     unifyw ctx w1 w2
                  end
            | (TAddr _, _) => raise Unify "tycon mismatch (addr)"
            | (_, TAddr _) => raise Unify "tycon mismatch (addr)"
@@ -173,8 +173,8 @@ struct
            | (_, TVar _) => raise Unify "tycon mismatch (var)"
            | (TRec _, _) => raise Unify "tycon mismatch (record)"
            | (_, TRec _) => raise Unify "tycon mismatch (record)"
-           | (TAt _, _) => raise Unify "tycon mismatch (at)"
-           | (_, TAt _) => raise Unify "tycon mismatch (at)"
+(*           | (At _, _) => raise Unify "tycon mismatch (at)"
+           | (_, At _) => raise Unify "tycon mismatch (at)" *)
 
                  (* no catch-all; dangerous if missing cases of unification! *)
                  )

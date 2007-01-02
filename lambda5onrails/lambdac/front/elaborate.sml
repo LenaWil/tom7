@@ -23,12 +23,13 @@ struct
   structure P = Primop
 
     (* XXX *)
+(*
     structure Pattern =
     struct
       fun elaborate _ _ _ _ _ _ = (raise Elaborate "pattern stub unimplemented") : IL.exp * IL.typ
       exception Pattern of string
     end
-
+*)
       
   exception Impossible
 
@@ -448,7 +449,7 @@ struct
 
                    (* force case args to be variables, if they aren't. *)
                    fun force nil nc acc =
-                            Pattern.elaborate true elab elabt nc loc
+                            Pattern.elaborate true elab elabt nc here loc
                                  (rev acc, m, def)
                      | force ((E.Var v, _)::rest) nc acc = 
                             force rest nc (v::acc)
@@ -496,7 +497,7 @@ struct
                         
                     (* XXX5 and world.. *)
                     val (match, mt) = 
-                        Pattern.elaborate true elab elabt mctx loc
+                        Pattern.elaborate true elab elabt mctx here loc
                            ([es], ListUtil.mapfirst ListUtil.list pel, def)
                 in
                     unify ctx loc "handle" tt mt;
@@ -565,7 +566,7 @@ struct
               let
                   (* base case *)
                   val (exp, tt) = 
-                      Pattern.elaborate true elab elabt ctx loc
+                      Pattern.elaborate true elab elabt ctx here loc
                          ([arg],
                           [([pat], e)],
                           (fn () =>

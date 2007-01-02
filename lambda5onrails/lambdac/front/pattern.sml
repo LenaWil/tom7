@@ -106,10 +106,12 @@ struct
     | shtos Cavoid = "avoid"
 
   fun elabmatrix 
-         user 
-         (elab : Context.context -> EL.exp -> IL.exp * IL.typ)
+         (user : bool)
+         (elab : Context.context -> IL.world -> EL.exp -> IL.exp * IL.typ)
          (elabt : Context.context -> Pos.pos -> EL.typ -> IL.typ)
-         ctx (loc : Pos.pos) obs columns es def =
+         (ctx : Context.context)
+         (here : IL.world)
+         (loc : Pos.pos) obs columns es def =
    let
     fun % e_ = (e_, loc)
 
@@ -195,10 +197,10 @@ struct
     (* elm  marked-columns-and-objects  exps  default *)
     fun elm ctx (_ : ((shape * E.pat list) * string) list)
                 (nil : E.exp list) def = 
-        elab ctx ` def ()
+        elab ctx here ` def ()
       | elm ctx nil (h::t) _ =
         if List.null t orelse not user
-        then elab ctx h
+        then elab ctx here h
         else raise Pattern "redundant match"
       | elm ctx columns exps def =
         (* pick a column to split on *)
@@ -222,7 +224,7 @@ struct
                     val nctx =
                         C.bindv ctx nfs (mono (I.Arrow(false, 
                                                        [I.TRec nil], 
-                                                       ilt))) nfv
+                                                       ilt))) nfv here
                         
                     val (ke, kt) = k nctx nfs
                 in
@@ -277,13 +279,17 @@ struct
                       fun doconst_default () = 
                           % ` E.App (% ` E.Var hoisted, % ` E.Record nil)
                       
-                      val (defe, deft) = elab ctx ` doconst_default ()
+                      val (defe, deft) = elab ctx here ` doconst_default ()
 
                       (* must be status Normal *)
                       val (objt, objv) =
                           case C.var ctx obj of
-                              (IL.Poly({worlds=nil, tys=nil}, tt),
-                               vv, Normal) => (tt, vv)
+                              (IL.Poly({worlds=nil, tys=nil}, tt), vv, Normal, C.Modal w) => 
+                                let in
+                                  unifyw ctx loc "case object" here w;
+                                  (tt, I.Polyuvar { tys = nil, worlds = nil, var = vv })
+                                end
+                            | (IL.Poly({worlds=nil, tys=nil}, tt), vv, Normal, C.Valid) => (tt, I.Var vv)
                             | _ => raise Pattern 
                                   "case object is poly or constructor (?)"
 
@@ -386,8 +392,8 @@ struct
                           fun kk ctx failure = 
                            let 
                             val (failc, failt) = 
-                                elab ctx (% ` E.App (% ` E.Var failure, 
-                                                     % ` E.Record nil))
+                                elab ctx here (% ` E.App (% ` E.Var failure, 
+                                                          % ` E.Record nil))
                                 
                            in
                            (I.Sumcase
@@ -399,7 +405,7 @@ struct
                              I.Unroll `
                              I.Primapp
                               (peq,
-                               [I.Var objv, eq_exp], 
+                               [I.Value objv, eq_exp], 
                                nil),
 
                              V.namedvar "unused",
@@ -443,13 +449,13 @@ struct
 
 
                       and gen ((E.CInt n, matches)::rest) =
-                          smallconst (I.Int n) 
+                          smallconst (I.Value ` I.Int n) 
                                      (Primop.B ` Primop.PCmp Primop.PEq) 
                                      Initial.ilint matches rest
                           
                         (* in the IL, chars are compiled as ints. *)
                         | gen ((E.CChar c, matches)::rest) = 
-                          smallconst (I.Int (Word32.fromInt (ord c)))
+                          smallconst (I.Value ` I.Int (Word32.fromInt (ord c)))
                                      (Primop.B ` Primop.PCmp Primop.PEq)
                                      Initial.ilchar matches rest
 
@@ -458,7 +464,7 @@ struct
                             "string constant patterns unimplemented"
 
                       (* no clauses? use real default *)
-                      | gen nil = elab ctx ` doconst_default ()
+                      | gen nil = elab ctx here ` doconst_default ()
 
                   in
                       gen clustered
@@ -554,7 +560,9 @@ struct
                     case C.var nctx l of
                       (IL.Poly({worlds=nil, tys=nil},
                                (I.Arrow (_, _, cod as I.TVar _))), _, 
-                       I.Tagger _) =>
+                       I.Tagger _, 
+                       (* Exception constructors are always local *)
+                       C.Modal _) =>
                        (* ****** Exception Constructor **** *)
                        let
                            val parted = ListUtil.mapsecond
@@ -572,16 +580,20 @@ struct
                              case C.var nctx l of
                                (I.Poly ({worlds=nil, tys=nil}, 
                                         (I.Arrow (_, [ruledom], rulecod))), 
-                                _, I.Tagger vtag) =>
+                                _, I.Tagger vtag, C.Modal w) =>
                                  let
                                      (* objty = rulecod *)
 
                                      (* every arm will have access to 
                                         the tagged innards *)
                                      val nctx = C.bindv nctx insidee 
-                                                  (mono ruledom) insidev 
+                                                  (mono ruledom) insidev here
 
-                                     val _ = unify nctx loc "tagcase codomain" 
+                                     (* have to be at the same location as the tagger  *)
+                                     val () = unifyw nctx loc "tagcase" here w
+                                       
+
+                                     val () = unify nctx loc "tagcase codomain" 
                                                       cod rulecod
 
                                      val (ocol, oe, rest) = 
@@ -621,9 +633,16 @@ struct
                          val (thearms : (I.var * I.exp) list) = 
                              map onelab parted
 
-                         val (de, dt) = elab nctx ` ndef ()
+                         val (de, dt) = elab nctx here ` ndef ()
 
-                         val (opt, objv, _) = C.var nctx obj
+                         val (opt, objv) = 
+                           case C.var nctx obj of
+                             (t, v, _, C.Valid) => (t, I.Polyuvar ({worlds = nil, tys = nil, var = v}))
+                           | (t, v, _, C.Modal w) =>
+                               let in
+                                 unifyw nctx loc "tagcase getobj" here w;
+                                 (t, I.Var v)
+                               end
 
                        in
                            (* unify object with codomain of constructors. *)
@@ -631,7 +650,7 @@ struct
                            unify nctx loc "tagcase default" rett dt; 
 
                            (I.Tagcase (cod, 
-                                       I.Var objv,
+                                       I.Value objv,
                                        insidev,
                                        thearms,
                                        de),
@@ -639,7 +658,8 @@ struct
 
                        end
 
-                    | (pt, _, I.Constructor) =>
+                     (* Datatype constructors should always be valid *)
+                    | (pt, _, I.Constructor, C.Valid) =>
                        (* ****** Datatype Constructor ***** *)
                        let
                          val cod =
@@ -660,7 +680,7 @@ struct
                             the subpatterns. *)
                          fun onelab (l, perl) =
                            (case (C.var nctx l, new_evar ()) of
-                             ((pt, _, I.Constructor), domvar) =>
+                             ((pt, _, I.Constructor, C.Valid), domvar) =>
                                (case #1 (evarize pt) of
                                   (* nullary constructor *)
                                   (tt as (I.Mu _)) =>
@@ -721,7 +741,7 @@ struct
                                                  | _ => raise Pattern "carrier not unary arrow"
 
                                                val nctx = C.bindv nctx insides 
-                                                             (mono objty) insidev 
+                                                             (mono objty) insidev here
 
 
                                              (* XXX this is pretty suspect, 
@@ -792,9 +812,16 @@ struct
                                 | _ => raise Pattern
                                            "ctor cod not mu??")
 
-                         val (de, dt) = elab nctx ` ndef ()
+                         val (de, dt) = elab nctx here ` ndef ()
 
-                         val (opt, objv, _) = C.var nctx obj
+                         val (opt, objv) =
+                           case C.var nctx obj of
+                             (t, v, _, C.Valid) => (t, I.Polyuvar ({worlds = nil, tys = nil, var = v}))
+                           | (t, v, _, C.Modal w) =>
+                               let in
+                                 unifyw nctx loc "constructorcase getobj" here w;
+                                 (t, I.Var v)
+                               end
                              
                          val nsum = length insum
 
@@ -807,13 +834,13 @@ struct
                               replace with final branch *)
                            (if length thearms = nsum
                             then I.Sumcase (st,
-                                            I.Unroll ` I.Var objv,
+                                            I.Unroll ` I.Value objv,
                                             insidev,
                                             List.take (thearms, nsum - 1),
                                             #2 ` List.last thearms)
                                 
                             else I.Sumcase (st, 
-                                            I.Unroll ` I.Var objv,
+                                            I.Unroll ` I.Value objv,
                                             insidev,
                                             thearms,
                                             de),
@@ -864,7 +891,7 @@ struct
                | ((Csum, apps), obj) :: rest =>
                      dosum ctx apps obj (map (fn ((_, pats), ob) => 
                                               (pats, ob)) rest) 
-                           (elab ctx ` def ()) exps
+                           (elab ctx here ` def ()) exps
                | ((Cwhen, E.PWhen(exp, punder) :: col), obj) :: rest =>
                      (* do these just one at a time. 
 
@@ -964,7 +991,7 @@ struct
                                                          rows_b,
                                                          SOME def))))
                    in
-                     elab ctx (% we)
+                     elab ctx here (% we)
                    end
 
                | ((Cwhen, _), _) :: _ =>
@@ -1009,7 +1036,7 @@ struct
                | ((Cconst, consts), obj) :: rest =>
                      doconst ctx consts obj (map (fn ((_, pats), ob) => 
                                                   (pats, ob)) rest) 
-                             (elab ctx ` def ()) exps
+                             (elab ctx here ` def ()) exps
                | ((Ccw 0, _), _) :: _ =>
                      raise Pattern "bug: best column was constwild 0 !"
                | (all as ((Ccw n, consts : E.pat list), obj) :: rest) => 
@@ -1098,7 +1125,7 @@ struct
                      val newcols =
                          map (fn (l, col) => (l, col, new_evar ())) newcols
 
-                     val (obje, objt) = elab ctx (E.Var obj, loc)
+                     val (obje, objt) = elab ctx here (E.Var obj, loc)
 
                      fun recurse nil (nctx, ncols, nes) =
                          elm nctx ncols nes def
@@ -1106,7 +1133,7 @@ struct
                          let
                              val ss = newstr ("pat_" ^ l)
                              val v = V.namedvar ss
-                             val nc = C.bindv c ss (mono t) v
+                             val nc = C.bindv c ss (mono t) v here
 
                              (* clean column *)
                              val (col, nes) = 
@@ -1146,6 +1173,7 @@ struct
      elab         --  Elaborate.elab
      elabt        --  Elaborate.elabt
      ctx          --  The current context
+     here         --  The current world (the whole pattern must be at the same world)
      objs         --  List of case objects   (case obj of ...)
      tv           --  List of types (evars) corresponding to case objects
      clauses      --  list of clauses (pat list * exp): one for each object
@@ -1165,7 +1193,7 @@ struct
      variables to be shadowed in a pattern row. *)
 
 
-  and elaborate user elab elabt (ctx : C.context) loc
+  and elaborate user elab elabt (ctx : C.context) (here : IL.world) loc
                   (obs : string list, 
                    m   : (E.pat list * E.exp) list,
                    def : unit -> E.exp) =
@@ -1197,7 +1225,7 @@ struct
           val es = map #2 m
 
           val tvs = map (fn ob => 
-                         let val (_, tt) = elab ctx (E.Var ob, loc)
+                         let val (_, tt) = elab ctx here (E.Var ob, loc)
                          in tt
                          end) obs
 
@@ -1217,7 +1245,7 @@ struct
           length tvs = length columns
              orelse raise Pattern "wrong number of pattern columns for args";
 
-          elabmatrix user elab elabt ctx loc obs columns es def
+          elabmatrix user elab elabt ctx here loc obs columns es def
 
       end
 
