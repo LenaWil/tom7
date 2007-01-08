@@ -263,7 +263,12 @@ struct
            | Handle (e, v, h) => %[L.paren(etol e),
                                    $"handle",
                                    %[%[$(V.tostring v), $"=>"], etol h]]
-           | Get (a, t, e) => %[$"from", etol a, $"get", etol e, $":", ttol t]
+           | Get {addr = a, typ = t, body = e, dict = d} => 
+                    %[$"from", etol a, $"get", 
+                      (case d of
+                         NONE => $""
+                       | SOME x => %[$"{dict=", etol e, $"}"]),
+                      etol e, $":", ttol t]
 
            | Jointext el =>
                  %[$"jointext",

@@ -11,6 +11,8 @@
 structure ILDict :> ILDICT =
 struct
 
+  exception ILDict of string
+
 
   fun transform _ = raise ILDict "unimplemented"
 
