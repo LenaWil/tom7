@@ -252,8 +252,7 @@ struct
                 val (bb, bt) = elab ctx there body
               in
                 require_mobile ctx loc "get" bt;
-                (* dict is added in later translation *)
-                (Get { addr = aa, typ = bt, body = bb, dict = NONE }, bt)
+                (Get (aa, bt, bb), bt)
               end
 
         | E.Constant(E.CInt i) => value (Int i, Initial.ilint)
@@ -1217,7 +1216,7 @@ struct
                          *) 
 
 
-                      (* XXX5 generalize / polygen! *)
+                      (* XXX5 polygen! *)
 
                       val vv = V.namedvar v
 
