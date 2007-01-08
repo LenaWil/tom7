@@ -125,6 +125,9 @@ front/elaborate.sml
 il/util-sig.sml
 il/util.sml
 
+il/dict-sig.sml
+il/dict.sml
+
 (* XXX5
 il/opt-sig.sml
 il/opt.sml

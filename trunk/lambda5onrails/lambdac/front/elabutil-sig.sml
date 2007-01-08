@@ -26,11 +26,14 @@ sig
     (* generate a new string with arg as base *)
     val newstr : string -> string
 
-    (* if t has unset evars, replace those with new type
-       variables. return the list of new type variables
-       and the substituted type. Pass in a "surrounding
-       context" to determine which variables are (in)eligible
-       for generalization. *)
+    (* polygen sctx t
+       
+       perform polymorphic generalization on a type.
+       If t if t has unset evars that do not appear anywhere
+       in the context sctx, then they will be generalized.
+
+       returns a new generalized type along with the bound
+       type variables. *)
     val polygen : Context.context -> IL.typ -> IL.typ * Variable.var list
 
     (* instantiate all of the bound type and world variables with new evars and wevars;

@@ -103,7 +103,10 @@ struct
       | Unroll of exp
       | Roll of typ * exp
 
-      | Get of exp * typ * exp
+      | Get of { addr : exp,
+                 typ  : typ,
+                 dict : exp option,
+                 body : exp }
 
       | Throw of exp * exp
       | Letcc of var * typ * exp
