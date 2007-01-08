@@ -17,7 +17,10 @@ struct
            | Jointext el => Jointext (map f el)
            | Record lel => Record (ListUtil.mapsecond f lel)
            | Proj (l, t, e) => Proj(l, t, f e)
-           | Get (a, t, e) => Get (f a, t, f e)
+           | Get { addr, typ, body, dict } => Get { addr = f addr,
+                                                    typ = typ,
+                                                    body = f body,
+                                                    dict = Option.map f dict }
            | Raise (t, e) => Raise(t, f e)
            | Handle (e, v, handler) => Handle(f e, v, f handler)
            | Seq (e1, e2) => Seq (f e1, f e2)
@@ -77,7 +80,10 @@ struct
                 (* allow delayed *)
               | Deferred os =>
                     (Util.Oneshot.wrap self os; exp)
-              | Get (a, t, e) => Get(self a, sub t, self e)
+              | Get { addr, typ, body, dict } => Get { addr = self addr,
+                                                       typ = sub typ,
+                                                       body = self body,
+                                                       dict = Option.map self dict }
               | Raise(t, e) => Raise(sub t, self e)
               | Proj(l, t, e) => Proj(l, sub t, self e)
               | Roll(t, e) => Roll(sub t, self e)
