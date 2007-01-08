@@ -275,6 +275,7 @@ struct
          | ILAlpha.Alpha s => fail ("\nIL Alpha: " ^ s ^ "\n")
          | CPSAlpha.Alpha s => fail ("\nCPS Alpha: " ^ s ^ "\n")
 (*         | ILOpt.ILOpt s => fail ("\nIL Optimizer: " ^ s ^ "\n") *)
+         | ILDict.ILDict s => fail ("\nIL Dict: " ^ s ^ "\n")
          | ToCPS.CPS s => fail ("\nCPS Conversion: " ^ s ^ "\n")
          | CPSOpt.CPSOpt s => fail ("\nCPS Optimizer: " ^ s ^ "\n")
          | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")
