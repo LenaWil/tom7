@@ -154,6 +154,7 @@ struct
     handle Test s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
          | Nullary.Nullary s => fail ("\nCouldn't do EL nullary prepass:\n" ^ s ^ "\n")
          | Context.Absent (what, s) => fail ("\n\nInternal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'\n")
+         | ILDict.ILDict s => fail ("\nIL Dict: " ^ s ^ "\n")
          | ILAlpha.Alpha s => fail ("\nIL Alpha: " ^ s ^ "\n")
          | Elaborate.Elaborate s => fail("\nElaboration: " ^ s ^ "\n")
          | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")
