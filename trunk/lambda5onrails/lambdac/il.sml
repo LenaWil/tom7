@@ -105,6 +105,7 @@ struct
 
       | Get of { addr : exp,
                  typ  : typ,
+                 (* FIXME No, an association list *)
                  dict : exp option,
                  body : exp }
 
