@@ -140,9 +140,10 @@ struct
                                  (case vo of
                                       NONE => $"NONE"
                                     | SOME v => vtol v)]
+       | FSel (n, v) => %[vtol v, $("." ^ Int.toString n)]
 
-       | Fn (which, fl) =>
-             %[$("fn#" ^ Int.toString which), (* XXX5 worlds/tys *)
+       | Fns fl =>
+             %[$"fns", (* XXX5 worlds/tys *)
                L.align
                (ListUtil.mapi 
                 (fn ({name, arg, dom, cod, body, inline, recu, total}, i) =>

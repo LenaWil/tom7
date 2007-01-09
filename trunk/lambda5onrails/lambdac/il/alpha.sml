@@ -86,7 +86,7 @@ struct
         | VRecord lvl => VRecord ` ListUtil.mapsecond doval lvl
         | Int _ => v
         | String _ => v
-        | Fn (which, fl) =>
+        | Fns fl =>
           let
             val (G, R, fs) = dobindsgr (G, R, map #name fl)
             fun onefun (name, { name=_, arg=args, dom, cod,
@@ -101,7 +101,7 @@ struct
                   recu = recu, total = total }
               end
           in
-              Fn (which, map onefun ` ListPair.zip (fs, fl))
+              Fns (map onefun ` ListPair.zip (fs, fl))
           end
 
     in

@@ -1,5 +1,10 @@
 structure ILUtil :> ILUTIL =
 struct
+
+  infixr 9 `
+  fun a ` b = a b
+  fun I x = x
+
     open IL
     exception ILUtil of string
 
@@ -9,7 +14,7 @@ struct
        then rebuild it *)
     fun pointwise f exp = 
         (case exp of
-             Value v => exp
+             Value v => Value (pwv f v)
            | Deferred os =>
                  (case Util.Oneshot.deref os of
                       SOME e => pointwise f e
@@ -45,19 +50,21 @@ struct
                                         (mappoly (fn (v, t, e) =>
                                                   (v, t, f e)) vtep), 
                                         f rest)
-           | Let(Fix flp, rest) => Let(Fix
-                                       (mappoly (map (fn {name, arg, dom,
-                                                          cod, body, inline,
-                                                          recu, total} =>
-                                                      {name=name,
-                                                       inline=inline,
-                                                       recu=recu,
-                                                       total=total,
-                                                       arg=arg,
-                                                       dom=dom,
-                                                       cod=cod,
-                                                       body=f body})) flp),
-                                       f rest))
+                    )
+    and pwv f v =
+      (case v of
+         Fns l =>
+           Fns (map (fn {name, arg, dom, cod, body, inline, recu, total} =>
+                     {name=name,
+                      inline=inline,
+                      recu=recu,
+                      total=total,
+                      arg=arg,
+                      dom=dom,
+                      cod=cod,
+                      body=f body}) l)
+       (* FIXME |  =>  *)
+           )
 
     (* nb. does not handle capture/shadowing.
        also, be careful because oneshot.wrap only works when
@@ -70,7 +77,23 @@ struct
             fun tsubstv v =
               (case v of
                  (* anything that has a t in it *)
-                 Polyvar({worlds, tys, var}) => Polyvar({worlds=worlds, tys = map sub tys, var=var})
+                 Polyvar({worlds, tys, var}) => 
+                   Polyvar({worlds=worlds, tys = map sub tys, var=var})
+              | Fns l => 
+                   Fns `
+                   map (fn {name, arg, dom,
+                            cod, body, inline,
+                            recu, total} =>
+                        {name=name,
+                         arg=arg,
+                         dom=map sub dom,
+                         cod=sub cod,
+                         recu=recu,
+                         body=self body,
+                         inline=inline,
+                         total=total}) l
+
+                   (* FIXME ... *)
                | Int _ => v
                | String _ => v)
 
@@ -102,19 +125,6 @@ struct
                     Let(Newtag(v, sub t, vv), self e)
               | Let(Val vtep, e) =>
                     Let(Val (mappoly (fn (v,t,e) => (v, sub t, self e)) vtep),
-                        self e)
-              | Let(Fix flp, e) =>
-                    Let(Fix (mappoly (map (fn {name, arg, dom,
-                                               cod, body, inline,
-                                               recu, total} =>
-                                           {name=name,
-                                            arg=arg,
-                                            dom=map sub dom,
-                                            cod=sub cod,
-                                            recu=recu,
-                                            body=self body,
-                                            inline=inline,
-                                            total=total})) flp),
                         self e)
               (* otherwise recurse *)
               | _ => pointwise self exp
