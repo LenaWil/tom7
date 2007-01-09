@@ -38,16 +38,16 @@ struct
       let val f = V.namedvar "fn"
           val unused = V.namedvar "nonrec"
       in
-          Fn(0, 
-             [{ name = unused,
-                arg = args,
-                dom = dom,
-                cod = cod,
-                inline = false,
-                total = false,
-                (* since the name is new, it is not recursive *)
-                recu = false,
-                body = body }])
+        FSel(0,
+             Fns [{ name = unused,
+                    arg = args,
+                    dom = dom,
+                    cod = cod,
+                    inline = false,
+                    total = false,
+                    (* since the name is new, it is not recursive *)
+                    recu = false,
+                    body = body }])
       end
 
   fun mklist ctx loc t =
@@ -812,7 +812,8 @@ struct
                   Val ` mono `
                   (ctor, Arrow(true, [d], cod),
                    Value `
-                   Fn ` (0,
+                   FSel (0,
+                         Fns
                          [{ name = ctor, arg = [carg],
                             dom = [d], cod = cod, 
                             (* PERF can't currently inline exn
@@ -1032,20 +1033,21 @@ struct
                                             (ctorf,
                                              Arrow(true, [dom], mu),
                                              Value `
-                                             Fn (0,
-                                                 [{ name = V.namedvar "notrec",
-                                                    dom = [dom],
-                                                    cod = mu,
-                                                    arg = [x],
-                                                    (* inline it! *)
-                                                    inline = true,
-                                                    recu = false,
-                                                    total = true,
-                                                    body =
-                                                    Roll(mu,
-                                                         Inject
-                                                         (Sum arms, ctor, 
-                                                          SOME ` Value ` Var x))}]))))
+                                             FSel (0,
+                                                   Fns
+                                                   [{ name = V.namedvar "notrec",
+                                                      dom = [dom],
+                                                      cod = mu,
+                                                      arg = [x],
+                                                      (* inline it! *)
+                                                      inline = true,
+                                                      recu = false,
+                                                      total = true,
+                                                      body =
+                                                      Roll(mu,
+                                                           Inject
+                                                           (Sum arms, ctor, 
+                                                            SOME ` Value ` Var x))}]))))
 
                             end) arms) dl
 
@@ -1177,8 +1179,18 @@ struct
               fun mkcontext ((f, vv, at), cc) =
                   C.bindv cc f (mkpoly ps at) vv here
 
+
+              val fctx = foldl mkcontext ctx efs
           in
-              ([Fix ` mkpoly ps fs], foldl mkcontext ctx efs)
+              (* if just one, then we want to produce better code: *)
+              (case fs of
+                 [ f as { name, arg, dom, inline, recu, total, cod, body } ] =>
+                   ([Val ` mkpoly ps ` (name, Arrow (false, dom, cod), 
+                                        Value `
+                                        FSel(0, Fns [f]))], fctx)
+                | _ => error loc "unimplemented: multi-bundles FIXME!")
+
+                    (* ([Fix ` mkpoly ps fs], fctx) *)
           end
 
     | E.Val (tyvars, pat, exp) =>

@@ -62,6 +62,8 @@ struct
       | At of typ * world
       | TAddr of world
 
+      | Arrows of (bool * typ list * typ) list
+
     (* type constructors *)
     and con =
         Typ of typ
@@ -86,17 +88,20 @@ struct
       | VInject of typ * label * value option
         (* int indicates which of the mutually recursive function
            values it is *)
-      | Fn of 
-        int * { name : var,
-                arg  : var list,
-                dom  : typ list,
-                cod  : typ,
-                body : exp,
-                (* should always inline? *)
-                inline : bool,
-                (* these may be conservative estimates *)
-                recu : bool,
-                total : bool } list
+      | Fns of 
+        { name : var,
+          arg  : var list,
+          dom  : typ list,
+          cod  : typ,
+          body : exp,
+          (* should always inline? *)
+          inline : bool,
+          (* these may be conservative estimates *)
+          recu : bool,
+          total : bool } list
+        
+      (* select one of the functions in a bundle *)
+      | FSel of int * value
 
     and exp =
         Value of value

@@ -236,15 +236,15 @@ struct
                      (I.Val(mono (nfv,
                                   I.Arrow(false, [I.TRec nil], ilt),
                                   I.Value `
-                                  I.Fn(0,
-                                       [{ name = unused,
-                                          arg = [ignored],
-                                          dom = [I.TRec nil],
-                                          cod = ilt,
-                                          body = ile, 
-                                          inline = false,
-                                          recu = false,
-                                          total = false }]))),
+                                  I.FSel (0, 
+                                          I.Fns[{ name = unused,
+                                                  arg = [ignored],
+                                                  dom = [I.TRec nil],
+                                                  cod = ilt,
+                                                  body = ile, 
+                                                  inline = false,
+                                                  recu = false,
+                                                  total = false }]))),
                       ke), kt)
                 end
 

@@ -20,8 +20,7 @@ struct
            SOME tt => tt
          | NONE => x)
     | tsubst s (TRec ltl) = TRec (ListUtil.mapsecond (tsubst s) ltl)
-    | tsubst s (Arrow (b, dom, cod)) = Arrow (b, map (tsubst s) dom, 
-                                              tsubst s cod)
+    | tsubst s (Arrow a) = Arrow (arrow s a)
     | tsubst s (Sum ltl) = Sum (ListUtil.mapsecond (arminfo_map (tsubst s)) ltl)
     | tsubst s (Mu (i, vtl)) =
            let (* remove bindings for each variable *)
@@ -38,8 +37,11 @@ struct
     | tsubst s (TCont t) = TCont (tsubst s t)
 
     | tsubst s (TTag (t, v)) = TTag (tsubst s t, v)
+    | tsubst s (Arrows l) = Arrows (map (arrow s) l)
     | tsubst s (At (t, w)) = At (tsubst s t, w)
     | tsubst s (TAddr w) = TAddr w
+
+  and arrow s (b, dom, cod) = (b, map (tsubst s) dom, tsubst s cod)
 
   fun etsubst s t =
       (case t of
@@ -57,8 +59,8 @@ struct
   (* w/x in t *)
   fun wsubst s (x as (TVar v)) = x
     | wsubst s (TRec ltl) = TRec (ListUtil.mapsecond (wsubst s) ltl)
-    | wsubst s (Arrow (b, dom, cod)) = Arrow (b, map (wsubst s) dom, 
-                                              wsubst s cod)
+    | wsubst s (Arrow a) = Arrow (warrow s a)
+    | wsubst s (Arrows l) = Arrows (map (warrow s) l)
     | wsubst s (Sum ltl) = Sum (ListUtil.mapsecond (arminfo_map (wsubst s)) ltl)
     | wsubst s (Mu (i, vtl)) =
            Mu (i, ListUtil.mapsecond (wsubst s) vtl)
@@ -74,6 +76,8 @@ struct
 
     | wsubst s (TAddr w) = TAddr (wsubsw s w)
     | wsubst s (At (t, w)) = At (wsubst s t, wsubsw s w)
+
+  and warrow s (b, dom, cod) = (b, map (wsubst s) dom, wsubst s cod)
 
   (* w/x in w' *)
   and wsubsw s (x as WVar v) =

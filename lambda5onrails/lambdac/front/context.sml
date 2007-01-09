@@ -54,6 +54,9 @@ struct
                  | TTag (t, _) => has t
                  | At (t, w) => has t
                  | TAddr _ => false
+                 | Arrows l =>
+                       List.exists (fn (_, tl, t) =>
+                                    has t orelse List.exists has tl) l
                  | TRef t => has t)
       in
         SU.exists (fn (Poly({worlds, tys}, t), _, _, _) => has t) vars 
