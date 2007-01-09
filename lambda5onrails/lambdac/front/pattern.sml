@@ -220,6 +220,7 @@ struct
                     val nfv = V.namedvar nfs
 
                     val ignored = V.namedvar "ignored"
+                    val unused = V.namedvar "unused"
 
                     val nctx =
                         C.bindv ctx nfs (mono (I.Arrow(false, 
@@ -232,15 +233,18 @@ struct
                        than single arg of unit, but need to be able
                        to call from the EL *)
                     (I.Let
-                     (I.Fix(mono
-                            [{ name = nfv,
-                               arg = [ignored],
-                               dom = [I.TRec nil],
-                               cod = ilt,
-                               body = ile, 
-                               inline = false,
-                               recu = false,
-                               total = false }]),
+                     (I.Val(mono (nfv,
+                                  I.Arrow(false, [I.TRec nil], ilt),
+                                  I.Value `
+                                  I.Fn(0,
+                                       [{ name = unused,
+                                          arg = [ignored],
+                                          dom = [I.TRec nil],
+                                          cod = ilt,
+                                          body = ile, 
+                                          inline = false,
+                                          recu = false,
+                                          total = false }]))),
                       ke), kt)
                 end
 

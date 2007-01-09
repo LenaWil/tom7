@@ -1,4 +1,7 @@
 
+(* XXX rewrite this into a wizard-like interface so that we
+   can't help but alpha vary always. *)
+
 (* alpha-vary (expression vars) in an IL expression *)
 structure ILAlpha =
 struct
@@ -73,25 +76,7 @@ struct
                (case dobindsgr (G, R, [v]) of
                   (G, R, [v]) =>
                     (G, R, Newtag(v, t, tv))
-                | _ => err "impossible/newtag")
-           (* XXX We don't alpha-vary these bound world and type vars; perhaps we should. *)
-           | Fix (Poly ({worlds, tys}, fl)) =>
-                  let
-                    val (G, R, fs) = dobindsgr (G, R, map #name fl)
-                    fun onefun (name, { name=_, arg=args, dom, cod,
-                                        body, inline, recu, 
-                                        total }) =
-                      let
-                        val (G, R, args) = dobindsgr (G, R, args)
-                        val body = alpha G R body
-                      in
-                        { name = name, arg = args, dom = dom,
-                          cod = cod, body = body, inline = inline,
-                          recu = recu, total = total }
-                      end
-                  in
-                    (G, R, Fix ` Poly ({worlds=worlds, tys=tys}, map onefun ` ListPair.zip (fs, fl)))
-                  end)
+                | _ => err "impossible/newtag"))
         end
 
       fun doval v =
@@ -101,7 +86,23 @@ struct
         | VRecord lvl => VRecord ` ListUtil.mapsecond doval lvl
         | Int _ => v
         | String _ => v
-
+        | Fn (which, fl) =>
+          let
+            val (G, R, fs) = dobindsgr (G, R, map #name fl)
+            fun onefun (name, { name=_, arg=args, dom, cod,
+                                body, inline, recu, 
+                                total }) =
+              let
+                val (G, R, args) = dobindsgr (G, R, args)
+                val body = alpha G R body
+              in
+                { name = name, arg = args, dom = dom,
+                  cod = cod, body = body, inline = inline,
+                  recu = recu, total = total }
+              end
+          in
+              Fn (which, map onefun ` ListPair.zip (fs, fl))
+          end
 
     in
       (case e of

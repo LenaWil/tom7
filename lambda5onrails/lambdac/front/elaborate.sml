@@ -36,18 +36,18 @@ struct
   (* XXX elabutil *)
   fun mkfn (args, dom, cod, body) =
       let val f = V.namedvar "fn"
+          val unused = V.namedvar "nonrec"
       in
-          (* only ok since mono *)
-          Let(Fix(mono[{name=f,
-                        arg=args,
-                        dom=dom,
-                        cod=cod,
-                        inline=false,
-                        total=false,
-                        (* since the name is new, it is not recursive *)
-                        recu=false,
-                        body=body}]),
-              Value (Var f))
+          Fn(0, 
+             [{ name = unused,
+                arg = args,
+                dom = dom,
+                cod = cod,
+                inline = false,
+                total = false,
+                (* since the name is new, it is not recursive *)
+                recu = false,
+                body = body }])
       end
 
   fun mklist ctx loc t =
@@ -809,17 +809,20 @@ struct
 
             in
                 ([Newtag (tagv, d, ev),
-                  Fix ` mono
-                      [{ name = ctor, arg = [carg],
-                         dom = [d], cod = cod, 
-                         (* PERF can't currently inline exn
-                            constructors, because they are
-                            open. -- see code in ilopt. *)
-                         (* inline it! *)
-                         inline = false,
-                         recu = false, total = true,
-                         body = Tag(Value ` Var carg, Value ` Var tagv) }]],
-                 nctx)
+                  Val ` mono `
+                  (ctor, Arrow(true, [d], cod),
+                   Value `
+                   Fn ` (0,
+                         [{ name = ctor, arg = [carg],
+                            dom = [d], cod = cod, 
+                            (* PERF can't currently inline exn
+                               constructors, because they are
+                               open. -- see code in ilopt. *)
+                            (* inline it! *)
+                            inline = false,
+                            recu = false, total = true,
+                            body = Tag(Value ` Var carg, Value ` Var tagv) }]))],
+                  nctx)
             end
         | _ => error loc (ext ^ " is not an extensible type"))
 
@@ -1025,20 +1028,24 @@ struct
                                  (* type of constructor *)
                                  cty,
                                  (* injection value *)
-                                 Fix `
-                                 Poly({worlds=nil, tys=atvs},
-                                     [{ name = ctorf,
-                                        dom = [dom],
-                                        cod = mu,
-                                        arg = [x],
-                                        (* inline it! *)
-                                        inline = true,
-                                        recu = false,
-                                        total = true,
-                                        body =
-                                        Roll(mu,
-                                             Inject
-                                             (Sum arms, ctor, SOME ` Value ` Var x))}]))
+                                 Val ` Poly({worlds = nil, tys = atvs},
+                                            (ctorf,
+                                             Arrow(true, [dom], mu),
+                                             Value `
+                                             Fn (0,
+                                                 [{ name = V.namedvar "notrec",
+                                                    dom = [dom],
+                                                    cod = mu,
+                                                    arg = [x],
+                                                    (* inline it! *)
+                                                    inline = true,
+                                                    recu = false,
+                                                    total = true,
+                                                    body =
+                                                    Roll(mu,
+                                                         Inject
+                                                         (Sum arms, ctor, 
+                                                          SOME ` Value ` Var x))}]))))
 
                             end) arms) dl
 

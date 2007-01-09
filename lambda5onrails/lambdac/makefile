@@ -1,7 +1,7 @@
 
 default : lambdac.exe
 
-MLTON_FLAGS = @MLton max-heap 300M --
+MLTON_FLAGS = @MLton max-heap 300M -- -stop tc 
 
 lambdac.exe : lambdac
 	rm -f lambdac.exe

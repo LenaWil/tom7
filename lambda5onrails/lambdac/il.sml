@@ -84,6 +84,19 @@ struct
       | VRecord of (label * value) list
       | VRoll of typ * value
       | VInject of typ * label * value option
+        (* int indicates which of the mutually recursive function
+           values it is *)
+      | Fn of 
+        int * { name : var,
+                arg  : var list,
+                dom  : typ list,
+                cod  : typ,
+                body : exp,
+                (* should always inline? *)
+                inline : bool,
+                (* these may be conservative estimates *)
+                recu : bool,
+                total : bool } list
 
     and exp =
         Value of value
@@ -134,16 +147,7 @@ struct
     and dec =
         Do of exp
         (* quantifiers on the outside -- no poly recursion *)
-      | Fix of {name : var,
-                arg  : var list,
-                dom  : typ list,
-                cod  : typ,
-                body : exp,
-                (* should always inline? *)
-                inline : bool,
-                (* these may be conservative estimates *)
-                recu : bool,
-                total : bool} list poly
+        (* XXX could make PolyVal that requires syntactic value.. *)
       | Val of (var * typ * exp) poly
       | Tagtype of var
         (* tag of typ in tagtype *)

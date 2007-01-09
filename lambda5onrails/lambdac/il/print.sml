@@ -141,6 +141,34 @@ struct
                                       NONE => $"NONE"
                                     | SOME v => vtol v)]
 
+       | Fn (which, fl) =>
+             %[$("fn#" ^ Int.toString which), (* XXX5 worlds/tys *)
+               L.align
+               (ListUtil.mapi 
+                (fn ({name, arg, dom, cod, body, inline, recu, total}, i) =>
+                     %[$("#" ^ Int.toString i ^ " is"),
+                       %[if length arg <> length dom 
+                         then $"XXX arg/dom mismatch!!"
+                         else $"",
+                             $(V.tostring name),
+                             if !iltypes 
+                             then L.seq[$(if inline then "INLINE " else ""),
+                                        $(if recu then "RECU " else "NRECU "),
+                                        $(if total then "TOTAL" else "PART")]
+                             else $"",
+                                 L.listex "(" ")" "," 
+                                 (ListPair.map 
+                                     (fn (a, t) =>
+                                      %[$(V.tostring a),
+                                        if !iltypes 
+                                        then L.seq[$":", ttol t]
+                                        else $""]) (arg, dom)),
+                                 %[$":",
+                                   ttol cod,
+                                   $"="]],
+                        L.indent 4 (etol body)]) fl)
+               ]
+
        | Polyuvar {worlds=nil, tys=nil, var} => $(V.show var)
        | Polyuvar {worlds, tys, var} => 
              %[$(V.show var),
@@ -296,33 +324,6 @@ struct
                          L.indent 4 (%[$":", ttol t, $"="])],
                        L.indent 4 (etol e)]
                  end
-           | Fix (Poly ({worlds, tys}, fl)) =>
-                   %[$"fun", (* XXX5 worlds/tys *)
-                         L.alignPrefix
-                         (map (fn {name, arg, dom, cod, body, inline, recu, total} =>
-                               %[
-                               %[if length arg <> length dom 
-                                then $"XXX arg/dom mismatch!!"
-                                else $"",
-                                $(V.tostring name),
-                                if !iltypes 
-                                then L.seq[$(if inline then "INLINE " else ""),
-                                           $(if recu then "RECU " else "NRECU "),
-                                           $(if total then "TOTAL" else "PART")]
-                                else $"",
-                                L.listex "(" ")" "," 
-                                    (ListPair.map 
-                                     (fn (a, t) =>
-                                      %[$(V.tostring a),
-                                        if !iltypes 
-                                        then L.seq[$":", ttol t]
-                                        else $""]) (arg, dom)),
-                                %[$":",
-                                  ttol cod,
-                                  $"="]],
-                                L.indent 4 (etol body)]) fl,
-                          "and ")
-                         ]
                  )
 
 end

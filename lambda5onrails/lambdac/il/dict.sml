@@ -17,9 +17,19 @@
    type in scope, we must arrange for such values to accompany these abstract
    types in the places in which they are introduced.
    
-   For polymorphic abstraction, we rewrite the 
-   
-  
+   For polymorphic abstraction, we rewrite the abstraction sites to
+   add one value argument for each type argument. In the case of polymorphic
+   Fun bindings, we can add these value arguments to the arguments of the
+   function:
+
+   fun ('a, 'b, 'g) f(x, y, z) = e
+
+    -->
+
+   fun ('a, 'b, 'g) f(Da, Db, Dg, x, y, z) = e
+
+   In the case of Val bindings, we must lambda-abstract the 
+   value itself.
 
 *)
 
