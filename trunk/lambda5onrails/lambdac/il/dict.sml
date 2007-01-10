@@ -18,21 +18,26 @@
    types in the places in which they are introduced.
    
    For polymorphic abstraction, we rewrite the abstraction sites to
-   add one value argument for each type argument. In the case of polymorphic
-   Fun bindings, we can add these value arguments to the arguments of the
-   function:
+   add one value argument for each type argument. The only kind of
+   abstraction site is the polymorphic Val binding, and the only kind
+   of instantiation site is the PolyVar. (Actually, there are also
+   bindings and occurrences for valid variables, and we need to carry
+   out the same translation there.)
 
-   fun ('a, 'b, 'g) f(x, y, z) = e
+   For each type variable bound in a Val binding, we wrap the value
+   with a VLam binding a dictionary associated with that type variable.
+   We keep these associations in our translation context.
 
-    -->
-
-   fun ('a, 'b, 'g) f(Da, Db, Dg, x, y, z) = e
-
-   In the case of Val bindings, we must lambda-abstract the 
-   value itself.
-
+   When reaching a PolyVar, we use VApp to apply the abstracted value
+   to the appropriate dictionaries. We have the types that the polyvar
+   is instantiated with, so this is just a matter of looking up those
+   types' dictionaries in the translation context.
 
    
+   For extern types, we introduce an additional ExternVal for each
+   ExternType. The value has type t dict, where t is the extern type.
+   We must also export such dictionaries. These are simply added
+   for each exported type.
 
 *)
 

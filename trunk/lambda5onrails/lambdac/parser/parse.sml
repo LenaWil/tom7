@@ -178,6 +178,7 @@ struct
           (* PERF backtracking since world is id 
              (but lookahead is at most 1) *)
           alt [world << `ADDR wth TAddr,
+               `UNIT return TRec nil,
                number wth (TNum o Word32.toInt),
                id wth TVar,
                `LBRACE >> separate0 (label && (`COLON >> $arrowtype)) (`COMMA) << `RBRACE wth TRec,
@@ -573,12 +574,29 @@ struct
                  `FUN >> "expected FUNS after FUN" **
                    (call G funs wth Fun)])
 
+      fun export G =
+        alt [`EXPORT >> `WORLD >> (id && opt (`EQUALS >> world)) wth ExportWorld,
+             `EXPORT >> `TYPE >> alt[tyvars && id, succeed nil && id]
+             && opt(`EQUALS >> typ) wth (fn ((atv,i),to) => ExportType (atv, i, to)),
+             (* XXX should support type annotation? *)
+             `EXPORT >> `VAL >> alt[tyvars && id, succeed nil && id]
+             && opt(`EQUALS >> call G exp) wth (fn ((atv,i),eo) => ExportVal (atv, i, eo))]
+
+      fun unit G =
+        `UNIT >> "expected DECS after UNIT" **
+            (call G decs -- 
+             (fn (G,ds) => 
+              `IN >> "expected EXP after IN" **
+              (repeat (call G export) << `END
+               wth (fn es => Unit(ds, es)))))
+            
   in
       val pat = fn G => call G pat
       val atpat = fn G => call G mapat
 
       val exp = fn G => call G exp
       val dec = fn G => call G dec
+      val unit = fn G => call G unit
   end
 
 end

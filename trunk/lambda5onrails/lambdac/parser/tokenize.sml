@@ -138,6 +138,8 @@ struct
 
        ("get", GET),
        ("extern", EXTERN),
+       ("export", EXPORT),
+       ("unit", UNIT),
        ("world", WORLD),
        ("from", FROM),
 

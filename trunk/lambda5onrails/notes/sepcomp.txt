@@ -1,0 +1,45 @@
+
+Lambda 5 on Rails has a rudimentary separate compilation facility.
+This means that applications can be developed in independently
+meaningful units that can be compiled without access to one another.
+
+
+A unit is written as follows
+
+
+ unit
+   ... declarations ...
+ in
+   ... exports ...
+ end
+
+where an export may be any of the following
+
+ export world w = <world>
+ export type (a, b, c) t = <type>
+ export val (a, b, c) v = <value>
+
+
+In "export val", if <value> is valid, then 'v' will be exported as a valid variable.
+
+
+Units depend on other units via extern declarations (also known as "imports"):
+
+ extern world w
+ extern type (a, b, c) t
+ extern val (a, b, c) x : t @ w
+ extern val (a, b, c) x ~ t
+
+
+The compiled code retains these imports and exports. A 'link' phase
+builds a final expression from an ordered list of units. For an
+imported world, the link merely requires that a world of that name was
+exported from a prior unit. The actual world is then substituted through
+the remainder of the importing unit. For external types, the link checks
+that there is an exported type of that name with the appropriate kind, and
+a similar substitution takes place. For external values, the link checks
+that the value name, type, and world (if not valid) match. Because the
+intermediate language that is the target of linking supports bindings
+of values, we do not substitute here; we simply produce the equivalent
+of "val x = imported_val".
+
