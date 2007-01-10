@@ -152,14 +152,19 @@ struct
     and dec =
         Do of exp
         (* quantifiers on the outside -- no poly recursion *)
-        (* XXX could make PolyVal that requires syntactic value.. *)
+        (* XXX5 could make PolyVal that requires syntactic value.. *)
       | Val of (var * typ * exp) poly
       | Tagtype of var
         (* tag of typ in tagtype *)
       | Newtag of var * typ * var
 
+    and ilunit = (* XXX5 *)
+      XXX of ilunit
+
     (* the kind is the number of curried arguments. 0 is kind T. *)
     withtype kind = int
+
+
 
     (* now a derived form *)
     fun Var v = Polyvar { tys = nil, worlds = nil, var = v }

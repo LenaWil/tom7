@@ -84,13 +84,15 @@ struct
       | DATAFILE
 
       (* ML5-specific *)
-      | GET
       | EXTERN
+      | EXPORT
+      | GET
       | AT
       | FROM
       | WORLD
       | TILDE
       | ADDR
+      | UNIT
 
       | LETCC
       | THROW
@@ -163,5 +165,7 @@ struct
       | eq (WORLD, WORLD) = true
       | eq (TILDE, TILDE) = true
       | eq (ADDR, ADDR) = true
+      | eq (EXPORT, EXPORT) = true
+      | eq (UNIT, UNIT) = true
       | eq _ = false
 end

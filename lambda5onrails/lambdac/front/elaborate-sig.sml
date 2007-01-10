@@ -6,6 +6,6 @@ sig
 
 (*     val elab : Context.context -> IL.world -> EL.exp -> IL.exp * IL.typ *)
 
-    val elaborate : EL.exp -> IL.exp * IL.typ
+    val elaborate : EL.elunit -> IL.ilunit
 
 end

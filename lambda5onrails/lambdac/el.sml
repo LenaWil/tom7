@@ -112,17 +112,20 @@ struct
          *)
       | ExternVal   of string list * string * typ * world option
       | ExternWorld of string
-
-
-    and strdec =
-        SVal of string list * string * typ
-        (* abstract types *)
-      | SType of string list * string
-        (* can't really write this externally *)
-      | SPrim of string list * string * typ * Primop.primop
-        (* ... eventually add types, etc. *)
+      (* extern type (a, b) t *)
+      | ExternType  of string list * string
 
     (* fixity decls are handled at parse time *)
+
+    and elunit =
+      Unit of dec list * export list
+
+    and export =
+      (* in the case that the export is not supplied, 
+         we assume the identifier also used for export *)
+      ExportWorld of string * world option
+    | ExportType of string list * string * typ option
+    | ExportVal of string list * string * exp option
 
     withtype exp = exp_ * Pos.pos
     and dec = dec_ * Pos.pos

@@ -52,7 +52,8 @@ struct
 
     (* XXX reevaluate totality of these *)
 
-    (* also put these in signature .. ? *)
+    (* XXX5 should probably be done in terms of extern vals *)
+
     val monofuns =
         [
 
@@ -185,6 +186,13 @@ struct
 
     (* Wrap an expression with declarations of things that are
        needed by elaboration, like bool and list. *)
+    (* XXX5 
+       this should instead be a list of default declarations,
+       not an expression wrapper (for new unit-oriented
+       compilation).
+       the declarations of bool and list are safe,
+       but the exceptions should be declared in a basis unit
+       and imported here. *)
     fun wrap (e as (_, loc)) =
         let fun %x = (x, loc)
             fun decbool e =

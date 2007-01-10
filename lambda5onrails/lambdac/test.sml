@@ -105,7 +105,7 @@ struct
           Parsing.transform Tokenize.token (Pos.markstreamex file s)
           
         fun parseexpression G s = 
-          Parsing.transform (Parse.exp G) (tokenize s)
+          Parsing.transform (Parse.unit G) (tokenize s)
           
         val parsed = Stream.tolist 
           (parseexpression Initfix.initial 
@@ -114,7 +114,7 @@ struct
         case parsed of
           [e] => e
         | nil => raise Test "Parse error: no expression"
-        | _ => raise Test "Parse error: program must be single expression"
+        | _ => raise Test "Parse error: program must be single unit"
       end handle Parse.Parse s => raise Test ("Parse error: " ^ s)
 
     fun getil file =
