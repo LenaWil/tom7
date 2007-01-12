@@ -11,9 +11,9 @@ sig
     val initial : Context.context
     val home : IL.world
 
-    (* wrap with declarations needed by the compiler 
-       (bool, exceptions) *)
-    val wrap : EL.exp -> EL.exp
+    (* wrap with declarations and imports needed 
+       by the compiler (bool, exceptions) *)
+    val wrap : EL.elunit -> EL.elunit
 
     val trueexp  : Pos.pos -> EL.exp
     val falseexp : Pos.pos -> EL.exp

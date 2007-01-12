@@ -1,10 +1,11 @@
-let
+unit
     extern val js.alert : string -> unit @ home
     extern world server
     extern val server ~ server addr
     extern val version : unit -> string @ server
-in
-    js.alert "Hello, World 2.0!";
 
-    js.alert (from server get (version ()))
+    do js.alert "Hello, World 2.0!"
+    do js.alert (from server get (version ()))
+in
+    export val x = 3
 end

@@ -327,4 +327,17 @@ struct
                  end
                  )
 
+    and xtol x =
+      (case x of
+         ExportWorld (v, w) => %[$"export world", $(V.tostring v), $"=", wtol w]
+       | _ => $"unimplemented extern")
+
+
+    and utol (Unit(ds, xs)) =
+        %[$"unit",
+          L.indent 2 (L.align (map dtol ds)),
+          $"in",
+          L.indent 2 (L.align (map xtol xs)),
+          $"end"]
+
 end
