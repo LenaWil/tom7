@@ -129,9 +129,8 @@ struct
           val el = (Nullary.nullary el)
             
           val () = vprint "Elaborating...\n"
-          val (il, t) = (Elaborate.elaborate el)
         in
-          il
+          (Elaborate.elaborate el)
         end
 
     fun compile fullfile =
@@ -147,7 +146,7 @@ struct
             val inter = getil file
 
         in
-          Layout.print( ILPrint.etol inter, print);
+          Layout.print( ILPrint.utol inter, print);
           raise Test "backend unimplemented";
           OS.Process.success
         end)

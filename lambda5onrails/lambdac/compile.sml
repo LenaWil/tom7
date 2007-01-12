@@ -105,7 +105,7 @@ struct
           Parsing.transform Tokenize.token (Pos.markstreamex file s)
           
         fun parseexpression G s = 
-          Parsing.transform (Parse.exp G) (tokenize s)
+          Parsing.transform (Parse.unit G) (tokenize s)
           
         val parsed = Stream.tolist 
           (parseexpression Initfix.initial 

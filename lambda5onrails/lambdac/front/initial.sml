@@ -167,10 +167,15 @@ struct
     val initialc = foldl (fn ((s, c, k, t), ctx) =>
                           Context.bindc ctx s c k t) initialw cons
 
+    val exnname = "exn"
+    val exnvar = Variable.namedvar exnname
+
+    val initialec = Context.bindc initialc exnname (IL.Typ (IL.TVar exnvar)) 0 IL.Extensible
+
     (* initial environment is all valid *)
     val initial = foldl (fn ((s, c, t), ctx) =>
                          Context.bindu ctx s c (namedvar "dummy") t) 
-                        initialc vals
+                        initialec vals
 
 
     (* XXX infix *)
@@ -180,7 +185,6 @@ struct
 
     val matchname = "Match"
 
-    val exnname = "exn"
     val boolname = "bool"
     val listname = "list"
 
@@ -193,36 +197,33 @@ struct
        the declarations of bool and list are safe,
        but the exceptions should be declared in a basis unit
        and imported here. *)
-    fun wrap (e as (_, loc)) =
-        let fun %x = (x, loc)
-            fun decbool e =
-                %(EL.Let(%(EL.Datatype 
-                           (nil, [(boolname, 
-                                   [(truename, NONE),
-                                    (falsename, NONE)])])),
-                         e))
+    fun wrap (EL.Unit(ds, xs)) =
+        let val loc = Pos.initposex "prelude"
+            fun %x = (x, loc)
+            val decbool =
+                %(EL.Datatype 
+                  (nil, [(boolname, 
+                          [(truename, NONE),
+                           (falsename, NONE)])]))
 
-            fun declist e =
-                %(EL.Let(%(EL.Datatype
-                           (["a"], [(listname,
-                                     [(consname, 
-                                       SOME(EL.TRec[("1", EL.TVar"a"),
-                                                    ("2",
-                                                     EL.TVar listname)])),
-                                      (nilname, NONE)])])),
-                         e))
+            val declist =
+              %(EL.Datatype
+                (["a"], [(listname,
+                          [(consname, 
+                            SOME(EL.TRec[("1", EL.TVar"a"),
+                                         ("2",
+                                          EL.TVar listname)])),
+                           (nilname, NONE)])]))
 
-            fun decexn e =
-                %(EL.Let
-                  (%(EL.Tagtype exnname),
-                   %(EL.Let
-                     (%(EL.Exception (matchname, NONE)),
-                      e))))
+            val impexns =
+              (* match ~ exn *)
+              %(EL.ExternVal(nil, matchname, EL.TVar exnname, NONE))
+
         in
-            (declist o decbool o decexn) e
+          EL.Unit(impexns :: declist :: decbool :: ds, xs)
         end
 
-    fun trueexp loc = (EL.Var truename,loc)
+    fun trueexp loc = (EL.Var truename, loc)
     fun falseexp loc = (EL.Var falsename, loc)
 
     (* XXX bools should be NONEs *)      
@@ -232,7 +233,8 @@ struct
     val truepat = EL.PApp (truename, NONE)
     val falsepat = EL.PApp (falsename, NONE)
 
-    fun matchexp loc = (EL.App ((EL.Var matchname, loc), 
-                                (EL.Record nil, loc)), loc)
+    fun matchexp loc = (EL.Var matchname, loc)
+                             (* (EL.App ((EL.Var matchname, loc), 
+                                (EL.Record nil, loc)), loc) *)
 
 end

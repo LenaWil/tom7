@@ -36,6 +36,9 @@ sig
 
        The rest of the compiler assumes this translation has
        been done. *)
-    val nullary : EL.exp -> EL.exp
+    (* XXX5 because this is not a whole-program translation, it is
+       important to note that imports don't know that they should be
+       nullary translated. This usually doesn't come up. *)
+    val nullary : EL.elunit -> EL.elunit
 
 end

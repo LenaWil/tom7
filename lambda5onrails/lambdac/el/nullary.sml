@@ -163,7 +163,25 @@ struct
                                 nul G e)) clauses)) fl))
         end
 
-    fun nullary exp = nul (SM.empty, SM.empty) exp
+    and xul G x =
+      case x of
+        (* these are not bindings *)
+        ExportWorld (s, wo) => x
+      | ExportType (sl, t, to) => ExportType(sl, t, Option.map (tul G) to)
+      | ExportVal (sl, s, eo) => ExportVal(sl, s, Option.map (nul G) eo)
 
+    fun nullary (Unit (ds, xs)) = 
+      let 
+        fun duls G nil = (nil, map (xul G) xs)
+          | duls G (d :: dr) =
+          let 
+            val (GG, dd) = dul G d
+            val (ddr, xxs) = duls GG dr
+          in
+            (dd :: ddr, xxs)
+          end
+      in
+        Unit (duls (SM.empty, SM.empty) ds)
+      end
 
 end

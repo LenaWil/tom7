@@ -158,8 +158,20 @@ struct
         (* tag of typ in tagtype *)
       | Newtag of var * typ * var
 
+        (* XXX5 no: we import and export by string, not var *)
+      | ExternWorld of var
+      | ExternVal   of (var * typ * world option) poly
+      (* extern type (a, b) t *)
+      | ExternType  of var list * var
+
+
     and ilunit = (* XXX5 *)
-      XXX of ilunit
+        Unit of dec list * export list
+
+    and export =
+        ExportWorld of var * world
+      | ExportType of var list * var * typ
+      | ExportVal of (var * typ * world * value) poly
 
     (* the kind is the number of curried arguments. 0 is kind T. *)
     withtype kind = int

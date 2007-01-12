@@ -6,10 +6,11 @@ sig
        datatypes if in scope. *)
     val ttolex : Context.context -> IL.typ -> Layout.layout
 
-    (* type, world, expression, and declaration  to layout. *)
-    val ttol : IL.typ   -> Layout.layout
-    val wtol : IL.world -> Layout.layout
-    val etol : IL.exp   -> Layout.layout
-    val dtol : IL.dec   -> Layout.layout
+    (* type, world, expression, declaration, and unit  to layout. *)
+    val ttol : IL.typ    -> Layout.layout
+    val wtol : IL.world  -> Layout.layout
+    val etol : IL.exp    -> Layout.layout
+    val dtol : IL.dec    -> Layout.layout
+    val utol : IL.ilunit -> Layout.layout
 
 end

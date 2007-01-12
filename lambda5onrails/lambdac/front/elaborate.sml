@@ -631,9 +631,18 @@ struct
       end handle Pattern.Pattern s => 
             error loc ("Pattern compilation failed: " ^ s)
 
+  and elabds ctx here nil = (nil, ctx)
+    | elabds ctx here ((d : EL.dec) :: rest) =
+    let 
+      val (ds, ctx) = elabd ctx here d
+      val (rs, ctx) = elabds ctx here rest
+    in
+      (ds @ rs, ctx)
+    end
 
   (* return a new context, and an il.dec list *)
-  and elabd ctx (here : world) ((d, loc) : EL.dec) =  
+  and elabd ctx (here : world) ((d, loc) : EL.dec) 
+    : IL.dec list * C.context =  
     case d of
       E.Do e => 
         let val (ee, tt) = elab ctx here e
@@ -1288,13 +1297,31 @@ struct
               epat nctx pat ee tt
           end
 
-  fun elaborate el = 
+  fun elabx ctx here export =
+    let
+      (* XXX parser should give this *)
+      val loc = Pos.initposex "dummy_export"
+    in
+      case export of
+        EL.ExportWorld (s, NONE) => elabx ctx here (EL.ExportWorld (s, SOME s))
+      | EL.ExportType (sl, s, NONE) => elabx ctx here (EL.ExportType (sl, s, SOME (EL.TVar s)))
+      | EL.ExportVal (sl, s, NONE) => elabx ctx here (EL.ExportVal (sl, s, SOME (EL.Var s, loc)))
+      | EL.ExportWorld (s, SOME id) => ExportWorld (s, elabw ctx loc id)
+          (* XXX ... *)
+    end
+
+       
+
+  fun elaborate (EL.Unit (dl, xl)) = 
     let
       val () = clear_mobile ()
-      val (ee, tt) = elab Initial.initial Initial.home el
+      val (idl, G) = elabds Initial.initial Initial.home dl
+
+      (* XXX5 always at home? perhaps we can write units at other worlds? *)
+      val ixl = map (elabx G Initial.home) xl
     in
       check_mobile ();
-      (ee, tt)
+      Unit(idl, ixl)
     end
 
 end
