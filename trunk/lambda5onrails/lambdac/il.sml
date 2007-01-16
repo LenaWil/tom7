@@ -64,6 +64,11 @@ struct
 
       | Arrows of (bool * typ list * typ) list
 
+      (* Value arrow; type of VLam *)
+      | VArrow of typ * typ
+      (* type of dictionary for this type (see il/dict.sml) *)
+      | Dict of typ
+
     (* type constructors *)
     and con =
         Typ of typ
@@ -102,6 +107,12 @@ struct
         
       (* select one of the functions in a bundle *)
       | FSel of int * value
+      (* apply (total)value to value *)
+      | VApp of value * value
+
+      | VLam of var * typ * value
+
+        (* XXX apparently need VVApp for valid values... *)
 
     and exp =
         Value of value
@@ -158,20 +169,20 @@ struct
         (* tag of typ in tagtype *)
       | Newtag of var * typ * var
 
-        (* XXX5 no: we import and export by string, not var *)
-      | ExternWorld of var
-      | ExternVal   of (var * typ * world option) poly
+      | ExternWorld of label * var
+      | ExternVal   of (label * var * typ * world option) poly
       (* extern type (a, b) t *)
-      | ExternType  of var list * var
+      | ExternType  of kind * label * var
 
 
     and ilunit = (* XXX5 *)
         Unit of dec list * export list
 
     and export =
-        ExportWorld of var * world
-      | ExportType of var list * var * typ
-      | ExportVal of (var * typ * world * value) poly
+        ExportWorld of label * world
+      | ExportType of var list * label * typ
+        (* if world is none, then export valid *)
+      | ExportVal of (label * typ * world option * value) poly
 
     (* the kind is the number of curried arguments. 0 is kind T. *)
     withtype kind = int

@@ -145,7 +145,13 @@ struct
 
             val inter = getil file
 
+            val _ = print "**** ELABORATED: ****\n"
+            val _ = Layout.print( ILPrint.utol inter, print);
+
+            val inter = ILDict.transform inter
+
         in
+          print "**** DICTED: ****\n";
           Layout.print( ILPrint.utol inter, print);
           raise Test "backend unimplemented";
           OS.Process.success

@@ -740,17 +740,21 @@ struct
           end
 *)
 
-    | E.ExternWorld w => (nil, C.bindw ctx w (V.namedvar w))
+    | E.ExternWorld w => 
+          let val wv = V.namedvar w
+          in
+            ([ExternWorld(w, wv)], C.bindw ctx w wv)
+          end
 
     | E.ExternVal (atvs, id, ty, wo) =>
           let
-
+              
             fun checkdups atvs =
               ListUtil.alladjacent op <> `
               ListUtil.sort String.compare atvs
               orelse 
               error loc ("duplicate type vars in extern val declaration (" ^ id ^ ")")
-              
+
             (* no dup tyvars *)
             val _ = checkdups atvs
               
@@ -763,22 +767,26 @@ struct
                      C.bindc c s (Typ (TVar x)) 0 
                      Regular) ctx atvs
               
+
             (* now elaborate the type. *)
-            val tt = Poly ({ worlds = nil (* XXX5 *),
-                             tys = map #2 atvs }, 
-                           elabtex actx NONE loc ty)
-              
+            val tt = elabtex actx NONE loc ty
+            val ptt =
+              Poly ({ worlds = nil (* XXX5 *),
+                      tys = map #2 atvs }, tt)
+
             (* and world, if any *)
             val ww = Option.map (elabw ctx loc) wo
 
             val v = V.namedvar id
 
           in
-            (nil,
+            (* XXX generalize worlds *)
+            ( [ExternVal(Poly({worlds=nil, tys=map #2 atvs}, 
+                              (id, v, tt, ww)))],
              (* XXX5 should these be bound with different idstatus (Extern? Prim?) *)
-             C.bindex ctx id tt v Normal (case ww of
-                                            NONE => C.Valid
-                                          | SOME w => C.Modal w))
+             C.bindex ctx id ptt v Normal (case ww of
+                                             NONE => C.Valid
+                                           | SOME w => C.Modal w))
           end
 
     (* some day we might add something to 'ty,' like a string list
@@ -1017,7 +1025,7 @@ struct
                                Val `
                                Poly({worlds=nil, 
                                      tys=atvs},
-                                    (v, mu, Inject(Sum arms, ctor, NONE))))
+                                    (v, mu, Value ` VInject(Sum arms, ctor, NONE))))
                             end
  
                              | (ctor, Carrier { carried = ty, ... }) =>
@@ -1307,7 +1315,64 @@ struct
       | EL.ExportType (sl, s, NONE) => elabx ctx here (EL.ExportType (sl, s, SOME (EL.TVar s)))
       | EL.ExportVal (sl, s, NONE) => elabx ctx here (EL.ExportVal (sl, s, SOME (EL.Var s, loc)))
       | EL.ExportWorld (s, SOME id) => ExportWorld (s, elabw ctx loc id)
-          (* XXX ... *)
+
+      | EL.ExportType (tys, s, SOME t) =>
+          let
+              
+            fun checkdups atvs =
+              ListUtil.alladjacent op <> `
+              ListUtil.sort String.compare atvs
+              orelse 
+              error loc ("duplicate type vars in export type declaration (" ^ s ^ ")")
+
+            val _ = checkdups tys
+            val atys = map (fn s => (s, V.namedvar s)) tys
+            val nctx = foldr (fn ((s, v), ctx) =>
+                              C.bindc ctx s (Typ (TVar v)) 0 Regular) ctx atys
+
+            val tt = elabt nctx loc t
+          in
+            ExportType (map #2 atys, s, tt)
+          end
+
+      | EL.ExportVal (tys, lab, SOME exp) =>
+          let
+            (* put type variables in context *)
+
+            fun checkdups atvs =
+              ListUtil.alladjacent op <> `
+              ListUtil.sort String.compare atvs
+              orelse 
+              error loc ("duplicate type vars in export val declaration (" ^ lab ^ ")")
+
+            val _ = checkdups tys
+
+            val nctx = mktyvars ctx tys
+(*
+            val atys = map (fn s => (s, V.namedvar s)) tys
+            val nctx = foldr (fn ((s, v), ctx) =>
+                              C.bindc ctx s (Typ (TVar v)) 0 Regular) ctx atys
+*)
+            (* can be at any world. *)
+            val w = new_wevar ()
+          in
+
+            (case elab nctx w exp of
+               (Value vv, tt) =>
+                 let
+                   val (tt, tp) = polygen ctx tt
+                 in
+                   (* XXX5 should polygen worlds too *)
+                   (* XXX5 should check that tyvars were all generalized *)
+                   ExportVal (Poly({tys=tp, worlds=nil},
+                                   (* XXX should find valid values
+                                      and export those here! *)
+                                   (lab, tt, SOME w, vv)))
+                 end
+             (* XXX: note, could hoist this binding before the exports
+                with a little bit of work... *)
+             | _ => error loc "expected value (not expression) in export val")
+          end
     end
 
        
