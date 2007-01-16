@@ -1,7 +1,7 @@
 
 #include <SDL.h>
 
-int ml_test() {
+int ml_init() {
   if (SDL_Init (SDL_INIT_VIDEO | 
                 SDL_INIT_TIMER | 
 		/* for debugging */
@@ -64,4 +64,12 @@ int ml_surfaceheight(SDL_Surface * src) {
 
 void ml_clearsurface(SDL_Surface * s, Uint32 color) {
   SDL_FillRect(s, 0, color);
+}
+
+SDL_Event * ml_newevent() {
+  return (SDL_Event*) malloc (sizeof (SDL_Event));
+}
+
+int ml_eventtag(SDL_Event * e) {
+  return e->type;
 }
