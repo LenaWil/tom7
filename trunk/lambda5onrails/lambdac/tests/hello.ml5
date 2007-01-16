@@ -8,7 +8,12 @@ unit
     extern val (a, b) polyswap : a * b -> b * a @ server
 
     do js.alert "Hello, World 2.0!"
-    do js.alert (from server get (version ()))
+
+    fun goswap (a, b) =
+	let in
+	    js.alert (from server get (version ()));
+	    (b, a)
+	end
 in
     export val x = 3
 end

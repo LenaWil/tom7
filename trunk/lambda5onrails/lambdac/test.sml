@@ -151,7 +151,7 @@ struct
             val inter = ILDict.transform inter
 
         in
-          print "**** DICTED: ****\n";
+          print "\n\n**** DICTED: ****\n";
           Layout.print( ILPrint.utol inter, print);
           raise Test "backend unimplemented";
           OS.Process.success
