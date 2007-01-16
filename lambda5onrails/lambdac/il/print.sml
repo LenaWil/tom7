@@ -57,6 +57,8 @@ struct
                  L.paren (%[L.list (map self dom),
                             $(if b then "=>" else "->"),
                             self cod])
+           | VArrow (t1, t2) => L.paren (%[self t1, $"_>", self t2])
+
            | TVec t => L.paren (L.seq[self t, $" vector"])
            | TCont t => L.paren (L.seq[self t, $" cont"])
            | TRef t => L.paren (L.seq[self t, $" ref"])
@@ -116,6 +118,8 @@ struct
            | TRec nil => $"unit"
            | TRec ltl => recordortuple self ":" "(" ")" " *" ltl
 
+           | Dict t => %[self t, $"dict"]
+
            | TTag (t, v) => %[$"tag", self t, $"=>", $(V.tostring v)]
            | Evar (ref (Bound t)) => self t
            | Evar (ref (Free n)) => $("'a" ^ itos n))
@@ -140,6 +144,9 @@ struct
                                  (case vo of
                                       NONE => $"NONE"
                                     | SOME v => vtol v)]
+       | VLam (vx, t, v) => %[$"vlam", $(V.tostring vx), $":", ttol t, $".", vtol v]
+       | VApp (v1, v2) => L.paren(%[vtol v1, $"`", vtol v2])
+
        | FSel (n, v) => %[vtol v, $("." ^ Int.toString n)]
 
        | Fns fl =>
@@ -325,12 +332,50 @@ struct
                          L.indent 4 (%[$":", ttol t, $"="])],
                        L.indent 4 (etol e)]
                  end
+
+           | ExternWorld (l, v) => %[$"extern world", $(V.tostring v), $"=", $l]
+           | ExternVal (Poly({worlds, tys}, (l, v, t, w))) =>
+                 % ($"extern val" ::
+                    (case tys of
+                       nil => nil
+                     | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)]) @
+                       (* XXX5 poly worlds *)
+                       [$(V.tostring v),
+                        L.indent 4 (%[$":", ttol t, 
+                                      $"@", 
+                                      case w of
+                                        NONE => $"VALID"
+                                      | SOME w => wtol w,
+
+                                      $"=", $l])])
+           | ExternType (n, l, v) => 
+                 %[$"extern type",
+                   (case n of
+                       0 => $""
+                     | _ => L.listex "(" ")" "," 
+                          (List.tabulate (n, fn i => $(implode [chr (ord #"a" + i)])))),
+                   $(V.tostring v), $"=", $l]
+
                  )
 
     and xtol x =
       (case x of
-         ExportWorld (v, w) => %[$"export world", $(V.tostring v), $"=", wtol w]
-       | _ => $"unimplemented extern")
+         ExportWorld (l, w) => %[$"export world", $l, $"=", wtol w]
+       | ExportVal (Poly({worlds, tys}, (l, t, w, v))) =>
+                 % ($"export val" ::
+                    (case tys of
+                       nil => nil
+                     | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)]) @
+                       (* XXX5 poly worlds *)
+                       [$ l,
+                        L.indent 4 (%[$":", ttol t, 
+                                      $"@", 
+                                      case w of
+                                        NONE => $"VALID"
+                                      | SOME w => wtol w,
+                                      $"=", vtol v])])
+           
+       | _ => $"unimplemented export")
 
 
     and utol (Unit(ds, xs)) =

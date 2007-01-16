@@ -1,0 +1,5 @@
+unit
+  extern world w
+in
+  export world z = w
+end

@@ -102,7 +102,7 @@ struct
                                       end
                             | IL.Bound ty => go ty))
         in
-            (go ty, !acc)
+            (go ty, rev (!acc))
         end
 
     (* (old, fixed now??) problems with polygen:
