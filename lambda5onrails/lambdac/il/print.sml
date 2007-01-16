@@ -2,6 +2,9 @@
 structure ILPrint :> ILPRINT =
 struct
 
+  infixr 9 `
+  fun a ` b = a b
+
     val iltypes = Params.flag true
         (SOME ("-iltypes",
                "show types and coercions in IL")) "iltypes"
@@ -144,8 +147,12 @@ struct
                                  (case vo of
                                       NONE => $"NONE"
                                     | SOME v => vtol v)]
-       | VLam (vx, t, v) => %[$"vlam", $(V.tostring vx), $":", ttol t, $".", vtol v]
+       | VLam (vx, t, v) => %[%[$"vlam", %[$(V.tostring vx), $":", ttol t, $"."]], 
+                              L.indent 2 ` vtol v]
        | VApp (v1, v2) => L.paren(%[vtol v1, $"`", vtol v2])
+
+       (* XXX show dlist? *)
+       | VDict (t, dlist) => %[$"dict_", L.paren ` ttol t]
 
        | FSel (n, v) => %[vtol v, $("." ^ Int.toString n)]
 
@@ -290,20 +297,25 @@ struct
                                        bttol t, etol e])
            | Tag (e1, e2) => L.paren(%[$"tag", etol e1, $"with", etol e2])
 
-
+(*
            | Deferred os =>
                  (case Util.Oneshot.deref os of
                       NONE => $"XXX-UNSET-ONESHOT-XXX"
                     | SOME e => etol e)
+*)
 
            | Handle (e, v, h) => %[L.paren(etol e),
                                    $"handle",
                                    %[%[$(V.tostring v), $"=>"], etol h]]
-           | Get {addr = a, typ = t, body = e, dict = d} => 
+           | Get {addr = a, typ = t, body = e, dlist} => 
                     %[$"from", etol a, $"get", 
-                      (case d of
+                      (case dlist of
                          NONE => $""
-                       | SOME x => %[$"{dict=", etol e, $"}"]),
+                       | SOME x => %[$"{dlist=", %(map (fn (v, va) => 
+                                                        %[$(V.tostring v),
+                                                          $"->",
+                                                          vtol va]) x),
+                                     $"}"]),
                       etol e, $":", ttol t]
 
            | Jointext el =>

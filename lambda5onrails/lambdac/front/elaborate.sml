@@ -253,7 +253,7 @@ struct
               in
                 require_mobile ctx loc "get" bt;
                 (* dict is added in later translation *)
-                (Get { addr = aa, typ = bt, body = bb, dict = NONE }, bt)
+                (Get { addr = aa, typ = bt, body = bb, dlist = NONE }, bt)
               end
 
         | E.Constant(E.CInt i) => value (Int i, Initial.ilint)

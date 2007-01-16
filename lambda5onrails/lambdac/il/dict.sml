@@ -62,9 +62,11 @@ struct
 
   exception ILDict of string
 
-  val initial = () (* FIXME not sure how this is implemented yet *)
+  (* the context is an association list of abstract type variable to
+     value variable standing for the dictionary at that type *)
+  val initial = nil
   (* gives back the dictionary value for the type t. *)
-  fun dictfor G t = raise ILDict "dictfor unimplemented"
+  fun dictfor G t = VDict (t, G)
 
   fun te G e =
     (case e of
@@ -72,6 +74,44 @@ struct
      | Roll (t, e) => Roll (t, te G e)
      | Inject (t, l, eo)  => Inject (t, l, Option.map (te G) eo)
      | App (e1, el) => App(te G e1, map (te G) el)
+     | Record lel => Record ` ListUtil.mapsecond (te G) lel
+     | Raise (t, e) => Raise (t, te G e)
+     | Handle (e, v, e') => Handle (te G e, v, te G e')
+     | Seq (e, e') => Seq (te G e, te G e')
+     | Let (d, e) => 
+         let
+           val (G, d) = td G d
+         in
+           Let(d, te G e)
+         end
+     | Unroll e => Unroll ` te G e
+
+     | Get { dlist = SOME _, ... } => raise ILDict "get already has dictionary!"
+     | Get { addr, typ, dlist = NONE, body} =>
+         Get { addr = te G addr, typ = typ, dlist = SOME G, body = te G body }
+(*
+
+      | Throw of exp * exp
+      | Letcc of var * typ * exp
+
+      (* tag v with t *)
+      | Tag of exp * exp
+      (* tagtype, object, var (for all arms), branches, def *)
+      | Tagcase of typ * exp * var * (var * exp) list * exp
+
+      (* apply a primitive to some expressions and types *)
+      | Primapp of Primop.primop * exp list * typ list
+
+      (* sum type, object, var (for all arms), branches, default.
+         the label/exp list need not be exhaustive.
+         *)
+      | Sumcase of typ * exp * var * (label * exp) list * exp
+      | Inject of typ * label * exp option
+
+      (* for more efficient treatment of blobs of text. *)
+      | Jointext of exp list
+
+*)
 
      | _ => Value ` Polyvar{worlds=nil, tys=nil, var=V.namedvar "dictexp_unimplemented"}
          )
@@ -88,6 +128,17 @@ struct
            (* first type in forall is outermost (last) application *)
            applydict (rev tys)
          end
+     (* more or less the same thing for uvars .. *)
+     | Polyuvar {tys, worlds, var} =>
+         let
+           fun applydict nil = Polyuvar {tys = tys, worlds = worlds, var = var}
+             | applydict (t :: rest) =
+             VApp(applydict rest, dictfor G t)
+         in
+           (* first type in forall is outermost (last) application *)
+           applydict (rev tys)
+         end
+
        (* needs vvapp? *)
      (* | PolyUVar {tys, worlds, var} =>  *)
       | Int _ => v
@@ -105,6 +156,8 @@ struct
       | FSel (i, v) => FSel (i, tv G v)
       (* probably shouldn't see this yet... *)
       | VApp (v1, v2) => VApp(tv G v1, tv G v2)
+      | VLam (x, t, v) => VLam (x, t, tv G v)
+      | VDict (t, dlist) => VDict (t, ListUtil.mapsecond (tv G) dlist)
 
                   )
 
@@ -122,7 +175,7 @@ struct
            | mkt (a :: rest) = VArrow(Dict (TVar a), mkt rest)
 
          fun mkv nil = 
-           tv (G (* XXX adding associations in 'vars' *)) va
+           tv (ListUtil.mapsecond Var vars @ G) va
            | mkv ((t, tv) :: rest) = VLam(tv, Dict (TVar t), mkv rest)
 
        in

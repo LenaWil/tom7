@@ -112,7 +112,11 @@ struct
 
       | VLam of var * typ * value
 
-        (* XXX apparently need VVApp for valid values... *)
+      (* the dictionary for this type, assuming dlist gives
+         the dictionaries for the abstract type variables. *)
+      | VDict of typ * (var * value) list
+        
+      (* XXX apparently need VVApp for valid values...? *)
 
     and exp =
         Value of value
@@ -134,8 +138,7 @@ struct
 
       | Get of { addr : exp,
                  typ  : typ,
-                 (* FIXME No, an association list *)
-                 dict : exp option,
+                 dlist : (var * value) list option,
                  body : exp }
 
       | Throw of exp * exp
@@ -157,8 +160,6 @@ struct
 
       (* for more efficient treatment of blobs of text. *)
       | Jointext of exp list
-
-      | Deferred of exp Util.Oneshot.oneshot
 
     and dec =
         Do of exp

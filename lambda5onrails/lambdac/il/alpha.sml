@@ -105,14 +105,14 @@ struct
           end
 
     in
-      (case e of
+      case e of
          Value v => Value ` doval v
        | App (e, el) => App (self e, map self el)
        | Record lel => Record ` ListUtil.mapsecond self lel
        | Proj (l, t, e) => Proj(l, t, self e)
-       | Get { addr, typ, body, dict } => Get { addr = self addr, typ = typ,
+       | Get { addr, typ, body, dlist } => Get { addr = self addr, typ = typ,
                                                 body = self body, 
-                                                dict = Option.map self dict }
+                                                dlist = Option.map (ListUtil.mapsecond doval) dlist }
        | Raise (t, e) => Raise (t, self e)
        | Handle (e, v, e') =>
            (case dobinds [v] of
@@ -153,14 +153,7 @@ struct
            | _ => err "impossible")
        | Inject (t, l, eo) => Inject(t, l, Option.map self eo)
        | Jointext el => Jointext (map self el)
-       (* can defer this.. *)
-       | Deferred os => 
-             case Util.Oneshot.deref os of
-               NONE => err "alpha/unset oneshot"
-             | SOME e => self e)
-    (* not okay, since it's imperative; if the oneshot shows up
-       in multiple spots then the last rename sticks *)
-             (* (Util.Oneshot.wrap self os; Deferred os)) *)
+
     end
 
   fun alphavary e = alpha VM.empty VM.empty e

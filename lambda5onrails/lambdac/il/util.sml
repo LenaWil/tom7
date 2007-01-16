@@ -15,17 +15,13 @@ struct
     fun pointwise f exp = 
         (case exp of
              Value v => Value (pwv f v)
-           | Deferred os =>
-                 (case Util.Oneshot.deref os of
-                      SOME e => pointwise f e
-                    | NONE => raise ILUtil "unset oneshot in pointwise")
            | Jointext el => Jointext (map f el)
            | Record lel => Record (ListUtil.mapsecond f lel)
            | Proj (l, t, e) => Proj(l, t, f e)
-           | Get { addr, typ, body, dict } => Get { addr = f addr,
+           | Get { addr, typ, body, dlist } => Get { addr = f addr,
                                                     typ = typ,
                                                     body = f body,
-                                                    dict = Option.map f dict }
+                                                    dlist = Option.map (ListUtil.mapsecond (pwv f)) dlist }
            | Raise (t, e) => Raise(t, f e)
            | Handle (e, v, handler) => Handle(f e, v, f handler)
            | Seq (e1, e2) => Seq (f e1, f e2)
@@ -101,12 +97,10 @@ struct
             case exp of
                 Value v => Value (tsubstv v)
                 (* allow delayed *)
-              | Deferred os =>
-                    (Util.Oneshot.wrap self os; exp)
-              | Get { addr, typ, body, dict } => Get { addr = self addr,
+              | Get { addr, typ, body, dlist } => Get { addr = self addr,
                                                        typ = sub typ,
                                                        body = self body,
-                                                       dict = Option.map self dict }
+                                                       dlist = Option.map (ListUtil.mapsecond tsubstv) dlist }
               | Raise(t, e) => Raise(sub t, self e)
               | Proj(l, t, e) => Proj(l, sub t, self e)
               | Roll(t, e) => Roll(sub t, self e)
