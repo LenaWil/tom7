@@ -73,3 +73,23 @@ SDL_Event * ml_newevent() {
 int ml_eventtag(SDL_Event * e) {
   return e->type;
 }
+
+int ml_event8_2nd(SDL_Event * e) {
+  return (((SDL_KeyboardEvent*)e)->which);
+}
+
+int ml_event8_3rd(SDL_Event * e) {
+  return (((SDL_KeyboardEvent*)e)->state);
+}
+
+int ml_event_keyboard_sym(SDL_KeyboardEvent* e) {
+  return e->keysym.sym;
+}
+
+int ml_event_keyboard_mod(SDL_KeyboardEvent* e) {
+  return e->keysym.mod;
+}
+
+int ml_event_keyboard_unicode(SDL_KeyboardEvent* e) {
+  return e->keysym.unicode;
+}
