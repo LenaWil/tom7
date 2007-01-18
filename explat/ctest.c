@@ -32,7 +32,7 @@ int main(int argc, char ** argv) {
 
   // MessageBoxA (0, "screen set", "ok", 0);
 
-  SDL_Surface * png = IMG_Load("zapotec.bmp");
+  SDL_Surface * png = IMG_Load("icon.png");
 
   if (!png) {
     MessageBoxA (0, "no png", "ok", 0);
