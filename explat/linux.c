@@ -1,6 +1,6 @@
 
 #include <SDL.h>
-#include <windows.h>
+// #include <windows.h>
 
 int ml_init() {
   if (SDL_Init (SDL_INIT_VIDEO | 
