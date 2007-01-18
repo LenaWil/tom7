@@ -5,5 +5,5 @@ default : linux
 linux.o : linux.c
 	gcc -O `sdl-config --cflags` -c linux.c -o linux.o
 
-linux : linux.o linux.sml
-	mlton -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowImport true' linux.sml linux.o
+linux : linux.o *.sml
+	mlton -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowImport true' linux.cm linux.o
