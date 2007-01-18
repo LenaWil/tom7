@@ -1,5 +1,6 @@
 
 #include <SDL.h>
+#include <windows.h>
 
 int ml_init() {
   if (SDL_Init (SDL_INIT_VIDEO | 
@@ -48,10 +49,14 @@ SDL_Surface * ml_makescreen(int w, int h) {
 }
 
 void ml_blitall(SDL_Surface * src, SDL_Surface * dst, int x, int y) {
+  // char msg[512];
+  // sprintf(msg, "%p %p %d %d\n", src, dst, x, y);
+  // MessageBoxA(0, msg, "do blit:", 0);
   SDL_Rect r;
   r.x = x;
   r.y = y;
   SDL_BlitSurface(src, 0, dst, &r);
+  // MessageBoxA(0, "Successful Blit", "uh", 0);
 }
 
 int ml_surfacewidth(SDL_Surface * src) {

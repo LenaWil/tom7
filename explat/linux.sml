@@ -8,8 +8,21 @@ struct
 
   val init = _import "ml_init" : unit -> int ;
   val mkscreen = _import "ml_makescreen" : int * int -> ptr ;
-  val loadpng = _import "IMG_Load" : string -> ptr ;
-  val loadpng = fn s => loadpng (s ^ "\000")
+  fun loadpng s =
+      let 
+          val lp = _import "IMG_Load" : string -> ptr ;
+          val p = lp (s ^ "\000")
+      in
+          if (MLton.Pointer.null = p)
+          then NONE
+          else SOME p
+      end
+  fun messagebox s = 
+      let
+          val mb = _import "MessageBoxA" stdcall : int * string * string * int -> unit ;
+      in
+          mb (0, s ^ "\000", "message", 0)
+      end
   val flip = _import "SDL_Flip" : ptr -> unit ;
   val blit = _import "ml_blitall" : ptr * ptr * int * int -> unit ;
   val surface_width = _import "ml_surfacewidth" : ptr -> int ;
@@ -620,7 +633,7 @@ struct
   val () = case init () of
              0 => 
                let in
-                 print "SDL failed to initialize.\n";
+                 messagebox "SDL failed to initialize.";
                  raise Nope
                end
            | _ => ()
@@ -630,7 +643,13 @@ struct
 
   val screen = mkscreen (width, height)
 
-  val graphic = loadpng "icon.png"
+  val graphic = 
+      case loadpng "zapotec.bmp" of
+          NONE => raise Nope
+        | SOME p => p
+          
+  val () = messagebox "ok?"
+
   val w = surface_width graphic
   val h = surface_height graphic
 
@@ -669,8 +688,11 @@ struct
       val l = map goone l
 
     in
+      (* messagebox ("clearsurface..."); *)
       clearsurface (screen, 0wx000000);
-      app (fn (_, _, x, y) => blit (graphic, screen, trunc x, trunc y)) l;
+      (* messagebox ("blit..."); *)
+      app (fn (_, _, x, y) => blit (graphic, screen, 5, 10)) l;
+      (* messagebox ("right before flip..."); *)
       flip screen;
       key l
     end
@@ -689,5 +711,6 @@ struct
     (List.tabulate(50,
                    fn x =>
                    (real x, real x, 50.0, 50.0)))
+    handle e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
 
 end
