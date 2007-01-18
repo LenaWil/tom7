@@ -152,7 +152,7 @@ struct
        | VApp (v1, v2) => L.paren(%[vtol v1, $"`", vtol v2])
 
        (* XXX show dlist? *)
-       | VDict (t, dlist) => %[$"dict_", L.paren ` ttol t]
+       | VDict (t, dlist) => %[$"dict_", dlisttol dlist, L.paren ` ttol t]
 
        | FSel (n, v) => %[vtol v, $("." ^ Int.toString n)]
 
@@ -308,14 +308,10 @@ struct
                                    $"handle",
                                    %[%[$(V.tostring v), $"=>"], etol h]]
            | Get {addr = a, typ = t, body = e, dlist} => 
-                    %[$"from", etol a, $"get", 
-                      (case dlist of
-                         NONE => $""
-                       | SOME x => %[$"{dlist=", %(map (fn (v, va) => 
-                                                        %[$(V.tostring v),
-                                                          $"->",
-                                                          vtol va]) x),
-                                     $"}"]),
+                 %[$"from", etol a, $"get", 
+                   (case dlist of
+                      NONE => $""
+                    | SOME x => dlisttol x),
                       etol e, $":", ttol t]
 
            | Jointext el =>
@@ -323,6 +319,13 @@ struct
                    L.listex "[" "]" "," (map etol el)]
 
            (* | _ => $"???XXX???" *))
+
+    and dlisttol dlist =
+      %[$"{dlist=", %(map (fn (v, va) => 
+                           %[$(V.tostring v),
+                             $"->",
+                             vtol va]) dlist),
+        $"}"]
 
     and dtol d =
         (case d of
@@ -386,8 +389,15 @@ struct
                                         NONE => $"VALID"
                                       | SOME w => wtol w,
                                       $"=", vtol v])])
-           
-       | _ => $"unimplemented export")
+       | ExportType (tys, l, t) =>
+           % ($"export type" ::
+              (case tys of
+                 nil => nil
+               | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)]) @
+                 [$ l, $"=",
+                  L.indent 4 ` ttol t])
+
+           )
 
 
     and utol (Unit(ds, xs)) =

@@ -789,6 +789,18 @@ struct
                                            | SOME w => C.Modal w))
           end
 
+    | E.ExternType (nil, s) =>
+          let
+            val v = V.namedvar s
+          in
+            ([ExternType (0, s, v)],
+             C.bindc ctx s (Typ ` TVar v) 0 Regular)
+          end
+
+    (* To support extern types of higher kind, we need to support
+       TPolyVar... save it for later if desired. *)
+    | E.ExternType _ => error loc "extern types must have kind 0"
+
     (* some day we might add something to 'ty,' like a string list
        ref so that we can track the exception's history, or at least
        a string with its name and raise point. *)
@@ -1105,7 +1117,17 @@ struct
           end
 
     (* XXX5 it ought to be possible to write valid functions with this
-       syntax or a syntax like it. *)
+       syntax or a syntax like it. 
+
+       Basically, since this is a value, we shouldn't restrict the
+       declaration to 'here'. Instead we should elaborate it at
+       an existential world, and then if that world is unrestricted
+       at the end, we should make the binding valid.
+
+       To explicitly declare a function at another world, then we just
+       use type (judgment) annotation.
+
+       The same should be true of val decls that are generalizable. *)
     | E.Fun bundle =>
           let
 
@@ -1387,6 +1409,7 @@ struct
     in
       check_mobile ();
       Unit(idl, ixl)
-    end
+    end handle Match => raise Elaborate "match"
+  
 
 end

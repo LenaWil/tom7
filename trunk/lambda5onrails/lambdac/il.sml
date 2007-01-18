@@ -146,6 +146,7 @@ struct
 
       (* tag v with t *)
       | Tag of exp * exp
+      (* XXX5 should be like tageq instead *)
       (* tagtype, object, var (for all arms), branches, def *)
       | Tagcase of typ * exp * var * (var * exp) list * exp
 
