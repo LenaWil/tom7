@@ -1,0 +1,16 @@
+
+default : linux
+
+
+linux.o : linux.c
+	gcc -O -I SDL/include `SDL/sdl-config --cflags` -c linux.c -o linux.o
+
+linux : linux.o linux.sml
+	mlton -link-opt "`SDL/sdl-config --libs` -lSDL_image -ltiff -lpng -ljpeg -lz" -default-ann 'allowFFI true' linux.sml linux.o
+
+
+# the order of these libraries and object files is really important! Weird things will
+# happen if it's wrong!
+ctest : ctest.c
+	gcc -O `SDL/sdl-config --cflags` -c ctest.c -o ctest.o
+	gcc ctest.o `SDL/sdl-config --libs` -lSDL_image -lz -ltiff -lpng -ljpeg -o ctest
