@@ -654,9 +654,8 @@ struct
   val w = surface_width graphic
   val h = surface_height graphic
 
-  val gravity = 0.1
-
-  fun damp d = d * 0.9
+  fun damp 1 = 0
+    | damp d = (d * 99) div 100
 
   fun goone (dx, dy, x, y) =
     let
@@ -664,25 +663,22 @@ struct
       val x = x + dx
       val y = y + dy
       
-      val dy = dy + gravity
+      val dy = dy + 1
 
     (* bounces *)
-      val (x, dx) = if x < 0.0 then (0.1, damp (0.0 - dx))
-                    else if (x + real w > real width)
-                         then (real width - (real w + 0.1), damp (0.0 - dx))
+      val (x, dx) = if x < 0 then (1, damp (0 - dx))
+                    else if (x + w > width)
+                         then (width - (w + 1), damp (0 - dx))
                          else (x, dx)
 
-      val (y, dy) = if y < 0.0 then (0.1, damp (0.0 - dy))
-                    else if (y + real h > real height)
-                         then (real height - (real h + 0.1), damp (0.0 - dy))
+      val (y, dy) = if y < 0 then (1, damp (0 - dy))
+                    else if (y + h > height)
+                         then (height - (h + 1), damp (0 - dy))
                          else (y, dy)
 
     in
       (dx, dy, x, y)
     end
-
-  fun random () =
-    real (Word.toInt (Word.andb (0wxFFFFFF, MLton.Random.rand ()))) / real 0xFFFFFF
 
   fun loop l =
     let
@@ -692,7 +688,7 @@ struct
       (* messagebox ("clearsurface..."); *)
       clearsurface (screen, 0wx000000);
       (* messagebox ("blit..."); *)
-      app (fn (_, _, x, y) => blit (graphic, screen, 5, 10)) l;
+      app (fn (_, _, x, y) => blit (graphic, screen, x, y)) l;
       (* messagebox ("right before flip..."); *)
       flip screen;
       key l
@@ -701,17 +697,17 @@ struct
   and key l =
     case pollevent () of
       SOME (E_KeyDown { sym = SDLK_SPACE }) => 
-        loop (map (fn (dx, dy, x, y) => (0.0, dy + (10.0 * random () - 5.0), x, y)) l)
-        
+        loop (map (fn (dx, dy, x, y) => (0, dy, x, y)) l)
+    | SOME (E_KeyDown { sym = SDLK_ESCAPE }) => () (* quit *)
     | SOME (E_KeyDown _) =>
-        loop (map (fn (dx, dy, x, y) => (dx + (10.0 * random () - 5.0), dy + (10.0 * random () - 5.0), x, y)) l)
+        loop (map (fn (dx, dy, x, y) => (dx + 3, dy + 5, x, y)) l)
     | SOME E_Quit => ()
     | _ => loop l
 
   val () = loop 
-    (List.tabulate(50,
+    (List.tabulate(500,
                    fn x =>
-                   (real x, real x, 50.0, 50.0)))
+                   (x, x, 50, 50)))
     handle e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
 
 end
