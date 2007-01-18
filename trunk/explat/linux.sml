@@ -644,8 +644,9 @@ struct
   val screen = mkscreen (width, height)
 
   val graphic = 
-      case loadpng "zapotec.bmp" of
-          NONE => raise Nope
+      case loadpng "icon.png" of
+          NONE => (messagebox "couldn't open graphic";
+                   raise Nope)
         | SOME p => p
           
   val () = messagebox "ok?"

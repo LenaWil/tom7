@@ -28,8 +28,13 @@ to build SDL_image, first
 export SDL_CONFIG=/path/to/explat/SDL/sdl-config
 ./configure CFLAGS=-I/usr/local/include LIBS=-L/usr/local/lib ; make; make install
 
+Then in /usr/local/bin/ copy libpng-3.dll to libpng13.dll   (?)
+
+OK, you're set!
+
 
 
 Note: according to 
   http://www.spacejack.org/games/mingw/mingw-sdl.html
-      it's possible to just use the MSVC library (.lib)?
+      it's possible to just use the MSVC binary library (.lib)?
+

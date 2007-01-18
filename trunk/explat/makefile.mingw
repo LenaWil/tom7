@@ -11,6 +11,7 @@ linux : linux.o linux.sml
 
 # the order of these libraries and object files is really important! Weird things will
 # happen if it's wrong!
+#  -lz -ltiff -lpng -ljpeg
 ctest : ctest.c
 	gcc -O `SDL/sdl-config --cflags` -c ctest.c -o ctest.o
-	gcc ctest.o `SDL/sdl-config --libs` -lSDL_image -lz -ltiff -lpng -ljpeg -o ctest
+	gcc ctest.o `SDL/sdl-config --libs` -lSDL_image -o ctest
