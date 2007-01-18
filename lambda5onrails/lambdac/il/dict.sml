@@ -62,6 +62,12 @@ struct
 
   exception ILDict of string
 
+  (* For a type labeled l, derive the label that
+     will stand for its dictionary. *)
+  fun dictbar l = l ^ ";dict"
+
+  fun list x = [x]
+
   (* the context is an association list of abstract type variable to
      value variable standing for the dictionary at that type *)
   val initial = nil
@@ -80,40 +86,30 @@ struct
      | Seq (e, e') => Seq (te G e, te G e')
      | Let (d, e) => 
          let
-           val (G, d) = td G d
+           val (G, ds) = td G d
          in
-           Let(d, te G e)
+           foldr Let (te G e) ds
          end
      | Unroll e => Unroll ` te G e
 
      | Get { dlist = SOME _, ... } => raise ILDict "get already has dictionary!"
      | Get { addr, typ, dlist = NONE, body} =>
          Get { addr = te G addr, typ = typ, dlist = SOME G, body = te G body }
-(*
+     | Tag (e1, e2) => Tag (te G e1, te G e2)
+     | Tagcase (t, e, v, vel, def) => 
+         Tagcase (t, te G e, v, ListUtil.mapsecond (te G) vel, te G def)
+     (* Assuming these don't need marshalling functions, though we
+        could put them here... *)
+     | Primapp (po, el, tl) => Primapp (po, map (te G) el, tl)
+     | Throw (e1, e2) => Throw (te G e1, te G e2)
+     | Letcc (v, t, e) => Letcc (v, t, te G e)
+     | Sumcase (t, e, v, lel, def) =>
+         Sumcase(t, te G e, v, ListUtil.mapsecond (te G) lel, te G def)
 
-      | Throw of exp * exp
-      | Letcc of var * typ * exp
+     | Jointext el => Jointext ` map (te G) el
+     | Proj (l, t, e) => Proj (l, t, te G e)
 
-      (* tag v with t *)
-      | Tag of exp * exp
-      (* tagtype, object, var (for all arms), branches, def *)
-      | Tagcase of typ * exp * var * (var * exp) list * exp
-
-      (* apply a primitive to some expressions and types *)
-      | Primapp of Primop.primop * exp list * typ list
-
-      (* sum type, object, var (for all arms), branches, default.
-         the label/exp list need not be exhaustive.
-         *)
-      | Sumcase of typ * exp * var * (label * exp) list * exp
-      | Inject of typ * label * exp option
-
-      (* for more efficient treatment of blobs of text. *)
-      | Jointext of exp list
-
-*)
-
-     | _ => Value ` Polyvar{worlds=nil, tys=nil, var=V.namedvar "dictexp_unimplemented"}
+(*     | _ => Value ` Polyvar{worlds=nil, tys=nil, var=V.namedvar "dictexp_unimplemented_exp"} *)
          )
        
   and tv G v =
@@ -164,7 +160,7 @@ struct
   and td G d =
     (case d of
       Val (Poly({worlds=nil, tys=nil}, (v, t, e))) => 
-        (G, Val (Poly ({worlds=nil, tys = nil}, (v, t, te G e))))
+        (G, list ` Val (Poly ({worlds=nil, tys = nil}, (v, t, te G e))))
         
     (* abstraction happens at Val decls *)
     | Val (Poly({worlds, tys}, (v, t, Value va))) =>
@@ -180,6 +176,7 @@ struct
 
        in
          (G (* we translate all polyvars so no need to change this.. *),
+          list `
           Val (Poly({worlds=worlds, tys=tys},
                     (v, mkt tys, Value (mkv vars)))))
        end
@@ -190,17 +187,36 @@ struct
          fun mkt nil = t
            | mkt (a :: rest) = VArrow(Dict (TVar a), mkt rest)
        in
-         (G, ExternVal(Poly({worlds=worlds,tys=tys}, (l, v, mkt tys, wo))))
+         (G, list ` ExternVal(Poly({worlds=worlds,tys=tys}, (l, v, mkt tys, wo))))
        end
 
-   | Do e => (G, Do (te G e))
+   | ExternWorld(l, v) => (G, list ` ExternWorld (l, v))
 
-   | _ => (G,Do ` Value ` Polyvar{worlds=nil, tys=nil, var=V.namedvar "dict_unimplemented"})
+   | ExternType(0, l, v) =>
+       let
+         val vd = V.namedvar (V.basename v ^ "_impd")
+       in
+         ((v, Var vd) :: G,
+          [ExternType(0, l, v),
+           ExternVal(Poly ({worlds=nil, tys=nil}, (dictbar l, vd, Dict (TVar v), NONE)))])
+       end
+
+   | ExternType _ => raise ILDict "saw extern type of kind > 0"
+
+   | Do e => (G, list ` Do (te G e))
+
+   | _ => (G, [Do ` Value ` Polyvar{worlds=nil, tys=nil, var=V.namedvar "dict_unimplemented_dec"}])
        )
 
   and tx G x = 
     (case x of
-       _ => ExportWorld ("dict_unimplemented", WVar (V.namedvar "dict_unimplemented")))
+       ExportWorld (l, w) => list ` ExportWorld (l, w)
+     | ExportType (nil, l, t) => 
+         [ExportType (nil, l, t),
+          (* and dictionary for it.. *)
+          ExportVal (Poly ({worlds=nil, tys=nil}, (dictbar l, Dict t, NONE, dictfor G t)))]
+     | ExportType _ => raise ILDict "export type of kind > 0"
+     | _ => list ` ExportWorld ("dict_unimplemented", WVar (V.namedvar "dict_unimplemented_export")))
          
   fun transform (Unit(ds, xs)) = 
     let
@@ -210,12 +226,12 @@ struct
           val (G, d) = td G d
           val (G, ds) = tds G ds
         in
-          (G, d :: ds)
+          (G, d @ ds)
         end
 
       val (G, ds) = tds initial ds
     in
-      Unit(ds, map (tx G) xs)
+      Unit(ds, List.concat ` map (tx G) xs)
     end handle Match => raise ILDict "dict not finished"
     
 

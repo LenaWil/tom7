@@ -553,7 +553,8 @@ struct
 
                  `EXTERN >> `WORLD >> id wth ExternWorld,
 
-                 (* XXX also extern type, extern world *)
+                 `EXTERN >> `TYPE >> alt[tyvars && id,
+                                         succeed nil && id] wth ExternType,
 
                  `DO >> "expected EXP after DO" ** 
                    (call G exp wth Do),

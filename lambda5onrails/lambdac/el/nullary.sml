@@ -151,6 +151,7 @@ struct
 
            | ExternWorld w => (G, ExternWorld w)
            | ExternVal(sl, s, t, w) => (G, ExternVal(sl, s, tul G t, w))
+           | ExternType(sl, s) => (G, ExternType(sl, s))
 
            | Val (sl, p, e) => (G, Val (sl, pul G p, nul G e))
 

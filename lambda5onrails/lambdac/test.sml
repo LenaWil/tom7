@@ -127,7 +127,8 @@ struct
             
           (* rewrite nullary constructors and types *)
           val el = (Nullary.nullary el)
-            
+             handle Match => raise Nullary.Nullary "match"
+
           val () = vprint "Elaborating...\n"
         in
           (Elaborate.elaborate el)
