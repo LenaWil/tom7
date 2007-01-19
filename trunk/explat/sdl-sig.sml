@@ -274,6 +274,9 @@ sig
 
     val flip : surface -> unit
 
+    val getticks : unit -> Word32.word
+    val delay : int -> unit
+
     val clearsurface : surface * color -> unit
 
     structure Image :
