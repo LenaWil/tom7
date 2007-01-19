@@ -1,4 +1,3 @@
-
 structure SDL :> SDL =
 struct
 
@@ -671,7 +670,9 @@ struct
         0 => raise SDL "could not initialize"
       | _ => ()
   end
-  
+
+  val getticks = _import "SDL_GetTicks" : unit -> Word32.word ;
+  val delay = _import "SDL_Delay" : int -> unit ;
 
   structure Image =
   struct
