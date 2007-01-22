@@ -24,6 +24,9 @@ struct
   val TILESW = width div 16
   val TILESH = height div 16
 
+  val ROBOTH = 32
+  val ROBOTW = 16
+
   val screen = makescreen (width, height)
 
   fun requireimage s =
@@ -32,7 +35,8 @@ struct
                raise Nope)
     | SOME p => p
 
-  val robot = requireimage "testgraphics/robot.png"
+  val robotr = requireimage "testgraphics/robot.png"
+  val robotl = requireimage "testgraphics/robotl.png" (* XXX should be able to flip graphics *)
   val solid = requireimage "testgraphics/solid.png"
 
   (* the mask tells us where things can walk *)
@@ -56,22 +60,163 @@ struct
         MEMPTY => ()
       | t => blitall (tilefor t, screen, x * TILEW, y * TILEH)))
 
-  fun loop l =
-    let
-    in
-      clearsurface (screen, color (0w0, 0w0, 0w0, 0w0));
-      drawworld ();
-      flip screen;
-      key l
-    end
+  datatype dir = UP | DOWN | LEFT | RIGHT
+  datatype facing = FLEFT | FRIGHT
 
-  and key l =
+  val botx = ref 50
+  val boty = ref 50
+  val botface = ref FRIGHT
+  (* (* in sixteenths of a pixel per frame *) *)
+  val botdx = ref 0
+  val botdy = ref 0
+
+  fun drawbot () =
+      let val img = 
+          (case !botface of
+               FLEFT => robotl
+             | FRIGHT => robotr)
+      in
+          blitall (img, screen, !botx, !boty)
+      end
+
+  datatype intention =
+      I_GO of dir
+    | I_JUMP
+
+  fun dtos LEFT = "left"
+    | dtos RIGHT = "right"
+    | dtos UP = "up"
+    | dtos DOWN = "down"
+
+  fun inttos (I_GO d) = "go " ^ dtos d
+    | inttos I_JUMP = "jump"
+
+  fun intends il i = List.exists (fn x => x = i) il
+
+  (* number of pixels per frame that we can walk at maximum *)
+  val MAXWALK = 2
+  val TERMINAL_VELOCITY = 3
+  val JUMP_VELOCITY = 12
+
+  fun movebot { nexttick, intention = i } =
+      (* first, react to the player's intentions *)
+      let
+          val dx = !botdx
+          val dy = !botdy
+          val x = !botx
+          val y = !boty
+              
+          (* val () = print (StringUtil.delimit ", " (map Int.toString [dx, dy, x, y])); *)
+          val () = 
+              case i of
+                  nil => () 
+                | _ => print (StringUtil.delimit " & " (map inttos i) ^ "\n")
+
+          val dx =
+              if intends i (I_GO LEFT)
+                 andalso dx > ~ MAXWALK
+              then dx - 1
+              else dx
+          val dx = 
+              if intends i (I_GO RIGHT)
+                 andalso dx < MAXWALK
+              then dx + 1
+              else dx
+
+          (* and if we don't intend to move at all, slow us down *)
+          val dx = 
+              if not (intends i (I_GO RIGHT)) andalso
+                 not (intends i (I_GO LEFT))
+              then (if dx > 0 then dx - 1
+                    else if dx < 0 then dx + 1 else 0)
+              else dx
+                  
+          (* XXX jumping -- only when not in air already! *)
+
+          val (dy, i) = if intends i (I_JUMP)
+                        then (dy - JUMP_VELOCITY,
+                              List.filter (fn I_JUMP => false | _ => true) i)
+                        else (dy, i)
+
+          (* falling *)
+          val dy = if dy <= TERMINAL_VELOCITY 
+                   then dy + 1
+                   else dy
+
+          (* XXX world effects... *)
+
+          (* now try moving in that direction *)
+          (* XXX this collision detection needs to be much more sophisticated, of course! *)
+          val (dy, y) = if dy > 0 andalso 
+                           y >= ((TILESH - 1) * TILEH) - ROBOTH
+                        then (0, ((TILESH - 1) * TILEH) - ROBOTH)
+                        else (dy, y + dy)
+
+          val (dx, x) = (dx, x + dx)
+      in
+          (* print (" -> " ^ StringUtil.delimit ", " (map Int.toString [dx, dy, x, y]) ^ "\n"); *)
+          botdx := dx;
+          botdy := dy;
+          botx := x;
+          boty := y;
+          i
+      end
+                  
+  fun loop { nexttick, intention } =
+      if getticks () > nexttick
+      then 
+          let
+              val intention = movebot { nexttick = nexttick, intention = intention }
+          in
+              clearsurface (screen, color (0w0, 0w0, 0w0, 0w0));
+              drawworld ();
+              drawbot ();
+              flip screen;
+              key { nexttick = nexttick + 0w10, intention = intention }
+          end
+      else
+          let in
+              SDL.delay 1;
+              key { nexttick = nexttick, intention = intention }
+          end
+              
+              
+
+  and key { nexttick, intention = i } = 
     case pollevent () of
       SOME (E_KeyDown { sym = SDLK_ESCAPE }) => () (* quit *)
-    | SOME E_Quit => ()
-    | _ => loop l
 
-  val () = loop ()
+    | SOME (E_KeyDown { sym = SDLK_k }) =>
+          (botface := FLEFT;
+           if intends i (I_GO LEFT)
+           then loop { nexttick = nexttick, intention = i }
+           else loop { nexttick = nexttick, intention = (I_GO LEFT :: i) })
+
+    | SOME (E_KeyDown { sym = SDLK_SPACE }) =>
+          if intends i (I_JUMP)
+          then loop { nexttick = nexttick, intention = i }
+          else loop { nexttick = nexttick, intention = (I_JUMP :: i) }
+
+    | SOME (E_KeyDown { sym = SDLK_l }) =>
+          (botface := FRIGHT;
+           if intends i (I_GO RIGHT)
+           then loop { nexttick = nexttick, intention = i }
+           else loop { nexttick = nexttick, intention = I_GO RIGHT :: i })
+
+    | SOME (E_KeyUp { sym = SDLK_SPACE }) =>
+              loop { nexttick = nexttick, intention = List.filter (fn I_JUMP => false | _ => true) i }
+
+    | SOME (E_KeyUp { sym = SDLK_k }) =>
+            (print "LEFT_UP\n";
+             loop { nexttick = nexttick, intention = List.filter (fn I_GO LEFT => false | _ => true) i })
+
+    | SOME (E_KeyUp { sym = SDLK_l }) =>
+              loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i }
+
+    | SOME E_Quit => ()
+    | _ => loop { nexttick = nexttick, intention = i }
+
+  val () = loop { nexttick = 0w0, intention = nil }
     handle e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
 
 end
