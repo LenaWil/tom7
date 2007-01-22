@@ -12,8 +12,10 @@ int ml_init() {
     printf("Unable to initialize SDL. (%s)\n", SDL_GetError());
     
     return 0;
+  } else { 
+    SDL_EnableUNICODE(1);
+    return 1;
   }
-  else return 1;
 }
 
 SDL_Surface * ml_makescreen(int w, int h) {

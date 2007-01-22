@@ -407,7 +407,7 @@ struct
      SDLK_z,                  (* = 122 *)
      SDLK_DELETE              (* = 127 *)
 
-     ] @ List.tabulate (160 - 127 - 1, fn _ => SDLK_UNKNOWN) @ [
+     ] @ List.tabulate ((160 - 127) - 1, fn _ => SDLK_UNKNOWN) @ [
      
      SDLK_WORLD_0,            (* = 160 *)
      SDLK_WORLD_1,            (* = 161 *)

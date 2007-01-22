@@ -1,12 +1,12 @@
 
-default : mingw
+default : jumptest.exe
 
 
 linux.o : linux.c
 	gcc -O -I SDL/include `SDL/sdl-config --cflags` -c linux.c -o linux.o
 
-mingw : linux.o mingw.sml
-	mlton -link-opt "`SDL/sdl-config --libs` -lSDL_image -ltiff -lpng -ljpeg -lz" -default-ann 'allowFFI true' mingw.sml linux.o
+jumptest.exe : linux.o *.sml jumptest.cm
+	mlton -link-opt "`SDL/sdl-config --libs` -lSDL_image -ltiff -lpng -ljpeg -lz" -output jumptest.exe -default-ann 'allowFFI true' jumptest.cm linux.o
 
 
 # the order of these libraries and object files is really important! Weird things will
