@@ -9,6 +9,8 @@ struct
 
   type color = Word32.word
 
+  type mousestate = Word8.word
+
   exception SDL of string
   exception Invalid
   val null = MLton.Pointer.null
@@ -269,7 +271,7 @@ struct
       E_Active
     | E_KeyDown of { sym : sdlk }
     | E_KeyUp of { sym : sdlk }
-    | E_MouseMotion
+    | E_MouseMotion of { which : int, state : mousestate, x : int, y : int, xrel : int, yrel : int }
     | E_MouseDown
     | E_MouseUp
     | E_JoyAxis
@@ -408,7 +410,8 @@ struct
      SDLK_DELETE              (* = 127 *)
 
      ] @ List.tabulate ((160 - 127) - 1, fn _ => SDLK_UNKNOWN) @ [
-     
+
+     (* FIXME these appear to be off somehow (left/right don't work) *)
      SDLK_WORLD_0,            (* = 160 *)
      SDLK_WORLD_1,            (* = 161 *)
      SDLK_WORLD_2,            (* = 162 *)
@@ -586,6 +589,14 @@ struct
   val eventtag_ = _import "ml_eventtag" : ptr -> int ;
   val event_keyboard_sym_ = _import "ml_event_keyboard_sym" : ptr -> int ;
 
+  val event8_2nd_ = _import "ml_event8_2nd" : ptr -> int ;
+  val event8_3rd_ = _import "ml_event8_3rd" : ptr -> int ;
+    
+  val event_mmotion_x_ = _import "ml_event_mmotion_x" : ptr -> int ;
+  val event_mmotion_y_ = _import "ml_event_mmotion_y" : ptr -> int ;
+  val event_mmotion_xrel_ = _import "ml_event_mmotion_xrel" : ptr -> int ;
+  val event_mmotion_yrel_ = _import "ml_event_mmotion_yrel" : ptr -> int ;
+
   fun clearsurface (s, w) = clearsurface_ (!! s, w)
 
   fun surface_width s = surface_width_ (!!s)
@@ -599,6 +610,12 @@ struct
      | 2 => E_KeyDown { sym = sdlkey (event_keyboard_sym_ e) }
      | 3 => E_KeyUp { sym = sdlkey (event_keyboard_sym_ e) }
      | 4 => E_MouseMotion
+         { which = event8_2nd_ e, 
+           state = Word8.fromInt (event8_3rd_ e),
+           x = event_mmotion_x_ e,
+           y = event_mmotion_y_ e,
+           xrel = event_mmotion_xrel_ e,
+           yrel = event_mmotion_yrel_ e }
      | 5 => E_MouseDown
      | 6 => E_MouseUp
      | 7 => E_JoyAxis

@@ -7,6 +7,8 @@ sig
   type surface
   type color
 
+  type mousestate
+
     datatype sdlk =
         SDLK_UNKNOWN            
       | SDLK_BACKSPACE          
@@ -246,7 +248,7 @@ sig
       E_Active
     | E_KeyDown of { sym : sdlk }
     | E_KeyUp of { sym : sdlk }
-    | E_MouseMotion
+    | E_MouseMotion of { which : int, state : mousestate, x : int, y : int, xrel : int, yrel : int }
     | E_MouseDown
     | E_MouseUp
     | E_JoyAxis

@@ -100,3 +100,16 @@ int ml_event_keyboard_mod(SDL_KeyboardEvent* e) {
 int ml_event_keyboard_unicode(SDL_KeyboardEvent* e) {
   return e->keysym.unicode;
 }
+
+int ml_event_mmotion_x(SDL_MouseMotionEvent* e) {
+  return e->x;
+}
+int ml_event_mmotion_y(SDL_MouseMotionEvent* e) {
+  return e->y;
+}
+int ml_event_mmotion_xrel(SDL_MouseMotionEvent* e) {
+  return e->xrel;
+}
+int ml_event_mmotion_yrel(SDL_MouseMotionEvent* e) {
+  return e->yrel;
+}

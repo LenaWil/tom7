@@ -172,7 +172,7 @@ struct
               drawworld ();
               drawbot ();
               flip screen;
-              key { nexttick = nexttick + 0w10, intention = intention }
+              key { nexttick = getticks() + 0w5, intention = intention }
           end
       else
           let in
@@ -182,9 +182,21 @@ struct
               
               
 
-  and key { nexttick, intention = i } = 
+  and key ( cur as { nexttick, intention = i } ) = 
     case pollevent () of
       SOME (E_KeyDown { sym = SDLK_ESCAPE }) => () (* quit *)
+
+    | SOME (E_MouseMotion { xrel, yrel, ...}) =>
+        let in 
+          botdx := !botdx + xrel; botdy := !botdy + yrel;
+          botdx := (if !botdx > 4 then 4
+                   else (if !botdx < ~4 then ~4
+                         else !botdx));
+          botdy := (if !botdy > 4 then 4
+                    else (if !botdy < ~4 then ~4
+                          else !botdy));
+          loop cur
+        end
 
     | SOME (E_KeyDown { sym = SDLK_k }) =>
           (botface := FLEFT;

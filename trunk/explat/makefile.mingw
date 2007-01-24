@@ -2,11 +2,11 @@
 default : jumptest.exe
 
 
-linux.o : linux.c
-	gcc -O -I SDL/include `SDL/sdl-config --cflags` -c linux.c -o linux.o
+sdlml.o : sdlml.c
+	gcc -O -I SDL/include `SDL/sdl-config --cflags` -c sdlml.c -o sdlml.o
 
-jumptest.exe : linux.o *.sml jumptest.cm
-	mlton -link-opt "`SDL/sdl-config --libs` -lSDL_image -ltiff -lpng -ljpeg -lz" -output jumptest.exe -default-ann 'allowFFI true' jumptest.cm linux.o
+jumptest.exe : sdlml.o *.sml jumptest.cm
+	mlton -link-opt "`SDL/sdl-config --libs` -lSDL_image -ltiff -lpng -ljpeg -lz" -output jumptest.exe -default-ann 'allowFFI true' jumptest.cm sdlml.o
 
 
 # the order of these libraries and object files is really important! Weird things will

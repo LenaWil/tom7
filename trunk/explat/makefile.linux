@@ -1,9 +1,9 @@
 
-default : jumptest
+default : jumptest.exe
 
 
-linux.o : linux.c
-	gcc -O `sdl-config --cflags` -c linux.c -o linux.o
+sdlml.o : sdlml.c
+	gcc -O `sdl-config --cflags` -c sdlml.c -o sdlml.o
 
-jumptest.exe : linux.o *.sml
-	mlton -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowImport true' -output jumptest.exe jumptest.cm linux.o 
+jumptest.exe : sdlml.o *.sml
+	mlton -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowImport true' -output jumptest.exe jumptest.cm sdlml.o 
