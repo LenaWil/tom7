@@ -1,4 +1,15 @@
 
+
+ Should support "extern mobile type" (easy, just check
+ mobility with concrete type at link time); see Dagstuhl
+ talk for compelling example.
+
+
+--------------------------------------------------
+    Old bugs from Humlock; maybe obsolete
+--------------------------------------------------
+
+
 BUG: nullary is wrong; we define LESS as nullary and later as exp * exp, and then we can never use LESS.
 
 
