@@ -9,6 +9,9 @@ group is
 ../sml-lib/util/stringutil-sig.sml
 ../sml-lib/util/stringutil.sml
 
+flag-sig.sml
+flag.sml
+
 sdl-sig.sml
 sdl.sml
 

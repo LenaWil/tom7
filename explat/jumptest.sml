@@ -63,12 +63,27 @@ struct
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
 
+  (* bot flags *)
+  structure BF :>
+  sig
+      include FLAG
+      val ONGROUND : flag
+  end =
+  struct
+      open Flag
+      val ONGROUND = 0
+      val NFLAGS = 1
+      val flags = nflags NFLAGS
+  end
+
+
   val botx = ref 50
   val boty = ref 50
   val botface = ref FRIGHT
   (* (* in sixteenths of a pixel per frame *) *)
   val botdx = ref 0
   val botdy = ref 0
+  val botstate = BF.flags
 
   fun drawbot () =
       let val img = 
