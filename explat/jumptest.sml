@@ -6,6 +6,8 @@ struct
 
   exception Nope
 
+  exception Test of string
+
   open SDL
 
   fun messagebox s = 
@@ -39,14 +41,25 @@ struct
   val robotl = requireimage "testgraphics/robotl.png" (* XXX should be able to flip graphics *)
   val solid = requireimage "testgraphics/solid.png"
 
+  val redhi = requireimage "testgraphics/redhighlight.png"
+  val greenhi = requireimage "testgraphics/greenhighlight.png"
+
   (* the mask tells us where things can walk *)
   datatype slope = LM | MH | HM | ML
   datatype mask = MEMPTY | MSOLID | MRAMP of slope (* | MCEIL of slope *)
+
+  fun ttos MEMPTY = "empty"
+    | ttos MSOLID = "solid"
+    | ttos (MRAMP _) = "ramp?"
 
   val world = Array.array(TILESW * TILESH, MEMPTY)
   fun worldat (x, y) = Array.sub(world, y * TILESW + x)
   fun setworld (x, y) m = Array.update(world, y * TILESW + x, m)
   val () = Util.for 0 (TILESW - 1) (fn x => setworld (x, TILESH - 1) MSOLID)
+  val () = Util.for 0 (Int.min (TILESW, TILESH) - 1) (fn x => 
+                                                      if x mod 2 = 0 
+                                                      then setworld (x, TILESH - 1 - x) MSOLID
+                                                      else ())
 
   fun tilefor MSOLID = solid
     | tilefor _ = raise Nope
@@ -162,11 +175,78 @@ struct
 
           (* now try moving in that direction *)
           (* XXX this collision detection needs to be much more sophisticated, of course! *)
+          val (dy, y) =
+              (* 
+                 simple: if the tile we're currently on, or the
+                 tile below it, has any kind of clip, and we would
+                 hit it this frame, then snap. Do this for both left
+                 and right feet and take the min. *)
+              if (dy > 0)
+              then
+                  let
+                      (* look at its bottom *)
+                      val y = y + ROBOTH
+
+                      (* give the x coordinate to use... *)
+                      fun vdrop x =
+                          let
+                              val xt = x div TILEW
+                              val yt1 = y div TILEH
+                              val yt2 = (y + dy) div TILEH
+                                  
+                              fun snap (yt, dist) =
+                                  (case worldat (xt, yt) of
+                                       MEMPTY => raise Test "can't snap to empty, duh"
+                                     | MSOLID => (print ("snapped to yt=" ^ Int.toString yt ^ " (dist="
+                                                         ^ Int.toString dist ^ ")\n");
+                                                  (0, yt * TILEH - 1))
+                                     | MRAMP _ => 
+                                           (* XXX should compute snap, etc. *)
+                                           raise Test "ramps not supported"
+                                           )
+                          in
+                              drawpixel (screen, x - 1, y - 1, color (0wxFF, 0w0, 0w0, 0wxFF));
+                              blitall(greenhi, screen, xt * TILEW, yt1 * TILEH);
+                              blitall(redhi,   screen, xt * TILEW, yt2 * TILEH);
+                              print ("Vdrop: x: " ^ Int.toString x ^ " y: " ^ Int.toString y ^
+                                     " dy: " ^ Int.toString dy ^ 
+                                     " xt: " ^ Int.toString xt ^ 
+                                     " yt1: " ^ Int.toString yt1 ^ "(" ^ ttos (worldat (xt, yt1)) ^ ")" ^
+                                     " yt2: " ^ Int.toString yt2 ^ "(" ^ ttos (worldat (xt, yt2)) ^ ")" ^
+                                     "\n");
+                              (* if our current location stops us, then stop *)
+                              (case worldat(xt, yt1) of
+                                   MEMPTY =>
+                                   (* are we going to enter the next spot? *)
+                                       if yt1 <> yt2 
+                                       then (case worldat(xt, yt2) of
+                                                 MEMPTY => (* just drop, safely *)
+                                                           (dy, y + dy)
+                                               (* otherwise snap *)
+                                               | _ => snap (yt2, (y + dy) mod TILEH))
+                                       else (dy, y + dy)
+                                     | _ => snap (yt1, dy))
+                                   
+                          end
+
+                      val (dyl, yl) = vdrop (x + 0)
+                      val (dyr, yr) = vdrop (x + (ROBOTW - 1))
+                  in
+                      if yl < yr
+                      then (dyl, yl - ROBOTH)
+                      else (dyr, yr - ROBOTW)
+                  end
+              else (dy, y)
+
+                  (*
           val (dy, y) = if dy > 0 andalso 
                            y >= ((TILESH - 1) * TILEH) - ROBOTH
                         then (0, ((TILESH - 1) * TILEH) - ROBOTH)
                         else (dy, y + dy)
+                        *)
 
+          (* then do it: *)
+          val (dy, y) = (dy, y + dy)
           val (dx, x) = (dx, x + dx)
       in
           (* print (" -> " ^ StringUtil.delimit ", " (map Int.toString [dx, dy, x, y]) ^ "\n"); *)
@@ -175,19 +255,20 @@ struct
           botx := x;
           boty := y;
           i
-      end
+      end 
                   
   fun loop { nexttick, intention } =
       if getticks () > nexttick
       then 
           let
+              val () =               clearsurface (screen, color (0w0, 0w0, 0w0, 0w0))
               val intention = movebot { nexttick = nexttick, intention = intention }
           in
-              clearsurface (screen, color (0w0, 0w0, 0w0, 0w0));
+
               drawworld ();
               drawbot ();
               flip screen;
-              key { nexttick = getticks() + 0w5, intention = intention }
+              key { nexttick = getticks() + 0w100, intention = intention }
           end
       else
           let in
@@ -244,6 +325,8 @@ struct
     | _ => loop { nexttick = nexttick, intention = i }
 
   val () = loop { nexttick = 0w0, intention = nil }
-    handle e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
+    handle Test s => messagebox ("exn test: " ^ s)
+        | SDL s => messagebox ("sdl error: " ^ s)
+        | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
 
 end
