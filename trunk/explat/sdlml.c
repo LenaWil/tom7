@@ -113,3 +113,47 @@ int ml_event_mmotion_xrel(SDL_MouseMotionEvent* e) {
 int ml_event_mmotion_yrel(SDL_MouseMotionEvent* e) {
   return e->yrel;
 }
+
+/* XXX should lock before calling (for certain modes)... */
+void ml_drawpixel(SDL_Surface *surf, int x, int y,
+		  int R, int G, int B) {
+  Uint32 color = SDL_MapRGB(surf->format, R, G, B);
+  switch (surf->format->BytesPerPixel) {
+    case 1: // Assuming 8-bpp
+      {
+        Uint8 *bufp;
+        bufp = (Uint8 *)surf->pixels + y*surf->pitch + x;
+        *bufp = color;
+      }
+      break;
+    case 2: // Probably 15-bpp or 16-bpp
+      {
+        Uint16 *bufp;
+        bufp = (Uint16 *)surf->pixels + y*surf->pitch/2 + x;
+        *bufp = color;
+      }
+      break;
+    case 3: // Slow 24-bpp mode, usually not used
+      {
+        Uint8 *bufp;
+        bufp = (Uint8 *)surf->pixels + y*surf->pitch + x * 3;
+        if(SDL_BYTEORDER == SDL_LIL_ENDIAN) {
+	    bufp[0] = color;
+	    bufp[1] = color >> 8;
+	    bufp[2] = color >> 16;
+	  } else {
+	    bufp[2] = color;
+	    bufp[1] = color >> 8;
+	    bufp[0] = color >> 16;
+	  }
+      }
+      break;
+    case 4: // Probably 32-bpp
+      {
+        Uint32 *bufp;
+        bufp = (Uint32 *)surf->pixels + y*surf->pitch/4 + x;
+        *bufp = color;
+      }
+      break;
+    }
+}

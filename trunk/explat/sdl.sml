@@ -28,7 +28,12 @@ struct
       Word32.orb
       (Word32.<< (Word32.fromInt (Word8.toInt g), 0w8),
        Word32.fromInt (Word8.toInt b))))
-
+  fun components x =
+      (Word32.andb(Word32.>>(x, 0w24), 0w255),
+       Word32.andb(Word32.>>(x, 0w16), 0w255),
+       Word32.andb(Word32.>>(x, 0w8), 0w255),
+       Word32.andb(x, 0w255))
+      
   type surface = safe
 
 
@@ -676,6 +681,23 @@ struct
   local val ba = _import "ml_blitall" : ptr * ptr * int * int -> unit ;
   in
     fun blitall (s1, s2, x, y) = ba (!!s1, !!s2, x, y)
+  end
+
+  local val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
+  in
+      fun drawpixel (s, x, y, c) =
+          let
+              val (r, g, b, a) = components c
+          in
+              if x < 0 orelse y < 0
+                 orelse x >= surface_width s
+                 orelse y >= surface_height s
+              then
+                  raise SDL ("pixel out of bounds: " ^ Int.toString x ^ "," ^ Int.toString y ^
+                              " with surface size: " ^ Int.toString (surface_width s) ^ "x" ^
+                              Int.toString (surface_height s))
+              else dp (!!s, x, y, r, g, b)
+          end
   end
 
 

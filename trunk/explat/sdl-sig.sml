@@ -281,6 +281,8 @@ sig
 
     val clearsurface : surface * color -> unit
 
+    val drawpixel : surface * int * int * color -> unit
+
     structure Image :
     sig
       
