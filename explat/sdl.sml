@@ -680,7 +680,11 @@ struct
 
   local val ba = _import "ml_blitall" : ptr * ptr * int * int -> unit ;
   in
-    fun blitall (s1, s2, x, y) = ba (!!s1, !!s2, x, y)
+    fun blitall (s1, s2, x, y) = 
+        let in
+            (* print ("blitall to " ^ Int.toString x ^ "," ^ Int.toString y ^ "!\n"); *)
+            ba (!!s1, !!s2, x, y)
+        end
   end
 
   local val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
