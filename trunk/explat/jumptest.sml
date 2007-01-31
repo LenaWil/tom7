@@ -43,6 +43,7 @@ struct
 
   val redhi = requireimage "testgraphics/redhighlight.png"
   val greenhi = requireimage "testgraphics/greenhighlight.png"
+  val robobox = requireimage "testgraphics/robobox.png"
 
   (* the mask tells us where things can walk *)
   datatype slope = LM | MH | HM | ML
@@ -53,7 +54,9 @@ struct
     | ttos (MRAMP _) = "ramp?"
 
   val world = Array.array(TILESW * TILESH, MEMPTY)
-  fun worldat (x, y) = Array.sub(world, y * TILESW + x)
+  (* XXX do we really want to trap subscript? *)
+  fun worldat (x, y) = Array.sub(world, y * TILESW + x) handle Subscript => MSOLID
+
   fun setworld (x, y) m = Array.update(world, y * TILESW + x, m)
   val () = Util.for 0 (TILESW - 1) (fn x => setworld (x, TILESH - 1) MSOLID)
   val () = Util.for 0 (Int.min (TILESW, TILESH) - 1) (fn x => 
@@ -205,7 +208,7 @@ struct
                                            raise Test "ramps not supported"
                                            )
                           in
-                              drawpixel (screen, x - 1, y - 1, color (0wxFF, 0w0, 0w0, 0wxFF));
+                              (* drawpixel (screen, x - 1, y - 1, color (0wxFF, 0w0, 0w0, 0wxFF)); *)
                               blitall(greenhi, screen, xt * TILEW, yt1 * TILEH);
                               blitall(redhi,   screen, xt * TILEW, yt2 * TILEH);
                               print ("Vdrop: x: " ^ Int.toString x ^ " y: " ^ Int.toString y ^
@@ -229,6 +232,7 @@ struct
                                    
                           end
 
+                      val () = print "-- drop stop --\n"
                       val (dyl, yl) = vdrop (x + 0)
                       val (dyr, yr) = vdrop (x + (ROBOTW - 1))
                   in
@@ -262,10 +266,10 @@ struct
       then 
           let
               val () =               clearsurface (screen, color (0w0, 0w0, 0w0, 0w0))
+              val () =               drawworld ()
               val intention = movebot { nexttick = nexttick, intention = intention }
           in
 
-              drawworld ();
               drawbot ();
               flip screen;
               key { nexttick = getticks() + 0w100, intention = intention }
