@@ -45,6 +45,9 @@ struct
   val greenhi = requireimage "testgraphics/greenhighlight.png"
   val robobox = requireimage "testgraphics/robobox.png"
 
+  val ramp_lm = requireimage "testgraphics/rampup1.png"
+  val ramp_mh = requireimage "testgraphics/rampup2.png"
+
   (* the mask tells us where things can walk *)
   datatype slope = LM | MH | HM | ML
   datatype mask = MEMPTY | MSOLID | MRAMP of slope (* | MCEIL of slope *)
@@ -55,17 +58,23 @@ struct
 
   val world = Array.array(TILESW * TILESH, MEMPTY)
   (* XXX do we really want to trap subscript? *)
-  fun worldat (x, y) = Array.sub(world, y * TILESW + x) handle Subscript => MSOLID
+  fun worldat (x, y) = Array.sub(world, y * TILESW + x) 
+      handle Subscript => if y > 0 then MSOLID else MEMPTY
 
   fun setworld (x, y) m = Array.update(world, y * TILESW + x, m)
   val () = Util.for 0 (TILESW - 1) (fn x => setworld (x, TILESH - 1) MSOLID)
+  val () = Util.for 4 (TILESW - 1) (fn x => setworld(x, TILESH - 1 - (x div 2)) (MRAMP (if x mod 2 = 0
+                                                                                        then LM
+                                                                                        else MH)))
   val () = Util.for 0 (Int.min (TILESW, TILESH) - 1) (fn x => 
-                                                      if x mod 2 = 0 
+                                                      if x mod 3 = 0 
                                                       then setworld (x, TILESH - 1 - x) MSOLID
                                                       else ())
 
+
   fun tilefor MSOLID = solid
-    | tilefor _ = raise Nope
+    | tilefor (MRAMP LM) = ramp_lm
+    | tilefor (MRAMP MH) = ramp_mh
 
   fun drawworld () =
     Util.for 0 (TILESW - 1)
@@ -125,7 +134,7 @@ struct
   fun intends il i = List.exists (fn x => x = i) il
 
   (* number of pixels per frame that we can walk at maximum *)
-  val MAXWALK = 2
+  val MAXWALK = 3
   val TERMINAL_VELOCITY = 3
   val JUMP_VELOCITY = 12
 
@@ -203,9 +212,25 @@ struct
                                      | MSOLID => (print ("snapped to yt=" ^ Int.toString yt ^ " (dist="
                                                          ^ Int.toString dist ^ ")\n");
                                                   (0, yt * TILEH - 1))
-                                     | MRAMP _ => 
-                                           (* XXX should compute snap, etc. *)
-                                           raise Test "ramps not supported"
+                                     | MRAMP sl => 
+                                           let
+                                               (* the distance from the bottom of the tile *)
+                                               val yint =
+                                                   (case sl of
+                                                        (* XXX no constants like 8 *)
+                                                        LM => (* ramps 0..8 *)     (x mod TILEW div 2)
+                                                      | MH => (*       8..f *) 8 + (x mod TILEW div 2)
+                                                      | _ => raise Test "ramps not supported"
+                                                            )
+
+                                               val mdist = TILEH - yint
+                                               val dodist = Int.min(dist, mdist)
+                                           in
+                                               if (dist < mdist)
+                                               then (* go all the way *)
+                                                   (dy, yt * TILEH + dist)
+                                               else (0, yt * TILEH + mdist)
+                                           end
                                            )
                           in
                               (* drawpixel (screen, x - 1, y - 1, color (0wxFF, 0w0, 0w0, 0wxFF)); *)
@@ -236,9 +261,10 @@ struct
                       val (dyl, yl) = vdrop (x + 0)
                       val (dyr, yr) = vdrop (x + (ROBOTW - 1))
                   in
+
                       if yl < yr
                       then (dyl, yl - ROBOTH)
-                      else (dyr, yr - ROBOTW)
+                      else (dyr, yr - ROBOTH)
                   end
               else (dy, y)
 
@@ -272,7 +298,7 @@ struct
 
               drawbot ();
               flip screen;
-              key { nexttick = getticks() + 0w100, intention = intention }
+              key { nexttick = getticks() + 0w20, intention = intention }
           end
       else
           let in
@@ -298,7 +324,10 @@ struct
           loop cur
         end
 
-    | SOME (E_KeyDown { sym = SDLK_k }) =>
+    | SOME (E_KeyDown { sym = SDLK_LEFT }) =>
+        (* XXX for these there should also be an impulse event,
+           so that when I tap the left key ever so quickly, I at least
+           start moving left for one frame. *)
           (botface := FLEFT;
            if intends i (I_GO LEFT)
            then loop { nexttick = nexttick, intention = i }
@@ -309,24 +338,35 @@ struct
           then loop { nexttick = nexttick, intention = i }
           else loop { nexttick = nexttick, intention = (I_JUMP :: i) }
 
-    | SOME (E_KeyDown { sym = SDLK_l }) =>
+    | SOME (E_KeyDown { sym = SDLK_RIGHT }) =>
           (botface := FRIGHT;
            if intends i (I_GO RIGHT)
            then loop { nexttick = nexttick, intention = i }
            else loop { nexttick = nexttick, intention = I_GO RIGHT :: i })
 
+    | SOME (E_KeyDown { sym }) =>
+          let in
+              print ("unknown key " ^ SDL.sdlktos sym ^ "\n");
+              loop { nexttick = nexttick, intention = i }
+          end
+
     | SOME (E_KeyUp { sym = SDLK_SPACE }) =>
-              loop { nexttick = nexttick, intention = List.filter (fn I_JUMP => false | _ => true) i }
+          (* these 'impulse' events are not turned off by a key going up! 
+             (actually, I guess jump should work like l/r in that if
+             I hold the jump button I should go higher than if I tap it.)
 
-    | SOME (E_KeyUp { sym = SDLK_k }) =>
-            (print "LEFT_UP\n";
-             loop { nexttick = nexttick, intention = List.filter (fn I_GO LEFT => false | _ => true) i })
+             *)
+    (* loop { nexttick = nexttick, intention = List.filter (fn I_JUMP => false | _ => true) i } *)
+          loop cur
 
-    | SOME (E_KeyUp { sym = SDLK_l }) =>
+    | SOME (E_KeyUp { sym = SDLK_LEFT }) =>
+            (loop { nexttick = nexttick, intention = List.filter (fn I_GO LEFT => false | _ => true) i })
+
+    | SOME (E_KeyUp { sym = SDLK_RIGHT }) =>
               loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i }
 
     | SOME E_Quit => ()
-    | _ => loop { nexttick = nexttick, intention = i }
+    | _ => loop cur
 
   val () = loop { nexttick = 0w0, intention = nil }
     handle Test s => messagebox ("exn test: " ^ s)

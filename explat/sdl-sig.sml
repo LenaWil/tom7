@@ -274,6 +274,8 @@ sig
     val surface_width : surface -> int
     val surface_height : surface -> int
 
+    val sdlktos : sdlk -> string
+
     val flip : surface -> unit
 
     val getticks : unit -> Word32.word

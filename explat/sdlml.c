@@ -42,7 +42,6 @@ SDL_Surface * ml_makescreen(int w, int h) {
      -- Adam
   */
 
-
   /* SDL_DOUBLEBUF only valid with SDL_HWSURFACE! */
   SDL_Surface * ret = SDL_SetVideoMode(w, h, 32,
 				       SDL_SWSURFACE |
