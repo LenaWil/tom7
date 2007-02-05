@@ -1,0 +1,145 @@
+
+Patel-Schneider
+
+Ontology: way of collecting information. Fuzzily defined: Includes
+UML, OWL, or just first order logic / higher order logic. "Description
+logics" are a collection of logics that are expressive but allow for
+some mechanical reasoning.
+
+  e.g. vegetarian is an animal that eats only (things that aren't animals)
+                                            and (things that aren't parts of animals)
+
+  (Though for most of these entailment is intractible or undecidable anyway)
+  Instead they are interested in "queries"
+
+
+Folks for DoCoMo are also defining ontologies so that they can do
+service discovery for "iMode" (mobile phone service).
+
+
+   My thought: Aren't most searches/users concentrated on a few tasks in
+   a few situations? Wouldn't hand tuning these situations give a better
+   experience in the end for less work? (e.g. doesn't Google Calculator work
+   very well and "seem smart"?)
+
+
+(Dagstuhl) Community skeptical: Consensus is that it's not worth adding support
+for service discovery to e.g. Links.
+
+Tova Milo @ Tel Aviv U
+Querying and Monitoring Business Processes. 
+  A business process is an agglomeration of software along with some kind of flow of data and
+  control (imagine a flowchart), but these days the component software is described with web
+  services. Popular standard: BPEL (XML).
+
+  problem 1. hand-writing XML sucks; they provide a graphical flowchart tool.
+             this XML can be compiled into a real application.
+             then can query specs; "do I need to give a credit card before getting
+                                    a price quote for a flight?"
+             queries take the form of graph searches: is this graph a (mono)simulation of
+                                  another?
+
+John Field @ TJ Watson
+  "Reactor" model
+    actor model + synch languages + datalog
+
+  try to make a data-oriented, declarative specification of functionality.
+
+  so a reactor is like a database, which receives "update" requests and processes them.
+  datalog rules specify state transforms as tuples of (pre-stimulus value, stimulus value) --> (result)
+
+
+Trevor Jim: X-site scripting yikes!
+ * same-domain restriction
+ * Flash used to bypass some restrictions
+
+
+my talk: some types people interested in equational theory of programs
+        (certainly supported by my type theory)
+         runtime discovery of services (??)
+         some programming people interested in (as I'd put it) modular
+         structure of code.
+   
+data group:
+   challenge: no global schema
+       (so knowing what things in what services are really the same abstract
+        type is hard)
+   relationship of data sources: "the info of S1 is included in info of S2"
+
+
+
+
+returning trains:
+
+turk @ 9.29 -> FRA @ 11:36        RE 3309
+     @ 10.29 -> Mainz @ 12:10 -> FRA @ 12:49    RE 3333 RE 4367
+     @ 11:29 -> FRA @ 13:36      RE 3311
+last hope
+     @ 12:29 -> Mainz @ 14:10 -> FRA @ 14:49  RE 3335, RE 4369
+
+
+XJ:
+   Java with XML bindings. Import XML schema, typechecked XPath queries
+   syntax for constructing XML (type checked)
+
+
+Floarin Leutsch: HOP!
+   Good benchmark apps:
+     Bomberman game Demo (synchronization based on time didn't work, but obviously)
+           (there is an implementation of this in J'Caml, I think?)
+     Set (seems to work)
+           (apparently there is PLT implementation of Set too)
+
+Jay McCarthy
+   PLT web server
+   state persistence in branching / control flow / reload
+   answer, of course: use functional programming and state passing
+     - but state passing can "break modularity" (not sure I agree with this)
+     - so they have web cells: reference cells with copy and "push-frame"
+         which marks the point at which a new page is loaded.
+
+     what is "fluid let"?
+
+     what about logout in such functional settings?
+     and then may I log into multiple accounts at the same time?
+        ... I guess each log-in creates a session, and each log-out logs out
+           only that session
+
+     sounds to me like: Give convenient access to a secret
+     store-passing object that itself is treated functionally.
+
+Thought: can ML5 support "open in new window" by cloning the whole app?
+
+C. Fouquere' @ univ. Paris
+
+    using linear logic to talk about (model) web state
+    
+
+Matthias Neubauer
+    Multi-tier programming
+
+    formalized the compilation of the translation from lambda calculus
+    to multiple tiers.
+
+    start by annotating the operations that must happen in specific places.
+    then do inference in order to assign locations to all operations and
+      data in the program.
+    AND insert the required data-transfer commands (no "get"?)
+
+    they then compile into a channel-based language with streaming messages
+     (instead of get/set, I guess)
+
+    then extract parallel slices of the program (type-based translation)
+     that will then work in lock-step.
+     (actually basically duplicate the program on client and server and
+      run them together, but when doing an operation that can be ignored,
+      ignore it.)
+     (and they can use asynchronous "send", cool.)
+
+    they have functions that take multiple arguments at different worlds
+    
+
+Jay McCarthy:
+Crypto protocols language
+    (CPPL -- could have nice modal type system, maybe, because
+     it has to talk about messages encrypted for others that it can't understand)

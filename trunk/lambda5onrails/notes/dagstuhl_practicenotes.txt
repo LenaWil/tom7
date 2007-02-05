@@ -5,6 +5,7 @@ bonuses:
       - access control constraints
 
 start faster: from located resources directly to interest in located programming
+ (done?)
 
 what things will the type system rule out? not just "safe" resources.
 
@@ -12,19 +13,9 @@ static vs. dynamic worlds
 
 <>A vs. abstract address
 
-when introducing mobility (+addresses)
-
-don't use ints for example of validity, use (fn x => x)
-
-schoen
-
-other typos (w' vs. w', something on that same page)
-
 AJAX = implementation. (ML5 implementable for other runtimes)
 
 Tierlessness earlier.
-
-Color coded example of how one of the examples splits up to client/server.
 
 @20 : give typing for whole expression js.prompt("hello")
 
