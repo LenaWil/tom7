@@ -39,3 +39,10 @@ The idea is that each key has a "history"; we can fetch the current
 It is impossible to modify data, only insert a "new version".
 (Do we need anything like branching?)
 
+
+== Notes.. ==
+
+Reflections on trusting trust: How can your programming language
+implementation be truly "free software" if it is a bootstrapping compiler?
+
+We preserve the entire history of computation for GFDL compliance.

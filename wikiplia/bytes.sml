@@ -19,5 +19,8 @@ struct
   | READ
   | ABORT
   | LIST
+  | STRING
+    (* cond, quoted-true (cond not List nil), quoted-false (cond is List nil) *)
+  | IF
 
 end
