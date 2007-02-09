@@ -3,6 +3,7 @@ structure Web =
 struct
 
   structure R = RawNetwork
+  exception Web of string
 
   val PORT = 2222
 
@@ -21,8 +22,19 @@ struct
   and request p =
     let
       val () = print "receive message..."
-      val r = recvall p
+      val (hdrs, content) = recvhttp p
+
+      val kvp = String.fields (StringUtil.ischar #"&") content
+      val kvp = List.mapPartial (fn one =>
+                                 case String.fields (StringUtil.ischar #"=") one of
+                                   [key, value] => (case StringUtil.urldecode value of
+                                                      NONE => NONE
+                                                    | SOME s => SOME (key, s))
+                                 | _ => NONE) kvp
+
     in
+      app (fn (k, v) => print ("[" ^ k ^ "]=[" ^ v ^ "]\n")) kvp;
+
       print "send response...\n";
       sendall p
       ("HTTP/1.1 200 OK\r\n" ^
@@ -33,7 +45,8 @@ struct
        "\r\n");
 
       sendall p "<p><b>We have received your message and will delete it promptly.</b></p>\n";
-      sendall p ("<p>P.S. your message was: [" ^ r ^ "]</p>\n");
+      sendall p ("<p>P.S. your headers were: [" ^ hdrs ^ "]</p>\n");
+      sendall p ("<p>P.S. and your content was: [" ^ content ^ "]</p>\n");
       sendall p ("<p><form action=\"whatever\" method=\"post\"><input type=text name=a><textarea name=b>woo</textarea><input type=submit value=\"go\"></form></p>");
       print "hangup...\n";
       (R.hangup p) handle _ => ()
@@ -51,18 +64,47 @@ struct
         else () 
     end
 
-  and recvall p =
+  and recvhttp p =
     let
+      val headerlength = ref NONE (* length of headers string up to and including
+                                     the terminating \r\n\r\n *)
+      val contentlength = ref NONE
+        
+      (* string preceding content length int *)
+      val cls = "Content-Length: "
+
+      (* XXX I think HTTP/1.0 can also be connection:close w/o content length? *)
       fun more s =
         (print ("sofar: [" ^ s ^ "]\n");
          case R.recv p of
-           "" => s
+           "" => (s, "") (* XXX what do we assume if connection closed? *)
          | s' => 
              let val s = s ^ s'
+               fun next () =
+               (case !headerlength of
+                  SOME h =>
+                    (case !contentlength of
+                       SOME cl =>
+                         (* did we read enough? *)
+                         if size s >= h + cl
+                         then (String.substring(s, 0, h),
+                               String.substring(s, h, cl))
+                         else more s
+                     | NONE => (* XXX? *) (print "bad content length...\n"; raise R.RawNetwork "uhhh"))
+                | NONE =>
+                       (case StringUtil.find "\r\n\r\n" s of
+                          SOME n => (headerlength := SOME (n + 4); 
+                                     (case StringUtil.find cls s of
+                                        SOME cl => 
+                                          (contentlength :=
+                                           Int.fromString(String.substring(s,
+                                                                           cl + size cls,
+                                                                           size s - (cl + size cls)));
+                                           next ())
+                                      | NONE => (* assume no content... *) (s, "")))
+                        | NONE => more s))
              in
-               if size s >= 4 andalso String.substring(s, size s - 4, 4) = "\r\n\r\n"
-               then s
-               else more s
+                  next ()
              end)
     in
       more ""
