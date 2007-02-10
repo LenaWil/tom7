@@ -243,6 +243,15 @@ int ml_bindport(int s, int p) {
   addr.sin_addr.s_addr = 0; /* INADDR_ANY */
   memset(&(addr.sin_zero), '\0', 8);
 
+  /* XXX SO_REUSEADDR */
+
+  /* try our best to rebind even if we recently used it... */
+  int val = 1;
+  /* these have error codes, but we're going to continue either way, so... */
+  setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&val, sizeof(val));
+  /* not available? */
+  //  setsockopt(s, SOL_SOCKET, SO_REUSEPORT, (char *)&val, sizeof(val));
+
   return bind(s, (struct sockaddr *)&addr, sizeof(struct sockaddr));
 }
 

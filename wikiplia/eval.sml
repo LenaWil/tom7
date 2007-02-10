@@ -10,7 +10,7 @@ struct
     | tostring (List l) = String.concat (map tostring l)
     | tostring _ = raise Abort "string/args"
 
-  fun eval (Quote e) = List e
+  fun eval (Quote e) = e
     | eval (String s) = String s
     | eval (Int i) = Int i
     | eval (Prim p) = Prim p
