@@ -1,0 +1,48 @@
+
+Basic idea.
+
+== Runtime ==
+
+The runtime is the only part of the system that cannot be edited by
+users. It consists minimally of a web server that gets requests (urls)
+from the user and invokes some kind of execution engine to produce
+output (web pages).
+
+
+== Strategy ==
+
+One way to do this would be to
+ * implement a generic wiki system
+ * use the wiki to store the source code of the wiki
+ * use the wiki to store the source code of the programming language implementation
+ * allow editing of anything
+ * whenever doing wiki things, use the newest source code of the wiki
+ * whenever running a program, use the newest source code of the program
+   running within the 'last working interpreter' (LWI).
+
+So basically the RT has some web connectivity and a notion of the LWI, which is what
+is launched when a URL is requested. The RT must also expose a way of installing a
+new LWI, as some kind of "byte code." We also need to provide basic functionality that
+is needed to write the target application. One useful primitive would be the ability
+to store/retrieve database keys. We should provide
+
+   insert : key -> data -> timestamp
+   head : key -> data
+   read : key -> timestamp -> data
+
+The idea is that each key has a "history"; we can fetch the current
+"version" with head, or we can read an old version with "read".
+
+ (Perhaps we can implement static and dynamic scope this way? Static scope
+  corresponds to a 'read' where dynamic corresponds to a 'head')
+
+It is impossible to modify data, only insert a "new version".
+(Do we need anything like branching?)
+
+
+== Notes.. ==
+
+Reflections on trusting trust: How can your programming language
+implementation be truly "free software" if it is a bootstrapping compiler?
+
+We preserve the entire history of computation for GFDL compliance.
