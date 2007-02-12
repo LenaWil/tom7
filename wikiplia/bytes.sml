@@ -2,17 +2,7 @@
 structure Bytes =
 struct
 
-  datatype exp =
-    List of exp list
-  | String of string
-  | Int of IntInf.int
-  | Prim of prim
-  (* the only lazy expression *)
-  | Quote of exp
-
-  (* symbol = HEAD (or READ) of some string *)
-
-  and prim =
+  datatype prim =
     SUBST  (* ? *)
   | INSERT
   | HEAD
@@ -22,6 +12,15 @@ struct
   | STRING
     (* cond, quoted-true (cond not List nil), quoted-false (cond is List nil) *)
   | IF
+
+  datatype exp =
+    List of exp list
+  | String of string
+  | Int of IntInf.int
+  | Symbol of string
+  | Prim of prim
+  (* the only lazy expression *)
+  | Quote of exp
 
   val prims =
     [("insert", INSERT),
