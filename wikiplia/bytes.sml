@@ -12,6 +12,8 @@ struct
   | STRING
     (* cond, quoted-true (cond not List nil), quoted-false (cond is List nil) *)
   | IF
+    (* (let '(sym exp) 'body) *)
+  | LET
 
   datatype exp =
     List of exp list
@@ -29,6 +31,7 @@ struct
      ("abort", ABORT),
      ("list", LIST),
      ("string", STRING),
+     ("let", LET),
      ("if", IF)]
 
 end

@@ -4,8 +4,10 @@
 ; this "compiler" is mostly just desugaring: the
 ; B language supports most of the features we
 ; need. (and they both use the same abstract syntax).
-; the implementation of variable binding
-; is perhaps the most interesting.
+
+; features to implement:
+; lambda
+; progn
 
 (progn
 

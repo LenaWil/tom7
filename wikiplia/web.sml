@@ -7,6 +7,10 @@ struct
 
   val PORT = 2222
 
+  fun message (Eval.Abort s) = "abort: " ^ s
+    | message (Web s) = "web: " ^ s
+    | message e = "?:" ^ exnMessage e
+
   fun go () =
     let
       val server = R.listen PORT
@@ -65,7 +69,7 @@ struct
            in
              print ("Result: [" ^ res ^ "]\n");
              sendall p res
-           end handle e => (print "ERROR.\n"; sendall p ("ERROR. " ^ exnMessage e)));
+           end handle e => (print "ERROR.\n"; sendall p ("ERROR. " ^ message e)));
           print "hangup...\n";
           (R.hangup p) handle _ => ()
         end
