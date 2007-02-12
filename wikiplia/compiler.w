@@ -6,32 +6,35 @@
 ; need. (and they both use the same abstract syntax).
 
 ; features to implement:
-; lambda
 ; progn
+; let auto-quoting
+; if auto-quoting
+; lambda auto-quoting
 
-(progn
+(let nil '()
+(let map
+  (lambda args
+    (let self (car args)
+      (let f (car (cdr args))
+	(let l (car (cdr (cdr args))))
+	; nil list is 'false'
+	(if l
+	    (cons (f (car l)) (self self f (cdr l)))
+	  nil))))
 
-; translate
+(let translate
+  (lambda args
+    (let self (car args)
+      (let exp (car (cdr args))
+	   (if (list? exp)
+	       (
+	       (if (
+		  
+		  ))))
+  
 
-; define symbol body.
-; symbol and body are automatically quoted.
-(define translate
-  ;; G = translation environment.
-  ;; e = expression to translate.
-   (lambda (G e)
-     ;; which kind of expression is it?
-     (if (list? e) 
-	 (abort)
-	 (if (sym? e)
-	     ;; look up in translation environment...
-	     (abort)
-
-	   (if (quote? e)
-	       ;; translate inner, requote
-	       (abort)
-	     ;; leaves are untranslated
-	     e)
+;; read from form.source or something...
 
 
+))
 
-) ; progn
