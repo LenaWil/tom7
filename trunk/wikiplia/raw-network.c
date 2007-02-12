@@ -24,6 +24,8 @@ int ML_MSG_NOSIGNAL = 0;
 int ML_MSG_NOSIGNAL = MSG_NOSIGNAL;
 #endif
 
+// #undef MSG_NOSIGNAL
+
 #ifndef MSG_DONTWAIT
 int ML_MSG_DONTWAIT = 0;
 #else

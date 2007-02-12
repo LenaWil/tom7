@@ -10,7 +10,7 @@ struct
 
       datatype tok = << | >> | S of string | I of IntInf.int | Q | A of string
       val numspec = StringUtil.charspec "0-9"
-      val atomspec = StringUtil.charspec "A-Za-z-"
+      val atomspec = StringUtil.charspec "_A-Za-z-"
 
       val pos = ref 0
       (* eat whitespace and comments, advancing pos *)
