@@ -14,6 +14,11 @@ struct
     | eval (String s) = String s
     | eval (Int i) = Int i
     | eval (Prim p) = Prim p
+    | eval (Symbol p) =
+    (case ListUtil.Alist.find op= Bytes.prims p of
+       NONE => raise Abort ("unknown prim " ^ p)
+     | SOME p => Prim p)
+
     | eval (List l) =
     (case map eval l of
        (Prim LIST) :: rest => List rest
@@ -31,6 +36,7 @@ struct
 
      (* | (Prim _) :: _ => raise Abort "unimplemented prim" *)
      | (Quote _) :: _ => raise Abort "eval/quote?"
+     | (Symbol _) :: _ => raise Abort "eval/quote?"
      | (String _) :: _ => raise Abort "eval/string?"
      | (Int _) :: _ => raise Abort "eval/int?"
      | (List _) :: _ => raise Abort "eval/list?"

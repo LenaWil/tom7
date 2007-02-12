@@ -13,12 +13,26 @@ struct
       val atomspec = StringUtil.charspec "A-Za-z-"
 
       val pos = ref 0
-      (* eat whitespace, advancing pos *)
+      (* eat whitespace and comments, advancing pos *)
       fun whites () =
         if !pos < size s
-        then (if StringUtil.whitespec (String.sub(s, !pos))
-              then (pos := !pos + 1; whites ())
-              else ())
+        then 
+          let val c = String.sub(s, !pos)
+          in
+            if c = #";"
+            then (* eat until \n *) eatcomment ()
+            else
+              (if StringUtil.whitespec c
+               then (pos := !pos + 1; whites ())
+               else ())
+          end
+        else ()
+
+      and eatcomment () =
+        if !pos < size s
+        then (case String.sub(s, !pos) of
+                #"\n" => whites ()
+              | _ => (pos := !pos + 1; eatcomment()))
         else ()
 
       fun readstring () =
@@ -103,10 +117,7 @@ struct
         case token () of
           SOME (S s) => Bytes.String s
         | SOME Q => Bytes.Quote (exp ())
-        | SOME (A s) =>
-            (case ListUtil.Alist.find op= Bytes.prims s of
-               NONE => raise Parse ("not a primitive: [" ^ s ^ "]")
-             | SOME p => Bytes.Prim p)
+        | SOME (A s) => Bytes.Symbol s
         | SOME << =>
             (* eat expressions until >> *)
             let
