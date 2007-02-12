@@ -30,8 +30,10 @@ to store/retrieve database keys. We should provide
    head : key -> data
    read : key -> timestamp -> data
 
-The idea is that each key has a "history"; we can fetch the current
-"version" with head, or we can read an old version with "read".
+The idea is that the database has a "history"; we can fetch the
+current "version" of some key with head, or we can read the version as
+of some timestamp with "read". Timestamps are global to the repository
+like in subversion.
 
  (Perhaps we can implement static and dynamic scope this way? Static scope
   corresponds to a 'read' where dynamic corresponds to a 'head')
@@ -44,5 +46,64 @@ It is impossible to modify data, only insert a "new version".
 
 Reflections on trusting trust: How can your programming language
 implementation be truly "free software" if it is a bootstrapping compiler?
+(myself and a friend both make the same change to the compiler to add
+ a string escape sequence \k with different meanings, and converge on
+ the same source code but different local binaries)
 
 We preserve the entire history of computation for GFDL compliance.
+
+
+== Variable binding ==
+
+One of the trickier things in compiling to the Bytecode language is
+that it does not support any notion of variable binding. The only
+thing that we have available to simulate it with is the database.
+Because the database keeps history, we can just bind a variable by
+inserting the value using the variable name as the key. A "global"
+variable is easily achieved by always reading the "head" version of it
+(rebinding is assignment). Shadowing is achieved by keeping track of
+the current scope, which is a database version.
+
+  let x = 10
+  in
+    .. x ..        <- database version 1
+    let x = 20
+    in
+       .. x ..     <- database version 2
+    end
+    .. x ..        <- database version 1
+  end
+
+So to look up a variable we just need to know the current database
+version. We can keep this in a stack that is stored in an imperative
+global variable "stack".
+
+So, to implement
+
+
+  (let (x exp)
+   .. body)
+
+we compile this as
+
+  (progn
+    ; pushes the new scope (dB version returned by insert "x")
+    ; onto the global stack
+    (insert "stack" (list
+                     (insert "x" exp)
+                     (head "stack")))
+    
+    ; ... body ...
+    ; to translate an occurrence 'x':
+    ; read from the version at the top of the stack
+    (read "x" (car (head "stack")))
+
+
+ ... oops, would need branches to do it this way. (When reading the
+ environment from a closure and then running that function, we want
+ new bindings to not go at the head of the trunk, but at the head
+ of that branch. Otherwise when we make a binding we'll just restore
+ all variables to their newest versions.)
+
+
+Let's instead just support let primitively.
