@@ -31,6 +31,7 @@ struct
 
        *)
   | XCASE
+  | QUOTE
 
   datatype exp =
     List of exp list
@@ -51,6 +52,7 @@ struct
      ("lambda", LAMBDA),
      ("list", LIST),
      ("cons", CONS),
+     ("quote", QUOTE),
      ("string", STRING),
      ("xcase", XCASE),
      ("let", LET),

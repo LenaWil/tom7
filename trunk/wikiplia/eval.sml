@@ -68,6 +68,8 @@ struct
      | (Prim IF) :: _ => raise Abort "if/args"
      | (Prim LAMBDA) :: (Symbol x) :: body :: nil => Closure(G, x, body)
      | (Prim LAMBDA) :: _ => raise Abort "lambda/args"
+     | (Prim QUOTE) :: va :: nil => Quote va
+     | (Prim QUOTE) => raise Abort "quote/args"
 
      | (Prim LET) :: Symbol x :: va :: body :: nil => 
          let in
