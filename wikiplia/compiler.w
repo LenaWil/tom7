@@ -10,7 +10,8 @@
 ; let auto-quoting    (DONE)
 ; if auto-quoting     (DONE)
 ; lambda auto-quoting (DONE)
-; xcase auto-quoting
+; implement nil       (DONE)
+; xcase auto-quoting  (DONE)
 
 ; actually I guess we should completely eliminate quote?
 ; if we see quote in the source program we pretty much
@@ -19,8 +20,6 @@
 ; it.
 ; better to think of W as being a call-by-name ML-like
 ; language.
-
-(let nil '()
 
 (let nth
   (lambda args
@@ -94,22 +93,32 @@
 				 (map map (lambda args (self (cons self args))) t))
 			 ))))))
 		 ) ; nonempty list
+
 	      (q 
-	       (quote (self self q))
-	       ) ; just go right through quote
-	         ; XXX probably should fail, actually; see above
+	       (abort "quote not allowed in W")
+	       ; (quote (self self q))
+	       )
+
 	      exp ; string
 	      exp ; int
-	      (s exp) ; symbol (nothing special to do)
-	              ; could fail on prims that we macro-expand
-	              ; (let, if, lambda, xcase)
-	              ; because those cannot be used in a higher-order
-	              ; way now..
-		  ))))
-  
+	      (s 
+	       ; some symbols we'll macro-expand
+	       (if (eq s "nil") (quote nil) 
+		 
+		 ; the rest we'll leave alone...
+		 ; could fail on prims that we macro-expand
+		 ; (let, if, lambda, xcase)
+	         ; because those cannot be used in a higher-order
+		 ; way now..
+		 exp))
+	      ))))
 
-;; read from form.source or something...
-  
-  (abort)
-))))))
+  ;; read form.content, parse and compile, and write the page
+  ;; (goes to page.x) where x is the form item form.page
 
+  ;; XXX need to save source code, too...
+  (let rev (insert (string "page." (head "form.page"))
+		   (translate translate (parse (head "form.content"))))
+       (abort "unimplemented")
+       )
+)))))

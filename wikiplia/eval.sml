@@ -55,6 +55,7 @@ struct
               )
      | (Prim XCASE) :: _ => raise Abort "xcase/args"
 
+     | (Prim ABORT) :: (String s) :: _ => raise Abort ("abort: " ^ s)
      | (Prim ABORT) :: _ => raise Abort "abort"
      | (Prim HEAD) :: (String s) :: nil => DB.head s
      | (Prim HEAD) :: _ => raise Abort "head/args"
