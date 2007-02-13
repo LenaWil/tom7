@@ -133,17 +133,15 @@ struct
              (G, R, [v]) => Letcc(v, t, alpha G R e)
            | _ => err "impossible")
        | Tag(e1, e2) => Tag(self e1, self e2)
-       | Tagcase (t, object, v, vel, def) => 
-             (* XXX not clear if v is supposed to be bound
-                inside def. assuming yes, like sumcase *)
-          (case dobinds [v] of
-             (G, R, [v]) => Tagcase(t, self object, v,
-                                     map (fn (v, e) =>
-                                          ((* wrt old R *)
-                                           rename v, 
-                                           alpha G R e)) vel,
-                                     alpha G R def)
+
+       | Untag {typ, obj, target, bound, yes, no} =>
+          (case dobinds [bound] of
+             (G, R, [bound]) =>
+               Untag { typ = typ, obj = self obj, target = self target,
+                       bound = bound, yes = alpha G R yes,
+                       no = self no }
            | _ => err "impossible")
+
        | Primapp (po, el, tl) => Primapp(po, map self el, tl)
        | Sumcase (t, object, v, lel, def) =>
           (case dobinds [v] of

@@ -35,9 +35,12 @@ struct
            | Sumcase (t, e, v, lel, def) => Sumcase (t, f e, v,
                                                      ListUtil.mapsecond f lel,
                                                      f def)
-           | Tagcase (t, e, v, vel, def) => Tagcase (t, f e, v,
-                                                     ListUtil.mapsecond f vel,
-                                                     f def)
+           | Untag {typ, obj, target, bound, yes, no} => Untag {typ=typ,
+                                                                obj = f obj,
+                                                                target = f obj,
+                                                                bound = bound,
+                                                                yes = f yes,
+                                                                no = f no }
            | Letcc (v, t, e) => Letcc (v, t, f e)
            | Let(Do e1, e2) => pointwise f (Seq(e1, e2))
            | Let(Tagtype v, e) => Let(Tagtype v, f e)
@@ -104,10 +107,12 @@ struct
               | Raise(t, e) => Raise(sub t, self e)
               | Proj(l, t, e) => Proj(l, sub t, self e)
               | Roll(t, e) => Roll(sub t, self e)
-              | Tagcase(t, obj, v, vel, def) =>
-                    Tagcase(sub t, self obj, v,
-                            ListUtil.mapsecond self vel,
-                            self def)
+              | Untag {typ, obj, target, bound, yes, no} => Untag { typ = sub typ,
+                                                                    obj = self obj,
+                                                                    target = self obj,
+                                                                    bound = bound,
+                                                                    yes = self yes,
+                                                                    no = self no }
               | Primapp(po, el, tl) =>
                     Primapp(po, map self el, map sub tl)
               | Sumcase(t, obj, v, vel, def) =>
