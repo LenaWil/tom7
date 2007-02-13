@@ -146,9 +146,13 @@ struct
 
       (* tag v with t *)
       | Tag of exp * exp
-      (* XXX5 should be like tageq instead *)
-      (* tagtype, object, var (for all arms), branches, def *)
-      | Tagcase of typ * exp * var * (var * exp) list * exp
+
+      | Untag of { typ : typ,
+                   obj : exp,
+                   target : exp,
+                   bound : var, (* within yes *)
+                   yes : exp,
+                   no : exp }
 
       (* apply a primitive to some expressions and types *)
       | Primapp of Primop.primop * exp list * typ list
@@ -193,6 +197,24 @@ struct
 
     (* now a derived form *)
     fun Var v = Polyvar { tys = nil, worlds = nil, var = v }
+    (* expand to linear search *)
+    fun Tagcase (t, obj, bound, vel, def) = 
+      let
+        val vo = Variable.namedvar "tagcase"
+        fun go nil = def
+          | go ((v, e) :: rest) =
+          Untag { typ = t,
+                  obj = Value (Var vo),
+                  target = Value (Var v),
+                  bound = v,
+                  yes = e,
+                  no = go rest }
+      in
+        Let (Val (Poly ({worlds=nil, tys=nil}, (vo, t, obj))),
+             go vel)
+      end
+
+      
 
     datatype tystatus = Regular | Extensible
     datatype idstatus = 

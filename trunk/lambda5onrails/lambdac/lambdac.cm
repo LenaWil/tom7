@@ -125,13 +125,17 @@ front/elaborate.sml
 il/util-sig.sml
 il/util.sml
 
+(*
+	changed my mind...
 il/dict-sig.sml
 il/dict.sml
+*)
 
 (* XXX5
 il/opt-sig.sml
 il/opt.sml
 *)
+
 (*
 cps.sml
 cps/alpha.sml

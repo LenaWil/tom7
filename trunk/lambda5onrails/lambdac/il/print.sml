@@ -274,6 +274,7 @@ struct
                     %[$"as", $ (V.tostring v)]] ::
                   map (fn (l, e) => %[%[$"  |", $l, $"=>"], L.indent 4 (etol e)]) lel @
                   [%[%[$"  |", $"_", $"=>"], L.indent 4 (etol def)]])
+(*
            | Tagcase (t, e, v, vel, def) =>
                  L.align
                  (%[$"tagcase", etol e, $":", ttol t, 
@@ -282,6 +283,13 @@ struct
                                          $"=>"], etol e]) 
                          vel @
                   [%[$"  |", $"_", $"=>", etol def]])
+*)
+           | Untag {typ, obj, target, bound, yes, no} =>
+
+                 %[$"untag", etol obj, $":", ttol typ,
+                   $"with", etol target,
+                   %[$"  yes", $(V.tostring bound), $" => ", etol yes,
+                     $"| no => ", etol no]]
 
            | Throw (e1, e2) => L.paren(%[$"throw",
                                          etol e1,
