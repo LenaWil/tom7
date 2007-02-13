@@ -107,3 +107,11 @@ we compile this as
 
 
 Let's instead just support let primitively.
+
+== Jokes ==
+
+We use a compact notation for XML called XESP. It's called XESP (pronounced
+x-esp) because it's like XML except that it basically reads your mind
+because you don't need to tell it the type of tag you're closing--you just
+use a closing parenthesis.
+

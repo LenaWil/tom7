@@ -7,9 +7,9 @@
 
 ; features to implement:
 ; progn (not needed yet)
-; let auto-quoting
-; if auto-quoting
-; lambda auto-quoting
+; let auto-quoting    (DONE)
+; if auto-quoting     (DONE)
+; lambda auto-quoting (DONE)
 ; xcase auto-quoting
 
 ; actually I guess we should completely eliminate quote?
@@ -21,6 +21,18 @@
 ; language.
 
 (let nil '()
+
+(let nth
+  (lambda args
+    (let self (car args)
+      (let n (car (cdr args))
+	(let l (car (cdr (cdr args)))
+	  (if (eq n 0)
+	      (car l)
+	    (nth nth (- n 1) (cdr l)))))))
+
+(let nth (lambda args (nth (cons nth args)))
+
 (let map
   (lambda args
     (let self (car args)
@@ -30,6 +42,8 @@
 	(if l
 	    (cons (f (car l)) (self self f (cdr l)))
 	  nil))))
+
+(let map (lambda args (map (cons map args)))
 
 (let translate
   (lambda args
@@ -47,12 +61,39 @@
 			no no no no no
 			(prim 
 			 (if (eq prim "lambda")
+			     ; t: arg body
 			     (cons h
-				   (cons (quote (car 
+				   (cons (quote (self self (car t)))
+					 (cons (quote (self self (car (cdr t))))
+					       nil)))
+			 (if (eq prim "if")
+			     ; t: cond tbod fbod
+			     (list h (self self (car t))
+				     (quote (self self (car (cdr t))))
+				     (quote (self self (car (cdr (cdr t))))))
+				   
+			 (if (eq prim "let")
+			     ; t: sym value body
+			     (list h (quote (car t))
+				     (self self (car (cdr t)))
+				     (quote (self self (car (cdr (cdr t))))))
 
-			     (abort) ; o/w
-			 )))
+			 (if (eq prim "xcase")
+			     ; t: ob nb lb qb sb ib yb
+			     (list h (self self ob)
+				     (quote (self self (nth 1 t))) ; nb
+				     (quote (self self (nth 2 t))) ; lb
+				     (quote (self self (nth 3 t))) ; qb
+				     (quote (self self (nth 4 t))) ; sb
+				     (quote (self self (nth 5 t))) ; ib
+				     (quote (self self (nth 6 t))) ; yb
+				     )
 
+			   ;; otherwise, assume it is eager...
+			   (cons h
+				 (map map (lambda args (self (cons self args))) t))
+			 ))))))
+		 ) ; nonempty list
 	      (q 
 	       (quote (self self q))
 	       ) ; just go right through quote
@@ -70,5 +111,5 @@
 ;; read from form.source or something...
   
   (abort)
-))
+))))))
 
