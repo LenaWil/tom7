@@ -91,8 +91,7 @@ struct
       | VRecord of (label * value) list
       | VRoll of typ * value
       | VInject of typ * label * value option
-        (* int indicates which of the mutually recursive function
-           values it is *)
+
       | Fns of 
         { name : var,
           arg  : var list,
@@ -107,9 +106,11 @@ struct
         
       (* select one of the functions in a bundle *)
       | FSel of int * value
+
+      (* XXX no longer representing dictionaries at the IL level *)
+
       (* apply (total)value to value *)
       | VApp of value * value
-
       | VLam of var * typ * value
 
       (* the dictionary for this type, assuming dlist gives
@@ -213,9 +214,7 @@ struct
         Let (Val (Poly ({worlds=nil, tys=nil}, (vo, t, obj))),
              go vel)
       end
-
-      
-
+    
     datatype tystatus = Regular | Extensible
     datatype idstatus = 
         Normal 

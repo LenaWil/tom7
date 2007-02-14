@@ -1,87 +1,254 @@
 
-structure CPS =
+structure CPS :> CPS =
 struct
+  
+  structure V = Variable
+  type var = V.var
+  infixr 9 `
+  fun a ` b = a b
 
-  type intconst = Word32.word
+  exception CPS of string
 
-    (* This datatype adapted from "The CPS datatype", pp. 12, 
-       in Appel's "Compiling With Continuations". *)
+  datatype arminfo = datatype IL.arminfo
+  datatype world = W of var
 
-    (* I am targetting a typed assembly language, and so I need
-       to "preserve" typing information. I "do" this by having one
-       type (call it "thing") and arranging that every value is
-       a thing and all operations act on things and produce things.
-       (This method is expedient and makes marshalling easy, but
-       only a temporary solution!)
+  datatype primcon = VEC | REF
+  datatype primop = LOCALHOST
 
-       We can represent this type when we re-enter a typed setting by
-       creating a unified recursive sum type covering all the types
-       that the primitives need. We also want n-tuples, but this would
-       lead to an infinite sum type (for all possible lengths of thing
-       * thing * thing ...). Instead, we cut off at some number, then
-       chain anything longer. Note that we don't need to do this for
-       n-ary sums. (All sums are represented by int * thing). *)
+  datatype 'ctyp ctypfront =
+      At of 'ctyp * world
+    | Cont of 'ctyp list
+    | WAll of var * 'ctyp
+    | WExists of var * 'ctyp
+    | Product of (string * 'ctyp) list
+    | Addr of world
+    | Mu of int * (var * 'ctyp) list
+    | Sum of (string * 'ctyp IL.arminfo) list
+    | Primcon of primcon * 'ctyp list
+    | Conts of 'ctyp list list
+    | Shamrock of 'ctyp
+    | TVar of var
+  (* nb. Binders must be implemented in outjection code below! *)
 
-    (* Representation invariant: No variable is bound in more than
-       one place. (This implies no shadowing as well.) *)
+  datatype ctyp = T of ctyp ctypfront
 
-    (* when creating a record, supply a tag to indicate what it
-       holds. Other things can be tagged, like function values,
-       but you don't create those explicitly. *)
-    datatype tag =
-        INT
-      | STRING of string
-      | REF
-      (* code address *)
-      | CODE
-      (* int * t. Used to tag object language sums. *)
-      | INT_T of int
-      (* tuple of the supplied length. Limited to ??? *)
-      | TUPLE of int
+  datatype ('cexp, 'cval) cexpfront =
+      Call of 'cval * 'cval list
+    | Halt
+    | Go of world * 'cval * 'cexp
+    | Proj of var * string * 'cval * 'cexp
+    | Primop of primop * 'cval list * var list * 'cexp
+    | Put of var * 'cval * 'cexp
+    | Letsham of var * 'cval * 'cexp
+    | Leta of var * 'cval * 'cexp
+    (* world var, contents var *)
+    | WUnpack of var * var * 'cval * 'cexp
+    | Case of 'cval * var * (string * 'cexp) list * 'cexp
+  (* nb. Binders must be implemented in outjection code below! *)
 
-    type var = Variable.var
-        
-    (* Immediate operands to the CPS instructions. *)
-    datatype value = 
-        Var of var
-        (* function name after closure conversion *)
-      | Label of var
-        (* These two are used initially to make constant
-           folding easier, but are eventually transformed
-           into allocations of records with the tags
-           above. *)
-      | Int of intconst
-    (* | String of string *)
+  and ('cexp, 'cval) cvalfront =
+      Lams of (var * var list * 'cexp) list
+    | Fsel of 'cval * int
+    | Int of int
+    | String of string
+    | Record of (string * 'cval) list
+    | Hold of world * 'cval
+    | WLam of var * 'cval
+    | TLam of var * 'cval
+    | WPack of world * 'cval
+    | WApp of 'cval * world
+    | TApp of 'cval * ctyp
+    | Sham of 'cval
+    | Inj of string * ctyp * 'cval
+    | Roll of ctyp * 'cval
+    | Unroll of 'cval
+    | Var of var
+    | UVar of var
+  (* nb. Binders must be implemented in outjection code below! *)
+   
+  (* CPS expressions *)
+  datatype cexp = E of (cexp, cval) cexpfront
+  and      cval = V of (cexp, cval) cvalfront
 
-    type primop = Primop.cpsprimop
+  fun renamee v v' (E exp) =
+    let val eself = renamee v v'
+        val vself = renamev v v'
+        val wself = renamew v v'
+        val tself = renamet v v'
+    in
+      E
+      (case exp of
+         Call (v, vl) => Call (vself v, map vself vl)
+       | Halt => exp
+       | Go (w, va, e) => Go (wself w, vself va, eself e)
+       | Proj (vv, s, va, ex) =>
+           Proj (vv, s, vself va,
+                 if V.eq (vv, v)
+                 then ex
+                 else eself ex)
+       | Primop (po, vl, vvl, ce) =>
+           Primop (po, map vself vl, vvl,
+                   if List.exists (fn vv => V.eq (vv, v)) vvl
+                   then ce
+                   else eself ce)
+       | Put (vv, va, e) =>
+           Put (vv, vself va,
+                if V.eq(vv, v)
+                then e
+                else eself e)
+       | Letsham (vv, va, e) =>
+           Letsham (vv, vself va,
+                    if V.eq(vv, v)
+                    then e
+                    else eself e)
+       | Leta (vv, va, e) =>
+           Leta (vv, vself va,
+                 if V.eq(vv, v)
+                 then e
+                 else eself e)
+       | WUnpack (vv1, vv2, va, e) =>
+           WUnpack (vv1, vv2, vself va,
+                    if V.eq(vv1, v) orelse V.eq (vv2, v)
+                    then e
+                    else eself e)
+       | Case (va, vv, sel, e) =>
+           Case (vself va, vv,
+                 if V.eq(vv, v) then sel
+                 else ListUtil.mapsecond eself sel,
+                 if V.eq(vv, v) then e
+                 else eself e)
 
-    datatype cexp =
-        Alloc of tag * value list * var * cexp
-      (* 0 based, int < ToCPS.MAXRECORD *)
-      | Project of int * value * var * cexp
-      | App of value * value list
-      | Fix of (var * var list * cexp) list * cexp
+           )
+    end
 
-      (* value should be an int.
-         if it matches any of the ints in the list,
-         proceed to that continuation, otherwise
-         use the default continuation.
-         *)
-      | Intswitch of value * (intconst * cexp) list * cexp
+  and renamev v v' (V value) =
+    let val eself = renamee v v'
+        val vself = renamev v v'
+        val wself = renamew v v'
+        val tself = renamet v v'
+    in
+      V (case value of
+           Int i => value
+         | String s => value
+         | Record svl => Record ` ListUtil.mapsecond vself svl
+         | Hold (w, va) => Hold (wself w, vself va)
+         | WLam (vv, va) => WLam (vv, if V.eq(v, vv) then va else vself va)
+         | TLam (vv, va) => TLam (vv, if V.eq(v, vv) then va else vself va)
+         | WPack (w, va) => WPack (wself w, vself va)
+         | WApp (va, w) => WApp (vself va, wself w)
+         | TApp (va, t) => TApp (vself va, tself t)
+         | Var vv => Var (if V.eq(v, vv) then v' else vv)
+         | UVar vv => UVar (if V.eq(v, vv) then v' else vv)
+         | Unroll va => Unroll (vself va)
+         | Roll (t, va) => Roll (tself t, vself va)
+         | Sham va => Sham ` vself va
+         | Fsel (va, i) => Fsel (vself va, i)
+         | Inj (s, t, va) => Inj (s, tself t, vself va)
+         | Lams vvel => Lams ` map (fn (vv, vvl, ce) => (vv, vvl,
+                                                         if List.exists (fn vv => V.eq (vv, v)) vvl
+                                                            orelse
+                                                            List.exists (fn (vv, _, _) => V.eq (vv, v)) vvel
+                                                         then ce
+                                                         else eself ce)) vvel
+           )
+    end
+    
 
-      (* Same, except use on INT_T values. The var is bound
-         to the T inside the value when the branch is taken
-         (this now includes the default). The integer
-         is the number of possible labels (starting at 0, i.e.,
-         it is one more than the maximum value that any arm may
-         take on). *)
-      | Sumswitch of value * int * var * (int * cexp) list * cexp
+  and renamew v v' (W vv) = if V.eq (v, vv) then W v' else W vv
 
-      (* where almost everything goes on... *)
-      | Primop of primop * value list * var list * cexp list
+  (* rename v to v' in a type, assuming that v' is totally fresh *)
+  and renamet v v' (T typ) =
+    let 
+      val self = renamet v v'
+      val wself = renamew v v'
+    in
+      T
+      (case typ of
+         At (t, w) => At (self t, wself w)
+       | Cont l => Cont (map self l)
+       | WAll (vv, t) => if V.eq(v, vv) then typ
+                         else WAll(vv, self t)
+       | WExists (vv, t) => if V.eq (v, vv) then typ
+                            else WExists(vv, self t)
+       | Product stl => Product ` ListUtil.mapsecond self stl
+       | Addr w => Addr (wself w)
+       | Mu (i, vtl) => Mu (i, map (fn (vv, t) =>
+                                    if V.eq (vv, v)
+                                    then (vv, t)
+                                    else (vv, self t)) vtl)
+       | Sum sal => Sum (map (fn (s, NonCarrier) => (s, NonCarrier)
+                               | (s, Carrier { definitely_allocated, carried }) => 
+                              (s, Carrier { definitely_allocated = definitely_allocated,
+                                            carried = self carried })) sal)
+       | Primcon (pc, l) => Primcon (pc, map self l)
+       | Conts ll => Conts ` map (map self) ll
+       | Shamrock t => Shamrock ` self t
+       | TVar vv => TVar (if V.eq (v, vv) then v' else vv)
+                              )
+    end
 
-      (* delayed memo cell. 
-         XXX should probably just be unit -> cexp. *)
-      | Deferred of unit -> cexp Util.Oneshot.oneshot
+  (* when exposing a binder, we alpha-vary. *)
+  fun ctyp (T(WAll (v, t))) = let val v' = V.alphavary v
+                              in (WAll (v', renamet v v' t))
+                              end
+    | ctyp (T(WExists (v, t))) = let val v' = V.alphavary v
+                                 in (WExists (v', renamet v v' t))
+                                 end
+    | ctyp (T(Mu(i, vtl))) = Mu(i, map (fn (v, t) =>
+                                        let val v' = V.alphavary v
+                                        in (v', renamet v v' t)
+                                        end) vtl)
+    | ctyp (T x) = x
+
+  fun cexp (E(Proj(v, s, va, e))) = let val v' = V.alphavary v
+                                    in Proj(v', s, va, renamee v v' e)
+                                    end
+    | cexp (E(Primop(po, vl, vvl, e))) = let val vs = ListUtil.mapto V.alphavary vvl
+                                         in Primop(po, vl, map #2 vs,
+                                                   foldl (fn ((v,v'), e) => renamee v v' e) e vs)
+                                         end
+    | cexp (E(Put(v, va, e))) = let val v' = V.alphavary v
+                                in Put(v', va, renamee v v' e)
+                                end
+    | cexp (E(Letsham(v, va, e))) = let val v' = V.alphavary v
+                                    in Letsham(v', va, renamee v v' e)
+                                    end
+    | cexp (E(Leta(v, va, e))) = let val v' = V.alphavary v
+                                 in Leta(v', va, renamee v v' e)
+                                 end
+
+    | cexp (E(WUnpack(v1, v2, va, e))) = let val v1' = V.alphavary v1
+                                             val v2' = V.alphavary v2
+                                         in WUnpack(v1', v2', va, renamee v2 v2' ` renamee v1 v1' e)
+                                         end
+    | cexp (E(Case(va, v, sel, def))) = let val v' = V.alphavary v
+                                        in
+                                          Case(va, v', ListUtil.mapsecond (renamee v v') sel,
+                                               renamee v v' def)
+                                        end
+
+    | cexp (E x) = x
+
+  fun cval (V (Lams vael)) = let val fs = map (fn (v, a, e) => (v, V.alphavary v, a, e)) vael
+                             in
+                               Lams (map (fn (v, v', a, e) =>
+                                          let val a' = ListUtil.mapto V.alphavary a
+                                          in
+                                            (v', map #2 a', 
+                                             foldl (fn ((v, v'), e) => renamee v v' e) e
+                                             (* function names @ these args *)
+                                             ((map (fn (v, v', _, _) => (v, v')) fs) @ a')
+                                             )
+                                          end) fs)
+                             end
+    | cval (V (WLam (v, va))) = let val v' = V.alphavary v
+                                in WLam(v', renamev v v' va)
+                                end
+    | cval (V (TLam (v, va))) = let val v' = V.alphavary v
+                                in TLam(v', renamev v v' va)
+                                end
+
+    | cval (V x) = x
+
 
 end
