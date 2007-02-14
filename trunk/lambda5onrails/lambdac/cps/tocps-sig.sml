@@ -1,10 +1,6 @@
 
 signature TOCPS =
 sig
-
-    (* length of the maximum record generated. Guaranteed to be at least 2. *)
-    val MAXRECORD : int
-
     (* convert k e
 
        convert an IL expression e to a CPS expression.
@@ -12,11 +8,11 @@ sig
        of the expression from its final value. Typically
        this is something like (fn v => Finish v).
        *)
-    val convert : (CPS.value -> CPS.cexp) -> IL.exp -> CPS.cexp
+    val convert : IL.ilunit -> CPS.cpsunit
 
     (* clear some debugging stuff; call between converted programs *)
     val clear : unit -> unit
 
-    exception CPS of string
+    exception ToCPS of string
 
 end

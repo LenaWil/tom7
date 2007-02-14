@@ -18,6 +18,9 @@ sig
   datatype primcon = VEC | REF
   datatype primop = LOCALHOST
 
+  (* need cps declarations instead of expressions, I guess? *)
+  datatype cpsunit = XXX
+
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
     | Cont of 'ctyp list
