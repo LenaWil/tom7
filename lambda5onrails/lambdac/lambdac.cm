@@ -136,6 +136,9 @@ il/opt-sig.sml
 il/opt.sml
 *)
 
+cps-sig.sml
+cps.sml
+
 (*
 cps.sml
 cps/alpha.sml
