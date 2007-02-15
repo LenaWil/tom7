@@ -62,7 +62,7 @@ struct
 
           (let
              val res = 
-               case Eval.eval (DB.head "") of
+               case Eval.eval (DB.head "main") of
                  Bytes.String s => s
                | _ => (
                        "Content-Type: text/html; charset=utf-8\r\n" ^
