@@ -65,13 +65,17 @@ struct
                                                                                                IntInf.toInt len)) handle _ => raise Abort ("substr/oob"))
      | (Prim SUBSTR) :: _ => raise Abort "substr/args"
 
+     | (Prim HANDLE) :: e1 :: (List [Symbol x, e2]) :: _ => ((eval G e1) handle Abort s
+                                                               => eval ((x, String s) :: G) e2)
+     | (Prim HANDLE) :: _ => raise Abort ("handle/args")
+
      | (Prim ABORT) :: (String s) :: _ => raise Abort ("abort: " ^ s)
      | (Prim ABORT) :: _ => raise Abort "abort"
-     | (Prim HEAD) :: (String s) :: nil => DB.head s
+     | (Prim HEAD) :: (String s) :: nil => ((DB.head s) handle DB.NotFound => raise Abort ("key not found"))
      | (Prim HEAD) :: _ => raise Abort "head/args"
-     | (Prim READ) :: (String s) :: (Int r) :: nil => DB.read s r
+     | (Prim READ) :: (String s) :: (Int r) :: nil => ((DB.read s r) handle DB.NotFound => raise Abort "key not found")
      | (Prim READ) :: _ => raise Abort "read/args"
-     | (Prim INSERT) :: (String k) :: value :: nil => Int (DB.insert k value)
+     | (Prim INSERT) :: (String k) :: value :: nil => Int (DB.insert k value) (* can't fail *)
      | (Prim INSERT) :: _ => raise Abort "insert/args"
      | (Prim STRING) :: l => String (String.concat (map tostring l))
      | (Prim IF) :: (List nil) :: tr :: fa :: nil => eval G fa

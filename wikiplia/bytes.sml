@@ -37,6 +37,7 @@ struct
   | SUBSTR
   | PLUS | MINUS
   | EQ
+  | HANDLE
 
   datatype exp =
     List of exp list
@@ -63,6 +64,7 @@ struct
      ("size", STRING_LEN),
      ("sub", STRING_SUB),
      ("substr", SUBSTR),
+     ("handle", HANDLE),
      ("eq", EQ),
      ("+", PLUS),
      ("-", MINUS),
