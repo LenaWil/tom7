@@ -49,29 +49,40 @@ struct
           (* val () = ignore (DB.insert "request.method" "GET") *)
           val () = ignore (DB.insert "request.url" (Bytes.String url))
 
+          fun http code = ("HTTP/1.1 " ^ code ^ "\r\n" ^
+          "Date: " ^ (Date.fmt "%a, %d %b %Y %H:%M:%S %Z" (Date.fromTimeLocal (Time.now ()))) ^ "\r\n" ^
+           "Server: Wikiplia\r\n" ^
+           "Connection: close\r\n");
+
+
         in
           print ("URL: [" ^ url ^ "]\n");
           app (fn (k, v) => print ("[" ^ k ^ "]=[" ^ v ^ "]\n")) kvp;
 
           print "send response...\n";
-          sendall p
-          ("HTTP/1.1 200 OK\r\n" ^
-          "Date: " ^ (Date.fmt "%a, %d %b %Y %H:%M:%S %Z" (Date.fromTimeLocal (Time.now ()))) ^ "\r\n" ^
-           "Server: Wikiplia\r\n" ^
-           "Connection: close\r\n");
 
           (let
              val res = 
                case Eval.eval (DB.head "main") of
                  Bytes.String s => s
-               | _ => (
-                       "Content-Type: text/html; charset=utf-8\r\n" ^
+               | _ => ("Content-Type: text/html; charset=utf-8\r\n" ^
                        "\r\n" ^
                        "(complex data)")
            in
-             print ("Result: [" ^ res ^ "]\n");
-             sendall p res
-           end handle e => (print "ERROR.\n"; 
+             if StringUtil.matchhead "Location:" res
+             then 
+               let in
+                 print ("Redirect: [" ^ res ^ "]\n");
+                 sendall p (http "301 Moved Permanently" ^ res)
+               end
+             else
+               let in
+                 print ("Result: [" ^ res ^ "]\n");
+                 sendall p (http "200 OK" ^ res)
+               end
+           end handle e => (print "ERROR.\n";
+                            (* XXX internal server error? *)
+                            sendall p (http "200 OK");
                             sendall p ("Content-Type: text/html; charset=utf-8\r\n" ^
                                        "\r\n");
                             sendall p ("ERROR. " ^ message e)));

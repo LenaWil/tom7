@@ -11,7 +11,8 @@ struct
     | tostring (Symbol s) = "(symbol:" ^ s ^ ")"
     | tostring (Prim p) = "(prim)"
     | tostring (Closure c) = "(closure)"
-    | tostring _ = "?"
+    | tostring (Quote q) = "'" ^ tostring q
+    (* | tostring _ = "?" *)
 
   fun eval G (Quote e) = e
     | eval G (String s) = String s
@@ -71,9 +72,9 @@ struct
 
      | (Prim ABORT) :: (String s) :: _ => raise Abort ("abort: " ^ s)
      | (Prim ABORT) :: _ => raise Abort "abort"
-     | (Prim HEAD) :: (String s) :: nil => ((DB.head s) handle DB.NotFound => raise Abort ("key not found"))
+     | (Prim HEAD) :: (String s) :: nil => ((DB.head s) handle DB.NotFound => raise Abort ("head/key [" ^ s ^ "] not found"))
      | (Prim HEAD) :: _ => raise Abort "head/args"
-     | (Prim READ) :: (String s) :: (Int r) :: nil => ((DB.read s r) handle DB.NotFound => raise Abort "key not found")
+     | (Prim READ) :: (String s) :: (Int r) :: nil => ((DB.read s r) handle DB.NotFound => raise Abort ("read/key [" ^ s ^ "] not found"))
      | (Prim READ) :: _ => raise Abort "read/args"
      | (Prim INSERT) :: (String k) :: value :: nil => Int (DB.insert k value) (* can't fail *)
      | (Prim INSERT) :: _ => raise Abort "insert/args"
@@ -91,6 +92,13 @@ struct
      | (Prim EQ) :: Int x :: Int y :: nil => if x = y then Int 1 else List nil
      | (Prim EQ) :: String x :: String y :: nil => if x = y then Int 1 else List nil
      | (Prim EQ) :: _ => raise Abort "eq/args"
+
+     | (Prim PARSE) :: String x :: nil => ((Parse.parse x) handle Parse.Parse s => raise Abort ("parse: " ^ x))
+     | (Prim PARSE) :: _ => raise Abort "parse/args"
+
+     (* XXX could be a derived form, I think? Lots of stuff evals a list... *)
+     | (Prim EVAL) :: l :: nil => eval G l
+     | (Prim EVAL) :: _ => raise Abort "eval/args"
 
      | (Prim LET) :: Symbol x :: va :: body :: nil => 
          let in
