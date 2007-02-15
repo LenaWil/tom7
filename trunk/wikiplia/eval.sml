@@ -55,6 +55,16 @@ struct
               )
      | (Prim XCASE) :: _ => raise Abort "xcase/args"
 
+     | (Prim STRING_LEN) :: (String s) :: nil => Int (IntInf.fromInt (size s))
+     (* XXX could support size of arrays *)
+     | (Prim STRING_LEN) :: _ => raise Abort ("size/args")
+     | (Prim STRING_SUB) :: (String s) :: (Int i) :: nil => (String (implode [String.sub(s, IntInf.toInt i)]) handle _ => raise Abort ("sub/oob"))
+     | (Prim STRING_SUB) :: _ => raise Abort "sub/args"
+
+     | (Prim SUBSTR) :: (String s) :: Int start :: Int len :: nil => (String (String.substring(s, IntInf.toInt start,
+                                                                                               IntInf.toInt len)) handle _ => raise Abort ("substr/oob"))
+     | (Prim SUBSTR) :: _ => raise Abort "substr/args"
+
      | (Prim ABORT) :: (String s) :: _ => raise Abort ("abort: " ^ s)
      | (Prim ABORT) :: _ => raise Abort "abort"
      | (Prim HEAD) :: (String s) :: nil => DB.head s
@@ -70,7 +80,13 @@ struct
      | (Prim LAMBDA) :: (Symbol x) :: body :: nil => Closure(G, x, body)
      | (Prim LAMBDA) :: _ => raise Abort "lambda/args"
      | (Prim QUOTE) :: va :: nil => Quote va
-     | (Prim QUOTE) => raise Abort "quote/args"
+     | (Prim QUOTE) :: _ => raise Abort "quote/args"
+     | (Prim PLUS) :: l => Int (foldl (fn (Int x, y) => x + y | _ => raise Abort "+/args") 0 l)
+     | (Prim MINUS) :: Int x :: Int y :: nil => Int (x - y)
+     | (Prim MINUS) :: _ => raise Abort "-/args"
+     | (Prim EQ) :: Int x :: Int y :: nil => if x = y then Int 1 else List nil
+     | (Prim EQ) :: String x :: String y :: nil => if x = y then Int 1 else List nil
+     | (Prim EQ) :: _ => raise Abort "eq/args"
 
      | (Prim LET) :: Symbol x :: va :: body :: nil => 
          let in

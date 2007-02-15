@@ -32,6 +32,11 @@ struct
        *)
   | XCASE
   | QUOTE
+  | STRING_LEN
+  | STRING_SUB
+  | SUBSTR
+  | PLUS | MINUS
+  | EQ
 
   datatype exp =
     List of exp list
@@ -55,6 +60,12 @@ struct
      ("quote", QUOTE),
      ("string", STRING),
      ("xcase", XCASE),
+     ("size", STRING_LEN),
+     ("sub", STRING_SUB),
+     ("substr", SUBSTR),
+     ("eq", EQ),
+     ("+", PLUS),
+     ("-", MINUS),
      ("let", LET),
      ("if", IF)]
 
