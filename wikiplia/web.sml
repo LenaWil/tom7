@@ -31,6 +31,8 @@ struct
         let
           val () = print "receive message..."
           val (hdrs, content) = recvhttp p
+          val (method, h') = StringUtil.token (StringUtil.ischar #" ") hdrs
+          val (url, h') = StringUtil.token (StringUtil.ischar #" ") h'
 
           val kvp = String.fields (StringUtil.ischar #"&") content
           val kvp = List.mapPartial (fn one =>
@@ -44,7 +46,11 @@ struct
           (* should we also put a parsed/tokenized version of these? *)
           val () = app (fn (k, v) => ignore (DB.insert ("form." ^ k) (Bytes.String v))) kvp
 
+          (* val () = ignore (DB.insert "request.method" "GET") *)
+          val () = ignore (DB.insert "request.url" (Bytes.String url))
+
         in
+          print ("URL: [" ^ url ^ "]\n");
           app (fn (k, v) => print ("[" ^ k ^ "]=[" ^ v ^ "]\n")) kvp;
 
           print "send response...\n";
@@ -52,24 +58,23 @@ struct
           ("HTTP/1.1 200 OK\r\n" ^
           "Date: " ^ (Date.fmt "%a, %d %b %Y %H:%M:%S %Z" (Date.fromTimeLocal (Time.now ()))) ^ "\r\n" ^
            "Server: Wikiplia\r\n" ^
-           "Connection: close\r\n" ^
-           "Content-Type: text/html; charset=utf-8\r\n" ^
-           "\r\n");
-    (*
-          sendall p "<p><b>We have received your message and will delete it promptly.</b></p>\n";
-          sendall p ("<p>P.S. your headers were: [" ^ hdrs ^ "]</p>\n");
-          sendall p ("<p>P.S. and your content was: [" ^ content ^ "]</p>\n");
-          sendall p ("<p><form action=\"whatever\" method=\"post\"><input type=text name=a><textarea name=b>woo</textarea><input type=submit value=\"go\"></form></p>");
-    *)
+           "Connection: close\r\n");
+
           (let
              val res = 
                case Eval.eval (DB.head "") of
                  Bytes.String s => s
-               | _ => "(complex data)"
+               | _ => (
+                       "Content-Type: text/html; charset=utf-8\r\n" ^
+                       "\r\n" ^
+                       "(complex data)")
            in
              print ("Result: [" ^ res ^ "]\n");
              sendall p res
-           end handle e => (print "ERROR.\n"; sendall p ("ERROR. " ^ message e)));
+           end handle e => (print "ERROR.\n"; 
+                            sendall p ("Content-Type: text/html; charset=utf-8\r\n" ^
+                                       "\r\n");
+                            sendall p ("ERROR. " ^ message e)));
           print "hangup...\n";
           (R.hangup p) handle _ => ()
         end
@@ -112,10 +117,11 @@ struct
                              then (String.substring(s, 0, h),
                                    String.substring(s, h, cl))
                              else more s
-                         | NONE => (* XXX? *) (print "bad content length...\n"; raise R.RawNetwork "uhhh"))
+                         | NONE => (* XXX? *) (print "bad content length...\n"; 
+                                               raise R.RawNetwork "uhhh"))
                     | NONE =>
                            (case StringUtil.find "\r\n\r\n" s of
-                              SOME n => (headerlength := SOME (n + 4); 
+                              SOME n => (headerlength := SOME (n + 4);
                                          (case StringUtil.find cls s of
                                             SOME cl => 
                                               (contentlength :=

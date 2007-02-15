@@ -8,8 +8,8 @@ val () =
         nil => 
           (let in
              Initial.init ();
-             (* Web.go () *)
-
+             Web.go ()
+(*
              (let
                 val res = 
                   case Eval.eval (DB.head "") of
@@ -18,7 +18,7 @@ val () =
               in
                 print ("Result: [" ^ res ^ "]\n")
               end handle e => print ("ERROR:\n  " ^ message e ^ "\n"))
-                
+  *)              
            end handle RawNetwork.RawNetwork s => print ("network error: " ^ s ^ "\n")
                     | Parse.Parse s => print ("parse error: " ^ s ^ "\n")
              )
