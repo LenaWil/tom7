@@ -37,7 +37,10 @@ struct
   | SUBSTR
   | PLUS | MINUS
   | EQ
+    (* handle 'try-body '(msg catch-body) *)
   | HANDLE
+  | PARSE
+  | EVAL
 
   datatype exp =
     List of exp list
@@ -65,6 +68,8 @@ struct
      ("sub", STRING_SUB),
      ("substr", SUBSTR),
      ("handle", HANDLE),
+     ("parse", PARSE),
+     ("eval", EVAL),
      ("eq", EQ),
      ("+", PLUS),
      ("-", MINUS),
