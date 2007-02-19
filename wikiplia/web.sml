@@ -87,7 +87,8 @@ struct
                                        "\r\n");
                             sendall p ("ERROR. " ^ message e)));
           print "hangup...\n";
-          (R.hangup p) handle _ => ()
+          (R.hangup p) handle _ => ();
+          DB.save "database.wpdb"
         end
 
       and sendall p s =

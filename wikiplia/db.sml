@@ -163,4 +163,32 @@ struct
        NONE => raise NotFound
      | SOME { head=_, cur, revs } => cur :: map #1 revs)
 
+  fun save file =
+    let
+      fun stos s = Int.toString (size s) ^ "/" ^ s
+
+      val (tree, head) = !db
+      val f = TextIO.openOut file
+
+      fun onekey (key, { head, cur, revs }) =
+        let 
+          val h = etos head
+
+          fun showrev (r, plan) = TextIO.output(f, " !" ^ IntInf.toString r ^ " ... XXX\n")
+        in
+          TextIO.output(f, StringUtil.urlencode key ^ " " ^ IntInf.toString cur ^ stos h ^ "\n");
+          app showrev revs
+        end
+    in
+      TextIO.output(f, "WPDB\n");
+      TextIO.output(f, IntInf.toString head ^ "\n");
+      SM.appi onekey tree;
+
+      TextIO.closeOut f
+    end
+
+  (* replaces database *)
+  fun load f = raise NotFound
+    
+
 end
