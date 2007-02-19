@@ -5,12 +5,16 @@ struct
 
   exception Parse of string
 
+
+  infixr 9 `
+  fun a ` b = a b
+
   fun parse s =
     let
 
       datatype tok = << | >> | S of string | I of IntInf.int | Q | A of string
       val numspec = StringUtil.charspec "0-9"
-      val atomspec = StringUtil.charspec "_A-Za-z-+*/"
+      val atomspec = StringUtil.charspec "_A-Za-z0-9+*/!@#$%^&|=[]{}:'<>,.?`-"
 
       val pos = ref 0
       (* eat whitespace and comments, advancing pos *)
@@ -127,7 +131,16 @@ struct
                 | NONE => raise Parse "unbalanced parens"
                 | SOME t => (push t; exp () :: eat ())
             in
-              Bytes.List (eat ())
+              (case eat () of
+                 [Bytes.Symbol "##CLOSURE##", Bytes.List env, Bytes.String s, exp] =>
+                   Bytes.Closure(map (fn (Bytes.List [Bytes.String v, e]) => (v, e) | _ => raise Parse "bad closure") env,
+                                 s,
+                                 exp)
+              | [Bytes.Symbol "##PRIM##", Bytes.Symbol p] =>
+                   (case ListUtil.Alist.find op= Bytes.prims p of
+                      NONE => raise Parse ("bad prim " ^ p)
+                    | SOME v => Bytes.Prim v)
+              | l => Bytes.List l)
             end
         | SOME (I n) => Bytes.Int n
         | SOME >> => raise Parse "expected expression, got )"

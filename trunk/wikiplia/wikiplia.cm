@@ -21,6 +21,9 @@ group is
 ../sml-lib/njlib/splaytree.sml
 ../sml-lib/njlib/splay-map-fn.sml
 
+../sml-lib/algo/edit-distance-sig.sml
+../sml-lib/algo/edit-distance.sml
+
 raw-network-sig.sml
 raw-network.sml
 

@@ -92,6 +92,14 @@ struct
      | (Prim EQ) :: Int x :: Int y :: nil => if x = y then Int 1 else List nil
      | (Prim EQ) :: String x :: String y :: nil => if x = y then Int 1 else List nil
      | (Prim EQ) :: _ => raise Abort "eq/args"
+     | (Prim INT) :: String s :: nil => (case IntInf.fromString s of
+                                           NONE => raise Abort "int/args"
+                                         | SOME i => Int i)
+     | (Prim INT) :: _ => raise Abort "int/args"
+
+     | (Prim HISTORY) :: (String k) :: nil => (List(map Int (DB.history k)) 
+                                               handle DB.NotFound => raise Abort ("history/key [" ^ k ^ "] not found"))
+     | (Prim HISTORY) :: _ => raise Abort "history/args"
 
      | (Prim PARSE) :: String x :: nil => ((Parse.parse x) handle Parse.Parse s => raise Abort ("parse: " ^ x))
      | (Prim PARSE) :: _ => raise Abort "parse/args"

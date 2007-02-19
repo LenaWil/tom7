@@ -8,10 +8,10 @@
 (let 'nil '() '
 (let 'car (lambda 'args
 	    '(xcase args 'noa '(arg u
-				   (xcase arg 'noc '(h u h))))) '
+				   (xcase arg 'error_car_nil '(h u h))))) '
 (let 'cdr (lambda 'args
 	    '(xcase args 'nob '(arg u 
-				   (xcase arg 'nod '(u t t))))) '
+				   (xcase arg 'error_cdr_nil '(u t t))))) '
 (let 'stdheader "Content-Type: text/html; charset=utf-8\r\n\r\n" '
 (let 'redirect (lambda 'target '(string "Location: " (car target) "\r\n\r\n")) '
 
@@ -109,7 +109,8 @@
 	   ;; if there was no . then ext holds the entire name. in this case
 	   ;; just save.
 	   '(let '_ (insert fulltarget dat) '
-		 (redirect (string "/view/" fulltarget)))
+		 ;; XXX goto revision
+		 (redirect (string "/view/_/" fulltarget)))
 
 	 ;; otherwise we should compile, saving the source and compiled version
 	 ;; (might do this recursively??  eg. prog.b.w)
@@ -127,20 +128,30 @@
 	       (let '_ (insert fulltarget dat) '
 	       ; save executable
 	       (let '_ (insert base exe) '
-		    (redirect (string "/view/" fulltarget))
+		    ;; XXX should jump directly to the revision we inserted
+		    (redirect (string "/view/_/" fulltarget))
 		    ; (string stdheader 
 		;	    "<p>compiler: " compile
 		;	    "<p>compiled: " exe)
 		    )))))
        )))) ; action save
-       
-       '(if (eq action "view")
+
+       '(if (eq action "history")
 	    '(string
-	      stdheader "viewing " fulltarget " ... <hr/><p>"
-	      (handle '(string "<pre>\n" (head fulltarget) "</pre>\n")
+	      stdheader "history for " fulltarget " ...<hr/><p>"
+	      (string (map map (lambda 'args '(string "<a href=\"/view/" (car args) "/" fulltarget "\">" 
+						      (car args) "</a> ")) (history fulltarget))))
+
+       '(if (eq action "view")
+	   '(let 'rev_target (token token "/" fulltarget 0) '
+	    (let 'rev (car rev_target) '
+	    (let 'target (car (cdr rev_target)) '     
+	     (string
+	      stdheader "viewing " target (if (eq rev "_") '"" '(string " @ " rev)) " ... <hr/><p>"
+	      (handle '(string "<pre>\n" (if (eq rev "_") '(head target) '(read target (int rev))) "</pre>\n")
 		      '(_
-			(string "There is no symbol called <b>" fulltarget "</b>. "
-				"Perhaps you'd like to <a href=\"/edit/" fulltarget "\">create it</a>?"))))
+			(string "There is no symbol called <b>" target "</b>. "
+				"Perhaps you'd like to <a href=\"/edit/" target "\">create it</a>?")))))))
 
 	  ;; XXX protect against run main...? (= infinite loop)
          '(if (eq action "run")
@@ -155,7 +166,7 @@
 
 	  '(string stdheader "unknown action!")))
 
-       )) ; action case analysis
+       ))) ; action case analysis
       
 
   ; (string (map map (lambda 'x '(string (car x) "!")) (token token "/" "hello/world" 0)))

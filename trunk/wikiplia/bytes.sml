@@ -41,6 +41,8 @@ struct
   | HANDLE
   | PARSE
   | EVAL
+  | HISTORY
+  | INT
 
   datatype exp =
     List of exp list
@@ -73,6 +75,8 @@ struct
      ("eq", EQ),
      ("+", PLUS),
      ("-", MINUS),
+     ("int", INT),
+     ("history", HISTORY),
      ("let", LET),
      ("if", IF)]
 
