@@ -184,12 +184,12 @@ struct
                                                          ":" ^ stos s)
                 | oneedit (Delete i) = TextIO.output (f, "D" ^ Int.toString i ^ ":")
             in
-              TextIO.output(f, " !" ^ IntInf.toString r ^ "=");
+              TextIO.output(f, "!" ^ IntInf.toString r ^ "=");
               app oneedit plan;
               TextIO.output(f, "X\n")
             end
         in
-          TextIO.output(f, StringUtil.urlencode key ^ " " ^ IntInf.toString cur ^ stos h ^ "\n");
+          TextIO.output(f, StringUtil.urlencode key ^ " " ^ IntInf.toString cur ^ " " ^ stos h ^ "\n");
           app showrev revs;
           TextIO.output(f, "\n")
         end
@@ -202,7 +202,91 @@ struct
     end
 
   (* replaces database *)
-  fun load f = raise NotFound
+  fun load file =
+    let
+      val f = TextIO.openIn file
+
+      fun until stop =
+        let
+          fun unt () =
+            case TextIO.input1 f of
+              SOME c => if c = stop then nil
+                        else c :: unt ()
+            | NONE => raise NotFound
+        in
+          implode ` unt ()
+        end
+
+      fun getlenstr () =
+        let
+          val n = valOf ` Int.fromString ` until #"/"
+        in
+          TextIO.inputN (f, n)
+        end
+
+      val hdr = TextIO.inputLine f
+      val () = if hdr <> SOME "WPDB\n" then raise NotFound else ()
+      val cur = valOf ` IntInf.fromString ` valOf ` TextIO.inputLine f
+
+      val base = ref SM.empty
+
+      (* read keys and insert them *)
+      fun readkeys () =
+        if TextIO.endOfStream f then ()
+        else
+        let
+          val key = valOf ` StringUtil.urldecode ` until #" "
+          val cur = valOf ` IntInf.fromString ` until #" "
+          val head = getlenstr ()
+
+          val revs = ref nil
+
+          fun readrevs () =
+            case TextIO.input1 f of
+              SOME #"!" =>
+              let
+                val r = valOf ` IntInf.fromString ` until #"="
+                fun readplan () =
+                  case TextIO.input1 f of
+                    SOME #"X" => nil
+                  | SOME #"M" =>
+                    let val at = valOf ` Int.fromString ` until #":"
+                      val s = getlenstr ()
+                    in
+                      Modify(at, s) :: readplan ()
+                    end
+                  | SOME #"D" =>
+                    let val at = valOf ` Int.fromString ` until #":"
+                    in
+                      Delete at :: readplan ()
+                    end
+                  | SOME #"I" => 
+                    let val at = valOf ` Int.fromString ` until #":"
+                      val s = getlenstr ()
+                    in
+                      Insert(at, s) :: readplan ()
+                    end
+                  | _ => raise NotFound
+
+                val plan = readplan ()
+              in
+                revs := (r, plan) :: !revs
+              end
+            | SOME #"\n" => ()
+            | _ => raise NotFound
+        in
+          ignore ` until #"\n";
+          (* now read a series of revs *)
+          readrevs ();
+          base := SM.insert(!base, key, { head = Parse.parse head, 
+                                          revs = rev (!revs), cur = cur });
+          readkeys ()
+        end
+    in
+      readkeys ();
+      TextIO.closeIn f;
+      db := (!base, cur)
+    end
     
 
 end

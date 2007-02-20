@@ -87,7 +87,8 @@ struct
                             sendall p ("ERROR. " ^ message e)));
           print "hangup...\n";
           (R.hangup p) handle _ => ();
-          DB.save "database.wpdb"
+          (* PERF not on every request, surely! *)
+          DB.save Initial.DBFILE
         end
 
       and sendall p s =
