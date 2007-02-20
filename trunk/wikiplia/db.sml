@@ -174,10 +174,24 @@ struct
         let 
           val h = etos head
 
-          fun showrev (r, plan) = TextIO.output(f, " !" ^ IntInf.toString r ^ " ... XXX\n")
+          fun showrev (r, plan) = 
+            let 
+              fun oneedit (Modify (i, s)) = TextIO.output(f, "M" ^
+                                                         Int.toString i ^
+                                                         ":" ^ stos s)
+                | oneedit (Insert (i, s)) = TextIO.output(f, "I" ^
+                                                         Int.toString i ^
+                                                         ":" ^ stos s)
+                | oneedit (Delete i) = TextIO.output (f, "D" ^ Int.toString i ^ ":")
+            in
+              TextIO.output(f, " !" ^ IntInf.toString r ^ "=");
+              app oneedit plan;
+              TextIO.output(f, "X\n")
+            end
         in
           TextIO.output(f, StringUtil.urlencode key ^ " " ^ IntInf.toString cur ^ stos h ^ "\n");
-          app showrev revs
+          app showrev revs;
+          TextIO.output(f, "\n")
         end
     in
       TextIO.output(f, "WPDB\n");
