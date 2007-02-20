@@ -1,0 +1,5 @@
+
+It might be interesting to think about the judgment "A type" being
+indexed by worlds as well. Perhaps "password type @ server" could be
+an abstract type that can't even be mentioned at the client, giving
+some kind of secrecy property?

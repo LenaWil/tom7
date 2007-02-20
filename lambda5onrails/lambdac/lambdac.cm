@@ -8,7 +8,6 @@ group is
  $/basis.cm
 #endif
 
-
 ../../sml-lib/util/listutil-sig.sml
 ../../sml-lib/util/listutil.sml
 ../../sml-lib/util/util-sig.sml

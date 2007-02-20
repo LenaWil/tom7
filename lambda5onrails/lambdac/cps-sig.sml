@@ -18,9 +18,6 @@ sig
   datatype primcon = VEC | REF
   datatype primop = LOCALHOST
 
-  (* need cps declarations instead of expressions, I guess? *)
-  datatype cpsunit = XXX
-
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
     | Cont of 'ctyp list
@@ -70,5 +67,48 @@ sig
   val ctyp : ctyp -> ctyp ctypfront
   val cexp : cexp -> (cexp, cval) cexpfront
   val cval : cval -> (cexp, cval) cvalfront
+
+  (* injective constructors *)
+  val At' : ctyp * world -> ctyp
+  val Cont' : ctyp list -> ctyp
+  val WAll' : var * ctyp -> ctyp
+  val WExists' : var * ctyp -> ctyp
+  val Product' : (string * ctyp) list -> ctyp
+  val Addr' : world -> ctyp
+  val Mu' : int * (var * ctyp) list -> ctyp
+  val Sum' : (string * ctyp IL.arminfo) list -> ctyp
+  val Primcon' : primcon * ctyp list -> ctyp
+  val Conts' : ctyp list list -> ctyp
+  val Shamrock' : ctyp -> ctyp
+  val TVar' : var -> ctyp
+
+  val Call' : cval * cval list -> cexp
+  val Halt' : cexp
+  val Go' : world * cval * cexp -> cexp
+  val Proj' : var * string * cval * cexp -> cexp
+  val Primop' : primop * cval list * var list * cexp -> cexp
+  val Put' : var * cval * cexp -> cexp
+  val Letsham' : var * cval * cexp -> cexp
+  val Leta' : var * cval * cexp -> cexp
+  val WUnpack' : var * var * cval * cexp -> cexp
+  val Case' : cval * var * (string * cexp) list * cexp -> cexp
+
+  val Lams' : (var * var list * cexp) list -> cval
+  val Fsel' : cval * int -> cval
+  val Int' : int -> cval
+  val String' : string -> cval
+  val Record' : (string * cval) list -> cval
+  val Hold' : world * cval -> cval
+  val WLam' : var * cval -> cval
+  val TLam' : var * cval -> cval
+  val WPack' : world * cval -> cval
+  val WApp' : cval * world -> cval
+  val TApp' : cval * ctyp -> cval
+  val Sham' : cval -> cval
+  val Inj' : string * ctyp * cval -> cval
+  val Roll' : ctyp * cval -> cval
+  val Unroll' : cval -> cval
+  val Var' : var -> cval
+  val UVar' : var -> cval
 
 end
