@@ -9,8 +9,11 @@ struct
   fun init () = 
     (DB.load DBFILE;
      print "Loaded successfully.\n")
-    handle _ =>
+    handle e => 
     let 
+      val () = (case e of 
+                  DB.DB s => print ("Couldn't load: " ^ s ^ "\n")
+                | _ =>  ())
       val () = print "No saved database!\n"
       (* This "ties the knot", since we know that b:compile.b is just the parser. *)
       val compile_b = StringUtil.readfile "b_compile.b"
