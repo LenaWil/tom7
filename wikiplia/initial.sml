@@ -4,8 +4,14 @@
 structure Initial =
 struct
 
+  val DBFILE = "database.wpdb"
+
   fun init () = 
+    (DB.load DBFILE;
+     print "Loaded successfully.\n")
+    handle _ =>
     let 
+      val () = print "No saved database!\n"
       (* This "ties the knot", since we know that b:compile.b is just the parser. *)
       val compile_b = StringUtil.readfile "b_compile.b"
       val compile = Eval.eval nil (Parse.parse compile_b)
