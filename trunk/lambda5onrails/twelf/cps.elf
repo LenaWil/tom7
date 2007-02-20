@@ -17,6 +17,7 @@ c& : ctyp -> ctyp -> ctyp.                 %infix none 9 c&.
 % representation for a world
 caddr : world -> ctyp.
 cunit : ctyp.
+% aka shamrock
 cheart : ctyp -> ctyp.
 
 
@@ -27,6 +28,7 @@ csnd : cval -> (cval -> cexp) -> cexp.
 clocalhost : (cval -> cexp) -> cexp.
 
 cletheart : cval -> (cvval -> cexp) -> cexp.
+% aka put
 clift : cval -> (cvval -> cexp) -> cexp.
 cleta : cval -> (cval -> cexp) -> cexp.
 

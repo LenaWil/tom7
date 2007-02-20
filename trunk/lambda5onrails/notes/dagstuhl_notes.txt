@@ -52,6 +52,9 @@ John Field @ TJ Watson
 Trevor Jim: X-site scripting yikes!
  * same-domain restriction
  * Flash used to bypass some restrictions
+ * Hard to know when scripts will be executed; can instrument browser
+
+ * (hallway) Best practice: parse, unparse
 
 
 my talk: some types people interested in equational theory of programs
