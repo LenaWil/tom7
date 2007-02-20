@@ -13,6 +13,7 @@
             '(xcase args 'nob '(arg u 
                                    (xcase arg 'error_cdr_nil '(u t t))))) '
 (let 'stdheader "Content-Type: text/html; charset=utf-8\r\n\r\n" '
+(let 'stdpage "<html><head><link rel=stylesheet type=\"text/css\" href=\"/raw/_/polybook.css\" title=\"polybook\"/></head><body>\n" '
 (let 'redirect (lambda 'target '(string "Location: " (car target) "\r\n\r\n")) '
 
 
@@ -84,16 +85,18 @@
 (let 'tabs (lambda 'args
              '(let 'page (car args) '
                    ; XXX make tabs
-                   (string "<a href=\"/view/_/" page "\">view</a> "
-                           "<a href=\"/edit/" page "\">edit</a> "
-                           "<a href=\"/history/" page "\">history</a> "
-                           "<a href=\"/run/" page "\">run</a> "))) '
+                   (string "<div class=\"tabs\">"
+                           "<span class=\"tab\"><a href=\"/view/_/" page "\">view</a></span> "
+                           "<span class=\"tab\"><a href=\"/edit/" page "\">edit</a></span> "
+                           "<span class=\"tab\"><a href=\"/history/" page "\">history</a></span> "
+                           "<span class=\"tab\"><a href=\"/run/" page "\">run</a></span> "
+                           "</div>"))) '
 
   (if (eq action "edit")
       ;; need to fetch the source code for this page
       ;; and put it in the textarea
       '(let 'oldcontents (handle '(head fulltarget) '(_ nil)) '
-        (string stdheader
+        (string stdheader stdpage
                 (tabs fulltarget) "<p>"
                (if oldcontents
                    '(string "editing " fulltarget " ... ")
@@ -101,13 +104,13 @@
                "<br/><b>Do not copy text from other websites without permission. It will be deleted.</b>"
                "<form method=\"post\" action=\"/save/" fulltarget "\"><textarea rows=35 cols=120 name=\"contents\">"
                (xcase oldcontents
-		   '""
-		   '(_ _ "(was list data)")
-		   '(_ "(was quoted data)")
-		   '(htmlescape oldcontents)
-		   '(string "(was int " oldcontents ")")
-		   '(_ "(was symbol)")
-		   '"(internal data)")
+                   '""
+                   '(_ _ "(was list data)")
+                   '(_ "(was quoted data)")
+                   '(htmlescape oldcontents)
+                   '(string "(was int " oldcontents ")")
+                   '(_ "(was symbol)")
+                   '"(internal data)")
                "</textarea>\n"
                "<input type=submit value=\"save\"></form>"))
 
@@ -128,9 +131,12 @@
 
          ;; otherwise we should compile, saving the source and compiled version
          ;; (might do this recursively??  eg. prog.b.w)
-         ; get (and run to produce a closure) the compiler, or if there is none, assume the identity (??)
-         '(let 'compile (eval (handle '(head (string ext ":compile")) '(_ '(lambda 'x '(car x))))) '
-               (let 'exe (handle '(compile dat) '(msg
+         ; get (and run to produce a closure) the compiler, if any
+         '(let 'compile (handle '(eval (head (string ext ":compile"))) '(_ nil)) '
+            ; save source
+            (let '_ (insert fulltarget dat) '
+             (if compile
+               '(let 'exe (handle '(compile dat) '(msg
                                                   ; if compilation fails, then we
                                                   ; return a program that aborts
                                                   (list
@@ -138,21 +144,17 @@
                                                    (string
                                                     "compilation of " fulltarget
                                                     " failed because " msg)))) '
-               ; save source
-               (let '_ (insert fulltarget dat) '
                ; save executable
                (let '_ (insert base exe) '
                     ;; XXX should jump directly to the revision we inserted
                     (redirect (string "/view/_/" fulltarget))
-                    ; (string stdheader 
-                ;           "<p>compiler: " compile
-                ;           "<p>compiled: " exe)
-                    )))))
-       )))) ; action save
+                    )) ; compiler exists
+              '(redirect (string "/view/_/" fulltarget)))
+        ))))))) ; action save
 
        '(if (eq action "history")
             '(string
-              stdheader 
+              stdheader stdpage
               (tabs fulltarget)
               "<p>history for " fulltarget " ...<hr/><p>"
               (string (map map (lambda 'args '(string "<a href=\"/view/" (car args) "/" fulltarget "\">" 
@@ -163,18 +165,27 @@
             (let 'rev (car rev_target) '
             (let 'target (car (cdr rev_target)) '     
              (string
-              stdheader
+              stdheader stdpage
               (tabs target)
               "<p>viewing " target (if (eq rev "_") '"" '(string " @ " rev)) " ... <hr/><p>"
-              (handle '(string "<pre>\n" (if (eq rev "_") '(head target) '(read target (int rev))) "</pre>\n")
+              (handle '(string "<pre>\n" (htmlescape (if (eq rev "_") '(head target) '(read target (int rev)))) "</pre>\n")
                       '(_
                         (string "There is no symbol called <b>" target "</b>. "
                                 "Perhaps you'd like to <a href=\"/edit/" target "\">create it</a>?")))))))
 
+       ;; like view, but no excess stuff/escaping (good for including CSS, for instance)
+       '(if (eq action "raw")
+           '(let 'rev_target (token token "/" fulltarget 0) '
+            (let 'rev (car rev_target) '
+            (let 'target (car (cdr rev_target)) '     
+             (string
+              stdheader (if (eq rev "_") '(head target) '(read target (int rev))) )
+             )))
+
           ;; XXX protect against run main...? (= infinite loop)
          '(if (eq action "run")
             '(string
-              stdheader 
+              stdheader stdpage
               (tabs fulltarget)
               "<p>running " fulltarget " ... <hr/><p>"
               (handle '(let 'prog (head fulltarget)
@@ -186,9 +197,6 @@
 
           '(string stdheader "unknown action!")))
 
-       ))) ; action case analysis
-      
+       )))) ; action case analysis
 
-  ; (string (map map (lambda 'x '(string (car x) "!")) (token token "/" "hello/world" 0)))
-
-))))))))))))))
+)))))))))))))))

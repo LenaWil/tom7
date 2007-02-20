@@ -206,37 +206,55 @@ struct
     let
       val f = TextIO.openIn file
 
+      fun error s = raise DB (file ^ " @ " ^ Position.toString (TextIO.StreamIO.filePosIn (TextIO.getInstream f)) ^ ": " ^ s)
+
+
+      fun opt s NONE = error s
+        | opt s (SOME x) = x
+
+      fun intinf why s =
+        (case IntInf.fromString s of 
+           NONE => error ("int " ^ why ^ " : '" ^ s ^ "'")
+         | SOME i => i)
+
       fun until stop =
         let
           fun unt () =
             case TextIO.input1 f of
               SOME c => if c = stop then nil
                         else c :: unt ()
-            | NONE => raise NotFound
+            | NONE => error ("chars until " ^ implode[stop])
         in
           implode ` unt ()
         end
 
       fun getlenstr () =
         let
-          val n = valOf ` Int.fromString ` until #"/"
+          val n = opt "lenstr int" ` Int.fromString ` until #"/"
         in
           TextIO.inputN (f, n)
         end
 
       val hdr = TextIO.inputLine f
-      val () = if hdr <> SOME "WPDB\n" then raise NotFound else ()
-      val cur = valOf ` IntInf.fromString ` valOf ` TextIO.inputLine f
+      val () = if hdr <> SOME "WPDB\n" then error "not db" else ()
+      val cur = opt "int" ` IntInf.fromString ` opt "line" ` TextIO.inputLine f
 
       val base = ref SM.empty
+
+      (* for debugging .. *)
+      fun edittos (Modify (i, s)) = ("M" ^ Int.toString i ^ ":" ^ s)
+        | edittos (Insert (i, s)) = ("I" ^ Int.toString i ^ ":" ^ s)
+        | edittos (Delete i) = ("D" ^ Int.toString i ^ ":")
 
       (* read keys and insert them *)
       fun readkeys () =
         if TextIO.endOfStream f then ()
         else
         let
-          val key = valOf ` StringUtil.urldecode ` until #" "
-          val cur = valOf ` IntInf.fromString ` until #" "
+          val key = opt "url encoded key" ` StringUtil.urldecode ` until #" "
+          val () = print ("(key: '" ^ key ^ "')\n")
+          val cur = intinf "cur" ` until #" "
+          val () = print ("(cur: " ^ IntInf.toString cur ^ ")\n")
           val head = getlenstr ()
 
           val revs = ref nil
@@ -245,35 +263,38 @@ struct
             case TextIO.input1 f of
               SOME #"!" =>
               let
-                val r = valOf ` IntInf.fromString ` until #"="
+                val r = opt "revision int" ` IntInf.fromString ` until #"="
+                val () = print (" .. rev #" ^ IntInf.toString r ^ "\n")
                 fun readplan () =
                   case TextIO.input1 f of
-                    SOME #"X" => nil
+                    SOME #"X" => (ignore ` until #"\n"; nil)
                   | SOME #"M" =>
-                    let val at = valOf ` Int.fromString ` until #":"
+                    let val at = opt "mod int" ` Int.fromString ` until #":"
                       val s = getlenstr ()
                     in
                       Modify(at, s) :: readplan ()
                     end
                   | SOME #"D" =>
-                    let val at = valOf ` Int.fromString ` until #":"
+                    let val at = opt "del int" ` Int.fromString ` until #":"
                     in
                       Delete at :: readplan ()
                     end
                   | SOME #"I" => 
-                    let val at = valOf ` Int.fromString ` until #":"
+                    let val at = opt "ins int" ` Int.fromString ` until #":"
                       val s = getlenstr ()
                     in
                       Insert(at, s) :: readplan ()
                     end
-                  | _ => raise NotFound
+                  | _ => error "expected XMDI"
 
                 val plan = readplan ()
               in
-                revs := (r, plan) :: !revs
+                print ("  .. plan: " ^ StringUtil.delimit "|" (map edittos plan) ^ "\n");
+                revs := (r, plan) :: !revs;
+                readrevs ()
               end
             | SOME #"\n" => ()
-            | _ => raise NotFound
+            | _ => error "expected ! or newline"
         in
           ignore ` until #"\n";
           (* now read a series of revs *)
