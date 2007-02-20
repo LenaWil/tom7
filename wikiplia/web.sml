@@ -16,8 +16,6 @@ struct
       val server = R.listen PORT
 
       fun loop () =
-
-
         (let
            val () = print "accept...\n"
            val (peer, peera) = R.accept server
@@ -34,20 +32,21 @@ struct
           val (method, h') = StringUtil.token (StringUtil.ischar #" ") hdrs
           val (url, h') = StringUtil.token (StringUtil.ischar #" ") h'
 
+          fun nocr s = StringUtil.filter (fn #"\r" => false | _ => true) s
+            
           val kvp = String.fields (StringUtil.ischar #"&") content
           val kvp = List.mapPartial (fn one =>
                                      case String.fields (StringUtil.ischar #"=") one of
                                        [key, value] => (case StringUtil.urldecode value of
                                                           NONE => NONE
-                                                        | SOME s => SOME (key, s))
+                                                        | SOME s => SOME (key, nocr s))
                                      | _ => NONE) kvp
 
           (* put form elements in database *)
-          (* should we also put a parsed/tokenized version of these? *)
-          val () = app (fn (k, v) => ignore (DB.insert ("form." ^ k) (Bytes.String v))) kvp
+          val G = map (fn (k, v) => ("form." ^ k, (Bytes.String v))) kvp
 
           (* val () = ignore (DB.insert "request.method" "GET") *)
-          val () = ignore (DB.insert "request.url" (Bytes.String url))
+          val G = ("request.url", Bytes.String url) :: G
 
           fun http code = ("HTTP/1.1 " ^ code ^ "\r\n" ^
           "Date: " ^ (Date.fmt "%a, %d %b %Y %H:%M:%S %Z" (Date.fromTimeLocal (Time.now ()))) ^ "\r\n" ^
@@ -63,7 +62,7 @@ struct
 
           (let
              val res = 
-               case Eval.eval (DB.head "main") of
+               case Eval.eval G (DB.head "main") of
                  Bytes.String s => s
                | _ => ("Content-Type: text/html; charset=utf-8\r\n" ^
                        "\r\n" ^

@@ -26,7 +26,7 @@ struct
        'string-body
        'int-body
        '(s symbol-body)
-       
+       'internal-thing-body
        (nb. no prim or closure body)
 
        *)

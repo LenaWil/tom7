@@ -42,7 +42,7 @@ struct
      | (Prim CDR) :: _ => raise Abort "cdr/args"
 *)
      | (m as (Prim XCASE) :: obj :: _) => 
-         (print ("xcase @ " ^ tostring obj ^ "\n");
+         ((*print ("xcase @ " ^ tostring obj ^ "\n"); *)
           case m of
             (Prim XCASE) :: (List nil)      :: nb :: _ => eval G nb
           | (Prim XCASE) :: (List (h :: t)) :: _ :: (List[Symbol xh, Symbol xb, lb]) :: _ => eval ((xh, h) :: (xb, List t) :: G) lb
@@ -50,7 +50,7 @@ struct
           | (Prim XCASE) :: (String _)      :: _ :: _ :: _ :: sb :: _ => eval G sb
           | (Prim XCASE) :: (Int _)         :: _ :: _ :: _ :: _ :: ib :: _ => eval G ib
           | (Prim XCASE) :: (Symbol s)      :: _ :: _ :: _ :: _ :: _ :: (List[Symbol x, yb]) :: _ => eval ((x, String s) :: G) yb
-         (* XXX maybe allow last resort default.. *)
+          | (Prim XCASE) :: _               :: _ :: _ :: _ :: _ :: _ :: _ :: no :: _ => eval G no
           | _ => raise Abort "xcase/args1"
 
               )
@@ -110,7 +110,7 @@ struct
 
      | (Prim LET) :: Symbol x :: va :: body :: nil => 
          let in
-           print (x ^ " = ..\n");
+           (* print (x ^ " = ..\n"); *)
            eval ((x, va) :: G) body
          end
      | (Prim LET) :: z => (print (StringUtil.delimit " | " (map tostring z)); raise Abort "let/args")
@@ -128,6 +128,6 @@ struct
 
 
   (* environment is always empty to start *)
-  val eval = fn e => eval nil e
+  (* val eval = fn e => eval nil e *)
 
 end
