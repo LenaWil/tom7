@@ -13,7 +13,9 @@ struct
   datatype world = W of var
 
   datatype primcon = VEC | REF
-  datatype primop = LOCALHOST
+  datatype primop = LOCALHOST | BIND
+
+  type intconst = IL.intconst
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
@@ -45,11 +47,15 @@ struct
     | WUnpack of var * var * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
   (* nb. Binders must be implemented in outjection code below! *)
+    | ExternVal of var * string * ctyp * world option * 'cexp
+    | ExternWorld of var * string * 'cexp
+    (* always kind 0 *)
+    | ExternType of var * string * 'cexp
 
   and ('cexp, 'cval) cvalfront =
       Lams of (var * var list * 'cexp) list
     | Fsel of 'cval * int
-    | Int of int
+    | Int of intconst
     | String of string
     | Record of (string * 'cval) list
     | Hold of world * 'cval
@@ -117,7 +123,13 @@ struct
                  else ListUtil.mapsecond eself sel,
                  if V.eq(vv, v) then e
                  else eself e)
-
+       | ExternWorld (vv, s, e) =>
+           ExternWorld (vv, s, if V.eq (vv, v) then e else eself e)
+       | ExternType (vv, s, e) =>
+           ExternType (vv, s, if V.eq (vv, v) then e else eself e)
+       | ExternVal (vv, s, t, wo, e) =>
+           ExternVal (vv, s, tself t, Option.map wself wo,
+                      if V.eq (vv, v) then e else eself e)
            )
     end
 
@@ -227,6 +239,18 @@ struct
                                                renamee v v' def)
                                         end
 
+    | cexp (E(ExternVal(vv, s, t, wo, e))) = let val v' = V.alphavary vv
+                                             in ExternVal(v', s, t, wo, renamee vv v' e)
+                                             end
+
+    | cexp (E(ExternType(vv, s, e))) = let val v' = V.alphavary vv
+                                       in ExternType(v', s, renamee vv v' e)
+                                       end
+
+    | cexp (E(ExternWorld(vv, s, e))) = let val v' = V.alphavary vv
+                                        in ExternWorld(v', s, renamee vv v' e)
+                                        end
+
     | cexp (E x) = x
 
   fun cval (V (Lams vael)) = let val fs = map (fn (v, a, e) => (v, V.alphavary v, a, e)) vael
@@ -253,46 +277,49 @@ struct
 
   (* injections / ctyp *)
 
-val At' = fn x => T (At x)
-val Cont' = fn x => T (Cont x)
-val WAll' = fn x => T (WAll x)
-val WExists' = fn x => T (WExists x)
-val Product' = fn x => T (Product x)
-val Addr' = fn x => T (Addr x)
-val Mu' = fn x => T (Mu x)
-val Sum' = fn x => T (Sum x)
-val Primcon' = fn x => T (Primcon x)
-val Conts' = fn x => T (Conts x)
-val Shamrock' = fn x => T (Shamrock x)
-val TVar' = fn x => T (TVar x)
+  val At' = fn x => T (At x)
+  val Cont' = fn x => T (Cont x)
+  val WAll' = fn x => T (WAll x)
+  val WExists' = fn x => T (WExists x)
+  val Product' = fn x => T (Product x)
+  val Addr' = fn x => T (Addr x)
+  val Mu' = fn x => T (Mu x)
+  val Sum' = fn x => T (Sum x)
+  val Primcon' = fn x => T (Primcon x)
+  val Conts' = fn x => T (Conts x)
+  val Shamrock' = fn x => T (Shamrock x)
+  val TVar' = fn x => T (TVar x)
 
-val Halt' = E Halt
-val Call' = fn x => E (Call x)
-val Go' = fn x => E (Go x)
-val Proj' = fn x => E (Proj x)
-val Primop' = fn x => E (Primop x)
-val Put' = fn x => E (Put x)
-val Letsham' = fn x => E (Letsham x)
-val Leta' = fn x => E (Leta x)
-val WUnpack' = fn x => E (WUnpack x)
-val Case' = fn x => E (Case x)
+  val Halt' = E Halt
+  val Call' = fn x => E (Call x)
+  val Go' = fn x => E (Go x)
+  val Proj' = fn x => E (Proj x)
+  val Primop' = fn x => E (Primop x)
+  val Put' = fn x => E (Put x)
+  val Letsham' = fn x => E (Letsham x)
+  val Leta' = fn x => E (Leta x)
+  val WUnpack' = fn x => E (WUnpack x)
+  val Case' = fn x => E (Case x)
+  val ExternWorld' = fn x => E (ExternWorld x)
+  val ExternType' = fn x => E (ExternType x)
+  val ExternVal' = fn x => E (ExternVal x)
 
-val Lams' = fn x => V (Lams x)
-val Fsel' = fn x => V (Fsel x)
-val Int' = fn x => V (Int x)
-val String' = fn x => V (String x)
-val Record' = fn x => V (Record x)
-val Hold' = fn x => V (Hold x)
-val WLam' = fn x => V (WLam x)
-val TLam' = fn x => V (TLam x)
-val WPack' = fn x => V (WPack x)
-val WApp' = fn x => V (WApp x)
-val TApp' = fn x => V (TApp x)
-val Sham' = fn x => V (Sham x)
-val Inj' = fn x => V (Inj x)
-val Roll' = fn x => V (Roll x)
-val Unroll' = fn x => V (Unroll x)
-val Var' = fn x => V (Var x)
-val UVar' = fn x => V (UVar x)
+  val Lams' = fn x => V (Lams x)
+  val Fsel' = fn x => V (Fsel x)
+  val Int' = fn x => V (Int x)
+  val String' = fn x => V (String x)
+  val Record' = fn x => V (Record x)
+  val Hold' = fn x => V (Hold x)
+  val WLam' = fn x => V (WLam x)
+  val TLam' = fn x => V (TLam x)
+  val WPack' = fn x => V (WPack x)
+  val WApp' = fn x => V (WApp x)
+  val TApp' = fn x => V (TApp x)
+  val Sham' = fn x => V (Sham x)
+  val Inj' = fn x => V (Inj x)
+  val Roll' = fn x => V (Roll x)
+  val Unroll' = fn x => V (Unroll x)
+  val Var' = fn x => V (Var x)
+  val UVar' = fn x => V (UVar x)
 
 end

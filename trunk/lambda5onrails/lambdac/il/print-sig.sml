@@ -12,5 +12,6 @@ sig
     val etol : IL.exp    -> Layout.layout
     val dtol : IL.dec    -> Layout.layout
     val utol : IL.ilunit -> Layout.layout
+    val vtol : IL.value  -> Layout.layout
 
 end

@@ -12,11 +12,13 @@ sig
   type cval
   type ctyp
 
+  type intconst = IL.intconst
+
   datatype arminfo = datatype IL.arminfo
   datatype world = W of var
 
   datatype primcon = VEC | REF
-  datatype primop = LOCALHOST
+  datatype primop = LOCALHOST | BIND
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
@@ -44,11 +46,15 @@ sig
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
+    | ExternVal of var * string * ctyp * world option * 'cexp
+    | ExternWorld of var * string * 'cexp
+    (* always kind 0 *)
+    | ExternType of var * string * 'cexp
 
   and ('cexp, 'cval) cvalfront =
       Lams of (var * var list * 'cexp) list
     | Fsel of 'cval * int
-    | Int of int
+    | Int of intconst
     | String of string
     | Record of (string * 'cval) list
     | Hold of world * 'cval
@@ -92,10 +98,14 @@ sig
   val Leta' : var * cval * cexp -> cexp
   val WUnpack' : var * var * cval * cexp -> cexp
   val Case' : cval * var * (string * cexp) list * cexp -> cexp
+  val ExternVal' : var * string * ctyp * world option * cexp -> cexp
+  val ExternWorld' : var * string * cexp -> cexp
+  val ExternType' : var * string * cexp -> cexp
+
 
   val Lams' : (var * var list * cexp) list -> cval
   val Fsel' : cval * int -> cval
-  val Int' : int -> cval
+  val Int' : intconst -> cval
   val String' : string -> cval
   val Record' : (string * cval) list -> cval
   val Hold' : world * cval -> cval
