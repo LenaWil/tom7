@@ -138,12 +138,13 @@ il/opt.sml
 cps-sig.sml
 cps.sml
 
+cps/tocps-sig.sml
+cps/tocps.sml
+
 (*
 cps.sml
 cps/alpha.sml
 cps/subst.sml
-cps/tocps-sig.sml
-cps/tocps.sml
 cps/print-sig.sml
 cps/print.sml
 cps/optutil-sig.sml
