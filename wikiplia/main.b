@@ -1,3 +1,15 @@
+
+
+;;; NOTE
+
+;;; this file is deprecated -- the current version is now in the wiki database.
+
+
+
+
+
+
+
 ;;                                 -*- lisp -*-
 ; This is the initial (bootstrapping) program.
 ; its role is to provide a minimal wiki interface

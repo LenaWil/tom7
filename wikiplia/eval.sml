@@ -101,7 +101,7 @@ struct
                                                handle DB.NotFound => raise Abort ("history/key [" ^ k ^ "] not found"))
      | (Prim HISTORY) :: _ => raise Abort "history/args"
 
-     | (Prim PARSE) :: String x :: nil => ((Parse.parse x) handle Parse.Parse s => raise Abort ("parse: " ^ x))
+     | (Prim PARSE) :: String x :: nil => ((Parse.parse x) handle Parse.Parse s => raise Abort ("parse: " ^ s))
      | (Prim PARSE) :: _ => raise Abort "parse/args"
 
      (* XXX could be a derived form, I think? Lots of stuff evals a list... *)
