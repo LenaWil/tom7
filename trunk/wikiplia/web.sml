@@ -21,11 +21,11 @@ struct
            val (peer, peera) = R.accept server
          in
            print "process request...\n";
-           request peer;
+           request (peer, peera);
            loop ()
          end)
 
-      and request p =
+      and request (p, addr) =
         let
           val () = print "receive message..."
           val (hdrs, content) = recvhttp p
@@ -47,6 +47,10 @@ struct
 
           (* val () = ignore (DB.insert "request.method" "GET") *)
           val G = ("request.url", Bytes.String url) :: G
+          val ip = let val (a, b, c, d) = R.addressip addr
+                   in StringUtil.delimit "." (map Int.toString [a, b, c, d])
+                   end
+          val G = ("request.ip", Bytes.String ip) :: G
 
           fun http code = ("HTTP/1.1 " ^ code ^ "\r\n" ^
           "Date: " ^ (Date.fmt "%a, %d %b %Y %H:%M:%S %Z" (Date.fromTimeLocal (Time.now ()))) ^ "\r\n" ^
