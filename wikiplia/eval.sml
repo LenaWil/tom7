@@ -102,7 +102,7 @@ struct
      | (Prim HISTORY) :: _ => raise Abort "history/args"
 
      | (Prim PARSE) :: String x :: nil => ((Parse.parse x) handle Parse.Parse s => raise Abort ("parse: " ^ s))
-     | (Prim PARSE) :: _ => raise Abort "parse/args"
+     | (Prim PARSE) :: l => raise Abort ("parse/args: (got " ^ tostring (List l) ^ ")")
 
      (* XXX could be a derived form, I think? Lots of stuff evals a list... *)
      | (Prim EVAL) :: l :: nil => eval G l
