@@ -56,9 +56,9 @@ struct
 
         in
           print ("URL: [" ^ url ^ "]\n");
-          app (fn (k, v) => print ("[" ^ k ^ "]=[" ^ v ^ "]\n")) kvp;
-
-          print "send response...\n";
+          (* app (fn (k, v) => print ("[" ^ k ^ "]=[" ^ v ^ "]\n")) kvp; *)
+          
+          (* print "send response...\n"; *)
 
           (let
              val res = 
@@ -71,12 +71,12 @@ struct
              if StringUtil.matchhead "Location:" res
              then 
                let in
-                 print ("Redirect: [" ^ res ^ "]\n");
+                 (* print ("Redirect: [" ^ res ^ "]\n"); *)
                  sendall p (http "301 Moved Permanently" ^ res)
                end
              else
                let in
-                 print ("Result: [" ^ res ^ "]\n");
+                 (* print ("Result: [" ^ res ^ "]\n"); *)
                  sendall p (http "200 OK" ^ res)
                end
            end handle e => (print "ERROR.\n";
