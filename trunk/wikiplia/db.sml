@@ -10,6 +10,9 @@ struct
   infixr 9 `
   fun a ` b = a b
 
+  (* changed since saved? *)
+  val changes = ref true
+
   structure SM = SplayMapFn(type ord_key = string
                             val compare = String.compare)
 
@@ -118,6 +121,7 @@ struct
                                 revs = nil
                                 }),
                     now + 1);
+             changes := true;
              now + 1
            end
        | SOME { head, cur, revs } =>
@@ -130,6 +134,7 @@ struct
                                 revs = (cur, plan) :: revs
                                 }),
                     now + 1);
+             changes := true;
              now + 1
            end)
     end
@@ -198,8 +203,11 @@ struct
       TextIO.output(f, IntInf.toString head ^ "\n");
       SM.appi onekey tree;
 
-      TextIO.closeOut f
+      TextIO.closeOut f;
+      changes := false
     end
+
+  fun changed () = !changes
 
   (* replaces database *)
   fun load file =
@@ -306,7 +314,8 @@ struct
     in
       readkeys ();
       TextIO.closeIn f;
-      db := (!base, cur)
+      db := (!base, cur);
+      changes := true
     end
     
 

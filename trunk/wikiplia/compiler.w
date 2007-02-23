@@ -1,4 +1,4 @@
-
+;                           -*- lisp -*-
 ; compiler from W to B, written in W
 
 ; this "compiler" is mostly just desugaring: the

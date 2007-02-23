@@ -88,7 +88,10 @@ struct
           print "hangup...\n";
           (R.hangup p) handle _ => ();
           (* PERF not on every request, surely! *)
-          DB.save Initial.DBFILE
+          if DB.changed ()
+          then (DB.save Initial.DBFILE;
+                print "Saved.\n")
+          else ()
         end
 
       and sendall p s =
