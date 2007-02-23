@@ -253,7 +253,7 @@ struct
       changes := false
     end
 
-  fun changed () = true (* !changes *) (* FIXME *)
+  fun changed () = !changes
 
   (* replaces database *)
   fun load file =
@@ -306,9 +306,9 @@ struct
         else
         let
           val key = opt "url encoded key" ` StringUtil.urldecode ` until #" "
-          val () = print ("(key: '" ^ key ^ "')\n")
+          (* val () = print ("(key: '" ^ key ^ "')\n") *)
           val cur = intinf "cur" ` until #" "
-          val () = print ("(cur: " ^ IntInf.toString cur ^ ")\n")
+          (* val () = print ("(cur: " ^ IntInf.toString cur ^ ")\n") *)
           val head = getlenstr ()
 
           val revs = ref nil
@@ -318,7 +318,7 @@ struct
               SOME #"!" =>
               let
                 val r = opt "revision int" ` IntInf.fromString ` until #"="
-                val () = print (" .. rev #" ^ IntInf.toString r ^ "\n")
+                (* val () = print (" .. rev #" ^ IntInf.toString r ^ "\n") *)
                 fun readplan () =
                   case TextIO.input1 f of
                     SOME #"X" => (ignore ` until #"\n"; nil)
@@ -361,7 +361,7 @@ struct
 
                 val plan = readplan ()
               in
-                print ("  .. plan: " ^ StringUtil.delimit "|" (map edittos plan) ^ "\n");
+                (* print ("  .. plan: " ^ StringUtil.delimit "|" (map edittos plan) ^ "\n"); *)
                 revs := (r, plan) :: !revs;
                 readrevs ()
               end
