@@ -5,7 +5,6 @@ struct
 
   exception NotFound
   exception DB of string
-  type int = IntInf.int
 
   infixr 9 `
   fun a ` b = a b
@@ -179,18 +178,65 @@ struct
         let 
           val h = etos head
 
-          fun showrev (r, plan) = 
+          fun showrev (revi, plan) = 
             let 
-              fun oneedit (Modify (i, s)) = TextIO.output(f, "M" ^
-                                                         Int.toString i ^
-                                                         ":" ^ stos s)
-                | oneedit (Insert (i, s)) = TextIO.output(f, "I" ^
-                                                         Int.toString i ^
-                                                         ":" ^ stos s)
-                | oneedit (Delete i) = TextIO.output (f, "D" ^ Int.toString i ^ ":")
+              datatype run = 
+                NO 
+                (* insert at a constant location; string list is in reverse *)
+              | INSAT of int * string list
+                (* delete tokens from start to end (inclusively); start >= end *)
+              | DELDOWN of int * int
+
+              fun runedits (r, Modify (i, s) :: rest) : unit = 
+                let in
+                  write r;
+                  TextIO.output(f, "M" ^ Int.toString i ^ ":" ^ stos s);
+                  runedits (NO, rest)
+                end
+
+                | runedits (r as (INSAT(j, sl)), Insert (i, s) :: rest) =
+                (* might continue the run... *)
+                if i = j then runedits(INSAT(j, s :: sl), rest)
+                else (write r; runedits(NO, Insert (i, s) :: rest))
+
+                | runedits (r, Insert (i, s) :: rest) = 
+                  let in
+                    write r;
+                    runedits (INSAT (i, [s]), rest)
+                  end
+
+                | runedits (r as (DELDOWN(st, en)), Delete i :: rest) =
+                  if en - 1 = i then runedits(DELDOWN(st, i), rest)
+                  else (write r; runedits(NO, Delete i :: rest))
+
+                | runedits (r, Delete i :: rest) =
+                  let in
+                    write r;
+                    runedits (DELDOWN(i, i), rest)
+                  end
+
+                | runedits (r, nil) = write r
+
+              and write NO = ()
+                | write (DELDOWN(st, en)) =
+                if st = en then TextIO.output (f, "D" ^ Int.toString st ^ ":")
+                else TextIO.output (f, "d" ^ Int.toString st ^ "," ^ Int.toString en ^ ":")
+
+                | write (INSAT (i, [s])) =
+                (* unary run should not be expressed as a run *)
+                TextIO.output(f, "I" ^ Int.toString i ^ ":" ^ stos s)
+
+                | write (INSAT (i, sl)) = 
+                let in
+                  TextIO.output(f, "i" ^ Int.toString i ^ "," ^
+                                Int.toString (length sl) ^ ":");
+                  app (fn s => TextIO.output(f, stos s)) (rev sl)
+                end
+
+
             in
-              TextIO.output(f, "!" ^ IntInf.toString r ^ "=");
-              app oneedit plan;
+              TextIO.output(f, "!" ^ IntInf.toString revi ^ "=");
+              runedits (NO, plan);
               TextIO.output(f, "X\n")
             end
         in
@@ -207,7 +253,7 @@ struct
       changes := false
     end
 
-  fun changed () = !changes
+  fun changed () = true (* !changes *) (* FIXME *)
 
   (* replaces database *)
   fun load file =
@@ -282,10 +328,28 @@ struct
                     in
                       Modify(at, s) :: readplan ()
                     end
+                  | SOME #"d" => 
+                    let val st = opt "del run int1" ` Int.fromString ` until #","
+                        val en = opt "del run int2" ` Int.fromString ` until #":"
+
+                        fun delto st = Delete st :: (if st = en then readplan ()
+                                                     else delto (st - 1))
+                    in
+                      delto st
+                    end
                   | SOME #"D" =>
                     let val at = opt "del int" ` Int.fromString ` until #":"
                     in
                       Delete at :: readplan ()
+                    end
+                  | SOME #"i" =>
+                    let val at = opt "ins run int1" ` Int.fromString ` until #","
+                        val n  = opt "ins run int2" ` Int.fromString ` until #":"
+
+                        fun readn 0 = readplan ()
+                          | readn m = Insert(at, getlenstr ()) :: readn (m - 1)
+                    in
+                      readn n
                     end
                   | SOME #"I" => 
                     let val at = opt "ins int" ` Int.fromString ` until #":"
