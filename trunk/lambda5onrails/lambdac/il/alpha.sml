@@ -110,9 +110,9 @@ struct
        | App (e, el) => App (self e, map self el)
        | Record lel => Record ` ListUtil.mapsecond self lel
        | Proj (l, t, e) => Proj(l, t, self e)
-       | Get { addr, typ, body, dlist } => Get { addr = self addr, typ = typ,
+       | Get { addr, typ, body, dest } => Get { addr = self addr, typ = typ,
                                                 body = self body, 
-                                                dlist = Option.map (ListUtil.mapsecond doval) dlist }
+                                                dest = dest }
        | Raise (t, e) => Raise (t, self e)
        | Handle (e, v, e') =>
            (case dobinds [v] of

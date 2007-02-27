@@ -26,8 +26,8 @@ struct
     infixr 9 `
     fun a ` b = a b
 
-    type env = int list (* XXX *)
-
+    datatype env = Env of { world : CPS.world }
+      
     fun cvtw (G : env) (w : IL.world) : CPS.world =
       (case w of
          I.WEvar (ref (I.Bound w)) => cvtw G w
@@ -109,6 +109,17 @@ struct
                   ))
               end
 
+       | I.Record lel =>
+              let
+                val (labs, exps) = ListPair.unzip lel
+                val vv = nv "record"
+              in
+                cvtel G exps
+                (fn (G, vl) =>
+                 Primop' ([vv], BIND, [Record' ` ListPair.zip (labs, vl)],
+                          k (G, Var' vv)))
+              end
+
        (* treat every primapp as an extern primcall. *)
        (* perhaps these should be translated in some IL phase... *)
        | I.Primapp (po, el, tl) =>
@@ -134,16 +145,30 @@ struct
                                                        var = vp },
                                 el))) k
               end
-     (*
-       | I.Primapp (po, el, tl) =>
-              let val ts = map (cvtt G) tl
-                  val vv = "po"
+
+       (* XXX typ necessary? (yes for put) *)
+       | I.Get { addr, dest : IL.world, typ, body } =>
+              let
+                val dest = cvtw G dest
+                val reta = nv "ret_addr"
+                val pv = nv "get_res"
+                val mobtyp = cvtt G typ
+                val srcw = worldfrom G
               in
-                cvtel G el
-                (fn (G, vl) =>
-                 Primop' ([po], P po, vl, 
+                cvte G addr
+                (fn (G, va) =>
+                 Primop'([reta], LOCALHOST, nil, 
+                          Go' (dest, va,
+                               let val G = setworld G dest
+                               in
+                                 (* XXX change world in G *)
+                                 cvte G body
+                                 (fn (G, res) =>
+                                  Put' (pv, mobtyp, res,
+                                        Go' (srcw, UVar' reta,
+                                             k (setworld G srcw, UVar' pv))))
+                               end)))
               end
-              *)
 
        | _ => 
          let in
@@ -151,6 +176,10 @@ struct
            Layout.print (ILPrint.etol e, print);
            raise ToCPS "unimplemented"
          end)
+
+    and worldfrom (Env { world, ... }) = world
+
+    and setworld (Env { world = _ }) world = Env { world = world }
 
     and cvtel (G : env) (el : IL.exp list) (k : env * cval list -> CPS.cexp) : CPS.cexp =
       (case el of 
@@ -268,6 +297,8 @@ struct
        | I.VRoll (t, v) => Roll' (cvtt G t, cvtv G v)
        | I.Polyvar { tys, worlds, var } =>
          foldr (swap TApp') (foldr (swap WApp') (Var' var) (map (cvtw G) worlds)) (map (cvtt G) tys)
+       | I.Polyuvar { tys, worlds, var } => 
+         foldr (swap TApp') (foldr (swap WApp') (UVar' var) (map (cvtw G) worlds)) (map (cvtt G) tys)
        | I.VInject (t, l, vo) => Inj' (l, cvtt G t, Option.map (cvtv G) vo)
 
        | _ => 
@@ -281,7 +312,9 @@ struct
     fun cvtds nil G = Halt'
       | cvtds (d :: r) G = cvtd G d (cvtds r)
 
-    fun convert (I.Unit(decs, _ (* exports *))) = cvtds decs []
+    fun convert (I.Unit(decs, _ (* exports *))) (I.WVar world) = 
+      cvtds decs (Env { world = W world })
+      | convert _ _ = raise ToCPS "unset evar at toplevel world"
 
     (* needed? *)
     fun clear () = ()

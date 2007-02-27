@@ -151,13 +151,16 @@ struct
 
             (* val inter = ILDict.transform inter *)
 
-            val c = ToCPS.convert inter
+            val c : CPS.cexp = ToCPS.convert inter Initial.home
 
         in
 (*          print "\n\n**** DICTED: ****\n";
           Layout.print( ILPrint.utol inter, print); *)
+(*
           raise Test "backend unimplemented";
           OS.Process.success
+          *)
+          c
         end)
     handle Test s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
          | Nullary.Nullary s => fail ("\nCouldn't do EL nullary prepass:\n" ^ s ^ "\n")
@@ -175,7 +178,8 @@ struct
         let in
             print "\nCompilation failed.\n";
             print s;
-            OS.Process.failure
+            raise Match
+              (* OS.Process.failure *)
         end
 
     (* For testing from the SML/NJ prompt *)
@@ -189,12 +193,14 @@ struct
 
 end
 
-
+(*
 val _ =
     case Params.docommandline () of
-        [input] => OS.Process.exit(Test.compile input)
+        [input] => (* OS.Process.exit(Test.compile input) *) Test.fail "unimplemented"
       | _ =>
             let in
                 print "Usage: lambdac file.ml5\n\n";
-                print (Params.usage ())
+                print (Params.usage ());
+                Test.fail "bad usage"
             end
+*)
