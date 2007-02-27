@@ -245,7 +245,7 @@ struct
                  else %[$("#" ^ l), etol e]
            | Record sel => recordortuple etol "=" "(" ")" "," sel
            | Primapp (po, el, ts) =>
-                 %( [$"[PRIM", $(Primop.tostring po),
+                 %( [$"[PRIM", $(Podata.tostring po),
                      L.listex "(" ")" "," (map etol el)]
                    @ (case (!iltypes, ts) of 
                           (_, nil) => nil
