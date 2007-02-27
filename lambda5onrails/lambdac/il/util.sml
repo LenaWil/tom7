@@ -18,10 +18,10 @@ struct
            | Jointext el => Jointext (map f el)
            | Record lel => Record (ListUtil.mapsecond f lel)
            | Proj (l, t, e) => Proj(l, t, f e)
-           | Get { addr, typ, body, dlist } => Get { addr = f addr,
+           | Get { addr, typ, body, dest } => Get { addr = f addr,
                                                     typ = typ,
                                                     body = f body,
-                                                    dlist = Option.map (ListUtil.mapsecond (pwv f)) dlist }
+                                                    dest = dest }
            | Raise (t, e) => Raise(t, f e)
            | Handle (e, v, handler) => Handle(f e, v, f handler)
            | Seq (e1, e2) => Seq (f e1, f e2)
@@ -100,10 +100,10 @@ struct
             case exp of
                 Value v => Value (tsubstv v)
                 (* allow delayed *)
-              | Get { addr, typ, body, dlist } => Get { addr = self addr,
+              | Get { addr, typ, body, dest } => Get { addr = self addr,
                                                        typ = sub typ,
                                                        body = self body,
-                                                       dlist = Option.map (ListUtil.mapsecond tsubstv) dlist }
+                                                       dest = dest }
               | Raise(t, e) => Raise(sub t, self e)
               | Proj(l, t, e) => Proj(l, sub t, self e)
               | Roll(t, e) => Roll(sub t, self e)
@@ -125,6 +125,7 @@ struct
               | Let(Val vtep, e) =>
                     Let(Val (mappoly (fn (v,t,e) => (v, sub t, self e)) vtep),
                         self e)
+              (* FIXME is this all of them? *)
               (* otherwise recurse *)
               | _ => pointwise self exp
         end

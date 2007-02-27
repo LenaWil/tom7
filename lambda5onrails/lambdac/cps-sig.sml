@@ -34,7 +34,12 @@ sig
     | Shamrock of 'ctyp
     | TVar of var
 
-  datatype primop = LOCALHOST | BIND | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
+  datatype primop = 
+    (* binds uvar *)
+    LOCALHOST 
+    (* binds regular var *)
+  | BIND 
+  | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
 
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
@@ -42,7 +47,7 @@ sig
     | Go of world * 'cval * 'cexp
     | Proj of var * string * 'cval * 'cexp
     | Primop of var list * primop * 'cval list * 'cexp
-    | Put of var * 'cval * 'cexp
+    | Put of var * ctyp * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
@@ -96,7 +101,7 @@ sig
   val Go' : world * cval * cexp -> cexp
   val Proj' : var * string * cval * cexp -> cexp
   val Primop' : var list * primop * cval list * cexp -> cexp
-  val Put' : var * cval * cexp -> cexp
+  val Put' : var * ctyp * cval * cexp -> cexp
   val Letsham' : var * cval * cexp -> cexp
   val Leta' : var * cval * cexp -> cexp
   val WUnpack' : var * var * cval * cexp -> cexp

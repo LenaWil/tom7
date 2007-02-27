@@ -5,7 +5,7 @@ sig
 
        convert a (finalized) IL unit e to a CPS expression
        that evaluates the unit for its effect and then halts. *)
-    val convert : IL.ilunit -> CPS.cexp
+    val convert : IL.ilunit -> IL.world -> CPS.cexp
 
     (* clear some debugging stuff; call between converted programs *)
     val clear : unit -> unit

@@ -252,14 +252,13 @@ struct
                 val (bb, bt) = elab ctx there body
               in
                 require_mobile ctx loc "get" bt;
-                (* dict is added in later translation *)
-                (Get { addr = aa, typ = bt, body = bb, dlist = NONE }, bt)
+                (Get { addr = aa, typ = bt, body = bb, dest = there }, bt)
               end
 
         | E.Constant(E.CInt i) => value (Int i, Initial.ilint)
         | E.Constant(E.CChar c) => value (Int (Word32.fromInt (ord c)), Initial.ilchar)
 
-        | E.Float _ => error loc "Unsupported: floating point"
+        | E.Float _ => error loc "unimplemented: floating point"
 
         | E.Constant (E.CString s) => value (String s, Initial.ilstring)
 

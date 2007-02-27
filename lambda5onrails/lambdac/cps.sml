@@ -42,7 +42,7 @@ struct
     | Go of world * 'cval * 'cexp
     | Proj of var * string * 'cval * 'cexp
     | Primop of var list * primop * 'cval list * 'cexp
-    | Put of var * 'cval * 'cexp
+    | Put of var * ctyp * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
@@ -106,8 +106,8 @@ struct
                      then ce
                      else eself ce)
            end
-       | Put (vv, va, e) =>
-           Put (vv, vself va,
+       | Put (vv, ty, va, e) =>
+           Put (vv, tself ty, vself va,
                 if V.eq(vv, v)
                 then e
                 else eself e)
@@ -234,9 +234,9 @@ struct
                                     in Primop(map #2 vs, po, vl,
                                               foldl (fn ((v,v'), e) => renamee v v' e) e vs)
                                     end
-    | cexp (E(Put(v, va, e))) = let val v' = V.alphavary v
-                                in Put(v', va, renamee v v' e)
-                                end
+    | cexp (E(Put(v, ty, va, e))) = let val v' = V.alphavary v
+                                    in Put(v', ty, va, renamee v v' e)
+                                    end
     | cexp (E(Letsham(v, va, e))) = let val v' = V.alphavary v
                                     in Letsham(v', va, renamee v v' e)
                                     end

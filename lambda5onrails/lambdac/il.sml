@@ -138,8 +138,9 @@ struct
       | Roll of typ * exp
 
       | Get of { addr : exp,
+                 dest : world,
                  typ  : typ,
-                 dlist : (var * value) list option,
+                 (* dlist : (var * value) list option, *)
                  body : exp }
 
       | Throw of exp * exp
