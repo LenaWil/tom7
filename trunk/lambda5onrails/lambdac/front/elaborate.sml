@@ -349,7 +349,7 @@ struct
                in
                    app (fn t => unify ctx loc "jointext" t Initial.ilstring) tts;
 
-                   (Primapp(Primop.PJointext, ees, nil), Initial.ilstring)
+                   (Primapp(Primop.PJointext (length ees), ees, nil), Initial.ilstring)
                end
 
         | E.Record lel =>

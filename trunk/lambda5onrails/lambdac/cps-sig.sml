@@ -18,12 +18,12 @@ sig
   datatype world = W of var
 
   datatype primcon = VEC | REF
-  datatype primop = LOCALHOST | BIND
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
     | Cont of 'ctyp list
     | WAll of var * 'ctyp
+    | TAll of var * 'ctyp
     | WExists of var * 'ctyp
     | Product of (string * 'ctyp) list
     | Addr of world
@@ -34,12 +34,14 @@ sig
     | Shamrock of 'ctyp
     | TVar of var
 
+  datatype primop = LOCALHOST | BIND | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
+
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
     | Halt
     | Go of world * 'cval * 'cexp
     | Proj of var * string * 'cval * 'cexp
-    | Primop of primop * 'cval list * var list * 'cexp
+    | Primop of var list * primop * 'cval list * 'cexp
     | Put of var * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
     | Leta of var * 'cval * 'cexp
@@ -64,7 +66,7 @@ sig
     | WApp of 'cval * world
     | TApp of 'cval * ctyp
     | Sham of 'cval
-    | Inj of string * ctyp * 'cval
+    | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
     | Unroll of 'cval
     | Var of var
@@ -78,6 +80,7 @@ sig
   val At' : ctyp * world -> ctyp
   val Cont' : ctyp list -> ctyp
   val WAll' : var * ctyp -> ctyp
+  val TAll' : var * ctyp -> ctyp
   val WExists' : var * ctyp -> ctyp
   val Product' : (string * ctyp) list -> ctyp
   val Addr' : world -> ctyp
@@ -92,7 +95,7 @@ sig
   val Halt' : cexp
   val Go' : world * cval * cexp -> cexp
   val Proj' : var * string * cval * cexp -> cexp
-  val Primop' : primop * cval list * var list * cexp -> cexp
+  val Primop' : var list * primop * cval list * cexp -> cexp
   val Put' : var * cval * cexp -> cexp
   val Letsham' : var * cval * cexp -> cexp
   val Leta' : var * cval * cexp -> cexp
@@ -103,6 +106,8 @@ sig
   val ExternType' : var * string * cexp -> cexp
 
 
+  (* derived form *)
+  val Lam' : (var * var list * cexp) -> cval
   val Lams' : (var * var list * cexp) list -> cval
   val Fsel' : cval * int -> cval
   val Int' : intconst -> cval
@@ -115,7 +120,7 @@ sig
   val WApp' : cval * world -> cval
   val TApp' : cval * ctyp -> cval
   val Sham' : cval -> cval
-  val Inj' : string * ctyp * cval -> cval
+  val Inj' : string * ctyp * cval option -> cval
   val Roll' : ctyp * cval -> cval
   val Unroll' : cval -> cval
   val Var' : var -> cval

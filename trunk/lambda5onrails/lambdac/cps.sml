@@ -13,7 +13,6 @@ struct
   datatype world = W of var
 
   datatype primcon = VEC | REF
-  datatype primop = LOCALHOST | BIND
 
   type intconst = IL.intconst
 
@@ -21,6 +20,7 @@ struct
       At of 'ctyp * world
     | Cont of 'ctyp list
     | WAll of var * 'ctyp
+    | TAll of var * 'ctyp
     | WExists of var * 'ctyp
     | Product of (string * 'ctyp) list
     | Addr of world
@@ -34,23 +34,25 @@ struct
 
   datatype ctyp = T of ctyp ctypfront
 
+  datatype primop = LOCALHOST | BIND | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
+
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
     | Halt
     | Go of world * 'cval * 'cexp
     | Proj of var * string * 'cval * 'cexp
-    | Primop of primop * 'cval list * var list * 'cexp
+    | Primop of var list * primop * 'cval list * 'cexp
     | Put of var * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
-  (* nb. Binders must be implemented in outjection code below! *)
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
     (* always kind 0 *)
     | ExternType of var * string * 'cexp
+  (* nb. Binders must be implemented in outjection code below! *)
 
   and ('cexp, 'cval) cvalfront =
       Lams of (var * var list * 'cexp) list
@@ -65,7 +67,7 @@ struct
     | WApp of 'cval * world
     | TApp of 'cval * ctyp
     | Sham of 'cval
-    | Inj of string * ctyp * 'cval
+    | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
     | Unroll of 'cval
     | Var of var
@@ -92,11 +94,18 @@ struct
                  if V.eq (vv, v)
                  then ex
                  else eself ex)
-       | Primop (po, vl, vvl, ce) =>
-           Primop (po, map vself vl, vvl,
-                   if List.exists (fn vv => V.eq (vv, v)) vvl
-                   then ce
-                   else eself ce)
+       | Primop (vvl, po, vl, ce) =>
+           let fun poself LOCALHOST = LOCALHOST
+                 | poself BIND = BIND
+                 | poself (PRIMCALL { sym, dom, cod }) = PRIMCALL { sym = sym,
+                                                                    dom = map tself dom,
+                                                                    cod = tself cod }
+           in
+             Primop (vvl, poself po, map vself vl,
+                     if List.exists (fn vv => V.eq (vv, v)) vvl
+                     then ce
+                     else eself ce)
+           end
        | Put (vv, va, e) =>
            Put (vv, vself va,
                 if V.eq(vv, v)
@@ -155,7 +164,7 @@ struct
          | Roll (t, va) => Roll (tself t, vself va)
          | Sham va => Sham ` vself va
          | Fsel (va, i) => Fsel (vself va, i)
-         | Inj (s, t, va) => Inj (s, tself t, vself va)
+         | Inj (s, t, va) => Inj (s, tself t, Option.map vself va)
          | Lams vvel => Lams ` map (fn (vv, vvl, ce) => (vv, vvl,
                                                          if List.exists (fn vv => V.eq (vv, v)) vvl
                                                             orelse
@@ -180,6 +189,8 @@ struct
        | Cont l => Cont (map self l)
        | WAll (vv, t) => if V.eq(v, vv) then typ
                          else WAll(vv, self t)
+       | TAll (vv, t) => if V.eq(v, vv) then typ
+                         else TAll(vv, self t)
        | WExists (vv, t) => if V.eq (v, vv) then typ
                             else WExists(vv, self t)
        | Product stl => Product ` ListUtil.mapsecond self stl
@@ -203,6 +214,9 @@ struct
   fun ctyp (T(WAll (v, t))) = let val v' = V.alphavary v
                               in (WAll (v', renamet v v' t))
                               end
+    | ctyp (T(TAll (v, t))) = let val v' = V.alphavary v
+                              in (TAll (v', renamet v v' t))
+                              end
     | ctyp (T(WExists (v, t))) = let val v' = V.alphavary v
                                  in (WExists (v', renamet v v' t))
                                  end
@@ -215,10 +229,11 @@ struct
   fun cexp (E(Proj(v, s, va, e))) = let val v' = V.alphavary v
                                     in Proj(v', s, va, renamee v v' e)
                                     end
-    | cexp (E(Primop(po, vl, vvl, e))) = let val vs = ListUtil.mapto V.alphavary vvl
-                                         in Primop(po, vl, map #2 vs,
-                                                   foldl (fn ((v,v'), e) => renamee v v' e) e vs)
-                                         end
+    | cexp (E(Primop(vvl, po, vl, e))) = 
+                                    let val vs = ListUtil.mapto V.alphavary vvl
+                                    in Primop(map #2 vs, po, vl,
+                                              foldl (fn ((v,v'), e) => renamee v v' e) e vs)
+                                    end
     | cexp (E(Put(v, va, e))) = let val v' = V.alphavary v
                                 in Put(v', va, renamee v v' e)
                                 end
@@ -280,6 +295,7 @@ struct
   val At' = fn x => T (At x)
   val Cont' = fn x => T (Cont x)
   val WAll' = fn x => T (WAll x)
+  val TAll' = fn x => T (TAll x)
   val WExists' = fn x => T (WExists x)
   val Product' = fn x => T (Product x)
   val Addr' = fn x => T (Addr x)
@@ -321,5 +337,7 @@ struct
   val Unroll' = fn x => V (Unroll x)
   val Var' = fn x => V (Var x)
   val UVar' = fn x => V (UVar x)
+
+  fun Lam' (v, vl, e) = Fsel' (Lams' [(v, vl, e)], 0)
 
 end

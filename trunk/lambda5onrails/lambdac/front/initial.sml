@@ -102,15 +102,13 @@ struct
          (* coercions *)
          ("ord", P.PBind, mono(IL.Arrow(true, [ilchar], ilint))),
          ("chr_", P.PBind, mono(IL.Arrow(true, [ilint], ilchar))),
-         (* can only safely read 0..Runtime.DYNAMIC_WORDS-1 *)
-         ("dynamic_", P.PDynamic, mono(IL.Arrow(true, [ilint], ilint))),
 
          ("halt", P.PHalt, quant(a, mono(IL.Arrow(false, [], IL.TVar a)))),
 
          ("showval_", P.PShowval, quant(a, mono(IL.Arrow(false, [IL.TVar a], ilunit)))),
 
-         ("^", P.PJointext, mono(IL.Arrow(false, [IL.TVec ilchar,
-                                                     IL.TVec ilchar], IL.TVec ilchar))),
+         ("^", P.PJointext 2, mono(IL.Arrow(false, [IL.TVec ilchar,
+                                                    IL.TVec ilchar], IL.TVec ilchar))),
 
          ("!", P.PGet, quant(a, mono
                                 (IL.Arrow(false, [IL.TRef (IL.TVar a)],
