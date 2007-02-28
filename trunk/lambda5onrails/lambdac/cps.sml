@@ -1,5 +1,6 @@
 
-structure CPS :> CPS =
+(* XXX ascribe !! *)
+structure CPS (* :> CPS *) =
 struct
   
   structure V = Variable
@@ -13,8 +14,6 @@ struct
   datatype world = W of var
 
   datatype primcon = VEC | REF
-
-  type intconst = IL.intconst
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
@@ -57,7 +56,7 @@ struct
   and ('cexp, 'cval) cvalfront =
       Lams of (var * var list * 'cexp) list
     | Fsel of 'cval * int
-    | Int of intconst
+    | Int of IntConst.intconst
     | String of string
     | Record of (string * 'cval) list
     | Hold of world * 'cval

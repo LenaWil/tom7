@@ -56,7 +56,7 @@ struct
         *)
 
     val pids = Time.toString (Time.now())
-
+(*
     fun execredir file (prog, args) =
         let 
             (* avoid /tmp symlink races *)
@@ -96,7 +96,7 @@ struct
         (case system (p, a) of
              NONE => systeml t
            | fail => fail)
-
+*)
     exception Done of string
 
     fun getel file =
@@ -142,18 +142,22 @@ struct
 
             val (base, _) = FSUtil.splitext file
 
-            val _ = SymbolDB.clear ()
+            val () = SymbolDB.clear ()
 
             val inter = getil file
 
-            val _ = print "**** ELABORATED: ****\n"
-            val _ = Layout.print( ILPrint.utol inter, print);
+            val () = print "\n\n**** ELABORATED: ****\n"
+            val () = Layout.print( ILPrint.utol inter, print)
 
             (* val inter = ILDict.transform inter *)
 
             val c : CPS.cexp = ToCPS.convert inter Initial.home
 
+            val () = print "\n\n**** CPS CONVERTED: ****\n"
+            val () = Layout.print ( CPSPrint.etol c, print)
+
         in
+            print "\n";
 (*          print "\n\n**** DICTED: ****\n";
           Layout.print( ILPrint.utol inter, print); *)
 (*
@@ -171,9 +175,10 @@ struct
          | Elaborate.Elaborate s => fail("\nElaboration: " ^ s ^ "\n")
          | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")
          | Variable.Variable s => fail ("\n\nBUG: Variables: " ^ s ^ "\n")
-         | ex => fail ("\n\nUncaught exception: " ^ exnName ex ^ ": " ^
-                        exnMessage ex ^ "\n")
-
+         | ex => (print ("\n\nUncaught exception: " ^ exnName ex ^ ": " ^
+                         exnMessage ex ^ "\n");
+                  raise ex)
+        
     and fail s =
         let in
             print "\nCompilation failed.\n";
