@@ -1,0 +1,37 @@
+
+The Dagstuhl meeting resulted in a number of "challenge problems" "basic" web programming benchmarks/baselines
+(specifically:
+   https://proglang.informatik.uni-freiburg.de/cgi/wiki/proglang/extern/wiki.py/Dagstuhl07051/LeadingQuestionsa
+ )
+
+  *   wiki/blog
+     o      users can add content
+     o      versioning 
+        + "live" 
+          client side rendering (but needs server-side info, e.g. the existence of pages
+                                 so they can be redlinked)
+  *   mini eCommerce (catalog order app). Not THE wine store, but something with a clean spec. 
+  *   hotel selection with appropriate user interaction pattern
+     o      user explores graph of options, needs to move back and forth through space
+        +         without losing context 
+     o      want back/clone/refresh to have sensible semantics from user perspective 
+  *   client-side mashup (e.g., Yaggle)
+  *   draggable lists and similar UI functionality
+  *   chat
+
+
+web games as challenge problem
+
+    * hard to do using standard web components
+    * synchronizing multiple browsers difficult
+    * scaling/performance issues in the presence of shared state
+
+Flickr as challenge problem ("rich" GUIs as challenge?)
+
+    * photos can be part of multiple albums
+    * coordinating little web widgets, animations, etc.
+    * how to do this stuff w/o 1000's of lines of JScript?
+    * what is the right GUI toolkit for the web?
+    * how to do fancy stuff while maintaining ability to access web in a lightweight way?
+    * easy stuff is easy, hard stuff practically impossible (on the web)
+
