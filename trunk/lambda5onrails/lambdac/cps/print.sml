@@ -1,6 +1,6 @@
 (* "pretty" printer for CPS terms. *)
 
-structure CPSPrint (* :> CPSPRINT *) =
+structure CPSPrint :> CPSPRINT =
 struct
 
   infixr 9 `
