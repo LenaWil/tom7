@@ -1,6 +1,5 @@
 
-(* XXX ascribe !! *)
-structure CPS (* :> CPS *) =
+structure CPS :> CPS =
 struct
   
   structure V = Variable

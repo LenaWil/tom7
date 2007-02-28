@@ -12,8 +12,6 @@ sig
   type cval
   type ctyp
 
-  type intconst = IL.intconst
-
   datatype arminfo = datatype IL.arminfo
   datatype world = W of var
 
@@ -61,7 +59,7 @@ sig
   and ('cexp, 'cval) cvalfront =
       Lams of (var * var list * 'cexp) list
     | Fsel of 'cval * int
-    | Int of intconst
+    | Int of IL.intconst
     | String of string
     | Record of (string * 'cval) list
     | Hold of world * 'cval
@@ -115,7 +113,7 @@ sig
   val Lam' : (var * var list * cexp) -> cval
   val Lams' : (var * var list * cexp) list -> cval
   val Fsel' : cval * int -> cval
-  val Int' : intconst -> cval
+  val Int' : IL.intconst -> cval
   val String' : string -> cval
   val Record' : (string * cval) list -> cval
   val Hold' : world * cval -> cval
