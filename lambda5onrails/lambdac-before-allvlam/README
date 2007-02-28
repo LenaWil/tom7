@@ -1,0 +1,14 @@
+
+    README         Tom Murphy          14 Aug 2006
+
+The program lambdac compiles Lambda 5 on Rails code to client side
+Javascript and server-side bytecode. Its lineage is complex:
+    mtex -> hemlock -> aphasia2 -> humlock -> lambdac.
+
+Hemlock is documented in "ML Grid Programming in ConCert" by
+Tom Murphy VII in the SIGPLAN ML Workshop 2006. Documentation for
+Humlock will be available soon.
+
+Right now it is a partially rewritten gutted version of Humlock, so
+don't surprised that the compiler always fails.
+
