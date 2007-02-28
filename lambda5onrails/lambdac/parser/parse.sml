@@ -49,12 +49,13 @@ struct
   val root = (FSUtil.chdir_excursion 
               (CommandLine.name())
               (fn _ =>
-               Posix.FileSys.getcwd ()))
+               OS.FileSys.getDir ()))
+(*               Posix.FileSys.getcwd ())) *)
     
   (* if running under NJ, default back to current dir, since
      we don't want to root ourselves at the sml/nj binary! *)
   val root = if Option.isSome (StringUtil.find "smlnj" root)
-             then Posix.FileSys.getcwd ()
+             then OS.FileSys.getDir () (* Posix.FileSys.getcwd () *)
              else root
 
   val ROOTMARKER = "#ROOT#"

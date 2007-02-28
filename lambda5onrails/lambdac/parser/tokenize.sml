@@ -81,9 +81,11 @@ struct
     fromhex (acc * 0w16 + (Word32.fromInt (StringUtil.hexvalue h))) t
 
   (* XXX overflows *)
+  (* XXX get from IntConst *)
   val decimal = 
     (repeat1 (satisfy Char.isDigit))
     wth (Word32.fromInt o Option.valOf o Int.fromString o implode)
+
   val integer = 
     alt [literal #"0" >> literal #"x" >>
          (repeat1 (satisfy Char.isHexDigit))

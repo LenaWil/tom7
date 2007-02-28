@@ -129,7 +129,7 @@ struct
                    function type. *)
                 val I.Poly({worlds, tys}, (dom, cod)) = Podata.potype po
                 val l = Podata.polab po
-                val vp = nv "primapp"
+                val vp = nv ("primapp_" ^ l)
               in
                 (* can support it easily, but there's no place in Primapp
                    currently to supply arguments! *)
@@ -137,6 +137,8 @@ struct
                 then raise ToCPS "uhh, this primitive takes world arguments?"
                 else ();
 
+                (* we end up generating a new import and lambda abstraction every time,
+                   but this is fine since we'd probably like to inline it. *)
                 cvte G
                    (I.Let(I.ExternVal(I.Poly({worlds=worlds, tys = tys},
                                              (l, vp, I.Arrow(false, dom, cod), NONE))),
@@ -220,7 +222,6 @@ struct
              | base (I.Evar _) = raise ToCPS "externval/unset evar"
              | base (I.TAddr _) = true
              | base _ = false
-           val vv = nv ("externval_" ^ l)
          in
            case ILUtil.unevar t of
              (* don't care if it's total *)
@@ -237,7 +238,7 @@ struct
                                    map Var' av,
                                    Call' (Var' kv, [Var' r])))
                in
-                 Primop'([vv], BIND, [foldr WLam' (foldr TLam' lam tys) worlds],
+                 Primop'([v], BIND, [foldr WLam' (foldr TLam' lam tys) worlds],
                          k G)
                end
            | b =>

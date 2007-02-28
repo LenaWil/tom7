@@ -2,8 +2,6 @@
 structure Tokens =
 struct
 
-  type intconst = Word32.word
-
     (* print[hello [b[world]]!] 
 
        lexes as
@@ -21,7 +19,7 @@ struct
 
     and token =
         ID of string
-      | INT of intconst
+      | INT of IntConst.intconst
       | CHAR of char
       | FLOAT of real
       | TEXT of text list

@@ -14,6 +14,7 @@ unit
 	    js.alert (from server get (version ()));
 	    (b, a)
 	end
+    val p = goswap (300, 400)
 in
-    export val x = 3
+    export val pair = p
 end

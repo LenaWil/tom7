@@ -2,7 +2,7 @@
 structure IL =
 struct
 
-  type intconst = Word32.word
+  type intconst = IntConst.intconst
 
     type label = string
     type var = Variable.var

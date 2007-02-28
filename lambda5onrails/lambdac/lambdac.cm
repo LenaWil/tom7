@@ -14,8 +14,10 @@ group is
 ../../sml-lib/util/util.sml
 ../../sml-lib/util/stringutil-sig.sml
 ../../sml-lib/util/stringutil.sml
-../../sml-lib/util/fsutil-sig.sml
-../../sml-lib/util/fsutil.sml
+(* Doesn't work on windows, grr. *)
+(* ../../sml-lib/util/fsutil-sig.sml
+../../sml-lib/util/fsutil.sml *)
+fsutil-portable.sml
 
 ../../sml-lib/util/stream-sig.sml
 ../../sml-lib/util/stream.sml
@@ -69,6 +71,7 @@ util/hmutil.sml
 ../../sml-lib/parse/parse-sig.sml
 ../../sml-lib/parse/parse.sml
 
+intconst.sml
 primop.sml
 el.sml
 
@@ -143,12 +146,11 @@ cps.sml
 cps/tocps-sig.sml
 cps/tocps.sml
 
+cps/print.sml
+
 (*
-cps.sml
-cps/alpha.sml
 cps/subst.sml
 cps/print-sig.sml
-cps/print.sml
 cps/optutil-sig.sml
 cps/optutil.sml
 
