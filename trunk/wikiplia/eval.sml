@@ -68,7 +68,8 @@ struct
 
      | (Prim HANDLE) :: e1 :: (List [Symbol x, e2]) :: _ => ((eval G e1) handle Abort s
                                                                => eval ((x, String s) :: G) e2)
-     | (Prim HANDLE) :: _ => raise Abort ("handle/args")
+     | (Prim HANDLE) :: z => (print (StringUtil.delimit " | " (map tostring z)); raise Abort "handle/args")
+
 
      | (Prim ABORT) :: (String s) :: _ => raise Abort ("abort: " ^ s)
      | (Prim ABORT) :: _ => raise Abort "abort"

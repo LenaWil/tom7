@@ -32,6 +32,8 @@ struct
           val (method, h') = StringUtil.token (StringUtil.ischar #" ") hdrs
           val (url, h') = StringUtil.token (StringUtil.ischar #" ") h'
 
+          val now = (Time.now ())
+
           fun nocr s = StringUtil.filter (fn #"\r" => false | _ => true) s
             
           val kvp = String.fields (StringUtil.ischar #"&") content
@@ -53,7 +55,7 @@ struct
           val G = ("request.ip", Bytes.String ip) :: G
 
           fun http code = ("HTTP/1.1 " ^ code ^ "\r\n" ^
-          "Date: " ^ (Date.fmt "%a, %d %b %Y %H:%M:%S %Z" (Date.fromTimeLocal (Time.now ()))) ^ "\r\n" ^
+          "Date: " ^ (Date.fmt "%a, %d %b %Y %H:%M:%S %Z" (Date.fromTimeLocal now)) ^ "\r\n" ^
            "Server: Wikiplia\r\n" ^
            "Connection: close\r\n");
 
