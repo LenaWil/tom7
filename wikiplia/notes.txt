@@ -115,3 +115,19 @@ x-esp) because it's like XML except that it basically reads your mind
 because you don't need to tell it the type of tag you're closing--you just
 use a closing parenthesis.
 
+We call this mode of interaction with the web server PALMOLIVE: IT
+SOFTENS HANDS WHILE YOU DO DISHES. Because this acronym is so long we
+henceforth abbreviate it with the initialism PISHWYDD.
+
+== Users ==
+
+Because users have access to everything, both to look at all of the
+database's contents and to modify the software, it is difficult to use
+standard techniques for assigning users identities.
+
+One possibility is to identify each user with a *revision*. Since
+revisions are immutable, if we insert something into the key "user",
+the contents of that revision number can never be modified by anyone.
+One thing to insert would be a hash of someone's password.
+
+
