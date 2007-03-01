@@ -44,6 +44,8 @@ struct
                                                         | SOME s => SOME (key, nocr s))
                                      | _ => NONE) kvp
 
+          val nows = (Date.fmt "%a, %d %b %Y %H:%M:%S %Z" (Date.fromTimeLocal now))
+
           (* put form elements in database *)
           val G = map (fn (k, v) => ("form." ^ k, (Bytes.String v))) kvp
 
@@ -54,8 +56,10 @@ struct
                    end
           val G = ("request.ip", Bytes.String ip) :: G
 
+          val G = ("request.time", Bytes.String nows) :: G
+
           fun http code = ("HTTP/1.1 " ^ code ^ "\r\n" ^
-          "Date: " ^ (Date.fmt "%a, %d %b %Y %H:%M:%S %Z" (Date.fromTimeLocal now)) ^ "\r\n" ^
+          "Date: " ^ nows ^ "\r\n" ^
            "Server: Wikiplia\r\n" ^
            "Connection: close\r\n");
 
@@ -123,7 +127,7 @@ struct
 
           (* XXX I think HTTP/1.0 can also be connection:close w/o content length? *)
           fun more s =
-            (print ("sofar: [" ^ s ^ "]\n");
+            ((* print ("sofar: [" ^ s ^ "]\n"); *)
              case R.recv p of
                "" => (s, "") (* XXX what do we assume if connection closed? *)
              | s' => 
