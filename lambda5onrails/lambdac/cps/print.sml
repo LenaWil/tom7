@@ -68,8 +68,8 @@ struct
          | Record svl => L.listex "{" "}" "," ` map (fn (s, v) => %[$s, $"=", vtol v]) svl
          | Hold _ => $"hold?"
          | WPack _ => $"wpack?"
-         | WApp (v, w) => %[vtol v, L.indent 2 ` %[$"<<", wtol w, $">>"]]
-         | TApp (v, w) => %[vtol v, L.indent 2 ` %[$"<", ttol w, $">"]]
+         | AllApp { worlds = [w], f = v, tys = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<<", wtol w, $">>"]]
+         | AllApp { tys = [t], f = v, worlds = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<", ttol t, $">"]]
          | Sham v => $"sham?"
          | Inj (s, t, vo) => %[%[$("inj_" ^ s), 
                                  (case vo of
@@ -80,10 +80,10 @@ struct
                             %[$"into", L.indent 2 ` ttol t]]
          | Unroll v => %[$"unroll", L.indent 2 ` vtol v]
 
-         | WLam (v, va) => %[%[$"//\\\\", $(V.tostring v), $"."],
-                             L.indent 4 ` vtol va]
-         | TLam (v, va) => %[%[$"/\\", $(V.tostring v), $"."],
-                             L.indent 4 ` vtol va]
+         | AllLam {worlds = [v], tys = nil, vals = nil, body = va} => %[%[$"//\\\\", $(V.tostring v), $"."],
+                                                                        L.indent 4 ` vtol va]
+         | AllLam {worlds = nil, tys = [v], vals = nil, body = va} => %[%[$"/\\", $(V.tostring v), $"."],
+                                                                        L.indent 4 ` vtol va]
 
          | Var v => $(V.tostring v)
          | UVar v => $("~" ^ V.tostring v)
@@ -159,8 +159,7 @@ struct
                            "and ")])
          | At (t, w) => $"at?"
          | Cont tl => %[L.listex "(" ")" "," ` map ttol tl, $"cont"]
-         | WAll (v, t) => $"wall?"
-         | TAll (v, t) => $"tall?"
+         | AllArrow { worlds, tys, vals, body } => $"allarrow?"
                
          | Sum ltl => L.listex "[" "]" "," `map (fn (l, Carrier { carried = t,
                                                                   definitely_allocated = b}) =>

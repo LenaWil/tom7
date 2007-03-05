@@ -20,7 +20,7 @@ sig
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
     | Cont of 'ctyp list
-    | AllArrow of { worlds : var list, tys : var list, vals : typ list, body : 'ctyp }
+    | AllArrow of { worlds : var list, tys : var list, vals : 'ctyp list, body : 'ctyp }
     | WExists of var * 'ctyp
     | Product of (string * 'ctyp) list
     | Addr of world
@@ -91,7 +91,7 @@ sig
   val Conts' : ctyp list list -> ctyp
   val Shamrock' : ctyp -> ctyp
   val TVar' : var -> ctyp
-  val AllArrow' : { worlds : var list, tys : var list, vals : typ list, body : ctyp } -> ctyp
+  val AllArrow' : { worlds : var list, tys : var list, vals : ctyp list, body : ctyp } -> ctyp
 
   val Call' : cval * cval list -> cexp
   val Halt' : cexp

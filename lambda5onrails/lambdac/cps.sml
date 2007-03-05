@@ -17,8 +17,7 @@ struct
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
     | Cont of 'ctyp list
-    | WAll of var * 'ctyp
-    | TAll of var * 'ctyp
+    | AllArrow of { worlds : var list, tys : var list, vals : 'ctyp list, body : 'ctyp }
     | WExists of var * 'ctyp
     | Product of (string * 'ctyp) list
     | Addr of world
@@ -59,11 +58,7 @@ struct
     | String of string
     | Record of (string * 'cval) list
     | Hold of world * 'cval
-    | WLam of var * 'cval
-    | TLam of var * 'cval
     | WPack of world * 'cval
-    | WApp of 'cval * world
-    | TApp of 'cval * ctyp
     | Sham of 'cval
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
@@ -71,6 +66,10 @@ struct
     | Var of var
     | UVar of var
   (* nb. Binders must be implemented in outjection code below! *)
+
+    | AllLam of { worlds : var list, tys : var list, vals : var list, body : 'cval }
+    | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
+
    
   (* CPS expressions *)
   datatype cexp = E of (cexp, cval) cexpfront
@@ -145,17 +144,24 @@ struct
         val vself = renamev v v'
         val wself = renamew v v'
         val tself = renamet v v'
+        fun issrc vv = V.eq (v, vv)
     in
       V (case value of
            Int i => value
          | String s => value
          | Record svl => Record ` ListUtil.mapsecond vself svl
          | Hold (w, va) => Hold (wself w, vself va)
-         | WLam (vv, va) => WLam (vv, if V.eq(v, vv) then va else vself va)
-         | TLam (vv, va) => TLam (vv, if V.eq(v, vv) then va else vself va)
+
+         | AllLam { worlds, tys, vals, body } => 
+               if List.exists issrc worlds orelse
+                  List.exists issrc tys orelse
+                  List.exists issrc vals
+               then value
+               else AllLam { worlds = worlds, tys = tys, vals = vals, body = vself body }
+
+         | AllApp { f, worlds, tys, vals } => AllApp { f = vself f, worlds = map wself worlds,
+                                                       tys = map tself tys, vals = map vself vals }
          | WPack (w, va) => WPack (wself w, vself va)
-         | WApp (va, w) => WApp (vself va, wself w)
-         | TApp (va, t) => TApp (vself va, tself t)
          | Var vv => Var (if V.eq(v, vv) then v' else vv)
          | UVar vv => UVar (if V.eq(v, vv) then v' else vv)
          | Unroll va => Unroll (vself va)
@@ -178,6 +184,7 @@ struct
   (* rename v to v' in a type, assuming that v' is totally fresh *)
   and renamet v v' (T typ) =
     let 
+      fun issrc vv = V.eq (v, vv)
       val self = renamet v v'
       val wself = renamew v v'
     in
@@ -185,10 +192,14 @@ struct
       (case typ of
          At (t, w) => At (self t, wself w)
        | Cont l => Cont (map self l)
-       | WAll (vv, t) => if V.eq(v, vv) then typ
-                         else WAll(vv, self t)
-       | TAll (vv, t) => if V.eq(v, vv) then typ
-                         else TAll(vv, self t)
+       | AllArrow { worlds, tys, vals, body } => 
+             if List.exists issrc worlds orelse
+                List.exists issrc tys
+             then typ
+             else AllArrow { worlds = worlds,
+                             tys = tys,
+                             vals = map self vals,
+                             body = self body }
        | WExists (vv, t) => if V.eq (v, vv) then typ
                             else WExists(vv, self t)
        | Product stl => Product ` ListUtil.mapsecond self stl
@@ -208,13 +219,20 @@ struct
                               )
     end
 
+  val renameeall = foldl (fn ((v,v'), e) => renamee v v' e)
+  val renametall = foldl (fn ((v,v'), e) => renamet v v' e)
+
   (* when exposing a binder, we alpha-vary. *)
-  fun ctyp (T(WAll (v, t))) = let val v' = V.alphavary v
-                              in (WAll (v', renamet v v' t))
-                              end
-    | ctyp (T(TAll (v, t))) = let val v' = V.alphavary v
-                              in (TAll (v', renamet v v' t))
-                              end
+  fun ctyp (T(AllArrow {worlds, tys, vals, body})) = let val worlds' = ListUtil.mapto V.alphavary worlds
+                                                         val tys'    = ListUtil.mapto V.alphavary tys
+                                                         fun rent t = renametall (renametall t worlds') tys'
+                                                     in 
+                                                         AllArrow { worlds = map #2 worlds',
+                                                                    tys    = map #2 tys',
+                                                                    vals   = map rent vals,
+                                                                    body   = rent body }
+                                                     end
+
     | ctyp (T(WExists (v, t))) = let val v' = V.alphavary v
                                  in (WExists (v', renamet v v' t))
                                  end
@@ -230,7 +248,7 @@ struct
     | cexp (E(Primop(vvl, po, vl, e))) = 
                                     let val vs = ListUtil.mapto V.alphavary vvl
                                     in Primop(map #2 vs, po, vl,
-                                              foldl (fn ((v,v'), e) => renamee v v' e) e vs)
+                                              renameeall e vs)
                                     end
     | cexp (E(Put(v, ty, va, e))) = let val v' = V.alphavary v
                                     in Put(v', ty, va, renamee v v' e)
@@ -266,6 +284,9 @@ struct
 
     | cexp (E x) = x
 
+
+  val renamevall = foldl (fn ((v,v'), e) => renamev v v' e)
+
   fun cval (V (Lams vael)) = let val fs = map (fn (v, a, e) => (v, V.alphavary v, a, e)) vael
                              in
                                Lams (map (fn (v, v', a, e) =>
@@ -278,22 +299,37 @@ struct
                                              )
                                           end) fs)
                              end
-    | cval (V (WLam (v, va))) = let val v' = V.alphavary v
-                                in WLam(v', renamev v v' va)
-                                end
-    | cval (V (TLam (v, va))) = let val v' = V.alphavary v
-                                in TLam(v', renamev v v' va)
-                                end
 
+    | cval (V (AllLam { worlds, tys, vals, body })) = 
+                             let val worlds' = ListUtil.mapto V.alphavary worlds
+                                 val tys'    = ListUtil.mapto V.alphavary tys
+                                 val vals'   = ListUtil.mapto V.alphavary vals
+                                 fun renv t = renamevall (renamevall (renamevall t worlds') tys') vals'
+                             in 
+                                 AllLam { worlds = map #2 worlds',
+                                          tys    = map #2 tys',
+                                          vals   = map #2 vals',
+                                          body   = renv body }
+                             end
     | cval (V x) = x
 
 
   (* injections / ctyp *)
 
+  fun WAll (v, t) = AllArrow { worlds = [v], tys = nil, vals = nil, body = t }
+  fun TAll (v, t) = AllArrow { worlds = nil, tys = [v], vals = nil, body = t }
+  fun WLam (v, c) = AllLam { worlds = [v], tys = nil, vals = nil, body = c }
+  fun TLam (v, c) = AllLam { worlds = nil, tys = [v], vals = nil, body = c }
+
+  fun WApp (c, w) = AllApp { f = c, worlds = [w], tys = nil, vals = nil }
+  fun TApp (c, t) = AllApp { f = c, worlds = nil, tys = [t], vals = nil }
+
+
   val At' = fn x => T (At x)
   val Cont' = fn x => T (Cont x)
   val WAll' = fn x => T (WAll x)
   val TAll' = fn x => T (TAll x)
+  val AllArrow' = fn x => T (AllArrow x)
   val WExists' = fn x => T (WExists x)
   val Product' = fn x => T (Product x)
   val Addr' = fn x => T (Addr x)
@@ -318,6 +354,9 @@ struct
   val ExternType' = fn x => E (ExternType x)
   val ExternVal' = fn x => E (ExternVal x)
 
+
+  val AllLam' = fn x => V (AllLam x)
+  val AllApp' = fn x => V (AllApp x)
   val Lams' = fn x => V (Lams x)
   val Fsel' = fn x => V (Fsel x)
   val Int' = fn x => V (Int x)
