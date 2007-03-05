@@ -47,8 +47,8 @@ struct
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
-    (* always kind 0 *)
-    | ExternType of var * string * 'cexp
+    | ExternType of var * string * (var * string) option * 'cexp
+
   (* nb. Binders must be implemented in outjection code below! *)
 
   and ('cexp, 'cval) cvalfront =
@@ -131,8 +131,12 @@ struct
                  else eself e)
        | ExternWorld (vv, s, e) =>
            ExternWorld (vv, s, if V.eq (vv, v) then e else eself e)
-       | ExternType (vv, s, e) =>
-           ExternType (vv, s, if V.eq (vv, v) then e else eself e)
+       | ExternType (vv, s, vso, e) =>
+           ExternType (vv, s, vso, if V.eq (vv, v) 
+                                     orelse (case vso of SOME (vvv, _) => V.eq (vvv, v)
+                                                                   | _ => false)
+                                   then e else eself e)
+
        | ExternVal (vv, s, t, wo, e) =>
            ExternVal (vv, s, tself t, Option.map wself wo,
                       if V.eq (vv, v) then e else eself e)
@@ -274,9 +278,14 @@ struct
                                              in ExternVal(v', s, t, wo, renamee vv v' e)
                                              end
 
-    | cexp (E(ExternType(vv, s, e))) = let val v' = V.alphavary vv
-                                       in ExternType(v', s, renamee vv v' e)
-                                       end
+    | cexp (E(ExternType(vv, s, NONE, e))) = let val v' = V.alphavary vv
+                                             in ExternType(v', s, NONE, renamee vv v' e)
+                                             end
+    | cexp (E(ExternType(vv, s, SOME (v2, s2), e))) = let val v' = V.alphavary vv
+                                                          val v2' = V.alphavary v2
+                                                      in ExternType(v', s, SOME (v2, s2), 
+                                                                    renamee v2 v2' ` renamee vv v' e)
+                                                      end
 
     | cexp (E(ExternWorld(vv, s, e))) = let val v' = V.alphavary vv
                                         in ExternWorld(v', s, renamee vv v' e)

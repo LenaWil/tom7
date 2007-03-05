@@ -52,8 +52,9 @@ sig
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
-    (* always kind 0 *)
-    | ExternType of var * string * 'cexp
+    (* always kind 0; optional argument is a value import of the dictionary
+       for that type *)
+    | ExternType of var * string * (var * string) option * 'cexp
 
   and ('cexp, 'cval) cvalfront =
       Lams of (var * var list * 'cexp) list
@@ -105,7 +106,7 @@ sig
   val Case' : cval * var * (string * cexp) list * cexp -> cexp
   val ExternVal' : var * string * ctyp * world option * cexp -> cexp
   val ExternWorld' : var * string * cexp -> cexp
-  val ExternType' : var * string * cexp -> cexp
+  val ExternType' : var * string * (var * string) option * cexp -> cexp
 
   val Lams' : (var * var list * cexp) list -> cval
   val Fsel' : cval * int -> cval
