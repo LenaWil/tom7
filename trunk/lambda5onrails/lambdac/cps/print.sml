@@ -70,6 +70,7 @@ struct
          | WPack _ => $"wpack?"
          | AllApp { worlds = [w], f = v, tys = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<<", wtol w, $">>"]]
          | AllApp { tys = [t], f = v, worlds = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<", ttol t, $">"]]
+         | AllApp _ => $"allapp?"
          | Sham v => $"sham?"
          | Inj (s, t, vo) => %[%[$("inj_" ^ s), 
                                  (case vo of
@@ -85,6 +86,7 @@ struct
          | AllLam {worlds = nil, tys = [v], vals = nil, body = va} => %[%[$"/\\", $(V.tostring v), $"."],
                                                                         L.indent 4 ` vtol va]
 
+         | AllLam _ => $"alllam?"
          | Var v => $(V.tostring v)
          | UVar v => $("~" ^ V.tostring v)
                )
