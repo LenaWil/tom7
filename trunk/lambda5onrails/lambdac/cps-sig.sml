@@ -20,8 +20,7 @@ sig
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
     | Cont of 'ctyp list
-    | WAll of var * 'ctyp
-    | TAll of var * 'ctyp
+    | AllArrow of { worlds : var list, tys : var list, vals : typ list, body : 'ctyp }
     | WExists of var * 'ctyp
     | Product of (string * 'ctyp) list
     | Addr of world
@@ -63,17 +62,18 @@ sig
     | String of string
     | Record of (string * 'cval) list
     | Hold of world * 'cval
-    | WLam of var * 'cval
-    | TLam of var * 'cval
     | WPack of world * 'cval
-    | WApp of 'cval * world
-    | TApp of 'cval * ctyp
     | Sham of 'cval
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
     | Unroll of 'cval
     | Var of var
     | UVar of var
+    (* supersedes WLam, TLam and VLam. quantifies worlds, types, and vars (in that
+       order) over the body, which must be a value itself. applications of vlams
+       are considered valuable. *)
+    | AllLam of { worlds : var list, tys : var list, vals : var list, body : 'cval }
+    | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
 
   val ctyp : ctyp -> ctyp ctypfront
   val cexp : cexp -> (cexp, cval) cexpfront
@@ -82,8 +82,6 @@ sig
   (* injective constructors *)
   val At' : ctyp * world -> ctyp
   val Cont' : ctyp list -> ctyp
-  val WAll' : var * ctyp -> ctyp
-  val TAll' : var * ctyp -> ctyp
   val WExists' : var * ctyp -> ctyp
   val Product' : (string * ctyp) list -> ctyp
   val Addr' : world -> ctyp
@@ -93,6 +91,7 @@ sig
   val Conts' : ctyp list list -> ctyp
   val Shamrock' : ctyp -> ctyp
   val TVar' : var -> ctyp
+  val AllArrow' : { worlds : var list, tys : var list, vals : typ list, body : ctyp } -> ctyp
 
   val Call' : cval * cval list -> cexp
   val Halt' : cexp
@@ -108,25 +107,29 @@ sig
   val ExternWorld' : var * string * cexp -> cexp
   val ExternType' : var * string * cexp -> cexp
 
-
-  (* derived form *)
-  val Lam' : (var * var list * cexp) -> cval
   val Lams' : (var * var list * cexp) list -> cval
   val Fsel' : cval * int -> cval
   val Int' : IL.intconst -> cval
   val String' : string -> cval
   val Record' : (string * cval) list -> cval
   val Hold' : world * cval -> cval
-  val WLam' : var * cval -> cval
-  val TLam' : var * cval -> cval
   val WPack' : world * cval -> cval
-  val WApp' : cval * world -> cval
-  val TApp' : cval * ctyp -> cval
   val Sham' : cval -> cval
   val Inj' : string * ctyp * cval option -> cval
   val Roll' : ctyp * cval -> cval
   val Unroll' : cval -> cval
+  val AllLam' : { worlds : var list, tys : var list, vals : var list, body : cval } -> cval
+  val AllApp' : { f : cval, worlds : world list, tys : ctyp list, vals : cval list } -> cval
   val Var' : var -> cval
   val UVar' : var -> cval
+
+  (* derived forms *)
+  val WAll' : var * ctyp -> ctyp
+  val TAll' : var * ctyp -> ctyp
+  val Lam' : (var * var list * cexp) -> cval
+  val WApp' : cval * world -> cval
+  val TApp' : cval * ctyp -> cval
+  val WLam' : var * cval -> cval
+  val TLam' : var * cval -> cval
 
 end
