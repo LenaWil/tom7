@@ -12,13 +12,14 @@ struct
   datatype arminfo = datatype IL.arminfo
   datatype world = W of var
 
-  datatype primcon = VEC | REF
+  datatype primcon = VEC | REF | DICT
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
     | Cont of 'ctyp list
     | AllArrow of { worlds : var list, tys : var list, vals : 'ctyp list, body : 'ctyp }
     | WExists of var * 'ctyp
+    | TExists of var * 'ctyp
     | Product of (string * 'ctyp) list
     | Addr of world
     | Mu of int * (var * 'ctyp) list
@@ -44,11 +45,11 @@ struct
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
+    | TUnpack of var * var * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
     | ExternType of var * string * (var * string) option * 'cexp
-
   (* nb. Binders must be implemented in outjection code below! *)
 
   and ('cexp, 'cval) cvalfront =
@@ -59,17 +60,17 @@ struct
     | Record of (string * 'cval) list
     | Hold of world * 'cval
     | WPack of world * 'cval
+    | TPack of ctyp * 'cval
     | Sham of 'cval
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
     | Unroll of 'cval
     | Var of var
     | UVar of var
-  (* nb. Binders must be implemented in outjection code below! *)
-
+    | Dictfor of ctyp
     | AllLam of { worlds : var list, tys : var list, vals : var list, body : 'cval }
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
-
+  (* nb. Binders must be implemented in outjection code below! *)
    
   (* CPS expressions *)
   datatype cexp = E of (cexp, cval) cexpfront
@@ -123,6 +124,11 @@ struct
                     if V.eq(vv1, v) orelse V.eq (vv2, v)
                     then e
                     else eself e)
+       | TUnpack (vv1, vv2, va, e) =>
+           TUnpack (vv1, vv2, vself va,
+                    if V.eq(vv1, v) orelse V.eq (vv2, v)
+                    then e
+                    else eself e)
        | Case (va, vv, sel, e) =>
            Case (vself va, vv,
                  if V.eq(vv, v) then sel
@@ -166,10 +172,12 @@ struct
          | AllApp { f, worlds, tys, vals } => AllApp { f = vself f, worlds = map wself worlds,
                                                        tys = map tself tys, vals = map vself vals }
          | WPack (w, va) => WPack (wself w, vself va)
+         | TPack (t, va) => TPack (tself t, vself va)
          | Var vv => Var (if V.eq(v, vv) then v' else vv)
          | UVar vv => UVar (if V.eq(v, vv) then v' else vv)
          | Unroll va => Unroll (vself va)
          | Roll (t, va) => Roll (tself t, vself va)
+         | Dictfor t => Dictfor ` tself t
          | Sham va => Sham ` vself va
          | Fsel (va, i) => Fsel (vself va, i)
          | Inj (s, t, va) => Inj (s, tself t, Option.map vself va)
@@ -206,6 +214,8 @@ struct
                              body = self body }
        | WExists (vv, t) => if V.eq (v, vv) then typ
                             else WExists(vv, self t)
+       | TExists (vv, t) => if V.eq (v, vv) then typ
+                            else TExists(vv, self t)
        | Product stl => Product ` ListUtil.mapsecond self stl
        | Addr w => Addr (wself w)
        | Mu (i, vtl) => Mu (i, map (fn (vv, t) =>
@@ -240,6 +250,10 @@ struct
     | ctyp (T(WExists (v, t))) = let val v' = V.alphavary v
                                  in (WExists (v', renamet v v' t))
                                  end
+    | ctyp (T(TExists (v, t))) = let val v' = V.alphavary v
+                                 in (TExists (v', renamet v v' t))
+                                 end
+
     | ctyp (T(Mu(i, vtl))) = Mu(i, map (fn (v, t) =>
                                         let val v' = V.alphavary v
                                         in (v', renamet v v' t)
@@ -267,6 +281,10 @@ struct
     | cexp (E(WUnpack(v1, v2, va, e))) = let val v1' = V.alphavary v1
                                              val v2' = V.alphavary v2
                                          in WUnpack(v1', v2', va, renamee v2 v2' ` renamee v1 v1' e)
+                                         end
+    | cexp (E(TUnpack(v1, v2, va, e))) = let val v1' = V.alphavary v1
+                                             val v2' = V.alphavary v2
+                                         in TUnpack(v1', v2', va, renamee v2 v2' ` renamee v1 v1' e)
                                          end
     | cexp (E(Case(va, v, sel, def))) = let val v' = V.alphavary v
                                         in
@@ -333,13 +351,13 @@ struct
   fun WApp (c, w) = AllApp { f = c, worlds = [w], tys = nil, vals = nil }
   fun TApp (c, t) = AllApp { f = c, worlds = nil, tys = [t], vals = nil }
 
-
   val At' = fn x => T (At x)
   val Cont' = fn x => T (Cont x)
   val WAll' = fn x => T (WAll x)
   val TAll' = fn x => T (TAll x)
   val AllArrow' = fn x => T (AllArrow x)
   val WExists' = fn x => T (WExists x)
+  val TExists' = fn x => T (TExists x)
   val Product' = fn x => T (Product x)
   val Addr' = fn x => T (Addr x)
   val Mu' = fn x => T (Mu x)
@@ -358,6 +376,7 @@ struct
   val Letsham' = fn x => E (Letsham x)
   val Leta' = fn x => E (Leta x)
   val WUnpack' = fn x => E (WUnpack x)
+  val TUnpack' = fn x => E (TUnpack x)
   val Case' = fn x => E (Case x)
   val ExternWorld' = fn x => E (ExternWorld x)
   val ExternType' = fn x => E (ExternType x)
@@ -375,15 +394,81 @@ struct
   val WLam' = fn x => V (WLam x)
   val TLam' = fn x => V (TLam x)
   val WPack' = fn x => V (WPack x)
+  val TPack' = fn x => V (TPack x)
   val WApp' = fn x => V (WApp x)
   val TApp' = fn x => V (TApp x)
   val Sham' = fn x => V (Sham x)
   val Inj' = fn x => V (Inj x)
   val Roll' = fn x => V (Roll x)
+  val Dictfor' = fn x => V (Dictfor x)
   val Unroll' = fn x => V (Unroll x)
   val Var' = fn x => V (Var x)
   val UVar' = fn x => V (UVar x)
 
   fun Lam' (v, vl, e) = Fsel' (Lams' [(v, vl, e)], 0)
+
+  (* utility code *)
+
+  fun pointwiset f typ =
+    case ctyp typ of
+      At (c, w) => At' (f c, w)
+    | Cont l => Cont' ` map f l
+    | AllArrow {worlds, tys, vals, body} => 
+        AllArrow' { worlds = worlds, tys = tys, vals = map f vals, body = f body }
+    | WExists (v, t) => WExists' (v, f t)
+    | TExists (v, t) => TExists' (v, f t)
+    | Product stl => Product' ` ListUtil.mapsecond f stl
+    | Addr w => typ
+    | Mu (i, vtl) => Mu' (i, ListUtil.mapsecond f vtl)
+    | Sum sail => Sum' ` ListUtil.mapsecond (IL.arminfo_map f) sail
+    | Primcon (pc, l) => Primcon' (pc, map f l)
+    | Conts tll => Conts' ` map (map f) tll
+    | Shamrock t => Shamrock' ` f t
+    | TVar v => typ
+
+  fun pointwisee ft fv fe exp =
+    case cexp exp of
+      Call (v, vl) => Call' (fv v, map fv vl)
+    | Halt => exp
+    | Go (w, v, e) => Go' (w, fv v, fe e)
+    | Proj (vv, s, v, e) => Proj' (vv, s, fv v, fe e)
+    | Primop (vvl, po, vl, e) => Primop' (vvl, 
+                                          (case po of
+                                             PRIMCALL { sym, dom, cod } =>
+                                               PRIMCALL { sym = sym, dom = map ft dom, cod = ft cod }
+                                           | BIND => BIND
+                                           | LOCALHOST => LOCALHOST),
+                                          map fv vl, fe e)
+    | Put (vv, t, v, e) => Put' (vv, ft t, fv v, fe e)
+    | Letsham (vv, v, e) => Letsham' (vv, fv v, fe e)
+    | Leta (vv, v, e) => Leta' (vv, fv v, fe e)
+    | WUnpack (vv1, vv2, v, e) => WUnpack' (vv1, vv2, fv v, fe e)
+    | TUnpack (vv1, vv2, v, e) => TUnpack' (vv1, vv2, fv v, fe e)
+    | Case (v, vv, sel, def) => Case' (fv v, vv, ListUtil.mapsecond fe sel, fe def)
+    | ExternVal (v, l, t, wo, e) => ExternVal' (v, l, ft t, wo, fe e)
+    | ExternWorld (v, l, e) => ExternWorld' (v, l, fe e)
+    | ExternType (v, l, vso, e) => ExternType' (v, l, vso, fe e)
+
+  fun pointwisev ft fv fe value =
+    case cval value of
+      Lams vael => Lams' ` map (fn (v, vl, e) => (v, vl, fe e)) vael
+    | Fsel (v, i) => Fsel' (fv v, i) 
+    | Int _ => value
+    | String _ => value
+    | Record svl => Record' ` ListUtil.mapsecond fv svl
+    | Hold (w, v) => Hold' (w, fv v)
+    | WPack (w, v) => WPack' (w, fv v)
+    | TPack (t, v) => TPack' (ft t, fv v)
+    | Sham v => Sham' ` fv v
+    | Inj (s, t, vo) => Inj' (s, ft t, Option.map fv vo)
+    | Roll (t, v) => Roll' (ft t, fv v)
+    | Unroll v => Unroll' ` fv v
+    | Var _ => value
+    | UVar _ => value
+    | Dictfor t => Dictfor' ` ft t
+    | AllLam { worlds : var list, tys : var list, vals : var list, body : cval } =>
+                AllLam' { worlds = worlds, tys = tys, vals = vals, body = fv body }
+    | AllApp { f : cval, worlds : world list, tys : ctyp list, vals : cval list } =>
+                AllApp' { f = fv f, worlds = worlds, tys = map ft tys, vals = map fv vals }
 
 end

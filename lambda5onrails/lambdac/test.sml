@@ -149,15 +149,13 @@ struct
             val () = print "\n\n**** ELABORATED: ****\n"
             val () = Layout.print( ILPrint.utol inter, print)
 
-            (* val inter = ILDict.transform inter *)
-
             val c : CPS.cexp = ToCPS.convert inter Initial.home
-
             val () = print "\n\n**** CPS CONVERTED: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
-            val () = print "\n\n**** CPS DICT: ****\n"
             val c : CPS.cexp = CPSDict.translate c
+            val () = print "\n\n**** CPS DICT: ****\n"
+            val () = Layout.print ( CPSPrint.etol c, print)
 
         in
             print "\n";

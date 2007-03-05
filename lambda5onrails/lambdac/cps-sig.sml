@@ -15,13 +15,18 @@ sig
   datatype arminfo = datatype IL.arminfo
   datatype world = W of var
 
-  datatype primcon = VEC | REF
+  datatype primcon = 
+    VEC 
+  | REF
+    (* the type of dictionaries for this type *)
+  | DICT
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
     | Cont of 'ctyp list
     | AllArrow of { worlds : var list, tys : var list, vals : 'ctyp list, body : 'ctyp }
     | WExists of var * 'ctyp
+    | TExists of var * 'ctyp
     | Product of (string * 'ctyp) list
     | Addr of world
     | Mu of int * (var * 'ctyp) list
@@ -49,6 +54,8 @@ sig
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
+    (* type var, contents var *)
+    | TUnpack of var * var * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
@@ -64,12 +71,16 @@ sig
     | Record of (string * 'cval) list
     | Hold of world * 'cval
     | WPack of world * 'cval
+    | TPack of ctyp * 'cval
     | Sham of 'cval
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
     | Unroll of 'cval
     | Var of var
     | UVar of var
+    (* later expanded to the actual dictionary, using invariants established in
+       CPSDict and Closure conversion *)
+    | Dictfor of ctyp
     (* supersedes WLam, TLam and VLam. quantifies worlds, types, and vars (in that
        order) over the body, which must be a value itself. applications of vlams
        are considered valuable. *)
@@ -79,6 +90,15 @@ sig
   val ctyp : ctyp -> ctyp ctypfront
   val cexp : cexp -> (cexp, cval) cexpfront
   val cval : cval -> (cexp, cval) cvalfront
+
+  (* utilities *)
+
+  (* apply the function to each immediate subterm (of type ctyp) and
+     return the reconstructed type *)
+  val pointwiset : (ctyp -> ctyp) -> ctyp -> ctyp
+  (* Same, but to subterms that are types, values, expressions *)
+  val pointwisee : (ctyp -> ctyp) -> (cval -> cval) -> (cexp -> cexp) -> cexp -> cexp
+  val pointwisev : (ctyp -> ctyp) -> (cval -> cval) -> (cexp -> cexp) -> cval -> cval
 
   (* injective constructors *)
   val At' : ctyp * world -> ctyp
@@ -119,6 +139,7 @@ sig
   val Inj' : string * ctyp * cval option -> cval
   val Roll' : ctyp * cval -> cval
   val Unroll' : cval -> cval
+  val Dictfor' : ctyp -> cval
   val AllLam' : { worlds : var list, tys : var list, vals : var list, body : cval } -> cval
   val AllApp' : { f : cval, worlds : world list, tys : ctyp list, vals : cval list } -> cval
   val Var' : var -> cval
