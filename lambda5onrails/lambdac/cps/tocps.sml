@@ -192,7 +192,7 @@ struct
     and cvtd (G : env) (d : IL.dec) (k : env -> CPS.cexp) : CPS.cexp =
       (case d of
          I.Do e => cvte G e (fn (G, _) => k G)
-       | I.ExternType (0, lab, v) => ExternType' (v, lab, k G)
+       | I.ExternType (0, lab, v) => ExternType' (v, lab, NONE, k G)
        | I.ExternWorld (lab, v) => ExternWorld' (v, lab, k G)
 
        (* XXX need to figure out how we convert

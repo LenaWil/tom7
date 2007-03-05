@@ -149,6 +149,10 @@ cps/tocps.sml
 cps/print-sig.sml
 cps/print.sml
 
+(* this seems like a better place *)
+cps/dict-sig.sml
+cps/dict.sml
+
 (*
 cps/subst.sml
 cps/print-sig.sml

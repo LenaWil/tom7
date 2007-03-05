@@ -156,11 +156,12 @@ struct
             val () = print "\n\n**** CPS CONVERTED: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
+            val () = print "\n\n**** CPS DICT: ****\n"
+            val c : CPS.cexp = CPSDict.translate c
+
         in
             print "\n";
-(*          print "\n\n**** DICTED: ****\n";
-          Layout.print( ILPrint.utol inter, print); *)
-(*
+          (*
           raise Test "backend unimplemented";
           OS.Process.success
           *)
