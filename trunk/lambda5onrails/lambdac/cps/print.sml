@@ -68,9 +68,9 @@ struct
          | Record svl => L.listex "{" "}" "," ` map (fn (s, v) => %[$s, $"=", vtol v]) svl
          | Hold _ => $"hold?"
          | WPack _ => $"wpack?"
+         | TPack _ => $"tpack?"
          | AllApp { worlds = [w], f = v, tys = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<<", wtol w, $">>"]]
          | AllApp { tys = [t], f = v, worlds = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<", ttol t, $">"]]
-         | AllApp _ => $"allapp?"
          | Sham v => $"sham?"
          | Inj (s, t, vo) => %[%[$("inj_" ^ s), 
                                  (case vo of
@@ -81,12 +81,46 @@ struct
                             %[$"into", L.indent 2 ` ttol t]]
          | Unroll v => %[$"unroll", L.indent 2 ` vtol v]
 
+         | Dictfor t => %[$"dictfor", ttol t]
+
          | AllLam {worlds = [v], tys = nil, vals = nil, body = va} => %[%[$"//\\\\", $(V.tostring v), $"."],
                                                                         L.indent 4 ` vtol va]
          | AllLam {worlds = nil, tys = [v], vals = nil, body = va} => %[%[$"/\\", $(V.tostring v), $"."],
                                                                         L.indent 4 ` vtol va]
 
-         | AllLam _ => $"alllam?"
+         | AllLam { worlds, tys, vals, body } =>
+                %[%[$"alllam",
+                  L.listex "" "" ";"
+                  ((case worlds of
+                      nil => nil
+                    | _ => [% ($"w:" :: map ($ o V.tostring) worlds)]) @
+                   (case tys of
+                      nil => nil
+                    | _ => [% ($"t:" :: map ($ o V.tostring) tys)]) @
+                   (case vals of
+                      nil => nil
+                    | _ => [% ($"v:" :: map ($ o V.tostring) vals)])
+                      ),
+                   $"."],
+                   L.indent 2 ` vtol body]
+                   
+         | AllApp { f, worlds, tys, vals } =>
+                %[vtol f,
+                  L.indent 2 `
+                  L.listex "<" ">" ";" `
+                  ((case worlds of
+                      nil => nil
+                    | _ => [% [$"w:", L.listex "" "" "," ` map wtol worlds]]) @
+                   (case tys of
+                      nil => nil
+                    | _ => [% [$"t:", L.listex "" "" "," ` map ttol tys]]) @
+                   (case vals of
+                      nil => nil
+                    | _ => [% [$"v:", L.listex "" "" "," ` map vtol vals]])
+                      )]
+                      
+
+                   
          | Var v => $(V.tostring v)
          | UVar v => $("~" ^ V.tostring v)
                )
@@ -180,6 +214,7 @@ struct
          | Product ltl => recordortuple ttol ":" "(" ")" " *" ltl
          | Primcon (VEC, [t]) => %[ttol t, $"vec"]
          | Primcon (REF, [t]) => %[ttol t, $"ref"]
+         | Primcon (DICT, [t]) => %[ttol t, $"dict"]
          | Primcon _ => $"XXX-bad-primcon-XXX"
 (*
     | WExists of var * 'ctyp
