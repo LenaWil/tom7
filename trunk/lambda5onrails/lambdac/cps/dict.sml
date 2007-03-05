@@ -11,6 +11,8 @@
    type and binds it to a variable. In both cases, the type has kind 0, so we do not need
    to worry about dictionaries taking other dictionaries.
 
+   XXX existential types also, but shouldn't see those before closure conversion!
+
    Representation Invariant 1: For AllLam { worlds, types = t1..tn, vals = x1..xm, body },
    m >= n and x1..xn are the dictionaries for the types t1..tn, respectively.
 
