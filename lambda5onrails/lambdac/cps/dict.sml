@@ -34,6 +34,7 @@
    (the following two are irrelevant here since there will be no tpacks/tunpacks,
     but they will be introduced in CPS conversion)
 
+      ### XXX maybe this should be in the syntax? like a label/list of values ###
    Representation Invariant 4: For TUnpack, the body will always be a record with two
    fields { value, dict }, where the dictionary is the dict component.
 
@@ -52,8 +53,9 @@ struct
     fun a ` b = a b
 
     val DICT_SUFFIX = "_dict"
+    val DICT_LAB = "dict"
+    val VALUE_LAB = "value"
 
-    
     fun trt typ =
       (case ctyp typ of
       (* this is the only case we do anything interesting in *)
