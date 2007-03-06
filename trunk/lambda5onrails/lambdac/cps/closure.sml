@@ -4,17 +4,35 @@
    The Hemlock series of compilers had a very compilcated closure
    conversion algorithm that attempted to balance a number of
    constraints to produce as good code as possible. This led to a very
-   complex and error prone implementation. One of the reasons was that
+   complex and error-prone implementation. One of the reasons was that
    it was annoying to consider the implications of mutual recursion
    (and implement it), but difficult to just punt on that case without
    making the implementation incorrect.
+
+   This language is more complicated than the Hemlock CPS IL, so the
+   closure conversion algorithm cannot be as ambitious. In addition to
+   the new machinery having to do with the modal features, we also
+   must maintain a dictionary-passing invariant (see dict.sml) during
+   this translation.
 
    Therefore the new strategy is to do something simple and general,
    but then implement things like direct calls for the common case in
    a later optimization pass. This has the advantage that we can more
    easily punt on any difficult cases like mutual recursion. It also may
    subsume and/or be assisted by other optimizations like known-argument
-   and tuple flattening optimizations.
+   and tuple flattening optimizations. It also shortens the path to a
+   working but slow compiler.
+
+   Several things need to be closure converted. First, obviously, is
+   the Fns expression, which is a bundle of mutually-recursive
+   functions. This is closure converted in the standard way (see below).
+
+   (a, b, c) -> d         ==>    Eenv. { 
+
+   The AllLam construct allows quantification over value variables;
+   we will also closure convert it whenever there is at least one value
+   variable. These lambdas act like 
+
 
    In addition to closure converting Fn(s) expressions, we also have
    to closure convert type abstractions. This is because these will be
