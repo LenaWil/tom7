@@ -34,11 +34,10 @@
    (the following two are irrelevant here since there will be no tpacks/tunpacks,
     but they will be introduced in CPS conversion)
 
-      ### XXX maybe this should be in the syntax? like a label/list of values ###
-   Representation Invariant 4: For TUnpack, the body will always be a record with two
-   fields { value, dict }, where the dictionary is the dict component.
+   Representation Invariant 4: For TUnpack, the first element of the list will always
+   be the dictionary for the type existentially bound.
 
-   Representation Invariant 5: TPack always packs a record { value, dict } as in #4.
+   Representation Invariant 5: TPack always packs a list (dict :: ...) as in #4.
 
 *)
 

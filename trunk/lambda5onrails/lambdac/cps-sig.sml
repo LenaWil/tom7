@@ -26,7 +26,7 @@ sig
     | Cont of 'ctyp list
     | AllArrow of { worlds : var list, tys : var list, vals : 'ctyp list, body : 'ctyp }
     | WExists of var * 'ctyp
-    | TExists of var * 'ctyp
+    | TExists of var * 'ctyp list
     | Product of (string * 'ctyp) list
     | Addr of world
     | Mu of int * (var * 'ctyp) list
@@ -54,8 +54,8 @@ sig
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
-    (* type var, contents var *)
-    | TUnpack of var * var * 'cval * 'cexp
+    (* type var, contents vars *)
+    | TUnpack of var * var list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
@@ -71,7 +71,7 @@ sig
     | Record of (string * 'cval) list
     | Hold of world * 'cval
     | WPack of world * 'cval
-    | TPack of ctyp * 'cval
+    | TPack of ctyp * 'cval list
     | Sham of 'cval
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
@@ -104,6 +104,7 @@ sig
   val At' : ctyp * world -> ctyp
   val Cont' : ctyp list -> ctyp
   val WExists' : var * ctyp -> ctyp
+  val TExists' : var * ctyp list -> ctyp
   val Product' : (string * ctyp) list -> ctyp
   val Addr' : world -> ctyp
   val Mu' : int * (var * ctyp) list -> ctyp
@@ -123,6 +124,7 @@ sig
   val Letsham' : var * cval * cexp -> cexp
   val Leta' : var * cval * cexp -> cexp
   val WUnpack' : var * var * cval * cexp -> cexp
+  val TUnpack' : var * var list * cval * cexp -> cexp
   val Case' : cval * var * (string * cexp) list * cexp -> cexp
   val ExternVal' : var * string * ctyp * world option * cexp -> cexp
   val ExternWorld' : var * string * cexp -> cexp
@@ -135,6 +137,7 @@ sig
   val Record' : (string * cval) list -> cval
   val Hold' : world * cval -> cval
   val WPack' : world * cval -> cval
+  val TPack' : ctyp * cval list -> cval
   val Sham' : cval -> cval
   val Inj' : string * ctyp * cval option -> cval
   val Roll' : ctyp * cval -> cval

@@ -27,58 +27,36 @@
    the Fns expression, which is a bundle of mutually-recursive
    functions. This is closure converted in the standard way (see below).
 
-   (a, b, c) -> d         ==>    Eenv. { 
+   (a, b, c) -> d         ==>    E env. [env dict, (env, a, b, c) -> d]
+
+   For mutually recursive bundles, we have:
+
+   |(a, b, c) -> d;              E env. [env dict, |(env, a, b, c) -> d;
+    (e, f, g) -> h|       ==>                       (env, e, f, g) -> h|]
+
+
 
    The AllLam construct allows quantification over value variables;
    we will also closure convert it whenever there is at least one value
-   variable. These lambdas act like 
+   variable. These lambdas are converted pretty much the same way as
+   regular lambdas.
 
+   { w; t; t dict } -> c
 
-   In addition to closure converting Fn(s) expressions, we also have
-   to closure convert type abstractions. This is because these will be
-   later converted into lambdas (actually value lambdas), so they must
-   be hoisted and closed. Because TLam takes only a type argument, we
-   must add a value argument so that it can be be passed the
-   environment. Since their bodies are values, we need a value version
-   of the Proj expression that allows projection out of the components
-   of the environment. Because TApp is itself a value and closure
-   calls involve the elimination of a (type) existential, we need a
-   value version of that as well.
+          ==>
 
-   This means that something like /\a/\b fn x => (y, z)
-   will be converted to
+   E env. [env dict, { w; t; env, t dict } -> c]
 
-    LAB_A =   /\(a|env1). vlet y = #1 env1
-                          vlet z = #2 env1
-                          closure < LAB_B , (a | y, z) >
-    LAB_B =   /\(b|env2). vlet y = #1 env2
-                          vlet z = #2 env2
-                          closure < LAB_B , (a, b | y, z) >
-                   
-       . . .
-
-   wait, this sucks because now I need to stick types inside values as
-   data; in other words, I need modules. The type "forall t. A(t)"
-   translates into Exists m. m * forall t. m _> A(t), where _> is the
-   value arrow, and the closure for (/\b...) is 
-   pack ((a | y, z), tlam t. vlam m. etc.) as Exists etc.
-
-   I don't want to go down this route because the type theory becomes
-   much more complicated.
    
-   Perhaps we can do the dictionary stuff before closure conversion?
-   It just means that we have to preserve the dictionary invariants
-   through more phases, although maybe we could do marshalling
-   insertion right after closure conversion. Then only closure
-   conversion needs to watch out for the dictionary invariant, but it
-   was already going to be complicated cf above. *)
 
+
+*)
 
 
 structure Closure :> CLOSURE =
 struct
     
+  exception Closure of string
     
-    
-
+  fun convert _ = raise Closure "unimplemented"
 end

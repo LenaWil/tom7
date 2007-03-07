@@ -19,7 +19,7 @@ struct
     | Cont of 'ctyp list
     | AllArrow of { worlds : var list, tys : var list, vals : 'ctyp list, body : 'ctyp }
     | WExists of var * 'ctyp
-    | TExists of var * 'ctyp
+    | TExists of var * 'ctyp list
     | Product of (string * 'ctyp) list
     | Addr of world
     | Mu of int * (var * 'ctyp) list
@@ -45,7 +45,7 @@ struct
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
-    | TUnpack of var * var * 'cval * 'cexp
+    | TUnpack of var * var list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
@@ -60,7 +60,7 @@ struct
     | Record of (string * 'cval) list
     | Hold of world * 'cval
     | WPack of world * 'cval
-    | TPack of ctyp * 'cval
+    | TPack of ctyp * 'cval list
     | Sham of 'cval
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
@@ -124,9 +124,9 @@ struct
                     if V.eq(vv1, v) orelse V.eq (vv2, v)
                     then e
                     else eself e)
-       | TUnpack (vv1, vv2, va, e) =>
-           TUnpack (vv1, vv2, vself va,
-                    if V.eq(vv1, v) orelse V.eq (vv2, v)
+       | TUnpack (vv1, vvl, va, e) =>
+           TUnpack (vv1, vvl, vself va,
+                    if V.eq(vv1, v) orelse List.exists (fn vv => V.eq (vv, v)) vvl
                     then e
                     else eself e)
        | Case (va, vv, sel, e) =>
@@ -172,7 +172,7 @@ struct
          | AllApp { f, worlds, tys, vals } => AllApp { f = vself f, worlds = map wself worlds,
                                                        tys = map tself tys, vals = map vself vals }
          | WPack (w, va) => WPack (wself w, vself va)
-         | TPack (t, va) => TPack (tself t, vself va)
+         | TPack (t, va) => TPack (tself t, map vself va)
          | Var vv => Var (if V.eq(v, vv) then v' else vv)
          | UVar vv => UVar (if V.eq(v, vv) then v' else vv)
          | Unroll va => Unroll (vself va)
@@ -215,7 +215,7 @@ struct
        | WExists (vv, t) => if V.eq (v, vv) then typ
                             else WExists(vv, self t)
        | TExists (vv, t) => if V.eq (v, vv) then typ
-                            else TExists(vv, self t)
+                            else TExists(vv, map self t)
        | Product stl => Product ` ListUtil.mapsecond self stl
        | Addr w => Addr (wself w)
        | Mu (i, vtl) => Mu (i, map (fn (vv, t) =>
@@ -251,7 +251,7 @@ struct
                                  in (WExists (v', renamet v v' t))
                                  end
     | ctyp (T(TExists (v, t))) = let val v' = V.alphavary v
-                                 in (TExists (v', renamet v v' t))
+                                 in (TExists (v', map (renamet v v') t))
                                  end
 
     | ctyp (T(Mu(i, vtl))) = Mu(i, map (fn (v, t) =>
@@ -282,9 +282,10 @@ struct
                                              val v2' = V.alphavary v2
                                          in WUnpack(v1', v2', va, renamee v2 v2' ` renamee v1 v1' e)
                                          end
-    | cexp (E(TUnpack(v1, v2, va, e))) = let val v1' = V.alphavary v1
-                                             val v2' = V.alphavary v2
-                                         in TUnpack(v1', v2', va, renamee v2 v2' ` renamee v1 v1' e)
+    | cexp (E(TUnpack(v1, v2l, va, e))) = let val v1' = V.alphavary v1
+                                              val v2l' = ListUtil.mapto V.alphavary v2l
+                                         in TUnpack(v1', map #2 v2l', va, 
+                                                    renameeall (renamee v1 v1' e) v2l')
                                          end
     | cexp (E(Case(va, v, sel, def))) = let val v' = V.alphavary v
                                         in
@@ -416,7 +417,7 @@ struct
     | AllArrow {worlds, tys, vals, body} => 
         AllArrow' { worlds = worlds, tys = tys, vals = map f vals, body = f body }
     | WExists (v, t) => WExists' (v, f t)
-    | TExists (v, t) => TExists' (v, f t)
+    | TExists (v, t) => TExists' (v, map f t)
     | Product stl => Product' ` ListUtil.mapsecond f stl
     | Addr w => typ
     | Mu (i, vtl) => Mu' (i, ListUtil.mapsecond f vtl)
@@ -458,7 +459,7 @@ struct
     | Record svl => Record' ` ListUtil.mapsecond fv svl
     | Hold (w, v) => Hold' (w, fv v)
     | WPack (w, v) => WPack' (w, fv v)
-    | TPack (t, v) => TPack' (ft t, fv v)
+    | TPack (t, v) => TPack' (ft t, map fv v)
     | Sham v => Sham' ` fv v
     | Inj (s, t, vo) => Inj' (s, ft t, Option.map fv vo)
     | Roll (t, v) => Roll' (ft t, fv v)
