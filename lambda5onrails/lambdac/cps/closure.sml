@@ -34,7 +34,7 @@
 
     pack ( ENV ; [dictfor ENV, env = { fv1 = fv1, ... fvn = fvn },
           fns f(env, x). 
-              let fv1 = #fv1 env
+              let fv1 = #fv1 env      (except actually leta and lift, see proposal)
                     ...
                   (: create closures for calls to f and g within e1 :)
                   f = (pack ( ENV ; [dictfor ENV, env = env, f] ))
@@ -97,15 +97,80 @@
           ==>
 
    E env. [env dict, { w; t; env, t dict } -> c]
-              XXX HERE
+
 
 *)
 
 
 structure Closure :> CLOSURE =
 struct
+
+  structure V = Variable
+  structure VS = Variable.Set
+  open CPS
+
+  infixr 9 `
+  fun a ` b = a b
     
   exception Closure of string
+
+  local 
+    fun accvarsv (us, s) (value : CPS.cval) : CPS.cval =
+      (case cval value of
+         Var v => (s := VS.add (!s, v); value)
+       | UVar u => (us := VS.add (!us, u); value)
+       | _ => pointwisev (fn t => t) (accvarsv (us, s)) (accvarse (us, s)) value)
+    and accvarse (us, s) exp = 
+      (pointwisee (fn t => t) (accvarsv (us, s)) (accvarse (us, s)) exp; exp)
+
+    (* give the set of all variable occurrences in a value or expression.
+       the only sensible use for this is below: *)
+    fun allvarse exp = 
+           let val us = ref VS.empty
+               val s  = ref VS.empty
+           in
+             accvarse (us, s) exp;
+             (!us, !s)
+           end
+    fun allvarsv value =
+           let val us = ref VS.empty
+               val s  = ref VS.empty
+           in
+             accvarsv (us, s) value;
+             (!us, !s)
+           end
+
+  in
     
-  fun convert _ = raise Closure "unimplemented"
+    (* Sick or slick? You make the call! *)
+    fun freevarsv value =
+      (* compute allvars twice; intersection is free vars *)
+      let val (us1, s1) = allvarsv value
+          val (us2, s2) = allvarsv value
+      in
+        (VS.intersection (us1, us2), VS.intersection (s1, s2))
+      end
+    fun freevarse exp = 
+      let val (us1, s1) = allvarse exp
+          val (us2, s2) = allvarse exp
+      in
+        (VS.intersection (us1, us2), VS.intersection (s1, s2))
+      end
+
+  end
+
+    
+  fun convert exp = 
+    let 
+      val v = V.namedvar "x"
+      val f = V.namedvar "free"
+      val (u, s) = freevarsv (Lam' (V.namedvar "f", [v], Call'(Var' f, [Var' v])))
+    in
+      print "\n\nfree uvars:\n";
+      VS.app (fn v => print (V.tostring v ^ "\n")) u;
+      print "free vars:\n";
+      VS.app (fn v => print (V.tostring v ^ "\n")) s;
+
+      raise Closure "unimplemented"
+    end
 end
