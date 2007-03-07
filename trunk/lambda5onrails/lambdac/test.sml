@@ -2,6 +2,8 @@
 structure Test =
 struct
 
+  exception TestFail
+
     val showil = Params.flag false
         (SOME ("-showil",
                "Show internal language AST")) "showil"
@@ -157,6 +159,10 @@ struct
             val () = print "\n\n**** CPS DICT: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
+            val c : CPS.cexp = Closure.convert c
+            val () = print "\n\n**** CLOSURE: ****\n"
+            val () = Layout.print ( CPSPrint.etol c, print)
+
         in
             print "\n";
           (*
@@ -168,8 +174,9 @@ struct
     handle Test s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
          | Nullary.Nullary s => fail ("\nCouldn't do EL nullary prepass:\n" ^ s ^ "\n")
          | Context.Absent (what, s) => fail ("\n\nInternal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'\n")
-         (* | ILDict.ILDict s => fail ("\nIL Dict: " ^ s ^ "\n") *)
          | ToCPS.ToCPS s => fail ("\nToCPS: " ^ s ^ "\n")
+         | CPSDict.CPSDict s => fail ("\nCPSDict: " ^ s ^ "\n")
+         | Closure.Closure s => fail ("\nClosure conversion: " ^ s ^ "\n")
          | ILAlpha.Alpha s => fail ("\nIL Alpha: " ^ s ^ "\n")
          | Elaborate.Elaborate s => fail("\nElaboration: " ^ s ^ "\n")
          | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")
@@ -182,7 +189,7 @@ struct
         let in
             print "\nCompilation failed.\n";
             print s;
-            raise Match
+            raise TestFail
               (* OS.Process.failure *)
         end
 
