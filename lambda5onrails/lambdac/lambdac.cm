@@ -153,6 +153,9 @@ cps/print.sml
 cps/dict-sig.sml
 cps/dict.sml
 
+cps/closure-sig.sml
+cps/closure.sml
+
 (*
 cps/subst.sml
 cps/print-sig.sml
