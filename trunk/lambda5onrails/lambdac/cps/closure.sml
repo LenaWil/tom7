@@ -25,16 +25,67 @@
 
    Several things need to be closure converted. First, obviously, is
    the Fns expression, which is a bundle of mutually-recursive
-   functions. This is closure converted in the standard way (see below).
+   functions. The conversion of this is a little tricky because of
+   mutual recursion. The straightforward thing is this:
 
-   (a, b, c) -> d         ==>    E env. [env dict, (env, a, b, c) -> d]
-
-   For mutually recursive bundles, we have:
-
-   |(a, b, c) -> d;              E env. [env dict, |(env, a, b, c) -> d;
-    (e, f, g) -> h|       ==>                       (env, e, f, g) -> h|]
+   fns f(x). e1           ==>    
+   and g(y). e2
 
 
+    pack ( ENV ; [dictfor ENV, env = { fv1 = fv1, ... fvn = fvn },
+          fns f(env, x). 
+              let fv1 = #fv1 env
+                    ...
+                  (: create closures for calls to f and g within e1 :)
+                  f = (pack ( ENV ; [dictfor ENV, env = env, f] ))
+                  g = (pack ( ENV ; [dictfor ENV, env = env, g] ))
+                  .. [[e1]]
+          and g(env, y).
+                  .. same ..
+          ])
+
+         where ENV is the record type { fv1 : t1, ... fvn : tn }.
+
+   so the type |(a, b, c) -> d; (e, f, g) -> h|
+   becomes     E ENV. [ENV dict, ENV, |(env, [[a]], [[b]], [[c]]) -> [[d]];
+                                       (env, [[e]], [[f]], [[g]]) -> [[h]]|]
+
+   And the type (a, b, c) -> d
+   becomes     E ENV. [ENV dict, ENV, (env, [[a]], [[b]], [[c]]) -> [[d]]]
+
+   So the question is, what to do with the fsel construct, which has this typing
+   rule?
+
+      e : | ts1 -> t1 ; ts2 -> t2 ; ... tsn -> tn | @ w      0 <= m < n
+     ------------------------------------------------------------ fsel
+                     e . m   :  tsm -> tm @ w
+
+   the translation must take on this type:
+
+      e : E ENV. [ENV dict, ENV, |(env :: ts1) -> t1; ...
+                                  (env :: tsn) -> tn|] @ w      0 <= m < n
+     ------------------------------------------------------------------------------ fsel?
+       e . m   :  E ENV. [ENV dict, ENV, (env, tsm) -> tm]  @ w
+
+   and it must be a value.
+
+   There's only one way to do this. e.m must translate into 
+
+   unpack e as (ENV; [de, env, fs])           <- unpack must be a value then
+   in  pack ( ENV ; [de, env, fs.m] ) 
+
+   in many situations (especially for m = 0 and fs a singleton) we should be able to
+   optimize this to avoid the immediate packing and unpacking.
+
+
+   Question: is it really the best choice to have the fns construct dynamically bind
+   the individual function variables within itself, or should it bind the bundle and
+   then we use fsel to make friend calls? Both seem to work, but the latter seems
+   a bit more uniform.
+
+
+   Other features need to be closure converted as well. They are
+   simpler but less standard.
 
    The AllLam construct allows quantification over value variables;
    we will also closure convert it whenever there is at least one value
@@ -46,9 +97,7 @@
           ==>
 
    E env. [env dict, { w; t; env, t dict } -> c]
-
-   
-
+              XXX HERE
 
 *)
 
