@@ -110,6 +110,120 @@
                                  (self self (car (cdr t)))
                                  (quote (self self (car (cdr (cdr t)))))))
 
+		     ((eq theprim "fun")
+		      ; f1 (x1 x2 .. xn) body1
+		      ; f2 (y1 y2 .. yk) body2
+		      ; etc.
+                      ; allbody
+
+		      ; becomes
+		      ; let f1rec (fn (f1rec f2rec .. fmrec x1 .. xn) 
+		      ;             (let f1 (fn (x1 ... xn) (f1rec f1rec f2rec .. fmrec x1 ... xn))
+		      ;             (let f2 (fn (y1 ... yk) (f2rec f1rec f2rec .. fmrec y1 ... yk))
+		      ;               body1
+		      ; let f2rec ...
+                      ; let f1 (fn (x1 ... xn) (f1rec f1rec f2rec .. fmrec x1 ... xn))
+		      ; let f2 (fn (y1 ... yk) (f2rec f1rec f2rec .. fmrec y1 ... yk))
+		      ; allbody
+		      
+		      ;; start by getting the list of fundecs (triples of f,args,body)
+		      ;; and the allbody
+
+		      (let decsbody
+			(let getdb (fn (self l)
+				       (xcase l
+					  (abort "fun: expected f (args) body or allbody")
+					  (onemaybe rest
+					    (xcase rest
+					       ; if empty, then this is the allbody
+					       (list nil onemaybe)
+					       (two rest
+						 (xcase rest
+						    (abort "fun: expected f (args) body")
+						    (three rest
+						       ;; insist that onemaybe is a symbol
+						       (let one
+							 (xcase onemaybe
+								(abort "fun: expected sym")
+								(_ _ (abort "fun: expected sym"))
+								(_ (abort "fun: expected sym"))
+								'no 'no
+								(sym sym))
+								   
+							(let grest (self self rest)
+							(let fs (car grest)
+							(let allbody (car (cdr grest))
+							(list (cons (list one two three) fs)
+							      allbody))))))))))
+					  ) ; xcase on list
+				       )
+			     (getdb t))
+		      (let decs (car decsbody)
+		      (let body (car (cdr decsbody))
+
+
+                      ; let f1 (fn (x1 ... xn) (f1rec f1rec f2rec .. fmrec x1 ... xn))
+		      ;; for one fn, as below
+		      (let wrapdec (fn (decl rest)
+				       (let f (car decl)
+				       (let frec (string f "rec")
+				       (let args (car (cdr decl))
+				       (let bod (car (cdr (cdr decl)))
+				       (list
+					(parse "let")
+					(parse f)
+					(list
+					 (parse "fn")
+					 args
+					 ; apply frec to selves, args
+					 (cons
+					  (parse frec)
+					  (@
+					   (map (fn (decl)
+						    (parse (string (car decl) "rec"))) decs)
+					   args))
+					 )
+					rest))))))
+
+		      ;; given some body,
+		      ;; wrap the body with the lets for f1..fn
+		      ;; that do not need the "self" arguments,
+		      ;; assuming decs in scope of f1rec..fnrec
+		      (let wrapdecs (fn (bod) (foldr wrapdec bod decs))
+
+		      ;; the outer bindings, for one f
+
+		      ; let f1rec (fn (f1rec f2rec .. fmrec x1 .. xn) 
+		      ;             (let f1 (fn (x1 ... xn) (f1rec f1rec f2rec .. fmrec x1 ... xn))
+		      ;             (let f2 (fn (y1 ... yk) (f2rec f1rec f2rec .. fmrec y1 ... yk))
+		      ;               body1
+
+		      (let binddec (fn (decl rest)
+				       (let f (car decl)
+				       (let frec (string f "rec")
+				       (let args (car (cdr decl))
+				       (let bod (car (cdr (cdr decl)))
+				       (list
+					(parse "let")
+					(parse frec)
+					(list
+					 (parse "fn")
+					 (@
+					  ; self args
+					  (map (fn (decl)
+						   (parse (string (car decl) "rec"))) decs)
+					  ; real args
+					  args)
+					 (wrapdecs bod))
+					rest))))))
+
+		      ;; and finally build the thing
+		      (foldr binddec (wrapdecs body) decs)
+			   
+			   ))))))
+
+		      ) ; fun
+
                      ;; (fn (arg1 arg2 ... argn) body)
                      ((eq theprim "fn")
                          ; t args body
