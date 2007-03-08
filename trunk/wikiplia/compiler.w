@@ -41,12 +41,13 @@
                     ; (note, this excludes in place lambda application..)
                     no no no no no
                     (theprim 
-                     (if (eq theprim "defs")
+		     (cond
+                      ((eq theprim "defs")
                         ; t: list of pairs
                         (map (fn (d_arg)
-                                 (list (car d_arg) (self self (car (cdr d_arg))))) t)
+                                 (list (car d_arg) (self self (car (cdr d_arg))))) t))
 
-		     (if (eq theprim "cond")
+		      ((eq theprim "cond")
  	 	        ; t: list of conditions
 			; we do a macro expansion (to chained ifs) 
 			; and recurse on that result
@@ -63,9 +64,9 @@
 					)
 			              ;; if all fail, then we return nil
 			              (parse "nil")
-				      t))
+				      t)))
 
-                     (if (eq theprim "include")
+                      ((eq theprim "include")
                         ; t: "page" body
                         (let meta_lib (head (string "w:" (car t)))
                         ; assume it has metadata, and skip it
@@ -83,34 +84,34 @@
                                             )
                                        )))
                            (bindlib bindlib lib)
-                         ))))
+                         )))))
 
-                     (if (eq theprim "lambda")
+                     ((eq theprim "lambda")
                          ; t: arg body
                          (cons h
                                (cons (quote (self self (car t)))
                                      (cons (quote (self self (car (cdr t))))
-                                           nil)))
+                                           nil))))
 
-                     (if (eq theprim "if")
+                     ((eq theprim "if")
                          ; t: cond tbod fbod
                          (list h (self self (car t))
                                  (quote (self self (car (cdr t))))
-                                 (quote (self self (car (cdr (cdr t))))))
+                                 (quote (self self (car (cdr (cdr t)))))))
 
-                     (if (eq theprim "handle")
+                     ((eq theprim "handle")
                          ; t: try catch
                          (list h (quote (self self (car t)))
-                                 (quote (self self (car (cdr t)))))
+                                 (quote (self self (car (cdr t))))))
 
-                     (if (eq theprim "let")
+                     ((eq theprim "let")
                          ; t: sym value body
                          (list h (quote (car t))
                                  (self self (car (cdr t)))
-                                 (quote (self self (car (cdr (cdr t))))))
+                                 (quote (self self (car (cdr (cdr t)))))))
 
                      ;; (fn (arg1 arg2 ... argn) body)
-                     (if (eq theprim "fn")
+                     ((eq theprim "fn")
                          ; t args body
                          ; XXX need gensym
                          (let argname "fnarg_"
@@ -136,21 +137,22 @@
                            (list (parse "lambda")
                                  (quote (parse argname))
                                  ;; bind args and then exec body...
-                                 (quote (genargs genargs (car t) (car (cdr t)))))))
+                                 (quote (genargs genargs (car t) (car (cdr t))))))))
 
-                     (if (eq theprim "xcase")
+                      ((eq theprim "xcase")
                          ; t: ob nb lb qb sb ib yb
                          (xcase t
                               (abort "no args to xcase?")
                               (ob cases
                                 (cons h (cons (self self ob)
                                   ;; quotes all arguments; allows any number of them
-                                  (map (fn (x) (quote (self self x))) cases)))))
+                                  (map (fn (x) (quote (self self x))) cases))))))
 
+		      (1 
                        ;; otherwise, assume it is eager...
                        (cons h
-                             (map (fn (x) (self self x)) t))
-                     ))))))))) ; case analysis of prim
+                             (map (fn (x) (self self x)) t)))
+		       )
                    ))
              ) ; nonempty list
 
