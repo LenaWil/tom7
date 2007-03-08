@@ -125,8 +125,13 @@ struct
            end
        | SOME { head, cur, revs } =>
            let 
+             val tstart = Time.now ()
              val (_, plan) = SED.minedit (chunkstr ` etos data, chunkstr ` etos head)
+             val tend = Time.now ();
            in
+             print ("diff time: " ^ 
+                    LargeInt.toString (Time.toMilliseconds (Time.-(tend, tstart))) ^ 
+                    "ms\n");
              db := (SM.insert(t, key, 
                               { head = data,
                                 cur = now + 1,
