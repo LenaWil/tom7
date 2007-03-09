@@ -147,7 +147,7 @@
 								(abort "fun: expected sym")
 								(_ _ (abort "fun: expected sym"))
 								(_ (abort "fun: expected sym"))
-								'no 'no
+								no no
 								(sym sym))
 								   
 							(let grest (self self rest)
