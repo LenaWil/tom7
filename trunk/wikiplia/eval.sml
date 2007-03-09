@@ -51,7 +51,7 @@ struct
           | (Prim XCASE) :: (Int _)         :: _ :: _ :: _ :: _ :: ib :: _ => eval G ib
           | (Prim XCASE) :: (Symbol s)      :: _ :: _ :: _ :: _ :: _ :: (List[Symbol x, yb]) :: _ => eval ((x, String s) :: G) yb
           | (Prim XCASE) :: _               :: _ :: _ :: _ :: _ :: _ :: _ :: no :: _ => eval G no
-          | _ => raise Abort "xcase/args1"
+          | z => (print (StringUtil.delimit " | " (map tostring z)); raise Abort "xcase/args1")
 
               )
      | (Prim XCASE) :: _ => raise Abort "xcase/args"
