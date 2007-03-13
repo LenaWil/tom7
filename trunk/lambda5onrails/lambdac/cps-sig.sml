@@ -24,6 +24,7 @@ sig
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
     | Cont of 'ctyp list
+    | Conts of 'ctyp list list
     | AllArrow of { worlds : var list, tys : var list, vals : 'ctyp list, body : 'ctyp }
     | WExists of var * 'ctyp
     | TExists of var * 'ctyp list
@@ -32,7 +33,6 @@ sig
     | Mu of int * (var * 'ctyp) list
     | Sum of (string * 'ctyp IL.arminfo) list
     | Primcon of primcon * 'ctyp list
-    | Conts of 'ctyp list list
     | Shamrock of 'ctyp
     | TVar of var
 
@@ -86,6 +86,10 @@ sig
        are considered valuable. *)
     | AllLam of { worlds : var list, tys : var list, vals : var list, body : 'cval }
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
+
+
+  val ctyp_cmp : ctyp * ctyp -> order
+  val ctyp_eq  : ctyp * ctyp -> bool
 
   val ctyp : ctyp -> ctyp ctypfront
   val cexp : cexp -> (cexp, cval) cexpfront

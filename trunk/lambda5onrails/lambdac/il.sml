@@ -49,7 +49,7 @@ struct
                  (pi_1 mu .. and ..) / v_1,
                  ... ]
          *)
-      | Mu of int * (var * typ) list 
+      | Mu of int * (var * typ) list
       | Evar of typ ebind ref
 
       | TVec of typ
