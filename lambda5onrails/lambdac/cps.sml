@@ -341,6 +341,173 @@ struct
                              end
     | cval (V x) = x
 
+  infixr >>
+  fun EQUAL >> f = f ()
+    | c >> _ = c
+
+  fun world_cmp (W w1, W w2) = V.compare(w1, w2)
+
+  fun pc_cmp (VEC, VEC) = EQUAL
+    | pc_cmp (VEC, _) = LESS
+    | pc_cmp (_, VEC) = GREATER
+    | pc_cmp (REF, REF) = EQUAL
+    | pc_cmp (REF, _) = LESS
+    | pc_cmp (_, REF) = GREATER
+    | pc_cmp (DICT, DICT) = EQUAL
+(*
+    | pc_cmp (DICT, _) = LESS
+    | pc_cmp (_, DICT) = GREATER *)
+
+  fun arminfo_cmp ac (NonCarrier, NonCarrier) = EQUAL
+    | arminfo_cmp ac (NonCarrier, _) = LESS
+    | arminfo_cmp ac (_, NonCarrier) = GREATER
+    | arminfo_cmp ac (Carrier {definitely_allocated = da1, carried = t1},
+                      Carrier {definitely_allocated = da2, carried = t2}) =
+    Util.bool_compare (da1, da2) >> (fn () => ac (t1, t2))
+
+  (* maintains that Ex.A(x) = Ey.A(y) by always choosing the same
+     names for vars when unbinding *)
+  fun ctyp_cmp (T t1, T t2) =
+    (case (t1, t2) of
+       (AllArrow {worlds = worlds1, tys = tys1, vals = vals1, body = body1},
+        AllArrow {worlds = worlds2, tys = tys2, vals = vals2, body = body2}) =>
+       (case (Int.compare (length worlds1, length worlds2),
+              Int.compare (length tys1, length tys2),
+              Int.compare (length vals2, length vals2)) of
+          (EQUAL, EQUAL, EQUAL) =>
+            let
+              (* choose the same rename targets for both sides *)
+              val worlds1' = ListUtil.mapto V.alphavary worlds1
+              val worlds2' = ListPair.zip (worlds2, map #2 worlds1')
+              val tys1'    = ListUtil.mapto V.alphavary tys1
+              val tys2'    = ListPair.zip (tys2, map #2 tys1')
+              fun rent1 t = renametall (renametall t worlds1') tys1'
+              fun rent2 t = renametall (renametall t worlds2') tys2'
+            in 
+              case Util.lex_list_order ctyp_cmp (map rent1 vals1, map rent2 vals2) of
+                (* same vals... *)
+                  EQUAL => ctyp_cmp (rent1 body1, rent2 body2)
+                | c => c
+            end       
+
+        | (EQUAL, EQUAL, c) => c
+        | (EQUAL, c, _) => c
+        | (c, _, _) => c)
+
+      | (AllArrow _, _) => LESS
+      | (_, AllArrow _) => GREATER
+
+      | (WExists (v1, t1), WExists (v2, t2)) =>
+          let val v' = V.namedvar "x"
+          in
+            ctyp_cmp (renamet v1 v' t1,
+                      renamet v2 v' t2)
+          end
+      | (WExists _, _) => LESS
+      | (_, WExists _) => GREATER
+
+      | (TExists (v1, t1), TExists (v2, t2)) =>
+          let val v' = V.namedvar "x"
+          in
+            Util.lex_list_order
+            ctyp_cmp (map (renamet v1 v') t1,
+                      map (renamet v2 v') t2)
+          end
+      | (TExists _, _) => LESS
+      | (_, TExists _) => GREATER
+
+      (* XXX excludes all structural properties other than
+         alpha equivalence *)
+      | (Mu (i1, vtl1), Mu(i2, vtl2)) =>
+          (case (Int.compare (length vtl1, length vtl2),
+                 Int.compare (i1, i2)) of
+             (EQUAL, EQUAL) =>
+               let
+                 val vars = map (V.alphavary o #1) vtl1
+                 val vtlv1 = ListPair.zip (vtl1, vars)
+                 val vtlv2 = ListPair.zip (vtl2, vars)
+               in
+                 Util.lex_list_order
+                 (fn (((v1, t1), v1'),
+                      ((v2, t2), v2')) =>
+                  ctyp_cmp (renamet v1 v1' t1,
+                            renamet v2 v2' t2)) (vtlv1, vtlv2)
+               end
+           | (EQUAL, c) => c
+           | (c, _) => c)
+      | (Mu _, _) => LESS
+      | (_, Mu _) => GREATER
+
+      | (At (t1, w1), At (t2, w2)) =>
+             ctyp_cmp (t1, t2) >> (fn () => world_cmp (w1, w2))
+      | (At _, _) => LESS
+      | (_, At _) => GREATER
+
+      | (TVar v1, TVar v2) => V.compare (v1, v2)
+      | (TVar _, _) => LESS
+      | (_, TVar _) => GREATER
+
+      | (Cont l1, Cont l2) => Util.lex_list_order ctyp_cmp (l1, l2)
+      | (Cont _, _) => LESS
+      | (_, Cont _) => GREATER
+
+      | (Addr w1, Addr w2) => world_cmp (w1, w2)
+      | (Addr _, _) => LESS
+      | (_, Addr _) => GREATER
+
+      | (Shamrock t1, Shamrock t2) => ctyp_cmp (t1, t2)
+      | (Shamrock _, _) => LESS
+      | (_, Shamrock _) => GREATER
+
+      | (Conts ll1, Conts ll2) => 
+             Util.lex_list_order (Util.lex_list_order ctyp_cmp) (ll1, ll2)
+      | (Conts _, _) => LESS
+      | (_, Conts _) => GREATER
+
+      | (Product stl1, Product stl2) =>
+         let
+           (* PERF could guarantee this as a rep inv *)
+           val stl1 = ListUtil.sort (ListUtil.byfirst String.compare) stl1
+           val stl2 = ListUtil.sort (ListUtil.byfirst String.compare) stl2
+         in
+           Util.lex_list_order
+           (fn ((s1, t1),
+                (s2, t2)) =>
+            String.compare (s1, s2) >>
+            (fn () => ctyp_cmp (t1, t2)))
+           (stl1, stl2)
+         end
+      | (Product _, _) => LESS
+      | (_, Product _) => GREATER
+
+      | (Sum stl1, Sum stl2) =>
+         let
+           (* PERF could guarantee this as a rep inv *)
+           val stl1 = ListUtil.sort (ListUtil.byfirst String.compare) stl1
+           val stl2 = ListUtil.sort (ListUtil.byfirst String.compare) stl2
+         in
+           Util.lex_list_order
+           (fn ((s1, at1),
+                (s2, at2)) =>
+            String.compare (s1, s2) >>
+            (fn () => arminfo_cmp ctyp_cmp (at1, at2)))
+           (stl1, stl2)
+         end
+      | (Sum _, _) => LESS
+      | (_, Sum _) => GREATER
+
+      | (Primcon (pc1, l1), Primcon (pc2, l2)) =>
+         pc_cmp (pc1, pc2) >>
+         (fn () => Util.lex_list_order ctyp_cmp (l1, l2))
+(*
+      | (Primcon _, _) => LESS
+      | (_, Primcon _) => GREATER
+*)
+
+          )
+
+  fun ctyp_eq (t1, t2) = ctyp_cmp (t1, t2) = EQUAL
+                             
 
   (* injections / ctyp *)
 

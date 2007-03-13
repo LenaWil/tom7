@@ -159,10 +159,9 @@ struct
 
   end
 
-    
-  fun convert exp = 
+(*
+  fun fvtest () = 
     let 
-      val v = V.namedvar "x"
       val f = V.namedvar "free"
       val (u, s) = freevarsv (Lam' (V.namedvar "f", [v], Call'(Var' f, [Var' v])))
     in
@@ -170,7 +169,51 @@ struct
       VS.app (fn v => print (V.tostring v ^ "\n")) u;
       print "free vars:\n";
       VS.app (fn v => print (V.tostring v ^ "\n")) s;
-
-      raise Closure "unimplemented"
     end
+*)
+
+  fun ct typ =
+    (case ctyp typ of
+       Cont tl => raise Closure "unimplemented"
+    | Conts tll => raise Closure "unimplemented"
+    (* don't cc these; they are purely static *)
+    | AllArrow { worlds, tys, vals = nil, body } => AllArrow' { worlds=worlds, tys=tys, vals=nil,
+                                                                body = ct body }
+    | AllArrow { worlds, tys, vals, body } => raise Closure "unimplemented"
+    | TExists _ => raise Closure "wasn't expecting to see Exists before cc"
+         
+    (* cc doesn't touch any other types... *)
+    | _ => pointwiset ct typ)
+
+  (* we need to look at the intro and elim forms for
+                intro        elim
+     cont       (lams/fsel)  call
+     conts      lams         fsel
+     allarrow   alllam      allapp
+     *)
+     
+
+  fun ce exp = 
+    (case cexp exp of
+       Call (f, args) => raise Closure "unimplemented"
+         
+     | _ => pointwisee ct cv ce exp)
+
+  and cv value =
+    (case cval value of
+       Lams vael => raise Closure "unimplemented:lams"
+     | Fsel (v, i) => raise Closure "unimplemented:fsel"
+
+     (* must have at least one value argument or it's purely static and
+        therefore not closure converted *)
+     | AllLam { worlds, tys, vals = vals as _ :: _, body } => raise Closure "unimplemented:alllam"
+
+     (* ditto on the elim *)
+     | AllApp { f, worlds, tys, vals = vals as _ :: _ } => raise Closure "unimplemented:allapp"
+
+     | _ => pointwisev ct cv ce value)
+
+
+  val convert = ce
+    
 end
