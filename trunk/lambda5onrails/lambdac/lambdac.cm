@@ -143,6 +143,9 @@ il/opt.sml
 cps-sig.sml
 cps.sml
 
+cps/typecheck-sig.sml
+cps/typecheck.sml
+
 cps/tocps-sig.sml
 cps/tocps.sml
 

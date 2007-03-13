@@ -9,7 +9,7 @@ sig
 
   type context
 
-  exception Absent of var
+  exception TypeCheck of string
 
   (* These are like the functions in CPS, but with added context information. *)
   val checkwiset : (context -> ctyp -> ctyp) -> context -> ctyp -> ctyp
@@ -20,14 +20,16 @@ sig
                    (context -> cval -> cval) -> 
                    (context -> cexp -> cexp) -> context -> cval -> cval
 
-  (* all type variables have kind 0 *)
-  val bindtype  : context -> var -> context
+  val empty : context
+
+  (* all type variables have kind 0, but some are mobile *)
+  val bindtype  : context -> var -> bool -> context
   val bindworld : context -> var -> context
   val bindvar   : context -> var -> ctyp -> world -> context
   val binduvar  : context -> var -> ctyp -> context
 
-  (* or Absent if not bound. *)
-  val gettype  : context -> var -> unit
+  (* or TypeCheck if not bound. *)
+  val gettype  : context -> var -> bool
   val getworld : context -> var -> unit
   val getvar   : context -> var -> ctyp * world
   val getuvar  : context -> var -> ctyp
