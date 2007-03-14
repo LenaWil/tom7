@@ -57,3 +57,11 @@ val ('a, 'b) g = vlam da. vlam db. (bundle<'a, 'b> _ da _ db).1
 
 where _ is value application.
 
+
+
+14 Mar 2007
+
+ Note: there is something akin to polymorphic recursion, "valid
+ recursion" or whatever where the recursive variable is bound with
+ valid type, allowing it to be used at different worlds. We won't
+ support this, but it makes sense in principle.

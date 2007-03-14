@@ -10,26 +10,34 @@ struct
   datatype context = C of { tvars : bool V.Map.map,
                             worlds : V.Set.set,
                             vars : (ctyp * world) V.Map.map,
-                            uvars : ctyp V.Map.map }
+                            uvars : ctyp V.Map.map,
+                            current : world }
 
-  val empty = C { tvars = V.Map.empty,
-                  worlds = V.Set.empty,
-                  vars = V.Map.empty,
-                  uvars = V.Map.empty }
+  fun empty w = C { tvars = V.Map.empty,
+                    worlds = V.Set.empty,
+                    vars = V.Map.empty,
+                    uvars = V.Map.empty,
+                    current = w }
 
   exception TypeCheck of string
 
-  fun bindtype (C {tvars, worlds, vars, uvars}) v mob =
-    C { tvars = V.Map.insert(tvars, v, mob), 
+  fun bindtype (C {tvars, worlds, vars, uvars, current}) v mob =
+    C { tvars = V.Map.insert(tvars, v, mob), current = current,
         worlds = worlds, vars = vars, uvars = uvars }
-  fun bindworld (C {tvars, worlds, vars, uvars}) v =
-    C { tvars = tvars, worlds = V.Set.add(worlds, v), vars = vars, uvars = uvars }
-  fun bindvar (C {tvars, worlds, vars, uvars}) v t w =
+  fun bindworld (C {tvars, worlds, vars, uvars, current}) v =
+    C { tvars = tvars, worlds = V.Set.add(worlds, v), vars = vars, 
+        current = current,
+        uvars = uvars }
+  fun bindvar (C {tvars, worlds, vars, uvars, current}) v t w =
         C { tvars = tvars, worlds = worlds, vars = V.Map.insert (vars, v, (t, w)), 
-            uvars = uvars }
-  fun binduvar (C {tvars, worlds, vars, uvars}) v t =
-        C { tvars = tvars, worlds = worlds, vars = vars,
+            uvars = uvars, current = current }
+  fun binduvar (C {tvars, worlds, vars, uvars, current}) v t =
+        C { tvars = tvars, worlds = worlds, vars = vars, current = current,
             uvars = V.Map.insert (uvars, v, t) }
+
+  fun worldfrom ( C { current, ... } ) = current
+  fun setworld ( C { current, tvars, worlds, vars, uvars } ) w =
+    C { current = w, tvars = tvars, worlds = worlds, vars = vars, uvars = uvars }
 
   fun gettype (C { tvars, ... }) v = 
     (case V.Map.find (tvars, v) of
@@ -51,50 +59,51 @@ struct
   (* assuming not mobile *)
   val bindtypes  = foldl (fn (v, c) => bindtype c v false)
 
+  fun tmobile G typ = false (* FIXME *)
+
   (* here we go... *)
-  fun checkwiset f G typ =
+  fun tok G typ =
     case ctyp typ of
-      At (c, W w) => (getworld G w; At' (f G c, W w))
-    | Cont l => Cont' ` map (f G) l
+      At (c, W w) => (getworld G w; tok G c)
+    | Cont l => app (tok G) l
     | AllArrow {worlds, tys, vals, body} => 
-        let val G = bindworlds G worlds
-            val G = bindtypes G tys
-        in AllArrow' { worlds = worlds, tys = tys, vals = map (f G) vals, body = f G body }
+        let 
+          val G = bindworlds G worlds
+          val G = bindtypes G tys
+        in 
+          app (tok G) vals; 
+          tok G body 
         end
-    | WExists (v, t) => WExists' (v, f (bindworld G v) t)
+    | WExists (v, t) => tok (bindworld G v) t
     | TExists (v, t) => 
         let val G = bindtype G v false
-        in TExists' (v, map (f G) t)
+        in app (tok G) t
         end
-      (* XXX check no dupes *)
-    | Product stl => Product' ` ListUtil.mapsecond (f G) stl
-    | TVar v => (ignore ` gettype G v; typ)
-    | Addr (W w) => (getworld G w; typ)
+    (* XXX check no dupes *)
+    | Product stl => ListUtil.appsecond (tok G) stl
+    | TVar v => ignore ` gettype G v
+    | Addr (W w) => getworld G w
     | Mu (i, vtl) => 
         let val n = length vtl
+          (* val selfmobile = tmobile G typ *)
         in
           if i < 0 orelse i >= n then raise TypeCheck "mu index out of range"
           else ();
 
-          (* nb. here we assume it is not mobile, which for
-             the purposes of checking the remainder of the type, should
-             not matter. we could also check that the mu is mobile assuming
-             the bound vars are mobile, in which case we could safely
-             (but pointlessly) assume that it mobile in the context
-             
-             XXX, actually, I guess a client could use this and then
-             ask if a type is mobile later... should FIXME to do as above
-             (though we don't use that now)
-             *)
-          Mu' (i, map (fn (v, t) => (v, f (bindtype G v false) t)) vtl)
+          (* nb. for purposes of typechecking, we never care about
+             the mobility of a type var; so don't bother doing the
+             check here. *)
+            app (fn (v, t) => tok (bindtype G v false) t) vtl
         end
 
-    | Conts tll => Conts' ` map (map ` f G) tll
-(*
-    | Sum sail => Sum' ` ListUtil.mapsecond (IL.arminfo_map f) sail
-    | Primcon (pc, l) => Primcon' (pc, map f l)
-    | Shamrock t => Shamrock' ` f t
-*)
+    | Conts tll => app (app ` tok G) tll
+    | Shamrock t => tok G t
+    | Primcon (VEC, [t]) => tok G t
+    | Primcon (REF, [t]) => tok G t
+    | Primcon (DICT, [t]) => tok G t
+    | Primcon _ => raise TypeCheck "bad primcon"
+    | Sum sail => ListUtil.appsecond (ignore o (IL.arminfo_map ` tok G)) sail
+
 
   (* hmm, how to get type information if not through annotations?
      and how to get type of an expression if returned by f (re type-check?) *)

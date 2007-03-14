@@ -67,7 +67,7 @@ struct
        | Primcon(DICT, _) => raise CPSDict "BUG: shouldn't see dicts before introducing dicts!"
        | _ => pointwiset trt typ)
 
-    (* unlike DICT_SUFFIX, this is basically arbitrary *)
+    (* unlike DICT_SUFFIX, this is arbitrary *)
     fun mkdictvar v = Variable.namedvar (Variable.tostring v ^ "_d")
 
     fun tre exp =

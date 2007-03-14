@@ -42,23 +42,26 @@ struct
            (* special case .0 on single function *)
            Fsel (v, i) =>
              (case (cval v, i) of
-                  (Lams [(v, vl, e)], 0) => %[%[$"lam",
-                                              $ ` V.tostring v,
-                                              L.listex "(" ")" "," `
-                                              map ($ o V.tostring) vl,
-                                              $"="],
-                                              L.indent 2 ` etol e]
+                  (Lams [(v, vtl, e)], 0) => %[%[$"lam",
+                                                      $ ` V.tostring v,
+                                                      L.listex "(" ")" "," `
+                                                      map (fn (v, t) => 
+                                                           %[$(V.tostring v), $":",
+                                                             ttol t]) vtl,
+                                                      $"="],
+                                                    L.indent 2 ` etol e]
                 | _ => %[vtol v, $("." ^ itos i)])
                                             
          | Lams ll => 
            %[$"lams", 
              L.align
              (ListUtil.mapi 
-              (fn ((v, vl, e), i) =>
+              (fn ((v, vtl, e), i) =>
                    %[$("#" ^ Int.toString i ^ " is"),
                      %[$(V.tostring v),
                        L.listex "(" ")" "," 
-                       ` map ($ o V.tostring) vl,
+                       ` map (fn (v, t) =>
+                              %[$(V.tostring v), $":", ttol t]) vtl,
                        $"="],
                      L.indent 2 ` etol e]) ll)]
 
