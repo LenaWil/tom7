@@ -44,7 +44,7 @@ struct
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
-    | TUnpack of var * var list * 'cval * 'cexp
+    | TUnpack of var * (var * ctyp) list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
@@ -148,8 +148,10 @@ struct
                     then e
                     else eself e)
        | TUnpack (vv1, vvl, va, e) =>
-           TUnpack (vv1, vvl, vself va,
-                    if V.eq(vv1, v) orelse List.exists (fn vv => V.eq (vv, v)) vvl
+           TUnpack (vv1, 
+                    if V.eq(vv1, v) then vvl else ListUtil.mapsecond tself vvl, 
+                    vself va,
+                    if V.eq(vv1, v) orelse List.exists (fn (vv, _) => V.eq (vv, v)) vvl
                     then e
                     else eself e)
        | Case (va, vv, sel, e) =>
@@ -312,9 +314,12 @@ struct
                                              val v2' = V.alphavary v2
                                          in WUnpack(v1', v2', va, renamee v2 v2' ` renamee v1 v1' e)
                                          end
-    | cexp (E(TUnpack(v1, v2l, va, e))) = let val v1' = V.alphavary v1
+    | cexp (E(TUnpack(v1, vtl, va, e))) = let val v1' = V.alphavary v1
+                                              val (v2l, t2l) = ListPair.unzip vtl
+                                              val t2l = map (renamet v1 v1') t2l
                                               val v2l' = ListUtil.mapto V.alphavary v2l
-                                         in TUnpack(v1', map #2 v2l', va, 
+                                         in TUnpack(v1', ListPair.zip(map #2 v2l', t2l), 
+                                                    va, 
                                                     renameeall (renamee v1 v1' e) v2l')
                                          end
     | cexp (E(Case(va, v, sel, def))) = let val v' = V.alphavary v
@@ -388,9 +393,12 @@ struct
     | pc_cmp (REF, _) = LESS
     | pc_cmp (_, REF) = GREATER
     | pc_cmp (DICT, DICT) = EQUAL
-(*
     | pc_cmp (DICT, _) = LESS
-    | pc_cmp (_, DICT) = GREATER *)
+    | pc_cmp (_, DICT) = GREATER
+    | pc_cmp (INT, INT) = EQUAL
+    | pc_cmp (INT, _) = LESS
+    | pc_cmp (_, INT) = GREATER
+    | pc_cmp (STRING, STRING) = EQUAL
 
   fun arminfo_cmp ac (NonCarrier, NonCarrier) = EQUAL
     | arminfo_cmp ac (NonCarrier, _) = LESS
