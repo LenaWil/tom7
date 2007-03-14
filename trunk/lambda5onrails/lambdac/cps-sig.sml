@@ -91,6 +91,20 @@ sig
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
 
 
+  (* subXY = substitute X/v in Y producing Y; not all combinations make sense *)
+  val subww : world -> var -> world -> world
+  val subwt : world -> var -> ctyp -> ctyp
+  val subwv : world -> var -> cval -> cval
+  val subwe : world -> var -> cexp -> cexp
+
+  val subtt : ctyp -> var -> ctyp -> ctyp
+  val subtv : ctyp -> var -> cval -> cval
+  val subte : ctyp -> var -> cexp -> cexp
+
+  val subvv : cval -> var -> cval -> cval
+  val subve : cval -> var -> cexp -> cexp
+
+
   val ctyp_cmp : ctyp * ctyp -> order
   val ctyp_eq  : ctyp * ctyp -> bool
 

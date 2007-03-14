@@ -362,22 +362,30 @@ struct
              | _ => raise ToCPS "fsel of non-conts"
            end
 
+       (* mono case *)
+       | I.Polyvar { tys=nil, worlds = nil, var } => 
+           let
+             val (tt, ww) = getvar G var
+           in
+             (Var' var, tt, ww)
+           end
+
        | I.Polyvar { tys, worlds, var } =>
            let
              val (tt, ww) = getvar G var
-             fun ts nil va tt = (va, t, ww)
-               | ts (t :: rest) va tt =
-               case ctyp tt of
-                 
-               
-             fun ws nil va tt = ts tys va tt
-               | ws (w :: rest) va tt =
            in
-             ws worlds (Var' va)
-
-             
-
-             foldr (swap TApp') (foldr (swap WApp') (Var' var) (map (cvtw G) worlds)) (map (cvtt G) tys)
+             (case ctyp tt of
+                AllArrow { worlds = ws, tys = ts, vals = nil, body } =>
+                  if length ws = length worlds andalso length ts = length tys
+                  then (AllApp' { f = Var' var,
+                                  worlds = map (cvtw G) worlds,
+                                  tys = map (cvtt G) tys,
+                                  vals = nil }, 
+                        (* XXX subst *)
+                        body,
+                        ww)
+                  else raise ToCPS "polyvar worlds/ts mismatch"
+              | _ => raise ToCPS "polyvar is not allarrow type")
            end
 
 (*
