@@ -57,7 +57,7 @@ sig
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
     (* type var, contents vars *)
-    | TUnpack of var * var list * 'cval * 'cexp
+    | TUnpack of var * (var * ctyp) list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
@@ -145,7 +145,7 @@ sig
   val Letsham' : var * cval * cexp -> cexp
   val Leta' : var * cval * cexp -> cexp
   val WUnpack' : var * var * cval * cexp -> cexp
-  val TUnpack' : var * var list * cval * cexp -> cexp
+  val TUnpack' : var * (var * ctyp) list * cval * cexp -> cexp
   val Case' : cval * var * (string * cexp) list * cexp -> cexp
   val ExternVal' : var * string * ctyp * world option * cexp -> cexp
   val ExternWorld' : var * string * cexp -> cexp

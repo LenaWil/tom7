@@ -51,9 +51,11 @@ struct
       | I.TVec t => Primcon'(VEC, [cvtt G t])
       | I.TRec ltl => Product' ` ListUtil.mapsecond (cvtt G) ltl
       | I.Mu (i, vtl) => Mu' (i, ListUtil.mapsecond (cvtt G) vtl)
+      | I.Arrow (_, dom, cod) => 
+          Cont' (map (cvtt G) dom @ [Cont' [cvtt G cod]])
       | _ => 
           let in
-            print "ToCPSt unimplemented:";
+            print "\nToCPSt unimplemented:";
             Layout.print (ILPrint.ttol t, print);
             raise ToCPS "unimplemented cvtt"
           end
@@ -69,6 +71,19 @@ struct
     (* idiomatically, $G ` exp
        returns exp along with the current world in G *)
     fun $G thing = (thing, worldfrom G)
+
+    fun unroll (m, tl) =
+      (let val (_, t) = List.nth (tl, m)
+           val (thet, _) =
+               List.foldl (fn((v,t),(thet,idx)) =>
+                           (subtt (Mu' (idx, tl)) v thet,
+                            idx + 1))
+                          (t, 0)
+                          tl
+       in
+         thet
+       end handle _ => raise ToCPS "internal error: malformed mu")
+
 
     (* cps convert the IL expression e and pass the
        resulting value to the continuation k to produce
@@ -93,14 +108,26 @@ struct
                                                    end)
                                           | _ => raise ToCPS "project from non-product"
                                        end)
-(*
-       | I.Unroll e => cvte G e (fn (G, v) =>
+
+       | I.Unroll e => cvte G e (fn (G, v, rt, w) =>
                                  (* for this kind of thing, we could just pass along
                                     Unroll' v to k, but that could result in code
                                     explosion. Safer to just bind it... *)
                                  let val vv = nv "ur"
-                                 in Primop' ([vv], BIND, [Unroll' v], k (G, Var' vv))
+                                 in 
+                                   case ctyp rt of
+                                     Mu(i, vtl) =>
+                                       (* ... *)
+                                       let val t = unroll (i, vtl)
+                                       in
+                                         Primop' ([vv], BIND, [Unroll' v], 
+                                                  k (bindvar G vv t w, Var' vv,
+                                                     HERE
+                                                     ))
+                                       end
+                                   | _ => raise ToCPS "unroll non-mu"
                                  end)
+(*
        | I.Roll (t, e) => cvte G e (fn (G, v) =>
                                     let val vv = nv "r"
                                     in Primop' ([vv], BIND, [Roll'(cvtt G t, v)], 
@@ -197,7 +224,7 @@ struct
 *)
        | _ => 
          let in
-           print "ToCPSe unimplemented:";
+           print "\nToCPSe unimplemented:";
            Layout.print (ILPrint.etol e, print);
            raise ToCPS "unimplemented"
          end)
@@ -214,13 +241,13 @@ struct
       (case d of
          (* XXX check that world matches? *)
          I.Do e => cvte G e (fn (G, _, _, _) => k G)
-(*
-       | I.ExternType (0, lab, v) => ExternType' (v, lab, NONE, k G)
-       | I.ExternWorld (lab, v) => ExternWorld' (v, lab, k G)
 
-       (* XXX need to figure out how we convert
-          e.g. js.alert : string -> unit.
-          we aren't going to cps convert it!
+       | I.ExternType (0, lab, v) => ExternType' (v, lab, NONE, k (bindtype G v false))
+       | I.ExternWorld (lab, v) => ExternWorld' (v, lab, k (bindworld G v))
+
+       (* need to treat specially external calls like
+              js.alert : string -> unit
+          we aren't going to cps convert them!
 
           Later on when we see it in application position,
           we need to know to generate a primcall, not a CPS call.
@@ -249,7 +276,7 @@ struct
            case ILUtil.unevar t of
              (* don't care if it's total *)
              I.Arrow(_, args, cod) =>
-               let val dom = map (cvtt G) args
+(*               let val dom = map (cvtt G) args
                    val cod = cvtt G cod
                    val av = map (fn _ => nv "pcarg") args
                    val r = nv (l ^ "_res")
@@ -264,37 +291,53 @@ struct
                  Primop'([v], BIND, [foldr WLam' (foldr TLam' lam tys) worlds],
                          k G)
                end
+*) raise ToCPS "\nunimplemented:ev/arrow"
            | b =>
-               let val t = cvtt G t
+               let 
+                 val t = 
+                   case (worlds, tys) of
+                     (* XXX should probably bind world and type vars here,
+                        but cvtt doesn't currently need 'em *)
+                     (nil, nil) => cvtt G t
+                   | _ => AllArrow' { worlds = worlds, tys = tys, 
+                                      vals = nil, body = cvtt G t }
                in
                  if base b 
-                 then ExternVal'(v, l, foldr WAll' (foldr TAll' t tys) worlds,
-                                Option.map (cvtw G) wo, k G)
+                 then 
+                   case Option.map (cvtw G) wo of
+                     NONE => ExternVal'(v, l, t, NONE, k (binduvar G v t))
+                   | SOME ww => ExternVal'(v, l, t, SOME ww, k (bindvar G v t ww))
                  else raise ToCPS ("unresolvable extern val because it is not of base type: " ^ l)
                end
          end
-*)
+
        | I.Val (I.Poly ({worlds = nil, tys = nil}, (v, t, e))) =>
          (* no poly -- just a val binding *)
          let val _ = cvtt G t
          in
            cvte G e
-           (fn (G, va, t, w) =>
-            let val G = bindvar G v t w
-
-            in
-              Primop' ([v], BIND, [va], k G)
-            end)
+           (fn (G, va, t, w) => Primop' ([v], BIND, [va], k (bindvar G v t w)))
          end
-(*
+
        | I.Val (I.Poly ({worlds, tys}, (v, t, I.Value va))) =>
          (* poly -- must be a value then *)
-         Primop' ([v], BIND,
-                  [foldr WLam' (foldr TLam' (cvtv G va) tys) worlds], k G)
-*)
+         let
+           val _ = cvtt G t
+           (* XXX should bind worlds, tys *)
+           val (va, tt, ww) = cvtv G va
+           val tt =
+             AllArrow' { worlds = worlds, tys = tys, 
+                         vals = nil, body = tt }
+           val G = bindvar G v tt ww
+         in
+           Primop' ([v], BIND,
+                    [AllLam' { worlds = worlds, tys = tys, vals = nil,
+                               body = va }], k G)
+         end
+
        | _ => 
          let in
-           print "ToCPSd unimplemented:\n";
+           print "\nToCPSd unimplemented:\n";
            Layout.print (ILPrint.dtol d, print);
            raise ToCPS "unimplemented dec in tocps"
          end)
@@ -400,16 +443,63 @@ struct
               | _ => raise ToCPS "polyvar is not allarrow type")
            end
 
-(*
-       | I.VRoll (t, v) => Roll' (cvtt G t, cvtv G v)
-       | I.Polyuvar { tys, worlds, var } => 
-         foldr (swap TApp') (foldr (swap WApp') (UVar' var) (map (cvtw G) worlds)) (map (cvtt G) tys)
-       | I.VInject (t, l, vo) => Inj' (l, cvtt G t, Option.map (cvtv G) vo)
-*)
+       (* mono case *)
+       | I.Polyuvar { tys=nil, worlds = nil, var } => 
+             (UVar' var, getuvar G var, worldfrom G)
+
+       | I.Polyuvar { tys, worlds, var } =>
+           let
+             val tt = getuvar G var
+           in
+             (* repeats above; should be abstracted perhaps *)
+             case ctyp tt of
+                AllArrow { worlds = ws, tys = ts, vals = nil, body } =>
+                  if length ws = length worlds andalso length ts = length tys
+                  then 
+                    let val tys = map (cvtt G) tys
+                        val worlds = map (cvtw G) worlds
+                        (* apply types *)
+                        val body1 = 
+                          foldr (fn ((tv, t), ty) => subtt t tv ty)
+                          body ` ListPair.zip (ts, tys)
+                        (* apply worlds *)
+                        val body2 =
+                          foldr (fn ((wv, w), ty) => subwt w wv ty)
+                          body1 ` ListPair.zip (ws, worlds)
+                    in
+                        (AllApp' { f = Var' var,
+                                   worlds = worlds,
+                                   tys = tys,
+                                   vals = nil }, 
+                         body2,
+                         worldfrom G)
+                    end
+                  else raise ToCPS "polyuvar worlds/ts mismatch"
+              | _ => raise ToCPS "polyuvar is not allarrow type"
+           end
+
+       | I.VRoll (t, v) => 
+           let 
+             (* not checking *)
+             val (va, tt, ww) = cvtv G v
+           in
+             (Roll' (cvtt G t, va), cvtt G t, ww)
+           end
+
+       | I.VInject (t, l, vo) => 
+           let val t = cvtt G t
+           in 
+             (Inj' (l, t, 
+                    (case Option.map (cvtv G) vo of
+                       NONE => NONE
+                     | SOME (va, _, _) => SOME va)),
+              t,
+              worldfrom G)
+           end
 
        | _ => 
          let in
-           print "ToCPSv unimplemented:\n";
+           print "\nToCPSv unimplemented:\n";
            Layout.print (ILPrint.vtol v, print);
            raise ToCPS "unimplemented"
          end)
