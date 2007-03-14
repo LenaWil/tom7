@@ -377,13 +377,25 @@ struct
              (case ctyp tt of
                 AllArrow { worlds = ws, tys = ts, vals = nil, body } =>
                   if length ws = length worlds andalso length ts = length tys
-                  then (AllApp' { f = Var' var,
-                                  worlds = map (cvtw G) worlds,
-                                  tys = map (cvtt G) tys,
-                                  vals = nil }, 
-                        (* XXX subst *)
-                        body,
-                        ww)
+                  then 
+                    let val tys = map (cvtt G) tys
+                        val worlds = map (cvtw G) worlds
+                        (* apply types *)
+                        val body1 = 
+                          foldr (fn ((tv, t), ty) => subtt t tv ty)
+                          body ` ListPair.zip (ts, tys)
+                        (* apply worlds *)
+                        val body2 =
+                          foldr (fn ((wv, w), ty) => subwt w wv ty)
+                          body1 ` ListPair.zip (ws, worlds)
+                    in
+                        (AllApp' { f = Var' var,
+                                   worlds = worlds,
+                                   tys = tys,
+                                   vals = nil }, 
+                         body2,
+                         ww)
+                    end
                   else raise ToCPS "polyvar worlds/ts mismatch"
               | _ => raise ToCPS "polyvar is not allarrow type")
            end
