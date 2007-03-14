@@ -330,13 +330,14 @@ struct
                  val a = ListPair.zip (arg @ [ vk ],
                                        dom @ [ Cont' [cod] ])
 
+                 val G = foldr (fn ((v, t), G) => bindvar G v t (worldfrom G)) G a
+
                in
                  if length dom <> length arg then raise ToCPS "dom/arg mismatch"
                  else ();
                    
                  (
                    ( name, 
-                    (* FIXME args bind *)
                      a, cvte G body (fn (G, va, _, _) => 
                                      Call'(Var' vk, [va])) ),
                    
@@ -352,11 +353,35 @@ struct
               Conts' conts,
               worldfrom G)
            end
-(*
-       | I.FSel (i, v) => Fsel' (cvtv G v, i)
-       | I.VRoll (t, v) => Roll' (cvtt G t, cvtv G v)
+
+       | I.FSel (i, v) => 
+           let val (va, t, w) = cvtv G v
+           in
+             case ctyp t of
+               Conts all => (Fsel' (va, i), Cont' ` List.nth (all, i), w)
+             | _ => raise ToCPS "fsel of non-conts"
+           end
+
        | I.Polyvar { tys, worlds, var } =>
-         foldr (swap TApp') (foldr (swap WApp') (Var' var) (map (cvtw G) worlds)) (map (cvtt G) tys)
+           let
+             val (tt, ww) = getvar G var
+             fun ts nil va tt = (va, t, ww)
+               | ts (t :: rest) va tt =
+               case ctyp tt of
+                 
+               
+             fun ws nil va tt = ts tys va tt
+               | ws (w :: rest) va tt =
+           in
+             ws worlds (Var' va)
+
+             
+
+             foldr (swap TApp') (foldr (swap WApp') (Var' var) (map (cvtw G) worlds)) (map (cvtt G) tys)
+           end
+
+(*
+       | I.VRoll (t, v) => Roll' (cvtt G t, cvtv G v)
        | I.Polyuvar { tys, worlds, var } => 
          foldr (swap TApp') (foldr (swap WApp') (UVar' var) (map (cvtw G) worlds)) (map (cvtt G) tys)
        | I.VInject (t, l, vo) => Inj' (l, cvtt G t, Option.map (cvtv G) vo)
