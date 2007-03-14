@@ -75,11 +75,35 @@ struct
   datatype cexp = E of (cexp, cval) cexpfront
   and      cval = V of (cexp, cval) cvalfront
 
-  fun renamee v v' (E exp) =
-    let val eself = renamee v v'
-        val vself = renamev v v'
-        val wself = renamew v v'
-        val tself = renamet v v'
+  datatype substitutend = 
+      SV of cval
+(*    | SE of cexp *) 
+    | ST of ctyp
+    | SW of world
+    | SU of var
+    (* occurrence-driven; if we ask for a value, we get Var v
+       if we ask for a type, we get TVar v. *)
+    | S_RENAME of var
+
+  fun se_getv (SV (V v)) = v 
+    | se_getv (S_RENAME v) = Var v
+    | se_getv _ = raise CPS "scope violated: wanted val"
+  fun se_getu (SU u) = u 
+    | se_getu (S_RENAME u) = u
+    | se_getu _ = raise CPS "scope violated: wanted uvar"
+  fun se_gett (ST (T t)) = t
+    | se_gett (S_RENAME v) = TVar v
+    | se_gett _ = raise CPS "scope violated: wanted type"
+  fun se_getw (SW w) = w 
+    | se_getw (S_RENAME v) = W v
+    | se_getw _ = raise CPS "scope violated: wanted world"
+
+  (* substitute se for v throughout the expression exp *)
+  fun subste v se (E exp) =
+    let val eself = subste v se
+        val vself = substv v se
+        val wself = substw v se
+        val tself = substt v se
     in
       E
       (case exp of
@@ -148,11 +172,11 @@ struct
            )
     end
 
-  and renamev v v' (V value) =
-    let val eself = renamee v v'
-        val vself = renamev v v'
-        val wself = renamew v v'
-        val tself = renamet v v'
+  and substv v se (V value) =
+    let val eself = subste v se
+        val vself = substv v se
+        val wself = substw v se
+        val tself = substt v se
         fun issrc vv = V.eq (v, vv)
     in
       V (case value of
@@ -172,8 +196,8 @@ struct
                                                        tys = map tself tys, vals = map vself vals }
          | WPack (w, va) => WPack (wself w, vself va)
          | TPack (t, va) => TPack (tself t, map vself va)
-         | Var vv => Var (if V.eq(v, vv) then v' else vv)
-         | UVar vv => UVar (if V.eq(v, vv) then v' else vv)
+         | Var vv => if V.eq(v, vv) then se_getv se else Var vv
+         | UVar vv => UVar (if V.eq(v, vv) then se_getu se else vv)
          | Unroll va => Unroll (vself va)
          | Roll (t, va) => Roll (tself t, vself va)
          | Dictfor t => Dictfor ` tself t
@@ -192,14 +216,14 @@ struct
     end
     
 
-  and renamew v v' (W vv) = if V.eq (v, vv) then W v' else W vv
+  and substw v se (W vv) = if V.eq (v, vv) then se_getw se else W vv
 
-  (* rename v to v' in a type, assuming that v' is totally fresh *)
-  and renamet v v' (T typ) =
+  (* substitute var v with type se in a type, observing scope *)
+  and substt v se (T typ) =
     let 
       fun issrc vv = V.eq (v, vv)
-      val self = renamet v v'
-      val wself = renamew v v'
+      val self = substt v se
+      val wself = substw v se
     in
       T
       (case typ of
@@ -230,9 +254,14 @@ struct
        | Primcon (pc, l) => Primcon (pc, map self l)
        | Conts ll => Conts ` map (map self) ll
        | Shamrock t => Shamrock ` self t
-       | TVar vv => TVar (if V.eq (v, vv) then v' else vv)
+       | TVar vv => if V.eq (v, vv) then se_gett se else TVar vv
                               )
     end
+
+  fun renamet v v' t = substt v (S_RENAME v') t
+  fun renamee v v' e = subste v (S_RENAME v') e
+  fun renamew v v' w = substw v (S_RENAME v') w
+  fun renamev v v' l = substv v (S_RENAME v') l
 
   val renameeall = foldl (fn ((v,v'), e) => renamee v v' e)
   val renametall = foldl (fn ((v,v'), e) => renamet v v' e)
@@ -646,5 +675,18 @@ struct
                 AllLam' { worlds = worlds, tys = tys, vals = vals, body = fv body }
     | AllApp { f : cval, worlds : world list, tys : ctyp list, vals : cval list } =>
                 AllApp' { f = fv f, worlds = worlds, tys = map ft tys, vals = map fv vals }
+
+
+  fun subww sw sv = substw sv (SW sw)
+  fun subwt sw sv = substt sv (SW sw)
+  fun subwv sw sv = substv sv (SW sw)
+  fun subwe sw sv = subste sv (SW sw)
+
+  fun subtt st sv = substt sv (ST st)
+  fun subtv st sv = substv sv (ST st)
+  fun subte st sv = subste sv (ST st)
+
+  fun subvv sl sv = substv sv (SV sl)
+  fun subve sl sv = subste sv (SV sl)
 
 end
