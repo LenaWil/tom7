@@ -20,6 +20,8 @@ sig
   | REF
     (* the type of dictionaries for this type *)
   | DICT
+  | INT
+  | STRING
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
@@ -64,7 +66,8 @@ sig
     | ExternType of var * string * (var * string) option * 'cexp
 
   and ('cexp, 'cval) cvalfront =
-      Lams of (var * var list * 'cexp) list
+           (*   fn    arg   argt         body *)
+      Lams of (var * (var * ctyp) list * 'cexp) list
     | Fsel of 'cval * int
     | Int of IL.intconst
     | String of string
@@ -134,7 +137,7 @@ sig
   val ExternWorld' : var * string * cexp -> cexp
   val ExternType' : var * string * (var * string) option * cexp -> cexp
 
-  val Lams' : (var * var list * cexp) list -> cval
+  val Lams' : (var * (var * ctyp) list * cexp) list -> cval
   val Fsel' : cval * int -> cval
   val Int' : IL.intconst -> cval
   val String' : string -> cval
@@ -155,10 +158,11 @@ sig
   (* derived forms *)
   val WAll' : var * ctyp -> ctyp
   val TAll' : var * ctyp -> ctyp
-  val Lam' : (var * var list * cexp) -> cval
+  val Lam' : (var * (var * ctyp) list * cexp) -> cval
   val WApp' : cval * world -> cval
   val TApp' : cval * ctyp -> cval
   val WLam' : var * cval -> cval
   val TLam' : var * cval -> cval
+  val Zerocon' : primcon -> ctyp
 
 end

@@ -21,13 +21,14 @@ struct
     open CPS
     structure I = IL
     structure V = Variable
+    open CPSTypeCheck
     val nv = V.namedvar
 
     infixr 9 `
     fun a ` b = a b
 
-    datatype env = Env of { world : CPS.world }
-      
+    type env = context
+
     fun cvtw (G : env) (w : IL.world) : CPS.world =
       (case w of
          I.WEvar (ref (I.Bound w)) => cvtw G w
@@ -59,18 +60,40 @@ struct
 
     fun swap f = (fn (x, y) => f(y, x))
 
+(*
+    fun worldfrom (Env { world, ... }) = world
+
+    and setworld (Env { world = _ }) world = Env { world = world }
+*)
+
+    (* idiomatically, $G ` exp
+       returns exp along with the current world in G *)
+    fun $G thing = (thing, worldfrom G)
+
     (* cps convert the IL expression e and pass the
        resulting value to the continuation k to produce
        the final expression.
        *)
-    fun cvte (G : env) (e : IL.exp) (k : env * cval -> CPS.cexp) : CPS.cexp =
+    fun cvte (G : env) (e : IL.exp) (k : env * cval * ctyp * world -> cexp) : cexp =
       (case e of
-         I.Seq (e1, e2) => cvte G e1 (fn (G, _) => cvte G e2 k)
+         I.Seq (e1, e2) => cvte G e1 (fn (G, _, _, _) => cvte G e2 k)
        | I.Let (d, e) => cvtd G d (fn G => cvte G e k)
-       | I.Proj (l, t, e) => cvte G e (fn (G, v) =>
+       | I.Proj (l, _, e) => cvte G e (fn (G, v, rt, w) =>
                                        let val vv = nv "proj"
-                                       in Proj' (vv, l, v, k (G, Var' vv))
+                                       in 
+                                         case ctyp rt of
+                                            Product ltl =>
+                                              (case ListUtil.Alist.find op= ltl l of
+                                                 NONE => raise ToCPS ("label " ^ l ^ 
+                                                                      " not in product!")
+                                               | SOME tt => 
+                                                   let val G = bindvar G vv tt w
+                                                   in
+                                                     Proj' (vv, l, v, k (G, Var' vv, tt, w))
+                                                   end)
+                                          | _ => raise ToCPS "project from non-product"
                                        end)
+(*
        | I.Unroll e => cvte G e (fn (G, v) =>
                                  (* for this kind of thing, we could just pass along
                                     Unroll' v to k, but that could result in code
@@ -171,7 +194,7 @@ struct
                                              k (setworld G srcw, UVar' pv))))
                                end)))
               end
-
+*)
        | _ => 
          let in
            print "ToCPSe unimplemented:";
@@ -179,19 +202,19 @@ struct
            raise ToCPS "unimplemented"
          end)
 
-    and worldfrom (Env { world, ... }) = world
-
-    and setworld (Env { world = _ }) world = Env { world = world }
-
-    and cvtel (G : env) (el : IL.exp list) (k : env * cval list -> CPS.cexp) : CPS.cexp =
+    and cvtel (G : env) (el : IL.exp list) 
+              (k : env * (cval * ctyp * world) list -> cexp) : cexp =
       (case el of 
          nil => k (G, nil)
-       | e :: rest => cvte G e (fn (G, v) => cvtel G rest (fn (G, vl) => k (G, v :: vl)))
+       | e :: rest => cvte G e (fn (G, v, t, w) => 
+                                cvtel G rest (fn (G, vl) => k (G, (v, t, w) :: vl)))
            )
 
-    and cvtd (G : env) (d : IL.dec) (k : env -> CPS.cexp) : CPS.cexp =
+    and cvtd (G : env) (d : IL.dec) (k : env -> cexp) : cexp =
       (case d of
-         I.Do e => cvte G e (fn (G, _) => k G)
+         (* XXX check that world matches? *)
+         I.Do e => cvte G e (fn (G, _, _, _) => k G)
+(*
        | I.ExternType (0, lab, v) => ExternType' (v, lab, NONE, k G)
        | I.ExternWorld (lab, v) => ExternWorld' (v, lab, k G)
 
@@ -250,18 +273,25 @@ struct
                  else raise ToCPS ("unresolvable extern val because it is not of base type: " ^ l)
                end
          end
-
+*)
        | I.Val (I.Poly ({worlds = nil, tys = nil}, (v, t, e))) =>
          (* no poly -- just a val binding *)
-         cvte G e
-         (fn (G, va) =>
-          Primop' ([v], BIND, [va], k G))
+         let val _ = cvtt G t
+         in
+           cvte G e
+           (fn (G, va, t, w) =>
+            let val G = bindvar G v t w
 
+            in
+              Primop' ([v], BIND, [va], k G)
+            end)
+         end
+(*
        | I.Val (I.Poly ({worlds, tys}, (v, t, I.Value va))) =>
          (* poly -- must be a value then *)
          Primop' ([v], BIND,
                   [foldr WLam' (foldr TLam' (cvtv G va) tys) worlds], k G)
-
+*)
        | _ => 
          let in
            print "ToCPSd unimplemented:\n";
@@ -269,10 +299,11 @@ struct
            raise ToCPS "unimplemented dec in tocps"
          end)
    
-    and cvtv (G : env) (v : IL.value) : CPS.cval = 
+    and cvtv (G : env) (v : IL.value) : cval * ctyp * world = 
       (case v of
-         I.Int i => Int' i
-       | I.String s => String' s
+         I.Int i => (Int' i, Zerocon' INT, worldfrom G)
+       | I.String s => (String' s, Zerocon' STRING, worldfrom G)
+
        | I.Fns (fl : { name : V.var,
                        arg  : V.var list,
                        dom  : I.typ list,
@@ -284,16 +315,44 @@ struct
            (* Each function now takes a new final parameter,
               the return continuation. *)
            let
-             fun onelam { name, arg, dom=_, cod=_, body, inline=_, recu=_, total=_ } =
+             val fl = map (fn { name, arg, dom, cod, body, inline, recu, total } =>
+                           { name = name, arg = arg, dom = map (cvtt G) dom,
+                             cod = cvtt G cod, body = body }) fl
+
+             (* all bodies get to see all recursive conts *)
+             val G = foldr (fn ({ name, dom, cod, ... }, G) =>
+                            bindvar G name (Cont' (dom @ [ Cont' [cod] ])) (worldfrom G)
+                            ) G fl
+
+             fun onelam { name, arg, dom, cod, body } =
                let
                  val vk = nv "ret"
+                 val a = ListPair.zip (arg @ [ vk ],
+                                       dom @ [ Cont' [cod] ])
+
                in
-                   ( name, arg @ [ vk ], cvte G body (fn (G, va) => 
-                                                      Call'(Var' vk, [va])) )
+                 if length dom <> length arg then raise ToCPS "dom/arg mismatch"
+                 else ();
+                   
+                 (
+                   ( name, 
+                    (* FIXME args bind *)
+                     a, cvte G body (fn (G, va, _, _) => 
+                                     Call'(Var' vk, [va])) ),
+                   
+                   dom @ [ Cont' [cod] ]
+
+                   )
+                   
                end
+
+             val (lams, conts) = ListPair.unzip ` map onelam fl
            in
-             Lams' (map onelam fl)
+             (Lams' lams,
+              Conts' conts,
+              worldfrom G)
            end
+(*
        | I.FSel (i, v) => Fsel' (cvtv G v, i)
        | I.VRoll (t, v) => Roll' (cvtt G t, cvtv G v)
        | I.Polyvar { tys, worlds, var } =>
@@ -301,6 +360,7 @@ struct
        | I.Polyuvar { tys, worlds, var } => 
          foldr (swap TApp') (foldr (swap WApp') (UVar' var) (map (cvtw G) worlds)) (map (cvtt G) tys)
        | I.VInject (t, l, vo) => Inj' (l, cvtt G t, Option.map (cvtv G) vo)
+*)
 
        | _ => 
          let in
@@ -314,7 +374,7 @@ struct
       | cvtds (d :: r) G = cvtd G d (cvtds r)
 
     fun convert (I.Unit(decs, _ (* exports *))) (I.WVar world) = 
-      cvtds decs (Env { world = W world })
+          cvtds decs ` empty ` W world
       | convert _ _ = raise ToCPS "unset evar at toplevel world"
 
     (* needed? *)

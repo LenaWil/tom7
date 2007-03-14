@@ -1,4 +1,3 @@
-
 structure CPS :> CPS =
 struct
   
@@ -12,7 +11,7 @@ struct
   datatype arminfo = datatype IL.arminfo
   datatype world = W of var
 
-  datatype primcon = VEC | REF | DICT
+  datatype primcon = VEC | REF | DICT | INT | STRING
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
@@ -53,7 +52,7 @@ struct
   (* nb. Binders must be implemented in outjection code below! *)
 
   and ('cexp, 'cval) cvalfront =
-      Lams of (var * var list * 'cexp) list
+      Lams of (var * (var * ctyp) list * 'cexp) list
     | Fsel of 'cval * int
     | Int of IntConst.intconst
     | String of string
@@ -181,12 +180,14 @@ struct
          | Sham va => Sham ` vself va
          | Fsel (va, i) => Fsel (vself va, i)
          | Inj (s, t, va) => Inj (s, tself t, Option.map vself va)
-         | Lams vvel => Lams ` map (fn (vv, vvl, ce) => (vv, vvl,
-                                                         if List.exists (fn vv => V.eq (vv, v)) vvl
-                                                            orelse
-                                                            List.exists (fn (vv, _, _) => V.eq (vv, v)) vvel
-                                                         then ce
-                                                         else eself ce)) vvel
+         | Lams vvel => Lams ` map (fn (vv, vvl, ce) => 
+                                    (vv, 
+                                     ListUtil.mapsecond tself vvl,
+                                     if List.exists (fn (vv, _) => V.eq (vv, v)) vvl
+                                        orelse
+                                        List.exists (fn (vv, _, _) => V.eq (vv, v)) vvel
+                                     then ce
+                                     else eself ce)) vvel
            )
     end
     
@@ -315,12 +316,16 @@ struct
 
   val renamevall = foldl (fn ((v,v'), e) => renamev v v' e)
 
-  fun cval (V (Lams vael)) = let val fs = map (fn (v, a, e) => (v, V.alphavary v, a, e)) vael
+  fun cval (V (Lams vael)) = let val fs = map (fn (v, a, e) => 
+                                               (v, V.alphavary v, a, e)) vael
                              in
-                               Lams (map (fn (v, v', a, e) =>
-                                          let val a' = ListUtil.mapto V.alphavary a
+                               Lams (map (fn (v, v', at, e) =>
+                                          let 
+                                            val (a, t) = ListPair.unzip at
+                                            val a' = ListUtil.mapto V.alphavary a
                                           in
-                                            (v', map #2 a', 
+                                            (v', 
+                                             ListPair.zip(map #2 a', t),
                                              foldl (fn ((v, v'), e) => renamee v v' e) e
                                              (* function names @ these args *)
                                              ((map (fn (v, v', _, _) => (v, v')) fs) @ a')
@@ -574,6 +579,7 @@ struct
   val UVar' = fn x => V (UVar x)
 
   fun Lam' (v, vl, e) = Fsel' (Lams' [(v, vl, e)], 0)
+  fun Zerocon' pc = Primcon' (pc, nil)
 
   (* utility code *)
 
@@ -619,7 +625,9 @@ struct
 
   fun pointwisev ft fv fe value =
     case cval value of
-      Lams vael => Lams' ` map (fn (v, vl, e) => (v, vl, fe e)) vael
+      Lams vael => Lams' ` map (fn (v, vtl, e) => (v,
+                                                   ListUtil.mapsecond ft vtl, 
+                                                   fe e)) vael
     | Fsel (v, i) => Fsel' (fv v, i) 
     | Int _ => value
     | String _ => value
