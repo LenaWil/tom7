@@ -120,8 +120,8 @@ struct
                                        (* ... *)
                                        let val t = unroll (i, vtl)
                                        in
-                                         Primop' ([vv], BIND, [Unroll' v], 
-                                                  k (bindvar G vv t w, Var' vv, t, w))
+                                         Bind' (vv, Unroll' v, 
+                                                k (bindvar G vv t w, Var' vv, t, w))
                                        end
                                    | _ => raise ToCPS "unroll non-mu"
                                  end)
@@ -130,15 +130,15 @@ struct
                                     let 
                                         val t = cvtt G t
                                         val vv = nv "r"
-                                    in Primop' ([vv], BIND, [Roll'(t, v)],
-                                                k (bindvar G vv t w, Var' vv, t, w))
+                                    in Bind' (vv, Roll'(t, v),
+                                              k (bindvar G vv t w, Var' vv, t, w))
                                     end)
 
        | I.Inject (t, l, NONE) => let val vv = nv "inj_null"
                                       val w  = worldfrom G
                                       val t  = cvtt G t
-                                  in Primop' ([vv], BIND, [Inj'(l, t, NONE)],
-                                              k (bindvar G vv t w, Var' vv, t, w))
+                                  in Bind' (vv, Inj'(l, t, NONE),
+                                            k (bindvar G vv t w, Var' vv, t, w))
                                   end
        | I.Inject (t, l, SOME e) =>
                                   cvte G e
@@ -146,7 +146,7 @@ struct
                                    let val vv = nv "inj"
                                        val t  = cvtt G t
                                    in
-                                     Primop' ([vv], BIND, [Inj'(l, t, SOME v)],
+                                       Bind' (vv, Inj'(l, t, SOME v),
                                               k (bindvar G vv t w, Var' vv, t, w))
                                    end)
        (* XX also bind? *)
@@ -361,7 +361,7 @@ struct
          let val _ = cvtt G t
          in
            cvte G e
-           (fn (G, va, t, w) => Primop' ([v], BIND, [va], k (bindvar G v t w)))
+           (fn (G, va, t, w) => Bind' (v, va, k (bindvar G v t w)))
          end
 
        | I.Val (I.Poly ({worlds, tys}, (v, t, I.Value va))) =>
@@ -375,9 +375,9 @@ struct
                          vals = nil, body = tt }
            val G = bindvar G v tt ww
          in
-           Primop' ([v], BIND,
-                    [AllLam' { worlds = worlds, tys = tys, vals = nil,
-                               body = va }], k G)
+           Bind' (v,
+                  AllLam' { worlds = worlds, tys = tys, vals = nil,
+                            body = va }, k G)
          end
 
        | _ => 
