@@ -31,16 +31,9 @@ struct
 
     | eval G (List l) =
     (case map (eval G) l of
-       (* XXX why?? *)
        (Prim LIST) :: rest => List rest
      | (Prim CONS) :: h :: (List t) :: nil => List (h :: t)
      | (Prim CONS) :: _ => raise Abort "cons/args"
-(*
-     | (Prim CAR) :: (List (h :: t)) :: nil => h
-     | (Prim CAR) :: _ => raise Abort "car/args"
-     | (Prim CDR) :: (List (h :: t)) :: nil => List t
-     | (Prim CDR) :: _ => raise Abort "cdr/args"
-*)
      | (m as (Prim XCASE) :: obj :: _) => 
          ((*print ("xcase @ " ^ tostring obj ^ "\n"); *)
           case m of

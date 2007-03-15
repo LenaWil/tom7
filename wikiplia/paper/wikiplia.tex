@@ -1,32 +1,233 @@
-\documentclass{article}
+\documentclass[twocolumn]{article}
+\usepackage{fullpage}
 \usepackage{amssymb}
 \usepackage{fancyvrb}
 \usepackage{url}
+\usepackage{proof}
 
 \begin{document}
+
+\newcommand\wcite[1]{\footnote{\tiny Wikipedia, the free encyclopedia: {\it #1}; 2007}}
+\newcommand\comment[1]{}
+\newcommand\z{\ensuremath{\!}}
+
+\newcommand\D\Delta
+\newcommand\G\Gamma
+\newcommand\m\mapsto
+\newcommand\eval{{\sf eval\,\,}}
+\newcommand\tag[2]{{\tt{\mbox{\tt <}}{#1}{\mbox{\tt>}}}{#2}{\tt{\mbox{\tt</}}{#1}{\mbox{\tt>}}}}
+\newcommand\prim{{\,\,\sf prim}}
+\newcommand\rate{{\sf rate\,\,}}
 
 \title{{\bf \huge Wikiplia}:\\
        The Free Programming Language\\
        That Anyone Can Edit}
 
 \author{Tom Murphy VII}
+\date{1 April 2007}
 
 \maketitle
 
 \begin{abstract}
-We present a new programming language called Wikiplia. We argue that
-this language is Free to a greater extent and in more dimensions than
-any existing language. 
-
+We present a new programming language called Wikiplia. The language
+has an unprecedented level of integration: The system is its own
+compiler, language definition, documentation, development environment,
+distributed filesystem, database, revision control system, software
+license, community message board, and World Wide Web home site.
+Wikiplia is designed to be Free to a greater extent and in more
+dimensions than existing languages.
 \end{abstract}
 
+\section{Introduction}
 
-\nocite{alice}
+One of the most cherished social principles of mankind is
+freedom,\z\wcite{Freedom} in its many incarnations. More recently,
+freedom has become an important principle in computer science as well,
+with the introduction of Free Software licenses such as the GNU
+GPL,\z\wcite{GNU General Public License} extensible markup languages
+such as XML,\z\wcite{XML} the ability expicitly deallocate memory
+with the {\tt free(3)} library call, and the widespread availibility of
+Free Herbal V1agara on the World Wide Web.\z\wcite{Sildenafil}
+
+The aim of this project is to develop a programming language that is
+as free as possible. We begin by enumerating freedoms that we desire
+to support. Because freedom is a possession of inestimable
+value\wcite{Cicero} we do not attempt to rank these freedoms; instead,
+each freedom is ``numbered'' using a symbol drawn from incomparable
+sets of glyphs.
+
+\paragraph{Freedom $\alpha$: The freedom to tinker.}
+Users should be able to study a program to see how it works, and to
+make modifications to suit his or her needs. For most software, this
+means that the programmer needs access to the software's
+documentation, source code, and UML\wcite{Unified Modeling Language}
+use case diagrams. This is traditionally achieved through licenses
+such as the GPL; however, as we will discuss in
+Section~\ref{sec:bootstrap} there are special considerations for
+bootstrapping compilers that render the GPL inadequate for this
+purpose.
+
+% freedom of speech?
+
+\paragraph{Freedom $\Game$: Freedom of beer.}
+Users should be able to write software without paying money to a
+licensing authority or certification program.
+
+\paragraph{Freedom $\surd$: Freedom of USA \#1.}
+Wikiplia is 100\% made in the USA and only available in
+English.\z\wcite{Freedom fries}
+
+% XXX more...
+
+\section{Reflections on booting boots} \label{sec:bootstrap}
+
+\section{Core calculus} \label{sec:calculus}
+
+\begin{figure}[ht]
+
+\comment{
+    List of exp list       <list> ... </list>
+  | String of string       <string>s</string>
+  | Int of IntInf.int      <int>i</int>
+  | Symbol of string       <symbol>s</symbol>
+  (* the only lazy expression *)
+  | Quote of exp           <quote>exp</quote>
+  (* user can't write these *)
+  | Prim of prim           <prim>p</prim>
+  | Closure of (string * exp) list * string * exp
+}
+\begin{center}
+\begin{tabular}{rcl}
+ {\em X} & ::= & {\tt<}{\em tag}{\tt >} $X_1\ X_2\ \ldots\ X_n$ {\tt</}{\em tag}{\tt >} \\
+         & $|$ & string
+\end{tabular}
+\end{center}
+\caption{Syntax of XML} \label{fig:xml}
+\end{figure}
+
+\begin{figure*}[ht]
+\[\begin{array}{cc}
+% basic, easy
+\infer{\G \vdash \eval \tag{string}{s} \m \tag{string}{s}}{} &
+\infer{\G \vdash \eval \tag{quote}{X} \m X}{} \\[1em]
+\infer{\G \vdash \eval \tag{int}{s} \m \tag{int}{s}}{} &
+\infer{\G \vdash \eval \tag{prim}{s} \m \tag{prim}{s}}{} \\[1em]
+\infer{\G \vdash \eval \tag{symbol}{s} \m \tag{prim}{s}}{s \prim} &
+\infer{\G \vdash \eval \tag{symbol}{s} \m X}{\G(s) = X} \\[1em]
+\multicolumn{2}{c}{\infer{\G \vdash \eval \tag{closure}{\G\ s\ X} \m \tag{closure}{\G\ s\ X}}{}} \\[1em]
+\multicolumn{2}{c}{\infer{\G \vdash \eval \tag{list}{X_1\ \ldots\ X_n} \m X'}%
+{\G\vdash \eval X_1 \m X_1' & \cdots & \G\vdash \eval X_n \m X_n' &
+ \G\vdash \rate X_1'\ \ldots\ X_n' \m X'
+}} \\[1em]
+% todo:
+% skip? abort, handle
+
+%
+\end{array}\]
+
+\caption{Evaluation of XML, part 1. The judgment $\G \vdash \eval X \m X'$
+indicates an assessment of the document $X$ with value $X'$. The
+judgment $\rate$ is an auxiliary assessment of a list of documents. It is defined in Figure~\ref{fig:xmlrate}.
+$\vec{X}$ is shorthand for a possibly empty sequence of XML documents.
+$\G$ is itself an XML document of the form
+% XXX is this right wrt <symbol>?
+$\tag{list}{\tag{symbol}{s_1}\ X_1\ \ldots\ \tag{symbol}{s_n}\ X_n}$.
+We take the judgment $\G(s) = X$ to produce the leftmost $X_i$ in $\G$
+such that $s_i$ is $s$. $\G, s = X$ is $\tag{list}{\tag{symbol}{s}\ X
+\vec{X}}$ if $\G$ is $\tag{list}{\vec{X}}$. 
+%
+} \label{fig:xmleval}
+\end{figure*}
+
+\begin{figure*}[htp]
+\[\begin{array}{cc}
+% evaluation of lists
+\multicolumn{2}{c}{\infer{\G \vdash \rate \tag{prim}{\sf list}\ \vec{X} \m \tag{list}{\vec{X}}}{}} \\[1em]
+\multicolumn{2}{c}{\infer{\G \vdash \rate \tag{prim}{\sf cons}\ X\ \tag{list}{\vec{X}} \m \tag{list}{X\ \vec{X}}}{}} \\[1em]
+\multicolumn{2}{c}{\infer{\G \vdash \rate \tag{prim}{\sf lambda}\ \tag{symbol}{s}\ X \m \tag{closure}{\G\ s\ X}}{}} \\[1em]
+\infer{\G \vdash \rate \tag{closure}{\G'\ s\ X}\ \vec{X} \m X'}{\G',s = \tag{list}{\vec{X}} \vdash \eval X \m X'} &
+\infer{\G \vdash \rate \tag{prim}{\sf eval}\ X \m X'}{\G \vdash \eval X \m X'} \\[1em]
+\multicolumn{2}{c}{\infer{\G \vdash \rate \tag{prim}{\sf xcase}\ \tag{list}{}\ X\ \vec{X} \m X'}{\G \vdash \eval X \m X'}} \\[1em]
+\multicolumn{2}{c}{\infer{
+\begin{array}{r@{}l}
+  \G \vdash \rate & \tag{prim}{\sf xcase}\ \tag{list}{X_h \vec{X_t}}\  X_0\ \\
+                  & \tag{list}{\tag{symbol}{s_h}\ \tag{symbol}{s_t}\ X_b}\ \vec{X} \m X' \\
+\end{array}
+}{\G, s_h = X_h, s_t = X_t \vdash \eval X_b \m X'}} \\[1em]
+\multicolumn{2}{c}{\infer{
+\begin{array}{r@{}l}
+  \G \vdash \rate & \tag{prim}{\sf xcase}\ \tag{quote}{X}\  X_0\ X_1\ \\
+                  & \tag{list}{\tag{symbol}{s_q}\ X_b}\ \vec{X} \m X' \\
+\end{array}
+}{\G, s_q = X \vdash \eval X_b \m X'}} \\[1em]
+\multicolumn{2}{c}{\infer{
+\begin{array}{r@{}l}
+  \G \vdash \rate & \tag{prim}{\sf xcase}\ \tag{string}{s}\  X_0\ X_1\ X_2\ 
+                    X\ \vec{X} \m X' \\
+\end{array}
+}{\G \vdash \eval X \m X'}} \\[1em]
+\multicolumn{2}{c}{\infer{
+\begin{array}{r@{}l}
+  \G \vdash \rate & \tag{prim}{\sf xcase}\ \tag{int}{s}\  X_0\ X_1\ X_2\ X_3\ 
+                    X\ \vec{X} \m X' \\
+\end{array}
+}{\G \vdash \eval X \m X'}} \\[1em]
+\multicolumn{2}{c}{\infer{
+\begin{array}{r@{}l}
+  \G \vdash \rate & \tag{prim}{\sf xcase}\ \tag{symbol}{s}\  X_0\ X_1\ X_2\ X_3\ X_4\ \\
+                  & \tag{list}{\tag{symbol}{s_s}\ X_b}\ \vec{X} \m X' \\
+\end{array}
+}{\G, s_s = \tag{string}{s} \vdash \eval X_b \m X'}} \\[1em]
+\multicolumn{2}{c}{\infer{
+\begin{array}{r@{}l}
+  \G \vdash \rate & \tag{prim}{\sf xcase}\ \tag{t}{\vec{X_t}}\  X_0\ X_1\ X_2\ X_3\ X_4\ X_5\ X \vec{X} \m X' \\
+\end{array}
+}{t = {\tt prim} \,\,or\,\, {\tt closure} & \G \vdash \eval X \m X'}} \\[1em]
+\multicolumn{2}{c}{\infer{\G \vdash \rate \tag{prim}{\sf quote}\ {X} \m \tag{list}{X}}{}} \\[1em]
+%
+\multicolumn{2}{c}{\infer{
+\G \vdash \rate \tag{prim}{\sf head}\ \tag{string}{s} \m X
+}{{\tt cvs\ checkout}\ s = X}} \\[1em]
+\multicolumn{2}{c}{\infer{
+\G \vdash \rate \tag{prim}{\sf read}\ \tag{string}{s} \tag{int}{i} \m X
+}{{\tt cvs\ checkout\ -\!r}\ i\ s = X}} \\[1em]
+\multicolumn{2}{c}{\infer{
+\G \vdash \rate \tag{prim}{\sf insert}\ \tag{string}{s} X \m \tag{int}{i}
+}{{\tt cvs\ commit}\ s\ X = i}} \\[1em]
+\multicolumn{2}{c}{\infer{
+\G \vdash \rate \tag{prim}{\sf history}\ \tag{string}{s} \m \tag{list}{\vec{X}}
+}{{\tt cvs\ log}\ s = \vec{X}}} \\[1em]
+
+\end{array}\]
+
+\caption{The definition of the {\sf rate} judgment. The rules for
+rating the primitives {\sf string}, {\sf sub}, {\sf substr}, {\sf +},
+{\sf -}, {\sf int}, {\sf eq} and {\sf if} are omitted for space. 
+%
+} \label{fig:xmlrate}
+\end{figure*}
 
 
-{\small
-\bibliographystyle{plain}
-\bibliography{wikiplia}
+Wikiplia is built upon a core calculus of structured data with
+primitive revision control. Because we wish to support the freedom to
+tinker, the structured data take the form of XML (the {\em extensible}
+markup language; Figure~\ref{fig:xml}). Similar to the W3C's XML
+Validation,\z\wcite{XML schema} we allow the quality of an XML
+document to be assessed via a process called {\em evaluation}, whose
+output (if any) is itself an XML document. The rules for XML
+evaluation are simple and are given in
+Figures~\ref{fig:xmleval}~and~\ref{fig:xmlrate}.
+
+
+
+\comment{
+  \nocite{alice}
+
+
+  {\small
+  \bibliographystyle{plain}
+  \bibliography{wikiplia}
+  }
 }
 
 \end{document}
