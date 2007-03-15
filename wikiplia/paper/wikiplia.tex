@@ -134,7 +134,31 @@ $\G$ is itself an XML document of the form
 $\tag{list}{\tag{symbol}{s_1}\ X_1\ \ldots\ \tag{symbol}{s_n}\ X_n}$.
 We take the judgment $\G(s) = X$ to produce the leftmost $X_i$ in $\G$
 such that $s_i$ is $s$. $\G, s = X$ is $\tag{list}{\tag{symbol}{s}\ X
-\vec{X}}$ if $\G$ is $\tag{list}{\vec{X}}$. 
+\vec{X}}$ if $\G$ is $\tag{list}{\vec{X}}$. The judgment $s\prim$ holds when
+$s$ is one of 
+{\sf insert},
+{\sf head},
+{\sf read},
+{\sf abort},
+{\sf lambda},
+{\sf list},
+{\sf cons},
+{\sf quote},
+{\sf string},
+{\sf xcase},
+{\sf size},
+{\sf sub},
+{\sf substr},
+{\sf handle},
+{\sf parse},
+{\sf eval},
+{\sf eq},
+{\sf +},
+{\sf -},
+{\sf int},
+{\sf history},
+{\sf let}, or
+{\sf if}.
 %
 } \label{fig:xmleval}
 \end{figure*}
@@ -214,11 +238,22 @@ tinker, the structured data take the form of XML (the {\em extensible}
 markup language; Figure~\ref{fig:xml}). Similar to the W3C's XML
 Validation,\z\wcite{XML schema} we allow the quality of an XML
 document to be assessed via a process called {\em evaluation}, whose
-output (if any) is itself an XML document. The rules for XML
+output (if any) is itself an XML document. Selected rules for XML
 evaluation are simple and are given in
-Figures~\ref{fig:xmleval}~and~\ref{fig:xmlrate}.
+Figures~\ref{fig:xmleval}~and~\ref{fig:xmlrate}.\z\footnote{XML
+documents can be self-correcting through the use of the {\sf handle}
+primitive, which detects an invalid document and proceeds along an
+alternative path. We omit the rules for this feature, which requires
+propagating invalid document status throughout evaluation and thus
+complicates the rules substantially.}
 
-
+Revision control is accessed through the class of {\tt cvs} judgments.
+We assume a single global repository, which maps {\em keys} (strings)
+to lists of {\em revisions}. A revision is a monotonically increasing
+and unique {\em revision number} (integer) paired with an XML
+document. The judgment ${\tt cvs commit}\ s\ X = i$ creates a new
+revision with revision number $i$ and data $X$ and inserts it in under
+the key $s$.
 
 \comment{
   \nocite{alice}
