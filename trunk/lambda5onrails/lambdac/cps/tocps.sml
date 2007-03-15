@@ -121,42 +121,62 @@ struct
                                        let val t = unroll (i, vtl)
                                        in
                                          Primop' ([vv], BIND, [Unroll' v], 
-                                                  k (bindvar G vv t w, Var' vv,
-                                                     HERE
-                                                     ))
+                                                  k (bindvar G vv t w, Var' vv, t, w))
                                        end
                                    | _ => raise ToCPS "unroll non-mu"
                                  end)
-(*
-       | I.Roll (t, e) => cvte G e (fn (G, v) =>
-                                    let val vv = nv "r"
-                                    in Primop' ([vv], BIND, [Roll'(cvtt G t, v)], 
-                                                k (G, Var' vv))
+
+       | I.Roll (t, e) => cvte G e (fn (G, v, rt, w) =>
+                                    let 
+                                        val t = cvtt G t
+                                        val vv = nv "r"
+                                    in Primop' ([vv], BIND, [Roll'(t, v)],
+                                                k (bindvar G vv t w, Var' vv, t, w))
                                     end)
+
        | I.Inject (t, l, NONE) => let val vv = nv "inj_null"
-                                  in Primop' ([vv], BIND, [Inj'(l, cvtt G t, NONE)],
-                                              k (G, Var' vv))
+                                      val w  = worldfrom G
+                                      val t  = cvtt G t
+                                  in Primop' ([vv], BIND, [Inj'(l, t, NONE)],
+                                              k (bindvar G vv t w, Var' vv, t, w))
                                   end
        | I.Inject (t, l, SOME e) =>
-                                  cvte G e 
-                                  (fn (G, v) =>
+                                  cvte G e
+                                  (fn (G, v, tt, w) =>
                                    let val vv = nv "inj"
+                                       val t  = cvtt G t
                                    in
-                                     Primop' ([vv], BIND, [Inj'(l, cvtt G t, SOME v)],
-                                              k (G, Var' vv))
+                                     Primop' ([vv], BIND, [Inj'(l, t, SOME v)],
+                                              k (bindvar G vv t w, Var' vv, t, w))
                                    end)
        (* XX also bind? *)
-       | I.Value v => k (G, cvtv G v)
+       | I.Value v => 
+              let val (va, t, w) = cvtv G v
+              in k (G, va, t, w)
+              end
+
        | I.App (e, el) =>
               let val cv = nv "call_res"
               in
                 cvte G e
-                (fn (G, v) =>
-                 cvtel G el
-                 (fn (G, vl) =>
-                  Call' (v, vl @ [Lam'(nv "k_unused", [cv],
-                                       k (G, Var' cv))])
-                  ))
+                (fn (G, v, ft, fw) =>
+                 case ctyp ft of
+                      Cont nil => raise ToCPS "nullary cont?"
+                    | Cont l =>
+                          (case ctyp ` hd ` rev l of
+                               Cont [kt] =>
+                                   cvtel G el
+                                   (fn (G, vsl) =>
+                                    let val G = bindvar G cv kt fw
+                                    in
+                                        Call' (v, 
+                                               map #1 vsl @ 
+                                               (* nb. don't even bind unused arg. *)
+                                               [Lam'(nv "k_unused", [(cv, kt)],
+                                                     k (G, Var' cv, kt, fw))])
+                                    end)
+                             | _ => raise ToCPS "last arg should be cont!")
+                    | _ => raise ToCPS "call non-cont")
               end
 
        | I.Record lel =>
@@ -165,13 +185,21 @@ struct
                 val vv = nv "record"
               in
                 cvtel G exps
-                (fn (G, vl) =>
-                 Primop' ([vv], BIND, [Record' ` ListPair.zip (labs, vl)],
-                          k (G, Var' vv)))
+                (fn (G, vtwl) =>
+                 let 
+                     val (vl, tl, _) = ListUtil.unzip3 vtwl
+                     val rt = Product' ` ListPair.zip (labs, tl)
+                     val rw = worldfrom G
+                     val G = bindvar G vv rt rw
+                 in
+                     Bind' (vv, Record' ` ListPair.zip (labs, vl),
+                            k (G, Var' vv, rt, rw))
+                 end)
               end
 
-       (* treat every primapp as an extern primcall. *)
-       (* perhaps these should be translated in some IL phase... *)
+       (* treat every primapp as an extern primcall with a source/source
+          translation. *)
+       (* XXX perhaps these should be translated in some IL phase...? *)
        | I.Primapp (po, el, tl) =>
               let
                 (* assuming all prims are valid, otherwise we need an
@@ -198,7 +226,6 @@ struct
                                 el))) k
               end
 
-       (* XXX typ necessary? (yes for put) *)
        | I.Get { addr, dest : IL.world, typ, body } =>
               let
                 val dest = cvtw G dest
@@ -208,20 +235,27 @@ struct
                 val srcw = worldfrom G
               in
                 cvte G addr
-                (fn (G, va) =>
+                (fn (G, va, at, aw) =>
+                 (* no check that at = Addr dest *)
                  Primop'([reta], LOCALHOST, nil, 
                           Go' (dest, va,
-                               let val G = setworld G dest
+                               let 
+                                   val G = binduvar G reta (Addr' srcw)
+                                   val G = setworld G dest
                                in
-                                 (* XXX change world in G *)
-                                 cvte G body
-                                 (fn (G, res) =>
-                                  Put' (pv, mobtyp, res,
-                                        Go' (srcw, UVar' reta,
-                                             k (setworld G srcw, UVar' pv))))
+                                   cvte G body
+                                   (fn (G, res, rest, resw) =>
+                                    (* no check that resw = dest or rest = mobtyp *)
+                                    Put' (pv, mobtyp, res,
+                                          let val G = setworld G srcw
+                                              val G = binduvar G pv mobtyp
+                                          in
+                                              Go' (srcw, UVar' reta,
+                                                   k (G, UVar' pv, mobtyp, srcw))
+                                          end))
                                end)))
               end
-*)
+
        | _ => 
          let in
            print "\nToCPSe unimplemented:";
@@ -276,22 +310,33 @@ struct
            case ILUtil.unevar t of
              (* don't care if it's total *)
              I.Arrow(_, args, cod) =>
-(*               let val dom = map (cvtt G) args
+               let val dom = map (cvtt G) args
                    val cod = cvtt G cod
-                   val av = map (fn _ => nv "pcarg") args
+                   val av = map (fn a => (nv "pcarg", cvtt G a)) args
                    val r = nv (l ^ "_res")
                    val kv = nv "ret"
 
                    val lam =
-                     Lam' (nv (l ^ "_unused"), av @ [kv],
+                     Lam' (nv (l ^ "_unused"), 
+                           av @ [(kv, cod)],
                            Primop'([r], PRIMCALL { sym = l, dom = dom, cod = cod },
-                                   map Var' av,
+                                   map (Var' o #1) av,
                                    Call' (Var' kv, [Var' r])))
+                   val (t, va) =
+                       case (worlds, tys) of
+                           (nil, nil) => (Cont' (dom @ [Cont'[cod]]),
+                                          lam)
+                         | _ => (AllArrow' { worlds = worlds, tys = tys,
+                                             vals = nil, body = Cont' (dom @ [Cont'[cod]]) },
+                                 
+                                 AllLam' { worlds = worlds, tys = tys,
+                                           vals = nil, body = lam })
                in
-                 Primop'([v], BIND, [foldr WLam' (foldr TLam' lam tys) worlds],
-                         k G)
+                   case Option.map (cvtw G) wo of
+                       NONE => Lift' (v, va, k (binduvar G v t))
+                     | SOME w => Bind' (v, va, k (bindvar G v t w))
                end
-*) raise ToCPS "\nunimplemented:ev/arrow"
+
            | b =>
                let 
                  val t = 
