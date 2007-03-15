@@ -617,6 +617,8 @@ struct
 
   fun Lam' (v, vl, e) = Fsel' (Lams' [(v, vl, e)], 0)
   fun Zerocon' pc = Primcon' (pc, nil)
+  fun Lift' (v, cv, e) = Letsham'(v, Sham' cv, e)
+  fun Bind' (v, cv, e) = Primop' ([v], BIND, [cv], e)
 
   (* utility code *)
 

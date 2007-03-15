@@ -170,6 +170,8 @@ sig
   val UVar' : var -> cval
 
   (* derived forms *)
+  val Lift' : var * cval * cexp -> cexp
+  val Bind' : var * cval * cexp -> cexp
   val WAll' : var * ctyp -> ctyp
   val TAll' : var * ctyp -> ctyp
   val Lam' : (var * (var * ctyp) list * cexp) -> cval
