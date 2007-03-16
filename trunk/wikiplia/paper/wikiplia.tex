@@ -82,7 +82,61 @@ English.\z\wcite{Freedom fries}
 
 % XXX more...
 
-\section{Reflections on booting boots} \label{sec:bootstrap}
+\section{Reflections on strapping straps and booting boots} \label{sec:bootstrap}
+
+The hallmark of Free software is the GNU General Public License. It is
+a hereditary license that requires that (a) source code be distributed
+with the program and (b) modified versions of the program also be
+licensed under the GPL. The intention is that anyone receiving the
+software can exercise Freedom~$\alpha$ by understanding the source
+code and modifying it to suit his needs. Clearly any source code will
+not do: an obfuscated\wcite{Obfuscated code} version of the source
+code cannot be easily understood or modified, even though it is
+technically ``source code.'' The GPL therefore defines source code as
+the ``preferred form'' for ``making modifications.''
+
+Even source code in the preferred form might not be enough to achieve
+Freedom~$\alpha$, however. For instance, the program might be written
+in a mysterious programming language that only the author understands,
+and that programming language might only . It is therefore reasonable
+to construe the ``preferred form'' of the original software to include
+the implementation of the programming language that the software is
+written in. Because the programmer might need to fix bugs or extend
+the programming language implementation in order to modify the
+original program, he also needs the source code for that language as
+well. This code must be written in some language as well, so the
+process continues. It can end when one of the programming languages is
+generally well known enough that there are no practical barriers to
+understanding it or finding an implementation (examples would include
+C\wcite{C (programming language) and ALGOL 58\wcite{ALGOL 58}}, or so
+simple that the implementation is essentially non-existent ({\em e.g.}
+an assembler implemented directly in machine code).
+
+Another way for this process to terminate is for a programming
+language to be implemented in itself. This is known as a
+``bootstrapping compiler.'' A natural social tendency causes this to
+be very common: language implementors are more likely to enjoy the
+language they are implementing, and therefore more likely to choose it
+to implement the language. But when this process terminates this way,
+the reader might be left with a suspicious sense that nothing has
+actually been achieved.\z\footnote{In the case of a LOGO interpreter
+implemented in LOGO, we could say that this is then ``turtles all the
+way down.''} Specifically: What freedom-fulfilling use is the source
+code to an implementation of a mysterious programming language, if
+that source code is itself in the same mysterious programming
+language?
+
+Let us concentrate on a more concrete example. The GNU C
+compiler\z\wcite{GNU Compiler Collection} (licensed under the GPL) is
+an implementation of the C langauge with some extensions specific to
+the compiler. The GCC source code uses some of these extensions to HERE
+
+% parallel development yields same source, different behavior.
+% need globally atomic commits across all developers
+
+All popular modern languages are defined via a definitional
+interpreter\wcite{JavaScript}\wcite{Objective Caml}\wcite{Perl} with
+accompanying O'Reilly ``animal'' book.
 
 \section{Core calculus} \label{sec:calculus}
 
