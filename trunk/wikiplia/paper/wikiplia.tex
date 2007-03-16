@@ -19,6 +19,9 @@
 \newcommand\prim{{\,\,\sf prim}}
 \newcommand\rate{{\sf rate\,\,}}
 
+\newcommand\lb{\ensuremath{[\![}}
+\newcommand\rb{\ensuremath{]\!]}}
+
 \title{{\bf \huge Wikiplia}:\\
        The Free Programming Language\\
        That Anyone Can Edit}
@@ -224,13 +227,13 @@ $s$ is one of
 
 \end{array}\]
 
-\caption{The definition of the {\sf rate} judgment. The rules for
-rating the primitives {\sf string}, {\sf sub}, {\sf substr}, {\sf +},
-{\sf -}, {\sf int}, {\sf eq} and {\sf if} are omitted for space. 
+\caption{Evaluation of XML, part 2. The {\sf rate} judgment assesses a
+sequence of XML expressions. The rules for rating the primitives {\sf
+string}, {\sf sub}, {\sf substr}, {\sf +}, {\sf -}, {\sf int}, {\sf
+eq} and {\sf if} are omitted for space.
 %
 } \label{fig:xmlrate}
 \end{figure*}
-
 
 Wikiplia is built upon a core calculus of structured data with
 primitive revision control. Because we wish to support the freedom to
@@ -239,7 +242,7 @@ markup language; Figure~\ref{fig:xml}). Similar to the W3C's XML
 Validation,\z\wcite{XML schema} we allow the quality of an XML
 document to be assessed via a process called {\em evaluation}, whose
 output (if any) is itself an XML document. Selected rules for XML
-evaluation are simple and are given in
+evaluation (the dynamic semantic markup) are given in
 Figures~\ref{fig:xmleval}~and~\ref{fig:xmlrate}.\z\footnote{XML
 documents can be self-correcting through the use of the {\sf handle}
 primitive, which detects an invalid document and proceeds along an
@@ -247,22 +250,65 @@ alternative path. We omit the rules for this feature, which requires
 propagating invalid document status throughout evaluation and thus
 complicates the rules substantially.}
 
-Revision control is accessed through the class of {\tt cvs} judgments.
-We assume a single global repository, which maps {\em keys} (strings)
-to lists of {\em revisions}. A revision is a monotonically increasing
-and unique {\em revision number} (integer) paired with an XML
-document. The judgment ${\tt cvs commit}\ s\ X = i$ creates a new
-revision with revision number $i$ and data $X$ and inserts it in under
-the key $s$.
+Revision control is accessed through the class of imperative {\tt cvs}
+judgments. We assume a single global repository, which maps {\em keys}
+(strings) to lists of {\em revisions}. A revision is a monotonically
+increasing and unique {\em revision number} (integer) paired with an
+XML document. The judgment ${\tt cvs commit}\ s\ X = i$ creates a new
+revision with revision number $i$ and data $X$ and inserts it under
+the key $s$. The judgment ${\tt cvs checkout}\ s = X$ fetches the most
+recent revision for the key $s$, the document $X$ (if no such key
+exists, then the document is invalid). The judgment ${\tt cvs\
+checkout\ -\!r}\ i\ s = X$ does the same, but for the specific
+revision number $i$ (if no such revision exists, the document is
+invalid). Finally, ${\tt cvs\ log}\ s = \vec{X}$ fetches all of the
+revision numbers for the key $s$, as a series of integers $\vec{X}$.
 
-\comment{
-  \nocite{alice}
+\subsection{Syntax}
 
+\begin{figure}[b]
+\begin{center}
+\begin{tabular}{c}
+  \begin{tabular}{rcl}
+   {\em E} & ::= & {\tt(} $E_1\ E_2\ \ldots\ E_n$ {\tt)} \\
+           & $|$ & {\tt"}string{\tt"} \\
+           & $|$ & $n$ \\
+           & $|$ & symbol \\
+           & $|$ & {\tt'}E \\
+  \end{tabular} \\[3em]
 
-  {\small
-  \bibliographystyle{plain}
-  \bibliography{wikiplia}
-  }
-}
+  \begin{tabular}{r@{\,\,=\,\,}l}
+   \lb {\tt(} $E_1\ \ldots\ E_n$ {\tt)}\rb & $\tag{list}{ \lb E_1 \rb\ \ldots\ \lb E_n \rb}$ \\
+   \lb {\tt"}$s${\tt"}\rb & $\tag{string}{s}$ \\
+   \lb $n$\rb & $\tag{int}{n}$ \\
+   \lb $sym$\rb & $\tag{symbol}{sym}$ \\
+   \lb {\tt'}$E$\rb & $\tag{quote}{E}$ \\
+  \end{tabular}
+
+\end{tabular}
+\end{center}
+\caption{The syntax for the XESP syntax. The recursively defined $\lb
+\cdot \rb$ operation converts an XESP expression into an XML
+document.} \label{fig:xesp}
+\end{figure}
+
+XML documents are universally parseable.\z\wcite{Parsing} However,
+they are difficult to write and read. Therefore, as usual\wcite{RELAX
+NG} we create a new syntax by which humans can write and read programs
+and which the computer automatically parses and converts to the easily
+parsable XML syntax and back to the new syntax, reducing
+complexity.\z\footnote{For efficiency, the Wikiplia implementation is
+optimized to lazily perform these translations, so that the document
+is never represented in XML form.} This compact syntax is based upon
+parentheses rather than tags: The XML document $\tag{list}{X_1\ X_2}$
+is instead written ${\tt(}X_1\ X_2{\tt)}$. Note that the closing
+parenthesis is not {\em named} as in XML, which makes parsing
+difficult because the computer must {\em guess} which parenthesis
+belongs to which other parenthesis. We therefore call this compact
+syntax XESP because it basically {\em reads the programmer's mind} to
+guess what the name of the closing parenthesis should be. The grammar
+for XESP is given in Figure~\ref{fig:xesp} along with the translation
+to XML documents.
+
 
 \end{document}
