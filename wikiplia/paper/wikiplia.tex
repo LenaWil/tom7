@@ -4,6 +4,7 @@
 \usepackage{fancyvrb}
 \usepackage{url}
 \usepackage{proof}
+\usepackage{code}
 
 \begin{document}
 
@@ -98,17 +99,18 @@ the ``preferred form'' for ``making modifications.''
 Even source code in the preferred form might not be enough to achieve
 Freedom~$\alpha$, however. For instance, the program might be written
 in a mysterious programming language that only the author understands,
-and that programming language might only . It is therefore reasonable
-to construe the ``preferred form'' of the original software to include
-the implementation of the programming language that the software is
-written in. Because the programmer might need to fix bugs or extend
-the programming language implementation in order to modify the
-original program, he also needs the source code for that language as
-well. This code must be written in some language as well, so the
+and that programming language might only be implemented in a private
+compiler on the author's hard disk.\z\wcite{Hard disk} It is therefore
+reasonable to construe the ``preferred form'' of the original software
+to include the implementation of the programming language that the
+software is written in. Because the programmer might need to fix bugs
+or extend the programming language implementation in order to modify
+the original program, he also needs the source code for that language
+as well. This code must also be written in some language, so the
 process continues. It can end when one of the programming languages is
 generally well known enough that there are no practical barriers to
 understanding it or finding an implementation (examples would include
-C\wcite{C (programming language) and ALGOL 58\wcite{ALGOL 58}}, or so
+C\wcite{C (programming language)} and ALGOL 58\wcite{ALGOL 58}), or so
 simple that the implementation is essentially non-existent ({\em e.g.}
 an assembler implemented directly in machine code).
 
@@ -128,8 +130,47 @@ language?
 
 Let us concentrate on a more concrete example. The GNU C
 compiler\z\wcite{GNU Compiler Collection} (licensed under the GPL) is
-an implementation of the C langauge with some extensions specific to
-the compiler. The GCC source code uses some of these extensions to HERE
+an implementation of the C language with some extensions specific to
+the compiler. The GCC source code uses some of these extensions. Can
+the GCC be Free software if it requires the GCC to build? In the
+extreme case, what if someone were to add an extention to the GCC to
+enable a new C keyword, called {\tt compile\_a\_program}, and then
+replaced the entire source code with:
+
+\begin{code}
+int main (int argc, char ** argv) \{
+  compile_a_program;
+  return 0;
+\}
+\end{code}
+
+Such code is clearly worthless. Not all subversions of the source code
+via language extension may be so overt, but we claim that they
+nonetheless pose a substantial threat to freedom.
+
+We do not wish to limit the programmer's ability to make extensions to
+a language, since this would also toe-step Freedom~$\alpha$. We then
+conclude that the licensing terms must be expanded in order to provide
+more than ``source code.'' We propose that not only the source, but
+the source code's {\em history}, must be made available.
+
+\subsection{Revision control}
+
+Computer scientists use revision control\wcite{Revision control} to
+track changes to software and to coordinate development between
+multiple programmers. This has been true for thousands of years.
+Popular revision control systems such as CVS\wcite{Concurrent Versions
+System} and Subversion\wcite{Subversion (software)} allow for code
+to be concurrently modified by two or more developers and then have
+their changes integrated after the fact by an explicit ``check in''
+and conflict resolution phase.
+
+It may na\"ively seem that publishing the entire CVS history of a
+project would solve the issue with language extensions: By inspecting
+the revision that introduced the {\tt compile\_a\_program} feature
+(but prior to the replacement of the GCC with the minuscule version
+above), one could then see its implementation and then know how to
+HERE
 
 % parallel development yields same source, different behavior.
 % need globally atomic commits across all developers
@@ -348,9 +389,9 @@ document.} \label{fig:xesp}
 
 XML documents are universally parseable.\z\wcite{Parsing} However,
 they are difficult to write and read. Therefore, as usual\wcite{RELAX
-NG} we create a new syntax by which humans can write and read programs
-and which the computer automatically parses and converts to the easily
-parsable XML syntax and back to the new syntax, reducing
+NG} we create a new syntax by which humans can write and read
+documents and which the computer automatically parses and converts to
+the easily parsable XML syntax and back to the new syntax, reducing
 complexity.\z\footnote{For efficiency, the Wikiplia implementation is
 optimized to lazily perform these translations, so that the document
 is never represented in XML form.} This compact syntax is based upon
@@ -359,10 +400,13 @@ is instead written ${\tt(}X_1\ X_2{\tt)}$. Note that the closing
 parenthesis is not {\em named} as in XML, which makes parsing
 difficult because the computer must {\em guess} which parenthesis
 belongs to which other parenthesis. We therefore call this compact
-syntax XESP because it basically {\em reads the programmer's mind} to
-guess what the name of the closing parenthesis should be. The grammar
-for XESP is given in Figure~\ref{fig:xesp} along with the translation
-to XML documents.
+syntax XESP because it basically {\em reads the programmer's
+mind}\wcite{Extra-sensory perception} to guess what the name of the
+closing parenthesis should be. The grammar for XESP is given in
+Figure~\ref{fig:xesp} along with the translation to XML documents.
+From now on, we use the XESP syntax in our examples.
+
+
 
 
 \end{document}
