@@ -15,6 +15,8 @@
 ; fn construct        (DONE)
 ; include construct   (DONE)
 ; handle auto-quoting (DONE)
+; cond construct      (DONE)
+; fun construct       (DONE)
 ; lets construct
 
 (include "stdlib"
@@ -40,12 +42,32 @@
                     ; (note, this excludes in place lambda application..)
                     no no no no no
                     (theprim 
-                     (if (eq theprim "defs")
+		     (cond
+                      ((eq theprim "defs")
                         ; t: list of pairs
                         (map (fn (d_arg)
-                                 (list (car d_arg) (self self (car (cdr d_arg))))) t)
+                                 (list (car d_arg) (self self (car (cdr d_arg))))) t))
 
-                     (if (eq theprim "include")
+		      ((eq theprim "cond")
+ 	 	        ; t: list of conditions
+			; we do a macro expansion (to chained ifs) 
+			; and recurse on that result
+			(self self
+			     (foldr (fn (c rest) 
+					(xcase c
+					       (abort "empty condition in cond?")
+					       (thecond thiscase
+						 (list (parse "if")
+						       thecond
+						       (car thiscase)
+						       rest))
+					       ) ; xcase
+					)
+			              ;; if all fail, then we return nil
+			              (parse "nil")
+				      t)))
+
+                      ((eq theprim "include")
                         ; t: "page" body
                         (let meta_lib (head (string "w:" (car t)))
                         ; assume it has metadata, and skip it
@@ -63,34 +85,183 @@
                                             )
                                        )))
                            (bindlib bindlib lib)
-                         ))))
+                         )))))
 
-                     (if (eq theprim "lambda")
+                     ((eq theprim "lambda")
                          ; t: arg body
                          (cons h
                                (cons (quote (self self (car t)))
                                      (cons (quote (self self (car (cdr t))))
-                                           nil)))
+                                           nil))))
 
-                     (if (eq theprim "if")
+                     ((eq theprim "if")
                          ; t: cond tbod fbod
                          (list h (self self (car t))
                                  (quote (self self (car (cdr t))))
-                                 (quote (self self (car (cdr (cdr t))))))
+                                 (quote (self self (car (cdr (cdr t)))))))
 
-                     (if (eq theprim "handle")
+                     ((eq theprim "handle")
                          ; t: try catch
                          (list h (quote (self self (car t)))
-                                 (quote (self self (car (cdr t)))))
+                                 (quote (self self (car (cdr t))))))
 
-                     (if (eq theprim "let")
+                     ((eq theprim "let")
                          ; t: sym value body
                          (list h (quote (car t))
                                  (self self (car (cdr t)))
-                                 (quote (self self (car (cdr (cdr t))))))
+                                 (quote (self self (car (cdr (cdr t)))))))
 
+		     ((eq theprim "fun")
+		      ; f1 (x1 x2 .. xn) body1
+		      ; f2 (y1 y2 .. yk) body2
+		      ; etc.
+                      ; allbody
+
+		      ; becomes
+		      ; let f1rec (fn (f1rec f2rec .. fmrec x1 .. xn) 
+		      ;             (let f1 (fn (x1 ... xn) (f1rec f1rec f2rec .. fmrec x1 ... xn))
+		      ;             (let f2 (fn (y1 ... yk) (f2rec f1rec f2rec .. fmrec y1 ... yk))
+		      ;               body1
+		      ; let f2rec ...
+                      ; let f1 (fn (x1 ... xn) (f1rec f1rec f2rec .. fmrec x1 ... xn))
+		      ; let f2 (fn (y1 ... yk) (f2rec f1rec f2rec .. fmrec y1 ... yk))
+		      ; allbody
+		      
+		      ;; start by getting the list of fundecs (triples of f,args,body)
+		      ;; and the allbody
+
+		      (let decsbody
+			(let getdb (fn (self l)
+				       (xcase l
+					  (abort "fun: expected f (args) body or allbody")
+					  (onemaybe rest
+					    (xcase rest
+					       ; if empty, then this is the allbody
+					       (list nil onemaybe)
+					       (two rest
+						 (xcase rest
+						    (abort "fun: expected f (args) body")
+						    (three rest
+						       ;; insist that onemaybe is a symbol
+						       (let one
+							 (xcase onemaybe
+								(abort "fun: expected sym")
+								(_ _ (abort "fun: expected sym"))
+								(_ (abort "fun: expected sym"))
+								no no
+								(sym sym))
+								   
+							(let grest (self self rest)
+							(let fs (car grest)
+							(let allbody (car (cdr grest))
+							(list (cons (list one two three) fs)
+							      allbody))))))))))
+					  ) ; xcase on list
+				       )
+			     (getdb getdb t))
+		      (let decs (car decsbody)
+		      (let body (car (cdr decsbody))
+
+
+                      ; let f1 (fn (x1 ... xn) (f1rec f1rec f2rec .. fmrec x1 ... xn))
+		      ;; for one fn, as below
+		      (let wrapdec (fn (decl rest)
+				       (let f (car decl)
+				       (let frec (string f "rec")
+				       (let args (car (cdr decl))
+				       (let bod (car (cdr (cdr decl)))
+				       (list
+					(parse "let")
+					(parse f)
+					(list
+					 (parse "fn")
+					 args
+					 ; apply frec to selves, args
+					 (cons
+					  (parse frec)
+					  (@
+					   (map (fn (decl)
+						    (parse (string (car decl) "rec"))) decs)
+					   args))
+					 )
+					rest))))))
+
+		      ;; given some body,
+		      ;; wrap the body with the lets for f1..fn
+		      ;; that do not need the "self" arguments,
+		      ;; assuming decs in scope of f1rec..fnrec
+		      (let wrapdecs (fn (bod) (foldr wrapdec bod decs))
+
+		      ;; the outer bindings, for one f
+
+		      ; let f1rec (fn (f1rec f2rec .. fmrec x1 .. xn) 
+		      ;             (let f1 (fn (x1 ... xn) (f1rec f1rec f2rec .. fmrec x1 ... xn))
+		      ;             (let f2 (fn (y1 ... yk) (f2rec f1rec f2rec .. fmrec y1 ... yk))
+		      ;               body1
+
+		      (let binddec (fn (decl rest)
+				       (let f (car decl)
+				       (let frec (string f "rec")
+				       (let args (car (cdr decl))
+				       (let bod (car (cdr (cdr decl)))
+				       (list
+					(parse "let")
+					(parse frec)
+					(list
+					 (parse "fn")
+					 (@
+					  ; self args
+					  (map (fn (decl)
+						   (parse (string (car decl) "rec"))) decs)
+					  ; real args
+					  args)
+					 (wrapdecs bod))
+					rest))))))
+
+		      ;; and finally build the thing, then translate the output
+		      (self self (foldr binddec (wrapdecs body) decs))
+			   
+			   ))))))
+
+		      ) ; fun
+
+                     ;; (lets (h1 h2 h3 tail) exp body)
+		     ((eq theprim "lets")
+		      ; XXX gensym
+		      (let argname "letsval"
+			;; assuming the current tail is called "letsval"
+			(fun genbinds (args)
+			     (xcase args
+			      ; if none, then something's wrong
+			      (abort "no args to lets")
+			      (ah at
+				  ;; if this is the last arg, then
+				  ;; it should be bound to letsval
+				  ;; and we are done
+				  (xcase at
+					 (list (parse "let")
+					       ;; XX check it's a sym
+					       ah
+					       (parse argname)
+					       (car (cdr (cdr t))))
+					 (_ _
+					  ;; otherwise we bind this arg
+					  ;; and continue...
+					    (list (parse "xcase")
+						  (parse argname)
+						  (parse "lets-nil")
+						  (list ah
+							(parse argname)
+							(genbinds at)))))))
+			  (self self
+			   (list (parse "let")
+				 (parse argname)
+				 (car (cdr t))
+				 genbinds (car t)))
+			  )))
+		      
                      ;; (fn (arg1 arg2 ... argn) body)
-                     (if (eq theprim "fn")
+                     ((eq theprim "fn")
                          ; t args body
                          ; XXX need gensym
                          (let argname "fnarg_"
@@ -116,21 +287,22 @@
                            (list (parse "lambda")
                                  (quote (parse argname))
                                  ;; bind args and then exec body...
-                                 (quote (genargs genargs (car t) (car (cdr t)))))))
+                                 (quote (genargs genargs (car t) (car (cdr t))))))))
 
-                     (if (eq theprim "xcase")
+                      ((eq theprim "xcase")
                          ; t: ob nb lb qb sb ib yb
                          (xcase t
                               (abort "no args to xcase?")
                               (ob cases
                                 (cons h (cons (self self ob)
                                   ;; quotes all arguments; allows any number of them
-                                  (map (fn (x) (quote (self self x))) cases)))))
+                                  (map (fn (x) (quote (self self x))) cases))))))
 
+		      (1 
                        ;; otherwise, assume it is eager...
                        (cons h
-                             (map (fn (x) (self self x)) t))
-                     )))))))) ; case analysis of prim
+                             (map (fn (x) (self self x)) t)))
+		       )
                    ))
              ) ; nonempty list
 
@@ -149,7 +321,9 @@
               ; because those cannot be used in a "higher-order"
               ; way now..
               exp))
-           ))
+          (abort (string "huh? the expression is a closure or primitive or something?" exp))
+           )
+       )
 
   ;; then translate it.
   (translate translate (parse prog))
