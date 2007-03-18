@@ -8,11 +8,14 @@
 
 \begin{document}
 
+% TODO: license
+\newcommand\currentrevision{465}
+
 \newcommand\ftinker{\ensuremath{\copyright}}
 \newcommand\fexpression{\ensuremath{\hbar}}
 \newcommand\fbeer{\ensuremath{\triangle}}
 \newcommand\fusa{\ensuremath{\sqrt[x^{1.2}]{\mbox{\t{oo}} + \frac{x}{z^2}}}}
-
+\newcommand\ffree{\ensuremath{\P}}
 
 \newcommand\wcite[1]{\footnote{\tiny Wikipedia, the free encyclopedia: {\it #1}; 2007}}
 \newcommand\comment[1]{}
@@ -42,11 +45,24 @@
 We present a new programming language called Wikiplia. The language
 has an unprecedented level of integration: The system is its own
 compiler, language definition, documentation, development environment,
-distributed filesystem, database, revision control system, software
-license, community message board, and World Wide Web home site.
-Wikiplia is designed to be Free to a greater extent and in more
-dimensions than existing languages.
+distributed filesystem, database, revision control system,
+bootstrapping software license, community message board, and World
+Wide Web home site. Wikiplia is designed to be Free to a greater
+extent and in more dimensions than existing languages.
 \end{abstract}
+
+\footnotetext[-1]{Copyright \copyright\ 2007 the Regents of the Wikiplia
+Foundation. Appears in SIGBOVIK 2007 with the permission of the
+Association for Computational Heresy; {\em IEEEEEE!} press,
+Verlag-Verlag volume no.~0x40-2A. This document may be distributed
+under the terms of the TIA Public License (Section~\ref{sec:license}).
+\pounds 0.00}
+
+\vspace{1em}
+{\noindent \small {\bf Keywords}:
+  Freedom, programming language, software license, wiki, XML, 
+  hyper-driven devices
+}
 
 \section{Introduction}
 
@@ -82,13 +98,19 @@ Programmers should be able to write their programs using any
 expressions that they like. Specifically, there should be no
 prior establishment of arbitrary categories of expression that
 are excluded, such as those that discriminate on the basis
-of class, XXXXX, or type.
+of class, mathematical philosophy, or type.
 
 % freedom of speech?
 
 \paragraph{Freedom \fbeer: Freedom of beer.}
 Users should be able to write software without paying money to a
 licensing authority or certification program.
+
+\paragraph{Freedom \ffree: Freedom to redefine freedom.}
+Freedom should be free, so the definition of freedom should be free to
+change as the meaning of freedom changes. Wikiplia's license allows
+for Wikiplia to be distributed in a way that monotonically increases
+freedom as new concepts and catchphrases of freedom are invented.
 
 \paragraph{Freedom \fusa: Freedom of USA \#1.}
 Wikiplia is 100\% made in the USA and only available in
@@ -102,7 +124,7 @@ The hallmark of Free software is the GNU General Public License. It is
 a hereditary license that requires that (a) source code be distributed
 with the program and (b) modified versions of the program also be
 licensed under the GPL. The intention is that anyone receiving the
-software can exercise Freedom~$\alpha$ by understanding the source
+software can exercise Freedom~\ftinker by understanding the source
 code and modifying it to suit his needs. Clearly any source code will
 not do: an obfuscated\wcite{Obfuscated code} version of the source
 code cannot be easily understood or modified, even though it is
@@ -110,7 +132,7 @@ technically ``source code.'' The GPL therefore defines source code as
 the ``preferred form'' for ``making modifications.''
 
 Even source code in the preferred form might not be enough to achieve
-Freedom~$\alpha$, however. For instance, the program might be written
+Freedom~\ftinker, however. For instance, the program might be written
 in a mysterious programming language that only the author understands,
 and that programming language might only be implemented in a private
 compiler on the author's hard disk.\z\wcite{Hard disk} It is therefore
@@ -142,13 +164,13 @@ that source code is itself in the same mysterious programming
 language?
 
 Let us concentrate on a more concrete example. The GNU C
-compiler\z\wcite{GNU Compiler Collection} (licensed under the GPL) is
+compiler\wcite{GNU Compiler Collection} (licensed under the GPL) is
 an implementation of the C language with some extensions specific to
 the compiler. The GCC source code uses some of these extensions. Can
 the GCC be Free software if it requires the GCC to build? In the
-extreme case, what if someone were to add an extention to the GCC to
-enable a new C keyword, called {\tt compile\_a\_program}, and then
-replaced the entire source code with:
+extreme case, what if someone were to add an extension to the GCC to
+enable a new C keyword---called {\tt compile\_a\_program}---and then
+replace the entire source code with:
 
 \begin{code}
 int main (int argc, char ** argv) \{
@@ -162,7 +184,7 @@ via language extension may be so overt, but we claim that they
 nonetheless pose a substantial threat to freedom.
 
 We do not wish to limit the programmer's ability to make extensions to
-a language, since this would also toe-step Freedom~$\alpha$. We then
+a language, since this would also toe-step Freedom~\ftinker. We then
 conclude that the licensing terms must be expanded in order to provide
 more than ``source code.'' We propose that not only the source, but
 the source code's {\em history}, must be made available.
@@ -178,19 +200,174 @@ to be concurrently modified by two or more developers and then have
 their changes integrated after the fact by an explicit ``check in''
 and conflict resolution phase.
 
-It may na\"ively seem that publishing the entire CVS history of a
+It may na\"\i{}vely seem that publishing the entire CVS history of a
 project would solve the issue with language extensions: By inspecting
 the revision that introduced the {\tt compile\_a\_program} feature
 (but prior to the replacement of the GCC with the minuscule version
-above), one could then see its implementation and then know how to
-HERE
+above), one could then see its implementation and then know what it
+means. For certain patterns of development this does indeed suffice.
+However, programmers are not forced to check in their changes except
+at their own whims, as determined by social conventions; a programmer
+might make the private addition of the keyword {\tt
+compile\_a\_program}, then rewrite the GCC to use it, and only then
+check in this change as one revision. For this action he will surely
+be rebuked by his fellow programmers; none of the other developers can
+compile the new version of the code without access to the intermediate
+revision! This social pressure would also na\"\i{}vely seem to be enough
+to address the problem, but more insidious scenarios yet obtain.
 
-% parallel development yields same source, different behavior.
-% need globally atomic commits across all developers
+As a concrete example, suppose there are two programmers called K and
+R. Each is modifying the GCC with the purpose of adding a new
+character constant, \verb+'\c'+. K and R start at revision 100 of the
+GCC. K finds the case analysis for parsing character constants:
+%
+\begin{code}
+/* REVISION 100 (K) */
+switch(ch) \{
+  case 'n': return '\\n';
+  case 'r': return '\\r';
+  \vdots
+  default: abort("bad char constant");
+\}
+\end{code}
+%
+He adds a case for his extension, without using the extension, and
+checks this in as revision 101.
+%
+\begin{code}
+/* REVISION 101 (K) */
+switch(ch) \{
+  case 'n': return '\\n';
+  case 'r': return '\\r';
+  \vdots
+  case 'c': return 257;
+  default: abort("bad char constant");
+\}
+\end{code}
+%
+Meanwhile, R has similar (but not identical) inspiration and modifies
+his copy of the compiler:
+%
+\begin{code}
+/* REVISION 100 (R) */
+switch(ch) \{
+  case 'n': return '\\n';
+  case 'r': return '\\r';
+  \vdots
+  case 'c': return 8675309;
+  default: abort("bad char constant");
+\}
+\end{code}
+%
+He does not commit his code because he is wary of the time-consuming
+conflict resolution phase and is late for a date with K's estranged
+wife who is fed up with K's all-night hacking binges. He takes off in
+his 2007 Honda Civic\wcite{Honda Civic} with aftermarket spoiler for a
+night on the town, believing that a healthy well-rounded programmer
+spends more or less equal nights basking in the pale amber glow of the
+teletype as waking up with a few missing teeth naked and norovirused
+in some midtown alleyway with his wallet barely out of reach but empty
+anyway, having amply exercised Freedom~\fbeer.
 
-All popular modern languages are defined via a definitional
-interpreter\wcite{JavaScript}\wcite{Objective Caml}\wcite{Perl} with
-accompanying O'Reilly ``animal'' book.
+Meanwhile, K continues extending the GCC, using the extension to
+implement itself. He checks in this code with no conflicts:
+%
+\begin{code}
+/* REVISION 102 (K) */
+switch(ch) \{
+  case 'n': return '\\n';
+  case 'r': return '\\r';
+  \vdots
+  case 'c': return '\\c';
+  default: abort("bad char constant");
+\}
+\end{code}
+%
+K punches out at {\tt 1130 UTC},\z\wcite{Coordinated Universal Time}
+just as R returns from his adventure. R's confidence bolstered, he
+finishes his extension effort, following best practices and
+implementing the extension using itself:
+%
+\begin{code}
+/* REVISION 100 (R) */
+switch(ch) \{
+  case 'n': return '\\n';
+  case 'r': return '\\r';
+  \vdots
+  case 'c': return '\\c';
+  default: abort("bad char constant");
+\}
+\end{code}
+%
+He now decides to commit his changes (forgetting that he did not
+commit the intermediate revision). To do so he updates to the newest
+revision, 102, and sees that there are no conflicts---in fact,
+revision 102 already contains his changes! Believing that his changes
+are therefore compatible, he continues hacking.
+
+After this scenario, K and R believe they are working on the same
+programming language---after all, it has the same source code---but
+their minor bifurcation in development history means that they forever
+differing meanings of the \verb+'\c'+ extension. This mistake is
+likely to go unnoticed for some time, and until it is resolved, the
+meaning of the \verb+'\c'+ extension is firmly enslaved in the
+bipartite penitentiary of double entendre, yearning to be
+free\ldots\z\wcite{Information wants to be free}
+
+\subsection{Solution}
+
+Based on these scenarios we conclude that extant social measures such
+as revision control conventions are not enough to guarantee freedom.
+Even if we think these situations are implausible in the hands of
+well-intentioned, well-mannered software engineers, we wish for our
+software to remain free even when in the hands of nefarious and crafty
+factions who would seek to fracture\wcite{Fork (software development)}
+our free software community. We therefore need a technological and
+legal solution that forces the entire development history to be
+available. We call this technology and its license {\em Total
+Information Awareness} after the successful project of the US
+Government with the same name.\z\wcite{Information Awareness Office}
+
+Technologically, we develop our system around a primitive notion of
+revision control in which every change to the system is recorded.
+Because the system has an integrated editor, every action of a
+programmer is logged and preserved indefinitely with no extra action
+necessary on the programmer's part. Such commits are globally atomic,
+using a single universal repository. (This means that in the above
+scenario, R would not have been able to forget to commit his
+intermediate change, and would have been forced to observe his
+conflict with K.) To protect against the possibility that divergent
+development paths lead to incompatible compilers, we require that
+there is only one compiler for any given programming language, which
+itself exists in the revision control system. Therefore, it is always
+clear which version of the compiler was used to produce an executable
+from source. This also makes the K and R scenario impossible: there is
+only one compiler and so it is impossible for it to differ from
+itself.
+
+Legally, all of the software is licensed (Section~\ref{sec:license})
+under terms similar to the GNU GPL, but that define the ``source
+code'' to include the entire revision history of the system. In order
+to be compatible with Freedom~\ffree, we allow the license itself to be
+edited, but to ensure that no one can remove freedoms already present
+in the license, the license includes a provision that allows any {\em
+prior} version of the license to be used, at the programmer's option.
+
+\subsection{Implementation}
+
+Wikiplia, the free programming language that anyone can edit, is
+implemented as a web-site on the Internet at the address
+$${\tt http://wikiplia.spacebar.org/}$$
+
+\subsection{Roadmap}
+
+The remainder of this paper proceeds as follows. We first discuss in
+Section~\ref{sec:calculus} the design of the initial Wikiplia system,
+which is used to bootstrap the rest of Wikiplia. We then discuss the
+current state of Wikiplia as of revision \currentrevision\ in
+Section~\ref{sec:current}. We discuss the freedom-preserving TIA
+Public License in Section~\ref{sec:license}. We conclude with a
+discussion of unrelated work and plans for the future~\ref{sec:conc}.
 
 \section{Core calculus} \label{sec:calculus}
 
@@ -230,8 +407,7 @@ accompanying O'Reilly ``animal'' book.
 {\G\vdash \eval X_1 \m X_1' & \cdots & \G\vdash \eval X_n \m X_n' &
  \G\vdash \rate X_1'\ \ldots\ X_n' \m X'
 }} \\[1em]
-% todo:
-% skip? abort, handle
+% skip: abort, handle
 
 %
 \end{array}\]
@@ -419,7 +595,126 @@ closing parenthesis should be. The grammar for XESP is given in
 Figure~\ref{fig:xesp} along with the translation to XML documents.
 From now on, we use the XESP syntax in our examples.
 
+\subsection{Implementation}
+% SML: miserable non-free language
 
+\section{Revision \currentrevision} \label{sec:current}
 
+\section{TIA Public License} \label{sec:license}
+
+In this section we reproduce the Total Information Awareness Public
+License. Commentary is given via footnotes\wcite{footnote} into parts
+of the license.
+
+{\tt \parindent 0pt \parskip 10pt
+\verb+     +TIA PUBLIC LICENSE \\
+\verb+   +Revision 468, March 2007
+
+BEGIN INVINCIBLE SECTION 1
+
+This software is Copyright \copyright\ 2007{\large \rm--}$\infty$ The
+Regents of the Wikiplia Foundation. Permission is not granted to
+reproduce this software or license except by the terms explicitly
+enumerated below.
+
+I. Invincible Sections
+
+This license contains certain invincible sections, denoted by the text
+``BEGIN INVINCIBLE SECTION <n>'' and ``END INVINCIBLE SECTION <n>''.
+Such sections may not be modified under any circumstances. 
+
+END INVINCIBLE SECTION 1\footnote{Invincible sections exist in order
+to ensure the sanctity of the license. We first establish that
+invincible sections will appear and that they are inviolable; this
+itself is done in an invincible section. Invincible sections cause a
+limited loss of liberty, but this is the cost of freedom.}
+
+BEGIN INVINCIBLE SECTION 2
+
+II. Version Idenfitication and Invalid Licenses
+
+This license must identify itself in the header as Revision <n> for
+some number <n>, which must be the same as the revision number in the
+Wikiplia repository for the key ``TPL'' in which the license text is
+stored. If this is not the case, then this version of the license is
+considered Invalid and Void.
+
+Permission is not granted to distribute the software or license using
+any Invalid version of the license.
+
+END INVINCIBLE SECTION 2\footnote{This invincible section establishes
+a connection between license versions and the actual contents of the
+Wikiplia repository. Note the self-reference: Though this text is in
+an invincible section and never changes, the referent of ``this
+license'' does change as the rest of the license is modified. Because
+Wikiplia assigns version numbers monotonically, this ensures that the
+next invincible section is able to guarantee that freedom is
+monotonic. In the case of an invalid license, no permissions
+whatsoever are granted, so the licensee {\em must} use a prior valid
+version of the license. The initial version of the license is valid.}
+
+BEGIN INVINCIBLE SECTION 3
+
+III. Option of License
+
+The licensee has the option to choose any revision of the license
+prior to (numerically less than) this version as the licensing
+terms for the software and license.
+
+END INVINCIBLE SECTION 3
+
+BEGIN INVINCIBLE SECTION 4
+
+IV. Heredity of License
+
+Any copy or derivative work of this software or license must be
+licensed under the TIA Public License.
+
+END INVINCIBLE SECTION 4\footnote{This clause makes the license
+``viral'' like the GNU GPL, so that freedom is preserved in all
+descendents of the software.}
+
+BEGIN INVINCIBLE SECTION 5
+
+V. Completeness of Copy
+
+This software and license may only be copied in their entirety,
+including the entire revision history.
+
+END INVINCIBLE SECTION 5\footnote{This section is the centerpiece of
+Wikiplia; it guarantees that the ``source code'' to any software or
+programming language derived from Wikiplia is free from the loopholes
+described in Section~\ref{sec:bootstrap} and so maximizes
+Freedom~\ftinker. Note that this does not limit the way that the
+software can be modified; the programmer might begin by blanking all
+of the keys he doesn't care about---as long as he preserves the fact
+that there was {\em once} something there.}
+
+VI. Freedom to edit
+
+Permission is hereby granted to edit this license.\footnote{The only
+non-invincible provision of the original license allows the reader to
+add provisions that he desires to the license. This guarantees
+Freedom~\ffree, the freedom to redefine freedom.
+%
+Note that even if a freedom-hater removes this provision from the
+license, the invincible sections above ensure that the freedom to edit
+the license is preserved for all time.}
+
+}
+
+\bigskip
+This license is bootstrapping in the sense that it grants only the
+minimal permissions necessary, after setting up invariants via the
+behavior-limiting invincible sections. In fact, the original version
+of the license does not directly permit the licensee to copy the
+software at all; he must first amend the license using provision {\tt
+VI} to give himself this permission.
+
+\section{Conclusion} \label{sec:conc}
+
+% All popular modern languages are defined via a definitional
+% interpreter\wcite{JavaScript}\wcite{Objective Caml}\wcite{Perl} with
+% accompanying O'Reilly ``animal'' book.
 
 \end{document}
