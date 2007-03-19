@@ -5,6 +5,7 @@
 \usepackage{url}
 \usepackage{proof}
 \usepackage{code}
+\usepackage{graphicx}
 
 \begin{document}
 
@@ -324,9 +325,10 @@ software to remain free even when in the hands of nefarious and crafty
 factions who would seek to fracture\wcite{Fork (software development)}
 our free software community. We therefore need a technological and
 legal solution that forces the entire development history to be
-available. We call this technology and its license {\em Total
-Information Awareness} after the successful project of the US
-Government with the same name.\z\wcite{Information Awareness Office}
+available. Keeping with Freedom~\fusa, we call this technology and its
+license {\em Total Information Awareness} after the successful project
+of the US Government with the same name.\z\wcite{Information Awareness
+Office}
 
 Technologically, we develop our system around a primitive notion of
 revision control in which every change to the system is recorded.
@@ -538,11 +540,11 @@ Revision control is accessed through the class of imperative {\tt cvs}
 judgments. We assume a single global repository, which maps {\em keys}
 (strings) to lists of {\em revisions}. A revision is a monotonically
 increasing and unique {\em revision number} (integer) paired with an
-XML document. The judgment ${\tt cvs commit}\ s\ X = i$ creates a new
+XML document. The judgment ${\tt cvs\ commit}\ s\ X = i$ creates a new
 revision with revision number $i$ and data $X$ and inserts it under
-the key $s$. The judgment ${\tt cvs checkout}\ s = X$ fetches the most
+the key $s$. The judgment ${\tt cvs\ checkout}\ s = X$ fetches the most
 recent revision for the key $s$, the document $X$ (if no such key
-exists, then the document is invalid). The judgment ${\tt cvs\
+exists, then the document is invalid). The judgment ${\tt cvs\ 
 checkout\ -\!r}\ i\ s = X$ does the same, but for the specific
 revision number $i$ (if no such revision exists, the document is
 invalid). Finally, ${\tt cvs\ log}\ s = \vec{X}$ fetches all of the
@@ -550,7 +552,7 @@ revision numbers for the key $s$, as a series of integers $\vec{X}$.
 
 \subsection{Syntax}
 
-\begin{figure}[b]
+\begin{figure}[htb]
 \begin{center}
 \begin{tabular}{c}
   \begin{tabular}{rcl}
@@ -590,7 +592,7 @@ parenthesis is not {\em named} as in XML, which makes parsing
 difficult because the computer must {\em guess} which parenthesis
 belongs to which other parenthesis. We therefore call this compact
 syntax XESP because it basically {\em reads the programmer's
-mind}\wcite{Extra-sensory perception} to guess what the name of the
+mind}\,\wcite{Extra-sensory perception} to guess what the name of the
 closing parenthesis should be. The grammar for XESP is given in
 Figure~\ref{fig:xesp} along with the translation to XML documents.
 From now on, we use the XESP syntax in our examples.
@@ -598,7 +600,18 @@ From now on, we use the XESP syntax in our examples.
 \subsection{Implementation}
 % SML: miserable non-free language
 
+Wikiplia is implemented as a World Wide Web Home-Site, which allows
+for easy access from any location. 
+
 \section{Revision \currentrevision} \label{sec:current}
+
+\begin{figure*}[t]
+\begin{center}
+\includegraphics[width=0.92\textwidth]{ss_homepage}
+\end{center}
+\caption{Screenshot of the Wikiplia home page as of revision
+\currentrevision.} \label{fig:sshomepage}
+\end{figure*}
 
 \section{TIA Public License} \label{sec:license}
 
