@@ -9,8 +9,8 @@
 
 \begin{document}
 
-% TODO: license
-\newcommand\currentrevision{465}
+\newcommand\currentrevision{475}
+\newcommand\wikipliaurl{http://wikiplia.spacebar.org/}
 
 \newcommand\ftinker{\ensuremath{\copyright}}
 \newcommand\fexpression{\ensuremath{\hbar}}
@@ -20,6 +20,7 @@
 \newcommand\ftobe{{\tiny \ensuremath{\stackrel{\bigcirc}{\amalg}}}}
 
 \newcommand\wcite[1]{\footnote{\tiny Wikipedia, the free encyclopedia: {\it #1}; 2007}}
+\newcommand\wciteshort[1]{\footnote{\tiny Wikipedia, the free encyclopedia: {\it #1}}}
 \newcommand\comment[1]{}
 \newcommand\z{\ensuremath{\!}}
 
@@ -372,7 +373,7 @@ prior} version of the license to be used, at the programmer's option.
 
 Wikiplia, the free programming language that anyone can edit, is
 implemented as a web-site on the Internet at the address
-$${\tt http://wikiplia.spacebar.org/}$$
+$${\tt \wikipliaurl}$$
 
 \subsection{Roadmap}
 
@@ -927,8 +928,9 @@ This license is bootstrapping in the sense that it grants only the
 minimal permissions necessary, after setting up invariants via the
 behavior-limiting invincible sections. In fact, the original version
 of the license does not directly permit the licensee to copy the
-software at all; he must first amend the license using provision {\tt
-VI} to give himself this permission.
+% double-entendre with VI intentional
+software at all; he must first amend the license using {\tt VI} to
+give himself this permission.
 
 \section{Conclusion} \label{sec:conc}
 
@@ -948,10 +950,28 @@ white knuckled in a kind of road rage\wcite{List of rages} created by
 the dehumanizing semantic markup by which they are forced to
 communicate.
 
+% XXX: supporting users with revision #s?
+
 We also seek to improve the languages. The language {\tt w} needs many
 more features to speed development: the parenthesis-based XESP syntax
 should eventually be replaced by a pleasant concrete syntax, if we can
-get around to it before too much code is written in XESP.
+get around to it before too much code is written in XESP. A type
+system\wcite{Type system} is not planned, because type systems
+restrict Freedom~\fexpression, the freedom of expression. However, we
+should seek to make Wikiplia as multi-paradigm as possible (again,
+freedom from discrimination on the basis of paradigm\wcite{paradigm}
+orientation), supporting OOPs-oriented
+programming,\z\wcite{Object-oriented programming} aspect-oriented
+programming,\z\wcite{Aspect-oriented programming} duck-oriented
+typing,\z\wcite{Duck typing} orientation-oriented
+orienteering,\z\wcite{Orienteering} Orient-oriented
+Programming,\z\wcite{The Orient} etc.
+
+The {\tt
+page} language needs extensions for developing human-readable web
+pages, mostly for the purpose of creating jazzy graphics and boxes
+that distract from or directly call attention to obvious problems with
+the pages without actually addressing those problems.
 
 \subsection{Unrelated Work}
 
@@ -961,20 +981,29 @@ Caml}$^,$\wcite{Perl} with accompanying O'Reilly ``animal''
 book.\z\wcite{O'Reilly Media} The work on Wikiplia is unrelated: We
 have no animal mascot\wcite{ORLY owl} and the languages are described
 by a tower of source-to-source translations on top of a universally
-parseable semantic document in XML\wcite{Category:ML programming
+parseable semantic document in XML\wciteshort{Category:ML programming
 language family} form.
 
 The author doesn't think much of musicals,\z\wcite{Musical theatre} to
-be perfectly honest, so those are basically a no-go. He also feels
-that the metric system\wcite{Metric system} and time zones\wcite{Time
-zone} are pretty overrated. Ketchup on eggs is gross, but not quite as
-gross as foie gras\wcite{Foie gras}, which more or less has the word
-``gross'' in its name so duh.\z\wcite{Duh}
+be perfectly\wcite{Thomas Aquinas} honest,\z\wcite{Honesty} so those
+are basically a no-go. He also feels that the metric
+system\wcite{Metric system} and time zones\wcite{Time zone} are pretty
+overrated. Ketchup\wcite{Ketchup} on eggs\wcite{Egg (food)} is
+gross,\z\wcite{Gross} but not quite as gross as foie gras\wcite{Foie
+gras}, which more or less has the word ``gross'' in its name so
+duh.\z\wcite{Duh}
 
 \subsection{Another Paragraph}
 
 We have described Wikiplia, the free programming language that anyone
-can edit. Unlike other programming languages, it supports a variety of
-freedoms (...) and is explicitly scalable to new freedoms. ...
+can edit. Unlike other programming languages, it is designed to
+support a variety of freedoms (\ftinker, \fexpression, \fbeer, \fusa,
+\ffree, \ftobe) and is explicitly scalable to new freedoms. The system
+is implemented in a minimal bootstrapping core, and then built up to
+a featured system using its own faculties for extension. XXX more...
+
+\bigskip
+$${\tt \wikipliaurl}$$
+
 
 \end{document}
