@@ -17,6 +17,7 @@
 \newcommand\fbeer{\ensuremath{\triangle}}
 \newcommand\fusa{\ensuremath{\sqrt[x^{1.2}]{\mbox{\t{oo}} + \frac{x}{z^2}}}}
 \newcommand\ffree{\ensuremath{\P}}
+\newcommand\ftobe{{\tiny \ensuremath{\stackrel{\bigcirc}{\amalg}}}}
 
 \newcommand\wcite[1]{\footnote{\tiny Wikipedia, the free encyclopedia: {\it #1}; 2007}}
 \newcommand\comment[1]{}
@@ -62,7 +63,8 @@ under the terms of the TIA Public License (Section~\ref{sec:license}).
 \vspace{1em}
 {\noindent \small {\bf Keywords}:
   Freedom, programming language, software license, wiki, XML, 
-  hyper-driven devices
+  weatherproof footwear and their fastening mechanisms,
+  hyper-driven devices,
 }
 
 \section{Introduction}
@@ -100,6 +102,17 @@ expressions that they like. Specifically, there should be no
 prior establishment of arbitrary categories of expression that
 are excluded, such as those that discriminate on the basis
 of class, mathematical philosophy, or type.
+
+\paragraph{Freedom \ftobe: Free to be You and Me.}
+The development of a programming language should not be confined to
+the bearded academic elite, gazing down upon the programmer fiefs from
+their stratospheric ivory towers. Wikiplia is the free programming
+language that {\em anyone} can edit: from bearded academic
+elite\wcite{Tenure} to congressional staffers\wcite{Congressional
+staffer edits to Wikipedia} to nameless Slashdot\wcite{Slashdot}
+trolls. Wikiplia's WWW-based approach means that an Internet
+connection and compatible WWW hypertext browser is all that's needed
+to begin on the life-changing journey of programming language design.
 
 % freedom of speech?
 
@@ -515,8 +528,8 @@ $s$ is one of
 
 \caption{Evaluation of XML, part 2. The {\sf rate} judgment assesses a
 sequence of XML expressions. The rules for rating the primitives {\sf
-string}, {\sf sub}, {\sf substr}, {\sf +}, {\sf -}, {\sf int}, {\sf
-eq} and {\sf if} are omitted for space.
+parse}, {\sf string}, {\sf sub}, {\sf substr}, {\sf +}, {\sf -}, {\sf
+int}, {\sf eq} and {\sf if} are omitted for space.
 %
 } \label{fig:xmlrate}
 \end{figure*}
@@ -601,9 +614,124 @@ From now on, we use the XESP syntax in our examples.
 % SML: miserable non-free language
 
 Wikiplia is implemented as a World Wide Web Home-Site, which allows
-for easy access from any location. 
+for easy access from any location.
 
-\section{Revision \currentrevision} \label{sec:current}
+The system is implemented as a Standard~ML\wcite{Standard ML} program
+of approximately 1,000 lines.\z\footnote{This count does not include
+general purpose libraries, such as a networking library.} This program
+is designed to be minimal: it consists of a web server, a revision
+control system, and facilities for evaluating XESP documents. It also
+contains a very minimal bootstrapping ``compiler'' for XESP documents,
+with its boots manually strapped. From this tiny core we then develop
+the remainder of Wikiplia using Wikiplia itself.
+
+Some may balk at the choice of Standard~ML, as the language is
+miserably non-free: First, while many of the major implementations are
+GNU or BSD-licensed,\z\wcite{BSD licenses} all are implemented in
+Standard~ML itself, yielding the bootstrapping problem described
+earlier. Second, the mathematical Definition of Standard ML book is
+only available as a copyrighted publication of MIT
+Press,\z\wcite{MIT Press} not even {\em ostensibly} in a free
+manner. However, the performance considerations of the server and
+evaluator---and the lack of suitable free alternatives---force us to
+settle for such subjugation.
+
+\subsubsection{Web Server}
+
+The web server's job is simple. It runs in a loop, accepting a single
+connection, setting up an initial environment $\G$ for evaluation
+(which associates the symbols {\sf request.url}, {\sf request.ip} and
+{\sf request.time} with the appropriate values), and then evaluating
+the document contained at the head of the key ``main'' in the
+repository. The result of that evaluation is sent back to the web
+browser as a string.\z\footnote{The HTTP result code may be modified
+if, for example, the resulting document is a HTTP redirect to another
+URL.} The server knows nothing else about how Wikiplia works.
+
+The web server is single-threaded (so each request must finish
+before the next is handled) because we desire global atomicity
+(Section~\ref{sec:bootstrap}).
+
+\subsubsection{Revision Control}
+
+The revision control system stores XESP documents and their history.
+This is mostly a straightforward implementation of the imperative {\tt
+cvs} judgments given in Section~\ref{sec:calculus}. Unlike typical
+revision control systems, we need to support very large numbers of
+revisions with small edits (since every change is saved), so the
+implementation is engineered to make storing small revisions very
+cheap. Particularly, revisions are aggressively compressed by only
+storing the newest revision directly, and then a series of difference
+``plans'' that describe how to get the next older revision from the
+current one. We compute optimal plans using an efficient minimal edit
+distance\wcite{Levenshtein distance} calculation at the
+token\wcite{Token (parser)} level. As of revision~\currentrevision,
+the database is only 236 kilobytes.\z\wcite{Kilobyte}
+
+\subsubsection{Document Evaluation}
+
+The Wikiplia implementation also has facilities for parsing and
+evaluating XESP documents. These are a direct implementation of the
+evaluation rules in Figures~\ref{fig:xmleval}~and~\ref{fig:xmlrate}.
+
+\subsubsection{Bootstrapping}
+
+The key ``main'' of Wikiplia is responsible for decomposing the URL
+and acting upon it however is appropriate. The goal of the
+bootstrapping process is to make Wikiplia
+self-sufficient\wcite{Self-sufficiency} in the sense that the language
+can be edited from the web site implemented by ``main.'' To do so, the
+web site needs to be able to present the user with an edit box
+containing the current source of the ``main'' key and the ability to
+save his code into the database, overwriting the ``main'' key, in
+order to add functionality.
+
+The initial implementation of ``main'' is provides for the simple
+ability to edit, save, and view the current version of keys in the
+repository. These three actions are encoded as the URLs {\tt
+/edit/key}, {\tt /save/key}, and {\tt /view/\_/key}. The view action
+is straightforward. The edit action displays an HTML
+textarea\wcite{Text box} containing the current value of the key and a
+button that submits the changes to the {\tt save} url. The save action
+is the most complex. First, the submitted document is saved as the new
+version of the key. Then, if the key is of the form {\tt
+base.extension}, the database is checked to see if there is a key
+called {\tt extension:compile}. If so, the XESP document that is there
+is applied to the input document (a string) to produce a document that
+is saved at the key {\tt base}. This allows us to develop languages
+that are automatically compiled when saved.
+
+\begin{figure}
+\begin{center}
+\verb+(lambda 's '(parse (xcase s 'no '(h _ h))))+
+\end{center}
+\caption{The initial bootstrapping compiler.} \label{fig:b:compile.b}
+\end{figure}
+
+This initial functionality is implemented directly in the XESP
+language, whose extension is {\tt b}; the bootstrapping ``compiler''
+is just the built-in parser (Figure~\ref{fig:b:compile.b}).
+
+Arranging that the repository contain the correct keys to make this
+work is subtle. A small initialization phase sets up:
+\begin{itemize}
+\item {\tt b:compile.b}$\quad$ 
+      The source code (a string) in Figure~\ref{fig:b:compile.b}
+\item {\tt b:compile}$\quad$ 
+      The parsed document corresponding to the above, such that {\tt b:compile} applied to {\tt b:compile.b} yields {\tt b:compile}
+\item {\tt main.b}$\quad$ 
+      The source code of the original ``main'' program
+\item {\tt main}$\quad$
+      The parsed document corresponding to the above, such that {\tt b:compile} applied to {\tt main.b} yields {\tt main}.
+\end{itemize}
+
+We do this by {\em anticipating}, during the initialization process,
+the {\em meaning} of {\tt b:compile} so that we can perform that
+action (parsing) on {\tt b:compile.b} to produce {\tt b:compile}. This
+can only be achieved by fiat and this is the essence of bootstrapping.
+
+After this minimal initialization, we can then exclusively use the web
+interface to develop and extend Wikiplia.
 
 \begin{figure*}[t]
 \begin{center}
@@ -612,6 +740,82 @@ for easy access from any location.
 \caption{Screenshot of the Wikiplia home page as of revision
 \currentrevision.} \label{fig:sshomepage}
 \end{figure*}
+
+\begin{figure*}[t]
+\begin{center}
+% \includegraphics[width=0.92\textwidth]{ss_history}
+\end{center}
+\caption{Screenshot of the history information for {\tt main-go.w}.
+} \label{fig:sshistory}
+\end{figure*}
+
+\section{Revision \currentrevision} \label{sec:current}
+
+As of writing, Wikiplia is at revision~\currentrevision, and has
+a number of features implemented.
+
+\subsection{Interface}
+
+The editing interface implemented has been enhanced greatly;
+Figure~\ref{fig:sshomepage} shows a screenshot of the main page. The
+various views of a key are shown with a series of tabs at the top of
+each page. Each user has a home page named after his IP
+address,\z\wcite{IP address} which he can use to catalogue his
+interests. Various warnings help the user, for example, if he tries to
+edit a page that was generated by compiling some source code, a
+warning message suggests that he may wish to edit the source code
+instead. An ornate logo in SVG\wcite{Scalable Vector Graphics} adorns
+the page, and a sidebar provides quick access to the site's features.
+The logo and graphics for the site are stored in the repository; the
+new {\tt raw} and {\tt typed} actions allows access to these resources
+over HTTP so that they may be freely modified.\z\footnote{Because
+Wikiplia is dogmatically forward-looking, the graphics require SVG
+support in the browser and support for the {\tt data:} URL format, a
+combination only found in the newest versions of the Mozilla Firefox.
+Wikiplia is compatible with incompatible browsers, however, simply
+displaying a crapified version of each page.} At revision 228 support
+for metadata was added for each page; a {\tt history} tab now shows
+the date, revision number, IP address, and edit summary for each
+change to a key (Figure~\ref{fig:sshistory}).
+
+\subsection{Wikiplia language {\tt w}}
+
+Writing XESP documents by hand is very tedious, so one of the first
+orders of business was to develop a compiler for a new language, {\tt
+w}, which can be extended with convenient features. The first version
+of this language, created in revision 22, was written in XESP. It
+automatically quoted the appropriate arguments to the {\sf let}, {\sf
+it}, {\sf lambda}, {\sf xcase} primitives. In revision 361, the
+compiler was ported to the language {\tt w} as {\tt w:compile.w}, then
+compiled with the existing {\tt b}-compiled version of {\tt
+w:compile.b}, then recompiled with itself until reaching a fixed
+point.\z\wcite{Fixed point (mathematics)} After that, more features
+were added: a multi-argument function construct {\tt fn}; a
+list-deconstructing binding construct {\tt lets}; simple support for
+separately-compiled libraries\wcite{Library (computing)} via {\tt
+include}; support for mutually-recursive\wcite{Recursion (computer
+science)} bundles of functions via {\tt fun};\footnote{Prior to
+this, recursion had to be encoded directly by passing an initial
+``self'' argument to each function.} and the {\tt cond} keyword for
+series of chained ``if\ldots else'' conditionals. At each stage, the
+feature is implemented using the current version of {\tt w}, and then
+{\tt w:compile.w} is rewritten to use that convenient extension, and
+then recompiled until reaching a fixed point.
+
+\subsection{Wikiplia language {\tt page}}
+
+Wikiplia is not just a programming language; it needs facilities for
+editing pages that are human readable as well. This can be used to
+edit documentation for programming languages, to modify the home page
+to tout new developments, to modify the software license
+(Section~\ref{sec:license}) or to deface other user's home pages. For
+this we provide a Wiki-like\wcite{Wiki} syntax that allows for the
+authorship of such pages and easy linking between them. Like other
+Wikis, a link to a page that does not exist is colored red, to alert
+the user to the opportunity to stake out cyberspace real estate. This
+syntax is compiled to XESP documents via the {\tt page} language; the
+resulting documents are active in the sense that they check the status
+of linked pages to report the correct color on every page load.
 
 \section{TIA Public License} \label{sec:license}
 
