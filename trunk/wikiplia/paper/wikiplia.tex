@@ -555,13 +555,14 @@ judgments. We assume a single global repository, which maps {\em keys}
 increasing and unique {\em revision number} (integer) paired with an
 XML document. The judgment ${\tt cvs\ commit}\ s\ X = i$ creates a new
 revision with revision number $i$ and data $X$ and inserts it under
-the key $s$. The judgment ${\tt cvs\ checkout}\ s = X$ fetches the most
-recent revision for the key $s$, the document $X$ (if no such key
-exists, then the document is invalid). The judgment ${\tt cvs\ 
-checkout\ -\!r}\ i\ s = X$ does the same, but for the specific
-revision number $i$ (if no such revision exists, the document is
-invalid). Finally, ${\tt cvs\ log}\ s = \vec{X}$ fetches all of the
-revision numbers for the key $s$, as a series of integers $\vec{X}$.
+the key $s$. The judgment ${\tt cvs\ checkout}\ s = X$ fetches the
+most recent revision for the key $s$,\z\wcite{Dynamic scope} the
+document $X$ (if no such key exists, then the document is invalid).
+The judgment ${\tt cvs\ checkout\ -\!r}\ i\ s = X$ does the same, but
+for the specific revision number $i$\wcite{Static scope} (if no such
+revision exists, the document is invalid). Finally, ${\tt cvs\ log}\ s
+= \vec{X}$ fetches all of the revision numbers for the key $s$, as a
+series of integers $\vec{X}$.
 
 \subsection{Syntax}
 
@@ -611,7 +612,6 @@ Figure~\ref{fig:xesp} along with the translation to XML documents.
 From now on, we use the XESP syntax in our examples.
 
 \subsection{Implementation}
-% SML: miserable non-free language
 
 Wikiplia is implemented as a World Wide Web Home-Site, which allows
 for easy access from any location.
@@ -778,6 +778,8 @@ for metadata was added for each page; a {\tt history} tab now shows
 the date, revision number, IP address, and edit summary for each
 change to a key (Figure~\ref{fig:sshistory}).
 
+% XXX main emergency revert
+
 \subsection{Wikiplia language {\tt w}}
 
 Writing XESP documents by hand is very tedious, so one of the first
@@ -930,8 +932,49 @@ VI} to give himself this permission.
 
 \section{Conclusion} \label{sec:conc}
 
-% All popular modern languages are defined via a definitional
-% interpreter\wcite{JavaScript}\wcite{Objective Caml}\wcite{Perl} with
-% accompanying O'Reilly ``animal'' book.
+We have reached the end of our journey. But the journey is not
+complete! We conclude with a discussion of future plans and unrelated
+work, and then conclude with another paragraph.
+
+\subsection{Future Work}
+
+Though Wikipedia in its current form is a usable general-purpose
+programming language, work remains to be done for it to reach its full
+potential. For one, it needs a vibrant community of contentious and
+hubristic editors hiding behind anonymous IP addresses boldly
+asserting half-baked syntactic extensions or enforcing superficial
+style preferences, gritting their teeth while typing and clicking
+white knuckled in a kind of road rage\wcite{List of rages} created by
+the dehumanizing semantic markup by which they are forced to
+communicate.
+
+We also seek to improve the languages. The language {\tt w} needs many
+more features to speed development: the parenthesis-based XESP syntax
+should eventually be replaced by a pleasant concrete syntax, if we can
+get around to it before too much code is written in XESP.
+
+\subsection{Unrelated Work}
+
+All popular modern languages are defined via a definitional
+interpreter\wcite{JavaScript}$^,$\wcite{Objective
+Caml}$^,$\wcite{Perl} with accompanying O'Reilly ``animal''
+book.\z\wcite{O'Reilly Media} The work on Wikiplia is unrelated: We
+have no animal mascot\wcite{ORLY owl} and the languages are described
+by a tower of source-to-source translations on top of a universally
+parseable semantic document in XML\wcite{Category:ML programming
+language family} form.
+
+The author doesn't think much of musicals,\z\wcite{Musical theatre} to
+be perfectly honest, so those are basically a no-go. He also feels
+that the metric system\wcite{Metric system} and time zones\wcite{Time
+zone} are pretty overrated. Ketchup on eggs is gross, but not quite as
+gross as foie gras\wcite{Foie gras}, which more or less has the word
+``gross'' in its name so duh.\z\wcite{Duh}
+
+\subsection{Another Paragraph}
+
+We have described Wikiplia, the free programming language that anyone
+can edit. Unlike other programming languages, it supports a variety of
+freedoms (...) and is explicitly scalable to new freedoms. ...
 
 \end{document}
