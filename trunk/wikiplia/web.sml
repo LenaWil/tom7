@@ -7,6 +7,8 @@ struct
 
   val PORT = 2222
 
+  val log = TextIO.openAppend ("log.txt")
+
   fun message (Eval.Abort s) = "abort: " ^ s
     | message (Web s) = "web: " ^ s
     | message e = "?:" ^ exnMessage e
@@ -57,6 +59,10 @@ struct
           val G = ("request.ip", Bytes.String ip) :: G
 
           val G = ("request.time", Bytes.String nows) :: G
+
+          val () = TextIO.output(log, nows ^ " | " ^ ip ^ " | " ^
+                                url ^ "\n")
+          val () = TextIO.flushOut log
 
           fun http code = ("HTTP/1.1 " ^ code ^ "\r\n" ^
           "Date: " ^ nows ^ "\r\n" ^
