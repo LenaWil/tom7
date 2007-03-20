@@ -65,7 +65,7 @@ under the terms of the TIA Public License (Section~\ref{sec:license}).
 {\noindent \small {\bf Keywords}:
   Freedom, programming language, software license, wiki, XML, 
   weatherproof footwear and their fastening mechanisms,
-  hyper-driven devices,
+  hyper-driven devices
 }
 
 \section{Introduction}
@@ -109,7 +109,7 @@ The development of a programming language should not be confined to
 the bearded academic elite, gazing down upon the programmer fiefs from
 their stratospheric ivory towers. Wikiplia is the free programming
 language that {\em anyone} can edit: from bearded academic
-elite\wcite{Tenure} to congressional staffers\wcite{Congressional
+elite\wcite{Tenure} to congressional staffers\wciteshort{Congressional
 staffer edits to Wikipedia} to nameless Slashdot\wcite{Slashdot}
 trolls. Wikiplia's WWW-based approach means that an Internet
 connection and compatible WWW hypertext browser is all that's needed
@@ -139,12 +139,12 @@ The hallmark of Free software is the GNU General Public License. It is
 a hereditary license that requires that (a) source code be distributed
 with the program and (b) modified versions of the program also be
 licensed under the GPL. The intention is that anyone receiving the
-software can exercise Freedom~\ftinker by understanding the source
+software can exercise Freedom~\ftinker\ by understanding the source
 code and modifying it to suit his needs. Clearly any source code will
 not do: an obfuscated\wcite{Obfuscated code} version of the source
 code cannot be easily understood or modified, even though it is
-technically ``source code.'' The GPL therefore defines source code as
-the ``preferred form'' for ``making modifications.''
+technically ``source code.'' The GPL therefore legally defines source
+code as the ``preferred form'' for ``making modifications.''
 
 Even source code in the preferred form might not be enough to achieve
 Freedom~\ftinker, however. For instance, the program might be written
@@ -322,27 +322,52 @@ are therefore compatible, he continues hacking.
 
 After this scenario, K and R believe they are working on the same
 programming language---after all, it has the same source code---but
-their minor bifurcation in development history means that they forever
-differing meanings of the \verb+'\c'+ extension. This mistake is
-likely to go unnoticed for some time, and until it is resolved, the
+their minor bifurcation in development history means that they have
+forever different meanings of the \verb+'\c'+ extension. This mistake
+is likely to go unnoticed for some time, and until it is resolved, the
 meaning of the \verb+'\c'+ extension is firmly enslaved in the
 bipartite penitentiary of double entendre, yearning to be
-free\ldots\z\wcite{Information wants to be free}
+free\,\ldots\z\wcite{Information wants to be free}
 
 \subsection{Solution}
 
 Based on these scenarios we conclude that extant social measures such
 as revision control conventions are not enough to guarantee freedom.
 Even if we think these situations are implausible in the hands of
-well-intentioned, well-mannered software engineers, we wish for our
-software to remain free even when in the hands of nefarious and crafty
-factions who would seek to fracture\wcite{Fork (software development)}
-our free software community. We therefore need a technological and
-legal solution that forces the entire development history to be
-available. Keeping with Freedom~\fusa, we call this technology and its
-license {\em Total Information Awareness} after the successful project
-of the US Government with the same name.\z\wcite{Information Awareness
-Office}
+well-intentioned, well-mannered and capable%
+%
+\wcite{Year 2000 problem}$^,$%
+\wciteshort{Northeast Blackout of 2003}$^,$%
+\wcite{Ariane 5 Flight 501}$^,$%
+\wcite{Mars Climate Orbiter}$^,$%
+\wcite{Mars Polar Lander}$^,$%
+\wcite{Mars Rover}$^,$%
+\wcite{Mars Pathfinder}$^,$%
+\wcite{Gripen\#Crashes}$^,$%
+\wcite{missingno.}$^,$%
+\wcite{XSS}$^,$%
+\wcite{Buffer overflow}$^,$%
+\wcite{Therac-25}$^,$%
+\wcite{Lothar (storm)}$^,$%
+\wcite{Mariner 1}$^,$%
+\wcite{Code Red worm}$^,$%
+\wcite{SQLSlammer}$^,$%
+\wcite{Sandstorm (vehicle)}$^,$%
+\wcite{Samy (XSS)}$^,$%
+\wcite{Pentium FDIV bug}$^,$%
+\wcite{MIM-103 Patriot}$^,$%
+\wcite{Windows 95}$^,$%
+\wcite{Morris (computer worm)}$^,$%
+\wcite{USS Yorktown (CG-48)}
+%
+software engineers, we wish for our software to remain free even when
+in the hands of nefarious and crafty factions who would seek to
+fracture\wcite{Fork (software development)} our free software
+community. We therefore need a technological and legal solution that
+forces the entire development history to be available. Keeping with
+Freedom~\fusa, we call this technology and its license {\em Total
+Information Awareness} after the successful project of the US
+Government with the same name.\z\wcite{Information Awareness Office}
 
 Technologically, we develop our system around a primitive notion of
 revision control in which every change to the system is recorded.
@@ -377,11 +402,11 @@ $${\tt \wikipliaurl}$$
 
 \subsection{Roadmap}
 
-The remainder of this paper proceeds as follows. We first discuss in
+The remainder of this paper proceeds as follows. We first present in
 Section~\ref{sec:calculus} the design of the initial Wikiplia system,
 which is used to bootstrap the rest of Wikiplia. We then discuss the
 current state of Wikiplia as of revision \currentrevision\ in
-Section~\ref{sec:current}. We discuss the freedom-preserving TIA
+Section~\ref{sec:current}. We explain the freedom-preserving TIA
 Public License in Section~\ref{sec:license}. We conclude with a
 discussion of unrelated work and plans for the future~\ref{sec:conc}.
 
@@ -495,16 +520,16 @@ $s$ is one of
 }{\G \vdash \eval X \m X'}} \\[1em]
 \multicolumn{2}{c}{\infer{
 \begin{array}{r@{}l}
-  \G \vdash \rate & \tag{prim}{\sf xcase}\ \tag{int}{s}\  X_0\ X_1\ X_2\ X_3\ 
+  \G \vdash \rate & \tag{prim}{\sf xcase}\ \tag{int}{i}\  X_0\ X_1\ X_2\ X_3\ 
                     X\ \vec{X} \m X' \\
 \end{array}
 }{\G \vdash \eval X \m X'}} \\[1em]
 \multicolumn{2}{c}{\infer{
 \begin{array}{r@{}l}
   \G \vdash \rate & \tag{prim}{\sf xcase}\ \tag{symbol}{s}\  X_0\ X_1\ X_2\ X_3\ X_4\ \\
-                  & \tag{list}{\tag{symbol}{s_s}\ X_b}\ \vec{X} \m X' \\
+                  & \tag{list}{\tag{symbol}{s_b}\ X_b}\ \vec{X} \m X' \\
 \end{array}
-}{\G, s_s = \tag{string}{s} \vdash \eval X_b \m X'}} \\[1em]
+}{\G, s_b = \tag{string}{s} \vdash \eval X_b \m X'}} \\[1em]
 \multicolumn{2}{c}{\infer{
 \begin{array}{r@{}l}
   \G \vdash \rate & \tag{prim}{\sf xcase}\ \tag{t}{\vec{X_t}}\  X_0\ X_1\ X_2\ X_3\ X_4\ X_5\ X \vec{X} \m X' \\
@@ -516,7 +541,7 @@ $s$ is one of
 \G \vdash \rate \tag{prim}{\sf head}\ \tag{string}{s} \m X
 }{{\tt cvs\ checkout}\ s = X}} \\[1em]
 \multicolumn{2}{c}{\infer{
-\G \vdash \rate \tag{prim}{\sf read}\ \tag{string}{s} \tag{int}{i} \m X
+\G \vdash \rate \tag{prim}{\sf read}\ \tag{string}{s}\ \tag{int}{i} \m X
 }{{\tt cvs\ checkout\ -\!r}\ i\ s = X}} \\[1em]
 \multicolumn{2}{c}{\infer{
 \G \vdash \rate \tag{prim}{\sf insert}\ \tag{string}{s} X \m \tag{int}{i}
@@ -583,7 +608,7 @@ series of integers $\vec{X}$.
    \lb {\tt"}$s${\tt"}\rb & $\tag{string}{s}$ \\
    \lb $n$\rb & $\tag{int}{n}$ \\
    \lb $sym$\rb & $\tag{symbol}{sym}$ \\
-   \lb {\tt'}$E$\rb & $\tag{quote}{E}$ \\
+   \lb {\tt'}$E$\rb & $\tag{quote}{\lb E\rb}$ \\
   \end{tabular}
 
 \end{tabular}
@@ -597,7 +622,7 @@ XML documents are universally parseable.\z\wcite{Parsing} However,
 they are difficult to write and read. Therefore, as usual\wcite{RELAX
 NG} we create a new syntax by which humans can write and read
 documents and which the computer automatically parses and converts to
-the easily parsable XML syntax and back to the new syntax, reducing
+the easily parseable XML syntax and back to the new syntax, reducing
 complexity.\z\footnote{For efficiency, the Wikiplia implementation is
 optimized to lazily perform these translations, so that the document
 is never represented in XML form.} This compact syntax is based upon
@@ -643,7 +668,7 @@ The web server's job is simple. It runs in a loop, accepting a single
 connection, setting up an initial environment $\G$ for evaluation
 (which associates the symbols {\sf request.url}, {\sf request.ip} and
 {\sf request.time} with the appropriate values), and then evaluating
-the document contained at the head of the key ``main'' in the
+the document contained at the head of the key {\tt main} in the
 repository. The result of that evaluation is sent back to the web
 browser as a string.\z\footnote{The HTTP result code may be modified
 if, for example, the resulting document is a HTTP redirect to another
@@ -658,16 +683,18 @@ before the next is handled) because we desire global atomicity
 The revision control system stores XESP documents and their history.
 This is mostly a straightforward implementation of the imperative {\tt
 cvs} judgments given in Section~\ref{sec:calculus}. Unlike typical
-revision control systems, we need to support very large numbers of
-revisions with small edits (since every change is saved), so the
-implementation is engineered to make storing small revisions very
-cheap. Particularly, revisions are aggressively compressed by only
-storing the newest revision directly, and then a series of difference
-``plans'' that describe how to get the next older revision from the
-current one. We compute optimal plans using an efficient minimal edit
-distance\wcite{Levenshtein distance} calculation at the
-token\wcite{Token (parser)} level. As of revision~\currentrevision,
-the database is only 236 kilobytes.\z\wcite{Kilobyte}
+revision control systems, we need to support very large
+numbers\footnote{The implementation also supports revision numbers of
+arbitrary size.} of revisions with small edits (since every change is
+saved), so the implementation is engineered to make storing small
+revisions very cheap. Particularly, revisions are aggressively
+compressed by only storing the newest revision directly, and then a
+series of difference ``plans'' that describe how to get the next older
+revision from the current one. We compute optimal plans using an
+efficient minimal edit distance\wcite{Levenshtein distance}
+calculation at the token\wcite{Token (parser)} level. As of
+revision~\currentrevision, the database is only 236
+kilobytes.\z\wcite{Kilobyte}
 
 \subsubsection{Document Evaluation}
 
@@ -677,17 +704,17 @@ evaluation rules in Figures~\ref{fig:xmleval}~and~\ref{fig:xmlrate}.
 
 \subsubsection{Bootstrapping}
 
-The key ``main'' of Wikiplia is responsible for decomposing the URL
+The key {\tt main} of Wikiplia is responsible for decomposing the URL
 and acting upon it however is appropriate. The goal of the
 bootstrapping process is to make Wikiplia
 self-sufficient\wcite{Self-sufficiency} in the sense that the language
-can be edited from the web site implemented by ``main.'' To do so, the
+can be edited from the web site implemented by {\tt main}. To do so, the
 web site needs to be able to present the user with an edit box
-containing the current source of the ``main'' key and the ability to
-save his code into the database, overwriting the ``main'' key, in
+containing the current source of the {\tt main} key and the ability to
+save his code into the database, overwriting the {\tt main} key, in
 order to add functionality.
 
-The initial implementation of ``main'' is provides for the simple
+The initial implementation of {\tt main} is provides for the simple
 ability to edit, save, and view the current version of keys in the
 repository. These three actions are encoded as the URLs {\tt
 /edit/key}, {\tt /save/key}, and {\tt /view/\_/key}. The view action
@@ -768,7 +795,7 @@ warning message suggests that he may wish to edit the source code
 instead. An ornate logo in SVG\wcite{Scalable Vector Graphics} adorns
 the page, and a sidebar provides quick access to the site's features.
 The logo and graphics for the site are stored in the repository; the
-new {\tt raw} and {\tt typed} actions allows access to these resources
+new {\tt raw} and {\tt typed} actions allow access to these resources
 over HTTP so that they may be freely modified.\z\footnote{Because
 Wikiplia is dogmatically forward-looking, the graphics require SVG
 support in the browser and support for the {\tt data:} URL format, a
@@ -811,8 +838,8 @@ Wikiplia is not just a programming language; it needs facilities for
 editing pages that are human readable as well. This can be used to
 edit documentation for programming languages, to modify the home page
 to tout new developments, to modify the software license
-(Section~\ref{sec:license}) or to deface other user's home pages. For
-this we provide a Wiki-like\wcite{Wiki} syntax that allows for the
+(Section~\ref{sec:license}) or to deface other user's personal pages.
+For this we provide a Wiki-like\wcite{Wiki} syntax that allows for the
 authorship of such pages and easy linking between them. Like other
 Wikis, a link to a page that does not exist is colored red, to alert
 the user to the opportunity to stake out cyberspace real estate. This
@@ -940,7 +967,7 @@ work, and then conclude with another paragraph.
 
 \subsection{Future Work}
 
-Though Wikipedia in its current form is a usable general-purpose
+Though Wikiplia in its current form is a usable general-purpose
 programming language, work remains to be done for it to reach its full
 potential. For one, it needs a vibrant community of contentious and
 hubristic editors hiding behind anonymous IP addresses boldly
@@ -965,11 +992,10 @@ programming,\z\wcite{Object-oriented programming} aspect-oriented
 programming,\z\wcite{Aspect-oriented programming} duck-oriented
 typing,\z\wcite{Duck typing} orientation-oriented
 orienteering,\z\wcite{Orienteering} Orient-oriented
-Programming,\z\wcite{The Orient} etc.
+programming,\z\wcite{The Orient} etc.
 
-The {\tt
-page} language needs extensions for developing human-readable web
-pages, mostly for the purpose of creating jazzy graphics and boxes
+The {\tt page} language needs extensions for developing human-readable
+web pages, mostly for the purpose of creating jazzy graphics and boxes
 that distract from or directly call attention to obvious problems with
 the pages without actually addressing those problems.
 
@@ -984,15 +1010,15 @@ by a tower of source-to-source translations on top of a universally
 parseable semantic document in XML\wciteshort{Category:ML programming
 language family} form.
 
-The author doesn't think much of musicals,\z\wcite{Musical theatre} to
-be perfectly\wcite{Thomas Aquinas} honest,\z\wcite{Honesty} so those
-are basically a no-go. He also feels that the metric
-system\wcite{Metric system} but paradoxically\wcite{Pardadox} also
-time zones\wcite{Time zone} are pretty overrated.
-Ketchup\wcite{Ketchup} on eggs\wcite{Egg (food)} is
+The author doesn't think\wcite{Thought} much of
+musicals,\z\wcite{Musical theatre} to be perfectly\wcite{Thomas
+Aquinas} honest,\z\wcite{Honesty} so those are basically\wcite{BASIC}
+a no-go. He also feels that the metric system\wcite{Metric system} but
+paradoxically\wcite{Pardadox} also time zones\wcite{Time zone} are
+pretty overrated. Ketchup\wcite{Ketchup} on eggs\wcite{Egg (food)} is
 gross,\z\wcite{Gross} but not quite as gross as foie gras\wcite{Foie
-gras}, which more or less has the word ``gross'' in its name so
-duh.\z\wcite{Duh}
+gras}, which more or less has the word\wcite{Word} ``gross'' in its
+name\wcite{Name} so duh.\z\wcite{Duh}
 
 \subsection{Another Paragraph}
 
