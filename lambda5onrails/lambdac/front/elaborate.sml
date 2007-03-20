@@ -1031,6 +1031,8 @@ struct
                               val cty = Poly({worlds=nil, tys=atvs}, mu)
 
                               val v = V.namedvar ("ctor_null_" ^ ctor)
+
+                              val arms = ListUtil.mapsecond (arminfo_map musubst) arms
                             in
                               (ctor, v, cty,
                                Val `
@@ -1041,6 +1043,7 @@ struct
  
                              | (ctor, Carrier { carried = ty, ... }) =>
                             let 
+                                val arms = ListUtil.mapsecond (arminfo_map musubst) arms
                                 val dom = musubst ty
 
                                 val cty = 

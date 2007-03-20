@@ -15,8 +15,11 @@ struct
     val truename = "true"
     val falsename = "false"
 
-    val ilint = IL.TVar (namedvar "int")
-    val ilchar = IL.TVar (namedvar "char")
+    val intvar = namedvar "int"
+    val ilint = IL.TVar intvar
+    val charvar = namedvar "char"
+    val ilchar = IL.TVar charvar
+    (* PERF should probably be primitive. *)
     val ilstring = IL.TVec ilchar 
 
     val ilplus = namedvar "plus"
@@ -167,8 +170,9 @@ struct
 
     val exnname = "exn"
     val exnvar = Variable.namedvar exnname
+    val ilexn = IL.TVar exnvar
 
-    val initialec = Context.bindc initialc exnname (IL.Typ (IL.TVar exnvar)) 0 IL.Extensible
+    val initialec = Context.bindc initialc exnname (IL.Typ ilexn) 0 IL.Extensible
 
     (* initial environment is all valid *)
     val initial = foldl (fn ((s, c, t), ctx) =>

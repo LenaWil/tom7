@@ -29,6 +29,11 @@ struct
 
     type env = context
 
+    fun primtype v =
+      if V.eq(v, Initial.intvar) then Primcon'(INT, nil)
+      else if V.eq(v, Initial.exnvar) then Primcon'(EXN, nil)
+      else raise ToCPS ("unbound type variable " ^ V.tostring v)
+
     fun cvtw (G : env) (w : IL.world) : CPS.world =
       (case w of
          I.WEvar (ref (I.Bound w)) => cvtw G w
@@ -37,7 +42,11 @@ struct
 
     fun cvtt (G : env) (t : IL.typ) : CPS.ctyp =
       case t of
-        I.TVar v => TVar' v
+        I.TVar v => 
+          (* if this type is not bound, it had better be a prim *)
+          ((ignore ` gettype G v;
+            TVar' v) handle TypeCheck _ => primtype v)
+
       | I.Evar (ref (I.Bound t)) => cvtt G t
       | I.Evar _ => raise ToCPS "tocps/unset evar"
       | I.TAddr w => Addr' ` cvtw G w
@@ -50,7 +59,14 @@ struct
                            lal)
       | I.TVec t => Primcon'(VEC, [cvtt G t])
       | I.TRec ltl => Product' ` ListUtil.mapsecond (cvtt G) ltl
-      | I.Mu (i, vtl) => Mu' (i, ListUtil.mapsecond (cvtt G) vtl)
+      | I.Mu (i, vtl) => 
+          let
+            (* XXX for the purposes of cps conversion, we don't
+               care if types are mobile, because we're not doing type-checking, right? *)
+            val thismob = false
+          in
+            Mu' (i, map (fn (v, t) => (v, cvtt (bindtype G v thismob) t)) vtl)
+          end
       | I.Arrow (_, dom, cod) => 
           Cont' (map (cvtt G) dom @ [Cont' [cvtt G cod]])
       | _ => 
@@ -367,9 +383,14 @@ struct
        | I.Val (I.Poly ({worlds, tys}, (v, t, I.Value va))) =>
          (* poly -- must be a value then *)
          let
-           val _ = cvtt G t
-           (* XXX should bind worlds, tys *)
-           val (va, tt, ww) = cvtv G va
+           val (va, tt, ww) = 
+             let
+               val G = foldr (fn (wv, G) => bindworld G wv) G worlds
+               val G = foldr (fn (tv, G) => bindtype G tv false) G tys
+             in
+               cvtt G t;
+               cvtv G va
+             end
            val tt =
              AllArrow' { worlds = worlds, tys = tys, 
                          vals = nil, body = tt }

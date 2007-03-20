@@ -22,6 +22,7 @@ sig
   | DICT
   | INT
   | STRING
+  | EXN
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
@@ -87,7 +88,7 @@ sig
     (* supersedes WLam, TLam and VLam. quantifies worlds, types, and vars (in that
        order) over the body, which must be a value itself. applications of vlams
        are considered valuable. *)
-    | AllLam of { worlds : var list, tys : var list, vals : var list, body : 'cval }
+    | AllLam of { worlds : var list, tys : var list, vals : (var * ctyp) list, body : 'cval }
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
 
 
@@ -164,7 +165,7 @@ sig
   val Roll' : ctyp * cval -> cval
   val Unroll' : cval -> cval
   val Dictfor' : ctyp -> cval
-  val AllLam' : { worlds : var list, tys : var list, vals : var list, body : cval } -> cval
+  val AllLam' : { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } -> cval
   val AllApp' : { f : cval, worlds : world list, tys : ctyp list, vals : cval list } -> cval
   val Var' : var -> cval
   val UVar' : var -> cval

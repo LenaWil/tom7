@@ -155,6 +155,8 @@ struct
             val () = print "\n\n**** CPS CONVERTED: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
+            val () = CPSTypeCheck.check (CPS.W (Variable.namedvar "XXX")) c
+
             val c : CPS.cexp = CPSDict.translate c
             val () = print "\n\n**** CPS DICT: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
@@ -174,6 +176,8 @@ struct
     handle Test s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
          | Nullary.Nullary s => fail ("\nCouldn't do EL nullary prepass:\n" ^ s ^ "\n")
          | Context.Absent (what, s) => fail ("\n\nInternal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'\n")
+         | CPSTypeCheck.TypeCheck s => fail ("\n\nInternal error: Type checking failed:\n" ^
+                                             s ^ "\n")
          | ToCPS.ToCPS s => fail ("\nToCPS: " ^ s ^ "\n")
          | CPSDict.CPSDict s => fail ("\nCPSDict: " ^ s ^ "\n")
          | Closure.Closure s => fail ("\nClosure conversion: " ^ s ^ "\n")
