@@ -11,7 +11,7 @@
 
 \newcommand\currentrevision{532}
 \newcommand\currentsizekb{250}
-\newcommand\wikipliaurl{http://wikiplia.spacebar.org/}
+\newcommand\wikipliaurl{http://wikiplia.spacebar.org:2222/}
 
 \newcommand\ftinker{\ensuremath{\copyright}}
 \newcommand\fexpression{\ensuremath{\hbar}}
@@ -330,10 +330,14 @@ meaning of the \verb+'\c'+ extension is firmly enslaved in the
 bipartite penitentiary of double entendre, yearning to be
 free\,\ldots\z\wcite{Information wants to be free}
 
+% so that visual gag on ``capable'' doesn't appear at top of page
+\vspace{10em}
+\hyphenation{capable}
 \subsection{Solution}
 
 Based on these scenarios we conclude that extant social measures such
-as revision control conventions are not enough to guarantee freedom.
+as revision control conventions are not enough to guarantee freedom
+in all circumstances.
 Even if we think these situations are implausible in the hands of
 well-intentioned, well-mannered and capable%
 %
@@ -807,7 +811,15 @@ for metadata was added for each page; a {\tt history} tab now shows
 the date, revision number, IP address, and edit summary for each
 change to a key (Figure~\ref{fig:sshistory}).
 
-% XXX main emergency revert
+It is very easy to make mistakes that render the system unusable.
+Therefore Wikiplia supports the ability to safely revert to a previous
+version of a key. When making changes to the {\tt main} key this
+ability can be accidentally disabled, so the complex functionality of
+{\tt main} was split off to a new key called {\tt main-go} at revision
+9; the {\tt main} key now only dispatches to {\tt main-go} but
+provides an {\tt emergency-revert} action that automatiaclly reverts
+{\tt main-go} to its previous revision in case it is damaged and the
+site is unusable.
 
 \subsection{Wikiplia language {\tt w}}
 
@@ -1007,11 +1019,11 @@ interpreter\wcite{JavaScript}$^,$\wcite{Objective
 Caml}$^,$\wcite{Perl} with accompanying O'Reilly ``animal''
 book.\z\wcite{O'Reilly Media} The work on Wikiplia is unrelated: We
 have no animal mascot\wcite{ORLY owl} and the languages are described
-by a tower of source-to-source translations on top of a universally
-parseable semantic document in XML\wciteshort{Category:ML programming
-language family} form.
+by a tower of source-to-source translations\wcite{Translation} on top
+of a universally parseable semantic document in
+XML\wciteshort{Category:ML programming language family} form.
 
-The author doesn't think\wcite{Thought} much of
+The author\wcite{Author} doesn't think\wcite{Thought} much of
 musicals,\z\wcite{Musical theatre} to be perfectly\wcite{Thomas
 Aquinas} honest,\z\wcite{Honesty} so those are basically\wcite{BASIC}
 a no-go. He also feels that the metric system\wcite{Metric system} but
@@ -1026,9 +1038,11 @@ name\wcite{Name} so duh.\z\wcite{Duh}
 We have described Wikiplia, the free programming language that anyone
 can edit. Unlike other programming languages, it is designed to
 support a variety of freedoms (\ftinker, \fexpression, \fbeer, \fusa,
-\ffree, \ftobe) and is explicitly scalable to new freedoms. The system
-is implemented in a minimal bootstrapping core, and then built up to
-a featured system using its own faculties for extension. XXX more...
+\ffree, \ftobe) and is explicitly scalable to new freedoms. Wikiplia
+is implemented in a minimal bootstrapping core based on freedom-aware
+technologies such as XML, and then built up to a featured system using
+its own faculties for extension. However, much work remains to be
+done. We invite you to join us!
 
 \bigskip
 $${\tt \wikipliaurl}$$
