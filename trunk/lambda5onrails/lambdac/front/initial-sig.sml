@@ -7,6 +7,12 @@ sig
     val ilint : IL.typ
     val ilchar : IL.typ
     val ilstring : IL.typ
+    val ilexn : IL.typ
+
+    (* these are abstract type variables *)
+    val intvar : Variable.var
+    val charvar : Variable.var
+    val exnvar : Variable.var
 
     val initial : Context.context
     val home : IL.world

@@ -61,10 +61,12 @@ struct
 
   fun tmobile G typ = false (* FIXME *)
 
+  fun wok G (W w) = getworld G w
+
   (* here we go... *)
   fun tok G typ =
     case ctyp typ of
-      At (c, W w) => (getworld G w; tok G c)
+      At (c, w) => (wok G w; tok G c)
     | Cont l => app (tok G) l
     | AllArrow {worlds, tys, vals, body} => 
         let 
@@ -82,7 +84,7 @@ struct
     (* XXX check no dupes *)
     | Product stl => ListUtil.appsecond (tok G) stl
     | TVar v => ignore ` gettype G v
-    | Addr (W w) => getworld G w
+    | Addr w => wok G w
     | Mu (i, vtl) => 
         let val n = length vtl
           (* val selfmobile = tmobile G typ *)
@@ -105,17 +107,62 @@ struct
     | Sum sail => ListUtil.appsecond (ignore o (IL.arminfo_map ` tok G)) sail
 
 
-  (* hmm, how to get type information if not through annotations?
-     and how to get type of an expression if returned by f (re type-check?) *)
-
-  fun checkwisee ft fv fe G exp =
+  (* check that the expression is well-formed at the world in G *)
+  fun eok G exp =
     (case cexp exp of
-       Halt => exp
+       Halt => ()
+     | ExternVal (v, l, t, wo, e) =>
+         let
+           val () = Option.app (wok G) wo
+           val () = tok G t
+           val G = 
+             case wo of
+               NONE => binduvar G v t
+             | SOME w => bindvar G v t w
+         in
+           eok G e
+         end
+(*
+      Call of 'cval * 'cval list
+    | Halt
+    | Go of world * 'cval * 'cexp
+    | Proj of var * string * 'cval * 'cexp
+    | Primop of var list * primop * 'cval list * 'cexp
+    | Put of var * ctyp * 'cval * 'cexp
+    | Letsham of var * 'cval * 'cexp
+    | Leta of var * 'cval * 'cexp
+    (* world var, contents var *)
+    | WUnpack of var * var * 'cval * 'cexp
+    (* type var, contents vars *)
+    | TUnpack of var * (var * ctyp) list * 'cval * 'cexp
+    | Case of 'cval * var * (string * 'cexp) list * 'cexp
+    | ExternVal of var * string * ctyp * world option * 'cexp
+    | ExternWorld of var * string * 'cexp
+    (* always kind 0; optional argument is a value import of the dictionary
+       for that type *)
+    | ExternType of var * string * (var * string) option * 'cexp
+*)
+
+    | _ => 
+         let in
+           print "\nUnimplemented:\n";
+           Layout.print (CPSPrint.etol exp, print);
+           raise TypeCheck "unimplemented"
+         end
          )
 
-  fun checkwisev ft fv fe G value =
+  (* check that the value is okay at the current world, return its type *)
+  and vok G value : ctyp =
     (case cval value of
-       Int i => value
-         
+       Int i => Primcon'(INT, [])
+     | _ => 
+         let in
+           print "\nUnimplemented:\n";
+           Layout.print (CPSPrint.vtol value, print);
+           raise TypeCheck "unimplemented"
+         end
          )
+
+  fun check w exp = eok (empty w) exp
+
 end

@@ -102,7 +102,7 @@ struct
                     | _ => [% ($"t:" :: map ($ o V.tostring) tys)]) @
                    (case vals of
                       nil => nil
-                    | _ => [% ($"v:" :: map ($ o V.tostring) vals)])
+                    | _ => [% ($"v:" :: map (fn (v, t) => L.paren (%[$(V.tostring v), $":", ttol t])) vals)])
                       ),
                    $"."],
                    L.indent 2 ` vtol body]

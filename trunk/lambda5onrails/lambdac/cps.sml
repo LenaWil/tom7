@@ -11,7 +11,7 @@ struct
   datatype arminfo = datatype IL.arminfo
   datatype world = W of var
 
-  datatype primcon = VEC | REF | DICT | INT | STRING
+  datatype primcon = VEC | REF | DICT | INT | STRING | EXN
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
@@ -67,7 +67,7 @@ struct
     | Var of var
     | UVar of var
     | Dictfor of ctyp
-    | AllLam of { worlds : var list, tys : var list, vals : var list, body : 'cval }
+    | AllLam of { worlds : var list, tys : var list, vals : (var * ctyp) list, body : 'cval }
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
   (* nb. Binders must be implemented in outjection code below! *)
    
@@ -189,10 +189,18 @@ struct
 
          | AllLam { worlds, tys, vals, body } => 
                if List.exists issrc worlds orelse
-                  List.exists issrc tys orelse
-                  List.exists issrc vals
-               then value
-               else AllLam { worlds = worlds, tys = tys, vals = vals, body = vself body }
+                  List.exists issrc tys 
+               then value 
+               else 
+                 (* if bound as a value var, then we'll still substitute
+                    through those types but not the body *)
+                 if List.exists (issrc o #1) vals
+                 then AllLam { worlds = worlds, tys = tys, 
+                               vals = 
+                               ListUtil.mapsecond tself vals, body = body }
+                 else AllLam { worlds = worlds, tys = tys, 
+                               vals = ListUtil.mapsecond tself vals, 
+                               body = vself body }
 
          | AllApp { f, worlds, tys, vals } => AllApp { f = vself f, worlds = map wself worlds,
                                                        tys = map tself tys, vals = map vself vals }
@@ -367,15 +375,18 @@ struct
                                           end) fs)
                              end
 
-    | cval (V (AllLam { worlds, tys, vals, body })) = 
+    | cval (V (AllLam { worlds, tys, vals = valstyps, body })) = 
                              let val worlds' = ListUtil.mapto V.alphavary worlds
                                  val tys'    = ListUtil.mapto V.alphavary tys
+                                 val (vals, typs) = ListPair.unzip valstyps
                                  val vals'   = ListUtil.mapto V.alphavary vals
                                  fun renv t = renamevall (renamevall (renamevall t worlds') tys') vals'
+                                 fun rent t = renametall (renametall (renametall t worlds') tys') vals'
                              in 
                                  AllLam { worlds = map #2 worlds',
                                           tys    = map #2 tys',
-                                          vals   = map #2 vals',
+                                          vals   = ListPair.zip(map #2 vals',
+                                                                map rent typs),
                                           body   = renv body }
                              end
     | cval (V x) = x
@@ -399,6 +410,9 @@ struct
     | pc_cmp (INT, _) = LESS
     | pc_cmp (_, INT) = GREATER
     | pc_cmp (STRING, STRING) = EQUAL
+    | pc_cmp (STRING, _) = LESS
+    | pc_cmp (_, STRING) = GREATER
+    | pc_cmp (EXN, EXN) = EQUAL
 
   fun arminfo_cmp ac (NonCarrier, NonCarrier) = EQUAL
     | arminfo_cmp ac (NonCarrier, _) = LESS
@@ -681,8 +695,9 @@ struct
     | Var _ => value
     | UVar _ => value
     | Dictfor t => Dictfor' ` ft t
-    | AllLam { worlds : var list, tys : var list, vals : var list, body : cval } =>
-                AllLam' { worlds = worlds, tys = tys, vals = vals, body = fv body }
+    | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } =>
+                AllLam' { worlds = worlds, tys = tys, 
+                          vals = ListUtil.mapsecond ft vals, body = fv body }
     | AllApp { f : cval, worlds : world list, tys : ctyp list, vals : cval list } =>
                 AllApp' { f = fv f, worlds = worlds, tys = map ft tys, vals = map fv vals }
 
