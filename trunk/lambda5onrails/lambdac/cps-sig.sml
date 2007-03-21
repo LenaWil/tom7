@@ -106,6 +106,8 @@ sig
   val subve : cval -> var -> cexp -> cexp
 
 
+  val world_cmp : world * world -> order
+  val world_eq : world * world -> bool
   val ctyp_cmp : ctyp * ctyp -> order
   val ctyp_eq  : ctyp * ctyp -> bool
 

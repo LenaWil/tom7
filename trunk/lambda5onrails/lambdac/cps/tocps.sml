@@ -32,6 +32,8 @@ struct
     fun primtype v =
       if V.eq(v, Initial.intvar) then Primcon'(INT, nil)
       else if V.eq(v, Initial.exnvar) then Primcon'(EXN, nil)
+      else if V.eq(v, Initial.stringvar) then Primcon'(STRING, nil)
+      else if V.eq(v, Initial.charvar) then Primcon'(INT, nil) (* chars become ints. *)
       else raise ToCPS ("unbound type variable " ^ V.tostring v)
 
     fun cvtw (G : env) (w : IL.world) : CPS.world =
@@ -322,6 +324,9 @@ struct
              | base (I.Evar _) = raise ToCPS "externval/unset evar"
              | base (I.TAddr _) = true
              | base _ = false
+
+           val G = foldr (fn (w, G) => bindworld G w) G worlds
+           val G = foldr (fn (v, G) => bindtype G v false) G tys
          in
            case ILUtil.unevar t of
              (* don't care if it's total *)
