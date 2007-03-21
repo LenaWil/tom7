@@ -12,6 +12,7 @@ sig
     (* these are abstract type variables *)
     val intvar : Variable.var
     val charvar : Variable.var
+    val stringvar : Variable.var
     val exnvar : Variable.var
 
     val initial : Context.context
@@ -40,5 +41,7 @@ sig
     val exnname : string
     val listname : string
 
+
+    val mobiletvars : Variable.Set.set
 
 end

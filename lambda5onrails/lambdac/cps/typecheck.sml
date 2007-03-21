@@ -103,9 +103,18 @@ struct
     | Primcon (VEC, [t]) => tok G t
     | Primcon (REF, [t]) => tok G t
     | Primcon (DICT, [t]) => tok G t
+    | Primcon (INT, []) => ()
+    | Primcon (STRING, []) => ()
+    | Primcon (EXN, []) => ()
     | Primcon _ => raise TypeCheck "bad primcon"
     | Sum sail => ListUtil.appsecond (ignore o (IL.arminfo_map ` tok G)) sail
 
+  (* some actions ought only happen at the same world we're in now *)
+  fun insistw G w =
+    if world_eq (worldfrom G, w) 
+    then ()
+    else raise TypeCheck ("expected to be at same world: "
+                          ^ V.tostring (let val W x = w in x end))
 
   (* check that the expression is well-formed at the world in G *)
   fun eok G exp =
@@ -122,6 +131,14 @@ struct
          in
            eok G e
          end
+     | Primop ([v], BIND, [va], e) =>
+         let
+           val t = vok G va
+           val G = bindvar G v t (worldfrom G)
+         in
+           eok G e
+         end
+     | Primop _ => raise TypeCheck "unimplemented/bad primop"
 (*
       Call of 'cval * 'cval list
     | Halt

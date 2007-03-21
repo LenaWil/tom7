@@ -396,6 +396,7 @@ struct
     | c >> _ = c
 
   fun world_cmp (W w1, W w2) = V.compare(w1, w2)
+  fun world_eq ws = EQUAL = world_cmp ws
 
   fun pc_cmp (VEC, VEC) = EQUAL
     | pc_cmp (VEC, _) = LESS

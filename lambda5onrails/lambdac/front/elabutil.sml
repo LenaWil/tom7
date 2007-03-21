@@ -229,8 +229,9 @@ struct
               in ListUtil.allsecond (em G) vtl
               end
 
-          | IL.TVec t => true (* assuming immutable. 
-                                 there should be a separate array type *)
+          (* assuming immutable. 
+             there should be a separate array type *)
+          | IL.TVec t => em G t
           | IL.TCont t => raise Elaborate "unimplemented emobile/cont"
           | IL.TRef _ => false
           | IL.TTag _ => (* XXX5 ? *) false
@@ -238,7 +239,7 @@ struct
           | IL.TAddr _ => true
 
       in
-        em V.Set.empty t
+        em Initial.mobiletvars t
       end
 
 

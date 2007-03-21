@@ -19,8 +19,8 @@ struct
     val ilint = IL.TVar intvar
     val charvar = namedvar "char"
     val ilchar = IL.TVar charvar
-    (* PERF should probably be primitive. *)
-    val ilstring = IL.TVec ilchar 
+    val stringvar = namedvar "string"
+    val ilstring = IL.TVar stringvar
 
     val ilplus = namedvar "plus"
 
@@ -110,8 +110,7 @@ struct
 
          ("showval_", P.PShowval, quant(a, mono(IL.Arrow(false, [IL.TVar a], ilunit)))),
 
-         ("^", P.PJointext 2, mono(IL.Arrow(false, [IL.TVec ilchar,
-                                                    IL.TVec ilchar], IL.TVec ilchar))),
+         ("^", P.PJointext 2, mono(IL.Arrow(false, [ilstring, ilstring], ilstring))),
 
          ("!", P.PGet, quant(a, mono
                                 (IL.Arrow(false, [IL.TRef (IL.TVar a)],
@@ -238,5 +237,8 @@ struct
     fun matchexp loc = (EL.Var matchname, loc)
                              (* (EL.App ((EL.Var matchname, loc), 
                                 (EL.Record nil, loc)), loc) *)
+
+    val mobiletvars = foldr Variable.Set.add' Variable.Set.empty
+                          [intvar, charvar, stringvar]
 
 end
