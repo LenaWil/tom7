@@ -39,6 +39,9 @@ sig
   val getuvar   : context -> var -> ctyp
   val worldfrom : context -> world
 
+  (* computes the unrolling of a mu *)
+  val unroll    : int * (var * ctyp) list -> ctyp
+
   (* validate the expression e in the empty context at the supplied world *)
   val check : world -> cexp -> unit
 end

@@ -37,7 +37,6 @@ struct
       Call of 'cval * 'cval list
     | Halt
     | Go of world * 'cval * 'cexp
-    | Proj of var * string * 'cval * 'cexp
     | Primop of var list * primop * 'cval list * 'cexp
     | Put of var * ctyp * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
@@ -57,10 +56,11 @@ struct
     | Int of IntConst.intconst
     | String of string
     | Record of (string * 'cval) list
+    | Proj of string * 'cval
     | Hold of world * 'cval
     | WPack of world * 'cval
-    | TPack of ctyp * 'cval list
-    | Sham of 'cval
+    | TPack of ctyp * ctyp * 'cval list
+    | Sham of var * 'cval
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
     | Unroll of 'cval
@@ -69,6 +69,9 @@ struct
     | Dictfor of ctyp
     | AllLam of { worlds : var list, tys : var list, vals : (var * ctyp) list, body : 'cval }
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
+    | VLeta of var * 'cval * 'cval
+    | VLetsham of var * 'cval * 'cval
+
   (* nb. Binders must be implemented in outjection code below! *)
    
   (* CPS expressions *)
@@ -110,11 +113,6 @@ struct
          Call (v, vl) => Call (vself v, map vself vl)
        | Halt => exp
        | Go (w, va, e) => Go (wself w, vself va, eself e)
-       | Proj (vv, s, va, ex) =>
-           Proj (vv, s, vself va,
-                 if V.eq (vv, v)
-                 then ex
-                 else eself ex)
        | Primop (vvl, po, vl, ce) =>
            let fun poself LOCALHOST = LOCALHOST
                  | poself BIND = BIND
@@ -185,6 +183,7 @@ struct
            Int i => value
          | String s => value
          | Record svl => Record ` ListUtil.mapsecond vself svl
+         | Proj (s, va) => Proj (s, vself va)
          | Hold (w, va) => Hold (wself w, vself va)
 
          | AllLam { worlds, tys, vals, body } => 
@@ -202,16 +201,19 @@ struct
                                vals = ListUtil.mapsecond tself vals, 
                                body = vself body }
 
+
          | AllApp { f, worlds, tys, vals } => AllApp { f = vself f, worlds = map wself worlds,
                                                        tys = map tself tys, vals = map vself vals }
          | WPack (w, va) => WPack (wself w, vself va)
-         | TPack (t, va) => TPack (tself t, map vself va)
+         | TPack (t, t2, va) => TPack (tself t, tself t2, map vself va)
          | Var vv => if V.eq(v, vv) then se_getv se else Var vv
          | UVar vv => UVar (if V.eq(v, vv) then se_getu se else vv)
          | Unroll va => Unroll (vself va)
          | Roll (t, va) => Roll (tself t, vself va)
          | Dictfor t => Dictfor ` tself t
-         | Sham va => Sham ` vself va
+         | Sham (w, va) => if V.eq(v, w) 
+                           then value
+                           else Sham (w, vself va)
          | Fsel (va, i) => Fsel (vself va, i)
          | Inj (s, t, va) => Inj (s, tself t, Option.map vself va)
          | Lams vvel => Lams ` map (fn (vv, vvl, ce) => 
@@ -300,10 +302,7 @@ struct
                                         end) vtl)
     | ctyp (T x) = x
 
-  fun cexp (E(Proj(v, s, va, e))) = let val v' = V.alphavary v
-                                    in Proj(v', s, va, renamee v v' e)
-                                    end
-    | cexp (E(Primop(vvl, po, vl, e))) = 
+  fun cexp (E(Primop(vvl, po, vl, e))) = 
                                     let val vs = ListUtil.mapto V.alphavary vvl
                                     in Primop(map #2 vs, po, vl,
                                               renameeall e vs)
@@ -374,6 +373,20 @@ struct
                                              )
                                           end) fs)
                              end
+
+    | cval (V (VLetsham (v, va, va2))) =
+                             let val v' = V.alphavary v
+                             in VLetsham(v', va, renamev v v' va2)
+                             end
+    | cval (V (VLeta (v, va, va2))) =
+                             let val v' = V.alphavary v
+                             in VLeta(v', va, renamev v v' va2)
+                             end
+
+
+    | cval (V (Sham (w, va))) = let val w' = V.alphavary w
+                                in Sham (w', renamev w w' va)
+                                end
 
     | cval (V (AllLam { worlds, tys, vals = valstyps, body })) = 
                              let val worlds' = ListUtil.mapto V.alphavary worlds
@@ -595,7 +608,6 @@ struct
   val Halt' = E Halt
   val Call' = fn x => E (Call x)
   val Go' = fn x => E (Go x)
-  val Proj' = fn x => E (Proj x)
   val Primop' = fn x => E (Primop x)
   val Put' = fn x => E (Put x)
   val Letsham' = fn x => E (Letsham x)
@@ -629,11 +641,17 @@ struct
   val Unroll' = fn x => V (Unroll x)
   val Var' = fn x => V (Var x)
   val UVar' = fn x => V (UVar x)
+  val VLetsham' = fn x => V (VLetsham x)
+  val VLeta' = fn x => V (VLeta x)
+  val Proj' = fn x => V (Proj x)
 
   fun Lam' (v, vl, e) = Fsel' (Lams' [(v, vl, e)], 0)
   fun Zerocon' pc = Primcon' (pc, nil)
-  fun Lift' (v, cv, e) = Letsham'(v, Sham' cv, e)
+  fun Lift' (v, cv, e) = Letsham'(v, Sham' (V.namedvar "lift_unused", cv), e)
   fun Bind' (v, cv, e) = Primop' ([v], BIND, [cv], e)
+  fun Bindat' (v, w, cv, e) = Leta' (v, Hold' (w, cv), e)
+  fun Dict' t = Primcon' (DICT, [t])
+  fun EProj' (v, s, va, e) = Bind' (v, Proj'(s, va), e)
 
   (* utility code *)
 
@@ -659,7 +677,6 @@ struct
       Call (v, vl) => Call' (fv v, map fv vl)
     | Halt => exp
     | Go (w, v, e) => Go' (w, fv v, fe e)
-    | Proj (vv, s, v, e) => Proj' (vv, s, fv v, fe e)
     | Primop (vvl, po, vl, e) => Primop' (vvl, 
                                           (case po of
                                              PRIMCALL { sym, dom, cod } =>
@@ -688,13 +705,14 @@ struct
     | Record svl => Record' ` ListUtil.mapsecond fv svl
     | Hold (w, v) => Hold' (w, fv v)
     | WPack (w, v) => WPack' (w, fv v)
-    | TPack (t, v) => TPack' (ft t, map fv v)
-    | Sham v => Sham' ` fv v
+    | TPack (t, t2, v) => TPack' (ft t, ft t2, map fv v)
+    | Sham (w, v) => Sham' (w, fv v)
     | Inj (s, t, vo) => Inj' (s, ft t, Option.map fv vo)
     | Roll (t, v) => Roll' (ft t, fv v)
     | Unroll v => Unroll' ` fv v
     | Var _ => value
     | UVar _ => value
+    | Proj (s, v) => Proj' (s, fv v)
     | Dictfor t => Dictfor' ` ft t
     | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } =>
                 AllLam' { worlds = worlds, tys = tys, 

@@ -6,9 +6,9 @@ struct
     structure P = Primop
 
     val homename = "home"
-    val ilhome = namedvar homename
-    (* XXX address in validity context *)
-    val home = IL.WVar ilhome
+    val homevar = namedvar homename
+    (* XXX address should also be in initial validity context *)
+    val home = IL.WVar homevar
 
     (* we (should) disallow rebinding of true, false *)
 
@@ -161,7 +161,7 @@ struct
              (name, mono (IL.Arrow(false, cod, dom)), 
               IL.Primitive prim)) monofuns
 
-    val worlds = [(homename, ilhome)]
+    val worlds = [(homename, homevar)]
     val initialw = foldl (fn ((id, w), ctx) => Context.bindw ctx id w) Context.empty worlds
 
     val initialc = foldl (fn ((s, c, k, t), ctx) =>

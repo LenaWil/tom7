@@ -143,14 +143,14 @@ il/opt.sml
 cps-sig.sml
 cps.sml
 
+cps/print-sig.sml
+cps/print.sml
+
 cps/typecheck-sig.sml
 cps/typecheck.sml
 
 cps/tocps-sig.sml
 cps/tocps.sml
-
-cps/print-sig.sml
-cps/print.sml
 
 (* this seems like a better place *)
 cps/dict-sig.sml
