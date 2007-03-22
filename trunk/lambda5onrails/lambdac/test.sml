@@ -151,19 +151,25 @@ struct
             val () = print "\n\n**** ELABORATED: ****\n"
             val () = Layout.print( ILPrint.utol inter, print)
 
+            val cw = CPS.W Initial.homevar
+
             val c : CPS.cexp = ToCPS.convert inter Initial.home
             val () = print "\n\n**** CPS CONVERTED: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
-            val () = CPSTypeCheck.check (CPS.W (Variable.namedvar "XXX")) c
+            val () = CPSTypeCheck.check cw c
 
             val c : CPS.cexp = CPSDict.translate c
             val () = print "\n\n**** CPS DICT: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
-            val c : CPS.cexp = Closure.convert c
+            val () = CPSTypeCheck.check cw c
+
+            val c : CPS.cexp = Closure.convert cw c
             val () = print "\n\n**** CLOSURE: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
+
+            val () = CPSTypeCheck.check cw c
 
         in
             print "\n";

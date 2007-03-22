@@ -90,18 +90,6 @@ struct
        returns exp along with the current world in G *)
     fun $G thing = (thing, worldfrom G)
 
-    fun unroll (m, tl) =
-      (let val (_, t) = List.nth (tl, m)
-           val (thet, _) =
-               List.foldl (fn((v,t),(thet,idx)) =>
-                           (subtt (Mu' (idx, tl)) v thet,
-                            idx + 1))
-                          (t, 0)
-                          tl
-       in
-         thet
-       end handle _ => raise ToCPS "internal error: malformed mu")
-
 
     (* cps convert the IL expression e and pass the
        resulting value to the continuation k to produce
@@ -122,7 +110,7 @@ struct
                                                | SOME tt => 
                                                    let val G = bindvar G vv tt w
                                                    in
-                                                     Proj' (vv, l, v, k (G, Var' vv, tt, w))
+                                                     EProj' (vv, l, v, k (G, Var' vv, tt, w))
                                                    end)
                                           | _ => raise ToCPS "project from non-product"
                                        end)
@@ -339,7 +327,7 @@ struct
 
                    val lam =
                      Lam' (nv (l ^ "_unused"), 
-                           av @ [(kv, cod)],
+                           av @ [(kv, Cont' [cod])],
                            Primop'([r], PRIMCALL { sym = l, dom = dom, cod = cod },
                                    map (Var' o #1) av,
                                    Call' (Var' kv, [Var' r])))
@@ -355,7 +343,7 @@ struct
                in
                    case Option.map (cvtw G) wo of
                        NONE => Lift' (v, va, k (binduvar G v t))
-                     | SOME w => Bind' (v, va, k (bindvar G v t w))
+                     | SOME w => Bindat' (v, w, va, k (bindvar G v t w))
                end
 
            | b =>

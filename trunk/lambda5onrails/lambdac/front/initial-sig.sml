@@ -16,6 +16,7 @@ sig
     val exnvar : Variable.var
 
     val initial : Context.context
+    val homevar : Variable.var
     val home : IL.world
 
     (* wrap with declarations and imports needed 

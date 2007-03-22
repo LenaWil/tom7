@@ -13,11 +13,13 @@ struct
                             uvars : ctyp V.Map.map,
                             current : world }
 
-  fun empty w = C { tvars = V.Map.empty,
-                    worlds = V.Set.empty,
-                    vars = V.Map.empty,
-                    uvars = V.Map.empty,
-                    current = w }
+  (* since all worlds are variables, we must at least bind the
+     world we're starting at *)
+  fun empty (W w) = C { tvars = V.Map.empty,
+                        worlds = V.Set.add'(w, V.Set.empty),
+                        vars = V.Map.empty,
+                        uvars = V.Map.empty,
+                        current = W w }
 
   exception TypeCheck of string
 
@@ -59,8 +61,36 @@ struct
   (* assuming not mobile *)
   val bindtypes  = foldl (fn (v, c) => bindtype c v false)
 
-  fun tmobile G typ = false (* FIXME *)
+  fun tmobile G typ = 
+    (case ctyp typ of
+       TVar v => gettype G v
+     | Product ltl => ListUtil.allsecond (tmobile G) ltl
+     | Addr _ => true
+     | Primcon (INT, []) => true
+     | Primcon (STRING, []) => true
+     | Primcon (VEC, [t]) => tmobile G t
+     | _ => raise TypeCheck "unimplemented tmobile")
 
+
+  fun unroll (m, tl) =
+    (let val (_, t) = List.nth (tl, m)
+         val (thet, _) =
+           List.foldl (fn((v,t),(thet,idx)) =>
+                       (subtt (Mu' (idx, tl)) v thet,
+                        idx + 1))
+           (t, 0)
+           tl
+     in
+       thet
+     end handle _ => raise TypeCheck "malformed mu")
+
+  fun faile exp msg =
+    let in
+      print "\nIll-typed:\n";
+      Layout.print (CPSPrint.etol exp, print);
+      raise TypeCheck msg
+    end
+       
   fun wok G (W w) = getworld G w
 
   (* here we go... *)
@@ -114,6 +144,8 @@ struct
     if world_eq (worldfrom G, w) 
     then ()
     else raise TypeCheck ("expected to be at same world: "
+                          ^ V.tostring (let val W x = worldfrom G in x end) ^
+                          " and "
                           ^ V.tostring (let val W x = w in x end))
 
   (* check that the expression is well-formed at the world in G *)
@@ -134,26 +166,66 @@ struct
      | Primop ([v], BIND, [va], e) =>
          let
            val t = vok G va
-           val G = bindvar G v t (worldfrom G)
+           val G = bindvar G v t ` worldfrom G
          in
            eok G e
          end
-     | Primop _ => raise TypeCheck "unimplemented/bad primop"
+     | Primop ([v], PRIMCALL { sym = _, dom, cod }, vas, e) =>
+         let
+           val vts = map (vok G) vas
+         in
+           app (tok G) dom;
+           tok G cod;
+           if ListUtil.all2 ctyp_eq dom vts
+           then eok (bindvar G v cod ` worldfrom G) e
+           else raise TypeCheck "primcall argument mismatch"
+         end
+     | Primop ([v], LOCALHOST, [], e) => eok (binduvar G v ` Addr' ` worldfrom G) e
+     | Primop _ => faile exp "unimplemented/bad primop"
+     | Call (fv, avl) =>
+         (case (ctyp ` vok G fv, map (vok G) avl) of
+            (Cont al, al') => if ListUtil.all2 ctyp_eq al al'
+                              then ()
+                              else raise TypeCheck "argument mismatch at call"
+          | _ => faile exp "call to non-cont")
+     | ExternWorld (v, _, e) => eok (bindworld G v) e
+     | Leta (v, va, e) =>
+            (case ctyp ` vok G va of
+               At (t, w) => eok (bindvar G v t w) e
+             | _ => faile exp "leta on non-at")
+     | Letsham (v, va, e) =>
+            (case ctyp ` vok G va of
+               Shamrock t => eok (binduvar G v t) e
+             | _ => faile exp "letsham on non-shamrock")
+
+     | Go (w, va, e) =>
+               (wok G w;
+                case ctyp ` vok G va of
+                  Addr w' => if world_eq (w, w')
+                             then eok (setworld G w) e
+                             else faile exp "go to wrong world addr"
+                | _ => faile exp "go to non-world")
+
+     | Put (v, t, va, e) =>
+               (tok G t;
+                if tmobile G t
+                then let val tt = vok G va
+                         val G = binduvar G v t
+                     in
+                       if ctyp_eq (t, tt)
+                       then eok G e
+                       else faile exp "annotation on put mismatch"
+                     end
+                else faile exp "put of non-mobile value")
+
+
 (*
-      Call of 'cval * 'cval list
-    | Halt
-    | Go of world * 'cval * 'cexp
-    | Proj of var * string * 'cval * 'cexp
     | Primop of var list * primop * 'cval list * 'cexp
-    | Put of var * ctyp * 'cval * 'cexp
-    | Letsham of var * 'cval * 'cexp
-    | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
     (* type var, contents vars *)
     | TUnpack of var * (var * ctyp) list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
-    | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
     (* always kind 0; optional argument is a value import of the dictionary
        for that type *)
@@ -172,6 +244,140 @@ struct
   and vok G value : ctyp =
     (case cval value of
        Int i => Primcon'(INT, [])
+     | String s => Primcon'(STRING, [])
+     | AllLam { worlds, tys, vals, body } =>
+         let
+           val G = bindworlds G worlds
+           val G = bindtypes G tys
+           val () = ListUtil.appsecond (tok G) vals
+           val G = foldl (fn ((v, t), G) => bindvar G v t (worldfrom G)) G vals
+         in
+           AllArrow' { worlds = worlds, tys = tys, vals = map #2 vals, 
+                       body = vok G body }
+         end
+     | Record svl => Product' ` ListUtil.mapsecond (vok G) svl
+
+     | Fsel ( va, i ) =>
+         (case ctyp ` vok G va of
+            Conts tll =>
+              if i < length tll andalso i >= 0
+              then Cont' ` List.nth (tll, i)
+              else raise TypeCheck "fsel out of range"
+          | _ => raise TypeCheck "fsel on non-conts")
+     | Lams vael =>
+         let
+           (* check types ok *)
+           val () = app (fn (_, args, _) => ListUtil.appsecond (tok G) args) vael
+           (* recursive vars *)
+           val G = foldl (fn ((v, args, _), G) =>
+                          bindvar G v (Cont' ` map #2 args) ` worldfrom G) G vael
+
+         in
+           (* check each body under its args *)
+           app (fn (_, args, e) =>
+                eok (foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args) e) vael;
+                
+           (* if exps are okay, then use annotations *)
+           Conts' (map (fn (_, args, _) => map #2 args) vael)
+         end
+
+     | Proj (l, va) =>
+            (case ctyp ` vok G va of
+               Product stl => (case ListUtil.Alist.find op= stl l of
+                                 NONE => raise TypeCheck ("proj label " ^ l ^ " not in type")
+                               | SOME t => t)
+             | _ => raise TypeCheck "proj on non-product")
+
+     | Dictfor t => (tok G t; Dict' t)
+
+     | Inj (l, t, vo) =>
+         let in
+           tok G t;
+           case ctyp t of
+             Sum lal =>
+               (case (ListUtil.Alist.find op= lal l, vo) of
+                  (NONE, _) => raise TypeCheck ("inj label into sum without that label " ^ l)
+                | (SOME NonCarrier, NONE) => t
+                | (SOME (Carrier { definitely_allocated, carried }), SOME va) => 
+                    let 
+                      val tv = vok G va
+                    in
+                      if ctyp_eq (carried, tv)
+                      then t
+                      else raise TypeCheck "inj carrier type mismatch"
+                    end
+                | _ => raise TypeCheck "inj carrier/noncarrier mismatch")
+
+            | _ => raise TypeCheck "inj into non-sum"
+         end
+
+     | Var v =>
+         let val (t, w) = getvar G v
+         in
+           insistw G w;
+           t
+         end
+
+     | UVar v => getuvar G v
+
+     | Roll (t, va) =>
+         (tok G t;
+          case ctyp t of
+            Mu (i, ts) =>
+              let
+                val tt = vok G va
+              in
+                if ctyp_eq (tt, unroll (i, ts))
+                then t
+                else raise TypeCheck "roll mismatch"
+              end
+
+          | _ => raise TypeCheck "roll into non-mu")
+     | Hold (w, va) => 
+         let
+           val () = wok G w
+           val G = setworld G w
+         in
+           At' (vok G va, w)
+         end
+
+     | Sham (w, va) =>
+         let
+           val G' = bindworld G w
+           val G' = setworld G' (W w)
+
+           val t = vok G' va
+         in
+           (* type can't mention the bound world;
+              suffices to check it in the old context *)
+           tok G t;
+           Shamrock' t
+         end
+
+     | AllApp { f, worlds, tys, vals } =>
+         (case ctyp ` vok G f of
+            AllArrow { worlds = ww, tys = tt, vals = vv, body = bb } =>
+              let
+                val () = app (wok G) worlds
+                val () = app (tok G) tys
+                val () = if length ww = length worlds andalso length tt = length tys
+                         then () 
+                         else raise TypeCheck "allapp to wrong number of worlds/tys"
+                val wl = ListPair.zip (ww, worlds)
+                val tl = ListPair.zip (tt, tys)
+                fun subt t =
+                  let val t = foldr (fn ((wv, w), t) => subwt w wv t) t wl
+                  in foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
+                  end
+
+              in
+                (* check args *)
+                ListUtil.all2 (fn (va, vt) => ctyp_eq (subt vt, vok G va)) vals vv;
+                subt bb
+              end
+        | _ => raise TypeCheck "allapp to non-allarrow")
+            
+
      | _ => 
          let in
            print "\nUnimplemented:\n";

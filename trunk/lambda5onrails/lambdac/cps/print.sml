@@ -15,6 +15,7 @@ struct
 
   open CPS
 
+  fun varl v = $(V.tostring v)
 
   fun recordortuple layout sep l r osep vals =
         let 
@@ -69,7 +70,8 @@ struct
          | Int i => $(IntConst.tostring i)
          | String s => $("\"" ^ String.toString s ^ "\"")
          | Record svl => L.listex "{" "}" "," ` map (fn (s, v) => %[$s, $"=", vtol v]) svl
-         | Hold _ => $"hold?"
+         | Hold (w, va) => %[%[$"hold", L.paren ` wtol w],
+                             L.indent 2 ` vtol va]
          | WPack _ => $"wpack?"
          | TPack _ => $"tpack?"
          | AllApp { worlds = [w], f = v, tys = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<<", wtol w, $">>"]]
@@ -90,6 +92,8 @@ struct
                                                                         L.indent 4 ` vtol va]
          | AllLam {worlds = nil, tys = [v], vals = nil, body = va} => %[%[$"/\\", $(V.tostring v), $"."],
                                                                         L.indent 4 ` vtol va]
+
+         | Proj(l, va) => %[$("#" ^ l), vtol va]
 
          | AllLam { worlds, tys, vals, body } =>
                 %[%[$"alllam",
@@ -164,11 +168,6 @@ struct
                      vtol v],
                    L.indent 3 ` L.listex "(" ")" "," ` map vtol vl]]
 
-         | Proj(v, l, va, rest) => 
-               %[%[$(V.tostring v), $"="],
-                 L.indent 3 `
-                 %[$("#" ^ l), L.indent 2 ` vtol va]] :: estol rest
-
          | Go (w, a, rest) =>
                %[%[$"--",
                    $"go"],
@@ -181,7 +180,20 @@ struct
                  L.indent 4 ` vtol va] :: estol rest
 
          | Halt => [$"HALT."]
-         | _ => [$"CPS:unknown exp(s)"])
+
+         | Letsham (v, va, e) => %[%[$"letsham", varl v,
+                                     $"="],
+                                   L.indent 3 ` vtol va] :: estol e
+
+         | (Leta (v, va, e)) => %[%[$"leta", varl v, $"="],
+                                  L.indent 3 ` vtol va] :: estol e
+         | (WUnpack _) => [$"XXX-WUNP"]
+         | (TUnpack _) => [$"XXX_TUNP"]
+         | (Case _) => [$"XXX_CASE"]
+         | (ExternType _) => [$"XXX_ET"]
+(*         | _ => [$"CPS:unknown exp(s)"]
+*)
+)
 
   and ttol t = 
       (case ctyp t of
@@ -199,7 +211,7 @@ struct
          | At (t, w) => $"at?"
          | Cont tl => %[L.listex "(" ")" "," ` map ttol tl, $"cont"]
          | AllArrow { worlds, tys, vals, body } => $"allarrow?"
-               
+
          | Sum ltl => L.listex "[" "]" "," `map (fn (l, Carrier { carried = t,
                                                                   definitely_allocated = b}) =>
                                                                      L.seq[$l, $" : ", 
@@ -218,6 +230,9 @@ struct
          | Primcon (VEC, [t]) => %[ttol t, $"vec"]
          | Primcon (REF, [t]) => %[ttol t, $"ref"]
          | Primcon (DICT, [t]) => %[ttol t, $"dict"]
+         | Primcon (INT, []) => $"int"
+         | Primcon (STRING, []) => $"string"
+         | Primcon (EXN, []) => $"exn"
          | Primcon _ => $"XXX-bad-primcon-XXX"
 (*
     | WExists of var * 'ctyp

@@ -40,17 +40,16 @@ sig
     | TVar of var
 
   datatype primop = 
-    (* binds uvar *)
-    LOCALHOST 
-    (* binds regular var *)
-  | BIND 
-  | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
+      (* binds uvar *)
+      LOCALHOST 
+      (* binds regular var *)
+    | BIND 
+    | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
 
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
     | Halt
     | Go of world * 'cval * 'cexp
-    | Proj of var * string * 'cval * 'cexp
     | Primop of var list * primop * 'cval list * 'cexp
     | Put of var * ctyp * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
@@ -72,11 +71,13 @@ sig
     | Fsel of 'cval * int
     | Int of IL.intconst
     | String of string
+    | Proj of string * 'cval
     | Record of (string * 'cval) list
     | Hold of world * 'cval
     | WPack of world * 'cval
-    | TPack of ctyp * 'cval list
-    | Sham of 'cval
+      (* tpack t as t' [vals] *)
+    | TPack of ctyp * ctyp * 'cval list
+    | Sham of var * 'cval
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
     | Unroll of 'cval
@@ -90,6 +91,10 @@ sig
        are considered valuable. *)
     | AllLam of { worlds : var list, tys : var list, vals : (var * ctyp) list, body : 'cval }
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
+
+    | VLeta of var * 'cval * 'cval
+    | VLetsham of var * 'cval * 'cval
+
 
 
   (* subXY = substitute X/v in Y producing Y; not all combinations make sense *)
@@ -142,7 +147,6 @@ sig
   val Call' : cval * cval list -> cexp
   val Halt' : cexp
   val Go' : world * cval * cexp -> cexp
-  val Proj' : var * string * cval * cexp -> cexp
   val Primop' : var list * primop * cval list * cexp -> cexp
   val Put' : var * ctyp * cval * cexp -> cexp
   val Letsham' : var * cval * cexp -> cexp
@@ -161,8 +165,8 @@ sig
   val Record' : (string * cval) list -> cval
   val Hold' : world * cval -> cval
   val WPack' : world * cval -> cval
-  val TPack' : ctyp * cval list -> cval
-  val Sham' : cval -> cval
+  val TPack' : ctyp * ctyp * cval list -> cval
+  val Sham' : var * cval -> cval
   val Inj' : string * ctyp * cval option -> cval
   val Roll' : ctyp * cval -> cval
   val Unroll' : cval -> cval
@@ -171,10 +175,15 @@ sig
   val AllApp' : { f : cval, worlds : world list, tys : ctyp list, vals : cval list } -> cval
   val Var' : var -> cval
   val UVar' : var -> cval
+  val VLeta' : var * cval * cval -> cval
+  val VLetsham' : var * cval * cval -> cval
+  val Proj' : string * cval -> cval
 
   (* derived forms *)
+  val Dict' : ctyp -> ctyp
   val Lift' : var * cval * cexp -> cexp
   val Bind' : var * cval * cexp -> cexp
+  val Bindat' : var * world * cval * cexp -> cexp
   val WAll' : var * ctyp -> ctyp
   val TAll' : var * ctyp -> ctyp
   val Lam' : (var * (var * ctyp) list * cexp) -> cval
@@ -183,5 +192,6 @@ sig
   val WLam' : var * cval -> cval
   val TLam' : var * cval -> cval
   val Zerocon' : primcon -> ctyp
+  val EProj' : var * string * cval * cexp -> cexp
 
 end
