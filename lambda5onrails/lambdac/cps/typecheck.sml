@@ -257,6 +257,23 @@ struct
          end
      | Record svl => Product' ` ListUtil.mapsecond (vok G) svl
 
+     | TPack (t, tas, vs) =>
+         (case (tok G tas; ctyp tas) of
+            TExists (v, tl) =>
+              let
+                val () = tok G t
+                val ts = map (vok G) vs
+                  
+                (* after substituting in the packed type for the 
+                   existential variable, does the actual type match? *)
+                val stl = map (subtt t v) ts
+              in
+                if ListUtil.all2 ctyp_eq stl ts
+                then tas 
+                else raise TypeCheck "tpack doesn't match annotation"
+              end
+          | _ => raise TypeCheck "tpack as non-existential")
+
      | Fsel ( va, i ) =>
          (case ctyp ` vok G va of
             Conts tll =>

@@ -73,7 +73,8 @@ struct
          | Hold (w, va) => %[%[$"hold", L.paren ` wtol w],
                              L.indent 2 ` vtol va]
          | WPack _ => $"wpack?"
-         | TPack _ => $"tpack?"
+         | TPack (t, tas, vs) => %[%[%[$"tpack", ttol t], %[$"as", ttol tas]],
+                                   L.indent 2 ` L.listex "[" "]" "," ` map vtol vs]
          | AllApp { worlds = [w], f = v, tys = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<<", wtol w, $">>"]]
          | AllApp { tys = [t], f = v, worlds = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<", ttol t, $">"]]
          | Sham v => $"sham?"
@@ -210,7 +211,21 @@ struct
                            "and ")])
          | At (t, w) => $"at?"
          | Cont tl => %[L.listex "(" ")" "," ` map ttol tl, $"cont"]
-         | AllArrow { worlds, tys, vals, body } => $"allarrow?"
+         | AllArrow { worlds, tys, vals, body } =>
+             %[%[$"allarrow",
+                  L.listex "" "" ";"
+                  ((case worlds of
+                      nil => nil
+                    | _ => [% ($"w:" :: map ($ o V.tostring) worlds)]) @
+                   (case tys of
+                      nil => nil
+                    | _ => [% ($"t:" :: map ($ o V.tostring) tys)]) @
+                   (case vals of
+                      nil => nil
+                    | _ => [% ($"v:" :: map ttol vals)])
+                      ),
+                   $"."],
+                   L.indent 2 ` ttol body]
 
          | Sum ltl => L.listex "[" "]" "," `map (fn (l, Carrier { carried = t,
                                                                   definitely_allocated = b}) =>
@@ -225,6 +240,8 @@ struct
                           (fn (tl, i) => %[%[$("#" ^ itos i), $ ":"],
                                            L.indent 2 ` %[L.listex "(" ")" "," ` map ttol tl, $"cont"]]) tll]
 
+         | TExists (v, tt) => %[%[$"texists", varl v, $"."],
+                                L.indent 2 ` L.listex "[" "]" "," ` map ttol tt]
          | Product nil => $"unit"
          | Product ltl => recordortuple ttol ":" "(" ")" " *" ltl
          | Primcon (VEC, [t]) => %[ttol t, $"vec"]

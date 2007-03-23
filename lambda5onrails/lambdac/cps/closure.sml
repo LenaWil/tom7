@@ -226,16 +226,18 @@ struct
                    ce (bindvar G v cod ` worldfrom G) e)
          end
 
-
+     | _ => Halt'
          )
 
   (* Convert the value v; 
      return the converted value paired with the converted type. *)
   and cv G value =
     (case cval value of
+       Int _ => (value, Zerocon' INT)
+(*
        Lams vael => raise Closure "unimplemented:lams"
      | Fsel (v, i) => raise Closure "unimplemented:fsel"
-
+*)
      (* must have at least one value argument or it's purely static and
         therefore not closure converted *)
      | AllLam { worlds, tys, vals = vals as _ :: _, body } => 
@@ -248,7 +250,7 @@ struct
          *)
          let
            val (fv, fuv) = freevarsv value (* not counting the vars we just bound! *)
-           val (env, envt, wrape, wrapv) = mkenv G (fv, fuv)
+           val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
 
            val envv = V.namedvar "al_env"
            val envtv = V.namedvar "al_envt"
@@ -270,12 +272,14 @@ struct
                     [Dictfor' envt, AllLam' { worlds = worlds, 
                                               tys = tys,
                                               vals = (envv, envt) :: vals,
-                                              body = wrapv body }]),
+                                              body = wrapv (Var' envv, body) }]),
             rest)
          end
 
      (* ditto on the elim *)
-     | AllApp { f, worlds, tys, vals = vals as _ :: _ } => raise Closure "unimplemented:allapp"
+(*     | AllApp { f, worlds, tys, vals = vals as _ :: _ } => raise Closure "unimplemented:allapp" *)
+
+     | _ => (String' "OOPS", Zerocon' STRING)
 
 
          )
@@ -285,22 +289,55 @@ struct
      the free uvars fuv. return the environment value, its type, and two wrapper
      functions that "bind" these free variables within an expression or value,
      respectively. *)
-  and mkenv G (fv, fuv) : cval * ctyp * (cexp -> cexp) * (cval -> cval) =
+  and mkenv G (fv, fuv) : { env : cval, envt : ctyp, 
+                            wrape : cval * cexp -> cexp, 
+                            wrapv : cval * cval -> cval } =
     (* environment will take the form of a record.
        the first few labels will hold regular vals, held at their respective worlds.
        *)
     let
       val lab = ref 0
-      fun new () = (!lab before lab := !lab + 1)
+      fun new () = (Int.toString (!lab) before lab := !lab + 1)
       val fvs = map (fn v =>
                      let val (t, w) = T.getvar G v
                        
                      in
-                       (* { label = V.tostring  *)
-                          raise Closure "unimplemented"
+                       { label = new (), 
+                         typ = t,
+                         world = w,
+                         var = v }
                      end) (V.Set.foldr op:: nil fv)
+      val fuvs = map (fn v =>
+                      let val t = T.getuvar G v
+                      in
+                        { label = new (),
+                          typ = t,
+                          var = v }
+                      end) (V.Set.foldr op:: nil fuv)
+      fun dowrap LETA LETSHAM env x =
+        let
+          val x = foldr (fn ({label, typ, var}, x) =>
+                         LETSHAM (var, Proj' (label, env), x)) x fuvs
+          val x = foldr (fn ({label, typ, world, var}, x) =>
+                         LETA (var, Proj' (label, env), x)) x fvs
+        in
+          x
+        end
+
     in
-      raise Closure "unimplemented/mkenv"
+      { env = Record' `
+              (map (fn { label, typ, world, var } =>
+                    (label, Hold' (world, Var' var))) fvs @
+               map (fn { label, typ, var } =>
+                    (label, Sham' (V.namedvar "unused", UVar' var))) fuvs),
+        envt = Product' `
+               (map (fn { label, typ, world, var } =>
+                     (label, At' (typ, world))) fvs @
+                map (fn { label, typ, var } =>
+                     (label, Shamrock' typ)) fuvs),
+        wrape = fn (env, _) => raise Closure "unimplemented",
+        wrapv = fn (env, v) => dowrap VLeta' VLetsham' env v
+        }
     end
 
 
