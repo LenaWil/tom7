@@ -197,7 +197,7 @@ struct
 
   fun ce G exp = 
     (case cexp exp of
-       Call (f, args) => raise Closure "unimplemented"
+       Call (f, args) => raise Closure "call / unimplemented"
          
      | Halt => exp
      | ExternVal (v, l, t, wo, e) =>
@@ -226,7 +226,12 @@ struct
                    ce (bindvar G v cod ` worldfrom G) e)
          end
 
-     | _ => Halt'
+     | _ =>
+         let in
+           print "CLOSURE: unimplemented exp:\n";
+           Layout.print (CPSPrint.etol exp, print);
+           raise Closure "unimplemented"
+         end
          )
 
   (* Convert the value v; 
@@ -236,8 +241,55 @@ struct
        Int _ => (value, Zerocon' INT)
 (*
        Lams vael => raise Closure "unimplemented:lams"
-     | Fsel (v, i) => raise Closure "unimplemented:fsel"
 *)
+     | Fsel (v, i) => 
+
+     (* e.m must translate into 
+        
+        unpack e as (ENV; [de, env, fs]) 
+        in  pack ( ENV ; [de, env, fs.m] )  *)
+         let
+           val (v, t) = cv G v
+           val venvt = V.namedvar "fsel_envt"
+           val vde = V.namedvar "fsel_de"
+           val venv = V.namedvar "fsel_env"
+           val vfs = V.namedvar "fsel_fs"
+         in
+           case ctyp t of
+              TExists (vr, [tde, tenv, tfs]) =>
+                let
+                  val tres = TExists' (vr, [tde, tenv,
+                                            case ctyp tfs of
+                                              Conts ts =>
+                                                (Cont' ` List.nth (ts, i)
+                                                 handle _ => raise Closure "fsel out of range")
+                                            | _ => raise Closure "fsel texists wasn't conts??"])
+
+                  val tde = subtt (TVar' venvt) vr tde
+                  val tenv = subtt (TVar' venvt) vr tenv
+                  val tfs = subtt (TVar' venvt) vr tfs
+
+                in
+                  (VTUnpack' (venvt,
+                              [(vde, tde),
+                               (venv, tenv),
+                               (vfs, tfs)],
+                              v, (* unpack this *)
+                              TPack'
+                              (* same environment type,
+                                 dict, environment. *)
+                              (TVar' venvt,
+                               tres,
+                               [Var' vde,
+                                Var' venv,
+                                Fsel' (Var' vfs, i)])),
+                   tres)
+                end
+            | _ => raise Closure "fsel on non-function (didn't translate to Exists 3)"
+         end
+
+
+
      (* must have at least one value argument or it's purely static and
         therefore not closure converted *)
      | AllLam { worlds, tys, vals = vals as _ :: _, body } => 
@@ -279,8 +331,12 @@ struct
      (* ditto on the elim *)
 (*     | AllApp { f, worlds, tys, vals = vals as _ :: _ } => raise Closure "unimplemented:allapp" *)
 
-     | _ => (String' "OOPS", Zerocon' STRING)
-
+     | _ => 
+         let in
+           print "CLOSURE: unimplemented val\n";
+           Layout.print (CPSPrint.vtol value, print);
+           raise Closure "unimplemented"
+         end
 
          )
            
