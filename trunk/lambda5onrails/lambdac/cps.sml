@@ -71,6 +71,7 @@ struct
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
     | VLeta of var * 'cval * 'cval
     | VLetsham of var * 'cval * 'cval
+    | VTUnpack of var * (var * ctyp) list * 'cval * 'cval
 
   (* nb. Binders must be implemented in outjection code below! *)
    
@@ -211,6 +212,14 @@ struct
          | Unroll va => Unroll (vself va)
          | Roll (t, va) => Roll (tself t, vself va)
          | Dictfor t => Dictfor ` tself t
+         | VTUnpack (vv1, vvl, va, ve) =>
+                  VTUnpack (vv1, 
+                            if V.eq(vv1, v) then vvl else ListUtil.mapsecond tself vvl, 
+                               vself va,
+                            if V.eq(vv1, v) orelse List.exists (fn (vv, _) => V.eq (vv, v)) vvl
+                            then ve
+                            else vself ve)
+
          | Sham (w, va) => if V.eq(v, w) 
                            then value
                            else Sham (w, vself va)
@@ -373,7 +382,16 @@ struct
                                              )
                                           end) fs)
                              end
-
+    | cval (V(VTUnpack(v1, vtl, va, ve))) = 
+                             let 
+                               val v1' = V.alphavary v1
+                               val (v2l, t2l) = ListPair.unzip vtl
+                               val t2l = map (renamet v1 v1') t2l
+                               val v2l' = ListUtil.mapto V.alphavary v2l
+                             in VTUnpack(v1', ListPair.zip(map #2 v2l', t2l), 
+                                         va, 
+                                         renamevall (renamev v1 v1' ve) v2l')
+                             end
     | cval (V (VLetsham (v, va, va2))) =
                              let val v' = V.alphavary v
                              in VLetsham(v', va, renamev v v' va2)
@@ -644,6 +662,7 @@ struct
   val VLetsham' = fn x => V (VLetsham x)
   val VLeta' = fn x => V (VLeta x)
   val Proj' = fn x => V (Proj x)
+  val VTUnpack' = fn x => V (VTUnpack x)
 
   fun Lam' (v, vl, e) = Fsel' (Lams' [(v, vl, e)], 0)
   fun Zerocon' pc = Primcon' (pc, nil)
@@ -652,6 +671,7 @@ struct
   fun Bindat' (v, w, cv, e) = Leta' (v, Hold' (w, cv), e)
   fun Dict' t = Primcon' (DICT, [t])
   fun EProj' (v, s, va, e) = Bind' (v, Proj'(s, va), e)
+
 
   (* utility code *)
 

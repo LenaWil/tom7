@@ -158,18 +158,21 @@ struct
             val () = Layout.print ( CPSPrint.etol c, print)
 
             val () = CPSTypeCheck.check cw c
+            val () = print "\n* Typechecked OK *\n"
 
             val c : CPS.cexp = CPSDict.translate c
             val () = print "\n\n**** CPS DICT: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
             val () = CPSTypeCheck.check cw c
+            val () = print "\n* Typechecked OK *\n"
 
             val c : CPS.cexp = Closure.convert cw c
             val () = print "\n\n**** CLOSURE: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
             val () = CPSTypeCheck.check cw c
+            val () = print "\n* Typechecked OK *\n"
 
         in
             print "\n";

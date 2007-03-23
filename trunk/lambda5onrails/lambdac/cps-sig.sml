@@ -56,7 +56,6 @@ sig
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
-    (* type var, contents vars *)
     | TUnpack of var * (var * ctyp) list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
@@ -94,6 +93,8 @@ sig
 
     | VLeta of var * 'cval * 'cval
     | VLetsham of var * 'cval * 'cval
+    (* type var, contents vars *)
+    | VTUnpack of var * (var * ctyp) list * 'cval * 'cval
 
 
 
@@ -152,11 +153,11 @@ sig
   val Letsham' : var * cval * cexp -> cexp
   val Leta' : var * cval * cexp -> cexp
   val WUnpack' : var * var * cval * cexp -> cexp
-  val TUnpack' : var * (var * ctyp) list * cval * cexp -> cexp
   val Case' : cval * var * (string * cexp) list * cexp -> cexp
   val ExternVal' : var * string * ctyp * world option * cexp -> cexp
   val ExternWorld' : var * string * cexp -> cexp
   val ExternType' : var * string * (var * string) option * cexp -> cexp
+  val TUnpack' : var * (var * ctyp) list * cval * cexp -> cexp
 
   val Lams' : (var * (var * ctyp) list * cexp) list -> cval
   val Fsel' : cval * int -> cval
@@ -178,6 +179,7 @@ sig
   val VLeta' : var * cval * cval -> cval
   val VLetsham' : var * cval * cval -> cval
   val Proj' : string * cval -> cval
+  val VTUnpack' : var * (var * ctyp) list * cval * cval -> cval
 
   (* derived forms *)
   val Dict' : ctyp -> ctyp
