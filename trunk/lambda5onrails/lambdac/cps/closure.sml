@@ -154,13 +154,13 @@ struct
       let val (us1, s1) = allvarsv value
           val (us2, s2) = allvarsv value
       in
-        (VS.intersection (us1, us2), VS.intersection (s1, s2))
+        (VS.intersection (s1, s2), VS.intersection (us1, us2))
       end
     fun freevarse exp = 
       let val (us1, s1) = allvarse exp
           val (us2, s2) = allvarse exp
       in
-        (VS.intersection (us1, us2), VS.intersection (s1, s2))
+        (VS.intersection (s1, s2), VS.intersection (us1, us2))
       end
 
   end
@@ -173,12 +173,20 @@ struct
      contextual information. *)
   fun ct typ =
     (case ctyp typ of
-       Cont tl => raise Closure "unimplemented"
-    | Conts tll => raise Closure "unimplemented"
+       Cont tl => 
+         let 
+           val t = map ct tl
+           val venv = V.namedvar "env"
+         in
+           TExists' (venv, [Dict' ` TVar' ` venv, 
+                            TVar' venv,
+                            Cont' tl])
+         end
+    | Conts tll => raise Closure "unimplemented conts"
     (* don't cc these; they are purely static *)
     | AllArrow { worlds, tys, vals = nil, body } => AllArrow' { worlds=worlds, tys=tys, vals=nil,
                                                                 body = ct body }
-    | AllArrow { worlds, tys, vals, body } => raise Closure "unimplemented"
+    | AllArrow { worlds, tys, vals, body } => raise Closure "unimplemented allarrow"
     | TExists _ => raise Closure "wasn't expecting to see Exists before cc"
          
     (* cc doesn't touch any other types... *)
@@ -197,7 +205,23 @@ struct
 
   fun ce G exp = 
     (case cexp exp of
-       Call (f, args) => raise Closure "call / unimplemented"
+       Call (f, args) =>
+         let
+           val (f, ft) = cv G f
+           val (args, argts) = ListPair.unzip ` map (cv G) args
+           val vu = V.namedvar "envd"
+           val envt = V.namedvar "envt"
+           val envv = V.namedvar "env"
+
+           val fv = V.namedvar "fv"
+         in
+           TUnpack' (envt,
+                     [(vu, Dict' ` TVar' envt),
+                      (envv, TVar' envt),
+                      (fv, Cont' (TVar' envt :: argts))],
+                     f,
+                     Call'(Var' fv, Var' envv :: args))
+         end
          
      | Halt => exp
      | ExternVal (v, l, t, wo, e) =>
@@ -209,6 +233,10 @@ struct
                   NONE => binduvar G v t
                 | SOME w => bindvar G v t w) e)
          end
+
+     | ExternWorld (v, l, e) => 
+         ExternWorld' (v, l, ce (bindworld G v) e)
+           
      | Primop ([v], BIND, [va], e) =>
          let
            val (va, t) = cv G va
@@ -225,12 +253,29 @@ struct
            Primop'([v], PRIMCALL { sym = sym, dom = map ct dom, cod = cod }, vas,
                    ce (bindvar G v cod ` worldfrom G) e)
          end
+     | Leta (v, va, e) =>
+         let val (va, t) = cv G va
+         in
+           case ctyp t of
+             At (t, w) => 
+               Leta' (v, va, ce (bindvar G v t w) e)
+           | _ => raise Closure "leta on non-at"
+         end
+
+     | Letsham (v, va, e) =>
+         let val (va, t) = cv G va
+         in
+           case ctyp t of
+             Shamrock t => 
+               Letsham' (v, va, ce (binduvar G v t) e)
+           | _ => raise Closure "letsham on non-shamrock"
+         end
 
      | _ =>
          let in
            print "CLOSURE: unimplemented exp:\n";
            Layout.print (CPSPrint.etol exp, print);
-           raise Closure "unimplemented"
+           raise Closure "unimplemented EXP"
          end
          )
 
@@ -239,9 +284,96 @@ struct
   and cv G value =
     (case cval value of
        Int _ => (value, Zerocon' INT)
+     | String _ => (value, Zerocon' STRING)
+     | Var v => 
+         let in
+           print ("Lookup " ^ V.tostring v ^ "\n");
+           (value, #1 ` T.getvar G v)
+         end
+     | UVar v => 
+         let in
+           print ("Lookup " ^ V.tostring v ^ "\n");
+           (value, T.getuvar G v)
+         end
+     | Inj (s, t, vo) => let val t = ct t 
+                         in (Inj' (s, ct t, Option.map (#1 o cv G) vo), t)
+                         end
+     | Hold (w, va) => 
+         let
+           val G = T.setworld G w
+           val (va, t) = cv G va
+         in
+           (Hold' (w, va),
+            At' (t, w))
+         end
+
+     | Sham (w, va) =>
+         let
+           val G' = bindworld G w
+           val G' = T.setworld G' (W w)
+
+           val (va, t) = cv G' va
+         in
+           (Sham' (w, va),
+            Shamrock' t)
+         end
+
+     | Lams vael => 
 (*
-       Lams vael => raise Closure "unimplemented:lams"
+   fns f(x). e1           ==>    
+   and g(y). e2
+
+
+    pack ( ENV ; [dictfor ENV, env = { fv1 = fv1, ... fvn = fvn },
+          fns f(env, x). 
+              let fv1 = #fv1 env      (except actually leta and lift, see proposal)
+                    ...
+                  (: create closures for calls to f and g within e1 :)
+                  f = (pack ( ENV ; [dictfor ENV, env = env, f] ))
+                  g = (pack ( ENV ; [dictfor ENV, env = env, g] ))
+                  .. [[e1]]
+          and g(env, y).
+                  .. same ..
+          ])
+
+         where ENV is the record type { fv1 : t1, ... fvn : tn }.
 *)
+         let
+           (* not body; we don't want argument occurrences since they are bound by lam *)
+           val (fv, fuv) = freevarsv value
+           val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
+
+           val vael = map (fn (f, args, body) =>
+                           (f, ListUtil.mapsecond ct args, body)) vael
+
+           (* bind all fn variables recursively *)
+           val G = foldr (fn ((f, args, body), G) =>
+                          let val dom = map #2 args
+                          in
+                            bindvar G f (Cont' dom) ` worldfrom G
+                          end) G vael
+
+           val envtv = V.namedvar "lams_envt"
+           val rest = TExists' (envtv, [Dict' ` TVar' envtv, 
+                                        TVar' envtv,
+                                        Conts' (map (fn (_, args, _) =>
+                                                     map #2 args) vael)])
+
+           val envvv = V.namedvar "env"
+
+         in
+           (TPack'
+            (envt,
+             rest,
+             [Dictfor' envt,
+              env,
+              Lams' `
+              map (fn (f, args, body) =>
+                   (f, (envvv, envt) :: args, wrape (Var' envvv, body))
+                   ) vael]),
+            rest)
+         end
+
      | Fsel (v, i) => 
 
      (* e.m must translate into 
@@ -335,7 +467,7 @@ struct
          let in
            print "CLOSURE: unimplemented val\n";
            Layout.print (CPSPrint.vtol value, print);
-           raise Closure "unimplemented"
+           raise Closure "unimplemented VAL"
          end
 
          )
@@ -354,6 +486,15 @@ struct
     let
       val lab = ref 0
       fun new () = (Int.toString (!lab) before lab := !lab + 1)
+      val fvs =  V.Set.foldr op:: nil fv
+      val fuvs = V.Set.foldr op:: nil fuv
+
+      val () = print "FV: "
+      val () = app (fn v => print (V.tostring v ^ " ")) fvs
+      val () = print "\nFUV: "
+      val () = app (fn v => print (V.tostring v ^ " ")) fuvs
+      val () = print "\n"
+
       val fvs = map (fn v =>
                      let val (t, w) = T.getvar G v
                        
@@ -362,14 +503,14 @@ struct
                          typ = t,
                          world = w,
                          var = v }
-                     end) (V.Set.foldr op:: nil fv)
+                     end) fvs
       val fuvs = map (fn v =>
                       let val t = T.getuvar G v
                       in
                         { label = new (),
                           typ = t,
                           var = v }
-                      end) (V.Set.foldr op:: nil fuv)
+                      end) fuvs
       fun dowrap LETA LETSHAM env x =
         let
           val x = foldr (fn ({label, typ, var}, x) =>
@@ -391,7 +532,7 @@ struct
                      (label, At' (typ, world))) fvs @
                 map (fn { label, typ, var } =>
                      (label, Shamrock' typ)) fuvs),
-        wrape = fn (env, _) => raise Closure "unimplemented",
+        wrape = fn (env, v) => dowrap Leta' Letsham' env v,
         wrapv = fn (env, v) => dowrap VLeta' VLetsham' env v
         }
     end
