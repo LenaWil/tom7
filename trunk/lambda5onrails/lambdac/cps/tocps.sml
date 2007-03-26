@@ -155,7 +155,7 @@ struct
                                        Bind' (vv, Inj'(l, t, SOME v),
                                               k (bindvar G vv t w, Var' vv, t, w))
                                    end)
-       (* XX also bind? *)
+       (* PERF also bind? *)
        | I.Value v => 
               let val (va, t, w) = cvtv G v
               in k (G, va, t, w)

@@ -2,8 +2,9 @@
 default : lambdac
 
 # XXX Stops at type checking!
-WINDOWS_MLTON_FLAGS = @MLton max-heap 300M --
-MLTON_FLAGS = -expert true -prefer-abs-paths true -show-def-use lambdac.basis.du -stop tc 
+MLTON_FLAGS = @MLton max-heap 300M -- -stop tc
+LINUX_MLTON_FLAGS = -expert true -prefer-abs-paths true -show-def-use lambdac.basis.du -stop tc 
+
 
 # lambdac.exe : lambdac
 #	rm -f lambdac.exe

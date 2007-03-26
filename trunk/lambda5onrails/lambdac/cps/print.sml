@@ -66,7 +66,23 @@ struct
                        $"="],
                      L.indent 2 ` etol e]) ll)]
 
-               
+         | (VLeta (v, va, ve)) => %[%[$"vleta", varl v, $"="],
+                                    L.indent 3 ` vtol va,
+                                    $"in",
+                                    L.indent 3 ` vtol ve]
+         | (VLetsham (v, va, ve)) => %[%[$"vleta", varl v, $"="],
+                                       L.indent 3 ` vtol va,
+                                       $"in",
+                                       L.indent 3 ` vtol ve]
+         | (VTUnpack (v, vtl, va, ve)) =>
+                  %[%[$"vtunpack", varl v, $";", 
+                      L.listex "[" "]" "," ` map (fn (v, t) =>
+                                                  %[varl v, $":",
+                                                    ttol t]) vtl, $"="],
+                    L.indent 3 ` vtol va,
+                    $"in",
+                    L.indent 3 ` vtol ve]
+
          | Int i => $(IntConst.tostring i)
          | String s => $("\"" ^ String.toString s ^ "\"")
          | Record svl => L.listex "{" "}" "," ` map (fn (s, v) => %[$s, $"=", vtol v]) svl
@@ -188,8 +204,14 @@ struct
 
          | (Leta (v, va, e)) => %[%[$"leta", varl v, $"="],
                                   L.indent 3 ` vtol va] :: estol e
+
          | (WUnpack _) => [$"XXX-WUNP"]
-         | (TUnpack _) => [$"XXX_TUNP"]
+         | (TUnpack (v, vtl, va, e)) =>
+               %[%[$"tunpack", varl v, $";", 
+                   L.listex "[" "]" "," ` map (fn (v, t) =>
+                                               %[varl v, $":",
+                                                 ttol t]) vtl, $"="],
+                 L.indent 3 ` vtol va] :: estol e
          | (Case _) => [$"XXX_CASE"]
          | (ExternType _) => [$"XXX_ET"]
 (*         | _ => [$"CPS:unknown exp(s)"]
