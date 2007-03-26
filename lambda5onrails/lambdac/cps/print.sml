@@ -75,13 +75,13 @@ struct
                                        $"in",
                                        L.indent 3 ` vtol ve]
          | (VTUnpack (v, vtl, va, ve)) =>
-                  %[%[$"vtunpack", varl v, $";", 
-                      L.listex "[" "]" "," ` map (fn (v, t) =>
-                                                  %[varl v, $":",
-                                                    ttol t]) vtl, $"="],
-                    L.indent 3 ` vtol va,
-                    $"in",
-                    L.indent 3 ` vtol ve]
+               %[%[$"tunpack", L.indent 3 ` vtol va, $"as"],
+                 %[varl v, $";", 
+                   L.listex "[" "]" "," ` map (fn (v, t) =>
+                                               %[varl v, $":",
+                                                 ttol t]) vtl, $"="],
+                 $"in",
+                 L.indent 3 ` vtol ve]
 
          | Int i => $(IntConst.tostring i)
          | String s => $("\"" ^ String.toString s ^ "\"")
@@ -147,7 +147,7 @@ struct
                    
          | Var v => $(V.tostring v)
          | UVar v => $("~" ^ V.tostring v)
-               )
+               ) handle Match => $"XXX_MATCH-VAL_XXX"
 
   and etol e = L.align (estol e)
 
@@ -207,16 +207,17 @@ struct
 
          | (WUnpack _) => [$"XXX-WUNP"]
          | (TUnpack (v, vtl, va, e)) =>
-               %[%[$"tunpack", varl v, $";", 
+               %[%[$"tunpack", L.indent 3 ` vtol va, $"as"],
+                 %[varl v, $";", 
                    L.listex "[" "]" "," ` map (fn (v, t) =>
                                                %[varl v, $":",
-                                                 ttol t]) vtl, $"="],
-                 L.indent 3 ` vtol va] :: estol e
+                                                 ttol t]) vtl, $"="]
+                 ] :: estol e
          | (Case _) => [$"XXX_CASE"]
          | (ExternType _) => [$"XXX_ET"]
 (*         | _ => [$"CPS:unknown exp(s)"]
 *)
-)
+) handle Match => [$"XXX_MATCH-EXP_XXX"]
 
   and ttol t = 
       (case ctyp t of
@@ -282,7 +283,7 @@ struct
 *)
          | TVar v => $(V.tostring v)
          | _ => $"t?"
-               )
+               ) handle Match => $"XXX_MATCH-TYP_XXX"
       (* $"CPS:unknown typ" *)
 
   and wtol (W w) = $(V.tostring w)
@@ -294,5 +295,4 @@ struct
                                           %[L.listex "(" ")" "," ` map ttol dom,
                                             $"->",
                                             ttol cod]]
-
 end

@@ -50,6 +50,7 @@ sig
       Call of 'cval * 'cval list
     | Halt
     | Go of world * 'cval * 'cexp
+    | Go_cc of world * 'cval * 'cval
     | Primop of var list * primop * 'cval list * 'cexp
     | Put of var * ctyp * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
@@ -121,6 +122,10 @@ sig
   val cexp : cexp -> (cexp, cval) cexpfront
   val cval : cval -> (cexp, cval) cvalfront
 
+  val ctyp' : ctyp ctypfront -> ctyp
+  val cexp' : (cexp, cval) cexpfront -> cexp
+  val cval' : (cexp, cval) cvalfront -> cval
+
   (* utilities *)
 
   (* apply the function to each immediate subterm (of type ctyp) and
@@ -148,6 +153,7 @@ sig
   val Call' : cval * cval list -> cexp
   val Halt' : cexp
   val Go' : world * cval * cexp -> cexp
+  val Go_cc' : world * cval * cval -> cexp
   val Primop' : var list * primop * cval list * cexp -> cexp
   val Put' : var * ctyp * cval * cexp -> cexp
   val Letsham' : var * cval * cexp -> cexp
@@ -188,7 +194,7 @@ sig
   val Bindat' : var * world * cval * cexp -> cexp
   val WAll' : var * ctyp -> ctyp
   val TAll' : var * ctyp -> ctyp
-  val Lam' : (var * (var * ctyp) list * cexp) -> cval
+  val Lam' :  var * (var * ctyp) list * cexp -> cval
   val WApp' : cval * world -> cval
   val TApp' : cval * ctyp -> cval
   val WLam' : var * cval -> cval

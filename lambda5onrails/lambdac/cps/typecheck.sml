@@ -71,6 +71,12 @@ struct
      | Primcon (VEC, [t]) => tmobile G t
      | _ => raise TypeCheck "unimplemented tmobile")
 
+  datatype error =
+      TY of ctyp
+    | TYL of ctyp list
+    | $ of string
+    | VA of cval
+    | EX of cexp
 
   fun unroll (m, tl) =
     (let val (_, t) = List.nth (tl, m)
@@ -84,12 +90,20 @@ struct
        thet
      end handle _ => raise TypeCheck "malformed mu")
 
-  fun faile exp msg =
-    let in
-      print "\nIll-typed:\n";
-      Layout.print (CPSPrint.etol exp, print);
-      raise TypeCheck msg
+  fun fail err =
+    let 
+      fun errtol (TY t) = CPSPrint.ttol t
+        | errtol (TYL tl) = Layout.listex "<" ">" ";" ` map CPSPrint.ttol tl
+        | errtol ($ s) = Layout.str s
+        | errtol (VA v) = CPSPrint.vtol v
+        | errtol (EX e) = CPSPrint.etol e
+    in
+      print "\n\n";
+      Layout.print (Layout.mayAlign (map errtol err), print);
+      raise TypeCheck "failure"
     end
+
+  fun faile exp msg = fail [$"\n\nIll-typed: ", EX exp, $"\n", $msg]
        
   fun wok G (W w) = getworld G w
 
@@ -187,7 +201,11 @@ struct
             (Cont al, al') => if ListUtil.all2 ctyp_eq al al'
                               then ()
                               else raise TypeCheck "argument mismatch at call"
-          | _ => faile exp "call to non-cont")
+          | (ot, _) => fail [$"call to non-cont",
+                             $"in exp: ", EX ` exp,
+                             $"got: ", TY (ctyp' ot)]
+                                
+                                )
      | ExternWorld (v, _, e) => eok (bindworld G v) e
      | Leta (v, va, e) =>
             (case ctyp ` vok G va of
@@ -218,13 +236,29 @@ struct
                      end
                 else faile exp "put of non-mobile value")
 
+     | TUnpack (tv, vvs, va, e) =>
+               (case ctyp ` vok G va of
+                  TExists (vr, tl) =>
+                    let 
+                      val tl = map (subtt (TVar' tv) vr) tl
+                      val () = if ListUtil.all2 ctyp_eq tl (map #2 vvs)
+                               then ()
+                               else fail [$"tunpack val args don't agree: ",
+                                          $"from typ: ", TYL tl,
+                                          $"stated: ", TYL ` map #2 vvs]
+                      (* new type, can't be mobile *)
+                      val G = bindtype G tv false
+                      (* some values now *)
+                      val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
+                    in
+                      eok G e
+                    end
+                | _ => faile exp "tunpack non-exists")
 
 (*
     | Primop of var list * primop * 'cval list * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
-    (* type var, contents vars *)
-    | TUnpack of var * (var * ctyp) list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternWorld of var * string * 'cexp
     (* always kind 0; optional argument is a value import of the dictionary
@@ -370,6 +404,23 @@ struct
            tok G t;
            Shamrock' t
          end
+
+     | VTUnpack (tv, vvs, va, ve) =>
+               (case ctyp ` vok G va of
+                  TExists (vr, tl) =>
+                    let 
+                      val tl = map (subtt (TVar' tv) vr) tl
+                      val () = if ListUtil.all2 ctyp_eq tl (map #2 vvs)
+                               then ()
+                               else raise TypeCheck "vtunpack val args don't agree"
+                      (* new type, can't be mobile *)
+                      val G = bindtype G tv false
+                      (* some values now *)
+                      val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
+                    in
+                      vok G ve
+                    end
+                | _ => raise TypeCheck "vtunpack non-exists")
 
      | AllApp { f, worlds, tys, vals } =>
          (case ctyp ` vok G f of

@@ -146,14 +146,18 @@ struct
 
             val () = SymbolDB.clear ()
 
-            val inter = getil file
+            val il = getil file
 
             val () = print "\n\n**** ELABORATED: ****\n"
-            val () = Layout.print( ILPrint.utol inter, print)
+            val () = Layout.print( ILPrint.utol il, print)
+
+            val il = ILUnused.unused il
+            val () = print "\n\n**** UNUSED: ****\n"
+            val () = Layout.print( ILPrint.utol il, print)
 
             val cw = CPS.W Initial.homevar
 
-            val c : CPS.cexp = ToCPS.convert inter Initial.home
+            val c : CPS.cexp = ToCPS.convert il Initial.home
             val () = print "\n\n**** CPS CONVERTED: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
@@ -191,6 +195,7 @@ struct
          | CPSDict.CPSDict s => fail ("\nCPSDict: " ^ s ^ "\n")
          | Closure.Closure s => fail ("\nClosure conversion: " ^ s ^ "\n")
          | ILAlpha.Alpha s => fail ("\nIL Alpha: " ^ s ^ "\n")
+         | ILUnused.Unused s => fail ("\nIL unused: " ^ s ^ "\n")
          | Elaborate.Elaborate s => fail("\nElaboration: " ^ s ^ "\n")
          | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")
          | Variable.Variable s => fail ("\n\nBUG: Variables: " ^ s ^ "\n")
