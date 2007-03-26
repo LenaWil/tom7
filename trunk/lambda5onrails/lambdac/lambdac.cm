@@ -129,11 +129,8 @@ front/elaborate.sml
 il/util-sig.sml
 il/util.sml
 
-(*
-	changed my mind...
-il/dict-sig.sml
-il/dict.sml
-*)
+il/unused-sig.sml
+il/unused.sml
 
 (* XXX5
 il/opt-sig.sml

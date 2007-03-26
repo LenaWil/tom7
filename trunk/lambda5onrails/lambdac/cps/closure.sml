@@ -175,14 +175,23 @@ struct
     (case ctyp typ of
        Cont tl => 
          let 
-           val t = map ct tl
+           val tl = map ct tl
            val venv = V.namedvar "env"
          in
            TExists' (venv, [Dict' ` TVar' ` venv, 
                             TVar' venv,
-                            Cont' tl])
+                            Cont' (TVar' venv :: tl)])
          end
-    | Conts tll => raise Closure "unimplemented conts"
+    | Conts tll => 
+         let 
+           val tll = map (map ct) tll
+           val venv = V.namedvar "env"
+         in
+           TExists' (venv, [Dict' ` TVar' ` venv, 
+                            TVar' venv,
+                            (* new arg to each function ... *)
+                            Conts' (map (fn l => TVar' venv :: l) tll)])
+         end
     (* don't cc these; they are purely static *)
     | AllArrow { worlds, tys, vals = nil, body } => AllArrow' { worlds=worlds, tys=tys, vals=nil,
                                                                 body = ct body }
@@ -213,7 +222,7 @@ struct
            val envt = V.namedvar "envt"
            val envv = V.namedvar "env"
 
-           val fv = V.namedvar "fv"
+           val fv = V.namedvar "f"
          in
            TUnpack' (envt,
                      [(vu, Dict' ` TVar' envt),
@@ -236,6 +245,10 @@ struct
 
      | ExternWorld (v, l, e) => 
          ExternWorld' (v, l, ce (bindworld G v) e)
+
+     | Primop ([v], LOCALHOST, [], e) =>
+           Primop' ([v], LOCALHOST, [], 
+                    ce (binduvar G v ` Addr' ` worldfrom G) e)
            
      | Primop ([v], BIND, [va], e) =>
          let
@@ -271,6 +284,50 @@ struct
            | _ => raise Closure "letsham on non-shamrock"
          end
 
+     | Put (v, t, va, e) => 
+         let
+           val t = ct t
+           val (va, _) = cv G va
+           val G = binduvar G v t
+         in
+           Put' (v, t, va, ce G e)
+         end
+
+       (* go [w; a] e
+
+           ==>
+
+          go_cc [w; [[a]]; pack envt as _
+                            < dictfor envt, envt, envt cont > ]
+          *)
+     | Go (w, addr, body) =>
+         let
+           val (addr, _) = cv G addr
+           val body = ce (T.setworld G w) body
+
+           val (fv, fuv) = freevarse body
+           val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
+
+           val envtv = V.namedvar "go_envt"
+           val rest = TExists' (envtv, [Dict' ` TVar' envtv, 
+                                        TVar' envtv,
+                                        Cont' [TVar' envtv]])
+
+           val envv = V.namedvar "go_env"
+
+         in
+           Go_cc' (w, addr,
+                   TPack' (envt,
+                           rest,
+                           [Dictfor' envt,
+                            env,
+                            Lam' (V.namedvar "go_unused",
+                                  [(envv, envt)],
+                                  wrape (Var' envv, body))])
+                   )
+                                   
+         end
+
      | _ =>
          let in
            print "CLOSURE: unimplemented exp:\n";
@@ -285,14 +342,24 @@ struct
     (case cval value of
        Int _ => (value, Zerocon' INT)
      | String _ => (value, Zerocon' STRING)
+
+     | Record lvl =>
+         let 
+           val (l, v) = ListPair.unzip lvl
+           val (v, t) = ListPair.unzip ` map (cv G) v
+         in
+           (Record' ` ListPair.zip (l, v),
+            Product' ` ListPair.zip (l, t))
+         end
+
      | Var v => 
          let in
-           print ("Lookup " ^ V.tostring v ^ "\n");
+           (* print ("Lookup " ^ V.tostring v ^ "\n"); *)
            (value, #1 ` T.getvar G v)
          end
      | UVar v => 
          let in
-           print ("Lookup " ^ V.tostring v ^ "\n");
+           (* print ("Lookup " ^ V.tostring v ^ "\n"); *)
            (value, T.getuvar G v)
          end
      | Inj (s, t, vo) => let val t = ct t 
@@ -316,6 +383,24 @@ struct
          in
            (Sham' (w, va),
             Shamrock' t)
+         end
+
+     | Roll (t, va) => 
+         let
+           val t = ct t
+           val (va, _) = cv G va
+         in
+           (Roll' (t, va), t)
+         end
+
+     | Proj (l, va) =>
+         let val (va, t) = cv G va
+         in
+           case ctyp t of
+              Product stl => (case ListUtil.Alist.find op= stl l of
+                                NONE => raise Closure ("proj label " ^ l ^ " not in type")
+                              | SOME t => (Proj' (l, va), t))
+            | _ => raise Closure "proj on non-product"
          end
 
      | Lams vael => 
@@ -369,7 +454,14 @@ struct
               env,
               Lams' `
               map (fn (f, args, body) =>
-                   (f, (envvv, envt) :: args, wrape (Var' envvv, body))
+                   let 
+                     (* bind args *)
+                     val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args
+                     val G = bindvar G envvv envt ` worldfrom G
+                     (* FIXME bind rec closures *)
+                   in
+                     (f, (envvv, envt) :: args, wrape (Var' envvv, ce G body))
+                   end
                    ) vael]),
             rest)
          end
@@ -447,21 +539,89 @@ struct
 
            (* type of this pack *)
            val rest = TExists' (envtv, [Dict' ` TVar' envtv, 
+                                        TVar' envtv,
                                         AllArrow' { worlds = worlds, tys = tys,
-                                                    vals = map #2 vals,
+                                                    vals = TVar' envtv :: map #2 vals,
                                                     body = bodyt }])
          in
            (TPack' (envt, 
                     rest,
-                    [Dictfor' envt, AllLam' { worlds = worlds, 
-                                              tys = tys,
-                                              vals = (envv, envt) :: vals,
-                                              body = wrapv (Var' envv, body) }]),
+                    [Dictfor' envt, 
+                     env,
+                     AllLam' { worlds = worlds, 
+                               tys = tys,
+                               vals = (envv, envt) :: vals,
+                               body = wrapv (Var' envv, body) }]),
             rest)
          end
 
      (* ditto on the elim *)
-(*     | AllApp { f, worlds, tys, vals = vals as _ :: _ } => raise Closure "unimplemented:allapp" *)
+     (* needs to remain a value... *)
+     | AllApp { f, worlds, tys, vals = vals as _ :: _ } =>
+         let
+           val (f, ft) = cv G f
+           val tys = map ct tys
+           val (vals, valts) = ListPair.unzip ` map (cv G) vals
+
+           val envt = V.namedvar "aa_envt"
+           val envv = V.namedvar "aa_env"
+           val fv = V.namedvar "aa_f"
+         in
+           case ctyp ft of
+             TExists (envtv, [_, _, aat]) =>
+               (case ctyp aat of 
+                  AllArrow { worlds = aw, tys = at, vals = _ :: avals, body = abody } =>
+                    (VTUnpack' (envt,
+                                [(V.namedvar "aa_du", Dict' ` TVar' envt),
+                                 (envv, TVar' envt),
+                                 (* XXX aat? or subst? *)
+                                 (fv, aat)],
+                                f,
+                                AllApp' { f = Var' fv,
+                                          worlds = worlds,
+                                          tys = tys,
+                                          vals = Var' envv :: vals }),
+
+                     (* to get result type, do substitution for our actual world/ty
+                        arguments into body type *)
+                     let
+                       val wl = ListPair.zip (aw, worlds)
+                       val tl = ListPair.zip (at, tys)
+                       fun subt t =
+                         let val t = foldr (fn ((wv, w), t) => subwt w wv t) t wl
+                         in foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
+                         end
+                     in
+                       subt abody
+                     end)
+                 | _ => raise Closure "allapp non non-allarrow")
+           | _ => raise Closure "Allapp on non-exists-allarrow"
+         end
+
+     | Dictfor t => 
+         let val t = ct t
+         in (Dictfor' ` ct t, Dict' t)
+         end
+
+(*
+         let
+           val (f, ft) = cv G f
+           val (args, argts) = ListPair.unzip ` map (cv G) args
+           val vu = V.namedvar "envd"
+           val envt = V.namedvar "envt"
+           val envv = V.namedvar "env"
+
+           val fv = V.namedvar "fv"
+         in
+           TUnpack' (envt,
+                     [(vu, Dict' ` TVar' envt),
+                      (envv, TVar' envt),
+                      (fv, Cont' (TVar' envt :: argts))],
+                     f,
+                     Call'(Var' fv, Var' envv :: args))
+         end
+*)
+
 
      | _ => 
          let in

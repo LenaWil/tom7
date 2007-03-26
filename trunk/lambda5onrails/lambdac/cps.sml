@@ -37,6 +37,7 @@ struct
       Call of 'cval * 'cval list
     | Halt
     | Go of world * 'cval * 'cexp
+    | Go_cc of world * 'cval * 'cval
     | Primop of var list * primop * 'cval list * 'cexp
     | Put of var * ctyp * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
@@ -74,7 +75,7 @@ struct
     | VTUnpack of var * (var * ctyp) list * 'cval * 'cval
 
   (* nb. Binders must be implemented in outjection code below! *)
-   
+    
   (* CPS expressions *)
   datatype cexp = E of (cexp, cval) cexpfront
   and      cval = V of (cexp, cval) cvalfront
@@ -114,6 +115,7 @@ struct
          Call (v, vl) => Call (vself v, map vself vl)
        | Halt => exp
        | Go (w, va, e) => Go (wself w, vself va, eself e)
+       | Go_cc (w, va, vc) => Go_cc (wself w, vself va, vself vc)
        | Primop (vvl, po, vl, ce) =>
            let fun poself LOCALHOST = LOCALHOST
                  | poself BIND = BIND
@@ -202,6 +204,17 @@ struct
                                vals = ListUtil.mapsecond tself vals, 
                                body = vself body }
 
+         | VLetsham (vv, va, ve) =>
+                   VLetsham (vv, vself va,
+                             if V.eq(vv, v)
+                             then ve
+                             else vself ve)
+
+         | VLeta (vv, va, ve) =>
+                   VLeta (vv, vself va,
+                          if V.eq(vv, v)
+                          then ve
+                          else vself ve)
 
          | AllApp { f, worlds, tys, vals } => AllApp { f = vself f, worlds = map wself worlds,
                                                        tys = map tself tys, vals = map vself vals }
@@ -239,6 +252,7 @@ struct
 
   and substw v se (W vv) = if V.eq (v, vv) then se_getw se else W vv
 
+  (* PERF if substitutend is exp or val, stop early *)
   (* substitute var v with type se in a type, observing scope *)
   and substt v se (T typ) =
     let 
@@ -599,6 +613,10 @@ struct
 
   (* injections / ctyp *)
 
+  val ctyp' = T
+  val cval' = V
+  val cexp' = E
+
   fun WAll (v, t) = AllArrow { worlds = [v], tys = nil, vals = nil, body = t }
   fun TAll (v, t) = AllArrow { worlds = nil, tys = [v], vals = nil, body = t }
   fun WLam (v, c) = AllLam { worlds = [v], tys = nil, vals = nil, body = c }
@@ -626,6 +644,7 @@ struct
   val Halt' = E Halt
   val Call' = fn x => E (Call x)
   val Go' = fn x => E (Go x)
+  val Go_cc' = fn x => E (Go_cc x)
   val Primop' = fn x => E (Primop x)
   val Put' = fn x => E (Put x)
   val Letsham' = fn x => E (Letsham x)
@@ -697,6 +716,7 @@ struct
       Call (v, vl) => Call' (fv v, map fv vl)
     | Halt => exp
     | Go (w, v, e) => Go' (w, fv v, fe e)
+    | Go_cc (w, v, vb) => Go_cc' (w, fv v, fv vb)
     | Primop (vvl, po, vl, e) => Primop' (vvl, 
                                           (case po of
                                              PRIMCALL { sym, dom, cod } =>
@@ -723,6 +743,9 @@ struct
     | Int _ => value
     | String _ => value
     | Record svl => Record' ` ListUtil.mapsecond fv svl
+    | VLetsham (vv, v, e) => VLetsham' (vv, fv v, fv e)
+    | VLeta (vv, v, e) => VLeta' (vv, fv v, fv e)
+    | VTUnpack (vv1, vv2, v, e) => VTUnpack' (vv1, vv2, fv v, fv e)
     | Hold (w, v) => Hold' (w, fv v)
     | WPack (w, v) => WPack' (w, fv v)
     | TPack (t, t2, v) => TPack' (ft t, ft t2, map fv v)
