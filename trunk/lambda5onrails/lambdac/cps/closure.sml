@@ -442,7 +442,7 @@ struct
            val rest = TExists' (envtv, [Dict' ` TVar' envtv, 
                                         TVar' envtv,
                                         Conts' (map (fn (_, args, _) =>
-                                                     map #2 args) vael)])
+                                                     TVar' envtv :: map #2 args) vael)])
 
            val envvv = V.namedvar "env"
 

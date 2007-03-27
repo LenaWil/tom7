@@ -77,6 +77,7 @@ struct
     | $ of string
     | VA of cval
     | EX of cexp
+    | V of var
 
   fun unroll (m, tl) =
     (let val (_, t) = List.nth (tl, m)
@@ -97,6 +98,7 @@ struct
         | errtol ($ s) = Layout.str s
         | errtol (VA v) = CPSPrint.vtol v
         | errtol (EX e) = CPSPrint.etol e
+        | errtol (V v) = Layout.str ` V.tostring v
     in
       print "\n\n";
       Layout.print (Layout.mayAlign (map errtol err), print);
@@ -244,8 +246,8 @@ struct
                       val () = if ListUtil.all2 ctyp_eq tl (map #2 vvs)
                                then ()
                                else fail [$"tunpack val args don't agree: ",
-                                          $"from typ: ", TYL tl,
-                                          $"stated: ", TYL ` map #2 vvs]
+                                          $"from typ of object: ", V vr, $".", TYL tl,
+                                          $"stated: ", V tv, $".", TYL ` map #2 vvs]
                       (* new type, can't be mobile *)
                       val G = bindtype G tv false
                       (* some values now *)
@@ -300,11 +302,13 @@ struct
                   
                 (* after substituting in the packed type for the 
                    existential variable, does the actual type match? *)
-                val stl = map (subtt t v) ts
+                val stl = map (subtt t v) tl
               in
                 if ListUtil.all2 ctyp_eq stl ts
                 then tas 
-                else raise TypeCheck "tpack doesn't match annotation"
+                else fail [$"tpack doesn't match annotation: ",
+                           $"from typ of packed things: ", TYL ts,
+                           $"annotation: ", TYL stl]
               end
           | _ => raise TypeCheck "tpack as non-existential")
 
@@ -365,6 +369,10 @@ struct
      | Var v =>
          let val (t, w) = getvar G v
          in
+           Layout.print (Layout.mayAlign[Layout.str (V.tostring v ^ ": "),
+                                         CPSPrint.ttol t,
+                                         Layout.str "\n"],
+                         print);
            insistw G w;
            t
          end
