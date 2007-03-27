@@ -226,6 +226,11 @@ struct
                              else faile exp "go to wrong world addr"
                 | _ => faile exp "go to non-world")
 
+     | Go_cc (w, va, env, bod) =>
+               (wok G w;
+                case (ctyp ` vok G va, ctyp ` cok G clo) of
+                    (Addr w', TExists (tv, 
+
      | Put (v, t, va, e) =>
                (tok G t;
                 if tmobile G t
@@ -311,6 +316,17 @@ struct
                            $"annotation: ", TYL stl]
               end
           | _ => raise TypeCheck "tpack as non-existential")
+
+
+     | VLeta (v, va, ve) =>
+            (case ctyp ` vok G va of
+               At (t, w) => vok (bindvar G v t w) ve
+             | _ => fail [$"leta on non-at: ", VA va])
+
+     | VLetsham (v, va, ve) =>
+            (case ctyp ` vok G va of
+               Shamrock t => vok (binduvar G v t) ve
+             | _ => fail [$"letsham on non-shamrock", VA va])
 
      | Fsel ( va, i ) =>
          (case ctyp ` vok G va of

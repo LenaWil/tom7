@@ -50,7 +50,7 @@ sig
       Call of 'cval * 'cval list
     | Halt
     | Go of world * 'cval * 'cexp
-    | Go_cc of world * 'cval * 'cval
+    | Go_cc of { w : world, addr : 'cval, env : 'cval, f : 'cval }
     | Primop of var list * primop * 'cval list * 'cexp
     | Put of var * ctyp * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
@@ -153,7 +153,7 @@ sig
   val Call' : cval * cval list -> cexp
   val Halt' : cexp
   val Go' : world * cval * cexp -> cexp
-  val Go_cc' : world * cval * cval -> cexp
+  val Go_cc' { w : world, addr : cval, env : cval, f : cval } -> cval
   val Primop' : var list * primop * cval list * cexp -> cexp
   val Put' : var * ctyp * cval * cexp -> cexp
   val Letsham' : var * cval * cexp -> cexp
