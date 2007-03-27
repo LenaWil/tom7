@@ -341,6 +341,13 @@ struct
                  (Letcc (cv, bodt, ee), bodt)
                end
 *)
+               
+        (* better code for string constants *)
+        | E.Jointext [e] => 
+               let val (e, t) = elab ctx here e
+               in  unify ctx loc "jointext-singleton" t Initial.ilstring;
+                   (e, t)
+               end
 
         | E.Jointext el =>
                let
