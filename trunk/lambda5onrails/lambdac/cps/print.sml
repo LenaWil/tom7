@@ -192,10 +192,12 @@ struct
                  vtol a, $"::", wtol w,
                  $"--"] :: estol rest
 
-         | Go_cc (w, a, clo) =>
+         | Go_cc { w, addr, env, f } =>
                %[%[$"go_cc", 
-                   L.indent 2 ` %[vtol a, $"::", wtol w]],
-                 %[$"run", L.indent 2 ` vtol clo]] :: nil
+                   L.indent 2 ` %[vtol addr, $"::", wtol w]],
+                 %[%[$"run", L.indent 2 ` vtol f],
+                   %[$"on", L.indent 2 ` vtol env]
+                   ]] :: nil
 
          | Put (v, t, va, rest) => 
                %[%[$"put", $(V.tostring v),
@@ -237,22 +239,24 @@ struct
                                 $(V.tostring v),
                                 $"."], ttol t]) m,
                            "and ")])
-         | At (t, w) => $"at?"
+         | At (t, w) => L.paren ` %[ttol t, $"at", wtol w]
+         | Shamrock t => %[$"{}", L.indent 2 ` ttol t]
          | Cont tl => %[L.listex "(" ")" "," ` map ttol tl, $"cont"]
          | AllArrow { worlds, tys, vals, body } =>
              %[%[$"allarrow",
-                  L.listex "" "" ";"
-                  ((case worlds of
-                      nil => nil
-                    | _ => [% ($"w:" :: map ($ o V.tostring) worlds)]) @
-                   (case tys of
-                      nil => nil
-                    | _ => [% ($"t:" :: map ($ o V.tostring) tys)]) @
-                   (case vals of
-                      nil => nil
-                    | _ => [% ($"v:" :: map ttol vals)])
-                      ),
-                   $"."],
+                 %[L.indent 2 ` 
+                   L.listex "" "" ";"
+                   ((case worlds of
+                       nil => nil
+                     | _ => [% ($"w:" :: map ($ o V.tostring) worlds)]) @
+                    (case tys of
+                       nil => nil
+                     | _ => [% ($"t:" :: map ($ o V.tostring) tys)]) @
+                    (case vals of
+                       nil => nil
+                     | _ => [% ($"v:" :: map (L.paren o ttol) vals)])
+                       ),
+                       $"."]],
                    L.indent 2 ` ttol body]
 
          | Sum ltl => L.listex "[" "]" "," `map (fn (l, Carrier { carried = t,

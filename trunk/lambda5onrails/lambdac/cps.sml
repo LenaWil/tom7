@@ -231,7 +231,7 @@ struct
          | VTUnpack (vv1, vvl, va, ve) =>
                   VTUnpack (vv1, 
                             if V.eq(vv1, v) then vvl else ListUtil.mapsecond tself vvl, 
-                               vself va,
+                            vself va,
                             if V.eq(vv1, v) orelse List.exists (fn (vv, _) => V.eq (vv, v)) vvl
                             then ve
                             else vself ve)
@@ -719,7 +719,8 @@ struct
       Call (v, vl) => Call' (fv v, map fv vl)
     | Halt => exp
     | Go (w, v, e) => Go' (w, fv v, fe e)
-    | Go_cc (w, v, vb) => Go_cc' (w, fv v, fv vb)
+    | Go_cc { w, addr, env, f } => Go_cc' { w = w, addr = fv addr,
+                                            env = fv env, f = fv f }
     | Primop (vvl, po, vl, e) => Primop' (vvl, 
                                           (case po of
                                              PRIMCALL { sym, dom, cod } =>

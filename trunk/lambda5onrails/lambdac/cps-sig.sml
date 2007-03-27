@@ -153,7 +153,7 @@ sig
   val Call' : cval * cval list -> cexp
   val Halt' : cexp
   val Go' : world * cval * cexp -> cexp
-  val Go_cc' { w : world, addr : cval, env : cval, f : cval } -> cval
+  val Go_cc' : { w : world, addr : cval, env : cval, f : cval } -> cexp
   val Primop' : var list * primop * cval list * cexp -> cexp
   val Put' : var * ctyp * cval * cexp -> cexp
   val Letsham' : var * cval * cexp -> cexp
