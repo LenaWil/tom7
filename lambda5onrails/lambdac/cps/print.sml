@@ -75,11 +75,12 @@ struct
                                        $"in",
                                        L.indent 3 ` vtol ve]
          | (VTUnpack (v, vtl, va, ve)) =>
-               %[%[$"tunpack", L.indent 3 ` vtol va, $"as"],
-                 %[varl v, $";", 
+               %[%[$"vtunpack", L.indent 3 ` vtol va, $"as"],
+                 %[L.indent 2 ` %[varl v, $";"],
+                   L.indent 2 ` 
                    L.listex "[" "]" "," ` map (fn (v, t) =>
-                                               %[varl v, $":",
-                                                 ttol t]) vtl, $"="],
+                                               %[%[varl v, $":"],
+                                                 L.indent 2 ` ttol t]) vtl],
                  $"in",
                  L.indent 3 ` vtol ve]
 
@@ -207,11 +208,10 @@ struct
 
          | (WUnpack _) => [$"XXX-WUNP"]
          | (TUnpack (v, vtl, va, e)) =>
-               %[%[$"tunpack", L.indent 3 ` vtol va, $"as"],
-                 %[varl v, $";", 
+               %[%[%[$"tunpack", L.indent 3 ` vtol va], $"as"],
+                 %[%[varl v, $";"],
                    L.listex "[" "]" "," ` map (fn (v, t) =>
-                                               %[varl v, $":",
-                                                 ttol t]) vtl, $"="]
+                                               %[varl v, $":", ttol t]) vtl]
                  ] :: estol e
          | (Case _) => [$"XXX_CASE"]
          | (ExternType _) => [$"XXX_ET"]
