@@ -226,10 +226,24 @@ struct
                              else faile exp "go to wrong world addr"
                 | _ => faile exp "go to non-world")
 
-     | Go_cc (w, va, env, bod) =>
+     | Go_cc { w, addr = va, env, f = bod } =>
                (wok G w;
-                case (ctyp ` vok G va, ctyp ` cok G clo) of
-                    (Addr w', TExists (tv, 
+                case (ctyp ` vok G va, 
+                      (* env and body have to be at remote world *)
+                      vok (setworld G w) env, 
+                      ctyp ` vok (setworld G w) bod) of
+                    (Addr w', tenv, Cont [tenv']) => 
+                      let
+                      in
+                        if ctyp_eq (tenv, tenv')
+                        then if world_eq (w, w')
+                             then ()
+                             else fail [$"go_cc world/addr mismatch"]
+                        else fail [$"in go_cc, env doesn't match arg:",
+                                   $"env: ", TY tenv,
+                                   $"arg: ", TY tenv']
+                      end
+                   | _ => fail [$"go_cc args not of right form"])
 
      | Put (v, t, va, e) =>
                (tok G t;
@@ -385,10 +399,12 @@ struct
      | Var v =>
          let val (t, w) = getvar G v
          in
+           (*
            Layout.print (Layout.mayAlign[Layout.str (V.tostring v ^ ": "),
                                          CPSPrint.ttol t,
                                          Layout.str "\n"],
                          print);
+           *)
            insistw G w;
            t
          end
@@ -430,13 +446,24 @@ struct
          end
 
      | VTUnpack (tv, vvs, va, ve) =>
-               (case ctyp ` vok G va of
+         let val t = vok G va
+         in
+               (case ctyp t of
                   TExists (vr, tl) =>
                     let 
+                      (*
+                      val () = print "\nVTUNPACK:\n"
+                      val () = Layout.print(CPSPrint.ttol t, print)
+                      val () = print "\n---------------\n"
+                      val () = Layout.print(CPSPrint.vtol value, print)
+                      *)
                       val tl = map (subtt (TVar' tv) vr) tl
-                      val () = if ListUtil.all2 ctyp_eq tl (map #2 vvs)
+                      val vs = map #2 vvs
+                      val () = if ListUtil.all2 ctyp_eq tl vs
                                then ()
-                               else raise TypeCheck "vtunpack val args don't agree"
+                               else fail [$"vtunpack val args don't agree",
+                                          $"from packed value: ", TYL tl,
+                                          $"from unpack annotations: ", V tv, $".", TYL vs]
                       (* new type, can't be mobile *)
                       val G = bindtype G tv false
                       (* some values now *)
@@ -445,7 +472,7 @@ struct
                       vok G ve
                     end
                 | _ => raise TypeCheck "vtunpack non-exists")
-
+         end
      | AllApp { f, worlds, tys, vals } =>
          (case ctyp ` vok G f of
             AllArrow { worlds = ww, tys = tt, vals = vv, body = bb } =>

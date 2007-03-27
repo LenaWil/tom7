@@ -297,8 +297,7 @@ struct
 
            ==>
 
-          go_cc [w; [[a]]; pack envt as _
-                            < dictfor envt, envt, envt cont > ]
+          go_cc [w; [[a]]; env; < envt cont >]
           *)
      | Go (w, addr, body) =>
          let
@@ -308,24 +307,15 @@ struct
            val (fv, fuv) = freevarse body
            val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
 
-           val envtv = V.namedvar "go_envt"
-           val rest = TExists' (envtv, [Dict' ` TVar' envtv, 
-                                        TVar' envtv,
-                                        Cont' [TVar' envtv]])
-
            val envv = V.namedvar "go_env"
 
          in
-           Go_cc' (w, addr,
-                   TPack' (envt,
-                           rest,
-                           [Dictfor' envt,
-                            env,
-                            Lam' (V.namedvar "go_unused",
-                                  [(envv, envt)],
-                                  wrape (Var' envv, body))])
-                   )
-                                   
+           Go_cc' { w = w, 
+                    addr = addr,
+                    env = env,
+                    f = Lam' (V.namedvar "go_unused",
+                              [(envv, envt)],
+                              wrape (Var' envv, body)) }
          end
 
      | _ =>
@@ -496,7 +486,7 @@ struct
                 in
                   (VTUnpack' (venvt,
                               [(vde, tde),
-                               (venv, tenv),
+                               (venv, TVar' venvt),
                                (vfs, tfs)],
                               v, (* unpack this *)
                               TPack'
@@ -574,8 +564,9 @@ struct
                     (VTUnpack' (envt,
                                 [(V.namedvar "aa_du", Dict' ` TVar' envt),
                                  (envv, TVar' envt),
-                                 (* XXX aat? or subst? *)
-                                 (fv, aat)],
+                                 (* aad thinks envtype is envtv, so need to
+                                    rename to local existential var *)
+                                 (fv, subtt (TVar' envt) envtv aat)],
                                 f,
                                 AllApp' { f = Var' fv,
                                           worlds = worlds,

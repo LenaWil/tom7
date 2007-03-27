@@ -103,7 +103,7 @@ struct
           (* these may be conservative estimates *)
           recu : bool,
           total : bool } list
-        
+
       (* select one of the functions in a bundle *)
       | FSel of int * value
 
@@ -116,7 +116,7 @@ struct
       (* the dictionary for this type, assuming dlist gives
          the dictionaries for the abstract type variables. *)
       | VDict of typ * (var * value) list
-        
+
       (* XXX apparently need VVApp for valid values...? *)
 
     and exp =
