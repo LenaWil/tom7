@@ -37,7 +37,7 @@ struct
       Call of 'cval * 'cval list
     | Halt
     | Go of world * 'cval * 'cexp
-    | Go_cc of world * 'cval * 'cval
+    | Go_cc of { w : world, addr : 'cval, env : 'cval, f : 'cval }
     | Primop of var list * primop * 'cval list * 'cexp
     | Put of var * ctyp * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
@@ -115,7 +115,10 @@ struct
          Call (v, vl) => Call (vself v, map vself vl)
        | Halt => exp
        | Go (w, va, e) => Go (wself w, vself va, eself e)
-       | Go_cc (w, va, vc) => Go_cc (wself w, vself va, vself vc)
+       | Go_cc { w, addr, env, f } => Go_cc { w = wself w, 
+                                              addr = vself addr, 
+                                              env = vself env,
+                                              f = vself f }
        | Primop (vvl, po, vl, ce) =>
            let fun poself LOCALHOST = LOCALHOST
                  | poself BIND = BIND

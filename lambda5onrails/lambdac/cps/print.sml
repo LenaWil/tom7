@@ -192,6 +192,11 @@ struct
                  vtol a, $"::", wtol w,
                  $"--"] :: estol rest
 
+         | Go_cc (w, a, clo) =>
+               %[%[$"go_cc", 
+                   L.indent 2 ` %[vtol a, $"::", wtol w]],
+                 %[$"run", L.indent 2 ` vtol clo]] :: nil
+
          | Put (v, t, va, rest) => 
                %[%[$"put", $(V.tostring v),
                    $":", ttol t, $"="],
