@@ -73,33 +73,13 @@ struct
                                    Fns fl)
                                 end
 
-(*
-      | Fns of 
-        { name : var,
-          arg  : var list,
-          dom  : typ list,
-          cod  : typ,
-          body : exp,
-          (* should always inline? *)
-          inline : bool,
-          (* these may be conservative estimates *)
-          recu : bool,
-          total : bool } list
+    | FSel (i, v) => let val (fv, v) = uval v
+                     in (fv, FSel (i, v))
+                     end
 
-        
-      (* select one of the functions in a bundle *)
-      | FSel of int * value
-
-      (* XXX no longer representing dictionaries at the IL level *)
-
-      (* apply (total)value to value *)
-      | VApp of value * value
-      | VLam of var * typ * value
-
-      (* the dictionary for this type, assuming dlist gives
-         the dictionaries for the abstract type variables. *)
-      | VDict of typ * (var * value) list
-*)
+    | VApp _ => raise Unused "delete this!"
+    | VLam _ => raise Unused "delete this!"
+    | VDict _ => raise Unused "delete this!"
 
   and uexp exp =
     case exp of
@@ -111,57 +91,160 @@ struct
                      in
                        (fv1 || unionl fvs, App(e, el))
                      end
-(*       
-      (* application is n-ary *)
-      | App of exp * exp list
 
-      | Record of (label * exp) list
-      (* #lab/typ e *)
-      | Proj of label * typ * exp
-      | Raise of typ * exp
-      (* var bound to exn value within handler *)
-      | Handle of exp * var * exp
+    | Record lvl => 
+        let val (l, vl) = ListPair.unzip lvl
+            val (fvl, vl) = ListPair.unzip ` map uexp vl
+        in
+          (unionl fvl, Record ` ListPair.zip (l, vl))
+        end
 
-      | Seq of exp * exp
-      | Let of dec * exp
-      | Unroll of exp
-      | Roll of typ * exp
+    | Proj (l, t, e) =>
+        let val (fv, e) = uexp e
+        in
+            (fv, Proj (l, t, e))
+        end
+    | Raise (t, e) => 
+        let val (fv, e) = uexp e
+        in
+            (fv, Raise (t, e))
+        end
+    | Handle (e1, v, e2) =>
+        let val (fv1, e1) = uexp e1
+            val (fv2, e2) = uexp e2
+        in
+            (fv1 || (fv2 -- v), Handle (e1, v, e2))
+        end
 
-      | Get of { addr : exp,
-                 dest : world,
-                 typ  : typ,
-                 (* dlist : (var * value) list option, *)
-                 body : exp }
+    | Seq (e1, e2) => 
+        let val (fv1, e1) = uexp e1
+            val (fv2, e2) = uexp e2
+        in
+            (fv1 || fv2, Seq (e1, e2))
+        end
 
-      | Throw of exp * exp
-      | Letcc of var * typ * exp
+    | Tag (e1, e2) => 
+        let val (fv1, e1) = uexp e1
+            val (fv2, e2) = uexp e2
+        in
+            (fv1 || fv2, Tag (e1, e2))
+        end
 
-      (* tag v with t *)
-      | Tag of exp * exp
+    | Throw (e1, e2) => 
+        let val (fv1, e1) = uexp e1
+            val (fv2, e2) = uexp e2
+        in
+            (fv1 || fv2, Throw (e1, e2))
+        end
 
-      | Untag of { typ : typ,
-                   obj : exp,
-                   target : exp,
-                   bound : var, (* within yes *)
-                   yes : exp,
-                   no : exp }
+    | Unroll e =>
+        let val (fv, e) = uexp e
+        in (fv, Unroll e)
+        end
+    | Roll (t, e) =>
+        let val (fv, e) = uexp e
+        in (fv, Roll (t, e))
+        end
+    | Letcc (v, t, e) => 
+        let val (fv, e) = uexp e
+        in (fv -- v, Letcc(v, t, e))
+        end
+    | Jointext el => 
+        let val (fvl, el) = ListPair.unzip ` map uexp el
+        in (unionl fvl, Jointext el)
+        end
 
-      (* apply a primitive to some expressions and types *)
-      | Primapp of Primop.primop * exp list * typ list
+    | Inject (t, l, NONE) => (empty, exp)
+    | Inject (t, l, SOME e) =>
+        let val (fv, e) = uexp e
+        in (fv, Inject (t, l, SOME e))
+        end
 
-      (* sum type, object, var (for all arms), branches, default.
-         the label/exp list need not be exhaustive.
-         *)
-      | Sumcase of typ * exp * var * (label * exp) list * exp
-      | Inject of typ * label * exp option
+    | Let (d, e) =>
+        let
+            val (fv, e) = uexp e
+        in
+            case udec fv d of
+                NONE => (fv, e)
+              | SOME (fv, d) => (fv, Let (d, e))
+        end
 
-      (* for more efficient treatment of blobs of text. *)
-      | Jointext of exp list
-*)
+    | Primapp (po, el, tl) =>
+        let
+            val (fvl, el) = ListPair.unzip ` map uexp el
+        in
+            (unionl fvl, Primapp(po, el, tl))
+        end
+
+    | Get { addr, dest, typ, body } =>
+        let
+            val (fva, addr) = uexp addr
+            val (fvb, body) = uexp body
+        in
+            (fva || fvb, Get { addr = addr, dest = dest, typ = typ, body = body })
+        end
+
+    | Untag { typ, obj, target, bound, yes, no } =>
+        let
+            val (fvo, obj) = uexp obj
+            val (fvt, target) = uexp target
+            val (fvy, yes) = uexp yes
+            val (fvn, no) = uexp no
+        in
+            (fvo || fvt || (fvy -- bound) || fvn,
+             Untag { typ = typ, obj = obj, target = target, 
+                     bound = bound, yes = yes, no = no })
+        end
+    | Sumcase (t, obj, v, lel, def) => 
+        let
+            val (fvd, def) = uexp def
+            val (labs, es) = ListPair.unzip lel
+            val (fve, es) = ListPair.unzip ` map uexp es
+            val (fvo, obj) = uexp obj
+        in
+            (fvd || (unionl fve -- v) || fvo,
+            Sumcase (t, obj, v, ListPair.zip (labs, es), def))
+        end
+
+  (* if the declaration is not needed for these fvs (below),
+     then return NONE. Otherwise, return SOME (fv', d'), where
+     fv' is the new free variables (above) and d' the new decl. *)
+  and udec fv (Do e) = let val (fv', e) = uexp e
+                       in SOME (fv || fv', Do e)
+                       end
+    | udec fv (d as ExternWorld _) = SOME (fv, d)
+    | udec fv (d as ExternType _) =  SOME (fv, d)
+                       (* XXX filter out unused imports? it changes the
+                          semantics of when a program will link. *)
+    | udec fv (d as ExternVal (Poly(_, (_, v, _, _)))) = SOME (fv -- v, d)
+    | udec fv (d as Newtag (v, _, _)) =
+                       if fv ?? v
+                       then SOME (fv -- v, d)
+                       else NONE
+    | udec fv (d as Tagtype _) = SOME(fv, d)
+    | udec fv (d as Val(Poly(p, (vv, t, Value va)))) =
+                       (* used? *)
+                       if fv ?? vv
+                       then let val (fv', va) = uval va
+                            in SOME ((fv -- vv) || fv', Val(Poly(p, (vv, t, Value va))))
+                            end
+                       else NONE
+    | udec fv (d as Val(Poly(p, (vv, t, e)))) =
+                           let val (fv', va) = uexp e
+                           in SOME ((fv -- vv) || fv', Val(Poly(p, (vv, t, e))))
+                           end
 
   (* given free vars needed below, generate the
      new list of decs and free vars needed above *)
-  fun udecs fv decs = raise Unused "unimplemented"
+  fun udecs fv nil = (fv, nil)
+    | udecs fv (d :: rest) =
+      let
+          val (fv, rest) = udecs fv rest
+      in
+          case udec fv d of
+              NONE => (fv, rest)
+            | SOME (fv, d) => (fv, d :: rest)
+      end
     
 
   fun fvexports nil = (empty, nil)

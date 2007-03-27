@@ -159,7 +159,8 @@ struct
       (* apply a primitive to some expressions and types *)
       | Primapp of Primop.primop * exp list * typ list
 
-      (* sum type, object, var (for all arms), branches, default.
+      (* sum type, object, var (for all arms but not default), 
+         branches, default.
          the label/exp list need not be exhaustive.
          *)
       | Sumcase of typ * exp * var * (label * exp) list * exp
