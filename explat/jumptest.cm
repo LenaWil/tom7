@@ -12,6 +12,12 @@ group is
 flag-sig.sml
 flag.sml
 
+tile-sig.sml
+tile.sml
+
+world-sig.sml
+world.sml
+
 sdl-sig.sml
 sdl.sml
 
