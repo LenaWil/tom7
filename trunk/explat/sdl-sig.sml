@@ -285,6 +285,9 @@ sig
 
     val drawpixel : surface * int * int * color -> unit
 
+    (* create a version of the surface that's 50% transparent *)
+    val alphadim : surface -> surface
+
     structure Image :
     sig
       

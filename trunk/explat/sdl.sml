@@ -943,6 +943,17 @@ struct
         end
   end
 
+  local val ad = _import "ml_alphadim" : ptr -> ptr ;
+  in
+    fun alphadim s = 
+      let val p = ad(!!s)
+      in
+        if p = null
+        then raise SDL "couldn't alphadim"
+        else ref p
+      end
+  end
+
   local val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
   in
       fun drawpixel (s, x, y, c) =

@@ -2,6 +2,35 @@
 #include <SDL.h>
 // #include <windows.h>
 
+/* by default, use display format. but
+   when in console mode (for instance)
+   there is no display!! */
+#ifndef USE_DISPLAY_FORMAT
+# define USE_DISPLAY_FORMAT 1
+#endif
+
+/* XXX It seems that byte order doesn't affect the
+   ordering of the colors within a Uint32. */
+#if 0 /* SDL_BYTEORDER == SDL_BIG_ENDIAN */
+  const Uint32 rmask = 0xff000000;
+  const Uint32 gmask = 0x00ff0000;
+  const Uint32 bmask = 0x0000ff00;
+  const Uint32 amask = 0x000000ff;
+  const Uint32 rshift = 24;
+  const Uint32 gshift = 16;
+  const Uint32 bshift = 8;
+  const Uint32 ashift = 0;
+#else
+  const Uint32 rmask = 0x000000ff;
+  const Uint32 gmask = 0x0000ff00;
+  const Uint32 bmask = 0x00ff0000;
+  const Uint32 amask = 0xff000000;
+  const Uint32 ashift = 24;
+  const Uint32 bshift = 16;
+  const Uint32 gshift = 8;
+  const Uint32 rshift = 0;
+#endif
+
 int ml_init() {
   if (SDL_Init (SDL_INIT_VIDEO | 
                 SDL_INIT_TIMER | 
@@ -17,6 +46,55 @@ int ml_init() {
     return 1;
   }
 }
+
+void slock(SDL_Surface *surf) {
+  if(SDL_MUSTLOCK(surf))
+    SDL_LockSurface(surf);
+}
+
+void sulock(SDL_Surface *surf) {
+  if (SDL_MUSTLOCK(surf))
+    SDL_UnlockSurface(surf);
+}
+
+/* try to make a hardware surface, and, failing that,
+   make a software surface */
+SDL_Surface * makesurface(int w, int h, int alpha) {
+
+  /* PERF need to investigate relative performance 
+     of sw/hw surfaces */
+  SDL_Surface * ss = 0;
+#if 0
+    SDL_CreateRGBSurface(SDL_HWSURFACE |
+			 (alpha?SDL_SRCALPHA:0),
+			 w, h, 32, 
+			 rmask, gmask, bmask,
+			 amask);
+#endif
+
+  if (!ss) ss = SDL_CreateRGBSurface(SDL_SWSURFACE |
+				     (alpha?SDL_SRCALPHA:0),
+				     w, h, 32,
+				     rmask, gmask, bmask,
+				     amask);
+
+  if (ss && !alpha) SDL_SetAlpha(ss, 0, 255);
+
+  /* then convert to the display format. */
+# if USE_DISPLAY_FORMAT
+  if (ss) {
+    SDL_Surface * rr;
+    if (alpha) rr = SDL_DisplayFormatAlpha(ss);
+    else rr = SDL_DisplayFormat(ss);
+    SDL_FreeSurface(ss);
+    return rr;
+  } else return 0;
+# else
+  return ss;
+# endif
+}
+
+
 
 SDL_Surface * ml_makescreen(int w, int h) {
   /* Can't use HWSURFACE here, because not handling this SDL_BlitSurface
@@ -155,4 +233,41 @@ void ml_drawpixel(SDL_Surface *surf, int x, int y,
       }
       break;
     }
+}
+
+
+SDL_Surface * ml_alphadim(SDL_Surface * src) {
+  /* must be 32 bpp */
+  if (src->format->BytesPerPixel != 4) return 0;
+
+  int ww = src->w, hh = src->h;
+  
+  SDL_Surface * ret = makesurface(ww, hh, 1);
+
+  if (!ret) return 0;
+
+  slock(ret);
+  slock(src);
+
+  int y, x;
+
+  for(y = 0; y < hh; y ++)
+    for(x = 0; x < ww; x ++) {
+      Uint32 color = *((Uint32 *)src->pixels + y*src->pitch/4 + x);
+      
+      /* divide alpha channel by 2 */
+      /* XXX this seems to be wrong on powerpc (dims some other channel
+	 instead). but if the masks are right, how could this go wrong? */
+      color =
+	(color & (rmask | gmask | bmask)) |
+	(((color & amask) >> 1) & amask);
+  
+      *((Uint32 *)ret->pixels + y*ret->pitch/4 + x) = color;
+
+    }
+
+  sulock(src);
+  sulock(ret);
+
+  return ret;
 }
