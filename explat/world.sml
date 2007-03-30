@@ -15,10 +15,17 @@ struct
 
   fun setworld (x, y) m = Array.update(world, y * OPENW + x, m)
   val () = Util.for 0 (OPENW - 1) (fn x => setworld (x, OPENH - 1) MSOLID)
-  val () = Util.for 4 (OPENW - 1) (fn x => setworld(x, OPENH - 1 - (x div 2)) 
-                                   (MRAMP (if x mod 2 = 0
-                                           then LM
-                                           else MH)))
+  val () = Util.for 4 (OPENW - 1) (fn x => 
+                                   let in
+                                     setworld(x, OPENH - 1 - (x div 2))
+                                     (MRAMP (if x mod 2 = 0
+                                             then LM
+                                             else MH));
+                                     if x > 12 andalso x mod 2 = 0
+                                     then setworld(x, OPENH - (x div 2)) MSOLID
+                                     else ()
+                                   end)
+
   val () = Util.for 0 (Int.min (OPENW, OPENH) - 1) 
     (fn x => 
      if x mod 3 = 0 
@@ -37,11 +44,15 @@ struct
         Word32.andb(!seed, 0w1) = 0w0
       end
   end
-
+(*
   val () = Util.for 0 (OPENW * OPENH - 1)
     (fn i =>
      if rbool () andalso rbool () andalso rbool ()
-     then Array.update(world, i, MSOLID)
+     then Array.update(world, i, 
+                       case (rbool (), rbool ()) of 
+                         (true, true) => MRAMP LM
+                       | (true, _) => MRAMP MH
+                       | _ => MSOLID)
      else ())
-
+*)
 end

@@ -42,6 +42,8 @@ struct
 
   val robotr = requireimage "testgraphics/robot.png"
   val robotl = requireimage "testgraphics/robotl.png" (* XXX should be able to flip graphics *)
+  val robotr_fade = alphadim robotr
+  val robotl_fade = alphadim robotl
   val solid = requireimage "testgraphics/solid.png"
 
   val redhi = requireimage "testgraphics/redhighlight.png"
@@ -89,6 +91,9 @@ struct
   val botdy = ref 0
   val botstate = BF.flags
 
+  val paused = ref false
+  val advance = ref false
+
 
   (* draw a view of the world where the top left of
      the screen is at scrollx/scrolly *)
@@ -117,11 +122,13 @@ struct
                       tlx + (x * TILEW), tly + (y * TILEH))))
     end
 
-  fun drawbot () =
+  fun drawbot fade =
       let val img = 
-          (case !botface of
-               FLEFT => robotl
-             | FRIGHT => robotr)
+          (case (!botface, fade) of
+               (FLEFT, false) => robotl
+             | (FLEFT, true) => robotl_fade
+             | (FRIGHT, false) => robotr
+             | (FRIGHT, true) => robotr_fade)
       in
           blitall (img, screen, !botx - !scrollx, !boty - !scrolly)
       end
@@ -236,6 +243,9 @@ struct
                               val yt1 = y div TILEH
                               val yt2 = (y + dy) div TILEH
                                   
+                              (* given a tile index (yt) and distance we'd like to travel from
+                                 the top of that tile (dist) into it, calculate our new position
+                                 and velocity. *)
                               fun snap (yt, dist) =
                                   (case maskat (xt, yt) of
                                        MEMPTY => raise Test "can't snap to empty, duh"
@@ -256,24 +266,28 @@ struct
                                                val mdist = TILEH - yint
                                                val dodist = Int.min(dist, mdist)
                                            in
-                                               if (dist < mdist)
-                                               then (* go all the way *)
+                                             print ("Snap ramp: " ^
+                                                    "want " ^ Int.toString dist ^
+                                                    " max " ^ Int.toString mdist ^ "\n");
+                                               if (dist < mdist) 
+                                               then (* go all the way, maintain speed *)
                                                    (dy, yt * TILEH + dist)
-                                               else (0, yt * TILEH + mdist)
+                                               else (* stop at max *)
+                                                   (0, yt * TILEH + mdist)
                                            end
                                            )
                           in
                               (* drawpixel (screen, x - 1, y - 1, color (0wxFF, 0w0, 0w0, 0wxFF)); *)
                               blitall(greenhi, screen, xt * TILEW - !scrollx, yt1 * TILEH - !scrolly);
                               blitall(redhi,   screen, xt * TILEW - !scrollx, yt2 * TILEH - !scrolly);
-(*
+
                               print ("Vdrop: x: " ^ Int.toString x ^ " y: " ^ Int.toString y ^
                                      " dy: " ^ Int.toString dy ^ 
                                      " xt: " ^ Int.toString xt ^ 
                                      " yt1: " ^ Int.toString yt1 ^ "(" ^ ttos (maskat (xt, yt1)) ^ ")" ^
                                      " yt2: " ^ Int.toString yt2 ^ "(" ^ ttos (maskat (xt, yt2)) ^ ")" ^
                                      "\n");
-*)
+
                               (* if our current location stops us, then stop *)
                               (case maskat(xt, yt1) of
                                    MEMPTY =>
@@ -283,15 +297,19 @@ struct
                                                  MEMPTY => (* just drop, safely *)
                                                            (dy, y + dy)
                                                (* otherwise snap *)
-                                               | _ => snap (yt2, (y + dy) mod TILEH))
-                                       else (dy, y + dy)
-                                     | _ => snap (yt1, dy))
+                                               | _ => (print "snap at y2\n";
+                                                           snap (yt2, (y + dy) mod TILEH)))
+                                       else (print "just fall\n";
+                                             (dy, y + dy))
+                                     | _ => (print "snap at yt1\n";
+                                             snap (yt1, (y + dy) mod TILEH)))
                                    
                           end
 
                       val () = print "-- drop stop --\n"
                       val (dyl, yl) = vdrop (x + 0)
-                      val (dyr, yr) = vdrop (x + (ROBOTW - 1))
+(*                      val (dyr, yr) = vdrop (x + (ROBOTW - 1)) *)
+                        val (dyr, yr) = (~1, 10000)
                   in
 
                       if yl < yr
@@ -313,7 +331,7 @@ struct
           val (dy, y) = (dy, y + dy)
           val (dx, x) = (dx, x + dx)
       in
-          (* print (" -> " ^ StringUtil.delimit ", " (map Int.toString [dx, dy, x, y]) ^ "\n"); *)
+          print (" -> " ^ StringUtil.delimit ", " (map Int.toString [dx, dy, x, y]) ^ "\n");
           botdx := dx;
           botdy := dy;
           botx := x;
@@ -323,16 +341,18 @@ struct
 
   fun loop { nexttick, intention } =
       if getticks () > nexttick
+         andalso (not (!paused) orelse !advance)
       then 
           let
               val () =               clearsurface (screen, color (0w0, 0w0, 0w0, 0w0))
               val () =               setscroll ()
               val () =               drawworld ()
+              val () =               drawbot true
               val intention = movebot { nexttick = nexttick, intention = intention }
           in
-
-              drawbot ();
+              drawbot false;
               flip screen;
+              advance := false;
               key { nexttick = getticks() + 0w20, intention = intention }
           end
       else
@@ -356,6 +376,18 @@ struct
           botdy := (if !botdy > 4 then 4
                     else (if !botdy < ~4 then ~4
                           else !botdy));
+          loop cur
+        end
+
+    | SOME (E_KeyDown { sym = SDLK_RETURN }) =>
+        let in
+          paused := not (!paused);
+          loop cur
+        end
+
+    | SOME (E_KeyDown { sym = SDLK_PERIOD }) => 
+        let in
+          advance := true;
           loop cur
         end
 
