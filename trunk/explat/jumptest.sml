@@ -18,8 +18,8 @@ struct
         print (s ^ "\n")
       end
 
-  val width = 320
-  val height = 240
+  val width = 640
+  val height = 480
 
   val TILEW = 16
   val TILEH = 16
@@ -28,6 +28,9 @@ struct
 
   val ROBOTH = 32
   val ROBOTW = 16
+
+  open Tile
+  open World
 
   val screen = makescreen (width, height)
 
@@ -48,42 +51,16 @@ struct
   val ramp_lm = requireimage "testgraphics/rampup1.png"
   val ramp_mh = requireimage "testgraphics/rampup2.png"
 
-  (* the mask tells us where things can walk *)
-  datatype slope = LM | MH | HM | ML
-  datatype mask = MEMPTY | MSOLID | MRAMP of slope (* | MCEIL of slope *)
-
   fun ttos MEMPTY = "empty"
     | ttos MSOLID = "solid"
     | ttos (MRAMP _) = "ramp?"
 
-  val world = Array.array(TILESW * TILESH, MEMPTY)
-  (* XXX do we really want to trap subscript? *)
-  fun worldat (x, y) = Array.sub(world, y * TILESW + x) 
-      handle Subscript => if y > 0 then MSOLID else MEMPTY
 
-  fun setworld (x, y) m = Array.update(world, y * TILESW + x, m)
-  val () = Util.for 0 (TILESW - 1) (fn x => setworld (x, TILESH - 1) MSOLID)
-  val () = Util.for 4 (TILESW - 1) (fn x => setworld(x, TILESH - 1 - (x div 2)) (MRAMP (if x mod 2 = 0
-                                                                                        then LM
-                                                                                        else MH)))
-  val () = Util.for 0 (Int.min (TILESW, TILESH) - 1) (fn x => 
-                                                      if x mod 3 = 0 
-                                                      then setworld (x, TILESH - 1 - x) MSOLID
-                                                      else ())
-
-
+  (* just drawing masks for now to test physics *)
   fun tilefor MSOLID = solid
     | tilefor (MRAMP LM) = ramp_lm
     | tilefor (MRAMP MH) = ramp_mh
 
-  fun drawworld () =
-    Util.for 0 (TILESW - 1)
-    (fn x =>
-     Util.for 0 (TILESH - 1)
-     (fn y =>
-      case worldat (x, y) of
-        MEMPTY => ()
-      | t => blitall (tilefor t, screen, x * TILEW, y * TILEH)))
 
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
@@ -101,14 +78,44 @@ struct
       val flags = nflags NFLAGS
   end
 
-
   val botx = ref 50
   val boty = ref 50
   val botface = ref FRIGHT
+  (* position of top-left of scroll window *)
+  val scrollx = ref 0
+  val scrolly = ref 0
   (* (* in sixteenths of a pixel per frame *) *)
   val botdx = ref 0
   val botdy = ref 0
   val botstate = BF.flags
+
+
+  (* draw a view of the world where the top left of
+     the screen is at scrollx/scrolly *)
+  fun drawworld () =
+    let
+      (* tlx/tly is the (screen coordinate pixel) point 
+         at which we draw the top-left tile. it is nonpositive *)
+      val tlx = 0 - (!scrollx mod TILEW)
+      val tly = 0 - (!scrolly mod TILEH)
+        
+      (* this is the tile number (world absolute) that we start
+         by drawing *)
+      val xstart = !scrollx div TILEW
+      val ystart = !scrolly div TILEH
+    in
+      (* nb, always doing one extra tile, because we might
+         display only partial tiles if not aligned to scroll
+         view *)
+    Util.for 0 TILESW
+    (fn x =>
+     Util.for 0 TILESH
+     (fn y =>
+      case maskat (xstart + x, ystart + y) of
+        MEMPTY => ()
+      | t => blitall (tilefor t, screen, 
+                      tlx + (x * TILEW), tly + (y * TILEH))))
+    end
 
   fun drawbot () =
       let val img = 
@@ -116,7 +123,7 @@ struct
                FLEFT => robotl
              | FRIGHT => robotr)
       in
-          blitall (img, screen, !botx, !boty)
+          blitall (img, screen, !botx - !scrollx, !boty - !scrolly)
       end
 
   datatype intention =
@@ -134,9 +141,32 @@ struct
   fun intends il i = List.exists (fn x => x = i) il
 
   (* number of pixels per frame that we can walk at maximum *)
-  val MAXWALK = 3
-  val TERMINAL_VELOCITY = 3
+  val MAXWALK = 4
+  val TERMINAL_VELOCITY = 5
   val JUMP_VELOCITY = 12
+
+  (* make sure bot's in the scroll window! *)
+  fun setscroll () =
+    let
+    in
+      (* stay in the center third of the screen. *)
+      if !botx - !scrollx < (width div 3)
+      then (print "left edge\n";
+            scrollx := !botx - (width div 3))
+      else if (!scrollx + width) - !botx < (width div 3)
+           then (print "right edge\n";
+                 scrollx := !botx - 2 * (width div 3))
+           else ();
+
+      if !boty - !scrolly < (height div 3)
+      then (print "top edge\n";
+            scrolly := !boty - (height div 3))
+      else if (!scrolly + height) - !boty < (height div 3)
+           then (print "bottom edge\n";
+                 scrolly := !boty - 2 * (height div 3))
+           else ()
+
+    end
 
   fun movebot { nexttick, intention = i } =
       (* first, react to the player's intentions *)
@@ -207,7 +237,7 @@ struct
                               val yt2 = (y + dy) div TILEH
                                   
                               fun snap (yt, dist) =
-                                  (case worldat (xt, yt) of
+                                  (case maskat (xt, yt) of
                                        MEMPTY => raise Test "can't snap to empty, duh"
                                      | MSOLID => (print ("snapped to yt=" ^ Int.toString yt ^ " (dist="
                                                          ^ Int.toString dist ^ ")\n");
@@ -234,20 +264,22 @@ struct
                                            )
                           in
                               (* drawpixel (screen, x - 1, y - 1, color (0wxFF, 0w0, 0w0, 0wxFF)); *)
-                              blitall(greenhi, screen, xt * TILEW, yt1 * TILEH);
-                              blitall(redhi,   screen, xt * TILEW, yt2 * TILEH);
+                              blitall(greenhi, screen, xt * TILEW - !scrollx, yt1 * TILEH - !scrolly);
+                              blitall(redhi,   screen, xt * TILEW - !scrollx, yt2 * TILEH - !scrolly);
+(*
                               print ("Vdrop: x: " ^ Int.toString x ^ " y: " ^ Int.toString y ^
                                      " dy: " ^ Int.toString dy ^ 
                                      " xt: " ^ Int.toString xt ^ 
-                                     " yt1: " ^ Int.toString yt1 ^ "(" ^ ttos (worldat (xt, yt1)) ^ ")" ^
-                                     " yt2: " ^ Int.toString yt2 ^ "(" ^ ttos (worldat (xt, yt2)) ^ ")" ^
+                                     " yt1: " ^ Int.toString yt1 ^ "(" ^ ttos (maskat (xt, yt1)) ^ ")" ^
+                                     " yt2: " ^ Int.toString yt2 ^ "(" ^ ttos (maskat (xt, yt2)) ^ ")" ^
                                      "\n");
+*)
                               (* if our current location stops us, then stop *)
-                              (case worldat(xt, yt1) of
+                              (case maskat(xt, yt1) of
                                    MEMPTY =>
                                    (* are we going to enter the next spot? *)
                                        if yt1 <> yt2 
-                                       then (case worldat(xt, yt2) of
+                                       then (case maskat(xt, yt2) of
                                                  MEMPTY => (* just drop, safely *)
                                                            (dy, y + dy)
                                                (* otherwise snap *)
@@ -269,6 +301,8 @@ struct
               else (dy, y)
 
                   (*
+                  (* stop at bottom of screen --
+                     don't do this anymore now that there's scroll *)
           val (dy, y) = if dy > 0 andalso 
                            y >= ((TILESH - 1) * TILEH) - ROBOTH
                         then (0, ((TILESH - 1) * TILEH) - ROBOTH)
@@ -286,12 +320,13 @@ struct
           boty := y;
           i
       end 
-                  
+
   fun loop { nexttick, intention } =
       if getticks () > nexttick
       then 
           let
               val () =               clearsurface (screen, color (0w0, 0w0, 0w0, 0w0))
+              val () =               setscroll ()
               val () =               drawworld ()
               val intention = movebot { nexttick = nexttick, intention = intention }
           in
@@ -323,6 +358,19 @@ struct
                           else !botdy));
           loop cur
         end
+
+    | SOME (E_KeyDown { sym = SDLK_i }) =>
+        (scrolly := !scrolly - 3;
+         loop cur)
+    | SOME (E_KeyDown { sym = SDLK_j }) =>
+        (scrollx := !scrollx - 3;
+         loop cur)
+    | SOME (E_KeyDown { sym = SDLK_k }) =>
+        (scrolly := !scrolly + 3;
+         loop cur)
+    | SOME (E_KeyDown { sym = SDLK_l }) =>
+        (scrollx := !scrollx + 3;
+         loop cur)
 
     | SOME (E_KeyDown { sym = SDLK_LEFT }) =>
         (* XXX for these there should also be an impulse event,
