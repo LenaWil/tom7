@@ -77,13 +77,14 @@ struct
           (* print "send response...\n"; *)
 
           (let
-             val res = 
+             val (res, steps) = 
                case Eval.eval G (DB.head "main") of
-                 Bytes.String s => s
-               | _ => ("Content-Type: text/html; charset=utf-8\r\n" ^
-                       "\r\n" ^
-                       "(complex data)")
+                 (Bytes.String s, steps) => (s, steps)
+               | (_, steps) => ("Content-Type: text/html; charset=utf-8\r\n" ^
+                                "\r\n" ^
+                                "(complex data)", steps)
            in
+             print ("took " ^ Int.toString steps ^ " steps\n");
              if StringUtil.matchhead "Location:" res
              then 
                let in

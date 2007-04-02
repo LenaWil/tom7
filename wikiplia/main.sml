@@ -13,7 +13,7 @@ val () =
              (let
                 val res = 
                   case Eval.eval (DB.head "") of
-                    Bytes.String s => s
+                    (Bytes.String s, _) => s
                   | _ => "(complex data)"
               in
                 print ("Result: [" ^ res ^ "]\n")
