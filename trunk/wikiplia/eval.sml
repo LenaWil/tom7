@@ -3,7 +3,9 @@ structure Eval =
 struct
   open Bytes
 
+  val MAXCOUNTER = 100 * 1000000
   exception Abort of string
+  exception OUTATIME
 
   fun tostring (String s) = s
     | tostring (Int i) = IntInf.toString i
@@ -17,7 +19,9 @@ struct
   fun eval G e =
     let
       val ctr = ref 0
-      fun UP () = ctr := !ctr + 1
+      fun UP () = (ctr := !ctr + 1; if !ctr > MAXCOUNTER 
+                                    then raise OUTATIME
+                                    else ())
 
 
       fun evaluate G e = (UP (); evaluate' G e)
@@ -129,7 +133,7 @@ struct
              )
     in
       (evaluate G e, !ctr)
-    end
+    end handle OUTATIME => raise Abort "maximum evaluation steps exceeded"
 
 
   (* environment is always empty to start *)
