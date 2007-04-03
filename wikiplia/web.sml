@@ -89,7 +89,7 @@ struct
              then 
                let in
                  (* print ("Redirect: [" ^ res ^ "]\n"); *)
-                 sendall p (http "301 Moved Permanently" ^ res)
+                 sendall p (http "302 Found" ^ res)
                end
              else
                let in
