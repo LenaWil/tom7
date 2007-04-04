@@ -101,7 +101,7 @@ struct
                             sendall p (http "200 OK");
                             sendall p ("Content-Type: text/html; charset=utf-8\r\n" ^
                                        "\r\n");
-                            sendall p ("ERROR. " ^ message e)));
+                            sendall p ("ERROR. " ^ message e))) handle R.RawNetwork _ => ();
           print "hangup...\n";
           (R.hangup p) handle _ => ();
           (* PERF not on every request, surely! *)
