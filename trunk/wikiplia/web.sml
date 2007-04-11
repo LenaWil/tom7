@@ -52,6 +52,9 @@ struct
           val G = map (fn (k, v) => ("form." ^ k, (Bytes.String v))) kvp
 
           (* val () = ignore (DB.insert "request.method" "GET") *)
+          val url = case StringUtil.urldecode url of
+                             NONE => url (* ?*)
+                           | SOME u => u
           val G = ("request.url", Bytes.String url) :: G
           val ip = let val (a, b, c, d) = R.addressip addr
                    in StringUtil.delimit "." (map Int.toString [a, b, c, d])
