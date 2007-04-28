@@ -21,6 +21,8 @@ struct
   val width = 640
   val height = 480
 
+  val TILEW = 16
+  val TILEH = 16
   val TILESW = width div 16
   val TILESH = height div 16
 

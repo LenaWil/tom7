@@ -9,4 +9,11 @@ struct
   (* need to implement this somehow.. *)
   datatype tile = TILE_XXX
 
+  val TILEW = 16
+  val TILEH = 16
+
+  fun clipmask MEMPTY _ = false
+    | clipmask MSOLID _ = true
+    | clipmask (MRAMP _) _ = false (* FIXME! *)
+
 end
