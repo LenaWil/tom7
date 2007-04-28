@@ -21,5 +21,8 @@ world.sml
 sdl-sig.sml
 sdl.sml
 
-jumptest.sml
+clip-sig.sml
+clip.sml
+
+cliptest.sml
 

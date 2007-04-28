@@ -10,4 +10,10 @@ sig
   (* need to implement this somehow.. *)
   datatype tile = TILE_XXX
 
+  val TILEW : int
+  val TILEH : int
+
+  (* is this pixel of the mask clipped? *)
+  val clipmask : mask -> int * int -> bool
+
 end
