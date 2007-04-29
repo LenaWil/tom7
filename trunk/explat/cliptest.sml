@@ -233,9 +233,21 @@ struct
                   fun nudgex _ = 
                       let val next = !xr + xi
                       in
-                          if !stopx orelse Clip.clipped Clip.std (next, !yr)
-                          then stopx := true
-                          else xr := next
+                          if !stopx 
+                          then ()
+                          else if Clip.clipped Clip.std (next, !yr)
+                               then 
+                                   (* can move up a little if
+                                      we are on a ramp:
+
+                                      . .
+                                      x #
+                                      
+                                      FIXME!!
+                                      *)
+                                      
+                                   stopx := true
+                               else xr := next
                       end
 
                   fun nudgey _ = 
