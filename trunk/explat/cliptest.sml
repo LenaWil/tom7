@@ -181,7 +181,7 @@ struct
           val x = !botx
           val y = !boty
               
-          (* val () = print (StringUtil.delimit ", " (map Int.toString [dx, dy, x, y])); *)
+          val () = print (StringUtil.delimit ", " (map Int.toString [dx, dy, x, y]) ^ "\n")
           val () = 
               case i of
                   nil => () 
@@ -220,116 +220,53 @@ struct
 
           (* XXX world effects... *)
 
-          (* now try moving in that direction *)
-          (* XXX this collision detection needs to be much more sophisticated, of course! *)
-          val (dy, y) =
-              (* 
-                 simple: if the tile we're currently on, or the
-                 tile below it, has any kind of clip, and we would
-                 hit it this frame, then snap. Do this for both left
-                 and right feet and take the min. *)
-              if (dy > 0)
-              then
-                  let
-                      (* look at its bottom *)
-                      val y = y + ROBOTH
+                       
+          val (x, y, dx, dy) =
+              let
+                  val xi = if dx < 0 then ~1 else 1
+                  val yi = if dy < 0 then ~1 else 1
+                  val xr = ref x
+                  val yr = ref y
+                  val stopx = ref false
+                  val stopy = ref false
 
-                      (* give the x coordinate to use... *)
-                      fun vdrop x =
-                          let
-                              val xt = x div TILEW
-                              val yt1 = y div TILEH
-                              val yt2 = (y + dy) div TILEH
-                                  
-                              (* given a tile index (yt) and distance we'd like to travel from
-                                 the top of that tile (dist) into it, calculate our new position
-                                 and velocity. *)
-                              fun snap (yt, dist) =
-                                  (case maskat (xt, yt) of
-                                       MEMPTY => raise Test "can't snap to empty, duh"
-                                     | MSOLID => (print ("snapped to yt=" ^ Int.toString yt ^ " (dist="
-                                                         ^ Int.toString dist ^ ")\n");
-                                                  (0, yt * TILEH - 1))
-                                     | MRAMP sl => 
-                                           let
-                                               (* the distance from the bottom of the tile *)
-                                               val yint =
-                                                   (case sl of
-                                                        (* XXX no constants like 8 *)
-                                                        LM => (* ramps 0..8 *)     (x mod TILEW div 2)
-                                                      | MH => (*       8..f *) 8 + (x mod TILEW div 2)
-                                                      | _ => raise Test "ramps not supported"
-                                                            )
+                  fun nudgex _ = 
+                      let val next = !xr + xi
+                      in
+                          if !stopx orelse Clip.clipped Clip.std (next, !yr)
+                          then stopx := true
+                          else xr := next
+                      end
 
-                                               val mdist = TILEH - yint
-                                               val dodist = Int.min(dist, mdist)
-                                           in
-                                             print ("Snap ramp: " ^
-                                                    "want " ^ Int.toString dist ^
-                                                    " max " ^ Int.toString mdist ^ "\n");
-                                               if (dist < mdist) 
-                                               then (* go all the way, maintain speed *)
-                                                   (dy, yt * TILEH + dist)
-                                               else (* stop at max *)
-                                                   (0, yt * TILEH + mdist)
-                                           end
-                                           )
-                          in
-                              (* drawpixel (screen, x - 1, y - 1, color (0wxFF, 0w0, 0w0, 0wxFF)); *)
-                              blitall(greenhi, screen, xt * TILEW - !scrollx, yt1 * TILEH - !scrolly);
-                              blitall(redhi,   screen, xt * TILEW - !scrollx, yt2 * TILEH - !scrolly);
+                  fun nudgey _ = 
+                      let val next = !yr + yi
+                      in
+                          if !stopy orelse Clip.clipped Clip.std (!xr, next)
+                          then stopy := true
+                          else yr := next
+                      end
 
-                              print ("Vdrop: x: " ^ Int.toString x ^ " y: " ^ Int.toString y ^
-                                     " dy: " ^ Int.toString dy ^ 
-                                     " xt: " ^ Int.toString xt ^ 
-                                     " yt1: " ^ Int.toString yt1 ^ "(" ^ ttos (maskat (xt, yt1)) ^ ")" ^
-                                     " yt2: " ^ Int.toString yt2 ^ "(" ^ ttos (maskat (xt, yt2)) ^ ")" ^
-                                     "\n");
+                  fun abs z = if z < 0 then ~ z else z
 
-                              (* if our current location stops us, then stop *)
-                              (case maskat(xt, yt1) of
-                                   MEMPTY =>
-                                   (* are we going to enter the next spot? *)
-                                       if yt1 <> yt2 
-                                       then (case maskat(xt, yt2) of
-                                                 MEMPTY => (* just drop, safely *)
-                                                           (dy, y + dy)
-                                               (* otherwise snap *)
-                                               | _ => (print "snap at y2\n";
-                                                           snap (yt2, (y + dy) mod TILEH)))
-                                       else (print "just fall\n";
-                                             (dy, y + dy))
-                                     | _ => (print "snap at yt1\n";
-                                             snap (yt1, (y + dy) mod TILEH)))
-                                   
-                          end
+              in
+                  (* try moving one pixel at a time
+                     in the desired direction, until
+                     it is not possible to move any 
+                     more. *)
+                  
+                  (* XXX this calculation should probably
+                     be symmetric. Here we do all of our
+                     X movement before considering the Y
+                     direction... *)
 
-                      val () = print "-- drop stop --\n"
-                      val (dyl, yl) = vdrop (x + 0)
-(*                      val (dyr, yr) = vdrop (x + (ROBOTW - 1)) *)
-                        val (dyr, yr) = (~1, 10000)
-                  in
+                  Util.for 0 (abs dx - 1) nudgex;
+                  Util.for 0 (abs dy - 1) nudgey;
 
-                      if yl < yr
-                      then (dyl, yl - ROBOTH)
-                      else (dyr, yr - ROBOTH)
-                  end
-              else (dy, y)
-
-                  (*
-                  (* stop at bottom of screen --
-                     don't do this anymore now that there's scroll *)
-          val (dy, y) = if dy > 0 andalso 
-                           y >= ((TILESH - 1) * TILEH) - ROBOTH
-                        then (0, ((TILESH - 1) * TILEH) - ROBOTH)
-                        else (dy, y + dy)
-                        *)
-
-          (* then do it: *)
-          val (dy, y) = (dy, y + dy)
-          val (dx, x) = (dx, x + dx)
+                  (!xr, !yr, 
+                   if !stopx then 0 else dx, 
+                   if !stopy then 0 else dy)
+              end
       in
-          print (" -> " ^ StringUtil.delimit ", " (map Int.toString [dx, dy, x, y]) ^ "\n");
           botdx := dx;
           botdy := dy;
           botx := x;
