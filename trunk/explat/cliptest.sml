@@ -18,6 +18,8 @@ struct
         print (s ^ "\n")
       end
 
+  val showclip = ref false
+
   val width = 640
   val height = 480
 
@@ -79,9 +81,9 @@ struct
   end
 
   val botx = ref 50
-  val boty = ref 50
+  val boty = ref 150
   val botface = ref FRIGHT
-  (* position of top-left of scroll window *)
+  (* position of top-left of scroll window, in pixels *)
   val scrollx = ref 0
   val scrolly = ref 0
   (* (* in sixteenths of a pixel per frame *) *)
@@ -134,6 +136,7 @@ struct
   datatype intention =
       I_GO of dir
     | I_JUMP
+    | I_BOOST
 
   fun dtos LEFT = "left"
     | dtos RIGHT = "right"
@@ -142,13 +145,14 @@ struct
 
   fun inttos (I_GO d) = "go " ^ dtos d
     | inttos I_JUMP = "jump"
+    | inttos I_BOOST = "boost"
 
   fun intends il i = List.exists (fn x => x = i) il
 
   (* number of pixels per frame that we can walk at maximum *)
   val MAXWALK = 4
-  val TERMINAL_VELOCITY = 5
-  val JUMP_VELOCITY = 12
+  val TERMINAL_VELOCITY = 8
+  val JUMP_VELOCITY = 16
 
   (* make sure bot's in the scroll window! *)
   fun setscroll () =
@@ -198,6 +202,10 @@ struct
               then dx + 1
               else dx
 
+          val (dx, i) = if intends i I_BOOST
+                        then (dx * 2, List.filter (fn I_BOOST => false | _ => true) i)
+                        else (dx, i)
+
           (* and if we don't intend to move at all, slow us down *)
           val dx = 
               if not (intends i (I_GO RIGHT)) andalso
@@ -214,9 +222,20 @@ struct
                         else (dy, i)
 
           (* falling *)
-          val dy = if dy <= TERMINAL_VELOCITY 
-                   then dy + 1
-                   else dy
+          val dy = dy + 1 
+
+          (* air resistance *)
+          val dx = if dx > TERMINAL_VELOCITY
+                   then dx - 1
+                   else if dx < ~ TERMINAL_VELOCITY
+                        then dx + 1 
+                        else dx
+
+          val dy = if dy > TERMINAL_VELOCITY
+                   then dy - 1
+                   else if dy < ~ TERMINAL_VELOCITY
+                        then dy + 1
+                        else dy
 
           (* XXX world effects... *)
 
@@ -230,6 +249,11 @@ struct
                   val stopx = ref false
                   val stopy = ref false
 
+                  (* Allow vertical movement if walking up a gradient *)
+                  fun climb () =
+                    (yr := !yr - 1;
+                     true)
+
                   fun nudgex _ = 
                       let val next = !xr + xi
                       in
@@ -242,11 +266,14 @@ struct
 
                                       . .
                                       x #
-                                      
-                                      FIXME!!
+
                                       *)
-                                      
-                                   stopx := true
+                                   if not (Clip.clipped Clip.std (!xr, !yr - 1)
+                                           orelse
+                                           Clip.clipped Clip.std (next, !yr - 1))
+                                      andalso climb()
+                                   then xr := next
+                                   else stopx := true
                                else xr := next
                       end
 
@@ -286,6 +313,44 @@ struct
           i
       end 
 
+
+  fun drawdebug () =
+    if !showclip
+    then 
+      let in
+        print "DEBUG..\n";
+        Util.for 0 (width - 1)
+        (fn x => 
+         let in
+           Util.for 0 (height - 1)
+           (fn y =>
+            let
+              val xx = !scrollx + x
+              val yy = !scrolly + y
+              val tx = xx div TILEW
+              val ty = yy div TILEH
+            in
+              (* tile mask, absolute *)
+              case maskat (tx, ty) of
+                MEMPTY => ()
+              | m => 
+                  if Tile.clipmask m (xx mod TILEW, yy mod TILEH)
+                  then SDL.drawpixel (screen, x, y, color (0w255, 0w0, 0w0, 0w255))
+                  else SDL.drawpixel (screen, x, y, color (0w0, 0w255, 0w0, 0w255))
+
+              (* (* clip mask in config space *)
+              if Clip.clipped Clip.std (!scrollx + x, !scrolly + y)
+              then SDL.drawpixel (screen, x, y, color (0w255, 0w0, 0w0, 0w255))
+              else SDL.drawpixel (screen, x, y, color (0w0, 0w255, 0w0, 0w255))
+              *)
+            end)
+(*          ; if x mod 16 = 0 then flip screen else () *)
+         end);
+        print "DONE.\n"
+      end
+    else ()
+
+
   fun loop { nexttick, intention } =
       if getticks () > nexttick
          andalso (not (!paused) orelse !advance)
@@ -294,6 +359,7 @@ struct
               val () =               clearsurface (screen, color (0w0, 0w0, 0w0, 0w0))
               val () =               setscroll ()
               val () =               drawworld ()
+              val () =               drawdebug ()
               val () =               drawbot true
               val intention = movebot { nexttick = nexttick, intention = intention }
           in
@@ -351,6 +417,9 @@ struct
         (scrollx := !scrollx + 3;
          loop cur)
 
+    | SOME (E_KeyDown { sym = SDLK_b }) => 
+        loop { nexttick = nexttick, intention = I_BOOST :: i }
+
     | SOME (E_KeyDown { sym = SDLK_LEFT }) =>
         (* XXX for these there should also be an impulse event,
            so that when I tap the left key ever so quickly, I at least
@@ -371,11 +440,10 @@ struct
            then loop { nexttick = nexttick, intention = i }
            else loop { nexttick = nexttick, intention = I_GO RIGHT :: i })
 
-    | SOME (E_KeyDown { sym }) =>
-          let in
-              print ("unknown key " ^ SDL.sdlktos sym ^ "\n");
-              loop { nexttick = nexttick, intention = i }
-          end
+
+    | SOME (E_KeyDown { sym = SDLK_c }) => 
+          (showclip := not (!showclip);
+           loop cur)
 
     | SOME (E_KeyUp { sym = SDLK_SPACE }) =>
           (* these 'impulse' events are not turned off by a key going up! 
@@ -391,6 +459,12 @@ struct
 
     | SOME (E_KeyUp { sym = SDLK_RIGHT }) =>
               loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i }
+
+    | SOME (E_KeyDown { sym }) =>
+          let in
+              print ("unknown key " ^ SDL.sdlktos sym ^ "\n");
+              loop { nexttick = nexttick, intention = i }
+          end
 
     | SOME E_Quit => ()
     | _ => loop cur
