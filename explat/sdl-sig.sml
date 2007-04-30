@@ -283,6 +283,7 @@ sig
 
     val clearsurface : surface * color -> unit
 
+    (* draw a pixel to the surface. XXX the alpha component is ignored. *)
     val drawpixel : surface * int * int * color -> unit
 
     (* create a version of the surface that's 50% transparent *)

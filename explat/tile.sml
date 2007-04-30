@@ -14,8 +14,8 @@ struct
 
   fun clipmask MEMPTY _ = false
     | clipmask MSOLID _ = true
-    | clipmask (MRAMP LM) (x, y) = y > (8 + (16 - x) div 2)
-    | clipmask (MRAMP MH) (x, y) = not (y < 8 - (x div 2))
+    | clipmask (MRAMP LM) (x, y) = y >= (8 + (7 - x div 2))
+    | clipmask (MRAMP MH) (x, y) = y >= (7 - x div 2)
     | clipmask (MRAMP _) _ = false (* FIXME! *)
 
 end
