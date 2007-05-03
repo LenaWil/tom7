@@ -19,6 +19,15 @@ struct
 
   fun !! (ref p) = if p = null then raise Invalid else p
 
+  fun readcstring r =
+      let val len = 
+          (case Array.findi (fn (_, #"\000") => true | _ => false) r of
+               NONE => Array.length r
+             | SOME (i, _) => i)
+      in
+          CharVector.tabulate (len, fn x => Array.sub(r, x))
+      end
+
   (* XXX endianness... *)
   fun color (r, g, b, a) = 
     Word32.orb
@@ -35,6 +44,8 @@ struct
        Word32.andb(x, 0w255))
 
   type surface = safe
+
+  type joy = safe
 
 
     datatype sdlk =
@@ -280,8 +291,8 @@ struct
     | E_MouseDown
     | E_MouseUp
     | E_JoyAxis
-    | E_JoyDown
-    | E_JoyUp
+    | E_JoyDown of { which : int, button : int }
+    | E_JoyUp of { which : int, button : int }
     | E_JoyHat
     | E_JoyBall
     | E_Resize
@@ -842,6 +853,9 @@ struct
           end
   end
 
+  (* PERF can use mlton pointer structure to do this stuff,
+     which will improve performance a lot, but at the cost
+     of requiring binary compatibility with whatever version of SDL *)
   val surface_width_ = _import "ml_surfacewidth" : ptr -> int ;
   val surface_height_ = _import "ml_surfaceheight" : ptr -> int ;
   val clearsurface_ = _import "ml_clearsurface" : ptr * Word32.word -> unit ;
@@ -883,7 +897,11 @@ struct
      | 8 => E_JoyBall
      | 9 => E_JoyHat
      | 10 => E_JoyDown
+         { which = event8_2nd_ e, 
+           button = event8_3rd_ e }
      | 11 => E_JoyUp
+         { which = event8_2nd_ e, 
+           button = event8_3rd_ e }
      | 12 => E_Quit
      | 13 => E_SysWM
      (* reserved..
@@ -983,6 +1001,40 @@ struct
 
   val getticks = _import "SDL_GetTicks" : unit -> Word32.word ;
   val delay = _import "SDL_Delay" : int -> unit ;
+
+  structure Joystick =
+  struct
+      datatype event_state = ENABLE | IGNORE
+      
+      val number = _import "SDL_NumJoysticks" : unit -> int ;
+          
+      val oj_  = _import "SDL_JoystickOpen" : int -> MLton.Pointer.t ;
+      val cj_  = _import "SDL_JoystickClose" : MLton.Pointer.t -> unit ;
+      val nj_  = _import "ml_joystickname" : int * char array -> unit ;
+      val jes_ = _import "ml_setjoystate" : int -> unit ;
+
+      fun check n = if n >= 0 andalso n < number ()
+                    then n
+                    else raise SDL "joystick id out of range"
+
+      fun setstate es =
+          jes_ (case es of ENABLE => 1 | IGNORE => 0)
+                  
+      fun name n =
+          let val n = check n
+              val MAX_NAME = 512
+              val r = Array.array (MAX_NAME, #"\000")
+          in
+              nj_ (n, r);
+              readcstring r
+          end
+
+      fun openjoy n = ref (oj_ ( check n ))
+
+      (* nb, there is SDL_JoystickOpened. but why would we want to
+         check this when it should be true by invariant? *)
+      fun closejoy j = cj_ (!! j)
+  end
 
   structure Image =
   struct
