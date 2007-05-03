@@ -8,6 +8,7 @@ sig
   type color
 
   type mousestate
+  type joy
 
     datatype sdlk =
         SDLK_UNKNOWN            
@@ -252,8 +253,8 @@ sig
     | E_MouseDown
     | E_MouseUp
     | E_JoyAxis
-    | E_JoyDown
-    | E_JoyUp
+    | E_JoyDown of { which : int, button : int }
+    | E_JoyUp of { which : int, button : int }
     | E_JoyHat
     | E_JoyBall
     | E_Resize
@@ -280,6 +281,22 @@ sig
 
     val getticks : unit -> Word32.word
     val delay : int -> unit
+
+    structure Joystick :
+    sig
+        (* if the joystick is enabled, then events will
+           be returned for it. Otherwise they must be
+           checked manually. *)
+        datatype event_state = ENABLE | IGNORE
+
+        val number : unit -> int
+        val name : int -> string
+
+        val openjoy : int -> joy
+        val closejoy : joy -> unit
+
+        val setstate : event_state -> unit
+    end
 
     val clearsurface : surface * color -> unit
 

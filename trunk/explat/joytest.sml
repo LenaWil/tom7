@@ -32,6 +32,13 @@ struct
 
   val screen = makescreen (width, height)
 
+  val _ = Util.for 0 (Joystick.number () - 1)
+      (fn x => print ("JOY " ^ Int.toString x ^ ": " ^ Joystick.name x ^ "\n"))
+
+  (* XXX requires joystick! *)
+  val joy = Joystick.openjoy 0 
+  val () = Joystick.setstate Joystick.ENABLE
+
   fun requireimage s =
     case Image.load s of
       NONE => (print ("couldn't open " ^ s ^ "\n");
@@ -360,7 +367,6 @@ struct
           end
               
               
-
   and key ( cur as { nexttick, intention = i } ) = 
     case pollevent () of
       SOME (E_KeyDown { sym = SDLK_ESCAPE }) => () (* quit *)
@@ -402,6 +408,11 @@ struct
         (scrollx := !scrollx + 3;
          loop cur)
 
+(*
+    | SOME (E_KeyDown { sym = SDLK_b }) => 
+        loop { nexttick = nexttick, intention = I_BOOST :: i }
+*)
+
     | SOME (E_KeyDown { sym = SDLK_LEFT }) =>
         (* XXX for these there should also be an impulse event,
            so that when I tap the left key ever so quickly, I at least
@@ -411,7 +422,22 @@ struct
            then loop { nexttick = nexttick, intention = i }
            else loop { nexttick = nexttick, intention = (I_GO LEFT :: i) })
 
+    | SOME (E_JoyDown { button = 0, ... }) =>
+        (* XXX for these there should also be an impulse event,
+           so that when I tap the left key ever so quickly, I at least
+           start moving left for one frame. *)
+          (botface := FLEFT;
+           if intends i (I_GO LEFT)
+           then loop { nexttick = nexttick, intention = i }
+           else loop { nexttick = nexttick, intention = (I_GO LEFT :: i) })
+
+
     | SOME (E_KeyDown { sym = SDLK_SPACE }) =>
+          if intends i (I_JUMP)
+          then loop { nexttick = nexttick, intention = i }
+          else loop { nexttick = nexttick, intention = (I_JUMP :: i) }
+
+    | SOME (E_JoyDown { button = 3, ... }) =>
           if intends i (I_JUMP)
           then loop { nexttick = nexttick, intention = i }
           else loop { nexttick = nexttick, intention = (I_JUMP :: i) }
@@ -422,11 +448,17 @@ struct
            then loop { nexttick = nexttick, intention = i }
            else loop { nexttick = nexttick, intention = I_GO RIGHT :: i })
 
-    | SOME (E_KeyDown { sym }) =>
-          let in
-              print ("unknown key " ^ SDL.sdlktos sym ^ "\n");
-              loop { nexttick = nexttick, intention = i }
-          end
+    | SOME (E_JoyDown { button = 1, ... }) =>
+          (botface := FRIGHT;
+           if intends i (I_GO RIGHT)
+           then loop { nexttick = nexttick, intention = i }
+           else loop { nexttick = nexttick, intention = I_GO RIGHT :: i })
+
+(*
+    | SOME (E_KeyDown { sym = SDLK_c }) => 
+          (showclip := not (!showclip);
+           loop cur)
+*)
 
     | SOME (E_KeyUp { sym = SDLK_SPACE }) =>
           (* these 'impulse' events are not turned off by a key going up! 
@@ -440,8 +472,33 @@ struct
     | SOME (E_KeyUp { sym = SDLK_LEFT }) =>
             (loop { nexttick = nexttick, intention = List.filter (fn I_GO LEFT => false | _ => true) i })
 
+    | SOME (E_JoyUp { button = 0, ... }) =>
+            (loop { nexttick = nexttick, intention = List.filter (fn I_GO LEFT => false | _ => true) i })
+
     | SOME (E_KeyUp { sym = SDLK_RIGHT }) =>
               loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i }
+
+    | SOME (E_JoyUp { button = 1, ... }) =>
+            (loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i })
+
+    | SOME (E_JoyDown { which, button }) =>  
+            let in
+                print ("unknown joydown " ^ Int.toString which ^ ":" ^
+                       Int.toString button ^ "\n");
+                loop cur
+            end
+    | SOME (E_JoyUp { which, button }) =>  
+            let in
+                print ("unknown joyup " ^ Int.toString which ^ ":" ^
+                       Int.toString button ^ "\n");
+                loop cur
+            end
+
+    | SOME (E_KeyDown { sym }) =>
+          let in
+              print ("unknown key " ^ SDL.sdlktos sym ^ "\n");
+              loop { nexttick = nexttick, intention = i }
+          end
 
     | SOME E_Quit => ()
     | _ => loop cur

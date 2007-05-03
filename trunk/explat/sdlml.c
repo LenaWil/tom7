@@ -34,6 +34,7 @@
 int ml_init() {
   if (SDL_Init (SDL_INIT_VIDEO | 
                 SDL_INIT_TIMER | 
+		SDL_INIT_JOYSTICK |
 		/* for debugging */
 		SDL_INIT_NOPARACHUTE |
 		SDL_INIT_AUDIO) < 0) {
@@ -55,6 +56,18 @@ void slock(SDL_Surface *surf) {
 void sulock(SDL_Surface *surf) {
   if (SDL_MUSTLOCK(surf))
     SDL_UnlockSurface(surf);
+}
+
+/* out has room for 512 chars */
+void ml_joystickname (int i, char * out) {
+  const char * p = SDL_JoystickName(i);
+  if (p) {
+    strncpy(out, p, 512);
+  }
+}
+
+void ml_setjoystate(int i) {
+  SDL_JoystickEventState(i?SDL_ENABLE:SDL_IGNORE);
 }
 
 /* try to make a hardware surface, and, failing that,
