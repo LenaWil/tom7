@@ -35,6 +35,7 @@ int ml_init() {
   if (SDL_Init (SDL_INIT_VIDEO | 
                 SDL_INIT_TIMER | 
 		SDL_INIT_JOYSTICK |
+		SDL_INIT_AUDIO |
 		/* for debugging */
 		SDL_INIT_NOPARACHUTE |
 		SDL_INIT_AUDIO) < 0) {

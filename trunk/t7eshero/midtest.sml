@@ -32,12 +32,17 @@ struct
 
   val screen = makescreen (width, height)
 
+(*
   val _ = Util.for 0 (Joystick.number () - 1)
       (fn x => print ("JOY " ^ Int.toString x ^ ": " ^ Joystick.name x ^ "\n"))
 
   (* XXX requires joystick! *)
   val joy = Joystick.openjoy 0 
   val () = Joystick.setstate Joystick.ENABLE
+*)
+
+  val initaudio_ = _import "ml_initsound" : unit -> unit ;
+  val () = initaudio_ ()
 
   fun requireimage s =
     case Image.load s of
