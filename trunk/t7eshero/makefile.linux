@@ -1,0 +1,12 @@
+
+default : cliptest.exe
+
+
+sdlml.o : sdlml.c
+	gcc -O `sdl-config --cflags` -c sdlml.c -o sdlml.o
+
+cliptest.exe : sdlml.o *.sml
+	mlton -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowFFI true' -output cliptest.exe cliptest.cm sdlml.o 
+
+clean :
+	rm -f core.* *~ *.exe *.o
