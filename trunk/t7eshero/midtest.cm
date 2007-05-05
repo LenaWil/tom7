@@ -9,20 +9,18 @@ group is
 ../sml-lib/util/stringutil-sig.sml
 ../sml-lib/util/stringutil.sml
 
+../sml-lib/files/reader-sig.sml
+../sml-lib/files/reader.sml
+
+../sml-lib/files/midi/midi-sig.sml
+../sml-lib/files/midi/midi.sml
+
+
 flag-sig.sml
 flag.sml
 
-tile-sig.sml
-tile.sml
-
-world-sig.sml
-world.sml
-
 sdl-sig.sml
 sdl.sml
-
-clip-sig.sml
-clip.sml
 
 midtest.sml
 
