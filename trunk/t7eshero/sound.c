@@ -2,10 +2,14 @@
 #include <SDL_audio.h>
 
 // number of samples per second
-#define RATE 22050
+//#define RATE 22050
+#define RATE 44100
 #define PI 3.14152653589
+/* 512 = "A good value for games" */
+#define BUFFERSIZE 512
+// #define BUFFERSIZE 44100
 
-int cur_freq = 256;
+volatile int cur_freq = 256;
 
 void mixaudio (void * unused, Sint16 * stream, int len) {
   /* total number of samples; used to get rate */
@@ -23,8 +27,8 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
        so the length of one cycle in samples is RATE/cur_freq. 
     */
 
-    int cycle = (RATE / cur_freq);
-    int pos = samples % cycle;
+    volatile int cycle = (RATE / cur_freq);
+    volatile int pos = samples % cycle;
 #if 0
     stream[i] = (Sint16) sin( ((float)pos / (float)cycle) * 2.0 * PI );
 #endif
@@ -41,9 +45,9 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
    would give us better response time and a data race would
    (probably) be harmless */
 void ml_setfreq(int nf) {
-  SDL_LockAudio();
+  // SDL_LockAudio();
   cur_freq = nf;
-  SDL_UnlockAudio();
+  // SDL_UnlockAudio();
 }
 
 void ml_initsound() {
@@ -52,16 +56,21 @@ void ml_initsound() {
   /* Set 16-bit stereo audio at 22Khz */
   fmt.freq = RATE;
   fmt.format = AUDIO_S16SYS;
-  fmt.channels = 1;
-  fmt.samples = 512;        /* A good value for games */
+  fmt.channels = 2;
+  fmt.samples = BUFFERSIZE;
   fmt.callback = (void(*)(void*, Uint8*, int)) mixaudio;
   fmt.userdata = NULL;
 
+  SDL_AudioSpec got;
+
   // XXX should check that we got the desired settings...
-  if ( SDL_OpenAudio(&fmt, NULL) < 0 ) {
+  if ( SDL_OpenAudio(&fmt, &got) < 0 ) {
     fprintf(stderr, "Unable to open audio: %s\n", SDL_GetError());
     exit(1);
   }
+
+  printf("Audio data: %d samples, %d channels, %d rate\n",
+	 got.samples, got.channels, got.freq);
 
   SDL_PauseAudio(0);
 }

@@ -1,3 +1,7 @@
 
+SDL_AUDIODRIVER=waveout works but has ridiculous latency.
+dsound doesn't work, but should have better latency. can we make it work?
+
+
 libjpeg on mingwin...
 

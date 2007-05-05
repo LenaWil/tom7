@@ -1,4 +1,7 @@
 
+(* FIXME Check that SDL_AUDIODRIVER is dsound otherwise this
+   is unusable because of latency *)
+
 structure Test =
 struct
 
@@ -44,6 +47,7 @@ struct
   val initaudio_ = _import "ml_initsound" : unit -> unit ;
   val () = initaudio_ ()
 
+  val freq = ref 256
   val setfreq_ = _import "ml_setfreq" : int -> unit ;
 
   fun requireimage s =
@@ -64,17 +68,6 @@ struct
 
   val ramp_lm = requireimage "testgraphics/rampup1.png"
   val ramp_mh = requireimage "testgraphics/rampup2.png"
-
-  fun ttos MEMPTY = "empty"
-    | ttos MSOLID = "solid"
-    | ttos (MRAMP _) = "ramp?"
-
-
-  (* just drawing masks for now to test physics *)
-  fun tilefor MSOLID = solid
-    | tilefor (MRAMP LM) = ramp_lm
-    | tilefor (MRAMP MH) = ramp_mh
-
 
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
@@ -105,45 +98,6 @@ struct
 
   val paused = ref false
   val advance = ref false
-
-
-  (* draw a view of the world where the top left of
-     the screen is at scrollx/scrolly *)
-  fun drawworld () =
-    let
-      (* tlx/tly is the (screen coordinate pixel) point 
-         at which we draw the top-left tile. it is nonpositive *)
-      val tlx = 0 - (!scrollx mod TILEW)
-      val tly = 0 - (!scrolly mod TILEH)
-        
-      (* this is the tile number (world absolute) that we start
-         by drawing *)
-      val xstart = !scrollx div TILEW
-      val ystart = !scrolly div TILEH
-    in
-      (* nb, always doing one extra tile, because we might
-         display only partial tiles if not aligned to scroll
-         view *)
-    Util.for 0 TILESW
-    (fn x =>
-     Util.for 0 TILESH
-     (fn y =>
-      case maskat (xstart + x, ystart + y) of
-        MEMPTY => ()
-      | t => blitall (tilefor t, screen, 
-                      tlx + (x * TILEW), tly + (y * TILEH))))
-    end
-
-  fun drawbot fade =
-      let val img = 
-          (case (!botface, fade) of
-               (FLEFT, false) => robotl
-             | (FLEFT, true) => robotl_fade
-             | (FRIGHT, false) => robotr
-             | (FRIGHT, true) => robotr_fade)
-      in
-          blitall (img, screen, !botx - !scrollx, !boty - !scrolly)
-      end
 
   datatype intention =
       I_GO of dir
@@ -187,189 +141,40 @@ struct
 
     end
 
-  fun movebot { nexttick, intention = i } =
-      (* first, react to the player's intentions *)
-      let
-          val dx = !botdx
-          val dy = !botdy
-          val x = !botx
-          val y = !boty
-              
-          (* val () = print (StringUtil.delimit ", " (map Int.toString [dx, dy, x, y])); *)
-          val () = 
-              case i of
-                  nil => () 
-                | _ => print (StringUtil.delimit " & " (map inttos i) ^ "\n")
+  fun setfreq n =
+      let in
+          freq := n;
+          setfreq_ n;
+          (* PERF *)
+          clearsurface (screen, color (0w0, 0w0, 0w0, 0w0));
+          blitall (robotl, screen, n, 32);
+          flip screen
+      end
 
-          val dx =
-              if intends i (I_GO LEFT)
-                 andalso dx > ~ MAXWALK
-              then dx - 1
-              else dx
-          val dx = 
-              if intends i (I_GO RIGHT)
-                 andalso dx < MAXWALK
-              then dx + 1
-              else dx
-
-          (* and if we don't intend to move at all, slow us down *)
-          val dx = 
-              if not (intends i (I_GO RIGHT)) andalso
-                 not (intends i (I_GO LEFT))
-              then (if dx > 0 then dx - 1
-                    else if dx < 0 then dx + 1 else 0)
-              else dx
-                  
-          (* XXX jumping -- only when not in air already! *)
-
-          val (dy, i) = if intends i (I_JUMP)
-                        then (dy - JUMP_VELOCITY,
-                              List.filter (fn I_JUMP => false | _ => true) i)
-                        else (dy, i)
-
-          (* falling *)
-          val dy = if dy <= TERMINAL_VELOCITY 
-                   then dy + 1
-                   else dy
-
-          (* XXX world effects... *)
-
-          (* now try moving in that direction *)
-          (* XXX this collision detection needs to be much more sophisticated, of course! *)
-          val (dy, y) =
-              (* 
-                 simple: if the tile we're currently on, or the
-                 tile below it, has any kind of clip, and we would
-                 hit it this frame, then snap. Do this for both left
-                 and right feet and take the min. *)
-              if (dy > 0)
-              then
-                  let
-                      (* look at its bottom *)
-                      val y = y + ROBOTH
-
-                      (* give the x coordinate to use... *)
-                      fun vdrop x =
-                          let
-                              val xt = x div TILEW
-                              val yt1 = y div TILEH
-                              val yt2 = (y + dy) div TILEH
-                                  
-                              (* given a tile index (yt) and distance we'd like to travel from
-                                 the top of that tile (dist) into it, calculate our new position
-                                 and velocity. *)
-                              fun snap (yt, dist) =
-                                  (case maskat (xt, yt) of
-                                       MEMPTY => raise Test "can't snap to empty, duh"
-                                     | MSOLID => (print ("snapped to yt=" ^ Int.toString yt ^ " (dist="
-                                                         ^ Int.toString dist ^ ")\n");
-                                                  (0, yt * TILEH - 1))
-                                     | MRAMP sl => 
-                                           let
-                                               (* the distance from the bottom of the tile *)
-                                               val yint =
-                                                   (case sl of
-                                                        (* XXX no constants like 8 *)
-                                                        LM => (* ramps 0..8 *)     (x mod TILEW div 2)
-                                                      | MH => (*       8..f *) 8 + (x mod TILEW div 2)
-                                                      | _ => raise Test "ramps not supported"
-                                                            )
-
-                                               val mdist = TILEH - yint
-                                               val dodist = Int.min(dist, mdist)
-                                           in
-                                             print ("Snap ramp: " ^
-                                                    "want " ^ Int.toString dist ^
-                                                    " max " ^ Int.toString mdist ^ "\n");
-                                               if (dist < mdist) 
-                                               then (* go all the way, maintain speed *)
-                                                   (dy, yt * TILEH + dist)
-                                               else (* stop at max *)
-                                                   (0, yt * TILEH + mdist)
-                                           end
-                                           )
-                          in
-                              (* drawpixel (screen, x - 1, y - 1, color (0wxFF, 0w0, 0w0, 0wxFF)); *)
-                              blitall(greenhi, screen, xt * TILEW - !scrollx, yt1 * TILEH - !scrolly);
-                              blitall(redhi,   screen, xt * TILEW - !scrollx, yt2 * TILEH - !scrolly);
-
-                              print ("Vdrop: x: " ^ Int.toString x ^ " y: " ^ Int.toString y ^
-                                     " dy: " ^ Int.toString dy ^ 
-                                     " xt: " ^ Int.toString xt ^ 
-                                     " yt1: " ^ Int.toString yt1 ^ "(" ^ ttos (maskat (xt, yt1)) ^ ")" ^
-                                     " yt2: " ^ Int.toString yt2 ^ "(" ^ ttos (maskat (xt, yt2)) ^ ")" ^
-                                     "\n");
-
-                              (* if our current location stops us, then stop *)
-                              (case maskat(xt, yt1) of
-                                   MEMPTY =>
-                                   (* are we going to enter the next spot? *)
-                                       if yt1 <> yt2 
-                                       then (case maskat(xt, yt2) of
-                                                 MEMPTY => (* just drop, safely *)
-                                                           (dy, y + dy)
-                                               (* otherwise snap *)
-                                               | _ => (print "snap at y2\n";
-                                                           snap (yt2, (y + dy) mod TILEH)))
-                                       else (print "just fall\n";
-                                             (dy, y + dy))
-                                     | _ => (print "snap at yt1\n";
-                                             snap (yt1, (y + dy) mod TILEH)))
-                                   
-                          end
-
-                      val () = print "-- drop stop --\n"
-                      val (dyl, yl) = vdrop (x + 0)
-(*                      val (dyr, yr) = vdrop (x + (ROBOTW - 1)) *)
-                        val (dyr, yr) = (~1, 10000)
-                  in
-
-                      if yl < yr
-                      then (dyl, yl - ROBOTH)
-                      else (dyr, yr - ROBOTH)
-                  end
-              else (dy, y)
-
-                  (*
-                  (* stop at bottom of screen --
-                     don't do this anymore now that there's scroll *)
-          val (dy, y) = if dy > 0 andalso 
-                           y >= ((TILESH - 1) * TILEH) - ROBOTH
-                        then (0, ((TILESH - 1) * TILEH) - ROBOTH)
-                        else (dy, y + dy)
-                        *)
-
-          (* then do it: *)
-          val (dy, y) = (dy, y + dy)
-          val (dx, x) = (dx, x + dx)
-      in
-          print (" -> " ^ StringUtil.delimit ", " (map Int.toString [dx, dy, x, y]) ^ "\n");
-          botdx := dx;
-          botdy := dy;
-          botx := x;
-          boty := y;
-          i
-      end 
 
   fun loop { nexttick, intention } =
       if getticks () > nexttick
          andalso (not (!paused) orelse !advance)
       then 
           let
+(*
               val () =               clearsurface (screen, color (0w0, 0w0, 0w0, 0w0))
               val () =               setscroll ()
               val () =               drawworld ()
               val () =               drawbot true
               val intention = movebot { nexttick = nexttick, intention = intention }
+*)
           in
+(*
               drawbot false;
               flip screen;
               advance := false;
+*)
               key { nexttick = getticks() + 0w20, intention = intention }
           end
       else
           let in
-              SDL.delay 1;
+              SDL.delay 0;
               key { nexttick = nexttick, intention = intention }
           end
               
@@ -403,15 +208,15 @@ struct
         end
 
     | SOME (E_KeyDown { sym = SDLK_q }) =>
-        (setfreq_ 256;
+        (setfreq 256;
          loop cur)
 
     | SOME (E_KeyDown { sym = SDLK_w }) =>
-        (setfreq_ 400;
+        (setfreq 400;
          loop cur)
 
     | SOME (E_KeyDown { sym = SDLK_e }) =>
-        (setfreq_ 512;
+        (setfreq 512;
          loop cur)
 
 
@@ -434,13 +239,8 @@ struct
 *)
 
     | SOME (E_KeyDown { sym = SDLK_LEFT }) =>
-        (* XXX for these there should also be an impulse event,
-           so that when I tap the left key ever so quickly, I at least
-           start moving left for one frame. *)
-          (botface := FLEFT;
-           if intends i (I_GO LEFT)
-           then loop { nexttick = nexttick, intention = i }
-           else loop { nexttick = nexttick, intention = (I_GO LEFT :: i) })
+        (setfreq (!freq - 50);
+         loop cur)
 
     | SOME (E_JoyDown { button = 0, ... }) =>
         (* XXX for these there should also be an impulse event,
@@ -463,10 +263,8 @@ struct
           else loop { nexttick = nexttick, intention = (I_JUMP :: i) }
 
     | SOME (E_KeyDown { sym = SDLK_RIGHT }) =>
-          (botface := FRIGHT;
-           if intends i (I_GO RIGHT)
-           then loop { nexttick = nexttick, intention = i }
-           else loop { nexttick = nexttick, intention = I_GO RIGHT :: i })
+        (setfreq (!freq + 30);
+         loop cur)
 
     | SOME (E_JoyDown { button = 1, ... }) =>
           (botface := FRIGHT;
