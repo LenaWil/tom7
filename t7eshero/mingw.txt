@@ -38,3 +38,8 @@ Note: according to
   http://www.spacejack.org/games/mingw/mingw-sdl.html
       it's possible to just use the MSVC binary library (.lib)?
 
+
+
+To get directsound support (much lower latency), use the DLL file from
+escape. Don't build your own! Then you have to export SDL_AUDIODRIVER=dsound
+before running. (Could do this with setenv I guess..)
