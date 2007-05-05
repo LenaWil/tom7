@@ -44,6 +44,8 @@ struct
   val initaudio_ = _import "ml_initsound" : unit -> unit ;
   val () = initaudio_ ()
 
+  val setfreq_ = _import "ml_setfreq" : int -> unit ;
+
   fun requireimage s =
     case Image.load s of
       NONE => (print ("couldn't open " ^ s ^ "\n");
@@ -399,6 +401,19 @@ struct
           advance := true;
           loop cur
         end
+
+    | SOME (E_KeyDown { sym = SDLK_q }) =>
+        (setfreq_ 256;
+         loop cur)
+
+    | SOME (E_KeyDown { sym = SDLK_w }) =>
+        (setfreq_ 400;
+         loop cur)
+
+    | SOME (E_KeyDown { sym = SDLK_e }) =>
+        (setfreq_ 512;
+         loop cur)
+
 
     | SOME (E_KeyDown { sym = SDLK_i }) =>
         (scrolly := !scrolly - 3;
