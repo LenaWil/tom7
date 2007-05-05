@@ -8,14 +8,16 @@
 /* 512 = "A good value for games" */
 #define BUFFERSIZE 512
 // #define BUFFERSIZE 44100
+#define NCHANNELS 1
 
 volatile int cur_freq = 256;
+volatile int cur_vol  = 32000;
 
 void mixaudio (void * unused, Sint16 * stream, int len) {
   /* total number of samples; used to get rate */
   /* XXX glitch every time this overflows; should mod by RATE? */
   static int samples = 0;
-  static int val = 32000;
+  static int val = 1;
   int i;
   /* length is actually in bytes; halve it */
   len >>= 1;
@@ -36,7 +38,7 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
       val = - val;
       samples = 0;
     }
-    stream[i] = val;
+    stream[i] = val * cur_vol;
   }
 }
 
@@ -44,10 +46,11 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
    audio here, since changing the frequency within a buffer
    would give us better response time and a data race would
    (probably) be harmless */
-void ml_setfreq(int nf) {
-  // SDL_LockAudio();
+void ml_setfreq(int nf, int nv) {
+  SDL_LockAudio();
   cur_freq = nf;
-  // SDL_UnlockAudio();
+  cur_vol = nv;
+  SDL_UnlockAudio();
 }
 
 void ml_initsound() {
@@ -56,7 +59,7 @@ void ml_initsound() {
   /* Set 16-bit stereo audio at 22Khz */
   fmt.freq = RATE;
   fmt.format = AUDIO_S16SYS;
-  fmt.channels = 2;
+  fmt.channels = NCHANNELS;
   fmt.samples = BUFFERSIZE;
   fmt.callback = (void(*)(void*, Uint8*, int)) mixaudio;
   fmt.userdata = NULL;
