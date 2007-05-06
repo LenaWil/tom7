@@ -44,9 +44,7 @@ struct
   val initaudio_ = _import "ml_initsound" : unit -> unit ;
   val () = initaudio_ ()
 
-  val freq = ref 256
-  val vol  = ref 32000
-  val setfreq_ = _import "ml_setfreq" : int * int -> unit ;
+  val setfreq_ = _import "ml_setfreq" : int * int * int -> unit ;
 
   fun requireimage s =
     case Image.load s of
@@ -80,15 +78,20 @@ struct
   val paused = ref false
   val advance = ref false
 
-  fun setfreq (n, v) =
+  fun setfreq (ch, f, vol) =
       let in
-          print ("setfreq " ^ Int.toString n ^ "\n");
-          freq := n;
-          vol := v;
-          setfreq_ (n, v);
+(*
+          print ("setfreq " ^ Int.toString ch ^ " = " ^
+                 Int.toString f ^ " @ " ^ Int.toString vol ^ "\n");
+*)
+          TextIO.output(TextIO.stdOut,
+                        "setfreq " ^ Int.toString ch ^ " = " ^
+                        Int.toString f ^ " @ " ^ Int.toString vol ^ "\n");
+          TextIO.flushOut(TextIO.stdOut);
+          setfreq_ (ch, f, vol);
           (* PERF *)
           clearsurface (screen, color (0w0, 0w0, 0w0, 0w0));
-          blitall (robotl, screen, n, 32);
+          blitall (robotl, screen, f, 32 * (ch + 1));
           flip screen
       end
 
@@ -123,15 +126,17 @@ struct
 
   fun pitchof n = Vector.sub(pitches, n)
 
-  (* XXX assuming ticks = midi delta times; wrong! *)
+  (* XXX assuming ticks = midi delta times; wrong! 
+     (even when slowed by factor of 4 below)
+     *)
   fun loop (lt, nil) = print "SONG END.\n"
     | loop (lt, (0, evt) :: rest) =
       (* do it now! *)
       let in
           (case evt of
-               MIDI.NOTEON(_, note, 0) => setfreq (note, 0)
-             | MIDI.NOTEON(_, note, vel) => setfreq (pitchof note, 32000)
-             | MIDI.NOTEOFF _ => (setfreq (pitchof 60, 0))
+               MIDI.NOTEON(_, note, 0) => setfreq (0, note, 0)
+             | MIDI.NOTEON(_, note, vel) => setfreq (0, pitchof note, 32000)
+             | MIDI.NOTEOFF _ => (setfreq (0, pitchof 60, 0))
              | _ => print "unknown event\n");
           
           loop (lt, rest)
