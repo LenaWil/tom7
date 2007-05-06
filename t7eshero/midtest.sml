@@ -84,13 +84,11 @@ struct
           print ("setfreq " ^ Int.toString ch ^ " = " ^
                  Int.toString f ^ " @ " ^ Int.toString vol ^ "\n");
 *)
-          TextIO.output(TextIO.stdOut,
-                        "setfreq " ^ Int.toString ch ^ " = " ^
+          print("setfreq " ^ Int.toString ch ^ " = " ^
                         Int.toString f ^ " @ " ^ Int.toString vol ^ "\n");
-          TextIO.flushOut(TextIO.stdOut);
           setfreq_ (ch, f, vol);
           (* PERF *)
-          clearsurface (screen, color (0w0, 0w0, 0w0, 0w0));
+          (* clearsurface (screen, color (0w0, 0w0, 0w0, 0w0)); *)
           blitall (robotl, screen, f, 32 * (ch + 1));
           flip screen
       end
@@ -105,7 +103,9 @@ struct
       orelse raise Test ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
 
   val () = app (fn l => print (itos (length l) ^ " events\n")) events
-  val track = List.nth (events, 2)
+  val track1 = List.nth (events, 1)
+  val track2 = List.nth (events, 2)
+  val track3 = List.nth (events, 3)
 
   fun getticksi () = Word32.toInt (getticks ())
 
@@ -127,31 +127,38 @@ struct
   fun pitchof n = Vector.sub(pitches, n)
 
   (* XXX assuming ticks = midi delta times; wrong! 
-     (even when slowed by factor of 4 below)
-     *)
+     (even when slowed by factor of 4 below) *)
   fun loop (lt, nil) = print "SONG END.\n"
-    | loop (lt, (0, evt) :: rest) =
-      (* do it now! *)
-      let in
-          (case evt of
-               MIDI.NOTEON(_, note, 0) => setfreq (0, note, 0)
-             | MIDI.NOTEON(_, note, vel) => setfreq (0, pitchof note, 32000)
-             | MIDI.NOTEOFF _ => (setfreq (0, pitchof 60, 0))
-             | _ => print "unknown event\n");
-          
-          loop (lt, rest)
+    | loop (lt, tracks) =
+      let
+          val period = getticksi () - lt
+
+          fun doready (tr, (n, evt) :: rest) =
+              let val nn = n - period
+              in
+                  (* easy to drift because we're lte... *)
+                  if nn <= 0 
+                  then
+                      let in
+                          (case evt of
+                               MIDI.NOTEON(_, note, 0) => setfreq (tr, note, 0)
+                             | MIDI.NOTEON(_, note, vel) => setfreq (tr, pitchof note, 16000)
+                             | MIDI.NOTEOFF _ => (setfreq (tr, pitchof 60, 0))
+                             | _ => print "unknown event\n");
+                          (tr, rest)
+                      end
+                  else (tr, (nn, evt) :: rest)
+              end
+            | doready (tr, nil) = (tr, nil)
+
+          (* only keep tracks with events left... *)
+          (* PERF could use mappartial *)
+          val tracks = List.filter (fn (t, _ :: _) => true | _ => false) (map doready tracks)
+      in
+          loop (lt + period, tracks)
       end
-    | loop (lt, (n, evt) :: rest) =
-           let val period = getticksi () - lt
-               val nd = n - period
-           in
-               delay 0;
-               loop (lt + period, 
-                     (if nd < 0 then 0 else nd, evt) :: rest)
 
-           end
-
-  fun slow l = map (fn (delta, e) => (delta * 4, e)) l
+  fun slow l = map (fn (delta, e) => (delta * 6, e)) l
 
 (*              
   and key ( cur as { nexttick, intention = i } ) = 
@@ -231,7 +238,10 @@ struct
     | _ => loop cur
 *)
 
-  val () = loop (getticksi (), slow track)
+  val () = loop (getticksi (), [(0, slow track1),
+                                (1, slow track2),
+                                (2, slow track3)
+                                ])
     handle Test s => messagebox ("exn test: " ^ s)
         | SDL s => messagebox ("sdl error: " ^ s)
         | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
