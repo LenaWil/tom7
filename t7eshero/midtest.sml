@@ -21,11 +21,8 @@ struct
         print (s ^ "\n")
       end
 
-  val width = 640
-  val height = 480
-
-  val TILESW = width div 16
-  val TILESH = height div 16
+  val width = 1024
+  val height = (16 * 17)
 
   val ROBOTH = 32
   val ROBOTW = 16
@@ -60,6 +57,7 @@ struct
 
   val redhi = requireimage "testgraphics/redhighlight.png"
   val greenhi = requireimage "testgraphics/greenhighlight.png"
+  val blackfade = requireimage "testgraphics/blackfade.png"
   val robobox = requireimage "testgraphics/robobox.png"
 
   datatype dir = UP | DOWN | LEFT | RIGHT
@@ -78,6 +76,23 @@ struct
   val paused = ref false
   val advance = ref false
 
+  (* note 60 is middle C = 256hz,
+     so 0th note is 8hz.
+     *)
+(* XXX no floats on mingw, urgh
+  fun pitchof n = Real.trunc ( 8.0 * Math.pow (2.0, real n / 12.0) )
+*)
+  val pitches = Vector.fromList 
+  [8,8,8,9,10,10,11,11,12,13,14,15,16,16,17,19,20,21,22,23,25,26,28,30,32,33,
+   35,38,40,42,45,47,50,53,57,60,63,67,71,76,80,85,90,95,101,107,114,120,127,
+   135,143,152,161,170,181,191,203,215,228,241,256,271,287,304,322,341,362,
+   383,406,430,456,483,511,542,574,608,645,683,724,767,812,861,912,966,1023,
+   1084,1149,1217,1290,1366,1448,1534,1625,1722,1824,1933,2047,2169,2298,2435,
+   2580,2733,2896,3068,3250,3444,3649,3866,4095,4339,4597,4870,5160,5467,5792,
+   6137,6501,6888,7298,7732,8192,8679,9195,9741,10321,10935,11585,12274]
+
+  fun pitchof n = Vector.sub(pitches, n)
+
   val freqs = Array.array(16, 0)
   fun setfreq (ch, f, vol) =
       let in
@@ -89,12 +104,53 @@ struct
                         Int.toString f ^ " @ " ^ Int.toString vol ^ "\n");
           setfreq_ (ch, f, vol);
           (* "erase" old *)
-          blitall (greenhi, screen, Array.sub(freqs, ch), 32 * (ch + 1));
+          blitall (blackfade, screen, Array.sub(freqs, ch), 16 * (ch + 1));
           (* draw new *)
-          blitall (redhi, screen, f, 32 * (ch + 1));
+          (if vol > 0 then blitall (solid, screen, f, 16 * (ch + 1))
+           else ());
           Array.update(freqs, ch, f);
           flip screen
       end
+
+
+
+  datatype status = 
+      OFF
+    | PLAYING of int
+  (* for each channel, all possible midi notes *)
+  val miditable = Array.array(16, Array.array(127, OFF))
+  val NMIX = 16 (* XXX get from C code *)
+  val mixes = Array.array(NMIX, false)
+
+  fun noteon (ch, n, v) =
+      (case Array.sub(Array.sub(miditable, ch), n) of
+           OFF => (* find channel... *)
+               (case Array.findi (fn (_, b) => not b) mixes of
+                    SOME (i, _) => 
+                        let in
+                            Array.update(mixes, i, true);
+                            setfreq(i, pitchof n, v);
+                            Array.update(Array.sub(miditable, ch),
+                                         n,
+                                         PLAYING i)
+                        end
+                  | NONE => print "No more mix channels.\n")
+         (* re-use mix channel... *)
+         | PLAYING i => setfreq(i, pitchof n, v)
+                    )
+
+  fun noteoff (ch, n) =
+      (case Array.sub(Array.sub(miditable, ch), n) of
+           OFF => (* already off *) ()
+         | PLAYING i => 
+               let in
+                   Array.update(mixes, i, false);
+                   setfreq(i, pitchof 60, 0);
+                   Array.update(Array.sub(miditable, ch),
+                                n,
+                                OFF)
+               end)
+      
 
   (* FIXME totally ad hoc!! *)
   val itos = Int.toString
@@ -117,23 +173,6 @@ struct
 
   fun getticksi () = Word32.toInt (getticks ())
 
-  (* note 60 is middle C = 256hz,
-     so 0th note is 8hz.
-     *)
-(* XXX no floats on mingw, urgh
-  fun pitchof n = Real.trunc ( 8.0 * Math.pow (2.0, real n / 12.0) )
-*)
-  val pitches = Vector.fromList 
-  [8,8,8,9,10,10,11,11,12,13,14,15,16,16,17,19,20,21,22,23,25,26,28,30,32,33,
-   35,38,40,42,45,47,50,53,57,60,63,67,71,76,80,85,90,95,101,107,114,120,127,
-   135,143,152,161,170,181,191,203,215,228,241,256,271,287,304,322,341,362,
-   383,406,430,456,483,511,542,574,608,645,683,724,767,812,861,912,966,1023,
-   1084,1149,1217,1290,1366,1448,1534,1625,1722,1824,1933,2047,2169,2298,2435,
-   2580,2733,2896,3068,3250,3444,3649,3866,4095,4339,4597,4870,5160,5467,5792,
-   6137,6501,6888,7298,7732,8192,8679,9195,9741,10321,10935,11585,12274]
-
-  fun pitchof n = Vector.sub(pitches, n)
-
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
   fun loop (lt, nil) = print "SONG END.\n"
@@ -149,9 +188,9 @@ struct
                   then
                       let in
                           (case evt of
-                               MIDI.NOTEON(ch, note, 0) => setfreq (ch, note, 0)
-                             | MIDI.NOTEON(ch, note, vel) => setfreq (ch, pitchof note, 16000)
-                             | MIDI.NOTEOFF(ch, _, _) => (setfreq (ch, pitchof 60, 0))
+                               MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
+                             | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000) 
+                             | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
                              | _ => print "unknown event\n");
                           (tr, rest)
                       end
@@ -166,7 +205,7 @@ struct
           loop (lt + period, tracks)
       end
 
-  fun slow l = map (fn (delta, e) => (delta * 6, e)) l
+  fun slow l = map (fn (delta, e) => (delta * 2, e)) l
 
 (*              
   and key ( cur as { nexttick, intention = i } ) = 
