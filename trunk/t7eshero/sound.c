@@ -10,7 +10,8 @@
 // #define BUFFERSIZE 44100
 #define NCHANNELS 1
 
-#define NMIX 6
+// same as number of midi channels. We probably won't need this many!
+#define NMIX 16
 
 #define MAX_MIX (32700)
 #define MIN_MIX (-32700)

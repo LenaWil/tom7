@@ -141,9 +141,9 @@ struct
                   then
                       let in
                           (case evt of
-                               MIDI.NOTEON(_, note, 0) => setfreq (tr, note, 0)
-                             | MIDI.NOTEON(_, note, vel) => setfreq (tr, pitchof note, 16000)
-                             | MIDI.NOTEOFF _ => (setfreq (tr, pitchof 60, 0))
+                               MIDI.NOTEON(ch, note, 0) => setfreq (ch, note, 0)
+                             | MIDI.NOTEON(ch, note, vel) => setfreq (ch, pitchof note, 16000)
+                             | MIDI.NOTEOFF(ch, _, _) => (setfreq (ch, pitchof 60, 0))
                              | _ => print "unknown event\n");
                           (tr, rest)
                       end
@@ -238,10 +238,9 @@ struct
     | _ => loop cur
 *)
 
-  val () = loop (getticksi (), [(0, slow track1),
-                                (1, slow track2),
-                                (2, slow track3)
-                                ])
+  val tracks = slow (MIDI.merge [track1, track2, track3])
+
+  val () = loop (getticksi (), [(0, tracks)])
     handle Test s => messagebox ("exn test: " ^ s)
         | SDL s => messagebox ("sdl error: " ^ s)
         | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
