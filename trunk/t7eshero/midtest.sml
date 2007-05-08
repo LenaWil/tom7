@@ -78,6 +78,7 @@ struct
   val paused = ref false
   val advance = ref false
 
+  val freqs = Array.array(16, 0)
   fun setfreq (ch, f, vol) =
       let in
 (*
@@ -87,9 +88,11 @@ struct
           print("setfreq " ^ Int.toString ch ^ " = " ^
                         Int.toString f ^ " @ " ^ Int.toString vol ^ "\n");
           setfreq_ (ch, f, vol);
-          (* PERF *)
-          (* clearsurface (screen, color (0w0, 0w0, 0w0, 0w0)); *)
-          blitall (robotl, screen, f, 32 * (ch + 1));
+          (* "erase" old *)
+          blitall (greenhi, screen, Array.sub(freqs, ch), 32 * (ch + 1));
+          (* draw new *)
+          blitall (redhi, screen, f, 32 * (ch + 1));
+          Array.update(freqs, ch, f);
           flip screen
       end
 
@@ -102,10 +105,15 @@ struct
   val _ = ty = 1
       orelse raise Test ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
 
+  fun channelify ch l = ListUtil.mapsecond
+                            (fn MIDI.NOTEON(_, n, v) => MIDI.NOTEON (ch, n, v)
+                              | MIDI.NOTEOFF(_, n, v) => MIDI.NOTEOFF(ch, n, v)
+                              | e => e) l
+
   val () = app (fn l => print (itos (length l) ^ " events\n")) events
-  val track1 = List.nth (events, 1)
-  val track2 = List.nth (events, 2)
-  val track3 = List.nth (events, 3)
+  val track1 = channelify 1 (List.nth (events, 1))
+  val track2 = channelify 2 (List.nth (events, 2))
+  val track3 = channelify 3 (List.nth (events, 3))
 
   fun getticksi () = Word32.toInt (getticks ())
 
