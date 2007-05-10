@@ -59,6 +59,8 @@ struct
   val greenhi = requireimage "testgraphics/greenhighlight.png"
   val blackfade = requireimage "testgraphics/blackfade.png"
   val robobox = requireimage "testgraphics/robobox.png"
+  val blackall = alphadim blackfade
+  val () = clearsurface(blackall, color (0w0, 0w0, 0w0, 0w255))
 
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
@@ -91,7 +93,14 @@ struct
    2580,2733,2896,3068,3250,3444,3649,3866,4095,4339,4597,4870,5160,5467,5792,
    6137,6501,6888,7298,7732,8192,8679,9195,9741,10321,10935,11585,12274]
 
-  fun pitchof n = Vector.sub(pitches, n)
+  val transpose = ref 0
+  fun pitchof n = 
+      let
+          val n = n + ! transpose
+          val n = if n < 0 then 0 else if n > 127 then 127 else n
+      in
+          Vector.sub(pitches, n)
+      end
 
   val freqs = Array.array(16, 0)
   fun setfreq (ch, f, vol) =
@@ -154,30 +163,58 @@ struct
 
   (* FIXME totally ad hoc!! *)
   val itos = Int.toString
-  val f = "totally-membrane.mid"
+  val f = (case CommandLine.arguments() of 
+               [st] => st
+             | _ => "totally-membrane.mid")
   val r = (Reader.fromfile f) handle _ => 
       raise Test ("couldn't read " ^ f)
-  val m as (ty, divi, events) = MIDI.readmidi r
+  val m as (ty, divi, thetracks) = MIDI.readmidi r
   val _ = ty = 1
       orelse raise Test ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
 
-  fun channelify ch l = ListUtil.mapsecond
-                            (fn MIDI.NOTEON(_, n, v) => MIDI.NOTEON (ch, n, v)
-                              | MIDI.NOTEOFF(_, n, v) => MIDI.NOTEOFF(ch, n, v)
-                              | e => e) l
-
-  val () = app (fn l => print (itos (length l) ^ " events\n")) events
-  val track1 = channelify 1 (List.nth (events, 1))
-  val track2 = channelify 2 (List.nth (events, 2))
-  val track3 = channelify 3 (List.nth (events, 3))
+  val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks
+(*
+  val track1 = (* channelify 1 *) (List.nth (events, 1))
+  val track2 = (* channelify 2 *) (List.nth (events, 2))
+  val track3 = (* channelify 3 *) (List.nth (events, 3))
+*)
 
   fun getticksi () = Word32.toInt (getticks ())
 
+  (* how many ticks forward do we look? *)
+  val MAXAHEAD = 512
+
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
-  fun loop (lt, nil) = print "SONG END.\n"
-    | loop (lt, tracks) =
+  fun loop' (lt, nil, _) = print "SONG END.\n"
+    | loop' (lt, tracks, clearme) =
       let
+          (* maybe not so fast?? *)
+          val clearme =
+              let 
+
+                  fun draw _ nil = nil
+                    | draw when ((dt, e) :: rest) = 
+                      if when > MAXAHEAD
+                      then nil
+                      else (case e of
+                                MIDI.NOTEON (_, note, 0) => draw (when + dt) rest
+                              | MIDI.NOTEON (_, note, vel) => 
+                                    (when + dt, 64 + (note * 2)) :: draw (when + dt) rest
+                              | MIDI.NOTEOFF (_, note, _)  => draw (when + dt) rest
+                              | _ => draw (when + dt) rest
+                                    )
+
+                  val todraw = draw 0 (#2 (hd tracks)) (* XXX *)
+              in
+                  (* erase old events *)
+                  app (fn (x, y) => blitall(blackall, screen, x + 64, y)) clearme;
+                  (* draw some upcoming events... *)
+                  app (fn (x, y) => blitall(redhi, screen, x + 64, y)) todraw;
+                  flip screen;
+                  todraw
+              end
+
           val period = getticksi () - lt
 
           fun doready (tr, (n, evt) :: rest) =
@@ -202,10 +239,22 @@ struct
           (* PERF could use mappartial *)
           val tracks = List.filter (fn (t, _ :: _) => true | _ => false) (map doready tracks)
       in
-          loop (lt + period, tracks)
+          loop (lt + period, tracks, clearme)
       end
 
-  fun slow l = map (fn (delta, e) => (delta * 2, e)) l
+  and loop x =
+      let in
+          (case pollevent () of
+               SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Test "EXIT"
+             | SOME E_Quit => raise Test "EXIT"
+             | SOME (E_KeyDown { sym = SDLK_o }) => transpose := !transpose - 1
+             | SOME (E_KeyDown { sym = SDLK_p }) => transpose := !transpose + 1
+             | _ => ()
+               );
+          loop' x
+      end
+
+  fun slow l = map (fn (delta, e) => (delta * 6, e)) l
 
 (*              
   and key ( cur as { nexttick, intention = i } ) = 
@@ -285,9 +334,9 @@ struct
     | _ => loop cur
 *)
 
-  val tracks = slow (MIDI.merge [track1, track2, track3])
+  val tracks = slow (MIDI.merge thetracks)
 
-  val () = loop (getticksi (), [(0, tracks)])
+  val () = loop (getticksi (), [(0, tracks)], nil)
     handle Test s => messagebox ("exn test: " ^ s)
         | SDL s => messagebox ("sdl error: " ^ s)
         | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
