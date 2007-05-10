@@ -953,12 +953,14 @@ struct
   end
 
   local val ba = _import "ml_blitall" : ptr * ptr * int * int -> unit ;
+        val b  = _import "ml_blit" : ptr * int * int * int * int * ptr * int * int -> unit ;
   in
     fun blitall (s1, s2, x, y) = 
         let in
             (* print ("blitall to " ^ Int.toString x ^ "," ^ Int.toString y ^ "!\n"); *)
             ba (!!s1, !!s2, x, y)
         end
+    fun blit (s, sx, sy, sw, sh, d, dx, dy) = b (!!s, sx, sy, sw, sh, !!d, dx, dy)
   end
 
   local val ad = _import "ml_alphadim" : ptr -> ptr ;

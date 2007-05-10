@@ -5,6 +5,14 @@
 structure Test =
 struct
 
+  local
+      val mb_ = _import "MessageBoxA" : MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
+  in
+      fun message (s, t) = mb_(MLton.Pointer.null, s ^ "\000", t ^ "\000", MLton.Pointer.null)
+  end
+
+  val () = message ("hello", "World")
+
   type ptr = MLton.Pointer.t
 
   exception Nope
@@ -21,8 +29,8 @@ struct
         print (s ^ "\n")
       end
 
-  val width = 1024
-  val height = (16 * 17)
+  val width = 256
+  val height = 600
 
   val ROBOTH = 32
   val ROBOTW = 16
@@ -55,12 +63,18 @@ struct
   val robotl_fade = alphadim robotl
   val solid = requireimage "testgraphics/solid.png"
 
-  val redhi = requireimage "testgraphics/redhighlight.png"
+  val background = requireimage "testgraphics/background.png"
+
+  val redstar = requireimage "testgraphics/redstar.png"
+  val STARWIDTH = surface_width redstar
+  val STARHEIGHT = surface_height redstar
   val greenhi = requireimage "testgraphics/greenhighlight.png"
   val blackfade = requireimage "testgraphics/blackfade.png"
   val robobox = requireimage "testgraphics/robobox.png"
   val blackall = alphadim blackfade
   val () = clearsurface(blackall, color (0w0, 0w0, 0w0, 0w255))
+
+  val () = blitall(background, screen, 0, 0)
 
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
@@ -128,7 +142,7 @@ struct
     | PLAYING of int
   (* for each channel, all possible midi notes *)
   val miditable = Array.array(16, Array.array(127, OFF))
-  val NMIX = 16 (* XXX get from C code *)
+  val NMIX = 12 (* XXX get from C code *)
   val mixes = Array.array(NMIX, false)
 
   fun noteon (ch, n, v) =
@@ -182,7 +196,7 @@ struct
   fun getticksi () = Word32.toInt (getticks ())
 
   (* how many ticks forward do we look? *)
-  val MAXAHEAD = 512
+  val MAXAHEAD = 1024
 
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
@@ -200,7 +214,12 @@ struct
                       else (case e of
                                 MIDI.NOTEON (_, note, 0) => draw (when + dt) rest
                               | MIDI.NOTEON (_, note, vel) => 
-                                    (when + dt, 64 + (note * 2)) :: draw (when + dt) rest
+                                    let val finger = note mod 5
+                                    in
+                                    (finger * (STARWIDTH + 2),
+                                     (height - 48) - ((when + dt) div 2)) :: 
+                                    draw (when + dt) rest
+                                    end
                               | MIDI.NOTEOFF (_, note, _)  => draw (when + dt) rest
                               | _ => draw (when + dt) rest
                                     )
@@ -208,9 +227,10 @@ struct
                   val todraw = draw 0 (#2 (hd tracks)) (* XXX *)
               in
                   (* erase old events *)
-                  app (fn (x, y) => blitall(blackall, screen, x + 64, y)) clearme;
+                  app (fn (x, y) => blit(background, x + 8, y, STARWIDTH, STARHEIGHT,
+                                         screen, x + 8, y)) clearme;
                   (* draw some upcoming events... *)
-                  app (fn (x, y) => blitall(redhi, screen, x + 64, y)) todraw;
+                  app (fn (x, y) => blitall(redstar, screen, x + 8, y)) todraw;
                   flip screen;
                   todraw
               end

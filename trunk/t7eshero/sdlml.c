@@ -152,6 +152,19 @@ void ml_blitall(SDL_Surface * src, SDL_Surface * dst, int x, int y) {
   // MessageBoxA(0, "Successful Blit", "uh", 0);
 }
 
+void ml_blit(SDL_Surface * src, int srcx, int srcy, int srcw, int srch, 
+	     SDL_Surface * dst, int dstx, int dsty) {
+  SDL_Rect sr;
+  SDL_Rect dr;
+  sr.x = srcx;
+  sr.y = srcy;
+  sr.w = srcw;
+  sr.w = srcw;
+  dr.x = dstx;
+  dr.y = dsty;
+  SDL_BlitSurface(src, &sr, dst, &dr);
+}
+
 int ml_surfacewidth(SDL_Surface * src) {
   return src->w;
 }
