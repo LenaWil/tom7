@@ -2,7 +2,8 @@
 (* install first *)
 get MinGW-something.exe from SOURCEFORGE PAGE
 
-get MSYS.exe from bad page INSTALL SECOND
+get MSYS.exe by searching on google for "msys" and getting the 1.0.10
+exe (or newer?) from prdownloads
 
 
 (* vs tools... *)
@@ -43,3 +44,16 @@ Note: according to
 To get directsound support (much lower latency), use the DLL file from
 escape. Don't build your own! Then you have to export SDL_AUDIODRIVER=dsound
 before running. (Could do this with setenv I guess..)
+
+
+--------------------------------------------------
+upgrading
+
+GO HERE IGNORE THE OTHER PAGES
+http://sourceforge.net/project/showfiles.php?group_id=2435
+
+
+Go to "current" "mingw" and get newest one
+run that exe and it will update
+
+--------------------------------------------------

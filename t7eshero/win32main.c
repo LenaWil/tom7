@@ -53,6 +53,56 @@
 #define isspace(a) (((CHAR)a == ' ') || ((CHAR)a == '\t'))
 #endif /* _WIN32_WCE < 300 */
 
+/* Parse a command line buffer into arguments */
+static int ParseCommandLine(char *cmdline, char **argv)
+{
+	char *bufp;
+	int argc;
+
+	argc = 0;
+	for ( bufp = cmdline; *bufp; ) {
+		/* Skip leading whitespace */
+		while ( isspace(*bufp) ) {
+			++bufp;
+		}
+		/* Skip over argument */
+		if ( *bufp == '"' ) {
+			++bufp;
+			if ( *bufp ) {
+				if ( argv ) {
+					argv[argc] = bufp;
+				}
+				++argc;
+			}
+			/* Skip over word */
+			while ( *bufp && (*bufp != '"') ) {
+				++bufp;
+			}
+		} else {
+			if ( *bufp ) {
+				if ( argv ) {
+					argv[argc] = bufp;
+				}
+				++argc;
+			}
+			/* Skip over word */
+			while ( *bufp && ! isspace(*bufp) ) {
+				++bufp;
+			}
+		}
+		if ( *bufp ) {
+			if ( argv ) {
+				*bufp = '\0';
+			}
+			++bufp;
+		}
+	}
+	if ( argv ) {
+		argv[argc] = NULL;
+	}
+	return(argc);
+}
+
 /* Show an error message */
 static void ShowError(const char *title, const char *message)
 {
@@ -174,13 +224,16 @@ int console_main(int argc, char *argv[])
 }
 
 /* This is where execution begins [windowed apps] */
-// #ifdef _WIN32_WCE
-// int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR szCmdLine, int sw)
-// #else
-// int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
-// #endif
+#ifdef _WIN32_WCE
+int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR szCmdLine, int sw)
+#else
+int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
+#endif
+{
+	printf("This is winmain.\n");
+	MessageBoxA(0, "winmain", "awesomeA", 0);
 
-int win32init () {
+
 	HINSTANCE handle;
 	char **argv;
 	int argc;
@@ -268,5 +321,57 @@ int win32init () {
 	setbuf(stderr, NULL);			/* No buffering */
 #endif /* !NO_STDIO_REDIRECT */
 
+#ifdef _WIN32_WCE
+	nLen = wcslen(szCmdLine)+128+1;
+	bufp = SDL_stack_alloc(wchar_t, nLen*2);
+	wcscpy (bufp, TEXT("\""));
+	GetModuleFileName(NULL, bufp+1, 128-3);
+	wcscpy (bufp+wcslen(bufp), TEXT("\" "));
+	wcsncpy(bufp+wcslen(bufp), szCmdLine,nLen-wcslen(bufp));
+	nLen = wcslen(bufp)+1;
+	cmdline = SDL_stack_alloc(char, nLen);
+	if ( cmdline == NULL ) {
+		return OutOfMemory();
+	}
+	WideCharToMultiByte(CP_ACP, 0, bufp, -1, cmdline, nLen, NULL, NULL);
+#else
+	/* Grab the command line */
+	bufp = GetCommandLine();
+	nLen = SDL_strlen(bufp)+1;
+	cmdline = SDL_stack_alloc(char, nLen);
+	if ( cmdline == NULL ) {
+		return OutOfMemory();
+	}
+	SDL_strlcpy(cmdline, bufp, nLen);
+#endif
+
+	/* Parse it into argv and argc */
+	argc = ParseCommandLine(cmdline, NULL);
+	argv = SDL_stack_alloc(char*, argc+1);
+	if ( argv == NULL ) {
+		return OutOfMemory();
+	}
+	ParseCommandLine(cmdline, argv);
+
+	/* Run the main program (after a little SDL initialization) */
+	console_main(argc, argv);
+
+	/* Hush little compiler, don't you cry... */
 	return 0;
 }
+
+#if 0
+int main (void) {
+  printf ("this is main (no args)\n");
+
+  return 0;
+}
+#endif
+
+#if 0
+int main (int argc, char ** argv) {
+  printf ("this is main (args)\n");
+  console_main(argc, argv);
+  return 0;
+}
+#endif

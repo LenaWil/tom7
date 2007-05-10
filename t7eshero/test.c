@@ -1,5 +1,7 @@
 
+#if 0
 #include <SDL.h>
+
 
 int ml_test() {
   if (SDL_Init (SDL_INIT_VIDEO | 
@@ -10,7 +12,6 @@ int ml_test() {
   } else return 1;
 }
 
-#if 0
 extern int win32init();
 
 int uuuzzz (int argc, char ** argv) {
@@ -20,3 +21,8 @@ int uuuzzz (int argc, char ** argv) {
   printf("ok!");
 }
 #endif
+
+int main() {
+  printf("ok!\n");
+  return 0;
+}

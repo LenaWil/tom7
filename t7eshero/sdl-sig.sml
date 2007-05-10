@@ -268,7 +268,9 @@ sig
     val color : Word8.word * Word8.word * Word8.word * Word8.word -> color
 
     val makescreen : int * int -> surface
-      
+
+    (* src: x, y, w, h   dst: x, y *)
+    val blit : surface * int * int * int * int * surface * int * int -> unit
     val blitall : surface * surface * int * int -> unit
     val pollevent : unit -> event option
 

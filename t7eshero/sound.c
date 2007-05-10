@@ -10,8 +10,8 @@
 // #define BUFFERSIZE 44100
 #define NCHANNELS 1
 
-// same as number of midi channels. We probably won't need this many!
-#define NMIX 16
+// number of simultaneous polyphonic notes
+#define NMIX 12
 
 #define MAX_MIX (32700)
 #define MIN_MIX (-32700)
@@ -93,10 +93,10 @@ void ml_initsound() {
     exit(1);
   }
 
-  printf("Audio data: %d samples, %d channels, %d rate\n",
-	 got.samples, got.channels, got.freq);
-
-  printf("%d\n", (int)(Sint16)(int)(90000));
+  fprintf(stderr, "Audio data: %d samples, %d channels, %d rate\n",
+	  got.samples, got.channels, got.freq);
+  
+  fprintf(stderr, "%d\n", (int)(Sint16)(int)(90000));
 
   SDL_PauseAudio(0);
 }
