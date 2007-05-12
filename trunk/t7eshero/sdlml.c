@@ -159,7 +159,7 @@ void ml_blit(SDL_Surface * src, int srcx, int srcy, int srcw, int srch,
   sr.x = srcx;
   sr.y = srcy;
   sr.w = srcw;
-  sr.w = srcw;
+  sr.h = srch;
   dr.x = dstx;
   dr.y = dsty;
   SDL_BlitSurface(src, &sr, dst, &dr);
