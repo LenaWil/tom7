@@ -216,12 +216,15 @@ struct
                     else if dx < 0 then dx + 1 else 0)
               else dx
                   
-          (* XXX jumping -- only when not in air already! *)
-
-          val (dy, i) = if intends i (I_JUMP)
-                        then (dy - JUMP_VELOCITY,
-                              List.filter (fn I_JUMP => false | _ => true) i)
-                        else (dy, i)
+          (* jumping -- only when not in air already!
+             (either way the intention goes away) *)
+          val (dy, i) = 
+            if intends i (I_JUMP)
+               (* something to push off of.. *)
+               andalso Clip.clipped Clip.std (x, y + 1)
+            then (dy - JUMP_VELOCITY,
+                  List.filter (fn I_JUMP => false | _ => true) i)
+            else (dy, List.filter (fn I_JUMP => false | _ => true) i)
 
           (* falling *)
           val dy = dy + 1 
