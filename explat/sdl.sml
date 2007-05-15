@@ -288,8 +288,8 @@ struct
     | E_KeyDown of { sym : sdlk }
     | E_KeyUp of { sym : sdlk }
     | E_MouseMotion of { which : int, state : mousestate, x : int, y : int, xrel : int, yrel : int }
-    | E_MouseDown
-    | E_MouseUp
+    | E_MouseDown of { which : int, button : int, state : mousestate, x : int, y : int }
+    | E_MouseUp of { which : int, button : int, state : mousestate, x : int, y : int }
     | E_JoyAxis
     | E_JoyDown of { which : int, button : int }
     | E_JoyUp of { which : int, button : int }
@@ -306,7 +306,7 @@ struct
 
   fun sdlktos s =
       (case s of
-           SDLK_UNKNOWN => "UNKNOWN"
+        SDLK_UNKNOWN => "UNKNOWN"
       | SDLK_BACKSPACE => "BACKSPACE"
       | SDLK_TAB => "TAB"
       | SDLK_CLEAR => "CLEAR"
@@ -866,6 +866,10 @@ struct
 
   val event8_2nd_ = _import "ml_event8_2nd" : ptr -> int ;
   val event8_3rd_ = _import "ml_event8_3rd" : ptr -> int ;
+  val event8_4th_ = _import "ml_event8_4th" : ptr -> int ;
+
+  val event_mb_x_ = _import "ml_event_mb_x" : ptr -> int ;
+  val event_mb_y_ = _import "ml_event_mb_y" : ptr -> int ;
     
   val event_mmotion_x_ = _import "ml_event_mmotion_x" : ptr -> int ;
   val event_mmotion_y_ = _import "ml_event_mmotion_y" : ptr -> int ;
@@ -892,7 +896,17 @@ struct
            xrel = event_mmotion_xrel_ e,
            yrel = event_mmotion_yrel_ e }
      | 5 => E_MouseDown
+         { which = event8_2nd_ e,
+           button = event8_3rd_ e,
+           state = Word8.fromInt (event8_4th_ e),
+           x = event_mb_x_ e,
+           y = event_mb_y_ e }
      | 6 => E_MouseUp
+         { which = event8_2nd_ e,
+           button = event8_3rd_ e,
+           state = Word8.fromInt (event8_4th_ e),
+           x = event_mb_x_ e,
+           y = event_mb_y_ e }
      | 7 => E_JoyAxis
      | 8 => E_JoyBall
      | 9 => E_JoyHat

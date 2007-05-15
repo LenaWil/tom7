@@ -36,8 +36,10 @@ struct
       (fn x => print ("JOY " ^ Int.toString x ^ ": " ^ Joystick.name x ^ "\n"))
 
   (* XXX requires joystick! *)
+  (*
   val joy = Joystick.openjoy 0 
   val () = Joystick.setstate Joystick.ENABLE
+  *)
 
   fun requireimage s =
     case Image.load s of
@@ -62,12 +64,11 @@ struct
     | ttos MSOLID = "solid"
     | ttos (MRAMP _) = "ramp?"
 
-
   (* just drawing masks for now to test physics *)
   fun tilefor MSOLID = solid
     | tilefor (MRAMP LM) = ramp_lm
     | tilefor (MRAMP MH) = ramp_mh
-
+    | tilefor _ = raise Test "tilefor"
 
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
@@ -477,22 +478,6 @@ struct
 
     | SOME (E_KeyUp { sym = SDLK_RIGHT }) =>
               loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i }
-
-    | SOME (E_JoyUp { button = 1, ... }) =>
-            (loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i })
-
-    | SOME (E_JoyDown { which, button }) =>  
-            let in
-                print ("unknown joydown " ^ Int.toString which ^ ":" ^
-                       Int.toString button ^ "\n");
-                loop cur
-            end
-    | SOME (E_JoyUp { which, button }) =>  
-            let in
-                print ("unknown joyup " ^ Int.toString which ^ ":" ^
-                       Int.toString button ^ "\n");
-                loop cur
-            end
 
     | SOME (E_KeyDown { sym }) =>
           let in

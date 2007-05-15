@@ -250,8 +250,8 @@ sig
     | E_KeyDown of { sym : sdlk }
     | E_KeyUp of { sym : sdlk }
     | E_MouseMotion of { which : int, state : mousestate, x : int, y : int, xrel : int, yrel : int }
-    | E_MouseDown
-    | E_MouseUp
+    | E_MouseDown of { which : int, button : int, state : mousestate, x : int, y : int }
+    | E_MouseUp of { which : int, button : int, state : mousestate, x : int, y : int }
     | E_JoyAxis
     | E_JoyDown of { which : int, button : int }
     | E_JoyUp of { which : int, button : int }

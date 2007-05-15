@@ -179,6 +179,18 @@ int ml_event8_3rd(SDL_Event * e) {
   return (((SDL_KeyboardEvent*)e)->state);
 }
 
+int ml_event8_4th(SDL_Event * e) {
+  return (((SDL_MouseButtonEvent*)e)->state);
+}
+
+int ml_event_mb_x(SDL_Event * e) {
+  return (((SDL_MouseButtonEvent*)e)->x);
+}
+
+int ml_event_mb_y(SDL_Event * e) {
+  return (((SDL_MouseButtonEvent*)e)->y);
+}
+
 int ml_event_keyboard_sym(SDL_KeyboardEvent* e) {
   return e->keysym.sym;
 }
