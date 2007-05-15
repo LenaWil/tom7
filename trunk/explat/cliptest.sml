@@ -23,8 +23,8 @@ struct
   val width = 640
   val height = 480
 
-  val TILESW = width div 16
-  val TILESH = height div 16
+  val TILESW = width div Tile.TILEW
+  val TILESH = height div Tile.TILEH
 
   val ROBOTH = 32
   val ROBOTW = 16
@@ -57,12 +57,11 @@ struct
     | ttos MSOLID = "solid"
     | ttos (MRAMP _) = "ramp?"
 
-
   (* just drawing masks for now to test physics *)
   fun tilefor MSOLID = solid
     | tilefor (MRAMP LM) = ramp_lm
     | tilefor (MRAMP MH) = ramp_mh
-
+    | tilefor _ = raise Test "tilefor"
 
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
@@ -94,6 +93,9 @@ struct
   val paused = ref false
   val advance = ref false
 
+  fun onscreen (x, y) =
+      SOME ((x + !scrollx) div TILEW,
+            (y + !scrolly) div TILEH)
 
   (* draw a view of the world where the top left of
      the screen is at scrollx/scrolly *)
@@ -160,18 +162,18 @@ struct
     in
       (* stay in the center third of the screen. *)
       if !botx - !scrollx < (width div 3)
-      then (print "left edge\n";
+      then ((* print "left edge\n"; *)
             scrollx := !botx - (width div 3))
       else if (!scrollx + width) - !botx < (width div 3)
-           then (print "right edge\n";
+           then ((* print "right edge\n"; *)
                  scrollx := !botx - 2 * (width div 3))
            else ();
 
       if !boty - !scrolly < (height div 3)
-      then (print "top edge\n";
+      then ((* print "top edge\n"; *)
             scrolly := !boty - (height div 3))
       else if (!scrolly + height) - !boty < (height div 3)
-           then (print "bottom edge\n";
+           then ((* print "bottom edge\n"; *)
                  scrolly := !boty - 2 * (height div 3))
            else ()
 
@@ -185,7 +187,7 @@ struct
           val x = !botx
           val y = !boty
               
-          val () = print (StringUtil.delimit ", " (map Int.toString [dx, dy, x, y]) ^ "\n")
+          (* val () = print (StringUtil.delimit ", " (map Int.toString [dx, dy, x, y]) ^ "\n") *)
           val () = 
               case i of
                   nil => () 
@@ -380,6 +382,7 @@ struct
     case pollevent () of
       SOME (E_KeyDown { sym = SDLK_ESCAPE }) => () (* quit *)
 
+(*
     | SOME (E_MouseMotion { xrel, yrel, ...}) =>
         let in 
           botdx := !botdx + xrel; botdy := !botdy + yrel;
@@ -391,6 +394,20 @@ struct
                           else !botdy));
           loop cur
         end
+*)
+
+    | SOME (E_MouseDown { x, y, ... }) =>
+          let in
+              (case onscreen (x, y) of
+                   NONE => print "offscreen click\n"
+                 | SOME (tx, ty) => 
+                       let in
+                           print ("MB: " ^ Int.toString tx ^ " / " ^ 
+                                  Int.toString ty ^ "\n");
+                           World.setworld (tx, ty) MSOLID
+                       end);
+              loop cur
+          end
 
     | SOME (E_KeyDown { sym = SDLK_RETURN }) =>
         let in
@@ -401,6 +418,13 @@ struct
     | SOME (E_KeyDown { sym = SDLK_PERIOD }) => 
         let in
           advance := true;
+          loop cur
+        end
+
+    | SOME (E_KeyDown { sym = SDLK_s }) =>
+        let in
+          World.save ();
+          print "SAVED.\n";
           loop cur
         end
 
@@ -465,6 +489,39 @@ struct
               print ("unknown key " ^ SDL.sdlktos sym ^ "\n");
               loop { nexttick = nexttick, intention = i }
           end
+
+
+
+    | SOME (E_JoyDown { button = 3, ... }) =>
+          if intends i (I_JUMP)
+          then loop { nexttick = nexttick, intention = i }
+          else loop { nexttick = nexttick, intention = (I_JUMP :: i) }
+
+    | SOME (E_JoyDown { button = 1, ... }) =>
+          (botface := FRIGHT;
+           if intends i (I_GO RIGHT)
+           then loop { nexttick = nexttick, intention = i }
+           else loop { nexttick = nexttick, intention = I_GO RIGHT :: i })
+
+    | SOME (E_JoyUp { button = 1, ... }) =>
+            (loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i })
+
+    | SOME (E_JoyUp { button = 0, ... }) =>
+            (loop { nexttick = nexttick, intention = List.filter (fn I_GO LEFT => false | _ => true) i })
+
+    | SOME (E_JoyDown { which, button }) =>  
+            let in
+                print ("unknown joydown " ^ Int.toString which ^ ":" ^
+                       Int.toString button ^ "\n");
+                loop cur
+            end
+    | SOME (E_JoyUp { which, button }) =>  
+            let in
+                print ("unknown joyup " ^ Int.toString which ^ ":" ^
+                       Int.toString button ^ "\n");
+                loop cur
+            end
+
 
     | SOME E_Quit => ()
     | _ => loop cur
