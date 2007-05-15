@@ -44,25 +44,25 @@ struct
            Fsel (v, i) =>
              (case (cval v, i) of
                   (Lams [(v, vtl, e)], 0) => %[%[$"lam",
-                                                      $ ` V.tostring v,
-                                                      L.listex "(" ")" "," `
-                                                      map (fn (v, t) => 
-                                                           %[$(V.tostring v), $":",
-                                                             ttol t]) vtl,
-                                                      $"="],
-                                                    L.indent 2 ` etol e]
+                                                 vbinde v e,
+                                                 L.listex "(" ")" "," `
+                                                 map (fn (v, t) => 
+                                                      %[vbinde v e, $":",
+                                                        ttol t]) vtl,
+                                                 $"="],
+                                               L.indent 2 ` etol e]
                 | _ => %[vtol v, $("." ^ itos i)])
-                                            
+
          | Lams ll => 
            %[$"lams", 
              L.align
              (ListUtil.mapi 
               (fn ((v, vtl, e), i) =>
                    %[$("#" ^ Int.toString i ^ " is"),
-                     %[$(V.tostring v),
+                     %[vbinde v e,
                        L.listex "(" ")" "," 
                        ` map (fn (v, t) =>
-                              %[$(V.tostring v), $":", ttol t]) vtl,
+                              %[vbinde v e, $":", ttol t]) vtl,
                        $"="],
                      L.indent 2 ` etol e]) ll)]
 
@@ -86,7 +86,9 @@ struct
 
          | Int i => $(IntConst.tostring i)
          | String s => $("\"" ^ String.toString s ^ "\"")
-         | Record svl => L.listex "{" "}" "," ` map (fn (s, v) => %[$s, $"=", vtol v]) svl
+         | Record svl => 
+                recordortuple vtol "=" "(" ")" "," svl
+                (* L.listex "{" "}" "," ` map (fn (s, v) => %[$s, $"=", vtol v]) svl *)
          | Hold (w, va) => %[%[$"hold", L.paren ` wtol w],
                              L.indent 2 ` vtol va]
          | WPack _ => $"wpack?"
@@ -94,7 +96,8 @@ struct
                                    L.indent 2 ` L.listex "[" "]" "," ` map vtol vs]
          | AllApp { worlds = [w], f = v, tys = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<<", wtol w, $">>"]]
          | AllApp { tys = [t], f = v, worlds = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<", ttol t, $">"]]
-         | Sham v => $"sham?"
+         | Sham (v, cv) => %[$"sham", vbindv v cv, $".",
+                                            L.indent 2 ` vtol cv]
          | Inj (s, t, vo) => %[%[$("inj_" ^ s), 
                                  (case vo of
                                       NONE => $"(null)"
@@ -272,7 +275,9 @@ struct
                           (fn (tl, i) => %[%[$("#" ^ itos i), $ ":"],
                                            L.indent 2 ` %[L.listex "(" ")" "," ` map ttol tl, $"cont"]]) tll]
 
-         | TExists (v, tt) => %[%[$"texists", varl v, $"."],
+         | TExists (v, tt) => %[%[$"texists", 
+                                  (* just need to make it a single type *)
+                                  vbindt v (Cont' tt), $"."],
                                 L.indent 2 ` L.listex "[" "]" "," ` map ttol tt]
          | Product nil => $"unit"
          | Product ltl => recordortuple ttol ":" "(" ")" " *" ltl
@@ -283,17 +288,31 @@ struct
          | Primcon (STRING, []) => $"string"
          | Primcon (EXN, []) => $"exn"
          | Primcon _ => $"XXX-bad-primcon-XXX"
+
+         | Addr w => %[wtol w, $"addr"]
 (*
     | WExists of var * 'ctyp
     | Product of (string * 'ctyp) list
-    | Addr of world
-    | Primcon of primcon * 'ctyp list
-    | Shamrock of 'ctyp
 *)
          | TVar v => $(V.tostring v)
          | _ => $"t?"
                ) handle Match => $"XXX_MATCH-TYP_XXX"
       (* $"CPS:unknown typ" *)
+
+  and vbindt v t =
+    if CPS.freet v t
+    then varl v
+    else $"_"
+
+  and vbindv v va =
+    if CPS.freev v va
+    then varl v
+    else $"_"
+
+  and vbinde v e =
+    if CPS.freee v e
+    then varl v
+    else $"_"
 
   and wtol (W w) = $(V.tostring w)
 

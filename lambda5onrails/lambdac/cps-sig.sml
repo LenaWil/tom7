@@ -97,6 +97,14 @@ sig
     (* type var, contents vars *)
     | VTUnpack of var * (var * ctyp) list * 'cval * 'cval
 
+  (* projections and injections *)
+  val ctyp : ctyp -> ctyp ctypfront
+  val cexp : cexp -> (cexp, cval) cexpfront
+  val cval : cval -> (cexp, cval) cvalfront
+
+  val ctyp' : ctyp ctypfront -> ctyp
+  val cexp' : (cexp, cval) cexpfront -> cexp
+  val cval' : (cexp, cval) cvalfront -> cval
 
 
   (* subXY = substitute X/v in Y producing Y; not all combinations make sense *)
@@ -118,15 +126,12 @@ sig
   val ctyp_cmp : ctyp * ctyp -> order
   val ctyp_eq  : ctyp * ctyp -> bool
 
-  val ctyp : ctyp -> ctyp ctypfront
-  val cexp : cexp -> (cexp, cval) cexpfront
-  val cval : cval -> (cexp, cval) cvalfront
-
-  val ctyp' : ctyp ctypfront -> ctyp
-  val cexp' : (cexp, cval) cexpfront -> cexp
-  val cval' : (cexp, cval) cvalfront -> cval
-
   (* utilities *)
+
+  (* is the variable free in this type (value; expression)? *)
+  val freet : var -> ctyp -> bool
+  val freev : var -> cval -> bool
+  val freee : var -> cexp -> bool
 
   (* apply the function to each immediate subterm (of type ctyp) and
      return the reconstructed type *)
