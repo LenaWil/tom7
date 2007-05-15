@@ -635,7 +635,8 @@ struct
        the first few labels will hold regular vals, held at their respective worlds.
        *)
     let
-      val lab = ref 0
+      val lab = ref 1 (* start at 1 to make these tuples, so they
+                         pretty-print nicer *)
       fun new () = (Int.toString (!lab) before lab := !lab + 1)
       val fvs =  V.Set.foldr op:: nil fv
       val fuvs = V.Set.foldr op:: nil fuv

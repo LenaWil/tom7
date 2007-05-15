@@ -780,4 +780,34 @@ struct
   fun subvv sl sv = substv sv (SV sl)
   fun subve sl sv = subste sv (SV sl)
 
+  (* XX perf; use below *)
+(*
+  fun freet v tt =
+    let val n = V.namedvar "free_new"
+        val tt' = renamet v n tt
+    in
+      not (ctyp_eq (tt, tt'))
+    end
+*)
+
+  exception Occurs
+
+  fun occursv var (value : cval) =
+    (case cval value of
+       Var v => if V.eq(var, v) then raise Occurs else value
+     | UVar u => if V.eq(var, u) then raise Occurs else value
+     | _ => pointwisev (occurst var) (occursv var) (occurse var) value)
+
+  and occurse var (exp : cexp) =
+    pointwisee (occurst var) (occursv var) (occurse var) exp
+
+  and occurst var (typ : ctyp) =
+    (case ctyp typ of
+       TVar v => if V.eq (var, v) then raise Occurs else typ
+     | _ => pointwiset (occurst var) typ)
+
+  fun freev v va = (occursv v va; false) handle Occurs => true
+  fun freee v va = (occurse v va; false) handle Occurs => true
+  fun freet v va = (occurst v va; false) handle Occurs => true
+
 end

@@ -1,4 +1,10 @@
 
+Passes to implement:
+
+Hoist
+CPS Optimization
+Dictionary Elimination
+
 
  Should support "extern mobile type" (easy, just check
  mobility with concrete type at link time); see Dagstuhl
@@ -6,7 +12,7 @@
 
 
 --------------------------------------------------
-    Old bugs from Humlock; maybe obsolete
+    Old bugs from Humlock; mostly obsolete
 --------------------------------------------------
 
 
