@@ -4,12 +4,14 @@
 
 structure Test =
 struct
-
+(*
   local
       val mb_ = _import "MessageBoxA" : MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
   in
       fun message (s, t) = mb_(MLton.Pointer.null, s ^ "\000", t ^ "\000", MLton.Pointer.null)
   end
+*)
+  fun message _ = ()
 
   val () = message ("hello", "World")
 
