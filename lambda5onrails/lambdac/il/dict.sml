@@ -1,10 +1,12 @@
 
+(* Note: obsolete! We do this in the CPS phase now. *)
+
 (* Dictionary-passing transformation. 
 
    This pass transforms polymorphic code to insert dictionaries at
    'Get' expressions. A dictionary maps abstract type variables to
    a pair of values that allow marshalling and unmarshalling that
-   type. A compiled 'Get' needs to marshall a closure built from
+   type. A compiled 'Get' needs to marshal a closure built from
    the environment of the body of the Get (and its evaluation context).
    At this point in the compiler we have not generated the closures
    yet, so we don't know what they'll contain (and so what types will
