@@ -17,9 +17,10 @@
    the bound type has kind 0, so we do not need to worry about
    dictionaries taking other dictionaries.
 
-   Type variables are bound by the type constructor Mu as well, but not
-   by the corresponding term constructors. We do not need to worry about
-   these type variables at all because they cannot appear in terms.
+   Type variables are bound by the type constructor Mu as well, but
+   not by the corresponding term constructors. We do not need to worry
+   about these type variables at all because they cannot appear in
+   terms.
 
    Representation Invariant 1: For AllLam { worlds, types = t1..tn, vals = x1..xm, body },
    m >= n and x1..xn are the dictionaries for the types t1..tn, respectively.
@@ -60,11 +61,11 @@ struct
       (* this is the only case we do anything interesting in *)
          AllArrow {worlds, tys, vals, body} => 
            AllArrow' { worlds = worlds, tys = tys,
-                       vals = map (fn v => Primcon' (DICT, [TVar' v])) tys @ map trt vals, 
+                       vals = map (Dictionary' o TVar') tys @ map trt vals, 
                        body = trt body }
        (* these are bugs *)
        | TExists _ => raise CPSDict "BUG: shouldn't have existential types yet"
-       | Primcon(DICT, _) => raise CPSDict "BUG: shouldn't see dicts before introducing dicts!"
+       | Primcon(DICTIONARY, _) => raise CPSDict "BUG: shouldn't see dicts before introducing dicts!"
        | _ => pointwiset trt typ)
 
     (* unlike DICT_SUFFIX, this is arbitrary *)
@@ -86,7 +87,7 @@ struct
        | Dictfor _ => raise CPSDict "BUG: shouldn't see dicts yet"
        | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } => 
              AllLam' { worlds = worlds, tys = tys, 
-                       vals = map (fn t => (mkdictvar t, Primcon' (DICT, [TVar' t]))) tys @ vals, 
+                       vals = map (fn t => (mkdictvar t, Dictionary' ` TVar' t)) tys @ vals, 
                        body = trv body }
        | AllApp { f : cval, worlds : world list, tys : ctyp list, vals : cval list } => 
              AllApp' { f = trv f, worlds = worlds, tys = tys,

@@ -25,3 +25,12 @@
    
    (So see undict.sml.)
 *)
+
+structure Hoist :> HOIST =
+struct
+
+  exception Hoist of string
+
+  fun hoist _ = raise Hoist "unimplemented"
+
+end

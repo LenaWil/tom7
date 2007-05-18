@@ -148,6 +148,8 @@ struct
                       )]
                       
 
+         | Dict _ => $"XXX-DICT-XXX"
+
                    
          | Var v => $(V.tostring v)
          | UVar v => $("~" ^ V.tostring v)
@@ -201,6 +203,12 @@ struct
                  %[%[$"run", L.indent 2 ` vtol f],
                    %[$"on", L.indent 2 ` vtol env]
                    ]] :: nil
+
+         | Go_mar { w, addr, bytes } =>
+               %[%[$"go_mar", 
+                   L.indent 2 ` %[vtol addr, $"::", wtol w]],
+                 %[$"send", L.indent 2 ` vtol bytes]
+                 ] :: nil
 
          | Put (v, t, va, rest) => 
                %[%[$"put", $(V.tostring v),
@@ -283,7 +291,7 @@ struct
          | Product ltl => recordortuple ttol ":" "(" ")" " *" ltl
          | Primcon (VEC, [t]) => %[ttol t, $"vec"]
          | Primcon (REF, [t]) => %[ttol t, $"ref"]
-         | Primcon (DICT, [t]) => %[ttol t, $"dict"]
+         | Primcon (DICTIONARY, [t]) => %[ttol t, $"dictionary"]
          | Primcon (INT, []) => $"int"
          | Primcon (STRING, []) => $"string"
          | Primcon (EXN, []) => $"exn"
@@ -318,6 +326,7 @@ struct
 
   and ptol LOCALHOST = $"LOCALHOST"
     | ptol BIND = $"BIND"
+    | ptol MARSHAL = $"MARSHAL"
     | ptol (PRIMCALL {sym, dom, cod}) = %[$("PRIMCALL_" ^ sym),
                                           $":",
                                           %[L.listex "(" ")" "," ` map ttol dom,

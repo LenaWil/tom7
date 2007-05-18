@@ -178,7 +178,7 @@ struct
            val tl = map ct tl
            val venv = V.namedvar "env"
          in
-           TExists' (venv, [Dict' ` TVar' ` venv, 
+           TExists' (venv, [Dictionary' ` TVar' ` venv, 
                             TVar' venv,
                             Cont' (TVar' venv :: tl)])
          end
@@ -187,7 +187,7 @@ struct
            val tll = map (map ct) tll
            val venv = V.namedvar "env"
          in
-           TExists' (venv, [Dict' ` TVar' ` venv, 
+           TExists' (venv, [Dictionary' ` TVar' ` venv, 
                             TVar' venv,
                             (* new arg to each function ... *)
                             Conts' (map (fn l => TVar' venv :: l) tll)])
@@ -225,7 +225,7 @@ struct
            val fv = V.namedvar "f"
          in
            TUnpack' (envt,
-                     [(vu, Dict' ` TVar' envt),
+                     [(vu, Dictionary' ` TVar' envt),
                       (envv, TVar' envt),
                       (fv, Cont' (TVar' envt :: argts))],
                      f,
@@ -429,7 +429,7 @@ struct
                           end) G vael
 
            val envtv = V.namedvar "lams_envt"
-           val rest = TExists' (envtv, [Dict' ` TVar' envtv, 
+           val rest = TExists' (envtv, [Dictionary' ` TVar' envtv, 
                                         TVar' envtv,
                                         Conts' (map (fn (_, args, _) =>
                                                      TVar' envtv :: map #2 args) vael)])
@@ -528,7 +528,7 @@ struct
            val (body, bodyt) = cv G body
 
            (* type of this pack *)
-           val rest = TExists' (envtv, [Dict' ` TVar' envtv, 
+           val rest = TExists' (envtv, [Dictionary' ` TVar' envtv, 
                                         TVar' envtv,
                                         AllArrow' { worlds = worlds, tys = tys,
                                                     vals = TVar' envtv :: map #2 vals,
@@ -562,7 +562,7 @@ struct
                (case ctyp aat of 
                   AllArrow { worlds = aw, tys = at, vals = _ :: avals, body = abody } =>
                     (VTUnpack' (envt,
-                                [(V.namedvar "aa_du", Dict' ` TVar' envt),
+                                [(V.namedvar "aa_du", Dictionary' ` TVar' envt),
                                  (envv, TVar' envt),
                                  (* aad thinks envtype is envtv, so need to
                                     rename to local existential var *)
@@ -591,7 +591,7 @@ struct
 
      | Dictfor t => 
          let val t = ct t
-         in (Dictfor' ` ct t, Dict' t)
+         in (Dictfor' ` ct t, Dictionary' t)
          end
 
 (*
@@ -605,7 +605,7 @@ struct
            val fv = V.namedvar "fv"
          in
            TUnpack' (envt,
-                     [(vu, Dict' ` TVar' envt),
+                     [(vu, Dictionary' ` TVar' envt),
                       (envv, TVar' envt),
                       (fv, Cont' (TVar' envt :: argts))],
                      f,

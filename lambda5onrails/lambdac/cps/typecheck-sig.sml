@@ -39,6 +39,10 @@ sig
   val getuvar   : context -> var -> ctyp
   val worldfrom : context -> world
 
+  (* when the dictionary invariant is in place, get the dictionary (as uvar)
+     for a type variable *)
+  val getdict   : context -> var -> var
+
   (* computes the unrolling of a mu *)
   val unroll    : int * (var * ctyp) list -> ctyp
 

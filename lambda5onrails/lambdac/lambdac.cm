@@ -156,26 +156,10 @@ cps/dict.sml
 cps/closure-sig.sml
 cps/closure.sml
 
-(*
-cps/subst.sml
-cps/print-sig.sml
-cps/optutil-sig.sml
-cps/optutil.sml
+cps/undict-sig.sml
+cps/undict.sml
 
-cps/exec.sml
-
-cps/opt-sig.sml
-cps/opt.sml
-cps/closure-sig.sml
-cps/closure.sml
-cps/alloc-sig.sml
-cps/alloc.sml
-
-compile-sig.sml
-compile.sml
-
-main.sml
-*)
-(* lztest.sml *)
+cps/hoist-sig.sml
+cps/hoist.sml
 
 test.sml
