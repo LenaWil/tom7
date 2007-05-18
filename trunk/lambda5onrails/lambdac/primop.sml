@@ -62,7 +62,8 @@ struct
 
       (* generate an exception tag, sequentially *)
       | PNewtag
-      (* store and retrieve exception handler fn *)
+      (* store and retrieve exception handler fn 
+         (these need to be relativized to the current thread) *)
       | PSethandler
       | PGethandler
 
