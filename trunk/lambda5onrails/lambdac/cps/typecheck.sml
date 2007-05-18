@@ -57,6 +57,25 @@ struct
        NONE => raise TypeCheck ("unbound uvar: " ^ V.tostring v)
      | SOME x => x)
 
+
+  fun getdict (ctx as C { uvars, ... }) tv =
+    let 
+      val m = V.Map.mapPartial (fn t => 
+                                case ctyp t of
+                                   TVar tv' => if V.eq (tv, tv')
+                                               then SOME ()
+                                               else NONE
+                                 | _ => NONE) uvars
+    in
+      ignore ` gettype ctx tv;
+      (* finds any match in scope, since "t Dictionary" is a singleton type *)
+      (case V.Map.listItemsi m of
+         nil => raise TypeCheck ("invariant violated: no dictionary for type var " ^
+                                 V.tostring tv ^ " in context")
+       | (vv, ()) :: _ => vv)
+    end
+
+
   val bindworlds = foldl (fn (v, c) => bindworld c v)
   (* assuming not mobile *)
   val bindtypes  = foldl (fn (v, c) => bindtype c v false)
@@ -186,6 +205,20 @@ struct
          in
            eok G e
          end
+     | Primop ([v], MARSHAL, [vd, va], e) =>
+         let
+           val td = vok G vd
+           val ta = vok G va
+           (* Always the same result *)
+           val G = bindvar G v (Zerocon' BYTES) ` worldfrom G
+         in
+           case ctyp td of
+             Primcon(DICTIONARY, [t]) => if ctyp_eq (t, ta)
+                                         then eok G e
+                                         else raise TypeCheck "marshal: dict/arg mismatch"
+           | _ => raise TypeCheck "marshal: need dict and arg"
+         end
+
      | Primop ([v], PRIMCALL { sym = _, dom, cod }, vas, e) =>
          let
            val vts = map (vok G) vas
@@ -245,6 +278,16 @@ struct
                       end
                    | _ => fail [$"go_cc args not of right form"])
 
+     | Go_mar { w, addr = va, bytes } =>
+               (wok G w;
+                case (ctyp ` vok G va, 
+                      ctyp ` vok G bytes) of
+                    (Addr w', Primcon(BYTES, [])) => 
+                      if world_eq (w, w')
+                      then ()
+                      else fail [$"go_mar world/addr mismatch"]
+                   | _ => fail [$"go_mar args not of right form (want addr and bytes)"])
+
      | Put (v, t, va, e) =>
                (tok G t;
                 if tmobile G t
@@ -277,6 +320,8 @@ struct
                 | _ => faile exp "tunpack non-exists")
 
 (*
+      go_mar!
+      dictionaries!
     | Primop of var list * primop * 'cval list * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
@@ -373,7 +418,7 @@ struct
                                | SOME t => t)
              | _ => raise TypeCheck "proj on non-product")
 
-     | Dictfor t => (tok G t; Dict' t)
+     | Dictfor t => (tok G t; Dictionary' t)
 
      | Inj (l, t, vo) =>
          let in

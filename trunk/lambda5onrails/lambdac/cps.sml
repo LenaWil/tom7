@@ -11,7 +11,7 @@ struct
   datatype arminfo = datatype IL.arminfo
   datatype world = W of var
 
-  datatype primcon = VEC | REF | DICT | INT | STRING | EXN
+  datatype primcon = VEC | REF | DICTIONARY | INT | STRING | EXN | BYTES
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
@@ -32,12 +32,14 @@ struct
   datatype ctyp = T of ctyp ctypfront
 
   datatype primop = LOCALHOST | BIND | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
+                  | MARSHAL 
 
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
     | Halt
     | Go of world * 'cval * 'cexp
     | Go_cc of { w : world, addr : 'cval, env : 'cval, f : 'cval }
+    | Go_mar of { w : world, addr : 'cval, bytes : 'cval }
     | Primop of var list * primop * 'cval list * 'cexp
     | Put of var * ctyp * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
@@ -68,6 +70,7 @@ struct
     | Var of var
     | UVar of var
     | Dictfor of ctyp
+    | Dict of 'cval ctypfront
     | AllLam of { worlds : var list, tys : var list, vals : (var * ctyp) list, body : 'cval }
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
     | VLeta of var * 'cval * 'cval
@@ -119,9 +122,13 @@ struct
                                               addr = vself addr, 
                                               env = vself env,
                                               f = vself f }
+       | Go_mar { w, addr, bytes } => Go_mar { w = wself w, 
+                                               addr = vself addr, 
+                                               bytes = vself bytes }
        | Primop (vvl, po, vl, ce) =>
            let fun poself LOCALHOST = LOCALHOST
                  | poself BIND = BIND
+                 | poself MARSHAL = MARSHAL
                  | poself (PRIMCALL { sym, dom, cod }) = PRIMCALL { sym = sym,
                                                                     dom = map tself dom,
                                                                     cod = tself cod }
@@ -452,15 +459,18 @@ struct
     | pc_cmp (REF, REF) = EQUAL
     | pc_cmp (REF, _) = LESS
     | pc_cmp (_, REF) = GREATER
-    | pc_cmp (DICT, DICT) = EQUAL
-    | pc_cmp (DICT, _) = LESS
-    | pc_cmp (_, DICT) = GREATER
+    | pc_cmp (DICTIONARY, DICTIONARY) = EQUAL
+    | pc_cmp (DICTIONARY, _) = LESS
+    | pc_cmp (_, DICTIONARY) = GREATER
     | pc_cmp (INT, INT) = EQUAL
     | pc_cmp (INT, _) = LESS
     | pc_cmp (_, INT) = GREATER
     | pc_cmp (STRING, STRING) = EQUAL
     | pc_cmp (STRING, _) = LESS
     | pc_cmp (_, STRING) = GREATER
+    | pc_cmp (BYTES, BYTES) = EQUAL
+    | pc_cmp (BYTES, _) = LESS
+    | pc_cmp (_, BYTES) = GREATER
     | pc_cmp (EXN, EXN) = EQUAL
 
   fun arminfo_cmp ac (NonCarrier, NonCarrier) = EQUAL
@@ -648,6 +658,7 @@ struct
   val Call' = fn x => E (Call x)
   val Go' = fn x => E (Go x)
   val Go_cc' = fn x => E (Go_cc x)
+  val Go_mar' = fn x => E (Go_mar x)
   val Primop' = fn x => E (Primop x)
   val Put' = fn x => E (Put x)
   val Letsham' = fn x => E (Letsham x)
@@ -691,7 +702,8 @@ struct
   fun Lift' (v, cv, e) = Letsham'(v, Sham' (V.namedvar "lift_unused", cv), e)
   fun Bind' (v, cv, e) = Primop' ([v], BIND, [cv], e)
   fun Bindat' (v, w, cv, e) = Leta' (v, Hold' (w, cv), e)
-  fun Dict' t = Primcon' (DICT, [t])
+  fun Marshal' (v, vd, va, e) = Primop' ([v], MARSHAL, [vd, va], e)
+  fun Dictionary' t = Primcon' (DICTIONARY, [t])
   fun EProj' (v, s, va, e) = Bind' (v, Proj'(s, va), e)
 
 
@@ -721,11 +733,13 @@ struct
     | Go (w, v, e) => Go' (w, fv v, fe e)
     | Go_cc { w, addr, env, f } => Go_cc' { w = w, addr = fv addr,
                                             env = fv env, f = fv f }
+    | Go_mar { w, addr, bytes } => Go_mar' { w = w, addr = fv addr, bytes = fv bytes }
     | Primop (vvl, po, vl, e) => Primop' (vvl, 
                                           (case po of
                                              PRIMCALL { sym, dom, cod } =>
                                                PRIMCALL { sym = sym, dom = map ft dom, cod = ft cod }
                                            | BIND => BIND
+                                           | MARSHAL => MARSHAL
                                            | LOCALHOST => LOCALHOST),
                                           map fv vl, fe e)
     | Put (vv, t, v, e) => Put' (vv, ft t, fv v, fe e)
@@ -761,6 +775,7 @@ struct
     | UVar _ => value
     | Proj (s, v) => Proj' (s, fv v)
     | Dictfor t => Dictfor' ` ft t
+    (* FIXME Dicts *)
     | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } =>
                 AllLam' { worlds = worlds, tys = tys, 
                           vals = ListUtil.mapsecond ft vals, body = fv body }

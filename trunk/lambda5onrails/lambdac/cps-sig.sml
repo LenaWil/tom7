@@ -19,10 +19,12 @@ sig
     VEC 
   | REF
     (* the type of dictionaries for this type *)
-  | DICT
+  | DICTIONARY
   | INT
   | STRING
   | EXN
+    (* marshalled data *)
+  | BYTES 
 
   datatype 'ctyp ctypfront =
       At of 'ctyp * world
@@ -45,12 +47,17 @@ sig
       (* binds regular var *)
     | BIND 
     | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
+      (* takes 'a dict and 'a -> bytes *)
+    | MARSHAL
 
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
     | Halt
     | Go of world * 'cval * 'cexp
+      (* post closure conversion *)
     | Go_cc of { w : world, addr : 'cval, env : 'cval, f : 'cval }
+      (* post marshaling conversion *)
+    | Go_mar of { w : world, addr : 'cval, bytes : 'cval }
     | Primop of var list * primop * 'cval list * 'cexp
     | Put of var * ctyp * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
@@ -86,6 +93,7 @@ sig
     (* later expanded to the actual dictionary, using invariants established in
        CPSDict and Closure conversion *)
     | Dictfor of ctyp
+    | Dict of 'cval ctypfront
     (* supersedes WLam, TLam and VLam. quantifies worlds, types, and vars (in that
        order) over the body, which must be a value itself. applications of vlams
        are considered valuable. *)
@@ -159,6 +167,7 @@ sig
   val Halt' : cexp
   val Go' : world * cval * cexp -> cexp
   val Go_cc' : { w : world, addr : cval, env : cval, f : cval } -> cexp
+  val Go_mar' : { w : world, addr : cval, bytes : cval } -> cexp
   val Primop' : var list * primop * cval list * cexp -> cexp
   val Put' : var * ctyp * cval * cexp -> cexp
   val Letsham' : var * cval * cexp -> cexp
@@ -193,10 +202,11 @@ sig
   val VTUnpack' : var * (var * ctyp) list * cval * cval -> cval
 
   (* derived forms *)
-  val Dict' : ctyp -> ctyp
+  val Dictionary' : ctyp -> ctyp
   val Lift' : var * cval * cexp -> cexp
   val Bind' : var * cval * cexp -> cexp
   val Bindat' : var * world * cval * cexp -> cexp
+  val Marshal' : var * cval * cval * cexp -> cexp
   val WAll' : var * ctyp -> ctyp
   val TAll' : var * ctyp -> ctyp
   val Lam' :  var * (var * ctyp) list * cexp -> cval

@@ -85,6 +85,282 @@
    'pack' we create above.
 
    We'll also translate any 'dictfor' so that it only operates on closed
-   types.
+   types. The translation doesn't affect the type of anything.
 
 *)
+
+
+structure UnDict :> UNDICT =
+struct
+
+  structure V = Variable
+  structure VS = Variable.Set
+  open CPS
+
+  infixr 9 `
+  fun a ` b = a b
+
+  structure T = CPSTypeCheck
+  val bindvar = T.bindvar
+  val binduvar = T.binduvar
+  val bindtype = T.bindtype
+  val bindworld = T.bindworld
+  val worldfrom = T.worldfrom
+
+  exception UnDict of string
+
+  val bindworlds = foldl (fn (v, c) => bindworld c v)
+  (* assuming not mobile *)
+  val bindtypes  = foldl (fn (v, c) => bindtype c v false)
+
+  (* no need to touch types *)
+  fun ct t = t
+
+  fun ce G exp : cexp = 
+    (case cexp exp of
+       Call (f, args) =>
+         let
+           val (f, _) = cv G f
+           val (args, _) = ListPair.unzip ` map (cv G) args
+         in
+           Call' (f, args)
+         end
+         
+     | Halt => exp
+     | ExternVal (v, l, t, wo, e) =>
+         let val t = ct t
+         in
+           ExternVal'
+           (v, l, t, wo, 
+            ce (case wo of
+                  NONE => binduvar G v t
+                | SOME w => bindvar G v t w) e)
+         end
+
+     | ExternWorld (v, l, e) => 
+         ExternWorld' (v, l, ce (bindworld G v) e)
+
+     | Primop ([v], LOCALHOST, [], e) =>
+           Primop' ([v], LOCALHOST, [], 
+                    ce (binduvar G v ` Addr' ` worldfrom G) e)
+           
+     | Primop ([v], BIND, [va], e) =>
+         let
+           val (va, t) = cv G va
+           val G = bindvar G v t ` worldfrom G
+         in
+           Primop' ([v], BIND, [va], ce G e)
+         end
+
+     | Primop ([v], PRIMCALL { sym, dom, cod }, vas, e) =>
+         let
+           val vas = map (fn v => #1 ` cv G v) vas
+           val cod = ct cod
+         in
+           Primop'([v], PRIMCALL { sym = sym, dom = map ct dom, cod = cod }, vas,
+                   ce (bindvar G v cod ` worldfrom G) e)
+         end
+
+     | Leta (v, va, e) =>
+         let val (va, t) = cv G va
+         in
+           case ctyp t of
+             At (t, w) => 
+               Leta' (v, va, ce (bindvar G v t w) e)
+           | _ => raise UnDict "leta on non-at"
+         end
+
+     | Letsham (v, va, e) =>
+         let val (va, t) = cv G va
+         in
+           case ctyp t of
+             Shamrock t => 
+               Letsham' (v, va, ce (binduvar G v t) e)
+           | _ => raise UnDict "letsham on non-shamrock"
+         end
+
+     | Put (v, t, va, e) => 
+         let
+           val t = ct t
+           val (va, _) = cv G va
+           val G = binduvar G v t
+         in
+           Put' (v, t, va, ce G e)
+         end
+
+     | Go (w, addr, body) => raise UnDict "UnDict expects closure-converted code, but saw Go"
+
+     | Go_cc { w, addr, env, f } => 
+
+     (*
+         go_cc (addr : w' addr, f : argt cont, a : argt)
+
+       -->
+
+         EXTY = exists arg . { arg dict, arg cont, arg }
+         MARTY = EXTY at w'
+
+         p = hold(w') (pack <argt, { dictfor argt, f, a }>
+                       as EXTY)
+
+         b : bytes = marshal < MARTY > ( dictfor MARTY, p )
+
+         go_mar (addr, b)
+     *)
+         let
+           val (addr, at) = cv G addr
+           (* PERF unnecessary extra typechecking *)
+           val w' = case ctyp at of
+                      Addr w' => if world_eq (w, w')
+                                 then w' 
+                                 else raise UnDict "go_cc world/addr mismatch"
+                    | _ => raise UnDict "go_cc to non addr"
+           val (f, ft) = cv G f
+           val (env, envt) = cv G env
+           val av = V.namedvar "arg"
+           val exty  = TExists' (av, [Dictionary' ` TVar' av, Cont' [TVar' av], TVar' av])
+           val marty = At' (exty, w')
+
+           val p = V.namedvar "p"
+           val b = V.namedvar "b"
+         in
+           Bind' (p, Hold' (w', TPack' ( envt, exty, [makedict G envt, f, env] )),
+                  Marshal'(b, makedict G marty, Var' p,
+                           Go_mar' { w = w,
+                                     addr = addr,
+                                     bytes = Var' b }))
+         end
+
+     | _ =>
+         let in
+           print "UNDICT: unimplemented exp:\n";
+           Layout.print (CPSPrint.etol exp, print);
+           raise UnDict "unimplemented EXP"
+         end
+         )
+
+  (* makes a dictionary for the type ty, without using Dictfor. *)
+  and makedict G ty = Dictfor' ty (* XXX *)
+
+  (* Convert the value v; 
+     return the converted value paired with the converted type. *)
+  and cv G value =
+    (case cval value of
+       Int _ => (value, Zerocon' INT)
+     | String _ => (value, Zerocon' STRING)
+
+     | Record lvl =>
+         let 
+           val (l, v) = ListPair.unzip lvl
+           val (v, t) = ListPair.unzip ` map (cv G) v
+         in
+           (Record' ` ListPair.zip (l, v),
+            Product' ` ListPair.zip (l, t))
+         end
+
+     | Var v => 
+         let in
+           (* print ("Lookup " ^ V.tostring v ^ "\n"); *)
+           (value, #1 ` T.getvar G v)
+         end
+
+     | UVar v => 
+         let in
+           (* print ("Lookup " ^ V.tostring v ^ "\n"); *)
+           (value, T.getuvar G v)
+         end
+
+     | Inj (s, t, vo) => let val t = ct t 
+                         in (Inj' (s, ct t, Option.map (#1 o cv G) vo), t)
+                         end
+
+     | Hold (w, va) => 
+         let
+           val G = T.setworld G w
+           val (va, t) = cv G va
+         in
+           (Hold' (w, va),
+            At' (t, w))
+         end
+
+     | Sham (w, va) =>
+         let
+           val G' = bindworld G w
+           val G' = T.setworld G' (W w)
+
+           val (va, t) = cv G' va
+         in
+           (Sham' (w, va),
+            Shamrock' t)
+         end
+
+     | Roll (t, va) => 
+         let
+           val t = ct t
+           val (va, _) = cv G va
+         in
+           (Roll' (t, va), t)
+         end
+
+     | Proj (l, va) =>
+         let val (va, t) = cv G va
+         in
+           case ctyp t of
+              Product stl => (case ListUtil.Alist.find op= stl l of
+                                NONE => raise UnDict ("proj label " ^ l ^ " not in type")
+                              | SOME t => (Proj' (l, va), t))
+            | _ => raise UnDict "proj on non-product"
+         end
+
+     | Lams vael => 
+         let
+           (* check types ok *)
+           val vael = map (fn (f, args, e) => (f, ListUtil.mapsecond ct args, e)) vael
+
+           (* recursive vars *)
+           val G = foldl (fn ((v, args, _), G) =>
+                          bindvar G v (Cont' ` map #2 args) ` worldfrom G) G vael
+           val vael = 
+               map (fn (f, args, e) =>
+                    let val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args
+                    in
+                      (f, args, ce G e)
+                    end) vael
+
+         in
+           (Lams' vael, 
+            Conts' ` map (fn (_, args, _) => map #2 args) vael)
+         end
+
+     | Fsel ( va, i ) =>
+        let val (va, t) = cv G va
+        in
+          case ctyp t of
+            Conts tll => (Fsel' (va, i), Cont' ` List.nth (tll, i))
+          | _ => raise UnDict "fsel on non-conts"
+        end
+
+     | AllLam { worlds, tys, vals, body } => 
+            raise UnDict "unimplemented: alllam"
+
+     | AllApp { f, worlds, tys, vals } =>
+            raise UnDict "unimplemented: allapp"
+
+     (* Here we need to expand the dictionary, so that it does not use the Dictfor
+        construct at all. *)
+     | Dictfor t => (makedict G t, Dictionary' t)
+
+     | _ => 
+         let in
+           print "CLOSURE: unimplemented val\n";
+           Layout.print (CPSPrint.vtol value, print);
+           raise UnDict "unimplemented VAL"
+         end
+
+         )
+
+  fun undict w e =
+    ce (T.empty w) e
+    handle Match => raise UnDict "unimplemented/match"
+
+end

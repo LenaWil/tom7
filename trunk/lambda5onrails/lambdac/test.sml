@@ -178,6 +178,13 @@ struct
             val () = CPSTypeCheck.check cw c
             val () = print "\n* Typechecked OK *\n"
 
+            val c : CPS.cexp = UnDict.undict cw c
+            val () = print "\n\n**** UNDICT: ****\n"
+            val () = Layout.print ( CPSPrint.etol c, print)
+
+            val () = CPSTypeCheck.check cw c
+            val () = print "\n* Typechecked OK *\n"
+
         in
             print "\n";
           (*
@@ -187,17 +194,18 @@ struct
           c
         end)
     handle Test s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
-         | Nullary.Nullary s => fail ("\nCouldn't do EL nullary prepass:\n" ^ s ^ "\n")
-         | Context.Absent (what, s) => fail ("\n\nInternal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'\n")
-         | CPSTypeCheck.TypeCheck s => fail ("\n\nInternal error: Type checking failed:\n" ^
-                                             s ^ "\n")
-         | ToCPS.ToCPS s => fail ("\nToCPS: " ^ s ^ "\n")
          | CPSDict.CPSDict s => fail ("\nCPSDict: " ^ s ^ "\n")
+         | CPSTypeCheck.TypeCheck s => fail ("\n\nInternal error: Type checking failed:\n" ^ s ^ "\n")
          | Closure.Closure s => fail ("\nClosure conversion: " ^ s ^ "\n")
+         | Context.Absent (what, s) => fail ("\n\nInternal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'\n")
+         | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")
+         | Elaborate.Elaborate s => fail("\nElaboration: " ^ s ^ "\n")
+         | Hoist.Hoist s => fail ("\nHoist: " ^ s ^ "\n")
          | ILAlpha.Alpha s => fail ("\nIL Alpha: " ^ s ^ "\n")
          | ILUnused.Unused s => fail ("\nIL unused: " ^ s ^ "\n")
-         | Elaborate.Elaborate s => fail("\nElaboration: " ^ s ^ "\n")
-         | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")
+         | Nullary.Nullary s => fail ("\nCouldn't do EL nullary prepass:\n" ^ s ^ "\n")
+         | ToCPS.ToCPS s => fail ("\nToCPS: " ^ s ^ "\n")
+         | UnDict.UnDict s => fail("\nUnDict: " ^ s ^ "\n")
          | Variable.Variable s => fail ("\n\nBUG: Variables: " ^ s ^ "\n")
          | ex => (print ("\n\nUncaught exception: " ^ exnName ex ^ ": " ^
                          exnMessage ex ^ "\n");
