@@ -31,14 +31,12 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
     int mag = 0;
     for(ch = 0; ch < NMIX; ch ++) {
       samples[ch] ++;
-      /* fraction of one second .. */
-      //    float frac = ((float)samples / (float)RATE);
-      /* the frequency is the number of cycles per second.
-	 so the length of one cycle in samples is RATE/cur_freq. 
+      /* the frequency is the number of cycles per ten seconds.
+	 so the length of one cycle in samples is (RATE*10)/cur_freq. 
       */
 
       // PERF this should be the value stored in cur_freq
-      int cycle = (RATE / cur_freq[ch]);
+      int cycle = ((RATE * 10) / cur_freq[ch]);
       int pos = samples[ch] % cycle;
       if (samples[ch] > cycle) {
 	val[ch] = - val[ch];
