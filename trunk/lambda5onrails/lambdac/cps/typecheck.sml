@@ -328,7 +328,7 @@ struct
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternWorld of var * string * 'cexp
     (* always kind 0; optional argument is a value import of the dictionary
-       for that type *)
+       for that type (will be universally bound) *)
     | ExternType of var * string * (var * string) option * 'cexp
 *)
 
