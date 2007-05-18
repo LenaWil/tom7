@@ -22,23 +22,46 @@
    about these type variables at all because they cannot appear in
    terms.
 
-   Representation Invariant 1: For AllLam { worlds, types = t1..tn, vals = x1..xm, body },
-   m >= n and x1..xn are the dictionaries for the types t1..tn, respectively.
+   Because types are not associated with worlds (although we may have
+   such "located types" in future work; see notes/typeatworld.txt),
+   the dictionaries should not be associated with worlds either--we
+   might transfer control to another world in the scope of some
+   abstract type and then need to marshal some value of that abstract
+   type. The dictionary passing invariant ensures that the dictionary
+   is always bound as a universal variable.
 
-   Representation Invariant 2: For AllApp { f, worlds, types = t1..tn, vals = v1..vm },
-   m >= n and v1..vn are the dictionaries for types t1..tn, respectively.
+   Representation Invariant 1: 
+    For AllLam { worlds, types = t1..tn, vals = x1..xm, body },
+    m >= n and x1..xn are the universal dictionaries for the types t1..tn, 
+    respectively. Each should be shamrocked, and they are immediately
+    unshamrocked in the body.
 
-   Representation Invariant 3: For ExternType (v, lab, vlo, _), vlo is SOME (v', lab')
-   where lab' is a symbol standing for the dictionary for the abstract type at the
-   label lab.
+   Representation Invariant 2: 
+    For AllApp { f, worlds, types = t1..tn, vals = v1..vm },
+    m >= n and v1..vn are the dictionaries for types t1..tn, respectively,
+    each shamrocked.
 
-   (the following two are irrelevant here since there will be no tpacks/tunpacks,
-    but they will be introduced in CPS conversion)
+   Representation Invariant 3: 
+    For ExternType (v, lab, vlo, _), vlo is SOME (v', lab')
+    where lab' is a symbol standing for the dictionary for the 
+    abstract type at the label lab. The dictionary must be exported as 
+    a uvar. 
 
-   Representation Invariant 4: For TUnpack, the first element of the list will always
-   be the dictionary for the type existentially bound.
+   (the following two are irrelevant here since there will be no
+    tpacks/tunpacks, but they will be introduced in CPS conversion.
+    These are also permanent: we need to keep the dictionaries inside
+    existential packages for the purposes of marshaling at runtime;
+    see undict.sml)
 
-   Representation Invariant 5: TPack always packs a list (dict :: ...) as in #4.
+   Representation Invariant 4: 
+    For TUnpack, the first element of the list will always be the
+    shamrocked dictionary for the type existentially bound. It is
+    immediately unshamrocked in the body to put it in the context.
+     (Notwithstanding the above, this unshamrocking can be eliminated
+      as an optimization, since it is irrelevant for marshaling.)
+
+   Representation Invariant 5: 
+    TPack always packs a list (sham dict :: ...) as in #4.
 
 *)
 
@@ -61,7 +84,7 @@ struct
       (* this is the only case we do anything interesting in *)
          AllArrow {worlds, tys, vals, body} => 
            AllArrow' { worlds = worlds, tys = tys,
-                       vals = map (Dictionary' o TVar') tys @ map trt vals, 
+                       vals = map (Shamrock' o Dictionary' o TVar') tys @ map trt vals, 
                        body = trt body }
        (* these are bugs *)
        | TExists _ => raise CPSDict "BUG: shouldn't have existential types yet"
@@ -76,8 +99,7 @@ struct
          TUnpack _ => raise CPSDict "BUG: shouldn't see existential type tunpack yet"
        | ExternType (v, s, NONE, e) => 
            (* kind of trivial *)
-           ExternType' (v, s, SOME (mkdictvar v, 
-                                    s ^ DICT_SUFFIX), tre e)
+           ExternType' (v, s, SOME (mkdictvar v, s ^ DICT_SUFFIX), tre e)
        | ExternType _ => raise CPSDict "BUG: extern type already had dict?"
        | _ => pointwisee trt trv tre exp)
 
@@ -87,12 +109,13 @@ struct
        | Dictfor _ => raise CPSDict "BUG: shouldn't see dicts yet"
        | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } => 
              AllLam' { worlds = worlds, tys = tys, 
-                       vals = map (fn t => (mkdictvar t, Dictionary' ` TVar' t)) tys @ vals, 
+                       vals = map (fn t => (mkdictvar t, Shamrock' ` Dictionary' ` TVar' t)) tys @ vals, 
                        body = trv body }
        | AllApp { f : cval, worlds : world list, tys : ctyp list, vals : cval list } => 
              AllApp' { f = trv f, worlds = worlds, tys = tys,
                        (* add the dictionaries to the beginning of the value list *)
-                       vals = map Dictfor' tys @ map trv vals }
+                       vals = map (fn t => Sham' (Variable.namedvar "unused", 
+                                                  Dictfor' t)) tys @ map trv vals }
        | _ => pointwisev trt trv tre value)
 
     fun translate e = tre e
