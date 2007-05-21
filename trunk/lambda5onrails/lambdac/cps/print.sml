@@ -70,7 +70,7 @@ struct
                                     L.indent 3 ` vtol va,
                                     $"in",
                                     L.indent 3 ` vtol ve]
-         | (VLetsham (v, va, ve)) => %[%[$"vleta", varl v, $"="],
+         | (VLetsham (v, va, ve)) => %[%[$"vletsham", varl v, $"="],
                                        L.indent 3 ` vtol va,
                                        $"in",
                                        L.indent 3 ` vtol ve]

@@ -352,7 +352,7 @@ struct
 
      | _ => 
          let in
-           print "CLOSURE: unimplemented val\n";
+           print "UNDICT: unimplemented val\n";
            Layout.print (CPSPrint.vtol value, print);
            raise UnDict "unimplemented VAL"
          end

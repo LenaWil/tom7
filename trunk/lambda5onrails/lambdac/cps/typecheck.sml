@@ -97,6 +97,9 @@ struct
     | VA of cval
     | EX of cexp
     | V of var
+    (* var is bound in the type; don't display the type, just use it
+       to decide whether var is _ *)
+    | BT of var * ctyp
 
   fun unroll (m, tl) =
     (let val (_, t) = List.nth (tl, m)
@@ -118,10 +121,11 @@ struct
         | errtol (VA v) = CPSPrint.vtol v
         | errtol (EX e) = CPSPrint.etol e
         | errtol (V v) = Layout.str ` V.tostring v
+        | errtol (BT (v, t)) = CPSPrint.vbindt v t
     in
       print "\n\n";
       Layout.print (Layout.mayAlign (map errtol err), print);
-      raise TypeCheck "failure"
+      raise TypeCheck "(see above)"
     end
 
   fun faile exp msg = fail [$"\n\nIll-typed: ", EX exp, $"\n", $msg]
@@ -507,8 +511,10 @@ struct
                       val () = if ListUtil.all2 ctyp_eq tl vs
                                then ()
                                else fail [$"vtunpack val args don't agree",
-                                          $"from packed value: ", TYL tl,
-                                          $"from unpack annotations: ", V tv, $".", TYL vs]
+                                          $"from packed value: ", BT (vr, Cont' tl), $".", 
+                                             TYL tl,
+                                          $"from unpack annotations: ", BT (tv, Cont' vs), $".", 
+                                             TYL vs]
                       (* new type, can't be mobile *)
                       val G = bindtype G tv false
                       (* some values now *)
