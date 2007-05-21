@@ -164,6 +164,13 @@ struct
             val () = CPSTypeCheck.check cw c
             val () = print "\n* Typechecked OK *\n"
 
+            val c : CPS.cexp = CPSOpt.optimize c
+            val () = print "\n\n**** CPS OPT1: ****\n"
+            val () = Layout.print ( CPSPrint.etol c, print)
+
+            val () = CPSTypeCheck.check cw c
+            val () = print "\n* Typechecked OK *\n"
+
             val c : CPS.cexp = CPSDict.translate c
             val () = print "\n\n**** CPS DICT: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
@@ -196,6 +203,7 @@ struct
     handle Test s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
          | CPSDict.CPSDict s => fail ("\nCPSDict: " ^ s ^ "\n")
          | CPSTypeCheck.TypeCheck s => fail ("\n\nInternal error: Type checking failed:\n" ^ s ^ "\n")
+         | CPSOpt.CPSOpt s => fail ("\n\nInternal error: CPS-Optimization failed:\n" ^ s ^ "\n")
          | Closure.Closure s => fail ("\nClosure conversion: " ^ s ^ "\n")
          | Context.Absent (what, s) => fail ("\n\nInternal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'\n")
          | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")

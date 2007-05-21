@@ -1,0 +1,25 @@
+unit
+    extern val js.alert : string -> unit @ home
+    extern world server
+    extern val server ~ server addr
+    extern val version : unit -> string @ server
+
+    (* test... *)
+    extern val (a, b) polyswap : a * b -> b * a @ server
+
+    do js.alert "Hello, World 2.0!"
+
+    fun (c, d, e) polyrec (x : c, y : d, z : e) = polyrec ( polyrec (x, y, z),
+							    y,
+							    z )
+
+    fun goswap (a, b) =
+	let in
+	    js.alert (from server get (version ()));
+	    (b, a)
+	end
+    val p = goswap (300, 400)
+in
+    export val pair = p
+    export val pr = polyrec
+end

@@ -100,6 +100,7 @@ struct
     (* var is bound in the type; don't display the type, just use it
        to decide whether var is _ *)
     | BT of var * ctyp
+    | IN of error
 
   fun unroll (m, tl) =
     (let val (_, t) = List.nth (tl, m)
@@ -122,6 +123,7 @@ struct
         | errtol (EX e) = CPSPrint.etol e
         | errtol (V v) = Layout.str ` V.tostring v
         | errtol (BT (v, t)) = CPSPrint.vbindt v t
+        | errtol (IN e) = Layout.indent 3 ` errtol e
     in
       print "\n\n";
       Layout.print (Layout.mayAlign (map errtol err), print);
@@ -321,7 +323,10 @@ struct
                     in
                       eok G e
                     end
-                | _ => faile exp "tunpack non-exists")
+                | t => fail [$"tunpack non-exists: ",
+                             IN ` EX exp,
+                             $"has type: ",
+                             IN ` TY ` ctyp' t])
 
 (*
       go_mar!
@@ -512,9 +517,9 @@ struct
                                then ()
                                else fail [$"vtunpack val args don't agree",
                                           $"from packed value: ", BT (vr, Cont' tl), $".", 
-                                             TYL tl,
+                                             IN ` TYL tl,
                                           $"from unpack annotations: ", BT (tv, Cont' vs), $".", 
-                                             TYL vs]
+                                             IN ` TYL vs]
                       (* new type, can't be mobile *)
                       val G = bindtype G tv false
                       (* some values now *)
