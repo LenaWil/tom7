@@ -475,6 +475,9 @@ struct
                      val G = bindvar G envvv envt ` worldfrom G
                      (* FIXME bind rec closures *)
                    in
+                     if List.exists (fn (frec, _, _) => freee frec body) vael
+                     then raise Closure "unimplemented: recursive closures. FIXME!"
+                     else
                      (f, (envvv, envt) :: args, wrape (Var' envvv, ce G body))
                    end
                    ) vael]),

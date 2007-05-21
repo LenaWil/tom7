@@ -149,6 +149,9 @@ cps/typecheck.sml
 cps/tocps-sig.sml
 cps/tocps.sml
 
+cps/opt-sig.sml
+cps/opt.sml
+
 (* this seems like a better place *)
 cps/dict-sig.sml
 cps/dict.sml
