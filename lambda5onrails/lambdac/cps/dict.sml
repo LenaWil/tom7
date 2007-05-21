@@ -108,9 +108,18 @@ struct
          TPack _ => raise CPSDict "BUG: shouldn't see extential type tpack yet"
        | Dictfor _ => raise CPSDict "BUG: shouldn't see dicts yet"
        | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } => 
-             AllLam' { worlds = worlds, tys = tys, 
-                       vals = map (fn t => (mkdictvar t, Shamrock' ` Dictionary' ` TVar' t)) tys @ vals, 
-                       body = trv body }
+           let 
+             (* the argument variable, the unshamrocked uvar, its type *)
+             val dvars = map (fn t => (mkdictvar t, mkdictvar t, Shamrock' ` Dictionary' ` TVar' t)) tys
+           in
+             AllLam' { worlds = worlds, 
+                       tys = tys,
+                       vals = map (fn (sh, _, t) => (sh, t)) dvars @ vals, 
+                       body = 
+                         (* open up the shamrocks, then continue with translated body *)
+                         foldr (fn ((sh, di, t), v) => VLetsham'(di, Var' sh, v)) (trv body) dvars
+                       }
+           end
        | AllApp { f : cval, worlds : world list, tys : ctyp list, vals : cval list } => 
              AllApp' { f = trv f, worlds = worlds, tys = tys,
                        (* add the dictionaries to the beginning of the value list *)

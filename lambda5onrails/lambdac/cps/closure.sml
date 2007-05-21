@@ -72,7 +72,9 @@
    There's only one way to do this. e.m must translate into 
 
    unpack e as (ENV; [de, env, fs])           <- unpack must be a value then
-   in  pack ( ENV ; [de, env, fs.m] ) 
+   in  
+     (... maintain dictionary invt; see dict.sml ...)
+    pack ( ENV ; [de, env, fs.m] ) 
 
    in many situations (especially for m = 0 and fs a singleton) we should be able to
    optimize this to avoid the immediate packing and unpacking.
@@ -178,7 +180,7 @@ struct
            val tl = map ct tl
            val venv = V.namedvar "env"
          in
-           TExists' (venv, [Dictionary' ` TVar' ` venv, 
+           TExists' (venv, [Shamrock' ` Dictionary' ` TVar' ` venv, 
                             TVar' venv,
                             Cont' (TVar' venv :: tl)])
          end
@@ -187,7 +189,7 @@ struct
            val tll = map (map ct) tll
            val venv = V.namedvar "env"
          in
-           TExists' (venv, [Dictionary' ` TVar' ` venv, 
+           TExists' (venv, [Shamrock' ` Dictionary' ` TVar' ` venv, 
                             TVar' venv,
                             (* new arg to each function ... *)
                             Conts' (map (fn l => TVar' venv :: l) tll)])
@@ -218,18 +220,19 @@ struct
          let
            val (f, ft) = cv G f
            val (args, argts) = ListPair.unzip ` map (cv G) args
-           val vu = V.namedvar "envd"
+           val vu = V.namedvar "envds"
            val envt = V.namedvar "envt"
            val envv = V.namedvar "env"
 
            val fv = V.namedvar "f"
          in
            TUnpack' (envt,
-                     [(vu, Dictionary' ` TVar' envt),
+                     [(vu, Shamrock' ` Dictionary' ` TVar' envt),
                       (envv, TVar' envt),
                       (fv, Cont' (TVar' envt :: argts))],
                      f,
-                     Call'(Var' fv, Var' envv :: args))
+                     Letsham' (V.namedvar "envd", Var' vu,
+                               Call'(Var' fv, Var' envv :: args)))
          end
          
      | Halt => exp
@@ -393,6 +396,28 @@ struct
             | _ => raise Closure "proj on non-product"
          end
 
+     | VLeta (v, va, ve) =>
+         let val (va, t) = cv G va
+         in
+           case ctyp t of
+             At (tt, w) => let val G = bindvar G v tt w
+                               val (ve, te) = cv G ve
+                           in (VLeta' (v, va, ve), te)
+                           end
+           | _ => raise Closure "vleta on non-at"
+         end
+
+     | VLetsham (v, va, ve) =>
+         let val (va, t) = cv G va
+         in
+           case ctyp t of
+             Shamrock tt => let val G = binduvar G v tt
+                                val (ve, te) = cv G ve
+                            in (VLetsham' (v, va, ve), te)
+                            end
+           | _ => raise Closure "vletsham on non-shamrock"
+         end
+
      | Lams vael => 
 (*
    fns f(x). e1           ==>    
@@ -429,7 +454,7 @@ struct
                           end) G vael
 
            val envtv = V.namedvar "lams_envt"
-           val rest = TExists' (envtv, [Dictionary' ` TVar' envtv, 
+           val rest = TExists' (envtv, [Shamrock' ` Dictionary' ` TVar' envtv, 
                                         TVar' envtv,
                                         Conts' (map (fn (_, args, _) =>
                                                      TVar' envtv :: map #2 args) vael)])
@@ -440,7 +465,7 @@ struct
            (TPack'
             (envt,
              rest,
-             [Dictfor' envt,
+             [Sham' (V.namedvar "unused", Dictfor' envt),
               env,
               Lams' `
               map (fn (f, args, body) =>
@@ -488,16 +513,21 @@ struct
                               [(vde, tde),
                                (venv, TVar' venvt),
                                (vfs, tfs)],
-                              v, (* unpack this *)
-                              TPack'
-                              (* same environment type,
-                                 dict, environment. *)
-                              (TVar' venvt,
-                               tres,
-                               [Var' vde,
-                                Var' venv,
-                                Fsel' (Var' vfs, i)])),
-                   tres)
+                              (* unpack this *)
+                              v, 
+                              (* need to maintain invariant, though
+                                 I don't think this will ever be used *)
+                              VLetsham' (V.namedvar "fsel_sdict",
+                                         Var' vde,
+                                         TPack'
+                                         (* same environment type,
+                                            dict, environment. *)
+                                         (TVar' venvt,
+                                          tres,
+                                          [Var' vde,
+                                           Var' venv,
+                                           Fsel' (Var' vfs, i)]))),
+                              tres)
                 end
             | _ => raise Closure "fsel on non-function (didn't translate to Exists 3)"
          end
@@ -528,7 +558,7 @@ struct
            val (body, bodyt) = cv G body
 
            (* type of this pack *)
-           val rest = TExists' (envtv, [Dictionary' ` TVar' envtv, 
+           val rest = TExists' (envtv, [Shamrock' ` Dictionary' ` TVar' envtv, 
                                         TVar' envtv,
                                         AllArrow' { worlds = worlds, tys = tys,
                                                     vals = TVar' envtv :: map #2 vals,
@@ -536,7 +566,7 @@ struct
          in
            (TPack' (envt, 
                     rest,
-                    [Dictfor' envt, 
+                    [Sham' (V.namedvar "als_unused", Dictfor' envt),
                      env,
                      AllLam' { worlds = worlds, 
                                tys = tys,
@@ -556,22 +586,26 @@ struct
            val envt = V.namedvar "aa_envt"
            val envv = V.namedvar "aa_env"
            val fv = V.namedvar "aa_f"
+
+           val vdu = V.namedvar "aa_dus"
          in
            case ctyp ft of
              TExists (envtv, [_, _, aat]) =>
                (case ctyp aat of 
                   AllArrow { worlds = aw, tys = at, vals = _ :: avals, body = abody } =>
                     (VTUnpack' (envt,
-                                [(V.namedvar "aa_du", Dictionary' ` TVar' envt),
+                                [(vdu, Shamrock' ` Dictionary' ` TVar' envt),
                                  (envv, TVar' envt),
                                  (* aad thinks envtype is envtv, so need to
                                     rename to local existential var *)
                                  (fv, subtt (TVar' envt) envtv aat)],
                                 f,
-                                AllApp' { f = Var' fv,
-                                          worlds = worlds,
-                                          tys = tys,
-                                          vals = Var' envv :: vals }),
+                                (* maintain dict invariant *)
+                                VLetsham' (V.namedvar "aa_du", Var' vdu, 
+                                           AllApp' { f = Var' fv,
+                                                     worlds = worlds,
+                                                     tys = tys,
+                                                     vals = Var' envv :: vals })),
 
                      (* to get result type, do substitution for our actual world/ty
                         arguments into body type *)
@@ -593,26 +627,6 @@ struct
          let val t = ct t
          in (Dictfor' ` ct t, Dictionary' t)
          end
-
-(*
-         let
-           val (f, ft) = cv G f
-           val (args, argts) = ListPair.unzip ` map (cv G) args
-           val vu = V.namedvar "envd"
-           val envt = V.namedvar "envt"
-           val envv = V.namedvar "env"
-
-           val fv = V.namedvar "fv"
-         in
-           TUnpack' (envt,
-                     [(vu, Dictionary' ` TVar' envt),
-                      (envv, TVar' envt),
-                      (fv, Cont' (TVar' envt :: argts))],
-                     f,
-                     Call'(Var' fv, Var' envv :: args))
-         end
-*)
-
 
      | _ => 
          let in

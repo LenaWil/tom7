@@ -106,7 +106,7 @@ struct
          ("ord", P.PBind, mono(IL.Arrow(true, [ilchar], ilint))),
          ("chr_", P.PBind, mono(IL.Arrow(true, [ilint], ilchar))),
 
-         ("halt", P.PHalt, quant(a, mono(IL.Arrow(false, [], IL.TVar a)))),
+         ("halt", P.PHalt, quant(a, mono(IL.Arrow(false, [ilunit], IL.TVar a)))),
 
          ("showval_", P.PShowval, quant(a, mono(IL.Arrow(false, [IL.TVar a], ilunit)))),
 
