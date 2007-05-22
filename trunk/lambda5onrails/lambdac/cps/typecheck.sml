@@ -23,6 +23,40 @@ struct
 
   exception TypeCheck of string
 
+  local
+    structure L = Layout
+    structure V = Variable
+    structure P = CPSPrint
+
+    val $ = L.str
+    val % = L.mayAlign
+    val itos = Int.toString
+
+    fun two s l = %[$s, L.indent 3 l]
+  in
+    fun ctol (C { tvars, worlds, vars, uvars, current }) =
+      %[$"context:",
+        L.indent 4 `
+        L.align 
+        [two "current:" ` P.wtol current,
+         two "worlds:" ` L.listex "" "" "," ` map ($ o V.tostring) (V.Set.listItems worlds),
+         two "tvars:" ` L.listex "" "" "," ` map (fn (v, b) =>
+                                                $(V.tostring v ^
+                                                  (if b then " (mobile)"
+                                                   else ""))) (V.Map.listItemsi tvars),
+         two "vars:" ` L.listex "" "" "," ` map (fn (v, (t, w)) =>
+                                               %[$(V.tostring v),
+                                                 $":",
+                                                 P.ttol t,
+                                                 $"@",
+                                                 P.wtol w]) (V.Map.listItemsi vars),
+         two "uvars:" ` L.listex "" "" "," ` map (fn (v, t) =>
+                                                %[$(V.tostring v),
+                                                  $"~",
+                                                  P.ttol t]) (V.Map.listItemsi uvars)
+          ]]
+  end
+
   fun bindtype (C {tvars, worlds, vars, uvars, current}) v mob =
     C { tvars = V.Map.insert(tvars, v, mob), current = current,
         worlds = worlds, vars = vars, uvars = uvars }
@@ -62,16 +96,24 @@ struct
     let 
       val m = V.Map.mapPartial (fn t => 
                                 case ctyp t of
-                                   TVar tv' => if V.eq (tv, tv')
-                                               then SOME ()
-                                               else NONE
+                                  Primcon(DICTIONARY, [t]) =>
+                                    (case ctyp t of
+                                       TVar tv' => if V.eq (tv, tv')
+                                                   then SOME ()
+                                                   else NONE
+                                     | _ => NONE)
                                  | _ => NONE) uvars
     in
       ignore ` gettype ctx tv;
       (* finds any match in scope, since "t Dictionary" is a singleton type *)
       (case V.Map.listItemsi m of
-         nil => raise TypeCheck ("invariant violated: no dictionary for type var " ^
-                                 V.tostring tv ^ " in context")
+         nil => 
+           let in
+             print "\n\nINVARIANT VIOLATION!\n";
+             Layout.print (ctol ctx, print);
+             raise TypeCheck ("invariant violated: no dictionary for type var " ^
+                              V.tostring tv ^ " in context")
+           end
        | (vv, ()) :: _ => vv)
     end
 
@@ -385,6 +427,38 @@ struct
               end
           | _ => raise TypeCheck "tpack as non-existential")
 
+     | Dict tf =>
+       let
+         fun edict' s (Primcon(DICTIONARY, [t])) = t
+           | edict' s _ = raise TypeCheck (s ^ " dict with non-dicts inside")
+
+         fun edict s t = edict' s ` ctyp t
+       in
+         case tf of
+            Primcon(pc, dl) =>
+              let
+                val tl = map (vok G) dl
+                val ts = map (edict "primcon") tl
+              in
+                (* XXX should check arity of primcon, I guess? 
+                   not obvious that Dict(Primcon(REF, [])) shouldn't have
+                   type Primcon(REF, []) Dictionary, though that type
+                   classifies no values... *)
+                Dictionary' ` Primcon'(pc, tl)
+              end
+          | Product stl =>
+              Dictionary' ` Product' ` ListUtil.mapsecond (fn v => edict "prod" ` vok G v) stl
+          | Shamrock t => Dictionary' ` Shamrock' ` edict "sham" ` vok G t
+          | Addr w => Dictionary' ` Addr' w
+          | At (t, w) => Dictionary' ` At' (edict "at" ` vok G t, w)
+          | TExists(v, vl) =>
+              let
+                val G = binduvar G v false
+              in
+                Dictionary' ` TExists' (v, map (fn v => edict "texists" ` vok G v) vl)
+              end
+          | _ => fail [$"unimplemented dict typefront", VA value]
+       end
 
      | VLeta (v, va, ve) =>
             (case ctyp ` vok G va of
