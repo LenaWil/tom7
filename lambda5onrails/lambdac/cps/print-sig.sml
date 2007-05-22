@@ -2,9 +2,10 @@
 signature CPSPRINT =
 sig
 
-    val ttol : CPS.ctyp -> Layout.layout
-    val vtol : CPS.cval -> Layout.layout
-    val etol : CPS.cexp -> Layout.layout
+    val ttol : CPS.ctyp  -> Layout.layout
+    val vtol : CPS.cval  -> Layout.layout
+    val etol : CPS.cexp  -> Layout.layout
+    val wtol : CPS.world -> Layout.layout
 
 
     (* display a variable, or show "_" if not free in (type/val/exp) *)

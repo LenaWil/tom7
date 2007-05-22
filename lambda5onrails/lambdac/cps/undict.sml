@@ -275,7 +275,7 @@ struct
      *)
   and makedict G ty = 
     (case ctyp ty of
-       TVar a => Var' ` T.getdict G a
+       TVar a => UVar' ` T.getdict G a
      | Mu (i, vtl) =>
          let
            (* put types in context, put dicts in context too *)
@@ -289,12 +289,16 @@ struct
      | At (t, w) => Dict' ` At (makedict G t, w)
      | Shamrock t => Dict' ` Shamrock ` makedict G t
      | Primcon (pc, tl) => Dict' ` Primcon (pc, map (makedict G) tl)
+     | Cont tl => Dict' ` Cont ` map (makedict G) tl
+     | Conts tll => Dict' ` Conts ` map (map (makedict G)) tll
+     | Addr w => Dict' ` Addr w
      | TExists (v, tl) =>
          let
            val G = bindtype G v false
+           val ud = V.namedvar "exdict"
            val G = binduvar G (V.namedvar "exdict") (Dictionary' ` TVar' v)
          in
-           Dict' ` TExists(v, map (makedict G) tl)
+           Dict' ` TExists(ud, map (makedict G) tl)
          end
      | _ => 
          let in
