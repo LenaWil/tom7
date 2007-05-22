@@ -38,6 +38,78 @@ struct
             else L.recordex sep (ListUtil.mapsecond layout sorted)
         end
 
+  fun wtol (W w) = $(V.tostring w)
+
+  fun tftol ttol t =
+      (case t of
+           Mu (i, m) =>
+               (* XXX special case when there is just one *)
+               L.paren (%[$("#" ^ itos i),
+                          $"mu",
+                          L.alignPrefix
+                          (ListUtil.mapi 
+                           (fn ((v,t),n) =>
+                            %[%[$(itos n), $"as",
+                                $(V.tostring v),
+                                $"."], ttol t]) m,
+                           "and ")])
+         | At (t, w) => L.paren ` %[ttol t, $"at", wtol w]
+         | Shamrock t => %[$"{}", L.indent 2 ` ttol t]
+         | Cont tl => %[L.listex "(" ")" "," ` map ttol tl, $"cont"]
+         | AllArrow { worlds, tys, vals, body } =>
+             %[%[$"allarrow",
+                 %[L.indent 2 ` 
+                   L.listex "" "" ";"
+                   ((case worlds of
+                       nil => nil
+                     | _ => [% ($"w:" :: map ($ o V.tostring) worlds)]) @
+                    (case tys of
+                       nil => nil
+                     | _ => [% ($"t:" :: map ($ o V.tostring) tys)]) @
+                    (case vals of
+                       nil => nil
+                     | _ => [% ($"v:" :: map (L.paren o ttol) vals)])
+                       ),
+                       $"."]],
+                   L.indent 2 ` ttol body]
+
+         | Sum ltl => L.listex "[" "]" "," `map (fn (l, Carrier { carried = t,
+                                                                  definitely_allocated = b}) =>
+                                                                     L.seq[$l, $" : ", 
+                                                                           ttol t]
+                                                                | (l, NonCarrier) =>
+                                                                       L.seq[$l, $"(-)"]) ltl
+         | Conts tll => %[$"conts:",
+                          L.indent 2 `
+                          % `
+                          ListUtil.mapi
+                          (fn (tl, i) => %[%[$("#" ^ itos i), $ ":"],
+                                           L.indent 2 ` %[L.listex "(" ")" "," ` map ttol tl, $"cont"]]) tll]
+
+         | TExists (v, tt) => %[%[$"texists", varl v, $"."],
+                                L.indent 2 ` L.listex "[" "]" "," ` map ttol tt]
+         | Product nil => $"unit"
+         | Product ltl => recordortuple ttol ":" "(" ")" " *" ltl
+         | Primcon (VEC, [t]) => %[ttol t, $"vec"]
+         | Primcon (REF, [t]) => %[ttol t, $"ref"]
+         | Primcon (DICTIONARY, [t]) => %[ttol t, $"dictionary"]
+         | Primcon (INT, []) => $"int"
+         | Primcon (STRING, []) => $"string"
+         | Primcon (EXN, []) => $"exn"
+         | Primcon _ => $"XXX-bad-primcon-XXX"
+
+         | Addr w => %[wtol w, $"addr"]
+(*
+    | WExists of var * 'ctyp
+    | Product of (string * 'ctyp) list
+*)
+         | TVar v => $(V.tostring v)
+         | _ => $"t?"
+               ) handle Match => $"XXX_MATCH-TYP_XXX"
+      (* $"CPS:unknown typ" *)
+
+  fun ttol t = tftol ttol (ctyp t) 
+
   fun vtol v =
       (case cval v of
            (* special case .0 on single function *)
@@ -147,9 +219,9 @@ struct
                     | _ => [% [$"v:", L.listex "" "" "," ` map vtol vals]])
                       )]
                       
-
-         | Dict _ => $"XXX-DICT-XXX"
-
+         | Dict tf => 
+                %[$"dict",
+                  L.indent 2 ` tftol vtol tf]
                    
          | Var v => $(V.tostring v)
          | UVar v => $("~" ^ V.tostring v)
@@ -237,75 +309,6 @@ struct
 *)
 ) handle Match => [$"XXX_MATCH-EXP_XXX"]
 
-  and ttol t = 
-      (case ctyp t of
-           Mu (i, m) =>
-               (* XXX special case when there is just one *)
-               L.paren (%[$("#" ^ itos i),
-                          $"mu",
-                          L.alignPrefix
-                          (ListUtil.mapi 
-                           (fn ((v,t),n) =>
-                            %[%[$(itos n), $"as",
-                                $(V.tostring v),
-                                $"."], ttol t]) m,
-                           "and ")])
-         | At (t, w) => L.paren ` %[ttol t, $"at", wtol w]
-         | Shamrock t => %[$"{}", L.indent 2 ` ttol t]
-         | Cont tl => %[L.listex "(" ")" "," ` map ttol tl, $"cont"]
-         | AllArrow { worlds, tys, vals, body } =>
-             %[%[$"allarrow",
-                 %[L.indent 2 ` 
-                   L.listex "" "" ";"
-                   ((case worlds of
-                       nil => nil
-                     | _ => [% ($"w:" :: map ($ o V.tostring) worlds)]) @
-                    (case tys of
-                       nil => nil
-                     | _ => [% ($"t:" :: map ($ o V.tostring) tys)]) @
-                    (case vals of
-                       nil => nil
-                     | _ => [% ($"v:" :: map (L.paren o ttol) vals)])
-                       ),
-                       $"."]],
-                   L.indent 2 ` ttol body]
-
-         | Sum ltl => L.listex "[" "]" "," `map (fn (l, Carrier { carried = t,
-                                                                  definitely_allocated = b}) =>
-                                                                     L.seq[$l, $" : ", 
-                                                                           ttol t]
-                                                                | (l, NonCarrier) =>
-                                                                       L.seq[$l, $"(-)"]) ltl
-         | Conts tll => %[$"conts:",
-                          L.indent 2 `
-                          % `
-                          ListUtil.mapi
-                          (fn (tl, i) => %[%[$("#" ^ itos i), $ ":"],
-                                           L.indent 2 ` %[L.listex "(" ")" "," ` map ttol tl, $"cont"]]) tll]
-
-         | TExists (v, tt) => %[%[$"texists", 
-                                  (* just need to make it a single type *)
-                                  vbindt v (Cont' tt), $"."],
-                                L.indent 2 ` L.listex "[" "]" "," ` map ttol tt]
-         | Product nil => $"unit"
-         | Product ltl => recordortuple ttol ":" "(" ")" " *" ltl
-         | Primcon (VEC, [t]) => %[ttol t, $"vec"]
-         | Primcon (REF, [t]) => %[ttol t, $"ref"]
-         | Primcon (DICTIONARY, [t]) => %[ttol t, $"dictionary"]
-         | Primcon (INT, []) => $"int"
-         | Primcon (STRING, []) => $"string"
-         | Primcon (EXN, []) => $"exn"
-         | Primcon _ => $"XXX-bad-primcon-XXX"
-
-         | Addr w => %[wtol w, $"addr"]
-(*
-    | WExists of var * 'ctyp
-    | Product of (string * 'ctyp) list
-*)
-         | TVar v => $(V.tostring v)
-         | _ => $"t?"
-               ) handle Match => $"XXX_MATCH-TYP_XXX"
-      (* $"CPS:unknown typ" *)
 
   and vbindt v t =
     if CPS.freet v t
@@ -322,7 +325,6 @@ struct
     then varl v
     else $"_"
 
-  and wtol (W w) = $(V.tostring w)
 
   and ptol LOCALHOST = $"LOCALHOST"
     | ptol BIND = $"BIND"
