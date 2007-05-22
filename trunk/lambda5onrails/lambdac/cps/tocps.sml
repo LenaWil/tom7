@@ -66,8 +66,9 @@ struct
             (* XXX for the purposes of cps conversion, we don't
                care if types are mobile, because we're not doing type-checking, right? *)
             val thismob = false
+            val G = foldr (fn ((v, _), G) => bindtype G v thismob) G vtl
           in
-            Mu' (i, map (fn (v, t) => (v, cvtt (bindtype G v thismob) t)) vtl)
+            Mu' (i, map (fn (v, t) => (v, cvtt G t)) vtl)
           end
       | I.Arrow (_, dom, cod) => 
           Cont' (map (cvtt G) dom @ [Cont' [cvtt G cod]])
