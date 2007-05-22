@@ -188,6 +188,29 @@ struct
            Put' (v, t, va, ce G e)
          end
 
+
+     | TUnpack (tv, vvs, va, ve) =>
+           let
+             val (va, t) = cv G va
+           in
+             case ctyp t of
+               TExists (vr, tl) =>
+                 let
+                   val tl = map (subtt (TVar' tv) vr) tl
+
+                   (* new type, can't be mobile *)
+                   val G = bindtype G tv false
+                   val vvs = ListUtil.mapsecond ct vvs
+
+                   val vs = map #2 vvs
+                   (* some values now *)
+                   val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
+                 in
+                   TUnpack' (tv, vvs, va, ce G ve)
+                 end
+             | _ => raise UnDict "tunpack non-exists"
+           end
+
      | Go (w, addr, body) => raise UnDict "UnDict expects closure-converted code, but saw Go"
 
      | Go_cc { w, addr, env, f } => 
@@ -209,7 +232,6 @@ struct
      *)
          let
            val (addr, at) = cv G addr
-           (* PERF unnecessary extra typechecking *)
            val w' = case ctyp at of
                       Addr w' => if world_eq (w, w')
                                  then w' 
@@ -239,8 +261,47 @@ struct
          end
          )
 
-  (* makes a dictionary for the type ty, without using Dictfor. *)
-  and makedict G ty = Dictfor' ty (* XXX *)
+  (* makes a dictionary for the type ty, without using Dictfor. 
+
+     Primcon(INT, [])          ->      Dict (Primcon(INT, [])
+     Cont( int, string )       ->      Dict (Cont (Dict int, Dict string))
+     a                         ->      x          (where x is the value uvariable
+                                                   holding the dictionary for the
+                                                   type variable a)
+     Mu a. (a * a)             ->      Dict (Mu x. Dict (Product (x, x)))
+                                                  (Dict-level Mu binds a value
+                                                   uvariable.)
+
+     *)
+  and makedict G ty = 
+    (case ctyp ty of
+       TVar a => Var' ` T.getdict G a
+     | Mu (i, vtl) =>
+         let
+           (* put types in context, put dicts in context too *)
+           val G = bindtypes G (map #1 vtl)
+           val G = foldr (fn ((v, _), G) =>
+                          binduvar G (V.namedvar "mudict") (Dictionary' ` TVar' v)) G vtl
+         in
+           Dict' ` Mu(i, ListUtil.mapsecond (makedict G) vtl)
+         end
+     | Product stl => Dict' ` Product(ListUtil.mapsecond (makedict G) stl)
+     | At (t, w) => Dict' ` At (makedict G t, w)
+     | Shamrock t => Dict' ` Shamrock ` makedict G t
+     | Primcon (pc, tl) => Dict' ` Primcon (pc, map (makedict G) tl)
+     | TExists (v, tl) =>
+         let
+           val G = bindtype G v false
+           val G = binduvar G (V.namedvar "exdict") (Dictionary' ` TVar' v)
+         in
+           Dict' ` TExists(v, map (makedict G) tl)
+         end
+     | _ => 
+         let in
+           print "UNDICT: unimplemented typ:\n";
+           Layout.print (CPSPrint.ttol ty, print);
+           raise UnDict "makedict constructor unimplemented"
+         end)
 
   (* Convert the value v; 
      return the converted value paired with the converted type. *)
@@ -341,14 +402,115 @@ struct
         end
 
      | AllLam { worlds, tys, vals, body } => 
-            raise UnDict "unimplemented: alllam"
+         let
+           val G = bindworlds G worlds
+           val G = bindtypes G tys
+           val vals = ListUtil.mapsecond ct vals
+           val G = foldl (fn ((v, t), G) => bindvar G v t (worldfrom G)) G vals
+           val (body, tb) = cv G body
+         in
+           (AllLam' { worlds = worlds, tys = tys, vals = vals,
+                      body = body },
+            AllArrow' { worlds = worlds, tys = tys, vals = map #2 vals, 
+                        body = tb })
+         end
 
      | AllApp { f, worlds, tys, vals } =>
-            raise UnDict "unimplemented: allapp"
+         let
+           val (f, t) = cv G f
+         in
+           case ctyp t of
+            AllArrow { worlds = ww, tys = tt, vals = vv, body = bb } =>
+              let
+                (* discard types; we'll use the annotations *)
+                val vals = map #1 ` map (cv G) vals
+                val tys = map ct tys
+                val () = if length ww = length worlds andalso length tt = length tys
+                         then () 
+                         else raise UnDict "allapp to wrong number of worlds/tys"
+                val wl = ListPair.zip (ww, worlds)
+                val tl = ListPair.zip (tt, tys)
+                fun subt t =
+                  let val t = foldr (fn ((wv, w), t) => subwt w wv t) t wl
+                  in foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
+                  end
+
+              in
+                (AllApp' { f = f, worlds = worlds, tys = tys, vals = vals },
+                 subt bb)
+              end
+          | _ => raise UnDict "allapp to non-allarrow"
+         end
 
      (* Here we need to expand the dictionary, so that it does not use the Dictfor
         construct at all. *)
      | Dictfor t => (makedict G t, Dictionary' t)
+
+     | VTUnpack (tv, vvs, va, ve) =>
+           let
+             val (va, t) = cv G va
+           in
+             case ctyp t of
+               TExists (vr, tl) =>
+                 let
+                   val tl = map (subtt (TVar' tv) vr) tl
+
+                   (* new type, can't be mobile *)
+                   val G = bindtype G tv false
+                   val vvs = ListUtil.mapsecond ct vvs
+
+                   val vs = map #2 vvs
+                   (* some values now *)
+                   val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
+
+                   val (ve, et) = cv G ve
+                 in
+                   (VTUnpack' (tv, vvs, va, ve),
+                    (* better not use tv *)
+                    et)
+                 end
+             | _ => raise UnDict "vtunpack non-exists"
+           end
+
+     | VLetsham (v, va, ve) =>
+           let
+             val (va, t) = cv G va
+           in
+             case ctyp t of
+               Shamrock t' =>
+                 let
+                   val G = binduvar G v t'
+                   val (ve, te) = cv G ve
+                 in
+                   (VLetsham'(v, va, ve), te)
+                 end
+             | _ => raise UnDict "vletsham non-shamrock"
+           end
+
+     | VLeta (v, va, ve) =>
+           let
+             val (va, t) = cv G va
+           in
+             case ctyp t of
+               At (t', w') =>
+                 let
+                   val G = bindvar G v t' w'
+                   val (ve, te) = cv G ve
+                 in
+                   (VLeta'(v, va, ve), te)
+                 end
+             | _ => raise UnDict "vleta non-at"
+           end
+
+     | TPack (t, tas, vs) =>
+       let
+         val tas = ct tas
+         val (vs, ts) = ListPair.unzip ` map (cv G) vs
+       in
+         (TPack' (t, tas, vs),
+          (* assume annoation is correct *)
+          tas)
+       end
 
      | _ => 
          let in

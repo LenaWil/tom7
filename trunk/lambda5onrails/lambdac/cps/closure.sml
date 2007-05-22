@@ -536,6 +536,7 @@ struct
          end
 
 
+     | VTUnpack _ => raise Closure "wasn't expecting to see vtunpack before closure conversion"
 
      (* must have at least one value argument or it's purely static and
         therefore not closure converted *)

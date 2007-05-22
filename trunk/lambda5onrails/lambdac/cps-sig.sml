@@ -35,6 +35,7 @@ sig
     | TExists of var * 'ctyp list
     | Product of (string * 'ctyp) list
     | Addr of world
+    (* all variables bound in all arms *)
     | Mu of int * (var * 'ctyp) list
     | Sum of (string * 'ctyp IL.arminfo) list
     | Primcon of primcon * 'ctyp list
@@ -200,6 +201,7 @@ sig
   val VLetsham' : var * cval * cval -> cval
   val Proj' : string * cval -> cval
   val VTUnpack' : var * (var * ctyp) list * cval * cval -> cval
+  val Dict' : cval ctypfront -> cval
 
   (* derived forms *)
   val Dictionary' : ctyp -> ctyp

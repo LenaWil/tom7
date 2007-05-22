@@ -425,6 +425,36 @@ struct
                              in VLeta(v', va, renamev v v' va2)
                              end
 
+    (* dictionaries use these type binders, so we have to repeat the
+       renamings here. Would it be possible to reuse (a suitably abstracted) 
+       ctyp for this?? *)
+    | cval (V (Dict(AllArrow { worlds, tys, vals, body }))) =
+                             let
+                               (* the world vars are world vars, but
+                                  the (former) type vars are now val vars. *)
+                               val worlds' = ListUtil.mapto V.alphavary worlds
+                               val tys'    = ListUtil.mapto V.alphavary tys
+                               fun renv v = renamevall (renamevall v worlds') tys'
+                             in 
+                               Dict `
+                               AllArrow { worlds = map #2 worlds',
+                                          tys    = map #2 tys',
+                                          vals   = map renv vals,
+                                          body   = renv body }
+                             end
+(*
+    | ctyp (T(WExists (v, t))) = let val v' = V.alphavary v
+                                 in (WExists (v', renamet v v' t))
+                                 end
+    | ctyp (T(TExists (v, t))) = let val v' = V.alphavary v
+                                 in (TExists (v', map (renamet v v') t))
+                                 end
+
+    | ctyp (T(Mu(i, vtl))) = Mu(i, map (fn (v, t) =>
+                                        let val v' = V.alphavary v
+                                        in (v', renamet v v' t)
+                                        end) vtl)
+*)
 
     | cval (V (Sham (w, va))) = let val w' = V.alphavary w
                                 in Sham (w', renamev w w' va)
@@ -670,7 +700,7 @@ struct
   val ExternType' = fn x => E (ExternType x)
   val ExternVal' = fn x => E (ExternVal x)
 
-
+  val Dict' = fn x => V (Dict x)
   val AllLam' = fn x => V (AllLam x)
   val AllApp' = fn x => V (AllApp x)
   val Lams' = fn x => V (Lams x)
@@ -709,22 +739,24 @@ struct
 
   (* utility code *)
 
-  fun pointwiset f typ =
-    case ctyp typ of
-      At (c, w) => At' (f c, w)
-    | Cont l => Cont' ` map f l
+  fun ontypefront f typ =
+    case typ of
+      At (c, w) => At (f c, w)
+    | Cont l => Cont ` map f l
     | AllArrow {worlds, tys, vals, body} => 
-        AllArrow' { worlds = worlds, tys = tys, vals = map f vals, body = f body }
-    | WExists (v, t) => WExists' (v, f t)
-    | TExists (v, t) => TExists' (v, map f t)
-    | Product stl => Product' ` ListUtil.mapsecond f stl
+        AllArrow { worlds = worlds, tys = tys, vals = map f vals, body = f body }
+    | WExists (v, t) => WExists (v, f t)
+    | TExists (v, t) => TExists (v, map f t)
+    | Product stl => Product ` ListUtil.mapsecond f stl
     | Addr w => typ
-    | Mu (i, vtl) => Mu' (i, ListUtil.mapsecond f vtl)
-    | Sum sail => Sum' ` ListUtil.mapsecond (IL.arminfo_map f) sail
-    | Primcon (pc, l) => Primcon' (pc, map f l)
-    | Conts tll => Conts' ` map (map f) tll
-    | Shamrock t => Shamrock' ` f t
+    | Mu (i, vtl) => Mu (i, ListUtil.mapsecond f vtl)
+    | Sum sail => Sum ` ListUtil.mapsecond (IL.arminfo_map f) sail
+    | Primcon (pc, l) => Primcon (pc, map f l)
+    | Conts tll => Conts ` map (map f) tll
+    | Shamrock t => Shamrock ` f t
     | TVar v => typ
+
+  fun pointwiset f typ = ctyp' ` ontypefront f (ctyp typ)
 
   fun pointwisee ft fv fe exp =
     case cexp exp of
@@ -776,6 +808,7 @@ struct
     | Proj (s, v) => Proj' (s, fv v)
     | Dictfor t => Dictfor' ` ft t
     (* FIXME Dicts *)
+    | Dict tf => Dict' ` ontypefront fv tf
     | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } =>
                 AllLam' { worlds = worlds, tys = tys, 
                           vals = ListUtil.mapsecond ft vals, body = fv body }

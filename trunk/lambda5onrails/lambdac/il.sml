@@ -42,6 +42,8 @@ struct
                and ...)
          0 <= n < length l, length l > 0.
 
+         all variables are bound in all arms.
+
          when unrolling, choose nth arm and
          substitute:
 

@@ -166,7 +166,7 @@ struct
           (* nb. for purposes of typechecking, we never care about
              the mobility of a type var; so don't bother doing the
              check here. *)
-            app (fn (v, t) => tok (bindtype G v false) t) vtl
+          app (fn (v, t) => tok (bindtype G v false) t) vtl
         end
 
     | Conts tll => app (app ` tok G) tll
