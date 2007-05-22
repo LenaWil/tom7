@@ -288,10 +288,9 @@ struct
                             else TExists(vv, map self t)
        | Product stl => Product ` ListUtil.mapsecond self stl
        | Addr w => Addr (wself w)
-       | Mu (i, vtl) => Mu (i, map (fn (vv, t) =>
-                                    if V.eq (vv, v)
-                                    then (vv, t)
-                                    else (vv, self t)) vtl)
+       | Mu (i, vtl) => if List.exists (fn (vv, _) => V.eq (vv, v)) vtl
+                        then typ
+                        else Mu (i, ListUtil.mapsecond self vtl)
        | Sum sal => Sum (map (fn (s, NonCarrier) => (s, NonCarrier)
                                | (s, Carrier { definitely_allocated, carried }) => 
                               (s, Carrier { definitely_allocated = definitely_allocated,
@@ -323,16 +322,28 @@ struct
                                                      end
 
     | ctyp (T(WExists (v, t))) = let val v' = V.alphavary v
-                                 in (WExists (v', renamet v v' t))
+                                 in WExists (v', renamet v v' t)
                                  end
     | ctyp (T(TExists (v, t))) = let val v' = V.alphavary v
-                                 in (TExists (v', map (renamet v v') t))
+                                 in TExists (v', map (renamet v v') t)
                                  end
 
-    | ctyp (T(Mu(i, vtl))) = Mu(i, map (fn (v, t) =>
-                                        let val v' = V.alphavary v
-                                        in (v', renamet v v' t)
-                                        end) vtl)
+    | ctyp (T(Mu(i, vtl))) = let val (vs, ts) = ListPair.unzip vtl
+                                 val tys = ListUtil.mapto V.alphavary vs
+                                 fun rent t = renametall t tys
+                                 val vtl = ListPair.zip (map #2 tys, map rent ts)
+                             in
+                                 Mu(i, vtl)
+                             end
+     (* 
+        
+        *** NOTE: ***
+        
+        Also have to implement type front binders in their value representations;
+        see V(Dict(...)) below!
+
+
+        *)
     | ctyp (T x) = x
 
   fun cexp (E(Primop(vvl, po, vl, e))) = 
@@ -442,19 +453,23 @@ struct
                                           vals   = map renv vals,
                                           body   = renv body }
                              end
+    | cval (V(Dict(WExists (v, t)))) = let val v' = V.alphavary v
+                                       in Dict ` WExists (v', renamev v v' t)
+                                       end
+                                     
+    | cval (V(Dict(TExists (v, t)))) = let val v' = V.alphavary v
+                                       in Dict ` TExists (v', map (renamev v v') t)
+                                       end
 (*
-    | ctyp (T(WExists (v, t))) = let val v' = V.alphavary v
-                                 in (WExists (v', renamet v v' t))
-                                 end
-    | ctyp (T(TExists (v, t))) = let val v' = V.alphavary v
-                                 in (TExists (v', map (renamet v v') t))
-                                 end
-
-    | ctyp (T(Mu(i, vtl))) = Mu(i, map (fn (v, t) =>
+    | ctyp (V(Mu(i, vtl))) = Mu(i, map (fn (v, t) =>
                                         let val v' = V.alphavary v
                                         in (v', renamet v v' t)
                                         end) vtl)
+       FIXME
 *)
+
+    (* other type fronts don't bind variables; easy *)
+    | cval (V (d as Dict _)) = d
 
     | cval (V (Sham (w, va))) = let val w' = V.alphavary w
                                 in Sham (w', renamev w w' va)

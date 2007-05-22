@@ -2,9 +2,7 @@ unit
      datatype t = A | B of u | C of int
      and      u = E of t | F of string
 
-     val xyz = (B, F, E)
-	 
      do E
 in
-     export val m = xyz
+    (* export val m = E *)
 end
