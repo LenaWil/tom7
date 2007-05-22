@@ -561,6 +561,10 @@ struct
          end
          )
 
-  fun check w exp = eok (empty w) exp
+  fun check w exp = 
+    let in
+      print "\n\nTypecheck:\n";
+      eok (empty w) exp
+    end
 
 end

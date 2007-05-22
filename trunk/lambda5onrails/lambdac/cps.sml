@@ -106,6 +106,67 @@ struct
     | se_getw (S_RENAME v) = W v
     | se_getw _ = raise CPS "scope violated: wanted world"
 
+
+  fun substw v se (W vv) = if V.eq (v, vv) then se_getw se else W vv
+
+
+  (* substitute through a type front.
+     v is the variable to substitute for, se is the
+                                          substitutend. 
+     typ is the type front to substitute through.
+
+     upon seeing a variable, calls var_action (which should
+     return the replacement if it's the right variable).
+     
+     recurses on component types by calling the argument 'self'
+
+     the function substt below has a much nicer interface;
+     however, we need this more abstract version so that we
+     can implement substitution for dictionary values, which
+     use the same datatype.
+     *)
+  and substtfront v se typ var_action self =
+    let 
+      fun issrc vv = V.eq (v, vv)
+      val wself = substw v se
+    in
+      case typ of
+         At (t, w) => At (self t, wself w)
+       | Cont l => Cont (map self l)
+       | AllArrow { worlds, tys, vals, body } => 
+             if List.exists issrc worlds orelse
+                List.exists issrc tys
+             then typ
+             else AllArrow { worlds = worlds,
+                             tys = tys,
+                             vals = map self vals,
+                             body = self body }
+       | WExists (vv, t) => if V.eq (v, vv) then typ
+                            else WExists(vv, self t)
+       | TExists (vv, t) => if V.eq (v, vv) then typ
+                            else TExists(vv, map self t)
+       | Product stl => Product ` ListUtil.mapsecond self stl
+       | Addr w => Addr (wself w)
+       | Mu (i, vtl) => if List.exists (fn (vv, _) => V.eq (vv, v)) vtl
+                        then typ
+                        else Mu (i, ListUtil.mapsecond self vtl)
+       | Sum sal => Sum (map (fn (s, NonCarrier) => (s, NonCarrier)
+                               | (s, Carrier { definitely_allocated, carried }) => 
+                              (s, Carrier { definitely_allocated = definitely_allocated,
+                                            carried = self carried })) sal)
+       | Primcon (pc, l) => Primcon (pc, map self l)
+       | Conts ll => Conts ` map (map self) ll
+       | Shamrock t => Shamrock ` self t
+       | TVar vv => var_action vv
+
+    end
+
+  (* PERF if substitutend is exp or val, stop early *)
+  (* substitute var v with type se in a type, observing scope *)
+  fun substt v se (T typ) = 
+    T (substtfront v se typ (fn vv => if V.eq (v, vv) then se_gett se else TVar vv)
+       (substt v se))
+
   (* substitute se for v throughout the expression exp *)
   fun subste v se (E exp) =
     let val eself = subste v se
@@ -226,6 +287,16 @@ struct
                           then ve
                           else vself ve)
 
+(*
+substtfront : var
+              -> substitutend
+                 -> 'Z ctypfront
+                    -> (var -> 'Z ctypfront) -> ('Z -> 'Z) -> 'Z ctypfront
+*)
+         | Dict tf => Dict (substtfront v se tf (fn _ =>
+                                                 raise CPS "dictionaries should not have tvars!")
+                                                 vself)
+
          | AllApp { f, worlds, tys, vals } => AllApp { f = vself f, worlds = map wself worlds,
                                                        tys = map tself tys, vals = map vself vals }
          | WPack (w, va) => WPack (wself w, vself va)
@@ -257,49 +328,6 @@ struct
                                      then ce
                                      else eself ce)) vvel
            )
-    end
-    
-
-  and substw v se (W vv) = if V.eq (v, vv) then se_getw se else W vv
-
-  (* PERF if substitutend is exp or val, stop early *)
-  (* substitute var v with type se in a type, observing scope *)
-  and substt v se (T typ) =
-    let 
-      fun issrc vv = V.eq (v, vv)
-      val self = substt v se
-      val wself = substw v se
-    in
-      T
-      (case typ of
-         At (t, w) => At (self t, wself w)
-       | Cont l => Cont (map self l)
-       | AllArrow { worlds, tys, vals, body } => 
-             if List.exists issrc worlds orelse
-                List.exists issrc tys
-             then typ
-             else AllArrow { worlds = worlds,
-                             tys = tys,
-                             vals = map self vals,
-                             body = self body }
-       | WExists (vv, t) => if V.eq (v, vv) then typ
-                            else WExists(vv, self t)
-       | TExists (vv, t) => if V.eq (v, vv) then typ
-                            else TExists(vv, map self t)
-       | Product stl => Product ` ListUtil.mapsecond self stl
-       | Addr w => Addr (wself w)
-       | Mu (i, vtl) => if List.exists (fn (vv, _) => V.eq (vv, v)) vtl
-                        then typ
-                        else Mu (i, ListUtil.mapsecond self vtl)
-       | Sum sal => Sum (map (fn (s, NonCarrier) => (s, NonCarrier)
-                               | (s, Carrier { definitely_allocated, carried }) => 
-                              (s, Carrier { definitely_allocated = definitely_allocated,
-                                            carried = self carried })) sal)
-       | Primcon (pc, l) => Primcon (pc, map self l)
-       | Conts ll => Conts ` map (map self) ll
-       | Shamrock t => Shamrock ` self t
-       | TVar vv => if V.eq (v, vv) then se_gett se else TVar vv
-                              )
     end
 
   fun renamet v v' t = substt v (S_RENAME v') t
@@ -438,7 +466,11 @@ struct
 
     (* dictionaries use these type binders, so we have to repeat the
        renamings here. Would it be possible to reuse (a suitably abstracted) 
-       ctyp for this?? *)
+       ctyp for this?? 
+
+       (don't be confused that the following few use variable names like t
+        to stand for values, as they are copied from above)
+       *)
     | cval (V (Dict(AllArrow { worlds, tys, vals, body }))) =
                              let
                                (* the world vars are world vars, but
@@ -460,13 +492,14 @@ struct
     | cval (V(Dict(TExists (v, t)))) = let val v' = V.alphavary v
                                        in Dict ` TExists (v', map (renamev v v') t)
                                        end
-(*
-    | ctyp (V(Mu(i, vtl))) = Mu(i, map (fn (v, t) =>
-                                        let val v' = V.alphavary v
-                                        in (v', renamet v v' t)
-                                        end) vtl)
-       FIXME
-*)
+    | cval (V(Dict(Mu(i, vtl)))) = let val (vs, ts) = ListPair.unzip vtl
+                                       val tys = ListUtil.mapto V.alphavary vs
+                                       fun rent t = renamevall t tys
+                                       val vtl = ListPair.zip (map #2 tys, map rent ts)
+                                   in
+                                     Dict ` 
+                                     Mu(i, vtl)
+                                   end
 
     (* other type fronts don't bind variables; easy *)
     | cval (V (d as Dict _)) = d
