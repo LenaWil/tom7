@@ -279,11 +279,12 @@ struct
      | Mu (i, vtl) =>
          let
            (* put types in context, put dicts in context too *)
+           val vvtl = map (fn (v, t) => ((v, V.namedvar "mudict"), t)) vtl
            val G = bindtypes G (map #1 vtl)
-           val G = foldr (fn ((v, _), G) =>
-                          binduvar G (V.namedvar "mudict") (Dictionary' ` TVar' v)) G vtl
+           val G = foldr (fn (((v, u), _), G) =>
+                          binduvar G u (Dictionary' ` TVar' v)) G vvtl
          in
-           Dict' ` Mu(i, ListUtil.mapsecond (makedict G) vtl)
+           Dict' ` Mu(i, ListUtil.mapsecond (makedict G) vvtl)
          end
      | Product stl => Dict' ` Product(ListUtil.mapsecond (makedict G) stl)
      | At (t, w) => Dict' ` At (makedict G t, w)
@@ -298,7 +299,7 @@ struct
            val ud = V.namedvar "exdict"
            val G = binduvar G (V.namedvar "exdict") (Dictionary' ` TVar' v)
          in
-           Dict' ` TExists(ud, map (makedict G) tl)
+           Dict' ` TExists((v,ud), map (makedict G) tl)
          end
      | _ => 
          let in

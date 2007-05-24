@@ -26,17 +26,17 @@ sig
     (* marshalled data *)
   | BYTES 
 
-  datatype 'ctyp ctypfront =
+  datatype ('tbind, 'ctyp) ctypfront =
       At of 'ctyp * world
     | Cont of 'ctyp list
     | Conts of 'ctyp list list
-    | AllArrow of { worlds : var list, tys : var list, vals : 'ctyp list, body : 'ctyp }
+    | AllArrow of { worlds : var list, tys : 'tbind list, vals : 'ctyp list, body : 'ctyp }
     | WExists of var * 'ctyp
-    | TExists of var * 'ctyp list
+    | TExists of 'tbind * 'ctyp list
     | Product of (string * 'ctyp) list
     | Addr of world
     (* all variables bound in all arms *)
-    | Mu of int * (var * 'ctyp) list
+    | Mu of int * ('tbind * 'ctyp) list
     | Sum of (string * 'ctyp IL.arminfo) list
     | Primcon of primcon * 'ctyp list
     | Shamrock of 'ctyp
@@ -94,7 +94,7 @@ sig
     (* later expanded to the actual dictionary, using invariants established in
        CPSDict and Closure conversion *)
     | Dictfor of ctyp
-    | Dict of 'cval ctypfront
+    | Dict of (var * var, 'cval) ctypfront
     (* supersedes WLam, TLam and VLam. quantifies worlds, types, and vars (in that
        order) over the body, which must be a value itself. applications of vlams
        are considered valuable. *)
@@ -107,11 +107,11 @@ sig
     | VTUnpack of var * (var * ctyp) list * 'cval * 'cval
 
   (* projections and injections *)
-  val ctyp : ctyp -> ctyp ctypfront
+  val ctyp : ctyp -> (var, ctyp) ctypfront
   val cexp : cexp -> (cexp, cval) cexpfront
   val cval : cval -> (cexp, cval) cvalfront
 
-  val ctyp' : ctyp ctypfront -> ctyp
+  val ctyp' : (var, ctyp) ctypfront -> ctyp
   val cexp' : (cexp, cval) cexpfront -> cexp
   val cval' : (cexp, cval) cvalfront -> cval
 
@@ -201,7 +201,7 @@ sig
   val VLetsham' : var * cval * cval -> cval
   val Proj' : string * cval -> cval
   val VTUnpack' : var * (var * ctyp) list * cval * cval -> cval
-  val Dict' : cval ctypfront -> cval
+  val Dict' : (var * var, cval) ctypfront -> cval
 
   (* derived forms *)
   val Dictionary' : ctyp -> ctyp

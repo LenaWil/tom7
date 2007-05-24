@@ -451,11 +451,12 @@ struct
           | Shamrock t => Dictionary' ` Shamrock' ` edict "sham" ` vok G t
           | Addr w => Dictionary' ` Addr' w
           | At (t, w) => Dictionary' ` At' (edict "at" ` vok G t, w)
-          | TExists(v, vl) =>
+          | TExists((v1, v2), vl) =>
               let
-                val G = binduvar G v false
+                val G = bindtype G v1 false
+                val G = binduvar G v2 (Dictionary' ` TVar' v1)
               in
-                Dictionary' ` TExists' (v, map (fn v => edict "texists" ` vok G v) vl)
+                Dictionary' ` TExists' (v1, map (fn v => edict "texists" ` vok G v) vl)
               end
           | _ => fail [$"unimplemented dict typefront", VA value]
        end
