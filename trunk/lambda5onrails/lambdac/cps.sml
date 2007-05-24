@@ -13,23 +13,24 @@ struct
 
   datatype primcon = VEC | REF | DICTIONARY | INT | STRING | EXN | BYTES
 
-  datatype 'ctyp ctypfront =
+  datatype ('tbind, 'ctyp) ctypfront =
       At of 'ctyp * world
     | Cont of 'ctyp list
-    | AllArrow of { worlds : var list, tys : var list, vals : 'ctyp list, body : 'ctyp }
+    | Conts of 'ctyp list list
+    | AllArrow of { worlds : var list, tys : 'tbind list, vals : 'ctyp list, body : 'ctyp }
     | WExists of var * 'ctyp
-    | TExists of var * 'ctyp list
+    | TExists of 'tbind * 'ctyp list
     | Product of (string * 'ctyp) list
     | Addr of world
-    | Mu of int * (var * 'ctyp) list
+    (* all variables bound in all arms *)
+    | Mu of int * ('tbind * 'ctyp) list
     | Sum of (string * 'ctyp IL.arminfo) list
     | Primcon of primcon * 'ctyp list
-    | Conts of 'ctyp list list
     | Shamrock of 'ctyp
     | TVar of var
   (* nb. Binders must be implemented in outjection code below! *)
 
-  datatype ctyp = T of ctyp ctypfront
+  datatype ctyp = T of (var, ctyp) ctypfront
 
   datatype primop = LOCALHOST | BIND | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
                   | MARSHAL 
@@ -70,7 +71,7 @@ struct
     | Var of var
     | UVar of var
     | Dictfor of ctyp
-    | Dict of 'cval ctypfront
+    | Dict of (var * var, 'cval) ctypfront
     | AllLam of { worlds : var list, tys : var list, vals : (var * ctyp) list, body : 'cval }
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
     | VLeta of var * 'cval * 'cval
@@ -120,22 +121,25 @@ struct
      
      recurses on component types by calling the argument 'self'
 
+     tbinds : var -> 'tbind -> bool indicates whether the 'tbind
+              binds the variable in question.
+
      the function substt below has a much nicer interface;
      however, we need this more abstract version so that we
      can implement substitution for dictionary values, which
      use the same datatype.
      *)
-  and substtfront v se typ var_action self =
+  and substtfront v se typ var_action tbinds self =
     let 
-      fun issrc vv = V.eq (v, vv)
+      fun veq v1 v2 = V.eq(v1, v2)
       val wself = substw v se
     in
       case typ of
          At (t, w) => At (self t, wself w)
        | Cont l => Cont (map self l)
        | AllArrow { worlds, tys, vals, body } => 
-             if List.exists issrc worlds orelse
-                List.exists issrc tys
+             if List.exists (veq v) worlds orelse
+                List.exists (tbinds v) tys
              then typ
              else AllArrow { worlds = worlds,
                              tys = tys,
@@ -143,11 +147,11 @@ struct
                              body = self body }
        | WExists (vv, t) => if V.eq (v, vv) then typ
                             else WExists(vv, self t)
-       | TExists (vv, t) => if V.eq (v, vv) then typ
-                            else TExists(vv, map self t)
+       | TExists (tb, t) => if tbinds v tb then typ
+                            else TExists(tb, map self t)
        | Product stl => Product ` ListUtil.mapsecond self stl
        | Addr w => Addr (wself w)
-       | Mu (i, vtl) => if List.exists (fn (vv, _) => V.eq (vv, v)) vtl
+       | Mu (i, vtl) => if List.exists (fn (tb, _) => tbinds v tb) vtl
                         then typ
                         else Mu (i, ListUtil.mapsecond self vtl)
        | Sum sal => Sum (map (fn (s, NonCarrier) => (s, NonCarrier)
@@ -158,13 +162,13 @@ struct
        | Conts ll => Conts ` map (map self) ll
        | Shamrock t => Shamrock ` self t
        | TVar vv => var_action vv
-
     end
 
   (* PERF if substitutend is exp or val, stop early *)
   (* substitute var v with type se in a type, observing scope *)
   fun substt v se (T typ) = 
     T (substtfront v se typ (fn vv => if V.eq (v, vv) then se_gett se else TVar vv)
+       (Util.curry V.eq)
        (substt v se))
 
   (* substitute se for v throughout the expression exp *)
@@ -295,8 +299,9 @@ substtfront : var
 *)
          | Dict tf => Dict (substtfront v se tf (fn _ =>
                                                  raise CPS "dictionaries should not have tvars!")
+                            (* tbinds are just two variables here *)
+                             (fn v1 => fn (v2, v3) => V.eq (v1, v2) orelse V.eq (v1, v3))
                                                  vself)
-
          | AllApp { f, worlds, tys, vals } => AllApp { f = vself f, worlds = map wself worlds,
                                                        tys = map tself tys, vals = map vself vals }
          | WPack (w, va) => WPack (wself w, vself va)
@@ -476,12 +481,20 @@ substtfront : var
                                (* the world vars are world vars, but
                                   the (former) type vars are now val vars. *)
                                val worlds' = ListUtil.mapto V.alphavary worlds
-                               val tys'    = ListUtil.mapto V.alphavary tys
-                               fun renv v = renamevall (renamevall v worlds') tys'
+                               val (tys1, tys2) = ListPair.unzip tys
+                                   
+                               (* The type vars *)
+                               val tys1' = ListUtil.mapto V.alphavary tys1
+                               (* the dict vars *)
+                               val tys2' = ListUtil.mapto V.alphavary tys2
+
+                               fun rent v = renamevall (renamevall v worlds') tys1'
+                               fun renv v = renamevall (rent v) tys2'
                              in 
                                Dict `
                                AllArrow { worlds = map #2 worlds',
-                                          tys    = map #2 tys',
+                                          tys    = ListPair.zip(map #2 tys1',
+                                                                map #2 tys2'),
                                           vals   = map renv vals,
                                           body   = renv body }
                              end
@@ -489,17 +502,27 @@ substtfront : var
                                        in Dict ` WExists (v', renamev v v' t)
                                        end
                                      
-    | cval (V(Dict(TExists (v, t)))) = let val v' = V.alphavary v
-                                       in Dict ` TExists (v', map (renamev v v') t)
-                                       end
-    | cval (V(Dict(Mu(i, vtl)))) = let val (vs, ts) = ListPair.unzip vtl
-                                       val tys = ListUtil.mapto V.alphavary vs
-                                       fun rent t = renamevall t tys
-                                       val vtl = ListPair.zip (map #2 tys, map rent ts)
-                                   in
-                                     Dict ` 
-                                     Mu(i, vtl)
-                                   end
+    | cval (V(Dict(TExists ((v1, v2), t)))) = 
+                             let val v1' = V.alphavary v1
+                                 val v2' = V.alphavary v2
+                             in Dict ` TExists ((v1', v2'), map (renamev v2 v2' o renamev v1 v1') t)
+                             end
+
+    | cval (V(Dict(Mu(i, vvtl)))) = 
+                             let 
+                                 val (vvs, ts) = ListPair.unzip vvtl
+                                 val (tys1, tys2) = ListPair.unzip vvs
+                                 val tys1' = ListUtil.mapto V.alphavary tys1
+                                 val tys2' = ListUtil.mapto V.alphavary tys2
+
+                                 fun rent t = renamevall (renamevall t tys1') tys2'
+                                 val vvtl = ListPair.zip (ListPair.zip(map #2 tys1',
+                                                                       map #2 tys2'),
+                                                          map rent ts)
+                             in
+                                 Dict ` 
+                                 Mu(i, vvtl)
+                             end
 
     (* other type fronts don't bind variables; easy *)
     | cval (V (d as Dict _)) = d

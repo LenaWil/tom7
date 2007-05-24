@@ -40,7 +40,8 @@ struct
 
   fun wtol (W w) = $(V.tostring w)
 
-  fun tftol ttol t =
+      
+  fun tftol (bindtol : 'tbind -> L.layout) (ttol : 'ctyp -> L.layout) t =
       (case t of
            Mu (i, m) =>
                (* XXX special case when there is just one *)
@@ -50,7 +51,7 @@ struct
                           (ListUtil.mapi 
                            (fn ((v,t),n) =>
                             %[%[$(itos n), $"as",
-                                $(V.tostring v),
+                                bindtol v,
                                 $"."], ttol t]) m,
                            "and ")])
          | At (t, w) => L.paren ` %[ttol t, $"at", wtol w]
@@ -65,7 +66,7 @@ struct
                      | _ => [% ($"w:" :: map ($ o V.tostring) worlds)]) @
                     (case tys of
                        nil => nil
-                     | _ => [% ($"t:" :: map ($ o V.tostring) tys)]) @
+                     | _ => [% ($"t:" :: map bindtol tys)]) @
                     (case vals of
                        nil => nil
                      | _ => [% ($"v:" :: map (L.paren o ttol) vals)])
@@ -86,7 +87,7 @@ struct
                           (fn (tl, i) => %[%[$("#" ^ itos i), $ ":"],
                                            L.indent 2 ` %[L.listex "(" ")" "," ` map ttol tl, $"cont"]]) tll]
 
-         | TExists (v, tt) => %[%[$"texists", varl v, $"."],
+         | TExists (v, tt) => %[%[$"texists", bindtol v, $"."],
                                 L.indent 2 ` L.listex "[" "]" "," ` map ttol tt]
          | Product nil => $"unit"
          | Product ltl => recordortuple ttol ":" "(" ")" " *" ltl
@@ -108,7 +109,7 @@ struct
                ) handle Match => $"XXX_MATCH-TYP_XXX"
       (* $"CPS:unknown typ" *)
 
-  fun ttol t = tftol ttol (ctyp t) 
+  fun ttol t = tftol varl ttol (ctyp t) 
 
   fun vtol v =
       (case cval v of
@@ -221,7 +222,7 @@ struct
                       
          | Dict tf => 
                 %[$"dict",
-                  L.indent 2 ` tftol vtol tf]
+                  L.indent 2 ` tftol (fn (tv, vv) => %[varl tv, $"/", varl vv]) vtol tf]
                    
          | Var v => $(V.tostring v)
          | UVar v => $("~" ^ V.tostring v)
