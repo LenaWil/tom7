@@ -81,6 +81,8 @@ struct
       | IMPORT
       | DATAFILE
 
+      | PRIMAPP
+
       (* ML5-specific *)
       | EXTERN
       | EXPORT
@@ -165,5 +167,6 @@ struct
       | eq (ADDR, ADDR) = true
       | eq (EXPORT, EXPORT) = true
       | eq (UNIT, UNIT) = true
+      | eq (PRIMAPP, PRIMAPP) = true
       | eq _ = false
 end

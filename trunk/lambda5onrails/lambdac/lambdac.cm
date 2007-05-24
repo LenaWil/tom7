@@ -101,6 +101,9 @@ el/subst.sml
 el/nullary-sig.sml
 el/nullary.sml
 
+front/primtypes-sig.sml
+front/primtypes.sml
+
 front/context-sig.sml
 front/context.sml
 

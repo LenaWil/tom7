@@ -263,7 +263,9 @@ struct
            case ctyp td of
              Primcon(DICTIONARY, [t]) => if ctyp_eq (t, ta)
                                          then eok G e
-                                         else raise TypeCheck "marshal: dict/arg mismatch"
+                                         else fail[$"marshal dict/arg mismatch",
+                                                   $"dict arg: ", TY t,
+                                                   $"actual arg: ", TY ta]
            | _ => raise TypeCheck "marshal: need dict and arg"
          end
 
@@ -458,6 +460,7 @@ struct
               in
                 Dictionary' ` TExists' (v1, map (fn v => edict "texists" ` vok G v) vl)
               end
+          | Cont tl => Dictionary' ` Cont' ` map (fn v => edict "cont" ` vok G v) tl
           | _ => fail [$"unimplemented dict typefront", VA value]
        end
 

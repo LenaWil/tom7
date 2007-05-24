@@ -327,6 +327,12 @@ struct
                wth (fn (v, es) =>
                     Letcc(v, combinermark Seq es)),
 
+               (* Intended only for stdlib use *)
+               `PRIMAPP >> fid G && 
+                 (* XXX Allow optional < type args > before ( val args ) *)
+                 `LPAREN >> separate0 (call G exp) (`COMMA) << `RPAREN
+                     wth (fn (f, args) => Primapp (f, nil, args)),
+
                `LET >> "expected DECS after LET" **
                    (call G decs -- 
                     (fn (G,ds) => 

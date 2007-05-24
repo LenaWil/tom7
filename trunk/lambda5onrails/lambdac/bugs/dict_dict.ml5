@@ -2,7 +2,7 @@ unit
     extern world server
     extern val server ~ server addr
 
-    val p = from server get "hello"
+    val p = from server get (halt ())
 in
-    export val pair = p
+(*    export val pair = p *)
 end
