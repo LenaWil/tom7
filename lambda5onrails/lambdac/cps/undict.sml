@@ -273,7 +273,9 @@ struct
                                                    uvariable.)
 
      *)
-  and makedict G ty = 
+  and makedict_fake G ty = Dictfor' ty
+
+  and makedict G ty =
     (case ctyp ty of
        TVar a => UVar' ` T.getdict G a
      | Mu (i, vtl) =>
@@ -297,7 +299,7 @@ struct
          let
            val G = bindtype G v false
            val ud = V.namedvar "exdict"
-           val G = binduvar G (V.namedvar "exdict") (Dictionary' ` TVar' v)
+           val G = binduvar G ud (Dictionary' ` TVar' v)
          in
            Dict' ` TExists((v,ud), map (makedict G) tl)
          end

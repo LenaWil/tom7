@@ -128,6 +128,8 @@ struct
      however, we need this more abstract version so that we
      can implement substitution for dictionary values, which
      use the same datatype.
+
+     XXX use record for these crazy args
      *)
   and substtfront v se typ var_action tbinds self =
     let 
@@ -291,12 +293,6 @@ struct
                           then ve
                           else vself ve)
 
-(*
-substtfront : var
-              -> substitutend
-                 -> 'Z ctypfront
-                    -> (var -> 'Z ctypfront) -> ('Z -> 'Z) -> 'Z ctypfront
-*)
          | Dict tf => Dict (substtfront v se tf (fn _ =>
                                                  raise CPS "dictionaries should not have tvars!")
                             (* tbinds are just two variables here *)

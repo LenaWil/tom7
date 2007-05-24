@@ -106,6 +106,7 @@ struct
            E.Var v => if v = vv then ee else e
          | E.Constant _ => e
          | E.Float _ => e
+         | E.Primapp (l, ts, es) => E.Primapp(l, ts, map (esubst s) es)
          | E.Proj (l,t,e) => E.Proj (l, t, esubst s e)
          | E.Record lel => E.Record (ListUtil.mapsecond (esubst s) lel)
          | E.Seq (a,b) => E.Seq (esubst s a, esubst s b)

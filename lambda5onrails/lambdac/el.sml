@@ -29,6 +29,8 @@ struct
       | Otherwise of exp * exp
       | If of exp * exp * exp
 
+      | Primapp of string * typ list * exp list
+
       | Seq of exp * exp
       | Constrain of exp * typ * world option
 

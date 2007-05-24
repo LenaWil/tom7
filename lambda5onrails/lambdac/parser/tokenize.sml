@@ -174,6 +174,7 @@ struct
        ("op", OP),
        ("orelse", ORELSE),
        ("otherwise", OTHERWISE),
+       ("primapp", PRIMAPP),
        ("sig", SIG),
        ("signature", SIGNATURE),
        ("deriving", DERIVING),

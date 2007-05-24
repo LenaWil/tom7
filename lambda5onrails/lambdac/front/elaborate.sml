@@ -123,7 +123,7 @@ struct
 
     and dovar ctx loc vv =
     ((case C.var ctx vv of
-(* XXX5 not sure what to do with primitives. are there any?
+(*
       (pt, _, Primitive p) =>
         let 
             fun unpoly (Quant (v, pt)) ts = unpoly pt (v::ts)
@@ -253,6 +253,13 @@ struct
               in
                 require_mobile ctx loc "get" bt;
                 (Get { addr = aa, typ = bt, body = bb, dest = there }, bt)
+              end
+
+        | E.Primapp (p, ts, es) =>
+              let
+
+              in
+
               end
 
         | E.Constant(E.CInt i) => value (Int i, Initial.ilint)
