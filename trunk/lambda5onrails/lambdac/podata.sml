@@ -66,9 +66,15 @@ struct
     fun potype (PJointext i) = I.Poly({worlds = nil, tys = nil}, 
                                       (List.tabulate (i, fn _ => Initial.ilstring),
                                        Initial.ilstring))
+      | potype PHalt = 
+      let val a = Variable.namedvar "a"
+      in I.Poly({worlds = nil, tys = [a]}, (nil, IL.TVar a))
+      end
+
       | potype p = raise Podata ("unimplemented potype " ^ tostring p)
 
     fun polab (PJointext i) = "po_jointext_" ^ Int.toString i
+      | polab PHalt = "po_halt" (* ? should be implemented internally, probably *)
       | polab p = raise Podata ("unimplemented polab " ^ tostring p)
 
   end

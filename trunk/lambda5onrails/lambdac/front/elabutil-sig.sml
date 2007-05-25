@@ -39,6 +39,9 @@ sig
     (* instantiate all of the bound type and world variables with new evars and wevars;
        return the types and worlds used to instantiate the type *)
     val evarize : IL.typ IL.poly -> IL.typ * IL.world list * IL.typ list
+    (* same, but list of types (result will have the same length) *)
+    val evarizes : IL.typ list IL.poly -> IL.typ list * IL.world list * IL.typ list
+
 
     val unroll : Pos.pos -> IL.typ -> IL.typ
 

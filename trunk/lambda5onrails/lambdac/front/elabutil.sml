@@ -128,7 +128,7 @@ struct
 
        *)
 
-    fun evarize (IL.Poly({worlds, tys}, mt)) =
+    fun evarizes (IL.Poly({worlds, tys}, mt)) =
         let
           (* make the type and world substitutions *)
             fun mkts nil m ts = (m, rev ts)
@@ -148,10 +148,17 @@ struct
             val (wsubst, ws) = mkws worlds V.Map.empty nil
             val (tsubst, ts) = mkts tys V.Map.empty nil
 
+            fun wsu t = Subst.wsubst wsubst t
+            fun tsu t = Subst.tsubst tsubst t
+
         in
-          (Subst.wsubst wsubst
-           (Subst.tsubst tsubst mt), ws, ts)
+          (map (wsu o tsu) mt, ws, ts)
         end
+
+    fun evarize (IL.Poly({worlds, tys}, mt)) = 
+      case evarizes ` IL.Poly({worlds=worlds, tys=tys}, [mt]) of
+        ([m], ws, ts) => (m, ws, ts)
+      | _ => raise Elaborate "impossible"
 
 
   (* used to deconstruct bool, which the compiler needs internally.

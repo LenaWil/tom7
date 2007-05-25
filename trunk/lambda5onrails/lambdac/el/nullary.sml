@@ -45,6 +45,8 @@ struct
               | Otherwise (a, b) => Otherwise (self a, self b)
               | If (a, b, c) => If(self a, self b, self c)
 
+              | Primapp(p, ts, es) => Primapp(p, map (tul G) ts, map self es)
+
               | Get (a, e) => Get(self a, self e)
               | Seq (a, b) => Seq(self a, self b)
               | Constrain (e, t, wo) => Constrain(self e, tul G t, wo)

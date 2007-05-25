@@ -2,9 +2,18 @@
 structure PrimTypes :> PRIMTYPES =
 struct
 
-    exception Unimplemented
+    exception PrimTypes of string
     
-    fun typeof "halt" = raise Unimplemented
-        
+    structure V = Variable
+    open IL
+    open Primop
+
+    fun wv f = f (V.namedvar "a")
+
+    fun typeof "halt" = 
+      wv (fn a =>
+          SOME(PHalt, Poly({worlds = nil, tys = [a]}, ([], TVar a))))
+
+      | typeof _ = NONE
 
 end
