@@ -256,11 +256,39 @@ struct
               end
 
         | E.Primapp (p, ts, es) =>
-              let
+              (case PrimTypes.typeof p of
+                 NONE => error loc ("unknown primitive in primapp: " ^ p)
+               | SOME (po, Poly({worlds=nil, tys}, (dom, cod))) =>
+                   if length tys = length ts
+                   then if length es = length dom
+                        then
+                          let
+                            val ts = map (elabt ctx loc) ts
+                            val (args, argts) = ListPair.unzip ` map (elab ctx here) es
 
-              in
+                            val (l, _, tvs) = ElabUtil.evarizes (Poly({worlds=nil,
+                                                                       tys=tys},
+                                                                      cod :: dom))
+                              
+                            val cod = hd l
+                            val dom = tl l
 
-              end
+                          in
+                            (* One side is all unique evars, so this always succeeds *)
+                            ListPair.app (fn (t1, t2) =>
+                                          unify ctx loc "primapp" t1 t2) (tvs, ts);
+                            
+                            (* args must match domain *)
+                            ListPair.app (fn (t1, t2) =>
+                                          unify ctx loc "primapp arg" t1 t2) (dom, argts);
+
+                            (Primapp(po, args, ts),
+                             cod)
+                          end
+                        else error loc "not the right number of val args in primapp"
+                   else error loc "not the right number of type args in primapp"
+               | _ => error loc "unimplemented: primops with world polymorphism??")
+                   
 
         | E.Constant(E.CInt i) => value (Int i, Initial.ilint)
         | E.Constant(E.CChar c) => value (Int (Word32.fromInt (ord c)), Initial.ilchar)

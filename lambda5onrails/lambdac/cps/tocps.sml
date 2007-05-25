@@ -204,6 +204,9 @@ struct
                  end)
               end
 
+       (* this one is special because it does not return *)
+       | I.Primapp (PHalt, [], _) => Halt'
+
        (* treat every primapp as an extern primcall with a source/source
           translation. *)
        (* XXX perhaps these should be translated in some IL phase...? *)
@@ -527,7 +530,7 @@ struct
                           foldr (fn ((wv, w), ty) => subwt w wv ty)
                           body1 ` ListPair.zip (ws, worlds)
                     in
-                        (AllApp' { f = Var' var,
+                        (AllApp' { f = UVar' var,
                                    worlds = worlds,
                                    tys = tys,
                                    vals = nil }, 

@@ -330,8 +330,11 @@ struct
                (* Intended only for stdlib use *)
                `PRIMAPP >> fid G && 
                  (* XXX Allow optional < type args > before ( val args ) *)
+                 (opt (`LBRACE >> separate0 typ (`COMMA) << `RBRACE)) &&
                  `LPAREN >> separate0 (call G exp) (`COMMA) << `RPAREN
-                     wth (fn (f, args) => Primapp (f, nil, args)),
+                     wth (fn (f, (ts, args)) => Primapp (f, 
+                                                         (case ts of NONE => nil | SOME l => l), 
+                                                         args)),
 
                `LET >> "expected DECS after LET" **
                    (call G decs -- 

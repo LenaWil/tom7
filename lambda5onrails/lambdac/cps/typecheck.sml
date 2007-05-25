@@ -82,9 +82,14 @@ struct
   fun getworld (C { worlds, ... }) v = if V.Set.member (worlds, v) then () 
                                        else raise TypeCheck ("unbound world var: " ^
                                                              V.tostring v)
-  fun getvar (C { vars, ... }) v =
+  fun getvar (ctx as C { vars, ... }) v =
     (case V.Map.find (vars, v) of
-       NONE => raise TypeCheck ("unbound var: " ^ V.tostring v)
+       NONE => 
+         let in
+           print "\n\nContext:\n";
+           Layout.print(ctol ctx, print);
+           raise TypeCheck ("unbound var: " ^ V.tostring v)
+         end
      | SOME x => x)
   fun getuvar (C { uvars, ... }) v =
     (case V.Map.find (uvars, v) of

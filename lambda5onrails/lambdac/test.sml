@@ -208,6 +208,8 @@ struct
          | Context.Absent (what, s) => fail ("\n\nInternal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'\n")
          | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")
          | Elaborate.Elaborate s => fail("\nElaboration: " ^ s ^ "\n")
+         | PrimTypes.PrimTypes s => fail("\nPrimTypes: " ^ s ^ "\n")
+         | Podata.Podata s => fail("\nprimop data: " ^ s ^ "\n")
          | Hoist.Hoist s => fail ("\nHoist: " ^ s ^ "\n")
          | ILAlpha.Alpha s => fail ("\nIL Alpha: " ^ s ^ "\n")
          | ILUnused.Unused s => fail ("\nIL unused: " ^ s ^ "\n")
