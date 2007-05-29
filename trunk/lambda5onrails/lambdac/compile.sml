@@ -1,5 +1,5 @@
 
-structure Test =
+structure Compile =
 struct
 
   exception TestFail
@@ -36,7 +36,7 @@ struct
         (SOME ("-v",
                "Show progress")) "verbose"
 
-    exception Test of string
+    exception Compile of string
 
     fun vprint s =
       if !verbose then print s
@@ -89,7 +89,7 @@ struct
                       let in
                           (* XXX print contents of 'file', which
                              contains its stdout. *)
-                          raise Test (prog ^ " exited strangely")
+                          raise Compile (prog ^ " exited strangely")
                       end))
         end
 
@@ -115,9 +115,9 @@ struct
       in
         case parsed of
           [e] => e
-        | nil => raise Test "Parse error: no expression"
-        | _ => raise Test "Parse error: program must be single unit"
-      end handle Parse.Parse s => raise Test ("Parse error: " ^ s)
+        | nil => raise Compile "Parse error: no expression"
+        | _ => raise Compile "Parse error: program must be single unit"
+      end handle Parse.Parse s => raise Compile ("Parse error: " ^ s)
 
     fun getil file =
         let
@@ -192,15 +192,22 @@ struct
             val () = CPSTypeCheck.check cw c
             val () = print "\n* Typechecked OK *\n"
 
+            val c : CPS.cexp = Hoist.hoist cw c
+            val () = print "\n\n**** HOIST: ****\n"
+            val () = Layout.print ( CPSPrint.etol c, print)
+
+            val () = CPSTypeCheck.check cw c
+            val () = print "\n* Typechecked OK *\n"
+
         in
             print "\n";
           (*
-          raise Test "backend unimplemented";
+          raise Compile "backend unimplemented";
           OS.Process.success
           *)
           c
         end)
-    handle Test s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
+    handle Compile s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
          | CPSDict.CPSDict s => fail ("\nCPSDict: " ^ s ^ "\n")
          | CPSTypeCheck.TypeCheck s => fail ("\n\nInternal error: Type checking failed:\n" ^ s ^ "\n")
          | CPSOpt.CPSOpt s => fail ("\n\nInternal error: CPS-Optimization failed:\n" ^ s ^ "\n")

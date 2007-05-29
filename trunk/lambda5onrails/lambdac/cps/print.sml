@@ -221,6 +221,8 @@ struct
                       nil => nil
                     | _ => [% [$"v:", L.listex "" "" "," ` map vtol vals]])
                       )]
+
+         | Codelab s => $("___" ^ s)
                       
          | Dict tf => 
                 %[$"dict",
