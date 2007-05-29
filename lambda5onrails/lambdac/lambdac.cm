@@ -168,4 +168,4 @@ cps/undict.sml
 cps/hoist-sig.sml
 cps/hoist.sml
 
-test.sml
+compile.sml

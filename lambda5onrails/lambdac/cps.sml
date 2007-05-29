@@ -68,6 +68,7 @@ struct
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
     | Unroll of 'cval
+    | Codelab of string
     | Var of var
     | UVar of var
     | Dictfor of ctyp
@@ -309,6 +310,7 @@ struct
          | Var vv => if V.eq(v, vv) then se_getv se else Var vv
          | UVar vv => UVar (if V.eq(v, vv) then se_getu se else vv)
          | Unroll va => Unroll (vself va)
+         | Codelab s => Codelab s
          | Roll (t, va) => Roll (tself t, vself va)
          | Dictfor t => Dictfor ` tself t
          | VTUnpack (vv1, vd, vvl, va, ve) =>
@@ -798,6 +800,7 @@ struct
   val Inj' = fn x => V (Inj x)
   val Roll' = fn x => V (Roll x)
   val Dictfor' = fn x => V (Dictfor x)
+  val Codelab' = fn x => V (Codelab x)
   val Unroll' = fn x => V (Unroll x)
   val Var' = fn x => V (Var x)
   val UVar' = fn x => V (UVar x)
@@ -820,16 +823,16 @@ struct
 
   (* utility code *)
 
-  fun ontypefront f typ =
+  fun ontypefront fw f typ =
     case typ of
-      At (c, w) => At (f c, w)
+      At (c, w) => At (f c, fw w)
     | Cont l => Cont ` map f l
     | AllArrow {worlds, tys, vals, body} => 
         AllArrow { worlds = worlds, tys = tys, vals = map f vals, body = f body }
     | WExists (v, t) => WExists (v, f t)
     | TExists (v, t) => TExists (v, map f t)
     | Product stl => Product ` ListUtil.mapsecond f stl
-    | Addr w => typ
+    | Addr w => Addr ` fw w
     | Mu (i, vtl) => Mu (i, ListUtil.mapsecond f vtl)
     | Sum sail => Sum ` ListUtil.mapsecond (IL.arminfo_map f) sail
     | Primcon (pc, l) => Primcon (pc, map f l)
@@ -837,16 +840,16 @@ struct
     | Shamrock t => Shamrock ` f t
     | TVar v => typ
 
-  fun pointwiset f typ = ctyp' ` ontypefront f (ctyp typ)
+  fun pointwisetw fw f typ = ctyp' ` ontypefront fw f (ctyp typ)
 
-  fun pointwisee ft fv fe exp =
+  fun pointwiseew fw ft fv fe exp =
     case cexp exp of
       Call (v, vl) => Call' (fv v, map fv vl)
     | Halt => exp
-    | Go (w, v, e) => Go' (w, fv v, fe e)
-    | Go_cc { w, addr, env, f } => Go_cc' { w = w, addr = fv addr,
+    | Go (w, v, e) => Go' (fw w, fv v, fe e)
+    | Go_cc { w, addr, env, f } => Go_cc' { w = fw w, addr = fv addr,
                                             env = fv env, f = fv f }
-    | Go_mar { w, addr, bytes } => Go_mar' { w = w, addr = fv addr, bytes = fv bytes }
+    | Go_mar { w, addr, bytes } => Go_mar' { w = fw w, addr = fv addr, bytes = fv bytes }
     | Primop (vvl, po, vl, e) => Primop' (vvl, 
                                           (case po of
                                              PRIMCALL { sym, dom, cod } =>
@@ -861,11 +864,11 @@ struct
     | WUnpack (vv1, vv2, v, e) => WUnpack' (vv1, vv2, fv v, fe e)
     | TUnpack (vv1, vd, vv2, v, e) => TUnpack' (vv1, vd, vv2, fv v, fe e)
     | Case (v, vv, sel, def) => Case' (fv v, vv, ListUtil.mapsecond fe sel, fe def)
-    | ExternVal (v, l, t, wo, e) => ExternVal' (v, l, ft t, wo, fe e)
+    | ExternVal (v, l, t, wo, e) => ExternVal' (v, l, ft t, Option.map fw wo, fe e)
     | ExternWorld (v, l, e) => ExternWorld' (v, l, fe e)
     | ExternType (v, l, vso, e) => ExternType' (v, l, vso, fe e)
 
-  fun pointwisev ft fv fe value =
+  fun pointwisevw fw ft fv fe value =
     case cval value of
       Lams vael => Lams' ` map (fn (v, vtl, e) => (v,
                                                    ListUtil.mapsecond ft vtl, 
@@ -877,24 +880,25 @@ struct
     | VLetsham (vv, v, e) => VLetsham' (vv, fv v, fv e)
     | VLeta (vv, v, e) => VLeta' (vv, fv v, fv e)
     | VTUnpack (vv1, vd, vv2, v, e) => VTUnpack' (vv1, vd, vv2, fv v, fv e)
-    | Hold (w, v) => Hold' (w, fv v)
-    | WPack (w, v) => WPack' (w, fv v)
+    | Hold (w, v) => Hold' (fw w, fv v)
+    | WPack (w, v) => WPack' (fw w, fv v)
     | TPack (t, t2, v, vs) => TPack' (ft t, ft t2, fv v, map fv vs)
     | Sham (w, v) => Sham' (w, fv v)
     | Inj (s, t, vo) => Inj' (s, ft t, Option.map fv vo)
     | Roll (t, v) => Roll' (ft t, fv v)
     | Unroll v => Unroll' ` fv v
+    | Codelab _ => value
     | Var _ => value
     | UVar _ => value
     | Proj (s, v) => Proj' (s, fv v)
     | Dictfor t => Dictfor' ` ft t
-    (* FIXME Dicts *)
-    | Dict tf => Dict' ` ontypefront fv tf
+    (* FIXME Dicts (... is this not fixed? looks okay to me) *)
+    | Dict tf => Dict' ` ontypefront fw fv tf
     | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } =>
                 AllLam' { worlds = worlds, tys = tys, 
                           vals = ListUtil.mapsecond ft vals, body = fv body }
     | AllApp { f : cval, worlds : world list, tys : ctyp list, vals : cval list } =>
-                AllApp' { f = fv f, worlds = worlds, tys = map ft tys, vals = map fv vals }
+                AllApp' { f = fv f, worlds = map fw worlds, tys = map ft tys, vals = map fv vals }
 
 
   fun subww sw sv = substw sv (SW sw)
@@ -921,22 +925,113 @@ struct
 
   exception Occurs
 
+  fun occursw var (w as W var') = if V.eq (var, var') then raise Occurs else w
+
   fun occursv var (value : cval) =
     (case cval value of
        Var v => if V.eq(var, v) then raise Occurs else value
      | UVar u => if V.eq(var, u) then raise Occurs else value
-     | _ => pointwisev (occurst var) (occursv var) (occurse var) value)
+     | _ => pointwisevw (occursw var) (occurst var) (occursv var) (occurse var) value)
 
   and occurse var (exp : cexp) =
-    pointwisee (occurst var) (occursv var) (occurse var) exp
+    pointwiseew (occursw var) (occurst var) (occursv var) (occurse var) exp
 
   and occurst var (typ : ctyp) =
     (case ctyp typ of
        TVar v => if V.eq (var, v) then raise Occurs else typ
-     | _ => pointwiset (occurst var) typ)
+     | _ => pointwisetw (occursw var) (occurst var) typ)
 
   fun freev v va = (occursv v va; false) handle Occurs => true
   fun freee v va = (occurse v va; false) handle Occurs => true
   fun freet v va = (occurst v va; false) handle Occurs => true
+
+    
+  fun pointwiset ft typ = pointwisetw (fn w => w) ft typ
+  fun pointwisee ft fv fe exp = pointwiseew (fn w => w) ft fv fe exp
+  fun pointwisev ft fv fe value = pointwisevw (fn w => w) ft fv fe value
+
+  (* Free variable set stuff *)
+  structure VS = Variable.Set
+  local 
+    fun accvarsv (us, s) (value : cval) : cval =
+      (case cval value of
+         Var v => (s := VS.add (!s, v); value)
+       | UVar u => (us := VS.add (!us, u); value)
+       | _ => pointwisev (fn t => t) (accvarsv (us, s)) (accvarse (us, s)) value)
+    and accvarse (us, s) exp = 
+      (pointwisee (fn t => t) (accvarsv (us, s)) (accvarse (us, s)) exp; exp)
+
+    (* give the set of all variable occurrences in a value or expression.
+       the only sensible use for this is below: *)
+    fun allvarse exp = 
+           let val us = ref VS.empty
+               val s  = ref VS.empty
+           in
+             accvarse (us, s) exp;
+             (!us, !s)
+           end
+    fun allvarsv value =
+           let val us = ref VS.empty
+               val s  = ref VS.empty
+           in
+             accvarsv (us, s) value;
+             (!us, !s)
+           end
+
+  in
+    
+    (* Sick or slick? You make the call! *)
+    fun freevarsv value =
+      (* compute allvars twice; intersection is free vars *)
+      let val (us1, s1) = allvarsv value
+          val (us2, s2) = allvarsv value
+      in
+        (VS.intersection (s1, s2), VS.intersection (us1, us2))
+      end
+    fun freevarse exp = 
+      let val (us1, s1) = allvarse exp
+          val (us2, s2) = allvarse exp
+      in
+        (VS.intersection (s1, s2), VS.intersection (us1, us2))
+      end
+
+  end
+
+  local
+    fun aw (ws, _) (w as W v) = (ws := VS.add (!ws, v); w)
+
+    and at (ws, ts) typ =
+      case ctyp typ of
+        TVar v => (ts := VS.add (!ts, v); typ)
+      | _ => pointwisetw (aw (ws, ts)) (at (ws, ts)) typ
+    
+    and av r value = pointwisevw (aw r) (at r) (av r) (ae r) value
+    and ae r exp = pointwiseew (aw r) (at r) (av r) (ae r) exp
+
+    fun with2e f x =
+      let 
+        val ww = ref VS.empty
+        val tt = ref VS.empty
+      in
+        ignore (f (ww, tt) x);
+        (!ww, !tt)
+      end
+
+    val allt = with2e at
+    val allv = with2e av
+    val alle = with2e ae
+
+    fun twicei f x =
+      let
+        val (w1, t1) = f x
+        val (w2, t2) = f x
+      in
+        { w = VS.intersection (w1, w2), t = VS.intersection (t1, t2) }
+      end
+  in
+    val freesvarst = twicei allt
+    val freesvarsv = twicei allv
+    val freesvarse = twicei alle
+  end
 
 end

@@ -90,6 +90,7 @@ sig
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
     | Unroll of 'cval
+    | Codelab of string
     | Var of var
     | UVar of var
     (* later expanded to the actual dictionary, using invariants established in
@@ -149,6 +150,20 @@ sig
   (* Same, but to subterms that are types, values, expressions *)
   val pointwisee : (ctyp -> ctyp) -> (cval -> cval) -> (cexp -> cexp) -> cexp -> cexp
   val pointwisev : (ctyp -> ctyp) -> (cval -> cval) -> (cexp -> cexp) -> cval -> cval
+
+  (* with a mapper for worlds as well *)
+  val pointwisetw : (world -> world) -> (ctyp -> ctyp) -> ctyp -> ctyp
+  val pointwiseew : (world -> world) -> (ctyp -> ctyp) -> (cval -> cval) -> (cexp -> cexp) -> cexp -> cexp
+  val pointwisevw : (world -> world) -> (ctyp -> ctyp) -> (cval -> cval) -> (cexp -> cexp) -> cval -> cval
+
+  (* get the free value vars and value uvars in a value (expression) *)
+  val freevarsv : cval -> Variable.Set.set * Variable.Set.set
+  val freevarse : cexp -> Variable.Set.set * Variable.Set.set
+
+  (* get the free type vars and world vars in a type (value; expression) *)
+  val freesvarst : ctyp -> { t : Variable.Set.set, w : Variable.Set.set }
+  val freesvarsv : cval -> { t : Variable.Set.set, w : Variable.Set.set }
+  val freesvarse : cexp -> { t : Variable.Set.set, w : Variable.Set.set }
 
   (* injective constructors *)
   val At' : ctyp * world -> ctyp

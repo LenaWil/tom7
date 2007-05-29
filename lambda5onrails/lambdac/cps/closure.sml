@@ -122,51 +122,6 @@ struct
 
   exception Closure of string
 
-  local 
-    fun accvarsv (us, s) (value : CPS.cval) : CPS.cval =
-      (case cval value of
-         Var v => (s := VS.add (!s, v); value)
-       | UVar u => (us := VS.add (!us, u); value)
-       | _ => pointwisev (fn t => t) (accvarsv (us, s)) (accvarse (us, s)) value)
-    and accvarse (us, s) exp = 
-      (pointwisee (fn t => t) (accvarsv (us, s)) (accvarse (us, s)) exp; exp)
-
-    (* give the set of all variable occurrences in a value or expression.
-       the only sensible use for this is below: *)
-    fun allvarse exp = 
-           let val us = ref VS.empty
-               val s  = ref VS.empty
-           in
-             accvarse (us, s) exp;
-             (!us, !s)
-           end
-    fun allvarsv value =
-           let val us = ref VS.empty
-               val s  = ref VS.empty
-           in
-             accvarsv (us, s) value;
-             (!us, !s)
-           end
-
-  in
-    
-    (* Sick or slick? You make the call! *)
-    fun freevarsv value =
-      (* compute allvars twice; intersection is free vars *)
-      let val (us1, s1) = allvarsv value
-          val (us2, s2) = allvarsv value
-      in
-        (VS.intersection (s1, s2), VS.intersection (us1, us2))
-      end
-    fun freevarse exp = 
-      let val (us1, s1) = allvarse exp
-          val (us2, s2) = allvarse exp
-      in
-        (VS.intersection (s1, s2), VS.intersection (us1, us2))
-      end
-
-  end
-
   val bindworlds = foldl (fn (v, c) => bindworld c v)
   (* assuming not mobile *)
   val bindtypes  = foldl (fn (v, c) => bindtype c v false)

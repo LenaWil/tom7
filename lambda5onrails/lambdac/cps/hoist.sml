@@ -24,13 +24,73 @@
    cost.
    
    (So see undict.sml.)
+
+   Now that undictionarying is done, hoisting is accomplished simply.
+   Introduce a new value "Label l", where l is a global name for a
+   piece of code. We then traverse the program. For each Lams that we
+   see, we compute its free world and type variables. We then abstract
+   over those, and insert that abstracted bit of code into a global
+   place. The occurrence is replaced with AllApp(Label l, tys,
+   worlds).
+
 *)
 
 structure Hoist :> HOIST =
 struct
 
-  exception Hoist of string
+  infixr 9 `
+  fun a ` b = a b
 
-  fun hoist _ = raise Hoist "unimplemented"
+  exception Hoist of string
+  open CPS
+  structure V = Variable
+
+  fun hoist home program =
+    let
+      val accum = ref nil
+      (* PERF. we should be able to merge alpha-equivalent labels here,
+         which would probably yield substantial $avings. *)
+      (* Take code and return a label after inserting it in the global
+         code table. *)
+      fun insert _ = raise Hoist "unimplemented"
+
+
+      (* types do not change. *)
+      fun ct t = t
+
+      (* don't need to touch expressions, except the values within them *)
+      fun ce e = pointwisee ct cv ce e
+
+      (* for values, only Lams is relevant
+
+         XXX I think we need to hoist alllam when it has a value argument,
+         since it is also closure-converted.
+         *)
+      and cv v =
+        (case cval v of
+           Lams vael =>
+             let
+               val { w, t } = freesvarsv v
+               val w = V.Set.foldr op:: nil w
+               val t = V.Set.foldr op:: nil t
+
+               val () = print "Hoist FWV: "
+               val () = app (fn v => print (V.tostring v ^ " ")) w
+               val () = print "\nHoist FTV: "
+               val () = app (fn v => print (V.tostring v ^ " ")) t
+               val () = print "\n"
+
+             in
+               (* FIXME do something ... *)
+               Lams' vael
+               (* raise Hoist "unimplemented" *)
+             end
+         | _ => pointwisev ct cv ce v)
+
+      val program' = ce program
+    in
+      (* FIXME wrap program' with global bindings *)
+      raise Hoist "unimplemented"
+    end
 
 end
