@@ -65,7 +65,8 @@ sig
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
-    | TUnpack of var * (var * ctyp) list * 'cval * 'cexp
+    (* typ var, dict var, contents vars *)
+    | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
@@ -83,8 +84,8 @@ sig
     | Record of (string * 'cval) list
     | Hold of world * 'cval
     | WPack of world * 'cval
-      (* tpack t as t' [vals] *)
-    | TPack of ctyp * ctyp * 'cval list
+      (* tpack t as t' dict, [vals] *)
+    | TPack of ctyp * ctyp * 'cval * 'cval list
     | Sham of var * 'cval
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
@@ -103,8 +104,8 @@ sig
 
     | VLeta of var * 'cval * 'cval
     | VLetsham of var * 'cval * 'cval
-    (* type var, contents vars *)
-    | VTUnpack of var * (var * ctyp) list * 'cval * 'cval
+    (* type var, dict var, contents vars *)
+    | VTUnpack of var * var * (var * ctyp) list * 'cval * 'cval
 
   (* projections and injections *)
   val ctyp : ctyp -> (var, ctyp) ctypfront
@@ -178,7 +179,7 @@ sig
   val ExternVal' : var * string * ctyp * world option * cexp -> cexp
   val ExternWorld' : var * string * cexp -> cexp
   val ExternType' : var * string * (var * string) option * cexp -> cexp
-  val TUnpack' : var * (var * ctyp) list * cval * cexp -> cexp
+  val TUnpack' : var * var * (var * ctyp) list * cval * cexp -> cexp
 
   val Lams' : (var * (var * ctyp) list * cexp) list -> cval
   val Fsel' : cval * int -> cval
@@ -187,7 +188,7 @@ sig
   val Record' : (string * cval) list -> cval
   val Hold' : world * cval -> cval
   val WPack' : world * cval -> cval
-  val TPack' : ctyp * ctyp * cval list -> cval
+  val TPack' : ctyp * ctyp * cval * cval list -> cval
   val Sham' : var * cval -> cval
   val Inj' : string * ctyp * cval option -> cval
   val Roll' : ctyp * cval -> cval
@@ -200,7 +201,7 @@ sig
   val VLeta' : var * cval * cval -> cval
   val VLetsham' : var * cval * cval -> cval
   val Proj' : string * cval -> cval
-  val VTUnpack' : var * (var * ctyp) list * cval * cval -> cval
+  val VTUnpack' : var * var * (var * ctyp) list * cval * cval -> cval
   val Dict' : (var * var, cval) ctypfront -> cval
 
   (* derived forms *)
@@ -216,6 +217,7 @@ sig
   val TApp' : cval * ctyp -> cval
   val WLam' : var * cval -> cval
   val TLam' : var * cval -> cval
+  val Sham0' : cval -> cval
   val Zerocon' : primcon -> ctyp
   val EProj' : var * string * cval * cexp -> cexp
 

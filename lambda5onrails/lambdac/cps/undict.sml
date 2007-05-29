@@ -189,7 +189,7 @@ struct
          end
 
 
-     | TUnpack (tv, vvs, va, ve) =>
+     | TUnpack (tv, td, vvs, va, ve) =>
            let
              val (va, t) = cv G va
            in
@@ -203,10 +203,12 @@ struct
                    val vvs = ListUtil.mapsecond ct vvs
 
                    val vs = map #2 vvs
+                   (* the dict *)
+                   val G = binduvar G td ` Dictionary' ` TVar' tv
                    (* some values now *)
                    val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
                  in
-                   TUnpack' (tv, vvs, va, ce G ve)
+                   TUnpack' (tv, td, vvs, va, ce G ve)
                  end
              | _ => raise UnDict "tunpack non-exists"
            end
@@ -220,10 +222,10 @@ struct
 
        -->
 
-         EXTY = exists arg . { arg dict, arg cont, arg }
+         EXTY = exists arg . { arg cont, arg }
          MARTY = EXTY at w'
 
-         p = hold(w') (pack <argt, { dictfor argt, f, a }>
+         p = hold(w') (pack <argt, dictfor argt, { f, a }>
                        as EXTY)
 
          b : bytes = marshal < MARTY > ( dictfor MARTY, p )
@@ -240,13 +242,13 @@ struct
            val (f, ft) = cv G f
            val (env, envt) = cv G env
            val av = V.namedvar "arg"
-           val exty  = TExists' (av, [Dictionary' ` TVar' av, Cont' [TVar' av], TVar' av])
+           val exty  = TExists' (av, [Cont' [TVar' av], TVar' av])
            val marty = At' (exty, w')
 
            val p = V.namedvar "p"
            val b = V.namedvar "b"
          in
-           Bind' (p, Hold' (w', TPack' ( envt, exty, [makedict G envt, f, env] )),
+           Bind' (p, Hold' (w', TPack' ( envt, exty, Sham0' ` makedict G envt, [f, env] )),
                   Marshal'(b, makedict G marty, Var' p,
                            Go_mar' { w = w,
                                      addr = addr,
@@ -453,7 +455,7 @@ struct
         construct at all. *)
      | Dictfor t => (makedict G t, Dictionary' t)
 
-     | VTUnpack (tv, vvs, va, ve) =>
+     | VTUnpack (tv, td, vvs, va, ve) =>
            let
              val (va, t) = cv G va
            in
@@ -467,12 +469,14 @@ struct
                    val vvs = ListUtil.mapsecond ct vvs
 
                    val vs = map #2 vvs
+                   (* the dict *)
+                   val G = binduvar G td ` Dictionary' ` TVar' tv
                    (* some values now *)
                    val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
 
                    val (ve, et) = cv G ve
                  in
-                   (VTUnpack' (tv, vvs, va, ve),
+                   (VTUnpack' (tv, td, vvs, va, ve),
                     (* better not use tv *)
                     et)
                  end
@@ -509,12 +513,13 @@ struct
              | _ => raise UnDict "vleta non-at"
            end
 
-     | TPack (t, tas, vs) =>
+     | TPack (t, tas, vd, vs) =>
        let
          val tas = ct tas
-         val (vs, ts) = ListPair.unzip ` map (cv G) vs
+         val (vd, _) = cv G vd
+         val (vs, _) = ListPair.unzip ` map (cv G) vs
        in
-         (TPack' (t, tas, vs),
+         (TPack' (t, tas, vd, vs),
           (* assume annoation is correct *)
           tas)
        end
