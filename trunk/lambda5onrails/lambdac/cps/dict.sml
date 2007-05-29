@@ -106,6 +106,7 @@ struct
     and trv value =
       (case cval value of
          TPack _ => raise CPSDict "BUG: shouldn't see extential type tpack yet"
+       | VTUnpack _ => raise CPSDict "BUG: shouldn't see extential type vtunpack yet"
        | Dictfor _ => raise CPSDict "BUG: shouldn't see dicts yet"
        | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } => 
            let 

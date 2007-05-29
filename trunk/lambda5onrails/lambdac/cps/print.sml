@@ -93,7 +93,7 @@ struct
          | Product ltl => recordortuple ttol ":" "(" ")" " *" ltl
          | Primcon (VEC, [t]) => %[ttol t, $"vec"]
          | Primcon (REF, [t]) => %[ttol t, $"ref"]
-         | Primcon (DICTIONARY, [t]) => %[ttol t, $"dictionary"]
+         | Primcon (DICTIONARY, [t]) => L.paren ` %[ttol t, $"dictionary"]
          | Primcon (INT, []) => $"int"
          | Primcon (STRING, []) => $"string"
          | Primcon (EXN, []) => $"exn"
@@ -147,9 +147,10 @@ struct
                                        L.indent 3 ` vtol va,
                                        $"in",
                                        L.indent 3 ` vtol ve]
-         | (VTUnpack (v, vtl, va, ve)) =>
+         | (VTUnpack (v, vd, vtl, va, ve)) =>
                %[%[$"vtunpack", L.indent 3 ` vtol va, $"as"],
                  %[L.indent 2 ` %[varl v, $";"],
+                   L.indent 2 ` %[varl vd, $";"],
                    L.indent 2 ` 
                    L.listex "[" "]" "," ` map (fn (v, t) =>
                                                %[%[varl v, $":"],
@@ -165,8 +166,9 @@ struct
          | Hold (w, va) => %[%[$"hold", L.paren ` wtol w],
                              L.indent 2 ` vtol va]
          | WPack _ => $"wpack?"
-         | TPack (t, tas, vs) => %[%[%[$"tpack", ttol t], %[$"as", ttol tas]],
-                                   L.indent 2 ` L.listex "[" "]" "," ` map vtol vs]
+         | TPack (t, tas, d, vs) => %[%[%[$"tpack", ttol t], %[$"as", ttol tas]],
+                                      L.indent 2 ` %[$"dict=", vtol d],
+                                      L.indent 2 ` L.listex "[" "]" "," ` map vtol vs]
          | AllApp { worlds = [w], f = v, tys = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<<", wtol w, $">>"]]
          | AllApp { tys = [t], f = v, worlds = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<", ttol t, $">"]]
          | Sham (v, cv) => %[$"sham", vbindv v cv, $".",
@@ -298,9 +300,10 @@ struct
                                   L.indent 3 ` vtol va] :: estol e
 
          | (WUnpack _) => [$"XXX-WUNP"]
-         | (TUnpack (v, vtl, va, e)) =>
+         | (TUnpack (v, vd, vtl, va, e)) =>
                %[%[%[$"tunpack", L.indent 3 ` vtol va], $"as"],
                  %[%[varl v, $";"],
+                   L.indent 2 ` %[varl vd, $";"],
                    L.listex "[" "]" "," ` map (fn (v, t) =>
                                                %[varl v, $":", ttol t]) vtl]
                  ] :: estol e

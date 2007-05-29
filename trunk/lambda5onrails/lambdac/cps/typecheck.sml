@@ -355,7 +355,7 @@ struct
                      end
                 else faile exp "put of non-mobile value")
 
-     | TUnpack (tv, vvs, va, e) =>
+     | TUnpack (tv, vd, vvs, va, e) =>
                (case ctyp ` vok G va of
                   TExists (vr, tl) =>
                     let 
@@ -367,6 +367,8 @@ struct
                                           $"stated: ", V tv, $".", TYL ` map #2 vvs]
                       (* new type, can't be mobile *)
                       val G = bindtype G tv false
+                      (* its dictionary *)
+                      val G = binduvar G vd ` Dictionary' ` TVar' tv
                       (* some values now *)
                       val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
                     in
@@ -415,17 +417,31 @@ struct
          end
      | Record svl => Product' ` ListUtil.mapsecond (vok G) svl
 
-     | TPack (t, tas, vs) =>
+     | TPack (t, tas, vd, vs) =>
          (case (tok G tas; ctyp tas) of
             TExists (v, tl) =>
               let
                 val () = tok G t
+                val td = vok G vd
                 val ts = map (vok G) vs
                   
                 (* after substituting in the packed type for the 
                    existential variable, does the actual type match? *)
                 val stl = map (subtt t v) tl
               in
+                (case ctyp td of
+                   Shamrock d =>
+                     (case ctyp d of
+                        Primcon(DICTIONARY, [t']) =>
+                          if ctyp_eq (t, t')
+                          then () 
+                          else fail [$"tpack dictionary is not for the right type: ",
+                                     TY t,
+                                     $"dict: ", TY t']
+                      | _ => fail [$"tpack dictionary not a shamrock'd dictionary: ",
+                                   TY td])
+                 | _ => fail [$"tpack dictionary not a shamrock'd dictionary: ",
+                              TY td]);
                 if ListUtil.all2 ctyp_eq stl ts
                 then tas 
                 else fail [$"tpack doesn't match annotation: ",
@@ -582,7 +598,7 @@ struct
            Shamrock' t
          end
 
-     | VTUnpack (tv, vvs, va, ve) =>
+     | VTUnpack (tv, vd, vvs, va, ve) =>
          let val t = vok G va
          in
                (case ctyp t of
@@ -605,6 +621,8 @@ struct
                                              IN ` TYL vs]
                       (* new type, can't be mobile *)
                       val G = bindtype G tv false
+                      (* its dictionary *)
+                      val G = binduvar G vd ` Dictionary' ` TVar' tv
                       (* some values now *)
                       val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
                     in

@@ -47,7 +47,7 @@ struct
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
-    | TUnpack of var * (var * ctyp) list * 'cval * 'cexp
+    | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of var * string * 'cexp
@@ -63,7 +63,7 @@ struct
     | Proj of string * 'cval
     | Hold of world * 'cval
     | WPack of world * 'cval
-    | TPack of ctyp * ctyp * 'cval list
+    | TPack of ctyp * ctyp * 'cval * 'cval list
     | Sham of var * 'cval
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
@@ -76,7 +76,8 @@ struct
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
     | VLeta of var * 'cval * 'cval
     | VLetsham of var * 'cval * 'cval
-    | VTUnpack of var * (var * ctyp) list * 'cval * 'cval
+    | VTUnpack of var * var * (var * ctyp) list * 'cval * 'cval
+
 
   (* nb. Binders must be implemented in outjection code below! *)
     
@@ -225,11 +226,14 @@ struct
                     if V.eq(vv1, v) orelse V.eq (vv2, v)
                     then e
                     else eself e)
-       | TUnpack (vv1, vvl, va, e) =>
+       | TUnpack (vv1, vd, vvl, va, e) =>
            TUnpack (vv1, 
+                    vd,
                     if V.eq(vv1, v) then vvl else ListUtil.mapsecond tself vvl, 
                     vself va,
-                    if V.eq(vv1, v) orelse List.exists (fn (vv, _) => V.eq (vv, v)) vvl
+                    if V.eq(vv1, v) 
+                       orelse V.eq (vd, v) 
+                       orelse List.exists (fn (vv, _) => V.eq (vv, v)) vvl
                     then e
                     else eself e)
        | Case (va, vv, sel, e) =>
@@ -301,17 +305,20 @@ struct
          | AllApp { f, worlds, tys, vals } => AllApp { f = vself f, worlds = map wself worlds,
                                                        tys = map tself tys, vals = map vself vals }
          | WPack (w, va) => WPack (wself w, vself va)
-         | TPack (t, t2, va) => TPack (tself t, tself t2, map vself va)
+         | TPack (t, t2, v, va) => TPack (tself t, tself t2, vself v, map vself va)
          | Var vv => if V.eq(v, vv) then se_getv se else Var vv
          | UVar vv => UVar (if V.eq(v, vv) then se_getu se else vv)
          | Unroll va => Unroll (vself va)
          | Roll (t, va) => Roll (tself t, vself va)
          | Dictfor t => Dictfor ` tself t
-         | VTUnpack (vv1, vvl, va, ve) =>
+         | VTUnpack (vv1, vd, vvl, va, ve) =>
                   VTUnpack (vv1, 
+                            vd,
                             if V.eq(vv1, v) then vvl else ListUtil.mapsecond tself vvl, 
                             vself va,
-                            if V.eq(vv1, v) orelse List.exists (fn (vv, _) => V.eq (vv, v)) vvl
+                            if V.eq(vv1, v) 
+                               orelse V.eq(vd, v)
+                               orelse List.exists (fn (vv, _) => V.eq (vv, v)) vvl
                             then ve
                             else vself ve)
 
@@ -394,13 +401,16 @@ struct
                                              val v2' = V.alphavary v2
                                          in WUnpack(v1', v2', va, renamee v2 v2' ` renamee v1 v1' e)
                                          end
-    | cexp (E(TUnpack(v1, vtl, va, e))) = let val v1' = V.alphavary v1
-                                              val (v2l, t2l) = ListPair.unzip vtl
-                                              val t2l = map (renamet v1 v1') t2l
-                                              val v2l' = ListUtil.mapto V.alphavary v2l
-                                         in TUnpack(v1', ListPair.zip(map #2 v2l', t2l), 
+    | cexp (E(TUnpack(v1, vd, vtl, va, e))) = 
+                                         let 
+                                           val v1' = V.alphavary v1
+                                           val vd' = V.alphavary vd
+                                           val (v2l, t2l) = ListPair.unzip vtl
+                                           val t2l = map (renamet v1 v1') t2l
+                                           val v2l' = ListUtil.mapto V.alphavary v2l
+                                         in TUnpack(v1', vd', ListPair.zip(map #2 v2l', t2l), 
                                                     va, 
-                                                    renameeall (renamee v1 v1' e) v2l')
+                                                    renamee vd vd' ` renameeall (renamee v1 v1' e) v2l')
                                          end
     | cexp (E(Case(va, v, sel, def))) = let val v' = V.alphavary v
                                         in
@@ -446,15 +456,17 @@ struct
                                              )
                                           end) fs)
                              end
-    | cval (V(VTUnpack(v1, vtl, va, ve))) = 
+    | cval (V(VTUnpack(v1, vd, vtl, va, ve))) = 
                              let 
                                val v1' = V.alphavary v1
+                               val vd' = V.alphavary vd
                                val (v2l, t2l) = ListPair.unzip vtl
                                val t2l = map (renamet v1 v1') t2l
                                val v2l' = ListUtil.mapto V.alphavary v2l
-                             in VTUnpack(v1', ListPair.zip(map #2 v2l', t2l), 
+                             in VTUnpack(v1', vd', 
+                                         ListPair.zip(map #2 v2l', t2l), 
                                          va, 
-                                         renamevall (renamev v1 v1' ve) v2l')
+                                         renamev vd vd' ` renamevall (renamev v1 v1' ve) v2l')
                              end
     | cval (V (VLetsham (v, va, va2))) =
                              let val v' = V.alphavary v
@@ -803,6 +815,8 @@ struct
   fun Dictionary' t = Primcon' (DICTIONARY, [t])
   fun EProj' (v, s, va, e) = Bind' (v, Proj'(s, va), e)
 
+  fun Sham0' v = Sham' (V.namedvar "sham0_unused", v)
+
 
   (* utility code *)
 
@@ -845,7 +859,7 @@ struct
     | Letsham (vv, v, e) => Letsham' (vv, fv v, fe e)
     | Leta (vv, v, e) => Leta' (vv, fv v, fe e)
     | WUnpack (vv1, vv2, v, e) => WUnpack' (vv1, vv2, fv v, fe e)
-    | TUnpack (vv1, vv2, v, e) => TUnpack' (vv1, vv2, fv v, fe e)
+    | TUnpack (vv1, vd, vv2, v, e) => TUnpack' (vv1, vd, vv2, fv v, fe e)
     | Case (v, vv, sel, def) => Case' (fv v, vv, ListUtil.mapsecond fe sel, fe def)
     | ExternVal (v, l, t, wo, e) => ExternVal' (v, l, ft t, wo, fe e)
     | ExternWorld (v, l, e) => ExternWorld' (v, l, fe e)
@@ -862,10 +876,10 @@ struct
     | Record svl => Record' ` ListUtil.mapsecond fv svl
     | VLetsham (vv, v, e) => VLetsham' (vv, fv v, fv e)
     | VLeta (vv, v, e) => VLeta' (vv, fv v, fv e)
-    | VTUnpack (vv1, vv2, v, e) => VTUnpack' (vv1, vv2, fv v, fv e)
+    | VTUnpack (vv1, vd, vv2, v, e) => VTUnpack' (vv1, vd, vv2, fv v, fv e)
     | Hold (w, v) => Hold' (w, fv v)
     | WPack (w, v) => WPack' (w, fv v)
-    | TPack (t, t2, v) => TPack' (ft t, ft t2, map fv v)
+    | TPack (t, t2, v, vs) => TPack' (ft t, ft t2, fv v, map fv vs)
     | Sham (w, v) => Sham' (w, fv v)
     | Inj (s, t, vo) => Inj' (s, ft t, Option.map fv vo)
     | Roll (t, v) => Roll' (ft t, fv v)
