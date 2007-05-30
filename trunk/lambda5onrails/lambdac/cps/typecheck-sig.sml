@@ -48,4 +48,6 @@ sig
 
   (* validate the expression e in the empty context at the supplied world *)
   val check : world -> cexp -> unit
+
+  val checkprog : world -> CPS.cprog -> unit
 end
