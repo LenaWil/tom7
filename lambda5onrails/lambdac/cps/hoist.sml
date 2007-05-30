@@ -33,6 +33,124 @@
    place. The occurrence is replaced with AllApp(Label l, tys,
    worlds).
 
+   Okay, it is not that simple. We can hoist out the code after
+   abstracting it to make the term closed, but there is one more
+   contextual factor, which is that typing judgments are made with
+   respect to worlds. We may have:
+
+    /\ w . hold_w lam x:int. E(...w...)
+
+   where now the lambda (and so E) are typed at the world w. Hoisting
+   this naively would produce:
+
+   LAB = /\w'. lam x. E(...w'...)
+
+   MAIN = /\ w . hold_w LAB<w>
+
+   So LAB's type is      forall w'. int cont   @ ???
+
+   It can't be at w' because the the binder for that variable is
+   within the term, and it can't be at w because that isn't in scope
+   either. Following the thorny garden path for a moment, the only
+   remaining possibility is that we universally quantify that world as
+   well:
+
+   LAB = sham w''. /\ w'. lam x. E(...w'...)
+
+   MAIN = /\ w. hold_w letsham u = LAB      // u ~ forall w'. int cont
+                       in u<w>              // u<w> : int cont @ w
+
+   This seems okay, but the fact that w'' and w' are not equal may cause
+   problems. (Equally, the fact that w'' is not equal to some other worlds
+   around could cause problems too?) For example, we might try to do
+   something like
+
+      leta x = hold_w' v
+      ... f(x) ...
+      
+   which will only typecheck at w'.
+
+   A straightforward variant is to not forall-quantify the world that the
+   term is typed at; instead it is sham-quantified. The above example
+   becomes
+
+   LAB = sham w'. lam x. E(...w'...)
+   MAIN = /\ w. hold_w letsham u = LAB    // u ~ int cont
+                       in u               // u : int cont @ w
+
+   and all is well. Or is it? Why should we believe that we can
+   make any typing judgment schematic in its world?
+
+   Consider the following:
+
+     // start at world "home"
+     extern world server
+     extern val format : unit -> unit  @  server
+     
+     hold_server lam x. format()
+
+   After (simplistic) closure conversion:
+
+     ...
+     hold_server pack _ as _ the <lam [x, format]. leta f : unit -> unit @ server = format 
+                                                   in f (),
+                                  hold_server format>
+
+   We might translate this to:
+
+
+     LAB = sham w'. lam [x,           format]. leta f = format in f ()
+                          : int @ w'   : (unit -> unit) at w' @ w'
+
+     LAB : {} ((int * ((unit -> unit) at ???)) cont)   @ wherever
+
+     oops! The sham-bound w' would have to appear in the type under the {}, which
+     is not allowed, since it is not bound by the type. (Maybe it should be??)
+          []A = -forall w. A at w
+          {}A = +forall w. A at w
+
+   We can sidestep this issue in this context by not using {} but wrapping the world
+   quantification into the label mechanism. So, using a new hypothetical type system,
+
+
+     LAB(w') = w'. lam [x : int, format : unit -> unit at w']. 
+                    leta f = format in f ()
+
+     LAB ~ (int * (unit -> unit  at ???) cont)
+       .. still not obvious what to say here; we could write
+
+     LAB[w] : (int * (unit -> int  at w) cont) @ w
+       .. that is, LAB is really a family of labels, each with a different type.
+       .. or, put differently, lab is a typing judgment and value, parametric in some world.
+
+
+   Then we have
+
+     MAIN = extern world server
+            extern val format : unit -> unit  @  server
+
+            hold_server pack _ as _ the <LAB[server], hold_server format>
+
+   everything is okay here.
+
+   Note this had nothing to do with "extern world" and "extern val"; we could have
+   equivalently written:
+
+     /\server. lam (format' : unit -> unit  at server).
+         leta format = format'
+         in  ...
+
+   ... because extern world just binds a variable with no condition that it be the
+   "same" as other extern declarations for that same world.
+
+   Now try:
+
+   extern world server
+   hold_server
+      lam ().
+         extern val format : unit -> unit  @  server
+         ...
+
 *)
 
 structure Hoist :> HOIST =
@@ -48,11 +166,20 @@ struct
   fun hoist home program =
     let
       val accum = ref nil
+      val ctr = ref 0
       (* PERF. we should be able to merge alpha-equivalent labels here,
          which would probably yield substantial $avings. *)
       (* Take code and return a label after inserting it in the global
          code table. *)
-      fun insert _ = raise Hoist "unimplemented"
+      fun insert (arg as (ws, ts, vael)) =
+          let
+              (* XXX could derive it from a function name in vael? *)
+              val l = "L_" ^ Int.toString (!ctr)
+          in
+              ctr := !ctr + 1;
+              accum := arg :: !accum;
+              l
+          end
 
 
       (* types do not change. *)
@@ -80,10 +207,10 @@ struct
                val () = app (fn v => print (V.tostring v ^ " ")) t
                val () = print "\n"
 
+               val l = insert (w, t, vael)
+                   
              in
-               (* FIXME do something ... *)
-               Lams' vael
-               (* raise Hoist "unimplemented" *)
+               AllApp' { f = Codelab' l, worlds = map W w, tys = map TVar' t, vals = nil }
              end
          | _ => pointwisev ct cv ce v)
 

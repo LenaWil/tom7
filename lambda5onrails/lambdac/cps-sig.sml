@@ -108,6 +108,10 @@ sig
     (* type var, dict var, contents vars *)
     | VTUnpack of var * var * (var * ctyp) list * 'cval * 'cval
 
+  type program = { (* values of the form AllApp { f = Lams _, worlds = _, tys = _, vals = nil } *)
+                   code : (string * cval * ctyp * world) list,
+                   main : string }
+
   (* projections and injections *)
   val ctyp : ctyp -> (var, ctyp) ctypfront
   val cexp : cexp -> (cexp, cval) cexpfront
@@ -211,6 +215,7 @@ sig
   val Dictfor' : ctyp -> cval
   val AllLam' : { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } -> cval
   val AllApp' : { f : cval, worlds : world list, tys : ctyp list, vals : cval list } -> cval
+  val Codelab' : string -> cval
   val Var' : var -> cval
   val UVar' : var -> cval
   val VLeta' : var * cval * cval -> cval
