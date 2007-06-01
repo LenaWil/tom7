@@ -11,17 +11,6 @@ sig
 
   exception TypeCheck of string
 
-  (* These are like the functions in CPS, but with added context information. *)
-(* humm, not clear how to make this work without like Wobbly types
-  val checkwiset : (context -> ctyp -> ctyp) -> context -> ctyp -> ctyp
-  val checkwisee : (context -> ctyp -> ctyp) -> 
-                   (context -> cval -> cval * ctyp * world) -> 
-                   (context -> cexp -> cexp * world) -> context -> cexp -> cexp * world
-  val checkwisev : (context -> ctyp -> ctyp) -> 
-                   (context -> cval -> cval) -> 
-                   (context -> cexp -> cexp) -> context -> cval -> cval
-*)
-
   (* every context has the "current world" *)
   val empty : world -> context
 
@@ -49,5 +38,6 @@ sig
   (* validate the expression e in the empty context at the supplied world *)
   val check : world -> cexp -> unit
 
-  val checkprog : world -> CPS.cprog -> unit
+  val checkprog : CPS.program -> unit
+
 end

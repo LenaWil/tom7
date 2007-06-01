@@ -6,20 +6,26 @@ struct
   fun a ` b = a b
 
   structure V = Variable
+  structure SM = StringMap
+  structure SS = StringSet
+
+  type cglot = (unit, unit) cglofront
 
   datatype context = C of { tvars : bool V.Map.map,
                             worlds : V.Set.set,
+                            worldlabs : SS.set,
                             vars : (ctyp * world) V.Map.map,
                             uvars : ctyp V.Map.map,
+                            globals : cglot SM.map,
                             current : world }
 
-  (* since all worlds are variables, we must at least bind the
-     world we're starting at *)
-  fun empty (W w) = C { tvars = V.Map.empty,
-                        worlds = V.Set.add'(w, V.Set.empty),
-                        vars = V.Map.empty,
-                        uvars = V.Map.empty,
-                        current = W w }
+  fun empty w = C { tvars = V.Map.empty,
+                    worldlabs = SS.empty,
+                    worlds = V.Set.empty, (* V.Set.add'(w, V.Set.empty),*)
+                    vars = V.Map.empty,
+                    uvars = V.Map.empty,
+                    globals = SM.empty,
+                    current = w }
 
   exception TypeCheck of string
 
@@ -34,7 +40,7 @@ struct
 
     fun two s l = %[$s, L.indent 3 l]
   in
-    fun ctol (C { tvars, worlds, vars, uvars, current }) =
+    fun ctol (C { tvars, worlds, vars, uvars, current, worldlabs, globals }) =
       %[$"context:",
         L.indent 4 `
         L.align 
@@ -54,31 +60,46 @@ struct
                                                 %[$(V.tostring v),
                                                   $"~",
                                                   P.ttol t]) (V.Map.listItemsi uvars)
+         (* XXX worldlabs and globals *)
           ]]
   end
 
-  fun bindtype (C {tvars, worlds, vars, uvars, current}) v mob =
+  fun bindtype (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) v mob =
     C { tvars = V.Map.insert(tvars, v, mob), current = current,
-        worlds = worlds, vars = vars, uvars = uvars }
-  fun bindworld (C {tvars, worlds, vars, uvars, current}) v =
+        worlds = worlds, vars = vars, uvars = uvars, worldlabs = worldlabs, globals = globals }
+  fun bindworld (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) v =
     C { tvars = tvars, worlds = V.Set.add(worlds, v), vars = vars, 
         current = current,
-        uvars = uvars }
-  fun bindvar (C {tvars, worlds, vars, uvars, current}) v t w =
+        uvars = uvars, worldlabs = worldlabs, globals = globals }
+  fun bindvar (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) v t w =
         C { tvars = tvars, worlds = worlds, vars = V.Map.insert (vars, v, (t, w)), 
-            uvars = uvars, current = current }
-  fun binduvar (C {tvars, worlds, vars, uvars, current}) v t =
+            uvars = uvars, current = current, worldlabs = worldlabs, globals = globals }
+  fun binduvar (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) v t =
         C { tvars = tvars, worlds = worlds, vars = vars, current = current,
-            uvars = V.Map.insert (uvars, v, t) }
+            uvars = V.Map.insert (uvars, v, t), worldlabs = worldlabs, globals = globals }
 
   fun worldfrom ( C { current, ... } ) = current
-  fun setworld ( C { current, tvars, worlds, vars, uvars } ) w =
-    C { current = w, tvars = tvars, worlds = worlds, vars = vars, uvars = uvars }
+  fun setworld ( C { current, tvars, worlds, vars, uvars, worldlabs, globals } ) w =
+    C { current = w, tvars = tvars, worlds = worlds, vars = vars, uvars = uvars, 
+        worldlabs = worldlabs, globals = globals }
+
+
+  fun addglobal (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) s g =
+        C { tvars = tvars, worlds = worlds, vars = vars, current = current,
+            uvars = uvars, worldlabs = worldlabs, 
+            globals = SM.insert (globals, s, g) }
+
+  fun bindworldlab (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) s =
+    C { tvars = tvars, worlds = worlds, vars = vars, 
+        current = current,
+        uvars = uvars, worldlabs = SS.add (worldlabs, s), globals = globals }
 
   fun gettype (C { tvars, ... }) v = 
     (case V.Map.find (tvars, v) of
        NONE => raise TypeCheck ("unbound type var: " ^ V.tostring v)
      | SOME b => b)
+
+
   fun getworld (C { worlds, ... }) v = if V.Set.member (worlds, v) then () 
                                        else raise TypeCheck ("unbound world var: " ^
                                                              V.tostring v)
@@ -667,5 +688,38 @@ struct
       print "\n\nTypecheck:\n";
       eok (empty w) exp
     end
+
+  fun checkprog ({ main, worlds, globals } : program) =
+    let
+      (* we'll reset the current world before checking each global *)
+      val G = empty (WC "dummy")
+
+      fun bindglobal ((s, Code (va, t, wc)), G) = addglobal G s (Code ((), t, wc))
+        | bindglobal ((s, PolyCode (v, va, t)), G) = addglobal G s (PolyCode (v, (), t))
+
+      val G = foldr bindglobal G ` ListUtil.mapsecond cglo globals
+
+      val G = foldr (fn (s, G) => bindworldlab G s) G worlds
+
+      fun checkglobal (lab, glo) = 
+        (case cglo glo of
+           (Code (va, t, w)) =>
+             let
+               val G = empty (WC w)
+             (* XXX "bind" world constants *)
+             in
+               raise TypeCheck "unimplemented"
+             end
+         | (PolyCode _) => raise TypeCheck "unimplemented")
+
+    in
+       (* Doesn't matter what main is, as long as it exists. *)
+      (case ListUtil.Alist.find op= globals main of
+         NONE => raise TypeCheck ("The main label doesn't exist: " ^ main)
+       | SOME _ => ());
+
+      app checkglobal globals
+    end
+    
 
 end

@@ -109,7 +109,7 @@ struct
   fun **(s, p) = p ## (fn pos => raise Parse ("@" ^ Pos.toString pos ^ ": " ^ s))
   infixr 4 **
 
-  val namedstring = HumlockUtil.newstr
+  val namedstring = LambdacUtil.newstr
   val itos = Int.toString
 
   fun dirplus s1 s2 =

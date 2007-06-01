@@ -47,7 +47,7 @@ struct
       | compare (Regular _, Special _) = LESS
       | compare (Special _, Regular _) = GREATER
       | compare (Special (so, s), Special (sso, ss)) =
-        HumlockUtil.pathcompare ((so, s), (sso, ss))
+        LambdacUtil.pathcompare ((so, s), (sso, ss))
         
     fun tostring (Regular(_, _, f)) = f ()
       | tostring (Special _) = raise Variable "can't tostring special"

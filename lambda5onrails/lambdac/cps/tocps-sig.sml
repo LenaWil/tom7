@@ -4,8 +4,8 @@ sig
     (* convert k e
 
        convert a (finalized) IL unit e to a CPS expression
-       that evaluates the unit for its effect and then halts. *)
-    val convert : IL.ilunit -> IL.world -> CPS.cexp
+       XXX and set of global world constants? *)
+    val convert : IL.ilunit -> IL.world -> CPS.cexp (* * string list *)
 
     (* clear some debugging stuff; call between converted programs *)
     val clear : unit -> unit

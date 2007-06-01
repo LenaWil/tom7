@@ -7,13 +7,8 @@ sig
 
   exception CPS of string
 
-  (* CPS expressions *)
-  type cexp
-  type cval
-  type ctyp
-
   datatype arminfo = datatype IL.arminfo
-  datatype world = W of var
+  datatype world = W of var | WC of string
 
   datatype primcon = 
     VEC 
@@ -42,6 +37,8 @@ sig
     | Shamrock of 'ctyp
     | TVar of var
 
+  type ctyp
+
   datatype primop = 
       (* binds uvar *)
       LOCALHOST 
@@ -69,9 +66,9 @@ sig
     | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
-    | ExternWorld of var * string * 'cexp
-    (* always kind 0; optional argument is a value import of the dictionary
-       for that type *)
+    | ExternWorld of string * 'cexp
+    (* always kind 0; optional argument is a value import of the 
+       (valid) dictionary for that type *)
     | ExternType of var * string * (var * string) option * 'cexp
 
   and ('cexp, 'cval) cvalfront =
@@ -108,18 +105,35 @@ sig
     (* type var, dict var, contents vars *)
     | VTUnpack of var * var * (var * ctyp) list * 'cval * 'cval
 
-  type program = { (* values of the form AllApp { f = Lams _, worlds = _, tys = _, vals = nil } *)
-                   code : (string * cval * ctyp * world) list,
+  datatype ('cexp, 'cval) cglofront =
+      PolyCode of var * 'cval * ctyp (* @ var *)
+      (* at a specific world constant *)
+    | Code of 'cval * ctyp * string
+
+  (* CPS expressions *)
+  type cexp
+  type cval
+  type cglo
+
+  type program = { 
+                   (* The world constants. *)
+                   worlds : string list,
+                   (* The globals (hoisted code). Before hoisting,
+                      there is usually only the main *)
+                   globals : (string * cglo) list,
+                   (* The entry point for the program. *)
                    main : string }
 
   (* projections and injections *)
   val ctyp : ctyp -> (var, ctyp) ctypfront
   val cexp : cexp -> (cexp, cval) cexpfront
   val cval : cval -> (cexp, cval) cvalfront
+  val cglo : cglo -> (cexp, cval) cglofront
 
   val ctyp' : (var, ctyp) ctypfront -> ctyp
   val cexp' : (cexp, cval) cexpfront -> cexp
   val cval' : (cexp, cval) cvalfront -> cval
+  val cglo' : (cexp, cval) cglofront -> cglo
 
 
   (* subXY = substitute X/v in Y producing Y; not all combinations make sense *)
@@ -196,7 +210,7 @@ sig
   val WUnpack' : var * var * cval * cexp -> cexp
   val Case' : cval * var * (string * cexp) list * cexp -> cexp
   val ExternVal' : var * string * ctyp * world option * cexp -> cexp
-  val ExternWorld' : var * string * cexp -> cexp
+  val ExternWorld' : string * cexp -> cexp
   val ExternType' : var * string * (var * string) option * cexp -> cexp
   val TUnpack' : var * var * (var * ctyp) list * cval * cexp -> cexp
 
@@ -224,6 +238,9 @@ sig
   val VTUnpack' : var * var * (var * ctyp) list * cval * cval -> cval
   val Dict' : (var * var, cval) ctypfront -> cval
 
+  val PolyCode' : var * cval * ctyp -> cglo
+  val Code' : cval * ctyp * string -> cglo
+
   (* derived forms *)
   val Dictionary' : ctyp -> ctyp
   val Lift' : var * cval * cexp -> cexp
@@ -232,7 +249,7 @@ sig
   val Marshal' : var * cval * cval * cexp -> cexp
   val WAll' : var * ctyp -> ctyp
   val TAll' : var * ctyp -> ctyp
-  val Lam' :  var * (var * ctyp) list * cexp -> cval
+  val Lam'  : var * (var * ctyp) list * cexp -> cval
   val WApp' : cval * world -> cval
   val TApp' : cval * ctyp -> cval
   val WLam' : var * cval -> cval

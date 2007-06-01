@@ -5,6 +5,7 @@ struct
         
     structure S = StringMap
     structure SU = StringMapUtil
+    structure SS = StringSet
 
     datatype varsort =
       Modal of IL.world
@@ -14,6 +15,7 @@ struct
         C of { vars : (IL.typ IL.poly * Variable.var * IL.idstatus * varsort) S.map,
                cons : (IL.kind * IL.con * IL.tystatus) S.map,
                worlds : Variable.var S.map,
+               wlabs : SS.set,
                dbs  : unit S.map }
 
     (* first is class of identifier, second is identifier *)
@@ -62,10 +64,17 @@ struct
         SU.exists (fn (Poly({worlds, tys}, t), _, _, _) => has t) vars 
       end
 
-    fun world (C{worlds, ...}) s =
-      (case S.find (worlds, s) of
-         SOME x => x
-       | NONE => absent "world" s)
+    (* Worlds may be world variables or world constants. If there is a world
+       constant we assume it takes precedence. (It might be good to prevent
+       the binding of a world variable when there is a constant of the same
+       name?) *)
+    fun world (C{worlds, wlabs, ...}) s =
+      if SS.member (wlabs, s) 
+      then IL.WConst s
+      else
+        (case S.find (worlds, s) of
+           SOME x => IL.WVar x
+         | NONE => absent "world" s)
 
 
     fun varex (C {vars, ...}) sym =
@@ -82,30 +91,44 @@ struct
 
     fun con ctx sym = conex ctx NONE sym
 
-    fun bindex (C {vars, cons, dbs, worlds }) sym typ var stat sort =
+
+    fun bindwlab (C {vars, cons, dbs, worlds, wlabs }) sym = 
+        C { vars = vars,
+            cons = cons,
+            wlabs = SS.add(wlabs, sym),
+            worlds = worlds,
+            dbs = dbs }
+
+    fun bindex (C {vars, cons, dbs, worlds, wlabs }) sym typ var stat sort =
         C { vars = S.insert (vars, sym, (typ, var, stat, sort)),
             cons = cons,
+            wlabs = wlabs,
             worlds = worlds,
             dbs = dbs }
 
     fun bindv c sym t v w = bindex c sym t v IL.Normal (Modal w)
     fun bindu c sym typ var stat = bindex c sym typ var stat Valid
 
-    fun bindcex (C { cons, vars, dbs, worlds }) module sym con kind status =
+    fun bindcex (C { cons, vars, dbs, worlds, wlabs }) module sym con kind status =
         C { vars = vars,
             cons = S.insert (cons, sym, (kind, con, status)),
+            wlabs = wlabs,
             worlds = worlds,
             dbs = dbs }
 
     fun bindc c sym con kind status = bindcex c NONE sym con kind status
 
-    fun bindw (C { cons, vars, dbs, worlds }) s v =
+    fun bindw (C { cons, vars, dbs, worlds, wlabs }) s v =
         C { vars = vars,
             cons = cons,
+            wlabs = wlabs,
             worlds = S.insert (worlds, s, v),
             dbs = dbs }
 
-    val empty = C { worlds = S.empty, vars = S.empty, cons = S.empty, 
+    val empty = C { worlds = S.empty, 
+                    vars = S.empty, 
+                    cons = S.empty, 
+                    wlabs = SS.empty,
                     dbs = S.empty }
 
 end

@@ -22,7 +22,7 @@ struct
     fun recordortuple layout sep l r osep vals =
         let 
             val sorted = 
-                ListUtil.sort (ListUtil.byfirst HumlockUtil.labelcompare) vals
+                ListUtil.sort (ListUtil.byfirst LambdacUtil.labelcompare) vals
         in
             if
                (* can't be length 1 *)
@@ -131,6 +131,7 @@ struct
     and wtol (WEvar (ref (Bound w))) = wtol w
       | wtol (WEvar (ref (Free n))) = $("'w" ^ itos n)
       | wtol (WVar v) = $(V.show v)
+      | wtol (WConst s) = $s
 
     (* <t> *)
     fun bttol t = if !iltypes then L.seq[$"<", ttol t, $">"]
@@ -353,7 +354,7 @@ struct
                        L.indent 4 (etol e)]
                  end
 
-           | ExternWorld (l, v) => %[$"extern world", $(V.tostring v), $"=", $l]
+           | ExternWorld l => %[$"extern world", $l]
            | ExternVal (Poly({worlds, tys}, (l, v, t, w))) =>
                  % ($"extern val" ::
                     (case tys of

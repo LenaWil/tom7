@@ -64,7 +64,7 @@ fsutil-portable.sml
 
 util/des-sig.sml
 util/des.sml
-util/hmutil.sml
+util/lamutil.sml
 
 ../../sml-lib/parse/pos-sig.sml
 ../../sml-lib/parse/pos.sml

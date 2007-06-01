@@ -20,7 +20,7 @@ struct
   fun recordortuple layout sep l r osep vals =
         let 
             val sorted = 
-                ListUtil.sort (ListUtil.byfirst HumlockUtil.labelcompare) vals
+                ListUtil.sort (ListUtil.byfirst LambdacUtil.labelcompare) vals
         in
             if
                (* can't be length 1 *)
@@ -39,7 +39,7 @@ struct
         end
 
   fun wtol (W w) = $(V.tostring w)
-
+    | wtol (WC s) = $s
       
   fun tftol (bindtol : 'tbind -> L.layout) (ttol : 'ctyp -> L.layout) t =
       (case t of
@@ -248,10 +248,8 @@ struct
 
                                       $"=", $l])] :: estol rest
 
-         | ExternWorld(v, l, rest) =>
-               % [$"extern world",
-                  $(V.tostring v),
-                  $"=", $l] :: estol rest
+         | ExternWorld(l, rest) =>
+               % [$"extern world", $l] :: estol rest
 
          | Primop ([vv], BIND, [va], rest) =>
                %[%[$(V.tostring vv),

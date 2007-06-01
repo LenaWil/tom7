@@ -9,7 +9,7 @@ struct
   exception CPS of string
 
   datatype arminfo = datatype IL.arminfo
-  datatype world = W of var
+  datatype world = W of var | WC of string
 
   datatype primcon = VEC | REF | DICTIONARY | INT | STRING | EXN | BYTES
 
@@ -50,7 +50,7 @@ struct
     | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
-    | ExternWorld of var * string * 'cexp
+    | ExternWorld of string * 'cexp
     | ExternType of var * string * (var * string) option * 'cexp
   (* nb. Binders must be implemented in outjection code below! *)
 
@@ -78,13 +78,29 @@ struct
     | VLeta of var * 'cval * 'cval
     | VLetsham of var * 'cval * 'cval
     | VTUnpack of var * var * (var * ctyp) list * 'cval * 'cval
-
-
   (* nb. Binders must be implemented in outjection code below! *)
+
+  datatype ('cexp, 'cval) cglofront =
+      PolyCode of var * 'cval * ctyp (* @ var *)
+    | Code of 'cval * ctyp * string
     
   (* CPS expressions *)
   datatype cexp = E of (cexp, cval) cexpfront
   and      cval = V of (cexp, cval) cvalfront
+   
+  type     cglo =      (cexp, cval) cglofront
+
+  type program  = { 
+                    (* The world constants. *)
+                    worlds : string list,
+                    (* The globals (hoisted code). Before hoisting,
+                       there is usually only the main *)
+                    globals : (string * cglo) list,
+                    (* The entry point for the program. *)
+                    main : string
+
+                    }
+
 
   datatype substitutend = 
       SV of cval
@@ -243,8 +259,7 @@ struct
                  else ListUtil.mapsecond eself sel,
                  if V.eq(vv, v) then e
                  else eself e)
-       | ExternWorld (vv, s, e) =>
-           ExternWorld (vv, s, if V.eq (vv, v) then e else eself e)
+       | ExternWorld (s, e) => ExternWorld (s, eself e)
        | ExternType (vv, s, vso, e) =>
            ExternType (vv, s, vso, if V.eq (vv, v) 
                                      orelse (case vso of SOME (vvv, _) => V.eq (vvv, v)
@@ -433,10 +448,6 @@ struct
                                                                     renamee v2 v2' ` renamee vv v' e)
                                                       end
 
-    | cexp (E(ExternWorld(vv, s, e))) = let val v' = V.alphavary vv
-                                        in ExternWorld(v', s, renamee vv v' e)
-                                        end
-
     | cexp (E x) = x
 
 
@@ -556,6 +567,14 @@ struct
                                           body   = renv body }
                              end
     | cval (V x) = x
+
+  (* need to handle the schematic world variable for PolyCode. *)
+  fun cglo glo =
+    (case glo of
+       Code _ => glo
+     | PolyCode (w, va, t) => let val w' = V.alphavary w
+                              in PolyCode (w, renamev w w' va, renamet w w' t)
+                              end)
 
   infixr >>
   fun EQUAL >> f = f ()
@@ -740,6 +759,7 @@ struct
   val ctyp' = T
   val cval' = V
   val cexp' = E
+  fun cglo' x = x
 
   fun WAll (v, t) = AllArrow { worlds = [v], tys = nil, vals = nil, body = t }
   fun TAll (v, t) = AllArrow { worlds = nil, tys = [v], vals = nil, body = t }
@@ -809,6 +829,10 @@ struct
   val Proj' = fn x => V (Proj x)
   val VTUnpack' = fn x => V (VTUnpack x)
 
+  val Code' = Code
+  val PolyCode' = PolyCode
+
+
   fun Lam' (v, vl, e) = Fsel' (Lams' [(v, vl, e)], 0)
   fun Zerocon' pc = Primcon' (pc, nil)
   fun Lift' (v, cv, e) = Letsham'(v, Sham' (V.namedvar "lift_unused", cv), e)
@@ -865,7 +889,7 @@ struct
     | TUnpack (vv1, vd, vv2, v, e) => TUnpack' (vv1, vd, vv2, fv v, fe e)
     | Case (v, vv, sel, def) => Case' (fv v, vv, ListUtil.mapsecond fe sel, fe def)
     | ExternVal (v, l, t, wo, e) => ExternVal' (v, l, ft t, Option.map fw wo, fe e)
-    | ExternWorld (v, l, e) => ExternWorld' (v, l, fe e)
+    | ExternWorld (l, e) => ExternWorld' (l, fe e)
     | ExternType (v, l, vso, e) => ExternType' (v, l, vso, fe e)
 
   fun pointwisevw fw ft fv fe value =

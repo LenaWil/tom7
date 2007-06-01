@@ -572,7 +572,25 @@ struct
       | cvtds (d :: r) G = cvtd G d (cvtds r)
 
     fun convert (I.Unit(decs, _ (* exports *))) (I.WVar world) = 
-          cvtds decs ` empty ` W world
+         let
+(*
+           (* XXX this should be probably be earlier... *)
+           val homelab = "home"
+           val mainlab = "main"
+*)
+           val ce = cvtds decs ` empty ` W world
+         in
+           ce
+(*
+           { worlds = [home],
+             main = mainlab,
+             globals = [(mainlab, Code'(AllLam' { worlds = nil, tys = nil, vals = nil,
+                                                  body = Lam(V.namedvar "unused",
+                                                             nil, ce) },
+                                        Cont' nil,
+                                        home))] }
+*)
+         end
       | convert _ _ = raise ToCPS "unset evar at toplevel world"
 
     (* needed? *)
