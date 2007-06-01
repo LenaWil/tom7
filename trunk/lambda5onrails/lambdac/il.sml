@@ -27,6 +27,7 @@ struct
     datatype world =
       WEvar of world ebind ref
     | WVar of var
+    | WConst of string
 
     (* types : classifiers for values *)
     and typ =
@@ -181,7 +182,7 @@ struct
         (* tag of typ in tagtype *)
       | Newtag of var * typ * var
 
-      | ExternWorld of label * var
+      | ExternWorld of label
       | ExternVal   of (label * var * typ * world option) poly
       (* extern type (a, b) t *)
       | ExternType  of kind * label * var

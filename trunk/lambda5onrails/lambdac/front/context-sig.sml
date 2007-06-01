@@ -23,7 +23,7 @@ sig
        and binding *)
     val con : context -> string -> IL.kind * IL.con * IL.tystatus
 
-    val world : context -> string -> Variable.var
+    val world : context -> string -> IL.world
 
     (* has_evar ctx n
        Does the context contain the free evar n in the type of any
@@ -39,6 +39,7 @@ sig
 
     (* bind a world *)
     val bindw : context -> string -> Variable.var -> context
+    val bindwlab : context -> string -> context
 
     (* bind an identifier to a variable and give that variable 
        the indicated type at the indicated world *)

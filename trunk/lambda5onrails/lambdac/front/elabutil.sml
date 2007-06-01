@@ -67,7 +67,7 @@ struct
 
     val itos = Int.toString
 
-    val newstr = HumlockUtil.newstr
+    val newstr = LambdacUtil.newstr
 
     (* fixed. uses outer context to determine what evars
        should be generalized. *)

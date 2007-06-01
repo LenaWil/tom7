@@ -79,8 +79,8 @@ struct
            handle C.Absent _ => error loc ("Unbound type name " ^ str)
 
   and elabw ctx loc w =
-    (WVar ` C.world ctx w)
-    handle C.Absent _ => error loc ("Unbound world name " ^ w)
+    (C.world ctx w)
+    handle C.Absent _ => error loc ("Unbound world variable/constant " ^ w)
 
   and elabt ctx loc t = elabtex ctx NONE loc t
 
@@ -104,7 +104,7 @@ struct
        | E.TAddr w => TAddr (elabw ctx loc w)
        | E.TRec ltl => let 
                            val ltl = ListUtil.sort 
-                                     (ListUtil.byfirst HumlockUtil.labelcompare) ltl
+                                     (ListUtil.byfirst LambdacUtil.labelcompare) ltl
                        in 
                            if ListUtil.alladjacent
                                 (ListUtil.byfirst op<>) ltl 
@@ -398,7 +398,7 @@ struct
                    val letl = ListUtil.mapsecond (elab ctx here) lel
                    val _ = ListUtil.alladjacent (ListUtil.byfirst op<>) 
                               (ListUtil.sort 
-                               (ListUtil.byfirst HumlockUtil.labelcompare) lel)
+                               (ListUtil.byfirst LambdacUtil.labelcompare) lel)
                            orelse error loc 
                               "Duplicate labels in record expression"
                in
@@ -706,86 +706,7 @@ struct
               ([Tagtype tv], C.bindc ctx t (Typ (TVar tv)) 0 Extensible)
           end
 
-    (* not like SML sigs. declares the availability of
-       labels (later, type) without saying what they're bound to. *)
-    (* XXX5 this code should perhaps be revived for 'extern' decls *)
-(*
-    | E.Signature (module, decs) =>
-          let
-              fun elabsdec ctx dd =
-                  let fun checkdups atvs =
-                      ListUtil.alladjacent op <> `
-                      ListUtil.sort String.compare atvs
-                      orelse 
-                      error loc "duplicate type vars in signature dec"
-
-                      fun sdec(atvs, var, ty) =
-                          let
-                              (* no dup tyvars *)
-                              val _ = checkdups atvs
-                                  
-                              (* augment atvs with real variables too *)
-                              val atvs = map (fn x => (x, V.namedvar x)) atvs
-                                  
-                              (* put tyvars in context for arms *)
-                              val actx =
-                                  foldl (fn ((s, x),c) =>
-                                         C.bindc c s (Typ (TVar x)) 0 
-                                         Regular) ctx atvs
-                                  
-                              (* now elaborate the type. *)
-                              val tt = elabtex actx module loc ty
-                                  
-                              val pt = foldl Quant (Mono tt) (map #2 atvs)
-                          in
-                              pt
-                          end
-
-                  in
-                    (case dd of
-                         (* complications arise because of tyvars *)
-                         E.SVal (atvs, var, ty) =>
-                             let 
-                                 val pt = sdec(atvs, var, ty)
-                             in
-                                 C.bindex ctx module var pt 
-                                      (V.special module var) IL.Normal
-                             end
-                       | E.SPrim (atvs, var, ty, po) => 
-                             let
-                                 val pt = sdec(atvs, var, ty)
-                                 val v = V.namedvar ("dummy_primop_" ^ var)
-                             in
-                                 C.bindex ctx module var pt v ` IL.Primitive po
-                             end
-                       | E.SType (atvs, t) => 
-                             let
-                               val _ = checkdups atvs
-                               val v = V.special module t
-
-                               val kind = length atvs
-                               val con =
-                                   Lambda 
-                                   (fn l =>
-                                    if length l <> kind
-                                    then error loc 
-                                         "(bug) wrong number of args to sdec Lambda"
-                                    else TVar v)
-
-                             in
-                                 C.bindcex ctx module t con kind Regular
-                             end)
-                  end
-          in
-              (nil, foldl (fn (de, c) => elabsdec c de) ctx decs)
-          end
-*)
-
-    | E.ExternWorld w => 
-          let val wv = V.namedvar w
-          in
-            ([ExternWorld(w, wv)], C.bindw ctx w wv)
-          end
+    | E.ExternWorld s => ([ExternWorld s], C.bindwlab ctx s)
 
     | E.ExternVal (atvs, id, ty, wo) =>
           let
