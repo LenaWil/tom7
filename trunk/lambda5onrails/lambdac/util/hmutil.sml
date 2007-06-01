@@ -1,4 +1,4 @@
-structure HumlockUtil =
+structure LambdacUtil =
 struct
     infixr 9 `
     fun a ` b = a b
@@ -49,13 +49,11 @@ struct
     end
 end
 
-structure ModuleMap =
-     SplayMapFn(type ord_key = string option * string
-                val compare = HumlockUtil.pathcompare)
-structure StringMap = 
-     SplayMapFn(type ord_key = string val compare = String.compare)
+structure StringMap = SplayMapFn(type ord_key = string val compare = String.compare)
 structure StringMapUtil = MapUtil(structure M = StringMap)
-structure ModuleMapUtil = MapUtil(structure M = ModuleMap)
+
+structure StringSet = SplaySetFn(type ord_key = string val compare = String.compare)
+
 structure IntMap = SplayMapFn(type ord_key = int val compare = Int.compare)
 structure IntMapUtil = MapUtil(structure M = IntMap)
 
