@@ -40,7 +40,8 @@ struct
       (case w of
          I.WEvar (ref (I.Bound w)) => cvtw G w
        | I.WEvar _ => raise ToCPS "unset world evar"
-       | I.WVar v => W v)
+       | I.WVar v => W v
+       | I.WConst l => WC l)
 
     fun cvtt (G : env) (t : IL.typ) : CPS.ctyp =
       case t of
@@ -286,8 +287,8 @@ struct
          (* XXX check that world matches? *)
          I.Do e => cvte G e (fn (G, _, _, _) => k G)
 
-       | I.ExternType (0, lab, v) => ExternType' (v, lab, NONE, k (bindtype G v false))
-       | I.ExternWorld (lab, v) => ExternWorld' (v, lab, k (bindworld G v))
+       | I.ExternType (0, lab, v) => ExternType' (v, lab, NONE, k ` bindtype G v false)
+       | I.ExternWorld lab => ExternWorld' (lab, k ` bindworldlab G lab)
 
        (* need to treat specially external calls like
               js.alert : string -> unit
@@ -571,14 +572,14 @@ struct
     fun cvtds nil G = Halt'
       | cvtds (d :: r) G = cvtd G d (cvtds r)
 
-    fun convert (I.Unit(decs, _ (* exports *))) (I.WVar world) = 
+    fun convert (I.Unit(decs, _ (* exports *))) (I.WConst world) = 
          let
 (*
            (* XXX this should be probably be earlier... *)
            val homelab = "home"
            val mainlab = "main"
 *)
-           val ce = cvtds decs ` empty ` W world
+           val ce = cvtds decs ` empty ` WC world
          in
            ce
 (*
@@ -591,6 +592,7 @@ struct
                                         home))] }
 *)
          end
+      | convert _ (I.WVar _) = raise ToCPS "expected toplevel world to be a constant"
       | convert _ _ = raise ToCPS "unset evar at toplevel world"
 
     (* needed? *)

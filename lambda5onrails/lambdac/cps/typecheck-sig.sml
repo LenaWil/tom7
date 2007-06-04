@@ -20,10 +20,13 @@ sig
   val bindvar   : context -> var -> ctyp -> world -> context
   val binduvar  : context -> var -> ctyp -> context
   val setworld  : context -> world -> context
+    
+  (* we can also know about some world constants *)
+  val bindworldlab : context -> string -> context
 
   (* or TypeCheck if not bound. *)
   val gettype   : context -> var -> bool
-  val getworld  : context -> var -> unit
+  val getworld  : context -> world -> unit
   val getvar    : context -> var -> ctyp * world
   val getuvar   : context -> var -> ctyp
   val worldfrom : context -> world

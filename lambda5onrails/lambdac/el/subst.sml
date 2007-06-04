@@ -86,6 +86,7 @@ struct
      | NONE => x)
     | wsubsw s (WEvar(ref (Bound w))) = wsubsw s w
     | wsubsw s (x as (WEvar _)) = x
+    | wsubsw s (x as WConst _) = x
 
   fun pbinds  E.PWild _ = false
     | pbinds (E.PAs (i, p)) v = i = v orelse pbinds p v

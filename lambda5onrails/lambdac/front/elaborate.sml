@@ -1374,7 +1374,8 @@ struct
     in
       check_mobile ();
       Unit(idl, ixl)
-    end handle Match => raise Elaborate "match"
-  
+    end handle e as Match => raise Elaborate ("match:" ^ 
+                                              StringUtil.delimit " / " ` Port.exnhistory e)
+
 
 end

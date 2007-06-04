@@ -20,7 +20,8 @@ struct
                             current : world }
 
   fun empty w = C { tvars = V.Map.empty,
-                    worldlabs = SS.empty,
+                    (* only home to start *)
+                    worldlabs = SS.add(SS.empty, Initial.homename),
                     worlds = V.Set.empty, (* V.Set.add'(w, V.Set.empty),*)
                     vars = V.Map.empty,
                     uvars = V.Map.empty,
@@ -100,9 +101,14 @@ struct
      | SOME b => b)
 
 
-  fun getworld (C { worlds, ... }) v = if V.Set.member (worlds, v) then () 
-                                       else raise TypeCheck ("unbound world var: " ^
-                                                             V.tostring v)
+  fun getworld (C { worlds, ... }) (W v) = 
+    if V.Set.member (worlds, v) then () 
+    else raise TypeCheck ("unbound world var: " ^
+                          V.tostring v)
+    | getworld (C { worldlabs, ...}) (WC l) =
+      if SS.member (worldlabs, l) then ()
+      else raise TypeCheck ("unknown world constant " ^ l)
+
   fun getvar (ctx as C { vars, ... }) v =
     (case V.Map.find (vars, v) of
        NONE => 
@@ -200,7 +206,8 @@ struct
 
   fun faile exp msg = fail [$"\n\nIll-typed: ", EX exp, $"\n", $msg]
        
-  fun wok G (W w) = getworld G w
+  val wok = getworld
+  (* fun wok G w = getworld G w *)
 
   (* here we go... *)
   fun tok G typ =
@@ -248,14 +255,17 @@ struct
     | Primcon _ => raise TypeCheck "bad primcon"
     | Sum sail => ListUtil.appsecond (ignore o (IL.arminfo_map ` tok G)) sail
 
+  fun wtos (W w) = V.tostring w
+    | wtos (WC c) = "##" ^ c
+
   (* some actions ought only happen at the same world we're in now *)
   fun insistw G w =
     if world_eq (worldfrom G, w) 
     then ()
     else raise TypeCheck ("expected to be at same world: "
-                          ^ V.tostring (let val W x = worldfrom G in x end) ^
-                          " and "
-                          ^ V.tostring (let val W x = w in x end))
+                          ^ wtos ` worldfrom G
+                          ^ " and "
+                          ^ wtos w)
 
   (* check that the expression is well-formed at the world in G *)
   fun eok G exp =
@@ -317,7 +327,7 @@ struct
                              $"got: ", TY (ctyp' ot)]
                                 
                                 )
-     | ExternWorld (v, _, e) => eok (bindworld G v) e
+     | ExternWorld (l, e) => eok (bindworldlab G l) e
      | Leta (v, va, e) =>
             (case ctyp ` vok G va of
                At (t, w) => eok (bindvar G v t w) e

@@ -184,6 +184,10 @@ struct
     and unifyw ctx w1 w2 =
       case (w1, w2) of
         (WVar a, WVar b) => ignore (Variable.eq (a, b) orelse raise Unify "world var")
+
+      | (WConst a, WConst b) => ignore (a = b orelse raise Unify "world const")
+      | (WVar _, WConst _) => raise Unify "world var/const"
+      | (WConst _, WVar _) => raise Unify "world const/var"
       (* if either is bind, path compress... *)
       | (WEvar (ref (Bound w1)), w2) => unifyw ctx w1 w2
       | (w1, WEvar (ref (Bound w2))) => unifyw ctx w1 w2

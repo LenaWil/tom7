@@ -6,6 +6,10 @@ group is
 (* to compile with sml/nj *)
 #if (defined(SMLNJ_VERSION))
  $/basis.cm
+ util/port-nj.sml
+#else
+ (* assume we are using mlton then *)
+ util/port-mlton.sml
 #endif
 
 ../../sml-lib/util/listutil-sig.sml

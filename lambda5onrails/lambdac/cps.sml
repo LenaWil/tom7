@@ -127,7 +127,7 @@ struct
 
 
   fun substw v se (W vv) = if V.eq (v, vv) then se_getw se else W vv
-
+    | substw _ _  (w as WC l) = w
 
   (* substitute through a type front.
      v is the variable to substitute for, se is the
@@ -581,6 +581,10 @@ struct
     | c >> _ = c
 
   fun world_cmp (W w1, W w2) = V.compare(w1, w2)
+    | world_cmp (W _, WC _) = LESS
+    | world_cmp (WC _, W _) = GREATER
+    | world_cmp (WC w1, WC w2) = String.compare (w1, w2)
+
   fun world_eq ws = EQUAL = world_cmp ws
 
   fun pc_cmp (VEC, VEC) = EQUAL
@@ -950,6 +954,7 @@ struct
   exception Occurs
 
   fun occursw var (w as W var') = if V.eq (var, var') then raise Occurs else w
+    | occursw _   (w as WC _)   = w
 
   fun occursv var (value : cval) =
     (case cval value of
@@ -1023,6 +1028,7 @@ struct
 
   local
     fun aw (ws, _) (w as W v) = (ws := VS.add (!ws, v); w)
+      | aw _       (w as WC _) = w
 
     and at (ws, ts) typ =
       case ctyp typ of
