@@ -39,7 +39,7 @@ struct
         end
 
   fun wtol (W w) = $(V.tostring w)
-    | wtol (WC s) = $s
+    | wtol (WC s) = $("##" ^ s)
       
   fun tftol (bindtol : 'tbind -> L.layout) (ttol : 'ctyp -> L.layout) t =
       (case t of

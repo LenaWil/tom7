@@ -155,7 +155,7 @@ struct
             val () = print "\n\n**** UNUSED: ****\n"
             val () = Layout.print( ILPrint.utol il, print)
 
-            val cw = CPS.W Initial.homevar
+            val cw = CPS.WC Initial.homename
 
             val c : CPS.cexp = ToCPS.convert il Initial.home
             val () = print "\n\n**** CPS CONVERTED: ****\n"
