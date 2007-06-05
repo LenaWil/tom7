@@ -80,19 +80,21 @@
    optimize this to avoid the immediate packing and unpacking.
 
 
-   Question: is it really the best choice to have the fns construct dynamically bind
-   the individual function variables within itself, or should it bind the bundle and
-   then we use fsel to make friend calls? Both seem to work, but the latter seems
-   a bit more uniform.
+   Question: is it really the best choice to have the fns construct
+   dynamically bind the individual function variables within itself,
+   or should it bind the bundle and then we use fsel to make friend
+   calls? Both seem to work, but the latter seems a bit more uniform.
 
 
    Other features need to be closure converted as well. They are
    simpler but less standard.
 
-   The AllLam construct allows quantification over value variables;
-   we will also closure convert it whenever there is at least one value
-   variable. These lambdas are converted pretty much the same way as
-   regular lambdas.
+   The AllLam construct allows quantification over value variables. We
+   won't be able to evaluate the body of an alllam if it quantifies
+   over value variables, since we won't know the values of those
+   variables. So, we will closure convert it whenever there is at
+   least one value argument. These lambdas are converted pretty much
+   the same way as regular lambdas.
 
    { w; t; t dict } -> c
 

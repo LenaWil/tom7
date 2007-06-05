@@ -192,11 +192,11 @@ struct
             val () = CPSTypeCheck.check cw c
             val () = print "\n* Typechecked OK *\n"
 
-            val c : CPS.cexp = Hoist.hoist cw c
+            val p : CPS.program = Hoist.hoist cw c
             val () = print "\n\n**** HOIST: ****\n"
-            val () = Layout.print ( CPSPrint.etol c, print)
-
-            val () = CPSTypeCheck.check cw c
+            val () = Layout.print ( CPSPrint.ptol p, print)
+              
+            val () = CPSTypeCheck.checkprog p
             val () = print "\n* Typechecked OK *\n"
 
         in
@@ -205,7 +205,7 @@ struct
           raise Compile "backend unimplemented";
           OS.Process.success
           *)
-          c
+          p
         end)
     handle Compile s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
          | CPSDict.CPSDict s => fail ("\nCPSDict: " ^ s ^ "\n")

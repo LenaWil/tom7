@@ -40,7 +40,7 @@ struct
 
   fun wtol (W w) = $(V.tostring w)
     | wtol (WC s) = $("##" ^ s)
-      
+
   fun tftol (bindtol : 'tbind -> L.layout) (ttol : 'ctyp -> L.layout) t =
       (case t of
            Mu (i, m) =>
@@ -258,7 +258,7 @@ struct
          | Primop (vl, po, vas, rest) =>
                % [%[L.listex "[" "]" "," ` map ($ o V.tostring) vl,
                     $"="],
-                  ptol po,
+                  potol po,
                   L.listex "[" "]" "," ` map vtol vas] :: estol rest
 
          | Call (v, vl) =>
@@ -330,12 +330,17 @@ struct
     else $"_"
 
 
-  and ptol LOCALHOST = $"LOCALHOST"
-    | ptol BIND = $"BIND"
-    | ptol MARSHAL = $"MARSHAL"
-    | ptol (PRIMCALL {sym, dom, cod}) = %[$("PRIMCALL_" ^ sym),
-                                          $":",
-                                          %[L.listex "(" ")" "," ` map ttol dom,
-                                            $"->",
-                                            ttol cod]]
+  and potol LOCALHOST = $"LOCALHOST"
+    | potol BIND = $"BIND"
+    | potol MARSHAL = $"MARSHAL"
+    | potol (PRIMCALL {sym, dom, cod}) = %[$("PRIMCALL_" ^ sym),
+                                           $":",
+                                           %[L.listex "(" ")" "," ` map ttol dom,
+                                             $"->",
+                                             ttol cod]]
+
+
+  fun ptol { worlds, main, globals } =
+    $"XXX_PROGRAM_XXX"
+
 end

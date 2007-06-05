@@ -7,6 +7,8 @@ sig
 
   exception Hoist of string
   
-  val hoist : CPS.world -> CPS.cexp -> CPS.cexp
+  (* hoist an expression, creating a program.
+     the world must be a constant, given as a string *)
+  val hoist : CPS.world -> CPS.cexp -> CPS.program
 
 end
