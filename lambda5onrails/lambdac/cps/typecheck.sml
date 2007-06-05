@@ -89,6 +89,10 @@ struct
         C { tvars = tvars, worlds = worlds, vars = vars, current = current,
             uvars = uvars, worldlabs = worldlabs, 
             globals = SM.insert (globals, s, g) }
+  fun getglobal (C { globals, ...}) s =
+    case SM.find (globals, s) of
+      NONE => raise TypeCheck ("global not found: " ^ s)
+    | SOME g => g
 
   fun bindworldlab (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) s =
     C { tvars = tvars, worlds = worlds, vars = vars, 
@@ -289,6 +293,7 @@ struct
          in
            eok G e
          end
+
      | Primop ([v], MARSHAL, [vd, va], e) =>
          let
            val td = vok G vd
@@ -304,6 +309,7 @@ struct
                                                    $"actual arg: ", TY ta]
            | _ => raise TypeCheck "marshal: need dict and arg"
          end
+     | Primop (_, MARSHAL, _, _) => raise TypeCheck "bad marshal primop"
 
      | Primop ([v], PRIMCALL { sym = _, dom, cod }, vas, e) =>
          let
@@ -513,6 +519,17 @@ struct
                 Dictionary' ` TExists' (v1, map (fn v => edict "texists" ` vok G v) vl)
               end
           | Cont tl => Dictionary' ` Cont' ` map (fn v => edict "cont" ` vok G v) tl
+          | AllArrow { worlds, tys, vals, body } =>
+              let
+                val G = bindworlds G worlds
+                val G = foldr (fn ((v1, _), G) => bindtype G v1 false) G tys
+                val G = foldr (fn ((v1, v2), G) => binduvar G v2 (Dictionary' ` TVar' v1)) G tys
+              in
+                Dictionary' ` AllArrow' { worlds = worlds, tys = map #1 tys,
+                                          vals = map (fn v => edict "allarrow" ` vok G v) vals,
+                                          body = edict "allarrow-body" ` vok G body }
+              end
+
           | _ => fail [$"unimplemented dict typefront", VA value]
        end
 
@@ -684,10 +701,20 @@ struct
               end
         | _ => raise TypeCheck "allapp to non-allarrow")
             
+     | Codelab s =>
+        (case getglobal G s of
+           Code ((), t, w) =>
+             let in
+               insistw G (WC w);
+               t
+             end
+         | PolyCode _ => raise TypeCheck "unimplemented polycode"
+             )
+          
 
      | _ => 
          let in
-           print "\nUnimplemented:\n";
+           print "\nUnimplemented val:\n";
            Layout.print (CPSPrint.vtol value, print);
            raise TypeCheck "unimplemented"
          end
@@ -714,13 +741,20 @@ struct
       fun checkglobal (lab, glo) = 
         (case cglo glo of
            (Code (va, t, w)) =>
-             let
-               val G = empty (WC w)
-             (* XXX "bind" world constants *)
-             in
-               raise TypeCheck "unimplemented"
-             end
-         | (PolyCode _) => raise TypeCheck "unimplemented")
+             (let
+                val G = setworld G (WC w)
+                val t' = vok G va
+              in
+                if ctyp_eq (t, t')
+                then ()
+                else fail [$lab, $":",
+                           $"Code global's type doesn't match annotation",
+                           $"type:", TY t',
+                           $"annotation:", TY t]
+              end handle TypeCheck s =>
+                raise TypeCheck ("In Code label " ^ lab ^ ":\n" ^ s))
+                
+         | (PolyCode _) => raise TypeCheck "unimplemented polycode")
 
     in
        (* Doesn't matter what main is, as long as it exists. *)

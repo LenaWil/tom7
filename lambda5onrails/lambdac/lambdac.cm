@@ -173,3 +173,5 @@ cps/hoist-sig.sml
 cps/hoist.sml
 
 compile.sml
+test.sml
+

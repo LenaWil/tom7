@@ -269,7 +269,7 @@ struct
      a                         ->      x          (where x is the value uvariable
                                                    holding the dictionary for the
                                                    type variable a)
-     Mu a. (a * a)             ->      Dict (Mu x. Dict (Product (x, x)))
+     Mu a. (a * a)             ->      Dict (Mu (a/x). Dict (Product (x, x)))
                                                   (Dict-level Mu binds a value
                                                    uvariable.)
 
@@ -303,6 +303,19 @@ struct
            val G = binduvar G ud (Dictionary' ` TVar' v)
          in
            Dict' ` TExists((v,ud), map (makedict G) tl)
+         end
+     | AllArrow { worlds, tys, vals, body } =>
+         let
+           val tvys = map (fn v => (v, V.namedvar "aadict")) tys
+           
+           val G = bindworlds G worlds
+           val G = bindtypes G (map #1 tvys)
+           val G = foldr (fn ((v, u), G) => binduvar G u (Dictionary' ` TVar' v)) G tvys
+         in
+           Dict' ` AllArrow { worlds = worlds,
+                              tys = tvys,
+                              vals = map (makedict G) vals,
+                              body = makedict G body }
          end
      | _ => 
          let in
