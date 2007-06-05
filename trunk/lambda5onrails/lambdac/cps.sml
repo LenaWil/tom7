@@ -920,7 +920,6 @@ struct
     | UVar _ => value
     | Proj (s, v) => Proj' (s, fv v)
     | Dictfor t => Dictfor' ` ft t
-    (* FIXME Dicts (... is this not fixed? looks okay to me) *)
     | Dict tf => Dict' ` ontypefront fw fv tf
     | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } =>
                 AllLam' { worlds = worlds, tys = tys, 
@@ -940,16 +939,6 @@ struct
 
   fun subvv sl sv = substv sv (SV sl)
   fun subve sl sv = subste sv (SV sl)
-
-  (* XX perf; use below *)
-(*
-  fun freet v tt =
-    let val n = V.namedvar "free_new"
-        val tt' = renamet v n tt
-    in
-      not (ctyp_eq (tt, tt'))
-    end
-*)
 
   exception Occurs
 

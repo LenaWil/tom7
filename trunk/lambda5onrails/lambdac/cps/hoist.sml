@@ -38,24 +38,34 @@ struct
   (* assuming not mobile *)
   val bindtypes  = foldl (fn (v, c) => bindtype c v false)
 
+  (* label to use for the program's entry point.
+     (we should check that this label is not used anywhere else;
+      right now the only other labels start with the prefix L_ below) *)
+  val mainlab = "main"
 
   fun hoist home program =
     let
-      val accum = ref nil
+      val globals = ref nil
       val ctr = ref 0
       (* PERF. we should be able to merge alpha-equivalent labels here,
          which would probably yield substantial $avings. *)
-      (* Take code and return a label after inserting it in the global
+      (* Take a global and return a label after inserting it in the global
          code table. *)
-      fun insert (arg as (ws, ts, vael)) =
+      fun insert arg =
           let
-              (* XXX could derive it from a function name in vael? *)
+              (* XXX could derive it from a function name if it's a Lams? *)
               val l = "L_" ^ Int.toString (!ctr)
           in
               ctr := !ctr + 1;
-              accum := arg :: !accum;
+              globals := (l, arg) :: !globals;
               l
           end
+
+      val foundworlds = ref nil
+      fun findworld s =
+        if List.exists (fn s' => s = s') ` !foundworlds 
+        then ()
+        else foundworlds := s :: !foundworlds
 
       (* types do not change. *)
       fun ct t = t
@@ -83,7 +93,15 @@ struct
                 | SOME w => bindvar G v t w) e)
          end
 
-     | ExternWorld (l, e) => ExternWorld' (l, ce (T.bindworldlab G l) e)
+     (* we are also hoisting these declarations to the top level,
+        so we eliminate this construct *)
+     | ExternWorld (l, e) => 
+         let 
+           val G = T.bindworldlab G l
+         in
+           findworld l;
+           ce G e
+         end
 
      | Primop ([v], LOCALHOST, [], e) =>
            Primop' ([v], LOCALHOST, [], 
@@ -184,6 +202,14 @@ struct
            Lams vael =>
              let
                val { w, t } = freesvarsv value
+
+               (* Don't alllam-abstract over the world variable that the value
+                  is typed @, even if it is free in the value. We'll abstract this 
+                  by the PolyCode construct. *)
+               val w = (case worldfrom G of
+                          W wv => (V.Set.delete (w, wv) handle _ => w)
+                        | WC _ => w)
+
                val w = V.Set.foldr op:: nil w
                val t = V.Set.foldr op:: nil t
 
@@ -193,13 +219,108 @@ struct
                val () = app (fn v => print (V.tostring v ^ " ")) t
                val () = print "\n"
 
-               val l = insert (w, t, vael)
+               (* recursive vars *)
+               val G = foldl (fn ((v, args, _), G) =>
+                              bindvar G v (Cont' ` map #2 args) ` worldfrom G) G vael
+
+               val vael =
+                 map (fn (f, args, e) =>
+                      let
+                        val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args
+                      in
+                        (f, args, ce G e)
+                      end) vael
+
+               (* type of the lambdas *)
+               (* just use annotations *)
+               val contsty = Conts' (map (fn (_, args, _) => map #2 args) vael)
+
+               (* global thing and its type *)
+               val code = AllLam' { worlds = w, tys = t, vals = nil, body = Lams' vael }
+               val ty = AllArrow' { worlds = w, tys = t, vals = nil, body = contsty }
+
+               val glo =
+                 (case worldfrom G of
+                    W wv => PolyCode' (wv, code, ty)
+                  | WC l => Code' (code, ty, l))
+             
+               val l = insert glo
                    
              in
-           (* AllApp' { f = Codelab' l, worlds = map W w, tys = map TVar' t, vals = nil }; *)
-               raise Hoist "unimplemented"
+               (* in order to preserve the local type, we apply the label to the
+                  world and type variables. If it is PolyCode, we don't need to apply
+                  to that world, since it will be determined by context (like uvars are) *)
+               (AllApp' { f = Codelab' l, worlds = map W w, tys = map TVar' t, vals = nil },
+                contsty)
              end
-           
+
+         (* purely static alllams are not converted. *)
+         | AllLam { worlds, tys, vals = vals as nil, body } => 
+             let
+               val G = bindworlds G worlds
+               val G = bindtypes G tys
+               val vals = ListUtil.mapsecond ct vals
+               val G = foldl (fn ((v, t), G) => bindvar G v t (worldfrom G)) G vals
+               val (body, tb) = cv G body
+             in
+               (AllLam' { worlds = worlds, tys = tys, vals = vals,
+                          body = body },
+                AllArrow' { worlds = worlds, tys = tys, vals = map #2 vals, 
+                            body = tb })
+             end
+
+         (* But we hoist the closure-converted alllam with value arguments. *)
+         | AllLam { worlds, tys, vals = vals as _ :: _, body } => 
+             let
+               val G = bindworlds G worlds
+               val G = bindtypes G tys
+               val vals = ListUtil.mapsecond ct vals
+               val G = foldl (fn ((v, t), G) => bindvar G v t (worldfrom G)) G vals
+               val (body, tb) = cv G body
+
+               val { w, t } = freesvarsv value
+
+               (* Don't alllam-abstract over the world variable that the value
+                  is typed @, even if it is free in the value. We'll abstract this 
+                  by the PolyCode construct. *)
+               val w = (case worldfrom G of
+                          W wv => (V.Set.delete (w, wv) handle _ => w)
+                        | WC _ => w)
+
+               val w = V.Set.foldr op:: nil w
+               val t = V.Set.foldr op:: nil t
+
+               val () = print "Hoist alllam FWV: "
+               val () = app (fn v => print (V.tostring v ^ " ")) w
+               val () = print "\nHoist alllam FTV: "
+               val () = app (fn v => print (V.tostring v ^ " ")) t
+               val () = print "\n"
+
+               (* type of the lambdas *)
+               val lamty = 
+                 AllArrow' { worlds = worlds, tys = tys, vals = map #2 vals, 
+                             body = tb }
+
+               (* global thing and its type *)
+               val code = AllLam' { worlds = w, tys = t, vals = nil, body = 
+                                    AllLam' { worlds = worlds, tys = tys, vals = vals,
+                                              body = body }
+                                    }
+               val ty = AllArrow' { worlds = w, tys = t, vals = nil, body = lamty }
+
+               val glo =
+                 (case worldfrom G of
+                    W wv => PolyCode' (wv, code, ty)
+                  | WC l => Code' (code, ty, l))
+             
+               val l = insert glo
+
+             in
+               (AllApp' { f = Codelab' l, worlds = map W w, tys = map TVar' t, vals = nil },
+                lamty)
+             end
+
+
          | Int _ => (value, Zerocon' INT)
          | String _ => (value, Zerocon' STRING)
              
@@ -444,9 +565,23 @@ struct
              end)
 
       val program' = ce (T.empty home) program
+
+      val homelab = (case home of
+                       WC h => h
+                     | W _ => raise Hoist "can only hoist convert at a constant world.")
+
+      val entry = (mainlab, Code'((* no free static things, but conform to conventions *)
+                                  AllLam' { worlds = nil, tys = nil, vals = nil,
+                                            (* a no-argument lambda *)
+                                            body = Lam' (V.namedvar mainlab,
+                                                         nil,
+                                                         program') },
+                                  Cont' nil,
+                                  homelab))
     in
-      (* FIXME wrap program' with global bindings *)
-      raise Hoist "unimplemented"
+      { worlds = homelab :: !foundworlds,
+        globals = entry :: !globals,
+        main = mainlab }
     end
 
 end
