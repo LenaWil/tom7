@@ -103,6 +103,17 @@ struct
            ce G e
          end
 
+     | Primop ([v], MARSHAL, [vd, va], e) =>
+         let
+           val (vd, _) = cv G vd
+           val (va, _) = cv G va
+           (* don't bother checking the types; we always get
+              the same result *)
+           val G = bindvar G v (Zerocon' BYTES) ` worldfrom G
+         in
+           Primop' ([v], MARSHAL, [vd, va], ce G e)
+         end
+
      | Primop ([v], LOCALHOST, [], e) =>
            Primop' ([v], LOCALHOST, [], 
                     ce (binduvar G v ` Addr' ` worldfrom G) e)
@@ -180,7 +191,13 @@ struct
      | Go_cc _ => raise Hoist "Hoist expects undict-converted code, but saw Go_cc"
 
 
-     (* XXX Go_mar *)
+     | Go_mar { w, addr, bytes } =>
+           let
+             val (addr, _) = cv G addr
+             val (bytes, _) = cv G bytes
+           in
+             Go_mar' { w = w, addr = addr, bytes = bytes }
+           end
 
      | _ =>
          let in
@@ -576,7 +593,8 @@ struct
                                             body = Lam' (V.namedvar mainlab,
                                                          nil,
                                                          program') },
-                                  Cont' nil,
+                                  AllArrow' { worlds = nil, tys = nil, vals = nil,
+                                              body = Cont' nil },
                                   homelab))
     in
       { worlds = homelab :: !foundworlds,

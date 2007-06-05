@@ -69,7 +69,7 @@ struct
                      | _ => [% ($"t:" :: map bindtol tys)]) @
                     (case vals of
                        nil => nil
-                     | _ => [% ($"v:" :: map (L.paren o ttol) vals)])
+                     | _ => [% [$"v:", L.listex "" "" "," ` map (L.paren o ttol) vals]])
                        ),
                        $"."]],
                    L.indent 2 ` ttol body]
@@ -340,7 +340,21 @@ struct
                                              ttol cod]]
 
 
+  fun gtol (l, glo) =
+    case cglo glo of
+       Code (va, t, s) => 
+         %[%[%[$l, $":"], L.indent 2 ` %[ttol t, %[$"@", $s]], $"="],
+           L.indent 2 ` vtol va]
+     | PolyCode(w, va, t) => 
+         %[%[%[$l, $"<", varl w, $">", $":"], L.indent 2 ` %[ttol t, %[$"@", varl w]], $"="],
+           L.indent 2 ` vtol va]
+
   fun ptol { worlds, main, globals } =
-    $"XXX_PROGRAM_XXX"
+    L.align
+    ([$"CPS Program.",
+      $"Worlds constants: ", L.indent 2 ` % ` map $ worlds] @
+     map gtol globals)
+     
+    
 
 end
