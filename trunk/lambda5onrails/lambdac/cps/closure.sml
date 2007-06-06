@@ -264,6 +264,10 @@ struct
            val body = ce (T.setworld G w) body
 
            val (fv, fuv) = freevarse body
+           (* See case for Lams *)
+           val { w = _, t = ft } = freesvarse body
+           val fuv = V.Set.union (fuv, V.Set.map (T.getdict G) ft)
+
            val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
 
            val envv = V.namedvar "go_env"

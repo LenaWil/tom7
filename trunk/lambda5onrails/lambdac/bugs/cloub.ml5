@@ -11,7 +11,7 @@ unit
 
     fun goswap a =
 	let in
-	    js.alert (from server get (version ()));
+(*	    js.alert (from server get (version ())); *)
 	    a
 	end
     val p = goswap 300
