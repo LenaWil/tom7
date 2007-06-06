@@ -227,17 +227,17 @@ struct
         fun fromString s =
            T (Vector.tabulate
               (String.size s, fn i =>
-               Word.fromInt (Char.toInt (String.sub (s, i)))))
+               Word.fromInt (ord (String.sub (s, i)))))
 
         fun escape (T ws) = JSUtil.escapeJavascript ws
 
         fun toString (T ws) =
-           String.tabulate (Vector.length ws, fn i =>
-                            Char.fromInt (Word.toInt (Vector.sub (ws, i))))
+           CharVector.tabulate (Vector.length ws, fn i =>
+                                chr (Word.toInt (Vector.sub (ws, i))))
 
         val layout = Layout.str o escape
 
-        val w2c = Char.fromInt o Word.toInt
+        val w2c = chr o Word.toInt
 
         val keywords =
            ["true", "false", "break", "case", "catch", "const", "continue",
@@ -248,8 +248,8 @@ struct
         local
            val set = HashSet.new {hash = #hash}
            val () =
-              List.foreach
-              (keywords, fn s =>
+              List.app
+              (fn s =>
                let
                   val hash = String.hash s
                in
@@ -257,7 +257,7 @@ struct
                   (HashSet.lookupOrInsert
                    (set, hash, fn {string = s', ...} => s = s',
                     fn () => {hash = hash, string = s}))
-               end)
+               end) keywords
         in
            fun isKeyword s =
               isSome
@@ -271,13 +271,13 @@ struct
               fun isOk c = Char.isAlphaNum c orelse c = #"_" orelse c = #"$"
            in
               (isOk (w2c (Vector.sub (ws, 0)))
-               andalso Vector.forall (ws, fn w =>
-                                      let
-                                         val c = w2c w
-                                      in
-                                         isOk c orelse Char.isDigit c
-                                      end)
-               andalso not (isKeyword (String.tabulate
+               andalso Vector.all (fn w =>
+                                   let
+                                     val c = w2c w
+                                   in
+                                     isOk c orelse Char.isDigit c
+                                   end) ws
+               andalso not (isKeyword (CharVector.tabulate
                                        (Vector.length ws, fn i =>
                                         w2c (Vector.sub (ws, i))))))
               handle Chr => false
