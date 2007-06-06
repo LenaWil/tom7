@@ -1,4 +1,8 @@
 
+(* FIXME the calls to getdict also need to make sure that they get the
+   right ("most recent") dictionary, not just any old one in context. 
+   see bugs/cloub.ml5 for failure *)
+
 (* This is a dirt simple implementation of closure conversion.
 
    The Hemlock series of compilers had a very compilcated closure
