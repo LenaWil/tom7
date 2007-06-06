@@ -5,16 +5,16 @@ unit
     extern val version : unit -> string @ server
 
     (* test... *)
-    (* extern val (a, b) polyswap : a * b -> b * a @ server *)
+    extern val (a, b) polyswap : a * b -> b * a @ server
 
-	   (* do js.alert "Hello, World 2.0!" *)
+    do js.alert "Hello, World 2.0!"
 
-    fun goswap a =
+    fun goswap (a, b) =
 	let in
-(*	    js.alert (from server get (version ())); *)
-	    a
+	    js.alert (from server get (version ()));
+	    (b, a)
 	end
-    val p = goswap 300
+    val p = goswap (300, 400)
 in
     export val pair = p
 end
