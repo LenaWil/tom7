@@ -504,7 +504,7 @@ struct
                    not obvious that Dict(Primcon(REF, [])) shouldn't have
                    type Primcon(REF, []) Dictionary, though that type
                    classifies no values... *)
-                Dictionary' ` Primcon'(pc, tl)
+                Dictionary' ` Primcon'(pc, ts)
               end
           | Product stl =>
               Dictionary' ` Product' ` ListUtil.mapsecond (fn v => edict "prod" ` vok G v) stl
@@ -764,6 +764,7 @@ struct
 
       app checkglobal globals
     end
-    
+   
+  val checkv = vok
 
 end

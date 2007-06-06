@@ -40,6 +40,8 @@ sig
 
   (* validate the expression e in the empty context at the supplied world *)
   val check : world -> cexp -> unit
+  (* type check a value and return its type *)
+  val checkv : context -> cval -> ctyp
 
   val checkprog : CPS.program -> unit
 
