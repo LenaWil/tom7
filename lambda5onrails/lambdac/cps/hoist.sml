@@ -570,6 +570,21 @@ struct
                      Dictionary' ` TExists' (v1, map (edict "texists") tl))
                   end
 
+              | AllArrow { worlds, tys, vals, body } =>
+                  let
+                    val G = bindworlds G worlds
+                    val G = foldr (fn ((v1, _), G) => bindtype G v1 false) G tys
+                    val G = foldr (fn ((v1, v2), G) => binduvar G v2 (Dictionary' ` TVar' v1)) G tys
+
+                    val (vals, valts) = ListPair.unzip ` map (cv G) vals
+                    val (body, bodyt) = cv G body
+                  in
+                    (Dict' ` AllArrow { worlds = worlds, tys = tys, vals = vals, body = body },
+                     Dictionary' ` AllArrow' { worlds = worlds, tys = map #1 tys,
+                                               vals = map (edict "allarrow") valts,
+                                               body = edict "allarrow-body" bodyt })
+                  end
+
               | _ => raise Hoist "unimplemented dict typefront"
            end
 

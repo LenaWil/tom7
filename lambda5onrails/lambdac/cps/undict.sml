@@ -277,8 +277,37 @@ struct
   and makedict_fake G ty = Dictfor' ty
 
   and makedict G ty =
+      let
+          val d = makedict' G ty
+          val t = T.checkv G d
+      in
+          if ctyp_eq (Dictionary' ty, t)
+          then d
+          else 
+              let in
+                  print "\n\n\nMAKEDICT FAILS\n** target type:";
+                  Layout.print (CPSPrint.ttol ` Dictionary' ty, print);
+                  print "\n** value result\n:";
+                  Layout.print (CPSPrint.vtol d, print);
+                  print "\n** type of that\n:";
+                  Layout.print (CPSPrint.ttol t, print);
+
+                  raise UnDict "makedict produced an ill-typed dictionary"
+              end
+      end
+  and makedict' G ty =
     (case ctyp ty of
-       TVar a => UVar' ` T.getdict G a
+       TVar a => 
+           let 
+               val () = print ("Want dictionary for tvar " ^ V.tostring a ^"\n");
+               val u = T.getdict G a
+           in
+               print ("I got this uvar: " ^ V.tostring u ^ "\n");
+               print "It has type:\n";
+               Layout.print (CPSPrint.ttol (T.getuvar G u), print);
+               print "\n";
+               UVar' u
+           end
      | Mu (i, vtl) =>
          let
            (* put types in context, put dicts in context too *)
@@ -292,7 +321,16 @@ struct
      | Product stl => Dict' ` Product(ListUtil.mapsecond (makedict G) stl)
      | At (t, w) => Dict' ` At (makedict G t, w)
      | Shamrock t => Dict' ` Shamrock ` makedict G t
-     | Primcon (pc, tl) => Dict' ` Primcon (pc, map (makedict G) tl)
+     | Primcon (pc, tl) => 
+         let 
+             val () = print "primcon\n"
+             val r =              Dict' ` Primcon (pc, map (makedict G) tl)
+         in
+             print "The primcon result:\n";
+             Layout.print (CPSPrint.vtol r, print);
+             print "\nprimcon out\n";
+             r
+         end
      | Cont tl => Dict' ` Cont ` map (makedict G) tl
      | Conts tll => Dict' ` Conts ` map (map (makedict G)) tll
      | Addr w => Dict' ` Addr w
