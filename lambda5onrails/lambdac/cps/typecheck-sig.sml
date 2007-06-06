@@ -39,6 +39,9 @@ sig
 
   val setopts   : context -> checkopt list -> context
 
+  (* clear the dynamic components (vars, uvars) *)
+  val cleardyn  : context -> context
+
   (* when the dictionary invariant is in place, get the dictionary (as uvar)
      for a type variable *)
   val getdict   : context -> var -> var

@@ -51,7 +51,7 @@ struct
                          VLetsham' (gd, Var' gds,
                                     Lam' (V.namedvar "_",
                                           [(x, TVar' gt)],
-                                          Bind' (f, Sham0' ` Dictfor' ` TVar' gt,
+                                          Bind' (f, Dictfor' ` TVar' gt,
                                                  Halt'))) },
             Halt' )
 
