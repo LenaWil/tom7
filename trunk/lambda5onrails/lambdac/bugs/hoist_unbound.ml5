@@ -1,7 +1,6 @@
 unit
-    fun f x = 1
-
-    fun g a = f
+    fun f x = (primapp halt {unit} ())
+    fun g () = f
 in
     export val x = g
 end

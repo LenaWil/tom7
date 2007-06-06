@@ -36,6 +36,8 @@ struct
         (SOME ("-v",
                "Show progress")) "verbose"
 
+    structure T = CPSTypeCheck
+
     exception Compile of string
 
     fun vprint s =
@@ -161,42 +163,46 @@ struct
             val () = print "\n\n**** CPS CONVERTED: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
-            val () = CPSTypeCheck.check cw c
+            val G = T.empty cw
+            val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
             val c : CPS.cexp = CPSOpt.optimize c
             val () = print "\n\n**** CPS OPT1: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
-            val () = CPSTypeCheck.check cw c
+            val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
             val c : CPS.cexp = CPSDict.translate c
             val () = print "\n\n**** CPS DICT: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
-            val () = CPSTypeCheck.check cw c
+            val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
             val c : CPS.cexp = Closure.convert cw c
             val () = print "\n\n**** CLOSURE: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
-            val () = CPSTypeCheck.check cw c
+            (* from now on, code should be closed. *)
+            val G = T.setopts G [T.O_CLOSED]
+
+            val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
             val c : CPS.cexp = UnDict.undict cw c
             val () = print "\n\n**** UNDICT: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
-            val () = CPSTypeCheck.check cw c
+            val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
             val p : CPS.program = Hoist.hoist cw c
             val () = print "\n\n**** HOIST: ****\n"
             val () = Layout.print ( CPSPrint.ptol p, print)
               
-            val () = CPSTypeCheck.checkprog p
+            val () = T.checkprog p
             val () = print "\n* Typechecked OK *\n"
 
         in
