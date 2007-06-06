@@ -9,6 +9,12 @@ sig
 
   type context
 
+  datatype checkopt = 
+      (* Lams and AllLam must be closed. *)
+      O_CLOSED 
+      (* The Dictfor construct is not allowed *)
+    | O_NO_DICTFOR
+
   exception TypeCheck of string
 
   (* every context has the "current world" *)
@@ -31,6 +37,8 @@ sig
   val getuvar   : context -> var -> ctyp
   val worldfrom : context -> world
 
+  val setopts   : context -> checkopt list -> context
+
   (* when the dictionary invariant is in place, get the dictionary (as uvar)
      for a type variable *)
   val getdict   : context -> var -> var
@@ -38,8 +46,8 @@ sig
   (* computes the unrolling of a mu *)
   val unroll    : int * (var * ctyp) list -> ctyp
 
-  (* validate the expression e in the empty context at the supplied world *)
-  val check : world -> cexp -> unit
+  (* validate the expression e in the context at the supplied world *)
+  val check : context -> cexp -> unit
   (* type check a value and return its type *)
   val checkv : context -> cval -> ctyp
 

@@ -11,13 +11,18 @@ struct
 
   type cglot = (unit, unit) cglofront
 
+  datatype checkopt = 
+      O_CLOSED 
+    | O_NO_DICTFOR
+
   datatype context = C of { tvars : bool V.Map.map,
                             worlds : V.Set.set,
                             worldlabs : SS.set,
                             vars : (ctyp * world) V.Map.map,
                             uvars : ctyp V.Map.map,
                             globals : cglot SM.map,
-                            current : world }
+                            current : world,
+                            options : checkopt list }
 
   fun empty w = C { tvars = V.Map.empty,
                     (* only home to start *)
@@ -26,7 +31,8 @@ struct
                     vars = V.Map.empty,
                     uvars = V.Map.empty,
                     globals = SM.empty,
-                    current = w }
+                    current = w,
+                    options = nil }
 
   exception TypeCheck of string
 
@@ -41,7 +47,7 @@ struct
 
     fun two s l = %[$s, L.indent 3 l]
   in
-    fun ctol (C { tvars, worlds, vars, uvars, current, worldlabs, globals }) =
+    fun ctol (C { tvars, worlds, vars, uvars, current, worldlabs, globals, options }) =
       %[$"context:",
         L.indent 4 `
         L.align 
@@ -65,37 +71,45 @@ struct
           ]]
   end
 
-  fun bindtype (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) v mob =
+  fun bindtype (C {tvars, worlds, vars, uvars, current, worldlabs, globals, options}) v mob =
     C { tvars = V.Map.insert(tvars, v, mob), current = current,
-        worlds = worlds, vars = vars, uvars = uvars, worldlabs = worldlabs, globals = globals }
-  fun bindworld (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) v =
+        worlds = worlds, vars = vars, uvars = uvars, worldlabs = worldlabs, 
+        globals = globals, options = options }
+  fun bindworld (C {tvars, worlds, vars, uvars, current, worldlabs, globals, options}) v =
     C { tvars = tvars, worlds = V.Set.add(worlds, v), vars = vars, 
         current = current,
-        uvars = uvars, worldlabs = worldlabs, globals = globals }
-  fun bindvar (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) v t w =
+        uvars = uvars, worldlabs = worldlabs, globals = globals, options = options }
+  fun bindvar (C {tvars, worlds, vars, uvars, current, worldlabs, globals, options}) v t w =
         C { tvars = tvars, worlds = worlds, vars = V.Map.insert (vars, v, (t, w)), 
-            uvars = uvars, current = current, worldlabs = worldlabs, globals = globals }
-  fun binduvar (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) v t =
+            uvars = uvars, current = current, worldlabs = worldlabs, 
+            globals = globals, options = options }
+  fun binduvar (C {tvars, worlds, vars, uvars, current, worldlabs, globals, options}) v t =
         C { tvars = tvars, worlds = worlds, vars = vars, current = current,
-            uvars = V.Map.insert (uvars, v, t), worldlabs = worldlabs, globals = globals }
+            uvars = V.Map.insert (uvars, v, t), worldlabs = worldlabs, 
+            globals = globals, options = options }
 
   fun worldfrom ( C { current, ... } ) = current
-  fun setworld ( C { current, tvars, worlds, vars, uvars, worldlabs, globals } ) w =
+  fun setworld ( C { current, tvars, worlds, vars, uvars, worldlabs, globals, options } ) w =
     C { current = w, tvars = tvars, worlds = worlds, vars = vars, uvars = uvars, 
-        worldlabs = worldlabs, globals = globals }
+        worldlabs = worldlabs, globals = globals, options = options }
 
+  fun setopts ( C { current, tvars, worlds, vars, uvars, worldlabs, globals, options } ) ol =
+    C { current = current, tvars = tvars, worlds = worlds, vars = vars, uvars = uvars, 
+        worldlabs = worldlabs, globals = globals, options = ol }
 
-  fun addglobal (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) s g =
+  fun option (C { options, ... }) opt = List.exists (fn oo => oo = opt) options
+
+  fun addglobal (C {tvars, worlds, vars, uvars, current, worldlabs, globals, options}) s g =
         C { tvars = tvars, worlds = worlds, vars = vars, current = current,
-            uvars = uvars, worldlabs = worldlabs, 
+            uvars = uvars, worldlabs = worldlabs, options = options,
             globals = SM.insert (globals, s, g) }
   fun getglobal (C { globals, ...}) s =
     case SM.find (globals, s) of
       NONE => raise TypeCheck ("global not found: " ^ s)
     | SOME g => g
 
-  fun bindworldlab (C {tvars, worlds, vars, uvars, current, worldlabs, globals}) s =
-    C { tvars = tvars, worlds = worlds, vars = vars, 
+  fun bindworldlab (C {tvars, worlds, vars, uvars, current, worldlabs, globals, options}) s =
+    C { tvars = tvars, worlds = worlds, vars = vars, options = options,
         current = current,
         uvars = uvars, worldlabs = SS.add (worldlabs, s), globals = globals }
 
@@ -175,6 +189,7 @@ struct
     | VA of cval
     | EX of cexp
     | V of var
+    | VS of var list
     (* var is bound in the type; don't display the type, just use it
        to decide whether var is _ *)
     | BT of var * ctyp
@@ -198,6 +213,7 @@ struct
         | errtol (TYL tl) = Layout.listex "<" ">" ";" ` map CPSPrint.ttol tl
         | errtol ($ s) = Layout.str s
         | errtol (VA v) = CPSPrint.vtol v
+        | errtol (VS vs) = Layout.listex "[" "]" "," ` map (Layout.str o V.tostring) vs
         | errtol (EX e) = CPSPrint.etol e
         | errtol (V v) = Layout.str ` V.tostring v
         | errtol (BT (v, t)) = CPSPrint.vbindt v t
@@ -327,7 +343,9 @@ struct
          (case (ctyp ` vok G fv, map (vok G) avl) of
             (Cont al, al') => if ListUtil.all2 ctyp_eq al al'
                               then ()
-                              else raise TypeCheck "argument mismatch at call"
+                              else fail [$"argument mismatch at call",
+                                         $"from f: ", TYL al,
+                                         $"actual: ", TYL al']
           | (ot, _) => fail [$"call to non-cont",
                              $"in exp: ", EX ` exp,
                              $"got: ", TY (ctyp' ot)]
@@ -437,6 +455,19 @@ struct
          end
          )
 
+  and requireclosedv s value =
+      let val (vs, us) = freevarsv value
+      in case (V.Set.listItems vs, V.Set.listItems us) of
+          (nil, nil) => ()
+        | (vs, us) => fail [$"ILL-TYPED: ",
+                            VA value,
+                            $"O_CLOSED: ", $(s ^ " is not closed "),
+                            $"because it has the following free variables:",
+                            $"regular: ", VS vs, 
+                            $"universal: ", VS us]
+      end
+
+
   (* check that the value is okay at the current world, return its type *)
   and vok G value : ctyp =
     (case cval value of
@@ -449,6 +480,10 @@ struct
            val () = ListUtil.appsecond (tok G) vals
            val G = foldl (fn ((v, t), G) => bindvar G v t (worldfrom G)) G vals
          in
+           if option G O_CLOSED
+           then requireclosedv "alllam" value
+           else ();
+
            AllArrow' { worlds = worlds, tys = tys, vals = map #2 vals, 
                        body = vok G body }
          end
@@ -562,6 +597,10 @@ struct
            (* check each body under its args *)
            app (fn (_, args, e) =>
                 eok (foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args) e) vael;
+
+           if option G O_CLOSED
+           then requireclosedv "lams" value
+           else ();
                 
            (* if exps are okay, then use annotations *)
            Conts' (map (fn (_, args, _) => map #2 args) vael)
@@ -720,10 +759,10 @@ struct
          end
          )
 
-  fun check w exp = 
+  fun check G exp = 
     let in
       print "\n\nTypecheck:\n";
-      eok (empty w) exp
+      eok G exp
     end
 
   fun checkprog ({ main, worlds, globals } : program) =
