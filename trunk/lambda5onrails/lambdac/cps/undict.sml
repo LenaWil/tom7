@@ -434,6 +434,12 @@ struct
 
      | Lams vael => 
          let
+           (* clear the dynamic portion of the context. By invariant, all Lambdas
+              are closed at this point, so this is safe. The idea is to ensure that
+              we don't accidentally use some old dictionary for a type variable
+              when we call getdict, since this would make the Lambda not closed. *)
+           val G = T.cleardyn G
+
            (* check types ok *)
            val vael = map (fn (f, args, e) => (f, ListUtil.mapsecond ct args, e)) vael
 
@@ -462,6 +468,9 @@ struct
 
      | AllLam { worlds, tys, vals, body } => 
          let
+           (* see Lams case *)
+           val G = T.cleardyn G
+
            val G = bindworlds G worlds
            val G = bindtypes G tys
            val vals = ListUtil.mapsecond ct vals
