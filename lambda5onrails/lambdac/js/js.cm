@@ -7,6 +7,9 @@ group is
 ../../../sml-lib/text/layout-sig.sml
 ../../../sml-lib/text/layout.sml
 
+hash-set.sig
+hash-set.sml
+
 util.sml
 
 regexp.sig
