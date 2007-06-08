@@ -4,13 +4,12 @@
  * See the LICENSE file or http://mlton.org/License for details.
  *)
 
-functor Javascript (S: JAVASCRIPT_STRUCTS): JAVASCRIPT =
+structure Javascript : JAVASCRIPT =
 struct
 
   open MLtonCompat
 
   exception Javascript of string
-  open S
 
   structure Id =
      struct
@@ -1174,6 +1173,3 @@ struct
      end
    
 end
-
-structure Regexp = Regexp ()
-structure Javascript = Javascript (structure Regexp = Regexp)

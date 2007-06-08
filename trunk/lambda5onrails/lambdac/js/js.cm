@@ -9,7 +9,7 @@ group is
 
 mltoncompat.sml
 
-hash-set.sig
+hash-set-sig.sml
 hash-set.sml
 
 util.sml

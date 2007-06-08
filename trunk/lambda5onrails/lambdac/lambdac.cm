@@ -172,6 +172,19 @@ cps/undict.sml
 cps/hoist-sig.sml
 cps/hoist.sml
 
+js/mltoncompat.sml
+
+js/hash-set-sig.sml
+js/hash-set.sml
+
+js/util.sml
+
+js/regexp-sig.sml
+js/regexp.sml
+
+js/javascript-sig.sml
+js/javascript.sml
+
 compile.sml
 test.sml
 

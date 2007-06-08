@@ -4,10 +4,8 @@
  * See the LICENSE file or http://mlton.org/License for details.
  *)
 
-functor Regexp (S: REGEXP_STRUCTS): REGEXP =
+structure Regexp : REGEXP =
 struct
-
-open S
 
 datatype t = T of {body: string,
                    flags: string}
