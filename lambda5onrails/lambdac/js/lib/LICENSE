@@ -1,3 +1,17 @@
+
+This license applies to the following files in this directory only:
+
+      hash-set-sig.sml
+      hash-set.sml
+      javascript-sig.sml
+      javascript.sml
+      mltoncompat.sml
+      regexp-sig.sml
+      regexp.sml
+      test.sml
+      util.sml
+      js.cm   
+
 COPYRIGHT NOTICE, LICENSE AND DISCLAIMER.
 
 Copyright (C) 2006 Entain, Inc.
