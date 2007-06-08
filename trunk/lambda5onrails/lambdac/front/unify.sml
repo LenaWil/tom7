@@ -39,6 +39,9 @@ struct
            | TRec stl => ListUtil.existsecond (occurs r) stl
            | Arrow (_, t1, t2) => List.exists (occurs r) t1 
                                   orelse occurs r t2
+           | Arrows al => List.exists (fn (_, tl, t) =>
+                                       List.exists (occurs r) tl
+                                       orelse occurs r t) al
            | Sum (lcl) => 
                  ListUtil.existsecond (fn (Carrier {carried=t, ...}) => occurs r t | _ => false) lcl
            | Mu (_, vcl) => ListUtil.existsecond (occurs r) vcl
@@ -104,7 +107,7 @@ struct
                      ListUtil.all2 (fn (a, b) => (unifyex ctx eqmap a b; 
                                                   true)) 
                                         dom1 dom2
-                        orelse raise Unify "Arrows have different arity";
+                        orelse raise Unify "Arrow domains have different arity";
                      unifyex ctx eqmap cod1 cod2
                  end
            | (Evar (ref (Bound t1)), t2) => unifyex ctx eqmap t1 t2
@@ -153,6 +156,22 @@ struct
                      unifyex ctx eqmap t1 t2;
                      unifyw ctx w1 w2
                  end
+           | (Arrows al1, Arrows al2) =>
+                 let in
+                   if length al1 <> length al2 then raise Unify "Arrows have different arity"
+                   else ();
+                   ListPair.app (fn ((_, dom1, cod1), (_, dom2, cod2)) =>
+                                 let in
+                                   ListUtil.all2 (fn (a, b) => (unifyex ctx eqmap a b; 
+                                                                true)) 
+                                   dom1 dom2
+                                   orelse raise Unify "(inner) Arrows have different arity";
+
+                                   unifyex ctx eqmap cod1 cod2
+                                 end) (al1, al2)
+                 end
+           | (Arrows _, _) => raise Unify "tycon mismatch (arrows)"
+           | (_, Arrows _) => raise Unify "tycon mismatch (arrows)"
            | (TAddr _, _) => raise Unify "tycon mismatch (addr)"
            | (_, TAddr _) => raise Unify "tycon mismatch (addr)"
            | (Sum _, _) => raise Unify "tycon mismatch (sum)"
