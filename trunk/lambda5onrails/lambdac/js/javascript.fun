@@ -7,13 +7,10 @@
 functor Javascript (S: JAVASCRIPT_STRUCTS): JAVASCRIPT =
 struct
 
+  open MLtonCompat
+
   exception Javascript of string
   open S
-
-  structure Pervasive =
-     struct
-        structure String = String
-     end
 
   structure Id =
      struct
@@ -251,7 +248,7 @@ struct
               List.app
               (fn s =>
                let
-                  val hash = String.hash s
+                  val hash = StringUtil.hash s
                in
                   ignore
                   (HashSet.lookupOrInsert
@@ -261,7 +258,7 @@ struct
         in
            fun isKeyword s =
               isSome
-              (HashSet.peek (set, String.hash s, fn {string = s', ...} => s = s'))
+              (HashSet.peek (set, StringUtil.hash s, fn {string = s', ...} => s = s'))
         end
 
         fun isValidIdentifier (T ws) =
@@ -283,7 +280,7 @@ struct
               handle Chr => false
            end
 
-        fun layoutAsPropertyName (s: t): Layout.t =
+        fun layoutAsPropertyName (s: t): Layout.layout =
            if isValidIdentifier s
               then Layout.str (toString s)
            else layout s
@@ -418,8 +415,8 @@ struct
         local
            open Layout
         in
-           fun commaList (v: 'a vector, lay: 'a -> Layout.t): Layout.t =
-              mayAlign (separateRight (Vector.toListMap (v, lay), ","))
+           fun commaList (v: 'a vector, lay: 'a -> Layout.layout): Layout.layout =
+              mayAlign (separateRight (vector_toListMap (v, lay), ","))
 
            fun for (iter, body) =
               layoutStatementIn (body, seq [str "for ", paren iter], NONE)
@@ -437,19 +434,19 @@ struct
                     mayAlign [seq [layoutLeftHandSideExp
                                    (lhs, {isStatement = isStatement}),
                                    str " ", AssignOp.layout oper],
-                              indent (layoutAssignmentExpGen
-                                      (rhs, {isStatement = false,
-                                             mayHaveIn = mayHaveIn}),
-                                      2)]
+                              indent 2 (layoutAssignmentExpGen
+                                        (rhs, {isStatement = false,
+                                               mayHaveIn = mayHaveIn}))
+                                        ]
                | _ => layoutConditionalExp (e, {isStatement = isStatement,
                                                 mayHaveIn = mayHaveIn})
 
-           and layoutBinaryExp (e: Exp.t, {isStatement, mayHaveIn}) : Layout.t =
+           and layoutBinaryExp (e: Exp.t, {isStatement, mayHaveIn}) : Layout.layout =
               let
-                 fun loop arg: Layout.t =
+                 fun loop arg: Layout.layout =
                     Trace.trace3
                     ("loop", Layout.ignore, Layout.ignore,
-                     List.layout (List.layout BinaryOp.layout),
+                     list_layout (list_layout BinaryOp.layout),
                      fn l => l)
                     (fn (e: Exp.t, {isStatement}, opers) =>
                     case e of
@@ -466,8 +463,8 @@ struct
                                          (e, {isStatement = isStatement})
                                     | z :: opers'' =>
                                          if List.exists
-                                            (z, fn oper' =>
-                                             BinaryOp.equals (oper, oper'))
+                                            (fn oper' =>
+                                             BinaryOp.equals (oper, oper')) z
                                             then (mayAlign
                                                   [loop
                                                    (lhs,
@@ -489,7 +486,7 @@ struct
               end
 
            and layoutCall (f, args) =
-              mayAlign [f, indent (layoutArguments args, 2)]
+              mayAlign [f, indent 2 (layoutArguments args)]
 
            and layoutSelect (object, property) =
               seq [object, str "[", layoutExp property, str "]"]
@@ -518,10 +515,10 @@ struct
                  Seq es =>
                     commaList
                     (Vector.mapi
-                     (es, fn (i, e) =>
+                     (fn (i, e) =>
                       layoutAssignmentExpGen
                       (e, {isStatement = isStatement andalso i = 0,
-                           mayHaveIn = mayHaveIn})),
+                           mayHaveIn = mayHaveIn})) es,
                      fn z => z)
                | _ => layoutAssignmentExpGen (e, {isStatement = isStatement,
                                                   mayHaveIn = mayHaveIn})
@@ -542,9 +539,9 @@ struct
                           case name of
                              NONE => empty
                            | SOME id => seq [str " ", Id.layout id],
-                          str " ", tuple (Vector.toListMap (args, Id.layout)),
+                          str " ", tuple (vector_toListMap (args, Id.layout)),
                           str " {"],
-                     indent (layoutStatements body, 2),
+                     indent 2 (layoutStatements body),
                      str "}"]
 
            and layoutLeftHandSideExp (e, {isStatement}) =
@@ -626,7 +623,7 @@ struct
                     seq [str "[",
                          seq (rev
                               (#2
-                               (Vector.fold
+                               (vector_fold
                                 (es, (false, []), fn (eo, (z, ac)) =>
                                  let
                                     val ac = str (if z then "," else "") :: ac
@@ -637,14 +634,14 @@ struct
                                           (true, layoutAssignmentExp e :: ac)
                                  end)))),
                          str "]"]
-               | Bool b => Bool.layout b
+               | Bool b => bool_layout b
                | Id id => Id.layout id
                | Number n =>
                     let
                        val s = Number.toString n
                     in
                        if precedesDot
-                          andalso not (Pervasive.String.contains (s, #".")) then
+                          andalso not (CharVector.exists (fn #"." => true | _ => false) s) then
                           paren (str s)
                        else str s
                     end
@@ -678,27 +675,27 @@ struct
                                             body = body,
                                             name = SOME name})
 
-           and layoutStatementStart (s, pre: Layout.t)
-              : Layout.t * Layout.t option =
+           and layoutStatementStart (s, pre: Layout.layout)
+              : Layout.layout * Layout.layout option =
               case s of
                  Block ss =>
                     (align [seq [pre, str " {"],
-                            indent (align (Vector.toListMap
-                                           (ss, layoutStatement)),
-                                    2)],
+                            indent 2 (align (vector_toListMap
+                                           (ss, layoutStatement)))
+                                    ],
                      SOME (str "}"))
-               | _ => (align [pre, indent (layoutStatement s, 2)],
+               | _ => (align [pre, indent 2 (layoutStatement s)],
                        NONE)
 
-           and combine (l: Layout.t option, l': Layout.t option) =
+           and combine (l: Layout.layout option, l': Layout.layout option) =
               case (l, l') of
                  (NONE, NONE) => NONE
                | (SOME l, NONE) => SOME l
                | (NONE, SOME l') => SOME l'
                | (SOME l, SOME l') => SOME (seq [l, str " ", l'])
 
-           and layoutStatementIn (s, pre: Layout.t, suf: Layout.t option)
-              : Layout.t =
+           and layoutStatementIn (s, pre: Layout.layout, suf: Layout.layout option)
+              : Layout.layout =
               let
                  val (l, suf0) = layoutStatementStart (s, pre)
               in
@@ -707,10 +704,10 @@ struct
                   | SOME suf => align [l, suf]
               end
 
-           and layoutStatement (s: Statement.t): Layout.t =
+           and layoutStatement (s: Statement.t): Layout.layout =
               case s of
                  Block ss =>
-                    align [str "{", indent (layoutStatements ss, 2), str "}"]
+                    align [str "{", indent 2 (layoutStatements ss), str "}"]
                | Break ido =>
                     seq [str "break",
                          case ido of
@@ -779,7 +776,7 @@ struct
                                  | _ => false
                              val thenn =
                                 if isSome elsee andalso catchesElse thenn then
-                                   Block (Vector.new1 thenn)
+                                   Block (vector_new1 thenn)
                                 else
                                    thenn
                              val (pre, suf) =
@@ -820,30 +817,30 @@ struct
                                str ";"]
                | Switch {clauses, test} =>
                     align [seq [str "switch ", paren (layoutExp test), str " {"],
-                           align (Vector.toListMap
+                           align (vector_toListMap
                                   (clauses, fn (eo, ss) =>
                                    align [case eo of
                                              NONE => str "default:"
                                            | SOME e => seq [str "case ",
                                                             layoutExp e, str ":"],
-                                          indent (layoutStatements ss, 2)])),
+                                          indent 2 (layoutStatements ss)])),
                            str "}"]
                | Throw e => seq [str "throw ", layoutExp e, str ";"]
                | Try {body, catch, finally} =>
                     align [str "try {",
-                           indent (layoutStatements body, 2),
+                           indent 2 (layoutStatements body),
                            case catch of
                               NONE => empty
                             | SOME (id, ss) =>
                                  align
                                  [seq [str "} catch ", paren (Id.layout id),
                                        str " {"],
-                                  indent (layoutStatements ss, 2)],
+                                  indent 2 (layoutStatements ss)],
                            case finally of
                               NONE => empty
                             | SOME ss =>
                                  align [str "} finally {",
-                                        indent (layoutStatements ss, 2)],
+                                        indent 2 (layoutStatements ss)],
                            str "}"]
                | Var ds =>
                     seq [str "var ",
@@ -856,7 +853,7 @@ struct
                     layoutStatementIn
                     (body, seq [str "with ", paren (layoutExp object)], NONE)
            and layoutStatements ss =
-              align (Vector.toListMap (ss, layoutStatement))
+              align (vector_toListMap (ss, layoutStatement))
 
            and layoutUnaryExp (e, {isStatement}) =
               let
@@ -914,11 +911,11 @@ struct
 
         val layout = Joint.layoutExp
 
-        val toString = Layout.toString o layout
+        val toString = Layout.tostring o layout
 
         val int = Number o Number.fromInt
 
-        fun word w = Number (Number.fromReal (Real.fromIntInf (Word.toIntInf w)))
+        fun word w = Number (Number.fromReal (Real.fromLargeInt (Word.toLargeInt w)))
 
         val string = String o String.fromString
 
@@ -930,7 +927,7 @@ struct
         val falsee = Bool false
         val truee = Bool true
 
-        fun object v = Object (Vector.map (v, ObjectInit.Property))
+        fun object v = Object (Vector.map ObjectInit.Property v)
 
         fun select {object: t, property: t}: t =
            let
@@ -953,7 +950,7 @@ struct
         val isTrue = fn Bool true => true | _ => false
 
         fun array (n: t): t =
-           New {args = Vector.new1 n,
+           New {args = vector_new1 n,
                 object = Id (Id.fromString "Array")}
 
         fun not e =
@@ -990,11 +987,11 @@ struct
      struct
         open Joint
 
-        fun simplifyExps es = Vector.map (es, simplifyExp)
-        and simplifyExpOpt eo = Option.map (eo, simplifyExp)
+        fun simplifyExps es = Vector.map simplifyExp es
+        and simplifyExpOpt eo = Option.map simplifyExp eo
         and simplifyExp (e: exp): exp =
            case e of
-              Array eos => Array (Vector.map (eos, simplifyExpOpt))
+              Array eos => Array (Vector.map simplifyExpOpt eos)
             | Assign {lhs, oper, rhs} =>
                  Assign {lhs = simplifyExp lhs,
                          oper = oper,
@@ -1041,7 +1038,7 @@ struct
             | Null => e
             | Object ois =>
                  Object (Vector.map
-                         (ois, fn oi =>
+                         (fn oi =>
                           let
                              datatype z = datatype ObjectInit.t
                           in
@@ -1051,9 +1048,9 @@ struct
                                    Property {property = property,
                                              value = simplifyExp value}
                               | Set _ => oi
-                          end))
+                          end) ois)
             | Regexp _ => e
-            | Seq es => Seq (Vector.map (es, simplifyExp))
+            | Seq es => Seq (Vector.map simplifyExp es)
             | Select {object, property} =>
                  Select {object = simplifyExp object,
                          property = simplifyExp property}
@@ -1071,14 +1068,14 @@ struct
                      | _ => Unary {exp = exp, oper = oper}
                  end
             | This => e
-        and simplifyStatements ss = Vector.map (ss, simplifyStatement)
-        and simplifyStatementOpt so = Option.map (so, simplifyStatement)
+        and simplifyStatements ss = Vector.map simplifyStatement ss
+        and simplifyStatementOpt so = Option.map simplifyStatement so
         and simplifyStatement (s: statement): statement =
            case s of
               Block ss => Block (simplifyStatements ss)
             | Break _ => s
             | Const ies =>
-                 Const (Vector.map (ies, fn (i, e) => (i, simplifyExp e)))
+                 Const (Vector.map (fn (i, e) => (i, simplifyExp e)) ies)
             | Continue _ => s
             | Do {body, test} => Do {body = simplifyStatement body,
                                      test = simplifyExp test}
@@ -1096,8 +1093,8 @@ struct
             | ForVar {body, inc, init, test} =>
                  ForVar {body = simplifyStatement body,
                          inc = simplifyExpOpt inc,
-                         init = Vector.map (init, fn (i, eo) =>
-                                            (i, simplifyExpOpt eo)),
+                         init = Vector.map (fn (i, eo) =>
+                                            (i, simplifyExpOpt eo)) init,
                          test = simplifyExpOpt test}
             | ForVarIn {body, id, init, object} =>
                  ForVarIn {body = simplifyStatement body,
@@ -1106,7 +1103,7 @@ struct
                            object = simplifyExp object}
             | FunctionDec {args, body, name} =>
                  FunctionDec {args = args,
-                              body = Vector.map (body, simplifyStatement),
+                              body = Vector.map simplifyStatement body,
                               name = name}
             | If {elsee, test, thenn} =>
                  let
@@ -1126,18 +1123,18 @@ struct
             | Return eo =>
                  Return (simplifyExpOpt eo)
             | Switch {clauses, test} =>
-                 Switch {clauses = Vector.map (clauses, fn (eo, ss) =>
+                 Switch {clauses = Vector.map (fn (eo, ss) =>
                                                (simplifyExpOpt eo,
-                                                simplifyStatements ss)),
+                                                simplifyStatements ss)) clauses,
                          test = simplifyExp test}
             | Throw e => Throw (simplifyExp e)
             | Try {body, catch, finally} =>
                  Try {body = simplifyStatements body,
-                      catch = Option.map (catch, fn (i, ss) =>
-                                          (i, simplifyStatements ss)),
-                      finally = Option.map (finally, simplifyStatements)}
+                      catch = Option.map (fn (i, ss) =>
+                                          (i, simplifyStatements ss)) catch,
+                      finally = Option.map simplifyStatements finally }
             | Var ies =>
-                 Var (Vector.map (ies, fn (i, eo) => (i, simplifyExpOpt eo)))
+                 Var (Vector.map (fn (i, eo) => (i, simplifyExpOpt eo)) ies)
             | While {body, test} =>
                  While {body = simplifyStatement body,
                         test = simplifyExp test}
@@ -1159,8 +1156,8 @@ struct
         val layout = Joint.layoutStatement
 
         fun scope (s: t vector): t =
-           Exp (Exp.Call {args = Vector.new0 (),
-                          func = Exp.Function {args = Vector.new0 (),
+           Exp (Exp.Call {args = vector_new0 (),
+                          func = Exp.Function {args = vector_new0 (),
                                                body = s,
                                                name = NONE}})
      end
@@ -1171,7 +1168,7 @@ struct
 
         fun layout (T ss) = Joint.layoutStatements ss
 
-        fun layouts (T ss, lay) = Vector.foreach (ss, lay o Statement.layout)
+        fun layouts (T ss, lay) = vector_foreach (ss, lay o Statement.layout)
 
         fun simplify (T ss) = T (Joint.simplifyStatements ss)
      end

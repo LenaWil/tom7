@@ -8,51 +8,7 @@
 structure HashSet: HASH_SET =
 struct
 
-  (* compatibility stubs to use the existing basis library *)
-
-  (* folds left; see ENUMERABLE *)
-  fun array_fold (v, b, f) = Array.foldl f b v
-  fun int_layout i = Layout.str (Int.toString i)
-
-  (* just used for stats, which assumes ints are bounded (?) *)
-  val int_maxInt = case Int.maxInt of
-                     NONE => 1000000 * 1000000
-                   | SOME i => i
-  val int_minInt = case Int.minInt of
-                     NONE => ~ (1000000 * 1000000)
-                   | SOME i => i
-  fun array_foreach (a, f) = Array.app f a
-  fun list_foreach (l, f) = List.app f l
-  fun list_fold (l, b, f) = List.foldl f b l
-
-  fun int_dec (r as ref x) = r := x - 1
-  fun int_inc (r as ref x) = r := x + 1
-  fun array_modify (a, f) = Array.modify f a
-  fun array_forall (a, f) = Array.all f a
-  fun list_forall (l, f) = List.all f l
-
-  fun list_peek (l, f) =
-    let
-      fun loop l =
-        case l of
-          [] => NONE
-        | x :: l => if f x then SOME x else loop l
-    in
-      loop l
-    end
-
-  fun list_removeFirst (l, f) =
-    let
-      fun appendRev (l, l') = list_fold (l, l', op ::)
-      fun loop (l, ac) =
-        case l of
-          [] => raise Empty
-        | x :: l =>
-            if f x
-            then appendRev (ac, l)
-            else loop (l, x :: ac)
-    in loop (l, [])
-    end
+  open MLtonCompat
   
 datatype 'a t =
    T of {buckets: 'a list array ref,
