@@ -67,11 +67,6 @@ struct
 
       | Arrows of (bool * typ list * typ) list
 
-      (* Value arrow; type of VLam *)
-      | VArrow of typ * typ
-      (* type of dictionary for this type (see il/dict.sml) *)
-      | Dict of typ
-
     (* type constructors *)
     and con =
         Typ of typ
@@ -113,12 +108,14 @@ struct
       (* XXX no longer representing dictionaries at the IL level *)
 
       (* apply (total)value to value *)
+(*
       | VApp of value * value
       | VLam of var * typ * value
 
       (* the dictionary for this type, assuming dlist gives
          the dictionaries for the abstract type variables. *)
       | VDict of typ * (var * value) list
+*)
 
       (* XXX apparently need VVApp for valid values...? *)
 

@@ -77,10 +77,6 @@ struct
                      in (fv, FSel (i, v))
                      end
 
-    | VApp _ => raise Unused "delete this!"
-    | VLam _ => raise Unused "delete this!"
-    | VDict _ => raise Unused "delete this!"
-
   and uexp exp =
     case exp of
       Value v => let val (fv, v) = uval v

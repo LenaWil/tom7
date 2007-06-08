@@ -60,8 +60,6 @@ struct
                  L.paren (%[L.list (map self dom),
                             $(if b then "=>" else "->"),
                             self cod])
-           | VArrow (t1, t2) => L.paren (%[self t1, $"_>", self t2])
-
            | TVec t => L.paren (L.seq[self t, $" vector"])
            | TCont t => L.paren (L.seq[self t, $" cont"])
            | TRef t => L.paren (L.seq[self t, $" ref"])
@@ -121,8 +119,6 @@ struct
            | TRec nil => $"unit"
            | TRec ltl => recordortuple self ":" "(" ")" " *" ltl
 
-           | Dict t => %[self t, $"dict"]
-
            | TTag (t, v) => %[$"tag", self t, $"=>", $(V.tostring v)]
            | Evar (ref (Bound t)) => self t
            | Evar (ref (Free n)) => $("'a" ^ itos n))
@@ -148,12 +144,6 @@ struct
                                  (case vo of
                                       NONE => $"NONE"
                                     | SOME v => vtol v)]
-       | VLam (vx, t, v) => %[%[$"vlam", %[$(V.tostring vx), $":", ttol t, $"."]], 
-                              L.indent 2 ` vtol v]
-       | VApp (v1, v2) => L.paren(%[vtol v1, $"`", vtol v2])
-
-       (* XXX show dlist? *)
-       | VDict (t, dlist) => %[$"dict_", dlisttol dlist, L.paren ` ttol t]
 
        | FSel (n, v) => %[vtol v, $("." ^ Int.toString n)]
 
