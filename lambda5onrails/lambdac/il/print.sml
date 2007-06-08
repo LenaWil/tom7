@@ -60,6 +60,12 @@ struct
                  L.paren (%[L.list (map self dom),
                             $(if b then "=>" else "->"),
                             self cod])
+           | Arrows al => L.listex "(" ")" "&&" `
+                              map (fn (b, dom, cod) =>
+                                   %[L.list (map self dom),
+                                     $(if b then "=>" else "->"),
+                                     self cod]) al
+
            | TVec t => L.paren (L.seq[self t, $" vector"])
            | TCont t => L.paren (L.seq[self t, $" cont"])
            | TRef t => L.paren (L.seq[self t, $" ref"])
