@@ -7,14 +7,7 @@
 structure JSUtil =
    struct
      
-     (* XXX R or L? *)
-     fun vector_fold (v, b, f) = Vector.foldr f b v
-
-     (* XXX? *)
-     fun char_fromHexDigit n = StringUtil.nybbletohex n
-
-     fun vector_toListMap (v, f) = map f (Vector.foldr op:: nil v)
-     val real_toIntInf = Real.toLargeInt IEEEReal.TO_NEAREST
+     open MLtonCompat
 
       fun escapeJavascript (ws: Word.word vector) =
          let

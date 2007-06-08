@@ -7,6 +7,8 @@ group is
 ../../../sml-lib/text/layout-sig.sml
 ../../../sml-lib/text/layout.sml
 
+mltoncompat.sml
+
 hash-set.sig
 hash-set.sml
 
