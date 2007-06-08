@@ -79,6 +79,8 @@ struct
                    | IL.TVec tt => IL.TVec ` go tt
                    | IL.Sum ltl => IL.Sum ` ListUtil.mapsecond (IL.arminfo_map go) ltl
                    | IL.Arrow (b, tl, tt) => IL.Arrow(b, map go tl, go tt)
+                   | IL.Arrows al => IL.Arrows ` map (fn (b, tl, tt) => 
+                                                      (b, map go tl, go tt)) al
                    | IL.TRec ltl => IL.TRec ` ListUtil.mapsecond go ltl
                    | IL.TVar v => t
                    | IL.TCont tt => IL.TCont ` go tt
@@ -227,6 +229,7 @@ struct
           | IL.TVar v => V.Set.member (G, v)
           | IL.TRec ltl => ListUtil.allsecond (em G) ltl
           | IL.Arrow _ => false
+          | IL.Arrows _ => false
           | IL.Sum ltl => List.all (fn (_, IL.NonCarrier) => true 
                                      | (_, IL.Carrier { carried = t, ...}) => em G t) ltl
 
