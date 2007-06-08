@@ -1174,3 +1174,6 @@ struct
      end
    
 end
+
+structure Regexp = Regexp ()
+structure Javascript = Javascript (structure Regexp = Regexp)

@@ -3,14 +3,8 @@
  * This code is released under the MLton license, a BSD-style license.
  * See the LICENSE file or http://mlton.org/License for details.
  *)
-
-signature REGEXP_STRUCTS =
-   sig
-   end
-
 signature REGEXP =
    sig
-      include REGEXP_STRUCTS
 
       type t
 

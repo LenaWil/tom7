@@ -14,12 +14,10 @@ hash-set.sml
 
 util.sml
 
-regexp.sig
-regexp.fun
+regexp-sig.sml
+regexp.sml
 
-javascript.sig
-javascript.fun
-
+javascript-sig.sml
 javascript.sml
 
 test.sml
