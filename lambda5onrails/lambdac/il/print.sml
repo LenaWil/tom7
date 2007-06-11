@@ -236,7 +236,7 @@ struct
                  end
            | Proj (l, t, e) => 
                  if !iltypes
-                 then 
+                 then
                    %[L.seq[$("#" ^ l), $"/", L.paren(ttol t)],
                      etol e]
                  else %[$("#" ^ l), etol e]
@@ -350,7 +350,7 @@ struct
                        L.indent 4 (etol e)]
                  end
 
-           | ExternWorld l => %[$"extern world", $l]
+           | ExternWorld (l, k) => %[$"extern world", wktol k, $l]
            | ExternVal (Poly({worlds, tys}, (l, v, t, w))) =>
                  % ($"extern val" ::
                     (case tys of
@@ -374,6 +374,9 @@ struct
                    $(V.tostring v), $"=", $l]
 
                  )
+
+    and wktol KJavascript = $"javascript"
+      | wktol KBytecode = $"bytecode"
 
     and xtol x =
       (case x of

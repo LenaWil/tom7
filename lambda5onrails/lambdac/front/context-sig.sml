@@ -3,6 +3,8 @@ signature CONTEXT =
 sig
     (* what sort of thing (world, type, val), id *)
     exception Absent of string * string
+    (* other problems *)
+    exception Context of string
 
     type context
 
@@ -39,7 +41,7 @@ sig
 
     (* bind a world *)
     val bindw : context -> string -> Variable.var -> context
-    val bindwlab : context -> string -> context
+    val bindwlab : context -> string -> IL.worldkind -> context
 
     (* bind an identifier to a variable and give that variable 
        the indicated type at the indicated world *)

@@ -288,7 +288,7 @@ struct
          I.Do e => cvte G e (fn (G, _, _, _) => k G)
 
        | I.ExternType (0, lab, v) => ExternType' (v, lab, NONE, k ` bindtype G v false)
-       | I.ExternWorld lab => ExternWorld' (lab, k ` bindworldlab G lab)
+       | I.ExternWorld (lab, kind) => ExternWorld' (lab, kind, k ` bindworldlab G lab kind)
 
        (* need to treat specially external calls like
               js.alert : string -> unit

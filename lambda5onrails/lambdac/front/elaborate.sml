@@ -681,6 +681,10 @@ struct
       (ds @ rs, ctx)
     end
 
+  (* trivial *)
+  and elabk EL.KJavascript = IL.KJavascript
+    | elabk EL.KBytecode = IL.KBytecode
+
   (* return a new context, and an il.dec list *)
   and elabd ctx (here : world) ((d, loc) : EL.dec) 
     : IL.dec list * C.context =  
@@ -706,7 +710,7 @@ struct
               ([Tagtype tv], C.bindc ctx t (Typ (TVar tv)) 0 Extensible)
           end
 
-    | E.ExternWorld s => ([ExternWorld s], C.bindwlab ctx s)
+    | E.ExternWorld (k, l) => ([ExternWorld (l, elabk k)], C.bindwlab ctx l ` elabk k)
 
     | E.ExternVal (atvs, id, ty, wo) =>
           let

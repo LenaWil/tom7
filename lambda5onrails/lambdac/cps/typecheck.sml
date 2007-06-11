@@ -17,7 +17,7 @@ struct
 
   datatype context = C of { tvars : bool V.Map.map,
                             worlds : V.Set.set,
-                            worldlabs : SS.set,
+                            worldlabs : worldkind SM.map,
                             vars : (ctyp * world) V.Map.map,
                             uvars : ctyp V.Map.map,
                             globals : cglot SM.map,
@@ -26,7 +26,7 @@ struct
 
   fun empty w = C { tvars = V.Map.empty,
                     (* only home to start *)
-                    worldlabs = SS.add(SS.empty, Initial.homename),
+                    worldlabs = SM.insert(SM.empty, Initial.homename, Initial.homekind),
                     worlds = V.Set.empty, (* V.Set.add'(w, V.Set.empty),*)
                     vars = V.Map.empty,
                     uvars = V.Map.empty,
@@ -108,10 +108,17 @@ struct
       NONE => raise TypeCheck ("global not found: " ^ s)
     | SOME g => g
 
-  fun bindworldlab (C {tvars, worlds, vars, uvars, current, worldlabs, globals, options}) s =
+  fun bindworldlab (C {tvars, worlds, vars, uvars, current, worldlabs, globals, options}) s k =
     C { tvars = tvars, worlds = worlds, vars = vars, options = options,
         current = current,
-        uvars = uvars, worldlabs = SS.add (worldlabs, s), globals = globals }
+        uvars = uvars, 
+        worldlabs = 
+        (case SM.find (worldlabs, s) of
+           NONE => SM.insert(worldlabs, s, k)
+         | SOME kind' => if k = kind' 
+                         then worldlabs (* already there *)
+                         else raise TypeCheck ("extern worlds at different kind: " ^ s)),
+        globals = globals }
 
   fun gettype (C { tvars, ... }) v = 
     (case V.Map.find (tvars, v) of
@@ -133,7 +140,7 @@ struct
     else raise TypeCheck ("unbound world var: " ^
                           V.tostring v)
     | getworld (C { worldlabs, ...}) (WC l) =
-      if SS.member (worldlabs, l) then ()
+      if isSome ` SM.find (worldlabs, l) then ()
       else raise TypeCheck ("unknown world constant " ^ l)
 
   fun getvar (ctx as C { vars, ... }) v =
@@ -174,11 +181,11 @@ struct
                               V.tostring tv ^ " in context")
            end
        | (l as ((vv, ()) :: _)) =>
-	   let in
-	     print ("\nDictionaries for " ^ V.tostring tv ^ "\n");
-	     app (fn (vv, ()) => print ("  " ^ V.tostring vv ^ "\n")) l;
-	     vv
-	   end)
+           let in
+             print ("\nDictionaries for " ^ V.tostring tv ^ "\n");
+             app (fn (vv, ()) => print ("  " ^ V.tostring vv ^ "\n")) l;
+             vv
+           end)
     end
 
 
@@ -365,7 +372,7 @@ struct
                              $"got: ", TY (ctyp' ot)]
                                 
                                 )
-     | ExternWorld (l, e) => eok (bindworldlab G l) e
+     | ExternWorld (l, k, e) => eok (bindworldlab G l k) e
      | Leta (v, va, e) =>
             (case ctyp ` vok G va of
                At (t, w) => eok (bindvar G v t w) e
@@ -789,7 +796,7 @@ struct
 
       val G = foldr bindglobal G ` ListUtil.mapsecond cglo globals
 
-      val G = foldr (fn (s, G) => bindworldlab G s) G worlds
+      val G = foldr (fn ((s, k), G) => bindworldlab G s k) G worlds
 
       fun checkglobal (lab, glo) = 
         (case cglo glo of

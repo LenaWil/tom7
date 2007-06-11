@@ -198,7 +198,7 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
-            val p : CPS.program = Hoist.hoist cw c
+            val p : CPS.program = Hoist.hoist cw Initial.homekind c
             val () = print "\n\n**** HOIST: ****\n"
             val () = Layout.print ( CPSPrint.ptol p, print)
               
@@ -219,6 +219,7 @@ struct
          | CPSOpt.CPSOpt s => fail ("\n\nInternal error: CPS-Optimization failed:\n" ^ s ^ "\n")
          | Closure.Closure s => fail ("\nClosure conversion: " ^ s ^ "\n")
          | Context.Absent (what, s) => fail ("\n\nInternal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'\n")
+         | Context.Context s => fail ("Context: " ^ s ^ "\n")
          | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")
          | Elaborate.Elaborate s => fail("\nElaboration: " ^ s ^ "\n")
          | PrimTypes.PrimTypes s => fail("\nPrimTypes: " ^ s ^ "\n")

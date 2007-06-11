@@ -8,6 +8,7 @@ struct
     val homename = "home"
     (* XXX address should also be in initial validity context *)
     val home = IL.WConst homename
+    val homekind = IL.KJavascript
 
     (* we (should) disallow rebinding of true, false *)
 
@@ -166,7 +167,8 @@ struct
     
     (* but we start with one constant, "home" *)
     val worldlabs = [homename]
-    val initialw = foldl (fn (s, ctx) => Context.bindwlab ctx s) initialw worldlabs
+    val initialw = foldl (fn (s, ctx) => Context.bindwlab ctx s homekind) 
+                                initialw worldlabs
 
     val initialc = foldl (fn ((s, c, k, t), ctx) =>
                           Context.bindc ctx s c k t) initialw cons

@@ -104,10 +104,11 @@ struct
 
   exception Impossible 
 
-  fun error s = succeed () wth (fn _ => raise Parse s)
-
   fun **(s, p) = p ## (fn pos => raise Parse ("@" ^ Pos.toString pos ^ ": " ^ s))
   infixr 4 **
+
+  (* as `KEYWORD -- punt "expected KEYWORD KEYWORD2" *)
+  fun punt msg _ = msg ** fail
 
   val namedstring = LambdacUtil.newstr
   val itos = Int.toString
@@ -266,6 +267,9 @@ struct
 
       val stringlit = any when (fn TEXT [STR s] => SOME s | _ => NONE)
 
+
+      val wk = `JAVASCRIPT return KJavascript ||
+               `BYTECODE   return KBytecode
 
       (* pattern parsing is with respect to a fixity context. (string *
          (prec * status)) the fixity context is in sorted order by
@@ -552,7 +556,7 @@ struct
                    `EQUALS && call G exp
                    wth (fn (tv, (pat, (_, e))) => Val(tv, pat, e)),
 
-                 `VAL >> error "expected val declaration after VAL",
+                 `VAL -- punt "expected val declaration after VAL",
 
                  `EXTERN >> `VAL >> alt[tyvars && id,
                                         succeed nil && id]
@@ -561,19 +565,22 @@ struct
                    
                    wth (fn ((tv, i), (t, m)) => ExternVal(tv, i, t, m)),
 
-                 `EXTERN >> `WORLD >> id wth ExternWorld,
+                 (`EXTERN >> wk) && (`WORLD >> id) wth ExternWorld,
 
                  `EXTERN >> `TYPE >> alt[tyvars && id,
                                          succeed nil && id] wth ExternType,
 
+                 `EXTERN -- punt "expected VAL, TYPE, or <kind> WORLD after EXTERN",
+
                  `DO >> "expected EXP after DO" ** 
                    (call G exp wth Do),
+
                  `TYPE >> id && `EQUALS && typ wth (fn (i,(_,t)) => 
                                                     Type (nil,i,t)),
                  `TYPE >> tyvars && id && `EQUALS && typ 
                    wth (fn (tv,(i,(_,t))) => Type(tv,i,t)),
 
-                 `TYPE >> error "expected type declaration after TYPE",
+                 `TYPE -- punt "expected type declaration after TYPE",
 
                  `TAGTYPE >> id wth Tagtype,
                  `NEWTAG >> expid && opt (`OF >> typ) && `IN && id
@@ -591,7 +598,10 @@ struct
              && opt(`EQUALS >> typ) wth (fn ((atv,i),to) => ExportType (atv, i, to)),
              (* XXX should support type annotation? *)
              `EXPORT >> `VAL >> alt[tyvars && id, succeed nil && id]
-             && opt(`EQUALS >> call G exp) wth (fn ((atv,i),eo) => ExportVal (atv, i, eo))]
+             && opt(`EQUALS >> call G exp) wth (fn ((atv,i),eo) => ExportVal (atv, i, eo)),
+             
+             `EXPORT -- punt "expected WORLD, TYPE, or VAL after EXPORT"]
+             
 
       fun unit G =
         `UNIT >> "expected DECS after UNIT" **

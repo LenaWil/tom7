@@ -184,6 +184,8 @@ struct
        ("type", TYPE),
        ("val", VAL),
        ("raise", RAISE),
+       ("javascript", JAVASCRIPT),
+       ("bytecode", BYTECODE),
        ("(", LPAREN),
        (")", RPAREN),
        ("{", LBRACE),

@@ -94,6 +94,9 @@ struct
       | ADDR
       | UNIT
 
+      | JAVASCRIPT
+      | BYTECODE
+
       | LETCC
       | THROW
       | TO
@@ -168,5 +171,7 @@ struct
       | eq (EXPORT, EXPORT) = true
       | eq (UNIT, UNIT) = true
       | eq (PRIMAPP, PRIMAPP) = true
+      | eq (JAVASCRIPT, JAVASCRIPT) = true
+      | eq (BYTECODE, BYTECODE) = true
       | eq _ = false
 end

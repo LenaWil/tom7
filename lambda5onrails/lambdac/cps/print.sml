@@ -234,6 +234,9 @@ struct
 
   and etol e = L.align (estol e)
 
+  and wktol KJavascript = $"javascript"
+    | wktol KBytecode   = $"bytecode"
+
   (* returns a list of layout "lines" *)
   and estol e = 
       (case cexp e of
@@ -248,8 +251,8 @@ struct
 
                                       $"=", $l])] :: estol rest
 
-         | ExternWorld(l, rest) =>
-               % [$"extern world", $l] :: estol rest
+         | ExternWorld(l, k, rest) =>
+               % [$"extern", wktol k, $"world", $l] :: estol rest
 
          | Primop ([vv], BIND, [va], rest) =>
                %[%[$(V.tostring vv),
@@ -352,7 +355,8 @@ struct
   fun ptol { worlds, main, globals } =
     L.align
     ([$"CPS Program.",
-      $"Worlds constants: ", L.indent 2 ` % ` map $ worlds] @
+      $"Worlds constants: ", 
+        L.indent 2 ` % ` map (fn (s, k) => %[$s, L.paren ` wktol k]) worlds] @
      map gtol globals)
      
     
