@@ -10,6 +10,8 @@ sig
   datatype arminfo = datatype IL.arminfo
   datatype world = W of var | WC of string
 
+  datatype worldkind = datatype IL.worldkind
+
   datatype primcon = 
     VEC 
   | REF
@@ -66,7 +68,7 @@ sig
     | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
-    | ExternWorld of string * 'cexp
+    | ExternWorld of string * worldkind * 'cexp
     (* always kind 0; optional argument is a value import of the 
        (valid) dictionary for that type *)
     | ExternType of var * string * (var * string) option * 'cexp
@@ -117,7 +119,7 @@ sig
 
   type program = { 
                    (* The world constants. *)
-                   worlds : string list,
+                   worlds : (string * worldkind) list,
                    (* The globals (hoisted code). Before hoisting,
                       there is usually only the main *)
                    globals : (string * cglo) list,
@@ -210,7 +212,7 @@ sig
   val WUnpack' : var * var * cval * cexp -> cexp
   val Case' : cval * var * (string * cexp) list * cexp -> cexp
   val ExternVal' : var * string * ctyp * world option * cexp -> cexp
-  val ExternWorld' : string * cexp -> cexp
+  val ExternWorld' : string * worldkind * cexp -> cexp
   val ExternType' : var * string * (var * string) option * cexp -> cexp
   val TUnpack' : var * var * (var * ctyp) list * cval * cexp -> cexp
 

@@ -28,7 +28,7 @@ sig
   val setworld  : context -> world -> context
     
   (* we can also know about some world constants *)
-  val bindworldlab : context -> string -> context
+  val bindworldlab : context -> string -> CPS.worldkind -> context
 
   (* or TypeCheck if not bound. *)
   val gettype   : context -> var -> bool

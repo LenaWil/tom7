@@ -18,6 +18,7 @@ sig
     val initial : Context.context
     val homename : string
     val home : IL.world
+    val homekind : IL.worldkind
 
     (* wrap with declarations and imports needed 
        by the compiler (bool, exceptions) *)

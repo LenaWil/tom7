@@ -137,7 +137,7 @@ struct
                 | SOME w => bindvar G v t w) e)
          end
 
-     | ExternWorld (l, e) => ExternWorld' (l, ce (T.bindworldlab G l) e)
+     | ExternWorld (l, k, e) => ExternWorld' (l, k, ce (T.bindworldlab G l k) e)
 
      | Primop ([v], LOCALHOST, [], e) =>
            Primop' ([v], LOCALHOST, [], 

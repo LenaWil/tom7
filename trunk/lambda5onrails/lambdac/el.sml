@@ -7,6 +7,8 @@ struct
   type intconst = Word32.word
   type world = string
 
+  datatype worldkind = KJavascript | KBytecode
+
     datatype exp_ =
 
         Constant of constant
@@ -113,7 +115,7 @@ struct
          extern val (a, b) loop ~ a -> b
          *)
       | ExternVal   of string list * string * typ * world option
-      | ExternWorld of string
+      | ExternWorld of worldkind * string
       (* extern type (a, b) t *)
       | ExternType  of string list * string
 

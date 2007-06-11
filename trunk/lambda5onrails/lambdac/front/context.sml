@@ -15,10 +15,11 @@ struct
         C of { vars : (IL.typ IL.poly * Variable.var * IL.idstatus * varsort) S.map,
                cons : (IL.kind * IL.con * IL.tystatus) S.map,
                worlds : Variable.var S.map,
-               wlabs : SS.set,
+               wlabs : IL.worldkind S.map,
                dbs  : unit S.map }
 
     (* first is class of identifier, second is identifier *)
+    exception Context of string
     exception Absent of string * string
 
     fun absent what s =
@@ -69,7 +70,7 @@ struct
        the binding of a world variable when there is a constant of the same
        name?) *)
     fun world (C{worlds, wlabs, ...}) s =
-      if SS.member (wlabs, s) 
+      if isSome (S.find (wlabs, s))
       then IL.WConst s
       else
         (case S.find (worlds, s) of
@@ -92,10 +93,16 @@ struct
     fun con ctx sym = conex ctx NONE sym
 
 
-    fun bindwlab (C {vars, cons, dbs, worlds, wlabs }) sym = 
+    fun bindwlab (C {vars, cons, dbs, worlds, wlabs }) sym kind = 
         C { vars = vars,
             cons = cons,
-            wlabs = SS.add(wlabs, sym),
+            wlabs = 
+            (case S.find (wlabs, sym) of
+               NONE => S.insert(wlabs, sym, kind)
+             | SOME kind' => if kind = kind'
+                             then wlabs (* already there *)
+                             else raise Context ("kinds don't agree on multiple " ^
+                                                 "extern world declarations for " ^ sym)),
             worlds = worlds,
             dbs = dbs }
 
@@ -128,7 +135,7 @@ struct
     val empty = C { worlds = S.empty, 
                     vars = S.empty, 
                     cons = S.empty, 
-                    wlabs = SS.empty,
+                    wlabs = S.empty,
                     dbs = S.empty }
 
 end

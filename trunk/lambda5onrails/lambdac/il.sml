@@ -23,6 +23,8 @@ struct
       Carrier { definitely_allocated = definitely_allocated,
                 carried = f carried }
 
+    datatype worldkind = KJavascript | KBytecode
+
     (* worlds : index the typing judgment *)
     datatype world =
       WEvar of world ebind ref
@@ -179,7 +181,7 @@ struct
         (* tag of typ in tagtype *)
       | Newtag of var * typ * var
 
-      | ExternWorld of label
+      | ExternWorld of label * worldkind
       | ExternVal   of (label * var * typ * world option) poly
       (* extern type (a, b) t *)
       | ExternType  of kind * label * var
@@ -189,6 +191,7 @@ struct
         Unit of dec list * export list
 
     and export =
+      (* XXX5 I don't see how we could ever export a world *)
         ExportWorld of label * world
       | ExportType of var list * label * typ
         (* if world is none, then export valid *)

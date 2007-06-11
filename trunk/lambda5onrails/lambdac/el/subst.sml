@@ -209,6 +209,6 @@ struct
          | E.Type _ => (d, false)
          | E.ExternType _ => (d, false)
          | E.ExternVal (tv, id, t, w) => (d, id = vv)
-         | E.ExternWorld w => (d, false))
+         | E.ExternWorld (w, _) => (d, false))
 
 end

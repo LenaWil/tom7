@@ -43,7 +43,7 @@ struct
       right now the only other labels start with the prefix L_ below) *)
   val mainlab = "main"
 
-  fun hoist home program =
+  fun hoist home homekind program =
     let
       val globals = ref nil
       val ctr = ref 0
@@ -62,10 +62,11 @@ struct
           end
 
       val foundworlds = ref nil
-      fun findworld s =
-        if List.exists (fn s' => s = s') ` !foundworlds 
-        then ()
-        else foundworlds := s :: !foundworlds
+      fun findworld (s, k) =
+        case ListUtil.Alist.find op= (!foundworlds) s of
+          NONE => foundworlds := (s, k) :: !foundworlds
+        | SOME k' => if k = k' then ()
+                     else raise Hoist ("non-agreeing extern worlds: " ^ s)
 
       (* types do not change. *)
       fun ct t = t
@@ -95,11 +96,11 @@ struct
 
      (* we are also hoisting these declarations to the top level,
         so we eliminate this construct *)
-     | ExternWorld (l, e) => 
+     | ExternWorld (l, k, e) => 
          let 
-           val G = T.bindworldlab G l
+           val G = T.bindworldlab G l k
          in
-           findworld l;
+           findworld (l, k);
            ce G e
          end
 
@@ -612,7 +613,7 @@ struct
                                               body = Cont' nil },
                                   homelab))
     in
-      { worlds = homelab :: !foundworlds,
+      { worlds = (homelab, homekind) :: !foundworlds,
         globals = entry :: !globals,
         main = mainlab }
     end
