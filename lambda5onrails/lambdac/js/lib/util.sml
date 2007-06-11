@@ -12,7 +12,7 @@ structure JSUtil =
       fun escapeJavascript (ws: Word.word vector) =
          let
             val w2c = chr o Word.toInt
-            val w2s = Char.toString o w2c
+            val w2s = char_tostring o w2c
             val c2w = Word.fromInt o ord
             fun num w =
               vector_fold (ws, 0, fn (w', n) => if w = w' then n + 1 else n)
@@ -53,8 +53,10 @@ structure JSUtil =
                      | c => if Char.isPrint c
                                then Char.toString c
                             else concat ["\\x", toHexDigits (w, 2)]))
+            val esc =             concat [quoteS, body, quoteS]
          in
-            concat [quoteS, body, quoteS]
+           (* print ("Escaped: " ^ esc ^ "\n"); *)
+           esc
          end
 
       fun realToJavascript r =
@@ -78,6 +80,6 @@ structure JSUtil =
              *)
             String.translate
              (fn #"~" => "-"
-              | c => Char.toString c)
+              | c => char_tostring c)
              (Real.fmt (StringCvt.GEN (SOME 17)) r)
    end      

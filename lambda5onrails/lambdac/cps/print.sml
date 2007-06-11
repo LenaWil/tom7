@@ -354,8 +354,8 @@ struct
 
   fun ptol { worlds, main, globals } =
     L.align
-    ([$"CPS Program.",
-      $"Worlds constants: ", 
+    ([$"CPS Program:",
+      $"World constants: ", 
         L.indent 2 ` % ` map (fn (s, k) => %[$s, L.paren ` wktol k]) worlds] @
      map gtol globals)
      

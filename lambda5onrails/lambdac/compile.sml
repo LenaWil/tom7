@@ -205,23 +205,26 @@ struct
             val () = T.checkprog p
             val () = print "\n* Typechecked OK *\n"
 
+            (* would be nice to have another optimization phase here... *)
+            val code = Codegen.generate p
+
+            val () = Write.write base code
+
         in
-            print "\n";
-          (*
-          raise Compile "backend unimplemented";
-          OS.Process.success
-          *)
-          p
+          print "\n";
+          code
         end)
     handle Compile s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
          | CPSDict.CPSDict s => fail ("\nCPSDict: " ^ s ^ "\n")
          | CPSTypeCheck.TypeCheck s => fail ("\n\nInternal error: Type checking failed:\n" ^ s ^ "\n")
          | CPSOpt.CPSOpt s => fail ("\n\nInternal error: CPS-Optimization failed:\n" ^ s ^ "\n")
          | Closure.Closure s => fail ("\nClosure conversion: " ^ s ^ "\n")
+         | Codegen.Codegen s => fail ("\nCode generation: " ^ s ^ "\n")
          | Context.Absent (what, s) => fail ("\n\nInternal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'\n")
          | Context.Context s => fail ("Context: " ^ s ^ "\n")
          | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")
          | Elaborate.Elaborate s => fail("\nElaboration: " ^ s ^ "\n")
+         | JSCodegen.JSCodegen s => fail("\nJavascript codegen: " ^ s ^ "\n")
          | PrimTypes.PrimTypes s => fail("\nPrimTypes: " ^ s ^ "\n")
          | Podata.Podata s => fail("\nprimop data: " ^ s ^ "\n")
          | Hoist.Hoist s => fail ("\nHoist: " ^ s ^ "\n")
@@ -231,6 +234,7 @@ struct
          | ToCPS.ToCPS s => fail ("\nToCPS: " ^ s ^ "\n")
          | UnDict.UnDict s => fail("\nUnDict: " ^ s ^ "\n")
          | Variable.Variable s => fail ("\n\nBUG: Variables: " ^ s ^ "\n")
+         | Write.Write s => fail ("\nWrite: " ^ s ^ "\n")
          | ex => (print ("\n\nUncaught exception: " ^ exnName ex ^ ": " ^
                          exnMessage ex ^ "\n");
                   raise ex)
