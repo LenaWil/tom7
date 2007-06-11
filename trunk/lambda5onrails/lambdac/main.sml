@@ -9,6 +9,7 @@ val _ =
         [input] => OS.Process.exit(Compile.compile input (!outf))
       | _ =>
             let in
+                print ("LAMBDAC version " ^ Version.version ^ "\n\n");
                 print "Usage: lambdac file.ml5\n\n";
                 print (Params.usage ())
             end

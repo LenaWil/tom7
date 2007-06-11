@@ -66,6 +66,8 @@ fsutil-portable.sml
 ../../sml-lib/util/growarray-sig.sml
 ../../sml-lib/util/growarray.sml
 
+version.sml
+
 util/des-sig.sml
 util/des.sml
 util/lamutil.sml
@@ -139,11 +141,6 @@ il/util.sml
 il/unused-sig.sml
 il/unused.sml
 
-(* XXX5
-il/opt-sig.sml
-il/opt.sml
-*)
-
 cps-sig.sml
 cps.sml
 
@@ -159,7 +156,6 @@ cps/tocps.sml
 cps/opt-sig.sml
 cps/opt.sml
 
-(* this seems like a better place *)
 cps/dict-sig.sml
 cps/dict.sml
 
@@ -184,6 +180,19 @@ js/lib/regexp.sml
 
 js/lib/javascript-sig.sml
 js/lib/javascript.sml
+
+js/codegen-sig.sml
+js/codegen.sml
+
+bytecode/bytecode-sig.sml
+bytecode/bytecode.sml
+
+(* invokes the code generators for
+   each worldkind, above. *)
+codegen/codegen-sig.sml
+codegen/codegen.sml
+codegen/write-sig.sml
+codegen/write.sml
 
 compile.sml
 test.sml

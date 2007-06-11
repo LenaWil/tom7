@@ -39,6 +39,9 @@ struct
   fun vector_new0 () = Vector.fromList nil
   fun vector_new1 e = Vector.fromList [e]
 
+  (* Char.toString is like String.toString composed with this *)
+  fun char_tostring c = implode [c]
+
   fun bool_layout true = Layout.str "true"
     | bool_layout false = Layout.str "false"
 
