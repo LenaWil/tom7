@@ -90,7 +90,7 @@ struct
                   wi (fn p => 
                       Bind (p, Object ` % `
                             map (fn (s, v) =>
-                                 Property { property = pn s,
+                                 Property { property = pn ("l" ^ s),
                                             value = v }) svl) :: 
                       k ` Id p)
                 end)
@@ -106,8 +106,9 @@ struct
                                                          value = Number ` Number.fromInt i } ])
                   :: k ` Id p))
               
-         | C.Proj _ => 
-             wi (fn p => Bind (p, String ` String.fromString "proj unimplemented") :: k ` Id p)
+         | C.Proj (s, va) => 
+             cvtv va
+             (fn va => wi (fn p => Bind (p, Sel va ("l" ^ s)) :: k ` Id p))
 
          | C.Inj _ => 
              wi (fn p => Bind (p, String ` String.fromString "inj unimplemented") :: k ` Id p)
