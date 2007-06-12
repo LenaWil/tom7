@@ -2,5 +2,6 @@ unit
     extern val alert : string -> unit @ home
 
     do alert "Hello, World 2.0!"
+    do alert "I'm still here!"
 in
 end
