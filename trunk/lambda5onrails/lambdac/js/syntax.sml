@@ -17,6 +17,7 @@ struct
 
   (* subscript an array by a literal integer *)
   fun Subscripti (a, i) = Select { object = a, property = String ` String.fromString ` Int.toString i }
+  fun Sele ob exp = Select { object = ob, property = exp }
 
   fun Bind (id, e) = Var ` %[(id, SOME e)]
 
@@ -25,5 +26,7 @@ struct
     then Unary { exp = Number ` Number.fromReal ` Real.~ r,
                  oper = U.Neg }
     else Number ` Number.fromReal r
+
+  fun Sel ob field =  SelectId { object = ob, property = Id.fromString field }
 
 end

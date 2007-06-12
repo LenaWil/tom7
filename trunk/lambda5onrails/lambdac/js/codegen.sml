@@ -188,10 +188,9 @@ struct
                 cvtv va
                 (fn ob =>
                  (* select each component and bind... *)
-                 Bind(vtoi dv, SelectId { object = ob, property = Id.fromString "d" }) ::
+                 Bind(vtoi dv, Sel ob "d") ::
                  (ListUtil.mapi (fn ((cv, _), i) =>
-                                 Bind(vtoi cv, SelectId { object = ob, 
-                                                          property = Id.fromString ("v" ^ itos i) }))
+                                 Bind(vtoi cv, Sel ob ("v" ^ itos i)))
                   cvl @
                   cvte e))
 
@@ -228,12 +227,13 @@ struct
             | C.Call (f, args) => 
             (* XXX should instead put this on our thread queue. 
                We need to do something since tail calls are not constant-space! *)
-            (* FIXME not f. it will be a pair of ints. get them from the code global *)
                 cvtv f 
                 (fn fe =>
                  cvtvs args
                  (fn ae =>
-                  [Exp ` Call { func = fe, args = % ae }]))
+
+                  [Exp ` Call { func = Sele (Sele (Id codeglobal) (Sel fe "g")) (Sel fe "f"),
+                                args = % ae }]))
                 )
 
 
