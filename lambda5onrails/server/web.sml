@@ -85,9 +85,11 @@ struct
           (let
              (* FIXME totally ad hoc! *)
              val js = StringUtil.readfile "../lambdac/tests/alert_home.js"
+             val rt = StringUtil.readfile "../lambdac/js/runtime.js"
              val data =
                "<html><head>\n" ^
                "<title>Server 5 Test Page!</title>\n" ^
+               "<script language=\"JavaScript\">\n" ^ rt ^ "\n</script>\n" ^
                "<script language=\"JavaScript\">\n" ^ js ^ "\n</script>\n" ^
                "</head>\n" ^
                "<body>\n" ^

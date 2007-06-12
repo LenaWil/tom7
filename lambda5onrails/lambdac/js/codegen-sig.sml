@@ -3,6 +3,8 @@ sig
 
   exception JSCodegen of string
 
+  val codeglobal : Javascript.Id.t
+
   (* from a single named global (or NONE if this global isn't
      implemented on this host), generate a javascript expression that
      implements it (presumably a function or array of functions) *)
