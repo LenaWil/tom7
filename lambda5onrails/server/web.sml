@@ -5,12 +5,12 @@ struct
   structure R = RawNetwork
   exception Web of string
 
-  val PORT = 2222
+  val PORT = 5555
 
-  val log = TextIO.openAppend ("log.txt")
+  val log = TextIO.openAppend "log.txt"
 
-  fun message (Eval.Abort s) = "abort: " ^ s
-    | message (Web s) = "web: " ^ s
+  fun message (Web s) = "web: " ^ s
+    | message (RawNetwork.RawNetwork s) = "raw net: " ^ s
     | message e = "?:" ^ exnMessage e
 
   fun go () =
@@ -48,30 +48,31 @@ struct
 
           val nows = (Date.fmt "%a, %d %b %Y %H:%M:%S %Z" (Date.fromTimeLocal now))
 
-          (* put form elements in database *)
-          val G = map (fn (k, v) => ("form." ^ k, (Bytes.String v))) kvp
-
           (* val () = ignore (DB.insert "request.method" "GET") *)
           val url = case StringUtil.urldecode url of
                              NONE => url (* ?*)
                            | SOME u => u
-          val G = ("request.url", Bytes.String url) :: G
+
           val ip = let val (a, b, c, d) = R.addressip addr
                    in StringUtil.delimit "." (map Int.toString [a, b, c, d])
                    end
-          val G = ("request.ip", Bytes.String ip) :: G
 
+(*
+          (* put form elements in database *)
+          val G = map (fn (k, v) => ("form." ^ k, (Bytes.String v))) kvp
+          val G = ("request.url", Bytes.String url) :: G
+          val G = ("request.ip", Bytes.String ip) :: G
           val G = ("request.time", Bytes.String nows) :: G
+*)
 
           val () = TextIO.output(log, nows ^ " | " ^ ip ^ " | " ^
                                 url ^ "\n")
           val () = TextIO.flushOut log
 
           fun http code = ("HTTP/1.1 " ^ code ^ "\r\n" ^
-          "Date: " ^ nows ^ "\r\n" ^
-           "Server: Wikiplia\r\n" ^
-           "Connection: close\r\n");
-
+                           "Date: " ^ nows ^ "\r\n" ^
+                           "Server: Server5\r\n" ^
+                           "Connection: close\r\n");
 
         in
           print ("URL: [" ^ url ^ "]\n");
@@ -79,39 +80,22 @@ struct
           
           (* print "send response...\n"; *)
 
+          
+
           (let
-             val (res, steps) = 
-               case Eval.eval G (DB.head "main") of
-                 (Bytes.String s, steps) => (s, steps)
-               | (_, steps) => ("Content-Type: text/html; charset=utf-8\r\n" ^
-                                "\r\n" ^
-                                "(complex data)", steps)
+             val res = ("Content-Type: text/html; charset=utf-8\r\n" ^
+                        "\r\n" ^
+                        "Welcome to Server5!")
            in
-             print ("took " ^ Int.toString steps ^ " steps\n");
-             if StringUtil.matchhead "Location:" res
-             then 
-               let in
-                 (* print ("Redirect: [" ^ res ^ "]\n"); *)
-                 sendall p (http "302 Found" ^ res)
-               end
-             else
-               let in
-                 (* print ("Result: [" ^ res ^ "]\n"); *)
-                 sendall p (http "200 OK" ^ res)
-               end
+             sendall p (http "200 OK" ^ res)
            end handle e => (print "ERROR.\n";
                             (* XXX internal server error? *)
                             sendall p (http "200 OK");
                             sendall p ("Content-Type: text/html; charset=utf-8\r\n" ^
                                        "\r\n");
                             sendall p ("ERROR. " ^ message e))) handle R.RawNetwork _ => ();
-          print "hangup...\n";
-          (R.hangup p) handle _ => ();
-          (* PERF not on every request, surely! *)
-          if DB.changed ()
-          then (DB.save Initial.DBFILE;
-                print "Saved.\n")
-          else ()
+
+          (R.hangup p) handle _ => ()
         end
 
       and sendall p s =

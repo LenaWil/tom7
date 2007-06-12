@@ -1,9 +1,6 @@
 
-default : wikiplia
+default : server5
 
-backup :
-	cp database.wpdb good/`date +%s`
-
-wikiplia : *.sml wikiplia.cm raw-network.c
-	-mlton -prefer-abs-paths true -show-def-use wikiplia.basis.du -default-ann 'allowFFI true' wikiplia.cm raw-network.c
-	grep -v basis wikiplia.basis.du > wikiplia.du
+server5 : *.sml server5.cm raw-network.c
+	-mlton -prefer-abs-paths true -show-def-use server5.basis.du -default-ann 'allowFFI true' server5.cm raw-network.c
+	grep -v basis server5.basis.du > server5.du
