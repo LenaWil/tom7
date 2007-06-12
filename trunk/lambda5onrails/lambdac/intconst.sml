@@ -7,12 +7,13 @@
 
    *)
 
+(* XXX convert this to intinf? What does javascript support? *)
 structure IntConst =
 struct
+  type intconst = Word32.word
+  val tostring = Word32.toString
+    
+  val toString = tostring
 
-    type intconst = Word32.word
-    val tostring = Word32.toString
-
-
-    val toString = tostring
+  fun toReal x = Real.fromLargeInt (Word32.toLargeIntX x)
 end

@@ -73,11 +73,10 @@ struct
            case worldkind of
              CPS.KJavascript => 
                let
-                 val globalcode = Id.fromString "globalcode"
 
                  val maybejs = Vector.map (JSCodegen.generate gctx) maybecodes
                  val labeldata = Array ` Vector.map SOME maybejs
-                 val arraydec = Var ` Vector.fromList [(globalcode,
+                 val arraydec = Var ` Vector.fromList [(JSCodegen.codeglobal,
                                                         SOME labeldata)]
 
                  val maybecallmain =
@@ -86,7 +85,7 @@ struct
                      [(Id.fromString "go", SOME `
                        Call { func = 
                               Subscripti ((* the main bundle *)
-                                          Subscripti (Id globalcode, maini),
+                                          Subscripti (Id JSCodegen.codeglobal, maini),
                                           (* it is a unary array *)
                                           0),
                               args = Vector.fromList nil })]
