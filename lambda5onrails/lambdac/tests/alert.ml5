@@ -1,6 +1,6 @@
 unit
-    extern val js.alert : string -> unit @ home
+    extern val alert : string -> unit @ home
 
-    do js.alert "Hello, World 2.0!"
+    do alert "Hello, World 2.0!"
 in
 end
