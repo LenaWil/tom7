@@ -279,7 +279,7 @@ struct
               handle Chr => false
            end
 
-        fun layoutAsPropertyName (s: t): Layout.layout =
+        fun layoutAsPropertyName (s : t) : Layout.layout =
            if isValidIdentifier s
               then Layout.str (toString s)
            else layout s

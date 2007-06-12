@@ -104,7 +104,7 @@ sig
          val fromString : string -> t
          val make : word vector -> t
          val toString : t -> string
-         val keywords : string list
+         val isKeyword : string -> bool
       end
    structure PropertyName :
       sig
