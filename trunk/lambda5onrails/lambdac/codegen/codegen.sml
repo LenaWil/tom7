@@ -31,10 +31,12 @@ struct
 
   exception Codegen of string
 
+  open JSSyntax
+
   structure SM = StringMap
   
   datatype code =
-    CodeJS of { prog : Javascript.Program.t, main : string option }
+    CodeJS of { prog : Javascript.Program.t }
   | CodeB  of { prog : Bytecode.program }
 
   fun generate ({ worlds, globals, main } : CPS.program) =
@@ -46,28 +48,53 @@ struct
       val labelmap = Vector.foldli (fn (i, l, m) => SM.insert(m, l, i)) SM.empty labels
       val gctx = { labels = labels, labelmap = labelmap }
 
+      val maini = case SM.find (labelmap, main) of
+                     NONE => raise Codegen "impossible: can't find main!"
+                   | SOME i => i
+
       (* globals is now in "sorted" order since we derived the label map from
          whatever order it was already in. *)
 
       fun oneworld (worldname, worldkind) =
         let
+          open Javascript
+          open Joint
           fun relevant (lab, c) =
             (lab, 
              case CPS.cglo c of
                CPS.PolyCode _ => SOME c
              | CPS.Code (_, _, l) => if l = worldname
-                                    then SOME c
-                                    else NONE)
+                                     then SOME c
+                                     else NONE)
 
           val maybecodes = Vector.fromList ` map relevant globals
         in
           (worldname,
            case worldkind of
              CPS.KJavascript => 
-               let val maybejs = Vector.map (JSCodegen.generate gctx) maybecodes
+               let
+                 val globalcode = Id.fromString "globalcode"
+
+                 val maybejs = Vector.map (JSCodegen.generate gctx) maybecodes
+                 val labeldata = Array ` Vector.map SOME maybejs
+                 val arraydec = Var ` Vector.fromList [(globalcode,
+                                                        SOME labeldata)]
+
+                 val maybecallmain =
+                   if Vector.exists (fn (l, _) => l = main) maybecodes
+                   then Var ` Vector.fromList
+                     [(Id.fromString "go", SOME `
+                       Call { func = 
+                              Subscripti ((* the main bundle *)
+                                          Subscripti (Id globalcode, maini),
+                                          (* it is a unary array *)
+                                          0),
+                              args = Vector.fromList nil })]
+                   else Empty
                in
-                 CodeJS { prog = Javascript.Program.T maybejs,
-                          main = NONE (* XXX *) }
+                 (* XXX we need all the runtime stuff, obviously *)
+                 CodeJS { prog = Program.T ` Vector.fromList [arraydec,
+                                                              maybecallmain] }
                end
            | CPS.KBytecode => raise Codegen "bytecode codegen unimplemented")
         end

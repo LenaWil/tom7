@@ -181,6 +181,8 @@ js/lib/regexp.sml
 js/lib/javascript-sig.sml
 js/lib/javascript.sml
 
+js/syntax.sml
+
 js/codegen-sig.sml
 js/codegen.sml
 

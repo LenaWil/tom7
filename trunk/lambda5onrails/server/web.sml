@@ -83,9 +83,21 @@ struct
           
 
           (let
+             (* FIXME totally ad hoc! *)
+             val js = StringUtil.readfile "../lambdac/tests/alert_home.js"
+             val data =
+               "<html><head>\n" ^
+               "<title>Server 5 Test Page!</title>\n" ^
+               "<script language=\"JavaScript\">\n" ^ js ^ "\n</script>\n" ^
+               "</head>\n" ^
+               "<body>\n" ^
+               "Welcome to Server 5!\n" ^
+               "</body></html>\n";
+
+
              val res = ("Content-Type: text/html; charset=utf-8\r\n" ^
                         "\r\n" ^
-                        "Welcome to Server5!")
+                        data)
            in
              sendall p (http "200 OK" ^ res)
            end handle e => (print "ERROR.\n";

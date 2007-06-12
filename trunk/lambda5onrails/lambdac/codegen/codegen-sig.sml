@@ -12,7 +12,7 @@ sig
 
   (* code represents all the code necessary for a given world *)
   datatype code =
-    CodeJS of { prog : Javascript.Program.t, main : string option }
+    CodeJS of { prog : Javascript.Program.t }
   | CodeB  of { prog : Bytecode.program }
 
   (* generates all the code for each world. *)

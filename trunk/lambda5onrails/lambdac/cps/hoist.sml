@@ -605,12 +605,12 @@ struct
 
       val entry = (mainlab, Code'((* no free static things, but conform to conventions *)
                                   AllLam' { worlds = nil, tys = nil, vals = nil,
-                                            (* a no-argument lambda *)
-                                            body = Lam' (V.namedvar mainlab,
-                                                         nil,
-                                                         program') },
+                                            (* a single no-argument lambda *)
+                                            body = Lams' [(V.namedvar mainlab,
+                                                           nil,
+                                                           program')] },
                                   AllArrow' { worlds = nil, tys = nil, vals = nil,
-                                              body = Cont' nil },
+                                              body = Conts' [nil] },
                                   homelab))
     in
       { worlds = (homelab, homekind) :: !foundworlds,

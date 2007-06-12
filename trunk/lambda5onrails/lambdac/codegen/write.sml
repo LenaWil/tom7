@@ -8,7 +8,7 @@ struct
 
   fun write base code =
     let
-      fun one (world, CodeJS { prog, main }) =
+      fun one (world, CodeJS { prog }) =
         let
           val n = base ^ "_" ^ world ^ ".js"
           val f = TextIO.openOut n
