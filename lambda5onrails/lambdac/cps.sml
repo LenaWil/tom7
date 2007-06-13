@@ -50,6 +50,7 @@ struct
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
     | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
+    (* contents var only bound in arms, not default *)
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of string * worldkind * 'cexp
@@ -259,8 +260,7 @@ struct
            Case (vself va, vv,
                  if V.eq(vv, v) then sel
                  else ListUtil.mapsecond eself sel,
-                 if V.eq(vv, v) then e
-                 else eself e)
+                 eself e)
        | ExternWorld (s, k, e) => ExternWorld (s, k, eself e)
        | ExternType (vv, s, vso, e) =>
            ExternType (vv, s, vso, if V.eq (vv, v) 
@@ -434,7 +434,7 @@ struct
     | cexp (E(Case(va, v, sel, def))) = let val v' = V.alphavary v
                                         in
                                           Case(va, v', ListUtil.mapsecond (renamee v v') sel,
-                                               renamee v v' def)
+                                               def)
                                         end
 
     | cexp (E(ExternVal(vv, s, t, wo, e))) = let val v' = V.alphavary vv

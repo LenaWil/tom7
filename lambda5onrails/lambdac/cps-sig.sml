@@ -66,6 +66,7 @@ sig
     | WUnpack of var * var * 'cval * 'cexp
     (* typ var, dict var, contents vars *)
     | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
+    (* contents var only bound in arms, not default *)
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of string * worldkind * 'cexp

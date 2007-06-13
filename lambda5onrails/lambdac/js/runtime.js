@@ -8,3 +8,4 @@ var Match = 0;
 var Test0 = { x : 1 };
 
 var Test = { x : 1 + 1 };
+

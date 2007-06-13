@@ -194,6 +194,7 @@ sig
                     thenn : statement}
            | Labeled of Id.t * statement
            | Return of exp option
+             (* default if exp option is NONE. There may be at most one default. *)
            | Switch of {clauses : (exp option * statement vector) vector,
                         test : exp}
            | Throw of exp

@@ -17,6 +17,13 @@
    A TPack agglomerates a dictionary and n values, so it is represented as
    a javascript object { d , v0, ..., v(-1) }
 
+   A record with labels s1...sn is represented as an object with properties ls1 .. lsn.
+   The "l" is prepended so that labels that start with numbers (allowed in the CPS)
+   become valid javascript identifiers.
+
+   A sum is represented as an object { t, v } or { t } where t is the tag (as a string)
+   and v is the embedded value, if any.
+
 *)
 structure JSCodegen :> JSCODEGEN =
 struct
@@ -110,8 +117,20 @@ struct
              cvtv va
              (fn va => wi (fn p => Bind (p, Sel va ("l" ^ s)) :: k ` Id p))
 
-         | C.Inj _ => 
-             wi (fn p => Bind (p, String ` String.fromString "inj unimplemented") :: k ` Id p)
+         | C.Inj (s, _, NONE) =>
+             wi (fn p => Bind (p, Object ` %[ Property { property = pn "t",
+                                                         value = String ` String.fromString s }]) 
+                 :: k ` Id p)
+
+         | C.Inj (s, _, SOME va) =>
+             cvtv va
+             (fn va =>
+             wi (fn p => Bind (p, Object ` %[ Property { property = pn "t",
+                                                         value = String ` String.fromString s },
+                                              Property { property = pn "v",
+                                                         value = va }])
+                 :: k ` Id p)
+              )
 
          | C.AllApp _ => 
              wi (fn p => Bind (p, String ` String.fromString "allapp unimplemented") :: k ` Id p)
@@ -211,7 +230,23 @@ struct
             | C.Go_mar _ => [Throw ` String ` String.fromString "unimplemented go_mar"]
 
             | C.Put _ => [Throw ` String ` String.fromString "unimplemented put"]
-            | C.Case _ => [Throw ` String ` String.fromString "unimplemented case"]
+            | C.Case (va, v, sel, def) => 
+                cvtv va
+                (fn va =>
+                 (* bind variable to inner value first. If there's no value (because it's a
+                    nullary constructor) then it just failceeds and the variable will have
+                    value "undefined" 
+
+                    NOTE: we rely on 'v' not being free in the default.
+                    *)
+                [Bind(vtoi v, Sel va "v"),
+                 Switch { test = va,
+                          clauses = %(map (fn (s, e) =>
+                                           (SOME ` String ` String.fromString s,
+                                            %[Block ` % ` (cvte e @ [Break NONE])])) sel @
+                                      [(NONE, %[Block ` % ` (cvte def @ [Break NONE])])]) }
+                 ]
+                 )
 
             | C.ExternType (_, _, vso, e) => [Throw ` String ` String.fromString "unimplemented externtype"]
 
@@ -220,7 +255,6 @@ struct
     | Go_mar of { w : world, addr : 'cval, bytes : 'cval }
     | Primop of var list * primop * 'cval list * 'cexp
     | Put of var * ctyp * 'cval * 'cexp
-    (* typ var, dict var, contents vars *)
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
 *)
 
