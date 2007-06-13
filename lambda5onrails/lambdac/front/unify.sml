@@ -52,6 +52,7 @@ struct
            | (Evar (ref (Bound t))) => occurs r t
            | (Evar (r' as ref (Free _))) => r = r'
            | At (t, w) => occurs r t
+           | Shamrock t => occurs r t
            | TAddr w => false)
 
     (* occurs check for worlds is trivial, currently *)
@@ -151,6 +152,7 @@ struct
                   (ListUtil.sort (ListUtil.byfirst String.compare) ltl2))
                   orelse raise Unify "sum")
            | (TAddr w1, TAddr w2) => unifyw ctx w1 w2
+           | (Shamrock t1, Shamrock t2) => unifyex ctx eqmap t1 t2
            | (At (t1, w1), At (t2, w2)) =>
                  let in
                      unifyex ctx eqmap t1 t2;
@@ -170,6 +172,8 @@ struct
                                    unifyex ctx eqmap cod1 cod2
                                  end) (al1, al2)
                  end
+           | (Shamrock _, _) => raise Unify "tycon mismatch (shamrock)"
+           | (_, Shamrock _) => raise Unify "tycon mismatch (shamrock)"
            | (Arrows _, _) => raise Unify "tycon mismatch (arrows)"
            | (_, Arrows _) => raise Unify "tycon mismatch (arrows)"
            | (TAddr _, _) => raise Unify "tycon mismatch (addr)"

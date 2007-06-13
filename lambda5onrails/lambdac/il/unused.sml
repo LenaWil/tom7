@@ -10,7 +10,10 @@ struct
 
   exception Unused of string
 
-  (* just value vars. *)
+
+(*
+  no point in distinguishing between regular and valid vars here. We consider them disjoint.
+
   datatype fvset = F of { var : V.Set.set,
                           uvar : V.Set.set }
 
@@ -30,11 +33,21 @@ struct
   fun unionl l = foldl || empty l
 
   infix -- --- ++ +++ ?? ??? ||
+*)
+
+  type fvset = V.Set.set
+  val empty = V.Set.empty
+  fun -- (s, v) = V.Set.delete (s, v) handle _ => s
+  fun ++ (s, v) = V.Set.add (s, v)
+  fun ?? (s, v) = V.Set.member (s, v)
+  fun || (s1, s2) = V.Set.union (s1, s2)
+  fun unionl l = foldl || empty l
+  infix -- ++ ?? ||
 
   fun uval value =
     case value of
       Polyvar  { var, ... } => (empty ++ var, value)
-    | Polyuvar { var, ... } => (empty +++ var, value)
+    | Polyuvar { var, ... } => (empty ++ var, value)
     | Int _ => (empty, value)
     | String _ => (empty, value)
     | VRecord lvl => 
@@ -52,26 +65,28 @@ struct
                                 in
                                   (fv, VInject(t, l, SOME v))
                                 end
-
+    | Sham (w, va) => let val (fv, v) = uval va
+                      in (fv, Sham (w, va))
+                      end
     | Fns fl =>
-                                let val (fv, names, fl) = ListUtil.unzip3 ` 
-                                  map (fn {name, arg, dom, cod, body, inline, recu, total} =>
-                                       let
-                                         val (fv, body) = uexp body
-                                       in
-                                         (foldl (fn (v, fv) => fv -- v) fv arg,
-                                          name,
-                                          (* PERF could update 'recu' here but we don't
-                                             use it elsewhere.. *)
-                                          {name = name, arg = arg, dom = dom, cod = cod,
-                                           body = body, inline = inline, recu = recu,
-                                           total = total})
-                                       end) fl
-                                in
-                                   (* subtract all rec names *)
-                                  (foldl (fn (v, fv) => fv -- v) (unionl fv) names,
-                                   Fns fl)
-                                end
+            let val (fv, names, fl) = ListUtil.unzip3 ` 
+              map (fn {name, arg, dom, cod, body, inline, recu, total} =>
+                   let
+                     val (fv, body) = uexp body
+                   in
+                     (foldl (fn (v, fv) => fv -- v) fv arg,
+                      name,
+                      (* PERF could update 'recu' here but we don't
+                         use it elsewhere.. *)
+                      {name = name, arg = arg, dom = dom, cod = cod,
+                       body = body, inline = inline, recu = recu,
+                       total = total})
+                   end) fl
+            in
+               (* subtract all rec names *)
+              (foldl (fn (v, fv) => fv -- v) (unionl fv) names,
+               Fns fl)
+            end
 
     | FSel (i, v) => let val (fv, v) = uval v
                      in (fv, FSel (i, v))
@@ -214,7 +229,7 @@ struct
                           semantics of when a program will link. *)
     | udec fv (d as ExternVal (Poly(_, (_, v, _, _)))) = SOME (fv -- v, d)
     | udec fv (d as Newtag (v, _, _)) =
-                       if fv ?? v
+                       if fv ?? v (* orelse fv ??? v always local *)
                        then SOME (fv -- v, d)
                        else NONE
     | udec fv (d as Tagtype _) = SOME(fv, d)
@@ -224,7 +239,23 @@ struct
                        then let val (fv', va) = uval va
                             in SOME ((fv -- vv) || fv', Val(Poly(p, (vv, t, Value va))))
                             end
-                       else NONE
+                       else 
+                         let in
+                           print ("Drop unused polyval " ^ V.tostring vv ^ "\n");
+                           NONE
+                         end
+    | udec fv (d as Letsham(Poly(p, (vv, t, va)))) =
+                       (* used? *)
+                       if fv ?? vv
+                       then let val (fv', va) = uval va
+                            in SOME ((fv -- vv) || fv', Letsham(Poly(p, (vv, t, va))))
+                            end
+                       else 
+                         let in
+                           print ("Drop unused polyletsham " ^ V.tostring vv ^ "\n");
+                           NONE
+                         end
+
     | udec fv (d as Val(Poly(p, (vv, t, e)))) =
                            let val (fv', va) = uexp e
                            in SOME ((fv -- vv) || fv', Val(Poly(p, (vv, t, e))))

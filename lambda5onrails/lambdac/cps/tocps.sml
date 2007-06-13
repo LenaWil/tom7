@@ -82,12 +82,6 @@ struct
 
     fun swap f = (fn (x, y) => f(y, x))
 
-(*
-    fun worldfrom (Env { world, ... }) = world
-
-    and setworld (Env { world = _ }) world = Env { world = world }
-*)
-
     (* idiomatically, $G ` exp
        returns exp along with the current world in G *)
     fun $G thing = (thing, worldfrom G)
@@ -184,7 +178,12 @@ struct
                                                      k (G, Var' cv, kt, fw))])
                                     end)
                              | _ => raise ToCPS "last arg should be cont!")
-                    | _ => raise ToCPS "call non-cont")
+                    | _ => 
+                             let in
+                               print "Oops, not a cont:\n";
+                               Layout.print (CPSPrint.ttol ft, print);
+                               raise ToCPS "call non-cont"
+                             end)
               end
 
        | I.Record lel =>
@@ -236,6 +235,51 @@ struct
                                                        var = vp },
                                 el))) k
               end
+
+       | I.Sumcase (I.Sum t, exp, v, arms, def) => 
+           cvte G exp
+           (fn (G, va, sum, sw) =>
+            let
+              val joinv = V.namedvar "casejoin"
+              val joina = V.namedvar "r"
+
+              (* hmm... need to create join function, but we can't know its argument's type
+                 until we know the type of the case arms. *)
+              val joint = ref (NONE : CPS.ctyp option)
+              (* the default expression; v not in scope there *)
+              val def = cvte G def (fn (_, dv, t, dw) =>
+                                    let in
+                                      joint := SOME t;
+                                      Call' (Var' joinv, [dv])
+                                    end)
+              val arms = map (fn (s, e) =>
+                              let
+                                (* we might bind the var v... *)
+                                val G' = 
+                                  (case ListUtil.Alist.find op= t s of
+                                     NONE => raise ToCPS "branch not found in sumcase"
+                                   | SOME I.NonCarrier => G
+                                   | SOME (I.Carrier { carried, ... }) => 
+                                       bindvar G v (cvtt G carried) (worldfrom G))
+                              in
+                                (s,
+                                 cvte G' e
+                                 (fn (_, ev, et, ew) =>
+                                  (* could check et is same as in joint.. *)
+                                  Call' (Var' joinv, [ev])))
+                              end)
+
+              val joint = 
+                (case !joint of
+                   NONE => raise ToCPS "sumcase typ?!?"
+                 | SOME tj => tj)
+            in
+              Bind' (joinv,
+                     Lam' (V.namedvar "nonrec",
+                           [(joina, joint)],
+                           k (G, Var' joina, joint, sw)),
+                     raise ToCPS "need to make the Case XXX")
+            end)
 
        | I.Get { addr, dest : IL.world, typ, body } =>
               let
@@ -399,6 +443,58 @@ struct
                             body = va }, k G)
          end
 
+       | I.Val _ => raise ToCPS "val decl is polymorphic but not a value!"
+
+       | I.Letsham (I.Poly ({worlds, tys}, (v, t, va))) => 
+         (* When the var v is used, it will be applied to worlds and tys,
+            so it must have AllArrow type. It also must be valid. Here we
+            have a value that's Shamrocked and also polymorphic.
+
+            Instead we have to produce something like
+
+            lift v : all worlds,tys . t = alllam ws, ts . --valid value--
+
+            We wouldn't be able to write this directly in the IL, since we only
+            have a shamrock value and all we can really do is letsham that.
+            Fortunately we have VLetsham to let us do this:
+
+            lift v : all worlds, tys . t = alllam ws, ts. letsham v' = va in v'
+
+            Ultimately since lift is a sham and then letsham, we have a bit
+            of finagling here to put the quantifiers in the right place, but
+            this has no dynamic cost.
+            *)
+         (case
+            let
+              val G = foldr (fn (wv, G) => bindworld G wv) G worlds
+              val G = foldr (fn (tv, G) => bindtype G tv false) G tys
+              val _ = cvtt G t (* but we'll use the actual type instead *)
+              val (va, tt, ww) = cvtv G va
+            in
+              (va, ctyp tt, ww)
+            end
+            of
+              (va, Shamrock tt, ww) =>
+                let
+                  (* by invariant, we don't make totally empty allarrows or alllams. *)
+                  fun AllArrowMaybe { worlds = nil, tys = nil, vals = nil, body } = body
+                    | AllArrowMaybe x = AllArrow' x
+                  fun AllLamMaybe { worlds = nil, tys = nil, vals = nil, body } = body
+                    | AllLamMaybe x = AllLam' x
+
+
+                  val tt =
+                    AllArrowMaybe { worlds = worlds, tys = tys, 
+                                    vals = nil, body = tt }
+                  val G = binduvar G v tt
+                  val v' = V.alphavary v
+                in
+                  Lift' (v,
+                         AllLamMaybe { worlds = worlds, tys = tys, vals = nil,
+                                       body = VLetsham' (v', va, UVar' v') }, k G)
+                end
+            | _ => raise ToCPS "letsham on non-shamrock")
+
        | _ => 
          let in
            print "\nToCPSd unimplemented:\n";
@@ -467,6 +563,17 @@ struct
              case ctyp t of
                Conts all => (Fsel' (va, i), Cont' ` List.nth (all, i), w)
              | _ => raise ToCPS "fsel of non-conts"
+           end
+
+       | I.Sham (v, va) =>
+           let 
+             val start = worldfrom G
+             val G = bindworld G v
+             val G = setworld G (W v)
+             val (va, t, w) = cvtv G va
+           in
+             (* could check v doesn't escape *)
+             (Sham' (v, va), Shamrock' t, start)
            end
 
        (* mono case *)
@@ -574,23 +681,9 @@ struct
 
     fun convert (I.Unit(decs, _ (* exports *))) (I.WConst world) = 
          let
-(*
-           (* XXX this should be probably be earlier... *)
-           val homelab = "home"
-           val mainlab = "main"
-*)
            val ce = cvtds decs ` empty ` WC world
          in
            ce
-(*
-           { worlds = [home],
-             main = mainlab,
-             globals = [(mainlab, Code'(AllLam' { worlds = nil, tys = nil, vals = nil,
-                                                  body = Lam(V.namedvar "unused",
-                                                             nil, ce) },
-                                        Cont' nil,
-                                        home))] }
-*)
          end
       | convert _ (I.WVar _) = raise ToCPS "expected toplevel world to be a constant"
       | convert _ _ = raise ToCPS "unset evar at toplevel world"

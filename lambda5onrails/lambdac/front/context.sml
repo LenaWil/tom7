@@ -56,6 +56,7 @@ struct
                  | TCont t => has t
                  | TTag (t, _) => has t
                  | At (t, w) => has t
+                 | Shamrock t => has t
                  | TAddr _ => false
                  | Arrows l =>
                        List.exists (fn (_, tl, t) =>

@@ -2,7 +2,7 @@
 structure IL =
 struct
 
-  type intconst = IntConst.intconst
+    type intconst = IntConst.intconst
 
     type label = string
     type var = Variable.var
@@ -66,6 +66,7 @@ struct
 
       | At of typ * world
       | TAddr of world
+      | Shamrock of typ
 
       | Arrows of (bool * typ list * typ) list
 
@@ -91,6 +92,7 @@ struct
       | VRecord of (label * value) list
       | VRoll of typ * value
       | VInject of typ * label * value option
+      | Sham of var * value
 
       | Fns of 
         { name : var,
@@ -106,20 +108,6 @@ struct
 
       (* select one of the functions in a bundle *)
       | FSel of int * value
-
-      (* XXX no longer representing dictionaries at the IL level *)
-
-      (* apply (total)value to value *)
-(*
-      | VApp of value * value
-      | VLam of var * typ * value
-
-      (* the dictionary for this type, assuming dlist gives
-         the dictionaries for the abstract type variables. *)
-      | VDict of typ * (var * value) list
-*)
-
-      (* XXX apparently need VVApp for valid values...? *)
 
     and exp =
         Value of value
@@ -181,6 +169,8 @@ struct
         (* tag of typ in tagtype *)
       | Newtag of var * typ * var
 
+      | Letsham of (var * typ * value) poly
+
       | ExternWorld of label * worldkind
       | ExternVal   of (label * var * typ * world option) poly
       (* extern type (a, b) t *)
@@ -220,7 +210,7 @@ struct
         Let (Val (Poly ({worlds=nil, tys=nil}, (vo, t, obj))),
              go vel)
       end
-    
+
     datatype tystatus = Regular | Extensible
     datatype idstatus = 
         Normal 

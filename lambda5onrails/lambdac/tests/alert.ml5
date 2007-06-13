@@ -1,7 +1,19 @@
 unit
     extern val alert : string -> unit @ home
 
-    do alert "Hello, World 2.0!"
-    do alert "I'm still here!"
+    do
+	let
+	    datatype thing = A of string | B of string
+		
+	    val u = A "Hello, World 2.0!"
+		
+	    do case u of
+		A s => (alert ("It was A!");
+			alert s)
+	      | B s' => (alert ("It was B!");
+			 alert s')
+	in
+	    ()
+	end
 in
 end
