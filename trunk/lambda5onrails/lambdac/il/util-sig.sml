@@ -20,7 +20,7 @@ sig
  
     val mappoly : ('a -> 'b) -> 'a IL.poly -> 'b IL.poly
 
-    val tsubste : IL.typ Variable.Map.map -> IL.exp -> IL.exp
+(*    val tsubste : IL.typ Variable.Map.map -> IL.exp -> IL.exp *)
 
     val unevar : IL.typ -> IL.typ
 

@@ -87,6 +87,7 @@ struct
                    | IL.TTag (tt, v) => IL.TTag (go tt, v)
                    | IL.Mu (n, vtl) => IL.Mu (n, ListUtil.mapsecond go vtl)
                    | IL.TAddr w => t
+                   | IL.Shamrock tt => IL.Shamrock ` go tt
                    (* XXX5 polygen worlds too? *)
                    | IL.At (t, w) => IL.At(go t, w)
                    | IL.Evar er =>
@@ -247,7 +248,7 @@ struct
           | IL.TTag _ => (* XXX5 ? *) false
           | IL.At _ => true
           | IL.TAddr _ => true
-
+          | IL.Shamrock _ => true
       in
         em Initial.mobiletvars t
       end

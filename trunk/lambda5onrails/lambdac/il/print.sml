@@ -71,6 +71,7 @@ struct
            | TRef t => L.paren (L.seq[self t, $" ref"])
            | TVar v => L.str (V.show v)
            | TAddr w => L.paren (L.seq[wtol w, $" addr"])
+           | Shamrock t => %[$"{}", ttol t]
            | At (t, w) => L.paren (L.seq[self t, $"at", wtol w])
            | Sum ltl => L.listex "[" "]" "," (map (fn (l, Carrier { carried = t,
                                                                     definitely_allocated = b}) =>
@@ -152,6 +153,9 @@ struct
                                     | SOME v => vtol v)]
 
        | FSel (n, v) => %[vtol v, $("." ^ Int.toString n)]
+
+       | Sham (v, va) => %[$"sham", $(V.tostring v), $".",
+                           L.indent 2 ` vtol va]
 
        | Fns fl =>
              %[$"fns", (* XXX5 worlds/tys *)
@@ -271,16 +275,7 @@ struct
                     %[$"as", $ (V.tostring v)]] ::
                   map (fn (l, e) => %[%[$"  |", $l, $"=>"], L.indent 4 (etol e)]) lel @
                   [%[%[$"  |", $"_", $"=>"], L.indent 4 (etol def)]])
-(*
-           | Tagcase (t, e, v, vel, def) =>
-                 L.align
-                 (%[$"tagcase", etol e, $":", ttol t, 
-                    $"as", $ (V.tostring v)] ::
-                  map (fn (vv, e) => %[%[$"  |", $(V.tostring vv), 
-                                         $"=>"], etol e]) 
-                         vel @
-                  [%[$"  |", $"_", $"=>", etol def]])
-*)
+
            | Untag {typ, obj, target, bound, yes, no} =>
 
                  %[$"untag", etol obj, $":", ttol typ,
@@ -292,22 +287,15 @@ struct
                                          etol e1,
                                          $"to",
                                          etol e2])
+
            | Letcc (v, t, e) => %[$"letcc", $(V.tostring v),
                                   $":", %[ttol t, $"cont"],
                                   $"in",
                                   etol e]
 
-
            | Raise (t, e) => L.paren(%[$"raise", 
                                        bttol t, etol e])
            | Tag (e1, e2) => L.paren(%[$"tag", etol e1, $"with", etol e2])
-
-(*
-           | Deferred os =>
-                 (case Util.Oneshot.deref os of
-                      NONE => $"XXX-UNSET-ONESHOT-XXX"
-                    | SOME e => etol e)
-*)
 
            | Handle (e, v, h) => %[L.paren(etol e),
                                    $"handle",
@@ -319,8 +307,7 @@ struct
            | Jointext el =>
                  %[$"jointext",
                    L.listex "[" "]" "," (map etol el)]
-
-           (* | _ => $"???XXX???" *))
+                 )
 
     and dlisttol dlist =
       %[$"{dlist=", %(map (fn (v, va) => 
@@ -336,19 +323,25 @@ struct
            | Newtag (new, t, ext) => %[$"newtag", $(V.tostring new), 
                                        $"tags", ttol t, $"in", 
                                        $(V.tostring ext)]
-           | Val vtep =>
-                 let
-                     val Poly ({worlds, tys}, (var, t, e)) = vtep
-                 in
+           | Val (Poly ({worlds, tys}, (var, t, e))) =>
                    (* XXX5 worlds too *)
-                     %[%[%([$"val"]
-                           @ (case tys of
-                                  nil => nil
-                                | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)])
-                           @ [$(V.tostring var)]),
-                         L.indent 4 (%[$":", ttol t, $"="])],
-                       L.indent 4 (etol e)]
-                 end
+               %[%[%([$"val"]
+                     @ (case tys of
+                          nil => nil
+                        | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)])
+                     @ [$(V.tostring var)]),
+                   L.indent 4 (%[$":", ttol t, $"="])],
+                 L.indent 4 (etol e)]
+
+           | Letsham (Poly({worlds, tys}, (v, t, va))) =>
+               %[%[%([$"letsham"]
+                     (* XXX5 worlds *)
+                     @ (case tys of
+                          nil => nil
+                        | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)])
+                     @ [$(V.tostring v)]),
+                   L.indent 4 (%[$"~", ttol t, $"="])],
+                 L.indent 4 (vtol va)]
 
            | ExternWorld (l, k) => %[$"extern world", wktol k, $l]
            | ExternVal (Poly({worlds, tys}, (l, v, t, w))) =>

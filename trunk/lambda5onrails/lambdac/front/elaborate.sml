@@ -1002,10 +1002,11 @@ struct
                               val arms = ListUtil.mapsecond (arminfo_map musubst) arms
                             in
                               (ctor, v, cty,
-                               Val `
-                               Poly({worlds=nil, 
-                                     tys=atvs},
-                                    (v, mu, Value ` VInject(Sum arms, ctor, NONE))))
+                               Letsham `
+                               Poly({worlds = nil, 
+                                     tys = atvs},
+                                    (v, mu, Sham (V.namedvar "unused", 
+                                                  VInject(Sum arms, ctor, NONE)))))
                             end
  
                              | (ctor, Carrier { carried = ty, ... }) =>
@@ -1027,26 +1028,27 @@ struct
                                  (* type of constructor *)
                                  cty,
                                  (* injection value *)
-                                 Val ` Poly({worlds = nil, tys = atvs},
+                                 Letsham
+                                 ` Poly({worlds = nil, tys = atvs},
                                             (ctorf,
                                              Arrow(true, [dom], mu),
-                                             Value `
-                                             FSel (0,
-                                                   Fns
-                                                   [{ name = V.namedvar "notrec",
-                                                      dom = [dom],
-                                                      cod = mu,
-                                                      arg = [x],
-                                                      (* inline it! *)
-                                                      inline = true,
-                                                      recu = false,
-                                                      total = true,
-                                                      body =
-                                                      Roll(mu,
-                                                           Inject
-                                                           (Sum arms, ctor, 
-                                                            SOME ` Value ` Var x))}]))))
-
+                                             Sham
+                                             (V.namedvar "unused",
+                                              FSel (0,
+                                                    Fns
+                                                    [{ name = V.namedvar "notrec",
+                                                       dom = [dom],
+                                                       cod = mu,
+                                                       arg = [x],
+                                                       (* inline it! *)
+                                                       inline = true,
+                                                       recu = false,
+                                                       total = true,
+                                                       body =
+                                                       Roll(mu,
+                                                            Inject
+                                                            (Sum arms, ctor, 
+                                                             SOME ` Value ` Var x))}])))))
                             end) arms) dl
 
               (* bind the constructors. Constructors should be valid. *)
