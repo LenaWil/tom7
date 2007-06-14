@@ -1,24 +1,25 @@
 unit
-(*
     extern val alert : string -> unit @ home
     do
 	let
 	    datatype thing = A of string | B of string
 		
-	    val u = A "Hello, World 2.0!"
+	    val u = B "Hello, World 2.0!"
 		
 	    do case u of
-		A s => ((* alert ("It was A!"); *)
+		A s => (alert ("It was A!");
 			alert s)
-	      | _ => primapp halt { unit } ( )
+	      | B s => (alert "It was B!";
+			alert s)
 	in
 	    ()
 	end
-*)
+(*
     datatype u = A of string
 
     extern val alert : u -> unit @ home
 
     do alert (A "hello")
+*)
 in
 end
