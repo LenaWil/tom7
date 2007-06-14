@@ -267,7 +267,7 @@ struct
                                  (fn (_, ev, et, ew) =>
                                   (* could check et is same as in joint.. *)
                                   Call' (Var' joinv, [ev])))
-                              end)
+                              end) arms
 
               val joint = 
                 (case !joint of
@@ -278,7 +278,7 @@ struct
                      Lam' (V.namedvar "nonrec",
                            [(joina, joint)],
                            k (G, Var' joina, joint, sw)),
-                     raise ToCPS "need to make the Case XXX")
+                     Case' (va, v, arms, def))
             end)
 
        | I.Get { addr, dest : IL.world, typ, body } =>

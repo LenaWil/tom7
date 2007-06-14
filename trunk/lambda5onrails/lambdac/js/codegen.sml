@@ -135,17 +135,17 @@ struct
          | C.AllApp _ => 
              wi (fn p => Bind (p, String ` String.fromString "allapp unimplemented") :: k ` Id p)
 
-    (*
-        | Fsel of 'cval * int
-        | Proj of string * 'cval
-        | Record of (string * 'cval) list
-        | Inj of string * ctyp * 'cval option
-        | AllLam of { worlds : var list, tys : var list, vals : (var * ctyp) list, body : 'cval }
-        | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
+             (* weird? *)
+         | C.VLetsham (v, va, c) =>
+             cvtv va
+             (fn va =>
+              Bind (vtoi v, va) :: cvtv c k)
 
-        | VLeta of var * 'cval * 'cval
-        | VLetsham of var * 'cval * 'cval
-    *)
+         | C.VLeta (v, va, c) =>
+             cvtv va
+             (fn va =>
+              Bind (vtoi v, va) :: cvtv c k)
+
          | C.Dictfor _ => raise JSCodegen "should not see dictfor in js codegen"
          | C.Lams _ => raise JSCodegen "should not see lams except at top level in js codegen"
          | C.AllLam { vals = _ :: _, ... } => 
@@ -177,10 +177,12 @@ struct
                cvtv vbod k)
               )
 
+(*
          |  _ => 
              wi (fn p =>
                  Bind (p, String (String.fromString "unimplemented val")) ::
                  k ` Id p)
+*)
              )
 
     (*       [Throw ` String ` String.fromString "unimplemented val"]) *)
@@ -224,6 +226,11 @@ struct
                  (* assuming sym has the name of some javascript function. *)
                  Bind (vtoi v, Call { func = Id ` $sym, args = %args }) ::
                  cvte e)
+
+            | C.Primop ([v], C.BIND, [va], e) =>
+                cvtv va
+                (fn va =>
+                 Bind (vtoi v, va) :: cvte e)
 
             | C.Primop _ => [Throw ` String ` String.fromString "unimplemented primop"]
 

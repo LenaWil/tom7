@@ -302,15 +302,22 @@ struct
          | (Leta (v, va, e)) => %[%[$"leta", varl v, $"="],
                                   L.indent 3 ` vtol va] :: estol e
 
-         | (WUnpack _) => [$"XXX-WUNP"]
-         | (TUnpack (v, vd, vtl, va, e)) =>
+         | WUnpack _ => [$"XXX-WUNP"]
+         | TUnpack (v, vd, vtl, va, e) =>
                %[%[%[$"tunpack", L.indent 3 ` vtol va], $"as"],
                  %[%[varl v, $";"],
                    L.indent 2 ` %[varl vd, $";"],
                    L.listex "[" "]" "," ` map (fn (v, t) =>
                                                %[varl v, $":", ttol t]) vtl]
                  ] :: estol e
-         | (Case _) => [$"XXX_CASE"]
+         | Case (va, v, arms, def) =>
+               [
+               %[%[$"case", vtol va, $"of"],
+                 %(map (fn (s, e) => 
+                        L.indent 2 ` %[%[$s, $"=>"], L.indent 2 ` etol e]) arms @
+                   [L.indent 2 ` %[%[$"_", $"=>"], L.indent 2 ` etol def]])]
+                ]
+
          | (ExternType _) => [$"XXX_ET"]
 (*         | _ => [$"CPS:unknown exp(s)"]
 *)

@@ -200,6 +200,24 @@ struct
              Go_mar' { w = w, addr = addr, bytes = bytes }
            end
 
+      | Case (va, v, arms, def) =>
+         let val (va, t) = cv G va
+         in
+           case ctyp t of
+            Sum stl =>
+              let
+                fun carm (s, e) =
+                  case ListUtil.Alist.find op= stl s of
+                    NONE => raise Hoist ("arm " ^ s ^ " not found in case sum type")
+                  | SOME NonCarrier => (s, ce G e) (* var not bound *)
+                  | SOME (Carrier { carried = t, ... }) => 
+                        (s, ce (bindvar G v t ` worldfrom G) e)
+              in
+                Case' (va, v, map carm arms, ce G def)
+              end
+          | _ => raise Hoist "case on non-sum"
+         end
+
      | _ =>
          let in
            print "HOIST: unimplemented exp:\n";
@@ -386,7 +404,16 @@ struct
                        (Sham' (w, va),
                         Shamrock' t)
                      end
-                   
+               
+         | Unroll va =>
+             let
+               val (va, t) = cv G va
+             in
+               case ctyp t of
+                Mu (n, vtl) => (Unroll' va, CPSTypeCheck.unroll (n, vtl))
+              | _ => raise Hoist "unroll non-mu"
+             end
+    
          | Roll (t, va) => 
                      let
                        val t = ct t
