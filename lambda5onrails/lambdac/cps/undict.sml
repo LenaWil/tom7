@@ -212,6 +212,24 @@ struct
              | _ => raise UnDict "tunpack non-exists"
            end
 
+     | Case (va, v, arms, def) =>
+        let val (va, t) = cv G va
+        in
+          case ctyp t of
+           Sum stl =>
+             let
+               fun carm (s, e) =
+                 case ListUtil.Alist.find op= stl s of
+                   NONE => raise UnDict ("arm " ^ s ^ " not found in case sum type")
+                 | SOME NonCarrier => (s, ce G e) (* var not bound *)
+                 | SOME (Carrier { carried = t, ... }) => 
+                       (s, ce (bindvar G v t ` worldfrom G) e)
+             in
+               Case' (va, v, map carm arms, ce G def)
+             end
+         | _ => raise UnDict "case on non-sum"
+        end
+
      | Go (w, addr, body) => raise UnDict "UnDict expects closure-converted code, but saw Go"
 
      | Go_cc { w, addr, env, f } => 
@@ -319,6 +337,8 @@ struct
            Dict' ` Mu(i, ListUtil.mapsecond (makedict G) vvtl)
          end
      | Product stl => Dict' ` Product(ListUtil.mapsecond (makedict G) stl)
+     | Sum stl => Dict' ` Sum(ListUtil.mapsecond (IL.arminfo_map (makedict G)) stl)
+
      | At (t, w) => Dict' ` At (makedict G t, w)
      | Shamrock t => Dict' ` Shamrock ` makedict G t
      | Primcon (pc, tl) => 
@@ -420,6 +440,15 @@ struct
            val (va, _) = cv G va
          in
            (Roll' (t, va), t)
+         end
+
+     | Unroll va =>
+         let
+           val (va, t) = cv G va
+         in
+           case ctyp t of
+            Mu (n, vtl) => (Unroll' va, CPSTypeCheck.unroll (n, vtl))
+          | _ => raise UnDict "unroll non-mu"
          end
 
      | Proj (l, va) =>

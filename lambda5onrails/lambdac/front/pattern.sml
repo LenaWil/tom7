@@ -675,7 +675,7 @@ struct
                          val rett = new_evar ()
 
                          (* Sumcase binds one variable for all 
-                            arms + default *)
+                            arms, but not default *)
                          val insides = newstr "insum"
                          val insidev = V.namedvar insides
 
@@ -834,21 +834,37 @@ struct
                            unify nctx loc "sum arg" (#1 (evarize opt)) cod;
                            unify nctx loc "sum default" rett dt; 
 
-                           (* if exhaustive, lose default and
-                              replace with final branch *)
+                           (* a nice optimization is, if the
+                              case is exhaustive, then lose the 
+                              default and replace with final branch.
+                              But we can't do that because the insum
+                              var is not bound in the default in the
+                              typed backend.
+                              *)
+                           
                            (if length thearms = nsum
                             then I.Sumcase (st,
                                             I.Unroll ` I.Value objv,
                                             insidev,
-                                            List.take (thearms, nsum - 1),
-                                            #2 ` List.last thearms)
-                                
-                            else I.Sumcase (st, 
-                                            I.Unroll ` I.Value objv,
-                                            insidev,
                                             thearms,
-                                            de),
-                            rett)
+                                            (* XXX PERF. instead return
+                                               HALT here -- unreachable! *)
+                                            de)
+                              (*
+                              (* also could do this if we can find an arm
+                                 that's nullary, since we wouldn't have to
+                                 bind the insum var in that case ... *)
+                              List.take (thearms, nsum - 1),
+                              #2 ` List.last thearms
+                              *)
+
+                            else 
+                              I.Sumcase (st, 
+                                         I.Unroll ` I.Value objv,
+                                         insidev,
+                                         thearms,
+                                         de),
+                              rett)
 
                        end
                     | _ => raise Pattern 

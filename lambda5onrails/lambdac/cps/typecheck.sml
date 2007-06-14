@@ -455,13 +455,27 @@ struct
                              $"has type: ",
                              IN ` TY ` ctyp' t])
 
+    | Case (va, v, arms, def) =>
+       (case ctyp ` vok G va of
+          Sum stl =>
+            let
+              fun armok (s, e) =
+                case ListUtil.Alist.find op= stl s of
+                  NONE => fail [$"arm ", $s, $" not found in case sum type"]
+                | SOME NonCarrier => eok G e (* var not bound *)
+                | SOME (Carrier { carried = t, ... }) => 
+                    eok (bindvar G v t ` worldfrom G) e
+            in
+              app armok arms;
+              eok G def
+            end
+        | _ => fail [$"case on non-sum"])
+
 (*
-      go_mar!
       dictionaries!
     | Primop of var list * primop * 'cval list * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
-    | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternWorld of var * string * 'cexp
     (* always kind 0; optional argument is a value import of the dictionary
        for that type (will be universally bound) *)
@@ -509,6 +523,11 @@ struct
                        body = vok G body }
          end
      | Record svl => Product' ` ListUtil.mapsecond (vok G) svl
+
+     | Unroll va =>
+         (case ctyp ` vok G va of
+            Mu (n, vtl) => unroll (n, vtl)
+          | _ => fail [$"unroll on non-mu"])
 
      | TPack (t, tas, vd, vs) =>
          (case (tok G tas; ctyp tas) of
@@ -564,6 +583,10 @@ struct
               end
           | Product stl =>
               Dictionary' ` Product' ` ListUtil.mapsecond (fn v => edict "prod" ` vok G v) stl
+
+          | Sum stl =>
+              Dictionary' ` Sum' ` ListUtil.mapsecond (IL.arminfo_map (fn v => edict "sum" ` vok G v)) stl
+
           | Shamrock t => Dictionary' ` Shamrock' ` edict "sham" ` vok G t
           | Addr w => Dictionary' ` Addr' w
           | At (t, w) => Dictionary' ` At' (edict "at" ` vok G t, w)
@@ -768,9 +791,12 @@ struct
                insistw G (WC w);
                t
              end
-         | PolyCode _ => raise TypeCheck "unimplemented polycode"
-             )
-          
+         | PolyCode (wv, (), t) => 
+             let 
+               val current = worldfrom G
+             in
+               subwt current wv t
+             end)
 
      | _ => 
          let in
@@ -799,7 +825,7 @@ struct
       val G = foldr (fn ((s, k), G) => bindworldlab G s k) G worlds
 
       fun checkglobal (lab, glo) = 
-        (case cglo glo of
+        case cglo glo of
            (Code (va, t, w)) =>
              (let
                 val G = setworld G (WC w)
@@ -814,7 +840,20 @@ struct
               end handle TypeCheck s =>
                 raise TypeCheck ("In Code label " ^ lab ^ ":\n" ^ s))
                 
-         | (PolyCode _) => raise TypeCheck "unimplemented polycode")
+         | (PolyCode (wv, va, t)) => 
+             (let
+                val G = bindworld G wv
+                val G = setworld G (W wv)
+                val t' = vok G va
+              in
+                if ctyp_eq (t, t')
+                then ()
+                else fail [$lab, $":",
+                           $"PolyCode global's type doesn't match annotation",
+                           $"type:", TY t',
+                           $"annotation:", TY t]
+              end handle TypeCheck s =>
+                raise TypeCheck ("In PolyCode label " ^ lab ^ ":\n" ^ s))
 
     in
        (* Doesn't matter what main is, as long as it exists. *)
