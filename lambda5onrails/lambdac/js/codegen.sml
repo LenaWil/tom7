@@ -247,7 +247,7 @@ struct
                     NOTE: we rely on 'v' not being free in the default.
                     *)
                 [Bind(vtoi v, Sel va "v"),
-                 Switch { test = va,
+                 Switch { test = Sel va "t",
                           clauses = %(map (fn (s, e) =>
                                            (SOME ` String ` String.fromString s,
                                             %[Block ` % ` (cvte e @ [Break NONE])])) sel @
