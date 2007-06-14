@@ -562,6 +562,27 @@ struct
                   in
                     (Dict' ` Product sdl, Dictionary' ` Product' stl)
                   end
+
+              | Sum sdl =>
+                  let
+                    val (ss, ds) = ListPair.unzip sdl
+                    val (ds, ts) = ListPair.unzip ` map (fn NonCarrier => (NonCarrier, NonCarrier)
+                                                          | Carrier { carried, definitely_allocated } => 
+                                                         let val (cd, ct) = cv G carried
+                                                         in
+                                                           (Carrier 
+                                                            { carried = cd, 
+                                                              definitely_allocated = definitely_allocated },
+                                                            Carrier
+                                                            { carried = ct,
+                                                              definitely_allocated = definitely_allocated })
+                                                         end) ds
+                    val stl = ListPair.zip (ss, ts)
+                    val sdl = ListPair.zip (ss, ds)
+                  in
+                    (Dict' ` Sum sdl, Dictionary' ` Sum' stl)
+                  end
+
               | Shamrock d => 
                   let
                     val (d, t) = cv G d
@@ -596,6 +617,27 @@ struct
                   in
                     (Dict' ` TExists((v1, v2), dl),
                      Dictionary' ` TExists' (v1, map (edict "texists") tl))
+                  end
+
+              | Mu (n, arms) =>
+                  let
+                    val G = foldr (fn (((vt, vd), _), G) =>
+                                   let
+                                     val G = bindtype G vt false
+                                     val G = binduvar G vd ` Dictionary' ` TVar' vt
+                                   in
+                                     G
+                                   end) G arms
+                    fun one ((vt, v), x) =
+                      let val (x, t) = cv G x
+                      in
+                        ((vt, edict "mu" t), ((vt, v), x))
+                      end
+
+                    val (tarms, darms) = ListPair.unzip ` map one arms
+                  in
+                    (Dict' ` Mu(n, darms),
+                     Dictionary' ` Mu' (n, tarms))
                   end
 
               | AllArrow { worlds, tys, vals, body } =>
