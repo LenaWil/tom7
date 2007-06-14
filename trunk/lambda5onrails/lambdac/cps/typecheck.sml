@@ -581,6 +581,22 @@ struct
                    classifies no values... *)
                 Dictionary' ` Primcon'(pc, ts)
               end
+          | Mu (n, arms) =>
+              Dictionary' ` Mu' (n,
+                                 let
+                                   (* everything bound in all arms *)
+                                   val G = foldr (fn (((vt, vd), _), G) =>
+                                                  let
+                                                    val G = bindtype G vt false
+                                                    val G = binduvar G vd ` Dictionary' ` TVar' vt
+                                                  in
+                                                    G
+                                                  end) G arms
+                                   fun one ((vt, _), t) = (vt, edict "mu" ` vok G t)
+                                 in
+                                   map one arms
+                                 end)
+
           | Product stl =>
               Dictionary' ` Product' ` ListUtil.mapsecond (fn v => edict "prod" ` vok G v) stl
 
