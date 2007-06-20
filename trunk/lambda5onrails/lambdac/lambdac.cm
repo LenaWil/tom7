@@ -187,9 +187,14 @@ js/codegen-sig.sml
 js/codegen.sml
 
 bytecode/bytecode.sml
-bytecode/byteout.sml
+bytecode/print.sml
 bytecode/codegen-sig.sml
 bytecode/codegen.sml
+(* XXX not necessary *)
+bytecode/tokens.sml
+bytecode/tokenize-sig.sml
+bytecode/tokenize.sml
+
 
 (* invokes the code generators for
    each worldkind, above. *)
