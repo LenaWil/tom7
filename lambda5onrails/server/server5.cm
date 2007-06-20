@@ -24,6 +24,12 @@ group is
 ../../sml-lib/algo/edit-distance-sig.sml
 ../../sml-lib/algo/edit-distance.sml
 
+
+(* ML5 lib *)
+../lambdac/intconst.sml
+../lambdac/bytecode/bytecode.sml
+../lambdac/bytecode/parse.sml
+
 raw-network-sig.sml
 raw-network.sml
 
