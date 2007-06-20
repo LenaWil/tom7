@@ -1,12 +1,12 @@
 (* Representations:
 
-   There is an array of all of the globals in the program.
-   Labels are indices into this array.
-   Global lams are themselves arrays, one for each fn in the bundle.
-   
+   There is a vector of all of the globals in the program.
+   Labels are indices into this vector.
+   Global FunDecs are themselves vectors, one for each fn in the bundle.
+
    A function value is a pair of integers: the first is the index of
    the global and the second is the index of the fn within the bundle.
-   So function values are JS objects with prioperties g and f (integers).
+   So function values are records with fields g and f (integers).
 
    A value of type lams is just an integer, as is a value of type AllLam
    when there is at least one value arg.
@@ -15,40 +15,37 @@
    At, Shamrock, WExists, ...
 
    A TPack agglomerates a dictionary and n values, so it is represented as
-   a javascript object { d , v0, ..., v(-1) }
+   a record { d , v0, ..., v(-1) }
 
-   A record with labels s1...sn is represented as an object with properties ls1 .. lsn.
-   The "l" is prepended so that labels that start with numbers (allowed in the CPS)
-   become valid javascript identifiers.
+   A record with labels s1...sn is represented a record with fields ls1 .. lsn.
+   We prepend an 'l' to labels for compatibility with the javascript representation.
 
-   A sum is represented as an object { t, v } or { t } where t is the tag (as a string)
+   A sum is represented as a record { t, v } or { t } where t is the tag (as a string)
    and v is the embedded value, if any.
+   (* XXX are optional fields like this okay? *)
 
 *)
-structure JSCodegen :> JSCODEGEN =
+structure ByteCodegen :> BYTECODEGEN =
 struct
 
   infixr 9 `
   fun a ` b = a b
 
-  exception JSCodegen of string
-
-  open JSSyntax
+  exception ByteCodegen of string
 
   structure C = CPS
   structure SM = StringMap
 
-  val codeglobal = Id.fromString "globalcode"
-    
   (* maximum identifier length of 65536... if we have identifiers longer than that,
      then increasing this constant is the least of our problems. *)
   fun vartostring v = StringUtil.harden (fn #"_" => true | _ => false) #"$" 65536 ` Variable.tostring v
 
   val itos = Int.toString
-  fun vtoi v = $(vartostring v)
+  fun vtoi v = vartostring v
 
-  val pn = PropertyName.fromString
+  fun generate _ = raise ByteCodegen "unimplemented"
 
+(*
   fun wi f = f ` vtoi ` Variable.namedvar "x"
 
   fun generate { labels, labelmap } (gen_lab, SOME gen_global) =
@@ -110,7 +107,7 @@ struct
               wi (fn p => Bind (p, Object ` %[ Property { property = pn "g",
                                                           value = va },
                                                Property { property = pn "f",
-							  value = Number ` Number.fromInt i } ])
+                                                          value = Number ` Number.fromInt i } ])
                   :: k ` Id p))
               
          | C.Proj (s, va) => 
@@ -314,5 +311,6 @@ struct
                name = NONE,
                body = %[Throw ` String ` 
                         String.fromString "wrong world"] }
+*)
 
 end

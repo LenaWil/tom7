@@ -2,7 +2,7 @@
    It is only called "bytecode" to indicate its purpose as a portable
    interpreted language, not because it has anything to do with bytes. *)
 
-structure Bytecode :> BYTECODE =
+structure Bytecode =
 struct
 
   type label = string
@@ -30,13 +30,6 @@ struct
   type program =
     { globals : global vector,
       (* assumed a .0 function of no arguments *)
-      main : int }
-
-  datatype fundec = FunDec of (string list * statement) vector
-
-  type program =
-    { globals : fundec vector,
-      (* assumed a .0 function of no arguments *)
-      main : int }
+      main : int option }
 
 end

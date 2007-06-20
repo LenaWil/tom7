@@ -95,7 +95,15 @@ struct
                  CodeJS { prog = Program.T ` Vector.fromList [arraydec,
                                                               maybecallmain] }
                end
-           | CPS.KBytecode => raise Codegen "bytecode codegen unimplemented")
+           | CPS.KBytecode =>
+               let
+                 val globals = Vector.map (ByteCodegen.generate gctx) maybecodes
+               in
+                 (* XXX support main for bytecode? *)
+                 CodeB { prog = { globals = globals, main = NONE } }
+               end
+               
+               )
         end
 
       val data = map oneworld worlds

@@ -109,8 +109,8 @@ struct
              (fn va =>
               wi (fn p => Bind (p, Object ` %[ Property { property = pn "g",
                                                           value = va },
-                                              Property { property = pn "f",
-                                                         value = Number ` Number.fromInt i } ])
+                                               Property { property = pn "f",
+							  value = Number ` Number.fromInt i } ])
                   :: k ` Id p))
               
          | C.Proj (s, va) => 
