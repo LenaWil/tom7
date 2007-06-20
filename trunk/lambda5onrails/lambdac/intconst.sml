@@ -16,6 +16,7 @@ struct
   val fromInt = Word32.fromInt
     
   val toString = tostring
+  val toInt = Word32.toIntX
 
   fun toReal x = Real.fromLargeInt (Word32.toLargeIntX x)
 end

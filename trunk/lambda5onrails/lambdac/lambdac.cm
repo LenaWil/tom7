@@ -194,6 +194,8 @@ bytecode/codegen.sml
 bytecode/tokens.sml
 bytecode/tokenize-sig.sml
 bytecode/tokenize.sml
+bytecode/parse-sig.sml
+bytecode/parse.sml
 
 
 (* invokes the code generators for
