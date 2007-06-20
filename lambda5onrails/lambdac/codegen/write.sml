@@ -31,7 +31,7 @@ struct
           p  "/* Generated code - do not edit! */\n\n";
           p ("\n\n/* Created by LAMBDAC version " ^ Version.version ^ " */\n\n");
           *)
-          Layout.print (ByteOut.ptol prog, p);
+          Layout.print (BytePrint.ptol prog, p);
           TextIO.closeOut f;
           print ("Wrote " ^ n ^ "\n")
         end

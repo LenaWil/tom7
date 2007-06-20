@@ -10,18 +10,20 @@ struct
   datatype statement =
       Bind of string * exp * statement
     | End 
-    | Jump of exp * exp list
+      (* global id, offset within that, args *)
+    | Jump of exp * exp * exp list
     | Case of { obj : exp, var : string,
                 arms : (string * statement) list,
                 def : statement }
+    | Error of string
 
   and exp =
       Record of (label * exp) list
     | Project of label * exp
-    | Primcall of (string * exp list)
+    | Primcall of string * exp list
     | Var of string
     | Int of IntConst.intconst
-
+    | String of string
 
   datatype global = 
       FunDec of (string list * statement) vector
