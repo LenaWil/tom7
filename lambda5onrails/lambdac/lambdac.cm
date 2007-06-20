@@ -186,8 +186,10 @@ js/syntax.sml
 js/codegen-sig.sml
 js/codegen.sml
 
-bytecode/bytecode-sig.sml
 bytecode/bytecode.sml
+bytecode/byteout.sml
+bytecode/codegen-sig.sml
+bytecode/codegen.sml
 
 (* invokes the code generators for
    each worldkind, above. *)

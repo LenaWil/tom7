@@ -48,9 +48,13 @@ struct
                              %[itol ` length sl,
                                % ` map $ sl,
                                stol st]) v]
+    | gtol Absent = $"ABSENT"
+
+  fun otol f NONE = $"NONE"
+    | otol f (SOME x) = %[$"SOME", f x]
 
   fun ptol { globals, main } =
-    %[$"PROGRAM", itol main,
+    %[$"PROGRAM", otol itol main,
       itol ` Vector.length globals,
       % ` vtol ` Vector.map gtol globals]
 

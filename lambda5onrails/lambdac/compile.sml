@@ -214,7 +214,9 @@ struct
           print "\n";
           code
         end)
-    handle Compile s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
+    handle 
+           ByteCodegen.ByteCodegen s => fail("\nBytecode codegen: " ^ s ^ "\n")
+         | Compile s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
          | CPSDict.CPSDict s => fail ("\nCPSDict: " ^ s ^ "\n")
          | CPSTypeCheck.TypeCheck s => fail ("\n\nInternal error: Type checking failed:\n" ^ s ^ "\n")
          | CPSOpt.CPSOpt s => fail ("\n\nInternal error: CPS-Optimization failed:\n" ^ s ^ "\n")

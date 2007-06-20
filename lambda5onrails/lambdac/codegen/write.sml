@@ -20,7 +20,21 @@ struct
           TextIO.closeOut f;
           print ("Wrote " ^ n ^ "\n")
         end
-        | one (world, CodeB _) = raise Write "unimplemented: writing bytecode"
+        | one (world, CodeB { prog }) =
+        let
+          val n = base ^ "_" ^ world ^ ".b5"
+          val f = TextIO.openOut n
+          fun p s = TextIO.output(f, s)
+        in
+          (* XXX bytecode format should support some kind of comments *)
+          (*
+          p  "/* Generated code - do not edit! */\n\n";
+          p ("\n\n/* Created by LAMBDAC version " ^ Version.version ^ " */\n\n");
+          *)
+          Layout.print (ByteOut.ptol prog, p);
+          TextIO.closeOut f;
+          print ("Wrote " ^ n ^ "\n")
+        end
     in
       app one code
     end
