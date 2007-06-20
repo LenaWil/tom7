@@ -1,5 +1,5 @@
 
-structure ByteOut =
+structure BytePrint =
 struct
 
   infixr 9 `
@@ -20,13 +20,14 @@ struct
   (* starts with keyword: *)
   fun stol stmt =
     (case stmt of
-       Bind (v, e, s) => %[$"BIND", $v, etol e, stol s]
+       Bind (v, e, s) => %[%[$"BIND", $v, etol e], stol s]
      | End => $"END"
-     | Jump (exp, expl) => %[$"JUMP", etol exp, itol ` length expl, % ` map etol expl]
+     | Jump (e1, e2, expl) => %[$"JUMP", etol e1, etol e2, itol ` length expl, % ` map etol expl]
      | Case { obj, var, arms, def } => %[$"CASE", etol obj, $var, itol ` length arms,
                                          % ` map (fn (s, st) =>
                                                   %[$s, stol st]) arms,
                                          stol def]
+     | Error s => %[$"ERROR", $("\"" ^ String.toString s ^ "\"")]
          )
        
   and etol exp =
@@ -38,16 +39,18 @@ struct
                              itol ` length el,
                              % ` map etol el]
      | Int i => $(IntConst.tostring i)
+     | String s => %[$("\"" ^ String.toString s ^ "\"")]
      | Var s => $s
          )
 
   fun gtol (FunDec v) =
-    %[$"FUNDEC",
-      itol ` Vector.length v,
+    %[%[$"FUNDEC",
+        itol ` Vector.length v],
+      L.indent 1 `
       % ` vtol ` Vector.map (fn (sl, st) =>
-                             %[itol ` length sl,
-                               % ` map $ sl,
-                               stol st]) v]
+                             %[%[itol ` length sl,
+                                 % ` map $ sl],
+                               L.indent 2 ` stol st]) v]
     | gtol Absent = $"ABSENT"
 
   fun otol f NONE = $"NONE"

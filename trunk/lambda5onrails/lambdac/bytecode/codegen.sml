@@ -35,6 +35,7 @@ struct
 
   structure C = CPS
   structure SM = StringMap
+  open Bytecode
 
   (* maximum identifier length of 65536... if we have identifiers longer than that,
      then increasing this constant is the least of our problems. *)
@@ -43,20 +44,17 @@ struct
   val itos = Int.toString
   fun vtoi v = vartostring v
 
-  fun generate _ = raise ByteCodegen "unimplemented"
-
-(*
   fun wi f = f ` vtoi ` Variable.namedvar "x"
 
   fun generate { labels, labelmap } (gen_lab, SOME gen_global) =
     let
 
       (* convert the "value" value and send the result (exp) to the continuation k *)
-      fun cvtv value (k : Exp.t -> Statement.t list) : Statement.t list =
+      fun cvtv value (k : exp -> statement) : statement =
         (case C.cval value of
-           C.Var v => k ` Id ` vtoi v
+           C.Var v => k ` Var ` vtoi v
 
-         | C.UVar v => k ` Id ` vtoi v
+         | C.UVar v => k ` Var ` vtoi v
 
          | C.Hold (_, va) => cvtv va k
          | C.Sham (_, va) => cvtv va k
@@ -68,21 +66,18 @@ struct
          | C.AllApp { worlds, tys, vals = nil, f } => cvtv f k
 
          | C.Dict _ => 
-             wi (fn p => Bind (p, String ` String.fromString "dicts unimplemented") :: k ` Id p)
+             wi (fn p => Bind (p, String "dicts unimplemented", k ` Var p))
 
-         | C.Int ic =>
-             let val r = IntConst.toReal ic
-             in k ` RealNumber r
-             end
-         | C.String s => wi (fn p => Bind (p, String ` String.fromString s) :: k ` Id p)
+         | C.Int ic => k ` Int ic
+         | C.String s => wi (fn p => Bind (p, String s, k ` Var p))
          | C.Codelab s =>
              (case SM.find (labelmap, s) of
-                NONE => raise JSCodegen ("couldn't find codelab " ^ s)
-              | SOME i => k ` Number ` Number.fromInt i)
+                NONE => raise ByteCodegen ("couldn't find codelab " ^ s)
+              | SOME i => k ` Int ` IntConst.fromInt i)
 
          (* PERF we perhaps should have canonicalized these things a long time ago so
-            that we always use the same label names. Though it's not obvious that arrays
-            are even any more efficient than objects with property lists? *)
+            that we can use more efficient representations. This probably means putting
+            a type annotation in Project. *)
          | C.Record svl =>
              let
                val (ss, vv) = ListPair.unzip svl
@@ -92,11 +87,9 @@ struct
                 let val svl = ListPair.zip (ss, vve)
                 in
                   wi (fn p => 
-                      Bind (p, Object ` % `
-                            map (fn (s, v) =>
-                                 Property { property = pn ("l" ^ s),
-                                            value = v }) svl) :: 
-                      k ` Id p)
+                      Bind (p, Record `
+                            map (fn (s, v) => ("l" ^ s, v)) svl,
+                            k ` Var p))
                 end)
              end
 
@@ -104,20 +97,19 @@ struct
              (* just a pair of the global's label and the function id within the bundle *)
              cvtv va
              (fn va =>
-              wi (fn p => Bind (p, Object ` %[ Property { property = pn "g",
-                                                          value = va },
-                                               Property { property = pn "f",
-                                                          value = Number ` Number.fromInt i } ])
-                  :: k ` Id p))
-              
+              wi (fn p => Bind (p, Record[("g", va), ("f", Int ` IntConst.fromInt i)],
+                                k ` Var p)))
+
          | C.Proj (s, va) => 
              cvtv va
-             (fn va => wi (fn p => Bind (p, Sel va ("l" ^ s)) :: k ` Id p))
+             (fn va => wi (fn p => Bind (p, Project("l" ^ s, va), k ` Var p)))
 
+
+(*              
          | C.Inj (s, _, NONE) =>
              wi (fn p => Bind (p, Object ` %[ Property { property = pn "t",
                                                          value = String ` String.fromString s }]) 
-                 :: k ` Id p)
+                 :: k ` Var p)
 
          | C.Inj (s, _, SOME va) =>
              cvtv va
@@ -126,114 +118,111 @@ struct
                                                          value = String ` String.fromString s },
                                               Property { property = pn "v",
                                                          value = va }])
-                 :: k ` Id p)
+                 :: k ` Var p)
               )
+*)
+
+         | C.Inj _ => 
+             wi (fn p => Bind (p, String "inj unimplemented", k ` Var p))
+
 
          | C.AllApp _ => 
-             wi (fn p => Bind (p, String ` String.fromString "allapp unimplemented") :: k ` Id p)
+             wi (fn p => Bind (p, String "allapp unimplemented", k ` Var p))
 
              (* weird? *)
          | C.VLetsham (v, va, c) =>
              cvtv va
              (fn va =>
-              Bind (vtoi v, va) :: cvtv c k)
+              Bind (vtoi v, va, cvtv c k))
 
          | C.VLeta (v, va, c) =>
              cvtv va
              (fn va =>
-              Bind (vtoi v, va) :: cvtv c k)
+              Bind (vtoi v, va, cvtv c k))
 
-         | C.Dictfor _ => raise JSCodegen "should not see dictfor in js codegen"
-         | C.Lams _ => raise JSCodegen "should not see lams except at top level in js codegen"
+         | C.Dictfor _ => raise ByteCodegen "should not see dictfor in codegen"
+         | C.Lams _ => raise ByteCodegen "should not see lams except at top level in codegen"
          | C.AllLam { vals = _ :: _, ... } => 
-             raise JSCodegen "should not see non-static alllam in js codegen"
+             raise ByteCodegen "should not see non-static alllam in codegen"
 
          | C.TPack (_, _, vd, vl) =>
              cvtv vd 
-             (fn (vde : Exp.t) =>
+             (fn (vde : exp) =>
               cvtvs vl 
-              (fn (vle : Exp.t list) =>
+              (fn (vle : exp list) =>
                wi (fn p =>
-                   Bind (p, Object ` % `
-                         (Property { property = PropertyName.fromString "d",
-                                     (* XXX requires that it is an identifier, num, or string? *)
-                                     value = vde } ::
-                          ListUtil.mapi (fn (e, idx) =>
-                                         Property { property = PropertyName.fromString ("v" ^ itos idx),
-                                                    value = e }) vle))
-                   :: k ` Id p
-                   )))
+                   Bind (p, Record
+                         (("d", vde) ::
+                          ListUtil.mapi (fn (e, idx) => ("v" ^ itos idx, e)) vle),
+                         k ` Var p))))
+(*
          | C.VTUnpack (_, dv, cvl, va, vbod) =>
              cvtv va
              (fn ob =>
               (* select each component and bind... *)
-              Bind(vtoi dv, SelectId { object = ob, property = Id.fromString "d" }) ::
+              Bind(vtoi dv, SelectVar { object = ob, property = Var.fromString "d" }) ::
               (ListUtil.mapi (fn ((cv, _), i) =>
-                             Bind(vtoi cv, SelectId { object = ob, property = Id.fromString ("v" ^ itos i) }))
+                             Bind(vtoi cv, SelectVar { object = ob, property = Var.fromString ("v" ^ itos i) }))
                             cvl @
                cvtv vbod k)
               )
-
-(*
-         |  _ => 
-             wi (fn p =>
-                 Bind (p, String (String.fromString "unimplemented val")) ::
-                 k ` Id p)
 *)
              )
 
-    (*       [Throw ` String ` String.fromString "unimplemented val"]) *)
-
-
-      and cvtvs (values : C.cval list) (k : Exp.t list -> Statement.t list) : Statement.t list =
+      and cvtvs (values : C.cval list) (k : exp list -> statement) : statement =
            case values of 
              nil => k nil
-           | v :: rest => cvtv v (fn (ve : Exp.t) =>
-                                  cvtvs rest (fn (vl : Exp.t list) => k (ve :: vl)))
+           | v :: rest => cvtv v (fn (ve : exp) =>
+                                  cvtvs rest (fn (vl : exp list) => k (ve :: vl)))
 
-      fun cvte exp : Statement.t list =
+      fun cvte exp : statement =
            (case C.cexp exp of
-              C.Halt => [Return NONE]
+              C.Halt => End
 
             | C.ExternVal (var, lab, _, _, e) =>
             (* XXX still not really sure how we interface with things here... *)
-                (Var ` %[(vtoi var, SOME (Id ` Id.fromString lab))]) :: cvte e
+                Bind(vtoi var, Var lab, cvte e)
 
-            | C.Letsham (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
-            | C.Leta    (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
-            | C.WUnpack (_, v, va, e) => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
+            | C.Letsham (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob, cvte e))
+            | C.Leta    (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob, cvte e))
+            | C.WUnpack (_, v, va, e) => cvtv va (fn ob => Bind (vtoi v, ob, cvte e))
 
             | C.TUnpack (_, dv, cvl, va, e) =>
                 cvtv va
                 (fn ob =>
                  (* select each component and bind... *)
-                 Bind(vtoi dv, Sel ob "d") ::
-                 (ListUtil.mapi (fn ((cv, _), i) =>
-                                 Bind(vtoi cv, Sel ob ("v" ^ itos i)))
-                  cvl @
-                  cvte e))
+                 Bind(vtoi dv, Project("d", ob),
+                      let
+                        fun eat _ nil = cvte e
+                          | eat n ((cv, _) :: rest) =
+                          Bind(vtoi cv, Project ("v" ^ itos n, ob), eat (n + 1) rest)
+                      in
+                        eat 0 cvl
+                      end))
 
-            | C.Go _ => raise JSCodegen "shouldn't see go in js codegen"
-            | C.Go_cc _ => raise JSCodegen "shouldn't see go_cc in js codegen"
-            | C.ExternWorld _ => raise JSCodegen "shouldn't see externworld in js codegen"
+            | C.Go _ => raise ByteCodegen "shouldn't see go in codegen"
+            | C.Go_cc _ => raise ByteCodegen "shouldn't see go_cc in codegen"
+            | C.ExternWorld _ => raise ByteCodegen "shouldn't see externworld in codegen"
 
             | C.Primop ([v], C.PRIMCALL { sym, ... }, args, e) =>
                 cvtvs args
                 (fn args =>
                  (* assuming sym has the name of some javascript function. *)
-                 Bind (vtoi v, Call { func = Id ` $sym, args = %args }) ::
-                 cvte e)
+                 Bind (vtoi v, Primcall (sym, args), cvte e))
 
             | C.Primop ([v], C.BIND, [va], e) =>
                 cvtv va
                 (fn va =>
-                 Bind (vtoi v, va) :: cvte e)
+                 Bind (vtoi v, va,  cvte e))
 
-            | C.Primop _ => [Throw ` String ` String.fromString "unimplemented primop"]
-
-            | C.Go_mar _ => [Throw ` String ` String.fromString "unimplemented go_mar"]
-
-            | C.Put _ => [Throw ` String ` String.fromString "unimplemented put"]
+            | C.Primop _ => Error "unimplemented primop"
+            | C.Go_mar _ => Error "unimplemented go_mar"
+            | C.Put (v, _, va : C.cval, e : C.cexp) =>
+                (* just marks its universality; no effect *)
+                cvtv va
+                (fn va =>
+                 Bind (vtoi v, va, cvte e))
+(*
             | C.Case (va, v, sel, def) => 
                 cvtv va
                 (fn va =>
@@ -254,28 +243,19 @@ struct
 
             | C.ExternType (_, _, vso, e) => [Throw ` String ` String.fromString "unimplemented externtype"]
 
-(*
-      (* post marshaling conversion *)
-    | Go_mar of { w : world, addr : 'cval, bytes : 'cval }
-    | Primop of var list * primop * 'cval list * 'cexp
-    | Put of var * ctyp * 'cval * 'cexp
-    | Case of 'cval * var * (string * 'cexp) list * 'cexp
 *)
 
-
             | C.Call (f, args) => 
-            (* XXX should instead put this on our thread queue. 
-               We need to do something since tail calls are not constant-space! *)
+            (* XXX should instead put this on our thread queue. *)
                 cvtv f 
                 (fn fe =>
                  cvtvs args
                  (fn ae =>
+                  Jump ( Project ("g", fe),
+                         Project ("f", fe),
+                         ae )))
 
-                  [Exp ` Call { func = Sele (Sele (Id codeglobal) (Sel fe "g")) (Sel fe "f"),
-                                args = % ae }]))
                 )
-
-
 
       (* Now, to generate code for this global... *)
 
@@ -290,27 +270,18 @@ struct
          C.AllLam { worlds = _, tys = _, vals, body } =>
            (case C.cval body of
               C.Lams fl =>
-                Array ` % ` map SOME `
-                map (fn (f, args, e) =>
-                     let
-                     in
-                       Function { args = % ` map (vtoi o #1) args,
-                                  name = NONE,
-                                  body = % ` cvte e }
-                     end) fl
+                FunDec ` Vector.fromList `
+                map (fn (_, args, e) =>
+                     (map (vtoi o #1) args,
+                      cvte e)) fl
 
-            | C.AllLam _ => raise JSCodegen "hoisted alllam unimplemented"
-            | _ => raise JSCodegen ("expected label " ^ gen_lab ^ 
-                                    " to be alllam then lams/alllam"))
-
-         | _ => raise JSCodegen ("expected label " ^ gen_lab ^ 
+              | C.AllLam _ => raise ByteCodegen "hoisted alllam unimplemented"
+            | _ => raise ByteCodegen ("expected label " ^ gen_lab ^ 
+                                      " to be alllam then lams/alllam"))
+              
+       | _ => raise ByteCodegen ("expected label " ^ gen_lab ^ 
                                  " to be a (possibly empty) AllLam"))
     end
-    | generate _ (lab, NONE) = 
-    Function { args = %[],
-               name = NONE,
-               body = %[Throw ` String ` 
-                        String.fromString "wrong world"] }
-*)
+    | generate _ (lab, NONE) = Absent
 
 end

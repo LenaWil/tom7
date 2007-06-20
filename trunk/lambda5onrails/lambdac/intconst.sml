@@ -12,6 +12,8 @@ structure IntConst =
 struct
   type intconst = Word32.word
   val tostring = Word32.toString
+
+  val fromInt = Word32.fromInt
     
   val toString = tostring
 
