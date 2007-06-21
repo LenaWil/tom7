@@ -1,0 +1,67 @@
+
+                                                    21 Jun 2007
+
+
+For the first prototype client/server system, we need a way to
+establish a "session" (an instance of a running program) and for the
+client and server to communicate. Some limitations of the browser and
+HTTP will influence our design.
+
+Assumptions for now:
+  A program is compiled into a server part and a client part. Control
+  starts on the client.
+
+  A client asks for a program by fetching a URL from the server. At
+  this point, the server begins a session, assigns a unique number to
+  that session, and serves the javascript code to the client with the
+  session number included.
+
+  At this point, the server has a new blank instance of the program
+  with no active threads.
+
+  The client must begin by establishing a connection to the server,
+  which we'll call the "push" connection. Since the client is the only
+  one that can initiate communication, it will be its responsibility
+  to always maintain the push connection and to wait for messages on
+  it. The connection will need to be recycled occasionally, since each
+  message that comes back on the connection is accumulated onto an
+  ever-growing document. We'll let the server close the push connection
+  (so that messages aren't dropped) at regular intervals, and the client
+  will treat such closes as an invitation to reopen the connection.
+
+  (For now we can close the connection after sending a single message,
+   which simplifies the parsing of the result.)
+
+  (If we want, the initial push connection can be created at the first
+   moment we perform a 'go' to the server, since before that point the
+   server will have no threads of control and so no reason to send
+   messages.)
+
+  (NOTE: It may make sense to give an alternative hostname to the
+   server for this connection, since some browsers are limited to two
+   simultaneous connections for any given server.)
+
+  The server side needs to be able to handle clients that disappear
+  as a result of the web page closing. It can do this whenever it
+  sees the push connection closed by the client (a failure situation
+  as this is supposed to be closed by the server) or when the push
+  connection is not reopened by the client after some time limit
+  (a minute or two). At this point the session is destroyed and any
+  resources reclaimed.
+
+
+  So it goes like this. The server interprets a url "/l5/prog" as the
+  beginning of a session of the program called "prog." It loads the
+  requisite code from a known location: both the server-side code and
+  the client javascript, so that it can be sent to the server. The
+  first request returns the javascript along with a session identifier.
+
+  To open a push connection, the client gets the url "/push/sessionid",
+  using its session identifier. It then just waits for messages on that
+  socket. If the socket closes, it recreates it by getting the same URL.
+
+  For the client to send a message to the server, it gets the url
+  "/pull/sessionid". (For now we can kill this connection after sending
+  a single message.)
+
+  
