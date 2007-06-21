@@ -38,15 +38,10 @@ struct
 
   val int = number wth IntConst.toInt
 
+  val strlit = any when (fn STRING s => SOME s | _ => NONE)
+
   (* labels are identifiers but also numbers *)
   val label = id || number wth (Int.toString o Word32.toInt)
-
-  fun exp () =
-    `PROJ >> label && $exp wth Project
-  || id wth Var
-
-
-  fun bopt p = `TNONE return NONE || `TSOME >> p wth SOME
 
   (* expect an integer, and then that many repetitions of the parser *)
   fun repeated p = 
@@ -58,10 +53,50 @@ struct
               rep n
             end)
 
-  val global = `ABSENT return Absent (* XXX or... *)
+  fun exp () =
+       `PROJ >> label && $exp wth Project
+    || `RECORD >> repeated (label && $exp) wth Record
+    || `PRIMCALL >> label && repeated ($exp) wth Primcall
+    || number wth Int
+    || strlit wth String
+    || id wth Var
+
+
+  and stmt () =
+       `END return End
+    || `BIND >> id && $exp && $stmt wth (fn (a, (b, c)) => Bind (a, b, c))
+    || `JUMP >> $exp && $exp && repeated ($exp) wth (fn (a, (b, c)) => Jump (a, b, c))
+    || `ERROR >> strlit wth Error
+    || `CASE >> $exp && id && repeated (label && $stmt) && $stmt
+         wth (fn (a, (b, (c, d))) => Case { obj = a, var = b, arms = c, def = d})
+
+  fun bopt p = `TNONE return NONE || `TSOME >> p wth SOME
+
+  val global = 
+       `ABSENT return Absent
+    || `FUNDEC >> repeated (repeated id && $stmt) wth (FunDec o Vector.fromList)
 
   val program =
     `PROGRAM >> bopt int && repeated global
     wth (fn (main, globals) => { main = main, globals = Vector.fromList globals } : program)
+
+
+
+  fun parsefile file =
+    let
+      fun tokenize s = 
+        Parsing.transform ByteTokenize.token (Pos.markstreamex file s)
+        
+      fun parseprogram s = 
+        Parsing.transform program (tokenize s)
+        
+      val parsed = Stream.tolist (parseprogram (StreamUtil.ftostream file))
+    in
+      case parsed of
+        [e] => e
+      | nil => raise BytecodeParse "Parse error: no program"
+      | _ => raise BytecodeParse "Parse error: too many programs?"
+    end 
+
 
 end

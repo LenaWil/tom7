@@ -36,6 +36,7 @@ struct
                        % ` map (fn (l, e) => %[$l, etol e]) lel]
      | Project (l, e) => %[$"PROJ", $l, etol e]
      | Primcall (s, el) => %[$"PRIMCALL",
+                             $s,
                              itol ` length el,
                              % ` map etol el]
      | Int i => $(IntConst.tostring i)

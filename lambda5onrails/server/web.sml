@@ -74,6 +74,9 @@ struct
                            "Server: Server5\r\n" ^
                            "Connection: close\r\n");
 
+          (* FIXME totally ad hoc! *)
+          val sbc = BytecodeParse.parsefile "../lambdac/tests/get_server.b5"
+
         in
           print ("URL: [" ^ url ^ "]\n");
           (* app (fn (k, v) => print ("[" ^ k ^ "]=[" ^ v ^ "]\n")) kvp; *)
@@ -84,8 +87,9 @@ struct
 
           (let
              (* FIXME totally ad hoc! *)
-             val js = StringUtil.readfile "../lambdac/tests/alert_home.js"
+
              val rt = StringUtil.readfile "../lambdac/js/runtime.js"
+             val js = StringUtil.readfile "../lambdac/tests/get_home.js"
              val data =
                "<html><head>\n" ^
                "<title>Server 5 Test Page!</title>\n" ^
