@@ -44,33 +44,39 @@ struct
 
       fun nis s s' = N.eq (s, s')
     in
-      case N.wait [!!listener] socks ` SOME ` Time.fromMilliseconds 1000 of
+      (case N.wait [!!listener] socks ` SOME ` Time.fromMilliseconds 1000 of
          (* must be the one listener *)
          N.Accept (_, s, _, _) => incoming := s :: !incoming
-         (* we don't make any outgoing connections *)
+       (* we don't make any outgoing connections *)
        | N.Connected _ => raise Loop "should never get Connected event"
-         (* could be ours or a session's *)
+       (* could be ours or a session's *)
        | N.Closed s =>
            (case ListUtil.extract (nis s) ` !incoming of
               NONE => Session.closed s
             (* we just drop incomplete requests without incident. *)
             | SOME (_, rest) => incoming := rest)
-         (* ditto *)
+       (* ditto *)
        | N.Packet (p, s) => 
-           (case ListUtil.extract (nis s) ` !incoming of
-              NONE => Session.packet (p, s)
-            | SOME (_, rest) =>
-                let in
-                  (* Once we get a packet (HTTP headers) we're ready to hand this
-                     socket off or get rid of it entirely. So remove it from our
-                     list *)
-                  incoming := rest;
-                  request ` N.decode http p
-                end)
-       | _ => raise Loop "unimplemented timeout"
+              (case ListUtil.extract (nis s) ` !incoming of
+                 NONE => Session.packet (p, s)
+               | SOME (_, rest) =>
+                   let in
+                     (* Once we get a packet (HTTP headers) we're ready to hand this
+                        socket off or get rid of it entirely. So remove it from our
+                        list *)
+                     incoming := rest;
+                     request ` N.decode http p
+                   end)
+       | _ => raise Loop "unimplemented timeout");
+
+      loop ()
     end
 
-  and request (sl, so) = raise Loop "requests unimplemented"
+  and request (sl, so) = 
+    let in
+      app (fn s => print (s ^ "\n")) sl;
+      raise Loop "requests unimplemented"
+    end
 
   fun init () =
     listener := SOME ` N.listen http 5555

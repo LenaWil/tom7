@@ -4,6 +4,8 @@ fun message e =
      Loop.Loop s => "loop: " ^ s
    | RawNetwork.RawNetwork s => "rn: " ^ s
    | Network.Network s => "network: " ^ s
+   | Session.Session s => "session: " ^ s
+   | Session.Expired => "session expired and not caught!"
    | _ => exnMessage e)
 
 val () = 

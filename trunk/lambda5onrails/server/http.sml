@@ -36,10 +36,8 @@ structure Http :> PACKETIZER where type packet =
     string list * string option =
 struct
 
-    exception Http of string
-
-    (*This will be a list of http headers
-      cross the optional body *)
+    (* This will be a list of http headers
+       cross the optional body *)
     type packet = string list * string option
 
     (* Piece of packet * contents of Content-length header if we've
