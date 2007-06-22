@@ -9,6 +9,7 @@ struct
    val std = { width = Tile.TILEW,
                height = 2 * Tile.TILEH }
 
+   val bullet = { width = 23, height = 10 }
 
    (* PERF slow! should precompute this! *)
    (* not possible to occupy this space if any
