@@ -29,6 +29,11 @@ group is
 ../../sml-lib/algo/edit-distance-sig.sml
 ../../sml-lib/algo/edit-distance.sml
 
+../../sml-lib/misc/stamp-sig.sml
+../../sml-lib/misc/stamp.sml
+../../sml-lib/data/queue-sig.sml
+../../sml-lib/data/queue.sml
+
 ../../sml-lib/parse/pos-sig.sml
 ../../sml-lib/parse/pos.sml
 ../../sml-lib/parse/parse-sig.sml
@@ -45,6 +50,9 @@ group is
 
 raw-network-sig.sml
 raw-network.sml
+
+network-sig.sml
+network.sml
 
 web.sml
 
