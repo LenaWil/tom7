@@ -10,6 +10,8 @@ sig
 
     (* For a 1x2 tile robot. *)
     val std : config
+    (* for a bullet *)
+    val bullet : config
 
     (* true if the robot cannot inhabit this pixel. *)
     val clipped : config -> int * int -> bool

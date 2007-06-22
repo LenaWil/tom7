@@ -35,23 +35,29 @@ struct
   val screen = makescreen (width, height)
 
   fun requireimage s =
-    case Image.load s of
-      NONE => (print ("couldn't open " ^ s ^ "\n");
-               raise Nope)
-    | SOME p => p
+      let val s = "testgraphics/" ^ s
+      in
+          case Image.load s of
+              NONE => (print ("couldn't open " ^ s ^ "\n");
+                       raise Nope)
+            | SOME p => p
+      end
 
-  val robotr = requireimage "testgraphics/robot.png"
-  val robotl = requireimage "testgraphics/robotl.png" (* XXX should be able to flip graphics *)
+  val robotr = requireimage "robot.png"
+  val robotl = requireimage "robotl.png" (* XXX should be able to flip graphics *)
   val robotr_fade = alphadim robotr
   val robotl_fade = alphadim robotl
-  val solid = requireimage "testgraphics/solid.png"
+  val solid = requireimage "solid.png"
 
-  val redhi = requireimage "testgraphics/redhighlight.png"
-  val greenhi = requireimage "testgraphics/greenhighlight.png"
-  val robobox = requireimage "testgraphics/robobox.png"
+  val redhi = requireimage "redhighlight.png"
+  val greenhi = requireimage "greenhighlight.png"
+  val robobox = requireimage "robobox.png"
 
-  val ramp_lm = requireimage "testgraphics/rampup1.png"
-  val ramp_mh = requireimage "testgraphics/rampup2.png"
+  val ramp_lm = requireimage "rampup1.png"
+  val ramp_mh = requireimage "rampup2.png"
+
+  val fireballr = requireimage "fireball.png"
+  val fireballl = requireimage "fireball_left.png"
 
   fun ttos MEMPTY = "empty"
     | ttos MSOLID = "solid"
@@ -90,6 +96,11 @@ struct
   val botdy = ref 0
   val botstate = BF.flags
 
+  datatype object =
+      Bullet of { dx : int, dy : int, x : int, y : int }
+
+  val objects = ref (nil : object list)
+      
   val paused = ref false
   val advance = ref false
 
@@ -123,6 +134,16 @@ struct
       | t => blitall (tilefor t, screen, 
                       tlx + (x * TILEW), tly + (y * TILEH))))
     end
+
+  fun drawobjects () =
+      let
+          fun doobj (Bullet { x, y, dx, dy }) =
+              blitall (if dx > 0 then fireballr
+                       else fireballl, screen,
+                       x - !scrollx, y - !scrolly)
+      in
+          app doobj (!objects)
+      end
 
   fun drawbot fade =
       let val img = 
@@ -355,6 +376,30 @@ struct
       end
     else ()
 
+  fun moveobjects () =
+      let
+          fun doobj (Bullet { x, y, dx, dy }) =
+              let 
+                  (* XX only dx supported now *)
+                  val xi = if dx < 0 then ~1 else 1
+                  val xr = ref x
+                  val stopx = ref false
+                  fun nudgex _ = 
+                      let val next = !xr + xi
+                      in
+                          if !stopx orelse Clip.clipped Clip.bullet (!xr, next)
+                          then stopx := true
+                          else xr := next
+                      end
+              in
+                  Util.for 0 (abs dx - 1) nudgex;
+                  if !stopx then NONE
+                  else SOME (Bullet { x = !xr, y = y, dx = dx, dy = dy })
+              end
+      in
+          objects := List.mapPartial doobj (!objects)
+      end
+
 
   fun loop { nexttick, intention } =
       if getticks () > nexttick
@@ -365,8 +410,10 @@ struct
               val () =               setscroll ()
               val () =               drawworld ()
               val () =               drawdebug ()
+              val () =               drawobjects ()
               val () =               drawbot true
               val intention = movebot { nexttick = nexttick, intention = intention }
+              val () =               moveobjects ()
           in
               drawbot false;
               flip screen;
@@ -411,6 +458,20 @@ struct
                        end);
               loop cur
           end
+
+    | SOME (E_KeyDown { sym = SDLK_LSHIFT }) => 
+        let in
+            (* fire bullet *)
+            objects := Bullet { x = (case !botface of
+                                         FLEFT => !botx - (surface_width fireballl)
+                                       | FRIGHT => !botx + surface_width robotr),
+                                y = !boty + 8,
+                                dy = 0,
+                                dx = (case !botface of
+                                          FLEFT => ~8
+                                        | FRIGHT => 8) } :: !objects;
+            loop cur
+        end
 
     | SOME (E_KeyDown { sym = SDLK_RETURN }) =>
         let in
