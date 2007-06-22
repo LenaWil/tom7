@@ -176,7 +176,7 @@ sig
        Timeout  --  returned if the wait call timed out, or received a signal
        Accept (l, s, host, p)  --  returned if the listening server 'l'
                                    accepted a connection from 'host' at remote port
-           'p' as socket 's'.
+                                   'p' as socket 's'.
        *)
 
     datatype sockevent =
@@ -186,10 +186,10 @@ sig
       | Accept of listener * sock * address * int
       | Timeout
 
-    (* wait servers sockets (SOME(sec, msec))
+    (* wait servers sockets time
 
        This is the main event handler for our network -- the loop should call this.
-       It blocks for up to (1000*sec + msec) ms, waiting for something to happen:
+       It blocks for up to 'time' (or forever, if NONE), waiting for something to happen:
            A packet may be completed on one of the socks passed in.
            A socket may become ready for writing, so we send some pending data.
            A socket may have an error and be closed.

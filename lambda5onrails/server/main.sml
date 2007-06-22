@@ -1,10 +1,18 @@
 
+fun message e =
+  (case e of
+     Loop.Loop s => "loop: " ^ s
+   | RawNetwork.RawNetwork s => "rn: " ^ s
+   | Network.Network s => "network: " ^ s
+   | _ => exnMessage e)
+
 val () = 
     case Params.docommandline () of
         nil => 
           (let in
-             Web.go ()
-           end handle e => print (Web.message e)
+             Loop.init ();
+             Loop.loop ()
+           end handle e => print ("ERROR: " ^ message e ^ "\n")
              )
       | _ =>
           let in
