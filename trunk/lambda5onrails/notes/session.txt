@@ -50,7 +50,7 @@ Assumptions for now:
   resources reclaimed.
 
 
-  So it goes like this. The server interprets a url "/l5/prog" as the
+  So it goes like this. The server interprets a url "/5/prog" as the
   beginning of a session of the program called "prog." It loads the
   requisite code from a known location: both the server-side code and
   the client javascript, so that it can be sent to the server. The
@@ -60,8 +60,9 @@ Assumptions for now:
   using its session identifier. It then just waits for messages on that
   socket. If the socket closes, it recreates it by getting the same URL.
 
-  For the client to send a message to the server, it gets the url
+  For the client to send a message to the server, it posts it to the url
   "/pull/sessionid". (For now we can kill this connection after sending
-  a single message.)
+  a single message.) These connections don't need to stay open (except
+  maybe to minimize latency).
 
   
