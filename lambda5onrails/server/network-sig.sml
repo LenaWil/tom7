@@ -213,7 +213,4 @@ sig
     (* May raise RawNetwork. *)
     val cleanup: unit -> unit
 
-    (* XXX for debugging; remove RSN *)
-    val heartbeat : unit -> unit
-
 end

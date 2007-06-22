@@ -1,5 +1,6 @@
 
 (* see network-sig.sml for a description. *)
+(* Branched from ConCert Conductor on 22 Jun 2007. *)
 
 structure Network :> NETWORK where type time = Time.time =
 struct
@@ -11,15 +12,15 @@ struct
 
     type time = Time.time
 
-    val debug = ref true (*Params.flag false (SOME ("-debug",
-                                         "Turn on debugging.")) "debug"*)
+    val debug = Params.flag false (SOME ("-debug",
+                                         "Turn on debugging.")) "debug"
         
     fun debugdo f = if !debug then f() else ()
     fun dprintl s = debugdo (fn () => print ("[NET] " ^ s ^ "\n"))
 
     val debugnet = Params.flag false (SOME ("-debugnet",
-                                         "Turn on debugging for the network layer.")) 
-                            "debugnet"
+                                            "Turn on debugging for the network layer.")) 
+                                     "debugnet"
         
     fun ndebugdo f = if !debugnet then f() else ()
     fun ndprintl s = ndebugdo (fn () => (print ("[" ^
@@ -38,7 +39,7 @@ struct
         (SOME("-connectionspersec",
         "The maximum number of outgoing connection attempts allowed per second."))
         "connectionspersec"
-    val connectionspersec = ref (0) (* initialized below *)
+    val connectionspersec = ref 0 (* initialized below *)
 
     val bytessent = ref 0
 
@@ -66,6 +67,8 @@ struct
     | NSent of Time.time
     | NFailed of Time.time
 
+    type why = string list
+
     datatype status = 
         (* normal operation *)
         OK
@@ -76,19 +79,21 @@ struct
            sends are ignored, one disconnect (or the
            receipt of the Closed event) sends it to
            Closed state. *)
-      | Didclose
+      | Didclose of why
         (* the user knows the socket is closed.
            if bool is false:
                  the user has requested that the socket be closed,
                  but there's still more data to be sent (It is a zombie).
            if bool is true:
                  the socket is actually closed. *)
-      | Notified of bool
+      | Notified of bool * why
+
+    fun whytos w = StringUtil.delimit "+" w
 
     fun sttos OK = "OK"
       | sttos Connecting = "Connecting"
-      | sttos Didclose = "Didclose"
-      | sttos (Notified b) = "(Notified " ^ Bool.toString b ^ ")"
+      | sttos (Didclose w) = "Didclose:" ^ whytos w
+      | sttos (Notified (b, w)) = "(Notified " ^ Bool.toString b ^ ":" ^ whytos w ^ ")"
 
     (* might differ across sockets *)
     type packet = exn
@@ -201,7 +206,7 @@ struct
              there are checkpoints sitting in the queue, we should
              never discard an outq without calling its checkpoints
              first. *)
-          outq : sendable Queue.queue ref,
+          outq : sendable Q.queue ref,
           (* XXX better to replace these with real queue data
              structures *)
           (* received packets (or close messages) waiting to be returned as
@@ -219,8 +224,8 @@ struct
 
     (* We also keep a queue of sockets waiting to open, separate from the operating system's
        queue. *)
-    val delayedsocks = ref Queue.empty : 
-      ((unit -> sock') * (sock' -> unit) ref * sock) Queue.queue ref
+    val delayedsocks = ref (Q.empty ()) : 
+      ((unit -> sock') * (sock' -> unit) ref * sock) Q.queue ref
 
     (* PERF this would be more efficient if we used (Delayed thunks) as the arm
        of sock'' and then just acted on these functions directly.
@@ -228,7 +233,7 @@ struct
     val dsockctr = ref 0
 
     fun delayapp f (i : sock) =
-      Queue.app
+      Q.app
         (fn (_,g,j) =>
           if i = j
           then
@@ -268,7 +273,7 @@ struct
         "([" ^ description ^ "/" ^ !name ^ "] sd: " ^ R.tostring sd ^ " " ^ 
         Stamp.tostring stamp ^ " out: "
         ^ StringUtil.delimit "," (map (fn Data s => "[" ^ fix 30 s ^ "]"
-                                       | _ => "??" ) (Q.toList (!outq))) ^
+                                       | _ => "??" ) (Q.tolist (!outq))) ^
         " evt: " ^ StringUtil.delimit "," (map etos (eq1 @ rev eq2)) ^
         " inp: ? status: " ^ sttos status ^ ")"
 
@@ -344,7 +349,7 @@ struct
                name = ref ("connect " ^ h ^ ":" ^ Int.toString p),
                stamp = s,
                pack = pack,
-               outq = ref Q.empty,
+               outq = ref (Q.empty()),
                evtq = ref (nil, nil),
                inp = ref empty,
                status = ref Connecting } 
@@ -356,7 +361,7 @@ struct
           val sr = ref (Delayed (!dsockctr))
         in
           (dsockctr := (!dsockctr + 1 handle Overflow => 0);
-          delayedsocks := Queue.enq ((fn () => connect' r h p, ref (fn s => ()), sr), !delayedsocks);
+          delayedsocks := Q.enq ((fn () => connect' r h p, ref (fn s => ()), sr), !delayedsocks);
           sr)
         end
 
@@ -365,7 +370,7 @@ struct
            pack = pack,
            name = ref ("usconnect " ^ p),
            stamp = Stamp.new (),
-           outq = ref Q.empty,
+           outq = ref (Q.empty()),
            evtq = ref (nil, nil),
            inp = ref empty,
            status = ref OK } handle R.RawNetwork s => raise Network s
@@ -392,12 +397,12 @@ struct
         let in
             raise Network "sock already closed (disconnect)"
         end
-      | disconnect' (S{status = r as ref Didclose, ...}) = r := Notified true
+      | disconnect' (S{status = r as ref (Didclose w), ...}) = r := Notified (true, "disconnect" :: w)
       | disconnect' (s as S{status, ...}) =
         let in
             ndprintl ("making " ^ socktos' s ^ " into a zombie.");
             zombies := s :: !zombies;
-            status := Notified false
+            status := Notified (false, ["disconnect."])
         end
 
     fun disconnect (ref (Socket s)) = disconnect' s
@@ -415,11 +420,11 @@ struct
        enqueue as well *)
     fun sendraw' _ (s as S{status = ref (Notified _), ...}) _ = 
         let in
-            raise Network "socket is closed (sendraw)"
+            raise Network ("socket is closed (sendraw): " ^ socktos' s)
         end
       (* tried to send on a socket that's closed, but the client doesn't
          know that yet *)
-      | sendraw' ck (s as S{status = ref (Didclose), ...}) _ = 
+      | sendraw' ck (s as S{status = ref (Didclose _), ...}) _ = 
           (* fail notify immediately, since it's already closed *)
         let in
           ndprintl ("Failing to enqueue packet in" ^ socktos' s);
@@ -484,7 +489,7 @@ struct
           | _ => ()
       in
         fo (!outq);
-        outq := Q.empty
+        outq := (Q.empty())
       end
 
     fun wait' lis soc (to : Time.time option) =
@@ -511,7 +516,7 @@ struct
             (* XXX are there any other sanity checks that it makes sense to do here? *)
 
             fun sane (s as S{status=ref (Notified _), ...}) = 
-                 raise Network "closed socket passed to select"
+                 raise Network ("closed socket passed to select: " ^ socktos' s)
               | sane _ = ()
 
             (* XXX put debugdo here so we don't quit if trying to connect to a node
@@ -525,19 +530,19 @@ struct
                if the socket was buffered and had an exception *)
 
 
-            fun onezombie (s as S{sd, status=status as ref (Notified false), outq, ...}) =
-              if Q.isEmpty (!outq) then
+            fun onezombie (s as S{sd, status=status as ref (Notified (false, w)), outq, ...}) =
+              if Q.isempty (!outq) then
                 let in
                     ndprintl ("zombie " ^ socktos' s ^ " discarded because outq empty");
-                    status := Notified true;
+                    status := Notified (true, "zomb_outq_empty" :: w);
                     (R.hangup sd) handle R.RawNetwork _ => ();
                     false
                 end
               else true
-              | onezombie (s as S{sd, status=status as ref (Didclose), outq, ...}) =
+              | onezombie (s as S{sd, status=status as ref (Didclose w), outq, ...}) =
                 let in
                     ndprintl ("zombie " ^ socktos' s ^ " discarded because status Didclose");
-                    status := Notified true;
+                    status := Notified (true, "onezombie" :: w);
                     (R.hangup sd) handle R.RawNetwork _ => ();
                     fail_outq outq;
                     false
@@ -576,10 +581,10 @@ struct
                                    its packets. At this point, this socket
                                    should no longer be used. *)
                                 let in
-                                    ignore(!status = Didclose 
-                                         orelse raise Network "inconsistent socket state (Cls)!");
-                                    status := Notified true;
-                                    Closed' s
+                                  (case !status of
+                                     Didclose w => status := Notified(true, "Cls" :: w)
+                                   | _ => raise Network "inconsistent socket state (Cls)!");
+                                  Closed' s
                                 end
                 in
                     case are lis of
@@ -612,7 +617,7 @@ struct
                                    (or those waiting to connect! - tom) *)
                         val ws = List.mapPartial (fn (S{sd,status=ref Connecting, ...}) => SOME sd
                                                    | (S{sd, outq, ...}) =>
-                                                      if Q.isEmpty (!outq) then NONE
+                                                      if Q.isempty (!outq) then NONE
                                                       else SOME sd) wsoc
 
                         val (rr, ww, ee) = R.select (rs, ws, to)
@@ -652,12 +657,13 @@ struct
                                 if case status' of
                                        OK => true
                                      | Connecting => true
-                                     | Notified false => true
+                                     (* XXX loses why *)
+                                     | Notified (false, _) => true
                                      | _ => false
                                 then
                                 let in
                                     (R.hangup sd) handle R.RawNetwork _ => ();
-                                    status := Didclose;
+                                    status := Didclose ["socketexn+?"];
                                     fail_outq outq;
                                     push evtq Cls
                                 end
@@ -684,7 +690,7 @@ struct
                                      (R.hangup sd) handle _ => ();
                                        (* XXX correct? *)
                                        fail_outq outq;
-                                       r := Didclose;
+                                       r := Didclose ["exn_in_dorecv"];
                                        push evtq Cls
                                  end)
 
@@ -717,7 +723,7 @@ struct
                                                          name = ref ("accept @" ^ R.tostring sd),
                                                          pack = pack,
                                                          stamp = Stamp.new (),
-                                                         outq = ref Q.empty,
+                                                         outq = ref (Q.empty ()),
                                                          evtq = ref (nil, nil),
                                                          inp = ref empty,
                                                          status = ref OK } 
@@ -776,7 +782,7 @@ struct
                                      val d = pop_data outq
                                      val len = size d
                                      val _ = 
-                                         ndprintl ("Send: " ^
+                                         ndprintl ("(w') Send: " ^
                                                    R.tostring sd ^
                                                    " " ^ fix 200 d)
                                      val n = R.send sd d
@@ -789,13 +795,13 @@ struct
                                            the head of the queue, we don't execute
                                            checkpoints *)
                                       then outq := 
-                                       Q.enq_front (Data (String.substring (d, n, len - n)),
-                                                    !outq)
+                                       Q.cons (Data (String.substring (d, n, len - n)),
+                                               !outq)
                                        (* but if we finished the whole data packet,
                                           then we need to execute the checkpoints
                                           that follow it to maintain the invt on outq *)
                                       else execute_checkpoints outq);
-                                     
+
                                      ndprintl ("Sent " ^ Int.toString n)
                                  end handle R.RawNetwork _ =>
                                      let in  
@@ -809,7 +815,7 @@ struct
                                                       R.seq (z, sd)) (!zombies)
                                       then
                                           let in
-                                              status := Notified true;
+                                              status := Notified (true, ["dosend_exn"]);
                                               zombies := List.filter 
                                               (
                                                   fn (S{sd=z,...}) =>
@@ -839,7 +845,7 @@ struct
                                               ndprintl ("Closed due to write err: " ^ 
                                                         socktos' this);
                                               fail_outq outq;
-                                              status := Didclose;
+                                              status := Didclose ["write_err"];
                                               push evtq Cls
                                           end
                                      end)
@@ -861,17 +867,17 @@ struct
                              case List.find (fn S{sd, ...} => R.seq (sd, s)) wsoc of
                                  (* we may have closed it in recv, even though it was
                                     writable *)
-                                 SOME (S{status=ref Didclose, ...}) => ()
+                                 SOME (S{status=ref (Didclose _), ...}) => ()
                                | SOME (this as S{sd, evtq, 
                                                  outq, status=r as ref Connecting, ...}) =>
                                  if R.haserror sd
                                  then (ndprintl (socktos' this ^ " failed to connect.");
-                                       r := Didclose;
+                                       r := Didclose ["failed_connect"];
                                        push evtq Cls)
                                  else (r := OK; 
                                        push evtq Cnt)
                                | SOME (this as S{sd, evtq, status, outq,...}) =>
-                                   if Q.isEmpty (!outq)
+                                   if Q.isempty (!outq)
                                    then 
                                      (* a connecting socket can be both read-
                                         and write-enabled, so it might be set OK
@@ -895,12 +901,12 @@ struct
     fun heartbeat () = let
         fun activate n =
           if
-            (not (Queue.isEmpty (!delayedsocks))) andalso
+            (not (Q.isempty (!delayedsocks))) andalso
             R.opensocks () < maxsocks
             andalso n < (!connectionspersec)
           then
             let
-              val (d,q) = Queue.deq (!delayedsocks)
+              val (d,q) = Q.deq (!delayedsocks)
               val (f,g,s) = valOf d
               val sck = f ()
               val _ = ndprintl ("Connected delayed sock " ^ socktos' sck)
@@ -940,18 +946,20 @@ struct
 
       XXX this appears to copy a lot of code from above; can we
       merge them? - tom
+
+      XXX throttle send/connect speed
     *)
     fun pushpackets' sl  =
         let
             fun send this sd (outq : sendable Q.queue ref) =
                 let
                     val _ = 
-                        ndprintl (socktos' this ^ " ready to write.")
+                        ndprintl (socktos' this ^ " ready to write (pp').")
 
                     val d = pop_data outq
                     val len = size d
                     val _ = 
-                        ndprintl ("Send: " ^
+                        ndprintl ("(pp') Send: " ^
                             R.tostring sd ^
                             " " ^ fix 200 d)
                     val n = R.send sd d
@@ -959,8 +967,8 @@ struct
                     ignore(n = ~1 andalso raise R.RawNetwork "");
                     if n < len 
                     (* maintains data-front invt *)
-                    then outq := Q.enq_front (Data (String.substring (d, n, len - n)),
-                                              !outq)
+                    then outq := Q.cons (Data (String.substring (d, n, len - n)),
+                                         !outq)
                     else execute_checkpoints outq
                 end handle R.RawNetwork _ =>
                 let in
@@ -970,7 +978,7 @@ struct
                   end
 
                 fun loop ((z as S{sd, outq,...})::t) =
-                  if Q.isEmpty (!outq)
+                  if Q.isempty (!outq)
                   then 
                     let in
                       (* hang up, ignoring errors *)
@@ -1010,9 +1018,9 @@ struct
           else SOME x
         end;
 
-        connectionspersec := Params.asint 8 connectionspersec';
+        connectionspersec := Params.asint 8 connectionspersec'
 
-        Cleanup.install "Network" cleanup
+        (* ; Cleanup.install "Network" cleanup *)
       end
 
 end
