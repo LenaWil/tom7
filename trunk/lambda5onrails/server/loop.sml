@@ -65,18 +65,67 @@ struct
                         socket off or get rid of it entirely. So remove it from our
                         list *)
                      incoming := rest;
-                     request ` N.decode http p
+                     request s ` N.decode http p
                    end)
-       | _ => raise Loop "unimplemented timeout");
+       | _ => 
+          let in
+            Session.step ()
+          end);
 
       loop ()
     end
 
-  and request (sl, so) = 
-    let in
-      app (fn s => print (s ^ "\n")) sl;
-      raise Loop "requests unimplemented"
+  and request s (cmd :: headers, so) = 
+    let
+      fun expectint str (f : int -> unit) : unit =
+        case Int.fromString str of
+          NONE => error404 s "URL not found (expected int)"
+        | SOME i => f i
+    in
+      case String.tokens (StringUtil.ischar #" ") cmd of
+        "GET" :: url :: _ =>
+          (case StringUtil.token (StringUtil.ischar #"/") url of
+             ("5", prog) => Session.new s prog
+           | ("pull", id) => expectint id ` Session.pull s
+           | ("push", id) => expectint id ` Session.push s
+           | ("exit", _) => raise Loop "EXIT."
+           | _ => error404 s "URL not found.")
+      | method :: _ => error501 s ("unsupported method " ^ method)
+      | _ => error501 s "??"
     end
+    | request s _ = 
+       let in
+         error501 s "request lacked command";
+         print "Request lacked command\n"
+       end
+
+  and error501 s str =
+       let in
+         N.sendraw s
+         ("HTTP/1.1 501 Method Not Implemented\r\n" ^
+          "Date: " ^ Version.date () ^ "\r\n" ^
+          "Server: " ^ Version.version ^ "\r\n" ^
+          "Allow: GET, POST\r\n" ^
+          "Connection: close\r\n" ^
+          "Content-Type: text/html; charset=utf-8\r\n" ^
+          "\r\n" ^
+          str);
+         N.disconnect s
+       end
+         
+  and error404 s str =
+       let in
+         N.sendraw s
+         ("HTTP/1.1 404 URL Not Found\r\n" ^
+          "Date: " ^ Version.date () ^ "\r\n" ^
+          "Server: " ^ Version.version ^ "\r\n" ^
+          "Connection: close\r\n" ^
+          "Content-Type: text/html; charset=utf-8\r\n" ^
+          "\r\n" ^
+          str);
+         N.disconnect s
+       end
+
 
   fun init () =
     listener := SOME ` N.listen http 5555

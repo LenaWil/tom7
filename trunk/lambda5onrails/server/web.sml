@@ -100,7 +100,6 @@ struct
                "Welcome to Server 5!\n" ^
                "</body></html>\n";
 
-
              val res = ("Content-Type: text/html; charset=utf-8\r\n" ^
                         "\r\n" ^
                         data)
