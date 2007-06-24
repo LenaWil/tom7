@@ -6,6 +6,7 @@ fun message e =
    | Network.Network s => "network: " ^ s
    | Session.Session s => "session: " ^ s
    | Session.Expired => "session expired and not caught!"
+   | Execute.Execute s => "execute: " ^ s
    | _ => exnMessage e)
 
 val () = 
