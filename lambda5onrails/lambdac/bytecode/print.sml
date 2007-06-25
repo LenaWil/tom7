@@ -27,6 +27,7 @@ struct
                                          % ` map (fn (s, st) =>
                                                   %[$s, stol st]) arms,
                                          stol def]
+     | Go (e1, e2) => %[$"GO", etol e1, etol e2]
      | Error s => %[$"ERROR", $("\"" ^ String.toString s ^ "\"")]
          )
        

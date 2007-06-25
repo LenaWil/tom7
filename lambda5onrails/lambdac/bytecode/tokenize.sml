@@ -147,6 +147,7 @@ struct
        ("NONE", TNONE),
        ("SOME", TSOME),
        ("PROGRAM", PROGRAM),
+       ("GO", GO),
        ("INJ", INJ)
        ]
 

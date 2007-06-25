@@ -67,6 +67,7 @@ struct
        `END return End
     || `BIND >> id && $exp && $stmt wth (fn (a, (b, c)) => Bind (a, b, c))
     || `JUMP >> $exp && $exp && repeated ($exp) wth (fn (a, (b, c)) => Jump (a, b, c))
+    || `GO >> $exp && $exp wth Go
     || `ERROR >> strlit wth Error
     || `CASE >> $exp && id && repeated (label && $stmt) && $stmt
          wth (fn (a, (b, (c, d))) => Case { obj = a, var = b, arms = c, def = d})

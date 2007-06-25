@@ -17,6 +17,8 @@ struct
                 var : string,
                 arms : (string * statement) list,
                 def : statement }
+      (* addr, bytes *)
+    | Go of exp * exp
     | Error of string
 
   and exp =

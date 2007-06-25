@@ -1,6 +1,9 @@
 (* A session is a running instance of a program along with
    the connections with the client and a unique integer that
    identifies it.
+
+   XXX in failure situations, we shouldn't shut down the
+   entire server...
    
    *)
 
@@ -99,7 +102,7 @@ struct
              anyway we don't care about it. *)
           (case !toclient of
              Open s' => if N.eq (s', sock) 
-                        then print "content for toclient? ignored!"
+                        then print "content for toclient? ignored!\n"
                         else ()
            | Closed _ => ());
           
@@ -147,7 +150,7 @@ struct
       val data =
         "<html><head>\n" ^
         "<title>Server 5 Test Page!</title>\n" ^
-        "<script language=\"JavaScript\">\n" ^ sessiondata ^ "\n</script>\n" ^
+        "<script language=\"JavaScript\">\n" ^ sessiondata ^ "</script>\n" ^
         "<script language=\"JavaScript\">\n" ^ rt ^ "\n</script>\n" ^
         "<script language=\"JavaScript\">\n" ^ js ^ "\n</script>\n" ^
         "</head>\n" ^
@@ -220,7 +223,10 @@ struct
   fun toclient sock id = 
     case getsession id of
       (* what to do if it's already open?? should be fatal? *)
-      SOME (S { toclient, ...}) => raise Session "unimplemented"
+      SOME (S { toclient, ...}) =>
+        (case !toclient of
+           Open _ => raise Session "client made a second toclient socket"
+         | Closed _ => toclient := Open sock)
     | NONE => raise Expired
 
 end
