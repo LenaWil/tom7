@@ -57,6 +57,7 @@ struct
        `PROJ >> label && $exp wth Project
     || `RECORD >> repeated (label && $exp) wth Record
     || `PRIMCALL >> label && repeated ($exp) wth Primcall
+    || `INJ >> label && $exp wth Inj
     || number wth Int
     || strlit wth String
     || id wth Var

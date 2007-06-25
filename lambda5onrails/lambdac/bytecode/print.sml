@@ -40,6 +40,7 @@ struct
                              itol ` length el,
                              % ` map etol el]
      | Int i => $(IntConst.tostring i)
+     | Inj (l, e) => %[$"INJ", $l, etol e]
      | String s => %[$("\"" ^ String.toString s ^ "\"")]
      | Var s => $s
          )

@@ -23,7 +23,8 @@
    A sum is represented as a record { t, v } or { t } where t is the tag (as a string)
    and v is the embedded value, if any.
    (* XXX are optional fields like this okay? *)
-
+   (let's make INJ be INJ, to reuse record like this is not simpler)
+     
 *)
 structure ByteCodegen :> BYTECODEGEN =
 struct
@@ -105,26 +106,8 @@ struct
              (fn va => wi (fn p => Bind (p, Project("l" ^ s, va), k ` Var p)))
 
 
-(*              
-         | C.Inj (s, _, NONE) =>
-             wi (fn p => Bind (p, Object ` %[ Property { property = pn "t",
-                                                         value = String ` String.fromString s }]) 
-                 :: k ` Var p)
-
-         | C.Inj (s, _, SOME va) =>
-             cvtv va
-             (fn va =>
-             wi (fn p => Bind (p, Object ` %[ Property { property = pn "t",
-                                                         value = String ` String.fromString s },
-                                              Property { property = pn "v",
-                                                         value = va }])
-                 :: k ` Var p)
-              )
-*)
-
          | C.Inj _ => 
              wi (fn p => Bind (p, String "inj unimplemented", k ` Var p))
-
 
          | C.AllApp _ => 
              wi (fn p => Bind (p, String "allapp unimplemented", k ` Var p))
