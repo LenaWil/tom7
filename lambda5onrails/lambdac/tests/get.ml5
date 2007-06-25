@@ -1,10 +1,10 @@
 unit
-(* extern val js.alert : string -> unit @ home *)
+  (* extern val js.alert : string -> unit @ home *)
   extern bytecode world server
   extern val server ~ server addr
   extern val s : string @ server
 
-	 (* do js.alert (from server get s) *)
+  (* do js.alert (from server get s) *)
   val s' = (from server get s)
 in
     export val x = s'
