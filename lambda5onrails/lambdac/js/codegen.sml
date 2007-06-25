@@ -38,10 +38,13 @@ struct
   structure C = CPS
   structure SM = StringMap
 
-  (* n.b. must agree with runtime *)
+  (* n.b. these must agree with runtime *)
   val codeglobal = Id.fromString "globalcode"
   val enqthread  = Id.fromString "lc_enq_thread"
   val yield      = Id.fromString "lc_yield"
+  val go_mar     = Id.fromString "lc_go_mar"
+  val marshal    = Id.fromString "lc_marshal"
+  val homeaddr   = "home"
 
   (* maximum identifier length of 65536... if we have identifiers longer than that,
      then increasing this constant is the least of our problems. *)
@@ -208,6 +211,7 @@ struct
             | C.Letsham (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
             | C.Leta    (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
             | C.WUnpack (_, v, va, e) => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
+            | C.Put     (v, _, va, e) => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
 
             | C.TUnpack (_, dv, cvl, va, e) =>
                 cvtv va
@@ -235,11 +239,29 @@ struct
                 (fn va =>
                  Bind (vtoi v, va) :: cvte e)
 
+            | C.Primop ([v], C.LOCALHOST, [], e) =>
+                Bind (vtoi v, String ` String.fromString homeaddr) :: cvte e
+
+            | C.Primop ([v], C.MARSHAL, [vd, va], e) =>
+                cvtv vd
+                (fn vd =>
+                 cvtv va
+                 (fn va =>
+                  Bind (vtoi v, Call { func = Id marshal, args = %[vd, va] }) ::
+                  cvte e))
+
             | C.Primop _ => [Throw ` String ` String.fromString "unimplemented primop"]
 
-            | C.Go_mar _ => [Throw ` String ` String.fromString "unimplemented go_mar"]
+            | C.Go_mar { w = _, addr, bytes } =>
+                cvtv addr
+                (fn addr =>
+                 cvtv bytes
+                 (fn bytes =>
+                  (* implemented in runtime. *)
+                  [Exp ` Call { func = Id go_mar,
+                                args = %[addr, bytes] }]
+                  ))
 
-            | C.Put _ => [Throw ` String ` String.fromString "unimplemented put"]
             | C.Case (va, v, sel, def) => 
                 cvtv va
                 (fn va =>
@@ -261,11 +283,7 @@ struct
             | C.ExternType (_, _, vso, e) => [Throw ` String ` String.fromString "unimplemented externtype"]
 
 (*
-      (* post marshaling conversion *)
-    | Go_mar of { w : world, addr : 'cval, bytes : 'cval }
     | Primop of var list * primop * 'cval list * 'cexp
-    | Put of var * ctyp * 'cval * 'cexp
-    | Case of 'cval * var * (string * 'cexp) list * 'cexp
 *)
 
 

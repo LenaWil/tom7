@@ -8,17 +8,16 @@ function lc_queue () {
     /* queues start empty */
     this.contents = new Array();
 };
+
 lc_queue.prototype.enq = function (x) {
     this.contents.push(x);
 };
+
 /* PERF this is linear time by definition!! */
 lc_queue.prototype.deq = function () {
     /* returns undefined if there are no elements */
     return this.contents.shift ();
 };
-
-/* XXX need an actual representation for exceptions. */
-var Match = 0;
 
 var lc_threadqueue = new lc_queue ();
 
@@ -50,18 +49,70 @@ function lc_yield() {
     setTimeout(lc_schedule, 10);
 };
 
-/*
-function hello () {
-    lc_threadqueue.enq(1);
-    lc_threadqueue.enq(2);
-
-    alert(lc_threadqueue.deq());
-    lc_threadqueue.enq(3);
-    alert(lc_threadqueue.deq());
-    alert(lc_threadqueue.deq());
-
-    alert(lc_threadqueue.deq());
+/* a thread has arrived at this world, as marshaled bytes */
+function lc_come(bytes) {
+    /* FIXME */
+    alert('unimplemented come: ' + bytes);
 };
 
-var unused = hello ();
-*/
+/* jump to the server, using these marshaled bytes */
+function lc_go(bytes) {
+    var req;
+    if (window.XMLHttpRequest) {
+        req = new XMLHttpRequest();
+
+	/* unnecessary and ignored anyway (forced text/xml??) */
+	/* req.setRequestHeader = ('Content-Type', 'application/ml5'); */
+
+        req.onreadystatechange = function () {
+	    /* just die; continuation happens when the server
+               calls us back on the toclient connection. 
+               but, we might want to alert the programmer
+               to failure (how do we detect it?) by an exception.
+            */
+	    alert ('readystate: ' + req.readyState);
+	};
+	/* post (we'll send body), toserver url, asynchronous */
+        req.open("POST", session_serverurl, true);
+        req.send(bytes);
+    } else if (window.ActiveXObject) {
+	alert('IE not supported (yet?)');
+	/* 
+        req = new ActiveXObject("Microsoft.XMLHTTP");
+        if (req) {
+            req.onreadystatechange = think;
+            req.open("GET", url, true);
+            req.send();
+        }
+        */
+    }
+};
+
+function lc_go_mar(addr, bytes) {
+    /* what we do depends on which world this is. */
+    switch(addr) {
+    case "home":
+	/* self-call */
+	lc_come(bytes);
+	break;
+    case "server":
+	/* call to server */
+	lc_go(bytes);
+	break;
+    default:
+	alert('unknown addr ' + addr);
+    }
+};
+
+function lc_marshal(dict, va) {
+   return "unimplemented";
+};
+
+/* XXX need an actual representation for exceptions. */
+var Match = 0;
+
+/* XXX We should perhaps support an overlay network where
+   there are multiple named worlds and some general way of
+   specifying them. Otherwise there is just one other world,
+   namely the server: */
+var server = "server";

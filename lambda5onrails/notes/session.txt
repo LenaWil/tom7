@@ -56,12 +56,12 @@ Assumptions for now:
   the client javascript, so that it can be sent to the server. The
   first request returns the javascript along with a session identifier.
 
-  To open a push connection, the client gets the url "/push/sessionid",
+  To open a push connection, the client gets the url "/toclient/sessionid",
   using its session identifier. It then just waits for messages on that
   socket. If the socket closes, it recreates it by getting the same URL.
 
   For the client to send a message to the server, it posts it to the url
-  "/pull/sessionid". (For now we can kill this connection after sending
+  "/toserver/sessionid". (For now we can kill this connection after sending
   a single message.) These connections don't need to stay open (except
   maybe to minimize latency).
 

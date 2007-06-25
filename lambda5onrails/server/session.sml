@@ -11,7 +11,7 @@ struct
 
   structure N = Network
 
-  datatype pull =
+  datatype toclient =
     Open of N.sock
     (* the last time we saw the socket open *)
   | Closed of Time.time
@@ -28,10 +28,10 @@ struct
 
   datatype session = S of { id : int,
                             (* socket the client uses to send us a message *)
-                            push : N.sock option ref,
+                            toserver : N.sock option ref,
                             (* socket the client keeps open for us to send
                                messages on *)
-                            pull : pull ref,
+                            toclient : toclient ref,
                             
                             prog : Execute.instance 
                             
@@ -46,11 +46,11 @@ struct
   fun id (S { id, ... }) = id
   fun getsession i = ListUtil.example (fn (S { id, ...}) => id = i) ` !sessions
 
-  fun opensockets (S { push, pull, ... }) =
-    (case !push of SOME s => [s] | NONE => nil) @
-    (case !pull of Open s => [s] | Closed _ => nil)
+  fun opensockets (S { toserver, toclient, ... }) =
+    (case !toserver of SOME s => [s] | NONE => nil) @
+    (case !toclient of Open s => [s] | Closed _ => nil)
 
-  (* Any push/pull sockets that we have open *)
+  (* Any toserver/toclient sockets that we have open *)
   fun sockets () =
     List.concat ` 
       map opensockets ` !sessions
@@ -65,7 +65,7 @@ struct
       (fn session => List.exists (fn s' => N.eq (sock, s')) ` 
        opensockets session) ` !sessions of
       NONE => raise Session "no such socket active in sessions??"
-    | SOME (session as S { push, pull, ... }, rest) =>
+    | SOME (session as S { toserver, toclient, ... }, rest) =>
         let
           fun fatal () =
             let in
@@ -74,12 +74,12 @@ struct
             end
         in
           (* Not an error in either case. So, just clear it out. *)
-          (case !push of
+          (case !toserver of
              SOME s' => if N.eq (s', sock)
-                        then push := NONE
+                        then toserver := NONE
                         else ()
            | NONE => ());
-          (case !pull of
+          (case !toclient of
              Open s' => fatal ()
            | Closed _ => ())
         end
@@ -104,14 +104,22 @@ struct
     let
       val id = newid ()
 
+      (* XXX paths should be from a config file *)
       val sbc = BytecodeParse.parsefile ("../lambdac/tests/" ^ prog ^ "_server.b5")
       val rt = StringUtil.readfile "../lambdac/js/runtime.js"
       val js = StringUtil.readfile ("../lambdac/tests/" ^ prog ^ "_home.js")
+
+      val sessiondata =
+        (* XXX should be from a config file *)
+        "var session_serverurl = 'http://gs82.sp.cs.cmu.edu:5555/toserver/';\n" ^
+        "var session_clienturl = 'http://gs82.sp.cs.cmu.edu:5555/toclient/';\n" ^
+        "var session_id = " ^ Int.toString id ^ ";\n"
 
       (* this could be better... ;) *)
       val data =
         "<html><head>\n" ^
         "<title>Server 5 Test Page!</title>\n" ^
+        "<script language=\"JavaScript\">\n" ^ sessiondata ^ "\n</script>\n" ^
         "<script language=\"JavaScript\">\n" ^ rt ^ "\n</script>\n" ^
         "<script language=\"JavaScript\">\n" ^ js ^ "\n</script>\n" ^
         "</head>\n" ^
@@ -135,8 +143,8 @@ struct
        "\r\n" ^
        data);
       N.disconnect s;
-      sessions := S { id = id, push = ref NONE, 
-                      pull = ref ` Closed ` Time.now (),
+      sessions := S { id = id, toserver = ref NONE, 
+                      toclient = ref ` Closed ` Time.now (),
                       prog = Execute.new sbc } :: !sessions
     end handle BytecodeParse.BytecodeParse msg => failnew s prog ("parse error: " ^ msg)
 
@@ -144,7 +152,7 @@ struct
   fun step () =
       List.app (fn (S { prog, ... }) => Execute.step prog) ` !sessions
 
-  fun push _ _ = raise Session "unimplemented"
-  fun pull _ _ = raise Session "unimplemented"
+  fun toserver _ _ = raise Session "unimplemented"
+  fun toclient _ _ = raise Session "unimplemented"
 
 end

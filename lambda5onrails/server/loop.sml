@@ -8,13 +8,13 @@
    we decide what to do with an incoming request; this depends on what URL
    the request is for.
 
-      /5/prog             ... start a new session for the program "prog"
+      /5/prog                 ... start a new session for the program "prog"
 
-      /pull/<sessionid>   
-      /push/<sessionid>   ... hand the connection off to the active session
-                              with this ID
+      /toclient/<sessionid>   
+      /toserver/<sessionid>   ... hand the connection off to the active session
+                                  with this ID
 
-      other urls          ... serve an error message
+      other urls              ... serve an error message
 
 *)
 
@@ -82,12 +82,17 @@ struct
           NONE => error404 s "URL not found (expected int)"
         | SOME i => f i
     in
+      print "REQUEST:\n";
+      app (fn s => print ("  " ^ s ^ "\n")) (cmd :: headers);
+      print "DATA:\n";
+      Option.app (fn s => print ("  " ^ s ^ "\n")) so;
+
       case String.tokens (StringUtil.ischar #" ") cmd of
         "GET" :: url :: _ =>
           (case StringUtil.token (StringUtil.ischar #"/") url of
              ("5", prog) => Session.new s prog
-           | ("pull", id) => expectint id ` Session.pull s
-           | ("push", id) => expectint id ` Session.push s
+           | ("toclient", id) => expectint id ` Session.toclient s
+           | ("toserver", id) => expectint id ` Session.toserver s
            | ("exit", _) => raise Loop "EXIT."
            | _ => error404 s "URL not found.")
       | method :: _ => error501 s ("unsupported method " ^ method)
@@ -128,6 +133,7 @@ struct
 
 
   fun init () =
+    (* XXX from parameter / config *)
     listener := SOME ` N.listen http 5555
 
 end
