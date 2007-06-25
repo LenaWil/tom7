@@ -28,7 +28,7 @@ sig
 
   (* network events *)
   val closed     : Network.sock -> unit
-  val packet     : Network.packet * Network.sock -> unit
+  val packet     : Http.packet * Network.sock -> unit
 
   (* do work if desired *)
   val step       : unit -> unit
