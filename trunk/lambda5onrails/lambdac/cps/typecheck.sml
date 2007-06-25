@@ -624,6 +624,7 @@ struct
                                           vals = map (fn v => edict "allarrow" ` vok G v) vals,
                                           body = edict "allarrow-body" ` vok G body }
               end
+          | TVar _ => fail [$"shouldn't see dict tvar", VA value]
 
           | _ => fail [$"unimplemented dict typefront", VA value]
        end

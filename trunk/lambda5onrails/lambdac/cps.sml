@@ -34,8 +34,11 @@ struct
 
   datatype ctyp = T of (var, ctyp) ctypfront
 
-  datatype primop = LOCALHOST | BIND | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
-                  | MARSHAL 
+  datatype primop = 
+      LOCALHOST 
+    | BIND 
+    | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
+    | MARSHAL 
 
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
@@ -104,10 +107,8 @@ struct
 
                     }
 
-
   datatype substitutend = 
       SV of cval
-(*    | SE of cexp *) 
     | ST of ctyp
     | SW of world
     | SU of var
