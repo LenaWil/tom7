@@ -133,7 +133,9 @@ struct
   val space = repeat (ignore ($comment) || ignore (satisfy Char.isSpace))
 
   val keywords =
-      [ ("BIND", BIND), ("END", END),
+      [ 
+       ("BIND", BIND), 
+       ("END", END),
        ("JUMP", JUMP),
        ("CASE", CASE),
        ("ERROR", ERROR),
@@ -144,7 +146,8 @@ struct
        ("ABSENT", ABSENT),
        ("NONE", TNONE),
        ("SOME", TSOME),
-       ("PROGRAM", PROGRAM) 
+       ("PROGRAM", PROGRAM),
+       ("INJ", INJ)
        ]
 
   (* PERF could use hash table or other sub-linear search structure *)

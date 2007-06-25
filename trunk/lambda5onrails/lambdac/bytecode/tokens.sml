@@ -12,7 +12,7 @@ struct
 
       | BIND | END | JUMP | CASE | ERROR
       | RECORD | PROJ | PRIMCALL | FUNDEC | ABSENT 
-      | TNONE | TSOME | PROGRAM 
+      | TNONE | TSOME | PROGRAM | INJ
 
     (* only for "basic" tokens, not constant-wrappers *)
     fun eq (BIND, BIND) = true
@@ -28,6 +28,7 @@ struct
       | eq (TNONE, TNONE) = true
       | eq (TSOME, TSOME) = true
       | eq (PROGRAM, PROGRAM) = true
+      | eq (INJ, INJ) = true
       | eq _ = false
 
 end

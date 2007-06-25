@@ -12,7 +12,9 @@ struct
     | End 
       (* global id, offset within that, args *)
     | Jump of exp * exp * exp list
-    | Case of { obj : exp, var : string,
+    | Case of { obj : exp, 
+                (* for arms, not def *)
+                var : string,
                 arms : (string * statement) list,
                 def : statement }
     | Error of string
@@ -24,6 +26,7 @@ struct
     | Var of string
     | Int of IntConst.intconst
     | String of string
+    | Inj of string * exp
 
   datatype global = 
       FunDec of (string list * statement) vector
