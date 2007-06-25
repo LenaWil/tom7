@@ -62,7 +62,8 @@ struct
   fun closed sock =
     case
       ListUtil.extract
-      (fn session => List.exists (fn s' => N.eq (sock, s')) ` opensockets session) ` !sessions of
+      (fn session => List.exists (fn s' => N.eq (sock, s')) ` 
+       opensockets session) ` !sessions of
       NONE => raise Session "no such socket active in sessions??"
     | SOME (session as S { push, pull, ... }, rest) =>
         let
@@ -139,8 +140,9 @@ struct
                       prog = Execute.new sbc } :: !sessions
     end handle BytecodeParse.BytecodeParse msg => failnew s prog ("parse error: " ^ msg)
 
-  (* XXX should make progress on instances where we can *)
-  fun step () = ()
+  (* make progress on any instance where we can *)
+  fun step () =
+      List.app (fn (S { prog, ... }) => Execute.step prog) ` !sessions
 
   fun push _ _ = raise Session "unimplemented"
   fun pull _ _ = raise Session "unimplemented"

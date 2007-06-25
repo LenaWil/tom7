@@ -9,5 +9,6 @@ sig
   (* Create a new instance from a parsed program *)
   val new : Bytecode.program -> instance
 
+  val step : instance -> unit
 
 end

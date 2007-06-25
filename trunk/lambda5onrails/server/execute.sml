@@ -20,8 +20,8 @@ struct
     I of { prog : B.program,
            threads : thread Q.queue ref }
 
+  (* no threads... *)
   fun new p = I { prog = p, threads = ref ` Q.empty () }
-    (* XXX and... *)
 
   fun step (i as I { prog, threads } : instance) =
     (* if there are threads, then do some work on the first one *)
@@ -53,8 +53,10 @@ struct
         execute i (SM.insert(G, s, evaluate i G e)) st
     | B.Case { obj, var, arms, def } =>
         (case evaluate i G obj of
-           Inj (l, e) =>
-             List
+           B.Inj (l, e) =>
+               (case ListUtil.Alist.find op= arms l of
+                    NONE => execute i G def
+                  | SOME arm => execute i (SM.insert(G, var, e)) arm)
          | _ => raise Execute "case obj not sum")
 
     | B.Jump (ef, eg, args) =>
@@ -72,6 +74,7 @@ struct
     case exp of
       B.Int _ => exp
     | B.String _ => exp
+    | B.Inj (l, e) => B.Inj (l, evaluate i G e)
     | B.Record lel => B.Record ` ListUtil.mapsecond (evaluate i G) lel
     | B.Project (l, e) =>
         (case evaluate i G exp of
