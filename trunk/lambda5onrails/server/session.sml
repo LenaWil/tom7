@@ -115,7 +115,9 @@ struct
         "var session_clienturl = 'http://gs82.sp.cs.cmu.edu:5555/toclient/';\n" ^
         "var session_id = " ^ Int.toString id ^ ";\n"
 
-      (* this could be better... ;) *)
+      (* this could be better... ;) 
+         probably it should act like a javascript <link> so that we
+         can write the html elsewhere? *)
       val data =
         "<html><head>\n" ^
         "<title>Server 5 Test Page!</title>\n" ^
