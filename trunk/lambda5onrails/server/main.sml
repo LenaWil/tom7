@@ -7,6 +7,7 @@ fun message e =
    | Session.Session s => "session: " ^ s
    | Session.Expired => "session expired and not caught!"
    | Execute.Execute s => "execute: " ^ s
+   | Http.Http s => "http: " ^ s
    | _ => exnMessage e)
 
 val () = 
