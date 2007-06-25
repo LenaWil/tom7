@@ -75,7 +75,7 @@ struct
       loop ()
     end
 
-  and request s (cmd :: headers, so) = 
+  and request s (Http.Headers (cmd :: headers)) = 
     let
       fun expectint str (f : int -> unit) : unit =
         case Int.fromString str of
@@ -84,8 +84,6 @@ struct
     in
       print "REQUEST:\n";
       app (fn s => print ("  " ^ s ^ "\n")) (cmd :: headers);
-      print "DATA:\n";
-      Option.app (fn s => print ("  " ^ s ^ "\n")) so;
 
       case String.tokens (StringUtil.ischar #" ") cmd of
         "GET" :: url :: _ =>
