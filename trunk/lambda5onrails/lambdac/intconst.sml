@@ -11,7 +11,10 @@
 structure IntConst =
 struct
   type intconst = Word32.word
-  val tostring = Word32.toString
+
+  (* don't want to print as a hex constant... *)
+  (* val tostring = Word32.toString *)
+  val tostring = IntInf.toString o Word32.toLargeInt
 
   val fromInt = Word32.fromInt
     

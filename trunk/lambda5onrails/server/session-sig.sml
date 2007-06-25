@@ -23,8 +23,8 @@ sig
   val new        : Network.sock -> string -> unit
 
   (* an incoming socket for pushing or pulling at the supplied session id *)
-  val push       : Network.sock -> int -> unit
-  val pull       : Network.sock -> int -> unit
+  val toclient       : Network.sock -> int -> unit
+  val toserver       : Network.sock -> int -> unit
 
   (* network events *)
   val closed     : Network.sock -> unit

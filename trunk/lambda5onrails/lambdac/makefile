@@ -14,7 +14,6 @@ lambdac : makefile lambdac.cm *.sml front/*.sml el/*.sml parser/*.sml util/*.sml
 	-mlton $(MLTON_FLAGS) lambdac.cm
 	grep -v basis lambdac.basis.du > lambdac.du
 
-# should remove some generated files in runtime/...
 clean :
 	rm -rf `find . -name "*~"` `find . -type d -name .cm` *.exe lambdac *.du
 
