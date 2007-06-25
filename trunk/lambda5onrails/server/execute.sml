@@ -24,7 +24,9 @@ struct
   (* no threads, messages... *)
   fun new p = I { prog = p, threads = ref ` Q.empty (), messages = ref ` Q.empty () }
 
-  fun step (i as I { prog, threads } : instance) =
+  fun addmessage (i as I { messages, ... }) x = messages := Q.enq(x, !messages)
+
+  fun step (i as I { prog, threads, ... }) =
     (* if there are threads, then do some work on the first one *)
     case Q.deq (!threads) of
       (NONE, _) => ()
@@ -69,6 +71,12 @@ struct
                                            IntConst.toInt g),
                                  args = args }, !threads)
          | _ => raise Execute "jump needs two ints, args")
+    | B.Go (addr, bytes) =>
+           (case (addr, bytes) of
+              (B.String "server", B.String bytes) => come i bytes
+            | (B.String "home", B.String bytes) => addmessage i bytes
+            | _ => raise Execute "go needs two strings")
+
     | B.Error s => raise Execute ("error: " ^ s)
 
   and evaluate (i : instance) (G : B.exp SM.map) (exp : B.exp) =
@@ -95,14 +103,16 @@ struct
            NONE => raise Execute ("unbound variable " ^ s)
          | SOME e => e)
 
+
+  and come _ s =
+    let in
+      print ("Come: " ^ s ^ " (unimplemented)\n")
+      (* XXX unmarshal, enqueue *)
+    end
+
   fun message (I { messages, ... }) =
     case Q.deq ` !messages of
       (NONE, _) => NONE
     | (SOME m, q) => (messages := q; SOME m)
-
-  fun come _ s =
-    let in
-      print ("Come: " ^ s ^ " (unimplemented)\n")
-    end
 
 end

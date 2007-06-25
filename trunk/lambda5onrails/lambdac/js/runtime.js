@@ -66,6 +66,10 @@ function lc_go(bytes) {
                calls us back on the toclient connection. 
                but, we might want to alert the programmer
                to failure (how do we detect it?) by an exception.
+
+               it seems that in mozilla when the connection fails,
+               we'll have readyState 4 and exceptions thrown when
+               accessing status or statusText.
             */
 	    alert ('readystate: ' + req.readyState);
 	    // + ' ' + req.status + ' ' + req.responseText);
@@ -104,15 +108,50 @@ function lc_go_mar(addr, bytes) {
     }
 };
 
+/* we maintain a single open connection to the server
+   that waits for messages */
+var lc_toclient;
+function lc_handle_toclient() {
+    if (lc_toclient.readyState == 4) {
+	alert('got server message!');
+	/* then reinstate the connection */
+	lc_make_toclient();
+    }
+    /* otherwise nice to show status somewhere? */
+};
+/* assumes toclient connection doesn't exist or can
+   be safely lost */
+function lc_make_toclient() {
+    if (window.XMLHttpRequest) {
+        lc_toclient = new XMLHttpRequest();
+
+        lc_toclient.onreadystatechange = lc_handle_toclient;
+
+	/* get (no data), toclient url, must be asynchronous because
+           the whole point is to wait until the server is ready to
+           notify us (push) */
+        lc_toclient.open("GET", session_clienturl + session_id, true);
+	lc_toclient.setRequestHeader ('Content-Type', 'application/ml5');
+	lc_toclient.setRequestHeader ('Connection', 'close');
+        lc_toclient.send('');
+    } else if (window.ActiveXObject) {
+	alert('IE not supported (yet?)');
+    }
+};
+
+
 function lc_marshal(dict, va) {
-   return "unimplemented";
+    return "unimplemented-clientside-marshal";
 };
 
 /* XXX need an actual representation for exceptions. */
 var Match = 0;
 
-/* XXX We should perhaps support an overlay network where
+/* We should perhaps support an overlay network where
    there are multiple named worlds and some general way of
    specifying them. Otherwise there is just one other world,
    namely the server: */
 var server = "server";
+
+/* start this immediately; we'll need it */
+lc_make_toclient ();
