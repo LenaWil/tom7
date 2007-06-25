@@ -1,4 +1,7 @@
 unit
+    (* XXX client-only programs not yet supported *)
+    extern bytecode world server
+
     extern val alert : string -> unit @ home
     do
 	let

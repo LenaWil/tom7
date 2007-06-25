@@ -59,6 +59,10 @@ struct
         let
           open Javascript
           open Joint
+          val % = Vector.fromList
+          val $ = Id.fromString
+          val pn = PropertyName.fromString
+
           fun relevant (lab, c) =
             (lab, 
              case CPS.cglo c of
@@ -79,21 +83,43 @@ struct
                  val arraydec = Var ` Vector.fromList [(JSCodegen.codeglobal,
                                                         SOME labeldata)]
 
+                 (* XXX this stuff should probably be in js/codegen *)
                  val maybecallmain =
                    if Vector.exists (fn (l, _) => l = main) maybecodes
-                   then Var ` Vector.fromList
-                     [(Id.fromString "go", SOME `
+                   then 
+                     (* enqueue main in thread queue *)
+                     Exp `
+                     Call { func = Id ` $"lc_enq_thread",
+                            args = %[Number ` Number.fromInt 0,
+                                     Number ` Number.fromInt 0,
+                                     (* no args for start *)
+                                     Array ` %[]] }
+
+                     (* call directly
+                     Var ` Vector.fromList
+                     [($"go", SOME `
                        Call { func = 
                               Subscripti ((* the main bundle *)
                                           Subscripti (Id JSCodegen.codeglobal, maini),
                                           (* it is a unary array *)
                                           0),
                               args = Vector.fromList nil })]
+                     *)
                    else Empty
+
+                 (* call the scheduler *)
+                 val startruntime = 
+                   Exp ` 
+                   Call { func = Id ` $"setTimeout",
+                          args = %[Id ` $"lc_schedule",
+                                   (* initial timeout at 10ms (?) *)
+                                   Number ` Number.fromInt 10] }
+                            
                in
                  (* XXX we need all the runtime stuff, obviously *)
                  CodeJS { prog = Program.T ` Vector.fromList [arraydec,
-                                                              maybecallmain] }
+                                                              maybecallmain,
+                                                              startruntime] }
                end
            | CPS.KBytecode =>
                let

@@ -38,8 +38,11 @@ struct
   structure C = CPS
   structure SM = StringMap
 
+  (* n.b. must agree with runtime *)
   val codeglobal = Id.fromString "globalcode"
-    
+  val enqthread  = Id.fromString "lc_enq_thread"
+  val yield      = Id.fromString "lc_yield"
+
   (* maximum identifier length of 65536... if we have identifiers longer than that,
      then increasing this constant is the least of our problems. *)
   fun vartostring v = StringUtil.harden (fn #"_" => true | _ => false) #"$" 65536 ` Variable.tostring v
@@ -110,7 +113,7 @@ struct
               wi (fn p => Bind (p, Object ` %[ Property { property = pn "g",
                                                           value = va },
                                                Property { property = pn "f",
-							  value = Number ` Number.fromInt i } ])
+                                                          value = Number ` Number.fromInt i } ])
                   :: k ` Id p))
               
          | C.Proj (s, va) => 
@@ -267,17 +270,33 @@ struct
 
 
             | C.Call (f, args) => 
-            (* XXX should instead put this on our thread queue. 
-               We need to do something since tail calls are not constant-space! *)
+               (* Rather than doing the call now, we put this on our thread queue
+                  to be executed later. We also arrange for the scheduler to run
+                  in a little while. We have to do this to support multitasking and
+                  because tail calls use space in javascript. *)
                 cvtv f 
                 (fn fe =>
                  cvtvs args
                  (fn ae =>
-
+                 
+                  (* delayed call *)
+                  [Exp ` Call { func = Id enqthread,
+                                args = %[Sel fe "g",
+                                         Sel fe "f",
+                                         Array ` % ` map SOME ` ae] },
+                   (* must yield since threadcount has increased *)
+                   (* XXX maybe this should be in enqthread? *)
+                   Exp ` Call { func = Id yield,
+                                args = %[] }
+                   ]
+                  (* direct call
                   [Exp ` Call { func = Sele (Sele (Id codeglobal) (Sel fe "g")) (Sel fe "f"),
-                                args = % ae }]))
+                                args = % ae }]
+                  *)
+                  )
                 )
-
+                
+               ) (* big case *)
 
 
       (* Now, to generate code for this global... *)
