@@ -57,6 +57,7 @@ network.sml
 util.sml
 
 packetizer-sig.sml
+httppacket.sml
 http.sml
 
 version.sml
