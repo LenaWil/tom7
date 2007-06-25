@@ -18,10 +18,11 @@ struct
 
   datatype instance =
     I of { prog : B.program,
-           threads : thread Q.queue ref }
+           threads : thread Q.queue ref,
+           messages : string Q.queue ref }
 
-  (* no threads... *)
-  fun new p = I { prog = p, threads = ref ` Q.empty () }
+  (* no threads, messages... *)
+  fun new p = I { prog = p, threads = ref ` Q.empty (), messages = ref ` Q.empty () }
 
   fun step (i as I { prog, threads } : instance) =
     (* if there are threads, then do some work on the first one *)
@@ -93,5 +94,15 @@ struct
         (case SM.find (G, s) of
            NONE => raise Execute ("unbound variable " ^ s)
          | SOME e => e)
+
+  fun message (I { messages, ... }) =
+    case Q.deq ` !messages of
+      (NONE, _) => NONE
+    | (SOME m, q) => (messages := q; SOME m)
+
+  fun come _ s =
+    let in
+      print ("Come: " ^ s ^ " (unimplemented)\n")
+    end
 
 end

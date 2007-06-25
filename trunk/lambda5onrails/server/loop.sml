@@ -58,7 +58,7 @@ struct
        (* ditto *)
        | N.Packet (p, s) => 
               (case ListUtil.extract (nis s) ` !incoming of
-                 NONE => Session.packet (p, s)
+                 NONE => Session.packet (N.decode http p, s)
                | SOME (_, rest) =>
                    let in
                      (* Once we get a packet (HTTP headers) we're ready to hand this
@@ -85,22 +85,28 @@ struct
       print "REQUEST:\n";
       app (fn s => print ("  " ^ s ^ "\n")) (cmd :: headers);
 
-      case String.tokens (StringUtil.ischar #" ") cmd of
-        "GET" :: url :: _ =>
-          (case StringUtil.token (StringUtil.ischar #"/") url of
-             ("5", prog) => Session.new s prog
-           | ("toclient", id) => expectint id ` Session.toclient s
-           | ("toserver", id) => expectint id ` Session.toserver s
-           | ("exit", _) => raise Loop "EXIT."
-           | _ => error404 s "URL not found.")
-      | method :: _ => error501 s ("unsupported method " ^ method)
-      | _ => error501 s "??"
+      (case String.tokens (StringUtil.ischar #" ") cmd of
+         "GET" :: url :: _ =>
+           (case StringUtil.token (StringUtil.ischar #"/") url of
+              ("5", prog) => Session.new s prog
+            | ("toclient", id) => expectint id ` Session.toclient s
+            | ("exit", _) => raise Loop "EXIT."
+            | _ => error404 s "URL not found (GET).")
+       | "POST" :: url :: _ =>
+           (case StringUtil.token (StringUtil.ischar #"/") url of
+              ("toserver", id) => expectint id ` Session.toserver s
+            | _ => error404 s "URL not found (POST).")
+       | method :: _ => error501 s ("unsupported method " ^ method)
+       | _ => error501 s "??")
+         handle Session.Expired => error501 s ("sorry, this session has expired.")
+
     end
-    | request s _ = 
+    | request s (Http.Headers nil) = 
        let in
          error501 s "request lacked command";
          print "Request lacked command\n"
        end
+    | request s (Http.Content _) = raise Loop "http content before headers?"
 
   and error501 s str =
        let in

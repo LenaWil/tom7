@@ -56,6 +56,9 @@ network.sml
 
 util.sml
 
+marshal-sig.sml
+marshal.sml
+
 packetizer-sig.sml
 http-packetizer-sig.sml
 http.sml

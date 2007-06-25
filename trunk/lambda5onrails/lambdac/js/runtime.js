@@ -61,9 +61,6 @@ function lc_go(bytes) {
     if (window.XMLHttpRequest) {
         req = new XMLHttpRequest();
 
-	/* unnecessary and ignored anyway (forced text/xml??) */
-	/* req.setRequestHeader = ('Content-Type', 'application/ml5'); */
-
         req.onreadystatechange = function () {
 	    /* just die; continuation happens when the server
                calls us back on the toclient connection. 
@@ -71,9 +68,12 @@ function lc_go(bytes) {
                to failure (how do we detect it?) by an exception.
             */
 	    alert ('readystate: ' + req.readyState);
+	    // + ' ' + req.status + ' ' + req.responseText);
 	};
 	/* post (we'll send body), toserver url, asynchronous */
-        req.open("POST", session_serverurl, true);
+        req.open("POST", session_serverurl + session_id, true);
+	req.setRequestHeader ('Content-Type', 'application/ml5');
+	req.setRequestHeader ('Connection', 'close');
         req.send(bytes);
     } else if (window.ActiveXObject) {
 	alert('IE not supported (yet?)');

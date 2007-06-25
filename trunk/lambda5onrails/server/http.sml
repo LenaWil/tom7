@@ -38,7 +38,15 @@ struct
 
               val cl =
                 case List.find (StringUtil.matchhead "Content-Length:") headers of
-                  NONE => (* XXX? *) raise Http "no content-length header"
+                  NONE => 
+                    let in
+                      (*
+                      app (fn s => print ("  "^ s ^ "\n")) headers;
+                      raise Http "no content-length header"
+                      *)
+                      (* assume empty contents then... *)
+                      0
+                    end
                 | SOME h => 
                     case 
                       Int.fromString(List.last
@@ -48,8 +56,10 @@ struct
                       NONE => raise Http "content-length wasn't an integer?"
                     | SOME x => x
 
+
+              val j = i + 4 (* size of \r\n\r\n *)
           in
-            ([Headers headers], Pcont (cl, String.substring(a, i, size a - i)))
+            continue ([Headers headers], Pcont (cl, String.substring(a, j, size a - j)))
           end
       end
     | parse (Pcont (len, s)) new =
@@ -57,11 +67,17 @@ struct
         val a = s ^ new
       in
         if size a >= len
-        then ([Content (String.substring(a, 0, len))], Pdone)
+        then continue ([Content (String.substring(a, 0, len))], Pdone)
         else (nil, Pcont (len, a))
       end
     (* we'll never return any more packets... *)
     | parse Pdone _ = (nil, Pdone)
+
+  (* give it another chance to find more packets in the input *)
+  and continue (l, pp) =
+    let val (ll, ppp) = parse pp ""
+    in (l @ ll, ppp)
+    end
 
   (* inserts CRLF at the end of http lines *)
   fun make _ = raise Http "sending unimplemented" (* would be easy, just don't need it now *)

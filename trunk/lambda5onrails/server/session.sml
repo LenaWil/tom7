@@ -1,5 +1,6 @@
-(* A session is a running instance of a program.
-   Each session has a unique integer that identifies it.
+(* A session is a running instance of a program along with
+   the connections with the client and a unique integer that
+   identifies it.
    
    *)
 
@@ -16,6 +17,10 @@ struct
     (* the last time we saw the socket open *)
   | Closed of Time.time
 
+  datatype toserver =
+    Waiting of N.sock
+  | Data of string
+
   local
     val ctr = ref 0
   in
@@ -27,13 +32,13 @@ struct
   end
 
   datatype session = S of { id : int,
-                            (* socket the client uses to send us a message *)
-                            toserver : N.sock option ref,
+                            (* sockets the client is using to send us messages *)
+                            toserver : toserver list ref,
                             (* socket the client keeps open for us to send
                                messages on *)
                             toclient : toclient ref,
                             
-                            prog : Execute.instance 
+                            inst : Execute.instance 
                             
                             }
 
@@ -47,8 +52,13 @@ struct
   fun getsession i = ListUtil.example (fn (S { id, ...}) => id = i) ` !sessions
 
   fun opensockets (S { toserver, toclient, ... }) =
-    (case !toserver of SOME s => [s] | NONE => nil) @
+    (List.concat ` map (fn Waiting s => [s] | _ => nil) ` !toserver) @
     (case !toclient of Open s => [s] | Closed _ => nil)
+
+  fun getbysock sock =
+      ListUtil.extract
+      (fn session => List.exists (fn s' => N.eq (sock, s')) ` 
+       opensockets session) ` !sessions
 
   (* Any toserver/toclient sockets that we have open *)
   fun sockets () =
@@ -60,11 +70,8 @@ struct
     app (fn s => N.disconnect s handle _ => ()) ` opensockets session
 
   fun closed sock =
-    case
-      ListUtil.extract
-      (fn session => List.exists (fn s' => N.eq (sock, s')) ` 
-       opensockets session) ` !sessions of
-      NONE => raise Session "no such socket active in sessions??"
+    case getbysock sock of
+      NONE => raise Session "(closed) no such socket active in sessions??"
     | SOME (session as S { toserver, toclient, ... }, rest) =>
         let
           fun fatal () =
@@ -73,19 +80,38 @@ struct
               sessions := rest
             end
         in
-          (* Not an error in either case. So, just clear it out. *)
-          (case !toserver of
-             SOME s' => if N.eq (s', sock)
-                        then toserver := NONE
-                        else ()
-           | NONE => ());
+          (* Client is only allowed to close toserver connections. Filter 'em. *)
+          toserver := List.filter (fn Data _ => true | Waiting s => not ` N.eq (s, sock)) ` !toserver;
+
+          (* If this closes, game over *)
           (case !toclient of
-             Open s' => fatal ()
+             Open s' => if N.eq (s', sock) then fatal () else ()
            | Closed _ => ())
         end
 
-  (* XXX *)
-  fun packet _ = ()
+  fun packet (Http.Headers _, _) = raise Session "got headers again??"
+    | packet (Http.Content c, sock) =
+    case getbysock sock of
+      NONE => raise Session "(packet) no such socket active in sessions??"
+    | SOME (session as S { toserver, toclient, ... }, rest) =>
+        let in
+          (* maybe we'll see empty content, depending on the browser.
+             anyway we don't care about it. *)
+          (case !toclient of
+             Open s' => if N.eq (s', sock) 
+                        then print "content for toclient? ignored!"
+                        else ()
+           | Closed _ => ());
+          
+          (* should be for a toserver connection. *)
+          toserver := map (fn Data d => Data d
+                            | Waiting s' => if N.eq(s', sock) 
+                                            then (N.disconnect s'; Data c)
+                                            else Waiting s') ` !toserver
+
+          (* XXX step here to deliver messages? *)
+        end
+    
 
   fun failnew s prog str =
     let in
@@ -145,16 +171,56 @@ struct
        "\r\n" ^
        data);
       N.disconnect s;
-      sessions := S { id = id, toserver = ref NONE, 
+      sessions := S { id = id, toserver = ref nil, 
                       toclient = ref ` Closed ` Time.now (),
-                      prog = Execute.new sbc } :: !sessions
+                      inst = Execute.new sbc } :: !sessions
     end handle BytecodeParse.BytecodeParse msg => failnew s prog ("parse error: " ^ msg)
 
   (* make progress on any instance where we can *)
   fun step () =
-      List.app (fn (S { prog, ... }) => Execute.step prog) ` !sessions
+    let
+      fun onesession (S { inst, toserver, toclient, ... }) =
+        let
+          (* process incoming requests in order. *)
+          fun incoming nil = nil
+            | incoming (Data d :: rest) = (Execute.come inst d;
+                                           incoming rest)
+            | incoming l = l
 
-  fun toserver _ _ = raise Session "unimplemented"
-  fun toclient _ _ = raise Session "unimplemented"
+          fun outgoing (ref (Closed _)) = () (* XXX should expire old sessions here *)
+            | outgoing (r as ref (Open sock)) =
+            case Execute.message inst of
+              NONE => ()
+            | SOME m =>
+                let in
+                  N.sendraw sock m;
+                  N.disconnect sock;
+                  (* one message per connection *)
+                  r := (Closed ` Time.now ())
+                end
+        in
+          (* incoming requests. *)
+          toserver := incoming ` !toserver;
+
+          (* an outgoing message (at most one) *)
+          outgoing toclient;
+
+          (* run some waiting thread *)
+          Execute.step inst
+        end
+    in
+      List.app onesession ` !sessions
+    end
+
+  fun toserver sock id =
+    case getsession id of
+       SOME (S { toserver, ... }) => toserver := !toserver @ [Waiting sock]
+     | NONE => raise Expired
+
+  fun toclient sock id = 
+    case getsession id of
+      (* what to do if it's already open?? should be fatal? *)
+      SOME (S { toclient, ...}) => raise Session "unimplemented"
+    | NONE => raise Expired
 
 end
