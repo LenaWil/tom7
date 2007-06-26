@@ -49,7 +49,7 @@ struct
      | Var s => $s
      | Marshal (e1, e2) => %[$"MARSHAL", etol e1, etol e2]
 
-     | Dp pd => %[$"PD", pdtol pd]
+     | Dp pd => %[$"DP", pdtol pd]
      | Drec sel => %[$"DREC", itol ` length sel,
                      % ` map (fn (l, e) => %[$l, etol e]) sel]
      | Dsum seol => %[$"DSUM", itol ` length seol,

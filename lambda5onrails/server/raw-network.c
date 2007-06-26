@@ -1,4 +1,8 @@
 
+/* C glue to interface ML to the UNIX socket library.
+   Written by Tom Murphy VII and Ruy Ley-Wild in 2003--
+*/
+
 #include <sys/poll.h>
 #include <sys/socket.h>
 #include <sys/un.h>

@@ -55,12 +55,29 @@ struct
               rep n
             end)
 
+  val pdict =
+       `DCONT return Dcont
+    || `DCONTS return Dconts
+    || `DADDR return Daddr
+    || `DDICT return Ddict
+    || `DINT return Dint
+    || `DSTRING return Dstring
+    || `DVOID return Dvoid
+
   fun exp () =
        `PROJ >> label && $exp wth Project
     || `RECORD >> repeated (label && $exp) wth Record
     || `PRIMCALL >> label && repeated ($exp) wth Primcall
     || `INJ >> label && bopt ($exp) wth Inj
     || `MARSHAL >> $exp && $exp wth Marshal
+
+    || `DP >> pdict wth Dp
+    || `DREC >> repeated (label && $exp) wth Drec
+    || `DSUM >> repeated (label && bopt ($exp)) wth Dsum
+    || `DLOOKUP >> id wth Dlookup
+    || `DEXISTS >> id && repeated ($exp) wth (fn (a,b) => Dexists { d = a,
+                                                                    a = b })
+
     || number wth Int
     || strlit wth String
     || id wth Var

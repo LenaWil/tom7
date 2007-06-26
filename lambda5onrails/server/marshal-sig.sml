@@ -3,8 +3,8 @@ sig
 
   exception Marshal of string
 
-  (* At constant type? *)
-  val unmarshal : string -> Bytecode.exp
+  (* unmarshal dict bytes *)
+  val unmarshal : Bytecode.exp -> string -> Bytecode.exp
 
   (* marshal dict value *)
   val marshal : Bytecode.exp -> Bytecode.exp -> string
