@@ -215,7 +215,7 @@ struct
           Execute.step inst
         end
     in
-      print "step..\n";
+      (* print "step..\n"; *)
       List.app onesession ` !sessions
     end
 

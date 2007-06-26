@@ -119,9 +119,9 @@ struct
           val vl = map (evaluate i G) el
         in
           case (s, vl) of
-            ("alert", [B.String str]) =>
+            ("display", [B.String str]) =>
                let in
-                 print " ================== ALERT ====================\n";
+                 print " ================== DISPLAY ==================\n";
                  print (str ^ "\n");
                  print " =============================================\n";
                  B.Record nil

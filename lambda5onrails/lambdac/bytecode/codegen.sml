@@ -177,18 +177,20 @@ struct
                          (("d", vde) ::
                           ListUtil.mapi (fn (e, idx) => ("v" ^ itos idx, e)) vle),
                          k ` Var p))))
-(*
+
          | C.VTUnpack (_, dv, cvl, va, vbod) =>
              cvtv va
              (fn ob =>
               (* select each component and bind... *)
-              Bind(vtoi dv, SelectVar { object = ob, property = Var.fromString "d" }) ::
-              (ListUtil.mapi (fn ((cv, _), i) =>
-                             Bind(vtoi cv, SelectVar { object = ob, property = Var.fromString ("v" ^ itos i) }))
-                            cvl @
-               cvtv vbod k)
+              Bind(vtoi dv, Project ("d", ob),
+                   let fun binds _ nil = cvtv vbod k
+                         | binds i ((cv, _)::rest) =
+                     Bind(vtoi cv, Project("v" ^ itos i, ob), binds (i + 1) rest)
+                   in
+                     binds 0 cvl
+                   end)
               )
-*)
+
              )
 
       and cvtvs (values : C.cval list) (k : exp list -> statement) : statement =
