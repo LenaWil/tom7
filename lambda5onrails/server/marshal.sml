@@ -176,19 +176,25 @@ struct
         | mar G (Dp Ddict) d = 
            (case d of
               Dp pd => "DP " ^ (case pd of
-                                  Dcont => "c"
-                                | Dconts => "C"
-                                | Daddr => "a"
-                                | Ddict => "d"
-                                | Dint => "i"
+                                  Dcont   => "c"
+                                | Dconts  => "C"
+                                | Daddr   => "a"
+                                | Ddict   => "d"
+                                | Dint    => "i"
                                 | Dstring => "s"
-                                | Dvoid => "v")
+                                | Dvoid   => "v")
             | Dlookup s => "DL " ^ s
             | Dexists {d, a} => "DE " ^ d ^ " " ^ Int.toString (length a) ^ " " ^
                    StringUtil.delimit " " (map (mar G (Dp Ddict)) a)
-            | Drec sdl => "DR " ^ Int.toString (length sdl) ^
-                   StringUtil.delimit " " (map (fn (s,d) => s ^ " " ^ mar G (Dp Ddict) d) sdl)
-            | Dsum sdl => "DS " ^ Int.toString (length sdl) ^
+            | Drec sdl => 
+                   let
+                     val n = length sdl
+                   in
+                     print ("in drect there are " ^ Int.toString n ^ "\n");
+                     "DR " ^ Int.toString n ^ " " ^
+                     StringUtil.delimit " " (map (fn (s,d) => s ^ " " ^ mar G (Dp Ddict) d) sdl)
+                   end
+            | Dsum sdl => "DS " ^ Int.toString (length sdl) ^ " " ^
                    StringUtil.delimit " " (map (fn (s,NONE) => s ^ " -"
                                                  | (s,SOME d) => s ^ " + " ^ mar G (Dp Ddict) d) sdl)
             | _ => raise Marshal "ddict")
@@ -203,8 +209,11 @@ struct
         | mar _ (String _) _ = raise Marshal "not dict"
         | mar _ (Inj _) _ = raise Marshal "not dict"
         | mar _ (Bytecode.Marshal _) _ = raise Marshal "not dict"
+
+      val res =       mar G dict value
     in
-      mar G dict value
+      print ("Result of marshaling: " ^ res ^ "\n");
+      res
     end
 
 end

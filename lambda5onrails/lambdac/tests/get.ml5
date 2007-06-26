@@ -1,5 +1,5 @@
 unit
-  (* extern val js.alert : string -> unit @ home *)
+  extern val alert : string -> unit @ home
   extern bytecode world server
   extern val server ~ server addr
 
@@ -10,6 +10,8 @@ unit
 		display("I'm the server!");
 		1234
 	    end)
+
+  do alert "I'm back!"
 in
   export val x = n'
 end
