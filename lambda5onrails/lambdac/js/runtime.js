@@ -125,7 +125,12 @@ function lc_umg(G, d, b) {
     /* DR 11 DP i 2 0 1 1234 */
     switch(d.w) {
     case "DL": {
-	return lc_umg(G, G[d.s], b);
+	var nd = G[d.s];
+	if (nd == undefined) {
+	    alert("couldn't lookup " + d.s);
+	    throw(0);
+	}
+	return lc_umg(G, nd, b);
     }
     case "DE": {
 	var thed = lc_umg(G, lc_dictdict, b)
