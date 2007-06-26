@@ -59,7 +59,9 @@ struct
            B.Inj (l, e) =>
                (case ListUtil.Alist.find op= arms l of
                     NONE => execute i G def
-                  | SOME arm => execute i (SM.insert(G, var, e)) arm)
+                  | SOME arm => execute i (case e of 
+                                             NONE => G
+                                           | SOME e => SM.insert(G, var, e)) arm)
          | _ => raise Execute "case obj not sum")
 
     | B.Jump (ef, eg, args) =>
@@ -83,7 +85,7 @@ struct
     case exp of
       B.Int _ => exp
     | B.String _ => exp
-    | B.Inj (l, e) => B.Inj (l, evaluate i G e)
+    | B.Inj (l, e) => B.Inj (l, Option.map (evaluate i G) e)
     | B.Record lel => B.Record ` ListUtil.mapsecond (evaluate i G) lel
     | B.Project (l, e) =>
         (case evaluate i G exp of
@@ -92,6 +94,20 @@ struct
                 NONE => raise Execute ("label not found: " ^ l)
               | SOME e => e)
          | _ => raise Execute ("project from non-record: label " ^ l))
+    | B.Marshal (ed, ee) =>
+        let 
+          val (vd, ve) = (evaluate i G ed, evaluate i G ee)
+          val s = Marshal.marshal vd ve
+        in
+          B.String s
+        end
+
+    | B.Dp _ => exp
+    | B.Dlookup _ => exp
+    | B.Drec sel => B.Drec ` ListUtil.mapsecond (evaluate i G) sel
+    | B.Dsum seol => B.Dsum ` ListUtil.mapsecond (Option.map (evaluate i G)) seol
+    | B.Dexists { d, a } => B.Dexists { d = d, a = map (evaluate i G) a }
+
     | B.Primcall (s, el) =>
         let
           val vl = map (evaluate i G) el

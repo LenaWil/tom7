@@ -15,15 +15,12 @@
    At, Shamrock, WExists, ...
 
    A TPack agglomerates a dictionary and n values, so it is represented as
-   a record { d , v0, ..., v(-1) }
+   a record { d , v0, ..., v(n-1) }
 
    A record with labels s1...sn is represented a record with fields ls1 .. lsn.
    We prepend an 'l' to labels for compatibility with the javascript representation.
 
-   A sum is represented as a record { t, v } or { t } where t is the tag (as a string)
-   and v is the embedded value, if any.
-   (* XXX are optional fields like this okay? *)
-   (let's make INJ be INJ, to reuse record like this is not simpler)
+   Inj is Inj, straightforwardly
      
 *)
 structure ByteCodegen :> BYTECODEGEN =
@@ -36,16 +33,17 @@ struct
 
   structure C = CPS
   structure SM = StringMap
+  structure V = Variable
   open Bytecode
 
   (* maximum identifier length of 65536... if we have identifiers longer than that,
      then increasing this constant is the least of our problems. *)
-  fun vartostring v = StringUtil.harden (fn #"_" => true | _ => false) #"$" 65536 ` Variable.tostring v
+  fun vartostring v = StringUtil.harden (fn #"_" => true | _ => false) #"$" 65536 ` V.tostring v
 
   val itos = Int.toString
   fun vtoi v = vartostring v
 
-  fun wi f = f ` vtoi ` Variable.namedvar "x"
+  fun wi f = f ` vtoi ` V.namedvar "x"
 
   fun generate { labels, labelmap } (gen_lab, SOME gen_global) =
     let
@@ -66,8 +64,48 @@ struct
          | C.AllLam { worlds, tys, vals = nil, body } => cvtv body k
          | C.AllApp { worlds, tys, vals = nil, f } => cvtv f k
 
-         | C.Dict _ => 
-             wi (fn p => Bind (p, String "dicts unimplemented", k ` Var p))
+         | C.Dict d => 
+             let
+               (* this is the set of locally bound dictionary variables.
+                  we'll turn these into string lookups if we see them. *)
+               val G = V.Set.empty
+               fun cd G (C.At (t, _)) = cdict G t
+                 | cd G (C.Cont _)  = Dp Dcont
+                 | cd G (C.Conts _) = Dp Dconts
+                 | cd G (C.Product stl) = Drec ` ListUtil.mapsecond (cdict G) stl
+                 | cd G (C.Shamrock t) = cdict G t
+                 | cd G (C.Primcon (C.INT, nil)) = Dp Dint
+                 | cd G (C.Primcon (C.STRING, nil)) = Dp Dstring
+                 | cd G (C.Primcon (C.DICTIONARY, nil)) = Dp Ddict
+                 | cd G (C.TExists ((_, v), tl)) = 
+                         let
+                           val G = V.Set.add(G, v)
+                         in
+                           Dexists {d = vtoi v, a = map (cdict G) tl}
+                         end
+                 | cd _ d = 
+                 let in
+                   print "BCG: unimplemented val\n";
+                   Layout.print (CPSPrint.vtol ` C.Dict' d, print);
+
+                   raise ByteCodegen
+                     "oops, convert dict front unimplemented"
+                 end
+
+               and cdict G e =
+                 case C.cval e of
+                   C.Dict d => cd G d
+                 | C.UVar u => 
+                         if V.Set.member (G, u)
+                         then Dlookup ` vtoi u
+                         else Var ` vtoi u
+                 | _ => raise ByteCodegen 
+                     "when converting dict, expected to see just dicts and vars"
+
+             in
+               wi (fn p => Bind (p, cd G d, k ` Var p))
+             end
+
 
          | C.Int ic => k ` Int ic
          | C.String s => wi (fn p => Bind (p, String s, k ` Var p))
@@ -190,7 +228,6 @@ struct
             | C.Primop ([v], C.PRIMCALL { sym, ... }, args, e) =>
                 cvtvs args
                 (fn args =>
-                 (* assuming sym has the name of some javascript function. *)
                  Bind (vtoi v, Primcall (sym, args), cvte e))
 
             | C.Primop ([v], C.BIND, [va], e) =>
@@ -198,8 +235,20 @@ struct
                 (fn va =>
                  Bind (vtoi v, va,  cvte e))
 
-            | C.Primop _ => Error "unimplemented primop"
-            | C.Go_mar _ => Error "unimplemented go_mar"
+            | C.Primop ([v], C.MARSHAL, [vd, vv], e) =>
+                cvtv vd
+                (fn vd =>
+                 cvtv vv
+                 (fn vv =>
+                  Bind(vtoi v, Marshal(vd, vv), cvte e) ))
+
+            | C.Go_mar { w = _, addr, bytes } =>
+                cvtv addr
+                (fn addr =>
+                 cvtv bytes
+                 (fn bytes =>
+                  Go (addr, bytes)))
+
             | C.Put (v, _, va : C.cval, e : C.cexp) =>
                 (* just marks its universality; no effect *)
                 cvtv va
