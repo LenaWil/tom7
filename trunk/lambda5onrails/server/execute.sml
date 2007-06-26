@@ -64,13 +64,13 @@ struct
                                            | SOME e => SM.insert(G, var, e)) arm)
          | _ => raise Execute "case obj not sum")
 
-    | B.Jump (ef, eg, args) =>
-        (case (evaluate i G ef, 
-               evaluate i G eg,
+    | B.Jump (eg, ef, args) =>
+        (case (evaluate i G eg, 
+               evaluate i G ef,
                map (evaluate i G) args) of
-           (B.Int f, B.Int g, args) => 
-             threads := Q.enq ({ global = (IntConst.toInt f, 
-                                           IntConst.toInt g),
+           (B.Int g, B.Int f, args) => 
+             threads := Q.enq ({ global = (IntConst.toInt g, 
+                                           IntConst.toInt f),
                                  args = args }, !threads)
          | _ => raise Execute "jump needs two ints, args")
     | B.Go (addr, bytes) =>
@@ -120,10 +120,30 @@ struct
          | SOME e => e)
 
 
-  and come _ s =
-    let in
-      print ("Come: " ^ s ^ " (unimplemented)\n")
-      (* XXX unmarshal, enqueue *)
+  and come (I { threads, ... }) s =
+    let 
+      val () = print ("Come: " ^ s ^ "\n")
+      (* we always expect the same type of thing,
+         (exists arg . {arg cont, arg}) at server
+         *)
+      val entry_dict =
+        B.Dexists { d = "entry",
+                    a = [B.Dp B.Dcont,
+                         B.Dlookup "entry"] }
+    in
+      case Marshal.unmarshal entry_dict s of
+        B.Record [("d", _),
+                  ("v0", B.Record [("g", B.Int g),
+                                   ("f", B.Int f)]),
+                  ("v1", arg)] =>
+        let in
+          print ("Enqueued thread " ^ IntConst.toString g ^ "." ^
+                 IntConst.toString f ^ " ok\n");
+          threads := Q.enq ({ global = (IntConst.toInt g, 
+                                        IntConst.toInt f),
+                              args = [arg] }, !threads)
+        end
+      | _ => raise Execute "unmarshal in come returned wrong value"
     end
 
   fun message (I { messages, ... }) =

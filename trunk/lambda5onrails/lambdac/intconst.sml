@@ -16,9 +16,16 @@ struct
   (* val tostring = Word32.toString *)
   val tostring = IntInf.toString o Word32.toLargeInt
 
+  fun fromstring s =
+    case IntInf.fromString s of
+      NONE => NONE
+        (* XXX overflow ... *)
+    | SOME i => SOME(Word32.fromLargeInt i)
+
   val fromInt = Word32.fromInt
     
   val toString = tostring
+  val fromString = fromstring
   val toInt = Word32.toIntX
 
   fun toReal x = Real.fromLargeInt (Word32.toLargeIntX x)
