@@ -71,7 +71,7 @@ struct
           let in
             Session.step ()
           end);
-      print "loop..\n";
+      (* print "loop..\n"; *)
       loop ()
     end
 

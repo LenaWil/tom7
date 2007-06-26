@@ -60,8 +60,32 @@ function lc_clone(obj) {
     }
 };
 
+/* PERF no need to keep modifying the string; could just use position */
+function lc_tokstream(s) {
+    this.str = s;
+};
+
+lc_tokstream.prototype.next = function () {
+    for(var i = 0; i < s.length; i ++) {
+	if (s.charAt(i) == ' ') {
+	/* HERE */    
+	}
+    }
+    /* no separator */
+    if (s.length > 0) {
+	var r = s;
+	s = "";
+	return r;
+    } else {
+	/* no more tokens */
+	return undefined;
+    }
+};
+
 function lc_umg(G, d, b) {
-    alert('unimplemented come: ' + bytes);
+    /* DR 11 DP i 2 0 1 1234 */
+    alert('unimplemented come: ' + b);
+    throw 0;
 };
 
 function lc_unmarshal(d, b) {
@@ -72,9 +96,8 @@ function lc_unmarshal(d, b) {
 var lc_comedict = { w : "DE", d : "entry", v : [{ w : "DP", p : "c"}, { w : "DL", s : "entry"}] };
 
 function lc_come(bytes) {
-    var pack = lc_unmarshal(lc_comedict, bytes);
-
     lc_message('come ' + bytes);
+    var pack = lc_unmarshal(lc_comedict, bytes);
 };
 
 /* jump to the server, using these marshaled bytes */
@@ -206,6 +229,13 @@ function lc_marshalg(G, dict, va) {
 		for(var i = 0; i < va.v.length; i ++) {
 		    /* it is filled with dictionaries as well */
 		    s += ' ' + va.v[i].l + ' ' + lc_marshalg(G, lc_dictdict, va.v[i].v);
+		}
+		return s;
+	    }
+	    case "DE": {
+		var s = 'DE ' + va.d + ' ' + va.v.length;
+		for(var i = 0; i < va.v.length; i ++) {
+		    s += ' ' + lc_marshalg(G, lc_dictdict, va.v[i]);
 		}
 		return s;
 	    }

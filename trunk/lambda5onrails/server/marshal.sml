@@ -76,7 +76,13 @@ struct
                                       fn i =>
                                       (tok (), um G (Dp Ddict)))
                end
-
+           | "DE" =>
+               let
+                 val d = tok ()
+                 val n = IntConst.toInt ` int ()
+               in
+                 Dexists { d = d, a = List.tabulate(n, fn i => um G ` Dp Ddict) }
+               end
            | s => raise Marshal ("um unimplemented " ^ s))
 
         | um G (Drec sel) =
