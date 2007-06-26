@@ -15,7 +15,7 @@
    At, Shamrock, WExists, ...
 
    A TPack agglomerates a dictionary and n values, so it is represented as
-   a javascript object { d , v0, ..., v(-1) }
+   a javascript object { d , v0, ..., v(n-1) }
 
    A record with labels s1...sn is represented as an object with properties ls1 .. lsn.
    The "l" is prepended so that labels that start with numbers (allowed in the CPS)

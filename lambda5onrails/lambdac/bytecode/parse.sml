@@ -43,6 +43,8 @@ struct
   (* labels are identifiers but also numbers *)
   val label = id || number wth (Int.toString o Word32.toInt)
 
+  fun bopt p = `TNONE return NONE || `TSOME >> p wth SOME
+
   (* expect an integer, and then that many repetitions of the parser *)
   fun repeated p = 
     int -- (fn n =>
@@ -57,7 +59,8 @@ struct
        `PROJ >> label && $exp wth Project
     || `RECORD >> repeated (label && $exp) wth Record
     || `PRIMCALL >> label && repeated ($exp) wth Primcall
-    || `INJ >> label && $exp wth Inj
+    || `INJ >> label && bopt ($exp) wth Inj
+    || `MARSHAL >> $exp && $exp wth Marshal
     || number wth Int
     || strlit wth String
     || id wth Var
@@ -71,8 +74,6 @@ struct
     || `ERROR >> strlit wth Error
     || `CASE >> $exp && id && repeated (label && $stmt) && $stmt
          wth (fn (a, (b, (c, d))) => Case { obj = a, var = b, arms = c, def = d})
-
-  fun bopt p = `TNONE return NONE || `TSOME >> p wth SOME
 
   val global = 
        `ABSENT return Absent

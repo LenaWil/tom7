@@ -148,7 +148,23 @@ struct
        ("SOME", TSOME),
        ("PROGRAM", PROGRAM),
        ("GO", GO),
-       ("INJ", INJ)
+       ("INJ", INJ),
+       ("MARSHAL", MARSHAL),
+
+       ("DCONT", DCONT),
+       ("DCONTS", DCONTS),
+       ("DADDR", DADDR),
+       ("DDICT", DDICT),
+       ("DINT", DINT),
+       ("DSTRING", DSTRING),
+       ("DVOID", DVOID),
+         
+       ("DP", DP),
+       ("DREC", DREC),
+       ("DSUM", DSUM),
+       ("DEXISTS", DEXISTS),
+       ("DLOOKUP", DLOOKUP)
+
        ]
 
   (* PERF could use hash table or other sub-linear search structure *)

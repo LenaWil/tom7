@@ -7,6 +7,9 @@ struct
 
   type label = string
 
+  datatype primdict =
+    Dcont | Dconts | Daddr | Ddict | Dint | Dstring | Dvoid
+
   datatype statement =
       Bind of string * exp * statement
     | End 
@@ -28,7 +31,18 @@ struct
     | Var of string
     | Int of IntConst.intconst
     | String of string
-    | Inj of string * exp
+    | Inj of string * exp option
+
+    | Marshal of exp * exp
+
+    | Dp of primdict
+    | Drec of (string * exp) list
+    | Dsum of (string * exp option) list
+    | Dexists of { d : string, a : exp list }
+    (* "variable" *)
+    | Dlookup of string
+
+      (* XXX Dmu, *)
 
   datatype global = 
       FunDec of (string list * statement) vector
