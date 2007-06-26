@@ -333,13 +333,19 @@ short ml_get_pollfds (struct pollfd * p, int i)
   return p[i].revents;
 }
 
-int ml_poll (struct pollfd * p, unsigned int n, int usec)
+/* on linux 2.4, the timeout argument is milliseconds.
+   but I seem to recall switching between msec and usec.
+   is it different on other platforms? 
+
+              - Tom7    26 Jun 2007
+*/
+int ml_poll (struct pollfd * p, unsigned int n, int msec)
 {
   int e;
   sigset_t blockme;
 
 #if 0
-  printf("[rnc] polling with timeout %d\n", usec);
+  printf("[rnc] polling with timeout %d\n", msec);
 
   { 
     int i;
@@ -354,7 +360,7 @@ int ml_poll (struct pollfd * p, unsigned int n, int usec)
     return -1;
   if (sigprocmask(SIG_BLOCK, &blockme, NULL))
     return -1;
-  if ((e = poll (p, n, usec)) == -1)
+  if ((e = poll (p, n, msec)) == -1)
     printf ("POLL ERROR: %s\n", strerror(errno));
   if (sigprocmask(SIG_UNBLOCK, &blockme, NULL))
     return -1;

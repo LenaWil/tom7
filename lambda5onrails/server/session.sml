@@ -109,7 +109,9 @@ struct
           (* should be for a toserver connection. *)
           toserver := map (fn Data d => Data d
                             | Waiting s' => if N.eq(s', sock) 
-                                            then (N.disconnect s'; Data c)
+                                            then (print ("DATA " ^ c ^ "\n");
+                                                  N.disconnect s'; 
+                                                  Data c)
                                             else Waiting s') ` !toserver
 
           (* XXX step here to deliver messages? *)
@@ -156,6 +158,7 @@ struct
         "</head>\n" ^
         "<body>\n" ^
         "Welcome to Server 5!\n" ^
+        "<p><div id=\"messages\"></div>\n" ^ 
         "</body></html>\n";
 
       val res = ("Content-Type: text/html; charset=utf-8\r\n" ^
@@ -212,6 +215,7 @@ struct
           Execute.step inst
         end
     in
+      print "step..\n";
       List.app onesession ` !sessions
     end
 

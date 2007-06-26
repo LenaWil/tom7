@@ -72,11 +72,12 @@ struct
                fun cd G (C.At (t, _)) = cdict G t
                  | cd G (C.Cont _)  = Dp Dcont
                  | cd G (C.Conts _) = Dp Dconts
-                 | cd G (C.Product stl) = Drec ` ListUtil.mapsecond (cdict G) stl
-                 | cd G (C.Shamrock t) = cdict G t
                  | cd G (C.Primcon (C.INT, nil)) = Dp Dint
                  | cd G (C.Primcon (C.STRING, nil)) = Dp Dstring
                  | cd G (C.Primcon (C.DICTIONARY, nil)) = Dp Ddict
+                 | cd G (C.Addr _) = Dp Daddr
+                 | cd G (C.Product stl) = Drec ` ListUtil.mapsecond (cdict G) stl
+                 | cd G (C.Shamrock t) = cdict G t
                  | cd G (C.TExists ((_, v), tl)) = 
                          let
                            val G = V.Set.add(G, v)

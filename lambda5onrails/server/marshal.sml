@@ -43,9 +43,11 @@ struct
         | um G (Dp Daddr) = String ` string ()
         | um G (Dexists {d,a}) =
            let
+             val () = print ("dex get dict:\n")
              val thed = um G (Dp Ddict)
              val G = SM.insert(G, d, thed)
            in
+             print ("dex got dict, now " ^ Int.toString (length a) ^ "\n");
              Record (("d", thed) ::
                      (* then 'n' expressions ... *)
                      ListUtil.mapi (fn (ad, i) =>
@@ -53,8 +55,42 @@ struct
                                      um G ad)) a)
            end
         | um G (Dp Dvoid) = raise Marshal "can't unmarshal at void"
-        | um G (Dp Ddict) = raise Marshal "unmarshal ddict unimplemented"
-        | um G (Drec _) = raise Marshal "unmarshal drec unimplemented"
+        | um G (Dp Ddict) =
+          (case tok () of
+             "DP" => Dp (case tok () of
+                           "c" => Dcont
+                         | "C" => Dconts
+                         | "a" => Daddr
+                         | "d" => Ddict
+                         | "i" => Dint
+                         | "s" => Dstring
+                         | "v" => Dvoid
+                         | _ => raise Marshal "um bad primdict?")
+           | "DL" => Dlookup (tok ())
+           | "DR" =>
+               let val n = IntConst.toInt ` int ()
+               in
+                 print ("um dr: " ^ Int.toString n ^ "\n");
+                 (* then n, then n lab/dict pairs *)
+                 Drec ` List.tabulate(n,
+                                      fn i =>
+                                      (tok (), um G (Dp Ddict)))
+               end
+
+           | s => raise Marshal ("um unimplemented " ^ s))
+
+        | um G (Drec sel) =
+             Record ` map (fn (s, d) =>
+                           let
+                             val s' = tok ()
+                           in
+                             (* the format is redundant *)
+                             print ("unmarshal label " ^ s ^ "\n");
+                             if s' = s
+                             then (s', um G d)
+                             else raise Marshal "unmarshal drec label mismatch"
+                           end) sel
+
         | um G (Dsum _) = raise Marshal "unmarshal dsum unimplemented"
 
         | um _ (Record _) = raise Marshal "um: not dict"
@@ -102,10 +138,14 @@ struct
          | _ => raise Marshal "dsum/inj arity mismatch")
         | mar G (Dsum _) _ = raise Marshal "dsum"
         | mar G (Drec sel) (Record lel) =
-        String.concat (map (fn (s, d) =>
-                            case ListUtil.Alist.find op= lel s of
+        StringUtil.delimit " "
+                      (map (fn (s, d) =>
+                            case ListUtil.Alist.find op= lel ("l" ^ s) of
                               NONE => raise Marshal 
-                                       "drec/rec mismatch : missing label"
+                                       ("drec/rec mismatch : missing label l" ^ s ^ 
+                                        " among: " ^ StringUtil.delimit ", "
+                                        (map #1 lel))
+                                        
                             | SOME v => s ^ " " ^ mar G d v) sel)
         | mar G (Drec _) _ = raise Marshal "drec"
         | mar G (Dexists {d, a}) (Record lel) =
@@ -114,7 +154,7 @@ struct
          | SOME (thed, lel) =>
              let
              (* need to bind d; it might appear in a! *)
-               val G = SM.insert (G, d, thed)
+               val G' = SM.insert (G, d, thed)
              in
                mar G (Dp Ddict) thed ^ " " ^
                (StringUtil.delimit " " `
@@ -123,11 +163,30 @@ struct
                                           ("v" ^ Int.toString i) of
                                   NONE => raise Marshal 
                                     "missing val in supposed e-package"
-                                | SOME v => mar G ad v)) a)
+                                | SOME v => mar G' ad v)) a)
              end)
         | mar G (Dexists _) _ = raise Marshal "dexists"
         | mar G (Dp Dvoid) _ = raise Marshal "can't actually marshal at dvoid"
-        | mar G (Dp Ddict) _ = raise Marshal "marshaling of dicts unimplemented"
+        | mar G (Dp Ddict) d = 
+           (case d of
+              Dp pd => "DP " ^ (case pd of
+                                  Dcont => "c"
+                                | Dconts => "C"
+                                | Daddr => "a"
+                                | Ddict => "d"
+                                | Dint => "i"
+                                | Dstring => "s"
+                                | Dvoid => "v")
+            | Dlookup s => "DL " ^ s
+            | Dexists {d, a} => "DE " ^ d ^ " " ^ Int.toString (length a) ^ " " ^
+                   StringUtil.delimit " " (map (mar G (Dp Ddict)) a)
+            | Drec sdl => "DR " ^ Int.toString (length sdl) ^
+                   StringUtil.delimit " " (map (fn (s,d) => s ^ " " ^ mar G (Dp Ddict) d) sdl)
+            | Dsum sdl => "DS " ^ Int.toString (length sdl) ^
+                   StringUtil.delimit " " (map (fn (s,NONE) => s ^ " -"
+                                                 | (s,SOME d) => s ^ " + " ^ mar G (Dp Ddict) d) sdl)
+            | _ => raise Marshal "ddict")
+
           (* for completeness. we require the first argument to be a
              dictionary, of course! *)
         | mar _ (Record _) _ = raise Marshal "not dict"

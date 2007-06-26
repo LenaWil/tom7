@@ -71,7 +71,7 @@ struct
           let in
             Session.step ()
           end);
-
+      print "loop..\n";
       loop ()
     end
 
@@ -82,8 +82,9 @@ struct
           NONE => error404 s "URL not found (expected int)"
         | SOME i => f i
     in
-      print "REQUEST:\n";
-      app (fn s => print ("  " ^ s ^ "\n")) (cmd :: headers);
+      print ("REQUEST: " ^ cmd ^ "\n");
+      (* app (fn s => print ("  " ^ s ^ "\n")) (cmd :: headers); *)
+      
 
       (case String.tokens (StringUtil.ischar #" ") cmd of
          "GET" :: url :: _ =>

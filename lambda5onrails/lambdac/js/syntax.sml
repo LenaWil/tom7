@@ -29,4 +29,6 @@ struct
 
   fun Sel ob field =  SelectId { object = ob, property = Id.fromString field }
 
+  fun prop s v = Property { property = PropertyName.fromString s, value = v }
+
 end
