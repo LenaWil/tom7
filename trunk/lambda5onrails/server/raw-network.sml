@@ -329,7 +329,13 @@ struct
             val _ = M.foldli ins 0 fdmap
 
             (* poll *)
-            val t = Option.getOpt (Option.map (IntInf.toInt o Time.toMicroseconds) to, ~1)
+            (* on linux 2.4, the timeout argument is milliseconds.
+               but I seem to recall switching between msec and usec.
+               is it different on other platforms? 
+               
+                   - Tom7    26 Jun 2007
+               *)
+            val t = Option.getOpt (Option.map (IntInf.toInt o Time.toMilliseconds) to, ~1)
             val rv = sys_poll (fds, n, t)
 
             (* create list of sockets with events *)

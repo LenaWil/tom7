@@ -46,8 +46,29 @@ This file documents the marshaling format.
  Primcon INT        int              int              int
  Primcon STRING     string           string           urlencoded-string
  Mu (n, vt1..vtn)   v                v                d1 .. dn v
- Primcon DICT t     FIXME
+ Primcon DICT t     ...
+                    dp d                              DP c
+                    drec svl                          DR n s1 v1 .. sn vn
+                    dsum svl                          DS n s1 + v1 s2 - .. 
+                                                           (values either + v or -)
+                    dex {d,a}                         DE d n a1 .. an
+                    dlookup s                         DL s
+                    
+ primitive dicts are mapped to characters:
+    Dcont -> c
+    Dconts -> C 
+    Daddr -> a 
+    Ddict -> d 
+    Dint -> i
+    Dstring -> s
+    Dvoid -> v
 
+
+ refs                                                 homeworld int
+                                                      (need to be able to know
+                                                       if we are supposed to
+                                                       reconstitute this ref
+                                                       or not)
  TODO: vec, ref, exn
 
 

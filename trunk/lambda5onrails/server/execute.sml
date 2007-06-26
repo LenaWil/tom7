@@ -33,6 +33,7 @@ struct
     | (SOME { global = (g, f), args }, q') => 
         let in
           threads := q';
+          print ("(Step) do thread " ^ Int.toString g ^ "." ^ Int.toString f ^ "..\n");
           (case Vector.sub (#globals prog, g) of
              B.FunDec v =>
                let 
@@ -49,11 +50,15 @@ struct
         end
 
   and execute (i as I { threads, ... } : instance) 
-              (G : B.exp SM.map) (s : B.statement) =
-    case s of
+              (G : B.exp SM.map) (stmt : B.statement) =
+    case stmt of
       B.End => ()
     | B.Bind (s, e, st) =>
-        execute i (SM.insert(G, s, evaluate i G e)) st
+        let 
+        in
+          print ("bind " ^ s ^ "\n");
+          execute i (SM.insert(G, s, evaluate i G e)) st
+        end
     | B.Case { obj, var, arms, def } =>
         (case evaluate i G obj of
            B.Inj (l, e) =>
@@ -74,9 +79,10 @@ struct
                                  args = args }, !threads)
          | _ => raise Execute "jump needs two ints, args")
     | B.Go (addr, bytes) =>
-           (case (addr, bytes) of
+           (case (evaluate i G addr, evaluate i G bytes) of
               (B.String "server", B.String bytes) => come i bytes
             | (B.String "home", B.String bytes) => addmessage i bytes
+            | (B.String huh, B.String bytes) => raise Execute ("unrecognized world " ^ huh)
             | _ => raise Execute "go needs two strings")
 
     | B.Error s => raise Execute ("error: " ^ s)
@@ -88,7 +94,7 @@ struct
     | B.Inj (l, e) => B.Inj (l, Option.map (evaluate i G) e)
     | B.Record lel => B.Record ` ListUtil.mapsecond (evaluate i G) lel
     | B.Project (l, e) =>
-        (case evaluate i G exp of
+        (case evaluate i G e of
            B.Record lel => 
              (case ListUtil.Alist.find op= lel l of
                 NONE => raise Execute ("label not found: " ^ l)
@@ -112,7 +118,15 @@ struct
         let
           val vl = map (evaluate i G) el
         in
-          raise Execute ("primcall " ^ s ^ " not implemented")
+          case (s, vl) of
+            ("alert", [B.String str]) =>
+               let in
+                 print " ================== ALERT ====================\n";
+                 print (str ^ "\n");
+                 print " =============================================\n";
+                 B.Record nil
+               end
+           | _ => raise Execute ("primcall " ^ s ^ " not implemented")
         end
     | B.Var s => 
         (case SM.find (G, s) of

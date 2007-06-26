@@ -24,6 +24,17 @@
    A sum is represented as an object { t, v } or { t } where t is the tag (as a string)
    and v is the embedded value, if any.
 
+   Dictionaries are represented as follows
+ 
+    { w : tag, ... } where 
+
+      tag
+      DP       p : c, C, a, d, i, s or v
+      DR       v : array of { l : String, v : Object }
+      DS       v : array of { l : String, v : Object (maybe missing) }
+      DE       d : String, v : array of Object
+      DL       s : String
+
 *)
 structure JSCodegen :> JSCODEGEN =
 struct
@@ -37,6 +48,7 @@ struct
 
   structure C = CPS
   structure SM = StringMap
+  structure V = Variable
 
   (* n.b. these must agree with runtime *)
   val codeglobal = Id.fromString "globalcode"
@@ -48,14 +60,15 @@ struct
 
   (* maximum identifier length of 65536... if we have identifiers longer than that,
      then increasing this constant is the least of our problems. *)
-  fun vartostring v = StringUtil.harden (fn #"_" => true | _ => false) #"$" 65536 ` Variable.tostring v
+  fun vartostring v = StringUtil.harden (fn #"_" => true | _ => false) #"$" 65536 ` V.tostring v
 
   val itos = Int.toString
   fun vtoi v = $(vartostring v)
+  fun vtos v = String.fromString ` vartostring v
 
   val pn = PropertyName.fromString
 
-  fun wi f = f ` vtoi ` Variable.namedvar "x"
+  fun wi f = f ` vtoi ` V.namedvar "x"
 
   fun generate { labels, labelmap } (gen_lab, SOME gen_global) =
     let
@@ -76,8 +89,74 @@ struct
          | C.AllLam { worlds, tys, vals = nil, body } => cvtv body k
          | C.AllApp { worlds, tys, vals = nil, f } => cvtv f k
 
-         | C.Dict _ => 
-             wi (fn p => Bind (p, String ` String.fromString "dicts unimplemented") :: k ` Id p)
+         | C.Dict d => 
+             let
+(*
+
+   Dictionaries are represented as follows
+ 
+    { w : tag, ... } where 
+
+      tag (string)
+      DP       p : c, C, a, d, i, s or v
+      DR       v : array of { l : String, v : Object }
+      DS       v : array of { l : String, v : Object (maybe missing) }
+      DE       d : String, v : array of Object
+      DL       s : String
+*)
+
+               val s = String o String.fromString
+                
+               fun dict w rest = Object ` % (prop "w" (s w) ::
+                                             map (fn (a, b) => prop a b) rest)
+
+
+               (* this is the set of locally bound dictionary variables.
+                  we'll turn these into string lookups if we see them. *)
+
+               val G = V.Set.empty
+               fun cd G (C.At (t, _)) = cdict G t
+                 | cd G (C.Shamrock t) = cdict G t
+                 | cd G (C.Cont _)  = dict "DP" [("p", s"c")]
+                 | cd G (C.Conts _) = dict "DP" [("p", s"C")]
+                 | cd G (C.Primcon (C.INT, nil)) = dict "DP" [("p", s"i")]
+                 | cd G (C.Primcon (C.STRING, nil)) = dict "DP" [("p", s"s")]
+                 | cd G (C.Primcon (C.DICTIONARY, nil)) = dict "DP" [("p", s"d")]
+                 | cd G (C.Addr _) = dict "DP" [("p", s"a")]
+                 | cd G (C.Product stl) = dict "DR" 
+                 [("v", Array ` % ` map (fn (l, d) =>
+                                         SOME `
+                                         Object ` % [prop "l" ` s ("l" ^ l),
+                                                     prop "v" ` cdict G d]) stl)]
+                 | cd G (C.TExists ((_, v), tl)) = 
+                         let
+                           val G = V.Set.add(G, v)
+                         in
+                           dict "DE" [("d", String ` vtos v),
+                                      ("v", Array ` % ` map (SOME o cdict G) tl)]
+                         end
+
+                 | cd _ d = 
+                 let in
+                   print "BCG: unimplemented val\n";
+                   Layout.print (CPSPrint.vtol ` C.Dict' d, print);
+
+                   s"unimplemented"
+                 end
+
+               and cdict G e =
+                 case C.cval e of
+                   C.Dict d => cd G d
+                 | C.UVar u => 
+                         if V.Set.member (G, u)
+                         then dict "DL" [("s", String ` vtos u)]
+                         else Id ` vtoi u
+                 | _ => raise JSCodegen
+                     "when converting dict, expected to see just dicts and vars"
+
+             in
+               wi (fn p => Bind (p, cd G d) :: k ` Id p)
+             end
 
          | C.Int ic =>
              let val r = IntConst.toReal ic
