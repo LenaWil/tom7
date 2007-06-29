@@ -6,10 +6,11 @@
   <script type="application/x-javascript" 
           src="chrome://refstar/content/refstar.js" />
 
+  <!-- just a menu item in the tools menu -->
   <menupopup id="menu_ToolsPopup"> 
     <menuitem label="Refstar"
 	      insertafter="devToolsSeparator" 
-	      oncommand="alert('hello');" />
+	      oncommand="refstar();" />
   </menupopup>
 
 </overlay>
