@@ -1,0 +1,3 @@
+content   refstar  chrome/chromeFiles/content/
+
+overlay   chrome://browser/content/browser.xul   chrome://refstar/content/tools.xul

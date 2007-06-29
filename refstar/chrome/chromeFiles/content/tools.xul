@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<overlay id="hpsched_browser_overlay"
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <script type="application/x-javascript" 
+          src="chrome://refstar/content/refstar.js" />
+
+  <menupopup id="menu_ToolsPopup"> 
+    <menuitem label="Refstar"
+	      insertafter="devToolsSeparator" 
+	      oncommand="alert('hello');" />
+  </menupopup>
+
+</overlay>
