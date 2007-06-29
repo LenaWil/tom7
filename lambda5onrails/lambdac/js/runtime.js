@@ -6,7 +6,8 @@ function lc_message(s) {
     var d = document.createElement("div");
     d.innerHTML = s;
     /* var t = document.createTextNode(s); */
-    document.getElementById("messages").appendChild(d);
+    var m = document.getElementById("messages");
+    if (m != undefined) m.appendChild(d);
 };
 
 /* Implementation of imperative queues, used for the "thread" queue. */
@@ -31,6 +32,7 @@ var lc_threadqueue = new lc_queue ();
 /* A thread is a pair of integers and array of values, so that we can use
    function.apply */
 function lc_enq_thread(g, f, args) {
+    lc_message('enqueue ' + g + '.' + f + '(args)');
     lc_threadqueue.enq( { g : g, f : f, args : args } );
 };
 
@@ -239,7 +241,11 @@ function lc_come(bytes) {
     lc_message('come ' + bytes);
     var pack = lc_unmarshal(lc_comedict, bytes);
     lc_message('unmarshal success.');
-    /* FIXME now open it up enqueue it, schedule... */
+    /* FIXME now open it up, enqueue it, schedule... */
+    var f = pack.v0;
+    var arg = pack.v1;
+    lc_enq_thread(f.g, f.f, [ arg ]);
+    lc_yield();
 };
 
 /* jump to the server, using these marshaled bytes */
