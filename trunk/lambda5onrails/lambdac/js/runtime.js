@@ -37,6 +37,7 @@ function lc_enq_thread(g, f, args) {
 /* run a waiting thread, if any. We reschedule this function
    using setTimeout. */
 function lc_schedule() {
+    lc_message('schedule.');
     var t = lc_threadqueue.deq ();
     if (t == undefined) {
 	/* no more threads to run */
@@ -120,14 +121,24 @@ lc_tokstream.prototype.getint = function () {
       DL       s : String
 */
 
+function lc_lookup(G, s) {
+    var ct = G;
+    while (ct != undefined) {
+	lc_message("head : " + ct.head);
+	if (ct.head == s) return ct.data;
+	else ct = ct.next;
+    }
+    return undefined;
+};
+
 var lc_dictdict = { w : "DP", p : "d" };
 function lc_umg(G, d, b) {
     /* DR 11 DP i 2 0 1 1234 */
     switch(d.w) {
     case "DL": {
-	var nd = G[d.s];
+	var nd = lc_lookup(G, d.s);
 	if (nd == undefined) {
-	    alert("couldn't lookup " + d.s);
+	    alert("um couldn't lookup " + d.s);
 	    throw(0);
 	}
 	return lc_umg(G, nd, b);
@@ -135,10 +146,12 @@ function lc_umg(G, d, b) {
     case "DE": {
 	var thed = lc_umg(G, lc_dictdict, b)
 	/* FIXME why doesn't it work to clone? */
-	var G2 = G; // lc_clone(G);
+	// var G2 = G; // lc_clone(G);
 	
 	// alert('want g2[' + d.d + '] to be thed');
-	G2[d.d] = thed;
+	// G2[d.d] = thed;
+	lc_message('add (' + d.d + ')');
+	var G2 = { head : d.d, data : thed, next : G };
 	var a = { d : thed };
 	/* then find a series of values */
 	for(var i = 0; i < d.v.length; i ++) {
@@ -195,7 +208,7 @@ function lc_umg(G, d, b) {
 		for(var i = 0; i < n; i ++) {
 		    a.push(lc_umg(G, lc_dictdict, b));
 		}
-		return { w : "DE", d : name, v : a };
+		return { w : "DE", d : nam, v : a };
 	    }
 	    default:
 		alert('unimplemented actual dict: ' + t);
@@ -216,7 +229,7 @@ function lc_umg(G, d, b) {
 };
 
 function lc_unmarshal(d, b) {
-    return lc_umg({ dummy : 0 }, d, new lc_tokstream(b));
+    return lc_umg(undefined, d, new lc_tokstream(b));
 };
 
 /* a thread has arrived at this world, as marshaled bytes */
@@ -225,6 +238,8 @@ var lc_comedict = { w : "DE", d : "entry", v : [{ w : "DP", p : "c"}, { w : "DL"
 function lc_come(bytes) {
     lc_message('come ' + bytes);
     var pack = lc_unmarshal(lc_comedict, bytes);
+    lc_message('unmarshal success.');
+    /* FIXME now open it up enqueue it, schedule... */
 };
 
 /* jump to the server, using these marshaled bytes */
@@ -386,8 +401,10 @@ function lc_marshalg(G, dict, va) {
 	var s = lc_marshalg(G, lc_dictdict, thed);
 
 	/* PERF hmm. could use prototype? but then lookup is slower... */
-	var G2 = new lc_clone(G);
-	G2[dict.d] = thed;
+	
+	// var G2 = new lc_clone(G);
+	// G2[dict.d] = thed;
+	var G2 = { head : dict.d, data : thed, next : G };
 
 	/* then add all the components */
 	for(var i = 0; i < dict.v.length; i ++) {
@@ -396,8 +413,12 @@ function lc_marshalg(G, dict, va) {
 	return s;
     }
     case "DL": {
-	/* undefined check */
-	return lc_marshalg(G, G[dict.s], va);
+	var dd = lc_lookup(G, dict.s);
+	if (dd == undefined) {
+	    alert('marshal dl failed: ' + dict.s);
+	    throw(0);
+	}
+	return lc_marshalg(G, dd, va);
     }
     default:
 	alert('unimplemented or bad dictionary in marshal: ' + dict.w);
