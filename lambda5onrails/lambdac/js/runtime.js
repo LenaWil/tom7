@@ -65,6 +65,48 @@ function lc_clone(obj) {
     }
 };
 
+function lc_jstosi(obj, n) {
+    if (n <= 0) {
+	return '...';
+    } else {
+	var otr = '';
+	var ctr = '';
+	if ((n % 2) == 1) {
+	    otr = '<tr>';
+	    ctr = '</tr>';
+	}
+
+	var s = '<table style="border:1px solid ' + (((n%2)==1)?'#AAAAFF':'#FFAAAA') + 
+	        '"><tr><th colspan=2>' + obj + '</th></tr>';
+	/* not for strings... causes infinite loop (!) */
+	if ((n % 2) != 1) s += '<tr>';
+	if (obj.localeCompare == undefined) {
+	    for (i in obj) {
+		s += otr + '<td>' + i + '</td><td>' + lc_jstosi(obj[i], n - 1) + '</td>' + ctr;
+	    }
+	}
+	if ((n % 2) != 1) s += '</tr>';
+	return s + '</table>';
+    }
+};
+
+function lc_jstosi_ascii(obj, n) {
+    if (n <= 0) {
+	return '...';
+    } else {
+	var s = '[' + obj + ' with ';
+	for (i in obj) {
+	    s += i + ' : ' + lc_jstosi(obj[i], n - 1) + ', ';
+	}
+	return s + ']';
+    }
+};
+
+
+function lc_jstos(obj) {
+    return lc_jstosi(obj, 10);
+};
+
 /* PERF no need to keep modifying the string; could just use position */
 function lc_tokstream(s) {
     this.str = s;
@@ -73,14 +115,16 @@ function lc_tokstream(s) {
 lc_tokstream.prototype.next = function () {
     // alert("start(" + this.str + ")");
     /* eat any spaces at start */
+    // lc_message('before: [' + this.str + ']');
     if (this.str.length > 0 && this.str.charAt(0) == ' ') {
 	for(var j = 0; j < this.str.length; j ++) {
 	    if (this.str.charAt(j) != ' ') {
-		this.str = this.str.substring(j + 1);
+		this.str = this.str.substring(j);
 		break;
 	    } 
 	}
     }
+    // lc_message('eaten: [' + this.str + ']');
 
     // alert("eaten(" + this.str + ")");
     for(var i = 0; i < this.str.length; i ++) {
@@ -105,12 +149,19 @@ lc_tokstream.prototype.next = function () {
 };
 
 lc_tokstream.prototype.getint = function () {
-    var s = 1 * this.next ();
+    var n = this.next ();
+    // lc_message('getint of [' + n + ']');
+    var s = 1 * n;
     if (s == undefined || isNaN(s)) {
 	alert("expected int");
 	throw(0);
     } else return s;
 };
+
+lc_tokstream.prototype.showrest = function () {
+    return this.str;
+};
+
 
 /*
     { w : tag, ... } where 
@@ -169,15 +220,17 @@ function lc_umg(G, d, b) {
 		alert("labels mismatch " + d.v[i].l + " " + s2);
 		throw(0);
 	    }
-	    a[s2] = lc_umg(G, d.v[i].v, b);
+	    a['l' + s2] = lc_umg(G, d.v[i].v, b);
 	}
 	return a;
     }
     case "DP": {
 	switch(d.p) {
 	case "c": {
+	    // lc_message('at dp c: [' + b.showrest () + ']');
 	    var g = b.getint ();
 	    var f = b.getint ();
+	    // lc_message('so I make: ' + g + ' ' + f);
 	    return { g : g, f : f };
 	}
 	case "C": return b.getint ();
@@ -188,7 +241,7 @@ function lc_umg(G, d, b) {
 	    case "DP": {
 		var p = b.next ();
 		/* XX should check it's valid? */
-		lc_message("dp " + p + "/");
+		// lc_message("dp " + p + "/");
 		return { w : "DP", p : p };
 	    }
 	    case "DL": return { w : "DL", s : b.next () }
@@ -242,6 +295,7 @@ function lc_come(bytes) {
     var pack = lc_unmarshal(lc_comedict, bytes);
     lc_message('unmarshal success.');
     /* FIXME now open it up, enqueue it, schedule... */
+    lc_message('unmarshal result: ' + lc_jstos(pack));
     var f = pack.v0;
     var arg = pack.v1;
     lc_enq_thread(f.g, f.f, [ arg ]);
