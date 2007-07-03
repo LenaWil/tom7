@@ -146,9 +146,9 @@ struct
         | mar G (Drec sel) (Record lel) =
         StringUtil.delimit " "
                       (map (fn (s, d) =>
-                            case ListUtil.Alist.find op= lel ("l" ^ s) of
+                            case ListUtil.Alist.find op= lel s of
                               NONE => raise Marshal 
-                                       ("drec/rec mismatch : missing label l" ^ s ^ 
+                                       ("drec/rec mismatch : missing label " ^ s ^ 
                                         " among: " ^ StringUtil.delimit ", "
                                         (map #1 lel))
                                         

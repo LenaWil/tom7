@@ -38,6 +38,8 @@ struct
 
   val http = Http.protocol
 
+  val log = TextIO.openAppend "log.txt"
+
   fun loop () =
     let
       val socks = ! incoming @ Session.sockets ()
@@ -84,7 +86,7 @@ struct
     in
       print ("REQUEST: " ^ cmd ^ "\n");
       (* app (fn s => print ("  " ^ s ^ "\n")) (cmd :: headers); *)
-      
+      TextIO.output(log, Version.date () ^ " | " ^ cmd ^ "\n");
 
       (case String.tokens (StringUtil.ischar #" ") cmd of
          "GET" :: url :: _ =>

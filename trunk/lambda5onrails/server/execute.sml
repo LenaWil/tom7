@@ -126,7 +126,15 @@ struct
                  print " =============================================\n";
                  B.Record nil
                end
-           | _ => raise Execute ("primcall " ^ s ^ " not implemented")
+            (* XXX need to figure out what
+                 unit ->
+                 string ->
+                 string * string ->
+                 
+                 mean in terms of calling externs...
+                 *)
+          | ("version", _) => B.String Version.version
+          | _ => raise Execute ("primcall " ^ s ^ " not implemented")
         end
     | B.Var s => 
         (case SM.find (G, s) of

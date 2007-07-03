@@ -74,9 +74,11 @@ struct
                  | cd G (C.Conts _) = Dp Dconts
                  | cd G (C.Primcon (C.INT, nil)) = Dp Dint
                  | cd G (C.Primcon (C.STRING, nil)) = Dp Dstring
-                 | cd G (C.Primcon (C.DICTIONARY, nil)) = Dp Ddict
+                 (* don't care what t is; all dicts represented the same way *)
+                 | cd G (C.Primcon (C.DICTIONARY, [t])) = Dp Ddict
                  | cd G (C.Addr _) = Dp Daddr
-                 | cd G (C.Product stl) = Drec ` ListUtil.mapsecond (cdict G) stl
+                 | cd G (C.Product stl) = Drec ` 
+                             map (fn (l, e) => ("l" ^ l, cdict G e)) stl
                  | cd G (C.Shamrock t) = cdict G t
                  | cd G (C.TExists ((_, v), tl)) = 
                          let
@@ -88,6 +90,7 @@ struct
                  let in
                    print "BCG: unimplemented val\n";
                    Layout.print (CPSPrint.vtol ` C.Dict' d, print);
+                   print "\n";
 
                    raise ByteCodegen
                      "oops, convert dict front unimplemented"

@@ -220,7 +220,7 @@ function lc_umg(G, d, b) {
 		alert("labels mismatch " + d.v[i].l + " " + s2);
 		throw(0);
 	    }
-	    a['l' + s2] = lc_umg(G, d.v[i].v, b);
+	    a[s2] = lc_umg(G, d.v[i].v, b);
 	}
 	return a;
     }

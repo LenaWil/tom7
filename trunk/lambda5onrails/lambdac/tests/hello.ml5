@@ -1,20 +1,21 @@
 unit
-    extern val js.alert : string -> unit @ home
+    extern val alert : string -> unit @ home
     extern bytecode world server
     extern val server ~ server addr
     extern val version : unit -> string @ server
 
     (* test... *)
-    extern val (a, b) polyswap : a * b -> b * a @ server
-
-    do js.alert "Hello, World 2.0!"
+    (* extern val (a, b) polyswap : a * b -> b * a @ server *)
 
     fun goswap (a, b) =
 	let in
-	    js.alert (from server get (version ()));
+	    alert (from server get (version ()));
 	    (b, a)
 	end
-    val p = goswap (300, 400)
+    val p = goswap ("World 2.0!", "Hello, ")
+
+    do alert (#1/2 p)
+    do alert (#2/2 p)
 in
     export val pair = p
 end

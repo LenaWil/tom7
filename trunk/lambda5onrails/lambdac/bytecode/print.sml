@@ -36,8 +36,8 @@ struct
        
   and etol exp =
     (case exp of
-       Record lel => %[$"RECORD", itol ` length lel,
-                     % ` map (fn (l, e) => %[$l, etol e]) lel]
+       Record lel => %[%[$"RECORD", itol ` length lel],
+                       L.indent 2 ` % ` map (fn (l, e) => %[$l, etol e]) lel]
      | Project (l, e) => %[$"PROJ", $l, etol e]
      | Primcall (s, el) => %[$"PRIMCALL",
                              $s,
@@ -50,10 +50,10 @@ struct
      | Marshal (e1, e2) => %[$"MARSHAL", etol e1, etol e2]
 
      | Dp pd => %[$"DP", pdtol pd]
-     | Drec sel => %[$"DREC", itol ` length sel,
-                     % ` map (fn (l, e) => %[$l, etol e]) sel]
-     | Dsum seol => %[$"DSUM", itol ` length seol,
-                      % ` map (fn (l, eo) => %[$l, otol etol eo]) seol]
+     | Drec sel => %[%[$"DREC", itol ` length sel],
+                     L.indent 2 ` % ` map (fn (l, e) => %[$l, etol e]) sel]
+     | Dsum seol => %[%[$"DSUM", itol ` length seol],
+                      L.indent 2 ` % ` map (fn (l, eo) => %[$l, otol etol eo]) seol]
      | Dlookup s => %[$"DLOOKUP", $s]
      | Dexists { d, a } => %[$"DEXISTS", $d, itol ` length a,
                              L.indent 2 ` % ` map etol a]
