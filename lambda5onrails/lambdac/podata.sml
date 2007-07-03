@@ -6,9 +6,12 @@ struct
 
   local open Primop
         structure I = IL
+        fun mono t = I.Poly ({worlds = nil, tys = nil}, t)
   in
 
-    (* nb: all operations are UNSIGNED, including comparisons *)
+    (* nb: all operations are UNSIGNED, including comparisons
+       (XXX5 actually we have not resolved this for ML5)
+       *)
     (* XXX this should probably be factored out *)
     fun tostring (B PTimes) = "Times"
       | tostring (B PPlus) = "Plus"
@@ -70,12 +73,13 @@ struct
       let val a = Variable.namedvar "a"
       in I.Poly({worlds = nil, tys = [a]}, (nil, IL.TVar a))
       end
+      | potype (B (PCmp _)) = mono ([Initial.ilint, Initial.ilint], Initial.ilbool)
 
       | potype p = raise Podata ("unimplemented potype " ^ tostring p)
 
     fun polab (PJointext i) = "po_jointext_" ^ Int.toString i
       | polab PHalt = "po_halt" (* ? should be implemented internally, probably *)
+      | polab (B (PCmp PEq)) = "po_eq" (* XXX also internal... *)
       | polab p = raise Podata ("unimplemented polab " ^ tostring p)
-
   end
 end

@@ -331,7 +331,7 @@ struct
 
                       (* this expects to find mono-shape patterns,
                          so if it doesn't, fail early *)
-                      fun compare (E.CInt i, E.CInt j) = Word32.compare(i, j)
+                      fun compare (E.CInt i, E.CInt j) = IntConst.compare(i, j)
                         | compare (E.CInt _, _) =
                               raise Pattern "(un)expected int pattern"
                         | compare (_, E.CInt _) =
@@ -403,7 +403,7 @@ struct
                            (I.Sumcase
                             (unroll loc `
                              elabt ctx loc `
-                             E.TVar Initial.boolname,
+                             E.TApp (nil, Initial.boolname),
 
                              (* unroll (obj = eq_exp) *)
                              I.Unroll `
@@ -459,7 +459,7 @@ struct
                           
                         (* in the IL, chars are compiled as ints. *)
                         | gen ((E.CChar c, matches)::rest) = 
-                          smallconst (I.Value ` I.Int (Word32.fromInt (ord c)))
+                          smallconst (I.Value ` I.Int (IntConst.fromInt (ord c)))
                                      (Primop.B ` Primop.PCmp Primop.PEq)
                                      Initial.ilchar matches rest
 

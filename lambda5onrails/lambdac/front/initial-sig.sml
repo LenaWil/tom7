@@ -8,6 +8,7 @@ sig
     val ilchar : IL.typ
     val ilstring : IL.typ
     val ilexn : IL.typ
+    val ilbool : IL.typ
 
     (* these are abstract type variables *)
     val intvar : Variable.var

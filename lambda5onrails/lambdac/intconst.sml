@@ -28,5 +28,7 @@ struct
   val fromString = fromstring
   val toInt = Word32.toIntX
 
+  val compare = Word32.compare
+
   fun toReal x = Real.fromLargeInt (Word32.toLargeIntX x)
 end
