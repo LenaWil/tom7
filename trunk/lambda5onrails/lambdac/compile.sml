@@ -2,8 +2,6 @@
 structure Compile =
 struct
 
-  exception TestFail
-
     val showil = Params.flag false
         (SOME ("-showil",
                "Show internal language AST")) "showil"
@@ -245,7 +243,7 @@ struct
         let in
             print "\nCompilation failed.\n";
             print s;
-            raise TestFail
+            raise Compile "failed."
               (* OS.Process.failure *)
         end
 

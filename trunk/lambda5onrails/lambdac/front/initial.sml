@@ -24,7 +24,6 @@ struct
 
     val ilplus = namedvar "plus"
 
-    (* XXX bools should be NONEs *)
     val ilboolsum = IL.Sum[(truename, IL.NonCarrier),
                            (falsename, IL.NonCarrier)]
     val ilbool = IL.Mu(0, [(namedvar "a", ilboolsum)])
