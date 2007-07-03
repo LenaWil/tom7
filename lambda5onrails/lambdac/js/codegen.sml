@@ -121,7 +121,8 @@ struct
                  | cd G (C.Conts _) = dict "DP" [("p", s"C")]
                  | cd G (C.Primcon (C.INT, nil)) = dict "DP" [("p", s"i")]
                  | cd G (C.Primcon (C.STRING, nil)) = dict "DP" [("p", s"s")]
-                 | cd G (C.Primcon (C.DICTIONARY, nil)) = dict "DP" [("p", s"d")]
+                 (* don't care what t is; all dicts represented the same way *)
+                 | cd G (C.Primcon (C.DICTIONARY, [t])) = dict "DP" [("p", s"d")]
                  | cd G (C.Addr _) = dict "DP" [("p", s"a")]
                  | cd G (C.Product stl) = dict "DR" 
                  [("v", Array ` % ` map (fn (l, d) =>
@@ -217,8 +218,15 @@ struct
                  :: k ` Id p)
               )
 
-         | C.AllApp _ => 
-             wi (fn p => Bind (p, String ` String.fromString "allapp unimplemented") :: k ` Id p)
+         | C.AllApp { f, worlds = _, tys = _, vals } => 
+             (* f must be an integer; the index of a function in the globals that
+                returns a value *)
+             cvtv f
+             (fn f =>
+              cvtvs vals
+              (fn vals =>
+               wi (fn p => Bind (p, Call { func = Sele (Id codeglobal) f,
+                                           args = %vals }) :: k ` Id p)))
 
              (* weird? *)
          | C.VLetsham (v, va, c) =>
@@ -406,7 +414,8 @@ struct
          | C.Code (va, _, _) => va)
     in
       (case C.cval va of
-         C.AllLam { worlds = _, tys = _, vals, body } =>
+         (* always a static wrapper, maybe empty *)
+         C.AllLam { worlds = _, tys = _, vals = nil, body } =>
            (case C.cval body of
               C.Lams fl =>
                 Array ` % ` map SOME `
@@ -418,12 +427,17 @@ struct
                                   body = % ` cvte e }
                      end) fl
 
-            | C.AllLam _ => raise JSCodegen "hoisted alllam unimplemented"
+            | C.AllLam { worlds = _, tys =_, vals, body } => 
+                Function { args = % ` map (vtoi o #1) vals,
+                           name = NONE,
+                           body = % ` cvtv body (fn v => [Return ` SOME v]) }
+
             | _ => raise JSCodegen ("expected label " ^ gen_lab ^ 
                                     " to be alllam then lams/alllam"))
 
          | _ => raise JSCodegen ("expected label " ^ gen_lab ^ 
-                                 " to be a (possibly empty) AllLam"))
+                                 " to be a (possibly empty)" ^ 
+                                 " static AllLam"))
     end
     | generate _ (lab, NONE) = 
     Function { args = %[],

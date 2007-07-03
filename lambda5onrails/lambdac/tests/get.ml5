@@ -8,10 +8,11 @@ unit
   val n' = (from server get 
 	    let in
 		display("I'm the server!");
-		1234
+		"Cool Server Data"
 	    end)
 
   do alert "I'm back!"
+  do alert n'
 in
   export val x = n'
 end
