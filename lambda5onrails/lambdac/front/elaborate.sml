@@ -1198,7 +1198,28 @@ struct
                    ([Val ` mkpoly ps ` (name, Arrow (false, dom, cod), 
                                         Value `
                                         FSel(0, Fns [f]))], fctx)
-                | _ => error loc "unimplemented: multi-bundles FIXME!")
+                | _ => 
+                   let val bundv = V.namedvar ` StringUtil.delimit "_" (map (V.basename o #name) fs)
+                   in
+                     ( 
+                      (* the bundle... *)
+                      (Val ` mkpoly ps ` (bundv, Arrows ` map (fn { dom, cod, ... } => 
+                                                               (false, dom, cod)) fs,
+                                          Value ` Fns fs)) ::
+                      (* then bind the projections... *)
+                      ListUtil.mapi (fn ({ name, dom, cod, ... }, i) =>
+                                     let val ops = ps (* map V.alphavary ps *)
+                                          (* (would also need to rename through dom/cod) *)
+                                     in
+                                       Val ` mkpoly ops ` (name, 
+                                                           Arrow (false, dom, cod), 
+                                                           Value ` FSel(i, 
+                                                                        Polyvar { tys = map TVar ops,
+                                                                                  worlds = nil (* XXX *),
+                                                                                  var = bundv }))
+                                     end) fs,
+                      fctx)
+                   end)
 
                     (* ([Fix ` mkpoly ps fs], fctx) *)
           end
