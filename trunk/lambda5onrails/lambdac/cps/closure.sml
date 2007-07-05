@@ -541,11 +541,15 @@ struct
                      val G = bindvar G envvv envt ` worldfrom G
                      (* FIXME bind rec closures *)
 
-                     (* projecting the components from the environment arg *)
-                     val bod = wrape (Var' envvv, ce G body)
-                     (* creating recursive closures *)
+                     val bod = ce G body
+
+                     (* creating recursive closures (assumes dictionaries already
+                        pulled from environments, so happes on the _inside_) *)
                      val bod = foldr (fn ((v,c), bod) => 
                                       Bind'(v, c, bod)) bod recs
+
+                     (* projecting the components from the environment arg *)
+                     val bod = wrape (Var' envvv, bod)
                    in
 (*
                      if List.exists (fn (frec, _, _) => freee frec body) vael

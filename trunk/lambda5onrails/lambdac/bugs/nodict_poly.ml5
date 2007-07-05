@@ -1,27 +1,6 @@
 unit
-(*   extern val + ~ int * int -> int *)
-(*   extern val - ~ int * int -> int *)
-(*
-   extern val * ~ int * int -> int
-*)
+   fun loopA (x) : { } = primapp halt { unit } ( )
 
-   (* bogus, but it'll work since alert can show many different types *)
-(*   extern val alert : int -> unit @ home *)
-(*
-   extern bytecode world server
-   extern val server ~ server addr
-   extern val version : unit -> string @ server
-*)
-(*
-   fun fact 0 = 1
-     | fact n = fact (n - 1) 
-   
-   do alert (fact 5)
-*)
-
-   fun loopA (x) : { } = loopA x
-(*   and loopB (x) : { } = loopA x *)
-
-   do loopA 1
+   do loopA 5
 in
 end
