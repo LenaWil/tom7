@@ -4,6 +4,10 @@ struct
 
     exception Variable of string
 
+    val varhistory = Params.flag false
+        (SOME ("-varhistory", 
+               "Show the full lineage for each variable (SLOW!)")) "varhistory"
+
     datatype var =
         Special of string option * string
       | Regular of int * string * (unit -> string)
@@ -35,7 +39,11 @@ struct
     fun basename (Regular(_, s, _)) = s
       | basename (Special(_, s)) = s
 
-    fun alphavary (v as Regular _) = namedvar (basename v)
+    fun alphavary (v as Regular (_, _, f)) = 
+      if !varhistory
+      (* watch out! it grows indefinitely... *)
+      then namedvar (f ())
+      else namedvar (basename v)
       | alphavary _ = raise Variable "can't alphavary special"
 
     fun eq (Regular(n1, _, _), Regular(n2, _, _)) = n1 = n2
