@@ -19,8 +19,8 @@ unit
    do alert (fact 5)
 *)
 
-   fun loopA (x) : { } = loopA x
-(*   and loopB (x) : { } = loopA x *)
+   fun loopA (x) : { } = loopB x
+   and loopB (x) : { } = loopA x
 
    do loopA 1
 in
