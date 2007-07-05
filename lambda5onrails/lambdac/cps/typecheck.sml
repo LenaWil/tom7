@@ -613,7 +613,10 @@ struct
               in
                 Dictionary' ` TExists' (v1, map (fn v => edict "texists" ` vok G v) vl)
               end
+
           | Cont tl => Dictionary' ` Cont' ` map (fn v => edict "cont" ` vok G v) tl
+          | Conts tll => Dictionary' ` Conts' ` map (map (fn v => edict "conts" ` vok G v)) tll
+
           | AllArrow { worlds, tys, vals, body } =>
               let
                 val G = bindworlds G worlds
@@ -626,7 +629,7 @@ struct
               end
           | TVar _ => fail [$"shouldn't see dict tvar", VA value]
 
-          | _ => fail [$"unimplemented dict typefront", VA value]
+          | _ => fail [$"typecheck unimplemented dict typefront", VA value]
        end
 
      | VLeta (v, va, ve) =>

@@ -599,6 +599,20 @@ struct
                      Dictionary' ` Cont' ` map (edict "cont") tl)
                   end
 
+              | Conts dll => 
+                  let
+                    fun one dl =
+                      let
+                        val (dl, tl) = ListPair.unzip ` map (cv G) dl
+                      in
+                        (dl, map (edict "conts") tl)
+                      end
+                    val (dll, tll) = ListPair.unzip ` map one dll
+                  in
+                    (Dict' ` Conts dll,
+                     Dictionary' ` Conts' tll)
+                  end
+
               | Addr w => (Dict' ` Addr w, Dictionary' ` Addr' w)
               | At (d, w) => 
                   let
