@@ -73,6 +73,9 @@ struct
           end
       | I.Arrow (_, dom, cod) => 
           Cont' (map (cvtt G) dom @ [Cont' [cvtt G cod]])
+      | I.Arrows tl => 
+          Conts' ` map (fn (_, dom, cod) => 
+                        map (cvtt G) dom @ [Cont' [cvtt G cod]]) tl
       | _ => 
           let in
             print "\nToCPSt unimplemented:";

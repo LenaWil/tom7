@@ -291,9 +291,10 @@ struct
                               (IL.Poly({worlds=nil, tys=nil}, tt), vv, Normal, C.Modal w) => 
                                 let in
                                   unifyw ctx loc "case object" here w;
-                                  (tt, I.Polyuvar { tys = nil, worlds = nil, var = vv })
+                                  (tt, I.Var vv)
                                 end
-                            | (IL.Poly({worlds=nil, tys=nil}, tt), vv, Normal, C.Valid) => (tt, I.Var vv)
+                            | (IL.Poly({worlds=nil, tys=nil}, tt), vv, Normal, C.Valid) => 
+                                (tt, I.Polyuvar { tys = nil, worlds = nil, var = vv })
                             | _ => raise Pattern 
                                   "case object is poly or constructor (?)"
 
@@ -459,7 +460,7 @@ struct
                           
                         (* in the IL, chars are compiled as ints. *)
                         | gen ((E.CChar c, matches)::rest) = 
-                          smallconst (I.Value ` I.Int (IntConst.fromInt (ord c)))
+                          smallconst (I.Value ` I.Int ` IntConst.fromInt ` ord c)
                                      (Primop.B ` Primop.PCmp Primop.PEq)
                                      Initial.ilchar matches rest
 

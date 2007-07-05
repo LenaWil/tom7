@@ -60,7 +60,7 @@ struct
                  L.paren (%[L.list (map self dom),
                             $(if b then "=>" else "->"),
                             self cod])
-           | Arrows al => L.listex "(" ")" "&&" `
+           | Arrows al => L.listex "(" ")" " &&" `
                               map (fn (b, dom, cod) =>
                                    %[L.list (map self dom),
                                      $(if b then "=>" else "->"),
@@ -185,9 +185,9 @@ struct
                         L.indent 4 (etol body)]) fl)
                ]
 
-       | Polyuvar {worlds=nil, tys=nil, var} => $(V.show var)
+       | Polyuvar {worlds=nil, tys=nil, var} => $("~" ^ V.show var)
        | Polyuvar {worlds, tys, var} => 
-             %[$(V.show var),
+             %[$("~" ^ V.show var),
                if !iltypes 
                then 
                    (* XXX5 separate them? *)
