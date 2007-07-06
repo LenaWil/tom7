@@ -561,7 +561,6 @@ struct
                      (* bind args *)
                      val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args
                      val G = bindvar G envvv envt ` worldfrom G
-                     (* FIXME bind rec closures *)
 
                      val bod = ce G body
 

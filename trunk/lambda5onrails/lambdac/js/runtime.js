@@ -495,8 +495,11 @@ function lc_marshal(dict, va) {
 /* XXX need an actual representation for exceptions. */
 var Match = 0;
 
-/* some functions that we'll expect */
-function plus(x, y) { return x + y; }
+/* some functions that we'll expect.
+   probably we should have the ability to call multi-arg external functions?
+   or else we can do them as primops (probably cheaper, anyway)
+ */
+function plus(r) { return r.l1 + r.l2; }
 
 /* We should perhaps support an overlay network where
    there are multiple named worlds and some general way of

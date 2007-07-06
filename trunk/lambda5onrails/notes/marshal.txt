@@ -33,7 +33,7 @@ This file documents the marshaling format.
  AllArrow           v                v                v
   { body = t,       
     vals = nil,
-    ... }
+    tys }
  AllArrow           int              int              int
   { vals = _ :: _,
     ... }
@@ -53,10 +53,12 @@ This file documents the marshaling format.
                                                            (values either + v or -)
                     dex {d,a}                         DE d n a1 .. an
                     dlookup s                         DL s
-                    
+                    dall sl d                         DA n s1 .. sn d
+
  primitive dicts are mapped to characters:
     Dcont -> c
     Dconts -> C 
+    Daa   -> A     (non-static alladdr)
     Daddr -> a 
     Ddict -> d 
     Dint -> i
@@ -105,7 +107,7 @@ This file documents the marshaling format.
    typ                           dict                       val
    forall a. (int * a)           forall a/d. (int * d)      (impossible)
 
-   we need to come up with a dictionary for a, but we have nothing to use? Fortunately
+   we need to come up with a dictionary for a, but we have nothing to use. Fortunately
    there is no value of this type. What kinds of legal values are there?
 
    typ                           dict                       val
@@ -115,5 +117,6 @@ This file documents the marshaling format.
    
    ... that actually might be it. In other words, we can get away with not binding d,
    or else binding something like VOID, because we should never encounter it during
-   the unmarshaling process.
+   the unmarshaling process. If we did encounter it, that would mean that we could
+   extract a value of type /\a . a, which is impossible.
 

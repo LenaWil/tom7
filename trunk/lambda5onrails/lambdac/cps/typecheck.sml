@@ -14,6 +14,8 @@ struct
   datatype checkopt = 
       O_CLOSED 
     | O_NO_DICTFOR
+    (* shouldn't see nested lams, shouldn't use recursive vars *)
+    | O_HOISTED
 
   datatype context = C of { tvars : bool V.Map.map,
                             worlds : V.Set.set,
@@ -654,8 +656,13 @@ struct
            (* check types ok *)
            val () = app (fn (_, args, _) => ListUtil.appsecond (tok G) args) vael
            (* recursive vars *)
-           val G = foldl (fn ((v, args, _), G) =>
-                          bindvar G v (Cont' ` map #2 args) ` worldfrom G) G vael
+           val G = 
+             (* XXX could check for freeness and give a better error... *)
+             if option G O_HOISTED
+             then G
+             else
+               foldl (fn ((v, args, _), G) =>
+                      bindvar G v (Cont' ` map #2 args) ` worldfrom G) G vael
 
          in
            (* check each body under its args *)
@@ -836,6 +843,7 @@ struct
     let
       (* we'll reset the current world before checking each global *)
       val G = empty (WC "dummy")
+      val G = setopts G [O_CLOSED, O_HOISTED, O_NO_DICTFOR]
 
       fun bindglobal ((s, Code (va, t, wc)), G) = addglobal G s (Code ((), t, wc))
         | bindglobal ((s, PolyCode (v, va, t)), G) = addglobal G s (PolyCode (v, (), t))
