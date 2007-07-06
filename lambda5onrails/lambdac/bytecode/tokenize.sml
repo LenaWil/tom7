@@ -158,11 +158,14 @@ struct
        ("DINT", DINT),
        ("DSTRING", DSTRING),
        ("DVOID", DVOID),
+       ("DAA", DAA),
          
        ("DP", DP),
        ("DREC", DREC),
        ("DSUM", DSUM),
        ("DEXISTS", DEXISTS),
+       ("DALL", DALL),
+       ("DMU", DMU),
        ("DLOOKUP", DLOOKUP)
 
        ]

@@ -63,6 +63,7 @@ struct
     || `DINT return Dint
     || `DSTRING return Dstring
     || `DVOID return Dvoid
+    || `DAA return Daa
 
   fun exp () =
        `PROJ >> label && $exp wth Project
@@ -77,6 +78,7 @@ struct
     || `DLOOKUP >> id wth Dlookup
     || `DEXISTS >> id && repeated ($exp) wth (fn (a,b) => Dexists { d = a,
                                                                     a = b })
+    || `DALL >> repeated id && $exp wth Dall
 
     || number wth Int
     || strlit wth String

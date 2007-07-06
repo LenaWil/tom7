@@ -86,6 +86,21 @@ struct
                          in
                            Dexists {d = vtoi v, a = map (cdict G) tl}
                          end
+
+                 (* If static, then we just need to keep track of the type variables
+                    that are bound. (But just for cleanliness at runtime. We should
+                    never have to marshal e.g.  /\a. (int * a)) *)
+                 | cd G (C.AllArrow {worlds = _, tys, vals = nil, body }) =
+                         let
+                           val tys = map #2 tys
+                           val G = foldl (fn (v, G) => V.Set.add(G, v)) G tys
+                         in
+                           Dall (map vtoi tys, cdict G body)
+                         end
+
+                 (* if it is not static, then it is always represented as an int
+                    (index into globals) *)
+                 | cd G (C.AllArrow {worlds = _, tys = _, vals = _, body = _}) = Dp Daa
                  | cd _ d = 
                  let in
                    print "BCG: unimplemented val\n";

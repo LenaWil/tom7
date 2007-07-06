@@ -493,11 +493,14 @@ struct
                end
 
            (* bind all fn variables recursively *)
+         (* 
+            wrong -- not closure converted
            val G = foldr (fn ((f, args, body), G) =>
                           let val dom = map #2 args
                           in
                             bindvar G f (Cont' dom) ` worldfrom G
                           end) G vael
+           *)
 
            val envtv = V.namedvar "lams_envt"
            val rest = TExists' (envtv, [(* Shamrock' ` Dictionary' ` TVar' envtv, *)
@@ -527,6 +530,25 @@ struct
                           Var' f]))
                   ) vael
 
+           (* bind all closure-converted friends *)
+           val () = print "friends:\n"
+           val G = foldr (fn ((f, args, body), G) =>
+                          let 
+                            val dom = map #2 args
+                            val ve = V.namedvar "fenv"
+                            val t = TExists' (ve, [TVar' ve,
+                                                   Cont' (TVar' ve :: dom)])
+                          in
+                            Layout.print (Layout.indent 2 ` 
+                                          Layout.align
+                                          [Layout.str (V.tostring f ^ " : "),
+                                           Layout.indent 2 ` CPSPrint.ttol t],
+                                          print);
+                            print "\n";
+                            bindvar G f t ` worldfrom G
+                          end) G vael
+
+
          in
            (TPack'
             (envt,
@@ -551,11 +573,6 @@ struct
                      (* projecting the components from the environment arg *)
                      val bod = wrape (Var' envvv, bod)
                    in
-(*
-                     if List.exists (fn (frec, _, _) => freee frec body) vael
-                     then raise Closure "unimplemented: recursive closures. FIXME!"
-                     else
-*)
                      (f, (envvv, envt) :: args, bod)
                    end
                    ) vael]),

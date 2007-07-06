@@ -54,7 +54,7 @@ struct
                                 bindtol v,
                                 $"."], ttol t]) m,
                            "and ")])
-         | At (t, w) => L.paren ` %[ttol t, $"at", wtol w]
+         | At (t, w) => L.paren ` %[ttol t, L.indent 2 ` %[$"at", wtol w]]
          | Shamrock t => %[$"{}", L.indent 2 ` ttol t]
          | Cont tl => %[L.listex "(" ")" "," ` map ttol tl, $"cont"]
          | AllArrow { worlds, tys, vals, body } =>
@@ -171,7 +171,7 @@ struct
                                       L.indent 2 ` L.listex "[" "]" "," ` map vtol vs]
          | AllApp { worlds = [w], f = v, tys = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<<", wtol w, $">>"]]
          | AllApp { tys = [t], f = v, worlds = nil, vals = nil } => %[vtol v, L.indent 2 ` %[$"<", ttol t, $">"]]
-         | Sham (v, cv) => %[$"sham", vbindv v cv, $".",
+         | Sham (v, cv) => %[%[$"sham", vbindv v cv, $"."],
                                             L.indent 2 ` vtol cv]
          | Inj (s, t, vo) => %[%[$("inj_" ^ s), 
                                  (case vo of
@@ -306,9 +306,9 @@ struct
          | TUnpack (v, vd, vtl, va, e) =>
                %[%[%[$"tunpack", L.indent 3 ` vtol va], $"as"],
                  %[%[varl v, $";"],
-                   L.indent 2 ` %[varl vd, $";"],
+                   %[varl vd, $";"],
                    L.listex "[" "]" "," ` map (fn (v, t) =>
-                                               %[varl v, $":", ttol t]) vtl]
+                                               %[%[varl v, $":"], L.indent 2 ` ttol t]) vtl]
                  ] :: estol e
          | Case (va, v, arms, def) =>
                [
