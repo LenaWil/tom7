@@ -47,6 +47,7 @@ sig
       (* binds regular var *)
     | BIND 
     | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
+    (* | NATIVE  *)
       (* takes 'a dict and 'a -> bytes *)
     | MARSHAL
 

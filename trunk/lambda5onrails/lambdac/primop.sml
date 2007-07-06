@@ -29,7 +29,7 @@ struct
         B of binop
       | PNeg
 
-      (* non-int compares *)
+      (* string equality *)
       | PEqs
 
       | PNotb
