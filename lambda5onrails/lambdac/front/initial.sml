@@ -94,9 +94,6 @@ struct
     val polyfuns =
         [
 
-         ("putc", P.PPutc, mono(IL.Arrow(false, [ilchar], tuple nil))),
-         ("getc_", P.PGetc, mono(IL.Arrow(false, [], ilint))),
-
          (* XXX should really be exn cont, but there's no way to
             spell that type here. so make it unit cont and then the
             handler just can't use its argument. *)

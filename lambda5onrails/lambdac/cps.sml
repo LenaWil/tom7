@@ -946,6 +946,18 @@ struct
   fun subvv sl sv = substv sv (SV sl)
   fun subve sl sv = subste sv (SV sl)
 
+  local open Primop
+        val bv = V.namedvar "pbool"
+  in
+    fun ptoct PT_INT = Zerocon' INT
+      | ptoct PT_STRING = Zerocon' STRING
+      | ptoct PT_BOOL = 
+      Mu' (0, [(bv, Sum' [(Initial.truename, IL.NonCarrier),
+                          (Initial.falsename, IL.NonCarrier)])])
+      | ptoct (PT_VAR v) = TVar' v
+      | ptoct _ = raise CPS "unimplemented ptoct"
+  end
+
   exception Occurs
 
   fun occursw var (w as W var') = if V.eq (var, var') then raise Occurs else w

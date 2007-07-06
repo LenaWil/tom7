@@ -10,6 +10,10 @@ struct
       | PGreater
       | PGreatereq
 
+    (* nb: all operations are UNSIGNED, including comparisons
+       (XXX5 actually we have not resolved this for ML5)
+       *)
+
     (* things of int * int -> _ *)
     datatype binop =
         PTimes
@@ -56,10 +60,6 @@ struct
       (* no-op, just bind *)
       | PBind
 
-      (* UM I/O *)
-      | PPutc
-      | PGetc
-
       (* generate an exception tag, sequentially *)
       | PNewtag
       (* store and retrieve exception handler fn 
@@ -76,5 +76,9 @@ struct
 
       (* DEBUGGING! *)
       | PShowval
+
+  (* base types that describe arguments to and return values from primops *)
+  datatype potype =
+    PT_INT | PT_STRING | PT_REF of potype | PT_UNITCONT | PT_BOOL | PT_VAR of Variable.var
 
 end

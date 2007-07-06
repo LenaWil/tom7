@@ -64,6 +64,16 @@ struct
                     print "\n";
                     raise Elaborate "type error"
                 end
+              
+    local open Primop
+    in
+      fun ptoil PT_INT = Initial.ilint
+        | ptoil PT_STRING = Initial.ilstring
+        | ptoil PT_BOOL = Initial.ilbool
+        | ptoil (PT_VAR v) = IL.TVar v
+        | ptoil _ = raise Elaborate "unimplemented potoil"
+      (* PT_INT | PT_STRING | PT_REF of potype | PT_UNITCONT | PT_BOOL | PT_VAR of Variable.var *)
+    end
 
     val itos = Int.toString
 

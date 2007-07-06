@@ -58,4 +58,6 @@ sig
 
     val check_mobile : unit -> unit
 
+    val ptoil : Primop.potype -> IL.typ
+
 end
