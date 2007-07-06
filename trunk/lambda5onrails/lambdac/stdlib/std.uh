@@ -1,8 +1,18 @@
 
 val provide-std = ()
 
-(* install top-level exception handler. *)
+infix +
+infix -
+infix *
+(* PERF should inline *)
+fun +(x, y) = primapp Plus { } (x, y)
+fun -(x, y) = primapp Minus { } (x, y)
+fun *(x, y) = primapp Times { } (x, y)
 
+
+(*
+
+(* install top-level exception handler. *)
 val () =
     letcc out
     in
@@ -84,3 +94,4 @@ fun mod (a, b) =
 
 infix mod
 
+*)

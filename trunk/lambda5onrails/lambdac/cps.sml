@@ -38,6 +38,7 @@ struct
       LOCALHOST 
     | BIND 
     | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
+    | NATIVE of { po : Primop.primop, tys : ctyp list }
     | MARSHAL 
 
   datatype ('cexp, 'cval) cexpfront =
@@ -218,6 +219,7 @@ struct
            let fun poself LOCALHOST = LOCALHOST
                  | poself BIND = BIND
                  | poself MARSHAL = MARSHAL
+                 | poself (NATIVE { po, tys }) = NATIVE { po = po, tys = map tself tys }
                  | poself (PRIMCALL { sym, dom, cod }) = PRIMCALL { sym = sym,
                                                                     dom = map tself dom,
                                                                     cod = tself cod }
@@ -885,6 +887,7 @@ struct
                                           (case po of
                                              PRIMCALL { sym, dom, cod } =>
                                                PRIMCALL { sym = sym, dom = map ft dom, cod = ft cod }
+                                           | NATIVE { po, tys } => NATIVE { po = po, tys = map ft tys }
                                            | BIND => BIND
                                            | MARSHAL => MARSHAL
                                            | LOCALHOST => LOCALHOST),

@@ -1,0 +1,16 @@
+
+In the language there are various things that we call "primops." There
+are a number of reasons to call a construct a primop:
+
+ 1. It is "not special" and so it can be treated generically by most of the compiler
+ 2. Its meaning does not substantially change through phases of compilation
+ 3. It operates on simple types
+ 4. It is not simply an import of an external function because
+      A. We want to be able to inline it or optimize it
+      B. The compiler needs to generate uses of it
+      C. Its implementation has some special status that prevents it from being imported
+
+Not all of these always apply, at least in the current compiler. The
+time for revolution is now!
+
+Let's say that in order to be a primop, 

@@ -256,38 +256,42 @@ struct
               end
 
         | E.Primapp (p, ts, es) =>
-              (case PrimTypes.typeof p of
+              (case Podata.fromstring p of
                  NONE => error loc ("unknown primitive in primapp: " ^ p)
-               | SOME (po, Poly({worlds=nil, tys}, (dom, cod))) =>
-                   if length tys = length ts
-                   then if length es = length dom
-                        then
-                          let
-                            val ts = map (elabt ctx loc) ts
-                            val (args, argts) = ListPair.unzip ` map (elab ctx here) es
-
-                            val (l, _, tvs) = ElabUtil.evarizes (Poly({worlds=nil,
-                                                                       tys=tys},
-                                                                      cod :: dom))
-                              
-                            val cod = hd l
-                            val dom = tl l
-
-                          in
-                            (* One side is all unique evars, so this always succeeds *)
-                            ListPair.app (fn (t1, t2) =>
-                                          unify ctx loc "primapp" t1 t2) (tvs, ts);
+               | SOME po =>
+                   let val Poly({worlds, tys}, (dom, cod)) = Podata.potype po
+                   in
+                     if List.null worlds
+                     then if length tys = length ts
+                        then if length es = length dom
+                             then
+                               let
+                                 val ts = map (elabt ctx loc) ts
+                                 val (args, argts) = ListPair.unzip ` map (elab ctx here) es
+                                   
+                                 val (l, _, tvs) = ElabUtil.evarizes (Poly({worlds=nil,
+                                                                            tys=tys},
+                                                                           cod :: dom))
+                                   
+                                 val cod = hd l
+                                 val dom = tl l
+                                   
+                               in
+                                 (* One side is all unique evars, so this always succeeds *)
+                                 ListPair.app (fn (t1, t2) =>
+                                               unify ctx loc "primapp" t1 t2) (tvs, ts);
                             
-                            (* args must match domain *)
-                            ListPair.app (fn (t1, t2) =>
+                                 (* args must match domain *)
+                                 ListPair.app (fn (t1, t2) =>
                                           unify ctx loc "primapp arg" t1 t2) (dom, argts);
-
-                            (Primapp(po, args, ts),
-                             cod)
-                          end
-                        else error loc "not the right number of val args in primapp"
-                   else error loc "not the right number of type args in primapp"
-               | _ => error loc "unimplemented: primops with world polymorphism??")
+                                 
+                                 (Primapp(po, args, ts),
+                                  cod)
+                               end
+                             else error loc "not the right number of val args in primapp"
+                        else error loc "not the right number of type args in primapp"
+                     else error loc "unimplemented: world polymorphism in primop"
+                   end)
                    
 
         | E.Constant(E.CInt i) => value (Int i, Initial.ilint)

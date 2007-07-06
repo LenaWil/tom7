@@ -46,8 +46,10 @@ sig
       LOCALHOST 
       (* binds regular var *)
     | BIND 
+      (* call to an extern label *)
     | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
-    (* | NATIVE  *)
+      (* some built-in thing *)
+    | NATIVE of { po : Primop.primop, tys : ctyp list }
       (* takes 'a dict and 'a -> bytes *)
     | MARSHAL
 
