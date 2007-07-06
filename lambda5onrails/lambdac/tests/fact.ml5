@@ -1,41 +1,16 @@
 unit
-(*   extern val + ~ int * int -> int *)
-(*   extern val - ~ int * int -> int *)
-(*
-   extern val * ~ int * int -> int
-*)
-
-   (* bogus, but it'll work since alert can show many different types *)
-(*   extern val alert : int -> unit @ home *)
-(*
-   extern bytecode world server
-   extern val server ~ server addr
-   extern val version : unit -> string @ server
-*)
-(*
-   fun fact 0 = 1
-     | fact n = fact (n - 1) 
-   
-   do alert (fact 5)
-*)
    (* required for now *)
    extern bytecode world server
 
    extern val alert : int -> unit @ home
    extern val plus : int * int -> int @ home
+   extern val minus : int * int -> int @ home
+   extern val times : int * int -> int @ home
 
-	  (* fun plus(x : int, y : int) = 2 *)
+   fun fact 0 = 1
+     | fact n = times(n, fact (minus(n, 1)))
+   
+   do alert (fact 5)
 
-   fun loopA (x) : { } = 
-       let in
-	   loopB (plus(x, 1))
-       end
-   and loopB (x) : { } = 
-       let in
-	   alert x;
-	   loopA (plus(x, 1))
-       end
-
-   do loopA 1
 in
 end
