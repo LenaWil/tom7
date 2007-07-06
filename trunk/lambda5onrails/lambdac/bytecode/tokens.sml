@@ -14,8 +14,8 @@ struct
       | RECORD | PROJ | PRIMCALL | FUNDEC | ABSENT 
       | TNONE | TSOME | PROGRAM | INJ | GO | MARSHAL
 
-      | DCONT | DCONTS | DADDR | DDICT | DINT | DSTRING | DVOID
-      | DP | DREC | DSUM | DEXISTS | DLOOKUP
+      | DCONT | DCONTS | DADDR | DDICT | DINT | DSTRING | DVOID | DAA
+      | DP | DREC | DSUM | DEXISTS | DALL | DMU | DLOOKUP
 
     (* only for "basic" tokens, not constant-wrappers *)
     fun eq (BIND, BIND) = true
@@ -38,6 +38,7 @@ struct
       | eq (DCONT, DCONT) = true
       | eq (DCONTS, DCONTS) = true
       | eq (DADDR, DADDR) = true
+      | eq (DAA, DAA) = true
       | eq (DDICT, DDICT) = true
       | eq (DINT, DINT) = true
       | eq (DSTRING, DSTRING) = true
@@ -46,7 +47,10 @@ struct
       | eq (DREC, DREC) = true
       | eq (DSUM, DSUM) = true
       | eq (DEXISTS, DEXISTS) = true
+      | eq (DALL, DALL) = true
+      | eq (DMU, DMU) = true
       | eq (DLOOKUP, DLOOKUP) = true
+
 
       | eq _ = false
 

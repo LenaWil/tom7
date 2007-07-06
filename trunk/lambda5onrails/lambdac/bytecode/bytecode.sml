@@ -8,7 +8,7 @@ struct
   type label = string
 
   datatype primdict =
-    Dcont | Dconts | Daddr | Ddict | Dint | Dstring | Dvoid
+    Dcont | Dconts | Daddr | Ddict | Dint | Dstring | Dvoid | Daa
 
   datatype statement =
       Bind of string * exp * statement
@@ -39,6 +39,8 @@ struct
     | Drec of (string * exp) list
     | Dsum of (string * exp option) list
     | Dexists of { d : string, a : exp list }
+    | Dall of string list * exp
+
     (* "variable" *)
     | Dlookup of string
 

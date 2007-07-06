@@ -28,12 +28,13 @@
  
     { w : tag, ... } where 
 
-      tag
-      DP       p : c, C, a, d, i, s or v
+      tag (string)
+      DP       p : c, C, a, d, i, s, v or A
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DE       d : String, v : array of Object
       DL       s : String
+      DA       s : array of String, v : Object
 
 *)
 structure JSCodegen :> JSCODEGEN =
@@ -98,11 +99,12 @@ struct
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s or v
+      DP       p : c, C, a, d, i, s, v or A
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DE       d : String, v : array of Object
       DL       s : String
+      DA       s : array of String, v : Object
 *)
 
                val s = String o String.fromString
@@ -137,9 +139,25 @@ struct
                                       ("v", Array ` % ` map (SOME o cdict G) tl)]
                          end
 
+                 (* If static, then we just need to keep track of the type variables
+                    that are bound. (But just for cleanliness at runtime. We should
+                    never have to marshal e.g.  /\a. (int * a)) *)
+                 | cd G (C.AllArrow {worlds = _, tys, vals = nil, body }) =
+                         let
+                           val tys = map #2 tys
+                           val G = foldl (fn (v, G) => V.Set.add(G, v)) G tys
+                         in
+                           dict "DA" [("s", Array ` % ` map (SOME o String o vtos) tys),
+                                      ("v", cdict G body)]
+                         end
+
+                 (* if it is not static, then it is always represented as an int
+                    (index into globals) *)
+                 | cd G (C.AllArrow {worlds = _, tys = _, vals = _, body = _}) = dict "DP" [("p", s"A")]
+
                  | cd _ d = 
                  let in
-                   print "BCG: unimplemented val\n";
+                   print "JSCG: unimplemented val\n";
                    Layout.print (CPSPrint.vtol ` C.Dict' d, print);
 
                    s"unimplemented"

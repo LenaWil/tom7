@@ -167,11 +167,12 @@ lc_tokstream.prototype.showrest = function () {
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s or v
+      DP       p : c, C, a, d, i, s, v or A
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DE       d : String, v : array of Object
       DL       s : String
+      DA       s : array of String, v : Object
 */
 
 function lc_lookup(G, s) {
@@ -493,6 +494,9 @@ function lc_marshal(dict, va) {
 
 /* XXX need an actual representation for exceptions. */
 var Match = 0;
+
+/* some functions that we'll expect */
+function plus(x, y) { return x + y; }
 
 /* We should perhaps support an overlay network where
    there are multiple named worlds and some general way of
