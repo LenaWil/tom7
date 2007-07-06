@@ -14,6 +14,8 @@ sig
       O_CLOSED 
       (* The Dictfor construct is not allowed *)
     | O_NO_DICTFOR
+      (* no nested lams, no use of recursive vars *)
+    | O_HOISTED
 
   exception TypeCheck of string
 

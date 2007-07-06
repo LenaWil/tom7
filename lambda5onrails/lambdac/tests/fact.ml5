@@ -18,18 +18,21 @@ unit
    
    do alert (fact 5)
 *)
-(*   extern val alert : int -> unit @ home *)
+   (* required for now *)
+   extern bytecode world server
+
+   extern val alert : int -> unit @ home
    extern val plus : int * int -> int @ home
 
 	  (* fun plus(x : int, y : int) = 2 *)
 
    fun loopA (x) : { } = 
        let in
-	   loopB x (* (plus(x, 1)) *)
+	   loopB (plus(x, 1))
        end
    and loopB (x) : { } = 
        let in
-(*	   alert x; *)
+	   alert x;
 	   loopA (plus(x, 1))
        end
 

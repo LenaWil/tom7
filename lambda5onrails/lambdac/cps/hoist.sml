@@ -49,17 +49,22 @@ struct
       val ctr = ref 0
       (* PERF. we should be able to merge alpha-equivalent labels here,
          which would probably yield substantial $avings. *)
-      (* Take a global and return a label after inserting it in the global
-         code table. *)
-      fun insert arg =
-          let
-              (* XXX could derive it from a function name if it's a Lams? *)
-              val l = "L_" ^ Int.toString (!ctr)
-          in
-              ctr := !ctr + 1;
+      (* XXX could derive it from a function name if it's a Lams? *)
+      fun nextlab () = 
+        let in
+          ctr := !ctr + 1; 
+          "L_" ^ Int.toString (!ctr)
+        end
+
+      fun insertat l arg =
+          let in
               globals := (l, arg) :: !globals;
               l
           end
+
+      (* Take a global and return a label after inserting it in the global
+         code table. *)
+      fun insert arg = insertat (nextlab ()) arg
 
       val foundworlds = ref nil
       fun findworld (s, k) =
@@ -228,11 +233,7 @@ struct
            )
 
 
-      (* for values, only Lams is relevant
-
-         XXX I think we need to hoist alllam when it has a value argument,
-         since it is also closure-converted.
-         *)
+      (* values are where the action is *)
       and cv G value =
         (case cval value of
            Lams vael =>
@@ -259,12 +260,32 @@ struct
                val G = foldl (fn ((v, args, _), G) =>
                               bindvar G v (Cont' ` map #2 args) ` worldfrom G) G vael
 
+               (* get the label where this code will eventually reside; 
+                  we need to substitute the label for the recursive instances *)
+               val l = nextlab ()
+
                val vael =
                  map (fn (f, args, e) =>
                       let
                         val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args
+                        val e = ce G e
+
+                        (* for each friend g, substitute through this body... *)
+                        fun subs (nil, _, e) = e
+                          | subs (g :: rest, i, e) =
+                          let
+                          in
+                            subs (rest, 
+                                  i + 1,
+                                  (* the label gives us some abstracted code, so we re-apply it to our local type
+                                     variables (no need for polymorphic recursion). But we want the individual function
+                                     within that code, so we project out the 'i'th component. *)
+                                  subve (Fsel' (AllApp' { f = Codelab' l, worlds = map W w, tys = map TVar' t, vals = nil },
+                                                i)) g e)
+                          end
+                        val e = subs (map #1 vael, 0, e)
                       in
-                        (f, args, ce G e)
+                        (f, args, e)
                       end) vael
 
                (* type of the lambdas *)
@@ -280,8 +301,8 @@ struct
                     W wv => PolyCode' (wv, code, ty)
                   | WC l => Code' (code, ty, l))
              
-               val l = insert glo
-                   
+               val _ = insertat l glo
+
              in
                (* in order to preserve the local type, we apply the label to the
                   world and type variables. If it is PolyCode, we don't need to apply
