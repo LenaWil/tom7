@@ -259,7 +259,11 @@ struct
               (case Podata.fromstring p of
                  NONE => error loc ("unknown primitive in primapp: " ^ p)
                | SOME po =>
-                   let val Poly({worlds, tys}, (dom, cod)) = Podata.potype po
+                   let
+                     val { worlds, tys, dom, cod } = Podata.potype po
+                     val dom = map ptoil dom
+                     val cod = ptoil cod
+                     
                    in
                      if List.null worlds
                      then if length tys = length ts
@@ -1010,7 +1014,8 @@ struct
                                Poly({worlds = nil, 
                                      tys = atvs},
                                     (v, mu, Sham (V.namedvar "unused", 
-                                                  VInject(Sum arms, ctor, NONE)))))
+                                                  VRoll(mu,
+                                                        VInject(Sum arms, ctor, NONE))))))
                             end
  
                              | (ctor, Carrier { carried = ty, ... }) =>

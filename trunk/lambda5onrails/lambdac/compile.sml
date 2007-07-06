@@ -218,6 +218,7 @@ struct
          | CPSDict.CPSDict s => fail ("\nCPSDict: " ^ s ^ "\n")
          | CPSTypeCheck.TypeCheck s => fail ("\n\nInternal error: Type checking failed:\n" ^ s ^ "\n")
          | CPSOpt.CPSOpt s => fail ("\n\nInternal error: CPS-Optimization failed:\n" ^ s ^ "\n")
+         | CPS.CPS s => fail ("\n\nInternal error in CPS:\n" ^ s ^ "\n")
          | Closure.Closure s => fail ("\nClosure conversion: " ^ s ^ "\n")
          | Codegen.Codegen s => fail ("\nCode generation: " ^ s ^ "\n")
          | Context.Absent (what, s) => fail ("\n\nInternal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'\n")

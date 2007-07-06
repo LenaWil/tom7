@@ -135,7 +135,9 @@ struct
                                     let 
                                         val t = cvtt G t
                                         val vv = nv "r"
-                                    in Bind' (vv, Roll'(t, v),
+                                    in 
+                                      print "ROLL!\n";
+                                      Bind' (vv, Roll'(t, v),
                                               k (bindvar G vv t w, Var' vv, t, w))
                                     end)
 
@@ -218,25 +220,40 @@ struct
                 (* assuming all prims are valid, otherwise we need an
                    optional world here. also, assuming all prims have
                    function type. *)
-                val I.Poly({worlds, tys}, (dom, cod)) = Podata.potype po
-                val l = Podata.polab po
-                val vp = nv ("primapp_" ^ l)
+                val { worlds, tys, dom, cod } = Podata.potype po
+                val vp = nv ("pores_" ^ Podata.tostring po)
+
+                val tl = map (cvtt G) tl
+
+                (* won't need dom again, don't bother fixing it *)
+                val dom = ()
+                (* but if this is polymorphic, need to get the actual return
+                   type *)
+                val cod = 
+                  let
+                    val G = foldr (fn (tv, G) => bindtype G tv false) G tys
+                    val s = ListUtil.wed tys tl
+                    val cod = cvtt G ` ElabUtil.ptoil cod
+                  in
+                    (* carry out substitutions *)
+                    foldr (fn ((tv,t), cod) =>
+                           CPS.subtt t tv cod) cod s
+                  end
               in
-                (* can support it easily, but there's no place in Primapp
-                   currently to supply arguments! *)
+                (* can support it easily, but there's no place in NATIVE
+                   currently to supply arguments... *)
                 if not (List.null worlds) 
-                then raise ToCPS "uhh, this primitive takes world arguments?"
+                then raise ToCPS "unimplemented: primops with world args"
                 else ();
 
                 (* we end up generating a new import and lambda abstraction every time,
                    but this is fine since we'd probably like to inline it. *)
-                cvte G
-                   (I.Let(I.ExternVal(I.Poly({worlds=worlds, tys = tys},
-                                             (l, vp, I.Arrow(false, dom, cod), NONE))),
-                          I.App(I.Value ` I.Polyuvar { tys = tl, 
-                                                       worlds = nil,
-                                                       var = vp },
-                                el))) k
+                cvtel G el
+                (fn (G, vwtl) =>
+                 Primop'([vp], 
+                         NATIVE { po = po, tys = tl },
+                         map #1 vwtl, 
+                         k (G, Var' vp, cod, worldfrom G)))
               end
 
        | I.Sumcase (I.Sum t, exp, v, arms, def) => 
@@ -657,6 +674,7 @@ struct
              (* not checking *)
              val (va, tt, ww) = cvtv G v
            in
+             print "VROLL!\n";
              (Roll' (cvtt G t, va), cvtt G t, ww)
            end
 

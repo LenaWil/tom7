@@ -163,6 +163,8 @@ sig
 
   (* utilities *)
 
+  val ptoct : Primop.potype -> ctyp
+
   (* is the variable free in this type (value; expression)? *)
   val freet : var -> ctyp -> bool
   val freev : var -> cval -> bool

@@ -333,6 +333,34 @@ struct
            eok G e
          end
 
+     | Primop ([v], NATIVE { po, tys }, l, e) =>
+         (case Podata.potype po of
+            { worlds = nil, tys = tvs, dom, cod } =>
+              let
+                val argts = map (vok G) l
+
+                val s = ListUtil.wed tvs tys
+                fun dosub tt = foldr (fn ((tv, t), tt) => subtt t tv tt) tt s 
+
+                val dom = map (dosub o ptoct) dom
+                val cod = dosub ` ptoct cod
+
+                (* check args *)
+                val () = app (fn (argt, domt) =>
+                              if ctyp_eq (argt, domt)
+                              then ()
+                              else fail [$"primop arg mismatch",
+                                         $"actual: ", TY argt,
+                                         $"expected: ", TY domt,
+                                         $"prim: ", $(Podata.tostring po)]) ` 
+                           ListUtil.wed argts dom
+
+                val G = bindvar G v cod ` worldfrom G
+              in
+                eok G e
+              end
+          | _ => faile exp "unimplemented: primops with world args")
+
      | Primop ([v], MARSHAL, [vd, va], e) =>
          let
            val td = vok G vd
