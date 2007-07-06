@@ -14,9 +14,11 @@ struct
 
          (":=", (1, Parsing.Non)),
 
+(*
          ("+", (4, Parsing.Left)),
          ("-", (4, Parsing.Left)),
          ("*", (5, Parsing.Left)),
+*)
 
          (* ?? *)
          ("andb", (5, Parsing.Left)),
@@ -24,7 +26,7 @@ struct
          ("xorb", (5, Parsing.Left)),
          ("shl",   (5, Parsing.Non)),
          ("shr",   (5, Parsing.Non))
-	 ]
+         ]
 
 (*         ("div", (5, Parsing.Left)),
            ("mod", (5, Parsing.Left))] *)

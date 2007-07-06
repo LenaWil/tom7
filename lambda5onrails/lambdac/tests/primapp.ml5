@@ -1,5 +1,5 @@
 unit
-   fun halt () = primapp halt { unit } ( )
+   fun halt () = primapp Halt { unit } ( )
 
 in
     export val p = halt

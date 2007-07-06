@@ -343,6 +343,10 @@ struct
   and potol LOCALHOST = $"LOCALHOST"
     | potol BIND = $"BIND"
     | potol MARSHAL = $"MARSHAL"
+    | potol (NATIVE { po, tys }) = %[$"NATIVE", $(Podata.tostring po),
+                                     (case tys of
+                                        nil => %[]
+                                      | _ => L.indent 2 ` L.listex "<" ">" "," ` map ttol tys)]
     | potol (PRIMCALL {sym, dom, cod}) = %[$("PRIMCALL_" ^ sym),
                                            $":",
                                            %[L.listex "(" ")" "," ` map ttol dom,

@@ -1,14 +1,13 @@
 unit
+   import "std.uh"
+
    (* required for now *)
    extern bytecode world server
 
    extern val alert : int -> unit @ home
-   extern val plus : int * int -> int @ home
-   extern val minus : int * int -> int @ home
-   extern val times : int * int -> int @ home
 
    fun fact 0 = 1
-     | fact n = times(n, fact (minus(n, 1)))
+     | fact n = n * fact (n - 1)
    
    do alert (fact 5)
 

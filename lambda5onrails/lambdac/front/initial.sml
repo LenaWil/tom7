@@ -68,9 +68,11 @@ struct
 
          (* XXX floating-point stuff *)
 
+         (*
          ("+", P.B P.PPlus, [ilint, ilint], ilint),
          ("-", P.B P.PMinus, [ilint, ilint], ilint),
          ("*", P.B P.PTimes, [ilint, ilint], ilint),
+         *)
          ("div_", P.B P.PDiv, [ilint, ilint], ilint),
          (* ("mod", P.B P.PMod, [ilint, ilint], ilint), *)
 
