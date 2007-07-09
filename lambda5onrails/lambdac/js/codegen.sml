@@ -50,6 +50,7 @@ struct
   structure C = CPS
   structure SM = StringMap
   structure V = Variable
+  structure P = Primop
 
   (* n.b. these must agree with runtime *)
   val codeglobal = Id.fromString "globalcode"
@@ -305,6 +306,68 @@ struct
            | v :: rest => cvtv v (fn (ve : Exp.t) =>
                                   cvtvs rest (fn (vl : Exp.t list) => k (ve :: vl)))
 
+(*
+            Add
+          | BitwiseAnd
+          | BitwiseOr
+          | BitwiseXor
+          | Div
+          | Equals
+          | GreaterThan
+          | GreaterThanEqual
+          | In
+          | InstanceOf
+          | LeftShift
+          | LessThan
+          | LessThanEqual
+          | LogicalAnd
+          | LogicalOr
+          | Mod
+          | Mul
+          | NotEquals
+          | RightShiftSigned
+          | RightShiftUnsigned
+          | StrictEquals
+          | StrictNotEquals
+          | Sub
+
+*)
+      val jstrue  = Object ` %[ Property { property = pn "t",
+                                           value = String ` String.fromString "true" }]
+      val jsfalse = Object ` %[ Property { property = pn "t",
+                                           value = String ` String.fromString "false" }]
+
+      fun primexp (P.B bo) [a, b] =
+        let
+          fun num bo = Binary {lhs = a, rhs = b, oper = bo}
+          fun boo bo = Cond { test  = Binary {lhs = a, rhs = b, oper = bo},
+                              thenn = jstrue,
+                              elsee = jsfalse }
+        in
+          case bo of
+             P.PTimes => num B.Mul
+           | P.PPlus => num B.Add
+           | P.PMinus => num B.Sub
+           | P.PDiv => num B.Div
+           | P.PMod => num B.Mod
+           | P.PAndb => num B.BitwiseAnd
+           | P.PXorb => num B.BitwiseXor
+           | P.POrb => num B.BitwiseOr
+           | P.PShl => num B.LeftShift
+           | P.PShr => raise JSCodegen "is shr signed or unsigned?"
+           | P.PCmp c =>
+               (case c of
+                  (* all numeric (ints), returning bool *)
+                  P.PEq => boo B.StrictEquals
+                | P.PNeq => boo B.StrictNotEquals
+                | P.PLess => boo B.LessThan
+                | P.PLesseq => boo B.LessThanEqual
+                | P.PGreater => boo B.GreaterThan
+                | P.PGreatereq => boo B.GreaterThanEqual)
+        end
+        | primexp (P.B _) _ = raise JSCodegen "wrong number of args to binary native primop"
+        | primexp po _ = raise JSCodegen ("unimplemented primop " ^ Podata.tostring po)
+
       fun cvte exp : Statement.t list =
            (case C.cexp exp of
               C.Halt => [Return NONE]
@@ -331,6 +394,11 @@ struct
             | C.Go _ => raise JSCodegen "shouldn't see go in js codegen"
             | C.Go_cc _ => raise JSCodegen "shouldn't see go_cc in js codegen"
             | C.ExternWorld _ => raise JSCodegen "shouldn't see externworld in js codegen"
+
+            | C.Primop ([v], C.NATIVE { po, ... }, args, e) => 
+                cvtvs args
+                (fn args =>
+                 Bind (vtoi v, primexp po args) :: cvte e)
 
             | C.Primop ([v], C.PRIMCALL { sym, ... }, args, e) =>
                 cvtvs args

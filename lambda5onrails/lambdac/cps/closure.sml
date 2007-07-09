@@ -227,6 +227,31 @@ struct
          | _ => raise Closure "case on non-sum"
         end
 
+     | Primop ([v], NATIVE { po, tys }, l, e) =>
+        let
+          val tys = map ct tys
+        in
+          case Podata.potype po of
+            { worlds = nil, tys = tvs, dom, cod } =>
+              let
+                val (argvs, _) = ListPair.unzip ` map (cv G) l
+
+                val s = ListUtil.wed tvs tys
+                fun dosub tt = foldr (fn ((tv, t), tt) => subtt t tv tt) tt s 
+
+                (* val dom = map (dosub o ptoct) dom *)
+                val cod = dosub ` ptoct cod
+
+                (* no need to check args; typecheck does it *)
+
+                val G = bindvar G v cod ` worldfrom G
+              in
+                Primop'([v], NATIVE { po = po, tys = tys }, argvs,
+                        ce G e)
+              end
+          | _ => raise Closure "unimplemented: primops with world args"
+        end
+      
      | Primop ([v], LOCALHOST, [], e) =>
            Primop' ([v], LOCALHOST, [], 
                     ce (binduvar G v ` Addr' ` worldfrom G) e)

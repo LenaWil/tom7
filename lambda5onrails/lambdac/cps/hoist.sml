@@ -109,6 +109,31 @@ struct
            ce G e
          end
 
+     | Primop ([v], NATIVE { po, tys }, l, e) =>
+        let
+          val tys = map ct tys
+        in
+          case Podata.potype po of
+            { worlds = nil, tys = tvs, dom, cod } =>
+              let
+                val (argvs, _) = ListPair.unzip ` map (cv G) l
+
+                val s = ListUtil.wed tvs tys
+                fun dosub tt = foldr (fn ((tv, t), tt) => subtt t tv tt) tt s 
+
+                (* val dom = map (dosub o ptoct) dom *)
+                val cod = dosub ` ptoct cod
+
+                (* no need to check args; typecheck does it *)
+
+                val G = bindvar G v cod ` worldfrom G
+              in
+                Primop'([v], NATIVE { po = po, tys = tys }, argvs,
+                        ce G e)
+              end
+          | _ => raise Hoist "unimplemented: primops with world args"
+        end
+
      | Primop ([v], MARSHAL, [vd, va], e) =>
          let
            val (vd, _) = cv G vd
