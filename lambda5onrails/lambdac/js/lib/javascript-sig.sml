@@ -15,9 +15,13 @@ sig
          type t
 
          val equals : t * t -> bool
+         val compare : t * t -> order
          val fromString : string -> t
          val layout : t -> Layout.layout
          val toString : t -> string
+
+         structure Set : ORD_SET where type Key.ord_key = t
+         structure Map : ORD_MAP where type Key.ord_key = t
       end
    structure AssignOp :
       sig

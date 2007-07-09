@@ -510,3 +510,12 @@ var server = "server";
 /* start this immediately; we'll need it */
 lc_make_toclient ();
 
+/* XXX testing
+   Note: javascript has bizarre scope rules. */
+function testy() {
+    {
+	var x = "hello";
+    };
+    
+    alert(x);
+};

@@ -186,6 +186,9 @@ js/syntax.sml
 js/codegen-sig.sml
 js/codegen.sml
 
+js/opt-sig.sml
+js/opt.sml
+
 bytecode/bytecode.sml
 bytecode/print.sml
 bytecode/codegen-sig.sml

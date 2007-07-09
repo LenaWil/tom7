@@ -114,12 +114,17 @@ struct
                           args = %[Id ` $"lc_schedule",
                                    (* initial timeout at 10ms (?) *)
                                    Number ` Number.fromInt 10] }
-                            
+
+                 val prog = Program.T ` Vector.fromList [arraydec,
+                                                         maybecallmain,
+                                                         startruntime]
+                   
+                 (* simple cleanup stuff... *)
+                 val prog = JSOpt.optimize prog
                in
-                 (* XXX we need all the runtime stuff, obviously *)
-                 CodeJS { prog = Program.T ` Vector.fromList [arraydec,
-                                                              maybecallmain,
-                                                              startruntime] }
+                 (* we also need the runtime, but it is just prepended as
+                    text by SERVER5. *)
+                 CodeJS { prog = prog }
                end
            | CPS.KBytecode =>
                let

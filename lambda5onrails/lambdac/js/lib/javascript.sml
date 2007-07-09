@@ -16,12 +16,22 @@ struct
         datatype t = T of string
 
         fun equals (T s, T s') = s = s'
+        fun compare (T s, T s') = String.compare (s, s')
 
         val fromString = T
 
         fun toString (T s) = s
 
         val layout = Layout.str o toString
+
+        structure Map = SplayMapFn (struct
+                                      type ord_key = t
+                                      val compare = compare
+                                    end)
+        structure Set = SplaySetFn (struct
+                                      type ord_key = t
+                                      val compare = compare
+                                    end)
      end
 
   structure AssignOp =
