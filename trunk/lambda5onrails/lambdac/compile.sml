@@ -213,37 +213,39 @@ struct
           code
         end)
     handle 
-           ByteCodegen.ByteCodegen s => fail("\nBytecode codegen: " ^ s ^ "\n")
-         | Compile s => fail ("\n\nCompilation failed:\n    " ^ s ^ "\n")
-         | CPSDict.CPSDict s => fail ("\nCPSDict: " ^ s ^ "\n")
-         | CPSTypeCheck.TypeCheck s => fail ("\n\nInternal error: Type checking failed:\n" ^ s ^ "\n")
-         | CPSOpt.CPSOpt s => fail ("\n\nInternal error: CPS-Optimization failed:\n" ^ s ^ "\n")
-         | CPS.CPS s => fail ("\n\nInternal error in CPS:\n" ^ s ^ "\n")
-         | Closure.Closure s => fail ("\nClosure conversion: " ^ s ^ "\n")
-         | Codegen.Codegen s => fail ("\nCode generation: " ^ s ^ "\n")
-         | Context.Absent (what, s) => fail ("\n\nInternal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'\n")
-         | Context.Context s => fail ("Context: " ^ s ^ "\n")
-         | Done s => fail ("\n\nStopped early due to " ^ s ^ " flag.\n")
-         | Elaborate.Elaborate s => fail("\nElaboration: " ^ s ^ "\n")
-         | JSCodegen.JSCodegen s => fail("\nJavascript codegen: " ^ s ^ "\n")
-         | PrimTypes.PrimTypes s => fail("\nPrimTypes: " ^ s ^ "\n")
-         | Podata.Podata s => fail("\nprimop data: " ^ s ^ "\n")
-         | Hoist.Hoist s => fail ("\nHoist: " ^ s ^ "\n")
-         | ILAlpha.Alpha s => fail ("\nIL Alpha: " ^ s ^ "\n")
-         | ILUnused.Unused s => fail ("\nIL unused: " ^ s ^ "\n")
-         | Nullary.Nullary s => fail ("\nCouldn't do EL nullary prepass:\n" ^ s ^ "\n")
-         | ToCPS.ToCPS s => fail ("\nToCPS: " ^ s ^ "\n")
-         | UnDict.UnDict s => fail("\nUnDict: " ^ s ^ "\n")
-         | Variable.Variable s => fail ("\n\nBUG: Variables: " ^ s ^ "\n")
-         | Write.Write s => fail ("\nWrite: " ^ s ^ "\n")
-         | ex => (print ("\n\nUncaught exception: " ^ exnName ex ^ ": " ^
-                         exnMessage ex ^ "\n");
+           ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
+         | Compile s => fail ("Compilation failed:\n    " ^ s)
+         | CPSDict.CPSDict s => fail ("CPSDict: " ^ s)
+         | CPSTypeCheck.TypeCheck s => fail ("Internal error: Type checking failed:\n" ^ s)
+         | CPSOpt.CPSOpt s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
+         | CPS.CPS s => fail ("Internal error in CPS:\n" ^ s)
+         | Closure.Closure s => fail ("Closure conversion: " ^ s)
+         | Codegen.Codegen s => fail ("Code generation: " ^ s)
+         | Context.Absent (what, s) => fail ("Internal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'")
+         | Context.Context s => fail ("Context: " ^ s)
+         | Done s => fail ("Stopped early due to " ^ s ^ " flag.")
+         | Elaborate.Elaborate s => fail("Elaboration: " ^ s)
+         | JSCodegen.JSCodegen s => fail("Javascript codegen: " ^ s)
+         | JSOpt.JSOpt s => fail("Javascript optimization: " ^ s)
+         | PrimTypes.PrimTypes s => fail("PrimTypes: " ^ s)
+         | Podata.Podata s => fail("primop data: " ^ s)
+         | Hoist.Hoist s => fail ("Hoist: " ^ s)
+         | ILAlpha.Alpha s => fail ("IL Alpha: " ^ s)
+         | ILUnused.Unused s => fail ("IL unused: " ^ s)
+         | Nullary.Nullary s => fail ("Couldn't do EL nullary prepass:\n" ^ s)
+         | ToCPS.ToCPS s => fail ("ToCPS: " ^ s)
+         | UnDict.UnDict s => fail("UnDict: " ^ s)
+         | Variable.Variable s => fail ("BUG: Variables: " ^ s)
+         | Write.Write s => fail ("Write: " ^ s)
+         | ex => (print ("\nUncaught exception: " ^ exnName ex ^ ": " ^
+                         exnMessage ex);
                   raise ex)
         
     and fail s =
         let in
             print "\nCompilation failed.\n";
             print s;
+            print "\n";
             raise Compile "failed."
               (* OS.Process.failure *)
         end
