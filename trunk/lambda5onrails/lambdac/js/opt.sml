@@ -110,6 +110,8 @@ struct
             
           val fv = foldr (fn (v, fv) => fv -- v) fv bound
         in
+          (* PERF could shorten variables names if we want here 
+             (trivial if they are unused) *)
           (* PERF could remove recursive var if unused, but we don't make
              recursive or named functions *)
           (Function { name = name, args = args, body = % body },
@@ -151,6 +153,17 @@ struct
     in (SOME e, fv, ef)
     end
 
+  and small e =
+    (case e of
+       Id i => true
+     | Object v => Vector.length v = 0
+     (* generally, textually smaller than a var decl and use. if these
+        chains are long though, it may not be worth it (could measure
+        a cutoff here...) *)
+     | SelectId { object, property } => small object
+     (* PERF: others? *)
+     | _ => false)
+
   (* os G sl
 
      optimize a statement list. G is as above. returns a
@@ -184,22 +197,33 @@ struct
         | [(i, SOME e)] =>
             let
               val (e, fv, ef) = oe G e
-              val (sl, fvs) = osl G sl
-            (* XXX PERF need to consider adding this to the subst context
-               if it is small and effectless... *)
             in
-              (* also check whether this is one of the "exports" from
-                 the whole program that we ought to keep even if it's
-                 never used elsewhere (globalsave) *)
-              if ef orelse fvs ?? i orelse globalsave ?? i
-              then (* keep it *)
-                let in
-                  ((Var ` %[(i, SOME e)]) :: sl, fv || (fvs -- i))
+              if not ef andalso small e
+              then
+                (* substitute it *)
+                let
+                  val G = IM.insert(G, i, (e, fv))
+                in
+                  print ("JS-opt: substituting " ^ Id.toString i ^ "\n");
+                  osl G sl
                 end
               else
-                let in
-                  print ("JS-opt: dropping unused var " ^ Id.toString i ^ "\n");
-                  (sl, fvs)
+                (* too big to subst, but could maybe drop it. *)
+                let
+                  val (sl, fvs) = osl G sl
+                in
+                  (* also check whether this is one of the "exports" from
+                     the whole program that we ought to keep even if it's
+                     never used elsewhere (globalsave) *)
+                  if ef orelse fvs ?? i orelse globalsave ?? i
+                  then (* keep it *)
+                    ((Var ` %[(i, SOME e)]) :: sl, fv || (fvs -- i))
+                  else
+                    (* drop the binding; unused *)
+                    let in
+                      print ("JS-opt: dropping unused var " ^ Id.toString i ^ "\n");
+                      (sl, fvs)
+                    end
                 end
             end
         | _ => unimp "long-or-noinit-vars")
