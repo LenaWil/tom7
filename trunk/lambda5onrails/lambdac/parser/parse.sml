@@ -561,7 +561,9 @@ struct
                  `EXTERN >> `VAL >> alt[tyvars && id,
                                         succeed nil && id]
                    && alt [`COLON >> typ && `AT && world wth (fn (t, (_, w)) => (t, SOME w)),
-                           `TILDE >> typ wth (fn t => (t, NONE))]
+                           `COLON -- punt "expected TYP AT WORLD after COLON",
+                           `TILDE >> typ wth (fn t => (t, NONE))
+                           ]
                    && opt (`EQUALS >> id)
                    
                    wth (fn ((tv, i), ((t, m), ol)) => ExternVal(tv, i, t, m, ol)),
@@ -569,7 +571,9 @@ struct
                  (`EXTERN >> wk) && (`WORLD >> id) wth ExternWorld,
 
                  `EXTERN >> `TYPE >> alt[tyvars && id,
-                                         succeed nil && id] wth ExternType,
+                                         succeed nil && id] 
+                                  && opt (`EQUALS >> id)
+                 wth (fn ((sl, s), so) => ExternType (sl, s, so)),
 
                  `EXTERN -- punt "expected VAL, TYPE, or <kind> WORLD after EXTERN",
 

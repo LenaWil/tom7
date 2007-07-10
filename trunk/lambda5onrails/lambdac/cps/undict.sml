@@ -137,6 +137,15 @@ struct
                 | SOME w => bindvar G v t w) e)
          end
 
+     | ExternType (v, l, SOME(dv, dl), e) =>
+         let
+           val G = bindtype G v false
+           val G = binduvar G dv ` Dictionary' ` TVar' v
+         in
+           ExternType' (v, l, SOME(dv, dl), ce G e)
+         end
+     | ExternType _ => raise UnDict "expected dict in externtype"
+
      | ExternWorld (l, k, e) => ExternWorld' (l, k, ce (T.bindworldlab G l k) e)
 
      | Primop ([v], NATIVE { po, tys }, l, e) =>

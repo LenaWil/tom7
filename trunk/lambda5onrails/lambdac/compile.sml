@@ -175,6 +175,8 @@ struct
             val c : CPS.cexp = CPSDict.translate c
             val () = print "\n\n**** CPS DICT: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
+              
+            val G = T.setopts G [T.O_EXTERNDICTS]
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
@@ -184,7 +186,7 @@ struct
             val () = Layout.print ( CPSPrint.etol c, print)
 
             (* from now on, code should be closed. *)
-            val G = T.setopts G [T.O_CLOSED]
+            val G = T.setopts G [T.O_CLOSED, T.O_EXTERNDICTS]
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"

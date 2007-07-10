@@ -449,7 +449,7 @@ struct
                                              end
     | cexp (E(ExternType(vv, s, SOME (v2, s2), e))) = let val v' = V.alphavary vv
                                                           val v2' = V.alphavary v2
-                                                      in ExternType(v', s, SOME (v2, s2), 
+                                                      in ExternType(v', s, SOME (v2', s2), 
                                                                     renamee v2 v2' ` renamee vv v' e)
                                                       end
 

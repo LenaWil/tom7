@@ -16,6 +16,8 @@ sig
     | O_NO_DICTFOR
       (* no nested lams, no use of recursive vars *)
     | O_HOISTED
+      (* any type imports must have dicts too *)
+    | O_EXTERNDICTS
 
   exception TypeCheck of string
 

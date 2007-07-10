@@ -40,6 +40,7 @@ struct
     | Dsum of (string * exp option) list
     | Dexists of { d : string, a : exp list }
     | Dall of string list * exp
+    | Dref of string
 
     (* "variable" *)
     | Dlookup of string

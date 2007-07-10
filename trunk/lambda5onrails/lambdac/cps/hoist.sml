@@ -99,6 +99,16 @@ struct
                 | SOME w => bindvar G v t w) e)
          end
 
+
+     | ExternType (v, l, SOME(dv, dl), e) =>
+         let
+           val G = bindtype G v false
+           val G = binduvar G dv ` Dictionary' ` TVar' v
+         in
+           ExternType' (v, l, SOME(dv, dl), ce G e)
+         end
+     | ExternType _ => raise Hoist "expected dict in externtype"
+
      (* we are also hoisting these declarations to the top level,
         so we eliminate this construct *)
      | ExternWorld (l, k, e) => 

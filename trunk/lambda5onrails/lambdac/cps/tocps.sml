@@ -370,8 +370,9 @@ struct
          (* The external must be of the following types:
 
             base type, including abstract types.
-            [b1, ..., bn] -> b0     whre b0..bn are base types.
-         
+            [b1 * ... * bn] -> b0     where b0..bn are base types.
+            or           b1 -> b0
+
             In particular we do not allow higher-order externals,
             since they would need to be CPS converted in order to
             work with our calling convention. *)
@@ -387,25 +388,50 @@ struct
          in
            case ILUtil.unevar t of
              (* don't care if it's total *)
-             I.Arrow(_, args, cod) =>
-               let val dom = map (cvtt G) args
+             I.Arrow(_, [arg], cod) =>
+               let 
+                   val av = nv "pcarg"
+                   val dom = cvtt G arg
+
+                   (* this is contorted because of the weird special case of unary records
+                      not actually being records *)
+                   val (flatdom, primargs) = 
+                     case ctyp dom of
+                        Product ltl =>
+                          let
+                            val itl = ListUtil.mapfirst (fn l =>
+                                                         case Int.fromString l of
+                                                           NONE => raise ToCPS ("externval: record must be tuple: " ^ l)
+                                                         | SOME i => i) ltl
+                            val itl = ListUtil.sort (ListUtil.byfirst Int.compare) itl
+                            fun istuple _ nil = true
+                              | istuple n ((i, _) :: rest) = n = i andalso istuple (n + 1) rest
+                          in
+                            if length itl <> 1 andalso istuple 1 itl
+                            then 
+                              ListPair.unzip ` map (fn (l, t) => (t, Proj'(Int.toString l, Var' av))) itl
+                            else raise ToCPS "externval: tuple is missing fields or unary?"
+                          end
+                      | _ => ([dom], [Var' av])
+
                    val cod = cvtt G cod
-                   val av = map (fn a => (nv "pcarg", cvtt G a)) args
                    val r = nv (l ^ "_res")
                    val kv = nv "ret"
 
                    val lam =
-                     Lam' (nv (l ^ "_unused"), 
-                           av @ [(kv, Cont' [cod])],
-                           Primop'([r], PRIMCALL { sym = l, dom = dom, cod = cod },
-                                   map (Var' o #1) av,
+                     Lam' (nv (l ^ "_notrec"), 
+                           (* takes one arg, but might be a tuple *)
+                           (av, dom) :: [(kv, Cont' [cod])],
+
+                           Primop'([r], PRIMCALL { sym = l, dom = flatdom, cod = cod },
+                                   primargs,
                                    Call' (Var' kv, [Var' r])))
                    val (t, va) =
                        case (worlds, tys) of
-                           (nil, nil) => (Cont' (dom @ [Cont'[cod]]),
+                           (nil, nil) => (Cont' (dom :: [Cont'[cod]]),
                                           lam)
                          | _ => (AllArrow' { worlds = worlds, tys = tys,
-                                             vals = nil, body = Cont' (dom @ [Cont'[cod]]) },
+                                             vals = nil, body = Cont' (dom :: [Cont'[cod]]) },
                                  
                                  AllLam' { worlds = worlds, tys = tys,
                                            vals = nil, body = lam })
@@ -414,6 +440,7 @@ struct
                        NONE => Lift' (v, va, k (binduvar G v t))
                      | SOME w => Bindat' (v, w, va, k (bindvar G v t w))
                end
+           | I.Arrow _ => raise ToCPS ("expected extern val, if arrow, to take exactly one arg: " ^ l)
 
            | b =>
                let 

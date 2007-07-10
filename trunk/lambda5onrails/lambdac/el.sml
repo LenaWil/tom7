@@ -118,8 +118,11 @@ struct
          *)
       | ExternVal   of string list * string * typ * world option * string option
       | ExternWorld of worldkind * string
-      (* extern type (a, b) t *)
-      | ExternType  of string list * string
+      (* extern type (a, b) t 
+         or
+         extern type (a, b) t = real_t_lab
+         *)
+      | ExternType  of string list * string * string option
 
     (* fixity decls are handled at parse time *)
 
