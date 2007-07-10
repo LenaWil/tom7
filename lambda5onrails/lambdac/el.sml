@@ -113,8 +113,10 @@ struct
       (* extern val (a, b) loop : a -> b  @ w
          or
          extern val (a, b) loop ~ a -> b
+         or
+         extern val (a, b) loop : a -> b  @ w  =  real_name_of_loop
          *)
-      | ExternVal   of string list * string * typ * world option
+      | ExternVal   of string list * string * typ * world option * string option
       | ExternWorld of worldkind * string
       (* extern type (a, b) t *)
       | ExternType  of string list * string

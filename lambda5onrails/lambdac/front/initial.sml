@@ -222,7 +222,7 @@ struct
 
             val impexns =
               (* match ~ exn *)
-              %(EL.ExternVal(nil, matchname, EL.TVar exnname, NONE))
+              %(EL.ExternVal(nil, matchname, EL.TVar exnname, NONE, NONE))
 
         in
           EL.Unit(impexns :: declist :: decbool :: ds, xs)

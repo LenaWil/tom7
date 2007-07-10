@@ -560,10 +560,11 @@ struct
 
                  `EXTERN >> `VAL >> alt[tyvars && id,
                                         succeed nil && id]
-                   && alt[`COLON >> typ && `AT && world wth (fn (t, (_, w)) => (t, SOME w)),
-                          `TILDE >> typ wth (fn t => (t, NONE))]
+                   && alt [`COLON >> typ && `AT && world wth (fn (t, (_, w)) => (t, SOME w)),
+                           `TILDE >> typ wth (fn t => (t, NONE))]
+                   && opt (`EQUALS >> id)
                    
-                   wth (fn ((tv, i), (t, m)) => ExternVal(tv, i, t, m)),
+                   wth (fn ((tv, i), ((t, m), ol)) => ExternVal(tv, i, t, m, ol)),
 
                  (`EXTERN >> wk) && (`WORLD >> id) wth ExternWorld,
 

@@ -720,9 +720,12 @@ struct
 
     | E.ExternWorld (k, l) => ([ExternWorld (l, elabk k)], C.bindwlab ctx l ` elabk k)
 
-    | E.ExternVal (atvs, id, ty, wo) =>
+    | E.ExternVal (atvs, id, ty, wo, lo) =>
           let
-              
+            
+            (* use imported label if given, otherwise it's the same as the id *)
+            val implab = case lo of NONE => id | SOME l => l
+
             fun checkdups atvs =
               ListUtil.alladjacent op <> `
               ListUtil.sort String.compare atvs
@@ -754,10 +757,12 @@ struct
             val v = V.namedvar id
 
           in
-            (* XXX generalize worlds *)
+            (* XXX5 generalize worlds *)
             ( [ExternVal(Poly({worlds=nil, tys=map #2 atvs}, 
-                              (id, v, tt, ww)))],
-             (* XXX5 should these be bound with different idstatus (Extern? Prim?) *)
+                              (implab, v, tt, ww)))],
+             (* XXX5 should these be bound with different idstatus (Extern? Prim?) 
+                probably not. we implement the bindings in generality, though we
+                might want to inline certain forms for performance sake. *)
              C.bindex ctx id ptt v Normal (case ww of
                                              NONE => C.Valid
                                            | SOME w => C.Modal w))
