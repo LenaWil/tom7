@@ -208,7 +208,7 @@ struct
          | E.Newtag (i, _, _) => (d, i = vv)
          | E.Type _ => (d, false)
          | E.ExternType _ => (d, false)
-         | E.ExternVal (tv, id, t, w) => (d, id = vv)
+         | E.ExternVal (tv, id, t, w, l) => (d, id = vv)
          | E.ExternWorld (w, _) => (d, false))
 
 end

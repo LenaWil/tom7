@@ -152,7 +152,7 @@ struct
                                      Exception (a, SOME ` TRec nil))
 
            | ExternWorld ew => (G, ExternWorld ew)
-           | ExternVal(sl, s, t, w) => (G, ExternVal(sl, s, tul G t, w))
+           | ExternVal(sl, s, t, w, ol) => (G, ExternVal(sl, s, tul G t, w, ol))
            | ExternType(sl, s) => (G, ExternType(sl, s))
 
            | Val (sl, p, e) => (G, Val (sl, pul G p, nul G e))
