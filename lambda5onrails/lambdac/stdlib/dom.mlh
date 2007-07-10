@@ -10,6 +10,15 @@ val provide-dom = ()
    all of these elements. We should also provide a high-level
    library where these elements are a represnted as a datatype.
    *)
-extern type node
+extern type dom.node = lc_domnode
 
-extern val document : node @ home = Document
+extern val dom.doc : dom.node @ home = document
+
+extern val dom.setnode : dom.node * string * dom.node -> unit @ home = lc_domsetobj
+(* eg. dom.setstring(e, "innerHTML", "<b>Welcome to my cool Home Page</b>") *)
+extern val dom.setstring : dom.node * string * string -> unit @ home = lc_domsetobj
+(* XXX many more: appendchild, etc... *)
+
+(* document.getelementbyid *)
+extern val dom.getbyid : string -> dom.node @ home = lc_document_getelementbyid
+

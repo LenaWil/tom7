@@ -318,9 +318,12 @@ struct
                    [L.indent 2 ` %[%[$"_", $"=>"], L.indent 2 ` etol def]])]
                 ]
 
-         | (ExternType _) => [$"XXX_ET"]
-(*         | _ => [$"CPS:unknown exp(s)"]
-*)
+         | ExternType (v, l, dict, e) =>
+               %[%[$"extern type", varl v, $"=", $l],
+                 (case dict of
+                    NONE => $"(no dict)"
+                  | SOME (dv, dl) => L.indent 2 ` L.paren ` %[$"dict", varl dv, $"=", $dl])] :: estol e
+
 ) handle Match => [$"XXX_MATCH-EXP_XXX"]
 
 

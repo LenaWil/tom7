@@ -29,13 +29,13 @@
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s, v or A
+      DP       p : c, C, a, d, i, s, v, A
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DE       d : String, v : array of Object
       DL       s : String
       DA       s : array of String, v : Object
-
+      DF       l : String (world name)
 *)
 structure JSCodegen :> JSCODEGEN =
 struct
@@ -453,12 +453,10 @@ struct
                  ]
                  )
 
-            | C.ExternType (_, _, vso, e) => [Throw ` String ` String.fromString "unimplemented externtype"]
-
-(*
-    | Primop of var list * primop * 'cval list * 'cexp
-*)
-
+            (* we don't care about the type, but we'll need its dictionary. *)
+            | C.ExternType (_, _, NONE, _) => raise JSCodegen ("externtype w/o dict?")
+            | C.ExternType (_, _, SOME (var, lab), e) =>
+                (Var ` %[(vtoi var, SOME (Id ` Id.fromString lab))]) :: cvte e
 
             | C.Call (f, args) => 
                (* Rather than doing the call now, we put this on our thread queue

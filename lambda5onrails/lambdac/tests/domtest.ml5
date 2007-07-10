@@ -1,0 +1,12 @@
+unit
+   import "std.mlh"
+   import "dom.mlh"
+
+   (* required for now *)
+   extern bytecode world server
+
+   val e = dom.getbyid [messages]
+   do dom.setstring (e, [innerHTML], [<b>I WAS <font color="#00FF00">SUCCESSFUL</font>.</b>])
+
+in
+end

@@ -159,7 +159,8 @@ struct
        ("DSTRING", DSTRING),
        ("DVOID", DVOID),
        ("DAA", DAA),
-         
+       ("DREF", DREF),
+
        ("DP", DP),
        ("DREC", DREC),
        ("DSUM", DSUM),

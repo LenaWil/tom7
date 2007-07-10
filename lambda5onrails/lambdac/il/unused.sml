@@ -257,6 +257,8 @@ struct
                          end
 
     | udec fv (d as Val(Poly(p, (vv, t, e)))) =
+                           (* PERF there are other things that don't look like values
+                              but that we can toss if we want. *)
                            let val (fv', va) = uexp e
                            in SOME ((fv -- vv) || fv', Val(Poly(p, (vv, t, e))))
                            end

@@ -401,6 +401,8 @@ struct
                    (Primapp(Primop.PJointext (length ees), ees, nil), Initial.ilstring)
                end
 
+        (* XXX can generate better code when all the components are values
+           (and this is required to generalize, anyway) *)
         | E.Record lel =>
                let
                    val letl = ListUtil.mapsecond (elab ctx here) lel
@@ -768,11 +770,12 @@ struct
                                            | SOME w => C.Modal w))
           end
 
-    | E.ExternType (nil, s) =>
+    | E.ExternType (nil, s, so) =>
           let
             val v = V.namedvar s
+            val lab = case so of NONE => s | SOME s' => s'
           in
-            ([ExternType (0, s, v)],
+            ([ExternType (0, lab, v)],
              C.bindc ctx s (Typ ` TVar v) 0 Regular)
           end
 

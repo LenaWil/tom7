@@ -163,16 +163,32 @@ lc_tokstream.prototype.showrest = function () {
 };
 
 
+/* Sometimes we have an object and need to create
+   a remote reference to it. We can't just send the
+   object, so we put it in a local array of objects
+   and send the index instead. */
+var lc_locals = [];
+
+function lc_add_local(ob) {
+    lc_locals.push(ob);
+    return lc_locals.length - 1;
+};
+
+/* dictionary used for references */
+var lc_ref_dict = { w : "DF", l : "home" };
+
 /*
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s, v or A
+      DP       p : c, C, a, d, i, s, v, A
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DE       d : String, v : array of Object
       DL       s : String
       DA       s : array of String, v : Object
+      DF       l : String (world name)
+
 */
 
 function lc_lookup(G, s) {
@@ -199,12 +215,6 @@ function lc_umg(G, d, b) {
     }
     case "DE": {
 	var thed = lc_umg(G, lc_dictdict, b)
-	/* FIXME why doesn't it work to clone? */
-	// var G2 = G; // lc_clone(G);
-	
-	// alert('want g2[' + d.d + '] to be thed');
-	// G2[d.d] = thed;
-	lc_message('add (' + d.d + ')');
 	var G2 = { head : d.d, data : thed, next : G };
 	var a = { d : thed };
 	/* then find a series of values */
@@ -225,6 +235,11 @@ function lc_umg(G, d, b) {
 	}
 	return a;
     }
+    case "DF": {
+	var i = b.getint ();
+	if (d.l == "home") return lc_locals[i];
+	else return i;
+    }
     case "DP": {
 	switch(d.p) {
 	case "c": {
@@ -244,6 +259,10 @@ function lc_umg(G, d, b) {
 		/* XX should check it's valid? */
 		// lc_message("dp " + p + "/");
 		return { w : "DP", p : p };
+	    }
+	    case "DF": {
+		var world = unescape(b.next ());
+		return { w : "DF", l : world };
 	    }
 	    case "DL": return { w : "DL", s : b.next () }
 	    case "DR": {
@@ -410,6 +429,16 @@ function lc_marshalg(G, dict, va) {
 	}
 	return s;
     }
+    case "DF": {
+	/* if dict.l isn't "home", then we treat this just like an int. */
+	if (dict.l != "home") {
+	    return ''+va;
+	} else {
+	    /* otherwise, put in local refs */
+	    var i = lc_add_local(va);
+	    return ''+i;
+	}
+    }
     case "DP": {
 	switch(dict.p) {
 	case "c": return va.g + ' ' + va.f;
@@ -417,6 +446,7 @@ function lc_marshalg(G, dict, va) {
 	case "a": return escape(va);
 	case "s": return escape(va);
 	case "i": return ''+va;
+
 	case "d": {
 	    /* ah, how the tables have turned! */
 	    switch (va.w) {
@@ -440,6 +470,9 @@ function lc_marshalg(G, dict, va) {
 		    s += ' ' + lc_marshalg(G, lc_dictdict, va.v[i]);
 		}
 		return s;
+	    }
+	    case "DF": {
+		return 'DF ' + escape(va.l);
 	    }
 	    default:
 		alert('unimplemented dict to be marshaled: ' + va.w);
@@ -518,4 +551,18 @@ function testy() {
     };
     
     alert(x);
+};
+
+
+/* XXX separate this stuff out into separate js files. */
+var lc_domnode_dict = lc_ref_dict;
+
+function lc_domsetobj(node, field, o) {
+    node[field] = o;
+};
+
+function lc_document_getelementbyid(s) {
+    var x = document.getElementById(s);
+    if (x == null || x == undefined) throw "getelementbyid failed";
+    else return x;
 };

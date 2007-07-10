@@ -14,7 +14,7 @@ struct
       | RECORD | PROJ | PRIMCALL | FUNDEC | ABSENT 
       | TNONE | TSOME | PROGRAM | INJ | GO | MARSHAL
 
-      | DCONT | DCONTS | DADDR | DDICT | DINT | DSTRING | DVOID | DAA
+      | DCONT | DCONTS | DADDR | DDICT | DINT | DSTRING | DVOID | DAA | DREF
       | DP | DREC | DSUM | DEXISTS | DALL | DMU | DLOOKUP
 
     (* only for "basic" tokens, not constant-wrappers *)
@@ -43,6 +43,7 @@ struct
       | eq (DINT, DINT) = true
       | eq (DSTRING, DSTRING) = true
       | eq (DVOID, DVOID) = true
+      | eq (DREF, DREF) = true
       | eq (DP, DP) = true
       | eq (DREC, DREC) = true
       | eq (DSUM, DSUM) = true

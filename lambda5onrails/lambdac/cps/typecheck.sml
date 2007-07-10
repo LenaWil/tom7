@@ -16,6 +16,7 @@ struct
     | O_NO_DICTFOR
     (* shouldn't see nested lams, shouldn't use recursive vars *)
     | O_HOISTED
+    | O_EXTERNDICTS
 
   datatype context = C of { tvars : bool V.Map.map,
                             worlds : V.Set.set,
@@ -507,10 +508,26 @@ struct
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
     | ExternWorld of var * string * 'cexp
-    (* always kind 0; optional argument is a value import of the dictionary
-       for that type (will be universally bound) *)
-    | ExternType of var * string * (var * string) option * 'cexp
 *)
+
+    | ExternType (v, l, dicto, e) =>
+          let
+            val () = print "Externtype.\n"
+            (* XXX should support mobile types here? *)
+            val G = bindtype G v false
+            (* and dictionary, if there... *)
+            val G = case dicto of
+                      NONE => if option G O_EXTERNDICTS
+                              then fail [$"O_EXTERNDICTS expected dict in ",
+                                         $("extern type " ^ l)]
+                              else G
+                    | SOME (dv, _) => binduvar G dv ` Dictionary' ` TVar' v
+          in
+            print "context:\n";
+            Layout.print (ctol G, print);
+            print "\n\n";
+            eok G e
+          end
 
     | _ => 
          let in
