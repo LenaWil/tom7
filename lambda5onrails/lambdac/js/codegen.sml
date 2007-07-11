@@ -58,6 +58,8 @@ struct
   val yield      = Id.fromString "lc_yield"
   val go_mar     = Id.fromString "lc_go_mar"
   val marshal    = Id.fromString "lc_marshal"
+  val saveentry  = Id.fromString "lc_saveentry"
+  val runentry   = "lc_enter"
   val homeaddr   = "home"
 
   (* maximum identifier length of 65536... if we have identifiers longer than that,
@@ -297,8 +299,6 @@ struct
 *)
              )
 
-    (*       [Throw ` String ` String.fromString "unimplemented val"]) *)
-
 
       and cvtvs (values : C.cval list) (k : Exp.t list -> Statement.t list) : Statement.t list =
            case values of 
@@ -306,32 +306,6 @@ struct
            | v :: rest => cvtv v (fn (ve : Exp.t) =>
                                   cvtvs rest (fn (vl : Exp.t list) => k (ve :: vl)))
 
-(*
-            Add
-          | BitwiseAnd
-          | BitwiseOr
-          | BitwiseXor
-          | Div
-          | Equals
-          | GreaterThan
-          | GreaterThanEqual
-          | In
-          | InstanceOf
-          | LeftShift
-          | LessThan
-          | LessThanEqual
-          | LogicalAnd
-          | LogicalOr
-          | Mod
-          | Mul
-          | NotEquals
-          | RightShiftSigned
-          | RightShiftUnsigned
-          | StrictEquals
-          | StrictNotEquals
-          | Sub
-
-*)
       val jstrue  = Object ` %[ Property { property = pn "t",
                                            value = String ` String.fromString "true" }]
       val jsfalse = Object ` %[ Property { property = pn "t",
@@ -366,7 +340,16 @@ struct
                 | P.PGreatereq => boo B.GreaterThanEqual)
         end
         | primexp (P.B _) _ = raise JSCodegen "wrong number of args to binary native primop"
-        | primexp po _ = raise JSCodegen ("unimplemented primop " ^ Podata.tostring po)
+        | primexp (P.PJointext 0) nil = String ` String.fromString ""
+        | primexp (P.PJointext 1) [s] = s
+        | primexp (P.PJointext n) (first :: rest) =
+             foldl (fn (next, sleft) => Binary { lhs = sleft, 
+                                                 rhs = next, 
+                                                 oper = B.Add (* is also string concat, sigh *) }) 
+                   first rest
+        | primexp (P.PJointext _) _ = raise JSCodegen "jointext argument length mismatch"
+        
+        | primexp po _ = raise JSCodegen ("unimplemented native primop " ^ Podata.tostring po)
 
       fun cvte exp : Statement.t list =
            (case C.cexp exp of
@@ -423,7 +406,47 @@ struct
                   Bind (vtoi v, Call { func = Id marshal, args = %[vd, va] }) ::
                   cvte e))
 
-            | C.Primop _ => [Throw ` String ` String.fromString "unimplemented primop"]
+            | C.Primop (_, C.SAY, _, _) => raise JSCodegen "shouldn't see say in js codgen"
+            | C.Primop ([v], C.SAY_CC, [k], e) =>
+                cvtv k
+                (* k is a closure:
+                   { d  : dictionary (not used)
+                     v0 : env
+                     v1 : function } *)
+                (fn k =>
+                 wi (fn f =>
+                 wi (fn env =>
+                 wi (fn c =>
+                     Bind(env, Sel k "v0") ::
+                     Bind(f,   Sel k "v1") ::
+                     (* c is the identifier (int) for this delayed call *)
+                     Bind(c, 
+                          Call { func = Id saveentry,
+                                 args = %[Sel (Id f) "g",
+                                          Sel (Id f) "f",
+                                          (* expects environment and unit *)
+                                          Array ` %[SOME ` Id env, SOME ` Object ` %nil]] }) ::
+                     let
+                       infix ++ 
+                       fun a ++ b = Binary { lhs = a, rhs = b, oper = B.Add }
+                     in
+                       Bind(vtoi v, (String ` String.fromString (runentry^"(")) ++ 
+                                    (* then, the integer that results from evaluating this variable *)
+                                    (Id c) ++ 
+                                    (String ` String.fromString ")") )
+                     end :: cvte e
+
+                     ))))
+              
+                 (* XXX hmm, don't want to have to be able to tostring any arbitrary data,
+                    so we'll want to put it in a global array and instead identify it by
+                    a number here. *)
+                 (* [Throw ` String ` String.fromString "unimplemented say_cc"] *)
+                 (* raise JSCodegen "unimplemented say_cc" *)
+              (* Bind(vtoi v, String ` String.fromString "alert('unimplemented say_cc')") :: cvte e *)
+
+            | C.Primop _ => (* [Throw ` String ` String.fromString "unimplemented primop"] *)
+                            raise JSCodegen "unimplemented or bad primop"
 
             | C.Go_mar { w = _, addr, bytes } =>
                 cvtv addr

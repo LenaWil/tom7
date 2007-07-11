@@ -346,6 +346,8 @@ struct
   and potol LOCALHOST = $"LOCALHOST"
     | potol BIND = $"BIND"
     | potol MARSHAL = $"MARSHAL"
+    | potol SAY = $"SAY"
+    | potol SAY_CC = $"SAY_CC"
     | potol (NATIVE { po, tys }) = %[$"NATIVE", $(Podata.tostring po),
                                      (case tys of
                                         nil => %[]

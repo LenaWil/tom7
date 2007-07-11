@@ -457,6 +457,8 @@ struct
                                                     NONE))),
                       (* generalize these *)
                    `RAISE >> call G exp wth Raise,
+                   `SAY >> call G exp wth Say,
+                   `SAY -- punt "expected EXP after SAY",
 
                    `FROM >> (* "expected EXP GET EXP after FROM" ** *)
                    (call G exp &&

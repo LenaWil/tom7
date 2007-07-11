@@ -148,6 +148,7 @@ struct
        ("throw", THROW),
        ("to", TO),
        ("letcc", LETCC),
+       ("say", SAY),
 
        ("as", AS),
        ("case", CASE),

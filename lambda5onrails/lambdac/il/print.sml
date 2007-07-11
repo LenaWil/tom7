@@ -288,11 +288,12 @@ struct
                                          $"to",
                                          etol e2])
 
-           | Letcc (v, t, e) => %[$"letcc", $(V.tostring v),
-                                  $":", %[ttol t, $"cont"],
-                                  $"in",
-                                  etol e]
+           | Letcc (v, t, e) => %[%[$"letcc", %[$(V.tostring v),
+                                                L.indent 2 ` %[$":", %[ttol t, $"cont"]]]],
+                                  %[$"in",
+                                    L.indent 2 ` etol e]]
 
+           | Say e => %[$"say", L.indent 2 ` etol e]
            | Raise (t, e) => L.paren(%[$"raise", 
                                        bttol t, etol e])
            | Tag (e1, e2) => L.paren(%[$"tag", etol e1, $"with", etol e2])

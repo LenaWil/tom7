@@ -127,12 +127,15 @@ struct
       | Unroll of exp
       | Roll of typ * exp
 
+      | Say of exp
+
       | Get of { addr : exp,
                  dest : world,
                  typ  : typ,
                  (* dlist : (var * value) list option, *)
                  body : exp }
 
+      (* throw e1 to e2 *)
       | Throw of exp * exp
       | Letcc of var * typ * exp
 

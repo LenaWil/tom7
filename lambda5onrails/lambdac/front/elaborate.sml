@@ -358,9 +358,51 @@ struct
                      dowrites 0w1 rest ` $ ` E.Var arr)
                end
 
+        | E.Say ee => 
+               let
+                 val (ee, tt) = elab ctx here ee
+
+                 val out = V.namedvar "say_out"
+                 val k   = V.namedvar "say_k"
+               in
+                 (* expression must have type unit *)
+                 unify ctx loc "say" tt (IL.TRec nil);
+                 (* we must be home. perhaps this restriction
+                    could be relaxed so that only 'exp' is home,
+                    but I am not sure of the consequences and
+                    I think that would be pretty useless *)
+                 unifyw ctx loc "say" here Initial.home;
+
+                 (* then we generate:
+                   letcc out : string cont
+                   in letcc k : unit cont
+                      in throw (say k) to out
+                      end;
+
+                      ( k continuation starts execution here )
+                      let val s = [hello]
+                      in alert s
+                      end;
+
+                      halt
+                   end
+                 *)
+                 (Letcc (out, Initial.ilstring,
+                         Seq(Letcc(k, TRec nil,
+                                   Throw (Say ` Value ` Var k, Value ` Var out)),
+                             (* then do the expression *)
+                             Seq(ee,
+                                 (* and halt at string type *)
+                                 Primapp(Primop.PHalt, [], [Initial.ilstring])
+                                 ))),
+                  Initial.ilstring)
+               end
+
         | E.Throw _ => error loc "unimplemented: throw"
         | E.Letcc _ => error loc "unimplemented: letcc"
+
 (* XXX5 support throw/letcc?
+   backend has support for them because of 'call', so we might as well
         | E.Throw (e1, e2) => 
                let
                  val (ee1, t1) = elab ctx e1

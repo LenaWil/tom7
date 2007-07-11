@@ -127,6 +127,11 @@ struct
             (fv1 || (fv2 -- v), Handle (e1, v, e2))
         end
 
+    | Say e =>
+        let val (fv, e) = uexp e
+        in (fv, Say e)
+        end
+
     | Seq (e1, e2) => 
         let val (fv1, e1) = uexp e1
             val (fv2, e2) = uexp e2
