@@ -585,3 +585,7 @@ function lc_document_getelementbyid(s) {
     if (x == null || x == undefined) throw "getelementbyid failed";
     else return x;
 };
+
+function lc_domgetobj(node, field) {
+    return node[field];
+};
