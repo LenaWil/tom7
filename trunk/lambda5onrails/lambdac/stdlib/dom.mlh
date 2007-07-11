@@ -19,6 +19,9 @@ extern val dom.setnode : dom.node * string * dom.node -> unit @ home = lc_domset
 extern val dom.setstring : dom.node * string * string -> unit @ home = lc_domsetobj
 (* XXX many more: appendchild, etc... *)
 
+extern val dom.getnode : dom.node * string -> dom.node @ home = lc_domgetobj
+extern val dom.getstring : dom.node * string -> string @ home = lc_domgetobj
+
 (* document.getelementbyid *)
 extern val dom.getbyid : string -> dom.node @ home = lc_document_getelementbyid
 

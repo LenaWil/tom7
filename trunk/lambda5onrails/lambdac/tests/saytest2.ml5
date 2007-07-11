@@ -18,7 +18,7 @@ unit
                                        </div>
                                        ])
    and message2 () = 
-       dom.setstring (e, [innerHTML], [<b>I WAS <font color="#00FF00">SUCCESSFUL</font>.</b>
+       dom.setstring (e, [innerHTML], [<b>I WAS <font color="#0000FF">SUCCESSFUL</font>.</b>
                                        
                                        <div style="border:2px solid black; background : #CCEECC; padding : 4px; \
                                                    cursor:hand; cursor:pointer; width : 400px; text-align : center"

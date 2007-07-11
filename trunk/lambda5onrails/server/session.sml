@@ -157,7 +157,8 @@ struct
         "<script language=\"JavaScript\">\n" ^ js ^ "\n</script>\n" ^
         "</head>\n" ^
         "<body>\n" ^
-        "Welcome to Server 5!\n" ^
+        "<p><div id=\"page\"></div>\n" ^
+        "<hr /><br />Server 5 debugging stuff:\n" ^
         "<p><div id=\"messages\"></div>\n" ^ 
         "</body></html>\n";
 

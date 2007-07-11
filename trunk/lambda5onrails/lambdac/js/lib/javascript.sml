@@ -425,6 +425,7 @@ struct
            open Layout
         in
            fun commaList (v: 'a vector, lay: 'a -> Layout.layout): Layout.layout =
+             (* XXX seems to be responsible for the very nesting, sometimes *)
               mayAlign (separateRight (vector_toListMap (v, lay), ","))
 
            fun for (iter, body) =
