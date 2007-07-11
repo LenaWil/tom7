@@ -91,8 +91,8 @@ struct
 
 
     (* cps convert the IL expression e and pass the
-       resulting value to the continuation k to produce
-       the final expression.
+       resulting value (along with its type and world) 
+       to the continuation k to produce the final expression.
        *)
     fun cvte (G : env) (e : IL.exp) (k : env * cval * ctyp * world -> cexp) : cexp =
       (case e of
@@ -131,12 +131,49 @@ struct
                                    | _ => raise ToCPS "unroll non-mu"
                                  end)
 
+       | I.Letcc (v, t, e) =>
+         let
+           val t = cvtt G t
+           val ka = nv "cc_arg"
+         in
+           (* reify the continuation as a lambda,
+              called 'v' as the cont is *)
+           Bind' (v, Lam' (nv "letcc_nonrec", 
+                           (* one arg; the cont's input *)
+                           [(ka, t)],
+                           let
+                             val G = bindvar G ka t ` worldfrom G
+                           in
+                             (* lam is continuation *)
+                             k (G, Var' ka, t, worldfrom G)
+                           end),
+                  (* proceed, then throw to named continuation *)
+                  let
+                    val G = bindvar G v (Cont' [t]) ` worldfrom G
+                    fun k (_, va, _, _) = Call' (Var' v, [va])
+                  in
+                    cvte G e k
+                  end)
+         end
+
+       | I.Throw (ev, ek) =>
+         cvte G ev (fn (G, vv, tv, wv) =>
+                    cvte G ek
+                    (fn (G, vk, tk, wk) =>
+                     Call' (vk, [vv]) ))
+
+       | I.Say e =>
+         cvte G e (fn (G, v, _, w) =>
+                   let val s = nv "s"
+                   in Say' (s, v, k (bindvar G s (Zerocon' STRING) w,
+                                     Var' s, Zerocon' STRING, w))
+                   end)
+
        | I.Roll (t, e) => cvte G e (fn (G, v, rt, w) =>
                                     let 
                                         val t = cvtt G t
                                         val vv = nv "r"
                                     in 
-                                      print "ROLL!\n";
                                       Bind' (vv, Roll'(t, v),
                                               k (bindvar G vv t w, Var' vv, t, w))
                                     end)
@@ -333,7 +370,7 @@ struct
 
        | _ => 
          let in
-           print "\nToCPSe unimplemented:";
+           print "\nToCPSe unimplemented:\n";
            Layout.print (ILPrint.etol e, print);
            raise ToCPS "unimplemented"
          end)

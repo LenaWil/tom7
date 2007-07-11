@@ -99,6 +99,15 @@ struct
                 | SOME w => bindvar G v t w) e)
          end
 
+     | Primop (_, SAY, _, _) => raise Hoist "unexpected SAY after closure conversion"
+
+     | Primop ([v], SAY_CC, [k], e) =>
+         let
+           val (k, t) = cv G k
+           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
+         in
+           Primop' ([v], SAY_CC, [k], ce G e)
+         end
 
      | ExternType (v, l, SOME(dv, dl), e) =>
          let

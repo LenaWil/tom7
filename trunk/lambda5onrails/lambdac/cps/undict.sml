@@ -148,6 +148,16 @@ struct
 
      | ExternWorld (l, k, e) => ExternWorld' (l, k, ce (T.bindworldlab G l k) e)
 
+     | Primop (_, SAY, _, _) => raise UnDict "unexpected SAY after closure conversion"
+
+     | Primop ([v], SAY_CC, [k], e) =>
+         let
+           val (k, t) = cv G k
+           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
+         in
+           Primop' ([v], SAY_CC, [k], ce G e)
+         end
+
      | Primop ([v], NATIVE { po, tys }, l, e) =>
         let
           val tys = map ct tys

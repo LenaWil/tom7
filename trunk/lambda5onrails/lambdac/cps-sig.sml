@@ -52,6 +52,8 @@ sig
     | NATIVE of { po : Primop.primop, tys : ctyp list }
       (* takes 'a dict and 'a -> bytes *)
     | MARSHAL
+      (* takes a unit cont (or closure) and reifies it as a js string *)
+    | SAY | SAY_CC
 
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
@@ -255,6 +257,8 @@ sig
   val Bind' : var * cval * cexp -> cexp
   val Bindat' : var * world * cval * cexp -> cexp
   val Marshal' : var * cval * cval * cexp -> cexp
+  val Say' : var * cval * cexp -> cexp
+  val Say_cc' : var * cval * cexp -> cexp
   val WAll' : var * ctyp -> ctyp
   val TAll' : var * ctyp -> ctyp
   val Lam'  : var * (var * ctyp) list * cexp -> cval

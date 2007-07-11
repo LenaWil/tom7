@@ -40,6 +40,7 @@ struct
     | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
     | NATIVE of { po : Primop.primop, tys : ctyp list }
     | MARSHAL 
+    | SAY | SAY_CC
 
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
@@ -219,6 +220,8 @@ struct
            let fun poself LOCALHOST = LOCALHOST
                  | poself BIND = BIND
                  | poself MARSHAL = MARSHAL
+                 | poself SAY = SAY
+                 | poself SAY_CC = SAY_CC
                  | poself (NATIVE { po, tys }) = NATIVE { po = po, tys = map tself tys }
                  | poself (PRIMCALL { sym, dom, cod }) = PRIMCALL { sym = sym,
                                                                     dom = map tself dom,
@@ -848,6 +851,8 @@ struct
   fun Bind' (v, cv, e) = Primop' ([v], BIND, [cv], e)
   fun Bindat' (v, w, cv, e) = Leta' (v, Hold' (w, cv), e)
   fun Marshal' (v, vd, va, e) = Primop' ([v], MARSHAL, [vd, va], e)
+  fun Say' (v, vf, e) = Primop' ([v], SAY, [vf], e)
+  fun Say_cc' (v, vf, e) = Primop' ([v], SAY_CC, [vf], e)
   fun Dictionary' t = Primcon' (DICTIONARY, [t])
   fun EProj' (v, s, va, e) = Bind' (v, Proj'(s, va), e)
 
@@ -888,6 +893,8 @@ struct
                                              PRIMCALL { sym, dom, cod } =>
                                                PRIMCALL { sym = sym, dom = map ft dom, cod = ft cod }
                                            | NATIVE { po, tys } => NATIVE { po = po, tys = map ft tys }
+                                           | SAY => SAY
+                                           | SAY_CC => SAY_CC
                                            | BIND => BIND
                                            | MARSHAL => MARSHAL
                                            | LOCALHOST => LOCALHOST),

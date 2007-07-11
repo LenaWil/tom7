@@ -236,6 +236,16 @@ struct
          | _ => raise Closure "case on non-sum"
         end
 
+     | Primop ([v], SAY, [k], e) =>
+         let
+           val (k, t) = cv G k
+           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
+         in
+           Primop' ([v], SAY_CC, [k], ce G e)
+         end
+
+     | Primop ([v], SAY_CC, [k], e) => raise Closure "unexpected SAY_CC before closure conversion"
+
      | Primop ([v], NATIVE { po, tys }, l, e) =>
         let
           val tys = map ct tys

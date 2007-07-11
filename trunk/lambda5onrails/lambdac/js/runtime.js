@@ -59,6 +59,25 @@ function lc_yield() {
     setTimeout(lc_schedule, 10);
 };
 
+/* another entry point is through the ML5 'say' construct,
+   which produces javascript source code (as a string) that
+   will enqueue a thread. The support code is as follows: */
+
+/* saved threads. only used by the following two functions */
+var lc_saved = [];
+
+function lc_saveentry(g, f, args) {
+    lc_saved.push( { g : g, f : f, args : args });
+    return lc_saved.length - 1;
+};
+
+/* start up a previously saved thread */
+function lc_enter(i) {
+    lc_threadqueue.enq( lc_saved[i] );
+    lc_yield();
+};
+
+
 function lc_clone(obj) {
     for (i in obj) {
         this[i] = obj[i];

@@ -51,6 +51,7 @@ struct
               | Seq (a, b) => Seq(self a, self b)
               | Constrain (e, t, wo) => Constrain(self e, tul G t, wo)
               | Jointext el => Jointext ` map self el
+              | Say e => Say ` self e
               | Raise e => Raise ` self e
               | CompileWarn s => CompileWarn s
               | Handle (e, pel) =>

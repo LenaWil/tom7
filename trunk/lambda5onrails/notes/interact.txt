@@ -1,0 +1,141 @@
+
+ Javascript Interactivity                             11 Jul 2007
+
+In order to make web pages have interactive elements, there must be
+some way to insert javascript onclick (etc.) handlers and some way
+for these handlers to call into ML5 code. 
+
+Generally speaking, an ML5 application contains no static HTML but
+rather instructs the browser to render certain HTML (or directly
+assembled DOM trees) by using calls like dom.appendchild(document,
+node) or dom.setstring(e, [innerHTML], [Some <b>HTML</b> here]). The
+goal is to allow the programmer to write something like
+
+ (* process : unit -> unit *)
+ fun process() = ... imperative ML5 code ...
+
+ dom.setstring(e, [innerHTML], 
+               [<span class="click" onclick="[call process]">\
+                click this to do some processing!</span>])
+
+where call is some primitive that takes a unit -> unit function
+and returns a javascript expression (suitable for onclick) that
+invokes the function in a new thread and does not return. This
+javascript expression is returned as a string.
+
+Call is a language construct, not a function. Its typing rule is
+
+
+    G |- e : unit -> unit @ home
+  -------------------------------
+    G |- call e : string @ home
+
+
+O RLY? It might not be that hard to implement totally outside the
+compiler, using extern and some runtime support, since javascript
+loves to dynamically generate code.
+
+extern val call : (unit -> unit) -> string  @  home = lc_call
+
+
+The type unit -> unit, after CPS:
+ (unit, unit cont) cont
+
+And after closure conversion:
+ E ENV. [ENV dict, ENV, (ENV, unit, [[unit cont]]) cont]
+
+/* continuation (as closure) that just halts. we need to generate
+   something of E ENV. [ENV dict, ENV, (ENV, unit) cont] since
+   that is the closure conversion type of unit cont */
+var lc_halt_cont = { d = unit dict (we never use it anyway),
+                     v0 = { },
+                     // and then somehow we need to arrange for
+                     // there to be a label we can use here, to
+                     // halt.
+};
+
+function lc_call(closure) {
+   var e = closure.v0;
+   var f = closure.v1;
+
+   lc_enq_thread(f.g, f.f, [e, { }, lc_halt_cont]);
+};
+
+Well, this is a little bit contorted because we require the runtime to
+know about the representation of continuations and stuff (though of
+course it does know about these things, the more it is agnostic the
+better) and because we need to generate the return continuation, even
+though we don't really need it (we just want it to halt). Also, we
+don't currently support an extern declaration with a type like this,
+precisely because it is modified so heavily by compilation. It is
+probably easier to do this with help from code generator, also, then
+we can improve performance by compiling the non-returning function as
+an actual continuation that does not need to take that final useless
+argument that will always be a halting continuation.
+
+ (Note: we should think about what we do with exceptions here, though
+  it seems to be standard (if unsatisfying) practice to let exceptions
+  in new threads just silently disappear. Probably we should just
+  install the default exception handler with each new thread (duh, right?)
+  when we get to implementing that thread-local data, and the question
+  is just what such handlers should do (e.g., make a message or silently
+  terminate.)
+
+So call will be a language construct. Compiling it will be pretty easy;
+we will just need to do what is described above, but in the backend codegen
+instead of in the runtime.
+
+The fact that we have to provide a unit -> unit function is a tiny bit
+awkward and contributes to a little bit of overhead. Here's an alternate
+syntax suggestion:
+
+ dom.setstring(e, [innerHTML], 
+               [<span class="click" onclick="[<: let val s = [hello]
+                                                 in alert s
+                                                 end :>]">\
+                click this to do some processing!</span>])
+
+Well, I'm not sure about the <: brackets :> but anyway it would be compiled
+as something like:
+
+  letcc out : string cont
+  in letcc k : unit cont
+     in throw (call k) to out
+     end;
+
+     (* k continuation starts execution here *)
+     let val s = [hello]
+     in alert s
+     end;
+
+     halt
+  end
+
+  (note this is the same trick we use to set the top-level exception handler.)
+
+  Now the primitive 'call' has (IL) type "unit cont -> string". We'll closure
+  convert, but not CPS-convert, its argument, because the cont type is not
+  touched by CPS conversion. This is nicer because we won't need to compile
+  in, or make any effort to eliminate, the useless return continuation. It
+  also gives us an obvious place to add any other code (initialization of
+  exception handlers, atomic sections, etc.) that we might desire. So, let's
+  do that.
+
+
+Syntaxes..
+
+  [$$ let val s = [hello]
+      in alert s
+      end $$]
+
+  Not good... they should be bracketing. (Or else we might as well use only
+  a starting token and then read as far as we can, like we do with fn x => ):
+
+  call let val s = [hello]
+       in alert s
+       end
+
+  actually, that is not bad. Let's do it.
+
+
+  

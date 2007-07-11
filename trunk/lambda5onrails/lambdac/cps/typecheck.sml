@@ -334,6 +334,38 @@ struct
            eok G e
          end
 
+     | Primop ([v], SAY, [k], e) =>
+         let
+           val t = vok G k
+           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
+         in
+           (* XXX insist that we are at home... *)
+           (* arg must be a unit cont *)
+           if ctyp_eq (Cont' [Product' nil], t)
+           then eok G e
+           else fail [$"primop say expects unit cont",
+                      $"actual: ", TY t]
+         end
+
+     | Primop ([v], SAY_CC, [k], e) =>
+         let
+           val t = vok G k
+           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
+         in
+           (* XXX insist that we are at home... *)
+           (* arg must be a unit cont *)
+           if ctyp_eq (t,
+                       let val venv = V.namedvar "tc_venv"
+                       in
+                         TExists' (venv, [TVar' venv,
+                                          Cont' [TVar' venv, Product' nil]])
+                       end)
+           then eok G e
+           else fail [$"primop say_cc expects closure-converted unit cont",
+                      $"actual: ", TY t]
+         end
+
+
      | Primop ([v], NATIVE { po, tys }, l, e) =>
          (case Podata.potype po of
             { worlds = nil, tys = tvs, dom, cod } =>
@@ -395,9 +427,11 @@ struct
          (case (ctyp ` vok G fv, map (vok G) avl) of
             (Cont al, al') => if ListUtil.all2 ctyp_eq al al'
                               then ()
-                              else fail [$"argument mismatch at call",
-                                         $"from f: ", TYL al,
-                                         $"actual: ", TYL al']
+                              else fail [$"argument mismatch at call.",
+                                         $"function's domain: ", TYL al,
+                                         $"actual: ", TYL al',
+                                         $"function exp: ", VA fv
+                                         ]
           | (ot, _) => fail [$"call to non-cont",
                              $"in exp: ", EX ` exp,
                              $"got: ", TY (ctyp' ot)]
