@@ -10,6 +10,16 @@
 structure Session :> SESSION =
 struct
 
+  val port = Params.param "5555"
+        (SOME("-port",
+              "The port to listen on."))
+        "port"
+
+  val codepath = Params.param "../lambdac/tests/"
+        (SOME("-codepath",
+              "Where to find .b5, .js, .ml5 code, etc."))
+        "codepath"
+
   infixr 9 `
   fun a ` b = a b
 
@@ -136,14 +146,14 @@ struct
       val id = newid ()
 
       (* XXX paths should be from a config file *)
-      val sbc = BytecodeParse.parsefile ("../lambdac/tests/" ^ prog ^ "_server.b5")
+      val sbc = BytecodeParse.parsefile (!codepath ^ prog ^ "_server.b5")
       val rt = StringUtil.readfile "../lambdac/js/runtime.js"
-      val js = StringUtil.readfile ("../lambdac/tests/" ^ prog ^ "_home.js")
+      val js = StringUtil.readfile (!codepath ^ prog ^ "_home.js")
 
       val sessiondata =
         (* XXX should be from a config file *)
-        "var session_serverurl = 'http://gs82.sp.cs.cmu.edu:5555/toserver/';\n" ^
-        "var session_clienturl = 'http://gs82.sp.cs.cmu.edu:5555/toclient/';\n" ^
+        "var session_serverurl = 'http://gs82.sp.cs.cmu.edu:" ^ !port ^ "/toserver/';\n" ^
+        "var session_clienturl = 'http://gs82.sp.cs.cmu.edu:" ^ !port ^ "/toclient/';\n" ^
         "var session_id = " ^ Int.toString id ^ ";\n"
 
       (* this could be better... ;) 
@@ -233,5 +243,27 @@ struct
            Open _ => raise Session "client made a second toclient socket"
          | Closed _ => toclient := Open sock)
     | NONE => raise Expired
+
+  fun demos sock =
+    let
+      val l = StringUtil.readfile (!codepath ^ "demos.txt")
+      val l = String.tokens Char.isSpace l
+      fun pr str = N.sendraw sock str
+
+      fun link name ext = "<td><a href=\"/show/" ^ name ^ "." ^ ext ^ "\">" ^ name ^ "." ^ ext ^ "</a></td>"
+      fun onedemo basename =
+        pr ("<tr>" ^ link basename "ml5"
+                   ^ link (basename ^ "_home") "js"
+                   ^ link (basename ^ "_server") "b5"
+                   ^ "<td><a href=\"/5/" ^ basename ^ "\">run " ^ basename ^ " now</a></td>"
+            ^ "</tr>\n")
+    in
+      pr "Server 5 demos list.\n";
+      pr "<table>\n";
+      app onedemo l;
+      pr "</table>\n";
+
+      N.disconnect sock
+    end
 
 end

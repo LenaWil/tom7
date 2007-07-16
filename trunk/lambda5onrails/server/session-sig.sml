@@ -30,6 +30,9 @@ sig
   val closed     : Network.sock -> unit
   val packet     : Http.packet * Network.sock -> unit
 
+  (* return a page that shows all the available demos with their source code *)
+  val demos      : Network.sock -> unit
+
   (* do work if desired *)
   val step       : unit -> unit
 
