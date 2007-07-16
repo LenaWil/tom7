@@ -21,6 +21,11 @@
 structure Loop =
 struct
 
+  val port = Params.param "5555"
+        (SOME("-port",
+              "The port to listen on."))
+        "port"
+
   infixr 9 `
   fun a ` b = a b
 
@@ -94,6 +99,7 @@ struct
               ("5", prog) => Session.new s prog
             | ("toclient", id) => expectint id ` Session.toclient s
             | ("exit", _) => raise Loop "EXIT."
+            | ("demos", _) => Session.demos s
             | _ => error404 s "URL not found (GET).")
        | "POST" :: url :: _ =>
            (case StringUtil.token (StringUtil.ischar #"/") url of
@@ -140,7 +146,6 @@ struct
 
 
   fun init () =
-    (* XXX from parameter / config *)
-    listener := SOME ` N.listen http 5555
+    listener := SOME ` N.listen http ` Params.asint 5555 port
 
 end
