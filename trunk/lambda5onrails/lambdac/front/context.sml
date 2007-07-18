@@ -108,14 +108,16 @@ struct
             dbs = dbs }
 
     fun bindex (C {vars, cons, dbs, worlds, wlabs }) sym typ var stat sort =
-        C { vars = S.insert (vars, sym, (typ, var, stat, sort)),
+        C { vars = S.insert (vars, 
+                             (case sym of NONE => LambdacUtil.newstr "bindex" | SOME s => s),
+                             (typ, var, stat, sort)),
             cons = cons,
             wlabs = wlabs,
             worlds = worlds,
             dbs = dbs }
 
-    fun bindv c sym t v w = bindex c sym t v IL.Normal (Modal w)
-    fun bindu c sym typ var stat = bindex c sym typ var stat Valid
+    fun bindv c sym t v w = bindex c (SOME sym) t v IL.Normal (Modal w)
+    fun bindu c sym typ var stat = bindex c (SOME sym) typ var stat Valid
 
     fun bindcex (C { cons, vars, dbs, worlds, wlabs }) module sym con kind status =
         C { vars = vars,

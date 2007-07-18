@@ -80,5 +80,6 @@ struct
   (* base types that describe arguments to and return values from primops *)
   datatype potype =
     PT_INT | PT_STRING | PT_REF of potype | PT_UNITCONT | PT_BOOL | PT_VAR of Variable.var
+  | PT_UNIT
 
 end

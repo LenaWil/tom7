@@ -87,6 +87,7 @@ struct
       | EXTERN
       | EXPORT
       | GET
+      | PUT
       | AT
       | FROM
       | WORLD
@@ -101,6 +102,7 @@ struct
       | THROW
       | TO
       | SAY
+
 
     (* only for "basic" tokens, not constant-wrappers *)
     fun eq (FN, FN) = true
@@ -175,5 +177,6 @@ struct
       | eq (JAVASCRIPT, JAVASCRIPT) = true
       | eq (BYTECODE, BYTECODE) = true
       | eq (SAY, SAY) = true
+      | eq (PUT, PUT) = true
       | eq _ = false
 end

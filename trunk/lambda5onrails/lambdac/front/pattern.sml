@@ -233,18 +233,19 @@ struct
                        than single arg of unit, but need to be able
                        to call from the EL *)
                     (I.Let
-                     (I.Val(mono (nfv,
-                                  I.Arrow(false, [I.TRec nil], ilt),
-                                  I.Value `
-                                  I.FSel (0, 
-                                          I.Fns[{ name = unused,
-                                                  arg = [ignored],
-                                                  dom = [I.TRec nil],
-                                                  cod = ilt,
-                                                  body = ile, 
-                                                  inline = false,
-                                                  recu = false,
-                                                  total = false }]))),
+                     (I.Bind(I.Val,
+                                   mono (nfv,
+                                   I.Arrow(false, [I.TRec nil], ilt),
+                                   I.Value `
+                                   I.FSel (0, 
+                                           I.Fns[{ name = unused,
+                                                   arg = [ignored],
+                                                   dom = [I.TRec nil],
+                                                   cod = ilt,
+                                                   body = ile, 
+                                                   inline = false,
+                                                   recu = false,
+                                                   total = false }]))),
                       ke), kt)
                 end
 
@@ -1164,8 +1165,8 @@ struct
                                  recurse rest 
                                     (nc, (markcolumn col, ss) :: cols, nes)
                          in
-                             (I.Let(I.Val(mono
-                                         (v, t, I.Proj (l, objt, obje))),
+                             (I.Let(I.Bind(I.Val,
+                                           mono (v, t, I.Proj (l, objt, obje))),
                                    ee),
                               tt)
                          end
@@ -1285,9 +1286,9 @@ struct
                    E.PAs (s, pp) =>
                        let in
                            dprint ("cleaning " ^ s ^ "...\n");
-                           one (pp, (E.Let((E.Val(nil, E.PVar s, 
-                                                  (E.Var a, loc)), 
-                                        loc), e), loc))
+                           one (pp, (E.Let((E.Bind(E.Val, nil, E.PVar s, 
+                                                   (E.Var a, loc)), 
+                                            loc), e), loc))
                        end
                  | E.PVar s => one (E.PAs (s, E.PWild), e)
                  | E.PConstrain (pp, tt) =>

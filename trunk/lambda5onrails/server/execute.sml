@@ -38,8 +38,7 @@ struct
              B.FunDec v =>
                let 
                  val (params, stmt) = Vector.sub (v, f)
-                 (* XXX error when arg lengths don't match *)
-                 val binds = ListUtil.wed params args
+                 val binds = ListUtil.wed params args handle _ => raise Execute "wrong number of args"
                  val G = SM.empty
                  val G = foldr (fn ((p, a), G) =>
                                 SM.insert(G, p, a)) G binds
@@ -126,14 +125,17 @@ struct
                  print " =============================================\n";
                  B.Record nil
                end
-            (* XXX need to figure out what
-                 unit ->
-                 string ->
-                 string * string ->
-                 
-                 mean in terms of calling externs...
-                 *)
+          | ("display", _) => raise Execute "wrong args to display"
           | ("version", _) => B.String Version.version
+          | ("trivialdb.read", [B.String k]) => B.String (TrivialDB.read k)
+          | ("trivialdb.read", _) => raise Execute "wrong args to trivialdb.read"
+          | ("trivialdb.update", [B.String k, B.String v]) =>
+               let in
+                 TrivialDB.update k v;
+                 B.Record nil
+               end
+          | ("trivialdb.update", _) => raise Execute "wrong args to trivialdb.update"
+          | ("trivialdb.hook", _) => raise Execute "sorry hook unimplemented"
           | _ => raise Execute ("primcall " ^ s ^ " not implemented")
         end
     | B.Var s => 

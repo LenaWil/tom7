@@ -1,0 +1,21 @@
+unit
+   import "std.mlh"
+
+   extern bytecode world server
+   extern val alert : string -> unit @ home
+   extern val alerti : int -> unit @ home = alert
+
+   val r = ref 0
+       
+   fun fact 0 = 1
+     | fact n = n * fact (n - 1)
+	  
+       
+   do alerti (!r)
+
+   do r := 1
+
+   do alerti (!r)
+
+in
+end

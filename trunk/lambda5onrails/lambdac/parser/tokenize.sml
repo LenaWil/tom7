@@ -205,7 +205,8 @@ struct
        ("=", EQUALS),
        ("@", AT),
        ("addr", ADDR),
-       ("=>", DARROW)
+       ("=>", DARROW),
+       ("put", PUT)
        ]
 
   (* PERF could use hash table or other sub-linear search structure *)

@@ -156,7 +156,7 @@ struct
            | ExternVal(sl, s, t, w, ol) => (G, ExternVal(sl, s, tul G t, w, ol))
            | ExternType(sl, s, so) => (G, ExternType(sl, s, so))
 
-           | Val (sl, p, e) => (G, Val (sl, pul G p, nul G e))
+           | Bind (b, sl, p, e) => (G, Bind (b, sl, pul G p, nul G e))
 
            | Fun fl =>
                  (G,

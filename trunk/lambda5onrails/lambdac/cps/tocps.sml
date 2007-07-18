@@ -76,6 +76,8 @@ struct
       | I.Arrows tl => 
           Conts' ` map (fn (_, dom, cod) => 
                         map (cvtt G) dom @ [Cont' [cvtt G cod]]) tl
+      | I.TRef t => Primcon' (REF, [cvtt G t])
+
       | _ => 
           let in
             print "\nToCPSt unimplemented:";
@@ -358,7 +360,7 @@ struct
                                    cvte G body
                                    (fn (G, res, rest, resw) =>
                                     (* no check that resw = dest or rest = mobtyp *)
-                                    Put' (pv, mobtyp, res,
+                                    Put' (pv, res,
                                           let val G = setworld G srcw
                                               val G = binduvar G pv mobtyp
                                           in
@@ -498,7 +500,7 @@ struct
                end
          end
 
-       | I.Val (I.Poly ({worlds = nil, tys = nil}, (v, t, e))) =>
+       | I.Bind (I.Val, I.Poly ({worlds = nil, tys = nil}, (v, t, e))) =>
          (* no poly -- just a val binding *)
          let val _ = cvtt G t
          in
@@ -506,7 +508,16 @@ struct
            (fn (G, va, t, w) => Bind' (v, va, k (bindvar G v t w)))
          end
 
-       | I.Val (I.Poly ({worlds, tys}, (v, t, I.Value va))) =>
+       | I.Bind (I.Put, I.Poly ({worlds = nil, tys = nil}, (v, t, e))) =>
+         (* no poly -- just a put binding *)
+         let val _ = cvtt G t
+         in
+           cvte G e
+           (fn (G, va, t, w) => Put' (v, va, k (binduvar G v t)))
+         end
+
+
+       | I.Bind (b, I.Poly ({worlds, tys}, (v, t, I.Value va))) =>
          (* poly -- must be a value then *)
          let
            val (va, tt, ww) = 
@@ -520,14 +531,21 @@ struct
            val tt =
              AllArrow' { worlds = worlds, tys = tys, 
                          vals = nil, body = tt }
-           val G = bindvar G v tt ww
+           val G = case b of 
+                     I.Val => bindvar G v tt ww
+                   | I.Put => binduvar G v tt
+
+           val f = case b of
+                     I.Val => Bind'
+                   | I.Put => Put'
+
          in
-           Bind' (v,
-                  AllLam' { worlds = worlds, tys = tys, vals = nil,
-                            body = va }, k G)
+           f (v,
+              AllLam' { worlds = worlds, tys = tys, vals = nil,
+                        body = va }, k G)
          end
 
-       | I.Val _ => raise ToCPS "val decl is polymorphic but not a value!"
+       | I.Bind (_, _) => raise ToCPS "bind decl is polymorphic but not a value!"
 
        | I.Letsham (I.Poly ({worlds, tys}, (v, t, va))) => 
          (* When the var v is used, it will be applied to worlds and tys,

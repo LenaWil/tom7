@@ -51,10 +51,10 @@ struct
                    (mappoly (fn (v, t, va) => (v, t, pwv f va)) vtvp),
                     f rest)
            | Let(Newtag(v, t, vv), e) => Let(Newtag (v, t, vv), f e)
-           | Let(Val vtep, rest) => Let(Val
-                                        (mappoly (fn (v, t, e) =>
-                                                  (v, t, f e)) vtep), 
-                                        f rest)
+           | Let(Bind (b, vtep), rest) => Let(Bind
+                                              (b, mappoly (fn (v, t, e) =>
+                                                           (v, t, f e)) vtep), 
+                                              f rest)
                     )
     and pwv f v =
       (case v of

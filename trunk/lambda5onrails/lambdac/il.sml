@@ -166,7 +166,7 @@ struct
         Do of exp
         (* quantifiers on the outside -- no poly recursion *)
         (* XXX5 could make PolyVal that requires syntactic value.. *)
-      | Val of (var * typ * exp) poly
+      | Bind of bind * (var * typ * exp) poly
         (* XXX5 uval *)
       | Tagtype of var
         (* tag of typ in tagtype *)
@@ -179,6 +179,7 @@ struct
       (* extern type (a, b) t *)
       | ExternType  of kind * label * var
 
+    and bind = Val | Put
 
     and ilunit = (* XXX5 *)
         Unit of dec list * export list
@@ -210,7 +211,7 @@ struct
                   yes = e,
                   no = go rest }
       in
-        Let (Val (Poly ({worlds=nil, tys=nil}, (vo, t, obj))),
+        Let (Bind (Val, Poly ({worlds=nil, tys=nil}, (vo, t, obj))),
              go vel)
       end
 

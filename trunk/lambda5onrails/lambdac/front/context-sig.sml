@@ -46,8 +46,8 @@ sig
     (* bind an identifier to a variable and give that variable 
        the indicated type at the indicated world *)
     val bindv : context -> string -> IL.typ IL.poly -> Variable.var -> IL.world -> context
-    (* also idstatus, if not Normal *)
-    val bindex : context -> string -> IL.typ IL.poly -> Variable.var -> IL.idstatus -> varsort -> context
+    (* also idstatus, if not Normal; not necessary to give EL name *)
+    val bindex : context -> string option -> IL.typ IL.poly -> Variable.var -> IL.idstatus -> varsort -> context
 
     (* bind an identifier to a type constructor with the indicated kind *)
     val bindc : context -> string -> IL.con -> IL.kind -> IL.tystatus -> context

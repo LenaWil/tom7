@@ -78,6 +78,22 @@ struct
       | potype (B PMinus) = mono ([PT_INT, PT_INT], PT_INT)
       | potype PEqs = mono ([PT_STRING, PT_STRING], PT_BOOL)
 
+      | potype PSet = 
+          let val a = Variable.namedvar "a"
+          in { worlds = nil, tys = [a], dom = [PT_REF (PT_VAR a), PT_VAR a], 
+               cod = PT_UNIT }
+          end
+
+      | potype PGet =
+          let val a = Variable.namedvar "a"
+          in { worlds = nil, tys = [a], dom = [PT_REF (PT_VAR a)], cod = PT_VAR a }
+          end
+
+      | potype PRef =
+          let val a = Variable.namedvar "a"
+          in { worlds = nil, tys = [a], dom = [PT_VAR a], cod = PT_REF (PT_VAR a) }
+          end
+
       | potype p = raise Podata ("unimplemented potype " ^ tostring p)
 
   end (* local *)

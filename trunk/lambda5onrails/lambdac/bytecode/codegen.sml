@@ -270,7 +270,7 @@ struct
                  (fn bytes =>
                   Go (addr, bytes)))
 
-            | C.Put (v, _, va : C.cval, e : C.cexp) =>
+            | C.Put (v, va : C.cval, e : C.cexp) =>
                 (* just marks its universality; no effect *)
                 cvtv va
                 (fn va =>

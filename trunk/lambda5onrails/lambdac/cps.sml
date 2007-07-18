@@ -49,7 +49,7 @@ struct
     | Go_cc of { w : world, addr : 'cval, env : 'cval, f : 'cval }
     | Go_mar of { w : world, addr : 'cval, bytes : 'cval }
     | Primop of var list * primop * 'cval list * 'cexp
-    | Put of var * ctyp * 'cval * 'cexp
+    | Put of var * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
@@ -232,8 +232,8 @@ struct
                      then ce
                      else eself ce)
            end
-       | Put (vv, ty, va, e) =>
-           Put (vv, tself ty, vself va,
+       | Put (vv, va, e) =>
+           Put (vv, vself va,
                 if V.eq(vv, v)
                 then e
                 else eself e)
@@ -412,9 +412,9 @@ struct
                                     in Primop(map #2 vs, po, vl,
                                               renameeall e vs)
                                     end
-    | cexp (E(Put(v, ty, va, e))) = let val v' = V.alphavary v
-                                    in Put(v', ty, va, renamee v v' e)
-                                    end
+    | cexp (E(Put(v, va, e))) = let val v' = V.alphavary v
+                                in Put(v', va, renamee v v' e)
+                                end
     | cexp (E(Letsham(v, va, e))) = let val v' = V.alphavary v
                                     in Letsham(v', va, renamee v v' e)
                                     end
@@ -899,7 +899,7 @@ struct
                                            | MARSHAL => MARSHAL
                                            | LOCALHOST => LOCALHOST),
                                           map fv vl, fe e)
-    | Put (vv, t, v, e) => Put' (vv, ft t, fv v, fe e)
+    | Put (vv, v, e) => Put' (vv, fv v, fe e)
     | Letsham (vv, v, e) => Letsham' (vv, fv v, fe e)
     | Leta (vv, v, e) => Leta' (vv, fv v, fe e)
     | WUnpack (vv1, vv2, v, e) => WUnpack' (vv1, vv2, fv v, fe e)
@@ -962,6 +962,8 @@ struct
       Mu' (0, [(bv, Sum' [(Initial.truename, IL.NonCarrier),
                           (Initial.falsename, IL.NonCarrier)])])
       | ptoct (PT_VAR v) = TVar' v
+      | ptoct PT_UNIT = Product' nil
+      | ptoct (PT_REF p) = Primcon' (REF, [ptoct p])
       | ptoct _ = raise CPS "unimplemented ptoct"
   end
 

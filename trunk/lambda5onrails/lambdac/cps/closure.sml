@@ -309,13 +309,12 @@ struct
            | _ => raise Closure "letsham on non-shamrock"
          end
 
-     | Put (v, t, va, e) => 
+     | Put (v, va, e) => 
          let
-           val t = ct t
-           val (va, _) = cv G va
+           val (va, t) = cv G va
            val G = binduvar G v t
          in
-           Put' (v, t, va, ce G e)
+           Put' (v, va, ce G e)
          end
 
        (* go [w; a] e

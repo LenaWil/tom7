@@ -165,6 +165,7 @@ struct
         "<script language=\"JavaScript\">\n" ^ sessiondata ^ "</script>\n" ^
         "<script language=\"JavaScript\">\n" ^ rt ^ "\n</script>\n" ^
         "<script language=\"JavaScript\">\n" ^ js ^ "\n</script>\n" ^
+        CSS.csshead ^ 
         "</head>\n" ^
         "<body>\n" ^
         "<p><div id=\"page\"></div>\n" ^
@@ -250,15 +251,18 @@ struct
       val l = String.tokens Char.isSpace l
       fun pr str = N.sendraw sock str
 
-      fun link name ext = "<td><a href=\"/show/" ^ name ^ "." ^ ext ^ "\">" ^ name ^ "." ^ ext ^ "</a></td>"
+      fun link name ext = "<td><a href=\"/source/" ^ name ^ "." ^ ext ^ "\">" ^ name ^ "." ^ ext ^ "</a></td>"
       val even = ref true
       fun onedemo basename =
-        pr ("<tr class=\"row_" ^ if !even then "even" else "odd" ^
-            \">" ^ link basename "ml5"
-                   ^ link (basename ^ "_home") "js"
-                   ^ link (basename ^ "_server") "b5"
-                   ^ "<td><a href=\"/5/" ^ basename ^ "\">run " ^ basename ^ " now</a></td>"
-            ^ "</tr>\n")
+        let in
+          pr ("<tr class=\"row_" ^ (if !even then "even" else "odd") ^
+              "\">" ^ link basename "ml5"
+              ^ link (basename ^ "_home") "js"
+              ^ link (basename ^ "_server") "b5"
+              ^ "<td><a class=\"rundemo\" href=\"/5/" ^ basename ^ "\">run " ^ basename ^ " now</a></td>"
+              ^ "</tr>\n");
+          even := not (!even)
+        end
     in
       pr
       ("HTTP/1.1 200 OK\r\n" ^
@@ -269,9 +273,11 @@ struct
        "\r\n");
 
       pr "<html><head><title>Server 5 demos</title></head>";
+      pr CSS.csshead;
       pr "<body>\n";
       pr "Server 5 demos list.\n";
-      pr "<table>\n";
+      pr "<table width=\"100%\">\n";
+      pr "<tr><td>ML5 source code</td><td colspan=2>Compiled code</td><td>Demo</td></tr>\n";
       app onedemo l;
       pr "</table>\n";
       pr "</body></html>\n";
@@ -279,15 +285,20 @@ struct
       N.disconnect sock
     end
 
+  fun escape s =
+    StringUtil.replace "<" "&lt;"
+    (StringUtil.replace ">" "&gt;"
+     (StringUtil.replace "&" "&amp;" s))
+
   (* XXX maybe more checks to see if this is a valid file?
      Right now they can read anything in the codepath directory. *)
   fun source sock file =
-    if CharVector.exists (StringUtil.charspec "^A-Za-z0-9._")
+    if CharVector.exists (StringUtil.charspec "^A-Za-z0-9._") file
     then failnew sock file "it contains illegal characters"
     else
       let
         fun pr str = N.sendraw sock str
-        val contents = StringUtil.readfile (!codepath ^ file)
+        val contents = escape (StringUtil.readfile (!codepath ^ file))
       in
         pr
         ("HTTP/1.1 200 OK\r\n" ^
@@ -297,7 +308,12 @@ struct
          "Content-Type: text/html; charset=utf-8\r\n" ^
          "\r\n");
 
+        pr "<html><head>";
+        pr CSS.csshead;
+        pr "</head><body>";
+        pr "<pre>\n";
         pr contents;
+        pr "</pre>\n";
 
         N.disconnect sock
       end handle Io => failnew sock file "the file was not found"

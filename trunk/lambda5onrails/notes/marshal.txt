@@ -45,8 +45,10 @@ This file documents the marshaling format.
  Sum stil           Inj(l,vo)        {t,v} or {t}     l + v  or  l -
  Primcon INT        int              int              int
  Primcon STRING     string           string           urlencoded-string
- Primcon REF        ref v            object           int
-                                     or remote-index
+ Primcon REF        ref v            object           urlencoded-string int
+                                     or               (world)
+                                     { l : string,
+                                       i : int }
  Mu (n, vt1..vtn)   v                v                d1 .. dn v
  Primcon DICT t     ...
                     dp d                              DP c
@@ -56,7 +58,6 @@ This file documents the marshaling format.
                     dex {d,a}                         DE d n a1 .. an
                     dlookup s                         DL s
                     dall sl d                         DA n s1 .. sn d
-                    dref world                        DF urlencoded-world
 
  primitive dicts are mapped to characters:
     Dcont -> c
@@ -67,6 +68,7 @@ This file documents the marshaling format.
     Dint -> i
     Dstring -> s
     Dvoid -> v
+    Dref -> r
 
  TODO: vec, exn
 

@@ -77,6 +77,12 @@ util/lamutil.sml
 ../../sml-lib/parse/parse-sig.sml
 ../../sml-lib/parse/parse.sml
 
+util/variable-sig.sml
+util/variable.sml
+
+util/symboldb-sig.sml
+util/symboldb.sml
+
 intconst.sml
 primop.sml
 el.sml
@@ -93,12 +99,6 @@ parser/parse.sml
 
 parser/initfix-sig.sml
 parser/initfix.sml
-
-util/variable-sig.sml
-util/variable.sml
-
-util/symboldb-sig.sml
-util/symboldb.sml
 
 il.sml
 

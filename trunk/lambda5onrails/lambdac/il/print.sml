@@ -317,6 +317,9 @@ struct
                              vtol va]) dlist),
         $"}"]
 
+    and btol Val = $"val"
+      | btol Put = $"put"
+
     and dtol d =
         (case d of
              Do e => %[$"do", etol e]
@@ -324,9 +327,9 @@ struct
            | Newtag (new, t, ext) => %[$"newtag", $(V.tostring new), 
                                        $"tags", ttol t, $"in", 
                                        $(V.tostring ext)]
-           | Val (Poly ({worlds, tys}, (var, t, e))) =>
-                   (* XXX5 worlds too *)
-               %[%[%([$"val"]
+           | Bind(b, Poly ({worlds, tys}, (var, t, e))) =>
+               (* XXX5 worlds too *)
+               %[%[%([btol b]
                      @ (case tys of
                           nil => nil
                         | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)])

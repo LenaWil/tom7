@@ -86,7 +86,7 @@ struct
         (* wish we had refinements here. 
            val pat cannot contain PConstant or PApp *)
         (* val (a, b) loop = Util.loop : a -> b *)
-        Val of string list * pat * exp
+        Bind of bind * string list * pat * exp
       | Do of exp
       | Type of string list * string * typ
 
@@ -126,6 +126,8 @@ struct
       | ExternType  of string list * string * string option
 
     (* fixity decls are handled at parse time *)
+
+    and bind = Val | Put (* letsham, leta, ... *)
 
     and elunit =
       Unit of dec list * export list

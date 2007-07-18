@@ -39,7 +39,7 @@ function lc_enq_thread(g, f, args) {
 /* run a waiting thread, if any. We reschedule this function
    using setTimeout. */
 function lc_schedule() {
-    lc_message('schedule.');
+    // lc_message('schedule.');
     var t = lc_threadqueue.deq ();
     if (t == undefined) {
 	/* no more threads to run */
@@ -194,19 +194,19 @@ function lc_add_local(ob) {
 };
 
 /* dictionary used for references */
-var lc_ref_dict = { w : "DF", l : "home" };
+// var lc_ref_dict = { w : "DF", l : "home" };
+var lc_ref_dict = { w : "DP", p : "r" };
 
 /*
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s, v, A
+      DP       p : c, C, a, d, i, s, v, A, r
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DE       d : String, v : array of Object
       DL       s : String
       DA       s : array of String, v : Object
-      DF       l : String (world name)
 
 */
 
@@ -254,11 +254,6 @@ function lc_umg(G, d, b) {
 	}
 	return a;
     }
-    case "DF": {
-	var i = b.getint ();
-	if (d.l == "home") return lc_locals[i];
-	else return i;
-    }
     case "DP": {
 	switch(d.p) {
 	case "c": {
@@ -270,6 +265,15 @@ function lc_umg(G, d, b) {
 	}
 	case "C": return b.getint ();
 	case "a": return unescape(b.next ());
+	case "f": {
+	    /* a reference is always marshaled as
+               the world name and the index at that world. */
+	    var rw = unescape(b.next ());
+	    var ri = b.getint ();
+
+	    if (rw == "home") return lc_locals[ri];
+	    else return { l : rw, i : ri };
+	}
 	case "d": {
 	    var t = b.next ();
 	    switch(t) {
@@ -278,10 +282,6 @@ function lc_umg(G, d, b) {
 		/* XX should check it's valid? */
 		// lc_message("dp " + p + "/");
 		return { w : "DP", p : p };
-	    }
-	    case "DF": {
-		var world = unescape(b.next ());
-		return { w : "DF", l : world };
 	    }
 	    case "DL": return { w : "DL", s : b.next () }
 	    case "DR": {
@@ -465,7 +465,9 @@ function lc_marshalg(G, dict, va) {
 	case "a": return escape(va);
 	case "s": return escape(va);
 	case "i": return ''+va;
-
+	case "r": {
+	    
+	}
 	case "d": {
 	    /* ah, how the tables have turned! */
 	    switch (va.w) {
@@ -589,3 +591,5 @@ function lc_document_getelementbyid(s) {
 function lc_domgetobj(node, field) {
     return node[field];
 };
+
+

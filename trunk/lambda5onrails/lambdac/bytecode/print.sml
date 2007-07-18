@@ -59,7 +59,7 @@ struct
                              L.indent 2 ` % ` map etol a]
      | Dall (sl, e) => %[$"DALL", %[itol ` length sl, L.indent 2 ` % ` map $ sl],
                          L.indent 2 ` etol e]
-     | Dref s => %[$"DREF", $s]
+     (* | Dref s => %[$"DREF", $s] *)
          )
 
   and pdtol dic =
@@ -68,6 +68,7 @@ struct
      | Dconts => $"DCONTS"
      | Daddr => $"DADDR"
      | Daa => $"DAA"
+     | Dref => $"DREF"
      | Ddict => $"DDICT"
      | Dint => $"DINT"
      | Dstring => $"DSTRING"

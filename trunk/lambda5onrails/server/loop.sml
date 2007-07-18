@@ -53,7 +53,11 @@ struct
     in
       (case N.wait [!!listener] socks ` SOME ` Time.fromMilliseconds 1000 of
          (* must be the one listener *)
-         N.Accept (_, s, _, _) => incoming := s :: !incoming
+         N.Accept (_, s, _, _) => 
+           let in
+             (* IP here... *)
+             incoming := s :: !incoming
+           end
        (* we don't make any outgoing connections *)
        | N.Connected _ => raise Loop "should never get Connected event"
        (* could be ours or a session's *)
@@ -88,8 +92,9 @@ struct
         case Int.fromString str of
           NONE => error404 s "URL not found (expected int)"
         | SOME i => f i
+
     in
-      print ("REQUEST: " ^ cmd ^ "\n");
+      print (" REQUEST: " ^ cmd ^ "\n");
       (* app (fn s => print ("  " ^ s ^ "\n")) (cmd :: headers); *)
       TextIO.output(log, Version.date () ^ " | " ^ cmd ^ "\n");
 
