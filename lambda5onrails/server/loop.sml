@@ -100,6 +100,7 @@ struct
             | ("toclient", id) => expectint id ` Session.toclient s
             | ("exit", _) => raise Loop "EXIT."
             | ("demos", _) => Session.demos s
+            | ("source", file) => Session.source s file
             | _ => error404 s "URL not found (GET).")
        | "POST" :: url :: _ =>
            (case StringUtil.token (StringUtil.ischar #"/") url of

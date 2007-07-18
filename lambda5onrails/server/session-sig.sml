@@ -32,6 +32,8 @@ sig
 
   (* return a page that shows all the available demos with their source code *)
   val demos      : Network.sock -> unit
+  (* show the file if it lives in the code path *)
+  val source     : Network.sock -> string -> unit
 
   (* do work if desired *)
   val step       : unit -> unit

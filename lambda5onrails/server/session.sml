@@ -137,7 +137,7 @@ struct
        "Connection: close\r\n" ^
        "Content-Type: text/html; charset=utf-8\r\n" ^
        "\r\n" ^
-       "The program '<b>" ^ prog ^ "</b>' was not found: " ^ str ^ "\n");
+       "'<b>" ^ prog ^ "</b>' was not found: " ^ str ^ "\n");
       N.disconnect s
     end
 
@@ -251,19 +251,55 @@ struct
       fun pr str = N.sendraw sock str
 
       fun link name ext = "<td><a href=\"/show/" ^ name ^ "." ^ ext ^ "\">" ^ name ^ "." ^ ext ^ "</a></td>"
+      val even = ref true
       fun onedemo basename =
-        pr ("<tr>" ^ link basename "ml5"
+        pr ("<tr class=\"row_" ^ if !even then "even" else "odd" ^
+            \">" ^ link basename "ml5"
                    ^ link (basename ^ "_home") "js"
                    ^ link (basename ^ "_server") "b5"
                    ^ "<td><a href=\"/5/" ^ basename ^ "\">run " ^ basename ^ " now</a></td>"
             ^ "</tr>\n")
     in
+      pr
+      ("HTTP/1.1 200 OK\r\n" ^
+       "Date: " ^ Version.date () ^ "\r\n" ^
+       "Server: " ^ Version.version ^ "\r\n" ^
+       "Connection: close\r\n" ^
+       "Content-Type: text/html; charset=utf-8\r\n" ^
+       "\r\n");
+
+      pr "<html><head><title>Server 5 demos</title></head>";
+      pr "<body>\n";
       pr "Server 5 demos list.\n";
       pr "<table>\n";
       app onedemo l;
       pr "</table>\n";
+      pr "</body></html>\n";
 
       N.disconnect sock
     end
+
+  (* XXX maybe more checks to see if this is a valid file?
+     Right now they can read anything in the codepath directory. *)
+  fun source sock file =
+    if CharVector.exists (StringUtil.charspec "^A-Za-z0-9._")
+    then failnew sock file "it contains illegal characters"
+    else
+      let
+        fun pr str = N.sendraw sock str
+        val contents = StringUtil.readfile (!codepath ^ file)
+      in
+        pr
+        ("HTTP/1.1 200 OK\r\n" ^
+         "Date: " ^ Version.date () ^ "\r\n" ^
+         "Server: " ^ Version.version ^ "\r\n" ^
+         "Connection: close\r\n" ^
+         "Content-Type: text/html; charset=utf-8\r\n" ^
+         "\r\n");
+
+        pr contents;
+
+        N.disconnect sock
+      end handle Io => failnew sock file "the file was not found"
 
 end
