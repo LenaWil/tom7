@@ -123,85 +123,6 @@ struct
 
     and dovar ctx loc vv =
     ((case C.var ctx vv of
-(*
-      (pt, _, Primitive p) =>
-        let 
-            fun unpoly (Quant (v, pt)) ts = unpoly pt (v::ts)
-              | unpoly (Mono (Arrow(_, dom, cod))) ts =
-                let 
-                    (* turn array into
-                       (where 'a means an evar)
-
-                       let fun array_105 (n : int, init : 'a) 
-                           : 'a vec = 
-                             Primapp(array, [n, init], ['a])
-                       in
-                           array_105
-                       end
-
-                       ... it will be inlined in the il
-                       optimizer if applied directly to 
-                       arguments. *)
-
-                    (* XXX use elabutil.evarize *)
-                    val x = V.namedvar "pa"
-
-                    fun mkes nil = (nil, V.Map.empty)
-                      | mkes (tv::rest) =
-                        let val (ets, subst) = mkes rest
-                            val ev = new_evar ()
-                        in
-                            (ev :: ets, 
-                             V.Map.insert (subst, tv, ev))
-                        end
-
-                    val (ets, subst) = mkes ts
-
-                    val ndom = map (Subst.tsubst subst) dom
-                    val ncod = Subst.tsubst subst cod
-
-                in 
-                    case ndom of
-                        [_] =>
-                          (* single argument. function will
-                             just take that. *)
-                          (mkfn ([x],
-                                 ndom,
-                                 ncod,
-                                 Primapp(p,
-                                         [Var x],
-                                         ets)),
-                           Arrow(false, ndom, ncod))
-
-                      | _ => 
-
-                          (* many arguments -- function will
-                             take a tuple of them *)
-                          (mkfn 
-                           ([x], [tuple ndom], ncod,
-                            let
-                                fun getargn n =
-                                    Proj(Int.toString (n + 1),
-                                         tuple ndom,
-                                         Var x)
-                            in
-                                Primapp(p,
-                                        List.tabulate
-                                        (length ndom, getargn),
-                                        ets)
-                            end),
-                           Arrow(false, [tuple ndom], ncod))
-                end
-              (* preclude prims of type Aa.a *)
-              | unpoly (Mono (TVar any)) nil =
-                    (Primapp (p, nil, nil), TVar any)
-              | unpoly _ _ = error loc 
-                    "BUG: Bad type of primop."
-        in
-            unpoly pt nil
-        end
-
-    | *)
       (pt, v, i, Context.Valid) =>
         let
           (* See below *)
@@ -348,13 +269,13 @@ struct
                    $ `
                     E.Let
                     ($ `
-                     E.Val (nil, E.PVar arr,
-                            $ `
-                            E.App ($ ` E.Var "array",
-                                   $ `
-                                   E.Record
-                                   [("1", $ ` E.Constant ` E.CInt n),
-                                    ("2", first)])),
+                     E.Bind (E.Val, nil, E.PVar arr,
+                             $ `
+                             E.App ($ ` E.Var "array",
+                                    $ `
+                                    E.Record
+                                    [("1", $ ` E.Constant ` E.CInt n),
+                                     ("2", first)])),
                      dowrites 0w1 rest ` $ ` E.Var arr)
                end
 
@@ -807,9 +728,9 @@ struct
              (* XXX5 should these be bound with different idstatus (Extern? Prim?) 
                 probably not. we implement the bindings in generality, though we
                 might want to inline certain forms for performance sake. *)
-             C.bindex ctx id ptt v Normal (case ww of
-                                             NONE => C.Valid
-                                           | SOME w => C.Modal w))
+             C.bindex ctx (SOME id) ptt v Normal (case ww of
+                                                    NONE => C.Valid
+                                                  | SOME w => C.Modal w))
           end
 
     | E.ExternType (nil, s, so) =>
@@ -854,7 +775,7 @@ struct
                 (* XXX not total for exns if we later add locality
                    info (probably a better translation would add
                    the locality info at the site of a Raise?) *)
-                val nctx = C.bindex ctx tag 
+                val nctx = C.bindex ctx (SOME tag)
                             (mono ` Arrow(true, [d], cod))
                             ctor
                             (Tagger tagv)
@@ -1114,7 +1035,7 @@ struct
               val nctx =
                   foldl
                   (fn ((ctor, v, at, _),c) =>
-                   C.bindex c ctor at v Constructor C.Valid) nctx ctors
+                   C.bindex c (SOME ctor) at v Constructor C.Valid) nctx ctors
 
           in
               (map #4 ctors, nctx)
@@ -1283,56 +1204,61 @@ struct
                     (* ([Fix ` mkpoly ps fs], fctx) *)
           end
 
-    | E.Val (tyvars, pat, exp) =>
+    (* generalize to put *)
+    | E.Bind (b, tyvars, pat, exp) =>
           let
               (* simply bind tyvars;
                  let generalization actually determine the type. 
                  if we want to have these type vars act like SML,
                  we can check after the decls are over that each
                  one is still free and generalizable. 
-                 XXX we let these sit in the exported context --
-                     something needs to be done about that!
+                 XXX5 we let these sit in the exported context --
+                      that's definitely wrong!
                  *)
               val nctx = mktyvars ctx tyvars
 
-              (* epat ctx p ee t
+              (* epat ctx p (var, nargs) t
                  in the context ctx,
+                 elaborate the binding p : t = va.
 
-                 elaborate the pattern p : t = ee
+                 If b is Put, we've already ensured that t is mobile.
                  *)
-              fun 
-                  (* we treat var patterns as (v as _),
-                     so this optimization prevents us from
-                     generating "do v" for each var binding *)
-                  epat ctx EL.PWild (Value (Polyvar _)) tt = ([], ctx)
-                | epat ctx EL.PWild ee tt = ([Do ee], ctx)
+              fun epat ctx EL.PWild _ _ = ([], ctx)
                 | epat ctx (EL.PVar v) ee tt =
-                  (* Did you know val x = e is just syntactic sugar 
-                     for val x as _ = e ? *)
-                  epat ctx (EL.PAs (v, EL.PWild)) ee tt
+                     (* Did you know val x = e is just syntactic sugar 
+                        for val x as _ = e ? *)
+                     epat ctx (EL.PAs (v, EL.PWild)) ee tt
                 | epat ctx (EL.PConstrain (p, t)) ee tt =
                   let in
-                      unify ctx loc "val constraint" tt 
+                      unify ctx loc "bind constraint" tt 
                          ` elabt ctx loc t;
                       epat ctx p ee tt
                   end
                 | epat ctx (EL.PAs (v, p)) ee tt =
                   let
 
-                      (* [val (x as p) = e]
+                      (* [val (x as p) = v]
                            is
-                         val x = e     @
+                         val x = v     @
                          [val p = x]
-                         *) 
+                         *)
 
-
-                      (* XXX5 generalize / polygen! *)
+                      (* XXX5 polygen if appropriate.
+                         actually since ee is definitely a value here,
+                         we can always generalize... we'll simply
+                         fail to generalize if we didn't generalize vv
+                         in the first place. *)
 
                       val vv = V.namedvar v
 
-                      (* put in context as mono var *)
-                      val ctx = C.bindv ctx v (Poly({worlds=nil,
-                                                     tys=nil}, tt)) vv here
+                      val (tt, ps) = polygen ctx tt
+
+                      (* put in context as polyvar *)
+                      val ctx = 
+                        C.bindex ctx (SOME v) (Poly({worlds=nil,
+                                                     tys=ps}, tt)) vv (case b of
+                                                                         Val => C.Modal here
+                                                                       | Put => C.Valid)
 
                       (* FIXME: this looks broken. we should be
                          making a polyvar here (?) *)
@@ -1341,6 +1267,7 @@ struct
                       ([Val ` mono (vv, tt, ee)] @ ds,
                        c)
                   end
+(*
                 (* if the exp is valuable (particularly, a var), 
                    we're all set. XXX5 could match just Values? *)
                 | epat ctx (EL.PRecord spl) (ee as (Value (Polyvar _))) tt =
@@ -1366,16 +1293,49 @@ struct
                       unify ctx loc "record pattern" tt (TRec tys);
                       f ctx spl tys
                   end
-                | epat ctx (p as (EL.PRecord spl)) ee tt =
-                  (* use as to bind tuple to a variable, 
-                     then enter case above *)
-                  epat ctx (EL.PAs (newstr "rec", p)) ee tt
+
                 | epat _ _ _ _ = 
                     error loc "patterns in val dec must be irrefutable"
+*)
 
-              val (ee, tt) = elab ctx here exp
+              (* elaborate the object of the bind. we'll bind this at its
+                 maximally general type. *)
+              val (ee, tt) = elab nctx here exp
+
+        
+              val vb = V.namedvar "bind"
+              fun monodec () =
+                let
+                  val () = (case b of
+                              E.Put => 
+                                  (* XXX5 for poly declarations, should
+                                     have inserted forall-vars as mobile *)
+                                  require_mobile ctx loc "put" tt
+                            | E.Val => ())
+
+                  (* always start binding locally. Only the subsequent pattern
+                     decomposition will do val/put bindings. *)
+                  val ctx = C.bindex ctx NONE (mono tt) vb Normal (C.Modal here)
+
+                  val (decl, ctx) = epat nctx pat (Var vb) tt
+                in
+                  (Val(Poly({ worlds = nil, tys = nil }, (vb, tt, ee))) :: decl, ctx)
+                end
+
+              val polydec = (case ee of
+                               Value _ => true
+                             (* XXX5 constructor applications? probably should elaborated
+                                as values. *)
+                             | _ => false)
+
           in
-              epat nctx pat ee tt
+            (* XXX5 should have elaborated at new world, then checked to see if
+               we could generalize that, then generated letsham... *)
+            if polydec
+            then (case polygen ctx tt of
+                    (_, nil) => monodec ()
+                  | _ => raise Elaborate "unimplemented polygen values")
+            else monodec ()
           end
 
   fun elabx ctx here export =
