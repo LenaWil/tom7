@@ -39,6 +39,7 @@ struct
     | midchar #"'" = true
     | midchar #"-" = true
     | midchar #"." = true
+    | midchar #"$" = true
     | midchar _ = false
 
   (* note, [] are illegal chars except to bracket text *)

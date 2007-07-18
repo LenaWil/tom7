@@ -180,8 +180,8 @@ struct
   and dsubst (s as (vv,ee)) ((d,loc) : E.dec) =
       (fn (x,b) => ((x, loc), b))
       (case d of
-           E.Val (tyvars, p, e) => (E.Val (tyvars, psubst s p, esubst s e), 
-                                    pbinds p vv)
+           E.Bind (b, tyvars, p, e) => (E.Bind (b, tyvars, psubst s p, esubst s e), 
+                                        pbinds p vv)
          | E.Do e => (E.Do (esubst s e), false)
          | E.Fun l => 
                (* if any function is named the same as this variable,

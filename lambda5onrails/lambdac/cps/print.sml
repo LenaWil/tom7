@@ -288,9 +288,8 @@ struct
                  %[$"send", L.indent 2 ` vtol bytes]
                  ] :: nil
 
-         | Put (v, t, va, rest) => 
-               %[%[$"put", $(V.tostring v),
-                   $":", ttol t, $"="],
+         | Put (v, va, rest) => 
+               %[%[$"put", $(V.tostring v), $"="],
                  L.indent 4 ` vtol va] :: estol rest
 
          | Halt => [$"HALT."]

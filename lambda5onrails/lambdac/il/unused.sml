@@ -238,15 +238,17 @@ struct
                        then SOME (fv -- v, d)
                        else NONE
     | udec fv (d as Tagtype _) = SOME(fv, d)
-    | udec fv (d as Val(Poly(p, (vv, t, Value va)))) =
+
+    (* don't care whether this is Val or Put since we're not doing type-checking *)
+    | udec fv (d as Bind(b, Poly(p, (vv, t, Value va)))) =
                        (* used? *)
                        if fv ?? vv
                        then let val (fv', va) = uval va
-                            in SOME ((fv -- vv) || fv', Val(Poly(p, (vv, t, Value va))))
+                            in SOME ((fv -- vv) || fv', Bind(b, Poly(p, (vv, t, Value va))))
                             end
                        else 
                          let in
-                           print ("Drop unused polyval " ^ V.tostring vv ^ "\n");
+                           print ("Drop unused polybind " ^ V.tostring vv ^ "\n");
                            NONE
                          end
     | udec fv (d as Letsham(Poly(p, (vv, t, va)))) =
@@ -261,11 +263,11 @@ struct
                            NONE
                          end
 
-    | udec fv (d as Val(Poly(p, (vv, t, e)))) =
+    | udec fv (d as Bind(b, Poly(p, (vv, t, e)))) =
                            (* PERF there are other things that don't look like values
                               but that we can toss if we want. *)
-                           let val (fv', va) = uexp e
-                           in SOME ((fv -- vv) || fv', Val(Poly(p, (vv, t, e))))
+                           let val (fv', e) = uexp e
+                           in SOME ((fv -- vv) || fv', Bind(b, Poly(p, (vv, t, e))))
                            end
 
   (* given free vars needed below, generate the

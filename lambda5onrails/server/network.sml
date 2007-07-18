@@ -682,7 +682,7 @@ struct
                                  val _ = (dat = "") andalso raise R.RawNetwork ""
                                  val (pl, pp) = parse (!inp) dat
                              in
-                                 first ();
+                                 ignore (first ());
                                  inp := pp;
                                  app (fn p => push evtq (Pkt p)) pl
                              end handle R.RawNetwork _ =>

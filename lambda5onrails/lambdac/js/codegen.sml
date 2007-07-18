@@ -29,13 +29,12 @@
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s, v, A
+      DP       p : c, C, a, d, i, s, v, A, r
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DE       d : String, v : array of Object
       DL       s : String
       DA       s : array of String, v : Object
-      DF       l : String (world name)
 *)
 structure JSCodegen :> JSCODEGEN =
 struct
@@ -362,7 +361,7 @@ struct
             | C.Letsham (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
             | C.Leta    (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
             | C.WUnpack (_, v, va, e) => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
-            | C.Put     (v, _, va, e) => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
+            | C.Put     (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
 
             | C.TUnpack (_, dv, cvl, va, e) =>
                 cvtv va

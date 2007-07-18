@@ -37,8 +37,8 @@ struct
                 in
                     Layout.print
                     (Layout.align
-                     [%[$("Type mismatch (" ^ s ^ ") at "), $(Pos.toString loc),
-                        $": ", $msg],
+                     [%[%[$("Type mismatch (" ^ s ^ ") at "), %[$(Pos.toString loc),
+                          $": "], $msg]],
                       %[$"expected:", Layout.indent 4 (ILPrint.ttolex ctx t2)],
                       %[$"actual:  ", Layout.indent 4 (ILPrint.ttolex ctx t1)]],
                      print);
@@ -71,8 +71,9 @@ struct
         | ptoil PT_STRING = Initial.ilstring
         | ptoil PT_BOOL = Initial.ilbool
         | ptoil (PT_VAR v) = IL.TVar v
-        | ptoil _ = raise Elaborate "unimplemented potoil"
-      (* PT_INT | PT_STRING | PT_REF of potype | PT_UNITCONT | PT_BOOL | PT_VAR of Variable.var *)
+        | ptoil (PT_REF p) = IL.TRef ` ptoil p
+        | ptoil PT_UNIT = IL.TRec nil
+        | ptoil PT_UNITCONT = raise Elaborate "unimplemented potoil unitcont"
     end
 
     val itos = Int.toString
@@ -98,7 +99,7 @@ struct
                    | IL.Mu (n, vtl) => IL.Mu (n, ListUtil.mapsecond go vtl)
                    | IL.TAddr w => t
                    | IL.Shamrock tt => IL.Shamrock ` go tt
-                   (* XXX5 polygen worlds too? *)
+                   (* XXX5 polygen worlds too *)
                    | IL.At (t, w) => IL.At(go t, w)
                    | IL.Evar er =>
                          (case !er of

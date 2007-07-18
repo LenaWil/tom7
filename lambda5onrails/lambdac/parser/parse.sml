@@ -553,12 +553,21 @@ struct
       and regulardec G =
          !!(alt [`VAL >> (call G pat suchthat irrefutable) && `EQUALS && 
                    call G exp
-                   wth (fn (pat, (_, e)) => Val(nil, pat, e)),
+                   wth (fn (pat, (_, e)) => Bind(Val, nil, pat, e)),
                  `VAL >> tyvars && (call G pat suchthat irrefutable) && 
                    `EQUALS && call G exp
-                   wth (fn (tv, (pat, (_, e))) => Val(tv, pat, e)),
+                   wth (fn (tv, (pat, (_, e))) => Bind(Val, tv, pat, e)),
 
                  `VAL -- punt "expected val declaration after VAL",
+
+                 `PUT >> (call G pat suchthat irrefutable) && `EQUALS && 
+                   call G exp
+                   wth (fn (pat, (_, e)) => Bind(Put, nil, pat, e)),
+                 `PUT >> tyvars && (call G pat suchthat irrefutable) && 
+                   `EQUALS && call G exp
+                   wth (fn (tv, (pat, (_, e))) => Bind(Put, tv, pat, e)),
+
+                 `PUT -- punt "expected val declaration after PUT",
 
                  `EXTERN >> `VAL >> alt[tyvars && id,
                                         succeed nil && id]

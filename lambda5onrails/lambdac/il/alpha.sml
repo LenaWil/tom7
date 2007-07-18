@@ -65,11 +65,11 @@ struct
         in
           (case d of
              Do e => (G, R, Do (alpha G R e))
-           | Val (Poly ({worlds, tys}, (v,t,e))) =>
+           | Bind (b, Poly ({worlds, tys}, (v,t,e))) =>
                (case dobindsgr (G, R, [v]) of
                   (G', R', [v]) =>
                     (* exp is in old scope *)
-                    (G', R', Val ` Poly ({worlds=worlds, tys=tys}, (v, t, alpha G R e)))
+                    (G', R', Bind(b, Poly ({worlds=worlds, tys=tys}, (v, t, alpha G R e))))
                 | _ => err "impossible/dec")
            | Tagtype v => (G, R, d)
            | Newtag (v, t, tv) =>

@@ -108,6 +108,8 @@ struct
 
          ("showval_", P.PShowval, quant(a, mono(IL.Arrow(false, [IL.TVar a], ilunit)))),
 
+
+(*
          ("^", P.PJointext 2, mono(IL.Arrow(false, [ilstring, ilstring], ilstring))),
 
          ("!", P.PGet, quant(a, mono
@@ -122,6 +124,7 @@ struct
          ("ref", P.PRef, quant(a, mono
                                   (IL.Arrow(false, [IL.TVar a],
                                             IL.TRef (IL.TVar a))))),
+*)
 (*
          ("array0", P.PArray0, quant (a, mono
                                          (IL.Arrow(true, nil, 

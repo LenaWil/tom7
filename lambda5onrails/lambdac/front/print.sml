@@ -36,14 +36,17 @@ struct
       and dtosi i (d, _) =
           (case d of
                Do e => "do " ^ etosi (i + 3) e
-             | Val (tv, p, e) => 
-                   "val " ^
+             | Bind (b, tv, p, e) => 
+                   btos b ^
                    (case tv of
                         nil => ""
                       | [t] => t ^ " "
                       | _ => "(" ^ StringUtil.delimit ", " tv ^ ")") ^
                    ptos p ^ " = " ^ etosi (i + 10) e
              | _ => "?d?")
+
+      and btos Val = "val"
+        | btos Put = "put"
 
   end
 

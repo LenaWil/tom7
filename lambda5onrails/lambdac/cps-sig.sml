@@ -64,7 +64,7 @@ sig
       (* post marshaling conversion *)
     | Go_mar of { w : world, addr : 'cval, bytes : 'cval }
     | Primop of var list * primop * 'cval list * 'cexp
-    | Put of var * ctyp * 'cval * 'cexp
+    | Put of var * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
     | Leta of var * 'cval * 'cexp
     (* world var, contents var *)
@@ -214,7 +214,7 @@ sig
   val Go_cc' : { w : world, addr : cval, env : cval, f : cval } -> cexp
   val Go_mar' : { w : world, addr : cval, bytes : cval } -> cexp
   val Primop' : var list * primop * cval list * cexp -> cexp
-  val Put' : var * ctyp * cval * cexp -> cexp
+  val Put' : var * cval * cexp -> cexp
   val Letsham' : var * cval * cexp -> cexp
   val Leta' : var * cval * cexp -> cexp
   val WUnpack' : var * var * cval * cexp -> cexp

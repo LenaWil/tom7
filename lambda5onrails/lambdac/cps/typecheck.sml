@@ -484,17 +484,13 @@ struct
                       else fail [$"go_mar world/addr mismatch"]
                    | _ => fail [$"go_mar args not of right form (want addr and bytes)"])
 
-     | Put (v, t, va, e) =>
-               (tok G t;
-                if tmobile G t
-                then let val tt = vok G va
-                         val G = binduvar G v t
-                     in
-                       if ctyp_eq (t, tt)
-                       then eok G e
-                       else faile exp "annotation on put mismatch"
-                     end
-                else faile exp "put of non-mobile value")
+     | Put (v, va, e) =>
+               let val t = vok G va
+               in
+                 if tmobile G t
+                 then eok (binduvar G v t) e
+                 else faile exp "put of non-mobile value"
+               end
 
      | TUnpack (tv, vd, vvs, va, e) =>
                (case ctyp ` vok G va of

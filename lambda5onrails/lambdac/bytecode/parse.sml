@@ -64,6 +64,7 @@ struct
     || `DSTRING return Dstring
     || `DVOID return Dvoid
     || `DAA return Daa
+    || `DREF return Dref
 
   fun exp () =
        `PROJ >> label && $exp wth Project
@@ -72,7 +73,7 @@ struct
     || `INJ >> label && bopt ($exp) wth Inj
     || `MARSHAL >> $exp && $exp wth Marshal
 
-    || `DREF >> id wth Dref
+    (* || `DREF >> id wth Dref *)
     || `DP >> pdict wth Dp
     || `DREC >> repeated (label && $exp) wth Drec
     || `DSUM >> repeated (label && bopt ($exp)) wth Dsum

@@ -33,6 +33,8 @@ struct
       
   exception Impossible
 
+  fun bindval p = Bind(Val, p)
+  
   (* XXX elabutil *)
   fun mkfn (args, dom, cod, body) =
       let val f = V.namedvar "fn"
@@ -476,7 +478,7 @@ struct
                               val nctx = C.bindv ctx s (mono tt) sv here
                               val (ein, tin) = force rest nctx (s::acc)
                             in
-                              (Let(Val(mono(sv, tt, ee)),
+                              (Let(Bind(Val, mono(sv, tt, ee)),
                                    ein), tin)
                             end
                in
@@ -783,7 +785,7 @@ struct
 
             in
                 ([Newtag (tagv, d, ev),
-                  Val ` mono `
+                  bindval ` mono `
                   (ctor, Arrow(true, [d], cod),
                    Value `
                    FSel (0,
@@ -1175,7 +1177,7 @@ struct
               (* if just one, then we want to produce better code: *)
               (case fs of
                  [ f as { name, arg, dom, inline, recu, total, cod, body } ] =>
-                   ([Val ` mkpoly ps ` (name, Arrow (false, dom, cod), 
+                   ([bindval ` mkpoly ps ` (name, Arrow (false, dom, cod), 
                                         Value `
                                         FSel(0, Fns [f]))], fctx)
                 | _ => 
@@ -1183,7 +1185,7 @@ struct
                    in
                      ( 
                       (* the bundle... *)
-                      (Val ` mkpoly ps ` (bundv, Arrows ` map (fn { dom, cod, ... } => 
+                      (bindval ` mkpoly ps ` (bundv, Arrows ` map (fn { dom, cod, ... } => 
                                                                (false, dom, cod)) fs,
                                           Value ` Fns fs)) ::
                       (* then bind the projections... *)
@@ -1191,7 +1193,7 @@ struct
                                      let val ops = ps (* map V.alphavary ps *)
                                           (* (would also need to rename through dom/cod) *)
                                      in
-                                       Val ` mkpoly ops ` (name, 
+                                       bindval ` mkpoly ops ` (name, 
                                                            Arrow (false, dom, cod), 
                                                            Value ` FSel(i, 
                                                                         Polyvar { tys = map TVar ops,
@@ -1204,8 +1206,8 @@ struct
                     (* ([Fix ` mkpoly ps fs], fctx) *)
           end
 
-    (* generalize to put *)
-    | E.Bind (b, tyvars, pat, exp) =>
+    (* val and put bindings *)
+    | E.Bind (b, tyvars, E.PVar v, exp) =>
           let
               (* simply bind tyvars;
                  let generalization actually determine the type. 
@@ -1217,126 +1219,90 @@ struct
                  *)
               val nctx = mktyvars ctx tyvars
 
-              (* epat ctx p (var, nargs) t
-                 in the context ctx,
-                 elaborate the binding p : t = va.
-
-                 If b is Put, we've already ensured that t is mobile.
-                 *)
-              fun epat ctx EL.PWild _ _ = ([], ctx)
-                | epat ctx (EL.PVar v) ee tt =
-                     (* Did you know val x = e is just syntactic sugar 
-                        for val x as _ = e ? *)
-                     epat ctx (EL.PAs (v, EL.PWild)) ee tt
-                | epat ctx (EL.PConstrain (p, t)) ee tt =
-                  let in
-                      unify ctx loc "bind constraint" tt 
-                         ` elabt ctx loc t;
-                      epat ctx p ee tt
-                  end
-                | epat ctx (EL.PAs (v, p)) ee tt =
-                  let
-
-                      (* [val (x as p) = v]
-                           is
-                         val x = v     @
-                         [val p = x]
-                         *)
-
-                      (* XXX5 polygen if appropriate.
-                         actually since ee is definitely a value here,
-                         we can always generalize... we'll simply
-                         fail to generalize if we didn't generalize vv
-                         in the first place. *)
-
-                      val vv = V.namedvar v
-
-                      val (tt, ps) = polygen ctx tt
-
-                      (* put in context as polyvar *)
-                      val ctx = 
-                        C.bindex ctx (SOME v) (Poly({worlds=nil,
-                                                     tys=ps}, tt)) vv (case b of
-                                                                         Val => C.Modal here
-                                                                       | Put => C.Valid)
-
-                      (* FIXME: this looks broken. we should be
-                         making a polyvar here (?) *)
-                      val (ds, c) = epat ctx p (Value ` Var vv) tt
-                  in
-                      ([Val ` mono (vv, tt, ee)] @ ds,
-                       c)
-                  end
-(*
-                (* if the exp is valuable (particularly, a var), 
-                   we're all set. XXX5 could match just Values? *)
-                | epat ctx (EL.PRecord spl) (ee as (Value (Polyvar _))) tt =
-                  let
-                      val tys = map (fn (s,_) => (s,new_evar ())) spl
-
-                      (* recursively elaborate a 
-                             val p = #label record_var
-                         for each component *)
-                      fun f ctx nil nil = (nil, ctx)
-                        | f ctx ((s,p)::rest) ((_,t)::trest) =
-                          let 
-                              val (ds, c) = epat ctx p 
-                                              (Proj (s, tt, ee)) t
-                              val (rds, rc) = f c rest trest
-                          in
-                              (ds @ rds, rc)
-                          end
-                        | f _ _ _ = raise Impossible
-                  in
-                      (* make sure rhs has record type 
-                         with the right fields *)
-                      unify ctx loc "record pattern" tt (TRec tys);
-                      f ctx spl tys
-                  end
-
-                | epat _ _ _ _ = 
-                    error loc "patterns in val dec must be irrefutable"
-*)
-
-              (* elaborate the object of the bind. we'll bind this at its
-                 maximally general type. *)
               val (ee, tt) = elab nctx here exp
-
-        
-              val vb = V.namedvar "bind"
-              fun monodec () =
-                let
-                  val () = (case b of
-                              E.Put => 
-                                  (* XXX5 for poly declarations, should
-                                     have inserted forall-vars as mobile *)
-                                  require_mobile ctx loc "put" tt
-                            | E.Val => ())
-
-                  (* always start binding locally. Only the subsequent pattern
-                     decomposition will do val/put bindings. *)
-                  val ctx = C.bindex ctx NONE (mono tt) vb Normal (C.Modal here)
-
-                  val (decl, ctx) = epat nctx pat (Var vb) tt
-                in
-                  (Val(Poly({ worlds = nil, tys = nil }, (vb, tt, ee))) :: decl, ctx)
-                end
-
               val polydec = (case ee of
                                Value _ => true
                              (* XXX5 constructor applications? probably should elaborated
                                 as values. *)
                              | _ => false)
 
+              val () = (case b of
+                          E.Put => 
+                            (* XXX5 for poly declarations, should
+                               have inserted forall-vars as mobile *)
+                            require_mobile ctx loc "put" tt
+                        | E.Val => ())
+
+              val (tt, ps) = if polydec
+                             then polygen ctx tt
+                             else (tt, nil)
+
+              val vv = Variable.namedvar v
+
+              val ctx = C.bindex ctx (SOME v) (Poly ({worlds = nil (* XXX5 *),
+                                                      tys = ps}, tt)) vv Normal (case b of
+                                                                                   E.Val => (C.Modal here)
+                                                                                 | E.Put => C.Valid)
+
           in
-            (* XXX5 should have elaborated at new world, then checked to see if
-               we could generalize that, then generated letsham... *)
-            if polydec
-            then (case polygen ctx tt of
-                    (_, nil) => monodec ()
-                  | _ => raise Elaborate "unimplemented polygen values")
-            else monodec ()
+            case b of
+              E.Val => ([Bind (Val, Poly({ worlds = nil (* XXX5 *), tys = ps }, 
+                                         (vv, tt, ee)))], ctx)
+            | E.Put => ([Bind (Put, Poly({ worlds = nil (* XXX5 *), tys = ps }, 
+                                         (vv, tt, ee)))], ctx)
           end
+
+    (* anything but a variable is syntactic sugar. *)
+    | E.Bind (b, tyvars, E.PWild, exp) => elabd ctx here (E.Bind (b, tyvars, E.PVar ` newstr "wild", exp), loc)
+
+    | E.Bind (b, tyvars, E.PAs (v, p), exp) =>
+            let
+              (* val (x as p) = e
+                 
+                 means
+                 
+                 val x = e
+                 val p = x
+                 *)
+
+              val (decls, ctx) = elabd ctx here (E.Bind (b, tyvars, E.PVar v, exp), loc)
+              val (decls2, ctx) = elabd ctx here (E.Bind (b, tyvars, p, (E.Var v, loc)), loc)
+            in
+              (decls @ decls2, ctx)
+            end
+    | E.Bind (b, tyvars, E.PConstrain (p, t), exp) =>
+            elabd ctx here (E.Bind (b, tyvars, p, (E.Constrain(exp, t, NONE), loc)), loc)
+    | E.Bind (_, _, E.PApp _, _) => error loc "app patterns are refutable"
+    | E.Bind (_, _, E.PConstant _, _) => error loc "constant patterns are refutable"
+    | E.Bind (_, _, E.PWhen _, _) => error loc "when patterns are refutable"
+    | E.Bind (b, tyvars, E.PRecord spl, exp) =>
+            let
+              (* val (a, b, c) = e
+
+                 means
+                 
+                 val x = e
+                 val a = #a/3 e
+                 val b = #b/3 e
+                 val c = #c/3 e
+                 
+                 *)
+              val t = E.TNum ` length spl
+              val v = newstr "brec"
+              val (decls, ctx) = elabd ctx here (E.Bind (b, tyvars, E.PVar v, exp), loc)
+
+              fun projs ctx nil = (nil, ctx)
+                | projs ctx ((l, p) :: rest) = 
+                let
+                  val (decls, ctx) = elabd ctx here (E.Bind (b, tyvars, p, (E.Proj(l, t, (E.Var v, loc)), loc)), loc)
+                  val (decls2, ctx) = projs ctx rest
+                in
+                  (decls @ decls2, ctx)
+                end
+              val (declsp, ctx) = projs ctx spl
+            in
+              (decls @ declsp, ctx)
+            end
 
   fun elabx ctx here export =
     let

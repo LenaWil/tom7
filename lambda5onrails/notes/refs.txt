@@ -1,0 +1,67 @@
+
+  References                     12 Jul 2007
+
+At the source language, it makes sense for "ref" to just be a
+primitive type constructor.
+
+    type 'a ref
+    ref ~ 'a -> 'a ref
+    :=  ~ 'a ref * 'a -> unit
+    !   ~ 'a ref -> 'a
+
+The trick comes with the representation and marshaling of references.
+Optimally, a ref should be represented just as we would if generating
+native code: in Javascript an Object with one field; in the Bytecode
+an ML reference cell. When we need to marshal a reference, we should
+put it in a table and instead ship the index in that table. When we
+get such an index back, we should pull the reference out of the table
+and use that.
+
+But it is not so simple. At marshaling time, we know that we are
+marshaling a reference, but we don't know whether it is a local
+reference (represented as an Object) or a remote one (represented as
+an integer index). We could
+
+   1. Look at the ref (tag) to determine whether it is a local
+      or remote reference. This means we need to tag references
+      so that we can distinguish between remote and local refs,
+      but also between a remote ref and a local ref to a remote
+      ref, etc. If we do this, we lose our claim to be "tag-free."
+      But this would clearly work.
+      
+   2. Always use a uniform representation of refs, be they
+      local or remote. We can just use integers, knowing that
+      we'll never attempt to dereference/update a reference that
+      doesn't belong to us. (Different worlds would even reuse
+      the same indices.) This is costly because every new reference
+      is put in a global array that can never be garbage-collected,
+      even if we never marshal it. However, this would also clearly
+      work.
+
+   3. Do as in #1 but "tag-free" by making the tag part of the
+      dictionary. In order for this to work, the dictionary not
+      only has to tell us that the thing is a ref, but what world
+      the ref resides at.
+
+         a. We could change the type ref to be indexed by the world
+            at which the ref lives. This probably has bad consequences
+            unless we carry the change all the way up to the external
+            language. Then what is the type of := ?
+            
+               := ~ 'a ref_'w * 'a -> unit
+
+            no, of course not, because we can only set a ref when we're
+            in the same world as it. So we would need a dependent validity,
+            which is something I've been avoiding for a while.
+
+         b. Have the marshaling and unmarshaling processes have a concept
+            of the "current world" and use this to decide whether to
+            dehydrate or reconstitute references. Of course, dictionaries
+            already have the information to do this (through at and other
+            type constructors that change the current world), we just
+            currently throw it out. This is probably the right thing,
+            although it may not be possible without runtime representation
+            of worlds (?).
+
+
+
