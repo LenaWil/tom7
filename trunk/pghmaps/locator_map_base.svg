@@ -3,8 +3,8 @@
      several map sources, but mainly the official City of Pittsburgh's neighborhood map.
      This version does not have labels in order to keep the file size smaller, however,
      each neighborhood is named in the XML document (Squirrel Hill North is squirrel_hill_north;
-     disconnected neighborhoods like Lemington-Lincoln-Belmar are lemington_lincoln_belmar:1
-     and lemington_lincoln_belmar:2). This allows a program to easily generate maps that
+     disconnected neighborhoods like Lincoln-Lemington-Belmar are lincoln_lemington_belmar:1
+     and lincoln_lemington_belmar:2). This allows a program to easily generate maps that
      highlight neighborhoods according to arbitrary criteria. See other files in this directory
      for some examples.
 
@@ -1414,7 +1414,7 @@
 		l-0.96-0.96l8.16-10.081l3.84-6.72l2.4-3.08c1.57,0.784,3.132,0.574,4.68,1.4c0.758,0.404,1.512,0.816,2.28,1.2
 		c0.689,0.344,1.946,0.351,2.4,0.96l3.12,6l3.6,3.6l3.12-4.32l7.44,3.36l1.92-4.56L119.48,294.96"/>
 	
-		<path id="Beechview" fill="#D4DEFF" stroke="#575757" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="bevel" stroke-miterlimit="10" d="
+		<path id="beechview" fill="#D4DEFF" stroke="#575757" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="bevel" stroke-miterlimit="10" d="
 		M223.16,413.28c-1.281,1.274-2.499,2.656-3.854,3.852c-0.811,0.715-1.622,1.431-2.432,2.146c-0.474,0.419-1.369,1.65-2.115,1.442
 		l-9.12,4.08L199.4,414l-0.72-0.96l0.96-1.2l-1.44-2.64l-1.2-2.4l-1.2,0.48l-4.56,0.96l-1.68,0.479l-3.36,0.721l-2.4,0.479l3.36-3.6
 		l0.24-2.4l0.48-6.479v-0.24v-0.48l-0.24-0.72h-0.72l-0.96,0.24l-0.72-0.24l0.24-4.08l2.4,0.24
