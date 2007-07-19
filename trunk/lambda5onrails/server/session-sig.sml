@@ -35,6 +35,8 @@ sig
   (* show the file if it lives in the code path *)
   val source     : Network.sock -> string -> unit
 
+  val favicon    : Network.sock -> unit
+
   (* do work if desired *)
   val step       : unit -> unit
 

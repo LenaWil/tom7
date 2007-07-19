@@ -10,6 +10,13 @@ function lc_message(s) {
     if (m != undefined) m.appendChild(d);
 };
 
+function lc_error(s) {
+    var m = document.getElementById("page");
+    if (m != undefined) m.innerHTML = '<div style="border:2px solid red ; margin : 2em ; padding : 1 em ; width : 300px; text-align : center">' + s + '</div>';
+    // alert(s);
+};
+
+
 /* Implementation of imperative queues, used for the "thread" queue. */
 
 function lc_queue () {
@@ -310,7 +317,8 @@ function lc_umg(G, d, b) {
 	    }
 	}
 	case "i": return b.getint ();
-	case "s": return unescape(b.next ());
+	/* skip the initial period */
+	case "s": return unescape(b.next ().substring(1));
 	case "v": alert("can't unmarshal at void"); throw(0);
 	default: alert("bad prim dict"); throw(0);
 	}
@@ -333,7 +341,6 @@ function lc_come(bytes) {
     lc_message('come ' + bytes);
     var pack = lc_unmarshal(lc_comedict, bytes);
     lc_message('unmarshal success.');
-    /* FIXME now open it up, enqueue it, schedule... */
     lc_message('unmarshal result: ' + lc_jstos(pack));
     var f = pack.v0;
     var arg = pack.v1;
@@ -402,9 +409,14 @@ function lc_handle_toclient() {
     if (lc_toclient.readyState == 4) {
 	// alert('got server message!');
 	lc_message('got server message');
-	lc_come(lc_toclient.responseText);
-	/* then reinstate the connection */
-	lc_make_toclient();
+	var m = lc_toclient.responseText;
+	if (m == '') {
+	    lc_error('server message is empty, assuming termination');
+	} else {
+	    lc_come(m);
+	    /* then reinstate the connection */
+	    lc_make_toclient();
+	}
     }
     /* otherwise nice to show status somewhere? */
 };
@@ -463,7 +475,9 @@ function lc_marshalg(G, dict, va) {
 	case "c": return va.g + ' ' + va.f;
 	case "C": return ''+va;
 	case "a": return escape(va);
-	case "s": return escape(va);
+	/* always prepend a period so that parsing won't be confused
+           by the empty string */
+	case "s": return '.' + escape(va);
 	case "i": return ''+va;
 	case "r": {
 	    

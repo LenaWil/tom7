@@ -53,3 +53,7 @@ function testy() {
     // alert(this);
     // alert(lc_jstos(this));
 }
+
+What happens if you appendChild a node to itself? (Or otherwise make a cycle)
+put hat in bag
+but bag in hat

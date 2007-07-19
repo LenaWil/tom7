@@ -9,6 +9,7 @@ struct
       "TH { font: bold 10pt Verdana,Arial,Helvetica ; text-align: center}\n" ^ 
 
       "TD { margin : 1px; padding: 3px ; font: 10pt Verdana,Arial,Helvetica }\n" ^ 
+      "BODY { font: 10pt Verdana,Arial,Helvetica }\n" ^ 
 
       "H1 { font : bold 16pt Verdana,Arial,Helvetica }\n" ^ 
 
