@@ -1,0 +1,22 @@
+unit
+  extern val alert : string -> unit @ home
+  extern bytecode world server
+  extern val server ~ server addr
+
+  extern val display : string -> unit @ server
+
+  (* This demo just fetches a string from the server
+     after causing an effect there, then pops up a
+     message box on the client showing that string. *)
+
+  val n' = (from server get 
+	    let in
+		display("I'm the server!");
+		"Data from the server"
+	    end)
+
+  do alert "Back:"
+  do alert n'
+in
+  export val x = n'
+end
