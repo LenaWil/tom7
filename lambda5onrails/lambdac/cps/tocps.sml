@@ -71,6 +71,7 @@ struct
           in
             Mu' (i, map (fn (v, t) => (v, cvtt G t)) vtl)
           end
+      | I.TCont t => Cont' [cvtt G t]
       | I.Arrow (_, dom, cod) => 
           Cont' (map (cvtt G) dom @ [Cont' [cvtt G cod]])
       | I.Arrows tl => 

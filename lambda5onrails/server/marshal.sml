@@ -27,8 +27,16 @@ struct
         | SOME i => i
 
       fun string () =
+        let val t = tok ()
+        in
+          case StringUtil.urldecode ` String.substring(t, 1, size t - 1) of
+            NONE => raise Marshal "um expected urlencoded string"
+          | SOME s => s
+        end
+
+      fun addr () =
         case StringUtil.urldecode ` tok () of
-          NONE => raise Marshal "um expected urlencoded string"
+          NONE => raise Marshal "um expected urlencoded addr"
         | SOME s => s
 
       fun um G (Dlookup s) =
@@ -40,7 +48,7 @@ struct
         | um G (Dp Dcont) = Record [("g", Int ` int ()),
                                     ("f", Int ` int ())]
         | um G (Dp Dstring) = String ` string ()
-        | um G (Dp Daddr) = String ` string ()
+        | um G (Dp Daddr) = String ` addr ()
         | um G (Dexists {d,a}) =
            let
              val () = print ("dex get dict:\n")
@@ -132,7 +140,7 @@ struct
         | mar G (Dp Dcont) (Record [("g", Int g), ("f", Int f)]) =
                 IntConst.toString g ^ " " ^ IntConst.toString f
         | mar G (Dp Dcont) _ = raise Marshal "dcont"
-        | mar G (Dp Dstring) (String s) = StringUtil.urlencode s
+        | mar G (Dp Dstring) (String s) = "." ^ StringUtil.urlencode s
         | mar G (Dp Dstring) _ = raise Marshal "dstring"
         | mar G (Dp Daddr) (String s) = StringUtil.urlencode s
         | mar G (Dp Daddr) _ = raise Marshal "daddr"

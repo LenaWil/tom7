@@ -7,3 +7,4 @@ extern val trivialdb.read : string -> string @ server
 extern val trivialdb.update : string * string -> unit @ server
 
 (* plus hooks... *)
+extern val trivialdb.addhook : string * unit cont -> unit @ server

@@ -20,6 +20,9 @@ struct
               "Where to find .b5, .js, .ml5 code, etc."))
         "codepath"
 
+  val favicon_ico = StringUtil.readfile "favicon.ico"
+  val faviconhead = "<link rel=\"shortcut icon\" href=\"/favicon.ico\" type=\"image/x-icon\" />"
+
   infixr 9 `
   fun a ` b = a b
 
@@ -165,6 +168,7 @@ struct
         "<script language=\"JavaScript\">\n" ^ sessiondata ^ "</script>\n" ^
         "<script language=\"JavaScript\">\n" ^ rt ^ "\n</script>\n" ^
         "<script language=\"JavaScript\">\n" ^ js ^ "\n</script>\n" ^
+        faviconhead ^
         CSS.csshead ^ 
         "</head>\n" ^
         "<body>\n" ^
@@ -273,6 +277,7 @@ struct
        "\r\n");
 
       pr "<html><head><title>Server 5 demos</title></head>";
+      pr faviconhead;
       pr CSS.csshead;
       pr "<body>\n";
       pr "Server 5 demos list.\n";
@@ -309,6 +314,7 @@ struct
          "\r\n");
 
         pr "<html><head>";
+        pr faviconhead;
         pr CSS.csshead;
         pr "</head><body>";
         pr "<pre>\n";
@@ -318,4 +324,19 @@ struct
         N.disconnect sock
       end handle Io => failnew sock file "the file was not found"
 
+   fun favicon sock =
+      let
+        fun pr str = N.sendraw sock str
+      in
+        print "server icon\n";
+        pr
+        ("HTTP/1.1 200 OK\r\n" ^
+         "Date: " ^ Version.date () ^ "\r\n" ^
+         "Server: " ^ Version.version ^ "\r\n" ^
+         "Connection: close\r\n" ^
+         "Content-Type: image/x-icon\r\n" ^
+         "\r\n");
+        pr favicon_ico;
+        N.disconnect sock
+      end
 end
