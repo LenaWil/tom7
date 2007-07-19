@@ -1,3 +1,3 @@
 
 highlight : highlight.cm highlight*.sml
-	mlton highlight.cm
+	mlton @MLton max-heap 256m -- highlight.cm
