@@ -20,7 +20,7 @@ struct
           val out = (case !out of
                        "" => let val (base, ext) = FSUtil.splitext m
                              in
-                               base ^ n ^ "." ^ ext
+                               base ^ "_" ^ n ^ "." ^ ext
                              end
                      | f => f)
 
