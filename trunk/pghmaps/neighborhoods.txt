@@ -54,7 +54,7 @@ middle_hill
 morningside
 mount_washington
 mt_oliver
-new_homstead
+new_homestead
 north_oakland
 north_shore
 northview_heights
