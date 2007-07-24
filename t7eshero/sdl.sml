@@ -288,8 +288,8 @@ struct
     | E_KeyDown of { sym : sdlk }
     | E_KeyUp of { sym : sdlk }
     | E_MouseMotion of { which : int, state : mousestate, x : int, y : int, xrel : int, yrel : int }
-    | E_MouseDown
-    | E_MouseUp
+    | E_MouseDown of { button : int, x : int, y : int }
+    | E_MouseUp of { button : int, x : int, y : int }
     | E_JoyAxis
     | E_JoyDown of { which : int, button : int }
     | E_JoyUp of { which : int, button : int }
@@ -306,7 +306,7 @@ struct
 
   fun sdlktos s =
       (case s of
-           SDLK_UNKNOWN => "UNKNOWN"
+        SDLK_UNKNOWN => "UNKNOWN"
       | SDLK_BACKSPACE => "BACKSPACE"
       | SDLK_TAB => "TAB"
       | SDLK_CLEAR => "CLEAR"
@@ -872,6 +872,10 @@ struct
   val event_mmotion_xrel_ = _import "ml_event_mmotion_xrel" : ptr -> int ;
   val event_mmotion_yrel_ = _import "ml_event_mmotion_yrel" : ptr -> int ;
 
+  val event_mbutton_x_ = _import "ml_event_mbutton_x" : ptr -> int ;
+  val event_mbutton_y_ = _import "ml_event_mbutton_y" : ptr -> int ;
+  val event_mbutton_button_ = _import "ml_event_mbutton_button" : ptr -> int ;
+
   fun clearsurface (s, w) = clearsurface_ (!! s, w)
 
   fun surface_width s = surface_width_ (!!s)
@@ -891,8 +895,12 @@ struct
            y = event_mmotion_y_ e,
            xrel = event_mmotion_xrel_ e,
            yrel = event_mmotion_yrel_ e }
-     | 5 => E_MouseDown
-     | 6 => E_MouseUp
+     | 5 => E_MouseDown { button = event_mbutton_button_ e,
+                          x = event_mbutton_x_ e,
+                          y = event_mbutton_y_ e }
+     | 6 => E_MouseUp { button = event8_2nd_ e,
+                        x = event_mbutton_x_ e,
+                        y = event_mbutton_y_ e }
      | 7 => E_JoyAxis
      | 8 => E_JoyBall
      | 9 => E_JoyHat
@@ -962,6 +970,7 @@ struct
         end
     fun blit (s, sx, sy, sw, sh, d, dx, dy) = b (!!s, sx, sy, sw, sh, !!d, dx, dy)
   end
+   
 
   local val ad = _import "ml_alphadim" : ptr -> ptr ;
   in
@@ -991,6 +1000,54 @@ struct
           end
   end
 
+  (* XXX no alpha.. *)
+  local val gp = _import "ml_getpixel" : ptr * int * int * Word8.word ref * Word8.word ref * Word8.word ref -> unit ;
+  in
+      fun getpixel (s, x, y) =
+          let
+          in
+              if x < 0 orelse y < 0
+                 orelse x >= surface_width s
+                 orelse y >= surface_height s
+              then
+                  raise SDL ("pixel out of bounds: " ^ Int.toString x ^ "," ^ Int.toString y ^
+                              " with surface size: " ^ Int.toString (surface_width s) ^ "x" ^
+                              Int.toString (surface_height s))
+              else 
+                let
+                  val r = ref 0w0
+                  val g = ref 0w0
+                  val b = ref 0w0
+                in
+                  gp (!!s, x, y, r, g, b);
+                  color (!r, !g, !b, 0w255)
+                end
+          end
+  end
+
+  local val fr = _import "ml_fillrect" : ptr * int * int * int * int   * Word32.word * Word32.word * Word32.word -> unit ;
+  in
+    fun fillrect (s1, x, y, w, h, c) = 
+        let 
+          val (r, g, b, _) = components c
+        in
+          fr (!!s1, x, y, w, h, r, g, b)
+        end
+  end
+
+  (* by drawing big rects *)
+  fun blit16x (src, sx, sy, sw, sh,  dst, dx, dy) =
+    Util.for sy (sy + sh - 1)
+    (fn yy =>
+     Util.for sx (sx + sw - 1)
+     (fn xx =>
+      let val color = getpixel(src, xx, yy)
+      in
+        fillrect(dst, 
+                 dx + ((xx - sx) * 16),
+                 dy + ((yy - sy) * 16),
+                 16, 16, color)
+      end))
 
   (* **** initialization **** *)
   local val init = _import "ml_init" : unit -> int ;
