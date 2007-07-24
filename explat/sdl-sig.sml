@@ -250,8 +250,8 @@ sig
     | E_KeyDown of { sym : sdlk }
     | E_KeyUp of { sym : sdlk }
     | E_MouseMotion of { which : int, state : mousestate, x : int, y : int, xrel : int, yrel : int }
-    | E_MouseDown of { which : int, button : int, state : mousestate, x : int, y : int }
-    | E_MouseUp of { which : int, button : int, state : mousestate, x : int, y : int }
+    | E_MouseDown of { button : int, x : int, y : int }
+    | E_MouseUp of { button : int, x : int, y : int }
     | E_JoyAxis
     | E_JoyDown of { which : int, button : int }
     | E_JoyUp of { which : int, button : int }
@@ -268,7 +268,9 @@ sig
     val color : Word8.word * Word8.word * Word8.word * Word8.word -> color
 
     val makescreen : int * int -> surface
-      
+
+    (* src: x, y, w, h   dst: x, y *)
+    val blit : surface * int * int * int * int * surface * int * int -> unit
     val blitall : surface * surface * int * int -> unit
     val pollevent : unit -> event option
 
@@ -300,8 +302,13 @@ sig
 
     val clearsurface : surface * color -> unit
 
+    val blit16x : surface * int * int * int * int  * surface * int * int -> unit
+
     (* draw a pixel to the surface. XXX the alpha component is ignored. *)
     val drawpixel : surface * int * int * color -> unit
+    val getpixel  : surface * int * int -> color
+
+    val fillrect  : surface * int * int * int * int * color -> unit
 
     (* create a version of the surface that's 50% transparent *)
     val alphadim : surface -> surface
