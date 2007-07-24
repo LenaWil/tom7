@@ -218,6 +218,11 @@ int ml_event_mmotion_yrel(SDL_MouseMotionEvent* e) {
   return e->yrel;
 }
 
+int ml_event_mbutton_x(SDL_MouseButtonEvent * e) {return e->x;}
+int ml_event_mbutton_y(SDL_MouseButtonEvent * e) {return e->y;}
+int ml_event_mbutton_button(SDL_MouseButtonEvent * e) {return e->button;}
+
+
 /* XXX should lock before calling (for certain modes)... */
 void ml_drawpixel(SDL_Surface *surf, int x, int y,
 		  int R, int G, int B) {
@@ -262,6 +267,31 @@ void ml_drawpixel(SDL_Surface *surf, int x, int y,
     }
 }
 
+void ml_getpixel(SDL_Surface *surf, int x, int y,
+		 unsigned char * R, unsigned char * G, unsigned char * B) {
+  switch (surf->format->BytesPerPixel) {
+    case 4: // Probably 32-bpp
+      {
+        Uint32 *bufp;
+        bufp = (Uint32 *)surf->pixels + y*surf->pitch/4 + x;
+	SDL_GetRGB(*bufp, surf->format, R, G, B);
+      }
+      break;
+  default:
+    printf("want 32bpp\n");
+    abort();
+    }
+}
+
+void ml_fillrect(SDL_Surface *dst, int x, int y, int w, int h, int r, int g, int b) {
+  Uint32 c = SDL_MapRGB(dst->format, r, g, b);
+  SDL_Rect rect;
+  rect.x = x;
+  rect.y = y;
+  rect.w = w;
+  rect.h = h;
+  SDL_FillRect(dst, &rect, c);
+}
 
 SDL_Surface * ml_alphadim(SDL_Surface * src) {
   /* must be 32 bpp */
