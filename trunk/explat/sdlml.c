@@ -35,6 +35,7 @@ int ml_init() {
   if (SDL_Init (SDL_INIT_VIDEO | 
                 SDL_INIT_TIMER | 
 		SDL_INIT_JOYSTICK |
+		SDL_INIT_AUDIO |
 		/* for debugging */
 		SDL_INIT_NOPARACHUTE |
 		SDL_INIT_AUDIO) < 0) {
@@ -151,6 +152,19 @@ void ml_blitall(SDL_Surface * src, SDL_Surface * dst, int x, int y) {
   // MessageBoxA(0, "Successful Blit", "uh", 0);
 }
 
+void ml_blit(SDL_Surface * src, int srcx, int srcy, int srcw, int srch, 
+	     SDL_Surface * dst, int dstx, int dsty) {
+  SDL_Rect sr;
+  SDL_Rect dr;
+  sr.x = srcx;
+  sr.y = srcy;
+  sr.w = srcw;
+  sr.h = srch;
+  dr.x = dstx;
+  dr.y = dsty;
+  SDL_BlitSurface(src, &sr, dst, &dr);
+}
+
 int ml_surfacewidth(SDL_Surface * src) {
   return src->w;
 }
@@ -179,18 +193,6 @@ int ml_event8_3rd(SDL_Event * e) {
   return (((SDL_KeyboardEvent*)e)->state);
 }
 
-int ml_event8_4th(SDL_Event * e) {
-  return (((SDL_MouseButtonEvent*)e)->state);
-}
-
-int ml_event_mb_x(SDL_Event * e) {
-  return (((SDL_MouseButtonEvent*)e)->x);
-}
-
-int ml_event_mb_y(SDL_Event * e) {
-  return (((SDL_MouseButtonEvent*)e)->y);
-}
-
 int ml_event_keyboard_sym(SDL_KeyboardEvent* e) {
   return e->keysym.sym;
 }
@@ -215,6 +217,11 @@ int ml_event_mmotion_xrel(SDL_MouseMotionEvent* e) {
 int ml_event_mmotion_yrel(SDL_MouseMotionEvent* e) {
   return e->yrel;
 }
+
+int ml_event_mbutton_x(SDL_MouseButtonEvent * e) {return e->x;}
+int ml_event_mbutton_y(SDL_MouseButtonEvent * e) {return e->y;}
+int ml_event_mbutton_button(SDL_MouseButtonEvent * e) {return e->button;}
+
 
 /* XXX should lock before calling (for certain modes)... */
 void ml_drawpixel(SDL_Surface *surf, int x, int y,
@@ -260,6 +267,31 @@ void ml_drawpixel(SDL_Surface *surf, int x, int y,
     }
 }
 
+void ml_getpixel(SDL_Surface *surf, int x, int y,
+		 unsigned char * R, unsigned char * G, unsigned char * B) {
+  switch (surf->format->BytesPerPixel) {
+    case 4: // Probably 32-bpp
+      {
+        Uint32 *bufp;
+        bufp = (Uint32 *)surf->pixels + y*surf->pitch/4 + x;
+	SDL_GetRGB(*bufp, surf->format, R, G, B);
+      }
+      break;
+  default:
+    printf("want 32bpp\n");
+    abort();
+    }
+}
+
+void ml_fillrect(SDL_Surface *dst, int x, int y, int w, int h, int r, int g, int b) {
+  Uint32 c = SDL_MapRGB(dst->format, r, g, b);
+  SDL_Rect rect;
+  rect.x = x;
+  rect.y = y;
+  rect.w = w;
+  rect.h = h;
+  SDL_FillRect(dst, &rect, c);
+}
 
 SDL_Surface * ml_alphadim(SDL_Surface * src) {
   /* must be 32 bpp */
