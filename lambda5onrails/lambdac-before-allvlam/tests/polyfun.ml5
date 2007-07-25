@@ -1,4 +1,0 @@
-unit
-   fun (a, b) f (x : a, y : b) = (y, x)
-in
-end
