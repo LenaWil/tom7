@@ -1,0 +1,47 @@
+unit
+   import "std.mlh"
+   import "dom.mlh"
+
+   (* required for now *)
+   extern bytecode world server
+   extern val alert : string -> unit @ home
+
+   val e = dom.getbyid [page]
+
+   fun growbox c =
+       let
+           val b = dom.getbyid [box[c]]
+           val s = dom.getnode (b, [style])
+
+           fun loops 0 = ()
+             | loops n =
+               let
+                   val px = 
+                       (case n of
+                            5 => [110px]
+                          | 4 => [120px]
+                          | 3 => [130px]
+                          | 2 => [120px]
+                          | 1 => [110px]
+                        )
+               in
+                   dom.setstring (s, [height], px);
+                   loops (n - 1)
+               end
+       in
+           loops 5
+       end
+       
+   do dom.setstring (e, [innerHTML], 
+                     [<table border=2>
+                      <tr>
+                      <td><div id="boxa" onclick="[say growbox [a]]" style="background : #000000; width:100px; height : 100px;">&nbsp;</div></td>
+                      <td><div id="boxb" onclick="[say growbox [b]]" style="background : #000000; width:100px; height : 100px;">&nbsp;</div></td>
+                      <td><div id="boxc" onclick="[say growbox [c]]" style="background : #000000; width:100px; height : 100px;">&nbsp;</div></td>
+                      <td><div id="boxd" onclick="[say growbox [d]]" style="background : #000000; width:100px; height : 100px;">&nbsp;</div></td>
+                      </tr>
+                      </table>
+                      ])
+
+in
+end

@@ -1,0 +1,18 @@
+unit
+   import "std.mlh"
+
+   (* required for now *)
+   extern bytecode world server
+
+   extern val alerti : int -> unit @ home = alert
+   extern val alerts : string -> unit @ home = alert
+
+
+   fun fact 0 = 1
+     | fact n = n * fact (n - 1)
+   
+   do alerts "factorial of 5:"
+   do alerti (fact 5)
+
+in
+end

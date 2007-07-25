@@ -1,0 +1,6 @@
+unit
+   fun loopA (x) : { } = primapp halt { unit } ( )
+
+   do loopA 5
+in
+end

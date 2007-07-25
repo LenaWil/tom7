@@ -1,0 +1,34 @@
+
+Passes to implement:
+
+Hoist
+CPS Optimization
+
+ Should support "extern mobile type" (easy, just check
+ mobility with concrete type at link time); see Dagstuhl
+ talk for compelling example.
+
+
+--------------------------------------------------
+    Things to clean up
+--------------------------------------------------
+
+Extraneous keywords from old compilers.
+Labels support "special" labels; not needed.
+
+
+
+--------------------------------------------------
+    Old bugs from Humlock; mostly obsolete
+--------------------------------------------------
+
+
+BUG: nullary is wrong; we define LESS as nullary and later as exp * exp, and then we can never use LESS.
+
+
+BUG: exhaustiveness warning in bug-exhaust.uml
+
+unsigned comparisons
+signed division
+
+

@@ -1,0 +1,30 @@
+
+val provide-dom = ()
+
+(* The DOM has a few notions of type, sort of. Different
+   elements have different fields, and there is a
+   distinction between documents and elements, etc. All
+   of these are represented as Javascript Objects.
+   For this low-level interface, we pretend there is one
+   universal type, called node, that is used to represent
+   all of these elements. We should also provide a high-level
+   library where these elements are a represnted as a datatype.
+   *)
+extern type dom.node = lc_domnode
+
+extern val dom.doc : dom.node @ home = document
+
+extern val dom.setnode : dom.node * string * dom.node -> unit @ home = lc_domsetobj
+(* eg. dom.setstring(e, "innerHTML", "<b>Welcome to my cool Home Page</b>") *)
+extern val dom.setstring : dom.node * string * string -> unit @ home = lc_domsetobj
+(* XXX many more: appendchild, etc... *)
+
+extern val dom.getnode : dom.node * string -> dom.node @ home = lc_domgetobj
+extern val dom.getstring : dom.node * string -> string @ home = lc_domgetobj
+
+extern val dom.getint : dom.node * string -> int @ home = lc_domgetobj
+extern val dom.setint : dom.node * string * int -> unit @ home = lc_domsetobj
+
+(* document.getelementbyid *)
+extern val dom.getbyid : string -> dom.node @ home = lc_document_getelementbyid
+
