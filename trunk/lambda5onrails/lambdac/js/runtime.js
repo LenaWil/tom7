@@ -606,4 +606,7 @@ function lc_domgetobj(node, field) {
     return node[field];
 };
 
-
+/* XXX should be a prim, not extern */
+function lc_itos(i) {
+    return ''+i;
+};
