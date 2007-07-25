@@ -41,7 +41,7 @@ struct
   fun wtol (W w) = $(V.tostring w)
     | wtol (WC s) = $("##" ^ s)
 
-  fun tftol (bindtol : 'tbind -> L.layout) (ttol : 'ctyp -> L.layout) t =
+  fun tftol (tbindtol : 'tbind -> L.layout) (ttol : 'ctyp -> L.layout) (wbindtol : 'wbind -> L.layout) (wtol : 'world -> L.layout) t =
       (case t of
            Mu (i, m) =>
                (* XXX special case when there is just one *)
@@ -51,7 +51,7 @@ struct
                           (ListUtil.mapi 
                            (fn ((v,t),n) =>
                             %[%[$(itos n), $"as",
-                                bindtol v,
+                                tbindtol v,
                                 $"."], ttol t]) m,
                            "and ")])
          | At (t, w) => L.paren ` %[ttol t, L.indent 2 ` %[$"at", wtol w]]
@@ -63,10 +63,10 @@ struct
                    L.listex "" "" ";"
                    ((case worlds of
                        nil => nil
-                     | _ => [% ($"w:" :: map ($ o V.tostring) worlds)]) @
+                     | _ => [% ($"w:" :: map wbindtol worlds)]) @
                     (case tys of
                        nil => nil
-                     | _ => [% ($"t:" :: map bindtol tys)]) @
+                     | _ => [% ($"t:" :: map tbindtol tys)]) @
                     (case vals of
                        nil => nil
                      | _ => [% [$"v:", L.listex "" "" "," ` map (L.paren o ttol) vals]])
@@ -87,7 +87,7 @@ struct
                           (fn (tl, i) => %[%[$("#" ^ itos i), $ ":"],
                                            L.indent 2 ` %[L.listex "(" ")" "," ` map ttol tl, $"cont"]]) tll]
 
-         | TExists (v, tt) => %[%[$"texists", bindtol v, $"."],
+         | TExists (v, tt) => %[%[$"texists", tbindtol v, $"."],
                                 L.indent 2 ` L.listex "[" "]" "," ` map ttol tt]
          | Product nil => $"unit"
          | Product ltl => recordortuple ttol ":" "(" ")" " *" ltl
@@ -100,8 +100,9 @@ struct
          | Primcon _ => $"XXX-bad-primcon-XXX"
 
          | Addr w => %[wtol w, $"addr"]
+         | TWdict w => %[wtol w, $"wdict"]
 (*
-    | WExists of var * 'ctyp
+    | WExists of 'wbind * 'ctyp
     | Product of (string * 'ctyp) list
 *)
          | TVar v => $(V.tostring v)
@@ -109,7 +110,7 @@ struct
                ) handle Match => $"XXX_MATCH-TYP_XXX"
       (* $"CPS:unknown typ" *)
 
-  fun ttol t = tftol varl ttol (ctyp t) 
+  fun ttol t = tftol varl ttol varl wtol (ctyp t) 
 
   fun vtol v =
       (case cval v of
@@ -183,6 +184,8 @@ struct
          | Unroll v => %[$"unroll", L.indent 2 ` vtol v]
 
          | Dictfor t => %[$"dictfor", ttol t]
+         | WDictfor w => %[$"wdictfor", wtol w]
+         | WDict s => %[$"wdict", $s]
 
          | AllLam {worlds = [v], tys = nil, vals = nil, body = va} => %[%[$"//\\\\", $(V.tostring v), $"."],
                                                                         L.indent 4 ` vtol va]
@@ -226,11 +229,14 @@ struct
                       
          | Dict tf => 
                 %[$"dict",
-                  L.indent 2 ` tftol (fn (tv, vv) => %[varl tv, $"/", varl vv]) vtol tf]
+                  L.indent 2 ` tftol fatl vtol fatl vtol tf]
                    
          | Var v => $(V.tostring v)
          | UVar v => $("~" ^ V.tostring v)
                ) handle Match => $"XXX_MATCH-VAL_XXX"
+
+  (* fat bindings *)
+  and fatl (tv, vv) = %[varl tv, $"/", varl vv]
 
   and etol e = L.align (estol e)
 

@@ -63,6 +63,15 @@
    Representation Invariant 5: 
     TPack always packs a list (sham dict :: ...) as in #4.
 
+
+   We also do the same for worlds, associating each static world
+   variable in scope with a representation. This is considerably
+   simpler because worlds are unstructured (just constants or
+   variables). 
+
+     XXXWD: world representation invariants here
+     
+     for allarrow, we put the wdicts first in the val list.
 *)
 
 structure CPSDict :> CPSDICT =
@@ -83,9 +92,15 @@ struct
       (case ctyp typ of
       (* this is the only case we do anything interesting in *)
          AllArrow {worlds, tys, vals, body} => 
-           AllArrow' { worlds = worlds, tys = tys,
-                       vals = map (Shamrock' o Dictionary' o TVar') tys @ map trt vals, 
+           AllArrow' { worlds = worlds, 
+                       tys = tys,
+                       vals = 
+                       map (Shamrock' o TWdict' o W) worlds @
+                       map (Shamrock' o Dictionary' o TVar') tys @ 
+                       map trt vals,
                        body = trt body }
+       (* actually, letd might generate these when it is implemented in the frontend *)
+       | WExists _ => raise CPSDict "BUG: shouldn't have existential worlds yet (?)"
        (* these are bugs *)
        | TExists _ => raise CPSDict "BUG: shouldn't have existential types yet"
        | Primcon(DICTIONARY, _) => raise CPSDict "BUG: shouldn't see dicts before introducing dicts!"
@@ -97,10 +112,13 @@ struct
     fun tre exp =
       (case cexp exp of
          TUnpack _ => raise CPSDict "BUG: shouldn't see existential type tunpack yet"
+       (* actually, letd might generate these when it is implemented in the frontend *)
+       | WUnpack _ => raise CPSDict "BUG: shouldn't see existential world wunpack yet (?)"
        | ExternType (v, s, NONE, e) => 
            (* kind of trivial *)
            ExternType' (v, s, SOME (mkdictvar v, s ^ DICT_SUFFIX), tre e)
        | ExternType _ => raise CPSDict "BUG: extern type already had dict?"
+       (* nb. nothing to do for extern worlds because those declare constants, not bind variables *)
        | _ => pointwisee trt trv tre exp)
 
     and trv value =
@@ -111,21 +129,28 @@ struct
        | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } => 
            let 
              (* the argument variable, the unshamrocked uvar, its type *)
+             val wvars = map (fn w => (mkdictvar w, mkdictvar w, Shamrock' ` TWdict' ` W w)) worlds
              val dvars = map (fn t => (mkdictvar t, mkdictvar t, Shamrock' ` Dictionary' ` TVar' t)) tys
            in
              AllLam' { worlds = worlds, 
                        tys = tys,
-                       vals = map (fn (sh, _, t) => (sh, t)) dvars @ vals, 
+                       vals = 
+                          map (fn (sh, _, t) => (sh, t)) wvars @ 
+                          map (fn (sh, _, t) => (sh, t)) dvars @ 
+                          vals, 
                        body = 
-                         (* open up the shamrocks, then continue with translated body *)
-                         foldr (fn ((sh, di, t), v) => VLetsham'(di, Var' sh, v)) (trv body) dvars
+                         (* open up the shamrocks, then continue with translated body.
+                            (world dicts and typ dicts are treated the same here) *)
+                         foldr (fn ((sh, di, t), v) => VLetsham'(di, Var' sh, v)) (trv body) (wvars @ dvars)
                        }
            end
        | AllApp { f : cval, worlds : world list, tys : ctyp list, vals : cval list } => 
              AllApp' { f = trv f, worlds = worlds, tys = tys,
                        (* add the dictionaries to the beginning of the value list *)
-                       vals = map (fn t => Sham' (Variable.namedvar "unused", 
-                                                  Dictfor' t)) tys @ map trv vals }
+                       vals = 
+                         map (fn w => Sham0' ` WDictfor' w) worlds @
+                         map (fn t => Sham0' ` Dictfor' t) tys @ 
+                         map trv vals }
        | _ => pointwisev trt trv tre value)
 
     fun translate e = tre e

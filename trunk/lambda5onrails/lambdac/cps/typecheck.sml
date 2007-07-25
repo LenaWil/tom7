@@ -191,6 +191,34 @@ struct
            end)
     end
 
+  fun getwdict (ctx as C { uvars, ... }) wv =
+    let 
+      val m = V.Map.mapPartial (fn t => 
+                                case ctyp t of
+                                  TWdict (W wv') =>
+                                    if V.eq (wv, wv')
+                                    then SOME ()
+                                    else NONE
+                                | _ => NONE) uvars
+    in
+      ignore ` gettype ctx wv;
+      (* finds any match in scope, since "t wdict" is a singleton type *)
+      (case V.Map.listItemsi m of
+         nil => 
+           let in
+             print "\n\nINVARIANT VIOLATION!\n";
+             Layout.print (ctol ctx, print);
+             raise TypeCheck ("invariant violated: no world dictionary for world var " ^
+                              V.tostring wv ^ " in context")
+           end
+       | (l as ((vv, ()) :: _)) =>
+           let in
+             print ("\nDictionaries for worldvar " ^ V.tostring wv ^ "\n");
+             app (fn (vv, ()) => print ("  " ^ V.tostring vv ^ "\n")) l;
+             vv
+           end)
+    end
+
 
   val bindworlds = foldl (fn (v, c) => bindworld c v)
   (* assuming not mobile *)
@@ -274,6 +302,7 @@ struct
     (* XXX check no dupes *)
     | Product stl => ListUtil.appsecond (tok G) stl
     | TVar v => ignore ` gettype G v
+    | TWdict w => wok G w
     | Addr w => wok G w
     | Mu (i, vtl) => 
         let val n = length vtl
@@ -639,12 +668,19 @@ struct
               end
           | _ => raise TypeCheck "tpack as non-existential")
 
+     | WDict s => TWdict' ` WC s
+     | WDictfor w => (wok G w; TWdict' w)
+
      | Dict tf =>
        let
          fun edict' s (Primcon(DICTIONARY, [t])) = t
            | edict' s _ = raise TypeCheck (s ^ " dict with non-dicts inside")
 
+         fun ewdict' s (TWdict w) = w
+           | ewdict' s _ = raise TypeCheck (s ^ " dict with non-wdict inside")
+
          fun edict s t = edict' s ` ctyp t
+         fun ewdict s t = ewdict' s ` ctyp t
        in
          case tf of
             Primcon(pc, dl) =>
@@ -681,8 +717,9 @@ struct
               Dictionary' ` Sum' ` ListUtil.mapsecond (IL.arminfo_map (fn v => edict "sum" ` vok G v)) stl
 
           | Shamrock t => Dictionary' ` Shamrock' ` edict "sham" ` vok G t
-          | Addr w => Dictionary' ` Addr' w
-          | At (t, w) => Dictionary' ` At' (edict "at" ` vok G t, w)
+          | TWdict w => Dictionary' ` TWdict' (ewdict "twdict" ` vok G w)
+          | Addr w => Dictionary' ` Addr' (ewdict "addr" ` vok G w)
+          | At (t, w) => Dictionary' ` At' (edict "at" ` vok G t, ewdict "at" ` vok G w)
           | TExists((v1, v2), vl) =>
               let
                 val G = bindtype G v1 false
@@ -696,11 +733,16 @@ struct
 
           | AllArrow { worlds, tys, vals, body } =>
               let
-                val G = bindworlds G worlds
+                (* static worlds *)
+                val G = bindworlds G (map #1 worlds)
+                (* world representations *)
+                val G = foldr (fn ((w, wd), G) => binduvar G wd (TWdict' ` W w)) G tys
+                (* static types *)
                 val G = foldr (fn ((v1, _), G) => bindtype G v1 false) G tys
+                (* type representations *)
                 val G = foldr (fn ((v1, v2), G) => binduvar G v2 (Dictionary' ` TVar' v1)) G tys
               in
-                Dictionary' ` AllArrow' { worlds = worlds, tys = map #1 tys,
+                Dictionary' ` AllArrow' { worlds = map #1 worlds, tys = map #1 tys,
                                           vals = map (fn v => edict "allarrow" ` vok G v) vals,
                                           body = edict "allarrow-body" ` vok G body }
               end
