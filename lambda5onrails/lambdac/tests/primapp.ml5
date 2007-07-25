@@ -1,6 +1,0 @@
-unit
-   fun halt () = primapp Halt { unit } ( )
-
-in
-    export val p = halt
-end
