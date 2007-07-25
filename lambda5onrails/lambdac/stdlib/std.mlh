@@ -17,6 +17,10 @@ fun (t) :=(r, a) = primapp Set { t } (r, a)
 fun (t) ! r = primapp Get { t } (r)
 fun (t) ref a = primapp Ref { t } (a)
 
+(* XXX should be a prim, since we can do this
+   anywhere *)
+extern val itos : int -> string  @ home = lc_itos
+
 (*
 
 (* install top-level exception handler. *)
