@@ -15,15 +15,17 @@ struct
 
   datatype primcon = VEC | REF | DICTIONARY | INT | STRING | EXN | BYTES
 
-  datatype ('tbind, 'ctyp) ctypfront =
-      At of 'ctyp * world
+  datatype ('tbind, 'ctyp, 'wbind, 'world) ctypfront =
+      At of 'ctyp * 'world
     | Cont of 'ctyp list
     | Conts of 'ctyp list list
-    | AllArrow of { worlds : var list, tys : 'tbind list, vals : 'ctyp list, body : 'ctyp }
-    | WExists of var * 'ctyp
+    | AllArrow of { worlds : 'wbind list, tys : 'tbind list, vals : 'ctyp list, body : 'ctyp }
+    | WExists of 'wbind * 'ctyp
     | TExists of 'tbind * 'ctyp list
     | Product of (string * 'ctyp) list
-    | Addr of world
+    (* the type of a representation of this world *)
+    | TWdict of 'world
+    | Addr of 'world
     (* all variables bound in all arms *)
     | Mu of int * ('tbind * 'ctyp) list
     | Sum of (string * 'ctyp IL.arminfo) list
@@ -32,7 +34,7 @@ struct
     | TVar of var
   (* nb. Binders must be implemented in outjection code below! *)
 
-  datatype ctyp = T of (var, ctyp) ctypfront
+  datatype ctyp = T of (var, ctyp, var, world) ctypfront
 
   datatype primop = 
       LOCALHOST 
@@ -79,8 +81,10 @@ struct
     | Codelab of string
     | Var of var
     | UVar of var
+    | WDictfor of world
+    | WDict of string
     | Dictfor of ctyp
-    | Dict of (var * var, 'cval) ctypfront
+    | Dict of (var * var, 'cval, var * var, 'cval) ctypfront
     | AllLam of { worlds : var list, tys : var list, vals : (var * ctyp) list, body : 'cval }
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
     | VLeta of var * 'cval * 'cval
@@ -155,27 +159,27 @@ struct
 
      XXX use record for these crazy args
      *)
-  and substtfront v se typ var_action tbinds self =
+  and substtfront v se typ var_action tbinds self wbinds wself =
     let 
       fun veq v1 v2 = V.eq(v1, v2)
-      val wself = substw v se
     in
       case typ of
          At (t, w) => At (self t, wself w)
        | Cont l => Cont (map self l)
        | AllArrow { worlds, tys, vals, body } => 
-             if List.exists (veq v) worlds orelse
+             if List.exists (wbinds v) worlds orelse
                 List.exists (tbinds v) tys
              then typ
              else AllArrow { worlds = worlds,
                              tys = tys,
                              vals = map self vals,
                              body = self body }
-       | WExists (vv, t) => if V.eq (v, vv) then typ
+       | WExists (vv, t) => if wbinds v vv then typ
                             else WExists(vv, self t)
        | TExists (tb, t) => if tbinds v tb then typ
                             else TExists(tb, map self t)
        | Product stl => Product ` ListUtil.mapsecond self stl
+       | TWdict w => TWdict (wself w)
        | Addr w => Addr (wself w)
        | Mu (i, vtl) => if List.exists (fn (tb, _) => tbinds v tb) vtl
                         then typ
@@ -194,8 +198,12 @@ struct
   (* substitute var v with type se in a type, observing scope *)
   fun substt v se (T typ) = 
     T (substtfront v se typ (fn vv => if V.eq (v, vv) then se_gett se else TVar vv)
+       (* how to handle type binders (vars), types, world binders (vars), worlds: *)
        (Util.curry V.eq)
-       (substt v se))
+       (substt v se)
+       (Util.curry V.eq)
+       (substw v se)
+       )
 
   (* substitute se for v throughout the expression exp *)
   fun subste v se (E exp) =
@@ -320,12 +328,6 @@ struct
                           if V.eq(vv, v)
                           then ve
                           else vself ve)
-
-         | Dict tf => Dict (substtfront v se tf (fn _ =>
-                                                 raise CPS "dictionaries should not have tvars!")
-                            (* tbinds are just two variables here *)
-                             (fn v1 => fn (v2, v3) => V.eq (v1, v2) orelse V.eq (v1, v3))
-                                                 vself)
          | AllApp { f, worlds, tys, vals } => AllApp { f = vself f, worlds = map wself worlds,
                                                        tys = map tself tys, vals = map vself vals }
          | WPack (w, va) => WPack (wself w, vself va)
@@ -335,7 +337,18 @@ struct
          | Unroll va => Unroll (vself va)
          | Codelab s => Codelab s
          | Roll (t, va) => Roll (tself t, vself va)
+         | WDictfor w => WDictfor ` wself w
+         | WDict s => WDict s
          | Dictfor t => Dictfor ` tself t
+
+         | Dict tf => Dict (substtfront v se tf (fn _ =>
+                                                 raise CPS "dictionaries should not have tvars!")
+                             (* tbinds are just two variables here, typs are vals *)
+                             (fn v1 => fn (v2, v3) => V.eq (v1, v2) orelse V.eq (v1, v3)) vself
+                             (* ditto wbinds, worlds *)
+                             (fn v1 => fn (v2, v3) => V.eq (v1, v2) orelse V.eq (v1, v3)) vself
+                             )
+
          | VTUnpack (vv1, vd, vvl, va, ve) =>
                   VTUnpack (vv1, 
                             vd,
@@ -509,27 +522,36 @@ struct
                              let
                                (* the world vars are world vars, but
                                   the (former) type vars are now val vars. *)
-                               val worlds' = ListUtil.mapto V.alphavary worlds
+                               val (ws1, ws2) = ListPair.unzip worlds
+                               (* the static and dynamic world vars *)
+                               val ws1' = ListUtil.mapto V.alphavary ws1
+                               val ws2' = ListUtil.mapto V.alphavary ws2
+
                                val (tys1, tys2) = ListPair.unzip tys
-                                   
+
                                (* The type vars *)
                                val tys1' = ListUtil.mapto V.alphavary tys1
                                (* the dict vars *)
                                val tys2' = ListUtil.mapto V.alphavary tys2
 
-                               fun rent v = renamevall (renamevall v worlds') tys1'
+                               fun renw v = renamevall (renamevall v ws1') ws2'
+                               fun rent v = renamevall (renw v) tys1'
                                fun renv v = renamevall (rent v) tys2'
                              in 
                                Dict `
-                               AllArrow { worlds = map #2 worlds',
+                               AllArrow { worlds = ListPair.zip(map #2 ws1',
+                                                                map #2 ws2'),
                                           tys    = ListPair.zip(map #2 tys1',
                                                                 map #2 tys2'),
                                           vals   = map renv vals,
                                           body   = renv body }
                              end
-    | cval (V(Dict(WExists (v, t)))) = let val v' = V.alphavary v
-                                       in Dict ` WExists (v', renamev v v' t)
-                                       end
+    | cval (V(Dict(WExists ((v, vd), t)))) = 
+                             let 
+                               val v' = V.alphavary v
+                               val vd' = V.alphavary vd
+                             in Dict ` WExists ((v', vd'), renamev vd vd' ` renamev v v' t)
+                             end
                                      
     | cval (V(Dict(TExists ((v1, v2), t)))) = 
                              let val v1' = V.alphavary v1
@@ -708,6 +730,10 @@ struct
       | (Cont _, _) => LESS
       | (_, Cont _) => GREATER
 
+      | (TWdict w1, TWdict w2) => world_cmp (w1, w2)
+      | (TWdict _, _) => LESS
+      | (_, TWdict _) => GREATER
+
       | (Addr w1, Addr w2) => world_cmp (w1, w2)
       | (Addr _, _) => LESS
       | (_, Addr _) => GREATER
@@ -790,6 +816,7 @@ struct
   val TExists' = fn x => T (TExists x)
   val Product' = fn x => T (Product x)
   val Addr' = fn x => T (Addr x)
+  val TWdict' = fn x => T (TWdict x)
   val Mu' = fn x => T (Mu x)
   val Sum' = fn x => T (Sum x)
   val Primcon' = fn x => T (Primcon x)
@@ -831,6 +858,8 @@ struct
   val Sham' = fn x => V (Sham x)
   val Inj' = fn x => V (Inj x)
   val Roll' = fn x => V (Roll x)
+  val WDict' = fn x => V (WDict x)
+  val WDictfor' = fn x => V (WDictfor x)
   val Dictfor' = fn x => V (Dictfor x)
   val Codelab' = fn x => V (Codelab x)
   val Unroll' = fn x => V (Unroll x)
@@ -861,7 +890,7 @@ struct
 
   (* utility code *)
 
-  fun ontypefront fw f typ =
+  fun ('tbind, 'ctyp, 'wbind, 'world) ontypefront fw f (typ : ('tbind, 'ctyp, 'wbind, 'world) ctypfront) =
     case typ of
       At (c, w) => At (f c, fw w)
     | Cont l => Cont ` map f l
@@ -871,6 +900,7 @@ struct
     | TExists (v, t) => TExists (v, map f t)
     | Product stl => Product ` ListUtil.mapsecond f stl
     | Addr w => Addr ` fw w
+    | TWdict w => TWdict ` fw w
     | Mu (i, vtl) => Mu (i, ListUtil.mapsecond f vtl)
     | Sum sail => Sum ` ListUtil.mapsecond (IL.arminfo_map f) sail
     | Primcon (pc, l) => Primcon (pc, map f l)
@@ -932,8 +962,10 @@ struct
     | Var _ => value
     | UVar _ => value
     | Proj (s, v) => Proj' (s, fv v)
+    | WDict s => value
+    | WDictfor w => WDictfor' ` fw w
     | Dictfor t => Dictfor' ` ft t
-    | Dict tf => Dict' ` ontypefront fw fv tf
+    | Dict tf => Dict' ` ontypefront fv fv tf
     | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } =>
                 AllLam' { worlds = worlds, tys = tys, 
                           vals = ListUtil.mapsecond ft vals, body = fv body }

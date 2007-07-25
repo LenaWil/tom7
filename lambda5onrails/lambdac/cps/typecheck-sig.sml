@@ -43,12 +43,14 @@ sig
 
   val setopts   : context -> checkopt list -> context
 
-  (* clear the dynamic components (vars, uvars) *)
+  (* clear the dynamic components (vars, uvars). for checking that code
+     is closed after closure conversion. *)
   val cleardyn  : context -> context
 
   (* when the dictionary invariant is in place, get the dictionary (as uvar)
      for a type variable *)
   val getdict   : context -> var -> var
+  val getwdict  : context -> var -> var
 
   (* computes the unrolling of a mu *)
   val unroll    : int * (var * ctyp) list -> ctyp

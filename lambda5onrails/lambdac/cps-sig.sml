@@ -23,15 +23,21 @@ sig
     (* marshalled data *)
   | BYTES 
 
-  datatype ('tbind, 'ctyp) ctypfront =
-      At of 'ctyp * world
+  (* Polymorphic since we use this to represent both types as classifiers (static)
+     and types as data (dynamic). 'ctyp and 'world are the recursive instances of
+     types and worlds, and 'tbind and 'wbind are the bindings--for data, these will
+     be "fat" bindings that bind both a static component and a dynamic one. *)
+  datatype ('tbind, 'ctyp, 'wbind, 'world) ctypfront =
+      At of 'ctyp * 'world
     | Cont of 'ctyp list
     | Conts of 'ctyp list list
-    | AllArrow of { worlds : var list, tys : 'tbind list, vals : 'ctyp list, body : 'ctyp }
-    | WExists of var * 'ctyp
+    | AllArrow of { worlds : 'wbind list, tys : 'tbind list, vals : 'ctyp list, body : 'ctyp }
+    | WExists of 'wbind * 'ctyp
     | TExists of 'tbind * 'ctyp list
     | Product of (string * 'ctyp) list
-    | Addr of world
+    (* the type of a representation of this world *)
+    | TWdict of 'world
+    | Addr of 'world
     (* all variables bound in all arms *)
     | Mu of int * ('tbind * 'ctyp) list
     | Sum of (string * 'ctyp IL.arminfo) list
@@ -67,7 +73,7 @@ sig
     | Put of var * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
     | Leta of var * 'cval * 'cexp
-    (* world var, contents var *)
+    (* world var, XXXWD dict, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
     (* typ var, dict var, contents vars *)
     | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
@@ -88,20 +94,25 @@ sig
     | Proj of string * 'cval
     | Record of (string * 'cval) list
     | Hold of world * 'cval
+    (* XXXWD dict *)
     | WPack of world * 'cval
-      (* tpack t as t' dict, [vals] *)
+    (* tpack t as t' dict, [vals] *)
     | TPack of ctyp * ctyp * 'cval * 'cval list
     | Sham of var * 'cval
     | Inj of string * ctyp * 'cval option
     | Roll of ctyp * 'cval
     | Unroll of 'cval
+    (* only after hoisting *)
     | Codelab of string
     | Var of var
     | UVar of var
+    | WDictfor of world
+    (* the only dictionary value is a constant (or a Var standing for one of these) *)
+    | WDict of string
     (* later expanded to the actual dictionary, using invariants established in
        CPSDict and Closure conversion *)
     | Dictfor of ctyp
-    | Dict of (var * var, 'cval) ctypfront
+    | Dict of (var * var, 'cval, var * var, 'cval) ctypfront
     (* supersedes WLam, TLam and VLam. quantifies worlds, types, and vars (in that
        order) over the body, which must be a value itself. applications of vlams
        are considered valuable. *)
@@ -133,12 +144,12 @@ sig
                    main : string }
 
   (* projections and injections *)
-  val ctyp : ctyp -> (var, ctyp) ctypfront
+  val ctyp : ctyp -> (var, ctyp, var, world) ctypfront
   val cexp : cexp -> (cexp, cval) cexpfront
   val cval : cval -> (cexp, cval) cvalfront
   val cglo : cglo -> (cexp, cval) cglofront
 
-  val ctyp' : (var, ctyp) ctypfront -> ctyp
+  val ctyp' : (var, ctyp, var, world) ctypfront -> ctyp
   val cexp' : (cexp, cval) cexpfront -> cexp
   val cval' : (cexp, cval) cvalfront -> cval
   val cglo' : (cexp, cval) cglofront -> cglo
@@ -200,6 +211,7 @@ sig
   val TExists' : var * ctyp list -> ctyp
   val Product' : (string * ctyp) list -> ctyp
   val Addr' : world -> ctyp
+  val TWdict' : world -> ctyp
   val Mu' : int * (var * ctyp) list -> ctyp
   val Sum' : (string * ctyp IL.arminfo) list -> ctyp
   val Primcon' : primcon * ctyp list -> ctyp
@@ -237,6 +249,7 @@ sig
   val Roll' : ctyp * cval -> cval
   val Unroll' : cval -> cval
   val Dictfor' : ctyp -> cval
+  val WDictfor' : world -> cval
   val AllLam' : { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } -> cval
   val AllApp' : { f : cval, worlds : world list, tys : ctyp list, vals : cval list } -> cval
   val Codelab' : string -> cval
@@ -246,7 +259,8 @@ sig
   val VLetsham' : var * cval * cval -> cval
   val Proj' : string * cval -> cval
   val VTUnpack' : var * var * (var * ctyp) list * cval * cval -> cval
-  val Dict' : (var * var, cval) ctypfront -> cval
+  val Dict' : (var * var, cval, var * var, cval) ctypfront -> cval
+  val WDict' : string -> cval
 
   val PolyCode' : var * cval * ctyp -> cglo
   val Code' : cval * ctyp * string -> cglo
