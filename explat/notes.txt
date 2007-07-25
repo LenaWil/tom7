@@ -1,3 +1,0 @@
-
-Interesting: SDL patch that allows arbitrary scaling of video:
-http://garni.ch/dosbox/
