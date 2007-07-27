@@ -159,7 +159,7 @@ struct
 
             val c : CPS.cexp = ToCPS.convert il Initial.home
             val () = print "\n\n**** CPS CONVERTED: ****\n"
-            val () = Layout.print ( CPSPrint.etol c, print)
+            val () =  Layout.print ( CPSPrint.etol c, print)
 
             val G = T.empty cw
             val () = T.check G c
@@ -167,7 +167,7 @@ struct
 
             val c : CPS.cexp = CPSOpt.optimize c
             val () = print "\n\n**** CPS OPT1: ****\n"
-            val () = Layout.print ( CPSPrint.etol c, print)
+            val () =  Layout.print ( CPSPrint.etol c, print)
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"

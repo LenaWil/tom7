@@ -9,7 +9,7 @@ struct
 
   exception JSOpt of string
 
-  fun unimp s = raise JSOpt ("unimplemented javascript construct '" ^ s ^ "' in optimization. (?)")
+  fun unimp s = raise JSOpt ("unimplemented javascript construct '" ^ s ^ "' in optimization.")
 
   structure IS = Id.Set
   structure IM = Id.Map
@@ -44,10 +44,11 @@ struct
      context G, and returns (e, fv, ef) where e is the transformed
      expression, fv is the set of free variables (after substitution),
      and ef is a boolean indicating whether the expression is
-     effectful. (We assume only function calls have effect, because
-     these are the only kinds of effects that we generate now. We
-     should also consider assignments to fields, e.g. as we would do
-     to compile := or array updates, etc. *)
+     effectful. Here effectful refers to code we must execute for
+     its side-effect, not code that is time-sensitive. (So := is
+     effectful but ! is not.)
+
+     *)
 
   fun oe G exp =
     case exp of
@@ -69,7 +70,16 @@ struct
     | Null => (exp, empty, false)
     | Bool _ => (exp, empty, false)
     | Seq _ => unimp "seq"
-    | Assign {lhs, oper, rhs} => unimp "assign"
+    | Assign {lhs, oper, rhs} => 
+        let
+          val (lhs, fvl, _) = oe G lhs
+          val (rhs, fvr, _) = oe G rhs
+        in
+          (* definitely effectful. *)
+          (Assign { lhs = lhs, rhs = rhs, oper = oper },
+           fvl || fvr,
+           true)
+        end
     | Binary {lhs, oper, rhs} => 
         let
           val (lhs, fvl, el) = oe G lhs
@@ -125,10 +135,16 @@ struct
            unionl fvl,
            anyeffect efs)
         end
-    | Select _ => unimp "Select"
+    | Select { object, property } =>
+        let val (object, fv, ef) = oe G object
+            val (property, fvp, efp) = oe G property
+        in
+          (Select { object = object, property = property },
+           fv || fvp, ef orelse efp)
+        end
     | SelectId { object, property } =>
         let val (object, fv, ef) = oe G object
-        in  (SelectId { object = object, property = property }, fv, ef)
+        in  (SelectId { object = object, property = property }, fv, false)
         end
     | Unary _ => unimp "unary"
 
@@ -160,7 +176,10 @@ struct
      (* generally, textually smaller than a var decl and use. if these
         chains are long though, it may not be worth it (could measure
         a cutoff here...) *)
-     | SelectId { object, property } => small object
+     (* can't do this because we use objects to represent references, and !v is not
+        valuable. PERF We could do this whenever the label being projected is not the
+        label we use for references, though. *)
+     (* | SelectId { object, property } => small object *)
      (* PERF: others? *)
      | _ => false)
 
