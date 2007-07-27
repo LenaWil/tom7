@@ -1,7 +1,8 @@
 (* The code in dict.sml establishes an invariant, before closure
    conversion, that associates a dynamic value with each free static
    type variable, so that at any point in the program we can construct
-   the dictionary for a type.
+   the dictionary for a type. We also associate a value with every
+   static world variable.
 
    The dictionary is a dynamic representation of a type. It is used as
    an input to the marshal and unmarshal functions. We also put
@@ -68,10 +69,10 @@
      go_mar (addr, b)
 
 
-   Even though dictionaries are arguments to the marshal function, the
-   real purpose of the dictionary passing invariant is to create the
-   dictionaries that are stored in existential packages. The
-   dictionary argument to the marshal primitive is always the same
+   Thus, even though dictionaries are arguments to the marshal
+   function, the real purpose of the dictionary passing invariant is
+   to create the dictionaries that are stored in existential packages.
+   The dictionary argument to the marshal primitive is always the same
    closed existential type and the marshal function gets the
    information it needs recursively from the dictionary stored inside
    the existential package.
@@ -86,6 +87,11 @@
 
    We'll also translate any 'dictfor' so that it only operates on closed
    types. The translation doesn't affect the type of anything.
+
+   At this point we will have created all of the downstream uses of
+   the dictionary passing invariant, so we no longer need to maintain
+   it explicitly. (This means that, for instance, an optimization pass could
+   remove dictionaries that are not used anywhere.)
 
 *)
 
@@ -336,6 +342,7 @@ struct
      *)
   and makedict_fake G ty = Dictfor' ty
 
+  (* PERF self-check, unnecessary *)
   and makedict G ty =
       let
           val d = makedict' G ty
@@ -355,6 +362,15 @@ struct
                   raise UnDict "makedict produced an ill-typed dictionary"
               end
       end
+
+  and makewdict G (WC s) = WDict' s
+    | makewdict G (W w) =
+    let val () = print ("Get dictionary for wvar " ^ V.tostring w ^ "\n")
+        val u = T.getwdict G w
+    in
+      UVar' u
+    end
+
   and makedict' G ty =
     (case ctyp ty of
        TVar a => 
@@ -381,7 +397,7 @@ struct
      | Product stl => Dict' ` Product(ListUtil.mapsecond (makedict G) stl)
      | Sum stl => Dict' ` Sum(ListUtil.mapsecond (IL.arminfo_map (makedict G)) stl)
 
-     | At (t, w) => Dict' ` At (makedict G t, w)
+     | At (t, w) => Dict' ` At (makedict G t, makewdict G w)
      | Shamrock t => Dict' ` Shamrock ` makedict G t
      | Primcon (pc, tl) => 
          let 
@@ -395,7 +411,7 @@ struct
          end
      | Cont tl => Dict' ` Cont ` map (makedict G) tl
      | Conts tll => Dict' ` Conts ` map (map (makedict G)) tll
-     | Addr w => Dict' ` Addr w
+     | Addr w => Dict' ` Addr ` makewdict G w
      | TExists (v, tl) =>
          let
            val G = bindtype G v false
@@ -404,15 +420,20 @@ struct
          in
            Dict' ` TExists((v,ud), map (makedict G) tl)
          end
-     | AllArrow { worlds, tys, vals, body } =>
+     | AllArrow { worlds : var list, tys : var list, vals : ctyp list, body : ctyp } =>
          let
+           val wvys = map (fn v => (v, V.namedvar "aawdict")) worlds
            val tvys = map (fn v => (v, V.namedvar "aadict")) tys
-           
+
+           (* Static components *)
            val G = bindworlds G worlds
-           val G = bindtypes G (map #1 tvys)
+           val G = bindtypes G tys
+
+           (* Dynamic components *)
+           val G = foldr (fn ((v, u), G) => binduvar G u (TWdict' ` W v)) G wvys
            val G = foldr (fn ((v, u), G) => binduvar G u (Dictionary' ` TVar' v)) G tvys
          in
-           Dict' ` AllArrow { worlds = worlds,
+           Dict' ` AllArrow { worlds = wvys,
                               tys = tvys,
                               vals = map (makedict G) vals,
                               body = makedict G body }

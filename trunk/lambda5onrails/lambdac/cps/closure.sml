@@ -365,33 +365,40 @@ struct
      expression or value). We do the same for world variables, which
      are also represented.
 
-     XXXWD here. (should be the only place in closure conversion...)
-
      *)
-  and augmentfreevars G { w = _, t = ft } fv fuv =
+  and augmentfreevars G { w = fw, t = ft } fv fuv =
     let
       (* the types we'll also scour *)
       val fvt = map (#1 o T.getvar G) ` V.Set.listItems fv
       val fuvt = map (T.getuvar G) ` V.Set.listItems fuv
 
-      (* first, the literally occurring type variables *)
-      (* val { w = _, t = ft } = freesvarsv value *)
-      val lit = V.Set.map (T.getdict G) ft
-      val () = print "\naug literal: " 
-      val () = V.Set.app (fn v => print (V.tostring v ^ " ")) fuv
+      (* first, the literally occurring world vars *)
+      val litw = V.Set.map (T.getwdict G) fw
+      val () = print "\naug literalw: "
+      val () = V.Set.app (fn v => print (V.tostring v ^ " ")) litw
 
+      (* then, the literally occurring type variables *)
+      val litt = V.Set.map (T.getdict G) ft
+      val () = print "\naug literalt: " 
+      val () = V.Set.app (fn v => print (V.tostring v ^ " ")) litt
+
+      (* indirect world and type vars appearing in the types of other stuff *)
       val iv = foldl (fn (t, set) =>
                       let
-                        val { w = _, t = tv } = freesvarst t
+                        val { w = wv, t = tv } = freesvarst t
+                        val set = V.Set.union(set, V.Set.map (T.getwdict G) wv)
+                        val set = V.Set.union(set, V.Set.map (T.getdict G)  tv)
                       in
-                        V.Set.union (set, V.Set.map (T.getdict G) tv)
+                        set
                       end) V.Set.empty (fvt @ fuvt) 
+
+      (* XXX are we missing world vars in the judgments? *)
 
       val () = print "\naug indirect: " 
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) iv
     in
       print "\n";
-      V.Set.union (fuv, V.Set.union (lit, iv))
+      V.Set.union (fuv, V.Set.union(litw, V.Set.union (litt, iv)))
     end
 
   (* Convert the value v; 

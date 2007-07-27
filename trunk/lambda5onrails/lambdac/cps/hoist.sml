@@ -353,6 +353,8 @@ struct
                 contsty)
              end
 
+         | WDict s => (WDict' s, TWdict' (WC s))
+
          (* purely static alllams are not converted. *)
          | AllLam { worlds, tys, vals = vals as nil, body } => 
              let
@@ -605,8 +607,11 @@ struct
            let
              fun edict' s (Primcon(DICTIONARY, [t])) = t
                | edict' s _ = raise Hoist (s ^ " dict with non-dicts inside")
+             fun ewdict' s (TWdict w) = w
+               | ewdict' s _ = raise Hoist (s ^ " wdict with non-dicts inside")
 
              fun edict s t = edict' s ` ctyp t
+             fun ewdict s t = ewdict' s ` ctyp t
            in
              case tf of
                 Primcon(pc, dl) =>
@@ -676,13 +681,18 @@ struct
                      Dictionary' ` Conts' tll)
                   end
 
-              | Addr w => (Dict' ` Addr w, Dictionary' ` Addr' w)
+              | Addr w => 
+                  let val (w, t) = cv G w
+                  in
+                    (Dict' ` Addr w, Dictionary' ` Addr' (ewdict "addr" t))
+                  end
               | At (d, w) => 
                   let
                     val (d, t) = cv G d
+                    val (w, tw) = cv G w
                   in
                     (Dict' ` At (d, w),
-                     Dictionary' ` At' (edict "at" t, w))
+                     Dictionary' ` At' (edict "at" t, ewdict "at" tw))
                   end
 
               | TExists((v1, v2), vl) =>
@@ -719,7 +729,8 @@ struct
 
               | AllArrow { worlds, tys, vals, body } =>
                   let
-                    val G = bindworlds G worlds
+                    val G = bindworlds G (map #1 worlds)
+                    val G = foldr (fn ((v1, v2), G) => binduvar G v2 (TWdict' ` W v1)) G worlds
                     val G = foldr (fn ((v1, _), G) => bindtype G v1 false) G tys
                     val G = foldr (fn ((v1, v2), G) => binduvar G v2 (Dictionary' ` TVar' v1)) G tys
 
@@ -727,7 +738,7 @@ struct
                     val (body, bodyt) = cv G body
                   in
                     (Dict' ` AllArrow { worlds = worlds, tys = tys, vals = vals, body = body },
-                     Dictionary' ` AllArrow' { worlds = worlds, tys = map #1 tys,
+                     Dictionary' ` AllArrow' { worlds = map #1 worlds, tys = map #1 tys,
                                                vals = map (edict "allarrow") valts,
                                                body = edict "allarrow-body" bodyt })
                   end
@@ -747,7 +758,7 @@ struct
 
       val homelab = (case home of
                        WC h => h
-                     | W _ => raise Hoist "can only hoist convert at a constant world.")
+                     | W _ => raise Hoist "can only begin hoist conversion at a constant world.")
 
       val entry = (mainlab, Code'((* no free static things, but conform to conventions *)
                                   AllLam' { worlds = nil, tys = nil, vals = nil,
