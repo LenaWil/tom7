@@ -24,6 +24,9 @@
    A sum is represented as an object { t, v } or { t } where t is the tag (as a string)
    and v is the embedded value, if any.
 
+   A local reference is represented as an object with a field v, containing the value.
+   A remote reference is represented as an integer.
+
    Dictionaries are represented as follows
  
     { w : tag, ... } where 
@@ -347,7 +350,12 @@ struct
                                                  oper = B.Add (* is also string concat, sigh *) }) 
                    first rest
         | primexp (P.PJointext _) _ = raise JSCodegen "jointext argument length mismatch"
-        
+
+        (* references *)
+        | primexp P.PRef [init] = Object ` %[prop "v" init]
+        | primexp P.PGet [obj]  = Sel obj "v"
+        | primexp P.PSet [obj, va] = Assign { lhs = Sel obj "v", oper = AssignOp.Equals, rhs = va }
+
         | primexp po _ = raise JSCodegen ("unimplemented native primop " ^ Podata.tostring po)
 
       fun cvte exp : Statement.t list =
