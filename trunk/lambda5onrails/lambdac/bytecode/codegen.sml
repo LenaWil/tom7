@@ -69,13 +69,17 @@ struct
                (* this is the set of locally bound dictionary variables.
                   we'll turn these into string lookups if we see them. *)
                val G = V.Set.empty
-               fun cd G (C.At (t, _)) = cdict G t
-                 | cd G (C.Cont _)  = Dp Dcont
+               fun cd G (C.Cont _)  = Dp Dcont
                  | cd G (C.Conts _) = Dp Dconts
+                 (* XXX should record the world *)
+                 | cd G (C.At (t, _)) = cdict G t
                  | cd G (C.Primcon (C.INT, nil)) = Dp Dint
                  | cd G (C.Primcon (C.STRING, nil)) = Dp Dstring
                  (* don't care what t is; all dicts represented the same way *)
                  | cd G (C.Primcon (C.DICTIONARY, [t])) = Dp Ddict
+                 (* ditto. *)
+                 | cd G (C.Primcon (C.REF, [_])) = Dp Dref
+                 (* always represented the same way, regardless of which world *)
                  | cd G (C.Addr _) = Dp Daddr
                  | cd G (C.Product stl) = Drec ` 
                              map (fn (l, e) => ("l" ^ l, cdict G e)) stl
