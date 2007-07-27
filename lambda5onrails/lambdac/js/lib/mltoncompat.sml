@@ -2,7 +2,11 @@
 structure MLtonCompat =
 struct
 
-  (* compatibility stubs to use the existing basis library *)
+  (* The mlton folks are working on a redesign of the basis
+     library that adds a bunch of functionality but also changes
+     some fundamental things. The rest of Lambdac uses the
+     existing basis library, so in order to use the JS lib,
+     we need some compatibility stubs. *)
 
   (* folds left; see ENUMERABLE in mltonlib/com/sweeks *)
   fun vector_fold (v, b, f) = Vector.foldl f b v

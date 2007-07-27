@@ -1,14 +1,20 @@
 
-    README         Tom Murphy          14 Aug 2006
+    README         Tom Murphy          27 Jul 2007
 
 The program lambdac compiles Lambda 5 on Rails code to client side
 Javascript and server-side bytecode. Its lineage is complex:
     mtex -> hemlock -> aphasia2 -> humlock -> lambdac.
 
-Hemlock is documented in "ML Grid Programming in ConCert" by
-Tom Murphy VII in the SIGPLAN ML Workshop 2006. Documentation for
-Humlock will be available soon.
+Hemlock is documented in "ML Grid Programming in ConCert" by Tom
+Murphy VII in the SIGPLAN ML Workshop 2006. Humlock is described in
+the 2006 Tech Report "The Cult of the Bound Variable: The 9th Annual
+ICFP Programming Contest" (CMU-CS-06-163) and documented briefly in
+the corresponding source release (http://boundvarible.org/).
 
-Right now it is a partially rewritten gutted version of Humlock, so
-don't surprised that the compiler always fails.
-
+Currently the CPS representation in the middle-end is engineered for
+correctness, not speed. This means that it does O(n^2) or worse
+traversals of the abstract syntax for some phases. Thus the compiler
+is limited to medium-sized examples for the time being. It should not
+be difficult to reimplement the CPS structure with de Bruijn indices
+or explicit substitutions to gain orders of magnitude better
+performance.

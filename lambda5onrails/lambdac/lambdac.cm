@@ -162,7 +162,6 @@ cps/dict.sml
 cps/closure-sig.sml
 cps/closure.sml
 
-(*
 cps/undict-sig.sml
 cps/undict.sml
 
@@ -194,7 +193,8 @@ bytecode/bytecode.sml
 bytecode/print.sml
 bytecode/codegen-sig.sml
 bytecode/codegen.sml
-(* XXX not necessary *)
+(* XXX not necessary for lambdac;
+   currently used only in the server *)
 bytecode/tokens.sml
 bytecode/tokenize-sig.sml
 bytecode/tokenize.sml
@@ -212,5 +212,3 @@ codegen/write.sml
 compile.sml
 
 (* sandbox.sml *)
-
-*)
