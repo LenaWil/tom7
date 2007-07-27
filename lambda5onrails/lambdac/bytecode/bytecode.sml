@@ -35,6 +35,7 @@ struct
 
     | Marshal of exp * exp
 
+    | Dat of { d : exp, a : exp }
     | Dp of primdict
     | Drec of (string * exp) list
     | Dsum of (string * exp option) list

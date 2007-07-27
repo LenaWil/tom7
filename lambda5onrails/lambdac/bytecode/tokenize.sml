@@ -168,7 +168,8 @@ struct
        ("DEXISTS", DEXISTS),
        ("DALL", DALL),
        ("DMU", DMU),
-       ("DLOOKUP", DLOOKUP)
+       ("DLOOKUP", DLOOKUP),
+       ("DAT", DAT)
 
        ]
 

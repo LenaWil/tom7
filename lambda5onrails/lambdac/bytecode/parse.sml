@@ -78,9 +78,10 @@ struct
     || `DREC >> repeated (label && $exp) wth Drec
     || `DSUM >> repeated (label && bopt ($exp)) wth Dsum
     || `DLOOKUP >> id wth Dlookup
-    || `DEXISTS >> id && repeated ($exp) wth (fn (a,b) => Dexists { d = a,
-                                                                    a = b })
+    || `DEXISTS >> id && repeated ($exp) wth (fn (d,a) => Dexists { d = d,
+                                                                    a = a })
     || `DALL >> repeated id && $exp wth Dall
+    || `DAT >> $exp && $exp wth (fn (d, a) => Dat { d = d, a = a })
 
     || `PROJ -- punt "parse error after PROJ"
     || `RECORD -- punt "parse error after RECORD"
@@ -93,6 +94,7 @@ struct
     || `DLOOKUP -- punt "parse error after DLOOKUP"
     || `DEXISTS -- punt "parse error after DEXISTS"
     || `DALL -- punt "parse error after DALL"
+    || `DAT -- punt "parse error after DAT"
 
     || number wth Int
     || strlit wth String

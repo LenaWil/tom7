@@ -79,9 +79,11 @@ struct
          | _ => raise Execute "jump needs two ints, args")
     | B.Go (addr, bytes) =>
            (case (evaluate i G addr, evaluate i G bytes) of
-              (B.String "server", B.String bytes) => come i bytes
-            | (B.String "home", B.String bytes) => addmessage i bytes
-            | (B.String huh, B.String bytes) => raise Execute ("unrecognized world " ^ huh)
+              (B.String addr, B.String bytes) =>
+                (if addr = Worlds.server
+                 then come i bytes
+                 else if addr = Worlds.home then addmessage i bytes
+                      else raise Execute ("unrecognized world " ^ addr))
             | _ => raise Execute "go needs two strings")
 
     | B.Error s => raise Execute ("error: " ^ s)
@@ -109,6 +111,8 @@ struct
 
     | B.Dp _ => exp
     | B.Dlookup _ => exp
+    | B.Dat { d, a } => B.Dat { d = evaluate i G d,
+                                a = evaluate i G a }
     | B.Drec sel => B.Drec ` ListUtil.mapsecond (evaluate i G) sel
     | B.Dsum seol => B.Dsum ` ListUtil.mapsecond (Option.map (evaluate i G)) seol
     | B.Dexists { d, a } => B.Dexists { d = d, a = map (evaluate i G) a }

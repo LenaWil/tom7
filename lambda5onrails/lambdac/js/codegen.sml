@@ -32,12 +32,15 @@
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s, v, A, r
+      DP       p : c, C, a, d, i, s, v, A, r, w
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DE       d : String, v : array of Object
       DL       s : String
       DA       s : array of String, v : Object
+      D@       v : Object, a : String
+
+   World dictionaries are represented as strings.
 *)
 structure JSCodegen :> JSCODEGEN =
 struct
@@ -95,6 +98,8 @@ struct
          | C.AllLam { worlds, tys, vals = nil, body } => cvtv body k
          | C.AllApp { worlds, tys, vals = nil, f } => cvtv f k
 
+         (* assuming these are all small *)
+         | C.WDict s => k ` String ` String.fromString s
          | C.Dict d => 
              let
 (*
@@ -104,12 +109,14 @@ struct
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s, v or A
+      DP       p : c, C, a, d, i, s, v, r, or A, w
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DE       d : String, v : array of Object
-      DL       s : String
-      DA       s : array of String, v : Object
+      DL       s : String  (lookup this var for typedict)
+      DW       s : String  (lookup this var for worlddict)
+      DA       s : array of String, w : array of String, v : Object
+      D@       v : Object, a : String
 *)
 
                val s = String o String.fromString
@@ -122,10 +129,12 @@ struct
                   we'll turn these into string lookups if we see them. *)
 
                val G = V.Set.empty
-               fun cd G (C.At (t, _)) = cdict G t
-                 | cd G (C.Shamrock t) = cdict G t
+               fun cd G (C.Shamrock t) = cdict G t
                  | cd G (C.Cont _)  = dict "DP" [("p", s"c")]
                  | cd G (C.Conts _) = dict "DP" [("p", s"C")]
+                 | cd G (C.At (t, w)) = dict "D@" [("v", cdict G t),
+                                                   ("a", cwdict G w)]
+                 | cd G (C.Primcon (C.REF, [_])) = dict "DP" [("p", s"r")]
                  | cd G (C.Primcon (C.INT, nil)) = dict "DP" [("p", s"i")]
                  | cd G (C.Primcon (C.STRING, nil)) = dict "DP" [("p", s"s")]
                  (* don't care what t is; all dicts represented the same way *)
@@ -144,15 +153,18 @@ struct
                                       ("v", Array ` % ` map (SOME o cdict G) tl)]
                          end
 
-                 (* If static, then we just need to keep track of the type variables
-                    that are bound. (But just for cleanliness at runtime. We should
-                    never have to marshal e.g.  /\a. (int * a)) *)
-                 | cd G (C.AllArrow {worlds = _, tys, vals = nil, body }) =
+                 (* If static, then we just need to keep track of the type and world
+                    variables that are bound. (Types are just for cleanliness at 
+                    runtime. We should never have to marshal e.g. /\a. (int * a)) *)
+
+                 | cd G (C.AllArrow {worlds, tys, vals = nil, body }) =
                          let
+                           val worlds = map #2 worlds
                            val tys = map #2 tys
-                           val G = foldl (fn (v, G) => V.Set.add(G, v)) G tys
+                           val G = foldl (fn (v, G) => V.Set.add(G, v)) G (worlds @ tys)
                          in
-                           dict "DA" [("s", Array ` % ` map (SOME o String o vtos) tys),
+                           dict "DA" [("w", Array ` % ` map (SOME o String o vtos) worlds),
+                                      ("s", Array ` % ` map (SOME o String o vtos) tys),
                                       ("v", cdict G body)]
                          end
 
@@ -167,6 +179,15 @@ struct
 
                    s"unimplemented"
                  end
+
+               and cwdict G e =
+                 case C.cval e of
+                   C.WDict s => String ` String.fromString s
+                 | C.UVar u => 
+                         if V.Set.member (G, u)
+                         then dict "DW" [("s", String ` vtos u)]
+                         else Id ` vtoi u
+                 | _ => raise JSCodegen "when converting dict, expected to see just wdicts and vars"
 
                and cdict G e =
                  case C.cval e of
@@ -263,6 +284,7 @@ struct
               Bind (vtoi v, va) :: cvtv c k)
 
          | C.Dictfor _ => raise JSCodegen "should not see dictfor in js codegen"
+         | C.WDictfor _ => raise JSCodegen "should not see wdictfor in js codegen"
          | C.Lams _ => raise JSCodegen "should not see lams except at top level in js codegen"
          | C.AllLam { vals = _ :: _, ... } => 
              raise JSCodegen "should not see non-static alllam in js codegen"
@@ -427,6 +449,9 @@ struct
                      Bind(env, Sel k "v0") ::
                      Bind(f,   Sel k "v1") ::
                      (* c is the identifier (int) for this delayed call *)
+                     (* we could maybe use marshaling here to create the string,
+                        but it is cheaper to just save it in a table and use
+                        an integer to identify it, since this shouldn't leave the world. *)
                      Bind(c, 
                           Call { func = Id saveentry,
                                  args = %[Sel (Id f) "g",
@@ -444,13 +469,6 @@ struct
                      end :: cvte e
 
                      ))))
-              
-                 (* XXX hmm, don't want to have to be able to tostring any arbitrary data,
-                    so we'll want to put it in a global array and instead identify it by
-                    a number here. *)
-                 (* [Throw ` String ` String.fromString "unimplemented say_cc"] *)
-                 (* raise JSCodegen "unimplemented say_cc" *)
-              (* Bind(vtoi v, String ` String.fromString "alert('unimplemented say_cc')") :: cvte e *)
 
             | C.Primop _ => (* [Throw ` String ` String.fromString "unimplemented primop"] *)
                             raise JSCodegen "unimplemented or bad primop"

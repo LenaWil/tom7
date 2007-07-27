@@ -235,8 +235,14 @@ struct
                      the whole program that we ought to keep even if it's
                      never used elsewhere (globalsave) *)
                   if ef orelse fvs ?? i orelse globalsave ?? i
-                  then (* keep it *)
-                    ((Var ` %[(i, SOME e)]) :: sl, fv || (fvs -- i))
+                  then 
+                    (if fvs ?? i orelse globalsave ?? i
+                     then
+                       (* effective and used. keep it *)
+                       ((Var ` %[(i, SOME e)]) :: sl, fv || (fvs -- i))
+                     else
+                       (* well, we don't need to name it but we have to run it. *)
+                       (Exp e :: sl, fv || fvs))
                   else
                     (* drop the binding; unused *)
                     let in

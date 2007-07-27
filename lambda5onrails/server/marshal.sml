@@ -39,20 +39,20 @@ struct
           NONE => raise Marshal "um expected urlencoded addr"
         | SOME s => s
 
-      fun um G (Dlookup s) =
+      fun um G loc (Dlookup s) =
         (case SM.find (G, s) of
            NONE => raise Marshal "um dlookup not found"
-         | SOME d => um G d)
-        | um G (Dp Dint) = Int ` int ()
-        | um G (Dp Dconts) = Int ` int ()
-        | um G (Dp Dcont) = Record [("g", Int ` int ()),
+         | SOME d => um G loc d)
+        | um G loc (Dp Dint) = Int ` int ()
+        | um G loc (Dp Dconts) = Int ` int ()
+        | um G loc (Dp Dcont) = Record [("g", Int ` int ()),
                                     ("f", Int ` int ())]
-        | um G (Dp Dstring) = String ` string ()
-        | um G (Dp Daddr) = String ` addr ()
-        | um G (Dexists {d,a}) =
+        | um G loc (Dp Dstring) = String ` string ()
+        | um G loc (Dp Daddr) = String ` addr ()
+        | um G loc (Dexists {d,a}) =
            let
              val () = print ("dex get dict:\n")
-             val thed = um G (Dp Ddict)
+             val thed = um G loc (Dp Ddict)
              val G = SM.insert(G, d, thed)
            in
              print ("dex got dict, now " ^ Int.toString (length a) ^ "\n");
@@ -60,10 +60,10 @@ struct
                      (* then 'n' expressions ... *)
                      ListUtil.mapi (fn (ad, i) =>
                                     ("v" ^ Int.toString i,
-                                     um G ad)) a)
+                                     um G loc ad)) a)
            end
-        | um G (Dp Dvoid) = raise Marshal "can't unmarshal at void"
-        | um G (Dp Ddict) =
+        | um G loc (Dp Dvoid) = raise Marshal "can't unmarshal at void"
+        | um G loc (Dp Ddict) =
           (case tok () of
              "DP" => Dp (case tok () of
                            "c" => Dcont
@@ -74,6 +74,13 @@ struct
                          | "s" => Dstring
                          | "v" => Dvoid
                          | _ => raise Marshal "um bad primdict?")
+           | "D@" =>
+               let
+                 val d = um G loc ` Dp Ddict
+                 val w = String ` addr ()
+               in
+                 Dat { d = d, a = w }
+               end
            | "DL" => Dlookup (tok ())
            | "DR" =>
                let val n = IntConst.toInt ` int ()
@@ -82,18 +89,18 @@ struct
                  (* then n, then n lab/dict pairs *)
                  Drec ` List.tabulate(n,
                                       fn i =>
-                                      (tok (), um G (Dp Ddict)))
+                                      (tok (), um G loc (Dp Ddict)))
                end
            | "DE" =>
                let
                  val d = tok ()
                  val n = IntConst.toInt ` int ()
                in
-                 Dexists { d = d, a = List.tabulate(n, fn i => um G ` Dp Ddict) }
+                 Dexists { d = d, a = List.tabulate(n, fn i => um G loc ` Dp Ddict) }
                end
            | s => raise Marshal ("um unimplemented " ^ s))
 
-        | um G (Drec sel) =
+        | um G loc (Drec sel) =
              Record ` map (fn (s, d) =>
                            let
                              val s' = tok ()
@@ -101,23 +108,23 @@ struct
                              (* the format is redundant *)
                              print ("unmarshal label " ^ s ^ "\n");
                              if s' = s
-                             then (s', um G d)
+                             then (s', um G loc d)
                              else raise Marshal "unmarshal drec label mismatch"
                            end) sel
 
-        | um G (Dsum _) = raise Marshal "unmarshal dsum unimplemented"
+        | um G loc (Dsum _) = raise Marshal "unmarshal dsum unimplemented"
 
-        | um _ (Record _) = raise Marshal "um: not dict"
-        | um _ (Project _) = raise Marshal "um: not dict"
-        | um _ (Primcall _) = raise Marshal "um: not dict"
-        | um _ (Var _) = raise Marshal "um: dict not closed"
-        | um _ (Int _) = raise Marshal "um: not dict"
-        | um _ (String _) = raise Marshal "um: not dict"
-        | um _ (Inj _) = raise Marshal "um: not dict"
-        | um _ (Bytecode.Marshal _) = raise Marshal "um: not dict"
+        | um _ _ (Record _) = raise Marshal "um: not dict"
+        | um _ _ (Project _) = raise Marshal "um: not dict"
+        | um _ _ (Primcall _) = raise Marshal "um: not dict"
+        | um _ _ (Var _) = raise Marshal "um: dict not closed"
+        | um _ _ (Int _) = raise Marshal "um: not dict"
+        | um _ _ (String _) = raise Marshal "um: not dict"
+        | um _ _ (Inj _) = raise Marshal "um: not dict"
+        | um _ _ (Bytecode.Marshal _) = raise Marshal "um: not dict"
         
     in
-      um G dict
+      um G Worlds.server dict
     end
 
   fun marshal (dict : exp) (value : exp) : string = 
