@@ -196,19 +196,21 @@ lc_tokstream.prototype.showrest = function () {
 var lc_locals = [];
 
 function lc_add_local(ob) {
+    lc_message('adding a local.');
     lc_locals.push(ob);
     return lc_locals.length - 1;
 };
 
 /* dictionary used for references */
 // var lc_ref_dict = { w : "DF", l : "home" };
+// XXX WRONG
 var lc_ref_dict = { w : "DP", p : "r" };
 
 /*
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s, v, A, r
+      DP       p : c, C, a, d, i, s, v, A, r, w
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DE       d : String, v : array of Object
@@ -227,7 +229,8 @@ function lc_lookup(G, s) {
     return undefined;
 };
 
-var lc_dictdict = { w : "DP", p : "d" };
+var lc_dictdict  = { w : "DP", p : "d" };
+var lc_wdictdict = { w : "DP", p : "w" };
 function lc_umg(G, d, b) {
     /* DR 11 DP i 2 0 1 1234 */
     switch(d.w) {
@@ -444,44 +447,53 @@ function lc_make_toclient() {
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s or v
+      DP       p : c, C, a, d, i, s, v, r, or A
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DE       d : String, v : array of Object
-      DL       s : String
+      DL       s : String  (lookup this var for typedict)
+      DW       s : String  (lookup this var for worlddict)
+      DA       s : array of String, w : array of String, v : Object
+      D@       v : Object, a : String
 */
 
-function lc_marshalg(G, dict, va) {
+function lc_marshalg(G, loc, dict, va) {
     switch(dict.w) {
     case "DR": {
 	var s = '';
 	for(var i = 0; i < dict.v.length; i ++) {
-	    s += ' ' + dict.v[i].l + ' ' + lc_marshalg(G, dict.v[i].v, va[dict.v[i].l]);
+	    s += ' ' + dict.v[i].l + ' ' + lc_marshalg(G, loc, dict.v[i].v, va[dict.v[i].l]);
 	}
 	return s;
     }
-    case "DF": {
-	/* if dict.l isn't "home", then we treat this just like an int. */
-	if (dict.l != "home") {
-	    return ''+va;
-	} else {
-	    /* otherwise, put in local refs */
-	    var i = lc_add_local(va);
-	    return ''+i;
-	}
+    case "D@": {
+	/* just changes focus */
+	return lc_marshalg(G, dict.a, dict.v, va);
     }
     case "DP": {
 	switch(dict.p) {
 	case "c": return va.g + ' ' + va.f;
 	case "C": return ''+va;
+	case "A": return ''+va; /* allarrow is a number */
 	case "a": return escape(va);
 	/* always prepend a period so that parsing won't be confused
            by the empty string */
 	case "s": return '.' + escape(va);
 	case "i": return ''+va;
 	case "r": {
-	    
+	    /* when marshaling a ref, we have different behavior depending
+               on where the ref lives. If it is a local ref (loc is "home")
+               then we put it in a table. If it is a remote ref, then it
+               is already represented as a remote label (int) so we just
+               marshal it as an integer. */
+	    if (loc == "home") {
+		var i = lc_add_local(va);
+		return ''+i;
+	    } else {
+		return ''+va;
+	    }
 	}
+        case "w": return escape(va);
 	case "d": {
 	    /* ah, how the tables have turned! */
 	    switch (va.w) {
@@ -495,19 +507,23 @@ function lc_marshalg(G, dict, va) {
 		var s = 'DR ' + va.v.length;
 		for(var i = 0; i < va.v.length; i ++) {
 		    /* it is filled with dictionaries as well */
-		    s += ' ' + va.v[i].l + ' ' + lc_marshalg(G, lc_dictdict, va.v[i].v);
+		    s += ' ' + va.v[i].l + ' ' + lc_marshalg(G, loc, lc_dictdict, va.v[i].v);
 		}
 		return s;
 	    }
 	    case "DE": {
 		var s = 'DE ' + va.d + ' ' + va.v.length;
 		for(var i = 0; i < va.v.length; i ++) {
-		    s += ' ' + lc_marshalg(G, lc_dictdict, va.v[i]);
+		    s += ' ' + lc_marshalg(G, loc, lc_dictdict, va.v[i]);
 		}
 		return s;
 	    }
 	    case "DF": {
 		return 'DF ' + escape(va.l);
+	    }
+	    case "D@": {
+		return 'D@ ' + lc_marshalg(G, loc, lc_dictdict, va.v) + ' ' +
+		    lc_marshalg(G, loc, lc_wdictdict, va.a);
 	    }
 	    default:
 		alert('unimplemented dict to be marshaled: ' + va.w);
@@ -519,7 +535,7 @@ function lc_marshalg(G, dict, va) {
 	    throw 0;
 	}
 	default:
-	    alert('bad dp dict');
+	    alert('bad dp dict:' + dict.p);
 	    throw 0;
 	}
 	break;
@@ -527,7 +543,7 @@ function lc_marshalg(G, dict, va) {
     case "DE": {
 	var thed = va.d;
 	/* marshal the dictionary */
-	var s = lc_marshalg(G, lc_dictdict, thed);
+	var s = lc_marshalg(G, loc, lc_dictdict, thed);
 
 	/* PERF hmm. could use prototype? but then lookup is slower... */
 	
@@ -537,7 +553,7 @@ function lc_marshalg(G, dict, va) {
 
 	/* then add all the components */
 	for(var i = 0; i < dict.v.length; i ++) {
-	    s += ' ' + lc_marshalg(G2, dict.v[i], va['v' + i]);
+	    s += ' ' + lc_marshalg(G2, loc, dict.v[i], va['v' + i]);
 	}
 	return s;
     }
@@ -547,7 +563,7 @@ function lc_marshalg(G, dict, va) {
 	    alert('marshal dl failed: ' + dict.s);
 	    throw(0);
 	}
-	return lc_marshalg(G, dd, va);
+	return lc_marshalg(G, loc, dd, va);
     }
     default:
 	alert('unimplemented or bad dictionary in marshal: ' + dict.w);
@@ -557,7 +573,9 @@ function lc_marshalg(G, dict, va) {
 };
 
 function lc_marshal(dict, va) {
-    return lc_marshalg({dummy : 0}, dict, va);
+    lc_message('<b>marshal</b> dict: ' + lc_jstos(dict));
+    lc_message('<b>marshal</b> value: ' + lc_jstos(va));
+    return lc_marshalg({dummy : 0}, "home", dict, va);
 };
 
 /* XXX need an actual representation for exceptions. */

@@ -49,6 +49,7 @@ struct
      | Var s => $s
      | Marshal (e1, e2) => %[$"MARSHAL", etol e1, etol e2]
 
+     | Dat {d, a} => %[$"DAT", etol d, etol a]
      | Dp pd => %[$"DP", pdtol pd]
      | Drec sel => %[%[$"DREC", itol ` length sel],
                      L.indent 2 ` % ` map (fn (l, e) => %[$l, etol e]) sel]

@@ -9,13 +9,11 @@ unit
    (* test that references survive a round trip to the server. *)
    val r = ref "hello"
 
-(*
    val v = from server get version ()
 
    do alert [[!r] [v]]
-*)
 
-   do r := "world"
+   (* do r := "world" *)
 
    do alert (!r)
 in
