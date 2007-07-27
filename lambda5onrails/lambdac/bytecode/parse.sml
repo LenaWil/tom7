@@ -82,6 +82,18 @@ struct
                                                                     a = b })
     || `DALL >> repeated id && $exp wth Dall
 
+    || `PROJ -- punt "parse error after PROJ"
+    || `RECORD -- punt "parse error after RECORD"
+    || `PRIMCALL -- punt "parse error after PRIMCALL"
+    || `INJ -- punt "parse error after INJ"
+    || `MARSHAL -- punt "parse error after MARSHAL"
+    || `DP -- punt "parse error after DP"
+    || `DREC -- punt "parse error after DREC"
+    || `DSUM -- punt "parse error after DSUM"
+    || `DLOOKUP -- punt "parse error after DLOOKUP"
+    || `DEXISTS -- punt "parse error after DEXISTS"
+    || `DALL -- punt "parse error after DALL"
+
     || number wth Int
     || strlit wth String
     || id wth Var
@@ -96,14 +108,23 @@ struct
     || `CASE >> $exp && id && repeated (label && $stmt) && $stmt
          wth (fn (a, (b, (c, d))) => Case { obj = a, var = b, arms = c, def = d})
 
+    || `BIND -- punt "parse error after BIND"
+    || `JUMP -- punt "parse error after JUMP"
+    || `GO -- punt "parse error after GO"
+    || `ERROR -- punt "parse error after ERROR"
+    || `CASE -- punt "parse error after CASE"
+
   val global = 
        `ABSENT return Absent
     || `FUNDEC >> repeated (repeated id && $stmt) wth (FunDec o Vector.fromList)
 
+    || `FUNDEC -- punt "parse error after FUNDEC"
+
   val program =
     `PROGRAM >> bopt int && repeated global
-    wth (fn (main, globals) => { main = main, globals = Vector.fromList globals } : program)
-
+       wth (fn (main, globals) => { main = main, globals = Vector.fromList globals } : program)
+    
+    || `PROGRAM -- punt "parse error after PROGRAM"
 
 
   fun parsefile file =
