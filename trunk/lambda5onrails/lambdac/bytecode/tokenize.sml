@@ -42,14 +42,14 @@ struct
     | midchar #"$" = true
     | midchar _ = false
 
-  (* note, [] are illegal chars except to bracket text *)
-
-  val isSymbolic = Char.contains "!%&$#+-/:<=>@\\~`^|*."
+  val isSymbolic = Char.contains "!%&$#+-/:<=>@\\~`^|*._'-$"
 
   (* these never appear as part of a longer identifier *)
   val isSep = Char.contains "(),{}; "
 
-  fun identchar c = Char.isAlpha c orelse Char.isDigit c orelse midchar c
+  fun identstartchar c = Char.isAlpha c orelse isSymbolic c
+  fun identchar c = identstartchar c orelse Char.isDigit c 
+
 
   (* inside text, can write backslash, then space, then newline,
      and this is treated as a non-character. *)
@@ -181,13 +181,11 @@ struct
           id keywords
       end
 
-  val letters = satisfy Char.isAlpha && 
-                repeat (satisfy identchar) wth op::
+  val letters = satisfy identstartchar && repeat (satisfy identchar) wth op::
 
   val word = 
       alt [letters wth implode,
-           (satisfy isSep) wth Char.toString,
-           repeat1 (satisfy isSymbolic) wth implode]
+           (satisfy isSep) wth Char.toString]
 
   fun goodtoken () = space >> !! (alt [char wth CHAR,
                                        float wth FLOAT,
