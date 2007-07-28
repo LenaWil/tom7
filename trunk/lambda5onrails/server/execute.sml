@@ -111,6 +111,7 @@ struct
 
     | B.Dp _ => exp
     | B.Dlookup _ => exp
+    | B.Dall (sl, e) => B.Dall (sl, evaluate i G e)
     | B.Dat { d, a } => B.Dat { d = evaluate i G d,
                                 a = evaluate i G a }
     | B.Drec sel => B.Drec ` ListUtil.mapsecond (evaluate i G) sel

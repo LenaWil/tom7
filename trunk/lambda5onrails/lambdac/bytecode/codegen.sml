@@ -64,6 +64,7 @@ struct
          | C.AllLam { worlds, tys, vals = nil, body } => cvtv body k
          | C.AllApp { worlds, tys, vals = nil, f } => cvtv f k
 
+         | C.WDict d => k ` String d
          | C.Dict d => 
              let
                (* this is the set of locally bound dictionary variables.
@@ -71,8 +72,8 @@ struct
                val G = V.Set.empty
                fun cd G (C.Cont _)  = Dp Dcont
                  | cd G (C.Conts _) = Dp Dconts
-                 (* XXX should record the world *)
-                 | cd G (C.At (t, _)) = cdict G t
+                 | cd G (C.At (t, w)) = Dat { d = cdict G t,
+                                              a = cwdict G w }
                  | cd G (C.Primcon (C.INT, nil)) = Dp Dint
                  | cd G (C.Primcon (C.STRING, nil)) = Dp Dstring
                  (* don't care what t is; all dicts represented the same way *)
@@ -114,6 +115,16 @@ struct
                    raise ByteCodegen
                      "oops, convert dict front unimplemented"
                  end
+
+               and cwdict G e =
+                 case C.cval e of
+                   C.WDict s => String s
+                 | C.UVar u => 
+                     if V.Set.member (G, u)
+                     then raise ByteCodegen "DW unimplemented"
+                     (*dict "DW" [("s", String ` vtos u)] *)
+                     else Var ` vtoi u
+                 | _ => raise ByteCodegen "when converting dict, expected to see just wdicts and vars"
 
                and cdict G e =
                  case C.cval e of

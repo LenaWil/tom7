@@ -8,7 +8,7 @@ struct
   type label = string
 
   datatype primdict =
-    Dcont | Dconts | Daddr | Ddict | Dint | Dstring | Dvoid | Daa | Dref
+    Dcont | Dconts | Daddr | Ddict | Dint | Dstring | Dvoid | Daa | Dref | Dw
 
   datatype statement =
       Bind of string * exp * statement

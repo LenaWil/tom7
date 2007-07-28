@@ -65,6 +65,7 @@ struct
     || `DVOID return Dvoid
     || `DAA return Daa
     || `DREF return Dref
+    || `DW return Dw
 
   fun exp () =
        `PROJ >> label && $exp wth Project

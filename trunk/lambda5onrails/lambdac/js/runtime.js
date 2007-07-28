@@ -231,8 +231,7 @@ function lc_lookup(G, s) {
 
 var lc_dictdict  = { w : "DP", p : "d" };
 var lc_wdictdict = { w : "DP", p : "w" };
-function lc_umg(G, d, b) {
-    /* DR 11 DP i 2 0 1 1234 */
+function lc_umg(G, loc, d, b) {
     switch(d.w) {
     case "DL": {
 	var nd = lc_lookup(G, d.s);
@@ -240,15 +239,19 @@ function lc_umg(G, d, b) {
 	    alert("um couldn't lookup " + d.s);
 	    throw(0);
 	}
-	return lc_umg(G, nd, b);
+	return lc_umg(G, loc, nd, b);
+    }
+    case "D@": {
+	/* just changes focus */
+	return lc_umg(G, d.a, d.v, b);
     }
     case "DE": {
-	var thed = lc_umg(G, lc_dictdict, b)
+	var thed = lc_umg(G, loc, lc_dictdict, b)
 	var G2 = { head : d.d, data : thed, next : G };
 	var a = { d : thed };
 	/* then find a series of values */
 	for(var i = 0; i < d.v.length; i ++) {
-	    a["v" + i] = lc_umg(G2, d.v[i], b);
+	    a["v" + i] = lc_umg(G2, loc, d.v[i], b);
 	}
 	return a;
     }
@@ -260,7 +263,7 @@ function lc_umg(G, d, b) {
 		alert("labels mismatch " + d.v[i].l + " " + s2);
 		throw(0);
 	    }
-	    a[s2] = lc_umg(G, d.v[i].v, b);
+	    a[s2] = lc_umg(G, loc, d.v[i].v, b);
 	}
 	return a;
     }
@@ -275,14 +278,17 @@ function lc_umg(G, d, b) {
 	}
 	case "C": return b.getint ();
 	case "a": return unescape(b.next ());
-	case "f": {
-	    /* a reference is always marshaled as
-               the world name and the index at that world. */
-	    var rw = unescape(b.next ());
+	case "r": {
+	    /* a reference is always marshaled as an integer. */
 	    var ri = b.getint ();
-
-	    if (rw == "home") return lc_locals[ri];
-	    else return { l : rw, i : ri };
+	    /* but we might reconstitute it depending on where
+               we are. */
+	    if (loc == "home") return lc_locals[ri];
+	    else return ri;
+	}
+	case "w": {
+	    /* world dictionary, represented as a string */
+	    return unescape(b.next ());
 	}
 	case "d": {
 	    var t = b.next ();
@@ -300,7 +306,7 @@ function lc_umg(G, d, b) {
 		var a = [];
 		for(var i = 0; i < n; i ++) {
 		    var l = b.next ();
-		    var v = lc_umg(G, lc_dictdict, b);
+		    var v = lc_umg(G, loc, lc_dictdict, b);
 		    a.push({ l : l, v : v });
 		}
 		return { w : "DR", v : a };
@@ -310,20 +316,27 @@ function lc_umg(G, d, b) {
 		var n = b.getint ();
 		var a = [];
 		for(var i = 0; i < n; i ++) {
-		    a.push(lc_umg(G, lc_dictdict, b));
+		    a.push(lc_umg(G, loc, lc_dictdict, b));
 		}
 		return { w : "DE", d : nam, v : a };
 	    }
+	    case "D@": {
+		var d = lc_umg(G, loc, lc_dictdict, b);
+		var a = lc_umg(G, loc, lc_wdictdict, b);
+		return { w : "D@", a : a, v : d };
+	    }
 	    default:
-		alert('unimplemented actual dict: ' + t);
+		alert('unimplemented unmarshal actual dict: ' + t);
 		throw(0);
 	    }
 	}
+	/* allarrow is just an int */
+	case "A": return b.getint ();
 	case "i": return b.getint ();
 	/* skip the initial period */
 	case "s": return unescape(b.next ().substring(1));
 	case "v": alert("can't unmarshal at void"); throw(0);
-	default: alert("bad prim dict"); throw(0);
+	default: alert("bad prim dict: " + d.p); throw(0);
 	}
     }
 
@@ -334,7 +347,7 @@ function lc_umg(G, d, b) {
 };
 
 function lc_unmarshal(d, b) {
-    return lc_umg(undefined, d, new lc_tokstream(b));
+    return lc_umg(undefined, "home", d, new lc_tokstream(b));
 };
 
 /* a thread has arrived at this world, as marshaled bytes */
