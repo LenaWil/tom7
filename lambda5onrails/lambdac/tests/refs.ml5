@@ -13,7 +13,7 @@ unit
 
    do alert [[!r] [v]]
 
-   (* do r := "world" *)
+   do r := "world"
 
    do alert (!r)
 in
