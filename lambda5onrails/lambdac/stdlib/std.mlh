@@ -17,6 +17,19 @@ fun (t) :=(r, a) = primapp Set { t } (r, a)
 fun (t) ! r = primapp Get { t } (r)
 fun (t) ref a = primapp Ref { t } (a)
 
+(* standard trick to turn a function into
+   a real continuation. *)
+fun cont (f : unit -> unit) : unit cont =
+    letcc ret
+    in
+        letcc k
+        in
+            throw k to ret
+        end;
+        f ();
+        primapp Halt { unit cont } ( )
+    end
+
 (* XXX should be a prim, since we can do this
    anywhere *)
 extern val itos : int -> string  @ home = lc_itos
