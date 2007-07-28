@@ -1,12 +1,11 @@
 
-structure BytePrint =
+structure BytePrint :> BYTEPRINT =
 struct
 
   infixr 9 `
   fun a ` b = a b
 
   structure L = Layout
-  structure V = Variable
 
   val $ = L.str
   val % = L.mayAlign

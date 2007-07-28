@@ -201,9 +201,8 @@ function lc_add_local(ob) {
     return lc_locals.length - 1;
 };
 
-/* dictionary used for references */
-// var lc_ref_dict = { w : "DF", l : "home" };
-// XXX WRONG
+/* dictionary used for references. we can use this
+   for local objects that can't be marshaled, too. */
 var lc_ref_dict = { w : "DP", p : "r" };
 
 /*

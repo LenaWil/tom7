@@ -321,15 +321,10 @@ struct
                   Initial.ilstring)
                end
 
-        | E.Throw _ => error loc "unimplemented: throw"
-        | E.Letcc _ => error loc "unimplemented: letcc"
-
-(* XXX5 support throw/letcc?
-   backend has support for them because of 'call', so we might as well
         | E.Throw (e1, e2) => 
                let
-                 val (ee1, t1) = elab ctx e1
-                 val (ee2, t2) = elab ctx e2
+                 val (ee1, t1) = elab ctx here e1
+                 val (ee2, t2) = elab ctx here e2
                in
                  (* thrown expression must equal cont type *)
                  unify ctx loc "throw" t2 (IL.TCont t1);
@@ -338,17 +333,15 @@ struct
 
         | E.Letcc (s, e) =>
                let
-                    val cv = V.namedvar s
-                    val bodt = new_evar ()
-                    val ctx' = C.bindv ctx s (mono (IL.TCont bodt)) cv
-
-                    val (ee, tt) = elab ctx' e
-                      
+                 val cv = V.namedvar s
+                 val bodt = new_evar ()
+                 val ctx' = C.bindv ctx s (mono (IL.TCont bodt)) cv here
+                   
+                 val (ee, tt) = elab ctx' here e
                in
                  unify ctx loc "letcc" tt bodt;
                  (Letcc (cv, bodt, ee), bodt)
                end
-*)
                
         (* better code for string constants *)
         | E.Jointext [e] => 
@@ -1202,8 +1195,6 @@ struct
                                      end) fs,
                       fctx)
                    end)
-
-                    (* ([Fix ` mkpoly ps fs], fctx) *)
           end
 
     (* val and put bindings *)

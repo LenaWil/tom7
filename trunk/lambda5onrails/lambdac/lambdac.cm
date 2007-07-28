@@ -190,6 +190,7 @@ js/opt-sig.sml
 js/opt.sml
 
 bytecode/bytecode.sml
+bytecode/print-sig.sml
 bytecode/print.sml
 bytecode/codegen-sig.sml
 bytecode/codegen.sml
