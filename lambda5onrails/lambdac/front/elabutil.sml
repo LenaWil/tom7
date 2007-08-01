@@ -119,28 +119,15 @@ struct
             (go ty, rev (!acc))
         end
 
-    (* (old, fixed now??) problems with polygen:
-
-       Need to substitute through term, too, 
-       since types appear in terms (like val x : t = ...)
-
-       can't generalize all bound evars, see:
-
-       fun f x =
-          let val y = x
-          in y
-          end
-
-          does NOT have type A a,b . a -> b
-
-       ... I think the thing to do is to only generalize evars
-       that don't appear in the surrounding context (ie, as
-       the type of some variable). In that case we can use
-       the strategy above, except we don't even need
-       Substituted (we never did), as we can just make them
-       be Bound (TVar new_v).
-
-       *)
+    fun polywgen ctx (w as IL.WEvar er) =
+      (case !er of
+         IL.Free n =>
+           if Context.has_evar ctx
+           then w
+           else
+       | IL.Bound w => polygen ctx w)
+      | polywgen ctx (w as IL.WConst s) = w
+      | polywgen _   (w as IL.WVar _) = w
 
     fun evarizes (IL.Poly({worlds, tys}, mt)) =
         let

@@ -39,6 +39,9 @@ group is
 ../../sml-lib/parse/parse-sig.sml
 ../../sml-lib/parse/parse.sml
 
+../../sml-lib/text/layout-sig.sml
+../../sml-lib/text/layout.sml
+
 (* ML5 lib *)
 ../lambdac/intconst.sml
 ../lambdac/bytecode/bytecode.sml
@@ -47,6 +50,8 @@ group is
 ../lambdac/bytecode/tokenize.sml
 ../lambdac/bytecode/parse-sig.sml
 ../lambdac/bytecode/parse.sml
+../lambdac/bytecode/print-sig.sml
+../lambdac/bytecode/print.sml
 
 raw-network-sig.sml
 raw-network.sml

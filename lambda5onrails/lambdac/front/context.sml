@@ -16,6 +16,7 @@ struct
                cons : (IL.kind * IL.con * IL.tystatus) S.map,
                worlds : Variable.var S.map,
                wlabs : IL.worldkind S.map,
+               (* obsolete, but might come back *)
                dbs  : unit S.map }
 
     (* first is class of identifier, second is identifier *)
@@ -32,9 +33,7 @@ struct
             raise Absent (what, s)
         end
 
-    (* this only checks vars, not cons, dbs, or worlds.
-       But evars shouldn't ever appear bound to type variables, right?
-       (I can't look inside lambdas, anyway.) *)
+    (* for type evars. these can only appear in the types of vars. *)
     fun has_evar (C{vars, ...}) n =
       let
           open IL
@@ -58,6 +57,46 @@ struct
                  | At (t, w) => has t
                  | Shamrock t => has t
                  | TAddr _ => false
+                 | Arrows l =>
+                       List.exists (fn (_, tl, t) =>
+                                    has t orelse List.exists has tl) l
+                 | TRef t => has t)
+      in
+        SU.exists (fn (Poly({worlds, tys}, t), _, _, _) => has t) vars 
+      end
+
+    (* for world evars. Again, these can only appear in the types of vars;
+       worlds are just variable names. *)
+    fun has_wevar (C{vars, ...}) n =
+      let
+          open IL
+          fun hasw (WVar _) = false
+            | hasw (WConst _) = false
+            | hasw (WEvar er) =
+            case !er of
+              Free m => m = n
+            | Bound w => hasw w
+
+          and has tt =
+              (case tt of
+                   TVar _ => false
+                 | TRec ltl => List.exists (fn (_, t) => 
+                                            has t) ltl
+                 | Arrow (_, tl, t) =>
+                       has t orelse
+                       List.exists has tl
+                 | Sum ltl => List.exists 
+                       (fn (_, Carrier { carried, ... }) => has carried
+                          | _ => false) ltl
+                 | Mu (_, vtl) => List.exists (fn (_, t) => has t) vtl
+                 | Evar (ref (Free _)) => false
+                 | Evar (ref (Bound t)) => has t
+                 | TVec t => has t
+                 | TCont t => has t
+                 | TTag (t, _) => has t
+                 | At (t, w) => has t orelse hasw w
+                 | Shamrock t => has t
+                 | TAddr w => hasw w
                  | Arrows l =>
                        List.exists (fn (_, tl, t) =>
                                     has t orelse List.exists has tl) l

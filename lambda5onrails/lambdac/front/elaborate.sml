@@ -1079,6 +1079,9 @@ struct
 
               val outer_context = ctx
 
+              (* okay to have no clauses in a function, but there
+                 should be at least one function in any mutually-recursive
+                 bundle *)
               val  _ = List.null bundle 
                          andalso error loc "BUG: *no* fns in bundle?"
 
@@ -1086,6 +1089,10 @@ struct
                                             f <> g) bundle
                          orelse error loc 
                              "duplicate functions in fun..and"
+
+              (* functions are values, so we elaborate at an existential
+                 world to see if we can generalize (make the function valid) *)
+              val atworld = new_wevar ()
 
               (* make var for each fn *)
               val binds =
@@ -1107,7 +1114,7 @@ struct
                           foldl (fn ((_, f, _, vv, dom, cod), ct) =>
                                  C.bindv ct f (mono (Arrow(false, 
                                                             [dom],
-                                                            cod))) vv here)
+                                                            cod))) vv atworld)
                                 c binds
                   in
                       mktyvars nc tv
@@ -1124,9 +1131,9 @@ struct
                       val c = onectx ctx tv
                       val x = newstr "x"
                       val xv = V.namedvar x
-                      val nc = C.bindv c x (mono dom) xv here
+                      val nc = C.bindv c x (mono dom) xv atworld
 
-                      val (exp, tt) = elabf nc here x clauses loc
+                      val (exp, tt) = elabf nc atworld x clauses loc
                   in
                       unify c loc "fun body/codomain" tt cod;
                       (f, vv, xv, dom, cod, exp)
@@ -1155,6 +1162,8 @@ struct
               val (fs, efs, ps) = 
                   foldl folder (nil, nil, nil) ` map onef binds
 
+              val valid = canpolywgen outer_context atworld
+
               (* FIXME5. Ought allow polymorphism over worlds. *)
               fun mkpoly ps at = Poly({worlds=nil, (* XXX5 *)
                                        tys = ps}, at)
@@ -1167,6 +1176,8 @@ struct
 
               val fctx = foldl mkcontext ctx efs
           in
+
+
               (* if just one, then we want to produce better code: *)
               (case fs of
                  [ f as { name, arg, dom, inline, recu, total, cod, body } ] =>

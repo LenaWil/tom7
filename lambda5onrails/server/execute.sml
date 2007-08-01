@@ -140,7 +140,12 @@ struct
                  B.Record nil
                end
           | ("trivialdb.update", _) => raise Execute "wrong args to trivialdb.update"
-          | ("trivialdb.hook", _) => raise Execute "sorry hook unimplemented"
+          | ("trivialdb.hook", [B.String k, f]) => 
+               let in
+                 print "HOOK:\n";
+                 Layout.print(BytePrint.etol f, print);
+                 raise Execute ("trivialdb unimp")
+               end
           | _ => raise Execute ("primcall " ^ s ^ " not implemented")
         end
     | B.Var s => 
