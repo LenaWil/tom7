@@ -1,0 +1,120 @@
+
+    Shamrock world dictionaries            1 Aug 2007
+
+
+Similar to our type representation woes^H^H^H^Hinvariant we also
+associate a value with every statically bound world variable. This is
+for an important optimization that allows us to represent values
+(specifically references to local resources) differently when they are
+local than when they are remote. (See "refs.txt").
+
+In order to maintain this invariant, we need to bind a valid value
+whenever we bind a world variable. The following constructs bind world
+variables within terms:
+
+  expressions:
+      WUnpack of var * var * 'cval * 'cexp
+
+  values:
+      Sham of var * 'cval
+    | AllLam of { worlds : var list, tys : var list, vals : (var * ctyp) list, body : 'cval }
+    (maybe vwunpack; but same as above)
+
+  globals:
+      PolyCode of var * 'cval * ctyp (* @ var *)
+
+PolyCode is introduced after our dictionary invariant has expired, so
+the world it binds is exempt and we do not need to consider it.
+WUnpack is easy; just as with TPack and TUnpack, we store the
+dictionary within the existential package, and restore it when we open
+the package. AllLam is also treated the same way as with type
+dictionaries: we simply add new arguments to the head of the list of
+values--the dictionaries for the world arguments--and then pass those
+along at AllApp time.
+
+So the only tricky one is Sham. This is a kind of quantification over
+worlds. The introduction form binds a world variable within a value
+that's well formed at that world, in the form "sham w.v". Since this
+value must be able to work anywhere, it must anticipate all possible
+worlds that it might be used in, and make sure that at every one of
+those worlds, it binds a dictionary for the world variable w.
+
+We can't immediately bind a dictionary by wrapping v with some
+construct. That's because the same value must work anywhere. But we
+don't need to maintain the dictionary association invariant globally,
+just "in time" for uses of the invariant.
+
+The invariant is used at:
+
+   * wdictfor and dictfor, whenever w appears in their arguments
+   * allarrow, lams and go (during closure conversion)
+   * wpack and tpack (used in closure conversion)
+
+So, we'd never be able to establish the invariant for these:
+
+   sham w. wdictfor(w)
+   sham w. dictfor(w addr)
+
+But that's okay because these types should be uninhabited (it turns
+out that the latter actually is inhabited once we get to CPS because
+the dictionary for any address is always represented the same way. But
+at the IL level, these are uninhabited.)
+
+Also,
+
+   sham w. v<w>
+
+where v is "AllLam {w'}.v'". We would need to compute the world
+dictionary for w immediately, but no such world dictionary exists.
+However, no such terms are well-typed: AllLam {w'}.v' has type
+AllArrow {w'}.t', and so v<w> has type [w/w']t', which contains w as
+long as t' contains w. The type of the body of a shamrock may not
+mention the bound world variable. (But there are some weird cases like
+when we say #1(0, v<w>), whose type does not reflect that it contains
+v<w>, or if we have AllArrow{w'}.t but t does not mention w'. I don't
+believe we ever generate any of these situations.)
+
+We should, however, be able to do something in the case that the body
+is a lambda. Here, we pass from the value syntax into the expression
+syntax and start executing. Once we're executing, that means that the
+value has been used (called) at some world and so we can now compute
+the actual dictionary dynamically. For example:
+
+    fun goto_client () =
+        from client
+        get alert [hello]
+
+elaborates into something like (simplified):
+
+    sham w.
+        lam ().
+          from client get alert [hello]
+
+The 'get' that we do in the body will require a dictionary for w. But
+in the dictionary translation phase we can turn this code into (this
+isn't really accurate here because it would be in CPS form by this
+point, etc.)
+
+    sham w.
+        lam ().
+          letu wd ~ w wdict = localdict()
+          from client get alert [hello]
+
+This establishes the invariant for us. The lams construct is the only
+way of embedding an expression in a value.
+
+But, the expression isn't always situated at the same world as the
+sham (w). Consider:
+
+    sham w.
+       hold_client (lam ().
+                    from server get display [hello])
+
+Here we won't be able to compute the actual dictionary for w because
+we won't be executing at w.
+
+(Maybe a nicer way to think of this is that a "sham" has as its body a
+ derivation that is schematic in the world, and the name of that world
+ is a "parameter", not a "variable" in the sense that it will never be
+ bound to any *actual* world?)
+

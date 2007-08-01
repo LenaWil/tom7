@@ -13,11 +13,11 @@
    (and implement it), but difficult to just punt on that case without
    making the implementation incorrect.
 
-   This language is more complicated than the Hemlock CPS IL, so the
-   closure conversion algorithm cannot be as ambitious. In addition to
-   the new machinery having to do with the modal features, we also
-   must maintain a dictionary-passing invariant (see dict.sml) during
-   this translation.
+   This language is much more complicated than the Hemlock CPS IL, so
+   the closure conversion algorithm cannot be as ambitious. In
+   addition to the new machinery having to do with the modal features,
+   we also must maintain a dictionary-passing invariant (see dict.sml)
+   during this translation.
 
    Therefore the new strategy is to do something simple and general,
    but then implement things like direct calls for the common case in
@@ -141,8 +141,7 @@ struct
            val tl = map ct tl
            val venv = V.namedvar "env"
          in
-           TExists' (venv, [(* Shamrock' ` Dictionary' ` TVar' ` venv, *)
-                            TVar' venv,
+           TExists' (venv, [TVar' venv,
                             Cont' (TVar' venv :: tl)])
          end
     | Conts tll => 
@@ -150,8 +149,7 @@ struct
            val tll = map (map ct) tll
            val venv = V.namedvar "env"
          in
-           TExists' (venv, [(* Shamrock' ` Dictionary' ` TVar' ` venv, *)
-                            TVar' venv,
+           TExists' (venv, [TVar' venv,
                             (* new arg to each function ... *)
                             Conts' (map (fn l => TVar' venv :: l) tll)])
          end
@@ -189,8 +187,7 @@ struct
          in
            TUnpack' (envt,
                      vu,
-                     [(* (vu, Shamrock' ` Dictionary' ` TVar' envt), *)
-                      (envv, TVar' envt),
+                     [(envv, TVar' envt),
                       (fv, Cont' (TVar' envt :: argts))],
                      f,
                      Call'(Var' fv, Var' envv :: args))
@@ -556,8 +553,7 @@ struct
            *)
 
            val envtv = V.namedvar "lams_envt"
-           val rest = TExists' (envtv, [(* Shamrock' ` Dictionary' ` TVar' envtv, *)
-                                        TVar' envtv,
+           val rest = TExists' (envtv, [TVar' envtv,
                                         Conts' (map (fn (_, args, _) =>
                                                      TVar' envtv :: map #2 args) vael)])
 
@@ -600,7 +596,6 @@ struct
                             print "\n";
                             bindvar G f t ` worldfrom G
                           end) G vael
-
 
          in
            (TPack'
@@ -709,8 +704,7 @@ struct
            val (body, bodyt) = cv G body
 
            (* type of this pack *)
-           val rest = TExists' (envtv, [(* Shamrock' ` Dictionary' ` TVar' envtv, *)
-                                        TVar' envtv,
+           val rest = TExists' (envtv, [TVar' envtv,
                                         AllArrow' { worlds = worlds, tys = tys,
                                                     vals = TVar' envtv :: map #2 vals,
                                                     body = bodyt }])
@@ -718,8 +712,7 @@ struct
            (TPack' (envt, 
                     rest,
                     Sham0' ` Dictfor' envt,
-                    [(* Sham' (V.namedvar "als_unused", Dictfor' envt), *)
-                     env,
+                    [env,
                      AllLam' { worlds = worlds, 
                                tys = tys,
                                vals = (envv, envt) :: vals,
@@ -747,8 +740,7 @@ struct
                   AllArrow { worlds = aw, tys = at, vals = _ :: avals, body = abody } =>
                     (VTUnpack' (envt,
                                 vdu,
-                                [(* (vdu, Shamrock' ` Dictionary' ` TVar' envt), *)
-                                 (envv, TVar' envt),
+                                [(envv, TVar' envt),
                                  (* aad thinks envtype is envtv, so need to
                                     rename to local existential var *)
                                  (fv, subtt (TVar' envt) envtv aat)],

@@ -107,7 +107,7 @@ sig
     | Var of var
     | UVar of var
     | WDictfor of world
-    (* the only dictionary value is a constant (or a Var standing for one of these) *)
+    (* the only closed wdictionary value is a constant *)
     | WDict of string
     (* later expanded to the actual dictionary, using invariants established in
        CPSDict and Closure conversion *)

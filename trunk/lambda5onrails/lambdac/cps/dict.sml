@@ -72,6 +72,7 @@
      XXXWD: world representation invariants here
      
      for allarrow, we put the wdicts first in the val list.
+     for sham...
 *)
 
 structure CPSDict :> CPSDICT =
