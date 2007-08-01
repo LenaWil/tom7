@@ -1,0 +1,12 @@
+unit
+    datatype a t = A of a | B
+
+    (* XXX should generalize! *)
+    val b = B
+in
+    export res =
+	(B : int t,
+	 B : {} t,
+	 b : int t,
+	 b : {} t)
+end

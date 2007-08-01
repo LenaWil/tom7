@@ -1,0 +1,45 @@
+unit
+   import "std.mlh"
+   import "dom.mlh"
+
+   (* required for now *)
+   extern bytecode world server
+   extern val alert : string -> unit @ home
+
+   val e = dom.getbyid [page]
+
+   fun growbox c =
+       let
+           val b = dom.getbyid [box[c]]
+           val s = dom.getnode (b, [style])
+
+           fun loops 0 = ()
+             | loops n =
+               let
+                   val px = [[itos (n * 10 + 100)]px]
+               in
+                   dom.setstring (s, [height], px);
+                   loops (n - 1)
+               end
+       in
+           loops 15
+       end
+       
+   do dom.setstring (e, [innerHTML], 
+                     [<h1>Threads.</h1>
+                      <table border=2>
+                      <tr>
+                      <td><div id="boxa" onclick="[say growbox [a]]" style="background : #770000; border : 2px outset; width:100px; height : 100px;">&nbsp;</div></td>
+                      <td><div id="boxb" onclick="[say growbox [b]]" style="background : #007700; border : 2px outset; width:100px; height : 100px;">&nbsp;</div></td>
+                      <td><div id="boxc" onclick="[say growbox [c]]" style="background : #000077; border : 2px outset; width:100px; height : 100px;">&nbsp;</div></td>
+                      <td><div id="boxd" onclick="[say growbox [d]]" style="background : #770077; border : 2px outset; width:100px; height : 100px;">&nbsp;</div></td>
+                      </tr>
+                      </table>
+                      <p>JavaScript does not provide any native thread support, but ML5 will interleave computations to allow for cooperative threading. 
+                         Click on the boxes to begin an animation loop for that box. Note that you can run more than one animation simultaneously.
+                         (Also note that there is no mutual exclusion, so two animations can run simultaneously on the same box, with
+                          jittery results.)
+                      ])
+
+in
+end

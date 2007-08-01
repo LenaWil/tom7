@@ -1,0 +1,18 @@
+unit
+  extern val alert : string -> unit @ home
+  extern bytecode world server
+  extern val server ~ server addr
+
+  extern val display : string -> unit @ server
+
+  val n' = (from server get 
+	    let in
+		display("I'm the server!");
+		"Cool Server Data"
+	    end)
+
+  do alert "I'm back!"
+  do alert n'
+in
+  export val x = n'
+end

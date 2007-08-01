@@ -1,0 +1,40 @@
+unit
+    import "std.mlh"
+    import "dom.mlh"
+    import "trivialdb.mlh"
+
+    (* put binds a valid variable. the type of the expression (here, string) must be mobile *)
+    put k = [tdb-test]
+
+    extern bytecode world server
+    extern val home ~ home addr
+    extern val server ~ server addr
+    extern val alert : string -> unit @ home
+
+    fun getkey () =
+        let
+            val v = from server get trivialdb.read k
+            val s = dom.getbyid [showbox]
+        in
+            dom.setstring (s, [innerHTML], [v])
+        end
+
+    do from server 
+        get trivialdb.addhook (k, cont (fn () => from home get getkey ()))
+
+    val e = dom.getbyid [page]
+    do dom.setstring (e, [innerHTML], [<p>This page uses the server's persistent database.
+                                       It registers a function to be run whenever the key "[k]"
+                                       is modified. Modifying that key (from the "trivialdb" test
+                                       in another browser window, for example) causes the function to
+                                       run and display a message here.
+
+                                       <div style="width: 250px; text-align : center ; 
+                                                   font : 24px Verdana,Arial,Helvetica ;
+                                                   border : 2px dashed #AAFFFF; padding : 6px ;
+                                                   margin : 6px ; background : #DDFFFF"
+                                            id="showbox">&nbsp;</div>
+                                       ])
+
+in
+end
