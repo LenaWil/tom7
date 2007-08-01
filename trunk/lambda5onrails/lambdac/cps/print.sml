@@ -55,7 +55,11 @@ struct
                                 $"."], ttol t]) m,
                            "and ")])
          | At (t, w) => L.paren ` %[ttol t, L.indent 2 ` %[$"at", wtol w]]
-         | Shamrock t => %[$"{}", L.indent 2 ` ttol t]
+         | Shamrock (v, t) =>
+               (* %[if CPS.freet v t
+                  then $("{" ^ V.tostring v ^ "}")
+                  else $"{}", L.indent 2 ` ttol t] *)
+               %[$"{",wbindtol v,$"}", L.indent 2 ` ttol t]
          | Cont tl => %[L.listex "(" ")" "," ` map ttol tl, $"cont"]
          | AllArrow { worlds, tys, vals, body } =>
              %[%[$"allarrow",

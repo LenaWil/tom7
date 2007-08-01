@@ -355,7 +355,7 @@ struct
                  Primop'([reta], LOCALHOST, nil, 
                           Go' (dest, va,
                                let 
-                                   val G = binduvar G reta (Addr' srcw)
+                                   val G = bindu0var G reta (Addr' srcw)
                                    val G = setworld G dest
                                in
                                    cvte G body
@@ -363,7 +363,7 @@ struct
                                     (* no check that resw = dest or rest = mobtyp *)
                                     Put' (pv, res,
                                           let val G = setworld G srcw
-                                              val G = binduvar G pv mobtyp
+                                              val G = bindu0var G pv mobtyp
                                           in
                                               Go' (srcw, UVar' reta,
                                                    k (G, UVar' pv, mobtyp, srcw))
@@ -477,7 +477,7 @@ struct
                                            vals = nil, body = lam })
                in
                    case Option.map (cvtw G) wo of
-                       NONE => Lift' (v, va, k (binduvar G v t))
+                       NONE => Lift' (v, va, k (bindu0var G v t))
                      | SOME w => Bindat' (v, w, va, k (bindvar G v t w))
                end
            | I.Arrow _ => raise ToCPS ("expected extern val, if arrow, to take exactly one arg: " ^ l)
@@ -495,7 +495,7 @@ struct
                  if base b 
                  then 
                    case Option.map (cvtw G) wo of
-                     NONE => ExternVal'(v, l, t, NONE, k (binduvar G v t))
+                     NONE => ExternVal'(v, l, t, NONE, k (bindu0var G v t))
                    | SOME ww => ExternVal'(v, l, t, SOME ww, k (bindvar G v t ww))
                  else raise ToCPS ("unresolvable extern val because it is not of base type: " ^ l)
                end
@@ -514,7 +514,7 @@ struct
          let val _ = cvtt G t
          in
            cvte G e
-           (fn (G, va, t, w) => Put' (v, va, k (binduvar G v t)))
+           (fn (G, va, t, w) => Put' (v, va, k (bindu0var G v t)))
          end
 
 
@@ -534,7 +534,7 @@ struct
                          vals = nil, body = tt }
            val G = case b of 
                      I.Val => bindvar G v tt ww
-                   | I.Put => binduvar G v tt
+                   | I.Put => bindu0var G v tt
 
            val f = case b of
                      I.Val => Bind'
@@ -548,6 +548,7 @@ struct
 
        | I.Bind (_, _) => raise ToCPS "bind decl is polymorphic but not a value!"
 
+       (* Probably letsham could be another bind? *)
        | I.Letsham (I.Poly ({worlds, tys}, (v, t, va))) => 
          (* When the var v is used, it will be applied to worlds and tys,
             so it must have AllArrow type. It also must be valid. Here we
@@ -566,6 +567,9 @@ struct
             Ultimately since lift is a sham and then letsham, we have a bit
             of finagling here to put the quantifiers in the right place, but
             this has no dynamic cost.
+
+            (Note: Since  1 Aug 2007 I don't use Lift since shamrock now binds
+             a world, but the principle is the same.)
             *)
          (case
             let
@@ -577,7 +581,7 @@ struct
               (va, ctyp tt, ww)
             end
             of
-              (va, Shamrock tt, ww) =>
+              (va, Shamrock (wv, tt), ww) =>
                 let
                   (* by invariant, we don't make totally empty allarrows or alllams. *)
                   fun AllArrowMaybe { worlds = nil, tys = nil, vals = nil, body } = body
@@ -589,12 +593,13 @@ struct
                   val tt =
                     AllArrowMaybe { worlds = worlds, tys = tys, 
                                     vals = nil, body = tt }
-                  val G = binduvar G v tt
+                  val G = binduvar G v (wv, tt)
                   val v' = V.alphavary v
                 in
-                  Lift' (v,
-                         AllLamMaybe { worlds = worlds, tys = tys, vals = nil,
-                                       body = VLetsham' (v', va, UVar' v') }, k G)
+                  Letsham' (v,
+                            Sham' (wv, AllLamMaybe { worlds = worlds, tys = tys, vals = nil,
+                                                     body = VLetsham' (v', va, UVar' v') }),
+                            k G)
                 end
             | _ => raise ToCPS "letsham on non-shamrock")
 
@@ -675,8 +680,7 @@ struct
              val G = setworld G (W v)
              val (va, t, w) = cvtv G va
            in
-             (* could check v doesn't escape *)
-             (Sham' (v, va), Shamrock' t, start)
+             (Sham' (v, va), Shamrock' (v, t), start)
            end
 
        (* mono case *)
@@ -719,11 +723,15 @@ struct
 
        (* mono case *)
        | I.Polyuvar { tys=nil, worlds = nil, var } => 
-             (UVar' var, getuvar G var, worldfrom G)
+           let val (wv, t) = getuvar G var
+           in
+             (UVar' var, subwt (worldfrom G) wv t, worldfrom G)
+           end
 
        | I.Polyuvar { tys, worlds, var } =>
            let
-             val tt = getuvar G var
+             val (wv, tt) = getuvar G var
+             val tt = subwt (worldfrom G) wv tt
            in
              (* repeats above; should be abstracted perhaps *)
              case ctyp tt of

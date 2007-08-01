@@ -28,7 +28,9 @@ sig
   val bindtype  : context -> var -> bool -> context
   val bindworld : context -> var -> context
   val bindvar   : context -> var -> ctyp -> world -> context
-  val binduvar  : context -> var -> ctyp -> context
+  val binduvar  : context -> var -> (var * ctyp) -> context
+  (* for the common case that the self-world is not used *)
+  val bindu0var : context -> var -> ctyp -> context
   val setworld  : context -> world -> context
     
   (* we can also know about some world constants *)
@@ -38,7 +40,7 @@ sig
   val gettype   : context -> var -> bool
   val getworld  : context -> world -> unit
   val getvar    : context -> var -> ctyp * world
-  val getuvar   : context -> var -> ctyp
+  val getuvar   : context -> var -> (var * ctyp)
   val worldfrom : context -> world
 
   val setopts   : context -> checkopt list -> context

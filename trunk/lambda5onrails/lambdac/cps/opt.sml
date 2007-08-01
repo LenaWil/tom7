@@ -1,3 +1,6 @@
+(* PERF could definitely use some more optimizations!
+   Right now we only do eta reduction. *)
+
 structure CPSOpt =
 struct
 

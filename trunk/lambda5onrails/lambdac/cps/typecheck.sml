@@ -22,7 +22,8 @@ struct
                             worlds : V.Set.set,
                             worldlabs : worldkind SM.map,
                             vars : (ctyp * world) V.Map.map,
-                            uvars : ctyp V.Map.map,
+                            (* uvars are u ~ w.t *)
+                            uvars : (var * ctyp) V.Map.map,
                             globals : cglot SM.map,
                             current : world,
                             options : checkopt list }
@@ -66,9 +67,10 @@ struct
                                                    P.ttol t],
                                                  %[$"@",
                                                    P.wtol w]]) (V.Map.listItemsi vars),
-         two "uvars:" ` L.listex "" "" "," ` map (fn (v, t) =>
+         two "uvars:" ` L.listex "" "" "," ` map (fn (v, (w,t)) =>
                                                 %[$(V.tostring v),
                                                   %[$"~",
+                                                    $(V.tostring w ^ "."),
                                                     P.ttol t]]) (V.Map.listItemsi uvars)
          (* XXX worldlabs and globals *)
           ]]
@@ -90,6 +92,8 @@ struct
         C { tvars = tvars, worlds = worlds, vars = vars, current = current,
             uvars = V.Map.insert (uvars, v, t), worldlabs = worldlabs, 
             globals = globals, options = options }
+
+  fun bindu0var c v t = binduvar c v (V.namedvar "u0", t)
 
   fun worldfrom ( C { current, ... } ) = current
   fun setworld ( C { current, tvars, worlds, vars, uvars, worldlabs, globals, options } ) w =
@@ -163,7 +167,7 @@ struct
 
   fun getdict (ctx as C { uvars, ... }) tv =
     let 
-      val m = V.Map.mapPartial (fn t => 
+      val m = V.Map.mapPartial (fn (_, t) => 
                                 case ctyp t of
                                   Primcon(DICTIONARY, [t]) =>
                                     (case ctyp t of
@@ -193,7 +197,7 @@ struct
 
   fun getwdict (ctx as C { uvars, ... }) wv =
     let 
-      val m = V.Map.mapPartial (fn t => 
+      val m = V.Map.mapPartial (fn (_, t) => 
                                 case ctyp t of
                                   TWdict (W wv') =>
                                     if V.eq (wv, wv')
@@ -318,7 +322,7 @@ struct
         end
 
     | Conts tll => app (app ` tok G) tll
-    | Shamrock t => tok G t
+    | Shamrock (w, t) => tok (bindworld G w) t
     | Primcon (VEC, [t]) => tok G t
     | Primcon (REF, [t]) => tok G t
     | Primcon (DICT, [t]) => tok G t
@@ -350,7 +354,7 @@ struct
            val () = tok G t
            val G = 
              case wo of
-               NONE => binduvar G v t
+               NONE => bindu0var G v t
              | SOME w => bindvar G v t w
          in
            eok G e
@@ -450,7 +454,7 @@ struct
            then eok (bindvar G v cod ` worldfrom G) e
            else raise TypeCheck "primcall argument mismatch"
          end
-     | Primop ([v], LOCALHOST, [], e) => eok (binduvar G v ` Addr' ` worldfrom G) e
+     | Primop ([v], LOCALHOST, [], e) => eok (bindu0var G v ` Addr' ` worldfrom G) e
      | Primop _ => faile exp "unimplemented/bad primop"
      | Call (fv, avl) =>
          (case (ctyp ` vok G fv, map (vok G) avl) of
@@ -473,7 +477,7 @@ struct
              | _ => faile exp "leta on non-at")
      | Letsham (v, va, e) =>
             (case ctyp ` vok G va of
-               Shamrock t => eok (binduvar G v t) e
+               Shamrock (w, t) => eok (binduvar G v (w,t)) e
              | _ => faile exp "letsham on non-shamrock")
 
      | Go (w, va, e) =>
@@ -517,7 +521,7 @@ struct
                let val t = vok G va
                in
                  if tmobile G t
-                 then eok (binduvar G v t) e
+                 then eok (bindu0var G v t) e
                  else faile exp "put of non-mobile value"
                end
 
@@ -534,7 +538,7 @@ struct
                       (* new type, can't be mobile *)
                       val G = bindtype G tv false
                       (* its dictionary *)
-                      val G = binduvar G vd ` Dictionary' ` TVar' tv
+                      val G = bindu0var G vd ` Dictionary' ` TVar' tv
                       (* some values now *)
                       val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
                     in
@@ -580,7 +584,8 @@ struct
                               then fail [$"O_EXTERNDICTS expected dict in ",
                                          $("extern type " ^ l)]
                               else G
-                    | SOME (dv, _) => binduvar G dv ` Dictionary' ` TVar' v
+                    (* valid world var can't appear *)
+                    | SOME (dv, _) => bindu0var G dv ` Dictionary' ` TVar' v
           in
             print "context:\n";
             Layout.print (ctol G, print);
@@ -648,10 +653,10 @@ struct
                 val stl = map (subtt t v) tl
               in
                 (case ctyp td of
-                   Shamrock d =>
+                   Shamrock (w, d) =>
                      (case ctyp d of
                         Primcon(DICTIONARY, [t']) =>
-                          if ctyp_eq (t, t')
+                          if ctyp_eq (t, t') (* ensuring w is not free... *)
                           then () 
                           else fail [$"tpack dictionary is not for the right type: ",
                                      TY t,
@@ -701,7 +706,7 @@ struct
                                    val G = foldr (fn (((vt, vd), _), G) =>
                                                   let
                                                     val G = bindtype G vt false
-                                                    val G = binduvar G vd ` Dictionary' ` TVar' vt
+                                                    val G = bindu0var G vd ` Dictionary' ` TVar' vt
                                                   in
                                                     G
                                                   end) G arms
@@ -716,14 +721,14 @@ struct
           | Sum stl =>
               Dictionary' ` Sum' ` ListUtil.mapsecond (IL.arminfo_map (fn v => edict "sum" ` vok G v)) stl
 
-          | Shamrock t => Dictionary' ` Shamrock' ` edict "sham" ` vok G t
+          (* | Shamrock t => Dictionary' ` Shamrock' ` edict "sham" ` vok G t *) (* XXXX *)
           | TWdict w => Dictionary' ` TWdict' (ewdict "twdict" ` vok G w)
           | Addr w => Dictionary' ` Addr' (ewdict "addr" ` vok G w)
           | At (t, w) => Dictionary' ` At' (edict "at" ` vok G t, ewdict "at" ` vok G w)
           | TExists((v1, v2), vl) =>
               let
                 val G = bindtype G v1 false
-                val G = binduvar G v2 (Dictionary' ` TVar' v1)
+                val G = bindu0var G v2 (Dictionary' ` TVar' v1)
               in
                 Dictionary' ` TExists' (v1, map (fn v => edict "texists" ` vok G v) vl)
               end
@@ -736,11 +741,11 @@ struct
                 (* static worlds *)
                 val G = bindworlds G (map #1 worlds)
                 (* world representations *)
-                val G = foldr (fn ((w, wd), G) => binduvar G wd (TWdict' ` W w)) G tys
+                val G = foldr (fn ((w, wd), G) => bindu0var G wd (TWdict' ` W w)) G tys
                 (* static types *)
                 val G = foldr (fn ((v1, _), G) => bindtype G v1 false) G tys
                 (* type representations *)
-                val G = foldr (fn ((v1, v2), G) => binduvar G v2 (Dictionary' ` TVar' v1)) G tys
+                val G = foldr (fn ((v1, v2), G) => bindu0var G v2 (Dictionary' ` TVar' v1)) G tys
               in
                 Dictionary' ` AllArrow' { worlds = map #1 worlds, tys = map #1 tys,
                                           vals = map (fn v => edict "allarrow" ` vok G v) vals,
@@ -758,7 +763,7 @@ struct
 
      | VLetsham (v, va, ve) =>
             (case ctyp ` vok G va of
-               Shamrock t => vok (binduvar G v t) ve
+               Shamrock (w, t) => vok (binduvar G v (w,t)) ve
              | _ => fail [$"letsham on non-shamrock", VA va])
 
      | Fsel ( va, i ) =>
@@ -837,7 +842,11 @@ struct
            t
          end
 
-     | UVar v => getuvar G v
+     (* instantiates it right here. *)
+     | UVar v => 
+         let val (w, t) = getuvar G v
+         in subwt (worldfrom G) w t
+         end
 
      | Roll (t, va) =>
          (tok G t;
@@ -867,10 +876,7 @@ struct
 
            val t = vok G' va
          in
-           (* type can't mention the bound world;
-              suffices to check it in the old context *)
-           tok G t;
-           Shamrock' t
+           Shamrock' (w, t)
          end
 
      | VTUnpack (tv, vd, vvs, va, ve) =>
@@ -897,7 +903,7 @@ struct
                       (* new type, can't be mobile *)
                       val G = bindtype G tv false
                       (* its dictionary *)
-                      val G = binduvar G vd ` Dictionary' ` TVar' tv
+                      val G = bindu0var G vd ` Dictionary' ` TVar' tv
                       (* some values now *)
                       val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
                     in

@@ -30,7 +30,7 @@ struct
     | Mu of int * ('tbind * 'ctyp) list
     | Sum of (string * 'ctyp IL.arminfo) list
     | Primcon of primcon * 'ctyp list
-    | Shamrock of 'ctyp
+    | Shamrock of 'wbind * 'ctyp
     | TVar of var
   (* nb. Binders must be implemented in outjection code below! *)
 
@@ -190,7 +190,9 @@ struct
                                             carried = self carried })) sal)
        | Primcon (pc, l) => Primcon (pc, map self l)
        | Conts ll => Conts ` map (map self) ll
-       | Shamrock t => Shamrock ` self t
+       | Shamrock (vv, t) => if wbinds v vv
+                             then typ
+                             else Shamrock (vv, self t)
        | TVar vv => var_action vv
     end
 
@@ -402,6 +404,10 @@ struct
                                  in TExists (v', map (renamet v v') t)
                                  end
 
+    | ctyp (T(Shamrock (v, t))) = let val v' = V.alphavary v
+                                  in Shamrock (v', renamet v v' t)
+                                  end
+
     | ctyp (T(Mu(i, vtl))) = let val (vs, ts) = ListPair.unzip vtl
                                  val tys = ListUtil.mapto V.alphavary vs
                                  fun rent t = renametall t tys
@@ -551,6 +557,13 @@ struct
                                val v' = V.alphavary v
                                val vd' = V.alphavary vd
                              in Dict ` WExists ((v', vd'), renamev vd vd' ` renamev v v' t)
+                             end
+
+    | cval (V(Dict(Shamrock ((v, vd), t)))) = 
+                             let 
+                               val v' = V.alphavary v
+                               val vd' = V.alphavary vd
+                             in Dict ` Shamrock ((v', vd'), renamev vd vd' ` renamev v v' t)
                              end
                                      
     | cval (V(Dict(TExists ((v1, v2), t)))) = 
@@ -738,7 +751,13 @@ struct
       | (Addr _, _) => LESS
       | (_, Addr _) => GREATER
 
-      | (Shamrock t1, Shamrock t2) => ctyp_cmp (t1, t2)
+      | (Shamrock (v1, t1), Shamrock (v2, t2)) => 
+          let val v' = V.namedvar "x"
+          in
+            ctyp_cmp (renamet v1 v' t1,
+                      renamet v2 v' t2)
+          end
+
       | (Shamrock _, _) => LESS
       | (_, Shamrock _) => GREATER
 
@@ -822,6 +841,7 @@ struct
   val Primcon' = fn x => T (Primcon x)
   val Conts' = fn x => T (Conts x)
   val Shamrock' = fn x => T (Shamrock x)
+  val Shamrock0' = fn x => T (Shamrock (V.namedvar "unuseds0", x))
   val TVar' = fn x => T (TVar x)
 
   val Halt' = E Halt
@@ -905,7 +925,7 @@ struct
     | Sum sail => Sum ` ListUtil.mapsecond (IL.arminfo_map f) sail
     | Primcon (pc, l) => Primcon (pc, map f l)
     | Conts tll => Conts ` map (map f) tll
-    | Shamrock t => Shamrock ` f t
+    | Shamrock (v, t) => Shamrock (v, f t)
     | TVar v => typ
 
   fun pointwisetw fw f typ = ctyp' ` ontypefront fw f (ctyp typ)

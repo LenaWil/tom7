@@ -42,7 +42,8 @@ sig
     | Mu of int * ('tbind * 'ctyp) list
     | Sum of (string * 'ctyp IL.arminfo) list
     | Primcon of primcon * 'ctyp list
-    | Shamrock of 'ctyp
+    (* XXX not clear if this should be 'wbind or var. *)
+    | Shamrock of 'wbind * 'ctyp
     | TVar of var
 
   type ctyp
@@ -216,7 +217,8 @@ sig
   val Sum' : (string * ctyp IL.arminfo) list -> ctyp
   val Primcon' : primcon * ctyp list -> ctyp
   val Conts' : ctyp list list -> ctyp
-  val Shamrock' : ctyp -> ctyp
+  val Shamrock' : var * ctyp -> ctyp
+  val Shamrock0' : ctyp -> ctyp
   val TVar' : var -> ctyp
   val AllArrow' : { worlds : var list, tys : var list, vals : ctyp list, body : ctyp } -> ctyp
 
