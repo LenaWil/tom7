@@ -1178,6 +1178,14 @@ struct
 
               val fctx = foldl mkcontext ctx efs
 
+              val () =
+                let val n = StringUtil.delimit "_" (map (V.basename o #name) fs)
+                in
+                  case maybevalid of
+                    NONE => (* print (n ^ " is not valid\n")*) ()
+                  | SOME _ => print (n ^ " is valid\n")
+                end
+
               (* bind as regular value or as a valid value *)
               val bind = 
                   case maybevalid of
