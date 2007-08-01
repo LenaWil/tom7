@@ -22,15 +22,6 @@ struct
   open ElabUtil
   structure P = Primop
 
-    (* XXX *)
-(*
-    structure Pattern =
-    struct
-      fun elaborate _ _ _ _ _ _ = (raise Elaborate "pattern stub unimplemented") : IL.exp * IL.typ
-      exception Pattern of string
-    end
-*)
-      
   exception Impossible
 
   fun bindval p = Bind(Val, p)
@@ -47,7 +38,7 @@ struct
                     cod = cod,
                     inline = false,
                     total = false,
-                    (* since the name is new, it is not recursive *)
+                    (* since the name is new, it cannot be recursive *)
                     recu = false,
                     body = body }])
       end
@@ -73,7 +64,7 @@ struct
       (case C.con ctx str of
            (0, Typ t, _) => t
          (* nullary rewrites these, so it should be impossible *)
-         | (0, Lambda f, _) => (* f nil *) error loc ("invariant violation: lookupt got Lambda for " ^ str)
+         | (0, Lambda f, _) => error loc ("invariant violation: lookupt got Lambda for " ^ str)
          | (kind, _, _) => 
                error loc (str ^ " expects " ^ 
                           itos kind ^ " type argument"
@@ -1162,50 +1153,69 @@ struct
               val (fs, efs, ps) = 
                   foldl folder (nil, nil, nil) ` map onef binds
 
-              val valid = canpolywgen outer_context atworld
+              (* check if atworld can be generalized. if so,
+                 then the declaration will be valid. XXX5
+                 should prevent generalization if this world
+                 appears in the type of any function, too. *)
+              val maybevalid = polywgen outer_context atworld
 
               (* FIXME5. Ought allow polymorphism over worlds. *)
+              (* we'll generalize both the binding of the bundle
+                 and the binding of each of the projections in the same way. *)
               fun mkpoly ps at = Poly({worlds=nil, (* XXX5 *)
                                        tys = ps}, at)
 
               (* rebuild the context with these functions
                  bound polymorphically *)
               fun mkcontext ((f, vv, at), cc) =
-                  C.bindv cc f (mkpoly ps at) vv here
-
+                  (case maybevalid of
+                       (* not valid. *)
+                       NONE => C.bindv cc f (mkpoly ps at) vv atworld
+                       (* valid. the name of the generalized world is
+                          irrelevant here because it won't be mentioned
+                          anywhere else *)
+                     | SOME _ => C.bindu cc f (mkpoly ps at) vv IL.Normal)
 
               val fctx = foldl mkcontext ctx efs
+
+              (* bind as regular value or as a valid value *)
+              val bind = 
+                  case maybevalid of
+                      NONE => (fn Poly ({ worlds, tys }, (v, t, e)) =>
+                               Bind(Val, Poly ({worlds = worlds, tys = tys},
+                                               (v, t, Value e))))
+                    | SOME wv => (fn Poly ({ worlds, tys }, (v, t, e)) =>
+                                  Letsham(Poly ({worlds = worlds, tys = tys},
+                                                (v, t, Sham (wv, e))))
+                                  )
           in
-
-
               (* if just one, then we want to produce better code: *)
-              (case fs of
+              case fs of
                  [ f as { name, arg, dom, inline, recu, total, cod, body } ] =>
-                   ([bindval ` mkpoly ps ` (name, Arrow (false, dom, cod), 
-                                        Value `
-                                        FSel(0, Fns [f]))], fctx)
+                   ([bind ` mkpoly ps ` (name, Arrow (false, dom, cod), 
+                                         FSel(0, Fns [f]))], fctx)
                 | _ => 
                    let val bundv = V.namedvar ` StringUtil.delimit "_" (map (V.basename o #name) fs)
                    in
                      ( 
                       (* the bundle... *)
-                      (bindval ` mkpoly ps ` (bundv, Arrows ` map (fn { dom, cod, ... } => 
-                                                               (false, dom, cod)) fs,
-                                          Value ` Fns fs)) ::
+                      (bind ` mkpoly ps ` (bundv, Arrows ` map (fn { dom, cod, ... } => 
+                                                                (false, dom, cod)) fs,
+                                           Fns fs)) ::
                       (* then bind the projections... *)
                       ListUtil.mapi (fn ({ name, dom, cod, ... }, i) =>
                                      let val ops = ps (* map V.alphavary ps *)
                                           (* (would also need to rename through dom/cod) *)
                                      in
-                                       bindval ` mkpoly ops ` (name, 
-                                                           Arrow (false, dom, cod), 
-                                                           Value ` FSel(i, 
-                                                                        Polyvar { tys = map TVar ops,
-                                                                                  worlds = nil (* XXX *),
-                                                                                  var = bundv }))
+                                       bind ` mkpoly ops ` (name, 
+                                                            Arrow (false, dom, cod), 
+                                                            FSel(i, 
+                                                                 Polyvar { tys = map TVar ops,
+                                                                           worlds = nil (* XXX *),
+                                                                           var = bundv }))
                                      end) fs,
                       fctx)
-                   end)
+                   end
           end
 
     (* val and put bindings *)

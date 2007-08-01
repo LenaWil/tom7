@@ -122,12 +122,18 @@ struct
     fun polywgen ctx (w as IL.WEvar er) =
       (case !er of
          IL.Free n =>
-           if Context.has_evar ctx
-           then w
+           if Context.has_wevar ctx n
+           then NONE
            else
-       | IL.Bound w => polygen ctx w)
-      | polywgen ctx (w as IL.WConst s) = w
-      | polywgen _   (w as IL.WVar _) = w
+               let
+                   val wv = V.namedvar "poly"
+               in
+                   er := IL.Bound (IL.WVar wv);
+                   SOME wv
+               end
+       | IL.Bound w => polywgen ctx w)
+      | polywgen ctx (w as IL.WConst s) = NONE
+      | polywgen _   (w as IL.WVar _) = NONE
 
     fun evarizes (IL.Poly({worlds, tys}, mt)) =
         let

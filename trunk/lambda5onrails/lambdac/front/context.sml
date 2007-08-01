@@ -65,8 +65,8 @@ struct
         SU.exists (fn (Poly({worlds, tys}, t), _, _, _) => has t) vars 
       end
 
-    (* for world evars. Again, these can only appear in the types of vars;
-       worlds are just variable names. *)
+    (* for world evars. Again, these can only appear in the types of bound vars;
+       bound worlds and types have uninteresting kinds. *)
     fun has_wevar (C{vars, ...}) n =
       let
           open IL

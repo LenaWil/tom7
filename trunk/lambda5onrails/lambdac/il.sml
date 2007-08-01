@@ -92,6 +92,7 @@ struct
       | VRecord of (label * value) list
       | VRoll of typ * value
       | VInject of typ * label * value option
+      (* bound world, value *)
       | Sham of var * value
 
       | Fns of 

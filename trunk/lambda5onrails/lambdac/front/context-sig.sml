@@ -28,10 +28,11 @@ sig
     val world : context -> string -> IL.world
 
     (* has_evar ctx n
-       Does the context contain the free evar n in the type of any
-       term? *)
-    val has_evar : context -> int -> bool
-
+       Does the context contain the free type evar n in the type of any
+       bound variable?*)
+    val has_evar  : context -> int -> bool
+    (* same, but for free world evars *)
+    val has_wevar : context -> int -> bool
 
 
     (* context extension operations *)

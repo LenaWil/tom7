@@ -36,6 +36,12 @@ sig
        type variables. *)
     val polygen : Context.context -> IL.typ -> IL.typ * Variable.var list
 
+    (* polygen sctx w
+
+       If the world is an unbound evar that can be safely generalized (see above), 
+       then instantiate it and return the new variable. Otherwise, return NONE. *)
+    val polywgen : Context.context -> IL.world -> Variable.var option
+
     (* instantiate all of the bound type and world variables with new evars and wevars;
        return the types and worlds used to instantiate the type *)
     val evarize : IL.typ IL.poly -> IL.typ * IL.world list * IL.typ list
