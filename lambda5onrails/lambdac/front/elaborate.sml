@@ -116,12 +116,13 @@ struct
 
     and dovar ctx loc vv =
     ((case C.var ctx vv of
-      (pt, v, i, Context.Valid) =>
+      (pt, v, i, Context.Valid wv) =>
         let
           (* See below *)
+          val here = new_wevar ()
           val (tt, worlds, tys) = evarize pt
         in
-          (Polyuvar {tys = tys, worlds = worlds, var = v}, tt, new_wevar())
+          (Polyuvar {tys = tys, worlds = worlds, var = v}, wsubst1 here wv tt, here)
         end
     | (pt, v, i, Context.Modal w) =>
         let
@@ -715,7 +716,7 @@ struct
                 probably not. we implement the bindings in generality, though we
                 might want to inline certain forms for performance sake. *)
              C.bindex ctx (SOME id) ptt v Normal (case ww of
-                                                    NONE => C.Valid
+                                                    NONE => C.Valid ` V.namedvar "ew_unused"
                                                   | SOME w => C.Modal w))
           end
 
@@ -1021,7 +1022,7 @@ struct
               val nctx =
                   foldl
                   (fn ((ctor, v, at, _),c) =>
-                   C.bindex c (SOME ctor) at v Constructor C.Valid) nctx ctors
+                   C.bindex c (SOME ctor) at v Constructor (C.Valid ` V.namedvar "ctor_unused")) nctx ctors
 
           in
               (map #4 ctors, nctx)
@@ -1171,10 +1172,8 @@ struct
                   (case maybevalid of
                        (* not valid. *)
                        NONE => C.bindv cc f (mkpoly ps at) vv atworld
-                       (* valid. the name of the generalized world is
-                          irrelevant here because it won't be mentioned
-                          anywhere else *)
-                     | SOME _ => C.bindu cc f (mkpoly ps at) vv IL.Normal)
+                       (* valid. wv might appear within at. *)
+                     | SOME wv => C.bindex cc (SOME f) (mkpoly ps at) vv IL.Normal (C.Valid wv))
 
               val fctx = foldl mkcontext ctx efs
 
@@ -1259,10 +1258,12 @@ struct
 
               val vv = Variable.namedvar v
 
+              (* XXX should make binding valid if possible; see fun decls *)
+
               val ctx = C.bindex ctx (SOME v) (Poly ({worlds = nil (* XXX5 *),
                                                       tys = ps}, tt)) vv Normal (case b of
-                                                                                   E.Val => (C.Modal here)
-                                                                                 | E.Put => C.Valid)
+                                                                                   E.Val => C.Modal here
+                                                                                 | E.Put => C.Valid ` V.namedvar "put_unused")
 
           in
             case b of

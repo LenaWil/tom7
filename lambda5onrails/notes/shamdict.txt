@@ -111,10 +111,206 @@ sham (w). Consider:
                     from server get display [hello])
 
 Here we won't be able to compute the actual dictionary for w because
-we won't be executing at w.
+we won't be executing at w. This seems pretty definitively bad.
 
 (Maybe a nicer way to think of this is that a "sham" has as its body a
  derivation that is schematic in the world, and the name of that world
  is a "parameter", not a "variable" in the sense that it will never be
  bound to any *actual* world?)
 
+
+-------------------------
+
+Here's another idea: do a systematic transformation such that the uses
+of uvars supply an argument that is the world dictionary for the current
+world. Then, shamrock simply has a fat binding with both a static and
+dynamic variable for the world.
+
+Shamrock elimination is not the only way that values become valid,
+though. We also have externs (but these usually pose no problem
+because we can just insist that they come in whatever form is
+necessary for the compiler) and put. Of course, when we happen to
+have a value that needs no world binding (like an integer), we
+can still take a world dictionary and not use it if we like. But this
+seems sort of crappy. It would be nice instead to have uvars retain
+the same meaning as before and only transform the meaning of sham
+and letsham.
+
+What I have in mind is something like, when we write
+
+  fun goto_client () = ...
+  in
+  ... goto_client (); ..
+
+we get
+
+  letsham goto_client = sham w. lam (). ...
+  in
+  ... goto_client () ...
+
+but that this is transformed (in the dictionarying phase) into
+something more like
+
+  letsham goto_client = sham w. alllam {wd : w wdict}. lam () ...
+  in
+  ... goto_client<wdict here> () ...
+
+which seems reasonable and akin to what we do for type quantifiers.
+But how do we type this thing?
+
+  sham w. alllam {wd : w wdict}. lam () ...
+
+has type
+
+  {} allarrow {wd : ?? wdict}. unit -> ...
+
+and this is not okay because {} does not bind a variable. Sometimes I think
+it should. What would happen? The elimination form would be strange:
+
+
+  G |- e : {w'}t
+  G, u ~ t |- e' : C @ w
+ -----------------------------------
+  G |- letsham u = e in e' : C @ w
+
+this is screwed up because the hypothesis u ~ t is nonsense with the
+free variable w' within t. This seems to be a dead end. We could change
+the judgment form for ~ to bind a world:
+
+  G |- e : {w'}t
+  G, w'.u ~ w'.t |- e' : C @ w
+ -----------------------------------
+  G |- letsham u = e in e' : C @ w
+
+and now we require every use of u to give the (current) world as an
+argument. This could certainly be implicit, since the context determines
+the world:
+
+  G  =  G', w'.u ~ w'.t, G''
+ -------------------------------
+  G |- u : t[w/w']  @  w
+
+This isn't even that weird, since the dynamic semantics does in fact
+parameterize valid values over a world argument.
+
+Okay, supposing that we did this major change to {}, then we'd be able
+to type
+
+  letsham goto_client = sham w. alllam {wd : w wdict}. lam () ...
+  in  ... goto_client<wdict here> () ...
+
+because
+
+  sham w. alllam {wd : w wdict}. lam () ...
+
+would have type
+
+  {w}. allarrow{wd : w wdict}. unit -> ...
+
+which when eliminated yields
+
+  goto_client ~ w.allarrow{wd : w wdict}. unit -> ...
+
+and then when used
+
+  goto_client : allarrow{wd : here wdict}. unit -> ...
+
+and finally when applied
+
+  goto_client<wdict here> : unit -> ...
+
+as desired. Note that we don't touch valid values that come from put:
+
+  put u = 3
+
+yields
+
+  u ~ w.int
+
+which, although it binds a useless (static) world variable, does not
+carry any runtime cost.
+
+Still, this is tricky because the translation is not type-directed.
+When we see u ~ w.int in the context what do we do? Was it bound with
+a letsham or a put? We could track this in our translation by keeping
+a set of letsham-bound variables. This is not the nicest thing in the
+world. Another possibility would be to create a third class of
+variables, so that we have  x : t @ w,  u ~ t,  z ~ w.t. This makes
+the translation more uniform, but having multiple different sorts of
+variables is a major headache.
+
+Another complication is that we currently use shamrock frequently in
+the belief that it is without cost. But with the translation above we
+do introduce a (function call) cost. In particular, closure conversion
+wraps any currently valid variables with shamrock in order to stick
+them into the environment. It would be very bad (maybe even circular)
+if we had to convert these shamrocks into allarrows and then closure
+convert them as well! (It seems unlikely that it would get that bad
+since they are always variables. But this is still worrisome.)
+
+
+So, what is the proposal? During the Dict phase, the type {}A becomes
+{w} (allarrow{w dict}.A). We track any binding of a uvar made by
+letsham; these now have valid type w.A where w is used in A. For a use
+of a valid variable that was not bound by letsham, nothing changes.
+For a use of a valid variable that *was* bound by letsham, we apply
+it as u<getwdict>. 
+
+But wait--getwdict is some kind of expression that computes the
+current world's dictionary? That won't work. No, instead, it should be
+
+  u<wdictfor(here)>
+
+since wdictfor is a value. We simply rely on the fact that we are
+establishing the invariant that makes wdictfor possible.
+
+
+In the Closure phase, which is the major phase that must maintain the
+dictionary invariant, we have to do the following. Any time that we
+bind a world variable, we'll need to maintain the wdictionary
+invariant. I think this is only when we embed valid variables in
+shamrocks in order to stick them in environments. What does this look
+like? 
+
+
+post Dict phase:
+
+  letsham goto_client = sham w. alllam {wd : w wdict}. lam () ...
+  fun f () =  goto_client<wdict server>
+  in ... f ...
+
+to create a closure for f, we gather the free uvariables. In this
+case it's just goto_client:
+
+  goto_client ~ w.alllam {w wdict}. T
+  (where T is the type of the closure converted body)
+
+we build an environment value that collects up the free variables.
+
+  { 1 = sham w. goto_client }
+
+note that this instantiates goto_client and its type at the hypothetical
+world w. So this environment has type
+
+  { 1 : {w} alllam {w wdict}. T }
+
+(sorry, here curly braces are used to represent records with named fields,
+ shamrocks (with embedded bound variable) and lists of arguments to alllam.
+ confusing!)
+
+Inside the body of the closure converted thing we'll project out the fields:
+
+  val goto_client_s = #1 env
+  (goto_client_s : {w} alllam {w wdict}. T  @ server)
+
+  letsham goto_client = goto_client_s
+  (goto_client ~ w.alllam {w wdict}.T)
+
+  .. which is exactly what we want since the later uses of goto_client will
+  allapply it to the right wdictionary.
+
+So, in conclusion, closure conversion does not need to do anything
+special in order to perform this translation. Sanity check: What was
+the reason that closure conversion ever needed to do special things
+with dictionaries? One was that it generates some uses of dictionaries,
+particularly because it packs type-existentials. 

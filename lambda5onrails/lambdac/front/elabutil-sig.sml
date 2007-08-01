@@ -49,6 +49,8 @@ sig
     val evarizes : IL.typ list IL.poly -> IL.typ list * IL.world list * IL.typ list
 
 
+    val wsubst1 : IL.world -> Variable.var -> IL.typ -> IL.typ
+
     val unroll : Pos.pos -> IL.typ -> IL.typ
 
     val mono : 'a -> 'a IL.poly

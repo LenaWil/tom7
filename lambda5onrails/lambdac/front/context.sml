@@ -9,7 +9,7 @@ struct
 
     datatype varsort =
       Modal of IL.world
-    | Valid
+    | Valid of Variable.var
 
     datatype context = 
         C of { vars : (IL.typ IL.poly * Variable.var * IL.idstatus * varsort) S.map,
@@ -55,7 +55,7 @@ struct
                  | TCont t => has t
                  | TTag (t, _) => has t
                  | At (t, w) => has t
-                 | Shamrock t => has t
+                 | Shamrock (_, t) => has t
                  | TAddr _ => false
                  | Arrows l =>
                        List.exists (fn (_, tl, t) =>
@@ -95,7 +95,7 @@ struct
                  | TCont t => has t
                  | TTag (t, _) => has t
                  | At (t, w) => has t orelse hasw w
-                 | Shamrock t => has t
+                 | Shamrock (_, t) => has t
                  | TAddr w => hasw w
                  | Arrows l =>
                        List.exists (fn (_, tl, t) =>
@@ -156,7 +156,7 @@ struct
             dbs = dbs }
 
     fun bindv c sym t v w = bindex c (SOME sym) t v IL.Normal (Modal w)
-    fun bindu c sym typ var stat = bindex c (SOME sym) typ var stat Valid
+    fun bindu c sym typ var stat = bindex c (SOME sym) typ var stat (Valid (Variable.namedvar "unused"))
 
     fun bindcex (C { cons, vars, dbs, worlds, wlabs }) module sym con kind status =
         C { vars = vars,

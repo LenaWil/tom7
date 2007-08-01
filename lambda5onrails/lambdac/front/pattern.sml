@@ -294,8 +294,8 @@ struct
                                   unifyw ctx loc "case object" here w;
                                   (tt, I.Var vv)
                                 end
-                            | (IL.Poly({worlds=nil, tys=nil}, tt), vv, Normal, C.Valid) => 
-                                (tt, I.Polyuvar { tys = nil, worlds = nil, var = vv })
+                            | (IL.Poly({worlds=nil, tys=nil}, tt), vv, Normal, C.Valid v) =>
+                                (wsubst1 here v tt, I.Polyuvar { tys = nil, worlds = nil, var = vv })
                             | _ => raise Pattern 
                                   "case object is poly or constructor (?)"
 
@@ -641,9 +641,11 @@ struct
 
                          val (de, dt) = elab nctx here ` ndef ()
 
+                         fun pwsubst1 w v (I.Poly (x, t)) = I.Poly (x, wsubst1 w v t)
+
                          val (opt, objv) = 
                            case C.var nctx obj of
-                             (t, v, _, C.Valid) => (t, I.Polyuvar ({worlds = nil, tys = nil, var = v}))
+                             (t, v, _, C.Valid vv) => (pwsubst1 here vv t, I.Polyuvar ({worlds = nil, tys = nil, var = v}))
                            | (t, v, _, C.Modal w) =>
                                let in
                                  unifyw nctx loc "tagcase getobj" here w;
@@ -665,14 +667,17 @@ struct
                        end
 
                      (* Datatype constructors should always be valid *)
-                    | (pt, _, I.Constructor, C.Valid) =>
+                    | (pt, _, I.Constructor, C.Valid v) =>
                        (* ****** Datatype Constructor ***** *)
                        let
+
                          val cod =
                            (case #1 (evarize pt) of
                               I.Arrow(_, _, cod) => cod
                             | (tt as (I.Mu _)) => tt
                             | _ => raise Pattern "bug:can't get codomain from first app pattern")
+
+                         val cod = wsubst1 here v cod
 
                          val rett = new_evar ()
 
@@ -686,8 +691,8 @@ struct
                             the subpatterns. *)
                          fun onelab (l, perl) =
                            (case (C.var nctx l, new_evar ()) of
-                             ((pt, _, I.Constructor, C.Valid), domvar) =>
-                               (case #1 (evarize pt) of
+                             ((pt, _, I.Constructor, C.Valid v), domvar) =>
+                               (case wsubst1 here v ` #1 (evarize pt) of
                                   (* nullary constructor *)
                                   (tt as (I.Mu _)) =>
                                    (case ElabUtil.unroll loc tt of
@@ -820,9 +825,11 @@ struct
 
                          val (de, dt) = elab nctx here ` ndef ()
 
+                         fun pwsubst1 w v (I.Poly (x, t)) = I.Poly (x, wsubst1 w v t)
+
                          val (opt, objv) =
                            case C.var nctx obj of
-                             (t, v, _, C.Valid) => (t, I.Polyuvar ({worlds = nil, tys = nil, var = v}))
+                             (t, v, _, C.Valid vv) => (pwsubst1 here vv t, I.Polyuvar ({worlds = nil, tys = nil, var = v}))
                            | (t, v, _, C.Modal w) =>
                                let in
                                  unifyw nctx loc "constructorcase getobj" here w;

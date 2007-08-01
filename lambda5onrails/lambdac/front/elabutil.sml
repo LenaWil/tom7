@@ -27,6 +27,8 @@ struct
         print ("Warning at " ^ Pos.toString loc ^ ": " ^ s ^ "\n")
       end
 
+    fun wsubst1 w v t = Subst.wsubst (Subst.fromlist [(v,w)]) t
+
     (* unify context location message actual expected *)
     fun unify ctx loc msg t1 t2 =
             Unify.unify ctx t1 t2
@@ -98,7 +100,7 @@ struct
                    | IL.TTag (tt, v) => IL.TTag (go tt, v)
                    | IL.Mu (n, vtl) => IL.Mu (n, ListUtil.mapsecond go vtl)
                    | IL.TAddr w => t
-                   | IL.Shamrock tt => IL.Shamrock ` go tt
+                   | IL.Shamrock (w, tt) => IL.Shamrock (w, go tt)
                    (* XXX5 polygen worlds too *)
                    | IL.At (t, w) => IL.At(go t, w)
                    | IL.Evar er =>

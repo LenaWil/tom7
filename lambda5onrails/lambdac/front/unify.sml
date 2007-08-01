@@ -52,7 +52,7 @@ struct
            | (Evar (ref (Bound t))) => occurs r t
            | (Evar (r' as ref (Free _))) => r = r'
            | At (t, w) => occurs r t
-           | Shamrock t => occurs r t
+           | Shamrock (_, t) => occurs r t
            | TAddr w => false)
 
     (* occurs check for worlds is trivial, currently *)
@@ -65,8 +65,13 @@ struct
     fun wset r (WEvar (ref (Bound t))) = wset r t
       | wset r t = r := Bound t
 
-    fun mapif m v =
-        case Variable.Map.find (m, v) of
+    fun mapift (mt, _) v =
+        case Variable.Map.find (mt, v) of
+            NONE => v
+          | SOME vv => vv
+
+    fun mapifw (_, mw) v =
+        case Variable.Map.find (mw, v) of
             NONE => v
           | SOME vv => vv
 
@@ -76,12 +81,12 @@ struct
     fun unifyex ctx eqmap t1 t2 =
         (case (t1, t2) of
              (TVar v1, TVar v2) =>
-                 ignore (Variable.eq (mapif eqmap v1, v2) 
+                 ignore (Variable.eq (mapift eqmap v1, v2) 
                             orelse raise Unify "Var")
 
            | (TTag (t1, v1), TTag (t2, v2)) => 
                  let in
-                     Variable.eq (mapif eqmap v1, v2) 
+                     Variable.eq (mapift eqmap v1, v2) 
                       orelse raise Unify "tag var";
                      unifyex ctx eqmap t1 t2
                  end
@@ -125,14 +130,16 @@ struct
                       else set r t1 
            | (TRef c1, TRef c2) => unifyex ctx eqmap c1 c2
            | (Mu (i1, m1), Mu (i2, m2)) => 
+               let val (mt, mw) = eqmap
+               in
                  ignore
                  ((i1 = i2 andalso
                    ListUtil.all2 (fn ((v1, t1),
                                      (v2, t2)) =>
-                                 (unifyex ctx (mapplus eqmap (v1, v2)) t1 t2; 
+                                 (unifyex ctx (mapplus mt (v1, v2), mw) t1 t2; 
                                   true)) m1 m2)
-
                   orelse raise Unify "mu")
+               end
            | (Sum ltl1, Sum ltl2) =>
                  ignore
                  ((ListUtil.all2 (fn ((l1, t1),
@@ -151,12 +158,17 @@ struct
                   (ListUtil.sort (ListUtil.byfirst String.compare) ltl1)
                   (ListUtil.sort (ListUtil.byfirst String.compare) ltl2))
                   orelse raise Unify "sum")
-           | (TAddr w1, TAddr w2) => unifyw ctx w1 w2
-           | (Shamrock t1, Shamrock t2) => unifyex ctx eqmap t1 t2
+           | (TAddr w1, TAddr w2) => unifywex ctx eqmap w1 w2
+           | (Shamrock (w1, t1), Shamrock (w2, t2)) => 
+                 (* this binds world variables, so we need to insert those in
+                    another map... *)
+                 let val (mt, mw) = eqmap
+                 in unifyex ctx (mt, mapplus mw (w1, w2)) t1 t2
+                 end
            | (At (t1, w1), At (t2, w2)) =>
                  let in
                      unifyex ctx eqmap t1 t2;
-                     unifyw ctx w1 w2
+                     unifywex ctx eqmap w1 w2
                  end
            | (Arrows al1, Arrows al2) =>
                  let in
@@ -202,18 +214,16 @@ struct
                  (* no catch-all; dangerous if missing cases of unification! *)
                  )
 
-    and unify ctx t1 t2 = unifyex ctx Variable.Map.empty t1 t2
-
-    and unifyw ctx w1 w2 =
+    and unifywex ctx eqmap w1 w2 =
       case (w1, w2) of
-        (WVar a, WVar b) => ignore (Variable.eq (a, b) orelse raise Unify "world var")
+        (WVar a, WVar b) => ignore (Variable.eq (mapifw eqmap a, b) orelse raise Unify "world var")
 
       | (WConst a, WConst b) => ignore (a = b orelse raise Unify "world const")
       | (WVar _, WConst _) => raise Unify "world var/const"
       | (WConst _, WVar _) => raise Unify "world const/var"
       (* if either is bind, path compress... *)
-      | (WEvar (ref (Bound w1)), w2) => unifyw ctx w1 w2
-      | (w1, WEvar (ref (Bound w2))) => unifyw ctx w1 w2
+      | (WEvar (ref (Bound w1)), w2) => unifywex ctx eqmap w1 w2
+      | (w1, WEvar (ref (Bound w2))) => unifywex ctx eqmap w1 w2
 
       | (WEvar (r as ref (Free _)), w2) =>
           if same_wevar r w2 then ()
@@ -225,5 +235,9 @@ struct
           else if woccursw r w1 
                then raise Unify "circularity"
                else wset r w1 
+
+    fun unify ctx t1 t2  = unifyex ctx (Variable.Map.empty, Variable.Map.empty) t1 t2
+
+    fun unifyw ctx w1 w2 = unifywex ctx (Variable.Map.empty, Variable.Map.empty) w1 w2
 
 end
