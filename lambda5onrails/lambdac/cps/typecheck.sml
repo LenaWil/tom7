@@ -62,14 +62,14 @@ struct
                                                    else ""))) (V.Map.listItemsi tvars),
          two "vars:" ` L.listex "" "" "," ` map (fn (v, (t, w)) =>
                                                %[$(V.tostring v),
-                                                 $":",
-                                                 P.ttol t,
-                                                 $"@",
-                                                 P.wtol w]) (V.Map.listItemsi vars),
+                                                 %[$":",
+                                                   P.ttol t],
+                                                 %[$"@",
+                                                   P.wtol w]]) (V.Map.listItemsi vars),
          two "uvars:" ` L.listex "" "" "," ` map (fn (v, t) =>
                                                 %[$(V.tostring v),
-                                                  $"~",
-                                                  P.ttol t]) (V.Map.listItemsi uvars)
+                                                  %[$"~",
+                                                    P.ttol t]]) (V.Map.listItemsi uvars)
          (* XXX worldlabs and globals *)
           ]]
   end
@@ -201,7 +201,7 @@ struct
                                     else NONE
                                 | _ => NONE) uvars
     in
-      ignore ` gettype ctx wv;
+      ignore ` getworld ctx (W wv);
       (* finds any match in scope, since "t wdict" is a singleton type *)
       (case V.Map.listItemsi m of
          nil => 
