@@ -71,7 +71,7 @@ struct
            | TRef t => L.paren (L.seq[self t, $" ref"])
            | TVar v => L.str (V.show v)
            | TAddr w => L.paren (L.seq[wtol w, $" addr"])
-           | Shamrock t => %[$"{}", ttol t]
+           | Shamrock (w, t) => %[$("{" ^ V.tostring w ^ "}"), ttol t]
            | At (t, w) => L.paren (L.seq[self t, $"at", wtol w])
            | Sum ltl => L.listex "[" "]" "," (map (fn (l, Carrier { carried = t,
                                                                     definitely_allocated = b}) =>

@@ -9,16 +9,17 @@ sig
     type context
 
     val empty : context
-
-
-    (* lookup operations *)
    
-    (* resolve a value identifier in the current context, return its type and
-       status and world *)
+    (* a variable can either be situated at a world (hypothesis   x : t @ w)
+       or it can be valid, binding a hypothetical world (hypothesis   x ~ v.t) *)
     datatype varsort =
       Modal of IL.world
-    | Valid
+    | Valid of Variable.var
 
+    (* lookup operations *)
+
+    (* resolve a value identifier in the current context, return its type and
+       status and world *)
     val var : context -> string -> IL.typ IL.poly * Variable.var * IL.idstatus * varsort
 
     (* resolve a type/con identifer in the current context, return its kind
@@ -38,7 +39,7 @@ sig
     (* context extension operations *)
     
     (* bind a valid variable *)
-    val bindu : context -> string -> IL.typ IL.poly -> Variable.var -> IL.idstatus -> context
+    (* val bindu : context -> string -> IL.typ IL.poly -> Variable.var -> IL.idstatus -> context *)
 
     (* bind a world *)
     val bindw : context -> string -> Variable.var -> context

@@ -182,7 +182,7 @@ struct
 
     (* initial environment is all valid *)
     val initial = foldl (fn ((s, c, t), ctx) =>
-                         Context.bindu ctx s c (namedvar "dummy") t) 
+                         Context.bindex ctx (SOME s) c (namedvar "dummy") t (Context.Valid (Variable.namedvar "initial_unused")))
                         initialec vals
 
 

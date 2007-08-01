@@ -66,7 +66,7 @@ struct
 
       | At of typ * world
       | TAddr of world
-      | Shamrock of typ
+      | Shamrock of var * typ
 
       | Arrows of (bool * typ list * typ) list
 
