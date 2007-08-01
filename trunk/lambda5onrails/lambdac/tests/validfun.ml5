@@ -1,0 +1,17 @@
+unit
+(*
+    import "std.mlh"
+    import "dom.mlh"
+    import "trivialdb.mlh"
+*)
+
+    extern bytecode world server
+    extern val server ~ server addr
+
+    fun vswap (a : int, b : int) = (b, a)
+
+    val x = from server get ( vswap (0, 1);
+                              "hi" )
+
+in
+end
