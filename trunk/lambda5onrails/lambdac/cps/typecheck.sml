@@ -303,8 +303,16 @@ struct
         let val G = bindtype G v false
         in app (tok G) t
         end
-    (* XXX check no dupes *)
-    | Product stl => ListUtil.appsecond (tok G) stl
+    | Product stl => 
+        let
+          (* to check duplicates... *)
+           val labs = map #1 stl
+           val labs = ListUtil.sort String.compare labs
+        in 
+          if ListUtil.alladjacent op <> labs
+          then ListUtil.appsecond (tok G) stl
+          else raise TypeCheck "duplicate labels in product type"
+        end
     | TVar v => ignore ` gettype G v
     | TWdict w => wok G w
     | Addr w => wok G w

@@ -48,7 +48,8 @@ struct
   (* assuming not mobile *)
   val bindtypes  = foldl (fn (v, c) => bindtype c v false)
 
-  (* Expressions *)
+
+  (*    expressions    *)
 
   fun case_Call z (s as {selfv, selfe, selft}, G) (f, args) =
        let
@@ -108,8 +109,9 @@ struct
          in
            Primop' ([v], SAY_CC, [k], selfe z G e)
          end
+    | case_Primop z ({selfe, selfv, selft}, G) (_, SAY, _, e) = raise Pass "bad say"
 
-     | case_Primop z ({selfe, selfv, selft}, G) ([v], NATIVE { po, tys }, l, e) =
+    | case_Primop z ({selfe, selfv, selft}, G) ([v], NATIVE { po, tys }, l, e) =
         let
           val tys = map (selft z G) tys
         in
@@ -134,11 +136,28 @@ struct
           | _ => raise Pass "unimplemented: primops with world args"
         end
 
+     | case_Primop z ({selfe, selfv, selft}, G) (_, NATIVE { po, tys }, l, e) = raise Pass "bad native"
+
+     | case_Primop z ({selfe, selfv, selft}, G) ([v], MARSHAL, [vd, va], e) =
+         let
+           val (vd, _) = selfv z G vd
+           val (va, _) = selfv z G va
+           (* don't bother checking the types; we always get
+              the same result *)
+           val G = bindvar G v (Zerocon' BYTES) ` worldfrom G
+         in
+           Primop' ([v], MARSHAL, [vd, va], selfe z G e)
+         end
+     | case_Primop z ({selfe, selfv, selft}, G) (_, MARSHAL, _, e) = raise Pass "bad marshal"
+
      | case_Primop z ({selfe, selfv, selft}, G) ([v], SAY_CC, [k], e) = raise Pass "unimplemented say_cc"
+     | case_Primop z ({selfe, selfv, selft}, G) (_, SAY_CC, _, _) = raise Pass "bad say_cc"
 
      | case_Primop z ({selfe, selfv, selft}, G) ([v], LOCALHOST, [], e) =
            Primop' ([v], LOCALHOST, [], 
                     selfe z (bindu0var G v ` Addr' ` worldfrom G) e)
+
+     | case_Primop z ({selfe, selfv, selft}, G) (_, LOCALHOST, _, e) = raise Pass "bad localhost"
 
      | case_Primop z ({selfe, selfv, selft}, G) ([v], BIND, [va], e) =
          let
@@ -147,6 +166,8 @@ struct
          in
            Primop' ([v], BIND, [va], selfe z G e)
          end
+
+     | case_Primop z ({selfe, selfv, selft}, G) (_, BIND, _, _) = raise Pass "bad bind"
 
      (* not a closure call *)
      | case_Primop z ({selfe, selfv, selft}, G)  ([v], PRIMCALL { sym, dom, cod }, vas, e) =
@@ -158,6 +179,8 @@ struct
                    selfe z (bindvar G v cod ` worldfrom G) e)
          end
 
+     | case_Primop z ({selfe, selfv, selft}, G)  (_, PRIMCALL { sym, dom, cod }, vas, e) = raise Pass "bad primcall"
+
           
   fun case_Leta z ({selfe, selfv, selft}, G) (v, va, e) =
          let val (va, t) = selfv z G va
@@ -168,15 +191,13 @@ struct
            | _ => raise Pass "leta on non-at"
          end
 
-(*
   fun case_Letsham z ({selfe, selfv, selft}, G) (v, va, e) =
     let val (va, t) = selfv z G va
     in
       case ctyp t of
-        Shamrock t => Letsham' (v, va, selfe z (binduvar G v t) e)
-      | _ => raise Closure "letsham on non-shamrock"
+        Shamrock (w, t) => Letsham' (v, va, selfe z (binduvar G v (w,t)) e)
+      | _ => raise Pass "letsham on non-shamrock"
     end
-*)
 
   fun case_Put z ({selfe, selfv, selft}, G) (v, va, e) =
          let
@@ -193,6 +214,68 @@ struct
         Addr w' => Go' (w, va, selfe z (T.setworld G w) e)
       | _ => raise Pass "go to non-world"
     end
+
+  fun case_Go_mar z ({selfe, selfv, selft}, G) { w, addr, bytes } =
+    let
+      val (addr, _) = selfv z G addr
+      val (bytes, _) = selfv z G bytes
+    in
+      Go_mar' { w = w, addr = addr, bytes = bytes }
+    end
+
+  fun case_Go_cc z ({selfe, selfv, selft}, G) { w, addr = va, env, f = bod } =
+    let
+      val (va, tv) = selfv z G va
+      val (env, envt) = selfv z (T.setworld G w) env
+      val (bod, bodt) = selfv z (T.setworld G w) bod
+    in
+      Go_cc' { w = w, addr = va, env = env, f = bod }
+    end
+
+  fun case_TUnpack z ({selfe, selfv, selft}, G) (tv, td, vvs, va, ve) =
+    let
+      val (va, t) = selfv z G va
+    in
+      case ctyp t of
+        TExists (vr, tl) =>
+          let
+            val tl = map (subtt (TVar' tv) vr) tl
+              
+            (* new type, can't be mobile *)
+            val G = bindtype G tv false
+            val vvs = ListUtil.mapsecond (selft z G) vvs
+              
+            val vs = map #2 vvs
+            (* the dict *)
+            val G = bindu0var G td ` Dictionary' ` TVar' tv
+            (* some values now *)
+            val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
+          in
+            TUnpack' (tv, td, vvs, va, selfe z G ve)
+          end
+      | _ => raise Pass "tunpack non-exists"
+    end
+
+  fun case_TPack z ({selfe, selfv, selft}, G) (t, tas, vd, vs) =
+    let
+      val tas = selft z G tas
+      val (vd, _) = selfv z G vd
+      val (vs, _) = ListPair.unzip ` map (selfv z G) vs
+    in
+      (TPack' (t, tas, vd, vs),
+       (* assume annoation is correct *)
+       tas)
+    end
+
+  fun case_WUnpack _ _ _ = raise Pass "unimplemented wunpack"
+  fun case_Codelab _ _ _ = raise Pass "unimplemented Codelab (need to implement transformprogram)"
+
+
+
+
+  (*     values    *)
+
+  fun case_WPack _ _ _ = raise Pass "unimplemented wpack"
 
   fun case_Int z ({selfe, selfv, selft}, G) i = (Int' i, Zerocon' INT)
   fun case_String z ({selfe, selfv, selft}, G) i = (String' i, Zerocon' STRING)
@@ -348,43 +431,259 @@ struct
          in (Dictfor' t, Dictionary' t)
          end
 
-(*
+  fun case_WDictfor z ({selfe, selfv, selft}, G) w = (WDictfor' w, TWdict' w)
+  fun case_WDict z ({selfe, selfv, selft}, G) w = (WDict' w, TWdict' ` WC w)
 
-     | VLetsham (v, va, ve) =>
+  (* yowza. *)
+
+  (* bound dictionaries (uvars) should not use the bound world variable
+     in the validity hypothesis. *)
+  fun case_Dict z ({selfe, selfv, selft}, G) tf =
+     let
+       fun edict' s (Primcon(DICTIONARY, [t])) = t
+         | edict' s _ = raise Pass (s ^ " dict with non-dicts inside")
+       fun ewdict' s (TWdict w) = w
+         | ewdict' s _ = raise Pass (s ^ " wdict with non-dicts inside")
+
+       fun edict s t = edict' s ` ctyp t
+       fun ewdict s t = ewdict' s ` ctyp t
+     in
+       case tf of
+          Primcon(pc, dl) =>
+            let
+              val (dl, tl) = ListPair.unzip ` map (selfv z G) dl
+              val ts = map (edict "primcon") tl
+            in
+              (Dict' ` Primcon (pc, dl), Dictionary' ` Primcon'(pc, tl))
+            end
+        | Product sdl =>
+            let
+              val (ss, ds) = ListPair.unzip sdl
+              val (ds, ts) = ListPair.unzip ` map (selfv z G) ds
+              val stl = ListPair.zip (ss, ts)
+              val sdl = ListPair.zip (ss, ds)
+            in
+              (Dict' ` Product sdl, Dictionary' ` Product' stl)
+            end
+
+        | Sum sdl =>
+            let
+              val (ss, ds) = ListPair.unzip sdl
+              val (ds, ts) = ListPair.unzip ` map (fn NonCarrier => (NonCarrier, NonCarrier)
+                                                    | Carrier { carried, definitely_allocated } => 
+                                                   let val (cd, ct) = selfv z G carried
+                                                   in
+                                                     (Carrier 
+                                                      { carried = cd, 
+                                                        definitely_allocated = definitely_allocated },
+                                                      Carrier
+                                                      { carried = ct,
+                                                        definitely_allocated = definitely_allocated })
+                                                   end) ds
+              val stl = ListPair.zip (ss, ts)
+              val sdl = ListPair.zip (ss, ds)
+            in
+              (Dict' ` Sum sdl, Dictionary' ` Sum' stl)
+            end
+(*
+(* XXX *)
+        | Shamrock d => 
+            let
+              val (d, t) = selfv z G d
+            in
+              (Dict' ` Shamrock d,
+               Dictionary' ` Shamrock' ` edict "sham" ` t)
+            end
+*)
+        | Cont dl => 
+            let
+              val (dl, tl) = ListPair.unzip ` map (selfv z G) dl
+            in
+              (Dict' ` Cont dl,
+               Dictionary' ` Cont' ` map (edict "cont") tl)
+            end
+
+        | Conts dll => 
+            let
+              fun one dl =
+                let
+                  val (dl, tl) = ListPair.unzip ` map (selfv z G) dl
+                in
+                  (dl, map (edict "conts") tl)
+                end
+              val (dll, tll) = ListPair.unzip ` map one dll
+            in
+              (Dict' ` Conts dll,
+               Dictionary' ` Conts' tll)
+            end
+
+        | Addr w => 
+            let val (w, t) = selfv z G w
+            in
+              (Dict' ` Addr w, Dictionary' ` Addr' (ewdict "addr" t))
+            end
+        | At (d, w) => 
+            let
+              val (d, t) = selfv z G d
+              val (w, tw) = selfv z G w
+            in
+              (Dict' ` At (d, w),
+               Dictionary' ` At' (edict "at" t, ewdict "at" tw))
+            end
+
+        | TExists((v1, v2), vl) =>
+            let
+              val G = bindtype G v1 false
+              val G = bindu0var G v2 (Dictionary' ` TVar' v1)
+
+              val (dl, tl) = ListPair.unzip ` map (selfv z G) vl
+            in
+              (Dict' ` TExists((v1, v2), dl),
+               Dictionary' ` TExists' (v1, map (edict "texists") tl))
+            end
+
+        | Mu (n, arms) =>
+            let
+              val G = foldr (fn (((vt, vd), _), G) =>
+                             let
+                               val G = bindtype G vt false
+                               val G = bindu0var G vd ` Dictionary' ` TVar' vt
+                             in
+                               G
+                             end) G arms
+              fun one ((vt, v), x) =
+                let val (x, t) = selfv z G x
+                in
+                  ((vt, edict "mu" t), ((vt, v), x))
+                end
+
+              val (tarms, darms) = ListPair.unzip ` map one arms
+            in
+              (Dict' ` Mu(n, darms),
+               Dictionary' ` Mu' (n, tarms))
+            end
+
+        | AllArrow { worlds, tys, vals, body } =>
+            let
+              val G = bindworlds G (map #1 worlds)
+              val G = foldr (fn ((v1, v2), G) => bindu0var G v2 (TWdict' ` W v1)) G worlds
+              val G = foldr (fn ((v1, _), G) => bindtype G v1 false) G tys
+              val G = foldr (fn ((v1, v2), G) => bindu0var G v2 (Dictionary' ` TVar' v1)) G tys
+
+              val (vals, valts) = ListPair.unzip ` map (selfv z G) vals
+              val (body, bodyt) = selfv z G body
+            in
+              (Dict' ` AllArrow { worlds = worlds, tys = tys, vals = vals, body = body },
+               Dictionary' ` AllArrow' { worlds = map #1 worlds, tys = map #1 tys,
+                                         vals = map (edict "allarrow") valts,
+                                         body = edict "allarrow-body" bodyt })
+            end
+
+        | _ => raise Pass "unimplemented dict typefront"
+     end
+
+   fun case_VTUnpack z ({selfe, selfv, selft}, G)  (tv, td, vvs, va, ve) =
+     let
+       val (va, t) = selfv z G va
+     in
+       case ctyp t of
+         TExists (vr, tl) =>
+           let
+             val tl = map (subtt (TVar' tv) vr) tl
+               
+             (* new type, can't be mobile *)
+             val G = bindtype G tv false
+             val vvs = ListUtil.mapsecond (selft z G) vvs
+
+             val vs = map #2 vvs
+             (* the dict *)
+             val G = bindu0var G td ` Dictionary' ` TVar' tv
+             (* some values now *)
+             val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vvs
+               
+             val (ve, et) = selfv z G ve
+           in
+             (VTUnpack' (tv, td, vvs, va, ve),
+              (* better not use tv *)
+              et)
+           end
+       | _ => raise Pass "vtunpack non-exists"
+     end
+
+
+   fun case_Sham z ({selfe, selfv, selft}, G)  (w, va) =
+     let
+       val G = bindworld G w
+       val G = T.setworld G (W w)
+         
+       val (va, t) = selfv z G va
+     in
+       (Sham' (w, va), Shamrock' (w, t))
+     end
+
+
+   fun case_VLetsham z ({selfe, selfv, selft}, G)  (v, va, ve) =
          let val (va, t) = selfv z G va
          in
            case ctyp t of
-             Shamrock tt => let val G = binduvar G v tt
-                                val (ve, te) = selfv z G ve
-                            in (VLetsham' (v, va, ve), te)
-                            end
+             Shamrock (w, tt) => let val G = binduvar G v (w, tt)
+                                     val (ve, te) = selfv z G ve
+                                 in (VLetsham' (v, va, ve), te)
+                                 end
            | _ => raise Pass "vletsham on non-shamrock"
          end
 
+   (*     types     *)
 
-     | Sham (w, va) =>
-         let
-           val G' = bindworld G w
-           val G' = T.setworld G' (W w)
+   fun case_At z ({selfe, selfv, selft}, G) (c, w) = At'(selft z G c, w)
+   fun case_Cont z ({selfe, selfv, selft}, G) l = Cont' ` map (selft z G) l
+   fun case_Conts z ({selfe, selfv, selft}, G) l = Conts' ` map (map (selft z G)) l
+   fun case_AllArrow z ({selfe, selfv, selft}, G)  {worlds, tys, vals, body} =
+        let 
+          val G = bindworlds G worlds
+          val G = bindtypes G tys
+        in 
+          AllArrow' { worlds = worlds, tys = tys,
+                      vals = map (selft z G) vals,
+                      body = selft z G body }
+        end
 
-           val (va, t) = selfv z G' va
-         in
-           (Sham' (w, va),
-            Shamrock' t)
-         end
+   fun case_WExists z ({selfe, selfv, selft}, G) (v, t) = WExists' (v, selft z (bindworld G v) t)
+   fun case_TExists z ({selfe, selfv, selft}, G) (v, t) = 
+     let val G = bindtype G v false
+     in TExists' (v, map (selft z G) t)
+     end
 
-     | VTUnpack _ => raise Pass "wasn't expecting to see vtunpack before closure conversion"
+   fun case_Product z ({selfe, selfv, selft}, G) stl = Product' ` ListUtil.mapsecond (selft z G) stl
+   fun case_TVar z ({selfe, selfv, selft}, G) v = TVar' v
+   fun case_TWdict z _ w = TWdict' w
+   fun case_Addr z _ w = Addr' w
+   fun case_Mu z ({selfe, selfv, selft}, G) (i, vtl) =
+        let val n = length vtl
+        in Mu'(i, map (fn (v, t) => (v, selft z (bindtype G v false) t)) vtl)
+        end
 
-     | _ => 
-         let in
-           print "CLOSURE: unimplemented val\n";
-           Layout.print (CPSPrint.vtol value, print);
-           raise Pass "unimplemented VAL"
-         end
+   fun case_Primcon z ({selfe, selfv, selft}, G) (BYTES, []) = Zerocon' BYTES
+     | case_Primcon z ({selfe, selfv, selft}, G) (VEC, [t]) = Primcon' (VEC, [selft z G t])
+     | case_Primcon z ({selfe, selfv, selft}, G) (REF, [t]) = Primcon' (REF, [selft z G t])
+     | case_Primcon z ({selfe, selfv, selft}, G) (DICTIONARY, [t]) = Primcon' (DICTIONARY, [selft z G t])
+     | case_Primcon z ({selfe, selfv, selft}, G) (INT, []) = Zerocon' INT
+     | case_Primcon z ({selfe, selfv, selft}, G) (STRING, []) = Zerocon' STRING
+     | case_Primcon z ({selfe, selfv, selft}, G) (EXN, []) = Zerocon' EXN
+     | case_Primcon _ _ (BYTES, _)      = raise Pass "bad primcon"
+     | case_Primcon _ _ (VEC, _)        = raise Pass "bad primcon"
+     | case_Primcon _ _ (REF, _)        = raise Pass "bad primcon"
+     | case_Primcon _ _ (DICTIONARY, _) = raise Pass "bad primcon"
+     | case_Primcon _ _ (INT, _)        = raise Pass "bad primcon"
+     | case_Primcon _ _ (STRING, _)     = raise Pass "bad primcon"
+     | case_Primcon _ _ (EXN, _)        = raise Pass "bad primcon"
 
-         )
-           
-*)
+
+   fun case_Shamrock z ({selfe, selfv, selft}, G) (w, t) = Shamrock' (w, selft z (bindworld G w) t)
+
+   fun case_Sum z ({selfe, selfv, selft}, G) sail =
+     Sum' ` ListUtil.mapsecond (IL.arminfo_map ` selft z G) sail
+
 
 end
 
