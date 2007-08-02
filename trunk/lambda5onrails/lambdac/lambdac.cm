@@ -156,8 +156,10 @@ cps/tocps.sml
 cps/opt-sig.sml
 cps/opt.sml
 
-(*
+cps/pass-sig.sml
+cps/pass.sml
 
+(*
 cps/dict-sig.sml
 cps/dict.sml
 
