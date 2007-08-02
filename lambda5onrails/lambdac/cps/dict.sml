@@ -72,7 +72,7 @@
      XXXWD: world representation invariants here
      
      for allarrow, we put the wdicts first in the val list.
-     for sham...
+     for {}A, we translate it to {w} allarrow{w wdict}.A
 *)
 
 structure CPSDict :> CPSDICT =
@@ -104,13 +104,15 @@ struct
        | WExists _ => raise CPSDict "BUG: shouldn't have existential worlds yet (?)"
        (* these are bugs *)
        | TExists _ => raise CPSDict "BUG: shouldn't have existential types yet"
+       | Shamrock (w, t) => Shamrock' (w, AllArrow' { worlds = nil, tys = nil, vals = [TWdict' w], body = trt body })
        | Primcon(DICTIONARY, _) => raise CPSDict "BUG: shouldn't see dicts before introducing dicts!"
        | _ => pointwiset trt typ)
 
     (* unlike DICT_SUFFIX, this is arbitrary *)
     fun mkdictvar v = Variable.namedvar (Variable.tostring v ^ "_d")
 
-    fun tre exp =
+    (* G is a set of uvars that were eliminated with *)
+    fun tre G exp =
       (case cexp exp of
          TUnpack _ => raise CPSDict "BUG: shouldn't see existential type tunpack yet"
        (* actually, letd might generate these when it is implemented in the frontend *)
@@ -122,7 +124,7 @@ struct
        (* nb. nothing to do for extern worlds because those declare constants, not bind variables *)
        | _ => pointwisee trt trv tre exp)
 
-    and trv value =
+    and trv G value =
       (case cval value of
          TPack _ => raise CPSDict "BUG: shouldn't see extential type tpack yet"
        | VTUnpack _ => raise CPSDict "BUG: shouldn't see extential type vtunpack yet"
@@ -154,5 +156,5 @@ struct
                          map trv vals }
        | _ => pointwisev trt trv tre value)
 
-    fun translate e = tre e
+    fun translate e = tre V.Set.empty e
 end
