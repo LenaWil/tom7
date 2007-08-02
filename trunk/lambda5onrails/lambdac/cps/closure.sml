@@ -425,7 +425,7 @@ struct
            (value, T.getuvar G v)
          end
      | Inj (s, t, vo) => let val t = ct t 
-                         in (Inj' (s, ct t, Option.map (#1 o cv G) vo), t)
+                         in (Inj' (s, t, Option.map (#1 o cv G) vo), t)
                          end
      | Hold (w, va) => 
          let
@@ -769,7 +769,7 @@ struct
 
      | Dictfor t => 
          let val t = ct t
-         in (Dictfor' ` ct t, Dictionary' t)
+         in (Dictfor' t, Dictionary' t)
          end
 
      | _ => 

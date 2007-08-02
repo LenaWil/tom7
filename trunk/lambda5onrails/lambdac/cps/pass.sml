@@ -101,17 +101,15 @@ struct
          | _ => raise Pass "case on non-sum"
         end
 
-  fun case_Primop z ({selfe, selfv, selft}, G) ([v], SAY, [k], e) =>
+  fun case_Primop z ({selfe, selfv, selft}, G) ([v], SAY, [k], e) =
          let
-           val (k, t) = selfe z G k
+           val (k, t) = selfv z G k
            val G = bindvar G v (Zerocon' STRING) ` worldfrom G
          in
            Primop' ([v], SAY_CC, [k], selfe z G e)
          end
 
-     | Primop ([v], SAY_CC, [k], e) => raise Closure "unexpected SAY_CC before closure conversion"
-
-     | Primop ([v], NATIVE { po, tys }, l, e) =>
+     | case_Primop z ({selfe, selfv, selft}, G) ([v], NATIVE { po, tys }, l, e) =
         let
           val tys = map (selft z G) tys
         in
@@ -133,22 +131,25 @@ struct
                 Primop'([v], NATIVE { po = po, tys = tys }, argvs,
                         selfe z G e)
               end
-          | _ => raise Closure "unimplemented: primops with world args"
+          | _ => raise Pass "unimplemented: primops with world args"
         end
-(*      
-     | Primop ([v], LOCALHOST, [], e) =>
+
+     | case_Primop z ({selfe, selfv, selft}, G) ([v], SAY_CC, [k], e) = raise Pass "unimplemented say_cc"
+
+     | case_Primop z ({selfe, selfv, selft}, G) ([v], LOCALHOST, [], e) =
            Primop' ([v], LOCALHOST, [], 
-                    selfe z (binduvar G v ` Addr' ` worldfrom G) e)
-           
-     | Primop ([v], BIND, [va], e) =>
+                    selfe z (bindu0var G v ` Addr' ` worldfrom G) e)
+
+     | case_Primop z ({selfe, selfv, selft}, G) ([v], BIND, [va], e) =
          let
            val (va, t) = selfv z G va
            val G = bindvar G v t ` worldfrom G
          in
            Primop' ([v], BIND, [va], selfe z G e)
          end
+
      (* not a closure call *)
-     | Primop ([v], PRIMCALL { sym, dom, cod }, vas, e) =>
+     | case_Primop z ({selfe, selfv, selft}, G)  ([v], PRIMCALL { sym, dom, cod }, vas, e) =
          let
            val vas = map (fn v => #1 ` selfv z G v) vas
            val cod = (selft z G) cod
@@ -156,76 +157,47 @@ struct
            Primop'([v], PRIMCALL { sym = sym, dom = map (selft z G) dom, cod = cod }, vas,
                    selfe z (bindvar G v cod ` worldfrom G) e)
          end
-     | Leta (v, va, e) =>
+
+          
+  fun case_Leta z ({selfe, selfv, selft}, G) (v, va, e) =
          let val (va, t) = selfv z G va
          in
            case ctyp t of
              At (t, w) => 
                Leta' (v, va, selfe z (bindvar G v t w) e)
-           | _ => raise Closure "leta on non-at"
+           | _ => raise Pass "leta on non-at"
          end
 
-     | Letsham (v, va, e) =>
-         let val (va, t) = selfv z G va
-         in
-           case ctyp t of
-             Shamrock t => 
-               Letsham' (v, va, selfe z (binduvar G v t) e)
-           | _ => raise Closure "letsham on non-shamrock"
-         end
+(*
+  fun case_Letsham z ({selfe, selfv, selft}, G) (v, va, e) =
+    let val (va, t) = selfv z G va
+    in
+      case ctyp t of
+        Shamrock t => Letsham' (v, va, selfe z (binduvar G v t) e)
+      | _ => raise Closure "letsham on non-shamrock"
+    end
+*)
 
-     | Put (v, va, e) => 
+  fun case_Put z ({selfe, selfv, selft}, G) (v, va, e) =
          let
            val (va, t) = selfv z G va
-           val G = binduvar G v t
+           val G = bindu0var G v t
          in
            Put' (v, va, selfe z G e)
          end
 
-       (* go [w; a] e
+  fun case_Go z ({selfe, selfv, selft}, G) (w, va, e) =
+    let val (va, t) = selfv z G va
+    in
+      case ctyp t of
+        Addr w' => Go' (w, va, selfe z (T.setworld G w) e)
+      | _ => raise Pass "go to non-world"
+    end
 
-           ==>
+  fun case_Int z ({selfe, selfv, selft}, G) i = (Int' i, Zerocon' INT)
+  fun case_String z ({selfe, selfv, selft}, G) i = (String' i, Zerocon' STRING)
 
-          go_cc [w; [[a]]; env; < envt cont >]
-          *)
-     | Go (w, addr, body) =>
-         let
-           val (addr, _) = selfv z G addr
-           val body = selfe z (T.setworld G w) body
-
-           val (fv, fuv) = freevarse body
-           (* See case for Lams *)
-           val fuv = augmentfreevars G (freesvarse body) fv fuv
-
-           val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
-
-           val envv = V.namedvar "go_env"
-
-         in
-           Go_cc' { w = w, 
-                    addr = addr,
-                    env = env,
-                    f = Lam' (V.namedvar "go_unused",
-                              [(envv, envt)],
-                              wrape (Var' envv, body)) }
-         end
-
-     | _ =>
-         let in
-           print "CLOSURE: unimplemented exp:\n";
-           Layout.print (CPSPrint.etol exp, print);
-           raise Closure "unimplemented EXP"
-         end
-         )
-       
-  (* Convert the value v; 
-     return the converted value paired with the converted type. *)
-  and cv G value =
-    (case cval value of
-       Int _ => (value, Zerocon' INT)
-     | String _ => (value, Zerocon' STRING)
-
-     | Record lvl =>
+  fun case_Record z ({selfe, selfv, selft}, G) lvl =
          let 
            val (l, v) = ListPair.unzip lvl
            val (v, t) = ListPair.unzip ` map (selfv z G) v
@@ -234,20 +206,22 @@ struct
             Product' ` ListPair.zip (l, t))
          end
 
-     | Var v => 
-         let in
-           (* print ("Lookup " ^ V.tostring v ^ "\n"); *)
-           (value, #1 ` T.getvar G v)
-         end
-     | UVar v => 
-         let in
-           (* print ("Lookup " ^ V.tostring v ^ "\n"); *)
-           (value, T.getuvar G v)
-         end
-     | Inj (s, t, vo) => let val t = (selft z G) t 
-                         in (Inj' (s, (selft z G) t, Option.map (#1 o selfv z G) vo), t)
-                         end
-     | Hold (w, va) => 
+  fun case_Var z ({selfe, selfv, selft}, G) v =
+           (Var' v, #1 ` T.getvar G v)
+
+  fun case_UVar z ({selfe, selfv, selft}, G) u =
+    let val (w, t) = T.getuvar G u
+    in
+      (UVar' u, subwt (worldfrom G) w t)
+    end
+
+  fun case_Inj z ({selfe, selfv, selft}, G) (s, t, vo) =
+    let val t = selft z G t
+    in (Inj' (s, selft z G t, Option.map (fn va => let val (va, _) = selfv z G va
+                                                   in va end) vo), t)
+    end
+
+  fun case_Hold z ({selfe, selfv, selft}, G) (w, va) =
          let
            val G = T.setworld G w
            val (va, t) = selfv z G va
@@ -256,14 +230,137 @@ struct
             At' (t, w))
          end
 
-     | Unroll va =>
+
+  fun case_Unroll z ({selfe, selfv, selft}, G) va =
          let
            val (va, t) = selfv z G va
          in
            case ctyp t of
             Mu (n, vtl) => (Unroll' va, CPSTypeCheck.unroll (n, vtl))
-          | _ => raise Closure "unroll non-mu"
+          | _ => raise Pass "unroll non-mu"
          end
+
+  fun case_Roll z ({selfe, selfv, selft}, G) (t, va) =
+         let
+           val t = (selft z G) t
+           val (va, _) = selfv z G va
+         in
+           (Roll' (t, va), t)
+         end
+
+
+  fun case_Proj z ({selfe, selfv, selft}, G) (l, va) =
+         let val (va, t) = selfv z G va
+         in
+           case ctyp t of
+              Product stl => (case ListUtil.Alist.find op= stl l of
+                                NONE => raise Pass ("proj label " ^ l ^ " not in type")
+                              | SOME t => (Proj' (l, va), t))
+            | _ => raise Pass "proj on non-product"
+         end
+
+  fun case_VLeta z ({selfe, selfv, selft}, G)  (v, va, ve) =
+         let val (va, t) = selfv z G va
+         in
+           case ctyp t of
+             At (tt, w) => let val G = bindvar G v tt w
+                               val (ve, te) = selfv z G ve
+                           in (VLeta' (v, va, ve), te)
+                           end
+           | _ => raise Pass "vleta on non-at"
+         end
+
+  fun case_Lams z ({selfe, selfv, selft}, G)  vael =
+         let
+
+           (* convert types *)
+           val vael = map (fn (f, args, e) => (f, ListUtil.mapsecond (selft z G) args, e)) vael
+
+           (* bind recursive vars *)
+           val G = foldl (fn ((v, args, _), G) =>
+                          bindvar G v (Cont' ` map #2 args) ` worldfrom G) G vael
+
+           val vael = 
+               map (fn (f, args, e) =>
+                    let val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args
+                    in
+                      (f, args, selfe z G e)
+                    end) vael
+
+         in
+           (Lams' vael, 
+            Conts' ` map (fn (_, args, _) => map #2 args) vael)
+         end
+
+  fun case_Fsel z ({selfe, selfv, selft}, G)  ( va, i ) =
+        let val (va, t) = selfv z G va
+        in
+          case ctyp t of
+            Conts tll => (Fsel' (va, i), Cont' ` List.nth (tll, i))
+          | _ => raise Pass "fsel on non-conts"
+        end
+
+
+  fun case_AllLam z ({selfe, selfv, selft}, G)  { worlds, tys, vals, body } =
+         let
+           val G = bindworlds G worlds
+           val G = bindtypes G tys
+           val vals = ListUtil.mapsecond (selft z G) vals
+           val G = foldl (fn ((v, t), G) => bindvar G v t (worldfrom G)) G vals
+           val (body, tb) = selfv z G body
+         in
+           (AllLam' { worlds = worlds, tys = tys, vals = vals,
+                      body = body },
+            AllArrow' { worlds = worlds, tys = tys, vals = map #2 vals, 
+                        body = tb })
+         end
+
+  fun case_AllApp z ({selfe, selfv, selft}, G)  { f, worlds, tys, vals } =
+         let
+           val (f, t) = selfv z G f
+         in
+           case ctyp t of
+            AllArrow { worlds = ww, tys = tt, vals = vv, body = bb } =>
+              let
+                (* discard types; we'll use the annotations *)
+                val vals = map #1 ` map (selfv z G) vals
+                val tys = map (selft z G) tys
+                val () = if length ww = length worlds andalso length tt = length tys
+                         then () 
+                         else raise Pass "allapp to wrong number of worlds/tys"
+                val wl = ListPair.zip (ww, worlds)
+                val tl = ListPair.zip (tt, tys)
+                fun subt t =
+                  let val t = foldr (fn ((wv, w), t) => subwt w wv t) t wl
+                  in foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
+                  end
+
+              in
+                (AllApp' { f = f, worlds = worlds, tys = tys, vals = vals },
+                 subt bb)
+              end
+          | _ => raise Pass "allapp to non-allarrow"
+         end
+
+
+  fun case_Dictfor z ({selfe, selfv, selft}, G) t =
+         let val t = selft z G t
+         in (Dictfor' t, Dictionary' t)
+         end
+
+(*
+
+     | VLetsham (v, va, ve) =>
+         let val (va, t) = selfv z G va
+         in
+           case ctyp t of
+             Shamrock tt => let val G = binduvar G v tt
+                                val (ve, te) = selfv z G ve
+                            in (VLetsham' (v, va, ve), te)
+                            end
+           | _ => raise Pass "vletsham on non-shamrock"
+         end
+
 
      | Sham (w, va) =>
          let
@@ -276,70 +373,13 @@ struct
             Shamrock' t)
          end
 
-     | Roll (t, va) => 
-         let
-           val t = (selft z G) t
-           val (va, _) = selfv z G va
-         in
-           (Roll' (t, va), t)
-         end
-
-     | Proj (l, va) =>
-         let val (va, t) = selfv z G va
-         in
-           case ctyp t of
-              Product stl => (case ListUtil.Alist.find op= stl l of
-                                NONE => raise Closure ("proj label " ^ l ^ " not in type")
-                              | SOME t => (Proj' (l, va), t))
-            | _ => raise Closure "proj on non-product"
-         end
-
-     | VLeta (v, va, ve) =>
-         let val (va, t) = selfv z G va
-         in
-           case ctyp t of
-             At (tt, w) => let val G = bindvar G v tt w
-                               val (ve, te) = selfv z G ve
-                           in (VLeta' (v, va, ve), te)
-                           end
-           | _ => raise Closure "vleta on non-at"
-         end
-
-     | VLetsham (v, va, ve) =>
-         let val (va, t) = selfv z G va
-         in
-           case ctyp t of
-             Shamrock tt => let val G = binduvar G v tt
-                                val (ve, te) = selfv z G ve
-                            in (VLetsham' (v, va, ve), te)
-                            end
-           | _ => raise Closure "vletsham on non-shamrock"
-         end
-
-     | Lams vael => 
-
-     | Fsel (v, i) => 
-
-     | VTUnpack _ => raise Closure "wasn't expecting to see vtunpack before closure conversion"
-
-     (* must have at least one value argument or it's purely static and
-        therefore not closure converted *)
-     | AllLam { worlds, tys, vals = vals as _ :: _, body } => 
-
-     (* ditto on the elim *)
-     (* needs to remain a value... *)
-     | AllApp { f, worlds, tys, vals = vals as _ :: _ } =>
-
-     | Dictfor t => 
-         let val t = (selft z G) t
-         in (Dictfor' ` (selft z G) t, Dictionary' t)
-         end
+     | VTUnpack _ => raise Pass "wasn't expecting to see vtunpack before closure conversion"
 
      | _ => 
          let in
            print "CLOSURE: unimplemented val\n";
            Layout.print (CPSPrint.vtol value, print);
-           raise Closure "unimplemented VAL"
+           raise Pass "unimplemented VAL"
          end
 
          )
