@@ -134,7 +134,7 @@ struct
 
 
 
-  (* augmentfreevars ctx freesvars freevars freeuvars
+  (* augmentfreevars ctx freesvars freevars freeuvars exemptargs
 
      When we compute the free variables of some value or expression,
      we also need to provide the dictionaries for some static parts,
@@ -146,8 +146,17 @@ struct
      expression or value). We do the same for world variables, which
      are also represented.
 
+     Note that we don't need to include a dictionary in this implicit
+     environment if that dictionary is already an explicit argument to
+     this function. This is particularly important for our shamrock
+     translation, where the immediately embedded alllam is designed to
+     establish the dictionary invariant, but also naively triggers the
+     need for the dictionary! The 'exemptargs' argument to the
+     augmentfreevars function is a list of arguments that will be
+     bound directly, for the purposes of this culling.
+
      *)
-  fun augmentfreevars G { w = fw, t = ft } fv fuv =
+  fun augmentfreevars G { w = fw, t = ft } fv fuv exemptargs =
     let
       (* the types we'll also scour *)
       val fvt = map (#1 o T.getvar G) ` V.Set.listItems fv
@@ -157,13 +166,55 @@ struct
          save a little work *)
       val fuvt = map Shamrock' fuvt
 
+      (* dictionaries are always passed Shamrocked. *)
+      val exemptargs = List.mapPartial (fn (_, t) =>
+                                        case ctyp t of
+                                          (* throwing out the bound self-world
+                                             here, but we only test t for
+                                             equality against things from
+                                             another scope, so if w is used,
+                                             this will just never be equal to
+                                             anything. *)
+                                          Shamrock (w, t) => SOME t
+                                        | _ => NONE) exemptargs
+
+      fun exempt_getwdict wv =
+        if List.exists (fn t =>
+                        case ctyp t of
+                          TWdict (W w') => V.eq (wv, w')
+                        | _ => false) exemptargs
+        then 
+          let in
+            print ("exempt! (w): " ^ V.tostring wv ^ "\n");
+            NONE
+          end
+        else SOME (T.getwdict G wv)
+
+      fun exempt_getdict tv =
+        if List.exists (fn t =>
+                        case ctyp t of
+                          Primcon(DICTIONARY, [t]) =>
+                            (case ctyp t of
+                               TVar tv' => V.eq (tv, tv')
+                             | _ => false)
+                        | _ => false) exemptargs
+        then 
+          let in
+            print ("exempt! (t): " ^ V.tostring tv ^ "\n");
+            NONE
+          end
+        else SOME (T.getdict G tv)
+
+      (* get only those dicts that are not exempt *)
+      fun getdicts f vars = V.SetUtil.mappartial f vars
+
       (* first, the literally occurring world vars *)
-      val litw = V.Set.map (T.getwdict G) fw
+      val litw = getdicts exempt_getwdict fw
       val () = print "\naug literalw: "
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) litw
 
       (* then, the literally occurring type variables *)
-      val litt = V.Set.map (T.getdict G) ft
+      val litt = getdicts exempt_getdict ft
       val () = print "\naug literalt: " 
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) litt
 
@@ -171,8 +222,8 @@ struct
       val iv = foldl (fn (t, set) =>
                       let
                         val { w = wv, t = tv } = freesvarst t
-                        val set = V.Set.union(set, V.Set.map (T.getwdict G) wv)
-                        val set = V.Set.union(set, V.Set.map (T.getdict G)  tv)
+                        val set = V.Set.union(set, getdicts exempt_getwdict wv)
+                        val set = V.Set.union(set, getdicts exempt_getdict  tv)
                       in
                         set
                       end) V.Set.empty (fvt @ fuvt)
@@ -181,6 +232,7 @@ struct
 
       val () = print "\naug indirect: " 
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) iv
+
     in
       print "\n";
       V.Set.union (fuv, V.Set.union(litw, V.Set.union (litt, iv)))
@@ -345,8 +397,11 @@ struct
            val body = selfe z (T.setworld G w) body
 
            val (fv, fuv) = freevarse body
-           (* See case for Lams *)
-           val fuv = augmentfreevars G (freesvarse body) fv fuv
+
+           (* See case for Lams.
+              note here there are no exempt args.
+              *)
+           val fuv = augmentfreevars G (freesvarse body) fv fuv nil
 
            val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
 
@@ -397,7 +452,11 @@ struct
             above. *)
          (* PERF do we want/need to include the type/world vars that appear (only) 
             in the arguments? It seems it would be "too late" for them. *)
-         val fuv = augmentfreevars G (freesvarsv value) fv fuv
+         (* PERF. not passing along any exempt arguments here;
+            we need to compute those arguments that are common to all of the
+            lams or else we can't exempt them. It's not clear that exemption ever
+            happens here and it is not needed for correctness. *)
+         val fuv = augmentfreevars G (freesvarsv value) fv fuv nil
 
          (* val () = print "\nmkenv..\n" *)
 
@@ -565,8 +624,11 @@ struct
          val value = AllLam' all
          val (fv, fuv) = freevarsv value (* not counting the vars we just bound! *)
 
-         (* also potential dictionaries, as above *)
-         val fuv = augmentfreevars G (freesvarsv value) fv fuv
+         (* also potential dictionaries, as above.
+            note the exempt arguments: this is necessary for the case that
+            this alllam is being used to establish the dictionary invariant!
+            *)
+         val fuv = augmentfreevars G (freesvarsv value) fv fuv vals
 
          val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
 

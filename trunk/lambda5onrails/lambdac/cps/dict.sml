@@ -72,7 +72,7 @@
      XXXWD: world representation invariants here
      
      for allarrow, we put the wdicts first in the val list.
-     for {}A, we translate it to {w} allarrow{w wdict}.A
+     for {}A, we translate it to {w} allarrow{ {}(w wdict) }.A
 *)
 
 structure CPSDict :> CPSDICT =
@@ -127,7 +127,9 @@ struct
         end
 
       fun case_Shamrock z ({selfe, selfv, selft}, G) (w : Variable.var, t) =
-           Shamrock' (w, AllArrow' { worlds = nil, tys = nil, vals = [TWdict' (W w)], body = selft z (bindworld G w) t })
+           Shamrock' (w, AllArrow' { worlds = nil, tys = nil, 
+                                     vals = [Shamrock0' ` TWdict' (W w)], 
+                                     body = selft z (bindworld G w) t })
 
        (* actually, letd might generate these when it is implemented in the frontend *)
       fun case_WExists _ = raise CPSDict "BUG: shouldn't have existential worlds yet (?)"
@@ -240,18 +242,28 @@ struct
          end
 
 
+      (* from sham w.v,
+         we make sham w. alllam(wd : {}(w wdict)). vletsham di = wd in [[v]]   *)
       fun case_Sham z (s as {selfe, selfv, selft}, G)  (w, va) =
         let
+          (* shamrock-wrapped dictionary, and unwrapped udictionary *)
           val wd = mkdictvar w
+          val di = mkdictvar w
 
           val G = bindworld G w
           val G = T.setworld G (W w)
-          val G = bindu0var G wd (TWdict' (W w))
-            
+          val G = bindvar G wd (Shamrock0' ` TWdict' (W w)) (W w)
+          val G = bindu0var G di (TWdict' (W w))
+
           val (va, t) = selfv z G va
+
+          val body = VLetsham'(di, Var' wd, va)
         in
-          (Sham' (w, AllLam' { worlds = nil, tys = nil, vals = [(wd, TWdict' (W w))], body = va }), 
-           Shamrock' (w, AllArrow' { worlds = nil, tys = nil, vals = [TWdict' (W w)], body = t }))
+          (Sham' (w, AllLam' { worlds = nil, tys = nil, 
+                               vals = [(wd, Shamrock0' ` TWdict' (W w))], 
+                               body = body }), 
+           Shamrock' (w, AllArrow' { worlds = nil, tys = nil, 
+                                     vals = [Shamrock0' ` TWdict' (W w)], body = t }))
         end
 
       fun case_VLetsham z ({selfe, selfv, selft}, G) (v, va, e) =
@@ -279,7 +291,9 @@ struct
             val here = worldfrom G
             val t = subwt here w t
           in
-            (AllApp' { worlds = nil, tys = nil, vals = [WDictfor' here], f = UVar' u },
+            (AllApp' { worlds = nil, tys = nil, 
+                       vals = [Sham0' ` WDictfor' here], 
+                       f = UVar' u },
              (case ctyp t of
                 AllArrow { worlds = nil, tys = nil, vals = [wd], body } => body
               | _ => 
