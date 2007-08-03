@@ -570,6 +570,7 @@ struct
 
             (Note: Since  1 Aug 2007 I don't use Lift since shamrock now binds
              a world, but the principle is the same.)
+
             *)
          (case
             let
@@ -589,17 +590,24 @@ struct
                   fun AllLamMaybe { worlds = nil, tys = nil, vals = nil, body } = body
                     | AllLamMaybe x = AllLam' x
 
-
                   val tt =
                     AllArrowMaybe { worlds = worlds, tys = tys, 
                                     vals = nil, body = tt }
                   val G = binduvar G v (wv, tt)
                   val v' = V.alphavary v
                 in
-                  Letsham' (v,
-                            Sham' (wv, AllLamMaybe { worlds = worlds, tys = tys, vals = nil,
-                                                     body = VLetsham' (v', va, UVar' v') }),
-                            k G)
+                  (* PERF we also should avoid doing this vletsham thing if we're not
+                     doing any abstraction; it is hard to read and can have
+                     dynamic cost because of dictionaries! *)
+(*
+                  case (worlds, tys) of
+                    (nil, nil) => Sham' (wv, 
+                   | _ =>
+*)
+                      Letsham' (v,
+                                Sham' (wv, AllLamMaybe { worlds = worlds, tys = tys, vals = nil,
+                                                         body = VLetsham' (v', va, UVar' v') }),
+                                k G)
                 end
             | _ => raise ToCPS "letsham on non-shamrock")
 

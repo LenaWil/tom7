@@ -16,7 +16,7 @@ unit
             val v = from server get trivialdb.read k
             val s = dom.getbyid [showbox]
         in
-            dom.setstring (s, [innerHTML], [v])
+            dom.setstring (s, [innerHTML], v)
         end
 
     do from server 

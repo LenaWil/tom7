@@ -249,7 +249,8 @@ struct
           (* assuming immutable. 
              there should be a separate array type *)
           | IL.TVec t => em G t
-          | IL.TCont t => raise Elaborate "unimplemented emobile/cont"
+          (* continuations aren't mobile. They could do anything. *)
+          | IL.TCont t => false
           | IL.TRef _ => false
           | IL.TTag _ => (* XXX5 ? *) false
           | IL.At _ => true
