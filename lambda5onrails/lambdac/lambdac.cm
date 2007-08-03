@@ -162,9 +162,10 @@ cps/pass.sml
 cps/dict-sig.sml
 cps/dict.sml
 
-(*
 cps/closure-sig.sml
 cps/closure.sml
+
+(*
 
 cps/undict-sig.sml
 cps/undict.sml

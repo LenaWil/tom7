@@ -419,6 +419,10 @@ function lc_go_mar(addr, bytes) {
 
 /* we maintain a single open connection to the server
    that waits for messages */
+// XXX proxies might rewrite this, urgh
+// also, there is no guarantee that the whole message
+// will have arrived on the first call to readyState.
+// probably we should bracket the message somehow
 var lc_toclient;
 function lc_handle_toclient() {
     if (lc_toclient.readyState == 4) {
