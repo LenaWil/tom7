@@ -89,72 +89,224 @@ struct
     val DICT_LAB = "dict"
     val VALUE_LAB = "value"
 
-    fun trt typ =
-      (case ctyp typ of
-      (* this is the only case we do anything interesting in *)
-         AllArrow {worlds, tys, vals, body} => 
-           AllArrow' { worlds = worlds, 
-                       tys = tys,
-                       vals = 
-                       map (Shamrock' o TWdict' o W) worlds @
-                       map (Shamrock' o Dictionary' o TVar') tys @ 
-                       map trt vals,
-                       body = trt body }
-       (* actually, letd might generate these when it is implemented in the frontend *)
-       | WExists _ => raise CPSDict "BUG: shouldn't have existential worlds yet (?)"
-       (* these are bugs *)
-       | TExists _ => raise CPSDict "BUG: shouldn't have existential types yet"
-       | Shamrock (w, t) => Shamrock' (w, AllArrow' { worlds = nil, tys = nil, vals = [TWdict' w], body = trt body })
-       | Primcon(DICTIONARY, _) => raise CPSDict "BUG: shouldn't see dicts before introducing dicts!"
-       | _ => pointwiset trt typ)
+    structure T = CPSTypeCheck
+    val bindvar = T.bindvar
+    val binduvar = T.binduvar
+    val bindu0var = T.bindu0var
+    val bindtype = T.bindtype
+    val bindworld = T.bindworld
+    val worldfrom = T.worldfrom
+    val bindworlds = foldl (fn (v, c) => bindworld c v)
+    (* assuming not mobile *)
+    val bindtypes  = foldl (fn (v, c) => bindtype c v false)
 
     (* unlike DICT_SUFFIX, this is arbitrary *)
     fun mkdictvar v = Variable.namedvar (Variable.tostring v ^ "_d")
 
-    (* G is a set of uvars that were eliminated with *)
-    fun tre G exp =
-      (case cexp exp of
-         TUnpack _ => raise CPSDict "BUG: shouldn't see existential type tunpack yet"
-       (* actually, letd might generate these when it is implemented in the frontend *)
-       | WUnpack _ => raise CPSDict "BUG: shouldn't see existential world wunpack yet (?)"
-       | ExternType (v, s, NONE, e) => 
-           (* kind of trivial *)
-           ExternType' (v, s, SOME (mkdictvar v, s ^ DICT_SUFFIX), tre e)
-       | ExternType _ => raise CPSDict "BUG: extern type already had dict?"
-       (* nb. nothing to do for extern worlds because those declare constants, not bind variables *)
-       | _ => pointwisee trt trv tre exp)
+    structure VS = Variable.Set
 
-    and trv G value =
-      (case cval value of
-         TPack _ => raise CPSDict "BUG: shouldn't see extential type tpack yet"
-       | VTUnpack _ => raise CPSDict "BUG: shouldn't see extential type vtunpack yet"
-       | Dictfor _ => raise CPSDict "BUG: shouldn't see dicts yet"
-       | AllLam { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } => 
-           let 
-             (* the argument variable, the unshamrocked uvar, its type *)
-             val wvars = map (fn w => (mkdictvar w, mkdictvar w, Shamrock' ` TWdict' ` W w)) worlds
-             val dvars = map (fn t => (mkdictvar t, mkdictvar t, Shamrock' ` Dictionary' ` TVar' t)) tys
-           in
-             AllLam' { worlds = worlds, 
+    structure DA : PASSARG where type stuff = VS.set =
+    struct
+      type stuff = VS.set
+      structure ID = IDPass(type stuff = stuff)
+      open ID
+
+      (* types. we only need to convert allarrow (takes new world args) and shamrock (nested allarrow). *)
+      fun case_AllArrow z ({selfe, selfv, selft}, G)  {worlds, tys, vals, body} =
+        let
+          val G = bindworlds G worlds
+          val G = bindtypes G tys
+        in
+           AllArrow' { worlds = worlds, 
                        tys = tys,
                        vals = 
-                          map (fn (sh, _, t) => (sh, t)) wvars @ 
-                          map (fn (sh, _, t) => (sh, t)) dvars @ 
-                          vals, 
-                       body = 
-                         (* open up the shamrocks, then continue with translated body.
-                            (world dicts and typ dicts are treated the same here) *)
-                         foldr (fn ((sh, di, t), v) => VLetsham'(di, Var' sh, v)) (trv body) (wvars @ dvars)
-                       }
-           end
-       | AllApp { f : cval, worlds : world list, tys : ctyp list, vals : cval list } => 
-             AllApp' { f = trv f, worlds = worlds, tys = tys,
-                       (* add the dictionaries to the beginning of the value list *)
-                       vals = 
-                         map (fn w => Sham0' ` WDictfor' w) worlds @
-                         map (fn t => Sham0' ` Dictfor' t) tys @ 
-                         map trv vals }
-       | _ => pointwisev trt trv tre value)
+                         map (Shamrock0' o TWdict' o W) worlds @
+                         map (Shamrock0' o Dictionary' o TVar') tys @ 
+                         map (selft z G) vals,
+                       body = selft z G body }
+        end
 
-    fun translate e = tre V.Set.empty e
+      fun case_Shamrock z ({selfe, selfv, selft}, G) (w : Variable.var, t) =
+           Shamrock' (w, AllArrow' { worlds = nil, tys = nil, vals = [TWdict' (W w)], body = selft z (bindworld G w) t })
+
+       (* actually, letd might generate these when it is implemented in the frontend *)
+      fun case_WExists _ = raise CPSDict "BUG: shouldn't have existential worlds yet (?)"
+       (* these are bugs *)
+      fun case_TExists _ = raise CPSDict "BUG: shouldn't have existential types yet"
+      fun case_Primcon _ _ (DICTIONARY, _) = raise CPSDict "BUG: shouldn't see dicts before introducing dicts!"
+        | case_Primcon z s t = ID.case_Primcon z s t
+
+
+      (* Expressions. We rewrite extern type to expect a dictionary. We also record when
+         we bind a uvar with letsham, since these need to be rewritten at any use. *)
+
+      fun case_ExternType z ({selfe, selfv, selft}, G) (v, s, NONE, e) =
+        (* kind of trivial *)
+        let
+          val G = bindtype G v false
+          val G = bindu0var G (mkdictvar v) (Dictionary' ` TVar' v)
+        in
+           ExternType' (v, s, SOME (mkdictvar v, s ^ DICT_SUFFIX), selfe z G e)
+        end
+        | case_ExternType _ _ _ = raise CPSDict "BUG: extern type already had dict?"
+
+      fun case_Letsham z ({selfe, selfv, selft}, G) (v, va, e) =
+        let 
+          val (va, t) = selfv z G va
+        in
+          (*
+          print ("DEBUG: letsham " ^ V.tostring v ^ "...\n";
+          Layout.print (CPSPrint.ttol t, print);
+          *)
+
+          case ctyp t of
+            Shamrock (w, t) => Letsham' (v, va, selfe (VS.add(z, v)) (binduvar G v (w,t)) e)
+          | _ => raise CPSDict "letsham on non-shamrock"
+        end
+
+      (* actually, letd might generate these when it is implemented in the frontend *)
+      fun case_WUnpack _ = raise CPSDict "BUG: shouldn't see existential world wunpack yet (?)"
+      fun case_TUnpack _ = raise CPSDict "BUG: shouldn't see existential type tunpack yet"
+
+      (* Values. AllLam needs to take new arguments and AllApp needs to provide them.
+         We also rewrite Shamrock introduction, and UVars that were instances of the shamrock. *)
+      fun case_AllLam z ({selfe, selfv, selft}, G) { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } =
+           let 
+             (* the argument variable, the unshamrocked uvar, its type *)
+             (* These shamrocks are exempt from the Sham-AllLam conversion we perform above,
+                since they are known to not use their arguments. *)
+             val wvars = map (fn w => (mkdictvar w, mkdictvar w, TWdict' ` W w)) worlds
+             val dvars = map (fn t => (mkdictvar t, mkdictvar t, Dictionary' ` TVar' t)) tys
+
+             val G = bindworlds G worlds
+             val G = bindtypes G tys
+             val G = foldr (fn ((sh, di, t), G) => 
+                            let val G = bindvar G sh (Shamrock0' t) (worldfrom G)
+                            in bindu0var G di t
+                            end) G (wvars @ dvars)
+
+             val vals = map (fn (sh, _, t) => (sh, Shamrock0' t)) wvars @ 
+                        map (fn (sh, _, t) => (sh, Shamrock0' t)) dvars @ 
+                        vals
+
+             val (body, bodt) = selfv z G body
+           in
+             (AllLam' { worlds = worlds, 
+                        tys = tys,
+                        vals = vals,
+                        body = 
+                        (* open up the shamrocks, then continue with translated body.
+                           (world dicts and typ dicts are treated the same here) *)
+                        (* ... and because this shamrock is exempt, we won't put it in our set *)
+                            foldr (fn ((sh, di, _), v) => VLetsham'(di, Var' sh, v)) body (wvars @ dvars)
+                       },
+              (* vletsham wrappers don't change type of body *)
+              AllArrow' { worlds = worlds, tys = tys, vals = map #2 vals, body = bodt })
+           end
+
+      fun case_AllApp z ({selfe, selfv, selft}, G)  { f : cval, worlds : world list, tys : ctyp list, vals : cval list } =
+         let
+           val (f, t) = selfv z G f
+         in
+           case ctyp t of
+            AllArrow { worlds = ww, tys = tt, vals = _, body = bb } =>
+              let
+                (* this converted allarrow has extra val args, but we
+                   don't care about those... *)
+
+                (* discard types; we'll use the annotations *)
+                val vals = map #1 ` map (selfv z G) vals
+                val tys = map (selft z G) tys
+                val () = if length ww = length worlds andalso length tt = length tys
+                         then () 
+                         else raise Pass "allapp to wrong number of worlds/tys"
+                val wl = ListPair.zip (ww, worlds)
+                val tl = ListPair.zip (tt, tys)
+                fun subt t =
+                  let val t = foldr (fn ((wv, w), t) => subwt w wv t) t wl
+                  in foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
+                  end
+
+              in
+                (AllApp' { f = f, worlds = worlds, tys = tys, 
+                           vals = 
+                           (* also exempt from shamrock translation *)
+                              map (fn w => Sham0' ` WDictfor' w) worlds @
+                              map (fn t => Sham0' ` Dictfor' t) tys @ 
+                              vals },
+                 subt bb)
+              end
+          | _ => raise CPSDict "allapp to non-allarrow"
+         end
+
+
+      fun case_Sham z (s as {selfe, selfv, selft}, G)  (w, va) =
+        let
+          val wd = mkdictvar w
+
+          val G = bindworld G w
+          val G = T.setworld G (W w)
+          val G = bindu0var G wd (TWdict' (W w))
+            
+          val (va, t) = selfv z G va
+        in
+          (Sham' (w, AllLam' { worlds = nil, tys = nil, vals = [(wd, TWdict' (W w))], body = va }), 
+           Shamrock' (w, AllArrow' { worlds = nil, tys = nil, vals = [TWdict' (W w)], body = t }))
+        end
+
+      fun case_VLetsham z ({selfe, selfv, selft}, G) (v, va, e) =
+        let 
+          val (va, t) = selfv z G va
+        in
+          print "VLETSHAM.\n";
+          case ctyp t of
+            Shamrock (w, t) => 
+              let
+                val z = VS.add (z, v)
+                val G = binduvar G v (w,t)
+                val (e, te) = selfv z G e
+              in 
+                (VLetsham' (v, va, e), te)
+              end
+          | _ => raise CPSDict "vletsham on non-shamrock"
+        end
+
+      fun case_UVar z (s as {selfe, selfv, selft}, G)  u =
+        if VS.member (z, u)
+        then
+          let
+            val (w, t) = T.getuvar G u
+            val here = worldfrom G
+            val t = subwt here w t
+          in
+            (AllApp' { worlds = nil, tys = nil, vals = [WDictfor' here], f = UVar' u },
+             (case ctyp t of
+                AllArrow { worlds = nil, tys = nil, vals = [wd], body } => body
+              | _ => 
+                  let in
+                    print "BUG: invariant violation in CPSdict\n";
+                    Layout.print (CPSPrint.ttol t, print);
+                    print ("\nuvar: " ^ Variable.tostring u ^"\n");
+                    raise CPSDict "for UVars in our set, they should have AllArrow type"
+                  end))
+
+          end
+        else ID.case_UVar z (s, G) u
+
+      (* Bugs. *)
+      fun case_TPack _ = raise CPSDict "BUG: shouldn't see extential type tpack yet"
+      fun case_VTUnpack _ = raise CPSDict "BUG: shouldn't see extential type vtunpack yet"
+      fun case_Dictfor _ = raise CPSDict "BUG: shouldn't see dicts yet"
+
+    end
+
+    structure D = PassFn(DA)
+
+(*
+    and trv G value =
+      (case cval value of
+*)
+
+    fun translate ctx e = D.converte VS.empty ctx e
+
 end

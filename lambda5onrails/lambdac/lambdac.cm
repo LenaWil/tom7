@@ -159,10 +159,10 @@ cps/opt.sml
 cps/pass-sig.sml
 cps/pass.sml
 
-(*
 cps/dict-sig.sml
 cps/dict.sml
 
+(*
 cps/closure-sig.sml
 cps/closure.sml
 
@@ -214,7 +214,7 @@ codegen/codegen.sml
 codegen/write-sig.sml
 codegen/write.sml
 
+*)
 compile.sml
 
 (* sandbox.sml *)
-*)

@@ -11,6 +11,6 @@ sig
     (* the label for the value *)
     val VALUE_LAB : string
 
-    val translate : CPS.cexp -> CPS.cexp
+    val translate : CPSTypeCheck.context -> CPS.cexp -> CPS.cexp
 
 end
