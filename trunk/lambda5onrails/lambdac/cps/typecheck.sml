@@ -853,7 +853,13 @@ struct
      (* instantiates it right here. *)
      | UVar v => 
          let val (w, t) = getuvar G v
-         in subwt (worldfrom G) w t
+         in 
+           print ("TYPECHECK: lookup uvar " ^ Variable.tostring v ^ "\n");
+           Layout.print (Layout.align[Layout.str (Variable.tostring w ^ "."), 
+                                      CPSPrint.ttol t], print);
+           print "\n";
+           
+           subwt (worldfrom G) w t
          end
 
      | Roll (t, va) =>

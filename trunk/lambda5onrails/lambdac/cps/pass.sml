@@ -104,10 +104,10 @@ struct
 
   fun case_Primop z ({selfe, selfv, selft}, G) ([v], SAY, [k], e) =
          let
-           val (k, t) = selfv z G k
+           val (k, _) = selfv z G k
            val G = bindvar G v (Zerocon' STRING) ` worldfrom G
          in
-           Primop' ([v], SAY_CC, [k], selfe z G e)
+           Primop' ([v], SAY, [k], selfe z G e)
          end
     | case_Primop z ({selfe, selfv, selft}, G) (_, SAY, _, e) = raise Pass "bad say"
 
@@ -150,7 +150,14 @@ struct
          end
      | case_Primop z ({selfe, selfv, selft}, G) (_, MARSHAL, _, e) = raise Pass "bad marshal"
 
-     | case_Primop z ({selfe, selfv, selft}, G) ([v], SAY_CC, [k], e) = raise Pass "unimplemented say_cc"
+     | case_Primop z ({selfe, selfv, selft}, G) ([v], SAY_CC, [k], e) =
+         let
+           val (k, t) = selfv z G k
+           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
+         in
+           Primop' ([v], SAY_CC, [k], selfe z G e)
+         end
+
      | case_Primop z ({selfe, selfv, selft}, G) (_, SAY_CC, _, _) = raise Pass "bad say_cc"
 
      | case_Primop z ({selfe, selfv, selft}, G) ([v], LOCALHOST, [], e) =
@@ -688,7 +695,7 @@ struct
 end
 
 (* All this does is perform the case analysis and tie the knot. *)
-functor PassFn(P : PASSARG) :> PASS =
+functor PassFn(P : PASSARG) :> PASS where type stuff = P.stuff =
 struct
   open CPS
   open P

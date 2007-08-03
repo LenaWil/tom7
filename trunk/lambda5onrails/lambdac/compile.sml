@@ -172,15 +172,15 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
-            val c : CPS.cexp = CPSDict.translate c
+            val c : CPS.cexp = CPSDict.translate G c
             val () = print "\n\n**** CPS DICT: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
-              
+
             val G = T.setopts G [T.O_EXTERNDICTS]
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
-
+(*
             val c : CPS.cexp = Closure.convert cw c
             val () = print "\n\n**** CLOSURE: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
@@ -209,23 +209,24 @@ struct
             val code = Codegen.generate p
 
             val () = Write.write base code
-
+*)
         in
           print "\n";
-          code
+          (* code *) ()
         end)
     handle 
-           ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
-         | Compile s => fail ("Compilation failed:\n    " ^ s)
+           Done s => fail ("Stopped early due to " ^ s ^ " flag.")
+         | CPS.CPS s => fail ("Internal error in CPS:\n" ^ s)
          | CPSDict.CPSDict s => fail ("CPSDict: " ^ s)
+         | Compile s => fail ("Compilation failed:\n    " ^ s)
+(*
+         | ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
          | CPSTypeCheck.TypeCheck s => fail ("Internal error: Type checking failed:\n" ^ s)
          | CPSOpt.CPSOpt s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
-         | CPS.CPS s => fail ("Internal error in CPS:\n" ^ s)
          | Closure.Closure s => fail ("Closure conversion: " ^ s)
          | Codegen.Codegen s => fail ("Code generation: " ^ s)
          | Context.Absent (what, s) => fail ("Internal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'")
          | Context.Context s => fail ("Context: " ^ s)
-         | Done s => fail ("Stopped early due to " ^ s ^ " flag.")
          | Elaborate.Elaborate s => fail("Elaboration: " ^ s)
          | JSCodegen.JSCodegen s => fail("Javascript codegen: " ^ s)
          | JSOpt.JSOpt s => fail("Javascript optimization: " ^ s)
@@ -239,6 +240,7 @@ struct
          | UnDict.UnDict s => fail("UnDict: " ^ s)
          | Variable.Variable s => fail ("BUG: Variables: " ^ s)
          | Write.Write s => fail ("Write: " ^ s)
+*)
          | ex => (print ("\nUncaught exception: " ^ exnName ex ^ ": " ^
                          exnMessage ex);
                   raise ex)
