@@ -943,10 +943,16 @@ struct
                   in foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
                   end
 
+                val valts = map (vok G) vals
+                val vv = map subt vv
+
               in
                 (* check args *)
-                ListUtil.all2 (fn (va, vt) => ctyp_eq (subt vt, vok G va)) vals vv;
-                subt bb
+                if ListUtil.all2 ctyp_eq valts vv
+                then subt bb
+                else fail [$"allapp arg mismatch",
+                           $"type:", IN ` TYL vv,
+                           $"args:", IN ` TYL valts]
               end
         | _ => raise TypeCheck "allapp to non-allarrow")
             
