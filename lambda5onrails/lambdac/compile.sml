@@ -180,7 +180,7 @@ struct
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
-(*
+
             val c : CPS.cexp = Closure.convert cw c
             val () = print "\n\n**** CLOSURE: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
@@ -190,7 +190,7 @@ struct
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
-
+(*
             val c : CPS.cexp = UnDict.undict cw c
             val () = print "\n\n**** UNDICT: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
@@ -219,11 +219,11 @@ struct
          | CPS.CPS s => fail ("Internal error in CPS:\n" ^ s)
          | CPSDict.CPSDict s => fail ("CPSDict: " ^ s)
          | Compile s => fail ("Compilation failed:\n    " ^ s)
+         | Closure.Closure s => fail ("Closure conversion: " ^ s)
+         | CPSTypeCheck.TypeCheck s => fail ("Internal error: Type checking failed:\n" ^ s)
 (*
          | ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
-         | CPSTypeCheck.TypeCheck s => fail ("Internal error: Type checking failed:\n" ^ s)
          | CPSOpt.CPSOpt s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
-         | Closure.Closure s => fail ("Closure conversion: " ^ s)
          | Codegen.Codegen s => fail ("Code generation: " ^ s)
          | Context.Absent (what, s) => fail ("Internal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'")
          | Context.Context s => fail ("Context: " ^ s)
