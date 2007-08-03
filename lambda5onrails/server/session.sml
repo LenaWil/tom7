@@ -148,6 +148,10 @@ struct
     let
       val id = newid ()
 
+      (* don't allow the user to read files outside the codepath. *)
+      val () = case StringUtil.find ".." prog of NONE => () | SOME _ => raise Session "illegal path"
+      val () = case StringUtil.find "/"  prog of NONE => () | SOME _ => raise Session "illegal path"
+
       (* XXX paths should be from a config file *)
       val sbc = BytecodeParse.parsefile (!codepath ^ prog ^ "_server.b5")
       val rt = StringUtil.readfile "../lambdac/js/runtime.js"
@@ -197,6 +201,8 @@ struct
                       toclient = ref ` Closed ` Time.now (),
                       inst = Execute.new sbc } :: !sessions
     end handle BytecodeParse.BytecodeParse msg => failnew s prog ("parse error: " ^ msg)
+             | IO.Io { function, name, ... } => failnew s prog ("IO error: " ^ function ^ " / " ^ name)
+             | Session str => failnew s prog ("Session error: " ^ str)
 
   (* make progress on any instance where we can *)
   fun step () =
