@@ -51,6 +51,8 @@ fsutil-portable.sml
 
 ../../sml-lib/util/maputil-sig.sml
 ../../sml-lib/util/maputil.sml
+../../sml-lib/util/setutil-sig.sml
+../../sml-lib/util/setutil.sml
 
 ../../sml-lib/text/layout-sig.sml
 ../../sml-lib/text/layout.sml

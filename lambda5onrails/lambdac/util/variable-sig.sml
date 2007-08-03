@@ -35,4 +35,5 @@ sig
 
     structure Map : ORD_MAP where type Key.ord_key = var
     structure Set : ORD_SET where type Key.ord_key = var
+    structure SetUtil : SETUTIL where type item = var and type set = Set.set
 end

@@ -314,3 +314,23 @@ special in order to perform this translation. Sanity check: What was
 the reason that closure conversion ever needed to do special things
 with dictionaries? One was that it generates some uses of dictionaries,
 particularly because it packs type-existentials. 
+
+
+Oops, there is still a problem.
+In dictionary conversion, "sham w. v" becomes "sham w. alllam {wd : w
+wdict}. v". Closure conversion wants to convert alllam to take an
+environment argument, which will contain all of the free variables of
+the alllam. It also includes dictionaries for any static free
+variables that appear (anywhere, including in the types of free
+dynamic variables). But here w might be free, so we might include it
+in our set. This is bad because we don't have a dictionary for w yet
+(the whole point of inserting the alllam was to make it available).
+
+A simple solution to this is that we only need to do this indirect
+fvset augmentation for a type or world dictionary when there isn't
+already an argument to this function that is a that very same
+dictionary. Here, since alllam receives as an actual argument the
+dictionary that reestablishes the dictionary invariant, we needn't
+also pass that along inside the argument.. especially since we won't
+have one to pass along.
+

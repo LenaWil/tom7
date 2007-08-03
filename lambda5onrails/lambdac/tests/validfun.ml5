@@ -6,7 +6,7 @@ unit
     extern bytecode world server
     extern val server ~ server addr
 
-    fun vswap (a : int, b : string) = (b, a)
+    fun vswap (a, b : string) = (b, a)
 
 (*        
     val (x, y) = from server get vswap ("hello", "world") 

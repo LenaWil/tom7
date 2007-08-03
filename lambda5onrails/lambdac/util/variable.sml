@@ -72,4 +72,6 @@ struct
                                     type ord_key = var
                                     val compare = compare
                                 end)
+    structure SetUtil = SetUtil (structure S = Set)
+    
 end
