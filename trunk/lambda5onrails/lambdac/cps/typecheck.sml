@@ -729,7 +729,14 @@ struct
           | Sum stl =>
               Dictionary' ` Sum' ` ListUtil.mapsecond (IL.arminfo_map (fn v => edict "sum" ` vok G v)) stl
 
-          (* | Shamrock t => Dictionary' ` Shamrock' ` edict "sham" ` vok G t *) (* XXXX *)
+          | Shamrock ((w,wd), td) => 
+              let 
+                val G = bindworld G w
+                val G = bindu0var G wd (TWdict' ` W w)
+                val td = edict "sham" ` vok G td
+              in
+                Dictionary' ` Shamrock' (w, td)
+              end
           | TWdict w => Dictionary' ` TWdict' (ewdict "twdict" ` vok G w)
           | Addr w => Dictionary' ` Addr' (ewdict "addr" ` vok G w)
           | At (t, w) => Dictionary' ` At' (edict "at" ` vok G t, ewdict "at" ` vok G w)

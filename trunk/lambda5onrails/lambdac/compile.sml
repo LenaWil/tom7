@@ -190,14 +190,14 @@ struct
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
-(*
+
             val c : CPS.cexp = UnDict.undict cw c
             val () = print "\n\n**** UNDICT: ****\n"
             val () = Layout.print ( CPSPrint.etol c, print)
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
-
+(*
             val p : CPS.program = Hoist.hoist cw Initial.homekind c
             val () = print "\n\n**** HOIST: ****\n"
             val () = Layout.print ( CPSPrint.ptol p, print)
@@ -221,24 +221,25 @@ struct
          | Compile s => fail ("Compilation failed:\n    " ^ s)
          | Closure.Closure s => fail ("Closure conversion: " ^ s)
          | CPSTypeCheck.TypeCheck s => fail ("Internal error: Type checking failed:\n" ^ s)
-(*
-         | ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
-         | CPSOpt.CPSOpt s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
-         | Codegen.Codegen s => fail ("Code generation: " ^ s)
-         | Context.Absent (what, s) => fail ("Internal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'")
-         | Context.Context s => fail ("Context: " ^ s)
-         | Elaborate.Elaborate s => fail("Elaboration: " ^ s)
-         | JSCodegen.JSCodegen s => fail("Javascript codegen: " ^ s)
-         | JSOpt.JSOpt s => fail("Javascript optimization: " ^ s)
-         | PrimTypes.PrimTypes s => fail("PrimTypes: " ^ s)
-         | Podata.Podata s => fail("primop data: " ^ s)
-         | Hoist.Hoist s => fail ("Hoist: " ^ s)
-         | ILAlpha.Alpha s => fail ("IL Alpha: " ^ s)
+         | UnDict.UnDict s => fail("UnDict: " ^ s)
          | ILUnused.Unused s => fail ("IL unused: " ^ s)
          | Nullary.Nullary s => fail ("Couldn't do EL nullary prepass:\n" ^ s)
          | ToCPS.ToCPS s => fail ("ToCPS: " ^ s)
-         | UnDict.UnDict s => fail("UnDict: " ^ s)
          | Variable.Variable s => fail ("BUG: Variables: " ^ s)
+         | Context.Absent (what, s) => fail ("Internal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'")
+         | Context.Context s => fail ("Context: " ^ s)
+         | Elaborate.Elaborate s => fail("Elaboration: " ^ s)
+         | PrimTypes.PrimTypes s => fail("PrimTypes: " ^ s)
+         | Podata.Podata s => fail("primop data: " ^ s)
+         | CPSOpt.CPSOpt s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
+
+(*
+         | ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
+         | Codegen.Codegen s => fail ("Code generation: " ^ s)
+         | JSCodegen.JSCodegen s => fail("Javascript codegen: " ^ s)
+         | JSOpt.JSOpt s => fail("Javascript optimization: " ^ s)
+         | Hoist.Hoist s => fail ("Hoist: " ^ s)
+         | ILAlpha.Alpha s => fail ("IL Alpha: " ^ s)
          | Write.Write s => fail ("Write: " ^ s)
 *)
          | ex => (print ("\nUncaught exception: " ^ exnName ex ^ ": " ^
