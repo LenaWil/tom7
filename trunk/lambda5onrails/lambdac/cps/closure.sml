@@ -132,224 +132,8 @@ struct
   (* assuming not mobile *)
   val bindtypes  = foldl (fn (v, c) => bindtype c v false)
 
-  (* this can pleasantly be done with pointwise, since it does not need any
-     contextual information. *)
-  fun ct typ =
-    (case ctyp typ of
-       Cont tl => 
-         let 
-           val tl = map ct tl
-           val venv = V.namedvar "env"
-         in
-           TExists' (venv, [TVar' venv,
-                            Cont' (TVar' venv :: tl)])
-         end
-    | Conts tll => 
-         let 
-           val tll = map (map ct) tll
-           val venv = V.namedvar "env"
-         in
-           TExists' (venv, [TVar' venv,
-                            (* new arg to each function ... *)
-                            Conts' (map (fn l => TVar' venv :: l) tll)])
-         end
-    (* don't cc these; they are purely static *)
-    | AllArrow { worlds, tys, vals = nil, body } => AllArrow' { worlds=worlds, tys=tys, vals=nil,
-                                                                body = ct body }
-    | AllArrow { worlds, tys, vals, body } => raise Closure "unimplemented allarrow"
-    | TExists _ => raise Closure "wasn't expecting to see Exists before cc"
-         
-    (* cc doesn't touch any other types... *)
-    | _ => pointwiset ct typ)
 
-  (* we need to look at the intro and elim forms for
-                intro        elim
-     cont       (lams/fsel)  call
-     conts      lams         fsel
-     allarrow   alllam      allapp
-     *)
-     
-  (* Our ability to build closures requires us to know the types of free variables,
-     so these translations basically have to bake in type checking...
-     *)
 
-  fun ce G exp = 
-    (case cexp exp of
-       Call (f, args) =>
-         let
-           val (f, ft) = cv G f
-           val (args, argts) = ListPair.unzip ` map (cv G) args
-           val vu = V.namedvar "envd"
-           val envt = V.namedvar "envt"
-           val envv = V.namedvar "env"
-
-           val fv = V.namedvar "f"
-         in
-           TUnpack' (envt,
-                     vu,
-                     [(envv, TVar' envt),
-                      (fv, Cont' (TVar' envt :: argts))],
-                     f,
-                     Call'(Var' fv, Var' envv :: args))
-         end
-         
-     | Halt => exp
-     | ExternVal (v, l, t, wo, e) =>
-         let val t = ct t
-         in
-           ExternVal'
-           (v, l, t, wo, 
-            ce (case wo of
-                  NONE => binduvar G v t
-                | SOME w => bindvar G v t w) e)
-         end
-
-     | ExternType (v, l, SOME(dv, dl), e) =>
-         let
-           val G = bindtype G v false
-           val G = binduvar G dv ` Dictionary' ` TVar' v
-         in
-           ExternType' (v, l, SOME(dv, dl), ce G e)
-         end
-     | ExternType _ => raise Closure "expected dict in externtype"
-
-     | ExternWorld (l, k, e) => ExternWorld' (l, k, ce (T.bindworldlab G l k) e)
-
-     | Case (va, v, arms, def) =>
-        let val (va, t) = cv G va
-        in
-          case ctyp t of
-           Sum stl =>
-             let
-               fun carm (s, e) =
-                 case ListUtil.Alist.find op= stl s of
-                   NONE => raise Closure ("arm " ^ s ^ " not found in case sum type")
-                 | SOME NonCarrier => (s, ce G e) (* var not bound *)
-                 | SOME (Carrier { carried = t, ... }) => 
-                       (s, ce (bindvar G v t ` worldfrom G) e)
-             in
-               Case' (va, v, map carm arms, ce G def)
-             end
-         | _ => raise Closure "case on non-sum"
-        end
-
-     | Primop ([v], SAY, [k], e) =>
-         let
-           val (k, t) = cv G k
-           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
-         in
-           Primop' ([v], SAY_CC, [k], ce G e)
-         end
-
-     | Primop ([v], SAY_CC, [k], e) => raise Closure "unexpected SAY_CC before closure conversion"
-
-     | Primop ([v], NATIVE { po, tys }, l, e) =>
-        let
-          val tys = map ct tys
-        in
-          case Podata.potype po of
-            { worlds = nil, tys = tvs, dom, cod } =>
-              let
-                val (argvs, _) = ListPair.unzip ` map (cv G) l
-
-                val s = ListUtil.wed tvs tys
-                fun dosub tt = foldr (fn ((tv, t), tt) => subtt t tv tt) tt s 
-
-                (* val dom = map (dosub o ptoct) dom *)
-                val cod = dosub ` ptoct cod
-
-                (* no need to check args; typecheck does it *)
-
-                val G = bindvar G v cod ` worldfrom G
-              in
-                Primop'([v], NATIVE { po = po, tys = tys }, argvs,
-                        ce G e)
-              end
-          | _ => raise Closure "unimplemented: primops with world args"
-        end
-      
-     | Primop ([v], LOCALHOST, [], e) =>
-           Primop' ([v], LOCALHOST, [], 
-                    ce (binduvar G v ` Addr' ` worldfrom G) e)
-           
-     | Primop ([v], BIND, [va], e) =>
-         let
-           val (va, t) = cv G va
-           val G = bindvar G v t ` worldfrom G
-         in
-           Primop' ([v], BIND, [va], ce G e)
-         end
-     (* not a closure call *)
-     | Primop ([v], PRIMCALL { sym, dom, cod }, vas, e) =>
-         let
-           val vas = map (fn v => #1 ` cv G v) vas
-           val cod = ct cod
-         in
-           Primop'([v], PRIMCALL { sym = sym, dom = map ct dom, cod = cod }, vas,
-                   ce (bindvar G v cod ` worldfrom G) e)
-         end
-     | Leta (v, va, e) =>
-         let val (va, t) = cv G va
-         in
-           case ctyp t of
-             At (t, w) => 
-               Leta' (v, va, ce (bindvar G v t w) e)
-           | _ => raise Closure "leta on non-at"
-         end
-
-     | Letsham (v, va, e) =>
-         let val (va, t) = cv G va
-         in
-           case ctyp t of
-             Shamrock t => 
-               Letsham' (v, va, ce (binduvar G v t) e)
-           | _ => raise Closure "letsham on non-shamrock"
-         end
-
-     | Put (v, va, e) => 
-         let
-           val (va, t) = cv G va
-           val G = binduvar G v t
-         in
-           Put' (v, va, ce G e)
-         end
-
-       (* go [w; a] e
-
-           ==>
-
-          go_cc [w; [[a]]; env; < envt cont >]
-          *)
-     | Go (w, addr, body) =>
-         let
-           val (addr, _) = cv G addr
-           val body = ce (T.setworld G w) body
-
-           val (fv, fuv) = freevarse body
-           (* See case for Lams *)
-           val fuv = augmentfreevars G (freesvarse body) fv fuv
-
-           val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
-
-           val envv = V.namedvar "go_env"
-
-         in
-           Go_cc' { w = w, 
-                    addr = addr,
-                    env = env,
-                    f = Lam' (V.namedvar "go_unused",
-                              [(envv, envt)],
-                              wrape (Var' envv, body)) }
-         end
-
-     | _ =>
-         let in
-           print "CLOSURE: unimplemented exp:\n";
-           Layout.print (CPSPrint.etol exp, print);
-           raise Closure "unimplemented EXP"
-         end
-         )
-       
   (* augmentfreevars ctx freesvars freevars freeuvars
 
      When we compute the free variables of some value or expression,
@@ -363,11 +147,15 @@ struct
      are also represented.
 
      *)
-  and augmentfreevars G { w = fw, t = ft } fv fuv =
+  fun augmentfreevars G { w = fw, t = ft } fv fuv =
     let
       (* the types we'll also scour *)
       val fvt = map (#1 o T.getvar G) ` V.Set.listItems fv
       val fuvt = map (T.getuvar G) ` V.Set.listItems fuv
+      (* these types have a bound world; the free vars in "w.t" are
+         the same as the freevars in {w}t, so we can use that to
+         save a little work *)
+      val fuvt = map Shamrock' fuvt
 
       (* first, the literally occurring world vars *)
       val litw = V.Set.map (T.getwdict G) fw
@@ -387,7 +175,7 @@ struct
                         val set = V.Set.union(set, V.Set.map (T.getdict G)  tv)
                       in
                         set
-                      end) V.Set.empty (fvt @ fuvt) 
+                      end) V.Set.empty (fvt @ fuvt)
 
       (* XXX are we missing world vars in the judgments? *)
 
@@ -398,283 +186,374 @@ struct
       V.Set.union (fuv, V.Set.union(litw, V.Set.union (litt, iv)))
     end
 
-  (* Convert the value v; 
-     return the converted value paired with the converted type. *)
-  and cv G value =
-    (case cval value of
-       Int _ => (value, Zerocon' INT)
-     | String _ => (value, Zerocon' STRING)
+  (* mkenv G (fv, fuv)
+     in the context G, make the environment that consists of the free vars fv and
+     the free uvars fuv. return the environment value, its type, and two wrapper
+     functions that, when given the environment value, "bind" these free variables 
+     within an expression or value respectively. *)
+  fun mkenv G (fv, fuv) : { env : cval, envt : ctyp, 
+                            wrape : cval * cexp -> cexp, 
+                            wrapv : cval * cval -> cval } =
+    (* environment will take the form of a record.
+       the first few labels will hold regular vals, held at their respective worlds.
+       *)
+    let
+      val lab = ref 1 (* start at 1 to make these tuples, so they
+                         pretty-print nicer *)
+      fun new () = (Int.toString (!lab) before lab := !lab + 1)
+      val fvs =  V.Set.foldr op:: nil fv
+      val fuvs = V.Set.foldr op:: nil fuv
 
-     | Record lvl =>
+      val () = print "mkenv FV: "
+      val () = app (fn v => print (V.tostring v ^ " ")) fvs
+      val () = print "\nmkenv FUV: "
+      val () = app (fn v => print (V.tostring v ^ " ")) fuvs
+      val () = print "\n"
+
+      val fvs = map (fn v =>
+                     let val (t, w) = T.getvar G v
+                       
+                     in
+                       { label = new (), 
+                         typ = t,
+                         world = w,
+                         var = v }
+                     end) fvs
+      val fuvs = map (fn v =>
+                      let val t = T.getuvar G v
+                      in
+                        { label = new (),
+                          typ = t,
+                          var = v }
+                      end) fuvs
+      fun dowrap LETA LETSHAM env x =
+        let
+          val x = foldr (fn ({label, typ, var}, x) =>
+                         LETSHAM (var, Proj' (label, env), x)) x fuvs
+          val x = foldr (fn ({label, typ, world, var}, x) =>
+                         LETA (var, Proj' (label, env), x)) x fvs
+        in
+          x
+        end
+
+    in
+      { env = Record' `
+              (map (fn { label, typ, world, var } =>
+                    (label, Hold' (world, Var' var))) fvs @
+               map (fn { label, typ, var } =>
+                    (label, Sham' (V.namedvar "unused", UVar' var))) fuvs),
+        envt = Product' `
+               (map (fn { label, typ, world, var } =>
+                     (label, At' (typ, world))) fvs @
+                map (fn { label, typ, var } =>
+                     (label, Shamrock' typ)) fuvs),
+        wrape = fn (env, v) => dowrap Leta' Letsham' env v,
+        wrapv = fn (env, v) => dowrap VLeta' VLetsham' env v
+        }
+    end
+
+
+  structure CA : PASSARG where type stuff = unit =
+  struct
+    type stuff = unit
+    structure ID = IDPass(type stuff = stuff)
+    open ID
+
+    (* types. *)
+
+    fun case_Cont z ({selfe, selfv, selft}, G) tl =
          let 
-           val (l, v) = ListPair.unzip lvl
-           val (v, t) = ListPair.unzip ` map (cv G) v
+           val tl = map (selft z G) tl
+           val venv = V.namedvar "env"
          in
-           (Record' ` ListPair.zip (l, v),
-            Product' ` ListPair.zip (l, t))
+           TExists' (venv, [TVar' venv,
+                            Cont' (TVar' venv :: tl)])
          end
 
-     | Var v => 
-         let in
-           (* print ("Lookup " ^ V.tostring v ^ "\n"); *)
-           (value, #1 ` T.getvar G v)
+    fun case_Conts z ({selfe, selfv, selft}, G) tll =
+         let 
+           val tll = map (map (selft z G)) tll
+           val venv = V.namedvar "env"
+         in
+           TExists' (venv, [TVar' venv,
+                            (* new arg to each function ... *)
+                            Conts' (map (fn l => TVar' venv :: l) tll)])
          end
-     | UVar v => 
-         let in
-           (* print ("Lookup " ^ V.tostring v ^ "\n"); *)
-           (value, T.getuvar G v)
-         end
-     | Inj (s, t, vo) => let val t = ct t 
-                         in (Inj' (s, t, Option.map (#1 o cv G) vo), t)
-                         end
-     | Hold (w, va) => 
+
+    fun case_AllArrow z ({selfe, selfv, selft}, G) { worlds, tys, vals = nil, body } = 
+      AllArrow' { worlds=worlds, tys=tys, vals=nil, body = selft z G body }
+      | case_AllArrow _ _ { worlds, tys, vals, body } = 
+      raise Closure "unimplemented allarrow"
+
+    fun case_TExists _ _ _ = raise Closure "wasn't expecting to see Exists before closure conversion"
+
+
+
+    (* Expressions and values.
+       we need to look at the intro and elim forms for
+                  intro        elim
+       cont       (lams/fsel)  call
+       conts      lams         fsel
+       allarrow   alllam      allapp
+       *)
+
+    (* Our ability to build closures requires us to know the types of free variables,
+       so these translations basically have to bake in type checking...
+       *)
+
+    fun case_Call z ({selfe, selfv, selft}, G) (f, args) =
          let
-           val G = T.setworld G w
-           val (va, t) = cv G va
+           val (f, ft) = selfv z G f
+           val (args, argts) = ListPair.unzip ` map (selfv z G) args
+           val vu = V.namedvar "envd"
+           val envt = V.namedvar "envt"
+           val envv = V.namedvar "env"
+
+           val fv = V.namedvar "f"
          in
-           (Hold' (w, va),
-            At' (t, w))
+           TUnpack' (envt,
+                     vu,
+                     [(envv, TVar' envt),
+                      (fv, Cont' (TVar' envt :: argts))],
+                     f,
+                     Call'(Var' fv, Var' envv :: args))
          end
 
-     | Unroll va =>
+    (* Only need to convert Say *)
+    fun case_Primop z ({selfe, selfv, selft}, G)  ([v], SAY, [k], e) =
          let
-           val (va, t) = cv G va
+           val (k, t) = selfv z G k
+           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
          in
-           case ctyp t of
-            Mu (n, vtl) => (Unroll' va, CPSTypeCheck.unroll (n, vtl))
-          | _ => raise Closure "unroll non-mu"
+           Primop' ([v], SAY_CC, [k], selfe z G e)
          end
 
-     | Sham (w, va) =>
+      | case_Primop z ({selfe, selfv, selft}, G)  (_, SAY_CC, _, _) =
+      raise Closure "unexpected SAY_CC before closure conversion"
+      | case_Primop z c e = ID.case_Primop z c e
+
+
+    (* go [w; a] e
+       
+       ==>
+       
+       go_cc [w; [[a]]; env; < envt cont >]
+       *)
+    fun case_Go z ({selfe, selfv, selft}, G)  (w, addr, body) =
          let
-           val G' = bindworld G w
-           val G' = T.setworld G' (W w)
+           val (addr, _) = selfv z G addr
+           val body = selfe z (T.setworld G w) body
 
-           val (va, t) = cv G' va
-         in
-           (Sham' (w, va),
-            Shamrock' t)
-         end
-
-     | Roll (t, va) => 
-         let
-           val t = ct t
-           val (va, _) = cv G va
-         in
-           (Roll' (t, va), t)
-         end
-
-     | Proj (l, va) =>
-         let val (va, t) = cv G va
-         in
-           case ctyp t of
-              Product stl => (case ListUtil.Alist.find op= stl l of
-                                NONE => raise Closure ("proj label " ^ l ^ " not in type")
-                              | SOME t => (Proj' (l, va), t))
-            | _ => raise Closure "proj on non-product"
-         end
-
-     | VLeta (v, va, ve) =>
-         let val (va, t) = cv G va
-         in
-           case ctyp t of
-             At (tt, w) => let val G = bindvar G v tt w
-                               val (ve, te) = cv G ve
-                           in (VLeta' (v, va, ve), te)
-                           end
-           | _ => raise Closure "vleta on non-at"
-         end
-
-     | VLetsham (v, va, ve) =>
-         let val (va, t) = cv G va
-         in
-           case ctyp t of
-             Shamrock tt => let val G = binduvar G v tt
-                                val (ve, te) = cv G ve
-                            in (VLetsham' (v, va, ve), te)
-                            end
-           | _ => raise Closure "vletsham on non-shamrock"
-         end
-
-     | Lams vael => 
-(*
-   fns f(x). e1           ==>    
-   and g(y). e2
-
-
-    pack ( ENV ; dictfor ENV ;  env = { fv1 = fv1, ... fvn = fvn },
-          fns f(env, x). 
-              let fv1 = #fv1 env      (except actually leta and lift; see proposal)
-                    ...
-                  (: create closures for calls to f and g within e1 :)
-                  f = (pack ( ENV ; dictfor ENV ; [env = env, f] ))
-                  g = (pack ( ENV ; dictfor ENV ; [env = env, g] ))
-                  .. [[e1]]
-          and g(env, y).
-                  .. same ..
-          ])
-
-         where ENV is the record type { fv1 : t1, ... fvn : tn }.
-*)
-         let
-           (* not body; we don't want argument occurrences since they are bound by lam *)
-           val (fv, fuv) = freevarsv value
-
-           (* we also must store the dictionary for any free type variable. These might
-              not show up as free uvars even though they will be generated by undict. *)
-           (* nb: this must include not just the type vars we literally mention,
-              but the type vars that appear in any one of the free variables, above. *)
-           (* XXX do we want to include the type/world vars that appear (only) in the arguments? It
-              seems it would be "too late" for them. *)
-           val fuv = augmentfreevars G (freesvarsv value) fv fuv
-
-           val () = print "\nmkenv..\n"
+           val (fv, fuv) = freevarse body
+           (* See case for Lams *)
+           val fuv = augmentfreevars G (freesvarse body) fv fuv
 
            val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
 
-           val vael = map (fn (f, args, body) =>
-                           (f, ListUtil.mapsecond ct args, body)) vael
-
-           val () = 
-               let in
-                   print "\n\n\nCONVERTED BODY:\n\n";
-                   Layout.print (CPSPrint.vtol (Lams' vael), print);
-                   print "\n"
-               end
-
-           (* bind all fn variables recursively *)
-         (* 
-            wrong -- not closure converted
-           val G = foldr (fn ((f, args, body), G) =>
-                          let val dom = map #2 args
-                          in
-                            bindvar G f (Cont' dom) ` worldfrom G
-                          end) G vael
-           *)
-
-           val envtv = V.namedvar "lams_envt"
-           val rest = TExists' (envtv, [TVar' envtv,
-                                        Conts' (map (fn (_, args, _) =>
-                                                     TVar' envtv :: map #2 args) vael)])
-
-           val envvv = V.namedvar "env"
-
-           (* the recursive closures; one for each of our friends, including ourselves.
-              (we get n^2 of these packages here, but most will probably be dead code. 
-               For PERF, we could only generate the ones that are free...) *)
-           val recs = 
-             (* f = (pack ( ENV ; dictfor ENV ; [env = env, f] )) *)
-             map (fn (f, args, _) =>
-                  (* environment has the same type *)
-                  (f,
-                   TPack'(envt,
-                          (* this individual fn has Cont type *)
-                          TExists' (envtv,
-                                    [TVar' envtv,
-                                    Cont' (TVar' envtv :: map #2 args)]),
-                          Sham0' ` Dictfor' envt,
-                          (* but we use the one that came in as an argument *)
-                         [Var' envvv,
-                          (* and the recursive var *)
-                          Var' f]))
-                  ) vael
-
-           (* bind all closure-converted friends *)
-           val () = print "friends:\n"
-           val G = foldr (fn ((f, args, body), G) =>
-                          let 
-                            val dom = map #2 args
-                            val ve = V.namedvar "fenv"
-                            val t = TExists' (ve, [TVar' ve,
-                                                   Cont' (TVar' ve :: dom)])
-                          in
-                            Layout.print (Layout.indent 2 ` 
-                                          Layout.align
-                                          [Layout.str (V.tostring f ^ " : "),
-                                           Layout.indent 2 ` CPSPrint.ttol t],
-                                          print);
-                            print "\n";
-                            bindvar G f t ` worldfrom G
-                          end) G vael
+           val envv = V.namedvar "go_env"
 
          in
-           (TPack'
-            (envt,
-             rest,
-             Sham0' ` Dictfor' envt,
-             [env,
-              Lams' `
-              map (fn (f, args, body) =>
-                   let 
-                     (* bind args *)
-                     val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args
-                     val G = bindvar G envvv envt ` worldfrom G
-
-                     val bod = ce G body
-
-                     (* creating recursive closures (assumes dictionaries already
-                        pulled from environments, so happes on the _inside_) *)
-                     val bod = foldr (fn ((v,c), bod) => 
-                                      Bind'(v, c, bod)) bod recs
-
-                     (* projecting the components from the environment arg *)
-                     val bod = wrape (Var' envvv, bod)
-                   in
-                     (f, (envvv, envt) :: args, bod)
-                   end
-                   ) vael]),
-            rest)
+           Go_cc' { w = w, 
+                    addr = addr,
+                    env = env,
+                    f = Lam' (V.namedvar "go_unused",
+                              [(envv, envt)],
+                              wrape (Var' envv, body)) }
          end
 
-     | Fsel (v, i) => 
-
-     (* e.m must translate into 
-        
-        unpack e as (ENV; [de, env, fs]) 
-        in  pack ( ENV ; [de, env, fs.m] )  *)
-         let
-           val (v, t) = cv G v
-           val venvt = V.namedvar "fsel_envt"
-           val vde = V.namedvar "fsel_de"
-           val venv = V.namedvar "fsel_env"
-           val vfs = V.namedvar "fsel_fs"
-         in
-           case ctyp t of
-              TExists (vr, [tenv, tfs]) =>
-                let
-                  val tres = TExists' (vr, [tenv,
-                                            case ctyp tfs of
-                                              Conts ts =>
-                                                (Cont' ` List.nth (ts, i)
-                                                 handle _ => raise Closure "fsel out of range")
-                                            | _ => raise Closure "fsel texists wasn't conts??"])
-
-                  val tenv = subtt (TVar' venvt) vr tenv
-                  val tfs = subtt (TVar' venvt) vr tfs
-
-                in
-                  (VTUnpack' (venvt,
-                              vde,
-                              [(* (vde, tde), *)
-                               (venv, TVar' venvt),
-                               (vfs, tfs)],
-                              (* unpack this *)
-                              v, 
-                              TPack'
-                              (* same environment type,
-                                 dict, environment. *)
-                              (TVar' venvt,
-                               tres,
-                               Sham0' ` UVar' vde,
-                               [Var' venv,
-                                Fsel' (Var' vfs, i)])),
-                   tres)
-                end
-            | _ => raise Closure "fsel on non-function (didn't translate to Exists 3)"
-         end
+    (* values. *)
 
 
-     | VTUnpack _ => raise Closure "wasn't expecting to see vtunpack before closure conversion"
+    (*
+       fns f(x). e1           ==>    
+       and g(y). e2
+
+
+        pack ( ENV ; dictfor ENV ;  env = { fv1 = fv1, ... fvn = fvn },
+              fns f(env, x). 
+                  let fv1 = #fv1 env      (except actually leta and letsham; see proposal)
+                        ...
+                      (: create closures for calls to f and g within e1 :)
+                      f = (pack ( ENV ; dictfor ENV ; [env = env, f] ))
+                      g = (pack ( ENV ; dictfor ENV ; [env = env, g] ))
+                      .. [[e1]]
+              and g(env, y).
+                      .. same ..
+              ])
+
+             where ENV is the record type { fv1 : t1, ... fvn : tn }.
+    *)
+    fun case_Lams z ({selfe, selfv, selft}, G)  vael =
+       let
+         val value = Lams' vael
+
+         (* not body; we don't want argument occurrences since they are bound by lam *)
+         val (fv, fuv) = freevarsv value
+
+         (* we also must store the dictionary for any free type variable. These might
+            not show up as free uvars even though they will be generated by undict. *)
+         (* nb: this must include not just the type vars we literally mention,
+            but the type vars that appear in the types of any of the free variables, 
+            above. *)
+         (* PERF do we want/need to include the type/world vars that appear (only) 
+            in the arguments? It seems it would be "too late" for them. *)
+         val fuv = augmentfreevars G (freesvarsv value) fv fuv
+
+         (* val () = print "\nmkenv..\n" *)
+
+         val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
+
+         val vael = map (fn (f, args, body) =>
+                         (f, ListUtil.mapsecond (selft z G) args, body)) vael
+
+           (*
+         val () = 
+             let in
+                 print "\n\n\nCONVERTED BODY:\n\n";
+                 Layout.print (CPSPrint.vtol (Lams' vael), print);
+                 print "\n"
+             end
+             *)
+
+         (* bind all fn variables recursively *)
+       (* 
+          wrong -- not closure converted
+         val G = foldr (fn ((f, args, body), G) =>
+                        let val dom = map #2 args
+                        in
+                          bindvar G f (Cont' dom) ` worldfrom G
+                        end) G vael
+         *)
+
+         val envtv = V.namedvar "lams_envt"
+         val rest = TExists' (envtv, [TVar' envtv,
+                                      Conts' (map (fn (_, args, _) =>
+                                                   TVar' envtv :: map #2 args) vael)])
+
+         val envvv = V.namedvar "env"
+
+         (* the recursive closures; one for each of our friends, including ourselves.
+            (we get n^2 of these packages here, but most will probably be dead code. 
+             For PERF, we could only generate the ones that are free...) *)
+         val recs = 
+           (* f = (pack ( ENV ; dictfor ENV ; [env = env, f] )) *)
+           map (fn (f, args, _) =>
+                (* environment has the same type *)
+                (f,
+                 TPack'(envt,
+                        (* this individual fn has Cont type *)
+                        TExists' (envtv,
+                                  [TVar' envtv,
+                                  Cont' (TVar' envtv :: map #2 args)]),
+                        Sham0' ` Dictfor' envt,
+                        (* but we use the one that came in as an argument *)
+                       [Var' envvv,
+                        (* and the recursive var *)
+                        Var' f]))
+                ) vael
+
+         (* bind all closure-converted friends *)
+         val () = print "friends:\n"
+         val G = foldr (fn ((f, args, body), G) =>
+                        let 
+                          val dom = map #2 args
+                          val ve = V.namedvar "fenv"
+                          val t = TExists' (ve, [TVar' ve,
+                                                 Cont' (TVar' ve :: dom)])
+                        in
+                          Layout.print (Layout.indent 2 ` 
+                                        Layout.align
+                                        [Layout.str (V.tostring f ^ " : "),
+                                         Layout.indent 2 ` CPSPrint.ttol t],
+                                        print);
+                          print "\n";
+                          bindvar G f t ` worldfrom G
+                        end) G vael
+
+       in
+         (TPack'
+          (envt,
+           rest,
+           Sham0' ` Dictfor' envt,
+           [env,
+            Lams' `
+            map (fn (f, args, body) =>
+                 let 
+                   (* bind args *)
+                   val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args
+                   val G = bindvar G envvv envt ` worldfrom G
+
+                   val bod = selfe z G body
+
+                   (* creating recursive closures (assumes dictionaries already
+                      pulled from environments, so happes on the _inside_) *)
+                   val bod = foldr (fn ((v,c), bod) => 
+                                    Bind'(v, c, bod)) bod recs
+
+                   (* projecting the components from the environment arg *)
+                   val bod = wrape (Var' envvv, bod)
+                 in
+                   (f, (envvv, envt) :: args, bod)
+                 end
+                 ) vael]),
+          rest)
+       end
+
+    fun case_Fsel z ({selfe, selfv, selft}, G)  (v, i) =
+      (* e.m must translate into 
+
+         unpack e as (ENV; [de, env, fs]) 
+         in  pack ( ENV ; [de, env, fs.m] )  *)
+      let
+        val (v, t) = selfv z G v
+        val venvt = V.namedvar "fsel_envt"
+        val vde = V.namedvar "fsel_de"
+        val venv = V.namedvar "fsel_env"
+        val vfs = V.namedvar "fsel_fs"
+      in
+        case ctyp t of
+           TExists (vr, [tenv, tfs]) =>
+             let
+               val tres = 
+                 TExists' (vr, [tenv,
+                                case ctyp tfs of
+                                  Conts ts =>
+                                    (Cont' ` List.nth (ts, i)
+                                     handle _ => raise Closure "fsel out of range")
+                                | _ => raise Closure "fsel texists wasn't conts??"])
+
+               val tenv = subtt (TVar' venvt) vr tenv
+               val tfs = subtt (TVar' venvt) vr tfs
+
+             in
+               (VTUnpack' (venvt,
+                           vde,
+                           [(* (vde, tde), *)
+                            (venv, TVar' venvt),
+                            (vfs, tfs)],
+                           (* unpack this *)
+                           v, 
+                           TPack'
+                           (* same environment type,
+                              dict, environment. *)
+                           (TVar' venvt,
+                            tres,
+                            Sham0' ` UVar' vde,
+                            [Var' venv,
+                             Fsel' (Var' vfs, i)])),
+                tres)
+             end
+         | _ => raise Closure "fsel on non-function (didn't translate to Exists 3)"
+      end
+
+
+    fun case_VTUnpack _ _ _ = raise Closure "wasn't expecting to see vtunpack before closure conversion"
+    fun case_TPack _ _ _ = raise Closure "wasn't expecting to see tpack before closure conversion"
+
+  end
+
+(*
+
 
      (* must have at least one value argument or it's purely static and
         therefore not closure converted *)
@@ -781,75 +660,10 @@ struct
 
          )
            
-  (* mkenv G (fv, fuv)
-     in the context G, make the environment that consists of the free vars fv and
-     the free uvars fuv. return the environment value, its type, and two wrapper
-     functions that, when given the environment value, "bind" these free variables 
-     within an expression or value respectively. *)
-  and mkenv G (fv, fuv) : { env : cval, envt : ctyp, 
-                            wrape : cval * cexp -> cexp, 
-                            wrapv : cval * cval -> cval } =
-    (* environment will take the form of a record.
-       the first few labels will hold regular vals, held at their respective worlds.
-       *)
-    let
-      val lab = ref 1 (* start at 1 to make these tuples, so they
-                         pretty-print nicer *)
-      fun new () = (Int.toString (!lab) before lab := !lab + 1)
-      val fvs =  V.Set.foldr op:: nil fv
-      val fuvs = V.Set.foldr op:: nil fuv
+*)
 
-      val () = print "mkenv FV: "
-      val () = app (fn v => print (V.tostring v ^ " ")) fvs
-      val () = print "\nmkenv FUV: "
-      val () = app (fn v => print (V.tostring v ^ " ")) fuvs
-      val () = print "\n"
-
-      val fvs = map (fn v =>
-                     let val (t, w) = T.getvar G v
-                       
-                     in
-                       { label = new (), 
-                         typ = t,
-                         world = w,
-                         var = v }
-                     end) fvs
-      val fuvs = map (fn v =>
-                      let val t = T.getuvar G v
-                      in
-                        { label = new (),
-                          typ = t,
-                          var = v }
-                      end) fuvs
-      fun dowrap LETA LETSHAM env x =
-        let
-          val x = foldr (fn ({label, typ, var}, x) =>
-                         LETSHAM (var, Proj' (label, env), x)) x fuvs
-          val x = foldr (fn ({label, typ, world, var}, x) =>
-                         LETA (var, Proj' (label, env), x)) x fvs
-        in
-          x
-        end
-
-    in
-      { env = Record' `
-              (map (fn { label, typ, world, var } =>
-                    (label, Hold' (world, Var' var))) fvs @
-               map (fn { label, typ, var } =>
-                    (label, Sham' (V.namedvar "unused", UVar' var))) fuvs),
-        envt = Product' `
-               (map (fn { label, typ, world, var } =>
-                     (label, At' (typ, world))) fvs @
-                map (fn { label, typ, var } =>
-                     (label, Shamrock' typ)) fuvs),
-        wrape = fn (env, v) => dowrap Leta' Letsham' env v,
-        wrapv = fn (env, v) => dowrap VLeta' VLetsham' env v
-        }
-    end
-
-
-  fun convert w e =
-    ce (T.empty w) e
+  structure C = PassFn(CA)
+  fun convert w e = C.converte () (T.empty w) e
     handle Match => raise Closure "unimplemented/match"
 
 end

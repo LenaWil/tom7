@@ -301,12 +301,6 @@ struct
     end
 
     structure D = PassFn(DA)
-
-(*
-    and trv G value =
-      (case cval value of
-*)
-
     fun translate ctx e = D.converte VS.empty ctx e
 
 end
