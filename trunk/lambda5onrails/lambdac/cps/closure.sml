@@ -550,117 +550,104 @@ struct
     fun case_VTUnpack _ _ _ = raise Closure "wasn't expecting to see vtunpack before closure conversion"
     fun case_TPack _ _ _ = raise Closure "wasn't expecting to see tpack before closure conversion"
 
+      (* must have at least one value argument or it's purely static and
+         therefore not closure converted *)
+    fun case_AllLam z ({selfe, selfv, selft}, G) 
+        (all as { worlds, tys, vals = vals as _ :: _, body }) =
+       (*
+       { w; t; t dict } -> c
+
+       ==>
+
+       E env. [env dict, { w; t; env, t dict } -> c]
+       *)
+       let
+         val value = AllLam' all
+         val (fv, fuv) = freevarsv value (* not counting the vars we just bound! *)
+
+         (* also potential dictionaries, as above *)
+         val fuv = augmentfreevars G (freesvarsv value) fv fuv
+
+         val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
+
+         val envv = V.namedvar "al_env"
+         val envtv = V.namedvar "al_envt"
+
+         val G = bindworlds G worlds
+         val G = bindtypes G tys
+         val vals = ListUtil.mapsecond (selft z G) vals
+         val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vals
+         val (body, bodyt) = selfv z G body
+
+         (* type of this pack *)
+         val rest = TExists' (envtv, [TVar' envtv,
+                                      AllArrow' { worlds = worlds, tys = tys,
+                                                  vals = TVar' envtv :: map #2 vals,
+                                                  body = bodyt }])
+       in
+         (TPack' (envt, 
+                  rest,
+                  Sham0' ` Dictfor' envt,
+                  [env,
+                   AllLam' { worlds = worlds, 
+                             tys = tys,
+                             vals = (envv, envt) :: vals,
+                             body = wrapv (Var' envv, body) }]),
+          rest)
+       end
+     (* With no value args, just do the default thing *)
+      | case_AllLam z s e = ID.case_AllLam z s e
+
+    (* needs to remain a value... *)
+    fun case_AllApp z ({selfe, selfv, selft}, G)  
+       { f, worlds, tys, vals = vals as _ :: _ } =
+       let
+         val (f, ft) = selfv z G f
+         val tys = map (selft z G) tys
+         val (vals, valts) = ListPair.unzip ` map (selfv z G) vals
+
+         val envt = V.namedvar "aa_envt"
+         val envv = V.namedvar "aa_env"
+         val fv = V.namedvar "aa_f"
+
+         val vdu = V.namedvar "aa_dus"
+       in
+         case ctyp ft of
+           TExists (envtv, [_, aat]) =>
+             (case ctyp aat of 
+                AllArrow { worlds = aw, tys = at, vals = _ :: avals, body = abody } =>
+                  (VTUnpack' (envt,
+                              vdu,
+                              [(envv, TVar' envt),
+                               (* aad thinks envtype is envtv, so need to
+                                  rename to local existential var *)
+                               (fv, subtt (TVar' envt) envtv aat)],
+                              f,
+                              (* maintain dict invariant *)
+                              AllApp' { f = Var' fv,
+                                        worlds = worlds,
+                                        tys = tys,
+                                        vals = Var' envv :: vals }),
+
+                   (* to get result type, do substitution for our actual world/ty
+                      arguments into body type *)
+                   let
+                     val wl = ListPair.zip (aw, worlds)
+                     val tl = ListPair.zip (at, tys)
+                     fun subt t =
+                       let val t = foldr (fn ((wv, w), t) => subwt w wv t) t wl
+                       in foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
+                       end
+                   in
+                     subt abody
+                   end)
+               | _ => raise Closure "allapp non non-allarrow")
+         | _ => raise Closure "Allapp on non-exists3-allarrow"
+       end
+      (* With no value args, just do the default thing *)
+      | case_AllApp z s e = ID.case_AllApp z s e
+
   end
-
-(*
-
-
-     (* must have at least one value argument or it's purely static and
-        therefore not closure converted *)
-     | AllLam { worlds, tys, vals = vals as _ :: _, body } => 
-         (*
-         { w; t; t dict } -> c
-         
-         ==>
-         
-         E env. [env dict, { w; t; env, t dict } -> c]
-         *)
-         let
-           val (fv, fuv) = freevarsv value (* not counting the vars we just bound! *)
-
-           (* also potential dictionaries, as above *)
-           val fuv = augmentfreevars G (freesvarsv value) fv fuv
-
-           val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
-
-           val envv = V.namedvar "al_env"
-           val envtv = V.namedvar "al_envt"
-             
-           val G = bindworlds G worlds
-           val G = bindtypes G tys
-           val vals = ListUtil.mapsecond ct vals
-           val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G vals
-           val (body, bodyt) = cv G body
-
-           (* type of this pack *)
-           val rest = TExists' (envtv, [TVar' envtv,
-                                        AllArrow' { worlds = worlds, tys = tys,
-                                                    vals = TVar' envtv :: map #2 vals,
-                                                    body = bodyt }])
-         in
-           (TPack' (envt, 
-                    rest,
-                    Sham0' ` Dictfor' envt,
-                    [env,
-                     AllLam' { worlds = worlds, 
-                               tys = tys,
-                               vals = (envv, envt) :: vals,
-                               body = wrapv (Var' envv, body) }]),
-            rest)
-         end
-
-     (* ditto on the elim *)
-     (* needs to remain a value... *)
-     | AllApp { f, worlds, tys, vals = vals as _ :: _ } =>
-         let
-           val (f, ft) = cv G f
-           val tys = map ct tys
-           val (vals, valts) = ListPair.unzip ` map (cv G) vals
-
-           val envt = V.namedvar "aa_envt"
-           val envv = V.namedvar "aa_env"
-           val fv = V.namedvar "aa_f"
-
-           val vdu = V.namedvar "aa_dus"
-         in
-           case ctyp ft of
-             TExists (envtv, [_, aat]) =>
-               (case ctyp aat of 
-                  AllArrow { worlds = aw, tys = at, vals = _ :: avals, body = abody } =>
-                    (VTUnpack' (envt,
-                                vdu,
-                                [(envv, TVar' envt),
-                                 (* aad thinks envtype is envtv, so need to
-                                    rename to local existential var *)
-                                 (fv, subtt (TVar' envt) envtv aat)],
-                                f,
-                                (* maintain dict invariant *)
-                                AllApp' { f = Var' fv,
-                                          worlds = worlds,
-                                          tys = tys,
-                                          vals = Var' envv :: vals }),
-
-                     (* to get result type, do substitution for our actual world/ty
-                        arguments into body type *)
-                     let
-                       val wl = ListPair.zip (aw, worlds)
-                       val tl = ListPair.zip (at, tys)
-                       fun subt t =
-                         let val t = foldr (fn ((wv, w), t) => subwt w wv t) t wl
-                         in foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
-                         end
-                     in
-                       subt abody
-                     end)
-                 | _ => raise Closure "allapp non non-allarrow")
-           | _ => raise Closure "Allapp on non-exists3-allarrow"
-         end
-
-     | Dictfor t => 
-         let val t = ct t
-         in (Dictfor' t, Dictionary' t)
-         end
-
-     | _ => 
-         let in
-           print "CLOSURE: unimplemented val\n";
-           Layout.print (CPSPrint.vtol value, print);
-           raise Closure "unimplemented VAL"
-         end
-
-         )
-           
-*)
 
   structure C = PassFn(CA)
   fun convert w e = C.converte () (T.empty w) e
