@@ -1,0 +1,23 @@
+unit
+
+(*
+    extern bytecode world server
+    extern val home ~ home addr
+    extern val server ~ server addr
+*)
+
+    fun cont (f : unit -> unit) : unit cont =
+        letcc ret
+        in
+            letcc k
+            in
+                throw k to ret
+            end;
+            f ();
+            primapp Halt { unit cont } ( )
+        end
+
+    do  cont (fn () => ())
+
+in
+end

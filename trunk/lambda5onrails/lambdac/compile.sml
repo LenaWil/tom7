@@ -151,12 +151,13 @@ struct
             val () = print "\n\n**** ELABORATED: ****\n"
             val () = Layout.print( ILPrint.utol il, print)
 
-            val il = ILUnused.unused il
             val () = print "\n\n**** UNUSED: ****\n"
+            val il = ILUnused.unused il
             val () = Layout.print( ILPrint.utol il, print)
 
             val cw = CPS.WC Initial.homename
 
+            val () = print "\n\n**** CPS CONVERSION... ****\n"
             val c : CPS.cexp = ToCPS.convert il Initial.home
             val () = print "\n\n**** CPS CONVERTED: ****\n"
             val () =  Layout.print ( CPSPrint.etol c, print)
@@ -165,15 +166,16 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
-            val c : CPS.cexp = CPSOpt.optimize c
             val () = print "\n\n**** CPS OPT1: ****\n"
+            val c : CPS.cexp = CPSOpt.optimize c
             val () =  Layout.print ( CPSPrint.etol c, print)
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
-            val c : CPS.cexp = CPSDict.translate G c
+
             val () = print "\n\n**** CPS DICT: ****\n"
+            val c : CPS.cexp = CPSDict.translate G c
             val () = Layout.print ( CPSPrint.etol c, print)
 
             val G = T.setopts G [T.O_EXTERNDICTS]
@@ -181,8 +183,8 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
-            val c : CPS.cexp = Closure.convert cw c
             val () = print "\n\n**** CLOSURE: ****\n"
+            val c : CPS.cexp = Closure.convert cw c
             val () = Layout.print ( CPSPrint.etol c, print)
 
             (* from now on, code should be closed. *)
@@ -191,15 +193,16 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
-            val c : CPS.cexp = UnDict.undict cw c
+
             val () = print "\n\n**** UNDICT: ****\n"
+            val c : CPS.cexp = UnDict.undict cw c
             val () = Layout.print ( CPSPrint.etol c, print)
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 (*
-            val p : CPS.program = Hoist.hoist cw Initial.homekind c
             val () = print "\n\n**** HOIST: ****\n"
+            val p : CPS.program = Hoist.hoist cw Initial.homekind c
             val () = Layout.print ( CPSPrint.ptol p, print)
               
             val () = T.checkprog p
