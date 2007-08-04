@@ -329,7 +329,13 @@ struct
 
     (* all the action is here. We need to expand it so that we do not use
        the Dictfor construct any more. *)
-    fun case_Dictfor z ({selfe, selfv, selft}, G) t = (makedict G t, Dictionary' t)
+    fun case_Dictfor z ({selfe, selfv, selft}, G) t = 
+      let in
+        print "makedict for:\n";
+        Layout.print(Layout.indent 4 ` CPSPrint.ttol t, print);
+        print "\n";
+        (makedict G t, Dictionary' t)
+      end
 
   end
 

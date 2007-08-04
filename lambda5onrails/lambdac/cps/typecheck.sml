@@ -132,7 +132,11 @@ struct
        NONE => raise TypeCheck ("unbound type var: " ^ V.tostring v)
      | SOME b => b)
 
-  fun cleardyn (C { tvars, worlds, vars, uvars, current, worldlabs, globals, options }) =
+  fun cleardyn (c as C { tvars, worlds, vars, uvars, current, worldlabs, globals, options }) =
+    let in
+      print "cleardyn:\n";
+      Layout.print (ctol c, print);
+      print "\n";
       C { vars = V.Map.empty,
           uvars = V.Map.empty,
           tvars = tvars,
@@ -141,6 +145,7 @@ struct
           worldlabs = worldlabs,
           globals = globals,
           options = options }
+    end
 
   fun getworld (C { worlds, ... }) (W v) = 
     if V.Set.member (worlds, v) then () 

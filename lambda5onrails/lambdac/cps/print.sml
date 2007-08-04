@@ -122,7 +122,8 @@ struct
            Fsel (v, i) =>
              (case (cval v, i) of
                   (Lams [(v, vtl, e)], 0) => %[%[$"lam",
-                                                 vbinde v e,
+                                                 (* vbinde v e, *)
+                                                 varl v,
                                                  L.listex "(" ")" "," `
                                                  map (fn (v, t) => 
                                                       %[vbinde v e, $":",

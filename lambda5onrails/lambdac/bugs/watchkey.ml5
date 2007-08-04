@@ -1,12 +1,6 @@
 unit
 
-(*
-    extern bytecode world server
-    extern val home ~ home addr
-    extern val server ~ server addr
-*)
-
-    fun cont (f : unit -> unit) : unit cont =
+    fun awesome (f : unit -> unit) : unit cont =
         letcc ret
         in
             letcc k
@@ -17,7 +11,7 @@ unit
             primapp Halt { unit cont } ( )
         end
 
-    do  cont (fn () => ())
+    do  awesome (fn () => ())
 
 in
 end

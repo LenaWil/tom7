@@ -158,8 +158,21 @@ struct
      *)
   fun augmentfreevars G { w = fw, t = ft } fv fuv exemptargs =
     let
-      (* the types we'll also scour *)
-      val fvt = map (#1 o T.getvar G) ` V.Set.listItems fv
+      val () = print "AUGMENT.\nfv:    ";
+      val () = V.Set.app (fn v => print (V.tostring v ^ " ")) fv;
+      val () = print "\nfuv:   ";
+      val () = V.Set.app (fn v => print (V.tostring v ^ " ")) fuv;
+      val () = print "\nfw:   ";
+      val () = V.Set.app (fn v => print (V.tostring v ^ " ")) fw;
+      val () = print "\nft:   ";
+      val () = V.Set.app (fn v => print (V.tostring v ^ " ")) ft;
+
+      (* for any free var we already have, we need to get its type
+         and world. Those are more sources of free variables. *)
+      val (fvt, worlds) = ListPair.unzip ` map (T.getvar G) ` V.Set.listItems fv
+      (* only the world variables... *)
+      val worlds = List.mapPartial (fn (W w) => SOME w | _ => NONE) worlds
+
       val fuvt = map (T.getuvar G) ` V.Set.listItems fuv
       (* these types have a bound world; the free vars in "w.t" are
          the same as the freevars in {w}t, so we can use that to
@@ -228,14 +241,19 @@ struct
                         set
                       end) V.Set.empty (fvt @ fuvt)
 
-      (* XXX are we missing world vars in the judgments? *)
-
       val () = print "\naug indirect: " 
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) iv
 
+      val ivw = getdicts exempt_getwdict (V.SetUtil.fromlist worlds)
+      val () = print "\naug judgmentw: " 
+      val () = V.Set.app (fn v => print (V.tostring v ^ " ")) ivw
+
     in
       print "\n";
-      V.Set.union (fuv, V.Set.union(litw, V.Set.union (litt, iv)))
+      V.Set.union (fuv, 
+                   V.Set.union(litw, 
+                               V.Set.union (litt, 
+                                            V.Set.union (iv, ivw))))
     end
 
   (* mkenv G (fv, fuv)
@@ -442,6 +460,10 @@ struct
        let
          val value = Lams' vael
 
+         val () = print "Closure convert Lams: "
+         val () = app (fn (v, _, _) => print (V.tostring v ^ " ")) vael;
+         val () = print "\n"
+
          (* not body; we don't want argument occurrences since they are bound by lam *)
          val (fv, fuv) = freevarsv value
 
@@ -529,12 +551,7 @@ struct
                           bindvar G f t ` worldfrom G
                         end) G vael
 
-       in
-         (TPack'
-          (envt,
-           rest,
-           Sham0' ` Dictfor' envt,
-           [env,
+         val lams =
             Lams' `
             map (fn (f, args, body) =>
                  let 
@@ -554,7 +571,19 @@ struct
                  in
                    (f, (envvv, envt) :: args, bod)
                  end
-                 ) vael]),
+                 ) vael
+       in
+         let val (vs, us) = freevarsv value
+         in case (V.Set.listItems vs, V.Set.listItems us) of
+               (nil, nil) => ()
+             | _ => raise Closure "closure conversion failed to produce a closed lambda!"
+         end;
+
+         (TPack'
+          (envt,
+           rest,
+           Sham0' ` Dictfor' envt,
+           [env, lams]),
           rest)
        end
 
