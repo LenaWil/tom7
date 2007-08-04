@@ -128,7 +128,7 @@ struct
            then NONE
            else
                let
-                   val wv = V.namedvar "polyw"
+                   val wv = V.namedvar (Nonce.nonce ()) (* "polyw" *)
                in
                    er := IL.Bound (IL.WVar wv);
                    SOME wv

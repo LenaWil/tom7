@@ -85,6 +85,8 @@ util/variable.sml
 util/symboldb-sig.sml
 util/symboldb.sml
 
+util/nonce.sml
+
 intconst.sml
 primop.sml
 el.sml

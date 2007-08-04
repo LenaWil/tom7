@@ -549,6 +549,19 @@ struct
        | I.Bind (_, _) => raise ToCPS "bind decl is polymorphic but not a value!"
 
        (* Probably letsham could be another bind? *)
+       | I.Letsham (I.Poly ({worlds = nil, tys = nil}, (v, t, va))) => 
+         let
+           val _ = cvtt G t
+           val (va, tt, ww) = cvtv G va
+         in
+           case ctyp tt of
+             Shamrock (wv, tt) =>
+               let val G = binduvar G v (wv, tt)
+               in Letsham' (v, va, k G)
+               end
+           | _ => raise ToCPS "letsham(nil) of non-shamrock"
+         end
+
        | I.Letsham (I.Poly ({worlds, tys}, (v, t, va))) => 
          (* When the var v is used, it will be applied to worlds and tys,
             so it must have AllArrow type. It also must be valid. Here we
@@ -584,6 +597,8 @@ struct
             of
               (va, Shamrock (wv, tt), ww) =>
                 let
+                  (* XXX since we know worlds and tys are non-nil (nils handled
+                     above), this is obsolete *)
                   (* by invariant, we don't make totally empty allarrows or alllams. *)
                   fun AllArrowMaybe { worlds = nil, tys = nil, vals = nil, body } = body
                     | AllArrowMaybe x = AllArrow' x
@@ -596,14 +611,6 @@ struct
                   val G = binduvar G v (wv, tt)
                   val v' = V.alphavary v
                 in
-                  (* PERF we also should avoid doing this vletsham thing if we're not
-                     doing any abstraction; it is hard to read and can have
-                     dynamic cost because of dictionaries! *)
-(*
-                  case (worlds, tys) of
-                    (nil, nil) => Sham' (wv, 
-                   | _ =>
-*)
                       Letsham' (v,
                                 Sham' (wv, AllLamMaybe { worlds = worlds, tys = tys, vals = nil,
                                                          body = VLetsham' (v', va, UVar' v') }),
