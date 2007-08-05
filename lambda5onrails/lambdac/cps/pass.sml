@@ -8,7 +8,8 @@
 *)
 
 (* identity pass that sends along any 'stuff' untouched. *)
-functor IDPass(type stuff) : PASSARG where type stuff = stuff =
+functor IDPass(type stuff
+               val Pass : string -> exn) : PASSARG where type stuff = stuff =
 struct
   
   type stuff = stuff
@@ -41,8 +42,6 @@ struct
   val bindtype = T.bindtype
   val bindworld = T.bindworld
   val worldfrom = T.worldfrom
-
-  exception Pass of string
 
   val bindworlds = foldl (fn (v, c) => bindworld c v)
   (* assuming not mobile *)
@@ -186,7 +185,8 @@ struct
                    selfe z (bindvar G v cod ` worldfrom G) e)
          end
 
-     | case_Primop z ({selfe, selfv, selft}, G)  (_, PRIMCALL { sym, dom, cod }, vas, e) = raise Pass "bad primcall"
+     | case_Primop z ({selfe, selfv, selft}, G)  (_, PRIMCALL { sym, dom, cod }, vas, e) = 
+         raise Pass "bad primcall"
 
           
   fun case_Leta z ({selfe, selfv, selft}, G) (v, va, e) =
@@ -492,16 +492,26 @@ struct
             in
               (Dict' ` Sum sdl, Dictionary' ` Sum' stl)
             end
-(*
-(* XXX *)
-        | Shamrock d => 
+
+        | TWdict w =>
             let
+              val (w, t) = selfv z G w
+            in
+              (Dict' ` TWdict w,
+               Dictionary' ` TWdict' ` ewdict "twdict" t)
+            end
+            
+
+        | Shamrock ((w, dw), d) => 
+            let
+              val G = bindworld G w
+              val G = bindu0var G dw (TWdict' ` W w)
               val (d, t) = selfv z G d
             in
-              (Dict' ` Shamrock d,
-               Dictionary' ` Shamrock' ` edict "sham" ` t)
+              (Dict' ` Shamrock ((w, dw), d),
+               Dictionary' ` Shamrock' (w, edict "sham" t))
             end
-*)
+
         | Cont dl => 
             let
               val (dl, tl) = ListPair.unzip ` map (selfv z G) dl
@@ -586,7 +596,13 @@ struct
                                          body = edict "allarrow-body" bodyt })
             end
 
-        | _ => raise Pass "unimplemented dict typefront"
+        | _ => 
+            let in
+              print "\n\nunimplemented:\n";
+              Layout.print(CPSPrint.vtol (Dict' tf), print);
+              print "\n\n";
+              raise Pass "unimplemented dict typefront"
+            end
      end
 
    fun case_VTUnpack z ({selfe, selfv, selft}, G)  (tv, td, vvs, va, ve) =

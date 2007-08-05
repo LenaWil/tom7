@@ -483,7 +483,12 @@ struct
                              $"got: ", TY (ctyp' ot)]
                                 
                                 )
-     | ExternWorld (l, k, e) => eok (bindworldlab G l k) e
+     | ExternWorld (l, k, e) => 
+            if option G O_HOISTED
+            then fail [$"saw extern world in supposedly hoisted code.",
+                       $"world: ", $l]
+            else eok (bindworldlab G l k) e
+
      | Leta (v, va, e) =>
             (case ctyp ` vok G va of
                At (t, w) => eok (bindvar G v t w) e

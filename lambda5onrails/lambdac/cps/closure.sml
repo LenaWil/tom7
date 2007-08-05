@@ -328,7 +328,8 @@ struct
   structure CA : PASSARG where type stuff = unit =
   struct
     type stuff = unit
-    structure ID = IDPass(type stuff = stuff)
+    structure ID = IDPass(type stuff = stuff
+                          val Pass = Closure)
     open ID
 
     (* types. *)

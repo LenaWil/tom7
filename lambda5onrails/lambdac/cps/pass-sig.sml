@@ -17,8 +17,6 @@ sig
 
   type context = CPSTypeCheck.context
 
-  exception Pass of string
-
   (* open recursive calls *)
   type selves = { selfv : stuff -> context -> CPS.cval -> CPS.cval * CPS.ctyp,
                   selfe : stuff -> context -> CPS.cexp -> CPS.cexp,

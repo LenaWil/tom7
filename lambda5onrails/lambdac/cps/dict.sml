@@ -108,7 +108,8 @@ struct
     structure DA : PASSARG where type stuff = VS.set =
     struct
       type stuff = VS.set
-      structure ID = IDPass(type stuff = stuff)
+      structure ID = IDPass(type stuff = stuff
+                            val Pass = CPSDict)
       open ID
 
       (* types. we only need to convert allarrow (takes new world args) and shamrock (nested allarrow). *)
@@ -221,7 +222,7 @@ struct
                 val tys = map (selft z G) tys
                 val () = if length ww = length worlds andalso length tt = length tys
                          then () 
-                         else raise Pass "allapp to wrong number of worlds/tys"
+                         else raise CPSDict "allapp to wrong number of worlds/tys"
                 val wl = ListPair.zip (ww, worlds)
                 val tl = ListPair.zip (tt, tys)
                 fun subt t =

@@ -262,7 +262,8 @@ struct
   structure DA : PASSARG where type stuff = unit =
   struct
     type stuff = unit
-    structure ID = IDPass(type stuff = stuff)
+    structure ID = IDPass(type stuff = stuff
+                          val Pass = UnDict)
     open ID
 
     (* we don't touch types at all. *)
