@@ -1130,6 +1130,8 @@ struct
     val freesvarst = twicei allt
     val freesvarsv = twicei allv
     val freesvarse = twicei alle
+    fun freesvarsw (W w)  = { t = VS.empty, w = VS.add(VS.empty, w) }
+      | freesvarsw (WC _) = { t = VS.empty, w = VS.empty }
   end
 
 end
