@@ -11,7 +11,7 @@ unit
             primapp Halt { unit cont } ( )
         end
 
-    do  awesome (fn () => ())
+    do  awesome (fn () => (primapp Halt { unit } ()) )
 
 in
 end
