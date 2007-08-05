@@ -172,9 +172,10 @@ cps/closure.sml
 cps/undict-sig.sml
 cps/undict.sml
 
-(*
 cps/hoist-sig.sml
 cps/hoist.sml
+
+(*
 
 js/lib/mltoncompat.sml
 

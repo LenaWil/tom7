@@ -14,7 +14,8 @@ sig
       O_CLOSED 
       (* The Dictfor construct is not allowed *)
     | O_NO_DICTFOR
-      (* no nested lams, no use of recursive vars *)
+      (* no nested lams, no use of recursive vars,
+         no externworlds *)
     | O_HOISTED
       (* any type imports must have dicts too *)
     | O_EXTERNDICTS

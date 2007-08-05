@@ -200,7 +200,7 @@ struct
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
-(*
+
             val () = print "\n\n**** HOIST: ****\n"
             val p : CPS.program = Hoist.hoist cw Initial.homekind c
             val () = Layout.print ( CPSPrint.ptol p, print)
@@ -208,6 +208,7 @@ struct
             val () = T.checkprog p
             val () = print "\n* Typechecked OK *\n"
 
+(*
             (* would be nice to have another optimization phase here... *)
             val code = Codegen.generate p
 
@@ -235,13 +236,12 @@ struct
          | PrimTypes.PrimTypes s => fail("PrimTypes: " ^ s)
          | Podata.Podata s => fail("primop data: " ^ s)
          | CPSOpt.CPSOpt s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
-
+         | Hoist.Hoist s => fail ("Hoist: " ^ s)
 (*
          | ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
          | Codegen.Codegen s => fail ("Code generation: " ^ s)
          | JSCodegen.JSCodegen s => fail("Javascript codegen: " ^ s)
          | JSOpt.JSOpt s => fail("Javascript optimization: " ^ s)
-         | Hoist.Hoist s => fail ("Hoist: " ^ s)
          | ILAlpha.Alpha s => fail ("IL Alpha: " ^ s)
          | Write.Write s => fail ("Write: " ^ s)
 *)
