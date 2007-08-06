@@ -482,6 +482,10 @@ function lc_marshalg(G, loc, dict, va) {
 	}
 	return s;
     }
+    case "DH": {
+	alert("unimplemented shamdict");
+	throw(0);
+    }
     case "D@": {
 	/* just changes focus */
 	return lc_marshalg(G, dict.a, dict.v, va);
@@ -541,6 +545,9 @@ function lc_marshalg(G, loc, dict, va) {
 		return 'D@ ' + lc_marshalg(G, loc, lc_dictdict, va.v) + ' ' +
 		    lc_marshalg(G, loc, lc_wdictdict, va.a);
 	    }
+	    case "DH": {
+		return 'DH ' + va.d + ' ' + lc_marshalg(G, loc, lc_dictdict, va.v);
+            }
 	    default:
 		alert('unimplemented dict to be marshaled: ' + va.w);
 		throw 'unimplemented';

@@ -74,7 +74,6 @@ struct
     || `INJ >> label && bopt ($exp) wth Inj
     || `MARSHAL >> $exp && $exp wth Marshal
 
-    (* || `DREF >> id wth Dref *)
     || `DP >> pdict wth Dp
     || `DREC >> repeated (label && $exp) wth Drec
     || `DSUM >> repeated (label && bopt ($exp)) wth Dsum
@@ -82,7 +81,8 @@ struct
     || `DEXISTS >> id && repeated ($exp) wth (fn (d,a) => Dexists { d = d,
                                                                     a = a })
     || `DALL >> repeated id && $exp wth Dall
-    || `DAT >> $exp && $exp wth (fn (d, a) => Dat { d = d, a = a })
+    || `DAT >> $exp && $exp wth (fn (d, a) => Dat   { d = d, a = a })
+    || `DSHAM >> id && $exp wth (fn (d, v) => Dsham { d = d, v = v })
 
     || `PROJ -- punt "parse error after PROJ"
     || `RECORD -- punt "parse error after RECORD"
@@ -96,6 +96,7 @@ struct
     || `DEXISTS -- punt "parse error after DEXISTS"
     || `DALL -- punt "parse error after DALL"
     || `DAT -- punt "parse error after DAT"
+    || `DSHAM -- punt "parse error after DSHAM"
 
     || number wth Int
     || strlit wth String

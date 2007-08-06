@@ -59,6 +59,7 @@ struct
                              L.indent 2 ` % ` map etol a]
      | Dall (sl, e) => %[$"DALL", %[itol ` length sl, L.indent 2 ` % ` map $ sl],
                          L.indent 2 ` etol e]
+     | Dsham { d, v } => %[$"DSHAM", $d, L.indent 2 ` etol v]
      (* | Dref s => %[$"DREF", $s] *)
          )
 

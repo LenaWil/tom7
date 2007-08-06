@@ -84,7 +84,13 @@ struct
                  | cd G (C.Addr _) = Dp Daddr
                  | cd G (C.Product stl) = Drec ` 
                              map (fn (l, e) => ("l" ^ l, cdict G e)) stl
-                 | cd G (C.Shamrock t) = cdict G t
+                 | cd G (C.Shamrock ((_, wd), t)) =
+                         let 
+                           val G = V.Set.add(G, wd)
+                         in
+                           Dsham { d = vtoi wd, v = cdict G t }
+                         end
+
                  | cd G (C.TExists ((_, v), tl)) = 
                          let
                            val G = V.Set.add(G, v)

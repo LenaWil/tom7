@@ -208,12 +208,11 @@ struct
             val () = T.checkprog p
             val () = print "\n* Typechecked OK *\n"
 
-(*
             (* would be nice to have another optimization phase here... *)
             val code = Codegen.generate p
 
             val () = Write.write base code
-*)
+
         in
           print "\n";
           (* code *) ()
@@ -237,14 +236,12 @@ struct
          | Podata.Podata s => fail("primop data: " ^ s)
          | CPSOpt.CPSOpt s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
          | Hoist.Hoist s => fail ("Hoist: " ^ s)
-(*
          | ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
          | Codegen.Codegen s => fail ("Code generation: " ^ s)
          | JSCodegen.JSCodegen s => fail("Javascript codegen: " ^ s)
          | JSOpt.JSOpt s => fail("Javascript optimization: " ^ s)
          | ILAlpha.Alpha s => fail ("IL Alpha: " ^ s)
          | Write.Write s => fail ("Write: " ^ s)
-*)
          | ex => (print ("\nUncaught exception: " ^ exnName ex ^ ": " ^
                          exnMessage ex);
                   raise ex)

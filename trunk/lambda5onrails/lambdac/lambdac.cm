@@ -175,8 +175,6 @@ cps/undict.sml
 cps/hoist-sig.sml
 cps/hoist.sml
 
-(*
-
 js/lib/mltoncompat.sml
 
 js/lib/hash-set-sig.sml
@@ -211,7 +209,6 @@ bytecode/tokenize.sml
 bytecode/parse-sig.sml
 bytecode/parse.sml
 
-
 (* invokes the code generators for
    each worldkind, above. *)
 codegen/codegen-sig.sml
@@ -219,7 +216,6 @@ codegen/codegen.sml
 codegen/write-sig.sml
 codegen/write.sml
 
-*)
 compile.sml
 
 (* sandbox.sml *)

@@ -170,7 +170,8 @@ struct
        ("DMU", DMU),
        ("DLOOKUP", DLOOKUP),
        ("DAT", DAT),
-       ("DW", DW)
+       ("DW", DW),
+       ("DSHAM", DSHAM)
 
        ]
 
