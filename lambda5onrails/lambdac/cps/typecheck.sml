@@ -956,8 +956,8 @@ struct
                 val wl = ListPair.zip (ww, worlds)
                 val tl = ListPair.zip (tt, tys)
                 fun subt t =
-                  let val t = foldr (fn ((wv, w), t) => subwt w wv t) t wl
-                  in foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
+                  let val t = foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
+                  in foldr (fn ((wv, w), t) => subwt w wv t) t wl
                   end
 
                 val valts = map (vok G) vals
@@ -983,8 +983,16 @@ struct
          | PolyCode (wv, (), t) => 
              let 
                val current = worldfrom G
+               val real = subwt current wv t
              in
-               subwt current wv t
+(*
+               print ("\n\n* get polycode " ^ s ^ "\n");
+               print ("    ~ " ^ V.tostring wv ^ ".");
+               Layout.print (CPSPrint.ttol t, print);
+               print ("\n thus: ");
+               Layout.print (CPSPrint.ttol real, print);
+*)
+               real
              end)
 
      | _ => 

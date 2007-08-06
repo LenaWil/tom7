@@ -421,8 +421,8 @@ struct
                 val wl = ListPair.zip (ww, worlds)
                 val tl = ListPair.zip (tt, tys)
                 fun subt t =
-                  let val t = foldr (fn ((wv, w), t) => subwt w wv t) t wl
-                  in foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
+                  let val t = foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
+                  in foldr (fn ((wv, w), t) => subwt w wv t) t wl
                   end
 
               in

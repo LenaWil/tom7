@@ -333,12 +333,13 @@ struct
 
                (* Intended only for stdlib use *)
                `PRIMAPP >> fid G && 
-                 (* XXX Allow optional < type args > before ( val args ) *)
                  (opt (`LBRACE >> separate0 typ (`COMMA) << `RBRACE)) &&
                  `LPAREN >> separate0 (call G exp) (`COMMA) << `RPAREN
                      wth (fn (f, (ts, args)) => Primapp (f, 
                                                          (case ts of NONE => nil | SOME l => l), 
                                                          args)),
+
+               `PRIMAPP -- punt "expected ID LBRACE TYPES RBRACE LPAREN VALS RPAREN after PRIMAPP",
 
                `LET >> "expected DECS after LET" **
                    (call G decs -- 
