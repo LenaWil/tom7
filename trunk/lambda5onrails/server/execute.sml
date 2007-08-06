@@ -52,6 +52,7 @@ struct
               (G : B.exp SM.map) (stmt : B.statement) =
     case stmt of
       B.End => ()
+    | B.Return _ => raise Execute "unimplemented: return"
     | B.Bind (s, e, st) =>
         let 
         in
@@ -109,8 +110,11 @@ struct
           B.String s
         end
 
+    | B.Primop _ => raise Execute "unimplemented: primops"
+
     | B.Dp _ => exp
     | B.Dlookup _ => exp
+    | B.Dsham { d, v } => B.Dsham { d = d, v = evaluate i G v }
     | B.Dall (sl, e) => B.Dall (sl, evaluate i G e)
     | B.Dat { d, a } => B.Dat { d = evaluate i G d,
                                 a = evaluate i G a }
