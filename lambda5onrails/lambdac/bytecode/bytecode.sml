@@ -41,6 +41,7 @@ struct
     | Dsum of (string * exp option) list
     | Dexists of { d : string, a : exp list }
     | Dall of string list * exp
+    | Dsham of { d : string, v : exp }
     (* | Dref of string *)
 
     (* "variable" *)

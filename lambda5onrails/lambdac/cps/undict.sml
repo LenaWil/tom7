@@ -338,6 +338,8 @@ struct
         (makedict G t, Dictionary' t)
       end
 
+    fun case_WDictfor z ({selfe, selfv, selft}, G) w = (makewdict G w, TWdict' w)
+
   end
 
 

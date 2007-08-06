@@ -39,6 +39,7 @@
       DL       s : String
       DA       s : array of String, v : Object
       D@       v : Object, a : String
+      DH       d : bound String,  v : Object
 
    World dictionaries are represented as strings.
 *)
@@ -117,6 +118,7 @@ struct
       DW       s : String  (lookup this var for worlddict)
       DA       s : array of String, w : array of String, v : Object
       D@       v : Object, a : String
+      DH       d : bound String,  v : Object
 *)
 
                val s = String o String.fromString
@@ -129,7 +131,13 @@ struct
                   we'll turn these into string lookups if we see them. *)
 
                val G = V.Set.empty
-               fun cd G (C.Shamrock t) = cdict G t
+               fun cd G (C.Shamrock ((_, wd), t)) = 
+                 let 
+                   val G = V.Set.add(G, wd)
+                 in
+                   dict "DH" [("d", String ` vtos wd),
+                              ("v", cdict G t)]
+                 end
                  | cd G (C.Cont _)  = dict "DP" [("p", s"c")]
                  | cd G (C.Conts _) = dict "DP" [("p", s"C")]
                  | cd G (C.At (t, w)) = dict "D@" [("v", cdict G t),

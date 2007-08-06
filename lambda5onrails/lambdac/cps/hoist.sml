@@ -123,7 +123,7 @@ struct
     fun case_Go_cc _ _ _ = raise Hoist "Hoist expects undict-converted code, but saw Go_cc"
 
     fun case_Dictfor _ _ _ = raise Hoist "Hoist expects undict-converted code, but saw dictfor"
-
+    fun case_WDictfor _ _ _ = raise Hoist "Hoist expects undict-converted code, but saw wdictfor"
 
 
     (* values are where the action is. *)
