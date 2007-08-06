@@ -1,12 +1,12 @@
 
-structure Compile =
+structure Compile :> COMPILE =
 struct
 
-    val showil = Params.flag true
+    val showil = Params.flag false
         (SOME ("-showil",
                "Show internal language AST")) "showil"
 
-    val showcps = Params.flag true
+    val showcps = Params.flag false
         (SOME ("-showcps", 
                "Show internal CPS after each phase")) "showcps"
 
@@ -43,54 +43,11 @@ struct
             debugopt := false
         end
     
-    (* (* not portable *)
-    val pids = (Word.toString
-                (Posix.Process.pidToWord
-                 (Posix.ProcEnv.getpid ())))
-        *)
-
+    (* XXX should also get some other portable nonce here
+       (PIDs are not portable between NJ/mlton, according
+       to an old comment here?) *)
     val pids = Time.toString (Time.now())
-(*
-    fun execredir file (prog, args) =
-        let 
-            (* avoid /tmp symlink races *)
-            val _ = (Posix.FileSys.unlink file) handle _ => ()
-            val fd = Posix.FileSys.createf 
-                (file, Posix.FileSys.O_RDWR,
-                 Posix.FileSys.O.flags
-                 [Posix.FileSys.O.excl],
-                 Posix.FileSys.S.irwxu)
-        in
-            Posix.IO.dup2 { old = fd, new = Posix.FileSys.stdout };
-            (* clear close-on-exec flag, if set *)
-            Posix.IO.setfd ( Posix.FileSys.stdout, 
-                             Posix.IO.FD.flags nil );
-            Posix.Process.exec (prog, prog :: args)         
-        end
 
-    fun system (prog, args) =
-        let val file = "/tmp/hemtmp_" ^ pids
-        in
-        (case Posix.Process.fork () of
-             NONE => execredir file (prog, args)
-           | SOME pid =>
-             (case Posix.Process.waitpid (Posix.Process.W_CHILD(pid), nil) of
-                  (_, Posix.Process.W_EXITED) => NONE
-                | (_, Posix.Process.W_EXITSTATUS w8) => SOME w8
-                | _ => 
-                      let in
-                          (* XXX print contents of 'file', which
-                             contains its stdout. *)
-                          raise Compile (prog ^ " exited strangely")
-                      end))
-        end
-
-    fun systeml nil = NONE
-      | systeml ((p,a)::t) =
-        (case system (p, a) of
-             NONE => systeml t
-           | fail => fail)
-*)
     exception Done of string
 
     fun getel file =
@@ -239,6 +196,7 @@ struct
          | CPSOpt.CPSOpt s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
          | Hoist.Hoist s => fail ("Hoist: " ^ s)
          | ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
+         | BytePrint.BytePrint s => fail("Bytecode print: " ^ s)
          | Codegen.Codegen s => fail ("Code generation: " ^ s)
          | JSCodegen.JSCodegen s => fail("Javascript codegen: " ^ s)
          | JSOpt.JSOpt s => fail("Javascript optimization: " ^ s)

@@ -42,6 +42,9 @@ group is
 ../../sml-lib/text/layout-sig.sml
 ../../sml-lib/text/layout.sml
 
+../../sml-lib/util/growarray-sig.sml
+../../sml-lib/util/growarray.sml
+
 (* ML5 lib *)
 ../lambdac/intconst.sml
 ../lambdac/primop.sml

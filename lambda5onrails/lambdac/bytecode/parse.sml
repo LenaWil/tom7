@@ -71,6 +71,7 @@ struct
        `PROJ >> label && $exp wth Project
     || `RECORD >> repeated (label && $exp) wth Record
     || `PRIMCALL >> label && repeated ($exp) wth Primcall
+    || `CALL >> $exp && repeated ($exp) wth Call
     || `INJ >> label && bopt ($exp) wth Inj
     || `MARSHAL >> $exp && $exp wth Marshal
     || `PRIMOP >> id && repeated ($exp) wth (fn (s, args) =>
@@ -89,19 +90,20 @@ struct
     || `DAT >> $exp && $exp wth (fn (d, a) => Dat   { d = d, a = a })
     || `DSHAM >> id && $exp wth (fn (d, v) => Dsham { d = d, v = v })
 
-    || `PROJ -- punt "parse error after PROJ"
-    || `RECORD -- punt "parse error after RECORD"
-    || `PRIMCALL -- punt "parse error after PRIMCALL"
-    || `INJ -- punt "parse error after INJ"
-    || `MARSHAL -- punt "parse error after MARSHAL"
-    || `DP -- punt "parse error after DP"
-    || `DREC -- punt "parse error after DREC"
-    || `DSUM -- punt "parse error after DSUM"
-    || `DLOOKUP -- punt "parse error after DLOOKUP"
-    || `DEXISTS -- punt "parse error after DEXISTS"
+    || `CALL -- punt "parse error after CALL"
     || `DALL -- punt "parse error after DALL"
     || `DAT -- punt "parse error after DAT"
+    || `DEXISTS -- punt "parse error after DEXISTS"
+    || `DLOOKUP -- punt "parse error after DLOOKUP"
+    || `DP -- punt "parse error after DP"
+    || `DREC -- punt "parse error after DREC"
     || `DSHAM -- punt "parse error after DSHAM"
+    || `DSUM -- punt "parse error after DSUM"
+    || `INJ -- punt "parse error after INJ"
+    || `MARSHAL -- punt "parse error after MARSHAL"
+    || `PRIMCALL -- punt "parse error after PRIMCALL"
+    || `PROJ -- punt "parse error after PROJ"
+    || `RECORD -- punt "parse error after RECORD"
 
     || number wth Int
     || strlit wth String

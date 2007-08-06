@@ -7,10 +7,15 @@ struct
 
   open Bytecode
   structure SM = StringMap
+  structure GA = GrowArray
 
   exception Marshal of string
 
-  fun unmarshal (dict : exp) (bytes : string) : exp =
+  (* This stores any desiccated locals. *)
+  type locals = exp GA.growarray
+  fun new () = GA.empty () : locals
+
+  fun unmarshal (locals : locals) (dict : exp) (bytes : string) : exp =
     let
       val G = SM.empty
 
@@ -63,7 +68,7 @@ struct
            let val r = int ()
            in
              if loc = Worlds.server
-             then raise Marshal "ref reconstitution unimplemented"
+             then GA.sub locals (IntConst.toInt r)
              else Int r
            end
            
@@ -157,13 +162,15 @@ struct
         | um _ _ (Primop _) = raise Marshal "um: not dict"
         | um _ _ (String _) = raise Marshal "um: not dict"
         | um _ _ (Inj _) = raise Marshal "um: not dict"
+        | um _ _ (Ref _) = raise Marshal "um: not dict"
+        | um _ _ (Call _) = raise Marshal "um: not dict"
         | um _ _ (Bytecode.Marshal _) = raise Marshal "um: not dict"
         
     in
       um G Worlds.server dict
     end
 
-  fun marshal (dict : exp) (value : exp) : string = 
+  fun marshal locals (dict : exp) (value : exp) : string = 
     let
       (* always start with an empty dict context *)
       val G = SM.empty
@@ -242,8 +249,12 @@ struct
 
         | mar G loc (Dp Dref) d =
            let
+             (* desiccate it if this is a local ref. *)
              val i = if loc = Worlds.server
-                     then raise Marshal "unimplemented server ref desiccation"
+                     then (let val i = GA.length locals
+                           in GA.update locals i d;
+                              IntConst.fromInt i
+                           end)
                      else (case d of
                              Int i => i
                            | _ => raise Marshal "remote ref wasn't int!")
@@ -288,6 +299,8 @@ struct
             | Int _ => raise Marshal "not ddict"
             | String _ => raise Marshal "not ddict"
             | Inj _ => raise Marshal "not ddict"
+            | Ref _ => raise Marshal "not ddict"
+            | Call _ => raise Marshal "not ddict"
             | Primop _ => raise Marshal "not ddict"
             | Bytecode.Marshal _ => raise Marshal "not ddict")
           (* for completeness. we require the first argument to be a
@@ -300,6 +313,8 @@ struct
         | mar _ _ (Int _) _ = raise Marshal "not dict"
         | mar _ _ (String _) _ = raise Marshal "not dict"
         | mar _ _ (Inj _) _ = raise Marshal "not dict"
+        | mar _ _ (Ref _) _ = raise Marshal "not dict"
+        | mar _ _ (Call _) _ = raise Marshal "not dict"
         | mar _ _ (Bytecode.Marshal _) _ = raise Marshal "not dict"
 
       val res = mar G Worlds.server dict value

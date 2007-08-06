@@ -11,7 +11,7 @@ struct
       | BAD of char
 
       | BIND | END | JUMP | CASE | ERROR | RETURN
-      | RECORD | PROJ | PRIMCALL | FUNDEC | ONEDEC | ABSENT
+      | RECORD | PROJ | PRIMCALL | CALL | FUNDEC | ONEDEC | ABSENT
       | TNONE | TSOME | PROGRAM | INJ | GO | MARSHAL | PRIMOP
 
       | DCONT | DCONTS | DADDR | DDICT | DINT | DSTRING | DVOID | DAA | DREF | DW
@@ -27,6 +27,7 @@ struct
       | eq (RECORD, RECORD) = true
       | eq (PROJ, PROJ) = true
       | eq (PRIMCALL, PRIMCALL) = true
+      | eq (CALL, CALL) = true
       | eq (FUNDEC, FUNDEC) = true
       | eq (ONEDEC, ONEDEC) = true
       | eq (ABSENT, ABSENT) = true

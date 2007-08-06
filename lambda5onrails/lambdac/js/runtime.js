@@ -106,9 +106,13 @@ function lc_jstosi(obj, n) {
 	        '"><tr><th colspan=2>' + obj + '</th></tr>';
 	/* not for strings... causes infinite loop (!) */
 	if ((n % 2) != 1) s += '<tr>';
-	if (obj.localeCompare == undefined) {
-	    for (i in obj) {
-		s += otr + '<td>' + i + '</td><td>' + lc_jstosi(obj[i], n - 1) + '</td>' + ctr;
+	if (obj == undefined || obj == null) {
+	    s += "null|undefined";
+	} else {
+	    if (obj.localeCompare == undefined) {
+		for (i in obj) {
+		    s += otr + '<td>' + i + '</td><td>' + lc_jstosi(obj[i], n - 1) + '</td>' + ctr;
+		}
 	    }
 	}
 	if ((n % 2) != 1) s += '</tr>';
@@ -639,20 +643,14 @@ function plus(r) { return r.l1 + r.l2; }
    specifying them. Otherwise there is just one other world,
    namely the server: */
 var server = "server";
+/* We need our own address, too. Note that 'home' is a javascript
+   builtin (function that sends us home) so there's some potential
+   for weirdness here. Probably the stdlib should import it at another
+   label... */
+var home   = "home";
 
 /* start this immediately; we'll need it */
 lc_make_toclient ();
-
-/* XXX testing
-   Note: javascript has bizarre scope rules. */
-function testy() {
-    {
-	var x = "hello";
-    };
-    
-    alert(x);
-};
-
 
 /* XXX separate this stuff out into separate js files. */
 var lc_domnode_dict = lc_ref_dict;
