@@ -207,11 +207,13 @@ struct
   (* make progress on any instance where we can *)
   fun step () =
     let
+      val progress = ref false
       fun onesession (S { inst, toserver, toclient, ... }) =
         let
           (* process incoming requests in order. *)
           fun incoming nil = nil
             | incoming (Data d :: rest) = (Execute.come inst d;
+                                           progress := true;
                                            incoming rest)
             | incoming l = l
 
@@ -224,6 +226,7 @@ struct
                   N.sendraw sock m;
                   N.disconnect sock;
                   (* one message per connection *)
+                  progress := true;
                   r := (Closed ` Time.now ())
                 end
         in
@@ -234,11 +237,12 @@ struct
           outgoing toclient;
 
           (* run some waiting thread *)
-          Execute.step inst
+          progress := (Execute.step inst orelse !progress)
         end
     in
       (* print "step..\n"; *)
-      List.app onesession ` !sessions
+      List.app onesession ` !sessions;
+      !progress
     end
 
   fun toserver sock id =

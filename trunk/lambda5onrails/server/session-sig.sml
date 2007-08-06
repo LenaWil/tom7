@@ -15,7 +15,8 @@ sig
   val id         : session -> int
   val getsession : int -> session option
 
-  (* get all the active sockets *)
+  (* get all the active sockets. this list can
+     be invalidated by the other functions below. *)
   val sockets    : unit -> Network.sock list
 
   (* create a new session, running the program given by name
@@ -37,7 +38,7 @@ sig
 
   val favicon    : Network.sock -> unit
 
-  (* do work if desired *)
-  val step       : unit -> unit
+  (* do work if desired. true if some progress was made *)
+  val step       : unit -> bool
 
 end

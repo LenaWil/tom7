@@ -9,7 +9,8 @@ sig
   (* Create a new instance from a parsed program *)
   val new : Bytecode.program -> instance
 
-  val step : instance -> unit
+  (* returns true if progress was made *)
+  val step : instance -> bool
 
   (* If there are messages to send to the client, get the first one. *)
   val message : instance -> string option
