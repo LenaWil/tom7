@@ -29,7 +29,7 @@ struct
   fun step (i as I { prog, threads, ... }) =
     (* if there are threads, then do some work on the first one *)
     case Q.deq (!threads) of
-      (NONE, _) => ()
+      (NONE, _) => false
     | (SOME { global = (g, f), args }, q') => 
         let in
           threads := q';
@@ -45,7 +45,8 @@ struct
                in
                  execute i G stmt
                end
-           | B.Absent => raise Execute "thread jumped out of this world!")
+           | B.Absent => raise Execute "thread jumped out of this world!");
+          true
         end
 
   and execute (i as I { threads, ... } : instance) 

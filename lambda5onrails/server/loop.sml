@@ -47,11 +47,18 @@ struct
 
   fun loop () =
     let
+      (* Step our sessions. If there was anything to do, then use a very
+         short timeout so that we can do more soon. Otherwise, wait longer
+         so that we don't chew CPU. *)
+      val to = if Session.step ()
+               then Time.fromMilliseconds 5
+               else Time.fromMilliseconds 1000
+
       val socks = ! incoming @ Session.sockets ()
 
       fun nis s s' = N.eq (s, s')
     in
-      (case N.wait [!!listener] socks ` SOME ` Time.fromMilliseconds 1000 of
+      (case N.wait [!!listener] socks ` SOME to of
          (* must be the one listener *)
          N.Accept (_, s, _, _) => 
            let in
@@ -78,10 +85,8 @@ struct
                      incoming := rest;
                      request s ` N.decode http p
                    end)
-       | _ => 
-          let in
-            Session.step ()
-          end);
+       | _ => ());
+
       (* print "loop..\n"; *)
       loop ()
     end
