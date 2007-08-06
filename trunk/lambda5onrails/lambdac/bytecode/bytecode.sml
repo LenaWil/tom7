@@ -27,10 +27,13 @@ struct
       (* but expressions are CPS-converted. *)
     | End 
 
+  (* XXX should really make exp/val distinction here *)
   and exp =
       Record of (label * exp) list
     | Project of label * exp
     | Primcall of string * exp list
+    (* from allapp. call a total function that returns a value *)
+    | Call of exp * exp list
     | Var of string
     | Int of IntConst.intconst
     | String of string
@@ -38,6 +41,8 @@ struct
     | Primop of Primop.primop * exp list
 
     | Marshal of exp * exp
+
+    | Ref of exp ref
 
     | Dat of { d : exp, a : exp }
     | Dp of primdict

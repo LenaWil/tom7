@@ -3,10 +3,13 @@ sig
 
   exception Marshal of string
 
-  (* unmarshal dict bytes *)
-  val unmarshal : Bytecode.exp -> string -> Bytecode.exp
+  type locals
+  val new : unit -> locals
 
-  (* marshal dict value *)
-  val marshal : Bytecode.exp -> Bytecode.exp -> string
+  (* unmarshal locals dict bytes *)
+  val unmarshal : locals -> Bytecode.exp -> string -> Bytecode.exp
+
+  (* marshal locals dict value *)
+  val marshal : locals -> Bytecode.exp -> Bytecode.exp -> string
 
 end

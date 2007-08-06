@@ -133,7 +133,11 @@ struct
 
     fun fromstring s =
       case ListUtil.Alist.find op= alist s of
-        NONE => NONE (* XXX should allow at least jointext here *)
+        NONE => if StringUtil.matchhead "Jointext_" s
+                then (case Int.fromString (String.substring(s, 9, size s - 9)) of
+                        SOME i => SOME (PJointext i)
+                      | NONE => NONE)
+                else NONE (* other special ones? *)
       | SOME po => SOME po
 
 end

@@ -425,6 +425,9 @@ struct
                 cvtvs args
                 (fn args =>
                  (* assuming sym has the name of some javascript function. *)
+                 (* note: javascript "X -> unit" functions actually return
+                    undefined. We might want to bind {} here if the domain
+                    is unit. *)
                  Bind (vtoi v, Call { func = Id ` $sym, args = %args }) ::
                  cvte e)
 

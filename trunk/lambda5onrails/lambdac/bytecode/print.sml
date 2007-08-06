@@ -12,6 +12,7 @@ struct
   val itos = Int.toString
 
   open Bytecode
+  exception BytePrint of string
 
   val itol = $ o itos
   fun vtol v = Vector.foldr op:: nil v
@@ -43,6 +44,10 @@ struct
                              $s,
                              itol ` length el,
                              % ` map etol el]
+     | Call (e, el) => %[%[$"CALL",
+                           etol e,
+                           itol ` length el],
+                         L.indent 2 ` % ` map etol el]
      | Primop (po, args) =>
          (* XXX filter compilewarn and others that should never appear, or we'll
             get a parse error later *)
@@ -53,12 +58,14 @@ struct
      | Var s => $s
      | Marshal (e1, e2) => %[$"MARSHAL", etol e1, etol e2]
 
+     | Ref _ => raise BytePrint "can't write out refs"
+
      | Dat {d, a} => %[$"DAT", etol d, etol a]
      | Dp pd => %[$"DP", pdtol pd]
      | Drec sel => %[%[$"DREC", itol ` length sel],
-                     L.indent 2 ` % ` map (fn (l, e) => %[$l, etol e]) sel]
+                     L.indent 2 ` % ` map (fn (l, e) => %[$l, L.indent 2 ` etol e]) sel]
      | Dsum seol => %[%[$"DSUM", itol ` length seol],
-                      L.indent 2 ` % ` map (fn (l, eo) => %[$l, otol etol eo]) seol]
+                      L.indent 2 ` % ` map (fn (l, eo) => %[$l, L.indent 2 ` otol etol eo]) seol]
      | Dlookup s => %[$"DLOOKUP", $s]
      | Dexists { d, a } => %[$"DEXISTS", $d, itol ` length a,
                              L.indent 2 ` % ` map etol a]

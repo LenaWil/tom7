@@ -144,6 +144,7 @@ struct
        ("RECORD", RECORD),
        ("PROJ", PROJ),
        ("PRIMCALL", PRIMCALL),
+       ("CALL", CALL),
        ("FUNDEC", FUNDEC),
        ("ONEDEC", ONEDEC),
        ("ABSENT", ABSENT),

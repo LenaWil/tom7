@@ -7,6 +7,7 @@ struct
 
   structure B = Bytecode
   structure Q = Queue
+  structure P = Primop
   structure SM = StringMap
 
   exception Execute of string
@@ -18,13 +19,15 @@ struct
 
   datatype instance =
     I of { prog : B.program,
+           locals : Marshal.locals,
            threads : thread Q.queue ref,
            messages : string Q.queue ref }
 
   (* no threads, messages... *)
-  fun new p = I { prog = p, threads = ref ` Q.empty (), messages = ref ` Q.empty () }
+  fun new p = I { prog = p, locals = Marshal.new (), threads = ref ` Q.empty (), messages = ref ` Q.empty () }
 
   fun addmessage (i as I { messages, ... }) x = messages := Q.enq(x, !messages)
+  fun getlocals  (I { locals, ... }) = locals
 
   fun step (i as I { prog, threads, ... }) =
     (* if there are threads, then do some work on the first one *)
@@ -34,6 +37,9 @@ struct
         let in
           threads := q';
           print ("(Step) do thread " ^ Int.toString g ^ "." ^ Int.toString f ^ "..\n");
+          (* Threads should only jump to a FunDec; a continuation that does not return.
+             OneDecs (which are compiled AllLams) return values, and are invoked with Call.
+             Absent means that this label only exists on specific other worlds. *)
           (case Vector.sub (#globals prog, g) of
              B.FunDec v =>
                let 
@@ -43,17 +49,21 @@ struct
                  val G = foldr (fn ((p, a), G) =>
                                 SM.insert(G, p, a)) G binds
                in
-                 execute i G stmt
+                 case execute i G stmt of
+                   NONE => ()
+                 | SOME _ => raise Execute "funcall returned result ?!"
                end
+           | B.OneDec _ => raise Execute "thread jumped to onedec?"
            | B.Absent => raise Execute "thread jumped out of this world!");
           true
         end
 
+  (* execute a statement, returning its result, if any. *)
   and execute (i as I { threads, ... } : instance) 
-              (G : B.exp SM.map) (stmt : B.statement) =
+              (G : B.exp SM.map) (stmt : B.statement) : B.exp option =
     case stmt of
-      B.End => ()
-    | B.Return _ => raise Execute "unimplemented: return"
+      B.End => NONE
+    | B.Return e => SOME (evaluate i G e)
     | B.Bind (s, e, st) =>
         let 
         in
@@ -75,17 +85,25 @@ struct
                evaluate i G ef,
                map (evaluate i G) args) of
            (B.Int g, B.Int f, args) => 
-             threads := Q.enq ({ global = (IntConst.toInt g, 
-                                           IntConst.toInt f),
-                                 args = args }, !threads)
+             let in
+               threads := Q.enq ({ global = (IntConst.toInt g, 
+                                             IntConst.toInt f),
+                                   args = args }, !threads);
+               NONE
+             end
          | _ => raise Execute "jump needs two ints, args")
+
     | B.Go (addr, bytes) =>
            (case (evaluate i G addr, evaluate i G bytes) of
               (B.String addr, B.String bytes) =>
-                (if addr = Worlds.server
-                 then come i bytes
-                 else if addr = Worlds.home then addmessage i bytes
-                      else raise Execute ("unrecognized world " ^ addr))
+                let in 
+                  (if addr = Worlds.server
+                   then come i bytes
+                   else if addr = Worlds.home 
+                        then addmessage i bytes
+                        else raise Execute ("unrecognized world " ^ addr));
+                  NONE
+                end
             | _ => raise Execute "go needs two strings")
 
     | B.Error s => raise Execute ("error: " ^ s)
@@ -94,6 +112,7 @@ struct
     case exp of
       B.Int _ => exp
     | B.String _ => exp
+    | B.Ref _ => exp
     | B.Inj (l, e) => B.Inj (l, Option.map (evaluate i G) e)
     | B.Record lel => B.Record ` ListUtil.mapsecond (evaluate i G) lel
     | B.Project (l, e) =>
@@ -103,15 +122,55 @@ struct
                 NONE => raise Execute ("label not found: " ^ l)
               | SOME e => e)
          | _ => raise Execute ("project from non-record: label " ^ l))
+
     | B.Marshal (ed, ee) =>
         let 
           val (vd, ve) = (evaluate i G ed, evaluate i G ee)
-          val s = Marshal.marshal vd ve
+          val s = Marshal.marshal (getlocals i) vd ve
         in
           B.String s
         end
 
-    | B.Primop _ => raise Execute "unimplemented: primops"
+    | B.Call (e, args) =>
+        (case (i, evaluate i G e, map (evaluate i G) args) of
+           (I { prog, ...}, B.Int l, args) =>
+             (case Vector.sub (#globals prog, IntConst.toInt l) of
+                B.OneDec (vargs, st) =>
+                  let
+                    val () = if length vargs <> length args
+                             then raise Execute "call argnum mismatch"
+                             else ()
+                    (* closed. totally new environment: *)
+                    val G = foldl (fn ((v, a), G) => SM.insert(G, v, a)) SM.empty
+                          ` ListPair.zip (vargs, args)
+                  in
+                    case execute i G st of
+                      NONE => raise Execute "call didn't return?"
+                    | SOME v => v
+                  end
+              | B.FunDec _ => raise Execute "call to fundec?"
+              | B.Absent => raise Execute "call out of this world!")
+          | _ => raise Execute "call to non-label") 
+
+    | B.Primop (po, args) => 
+        (case (po, map (evaluate i G) args) of
+           (P.PRef, [v]) => B.Ref ` ref v
+         | (P.PRef, _) => raise Execute "bad pref"
+         | (P.PGet, [B.Ref (ref v)]) => v
+         | (P.PGet, _) => raise Execute "bad pget"
+         | (P.PSet, [B.Ref r, v]) => (r := v; B.Record nil)
+         | (P.PSet, _) => raise Execute "bad pset"
+
+         (* don't bother checking that the annotation matches
+            the exact number of args *)
+         | (P.PJointext _, args) => B.String `
+             String.concat (map 
+                            (fn B.String s => s 
+                              | _ => raise Execute "jointext expects strings") args)
+
+         (* XXX more... *)
+
+         | (po, _) => raise Execute ("unimplemented primop " ^ P.tostring po))
 
     | B.Dp _ => exp
     | B.Dlookup _ => exp
@@ -159,7 +218,7 @@ struct
          | SOME e => e)
 
 
-  and come (I { threads, ... }) s =
+  and come (I { threads, locals, ... }) s =
     let 
       val () = print ("Come: " ^ s ^ "\n")
       (* we always expect the same type of thing,
@@ -170,7 +229,7 @@ struct
                     a = [B.Dp B.Dcont,
                          B.Dlookup "entry"] }
     in
-      case Marshal.unmarshal entry_dict s of
+      case Marshal.unmarshal locals entry_dict s of
         B.Record [("d", _),
                   ("v0", B.Record [("g", B.Int g),
                                    ("f", B.Int f)]),

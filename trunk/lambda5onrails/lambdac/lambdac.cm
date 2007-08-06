@@ -216,6 +216,7 @@ codegen/codegen.sml
 codegen/write-sig.sml
 codegen/write.sml
 
+compile-sig.sml
 compile.sml
 
 (* sandbox.sml *)

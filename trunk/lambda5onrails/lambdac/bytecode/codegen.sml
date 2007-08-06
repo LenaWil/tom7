@@ -185,13 +185,17 @@ struct
              (fn va => wi (fn p => Bind (p, Project("l" ^ s, va), k ` Var p)))
 
 
-         | C.Inj _ => 
-             wi (fn p => Bind (p, String "inj unimplemented", k ` Var p))
+         | C.Inj _ => Error "inj unimplemented"
+             (* wi (fn p => Bind (p, String "inj unimplemented", k ` Var p)) *)
 
-         | C.AllApp _ => 
-             wi (fn p => Bind (p, String "allapp unimplemented", k ` Var p))
+         | C.AllApp { f, worlds = _, tys = _, vals = vals as _ :: _ } => 
+             cvtv f
+             (fn f =>
+              cvtvs vals
+              (fn vals =>
+               wi (fn p => Bind (p, Call (f, vals), k ` Var p))))
 
-             (* weird? *)
+         (* weird? *)
          | C.VLetsham (v, va, c) =>
              cvtv va
              (fn va =>
