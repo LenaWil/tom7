@@ -203,6 +203,7 @@ struct
          val () = insertat z l glo
 
        in
+         print ("insert Lams at " ^ l ^ "\n");
          (* in order to preserve the local type, we apply the label to the
             world and type variables. If it is PolyCode, we don't need to apply
             to that world, since it will be determined by context (like uvars are) *)
@@ -271,6 +272,8 @@ struct
          val l = insert z glo
 
        in
+         print ("insert AllLam at " ^ l ^ "\n");
+
          (AllApp' { f = Codelab' l, 
                     worlds = map W w, 
                     tys = map TVar' t, 

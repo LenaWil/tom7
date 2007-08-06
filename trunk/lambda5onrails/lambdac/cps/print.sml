@@ -375,7 +375,7 @@ struct
          %[%[%[$l, $":"], L.indent 2 ` %[ttol t, %[$"@", $s]], $"="],
            L.indent 2 ` vtol va]
      | PolyCode(w, va, t) => 
-         %[%[%[$l, $"<", varl w, $">", $":"], L.indent 2 ` %[ttol t, %[$"@", varl w]], $"="],
+         %[%[%[$l, $"~", varl w, $"."], L.indent 2 ` ttol t, $"="],
            L.indent 2 ` vtol va]
 
   fun ptol { worlds, main, globals } =

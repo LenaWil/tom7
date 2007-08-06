@@ -616,7 +616,9 @@ struct
     (case glo of
        Code _ => glo
      | PolyCode (w, va, t) => let val w' = V.alphavary w
-                              in PolyCode (w, renamev w w' va, renamet w w' t)
+                              in 
+                                (* print ("cglo " ^ V.tostring w ^ " ---> " ^ V.tostring w' ^ "\n"); *)
+                                PolyCode (w', renamev w w' va, renamet w w' t)
                               end)
 
   infixr >>
