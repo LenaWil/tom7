@@ -123,8 +123,8 @@ struct
 
                val s = String o String.fromString
                 
-               fun dict w rest = Object ` % (prop "w" (s w) ::
-                                             map (fn (a, b) => prop a b) rest)
+               fun dict which rest = Object ` % (prop "w" (s which) ::
+                                                 map (fn (a, b) => prop a b) rest)
 
 
                (* this is the set of locally bound dictionary variables.
@@ -147,6 +147,7 @@ struct
                  | cd G (C.Primcon (C.STRING, nil)) = dict "DP" [("p", s"s")]
                  (* don't care what t is; all dicts represented the same way *)
                  | cd G (C.Primcon (C.DICTIONARY, [t])) = dict "DP" [("p", s"d")]
+                 | cd G (C.TWdict _) = dict "DP" [("p", s"w")]
                  | cd G (C.Addr _) = dict "DP" [("p", s"a")]
                  | cd G (C.Product stl) = dict "DR" 
                  [("v", Array ` % ` map (fn (l, d) =>
@@ -386,7 +387,7 @@ struct
         | primexp P.PGet [obj]  = Sel obj "v"
         | primexp P.PSet [obj, va] = Assign { lhs = Sel obj "v", oper = AssignOp.Equals, rhs = va }
 
-        | primexp po _ = raise JSCodegen ("unimplemented native primop " ^ Podata.tostring po)
+        | primexp po _ = raise JSCodegen ("unimplemented native primop " ^ Primop.tostring po)
 
       fun cvte exp : Statement.t list =
            (case C.cexp exp of

@@ -137,6 +137,7 @@ struct
       [ 
        ("BIND", BIND), 
        ("END", END),
+       ("RETURN", RETURN),
        ("JUMP", JUMP),
        ("CASE", CASE),
        ("ERROR", ERROR),
@@ -144,6 +145,7 @@ struct
        ("PROJ", PROJ),
        ("PRIMCALL", PRIMCALL),
        ("FUNDEC", FUNDEC),
+       ("ONEDEC", ONEDEC),
        ("ABSENT", ABSENT),
        ("NONE", TNONE),
        ("SOME", TSOME),
@@ -151,6 +153,7 @@ struct
        ("GO", GO),
        ("INJ", INJ),
        ("MARSHAL", MARSHAL),
+       ("PRIMOP", PRIMOP),
 
        ("DCONT", DCONT),
        ("DCONTS", DCONTS),

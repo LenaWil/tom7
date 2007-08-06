@@ -1,7 +1,7 @@
 
-signature CPSDICT =
+signature DICT =
 sig
-    exception CPSDict of string
+    exception Dict of string
     
     (* suffix to extern type labels where we should find the dictionary *)
     val DICT_SUFFIX : string

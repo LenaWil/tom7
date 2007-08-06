@@ -12,7 +12,6 @@ struct
 
   datatype statement =
       Bind of string * exp * statement
-    | End 
       (* global id, offset within that, args *)
     | Jump of exp * exp * exp list
     | Case of { obj : exp, 
@@ -23,6 +22,10 @@ struct
       (* addr, bytes *)
     | Go of exp * exp
     | Error of string
+      (* values like alllam are represented as total functions *)
+    | Return of exp
+      (* but expressions are CPS-converted. *)
+    | End 
 
   and exp =
       Record of (label * exp) list
@@ -32,6 +35,7 @@ struct
     | Int of IntConst.intconst
     | String of string
     | Inj of string * exp option
+    | Primop of Primop.primop * exp list
 
     | Marshal of exp * exp
 
@@ -51,6 +55,7 @@ struct
 
   datatype global = 
       FunDec of (string list * statement) vector
+    | OneDec of string list * statement
     | Absent
 
   type program =

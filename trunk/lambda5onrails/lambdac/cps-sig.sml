@@ -177,7 +177,7 @@ sig
 
   (* utilities *)
 
-  val ptoct : Primop.potype -> ctyp
+  val ptoct : Podata.potype -> ctyp
 
   (* is the variable free in this type (value; expression)? *)
   val freet : var -> ctyp -> bool

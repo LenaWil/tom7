@@ -10,9 +10,9 @@ struct
       | STRING of string
       | BAD of char
 
-      | BIND | END | JUMP | CASE | ERROR
-      | RECORD | PROJ | PRIMCALL | FUNDEC | ABSENT 
-      | TNONE | TSOME | PROGRAM | INJ | GO | MARSHAL
+      | BIND | END | JUMP | CASE | ERROR | RETURN
+      | RECORD | PROJ | PRIMCALL | FUNDEC | ONEDEC | ABSENT
+      | TNONE | TSOME | PROGRAM | INJ | GO | MARSHAL | PRIMOP
 
       | DCONT | DCONTS | DADDR | DDICT | DINT | DSTRING | DVOID | DAA | DREF | DW
       | DP | DREC | DSUM | DEXISTS | DALL | DMU | DLOOKUP | DAT | DSHAM
@@ -20,6 +20,7 @@ struct
     (* only for "basic" tokens, not constant-wrappers *)
     fun eq (BIND, BIND) = true
       | eq (END, END) = true
+      | eq (RETURN, RETURN) = true
       | eq (JUMP, JUMP) = true
       | eq (CASE, CASE) = true
       | eq (ERROR, ERROR) = true
@@ -27,6 +28,7 @@ struct
       | eq (PROJ, PROJ) = true
       | eq (PRIMCALL, PRIMCALL) = true
       | eq (FUNDEC, FUNDEC) = true
+      | eq (ONEDEC, ONEDEC) = true
       | eq (ABSENT, ABSENT) = true
       | eq (TNONE, TNONE) = true
       | eq (TSOME, TSOME) = true
@@ -34,6 +36,7 @@ struct
       | eq (INJ, INJ) = true
       | eq (GO, GO) = true
       | eq (MARSHAL, MARSHAL) = true
+      | eq (PRIMOP, PRIMOP) = true
 
       | eq (DCONT, DCONT) = true
       | eq (DCONTS, DCONTS) = true

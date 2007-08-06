@@ -99,6 +99,13 @@
 structure UnDict :> UNDICT =
 struct
 
+  val debugundict = Params.flag false
+        (SOME ("-debug-undict",
+               "Show lots of information in the UnDict phase")) "debug-undict"
+
+  fun debugdo f = if !debugundict then f () else ()
+
+
   structure V = Variable
   structure VS = Variable.Set
   open CPS
@@ -162,7 +169,7 @@ struct
 
   and makewdict G (WC s) = WDict' s
     | makewdict G (W w) =
-    let val () = print ("Get dictionary for wvar " ^ V.tostring w ^ "\n")
+    let val () = debugdo (fn () => print ("Get dictionary for wvar " ^ V.tostring w ^ "\n"))
         val u = T.getwdict G w
     in
       UVar' u
@@ -172,16 +179,19 @@ struct
     (case ctyp ty of
        TVar a => 
            let 
-               val () = print ("Want dictionary for tvar " ^ V.tostring a ^"\n");
+               val () = debugdo (fn () => print ("Want dictionary for tvar " ^ V.tostring a ^"\n"))
                val u = T.getdict G a
                val (w, t) = T.getuvar G u
            in
-               print ("I got this uvar: " ^ V.tostring u ^ "\n");
-               print "It has type:\n";
-               Layout.print (Layout.align[Layout.str (V.tostring w ^ "."), 
-                                          CPSPrint.ttol t], print);
-               print "\n";
-               UVar' u
+             debugdo (fn () =>
+                      let in
+                        print ("I got this uvar: " ^ V.tostring u ^ "\n");
+                        print "It has type:\n";
+                        Layout.print (Layout.align[Layout.str (V.tostring w ^ "."), 
+                                                   CPSPrint.ttol t], print);
+                        print "\n"
+                      end);
+             UVar' u
            end
      | Mu (i, vtl) =>
          let
@@ -213,13 +223,15 @@ struct
 
      | Primcon (pc, tl) => 
          let 
-             val () = print "primcon\n"
-             val r =              Dict' ` Primcon (pc, map (makedict G) tl)
+             val r = Dict' ` Primcon (pc, map (makedict G) tl)
          in
-             print "The primcon result:\n";
-             Layout.print (CPSPrint.vtol r, print);
-             print "\nprimcon out\n";
-             r
+           debugdo (fn () =>
+                    let in
+                      print "The primcon result:\n";
+                      Layout.print (CPSPrint.vtol r, print);
+                      print "\nprimcon out\n"
+                    end);
+           r
          end
      | Cont tl => Dict' ` Cont ` map (makedict G) tl
      | Conts tll => Dict' ` Conts ` map (map (makedict G)) tll
@@ -332,9 +344,12 @@ struct
        the Dictfor construct any more. *)
     fun case_Dictfor z ({selfe, selfv, selft}, G) t = 
       let in
-        print "makedict for:\n";
-        Layout.print(Layout.indent 4 ` CPSPrint.ttol t, print);
-        print "\n";
+        debugdo (fn () =>
+                 let in
+                   print "makedict for:\n";
+                   Layout.print(Layout.indent 4 ` CPSPrint.ttol t, print);
+                   print "\n"
+                 end);
         (makedict G t, Dictionary' t)
       end
 

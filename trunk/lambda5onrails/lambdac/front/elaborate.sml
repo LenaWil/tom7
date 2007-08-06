@@ -171,7 +171,7 @@ struct
               end
 
         | E.Primapp (p, ts, es) =>
-              (case Podata.fromstring p of
+              (case Primop.fromstring p of
                  NONE => error loc ("unknown primitive in primapp: " ^ p)
                | SOME po =>
                    let

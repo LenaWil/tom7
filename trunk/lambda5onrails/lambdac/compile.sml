@@ -10,10 +10,6 @@ struct
         (SOME ("-showcps", 
                "Show internal CPS after each phase")) "showcps"
 
-    val execcps = Params.flag false
-        (SOME ("-execcps",
-               "Try interpreting the CPS language at various phases, for debugging")) "execcps"
-
     val optil = Params.flag false
         (SOME ("-optil", 
                "Optimize the intermediate language")) "optil"
@@ -25,10 +21,6 @@ struct
     val showfinal = Params.flag false
         (SOME ("-showfinal", 
                "Show the final versions of each phase")) "showfinal"
-
-    val writecps = Params.flag true
-        (SOME ("-writecps", 
-               "Write .cps file")) "writecps"
 
     val verbose = Params.flag true
         (SOME ("-v",
@@ -136,10 +128,20 @@ struct
           (Elaborate.elaborate el)
         end
 
+    fun showcpsphase c =
+      if !showcps
+      then Layout.print (CPSPrint.etol c, print)
+      else ()
+    fun showprogphase p =
+      if !showcps
+      then Layout.print (CPSPrint.ptol p, print)
+      else ()
+
     fun compile fullfile =
         FSUtil.chdir_excursion fullfile
         (fn file =>
         let
+
             (* if there's no outfile, base it on the input name *)
 
             val (base, _) = FSUtil.splitext file
@@ -160,7 +162,7 @@ struct
             val () = print "\n\n**** CPS CONVERSION... ****\n"
             val c : CPS.cexp = ToCPS.convert il Initial.home
             val () = print "\n\n**** CPS CONVERTED: ****\n"
-            val () =  Layout.print ( CPSPrint.etol c, print)
+            val () = showcpsphase c 
 
             val G = T.empty cw
             val () = T.check G c
@@ -168,15 +170,15 @@ struct
 
             val () = print "\n\n**** CPS OPT1: ****\n"
             val c : CPS.cexp = CPSOpt.optimize c
-            val () =  Layout.print ( CPSPrint.etol c, print)
+            val () = showcpsphase c
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
 
             val () = print "\n\n**** CPS DICT: ****\n"
-            val c : CPS.cexp = CPSDict.translate G c
-            val () = Layout.print ( CPSPrint.etol c, print)
+            val c : CPS.cexp = Dict.translate G c
+            val () = showcpsphase c
 
             val G = T.setopts G [T.O_EXTERNDICTS]
 
@@ -185,7 +187,7 @@ struct
 
             val () = print "\n\n**** CLOSURE: ****\n"
             val c : CPS.cexp = Closure.convert cw c
-            val () = Layout.print ( CPSPrint.etol c, print)
+            val () = showcpsphase c
 
             (* from now on, code should be closed. *)
             val G = T.setopts G [T.O_CLOSED, T.O_EXTERNDICTS]
@@ -196,14 +198,14 @@ struct
 
             val () = print "\n\n**** UNDICT: ****\n"
             val c : CPS.cexp = UnDict.undict cw c
-            val () = Layout.print ( CPSPrint.etol c, print)
+            val () = showcpsphase c
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
             val () = print "\n\n**** HOIST: ****\n"
             val p : CPS.program = Hoist.hoist cw Initial.homekind c
-            val () = Layout.print ( CPSPrint.ptol p, print)
+            val () = showprogphase p
               
             val () = T.checkprog p
             val () = print "\n* Typechecked OK *\n"
@@ -220,7 +222,7 @@ struct
     handle 
            Done s => fail ("Stopped early due to " ^ s ^ " flag.")
          | CPS.CPS s => fail ("Internal error in CPS:\n" ^ s)
-         | CPSDict.CPSDict s => fail ("CPSDict: " ^ s)
+         | Dict.Dict s => fail ("CPSDict: " ^ s)
          | Compile s => fail ("Compilation failed:\n    " ^ s)
          | Closure.Closure s => fail ("Closure conversion: " ^ s)
          | CPSTypeCheck.TypeCheck s => fail ("Internal error: Type checking failed:\n" ^ s)

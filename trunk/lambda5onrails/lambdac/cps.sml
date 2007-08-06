@@ -1008,6 +1008,7 @@ struct
   fun subve sl sv = subste sv (SV sl)
 
   local open Primop
+        open Podata
         val bv = V.namedvar "pbool"
   in
     fun ptoct PT_INT = Zerocon' INT
