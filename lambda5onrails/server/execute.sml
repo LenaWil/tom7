@@ -20,11 +20,13 @@ struct
   datatype instance =
     I of { prog : B.program,
            locals : Marshal.locals,
+           active : bool ref,
            threads : thread Q.queue ref,
            messages : string Q.queue ref }
 
   (* no threads, messages... *)
-  fun new p = I { prog = p, locals = Marshal.new (), threads = ref ` Q.empty (), messages = ref ` Q.empty () }
+  fun new p = I { prog = p, active = ref true, locals = Marshal.new (), threads = ref ` Q.empty (), messages = ref ` Q.empty () }
+  fun destroy (I { active, ... }) = active := false
 
   fun addmessage (i as I { messages, ... }) x = messages := Q.enq(x, !messages)
   fun getlocals  (I { locals, ... }) = locals
@@ -196,20 +198,50 @@ struct
                end
           | ("display", _) => raise Execute "wrong args to display"
           | ("version", _) => B.String Version.version
-          | ("trivialdb.read", [B.String k]) => B.String (TrivialDB.read k)
+          | ("trivialdb.read", [B.String k]) => 
+               let 
+                 val v = TrivialDB.read k
+               in
+                 print ("Read " ^ k ^ " ==> " ^ v ^ "\n");
+                 B.String v
+               end
           | ("trivialdb.read", _) => raise Execute "wrong args to trivialdb.read"
           | ("trivialdb.update", [B.String k, B.String v]) =>
                let in
+                 print ("Update " ^ k ^ " <== " ^ v ^ "\n");
                  TrivialDB.update k v;
                  B.Record nil
                end
           | ("trivialdb.update", _) => raise Execute "wrong args to trivialdb.update"
-          | ("trivialdb.hook", [B.String k, f]) => 
-               let in
-                 print "HOOK:\n";
-                 Layout.print(BytePrint.etol f, print);
-                 raise Execute ("trivialdb unimp")
-               end
+          | ("trivialdb.addhook", [B.String k, B.Record fields]) => 
+               (case ListUtil.sort (ListUtil.byfirst String.compare) fields of
+                  ([("d", dict), ("v0", env), ("v1", B.Record fg)]) =>
+                    let
+                      val (f, g) = (case fg of
+                                      [("f", B.Int f), ("g", B.Int g)] => (f, g)
+                                    | [("g", B.Int g), ("f", B.Int f)] => (f, g)
+                                    | _ => raise Execute "trivialdb bad closure (fg)")
+
+                      fun hook () =
+                        case i of
+                          I { active = ref true, threads, ... } =>
+                            let in
+                              threads := Q.enq ({ global = (IntConst.toInt g, 
+                                                            IntConst.toInt f),
+                                                  (* it's a unit cont, so give it a unit
+                                                     argument too. *)
+                                                  args = [env, B.Record nil] }, !threads);
+                              (* always keep the hook. *)
+                              true
+                            end
+
+                        (* if the instance has died, remove this hook *)
+                        | I { active = ref false, ... } => false
+                    in
+                      TrivialDB.addhook k hook;
+                      B.Record nil
+                    end
+                | _ => raise Execute "trivialdb needs closure")
           | _ => raise Execute ("primcall " ^ s ^ " not implemented")
         end
     | B.Var s => 

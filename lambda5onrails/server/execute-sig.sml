@@ -8,6 +8,7 @@ sig
 
   (* Create a new instance from a parsed program *)
   val new : Bytecode.program -> instance
+  val destroy : instance -> unit
 
   (* returns true if progress was made *)
   val step : instance -> bool

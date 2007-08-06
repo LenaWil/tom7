@@ -32,7 +32,7 @@ unit
                                        <div style="width: 250px; text-align : center ; 
                                                    font : 24px Verdana,Arial,Helvetica ;
                                                    border : 2px dashed #AAFFFF; padding : 6px ;
-                                                   margin : 6px ; background : #DDFFFF"
+                                                   margin : 16px ; background : #DDFFFF"
                                             id="showbox">&nbsp;</div>
                                        ])
 

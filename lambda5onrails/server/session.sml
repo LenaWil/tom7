@@ -53,7 +53,9 @@ struct
                             (* socket the client keeps open for us to send
                                messages on *)
                             toclient : toclient ref,
-                            
+
+                            (* the running instance, which keeps the thread
+                               state, etc. *)
                             inst : Execute.instance 
                             
                             }
@@ -82,8 +84,12 @@ struct
       map opensockets ` !sessions
 
   (* doesn't remove it from the list, just removes any resources *)
-  fun destroy session =
-    app (fn s => N.disconnect s handle _ => ()) ` opensockets session
+  fun destroy (session as S { inst, id, ... }) =
+    let in
+      print ("I am destroying session #" ^ Int.toString id ^ ".\n");
+      app (fn s => N.disconnect s handle _ => ()) ` opensockets session;
+      Execute.destroy inst
+    end
 
   fun closed sock =
     case getbysock sock of
