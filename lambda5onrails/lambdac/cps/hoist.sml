@@ -296,6 +296,8 @@ struct
                        WC h => h
                      | W _ => raise Hoist "can only begin hoist conversion at a constant world.")
 
+      val () = findworld hoistctx (homelab, homekind)
+
       val entry = (mainlab, Code'((* no free static things, but conform to conventions *)
                                   AllLam' { worlds = nil, tys = nil, vals = nil,
                                             (* a single no-argument lambda *)
@@ -306,7 +308,7 @@ struct
                                               body = Conts' [nil] },
                                   homelab))
     in
-      { worlds = (homelab, homekind) :: !foundworlds,
+      { worlds = !foundworlds,
         globals = entry :: !globals,
         main = mainlab }
     end
