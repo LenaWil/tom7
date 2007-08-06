@@ -80,6 +80,13 @@ struct
                                     ("v" ^ Int.toString i,
                                      um G loc ad)) a)
            end
+        | um G loc (Dsham { d, v }) =
+           let
+             (* XXX structure locations better than just strings! *)
+             val G = SM.insert(G, d, String "*wvoid*")
+           in
+             um G "*blurred*" v
+           end
         | um G loc (Dp Dvoid) = raise Marshal "can't unmarshal at void"
         | um G loc (Dp Ddict) =
           (case tok () of
@@ -119,6 +126,13 @@ struct
                in
                  Dexists { d = d, a = List.tabulate(n, fn i => um G loc ` Dp Ddict) }
                end
+           | "DH" =>
+               let
+                 val d = tok ()
+                 val v = um G loc ` Dp Ddict
+               in
+                 Dsham { d = d, v = v }
+               end
            | s => raise Marshal ("um unimplemented " ^ s))
 
         | um G loc (Drec sel) =
@@ -140,6 +154,7 @@ struct
         | um _ _ (Primcall _) = raise Marshal "um: not dict"
         | um _ _ (Var _) = raise Marshal "um: dict not closed"
         | um _ _ (Int _) = raise Marshal "um: not dict"
+        | um _ _ (Primop _) = raise Marshal "um: not dict"
         | um _ _ (String _) = raise Marshal "um: not dict"
         | um _ _ (Inj _) = raise Marshal "um: not dict"
         | um _ _ (Bytecode.Marshal _) = raise Marshal "um: not dict"
@@ -218,6 +233,12 @@ struct
         | mar G loc (Dp Daa) _ = raise Marshal "daa"
 
         | mar G loc (Dall _) _ = raise Marshal "unimplemented Dall"
+        | mar G loc (Dsham {d, v}) va =
+           let
+             val G = SM.insert(G, d, String "*wvoid*")
+           in
+             mar G "*blurred*" v va
+           end
 
         | mar G loc (Dp Dref) d =
            let
@@ -258,6 +279,7 @@ struct
             | Dsum sdl => "DS " ^ Int.toString (length sdl) ^ " " ^
                    StringUtil.delimit " " (map (fn (s,NONE) => s ^ " -"
                                                  | (s,SOME d) => s ^ " + " ^ mar G loc (Dp Ddict) d) sdl)
+            | Dsham { d, v } => "DH " ^ d ^ " " ^ mar G loc (Dp Ddict) v
             | Dall _ => raise Marshal "unimplemented marshal dall dict"
             | Record _ => raise Marshal "not ddict"
             | Project _ => raise Marshal "not ddict"
@@ -266,12 +288,14 @@ struct
             | Int _ => raise Marshal "not ddict"
             | String _ => raise Marshal "not ddict"
             | Inj _ => raise Marshal "not ddict"
+            | Primop _ => raise Marshal "not ddict"
             | Bytecode.Marshal _ => raise Marshal "not ddict")
           (* for completeness. we require the first argument to be a
              dictionary, of course! *)
         | mar _ _ (Record _) _ = raise Marshal "not dict"
         | mar _ _ (Project _) _ = raise Marshal "not dict"
         | mar _ _ (Primcall _) _ = raise Marshal "not dict"
+        | mar _ _ (Primop _) _ = raise Marshal "not dict"
         | mar _ _ (Var _) _ = raise Marshal "dict not closed"
         | mar _ _ (Int _) _ = raise Marshal "not dict"
         | mar _ _ (String _) _ = raise Marshal "not dict"

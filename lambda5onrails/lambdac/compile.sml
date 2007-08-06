@@ -2,11 +2,11 @@
 structure Compile =
 struct
 
-    val showil = Params.flag false
+    val showil = Params.flag true
         (SOME ("-showil",
                "Show internal language AST")) "showil"
 
-    val showcps = Params.flag false
+    val showcps = Params.flag true
         (SOME ("-showcps", 
                "Show internal CPS after each phase")) "showcps"
 

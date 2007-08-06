@@ -244,6 +244,10 @@ function lc_umg(G, loc, d, b) {
 	/* just changes focus */
 	return lc_umg(G, d.a, d.v, b);
     }
+    case "DH": {
+	var G2 = { head : d.d, data : "*wvoid*", next : G };
+	return lc_umg(G2, "*blurred*", d.v, b);
+    }
     case "DE": {
 	var thed = lc_umg(G, loc, lc_dictdict, b)
 	var G2 = { head : d.d, data : thed, next : G };
@@ -283,7 +287,10 @@ function lc_umg(G, loc, d, b) {
 	    /* but we might reconstitute it depending on where
                we are. */
 	    if (loc == "home") return lc_locals[ri];
-	    else return ri;
+	    else if (loc == "*blurred*") {
+		alert("tried to reconstitute ref when blurred...");
+		throw(0);
+	    } else return ri;
 	}
 	case "w": {
 	    /* world dictionary, represented as a string */
@@ -323,6 +330,11 @@ function lc_umg(G, loc, d, b) {
 		var d = lc_umg(G, loc, lc_dictdict, b);
 		var a = lc_umg(G, loc, lc_wdictdict, b);
 		return { w : "D@", a : a, v : d };
+	    }
+	    case "DH": {
+		var d = b.next ();
+		var v = lc_umg(G, loc, lc_dictdict, b);
+		return { w : "DH", d : d, v : v };
 	    }
 	    default:
 		alert('unimplemented unmarshal actual dict: ' + t);
@@ -483,8 +495,15 @@ function lc_marshalg(G, loc, dict, va) {
 	return s;
     }
     case "DH": {
-	alert("unimplemented shamdict");
-	throw(0);
+	/* shamrock doesn't change the representation, but it does
+           blur the focus. The body cannot be marshaled with respect
+           to a particular concrete world, since it is parametric
+           in its world. The dictionary variable should never be
+           looked up; the dynamic dictionary is instead installed
+           via an embedded AllLam. (Or else this shamrock does not
+           use its world variable at all.) */
+	var G2 = { head : dict.d, data : "*wvoid*", next : G };
+	return lc_marshalg(G2, "*blurred*", dict.v, va);
     }
     case "D@": {
 	/* just changes focus */
@@ -509,6 +528,11 @@ function lc_marshalg(G, loc, dict, va) {
 	    if (loc == "home") {
 		var i = lc_add_local(va);
 		return ''+i;
+            } else if (loc == "*blurred*") {
+		// Maybe this can happen if closure conversion is too
+		// conservative?
+		alert("unimplemented: tried to marshal blurred ref");
+		throw(0);
 	    } else {
 		return ''+va;
 	    }
