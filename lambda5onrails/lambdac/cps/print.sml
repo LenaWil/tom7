@@ -358,7 +358,7 @@ struct
     | potol MARSHAL = $"MARSHAL"
     | potol SAY = $"SAY"
     | potol SAY_CC = $"SAY_CC"
-    | potol (NATIVE { po, tys }) = %[$"NATIVE", $(Podata.tostring po),
+    | potol (NATIVE { po, tys }) = %[$"NATIVE", $(Primop.tostring po),
                                      (case tys of
                                         nil => %[]
                                       | _ => L.indent 2 ` L.listex "<" ">" "," ` map ttol tys)]

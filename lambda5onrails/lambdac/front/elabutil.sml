@@ -67,7 +67,7 @@ struct
                     raise Elaborate "type error"
                 end
               
-    local open Primop
+    local open Primop Podata
     in
       fun ptoil PT_INT = Initial.ilint
         | ptoil PT_STRING = Initial.ilstring

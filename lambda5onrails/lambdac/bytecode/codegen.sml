@@ -45,7 +45,7 @@ struct
 
   fun wi f = f ` vtoi ` V.namedvar "x"
 
-  fun generate { labels, labelmap } (gen_lab, SOME gen_global) =
+  fun generate { labels, labelmap } hostname (gen_lab, SOME gen_global) =
     let
 
       (* convert the "value" value and send the result (exp) to the continuation k *)
@@ -82,6 +82,7 @@ struct
                  | cd G (C.Primcon (C.REF, [_])) = Dp Dref
                  (* always represented the same way, regardless of which world *)
                  | cd G (C.Addr _) = Dp Daddr
+                 | cd G (C.TWdict _) = Dp Dw
                  | cd G (C.Product stl) = Drec ` 
                              map (fn (l, e) => ("l" ^ l, cdict G e)) stl
                  | cd G (C.Shamrock ((_, wd), t)) =
@@ -202,6 +203,7 @@ struct
               Bind (vtoi v, va, cvtv c k))
 
          | C.Dictfor _ => raise ByteCodegen "should not see dictfor in codegen"
+         | C.WDictfor _ => raise ByteCodegen "should not see wdictfor in codegen"
          | C.Lams _ => raise ByteCodegen "should not see lams except at top level in codegen"
          | C.AllLam { vals = _ :: _, ... } => 
              raise ByteCodegen "should not see non-static alllam in codegen"
@@ -272,10 +274,14 @@ struct
                 (fn args =>
                  Bind (vtoi v, Primcall (sym, args), cvte e))
 
+            | C.Primop (_, C.PRIMCALL _, _, _) => raise ByteCodegen "bad primcall"
+
             | C.Primop ([v], C.BIND, [va], e) =>
                 cvtv va
                 (fn va =>
                  Bind (vtoi v, va,  cvte e))
+
+            | C.Primop (_, C.BIND, _, _) => raise ByteCodegen "bad bind"
 
             | C.Primop ([v], C.MARSHAL, [vd, vv], e) =>
                 cvtv vd
@@ -283,6 +289,24 @@ struct
                  cvtv vv
                  (fn vv =>
                   Bind(vtoi v, Marshal(vd, vv), cvte e) ))
+
+            | C.Primop (_, C.MARSHAL, _, _) => raise ByteCodegen "bad marshal"
+
+            | C.Primop (_, C.SAY, _, _) => raise ByteCodegen "should not see SAY in codegen"
+            | C.Primop ([v], C.SAY_CC, [va], e) => raise ByteCodegen "SAY_CC unimplemented on server (??)"
+            | C.Primop (_, C.SAY_CC, _, _) => raise ByteCodegen "bad SAY_CC"
+
+            | C.Primop ([v], C.LOCALHOST, nil, e) => Bind(vtoi v, String hostname, cvte e)
+
+            | C.Primop (_, C.LOCALHOST, _, _) => raise ByteCodegen "bad localhost"
+
+            | C.Primop ([v], C.NATIVE { po, ... }, args, e) => 
+                (* XXX could check arity *)
+                cvtvs args
+                (fn args =>
+                 Bind (vtoi v, Primop (po, args), cvte e))
+
+            | C.Primop (_, C.NATIVE _, _, _) => raise ByteCodegen "expected a single binding for primops?"
 
             | C.Go_mar { w = _, addr, bytes } =>
                 cvtv addr
@@ -296,28 +320,16 @@ struct
                 cvtv va
                 (fn va =>
                  Bind (vtoi v, va, cvte e))
-(*
-            | C.Case (va, v, sel, def) => 
+
+            | C.Case (va, v, sel, def) =>
                 cvtv va
                 (fn va =>
-                 (* bind variable to inner value first. If there's no value (because it's a
-                    nullary constructor) then it just failceeds and the variable will have
-                    value "undefined" 
+                 Case { obj = va, 
+                        var = vtoi v,
+                        arms = ListUtil.mapsecond cvte sel,
+                        def = cvte def })
 
-                    NOTE: we rely on 'v' not being free in the default.
-                    *)
-                [Bind(vtoi v, Sel va "v"),
-                 Switch { test = Sel va "t",
-                          clauses = %(map (fn (s, e) =>
-                                           (SOME ` String ` String.fromString s,
-                                            %[Block ` % ` (cvte e @ [Break NONE])])) sel @
-                                      [(NONE, %[Block ` % ` (cvte def @ [Break NONE])])]) }
-                 ]
-                 )
-
-            | C.ExternType (_, _, vso, e) => [Throw ` String ` String.fromString "unimplemented externtype"]
-
-*)
+            | C.ExternType (_, _, vso, e) => raise ByteCodegen "unimplemented externtype"
 
             | C.Call (f, args) => 
             (* XXX should instead put this on our thread queue. *)
@@ -349,13 +361,16 @@ struct
                      (map (vtoi o #1) args,
                       cvte e)) fl
 
-              | C.AllLam _ => raise ByteCodegen "hoisted alllam unimplemented"
+              | C.AllLam { worlds = _, tys =_, vals, body } => 
+                OneDec (map (vtoi o #1) vals,
+                        cvtv body Return)
+
             | _ => raise ByteCodegen ("expected label " ^ gen_lab ^ 
                                       " to be alllam then lams/alllam"))
               
        | _ => raise ByteCodegen ("expected label " ^ gen_lab ^ 
                                  " to be a (possibly empty) AllLam"))
     end
-    | generate _ (lab, NONE) = Absent
+    | generate _ _ (lab, NONE) = Absent
 
 end

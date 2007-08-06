@@ -73,6 +73,11 @@ struct
     || `PRIMCALL >> label && repeated ($exp) wth Primcall
     || `INJ >> label && bopt ($exp) wth Inj
     || `MARSHAL >> $exp && $exp wth Marshal
+    || `PRIMOP >> id && repeated ($exp) wth (fn (s, args) =>
+                                             case Primop.fromstring s of
+                                               NONE => raise BytecodeParse ("unknown primop " ^ s)
+                                             | SOME po => Primop (po, args))
+    
 
     || `DP >> pdict wth Dp
     || `DREC >> repeated (label && $exp) wth Drec
@@ -105,6 +110,7 @@ struct
 
   and stmt () =
        `END return End
+    || `RETURN >> $exp wth Return
     || `BIND >> id && $exp && $stmt wth (fn (a, (b, c)) => Bind (a, b, c))
     || `JUMP >> $exp && $exp && repeated ($exp) wth (fn (a, (b, c)) => Jump (a, b, c))
     || `GO >> $exp && $exp wth Go
@@ -117,12 +123,15 @@ struct
     || `GO -- punt "parse error after GO"
     || `ERROR -- punt "parse error after ERROR"
     || `CASE -- punt "parse error after CASE"
+    || `RETURN -- punt "parse error after RETURN"
 
   val global = 
        `ABSENT return Absent
     || `FUNDEC >> repeated (repeated id && $stmt) wth (FunDec o Vector.fromList)
+    || `ONEDEC >> repeated id && $stmt wth OneDec
 
     || `FUNDEC -- punt "parse error after FUNDEC"
+    || `ONEDEC -- punt "parse error after ONEDEC"
 
   val program =
     `PROGRAM >> bopt int && repeated global

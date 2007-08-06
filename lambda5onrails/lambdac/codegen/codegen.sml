@@ -128,7 +128,7 @@ struct
                end
            | CPS.KBytecode =>
                let
-                 val globals = Vector.map (ByteCodegen.generate gctx) maybecodes
+                 val globals = Vector.map (ByteCodegen.generate gctx worldname) maybecodes
                in
                  (* XXX support main for bytecode? *)
                  CodeB { prog = { globals = globals, main = NONE } }

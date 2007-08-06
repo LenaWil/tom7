@@ -261,7 +261,7 @@ struct
                    optional world here. also, assuming all prims have
                    function type. *)
                 val { worlds, tys, dom, cod } = Podata.potype po
-                val vp = nv ("pores_" ^ Podata.tostring po)
+                val vp = nv ("pores_" ^ Primop.tostring po)
 
                 val tl = map (cvtt G) tl
 

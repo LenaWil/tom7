@@ -5,15 +5,15 @@ unit
    extern val alert : string -> unit @ home
    extern val alerti : int -> unit @ home = alert
 
-   val r = ref 0
+   val r = ref 1
        
    fun fact 0 = 1
      | fact n = n * fact (n - 1)
-	  
+          
        
    do alerti (!r)
 
-   do r := 1
+   do r := fact 5
 
    do alerti (!r)
 

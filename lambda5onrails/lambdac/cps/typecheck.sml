@@ -134,9 +134,11 @@ struct
 
   fun cleardyn (c as C { tvars, worlds, vars, uvars, current, worldlabs, globals, options }) =
     let in
+      (*
       print "cleardyn:\n";
       Layout.print (ctol c, print);
       print "\n";
+      *)
       C { vars = V.Map.empty,
           uvars = V.Map.empty,
           tvars = tvars,
@@ -431,7 +433,7 @@ struct
                               else fail [$"primop arg mismatch",
                                          $"actual: ", TY argt,
                                          $"expected: ", TY domt,
-                                         $"prim: ", $(Podata.tostring po)]) ` 
+                                         $"prim: ", $(Primop.tostring po)]) ` 
                            ListUtil.wed argts dom
 
                 val G = bindvar G v cod ` worldfrom G

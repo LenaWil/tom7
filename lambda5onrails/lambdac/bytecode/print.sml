@@ -22,14 +22,15 @@ struct
   (* starts with keyword: *)
   fun stol stmt =
     (case stmt of
-       Bind (v, e, s) => %[%[$"BIND", $v, etol e], stol s]
+       Bind (v, e, s) => %[%[$"BIND", $v, L.indent 2 ` etol e], stol s]
      | End => $"END"
+     | Return e => %[$"RETURN", L.indent 2 ` etol e]
      | Jump (e1, e2, expl) => %[$"JUMP", etol e1, etol e2, itol ` length expl, % ` map etol expl]
-     | Case { obj, var, arms, def } => %[$"CASE", etol obj, $var, itol ` length arms,
+     | Case { obj, var, arms, def } => %[%[$"CASE", etol obj, $var, itol ` length arms],
                                          % ` map (fn (s, st) =>
-                                                  %[$s, stol st]) arms,
+                                                  %[$s, L.indent 2 ` stol st]) arms,
                                          stol def]
-     | Go (e1, e2) => %[$"GO", etol e1, etol e2]
+     | Go (e1, e2) => %[$"GO", L.indent 2 ` etol e1, L.indent 2 ` etol e2]
      | Error s => %[$"ERROR", $("\"" ^ String.toString s ^ "\"")]
          )
        
@@ -42,6 +43,10 @@ struct
                              $s,
                              itol ` length el,
                              % ` map etol el]
+     | Primop (po, args) =>
+         (* XXX filter compilewarn and others that should never appear, or we'll
+            get a parse error later *)
+         %[%[$"PRIMOP", $(Primop.tostring po), itol ` length args], L.indent 2 ` % ` map etol args]
      | Int i => $(IntConst.tostring i)
      | Inj (l, e) => %[$"INJ", $l, otol etol e]
      | String s => %[$("\"" ^ String.toString s ^ "\"")]
@@ -85,6 +90,11 @@ struct
                              %[%[itol ` length sl,
                                  % ` map $ sl],
                                L.indent 2 ` stol st]) v]
+    | gtol (OneDec (args, st)) =
+    %[%[$"ONEDEC", itol ` List.length args],
+      L.indent 2 ` % `map $ args,
+      L.indent 2 ` stol st]
+
     | gtol Absent = $"ABSENT"
 
   fun ptol { globals, main } =

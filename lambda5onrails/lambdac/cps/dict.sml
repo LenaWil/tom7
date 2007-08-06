@@ -75,10 +75,14 @@
      for {}A, we translate it to {w} allarrow{ {}(w wdict) }.A
 *)
 
-structure CPSDict :> CPSDICT =
+structure Dict :> DICT =
 struct
 
-    exception CPSDict of string
+    structure Exn =
+    struct
+      (* also a CPS constructor called this; hide it *)
+      exception Dict of string
+    end
 
     open CPS
 
@@ -109,7 +113,7 @@ struct
     struct
       type stuff = VS.set
       structure ID = IDPass(type stuff = stuff
-                            val Pass = CPSDict)
+                            val Pass = Exn.Dict)
       open ID
 
       (* types. we only need to convert allarrow (takes new world args) and shamrock (nested allarrow). *)
@@ -133,10 +137,10 @@ struct
                                      body = selft z (bindworld G w) t })
 
        (* actually, letd might generate these when it is implemented in the frontend *)
-      fun case_WExists _ = raise CPSDict "BUG: shouldn't have existential worlds yet (?)"
+      fun case_WExists _ = raise Exn.Dict "BUG: shouldn't have existential worlds yet (?)"
        (* these are bugs *)
-      fun case_TExists _ = raise CPSDict "BUG: shouldn't have existential types yet"
-      fun case_Primcon _ _ (DICTIONARY, _) = raise CPSDict "BUG: shouldn't see dicts before introducing dicts!"
+      fun case_TExists _ = raise Exn.Dict "BUG: shouldn't have existential types yet"
+      fun case_Primcon _ _ (DICTIONARY, _) = raise Exn.Dict "BUG: shouldn't see dicts before introducing dicts!"
         | case_Primcon z s t = ID.case_Primcon z s t
 
 
@@ -151,7 +155,7 @@ struct
         in
            ExternType' (v, s, SOME (mkdictvar v, s ^ DICT_SUFFIX), selfe z G e)
         end
-        | case_ExternType _ _ _ = raise CPSDict "BUG: extern type already had dict?"
+        | case_ExternType _ _ _ = raise Exn.Dict "BUG: extern type already had dict?"
 
       fun case_Letsham z ({selfe, selfv, selft}, G) (v, va, e) =
         let 
@@ -164,12 +168,12 @@ struct
 
           case ctyp t of
             Shamrock (w, t) => Letsham' (v, va, selfe (VS.add(z, v)) (binduvar G v (w,t)) e)
-          | _ => raise CPSDict "letsham on non-shamrock"
+          | _ => raise Exn.Dict "letsham on non-shamrock"
         end
 
       (* actually, letd might generate these when it is implemented in the frontend *)
-      fun case_WUnpack _ = raise CPSDict "BUG: shouldn't see existential world wunpack yet (?)"
-      fun case_TUnpack _ = raise CPSDict "BUG: shouldn't see existential type tunpack yet"
+      fun case_WUnpack _ = raise Exn.Dict "BUG: shouldn't see existential world wunpack yet (?)"
+      fun case_TUnpack _ = raise Exn.Dict "BUG: shouldn't see existential type tunpack yet"
 
       (* Values. AllLam needs to take new arguments and AllApp needs to provide them.
          We also rewrite Shamrock introduction, and UVars that were instances of the shamrock. *)
@@ -222,7 +226,7 @@ struct
                 val tys = map (selft z G) tys
                 val () = if length ww = length worlds andalso length tt = length tys
                          then () 
-                         else raise CPSDict "allapp to wrong number of worlds/tys"
+                         else raise Exn.Dict "allapp to wrong number of worlds/tys"
                 val wl = ListPair.zip (ww, worlds)
                 val tl = ListPair.zip (tt, tys)
                 fun subt t =
@@ -239,7 +243,7 @@ struct
                               vals },
                  subt bb)
               end
-          | _ => raise CPSDict "allapp to non-allarrow"
+          | _ => raise Exn.Dict "allapp to non-allarrow"
          end
 
 
@@ -271,7 +275,7 @@ struct
         let 
           val (va, t) = selfv z G va
         in
-          print "VLETSHAM.\n";
+          (* print "VLETSHAM.\n"; *)
           case ctyp t of
             Shamrock (w, t) => 
               let
@@ -281,7 +285,7 @@ struct
               in 
                 (VLetsham' (v, va, e), te)
               end
-          | _ => raise CPSDict "vletsham on non-shamrock"
+          | _ => raise Exn.Dict "vletsham on non-shamrock"
         end
 
       fun case_UVar z (s as {selfe, selfv, selft}, G)  u =
@@ -302,20 +306,22 @@ struct
                     print "BUG: invariant violation in CPSdict\n";
                     Layout.print (CPSPrint.ttol t, print);
                     print ("\nuvar: " ^ Variable.tostring u ^"\n");
-                    raise CPSDict "for UVars in our set, they should have AllArrow type"
+                    raise Exn.Dict "for UVars in our set, they should have AllArrow type"
                   end))
 
           end
         else ID.case_UVar z (s, G) u
 
       (* Bugs. *)
-      fun case_TPack _ = raise CPSDict "BUG: shouldn't see extential type tpack yet"
-      fun case_VTUnpack _ = raise CPSDict "BUG: shouldn't see extential type vtunpack yet"
-      fun case_Dictfor _ = raise CPSDict "BUG: shouldn't see dicts yet"
+      fun case_TPack _ = raise Exn.Dict "BUG: shouldn't see extential type tpack yet"
+      fun case_VTUnpack _ = raise Exn.Dict "BUG: shouldn't see extential type vtunpack yet"
+      fun case_Dict _ = raise Exn.Dict "BUG: shouldn't see dicts yet"
 
     end
 
     structure D = PassFn(DA)
     fun translate ctx e = D.converte VS.empty ctx e
+
+    open Exn
 
 end

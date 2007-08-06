@@ -44,6 +44,7 @@ group is
 
 (* ML5 lib *)
 ../lambdac/intconst.sml
+../lambdac/primop.sml
 ../lambdac/bytecode/bytecode.sml
 ../lambdac/bytecode/tokens.sml
 ../lambdac/bytecode/tokenize-sig.sml
