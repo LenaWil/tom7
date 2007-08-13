@@ -21,6 +21,7 @@ struct
         "codepath"
 
   val favicon_ico = StringUtil.readfile "favicon.ico"
+  val logo_png    = StringUtil.readfile "../graphics/server5-logo-striped.png"
   val faviconhead = "<link rel=\"shortcut icon\" href=\"/favicon.ico\" type=\"image/x-icon\" />"
 
   infixr 9 `
@@ -228,7 +229,9 @@ struct
             case Execute.message inst of
               NONE => ()
             | SOME m =>
-                let in
+                let 
+                  val m = "<lambda5message>" ^ m ^ "</lambda5message>"
+                in
                   N.sendraw sock m;
                   N.disconnect sock;
                   (* one message per connection *)
@@ -296,7 +299,7 @@ struct
       pr faviconhead;
       pr CSS.csshead;
       pr "<body>\n";
-      pr "Server 5 demos list.\n";
+      pr "<img src=\"/logo.png\" style=\"float:left;\" />Server 5 demos list.\n";
       pr "<table width=\"100%\">\n";
       pr "<tr><td>ML5 source code</td><td colspan=2>Compiled code</td><td>Demo</td></tr>\n";
       app onedemo l;
@@ -355,4 +358,21 @@ struct
         pr favicon_ico;
         N.disconnect sock
       end
+
+   fun logo sock =
+      let
+        fun pr str = N.sendraw sock str
+      in
+        print "server icon\n";
+        pr
+        ("HTTP/1.1 200 OK\r\n" ^
+         "Date: " ^ Version.date () ^ "\r\n" ^
+         "Server: " ^ Version.version ^ "\r\n" ^
+         "Connection: close\r\n" ^
+         "Content-Type: image/x-png\r\n" ^
+         "\r\n");
+        pr logo_png;
+        N.disconnect sock
+      end
+
 end

@@ -27,8 +27,12 @@ struct
       val lines = String.tokens (StringUtil.ischar #"\n") dbt
       fun oneline s =
         case String.fields (StringUtil.ischar #" ") s of
-          [key, value] => db := SM.insert(!db, dec key, { value = dec value,
-                                                          hooks = nil })
+          [key, value] => 
+            let in
+              print ("DB: " ^ dec key ^ " --> " ^ dec value ^ "\n");
+              db := SM.insert(!db, dec key, { value = dec value,
+                                              hooks = nil })
+            end
         | _ => raise TrivialDB "Bad line in database!\n"
     in
       app oneline lines

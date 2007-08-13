@@ -112,6 +112,7 @@ struct
             | ("demos", _) => Session.demos s
             | ("source", file) => Session.source s file
             | ("favicon.ico", _) => Session.favicon s
+            | ("logo.png", _) => Session.logo s
             | _ => error404 s "URL not found (GET).")
        | "POST" :: url :: _ =>
            (case StringUtil.token (StringUtil.ischar #"/") url of
