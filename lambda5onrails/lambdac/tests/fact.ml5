@@ -11,7 +11,7 @@ unit
    fun fact 0 = 1
      | fact n = n * fact (n - 1)
    
-   do alerts "factorial of 5:"
+   do alerts "The factorial of 5:"
    do alerti (fact 5)
 
 in
