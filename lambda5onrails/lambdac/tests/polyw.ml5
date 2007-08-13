@@ -1,0 +1,12 @@
+unit
+
+  fun goto a = from a get 1234 
+
+      
+  val goto_home = goto : home addr -> int @ home
+
+in
+    (* not supporting valid export vals yet! *)
+    (* export val g1 = goto *)
+    export val g2 = goto_home
+end

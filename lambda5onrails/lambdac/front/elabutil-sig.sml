@@ -26,15 +26,23 @@ sig
     (* generate a new string with arg as base *)
     val newstr : string -> string
 
-    (* polygen sctx t
+    (* polygen sctx t atworld
        
-       perform polymorphic generalization on a type.
-       If t if t has unset evars that do not appear anywhere
-       in the context sctx, then they will be generalized.
+       perform polymorphic generalization on a type, for
+       both types and worlds.
+
+       If t has unset type or world evars that do not appear
+       anywhere in the context sctx, then they will be
+       generalized. We never generalize the atworld, because
+       that cannot be forall-quantified. Instead use polywgen 
+       below.
 
        returns a new generalized type along with the bound
-       type variables. *)
-    val polygen : Context.context -> IL.typ -> IL.typ * Variable.var list
+       type variables and world variables. *)
+    val polygen : Context.context -> IL.typ -> IL.world -> 
+                        { t : IL.typ, 
+                          tl : Variable.var list, 
+                          wl : Variable.var list }
 
     (* polygen sctx w
 

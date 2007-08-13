@@ -442,8 +442,8 @@ struct
 
       (* XXX use repeat to allow e : t : t : t *)
       and constrainexp G =
-          !! (call G handlexp) && opt (`COLON && typ) 
-                     wth (fn (a,SOME(_,c)) => Constrain (a, c, NONE) (* XXX5 allow @ w *)
+          !! (call G handlexp) && opt (`COLON >> typ && opt (`AT >> world))
+                     wth (fn (a,SOME(c, wo)) => Constrain (a, c, wo)
                            | ((a,_),NONE) => a)
 
       and exp G = 

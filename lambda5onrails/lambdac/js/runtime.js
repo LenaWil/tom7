@@ -448,9 +448,22 @@ function lc_handle_toclient() {
 	if (m == '') {
 	    lc_error('server message is empty, assuming termination');
 	} else {
-	    lc_come(m);
-	    /* then reinstate the connection */
-	    lc_make_toclient();
+	    // lc_message(escape(m));
+	    /* attempt to find the bracketed expression
+               <lambda5message>MSG</lambda5message> */
+	    var otag = '<lambda5message>';
+	    var ctag = '</lambda5message>';
+	    var start = m.indexOf(otag);
+	    var end   = m.indexOf(ctag);
+
+	    if (start >= 0 && end > start) {
+		var u = m.substring(start + otag.length, end);
+		lc_come(u);
+		/* then reinstate the connection */
+		lc_make_toclient();
+	    } else {
+		lc_message('server message is malformed or incomplete, waiting...');
+	    }
 	}
     }
     /* otherwise nice to show status somewhere? */
