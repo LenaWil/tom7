@@ -1054,18 +1054,19 @@ struct
               ([], C.bindc ctx tv (Lambda conf) kind Regular)
           end
 
-    (* XXX5 it ought to be possible to write valid functions with this
-       syntax or a syntax like it. 
-
-       Basically, since this is a value, we shouldn't restrict the
-       declaration to 'here'. Instead we should elaborate it at
-       an existential world, and then if that world is unrestricted
-       at the end, we should make the binding valid.
+    (* For functions, we also do automatic validity inference.
+       
+       Basically, since this is a value, we don't restrict the
+       declaration to 'here'. Instead we elaborate it at an
+       existential world, and then if that world is unrestricted at
+       the end, we make the binding valid by introducing a shamrock
+       and immediatley eliminating it.
 
        To explicitly declare a function at another world, then we just
-       use type (judgment) annotation.
+       use type (judgment) annotation (XXX not possible to annotate
+       world, yet)
 
-       The same should be true of val decls that are generalizable. *)
+       XXX The same should be true of val decls that are generalizable. *)
     | E.Fun bundle =>
           let
 
@@ -1134,10 +1135,14 @@ struct
               (* collect up elaborated functions and
                  forall-quantified vars *)
               fun folder ((f, vv, x, dom, cod, exp),
-                          (fs, efs, polys)) =
+                          (fs, efs, tpolys, wpolys)) =
                   let
-                      val (dom, dp) = polygen outer_context dom
-                      val (cod, cp) = polygen outer_context cod
+                    (* it's okay to make these two calls to polygen,
+                       since if we generalize something in dom it
+                       will be set Bound to that tyvar in cod. But
+                       perhaps polygen should take a list of types. *)
+                      val { t = dom, tl = dpt, wl = dpw } = polygen outer_context dom atworld
+                      val { t = cod, tl = cpt, wl = cpw } = polygen outer_context cod atworld
                   in
                       ({ name = vv,
                          arg = [x],
@@ -1148,32 +1153,33 @@ struct
                          cod = cod,
                          body = exp } :: fs, 
                        (f, vv, Arrow(false, [dom], cod)) :: efs,
-                       dp @ cp @ polys)
+                       dpt @ cpt @ tpolys,
+                       dpw @ cpw @ wpolys)
                   end
 
-              val (fs, efs, ps) = 
-                  foldl folder (nil, nil, nil) ` map onef binds
+              val (fs, efs, tps, wps) = 
+                  foldl folder (nil, nil, nil, nil) ` map onef binds
 
               (* check if atworld can be generalized. if so,
-                 then the declaration will be valid. XXX5
-                 should prevent generalization if this world
-                 appears in the type of any function, too. *)
+                 then the declaration will be valid. We already
+                 made sure this type didn't get generalized above. *)
               val maybevalid = polywgen outer_context atworld
 
-              (* FIXME5. Ought allow polymorphism over worlds. *)
               (* we'll generalize both the binding of the bundle
-                 and the binding of each of the projections in the same way. *)
-              fun mkpoly ps at = Poly({worlds=nil, (* XXX5 *)
-                                       tys = ps}, at)
+                 and the binding of each of the projections in the same way (this way). 
+                 
+                 We generalize both type variables and world variables.
+                 *)
+              fun mkpoly tps wps at = Poly({worlds = wps, tys = tps}, at)
 
               (* rebuild the context with these functions
                  bound polymorphically *)
               fun mkcontext ((f, vv, at), cc) =
                   (case maybevalid of
                        (* not valid. *)
-                       NONE => C.bindv cc f (mkpoly ps at) vv atworld
+                       NONE => C.bindv cc f (mkpoly tps wps at) vv atworld
                        (* valid. wv might appear within at. *)
-                     | SOME wv => C.bindex cc (SOME f) (mkpoly ps at) vv IL.Normal (C.Valid wv))
+                     | SOME wv => C.bindex cc (SOME f) (mkpoly tps wps at) vv IL.Normal (C.Valid wv))
 
               val fctx = foldl mkcontext ctx efs
 
@@ -1199,33 +1205,34 @@ struct
               (* if just one, then we want to produce better code: *)
               case fs of
                  [ f as { name, arg, dom, inline, recu, total, cod, body } ] =>
-                   ([bind ` mkpoly ps ` (name, Arrow (false, dom, cod), 
-                                         FSel(0, Fns [f]))], fctx)
+                   ([bind ` mkpoly tps wps ` (name, Arrow (false, dom, cod), 
+                                              FSel(0, Fns [f]))], fctx)
                 | _ => 
                    let val bundv = V.namedvar ` StringUtil.delimit "_" (map (V.basename o #name) fs)
                    in
                      ( 
                       (* the bundle... *)
-                      (bind ` mkpoly ps ` (bundv, Arrows ` map (fn { dom, cod, ... } => 
-                                                                (false, dom, cod)) fs,
-                                           Fns fs)) ::
+                      (bind ` mkpoly tps wps ` (bundv, Arrows ` map (fn { dom, cod, ... } => 
+                                                                     (false, dom, cod)) fs,
+                                                Fns fs)) ::
                       (* then bind the projections... *)
                       ListUtil.mapi (fn ({ name, dom, cod, ... }, i) =>
-                                     let val ops = ps (* map V.alphavary ps *)
+                                     let val tps = tps (* map V.alphavary ps *)
                                           (* (would also need to rename through dom/cod) *)
                                      in
-                                       bind ` mkpoly ops ` (name, 
-                                                            Arrow (false, dom, cod), 
-                                                            FSel(i, 
-                                                                 Polyvar { tys = map TVar ops,
-                                                                           worlds = nil (* XXX *),
-                                                                           var = bundv }))
+                                       bind ` mkpoly tps wps ` (name, 
+                                                                Arrow (false, dom, cod), 
+                                                                FSel(i, 
+                                                                     Polyvar { tys = map TVar tps,
+                                                                               worlds = map WVar wps,
+                                                                               var = bundv }))
                                      end) fs,
                       fctx)
                    end
           end
 
     (* val and put bindings *)
+    (* XXX5 need to automatically validate *)
     | E.Bind (b, tyvars, E.PVar v, exp) =>
           let
               (* simply bind tyvars;
@@ -1252,24 +1259,26 @@ struct
                             require_mobile ctx loc "put" tt
                         | E.Val => ())
 
-              val (tt, ps) = if polydec
-                             then polygen ctx tt
-                             else (tt, nil)
+              val { t = tt, tl = tps, wl = wps } = 
+                if polydec
+                then polygen ctx tt here
+                else { t = tt, tl = nil, wl = nil }
 
               val vv = Variable.namedvar v
 
               (* XXX should make binding valid if possible; see fun decls *)
 
-              val ctx = C.bindex ctx (SOME v) (Poly ({worlds = nil (* XXX5 *),
-                                                      tys = ps}, tt)) vv Normal (case b of
-                                                                                   E.Val => C.Modal here
-                                                                                 | E.Put => C.Valid ` V.namedvar "put_unused")
+              val ctx = C.bindex ctx (SOME v) (Poly ({worlds = wps,
+                                                      tys = tps}, tt)) vv Normal 
+                                              (case b of
+                                                 E.Val => C.Modal here
+                                               | E.Put => C.Valid ` V.namedvar "put_unused")
 
           in
             case b of
-              E.Val => ([Bind (Val, Poly({ worlds = nil (* XXX5 *), tys = ps }, 
+              E.Val => ([Bind (Val, Poly({ worlds = wps, tys = tps }, 
                                          (vv, tt, ee)))], ctx)
-            | E.Put => ([Bind (Put, Poly({ worlds = nil (* XXX5 *), tys = ps }, 
+            | E.Put => ([Bind (Put, Poly({ worlds = wps, tys = tps }, 
                                          (vv, tt, ee)))], ctx)
           end
 
@@ -1380,14 +1389,14 @@ struct
             (case elab nctx w exp of
                (Value vv, tt) =>
                  let
-                   val (tt, tp) = polygen ctx tt
-                 in
-                   (* XXX5 should polygen worlds too *)
                    (* XXX5 should check that tyvars were all generalized *)
-                   ExportVal (Poly({tys=tp, worlds=nil},
-                                   (* XXX should find valid values
-                                      and export those here! *)
-                                   (lab, tt, SOME w, vv)))
+                   val {t = tt, tl = tp, wl = wp} = polygen ctx tt w
+                 in
+                   ExportVal (Poly({tys=tp, worlds=wp},
+                                   (case polywgen ctx w of
+                                      NONE => (lab, tt, SOME w, vv)
+                                    (* XXX5 *)
+                                    | SOME wv => raise Elaborate ("unimplemented: valid exportval"))))
                  end
              (* XXX: note, could hoist this binding before the exports
                 with a little bit of work... *)

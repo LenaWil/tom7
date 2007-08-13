@@ -152,37 +152,67 @@ struct
                                       NONE => $"NONE"
                                     | SOME v => vtol v)]
 
-       | FSel (n, v) => %[vtol v, $("." ^ Int.toString n)]
+       | FSel (n, v) =>
+           let fun def () = %[vtol v, $("." ^ Int.toString n)]
+           in
+             (case v of
+                Fns [one as {name, arg, dom, cod, body, inline, recu, total}] =>
+                  if n <> 0
+                  then %[$"XXX! fsel out of bounds!", def ()]
+                  else 
+                    %[%[$"fn",
+                        if length arg <> length dom 
+                        then $"XXX arg/dom mismatch!!"
+                        else $"",
+                        $(V.tostring name)],
+                      if !iltypes 
+                      then %[$(if inline then "INLINE " else ""),
+                             $(if recu then "RECU " else "NRECU "),
+                             $(if total then "TOTAL" else "PART")]
+                      else $"",
+                        L.listex "(" ")" "," 
+                        (ListPair.map 
+                         (fn (a, t) =>
+                          %[$(V.tostring a),
+                            if !iltypes 
+                            then L.seq[$":", ttol t]
+                            else $""]) (arg, dom)),
+                        %[$":",
+                          ttol cod,
+                          $"="],
+                        L.indent 4 (etol body)]
+              | _ => def ())
+           end
 
        | Sham (v, va) => %[$"sham", $(V.tostring v), $".",
                            L.indent 2 ` vtol va]
 
        | Fns fl =>
-             %[$"fns", (* XXX5 worlds/tys *)
+             %[$"fns",
                L.align
                (ListUtil.mapi 
                 (fn ({name, arg, dom, cod, body, inline, recu, total}, i) =>
                      %[$("#" ^ Int.toString i ^ " is"),
-                       %[if length arg <> length dom 
-                         then $"XXX arg/dom mismatch!!"
+                       %[%[if length arg <> length dom 
+                           then $"XXX arg/dom mismatch!!"
+                           else $"",
+                           $(V.tostring name)],
+                         if !iltypes 
+                         then L.seq[$(if inline then "INLINE " else ""),
+                                    $(if recu then "RECU " else "NRECU "),
+                                    $(if total then "TOTAL" else "PART")]
                          else $"",
-                             $(V.tostring name),
+                         L.listex "(" ")" "," 
+                         (ListPair.map 
+                          (fn (a, t) =>
+                           %[$(V.tostring a),
                              if !iltypes 
-                             then L.seq[$(if inline then "INLINE " else ""),
-                                        $(if recu then "RECU " else "NRECU "),
-                                        $(if total then "TOTAL" else "PART")]
-                             else $"",
-                                 L.listex "(" ")" "," 
-                                 (ListPair.map 
-                                     (fn (a, t) =>
-                                      %[$(V.tostring a),
-                                        if !iltypes 
-                                        then L.seq[$":", ttol t]
-                                        else $""]) (arg, dom)),
-                                 %[$":",
-                                   ttol cod,
-                                   $"="]],
-                        L.indent 4 (etol body)]) fl)
+                             then L.seq[$":", ttol t]
+                             else $""]) (arg, dom)),
+                         %[$":",
+                           ttol cod,
+                           $"="]],
+                       L.indent 4 (etol body)]) fl)
                ]
 
        | Polyuvar {worlds=nil, tys=nil, var} => $("~" ^ V.show var)
@@ -320,6 +350,12 @@ struct
     and btol Val = $"val"
       | btol Put = $"put"
 
+    and worldstys nil nil = L.empty
+      | worldstys w t =
+      L.seq [$"(", % ` L.separateRight (map ($ o V.tostring) w, ","),
+             $";", % ` L.separateRight (map ($ o V.tostring) t, ","),
+             $")"]
+
     and dtol d =
         (case d of
              Do e => %[$"do", etol e]
@@ -328,21 +364,15 @@ struct
                                        $"tags", ttol t, $"in", 
                                        $(V.tostring ext)]
            | Bind(b, Poly ({worlds, tys}, (var, t, e))) =>
-               (* XXX5 worlds too *)
                %[%[%([btol b]
-                     @ (case tys of
-                          nil => nil
-                        | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)])
+                     @ [worldstys worlds tys]
                      @ [$(V.tostring var)]),
                    L.indent 4 (%[$":", ttol t, $"="])],
                  L.indent 4 (etol e)]
 
            | Letsham (Poly({worlds, tys}, (v, t, va))) =>
                %[%[%([$"letsham"]
-                     (* XXX5 worlds *)
-                     @ (case tys of
-                          nil => nil
-                        | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)])
+                     @ [worldstys worlds tys]
                      @ [$(V.tostring v)]),
                    L.indent 4 (%[$"~", ttol t, $"="])],
                  L.indent 4 (vtol va)]
@@ -350,17 +380,13 @@ struct
            | ExternWorld (l, k) => %[$"extern world", wktol k, $l]
            | ExternVal (Poly({worlds, tys}, (l, v, t, w))) =>
                  % ($"extern val" ::
-                    (case tys of
-                       nil => nil
-                     | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)]) @
-                       (* XXX5 poly worlds *)
-                       [$(V.tostring v),
+                    worldstys worlds tys 
+                    :: [$(V.tostring v),
                         L.indent 4 (%[$":", ttol t, 
                                       $"@", 
                                       case w of
                                         NONE => $"VALID"
                                       | SOME w => wtol w,
-
                                       $"=", $l])])
            | ExternType (n, l, v) => 
                  %[$"extern type",
@@ -380,10 +406,7 @@ struct
          ExportWorld (l, w) => %[$"export world", $l, $"=", wtol w]
        | ExportVal (Poly({worlds, tys}, (l, t, w, v))) =>
                  % ($"export val" ::
-                    (case tys of
-                       nil => nil
-                     | _ => [L.listex "(" ")" "," (map ($ o V.tostring) tys)]) @
-                       (* XXX5 poly worlds *)
+                    worldstys worlds tys ::
                        [$ l,
                         L.indent 4 (%[$":", ttol t, 
                                       $"@", 

@@ -82,27 +82,60 @@ struct
 
     val newstr = LambdacUtil.newstr
 
-    (* fixed. uses outer context to determine what evars
-       should be generalized. *)
-    fun polygen ctx ty =
-        let val acc = ref nil
-            fun go t =
+    (* This uses the outer context to figure out which evariables can be generalized. *)
+    fun polygen ctx (ty : IL.typ) (atworld : IL.world) =
+        let 
+            val acct = ref nil
+            val accw = ref nil
+
+            val occurs_in_atworld =
+              (* path compress first *)
+              let 
+                fun mkfun w =
+                  case w of
+                    IL.WEvar er =>
+                      (case !er of
+                         IL.Bound ww => mkfun ww
+                       | IL.Free m => (fn n => n = m))
+                  | _ => (fn _ => false)
+              in
+                mkfun atworld
+              end
+
+            fun gow w =
+              (case w of
+                 IL.WEvar er =>
+                   (case !er of
+                      IL.Bound ww => gow ww
+                    | IL.Free n => 
+                        if Context.has_wevar ctx n orelse occurs_in_atworld n
+                        then w
+                        else
+                          let val wv = V.namedvar "wpoly"
+                          in
+                            accw := wv :: !accw;
+                            er := IL.Bound (IL.WVar wv);
+                            IL.WVar wv
+                          end)
+               | IL.WVar _ => w
+               | IL.WConst _ => w)
+
+            fun got t =
                 (case t of
-                     IL.TRef tt => IL.TRef ` go tt
-                   | IL.TVec tt => IL.TVec ` go tt
-                   | IL.Sum ltl => IL.Sum ` ListUtil.mapsecond (IL.arminfo_map go) ltl
-                   | IL.Arrow (b, tl, tt) => IL.Arrow(b, map go tl, go tt)
+                     IL.TRef tt => IL.TRef ` got tt
+                   | IL.TVec tt => IL.TVec ` got tt
+                   | IL.Sum ltl => IL.Sum ` ListUtil.mapsecond (IL.arminfo_map got) ltl
+                   | IL.Arrow (b, tl, tt) => IL.Arrow(b, map got tl, got tt)
                    | IL.Arrows al => IL.Arrows ` map (fn (b, tl, tt) => 
-                                                      (b, map go tl, go tt)) al
-                   | IL.TRec ltl => IL.TRec ` ListUtil.mapsecond go ltl
+                                                      (b, map got tl, got tt)) al
+                   | IL.TRec ltl => IL.TRec ` ListUtil.mapsecond got ltl
                    | IL.TVar v => t
-                   | IL.TCont tt => IL.TCont ` go tt
-                   | IL.TTag (tt, v) => IL.TTag (go tt, v)
-                   | IL.Mu (n, vtl) => IL.Mu (n, ListUtil.mapsecond go vtl)
-                   | IL.TAddr w => t
-                   | IL.Shamrock (w, tt) => IL.Shamrock (w, go tt)
-                   (* XXX5 polygen worlds too *)
-                   | IL.At (t, w) => IL.At(go t, w)
+                   | IL.TCont tt => IL.TCont ` got tt
+                   | IL.TTag (tt, v) => IL.TTag (got tt, v)
+                   | IL.Mu (n, vtl) => IL.Mu (n, ListUtil.mapsecond got vtl)
+                   | IL.TAddr w => IL.TAddr (gow w)
+                   | IL.Shamrock (w, tt) => IL.Shamrock (w, got tt)
+                   | IL.At (t, w) => IL.At(got t, gow w)
                    | IL.Evar er =>
                          (case !er of
                               IL.Free n =>
@@ -112,13 +145,13 @@ struct
                                       let 
                                           val tv = V.namedvar "poly"
                                       in
-                                          acc := tv :: !acc;
+                                          acct := tv :: !acct;
                                           er := IL.Bound (IL.TVar tv);
                                           IL.TVar tv
                                       end
-                            | IL.Bound ty => go ty))
+                            | IL.Bound ty => got ty))
         in
-            (go ty, rev (!acc))
+            { t = got ty, tl = rev (!acct), wl = rev (!accw) }
         end
 
     fun polywgen ctx (w as IL.WEvar er) =
