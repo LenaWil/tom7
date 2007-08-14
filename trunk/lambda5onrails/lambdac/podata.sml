@@ -6,7 +6,7 @@ struct
 
   (* base types that describe arguments to and return values from primops *)
   datatype potype =
-    PT_INT | PT_STRING | PT_REF of potype | PT_UNITCONT | PT_BOOL | PT_VAR of Variable.var
+    PT_INT | PT_CHAR | PT_STRING | PT_REF of potype | PT_UNITCONT | PT_BOOL | PT_VAR of Variable.var
   | PT_UNIT
 
   local open Primop
@@ -25,6 +25,13 @@ struct
       | potype (B PPlus) = mono ([PT_INT, PT_INT], PT_INT)
       | potype (B PMinus) = mono ([PT_INT, PT_INT], PT_INT)
       | potype PEqs = mono ([PT_STRING, PT_STRING], PT_BOOL)
+
+      | potype PStringSub =
+          mono ([PT_STRING, PT_INT], PT_CHAR)
+      | potype PStringSubstring =
+          mono ([PT_STRING, PT_INT, PT_INT], PT_STRING)
+      | potype PStringLength =
+          mono ([PT_STRING], PT_INT)
 
       | potype PSet = 
           let val a = Variable.namedvar "a"

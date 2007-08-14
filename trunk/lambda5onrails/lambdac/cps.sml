@@ -1012,6 +1012,7 @@ struct
         val bv = V.namedvar "pbool"
   in
     fun ptoct PT_INT = Zerocon' INT
+      | ptoct PT_CHAR = Zerocon' INT
       | ptoct PT_STRING = Zerocon' STRING
       | ptoct PT_BOOL = 
       Mu' (0, [(bv, Sum' [(Initial.truename, IL.NonCarrier),

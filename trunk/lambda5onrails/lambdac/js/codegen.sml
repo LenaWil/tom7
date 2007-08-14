@@ -382,6 +382,12 @@ struct
                    first rest
         | primexp (P.PJointext _) _ = raise JSCodegen "jointext argument length mismatch"
 
+        (* string operations *)
+        (* length is a magic builtin property *)
+        | primexp P.PStringLength [s] = Sel s "length"
+(*      | primexp P.PStringSubstring [s, start, len] = *)
+                   
+
         (* references *)
         | primexp P.PRef [init] = Object ` %[prop "v" init]
         | primexp P.PGet [obj]  = Sel obj "v"
