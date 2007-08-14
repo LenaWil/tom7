@@ -238,7 +238,7 @@ struct
     | irrefutable (PVar _) = true
     | irrefutable (PAs(_, p)) = irrefutable p
     | irrefutable (PRecord pl) = List.all (fn (_, p) => irrefutable p) pl
-    | irrefutable (PConstrain (p, t)) = irrefutable p
+    | irrefutable (PConstrain (p, _, _)) = irrefutable p
     | irrefutable _ = false
 
   val tyvars = alt [id wth LU.list,
@@ -316,8 +316,8 @@ struct
                call G infixpat]
 
       and pat G = 
-          call G aspat && opt (`COLON >> typ)
-               wth (fn (p, SOME t) => PConstrain(p, t)
+          call G aspat && opt (`COLON >> typ && opt (`AT >> world))
+               wth (fn (p, SOME (t, wo)) => PConstrain(p, t, wo)
                      | (p, NONE) => p)
 
 

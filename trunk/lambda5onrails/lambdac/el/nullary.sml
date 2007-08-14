@@ -91,7 +91,7 @@ struct
            | PWild => PWild
            | PAs (s, p) => PAs(s, pul G p)
            | PRecord spl => PRecord ` ListUtil.mapsecond (pul G) spl
-           | PConstrain (p, t) => PConstrain (pul G p, tul G t)
+           | PConstrain (p, t, wo) => PConstrain (pul G p, tul G t, wo)
            | PConstant c => pat
            | PWhen (e, p) => PWhen (nul G e, pul G p)
            | PApp (s, p) => PApp (s, Option.map (pul G) p))

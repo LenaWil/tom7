@@ -68,7 +68,7 @@ struct
       | PWild
       | PAs of string * pat
       | PRecord of (string * pat) list
-      | PConstrain of pat * typ (* XXX allow @ w *)
+      | PConstrain of pat * typ * world option
       | PConstant of constant
       | PApp of string * pat option
       | PWhen of exp * pat

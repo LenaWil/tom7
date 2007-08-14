@@ -90,7 +90,7 @@ struct
 
   fun pbinds  E.PWild _ = false
     | pbinds (E.PAs (i, p)) v = i = v orelse pbinds p v
-    | pbinds (E.PConstrain (p, t)) v = pbinds p v
+    | pbinds (E.PConstrain (p, t, wo)) v = pbinds p v
     | pbinds (E.PConstant _) _ = false
     | pbinds (E.PVar i) v = i = v
     | pbinds (E.PRecord lpl) v = 
@@ -160,7 +160,7 @@ struct
 
   and psubst s (E.PWild) = E.PWild
     | psubst s (E.PAs (i, p)) = E.PAs (i, psubst s p)
-    | psubst s (E.PConstrain (p, t)) = E.PConstrain(psubst s p, t)
+    | psubst s (E.PConstrain (p, t, wo)) = E.PConstrain(psubst s p, t, wo)
     | psubst s (E.PConstant c) = E.PConstant c
     | psubst s (E.PVar i) = E.PVar i
     | psubst s (E.PRecord lpl) = 

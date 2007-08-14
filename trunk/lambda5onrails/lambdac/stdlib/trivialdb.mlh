@@ -1,7 +1,7 @@
 
 val provide-trivialdb = ()
 
-extern bytecode world server
+(* extern bytecode world server *)
 
 extern val trivialdb.read : string -> string @ server
 extern val trivialdb.update : string * string -> unit @ server
