@@ -20,6 +20,32 @@ unit
     val id.rendered = [rendered]
     val id.source = [source]
 
+    val articlename = ref []
+
+    extern val alert : string -> unit @ home
+
+    (* XXX should do some parsing and rendering, duh *)
+    fun renderhtml s = s 
+
+    (* renders the current value of the *)
+    fun render () =
+        let in
+            (* alert [render!]; *)
+            dom.setstring(dom.getbyid id.rendered,
+                          [innerHTML],
+                          renderhtml (dom.getstring(dom.getbyid id.source, [value])))
+        end
+
+    (* PERF round trips for every keyup is a little bit much? *)
+    fun source-keyup () =
+        let 
+            put article  = !articlename
+            put contents = dom.getstring(dom.getbyid id.source, [value])
+        in
+            from server get trivialdb.update (article, contents);
+            render()
+        end
+
     do dom.setstring 
         (dom.getbyid [page],
          [innerHTML],
@@ -47,20 +73,11 @@ unit
            <div id="[id.articlename]" class="heading">articlename</div> <br />
 
           <div id="[id.rendered]" class="rendered">rendered contents</div> <br />
-          <textarea id="[id.source]" class="source">the source code</textarea>
+          <textarea id="[id.source]" onkeyup="[say source-keyup ()]" class="source">the source code</textarea>
 
           <div class="copyright">This is not a Copyright notice.</div>
           </div> <!-- content -->
           ])
-
-    (* XXX should do some parsing and rendering, duh *)
-    fun renderhtml s = s 
-
-    (* renders the current value of the *)
-    fun render () =
-        dom.setstring(dom.getbyid id.rendered,
-                      [innerHTML],
-                      renderhtml (dom.getstring(dom.getbyid id.source, [value])))
 
     (* to go to an article, we fetch its source from the server, then change the
        current article name, ... 
@@ -68,8 +85,10 @@ unit
        *)
     fun goto-article name =
         let
-            val contents = (from server get trivialdb.read name) : string @ home
+            put name = name
+            val contents = from server get trivialdb.read name
         in
+            articlename := name;
             dom.setstring(dom.getbyid id.articlename, [innerHTML], name);
             (* XXX need escaping? *)
             dom.setstring(dom.getbyid id.source,
@@ -78,7 +97,9 @@ unit
             render()
         end
 
-    do goto-article "main"
+    do goto-article [main]
+
+    (* do dom.setstring(dom.getbyid id.source, [onchange], say render()) *)
 
 (*
     put k = [tdb-test]

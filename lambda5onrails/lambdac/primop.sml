@@ -48,6 +48,12 @@ struct
       | PGet
       | PRef
 
+      (* string operations. strings are not arrays since
+         they have more efficient native representations *)
+      | PStringSub
+      | PStringSubstring        
+      | PStringLength
+
       (* arrays and vectors use these *)
       | PArray
       | PArray0
@@ -103,6 +109,9 @@ struct
       ("Eqs", PEqs),
       ("Print", PPrint),
       ("Neg", PNeg),
+      ("StringSub", PStringSub),
+      ("StringSubstring", PStringSubstring),
+      ("StringLength", PStringLength),
       ("Set", PSet),
       ("Get", PGet),
       ("Ref", PRef),

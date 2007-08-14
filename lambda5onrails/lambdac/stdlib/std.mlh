@@ -17,6 +17,11 @@ fun (t) :=(r, a) = primapp Set { t } (r, a)
 fun (t) ! r = primapp Get { t } (r)
 fun (t) ref a = primapp Ref { t } (a)
 
+fun size s = primapp StringLength { } (s)
+(* XXX bounds on these two? They can fail at runtime, but safely... *)
+fun ssub (s, x) = primapp StringSub { } (s, x)
+fun substring (s, start, len) = primapp StringSubstring { } (s, start, len)
+
 extern bytecode world server
 extern val home ~ home addr
 extern val server ~ server addr
