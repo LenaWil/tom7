@@ -16,7 +16,7 @@ struct
           "{" ^ StringUtil.delimit ", " (map (fn (s, p) =>
                                               s ^ " = " ^
                                               ptos p) spl) ^ "}"
-        | ptos (PConstrain (p, t)) = ptos p ^ " : t" (* XXX *)
+        | ptos (PConstrain (p, t, wo)) = ptos p ^ " : t" (* XXX *)
         | ptos (PConstant _) = "constant" (* XXX *)
         | ptos (PApp (s, SOME p)) = "(" ^ s ^ " " ^ ptos p ^ ")"
         | ptos (PApp (s, NONE)) = "(" ^ s ^ " (-none-))"

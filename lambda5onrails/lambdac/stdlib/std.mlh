@@ -17,6 +17,10 @@ fun (t) :=(r, a) = primapp Set { t } (r, a)
 fun (t) ! r = primapp Get { t } (r)
 fun (t) ref a = primapp Ref { t } (a)
 
+extern bytecode world server
+extern val home ~ home addr
+extern val server ~ server addr
+
 (* standard trick to turn a function into
    a real continuation. *)
 fun cont (f : unit -> unit) : unit cont =

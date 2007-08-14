@@ -51,7 +51,34 @@ unit
 
           <div class="copyright">This is not a Copyright notice.</div>
           </div> <!-- content -->
-         ])
+          ])
+
+    (* XXX should do some parsing and rendering, duh *)
+    fun renderhtml s = s 
+
+    (* renders the current value of the *)
+    fun render () =
+        dom.setstring(dom.getbyid id.rendered,
+                      [innerHTML],
+                      renderhtml (dom.getstring(dom.getbyid id.source, [value])))
+
+    (* to go to an article, we fetch its source from the server, then change the
+       current article name, ... 
+       XXX should lock
+       *)
+    fun goto-article name =
+        let
+            val contents = (from server get trivialdb.read name) : string @ home
+        in
+            dom.setstring(dom.getbyid id.articlename, [innerHTML], name);
+            (* XXX need escaping? *)
+            dom.setstring(dom.getbyid id.source,
+                          [value],
+                          contents);
+            render()
+        end
+
+    do goto-article "main"
 
 (*
     put k = [tdb-test]

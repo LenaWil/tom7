@@ -167,6 +167,11 @@ struct
                 val (bb, bt) = elab ctx there body
               in
                 require_mobile ctx loc "get" bt;
+                print "in get: here = ";
+                Layout.print(ILPrint.wtol here, print);
+                print " and there = ";
+                Layout.print(ILPrint.wtol there, print);
+                print "\n";
                 (Get { addr = aa, typ = bt, body = bb, dest = there }, bt)
               end
 
@@ -451,7 +456,7 @@ struct
 
                    (* force case args to be variables, if they aren't. *)
                    fun force nil nc acc =
-                            Pattern.elaborate true elab elabt nc here loc
+                            Pattern.elaborate true elab elabt elabw nc here loc
                                  (rev acc, m, def)
                      | force ((E.Var v, _)::rest) nc acc = 
                             force rest nc (v::acc)
@@ -499,7 +504,7 @@ struct
                         
                     (* XXX5 and world.. *)
                     val (match, mt) = 
-                        Pattern.elaborate true elab elabt mctx here loc
+                        Pattern.elaborate true elab elabt elabw mctx here loc
                            ([es], ListUtil.mapfirst ListUtil.list pel, def)
                 in
                     unify ctx loc "handle" tt mt;
@@ -568,7 +573,7 @@ struct
               let
                   (* base case *)
                   val (exp, tt) = 
-                      Pattern.elaborate true elab elabt ctx here loc
+                      Pattern.elaborate true elab elabt elabw ctx here loc
                          ([arg],
                           [([pat], e)],
                           (fn () =>
@@ -1300,8 +1305,8 @@ struct
             in
               (decls @ decls2, ctx)
             end
-    | E.Bind (b, tyvars, E.PConstrain (p, t), exp) =>
-            elabd ctx here (E.Bind (b, tyvars, p, (E.Constrain(exp, t, NONE), loc)), loc)
+    | E.Bind (b, tyvars, E.PConstrain (p, t, wo), exp) =>
+            elabd ctx here (E.Bind (b, tyvars, p, (E.Constrain(exp, t, wo), loc)), loc)
     | E.Bind (_, _, E.PApp _, _) => error loc "app patterns are refutable"
     | E.Bind (_, _, E.PConstant _, _) => error loc "constant patterns are refutable"
     | E.Bind (_, _, E.PWhen _, _) => error loc "when patterns are refutable"

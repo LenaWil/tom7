@@ -109,6 +109,7 @@ struct
          (user : bool)
          (elab : Context.context -> IL.world -> EL.exp -> IL.exp * IL.typ)
          (elabt : Context.context -> Pos.pos -> EL.typ -> IL.typ)
+         (elabw : Context.context -> Pos.pos -> string -> IL.world)
          (ctx : Context.context)
          (here : IL.world)
          (loc : Pos.pos) obs columns es def =
@@ -607,7 +608,7 @@ struct
 
                                      (* clean new column. *)
                                      val (ncol, ne) =
-                                         clean nctx loc elabt insidee
+                                         clean nctx loc elabt elabw insidee
                                              ruledom ocol oe
 
                                      val rest = ListUtil.transpose rest
@@ -777,7 +778,7 @@ struct
 
                                                (* clean new column. *)
                                                val (ncol, ne) =
-                                                   clean nctx loc elabt insides
+                                                   clean nctx loc elabt elabw insides
                                                           ruledom ocol oe
 
                                                val rest = ListUtil.transpose rest
@@ -1166,7 +1167,7 @@ struct
 
                              (* clean column *)
                              val (col, nes) = 
-                                 clean nc loc elabt ss t col oes
+                                 clean nc loc elabt elabw ss t col oes
 
                              val (ee, tt) = 
                                  recurse rest 
@@ -1201,6 +1202,7 @@ struct
 
      elab         --  Elaborate.elab
      elabt        --  Elaborate.elabt
+     elabw        --  Elaborate.elabw
      ctx          --  The current context
      here         --  The current world (the whole pattern must be at the same world)
      objs         --  List of case objects   (case obj of ...)
@@ -1222,7 +1224,7 @@ struct
      variables to be shadowed in a pattern row. *)
 
 
-  and elaborate user elab elabt (ctx : C.context) (here : IL.world) loc
+  and elaborate user elab elabt elabw (ctx : C.context) (here : IL.world) loc
                   (obs : string list, 
                    m   : (E.pat list * E.exp) list,
                    def : unit -> E.exp) =
@@ -1261,7 +1263,7 @@ struct
           val (columns, es) = 
               (ListUtil.foldl3
                (fn ((pl, tv, ob), (cols, es)) => 
-                let val  (ccs, ees) = clean ctx loc elabt ob tv pl es
+                let val  (ccs, ees) = clean ctx loc elabt elabw ob tv pl es
                 in (ccs :: cols, ees)
                 end) (nil, es) columns tvs obs)
               handle ListUtil.ListUtil => 
@@ -1274,7 +1276,7 @@ struct
           length tvs = length columns
              orelse raise Pattern "wrong number of pattern columns for args";
 
-          elabmatrix user elab elabt ctx here loc obs columns es def
+          elabmatrix user elab elabt elabw ctx here loc obs columns es def
 
       end
 
@@ -1285,7 +1287,7 @@ struct
 
      Return the new column and the new list of expressions.
      *)
-  and clean ctx loc elabt a tv pl (es : EL.exp list) 
+  and clean ctx loc elabt elabw a tv pl (es : EL.exp list) 
         : (EL.pat list * EL.exp list) =
       let
           fun one (p, e) =
@@ -1298,11 +1300,15 @@ struct
                                             loc), e), loc))
                        end
                  | E.PVar s => one (E.PAs (s, E.PWild), e)
-                 | E.PConstrain (pp, tt) =>
-                       let val t = elabt ctx loc tt
+                 | E.PConstrain (pp, tt, NONE) =>
+                       let 
+                         val t = elabt ctx loc tt
+                         val wo = elabw
                        in unify ctx loc "pattern constraint" tv t;
                           one (pp, e)
                        end
+                 | E.PConstrain (pp, tt, _) => raise Pattern "XXX world pattern constrains unimplemented"
+
                  | _ => (p, e))
       in
           ListPair.unzip `
