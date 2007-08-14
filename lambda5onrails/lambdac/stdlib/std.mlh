@@ -34,6 +34,8 @@ fun cont (f : unit -> unit) : unit cont =
    anywhere *)
 extern val itos : int -> string  @ home = lc_itos
 
+extern val runtime.no-messages : unit -> unit  @ home = lc_nomessages
+
 (*
 
 (* install top-level exception handler. *)

@@ -1,13 +1,59 @@
+(* This is an attempt at a "real" application in ML5.
+   It is a very small Wiki that allows for the creation of
+   articles with arbitrary string names, and with links between them
+   using [[bracket]] syntax.
+
+   The article XYZ is stored in the trivial-db key wiki.XYZ as its
+   raw wiki source code (string).
+   All rendering is performed on the client.
+   
+
+*)
+
 unit
     import "std.mlh"
     import "dom.mlh"
     import "trivialdb.mlh"
+        
+    (* page skeleton. this doesn't change. *)
+    val id.articlename = [articlename]
+    val id.rendered = [rendered]
+    val id.source = [source]
 
-    (* put binds a valid variable. the type of the expression (here,
-string) must be mobile *)
+    do dom.setstring 
+        (dom.getbyid [page],
+         [innerHTML],
+         [<style>[datafile "wiki.css"]</style>
+          <div id="container"><div style="float:left;">
+           <center><img src="/logo.png" /></center>
+           <br/>
+           <div class="sidebar">
+             <a class="blue" href="/default/home">Home page</a><br/>
+             <a class="red" href="/default/featured">Featured content</a><br/>
+             <a class="blue" href="/default/TPL">License</a><br/>
+             <a class="blue" href="/default/about">About Wikiplia</a><br/>
+           </div>
+          </div> <!-- container -->
+          
+          <div style="margin-left:140;" id="content">
+           <div class="tabs">
+            <span class="userimage" style="float:right">
+             <a class="blue" href="/default/128.2.203.136">128.2.203.136</a></span>
+            <span class="tab"><a href="/view/_/home">these</a></span>
+            <span class="tab"><a href="/edit/home">tabs</a></span>
+            <span class="tab"><a href="/history/home">don't</a></span>
+            <span class="tab"><a href="/run/home">do anything yet</a></span>
+           </div>
+           <div id="[id.articlename]" class="heading">articlename</div> <br />
 
-    do runtime.no-messages ()
+          <div id="[id.rendered]" class="rendered">rendered contents</div> <br />
+          <textarea id="[id.source]" class="source">the source code</textarea>
 
+          <div class="copyright">This is not a Copyright notice.</div>
+          </div> <!-- content -->
+         ])
+
+(*
     put k = [tdb-test]
 
     extern bytecode world server
@@ -32,8 +78,8 @@ string) must be mobile *)
             put s = dom.getstring (nb, [value])
         in
             (from server 
-             get trivialdb.update (k, s))
-            (* alert [The key has been set.] *)
+             get trivialdb.update (k, s));
+            alert [The key has been set.]
         end
 
 
@@ -67,5 +113,6 @@ string) must be mobile *)
                                        </div>
                                        ])
 
+*)
 in
 end

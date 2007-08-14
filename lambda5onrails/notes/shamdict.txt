@@ -334,3 +334,11 @@ dictionary that reestablishes the dictionary invariant, we needn't
 also pass that along inside the argument.. especially since we won't
 have one to pass along.
 
+
+
+ 8 Aug 2007
+ (thought: Can the sham+alllam translation be made simpler by
+  translating   {w}v to {w}alllam<w>.v
+  and a use       u  to u<here>
+  and then relying on the translation of alllam to insert
+  the dictionary properly? maybe?)
