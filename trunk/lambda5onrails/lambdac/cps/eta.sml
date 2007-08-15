@@ -2,7 +2,7 @@
    continuations, so we reduce these. This is a simple syntactic
    substitution. *)
 
-structure CPSEta =
+structure CPSEta :> CPSETA =
 struct
 
   structure V = Variable

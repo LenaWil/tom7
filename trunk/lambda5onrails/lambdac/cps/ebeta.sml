@@ -2,7 +2,7 @@
    wasteful way that we transform fsel when there is just
    one function in the bundle. *)
 
-structure CPSEBeta =
+structure CPSEBeta :> CPSEBETA =
 struct
 
   structure V = Variable
