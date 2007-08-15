@@ -3,10 +3,13 @@
    improve the performance of the CPS implementation (including free
    variable sets), this will become faster automatically.
 
+   Right now this only does letsham elimination, since that's needed
+   to get direct calls to work.
+
    (Or we can rewrite to work like the IL and JS optimization phases.) *)
 
 
-structure CPSDead =
+structure CPSDead :> CPSDEAD =
 struct
 
   structure V = Variable
@@ -25,54 +28,47 @@ struct
     end
     
   exception No
-  fun etae e = 
+  fun deade e = 
     let
-      fun don't () = pointwisee I etav etae e
+      (* this is a bottom up pass... *)
+      val e = pointwisee I deadv deade e
     in
       case cexp e of
-        Letsham (v, va, e) =
-        if 
-
-
+        Letsham (u, va, ebod) =>
+          if isufreeine u ebod
+          then e
+          else
+            let in
+              score "LETSHAM" 50;
+              ebod
+            end
+      (* PERF more! *)
+      | _ => e
     end
 
-  and etav v =
-    let fun don't () = pointwisev I etav etae v
+  and deadv v = 
+    let
+      val v = pointwisev I deadv deade v
     in
       case cval v of
-        VTUnpack (tv, dv, xs, obj, v) =>
-          (case cval obj of
-             (* ignore annotation *)
-             TPack (t, _, d, vs) =>
-               (* let's do it! *)
-               if length vs = length xs 
-               then
-                 let
-                   (* also ignore annotation on vars *)
-                   val xv = ListPair.zip (vs, map #1 xs)
-                   (* we can only substitute uvars for uvars,
-                      so just bind this one *)
-                   val v = VLetsham' (dv, d, v)
-                   (* substitute values *)
-                   val v = foldr (fn ((vv, xx), v) => CPS.subvv vv xx v) v xv
-                   (* substitute type *)
-                   val v = CPS.subtv t tv v
-                 in
-                   score "EBETA" 100;
-                   etav v
-                 end
-               else raise EBeta "unpack-pack value length mismatch"
-           | _ => don't ())
-      | _ => don't ()
+        VLetsham (u, va, vbod) =>
+          if isufreeinv u vbod
+          then v
+          else
+            let in
+              score "VLETSHAM" 50;
+              vbod
+            end
+      | _ => v
     end
 
-  fun optimize e =
+  fun optimize (_ : CPSTypeCheck.context) e =
     let 
       fun go e =
-        let val e = etae e
+        let val e = deade e
         in
           if !total > 0
-          then (print ("Did " ^ Int.toString (!total) ^ " units of ebeta reduction.\n");
+          then (print ("Did " ^ Int.toString (!total) ^ " units of dead code elimination.\n");
                 reset ();
                 go e)
           else e

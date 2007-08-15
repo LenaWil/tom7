@@ -55,9 +55,9 @@ struct
 
        *)
   exception No
-  fun etae e = pointwisee I etav etae e
-  and etav v =
-    let fun don't () = pointwisev I etav etae v
+  fun betae e = pointwisee I betav betae e
+  and betav v =
+    let fun don't () = pointwisev I betav betae v
     in
       case cval v of
         VTUnpack (tv, dv, xs, obj, v) =>
@@ -79,7 +79,7 @@ struct
                    val v = CPS.subtv t tv v
                  in
                    score "EBETA" 100;
-                   etav v
+                   betav v
                  end
                else raise EBeta "unpack-pack value length mismatch"
            | _ => don't ())
@@ -89,7 +89,7 @@ struct
   fun optimize e =
     let 
       fun go e =
-        let val e = etae e
+        let val e = betae e
         in
           if !total > 0
           then (print ("Did " ^ Int.toString (!total) ^ " units of ebeta reduction.\n");
