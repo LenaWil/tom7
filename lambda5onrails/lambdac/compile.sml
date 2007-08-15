@@ -94,6 +94,16 @@ struct
         FSUtil.chdir_excursion fullfile
         (fn file =>
         let
+            fun cpspass name f (G : CPSTypeCheck.context) (c : CPS.cexp) =
+              let
+                val () = print ("\n\n**** CPS " ^ name ^ " ****\n")
+                val c : CPS.cexp = f G c
+                val () = showcpsphase c
+                val () = T.check G c
+                val () = print "\n* Typechecked OK *\n"
+              in
+                c
+              end
 
             (* if there's no outfile, base it on the input name *)
 
@@ -155,10 +165,12 @@ struct
             val () = print "\n\n**** CPS EBETA ****\n";
             val c : CPS.cexp = CPSEBeta.optimize c
             val () = showcpsphase c
-
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
+            (* make more phases use this, nicer *)
+            val c = cpspass "DEAD" CPSDead.optimize G c
+            val c = cpspass "KNOWN" CPSKnown.optimize G c
 
             val () = print "\n\n**** UNDICT: ****\n"
             val c : CPS.cexp = UnDict.undict cw c
@@ -185,30 +197,31 @@ struct
         end)
     handle 
            Done s => fail ("Stopped early due to " ^ s ^ " flag.")
-         | CPS.CPS s => fail ("Internal error in CPS:\n" ^ s)
-         | Dict.Dict s => fail ("CPSDict: " ^ s)
-         | Compile s => fail ("Compilation failed:\n    " ^ s)
-         | Closure.Closure s => fail ("Closure conversion: " ^ s)
-         | CPSTypeCheck.TypeCheck s => fail ("Internal error: Type checking failed:\n" ^ s)
-         | UnDict.UnDict s => fail("UnDict: " ^ s)
-         | ILUnused.Unused s => fail ("IL unused: " ^ s)
-         | Nullary.Nullary s => fail ("Couldn't do EL nullary prepass:\n" ^ s)
-         | ToCPS.ToCPS s => fail ("ToCPS: " ^ s)
-         | Variable.Variable s => fail ("BUG: Variables: " ^ s)
-         | Context.Absent (what, s) => fail ("Internal error: Unbound " ^ 
-                                             what ^ " identifier '" ^ s ^ "'")
-         | Context.Context s => fail ("Context: " ^ s)
-         | Elaborate.Elaborate s => fail("Elaboration: " ^ s)
-         | PrimTypes.PrimTypes s => fail("PrimTypes: " ^ s)
-         | Podata.Podata s => fail("primop data: " ^ s)
-         | CPSEta.Eta s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
-         | Hoist.Hoist s => fail ("Hoist: " ^ s)
+         | CPSDead.Dead s => fail("CPS Dead code elimination: " ^ s)
+         | CPSKnown.Known s => fail("CPS knowledge-based reduction: " ^ s)
          | ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
          | BytePrint.BytePrint s => fail("Bytecode print: " ^ s)
+         | CPS.CPS s => fail ("Internal error in CPS:\n" ^ s)
+         | CPSEta.Eta s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
+         | CPSTypeCheck.TypeCheck s => fail ("Internal error: Type checking failed:\n" ^ s)
+         | Closure.Closure s => fail ("Closure conversion: " ^ s)
          | Codegen.Codegen s => fail ("Code generation: " ^ s)
+         | Compile s => fail ("Compilation failed:\n    " ^ s)
+         | Context.Absent (what, s) => fail ("Internal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'")
+         | Context.Context s => fail ("Context: " ^ s)
+         | Dict.Dict s => fail ("CPSDict: " ^ s)
+         | Elaborate.Elaborate s => fail("Elaboration: " ^ s)
+         | Hoist.Hoist s => fail ("Hoist: " ^ s)
+         | ILAlpha.Alpha s => fail ("IL Alpha: " ^ s)
+         | ILUnused.Unused s => fail ("IL unused: " ^ s)
          | JSCodegen.JSCodegen s => fail("Javascript codegen: " ^ s)
          | JSOpt.JSOpt s => fail("Javascript optimization: " ^ s)
-         | ILAlpha.Alpha s => fail ("IL Alpha: " ^ s)
+         | Nullary.Nullary s => fail ("Couldn't do EL nullary prepass:\n" ^ s)
+         | Podata.Podata s => fail("primop data: " ^ s)
+         | PrimTypes.PrimTypes s => fail("PrimTypes: " ^ s)
+         | ToCPS.ToCPS s => fail ("ToCPS: " ^ s)
+         | UnDict.UnDict s => fail("UnDict: " ^ s)
+         | Variable.Variable s => fail ("BUG: Variables: " ^ s)
          | Write.Write s => fail ("Write: " ^ s)
          | ex => (print ("\nUncaught exception: " ^ exnName ex ^ ": " ^
                          exnMessage ex);

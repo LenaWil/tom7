@@ -1,9 +1,9 @@
-signature CPSEBETA =
+signature CPSDEAD =
 sig
 
-  exception EBeta of string
+  exception Dead of string
 
   (* optimize this CPS expression *)
-  val optimize : CPS.cexp -> CPS.cexp
+  val optimize : CPSTypeCheck.context -> CPS.cexp -> CPS.cexp
 
 end
