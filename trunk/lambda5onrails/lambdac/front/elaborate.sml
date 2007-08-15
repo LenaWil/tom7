@@ -406,12 +406,12 @@ struct
                    val (ee, tt) = elab ctx here e
                    val tc = elabt ctx loc t
 
-                   val cw = (case wo of 
+                   val wc = (case wo of 
                                NONE => new_wevar ()
                              | SOME w => elabw ctx loc w)
                in
                    unify ctx loc "constraint" tt tc;
-                   unifyw ctx loc "constrain:world" cw cw;
+                   unifyw ctx loc "constrain:world" here wc;
                    (ee, tc)
                end
 
