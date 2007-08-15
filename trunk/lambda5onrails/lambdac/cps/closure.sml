@@ -660,7 +660,14 @@ struct
                               dict, environment. *)
                            (TVar' venvt,
                             tres,
-                            Sham0' ` UVar' vde,
+                            (* better to recompute the dictionary,
+                               since in the most common case (single fun)
+                               we are going to reduce this and we don't
+                               want the dictionary variable to be free at
+                               all so that we can reduce further. Dictfor
+                               will use vde if necessary, however. *)
+                            Sham0' ` Dictfor' ` TVar' venvt,
+                            (* Sham0' ` UVar' vde, *)
                             [Var' venv,
                              Fsel' (Var' vfs, i)])),
                 tres)
