@@ -6,7 +6,7 @@ struct
         (SOME ("-showil",
                "Show internal language AST")) "showil"
 
-    val showcps = Params.flag false
+    val showcps = Params.flag true
         (SOME ("-showcps", 
                "Show internal CPS after each phase")) "showcps"
 
@@ -121,8 +121,9 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
-            val () = print "\n\n**** CPS OPT1: ****\n"
-            val c : CPS.cexp = CPSOpt.optimize c
+            (* undoes some CPS conversion waste *)
+            val () = print "\n\n**** CPS ETA: ****\n"
+            val c : CPS.cexp = CPSEta.optimize c
             val () = showcpsphase c
 
             val () = T.check G c
@@ -138,12 +139,22 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
+
             val () = print "\n\n**** CLOSURE: ****\n"
             val c : CPS.cexp = Closure.convert cw c
             val () = showcpsphase c
 
             (* from now on, code should be closed. *)
             val G = T.setopts G [T.O_CLOSED, T.O_EXTERNDICTS]
+
+            val () = T.check G c
+            val () = print "\n* Typechecked OK *\n"
+
+            (* implements direct calls and undoes senseless
+               closure conversions *)
+            val () = print "\n\n**** CPS EBETA ****\n";
+            val c : CPS.cexp = CPSEta.optimize c
+            val () = showcpsphase c
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
@@ -184,12 +195,13 @@ struct
          | Nullary.Nullary s => fail ("Couldn't do EL nullary prepass:\n" ^ s)
          | ToCPS.ToCPS s => fail ("ToCPS: " ^ s)
          | Variable.Variable s => fail ("BUG: Variables: " ^ s)
-         | Context.Absent (what, s) => fail ("Internal error: Unbound " ^ what ^ " identifier '" ^ s ^ "'")
+         | Context.Absent (what, s) => fail ("Internal error: Unbound " ^ 
+                                             what ^ " identifier '" ^ s ^ "'")
          | Context.Context s => fail ("Context: " ^ s)
          | Elaborate.Elaborate s => fail("Elaboration: " ^ s)
          | PrimTypes.PrimTypes s => fail("PrimTypes: " ^ s)
          | Podata.Podata s => fail("primop data: " ^ s)
-         | CPSOpt.CPSOpt s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
+         | CPSEta.Eta s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
          | Hoist.Hoist s => fail ("Hoist: " ^ s)
          | ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
          | BytePrint.BytePrint s => fail("Bytecode print: " ^ s)

@@ -1,7 +1,8 @@
-(* PERF could definitely use some more optimizations!
-   Right now we only do eta reduction. *)
+(* Eta reduction. CPS conversion can introduce lots of eta-expanded
+   continuations, so we reduce these. This is a simple syntactic
+   substitution. *)
 
-structure CPSOpt =
+structure CPSEta =
 struct
 
   structure V = Variable
@@ -9,7 +10,7 @@ struct
 
   fun I x = x
 
-  exception CPSOpt of string
+  exception Eta of string
 
   val total = ref 0
   fun reset () = total := 0
@@ -64,7 +65,7 @@ struct
         let val e = etae e
         in
           if !total > 0
-          then (print ("Did " ^ Int.toString (!total) ^ " units of optimization.\n");
+          then (print ("Did " ^ Int.toString (!total) ^ " units of eta reduction.\n");
                 reset ();
                 go e)
           else e

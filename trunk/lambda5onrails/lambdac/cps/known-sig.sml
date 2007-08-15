@@ -1,7 +1,7 @@
-signature CPSOPT =
+signature CPSKNOWN =
 sig
 
-  exception CPSOpt of string
+  exception Known of string
 
   (* optimize this CPS expression *)
   val optimize : CPS.cexp -> CPS.cexp
