@@ -207,6 +207,11 @@ sig
   (* note, t will always be empty *)
   val freesvarsw : world -> { t : Variable.Set.set, w : Variable.Set.set }
 
+  val isvfreeinv : var -> cval -> bool
+  val isvfreeine : var -> cexp -> bool
+  val isufreeinv : var -> cval -> bool
+  val isufreeine : var -> cexp -> bool
+
   (* injective constructors *)
   val At' : ctyp * world -> ctyp
   val Cont' : ctyp list -> ctyp

@@ -1138,4 +1138,28 @@ struct
       | freesvarsw (WC _) = { t = VS.empty, w = VS.empty }
   end
 
+  local 
+    exception Yes
+    
+    fun at t = t
+    and av v' v =
+      (case cval v of
+         Var vv => if V.eq (vv, v') then raise Yes
+                   else v
+       | UVar uu => if (V.eq (uu, v') then raise Yes
+                    else v
+       | _ => pointwisev at (av v') (ae v') v)
+    and ae v' e = pointwisee at (av v') (ae v') e
+  in
+    fun isvfreeinv v va = (av v va; false) handle Yes => true
+    fun isvfreeine v ex = (ae v ex; false) handle Yes => true
+
+    (* These are actually implemented the same way, since
+       we internally have disjoint sets of modal and valid
+       vars. (but we could distinguish them with different versions
+       of av above...) *)
+    val isufreeinv = isvfreeinv
+    val isufreeine = isvfreeine
+  end
+
 end
