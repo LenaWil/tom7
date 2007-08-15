@@ -157,8 +157,8 @@ cps/typecheck.sml
 cps/tocps-sig.sml
 cps/tocps.sml
 
-cps/opt-sig.sml
-cps/opt.sml
+cps/eta-sig.sml
+cps/eta.sml
 
 cps/pass-sig.sml
 cps/pass.sml
@@ -168,6 +168,9 @@ cps/dict.sml
 
 cps/closure-sig.sml
 cps/closure.sml
+
+cps/known-sig.sml
+cps/known.sml
 
 cps/undict-sig.sml
 cps/undict.sml
