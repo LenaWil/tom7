@@ -1,10 +1,17 @@
 (* Known is an optimization pass that reduces elimination
    forms where the object is a known introduction form.
 
-   As a result this implements direct calls, since it 
+   As a result this implements direct calls, since it
+   reduces the idiom
+
+   let closure = pack ...
+   in
+      unpack closure as f, env
+      in 
+      call(f, env, args)
 *)
 
-structure CPSKnown =
+structure CPSKnown :> CPSKNOWN =
 struct
 
   structure V = Variable
@@ -21,45 +28,19 @@ struct
       print (s ^ ".\n");
       total := !total + n
     end
+
+  structure DA : PASSARG where type stuff = VS.set =
+  struct
+    type stuff = VS.set
+    structure ID = IDPass(type stuff = stuff
+                          val Pass = Exn.Dict)
+    open ID
+
+    (* fun case_ *)
+
+  end
     
-  (* eta-reduce:
-
-     lam _ (arg0 ... argn).
-       call f(arg0 ... argn)      -->    f
-
-     (note this is actually
-
-     lams (_ (arg0 ... argn).  call val(arg0 ... argn)).0  -->  val
-
-       *)
-  exception No
-  fun etae e = pointwisee I etav etae e
-  and etav v =
-    let fun don't () = pointwisev I etav etae v
-    in
-      case cval v of
-         Fsel (lams, 0) =>
-           (case cval lams of
-              Lams [(vrec, args, e)] =>
-                (case cexp e of
-                   Call (vf : cval, args') =>
-                     (* must be all variables *)
-                     (let val args' = map (fn (Var x) => x | _ => raise No) (map cval args')
-                      in
-                        (* must be same args. *)
-                        if ListUtil.all2 V.eq (map #1 args) args'
-                        then
-                          let in
-                            score "ETA" 50;
-                            etav vf
-                         end
-                        else don't ()
-                      end handle No => don't ())
-                 | _ => don't ())
-            | _ => don't ())
-       | _ => don't ()
-    end
-
+(*
   fun optimize e =
     let 
       fun go e =
@@ -74,5 +55,5 @@ struct
     in
       go e
     end
-
+*)
 end

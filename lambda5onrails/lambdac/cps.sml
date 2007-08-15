@@ -1146,7 +1146,7 @@ struct
       (case cval v of
          Var vv => if V.eq (vv, v') then raise Yes
                    else v
-       | UVar uu => if (V.eq (uu, v') then raise Yes
+       | UVar uu => if V.eq (uu, v') then raise Yes
                     else v
        | _ => pointwisev at (av v') (ae v') v)
     and ae v' e = pointwisee at (av v') (ae v') e

@@ -1,8 +1,12 @@
-(* Beta reduction of existentials. This corrects for the
-   wasteful way that we transform fsel when there is just
-   one function in the bundle. *)
+(* Simple dead code elimination. This is quite slow because it
+   computes free variable sets for every binding. But since we plan to
+   improve the performance of the CPS implementation (including free
+   variable sets), this will become faster automatically.
 
-structure CPSEBeta =
+   (Or we can rewrite to work like the IL and JS optimization phases.) *)
+
+
+structure CPSDead =
 struct
 
   structure V = Variable
@@ -10,7 +14,7 @@ struct
 
   fun I x = x
 
-  exception EBeta of string
+  exception Dead of string
 
   val total = ref 0
   fun reset () = total := 0
@@ -20,42 +24,18 @@ struct
       total := !total + n
     end
     
-
-  (* beta reduce
-
-     vtunpack (pack T, v1..vn, D)
-     as t, x1..xn, d
-     in v
-
-      -->
-
-     [T/t] [v1/x1]..[vn/xn][D/d] v
-     
-     (Although note that the dictionary is not necessary, since no
-      abstract type variable is bound now! Still, the body might
-      use it, so we substitute it through.)
-
-     Also note that since we do substitutions, this is not a
-     conservative optimization. However, the only place we insert
-     vtunpack is for fsel rejiggering, in which case each var is used
-     only once as we repack the closure.
-
-     (we could also do this one, but don't for now. we don't generate it.)
-     unpack (pack T, v1..vn, D)
-     as t, x1..xn, d
-     in E
-
-      -->
-
-     [T/t] (let x1 = v1
-                 ..
-            let xn = vn
-            (* dict not necessary *)
-            in E)
-
-       *)
   exception No
-  fun etae e = pointwisee I etav etae e
+  fun etae e = 
+    let
+      fun don't () = pointwisee I etav etae e
+    in
+      case cexp e of
+        Letsham (v, va, e) =
+        if 
+
+
+    end
+
   and etav v =
     let fun don't () = pointwisev I etav etae v
     in
