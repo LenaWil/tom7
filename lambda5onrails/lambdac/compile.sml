@@ -153,7 +153,7 @@ struct
             (* implements direct calls and undoes senseless
                closure conversions *)
             val () = print "\n\n**** CPS EBETA ****\n";
-            val c : CPS.cexp = CPSEta.optimize c
+            val c : CPS.cexp = CPSEBeta.optimize c
             val () = showcpsphase c
 
             val () = T.check G c

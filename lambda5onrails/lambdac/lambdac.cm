@@ -159,6 +159,8 @@ cps/tocps.sml
 
 cps/eta-sig.sml
 cps/eta.sml
+cps/ebeta-sig.sml
+cps/ebeta.sml
 
 cps/pass-sig.sml
 cps/pass.sml
