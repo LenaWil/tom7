@@ -449,7 +449,8 @@ struct
              val fuv = augmentfreevars G { t = t, w = VS.union (w, w') } fv fuv nil
            end
 
-           val { env, envt, wrape, wrapv } = mkenv G (fv, fuv)
+         
+           val { env, envt, wrape, wrapv } = mkenv (T.setworld G wdest) (fv, fuv)
 
            val envv = V.namedvar "go_env"
 

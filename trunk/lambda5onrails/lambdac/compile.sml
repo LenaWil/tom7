@@ -139,6 +139,8 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
+            (* reduce the amount of code as much as possible... *)
+            val c = cpspass "DEAD" CPSDead.optimize G c
 
             val () = print "\n\n**** CPS DICT: ****\n"
             val c : CPS.cexp = Dict.translate G c
@@ -160,22 +162,26 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
-            (* implements direct calls and undoes senseless
-               closure conversions *)
+            (* sometimes undoes senseless closure conversions *)
             val () = print "\n\n**** CPS EBETA ****\n";
             val c : CPS.cexp = CPSEBeta.optimize c
             val () = showcpsphase c
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
-            (* make more phases use this, nicer *)
-            val c = cpspass "DEAD" CPSDead.optimize G c
-            val c = cpspass "KNOWN" CPSKnown.optimize G c
-            val c = cpspass "DEAD" CPSDead.optimize G c
-
             val () = print "\n\n**** UNDICT: ****\n"
             val c : CPS.cexp = UnDict.undict cw c
             val () = showcpsphase c
+
+            (* make more phases use this, nicer.
+
+               can't run DEAD before undict, because it
+               might erase dictionaries that we need, later
+               (but we could create a dict-safe version)
+               *)
+            val c = cpspass "DEAD" CPSDead.optimize G c
+            val c = cpspass "KNOWN" CPSKnown.optimize G c
+            val c = cpspass "DEAD" CPSDead.optimize G c
 
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"

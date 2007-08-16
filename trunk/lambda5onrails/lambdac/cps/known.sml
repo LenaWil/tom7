@@ -58,6 +58,7 @@ struct
       Var _ => true
     | UVar _ => true
     | Int _ => true
+    | Record nil => true
     | Hold (w, v) => small v
     | Sham (w, v) => small v
     | Codelab _ => true
