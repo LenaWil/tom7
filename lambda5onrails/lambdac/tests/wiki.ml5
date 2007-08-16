@@ -24,6 +24,8 @@ unit
 
     extern val alert : string -> unit @ home
 
+    do runtime.no-messages ()
+
     (* XXX should do some parsing and rendering, duh *)
     fun renderhtml s = s 
 
@@ -43,7 +45,7 @@ unit
             put contents = dom.getstring(dom.getbyid id.source, [value])
         in
             from server get trivialdb.update (article, contents);
-            render()
+            render ()
         end
 
     do dom.setstring 
@@ -57,7 +59,7 @@ unit
              <a class="blue" href="/default/home">Home page</a><br/>
              <a class="red" href="/default/featured">Featured content</a><br/>
              <a class="blue" href="/default/TPL">License</a><br/>
-             <a class="blue" href="/default/about">About Wikiplia</a><br/>
+             <a class="blue" href="/default/about">About SERVER5</a><br/>
            </div>
           </div> <!-- container -->
           

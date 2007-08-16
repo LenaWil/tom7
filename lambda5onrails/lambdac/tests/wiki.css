@@ -82,6 +82,7 @@
        .userimage {
           background-repeat:no-repeat;
           padding-left : 18px;
+          margin-bottom : 2px;
           display:block;
           background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAtFBMVEVbSTJaSTRcSDFOTk5tlx92iFSTZCuRZjCWZz27ejSGc1yHdF6VcEGUc0eae1SNfm2md03ZfirdfyyDtiWHuSuKvDOInWGSgWySv0C6nXWXw0eaxU2fx1anzGWpzWnClVrilUPno1bnpVbttWzwv3ufl4yjo6O614a92ojPtZDYuInH35vK4qPN46jR5q7V6LTjxJfxw4Pyyo732qv54Lrd2dTb68Hf7cf76s/h4eHq6ur///8TI7fFAAAAgElEQVQYV2OwRgMMYNJUnEvcFEnAlIuXh53JFCHAzadpIM/GgBDglzQxNuRkRAioahmpKAoyIwSs1JQUhDgskWyxEhAQsETYYqWmpmyhwsxsCRWwUtPXYVURkxIFiwAF1Mz1tNXFZCREhJmhAma6whqy0nIsMAFmBIDbggQICwAA6+4uxXL6Wh0AAAAASUVORK5CYII%3D);
        }

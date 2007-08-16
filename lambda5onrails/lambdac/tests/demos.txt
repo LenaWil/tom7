@@ -3,3 +3,4 @@ get
 saytest2
 threads
 watchkey
+wiki

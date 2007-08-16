@@ -39,6 +39,10 @@ struct
      conservative optimization. However, the only place we insert
      vtunpack is for fsel rejiggering, in which case each var is used
      only once as we repack the closure.
+     (XXX but note: since vn might be a lambda, this could cause 
+      a really bad code blowup. we should check that they are
+      only used once in this reduction.)
+
 
      (we could also do this one, but don't for now. we don't generate it.)
      unpack (pack T, v1..vn, D)
