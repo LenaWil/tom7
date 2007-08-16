@@ -1,0 +1,13 @@
+
+val provide-timer = ()
+
+extern type js.timeoutid = lc_ref
+extern type js.intervalid = lc_ref
+
+(* runs it only once *)
+extern val js.settimeout : string * int -> js.timeoutid  @ home = setTimeout
+extern val js.cleartimeout : js.timeoutid -> unit  @ home = clearTimeout
+
+(* keeps running the cont at the specified interval. *)
+extern val js.setinterval : string * int -> js.intervalid  @ home = setInterval
+extern val js.clearinterval : js.intervalid -> unit  @ home = clearInterval

@@ -598,7 +598,7 @@ struct
 
     | ExternType (v, l, dicto, e) =>
           let
-            val () = print "Externtype.\n"
+            (* val () = print "Externtype.\n" *)
             (* XXX should support mobile types here? *)
             val G = bindtype G v false
             (* and dictionary, if there... *)
@@ -610,9 +610,11 @@ struct
                     (* valid world var can't appear *)
                     | SOME (dv, _) => bindu0var G dv ` Dictionary' ` TVar' v
           in
+            (*
             print "context:\n";
             Layout.print (ctol G, print);
             print "\n\n";
+            *)
             eok G e
           end
 
