@@ -167,13 +167,15 @@ struct
               end
       end
 
-  and makewdict G (WC s) = WDict' s
-    | makewdict G (W w) =
-    let val () = debugdo (fn () => print ("Get dictionary for wvar " ^ V.tostring w ^ "\n"))
-        val u = T.getwdict G w
-    in
-      UVar' u
-    end
+  and makewdict G wor =
+    case world wor of
+      WC s => WDict' s
+    | W w =>
+        let val () = debugdo (fn () => print ("Get dictionary for wvar " ^ V.tostring w ^ "\n"))
+          val u = T.getwdict G w
+        in
+          UVar' u
+        end
 
   and makedict' G ty =
     (case ctyp ty of
@@ -217,7 +219,7 @@ struct
          let 
            val wd = V.namedvar "shamwdict_XXX"
            val G = bindworld G w
-           val G = bindu0var G wd (TWdict' ` W w)
+           val G = bindu0var G wd (TWdict' ` W' w)
          in Dict' ` Shamrock ((w, wd), makedict G t)
          end
 
@@ -254,7 +256,7 @@ struct
            val G = bindtypes G tys
 
            (* Dynamic components *)
-           val G = foldr (fn ((v, u), G) => bindu0var G u (TWdict' ` W v)) G wvys
+           val G = foldr (fn ((v, u), G) => bindu0var G u (TWdict' ` W' v)) G wvys
            val G = foldr (fn ((v, u), G) => bindu0var G u (Dictionary' ` TVar' v)) G tvys
          in
            Dict' ` AllArrow { worlds = wvys,

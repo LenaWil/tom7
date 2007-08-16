@@ -1,0 +1,96 @@
+    16 Aug 2007                Abstract Syntaxes
+
+The CPS "wizard" interface is nice for ensuring that the binding
+structure of the language is observed. But the current implementation
+is very inefficient, obviously, since it traverses the entire
+structure in order to do renaming every time a binder is opened. Also,
+some operations (like computing the free variable set) are not nearly
+as efficient as the client code pretends it is.
+
+It's of course possible to implement the CPS interface more
+efficiently. We can use de Bruijn indices and explicit substitutions
+(now we don't need to traverse at all), and we can cache free variable
+sets, and we can hash cons or whatever. But this is a lot of work.
+Even for the trivial implementation (eager rebinding) that we have
+now, it is a lot of work.
+
+Perhaps a better strategy is to build a generic "syntax" module that
+supports a notion (or notions) of binding and scope, along with efficient
+substitution, free variable sets, etc. We can implement as efficiently
+as we can bear, but the language would be very small, which would make
+trying different interfaces easier.
+
+An analogy would be the Primop arm of the CPS structure: it implements
+a bunch of different things, but most of the internal implementation is
+exactly the same. (We exchange some dynamic checks for the ease of having
+them all implemented the same way.)
+
+So, what would such an AST structure look like?
+
+We probably want distinct "levels." That is: the types are their own
+instance of the AST (functor). Values/Expressions use the types AST
+instance. But expressions can bind type variables, so these leaves
+would not be abstract chunks; the outer AST would need to substitute
+into them.
+
+Actually let's start with just one unified AST.
+
+signature AST =
+sig
+
+    type ast
+    type var
+
+    (* any kind of raw data, never substituted through *)
+    type leaf
+
+    datatype 'ast front =
+       Leaf of leaf
+     (* var is bound within ast *)
+     | Bind of var * 'ast
+     | Seq of 'ast * 'ast
+       (* ? *)
+     | Bindn of var list * 'ast
+     | Seqn of 'ast list
+     | Var of var
+
+    (* substitute [ast/var] ast *)
+    val sub : ast -> var -> ast -> ast
+
+    val look : ast -> front
+    val hide : front -> ast
+
+end
+
+So, something like
+
+    Lam of var * var list * exp
+
+could be represented as
+
+    Seq (Leaf LAM, Bind (v, Bindn (vl, exp)))
+
+or with type annotations?
+
+    Lam of var * (var * typ) list * exp
+
+becomes
+
+    Seq (Leaf LAM, Seq (Seqn [tys], Bindn (vars, exp)))
+
+the important thing is just that the types are in their correct scope.
+
+
+So, converting out of AST has some dynamic checks (after we see LAM we
+expect a certain structure) but the cost can probably be made up by the
+efficiency of the implementation. Let's do it!
+
+
+Benchmarks.
+
+With old CPS implementation, compiling wiki.ml5 @ rev 447,
+
+  real    0m46.715s
+  user    0m42.240s
+  sys     0m3.190s
+

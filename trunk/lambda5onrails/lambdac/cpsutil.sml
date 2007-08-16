@@ -1,5 +1,5 @@
 
-structure CPSUtil =
+structure CPSUtil :> CPSUTIL =
 struct
 
   structure V = Variable
@@ -109,8 +109,10 @@ struct
 
   exception Occurs
 
-  fun occursw var (w as W var') = if V.eq (var, var') then raise Occurs else w
-    | occursw _   (w as WC _)   = w
+  fun occursw var (w : world) =
+    case world w of
+      W var' => if V.eq (var, var') then raise Occurs else w
+    | WC _ => w
 
   fun occursv var (value : cval) =
     (case cval value of
@@ -183,8 +185,10 @@ struct
   end
 
   local
-    fun aw (ws, _) (w as W v) = (ws := VS.add (!ws, v); w)
-      | aw _       (w as WC _) = w
+    fun aw (ws, _) (w : world) =
+      case world w of
+        W v => (ws := VS.add (!ws, v); w)
+      | WC _ => w
 
     and at (ws, ts) typ =
       case ctyp typ of
@@ -218,8 +222,10 @@ struct
     val freesvarst = twicei allt
     val freesvarsv = twicei allv
     val freesvarse = twicei alle
-    fun freesvarsw (W w)  = { t = VS.empty, w = VS.add(VS.empty, w) }
-      | freesvarsw (WC _) = { t = VS.empty, w = VS.empty }
+    fun freesvarsw wor =
+      case world wor of
+        W w =>  { t = VS.empty, w = VS.add(VS.empty, w) }
+      | WC _ => { t = VS.empty, w = VS.empty }
   end
 
   local 

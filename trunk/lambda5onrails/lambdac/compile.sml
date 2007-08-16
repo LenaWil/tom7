@@ -120,7 +120,7 @@ struct
             val il = ILUnused.unused il
             val () = Layout.print( ILPrint.utol il, print)
 
-            val cw = CPS.WC Initial.homename
+            val cw = CPS.WC' Initial.homename
 
             val () = print "\n\n**** CPS CONVERSION... ****\n"
             val c : CPS.cexp = ToCPS.convert il Initial.home
