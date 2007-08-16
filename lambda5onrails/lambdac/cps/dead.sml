@@ -42,6 +42,24 @@ struct
               score "LETSHAM" 50;
               ebod
             end
+      | Primop ([v], CPS.BIND, [va], ebod) => 
+          if isvfreeine v ebod
+          then e
+          else
+            let in
+              score "BIND" 50;
+              ebod
+            end
+      (* common after exploding closure *)
+      | Leta (v, va, ebod) => 
+          if isvfreeine v ebod
+          then e
+          else
+            let in
+              score "LETA" 50;
+              ebod
+            end
+
       (* PERF more! *)
       | _ => e
     end

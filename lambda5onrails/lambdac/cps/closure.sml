@@ -298,12 +298,29 @@ struct
                           typ = t,
                           var = v }
                       end) fuvs
-      fun dowrap LETA LETSHAM env x =
+      
+      (* avoid wrapping if we're at the same world already. *)
+      val here = worldfrom G
+      fun maybehold (world, value) =
+        if world_eq (world, here)
+        then value
+        else Hold' (world, value)
+      fun maybeat (typ, world) =
+        if world_eq (world, here)
+        then typ
+        else At' (typ, world)
+
+      fun dowrap LETA LETSHAM LET env x =
         let
+          fun maybeleta world (var, value, body) =
+            if world_eq (world, here)
+            then LET (var, value, body)
+            else LETA (var, value, body)
+            
           val x = foldr (fn ({label, typ, var}, x) =>
                          LETSHAM (var, Proj' (label, env), x)) x fuvs
           val x = foldr (fn ({label, typ, world, var}, x) =>
-                         LETA (var, Proj' (label, env), x)) x fvs
+                         maybeleta world (var, Proj' (label, env), x)) x fvs
         in
           x
         end
@@ -311,16 +328,17 @@ struct
     in
       { env = Record' `
               (map (fn { label, typ, world, var } =>
-                    (label, Hold' (world, Var' var))) fvs @
+                    (label, maybehold (world, Var' var))) fvs @
                map (fn { label, typ, var } =>
                     (label, Sham' (V.namedvar "unused", UVar' var))) fuvs),
         envt = Product' `
                (map (fn { label, typ, world, var } =>
-                     (label, At' (typ, world))) fvs @
+                     (label, maybeat (typ, world))) fvs @
                 map (fn { label, typ, var } =>
                      (label, Shamrock' typ)) fuvs),
-        wrape = fn (env, v) => dowrap Leta' Letsham' env v,
-        wrapv = fn (env, v) => dowrap VLeta' VLetsham' env v
+        wrape = fn (env, v) => dowrap Leta' Letsham' Bind' env v,
+        (* substitution should be okay, since it's a small thing (projection from a var) *)
+        wrapv = fn (env, v) => dowrap VLeta' VLetsham' (fn (v, va, bod) => subvv va v bod) env v
         }
     end
 

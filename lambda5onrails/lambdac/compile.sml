@@ -171,6 +171,7 @@ struct
             (* make more phases use this, nicer *)
             val c = cpspass "DEAD" CPSDead.optimize G c
             val c = cpspass "KNOWN" CPSKnown.optimize G c
+            val c = cpspass "DEAD" CPSDead.optimize G c
 
             val () = print "\n\n**** UNDICT: ****\n"
             val c : CPS.cexp = UnDict.undict cw c

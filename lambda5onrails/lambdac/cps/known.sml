@@ -74,7 +74,28 @@ struct
       end
       | case_Primop z s a = ID.case_Primop z s a
 
-  (* XXX use knowledge, obviously... *)
+    fun case_TUnpack z (s as ({selfe, selfv, selft}, G)) 
+                       (a as (tv, dv, xs, obj, bod)) =
+       case cval obj of
+         Var v =>
+           (case z ?? v of
+              SOME (Pack { typ, ann = _, dict = _, vals }) =>
+                (* known. do the projections in place, then. *)
+                let
+                  val () = if length xs = length vals then ()
+                           else raise Known "known pack mismatch"
+                  val binds = ListPair.zip (vals, map #1 xs)
+                  val bod = foldr (fn ((v, x), bod) =>
+                                   Bind'(x, v, bod)) bod binds
+                  val bod = Lift' (dv, Dictfor' typ, bod)
+                  val bod = subte typ tv bod
+                in
+                  score "UNPACK" 100;
+                  bod
+                end
+            | NONE => ID.case_TUnpack z s a)
+          (* XXX also uvar *)
+          | _ => ID.case_TUnpack z s a
 
   end
     
