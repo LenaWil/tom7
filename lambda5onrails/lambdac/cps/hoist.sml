@@ -24,7 +24,7 @@ struct
   fun a ` b = a b
 
   exception Hoist of string
-  open CPS
+  open CPS CPSUtil
   structure V = Variable
 
   structure T = CPSTypeCheck

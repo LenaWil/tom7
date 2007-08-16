@@ -1,7 +1,7 @@
 structure CPSTypeCheck :> CPSTYPECHECK =
 struct
   
-  open CPS
+  open CPS CPSUtil
   infixr 9 `
   fun a ` b = a b
 

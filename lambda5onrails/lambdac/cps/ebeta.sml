@@ -6,7 +6,7 @@ structure CPSEBeta :> CPSEBETA =
 struct
 
   structure V = Variable
-  open CPS
+  open CPS CPSUtil
 
   fun I x = x
 
