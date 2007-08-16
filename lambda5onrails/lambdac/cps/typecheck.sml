@@ -351,10 +351,11 @@ struct
     | wtos (WC c) = "##" ^ c
 
   (* some actions ought only happen at the same world we're in now *)
-  fun insistw G w =
+  fun insistw msg G w =
     if world_eq (worldfrom G, w) 
     then ()
-    else raise TypeCheck ("expected to be at same world: "
+    else raise TypeCheck ("when checking " ^ msg ^ "\n" ^
+                          "expected to be at same world: "
                           ^ wtos ` worldfrom G
                           ^ " and "
                           ^ wtos w)
@@ -865,7 +866,7 @@ struct
                                          Layout.str "\n"],
                          print);
            *)
-           insistw G w;
+           insistw ("var " ^ V.tostring v) G w;
            t
          end
 
@@ -979,7 +980,7 @@ struct
         (case getglobal G s of
            Code ((), t, w) =>
              let in
-               insistw G (WC w);
+               insistw "codelab" G (WC w);
                t
              end
          | PolyCode (wv, (), t) => 
