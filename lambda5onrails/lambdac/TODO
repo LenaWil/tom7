@@ -10,14 +10,19 @@ later checks. We ought to run these only when a "paranoid" flag is
 set.
 
 
-Passes to implement:
-
-CPS Optimization
-
  Should support "extern mobile type" (easy, just check
  mobility with concrete type at link time); see Dagstuhl
  talk for compelling example.
 
+Passes to implement:
+
+CPS Optimization
+  * there are some optimizations now, but they should be expanded.
+    especially good would be inlining and unused argument removal. (dicts)
+  * 'known' names subterms and therefore could interfere with later arguments.
+    an inlining phase would undo this.
+  * already-bound, prevent recreation of things that are already bound
+    (subsumes x = y renaming optimization)
 
 --------------------------------------------------
     Things to clean up

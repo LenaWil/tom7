@@ -9,6 +9,13 @@
       unpack closure as f, env
       in 
       call(f, env, args)
+
+   In order to conservatively apply this transformation,
+   we need the arguments to the known introduction form
+   to be small. Otherwise, we can be applying this multiple
+   times and cause a blow-up in size. (This is especially
+   true for the above case when f is a literal lambda.)
+
 *)
 
 structure CPSKnown :> CPSKNOWN =
@@ -20,6 +27,7 @@ struct
 
   infixr 9 `
   fun a ` b = a b
+  fun I x = x
 
   exception Known of string
 
@@ -45,13 +53,36 @@ struct
   fun { v, u } ++  (x, k) = { v = VM.insert(v, x, k), u = u }
   fun { v, u } +++ (x, k) = { u = VM.insert(u, x, k), v = v }
 
+  fun small v =
+    case cval v of
+      Var _ => true
+    | UVar _ => true
+    | Int _ => true
+    | Hold (w, v) => small v
+    | Sham (w, v) => small v
+    | Codelab _ => true
+    | _ => false
+
+(*
+  structure NA : PASSARG where type stuff = unit =
+  struct
+    type stuff = unit
+    structure ID = IDPass(type stuff = stuff
+                          fun Pass s = Known ("(name) " ^ s))
+    open ID
+
+    fun 
+
+  end
+*)
+
   (* things we can know about a bound variable *)
   datatype knowledge =
     Pack of { typ : ctyp, ann : ctyp, dict : cval, vals : cval list }
 
   type stuff = { v : knowledge VM.map,
                  u : knowledge VM.map }
-    
+   
   structure KA : PASSARG where type stuff = stuff =
   struct
     type stuff = stuff
@@ -59,18 +90,60 @@ struct
                           val Pass = Known)
     open ID
 
+    (* name the values in vl, so that if we expand this
+       introduction form later, it doesn't duplicate any
+       large things. 
+
+       the continuation is called with the wrapper function
+       (cexp -> cexp) that does any necessary naming, and
+       the list of values, which will be the same length
+       and all will be 'small' *)
+    fun name nil k = k (I, nil)
+      | name (h :: t) k =
+      if small h
+      then name t (fn (f, l) => k (f, h :: l)) 
+      else name t (fn (f, l) =>
+                   let 
+                     (* XXX improve naming.. *)
+                     val n = (case cval h of
+                                Lams [(v, _, _)] => V.tostring v
+                              | Lams ((v, _, _) :: _) => V.tostring v ^ "_and_friends"
+                              | Fsel (va, x) =>
+                                  (case cval va of
+                                     Lams l => 
+                                       (let val (v, _, _) = List.nth (l, x)
+                                        in V.tostring v
+                                        end handle _ => raise Known "name: fsel oob")
+                                     | Var v => V.tostring v ^ "_fsel"
+                                     | UVar u => V.tostring u ^ "_fsel"
+                                     | _ => "fsel")
+                              | Dictfor _ => "d"
+                              | WDictfor _ => "wd"
+                              | _ => "name")
+
+                     val v = V.namedvar n
+                   in
+                     k (fn exp => Bind' (v, h, f exp),
+                        Var' v :: l)
+                   end)
+
     fun case_Primop z ({selfe, selfv, selft}, G) ([v], CPS.BIND, [obj], e) =
       let
         val (obj, t) = selfv z G obj
         val G = bindvar G v t ` worldfrom G
 
-        val z' =
+        val (z', wrap, obj) =
           case cval obj of
-            TPack (t, ann, dict, vals) => z ++ (v, Pack { typ = t, ann = ann, 
-                                                          dict = dict, vals = vals })
-          | _ => z
+            TPack (t, ann, dict, vals) => 
+              name (dict :: vals)
+              (fn (f, dict' :: vals') =>
+               (z ++ (v, Pack { typ = t, ann = ann, 
+                                dict = dict', vals = vals' }),
+                f, TPack' (t, ann, dict', vals'))
+            | _ => raise Known "impossible name")
+          | _ => (z, I, obj)
       in
-        Primop' ([v], BIND, [obj], selfe z' G e)
+         wrap ` Primop' ([v], BIND, [obj], selfe z' G e)
       end
       | case_Primop z s a = ID.case_Primop z s a
 

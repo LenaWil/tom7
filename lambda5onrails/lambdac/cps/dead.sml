@@ -21,9 +21,9 @@ struct
 
   val total = ref 0
   fun reset () = total := 0
-  fun score s n =
+  fun score var s n =
     let in
-      print (s ^ ".\n");
+      print (s ^ ": " ^ V.tostring var ^ "\n");
       total := !total + n
     end
     
@@ -39,7 +39,7 @@ struct
           then e
           else
             let in
-              score "LETSHAM" 50;
+              score u "LETSHAM" 50;
               ebod
             end
       | Primop ([v], CPS.BIND, [va], ebod) => 
@@ -47,7 +47,7 @@ struct
           then e
           else
             let in
-              score "BIND" 50;
+              score v "BIND" 50;
               ebod
             end
       (* common after exploding closure *)
@@ -56,7 +56,16 @@ struct
           then e
           else
             let in
-              score "LETA" 50;
+              score v "LETA" 50;
+              ebod
+            end
+
+      | Put (v, va, ebod) => 
+          if isvfreeine v ebod
+          then e
+          else
+            let in
+              score v "PUT" 50;
               ebod
             end
 
@@ -74,7 +83,7 @@ struct
           then v
           else
             let in
-              score "VLETSHAM" 50;
+              score u "VLETSHAM" 50;
               vbod
             end
       | _ => v

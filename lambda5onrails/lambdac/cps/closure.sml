@@ -588,6 +588,14 @@ struct
                           bindvar G f t ` worldfrom G
                         end) G vael
 
+           (*
+         val fname = 
+           case vael of
+             [(v, _, _)] => V.tostring v
+           | (v, _, _) :: _ => V.tostring v ^ "_and_friends"
+           | nil => raise Closure "totally empty Lams bundle??"
+             *)
+
          val lams =
             Lams' `
             map (fn (f, args, body) =>
