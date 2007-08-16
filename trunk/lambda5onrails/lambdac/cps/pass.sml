@@ -30,7 +30,7 @@ struct
 
   structure V = Variable
   structure VS = Variable.Set
-  open CPS
+  open CPS CPSUtil
 
   infixr 9 `
   fun a ` b = a b

@@ -56,7 +56,7 @@ struct
                            "and ")])
          | At (t, w) => L.paren ` %[ttol t, L.indent 2 ` %[$"at", wtol w]]
          | Shamrock (v, t) =>
-               (* %[if CPS.freet v t
+               (* %[if CPSUtil.freet v t
                   then $("{" ^ V.tostring v ^ "}")
                   else $"{}", L.indent 2 ` ttol t] *)
                %[$"{",wbindtol v,$"}", L.indent 2 ` ttol t]
@@ -338,17 +338,17 @@ struct
 
 
   and vbindt v t =
-    if CPS.freet v t
+    if CPSUtil.freet v t
     then varl v
     else $"_"
 
   and vbindv v va =
-    if CPS.freev v va
+    if CPSUtil.freev v va
     then varl v
     else $"_"
 
   and vbinde v e =
-    if CPS.freee v e
+    if CPSUtil.freee v e
     then varl v
     else $"_"
 

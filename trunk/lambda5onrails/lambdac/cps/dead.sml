@@ -13,7 +13,7 @@ structure CPSDead :> CPSDEAD =
 struct
 
   structure V = Variable
-  open CPS
+  open CPS CPSUtil
 
   fun I x = x
 

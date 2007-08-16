@@ -87,6 +87,9 @@ util/symboldb.sml
 
 util/nonce.sml
 
+ast/ast-sig.sml
+ast/ast.sml
+
 intconst.sml
 primop.sml
 el.sml
@@ -147,6 +150,9 @@ il/unused.sml
 
 cps-sig.sml
 cps.sml
+
+cpsutil-sig.sml
+cpsutil.sml
 
 cps/print-sig.sml
 cps/print.sml
@@ -228,3 +234,10 @@ compile-sig.sml
 compile.sml
 
 (* sandbox.sml *)
+
+#if (defined(SMLNJ_VERSION))
+ (* use interactively. *)
+#else
+ (* use from command line *)
+ main.sml
+#endif
