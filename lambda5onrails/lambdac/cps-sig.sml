@@ -8,7 +8,7 @@ sig
   exception CPS of string
 
   datatype arminfo = datatype IL.arminfo
-  datatype world = W of var | WC of string
+  datatype worldfront = W of var | WC of string
 
   datatype worldkind = datatype IL.worldkind
 
@@ -22,6 +22,8 @@ sig
   | EXN
     (* marshalled data *)
   | BYTES 
+
+  type world
 
   (* Polymorphic since we use this to represent both types as classifiers (static)
      and types as data (dynamic). 'ctyp and 'world are the recursive instances of
@@ -150,6 +152,9 @@ sig
   val cval : cval -> (cexp, cval) cvalfront
   val cglo : cglo -> (cexp, cval) cglofront
 
+  val world  : world -> worldfront
+  val world' : worldfront -> world
+
   val ctyp' : (var, ctyp, var, world) ctypfront -> ctyp
   val cexp' : (cexp, cval) cexpfront -> cexp
   val cval' : (cexp, cval) cvalfront -> cval
@@ -254,5 +259,8 @@ sig
   val Sham0' : cval -> cval
   val Zerocon' : primcon -> ctyp
   val EProj' : var * string * cval * cexp -> cexp
+
+  val W' : var -> world
+  val WC' : string -> world
 
 end

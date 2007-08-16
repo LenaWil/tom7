@@ -38,8 +38,10 @@ struct
             else L.recordex sep (ListUtil.mapsecond layout sorted)
         end
 
-  fun wtol (W w) = $(V.tostring w)
-    | wtol (WC s) = $("##" ^ s)
+  fun wtol w =
+    case world w of
+      (W w) => $(V.tostring w)
+    | (WC s) => $("##" ^ s)
 
   fun tftol (tbindtol : 'tbind -> L.layout) (ttol : 'ctyp -> L.layout) (wbindtol : 'wbind -> L.layout) (wtol : 'world -> L.layout) t =
       (case t of

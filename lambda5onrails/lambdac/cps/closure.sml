@@ -173,7 +173,7 @@ struct
          and world. Those are more sources of free variables. *)
       val (fvt, worlds) = ListPair.unzip ` map (T.getvar G) ` V.Set.listItems fv
       (* only the world variables... *)
-      val worlds = List.mapPartial (fn (W w) => SOME w | _ => NONE) worlds
+      val worlds = List.mapPartial (fn (W w) => SOME w | _ => NONE) (map world worlds)
 
       val fuvt = map (T.getuvar G) ` V.Set.listItems fuv
       (* these types have a bound world; the free vars in "w.t" are
@@ -196,7 +196,10 @@ struct
       fun exempt_getwdict wv =
         if List.exists (fn t =>
                         case ctyp t of
-                          TWdict (W w') => V.eq (wv, w')
+                          TWdict wor => 
+                            (case world wor of
+                               W w' => V.eq (wv, w')
+                             | _ => false)
                         | _ => false) exemptargs
         then 
           let in

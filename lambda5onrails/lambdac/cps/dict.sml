@@ -125,7 +125,7 @@ struct
            AllArrow' { worlds = worlds, 
                        tys = tys,
                        vals = 
-                         map (Shamrock0' o TWdict' o W) worlds @
+                         map (Shamrock0' o TWdict' o W') worlds @
                          map (Shamrock0' o Dictionary' o TVar') tys @ 
                          map (selft z G) vals,
                        body = selft z G body }
@@ -133,7 +133,7 @@ struct
 
       fun case_Shamrock z ({selfe, selfv, selft}, G) (w : Variable.var, t) =
            Shamrock' (w, AllArrow' { worlds = nil, tys = nil, 
-                                     vals = [Shamrock0' ` TWdict' (W w)], 
+                                     vals = [Shamrock0' ` TWdict' ` W' w], 
                                      body = selft z (bindworld G w) t })
 
        (* actually, letd might generate these when it is implemented in the frontend *)
@@ -182,7 +182,7 @@ struct
              (* the argument variable, the unshamrocked uvar, its type *)
              (* These shamrocks are exempt from the Sham-AllLam conversion we perform above,
                 since they are known to not use their arguments. *)
-             val wvars = map (fn w => (mkdictvar w, mkdictvar w, TWdict' ` W w)) worlds
+             val wvars = map (fn w => (mkdictvar w, mkdictvar w, TWdict' ` W' w)) worlds
              val dvars = map (fn t => (mkdictvar t, mkdictvar t, Dictionary' ` TVar' t)) tys
 
              val G = bindworlds G worlds
@@ -256,19 +256,19 @@ struct
           val di = mkdictvar w
 
           val G = bindworld G w
-          val G = T.setworld G (W w)
-          val G = bindvar G wd (Shamrock0' ` TWdict' (W w)) (W w)
-          val G = bindu0var G di (TWdict' (W w))
+          val G = T.setworld G (W' w)
+          val G = bindvar G wd (Shamrock0' ` TWdict' ` W' w) (W' w)
+          val G = bindu0var G di (TWdict' ` W' w)
 
           val (va, t) = selfv z G va
 
           val body = VLetsham'(di, Var' wd, va)
         in
           (Sham' (w, AllLam' { worlds = nil, tys = nil, 
-                               vals = [(wd, Shamrock0' ` TWdict' (W w))], 
+                               vals = [(wd, Shamrock0' ` TWdict' ` W' w)], 
                                body = body }), 
            Shamrock' (w, AllArrow' { worlds = nil, tys = nil, 
-                                     vals = [Shamrock0' ` TWdict' (W w)], body = t }))
+                                     vals = [Shamrock0' ` TWdict' ` W' w], body = t }))
         end
 
       fun case_VLetsham z ({selfe, selfv, selft}, G) (v, va, e) =

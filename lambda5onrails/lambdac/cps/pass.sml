@@ -439,7 +439,7 @@ struct
          end
 
   fun case_WDictfor z ({selfe, selfv, selft}, G) w = (WDictfor' w, TWdict' w)
-  fun case_WDict z ({selfe, selfv, selft}, G) w = (WDict' w, TWdict' ` WC w)
+  fun case_WDict z ({selfe, selfv, selft}, G) w = (WDict' w, TWdict' ` WC' w)
 
   (* yowza. *)
 
@@ -505,7 +505,7 @@ struct
         | Shamrock ((w, dw), d) => 
             let
               val G = bindworld G w
-              val G = bindu0var G dw (TWdict' ` W w)
+              val G = bindu0var G dw (TWdict' ` W' w)
               val (d, t) = selfv z G d
             in
               (Dict' ` Shamrock ((w, dw), d),
@@ -583,7 +583,7 @@ struct
         | AllArrow { worlds, tys, vals, body } =>
             let
               val G = bindworlds G (map #1 worlds)
-              val G = foldr (fn ((v1, v2), G) => bindu0var G v2 (TWdict' ` W v1)) G worlds
+              val G = foldr (fn ((v1, v2), G) => bindu0var G v2 (TWdict' ` W' v1)) G worlds
               val G = foldr (fn ((v1, _), G) => bindtype G v1 false) G tys
               val G = foldr (fn ((v1, v2), G) => bindu0var G v2 (Dictionary' ` TVar' v1)) G tys
 
@@ -637,7 +637,7 @@ struct
    fun case_Sham z ({selfe, selfv, selft}, G)  (w, va) =
      let
        val G = bindworld G w
-       val G = T.setworld G (W w)
+       val G = T.setworld G (W' w)
          
        val (va, t) = selfv z G va
      in

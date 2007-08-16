@@ -136,7 +136,7 @@ struct
          (* Don't alllam-abstract over the world variable that the value
             is typed @, even if it is free in the value. We'll abstract this 
             by the PolyCode construct. *)
-         val w = (case worldfrom G of
+         val w = (case world ` worldfrom G of
                     W wv => (V.Set.delete (w, wv) handle _ => w)
                   | WC _ => w)
 
@@ -177,7 +177,7 @@ struct
                                recursion). But we want the individual function within 
                                that code, so we project out the 'i'th component. *)
                             subve (Fsel' (AllApp' { f = Codelab' l, 
-                                                    worlds = map W w, 
+                                                    worlds = map W' w, 
                                                     tys = map TVar' t, 
                                                     vals = nil },
                                           i)) g e)
@@ -196,7 +196,7 @@ struct
          val ty = AllArrow' { worlds = w, tys = t, vals = nil, body = contsty }
 
          val glo =
-           (case worldfrom G of
+           (case world ` worldfrom G of
               W wv => PolyCode' (wv, code, ty)
             | WC l => Code' (code, ty, l))
 
@@ -207,7 +207,7 @@ struct
          (* in order to preserve the local type, we apply the label to the
             world and type variables. If it is PolyCode, we don't need to apply
             to that world, since it will be determined by context (like uvars are) *)
-         (AllApp' { f = Codelab' l, worlds = map W w, tys = map TVar' t, vals = nil },
+         (AllApp' { f = Codelab' l, worlds = map W' w, tys = map TVar' t, vals = nil },
           contsty)
        end
 
@@ -228,7 +228,7 @@ struct
          (* Don't alllam-abstract over the world variable that the value
             is typed @, even if it is free in the value. We'll abstract this 
             by the PolyCode construct. *)
-         val w = (case worldfrom G of
+         val w = (case world ` worldfrom G of
                     W wv => (V.Set.delete (w, wv) handle _ => w)
                   | WC _ => w)
 
@@ -265,7 +265,7 @@ struct
                               body = lamty }
 
          val glo =
-           (case worldfrom G of
+           (case world ` worldfrom G of
               W wv => PolyCode' (wv, code, ty)
             | WC l => Code' (code, ty, l))
 
@@ -275,7 +275,7 @@ struct
          print ("insert AllLam at " ^ l ^ "\n");
 
          (AllApp' { f = Codelab' l, 
-                    worlds = map W w, 
+                    worlds = map W' w, 
                     tys = map TVar' t, 
                     vals = nil },
           lamty)
@@ -292,7 +292,7 @@ struct
 
       val program' = H.converte hoistctx (T.empty home) program
 
-      val homelab = (case home of
+      val homelab = (case world home of
                        WC h => h
                      | W _ => raise Hoist "can only begin hoist conversion at a constant world.")
 

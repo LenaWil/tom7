@@ -40,8 +40,8 @@ struct
       (case w of
          I.WEvar (ref (I.Bound w)) => cvtw G w
        | I.WEvar _ => raise ToCPS "unset world evar"
-       | I.WVar v => W v
-       | I.WConst l => WC l)
+       | I.WVar v => W' v
+       | I.WConst l => WC' l)
 
     fun cvtt (G : env) (t : IL.typ) : CPS.ctyp =
       case t of
@@ -696,7 +696,7 @@ struct
            let 
              val start = worldfrom G
              val G = bindworld G v
-             val G = setworld G (W v)
+             val G = setworld G ` W' v
              val (va, t, w) = cvtv G va
            in
              (Sham' (v, va), Shamrock' (v, t), start)
@@ -812,7 +812,7 @@ struct
 
     fun convert (I.Unit(decs, _ (* exports *))) (I.WConst world) = 
          let
-           val ce = cvtds decs ` empty ` WC world
+           val ce = cvtds decs ` empty ` WC' world
          in
            ce
          end

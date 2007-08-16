@@ -149,13 +149,15 @@ struct
           options = options }
     end
 
-  fun getworld (C { worlds, ... }) (W v) = 
-    if V.Set.member (worlds, v) then () 
-    else raise TypeCheck ("unbound world var: " ^
-                          V.tostring v)
-    | getworld (C { worldlabs, ...}) (WC l) =
-      if isSome ` SM.find (worldlabs, l) then ()
-      else raise TypeCheck ("unknown world constant " ^ l)
+  fun getworld (C { worlds, worldlabs, ... }) w =
+    case world w of
+      W v =>
+        if V.Set.member (worlds, v) then () 
+        else raise TypeCheck ("unbound world var: " ^
+                              V.tostring v)
+    | WC l =>
+        if isSome ` SM.find (worldlabs, l) then ()
+        else raise TypeCheck ("unknown world constant " ^ l)
 
   fun getvar (ctx as C { vars, ... }) v =
     (case V.Map.find (vars, v) of
@@ -208,13 +210,16 @@ struct
     let 
       val m = V.Map.mapPartial (fn (_, t) => 
                                 case ctyp t of
-                                  TWdict (W wv') =>
-                                    if V.eq (wv, wv')
-                                    then SOME ()
-                                    else NONE
+                                  TWdict wor =>
+                                  (case world wor of
+                                     W wv' =>
+                                       if V.eq (wv, wv')
+                                       then SOME ()
+                                       else NONE
+                                   | _ => NONE)
                                 | _ => NONE) uvars
     in
-      ignore ` getworld ctx (W wv);
+      ignore ` getworld ctx (W' wv);
       (* finds any match in scope, since "t wdict" is a singleton type *)
       (case V.Map.listItemsi m of
          nil => 
@@ -351,6 +356,7 @@ struct
 
   fun wtos (W w) = V.tostring w
     | wtos (WC c) = "##" ^ c
+  val wtos = wtos o world
 
   (* some actions ought only happen at the same world we're in now *)
   fun insistw msg G w =
@@ -698,7 +704,7 @@ struct
               end
           | _ => raise TypeCheck "tpack as non-existential")
 
-     | WDict s => TWdict' ` WC s
+     | WDict s => TWdict' ` WC' s
      | WDictfor w => (wok G w; TWdict' w)
 
      | Dict tf =>
@@ -749,7 +755,7 @@ struct
           | Shamrock ((w,wd), td) => 
               let 
                 val G = bindworld G w
-                val G = bindu0var G wd (TWdict' ` W w)
+                val G = bindu0var G wd (TWdict' ` W' w)
                 val td = edict "sham" ` vok G td
               in
                 Dictionary' ` Shamrock' (w, td)
@@ -773,7 +779,7 @@ struct
                 (* static worlds *)
                 val G = bindworlds G (map #1 worlds)
                 (* world representations *)
-                val G = foldr (fn ((w, wd), G) => bindu0var G wd (TWdict' ` W w)) G tys
+                val G = foldr (fn ((w, wd), G) => bindu0var G wd (TWdict' ` W' w)) G tys
                 (* static types *)
                 val G = foldr (fn ((v1, _), G) => bindtype G v1 false) G tys
                 (* type representations *)
@@ -912,7 +918,7 @@ struct
      | Sham (w, va) =>
          let
            val G' = bindworld G w
-           val G' = setworld G' (W w)
+           val G' = setworld G' (W' w)
 
            val t = vok G' va
          in
@@ -984,7 +990,7 @@ struct
         (case getglobal G s of
            Code ((), t, w) =>
              let in
-               insistw "codelab" G (WC w);
+               insistw "codelab" G (WC' w);
                t
              end
          | PolyCode (wv, (), t) => 
@@ -1019,7 +1025,7 @@ struct
   fun checkprog ({ main, worlds, globals } : program) =
     let
       (* we'll reset the current world before checking each global *)
-      val G = empty (WC "dummy")
+      val G = empty (WC' "dummy")
       val G = setopts G [O_CLOSED, O_HOISTED, O_NO_DICTFOR]
 
       fun bindglobal ((s, Code (va, t, wc)), G) = addglobal G s (Code ((), t, wc))
@@ -1033,7 +1039,7 @@ struct
         case cglo glo of
            (Code (va, t, w)) =>
              (let
-                val G = setworld G (WC w)
+                val G = setworld G (WC' w)
                 val t' = vok G va
               in
                 if ctyp_eq (t, t')
@@ -1048,7 +1054,7 @@ struct
          | (PolyCode (wv, va, t)) => 
              (let
                 val G = bindworld G wv
-                val G = setworld G (W wv)
+                val G = setworld G (W' wv)
                 val t' = vok G va
               in
                 if ctyp_eq (t, t')
