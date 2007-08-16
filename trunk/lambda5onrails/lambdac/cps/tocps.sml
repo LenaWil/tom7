@@ -478,7 +478,11 @@ struct
                in
                    case Option.map (cvtw G) wo of
                        NONE => Lift' (v, va, k (bindu0var G v t))
-                     | SOME w => Bindat' (v, w, va, k (bindvar G v t w))
+                     | SOME w => 
+                         (* only generate leta/hold if this is remote *)
+                         if world_eq (worldfrom G, w)
+                         then Bind' (v, va, k (bindvar G v t w))
+                         else Bindat' (v, w, va, k (bindvar G v t w))
                end
            | I.Arrow _ => raise ToCPS ("expected extern val, if arrow, to take exactly one arg: " ^ l)
 
