@@ -697,3 +697,4 @@ function lc_nomessages(unit) {
 function lc_itos(i) {
     return ''+i;
 };
+

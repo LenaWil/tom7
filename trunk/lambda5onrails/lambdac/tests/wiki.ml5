@@ -13,6 +13,7 @@
 unit
     import "std.mlh"
     import "dom.mlh"
+    import "timer.mlh"
     import "trivialdb.mlh"
         
     (* page skeleton. this doesn't change. *)
@@ -45,8 +46,13 @@ unit
             put contents = dom.getstring(dom.getbyid id.source, [value])
         in
             from server get trivialdb.update (article, contents);
-            render ()
+            (* render () *)
+            ()
         end
+
+    fun every-second () =
+        (* XXX only if changed... *)
+        render ()
 
     do dom.setstring 
         (dom.getbyid [page],
@@ -102,6 +108,9 @@ unit
     do goto-article [main]
 
     (* do dom.setstring(dom.getbyid id.source, [onchange], say render()) *)
+
+
+    do js.setinterval (say every-second (), 1000)
 
 (*
     put k = [tdb-test]
