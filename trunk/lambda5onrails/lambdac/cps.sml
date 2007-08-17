@@ -91,7 +91,7 @@ struct
                                                                  BB(map TV tys,
                                                                     SS vals // body))
   fun WExists' (wv, t) = $$WEXISTS_ // (WV wv \\ t)
-  fun TExists' (tv, tl) = $$TEXISTS_ // (WV tv \\ SS tl)
+  fun TExists' (tv, tl) = $$TEXISTS_ // (TV tv \\ SS tl)
   fun Product' stl = $$PRODUCT_ // SS (map op// ` ListUtil.mapfirst ($$ o STRING_) stl)
   fun TWdict' w = $$TWDICT_ // w
   fun Addr' w = $$ADDR_ // w
@@ -194,7 +194,7 @@ struct
                                                                        BB(map UV (map #2 tys),
                                                                           SS vals // body))))
      | WExists (wv, t) => $$WEXISTS_ // (WV (#1 wv) \\ UV (#2 wv) \\ t)
-     | TExists (tv, tl) => $$TEXISTS_ // (WV (#1 tv) \\ UV (#2 tv) \\ SS tl)
+     | TExists (tv, tl) => $$TEXISTS_ // (TV (#1 tv) \\ UV (#2 tv) \\ SS tl)
      | Product stl => $$PRODUCT_ // SS (map op// ` ListUtil.mapfirst ($$ o STRING_) stl)
      | TWdict w => $$TWDICT_ // w
      | Addr w => $$ADDR_ // w
@@ -361,7 +361,7 @@ struct
                                             body   = body }
          | _ => raise CPS "bad allarrow")
     | $WEXISTS_ / (WV wv \ t) => WExists (wv, t)
-    | $TEXISTS_ / (WV tv \ a) => TExists (tv, SSi a)
+    | $TEXISTS_ / (TV tv \ a) => TExists (tv, SSi a)
     | $SUM_ / S (arms : ast list) =>
            Sum (map (fn a =>
                      case look3 a of
@@ -434,15 +434,17 @@ struct
     | $VLETSHAM_ / va / r => (case look r of
                                 UV v \ va' => VLetsham(v, va, va')
                               | _ => raise CPS "bad vletsham")
+    | $WDICTFOR_ / w => WDictfor ` hide w
+    | $WDICT_ / $(STRING_ s) => WDict s
+    | $DICTFOR_ / t => Dictfor ` hide t
+    | $VTUNPACK_ / va / r =>
+         (case look4 r of
+            TV tv \ UV dv \ (S tys / B (vars, e)) => VTUnpack (tv, dv, ListPair.zip(map MVi vars, tys), va, e)
+          | _ => raise CPS "bad vtunpack")
+    | $DICT_ / _ => raise CPS "unimplemented cval dict" 
+    | _ => raise CPS "bad cval"
+         
 (*
-  fun WDictfor' w = $$WDICTFOR_ // w
-  fun WDict' s = $$WDICT_ // $$(STRING_ s)
-  fun Dictfor' t = $$DICTFOR_ // t
-  fun VTUnpack' (tv, dv, vtl : (var * ctyp) list, va, bod) = 
-    $$VTUNPACK_ // va // (TV tv \\ 
-                          UV dv \\ 
-                          (SS (map #2 vtl) //
-                           BB (map (MV o #1) vtl, bod)))
   (* slicker way to do this? *)
   fun Dict' tf = $$DICT_ //
     (case tf : (var * var, cval, var * var, cval) ctypfront of
@@ -455,7 +457,7 @@ struct
                                                                        BB(map UV (map #2 tys),
                                                                           SS vals // body))))
      | WExists (wv, t) => $$WEXISTS_ // (WV (#1 wv) \\ UV (#2 wv) \\ t)
-     | TExists (tv, tl) => $$TEXISTS_ // (WV (#1 tv) \\ UV (#2 tv) \\ SS tl)
+     | TExists (tv, tl) => $$TEXISTS_ // (TV (#1 tv) \\ UV (#2 tv) \\ SS tl)
      | Product stl => $$PRODUCT_ // SS (map op// ` ListUtil.mapfirst ($$ o STRING_) stl)
      | TWdict w => $$TWDICT_ // w
      | Addr w => $$ADDR_ // w

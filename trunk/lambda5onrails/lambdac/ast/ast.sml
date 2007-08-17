@@ -181,6 +181,8 @@ struct
     | ast_cmp (A{ f = v1 \ a1, ...}, A { f = v2 \ a2, ... }) =
        let 
          val v' = var_vary v1
+         val () = print ("cmp " ^ var_tostring v1 ^ "," ^ var_tostring v2 ^ " -> " ^
+                         var_tostring v' ^ "\n")
          val a1 = rename [(v1, v')] a1
          val a2 = rename [(v2, v')] a2
        in
@@ -193,6 +195,12 @@ struct
          val vl' = map var_vary vl1
          val s1 = ListPair.zip (vl1, vl')
          val s2 = ListPair.zip (vl2, vl')
+         val () = print "B:\n"
+         val () = ListUtil.app3 (fn (v1, v2, v') =>
+                                 print ("  cmpB " ^ var_tostring v1 ^ "," ^ var_tostring v2 ^ " -> " ^
+                                        var_tostring v' ^ "\n")
+                                 ) vl1 vl2 vl'
+         val () = print "end\n"
          val a1 = rename s1 a1
          val a2 = rename s2 a2
        in
