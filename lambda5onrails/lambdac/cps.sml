@@ -99,6 +99,22 @@ struct
   type cexp = ast
   type world = ast
 
+  datatype ('tbind, 'ctyp, 'wbind, 'world) ctypfront =
+      At of 'ctyp * 'world
+    | Cont of 'ctyp list
+    | Conts of 'ctyp list list
+    | AllArrow of { worlds : 'wbind list, tys : 'tbind list, vals : 'ctyp list, body : 'ctyp }
+    | WExists of 'wbind * 'ctyp
+    | TExists of 'tbind * 'ctyp list
+    | Product of (string * 'ctyp) list
+    | TWdict of 'world
+    | Addr of 'world
+    (* all variables bound in all arms *)
+    | Mu of int * ('tbind * 'ctyp) list
+    | Sum of (string * 'ctyp IL.arminfo) list
+    | Primcon of primcon * 'ctyp list
+    | Shamrock of 'wbind * 'ctyp
+    | TVar of var
     
   infixr / \ // \\
 
@@ -194,7 +210,6 @@ struct
   fun WDictfor' w = $$WDICTFOR_ // w
   fun WDict' s = $$WDICT_ // $$(STRING_ s)
   fun Dictfor' t = $$DICTFOR_ // t
-  fun Dict' _ = raise CPS "unimplemented dict!!"
   fun AllLam' { worlds, tys, vals : (var * ctyp) list, body } =
     $$ALLLAM_ // BB(map WV worlds,
                     BB(map TV tys,
@@ -208,30 +223,41 @@ struct
                           UV dv \\ 
                           (SS (map #2 vtl) //
                            BB (map (MV o #1) vtl, bod)))
+  (* slicker way to do this? *)
+  fun Dict' tf = $$DICT_ //
+    (case tf : (var * var, cval, var * var, cval) ctypfront of
+       At (t, w) => $$AT_ // t // w
+     | Cont tl => $$CONT_ // SS tl
+     | Conts tll => $$CONTS_ // SS (map SS tll)
+     | AllArrow { worlds, tys, vals, body } => $$ALLARROW_ // BB(map WV (map #1 worlds),
+                                                                 BB(map UV (map #2 worlds),
+                                                                    BB(map TV (map #1 tys),
+                                                                       BB(map UV (map #2 tys),
+                                                                          SS vals // body))))
+     | WExists (wv, t) => $$WEXISTS_ // (WV (#1 wv) \\ UV (#2 wv) \\ t)
+     | TExists (tv, tl) => $$TEXISTS_ // (WV (#1 tv) \\ UV (#2 tv) \\ SS tl)
+     | Product stl => $$PRODUCT_ // SS (map op// ` ListUtil.mapfirst ($$ o STRING_) stl)
+     | TWdict w => $$TWDICT_ // w
+     | Addr w => $$ADDR_ // w
+     | Mu (i, vtl) => $$MU_ // $$(INT_ i) // 
+         let val (vl, tl) = ListPair.unzip vtl
+         in
+           BB(map TV (map #1 vl),
+              BB(map UV (map #2 vl),
+                 SS tl))
+         end
+     | Sum sail =>
+         $$SUM_ // SS (map (fn (s, NonCarrier) => $$(STRING_ s) // $$NONCARRIER_
+                             | (s, Carrier { definitely_allocated, carried }) =>
+                            $$(STRING_ s) // $$(BOOL_ definitely_allocated) // carried) sail)
+     | Primcon (pc, tl) => $$(PRIMCON_ pc) // SS tl
+     | Shamrock ((wv, dv), t) => $$SHAMROCK_ // (WV wv \\ UV dv \\ t)
+     | TVar v => raise CPS "dict tvar not allowed")
 
   (* -------- injections:   globals -------- *)
 
   fun PolyCode' (v, va, t) = $$POLYCODE_ // (WV v \\ (va // t))
   fun Code' (va, t, s) = $$CODE_ // va // t // $$(STRING_ s)
-
-  datatype ('tbind, 'ctyp, 'wbind, 'world) ctypfront =
-      At of 'ctyp * 'world
-    | Cont of 'ctyp list
-    | Conts of 'ctyp list list
-    | AllArrow of { worlds : 'wbind list, tys : 'tbind list, vals : 'ctyp list, body : 'ctyp }
-    | WExists of 'wbind * 'ctyp
-    | TExists of 'tbind * 'ctyp list
-    | Product of (string * 'ctyp) list
-    (* the type of a representation of this world *)
-    | TWdict of 'world
-    | Addr of 'world
-    (* all variables bound in all arms *)
-    | Mu of int * ('tbind * 'ctyp) list
-    | Sum of (string * 'ctyp IL.arminfo) list
-    | Primcon of primcon * 'ctyp list
-    | Shamrock of 'wbind * 'ctyp
-    | TVar of var
-  (* nb. Binders must be implemented in outjection code below! *)
 
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
