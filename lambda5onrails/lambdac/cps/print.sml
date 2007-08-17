@@ -6,14 +6,13 @@ struct
   infixr 9 `
   fun a ` b = a b
 
+  open CPS
   structure L = Layout
   structure V = Variable
 
   val $ = L.str
   val % = L.mayAlign
   val itos = Int.toString
-
-  open CPS
 
   fun varl v = $(V.tostring v)
 

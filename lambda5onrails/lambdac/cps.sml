@@ -1,4 +1,4 @@
-structure CPS :> CPS =
+structure CPS :> CPS=
 struct
   
   structure V = Variable
@@ -30,11 +30,16 @@ struct
     | allvar_vary (UV v) = UV (V.alphavary v)
     | allvar_vary (MV v) = MV (V.alphavary v)
     | allvar_vary (WV v) = WV (V.alphavary v)
+  fun allvar_tostring (TV v) = "TV." ^ V.tostring v
+    | allvar_tostring (UV v) = "UV." ^ V.tostring v
+    | allvar_tostring (MV v) = "MV." ^ V.tostring v
+    | allvar_tostring (WV v) = "WV." ^ V.tostring v
 
   structure AST = ASTFn(type var = allvar
                         val var_cmp = allvar_cmp
                         val var_eq = allvar_eq
                         val var_vary = allvar_vary
+                        val var_tostring = allvar_tostring
                         val Exn = CPS
                         type leaf = leaf
                         val leaf_cmp = leaf_cmp)
