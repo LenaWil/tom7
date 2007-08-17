@@ -132,10 +132,10 @@ struct
                                            | NONE => $$NONE_ // (UV v \\ e))
 
   fun ExternWorld' (s, wk, e) = $$(EXTERNWORLD_ wk) // $$(STRING_ s) // e
-  fun ExternType' (v, s, vso, e) =
+  fun ExternType' (tv, s, vso, e) =
     $$EXTERNTYPE_ // $$(STRING_ s) // (case vso of
-                                         SOME (v, s) => $$(STRING_ s) // (TV v \\ UV v \\ e)
-                                       | NONE => $$NONE_ // (TV v \\ e))
+                                         SOME (dv, s) => $$(STRING_ s) // (TV tv \\ UV dv \\ e)
+                                       | NONE => $$NONE_ // (TV tv \\ e))
 
   (* -------- injections:   vals -------- *)
 
@@ -316,6 +316,26 @@ struct
     case look a of
       $(STRING_ s) => s
     | _ => raise CPS "expected STRING"
+  fun INTi a =
+    case look a of
+      $(INT_ i) => i
+    | _ => raise CPS "expected INT"
+      
+  fun slash a =
+    case look a of 
+      l / r => (l, r)
+    | _ => raise CPS "expected /"
+
+  fun slash2 a =
+    case look a of
+      h / a => (h, slash a)
+    | _ => raise CPS "expected /2"
+
+  fun slash3 a =
+    case look a of
+      h / a => (h, slash2 a)
+    | _ => raise CPS "expected /3"
+
 
   (* PERF unnecessary look/hides can have big costs *)
   fun ctyp a = 
@@ -358,12 +378,180 @@ struct
     | _ => raise CPS "expected typ"
 
   (* ------------ outjections: values ------- *)
-  (* ------------ outjections: exps ------- *)
-  (* ------------ outjections: globals ------- *)
+  fun cval ast = 
+    case look2 ast of
+      $LAMS_ / B(fs, lams) =>
+      let val lams = map (fn a =>
+                          case look2 a of
+                            S tys / B (args, body) => (ListPair.zip(map MVi args, tys), body)
+                          | _ => raise CPS "bad lams") (SSi lams)
+      in
+        Lams ` ListPair.map (fn (name, (args, body)) => (MVi name, args, body)) (fs, lams)
+      end
+    | $FSEL_ / va / i => Fsel (va, INTi i)
+    | $(VINT_ i) => Int i
+    | $VSTRING_ / $(STRING_ s) => String s
+    | $PROJ_ / lab / va => Proj(STRINGi lab, va)
+    | $RECORD_ / S arms => Record ` map (fn a =>
+                                         case look a of
+                                           str / v => (STRINGi str, v)
+                                         | _ => raise CPS "bad record arm") arms
+    | $HOLD_ / w / va => Hold (w, va)
+    | $WPACK_ / _ => raise CPS "unimplemented wpackout"
+    | $TPACK_ / t / r => let val (ann, (d, vals)) = slash2 r
+                         in TPack (t, ann, d, SSi vals)
+                         end
+    | $SHAM_ / (WV wv \ va) => Sham (wv, va)
+    | $INJ_ / lab / r => (case look r of
+                           t / vo => Inj (STRINGi lab, t, (case look vo of
+                                                             $NONE_ => NONE
+                                                           | _ => SOME vo))
+                         | _ => raise CPS "bad inj")
+    | $ROLL_ / ty / va => Roll (ty, va)
+    | $UNROLL_ / va => Unroll (hide va)
+    | $CODELAB_ / $(STRING_ s) => Codelab s
+    | V (MV v) => Var v
+    | V (UV u) => UVar u
+    | $ALLLAM_ / B(worlds, bind) =>
+                         (case look3 bind of
+                            B (tys, S valts / B(vals, bod)) => AllLam { worlds = map WVi worlds,
+                                                                        tys = map TVi tys,
+                                                                        vals = ListPair.zip(map MVi vals,
+                                                                                            valts),
+                                                                        body = bod }
+                          | _ => raise CPS "bad alllam")
+    | $ALLAPP_ / f / r => let val (worlds, (tys, vals)) = slash2 r
+                          in AllApp { f = f, worlds = SSi worlds, tys = SSi tys, vals = SSi vals }
+                          end
+    | $VLETA_ / va / r => (case look r of
+                            MV v \ va' => VLeta (v, va, va')
+                          | _ => raise CPS "bad vleta")
+    | $VLETSHAM_ / va / r => (case look r of
+                                UV v \ va' => VLetsham(v, va, va')
+                              | _ => raise CPS "bad vletsham")
+(*
+  fun WDictfor' w = $$WDICTFOR_ // w
+  fun WDict' s = $$WDICT_ // $$(STRING_ s)
+  fun Dictfor' t = $$DICTFOR_ // t
+  fun VTUnpack' (tv, dv, vtl : (var * ctyp) list, va, bod) = 
+    $$VTUNPACK_ // va // (TV tv \\ 
+                          UV dv \\ 
+                          (SS (map #2 vtl) //
+                           BB (map (MV o #1) vtl, bod)))
+  (* slicker way to do this? *)
+  fun Dict' tf = $$DICT_ //
+    (case tf : (var * var, cval, var * var, cval) ctypfront of
+       At (t, w) => $$AT_ // t // w
+     | Cont tl => $$CONT_ // SS tl
+     | Conts tll => $$CONTS_ // SS (map SS tll)
+     | AllArrow { worlds, tys, vals, body } => $$ALLARROW_ // BB(map WV (map #1 worlds),
+                                                                 BB(map UV (map #2 worlds),
+                                                                    BB(map TV (map #1 tys),
+                                                                       BB(map UV (map #2 tys),
+                                                                          SS vals // body))))
+     | WExists (wv, t) => $$WEXISTS_ // (WV (#1 wv) \\ UV (#2 wv) \\ t)
+     | TExists (tv, tl) => $$TEXISTS_ // (WV (#1 tv) \\ UV (#2 tv) \\ SS tl)
+     | Product stl => $$PRODUCT_ // SS (map op// ` ListUtil.mapfirst ($$ o STRING_) stl)
+     | TWdict w => $$TWDICT_ // w
+     | Addr w => $$ADDR_ // w
+     | Mu (i, vtl) => $$MU_ // $$(INT_ i) // 
+         let val (vl, tl) = ListPair.unzip vtl
+         in
+           BB(map TV (map #1 vl),
+              BB(map UV (map #2 vl),
+                 SS tl))
+         end
+     | Sum sail =>
+         $$SUM_ // SS (map (fn (s, NonCarrier) => $$(STRING_ s) // $$NONCARRIER_
+                             | (s, Carrier { definitely_allocated, carried }) =>
+                            $$(STRING_ s) // $$(BOOL_ definitely_allocated) // carried) sail)
+     | Primcon (pc, tl) => $$(PRIMCON_ pc) // SS tl
+     | Shamrock ((wv, dv), t) => $$SHAMROCK_ // (WV wv \\ UV dv \\ t)
+     | TVar v => raise CPS "dict tvar not allowed")
+*)
+      
 
-  fun cval _ = raise CPS "unimplemented cval"
-  fun cexp _ = raise CPS "unimplemented cexp"
+  (* ------------ outjections: exps ------- *)
+
+  fun cexp ast =
+    case look2 ast of
+      $HALT_ => Halt
+    | $CALL_ / v / r => Call (v, SSi r)
+    | $GO_ / w / r => (case look r of v / e => Go (w, v, e) | _ => raise CPS "bad go")
+    | $GO_CC_ / w / r => (case look r of
+                            addr / r =>
+                              (case look r of
+                                 env / f => Go_cc { w = w, addr = addr, env = env, f = f }
+                               | _ => raise CPS "bad gocc")
+                          | _ => raise CPS "bad gocc")
+    | $GO_MAR_ / w / r => (case look r of 
+                             v / b => Go_mar { w = w, addr = v, bytes = b } 
+                           | _ => raise CPS "bad go")
+    | $(PRIMOP_ po) / vas / bod => (case (look vas, look bod) of
+                                      (S va, B(vl, exp)) => Primop(map MVi vl, po, va, exp)
+                                    | _ => raise CPS "Bad primop")
+    | $PRIMCALL_ / sym / r => 
+      let val (dom, (cod, (args, bind))) = slash3 r
+      in case (look sym, look dom, look args, look bind) of
+            ($(STRING_ sym), S dom, S args, MV mv \ bod) => Primcall { var = mv, dom = dom, cod = cod,
+                                                                       args = args, bod = bod, sym = sym }
+          | _ => raise CPS "bad primcall"
+      end
+    | $(NATIVE_ po) / tys / r =>
+      (case (look tys, look2 r) of
+         (S tys, S args / (v \ bod)) => Native { var = MVi v, bod = bod, po = po, tys = tys, args = args }
+       | _ => raise CPS "bad native")
+    | $PUT_ / va / bind => 
+         (case look bind of
+            (UV v \ e) => Put (v, va, e)
+          | _ => raise CPS "bad put")
+    | $LETA_ / va / bind => 
+         (case look bind of
+            (MV v \ e) => Leta (v, va, e)
+          | _ => raise CPS "bad leta")
+    | $LETSHAM_ / va / bind => 
+         (case look bind of
+            (UV v \ e) => Letsham (v, va, e)
+          | _ => raise CPS "bad letsham")
+    | $WUNPACK_ / va / bind =>
+         (case look2 bind of
+            WV wv \ UV dv \ e => WUnpack (wv, dv, va, e)
+          | _ => raise CPS "bad wunpack")
+    | $TUNPACK_ / va / r =>
+         (case look4 r of
+            TV tv \ UV dv \ (S tys / B (vars, e)) => TUnpack (tv, dv, ListPair.zip(map MVi vars, tys), va, e)
+          | _ => raise CPS "bad tunpack")
+    | $CASE_ / va / r =>
+         (case look r of
+            bind / def => 
+              (case look2 bind of
+                 (MV v \ S arms) => Case (va, v, map (fn a =>
+                                                     case look a of
+                                                       s / e => (STRINGi s, e)
+                                                     | _ => raise CPS "bad case arm") arms, def)
+               | _ => raise CPS "bad case bind")
+          | _ => raise CPS "bad case")
+    | $EXTERNVAL_ / sym / r =>
+         let val (t, (wo, bind)) = slash2 r
+         in case (look wo, look bind) of
+              ($NONE_, UV v \ e) => ExternVal (v, STRINGi sym, t, NONE, e)
+            | (_, MV v \ e) => ExternVal (v, STRINGi sym, t, SOME wo, e)
+            | _ => raise CPS "bad externval"
+         end
+    | $(EXTERNWORLD_ wk) / sym / e => ExternWorld (STRINGi sym, wk, e)
+    | $EXTERNTYPE_ / sym / r =>
+         (case look2 r of
+            $(STRING_ s) / (TV v \ bind) => 
+             (case look bind of
+                UV dv \ e => ExternType (v, STRINGi sym, SOME (dv, s), e)
+              | _ => raise CPS "bad externtype bind")
+          | $NONE_ / (TV v \ e) => ExternType (v, STRINGi sym, NONE, e)
+          | _ => raise CPS "bad externtype vso")
+    | _ => raise CPS "expected cexp"
+
+  (* ------------ outjections: globals ------- *)
   fun cglo _ = raise CPS "unimplemented cglo"
+
   val world_cmp = ast_cmp
   val ctyp_cmp = ast_cmp
 

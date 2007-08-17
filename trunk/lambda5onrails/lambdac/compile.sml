@@ -6,8 +6,8 @@ struct
         (SOME ("-showil",
                "Show internal language AST")) "showil"
 
-    val showcps = Params.flag false
-        (SOME ("-showcps", 
+    val showcps = Params.flag true
+        (SOME ("-showcps",
                "Show internal CPS after each phase")) "showcps"
 
     val optil = Params.flag false

@@ -144,7 +144,7 @@ struct
                                   then t
                                   else
                                       let 
-                                          val tv = V.namedvar "poly"
+                                          val tv = V.namedvar (Nonce.nonce ())
                                       in
                                           acct := tv :: !acct;
                                           er := IL.Bound (IL.TVar tv);

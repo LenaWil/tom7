@@ -275,7 +275,7 @@ struct
                L.listex "(" ")" "," ` map vtol args] :: estol bod
 
          | Primcall { var, sym, dom, cod, args, bod } =>
-            %[$"primcall", varl var, $"=", 
+            %[%[$"primcall", varl var, $"="], 
               %[$("PRIMCALL_" ^ sym),
                 $":",
                 %[L.listex "(" ")" "," ` map ttol dom,

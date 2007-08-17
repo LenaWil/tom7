@@ -92,7 +92,7 @@ struct
 
   and sub obj v (ast as A { m, f }) =
     (* get out early *)
-    if isfree ast v
+    if false andalso isfree ast v
     then 
       (* use precomputed freevar sets. *)
       let 
@@ -111,7 +111,7 @@ struct
                         val a = rename [(v, v'')] a
                     in
                       A { m = m,
-                          f = v' \ sub obj v a }
+                          f = v'' \ sub obj v a }
                     end
         | S al => A { m = m,
                       f = S ` map (sub obj v) al }
