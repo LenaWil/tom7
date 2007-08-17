@@ -441,14 +441,15 @@ struct
          (case look4 r of
             TV tv \ UV dv \ (S tys / B (vars, e)) => VTUnpack (tv, dv, ListPair.zip(map MVi vars, tys), va, e)
           | _ => raise CPS "bad vtunpack")
-    | $DICT_ / _ => raise CPS "unimplemented cval dict" 
-    | _ => raise CPS "bad cval"
-         
+    | $DICT_ / what / r => Dict
+        (case look what / look r of
+           $AT_ / t / w => At (t, w)
+         | $ADDR_ / w => Addr ` hide w
+         | $TWDICT_ / w => TWdict ` hide w
+         | _ =>  raise CPS "unimplemented dict")
+        
 (*
   (* slicker way to do this? *)
-  fun Dict' tf = $$DICT_ //
-    (case tf : (var * var, cval, var * var, cval) ctypfront of
-       At (t, w) => $$AT_ // t // w
      | Cont tl => $$CONT_ // SS tl
      | Conts tll => $$CONTS_ // SS (map SS tll)
      | AllArrow { worlds, tys, vals, body } => $$ALLARROW_ // BB(map WV (map #1 worlds),
@@ -459,8 +460,6 @@ struct
      | WExists (wv, t) => $$WEXISTS_ // (WV (#1 wv) \\ UV (#2 wv) \\ t)
      | TExists (tv, tl) => $$TEXISTS_ // (TV (#1 tv) \\ UV (#2 tv) \\ SS tl)
      | Product stl => $$PRODUCT_ // SS (map op// ` ListUtil.mapfirst ($$ o STRING_) stl)
-     | TWdict w => $$TWDICT_ // w
-     | Addr w => $$ADDR_ // w
      | Mu (i, vtl) => $$MU_ // $$(INT_ i) // 
          let val (vl, tl) = ListPair.unzip vtl
          in
@@ -476,6 +475,10 @@ struct
      | Shamrock ((wv, dv), t) => $$SHAMROCK_ // (WV wv \\ UV dv \\ t)
      | TVar v => raise CPS "dict tvar not allowed")
 *)
+
+
+
+    | _ => raise CPS "bad cval"
       
 
   (* ------------ outjections: exps ------- *)
