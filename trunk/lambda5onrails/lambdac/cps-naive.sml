@@ -1,3 +1,6 @@
+(* XXX: interface has changed (moved NATIVE and PRIMCALL out of PRIMOP to
+   regularize it); should be easy to fix *)
+
 structure CPS :> CPS =
 struct
   
@@ -7,12 +10,6 @@ struct
   fun a ` b = a b
 
   exception CPS of string
-
-(*
-  datatype leaf =
-    AT_ | CONT_ | CONTS_ | ALLARROW_ | WEXISTS_ | TEXISTS_ | PRODUCT_ | TWDICT_ | ADDR_ |
-    MU_ | SUM_ | PRIMCON_ | SHAMROCK_ | TVAR_ | W 
-*)
 
   datatype arminfo = datatype IL.arminfo
   datatype worldfront = W of var | WC of string

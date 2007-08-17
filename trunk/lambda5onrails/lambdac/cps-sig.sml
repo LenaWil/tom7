@@ -55,10 +55,6 @@ sig
       LOCALHOST 
       (* binds regular var *)
     | BIND 
-      (* call to an extern label *)
-    | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
-      (* some built-in thing *)
-    | NATIVE of { po : Primop.primop, tys : ctyp list }
       (* takes 'a dict and 'a -> bytes *)
     | MARSHAL
       (* takes a unit cont (or closure) and reifies it as a js string *)
@@ -73,10 +69,14 @@ sig
       (* post marshaling conversion *)
     | Go_mar of { w : world, addr : 'cval, bytes : 'cval }
     | Primop of var list * primop * 'cval list * 'cexp
+      (* call to external function *)
+    | Primcall of { var : var, sym : string, dom : ctyp list, cod : ctyp, args : 'cval list, bod : 'cexp }
+      (* some built-in thing *)
+    | Native of { var : var, po : Primop.primop, tys : ctyp list, args : 'cval list, bod : 'cexp }
     | Put of var * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
     | Leta of var * 'cval * 'cexp
-    (* world var, XXXWD dict, contents var *)
+    (* world var, world dict, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
     (* typ var, dict var, contents vars *)
     | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
@@ -153,12 +153,15 @@ sig
   val cglo : cglo -> (cexp, cval) cglofront
 
   val world  : world -> worldfront
-  val world' : worldfront -> world
 
+(*
+use the constructors directly!
+  val world' : worldfront -> world
   val ctyp' : (var, ctyp, var, world) ctypfront -> ctyp
   val cexp' : (cexp, cval) cexpfront -> cexp
   val cval' : (cexp, cval) cvalfront -> cval
   val cglo' : (cexp, cval) cglofront -> cglo
+*)
 
   val world_cmp : world * world -> order
   val world_eq : world * world -> bool
@@ -241,6 +244,9 @@ sig
   val PolyCode' : var * cval * ctyp -> cglo
   val Code' : cval * ctyp * string -> cglo
 
+  val W' : var -> world
+  val WC' : string -> world
+
   (* derived forms *)
   val Dictionary' : ctyp -> ctyp
   val Lift' : var * cval * cexp -> cexp
@@ -249,18 +255,19 @@ sig
   val Marshal' : var * cval * cval * cexp -> cexp
   val Say' : var * cval * cexp -> cexp
   val Say_cc' : var * cval * cexp -> cexp
+
+(* very obsolete
   val WAll' : var * ctyp -> ctyp
   val TAll' : var * ctyp -> ctyp
-  val Lam'  : var * (var * ctyp) list * cexp -> cval
   val WApp' : cval * world -> cval
   val TApp' : cval * ctyp -> cval
   val WLam' : var * cval -> cval
   val TLam' : var * cval -> cval
+*)
+
+  val Lam'  : var * (var * ctyp) list * cexp -> cval
   val Sham0' : cval -> cval
   val Zerocon' : primcon -> ctyp
   val EProj' : var * string * cval * cexp -> cexp
-
-  val W' : var -> world
-  val WC' : string -> world
 
 end

@@ -94,3 +94,9 @@ With old CPS implementation, compiling wiki.ml5 @ rev 447,
   user    0m42.240s
   sys     0m3.190s
 
+then made world abstract so that the interface is ASTable
+
+  real    0m46.187s
+  user    0m41.810s
+  sys     0m3.500s
+

@@ -2,28 +2,217 @@ structure CPS :> CPS =
 struct
   
   structure V = Variable
-  type var = V.var
   infixr 9 `
   fun a ` b = a b
 
   exception CPS of string
 
-(*
-  datatype leaf =
-    AT_ | CONT_ | CONTS_ | ALLARROW_ | WEXISTS_ | TEXISTS_ | PRODUCT_ | TWDICT_ | ADDR_ |
-    MU_ | SUM_ | PRIMCON_ | SHAMROCK_ | TVAR_ | W 
-*)
-
-  datatype arminfo = datatype IL.arminfo
-  datatype worldfront = W of var | WC of string
+  datatype primcon = VEC | REF | DICTIONARY | INT | STRING | EXN | BYTES
+  fun pc_cmp (VEC, VEC) = EQUAL
+    | pc_cmp (VEC, _) = LESS
+    | pc_cmp (_, VEC) = GREATER
+    | pc_cmp (REF, REF) = EQUAL
+    | pc_cmp (REF, _) = LESS
+    | pc_cmp (_, REF) = GREATER
+    | pc_cmp (DICTIONARY, DICTIONARY) = EQUAL
+    | pc_cmp (DICTIONARY, _) = LESS
+    | pc_cmp (_, DICTIONARY) = GREATER
+    | pc_cmp (INT, INT) = EQUAL
+    | pc_cmp (INT, _) = LESS
+    | pc_cmp (_, INT) = GREATER
+    | pc_cmp (STRING, STRING) = EQUAL
+    | pc_cmp (STRING, _) = LESS
+    | pc_cmp (_, STRING) = GREATER
+    | pc_cmp (BYTES, BYTES) = EQUAL
+    | pc_cmp (BYTES, _) = LESS
+    | pc_cmp (_, BYTES) = GREATER
+    | pc_cmp (EXN, EXN) = EQUAL
 
   datatype worldkind = datatype IL.worldkind
 
-  datatype primcon = VEC | REF | DICTIONARY | INT | STRING | EXN | BYTES
+  datatype primop = 
+      LOCALHOST 
+    | BIND 
+    | MARSHAL 
+    | SAY | SAY_CC
 
-  type world = worldfront
-  fun world x = x
-  fun world' x = x
+  datatype leaf =
+    (* worlds *)
+    W_ | WC_ of string |
+    (* types *)
+    AT_ | CONT_ | CONTS_ | ALLARROW_ | WEXISTS_ | TEXISTS_ | PRODUCT_ | TWDICT_ | ADDR_ |
+    MU_ | SUM_ | SHAMROCK_ | TVAR_ | PRIMCON_ of primcon | NONCARRIER_ |
+    (* exps *)
+    CALL_ | HALT_ | GO_ | GO_CC | GO_MAR | PRIMOP_ of primop |
+    PUT_ | LETSHAM_ | LETA_ | WUNPACK_ | TUNPACK_ | CASE_ | EXTERNVAL_ |
+    EXTERNWORLD_ of worldkind | EXTERNTYPE_ | PRIMCALL_ | NATIVE_ of Primop.primop |
+    (* vals *)
+    LAMS_ | FSEL_ | VINT_ of IL.intconst | VSTRING_ | PROJ_ | RECORD_ | HOLD_ | WPACK_ |
+    TPACK_ | SHAM_ | INJ_ | ROLL_ | UNROLL_ | CODELAB_ | WDICTFOR_ | WDICT_ |
+    DICTFOR_ | DICT_ | ALLLAM_ | ALLAPP_ | VLETA_ | VLETSHAM_ | VTUNPACK_ |
+    (* globals *)
+    POLYCODE_ | CODE_ |
+
+    (* data *)
+    STRING_ of string | INT_ of int | BOOL_ of bool | NONE_
+
+  fun leaf_cmp _ = raise CPS "unimplemented leaf_cmp"
+
+  (* a variable can be type, universal, modal, or world *)
+  datatype allvar = TV of V.var | UV of V.var | MV of V.var | WV of V.var
+
+  fun allvar_cmp (TV v1, TV v2) = V.compare (v1, v2)
+    | allvar_cmp (TV _, _) = LESS
+    | allvar_cmp (_, TV _) = GREATER
+    | allvar_cmp (UV v1, UV v2) = V.compare (v1, v2)
+    | allvar_cmp (UV _, _) = LESS
+    | allvar_cmp (_, UV _) = GREATER
+    | allvar_cmp (MV v1, MV v2) = V.compare (v1, v2)
+    | allvar_cmp (MV _, _) = LESS
+    | allvar_cmp (_, MV _) = GREATER
+    | allvar_cmp (WV v1, WV v2) = V.compare (v1, v2)
+
+  fun allvar_eq (v1, v2) = allvar_cmp (v1, v2) = EQUAL
+  fun allvar_vary (TV v) = TV (V.alphavary v)
+    | allvar_vary (UV v) = UV (V.alphavary v)
+    | allvar_vary (MV v) = MV (V.alphavary v)
+    | allvar_vary (WV v) = WV (V.alphavary v)
+
+  structure AST = ASTFn(type var = allvar
+                        val var_cmp = allvar_cmp
+                        val var_eq = allvar_eq
+                        val var_vary = allvar_vary
+                        type leaf = leaf
+                        val leaf_cmp = leaf_cmp)
+
+  open AST
+  (* shadow AST's var *)
+  type var = V.var
+
+
+  datatype arminfo = datatype IL.arminfo
+  datatype worldfront = W of Variable.var | WC of string
+
+  type cglo = ast
+  type cval = ast
+  type ctyp = ast
+  type cexp = ast
+  type world = ast
+
+    
+  infixr / \ // \\
+
+  (* -------- injections:   worlds ------- *)
+
+  fun W' wv = $$W_ // VV (WV wv)
+  fun WC' s = $$(WC_ s)
+
+  (* -------- injections:   types -------- *)
+
+  fun At' (t, w) = $$AT_ // t // w
+  fun Cont' tl = $$CONT_ // SS tl
+  fun Conts' tll = $$CONTS_ // SS (map SS tll)
+  fun AllArrow' { worlds, tys, vals, body } = $$ALLARROW_ // BB (map WV worlds,
+                                                                 BB(map TV tys,
+                                                                    SS vals // body))
+  fun WExists' (wv, t) = $$WEXISTS_ // (WV wv \\ t)
+  fun TExists' (tv, tl) = $$TEXISTS_ // (WV tv \\ SS tl)
+  fun Product' stl = $$PRODUCT_ // SS (map op// ` ListUtil.mapfirst ($$ o STRING_) stl)
+  fun TWdict' w = $$TWDICT_ // w
+  fun Addr' w = $$ADDR_ // w
+
+  (* XXX should canonicalize these so that equations work out at AST level. *)
+  fun Mu' (i, vtl : (V.var * ctyp) list) = $$MU_ // $$(INT_ i) // BB(map (TV o #1) vtl, SS (map #2 vtl))
+  fun Sum' (sail : (string * ctyp IL.arminfo) list) =
+    $$SUM_ // SS (map (fn (s, NonCarrier) => $$(STRING_ s) // $$NONCARRIER_
+                        | (s, Carrier { definitely_allocated, carried }) =>
+                       $$(STRING_ s) // $$(BOOL_ definitely_allocated) // carried) sail)
+
+  fun Primcon' (pc, tl) = $$(PRIMCON_ pc) // SS tl
+  fun Shamrock' (wv, t) = $$SHAMROCK_ // (WV wv \\ t)
+  fun TVar' v = VV (TV v)
+
+  (* -------- injections:   exps -------- *)
+
+  fun Call' (v, vl) = $$CALL_ // v // SS vl
+  val Halt' = $$HALT_
+  fun Go' (w, v, e) = $$GO_ // w // v // e
+  fun Go_cc' { w, addr, env, f } = $$GO_CC // w // addr // env // f
+  fun Go_mar' { w, addr, bytes } = $$GO_MAR // w // addr // bytes
+  fun Primop' (vl, po, va, exp) = $$(PRIMOP_ po) // SS va // BB(map MV vl, exp)
+  fun Primcall' { var, sym, dom, cod, args, bod } =
+    $$PRIMCALL_ // $$(STRING_ sym) // SS dom // cod // SS args // (MV var \\ bod)
+  fun Native' { var, po, tys, args, bod } =
+    $$(NATIVE_ po) // SS tys // SS args // (MV var \\ bod)
+  fun Put' (v, va, e) = $$PUT_ // va // (UV v \\ e)
+  fun Letsham' (v, va, e) = $$LETSHAM_ // va // (UV v \\ e)
+  fun Leta' (v, va, e) = $$LETA_ // va // (MV v \\ e)
+  fun WUnpack' (wv, dv, va, e) = $$WUNPACK_ // va // (WV wv \\ UV dv \\ e)
+  fun TUnpack' (tv, dv, vtl : (var * ctyp) list, va, e) = 
+    $$TUNPACK_ // va // (TV tv \\ 
+                         UV dv \\ 
+                         (SS (map #2 vtl) //
+                          BB (map (MV o #1) vtl, e)))
+  fun Case' (va, v, sel, def) =
+    $$CASE_ // va // (MV v \\ SS ` map (fn (s, e) =>
+                                        $$(STRING_ s) // e) sel) // def
+  fun ExternVal' (v, s, t, wo, e) =
+    $$EXTERNVAL_ // $$(STRING_ s) // t // (case wo of
+                                             SOME w => w // (MV v \\ e)
+                                           | NONE => $$NONE_ // (UV v \\ e))
+
+  fun ExternWorld' (s, wk, e) = $$(EXTERNWORLD_ wk) // $$(STRING_ s) // e
+  fun ExternType' (v, s, vso, e) =
+    $$EXTERNTYPE_ // $$(STRING_ s) // (case vso of
+                                         SOME (v, s) => $$(STRING_ s) // (TV v \\ UV v \\ e)
+                                       | NONE => $$NONE_ // (TV v \\ e))
+
+  (* -------- injections:   vals -------- *)
+
+  (* function names bound in all bodies.. *)
+  fun Lams' vael = $$LAMS_ // BB (map (MV o #1) vael,
+                                  SS ` map (fn (_, a : (var * ctyp) list, e) =>
+                                            SS (map #2 a) //
+                                            BB (map (MV o #1) a, e)) vael)
+  fun Fsel' (va, i) = $$FSEL_ // va // $$(INT_ i)
+  fun Int' i = $$(VINT_ i)
+  fun String' s = $$VSTRING_ // $$(STRING_ s)
+  fun Proj' (s, v) = $$PROJ_ // $$(STRING_ s) // v
+  fun Record' svl = $$RECORD_ // SS (map (fn (s, v) => $$(STRING_ s) // v) svl)
+  fun Hold' (w, va) = $$HOLD_ // w // va
+  fun WPack' _ = raise CPS "unimplemented wpack"
+  fun TPack' (t, ann, d, vals) = $$TPACK_ // t // ann // d // SS vals
+  fun Sham' (wv, va) = $$SHAM_ // (WV wv \\ va)
+  fun Inj' (s, t, vo) = $$INJ_ // $$(STRING_ s) // t // (case vo of
+                                                           NONE => $$NONE_
+                                                         | SOME v => v)
+  fun Roll' (ty, va) = $$ROLL_ // ty // va
+  fun Unroll' va = $$UNROLL_ // va
+  fun Codelab' s = $$CODELAB_ // $$(STRING_ s)
+  fun Var' v = VV (MV v)
+  fun UVar' u = VV (UV u)
+  fun WDictfor' w = $$WDICTFOR_ // w
+  fun WDict' s = $$WDICT_ // $$(STRING_ s)
+  fun Dictfor' t = $$DICTFOR_ // t
+  fun Dict' _ = raise CPS "unimplemented dict!!"
+  fun AllLam' { worlds, tys, vals : (var * ctyp) list, body } =
+    $$ALLLAM_ // BB(map WV worlds,
+                    BB(map TV tys,
+                       SS (map #2 vals) //
+                       BB (map (MV o #1) vals, body)))
+  fun AllApp' { f, worlds, tys, vals } = $$ALLAPP_ // f // SS worlds // SS tys // SS vals
+  fun VLeta' (v, va, va') = $$VLETA_ // va // (MV v \\ va')
+  fun VLetsham' (v, va, va') = $$VLETSHAM_ // va // (UV v \\ va')
+  fun VTUnpack' (tv, dv, vtl : (var * ctyp) list, va, bod) = 
+    $$VTUNPACK_ // va // (TV tv \\ 
+                          UV dv \\ 
+                          (SS (map #2 vtl) //
+                           BB (map (MV o #1) vtl, bod)))
+
+  (* -------- injections:   globals -------- *)
+
+  fun PolyCode' (v, va, t) = $$POLYCODE_ // (WV v \\ (va // t))
+  fun Code' (va, t, s) = $$CODE_ // va // t // $$(STRING_ s)
 
   datatype ('tbind, 'ctyp, 'wbind, 'world) ctypfront =
       At of 'ctyp * 'world
@@ -44,35 +233,33 @@ struct
     | TVar of var
   (* nb. Binders must be implemented in outjection code below! *)
 
-  datatype ctyp = T of (var, ctyp, var, world) ctypfront
-
-  datatype primop = 
-      LOCALHOST 
-    | BIND 
-    | PRIMCALL of { sym : string, dom : ctyp list, cod : ctyp }
-    | NATIVE of { po : Primop.primop, tys : ctyp list }
-    | MARSHAL 
-    | SAY | SAY_CC
-
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
     | Halt
     | Go of world * 'cval * 'cexp
+      (* post closure conversion *)
     | Go_cc of { w : world, addr : 'cval, env : 'cval, f : 'cval }
+      (* post marshaling conversion *)
     | Go_mar of { w : world, addr : 'cval, bytes : 'cval }
     | Primop of var list * primop * 'cval list * 'cexp
+      (* call to external function *)
+    | Primcall of { var : var, sym : string, dom : ctyp list, cod : ctyp, args : 'cval list, bod : 'cexp }
+      (* some built-in thing *)
+    | Native of { var : var, po : Primop.primop, tys : ctyp list, args : 'cval list, bod : 'cexp }
     | Put of var * 'cval * 'cexp
     | Letsham of var * 'cval * 'cexp
     | Leta of var * 'cval * 'cexp
-    (* world var, contents var *)
+    (* world var, XXXWD dict, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
+    (* typ var, dict var, contents vars *)
     | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
     (* contents var only bound in arms, not default *)
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of string * worldkind * 'cexp
+    (* always kind 0; optional argument is a value import of the 
+       (valid) dictionary for that type *)
     | ExternType of var * string * (var * string) option * 'cexp
-  (* nb. Binders must be implemented in outjection code below! *)
 
   and ('cexp, 'cval) cvalfront =
       Lams of (var * (var * ctyp) list * 'cexp) list
@@ -105,12 +292,6 @@ struct
   datatype ('cexp, 'cval) cglofront =
       PolyCode of var * 'cval * ctyp (* @ var *)
     | Code of 'cval * ctyp * string
-    
-  (* CPS expressions *)
-  datatype cexp = E  of (cexp, cval) cexpfront
-  and      cval = V of (cexp, cval) cvalfront
-   
-  type     cglo =      (cexp, cval) cglofront
 
   type program  = { 
                     (* The world constants. *)
@@ -123,793 +304,32 @@ struct
 
                     }
 
-  datatype substitutend = 
-      SV of cval
-    | ST of ctyp
-    | SW of world
-    | SU of var
-    (* occurrence-driven; if we ask for a value, we get Var v
-       if we ask for a type, we get TVar v. *)
-    | S_RENAME of var
-
-  fun se_getv (SV (V v)) = v 
-    | se_getv (S_RENAME v) = Var v
-    | se_getv _ = raise CPS "scope violated: wanted val"
-  fun se_getu (SU u) = u 
-    | se_getu (S_RENAME u) = u
-    | se_getu _ = raise CPS "scope violated: wanted uvar"
-  fun se_gett (ST (T t)) = t
-    | se_gett (S_RENAME v) = TVar v
-    | se_gett _ = raise CPS "scope violated: wanted type"
-  fun se_getw (SW w) = w 
-    | se_getw (S_RENAME v) = W v
-    | se_getw _ = raise CPS "scope violated: wanted world"
-
-
-  fun substw v se (W vv) = if V.eq (v, vv) then se_getw se else W vv
-    | substw _ _  (w as WC l) = w
-
-  (* substitute through a type front.
-     v is the variable to substitute for, se is the
-                                          substitutend. 
-     typ is the type front to substitute through.
-
-     upon seeing a variable, calls var_action (which should
-     return the replacement if it's the right variable).
-     
-     recurses on component types by calling the argument 'self'
-
-     tbinds : var -> 'tbind -> bool indicates whether the 'tbind
-              binds the variable in question.
-
-     the function substt below has a much nicer interface;
-     however, we need this more abstract version so that we
-     can implement substitution for dictionary values, which
-     use the same datatype.
-
-     XXX use record for these crazy args
-     *)
-  and substtfront v se typ var_action tbinds self wbinds wself =
-    let 
-      fun veq v1 v2 = V.eq(v1, v2)
-    in
-      case typ of
-         At (t, w) => At (self t, wself w)
-       | Cont l => Cont (map self l)
-       | AllArrow { worlds, tys, vals, body } => 
-             if List.exists (wbinds v) worlds orelse
-                List.exists (tbinds v) tys
-             then typ
-             else AllArrow { worlds = worlds,
-                             tys = tys,
-                             vals = map self vals,
-                             body = self body }
-       | WExists (vv, t) => if wbinds v vv then typ
-                            else WExists(vv, self t)
-       | TExists (tb, t) => if tbinds v tb then typ
-                            else TExists(tb, map self t)
-       | Product stl => Product ` ListUtil.mapsecond self stl
-       | TWdict w => TWdict (wself w)
-       | Addr w => Addr (wself w)
-       | Mu (i, vtl) => if List.exists (fn (tb, _) => tbinds v tb) vtl
-                        then typ
-                        else Mu (i, ListUtil.mapsecond self vtl)
-       | Sum sal => Sum (map (fn (s, NonCarrier) => (s, NonCarrier)
-                               | (s, Carrier { definitely_allocated, carried }) => 
-                              (s, Carrier { definitely_allocated = definitely_allocated,
-                                            carried = self carried })) sal)
-       | Primcon (pc, l) => Primcon (pc, map self l)
-       | Conts ll => Conts ` map (map self) ll
-       | Shamrock (vv, t) => if wbinds v vv
-                             then typ
-                             else Shamrock (vv, self t)
-       | TVar vv => var_action vv
-    end
-
-  (* PERF if substitutend is exp or val, stop early *)
-  (* substitute var v with type se in a type, observing scope *)
-  fun substt v se (T typ) = 
-    T (substtfront v se typ (fn vv => if V.eq (v, vv) then se_gett se else TVar vv)
-       (* how to handle type binders (vars), types, world binders (vars), worlds: *)
-       (Util.curry V.eq)
-       (substt v se)
-       (Util.curry V.eq)
-       (substw v se)
-       )
-
-  (* substitute se for v throughout the expression exp *)
-  fun subste v se (E exp) =
-    let val eself = subste v se
-        val vself = substv v se
-        val wself = substw v se
-        val tself = substt v se
-    in
-      E
-      (case exp of
-         Call (v, vl) => Call (vself v, map vself vl)
-       | Halt => exp
-       | Go (w, va, e) => Go (wself w, vself va, eself e)
-       | Go_cc { w, addr, env, f } => Go_cc { w = wself w, 
-                                              addr = vself addr, 
-                                              env = vself env,
-                                              f = vself f }
-       | Go_mar { w, addr, bytes } => Go_mar { w = wself w, 
-                                               addr = vself addr, 
-                                               bytes = vself bytes }
-       | Primop (vvl, po, vl, ce) =>
-           let fun poself LOCALHOST = LOCALHOST
-                 | poself BIND = BIND
-                 | poself MARSHAL = MARSHAL
-                 | poself SAY = SAY
-                 | poself SAY_CC = SAY_CC
-                 | poself (NATIVE { po, tys }) = NATIVE { po = po, tys = map tself tys }
-                 | poself (PRIMCALL { sym, dom, cod }) = PRIMCALL { sym = sym,
-                                                                    dom = map tself dom,
-                                                                    cod = tself cod }
-           in
-             Primop (vvl, poself po, map vself vl,
-                     if List.exists (fn vv => V.eq (vv, v)) vvl
-                     then ce
-                     else eself ce)
-           end
-       | Put (vv, va, e) =>
-           Put (vv, vself va,
-                if V.eq(vv, v)
-                then e
-                else eself e)
-       | Letsham (vv, va, e) =>
-           Letsham (vv, vself va,
-                    if V.eq(vv, v)
-                    then e
-                    else eself e)
-       | Leta (vv, va, e) =>
-           Leta (vv, vself va,
-                 if V.eq(vv, v)
-                 then e
-                 else eself e)
-       | WUnpack (vv1, vv2, va, e) =>
-           WUnpack (vv1, vv2, vself va,
-                    if V.eq(vv1, v) orelse V.eq (vv2, v)
-                    then e
-                    else eself e)
-       | TUnpack (vv1, vd, vvl, va, e) =>
-           TUnpack (vv1, 
-                    vd,
-                    if V.eq(vv1, v) then vvl else ListUtil.mapsecond tself vvl, 
-                    vself va,
-                    if V.eq(vv1, v) 
-                       orelse V.eq (vd, v) 
-                       orelse List.exists (fn (vv, _) => V.eq (vv, v)) vvl
-                    then e
-                    else eself e)
-       | Case (va, vv, sel, e) =>
-           Case (vself va, vv,
-                 if V.eq(vv, v) then sel
-                 else ListUtil.mapsecond eself sel,
-                 eself e)
-       | ExternWorld (s, k, e) => ExternWorld (s, k, eself e)
-       | ExternType (vv, s, vso, e) =>
-           ExternType (vv, s, vso, if V.eq (vv, v) 
-                                     orelse (case vso of SOME (vvv, _) => V.eq (vvv, v)
-                                                                   | _ => false)
-                                   then e else eself e)
-
-       | ExternVal (vv, s, t, wo, e) =>
-           ExternVal (vv, s, tself t, Option.map wself wo,
-                      if V.eq (vv, v) then e else eself e)
-           )
-    end
-
-  and substv v se (V value) =
-    let val eself = subste v se
-        val vself = substv v se
-        val wself = substw v se
-        val tself = substt v se
-        fun issrc vv = V.eq (v, vv)
-    in
-      V (case value of
-           Int i => value
-         | String s => value
-         | Record svl => Record ` ListUtil.mapsecond vself svl
-         | Proj (s, va) => Proj (s, vself va)
-         | Hold (w, va) => Hold (wself w, vself va)
-
-         | AllLam { worlds, tys, vals, body } => 
-               if List.exists issrc worlds orelse
-                  List.exists issrc tys 
-               then value 
-               else 
-                 (* if bound as a value var, then we'll still substitute
-                    through those types but not the body *)
-                 if List.exists (issrc o #1) vals
-                 then AllLam { worlds = worlds, tys = tys, 
-                               vals = 
-                               ListUtil.mapsecond tself vals, body = body }
-                 else AllLam { worlds = worlds, tys = tys, 
-                               vals = ListUtil.mapsecond tself vals, 
-                               body = vself body }
-
-         | VLetsham (vv, va, ve) =>
-                   VLetsham (vv, vself va,
-                             if V.eq(vv, v)
-                             then ve
-                             else vself ve)
-
-         | VLeta (vv, va, ve) =>
-                   VLeta (vv, vself va,
-                          if V.eq(vv, v)
-                          then ve
-                          else vself ve)
-         | AllApp { f, worlds, tys, vals } => AllApp { f = vself f, worlds = map wself worlds,
-                                                       tys = map tself tys, vals = map vself vals }
-         | WPack (w, va) => WPack (wself w, vself va)
-         | TPack (t, t2, v, va) => TPack (tself t, tself t2, vself v, map vself va)
-         | Var vv => if V.eq(v, vv) then se_getv se else Var vv
-         | UVar vv => UVar (if V.eq(v, vv) then se_getu se else vv)
-         | Unroll va => Unroll (vself va)
-         | Codelab s => Codelab s
-         | Roll (t, va) => Roll (tself t, vself va)
-         | WDictfor w => WDictfor ` wself w
-         | WDict s => WDict s
-         | Dictfor t => Dictfor ` tself t
-
-         | Dict tf => Dict (substtfront v se tf (fn _ =>
-                                                 raise CPS "dictionaries should not have tvars!")
-                             (* tbinds are just two variables here, typs are vals *)
-                             (fn v1 => fn (v2, v3) => V.eq (v1, v2) orelse V.eq (v1, v3)) vself
-                             (* ditto wbinds, worlds *)
-                             (fn v1 => fn (v2, v3) => V.eq (v1, v2) orelse V.eq (v1, v3)) vself
-                             )
-
-         | VTUnpack (vv1, vd, vvl, va, ve) =>
-                  VTUnpack (vv1, 
-                            vd,
-                            if V.eq(vv1, v) then vvl else ListUtil.mapsecond tself vvl, 
-                            vself va,
-                            if V.eq(vv1, v) 
-                               orelse V.eq(vd, v)
-                               orelse List.exists (fn (vv, _) => V.eq (vv, v)) vvl
-                            then ve
-                            else vself ve)
-
-         | Sham (w, va) => if V.eq(v, w) 
-                           then value
-                           else Sham (w, vself va)
-         | Fsel (va, i) => Fsel (vself va, i)
-         | Inj (s, t, va) => Inj (s, tself t, Option.map vself va)
-         | Lams vvel => Lams ` map (fn (vv, vvl, ce) => 
-                                    (vv, 
-                                     ListUtil.mapsecond tself vvl,
-                                     if List.exists (fn (vv, _) => V.eq (vv, v)) vvl
-                                        orelse
-                                        List.exists (fn (vv, _, _) => V.eq (vv, v)) vvel
-                                     then ce
-                                     else eself ce)) vvel
-           )
-    end
-
-  fun renamet v v' t = substt v (S_RENAME v') t
-  fun renamee v v' e = subste v (S_RENAME v') e
-  fun renamew v v' w = substw v (S_RENAME v') w
-  fun renamev v v' l = substv v (S_RENAME v') l
-
-  val renameeall = foldl (fn ((v,v'), e) => renamee v v' e)
-  val renametall = foldl (fn ((v,v'), e) => renamet v v' e)
-
-  (* when exposing a binder, we alpha-vary. *)
-  fun ctyp (T(AllArrow {worlds, tys, vals, body})) = let val worlds' = ListUtil.mapto V.alphavary worlds
-                                                         val tys'    = ListUtil.mapto V.alphavary tys
-                                                         fun rent t = renametall (renametall t worlds') tys'
-                                                     in 
-                                                         AllArrow { worlds = map #2 worlds',
-                                                                    tys    = map #2 tys',
-                                                                    vals   = map rent vals,
-                                                                    body   = rent body }
-                                                     end
-
-    | ctyp (T(WExists (v, t))) = let val v' = V.alphavary v
-                                 in WExists (v', renamet v v' t)
-                                 end
-    | ctyp (T(TExists (v, t))) = let val v' = V.alphavary v
-                                 in TExists (v', map (renamet v v') t)
-                                 end
-
-    | ctyp (T(Shamrock (v, t))) = let val v' = V.alphavary v
-                                  in Shamrock (v', renamet v v' t)
-                                  end
-
-    | ctyp (T(Mu(i, vtl))) = let val (vs, ts) = ListPair.unzip vtl
-                                 val tys = ListUtil.mapto V.alphavary vs
-                                 fun rent t = renametall t tys
-                                 val vtl = ListPair.zip (map #2 tys, map rent ts)
-                             in
-                                 Mu(i, vtl)
-                             end
-     (* 
-        
-        *** NOTE: ***
-        
-        Also have to implement type front binders in their value representations;
-        see V(Dict(...)) below!
-
-
-        *)
-    | ctyp (T x) = x
-
-  fun cexp (E(Primop(vvl, po, vl, e))) = 
-                                    let val vs = ListUtil.mapto V.alphavary vvl
-                                    in Primop(map #2 vs, po, vl,
-                                              renameeall e vs)
-                                    end
-    | cexp (E(Put(v, va, e))) = let val v' = V.alphavary v
-                                in Put(v', va, renamee v v' e)
-                                end
-    | cexp (E(Letsham(v, va, e))) = let val v' = V.alphavary v
-                                    in Letsham(v', va, renamee v v' e)
-                                    end
-    | cexp (E(Leta(v, va, e))) = let val v' = V.alphavary v
-                                 in Leta(v', va, renamee v v' e)
-                                 end
-
-    | cexp (E(WUnpack(v1, v2, va, e))) = let val v1' = V.alphavary v1
-                                             val v2' = V.alphavary v2
-                                         in WUnpack(v1', v2', va, renamee v2 v2' ` renamee v1 v1' e)
-                                         end
-    | cexp (E(TUnpack(v1, vd, vtl, va, e))) = 
-                                         let 
-                                           val v1' = V.alphavary v1
-                                           val vd' = V.alphavary vd
-                                           val (v2l, t2l) = ListPair.unzip vtl
-                                           val t2l = map (renamet v1 v1') t2l
-                                           val v2l' = ListUtil.mapto V.alphavary v2l
-                                         in TUnpack(v1', vd', ListPair.zip(map #2 v2l', t2l), 
-                                                    va, 
-                                                    renamee vd vd' ` renameeall (renamee v1 v1' e) v2l')
-                                         end
-    | cexp (E(Case(va, v, sel, def))) = let val v' = V.alphavary v
-                                        in
-                                          Case(va, v', ListUtil.mapsecond (renamee v v') sel,
-                                               def)
-                                        end
-
-    | cexp (E(ExternVal(vv, s, t, wo, e))) = let val v' = V.alphavary vv
-                                             in ExternVal(v', s, t, wo, renamee vv v' e)
-                                             end
-
-    | cexp (E(ExternType(vv, s, NONE, e))) = let val v' = V.alphavary vv
-                                             in ExternType(v', s, NONE, renamee vv v' e)
-                                             end
-    | cexp (E(ExternType(vv, s, SOME (v2, s2), e))) = let val v' = V.alphavary vv
-                                                          val v2' = V.alphavary v2
-                                                      in ExternType(v', s, SOME (v2', s2), 
-                                                                    renamee v2 v2' ` renamee vv v' e)
-                                                      end
-
-    | cexp (E x) = x
-
-
-  val renamevall = foldl (fn ((v,v'), e) => renamev v v' e)
-
-  fun cval (V (Lams vael)) = let val fs = map (fn (v, a, e) => 
-                                               (v, V.alphavary v, a, e)) vael
-                             in
-                               Lams (map (fn (v, v', at, e) =>
-                                          let 
-                                            val (a, t) = ListPair.unzip at
-                                            val a' = ListUtil.mapto V.alphavary a
-                                          in
-                                            (v', 
-                                             ListPair.zip(map #2 a', t),
-                                             foldl (fn ((v, v'), e) => renamee v v' e) e
-                                             (* function names @ these args *)
-                                             ((map (fn (v, v', _, _) => (v, v')) fs) @ a')
-                                             )
-                                          end) fs)
-                             end
-    | cval (V(VTUnpack(v1, vd, vtl, va, ve))) = 
-                             let 
-                               val v1' = V.alphavary v1
-                               val vd' = V.alphavary vd
-                               val (v2l, t2l) = ListPair.unzip vtl
-                               val t2l = map (renamet v1 v1') t2l
-                               val v2l' = ListUtil.mapto V.alphavary v2l
-                             in VTUnpack(v1', vd', 
-                                         ListPair.zip(map #2 v2l', t2l), 
-                                         va, 
-                                         renamev vd vd' ` renamevall (renamev v1 v1' ve) v2l')
-                             end
-    | cval (V (VLetsham (v, va, va2))) =
-                             let val v' = V.alphavary v
-                             in VLetsham(v', va, renamev v v' va2)
-                             end
-    | cval (V (VLeta (v, va, va2))) =
-                             let val v' = V.alphavary v
-                             in VLeta(v', va, renamev v v' va2)
-                             end
-
-    (* dictionaries use these type binders, so we have to repeat the
-       renamings here. Would it be possible to reuse (a suitably abstracted) 
-       ctyp for this?? 
-
-       (don't be confused that the following few use variable names like t
-        to stand for values, as they are copied from above)
-       *)
-    | cval (V (Dict(AllArrow { worlds, tys, vals, body }))) =
-                             let
-                               (* the world vars are world vars, but
-                                  the (former) type vars are now val vars. *)
-                               val (ws1, ws2) = ListPair.unzip worlds
-                               (* the static and dynamic world vars *)
-                               val ws1' = ListUtil.mapto V.alphavary ws1
-                               val ws2' = ListUtil.mapto V.alphavary ws2
-
-                               val (tys1, tys2) = ListPair.unzip tys
-
-                               (* The type vars *)
-                               val tys1' = ListUtil.mapto V.alphavary tys1
-                               (* the dict vars *)
-                               val tys2' = ListUtil.mapto V.alphavary tys2
-
-                               fun renw v = renamevall (renamevall v ws1') ws2'
-                               fun rent v = renamevall (renw v) tys1'
-                               fun renv v = renamevall (rent v) tys2'
-                             in 
-                               Dict `
-                               AllArrow { worlds = ListPair.zip(map #2 ws1',
-                                                                map #2 ws2'),
-                                          tys    = ListPair.zip(map #2 tys1',
-                                                                map #2 tys2'),
-                                          vals   = map renv vals,
-                                          body   = renv body }
-                             end
-    | cval (V(Dict(WExists ((v, vd), t)))) = 
-                             let 
-                               val v' = V.alphavary v
-                               val vd' = V.alphavary vd
-                             in Dict ` WExists ((v', vd'), renamev vd vd' ` renamev v v' t)
-                             end
-
-    | cval (V(Dict(Shamrock ((v, vd), t)))) = 
-                             let 
-                               val v' = V.alphavary v
-                               val vd' = V.alphavary vd
-                             in Dict ` Shamrock ((v', vd'), renamev vd vd' ` renamev v v' t)
-                             end
-                                     
-    | cval (V(Dict(TExists ((v1, v2), t)))) = 
-                             let val v1' = V.alphavary v1
-                                 val v2' = V.alphavary v2
-                             in Dict ` TExists ((v1', v2'), map (renamev v2 v2' o renamev v1 v1') t)
-                             end
-
-    | cval (V(Dict(Mu(i, vvtl)))) = 
-                             let 
-                                 val (vvs, ts) = ListPair.unzip vvtl
-                                 val (tys1, tys2) = ListPair.unzip vvs
-                                 val tys1' = ListUtil.mapto V.alphavary tys1
-                                 val tys2' = ListUtil.mapto V.alphavary tys2
-
-                                 fun rent t = renamevall (renamevall t tys1') tys2'
-                                 val vvtl = ListPair.zip (ListPair.zip(map #2 tys1',
-                                                                       map #2 tys2'),
-                                                          map rent ts)
-                             in
-                                 Dict ` 
-                                 Mu(i, vvtl)
-                             end
-
-    (* other type fronts don't bind variables; easy *)
-    | cval (V (d as Dict _)) = d
-
-    | cval (V (Sham (w, va))) = let val w' = V.alphavary w
-                                in Sham (w', renamev w w' va)
-                                end
-
-    | cval (V (AllLam { worlds, tys, vals = valstyps, body })) = 
-                             let val worlds' = ListUtil.mapto V.alphavary worlds
-                                 val tys'    = ListUtil.mapto V.alphavary tys
-                                 val (vals, typs) = ListPair.unzip valstyps
-                                 val vals'   = ListUtil.mapto V.alphavary vals
-                                 fun renv t = renamevall (renamevall (renamevall t worlds') tys') vals'
-                                 fun rent t = renametall (renametall (renametall t worlds') tys') vals'
-                             in 
-                                 AllLam { worlds = map #2 worlds',
-                                          tys    = map #2 tys',
-                                          vals   = ListPair.zip(map #2 vals',
-                                                                map rent typs),
-                                          body   = renv body }
-                             end
-    | cval (V x) = x
-
-  (* need to handle the schematic world variable for PolyCode. *)
-  fun cglo glo =
-    (case glo of
-       Code _ => glo
-     | PolyCode (w, va, t) => let val w' = V.alphavary w
-                              in 
-                                (* print ("cglo " ^ V.tostring w ^ " ---> " ^ V.tostring w' ^ "\n"); *)
-                                PolyCode (w', renamev w w' va, renamet w w' t)
-                              end)
-
-  infixr >>
-  fun EQUAL >> f = f ()
-    | c >> _ = c
-
-  fun world_cmp (W w1, W w2) = V.compare(w1, w2)
-    | world_cmp (W _, WC _) = LESS
-    | world_cmp (WC _, W _) = GREATER
-    | world_cmp (WC w1, WC w2) = String.compare (w1, w2)
-
-  fun world_eq ws = EQUAL = world_cmp ws
-
-  fun pc_cmp (VEC, VEC) = EQUAL
-    | pc_cmp (VEC, _) = LESS
-    | pc_cmp (_, VEC) = GREATER
-    | pc_cmp (REF, REF) = EQUAL
-    | pc_cmp (REF, _) = LESS
-    | pc_cmp (_, REF) = GREATER
-    | pc_cmp (DICTIONARY, DICTIONARY) = EQUAL
-    | pc_cmp (DICTIONARY, _) = LESS
-    | pc_cmp (_, DICTIONARY) = GREATER
-    | pc_cmp (INT, INT) = EQUAL
-    | pc_cmp (INT, _) = LESS
-    | pc_cmp (_, INT) = GREATER
-    | pc_cmp (STRING, STRING) = EQUAL
-    | pc_cmp (STRING, _) = LESS
-    | pc_cmp (_, STRING) = GREATER
-    | pc_cmp (BYTES, BYTES) = EQUAL
-    | pc_cmp (BYTES, _) = LESS
-    | pc_cmp (_, BYTES) = GREATER
-    | pc_cmp (EXN, EXN) = EQUAL
-
-  fun arminfo_cmp ac (NonCarrier, NonCarrier) = EQUAL
-    | arminfo_cmp ac (NonCarrier, _) = LESS
-    | arminfo_cmp ac (_, NonCarrier) = GREATER
-    | arminfo_cmp ac (Carrier {definitely_allocated = da1, carried = t1},
-                      Carrier {definitely_allocated = da2, carried = t2}) =
-    Util.bool_compare (da1, da2) >> (fn () => ac (t1, t2))
-
-  (* maintains that Ex.A(x) = Ey.A(y) by always choosing the same
-     names for vars when unbinding *)
-  fun ctyp_cmp (T t1, T t2) =
-    (case (t1, t2) of
-       (AllArrow {worlds = worlds1, tys = tys1, vals = vals1, body = body1},
-        AllArrow {worlds = worlds2, tys = tys2, vals = vals2, body = body2}) =>
-       (case (Int.compare (length worlds1, length worlds2),
-              Int.compare (length tys1, length tys2),
-              Int.compare (length vals2, length vals2)) of
-          (EQUAL, EQUAL, EQUAL) =>
-            let
-              (* choose the same rename targets for both sides *)
-              val worlds1' = ListUtil.mapto V.alphavary worlds1
-              val worlds2' = ListPair.zip (worlds2, map #2 worlds1')
-              val tys1'    = ListUtil.mapto V.alphavary tys1
-              val tys2'    = ListPair.zip (tys2, map #2 tys1')
-              fun rent1 t = renametall (renametall t worlds1') tys1'
-              fun rent2 t = renametall (renametall t worlds2') tys2'
-            in 
-              case Util.lex_list_order ctyp_cmp (map rent1 vals1, map rent2 vals2) of
-                (* same vals... *)
-                  EQUAL => ctyp_cmp (rent1 body1, rent2 body2)
-                | c => c
-            end       
-
-        | (EQUAL, EQUAL, c) => c
-        | (EQUAL, c, _) => c
-        | (c, _, _) => c)
-
-      | (AllArrow _, _) => LESS
-      | (_, AllArrow _) => GREATER
-
-      | (WExists (v1, t1), WExists (v2, t2)) =>
-          let val v' = V.namedvar "x"
-          in
-            ctyp_cmp (renamet v1 v' t1,
-                      renamet v2 v' t2)
-          end
-      | (WExists _, _) => LESS
-      | (_, WExists _) => GREATER
-
-      | (TExists (v1, t1), TExists (v2, t2)) =>
-          let val v' = V.namedvar "x"
-          in
-            Util.lex_list_order
-            ctyp_cmp (map (renamet v1 v') t1,
-                      map (renamet v2 v') t2)
-          end
-      | (TExists _, _) => LESS
-      | (_, TExists _) => GREATER
-
-      (* XXX excludes all structural properties other than
-         alpha equivalence *)
-      | (Mu (i1, vtl1), Mu(i2, vtl2)) =>
-          (case (Int.compare (length vtl1, length vtl2),
-                 Int.compare (i1, i2)) of
-             (EQUAL, EQUAL) =>
-               let
-                 val vars = map (V.alphavary o #1) vtl1
-                 val vtlv1 = ListPair.zip (vtl1, vars)
-                 val vtlv2 = ListPair.zip (vtl2, vars)
-               in
-                 Util.lex_list_order
-                 (fn (((v1, t1), v1'),
-                      ((v2, t2), v2')) =>
-                  ctyp_cmp (renamet v1 v1' t1,
-                            renamet v2 v2' t2)) (vtlv1, vtlv2)
-               end
-           | (EQUAL, c) => c
-           | (c, _) => c)
-      | (Mu _, _) => LESS
-      | (_, Mu _) => GREATER
-
-      | (At (t1, w1), At (t2, w2)) =>
-             ctyp_cmp (t1, t2) >> (fn () => world_cmp (w1, w2))
-      | (At _, _) => LESS
-      | (_, At _) => GREATER
-
-      | (TVar v1, TVar v2) => V.compare (v1, v2)
-      | (TVar _, _) => LESS
-      | (_, TVar _) => GREATER
-
-      | (Cont l1, Cont l2) => Util.lex_list_order ctyp_cmp (l1, l2)
-      | (Cont _, _) => LESS
-      | (_, Cont _) => GREATER
-
-      | (TWdict w1, TWdict w2) => world_cmp (w1, w2)
-      | (TWdict _, _) => LESS
-      | (_, TWdict _) => GREATER
-
-      | (Addr w1, Addr w2) => world_cmp (w1, w2)
-      | (Addr _, _) => LESS
-      | (_, Addr _) => GREATER
-
-      | (Shamrock (v1, t1), Shamrock (v2, t2)) => 
-          let val v' = V.namedvar "x"
-          in
-            ctyp_cmp (renamet v1 v' t1,
-                      renamet v2 v' t2)
-          end
-
-      | (Shamrock _, _) => LESS
-      | (_, Shamrock _) => GREATER
-
-      | (Conts ll1, Conts ll2) => 
-             Util.lex_list_order (Util.lex_list_order ctyp_cmp) (ll1, ll2)
-      | (Conts _, _) => LESS
-      | (_, Conts _) => GREATER
-
-      | (Product stl1, Product stl2) =>
-         let
-           (* PERF could guarantee this as a rep inv *)
-           val stl1 = ListUtil.sort (ListUtil.byfirst String.compare) stl1
-           val stl2 = ListUtil.sort (ListUtil.byfirst String.compare) stl2
-         in
-           Util.lex_list_order
-           (fn ((s1, t1),
-                (s2, t2)) =>
-            String.compare (s1, s2) >>
-            (fn () => ctyp_cmp (t1, t2)))
-           (stl1, stl2)
-         end
-      | (Product _, _) => LESS
-      | (_, Product _) => GREATER
-
-      | (Sum stl1, Sum stl2) =>
-         let
-           (* PERF could guarantee this as a rep inv *)
-           val stl1 = ListUtil.sort (ListUtil.byfirst String.compare) stl1
-           val stl2 = ListUtil.sort (ListUtil.byfirst String.compare) stl2
-         in
-           Util.lex_list_order
-           (fn ((s1, at1),
-                (s2, at2)) =>
-            String.compare (s1, s2) >>
-            (fn () => arminfo_cmp ctyp_cmp (at1, at2)))
-           (stl1, stl2)
-         end
-      | (Sum _, _) => LESS
-      | (_, Sum _) => GREATER
-
-      | (Primcon (pc1, l1), Primcon (pc2, l2)) =>
-         pc_cmp (pc1, pc2) >>
-         (fn () => Util.lex_list_order ctyp_cmp (l1, l2))
-(*
-      | (Primcon _, _) => LESS
-      | (_, Primcon _) => GREATER
-*)
-
-          )
-
-  fun ctyp_eq (t1, t2) = ctyp_cmp (t1, t2) = EQUAL
-                             
-
-  (* injections / ctyp *)
-
-  val ctyp' = T
-  val cval' = V
-  val cexp' = E
-  fun cglo' x = x
-
-  fun WAll (v, t) = AllArrow { worlds = [v], tys = nil, vals = nil, body = t }
-  fun TAll (v, t) = AllArrow { worlds = nil, tys = [v], vals = nil, body = t }
-  fun WLam (v, c) = AllLam { worlds = [v], tys = nil, vals = nil, body = c }
-  fun TLam (v, c) = AllLam { worlds = nil, tys = [v], vals = nil, body = c }
-
-  fun WApp (c, w) = AllApp { f = c, worlds = [w], tys = nil, vals = nil }
-  fun TApp (c, t) = AllApp { f = c, worlds = nil, tys = [t], vals = nil }
-
-  val At' = fn x => T (At x)
-  val Cont' = fn x => T (Cont x)
-  val WAll' = fn x => T (WAll x)
-  val TAll' = fn x => T (TAll x)
-  val AllArrow' = fn x => T (AllArrow x)
-  val WExists' = fn x => T (WExists x)
-  val TExists' = fn x => T (TExists x)
-  val Product' = fn x => T (Product x)
-  val Addr' = fn x => T (Addr x)
-  val TWdict' = fn x => T (TWdict x)
-  val Mu' = fn x => T (Mu x)
-  val Sum' = fn x => T (Sum x)
-  val Primcon' = fn x => T (Primcon x)
-  val Conts' = fn x => T (Conts x)
-  val Shamrock' = fn x => T (Shamrock x)
-  val Shamrock0' = fn x => T (Shamrock (V.namedvar "unuseds0", x))
-  val TVar' = fn x => T (TVar x)
-
-  val Halt' = E Halt
-  val Call' = fn x => E (Call x)
-  val Go' = fn x => E (Go x)
-  val Go_cc' = fn x => E (Go_cc x)
-  val Go_mar' = fn x => E (Go_mar x)
-  val Primop' = fn x => E (Primop x)
-  val Put' = fn x => E (Put x)
-  val Letsham' = fn x => E (Letsham x)
-  val Leta' = fn x => E (Leta x)
-  val WUnpack' = fn x => E (WUnpack x)
-  val TUnpack' = fn x => E (TUnpack x)
-  val Case' = fn x => E (Case x)
-  val ExternWorld' = fn x => E (ExternWorld x)
-  val ExternType' = fn x => E (ExternType x)
-  val ExternVal' = fn x => E (ExternVal x)
-
-  val Dict' = fn x => V (Dict x)
-  val AllLam' = fn x => V (AllLam x)
-  val AllApp' = fn x => V (AllApp x)
-  val Lams' = fn x => V (Lams x)
-  val Fsel' = fn x => V (Fsel x)
-  val Int' = fn x => V (Int x)
-  val String' = fn x => V (String x)
-  val Record' = fn x => V (Record x)
-  val Hold' = fn x => V (Hold x)
-  val WLam' = fn x => V (WLam x)
-  val TLam' = fn x => V (TLam x)
-  val WPack' = fn x => V (WPack x)
-  val TPack' = fn x => V (TPack x)
-  val WApp' = fn x => V (WApp x)
-  val TApp' = fn x => V (TApp x)
-  val Sham' = fn x => V (Sham x)
-  val Inj' = fn x => V (Inj x)
-  val Roll' = fn x => V (Roll x)
-  val WDict' = fn x => V (WDict x)
-  val WDictfor' = fn x => V (WDictfor x)
-  val Dictfor' = fn x => V (Dictfor x)
-  val Codelab' = fn x => V (Codelab x)
-  val Unroll' = fn x => V (Unroll x)
-  val Var' = fn x => V (Var x)
-  val UVar' = fn x => V (UVar x)
-  val VLetsham' = fn x => V (VLetsham x)
-  val VLeta' = fn x => V (VLeta x)
-  val Proj' = fn x => V (Proj x)
-  val VTUnpack' = fn x => V (VTUnpack x)
-
-  val Code' = Code
-  val PolyCode' = PolyCode
-
-  val W' = W
-  val WC' = WC
+  fun ctyp _ = raise CPS "unimplemented"
+  fun cval _ = raise CPS "unimplemented"
+  fun cexp _ = raise CPS "unimplemented"
+  fun cglo _ = raise CPS "unimplemented"
+  fun world _ = raise CPS "unimplemented"
+  fun world_cmp _ = raise CPS "unimplemented"
+  fun ctyp_cmp _ = raise CPS "unimplemented"
+  fun subww _ = raise CPS "unimplemented"
+  fun subwt _ = raise CPS "unimplemented"
+  fun subwv _ = raise CPS "unimplemented"
+  fun subwe _ = raise CPS "unimplemented"
+  fun subtt _ = raise CPS "unimplemented"
+  fun subtv _ = raise CPS "unimplemented"
+  fun subte _ = raise CPS "unimplemented"
+  fun subvv _ = raise CPS "unimplemented"
+  fun subve _ = raise CPS "unimplemented"
+
+  (* PERF could be more efficient. would be especially worth it for type_eq *)
+  fun ctyp_eq p = ctyp_cmp p = EQUAL
+  fun world_eq p = world_cmp p = EQUAL
+
+  fun Shamrock0' t = Shamrock' (V.namedvar "shamt_unused", t)
+  fun Sham0' va = Sham' (V.namedvar "sham_unused", va)
+  fun Zerocon' pc = Primcon' (pc, nil)
 
   fun Lam' (v, vl, e) = Fsel' (Lams' [(v, vl, e)], 0)
-  fun Zerocon' pc = Primcon' (pc, nil)
   fun Lift' (v, cv, e) = Letsham'(v, Sham' (V.namedvar "lift_unused", cv), e)
   fun Bind' (v, cv, e) = Primop' ([v], BIND, [cv], e)
   fun Bindat' (v, w, cv, e) = Leta' (v, Hold' (w, cv), e)
@@ -918,20 +338,5 @@ struct
   fun Say_cc' (v, vf, e) = Primop' ([v], SAY_CC, [vf], e)
   fun Dictionary' t = Primcon' (DICTIONARY, [t])
   fun EProj' (v, s, va, e) = Bind' (v, Proj'(s, va), e)
-
-  fun Sham0' v = Sham' (V.namedvar "sham0_unused", v)
-
-
-  fun subww sw sv = substw sv (SW sw)
-  fun subwt sw sv = substt sv (SW sw)
-  fun subwv sw sv = substv sv (SW sw)
-  fun subwe sw sv = subste sv (SW sw)
-
-  fun subtt st sv = substt sv (ST st)
-  fun subtv st sv = substv sv (ST st)
-  fun subte st sv = subste sv (ST st)
-
-  fun subvv sl sv = substv sv (SV sl)
-  fun subve sl sv = subste sv (SV sl)
 
 end
