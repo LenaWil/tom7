@@ -478,7 +478,8 @@ struct
            then eok (bindvar G v cod ` worldfrom G) e
            else raise TypeCheck "primcall argument mismatch"
          end
-     | Primop ([v], LOCALHOST, [], e) => eok (bindu0var G v ` Addr' ` worldfrom G) e
+     (* nb. made this local, so that all primops are local *)
+     | Primop ([v], LOCALHOST, [], e) => eok (bindvar G v (Addr' ` worldfrom G) ` worldfrom G) e
      | Primop _ => faile exp "unimplemented/bad primop"
      | Call (fv, avl) =>
          (case (ctyp ` vok G fv, map (vok G) avl) of
