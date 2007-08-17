@@ -12,16 +12,8 @@ sig
 
   datatype worldkind = datatype IL.worldkind
 
-  datatype primcon = 
-    VEC 
-  | REF
-    (* the type of dictionaries for this type *)
-  | DICTIONARY
-  | INT
-  | STRING
-  | EXN
-    (* marshalled data *)
-  | BYTES 
+  datatype primcon = datatype Leaf.primcon
+  datatype primop = datatype Leaf.primop
 
   type world
 
@@ -49,16 +41,6 @@ sig
     | TVar of var
 
   type ctyp
-
-  datatype primop = 
-      (* binds uvar *)
-      LOCALHOST 
-      (* binds regular var *)
-    | BIND 
-      (* takes 'a dict and 'a -> bytes *)
-    | MARSHAL
-      (* takes a unit cont (or closure) and reifies it as a js string *)
-    | SAY | SAY_CC
 
   datatype ('cexp, 'cval) cexpfront =
       Call of 'cval * 'cval list
