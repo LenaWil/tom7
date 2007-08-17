@@ -101,16 +101,7 @@ struct
          | _ => raise Pass "case on non-sum"
         end
 
-  fun case_Primop z ({selfe, selfv, selft}, G) ([v], SAY, [k], e) =
-         let
-           val (k, _) = selfv z G k
-           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
-         in
-           Primop' ([v], SAY, [k], selfe z G e)
-         end
-    | case_Primop z ({selfe, selfv, selft}, G) (_, SAY, _, e) = raise Pass "bad say"
-
-    | case_Primop z ({selfe, selfv, selft}, G) ([v], NATIVE { po, tys }, l, e) =
+  fun case_Native z ({selfe, selfv, selft}, G) { var = v, po, tys, args = l, bod = e } =
         let
           val tys = map (selft z G) tys
         in
@@ -129,15 +120,21 @@ struct
 
                 val G = bindvar G v cod ` worldfrom G
               in
-                Primop'([v], NATIVE { po = po, tys = tys }, argvs,
-                        selfe z G e)
+                Native' { var = v, po = po, tys = tys, args = argvs, bod = selfe z G e }
               end
           | _ => raise Pass "unimplemented: primops with world args"
         end
 
-     | case_Primop z ({selfe, selfv, selft}, G) (_, NATIVE { po, tys }, l, e) = raise Pass "bad native"
+  fun case_Primop z ({selfe, selfv, selft}, G) ([v], SAY, [k], e) =
+         let
+           val (k, _) = selfv z G k
+           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
+         in
+           Primop' ([v], SAY, [k], selfe z G e)
+         end
+    | case_Primop z ({selfe, selfv, selft}, G) (_, SAY, _, e) = raise Pass "bad say"
 
-     | case_Primop z ({selfe, selfv, selft}, G) ([v], MARSHAL, [vd, va], e) =
+    | case_Primop z ({selfe, selfv, selft}, G) ([v], MARSHAL, [vd, va], e) =
          let
            val (vd, _) = selfv z G vd
            val (va, _) = selfv z G va
@@ -147,9 +144,9 @@ struct
          in
            Primop' ([v], MARSHAL, [vd, va], selfe z G e)
          end
-     | case_Primop z ({selfe, selfv, selft}, G) (_, MARSHAL, _, e) = raise Pass "bad marshal"
-
-     | case_Primop z ({selfe, selfv, selft}, G) ([v], SAY_CC, [k], e) =
+    | case_Primop z ({selfe, selfv, selft}, G) (_, MARSHAL, _, e) = raise Pass "bad marshal"
+         
+    | case_Primop z ({selfe, selfv, selft}, G) ([v], SAY_CC, [k], e) =
          let
            val (k, t) = selfv z G k
            val G = bindvar G v (Zerocon' STRING) ` worldfrom G
@@ -157,36 +154,35 @@ struct
            Primop' ([v], SAY_CC, [k], selfe z G e)
          end
 
-     | case_Primop z ({selfe, selfv, selft}, G) (_, SAY_CC, _, _) = raise Pass "bad say_cc"
+    | case_Primop z ({selfe, selfv, selft}, G) (_, SAY_CC, _, _) = raise Pass "bad say_cc"
 
-     | case_Primop z ({selfe, selfv, selft}, G) ([v], LOCALHOST, [], e) =
-           Primop' ([v], LOCALHOST, [], 
-                    selfe z (bindu0var G v ` Addr' ` worldfrom G) e)
+    | case_Primop z ({selfe, selfv, selft}, G) ([v], LOCALHOST, [], e) =
+         Primop' ([v], LOCALHOST, [], 
+                  selfe z (bindu0var G v ` Addr' ` worldfrom G) e)
 
-     | case_Primop z ({selfe, selfv, selft}, G) (_, LOCALHOST, _, e) = raise Pass "bad localhost"
+    | case_Primop z ({selfe, selfv, selft}, G) (_, LOCALHOST, _, e) = raise Pass "bad localhost"
 
-     | case_Primop z ({selfe, selfv, selft}, G) ([v], BIND, [va], e) =
+    | case_Primop z ({selfe, selfv, selft}, G) ([v], BIND, [va], e) =
          let
            val (va, t) = selfv z G va
            val G = bindvar G v t ` worldfrom G
          in
            Primop' ([v], BIND, [va], selfe z G e)
          end
+       
+    | case_Primop z ({selfe, selfv, selft}, G) (_, BIND, _, _) = raise Pass "bad bind"
+         
 
-     | case_Primop z ({selfe, selfv, selft}, G) (_, BIND, _, _) = raise Pass "bad bind"
-
-     (* not a closure call *)
-     | case_Primop z ({selfe, selfv, selft}, G)  ([v], PRIMCALL { sym, dom, cod }, vas, e) =
-         let
-           val vas = map (fn v => #1 ` selfv z G v) vas
-           val cod = (selft z G) cod
-         in
-           Primop'([v], PRIMCALL { sym = sym, dom = map (selft z G) dom, cod = cod }, vas,
-                   selfe z (bindvar G v cod ` worldfrom G) e)
-         end
-
-     | case_Primop z ({selfe, selfv, selft}, G)  (_, PRIMCALL { sym, dom, cod }, vas, e) = 
-         raise Pass "bad primcall"
+  fun case_Primcall z ({selfe, selfv, selft}, G)  { var = v, sym, dom, cod, args = vas, bod = e } =
+    let
+      val vas = map (fn v => let val (v, _) = selfv z G v
+                             in v end) vas
+    in
+      Primcall' { var = v, sym = sym, 
+                  dom = map (selft z G) dom, 
+                  cod = selft z G cod, args = vas,
+                  bod = selfe z (bindvar G v cod ` worldfrom G) e }
+    end
 
           
   fun case_Leta z ({selfe, selfv, selft}, G) (v, va, e) =
@@ -763,6 +759,8 @@ struct
       | Leta a => case_Leta z (s, G) a
       | WUnpack a => case_WUnpack z (s, G) a
       | TUnpack a => case_TUnpack z (s, G) a
+      | Native a => case_Native z (s, G) a
+      | Primcall a => case_Primcall z (s, G) a
       | Case a => case_Case z (s, G) a
       | ExternVal a => case_ExternVal z (s, G) a
       | ExternWorld a => case_ExternWorld z (s, G) a

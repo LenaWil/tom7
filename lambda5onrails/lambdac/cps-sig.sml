@@ -214,6 +214,9 @@ use the constructors directly!
   val ExternWorld' : string * worldkind * cexp -> cexp
   val ExternType' : var * string * (var * string) option * cexp -> cexp
   val TUnpack' : var * var * (var * ctyp) list * cval * cexp -> cexp
+  val Native' : { var : var, po : Primop.primop, tys : ctyp list, args : cval list, bod : cexp } -> cexp
+  val Primcall' : { var : var, sym : string, dom : ctyp list, 
+                    cod : ctyp, args : cval list, bod : cexp } -> cexp
 
   val Lams' : (var * (var * ctyp) list * cexp) list -> cval
   val Fsel' : cval * int -> cval

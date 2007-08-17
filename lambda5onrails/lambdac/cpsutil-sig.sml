@@ -7,6 +7,9 @@ sig
   type cexp = CPS.cexp
   type world = CPS.world
 
+  val ctyp' : (var, ctyp, var, world) CPS.ctypfront -> ctyp
+
+
   (* utilities *)
 
   val ptoct : Podata.potype -> ctyp

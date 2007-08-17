@@ -290,10 +290,10 @@ struct
                    but this is fine since we'd probably like to inline it. *)
                 cvtel G el
                 (fn (G, vwtl) =>
-                 Primop'([vp], 
-                         NATIVE { po = po, tys = tl },
-                         map #1 vwtl, 
-                         k (G, Var' vp, cod, worldfrom G)))
+                 Native' { var = vp,
+                           po = po, tys = tl,
+                           args = map #1 vwtl, 
+                           bod = k (G, Var' vp, cod, worldfrom G) })
               end
 
        | I.Sumcase (I.Sum t, exp, v, arms, def) => 
@@ -463,9 +463,9 @@ struct
                            (* takes one arg, but might be a tuple *)
                            (av, dom) :: [(kv, Cont' [cod])],
 
-                           Primop'([r], PRIMCALL { sym = l, dom = flatdom, cod = cod },
-                                   primargs,
-                                   Call' (Var' kv, [Var' r])))
+                           Primcall' { var = r, sym = l, dom = flatdom, cod = cod,
+                                       args = primargs,
+                                       bod = Call' (Var' kv, [Var' r]) })
                    val (t, va) =
                        case (worlds, tys) of
                            (nil, nil) => (Cont' (dom :: [Cont'[cod]]),
