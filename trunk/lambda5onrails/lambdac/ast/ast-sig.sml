@@ -6,6 +6,7 @@ sig
   val var_eq : var * var -> bool
   val var_cmp : var * var -> order
   val var_vary : var -> var
+  val var_tostring : var -> string
 
   val Exn : string -> exn
 

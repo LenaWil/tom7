@@ -86,44 +86,61 @@ struct
   (* PERF should delay substitutions and renamings. *)
   fun rename nil ast = ast
     | rename ((v,v') :: t) ast =
-    let val ast = sub (hide ` V v') v ast
+    let 
+      val () = print ("Rename " ^ var_tostring v ^ " -> " ^ var_tostring v' ^ "\n");
+      val ast = sub (hide ` V v') v ast
     in rename t ast
     end
 
-  and sub obj v (ast as A { m, f }) =
+  and sub (obj as A { m = mobj, ... }) v (ast as A { m, f }) =
     (* get out early *)
-    if false andalso isfree ast v
+    if isfree ast v
     then 
       (* use precomputed freevar sets. *)
       let 
+        (* we know the variable occurs, so the map will include all of obj's
+           free vars. *)
         val m = remove v (force m)
+        val m = sum [force mobj, m] (* XXX not sum. for each occurrence of v
+                                       we get all the occurrences in obj. *)
         val m = fn () => m
       in
         case f of
-          $l => ast (* empty map *)
+          $l => raise Exn "impossible: leaf has free var"
         | V v' => if var_eq (v, v')
                   then obj
-                  else ast (* map didn't change *)
+                  else raise Exn "impossible: var has other var as free var"
         | a1 / a2 => A { m = m,
                          f = sub obj v a1 / sub obj v a2 }
-        | v' \ a => (* PERF can avoid renaming if v' doesn't appear in obj... *)
-                    let val v'' = var_vary v'
-                        val a = rename [(v, v'')] a
-                    in
+        | v' \ a => (* avoid renaming if v' doesn't appear in obj... *)
+                    if isfree obj v'
+                    then 
+                      let 
+                        val v'' = var_vary v'
+                        val a = rename [(v', v'')] a
+                      in
+                        A { m = m,
+                            f = v'' \ sub obj v a }
+                      end
+                    else
                       A { m = m,
-                          f = v'' \ sub obj v a }
-                    end
+                          f = v' \ sub obj v a }
+
         | S al => A { m = m,
                       f = S ` map (sub obj v) al }
         | B (vl, a) =>
-                  let
-                    (* PERF as above can avoid rename *)
-                    val subst = ListUtil.mapto var_vary vl
-                    val a = rename subst a
-                  in
-                    A { m = m,
-                        f = B (map #2 subst, a) }
-                  end
+                  (* PERF could only rename the actually occuring vars. *)
+                  if List.exists (isfree obj) vl
+                  then
+                    let
+                      val subst = ListUtil.mapto var_vary vl
+                      val a = rename subst a
+                    in
+                      A { m = m,
+                          f = B (map #2 subst, sub obj v a) }
+                    end
+                  else A { m = m,
+                           f = B (vl, sub obj v a) }
       end
     else ast
 

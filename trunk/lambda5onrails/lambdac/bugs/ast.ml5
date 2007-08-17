@@ -1,0 +1,11 @@
+
+unit
+   val provide-std = ()
+(*
+    import "std.mlh"
+    import "dom.mlh"
+    import "timer.mlh"
+    import "trivialdb.mlh"
+*)        
+in
+end
