@@ -43,7 +43,9 @@ sig
 
   val look   : ast -> ast front
   val look2  : ast -> ast front front
-  (* ... *)
+  val look3  : ast -> ast front front front
+  val look4  : ast -> ast front front front front
+  val look5  : ast -> ast front front front front front
 
   val hide   : ast front -> ast
 

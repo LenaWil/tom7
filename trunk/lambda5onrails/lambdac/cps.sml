@@ -330,22 +330,71 @@ struct
 
                     }
 
-  fun ctyp _ = raise CPS "unimplemented"
-  fun cval _ = raise CPS "unimplemented"
-  fun cexp _ = raise CPS "unimplemented"
-  fun cglo _ = raise CPS "unimplemented"
-  fun world _ = raise CPS "unimplemented"
-  fun world_cmp _ = raise CPS "unimplemented"
-  fun ctyp_cmp _ = raise CPS "unimplemented"
-  fun subww _ = raise CPS "unimplemented"
-  fun subwt _ = raise CPS "unimplemented"
-  fun subwv _ = raise CPS "unimplemented"
-  fun subwe _ = raise CPS "unimplemented"
-  fun subtt _ = raise CPS "unimplemented"
-  fun subtv _ = raise CPS "unimplemented"
-  fun subte _ = raise CPS "unimplemented"
-  fun subvv _ = raise CPS "unimplemented"
-  fun subve _ = raise CPS "unimplemented"
+  (* ------------ outjections: worlds ------- *)
+  fun world a =
+    case look a of 
+      $(WC_ s) => WC s
+    | l / r =>
+      (case (look l, look r) of
+         ($W_, V (WV wv)) => W wv
+       | _ => raise CPS "no")
+    | _ => raise CPS "no"
+
+  (* ------------ outjections: types ------- *)
+  fun pair a =
+    case look a of
+      x / y => (x, y)
+    | _ => raise CPS "expected pair"
+        
+  fun ctyp a = 
+    case look2 a of
+      V (TV v) => TVar v
+    | $AT_ / t / w => At (t, w)
+(*
+  fun At' (t, w) = $$AT_ // t // w
+  fun Cont' tl = $$CONT_ // SS tl
+  fun Conts' tll = $$CONTS_ // SS (map SS tll)
+  fun AllArrow' { worlds, tys, vals, body } = $$ALLARROW_ // BB (map WV worlds,
+                                                                 BB(map TV tys,
+                                                                    SS vals // body))
+  fun WExists' (wv, t) = $$WEXISTS_ // (WV wv \\ t)
+  fun TExists' (tv, tl) = $$TEXISTS_ // (WV tv \\ SS tl)
+  fun Product' stl = $$PRODUCT_ // SS (map op// ` ListUtil.mapfirst ($$ o STRING_) stl)
+  fun TWdict' w = $$TWDICT_ // w
+  fun Addr' w = $$ADDR_ // w
+
+  (* XXX should canonicalize these so that equations work out at AST level. *)
+  fun Mu' (i, vtl : (V.var * ctyp) list) = $$MU_ // $$(INT_ i) // BB(map (TV o #1) vtl, SS (map #2 vtl))
+  fun Sum' (sail : (string * ctyp IL.arminfo) list) =
+    $$SUM_ // SS (map (fn (s, NonCarrier) => $$(STRING_ s) // $$NONCARRIER_
+                        | (s, Carrier { definitely_allocated, carried }) =>
+                       $$(STRING_ s) // $$(BOOL_ definitely_allocated) // carried) sail)
+
+  fun Primcon' (pc, tl) = $$(PRIMCON_ pc) // SS tl
+  fun Shamrock' (wv, t) = $$SHAMROCK_ // (WV wv \\ t)
+  fun TVar' v = VV (TV v)
+*)
+
+  (* ------------ outjections: values ------- *)
+  (* ------------ outjections: exps ------- *)
+  (* ------------ outjections: globals ------- *)
+
+  fun cval _ = raise CPS "unimplemented cval"
+  fun cexp _ = raise CPS "unimplemented cexp"
+  fun cglo _ = raise CPS "unimplemented cglo"
+  fun world_cmp _ = raise CPS "unimplemented world_cmp"
+  fun ctyp_cmp _ = raise CPS "unimplemented ctyp_cmp"
+
+
+  fun subww _ = raise CPS "unimplemented subww"
+  fun subwt _ = raise CPS "unimplemented subwt"
+  fun subwv _ = raise CPS "unimplemented subwv"
+  fun subwe _ = raise CPS "unimplemented subwe"
+  fun subtt _ = raise CPS "unimplemented subtt"
+  fun subtv _ = raise CPS "unimplemented subtv"
+  fun subte _ = raise CPS "unimplemented subte"
+  fun subvv _ = raise CPS "unimplemented subvv"
+  fun subve _ = raise CPS "unimplemented subve"
 
   (* PERF could be more efficient. would be especially worth it for type_eq *)
   fun ctyp_eq p = ctyp_cmp p = EQUAL
