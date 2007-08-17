@@ -344,6 +344,7 @@ struct
        | I.Get { addr, dest : IL.world, typ, body } =>
               let
                 val dest = cvtw G dest
+                val retah = nv "ret_addr_here"
                 val reta = nv "ret_addr"
                 val pv = nv "get_res"
                 val mobtyp = cvtt G typ
@@ -352,23 +353,24 @@ struct
                 cvte G addr
                 (fn (G, va, at, aw) =>
                  (* no check that at = Addr dest *)
-                 Primop'([reta], LOCALHOST, nil, 
-                          Go' (dest, va,
-                               let 
-                                   val G = bindu0var G reta (Addr' srcw)
-                                   val G = setworld G dest
-                               in
-                                   cvte G body
-                                   (fn (G, res, rest, resw) =>
-                                    (* no check that resw = dest or rest = mobtyp *)
-                                    Put' (pv, res,
-                                          let val G = setworld G srcw
+                 Primop'([retah], LOCALHOST, nil, 
+                         Put'(reta, Var' retah,
+                              Go' (dest, va,
+                                   let 
+                                     val G = bindu0var G reta (Addr' srcw)
+                                     val G = setworld G dest
+                                   in
+                                     cvte G body
+                                     (fn (G, res, rest, resw) =>
+                                      (* no check that resw = dest or rest = mobtyp *)
+                                      Put' (pv, res,
+                                            let val G = setworld G srcw
                                               val G = bindu0var G pv mobtyp
-                                          in
+                                            in
                                               Go' (srcw, UVar' reta,
                                                    k (G, UVar' pv, mobtyp, srcw))
-                                          end))
-                               end)))
+                                            end))
+                                   end))))
               end
 
        | _ => 

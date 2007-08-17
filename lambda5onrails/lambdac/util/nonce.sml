@@ -15,7 +15,10 @@ struct
     "uracil", "methane", "pentane", "hexane", "butane", "kinesin",
     "opalescent", "cloud", "child", "icon", "kitten", "lilac",
     "topaz", "ruby", "sapphire", "hubris", "fluorite", "myriad",
-    "cheese", "onions", "phlegm", "melisma", "jurist", "hacienda"]
+    "cheese", "onions", "phlegm", "melisma", "jurist", "hacienda",
+    "limerick", "effete", "azimuth", "pepper", "inchoate", "opera",
+    "sanguine", "runabout", "whorl", "humanist", "victive", "octave"
+    ]
 
   val ctr = ref 0
 
