@@ -126,27 +126,32 @@ struct
       end
     else ast
 
-  fun look (A { m = _, f }) = 
+  fun looky self (A { m = _, f }) = 
     (case f of
-       $l => f
-     | V v => f
-     | a1 / a2 => f
-     | S al => f
+       $l => $l
+     | V v => V v
+     | a1 / a2 => self a1 / self a2
+     | S al => S (map self al)
      | v \ a =>
        let val v' = var_vary v
            val a = rename [(v, v')] a
-       in v' \ a
+       in v' \ self a
        end
      | B (vl, a) =>
        let val subst = ListUtil.mapto var_vary vl
            val a = rename subst a
        in
-         B (map #2 subst, a)
+         B (map #2 subst, self a)
        end)
 
   fun ast_cmp (a1, a2) = raise AST "unimplemented"
 
-  fun look2 _ = raise AST "unimplemented"
+  fun look ast = looky I ast
+  fun look2 ast = looky look ast
+  fun look3 ast = looky look2 ast
+  fun look4 ast = looky look3 ast
+  fun look5 ast = looky look4 ast
+
 
   val $$ = hide o $
   val \\ = hide o op \
