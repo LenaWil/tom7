@@ -23,7 +23,8 @@ struct
 
   infixr / \
 
-  exception AST of string
+  (* exception AST of string *)
+  val AST = Exn
 
   (* First attempt. Just counting free vars. 
      invariant: the integer is strictly positive
@@ -144,7 +145,52 @@ struct
          B (map #2 subst, self a)
        end)
 
-  fun ast_cmp (a1, a2) = raise AST "unimplemented"
+  fun ast_cmp (A{ f = $l1, ... }, A{ f = $l2, ... }) = leaf_cmp (l1, l2)
+    | ast_cmp (A{ f = $_, ... }, _) = LESS
+    | ast_cmp (_, A{ f = $_, ... }) = GREATER
+    | ast_cmp (A{ f = V v1, ... }, A{ f = V v2, ... }) = var_cmp (v1, v2)
+    | ast_cmp (A{ f = V _, ... }, _) = LESS
+    | ast_cmp (_, A{f = V _, ... }) = GREATER
+    | ast_cmp (A{ f = a1 / b1, ... }, A{ f = a2 / b2, ... }) =
+    (case ast_cmp (a1, a2) of
+       LESS => LESS
+     | GREATER => GREATER
+     | EQUAL => ast_cmp (b1, b2))
+    | ast_cmp (A{ f = _ / _, ... }, _) = LESS
+    | ast_cmp (_, A{ f = _ / _, ...}) = GREATER
+    | ast_cmp (A{ f = S l1, ...}, A{ f = S l2, ... }) = astl_cmp (l1, l2)
+    | ast_cmp (A{ f = S _, ...}, _) = LESS
+    | ast_cmp (_, A{ f = S _, ...}) = GREATER
+    | ast_cmp (A{ f = v1 \ a1, ...}, A { f = v2 \ a2, ... }) =
+       let 
+         val v' = var_vary v1
+         val a1 = rename [(v1, v')] a1
+         val a2 = rename [(v2, v')] a2
+       in
+         ast_cmp (a1, a2)
+       end
+    | ast_cmp (A { f = _ \ _, ...}, _) = LESS
+    | ast_cmp (_, A { f = _ \ _, ...}) = GREATER
+    | ast_cmp (A { f = B(vl1, a1), ...}, A{ f = B(vl2, a2), ... }) =
+       let
+         val vl' = map var_vary vl1
+         val s1 = ListPair.zip (vl1, vl')
+         val s2 = ListPair.zip (vl2, vl')
+         val a1 = rename s1 a1
+         val a2 = rename s2 a2
+       in
+         ast_cmp (a1, a2)
+       end
+
+  and astl_cmp (nil, nil) = EQUAL
+    | astl_cmp (nil, _ :: _) = LESS
+    | astl_cmp (_ :: _, nil) = GREATER
+    | astl_cmp (h1 :: t1, h2 :: t2) =
+       (case ast_cmp (h1, h2) of
+          LESS => LESS
+        | GREATER => GREATER
+        | EQUAL => astl_cmp (t1, t2))
+       
 
   fun look ast = looky I ast
   fun look2 ast = looky look ast

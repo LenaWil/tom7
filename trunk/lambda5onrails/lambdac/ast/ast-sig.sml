@@ -7,6 +7,8 @@ sig
   val var_cmp : var * var -> order
   val var_vary : var -> var
 
+  val Exn : string -> exn
+
   (* can be anything. uninterpreted *)
   type leaf
   val leaf_cmp : leaf * leaf -> order

@@ -36,6 +36,20 @@ struct
     | MARSHAL 
     | SAY | SAY_CC
 
+  fun primop_cmp (LOCALHOST, LOCALHOST) = EQUAL
+    | primop_cmp (LOCALHOST, _) = LESS
+    | primop_cmp (_, LOCALHOST) = GREATER
+    | primop_cmp (BIND, BIND) = EQUAL
+    | primop_cmp (BIND, _) = LESS
+    | primop_cmp (_, BIND) = GREATER
+    | primop_cmp (MARSHAL, MARSHAL) = EQUAL
+    | primop_cmp (MARSHAL, _) = LESS
+    | primop_cmp (_, MARSHAL) = GREATER
+    | primop_cmp (SAY, SAY) = EQUAL
+    | primop_cmp (SAY, _) = LESS
+    | primop_cmp (_, SAY) = GREATER
+    | primop_cmp (SAY_CC, SAY_CC) = EQUAL
+
   datatype leaf =
     (* worlds *)
     W_ | WC_ of string |
@@ -43,7 +57,7 @@ struct
     AT_ | CONT_ | CONTS_ | ALLARROW_ | WEXISTS_ | TEXISTS_ | PRODUCT_ | TWDICT_ | ADDR_ |
     MU_ | SUM_ | SHAMROCK_ | TVAR_ | PRIMCON_ of primcon | NONCARRIER_ |
     (* exps *)
-    CALL_ | HALT_ | GO_ | GO_CC | GO_MAR | PRIMOP_ of primop |
+    CALL_ | HALT_ | GO_ | GO_CC_ | GO_MAR_ | PRIMOP_ of primop |
     PUT_ | LETSHAM_ | LETA_ | WUNPACK_ | TUNPACK_ | CASE_ | EXTERNVAL_ |
     EXTERNWORLD_ of worldkind | EXTERNTYPE_ | PRIMCALL_ | NATIVE_ of Primop.primop |
     (* vals *)
@@ -56,7 +70,252 @@ struct
     (* data *)
     STRING_ of string | INT_ of int | BOOL_ of bool | NONE_
 
-  fun leaf_cmp _ = raise CPS "unimplemented leaf_cmp"
+  fun leaf_cmp (l1, l2) =
+    case (l1, l2) of
+      (W_, W_) => EQUAL
+    | (W_, _) => LESS
+    | (_, W_) => GREATER
+    | (WC_ s, WC_ s') => String.compare (s, s')
+    | (WC_ _, _) => LESS
+    | (_, WC_ _) => GREATER
+    | (AT_, AT_) => EQUAL
+    | (AT_, _) => LESS
+    | (_, AT_) => GREATER
+    | (CONT_, CONT_) => EQUAL
+    | (CONT_, _) => LESS
+    | (_, CONT_) => GREATER
+    | (CONTS_, CONTS_) => EQUAL
+    | (CONTS_, _) => LESS
+    | (_, CONTS_) => GREATER
+    | (ALLARROW_, ALLARROW_) => EQUAL
+    | (ALLARROW_, _) => LESS
+    | (_, ALLARROW_) => GREATER
+
+    | (WEXISTS_, WEXISTS_) => EQUAL
+    | (WEXISTS_, _) => LESS
+    | (_, WEXISTS_) => GREATER
+
+    | (TEXISTS_, TEXISTS_) => EQUAL
+    | (TEXISTS_, _) => LESS
+    | (_, TEXISTS_) => GREATER
+
+    | (PRODUCT_, PRODUCT_) => EQUAL
+    | (PRODUCT_, _) => LESS
+    | (_, PRODUCT_) => GREATER
+
+    | (PRIMCON_ pc, PRIMCON_ pc') => pc_cmp (pc, pc')
+    | (PRIMCON_ _, _) => LESS
+    | (_, PRIMCON_ _) => GREATER
+
+    | (TWDICT_, TWDICT_) => EQUAL
+    | (TWDICT_, _) => LESS
+    | (_, TWDICT_) => GREATER
+
+    | (ADDR_, ADDR_) => EQUAL
+    | (ADDR_, _) => LESS
+    | (_, ADDR_) => GREATER
+
+    | (MU_, MU_) => EQUAL
+    | (MU_, _) => LESS
+    | (_, MU_) => GREATER
+
+    | (SUM_, SUM_) => EQUAL
+    | (SUM_, _) => LESS
+    | (_, SUM_) => GREATER
+
+    | (SHAMROCK_, SHAMROCK_) => EQUAL
+    | (SHAMROCK_, _) => LESS
+    | (_, SHAMROCK_) => GREATER
+
+    | (TVAR_, TVAR_) => EQUAL
+    | (TVAR_, _) => LESS
+    | (_, TVAR_) => GREATER
+
+    | (NONCARRIER_, NONCARRIER_) => EQUAL
+    | (NONCARRIER_, _) => LESS
+    | (_, NONCARRIER_) => GREATER
+
+    | (CALL_, CALL_) => EQUAL
+    | (CALL_, _) => LESS
+    | (_, CALL_) => GREATER
+
+    | (HALT_, HALT_) => EQUAL
+    | (HALT_, _) => LESS
+    | (_, HALT_) => GREATER
+
+    | (GO_, GO_) => EQUAL
+    | (GO_, _) => LESS
+    | (_, GO_) => GREATER
+
+    | (GO_CC_, GO_CC_) => EQUAL
+    | (GO_CC_, _) => LESS
+    | (_, GO_CC_) => GREATER
+
+    | (GO_MAR_, GO_MAR_) => EQUAL
+    | (GO_MAR_, _) => LESS
+    | (_, GO_MAR_) => GREATER
+
+    | (PRIMOP_ po, PRIMOP_ po') => primop_cmp (po, po')
+    | (PRIMOP_ _, _) => LESS
+    | (_, PRIMOP_ _) => GREATER
+
+    | (PUT_, PUT_) => EQUAL
+    | (PUT_, _) => LESS
+    | (_, PUT_) => GREATER
+
+    | (LETSHAM_, LETSHAM_) => EQUAL
+    | (LETSHAM_, _) => LESS
+    | (_, LETSHAM_) => GREATER
+
+    | (LETA_, LETA_) => EQUAL
+    | (LETA_, _) => LESS
+    | (_, LETA_) => GREATER
+
+    | (WUNPACK_, WUNPACK_) => EQUAL
+    | (WUNPACK_, _) => LESS
+    | (_, WUNPACK_) => GREATER
+
+    | (TUNPACK_, TUNPACK_) => EQUAL
+    | (TUNPACK_, _) => LESS
+    | (_, TUNPACK_) => GREATER
+
+    | (CASE_, CASE_) => EQUAL
+    | (CASE_, _) => LESS
+    | (_, CASE_) => GREATER
+
+    | (EXTERNVAL_, EXTERNVAL_) => EQUAL
+    | (EXTERNVAL_, _) => LESS
+    | (_, EXTERNVAL_) => GREATER
+
+    | (EXTERNTYPE_, EXTERNTYPE_) => EQUAL
+    | (EXTERNTYPE_, _) => LESS
+    | (_, EXTERNTYPE_) => GREATER
+
+    | (PRIMCALL_, PRIMCALL_) => EQUAL
+    | (PRIMCALL_, _) => LESS
+    | (_, PRIMCALL_) => GREATER
+
+    | (EXTERNWORLD_ w, EXTERNWORLD_ w') => IL.worldkind_cmp (w, w')
+    | (EXTERNWORLD_ _, _) => LESS
+    | (_, EXTERNWORLD_ _) => GREATER
+
+    | (NATIVE_ p, NATIVE_ p') => Primop.primop_cmp(p, p')
+    | (NATIVE_ _, _) => LESS
+    | (_, NATIVE_ _) => GREATER
+
+    | (LAMS_, LAMS_) => EQUAL
+    | (LAMS_, _) => LESS
+    | (_, LAMS_) => GREATER
+
+    | (FSEL_, FSEL_) => EQUAL
+    | (FSEL_, _) => LESS
+    | (_, FSEL_) => GREATER
+
+    | (VSTRING_, VSTRING_) => EQUAL
+    | (VSTRING_, _) => LESS
+    | (_, VSTRING_) => GREATER
+
+    | (PROJ_, PROJ_) => EQUAL
+    | (PROJ_, _) => LESS
+    | (_, PROJ_) => GREATER
+
+    | (RECORD_, RECORD_) => EQUAL
+    | (RECORD_, _) => LESS
+    | (_, RECORD_) => GREATER
+
+    | (HOLD_, HOLD_) => EQUAL
+    | (HOLD_, _) => LESS
+    | (_, HOLD_) => GREATER
+
+    | (WPACK_, WPACK_) => EQUAL
+    | (WPACK_, _) => LESS
+    | (_, WPACK_) => GREATER
+
+    | (VINT_ i, VINT_ i') => IntConst.compare (i, i')
+    | (VINT_ _, _) => LESS
+    | (_, VINT_ _) => GREATER
+
+    | (TPACK_, TPACK_) => EQUAL
+    | (TPACK_, _) => LESS
+    | (_, TPACK_) => GREATER
+
+    | (SHAM_, SHAM_) => EQUAL
+    | (SHAM_, _) => LESS
+    | (_, SHAM_) => GREATER
+
+    | (INJ_, INJ_) => EQUAL
+    | (INJ_, _) => LESS
+    | (_, INJ_) => GREATER
+
+    | (ROLL_, ROLL_) => EQUAL
+    | (ROLL_, _) => LESS
+    | (_, ROLL_) => GREATER
+
+    | (UNROLL_, UNROLL_) => EQUAL
+    | (UNROLL_, _) => LESS
+    | (_, UNROLL_) => GREATER
+
+    | (CODELAB_, CODELAB_) => EQUAL
+    | (CODELAB_, _) => LESS
+    | (_, CODELAB_) => GREATER
+
+    | (WDICTFOR_, WDICTFOR_) => EQUAL
+    | (WDICTFOR_, _) => LESS
+    | (_, WDICTFOR_) => GREATER
+
+    | (WDICT_, WDICT_) => EQUAL
+    | (WDICT_, _) => LESS
+    | (_, WDICT_) => GREATER
+
+    | (DICTFOR_, DICTFOR_) => EQUAL
+    | (DICTFOR_, _) => LESS
+    | (_, DICTFOR_) => GREATER
+
+    | (DICT_, DICT_) => EQUAL
+    | (DICT_, _) => LESS
+    | (_, DICT_) => GREATER
+
+    | (ALLLAM_, ALLLAM_) => EQUAL
+    | (ALLLAM_, _) => LESS
+    | (_, ALLLAM_) => GREATER
+
+    | (ALLAPP_, ALLAPP_) => EQUAL
+    | (ALLAPP_, _) => LESS
+    | (_, ALLAPP_) => GREATER
+
+    | (VLETA_, VLETA_) => EQUAL
+    | (VLETA_, _) => LESS
+    | (_, VLETA_) => GREATER
+
+    | (VLETSHAM_, VLETSHAM_) => EQUAL
+    | (VLETSHAM_, _) => LESS
+    | (_, VLETSHAM_) => GREATER
+
+    | (VTUNPACK_, VTUNPACK_) => EQUAL
+    | (VTUNPACK_, _) => LESS
+    | (_, VTUNPACK_) => GREATER
+
+    | (POLYCODE_, POLYCODE_) => EQUAL
+    | (POLYCODE_, _) => LESS
+    | (_, POLYCODE_) => GREATER
+
+    | (CODE_, CODE_) => EQUAL
+    | (CODE_, _) => LESS
+    | (_, CODE_) => GREATER
+
+    | (STRING_ s, STRING_ s') => String.compare(s, s')
+    | (STRING_ _, _) => LESS
+    | (_, STRING_ _) => GREATER
+
+    | (INT_ i, INT_ i') => Int.compare(i, i')
+    | (INT_ _, _) => LESS
+    | (_, INT_ _) => GREATER
+
+    | (BOOL_ b, BOOL_ b') => Util.bool_compare (b, b')
+    | (BOOL_ _, _) => LESS
+    | (_, BOOL_ _) => GREATER
+
+    | (NONE_, NONE_) => EQUAL
 
   (* a variable can be type, universal, modal, or world *)
   datatype allvar = TV of V.var | UV of V.var | MV of V.var | WV of V.var
@@ -82,6 +341,7 @@ struct
                         val var_cmp = allvar_cmp
                         val var_eq = allvar_eq
                         val var_vary = allvar_vary
+                        val Exn = CPS
                         type leaf = leaf
                         val leaf_cmp = leaf_cmp)
 
@@ -153,8 +413,8 @@ struct
   fun Call' (v, vl) = $$CALL_ // v // SS vl
   val Halt' = $$HALT_
   fun Go' (w, v, e) = $$GO_ // w // v // e
-  fun Go_cc' { w, addr, env, f } = $$GO_CC // w // addr // env // f
-  fun Go_mar' { w, addr, bytes } = $$GO_MAR // w // addr // bytes
+  fun Go_cc' { w, addr, env, f } = $$GO_CC_ // w // addr // env // f
+  fun Go_mar' { w, addr, bytes } = $$GO_MAR_ // w // addr // bytes
   fun Primop' (vl, po, va, exp) = $$(PRIMOP_ po) // SS va // BB(map MV vl, exp)
   fun Primcall' { var, sym, dom, cod, args, bod } =
     $$PRIMCALL_ // $$(STRING_ sym) // SS dom // cod // SS args // (MV var \\ bod)
@@ -345,35 +605,63 @@ struct
     case look a of
       x / y => (x, y)
     | _ => raise CPS "expected pair"
-        
+
+  fun WVi (WV wv) = wv
+    | WVi _ = raise CPS "expected WV"
+  fun TVi (TV tv) = tv
+    | TVi _ = raise CPS "expected TV"
+  fun MVi (MV mv) = mv
+    | MVi _ = raise CPS "expected MV"
+  fun UVi (UV uv) = uv
+    | UVi _ = raise CPS "expected UV"
+  fun SSi a = 
+    case look a of
+      S x => x 
+    | _ => raise CPS "expected SS"
+  fun STRINGi a =
+    case look a of
+      $(STRING_ s) => s
+    | _ => raise CPS "expected STRING"
+
+  (* PERF unnecessary look/hides can have big costs *)
   fun ctyp a = 
     case look2 a of
       V (TV v) => TVar v
     | $AT_ / t / w => At (t, w)
-(*
-  fun At' (t, w) = $$AT_ // t // w
-  fun Cont' tl = $$CONT_ // SS tl
-  fun Conts' tll = $$CONTS_ // SS (map SS tll)
-  fun AllArrow' { worlds, tys, vals, body } = $$ALLARROW_ // BB (map WV worlds,
-                                                                 BB(map TV tys,
-                                                                    SS vals // body))
-  fun WExists' (wv, t) = $$WEXISTS_ // (WV wv \\ t)
-  fun TExists' (tv, tl) = $$TEXISTS_ // (WV tv \\ SS tl)
-  fun Product' stl = $$PRODUCT_ // SS (map op// ` ListUtil.mapfirst ($$ o STRING_) stl)
-  fun TWdict' w = $$TWDICT_ // w
-  fun Addr' w = $$ADDR_ // w
+    | $CONT_ / S tl => Cont tl
+    | $CONTS_ / S tll => Conts (map (fn (S tl) => tl
+                                      | _ => raise CPS "bad conts") (map look tll))
+    | $ADDR_ / w => Addr (hide w)
+    | $TWDICT_ / w => TWdict (hide w)
+    | $SHAMROCK_ / (WV v \ t) => Shamrock (v, t)
+    | $ALLARROW_ / B (wv, r) => 
+        (case look2 r of
+           B(tv, vals / body) => AllArrow { worlds = map WVi wv,
+                                            tys    = map TVi tv,
+                                            vals   = SSi vals,
+                                            body   = body }
+         | _ => raise CPS "bad allarrow")
+    | $WEXISTS_ / (WV wv \ t) => WExists (wv, t)
+    | $TEXISTS_ / (WV tv \ a) => TExists (tv, SSi a)
+    | $SUM_ / S (arms : ast list) =>
+           Sum (map (fn a =>
+                     case look3 a of
+                       $(STRING_ s) / $NONCARRIER_ => (s, NonCarrier)
+                     | $(STRING_ s) / $(BOOL_ da) / carried => (s, Carrier { definitely_allocated = da,
+                                                                             carried = hide carried })
+                     | _ => raise CPS "bad sum arm") arms)
+    | $MU_ / l / r =>
+           (case (look l, look2 r) of
+              ($(INT_ i), B(tv, S tys)) => Mu (i, ListPair.zip(map TVi tv, tys))
+            | _ => raise CPS "bad mu")
+    | $PRODUCT_ / S stl =>
+           Product (map (fn a =>
+                         case look a of
+                           lab / ty => (STRINGi lab, ty)
+                         | _ => raise CPS "bad product arm") stl)
+    | $(PRIMCON_ pc) / S tl => Primcon (pc, tl)
 
-  (* XXX should canonicalize these so that equations work out at AST level. *)
-  fun Mu' (i, vtl : (V.var * ctyp) list) = $$MU_ // $$(INT_ i) // BB(map (TV o #1) vtl, SS (map #2 vtl))
-  fun Sum' (sail : (string * ctyp IL.arminfo) list) =
-    $$SUM_ // SS (map (fn (s, NonCarrier) => $$(STRING_ s) // $$NONCARRIER_
-                        | (s, Carrier { definitely_allocated, carried }) =>
-                       $$(STRING_ s) // $$(BOOL_ definitely_allocated) // carried) sail)
-
-  fun Primcon' (pc, tl) = $$(PRIMCON_ pc) // SS tl
-  fun Shamrock' (wv, t) = $$SHAMROCK_ // (WV wv \\ t)
-  fun TVar' v = VV (TV v)
-*)
+    | _ => raise CPS "expected typ"
 
   (* ------------ outjections: values ------- *)
   (* ------------ outjections: exps ------- *)
@@ -382,19 +670,18 @@ struct
   fun cval _ = raise CPS "unimplemented cval"
   fun cexp _ = raise CPS "unimplemented cexp"
   fun cglo _ = raise CPS "unimplemented cglo"
-  fun world_cmp _ = raise CPS "unimplemented world_cmp"
-  fun ctyp_cmp _ = raise CPS "unimplemented ctyp_cmp"
+  val world_cmp = ast_cmp
+  val ctyp_cmp = ast_cmp
 
-
-  fun subww _ = raise CPS "unimplemented subww"
-  fun subwt _ = raise CPS "unimplemented subwt"
-  fun subwv _ = raise CPS "unimplemented subwv"
-  fun subwe _ = raise CPS "unimplemented subwe"
-  fun subtt _ = raise CPS "unimplemented subtt"
-  fun subtv _ = raise CPS "unimplemented subtv"
-  fun subte _ = raise CPS "unimplemented subte"
-  fun subvv _ = raise CPS "unimplemented subvv"
-  fun subve _ = raise CPS "unimplemented subve"
+  fun subww w v a = sub w (WV v) a
+  val subwt = subww
+  val subwe = subww
+  val subwv = subww
+  fun subtt t v a = sub t (TV v) a
+  val subtv = subtt
+  val subte = subtt
+  fun subvv m v a = sub m (MV v) a
+  val subve = subvv
 
   (* PERF could be more efficient. would be especially worth it for type_eq *)
   fun ctyp_eq p = ctyp_cmp p = EQUAL
