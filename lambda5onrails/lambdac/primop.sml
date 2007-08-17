@@ -140,6 +140,9 @@ struct
         find alist
       end
 
+    (* PERF could write this whole thing out for a bit better performance, but... *)
+    fun primop_cmp (p1, p2) = String.compare(tostring p1, tostring p2)
+
     fun fromstring s =
       case ListUtil.Alist.find op= alist s of
         NONE => if StringUtil.matchhead "Jointext_" s

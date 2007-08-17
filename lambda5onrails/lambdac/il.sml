@@ -23,7 +23,12 @@ struct
       Carrier { definitely_allocated = definitely_allocated,
                 carried = f carried }
 
+    (* elsewhere.. *)
     datatype worldkind = KJavascript | KBytecode
+    fun worldkind_cmp (KJavascript, KJavascript) = EQUAL
+      | worldkind_cmp (KJavascript, _) = LESS
+      | worldkind_cmp (_, KJavascript) = GREATER
+      | worldkind_cmp (KBytecode, KBytecode) = EQUAL
 
     (* worlds : index the typing judgment *)
     datatype world =
