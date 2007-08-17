@@ -423,7 +423,7 @@ struct
          end
 
 
-     | Primop ([v], NATIVE { po, tys }, l, e) =>
+     | Native { var = v, po, tys, args = l, bod = e } =>
          (case Podata.potype po of
             { worlds = nil, tys = tvs, dom, cod } =>
               let
@@ -468,7 +468,7 @@ struct
          end
      | Primop (_, MARSHAL, _, _) => raise TypeCheck "bad marshal primop"
 
-     | Primop ([v], PRIMCALL { sym = _, dom, cod }, vas, e) =>
+     | Primcall { var = v, sym = _, dom, cod, args = vas, bod = e } =>
          let
            val vts = map (vok G) vas
          in
@@ -478,6 +478,7 @@ struct
            then eok (bindvar G v cod ` worldfrom G) e
            else raise TypeCheck "primcall argument mismatch"
          end
+
      (* nb. made this local, so that all primops are local *)
      | Primop ([v], LOCALHOST, [], e) => eok (bindvar G v (Addr' ` worldfrom G) ` worldfrom G) e
      | Primop _ => faile exp "unimplemented/bad primop"

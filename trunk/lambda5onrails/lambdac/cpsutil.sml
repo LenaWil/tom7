@@ -9,6 +9,21 @@ struct
 
   open CPS
 
+  fun ctyp' (At p) = At' p
+    | ctyp' (Cont p) = Cont' p
+    | ctyp' (AllArrow p) = AllArrow' p
+    | ctyp' (WExists p) = WExists' p
+    | ctyp' (TExists p) = TExists' p
+    | ctyp' (Product p) = Product' p
+    | ctyp' (Addr p) = Addr' p
+    | ctyp' (TWdict p) = TWdict' p
+    | ctyp' (Mu p) = Mu' p
+    | ctyp' (Sum p) = Sum' p
+    | ctyp' (Primcon p) = Primcon' p
+    | ctyp' (Conts p) = Conts' p
+    | ctyp' (Shamrock p) = Shamrock' p
+    | ctyp' (TVar p) = TVar' p
+
   fun ('tbind, 'ctyp, 'wbind, 'world) ontypefront fw f (typ : ('tbind, 'ctyp, 'wbind, 'world) ctypfront) =
     case typ of
       At (c, w) => At (f c, fw w)
@@ -38,16 +53,15 @@ struct
                                             env = fv env, f = fv f }
     | Go_mar { w, addr, bytes } => Go_mar' { w = fw w, addr = fv addr, bytes = fv bytes }
     | Primop (vvl, po, vl, e) => Primop' (vvl, 
-                                          (case po of
-                                             PRIMCALL { sym, dom, cod } =>
-                                               PRIMCALL { sym = sym, dom = map ft dom, cod = ft cod }
-                                           | NATIVE { po, tys } => NATIVE { po = po, tys = map ft tys }
-                                           | SAY => SAY
-                                           | SAY_CC => SAY_CC
-                                           | BIND => BIND
-                                           | MARSHAL => MARSHAL
-                                           | LOCALHOST => LOCALHOST),
+                                          po,
                                           map fv vl, fe e)
+    | Primcall { var, sym, dom, cod, args, bod } => Primcall' { var = var, sym = sym,
+                                                                dom = map ft dom,
+                                                                cod = ft cod,
+                                                                args = map fv args,
+                                                                bod = fe bod }
+    | Native { var, po, tys, args, bod } => Native' { var = var, po = po, tys = map ft tys,
+                                                      args = map fv args, bod = fe bod }
     | Put (vv, v, e) => Put' (vv, fv v, fe e)
     | Letsham (vv, v, e) => Letsham' (vv, fv v, fe e)
     | Leta (vv, v, e) => Leta' (vv, fv v, fe e)

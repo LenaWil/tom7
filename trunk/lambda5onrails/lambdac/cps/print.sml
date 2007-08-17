@@ -267,6 +267,22 @@ struct
          | ExternWorld(l, k, rest) =>
                % [$"extern", wktol k, $"world", $l] :: estol rest
 
+         | Native { var, po, tys, args, bod } => 
+             %[$"native", varl var, $"=", $(Primop.tostring po), 
+               (case tys of
+                  nil => %[]
+                | _ => L.indent 2 ` L.listex "<" ">" "," ` map ttol tys),
+               L.listex "(" ")" "," ` map vtol args] :: estol bod
+
+         | Primcall { var, sym, dom, cod, args, bod } =>
+            %[$"primcall", varl var, $"=", 
+              %[$("PRIMCALL_" ^ sym),
+                $":",
+                %[L.listex "(" ")" "," ` map ttol dom,
+                  $"->",
+                  ttol cod]],
+              L.listex "(" ")" "," ` map vtol args] :: estol bod
+
          | Primop ([vv], BIND, [va], rest) =>
                %[%[$(V.tostring vv),
                    $"="],
@@ -360,16 +376,6 @@ struct
     | potol MARSHAL = $"MARSHAL"
     | potol SAY = $"SAY"
     | potol SAY_CC = $"SAY_CC"
-    | potol (NATIVE { po, tys }) = %[$"NATIVE", $(Primop.tostring po),
-                                     (case tys of
-                                        nil => %[]
-                                      | _ => L.indent 2 ` L.listex "<" ">" "," ` map ttol tys)]
-    | potol (PRIMCALL {sym, dom, cod}) = %[$("PRIMCALL_" ^ sym),
-                                           $":",
-                                           %[L.listex "(" ")" "," ` map ttol dom,
-                                             $"->",
-                                             ttol cod]]
-
 
   fun gtol (l, glo) =
     case cglo glo of

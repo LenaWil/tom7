@@ -422,12 +422,12 @@ struct
             | C.Go_cc _ => raise JSCodegen "shouldn't see go_cc in js codegen"
             | C.ExternWorld _ => raise JSCodegen "shouldn't see externworld in js codegen"
 
-            | C.Primop ([v], C.NATIVE { po, ... }, args, e) => 
+            | C.Native {var = v, po, args, bod = e, ... } => 
                 cvtvs args
                 (fn args =>
                  Bind (vtoi v, primexp po args) :: cvte e)
 
-            | C.Primop ([v], C.PRIMCALL { sym, ... }, args, e) =>
+            | C.Primcall { var = v, sym, args, bod = e, ... } =>
                 cvtvs args
                 (fn args =>
                  (* assuming sym has the name of some javascript function. *)

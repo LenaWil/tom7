@@ -52,6 +52,8 @@ sig
   val case_ExternVal : stuff -> selves * context -> var * string * ctyp * world option * cexp -> exp_result
   val case_ExternWorld : stuff -> selves * context -> string * CPS.worldkind * cexp -> exp_result
   val case_ExternType : stuff -> selves * context -> var * string * (var * string) option * cexp -> exp_result
+  val case_Native : stuff -> selves * context -> { var : var, po : Primop.primop, tys : ctyp list, args : cval list, bod : cexp } -> exp_result
+  val case_Primcall : stuff -> selves * context -> { var : var, sym : string, dom : ctyp list, cod : ctyp, args : cval list, bod : cexp } -> exp_result
 
   val case_Lams : stuff -> selves * context -> (var * (var * ctyp) list * cexp) list -> val_result
   val case_Fsel : stuff -> selves * context -> cval * int -> val_result

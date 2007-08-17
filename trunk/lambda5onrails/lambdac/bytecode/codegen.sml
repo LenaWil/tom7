@@ -273,12 +273,10 @@ struct
             | C.Go_cc _ => raise ByteCodegen "shouldn't see go_cc in codegen"
             | C.ExternWorld _ => raise ByteCodegen "shouldn't see externworld in codegen"
 
-            | C.Primop ([v], C.PRIMCALL { sym, ... }, args, e) =>
+            | C.Primcall { var = v, sym, args, bod = e, ... } => 
                 cvtvs args
                 (fn args =>
                  Bind (vtoi v, Primcall (sym, args), cvte e))
-
-            | C.Primop (_, C.PRIMCALL _, _, _) => raise ByteCodegen "bad primcall"
 
             | C.Primop ([v], C.BIND, [va], e) =>
                 cvtv va
@@ -304,13 +302,11 @@ struct
 
             | C.Primop (_, C.LOCALHOST, _, _) => raise ByteCodegen "bad localhost"
 
-            | C.Primop ([v], C.NATIVE { po, ... }, args, e) => 
+            | C.Native { var = v, args, bod = e, po, ... } => 
                 (* XXX could check arity *)
                 cvtvs args
                 (fn args =>
                  Bind (vtoi v, Primop (po, args), cvte e))
-
-            | C.Primop (_, C.NATIVE _, _, _) => raise ByteCodegen "expected a single binding for primops?"
 
             | C.Go_mar { w = _, addr, bytes } =>
                 cvtv addr
