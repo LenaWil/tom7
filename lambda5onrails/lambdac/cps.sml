@@ -1,4 +1,5 @@
-structure CPS :> CPS=
+
+structure CPS : CPS =
 struct
   
   structure V = Variable
@@ -79,7 +80,7 @@ struct
 
   (* -------- injections:   worlds ------- *)
 
-  fun W' wv = $$W_ // VV (WV wv)
+  fun W' wv = VV (WV wv)
   fun WC' s = $$(WC_ s)
 
   (* -------- injections:   types -------- *)
@@ -288,16 +289,13 @@ struct
                     main : string
 
                     }
-
+    
   (* ------------ outjections: worlds ------- *)
   fun world a =
     case look a of 
       $(WC_ s) => WC s
-    | l / r =>
-      (case (look l, look r) of
-         ($W_, V (WV wv)) => W wv
-       | _ => raise CPS "no")
-    | _ => raise CPS "no"
+    | V (WV wv) => W wv
+    | _ => raise CPS "bad world"
 
   (* ------------ outjections: types ------- *)
   fun pair a =
@@ -325,6 +323,10 @@ struct
     case look a of
       $(INT_ i) => i
     | _ => raise CPS "expected INT"
+  fun BOOLi a =
+    case look a of
+      $(BOOL_ b) => b
+    | _ => raise CPS "expected BOOL"
       
   fun slash a =
     case look a of 
@@ -439,44 +441,59 @@ struct
     | $DICTFOR_ / t => Dictfor ` hide t
     | $VTUNPACK_ / va / r =>
          (case look4 r of
-            TV tv \ UV dv \ (S tys / B (vars, e)) => VTUnpack (tv, dv, ListPair.zip(map MVi vars, tys), va, e)
+            TV tv \ UV dv \ (S tys / B (vars, e)) => VTUnpack (tv, dv, 
+                                                               ListPair.zip(map MVi vars, tys), 
+                                                               va, e)
           | _ => raise CPS "bad vtunpack")
     | $DICT_ / what / r => Dict
         (case look what / look r of
            $AT_ / t / w => At (t, w)
          | $ADDR_ / w => Addr ` hide w
          | $TWDICT_ / w => TWdict ` hide w
-         | _ =>  raise CPS "unimplemented dict")
-        
-(*
-  (* slicker way to do this? *)
-     | Cont tl => $$CONT_ // SS tl
-     | Conts tll => $$CONTS_ // SS (map SS tll)
-     | AllArrow { worlds, tys, vals, body } => $$ALLARROW_ // BB(map WV (map #1 worlds),
-                                                                 BB(map UV (map #2 worlds),
-                                                                    BB(map TV (map #1 tys),
-                                                                       BB(map UV (map #2 tys),
-                                                                          SS vals // body))))
-     | WExists (wv, t) => $$WEXISTS_ // (WV (#1 wv) \\ UV (#2 wv) \\ t)
-     | TExists (tv, tl) => $$TEXISTS_ // (TV (#1 tv) \\ UV (#2 tv) \\ SS tl)
-     | Product stl => $$PRODUCT_ // SS (map op// ` ListUtil.mapfirst ($$ o STRING_) stl)
-     | Mu (i, vtl) => $$MU_ // $$(INT_ i) // 
-         let val (vl, tl) = ListPair.unzip vtl
-         in
-           BB(map TV (map #1 vl),
-              BB(map UV (map #2 vl),
-                 SS tl))
-         end
-     | Sum sail =>
-         $$SUM_ // SS (map (fn (s, NonCarrier) => $$(STRING_ s) // $$NONCARRIER_
-                             | (s, Carrier { definitely_allocated, carried }) =>
-                            $$(STRING_ s) // $$(BOOL_ definitely_allocated) // carried) sail)
-     | Primcon (pc, tl) => $$(PRIMCON_ pc) // SS tl
-     | Shamrock ((wv, dv), t) => $$SHAMROCK_ // (WV wv \\ UV dv \\ t)
-     | TVar v => raise CPS "dict tvar not allowed")
-*)
+         | $WEXISTS_ / (WV wv \ r) =>
+           (case look r of
+              UV dv \ t => WExists ((wv, dv), t)
+            | _ => raise CPS "bad wexists dict")
 
-
+         | $TEXISTS_ / (TV tv \ r) => 
+           (case look r of
+              UV dv \ tl => TExists ((tv, dv), SSi tl)
+            | _ => raise CPS "bad texists dict")
+         | $PRODUCT_ / S stl =>
+              Product (map (fn a =>
+                            case look a of
+                              lab / t => (STRINGi lab, t)
+                            | _ => raise CPS "bad product dict") stl)
+         | $MU_ / i / r =>
+              (case look3 r of
+                 B(tvl, B(dvl, S tl)) =>
+                   Mu (INTi i, ListUtil.map3 (fn (tv, dv, t) => ((TVi tv, UVi dv), t)) tvl dvl tl)
+               | _ => raise CPS "bad mu")
+         | $SUM_ / S stl =>
+              Sum (map (fn a =>
+                        case look2 a of
+                          $(STRING_ s) / da / ca => (s, Carrier { definitely_allocated = BOOLi da,
+                                                                  carried = ca })
+                        | $(STRING_ s) / $NONCARRIER_ => (s, NonCarrier)
+                        | _ => raise CPS "bad sum arm") stl)
+         | $CONT_ / S tl => Cont tl
+         | $CONTS_ / S tll => Conts (map SSi tll)
+         | $ALLARROW_ / B(wv, r) =>
+              (case look4 r of
+                 B(wdv, B(tv, B(tdv, vals / body))) => AllArrow { worlds = ListPair.zip (map WVi wv, 
+                                                                                         map UVi wdv),
+                                                                  tys = ListPair.zip (map TVi tv,
+                                                                                      map UVi tdv),
+                                                                  vals = SSi vals,
+                                                                  body = body }
+               | _ => raise CPS "bad allarrow")
+         | $(PRIMCON_ pc) / S tl => Primcon (pc, tl)
+         | $SHAMROCK_ / (WV wv \ bind) =>
+                 (case look bind of
+                    UV dv \ t => Shamrock ((wv, dv), t)
+                  | _ => raise CPS "bad shamrock")
+         (* no tvars. *)
+         | _ => raise CPS "unimplemented dict")
 
     | _ => raise CPS "bad cval"
       
