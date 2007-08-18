@@ -3,6 +3,7 @@ structure CPS : CPS =
 struct
   
   structure V = Variable
+  structure VS = V.Set
   infixr 9 `
   fun a ` b = a b
 
@@ -577,7 +578,12 @@ struct
     | _ => raise CPS "expected cexp"
 
   (* ------------ outjections: globals ------- *)
-  fun cglo _ = raise CPS "unimplemented cglo"
+
+  fun cglo ast =
+    case look3 ast of
+      $POLYCODE_ / (WV v \ (va / t)) => PolyCode(v, va, t)
+    | $CODE_ / va / t / s => Code (hide va, t, STRINGi s)
+    | _ => raise CPS "bad global"
 
   val world_cmp = ast_cmp
   val ctyp_cmp = ast_cmp
@@ -592,7 +598,33 @@ struct
   fun subvv m v a = sub m (MV v) a
   val subve = subvv
 
-  (* PERF could be more efficient. would be especially worth it for type_eq *)
+  fun isvfreeinv v ast = isfree ast (MV v)
+  val isvfreeine = isvfreeinv
+  fun isufreeinv u ast = isfree ast (UV u)
+  val isufreeine = isufreeinv
+
+  fun freevarsast ast =
+    let
+      val m = freevars ast
+      val ( u, v, w, t ) = AST.VM.foldri (fn (var, _, (u, v, w, t)) =>
+                                          (case var of
+                                             WV x => (u, v, VS.add(w, x), t)
+                                           | TV x => (u, v, w, VS.add(t, x))
+                                           | UV x => (VS.add(u, x), v, w, t)
+                                           | MV x => (u, VS.add(v, x), w, t)))
+                          (VS.empty, VS.empty, VS.empty, VS.empty) m
+    in
+      { u = u, v = v, w = w, t = t }
+    end
+
+  fun freevarse ast =
+    let val { u, v, w, t } = freevarsast ast
+    in (v, u)
+    end
+  val freevarsv = freevarse
+
+  (* PERF could be more efficient. would be especially worth it for type_eq, which
+     we use all over the place. *)
   fun ctyp_eq p = ctyp_cmp p = EQUAL
   fun world_eq p = world_cmp p = EQUAL
 

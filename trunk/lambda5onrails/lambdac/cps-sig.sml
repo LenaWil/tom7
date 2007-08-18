@@ -255,4 +255,14 @@ use the constructors directly!
   val Zerocon' : primcon -> ctyp
   val EProj' : var * string * cval * cexp -> cexp
 
+
+  val isvfreeinv : var -> cval -> bool
+  val isvfreeine : var -> cexp -> bool
+  val isufreeinv : var -> cval -> bool
+  val isufreeine : var -> cexp -> bool
+
+  (* set of free regular vars, valid vars *)
+  val freevarsv : cval -> Variable.Set.set * Variable.Set.set
+  val freevarse : cexp -> Variable.Set.set * Variable.Set.set
+
 end

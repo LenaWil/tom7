@@ -123,6 +123,10 @@ struct
 
   exception Occurs
 
+  fun pointwiset ft typ = pointwisetw (fn w => w) ft typ
+  fun pointwisee ft fv fe exp = pointwiseew (fn w => w) ft fv fe exp
+  fun pointwisev ft fv fe value = pointwisevw (fn w => w) ft fv fe value
+
   fun occursw var (w : world) =
     case world w of
       W var' => if V.eq (var, var') then raise Occurs else w
@@ -146,12 +150,7 @@ struct
   fun freee v va = (occurse v va; false) handle Occurs => true
   fun freet v va = (occurst v va; false) handle Occurs => true
 
-    
-  fun pointwiset ft typ = pointwisetw (fn w => w) ft typ
-  fun pointwisee ft fv fe exp = pointwiseew (fn w => w) ft fv fe exp
-  fun pointwisev ft fv fe value = pointwisevw (fn w => w) ft fv fe value
-
-  (* Free variable set stuff *)
+      (* Free variable set stuff *)
   structure VS = Variable.Set
   local 
     fun accvarsv (us, s) (value : cval) : cval =

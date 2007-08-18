@@ -60,12 +60,12 @@ struct
               ebod
             end
 
-      | Put (v, va, ebod) => 
-          if isvfreeine v ebod
+      | Put (u, va, ebod) => 
+          if isufreeine u ebod
           then e
           else
             let in
-              score v "PUT" 50;
+              score u "PUT" 50;
               ebod
             end
 
