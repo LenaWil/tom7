@@ -58,7 +58,7 @@ struct
 
   datatype leaf =
     (* worlds *)
-    W_ | WC_ of string |
+    (* XXX Not necessary *)W_ | WC_ of string |
     (* types *)
     AT_ | CONT_ | CONTS_ | ALLARROW_ | WEXISTS_ | TEXISTS_ | PRODUCT_ | TWDICT_ | ADDR_ |
     MU_ | SUM_ | SHAMROCK_ | TVAR_ | PRIMCON_ of primcon | NONCARRIER_ |

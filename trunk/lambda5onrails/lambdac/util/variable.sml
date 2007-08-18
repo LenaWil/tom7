@@ -1,5 +1,5 @@
 
-structure Variable :> VARIABLE =
+structure Variable : VARIABLE =
 struct
 
     exception Variable of string
