@@ -158,7 +158,7 @@ struct
 
     | case_Primop z ({selfe, selfv, selft}, G) ([v], LOCALHOST, [], e) =
          Primop' ([v], LOCALHOST, [], 
-                  selfe z (bindu0var G v ` Addr' ` worldfrom G) e)
+                  selfe z (bindvar G v (Addr' ` worldfrom G) ` worldfrom G) e)
 
     | case_Primop z ({selfe, selfv, selft}, G) (_, LOCALHOST, _, e) = raise Pass "bad localhost"
 

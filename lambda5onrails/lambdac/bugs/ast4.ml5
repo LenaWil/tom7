@@ -1,0 +1,23 @@
+unit
+
+fun (t) ! r = primapp Get { t } (r)
+fun (t) ref a = primapp Ref { t } (a)
+
+extern bytecode world server
+extern val server ~ server addr
+
+    val articlename = ref []
+
+
+    (* PERF round trips for every keyup is a little bit much? *)
+    fun source-keyup () =
+        let 
+            put article  = !articlename
+            put contents = "xyz"
+        in
+            from server get (article, contents)
+        end
+
+    do source-keyup ()
+in
+end

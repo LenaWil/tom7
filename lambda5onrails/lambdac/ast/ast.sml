@@ -88,8 +88,9 @@ struct
     | rename ((v,v') :: t) ast =
     let 
       (* val () = print ("Rename " ^ var_tostring v ^ " -> " ^ var_tostring v' ^ "\n"); *)
+      val ast = rename t ast
       val ast = sub (hide ` V v') v ast
-    in rename t ast
+    in ast
     end
 
   and sub (obj as A { m = mobj, ... }) v (ast as A { m, f }) =
@@ -119,6 +120,7 @@ struct
                         val v'' = var_vary v'
                         val a = rename [(v', v'')] a
                       in
+                        print "avoid \\\n";
                         A { m = m,
                             f = v'' \ sub obj v a }
                       end
@@ -136,6 +138,7 @@ struct
                       val subst = ListUtil.mapto var_vary vl
                       val a = rename subst a
                     in
+                      print "avoid B\n";
                       A { m = m,
                           f = B (map #2 subst, sub obj v a) }
                     end
