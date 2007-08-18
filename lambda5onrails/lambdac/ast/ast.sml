@@ -1,4 +1,9 @@
-functor ASTFn(A : ASTARG) : AST where type var = A.var
+(* TODO: de Bruijn
+         use vectors instead of lists
+         hash cons?
+         hash for quick equality tests *)
+
+functor ASTFn(A : ASTARG) :> AST where type var = A.var
                                    and type leaf = A.leaf =
 struct
   open A

@@ -100,3 +100,21 @@ then made world abstract so that the interface is ASTable
   user    0m41.810s
   sys     0m3.500s
 
+-- initial AST implementation --
+
+  real    0m19.310s
+  user    0m15.620s
+  sys     0m0.580s
+
+-- use some freevar sets --
+
+  real    0m13.625s
+  user    0m10.400s
+  sys     0m0.530s
+
+-- using all freevar sets --
+
+  real	0m6.447s
+  user	0m3.810s
+  sys	0m0.250s
+

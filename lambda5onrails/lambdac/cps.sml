@@ -622,6 +622,13 @@ struct
     in (v, u)
     end
   val freevarsv = freevarse
+  fun freesvarst ast =
+    let val { u, v, w, t } = freevarsast ast
+    in { w = w, t = t }
+    end
+  val freesvarse = freesvarst
+  val freesvarsv = freesvarst
+  val freesvarsw = freesvarst
 
   (* PERF could be more efficient. would be especially worth it for type_eq, which
      we use all over the place. *)
