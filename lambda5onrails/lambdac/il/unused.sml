@@ -10,9 +10,17 @@ struct
 
   exception Unused of string
 
+  val debug = Params.flag false
+      (SOME ("-debugilunused",
+             "Debugging information for IL unused phase")) "debugilunused"
+  fun dprint s =
+    if !debug
+    then print s
+    else ()
 
 (*
   no point in distinguishing between regular and valid vars here. We consider them disjoint.
+  (nb. this will stop working if we switch to an AST representation of IL, which we should)
 
   datatype fvset = F of { var : V.Set.set,
                           uvar : V.Set.set }
@@ -37,8 +45,25 @@ struct
 
   type fvset = V.Set.set
   val empty = V.Set.empty
-  fun -- (s, v) = V.Set.delete (s, v) handle _ => s
-  fun ++ (s, v) = V.Set.add (s, v)
+  fun pr s =
+    if !debug
+    then
+      let in
+        print "set: ";
+        V.Set.app (fn v => print (Variable.tostring v ^ " ")) s;
+        print "\n"
+      end
+    else ()
+  fun -- (s, v) = 
+    let in
+      dprint ("Delete " ^ Variable.tostring v ^ "\n");
+      V.Set.delete (s, v) handle _ => s
+    end
+  fun ++ (s, v) = 
+    let in
+      dprint ("Add " ^ Variable.tostring v ^ "\n");
+      V.Set.add (s, v)
+    end
   fun ?? (s, v) = V.Set.member (s, v)
   fun || (s1, s2) = V.Set.union (s1, s2)
   fun unionl l = foldl || empty l
@@ -46,8 +71,16 @@ struct
 
   fun uval value =
     case value of
-      Polyvar  { var, ... } => (empty ++ var, value)
-    | Polyuvar { var, ... } => (empty ++ var, value)
+      Polyvar  { var, ... } =>
+        let in
+          print ("base regvar " ^ Variable.tostring var ^ "\n");
+          (empty ++ var, value)
+        end
+    | Polyuvar { var, ... } => 
+        let in
+          print ("base var " ^ Variable.tostring var ^ "\n");
+          (empty ++ var, value)
+        end
     | Int _ => (empty, value)
     | String _ => (empty, value)
     | VRecord lvl => 
@@ -65,8 +98,10 @@ struct
                                 in
                                   (fv, VInject(t, l, SOME v))
                                 end
-    | Sham (w, va) => let val (fv, v) = uval va
-                      in (fv, Sham (w, va))
+    | Sham (w, va) => let val (fv, va) = uval va
+                      in 
+                        dprint "sham..\n";
+                        (fv, Sham (w, va))
                       end
     | Fns fl =>
             let val (fv, names, fl) = ListUtil.unzip3 ` 
@@ -82,10 +117,12 @@ struct
                        body = body, inline = inline, recu = recu,
                        total = total})
                    end) fl
+                (* subtract all rec names *)
+                val fvr = foldl (fn (v, fv) => fv -- v) (unionl fv) names
             in
-               (* subtract all rec names *)
-              (foldl (fn (v, fv) => fv -- v) (unionl fv) names,
-               Fns fl)
+              dprint ("fns " ^ StringUtil.delimit "/" (map (V.tostring o #name) fl));
+              pr fvr;
+              (fvr, Fns fl)
             end
 
     | FSel (i, v) => let val (fv, v) = uval v

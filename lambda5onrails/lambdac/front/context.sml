@@ -3,7 +3,7 @@ structure Context :> CONTEXT =
 struct
     open Variable
 
-    val showbinds = Params.flag true
+    val showbinds = Params.flag false
         (SOME ("-showilbinds",
                "When ")) "showilbinds"
         
