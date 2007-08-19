@@ -1,0 +1,30 @@
+unit
+    import "std.mlh"
+    import "dom.mlh"
+    import "timer.mlh"
+    import "trivialdb.mlh"
+
+    val articlename = ref []
+
+    (* XXX should do some parsing and rendering, duh *)
+    fun renderhtml s =
+        let
+            datatype tok =
+                NoToken
+              | OLink
+
+            val off = ref 0
+            fun token () =
+                  let
+                      fun anysize () = NoToken
+                  in
+                      OLink
+                  end
+        in
+            s
+        end 
+
+    do renderhtml
+
+in
+end

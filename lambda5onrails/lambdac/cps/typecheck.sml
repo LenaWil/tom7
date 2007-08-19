@@ -231,8 +231,10 @@ struct
            end
        | (l as ((vv, ()) :: _)) =>
            let in
+             (*
              print ("\nDictionaries for worldvar " ^ V.tostring wv ^ "\n");
              app (fn (vv, ()) => print ("  " ^ V.tostring vv ^ "\n")) l;
+             *)
              vv
            end)
     end

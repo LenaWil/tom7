@@ -16,6 +16,9 @@ sig
       Modal of IL.world
     | Valid of Variable.var
 
+    val stol : varsort -> Layout.layout
+    val ctol : context -> Layout.layout
+
     (* lookup operations *)
 
     (* resolve a value identifier in the current context, return its type and

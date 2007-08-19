@@ -28,9 +28,41 @@ unit
     do runtime.no-messages ()
 
     (* XXX should do some parsing and rendering, duh *)
-    fun renderhtml s = s 
+    fun renderhtml s =
+        let
+            datatype tok =
+                NoToken
+              | String of string
+              | Bar
+              | OLink
+              | CLink
 
-    (* renders the current value of the *)
+            val off = ref 0
+            fun token () =
+                if !off >= size s
+                then NoToken
+                else 
+                  let
+                      fun anysize () = NoToken
+                  in
+                      (* might be [[ or ]] *)
+                      if !off < size s - 2
+                      then 
+                          let val next2 = substring(s, !off, 2)
+                          in
+                              if next2 seq "[["
+                              then OLink
+                              else if next2 seq "]]"
+                                   then CLink
+                                   else anysize ()
+                          end
+                      else anysize ()
+                  end
+        in
+            s
+        end (* : string @ home *)
+
+    (* renders the current value of the edit box. *)
     fun render () =
         let in
             (* alert [render!]; *)

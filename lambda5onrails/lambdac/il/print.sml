@@ -40,9 +40,19 @@ struct
             else L.recordex sep (ListUtil.mapsecond layout sorted)
         end
 
-           
     exception NoMu
-    fun ttol t = ttolex Context.empty t
+  
+
+    fun worldstys nil nil = L.empty
+      | worldstys w t =
+      L.seq [$"(", % ` L.separateRight (map ($ o V.tostring) w, ","),
+             $";", % ` L.separateRight (map ($ o V.tostring) t, ","),
+             $")"]
+
+    fun ptol f (Poly ({worlds = nil, tys = nil}, a)) = f a
+      | ptol f (Poly ({worlds, tys}, a)) = %[worldstys worlds tys, f a]
+
+    fun ttol t = ttolex (fn _ => NONE) t
     and ttolex ctx t =
       if not (!iltypes)
       then $"-"
@@ -90,28 +100,11 @@ struct
                          handle _ => raise NoMu
 
                     val t = 
-                      (case Context.con ctx thisc of
-                         (kind, Lambda f, _) => 
-                           (case kind of
-                              0 => $ thisc
-                           (* XXX otherwise do anti-unification 
-                              or whatever to figure out what
-                              the datatype "type constructor"
-                              is applied to. (but we should be
-                              careful that unification doesn't
-                              cause any harmful side-effects.) *)
-                            | _ => raise NoMu)
-
-                       (* doesn't look like a datatype! *)
-                       | _ => raise NoMu)
-
-
-                         (* totally normal for this to be out of
-                            scope right now *)
-                         handle Context.Absent _ => raise NoMu
-                           
+                      case ctx thisc of
+                        NONE => raise NoMu
+                      | SOME s => $s
                   in
-                    $ thisc (* raise NoMu *)
+                    $ thisc
                   end
                     handle NoMu =>
                       L.paren (%[$("#" ^ itos i),
@@ -140,10 +133,13 @@ struct
     fun bttol t = if !iltypes then L.seq[$"<", ttol t, $">"]
                   else $""
 
+    val okchar = StringUtil.charspec "-0-9A-Za-z!@$%^&*()_+=`~\"'[]{}|:;,./<>? " (* " *)
+
     fun vtol v =
       (case v of
          Int i => $("0x" ^ Word32.toString i)
-       | String s => $("\"" ^ String.toString s ^ "\"")
+       | String s => $("\"" ^ StringUtil.harden okchar #"#" 100 s ^ 
+                       (if size s > 100 then "..." else "") ^ "\"")
        | VRecord lvl => recordortuple vtol "=" "(" ")" "," lvl
        | VRoll (t, v) => %[$"roll", L.paren (ttol t), vtol v]
        | VInject (t, l, vo) => %[$("inj_" ^ l), 
@@ -349,12 +345,6 @@ struct
 
     and btol Val = $"val"
       | btol Put = $"put"
-
-    and worldstys nil nil = L.empty
-      | worldstys w t =
-      L.seq [$"(", % ` L.separateRight (map ($ o V.tostring) w, ","),
-             $";", % ` L.separateRight (map ($ o V.tostring) t, ","),
-             $")"]
 
     and dtol d =
         (case d of
