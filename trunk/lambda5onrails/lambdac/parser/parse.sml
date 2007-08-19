@@ -149,8 +149,8 @@ struct
     | ifmany f l = f l
 
   val id = satisfy (fn ID s => true | _ => false) 
-                 wth (fn ID s => s | _ => raise Impossible)
-
+               wth (fn ID s => s | _ => raise Impossible)
+      
   val world = id
 
   fun ptuple pl =
@@ -217,7 +217,9 @@ struct
   val expid = id || `TIMES return "*" || `ARROW return "->"
 
   (* nonfix identifiers, or any identifier prefixed with op *)
-  fun fid G = expid suchthat (isnonfix G) || `OP >> expid
+  fun fid G = expid suchthat (isnonfix G) || 
+              `OP >> `EQUALS return "=" ||
+              `OP >> expid
 
   fun exactid s = expid suchthat (fn ss => s = ss)
 

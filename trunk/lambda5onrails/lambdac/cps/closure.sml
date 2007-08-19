@@ -160,6 +160,7 @@ struct
      *)
   fun augmentfreevars G { w = fw, t = ft } fv fuv exemptargs =
     let
+(*
       val () = print "AUGMENT.\nfv:    ";
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) fv;
       val () = print "\nfuv:   ";
@@ -168,6 +169,7 @@ struct
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) fw;
       val () = print "\nft:   ";
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) ft;
+*)
 
       (* for any free var we already have, we need to get its type
          and world. Those are more sources of free variables. *)
@@ -228,13 +230,16 @@ struct
 
       (* first, the literally occurring world vars *)
       val litw = getdicts exempt_getwdict fw
+      (*
       val () = print "\naug literalw: "
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) litw
-
+      *)
       (* then, the literally occurring type variables *)
       val litt = getdicts exempt_getdict ft
+      (*
       val () = print "\naug literalt: " 
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) litt
+      *)
 
       (* indirect world and type vars appearing in the types of other stuff *)
       val iv = foldl (fn (t, set) =>
@@ -246,15 +251,18 @@ struct
                         set
                       end) V.Set.empty (fvt @ fuvt)
 
+      (*
       val () = print "\naug indirect: " 
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) iv
-
+      *)
       val ivw = getdicts exempt_getwdict (V.SetUtil.fromlist worlds)
+    (*
       val () = print "\naug judgmentw: " 
       val () = V.Set.app (fn v => print (V.tostring v ^ " ")) ivw
+      *)
 
     in
-      print "\n";
+      (* print "\n"; *)
       V.Set.union (fuv, 
                    V.Set.union(litw, 
                                V.Set.union (litt, 
@@ -279,11 +287,13 @@ struct
       val fvs =  V.Set.foldr op:: nil fv
       val fuvs = V.Set.foldr op:: nil fuv
 
+      (*
       val () = print "mkenv FV: "
       val () = app (fn v => print (V.tostring v ^ " ")) fvs
       val () = print "\nmkenv FUV: "
       val () = app (fn v => print (V.tostring v ^ " ")) fuvs
       val () = print "\n"
+      *)
 
       val fvs = map (fn v =>
                      let val (t, w) = T.getvar G v
@@ -492,9 +502,11 @@ struct
        let
          val value = Lams' vael
 
+         (*
          val () = print "Closure convert Lams: "
          val () = app (fn (v, _, _) => print (V.tostring v ^ " ")) vael;
          val () = print "\n"
+         *)
 
          (* not body; we don't want argument occurrences since they are bound by lam *)
          val (fv, fuv) = freevarsv value

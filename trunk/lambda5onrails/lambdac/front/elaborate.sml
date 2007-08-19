@@ -121,7 +121,13 @@ struct
           (* See below *)
           val here = new_wevar ()
           val (tt, worlds, tys) = evarize pt
+          val tt = wsubst1 here wv tt
         in
+          print ("use uvar " ^ vv ^ " : ");
+          Layout.print(ILPrint.ttol tt, print);
+          print " @ ";
+          Layout.print(ILPrint.wtol here, print);
+          print "\n";
           (Polyuvar {tys = tys, worlds = worlds, var = v}, wsubst1 here wv tt, here)
         end
     | (pt, v, i, Context.Modal w) =>
@@ -155,7 +161,7 @@ struct
               let 
                 val (v, t, w) = dovar ctx loc vv
               in
-                unifyw ctx loc "variable" here w;
+                unifyw ctx loc ("variable " ^ vv) here w;
                 value (v, t)
               end
 
@@ -1068,8 +1074,7 @@ struct
        and immediatley eliminating it.
 
        To explicitly declare a function at another world, then we just
-       use type (judgment) annotation (XXX not possible to annotate
-       world, yet)
+       use type (judgment) annotation
 
        XXX The same should be true of val decls that are generalizable. *)
     | E.Fun bundle =>
@@ -1186,13 +1191,13 @@ struct
                        (* valid. wv might appear within at. *)
                      | SOME wv => C.bindex cc (SOME f) (mkpoly tps wps at) vv IL.Normal (C.Valid wv))
 
-              val fctx = foldl mkcontext ctx efs
+              val fctx = foldl mkcontext outer_context efs
 
               val () =
                 let val n = StringUtil.delimit "_" (map (V.basename o #name) fs)
                 in
                   case maybevalid of
-                    NONE => (* print (n ^ " is not valid\n")*) ()
+                    NONE => print (n ^ " is not valid\n")
                   | SOME _ => print (n ^ " is valid\n")
                 end
 
@@ -1207,6 +1212,9 @@ struct
                                                 (v, t, Sham (wv, e))))
                                   )
           in
+            print "binding fun:\n";
+            Layout.print(Context.ctol fctx, print);
+            print "\n";
               (* if just one, then we want to produce better code: *)
               case fs of
                  [ f as { name, arg, dom, inline, recu, total, cod, body } ] =>

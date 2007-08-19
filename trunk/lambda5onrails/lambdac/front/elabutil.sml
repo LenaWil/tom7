@@ -41,8 +41,8 @@ struct
                     (Layout.align
                      [%[%[$("Type mismatch (" ^ s ^ ") at "), %[$(Pos.toString loc),
                           $": "], $msg]],
-                      %[$"expected:", Layout.indent 4 (ILPrint.ttolex ctx t2)],
-                      %[$"actual:  ", Layout.indent 4 (ILPrint.ttolex ctx t1)]],
+                      %[$"expected:", Layout.indent 4 (ILPrint.ttolex (MuName.name ctx) t2)],
+                      %[$"actual:  ", Layout.indent 4 (ILPrint.ttolex (MuName.name ctx) t1)]],
                      print);
                     print "\n";
                     raise Elaborate "type error"
@@ -159,17 +159,30 @@ struct
       (case !er of
          IL.Free n =>
            if Context.has_wevar ctx n
-           then NONE
+           then
+             let in
+               print "no polywgen: occurs\n";
+               NONE
+             end
            else
                let
                    val wv = V.namedvar (Nonce.nonce ()) (* "polyw" *)
                in
                    er := IL.Bound (IL.WVar wv);
+                   print "yes polywgen\n";
                    SOME wv
                end
        | IL.Bound w => polywgen ctx w)
-      | polywgen ctx (w as IL.WConst s) = NONE
-      | polywgen _   (w as IL.WVar _) = NONE
+      | polywgen ctx (w as IL.WConst s) = 
+         let in
+           print "no polywgen: const\n";
+           NONE
+         end
+      | polywgen _   (w as IL.WVar v) = 
+         let in
+           print ("no polywgen: var " ^ V.tostring v ^ "\n");
+           NONE
+         end
 
     fun evarizes (IL.Poly({worlds, tys}, mt)) =
         let
@@ -304,7 +317,7 @@ struct
         (Layout.align
          [%[$("Error: Type is not mobile at "), $(Pos.toString loc),
             $": ", $msg],
-          %[$"type:  ", Layout.indent 4 (ILPrint.ttolex ctx t)]],
+          %[$"type:  ", Layout.indent 4 (ILPrint.ttolex (MuName.name ctx) t)]],
          print);
         print "\n";
         raise Elaborate "type error"

@@ -4,10 +4,22 @@ val provide-std = ()
 infix +
 infix -
 infix *
+infix <=
+infix <
+(* infix = special case *)
+infix >
+infix >=
+infix <>
 (* PERF should inline *)
-fun +(x, y) = primapp Plus { } (x, y)
-fun -(x, y) = primapp Minus { } (x, y)
-fun *(x, y) = primapp Times { } (x, y)
+fun + (x, y) = primapp Plus { } (x, y)
+fun - (x, y) = primapp Minus { } (x, y)
+fun * (x, y) = primapp Times { } (x, y)
+fun < (x, y) = primapp Less { } (x, y)
+fun <=(x, y) = primapp Lesseq { } (x, y)
+fun > (x, y) = primapp Greater { } (x, y)
+fun >=(x, y) = primapp Greatereq { } (x, y)
+(* fun = (x, y) = primapp Eq { } (x, y) *)
+fun <>(x, y) = primapp Neq { } (x, y)
 
 infix ^
 fun ^(x, y) = [[x][y]]
@@ -17,6 +29,8 @@ fun (t) :=(r, a) = primapp Set { t } (r, a)
 fun (t) ! r = primapp Get { t } (r)
 fun (t) ref a = primapp Ref { t } (a)
 
+infix seq
+fun seq (x, y) = primapp Eqs { } (x, y)
 fun size s = primapp StringLength { } (s)
 (* XXX bounds on these two? They can fail at runtime, but safely... *)
 fun ssub (s, x) = primapp StringSub { } (s, x)
@@ -25,6 +39,8 @@ fun substring (s, start, len) = primapp StringSubstring { } (s, start, len)
 extern bytecode world server
 extern val home ~ home addr
 extern val server ~ server addr
+
+datatype a option = NONE | SOME of a
 
 (* standard trick to turn a function into
    a real continuation. *)

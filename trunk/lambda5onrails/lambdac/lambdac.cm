@@ -117,9 +117,6 @@ el/nullary.sml
 front/primtypes-sig.sml
 front/primtypes.sml
 
-front/context-sig.sml
-front/context.sml
-
 front/initial-sig.sml
 front/initial.sml
 
@@ -128,10 +125,14 @@ front/unify.sml
 
 podata.sml
 
-(* staging problem... *)
 il/print-sig.sml
 il/print.sml
 il/alpha.sml
+
+front/context-sig.sml
+front/context.sml
+
+il/muname.sml
 
 front/elabutil-sig.sml
 front/elabutil.sml

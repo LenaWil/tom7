@@ -2,6 +2,10 @@
 structure Context :> CONTEXT =
 struct
     open Variable
+
+    val showbinds = Params.flag true
+        (SOME ("-showilbinds",
+               "When ")) "showilbinds"
         
     structure S = StringMap
     structure SU = StringMapUtil
@@ -32,6 +36,35 @@ struct
 *)
             raise Absent (what, s)
         end
+
+    structure L = Layout
+    fun stol sort = (case sort of
+                       Modal w => ILPrint.wtol w
+                     | Valid v => Layout.str ("VALID " ^ Variable.tostring v ^ "."))
+
+    fun ctol (C { vars, cons, worlds, wlabs, dbs }) =
+      let
+        val $ = L.str
+        val % = L.mayAlign
+        val itos = Int.toString
+
+        val vars = S.listItemsi vars
+        val worlds = S.listItemsi worlds
+      in
+        %[$"Context.",
+          L.indent 3
+          (
+           %[$"worlds:",
+             % (map (fn (s, v) =>
+                     %[$s, $"==", $(Variable.tostring v)]) worlds),
+             $"vars:",
+             % (map (fn (s, (tp, v, vs, sort)) =>
+                     %[%[$s, $"==", $(Variable.tostring v), $":"],
+                       L.indent 2 (%[ILPrint.ptol ILPrint.ttol tp,
+                                     $"@", stol sort])]) vars),
+             $"XXX cons, wlabs"])]
+          
+      end
 
     (* for type evars. these can only appear in the types of vars. *)
     fun has_evar (C{vars, ...}) n =
@@ -101,8 +134,10 @@ struct
                        List.exists (fn (_, tl, t) =>
                                     has t orelse List.exists has tl) l
                  | TRef t => has t)
+          fun hassort (Modal w') = hasw w'
+            | hassort (Valid _) = false
       in
-        SU.exists (fn (Poly({worlds, tys}, t), _, _, _) => has t) vars 
+        SU.exists (fn (Poly({worlds, tys}, t), _, _, sort) => hassort sort orelse has t) vars 
       end
 
     (* Worlds may be world variables or world constants. If there is a world
@@ -147,13 +182,23 @@ struct
             dbs = dbs }
 
     fun bindex (C {vars, cons, dbs, worlds, wlabs }) sym typ var stat sort =
+      let 
+        val sym = (case sym of NONE => 
+                     LambdacUtil.newstr "bindex" | SOME s => s)
+      in
+        print (sym ^ " == " ^ Variable.tostring var ^ " : ");
+        Layout.print(ILPrint.ptol ILPrint.ttol typ, print);
+        print " @ ";
+        Layout.print(stol sort, print);
+        print "\n";
         C { vars = S.insert (vars, 
-                             (case sym of NONE => LambdacUtil.newstr "bindex" | SOME s => s),
+                             sym,
                              (typ, var, stat, sort)),
             cons = cons,
             wlabs = wlabs,
             worlds = worlds,
             dbs = dbs }
+      end
 
     fun bindv c sym t v w = bindex c (SOME sym) t v IL.Normal (Modal w)
     fun bindu c sym typ var stat = bindex c (SOME sym) typ var stat (Valid (Variable.namedvar "unused"))
