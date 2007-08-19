@@ -18,8 +18,34 @@ struct
             raise Elaborate "error"
         end
 
-    fun new_evar ()  = IL.Evar  ` Unify.new_ebind ()
-    fun new_wevar () = IL.WEvar ` Unify.new_ebind ()
+    val all_evars  = ref (nil : IL.typ IL.ebind ref list)
+    val all_wevars = ref (nil : IL.world IL.ebind ref list)
+    fun clear_evars () = (all_evars  := nil;
+                          all_wevars := nil)
+    fun finalize_evars () =
+      let in
+        app (fn r =>
+             case !r of
+               IL.Bound _ => ()
+             | IL.Free _ => r := IL.Bound (IL.TRec nil)) (!all_evars);
+        app (fn r =>
+             case !r of
+               IL.Bound _ => ()
+             | IL.Free _ => r := IL.Bound Initial.home) (!all_wevars)
+      end
+
+    fun new_evar ()  = 
+      let val e = Unify.new_ebind ()
+      in
+        all_evars := e :: !all_evars;
+        IL.Evar e
+      end
+    fun new_wevar () =
+      let val e = Unify.new_ebind ()
+      in
+        all_wevars := e :: !all_wevars;
+        IL.WEvar e
+      end
 
     (* XXX5 compile flag *)
     fun warn loc s =
@@ -189,14 +215,14 @@ struct
           (* make the type and world substitutions *)
             fun mkts nil m ts = (m, rev ts)
               | mkts (tv::rest) m ts =
-              let val e = IL.Evar (Unify.new_ebind ())
+              let val e = new_evar ()
               in
                 mkts rest (V.Map.insert (m, tv, e)) (e :: ts)
               end
 
             fun mkws nil m ws = (m, rev ws)
               | mkws (tv::rest) m ws =
-              let val e = IL.WEvar (Unify.new_ebind ())
+              let val e = new_wevar ()
               in
                 mkws rest (V.Map.insert (m, tv, e)) (e :: ws)
               end

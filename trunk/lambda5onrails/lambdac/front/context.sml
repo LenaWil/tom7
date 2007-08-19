@@ -134,6 +134,7 @@ struct
                        List.exists (fn (_, tl, t) =>
                                     has t orelse List.exists has tl) l
                  | TRef t => has t)
+
           fun hassort (Modal w') = hasw w'
             | hassort (Valid _) = false
       in
@@ -186,11 +187,15 @@ struct
         val sym = (case sym of NONE => 
                      LambdacUtil.newstr "bindex" | SOME s => s)
       in
-        print (sym ^ " == " ^ Variable.tostring var ^ " : ");
-        Layout.print(ILPrint.ptol ILPrint.ttol typ, print);
-        print " @ ";
-        Layout.print(stol sort, print);
-        print "\n";
+        if !showbinds
+        then let in
+          print (sym ^ " == " ^ Variable.tostring var ^ " : ");
+          Layout.print(ILPrint.ptol ILPrint.ttol typ, print);
+          print " @ ";
+          Layout.print(stol sort, print);
+          print "\n"
+             end
+        else ();
         C { vars = S.insert (vars, 
                              sym,
                              (typ, var, stat, sort)),

@@ -123,11 +123,13 @@ struct
           val (tt, worlds, tys) = evarize pt
           val tt = wsubst1 here wv tt
         in
+          (*
           print ("use uvar " ^ vv ^ " : ");
           Layout.print(ILPrint.ttol tt, print);
           print " @ ";
           Layout.print(ILPrint.wtol here, print);
           print "\n";
+          *)
           (Polyuvar {tys = tys, worlds = worlds, var = v}, wsubst1 here wv tt, here)
         end
     | (pt, v, i, Context.Modal w) =>
@@ -1197,7 +1199,7 @@ struct
                 let val n = StringUtil.delimit "_" (map (V.basename o #name) fs)
                 in
                   case maybevalid of
-                    NONE => print (n ^ " is not valid\n")
+                    NONE => () (* print (n ^ " is not valid\n") *)
                   | SOME _ => print (n ^ " is valid\n")
                 end
 
@@ -1212,9 +1214,11 @@ struct
                                                 (v, t, Sham (wv, e))))
                                   )
           in
+            (*
             print "binding fun:\n";
             Layout.print(Context.ctol fctx, print);
             print "\n";
+            *)
               (* if just one, then we want to produce better code: *)
               case fs of
                  [ f as { name, arg, dom, inline, recu, total, cod, body } ] =>
@@ -1422,11 +1426,13 @@ struct
   fun elaborate (EL.Unit (dl, xl)) = 
     let
       val () = clear_mobile ()
+      val () = clear_evars ()
       val (idl, G) = elabds Initial.initial Initial.home dl
 
       (* XXX5 always at home? perhaps we can write units at other worlds? *)
       val ixl = map (elabx G Initial.home) xl
     in
+      finalize_evars ();
       check_mobile ();
       Unit(idl, ixl)
     end handle e as Match => raise Elaborate ("match:" ^ 

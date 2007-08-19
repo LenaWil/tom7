@@ -9,6 +9,10 @@ sig
 
     val new_evar : unit -> IL.typ
     val new_wevar : unit -> IL.world
+    (* reset the list of evars *)
+    val clear_evars : unit -> unit
+    (* set all unset evars to unit/home *)
+    val finalize_evars : unit -> unit
 
     (* unify context location message actual expected *)
     val unify : Context.context -> Pos.pos -> string -> 
