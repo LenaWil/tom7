@@ -116,7 +116,17 @@ struct
   fun Go' (w, v, e) = $$GO_ // w // v // e
   fun Go_cc' { w, addr, env, f } = $$GO_CC_ // w // addr // env // f
   fun Go_mar' { w, addr, bytes } = $$GO_MAR_ // w // addr // bytes
-  fun Primop' (vl, po, va, exp) = $$(PRIMOP_ po) // SS va // BB(map MV vl, exp)
+  fun Primop' (vl, po, va, exp) = 
+    let in
+      (* simplify in place for var to var bindings. *)
+      case (vl, po, map look va) of
+        ([v], Leaf.BIND, [V (MV mv)]) => 
+          let in
+            print "bind var/var simplified\n";
+            sub (VV (MV mv)) (MV v) exp
+          end
+      | _ => $$(PRIMOP_ po) // SS va // BB(map MV vl, exp)
+    end
   fun Primcall' { var, sym, dom, cod, args, bod } =
     $$PRIMCALL_ // $$(STRING_ sym) // SS dom // cod // SS args // (MV var \\ bod)
   fun Native' { var, po, tys, args, bod } =
