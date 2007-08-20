@@ -1,0 +1,11 @@
+unit
+
+  (* PERF This does not work if they are valid! *)
+  fun f (x : int, y : int) = (y, x) : int * int @ home
+  fun g (x : int, y : int) = (y, x) : int * int @ home
+
+  do primapp Ref { ((int * int) -> (int * int)) *
+                   ((int * int) -> (int * int)) } ( (f, g) )
+
+in
+end

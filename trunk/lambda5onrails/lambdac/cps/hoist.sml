@@ -26,6 +26,8 @@ struct
   exception Hoist of string
   open CPS CPSUtil
   structure V = Variable
+  structure ValMap = SplayMapFn (type ord_key = CPS.cval
+                                 val compare = CPS.cval_cmp)
 
   structure T = CPSTypeCheck
   val bindvar = T.bindvar
@@ -50,22 +52,29 @@ struct
      We also need to keep track of a counter to generate new labels. *)
   type hoistctx = { globals : (string * CPS.cglo) list ref,
                     ctr : int ref,
-                    foundworlds : (string * CPS.worldkind) list ref }
+                    foundworlds : (string * CPS.worldkind) list ref,
+                    already : string ValMap.map ref }
 
   fun new () = { globals = ref nil, 
                  ctr = ref 0,
-                 foundworlds = ref nil } : hoistctx
+                 foundworlds = ref nil,
+                 already = ref ValMap.empty } : hoistctx
+
+  fun existsglobal { globals, ctr, foundworlds, already } v =
+    ValMap.find(!already, v)
+  fun saveglobal ({ globals, ctr, foundworlds, already } : hoistctx) l v =
+    already := ValMap.insert (!already, v, l)
 
   (* PERF. we should be able to merge alpha-equivalent labels here,
      which would probably yield substantial $avings. *)
   (* XXX could derive it from a function name if it's a Lams? *)
-  fun nextlab { globals, ctr, foundworlds } () = 
+  fun nextlab { globals, ctr, foundworlds, already } () = 
     let in
       ctr := !ctr + 1; 
       "L_" ^ Int.toString (!ctr)
     end
 
-  fun insertat { globals, ctr, foundworlds } l arg =
+  fun insertat { globals, ctr, foundworlds, already } l arg =
       globals := (l, arg) :: !globals
 
   (* Take a global and return a label after inserting it in the global
@@ -78,7 +87,7 @@ struct
       l
     end
 
-  fun findworld { globals, ctr, foundworlds } (s : string, k : CPS.worldkind) =
+  fun findworld { globals, ctr, foundworlds, already } (s : string, k : CPS.worldkind) =
     case ListUtil.Alist.find op= (!foundworlds) s of
       NONE => foundworlds := (s, k) :: !foundworlds
     | SOME k' => if k = k' 
@@ -151,65 +160,83 @@ struct
          val () = print "\n"
          *)
 
-         (* recursive vars *)
-         val G = foldl (fn ((v, args, _), G) =>
-                        bindvar G v (Cont' ` map #2 args) ` worldfrom G) G vael
-
-         (* get the label where this code will eventually reside; 
-            we need to substitute the label for the recursive instances *)
-         val l = nextlab z ()
-
-         val vael =
-           map (fn (f, args, e) =>
-                let
-                  val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args
-                  val e = selfe z G e
-
-                  (* for each friend g, substitute through this body... *)
-                  fun subs (nil, _, e) = e
-                    | subs (g :: rest, i, e) =
-                    let
-                    in
-                      subs (rest, 
-                            i + 1,
-                            (* the label gives us some abstracted code, so we re-apply 
-                               it to our local type variables (no need for polymorphic
-                               recursion). But we want the individual function within 
-                               that code, so we project out the 'i'th component. *)
-                            subve (Fsel' (AllApp' { f = Codelab' l, 
-                                                    worlds = map W' w, 
-                                                    tys = map TVar' t, 
-                                                    vals = nil },
-                                          i)) g e)
-                    end
-                  val e = subs (map #1 vael, 0, e)
-                in
-                  (f, args, e)
-                end) vael
-
          (* type of the lambdas *)
          (* just use annotations *)
          val contsty = Conts' (map (fn (_, args, _) => map #2 args) vael)
+         val key = AllLam' { worlds = w, tys = t, vals = nil, body = value }
+      in
+        case existsglobal z key of
+          SOME l =>
+            let in
+              print ("global " ^ l ^ " reused for " ^ 
+                     StringUtil.delimit "/" (map (fn (v, _, _) =>
+                                                  V.tostring v) vael) ^
+                     "!!\n");
+              (AllApp' { f = Codelab' l, worlds = map W' w, 
+                         tys = map TVar' t, vals = nil },
+               contsty)
+            end
+        | NONE => 
+            (* then a new global. *)
+          let
+             (* recursive vars *)
+             val G = foldl (fn ((v, args, _), G) =>
+                            bindvar G v (Cont' ` map #2 args) ` worldfrom G) G vael
 
-         (* global thing and its type *)
-         val code = AllLam' { worlds = w, tys = t, vals = nil, body = Lams' vael }
-         val ty = AllArrow' { worlds = w, tys = t, vals = nil, body = contsty }
+             (* get the label where this code will eventually reside; 
+                we need to substitute the label for the recursive instances *)
+             val l = nextlab z ()
 
-         val glo =
-           (case world ` worldfrom G of
-              W wv => PolyCode' (wv, code, ty)
-            | WC l => Code' (code, ty, l))
+             val vael =
+               map (fn (f, args, e) =>
+                    let
+                      val G = foldr (fn ((v, t), G) => bindvar G v t ` worldfrom G) G args
+                      val e = selfe z G e
 
-         val () = insertat z l glo
+                      (* for each friend g, substitute through this body... *)
+                      fun subs (nil, _, e) = e
+                        | subs (g :: rest, i, e) =
+                        let
+                        in
+                          subs (rest, 
+                                i + 1,
+                                (* the label gives us some abstracted code, so we re-apply 
+                                   it to our local type variables (no need for polymorphic
+                                   recursion). But we want the individual function within 
+                                   that code, so we project out the 'i'th component. *)
+                                subve (Fsel' (AllApp' { f = Codelab' l, 
+                                                        worlds = map W' w, 
+                                                        tys = map TVar' t, 
+                                                        vals = nil },
+                                              i)) g e)
+                        end
+                      val e = subs (map #1 vael, 0, e)
+                    in
+                      (f, args, e)
+                    end) vael
 
-       in
-         print ("insert Lams at " ^ l ^ "\n");
-         (* in order to preserve the local type, we apply the label to the
-            world and type variables. If it is PolyCode, we don't need to apply
-            to that world, since it will be determined by context (like uvars are) *)
-         (AllApp' { f = Codelab' l, worlds = map W' w, tys = map TVar' t, vals = nil },
-          contsty)
-       end
+
+             (* global thing and its type *)
+             val code = AllLam' { worlds = w, tys = t, vals = nil, body = Lams' vael }
+             val ty = AllArrow' { worlds = w, tys = t, vals = nil, body = contsty }
+
+             val glo =
+               (case world ` worldfrom G of
+                  W wv => PolyCode' (wv, code, ty)
+                | WC l => Code' (code, ty, l))
+
+             val () = insertat z l glo
+
+           in
+             saveglobal z l key;
+             print ("insert Lams at " ^ l ^ "\n");
+             (* in order to preserve the local type, we apply the label to the
+                world and type variables. If it is PolyCode, we don't need to apply
+                to that world, since it will be determined by context (like uvars are) *)
+             (AllApp' { f = Codelab' l, worlds = map W' w, tys = map TVar' t, vals = nil },
+              contsty)
+           end
+      end
 
     (* purely static alllams are not converted. *)
     fun case_AllLam z sg (e as { vals = nil, ... }) = ID.case_AllLam z sg e

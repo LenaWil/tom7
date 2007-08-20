@@ -73,12 +73,12 @@ struct
     case value of
       Polyvar  { var, ... } =>
         let in
-          print ("base regvar " ^ Variable.tostring var ^ "\n");
+          dprint ("base regvar " ^ Variable.tostring var ^ "\n");
           (empty ++ var, value)
         end
     | Polyuvar { var, ... } => 
         let in
-          print ("base var " ^ Variable.tostring var ^ "\n");
+          dprint ("base var " ^ Variable.tostring var ^ "\n");
           (empty ++ var, value)
         end
     | Int _ => (empty, value)

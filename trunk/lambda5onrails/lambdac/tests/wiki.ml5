@@ -43,7 +43,22 @@ unit
                 then NoToken
                 else 
                   let
-                      fun anysize () = NoToken
+                      val start = !off
+                      fun eat () =
+                          if !off >= size s
+                          then substring(s, start, !off - start)
+                          else
+                              case ssub (s, !off) of
+                                  ?| => substring(s, start, !off - start)
+                                | ?] => substring(s, start, !off - start)
+                                | ?[ => substring(s, start, !off - start)
+                                | c => (off := (!off + 1); eat ())
+
+                      fun anysize () =
+                          case ssub (s, !off) of
+                            ?| => (off := !off + 1; Bar)
+                          | _ => String (eat ())
+
                   in
                       (* might be [[ or ]] *)
                       if !off < size s - 2
