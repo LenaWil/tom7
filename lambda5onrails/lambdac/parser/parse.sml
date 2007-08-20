@@ -487,7 +487,7 @@ struct
                                           call G exp) (`BAR))
                       wth (fn ((_, l), s) => 
                            let val v = namedstring "anonfn"
-                           in Let ((Fun [(nil, v, map flat3 s)], l), 
+                           in Let ((Fun { inline = false, funs = [(nil, v, map flat3 s)] }, l), 
                                    (Var v, l))
                            end),
                    call G constrainexp])
@@ -608,8 +608,11 @@ struct
                  `DATATYPE >> "expected DATATYPES after DATATYPE" **
                    alt [tyvars && datatypes wth Datatype,
                         datatypes wth (fn d => Datatype(nil, d))],
-                 `FUN >> "expected FUNS after FUN" **
-                   (call G funs wth Fun)])
+                 `FUN >> opt (`INLINE) && 
+                   call G funs wth (fn (inl, fs) => Fun { inline = Option.isSome inl,
+                                                           funs = fs }),
+                 `FUN -- punt "expected (INLINE) FUNS after FUN"
+                   ])
 
       fun export G =
         alt [`EXPORT >> `WORLD >> (id && opt (`EQUALS >> world)) wth ExportWorld,

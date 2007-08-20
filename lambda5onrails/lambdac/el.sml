@@ -98,8 +98,9 @@ struct
            |           f p1 p2 p3 : t2 = e2
          and g p1 p2 : t3 = e3
            | ... *)
-      | Fun of (string list * string * 
-                (pat list * typ option * exp) list) list
+      | Fun of { inline : bool,
+                 funs : (string list * string * 
+                         (pat list * typ option * exp) list) list }
 
       (* datatype (a, b, c) t = A of t | B of b | C of t1
          and                u = D of u | E of t *)

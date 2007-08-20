@@ -176,6 +176,7 @@ struct
        ("orelse", ORELSE),
        ("otherwise", OTHERWISE),
        ("primapp", PRIMAPP),
+       ("inline", INLINE),
        ("sig", SIG),
        ("signature", SIGNATURE),
        ("deriving", DERIVING),

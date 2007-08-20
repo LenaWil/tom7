@@ -670,6 +670,8 @@ struct
          end
      | Record svl => Product' ` ListUtil.mapsecond (vok G) svl
 
+     | Inline va => vok G va
+
      | Unroll va =>
          (case ctyp ` vok G va of
             Mu (n, vtl) => unroll (n, vtl)

@@ -633,8 +633,10 @@ struct
                        let
                            val fc = newstr "fc"
                        in
-                           (E.Let((E.Fun [(nil, fc, [([E.PVar x], NONE,
-                                                      buildf rest)])], loc),
+                         (* XXX inline? *)
+                           (E.Let((E.Fun { inline = false, 
+                                           funs = [(nil, fc, [([E.PVar x], NONE,
+                                                               buildf rest)])] }, loc),
                                   (E.Var fc, loc)),
                             loc)
                        end
@@ -1079,7 +1081,7 @@ struct
        use type (judgment) annotation
 
        XXX The same should be true of val decls that are generalizable. *)
-    | E.Fun bundle =>
+    | E.Fun { inline, funs = bundle } =>
           let
 
               val outer_context = ctx
@@ -1159,7 +1161,12 @@ struct
                       ({ name = vv,
                          arg = [x],
                          dom = [dom],
-                         inline = false,
+                         (* PERF only if requested by code (which generally should 
+                            only be done in compiler support code, like the
+                            implementation of plus). We should detect here some
+                            other functions that would benefit from inlining *)
+                         inline = inline,
+                         (* PERF detect actual recursiveness, totality *)
                          recu = true,
                          total = false,
                          cod = cod,

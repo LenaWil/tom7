@@ -231,6 +231,7 @@ struct
                     | _ => [% [$"v:", L.listex "" "" "," ` map vtol vals]])
                       )]
 
+         | Inline v => %[$"INLINE", vtol v]
          | Codelab s => $("___" ^ s)
                       
          | Dict tf => 

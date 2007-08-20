@@ -70,6 +70,7 @@ struct
     LAMS_ | FSEL_ | VINT_ of IL.intconst | VSTRING_ | PROJ_ | RECORD_ | HOLD_ | WPACK_ |
     TPACK_ | SHAM_ | INJ_ | ROLL_ | UNROLL_ | CODELAB_ | WDICTFOR_ | WDICT_ |
     DICTFOR_ | DICT_ | ALLLAM_ | ALLAPP_ | VLETA_ | VLETSHAM_ | VTUNPACK_ |
+    INLINE_ |
     (* globals *)
     POLYCODE_ | CODE_ |
 
@@ -300,6 +301,10 @@ struct
     | (VTUNPACK_, VTUNPACK_) => EQUAL
     | (VTUNPACK_, _) => LESS
     | (_, VTUNPACK_) => GREATER
+
+    | (INLINE_, INLINE_) => EQUAL
+    | (INLINE_, _) => LESS
+    | (_, INLINE_) => GREATER
 
     | (POLYCODE_, POLYCODE_) => EQUAL
     | (POLYCODE_, _) => LESS

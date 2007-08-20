@@ -194,6 +194,8 @@ struct
                           UV dv \\ 
                           (SS (map #2 vtl) //
                            BB (map (MV o #1) vtl, bod)))
+  fun Inline' v = $$INLINE_ // v
+
   (* slicker way to do this? *)
   fun Dict' tf = $$DICT_ //
     (case tf : (var * var, cval, var * var, cval) ctypfront of
@@ -273,6 +275,7 @@ struct
     | Roll of ctyp * 'cval
     | Unroll of 'cval
     | Codelab of string
+    | Inline of 'cval
     | Var of var
     | UVar of var
     | WDictfor of world
@@ -447,6 +450,7 @@ struct
     | $VLETSHAM_ / va / r => (case look r of
                                 UV v \ va' => VLetsham(v, va, va')
                               | _ => raise CPS "bad vletsham")
+    | $INLINE_ / va => Inline(hide va)
     | $WDICTFOR_ / w => WDictfor ` hide w
     | $WDICT_ / $(STRING_ s) => WDict s
     | $DICTFOR_ / t => Dictfor ` hide t

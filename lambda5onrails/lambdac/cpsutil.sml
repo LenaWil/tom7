@@ -92,6 +92,7 @@ struct
     | Roll (t, v) => Roll' (ft t, fv v)
     | Unroll v => Unroll' ` fv v
     | Codelab _ => value
+    | Inline v => Inline' ` fv v
     | Var _ => value
     | UVar _ => value
     | Proj (s, v) => Proj' (s, fv v)
@@ -150,6 +151,7 @@ struct
   fun freee v va = (occurse v va; false) handle Occurs => true
   fun freet v va = (occurst v va; false) handle Occurs => true
 
+(*
       (* Free variable set stuff *)
   structure VS = Variable.Set
   local 
@@ -264,6 +266,6 @@ struct
     val isufreeinv = isvfreeinv
     val isufreeine = isvfreeine
   end
-
+*)
 
 end
