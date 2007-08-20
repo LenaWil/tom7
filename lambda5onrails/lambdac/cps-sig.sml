@@ -150,7 +150,8 @@ use the constructors directly!
   val ctyp_cmp : ctyp * ctyp -> order
   val ctyp_eq  : ctyp * ctyp -> bool
   val cval_cmp : cval * cval -> order
-
+  val cglo_cmp : cglo * cglo -> order
+  val cexp_cmp : cexp * cexp -> order
 
   (* subXY = substitute X/v in Y producing Y; not all combinations make sense *)
   val subww : world -> var -> world -> world
