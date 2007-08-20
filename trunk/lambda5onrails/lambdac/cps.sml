@@ -588,6 +588,8 @@ struct
   val world_cmp = ast_cmp
   val ctyp_cmp = ast_cmp
   val cval_cmp = ast_cmp
+  val cglo_cmp = ast_cmp
+  val cexp_cmp = ast_cmp
 
   fun subww w v a = sub w (WV v) a
   val subwt = subww

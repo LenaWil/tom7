@@ -26,8 +26,8 @@ struct
   exception Hoist of string
   open CPS CPSUtil
   structure V = Variable
-  structure ValMap = SplayMapFn (type ord_key = CPS.cval
-                                 val compare = CPS.cval_cmp)
+  structure GloMap = SplayMapFn (type ord_key = CPS.cglo
+                                 val compare = CPS.cglo_cmp)
 
   structure T = CPSTypeCheck
   val bindvar = T.bindvar
@@ -53,17 +53,17 @@ struct
   type hoistctx = { globals : (string * CPS.cglo) list ref,
                     ctr : int ref,
                     foundworlds : (string * CPS.worldkind) list ref,
-                    already : string ValMap.map ref }
+                    already : string GloMap.map ref }
 
   fun new () = { globals = ref nil, 
                  ctr = ref 0,
                  foundworlds = ref nil,
-                 already = ref ValMap.empty } : hoistctx
+                 already = ref GloMap.empty } : hoistctx
 
   fun existsglobal { globals, ctr, foundworlds, already } v =
-    ValMap.find(!already, v)
+    GloMap.find(!already, v)
   fun saveglobal ({ globals, ctr, foundworlds, already } : hoistctx) l v =
-    already := ValMap.insert (!already, v, l)
+    already := GloMap.insert (!already, v, l)
 
   (* PERF. we should be able to merge alpha-equivalent labels here,
      which would probably yield substantial $avings. *)
@@ -168,9 +168,9 @@ struct
             if so, we can reuse it. We have to do this check before allocating
             a label and substituting it through, because labels don't alpha vary. *)
          val key = 
-           (case world ` worldfrom G of
-              W wv => Sham' (wv, key')
-            | WC _ => key')
+           case world ` worldfrom G of
+             W wv => PolyCode' (wv, key', contsty)
+           | WC s => Code' (key', contsty, s)
       in
         case existsglobal z key of
           SOME l =>
@@ -299,15 +299,25 @@ struct
                               body = lamty }
 
          val glo =
-           (case world ` worldfrom G of
-              W wv => PolyCode' (wv, code, ty)
-            | WC l => Code' (code, ty, l))
+           case world ` worldfrom G of
+             W wv => PolyCode' (wv, code, ty)
+           | WC l => Code' (code, ty, l)
 
-         val l = insert z glo
-
+         val l = 
+           case existsglobal z glo of
+             SOME l => 
+               let in
+                 print ("reuse alllam label " ^ l ^ "!\n");
+                 l
+               end
+           | NONE => 
+               let 
+                 val l = insert z glo
+               in
+                 print ("insert AllLam at " ^ l ^ "\n");
+                 l
+               end
        in
-         print ("insert AllLam at " ^ l ^ "\n");
-
          (AllApp' { f = Codelab' l, 
                     worlds = map W' w, 
                     tys = map TVar' t, 
