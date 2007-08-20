@@ -183,7 +183,7 @@ struct
            E.Bind (b, tyvars, p, e) => (E.Bind (b, tyvars, psubst s p, esubst s e), 
                                         pbinds p vv)
          | E.Do e => (E.Do (esubst s e), false)
-         | E.Fun l => 
+         | E.Fun { inline, funs = l } => 
                (* if any function is named the same as this variable,
                  do no substitution and return shadowed. *)
                if List.exists (fn (_, f, _) => f = vv) l then (d, true)
@@ -193,8 +193,9 @@ struct
                                                        ("", x)) pl)) vv 
                             then (map (psubst s) pl, to, e)
                             else (map (psubst s) pl, to, esubst s e)
-                    in (E.Fun (map (fn (tyvars, f, branches) => 
-                                    (tyvars, f, map dfs branches)) l), false)
+                    in (E.Fun { inline = inline,
+                                funs = (map (fn (tyvars, f, branches) => 
+                                             (tyvars, f, map dfs branches)) l) }, false)
                     end
          | E.Datatype (_, dl) =>
                (* datatypes have no expressions, 

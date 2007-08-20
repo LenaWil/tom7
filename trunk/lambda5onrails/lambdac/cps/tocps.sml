@@ -647,6 +647,8 @@ struct
            (* Each function now takes a new final parameter,
               the return continuation. *)
            let
+             val inline = List.all #inline fl
+
              val fl = map (fn { name, arg, dom, cod, body, inline, recu, total } =>
                            { name = name, arg = arg, dom = map (cvtt G) dom,
                              cod = cvtt G cod, body = body }) fl
@@ -681,7 +683,9 @@ struct
 
              val (lams, conts) = ListPair.unzip ` map onelam fl
            in
-             (Lams' lams,
+             (if inline
+              then Inline' ` Lams' lams
+              else Lams' lams,
               Conts' conts,
               worldfrom G)
            end

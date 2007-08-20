@@ -1,7 +1,8 @@
-unit
+       unit
     import "std.mlh"
 
     extern val alert : string -> unit @ home
+    extern val alerti : int -> unit  @ home = alert
 
     fun renderhtml s =
         let
@@ -21,21 +22,28 @@ unit
                       val start = !off
                       fun eat () =
                           if !off >= size s
-                          then (alert [eat end]; substring(s, start, !off - start))
+                          then (alert [eat end]; String(substring(s, start, !off - start)))
                           else
-                              case ssub (s, !off) of
-                                  ?| => substring(s, start, !off - start)
-                                | ?] => substring(s, start, !off - start)
-                                | ?[ => substring(s, start, !off - start)
-                                | c => (off := (!off + 1); eat ())
+                            let in
+                              alerti (!off);
 
-                      fun anysize () =
-                        let in
-                          alert [anysize];
-                          case ssub (s, !off) of
-                            ?| => (off := !off + 1; Bar)
-                          | _ => String (eat ())
-                        end
+                              case ssub (s, !off) of
+                                  (* if it is the first character, we behave
+                                     differently than if we see some letters
+                                     terminated by one of the special chars.
+                                     (note, we know the string does not start
+                                     with [[ or ]]) *)
+                                  ?| => (case !off - start of
+                                             0 => (off := !off + 1; Bar)
+                                         | len => String(substring(s, start, len)))
+                                | ?] => (case !off - start of
+                                             0 => (off := !off + 1; eat ())
+                                         | len => String(substring(s, start, len)))
+                                | ?[ => (case !off - start of
+                                             0 => (off := !off + 1; eat ())
+                                         | len => String(substring(s, start, len)))
+                                | c => (off := (!off + 1); eat ())
+                            end
 
                   in
                       alert [sizecheck];
@@ -44,14 +52,14 @@ unit
                       then 
                           let val next2 = substring(s, !off, 2)
                           in
-                              alert [next2check];
+                              alert [next2check '[next2]'];
                               if next2 seq "[["
-                              then OLink
+                              then (off := !off + 2; OLink)
                               else if next2 seq "]]"
-                                   then CLink
-                                   else anysize ()
+                                   then (off := !off + 2; CLink)
+                                   else eat ()
                           end
-                      else anysize ()
+                      else eat ()
                   end
 
             fun make () =
@@ -86,7 +94,7 @@ unit
         end : string @ home
 
         (* XXX infinite loop *)
-   do alert(renderhtml "cool [[link]] here")
+   do alert(renderhtml "a [[link]] yo")
 
 (*
    extern val alerti : char -> unit @ home = alert

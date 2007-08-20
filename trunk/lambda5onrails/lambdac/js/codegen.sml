@@ -186,7 +186,7 @@ struct
                    print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n";
                    print "JSCG: unimplemented val\n";
                    Layout.print (CPSPrint.vtol ` C.Dict' d, print);
-                   print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n";
+                   print "\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n";
 
                    s"unimplemented"
                  end
@@ -243,6 +243,8 @@ struct
                       k ` Id p)
                 end)
              end
+
+         | C.Inline va => cvtv va k
 
          | C.Fsel (va, i) =>
              (* just a pair of the global's label and the function id within the bundle *)

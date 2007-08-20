@@ -77,6 +77,8 @@ sig
     | Int of IL.intconst
     | String of string
     | Proj of string * 'cval
+    (* Does nothing, suggests inlining *)
+    | Inline of 'cval
     | Record of (string * 'cval) list
     | Hold of world * 'cval
     (* XXXWD dict *)
@@ -227,6 +229,7 @@ use the constructors directly!
   val VTUnpack' : var * var * (var * ctyp) list * cval * cval -> cval
   val Dict' : (var * var, cval, var * var, cval) ctypfront -> cval
   val WDict' : string -> cval
+  val Inline' : cval -> cval
 
   val PolyCode' : var * cval * ctyp -> cglo
   val Code' : cval * ctyp * string -> cglo

@@ -101,6 +101,7 @@ struct
          | _ => raise Pass "case on non-sum"
         end
 
+
   fun case_Native z ({selfe, selfv, selft}, G) { var = v, po, tys, args = l, bod = e } =
         let
           val tys = map (selft z G) tys
@@ -282,6 +283,13 @@ struct
 
   fun case_Int z ({selfe, selfv, selft}, G) i = (Int' i, Zerocon' INT)
   fun case_String z ({selfe, selfv, selft}, G) i = (String' i, Zerocon' STRING)
+
+  fun case_Inline z ({selfe, selfv, selft}, G) va =
+    let
+      val (va, tt) = selfv z G va
+    in
+      (Inline' va, tt)
+    end
 
   fun case_Record z ({selfe, selfv, selft}, G) lvl =
          let 
@@ -729,6 +737,7 @@ struct
       | Inj a => case_Inj z (s, G) a
       | Roll a => case_Roll z (s, G) a
       | Unroll a => case_Unroll z (s, G) a
+      | Inline a => case_Inline z (s, G) a
       | Codelab a => case_Codelab z (s, G) a
       | Var a => case_Var z (s, G) a
       | UVar a => case_UVar z (s, G) a

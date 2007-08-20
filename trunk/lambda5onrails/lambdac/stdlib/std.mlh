@@ -11,30 +11,30 @@ infix 3 >
 infix 3 >=
 infix 3 <>
 (* PERF should inline *)
-fun + (x, y) = primapp Plus { } (x, y)
-fun - (x, y) = primapp Minus { } (x, y)
-fun * (x, y) = primapp Times { } (x, y)
-fun < (x, y) = primapp Less { } (x, y)
-fun <=(x, y) = primapp Lesseq { } (x, y)
-fun > (x, y) = primapp Greater { } (x, y)
-fun >=(x, y) = primapp Greatereq { } (x, y)
-(* fun = (x, y) = primapp Eq { } (x, y) *)
-fun <>(x, y) = primapp Neq { } (x, y)
+fun inline + (x, y) = primapp Plus { } (x, y)
+fun inline - (x, y) = primapp Minus { } (x, y)
+fun inline * (x, y) = primapp Times { } (x, y)
+fun inline < (x, y) = primapp Less { } (x, y)
+fun inline <=(x, y) = primapp Lesseq { } (x, y)
+fun inline > (x, y) = primapp Greater { } (x, y)
+fun inline >=(x, y) = primapp Greatereq { } (x, y)
+(* fun inline = (x, y) = primapp Eq { } (x, y) *)
+fun inline <>(x, y) = primapp Neq { } (x, y)
 
 infix 5 ^
-fun ^(x, y) = [[x][y]]
+fun inline ^(x, y) = [[x][y]]
 
 infix 1 :=
-fun (t) :=(r, a) = primapp Set { t } (r, a)
-fun (t) ! r = primapp Get { t } (r)
-fun (t) ref a = primapp Ref { t } (a)
+fun inline (t) :=(r, a) = primapp Set { t } (r, a)
+fun inline (t) ! r = primapp Get { t } (r)
+fun inline (t) ref a = primapp Ref { t } (a)
 
 infix 3 seq
-fun seq (x, y) = primapp Eqs { } (x, y)
-fun size s = primapp StringLength { } (s)
+fun inline seq (x, y) = primapp Eqs { } (x, y)
+fun inline size s = primapp StringLength { } (s)
 (* XXX bounds on these two? They can fail at runtime, but safely... *)
-fun ssub (s, x) = primapp StringSub { } (s, x)
-fun substring (s, start, len) = primapp StringSubstring { } (s, start, len)
+fun inline ssub (s, x) = primapp StringSub { } (s, x)
+fun inline substring (s, start, len) = primapp StringSubstring { } (s, start, len)
 
 extern bytecode world server
 extern val home ~ home addr
@@ -44,6 +44,7 @@ datatype a option = NONE | SOME of a
 
 (* standard trick to turn a function into
    a real continuation. *)
+(* inline? it probably reduces, usually *)
 fun cont (f : unit -> unit) : unit cont =
     letcc ret
     in

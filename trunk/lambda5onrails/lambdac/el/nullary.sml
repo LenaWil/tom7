@@ -158,13 +158,15 @@ struct
 
            | Bind (b, sl, p, e) => (G, Bind (b, sl, pul G p, nul G e))
 
-           | Fun fl =>
+           | Fun { inline, funs = fl } =>
                  (G,
-                  Fun ` map (fn (sl, f, clauses) =>
-                             (sl, f, map
-                              (fn (pl, to, e) =>
-                               (map (pul G) pl, Option.map (tul G) to,
-                                nul G e)) clauses)) fl))
+                  Fun { inline = inline,
+                        funs =
+                           map (fn (sl, f, clauses) =>
+                                (sl, f, map
+                                 (fn (pl, to, e) =>
+                                  (map (pul G) pl, Option.map (tul G) to,
+                                   nul G e)) clauses)) fl }))
         end
 
     and xul G x =

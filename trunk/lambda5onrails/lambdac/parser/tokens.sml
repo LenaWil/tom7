@@ -82,6 +82,7 @@ struct
       | DATAFILE
 
       | PRIMAPP
+      | INLINE
 
       (* ML5-specific *)
       | EXTERN
@@ -178,5 +179,6 @@ struct
       | eq (BYTECODE, BYTECODE) = true
       | eq (SAY, SAY) = true
       | eq (PUT, PUT) = true
+      | eq (INLINE, INLINE) = true
       | eq _ = false
 end
