@@ -163,15 +163,13 @@ struct
             val () = print "\n* Typechecked OK *\n"
 
             (* sometimes undoes senseless closure conversions *)
-            val () = print "\n\n**** CPS EBETA ****\n";
-            val c : CPS.cexp = CPSEBeta.optimize c
-            val () = showcpsphase c
-            val () = T.check G c
-            val () = print "\n* Typechecked OK *\n"
+            val c = cpspass "EBETA" CPSEBeta.optimize G c
 
             val () = print "\n\n**** UNDICT: ****\n"
             val c : CPS.cexp = UnDict.undict cw c
             val () = showcpsphase c
+            val () = T.check G c
+            val () = print "\n* Typechecked OK *\n"
 
             (* make more phases use this, nicer.
 

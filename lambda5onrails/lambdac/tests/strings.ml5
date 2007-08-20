@@ -1,0 +1,99 @@
+unit
+    import "std.mlh"
+
+    extern val alert : string -> unit @ home
+
+    fun renderhtml s =
+        let
+            datatype tok =
+                NoToken
+              | String of string
+              | Bar
+              | OLink
+              | CLink
+
+            val off = ref 0
+            fun token () =
+                if !off >= size s
+                then NoToken
+                else 
+                  let
+                      val start = !off
+                      fun eat () =
+                          if !off >= size s
+                          then (alert [eat end]; substring(s, start, !off - start))
+                          else
+                              case ssub (s, !off) of
+                                  ?| => substring(s, start, !off - start)
+                                | ?] => substring(s, start, !off - start)
+                                | ?[ => substring(s, start, !off - start)
+                                | c => (off := (!off + 1); eat ())
+
+                      fun anysize () =
+                        let in
+                          alert [anysize];
+                          case ssub (s, !off) of
+                            ?| => (off := !off + 1; Bar)
+                          | _ => String (eat ())
+                        end
+
+                  in
+                      alert [sizecheck];
+                      (* might be [[ or ]] *)
+                      if !off < size s - 2
+                      then 
+                          let val next2 = substring(s, !off, 2)
+                          in
+                              alert [next2check];
+                              if next2 seq "[["
+                              then OLink
+                              else if next2 seq "]]"
+                                   then CLink
+                                   else anysize ()
+                          end
+                      else anysize ()
+                  end
+
+            fun make () =
+              let val t = token ()
+              in
+               alert [token];
+               (case t of
+                    String ss => [[ss][make ()]]
+                  | Bar => [|[make()]]
+                  | CLink => [["]]"][make ()]]
+                  | OLink => getlink ()
+                  | NoToken => [])
+              end
+
+            and getlink () =
+                let 
+                    fun target () =
+                        (case token () of
+                             String ss => [[ss][target ()]]
+                           | Bar => [XXX unimplemented barlink]
+                           | CLink => []
+                           | NoToken => [*unclosed link*]
+                           | OLink => [*link within link*])
+                    val () = alert "getlink"
+                    val t = target ()
+                in
+                    [<a href="[t]">[t]</a>[make ()]]
+                end
+        in
+            alert [renderhtml];
+            make ()
+        end : string @ home
+
+        (* XXX infinite loop *)
+   do alert(renderhtml "cool [[link]] here")
+
+(*
+   extern val alerti : char -> unit @ home = alert
+
+   do (case ssub ([asdf], 0) of
+           ?a => alert "correct"
+         | c => alerti c)
+*)
+in
+end

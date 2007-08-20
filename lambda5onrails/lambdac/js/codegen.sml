@@ -183,8 +183,10 @@ struct
 
                  | cd _ d = 
                  let in
+                   print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n";
                    print "JSCG: unimplemented val\n";
                    Layout.print (CPSPrint.vtol ` C.Dict' d, print);
+                   print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n";
 
                    s"unimplemented"
                  end
@@ -373,6 +375,18 @@ struct
                 | P.PGreatereq => boo B.GreaterThanEqual)
         end
         | primexp (P.B _) _ = raise JSCodegen "wrong number of args to binary native primop"
+        | primexp P.PStringSubstring [s, start, len] = 
+
+
+        (* string operations *)
+        (* substr is start/length, substring is start/end *)
+        Call { func = Sel s "substr",
+               args = %[start, len] }
+        | primexp P.PStringSub [s, off] =
+        Call { func = Sel s "charCodeAt",
+               args = %[off] }
+        (* length is a magic builtin property *)
+        | primexp P.PStringLength [s] = Sel s "length"
         | primexp (P.PJointext 0) nil = String ` String.fromString ""
         | primexp (P.PJointext 1) [s] = s
         | primexp (P.PJointext n) (first :: rest) =
@@ -381,12 +395,10 @@ struct
                                                  oper = B.Add (* is also string concat, sigh *) }) 
                    first rest
         | primexp (P.PJointext _) _ = raise JSCodegen "jointext argument length mismatch"
-
-        (* string operations *)
-        (* length is a magic builtin property *)
-        | primexp P.PStringLength [s] = Sel s "length"
-(*      | primexp P.PStringSubstring [s, start, len] = *)
-                   
+        | primexp P.PEqs [s1, s2] = 
+                   Cond { test  = Binary {lhs = s1, rhs = s2, oper = B.StrictEquals},
+                          thenn = jstrue,
+                          elsee = jsfalse }
 
         (* references *)
         | primexp P.PRef [init] = Object ` %[prop "v" init]

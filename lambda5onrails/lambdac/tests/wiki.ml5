@@ -73,8 +73,31 @@ unit
                           end
                       else anysize ()
                   end
+
+            fun make () =
+               (case token () of
+                    String ss => [[ss][make ()]]
+                  | Bar => [|[make()]]
+                  | CLink => [["]]"][make ()]]
+                  | OLink => getlink ()
+                  | NoToken => [])
+
+            and getlink () =
+                let 
+                    fun target () =
+                        (case token () of
+                             String ss => [[ss][target ()]]
+                           | Bar => [XXX unimplemented barlink]
+                           | CLink => []
+                           | NoToken => [*unclosed link*]
+                           | OLink => [*link within link*])
+                    val t = target ()
+                in
+                    [<a href="[t]">[t]</a>[make ()]]
+                end
         in
-            s
+            (* alert [renderhtml]; *)
+            make ()
         end (* : string @ home *)
 
     (* renders the current value of the edit box. *)
@@ -87,7 +110,8 @@ unit
         end
 
     (* PERF round trips for every keyup is a little bit much? *)
-    fun source-keyup () =
+    fun source-keyup () =()
+(*
         let 
             put article  = !articlename
             put contents = dom.getstring(dom.getbyid id.source, [value])
@@ -96,11 +120,12 @@ unit
             (* render () *)
             ()
         end
-
+*)
+(*
     fun every-second () =
         (* XXX only if changed... *)
         render ()
-
+*)
     do dom.setstring 
         (dom.getbyid [page],
          [innerHTML],
@@ -129,6 +154,7 @@ unit
 
           <div id="[id.rendered]" class="rendered">rendered contents</div> <br />
           <textarea id="[id.source]" onkeyup="[say source-keyup ()]" class="source">the source code</textarea>
+          <br /><div class="button" onclick="[say render ()]">render</div>
 
           <div class="copyright">This is not a Copyright notice.</div>
           </div> <!-- content -->
@@ -157,7 +183,7 @@ unit
     (* do dom.setstring(dom.getbyid id.source, [onchange], say render()) *)
 
 
-    do js.setinterval (say every-second (), 1000)
+(*    do js.setinterval (say every-second (), 1000) *)
 
 (*
     put k = [tdb-test]
