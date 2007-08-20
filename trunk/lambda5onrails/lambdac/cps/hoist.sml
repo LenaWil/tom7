@@ -163,7 +163,14 @@ struct
          (* type of the lambdas *)
          (* just use annotations *)
          val contsty = Conts' (map (fn (_, args, _) => map #2 args) vael)
-         val key = AllLam' { worlds = w, tys = t, vals = nil, body = value }
+         val key' = AllLam' { worlds = w, tys = t, vals = nil, body = value }
+         (* we use this key to see if we've already inserted this global before.
+            if so, we can reuse it. We have to do this check before allocating
+            a label and substituting it through, because labels don't alpha vary. *)
+         val key = 
+           (case world ` worldfrom G of
+              W wv => Sham' (wv, key')
+            | WC _ => key')
       in
         case existsglobal z key of
           SOME l =>
