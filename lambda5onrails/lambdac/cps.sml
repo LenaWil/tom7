@@ -1,5 +1,5 @@
 
-structure CPS : CPS =
+structure CPS :> CPS =
 struct
   
   structure V = Variable
@@ -587,6 +587,7 @@ struct
 
   val world_cmp = ast_cmp
   val ctyp_cmp = ast_cmp
+  val cval_cmp = ast_cmp
 
   fun subww w v a = sub w (WV v) a
   val subwt = subww

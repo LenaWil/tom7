@@ -2,11 +2,11 @@
 structure Compile :> COMPILE =
 struct
 
-    val showil = Params.flag false
+    val showil = Params.flag true
         (SOME ("-showil",
                "Show internal language AST")) "showil"
 
-    val showcps = Params.flag false
+    val showcps = Params.flag true
         (SOME ("-showcps",
                "Show internal CPS after each phase")) "showcps"
 
@@ -182,9 +182,6 @@ struct
             val c = cpspass "DEAD" CPSDead.optimize G c
             val c = cpspass "KNOWN" CPSKnown.optimize G c
             val c = cpspass "DEAD" CPSDead.optimize G c
-
-            val () = T.check G c
-            val () = print "\n* Typechecked OK *\n"
 
             val () = print "\n\n**** HOIST: ****\n"
             val p : CPS.program = Hoist.hoist cw Initial.homekind c

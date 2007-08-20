@@ -1,15 +1,15 @@
 
 val provide-std = ()
 
-infix +
-infix -
-infix *
-infix <=
-infix <
+infix 5 +
+infix 5 -
+infix 8 *
+infix 3 <=
+infix 3 <
 (* infix = special case *)
-infix >
-infix >=
-infix <>
+infix 3 >
+infix 3 >=
+infix 3 <>
 (* PERF should inline *)
 fun + (x, y) = primapp Plus { } (x, y)
 fun - (x, y) = primapp Minus { } (x, y)
@@ -21,15 +21,15 @@ fun >=(x, y) = primapp Greatereq { } (x, y)
 (* fun = (x, y) = primapp Eq { } (x, y) *)
 fun <>(x, y) = primapp Neq { } (x, y)
 
-infix ^
+infix 5 ^
 fun ^(x, y) = [[x][y]]
 
-infix :=
+infix 1 :=
 fun (t) :=(r, a) = primapp Set { t } (r, a)
 fun (t) ! r = primapp Get { t } (r)
 fun (t) ref a = primapp Ref { t } (a)
 
-infix seq
+infix 3 seq
 fun seq (x, y) = primapp Eqs { } (x, y)
 fun size s = primapp StringLength { } (s)
 (* XXX bounds on these two? They can fail at runtime, but safely... *)
