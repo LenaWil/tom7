@@ -1,8 +1,9 @@
 unit
+  (* test that duplicate labels are merged in hoisting.
+     this works for valid labels too: *)
 
-  (* PERF This does not work if they are valid! *)
-  fun f (x : int, y : int) = (y, x) : int * int @ home
-  fun g (x : int, y : int) = (y, x) : int * int @ home
+  fun f (x : int, y : int) = (y, x) : int * int
+  fun g (x : int, y : int) = (y, x) : int * int
 
   do primapp Ref { ((int * int) -> (int * int)) *
                    ((int * int) -> (int * int)) } ( (f, g) )
