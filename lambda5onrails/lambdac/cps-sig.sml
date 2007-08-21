@@ -168,6 +168,9 @@ use the constructors directly!
   val subvv : cval -> var -> cval -> cval
   val subve : cval -> var -> cexp -> cexp
 
+  val subuv : cval -> var -> cval -> cval
+  val subue : cval -> var -> cexp -> cexp
+
   (* injective constructors *)
   val At' : ctyp * world -> ctyp
   val Cont' : ctyp list -> ctyp
@@ -260,11 +263,20 @@ use the constructors directly!
   val Zerocon' : primcon -> ctyp
   val EProj' : var * string * cval * cexp -> cexp
 
+  val iswfreeinv : var -> cval -> bool
+  val iswfreeint : var -> ctyp -> bool
+  val iswfreeinw : var -> world -> bool
 
   val isvfreeinv : var -> cval -> bool
   val isvfreeine : var -> cexp -> bool
   val isufreeinv : var -> cval -> bool
   val isufreeine : var -> cexp -> bool
+
+  (* number of occurrences. *)
+  val countvinv : var -> cval -> int
+  val countvine : var -> cexp -> int
+  val countuinv : var -> cval -> int
+  val countuine : var -> cexp -> int
 
   (* set of free regular vars, valid vars *)
   val freevarsv : cval -> Variable.Set.set * Variable.Set.set

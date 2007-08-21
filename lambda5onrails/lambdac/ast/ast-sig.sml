@@ -60,6 +60,7 @@ sig
      these are constant time. *)
   val freevars : ast -> int VM.map
   val isfree   : ast -> var -> bool
+  val count    : ast -> var -> int    
 
   (* injective constructors *)
   val $$ : leaf -> ast

@@ -88,6 +88,11 @@ struct
       NONE => false
     | SOME x => true
 
+  fun count ast v =
+    (case VM.find(freevars ast, v) of
+       NONE => 0
+     | SOME n => n)
+
   (* PERF should delay substitutions and renamings. *)
   fun rename nil ast = ast
     | rename ((v,v') :: t) ast =
@@ -107,7 +112,7 @@ struct
         (* we know the variable occurs, so the map will include all of obj's
            free vars. *)
         val m = remove v (force m)
-        val m = sum [force mobj, m] (* XXX not sum. for each occurrence of v
+        val m = sum [force mobj, m] (* FIXME not sum. for each occurrence of v
                                        we get all the occurrences in obj. *)
         val m = fn () => m
       in
