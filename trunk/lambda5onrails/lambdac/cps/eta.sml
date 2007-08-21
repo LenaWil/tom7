@@ -59,7 +59,7 @@ struct
        | _ => don't ()
     end
 
-  fun optimize e =
+  fun optimize _ e =
     let 
       fun go e =
         let val e = etae e

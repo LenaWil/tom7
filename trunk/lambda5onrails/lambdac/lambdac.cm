@@ -168,6 +168,8 @@ cps/tocps.sml
 (* simple syntactic transformations *)
 cps/eta-sig.sml
 cps/eta.sml
+cps/uninline-sig.sml
+cps/uninline.sml
 cps/ebeta-sig.sml
 cps/ebeta.sml
 cps/dead-sig.sml
