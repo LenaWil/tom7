@@ -79,33 +79,30 @@ struct
             selfv z G body
           end
       | _ => ID.case_AllApp z s a
-(*
-      let
-        val (f, t) = selfv z G f
-      in
-        case ctyp t of
-          AllArrow { worlds = ww, tys = tt, vals = vv, body = bb } =>
-            let
-              (* discard types; we'll use the annotations *)
-              val vals = map #1 ` map (selfv z G) vals
-              val tys = map (selft z G) tys
-              val () = if length ww = length worlds andalso length tt = length tys
-                       then () 
-                       else raise Pass "allapp to wrong number of worlds/tys"
-              val wl = ListPair.zip (ww, worlds)
-              val tl = ListPair.zip (tt, tys)
-              fun subt t =
-                let val t = foldr (fn ((tv, ta), t) => subtt ta tv t) t tl
-                in foldr (fn ((wv, w), t) => subwt w wv t) t wl
-                end
-              
-            in
-              (AllApp' { f = f, worlds = worlds, tys = tys, vals = vals },
-               subt bb)
-            end
-        | _ => raise Reduce "allapp to non-allarrow"
-      end
-*)
+
+    fun case_Call z (s as ({selfe, selfv, selft}, G))  (a as (f, actualargs)) =
+      case cval f of
+        Fsel (f, n) =>
+          (case cval f of
+             Lams l =>
+               let
+                 val (vrec, args, body) = List.nth (l, n) handle _ => raise Reduce "fsel out of bounds"
+               in
+                 (* refuse if recursive. *)
+                 if isvfreeine vrec body
+                 then ID.case_Call z s a
+                 else
+                   let
+                     val body = ListPair.foldr (fn (arg, (v, t), body) =>
+                                                subve arg v body) body (actualargs, args)
+                   in
+                     score ("CALL " ^ V.tostring vrec) 100;
+                     selfe z G body
+                   end
+               end
+      | _ => ID.case_Call z s a)
+      | _ => ID.case_Call z s a
+
   end
     
   structure K = PassFn(IA)
@@ -118,7 +115,7 @@ struct
         let val e = inline G e
         in
           if !total > 0
-          then (print ("Did " ^ Int.toString (!total) ^ " units of INLINE optimization.\n");
+          then (print ("Did " ^ Int.toString (!total) ^ " units of REDUCE optimization.\n");
                 reset ();
                 go e)
           else e
