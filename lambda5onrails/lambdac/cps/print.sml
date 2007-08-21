@@ -115,6 +115,9 @@ struct
                ) handle Match => $"XXX_MATCH-TYP_XXX"
       (* $"CPS:unknown typ" *)
 
+  (* for string printing *)
+  val okchar = StringUtil.charspec "-0-9A-Za-z!@$%^&*()_+=`~\"'[]{}|:;,./<>? " (* " *)
+
   fun ttol t = tftol varl ttol varl wtol (ctyp t) 
 
   fun vtol v =
@@ -166,7 +169,8 @@ struct
                  L.indent 3 ` vtol ve]
 
          | Int i => $(IntConst.tostring i)
-         | String s => $("\"" ^ String.toString s ^ "\"")
+         | String s => $("\"" ^ StringUtil.harden okchar #"#" 100 s ^ 
+                         (if size s > 100 then "..." else "") ^ "\"")
          | Record svl => 
                 recordortuple vtol "=" "(" ")" "," svl
                 (* L.listex "{" "}" "," ` map (fn (s, v) => %[$s, $"=", vtol v]) svl *)

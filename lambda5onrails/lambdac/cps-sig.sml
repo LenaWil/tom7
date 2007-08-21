@@ -130,30 +130,20 @@ sig
                    (* The entry point for the program. *)
                    main : string }
 
-  (* projections and injections *)
-  val ctyp : ctyp -> (var, ctyp, var, world) ctypfront
-  val cexp : cexp -> (cexp, cval) cexpfront
-  val cval : cval -> (cexp, cval) cvalfront
-  val cglo : cglo -> (cexp, cval) cglofront
-
-  val world  : world -> worldfront
-
-(*
-use the constructors directly!
-  val world' : worldfront -> world
-  val ctyp' : (var, ctyp, var, world) ctypfront -> ctyp
-  val cexp' : (cexp, cval) cexpfront -> cexp
-  val cval' : (cexp, cval) cvalfront -> cval
-  val cglo' : (cexp, cval) cglofront -> cglo
-*)
+  (* projections *)
+  val ctyp  : ctyp -> (var, ctyp, var, world) ctypfront
+  val cexp  : cexp -> (cexp, cval) cexpfront
+  val cval  : cval -> (cexp, cval) cvalfront
+  val cglo  : cglo -> (cexp, cval) cglofront
+  val world : world -> worldfront
 
   val world_cmp : world * world -> order
-  val world_eq : world * world -> bool
-  val ctyp_cmp : ctyp * ctyp -> order
-  val ctyp_eq  : ctyp * ctyp -> bool
-  val cval_cmp : cval * cval -> order
-  val cglo_cmp : cglo * cglo -> order
-  val cexp_cmp : cexp * cexp -> order
+  val world_eq  : world * world -> bool
+  val ctyp_cmp  : ctyp * ctyp -> order
+  val ctyp_eq   : ctyp * ctyp -> bool
+  val cval_cmp  : cval * cval -> order
+  val cglo_cmp  : cglo * cglo -> order
+  val cexp_cmp  : cexp * cexp -> order
 
   (* subXY = substitute X/v in Y producing Y; not all combinations make sense *)
   val subww : world -> var -> world -> world
@@ -248,15 +238,6 @@ use the constructors directly!
   val Marshal' : var * cval * cval * cexp -> cexp
   val Say' : var * cval * cexp -> cexp
   val Say_cc' : var * cval * cexp -> cexp
-
-(* very obsolete
-  val WAll' : var * ctyp -> ctyp
-  val TAll' : var * ctyp -> ctyp
-  val WApp' : cval * world -> cval
-  val TApp' : cval * ctyp -> cval
-  val WLam' : var * cval -> cval
-  val TLam' : var * cval -> cval
-*)
 
   val Lam'  : var * (var * ctyp) list * cexp -> cval
   val Sham0' : cval -> cval
