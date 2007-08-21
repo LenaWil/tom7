@@ -131,15 +131,12 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
+            (* do inlining and then remove inline annotations *)
             val c = cpspass "INLINE" CPSInline.optimize G c
+            val c = cpspass "UNINLINE" CPSUninline.optimize G c
 
             (* undoes some CPS conversion waste *)
-            val () = print "\n\n**** CPS ETA: ****\n"
-            val c : CPS.cexp = CPSEta.optimize c
-            val () = showcpsphase c
-
-            val () = T.check G c
-            val () = print "\n* Typechecked OK *\n"
+            val c = cpspass "ETA" CPSEta.optimize G c
 
             (* reduce the amount of code as much as possible... *)
             val c = cpspass "DEAD" CPSDead.optimize G c
@@ -208,6 +205,7 @@ struct
          | CPS.CPS s => fail ("Internal error in CPS:\n" ^ s)
          | CPSEta.Eta s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
          | CPSInline.Inline s => fail ("Internal error: CPS Inlining failed:\n" ^ s)
+         | CPSUninline.Uninline s => fail ("Internal error: CPS Uninlining failed:\n" ^ s)
          | CPSTypeCheck.TypeCheck s => fail ("Internal error: Type checking failed:\n" ^ s)
          | Closure.Closure s => fail ("Closure conversion: " ^ s)
          | Codegen.Codegen s => fail ("Code generation: " ^ s)
