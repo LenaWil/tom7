@@ -614,6 +614,13 @@ struct
   val subte = subtt
   fun subvv m v a = sub m (MV v) a
   val subve = subvv
+  fun subuv u v a = sub u (UV v) a
+  val subue = subuv
+
+  fun iswfreeinv w ast = isfree ast (WV w)
+  val iswfreeine = iswfreeinv
+  val iswfreeint = iswfreeinv
+  val iswfreeinw = iswfreeinv
 
   fun isvfreeinv v ast = isfree ast (MV v)
   val isvfreeine = isvfreeinv
@@ -647,8 +654,15 @@ struct
   val freesvarsv = freesvarst
   val freesvarsw = freesvarst
 
+  fun countvinv v va = count va (MV v)
+  val countvine = countvinv
+  fun countuinv v va = count va (UV v)
+  val countuine = countuinv
+
   (* PERF could be more efficient. would be especially worth it for type_eq, which
-     we use all over the place. *)
+     we use all over the place.
+
+     (really? with what, hash consing?) *)
   fun ctyp_eq p = ctyp_cmp p = EQUAL
   fun world_eq p = world_cmp p = EQUAL
 

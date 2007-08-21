@@ -131,6 +131,8 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
+            val c = cpspass "INLINE" CPSInline.optimize G c
+
             (* undoes some CPS conversion waste *)
             val () = print "\n\n**** CPS ETA: ****\n"
             val c : CPS.cexp = CPSEta.optimize c
@@ -205,6 +207,7 @@ struct
          | BytePrint.BytePrint s => fail("Bytecode print: " ^ s)
          | CPS.CPS s => fail ("Internal error in CPS:\n" ^ s)
          | CPSEta.Eta s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
+         | CPSInline.Inline s => fail ("Internal error: CPS Inlining failed:\n" ^ s)
          | CPSTypeCheck.TypeCheck s => fail ("Internal error: Type checking failed:\n" ^ s)
          | Closure.Closure s => fail ("Closure conversion: " ^ s)
          | Codegen.Codegen s => fail ("Code generation: " ^ s)

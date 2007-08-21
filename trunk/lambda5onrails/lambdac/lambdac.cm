@@ -176,6 +176,9 @@ cps/dead.sml
 cps/pass-sig.sml
 cps/pass.sml
 
+cps/inline-sig.sml
+cps/inline.sml
+
 cps/dict-sig.sml
 cps/dict.sml
 
