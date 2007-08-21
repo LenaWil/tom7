@@ -180,6 +180,8 @@ cps/pass.sml
 
 cps/inline-sig.sml
 cps/inline.sml
+cps/reduce-sig.sml
+cps/reduce.sml
 
 cps/dict-sig.sml
 cps/dict.sml

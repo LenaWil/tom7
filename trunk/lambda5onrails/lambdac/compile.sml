@@ -134,6 +134,7 @@ struct
             (* do inlining and then remove inline annotations *)
             val c = cpspass "INLINE" CPSInline.optimize G c
             val c = cpspass "UNINLINE" CPSUninline.optimize G c
+            val c = cpspass "REDUCE" CPSReduce.optimize G c
 
             (* undoes some CPS conversion waste *)
             val c = cpspass "ETA" CPSEta.optimize G c
