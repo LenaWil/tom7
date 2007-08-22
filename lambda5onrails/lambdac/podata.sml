@@ -7,7 +7,7 @@ struct
   (* base types that describe arguments to and return values from primops *)
   datatype potype =
     PT_INT | PT_CHAR | PT_STRING | PT_REF of potype | PT_UNITCONT | PT_BOOL | PT_VAR of Variable.var
-  | PT_UNIT
+  | PT_UNIT | PT_ARRAY of potype
 
   local open Primop
         fun mono (dom, cod) = { worlds = nil, tys = nil, dom = dom, cod = cod }
@@ -32,6 +32,27 @@ struct
           mono ([PT_STRING, PT_INT, PT_INT], PT_STRING)
       | potype PStringLength =
           mono ([PT_STRING], PT_INT)
+
+      | potype PUpdate = 
+          let val a = Variable.namedvar "a"
+          in { worlds = nil, tys = [a], dom = [PT_ARRAY (PT_VAR a), PT_INT, PT_VAR a], 
+               cod = PT_UNIT }
+          end
+      | potype PSub = 
+          let val a = Variable.namedvar "a"
+          in { worlds = nil, tys = [a], dom = [PT_ARRAY (PT_VAR a), PT_INT], 
+               cod = PT_VAR a }
+          end
+      | potype PArraylength = 
+          let val a = Variable.namedvar "a"
+          in { worlds = nil, tys = [a], dom = [PT_ARRAY (PT_VAR a)], 
+               cod = PT_INT }
+          end
+      | potype PArray = 
+          let val a = Variable.namedvar "a"
+          in { worlds = nil, tys = [a], dom = [PT_INT, PT_VAR a],
+               cod = PT_ARRAY (PT_VAR a) }
+          end
 
       | potype PSet = 
           let val a = Variable.namedvar "a"

@@ -4,10 +4,17 @@ val require-std = provide-std
 exception List
 exception UnequalLengths
 
+(*
 fun @ (h::t, l2) = h :: @(t, l2)
   | @ (nil, l2) = l2
 
 infixr @
+*)
+
+(*
+fun list-concat nil = nil
+  | list-concat (l::t) = l @ list-concat t
+*)
 
 fun list-eq _ (nil, nil) = true
   | list-eq f (a :: at, b :: bt) = 
@@ -18,42 +25,38 @@ fun list-eq _ (nil, nil) = true
 
 fun list-map f =
     let
-	fun m nil = nil
-	  | m (h::t) = f h :: m t
+        fun m nil = nil
+          | m (h::t) = f h :: m t
     in
-	m
+        m
     end
 
 
 fun list-mapi f l =
     let
-	fun m (_, nil) = nil
-	  | m (i, h :: t) = 
-	    f (h, i) :: m (i + 1, t)
+        fun m (_, nil) = nil
+          | m (i, h :: t) = 
+            f (h, i) :: m (i + 1, t)
     in
-	m (0, l)
+        m (0, l)
     end
 
 fun list-app f =
     let
-	fun a nil = ()
-	  | a (h::t) = (f h; a t)
+        fun a nil = ()
+          | a (h::t) = (f h; a t)
     in
-	a
+        a
     end
 
 fun list-appi f l =
     let
-	fun m (_, nil) = ()
-	  | m (i, h :: t) = 
-	    (f (h, i); m (i + 1, t))
+        fun m (_, nil) = ()
+          | m (i, h :: t) = 
+            (f (h, i); m (i + 1, t))
     in
-	m (0, l)
+        m (0, l)
     end
-
-
-fun list-concat nil = nil
-  | list-concat (l::t) = l @ list-concat t
 
 fun list-rev l =
     let
@@ -81,6 +84,7 @@ fun list-nth _ nil = raise List
   | list-nth n (_ :: t) = list-nth (n - 1) t
 
 (* PERF should be optimized to do less consing. (split mainly) *)
+(* XXX fails because "redundant match" in merge
 fun list-sort cmp l =
     let
         fun split l =
@@ -106,17 +110,18 @@ fun list-sort cmp l =
             end
     in ms l
     end
+*)
 
 (* partition into (trues, falses) *)
 fun list-partition f l =
     let
-	fun pa (ta, fa, nil) = (list-rev ta, list-rev fa)
-	  | pa (ta, fa, h :: t) =
-	    if f h
-	    then pa (h :: ta, fa, t)
-	    else pa (ta, h :: fa, t)
+        fun pa (ta, fa, nil) = (list-rev ta, list-rev fa)
+          | pa (ta, fa, h :: t) =
+            if f h
+            then pa (h :: ta, fa, t)
+            else pa (ta, h :: fa, t)
     in
-	pa (nil, nil, l)
+        pa (nil, nil, l)
     end
 
 fun list-find _ nil = NONE
@@ -142,6 +147,7 @@ fun list-length l =
 fun list-head (h :: t) = h
   | list-head nil = raise List
 
+(*
 fun list-toarray nil = array0()
   | list-toarray l = 
   let
@@ -152,13 +158,14 @@ fun list-toarray nil = array0()
                   update(a, i, x)) l;
     a
   end
+*)
 
 fun list-take (xs, i) =
     let fun lt (xs, 0) = nil
-          | lt (nil, i) = raise Subscript
+          | lt (nil, i) = raise List
           | lt (x::xs, i) = x :: (list-take (xs, i - 1))
     in
-      if i < 0 then raise Subscript else lt (xs, i)
+      if i < 0 then raise List else lt (xs, i)
     end
 
 fun list-last nil = raise List
@@ -170,10 +177,10 @@ fun list-foldl f b nil = b
 
 fun list-foldr f b l =
     let
-	fun fr nil = b
-	  | fr (h :: t) = f(h, fr t)
+        fun fr nil = b
+          | fr (h :: t) = f(h, fr t)
     in
-	fr l
+        fr l
     end
 
 
@@ -183,29 +190,29 @@ fun list-subset f nil xs2 = true
 
 fun list-zip (l1, l2) =
     let 
-	fun f (x1::l1, x2::l2, acc) = f (l1, l2, (x1, x2)::acc)
-	  | f (nil, _, acc) = acc
-	  | f (_, nil, acc) = acc
+        fun f (x1::l1, x2::l2, acc) = f (l1, l2, (x1, x2)::acc)
+          | f (nil, _, acc) = acc
+          | f (_, nil, acc) = acc
     in
       f (l1, l2, nil)
     end
 
 fun list-zipEq (l1, l2) =
     let fun f (x1::l1, x2::l2, acc) = f (l1, l2, (x1, x2)::acc)
-	  | f (nil, nil, acc) = acc
-	  | f _ = raise UnequalLengths
+          | f (nil, nil, acc) = acc
+          | f _ = raise UnequalLengths
     in
       f (l1, l2, nil)
     end
 
 fun list-alist-find eq a l =
     let
-	fun f nil = NONE
-	  | f ((a', x) :: rest) = 
-	    if eq(a, a') then SOME x
-	    else f rest
+        fun f nil = NONE
+          | f ((a', x) :: rest) = 
+            if eq(a, a') then SOME x
+            else f rest
     in
-	f l
+        f l
     end
 
 fun list-lex-list-order oi (nil, nil) = EQUAL

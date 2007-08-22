@@ -36,11 +36,21 @@ fun inline size s = primapp StringLength { } (s)
 fun inline ssub (s, x) = primapp StringSub { } (s, x)
 fun inline substring (s, start, len) = primapp StringSubstring { } (s, start, len)
 
+(* fun inline array0 .. ? *)
+fun inline (t) array (length, a : t) = primapp Array { t } (length, a)
+fun inline (t) sub (arr, x) = primapp Sub { t } (arr, x)
+fun inline (t) update (arr, x, a) = primapp Update { t } (arr, x, a)
+fun inline (t) length arr = primapp Arraylength { t } (arr)
+
 extern bytecode world server
 extern val home ~ home addr
 extern val server ~ server addr
 
 datatype a option = NONE | SOME of a
+datatype order = EQUAL | LESS | GREATER
+
+datatype a list = nil | :: of a * list
+infixr ::
 
 (* standard trick to turn a function into
    a real continuation. *)
@@ -84,7 +94,6 @@ val () =
     end
 
 datatype (a, b) sum = LEFT of a | RIGHT of b
-datatype a option = SOME of a | NONE
 
 fun ignore _ = ()
 
@@ -93,8 +102,6 @@ fun option-map f (SOME x) = SOME (f x)
 
 fun isSome (SOME _) = true
   | isSome NONE = false
-
-datatype order = LESS | GREATER | EQUAL
 
 fun order-equals (LESS, LESS) = true
   | order-equals (GREATER, GREATER) = true

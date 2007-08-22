@@ -100,6 +100,7 @@ struct
         | ptoil PT_BOOL = Initial.ilbool
         | ptoil (PT_VAR v) = IL.TVar v
         | ptoil (PT_REF p) = IL.TRef ` ptoil p
+        | ptoil (PT_ARRAY p) = IL.TVec ` ptoil p
         | ptoil PT_UNIT = IL.TRec nil
         | ptoil PT_CHAR = Initial.ilchar
         | ptoil PT_UNITCONT = raise Elaborate "unimplemented potoil unitcont"

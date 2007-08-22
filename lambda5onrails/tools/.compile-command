@@ -1,0 +1,1 @@
+(setq compile-command "make")

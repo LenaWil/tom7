@@ -214,6 +214,7 @@ struct
                           [(truename, NONE),
                            (falsename, NONE)])]))
 
+            (* XXX why? it's in stdlib. *)
             val declist =
               %(EL.Datatype
                 (["a"], [(listname,

@@ -42,7 +42,7 @@ sig
     val truename : string
     val falsename : string
     val exnname : string
-    val listname : string
+(*  val listname : string *)
 
 
     val mobiletvars : Variable.Set.set
