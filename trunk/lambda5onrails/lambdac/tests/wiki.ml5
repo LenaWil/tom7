@@ -35,9 +35,47 @@ unit
       | string-delimit s (h1::t) = [[h1][s][string-delimit s t]]
 
     val template-cache = ref nil
+
+    (* exception Wiki of string *)
+    
+    (* XXX locks! *)
+    fun update-template (s, r) =
+        let
+            fun find nil = 
+                let in
+                    (* raise Wiki [cached template not found?] *)
+                    alert [cached template not found??];
+                    nil
+                end
+              | find ((x as (h, _)) :: t) = if s seq h
+                                            then (h, SOME r) :: t
+                                            else x :: find t
+        in
+            template-cache := find (!template-cache)
+            (* XXX and also should render, or mark renderable *)
+        end
+
     fun add-cache s =
-        (* XXX also hook on DB! *)
-        template-cache := (s, NONE) :: !template-cache
+        let 
+            put s = s
+        in
+            template-cache := (s, NONE) :: !template-cache;
+            (* hook on DB *)
+            from server get
+            let 
+                fun up () =
+                    let 
+                        put r = trivialdb.read s
+                    in
+                        from home
+                        get update-template (s, r)
+                    end : unit @ server
+            in
+                (* whenever the template is updated, tell us. *)
+                trivialdb.addhook (s, cont up);
+                up ()
+            end
+        end
 
     fun find-insert-template s =
         let
@@ -52,6 +90,7 @@ unit
                 NONE => (add-cache s; NONE)
               | SOME res => res
         end
+
     fun expand-template t = 
         (* some "magic" template names... *)
         if t seq [PAGENAME]
@@ -209,28 +248,26 @@ unit
     (* renders the current value of the edit box. *)
     and render () =
         let 
+            val r = renderhtml (dom.getstring(dom.getbyid id.source, [value]))
             val tems = string-delimit ", " (list-map (fn (x, _) => x) (! template-cache))
         in
             (* debugging... *)
             dom.setstring(dom.getbyid id.templates, [innerHTML], tems);
-            (* alert [render!]; *)
-            dom.setstring(dom.getbyid id.rendered,
-                          [innerHTML],
-                          renderhtml (dom.getstring(dom.getbyid id.source, [value])))
+            dom.setstring(dom.getbyid id.rendered, [innerHTML], r)
         end
 
-    (* PERF round trips for every keyup is a little bit much? *)
-    fun source-keyup () =()
-(*
+    fun save () = 
         let 
             put article  = !articlename
             put contents = dom.getstring(dom.getbyid id.source, [value])
         in
-            from server get trivialdb.update (article, contents);
-            (* render () *)
-            ()
+            from server get trivialdb.update (article, contents)
         end
-*)
+
+    (* PERF round trips for every keyup is a little bit much? *)
+    fun source-keyup () = ()
+    (* save *)
+
 (*
     fun every-second () =
         (* XXX only if changed... *)
@@ -265,6 +302,7 @@ unit
           <div id="[id.rendered]" class="rendered">rendered contents</div> <br />
           <textarea id="[id.source]" onkeyup="[say source-keyup ()]" class="source">the source code</textarea>
           <br /><div class="button" onclick="[say render ()]">render</div>
+          <br /><div class="button" onclick="[say save ()]">save</div>
           <br /><div id="[id.templates]">&nbsp</div>
           <div class="copyright">This is not a Copyright notice.</div>
           </div> <!-- content -->
