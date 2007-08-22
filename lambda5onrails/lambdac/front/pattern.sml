@@ -76,8 +76,7 @@ struct
 
      (Constants are treated as sums, except that a series of
      constant patterns can never be exhaustive, and we generate
-     a sequence of integer tests rather than a sumcase. PERF--generate
-     intcase instead.)
+     a sequence of integer tests rather than a sumcase.)
 
      This code is pretty hard to read because I often need to switch
      views of the matrix between row-major and column-major. Sorry
@@ -404,7 +403,7 @@ struct
                                 
                            in
                            (I.Sumcase
-                            (unroll loc `
+                            (ElabUtil.unroll loc `
                              elabt ctx loc `
                              E.TApp (nil, Initial.boolname),
 
@@ -814,15 +813,9 @@ struct
                              map onelab parted
 
                          val (st, insum) = 
-                             (case cod of
-                                  I.Mu(n, mubod) =>
-                                      (case List.nth (mubod, n) of
-                                           (_, sum as I.Sum insum) => 
-                                               (sum, insum)
-                                         | _ => raise Pattern
-                                               "mu body not sum??")
-                                | _ => raise Pattern
-                                           "ctor cod not mu??")
+                           case ElabUtil.unroll loc cod of
+                             (sum as I.Sum insum) => (sum, insum)
+                           | _ => raise Pattern "mu body not sum??"
 
                          val (de, dt) = elab nctx here ` ndef ()
 

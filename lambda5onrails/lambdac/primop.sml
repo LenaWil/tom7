@@ -75,7 +75,7 @@ struct
       | PSethandler
       | PGethandler
 
-      (* no run-time effect; just produces compiletime
+      (* no run-time effect; just produces compile-time
          warning if not dead *)
       | PCompileWarn of string
 
