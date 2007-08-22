@@ -1,80 +1,19 @@
 unit
-    import "std.mlh"
-    import "list.mlh"
-    import "dom.mlh"
-    import "timer.mlh"
-    import "trivialdb.mlh"
-        
-    (* page skeleton. this doesn't change. *)
-    val id.articlename = [articlename]
-    val id.rendered = [rendered]
-    val id.source = [source]
-    val id.templates = [templates]
+    extern bytecode world server
+    extern val server : server addr  @ home
 
-    val articlename = ref []
-
-    extern val alert : string -> unit @ home
-
-           (* do runtime.no-messages () *)
-
-    val template-cache = ref nil
-
-    (* exception Wiki of string *)
-    
-    (* XXX locks! *)
-    fun update-template (s, r) =
-        let
-            fun find nil = 
-                let in
-                    (* raise Wiki [cached template not found?] *)
-                    alert [cached template not found??];
-                    nil
-                end
-              | find ((x as (h, _)) :: t) = find t
-        in
-            (* find (!template-cache); *)
-            ()
-        end
-
-    fun add-cache s =
+    do from server get
         let 
-            put s = s
+            fun up () =
+                let 
+                    extern val home ~ home addr
+                in
+                    from home
+                    get ()
+                end : unit @ server
         in
-            template-cache := (s, NONE) :: !template-cache;
-            (* hook on DB *)
-            from server get
-            let 
-                fun up () =
-                    let 
-                        put r = trivialdb.read s
-                    in
-                        from home
-                        get update-template (s, r)
-                    end : unit @ server
-            in
-                (* whenever the template is updated, tell us. *)
-                trivialdb.addhook (s, cont up);
-                up ()
-            end
+            up ()
         end
 
-    fun find-insert-template s =
-        let
-            fun find-template nil = NONE
-              | find-template ((h, res) :: t) =
-                if s seq h
-                then SOME res
-                else find-template t
-        in
-            case find-template (!template-cache) of
-                (* cache it *)
-                NONE => (add-cache s; NONE)
-              | SOME res => res
-        end
-    
-    do add-cache [asdf]
-(*
-    do find-insert-template [asdf]
-*)
 in
 end

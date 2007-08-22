@@ -1,0 +1,47 @@
+unit
+    import "std.mlh"
+    import "trivialdb.mlh"
+
+    extern val alert : string -> unit @ home
+
+           (* do runtime.no-messages () *)
+
+    val template-cache = ref nil
+
+    (* exception Wiki of string *)
+    
+    (* XXX locks! *)
+    fun update-template (s, r) =
+        let
+            fun find nil = nil
+              | find ((x as (h, _)) :: t) = find t
+        in
+            ()
+        end
+
+    fun add-cache s =
+        let 
+            put s = s
+        in
+            (* template-cache := (s, NONE) :: !template-cache; *)
+            (* hook on DB *)
+            from server get
+            let 
+                fun up () =
+                    let 
+                        put r = trivialdb.read s
+                    in
+                        from home
+                        get update-template (s, r)
+                    end : unit @ server
+            in
+                up ()
+            end
+        end
+    
+    do add-cache [asdf]
+(*
+    do find-insert-template [asdf]
+*)
+in
+end
