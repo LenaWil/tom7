@@ -309,16 +309,20 @@ struct
                               then w' 
                               else raise UnDict "go_cc world/addr mismatch"
                  | _ => raise UnDict "go_cc to non addr"
-        val (f, ft) = selfv z G f
-        val (env, envt) = selfv z G env
+        (* held values are at the remote world *)
+        val G' = T.setworld G w'
+        val (f, ft) = selfv z G' f
+        val (env, envt) = selfv z G' env
         val av = V.namedvar "arg"
         val exty  = TExists' (av, [Cont' [TVar' av], TVar' av])
         val marty = At' (exty, w')
 
         val p = V.namedvar "p"
         val b = V.namedvar "b"
+
       in
-        Bind' (p, Hold' (w', TPack' ( envt, exty, Sham0' ` makedict G envt, [f, env] )),
+
+        Bind' (p, Hold' (w', TPack' ( envt, exty, Sham0' ` makedict G' envt, [f, env] )),
                Marshal'(b, makedict G marty, Var' p,
                         Go_mar' { w = w,
                                   addr = addr,

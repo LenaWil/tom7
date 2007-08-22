@@ -368,7 +368,7 @@ struct
     fun case_Cont z ({selfe, selfv, selft}, G) tl =
          let 
            val tl = map (selft z G) tl
-           val venv = V.namedvar "env"
+           val venv = V.namedvar (* "env" *) (Nonce.nonce ())
          in
            TExists' (venv, [TVar' venv,
                             Cont' (TVar' venv :: tl)])
@@ -471,7 +471,7 @@ struct
            Go_cc' { w = wdest, 
                     addr = addr,
                     env = env,
-                    f = Lam' (V.namedvar "go_unused",
+                    f = Lam' (V.namedvar ("go_" ^ Nonce.nonce () ^ "_nonrec"),
                               [(envv, envt)],
                               wrape (Var' envv, body)) }
          end

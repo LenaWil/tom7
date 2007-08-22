@@ -704,7 +704,9 @@ struct
                               TY td]);
                 if ListUtil.all2 ctyp_eq stl ts
                 then tas 
-                else fail [$"tpack doesn't match annotation: ",
+                else fail [$"in pack: ", VA value,
+                           $"\n",
+                           $"tpack doesn't match annotation: ",
                            $"from typ of packed things: ", TYL ts,
                            $"annotation: ", TYL stl]
               end
