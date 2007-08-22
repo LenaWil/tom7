@@ -229,7 +229,7 @@ struct
               %(EL.ExternVal(nil, matchname, EL.TVar exnname, NONE, NONE))
 
         in
-          EL.Unit(impexns :: declist :: decbool :: ds, xs)
+          EL.Unit(impexns :: (* declist :: *) decbool :: ds, xs)
         end
 
     fun trueexp loc = (EL.Var truename, loc)
