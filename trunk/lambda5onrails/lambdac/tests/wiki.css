@@ -5,6 +5,9 @@
        A:visited { color: #9999FF }
        A:active { color: #DDDD44 }
 
+       span.wikilink { color : #4444DD ; cursor : pointer ; text-decoration : underline }
+       span.unknowntemplate { color : #DD4444 ; font-weight : bold }
+
        A.red:link { color : #DD4444 }
        A.red:visited { color : #DD4444 }
        A.red:active { color : #FF2222 }

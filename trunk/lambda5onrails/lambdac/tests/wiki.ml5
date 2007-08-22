@@ -12,6 +12,7 @@
 
 unit
     import "std.mlh"
+    import "list.mlh"
     import "dom.mlh"
     import "timer.mlh"
     import "trivialdb.mlh"
@@ -20,12 +21,42 @@ unit
     val id.articlename = [articlename]
     val id.rendered = [rendered]
     val id.source = [source]
+    val id.templates = [templates]
 
     val articlename = ref []
 
     extern val alert : string -> unit @ home
 
     do runtime.no-messages ()
+
+    (* PERF. to-lib too *)
+    fun string-delimit s nil = ""
+      | string-delimit s (h::nil) = h
+      | string-delimit s (h1::t) = [[h1][s][string-delimit s t]]
+
+    val template-cache = ref nil
+    fun add-cache s =
+        (* XXX also hook on DB! *)
+        template-cache := (s, NONE) :: !template-cache
+
+    fun find-insert-template s =
+        let
+            fun find-template nil = NONE
+              | find-template ((h, res) :: t) =
+                if s seq h
+                then SOME res
+                else find-template t
+        in
+            case find-template (!template-cache) of
+                (* cache it *)
+                NONE => (add-cache s; NONE)
+              | SOME res => res
+        end
+    fun expand-template t = 
+        (* some "magic" template names... *)
+        if t seq [PAGENAME]
+        then SOME (!articlename)
+        else find-insert-template t
 
     (* XXX should do some parsing and rendering, duh *)
     fun renderhtml s =
@@ -36,6 +67,8 @@ unit
               | Bar
               | OLink
               | CLink
+              | OTempl
+              | CTempl
 
             val off = ref 0
             fun token () =
@@ -56,7 +89,7 @@ unit
                                      differently than if we see some letters
                                      terminated by one of the special chars.
                                      (note, we know the string does not start
-                                     with [[ or ]]) *)
+                                     with [[ or ]] or {{ or }}) *)
                                   ?| => (case !off - start of
                                              0 => (off := !off + 1; Bar)
                                          | len => String(substring(s, start, len)))
@@ -66,13 +99,19 @@ unit
                                 | ?[ => (case !off - start of
                                              0 => (off := !off + 1; eat ())
                                          | len => String(substring(s, start, len)))
+                                | ?{ => (case !off - start of
+                                             0 => (off := !off + 1; eat ())
+                                         | len => String(substring(s, start, len)))
+                                | ?} => (case !off - start of
+                                             0 => (off := !off + 1; eat ())
+                                         | len => String(substring(s, start, len)))
                                 | c => (off := (!off + 1); eat ())
                             end
 
                   in
                       (* alert [sizecheck]; *)
                       (* might be [[ or ]] *)
-                      if !off < size s - 2
+                      if !off <= size s - 2
                       then 
                           let val next2 = substring(s, !off, 2)
                           in
@@ -81,7 +120,11 @@ unit
                               then (off := !off + 2; OLink)
                               else if next2 seq "]]"
                                    then (off := !off + 2; CLink)
-                                   else eat ()
+                                   else if next2 seq "{{"
+                                        then (off := !off + 2; OTempl)
+                                        else if next2 seq "}}"
+                                             then (off := !off + 2; CTempl)
+                                             else eat ()
                           end
                       else eat ()
                   end
@@ -93,10 +136,34 @@ unit
                (case t of
                     String ss => [[ss][make ()]]
                   | Bar => [|[make()]]
+                  (* these are probably syntax errors... *)
+                  | CTempl => [["}}"][make ()]]
                   | CLink => [["]]"][make ()]]
                   | OLink => getlink ()
+                  | OTempl => gettempl ()
+                  (* done *)
                   | NoToken => [])
               end
+
+            and gettempl () =
+                let
+                    fun target () =
+                        (case token () of
+                             String ss => [[ss][target ()]]
+                           | Bar => [XXX unimplemented template args]
+                           | CLink => [*mismatched brackets*]
+                           | OTempl => [*template within template name*]
+                           | CTempl => []
+                           | NoToken => [*unclosed template*]
+                           | OLink => [*link within template name*])
+                    val t = target ()
+                in
+                    (* XXX expand template if known. *)
+                    case expand-template t of
+                        NONE => [<span class="unknowntemplate">[t]</span>[make ()]]
+                      (* Want to render it, since it might contain links, etc. *)
+                      | SOME s => [[renderhtml s][make ()]]
+                end
 
             and getlink () =
                 let 
@@ -105,21 +172,47 @@ unit
                              String ss => [[ss][target ()]]
                            | Bar => [XXX unimplemented barlink]
                            | CLink => []
+                           | OTempl => [*template within link*]
+                           | CTempl => [*mismatched brackets*]
                            | NoToken => [*unclosed link*]
                            | OLink => [*link within link*])
                     (* val () = alert "getlink" *)
                     val t = target ()
                 in
-                    [<a href="[t]">[t]</a>[make ()]]
+                    (* PERF say leaks *)
+                    [<span class="wikilink" onclick="[say goto-article t]">[t]</span>[make ()]]
                 end
         in
             (* alert [renderhtml]; *)
             make ()
         end : string @ home
 
+    (* to go to an article, we fetch its source from the server, then change the
+       current article name, ... 
+       XXX should lock
+       *)
+    and goto-article name =
+        let
+            put name = name
+            val contents = from server get trivialdb.read name
+        in
+            articlename := name;
+            dom.setstring(dom.getbyid id.articlename, [innerHTML], name);
+            (* XXX need escaping? *)
+            dom.setstring(dom.getbyid id.source,
+                          [value],
+                          contents);
+            render()
+        end
+
+
     (* renders the current value of the edit box. *)
-    fun render () =
-        let in
+    and render () =
+        let 
+            val tems = string-delimit ", " (list-map (fn (x, _) => x) (! template-cache))
+        in
+            (* debugging... *)
+            dom.setstring(dom.getbyid id.templates, [innerHTML], tems);
             (* alert [render!]; *)
             dom.setstring(dom.getbyid id.rendered,
                           [innerHTML],
@@ -172,28 +265,10 @@ unit
           <div id="[id.rendered]" class="rendered">rendered contents</div> <br />
           <textarea id="[id.source]" onkeyup="[say source-keyup ()]" class="source">the source code</textarea>
           <br /><div class="button" onclick="[say render ()]">render</div>
-
+          <br /><div id="[id.templates]">&nbsp</div>
           <div class="copyright">This is not a Copyright notice.</div>
           </div> <!-- content -->
           ])
-
-    (* to go to an article, we fetch its source from the server, then change the
-       current article name, ... 
-       XXX should lock
-       *)
-    fun goto-article name =
-        let
-            put name = name
-            val contents = from server get trivialdb.read name
-        in
-            articlename := name;
-            dom.setstring(dom.getbyid id.articlename, [innerHTML], name);
-            (* XXX need escaping? *)
-            dom.setstring(dom.getbyid id.source,
-                          [value],
-                          contents);
-            render()
-        end
 
     do goto-article [main]
 

@@ -1,9 +1,4 @@
 
-I think that the result of certain primops (alert) can return a 'unit'
-value that the compiler/runtime expects to be represented as {}. But
-instead it gets the value "undefined", which can cause some minor
-problems. 
-
 There are many self-checks (e.g. closure conversion checks that it
 produces closed code) that are redundant to type checking and other
 later checks. We ought to run these only when a "paranoid" flag is
@@ -16,7 +11,7 @@ set.
 
 Features:
   * Exceptions (!)
-
+  * marshaling of mu
 
 Passes to implement:
 
@@ -31,6 +26,9 @@ CPS Optimization
   * already-bound, prevent recreation of things that are already bound
     (subsumes x = y renaming optimization)
     (this happens frequently with rebuilt environments)
+
+Backend optimizations
+  * could flatten out lams so that we represent a function as a single integer...
 
 --------------------------------------------------
     Things to clean up

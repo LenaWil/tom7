@@ -43,12 +43,6 @@ struct
                     body = body }])
       end
 
-  fun mklist ctx loc t =
-      (case C.con ctx Initial.listname of
-           (1, Lambda f, _) => f [t]
-         | _ => error loc "impossible: bad list type")
-
-
   (* ditto *)
   fun tuple l =
       let
