@@ -219,7 +219,7 @@ struct
                                         Call' (v, 
                                                map #1 vsl @ 
                                                (* nb. don't even bind unused arg. *)
-                                               [Lam'(nv "k_unused", [(cv, kt)],
+                                               [Lam'(nv "k_nonrec", [(cv, kt)],
                                                      k (G, Var' cv, kt, fw))])
                                     end)
                              | _ => raise ToCPS "last arg should be cont!")
@@ -290,10 +290,21 @@ struct
                    but this is fine since we'd probably like to inline it. *)
                 cvtel G el
                 (fn (G, vwtl) =>
+                 (* PERF inline? *)
                  Native' { var = vp,
                            po = po, tys = tl,
                            args = map #1 vwtl, 
-                           bod = k (G, Var' vp, cod, worldfrom G) })
+                           bod = 
+                             (* if return type is unit, bind an actual unit
+                                value (it will almost always be optimized away)
+                                since we allow unit-returning primapps to
+                                return nonsense results (javascript returns
+                                undefined) *)
+                             (case ctyp cod of
+                                Product nil => 
+                                  Bind' (vp, Record' nil,
+                                         k (G, Var' vp, cod, worldfrom G))
+                              | _ => k (G, Var' vp, cod, worldfrom G)) })
               end
 
        | I.Sumcase (I.Sum t, exp, v, arms, def) => 
@@ -790,7 +801,6 @@ struct
              (* not checking *)
              val (va, tt, ww) = cvtv G v
            in
-             print "VROLL!\n";
              (Roll' (cvtt G t, va), cvtt G t, ww)
            end
 
