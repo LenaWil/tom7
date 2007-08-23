@@ -16,14 +16,17 @@ unit
     import "dom.mlh"
     import "timer.mlh"
     import "trivialdb.mlh"
+    import "lock.mlh"
         
     (* page skeleton. this doesn't change. *)
     val id.articlename = [articlename]
     val id.rendered = [rendered]
     val id.source = [source]
     val id.templates = [templates]
+    val id.debug = [debugs]
 
     val articlename = ref []
+    val changed = ref true
 
     extern val alert : string -> unit @ home
 
@@ -35,6 +38,7 @@ unit
       | string-delimit s (h1::t) = [[h1][s][string-delimit s t]]
 
     val template-cache = ref nil
+    val pagelock = new-lock ()
 
     (* exception Wiki of string *)
     
@@ -51,8 +55,9 @@ unit
                                             then (h, SOME r) :: t
                                             else x :: find t
         in
-            template-cache := find (!template-cache)
-            (* XXX and also should render, or mark renderable *)
+            template-cache := find (!template-cache);
+            (* re-renderable *)
+            changed := true
         end
 
     fun add-cache s =
@@ -249,12 +254,19 @@ unit
     and render () =
         let 
             val r = renderhtml (dom.getstring(dom.getbyid id.source, [value]))
-            val tems = string-delimit ", " (list-map (fn (x, _) => x) (! template-cache))
+            val tems = string-delimit ", " 
+                (list-map (fn (x, NONE) => 
+                           [<span class="unknowntemplate">[x]</span>]
+                            | (x, _) => x) (! template-cache))
         in
             (* debugging... *)
             dom.setstring(dom.getbyid id.templates, [innerHTML], tems);
-            dom.setstring(dom.getbyid id.rendered, [innerHTML], r)
+            dom.setstring(dom.getbyid id.rendered, [innerHTML], r);
+            changed := false
         end
+
+    fun try-render () =
+      maybe-with-lock pagelock render
 
     fun save () = 
         let 
@@ -268,11 +280,21 @@ unit
     fun source-keyup () = ()
     (* save *)
 
-(*
+    val ctr = ref 0
     fun every-second () =
-        (* XXX only if changed... *)
-        render ()
+        let in
+            ctr := !ctr + 1;
+            dom.setstring(dom.getbyid id.debug,
+                          [innerHTML], itos (!ctr));
+            (* only if changed... *)
+            try-render ()
+(*
+            if !changed
+            then try-render ()
+            else ()
 *)
+        end
+
     do dom.setstring 
         (dom.getbyid [page],
          [innerHTML],
@@ -301,80 +323,19 @@ unit
 
           <div id="[id.rendered]" class="rendered">rendered contents</div> <br />
           <textarea id="[id.source]" onkeyup="[say source-keyup ()]" class="source">the source code</textarea>
-          <br /><div class="button" onclick="[say render ()]">render</div>
+          <br /><div class="button" onclick="[say try-render ()]">render</div>
           <br /><div class="button" onclick="[say save ()]">save</div>
-          <br /><div id="[id.templates]">&nbsp</div>
+          <br /><div id="[id.templates]">&nbsp;</div>
+          <br /><div id="[id.debug]">&nbsp;</div>
           <div class="copyright">This is not a Copyright notice.</div>
           </div> <!-- content -->
           ])
 
     do goto-article [main]
 
-    (* do dom.setstring(dom.getbyid id.source, [onchange], say render()) *)
+    do dom.setstring(dom.getbyid id.source, [onchange], say changed := true)
 
+    do js.setinterval (say every-second (), 3000)
 
-(*    do js.setinterval (say every-second (), 1000) *)
-
-(*
-    put k = [tdb-test]
-
-    extern bytecode world server
-    extern val home ~ home addr
-    extern val server ~ server addr
-    extern val alert : string -> unit @ home
-
-    fun getkey () =
-        let
-            val v = from server get trivialdb.read k
-            val s = dom.getbyid [showbox]
-        in
-            dom.setstring (s, [innerHTML], v)
-        end
-
-    do from server 
-        get trivialdb.addhook (k, cont (fn () => from home get getkey ()))
-
-    fun setkey () =
-        let
-            val nb = dom.getbyid [namebox]
-            put s = dom.getstring (nb, [value])
-        in
-            (from server 
-             get trivialdb.update (k, s));
-            alert [The key has been set.]
-        end
-
-
-    val e = dom.getbyid [page]
-    do dom.setstring (e, [innerHTML], [<div style="width : 300px; padding : 1em; margin : 1em; border: 1px solid #AAAAAA">
-                                       <div style="text-align : center ; font : 14px Verdana,Arial,Helvetica">\
-                                       Watchkey demo</div>
-                                       <p>This page uses the server's persistent database.
-                                       It registers a function to be run whenever the key "[k]"
-                                       is modified. Modifying that key using causes the function to
-                                       run and display a message here.</p>
-
-                                       <p>The key can be modified using the box below, 
-                                       or in another browser running this test or the "trivialdb" demo.
-                                       Note that many browsers have a limit on the number of simultaneous
-                                       connections allowed to a given server, which can make it impossible
-                                       to use the "trivialdb" demo at the same time as this one. Launching
-                                       two browser instances or using two different browsers may solve this.
-
-                                       <p>[k]'s value:<br />
-                                       <div style="width: 250px; text-align : center ; 
-                                                   font : 24px Verdana,Arial,Helvetica ;
-                                                   border : 2px dashed #AAFFFF; padding : 6px ;
-                                                   margin : 16px ; background : #DDFFFF"
-                                            id="showbox">&nbsp;</div>
-
-                                       <p><input type="text" id="namebox" /> <br />
-                                       <div style="width: 250px; text-align : center ; border:2px outset #777777; \
-                                                   background : #DDDDDD; padding : 4px; cursor:hand; cursor:pointer"
-                                       onclick="[say setkey ()]" >set key</div>
-                                       </div>
-                                       ])
-
-*)
 in
 end
