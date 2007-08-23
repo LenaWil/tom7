@@ -173,14 +173,11 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
-            (* make more phases use this, nicer.
-
-               can't run DEAD before undict, because it
+            (* can't run DEAD between dict and undict, because it
                might erase dictionaries that we need, later
-               (but we could create a dict-safe version)
-               *)
+               (but we could create a dict-safe version, probably) *)
             val c = cpspass "DEAD" CPSDead.optimize G c
-            val c = cpspass "KNOWN" CPSKnown.optimize G c
+            val c = cpspass "INLINE" CPSKnown.optimize G c
             val c = cpspass "DEAD" CPSDead.optimize G c
 
             val () = print "\n\n**** HOIST: ****\n"
