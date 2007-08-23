@@ -6,7 +6,7 @@ struct
         (SOME ("-showil",
                "Show internal language AST")) "showil"
 
-    val showcps = Params.flag true
+    val showcps = Params.flag false
         (SOME ("-showcps",
                "Show internal CPS after each phase")) "showcps"
 
@@ -135,6 +135,7 @@ struct
             val c = cpspass "INLINE" CPSInline.optimize G c
             val c = cpspass "UNINLINE" CPSUninline.optimize G c
             val c = cpspass "REDUCE" CPSReduce.optimize G c
+            val c = cpspass "PRIMOP" CPSSimplifyPrimop.optimize G c
 
             (* undoes some CPS conversion waste *)
             val c = cpspass "ETA" CPSEta.optimize G c

@@ -392,10 +392,16 @@ struct
         | primexp (P.PJointext 0) nil = String ` String.fromString ""
         | primexp (P.PJointext 1) [s] = s
         | primexp (P.PJointext n) (first :: rest) =
+        (* (* PERF maybe would be better for 2? *)
              foldl (fn (next, sleft) => Binary { lhs = sleft, 
                                                  rhs = next, 
                                                  oper = B.Add (* is also string concat, sigh *) }) 
                    first rest
+                   *)
+        (* this should be faster: *)
+        Call { func = Sel first "concat",
+               args = % rest }
+
         | primexp (P.PJointext _) _ = raise JSCodegen "jointext argument length mismatch"
         | primexp P.PEqs [s1, s2] = 
                    Cond { test  = Binary {lhs = s1, rhs = s2, oper = B.StrictEquals},

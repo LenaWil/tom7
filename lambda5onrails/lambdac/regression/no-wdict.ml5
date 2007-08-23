@@ -1,16 +1,14 @@
+(* I think this was caused by the same bug as tpack-ann.ml5, which
+   was a simple mistake of not changing worlds when translating go-mar. *)
+
 unit
     import "std.mlh"
     import "trivialdb.mlh"
 
     extern val alert : string -> unit @ home
 
-           (* do runtime.no-messages () *)
-
     val template-cache = ref nil
 
-    (* exception Wiki of string *)
-    
-    (* XXX locks! *)
     fun update-template (s, r) =
         let
             fun find nil = nil
@@ -23,8 +21,6 @@ unit
         let 
             put s = s
         in
-            (* template-cache := (s, NONE) :: !template-cache; *)
-            (* hook on DB *)
             from server get
             let 
                 fun up () =
@@ -40,8 +36,6 @@ unit
         end
     
     do add-cache [asdf]
-(*
-    do find-insert-template [asdf]
-*)
+
 in
 end
