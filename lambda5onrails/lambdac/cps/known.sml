@@ -100,10 +100,10 @@ struct
        (cexp -> cexp) that does any necessary naming, and
        the list of values, which will be the same length
        and all will be 'small' *)
-    fun name G nil k = k (I, G, nil)
-      | name G ((h, ty) :: rest) k =
+    fun name nil k = k (I, nil)
+      | name ((h : CPS.cval) :: rest) k =
       if small h
-      then name G rest (fn (f, l) => k (f, h :: l)) 
+      then name rest (fn (f, l) => k (f, h :: l))
       else 
         let 
           val n = 
@@ -124,43 +124,48 @@ struct
             | _ => "name"
 
           val v = V.namedvar n
-          val G = bindvar G v ty ` worldfrom G
         in
-          name G rest (fn (f, l) =>
-                       k (fn exp => Bind' (v, h, f exp),
-                          Var' v :: l))
+          name rest (fn (f, l) =>
+                     k (fn exp => Bind' (v, h, f exp),
+                        Var' v :: l))
         end
 
-    fun case_Primop z ({selfe, selfv, selft}, G) ([v], CPS.BIND, [obj], e) =
-      let
-        val (obj, t) = selfv z G obj
-        val G = bindvar G v t ` worldfrom G
-
-        val (z', G, wrap, obj) =
-          case cval obj of
-            TPack (t, ann, dict, vals) => 
-              name (dict :: vals)
-              (fn (f, G, dict' :: vals') =>
-               (z ++ (v, Pack { typ = t, ann = ann, 
-                                dict = dict', vals = vals' }),
-                G,
-                f, TPack' (t, ann, dict', vals'))
-            | _ => raise Known "impossible name")
-          | Record svl =>
-              let
-                val (labs, vals) = ListPair.unzip svl
-              in
-                name vals
-                (fn (f, G, vals) =>
-                 let val svl = ListPair.zip (labs, vals)
+    exception Again of cexp
+    fun case_Primop z (s as ({selfe, selfv, selft}, G)) ([v], CPS.BIND, [obj], e) =
+      (let
+         val z' =
+           case cval obj of
+             Record svl =>
+               if List.all (small o #2) svl
+               then z ++ (v, Rec svl)
+               else
+                 let val (labs, vals) = ListPair.unzip svl
                  in
-                   (z ++ (v, Rec svl), G, f, Record' svl)
-                 end)
-              end
-          | _ => (z, G, I, obj)
-      in
-         wrap ` Primop' ([v], BIND, [obj], selfe z' G e)
-      end
+                   name vals
+                   (fn (f, vals) =>
+                    let
+                      val svl = ListPair.zip (labs, vals)
+                    in
+                      (* wrap and try again. *)
+                      raise Again (f (Primop' ([v], CPS.BIND, [Record' svl], e)))
+                    end)
+                 end
+           | TPack (t, ann, dict, vals) =>
+               if List.all small (dict :: vals)
+               then z ++ (v, Pack { typ = t, ann = ann, dict = dict, vals = vals })
+               else
+                 name (dict :: vals)
+                 (fn (f, dict' :: vals') =>
+                  raise Again (f (Primop' ([v], CPS.BIND, [TPack' (t, ann, dict', vals')], e)))
+               | _ => raise Known "impossible name"
+                    )
+
+           | _ => z
+                 
+         val (obj, tt) = selfv z G obj
+       in
+         Primop' ([v], BIND, [obj], selfe z' (bindvar G v tt ` worldfrom G) e)
+       end handle Again ce => selfe z G ce)
       | case_Primop z s a = ID.case_Primop z s a
 
     fun case_Proj z (s as ({selfe, selfv, selft}, G)) (a as (lab, va)) =
