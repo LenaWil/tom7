@@ -26,6 +26,10 @@ unit
     val id.debug = [debugs]
 
     val articlename = ref []
+
+    (* XXX a simple boolean doesn't work well because of race conditions. 
+       an easy fix would be to store the last time at which the edit box
+       was changed. *)
     val changed = ref true
 
     extern val alert : string -> unit @ home
@@ -70,6 +74,9 @@ unit
             let 
                 fun up () =
                     let 
+                        (* XXX the key might not exist yet,
+                           (supposing this is the immediate non-hook call
+                           below). We should test with like trivialdb.exists? *)
                         put r = trivialdb.read s
                     in
                         from home
@@ -78,6 +85,7 @@ unit
             in
                 (* whenever the template is updated, tell us. *)
                 trivialdb.addhook (s, cont up);
+                (* also fetch the result now. *)
                 up ()
             end
         end
@@ -277,22 +285,19 @@ unit
         end
 
     (* PERF round trips for every keyup is a little bit much? *)
-    fun source-keyup () = ()
-    (* save *)
+    fun source-keyup () = changed := true
+    (* save sometimes? *)
 
     val ctr = ref 0
     fun every-second () =
         let in
             ctr := !ctr + 1;
             dom.setstring(dom.getbyid id.debug,
-                          [innerHTML], itos (!ctr));
+                          [innerHTML], itos (!ctr) ^ (if !changed then [c] else [nc]));
             (* only if changed... *)
-            try-render ()
-(*
             if !changed
             then try-render ()
             else ()
-*)
         end
 
     do dom.setstring 
@@ -332,8 +337,6 @@ unit
           ])
 
     do goto-article [main]
-
-    do dom.setstring(dom.getbyid id.source, [onchange], say changed := true)
 
     do js.setinterval (say every-second (), 3000)
 

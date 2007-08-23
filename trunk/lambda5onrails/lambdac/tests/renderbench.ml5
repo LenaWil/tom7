@@ -1,0 +1,160 @@
+(* benchmark of wiki benchmarking routine around rev 487. *)
+
+unit
+    import "std.mlh"
+    import "list.mlh"
+    import "dom.mlh"
+    import "timer.mlh"
+    import "trivialdb.mlh"
+    import "lock.mlh"
+
+    do runtime.no-messages ()
+
+    do dom.setstring(dom.getbyid [page], [innerHTML], [Running benchmark...])
+
+        
+    val start = js.now ()
+
+    fun expand-template t = 
+        (* some "magic" template names... *)
+        if t seq [PAGENAME]
+        then SOME [ARTICLE]
+        else NONE
+
+    fun renderhtml s =
+        let
+            datatype tok =
+                NoToken
+              | String of string
+              | Bar
+              | OLink
+              | CLink
+              | OTempl
+              | CTempl
+
+            val off = ref 0
+            fun token () =
+                if !off >= size s
+                then NoToken
+                else 
+                  let
+                      val start = !off
+                      fun eat () =
+                          if !off >= size s
+                          then ((* alert [eat end]; *) String(substring(s, start, !off - start)))
+                          else
+                            let in
+                              (* alerti (!off); *)
+
+                              case ssub (s, !off) of
+                                  (* if it is the first character, we behave
+                                     differently than if we see some letters
+                                     terminated by one of the special chars.
+                                     (note, we know the string does not start
+                                     with [[ or ]] or {{ or }}) *)
+                                  ?| => (case !off - start of
+                                             0 => (off := !off + 1; Bar)
+                                         | len => String(substring(s, start, len)))
+                                | ?] => (case !off - start of
+                                             0 => (off := !off + 1; eat ())
+                                         | len => String(substring(s, start, len)))
+                                | ?[ => (case !off - start of
+                                             0 => (off := !off + 1; eat ())
+                                         | len => String(substring(s, start, len)))
+                                | ?{ => (case !off - start of
+                                             0 => (off := !off + 1; eat ())
+                                         | len => String(substring(s, start, len)))
+                                | ?} => (case !off - start of
+                                             0 => (off := !off + 1; eat ())
+                                         | len => String(substring(s, start, len)))
+                                | c => (off := (!off + 1); eat ())
+                            end
+
+                  in
+                      (* alert [sizecheck]; *)
+                      (* might be [[ or ]] *)
+                      if !off <= size s - 2
+                      then 
+                          let val next2 = substring(s, !off, 2)
+                          in
+                              (* alert [next2check '[next2]']; *)
+                              if next2 seq "[["
+                              then (off := !off + 2; OLink)
+                              else if next2 seq "]]"
+                                   then (off := !off + 2; CLink)
+                                   else if next2 seq "{{"
+                                        then (off := !off + 2; OTempl)
+                                        else if next2 seq "}}"
+                                             then (off := !off + 2; CTempl)
+                                             else eat ()
+                          end
+                      else eat ()
+                  end
+
+            fun make () =
+              let val t = token ()
+              in
+               (* alert [token]; *)
+               (case t of
+                    String ss => [[ss][make ()]]
+                  | Bar => [|[make()]]
+                  (* these are probably syntax errors... *)
+                  | CTempl => [["}}"][make ()]]
+                  | CLink => [["]]"][make ()]]
+                  | OLink => getlink ()
+                  | OTempl => gettempl ()
+                  (* done *)
+                  | NoToken => [])
+              end
+
+            and gettempl () =
+                let
+                    fun target () =
+                        (case token () of
+                             String ss => [[ss][target ()]]
+                           | Bar => [XXX unimplemented template args]
+                           | CLink => [*mismatched brackets*]
+                           | OTempl => [*template within template name*]
+                           | CTempl => []
+                           | NoToken => [*unclosed template*]
+                           | OLink => [*link within template name*])
+                    val t = target ()
+                in
+                    case expand-template t of
+                        NONE => [<span style="color : #967287">[t]</span>[make ()]]
+                      | SOME s => [[renderhtml s][make ()]]
+                end
+
+            and getlink () =
+                let 
+                    fun target () =
+                        (case token () of
+                             String ss => [[ss][target ()]]
+                           | Bar => [XXX unimplemented barlink]
+                           | CLink => []
+                           | OTempl => [*template within link*]
+                           | CTempl => [*mismatched brackets*]
+                           | NoToken => [*unclosed link*]
+                           | OLink => [*link within link*])
+                    val t = target ()
+                in
+                    [<span style="color : #456789" onclick="[say goto-article t]">[t]</span>[make ()]]
+                end
+        in
+            make ()
+        end : string @ home
+
+    and goto-article _ = ()
+
+    and render () =
+        let 
+            val r = renderhtml "Here is the test. It has [[links]] and {{templates}}, I guess."
+            val t = js.time-difference-ms (start, js.now ())
+        in
+            dom.setstring(dom.getbyid [page], [innerHTML], [[r]<p>[itos t] ms])
+        end
+
+    do render ()
+
+in
+end

@@ -2,7 +2,7 @@
 structure Compile :> COMPILE =
 struct
 
-    val showil = Params.flag true
+    val showil = Params.flag false
         (SOME ("-showil",
                "Show internal language AST")) "showil"
 
@@ -136,6 +136,7 @@ struct
             val c = cpspass "UNINLINE" CPSUninline.optimize G c
             val c = cpspass "REDUCE" CPSReduce.optimize G c
             val c = cpspass "PRIMOP" CPSSimplifyPrimop.optimize G c
+            val c = cpspass "KNOWN" CPSKnown.optimize G c
 
             (* undoes some CPS conversion waste *)
             val c = cpspass "ETA" CPSEta.optimize G c

@@ -693,6 +693,14 @@ function lc_nomessages(unit) {
     lc_messages = false;
 };
 
+function lc_newdate(unit) {
+    return new Date();
+};
+
+function lc_time_difference(st, en) {
+    return 0 + (en - st);
+};
+
 /* XXX should be a prim, not extern */
 function lc_itos(i) {
     return ''+i;

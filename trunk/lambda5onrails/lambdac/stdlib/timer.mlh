@@ -11,3 +11,7 @@ extern val js.cleartimeout : js.timeoutid -> unit  @ home = clearTimeout
 (* keeps running the cont at the specified interval. *)
 extern val js.setinterval : string * int -> js.intervalid  @ home = setInterval
 extern val js.clearinterval : js.intervalid -> unit  @ home = clearInterval
+
+extern type js.date = lc_ref
+extern val js.now : unit -> js.date  @ home = lc_newdate
+extern val js.time-difference-ms : js.date * js.date -> int  @ home = lc_time_difference
