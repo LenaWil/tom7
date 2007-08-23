@@ -80,6 +80,7 @@ struct
   (* things we can know about a bound variable *)
   datatype knowledge =
     Pack of { typ : ctyp, ann : ctyp, dict : cval, vals : cval list }
+  | Rec of (string * cval) list
 
   type stuff = { v : knowledge VM.map,
                  u : knowledge VM.map }
@@ -99,55 +100,86 @@ struct
        (cexp -> cexp) that does any necessary naming, and
        the list of values, which will be the same length
        and all will be 'small' *)
-    fun name nil k = k (I, nil)
-      | name (h :: t) k =
+    fun name G nil k = k (I, G, nil)
+      | name G ((h, ty) :: rest) k =
       if small h
-      then name t (fn (f, l) => k (f, h :: l)) 
-      else name t (fn (f, l) =>
-                   let 
-                     (* XXX improve naming.. *)
-                     val n = (case cval h of
-                                Lams [(v, _, _)] => V.tostring v
-                              | Lams ((v, _, _) :: _) => V.tostring v ^ "_and_friends"
-                              | Fsel (va, x) =>
-                                  (case cval va of
-                                     Lams l => 
-                                       (let val (v, _, _) = List.nth (l, x)
-                                        in V.tostring v
-                                        end handle _ => raise Known "name: fsel oob")
-                                     | Var v => V.tostring v ^ "_fsel"
-                                     | UVar u => V.tostring u ^ "_fsel"
-                                     | _ => "fsel")
-                              | Dictfor _ => "d"
-                              | WDictfor _ => "wd"
-                              | _ => "name")
+      then name G rest (fn (f, l) => k (f, h :: l)) 
+      else 
+        let 
+          val n = 
+            case cval h of
+              Lams [(v, _, _)] => V.tostring v
+            | Lams ((v, _, _) :: _) => V.tostring v ^ "_and_friends"
+            | Fsel (va, x) =>
+                (case cval va of
+                   Lams l => 
+                     (let val (v, _, _) = List.nth (l, x)
+                      in V.tostring v
+                      end handle _ => raise Known "name: fsel oob")
+                 | Var v => V.tostring v ^ "_fsel"
+                 | UVar u => V.tostring u ^ "_fsel"
+                 | _ => "fsel")
+            | Dictfor _ => "d"
+            | WDictfor _ => "wd"
+            | _ => "name"
 
-                     val v = V.namedvar n
-                   in
-                     k (fn exp => Bind' (v, h, f exp),
-                        Var' v :: l)
-                   end)
+          val v = V.namedvar n
+          val G = bindvar G v ty ` worldfrom G
+        in
+          name G rest (fn (f, l) =>
+                       k (fn exp => Bind' (v, h, f exp),
+                          Var' v :: l))
+        end
 
     fun case_Primop z ({selfe, selfv, selft}, G) ([v], CPS.BIND, [obj], e) =
       let
         val (obj, t) = selfv z G obj
         val G = bindvar G v t ` worldfrom G
 
-        val (z', wrap, obj) =
+        val (z', G, wrap, obj) =
           case cval obj of
             TPack (t, ann, dict, vals) => 
               name (dict :: vals)
-              (fn (f, dict' :: vals') =>
+              (fn (f, G, dict' :: vals') =>
                (z ++ (v, Pack { typ = t, ann = ann, 
                                 dict = dict', vals = vals' }),
+                G,
                 f, TPack' (t, ann, dict', vals'))
             | _ => raise Known "impossible name")
-          | _ => (z, I, obj)
+          | Record svl =>
+              let
+                val (labs, vals) = ListPair.unzip svl
+              in
+                name vals
+                (fn (f, G, vals) =>
+                 let val svl = ListPair.zip (labs, vals)
+                 in
+                   (z ++ (v, Rec svl), G, f, Record' svl)
+                 end)
+              end
+          | _ => (z, G, I, obj)
       in
          wrap ` Primop' ([v], BIND, [obj], selfe z' G e)
       end
       | case_Primop z s a = ID.case_Primop z s a
 
+    fun case_Proj z (s as ({selfe, selfv, selft}, G)) (a as (lab, va)) =
+      case cval va of
+        (* and literal records? *)
+        Var v =>
+          (case z ?? v of
+             SOME (Rec svl) =>
+               (case ListUtil.Alist.find op= svl lab of
+                  NONE => raise Known "proj of label known not to exist"
+                | SOME va' =>
+                    let in
+                      score "PROJ" 100;
+                      selfv z G va'
+                    end)
+           | SOME _ => raise Known "known proj non-rec"
+           | NONE => ID.case_Proj z s a)
+      | _ => ID.case_Proj z s a
+(*
     fun case_TUnpack z (s as ({selfe, selfv, selft}, G)) 
                        (a as (tv, dv, xs, obj, bod)) =
        case cval obj of
@@ -165,12 +197,14 @@ struct
                   val bod = subte typ tv bod
                 in
                   score "UNPACK" 100;
+                  (* XXX then recurse on it! *)
                   bod
                 end
+            | SOME _ => raise Known "known unpack non-pack"
             | NONE => ID.case_TUnpack z s a)
           (* XXX also uvar *)
           | _ => ID.case_TUnpack z s a
-
+*)
   end
     
   structure K = PassFn(KA)

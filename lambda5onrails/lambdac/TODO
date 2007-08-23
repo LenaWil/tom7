@@ -13,6 +13,13 @@ Features:
   * Exceptions (!)
   * marshaling of mu
 
+Other performance improvements
+  * Could leak less memory with 'say' by marshaling the argument; then we only
+    need to put some kinds of things in the desiccation table.
+  * We should really generate more compact representations of sums and products
+    by using numbered fields. It is silly to be comparing strings "true" and "false"
+    at runtime...
+
 Passes to implement:
 
 CPS Optimization
@@ -29,10 +36,6 @@ CPS Optimization
 
 Backend optimizations
   * could flatten out lams so that we represent a function as a single integer...
-
-Other performance improvements
-  * Could leak less memory with 'say' by marshaling the argument; then we only
-    need to put some kinds of things in the desiccation table.
 
 --------------------------------------------------
     Things to clean up
