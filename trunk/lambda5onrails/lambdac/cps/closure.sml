@@ -454,17 +454,18 @@ struct
        allarrow   alllam      allapp
        *)
 
-    (* Our ability to build closures requires us to know the types of free variables,
-       so these translations basically have to bake in type checking...
-       *)
-
     fun case_Call z (s as ({selfe, selfv, selft}, G)) (a as (f, args)) =
       if (case cval f of
             Var v => VS.member (z, v)
           | _ => false)
       then
-        (* this was already converted as a direct call, then. *)
-        ID.case_Call z s a
+        let in
+          print ("direct call to ");
+          Layout.print (CPSPrint.vtol f, print);
+          print "\n";
+          (* this was already converted as a direct call, then. *)
+          ID.case_Call z s a
+        end
       else
          let
            val (f, ft) = selfv z G f
@@ -475,6 +476,9 @@ struct
 
            val fv = V.namedvar "f"
          in
+           print ("closure call to ");
+           Layout.print (CPSPrint.vtol f, print);
+           print "\n";
            TUnpack' (envt,
                      vu,
                      [(envv, TVar' envt),

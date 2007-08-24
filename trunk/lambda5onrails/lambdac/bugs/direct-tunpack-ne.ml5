@@ -1,47 +1,13 @@
 unit
-    import "std.mlh"
-        
-    fun renderhtml s =
-        let
-            datatype tok =
-                NoToken
-              | String of string
-              | Bar
 
-            val off = ref 0
-            fun token () = 
-                  let
-                      fun eat () =
-                            let in
-                              (* alerti (!off); *)
+     fun token () = 
+         let in
+             case ?| of
+                 ?| => (case 0 of _ => 1234)
+               | _ => 5678
+         end
 
-                              case ssub (s, !off) of
-                                  ?| => (case !off of
-                                             _ => (off := 1; Bar))
-                                | c =>  eat ()
-                            end
-
-                  in
-                      eat ()
-                  end
-
-            fun make () =
-              let val t = token ()
-              in
-               (* alert [token]; *)
-               (case t of
-                    String ss => [[ss][make ()]]
-                  | Bar => [|[make()]]
-                  (* done *)
-                  | NoToken => [])
-              end
-
-
-        in
-            make ()
-        end : string @ home
-
-    do renderhtml "Here is the test. It has [[links]] and {{templates}}, I guess."
+     do token ()
 
 in
 end
