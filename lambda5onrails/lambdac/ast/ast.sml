@@ -41,6 +41,7 @@ struct
   fun empty () = VM.empty
 
   fun sum l = foldr (VM.unionWith op+) VM.empty l
+  fun mult n m = VM.map (fn occ => occ * n) m
 
   (* memoize a unit -> 'a function so that it is only
      run the first time it is called. *)
@@ -107,13 +108,13 @@ struct
     (* get out early *)
     if isfree ast v
     then 
-      (* use precomputed freevar sets. *)
       let 
         (* we know the variable occurs, so the map will include all of obj's
-           free vars. *)
+           free vars (occurring as many times as the variable occurs) *)
+        val x = count ast v
         val m = remove v (force m)
-        val m = sum [force mobj, m] (* FIXME not sum. for each occurrence of v
-                                       we get all the occurrences in obj. *)
+        val multobj = mult x (force mobj)
+        val m = sum [multobj, m]
         val m = fn () => m
       in
         case f of

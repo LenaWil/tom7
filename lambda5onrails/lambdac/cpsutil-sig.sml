@@ -27,6 +27,10 @@ sig
   val pointwisee : (ctyp -> ctyp) -> (cval -> cval) -> (cexp -> cexp) -> cexp -> cexp
   val pointwisev : (ctyp -> ctyp) -> (cval -> cval) -> (cexp -> cexp) -> cval -> cval
 
+  val appwiset : (ctyp -> unit) -> ctyp -> unit
+  val appwisee : (ctyp -> unit) -> (cval -> unit) -> (cexp -> unit) -> cexp -> unit
+  val appwisev : (ctyp -> unit) -> (cval -> unit) -> (cexp -> unit) -> cval -> unit
+
   (* with a mapper for worlds as well *)
   val pointwisetw : (world -> world) -> (ctyp -> ctyp) -> ctyp -> ctyp
   val pointwiseew : (world -> world) -> (ctyp -> ctyp) -> (cval -> cval) -> (cexp -> cexp) -> cexp -> cexp
