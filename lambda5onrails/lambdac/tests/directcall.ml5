@@ -1,9 +1,11 @@
 unit
 
-  fun f x = (primapp Plus { } (x, 1)) : int @ home
+  val mm = 100
+
+  fun f x = (primapp Plus { } (x, mm)) : int @ home
 
   val y = f 4
-  val z = f 6
+  val z = f mm
 
   (* XXX also escape... *)
 (*

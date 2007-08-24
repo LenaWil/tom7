@@ -24,6 +24,7 @@ sig
 
   (* every context has the "current world" *)
   val empty : world -> context
+  val ctol : context -> Layout.layout
 
   (* all type variables have kind 0, but some are mobile *)
   val bindtype  : context -> var -> bool -> context
