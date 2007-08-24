@@ -3,9 +3,12 @@
    right ("most recent") dictionary, not just any old one in context. 
    see bugs/cloub.ml5 for failure.
 
-   I already fixed this, right?   -  5 Aug 2007 *)
+   I already fixed this, right?   -  5 Aug 2007
 
-(* This is a dirt simple implementation of closure conversion.
+   No. See bugs/direct-not-closed.ml5.     - 24 Aug 2007
+ *)
+
+(* This is a "simple" implementation of closure conversion.
 
    The Hemlock series of compilers had a very compilcated closure
    conversion algorithm that attempted to balance a number of
@@ -109,10 +112,16 @@
    E env. [env dict, { w; t; env, t dict } -> c]
 
 
-   23 Aug 2007
+
+   Addendum     23 Aug 2007
+
    It turns out it's actually much more difficult to undo closure
-   conversion than it is to do it somewhat well in the first place.
-   So we also implement some common cases of direct calls.
+   conversion than it is to do it somewhat well in the first place,
+   and that bad closure representations account for very large
+   fraction of the cost of running a program, in large part because
+   closures require the reification of type information as
+   dictionaries. So we also implement some common cases of direct
+   calls. See case_Primop below.
 
 *)
 
