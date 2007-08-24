@@ -488,11 +488,20 @@ struct
          (case (ctyp ` vok G fv, map (vok G) avl) of
             (Cont al, al') => if ListUtil.all2 ctyp_eq al al'
                               then ()
-                              else fail [$"argument mismatch at call.",
-                                         $"function's domain: ", TYL al,
-                                         $"actual: ", TYL al',
-                                         $"function exp: ", VA fv
-                                         ]
+                              else 
+                                let val f =
+                                  (case cval fv of
+                                     Var v => V.tostring v
+                                   | UVar v => "~" ^ V.tostring v
+                                   | _ => "?")
+                                in
+                                  fail [$"argument mismatch at call.",
+                                        $"function: ", $f,
+                                        $"function's domain: ", TYL al,
+                                        $"actual: ", TYL al',
+                                        $"function exp: ", VA fv
+                                        ]
+                                end
           | (ot, _) => fail [$"call to non-cont",
                              $"in exp: ", EX ` exp,
                              $"got: ", TY (ctyp' ot)]
