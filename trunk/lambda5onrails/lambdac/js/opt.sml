@@ -6,6 +6,14 @@ struct
       (SOME ("-jsshorten",
              "Shorten javascript variable names as much as possible")) "jsshorten"
 
+  val optdebug = Params.flag false
+      (SOME ("-jsoptdebug",
+             "Show information during js optimization")) "jsoptdebug"
+
+  fun dprint s = if !optdebug
+                 then print (s ^ "\n")
+                 else ()
+
   (* JS lib shadows some basis structure, urgh *)
   structure Basis =
   struct
@@ -156,7 +164,7 @@ struct
                 val G = 
                   foldl (fn ((x, x'), G) =>
                          let in
-                           print ("JS-opt: shorten arg " ^ Id.toString x ^ " -> " ^ Id.toString x' ^ "\n");
+                           dprint ("JS-opt: shorten arg " ^ Id.toString x ^ " -> " ^ Id.toString x');
                            IM.insert(G, x, (Id x', empty ++ x'))
                          end) G wargs
                 val args = map #2 wargs
@@ -271,7 +279,7 @@ struct
                 let
                   val G = IM.insert(G, i, (e, fv))
                 in
-                  print ("JS-opt: substituting " ^ Id.toString i ^ "\n");
+                  dprint ("JS-opt: substituting " ^ Id.toString i);
                   osl G sl
                 end
               else
@@ -282,7 +290,7 @@ struct
                     then 
                       let val i' = next_var ()
                       in 
-                        print ("JS-opt: shorten var " ^ Id.toString i ^ " -> " ^ Id.toString i' ^ "\n");
+                        dprint ("JS-opt: shorten var " ^ Id.toString i ^ " -> " ^ Id.toString i');
                         (IM.insert(G, i, (Id i', empty ++ i')), i')
                       end
                     else (G, i)
@@ -304,7 +312,7 @@ struct
                   else
                     (* drop the binding; unused *)
                     let in
-                      print ("JS-opt: dropping unused var " ^ Id.toString i ^ "\n");
+                      dprint ("JS-opt: dropping unused var " ^ Id.toString i);
                       (sl, fvs)
                     end
                 end

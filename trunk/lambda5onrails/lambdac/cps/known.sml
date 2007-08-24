@@ -184,7 +184,8 @@ struct
            | SOME _ => raise Known "known proj non-rec"
            | NONE => ID.case_Proj z s a)
       | _ => ID.case_Proj z s a
-(*
+
+
     fun case_TUnpack z (s as ({selfe, selfv, selft}, G)) 
                        (a as (tv, dv, xs, obj, bod)) =
        case cval obj of
@@ -209,7 +210,7 @@ struct
             | NONE => ID.case_TUnpack z s a)
           (* XXX also uvar *)
           | _ => ID.case_TUnpack z s a
-*)
+
   end
     
   structure K = PassFn(KA)
