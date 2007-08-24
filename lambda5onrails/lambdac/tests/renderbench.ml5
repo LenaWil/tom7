@@ -20,6 +20,7 @@ unit
         if t seq [PAGENAME]
         then SOME [ARTICLE]
         else NONE
+            : string option @ home
 
     fun renderhtml s =
         let

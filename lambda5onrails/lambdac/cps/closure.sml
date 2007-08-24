@@ -120,7 +120,7 @@
 structure Closure :> CLOSURE =
 struct
 
-  val opt_directcalls = Params.flag false
+  val opt_directcalls = Params.flag true
         (SOME ("-directcalls",
                "Implement direct calls in closure conversion")) "opt_directcalls"
 

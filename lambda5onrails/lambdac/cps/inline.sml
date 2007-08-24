@@ -94,18 +94,27 @@ struct
     (* hmm, this can cause duplication of closures since
        it will be closure converted... *)
     | AllLam { body = v, ... } => small v
+    | Fsel (v, _) => small v
+    | Lams [(v, a, e)] =>
+        (not (isvfreeine v e)
+         andalso smallfn e)
     | Inline _ => true
     | Codelab _ => true
     | _ => false
-   
+
+  and smallfn e =
+    case cexp e of
+      Halt => true
+    | Call (f, args) => small f andalso List.all small args
+    | _ => false
+  (* also cases with small branches? *)
+
   structure IA : PASSARG where type stuff = unit =
   struct
     type stuff = unit
     structure ID = IDPass(type stuff = unit
                           val Pass = Exn.Inline)
     open ID
-
-
 
     fun case_VLetsham (z : stuff) ({selfe, selfv, selft}, G) (u, va, vbod) =
       let 
@@ -146,6 +155,29 @@ struct
             end
         | _ => raise Exn.Inline "vletsham on non-shamrock"
       end
+
+    fun case_Primop z (s as ({selfe, selfv, selft}, G)) (a as ([v], CPS.BIND, [va], ebod)) =
+      let
+        val (va, t) = selfv z G va
+        val G = bindvar G v t ` worldfrom G
+        val ebod = selfe z G ebod
+        val inline =
+          if small va
+          then SOME "once"
+          else if countvine v ebod <= 1
+               then SOME "small"
+               else NONE
+
+      in
+        case inline of
+          SOME why =>
+            let in
+              score ("INLINE bind (" ^ why ^ ") " ^ V.tostring v) 100;
+              subve va v ebod
+            end
+        | NONE => Primop' ([v], CPS.BIND, [va], ebod)
+      end
+      | case_Primop z s a = ID.case_Primop z s a
 
     fun case_Letsham (z : stuff) ({selfe, selfv, selft}, G) (u, va, ebod) =
       let 

@@ -181,7 +181,7 @@ struct
                might erase dictionaries that we need, later
                (but we could create a dict-safe version, probably) *)
             val c = cpspass "DEAD" CPSDead.optimize G c
-            val c = cpspass "INLINE" CPSKnown.optimize G c
+            val c = cpspass "KNOWN" CPSKnown.optimize G c
             val c = cpspass "DEAD" CPSDead.optimize G c
 
             val () = print "\n\n**** HOIST: ****\n"
