@@ -108,6 +108,12 @@
 
    E env. [env dict, { w; t; env, t dict } -> c]
 
+
+   23 Aug 2007
+   It turns out it's actually much more difficult to undo closure
+   conversion than it is to do it somewhat well in the first place.
+   So we also implement some common cases of direct calls.
+
 *)
 
 
@@ -269,6 +275,71 @@ struct
                                             V.Set.union (iv, ivw))))
     end
 
+  (* for each of the free variables, give the wrapped value,
+     a function that unwraps that value to bind it within an
+     expression or value, and the type of the wrapped value. *)
+  fun getenv G (fv, fuv) : { value : cval,
+                             binde : cval  ->  cexp  ->  cexp,
+                                 (* freeval   openbody   res *)
+                             bindv : cval  ->  cval  ->  cval,
+                             basename : string,
+                             wrapped_typ : ctyp } list =
+    let
+      val fvs =  V.Set.foldr op:: nil fv
+      val fuvs = V.Set.foldr op:: nil fuv
+
+      (* avoid wrapping if we're at the same world already. *)
+      val here = worldfrom G
+      fun maybehold (world, value) =
+        if world_eq (world, here)
+        then value
+        else Hold' (world, value)
+      fun maybeat (typ, world) =
+        if world_eq (world, here)
+        then typ
+        else At' (typ, world)
+
+      fun maybeleta LET LETA world (var, value, body) =
+        if world_eq (world, here)
+        then LET  (var, value, body)
+        else LETA (var, value, body)
+
+
+      val fvs = map (fn v =>
+                     let val (t, w) = T.getvar G v
+                       
+                     in
+                       { wrapped_typ = maybeat (t, w),
+                         binde = (fn atv =>
+                                  fn exp =>
+                                   maybeleta Bind' Leta' w (v, atv, exp)),
+                         bindv = (fn atv =>
+                                  fn vbod =>
+                                   maybeleta 
+                                      (fn (v, atv, vbod) =>
+                                       subvv atv v vbod) 
+                                      VLeta' w (v, atv, vbod)),
+                         value = maybehold (w, Var' v),
+                         basename = Variable.basename v }
+                     end) fvs
+      val fuvs = map (fn v =>
+                      let val w't = T.getuvar G v
+                      in
+                        { value = Sham0' (UVar' v),
+                          binde = (fn shv =>
+                                   fn exp =>
+                                    Letsham' (v, shv, exp)),
+                          bindv = (fn shv =>
+                                   fn vbod =>
+                                    VLetsham' (v, shv, vbod)),
+                          wrapped_typ = Shamrock' w't,
+                          basename = Variable.basename v }
+                      end) fuvs
+
+    in
+      fvs @ fuvs
+    end
+
   (* mkenv G (fv, fuv)
      in the context G, make the environment that consists of the free vars fv and
      the free uvars fuv. return the environment value, its type, and two wrapper
@@ -284,8 +355,6 @@ struct
       val lab = ref 1 (* start at 1 to make these tuples, so they
                          pretty-print nicer *)
       fun new () = (Int.toString (!lab) before lab := !lab + 1)
-      val fvs =  V.Set.foldr op:: nil fv
-      val fuvs = V.Set.foldr op:: nil fuv
 
       (*
       val () = print "mkenv FV: "
@@ -294,41 +363,18 @@ struct
       val () = app (fn v => print (V.tostring v ^ " ")) fuvs
       val () = print "\n"
       *)
-
-      val fvs = map (fn v =>
-                     let val (t, w) = T.getvar G v
-                       
-                     in
-                       { label = new (), 
-                         typ = t,
-                         world = w,
-                         var = v }
-                     end) fvs
-      val fuvs = map (fn v =>
-                      let val t = T.getuvar G v
-                      in
-                        { label = new (),
-                          typ = t,
-                          var = v }
-                      end) fuvs
       
-      (* avoid wrapping if we're at the same world already. *)
-      val here = worldfrom G
-      fun maybehold (world, value) =
-        if world_eq (world, here)
-        then value
-        else Hold' (world, value)
-      fun maybeat (typ, world) =
-        if world_eq (world, here)
-        then typ
-        else At' (typ, world)
-
+      val env = getenv G (fv, fuv)
+      val env = map (fn { value, bindv, binde, basename, wrapped_typ } =>
+                     { value = value,
+                       bindv = bindv,
+                       binde = binde,
+                       basename = basename,
+                       wrapped_typ = wrapped_typ,
+                       label = new () }) env
+(*
       fun dowrap LETA LETSHAM LET env x =
         let
-          fun maybeleta world (var, value, body) =
-            if world_eq (world, here)
-            then LET (var, value, body)
-            else LETA (var, value, body)
             
           val x = foldr (fn ({label, typ, var}, x) =>
                          LETSHAM (var, Proj' (label, env), x)) x fuvs
@@ -337,21 +383,24 @@ struct
         in
           x
         end
-
+*)
     in
       { env = Record' `
-              (map (fn { label, typ, world, var } =>
-                    (label, maybehold (world, Var' var))) fvs @
-               map (fn { label, typ, var } =>
-                    (label, Sham' (V.namedvar "unused", UVar' var))) fuvs),
+              map (fn { label, value, ... } => (label, value)) env,
         envt = Product' `
-               (map (fn { label, typ, world, var } =>
-                     (label, maybeat (typ, world))) fvs @
-                map (fn { label, typ, var } =>
-                     (label, Shamrock' typ)) fuvs),
-        wrape = fn (env, v) => dowrap Leta' Letsham' Bind' env v,
-        (* substitution should be okay, since it's a small thing (projection from a var) *)
-        wrapv = fn (env, v) => dowrap VLeta' VLetsham' (fn (v, va, bod) => subvv va v bod) env v
+               map (fn { label, wrapped_typ, ... } => (label, wrapped_typ)) env,
+
+        wrape = 
+           foldr (fn ({ label, binde : cval -> cexp -> cexp, ... }, 
+                      k : cval * cexp -> cexp) =>
+                  (fn (envr : cval, e : cexp) => binde (Proj' (label, envr)) (k (envr,e))))
+                  (fn (_ : cval, e : cexp) => e) env,
+
+        wrapv = 
+           foldr (fn ({ label, bindv, ... }, k) =>
+                  fn (envr, va) => bindv (Proj' (label, envr)) (k (envr, va)))
+                  (fn (_, va) => va) env
+
         }
     end
 
@@ -389,7 +438,8 @@ struct
       | case_AllArrow _ _ { worlds, tys, vals, body } = 
       raise Closure "unimplemented allarrow"
 
-    fun case_TExists _ _ _ = raise Closure "wasn't expecting to see Exists before closure conversion"
+    fun case_TExists _ _ _ = 
+      raise Closure "wasn't expecting to see Exists before closure conversion"
 
 
 
@@ -434,7 +484,73 @@ struct
 
       | case_Primop z ({selfe, selfv, selft}, G)  (_, SAY_CC, _, _) =
       raise Closure "unexpected SAY_CC before closure conversion"
-      | case_Primop z c e = ID.case_Primop z c e
+
+      (* Potential direct call. *)
+      | case_Primop z (c as ({selfe, selfv, selft}, G)) 
+                      (a as ([v], CPS.BIND, [obj], ebod)) =
+        (case cval obj of
+           Fsel(l, n) =>
+             (case cval l of
+                Lams vael =>
+                  let
+                    fun recursive vael =
+                      let
+                        val fs = map #1 vael
+                      in
+                        List.exists (fn v =>
+                                     List.exists (fn (_, _, e) => isvfreeine v e) vael) fs
+                      end
+
+                    (* are all occurrences direct? *)
+                    exception NotDirect
+                    fun ndtyp _ = ()
+
+                    fun ndval va =
+                      (case cval va of
+                         Var vv =>
+                           if V.eq(vv, v)
+                           then raise NotDirect
+                           else ()
+                       | _ => appwisev ndtyp ndval ndexp va)
+
+                    and ndexp exp =
+                      (case cexp exp of
+                         Call (f, args) =>
+                           let
+                             val () = app ndval args
+                           in
+                             case cval f of
+                               Var vv => () (* okay *)
+                             | _ => ndval f
+                           end
+                       | _ => appwisee ndtyp ndval ndexp exp)
+
+                    (* check the whole scope (body) for escapes. *)
+                  in
+                     let 
+                       val () = ndexp ebod
+                         
+                       val lams = ([v], CPS.BIND, [obj], ebod)
+                     in
+                       (* XXX can't handle recursive functions yet *)
+                       if recursive vael
+                       then (print "XXX recursive!!";
+                             raise NotDirect)
+                       else ();
+
+                         (* raise Closure "unimplemented: direct calls" *)
+                         print "XXXXXXXX unimplemented: direct calls\n";
+                         raise NotDirect
+                     end handle NotDirect =>
+                       let in
+                         print (V.tostring v ^ " escapes\n");
+                         ID.case_Primop z c a
+                       end
+                  end
+              | _ => ID.case_Primop z c a)
+         | _ => ID.case_Primop z c a)
+
+      | case_Primop z c a = ID.case_Primop z c a
 
 
     (* go [w; a] e

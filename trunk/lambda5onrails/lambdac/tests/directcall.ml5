@@ -4,6 +4,13 @@ unit
 
   val y = f 4
   val z = f 6
+
+  (* XXX also escape... *)
+(*
+  fun I f = f
+  do I f
+  do I f
+*)
 in
   export val y = y
   export val z = z

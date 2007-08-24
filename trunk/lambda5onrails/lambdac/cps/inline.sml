@@ -114,10 +114,11 @@ struct
           (* only if this is an immediate sham. *)
           case cval va of
             Sham (w, vas) =>
-              if (countuinv u vbod <= 1
-                  orelse small vas)
-              then SOME (w, vas)
-              else NONE
+              if countuinv u vbod <= 1
+              then SOME (w, vas, "once")
+              else if small vas
+                   then SOME (w, vas, "small")
+                   else NONE
           | _ => NONE
 
       in
@@ -129,7 +130,7 @@ struct
               fun noinline () = (VLetsham' (u, va, vbod), te)
             in
               case inline of
-                SOME (ww, vas) =>
+                SOME (ww, vas, why) =>
                   (* PERF we can inline even if w appears,
                      it's just that it's difficult to substitute
                      because we don't know the home world at the
@@ -137,7 +138,7 @@ struct
                   if not (iswfreeinv ww vas)
                   then 
                     let in 
-                      score ("INLINE " ^ V.tostring u) 100;
+                      score ("INLINE (" ^ why ^ ") " ^ V.tostring u) 100;
                       (subuv vas u vbod, te)
                     end
                   else noinline ()
@@ -153,10 +154,11 @@ struct
           (* only if this is an immediate sham. *)
           case cval va of
             Sham (w, vas) =>
-              if (countuine u ebod <= 1
-                  orelse small vas)
-              then SOME (w, vas)
-              else NONE
+              if countuine u ebod <= 1
+              then SOME (w, vas, "once")
+              else if small vas
+                   then SOME (w, vas, "small")
+                   else NONE
           | _ => NONE
 
       in
@@ -168,7 +170,7 @@ struct
               fun noinline () = Letsham' (u, va, ebod)
             in
               case inline of
-                SOME (ww, vas) =>
+                SOME (ww, vas, why) =>
                   (* PERF we can inline even if w appears,
                      it's just that it's difficult to substitute
                      because we don't know the home world at the
@@ -176,7 +178,7 @@ struct
                   if not (iswfreeinv ww vas)
                   then 
                     let in 
-                      score ("INLINE " ^ V.tostring u) 100;
+                      score ("INLINE (" ^ why ^ ") " ^ V.tostring u) 100;
                       subue vas u ebod
                     end
                   else noinline ()

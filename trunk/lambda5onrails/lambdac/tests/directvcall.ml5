@@ -1,8 +1,8 @@
 unit
-
   fun f x = (primapp Plus { } (x, 1))
 
   val y = f 4
+  val z = f 6
 in
   export val y = y
 end

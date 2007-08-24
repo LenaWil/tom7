@@ -128,6 +128,20 @@ struct
   fun pointwisee ft fv fe exp = pointwiseew (fn w => w) ft fv fe exp
   fun pointwisev ft fv fe value = pointwisevw (fn w => w) ft fv fe value
 
+  val ttt = Product' nil
+  val vvv = Int' (IntConst.fromInt 0)
+  val eee = Halt'
+
+  fun appwiset ft typ = ignore ` pointwiset (fn t => (ft t; ttt)) typ
+  fun appwisev ft fv fe value =
+    ignore `
+    pointwisev (fn t => (ft t; ttt)) (fn v => (fv v; vvv)) (fn e => (fe e; eee)) 
+               value
+  fun appwisee ft fv fe exp =
+    ignore `
+    pointwisee (fn t => (ft t; ttt)) (fn v => (fv v; vvv)) (fn e => (fe e; eee)) 
+               exp
+
   fun occursw var (w : world) =
     case world w of
       W var' => if V.eq (var, var') then raise Occurs else w
