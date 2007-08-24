@@ -22,15 +22,18 @@ Other performance improvements
   * We should really generate more compact representations of sums and products
     by using numbered fields. It is silly to be comparing strings "true" and "false"
     at runtime...
+  * recursive direct calls
+  * direct calls to polymorphic and valid functions
 
 Passes to implement:
 
 CPS Optimization
   * really should run optimization rounds in a loop.
-  * there are some optimizations now, but they should be expanded.
-    especially good would be unused argument removal. (dicts)
+  * unused argument removal post-undict would be great, but
+    the code is pretty messed up at that point...
   * "globals" so that we do not need to pass around Match and Sub
-    everywhere we go. I think this would be huge...
+    everywhere we go. I think this would be the biggest optimization we could
+    make. (But also one of the hardest.)
   * 'known' names subterms and therefore could interfere with later optimizations.
     an inlining phase would undo this.
   * already-bound, prevent recreation of things that are already bound
