@@ -1,0 +1,20 @@
+(* This generates a few functions (hoisted case returns)
+   which are direct calls. The bug in closure conversion was
+   that we were not identifying direct-called functions after
+   they were stuck inside other function's closures (because
+   the were renamed) and therefore trying to convert them
+   as closure calls. *)
+
+unit
+
+     fun token () = 
+         let in
+             case ?| of
+                 ?| => (case 0 of _ => 1234)
+               | _ => 5678
+         end
+
+     do token ()
+
+in
+end

@@ -405,6 +405,7 @@ struct
         }
     end
 
+  (* PERF no longer using this variable set. we use the type information *)
   structure VS = Variable.Set
   type stuff = VS.set
 
@@ -454,38 +455,52 @@ struct
        allarrow   alllam      allapp
        *)
 
+    (* This may be a closure call or an (already converted) direct call.
+       We don't try to track the flow of particular values: even
+       functions that initially are all direct calls--and so can be
+       identified by a single binder--can later be put inside closures
+       and therefore renamed. Instead, we use the type of the thing
+       we're calling to determine how the call should be made. If it
+       is a packed existential type, then it is a closure call. If it
+       is a bare continuation, then it is a direct call. *)
     fun case_Call z (s as ({selfe, selfv, selft}, G)) (a as (f, args)) =
-      if (case cval f of
-            Var v => VS.member (z, v)
-          | _ => false)
-      then
-        let in
-          print ("direct call to ");
-          Layout.print (CPSPrint.vtol f, print);
-          print "\n";
-          (* this was already converted as a direct call, then. *)
-          ID.case_Call z s a
-        end
-      else
-         let
-           val (f, ft) = selfv z G f
-           val (args, argts) = ListPair.unzip ` map (selfv z G) args
-           val vu = V.namedvar "envd"
-           val envt = V.namedvar "envt"
-           val envv = V.namedvar "env"
+      let
+        val (f, ft) = selfv z G f
+      in
+        case ctyp ft of
+          Cont _ => 
+            let in
+              (*
+              print ("direct call to ");
+              Layout.print (CPSPrint.vtol f, print);
+              print "\n";
+              *)
+              (* this was already converted as a direct call, then. *)
+              ID.case_Call z s a
+            end
+        | TExists _ => 
+            let
+              val (args, argts) = ListPair.unzip ` map (selfv z G) args
+              val vu = V.namedvar "envd"
+              val envt = V.namedvar "envt"
+              val envv = V.namedvar "env"
 
-           val fv = V.namedvar "f"
-         in
-           print ("closure call to ");
-           Layout.print (CPSPrint.vtol f, print);
-           print "\n";
-           TUnpack' (envt,
-                     vu,
-                     [(envv, TVar' envt),
-                      (fv, Cont' (TVar' envt :: argts))],
-                     f,
-                     Call'(Var' fv, Var' envv :: args))
-         end
+              val fv = V.namedvar "f"
+            in
+              (*
+              print ("closure call to ");
+              Layout.print (CPSPrint.vtol f, print);
+              print "\n";
+              *)
+              TUnpack' (envt,
+                        vu,
+                        [(envv, TVar' envt),
+                         (fv, Cont' (TVar' envt :: argts))],
+                        f,
+                        Call'(Var' fv, Var' envv :: args))
+            end
+        | _ => raise Closure "for a call, we expect a raw cont (direct call) or texists (closure call)"
+      end
 
     fun free_vars_lams G value =
       let

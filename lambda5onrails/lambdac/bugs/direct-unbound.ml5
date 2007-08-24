@@ -1,43 +1,15 @@
+(* This doesn't have anything to do with direct calls, but
+   was found while hunting for another bug. *)
+
 unit
-    import "std.mlh"
-        
+
     fun renderhtml s =
         let
-            datatype tok =
-                NoToken
-              | String of string
-              | Bar
-              | OLink
-              | CLink
-              | OTempl
-              | CTempl
 
-            val off = ref 0
-            fun token () =  Bar
-(*
-                  let
-                      fun eat () = Bar
-                  in
-                      eat ()
-                  end
-*)
-            fun make () =
-              let val t = token ()
-              in
-               (* alert [token]; *)
-               (case t of
-                    String ss => [[ss][make ()]]
-                  | Bar => [|[make()]]
-                  (* these are probably syntax errors... *)
-                  | CTempl => [["}}"][make ()]]
-                  | CLink => [["]]"][make ()]]
-                  | OLink => getlink ()
-                  | OTempl => gettempl ()
-                  (* done *)
-                  | NoToken => [])
-              end
+            fun token () =  0
 
-            and gettempl () = "blah"
+            fun make () = getlink ()
+
             and getlink () = "poop"
         in
             make ()

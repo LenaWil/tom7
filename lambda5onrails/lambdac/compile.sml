@@ -2,7 +2,7 @@
 structure Compile :> COMPILE =
 struct
 
-    val showil = Params.flag false
+    val showil = Params.flag true
         (SOME ("-showil",
                "Show internal language AST")) "showil"
 
