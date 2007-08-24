@@ -232,12 +232,14 @@ unit
                     val t = target ()
                 in
                     (* PERF say leaks *)
-                    [<span class="wikilink" onclick="[say goto-article t]">[t]</span>[make ()]]
+                    [[linkto t][make ()]]
                 end
         in
             (* alert [renderhtml]; *)
             make ()
         end : string @ home
+
+    and linkto t = [<span class="wikilink" onclick="[say goto-article t]">[t]</span>]
 
     (* to go to an article, we fetch its source from the server, then change the
        current article name, ... 
@@ -300,6 +302,24 @@ unit
             else ()
         end
 
+    fun page-article () =
+        let in
+            (* turn on rendered display, hide edit box. *)
+            dom.setstring(dom.getnode(dom.getbyid id.rendered, [style]),
+                          [display], [block]);
+            dom.setstring(dom.getnode(dom.getbyid id.source, [style]),
+                          [display], [none])
+        end
+
+    fun page-edit () =
+        let in
+            (* turn on rendered display and edit box. *)
+            dom.setstring(dom.getnode(dom.getbyid id.rendered, [style]),
+                          [display], [block]);
+            dom.setstring(dom.getnode(dom.getbyid id.source, [style]),
+                          [display], [block])
+        end
+
     do dom.setstring 
         (dom.getbyid [page],
          [innerHTML],
@@ -308,25 +328,26 @@ unit
            <center><img src="/logo.png" /></center>
            <br/>
            <div class="sidebar">
-             <a class="blue" href="/default/home">Home page</a><br/>
-             <a class="red" href="/default/featured">Featured content</a><br/>
-             <a class="blue" href="/default/TPL">License</a><br/>
-             <a class="blue" href="/default/about">About SERVER5</a><br/>
+             [linkto [main]]<br/>
+             [linkto [about]]<br/>
            </div>
           </div> <!-- container -->
           
           <div style="margin-left:140;" id="content">
            <div class="tabs">
             <span class="userimage" style="float:right">
-             <a class="blue" href="/default/128.2.203.136">128.2.203.136</a></span>
-            <span class="tab"><a href="/view/_/home">these</a></span>
-            <span class="tab"><a href="/edit/home">tabs</a></span>
+             [linkto [128.2.203.136]]
+            </span>
+            <span class="tab"><span class="clicktab" onclick="[say page-article ()]">article</a></span>
+            <span class="tab"><span class="clicktab" onclick="[say page-article ()]">edit</a></span>
+            <!--
             <span class="tab"><a href="/history/home">don't</a></span>
             <span class="tab"><a href="/run/home">do anything yet</a></span>
+            -->
            </div>
            <div id="[id.articlename]" class="heading">articlename</div> <br />
 
-          <div id="[id.rendered]" class="rendered">rendered contents</div> <br />
+          <div id="[id.rendered]" class="rendered"><span class="rendermessage">please wait...</span></div> <br />
           <textarea id="[id.source]" onkeyup="[say source-keyup ()]" class="source">the source code</textarea>
           <br /><div class="button" onclick="[say try-render ()]">render</div>
           <br /><div class="button" onclick="[say save ()]">save</div>
@@ -338,7 +359,7 @@ unit
 
     do goto-article [main]
 
-    do js.setinterval (say every-second (), 3000)
+    do js.setinterval (say every-second (), 1500)
 
 in
 end

@@ -1,5 +1,6 @@
        .tabs { border-bottom : 1px solid #000000 ; padding-left : 8px ; }
        .tab { font : 12px Verdana,Arial,Helvetica ; padding : 2px 4px 1px 4px ; margin-left : 2px ; margin-right : 6px ; border-top : 1px solid #333333 ; border-left : 1px solid #111111 ; border-right : 1px solid #000000 ; background: #FFFFFF ;}
+       .clicktab { color : #4444DD ; cursor : pointer ; text-decoration : underline }
 
        A:link { color: #4444DD }
        A:visited { color: #9999FF }
@@ -7,6 +8,7 @@
 
        span.wikilink { color : #4444DD ; cursor : pointer ; text-decoration : underline }
        span.unknowntemplate { color : #DD4444 ; font-weight : bold }
+       span.rendermessage { color : #666666 ; font-size : 18px }
 
        A.red:link { color : #DD4444 }
        A.red:visited { color : #DD4444 }

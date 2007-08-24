@@ -450,7 +450,7 @@ function lc_handle_toclient() {
 	// alert('got server message!');
 	lc_message('got server message');
 	var m = lc_toclient.responseText;
-	if (m == '') {
+	if (m == undefined || m == '') {
 	    lc_error('server message is empty, assuming termination');
 	} else {
 	    // lc_message(escape(m));
