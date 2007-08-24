@@ -1,0 +1,22 @@
+(* This bug occurred when direct calls were turned on.
+   the function page-article was not closed to the dictionary uvar for dom.node.
+*)
+
+unit
+    extern type dom.node = lc_domnode
+    extern val dom.getbyid : string -> dom.node @ home = lc_document_getelementbyid
+
+    (* do primapp Ref { string -> dom.node } ( dom.getbyid ) *)
+
+    fun page-article () =
+        let in
+            dom.getbyid [id.source];
+            ()
+        end
+
+    do dom.getbyid [page]
+    do page-article ()
+    do page-article ()
+
+in
+end
