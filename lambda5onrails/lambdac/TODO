@@ -4,6 +4,9 @@ produces closed code) that are redundant to type checking and other
 later checks. We ought to run these only when a "paranoid" flag is
 set.
 
+Computation of the number of free variable occurrences might be wrong?
+It looks like we inline records, which we shouldn't do unless there is
+only 1 occurrence.
 
  Should support "extern mobile type" (easy, just check
  mobility with concrete type at link time); see Dagstuhl

@@ -80,6 +80,18 @@ struct
           end
       | _ => ID.case_AllApp z s a
 
+    fun case_Proj z (s as ({selfe, selfv, selft}, G)) (a as (lab, va)) =
+      case cval va of
+        Record lvl =>
+          (case ListUtil.Alist.find op= lvl lab of
+             NONE => raise Reduce "bad constant proj"
+           | SOME va' =>
+               let in
+                 score "PROJ" 100;
+                 selfv z G va'
+               end)
+      | _ => ID.case_Proj z s a
+
     fun case_Call z (s as ({selfe, selfv, selft}, G))  (a as (f, actualargs)) =
       case cval f of
         Fsel (f, n) =>
@@ -101,7 +113,7 @@ struct
                      selfe z G body
                    end
                end
-      | _ => ID.case_Call z s a)
+           | _ => ID.case_Call z s a)
       | _ => ID.case_Call z s a
 
   end
