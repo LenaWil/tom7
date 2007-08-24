@@ -216,11 +216,11 @@ struct
                *)
             fun hoist k ctx (ile, ilt) =
                 let
-                    val nfs = newstr "hoist"
+                    val nfs = newstr ("hoist_" ^ Nonce.nonce ())
                     val nfv = V.namedvar nfs
 
                     val ignored = V.namedvar "ignored"
-                    val unused = V.namedvar "unused"
+                    val nonrec = V.namedvar "nonrec"
 
                     val nctx =
                         C.bindv ctx nfs (mono (I.Arrow(false, 
@@ -238,7 +238,7 @@ struct
                                    I.Arrow(false, [I.TRec nil], ilt),
                                    I.Value `
                                    I.FSel (0, 
-                                           I.Fns[{ name = unused,
+                                           I.Fns[{ name = nonrec,
                                                    arg = [ignored],
                                                    dom = [I.TRec nil],
                                                    cod = ilt,

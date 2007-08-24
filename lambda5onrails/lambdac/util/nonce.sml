@@ -17,7 +17,8 @@ struct
     "topaz", "ruby", "sapphire", "hubris", "fluorite", "myriad",
     "cheese", "onions", "phlegm", "melisma", "jurist", "hacienda",
     "limerick", "effete", "azimuth", "pepper", "inchoate", "opera",
-    "sanguine", "runabout", "whorl", "humanist", "victive", "octave"
+    "sanguine", "runabout", "whorl", "humanist", "victive", "octave",
+    "cartridge", "gamete", "ootid", "syzygy", "rampart", "filmic"
     ]
 
   val ctr = ref 0
