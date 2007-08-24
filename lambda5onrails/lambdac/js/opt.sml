@@ -2,6 +2,17 @@
 structure JSOpt :> JSOPT =
 struct
   
+  val shorten = Params.flag true
+      (SOME ("-jsshorten",
+             "Shorten javascript variable names as much as possible")) "jsshorten"
+
+  (* JS lib shadows some basis structure, urgh *)
+  structure Basis =
+  struct
+    structure String = String
+
+  end
+
   open JSSyntax
 
   infixr 9 `
@@ -13,6 +24,24 @@ struct
 
   structure IS = Id.Set
   structure IM = Id.Map
+
+  (* Javascript has bizarre (insane?) scope rules. The
+     only scope we will take for granted is function scope. *)
+  val varnum = ref 0
+  fun reset_scope () = varnum := 0
+  fun next_var () =
+    let
+      (* XXX can use numbers, too, if we have varsecondchars.. *)
+      val varchars = "abcdefghijklmnopqrstuvwxyz"
+      val chs = size varchars
+      (* start with 1, otherwise we get bare dollar sign *)
+      val () = varnum := !varnum + 1
+      fun varstr 0 = [#"$"]
+        | varstr n =
+        Basis.String.sub(varchars, n mod chs) :: varstr (n div chs)
+    in
+      Id.fromString ` implode ` varstr ` !varnum
+    end
 
   type fvset = IS.set
   val empty = IS.empty
@@ -115,13 +144,32 @@ struct
         end
     | Function { name, args, body } => 
         let
+          val (args, G) =
+            if !shorten
+            then 
+              let 
+                (* XXX safe because functions are always in outermost
+                   scope for us. but we should probably check this
+                   and fail if not *)
+                val () = reset_scope ()
+                val wargs = ListUtil.mapto (next_var o ignore) ` vtol args
+                val G = 
+                  foldl (fn ((x, x'), G) =>
+                         let in
+                           print ("JS-opt: shorten arg " ^ Id.toString x ^ " -> " ^ Id.toString x' ^ "\n");
+                           IM.insert(G, x, (Id x', empty ++ x'))
+                         end) G wargs
+                val args = map #2 wargs
+              in
+                (Vector.fromList args, G)
+              end
+            else (args, G)
+
           val bound = (case name of NONE => nil | SOME n => [n]) @ vtol args
           val (body, fv) = osl G ` vtol body
             
           val fv = foldr (fn (v, fv) => fv -- v) fv bound
         in
-          (* PERF could shorten variables names if we want here 
-             (trivial if they are unused) *)
           (* PERF could remove recursive var if unused, but we don't make
              recursive or named functions *)
           (Function { name = name, args = args, body = % body },
@@ -229,6 +277,16 @@ struct
               else
                 (* too big to subst, but could maybe drop it. *)
                 let
+                  val (G, i) =
+                    if !shorten andalso not (globalsave ?? i)
+                    then 
+                      let val i' = next_var ()
+                      in 
+                        print ("JS-opt: shorten var " ^ Id.toString i ^ " -> " ^ Id.toString i' ^ "\n");
+                        (IM.insert(G, i, (Id i', empty ++ i')), i')
+                      end
+                    else (G, i)
+
                   val (sl, fvs) = osl G sl
                 in
                   (* also check whether this is one of the "exports" from

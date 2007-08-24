@@ -120,6 +120,10 @@
 structure Closure :> CLOSURE =
 struct
 
+  val opt_directcalls = Params.flag false
+        (SOME ("-directcalls",
+               "Implement direct calls in closure conversion")) "opt_directcalls"
+
   structure V = Variable
   structure VS = Variable.Set
   open CPS CPSUtil
@@ -586,6 +590,11 @@ struct
                     (* check the whole scope (body) for escapes. *)
                   in
                      let 
+                       (* disable optimization if turned off *)
+                       val () = if !opt_directcalls
+                                then ()
+                                else raise NotDirect
+
                        val () = ndexp ebod
                        val () =
                          (* XXX can't handle recursive functions yet *)
