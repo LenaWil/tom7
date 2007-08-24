@@ -1,6 +1,10 @@
 (* This doesn't have anything to do with direct calls, but
-   was found while hunting for another bug. *)
+   was found while hunting for another bug.
 
+   There were two: Elaboration tried to read a mutually recursive
+   bundle as a modal var despite creating it as a valid var. Also,
+   the reduce optimization tried to reduce mutually recursive bundles
+   in some cases, which it should not do. *)
 unit
 
     fun renderhtml s =
