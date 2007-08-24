@@ -114,11 +114,15 @@ struct
             val il = getil file
 
             val () = print "\n\n**** ELABORATED: ****\n"
-            val () = Layout.print( ILPrint.utol il, print)
+            val () = if !showil
+                     then Layout.print( ILPrint.utol il, print)
+                     else ()
 
             val () = print "\n\n**** UNUSED: ****\n"
             val il = ILUnused.unused il
-            val () = Layout.print( ILPrint.utol il, print)
+            val () = if !showil
+                     then Layout.print( ILPrint.utol il, print)
+                     else ()
 
             val cw = CPS.WC' Initial.homename
 
