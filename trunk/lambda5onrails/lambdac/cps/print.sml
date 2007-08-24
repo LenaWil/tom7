@@ -276,7 +276,8 @@ struct
                % [$"extern", wktol k, $"world", $l] :: estol rest
 
          | Native { var, po, tys, args, bod } => 
-             %[$"native", varl var, $"=", $(Primop.tostring po), 
+             %[%[%[$"native", varl var, $"="], $(Primop.tostring po)], 
+               L.indent 2 `
                (case tys of
                   nil => %[]
                 | _ => L.indent 2 ` L.listex "<" ">" "," ` map ttol tys),

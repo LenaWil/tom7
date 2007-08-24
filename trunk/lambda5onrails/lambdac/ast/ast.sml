@@ -112,7 +112,7 @@ struct
         (* we know the variable occurs, so the map will include all of obj's
            free vars (occurring as many times as the variable occurs) *)
         val x = count ast v
-        val m = remove v (force m)
+        val m = remove v (freevars ast)
         val multobj = mult x (force mobj)
         val m = sum [multobj, m]
         val m = fn () => m

@@ -10,6 +10,10 @@ struct
         (SOME ("-showcps",
                "Show internal CPS after each phase")) "showcps"
 
+    val writecps = Params.flag true
+        (SOME ("-writecps",
+               "Write the final CPS program to disk")) "writecps"
+
     val optil = Params.flag false
         (SOME ("-optil", 
                "Optimize the intermediate language")) "optil"
@@ -190,6 +194,18 @@ struct
               
             val () = T.checkprog p
             val () = print "\n* Typechecked OK *\n"
+
+            val () = if !writecps
+                     then 
+                       let 
+                         val n = base ^ ".cps"
+                         val f = TextIO.openOut n
+                       in
+                         Layout.print(CPSPrint.ptol p, fn s => TextIO.output(f, s));
+                         TextIO.closeOut f;
+                         print ("Wrote " ^ n ^ "\n")
+                       end
+                     else ()
 
             (* would be nice to have another optimization phase here... *)
             val code = Codegen.generate p
