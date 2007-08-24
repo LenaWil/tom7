@@ -15,6 +15,7 @@ val () =
     case Params.docommandline () of
         nil => 
           (let in
+             TrivialDB.init ();
              Loop.init ();
              Loop.loop ()
            end handle e => print ("ERROR: " ^ message e ^ "\n")
