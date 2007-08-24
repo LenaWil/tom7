@@ -1,13 +1,7 @@
+(* We don't allow valid functions as exports, but we should. *)
+
 unit
-(*
-    extern bytecode world server
-    extern val server ~ server addr
-*)
-
-(* fun vswap (a : int, b : string) = (b, a) *)
     fun vswap () = primapp Halt { int } ()
-
-(*     val z = vswap (0, "hello") *)
 in
     export val z = vswap
 end
