@@ -88,8 +88,8 @@ struct
                let
                  val (vrec, args, body) = List.nth (l, n) handle _ => raise Reduce "fsel out of bounds"
                in
-                 (* refuse if recursive. *)
-                 if isvfreeine vrec body
+                 (* refuse if THIS body calls ANY other recursive var in the bundle *)
+                 if List.exists (fn (v, _, _) => isvfreeine v body) l
                  then ID.case_Call z s a
                  else
                    let

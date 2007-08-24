@@ -1214,6 +1214,12 @@ struct
                                   Letsham(Poly ({worlds = worlds, tys = tys},
                                                 (v, t, Sham (wv, e))))
                                   )
+              
+              (* we bind the bundle as a var or uvar.. *)
+              val PolyOccur =
+                  case maybevalid of
+                    NONE => Polyvar
+                  | SOME_ => Polyuvar
           in
             (*
             print "binding fun:\n";
@@ -1241,9 +1247,9 @@ struct
                                        bind ` mkpoly tps wps ` (name, 
                                                                 Arrow (false, dom, cod), 
                                                                 FSel(i, 
-                                                                     Polyvar { tys = map TVar tps,
-                                                                               worlds = map WVar wps,
-                                                                               var = bundv }))
+                                                                     PolyOccur { tys = map TVar tps,
+                                                                                 worlds = map WVar wps,
+                                                                                 var = bundv }))
                                      end) fs,
                       fctx)
                    end

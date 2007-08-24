@@ -3,6 +3,10 @@
 structure CPSPrint :> CPSPRINT =
 struct
 
+  val alwaysshow = Params.flag true
+        (SOME ("-alwaysshow",
+               "Always show vars (even when unbound) in CPS")) "alwaysshowcps"
+
   infixr 9 `
   fun a ` b = a b
 
@@ -360,17 +364,17 @@ struct
 
 
   and vbindt v t =
-    if CPSUtil.freet v t
+    if !alwaysshow orelse CPSUtil.freet v t
     then varl v
     else $"_"
 
   and vbindv v va =
-    if CPSUtil.freev v va
+    if !alwaysshow orelse CPSUtil.freev v va
     then varl v
     else $"_"
 
   and vbinde v e =
-    if CPSUtil.freee v e
+    if !alwaysshow orelse CPSUtil.freee v e
     then varl v
     else $"_"
 
