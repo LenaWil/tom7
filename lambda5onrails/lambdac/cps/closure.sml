@@ -386,18 +386,7 @@ struct
                        basename = basename,
                        wrapped_typ = wrapped_typ,
                        label = new () }) env
-(*
-      fun dowrap LETA LETSHAM LET env x =
-        let
-            
-          val x = foldr (fn ({label, typ, var}, x) =>
-                         LETSHAM (var, Proj' (label, env), x)) x fuvs
-          val x = foldr (fn ({label, typ, world, var}, x) =>
-                         maybeleta world (var, Proj' (label, env), x)) x fvs
-        in
-          x
-        end
-*)
+
     in
       { env = Record' `
               map (fn { label, value, ... } => (label, value)) env,
@@ -638,6 +627,16 @@ struct
 
                                 val e = foldr (fn ({ binde, var, ... }, e) =>
                                                binde (Var' var) e) e env
+
+                                (* we are closing this lambda over all of its
+                                   dynamic free variables, so we should type
+                                   check it in an empty dynamic context. This
+                                   is required for correctness, because getdict
+                                   might return ANY dictionary in scope for a
+                                   type variable, and we don't want it to return
+                                   a dictionary from an outer scope, creating an
+                                   open lambda. *)
+                                val G = T.cleardyn G
 
                                 (* XXX and the recursive vars! *)
                                 (* don't forget to update z so it is not a closure call *)

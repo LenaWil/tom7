@@ -244,6 +244,7 @@ unit
     (* to go to an article, we fetch its source from the server, then change the
        current article name, ... 
        XXX should lock
+       XXX should replace rendered contents with "please wait..." message
        *)
     and goto-article name =
         let
