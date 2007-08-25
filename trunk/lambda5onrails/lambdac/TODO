@@ -15,6 +15,7 @@ only 1 occurrence.
 Features:
   * Exceptions (!)
   * marshaling of mu
+  * ability to onkeypress="f(event)"; 
 
 Other performance improvements
   * Could leak less memory with 'say' by marshaling the argument; then we only

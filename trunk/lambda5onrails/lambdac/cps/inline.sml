@@ -89,6 +89,7 @@ struct
     | UVar _ => true
     | Int _ => true
     | Record nil => true
+    | String s => size s < 10
     | Hold (w, v) => small v
     | Sham (w, v) => small v
     (* hmm, this can cause duplication of closures since
