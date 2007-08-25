@@ -33,6 +33,9 @@
        div.sidebar { border : 1px solid #BBBBBB ; margin-top : 48px ; margin-left : 2px ;
                      padding : 4px ; font-size : 10px }
 
+       input.gobox { width : 100px ; margin-top : 2px }
+       input.gobut { width : 100px ; margin-top : 2px }
+
        textarea.contents { width : 90% ; margin-right : auto ; }
        input.summary { width : 70% ; }
 

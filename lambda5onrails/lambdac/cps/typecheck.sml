@@ -198,8 +198,10 @@ struct
            end
        | (l as ((vv, ()) :: _)) =>
            let in
+             (*
              print ("\nDictionaries for " ^ V.tostring tv ^ "\n");
              app (fn (vv, ()) => print ("  " ^ V.tostring vv ^ "\n")) l;
+             *)
              vv
            end)
     end
