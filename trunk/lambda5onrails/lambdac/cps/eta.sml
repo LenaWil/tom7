@@ -16,7 +16,7 @@ struct
   fun reset () = total := 0
   fun score s n =
     let in
-      print (s ^ ".\n");
+      (* print (s ^ ".\n"); *)
       total := !total + n
     end
     

@@ -553,6 +553,7 @@ struct
              (case cval l of
                 Lams vael =>
                   let
+(*
                     fun recursive vael =
                       let
                         val fs = map #1 vael
@@ -560,6 +561,7 @@ struct
                         List.exists (fn v =>
                                      List.exists (fn (_, _, e) => isvfreeine v e) vael) fs
                       end
+*)
 
                     (* are all occurrences direct? *)
                     exception NotDirect
@@ -585,7 +587,31 @@ struct
                            end
                        | _ => appwisee ndtyp ndval ndexp exp)
 
-                    (* check the whole scope (body) for escapes. *)
+                    (* same, but for recursive calls. these are
+                       based on the recursive variable, and we also
+                       must consider all of the other recursive
+                       friends in this bundle. *)
+                    fun rtyp _ = ()
+                    fun rval va =
+                      (case cval va of
+                         Var vv =>
+                           if List.exists (fn (v, _, _) => V.eq(vv, v)) vael
+                           then (print "not direct: recursive or recursive friend\n";
+                                 raise NotDirect)
+                           else ()
+                       | _ => appwisev rtyp rval rexp va)
+                    and rexp exp =
+                      (case cexp exp of
+                         Call (f, args) =>
+                           let
+                             val () = app rval args
+                           in
+                             case cval f of
+                               Var vv => () (* okay *)
+                             | _ => rval f
+                           end
+                       | _ => appwisee rtyp rval rexp exp)
+
                   in
                      let 
                        (* disable optimization if turned off *)
@@ -593,13 +619,16 @@ struct
                                 then ()
                                 else raise NotDirect
 
+                       (* check the whole scope (body) for escapes. *)
                        val () = ndexp ebod
-                       val () =
-                         (* XXX can't handle recursive functions yet *)
-                         if recursive vael
-                         then (print "XXX recursive!!";
-                               raise NotDirect)
-                         else ()
+
+                       (* and check the bodies of the function for escaping
+                          self- or friend-calls. 
+
+                          PERF: this can be overconservative if there
+                          are unused friends; we should get rid of those
+                          in some earlier phase. *)
+                       val () = app (fn (_, _, e) => rexp e) vael
                          
                        (* nb. right now G is the same as the outer
                           context, but if we also support direct calls
@@ -616,15 +645,49 @@ struct
                                         wrapped_typ = wrapped_typ }) env
 
                        val here = worldfrom G
+
+                       (* we extend the arguments for all of the continuations 
+                          in the same way. do this first so that the bodies can
+                          be translated with the updated type for the recursive
+                          variables. *)
                        val vael =
-                         (* we extend all of the continuations the same way *)
                          map (fn (v, args, e) =>
                               let 
                                 val args = ListUtil.mapsecond (selft z G) args
                                 val args =
                                   args @ map (fn { var, wrapped_typ, ...} =>
                                               (var, wrapped_typ)) env
+                              in
+                                (v, args, e)
+                              end) vael
 
+                       (* Now translate the bodies... *)
+                       val vael =
+                         map (fn (v, args, e) =>
+                              let 
+
+                                (* translate any self- or friend-call *)
+                                fun rval va = pointwisev I rval rexp va
+                                and rexp exp =
+                                  case cexp exp of
+                                    Call (f, args) =>
+                                      (case cval f of
+                                         Var vv => if List.exists (fn (v, _, _) => V.eq (vv, v)) vael
+                                                   (* XXX here env should pull (e.g. dictionaries) from the
+                                                      arguments, not from the outer scope, right? Or are
+                                                      we guaranteed to get the same free variable? maybe so.. *)
+                                                   then Call'(f, map rval args @ map #value env)
+                                                   else pointwisee I rval rexp exp
+                                       | _ => pointwisee I rval rexp exp)
+                                  | _ => pointwisee I rval rexp exp
+
+                                val e = rexp e
+
+                                (* Now restore the free variables from their
+                                   (possibly wrapped) arguments. We have to do this
+                                   after doing the conversion above because when we
+                                   bind the variables, they will no longer have the
+                                   same names as they did when free in the outer scope. *)
                                 val e = foldr (fn ({ binde, var, ... }, e) =>
                                                binde (Var' var) e) e env
 
@@ -638,12 +701,17 @@ struct
                                    open lambda. *)
                                 val G = T.cleardyn G
 
-                                (* XXX and the recursive vars! *)
-                                (* don't forget to update z so it is not a closure call *)
+                                (* all recursive vars *)
+                                val G = foldr (fn ((v, a, _), G) =>
+                                               let val t = Cont' ` map #2 a
+                                               in bindvar G v t here
+                                               end) G vael
+
+                                (* this function's arguments *)
                                 val G = foldr (fn (( var, typ ), G) =>
                                                bindvar G var typ here)
                                               G args
-
+                                              
                                 (*
                                 val () = print "\nCTX:\n"
                                 val () = Layout.print (CPSTypeCheck.ctol G, print)
@@ -651,10 +719,9 @@ struct
                                 val () = Layout.print (CPSPrint.etol e, print)
                                 *)
 
-                                (* Translate the wrapped body, too *)
+                                (* Then translate the wrapped body. *)
                                 val e = selfe z G e
                               in
-                                (* a new argument for each free variable. *)
                                 (v, args, e)
                               end) vael
 
