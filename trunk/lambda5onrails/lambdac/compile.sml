@@ -240,6 +240,7 @@ struct
          | JSCodegen.JSCodegen s => fail("Javascript codegen: " ^ s)
          | JSOpt.JSOpt s => fail("Javascript optimization: " ^ s)
          | Nullary.Nullary s => fail ("Couldn't do EL nullary prepass:\n" ^ s)
+         | Pattern.Pattern s => fail("Pattern compilation: " ^ s)
          | Podata.Podata s => fail("primop data: " ^ s)
          | PrimTypes.PrimTypes s => fail("PrimTypes: " ^ s)
          | ToCPS.ToCPS s => fail ("ToCPS: " ^ s)

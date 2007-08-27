@@ -163,6 +163,10 @@ struct
          the label/exp list need not be exhaustive.
          *)
       | Sumcase of typ * exp * var * (label * exp) list * exp
+
+      (* simpler; no inner val needs to be defined. can't be exhaustive. *)
+      | Intcase of exp * (intconst * exp) list * exp
+
       | Inject of typ * label * exp option
 
       (* for more efficient treatment of blobs of text. *)

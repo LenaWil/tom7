@@ -301,7 +301,12 @@ struct
                     %[$"as", $ (V.tostring v)]] ::
                   map (fn (l, e) => %[%[$"  |", $l, $"=>"], L.indent 4 (etol e)]) lel @
                   [%[%[$"  |", $"_", $"=>"], L.indent 4 (etol def)]])
-
+           | Intcase (e, iel, def) =>
+                 L.align
+                 [%[$"intcase", etol e, $"of"],
+                  % ` map (fn (i, e) => %[$(IntConst.toString i), $" => ", L.indent 4 ` etol e]) iel,
+                  %[$"  |", $"_", $"=>"], L.indent 4 ` etol def]
+           
            | Untag {typ, obj, target, bound, yes, no} =>
 
                  %[$"untag", etol obj, $":", ttol typ,

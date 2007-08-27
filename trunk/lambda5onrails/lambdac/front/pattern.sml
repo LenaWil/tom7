@@ -384,7 +384,12 @@ struct
                          This would be the place to implement better
                          strategies like binary search or jump tables. *)
 
-                      (* Generalized over ints and chars.
+                      (* This is no longer used, because we now have
+                         a primitive intswitch. It might make sense to
+                         use it for strings or other primitives with
+                         an equality test but no switching.
+                         
+                         Generalized over ints and chars.
                          pass the expression to check against,
                          the primop that performs such equality,
                          and the il type *)
@@ -454,6 +459,44 @@ struct
                         end
 
 
+                      and genswitch fetch ilt arms =
+                        let
+                          (* this must be an ilt pattern, then *)
+                          val () = unify ctx loc "const int pattern (switch)" ilt objt
+
+                          val arms = ListUtil.mapfirst fetch arms
+
+                        in
+                          (I.Intcase
+                           (I.Value objv,
+                            (* the arms.. *)
+                            ListUtil.mapsecond 
+                            (fn matches =>
+                             let
+                               val (exps, rows) = ListPair.unzip matches
+                               val cols =
+                                 ListPair.zip
+                                 (map markcolumn `
+                                  ListUtil.transpose rows,
+                                  robjs)
+                                 : ((shape * E.pat list) * string) list
+                                 
+                               (* in here, we know the object can't
+                                  match anything from "rest", which
+                                  are different int constants. 
+                                  So proceed to the original default. *)
+                               val (ee, tt) =
+                                 elm ctx cols exps doconst_default
+                             in
+                               unify ctx loc
+                               "ccw-switch cont / default" deft tt;
+                               ee
+                             end) arms,
+                            defe),
+                           deft)
+                        end
+
+(*
                       and gen ((E.CInt n, matches)::rest) =
                           smallconst (I.Value ` I.Int n) 
                                      (Primop.B ` Primop.PCmp Primop.PEq) 
@@ -464,8 +507,16 @@ struct
                           smallconst (I.Value ` I.Int ` IntConst.fromInt ` ord c)
                                      (Primop.B ` Primop.PCmp Primop.PEq)
                                      Initial.ilchar matches rest
+*)
+                      and gen (l as ((E.CInt _, _)::_)) =
+                        genswitch (fn (E.CInt n) => n
+                                    | _ => raise Pattern "constant patterns mismatch (int)") Initial.ilint l
+                        | gen (l as ((E.CChar _, _)::_)) =
+                        genswitch (fn (E.CChar c) => IntConst.fromInt ` ord c
+                                    | _ => raise Pattern "constant patterns mismatch (char)") Initial.ilchar l
 
                         | gen (_ :: _) =
+                 (* XXX Shouldn't be hard to implement since we have a string equality primitive? *)
                         raise Pattern 
                             "string constant patterns unimplemented"
 
