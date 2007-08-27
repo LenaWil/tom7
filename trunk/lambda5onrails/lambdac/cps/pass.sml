@@ -83,6 +83,15 @@ struct
 
   fun case_ExternWorld z (s as {selfe, selfv, selft}, G) (l, k, e) = ExternWorld' (l, k, selfe z (T.bindworldlab G l k) e)
 
+  fun case_Intcase z ({selfe, selfv, selft}, G) (va, arms, def) =
+    let
+      val (va, t) = selfv z G va
+    in
+      case ctyp t of
+        Primcon (CPS.INT, []) => Intcase' (va, ListUtil.mapsecond (selfe z G) arms, selfe z G def)
+        | _ => raise Pass "intcase on non-int"
+    end
+
   fun case_Case z ({selfe, selfv, selft}, G) (va, v, arms, def) =
         let val (va, t) = selfv z G va
         in
@@ -770,6 +779,7 @@ struct
       | TUnpack a => case_TUnpack z (s, G) a
       | Native a => case_Native z (s, G) a
       | Primcall a => case_Primcall z (s, G) a
+      | Intcase a => case_Intcase z (s, G) a
       | Case a => case_Case z (s, G) a
       | ExternVal a => case_ExternVal z (s, G) a
       | ExternWorld a => case_ExternWorld z (s, G) a

@@ -248,6 +248,16 @@ struct
              Untag { typ = typ, obj = obj, target = target, 
                      bound = bound, yes = yes, no = no })
         end
+    | Intcase (obj, iel, def) =>
+        let
+          val (fvd, def) = uexp def
+          val (ints, es) = ListPair.unzip iel
+          val (fve, es) = ListPair.unzip ` map uexp es
+          val (fvo, obj) = uexp obj
+        in
+          (fvd || unionl fve || fvo,
+           Intcase (obj, ListPair.zip (ints, es), def))
+        end
     | Sumcase (t, obj, v, lel, def) => 
         let
             val (fvd, def) = uexp def

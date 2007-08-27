@@ -307,6 +307,37 @@ struct
                               | _ => k (G, Var' vp, cod, worldfrom G)) })
               end
 
+       | I.Intcase (exp, arms, def) =>
+           cvte G exp
+           (fn (G, va, _, iw) =>
+            let
+              val joinv = V.namedvar "intcasejoin"
+              val joina = V.namedvar "r"
+                
+              (* see below. *)
+              val joint = ref (NONE : CPS.ctyp option)
+              val def = cvte G def (fn (_, dv, t, dw) =>
+                                    let in
+                                      joint := SOME t;
+                                      Call' (Var' joinv, [dv])
+                                    end)
+              val arms = map (fn (i, e) =>
+                              (i, 
+                               cvte G e
+                               (fn  (_, ev, et, ew) =>
+                                Call' (Var' joinv, [ev])))) arms
+              val joint = 
+                (case !joint of
+                   NONE => raise ToCPS "intcase typ?!?"
+                 | SOME tj => tj)
+            in
+              Bind' (joinv,
+                     Lam' (V.namedvar "nonrec_intcase",
+                           [(joina, joint)],
+                           k (G, Var' joina, joint, iw)),
+                     Intcase' (va, arms, def))
+            end)
+
        | I.Sumcase (I.Sum t, exp, v, arms, def) => 
            cvte G exp
            (fn (G, va, sum, sw) =>
@@ -346,7 +377,7 @@ struct
                  | SOME tj => tj)
             in
               Bind' (joinv,
-                     Lam' (V.namedvar "nonrec",
+                     Lam' (V.namedvar "nonrec_sumcase",
                            [(joina, joint)],
                            k (G, Var' joina, joint, sw)),
                      Case' (va, v, arms, def))

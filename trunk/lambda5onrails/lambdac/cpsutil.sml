@@ -68,6 +68,7 @@ struct
     | WUnpack (vv1, vv2, v, e) => WUnpack' (vv1, vv2, fv v, fe e)
     | TUnpack (vv1, vd, vv2, v, e) => TUnpack' (vv1, vd, vv2, fv v, fe e)
     | Case (v, vv, sel, def) => Case' (fv v, vv, ListUtil.mapsecond fe sel, fe def)
+    | Intcase (v, iel, def) => Intcase' (fv v, ListUtil.mapsecond fe iel, fe def)
     | ExternVal (v, l, t, wo, e) => ExternVal' (v, l, ft t, Option.map fw wo, fe e)
     | ExternWorld (l, k, e) => ExternWorld' (l, k, fe e)
     | ExternType (v, l, vso, e) => ExternType' (v, l, vso, fe e)

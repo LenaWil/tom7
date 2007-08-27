@@ -143,6 +143,10 @@ struct
   fun Case' (va, v, sel, def) =
     $$CASE_ // va // (MV v \\ SS ` map (fn (s, e) =>
                                         $$(STRING_ s) // e) sel) // def
+  fun Intcase' (va, iel, def) =
+    $$INTCASE_ // va // SS ` map (fn (i, e) =>
+                                  $$(VINT_ i) // e) iel // def
+
   fun ExternVal' (v, s, t, wo, e) =
     $$EXTERNVAL_ // $$(STRING_ s) // t // (case wo of
                                              SOME w => w // (MV v \\ e)
@@ -254,6 +258,7 @@ struct
     | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
     (* contents var only bound in arms, not default *)
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
+    | Intcase of 'cval * (IL.intconst * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of string * worldkind * 'cexp
     (* always kind 0; optional argument is a value import of the 
@@ -337,6 +342,10 @@ struct
     case look a of
       $(INT_ i) => i
     | _ => raise CPS "expected INT"
+  fun VINTi a =
+    case look a of
+      $(VINT_ i) => i
+    | _ => raise CPS "expected VINT"
   fun BOOLi a =
     case look a of
       $(BOOL_ b) => b
@@ -573,6 +582,17 @@ struct
                                                      | _ => raise CPS "bad case arm") arms, def)
                | _ => raise CPS "bad case bind")
           | _ => raise CPS "bad case")
+    | $INTCASE_ / va / r => 
+         (case look r of
+            arms / def =>
+              (case look arms of
+                 S arms => Intcase (va, map (fn a =>
+                                             case look a of
+                                               i / e => (VINTi i, e)
+                                             | _ => raise CPS "bad intcase arm") arms, def)
+               | _ => raise CPS "bad intcase arms")
+          | _ => raise CPS "bad intcase")
+
     | $EXTERNVAL_ / sym / r =>
          let val (t, (wo, bind)) = slash2 r
          in case (look wo, look bind) of

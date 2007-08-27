@@ -349,9 +349,16 @@ struct
                  ] :: estol e
          | Case (va, v, arms, def) =>
                [
-               %[%[$"case", vtol va, $"of"],
+               %[%[$"case", vtol va, %[$"as", varl v], $"of"],
                  %(map (fn (s, e) => 
                         L.indent 2 ` %[%[$s, $"=>"], L.indent 2 ` etol e]) arms @
+                   [L.indent 2 ` %[%[$"_", $"=>"], L.indent 2 ` etol def]])]
+                ]
+         | Intcase (va, arms, def) =>
+               [
+               %[%[$"intcase", vtol va, $"of"],
+                 %(map (fn (i, e) => 
+                        L.indent 2 ` %[%[$(IntConst.tostring i), $"=>"], L.indent 2 ` etol e]) arms @
                    [L.indent 2 ` %[%[$"_", $"=>"], L.indent 2 ` etol def]])]
                 ]
 

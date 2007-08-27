@@ -630,6 +630,10 @@ struct
            and layoutPrimaryExp (e, {isStatement, precedesDot}) =
               case e of
                  Array es =>
+                   Layout.listex "[" "]" ","
+                   (map (fn NONE => Layout.empty
+                          | SOME e => layoutAssignmentExp e) (Vector.foldr op:: nil es))
+(*
                     seq [str "[",
                          seq (rev
                               (#2
@@ -644,6 +648,7 @@ struct
                                           (true, layoutAssignmentExp e :: ac)
                                  end)))),
                          str "]"]
+*)
                | Bool b => bool_layout b
                | Id id => Id.layout id
                | Number n =>

@@ -591,6 +591,14 @@ struct
                              $"has type: ",
                              IN ` TY ` ctyp' t])
 
+    | Intcase (va, arms, def) => 
+       (case ctyp ` vok G va of
+          Primcon(CPS.INT, []) =>
+            let in
+              ListUtil.appsecond (eok G) arms;
+              eok G def
+            end
+        | _ => fail [$"intcase on non-int"])
     | Case (va, v, arms, def) =>
        (case ctyp ` vok G va of
           Sum stl =>
@@ -608,11 +616,8 @@ struct
         | _ => fail [$"case on non-sum"])
 
 (*
-      dictionaries!
-    | Primop of var list * primop * 'cval list * 'cexp
     (* world var, contents var *)
     | WUnpack of var * var * 'cval * 'cexp
-    | ExternWorld of var * string * 'cexp
 *)
 
     | ExternType (v, l, dicto, e) =>
