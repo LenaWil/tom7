@@ -15,3 +15,8 @@ extern val js.clearinterval : js.intervalid -> unit  @ home = clearInterval
 extern type js.date = lc_ref
 extern val js.now : unit -> js.date  @ home = lc_newdate
 extern val js.time-difference-ms : js.date * js.date -> int  @ home = lc_time_difference
+extern val js.time-lt : js.date * js.date -> bool  @ home = lc_time_lessthan
+extern val js.time-eq : js.date * js.date -> bool  @ home = lc_time_eq
+(* hours, minutes, seconds, ms *)
+extern val js.maketime : int * int * int * int -> js.date  @ home = MakeTime
+extern val js.time-tostring : js.date -> string  @ home = lc_itos

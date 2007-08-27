@@ -13,7 +13,7 @@ struct
   fun reset () = total := 0
   fun score s n =
     let in
-      print (s ^ ".\n");
+      print (s ^ ", ");
       total := !total + n
     end
 
@@ -57,7 +57,7 @@ struct
         let val e = simplifye e
         in
           if !total > 0
-          then (print ("Did " ^ Int.toString (!total) ^ " units of simplify-primop reduction.\n");
+          then (print ("\nDid " ^ Int.toString (!total) ^ " units of simplify-primop reduction.\n");
                 reset ();
                 go e)
           else e

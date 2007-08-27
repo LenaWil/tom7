@@ -1,12 +1,13 @@
-(* This is an attempt at a "real" application in ML5.
-   It is a very small Wiki that allows for the creation of
-   articles with arbitrary string names, and with links between them
-   using [[bracket]] syntax.
+(* This is an attempt at a "real" application in ML5. It is a small
+   Wiki that allows for the creation of articles with arbitrary string
+   names, with links between them using [[bracket]] syntax. It also
+   supports templates, using the syntax {{templatename}}, to include
+   the contents of one article within another.
 
-   The article XYZ is stored in the trivial-db key XYZ as its
-   raw wiki source code (string).
+   The article XYZ is stored in the trivial-db key XYZ as its raw wiki
+   source code (string). 
+
    All rendering is performed on the client.
-   
 
 *)
 
@@ -29,12 +30,19 @@ unit
 
     val articlename = ref []
 
-    (* XXX a simple boolean doesn't work well because of race conditions. 
-       an easy fix would be to store the last time at which the edit box
-       was changed. *)
-    val changed = ref true
-
+    (* keep track of the last time the source (or templates) were modified.
+       this is monotonically increasing. *)
+    val changed = ref (js.now ())
+    (* XXX rendered only at the beginning of time: forces render on start *)
+    val rendered = ref (js.now ()) (* (js.maketime (0, 0, 0, 0)) *)
+       
     extern val alert : string -> unit @ home
+
+(*
+    val xxx = js.now ()        
+    do if js.time-eq(xxx, xxx) then alert "YES"
+       else alert "NO"
+*)
 
     do runtime.no-messages ()
 
@@ -66,7 +74,7 @@ unit
         in
             template-cache := find (!template-cache);
             (* re-renderable *)
-            changed := true
+            changed := js.now ()
         end
 
     fun add-cache s =
@@ -270,6 +278,7 @@ unit
     (* renders the current value of the edit box. *)
     and render () =
         let 
+            val start = js.now ()
             val r = renderhtml (dom.getstring(dom.getbyid id.source, [value]))
             val tems = string-delimit ", " 
                 (list-map (fn (x, NONE) => 
@@ -279,7 +288,7 @@ unit
             (* debugging... *)
             dom.setstring(dom.getbyid id.templates, [innerHTML], tems);
             dom.setstring(dom.getbyid id.rendered, [innerHTML], r);
-            changed := false
+            rendered := start
         end
 
     fun try-render () =
@@ -293,18 +302,18 @@ unit
             from server get trivialdb.update (article, contents)
         end
 
-    (* PERF round trips for every keyup is a little bit much? *)
-    fun source-keyup () = changed := true
-    (* save sometimes? *)
+    fun source-keyup () = changed := js.now ()
+    (* XXX save sometimes? *)
 
     val ctr = ref 0
     fun every-second () =
         let in
             ctr := !ctr + 1;
             dom.setstring(dom.getbyid id.debug,
-                          [innerHTML], itos (!ctr) ^ (if !changed then [c] else [nc]));
+                          [innerHTML], 
+                          [[itos (!ctr)] changed: [js.time-tostring (!changed)] rendered: [js.time-tostring (!rendered)]]);
             (* only if changed... *)
-            if !changed
+            if js.time-lt (!rendered, !changed)
             then try-render ()
             else ()
         end
