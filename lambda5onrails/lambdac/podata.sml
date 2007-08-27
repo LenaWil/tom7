@@ -20,11 +20,15 @@ struct
           let val a = Variable.namedvar "a"
           in { worlds = nil, tys = [a], dom = nil, cod = PT_VAR a }
           end
+      | potype PYield = mono (nil, PT_UNIT)
+
       | potype (B (PCmp _)) = mono ([PT_INT, PT_INT], PT_BOOL)
       | potype (B PTimes) = mono ([PT_INT, PT_INT], PT_INT)
       | potype (B PPlus) = mono ([PT_INT, PT_INT], PT_INT)
       | potype (B PMinus) = mono ([PT_INT, PT_INT], PT_INT)
       | potype PEqs = mono ([PT_STRING, PT_STRING], PT_BOOL)
+
+      | potype (PCompileWarn _) = mono ([], PT_UNIT)
 
       | potype PStringSub =
           mono ([PT_STRING, PT_INT], PT_CHAR)

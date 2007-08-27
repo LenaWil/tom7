@@ -249,8 +249,16 @@ struct
                  end)
               end
 
+       | I.Raise (_, e) =>
+          cvte G e
+          (fn (G, v, ft, fw) => 
+           let in
+             print "XXX raise is unimplemented!";
+             Halt'
+           end)
+
        (* this one is special because it does not return *)
-       | I.Primapp (PHalt, [], _) => Halt'
+       | I.Primapp (Primop.PHalt, [], _) => Halt'
 
        (* treat every primapp as an extern primcall with a source/source
           translation. *)

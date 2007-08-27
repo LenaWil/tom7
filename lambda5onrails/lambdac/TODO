@@ -29,6 +29,7 @@ Other performance improvements
 Passes to implement:
 
 CPS Optimization
+  * replace impossible case defaults with Halt.
   * really should run optimization rounds in a loop.
   * unused argument removal post-undict would be great, but
     the code is pretty messed up at that point...
