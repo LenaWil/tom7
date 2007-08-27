@@ -60,8 +60,10 @@ struct
 
   (* n.b. these must agree with runtime *)
   val codeglobal = Id.fromString "globalcode"
-  val enqthread  = Id.fromString "lc_enq_thread"
-  val yield      = Id.fromString "lc_yield"
+  (* val enqthread  = Id.fromString "lc_enq_thread" *)
+  val enqthread = Id.fromString "lc_enq_yield"
+  (* val yield      = Id.fromString "lc_yield" *)
+  val recsleft   = Id.fromString "lc_recsleft"
   val go_mar     = Id.fromString "lc_go_mar"
   val marshal    = Id.fromString "lc_marshal"
   val saveentry  = Id.fromString "lc_saveentry"
@@ -402,11 +404,21 @@ struct
         Call { func = Sel first "concat",
                args = % rest }
 
+        | primexp (P.PCompileWarn s) [] =
+        let in
+          print ("Warning: " ^ s ^ "\n");
+          Object ` %nil
+        end
+
         | primexp (P.PJointext _) _ = raise JSCodegen "jointext argument length mismatch"
         | primexp P.PEqs [s1, s2] = 
                    Cond { test  = Binary {lhs = s1, rhs = s2, oper = B.StrictEquals},
                           thenn = jstrue,
                           elsee = jsfalse }
+
+        (* we don't actually yield (we'd need to grab the continuation to do
+           so); we just set the recursion count to zero so the next yield is major *)
+        | primexp P.PYield [] = Assign { lhs = Id recsleft, oper = AssignOp.Equals, rhs = RealNumber 0.0 }
 
         (* references *)
         | primexp P.PRef [init] = Object ` %[prop "v" init]
@@ -540,6 +552,9 @@ struct
                     value "undefined" 
 
                     NOTE: we rely on 'v' not being free in the default.
+
+                    XXX: if this is exhaustive, we should not generate the default
+                    (it generates compile-time warnings and larger code)
                     *)
                 [Bind(vtoi v, Sel va "v"),
                  Switch { test = Sel va "t",
@@ -569,11 +584,14 @@ struct
                   [Exp ` Call { func = Id enqthread,
                                 args = %[Sel fe "g",
                                          Sel fe "f",
-                                         Array ` % ` map SOME ` ae] },
+                                         Array ` % ` map SOME ` ae] }
+                   (*
+                   ,
                    (* must yield since threadcount has increased *)
                    (* XXX maybe this should be in enqthread? *)
                    Exp ` Call { func = Id yield,
                                 args = %[] }
+                   *)
                    ]
                   (* direct call
                   [Exp ` Call { func = Sele (Sele (Id codeglobal) (Sel fe "g")) (Sel fe "f"),

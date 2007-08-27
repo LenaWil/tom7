@@ -12,8 +12,8 @@
 
    In order to conservatively apply this transformation,
    we need the arguments to the known introduction form
-   to be small. Otherwise, we can be applying this multiple
-   times and cause a blow-up in size. (This is especially
+   to be small. Otherwise, we might apply this for multiple
+   uses and cause a blow-up in size. (This is especially
    true for the above case when f is a literal lambda.)
 
 *)

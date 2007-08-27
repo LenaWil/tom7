@@ -41,9 +41,25 @@ var lc_threadqueue = new lc_queue ();
 
 /* A thread is a pair of integers and array of values, so that we can use
    function.apply */
-function lc_enq_thread(g, f, args) {
+function XXX_lc_enq_thread(g, f, args) {
     lc_message('enqueue ' + g + '.' + f + '(args)');
     lc_threadqueue.enq( { g : g, f : f, args : args } );
+};
+
+/* run threads to greater depth before yielding */
+var THREADPACE = 6;
+/* (but delay the very first one until page load) */
+var lc_recsleft = 0;
+function lc_enq_yield(g, f, args) {
+    if (lc_recsleft === 0) {
+	lc_threadqueue.enq( { g : g, f : f, args : args } );
+	setTimeout(lc_schedule, 10);
+	lc_recsleft = THREADPACE;
+    } else {
+	lc_recsleft --;
+	var f = globalcode[g][f];
+	f.apply(undefined, args);
+    }
 };
 
 /* run a waiting thread, if any. We reschedule this function
@@ -380,8 +396,7 @@ function lc_come(bytes) {
     lc_message('unmarshal result: ' + lc_jstos(pack));
     var f = pack.v0;
     var arg = pack.v1;
-    lc_enq_thread(f.g, f.f, [ arg ]);
-    lc_yield();
+    lc_enq_yield(f.g, f.f, [ arg ]);
 };
 
 /* jump to the server, using these marshaled bytes */

@@ -3,6 +3,7 @@ sig
 
   exception JSCodegen of string
 
+  val enqthread : Javascript.Id.t
   val codeglobal : Javascript.Id.t
 
   (* from a single named global (or NONE if this global isn't

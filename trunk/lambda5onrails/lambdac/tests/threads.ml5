@@ -19,6 +19,7 @@ unit
                    val px = [[itos (n * 10 + 100)]px]
                in
                    dom.setstring (s, [height], px);
+                   yield ();
                    loops (n - 1)
                end
        in

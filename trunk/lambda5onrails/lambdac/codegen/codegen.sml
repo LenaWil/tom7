@@ -89,7 +89,7 @@ struct
                    then 
                      (* enqueue main in thread queue *)
                      Exp `
-                     Call { func = Id ` $"lc_enq_thread",
+                     Call { func = Id ` JSCodegen.enqthread,
                             args = %[Number ` Number.fromInt 0,
                                      Number ` Number.fromInt 0,
                                      (* no args for start *)
@@ -108,16 +108,18 @@ struct
                    else Empty
 
                  (* call the scheduler *)
+                     (* included in the above
                  val startruntime = 
                    Exp ` 
-                   Call { func = Id ` $"setTimeout",
-                          args = %[Id ` $"lc_schedule",
+                   Call { func = Id ` $"setTimeout", 
+                          args = %[Id ` $"lc_schedule", (* XXX get from js *)
                                    (* initial timeout at 10ms (?) *)
                                    Number ` Number.fromInt 10] }
+                   *)
 
                  val prog = Program.T ` Vector.fromList [arraydec,
-                                                         maybecallmain,
-                                                         startruntime]
+                                                         maybecallmain (* ,
+                                                         startruntime *)]
                    
                  (* simple cleanup stuff... *)
                  val prog = JSOpt.optimize prog

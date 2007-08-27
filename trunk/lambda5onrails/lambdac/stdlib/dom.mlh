@@ -14,16 +14,34 @@ extern type dom.node = lc_domnode
 
 extern val dom.doc : dom.node @ home = document
 
-extern val dom.setnode : dom.node * string * dom.node -> unit @ home = lc_domsetobj
+extern val dom.setnode_ : dom.node * string * dom.node -> unit @ home = lc_domsetobj
 (* eg. dom.setstring(e, "innerHTML", "<b>Welcome to my cool Home Page</b>") *)
-extern val dom.setstring : dom.node * string * string -> unit @ home = lc_domsetobj
+extern val dom.setstring_ : dom.node * string * string -> unit @ home = lc_domsetobj
+extern val dom.setint_ : dom.node * string * int -> unit @ home = lc_domsetobj
+
 (* XXX many more: appendchild, etc... *)
+
+(* have to yield after these, since Mozilla won't create the dom elements until
+   it gets control back. *)
+fun inline dom.setnode (n, s, n') =
+    let in
+        dom.setnode_ (n, s, n');
+        primapp Yield { } ( )
+    end
+fun inline dom.setstring (n, s, n') =
+    let in
+        dom.setstring_ (n, s, n');
+        primapp Yield { } ( )
+    end
+fun inline dom.setint (n, s, n') =
+    let in
+        dom.setint_ (n, s, n');
+        primapp Yield { } ( )
+    end
 
 extern val dom.getnode : dom.node * string -> dom.node @ home = lc_domgetobj
 extern val dom.getstring : dom.node * string -> string @ home = lc_domgetobj
-
 extern val dom.getint : dom.node * string -> int @ home = lc_domgetobj
-extern val dom.setint : dom.node * string * int -> unit @ home = lc_domsetobj
 
 (* document.getelementbyid *)
 extern val dom.getbyid : string -> dom.node @ home = lc_document_getelementbyid

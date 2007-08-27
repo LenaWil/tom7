@@ -79,6 +79,10 @@ struct
          warning if not dead *)
       | PCompileWarn of string
 
+      (* we need to explicitly yield for some interactions with
+         the runtime. *)
+      | PYield
+
       (* Done *)
       | PHalt
 
@@ -124,6 +128,7 @@ struct
       ("Newtag", PNewtag),
       ("Gethandler", PGethandler),
       ("Sethandler", PSethandler),
+      ("Yield", PYield),
       ("Halt", PHalt),
       ("Showval", PShowval)]
 

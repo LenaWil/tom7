@@ -3,10 +3,10 @@ unit
     import "dom.mlh"
     import "trivialdb.mlh"
 
+    do runtime.no-messages ()
+
     (* put binds a valid variable. the type of the expression (here,
-string) must be mobile *)
-
-
+       string) must be mobile *)
 
     put k = [tdb-test]
 
