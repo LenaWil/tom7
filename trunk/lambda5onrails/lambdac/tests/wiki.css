@@ -39,8 +39,8 @@
        textarea.contents { width : 90% ; margin-right : auto ; }
        input.summary { width : 70% ; }
 
-       div.button { padding : 4px ; border : 2px outset #777777 ; 
-	            background : #DDDDDD ; cursor : hand ; cursor : pointer }
+       .button { padding : 4px ; margin : 4px ; border : 2px outset #777777 ; 
+		 background : #DDDDDD ; cursor : hand ; cursor : pointer }
 
        div.message { width : 80% ; padding : 1em 2em 1em 2em ; margin : 1em ; 
                      border : 2px solid #BBBB99 ; background : #FFFFDD ;
