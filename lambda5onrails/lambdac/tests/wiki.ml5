@@ -1,6 +1,7 @@
 (* This is an attempt at a "real" application in ML5. It is a small
    Wiki that allows for the creation of articles with arbitrary string
-   names, with links between them using [[bracket]] syntax. It also
+   names, with links between them using [[bracket]] syntax. The text
+   displayed for a link can be changed by writing [[target|text to show]].
    supports templates, using the syntax {{templatename}}, to include
    the contents of one article within another.
 
@@ -27,6 +28,11 @@ unit
     val id.debug = [debugs]
     val id.editcontrols = [editcontrols]
     val id.gobox = [gobox]
+    val id.saveindicator = [savei]
+
+    (* in ms *)
+    val SAVE-FREQUENCY = 5000
+    val CHECK-FREQUENCY = 1500
 
     val articlename = ref []
 
@@ -35,14 +41,9 @@ unit
     val changed = ref (js.now ())
     (* XXX rendered only at the beginning of time: forces render on start *)
     val rendered = ref (js.now ()) (* (js.maketime (0, 0, 0, 0)) *)
-       
-    extern val alert : string -> unit @ home
+    val saved = ref (js.now ())
 
-(*
-    val xxx = js.now ()        
-    do if js.time-eq(xxx, xxx) then alert "YES"
-       else alert "NO"
-*)
+    extern val alert : string -> unit @ home
 
     do runtime.no-messages ()
 
@@ -123,13 +124,14 @@ unit
         then SOME (!articlename)
         else find-insert-template t
 
-    (* XXX should do some parsing and rendering, duh *)
+    (* renders wiki source code as html. *)
     fun renderhtml s =
         let
             datatype tok =
                 NoToken
               | String of string
               | Bar
+              | Equals
               | OLink
               | CLink
               | OTempl
@@ -160,6 +162,9 @@ unit
                                          | len => String(substring(s, start, len)))
                                 | ?] => (case !off - start of
                                              0 => (off := !off + 1; eat ())
+                                         | len => String(substring(s, start, len)))
+                                | ?= => (case !off - start of
+                                             0 => (off := !off + 1; Equals)
                                          | len => String(substring(s, start, len)))
                                 | ?[ => (case !off - start of
                                              0 => (off := !off + 1; eat ())
@@ -201,6 +206,7 @@ unit
                (case t of
                     String ss => [[ss][make ()]]
                   | Bar => [|[make()]]
+                  | Equals => [=[make()]]
                   (* these are probably syntax errors... *)
                   | CTempl => [["}}"][make ()]]
                   | CLink => [["]]"][make ()]]
@@ -223,7 +229,6 @@ unit
                            | OLink => [*link within template name*])
                     val t = target ()
                 in
-                    (* XXX expand template if known. *)
                     case expand-template t of
                         NONE => [<span class="unknowntemplate">[t]</span>[make ()]]
                       (* Want to render it, since it might contain links, etc. *)
@@ -232,32 +237,44 @@ unit
 
             and getlink () =
                 let 
-                    fun target () =
+                    fun bartarget () =
                         (case token () of
-                             String ss => [[ss][target ()]]
-                           | Bar => [XXX unimplemented barlink]
+                             String ss => [[ss][bartarget ()]]
+                           | Bar => [|[bartarget ()]]
+                           | Equals => [=[bartarget ()]]
                            | CLink => []
-                           | OTempl => [*template within link*]
-                           | CTempl => [*mismatched brackets*]
-                           | NoToken => [*unclosed link*]
-                           | OLink => [*link within link*])
+                           | OTempl => [*template within barlink*]
+                           | CTempl => [*mismatched barbrackets*]
+                           | NoToken => [*unclosed barlink*]
+                           | OLink => [*link within barlink*])
+
+                    fun target sofar =
+                        (case token () of
+                             String ss => target [[sofar][ss]]
+                           | Bar => (sofar, bartarget ())
+                           | Equals => target [[sofar]=]
+                           | CLink => (sofar, sofar)
+                           | OTempl => (sofar, [*template within link*])
+                           | CTempl => (sofar, [*mismatched brackets*])
+                           | NoToken => (sofar, [*unclosed link*])
+                           | OLink => (sofar, [*link within link*]))
                     (* val () = alert "getlink" *)
-                    val t = target ()
+                    val (dst, show) = target []
                 in
                     (* PERF say leaks *)
-                    [[linkto t][make ()]]
+                    [[linktowith dst show][make ()]]
                 end
         in
             (* alert [renderhtml]; *)
             make ()
         end : string @ home
 
-    and linkto t = [<span class="wikilink" onclick="[say goto-article t]">[t]</span>]
+    and linkto t = linktowith t t
+    and linktowith dst show = [<span class="wikilink" onclick="[say goto-article dst]">[show]</span>]
 
     (* to go to an article, we fetch its source from the server, then change the
        current article name, ... 
        XXX should lock
-       XXX should replace rendered contents with "please wait..." message
        *)
     and goto-article name =
         let
@@ -294,16 +311,28 @@ unit
     fun try-render () =
       maybe-with-lock pagelock render
 
+
+    fun show-element s =
+        dom.setstring(dom.getnode(dom.getbyid s, [style]), [display], [block])
+    fun hide-element s =
+        dom.setstring(dom.getnode(dom.getbyid s, [style]), [display], [none])
+
     fun save () = 
         let 
+            val start = js.now ()
             put article  = !articlename
             put contents = dom.getstring(dom.getbyid id.source, [value])
         in
-            from server get trivialdb.update (article, contents)
+            from server get trivialdb.update (article, contents);
+            saved := start;
+            hide-element id.saveindicator
         end
 
-    fun source-keyup () = changed := js.now ()
-    (* XXX save sometimes? *)
+    fun source-keyup () = 
+        let in
+            changed := js.now ();
+            show-element id.saveindicator
+        end
 
     val ctr = ref 0
     fun every-second () =
@@ -315,13 +344,18 @@ unit
             (* only if changed... *)
             if js.time-lt (!rendered, !changed)
             then try-render ()
+            else ();
+
+            (* if it has changed, and we haven't saved for a while, save. *)
+            (* PERF this (harmlessly) re-saves whenever one of the templates it uses changes.
+               we should perhaps distinguish changes that affect rendering and changes that
+               effect the source code. *)
+            if js.time-lt (!saved, !changed)
+            then if js.time-difference-ms (!changed, js.now ()) > SAVE-FREQUENCY
+                 then save ()
+                 else ()
             else ()
         end
-
-    fun show-element s =
-        dom.setstring(dom.getnode(dom.getbyid s, [style]), [display], [block])
-    fun hide-element s =
-        dom.setstring(dom.getnode(dom.getbyid s, [style]), [display], [none])
 
     fun page-article () =
         let in
@@ -379,10 +413,10 @@ unit
           <div id="[id.rendered]" class="rendered"></div> <br />
           <textarea id="[id.source]" onkeyup="[say source-keyup ()]" class="source">the source code</textarea>
           <div id="[id.editcontrols]">
-           <br /><div class="button" onclick="[say try-render ()]">render</div>
-           <br /><div class="button" onclick="[say save ()]">save</div>
+           <br /><span class="button" onclick="[say try-render ()]">render</span>&nbsp;<span class="button" onclick="[say save ()]">save</span>
            <br /><div id="[id.templates]">&nbsp;</div>
           </div>
+          <br /><div id="[id.saveindicator]" class="warnimage" style="height : 40px; display:none">Unsaved changes.</div>
           <br /><div id="[id.debug]">&nbsp;</div>
           <div class="copyright">This is not a Copyright notice.</div>
           </div> <!-- content -->
@@ -390,7 +424,7 @@ unit
 
     do goto-article [main]
 
-    do js.setinterval (say every-second (), 1500)
+    do js.setinterval (say every-second (), CHECK-FREQUENCY)
 
 in
 end
