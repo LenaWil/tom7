@@ -206,6 +206,7 @@ struct
 
   fun ttoc (INT i) = SOME (CInt i)
     | ttoc (CHAR c) = SOME (CChar c)
+    | ttoc (TEXT [STR s]) = SOME (CString s)
     | ttoc _ = NONE
 
   val constant = maybe ttoc

@@ -117,12 +117,6 @@ el/nullary.sml
 front/primtypes-sig.sml
 front/primtypes.sml
 
-front/initial-sig.sml
-front/initial.sml
-
-front/unify-sig.sml
-front/unify.sml
-
 podata.sml
 
 il/print-sig.sml
@@ -131,6 +125,12 @@ il/alpha.sml
 
 front/context-sig.sml
 front/context.sml
+
+front/unify-sig.sml
+front/unify.sml
+
+front/initial-sig.sml
+front/initial.sml
 
 il/muname.sml
 
