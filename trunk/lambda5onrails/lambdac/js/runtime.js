@@ -650,12 +650,6 @@ function lc_marshal(dict, va) {
 /* XXX need an actual representation for exceptions. */
 var Match = 0;
 
-/* some functions that we'll expect.
-   probably we should have the ability to call multi-arg external functions?
-   or else we can do them as primops (probably cheaper, anyway)
- */
-function plus(r) { return r.l1 + r.l2; }
-
 /* We should perhaps support an overlay network where
    there are multiple named worlds and some general way of
    specifying them. Otherwise there is just one other world,
@@ -670,7 +664,8 @@ var home   = "home";
 /* start this immediately; we'll need it */
 lc_make_toclient ();
 
-/* XXX separate this stuff out into separate js files. */
+/* XXX separate this stuff out into separate js files, as support code
+   for the stdlib. */
 var lc_domnode_dict = lc_ref_dict;
 
 function lc_domsetobj(node, field, o) {
@@ -700,6 +695,14 @@ function lc_newdate(unit) {
 function lc_time_difference(st, en) {
     return 0 + (en - st);
 };
+
+function lc_time_lessthan(a, b) {
+    return (a < b) ? { t : "true" } : { t : "false" };
+}
+
+function lc_time_eq(a, b) {
+    return (a === b) ? { t : "true" } : { t : "false" };
+}
 
 /* XXX should be a prim, not extern */
 function lc_itos(i) {

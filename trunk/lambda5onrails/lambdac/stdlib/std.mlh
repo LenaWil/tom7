@@ -67,7 +67,8 @@ fun cont (f : unit -> unit) : unit cont =
     end
 
 (* XXX should be a prim, since we can do this
-   anywhere *)
+   anywhere. Also, perhaps should be renamed since
+   we use this on all sorts of javascript objects. *)
 extern val itos : int -> string  @ home = lc_itos
 
 extern val runtime.no-messages : unit -> unit  @ home = lc_nomessages

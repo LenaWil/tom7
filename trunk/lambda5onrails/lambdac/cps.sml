@@ -122,7 +122,7 @@ struct
       case (vl, po, map look va) of
         ([v], Leaf.BIND, [V (MV mv)]) => 
           let in
-            print "bind var/var simplified\n";
+            (* print "bind var/var simplified\n"; *)
             sub (VV (MV mv)) (MV v) exp
           end
       | _ => $$(PRIMOP_ po) // SS va // BB(map MV vl, exp)
