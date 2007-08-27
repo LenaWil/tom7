@@ -64,6 +64,7 @@ sig
     | TUnpack of var * var * (var * ctyp) list * 'cval * 'cexp
     (* contents var only bound in arms, not default *)
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
+    | Intcase of 'cval * (IL.intconst * 'cexp) list * 'cexp
     | ExternVal of var * string * ctyp * world option * 'cexp
     | ExternWorld of string * worldkind * 'cexp
     (* always kind 0; optional argument is a value import of the 
@@ -189,6 +190,8 @@ sig
   val Leta' : var * cval * cexp -> cexp
   val WUnpack' : var * var * cval * cexp -> cexp
   val Case' : cval * var * (string * cexp) list * cexp -> cexp
+  val Intcase' : cval * (IL.intconst * cexp) list * cexp -> cexp
+
   val ExternVal' : var * string * ctyp * world option * cexp -> cexp
   val ExternWorld' : string * worldkind * cexp -> cexp
   val ExternType' : var * string * (var * string) option * cexp -> cexp

@@ -1,8 +1,18 @@
 
+p.121: 
+
+15.9.2.1   Date ([ year [, month [, date [, hours [, minutes [, seconds [, ms ]]]]]]])
+
+All of the arguments are optional; any arguments supplied are accepted
+but are completely ignored. A string is created and returned as if by
+the expression (new Date ()).toString().
+
+
+
 The == operator is not reflexive (NaN != NaN), transitive (page 56) or
 even symmetric (is that true? it doesn't seem like you can trigger
 method calls like toString, especially if both are objects).
-
+So there is ===, "strict equality."
 
 function objtostring(ob) {
   var s = "{";
@@ -57,15 +67,4 @@ function testy() {
 What happens if you appendChild a node to itself? (Or otherwise make a cycle)
 put hat in bag
 but bag in hat
-
-
-/* XXX testing
-   Note: javascript has bizarre scope rules. */
-function testy() {
-    {
-	var x = "hello";
-    };
-    
-    alert(x);
-};
 

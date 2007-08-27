@@ -64,7 +64,7 @@ struct
     MU_ | SUM_ | SHAMROCK_ | TVAR_ | PRIMCON_ of primcon | NONCARRIER_ |
     (* exps *)
     CALL_ | HALT_ | GO_ | GO_CC_ | GO_MAR_ | PRIMOP_ of primop |
-    PUT_ | LETSHAM_ | LETA_ | WUNPACK_ | TUNPACK_ | CASE_ | EXTERNVAL_ |
+    PUT_ | LETSHAM_ | LETA_ | WUNPACK_ | TUNPACK_ | CASE_ | INTCASE_ | EXTERNVAL_ |
     EXTERNWORLD_ of IL.worldkind | EXTERNTYPE_ | PRIMCALL_ | NATIVE_ of Primop.primop |
     (* vals *)
     LAMS_ | FSEL_ | VINT_ of IL.intconst | VSTRING_ | PROJ_ | RECORD_ | HOLD_ | WPACK_ |
@@ -189,6 +189,10 @@ struct
     | (CASE_, CASE_) => EQUAL
     | (CASE_, _) => LESS
     | (_, CASE_) => GREATER
+
+    | (INTCASE_, INTCASE_) => EQUAL
+    | (INTCASE_, _) => LESS
+    | (_, INTCASE_) => GREATER
 
     | (EXTERNVAL_, EXTERNVAL_) => EQUAL
     | (EXTERNVAL_, _) => LESS

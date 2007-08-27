@@ -38,6 +38,7 @@ sig
   val case_WExists : stuff -> selves * context -> var * ctyp -> typ_result
 
   val case_Call : stuff -> selves * context -> cval * cval list -> exp_result
+  val case_Intcase : stuff -> selves * context -> cval * (IL.intconst * cexp) list * cexp -> exp_result
   val case_Case : stuff -> selves * context -> cval * var * (string * cexp) list * cexp -> exp_result
   val case_ExternType : stuff -> selves * context -> var * string * (var * string) option * cexp -> exp_result
   val case_ExternVal : stuff -> selves * context -> var * string * ctyp * world option * cexp -> exp_result

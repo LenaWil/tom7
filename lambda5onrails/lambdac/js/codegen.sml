@@ -520,6 +520,17 @@ struct
                   [Exp ` Call { func = Id go_mar,
                                 args = %[addr, bytes] }]
                   ))
+            | C.Intcase (va, iel, def) => 
+                cvtv va
+                (fn va =>
+                 [Switch { test = va,
+                          clauses = %(map (fn (i, e) =>
+                                           (* silly that we have to go through real numbers here,
+                                              but they can represent all of the 32-bit values... *)
+                                           (SOME ` RealNumber ` IntConst.toReal i,
+                                            %[Block ` % ` (cvte e @ [Break NONE])])) iel @
+                                      [(NONE, %[Block ` % ` (cvte def @ [Break NONE])])]) }
+                 ])
 
             | C.Case (va, v, sel, def) => 
                 cvtv va
