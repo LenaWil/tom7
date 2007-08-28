@@ -6,14 +6,22 @@ set.
 
 Computation of the number of free variable occurrences might be wrong?
 It looks like we inline records, which we shouldn't do unless there is
-only 1 occurrence.
+only 1 occurrence. We should have a suite of tests for AST.
 
  Should support "extern mobile type" (easy, just check
  mobility with concrete type at link time); see Dagstuhl
  talk for compelling example.
 
+Cleanup:
+  * Use AST for IL (there are probably alpha conversion bugs in current implementation)
+  * Get rid of inexhaustive matches
+  * Dead code (e.g. IlUtil)
+  * Extraneous keywords from old compilers.
+  * Labels support "special" labels; not needed.
+
 Features:
   * Exceptions (!)
+  * validity for 'val' decls
   * marshaling of mu
   * ability to onkeypress="f(event)"; 
 
@@ -23,16 +31,22 @@ Other performance improvements
   * We should really generate more compact representations of sums and products
     by using numbered fields. It is silly to be comparing strings "true" and "false"
     at runtime...
-  * recursive direct calls
-  * direct calls to polymorphic and valid functions
+  * direct calls to polymorphic and valid functions!
+  * eliminate recursive mu when it is unused ('a option, bool, etc.)
+    it costs because we must represent the type, and mu dictionaries are expensive
+    (substitutions)
+    ... probably this should be done at the IL level?
 
 Passes to implement:
 
 CPS Optimization
-  * replace impossible case defaults with Halt.
   * really should run optimization rounds in a loop.
   * unused argument removal post-undict would be great, but
     the code is pretty messed up at that point...
+  * split up or eliminate friends that are not friends.
+    this is tricky only because we don't always have a good place
+    to put the split up friends.
+  * optimizations specific to this domain: like get-self or get-get
   * "globals" so that we do not need to pass around Match and Sub
     everywhere we go. I think this would be the biggest optimization we could
     make. (But also one of the hardest.)
@@ -40,24 +54,14 @@ CPS Optimization
     an inlining phase would undo this.
   * already-bound, prevent recreation of things that are already bound
     (subsumes x = y renaming optimization)
-    (this happens frequently with rebuilt environments)
+    (this happens frequently with rebuilt environments (?))
 
 Backend optimizations
   * could flatten out lams so that we represent a function as a single integer...
 
 --------------------------------------------------
-    Things to clean up
---------------------------------------------------
-
-Extraneous keywords from old compilers.
-Labels support "special" labels; not needed.
-
-
-
---------------------------------------------------
     Old bugs from Humlock; possibly obsolete
 --------------------------------------------------
-
 
 BUG: nullary is wrong; we define LESS as nullary and later as exp * exp, and then we can never use LESS.
 

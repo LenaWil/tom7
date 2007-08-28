@@ -115,6 +115,7 @@ struct
       DP       p : c, C, a, d, i, s, v, r, or A, w
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
+      DM       m : Number, v : array of { s : String, v : Object }
       DE       d : String, v : array of Object
       DL       s : String  (lookup this var for typedict)
       DW       s : String  (lookup this var for worlddict)
@@ -151,6 +152,29 @@ struct
                  | cd G (C.Primcon (C.DICTIONARY, [t])) = dict "DP" [("p", s"d")]
                  | cd G (C.TWdict _) = dict "DP" [("p", s"w")]
                  | cd G (C.Addr _) = dict "DP" [("p", s"a")]
+                 | cd G (C.Mu (i, bdl)) =
+                     let
+                       (* all vars bound in all arms. *)
+                       val G = foldl (fn (((_, v), _), G) => V.Set.add(G, v)) G bdl
+                     in
+                       dict "DM"
+                       [("m", RealNumber ` real i),
+                        ("v", Array ` % ` 
+                         map (fn ((_, v), d) =>
+                              SOME `
+                              Object ` % [prop "s" ` String ` vtos v,
+                                          prop "v" ` cdict G d]) bdl)]
+                     end
+
+                 | cd G (C.Sum stil) =
+                   dict "DS"
+                   [("v", Array ` % ` map (fn (l, d) =>
+                                           SOME `
+                                           Object ` % ((prop "l" ` s l) ::
+                                                       (case d of
+                                                          IL.NonCarrier => nil
+                                                        | IL.Carrier { carried = d, ... } =>
+                                                            [prop "v" ` cdict G d]))) stil)]
                  | cd G (C.Product stl) = dict "DR" 
                  [("v", Array ` % ` map (fn (l, d) =>
                                          SOME `

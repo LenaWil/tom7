@@ -72,7 +72,9 @@ struct
      | Dall (sl, e) => %[$"DALL", %[itol ` length sl, L.indent 2 ` % ` map $ sl],
                          L.indent 2 ` etol e]
      | Dsham { d, v } => %[$"DSHAM", $d, L.indent 2 ` etol v]
-     (* | Dref s => %[$"DREF", $s] *)
+     | Dmu (m, sdl) => %[$"DMU", itol m,
+                         %[itol ` length sdl, 
+                           L.indent 2 ` % ` map (fn (s, d) => %[$s, etol d]) sdl]]
          )
 
   and pdtol dic =
@@ -87,7 +89,6 @@ struct
      | Dw => $"DW"
      | Dstring => $"DSTRING"
      | Dvoid => $"DVOID")
-
 
   fun gtol (FunDec v) =
     %[%[$"FUNDEC",

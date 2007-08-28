@@ -182,6 +182,7 @@ struct
                                 a = evaluate i G a }
     | B.Drec sel => B.Drec ` ListUtil.mapsecond (evaluate i G) sel
     | B.Dsum seol => B.Dsum ` ListUtil.mapsecond (Option.map (evaluate i G)) seol
+    | B.Dmu (b, sdl) => B.Dmu (b, ListUtil.mapsecond (evaluate i G) sdl)
     | B.Dexists { d, a } => B.Dexists { d = d, a = map (evaluate i G) a }
 
     | B.Primcall (s, el) =>

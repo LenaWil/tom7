@@ -244,16 +244,6 @@ struct
   (* assuming not mobile *)
   val bindtypes  = foldl (fn (v, c) => bindtype c v false)
 
-  fun tmobile G typ = 
-    (case ctyp typ of
-       TVar v => gettype G v
-     | Product ltl => ListUtil.allsecond (tmobile G) ltl
-     | Addr _ => true
-     | Primcon (INT, []) => true
-     | Primcon (STRING, []) => true
-     | Primcon (VEC, [t]) => tmobile G t
-     | _ => raise TypeCheck "unimplemented tmobile")
-
   datatype error =
       TY of ctyp
     | TYL of ctyp list
@@ -295,6 +285,24 @@ struct
       Layout.print (Layout.mayAlign (map errtol err), print);
       raise TypeCheck "(see above)"
     end
+
+  fun tmobile G typ = 
+    (case ctyp typ of
+       TVar v => gettype G v (* bool indicates mobility *)
+     | Product ltl => ListUtil.allsecond (tmobile G) ltl
+     | Addr _ => true
+     | Primcon (INT, []) => true
+     | Primcon (STRING, []) => true
+     | Primcon (VEC, [t]) => tmobile G t
+     | Mu (_, vtl) =>
+         (* assume mobile for the sake of checking mobility... *)
+         let val G = foldr (fn ((v, _), G) => bindtype G v true) G vtl
+         in ListUtil.allsecond (tmobile G) vtl
+         end
+     | Sum stil => ListUtil.allsecond 
+                     (fn IL.NonCarrier => true | 
+                         IL.Carrier { carried = t, ... } => tmobile G t) stil
+     | _ => fail [$"unimplemented tmobile:", TY typ])
 
   fun faile exp msg = fail [$"\n\nIll-typed: ", EX exp, $"\n", $msg]
        

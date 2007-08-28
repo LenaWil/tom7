@@ -51,12 +51,10 @@ struct
     | Dexists of { d : string, a : exp list }
     | Dall of string list * exp
     | Dsham of { d : string, v : exp }
-    (* | Dref of string *)
+    | Dmu of int * (string * exp) list
 
     (* "variable" *)
     | Dlookup of string
-
-      (* XXX Dmu, *)
 
   datatype global = 
       FunDec of (string list * statement) vector

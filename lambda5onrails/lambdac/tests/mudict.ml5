@@ -1,0 +1,17 @@
+unit
+
+  extern bytecode world server
+  extern val home ~ home addr
+  extern val server ~ server addr
+
+  datatype zist = NIL | CONS of int * zist
+
+  put z = CONS(2, CONS(1, NIL))
+
+  do from server get z
+
+  do primapp Ref { zist } ( z )
+
+in
+
+end
