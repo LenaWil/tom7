@@ -225,7 +225,7 @@ struct
                         | _ => false) exemptargs
         then 
           let in
-            print ("exempt! (w): " ^ V.tostring wv ^ "\n");
+            (* print ("exempt! (w): " ^ V.tostring wv ^ "\n"); *)
             NONE
           end
         else SOME (T.getwdict G wv)
@@ -240,7 +240,7 @@ struct
                         | _ => false) exemptargs
         then 
           let in
-            print ("exempt! (t): " ^ V.tostring tv ^ "\n");
+            (* print ("exempt! (t): " ^ V.tostring tv ^ "\n"); *)
             NONE
           end
         else SOME (T.getdict G tv)
@@ -943,9 +943,11 @@ struct
          let val (vs, us) = freevarsv lams
          in case (V.Set.listItems vs, V.Set.listItems us) of
                (nil, nil) =>
+                 (*
                  print ("function " ^ StringUtil.delimit "/" (map (V.tostring o #1) vael) ^
                         " successfully closed.\n")
-
+                 *)
+                 ()
              | (fv, fuv) => 
                  let in
                    print ("For function " ^ 

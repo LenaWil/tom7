@@ -1,8 +1,15 @@
 
 val provide-string = ()
+val require-std = provide-std
 
-(*  ^ is a primitive now  *)
+(* PERF *)
+fun string-delimit s nil = ""
+  | string-delimit s (h::nil) = h
+  | string-delimit s (h1::t) = [[h1][s][string-delimit s t]]
 
+(* most of the stuff below relies on Hemlock-specific
+   primops. It should be ported to ML5! *)
+(*
 fun string-concat l =
     let
         fun count (acc, nil) = acc
@@ -26,11 +33,6 @@ fun string-concat l =
     in
         init (0, l)
     end
-
-(* PERF *)
-fun string-delimit s nil = ""
-  | string-delimit s (h::nil) = h
-  | string-delimit s (h1::t) = [[h1][s][string-delimit s t]]
 
 fun print s =
     let
@@ -320,3 +322,4 @@ fun string-compare (s, t) =
     in
       a 0
     end
+*)

@@ -1,13 +1,6 @@
-(* Simple dead code elimination. This is quite slow because it
-   computes free variable sets for every binding. But since we plan to
-   improve the performance of the CPS implementation (including free
-   variable sets), this will become faster automatically.
-
-   Right now this only does letsham elimination, since that's needed
-   to get direct calls to work.
-
-   (Or we can rewrite to work like the IL and JS optimization phases.) *)
-
+(* Simple dead code elimination. This is easy because we have
+   free variable information from the CPS representation "for free".
+*)
 
 structure CPSDead :> CPSDEAD =
 struct

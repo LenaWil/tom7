@@ -119,8 +119,11 @@ struct
                    Layout.print (CPSPrint.vtol ` C.Dict' d, print);
                    print "\n";
 
+                   (*
                    raise ByteCodegen
                      "oops, convert dict front unimplemented"
+                     *)
+                   String "unimplemented dictionary FIXME"
                  end
 
                and cwdict G e =

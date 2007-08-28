@@ -120,12 +120,12 @@ struct
     
   structure K = PassFn(IA)
 
-  fun inline G e = K.converte () G e
+  fun reduce G e = K.converte () G e
 
   fun optimize G e =
     let 
       fun go e =
-        let val e = inline G e
+        let val e = reduce G e
         in
           if !total > 0
           then (print ("Did " ^ Int.toString (!total) ^ " units of REDUCE optimization.\n");

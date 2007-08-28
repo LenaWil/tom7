@@ -724,3 +724,12 @@ function lc_itos(i) {
     return ''+i;
 };
 
+// really runtime; used to implement primop
+function lc_replace(s, d, t) {
+    // surprisingly hard. first need to escape any RE
+    // specials in the src string, so that they are not
+    // interpreted:
+    var r = s.replace(/([.*+?^${}()|[\]\/\\])/g, '\\$1');
+    // then replace, using it as a regexp
+    return t.replace(new RegExp(r, "g"), d);
+};
