@@ -138,6 +138,28 @@ struct
                in
                  Dsham { d = d, v = v }
                end
+           | "DS" =>
+               let
+                 val n = IntConst.toInt ` int ()
+               in
+                 Dsum (List.tabulate(n,
+                                     fn _ =>
+                                     (tok (),
+                                      (case tok () of
+                                         "-" => NONE
+                                       | "+" => SOME ` um G loc ` Dp Ddict
+                                       | _ => raise Marshal "unmarshal dsum expected +/-"))))
+               end
+           | "DM" =>
+               let
+                 val m = IntConst.toInt ` int ()
+                 val n = IntConst.toInt ` int ()
+               in
+                 Dmu (m, List.tabulate(n, 
+                                       fn _ =>
+                                       (tok (),
+                                        um G loc (Dp Ddict))))
+               end
            | s => raise Marshal ("um unimplemented " ^ s))
 
         | um G loc (Drec sel) =
@@ -152,7 +174,26 @@ struct
                              else raise Marshal "unmarshal drec label mismatch"
                            end) sel
 
-        | um G loc (Dsum _) = raise Marshal "unmarshal dsum unimplemented"
+        | um G loc (Dsum stol) =
+             let
+               val l = tok ()
+             in
+               case ListUtil.Alist.find op= stol l of
+                 NONE => raise Marshal "label not found in unmarshal sum"
+               | SOME NONE => Inj(l, NONE)
+               | SOME (SOME d) => Inj(l, SOME ` um G loc d)
+             end
+
+        | um G loc (Dmu (m, vdl)) =
+             let
+               (* unroll dictionary... *)
+               val G = ListUtil.foldli (fn (i, (v, _), G) =>
+                                        SM.insert(G, v, Dmu (i, vdl))) G vdl
+               
+             in
+               um G loc ` #2 ` (List.nth (vdl, m) handle _ => 
+                                raise Marshal "mu dict out of range")
+             end
 
         | um _ _ (Record _) = raise Marshal "um: not dict"
         | um _ _ (Project _) = raise Marshal "um: not dict"
@@ -199,10 +240,22 @@ struct
         | mar G loc (Dsum seol) (Inj (s, eo)) =
         (case (ListUtil.Alist.find op= seol s, eo) of
            (NONE, _) => raise Marshal "dsum/inj mismatch : missing label"
-         | (SOME NONE, NONE) => s ^ " -"
-         | (SOME (SOME d), SOME v) => s ^ " + " ^ mar G loc d v
+         | (SOME NONE, NONE) => s
+         | (SOME (SOME d), SOME v) => s ^ " " ^ mar G loc d v
          | _ => raise Marshal "dsum/inj arity mismatch")
         | mar G loc (Dsum _) _ = raise Marshal "dsum"
+        | mar G loc (Dmu (m, vdl)) va =
+             let
+               (* unroll dictionary... *)
+               val G = ListUtil.foldli (fn (i, (v, _), G) =>
+                                        SM.insert(G, v, Dmu (i, vdl))) G vdl
+               
+             in
+               (* same value *)
+               mar G loc (#2 (List.nth (vdl, m) handle _ => 
+                              raise Marshal "(mar) mu dict out of range")) va
+             end
+
         | mar G loc (Drec sel) (Record lel) =
         StringUtil.delimit " "
                       (map (fn (s, d) =>
@@ -261,8 +314,8 @@ struct
            in
              IntConst.toString i
            end
-        | mar G loc (Dp Ddict) d = 
-           (case d of
+        | mar G loc (Dp Ddict) dic = 
+           (case dic of
               Dp pd => "DP " ^ (case pd of
                                   Dcont   => "c"
                                 | Dconts  => "C"
@@ -290,6 +343,13 @@ struct
             | Dsum sdl => "DS " ^ Int.toString (length sdl) ^ " " ^
                    StringUtil.delimit " " (map (fn (s,NONE) => s ^ " -"
                                                  | (s,SOME d) => s ^ " + " ^ mar G loc (Dp Ddict) d) sdl)
+            | Dmu (m, sdl) =>
+                   let
+                     val n = length sdl
+                   in
+                     "DM " ^ Int.toString m ^ " " ^ Int.toString n ^
+                     StringUtil.delimit " " (map (fn (s, d) => s ^ " " ^ mar G loc (Dp Ddict) d) sdl)
+                   end
             | Dsham { d, v } => "DH " ^ d ^ " " ^ mar G loc (Dp Ddict) v
             | Dall _ => raise Marshal "unimplemented marshal dall dict"
             | Record _ => raise Marshal "not ddict"

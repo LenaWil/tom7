@@ -32,12 +32,14 @@
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s, v, A, r, w
+      DP       p : c, C, a, d, i, s, v, r, or A, w
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
+      DM       m : Number, v : array of { s : String, v : Object }
       DE       d : String, v : array of Object
-      DL       s : String
-      DA       s : array of String, v : Object
+      DL       s : String  (lookup this var for typedict)
+      DW       s : String  (lookup this var for worlddict)
+      DA       s : array of String, w : array of String, v : Object
       D@       v : Object, a : String
       DH       d : bound String,  v : Object
 
