@@ -42,7 +42,8 @@ This file documents the marshaling format.
  Product stl        {l1..ln}         {l1..ln}         l1 v1 .. ln vn
  Addr _             string           string           urlencoded-string
  Shamrock t         v                v                v
- Sum stil           Inj(l,vo)        {t,v} or {t}     l + v  or  l -
+ Sum stil           Inj(l,vo)        {t,v} or {t}     l v  or  l
+                                                      (object presence info from dict)
  Primcon INT        int              int              int
  Primcon STRING     string           string           .urlencoded-string
  Primcon REF        ref v            object           int

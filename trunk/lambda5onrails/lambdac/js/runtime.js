@@ -230,19 +230,11 @@ function lc_add_local(ob) {
    for local objects that can't be marshaled, too. */
 var lc_ref_dict = { w : "DP", p : "r" };
 
-/*
-    { w : tag, ... } where 
-
-      tag (string)
-      DP       p : c, C, a, d, i, s, v, A, r, w
-      DR       v : array of { l : String, v : Object }
-      DS       v : array of { l : String, v : Object (maybe missing) }
-      DE       d : String, v : array of Object
-      DL       s : String
-      DA       s : array of String, v : Object
-
-*/
-
+/* PERF these contexts are represented as flat lists
+   with shadowing; as we marshal large recursive objects
+   (e.g. a long list) we produce a longer and longer list.
+   we could use javascript's hash tables for faster
+   lookup... */
 function lc_lookup(G, s) {
     var ct = G;
     while (ct != undefined) {
@@ -508,22 +500,43 @@ function lc_make_toclient() {
     }
 };
 
-/*
-    { w : tag, ... } where 
-
-      tag (string)
-      DP       p : c, C, a, d, i, s, v, r, or A
-      DR       v : array of { l : String, v : Object }
-      DS       v : array of { l : String, v : Object (maybe missing) }
-      DE       d : String, v : array of Object
-      DL       s : String  (lookup this var for typedict)
-      DW       s : String  (lookup this var for worlddict)
-      DA       s : array of String, w : array of String, v : Object
-      D@       v : Object, a : String
-*/
-
 function lc_marshalg(G, loc, dict, va) {
+    lc_message('marshal ' + dict.w);
     switch(dict.w) {
+    case "DM": {
+	lc_message('<b>marshal DM</b> dict: ' + lc_jstos(dict));
+	lc_message('<b>marshal DM</b> value: ' + lc_jstos(va));
+
+	//      DM       m : Number, v : array of { s : String, v : Object }
+
+	/* each recursive var is bound to its own projection from the mu. */ 
+	var G2 = G;
+	for(var i = 0; i < dict.v.length; i ++) {
+	    G2 = { head : dict.v[i].s, 
+		   data : { w : "DM",
+			    m : i,
+			    v : dict.v },
+		   next : G2 };
+	}
+	/* representation doesn't change */
+	return lc_marshalg(G2, loc, dict.v[dict.m].v, va);
+    }
+    case "DS": {
+	lc_message('<b>marshal DS</b> dict: ' + lc_jstos(dict));
+	lc_message('<b>marshal DS</b> value: ' + lc_jstos(va));
+
+	var s = va.t + ' ';
+	/* is it a carrier or non-carrier? */
+	/* DS       v : array of { l : String, v : Object (maybe missing) } */
+	for(var i = 0; i < dict.v.length; i ++) {
+	    if (dict.v[i].l === va.t) {
+		if (dict.v[i].v == undefined) return s;
+		else return s + ' ' + lc_marshalg(G, loc, dict.v[i].v, va.v);
+	    }
+	}
+	alert('DS label not found!');
+	throw 'DS label not found!';
+    }
     case "DR": {
 	var s = '';
 	for(var i = 0; i < dict.v.length; i ++) {
@@ -576,6 +589,7 @@ function lc_marshalg(G, loc, dict, va) {
 	}
         case "w": return escape(va);
 	case "d": {
+	    lc_message('(' + va.w + ')');
 	    /* ah, how the tables have turned! */
 	    switch (va.w) {
 	    case "DP":
@@ -609,6 +623,26 @@ function lc_marshalg(G, loc, dict, va) {
 	    case "DH": {
 		return 'DH ' + va.d + ' ' + lc_marshalg(G, loc, lc_dictdict, va.v);
             }
+	    case "DS": {
+		//      DS       v : array of { l : String, v : Object (maybe missing) }
+		//      DS n s1 + v1 s2 - .. 
+                //         (values either + v or -)
+		var s = 'DS ' + va.v.length;
+		for(var i = 0; i < va.v.length; i ++) {
+		    s += ' ' + va.v[i].l;
+		    if (va.v[i].v == undefined) s += ' -';
+		    else s += ' + ' + lc_marshalg(G, loc, lc_dictdict, va.v[i].v);
+		}
+		return s;
+	    }
+	    case "DM": {
+		//      DM       m : Number, v : array of { s : String, v : Object }
+		var s = 'DM ' + va.m + ' ' + va.v.length;
+		for(var i = 0; i < va.v.length; i ++) {
+		    s += ' ' + va.v[i].s + ' ' + lc_marshalg(G, loc, lc_dictdict, va.v[i].v);
+		}
+		return s;
+	    }
 	    default:
 		alert('unimplemented dict to be marshaled: ' + va.w);
 		throw 'unimplemented';
@@ -651,8 +685,7 @@ function lc_marshalg(G, loc, dict, va) {
     }
     default:
 	alert('unimplemented or bad dictionary in marshal: ' + dict.w);
-	/* throw "lc_marshalg";*/
-	return 'unimplemented-marshal';
+	throw 'unimplemented: marshal';
     }
 };
 

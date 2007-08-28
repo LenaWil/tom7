@@ -8,10 +8,17 @@ unit
 
   put z = CONS(2, CONS(1, NIL))
 
+(*
   do from server get z
 
   do primapp Ref { zist } ( z )
+*)
 
+  do primapp Ref { zist } (
+      from server get (primapp Ref { zist } ( z );
+                       primapp Ref { zist } ( z );
+                       z)
+      )
 in
 
 end
