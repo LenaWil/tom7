@@ -48,7 +48,7 @@ This file documents the marshaling format.
  Primcon REF        ref v            object           int
                                        -or-               
                                      int
- Mu (n, vt1..vtn)   v                v                d1 .. dn v
+ Mu (m, vt1..vtn)   v                v                v
  Primcon DICT t     ...
                     dp d                              DP c
                     drec svl                          DR n s1 v1 .. sn vn
@@ -58,6 +58,7 @@ This file documents the marshaling format.
                     dlookup s                         DL s
                     dall sl d                         DA n s1 .. sn d
                     at (d, w)                         D@ d w
+                    mu (m, (s1,d1)..(sn,dn))          DM m n s1 d1 .. sn dn
  TWdict w           str              str              urlencoded-string
 
  primitive dicts are mapped to characters:

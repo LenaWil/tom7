@@ -551,17 +551,16 @@ struct
         (case cval obj of
            Fsel(l, n) =>
              (case cval l of
+                (* XXX should support polymorphic lambdas.
+                   To do so, we need to find either AllLam (Lams ..) or
+                   a plain Lams. Then when search for calls to this,
+                   we either find the value v or AllApp(v, ...). The
+                   translation of the Lams body is the same, since it is
+                   not polymorphically recursive. But what about the
+                   free variables? Do they go in the val arguments to
+                   the AllLam or to the Lams? probably both? *)
                 Lams vael =>
                   let
-(*
-                    fun recursive vael =
-                      let
-                        val fs = map #1 vael
-                      in
-                        List.exists (fn v =>
-                                     List.exists (fn (_, _, e) => isvfreeine v e) vael) fs
-                      end
-*)
 
                     (* are all occurrences direct? *)
                     exception NotDirect

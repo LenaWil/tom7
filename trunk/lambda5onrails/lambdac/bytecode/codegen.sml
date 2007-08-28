@@ -113,7 +113,20 @@ struct
                  (* if it is not static, then it is always represented as an int
                     (index into globals) *)
                  | cd G (C.AllArrow {worlds = _, tys = _, vals = _, body = _}) = Dp Daa
-                 | cd _ d = 
+                 | cd G (C.Sum stil) =
+                         let
+                         in
+                           Dsum ` map (fn (s, IL.NonCarrier) => (s, NONE)
+                                        | (s, IL.Carrier { carried = t, ... }) => (s, SOME ` cdict G t)) stil
+                         end
+                 | cd G (C.Mu (i, bdl)) =
+                         let
+                           (* all vars bound in all arms. *)
+                           val G = foldl (fn (((_, v), _), G) => V.Set.add(G, v)) G bdl
+                         in
+                           Dmu (i, map (fn ((_, v), d) => (vtoi v, cdict G d)) bdl)
+                         end
+                 | cd _ d =
                  let in
                    print "BCG: unimplemented val\n";
                    Layout.print (CPSPrint.vtol ` C.Dict' d, print);

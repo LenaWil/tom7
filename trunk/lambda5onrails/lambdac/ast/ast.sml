@@ -1,7 +1,12 @@
 (* TODO: de Bruijn
-         use vectors instead of lists
+         use vectors instead of lists?
          hash cons?
-         hash for quick equality tests *)
+         hash for quick equality tests 
+         delayed substitutions
+
+         compliance suite for this; it is surprisingly easy
+         to make mistakes (esp. with delayed free variable
+         sets, etc.). *)
 
 functor ASTFn(A : ASTARG) :> AST where type var = A.var
                                    and type leaf = A.leaf =

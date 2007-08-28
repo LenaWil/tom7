@@ -138,7 +138,9 @@ struct
       let
         fun find nil = (case p of
                           PJointext i => ("Jointext_" ^ Int.toString i)
-                        | PCompileWarn s => ("Warn(" ^ s ^ ")")
+                        (* bad: we assume these names are short and don't have funny characters in them *)
+                        (* | PCompileWarn s => ("Warn(" ^ s ^ ")") *)
+                        | PCompileWarn _ => "CompileWarn"
                         | _ => raise Primop "po tostring?")
           | find ((s, p') :: rest) = if p = p' 
                                      then s

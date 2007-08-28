@@ -89,6 +89,7 @@ struct
     || `DALL >> repeated id && $exp wth Dall
     || `DAT >> $exp && $exp wth (fn (d, a) => Dat   { d = d, a = a })
     || `DSHAM >> id && $exp wth (fn (d, v) => Dsham { d = d, v = v })
+    || `DMU >> int && repeated (label && $exp) wth Dmu
 
     || `CALL -- punt "parse error after CALL"
     || `DALL -- punt "parse error after DALL"
@@ -98,6 +99,7 @@ struct
     || `DP -- punt "parse error after DP"
     || `DREC -- punt "parse error after DREC"
     || `DSHAM -- punt "parse error after DSHAM"
+    || `DMU -- punt "parse error after DMU"
     || `DSUM -- punt "parse error after DSUM"
     || `INJ -- punt "parse error after INJ"
     || `MARSHAL -- punt "parse error after MARSHAL"
