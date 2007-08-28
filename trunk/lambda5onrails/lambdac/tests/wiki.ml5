@@ -15,6 +15,7 @@
 unit
     import "std.mlh"
     import "list.mlh"
+    import "string.mlh"
     import "dom.mlh"
     import "timer.mlh"
     import "trivialdb.mlh"
@@ -46,11 +47,6 @@ unit
     extern val alert : string -> unit @ home
 
     do runtime.no-messages ()
-
-    (* PERF. to-lib too *)
-    fun string-delimit s nil = ""
-      | string-delimit s (h::nil) = h
-      | string-delimit s (h1::t) = [[h1][s][string-delimit s t]]
 
     val template-cache = ref nil
     val pagelock = new-lock ()
@@ -132,6 +128,7 @@ unit
               | String of string
               | Bar
               | Equals
+              | NewLine
               | OLink
               | CLink
               | OTempl
@@ -146,36 +143,36 @@ unit
                       val start = !off
                       fun eat () =
                           if !off >= size s
-                          then ((* alert [eat end]; *) String(substring(s, start, !off - start)))
+                          then String(substring(s, start, !off - start))
                           else
                             let in
-                              (* alerti (!off); *)
-
-                              case ssub (s, !off) of
-                                  (* if it is the first character, we behave
-                                     differently than if we see some letters
-                                     terminated by one of the special chars.
-                                     (note, we know the string does not start
-                                     with [[ or ]] or {{ or }}) *)
-                                  ?| => (case !off - start of
-                                             0 => (off := !off + 1; Bar)
-                                         | len => String(substring(s, start, len)))
-                                | ?] => (case !off - start of
-                                             0 => (off := !off + 1; eat ())
-                                         | len => String(substring(s, start, len)))
-                                | ?= => (case !off - start of
-                                             0 => (off := !off + 1; Equals)
-                                         | len => String(substring(s, start, len)))
-                                | ?[ => (case !off - start of
-                                             0 => (off := !off + 1; eat ())
-                                         | len => String(substring(s, start, len)))
-                                | ?{ => (case !off - start of
-                                             0 => (off := !off + 1; eat ())
-                                         | len => String(substring(s, start, len)))
-                                | ?} => (case !off - start of
-                                             0 => (off := !off + 1; eat ())
-                                         | len => String(substring(s, start, len)))
-                                | c => (off := (!off + 1); eat ())
+                              (* PERF could be faster with eat-first eat-rest, not testing each time... *)
+                              case !off - start of
+                                  0 =>
+                                     let val c = ssub (s, !off)
+                                     in
+                                       off := !off + 1; 
+                                       case c of
+                                           (* if it is the first character, we behave
+                                              differently than if we see some letters
+                                              terminated by one of the special chars.
+                                              (note, we know the string does not start
+                                              with [[ or ]] or {{ or }}) *)
+                                           ?| => Bar
+                                         | ?= => Equals
+                                         | ?\n => NewLine
+                                         | _ => eat ()
+                                     end
+                                | len =>
+                                     (case ssub (s, !off) of
+                                          ?| => String(substring(s, start, len))
+                                        | ?] => String(substring(s, start, len))
+                                        | ?[ => String(substring(s, start, len))
+                                        | ?= => String(substring(s, start, len))
+                                        | ?{ => String(substring(s, start, len))
+                                        | ?} => String(substring(s, start, len))
+                                        | ?\n => String(substring(s, start, len))
+                                        | _ => (off := (!off + 1); eat ()))
                             end
 
                   in
@@ -190,20 +187,21 @@ unit
                               then (off := !off + 2; OLink)
                               else if next2 seq "]]"
                                    then (off := !off + 2; CLink)
-                                   else if next2 seq "{{"
-                                        then (off := !off + 2; OTempl)
-                                        else if next2 seq "}}"
-                                             then (off := !off + 2; CTempl)
-                                             else eat ()
+                                   else 
+                                       (* XXX except when it is triple, signifying
+                                          the occurrence of a template substitution? *)
+                                       if next2 seq "{{"
+                                       then (off := !off + 2; OTempl)
+                                       else if next2 seq "}}"
+                                            then (off := !off + 2; CTempl)
+                                            else eat ()
                           end
                       else eat ()
                   end
 
-            fun make () =
-              let val t = token ()
-              in
-               (* alert [token]; *)
-               (case t of
+            fun make () = makewith (token ())
+            and makewith t =
+               case t of
                     String ss => [[ss][make ()]]
                   | Bar => [|[make()]]
                   | Equals => [=[make()]]
@@ -212,28 +210,68 @@ unit
                   | CLink => [["]]"][make ()]]
                   | OLink => getlink ()
                   | OTempl => gettempl ()
+                  | NewLine => getbreaks [<br />]
                   (* done *)
-                  | NoToken => [])
-              end
+                  | NoToken => []
 
+            and getbreaks s =
+                case token () of
+                    (* two breaks the first time, one break each additional time. *)
+                    NewLine => [[s]<br />[getbreaks []]]
+                  | t => makewith t
+
+            (* XXX should ignore whitespace... *)
             and gettempl () =
                 let
-                    fun target () =
-                        (case token () of
-                             String ss => [[ss][target ()]]
-                           | Bar => [XXX unimplemented template args]
-                           | CLink => [*mismatched brackets*]
-                           | OTempl => [*template within template name*]
-                           | CTempl => []
-                           | NoToken => [*unclosed template*]
-                           | OLink => [*link within template name*])
-                    val t = target ()
+                    (* XXX ref for errors. *)
+
+                    fun getarg sofar =
+                        case token () of
+                            String ss => getarg [[sofar][ss]]
+                          | CTempl => (sofar, nil)
+                          | Bar => (sofar, getargname "")
+                          | _ => (* syntax error *) ("ERROR", nil)
+
+                    and getargname sofar = 
+                        case token () of
+                            String ss => getargname [[sofar][ss]]
+                          | Equals =>
+                                let val (arg, l) = getarg ""
+                                in (sofar, arg) :: l
+                                end
+                                
+                            (* XXX allow numbered anon args (using counter);
+                               then we can see Bar and CTempl *)
+
+                          | _ => (* syntax error *) nil
+
+                    fun target sofar =
+                        case token () of
+                             String ss => target [[sofar][ss]]
+                           | Bar => (sofar, getargname [])
+                           | Equals => target [[sofar]=]
+                           | NewLine => target sofar
+                           | CLink => ([*mismatched brackets*], nil)
+                           | OTempl => ([*template within template name*], nil)
+                           | CTempl => (sofar, nil) (* no args *)
+                           | NoToken => ([*unclosed template*], nil)
+                           | OLink => ([*link within template name*], nil)
+                    val (t, args) = target []
                 in
                     case expand-template t of
                         NONE => [<span class="unknowntemplate">[t]</span>[make ()]]
                       (* Want to render it, since it might contain links, etc. *)
-                      | SOME s => [[renderhtml s][make ()]]
-                end
+                      | SOME s => 
+                            let 
+                                fun rep (s, nil) = s
+                                  | rep (s, (name, value) :: rest) =
+                                    rep (string-replace ([{{{[name]}}}], value, s), rest) : string @ home
+                                val s = rep (s, args)
+                            in 
+                                (* and then render the result... *)
+                                [[renderhtml s][make ()]]
+                            end
+                end : string @ home
 
             and getlink () =
                 let 
@@ -243,6 +281,7 @@ unit
                            | Bar => [|[bartarget ()]]
                            | Equals => [=[bartarget ()]]
                            | CLink => []
+                           | NewLine => bartarget ()
                            | OTempl => [*template within barlink*]
                            | CTempl => [*mismatched barbrackets*]
                            | NoToken => [*unclosed barlink*]
@@ -253,6 +292,7 @@ unit
                              String ss => target [[sofar][ss]]
                            | Bar => (sofar, bartarget ())
                            | Equals => target [[sofar]=]
+                           | NewLine => target sofar
                            | CLink => (sofar, sofar)
                            | OTempl => (sofar, [*template within link*])
                            | CTempl => (sofar, [*mismatched brackets*])
@@ -263,7 +303,7 @@ unit
                 in
                     (* PERF say leaks *)
                     [[linktowith dst show][make ()]]
-                end
+                end : string @ home
         in
             (* alert [renderhtml]; *)
             make ()
@@ -297,10 +337,13 @@ unit
         let 
             val start = js.now ()
             val r = renderhtml (dom.getstring(dom.getbyid id.source, [value]))
+(*
             val tems = string-delimit ", " 
                 (list-map (fn (x, NONE) => 
                            [<span class="unknowntemplate">[x]</span>]
                             | (x, _) => x) (! template-cache))
+*)
+            val tems = ""
         in
             (* debugging... *)
             dom.setstring(dom.getbyid id.templates, [innerHTML], tems);
@@ -399,6 +442,7 @@ unit
           <div style="margin-left:140;" id="content">
            <div class="tabs">
             <span class="userimage" style="float:right">
+             [[] (* XXX get this from the server! *)]
              [linkto [128.2.203.136]]
             </span>
             <span class="tab"><span class="clicktab" onclick="[say page-article ()]">article</span></span>
@@ -414,7 +458,7 @@ unit
           <textarea id="[id.source]" onkeyup="[say source-keyup ()]" class="source">the source code</textarea>
           <div id="[id.editcontrols]">
            <br /><span class="button" onclick="[say try-render ()]">render</span>&nbsp;<span class="button" onclick="[say save ()]">save</span>
-           <br /><div id="[id.templates]">&nbsp;</div>
+           <br /><br /><div id="[id.templates]">&nbsp;</div>
           </div>
           <br /><div id="[id.saveindicator]" class="warnimage" style="height : 40px; display:none">Unsaved changes.</div>
           <br /><div id="[id.debug]">&nbsp;</div>

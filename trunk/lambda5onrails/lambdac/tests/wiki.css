@@ -51,7 +51,7 @@
 	               color : #999999 }
 
        textarea.source { width : 90% ; margin-left : auto; margin-right : auto;
-	                 padding : 6px ; border : 2px inset #FFAAAA }
+	                 padding : 6px ; border : 2px inset #FFAAAA ; height : 150 px }
        div.rendered { width : 90% ; margin-left : auto; margin-right : auto; border : 2px dashed #CCDDCC ;
 	              padding : 1em ; font : 14px Verdana, Arial, Helvetica }
 

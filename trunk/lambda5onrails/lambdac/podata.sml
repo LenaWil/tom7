@@ -36,6 +36,8 @@ struct
           mono ([PT_STRING, PT_INT, PT_INT], PT_STRING)
       | potype PStringLength =
           mono ([PT_STRING], PT_INT)
+      | potype PStringReplace =
+          mono ([PT_STRING, PT_STRING, PT_STRING], PT_STRING)
 
       | potype PUpdate = 
           let val a = Variable.namedvar "a"

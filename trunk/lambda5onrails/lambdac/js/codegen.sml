@@ -379,13 +379,17 @@ struct
                 | P.PGreatereq => boo B.GreaterThanEqual)
         end
         | primexp (P.B _) _ = raise JSCodegen "wrong number of args to binary native primop"
-        | primexp P.PStringSubstring [s, start, len] = 
-
 
         (* string operations *)
+        | primexp P.PStringSubstring [s, start, len] = 
         (* substr is start/length, substring is start/end *)
         Call { func = Sel s "substr",
                args = %[start, len] }
+
+        | primexp P.PStringReplace [s, d, t] =
+        Call { func = Sel s "lc_replace",
+               args = %[s, d, t] }
+
         | primexp P.PStringSub [s, off] =
         Call { func = Sel s "charCodeAt",
                args = %[off] }

@@ -38,6 +38,7 @@ fun inline size s = primapp StringLength { } (s)
 (* XXX bounds on these two? They can fail at runtime, but safely... *)
 fun inline ssub (s, x) = primapp StringSub { } (s, x)
 fun inline substring (s, start, len) = primapp StringSubstring { } (s, start, len)
+fun inline string-replace (s, d, t) = primapp StringReplace { } (s, d, t)
 
 (* fun inline array0 .. ? *)
 fun inline (t) array (length, a : t) = primapp Array { t } (length, a)

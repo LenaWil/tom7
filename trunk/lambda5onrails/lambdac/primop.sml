@@ -53,6 +53,7 @@ struct
       | PStringSub
       | PStringSubstring        
       | PStringLength
+      | PStringReplace
 
       (* arrays and vectors use these *)
       | PArray
@@ -116,6 +117,7 @@ struct
       ("StringSub", PStringSub),
       ("StringSubstring", PStringSubstring),
       ("StringLength", PStringLength),
+      ("StringReplace", PStringReplace),
       ("Set", PSet),
       ("Get", PGet),
       ("Ref", PRef),

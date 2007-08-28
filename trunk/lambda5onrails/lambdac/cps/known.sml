@@ -223,7 +223,7 @@ struct
         let val e = known G e
         in
           if !total > 0
-          then (print ("Did " ^ Int.toString (!total) ^ " units of KNOWN optimization.\n");
+          then (print ("\nDid " ^ Int.toString (!total) ^ " units of KNOWN optimization.\n");
                 reset ();
                 go e)
           else e

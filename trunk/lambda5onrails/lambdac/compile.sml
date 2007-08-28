@@ -139,6 +139,10 @@ struct
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"
 
+            (* this won't interfere with any other optimizations,
+               but it might enable them... *)
+            val c = cpspass "UNREACH" CPSUnreach.optimize G c
+              
             (* do inlining and then remove inline annotations *)
             val c = cpspass "INLINE" CPSInline.optimize G c
             val c = cpspass "UNINLINE" CPSUninline.optimize G c
@@ -225,7 +229,9 @@ struct
          | CPS.CPS s => fail ("Internal error in CPS:\n" ^ s)
          | CPSEta.Eta s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
          | CPSInline.Inline s => fail ("Internal error: CPS Inlining failed:\n" ^ s)
+         | CPSReduce.Reduce s => fail ("Internal error: CPS Reduction failed:\n" ^ s)
          | CPSUninline.Uninline s => fail ("Internal error: CPS Uninlining failed:\n" ^ s)
+         | CPSUnreach.Unreach s => fail ("Internal error: CPS Unreachable failed:\n" ^ s)
          | CPSTypeCheck.TypeCheck s => fail ("Internal error: Type checking failed:\n" ^ s)
          | Closure.Closure s => fail ("Closure conversion: " ^ s)
          | Codegen.Codegen s => fail ("Code generation: " ^ s)
