@@ -829,3 +829,11 @@ function lc_replace(s, d, t) {
     // then replace, using it as a regexp
     return t.replace(new RegExp(r, "g"), d);
 };
+
+function lc_new_regexp(s, f) {
+    return new RegExp(s, f);
+};
+
+function lc_regexp_replace(s, r, d) {
+    return s.replace(r, d);
+};
