@@ -4,9 +4,9 @@ unit
   extern val home ~ home addr
   extern val server ~ server addr
 
-  datatype zist = NIL | CONS of int * zist
+  datatype zist = NIL | CONS of string * zist
 
-  put z = CONS(2, CONS(1, NIL))
+  put z = CONS("aa", CONS("bb", NIL))
 
 (*
   do from server get z
@@ -14,11 +14,19 @@ unit
   do primapp Ref { zist } ( z )
 *)
 
-  do primapp Ref { zist } (
+  val s = primapp Ref { zist } (
       from server get (primapp Ref { zist } ( z );
                        primapp Ref { zist } ( z );
                        z)
       )
+
+  extern val alert : string -> unit @ home
+  fun show NIL = alert "nil"
+    | show (CONS (n, l)) = (alert ([cons [n]]);
+                            show l)
+
+  do show (primapp Get { zist } ( s ))
+
 in
 
 end

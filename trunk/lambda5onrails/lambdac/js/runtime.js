@@ -204,7 +204,7 @@ lc_tokstream.prototype.getint = function () {
     // lc_message('getint of [' + n + ']');
     var s = 1 * n;
     if (s == undefined || isNaN(s)) {
-	alert("expected int");
+	alert("expected int: " + n);
 	throw(0);
     } else return s;
 };
@@ -249,6 +249,33 @@ var lc_dictdict  = { w : "DP", p : "d" };
 var lc_wdictdict = { w : "DP", p : "w" };
 function lc_umg(G, loc, d, b) {
     switch(d.w) {
+    case "DM": {
+	/* each recursive var is bound to its own projection from the mu. */ 
+	var G2 = G;
+	for(var i = 0; i < d.v.length; i ++) {
+	    G2 = { head : d.v[i].s, 
+		   data : { w : "DM",
+			    m : i,
+			    v : d.v },
+		   next : G2 };
+	}
+	/* representation doesn't change */
+	return lc_umg(G2, loc, d.v[d.m].v, b);
+    }
+    case "DS": {
+	/* which label is it actually? */
+	var l = b.next ();
+	/* then find that dict... */
+	//      DS       v : array of { l : String, v : Object (maybe missing) }
+	for(var i = 0; i < d.v.length; i ++) {
+	    if (l === d.v[i].l) {
+		if (d.v[i].v == undefined) return { t : l };
+		else return { t : l, v : lc_umg(G, loc, d.v[i].v, b) };
+	    }
+	}
+	alert ('ds no lab');
+	throw  'ds no lab';
+    }
     case "DL": {
 	var nd = lc_lookup(G, d.s);
 	if (nd == undefined) {
@@ -352,6 +379,42 @@ function lc_umg(G, loc, d, b) {
 		var d = b.next ();
 		var v = lc_umg(G, loc, lc_dictdict, b);
 		return { w : "DH", d : d, v : v };
+	    }
+	    case "DS": {
+	       	//      DS       v : array of { l : String, v : Object (maybe missing) }
+		//      DS n s1 + v1 s2 - .. 
+                //         (values either + v or -)
+		var n = b.getint ();
+		var a = [];
+
+		for(var i = 0; i < n; i ++) {
+		    var l = b.next ();
+		    switch (b.next ()) {
+		    case '-':
+			a.push ( { l : l } );
+			break;
+		    case '+':
+			a.push ( { l : l,
+				   v : lc_umg(G, loc, lc_dictdict, b) } );
+			break;
+		    default:
+			alert ('bad ds option');
+			throw 'bad ds option';
+		    }
+		}
+		return { w : "DS", v : a };
+	    }
+	    case "DM": {
+		//      DM       m : Number, v : array of { s : String, v : Object }
+		var m = b.getint ();
+		var n = b.getint ();
+		var a = [];
+		for(var i = 0; i < n; i ++) {
+		    var s = b.next ();
+		    var v = lc_umg(G, loc, lc_dictdict, b);
+		    a.push( { s : s, v : v } );
+		}
+		return { w : "DM", m : m, v : a };
 	    }
 	    default:
 		alert('unimplemented unmarshal actual dict: ' + t);

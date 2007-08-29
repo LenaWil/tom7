@@ -8,7 +8,7 @@
          to make mistakes (esp. with delayed free variable
          sets, etc.). *)
 
-functor ASTFn(A : ASTARG) :> AST where type var = A.var
+functor ASTFn(A : ASTARG) :> AST where type var  = A.var
                                    and type leaf = A.leaf =
 struct
   open A
