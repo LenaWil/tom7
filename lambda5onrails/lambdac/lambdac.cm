@@ -89,6 +89,8 @@ util/nonce.sml
 
 ast/ast-sig.sml
 ast/ast.sml
+(* for debugging. *)
+ast/conformance.sml
 
 intconst.sml
 primop.sml

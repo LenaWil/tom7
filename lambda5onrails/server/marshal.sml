@@ -347,7 +347,7 @@ struct
                    let
                      val n = length sdl
                    in
-                     "DM " ^ Int.toString m ^ " " ^ Int.toString n ^
+                     "DM " ^ Int.toString m ^ " " ^ Int.toString n ^ " " ^
                      StringUtil.delimit " " (map (fn (s, d) => s ^ " " ^ mar G loc (Dp Ddict) d) sdl)
                    end
             | Dsham { d, v } => "DH " ^ d ^ " " ^ mar G loc (Dp Ddict) v

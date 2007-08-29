@@ -22,7 +22,6 @@ Cleanup:
 Features:
   * Exceptions (!)
   * validity for 'val' decls
-  * marshaling of mu
   * ability to onkeypress="f(event)"; 
 
 Other performance improvements
