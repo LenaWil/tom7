@@ -1,0 +1,8 @@
+
+val provide-regexp = ()
+
+extern type js.regexp = lc_ref
+(* second string is a set of flags, which can only consist of 'g', 'i', and 'm' 
+   (global, ignorecase, and multiline) *)
+extern val js.regexp : string * string -> js.regexp @ home = lc_new_regexp
+extern val js.regexp-replace : string * js.regexp * string -> string @ home = lc_regexp_replace

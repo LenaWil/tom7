@@ -20,7 +20,8 @@ unit
     import "timer.mlh"
     import "trivialdb.mlh"
     import "lock.mlh"
-        
+    import "regexp.mlh"
+
     (* page skeleton. this doesn't change. *)
     val id.articlename = [articlename]
     val id.rendered = [rendered]
@@ -225,6 +226,8 @@ unit
                 let
                     (* XXX ref for errors. *)
 
+                    val argct = ref 1
+
                     fun getarg sofar =
                         case token () of
                             String ss => getarg [[sofar][ss]]
@@ -239,9 +242,18 @@ unit
                                 let val (arg, l) = getarg ""
                                 in (sofar, arg) :: l
                                 end
-                                
-                            (* XXX allow numbered anon args (using counter);
-                               then we can see Bar and CTempl *)
+                          (* anonymous arg *)
+                          | Bar =>
+                                let val l = getargname ""
+                                    val n = !argct
+                                in
+                                    argct := n + 1;
+                                    (itos n, sofar) :: l
+                                end
+                          (* anonymous arg, ending *)
+                          | CTempl =>
+                                (* no need to increment *)
+                                (itos (!argct), sofar) :: nil
 
                           | _ => (* syntax error *) nil
 
@@ -263,6 +275,11 @@ unit
                       (* Want to render it, since it might contain links, etc. *)
                       | SOME s => 
                             let 
+                                (* first, trash any noinclude sections. *)
+                                val r = js.regexp ("\\<noinclude\\>[^]*\\</noinclude\\>", "g")
+                                (* replace them with nothing. *)
+                                val s = js.regexp-replace (s, r, "")
+
                                 fun rep (s, nil) = s
                                   | rep (s, (name, value) :: rest) =
                                     rep (string-replace ([{{{[name]}}}], value, s), rest) : string @ home
@@ -337,13 +354,9 @@ unit
         let 
             val start = js.now ()
             val r = renderhtml (dom.getstring(dom.getbyid id.source, [value]))
-(*
             val tems = string-delimit ", " 
-                (list-map (fn (x, NONE) => 
-                           [<span class="unknowntemplate">[x]</span>]
-                            | (x, _) => x) (! template-cache))
-*)
-            val tems = ""
+                (list-map (fn (x, NONE) => (* show red? *) linkto x
+                            | (x, _) => linkto x) (! template-cache))
         in
             (* debugging... *)
             dom.setstring(dom.getbyid id.templates, [innerHTML], tems);

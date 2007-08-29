@@ -413,7 +413,7 @@ struct
                args = %[start, len] }
 
         | primexp P.PStringReplace [s, d, t] =
-        Call { func = Sel s "lc_replace",
+        Call { func = Id ` $"lc_replace",
                args = %[s, d, t] }
 
         | primexp P.PStringSub [s, off] =
