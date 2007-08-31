@@ -15,9 +15,8 @@
          to make mistakes (esp. with delayed free variable
          sets, etc.). *)
 
-functor AST1(A : ASTARG) (* : (* XXX :> *) AST_BASE where type var  = A.var
-                                                   and type leaf = A.leaf = *)
- =
+functor ASTFn(A : ASTARG) : AST where type var  = A.var
+                                  and type leaf = A.leaf =
 struct
   open A
 
@@ -36,7 +35,10 @@ struct
   | S of 'ast list
   | V of var
 
-  infixr / \
+  infixr / \ // \\
+
+  structure VM = SplayMapFn(type ord_key = var
+                            val compare = var_cmp)
 
   (* exception AST of string *)
   val AST = Exn
@@ -53,14 +55,17 @@ struct
          with the same base name as the original lams;
          it is the length of the vector that determines
          the number of nameless de Bruinj bindings. *)
-    | Lam of bool * var vector * term
+    | Lam of bool * var vector * ast
       (* if boolean is true, then the vector contains
          exactly two terms. *)
-    | Agg of bool * term vector
+    | Agg of bool * ast vector
     | Var of var
-    | Subst of subst * term
+    | Subst of subst * ast
       (* 0-based, non-negative *)
     | Index of int
+
+  (* PERF could also perhaps keep an interval of de Bruijn indices that appear? *)
+  and ast = A of { f : term, m : int VM.map }
 
   (* A substitution consists of two operations to be carried out on a de
      Bruin index.
@@ -84,29 +89,38 @@ struct
      vector. The vector [t0, t1, t2 ... tn] is taken to mean t0/0,
      t1/1, t2/2 ... tn/n and the identity for any other index. *)
 
-  withtype subst = { r  : term vector,
+  withtype subst = { r  : ast vector,
                      up : int,
                      skip : int }
 
+  fun count (A { m, ...}) v =
+    (case VM.find(m, v) of
+       NONE => 0
+     | SOME n => n)
 
-  fun hide (V v) = Var v
-    | hide ($ l) = Leaf l
-    | hide (a1 / a2) = Agg (true, ltov [a1, a2])
-    | hide (S al) = Agg (false, ltov al)
-    | hide (v \ a) = Lam (true, ltov [v], bind 0 [v] a)
-    | hide (B (vl, a)) = Lam (false, ltov vl, bind 0 (rev vl) a)
+  fun isfree a x = count a x > 0
+
+  fun sumv l = Vector.foldr (fn (A { m, ...}, b) => VM.unionWith op+ (m, b)) VM.empty l
+
+  fun Var' v = A { f = Var v, m = VM.insert(VM.empty, v, 1) }
+  fun Leaf' l = A { f = Leaf l, m = VM.empty }
+  fun Agg' (b, v : ast vector) = A { f = Agg (b, v), m = sumv v }
+  fun Lam' (b, vl, a as A { m, ... }) = A { f = Lam (b, vl, a), m = m }
+  fun Index' i = A { f = Index i, m = VM.empty }
+  fun Subst' (s as { r, ... }, t as A { m, ... }) = A { f = Subst (s, t),
+                                                        m = VM.unionWith op+ (m, sumv r) }
 
   (* find named variables in 'vars'. replace them with de bruinj
      indices, assuming we are at given depth. The variables should
      appear in such that the first variable in the list is the
      innermost bound. We do this eagerly, since our delayed
      substitutions can only substitute for de Bruinj variables. *)
-  and bind depth vars tm =
-    (case tm of
-       Leaf _ => tm
-     | Index _ => tm
-     | Agg (b, v) => Agg (b, Vector.map (bind depth vars) v)
-     | Lam (b, vs, a) => Lam (b, vs, bind (depth + Vector.length vs) vars a)
+  fun bind' depth vars term =
+    (case term of
+       Leaf l => Leaf' l
+     | Index i => Index' i
+     | Agg (b, v) => Agg' (b, Vector.map (bind depth vars) v)
+     | Lam (b, vs, a) => Lam' (b, vs, bind (depth + Vector.length vs) vars a)
 (* simpler to just push the substitution,
    especially since we are doing a linear traversal. 
      | Subst ({ r, up, skip }, t) => 
@@ -119,17 +133,23 @@ struct
      | Subst (s, t) => bind depth vars (push s t)
      | Var v =>
          let
-           fun rep _ nil = Var v
+           fun rep _ nil = Var' v
              | rep n (vv :: rest) = if var_eq (v, vv)
-                                    then Index n
+                                    then Index' n
                                     else rep (n + 1) rest
          in
            rep depth vars
          end)
 
+  (* PERF get out early if no var occurs in f, using freevar set *)
+  and bind depth vars (a as A { f, ... }) =
+    if List.exists (isfree a) vars
+    then bind' depth vars f
+    else a
+
   (* apply the substitution s to t one level. *)
-  and push (s as { r, up, skip }) t =
-    (case t of
+  and push' (s as { r, up, skip }) (term : term) =
+    (case term of
        Subst (ss, tt) => 
          let in
            (* PERF the whole point of doing it this
@@ -139,44 +159,52 @@ struct
            push s (push ss tt)
          end
      | Index i => if i < skip
-                  then t
+                  then Index' i
                   else let val i = i - skip
                        in
                          if i >= Vector.length r
-                         then Index (i + up)
+                         then Index' (i + up)
                          else Vector.sub(r, i)
                        end
-     | Var _ => t
-     | Leaf _ => t
-     | Agg (b, v) => Agg (b, Vector.map (fn tm => Subst(s, tm)) v)
+     | Var v => Var' v
+     | Leaf l => Leaf' l
+     | Agg (b, v) => Agg' (b, Vector.map (fn tm => Subst'(s, tm)) v)
      (* shifts the substitution up in the body of the lambda, as
         well as within the substituted terms. *)
-     | Lam (b, vs, t) => Lam (b, vs, 
-                              Subst( { (* increment the codomain *)
-                                       r = Vector.map (fn tm =>
-                                                       Subst ({ r = Vector.fromList nil,
-                                                                up = Vector.length vs,
-                                                                skip = 0 },
-                                                              tm)) r,
-                                       (* maintain the same initial shift ? *)
-                                       up = up,
-                                       (* ignore the lowest bindings *)
-                                       skip = skip + Vector.length vs }, t))
-         )
+     | Lam (b, vs, t) => Lam' (b, vs, 
+                               Subst'( { (* increment the codomain *)
+                                         r = Vector.map (fn tm =>
+                                                         Subst' ({ r = Vector.fromList nil,
+                                                                   up = Vector.length vs,
+                                                                   skip = 0 },
+                                                                 tm)) r,
+                                         (* maintain the same initial shift ? *)
+                                         up = up,
+                                         (* ignore the lowest bindings *)
+                                         skip = skip + Vector.length vs }, t)))
 
-  fun looky self tm =
-    (case tm of
+  and push s (A { f, ... }) = push' s f
+
+  fun hide (V v) = Var' v
+    | hide ($ l) = Leaf' l
+    | hide (a1 / a2) = Agg' (true, ltov [a1, a2])
+    | hide (S al) = Agg' (false, ltov al)
+    | hide (v \ a) = Lam' (true, ltov [v], bind 0 [v] a)
+    | hide (B (vl, a)) = Lam' (false, ltov vl, bind 0 (rev vl) a)
+
+  fun looky' self term =
+    (case term of
        Leaf l => $l
      | Var v => V v
      | Index _ => raise Exn "bug: looked at index!"
      | Lam (b, vs, t) =>
          let 
            val vs = Vector.map var_vary vs
-           val vsub = Vector.map Var vs
+           val vsub = Vector.map Var' vs
          in
            if b
-           then (Vector.sub (vs, 0) \ self ` Subst ( { r = vsub, up = 0, skip = 0 }, t ))
-           else B (vtol vs, self ` Subst( { r = vsub, up = 0, skip = 0 }, t))
+           then (Vector.sub (vs, 0) \ self ` Subst' ( { r = vsub, up = 0, skip = 0 }, t ))
+           else B (vtol vs, self ` Subst'( { r = vsub, up = 0, skip = 0 }, t))
          end
      | Agg (true, v)  =>
          let val a = Vector.sub(v, 0)
@@ -187,39 +215,36 @@ struct
      | Agg (false, v) => S (map self (vtol v))
      | Subst (s, t) => looky self (push s t))
 
-  type ast = term
-(*
-  fun ast_cmp _ = raise Exn "unimplemented"
-  fun sub _ = raise Exn "unimplemented"
-  fun freevars _ = raise Exn "unimplemented"
-  fun count _ = raise Exn "unimplemented"
-  fun isfree _ = raise Exn "unimplemented"
-  fun looky self _ = raise Exn "unimplemented"
-*)
+  and looky self (A { f, ... }) = looky' self f
 
-  fun ast_cmp (Subst (s, t), a) = ast_cmp (push s t, a)
-    | ast_cmp (a, Subst (s, t)) = ast_cmp (a, push s t)
-    | ast_cmp (Leaf l1, Leaf l2) = leaf_cmp (l1, l2)
-    | ast_cmp (Leaf _, _) = LESS
-    | ast_cmp (_, Leaf _) = GREATER
-    | ast_cmp (Var v1, Var v2) = var_cmp (v1, v2)
-    | ast_cmp (Var _, _) = LESS
-    | ast_cmp (_, Var _) = GREATER
-    | ast_cmp (Agg (b1, l1), Agg (b2, l2)) = 
+  fun ast_cmp' (Leaf l1, Leaf l2) = leaf_cmp (l1, l2)
+    | ast_cmp' (Leaf _, _) = LESS
+    | ast_cmp' (_, Leaf _) = GREATER
+    | ast_cmp' (Var v1, Var v2) = var_cmp (v1, v2)
+    | ast_cmp' (Var _, _) = LESS
+    | ast_cmp' (_, Var _) = GREATER
+    | ast_cmp' (Agg (b1, l1), Agg (b2, l2)) = 
     (case Util.bool_compare (b1, b2) of 
        (* PERF make astv_cmp *)
        EQUAL => astl_cmp (vtol l1, vtol l2)
      | order => order)
-    | ast_cmp (Agg _, _) = LESS
-    | ast_cmp (_, Agg _) = GREATER
-    | ast_cmp (Index i, Index j) = Int.compare (i, j)
-    | ast_cmp (Index _, _) = LESS
-    | ast_cmp (_, Index _) = GREATER
+    | ast_cmp' (Agg _, _) = LESS
+    | ast_cmp' (_, Agg _) = GREATER
+    | ast_cmp' (Index i, Index j) = Int.compare (i, j)
+    | ast_cmp' (Index _, _) = LESS
+    | ast_cmp' (_, Index _) = GREATER
     (* ignore the advisory variable names *)
-    | ast_cmp (Lam(b1, _, a1), Lam(b2, _, a2)) =
+    | ast_cmp' (Lam(b1, _, a1), Lam(b2, _, a2)) =
        (case Util.bool_compare (b1, b2) of
           EQUAL => ast_cmp (a1, a2)
         | order => order)
+    | ast_cmp' (Subst _, _) = raise Exn "impossible!"
+    | ast_cmp' (_, Subst _) = raise Exn "impossible!"
+
+  and ast_cmp (A { f = Subst (s, t), ... }, a) = ast_cmp (push s t, a)
+    | ast_cmp (a, A { f = Subst (s, t), ... }) = ast_cmp (a, push s t)
+    | ast_cmp (A { f = a, ...}, 
+               A { f = b, ...}) = ast_cmp' (a, b)
 
   and astl_cmp (nil, nil) = EQUAL
     | astl_cmp (nil, _ :: _) = LESS
@@ -238,14 +263,63 @@ struct
   fun look5 ast = looky look4 ast
 
   val $$ = hide o $
-  val \\ = hide o op \
-  val // = hide o op /
+  val op \\ = hide o op \
+  val op // = hide o op /
   val SS = hide o S
   val BB = hide o B
   val VV = hide o V
 
+  fun sum l = foldr (VM.unionWith op+) VM.empty l
+  fun remove v m = #1 (VM.remove (m, v)) handle _ => m
+
+  fun freevars (A { m, ... }) = m
+
+  (* PERF stub implementations force conversion between
+     representations *)
+  fun rename nil ast = ast
+    | rename ((v,v') :: t) ast =
+    let 
+      val ast = rename t ast
+      val ast = sub (hide (V v')) v ast
+    in ast
+    end
+
+  and sub (obj : ast) (v : var) (ast : ast) =
+    if isfree ast v
+    then
+      let 
+      in
+        case look ast of
+          $l => ast
+        | V v' => if var_eq (v, v')
+                  then obj
+                  else ast
+        | a1 / a2 => sub obj v a1 // sub obj v a2
+        | v' \ a => let 
+                      val v'' = var_vary v'
+                      val a = rename [(v', v'')] a
+                    in
+                      v'' \\ sub obj v a
+                    end
+
+        | S al => SS (map (sub obj v) al)
+
+        | B (vl, a) =>
+                  if List.exists (isfree obj) vl
+                  then
+                    let
+                      val subst = ListUtil.mapto var_vary vl
+                      val a = rename subst a
+                    in
+                      BB (map #2 subst, sub obj v a)
+                    end
+                  else BB (vl, sub obj v a)
+      end
+    else ast
+
 end
 
+(*
 functor ASTFn(A : ASTARG) : (* XXX :> *) AST where type var  = A.var
                                                and type leaf = A.leaf =
 struct
@@ -256,3 +330,4 @@ struct
   open C
   open B
 end
+*)

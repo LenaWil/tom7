@@ -1,4 +1,6 @@
 (* Tests that the ASTFn works correctly. *)
+(* XXX This is far from complete! One AST implementation passed
+   this but then looped forever when compiling some programs. *)
 
 structure ASTConformance =
 struct
