@@ -197,6 +197,40 @@ struct
   fun looky self _ = raise Exn "unimplemented"
 *)
 
+  fun ast_cmp (Subst (s, t), a) = ast_cmp (push s t, a)
+    | ast_cmp (a, Subst (s, t)) = ast_cmp (a, push s t)
+    | ast_cmp (Leaf l1, Leaf l2) = leaf_cmp (l1, l2)
+    | ast_cmp (Leaf _, _) = LESS
+    | ast_cmp (_, Leaf _) = GREATER
+    | ast_cmp (Var v1, Var v2) = var_cmp (v1, v2)
+    | ast_cmp (Var _, _) = LESS
+    | ast_cmp (_, Var _) = GREATER
+    | ast_cmp (Agg (b1, l1), Agg (b2, l2)) = 
+    (case Util.bool_compare (b1, b2) of 
+       (* PERF make astv_cmp *)
+       EQUAL => astl_cmp (vtol l1, vtol l2)
+     | order => order)
+    | ast_cmp (Agg _, _) = LESS
+    | ast_cmp (_, Agg _) = GREATER
+    | ast_cmp (Index i, Index j) = Int.compare (i, j)
+    | ast_cmp (Index _, _) = LESS
+    | ast_cmp (_, Index _) = GREATER
+    (* ignore the advisory variable names *)
+    | ast_cmp (Lam(b1, _, a1), Lam(b2, _, a2)) =
+       (case Util.bool_compare (b1, b2) of
+          EQUAL => ast_cmp (a1, a2)
+        | order => order)
+
+  and astl_cmp (nil, nil) = EQUAL
+    | astl_cmp (nil, _ :: _) = LESS
+    | astl_cmp (_ :: _, nil) = GREATER
+    | astl_cmp (h1 :: t1, h2 :: t2) =
+       (case ast_cmp (h1, h2) of
+          LESS => LESS
+        | GREATER => GREATER
+        | EQUAL => astl_cmp (t1, t2))
+
+
   fun look ast = looky I ast
   fun look2 ast = looky look ast
   fun look3 ast = looky look2 ast
