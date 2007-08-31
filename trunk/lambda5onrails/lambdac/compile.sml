@@ -135,6 +135,8 @@ struct
             val () = print "\n\n**** CPS CONVERTED: ****\n"
             val () = showcpsphase c 
 
+            (* val () = raise Compile "FIXME | stop early" *)
+
             val G = T.empty cw
             val () = T.check G c
             val () = print "\n* Typechecked OK *\n"

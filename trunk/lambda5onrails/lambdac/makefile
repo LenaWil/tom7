@@ -2,7 +2,7 @@
 default : lambdac
 
 WIN_MLTON_FLAGS = @MLton max-heap 300M --
-MLTON_FLAGS = -expert true
+MLTON_FLAGS = -expert true -profile time
 #  -prefer-abs-paths true -show-def-use lambdac.basis.du
 
 
