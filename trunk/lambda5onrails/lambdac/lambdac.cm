@@ -88,6 +88,7 @@ util/symboldb.sml
 util/nonce.sml
 
 ast/ast-sig.sml
+ast/free.sml
 ast/ast.sml
 (* for debugging. *)
 ast/conformance.sml
