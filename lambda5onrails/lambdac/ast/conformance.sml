@@ -49,41 +49,52 @@ struct
     then ()
     else raise Conformance "not equal to self"
 
-  val vars = ["w", "x", "y", "z"]
-  val terms_base =
-    [VV "x",
-     VV "y",
-     VV "z",
-     $$ "leaf",
-     VV "x" // VV "y",
-     "x" \\ VV "x",
-     "x" \\ VV "y",
-     "x" \\ (VV "x" // VV "x"),
-     "x" \\ (SS [VV "x", VV "x", VV "y"]),
-     "x" \\ "x" \\ VV "x",
-     "x" \\ "y" \\ VV "x",
-     "x" \\ "y" \\ VV "y",
-     "x" \\ (VV "x" // "x" \\ VV "x"),
-     BB (["x", "y"], VV "x"),
-     BB (["y", "x"], VV "x"),
-     BB ([], VV "x"),
-     BB ([], $$ "leaf"),
-     VV "x" // ("x" \\ VV "x")]
-
-  val () = app self_equal terms_base
-  val () = app (correct_count vars) terms_base
-
-  (* [t/x]t'  for every term, var, term above *)
-  val terms_subst =
-    List.concat
-    (
-    map (fn t' =>
-         List.concat
-         (map (fn t =>
-               (map (fn v => sub t' v t) vars)) terms_base)) terms_base
-     )
-
-  val () = app self_equal terms_subst
-  val () = app (correct_count vars) terms_subst
+  val () =
+    let
+      
+      val vars = ["w", "x", "y", "z"]
+      val terms_base =
+        [VV "x",
+         VV "y",
+         VV "z",
+         $$ "leaf",
+         VV "x" // VV "y",
+         "x" \\ VV "x",
+         "x" \\ VV "y",
+         "x" \\ (VV "x" // VV "x"),
+         "x" \\ (SS [VV "x", VV "x", VV "y"]),
+         "x" \\ "x" \\ VV "x",
+         "x" \\ "y" \\ VV "x",
+         "x" \\ "y" \\ VV "y",
+         "x" \\ (VV "x" // "x" \\ VV "x"),
+         BB (["x", "y"], VV "x"),
+         BB (["y", "x"], VV "x"),
+         BB ([], VV "x"),
+         BB ([], $$ "leaf"),
+         VV "x" // ("x" \\ VV "x")]
+        
+      val () = app self_equal terms_base
+      val () = app (correct_count vars) terms_base
+        
+      (* [t/x]t'  for every term, var, term above *)
+      val terms_subst =
+        List.concat
+        (
+         map (fn t' =>
+              List.concat
+              (map (fn t =>
+                    (map (fn v => sub t' v t) vars)) terms_base)) terms_base
+         )
+        
+      val () = app self_equal terms_subst
+      val () = app (correct_count vars) terms_subst
+        
+    in
+      ()
+    end handle (e as Conformance s) =>
+      let in
+        print (s ^ "\n");
+        raise e
+      end
 
 end

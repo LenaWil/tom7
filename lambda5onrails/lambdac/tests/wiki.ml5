@@ -275,8 +275,10 @@ unit
                       (* Want to render it, since it might contain links, etc. *)
                       | SOME s => 
                             let 
-                                (* first, trash any noinclude sections. *)
-                                val r = js.regexp ("\\<noinclude\\>[^]*\\</noinclude\\>", "g")
+                                (* first, trash any noinclude sections. 
+                                   try to get the shortest match by not
+                                   allowing any other <tags> within... *)
+                                val r = js.regexp ("\\<noinclude\\>[^<]*\\</noinclude\\>", "g")
                                 (* replace them with nothing. *)
                                 val s = js.regexp-replace (s, r, "")
 
