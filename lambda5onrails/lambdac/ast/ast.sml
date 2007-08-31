@@ -1,6 +1,9 @@
 (* This version of the AST uses de Bruijn indices
    to represent bound variables. Free variables are
-   still represented by name. *)
+   still represented by name. 
+
+   We bias the representation to make 'looking' at
+   a term more efficient than creating a term. *)
 
 (* TODO: de Bruijn
          use vectors instead of lists?
@@ -12,8 +15,9 @@
          to make mistakes (esp. with delayed free variable
          sets, etc.). *)
 
-functor ASTFn(A : ASTARG) :> AST where type var  = A.var
-                                   and type leaf = A.leaf =
+functor AST1(A : ASTARG) (* : (* XXX :> *) AST_BASE where type var  = A.var
+                                                   and type leaf = A.leaf = *)
+ =
 struct
   open A
 
@@ -21,9 +25,6 @@ struct
   fun K x y = x
   infixr 9 `
   fun a ` b = a b
-
-  structure VM = SplayMapFn(type ord_key = var
-                            val compare = var_cmp)
 
   datatype 'ast front =
     $ of leaf
@@ -57,9 +58,36 @@ struct
          exactly two terms. *)
     | Agg of bool * term vector
     | Var of var
-    | Subst of term vector * int * term
+    | Subst of subst * term
       (* 0-based, non-negative *)
     | Index of int
+
+  (* A substitution consists of two operations to be carried out on a de
+     Bruin index.
+
+     If the index is less than 'skip', it is unaffectd. When we push a
+     substitution into a binder, we increment its skip, since it
+     cannot have any effect on that bound variable. (If it is not less
+     than skip, we subtract skip from it before indexing into the
+     vector. Otherwise, the first skip elements of the replacement
+     vector are always wasted.)
+
+     This subtracted index is either in the domain of the
+     substitution, or too high (larger than or equal to the length of
+     the vector). If it is too high we return the index plus 'up'. (Up
+     is always at least as large as the length of the vector.) When a
+     substitution is pushed under a binder, we apply to its codomain a
+     new substitution 'up' because any de Bruin indices in there now
+     look past the binder we've just pushed it under.
+
+     Otherwise, we simply select the element from the substitution
+     vector. The vector [t0, t1, t2 ... tn] is taken to mean t0/0,
+     t1/1, t2/2 ... tn/n and the identity for any other index. *)
+
+  withtype subst = { r  : term vector,
+                     up : int,
+                     skip : int }
+
 
   fun hide (V v) = Var v
     | hide ($ l) = Leaf l
@@ -71,16 +99,24 @@ struct
   (* find named variables in 'vars'. replace them with de bruinj
      indices, assuming we are at given depth. The variables should
      appear in such that the first variable in the list is the
-     innermost bound. *)
+     innermost bound. We do this eagerly, since our delayed
+     substitutions can only substitute for de Bruinj variables. *)
   and bind depth vars tm =
     (case tm of
        Leaf _ => tm
      | Index _ => tm
      | Agg (b, v) => Agg (b, Vector.map (bind depth vars) v)
      | Lam (b, vs, a) => Lam (b, vs, bind (depth + Vector.length vs) vars a)
-     | Subst (tv, sh, t) => Subst (Vector.map (bind depth vars) tv,
-                                   sh,
-                                   bind depth vars t)
+(* simpler to just push the substitution,
+   especially since we are doing a linear traversal. 
+     | Subst ({ r, up, skip }, t) => 
+         Subst ({ (* still at the same scope -- right? *)
+                  r = Vector.map (bind depth vars) tv,
+                  up = up,
+                  skip = skip },
+                bind depth vars t)
+*)
+     | Subst (s, t) => bind depth vars (push s t)
      | Var v =>
          let
            fun rep _ nil = Var v
@@ -91,24 +127,41 @@ struct
            rep depth vars
          end)
 
-  (* apply the substitution (tv,sh) to t one level.
-     sh is the shift, meaning that any variable less than
-     this gets the identity substitution. *)
-  fun push tv sh t =
+  (* apply the substitution s to t one level. *)
+  and push (s as { r, up, skip }) t =
     (case t of
-       (* this is probably possible *)
-       Subst _ => raise Exn "subst hit subst?"
-     | Index i => if i <= sh
+       Subst (ss, tt) => 
+         let in
+           (* PERF the whole point of doing it this
+              way is that we can compose substitutions!
+              this way makes linear chains of pushes... *)
+           (* print "subst hit subst\n"; *)
+           push s (push ss tt)
+         end
+     | Index i => if i < skip
                   then t
-                  else Vector.sub(tv, i - sh)
+                  else let val i = i - skip
+                       in
+                         if i >= Vector.length r
+                         then Index (i + up)
+                         else Vector.sub(r, i)
+                       end
      | Var _ => t
      | Leaf _ => t
-     | Agg (b, v) => Agg (b, Vector.map (fn tm => Subst(tv, sh, tm)) v)
+     | Agg (b, v) => Agg (b, Vector.map (fn tm => Subst(s, tm)) v)
      (* shifts the substitution up in the body of the lambda, as
         well as within the substituted terms. *)
-     | Lam (b, vs, t) => Lam (b, vs, Subst(Vector.map (fn tm => tv, 
-                                           sh + Vector.length vs,
-                                           t))
+     | Lam (b, vs, t) => Lam (b, vs, 
+                              Subst( { (* increment the codomain *)
+                                       r = Vector.map (fn tm =>
+                                                       Subst ({ r = Vector.fromList nil,
+                                                                up = Vector.length vs,
+                                                                skip = 0 },
+                                                              tm)) r,
+                                       (* maintain the same initial shift ? *)
+                                       up = up,
+                                       (* ignore the lowest bindings *)
+                                       skip = skip + Vector.length vs }, t))
          )
 
   fun looky self tm =
@@ -116,55 +169,33 @@ struct
        Leaf l => $l
      | Var v => V v
      | Index _ => raise Exn "bug: looked at index!"
+     | Lam (b, vs, t) =>
+         let 
+           val vs = Vector.map var_vary vs
+           val vsub = Vector.map Var vs
+         in
+           if b
+           then (Vector.sub (vs, 0) \ self ` Subst ( { r = vsub, up = 0, skip = 0 }, t ))
+           else B (vtol vs, self ` Subst( { r = vsub, up = 0, skip = 0 }, t))
+         end
      | Agg (true, v)  =>
          let val a = Vector.sub(v, 0)
              val b = Vector.sub(v, 1)
          in
            self a / self b
          end
-     | Agg (false, v) => S (map (vtol (self v)))
-     | Subst (tv, sh, t) => looky self (push tv sh t)
-)
+     | Agg (false, v) => S (map self (vtol v))
+     | Subst (s, t) => looky self (push s t))
 
   type ast = term
-
+(*
   fun ast_cmp _ = raise Exn "unimplemented"
   fun sub _ = raise Exn "unimplemented"
   fun freevars _ = raise Exn "unimplemented"
   fun count _ = raise Exn "unimplemented"
   fun isfree _ = raise Exn "unimplemented"
   fun looky self _ = raise Exn "unimplemented"
-
-(*
-  fun looky self (A { m = _, f }) = 
-    (case f of
-       $l => $l
-     | V v => V v
-     | a1 / a2 => self a1 / self a2
-     | S al => S (map self al)
-     | v \ a =>
-       let val v' = var_vary v
-           val a = rename [(v, v')] a
-       in v' \ self a
-       end
-     | B (vl, a) =>
-       let val subst = ListUtil.mapto var_vary vl
-           val a = rename subst a
-       in
-         B (map #2 subst, self a)
-       end)
 *)
-       
-(*
-  and astl_cmp (nil, nil) = EQUAL
-    | astl_cmp (nil, _ :: _) = LESS
-    | astl_cmp (_ :: _, nil) = GREATER
-    | astl_cmp (h1 :: t1, h2 :: t2) =
-       (case ast_cmp (h1, h2) of
-          LESS => LESS
-        | GREATER => GREATER
-        | EQUAL => astl_cmp (t1, t2))
-*)       
 
   fun look ast = looky I ast
   fun look2 ast = looky look ast
@@ -179,4 +210,15 @@ struct
   val BB = hide o B
   val VV = hide o V
 
+end
+
+functor ASTFn(A : ASTARG) : (* XXX :> *) AST where type var  = A.var
+                                               and type leaf = A.leaf =
+struct
+  structure B = AST1(A)
+  structure C = FreeAST(structure A = A
+                        structure B = B)
+
+  open C
+  open B
 end

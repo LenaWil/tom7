@@ -18,14 +18,14 @@ sig
 
 end
 
-signature AST =
+signature AST_BASE =
 sig
-
+  
   (* from arg *)
-  type var
   type leaf
+  type var
 
-  structure VM : ORD_MAP where type Key.ord_key = var
+  type ast
 
   datatype 'ast front =
     $ of leaf
@@ -39,11 +39,6 @@ sig
 
   (* infixr \ / *)
 
-  type ast
-  (* arbitrary but consistent ordering, observing alpha equivalence *)
-  val ast_cmp : ast * ast -> order
-  (* XXX also fast eq? *)
-
   val look   : ast -> ast front
   val look2  : ast -> ast front front
   val look3  : ast -> ast front front front
@@ -51,6 +46,28 @@ sig
   val look5  : ast -> ast front front front front front
 
   val hide   : ast front -> ast
+
+  (* injective constructors *)
+  val $$ : leaf -> ast
+  val \\ : var * ast -> ast
+  val // : ast * ast -> ast
+  val SS : ast list -> ast
+  val BB : var list * ast -> ast
+  val VV : var -> ast
+
+end
+
+
+signature AST =
+sig
+
+  include AST_BASE
+
+  structure VM : ORD_MAP where type Key.ord_key = var
+
+  (* arbitrary but consistent ordering, observing alpha equivalence *)
+  val ast_cmp : ast * ast -> order
+  (* XXX also fast eq? *)
 
   (* substitute [ast/var] ast.
      this is "cheap" *)
@@ -61,13 +78,5 @@ sig
   val freevars : ast -> int VM.map
   val isfree   : ast -> var -> bool
   val count    : ast -> var -> int    
-
-  (* injective constructors *)
-  val $$ : leaf -> ast
-  val \\ : var * ast -> ast
-  val // : ast * ast -> ast
-  val SS : ast list -> ast
-  val BB : var list * ast -> ast
-  val VV : var -> ast
 
 end
