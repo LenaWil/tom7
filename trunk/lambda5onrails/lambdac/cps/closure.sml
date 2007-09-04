@@ -370,13 +370,13 @@ struct
                          pretty-print nicer *)
       fun new () = (Int.toString (!lab) before lab := !lab + 1)
 
-      (*
+
       val () = print "mkenv FV: "
-      val () = app (fn v => print (V.tostring v ^ " ")) fvs
+      val () = VS.app (fn v => print (V.tostring v ^ " ")) fv
       val () = print "\nmkenv FUV: "
-      val () = app (fn v => print (V.tostring v ^ " ")) fuvs
+      val () = VS.app (fn v => print (V.tostring v ^ " ")) fuv
       val () = print "\n"
-      *)
+
       
       val env = getenv G (fv, fuv)
       val env = map (fn { value, bindv, binde, basename, wrapped_typ } =>

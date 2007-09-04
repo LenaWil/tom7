@@ -89,8 +89,8 @@ struct
      vector. The vector [t0, t1, t2 ... tn] is taken to mean t0/0,
      t1/1, t2/2 ... tn/n and the identity for any other index. *)
 
-  withtype subst = { r  : ast vector,
-                     up : int,
+  withtype subst = { r    : ast vector,
+                     up   : int,
                      skip : int }
 
   fun count (A { m, ...}) v =
@@ -105,6 +105,7 @@ struct
   fun Var' v = A { f = Var v, m = VM.insert(VM.empty, v, 1) }
   fun Leaf' l = A { f = Leaf l, m = VM.empty }
   fun Agg' (b, v : ast vector) = A { f = Agg (b, v), m = sumv v }
+  (* doesn't contribute to free vars, since these are all bound *)
   fun Lam' (b, vl, a as A { m, ... }) = A { f = Lam (b, vl, a), m = m }
   fun Index' i = A { f = Index i, m = VM.empty }
   fun Subst' (s as { r, ... }, t as A { m, ... }) = A { f = Subst (s, t),
@@ -192,6 +193,8 @@ struct
     | hide (v \ a) = Lam' (true, ltov [v], bind 0 [v] a)
     | hide (B (vl, a)) = Lam' (false, ltov vl, bind 0 (rev vl) a)
 
+  fun vrev v = Vector.fromList (rev (vtol v)) (* PERF *)
+
   fun looky' self term =
     (case term of
        Leaf l => $l
@@ -200,7 +203,7 @@ struct
      | Lam (b, vs, t) =>
          let 
            val vs = Vector.map var_vary vs
-           val vsub = Vector.map Var' vs
+           val vsub = vrev (Vector.map Var' vs)
          in
            if b
            then (Vector.sub (vs, 0) \ self ` Subst' ( { r = vsub, up = 0, skip = 0 }, t ))
