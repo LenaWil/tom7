@@ -108,6 +108,10 @@ struct
   (* doesn't contribute to free vars, since these are all bound *)
   fun Lam' (b, vl, a as A { m, ... }) = A { f = Lam (b, vl, a), m = m }
   fun Index' i = A { f = Index i, m = VM.empty }
+  (* FIXME to get an accurate count of free variables, we need to know
+     whether the de Bruinj indices being substituted for actually occur or not.
+     If they do not, then we will overcount in the case that the codomain of
+     the substitution has free variables in it. *)
   fun Subst' (s as { r, ... }, t as A { m, ... }) = A { f = Subst (s, t),
                                                         m = VM.unionWith op+ (m, sumv r) }
 
@@ -172,17 +176,28 @@ struct
      | Agg (b, v) => Agg' (b, Vector.map (fn tm => Subst'(s, tm)) v)
      (* shifts the substitution up in the body of the lambda, as
         well as within the substituted terms. *)
-     | Lam (b, vs, t) => Lam' (b, vs, 
-                               Subst'( { (* increment the codomain *)
-                                         r = Vector.map (fn tm =>
-                                                         Subst' ({ r = Vector.fromList nil,
-                                                                   up = Vector.length vs,
-                                                                   skip = 0 },
-                                                                 tm)) r,
-                                         (* maintain the same initial shift ? *)
-                                         up = up,
-                                         (* ignore the lowest bindings *)
-                                         skip = skip + Vector.length vs }, t)))
+     | Lam (b, vs, t) => 
+         let
+         in
+           (* HERE we should collect only the vars that are actually bound.
+              We need this later to compute accurate freevar sets, because
+
+              ... actually that does not work, since being free in one branch
+              of an AGG doesn't mean that it's free in all branches (obviously)
+              so once we push a subst past an agg, it becomes inaccurate again.
+              *)
+           Lam' (b, vs, 
+                 Subst'( { (* increment the codomain *)
+                           r = Vector.map (fn tm =>
+                                           Subst' ({ r = Vector.fromList nil,
+                                                     up = Vector.length vs,
+                                                     skip = 0 },
+                                                   tm)) r,
+                           (* maintain the same initial shift ? *)
+                           up = up,
+                           (* ignore the lowest bindings *)
+                           skip = skip + Vector.length vs }, t)))
+         end
 
   and push s (A { f, ... }) = push' s f
 
