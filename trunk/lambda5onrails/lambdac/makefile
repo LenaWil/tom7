@@ -2,7 +2,8 @@
 default : lambdac
 
 WIN_MLTON_FLAGS = @MLton max-heap 300M --
-MLTON_FLAGS = -expert true -profile time
+MLTON_FLAGS = -verbose 1 -expert true
+# -profile time
 #  -prefer-abs-paths true -show-def-use lambdac.basis.du
 
 
@@ -10,7 +11,7 @@ MLTON_FLAGS = -expert true -profile time
 #	rm -f lambdac.exe
 #	cp lambdac lambdac.exe
 
-lambdac : makefile lambdac.cm *.sml front/*.sml el/*.sml parser/*.sml util/*.sml cps/*.sml il/*.sml ../../sml-lib/util/*.sml ../../sml-lib/algo/*.sml
+lambdac : makefile lambdac.cm *.sml ast/*.sml codegen/*.sml js/*.sml js/lib/*.sml front/*.sml el/*.sml parser/*.sml util/*.sml cps/*.sml il/*.sml ../../sml-lib/util/*.sml ../../sml-lib/algo/*.sml
 	-mlton $(MLTON_FLAGS) lambdac.cm
 #	grep -v basis lambdac.basis.du > lambdac.du
 

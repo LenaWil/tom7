@@ -1,0 +1,163 @@
+
+     AST implementation                         5 Sep 2007
+      "Return to Oz"
+
+
+  The compiler spends most of its time in the AST code, particularly
+in the implementation of substitution. From a recent profile:
+
+        33.90 seconds of CPU time (14.44 seconds GC)
+                         function                    cur 
+        ------------------------------------------- -----
+        <gc>                                        29.9%
+        ASTFn.sub                                   18.9%
+        SplayTree.splay                             13.2%
+        List.map                                     5.0%
+        SplayTree.splay.adj                          4.4%
+        ASTFn.looky                                  2.8%
+        SplayMapFn.map                               1.7%
+        ASTFn.force                                  1.7%
+        CPSTypeCheck.vok                             1.6%
+        ASTFn.isfree                                 1.4%
+        SplayMapFn.unionWith.ins                     1.4%
+        SplayMapFn.foldli                            1.3%
+        ASTFn.ast_cmp                                1.2%
+        SplayMapFn.map.ap                            1.0%
+        ASTFn.astl_cmp                               0.9%
+
+Aside from the time spent garbage collecting (much of which is
+probably caused by the repeated rebuilding of terms within the AST
+implementation) and in utility code (List.map, splay trees) also
+heavily used in the AST, all of these functions are part of the AST
+implementation.
+
+Therefore, an easy path to a faster compiler is a faster AST
+implementation.
+
+The major cost is substitution. We use substitution frequently in the
+compiler, but most of the substitution is performed by the AST itself,
+when renaming variables during the 'look' operation. Substitutions
+are linear in the size of the term (the analysis is much more complicated,
+in fact, since we only seek out where the variables actually occur,
+we might need to perform other renamings as we descend under binders,
+and we use and rebuild metadata like free variable sets as we descend
+and rebuild the term, etc. But linear behavior is common.)
+
+Is it possible to instead get performance linear in the number of
+occurrences of the variable? (Or constant?) If so, this representation
+would be much, much faster.
+
+In the case that we have
+
+   lam x. (x y y y y y y y y y y y y y y y)
+
+we must traverse an arbitrary depth of 'y's before we reach the x at the
+bottom of the chain of applications. The nature of a sub-linear solution
+would probably then give us immediate access to 'x'. One obvious way to
+do that would be to make x a reference cell, and leave the reference to
+that cell at its binding site.
+
+  [Note: we could contemplate other non-linear solutions. For example,
+   if we never actually take apart those applications, then there was
+   never any reason to replace x. In other words, if we delay the
+   substitution of x, carrying it with us as we descend through the
+   term, and only apply it at leaves, then we have a small overhead
+   of maintaining a substitution as we crawl through terms, but still
+   only crawl through the term once (when we deconstruct it), regardless
+   of how many binders there are at the outside.
+
+   Maybe this is worth trying before delving into something based on
+   graph representations, or whatever. See below.]
+
+
+Unfortunately, reference cells make the data structure non-persistent
+(or otherwise force us to copy the whole term whenever we do a
+modification). However, might we be able to have (some of) the
+performance of imperative reference cells along with persistence,
+through the development of a "functional ref cell"? What would the
+interface to such a thing even look like?
+
+
+== Lazy substitutions ==
+
+Rather than carry out substitutions eagerly, one way to improve the
+asymptotic performance of the code would be to always keep an explicit
+substitution around, that we can use to record renamings. This addresses
+two issues. One is the case of distant bindings and occurrences (supra):
+
+    lam x. lam y. x y z z z z z z z z z z z z z z z z z
+
+The ocean of applications causes us to incur a linear cost to
+substitute for x, and then a linear cost to substitute for y. If we
+instead represent the term (opened two levels) as
+
+    [x'/x, y'/y] (x y z z z z z z z z z z z z z z z z z)
+
+then we pay only the cost of moving this substitution (which doesn't
+change) through the applications if/when we deconstruct it. (At the
+variable leaves we now pay a logarithmic cost of checking to see if
+the variable is in the substitution.)
+
+We might consider always having a single explicit substitution on the
+outside of the term. This is fine as we deconstruct the term, but
+what about when we build up a new term? For example, if we have
+
+    ([S1] M1) / ([S2] M2)
+
+(here I am using / as the binary aggregator in the AST). We must
+produce a single substitution S such that [S] (M1 / M2) is equal to
+the above. One way we can always do this is by carrying out both
+substitutions eagerly, and using the empty substitution [*] for the
+aggregate. But in other cases we can avoid doing so much work: Call D1
+and D2 the domains of S1 and D2 (those variables that we are going to
+replace) and C1 and C2 the codomains of S1 and S2 (the terms we will
+replace them with). Then we can form the union of those two
+substitutions by simply taking the union of the relations, if D1 and
+D2 are disjoint (or, where they agree, they have the same
+substitutand), and more subtly, when no free variable of C1 appears in
+D2 or vice versa (since the substitutions are taken to be simultaneous).
+We can arrange for the latter condition to hold by applying S1 to C2
+and vice versa. Sometimes they will be unreconcilable, however:
+
+  ([5/x] x) / ([7/x] (x / y))
+
+has no appropriate merged substitution, so we must carry out
+at least one of the substitutions:
+
+  ([*] 5) / ([7/x] (x / y))
+
+  ->
+
+  [7/x] (5 / (x / y))
+
+But be careful of this case:
+
+ ([x/y] y) / ([7/x] 3)
+
+  ->
+
+ ([*] x) / ([7/x] 3)
+
+  -/->
+
+ [7/x] (x / 3)
+
+That is, the condition above on D and C applies to the free variables
+of M as well! Yes, it is simple: we can only hoist a substitution over
+a term if it has no effect on that term.
+
+
+The other complication would be when we put a binder a term with a
+substitution.
+
+ lam x. ([S] M)
+
+If x does not appear in the domain nor codomain of S, then we can simply
+hoist it out:
+
+ [S] (lam x. M)
+
+If it does, we can apply the substitution eagerly. There are probably
+more clever things we can do, but let's not worry about those until
+it is working.
+
