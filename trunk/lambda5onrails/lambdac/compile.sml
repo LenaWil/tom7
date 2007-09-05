@@ -243,7 +243,6 @@ struct
          | Dict.Dict s => fail ("CPSDict: " ^ s)
          | Elaborate.Elaborate s => fail("Elaboration: " ^ s)
          | Hoist.Hoist s => fail ("Hoist: " ^ s)
-         | ILAlpha.Alpha s => fail ("IL Alpha: " ^ s)
          | ILUnused.Unused s => fail ("IL unused: " ^ s)
          | JSCodegen.JSCodegen s => fail("Javascript codegen: " ^ s)
          | JSOpt.JSOpt s => fail("Javascript optimization: " ^ s)

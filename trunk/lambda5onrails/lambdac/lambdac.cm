@@ -124,7 +124,6 @@ podata.sml
 
 il/print-sig.sml
 il/print.sml
-il/alpha.sml
 
 front/context-sig.sml
 front/context.sml
