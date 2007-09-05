@@ -93,6 +93,8 @@ ast/ast.sml
 (* for debugging. *)
 ast/conformance.sml
 
+(*
+
 intconst.sml
 primop.sml
 el.sml
@@ -257,3 +259,5 @@ compile.sml
  (* use from command line *)
  main.sml
 #endif
+
+*)

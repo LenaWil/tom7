@@ -51,10 +51,12 @@ struct
     | $ _ => 0
 
 
+  fun show ast = Layout.print(layout ast, print);
+
   fun fail ast msg =
     let in
       print "AST:\n";
-      Layout.print(layout ast, print);
+      show ast;
       print "\n";
       raise Conformance msg
     end
@@ -134,6 +136,17 @@ struct
   val () =
     let
 
+      (* known regressions first. *)
+
+      val new_bug = sub (VV "x" // VV "y") "y" ("q" \\ VV "y")
+(*
+      val () = print "--------------------------\n"
+      val () = print "new_bug:\n"
+      val () = show new_bug
+      val () = print "\n"
+*)
+      val () = correct_map new_bug
+
       (* bind variable and don't use it... *)
       val subst_bug = "x" \\ VV "y"
       (* open it. now we have a substitution *)
@@ -162,10 +175,13 @@ struct
          BB (["x"], VV "x"),
          BB (["x", "y"], VV "x"),
          BB (["y", "x"], VV "x"),
+         BB (["x"], VV "y"),
+         BB (["x"], VV "x" // VV "y"),
          BB ([], VV "x"),
          BB ([], $$ "leaf"),
          VV "x" // ("x" \\ VV "x"),
-         subst_bug
+         subst_bug,
+         new_bug
          ]
         
       val () = app self_equal terms_base

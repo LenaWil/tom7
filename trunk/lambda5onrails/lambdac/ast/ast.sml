@@ -25,8 +25,8 @@
 
 *)
 
-functor ASTFn(A : ASTARG) (* :> AST where type var  = A.var
-                                   and type leaf = A.leaf *) =
+functor ASTFn(A : ASTARG) :> AST where type var  = A.var
+                                   and type leaf = A.leaf =
 struct
   open A
 
@@ -65,6 +65,44 @@ struct
     A of { b : obj,
            (* Substitution *)
            s : obj VM.map }
+
+  local
+    infixr 9 `
+    fun a ` b = a b
+      
+    structure L = Layout
+    
+    val & = L.str
+    val % = L.mayAlign
+    val itos = Int.toString
+      
+    fun mtol f m =
+      L.listex "[" "]" "," ` map (fn (x, a) => %[&(var_tostring x), &"->", f a]) ` VM.listItemsi m
+
+    fun ishow i = &(itos i)
+
+    fun oshow (O { m, f }) =
+      (* %[&"{", mtol ishow m, fshow f, &"}"] *)
+      fshow f
+
+    and fshow f =
+      case f of
+        $ _ => &"LEAF"
+      | V v => &(var_tostring v)
+      | a / b => L.paren (%[oshow a, &"/", oshow b])
+      | a \ b => L.paren (%[&(var_tostring a), &"\\", oshow b])
+      | _ => &"?"
+
+    fun show (A { s, b }) =
+      %[&"AST",
+        %[&"subst: ", mtol oshow s],
+        %[&"obj: ", oshow b]]
+
+  in
+    val layout = show
+    val oshow = oshow
+    val fshow = fshow
+  end
 
   val empty = VM.empty
   val ident = VM.empty
@@ -110,12 +148,19 @@ struct
             (* not substituted away. *)
             (* sum since replacements might introduce
                more occurrences. *)
-            sum[FV, VM.insert(empty, x, count)]
+            let in
+              (* print (Int.toString count ^ " bare occurrences of " ^ var_tostring x ^ "\n"); *)
+              sum[FV, VM.insert(empty, x, count)]
+            end
         | SOME (O { m = m', ... }) =>
             (* replacement. multiply by
                the number of occurrences of x *)
-            sum[FV, mult count m']
+            let in
+              (* print (Int.toString count ^ " replaced occurrences of " ^ var_tostring x ^ "\n"); *)
+              sum[FV, mult count m']
+            end
     in
+      (* print "freevars:\n"; *)
       VM.foldri folder VM.empty m
     end
 
@@ -127,7 +172,11 @@ struct
   fun count ast v =
     (case VM.find(freevars ast, v) of
        NONE => 0
-     | SOME n => n)
+     | SOME n => 
+         let in 
+           (* print (Int.toString n ^ "\n"); *)
+           n
+         end)
 
   fun oisfree (O { m, ... }) v =
     case VM.find (m, v) of 
@@ -143,76 +192,92 @@ struct
 
      (XXX probably not true now that we have looky and substy separate)
      *)
-  fun substy orename self (A { s, b = O { f, m } }) =
+  fun substy orename self (a as A { s, b = O { f, m } }) =
     (* see if substitution applies to this term at all... *)
     (* PERF could be n lg n, not n^2 *)
-    if VMU.existsi (fn (v, _) =>
-                    VMU.existsi (fn (v', _) =>
-                                 var_eq (v, v')) s) m
-    then
-      case f of
-        $l => $l
+    let in
+(*
+      print "SUBSTY ";
+      Layout.print (layout a, print);
+      print ":\n";
+*)
 
-      | a1 / a2 => self(A { s = s, b = a1 }) / self (A { s = s, b = a2 })
-      | S al => S (map (fn a => self ` A { s = s, b = a }) al)
+      if VMU.existsi (fn (v, _) =>
+                      VMU.existsi (fn (v', _) =>
+                                   var_eq (v, v')) s) m
+      then
+        case f of
+          $l => $l
 
-      | V v =>
-        (case VM.find (s : obj VM.map, v) of
-           NONE => V v
-         (* subst goes away; it is simultaneous *)
-         | SOME (rep : obj) => substy orename self (A{ s = ident, b = rep }))
+        | a1 / a2 => self(A { s = s, b = a1 }) / self (A { s = s, b = a2 })
+        | S al => S (map (fn a => self ` A { s = s, b = a }) al)
 
-      | v \ a => 
-         let
-           (* if substituting for this same var, we should just remove it from
-              the substitution. *)
-           val dorename = 
-             (case VM.find (s, v) of
-                (* or, if it appears in cod of substitution *)
-                NONE => VMU.existsi (fn (_, obj) => oisfree obj v) s
-              | SOME _ => true)
-         in
-           if dorename
-           then 
-             let 
-               val v' = var_vary v
-               val a = orename [(v, v')] a
-             in
-               print "push avoid \\\n";
-               v' \ self(A { s = s, b = a })
-             end
-           else v \ self(A { s = s, b = a })
-         end
+        | V v =>
+          (case VM.find (s : obj VM.map, v) of
+             NONE => V v
+           (* subst goes away; it is simultaneous *)
+           | SOME (rep : obj) => 
+               let in
+(*
+                 print ("Replacing " ^ var_tostring v ^ " with\n");
+                 Layout.print(oshow rep, print);
+                 print "\n";
+*)
+                 substy orename self (A{ s = ident, b = rep })
+               end)
 
-      | B (vl, a) => 
-         let
-           val dorename = 
-             List.exists (fn v =>
-                          (case VM.find (s, v) of
-                             (* or, if it appears in cod of substitution *)
-                             NONE => VMU.existsi (fn (_, obj) => oisfree obj v) s
-                           | SOME _ => true)) vl
-         in
-           if dorename
-           then
-             let 
-               val vl' = ListUtil.mapto var_vary vl
-               val a = orename vl' a
-             in
-               print "push avoid B\n";
-               B (map #2 vl', self(A { s = s, b = a }))
-             end
-           else B (vl, self(A { s = s, b = a }))
-         end
-    else 
-      (* push in identity subst. *)
-      case f of
-        $l => $l
-      | V v => V v
-      | a1 / a2 => self(A { s = ident, b = a1 }) / self(A { s = ident, b = a2 })
-      | S al => S (map (fn a => self(A { s = ident, b = a })) al)
-      | v \ a => v \ self(A { s = ident, b = a })
-      | B (vl, a) => B (vl, self(A { s = ident, b = a }))
+        | v \ a => 
+           let
+             (* if substituting for this same var, we should just remove it from
+                the substitution. *)
+             val dorename = 
+               (case VM.find (s, v) of
+                  (* or, if it appears in cod of substitution *)
+                  NONE => VMU.existsi (fn (_, obj) => oisfree obj v) s
+                | SOME _ => true)
+           in
+             if dorename
+             then 
+               let 
+                 val v' = var_vary v
+                 val a = orename [(v, v')] a
+               in
+                 (* print "push avoid \\\n"; *)
+                 v' \ self(A { s = s, b = a })
+               end
+             else v \ self(A { s = s, b = a })
+           end
+
+        | B (vl, a) => 
+           let
+             val dorename = 
+               List.exists (fn v =>
+                            (case VM.find (s, v) of
+                               (* or, if it appears in cod of substitution *)
+                               NONE => VMU.existsi (fn (_, obj) => oisfree obj v) s
+                             | SOME _ => true)) vl
+           in
+             if dorename
+             then
+               let 
+                 val vl' = ListUtil.mapto var_vary vl
+                 val a = orename vl' a
+               in
+                 (* print "push avoid B\n"; *)
+                 B (map #2 vl', self(A { s = s, b = a }))
+               end
+             else B (vl, self(A { s = s, b = a }))
+           end
+      else 
+        (* push in identity subst. *)
+        case f of
+          $l => $l
+        | V v => V v
+        | a1 / a2 => self(A { s = ident, b = a1 }) / self(A { s = ident, b = a2 })
+        | S al => S (map (fn a => self(A { s = ident, b = a })) al)
+        | v \ a => v \ self(A { s = ident, b = a })
+        | B (vl, a) => B (vl, self(A { s = ident, b = a }))
+    end
 
   (* on asts, creating asts *)
   fun $$ l = A { b = $$$ l,
@@ -264,7 +329,7 @@ struct
   and osub thing v (A { s, b }) =
     let 
       (* in case v appears in the domain of the existing substitution *)
-      val s = VM.map (fn obj => apply_subst (A { s = s, b = obj })) s
+      val s = VM.map (fn obj => apply_subst (A { s = VM.insert(VM.empty, v, thing), b = obj })) s
     in
       if oisfree b v
       then
@@ -279,7 +344,11 @@ struct
       else A { s = s, b = b }
     end
 
-  and sub thing v a = osub (apply_subst thing) v a 
+  and sub thing v a = 
+    let in
+      (* print "(ext) subst\n"; *)
+      osub (apply_subst thing) v a 
+    end
 
   (* Assumes that 's' is already simultaneous (just a renaming to new distinct variables) *)
   and rename s ast =
@@ -298,7 +367,18 @@ struct
     if VM.isempty s 
     then b
     else
-      let val f = substy orename apply_subst a
+      let 
+(*
+        val () = print "apply_subst "
+        val () = Layout.print(layout a, print)
+        val () = print "\n"
+*)
+        val f = substy orename apply_subst a
+(*
+        val () = print "result:\n";
+        val () = Layout.print(fshow f, print)
+        val () = print "\n"
+*)
       in hideee f
       end
 
@@ -391,40 +471,5 @@ struct
   fun look4 ast = looky look3 ast
   fun look5 ast = looky look4 ast
 
-
-  local
-    infixr 9 `
-    fun a ` b = a b
-      
-    structure L = Layout
-    
-    val & = L.str
-    val % = L.mayAlign
-    val itos = Int.toString
-      
-    fun mtol f m =
-      L.listex "[" "]" "," ` map (fn (x, a) => %[&(var_tostring x), &"->", f a]) ` VM.listItemsi m
-
-    fun ishow i = &(itos i)
-
-    fun oshow (O { m, f }) =
-      %[&"{", mtol ishow m, fshow f, &"}"]
-
-    and fshow f =
-      case f of
-        $ _ => &"LEAF"
-      | V v => &(var_tostring v)
-      | a / b => L.paren (%[oshow a, &"/", oshow b])
-      | a \ b => L.paren (%[&(var_tostring a), &"\\", oshow b])
-      | _ => &"?"
-
-    fun show (A { s, b }) =
-      %[&"AST",
-        %[&"subst: ", mtol oshow s],
-        %[&"obj: ", oshow b]]
-
-  in
-    val layout = show
-  end
 
 end
