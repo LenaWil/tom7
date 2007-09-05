@@ -1,4 +1,6 @@
 
+(* XXX this is dead code, from humlock *)
+
 structure ILOpt :> ILOPT =
 struct
     open IL

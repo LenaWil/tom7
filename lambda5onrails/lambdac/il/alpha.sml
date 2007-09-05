@@ -1,6 +1,5 @@
 
-(* XXX rewrite this into a wizard-like interface so that we
-   can't help but alpha vary always. *)
+(* XXX Get rid of this garbage and use AST instead. *)
 
 (* alpha-vary (expression vars) in an IL expression *)
 structure ILAlpha =

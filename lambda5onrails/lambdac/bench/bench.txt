@@ -19,3 +19,9 @@ to be lazy about them:
 real    0m50.726s
 user    0m40.330s
 sys     0m2.410s
+
+first try at having a single delayed
+substitution at the very outside
+(added a few conformance tests, which
+ might add a second or two):
+
