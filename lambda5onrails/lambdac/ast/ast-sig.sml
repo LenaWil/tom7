@@ -79,4 +79,7 @@ sig
   val isfree   : ast -> var -> bool
   val count    : ast -> var -> int    
 
+  (* debugging only *)
+  val layout : ast -> Layout.layout
+
 end

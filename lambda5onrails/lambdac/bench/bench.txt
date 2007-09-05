@@ -1,0 +1,21 @@
+wiki2 with simple AST: 
+real	1m23.137s
+user	0m47.000s
+sys	0m2.060s
+
+
+profiling off.
+memoized, delayed sets:
+
+real    0m54.860s
+user    0m43.350s
+sys     0m2.330s
+
+
+eager sets. it seems that since we
+use these so often, it actually hurts
+to be lazy about them:
+
+real    0m50.726s
+user    0m40.330s
+sys     0m2.410s

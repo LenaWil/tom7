@@ -31,6 +31,15 @@ struct
   open A
   infixr / \ // \\
 
+  fun ttos t =
+    case look t of
+      $ l => "\"" ^ String.toString l ^ "\""
+    | V v => v
+    | x \ y => "(" ^ x ^ " \\ " ^ ttos y ^ ")"
+    | x / y => "(" ^ ttos x ^ " / " ^ ttos y ^ ")"
+    | S l => "[" ^ StringUtil.delimit "," (map ttos l) ^ "]"
+    | B (xs, t) => "{" ^ StringUtil.delimit "," xs ^ ". " ^ ttos t ^ "}"
+
 
   fun real_count x a =
     case look a of
@@ -41,10 +50,26 @@ struct
     | B (_, r) => real_count x r
     | $ _ => 0
 
+
+  fun fail ast msg =
+    let in
+      print "AST:\n";
+      Layout.print(layout ast, print);
+      print "\n";
+      raise Conformance msg
+    end
+
   fun correct_count l t =
-    if List.all (fn x => real_count x t = count t x) l
-    then ()
-    else raise Conformance "counts not correct"
+    app (fn x =>
+         let val rc = real_count x t
+             val c = count t x
+         in
+           if rc = c
+           then ()
+           else fail t ("count not correct for " ^ x ^ " (got " ^ 
+                        Int.toString c ^ " wanted " ^ Int.toString rc ^ 
+                        ") in: " ^ ttos t)
+         end) l
 
   fun free_are_free t =
     VM.appi (fn (v, i) =>
@@ -78,15 +103,6 @@ struct
     if ast_cmp (t, t) = EQUAL
     then ()
     else raise Conformance "not equal to self"
-
-  fun ttos t =
-    case look t of
-      $ l => "\"" ^ String.toString l ^ "\""
-    | V v => v
-    | x \ y => "(" ^ x ^ " \\ " ^ ttos y ^ ")"
-    | x / y => "(" ^ ttos x ^ " / " ^ ttos y ^ ")"
-    | S l => "[" ^ StringUtil.delimit "," (map ttos l) ^ "]"
-    | B (xs, t) => "{" ^ StringUtil.delimit "," xs ^ ". " ^ ttos t ^ "}"
 
   fun rebuild (t : ast) =
     case look t of
@@ -165,7 +181,13 @@ struct
          map (fn t' =>
               List.concat
               (map (fn t =>
-                    (map (fn v => sub t' v t) vars)) terms_base)) terms_base
+                    (map (fn v => 
+                          let 
+                            val r = sub t' v t
+                          in
+                            (* print (ttos t' ^ " for " ^ v ^ " in " ^ ttos t ^ " is:\n    " ^ ttos r ^"\n"); *)
+                            r
+                          end) vars)) terms_base)) terms_base
          )
         
       val () = app self_equal terms_subst
