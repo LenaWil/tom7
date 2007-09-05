@@ -124,4 +124,6 @@ struct
         | GREATER => GREATER
         | EQUAL => astl_cmp (t1, t2))
 
+  fun layout _ = Layout.str "unimplemented"
+
 end
