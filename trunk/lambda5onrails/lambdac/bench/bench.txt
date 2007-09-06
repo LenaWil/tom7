@@ -25,3 +25,9 @@ substitution at the very outside
 (added a few conformance tests, which
  might add a second or two):
 
+real    1m50.156s
+user    1m28.330s
+sys     0m3.940s
+
+oops, twice as slow!
+
