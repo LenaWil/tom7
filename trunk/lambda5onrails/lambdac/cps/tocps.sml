@@ -446,44 +446,53 @@ struct
                 val mobtyp = cvtt G typ
                 val srcw = worldfrom G
                   
+                val old_handler = nv "go-old-handler"
               in
                 cvte G addr
                 (fn (G, va, at, aw) =>
-                 (* no check that at = Addr dest *)
-                 Primop'([retah], LOCALHOST, nil, 
-                         Put'(reta, Var' retah,
-                              Go' (dest, va,
-                                   let 
-                                     val G = bindu0var G reta (Addr' srcw)
-                                     val G = setworld G dest
-                                     val ha = nv "go-exn"
-                                     val ex = nv "go-uexn"
+                 (* save old handler, because Go is not scoped.
+                    the efficiency of doing this relies on our
+                    automatic var/var renaming in the CPS language.
+                    (otherwise it would look like the handler escapes,
+                    which can be bad for performance) *)
+                 Bind'(old_handler, Var' handlervar,
+                       (* no check that at = Addr dest *)
+                       Primop'([retah], LOCALHOST, nil, 
+                               Put'(reta, Var' retah,
+                                    Go' (dest, va,
+                                         let 
+                                           val G = bindu0var G reta (Addr' srcw)
+                                           val G = setworld G dest
+                                           val ha = nv "go-exn"
+                                           val ex = nv "go-uexn"
 
-                                     val hdlr =
-                                       Lam'(nv "go-handler-nonrec",
-                                            [(ha, Zerocon' EXN)],
-                                            (* make exn portable *)
-                                            Put' (ex, Var' ha,
-                                                  (* go back *)
-                                                  Go'(srcw, UVar' reta,
-                                                      (* old handler *)
-                                                      Call'(Var' handlervar, [UVar' ex]))))
+                                           val hdlr =
+                                             Lam'(nv "go-handler-nonrec",
+                                                  [(ha, Zerocon' EXN)],
+                                                  (* make exn portable *)
+                                                  Put' (ex, Var' ha,
+                                                        (* go back *)
+                                                        Go'(srcw, UVar' reta,
+                                                            (* old handler *)
+                                                            Call'(Var' handlervar, [UVar' ex]))))
 
-                                     (* world has changed for handler *)
-                                     val G = bindvar G handlervar handlerty dest
-                                   in
-                                     Bind'(handlervar, hdlr,
-                                           cvte G body
-                                           (fn (G, res, rest, resw) =>
-                                            (* no check that resw = dest or rest = mobtyp *)
-                                            Put' (pv, res,
-                                                  let val G = setworld G srcw
-                                                    val G = bindu0var G pv mobtyp
-                                                  in
-                                                    Go' (srcw, UVar' reta,
-                                                         k (G, UVar' pv, mobtyp, srcw))
-                                                  end)))
-                                   end))))
+                                           (* world has changed for handler *)
+                                           val G = bindvar G handlervar handlerty dest
+                                         in
+                                           Bind'(handlervar, hdlr,
+                                                 cvte G body
+                                                 (fn (G, res, rest, resw) =>
+                                                  (* no check that resw = dest or rest = mobtyp *)
+                                                  Put' (pv, res,
+                                                        let val G = setworld G srcw
+                                                          val G = bindu0var G pv mobtyp
+                                                        in
+                                                          Go' (srcw, UVar' reta,
+                                                               (* put back old handler *)
+                                                               Bind'(handlervar, Var' old_handler,
+                                                                     k (G, UVar' pv, mobtyp, srcw)))
+                                                        end)))
+                                         end)))))
               end
 
        | _ => 
