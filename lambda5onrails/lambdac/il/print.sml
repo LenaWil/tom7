@@ -329,9 +329,10 @@ struct
                                        bttol t, etol e])
            | Tag (e1, e2) => L.paren(%[$"tag", etol e1, $"with", etol e2])
 
-           | Handle (e, v, h) => %[L.paren(etol e),
-                                   $"handle",
-                                   %[%[$(V.tostring v), $"=>"], etol h]]
+           | Handle (e, t, v, h) => %[L.paren(etol e),
+                                      L.indent 2 ` %[$":", L.paren ` ttol t],
+                                      $"handle",
+                                      %[%[$(V.tostring v), $"=>"], etol h]]
            | Get {addr = a, typ = t, body = e, dest} => 
                  %[$"from", etol a, $":", %[wtol dest, $" addr"], %[$"get", 
                    etol e, $":", ttol t]]

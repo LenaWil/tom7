@@ -157,11 +157,11 @@ struct
         in
             (fv, Raise (t, e))
         end
-    | Handle (e1, v, e2) =>
+    | Handle (e1, t, v, e2) =>
         let val (fv1, e1) = uexp e1
             val (fv2, e2) = uexp e2
         in
-            (fv1 || (fv2 -- v), Handle (e1, v, e2))
+            (fv1 || (fv2 -- v), Handle (e1, t, v, e2))
         end
 
     | Say e =>

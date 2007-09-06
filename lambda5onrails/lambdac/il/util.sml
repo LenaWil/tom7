@@ -25,7 +25,7 @@ struct
                                                     body = f body,
                                                     dest = dest }
            | Raise (t, e) => Raise(t, f e)
-           | Handle (e, v, handler) => Handle(f e, v, f handler)
+           | Handle (e, t, v, handler) => Handle(f e, t, v, f handler)
            | Seq (e1, e2) => Seq (f e1, f e2)
            | Roll (t, e) => Roll (t, f e)
            | Unroll e => Unroll (f e)

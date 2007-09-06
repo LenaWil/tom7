@@ -504,13 +504,14 @@ struct
                     fun def () =
                         (EL.Raise (EL.Var es, loc), loc)
                         
-                    (* XXX5 and world.. *)
+                    (* XXX5 and world.. 
+                       (this DOES include the world, right? -  6 Sep 2007) *)
                     val (match, mt) = 
                         Pattern.elaborate true elab elabt elabw mctx here loc
                            ([es], ListUtil.mapfirst ListUtil.list pel, def)
                 in
                     unify ctx loc "handle" tt mt;
-                    (Handle(ee, ev, match), tt)
+                    (Handle(ee, tt, ev, match), tt)
                 end
             | _ => error loc "exn type not declared???")
 
