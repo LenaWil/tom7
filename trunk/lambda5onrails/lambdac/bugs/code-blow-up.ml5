@@ -1,0 +1,33 @@
+unit
+
+   extern bytecode world server
+   extern val alert : string -> unit @ home
+
+   fun inline - (x, y) = primapp Minus { } (x, y)
+   infix -
+       
+   fun zoom () = (raise Match) : unit @ home
+
+   fun (* fact 0 = raise Match
+     | fact n = *) fact n =
+       let in
+           alert "ok!";
+           (* fact (n - 1); *)
+           zoom ();
+           alert "no!"
+       end
+
+   do (fact 3 handle _ => alert "success!") handle _ => alert "failure!"
+
+(*
+   (* make sure this doesn't affect later raises *)
+   do () handle _ => (primapp Ref { int } ( 9999 ); ())
+
+   do primapp Ref { int } ( 1 )
+
+   do raise Match
+*)
+
+in
+
+end

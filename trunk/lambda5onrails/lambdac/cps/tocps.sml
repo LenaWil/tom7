@@ -434,7 +434,9 @@ struct
                      Case' (va, v, arms, def))
             end)
 
-       (* XXX exceptions! *)
+       (* For exceptions, we need to bind a handler
+          at the new world that jumps back to this
+          world and then invokes the current one. *)
        | I.Get { addr, dest : IL.world, typ, body } =>
               let
                 val dest = cvtw G dest
@@ -443,6 +445,7 @@ struct
                 val pv = nv "get_res"
                 val mobtyp = cvtt G typ
                 val srcw = worldfrom G
+                  
               in
                 cvte G addr
                 (fn (G, va, at, aw) =>
@@ -453,17 +456,33 @@ struct
                                    let 
                                      val G = bindu0var G reta (Addr' srcw)
                                      val G = setworld G dest
+                                     val ha = nv "go-exn"
+                                     val ex = nv "go-uexn"
+
+                                     val hdlr =
+                                       Lam'(nv "go-handler-nonrec",
+                                            [(ha, Zerocon' EXN)],
+                                            (* make exn portable *)
+                                            Put' (ex, Var' ha,
+                                                  (* go back *)
+                                                  Go'(srcw, UVar' reta,
+                                                      (* old handler *)
+                                                      Call'(Var' handlervar, [UVar' ex]))))
+
+                                     (* world has changed for handler *)
+                                     val G = bindvar G handlervar handlerty dest
                                    in
-                                     cvte G body
-                                     (fn (G, res, rest, resw) =>
-                                      (* no check that resw = dest or rest = mobtyp *)
-                                      Put' (pv, res,
-                                            let val G = setworld G srcw
-                                              val G = bindu0var G pv mobtyp
-                                            in
-                                              Go' (srcw, UVar' reta,
-                                                   k (G, UVar' pv, mobtyp, srcw))
-                                            end))
+                                     Bind'(handlervar, hdlr,
+                                           cvte G body
+                                           (fn (G, res, rest, resw) =>
+                                            (* no check that resw = dest or rest = mobtyp *)
+                                            Put' (pv, res,
+                                                  let val G = setworld G srcw
+                                                    val G = bindu0var G pv mobtyp
+                                                  in
+                                                    Go' (srcw, UVar' reta,
+                                                         k (G, UVar' pv, mobtyp, srcw))
+                                                  end)))
                                    end))))
               end
 

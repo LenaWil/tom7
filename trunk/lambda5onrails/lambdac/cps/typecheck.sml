@@ -294,6 +294,8 @@ struct
      | Primcon (INT, []) => true
      | Primcon (STRING, []) => true
      | Primcon (VEC, [t]) => tmobile G t
+     (* yes, required. tags are not mobile, though. *)
+     | Primcon (EXN, []) => true
      | Mu (_, vtl) =>
          (* assume mobile for the sake of checking mobility... *)
          let val G = foldr (fn ((v, _), G) => bindtype G v true) G vtl
