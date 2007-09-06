@@ -194,17 +194,22 @@ struct
      *)
   fun substy orename self (a as A { s, b = O { f, m } }) =
     (* see if substitution applies to this term at all... *)
+    (* probably better to literally restrict it to the free vars of
+       the term, and do an empty test. we pay for substitutions that
+       are too large *)
     (* PERF could be n lg n, not n^2 *)
-    let in
+    let 
+      (* restrict substitution to those vars that are actually free *)
+      val s = VM.intersectWith #1 (s, m)
+
+    in
 (*
       print "SUBSTY ";
       Layout.print (layout a, print);
       print ":\n";
 *)
 
-      if VMU.existsi (fn (v, _) =>
-                      VMU.existsi (fn (v', _) =>
-                                   var_eq (v, v')) s) m
+      if not (VM.isempty s)
       then
         case f of
           $l => $l
@@ -287,6 +292,10 @@ struct
   fun VV v = A { b = VVV v,
                  s = ident }
 
+  fun obj_same_fast (O { f = V x, ... }, 
+                    O { f = V y, ... }) = var_eq (x, y)
+    | obj_same_fast _ = false
+
   (* When we have
      [S1] M1 / [S2] M2
      we must produce
@@ -294,7 +303,6 @@ struct
      One way to do this is to make S be the
      identity by carrying out S1 and S2 on M1 and M2.
      But we can also sometimes merge substitutions.
-     
      
      *)
   exception NotDisjoint
@@ -308,11 +316,13 @@ struct
         in
           (* intersection must agree. *)
           VM.app (fn objs => 
-                  (* PERF do we really want to do a full compare here?
+                  (* do we really want to do a full compare here?
                      We can conservatively say 'no'.
                      if we start seeing binders, we should just give up.
+                     (changed this to use obj_same_fast, which just
+                      checks that they are the same variable).
                      Note: here would be a good place for hashes.. *)
-                  if obj_cmp objs = EQUAL
+                  if obj_same_fast objs
                   then ()
                   else raise NotDisjoint) middle;
           (* left can't be free in right *)
