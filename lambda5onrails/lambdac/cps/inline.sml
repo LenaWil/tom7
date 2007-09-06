@@ -106,6 +106,8 @@ struct
   and smallfn e =
     case cexp e of
       Halt => true
+    (* not conservative, and sometimes causes blow-ups
+       in practice (see bugs/code-blow-up.ml5). *)
     | Call (f, args) => small f andalso List.all small args
     | _ => false
   (* also cases with small branches? *)
