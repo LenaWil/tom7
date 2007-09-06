@@ -31,3 +31,29 @@ sys     0m3.940s
 
 oops, twice as slow!
 
+merge substitutions in aggregations:
+
+
+real    3m51.288s
+user    3m8.660s
+sys     0m7.840s
+
+urrgghhh....!!
+
+
+when coalescing subs, only test for same-variables:
+real    3m39.447s
+user    2m58.970s
+sys     0m7.700s
+
+
+restrict substitutions to those variables that
+actually occur:
+
+real    0m53.213s
+user    0m41.510s
+sys     0m2.730s
+
+phew.
+
+
