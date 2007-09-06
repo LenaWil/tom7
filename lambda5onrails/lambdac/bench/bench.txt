@@ -57,3 +57,19 @@ sys     0m2.730s
 phew.
 
 
+invert substitutions when rebinding a lambda:
+
+
+real    0m55.122s
+user    0m41.460s
+sys     0m2.760s
+
+(thought this would help more??)
+
+don't rename when comparing, if they
+already have the same name:
+
+real    0m52.061s
+user    0m41.440s
+sys     0m2.380s
+
