@@ -1,6 +1,12 @@
 (* Tests that the ASTFn works correctly. *)
 (* XXX This is far from complete! One AST implementation passed
-   this but then looped forever when compiling some programs. *)
+   this but then looped forever when compiling some programs.
+
+   another bug that slipped through: substitution inversion
+   in the lambda case ignored the possibility that the bound
+   variable would incur capture. passed conformance, died in
+   directcall EBETA phase.
+ *)
 
 structure ASTConformance =
 struct

@@ -381,22 +381,124 @@ struct
           s = ident }
     end
 
-  (* PERF! in the following cases we should reconcile the
-     substitutions if possible, rather than eagerly carrying
-     them out. *)
-  and v \\ a =
-    let
-      val obj = apply_subst a
+  (* \x.[S]M 
+     can become
+     [S]\x.m
+
+     when x does not appear in the domain
+     nor codomain of S. 
+     (PERF: implement this)
+
+     special case: if S is of the form
+     [x/y; S'] where y does not appear
+     in the codomain of S', 
+     then we can produce
+     
+     [S']\y.m
+
+     e.g.
+
+     \x'. [x'/x] x
+
+     gives
+
+     [*] \x.x
+
+     but watch out for
+
+     \x'. [x'/x] (x, x')
+
+     since we produce such substitutions
+     when we look under a lambda, this
+     allows us to open and close a lambda
+     with cost only proportional to the size
+     of the variable sets. *)
+  and x \\ (a as A { s, b }) =
+    let 
+      val cod_matches = VM.filter (fn (O { m, ... }) =>
+                                   Option.isSome (VM.find (m, x))) s
+
+      (* if all else fails *)
+      fun general () =
+        let
+            val obj = apply_subst a
+        in
+          A { b = x \\\ obj,
+              s = ident }
+        end
     in
-      A { b = v \\\ obj,
-          s = ident }
+      case VM.numItems cod_matches of
+        1 =>
+          (case hd (VM.listItemsi cod_matches) of
+             (y, O { f = V _, ... }) => 
+             (* we have [x/y; S'] obj.
+                so we can use the lambda to bind z. 
+                
+                but, be careful: x must not appear
+                elsewhere in obj, or we'd capture.
+                *)
+               (case VM.find (getmap b, x) of
+                  SOME _ => general ()
+                | NONE => 
+                    let
+                    in
+                      (* print "lambda-invert!\n"; *)
+                      A { (* no substitution needed for y; bound by lambda *)
+                          s = #1 (VM.remove (s, y)),
+                          b = y \\\ b }
+                    end)
+           | _ => 
+             (* not a variable. can't invert *)
+             general ())
+      | 0 => (* PERF not free -- could hoist *)
+              general ()
+             (* appears in cod many times. have to push subst. *)
+      | _ => general ()
+
     end
 
-  and BB (vl, a) =
-    let val obj = apply_subst a
+  (* PERF as in lambda case *)
+  and BB (vl, a as A { s, b }) =
+    let
+      fun general () =
+        let val obj = apply_subst a
+        in
+          A { b = BBB (vl, obj),
+              s = ident }
+        end
+
+      (* from a list of variables, see if we can
+         invert the substitution and do so.
+         Otherwise, return the general case. *)
+      fun getsubst (nil, acc, s) =
+        let 
+          val acc = rev acc
+        in
+          A { s = s,
+              b = BBB (acc, b) }
+        end
+        | getsubst (x :: vl, acc, s) =
+        let
+          (* as in the lambda case... *)
+          val cod_matches = VM.filter (fn (O { m, ... }) =>
+                                       Option.isSome (VM.find (m, x))) s
+        in
+          (* must be exactly one... *)
+          case VM.numItems cod_matches of
+            1 =>
+              (* it must be var/var *)
+              (case hd (VM.listItemsi cod_matches) of
+                 (y, O { f = V _, ... }) => 
+                   (* and it must not appear anywhere else *)
+                   (case VM.find (getmap b, x) of
+                      SOME _ => general ()
+                    | NONE => getsubst (vl, y :: acc, #1 (VM.remove(s, y))))
+               | _ => general ())
+          (* too complicated to hoist here.. *)
+          | _ => general ()
+        end
     in
-      A { b = BBB (vl, obj),
-          s = ident }
+      getsubst (vl, nil, s)
     end
 
   and hide ($ l) = $$ l
@@ -479,36 +581,59 @@ struct
     | obj_cmp (O{ f = S _, ...}, _) = LESS
     | obj_cmp (_, O{ f = S _, ...}) = GREATER
     | obj_cmp (O{ f = v1 \ a1, ...}, O { f = v2 \ a2, ... }) =
-       let 
-         val v' = var_vary v1
+       if var_eq (v1, v2)
+       then 
+         let in
+           (* print "lam no rename\n"; *)
+           obj_cmp (a1, a2)
+         end
+       else
+         let 
+           val v' = var_vary v1
            (*
-         val () = print ("cmp " ^ var_tostring v1 ^ "," ^ var_tostring v2 ^ " -> " ^
-                         var_tostring v' ^ "\n")
-            *)
-         val a1 = orename [(v1, v')] a1
-         val a2 = orename [(v2, v')] a2
-       in
-         obj_cmp (a1, a2)
-       end
+           val () = print ("cmp " ^ var_tostring v1 ^ "," ^ var_tostring v2 ^ " -> " ^
+           var_tostring v' ^ "\n")
+           *)
+           val a1 = orename [(v1, v')] a1
+           val a2 = orename [(v2, v')] a2
+         in
+           obj_cmp (a1, a2)
+         end
     | obj_cmp (O { f = _ \ _, ...}, _) = LESS
     | obj_cmp (_, O { f = _ \ _, ...}) = GREATER
     | obj_cmp (O { f = B(vl1, a1), ...}, O{ f = B(vl2, a2), ... }) =
        let
-         val vl' = map var_vary vl1
-         val s1 = ListPair.zip (vl1, vl')
-         val s2 = ListPair.zip (vl2, vl')
-           (*
-         val () = print "B:\n"
-         val () = ListUtil.app3 (fn (v1, v2, v') =>
-                                 print ("  cmpB " ^ var_tostring v1 ^ "," ^ var_tostring v2 ^ " -> " ^
-                                        var_tostring v' ^ "\n")
-                                 ) vl1 vl2 vl'
-         val () = print "end\n"
-            *)
-         val a1 = orename s1 a1
-         val a2 = orename s2 a2
+         val len1 = length vl1
+         val len2 = length vl2
        in
-         obj_cmp (a1, a2)
+         case Int.compare (len1, len2) of
+           EQUAL =>
+             if ListPair.all var_eq (vl1, vl2)
+             then
+               let in
+                 (* print "B no rename!\n"; *)
+                 obj_cmp(a1, a2)
+               end
+             else
+               (* have to rename... *)
+               let
+                 val vl' = map var_vary vl1
+                 val s1 = ListPair.zip (vl1, vl')
+                 val s2 = ListPair.zip (vl2, vl')
+                 (*
+                 val () = print "B:\n"
+                 val () = ListUtil.app3 (fn (v1, v2, v') =>
+                 print ("  cmpB " ^ var_tostring v1 ^ "," ^ var_tostring v2 ^ " -> " ^
+                 var_tostring v' ^ "\n")
+                 ) vl1 vl2 vl'
+                 val () = print "end\n"
+                 *)
+                 val a1 = orename s1 a1
+                 val a2 = orename s2 a2
+               in
+                 obj_cmp (a1, a2)
+               end
+         | ord => ord
        end
 
   and objl_cmp (nil, nil) = EQUAL
