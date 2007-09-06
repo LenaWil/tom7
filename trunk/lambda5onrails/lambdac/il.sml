@@ -126,7 +126,7 @@ struct
       | Proj of label * typ * exp
       | Raise of typ * exp
       (* var bound to exn value within handler *)
-      | Handle of exp * var * exp
+      | Handle of exp * typ * var * exp
 
       | Seq of exp * exp
       | Let of dec * exp

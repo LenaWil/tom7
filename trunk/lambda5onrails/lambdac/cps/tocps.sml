@@ -10,6 +10,11 @@
    Appel's "Compiling with Continuations." It does not produce
    administrative redices because it uses the meta language to encode
    administrative continuations.
+
+   We do "double-barreled CPS" to implement exceptions. We do this by
+   maintaining an invariant that a modal variable called "handler" is
+   always in scope at the current world. It is an exn continuation.
+   Jumping to it invokes the nearest enclosing exception handler.
    
    *)
 
@@ -28,6 +33,9 @@ struct
     fun a ` b = a b
 
     type env = context
+
+    val handlervar = nv "handler"
+    val handlerty = Cont' [Zerocon' EXN]
 
     fun primtype v =
       if V.eq(v, Initial.intvar) then Primcon'(INT, nil)
@@ -55,7 +63,7 @@ struct
       | I.TAddr w => Addr' ` cvtw G w
       | I.Sum lal => Sum' (map (fn (l, NonCarrier) => (l, NonCarrier)
                                  | (l, Carrier { definitely_allocated,
-                                                 carried}) =>
+                                                 carried }) =>
                                 (l, Carrier { definitely_allocated=
                                               definitely_allocated,
                                               carried=cvtt G carried }))
@@ -73,10 +81,10 @@ struct
           end
       | I.TCont t => Cont' [cvtt G t]
       | I.Arrow (_, dom, cod) => 
-          Cont' (map (cvtt G) dom @ [Cont' [cvtt G cod]])
+          Cont' (map (cvtt G) dom @ [Cont' [cvtt G cod], handlerty])
       | I.Arrows tl => 
           Conts' ` map (fn (_, dom, cod) => 
-                        map (cvtt G) dom @ [Cont' [cvtt G cod]]) tl
+                        map (cvtt G) dom @ [Cont' [cvtt G cod], handlerty]) tl
       | I.TRef t => Primcon' (REF, [cvtt G t])
 
       | _ => 
@@ -120,7 +128,7 @@ struct
        | I.Unroll e => cvte G e (fn (G, v, rt, w) =>
                                  (* for this kind of thing, we could just pass along
                                     Unroll' v to k, but that could result in code
-                                    explosion. Safer to just bind it... *)
+                                    explosion if v is not small. Safer to just bind it... *)
                                  let val vv = nv "ur"
                                  in 
                                    case ctyp rt of
@@ -153,6 +161,7 @@ struct
                   (* proceed, then throw to named continuation *)
                   let
                     val G = bindvar G v (Cont' [t]) ` worldfrom G
+                    (* XXX handler? not obvious what to do here. *)
                     fun k (_, va, _, _) = Call' (Var' v, [va])
                   in
                     cvte G e k
@@ -210,7 +219,9 @@ struct
                  case ctyp ft of
                       Cont nil => raise ToCPS "nullary cont?"
                     | Cont l =>
-                          (case ctyp ` hd ` rev l of
+                        (* the second to last argument is the continuation.
+                           (the last is the dynamic handler). What type does it expect? *)
+                          (case ctyp ` hd ` tl ` rev l of
                                Cont [kt] =>
                                    cvtel G el
                                    (fn (G, vsl) =>
@@ -220,9 +231,19 @@ struct
                                                map #1 vsl @ 
                                                (* nb. don't even bind unused arg. *)
                                                [Lam'(nv "k_nonrec", [(cv, kt)],
-                                                     k (G, Var' cv, kt, fw))])
+                                                     k (G, Var' cv, kt, fw)),
+                                                (* and our current dynamic handler *)
+                                                Var' handlervar])
                                     end)
-                             | _ => raise ToCPS "last arg should be cont!")
+                             | _ => 
+                                   let in
+                                     print "oops, in app:\n";
+                                     Layout.print (CPSPrint.vtol v, print);
+                                     print "\n\nlast arg should be cont:\n";
+                                     Layout.print (Layout.listex "[" "]" "," (map CPSPrint.ttol l), print);
+                                     print "\n";
+                                     raise ToCPS "last arg should be cont!"
+                                   end)
                     | _ => 
                              let in
                                print "Oops, not a cont:\n";
@@ -249,12 +270,34 @@ struct
                  end)
               end
 
+       (* bind a new handler *)
+       | I.Handle (e1, t, v, e2) =>
+         let
+           val joinv = nv "handle-join"
+           val joina = nv "handle-res"
+           val joint = cvtt G t
+         in
+           Bind' (joinv,
+                  Lam'(nv "handle-join-nonrec",
+                       [(joina, joint)],
+                       k (G, Var' joina, joint, worldfrom G)),
+                  (* Then, the new handler, which is v.e2 *)
+                  Bind' (handlervar,
+                         Lam'(nv "handler-nonrec",
+                              [(v, Zerocon' EXN)],
+                              cvte (bindvar G v (Zerocon' EXN) ` worldfrom G) e2
+                                  (fn (_, hv, _, _) =>
+                                   Call' (Var' joinv, [hv]))),
+                         (* then, continue as usual *)
+                         cvte G e1 (fn (_, rv, _, _) =>
+                                    Call' (Var' joinv, [rv]))))
+         end
+
        | I.Raise (_, e) =>
           cvte G e
           (fn (G, v, ft, fw) => 
            let in
-             print "XXX raise is unimplemented!";
-             Halt'
+             Call'(Var' handlervar, [v])
            end)
 
        (* this one is special because it does not return *)
@@ -391,6 +434,7 @@ struct
                      Case' (va, v, arms, def))
             end)
 
+       (* XXX exceptions! *)
        | I.Get { addr, dest : IL.world, typ, body } =>
               let
                 val dest = cvtw G dest
@@ -513,17 +557,19 @@ struct
                    val lam =
                      Lam' (nv (l ^ "_notrec"), 
                            (* takes one arg, but might be a tuple *)
-                           (av, dom) :: [(kv, Cont' [cod])],
+                           (* also needs to take return continuation, and (for uniformity, since
+                              we never call it) the dynamic handler. *)
+                           (av, dom) :: [(kv, Cont' [cod]), (nv "externval-handler-unused", handlerty)],
 
                            Primcall' { var = r, sym = l, dom = flatdom, cod = cod,
                                        args = primargs,
                                        bod = Call' (Var' kv, [Var' r]) })
                    val (t, va) =
                        case (worlds, tys) of
-                           (nil, nil) => (Cont' (dom :: [Cont'[cod]]),
+                           (nil, nil) => (Cont' (dom :: [Cont'[cod], handlerty]),
                                           lam)
                          | _ => (AllArrow' { worlds = worlds, tys = tys,
-                                             vals = nil, body = Cont' (dom :: [Cont'[cod]]) },
+                                             vals = nil, body = Cont' (dom :: [Cont'[cod], handlerty]) },
                                  
                                  AllLam' { worlds = worlds, tys = tys,
                                            vals = nil, body = lam })
@@ -694,8 +740,9 @@ struct
                        inline : bool,
                        recu : bool,
                        total : bool } list) =>
-           (* Each function now takes a new final parameter,
-              the return continuation. *)
+           (* Each function now takes a new parameter,
+              the return continuation; and another new
+              parameter, the current exception handler. *)
            let
              val inline = List.all #inline fl
 
@@ -705,14 +752,14 @@ struct
 
              (* all bodies get to see all recursive conts *)
              val G = foldr (fn ({ name, dom, cod, ... }, G) =>
-                            bindvar G name (Cont' (dom @ [ Cont' [cod] ])) (worldfrom G)
+                            bindvar G name (Cont' (dom @ [ Cont' [cod], handlerty ])) (worldfrom G)
                             ) G fl
 
              fun onelam { name, arg, dom, cod, body } =
                let
                  val vk = nv "ret"
-                 val a = ListPair.zip (arg @ [ vk ],
-                                       dom @ [ Cont' [cod] ])
+                 val a = ListPair.zip (arg @ [ vk,          handlervar ],
+                                       dom @ [ Cont' [cod], handlerty ])
 
                  val G = foldr (fn ((v, t), G) => bindvar G v t (worldfrom G)) G a
 
@@ -725,7 +772,7 @@ struct
                      a, cvte G body (fn (G, va, _, _) => 
                                      Call'(Var' vk, [va])) ),
                    
-                   dom @ [ Cont' [cod] ]
+                   dom @ [ Cont' [cod], handlerty ]
 
                    )
                    
@@ -867,9 +914,18 @@ struct
 
     fun convert (I.Unit(decs, _ (* exports *))) (I.WConst world) = 
          let
-           val ce = cvtds decs ` empty ` WC' world
+           val G = empty ` WC' world
+           val G = bindvar G handlervar handlerty ` WC' world
+           val ce = cvtds decs G
          in
-           ce
+           (* FIXME need the handler that purports to be here! *)
+           Bind'(handlervar, Lam' (nv "nonrec-toplevel",
+                                   [(nv "unused-exn", Zerocon' EXN)],
+                                   Native' { var = nv "warn-unused",
+                                             po = Primop.PCompileWarn "no top level handler installed", 
+                                             tys = nil, args = nil,
+                                             bod = Halt' }),
+                 ce)
          end
       | convert _ (I.WVar _) = raise ToCPS "expected toplevel world to be a constant"
       | convert _ _ = raise ToCPS "unset evar at toplevel world"
