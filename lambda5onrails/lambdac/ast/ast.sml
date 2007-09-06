@@ -6,8 +6,6 @@
          use vectors instead of lists?
          hash cons?
          hash for quick equality tests 
-         delayed substitutions
-
 *)
 
 (* Tried:
@@ -22,6 +20,8 @@
                free vars of an explicit substitution, we only
                count the vars in the codomain when the correpsonding
                index in the domain is free.)
+
+   delayed substitutions:
 
 *)
 
@@ -279,23 +279,90 @@ struct
         | B (vl, a) => B (vl, self(A { s = ident, b = a }))
     end
 
+  fun getobj (A { b, ... }) = b
+
   (* on asts, creating asts *)
   fun $$ l = A { b = $$$ l,
                  s = ident }
   fun VV v = A { b = VVV v,
                  s = ident }
 
-  (* PERF! in the following cases we should reconcile the
-     substitutions if possible, rather than eagerly carrying
-     them out. *)
-  fun SS al =
-    let val ol = map apply_subst al
+  (* When we have
+     [S1] M1 / [S2] M2
+     we must produce
+     [S] (M1' / M2').
+     One way to do this is to make S be the
+     identity by carrying out S1 and S2 on M1 and M2.
+     But we can also sometimes merge substitutions.
+     
+     
+     *)
+  exception NotDisjoint
+  fun substs_disjoint al =
+    let
+      fun merge_two (A { s, b = O { m, ... } },
+                     (subst, fvs)) =
+        let
+          (* where left is the new subst/term, right is the accumulator *)
+          val (left, middle, right) = VMU.venn (s, subst)
+        in
+          (* intersection must agree. *)
+          VM.app (fn objs => 
+                  (* PERF do we really want to do a full compare here?
+                     We can conservatively say 'no'.
+                     if we start seeing binders, we should just give up.
+                     Note: here would be a good place for hashes.. *)
+                  if obj_cmp objs = EQUAL
+                  then ()
+                  else raise NotDisjoint) middle;
+          (* left can't be free in right *)
+          VM.appi (fn (v, _) =>
+                   case VM.find (fvs, v) of
+                     NONE => ()
+                   | SOME _ => raise NotDisjoint) left;
+          (* right can't be free in left *)
+          VM.appi (fn (v, _) =>
+                   case VM.find (m, v) of
+                     NONE => ()
+                   | SOME _ => raise NotDisjoint) right;
+          
+          (* mergeable. the substitution is just the union; we
+             can choose either the left or right because they are agree. *)
+          (VM.unionWith #1 (s, subst),
+           (* the free variable set is also just the union, because we explicitly
+              check for capture. *)
+           (* op+ is correct, right? we aren't taking into account the effect of
+              the substitution at this stage. *)
+           VM.unionWith op+ (fvs, m))
+        end
+
     in
-      A { b = SSS ol,
-          s = ident }
-    end
+      SOME (foldr merge_two (ident, empty) al)
+    end handle NotDisjoint => NONE
+
+  and SS al =
+    case substs_disjoint al of
+      SOME (subst, fvs) => 
+        let in
+          A { s = subst,
+              b = O { f = S (map getobj al),
+                      m = fvs } }
+        end
+    | NONE =>
+        let 
+          val ol = map apply_subst al
+        in
+          A { b = SSS ol,
+              s = ident }
+        end
 
   and a1 // a2 =
+    case substs_disjoint [a1, a2] of
+      SOME (subst, fvs) =>
+        A { s = subst,
+            b = O { f = getobj a1 / getobj a2,
+                    m = fvs } }
+    | NONE =>
     let
       val o1 = apply_subst a1
       val o2 = apply_subst a2
@@ -304,6 +371,9 @@ struct
           s = ident }
     end
 
+  (* PERF! in the following cases we should reconcile the
+     substitutions if possible, rather than eagerly carrying
+     them out. *)
   and v \\ a =
     let
       val obj = apply_subst a
@@ -382,7 +452,7 @@ struct
       in hideee f
       end
 
-  fun obj_cmp (O{ f = $l1, ... }, O{ f = $l2, ... }) = leaf_cmp (l1, l2)
+  and obj_cmp (O{ f = $l1, ... }, O{ f = $l2, ... }) = leaf_cmp (l1, l2)
     | obj_cmp (O{ f = $_, ... }, _) = LESS
     | obj_cmp (_, O{ f = $_, ... }) = GREATER
     | obj_cmp (O{ f = V v1, ... }, O{ f = V v2, ... }) = var_cmp (v1, v2)
