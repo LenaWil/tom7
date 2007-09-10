@@ -20,6 +20,8 @@ struct
   fun otol f NONE = $"NONE"
     | otol f (SOME x) = %[$"SOME", f x]
 
+  fun lab l = $("\"" ^ l ^ "\"")
+
   (* starts with keyword: *)
   fun stol stmt =
     (case stmt of
@@ -29,7 +31,7 @@ struct
      | Jump (e1, e2, expl) => %[$"JUMP", etol e1, etol e2, itol ` length expl, % ` map etol expl]
      | Case { obj, var, arms, def } => %[%[$"CASE", etol obj, $var, itol ` length arms],
                                          % ` map (fn (s, st) =>
-                                                  %[$s, L.indent 2 ` stol st]) arms,
+                                                  %[lab s, L.indent 2 ` stol st]) arms,
                                          stol def]
      | Go (e1, e2) => %[$"GO", L.indent 2 ` etol e1, L.indent 2 ` etol e2]
      | Error s => %[$"ERROR", $("\"" ^ String.toString s ^ "\"")]
@@ -38,8 +40,8 @@ struct
   and etol exp =
     (case exp of
        Record lel => %[%[$"RECORD", itol ` length lel],
-                       L.indent 2 ` % ` map (fn (l, e) => %[$l, etol e]) lel]
-     | Project (l, e) => %[$"PROJ", $l, etol e]
+                       L.indent 2 ` % ` map (fn (l, e) => %[lab l, etol e]) lel]
+     | Project (l, e) => %[$"PROJ", lab l, etol e]
      | Primcall (s, el) => %[$"PRIMCALL",
                              $s,
                              itol ` length el,
@@ -53,7 +55,7 @@ struct
             get a parse error later *)
          %[%[$"PRIMOP", $(Primop.tostring po), itol ` length args], L.indent 2 ` % ` map etol args]
      | Int i => $(IntConst.tostring i)
-     | Inj (l, e) => %[$"INJ", $l, otol etol e]
+     | Inj (l, e) => %[$"INJ", lab l, otol etol e]
      | String s => %[$("\"" ^ String.toString s ^ "\"")]
      | Var s => $s
      | Marshal (e1, e2) => %[$"MARSHAL", etol e1, etol e2]
@@ -63,9 +65,9 @@ struct
      | Dat {d, a} => %[$"DAT", etol d, etol a]
      | Dp pd => %[$"DP", pdtol pd]
      | Drec sel => %[%[$"DREC", itol ` length sel],
-                     L.indent 2 ` % ` map (fn (l, e) => %[$l, L.indent 2 ` etol e]) sel]
+                     L.indent 2 ` % ` map (fn (l, e) => %[lab l, L.indent 2 ` etol e]) sel]
      | Dsum seol => %[%[$"DSUM", itol ` length seol],
-                      L.indent 2 ` % ` map (fn (l, eo) => %[$l, L.indent 2 ` otol etol eo]) seol]
+                      L.indent 2 ` % ` map (fn (l, eo) => %[lab l, L.indent 2 ` otol etol eo]) seol]
      | Dlookup s => %[$"DLOOKUP", $s]
      | Dexists { d, a } => %[$"DEXISTS", $d, itol ` length a,
                              L.indent 2 ` % ` map etol a]

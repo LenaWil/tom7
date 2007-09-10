@@ -51,7 +51,7 @@ fun inline (t) update (arr, x, a) = primapp Update { t } (arr, x, a)
 fun inline (t) length arr = primapp Arraylength { t } (arr)
 
 extern val runtime.no-messages : unit -> unit  @ home = lc_nomessages
-
+extern val alert : string -> string @ home
 
 datatype a option = NONE | SOME of a
 datatype order = EQUAL | LESS | GREATER

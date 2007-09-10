@@ -22,7 +22,7 @@ unit
                    loops (n - 1)
                end
        in
-           loops 15
+           loops 100
        end
        
    do dom.setstring (e, [innerHTML], 
