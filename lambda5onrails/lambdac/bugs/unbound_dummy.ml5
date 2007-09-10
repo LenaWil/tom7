@@ -1,0 +1,28 @@
+(* 
+   bug: unbound uvar: dummy_3 in CPS Conversion
+   from the chat demo.
+
+   The problem is just that the 'halt' function
+   was being imported from the initial environment,
+   which is deprecated.
+*)
+
+unit
+
+    extern val alert : string -> string @ home
+
+    (* Who am I? Who are you? *)
+    val (us, them) =
+        letcc ret
+        in
+         let fun choose p = throw p to ret
+         in
+            halt ()
+         end
+        end
+
+
+    do alert [okay, I am [us] and they are [them]]
+
+in
+end
