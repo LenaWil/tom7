@@ -163,6 +163,22 @@ struct
          | (P.PSet, [B.Ref r, v]) => (r := v; B.Record nil)
          | (P.PSet, _) => raise Execute "bad pset"
 
+         | (P.PIntToString, [B.Int i]) => B.String (Int.toString i)
+         | (P.PIntToString, _) => raise Execute "bad inttostring"
+
+         | (P.PStringSub, [B.String s, B.Int i]) =>
+             ( B.Int (ord (String.sub(s, i))) handle _ => raise Execute "string sub out of bounds" )
+         | (P.PStringSub, _) => raise Execute "bad stringsub"
+               
+         | (P.PStringSubstring, [B.String s, B.Int i, B.Int n]) =>
+             ( B.String (String.substring(s, i, n)) handle _ => raise Execute "string sub out of bounds" )
+         | (P.PStringSubstring, _) => raise Execute "bad stringsubstring"
+         | (P.PStringLength, [B.String s]) => B.Int (size s)
+         | (P.PStringLength, _) => raise Execute "bad stringlength"
+         | (P.PStringReplace, [B.String s, B.String d, B.String t]) =>
+               B.String (StringUtil.replace s d t)
+         | (P.PStringRplace, _) => raise Execute "bad stringreplace"
+
          (* don't bother checking that the annotation matches
             the exact number of args *)
          | (P.PJointext _, args) => B.String `

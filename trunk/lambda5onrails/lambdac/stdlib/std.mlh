@@ -39,6 +39,10 @@ fun inline size s = primapp StringLength { } (s)
 fun inline ssub (s, x) = primapp StringSub { } (s, x)
 fun inline substring (s, start, len) = primapp StringSubstring { } (s, start, len)
 fun inline string-replace (s, d, t) = primapp StringReplace { } (s, d, t)
+fun inline ord c = primapp Ord { } (c)
+(* XXX bounds checks for chr? We should probably just use 32-bit strings. *)
+fun inline chr c = primapp Chr { } (c)
+fun inline itos i = primapp IntToString { } (i)
 
 (* fun inline array0 .. ? *)
 fun inline (t) array (length, a : t) = primapp Array { t } (length, a)
@@ -46,15 +50,38 @@ fun inline (t) sub (arr, x) = primapp Sub { t } (arr, x)
 fun inline (t) update (arr, x, a) = primapp Update { t } (arr, x, a)
 fun inline (t) length arr = primapp Arraylength { t } (arr)
 
-extern bytecode world server
-extern val home ~ home addr
-extern val server ~ server addr
+extern val runtime.no-messages : unit -> unit  @ home = lc_nomessages
+
 
 datatype a option = NONE | SOME of a
 datatype order = EQUAL | LESS | GREATER
 
 datatype a list = nil | :: of a * list
 infixr ::
+
+(* only works for non-negative numbers now *)
+fun stoi s =
+    let
+        val n = size s
+        fun rec(acc, i) =
+            if i >= n 
+            then SOME acc
+            else let val c = ord (ssub(s, i))
+                 in
+                     if c >= ord ?0 andalso c <= ord ?9
+                     then rec(acc * 10 + (c - ord ?0), i + 1)
+                     else NONE
+                 end
+    in
+        (* not empty string *)
+        if n > 0
+        then rec(0, 0)
+        else NONE
+    end
+
+extern bytecode world server
+extern val home ~ home addr
+extern val server ~ server addr
 
 (* standard trick to turn a function into
    a real continuation. *)
@@ -70,12 +97,26 @@ fun cont (f : unit -> unit) : unit cont =
         primapp Halt { unit cont } ( )
     end
 
-(* XXX should be a prim, since we can do this
-   anywhere. Also, perhaps should be renamed since
-   we use this on all sorts of javascript objects. *)
-extern val itos : int -> string  @ home = lc_itos
+datatype (a, b) sum = LEFT of a | RIGHT of b
 
-extern val runtime.no-messages : unit -> unit  @ home = lc_nomessages
+fun ignore _ = ()
+
+fun option.map f (SOME x) = SOME (f x)
+  | option.map _ NONE = NONE
+
+fun isSome (SOME _) = true
+  | isSome NONE = false
+
+fun order.equals (LESS, LESS) = true
+  | order.equals (GREATER, GREATER) = true
+  | order.equals (EQUAL, EQUAL) = true
+  | order.equals (_, _) = false
+
+fun not true = false
+  | not false = true
+
+fun o (f, g) x = f(g(x))
+infix o
 
 (*
 
@@ -97,27 +138,6 @@ val () =
         
         halt ()
     end
-
-datatype (a, b) sum = LEFT of a | RIGHT of b
-
-fun ignore _ = ()
-
-fun option-map f (SOME x) = SOME (f x)
-  | option-map _ NONE = NONE
-
-fun isSome (SOME _) = true
-  | isSome NONE = false
-
-fun order-equals (LESS, LESS) = true
-  | order-equals (GREATER, GREATER) = true
-  | order-equals (EQUAL, EQUAL) = true
-  | order-equals (_, _) = false
-
-fun not true = false
-  | not false = true
-
-fun o (f, g) x = f(g(x))
-infix o
 
 (* wrap primitives *)
 

@@ -30,6 +30,10 @@ struct
 
       | potype (PCompileWarn _) = mono ([], PT_UNIT)
 
+      | potype PIntToString = mono ([PT_INT], PT_STRING)
+      | potype PChr = mono ([PT_INT], PT_CHAR)
+      | potype POrd = mono ([PT_CHAR], PT_INT)
+
       | potype PStringSub =
           mono ([PT_STRING, PT_INT], PT_CHAR)
       | potype PStringSubstring =
