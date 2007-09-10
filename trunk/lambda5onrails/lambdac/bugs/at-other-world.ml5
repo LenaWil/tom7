@@ -1,0 +1,20 @@
+(* A simple chat server.
+   The server stores a fixed buffer in the TDB and clients can append to it.
+*)
+
+unit
+    extern bytecode world server
+    extern val server ~ server addr
+    extern val display : string -> unit @ server
+
+    (* XXX lock *)
+    fun next-player () =
+        let
+        in
+            display "hello"
+        end : unit @ server
+
+    do from server get next-player ()
+
+in
+end
