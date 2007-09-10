@@ -303,6 +303,11 @@ struct
        (* this one is special because it does not return *)
        | I.Primapp (Primop.PHalt, [], _) => Halt'
 
+       (* type coercions; don't want to pay function overhead for these *)
+       | I.Primapp (Primop.POrd, [e], _) => cvte G e k
+       | I.Primapp (Primop.PChr, [e], _) => cvte G e k
+       | I.Primapp (Primop.PBind, [e], _) => cvte G e k
+
        (* treat every primapp as an extern primcall with a source/source
           translation. *)
        (* XXX perhaps these should be translated in some IL phase...? *)

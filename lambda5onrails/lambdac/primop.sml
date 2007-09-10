@@ -54,6 +54,11 @@ struct
       | PStringSubstring        
       | PStringLength
       | PStringReplace
+      | PIntToString
+
+      (* coercions at EL, same as Bind at IL/CPS *)
+      | POrd
+      | PChr
 
       (* arrays and vectors use these *)
       | PArray
@@ -118,6 +123,9 @@ struct
       ("StringSubstring", PStringSubstring),
       ("StringLength", PStringLength),
       ("StringReplace", PStringReplace),
+      ("IntToString", PIntToString),
+      ("Ord", POrd),
+      ("Chr", PChr),
       ("Set", PSet),
       ("Get", PGet),
       ("Ref", PRef),

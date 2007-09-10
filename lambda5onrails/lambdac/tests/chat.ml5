@@ -1,0 +1,54 @@
+(* A simple chat server.
+   The server stores a fixed buffer in the TDB and clients can append to it.
+*)
+
+unit
+    import "std.mlh"
+    import "list.mlh"
+    import "string.mlh"
+    import "dom.mlh"
+    import "timer.mlh"
+    import "trivialdb.mlh"
+    import "lock.mlh"
+    import "regexp.mlh"
+
+    (* XXX lock *)
+    fun next-player () =
+        let
+            val PLAYERNUM = "chat.playernum"
+            val s = trivialdb.read PLAYERNUM
+            val n = 
+                (case stoi s of
+                     NONE => 0
+                   | SOME n => n)
+            do trivialdb.update (PLAYERNUM, itos (n + 1))
+        in
+            itos n
+        end : string @ server
+
+    extern val alert : string -> unit @ home
+    do runtime.no-messages ()
+
+    fun show-element s =
+        dom.setstring(dom.getnode(dom.getbyid s, [style]), [display], [block])
+    fun hide-element s =
+        dom.setstring(dom.getnode(dom.getbyid s, [style]), [display], [none])
+
+    fun source-keyup () = 
+        let in
+            ()
+        end
+
+    do dom.setstring 
+        (dom.getbyid [page],
+         [innerHTML],
+         [<style>[datafile "chat.css"]</style>
+          <div class="pagebox">
+           Hello welcome to the chat server!
+          </div> <!-- pagebox -->
+          ])
+
+    do alert (from server get next-player ())
+
+in
+end

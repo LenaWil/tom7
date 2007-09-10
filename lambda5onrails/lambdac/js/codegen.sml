@@ -434,6 +434,9 @@ struct
         Call { func = Sel first "concat",
                args = % rest }
 
+        | primexp P.PIntToString [i] = Call { func = Id ` $"lc_itos",
+                                              args = %[i] }
+
         | primexp (P.PCompileWarn s) [] =
         let in
           print ("Warning: " ^ s ^ "\n");
