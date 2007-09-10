@@ -45,6 +45,11 @@
                      font : 16px Verdana,Arial,Helvetica ; 
        }
 
+       div.chatbox { width : 80% ; padding : 1em 2em 1em 2em ; margin : 1em ; 
+                     border : 2px solid #BBBB99 ; background : #FFFFDD ;
+                     font : 16px Verdana,Arial,Helvetica ; 
+       }
+
        div.copyright { font : 9px Verdana, Arial, Helvetica ;
 	               color : #999999 }
 

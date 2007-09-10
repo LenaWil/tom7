@@ -12,12 +12,14 @@ unit
     import "lock.mlh"
     import "regexp.mlh"
 
+    do runtime.no-messages ()
+
     val style = [<style>[datafile "chat.css"]</style>]
     val id.input = [inputbox]
     val id.chatbox = [chatbox]
 
     (* Who am I? Who are you? *)
-    val (us, them) =
+    put (us, them) =
         letcc ret
         in
          let fun choose p = throw p to ret
@@ -35,34 +37,7 @@ unit
          end
         end
 
-
-    do alert [okay, I am [us] and they are [them]]
-
-    fun emit s =
-        let
-            
-        in
-            ()
-        end
-
-(*
-    (* XXX lock *)
-    fun next-player () =
-        let
-            val PLAYERNUM = "chat.playernum"
-            val s = trivialdb.read PLAYERNUM
-            val n = 
-                (case stoi s of
-                     NONE => 0
-                   | SOME n => n)
-            do trivialdb.update (PLAYERNUM, itos (n + 1))
-        in
-            itos n
-        end : string @ server
-*)
-
-    extern val alert : string -> unit @ home
-    do runtime.no-messages ()
+    fun inline emit s = trivialdb.update (us, s)
 
     fun show-element s =
         dom.setstring(dom.getnode(dom.getbyid s, [style]), [display], [block])
@@ -97,15 +72,28 @@ unit
          [innerHTML],
          [<style>[datafile "chat.css"]</style>
           <div class="pagebox">
+           <div class="title">[us]</title>
            Hello welcome to the chat server!
 
-           <div id="[id.chatbox]">&nbsp;</div>
+           <div class="chatbox" id="[id.chatbox]">&nbsp;</div>
 
            <input type="text" onchange="[say input-keyup ()]" id="[id.input]" />
            <span class="button" onclick="[say send-input ()]">send</span>
 
           </div> <!-- pagebox -->
           ])
+
+    do from server 
+        get trivialdb.addhook (them,
+                               cont (fn () =>
+                                     let
+                                         put r = trivialdb.read them
+                                     in
+                                         from home get
+                                         dom.setstring(dom.getbyid id.chatbox,
+                                                       [innerHTML],
+                                                       r)
+                                     end))
 
 in
 end
