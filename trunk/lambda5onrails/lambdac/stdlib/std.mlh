@@ -22,7 +22,7 @@ fun inline >=(x, y) = primapp Greatereq { } (x, y)
 fun inline <>(x, y) = primapp Neq { } (x, y)
 
 fun inline yield () = primapp Yield { } ( )
-(* fun inline (t) halt () = primapp Halt { t } ( ) *)
+fun inline (t) halt () = primapp Halt { t } ( )
 
 infix 5 ^
 fun inline ^(x, y) = [[x][y]]

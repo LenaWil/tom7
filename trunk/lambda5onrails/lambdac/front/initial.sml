@@ -1,4 +1,6 @@
 
+(* This needs cleanup badly; we explicate most of the initial environment now
+   by making extern declarations or by using primosp *)
 structure Initial :> INITIAL =
 struct
 
@@ -91,7 +93,9 @@ struct
     fun quant (t, IL.Poly({worlds, tys}, x)) = IL.Poly({worlds = worlds, 
                                                         tys = t :: tys}, x)
 
-    val polyfuns =
+      (* this is all in the standard library now... *)
+    val polyfuns = nil
+(*
         [
 
          (* XXX should really be exn cont, but there's no way to
@@ -152,6 +156,7 @@ struct
                                 tuple nil))))
 *)
          ]
+*)
 
     val vals =
 
