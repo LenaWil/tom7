@@ -1,5 +1,10 @@
-(* A simple chat server.
-   The server stores a fixed buffer in the TDB and clients can append to it.
+(* 
+   Symptom: wrong world when type checking in CPS
+   
+   This was because function declarations made "at other worlds"
+   were not being leta-held in order to actually bind them at the
+   other world. Now we always leta-hold and maybe optimize that
+   away if we're already at the world.
 *)
 
 unit
