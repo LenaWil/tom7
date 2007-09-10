@@ -147,7 +147,7 @@ struct
                                  (case vo of
                                       NONE => $"NONE"
                                     | SOME v => vtol v)]
-
+       | Hold (w, v) => %[$"hold", L.paren (wtol w), vtol v]
        | FSel (n, v) =>
            let fun def () = %[vtol v, $("." ^ Int.toString n)]
            in
@@ -365,6 +365,13 @@ struct
                      @ [$(V.tostring var)]),
                    L.indent 4 (%[$":", ttol t, $"="])],
                  L.indent 4 (etol e)]
+
+           | Leta (Poly({worlds, tys}, (v, t, va))) =>
+               %[%[%([$"leta"]
+                     @ [worldstys worlds tys]
+                     @ [$(V.tostring v)]),
+                   L.indent 4 (%[$":", ttol t, $"="])],
+                 L.indent 4 (vtol va)]
 
            | Letsham (Poly({worlds, tys}, (v, t, va))) =>
                %[%[%([$"letsham"]

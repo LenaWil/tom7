@@ -186,6 +186,9 @@ struct
                             (fn B.String s => s 
                               | _ => raise Execute "jointext expects strings") args)
 
+
+
+
          (* XXX more... *)
 
          | (po, _) => raise Execute ("unimplemented primop " ^ P.tostring po))

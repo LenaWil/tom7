@@ -31,7 +31,7 @@
 
    The inside of the /\ (alllam) is a vletsham, which prevents us from
    noticing that the body is inlinable unless we are exceedingly clever
-   (we're not). But that body has the form
+   (we're not). But note that body has the form
       vletsham x = (sham w. val')
       in  ... value with one use of x ...
    which can safely be reduced to
@@ -48,6 +48,8 @@
                  .0
    
    which can be seen to be inlinable, even if id is used many times.
+
+   PERF also for leta
 
 *)
 

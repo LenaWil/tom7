@@ -99,6 +99,7 @@ struct
       | VInject of typ * label * value option
       (* bound world, value *)
       | Sham of var * value
+      | Hold of world * value
 
       | Fns of 
         { name : var,
@@ -183,6 +184,7 @@ struct
       | Newtag of var * typ * var
 
       | Letsham of (var * typ * value) poly
+      | Leta of (var * typ * value) poly
 
       | ExternWorld of label * worldkind
       | ExternVal   of (label * var * typ * world option) poly

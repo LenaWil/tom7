@@ -1209,8 +1209,8 @@ struct
               val bind = 
                   case maybevalid of
                       NONE => (fn Poly ({ worlds, tys }, (v, t, e)) =>
-                               Bind(Val, Poly ({worlds = worlds, tys = tys},
-                                               (v, t, Value e))))
+                               Leta(Poly ({worlds = worlds, tys = tys},
+                                          (v, t, Hold (atworld, e)))))
                     | SOME wv => (fn Poly ({ worlds, tys }, (v, t, e)) =>
                                   Letsham(Poly ({worlds = worlds, tys = tys},
                                                 (v, t, Sham (wv, e))))
