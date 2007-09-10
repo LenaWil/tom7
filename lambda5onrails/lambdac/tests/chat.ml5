@@ -12,6 +12,40 @@ unit
     import "lock.mlh"
     import "regexp.mlh"
 
+    val style = [<style>[datafile "chat.css"]</style>]
+    val id.input = [inputbox]
+    val id.chatbox = [chatbox]
+
+    (* Who am I? Who are you? *)
+    val (us, them) =
+        letcc ret
+        in
+         let fun choose p = throw p to ret
+         in
+            dom.setstring 
+            (dom.getbyid [page],
+             [innerHTML],
+             [[style]
+              <div class="pagebox">
+              <span class="button" onclick="[say choose ([chat.1], [chat.2])]">player 1</span>
+              <span class="button" onclick="[say choose ([chat.2], [chat.1])]">player 2</span>
+              </div> <!-- pagebox -->
+              ]);
+            halt ()
+         end
+        end
+
+
+    do alert [okay, I am [us] and they are [them]]
+
+    fun emit s =
+        let
+            
+        in
+            ()
+        end
+
+(*
     (* XXX lock *)
     fun next-player () =
         let
@@ -25,6 +59,7 @@ unit
         in
             itos n
         end : string @ server
+*)
 
     extern val alert : string -> unit @ home
     do runtime.no-messages ()
@@ -34,9 +69,27 @@ unit
     fun hide-element s =
         dom.setstring(dom.getnode(dom.getbyid s, [style]), [display], [none])
 
-    fun source-keyup () = 
-        let in
-            ()
+    (* XXX if the browser input thread runs while we're doing this, then
+       we can lose keystrokes. Since we can't lock it out, we just have to
+       "know" that nothing here yields. We could improve this with a
+       no-yield primop or without-yield library function? (but without-yield
+       would need to prevent go, sigh)
+
+       (I did it a different way that doesn't have that problem, phew.)
+       *)
+    fun input-keyup () = 
+        let 
+            put s = dom.getstring(dom.getbyid id.input, [value])
+        in
+            from server get emit s
+        end
+
+    fun send-input () =
+        let
+            val s = dom.getstring(dom.getbyid id.input, [value])
+            do      dom.setstring(dom.getbyid id.input, [value], [])
+        in
+            alert [jk lol]
         end
 
     do dom.setstring 
@@ -45,10 +98,14 @@ unit
          [<style>[datafile "chat.css"]</style>
           <div class="pagebox">
            Hello welcome to the chat server!
+
+           <div id="[id.chatbox]">&nbsp;</div>
+
+           <input type="text" onchange="[say input-keyup ()]" id="[id.input]" />
+           <span class="button" onclick="[say send-input ()]">send</span>
+
           </div> <!-- pagebox -->
           ])
-
-    do alert (from server get next-player ())
 
 in
 end

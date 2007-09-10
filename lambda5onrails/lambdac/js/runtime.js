@@ -99,8 +99,13 @@ function lc_saveentry(g, f, args) {
 
 /* start up a previously saved thread */
 function lc_enter(i) {
+
     lc_threadqueue.enq( lc_saved[i] );
     lc_yield();
+
+    // or run it immediately, for better responsiveness?
+    // var f = globalcode[lc_saved[i].g][lc_saved[i].f];
+    // f.apply(undefined, lc_saved[i].args);
 };
 
 

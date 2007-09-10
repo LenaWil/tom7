@@ -40,8 +40,10 @@ struct
 
   val strlit = any when (fn STRING s => SOME s | _ => NONE)
 
-  (* labels are identifiers but also numbers *)
-  val label = id || number wth (Int.toString o Word32.toInt)
+  (* labels are identifiers but also numbers.
+     we quote them because they might clash with keywords. *)
+  val label = strlit
+    (* id || number wth (Int.toString o Word32.toInt) *)
 
   fun bopt p = `TNONE return NONE || `TSOME >> p wth SOME
 
@@ -70,7 +72,7 @@ struct
   fun exp () =
        `PROJ >> label && $exp wth Project
     || `RECORD >> repeated (label && $exp) wth Record
-    || `PRIMCALL >> label && repeated ($exp) wth Primcall
+    || `PRIMCALL >> id && repeated ($exp) wth Primcall
     || `CALL >> $exp && repeated ($exp) wth Call
     || `INJ >> label && bopt ($exp) wth Inj
     || `MARSHAL >> $exp && $exp wth Marshal
@@ -89,7 +91,7 @@ struct
     || `DALL >> repeated id && $exp wth Dall
     || `DAT >> $exp && $exp wth (fn (d, a) => Dat   { d = d, a = a })
     || `DSHAM >> id && $exp wth (fn (d, v) => Dsham { d = d, v = v })
-    || `DMU >> int && repeated (label && $exp) wth Dmu
+    || `DMU >> int && repeated (id && $exp) wth Dmu
 
     || `CALL -- punt "parse error after CALL"
     || `DALL -- punt "parse error after DALL"
