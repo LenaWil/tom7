@@ -652,6 +652,15 @@ struct
            (fn (G, va, t, w) => Put' (v, va, k (bindu0var G v t)))
          end
 
+       | I.Leta (I.Poly ({worlds = nil, tys = nil}, (v, t, va))) => 
+         let
+           val _ = cvtt G t
+           val (va, tt, ww) = cvtv G va
+         in
+           case ctyp tt of
+             At (t, w') => Leta' (v, va, k (bindvar G v t w'))
+           | _ => raise ToCPS "leta(nil) on non-at"
+         end
 
        | I.Bind (b, I.Poly ({worlds, tys}, (v, t, I.Value va))) =>
          (* poly -- must be a value then *)
@@ -696,6 +705,47 @@ struct
                end
            | _ => raise ToCPS "letsham(nil) of non-shamrock"
          end
+
+       | I.Leta (I.Poly ({worlds, tys}, (v, t, va))) => 
+         (* we have
+
+              leta ('a, 'w) x = (v : T @ W with 'a, 'w free)
+
+            where occurrences of x are of the form
+
+              x<t, w>
+
+            and so we must produce a binding forall 'a. forall 'w. T @ W,
+            i.e.
+
+              leta x = hold(W) /\'a/\'w(vleta x' = v in x')
+
+            *)
+         (case
+            let
+              val G = foldr (fn (wv, G) => bindworld G wv) G worlds
+              val G = foldr (fn (tv, G) => bindtype G tv false) G tys
+              val _ = cvtt G t (* but we'll use the actual type instead *)
+              val (va, tt, ww) = cvtv G va
+            in
+              (va, ctyp tt, ww)
+            end
+            of
+              (va, At (tt, atw), ww) =>
+                let
+                  val tt =
+                    AllArrow' { worlds = worlds, tys = tys, 
+                                vals = nil, body = tt }
+                  val v' = V.alphavary v
+                  val G = bindvar G v tt atw
+                in
+                  Leta' (v,
+                         Hold' (atw, AllLam' { worlds = worlds, tys = tys, vals = nil,
+                                               body = VLeta' (v', va, Var' v') }),
+                         k G)
+                end
+            | _ => raise ToCPS "polyleta on non-at")
+
 
        | I.Letsham (I.Poly ({worlds, tys}, (v, t, va))) => 
          (* When the var v is used, it will be applied to worlds and tys,
@@ -826,6 +876,16 @@ struct
              case ctyp t of
                Conts all => (Fsel' (va, i), Cont' ` List.nth (all, i), w)
              | _ => raise ToCPS "fsel of non-conts"
+           end
+
+       | I.Hold (w, v) =>
+           let 
+             val start = worldfrom G
+             val w = cvtw G w
+             val G = setworld G w
+             val (v, t, _) = cvtv G v
+           in
+             (Hold' (w, v), At' (t, w), start)
            end
 
        | I.Sham (v, va) =>

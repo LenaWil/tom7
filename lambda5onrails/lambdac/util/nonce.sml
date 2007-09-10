@@ -18,7 +18,9 @@ struct
     "cheese", "onions", "phlegm", "melisma", "jurist", "hacienda",
     "limerick", "effete", "azimuth", "pepper", "inchoate", "opera",
     "sanguine", "runabout", "whorl", "humanist", "victive", "octave",
-    "cartridge", "gamete", "ootid", "syzygy", "rampart", "filmic"
+    "cartridge", "gamete", "ootid", "syzygy", "rampart", "filmic",
+    "fantod", "lurid", "demure", "active", "gestate", "yeti",
+    "irascible", "gremlin", "vacate", "champ", "goldenrod"
     ]
 
   val ctr = ref 0

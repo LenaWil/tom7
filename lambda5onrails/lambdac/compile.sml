@@ -2,11 +2,11 @@
 structure Compile :> COMPILE =
 struct
 
-    val showil = Params.flag true
+    val showil = Params.flag false
         (SOME ("-showil",
                "Show internal language AST")) "showil"
 
-    val showcps = Params.flag true
+    val showcps = Params.flag false
         (SOME ("-showcps",
                "Show internal CPS after each phase")) "showcps"
 
@@ -144,7 +144,8 @@ struct
             (* this won't interfere with any other optimizations,
                but it might enable them... *)
             val c = cpspass "UNREACH" CPSUnreach.optimize G c
-              
+            val c = cpspass "LETA_HERE" CPSHere.optimize G c
+
             (* do inlining and then remove inline annotations *)
             val c = cpspass "INLINE" CPSInline.optimize G c
             val c = cpspass "UNINLINE" CPSUninline.optimize G c
@@ -229,7 +230,8 @@ struct
          | ByteCodegen.ByteCodegen s => fail("Bytecode codegen: " ^ s)
          | BytePrint.BytePrint s => fail("Bytecode print: " ^ s)
          | CPS.CPS s => fail ("Internal error in CPS:\n" ^ s)
-         | CPSEta.Eta s => fail ("Internal error: CPS-Optimization failed:\n" ^ s)
+         | CPSEta.Eta s => fail ("Internal error: CPS-Eta failed:\n" ^ s)
+         | CPSHere.Here s => fail ("Internal error: CPS-Here failed:\n" ^ s)
          | CPSInline.Inline s => fail ("Internal error: CPS Inlining failed:\n" ^ s)
          | CPSReduce.Reduce s => fail ("Internal error: CPS Reduction failed:\n" ^ s)
          | CPSUninline.Uninline s => fail ("Internal error: CPS Uninlining failed:\n" ^ s)

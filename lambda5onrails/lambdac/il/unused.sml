@@ -125,6 +125,11 @@ struct
               (fvr, Fns fl)
             end
 
+    | Hold (w, v) => let val (fv, v) = uval v
+                     in
+                       (fv, Hold(w, v))
+                     end
+
     | FSel (i, v) => let val (fv, v) = uval v
                      in (fv, FSel (i, v))
                      end
@@ -298,6 +303,7 @@ struct
                            print ("Drop unused polybind " ^ V.tostring vv ^ "\n");
                            NONE
                          end
+
     | udec fv (d as Letsham(Poly(p, (vv, t, va)))) =
                        (* used? *)
                        if fv ?? vv
@@ -309,6 +315,18 @@ struct
                            print ("Drop unused polyletsham " ^ V.tostring vv ^ "\n");
                            NONE
                          end
+
+    | udec fv (d as Leta(Poly(p, (vv, t, va)))) =
+                       if fv ?? vv
+                       then let val (fv', va) = uval va
+                            in SOME ((fv -- vv) || fv', Leta(Poly(p, (vv, t, va))))
+                            end
+                       else 
+                         let in
+                           print ("Drop unused polyleta " ^ V.tostring vv ^ "\n");
+                           NONE
+                         end
+
 
     | udec fv (d as Bind(b, Poly(p, (vv, t, e)))) =
                            (* PERF there are other things that don't look like values
