@@ -5,6 +5,9 @@
    The problem is just that the 'halt' function
    was being imported from the initial environment,
    which is deprecated.
+
+   This *should* fail to compile, but with an error
+   message, not an internal compiler error.
 *)
 
 unit
