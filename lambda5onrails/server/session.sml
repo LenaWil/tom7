@@ -20,6 +20,11 @@ struct
               "Where to find .b5, .js, .ml5 code, etc."))
         "codepath"
 
+  val staticpath = Params.param "../static/"
+        (SOME("-staticpath",
+              "Where to find GIFs and other static data"))
+        "staticpath"
+
   val favicon_ico = StringUtil.readfile "favicon.ico"
   val logo_png    = StringUtil.readfile "../graphics/server5-logo-striped.png"
   val faviconhead = "<link rel=\"shortcut icon\" href=\"/favicon.ico\" type=\"image/x-icon\" />"
@@ -299,7 +304,7 @@ struct
       pr faviconhead;
       pr CSS.csshead;
       pr "<body>\n";
-      pr "<img src=\"/logo.png\" style=\"float:left;\" />Server 5 demos list.\n";
+      pr "<img src=\"/static/logo.png\" style=\"float:left;\" />Server 5 demos list.\n";
       pr "<table width=\"100%\">\n";
       pr "<tr><td>ML5 source code</td><td colspan=2>Compiled code</td><td>Demo</td></tr>\n";
       app onedemo l;
@@ -317,7 +322,7 @@ struct
   (* XXX maybe more checks to see if this is a valid file?
      Right now they can read anything in the codepath directory. *)
   fun source sock file =
-    if CharVector.exists (StringUtil.charspec "^A-Za-z0-9._") file
+    if CharVector.exists (StringUtil.charspec "^-A-Za-z0-9._") file
     then failnew sock file "it contains illegal characters"
     else
       let
@@ -343,6 +348,35 @@ struct
         N.disconnect sock
       end handle Io => failnew sock file "the file was not found"
 
+  fun type_from_filename f =
+    case FSUtil.splitext (StringUtil.lcase f) of
+      (_, ".gif") => "image/gif"
+    | (_, ".jpg") => "image/jpeg"
+    | (_, ".png") => "image/png"
+    | (_, ".ico") => "image/x-icon"
+    | (_, _) => "application/octet-stream"
+  (* ; charset=utf-8 ? *)
+
+  fun static sock file =
+    if CharVector.exists (StringUtil.charspec "^-A-Za-z0-9._") file
+    then failnew sock file "it contains illegal characters"
+    else
+      let
+        fun pr str = N.sendraw sock str
+        val contents = StringUtil.readfile (!staticpath ^ file)
+      in
+        pr
+        ("HTTP/1.1 200 OK\r\n" ^
+         "Date: " ^ Version.date () ^ "\r\n" ^
+         "Server: " ^ Version.version ^ "\r\n" ^
+         "Connection: close\r\n" ^
+         "Content-Type: " ^ type_from_filename file ^ "\r\n" ^
+         "\r\n");
+
+        pr contents;
+        N.disconnect sock
+      end handle Io => failnew sock file "the file was not found"
+
    fun favicon sock =
       let
         fun pr str = N.sendraw sock str
@@ -358,7 +392,7 @@ struct
         pr favicon_ico;
         N.disconnect sock
       end
-
+(*
    fun logo sock =
       let
         fun pr str = N.sendraw sock str
@@ -374,5 +408,5 @@ struct
         pr logo_png;
         N.disconnect sock
       end
-
+*)
 end

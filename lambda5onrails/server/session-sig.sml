@@ -35,9 +35,11 @@ sig
   val demos      : Network.sock -> unit
   (* show the file if it lives in the code path *)
   val source     : Network.sock -> string -> unit
+  (* a file in the static data directory *)
+  val static     : Network.sock -> string -> unit
 
   val favicon    : Network.sock -> unit
-  val logo       : Network.sock -> unit
+(*  val logo       : Network.sock -> unit *)
 
   (* do work if desired. true if some progress was made *)
   val step       : unit -> bool
