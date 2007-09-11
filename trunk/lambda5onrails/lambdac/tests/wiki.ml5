@@ -442,7 +442,7 @@ unit
          [innerHTML],
          [<style>[datafile "wiki.css"]</style>
           <div id="container"><div style="float:left;">
-           <center><img src="/logo.png" /></center>
+           <center><img src="/static/logo.png" /></center>
            <br/>
            <div class="sidebar">
              [linkto [main]]<br/>

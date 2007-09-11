@@ -112,7 +112,7 @@ struct
             | ("demos", _) => Session.demos s
             | ("source", file) => Session.source s file
             | ("favicon.ico", _) => Session.favicon s
-            | ("logo.png", _) => Session.logo s
+            | ("static", file) => Session.static s file
             | _ => error404 s "URL not found (GET).")
        | "POST" :: url :: _ =>
            (case StringUtil.token (StringUtil.ischar #"/") url of
@@ -156,7 +156,6 @@ struct
           str);
          N.disconnect s
        end
-
 
   fun init () =
     listener := SOME ` N.listen http ` Params.asint 5555 port
