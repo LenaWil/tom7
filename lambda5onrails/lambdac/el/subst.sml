@@ -134,7 +134,11 @@ struct
                                              map (mlsubst s) pel, NONE)
          | E.Case _ => raise Subst "case SOME"
          | E.Raise e => E.Raise (esubst s e)
-         | E.Say e => E.Say (esubst s e)
+         | E.Say (imports, e) => E.Say (imports, 
+                                        (* check shadowing... *)
+                                        if List.exists (fn (_, v) => v = vv) imports
+                                        then e
+                                        else esubst s e)
          | E.Handle (e, pel) => E.Handle (esubst s e, map (msubst s) pel)
 
          | E.Jointext el => E.Jointext (map (esubst s) el)

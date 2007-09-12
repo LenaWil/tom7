@@ -233,6 +233,7 @@ function lc_add_local(ob) {
 
 /* dictionary used for references. we can use this
    for local objects that can't be marshaled, too. */
+/* must agree with initial.sml and stdlib */
 var lc_ref_dict = { w : "DP", p : "r" };
 
 /* PERF these contexts are represented as flat lists
