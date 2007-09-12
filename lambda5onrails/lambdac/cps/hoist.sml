@@ -120,9 +120,7 @@ struct
 
     (* some things that we shouldn't see: *)
 
-    fun case_Primop z ({selfv, selfe, selft}, G) (_, SAY, _, _) =
-      raise Hoist "unexpected SAY after closure conversion"
-      | case_Primop z sg e = ID.case_Primop z sg e
+    fun case_Say _ _ _ = raise Hoist "unexpected SAY after closure conversion"
 
     fun case_ExternType _ _ (_, _, NONE, _) =
       raise Hoist "expected dict in externtype"

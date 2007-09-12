@@ -79,5 +79,6 @@ sig
     val check_mobile : unit -> unit
 
     val ptoil : Podata.potype -> IL.typ
+    val jtoil : Context.context -> JSImports.jstype -> IL.typ
 
 end

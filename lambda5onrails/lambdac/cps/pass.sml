@@ -135,7 +135,13 @@ struct
           | _ => raise Pass "unimplemented: primops with world args"
         end
 
-  fun case_Primop z ({selfe, selfv, selft}, G) ([v], SAY, [k], e) =
+  fun case_Say z ({selfe, selfv, selft}, G) (v, stl, va, e) =
+    raise Pass "unimplemented"
+
+  fun case_Say_cc z ({selfe, selfv, selft}, G) (v, stl, va, e) =
+    raise Pass "unimplemented"
+
+  fun (* case_Primop z ({selfe, selfv, selft}, G) ([v], SAY, [k], e) =
          let
            val (k, _) = selfv z G k
            val G = bindvar G v (Zerocon' STRING) ` worldfrom G
@@ -144,7 +150,7 @@ struct
          end
     | case_Primop z ({selfe, selfv, selft}, G) (_, SAY, _, e) = raise Pass "bad say"
 
-    | case_Primop z ({selfe, selfv, selft}, G) ([v], MARSHAL, [vd, va], e) =
+    | *) case_Primop z ({selfe, selfv, selft}, G) ([v], MARSHAL, [vd, va], e) =
          let
            val (vd, _) = selfv z G vd
            val (va, _) = selfv z G va
@@ -155,7 +161,7 @@ struct
            Primop' ([v], MARSHAL, [vd, va], selfe z G e)
          end
     | case_Primop z ({selfe, selfv, selft}, G) (_, MARSHAL, _, e) = raise Pass "bad marshal"
-         
+(*
     | case_Primop z ({selfe, selfv, selft}, G) ([v], SAY_CC, [k], e) =
          let
            val (k, t) = selfv z G k
@@ -165,7 +171,7 @@ struct
          end
 
     | case_Primop z ({selfe, selfv, selft}, G) (_, SAY_CC, _, _) = raise Pass "bad say_cc"
-
+*)
     | case_Primop z ({selfe, selfv, selft}, G) ([v], LOCALHOST, [], e) =
          Primop' ([v], LOCALHOST, [], 
                   selfe z (bindvar G v (Addr' ` worldfrom G) ` worldfrom G) e)
@@ -784,6 +790,8 @@ struct
       | ExternVal a => case_ExternVal z (s, G) a
       | ExternWorld a => case_ExternWorld z (s, G) a
       | ExternType a => case_ExternType z (s, G) a
+      | Say a => case_Say z (s, G) a
+      | Say_cc a => case_Say_cc z (s, G) a
     end
 
   and convertt z G ty =

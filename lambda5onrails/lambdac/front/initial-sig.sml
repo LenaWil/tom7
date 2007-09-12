@@ -42,6 +42,7 @@ sig
     val truename : string
     val falsename : string
     val exnname : string
+    val eventname : string
 (*  val listname : string *)
 
 

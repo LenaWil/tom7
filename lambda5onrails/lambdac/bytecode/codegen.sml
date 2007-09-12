@@ -310,13 +310,12 @@ struct
 
             | C.Primop (_, C.MARSHAL, _, _) => raise ByteCodegen "bad marshal"
 
-            | C.Primop (_, C.SAY, _, _) => raise ByteCodegen "should not see SAY in codegen"
-            | C.Primop ([v], C.SAY_CC, [va], e) => raise ByteCodegen "SAY_CC unimplemented on server (??)"
-            | C.Primop (_, C.SAY_CC, _, _) => raise ByteCodegen "bad SAY_CC"
-
             | C.Primop ([v], C.LOCALHOST, nil, e) => Bind(vtoi v, String hostname, cvte e)
 
             | C.Primop (_, C.LOCALHOST, _, _) => raise ByteCodegen "bad localhost"
+
+            | C.Say _ => raise ByteCodegen "should not see SAY in codegen"
+            | C.Say_cc _ => raise ByteCodegen "shouldn't see say_cc on server (!)"
 
             | C.Native { var = v, args, bod = e, po, ... } => 
                 (* XXX could check arity *)

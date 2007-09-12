@@ -40,7 +40,7 @@ struct
       (* takes 'a dict and 'a -> bytes *)
     | MARSHAL
       (* takes a unit cont (or closure) and reifies it as a js string *)
-    | SAY | SAY_CC
+    (* | SAY | SAY_CC *)
 
   fun primop_cmp (LOCALHOST, LOCALHOST) = EQUAL
     | primop_cmp (LOCALHOST, _) = LESS
@@ -49,12 +49,14 @@ struct
     | primop_cmp (BIND, _) = LESS
     | primop_cmp (_, BIND) = GREATER
     | primop_cmp (MARSHAL, MARSHAL) = EQUAL
+(*
     | primop_cmp (MARSHAL, _) = LESS
     | primop_cmp (_, MARSHAL) = GREATER
     | primop_cmp (SAY, SAY) = EQUAL
     | primop_cmp (SAY, _) = LESS
     | primop_cmp (_, SAY) = GREATER
     | primop_cmp (SAY_CC, SAY_CC) = EQUAL
+*)
 
   datatype leaf =
     (* worlds *)
@@ -66,6 +68,7 @@ struct
     CALL_ | HALT_ | GO_ | GO_CC_ | GO_MAR_ | PRIMOP_ of primop |
     PUT_ | LETSHAM_ | LETA_ | WUNPACK_ | TUNPACK_ | CASE_ | INTCASE_ | EXTERNVAL_ |
     EXTERNWORLD_ of IL.worldkind | EXTERNTYPE_ | PRIMCALL_ | NATIVE_ of Primop.primop |
+    SAY_ | 
     (* vals *)
     LAMS_ | FSEL_ | VINT_ of IL.intconst | VSTRING_ | PROJ_ | RECORD_ | HOLD_ | WPACK_ |
     TPACK_ | SHAM_ | INJ_ | ROLL_ | UNROLL_ | CODELAB_ | WDICTFOR_ | WDICT_ |
@@ -213,6 +216,10 @@ struct
     | (NATIVE_ p, NATIVE_ p') => Primop.primop_cmp(p, p')
     | (NATIVE_ _, _) => LESS
     | (_, NATIVE_ _) => GREATER
+
+    | (SAY_, SAY_) => EQUAL
+    | (SAY_, _) => LESS
+    | (_, SAY_) => GREATER
 
     | (LAMS_, LAMS_) => EQUAL
     | (LAMS_, _) => LESS

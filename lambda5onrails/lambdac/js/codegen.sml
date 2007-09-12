@@ -518,6 +518,7 @@ struct
                   Bind (vtoi v, Call { func = Id marshal, args = %[vd, va] }) ::
                   cvte e))
 
+(*
             | C.Primop (_, C.SAY, _, _) => raise JSCodegen "shouldn't see say in js codgen"
             | C.Primop ([v], C.SAY_CC, [k], e) =>
                 cvtv k
@@ -552,6 +553,7 @@ struct
                      end :: cvte e
 
                      ))))
+*)
 
             | C.Primop _ => (* [Throw ` String ` String.fromString "unimplemented primop"] *)
                             raise JSCodegen "unimplemented or bad primop"

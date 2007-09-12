@@ -251,7 +251,6 @@ struct
          | Nullary.Nullary s => fail ("Couldn't do EL nullary prepass:\n" ^ s)
          | Pattern.Pattern s => fail("Pattern compilation: " ^ s)
          | Podata.Podata s => fail("primop data: " ^ s)
-         | PrimTypes.PrimTypes s => fail("PrimTypes: " ^ s)
          | ToCPS.ToCPS s => fail ("ToCPS: " ^ s)
          | UnDict.UnDict s => fail("UnDict: " ^ s)
          | Variable.Variable s => fail ("BUG: Variables: " ^ s)

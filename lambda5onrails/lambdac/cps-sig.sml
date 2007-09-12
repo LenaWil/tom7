@@ -70,6 +70,8 @@ sig
     (* always kind 0; optional argument is a value import of the 
        (valid) dictionary for that type *)
     | ExternType of var * string * (var * string) option * 'cexp
+    | Say of var * (string * ctyp) list * 'cval * 'cexp
+    | Say_cc of var * (string * ctyp) list * 'cval * 'cexp
 
   and ('cexp, 'cval) cvalfront =
            (*   fn    arg   argt         body *)
@@ -239,8 +241,8 @@ sig
   val Bind' : var * cval * cexp -> cexp
   val Bindat' : var * world * cval * cexp -> cexp
   val Marshal' : var * cval * cval * cexp -> cexp
-  val Say' : var * cval * cexp -> cexp
-  val Say_cc' : var * cval * cexp -> cexp
+  val Say' : var * (string * ctyp) list * cval * cexp -> cexp
+  val Say_cc' : var * (string * ctyp) list * cval * cexp -> cexp
 
   val Lam'  : var * (var * ctyp) list * cexp -> cval
   val Sham0' : cval -> cval

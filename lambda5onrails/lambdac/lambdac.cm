@@ -119,8 +119,13 @@ el/subst.sml
 el/nullary-sig.sml
 el/nullary.sml
 
+(* garbage
 front/primtypes-sig.sml
 front/primtypes.sml
+*)
+
+(* needed during elaboration of say *)
+js/imports.sml
 
 podata.sml
 
