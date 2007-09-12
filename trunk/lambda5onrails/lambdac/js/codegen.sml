@@ -518,14 +518,20 @@ struct
                   Bind (vtoi v, Call { func = Id marshal, args = %[vd, va] }) ::
                   cvte e))
 
-(*
-            | C.Primop (_, C.SAY, _, _) => raise JSCodegen "shouldn't see say in js codgen"
-            | C.Primop ([v], C.SAY_CC, [k], e) =>
+            | C.Primop _ => (* [Throw ` String ` String.fromString "unimplemented primop"] *)
+                            raise JSCodegen "unimplemented or bad primop"
+
+            | C.Say _ => raise JSCodegen "shouldn't see say in js codgen"
+            | C.Say_cc (v, imps, k, e) =>
                 cvtv k
                 (* k is a closure:
                    { d  : dictionary (not used)
                      v0 : env
-                     v1 : function } *)
+                     v1 : continuation } 
+
+                   the continuation expects one argument (a javascript variable in scope here) 
+                   for each of the imports.
+                   *)
                 (fn k =>
                  wi (fn f =>
                  wi (fn env =>
@@ -540,8 +546,9 @@ struct
                           Call { func = Id saveentry,
                                  args = %[Sel (Id f) "g",
                                           Sel (Id f) "f",
-                                          (* expects environment and unit *)
-                                          Array ` %[SOME ` Id env, SOME ` Object ` %nil]] }) ::
+                                          (* give just the environment; call site will give other args *)
+                                          Id env] }) ::
+                     (* Array ` %[SOME ` Id env, SOME ` Object ` %nil]] }) :: *)
                      let
                        infix ++ 
                        fun a ++ b = Binary { lhs = a, rhs = b, oper = B.Add }
@@ -549,14 +556,21 @@ struct
                        Bind(vtoi v, (String ` String.fromString (runentry^"(")) ++ 
                                     (* then, the integer that results from evaluating this variable *)
                                     (Id c) ++ 
-                                    (String ` String.fromString ")") )
+                                    (String ` 
+                                     String.fromString (",{" ^
+                                                        StringUtil.delimit "," 
+                                                        (ListUtil.mapi (fn ((s, t), i) =>
+                                                                        "l" ^ Int.toString (i + 1) ^ ":" ^ s)
+                                                         (* XXX BUG: once this handler returns, the event
+                                                            dies (loses its properties). we can't copy out
+                                                            the whole object, because 'for i in' is 
+                                                            NS_NOT_IMPLEMENTED in Firefox. So we need to
+                                                            grab exactly those fields that we want, right here. *)
+                                                         imps) ^ "})")
+                                     ))
                      end :: cvte e
 
                      ))))
-*)
-
-            | C.Primop _ => (* [Throw ` String ` String.fromString "unimplemented primop"] *)
-                            raise JSCodegen "unimplemented or bad primop"
 
             | C.Go_mar { w = _, addr, bytes } =>
                 cvtv addr
@@ -567,16 +581,17 @@ struct
                   [Exp ` Call { func = Id go_mar,
                                 args = %[addr, bytes] }]
                   ))
+
             | C.Intcase (va, iel, def) => 
                 cvtv va
                 (fn va =>
                  [Switch { test = va,
-                          clauses = %(map (fn (i, e) =>
-                                           (* silly that we have to go through real numbers here,
-                                              but they can represent all of the 32-bit values... *)
-                                           (SOME ` RealNumber ` IntConst.toReal i,
-                                            %[Block ` % ` (cvte e @ [Break NONE])])) iel @
-                                      [(NONE, %[Block ` % ` (cvte def @ [Break NONE])])]) }
+                           clauses = %(map (fn (i, e) =>
+                                            (* silly that we have to go through real numbers here,
+                                               but they can represent all of the 32-bit values... *)
+                                            (SOME ` RealNumber ` IntConst.toReal i,
+                                             %[Block ` % ` (cvte e @ [Break NONE])])) iel @
+                                       [(NONE, %[Block ` % ` (cvte def @ [Break NONE])])]) }
                  ])
 
             | C.Case (va, v, sel, def) => 

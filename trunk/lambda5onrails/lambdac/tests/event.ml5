@@ -3,7 +3,7 @@ unit
    import "dom.mlh"
 
    (* XXX to lib *)
-   extern val event.keycode : js.event -> char @ home
+   extern val event.keycode : js.event -> char @ home = lc_event_keycode
 
    val id.textbox = "textbox"
    val id.showbox = "showbox"
@@ -17,6 +17,7 @@ unit
    do dom.setstring(dom.getbyid [page],
                     [innerHTML],
                     [<input onkeyup="[say { event } keypress (event.keycode event)]" id="[id.textbox]" /> <br/>
+                     <input onkeyup="alert(lc_jstosi_ascii(event, 5))" /> <br />
                      <div id="[id.showbox]">])
 
 in

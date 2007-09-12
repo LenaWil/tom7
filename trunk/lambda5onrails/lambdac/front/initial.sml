@@ -34,7 +34,7 @@ struct
 
     val eventname = "js.event"
     (* must agree with js runtime *)
-    val event_dict_name = "lc_ref_dict"
+    val event_dict_name = "lc_ref"
 
     (* XXX maybe IL.Lambda should take type and world args? *)
     val cons = 
