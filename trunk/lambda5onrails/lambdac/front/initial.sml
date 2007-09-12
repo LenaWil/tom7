@@ -32,6 +32,10 @@ struct
 
     val ilunit = IL.TRec nil
 
+    val eventname = "js.event"
+    (* must agree with js runtime *)
+    val event_dict_name = "lc_ref_dict"
+
     (* XXX maybe IL.Lambda should take type and world args? *)
     val cons = 
         [("ref", IL.Lambda (IL.TRef o hd), 1, IL.Regular),
@@ -59,6 +63,8 @@ struct
     (* XXX5 should probably be done in terms of extern vals *)
 
     val monofuns =
+        nil
+(*
         [
 
          ("<", P.B (P.PCmp P.PLess), [ilint, ilint], ilbool),
@@ -87,6 +93,7 @@ struct
          ("shr", P.B P.PShr, [ilint, ilint], ilint)
 
          ]
+*)
 
     (* XXX, just do it inline *)
     fun mono x = IL.Poly({worlds=nil, tys=nil}, x)
@@ -158,15 +165,15 @@ struct
          ]
 *)
 
-    val vals =
-
+    val vals = nil
+(*
         map (fn (name, prim, ty) =>
              (name, ty, IL.Primitive prim)) polyfuns @
 
         map (fn (name, prim, cod, dom) =>
              (name, mono (IL.Arrow(false, cod, dom)), 
               IL.Primitive prim)) monofuns
-
+*)
     (* there are no initial world variables *)
     val worlds = []
     val initialw = foldl (fn ((id, w), ctx) => Context.bindw ctx id w) Context.empty worlds
@@ -219,22 +226,15 @@ struct
                           [(truename, NONE),
                            (falsename, NONE)])]))
 
-            (* XXX why? it's in stdlib. *)
-            val declist =
-              %(EL.Datatype
-                (["a"], [(listname,
-                          [(consname, 
-                            SOME(EL.TRec[("1", EL.TVar"a"),
-                                         ("2",
-                                          EL.TVar listname)])),
-                           (nilname, NONE)])]))
+            val dectypes =
+              %(EL.ExternType(nil, eventname, SOME event_dict_name))
 
             val impexns =
               (* match ~ exn *)
               %(EL.ExternVal(nil, matchname, EL.TVar exnname, NONE, NONE))
 
         in
-          EL.Unit(impexns :: (* declist :: *) decbool :: ds, xs)
+          EL.Unit(impexns :: dectypes :: decbool :: ds, xs)
         end
 
     fun trueexp loc = (EL.Var truename, loc)

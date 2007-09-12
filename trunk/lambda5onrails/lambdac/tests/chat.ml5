@@ -17,6 +17,11 @@ unit
     val style = [<style>[datafile "chat.css"]</style>]
     val id.input = [inputbox]
     val id.chatbox = [chatbox]
+    val id.balloontest = [balloontest]
+
+    do dom.setstring(dom.getnode(dom.doc, [body]),
+                     "background",
+                     "/static/chat-background.png")
 
     (* Who am I? Who are you? *)
     put (us, them) =
@@ -38,6 +43,16 @@ unit
         end
 
     fun inline emit s = trivialdb.update (us, s)
+
+    fun balloon-right s =
+        [<table class="balloon" border="0" cellpadding="0" cellspacing="0">
+         <tr><td class="balloon" colspan="3"><img src="/static/chat-r-top.png"></td></tr>
+         <tr><td class="balloon" background="/static/chat-r-left.png" width="20">&nbsp;</td>
+             <td class="balloon" bgcolor="#FFFFFF" width="365">[s]</td>
+             <td class="balloon" background="/static/chat-r-right.png" width="28">&nbsp;</td>
+         </tr>
+         <tr><td class="balloon" colspan="3"><img src="/static/chat-r-bottom.png"></td></tr>
+         </table>]
 
     fun show-element s =
         dom.setstring(dom.getnode(dom.getbyid s, [style]), [display], [block])
@@ -64,7 +79,9 @@ unit
             val s = dom.getstring(dom.getbyid id.input, [value])
             do      dom.setstring(dom.getbyid id.input, [value], [])
         in
-            alert [jk lol]
+            dom.setstring(dom.getbyid id.balloontest, [innerHTML],
+                          balloon-right [Hello! Welcome to the chat server!])
+            (* alert [jk lol] *)
         end
 
     do dom.setstring 
@@ -75,6 +92,7 @@ unit
            <div class="title">[us]</title>
            Hello welcome to the chat server!
 
+           <span id="[id.balloontest]">&nbsp;</span>
            <div class="chatbox" id="[id.chatbox]">&nbsp;</div>
 
            <input type="text" onchange="[say input-keyup ()]" id="[id.input]" />

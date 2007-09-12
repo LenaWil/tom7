@@ -280,7 +280,10 @@ struct
                      dowrites 0w1 rest ` $ ` E.Var arr)
                end
 
-        | E.Say ee => 
+        | E.Say (imports, ee) => 
+            if not (List.null imports)
+            then error loc "say imports unimplemented"
+            else
                let
                  val (ee, tt) = elab ctx here ee
 

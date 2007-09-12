@@ -101,24 +101,8 @@
           background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAtFBMVEVbSTJaSTRcSDFOTk5tlx92iFSTZCuRZjCWZz27ejSGc1yHdF6VcEGUc0eae1SNfm2md03ZfirdfyyDtiWHuSuKvDOInWGSgWySv0C6nXWXw0eaxU2fx1anzGWpzWnClVrilUPno1bnpVbttWzwv3ufl4yjo6O614a92ojPtZDYuInH35vK4qPN46jR5q7V6LTjxJfxw4Pyyo732qv54Lrd2dTb68Hf7cf76s/h4eHq6ur///8TI7fFAAAAgElEQVQYV2OwRgMMYNJUnEvcFEnAlIuXh53JFCHAzadpIM/GgBDglzQxNuRkRAioahmpKAoyIwSs1JQUhDgskWyxEhAQsETYYqWmpmyhwsxsCRWwUtPXYVURkxIFiwAF1Mz1tNXFZCREhJmhAma6whqy0nIsMAFmBIDbggQICwAA6+4uxXL6Wh0AAAAASUVORK5CYII%3D);
        }
 
-       table {
-	       border-collapse: collapse;
-	       border: 2px solid #3f7c5f;
-	       font: normal 80%/140% arial, verdana, helvetica, sans-serif;
-	       color: #000;
-	       background: #fff;
-       }
-
-       td, th {
-	       border: 1px solid #e0e0e0;
-	       padding: 0.5em;
-       }
-
-       tbody th, tbody td {
-	       vertical-align: top;
-	       text-align: left;
-       }
-
-       tbody tr:hover {
-	       background: #ffffd9;
-       }
+     table.balloon { padding:none; border-spacing:0px; 
+	             border-collapse:collapse; border-style:none;
+		     margin:0px; }
+     tr.balloon { border-style:none; margin:0px; padding:0px; }
+     td.balloon { border-style:none; margin:0px; padding:0px; }

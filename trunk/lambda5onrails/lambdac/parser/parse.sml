@@ -461,7 +461,15 @@ struct
                                                     NONE))),
                       (* generalize these *)
                    `RAISE >> call G exp wth Raise,
-                   `SAY >> call G exp wth Say,
+                   `SAY >> 
+                      (opt (`LBRACE >> 
+                           separate (label && opt (`EQUALS >> id) 
+                                     wth (fn (l, NONE) => (l, l)
+                                           | (l, SOME v) => (l, v))) (`COMMA)
+                           << `RBRACE) 
+                        wth (fn NONE => nil
+                              | SOME l => l))
+                      && call G exp wth Say,
                    `SAY -- punt "expected EXP after SAY",
 
                    `FROM >> (* "expected EXP GET EXP after FROM" ** *)
