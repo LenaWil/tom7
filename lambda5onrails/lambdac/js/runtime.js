@@ -92,15 +92,17 @@ function lc_yield() {
 /* saved threads. only used by the following two functions */
 var lc_saved = [];
 
-function lc_saveentry(g, f, args) {
-    lc_saved.push( { g : g, f : f, args : args });
+function lc_saveentry(g, f, env) {
+    lc_saved.push( { g : g, f : f, env : env });
     return lc_saved.length - 1;
 };
 
-/* start up a previously saved thread */
-function lc_enter(i) {
+/* start up a previously saved thread, with imports */
+function lc_enter(i, imps) {
 
-    lc_threadqueue.enq( lc_saved[i] );
+    lc_threadqueue.enq( { g : lc_saved[i].g,
+			  f : lc_saved[i].f,
+			  args : [lc_saved[i].env, imps] } );
     lc_yield();
 
     // or run it immediately, for better responsiveness?
@@ -842,4 +844,11 @@ function lc_new_regexp(s, f) {
 
 function lc_regexp_replace(s, r, d) {
     return s.replace(r, d);
+};
+
+function lc_event_keycode(e) {
+    alert (e);
+    alert (e.keyCode);
+    // alert(lc_jstosi_ascii(e, 5));
+    return e.keyCode;
 };
