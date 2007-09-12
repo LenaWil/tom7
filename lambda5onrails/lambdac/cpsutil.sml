@@ -72,6 +72,8 @@ struct
     | ExternVal (v, l, t, wo, e) => ExternVal' (v, l, ft t, Option.map fw wo, fe e)
     | ExternWorld (l, k, e) => ExternWorld' (l, k, fe e)
     | ExternType (v, l, vso, e) => ExternType' (v, l, vso, fe e)
+    | Say (v, stl, k, e) => Say' (v, ListUtil.mapsecond ft stl, fv k, fe e)
+    | Say_cc (v, stl, k, e) => Say_cc' (v, ListUtil.mapsecond ft stl, fv k, fe e)
 
   fun pointwisevw fw ft fv fe value =
     case cval value of

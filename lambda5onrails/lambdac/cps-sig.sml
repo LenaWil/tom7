@@ -170,6 +170,7 @@ sig
   val WExists' : var * ctyp -> ctyp
   val TExists' : var * ctyp list -> ctyp
   val Product' : (string * ctyp) list -> ctyp
+  val Tuple' : ctyp list -> ctyp
   val Addr' : world -> ctyp
   val TWdict' : world -> ctyp
   val Mu' : int * (var * ctyp) list -> ctyp

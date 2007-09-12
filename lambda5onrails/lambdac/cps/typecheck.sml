@@ -402,38 +402,33 @@ struct
          in
            eok G e
          end
-(*
-     | Primop ([v], SAY, [k], e) =>
+
+     | Say (v, itl, k, e) =>
          let
            val t = vok G k
-           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
+           val () = ListUtil.appsecond (tok G) itl
          in
-           (* XXX insist that we are at home... *)
-           (* arg must be a unit cont *)
-           if ctyp_eq (Cont' [Product' nil], t)
-           then eok G e
-           else fail [$"primop say expects unit cont",
-                      $"actual: ", TY t]
+           (* cont should take all imports *)
+           if ctyp_eq (Cont' [Tuple' ` map #2 itl], t)
+           then eok (bindvar G v (Zerocon' STRING) ` worldfrom G) e
+           else fail [$"say didn't agree with imports:", TYL (map #2 itl),                    
+                      $"actual cont: ", TY t]
          end
 
-     | Primop ([v], SAY_CC, [k], e) =>
+     | Say_cc (v, itl, k, e) => 
          let
            val t = vok G k
-           val G = bindvar G v (Zerocon' STRING) ` worldfrom G
+           val () = ListUtil.appsecond (tok G) itl
          in
-           (* XXX insist that we are at home... *)
-           (* arg must be a unit cont *)
-           if ctyp_eq (t,
-                       let val venv = V.namedvar "tc_venv"
-                       in
-                         TExists' (venv, [TVar' venv,
-                                          Cont' [TVar' venv, Product' nil]])
-                       end)
-           then eok G e
-           else fail [$"primop say_cc expects closure-converted unit cont",
-                      $"actual: ", TY t]
+           (* cont should take all imports *)
+           if ctyp_eq (let val venv = V.namedvar "tc_venv"
+                       in TExists' (venv, [TVar' venv,
+                                           Cont' [TVar' venv, Tuple' ` map #2 itl]])
+                       end, t)
+           then eok (bindvar G v (Zerocon' STRING) ` worldfrom G) e
+           else fail [$"say_cc didn't agree with imports:", TYL (map #2 itl),                 
+                      $"actual closure-converted cont: ", TY t]
          end
-*)
 
      | Native { var = v, po, tys, args = l, bod = e } =>
          (case Podata.potype po of

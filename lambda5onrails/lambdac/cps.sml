@@ -378,7 +378,8 @@ struct
     | _ => raise CPS "expected /3"
 
 
-  (* PERF unnecessary look/hides can have big costs *)
+  (* PERF unnecessary look/hides can have big costs
+     (not true as much now that we have explicit substitutions in AST) *)
   fun ctyp a = 
     case look2 a of
       V (TV v) => TVar v
@@ -563,6 +564,19 @@ struct
       (case (look tys, look2 r) of
          (S tys, S args / (v \ bod)) => Native { var = MVi v, bod = bod, po = po, tys = tys, args = args }
        | _ => raise CPS "bad native")
+    | $SAY_ / b / rest => 
+         (case (look b, look2 rest) of
+            ($(BOOL_ b), S stl / va / bind) =>
+              (if b then Say_cc
+               else Say)
+                  (case look bind of
+                     v \ e => (MVi v, map (fn x => 
+                                           case look2 x of
+                                             $(STRING_ s) / t => (s, hide t)
+                                           | _ => raise CPS "bad say stl") stl, va, e)
+                   | _ => raise CPS "bad say bind")
+          | _ => raise CPS "bad say")
+
     | $PUT_ / va / bind => 
          (case look bind of
             (UV v \ e) => Put (v, va, e)
@@ -700,6 +714,7 @@ struct
   fun Shamrock0' t = Shamrock' (V.namedvar "shamt_unused", t)
   fun Sham0' va = Sham' (V.namedvar "sham_unused", va)
   fun Zerocon' pc = Primcon' (pc, nil)
+  fun Tuple' l = Product' ` ListUtil.mapi (fn (a, i) => (Int.toString (i + 1), a)) l
 
   fun Lam' (v, vl, e) = Fsel' (Lams' [(v, vl, e)], 0)
   fun Lift' (v, cv, e) = Letsham'(v, Sham' (V.namedvar "lift_unused", cv), e)
