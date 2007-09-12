@@ -106,6 +106,14 @@ struct
         | ptoil PT_UNITCONT = raise Elaborate "unimplemented potoil unitcont"
     end
 
+    local open JSImports
+    in
+      fun jtoil G JS_EVENT = 
+        case Context.con G Initial.eventname of
+          (0, IL.Typ t, IL.Regular) => t
+        | _ => raise Elaborate "event is wrongly declared??"
+    end
+
     val itos = Int.toString
 
     val newstr = LambdacUtil.newstr

@@ -169,9 +169,10 @@ struct
             (fv1 || (fv2 -- v), Handle (e1, t, v, e2))
         end
 
-    | Say e =>
+    (* this is no longer a binder *)
+    | Say (itl, e) =>
         let val (fv, e) = uexp e
-        in (fv, Say e)
+        in (fv, Say (itl, e))
         end
 
     | Seq (e1, e2) => 

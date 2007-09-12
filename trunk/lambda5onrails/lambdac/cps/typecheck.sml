@@ -402,7 +402,7 @@ struct
          in
            eok G e
          end
-
+(*
      | Primop ([v], SAY, [k], e) =>
          let
            val t = vok G k
@@ -433,7 +433,7 @@ struct
            else fail [$"primop say_cc expects closure-converted unit cont",
                       $"actual: ", TY t]
          end
-
+*)
 
      | Native { var = v, po, tys, args = l, bod = e } =>
          (case Podata.potype po of

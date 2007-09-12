@@ -158,6 +158,15 @@ struct
                                          SOME (dv, s) => $$(STRING_ s) // (TV tv \\ UV dv \\ e)
                                        | NONE => $$NONE_ // (TV tv \\ e))
 
+  fun Sayb b (v, stl, va : ast, e : ast) = 
+                               $$SAY_ // $$(BOOL_ b) //
+                               SS ` map (fn (s, t) =>
+                                         $$(STRING_ s) // t) stl //
+                               va // (MV v \\ e)
+
+  val Say' = Sayb false
+  val Say_cc' = Sayb true
+
   (* -------- injections:   vals -------- *)
 
   (* function names bound in all bodies.. *)
@@ -264,6 +273,8 @@ struct
     (* always kind 0; optional argument is a value import of the 
        (valid) dictionary for that type *)
     | ExternType of var * string * (var * string) option * 'cexp
+    | Say of var * (string * ctyp) list * 'cval * 'cexp
+    | Say_cc of var * (string * ctyp) list * 'cval * 'cexp
 
   and ('cexp, 'cval) cvalfront =
       Lams of (var * (var * ctyp) list * 'cexp) list
@@ -695,8 +706,6 @@ struct
   fun Bind' (v, cv, e) = Primop' ([v], BIND, [cv], e)
   fun Bindat' (v, w, cv, e) = Leta' (v, Hold' (w, cv), e)
   fun Marshal' (v, vd, va, e) = Primop' ([v], MARSHAL, [vd, va], e)
-  fun Say' (v, vf, e) = Primop' ([v], SAY, [vf], e)
-  fun Say_cc' (v, vf, e) = Primop' ([v], SAY_CC, [vf], e)
   fun Dictionary' t = Primcon' (DICTIONARY, [t])
   fun EProj' (v, s, va, e) = Bind' (v, Proj'(s, va), e)
 

@@ -174,11 +174,12 @@ struct
                     (fn (G, vk, tk, wk) =>
                      Call' (vk, [vv]) ))
 
-       | I.Say e =>
+       | I.Say (imports, e) =>
          cvte G e (fn (G, v, _, w) =>
                    let val s = nv "s"
-                   in Say' (s, v, k (bindvar G s (Zerocon' STRING) w,
-                                     Var' s, Zerocon' STRING, w))
+                   in Say' (s, ListUtil.mapsecond (cvtt G) imports, 
+                            v, k (bindvar G s (Zerocon' STRING) w,
+                                  Var' s, Zerocon' STRING, w))
                    end)
 
        | I.Roll (t, e) => cvte G e (fn (G, v, rt, w) =>

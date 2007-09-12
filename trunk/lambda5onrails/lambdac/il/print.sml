@@ -324,7 +324,9 @@ struct
                                   %[$"in",
                                     L.indent 2 ` etol e]]
 
-           | Say e => %[$"say", L.indent 2 ` etol e]
+           | Say (imports, e) => %[$"say", 
+                                   L.listex "{" "}" "," ` map (fn (l, t) => %[$l, $":", ttol t]) imports,
+                                   L.indent 2 ` etol e]
            | Raise (t, e) => L.paren(%[$"raise", 
                                        bttol t, etol e])
            | Tag (e1, e2) => L.paren(%[$"tag", etol e1, $"with", etol e2])
@@ -341,13 +343,6 @@ struct
                  %[$"jointext",
                    L.listex "[" "]" "," (map etol el)]
                  )
-
-    and dlisttol dlist =
-      %[$"{dlist=", %(map (fn (v, va) => 
-                           %[$(V.tostring v),
-                             $"->",
-                             vtol va]) dlist),
-        $"}"]
 
     and btol Val = $"val"
       | btol Put = $"put"

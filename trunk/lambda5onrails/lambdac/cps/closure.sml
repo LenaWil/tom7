@@ -532,21 +532,21 @@ struct
         (fv, fuv)
       end
 
-    (* Only need to convert Say. We look for primop bind too, though, which
-       is the direct call idiom. *)
-    fun case_Primop z ({selfe, selfv, selft}, G)  ([v], SAY, [k], e) =
+    fun case_Say z ({selfe, selfv, selft}, G) (v, stl, k, e) =
          let
            val (k, t) = selfv z G k
            val G = bindvar G v (Zerocon' STRING) ` worldfrom G
          in
-           Primop' ([v], SAY_CC, [k], selfe z G e)
+           raise Closure "unimplemented stl"
+         (*  Primop' ([v], SAY_CC, [k], selfe z G e) *)
          end
 
-      | case_Primop z ({selfe, selfv, selft}, G)  (_, SAY_CC, _, _) =
+    fun case_Say_cc _ _ _ =
       raise Closure "unexpected SAY_CC before closure conversion"
 
-      (* Potential direct call. *)
-      | case_Primop z (c as ({selfe, selfv, selft}, G)) 
+    (* The only primop we might convert is Bind, which is part of
+       the direct call idiom. *)
+    fun case_Primop z (c as ({selfe, selfv, selft}, G)) 
                       (a as ([v], CPS.BIND, [obj], ebod)) =
         (case cval obj of
            Fsel(l, n) =>

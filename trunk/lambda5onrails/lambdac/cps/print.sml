@@ -326,6 +326,15 @@ struct
                  %[$"send", L.indent 2 ` vtol bytes]
                  ] :: nil
 
+         | Say (v, stl, va, rest) =>
+               %[%[$"say", varl v],
+                 L.listex "{" "}" "," ` map (fn (s, t) => %[$s, $":", ttol t]) stl,
+                 vtol va] :: estol rest
+         | Say_cc (v, stl, va, rest) =>
+               %[%[$"say_cc", varl v],
+                 L.listex "{" "}" "," ` map (fn (s, t) => %[$s, $":", ttol t]) stl,
+                 vtol va] :: estol rest
+
          | Put (v, va, rest) => 
                %[%[$"put", $(V.tostring v), $"="],
                  L.indent 4 ` vtol va] :: estol rest
@@ -390,8 +399,6 @@ struct
   and potol LOCALHOST = $"LOCALHOST"
     | potol BIND = $"BIND"
     | potol MARSHAL = $"MARSHAL"
-    | potol SAY = $"SAY"
-    | potol SAY_CC = $"SAY_CC"
 
   fun gtol (l, glo) =
     case cglo glo of

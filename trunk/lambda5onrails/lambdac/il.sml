@@ -134,7 +134,9 @@ struct
       | Unroll of exp
       | Roll of typ * exp
 
-      | Say of exp
+      (* we just have the imports; exp is a continuation that
+         takes a tuple of the imports in the order given *)
+      | Say of (string * typ) list * exp
 
       | Get of { addr : exp,
                  dest : world,

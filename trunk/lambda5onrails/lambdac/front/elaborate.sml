@@ -280,15 +280,21 @@ struct
                      dowrites 0w1 rest ` $ ` E.Var arr)
                end
 
-        | E.Say (imports, ee) => 
-            if not (List.null imports)
-            then error loc "say imports unimplemented"
-            else
+        | E.Say (imps, ee) => 
                let
                  val (ee, tt) = elab ctx here ee
 
+                 fun sayimport s = jtoil ctx (case JSImports.importtype s of
+                                                NONE => error loc ("unknown say import " ^ s)
+                                              | SOME j => j)
+
                  val out = V.namedvar "say_out"
                  val k   = V.namedvar "say_k"
+
+                 val imps = map (fn (imp, s) => (imp, s, V.namedvar s, sayimport imp)) imps
+                 (* bind the imports *)
+                 val ctx = foldr (fn ((imp, s, v, t), ctx) =>
+                                  C.bindv ctx s (mono t) v here) ctx imps
                in
                  (* expression must have type unit *)
                  unify ctx loc "say" tt (IL.TRec nil);
@@ -300,21 +306,23 @@ struct
 
                  (* then we generate:
                    letcc out : string cont
-                   in letcc k : unit cont
-                      in throw (say k) to out
-                      end;
-
-                      ( k continuation starts execution here )
-                      let val s = [hello]
-                      in alert s
-                      end;
-
-                      halt
+                   in 
+                      let (v1, v2, ...) = 
+                         letcc k : unit cont
+                         in throw (say (imports, k)) to out
+                         end
+                      in
+                         ( k continuation starts execution here )
+                         let val s = [hello]
+                         in alert s
+                         end;
+                         halt
+                      end
                    end
                  *)
                  (Letcc (out, Initial.ilstring,
                          Seq(Letcc(k, TRec nil,
-                                   Throw (Say ` Value ` Var k, Value ` Var out)),
+                                   Throw (Say (nil (* XXX *), Value ` Var k), Value ` Var out)),
                              (* then do the expression *)
                              Seq(ee,
                                  (* and halt at string type *)
