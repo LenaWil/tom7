@@ -115,8 +115,13 @@ struct
                                          case ctyp rt of
                                             Product ltl =>
                                               (case ListUtil.Alist.find op= ltl l of
-                                                 NONE => raise ToCPS ("label " ^ l ^ 
-                                                                      " not in product!")
+                                                 NONE => 
+                                                   let in
+                                                     Layout.print (CPSPrint.ttol rt, print);
+                                                     print "\n";
+                                                     raise ToCPS ("label " ^ l ^ 
+                                                                  " not in product! (see above)")
+                                                   end
                                                | SOME tt => 
                                                    let val G = bindvar G vv tt w
                                                    in

@@ -537,8 +537,7 @@ struct
            val (k, t) = selfv z G k
            val G = bindvar G v (Zerocon' STRING) ` worldfrom G
          in
-           raise Closure "unimplemented stl"
-         (*  Primop' ([v], SAY_CC, [k], selfe z G e) *)
+           Say_cc' (v, stl, k, selfe z G e)
          end
 
     fun case_Say_cc _ _ _ =

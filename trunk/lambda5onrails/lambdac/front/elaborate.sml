@@ -282,8 +282,6 @@ struct
 
         | E.Say (imps, ee) => 
                let
-                 val (ee, tt) = elab ctx here ee
-
                  fun sayimport s = jtoil ctx (case JSImports.importtype s of
                                                 NONE => error loc ("unknown say import " ^ s)
                                               | SOME j => j)
@@ -295,6 +293,17 @@ struct
                  (* bind the imports *)
                  val ctx = foldr (fn ((imp, s, v, t), ctx) =>
                                   C.bindv ctx s (mono t) v here) ctx imps
+
+                 val tuple  = V.namedvar "say_tuple"
+                 val tuplet = TRec ` ListUtil.mapi (fn ((_, _, _, t), i) => (Int.toString (i + 1), t)) imps
+
+                 val (ee, tt) = elab ctx here ee
+
+                 fun project _ nil e = e
+                   | project n ((imp, s, v, t) :: rest) e =
+                   Let(Bind(Val, mono (v, t, Proj(Int.toString n, tuplet, Value ` Var tuple))),
+                       project (n + 1) rest e)
+
                in
                  (* expression must have type unit *)
                  unify ctx loc "say" tt (IL.TRec nil);
@@ -308,7 +317,7 @@ struct
                    letcc out : string cont
                    in 
                       let (v1, v2, ...) = 
-                         letcc k : unit cont
+                         letcc k : tuplet cont
                          in throw (say (imports, k)) to out
                          end
                       in
@@ -321,8 +330,15 @@ struct
                    end
                  *)
                  (Letcc (out, Initial.ilstring,
-                         Seq(Letcc(k, TRec nil,
-                                   Throw (Say (nil (* XXX *), Value ` Var k), Value ` Var out)),
+                         Let(Bind(Val,
+                                  mono
+                                  (tuple,
+                                   tuplet,
+                                   (Letcc(k, tuplet,
+                                          Throw (Say (map (fn (imp, _, _, t) => (imp, t)) imps, Value ` Var k), 
+                                                 Value ` Var out))))),
+                             (* project components *)
+                             project 1 imps `
                              (* then do the expression *)
                              Seq(ee,
                                  (* and halt at string type *)
