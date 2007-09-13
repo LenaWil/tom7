@@ -4,11 +4,12 @@ unit
     import "trivialdb.mlh"
 
     (* put binds a valid variable. the type of the expression (here,
-string) must be mobile *)
+       string) must be mobile *)
 
     do runtime.no-messages ()
 
     put k = [tdb-test]
+    (* k ~ string *)
 
     extern bytecode world server
     extern val home ~ home addr
