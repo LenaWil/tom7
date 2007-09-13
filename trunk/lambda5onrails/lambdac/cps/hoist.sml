@@ -176,7 +176,7 @@ struct
               print ("global " ^ l ^ " reused for " ^ 
                      StringUtil.delimit "/" (map (fn (v, _, _) =>
                                                   V.tostring v) vael) ^
-                     "!!\n");
+                     "\n");
               (AllApp' { f = Codelab' l, worlds = map W' w, 
                          tys = map TVar' t, vals = nil },
                contsty)
@@ -305,7 +305,7 @@ struct
            case existsglobal z glo of
              SOME l => 
                let in
-                 print ("reuse alllam label " ^ l ^ "!\n");
+                 print ("reuse alllam label " ^ l ^ "\n");
                  l
                end
            | NONE => 

@@ -114,7 +114,7 @@ struct
     { w : tag, ... } where 
 
       tag (string)
-      DP       p : c, C, a, d, i, s, v, r, or A, w
+      DP       p : c, C, a, d, i, s, v, r, or A, w, e
       DR       v : array of { l : String, v : Object }
       DS       v : array of { l : String, v : Object (maybe missing) }
       DM       m : Number, v : array of { s : String, v : Object }
@@ -149,6 +149,7 @@ struct
                                                    ("a", cwdict G w)]
                  | cd G (C.Primcon (C.REF, [_])) = dict "DP" [("p", s"r")]
                  | cd G (C.Primcon (C.INT, nil)) = dict "DP" [("p", s"i")]
+                 | cd G (C.Primcon (C.EXN, nil)) = dict "DP" [("p", s"e")]
                  | cd G (C.Primcon (C.STRING, nil)) = dict "DP" [("p", s"s")]
                  (* don't care what t is; all dicts represented the same way *)
                  | cd G (C.Primcon (C.DICTIONARY, [t])) = dict "DP" [("p", s"d")]

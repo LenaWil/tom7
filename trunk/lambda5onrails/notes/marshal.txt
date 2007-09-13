@@ -73,6 +73,7 @@ This file documents the marshaling format.
     Dvoid -> v
     Dref -> r
     Dwdict -> w
+    Dexn -> e
 
  TODO: vec, exn
 

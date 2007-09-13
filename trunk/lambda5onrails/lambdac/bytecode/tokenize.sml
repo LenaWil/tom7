@@ -173,6 +173,7 @@ struct
        ("DALL", DALL),
        ("DMU", DMU),
        ("DLOOKUP", DLOOKUP),
+       ("DEXN", DEXN),
        ("DAT", DAT),
        ("DW", DW),
        ("DSHAM", DSHAM)
