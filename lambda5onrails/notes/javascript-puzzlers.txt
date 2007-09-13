@@ -1,4 +1,9 @@
 
+Ahh....
+
+Error: uncaught exception: [Exception... "Component returned failure code: 0x80004001 (NS_ERROR_NOT_IMPLEMENTED) [nsIDOM3Document.config]"  nsresult: "0x80004001 (NS_ERROR_NOT_IMPLEMENTED)"  location: "JS frame :: http://gs82.sp.cs.cmu.edu:5555/5/event :: lc_jstosi :: line 148"  data: no]
+
+
 p.121: 
 
 15.9.2.1   Date ([ year [, month [, date [, hours [, minutes [, seconds [, ms ]]]]]]])
