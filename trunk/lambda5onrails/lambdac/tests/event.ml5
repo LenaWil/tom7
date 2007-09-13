@@ -3,21 +3,21 @@ unit
    import "dom.mlh"
 
    (* XXX to lib *)
-   extern val event.keycode : js.event -> char @ home = lc_event_keycode
+   (* extern val event.keycode : js.event -> char @ home = lc_event_keycode*)
 
    val id.textbox = "textbox"
    val id.showbox = "showbox"
 
 
-   fun keypress c =
+   fun keypress ?\r = dom.setstring(dom.getbyid id.textbox, [value], [])
+     | keypress c =
        dom.setstring(dom.getbyid id.showbox,
                      [innerHTML],
                      itos (ord c))
 
    do dom.setstring(dom.getbyid [page],
                     [innerHTML],
-                    [<input onkeyup="[say { event } keypress (event.keycode event)]" id="[id.textbox]" /> <br/>
-                     <input onkeyup="alert(lc_jstosi_ascii(event, 5))" /> <br />
+                    [<input onkeyup="[say { event.keyCode = e } keypress e]" id="[id.textbox]" /> <br/>
                      <div id="[id.showbox]">])
 
 in

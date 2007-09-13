@@ -109,9 +109,10 @@ struct
     local open JSImports
     in
       fun jtoil G JS_EVENT = 
-        case Context.con G Initial.eventname of
-          (0, IL.Typ t, IL.Regular) => t
-        | _ => raise Elaborate "event is wrongly declared??"
+        (case Context.con G Initial.eventname of
+           (0, IL.Typ t, IL.Regular) => t
+         | _ => raise Elaborate "event is wrongly declared??")
+        | jtoil G JS_CHAR = Initial.ilchar
     end
 
     val itos = Int.toString
@@ -196,7 +197,7 @@ struct
            if Context.has_wevar ctx n
            then
              let in
-               print "no polywgen: occurs\n";
+               (* print "no polywgen: occurs\n"; *)
                NONE
              end
            else
@@ -204,13 +205,13 @@ struct
                    val wv = V.namedvar (Nonce.nonce ()) (* "polyw" *)
                in
                    er := IL.Bound (IL.WVar wv);
-                   print "yes polywgen\n";
+                   (* print "yes polywgen\n"; *)
                    SOME wv
                end
        | IL.Bound w => polywgen ctx w)
       | polywgen ctx (w as IL.WConst s) = 
          let in
-           print "no polywgen: const\n";
+           (* print "no polywgen: const\n"; *)
            NONE
          end
       | polywgen _   (w as IL.WVar v) = 

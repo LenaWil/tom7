@@ -635,13 +635,15 @@ struct
              
 
       fun unit G =
-        `UNIT >> "expected DECS after UNIT" **
-            (call G decs -- 
-             (fn (G,ds) => 
-              `IN >> "expected EXP after IN" **
-              (repeat (call G export) << `END
-               wth (fn es => Unit(ds, es)))))
-            
+        alt [`UNIT >> "expected DECS after UNIT" **
+             (call G decs -- 
+              (fn (G,ds) => 
+               `IN >> "expected EXP after IN" **
+               (repeat (call G export) << `END
+                wth (fn es => Unit(ds, es))))),
+
+             any -- punt "expected UNIT decs IN exports END"]
+
   in
       val pat = fn G => call G pat
       val atpat = fn G => call G mapat
