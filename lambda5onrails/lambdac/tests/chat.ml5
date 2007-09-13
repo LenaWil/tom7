@@ -16,8 +16,9 @@ unit
 
     val style = [<style>[datafile "chat.css"]</style>]
     val id.input = [inputbox]
-    val id.chatbox = [chatbox]
     val id.balloontest = [balloontest]
+    val id.them = [them]
+    val id.us = [us]
 
     do dom.setstring(dom.getnode(dom.doc, [body]),
                      "background",
@@ -33,10 +34,11 @@ unit
             (dom.getbyid [page],
              [innerHTML],
              [[style]
-              <div class="pagebox">
+              <div class="promptbox">
+              <div class="heading">Chat! Choose your player:</div> <br />
               <span class="button" onclick="[say choose ([chat.1], [chat.2])]">player 1</span>
               <span class="button" onclick="[say choose ([chat.2], [chat.1])]">player 2</span>
-              </div> <!-- pagebox -->
+              </div> <!-- promptbox -->
               ]);
             halt ()
          end
@@ -48,40 +50,38 @@ unit
         [<table class="balloon" border="0" cellpadding="0" cellspacing="0">
          <tr><td class="balloon" colspan="3"><img src="/static/chat-r-top.png"></td></tr>
          <tr><td class="balloon" background="/static/chat-r-left.png" width="20">&nbsp;</td>
-             <td class="balloon" bgcolor="#FFFFFF" width="365">[s]</td>
+             <td class="balloon chattext" bgcolor="#FFFFFF" width="365">[s]</td>
              <td class="balloon" background="/static/chat-r-right.png" width="28">&nbsp;</td>
          </tr>
          <tr><td class="balloon" colspan="3"><img src="/static/chat-r-bottom.png"></td></tr>
          </table>]
 
-    fun show-element s =
-        dom.setstring(dom.getnode(dom.getbyid s, [style]), [display], [block])
-    fun hide-element s =
-        dom.setstring(dom.getnode(dom.getbyid s, [style]), [display], [none])
+    fun balloon-left s =
+        [<table class="balloon" border="0" cellpadding="0" cellspacing="0">
+         <tr><td class="balloon" colspan="3"><img src="/static/chat-l-top.png"></td></tr>
+         <tr><td class="balloon" background="/static/chat-l-left.png" width="23">&nbsp;</td>
+             <td class="balloon chattext" bgcolor="#FFFFFF" width="373">[s]</td>
+             <td class="balloon" background="/static/chat-l-right.png" width="17">&nbsp;</td>
+         </tr>
+         <tr><td class="balloon" colspan="3"><img src="/static/chat-l-bottom.png"></td></tr>
+         </table>]
 
-    (* XXX if the browser input thread runs while we're doing this, then
-       we can lose keystrokes. Since we can't lock it out, we just have to
-       "know" that nothing here yields. We could improve this with a
-       no-yield primop or without-yield library function? (but without-yield
-       would need to prevent go, sigh)
-
-       (I did it a different way that doesn't have that problem, phew.)
-       *)
-    fun input-keyup () = 
+    fun send-all () = 
         let 
             put s = dom.getstring(dom.getbyid id.input, [value])
         in
+            dom.setstring(dom.getbyid id.us, [innerHTML], s);
             from server get emit s
         end
 
-    fun send-input () =
+    val input-change = send-all
+
+    fun input-send () =
         let
             val s = dom.getstring(dom.getbyid id.input, [value])
-            do      dom.setstring(dom.getbyid id.input, [value], [])
         in
-            dom.setstring(dom.getbyid id.balloontest, [innerHTML],
-                          balloon-right [Hello! Welcome to the chat server!])
-            (* alert [jk lol] *)
+            send-all ();
+            dom.setstring(dom.getbyid id.input, [value], [])
         end
 
     do dom.setstring 
@@ -89,15 +89,20 @@ unit
          [innerHTML],
          [<style>[datafile "chat.css"]</style>
           <div class="pagebox">
-           <div class="title">[us]</title>
-           Hello welcome to the chat server!
+           <div class="heading">Server 5 Chat!</div> <br /> <br />
+
+           [balloon-left  [<div id="[id.them]">&nbsp;</div>]] <br />
+           [balloon-right [<div id="[id.us]">&nbsp;</div>]] <br />
 
            <span id="[id.balloontest]">&nbsp;</span>
-           <div class="chatbox" id="[id.chatbox]">&nbsp;</div>
 
-           <input type="text" onchange="[say input-keyup ()]" id="[id.input]" />
-           <span class="button" onclick="[say send-input ()]">send</span>
-
+           <input type="text" 
+             class="typebox"
+             onkeyup="[say { event.keyCode = c }
+                       case c of
+                           ?\r => input-send ()
+                         | _ => input-change ()]"
+             id="[id.input]" />
           </div> <!-- pagebox -->
           ])
 
@@ -108,7 +113,7 @@ unit
                                          put r = trivialdb.read them
                                      in
                                          from home get
-                                         dom.setstring(dom.getbyid id.chatbox,
+                                         dom.setstring(dom.getbyid id.them,
                                                        [innerHTML],
                                                        r)
                                      end))

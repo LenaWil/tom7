@@ -103,8 +103,10 @@ struct
                 val () = print ("\n\n**** CPS " ^ name ^ " ****\n")
                 val c : CPS.cexp = f G c
                 val () = showcpsphase c
+                val () = print "Typecheck: "
+                val () = TextIO.flushOut TextIO.stdOut
                 val () = T.check G c
-                val () = print "\n* Typechecked OK *\n"
+                val () = print " OK\n"
               in
                 c
               end

@@ -1045,7 +1045,6 @@ struct
 
   fun check G exp = 
     let in
-      print "\n\nTypecheck:\n";
       eok G exp
     end
 

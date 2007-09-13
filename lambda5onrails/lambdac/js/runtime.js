@@ -804,6 +804,7 @@ function lc_domgetobj(node, field) {
 function lc_nomessages(unit) {
     var m = document.getElementById("messages");
     if (m != undefined) m.innerHTML = '';
+    if (m != undefined && m.style != undefined) m.style.display = "none";
     lc_messages = false;
 };
 

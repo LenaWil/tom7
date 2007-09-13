@@ -80,7 +80,7 @@ struct
   (* Take a global and return a label after inserting it in the global
      code table. *)
   fun insert z arg = 
-    let 
+    let
       val l = nextlab z ()
     in
       insertat z l arg;
@@ -234,7 +234,7 @@ struct
 
            in
              saveglobal z l key;
-             print ("insert Lams at " ^ l ^ "\n");
+             (* print ("insert Lams at " ^ l ^ "\n"); *)
              (* in order to preserve the local type, we apply the label to the
                 world and type variables. If it is PolyCode, we don't need to apply
                 to that world, since it will be determined by context (like uvars are) *)
@@ -312,7 +312,7 @@ struct
                let 
                  val l = insert z glo
                in
-                 print ("insert AllLam at " ^ l ^ "\n");
+                 (* print ("insert AllLam at " ^ l ^ "\n"); *)
                  l
                end
        in

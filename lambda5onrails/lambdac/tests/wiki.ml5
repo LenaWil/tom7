@@ -437,6 +437,9 @@ unit
             dom.setstring(dom.getbyid id.gobox, [value], [])
         end
 
+    fun type-go ?\r = click-go ()
+      | type-go _ = ()
+
     do dom.setstring 
         (dom.getbyid [page],
          [innerHTML],
@@ -449,7 +452,7 @@ unit
              [linkto [about]]<br/>
            </div>
            
-           <input class="gobox" type="text" id="[id.gobox]" /><br />
+           <input class="gobox" type="text" id="[id.gobox]" onkeyup="[say { event.keyCode = c } type-go c]" /><br />
            <input class="gobut" type="submit" value="go" onclick="[say click-go ()]" />
 
           </div> <!-- container -->
