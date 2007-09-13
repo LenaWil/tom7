@@ -121,17 +121,20 @@ unit
           ])
 
     fun hook (elem, key) =
-        from server get
-        trivialdb.addhook (them,
-                           cont (fn () =>
-                                 let
-                                     put r = trivialdb.read them
-                                 in
-                                     from home get
-                                     dom.setstring(dom.getbyid elem,
-                                                   [innerHTML],
-                                                   r)
-                                 end))
+        let put key = key
+        in
+            from server get
+            trivialdb.addhook (key,
+                               cont (fn () =>
+                                     let
+                                         put r = trivialdb.read key
+                                     in
+                                         from home get
+                                         dom.setstring(dom.getbyid elem,
+                                                       [innerHTML],
+                                                       r)
+                                     end))
+        end
 
     do hook (id.them, them)
     do hook (id.themold, them-old)
