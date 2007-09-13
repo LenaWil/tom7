@@ -88,6 +88,7 @@ struct
      | Dref => $"DREF"
      | Ddict => $"DDICT"
      | Dint => $"DINT"
+     | Dexn => $"DEXN"
      | Dw => $"DW"
      | Dstring => $"DSTRING"
      | Dvoid => $"DVOID")

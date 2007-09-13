@@ -33,8 +33,8 @@ unit
     val id.saveindicator = [savei]
 
     (* in ms *)
-    val SAVE-FREQUENCY = 5000
-    val CHECK-FREQUENCY = 1500
+    val SAVE-FREQUENCY = 3000
+    val CHECK-FREQUENCY = 1000
 
     val articlename = ref []
 
@@ -67,7 +67,10 @@ unit
                     nil
                 end
               | find ((x as (h, _)) :: t) = if s seq h
-                                            then (h, SOME r) :: t
+                                            (* empty keys treated as non-existing *)
+                                            then (h, if r seq ""
+                                                     then NONE
+                                                     else SOME r) :: t
                                             else x :: find t
         in
             template-cache := find (!template-cache);
@@ -189,9 +192,13 @@ unit
                               else if next2 seq "]]"
                                    then (off := !off + 2; CLink)
                                    else 
-                                       (* XXX except when it is triple, signifying
-                                          the occurrence of a template substitution? *)
-                                       if next2 seq "{{"
+                                       (* except when it is triple, signifying
+                                          the occurrence of a template substitution *)
+                                       if next2 seq "{{" 
+                                          andalso not (!off <= size s - 3 andalso
+                                                       substring(s, !off + 2, 1) seq "{")
+                                          andalso not (!off > 0 andalso
+                                                       substring(s, !off - 1, 1) seq "{")
                                        then (off := !off + 2; OTempl)
                                        else if next2 seq "}}"
                                             then (off := !off + 2; CTempl)
@@ -206,7 +213,8 @@ unit
                     String ss => [[ss][make ()]]
                   | Bar => [|[make()]]
                   | Equals => [=[make()]]
-                  (* these are probably syntax errors... *)
+                  (* these are probably syntax errors...
+                     (except for template args) *)
                   | CTempl => [["}}"][make ()]]
                   | CLink => [["]]"][make ()]]
                   | OLink => getlink ()
@@ -473,13 +481,14 @@ unit
            <div id="[id.articlename]" class="heading">articlename</div> <br />
 
           <div id="[id.rendered]" class="rendered"></div> <br />
-          <textarea id="[id.source]" onkeyup="[say source-keyup ()]" class="source">the source code</textarea>
-          <div id="[id.editcontrols]">
+          [[] (* start in article mode; edit controls hidden. *)]
+          <textarea id="[id.source]" onkeyup="[say source-keyup ()]" class="source" style="display:none">the source code</textarea>
+          <div id="[id.editcontrols]" style="display:none">
            <br /><span class="button" onclick="[say try-render ()]">render</span>&nbsp;<span class="button" onclick="[say save ()]">save</span>
            <br /><br /><div id="[id.templates]">&nbsp;</div>
           </div>
           <br /><div id="[id.saveindicator]" class="warnimage" style="height : 40px; display:none">Unsaved changes.</div>
-          <br /><div id="[id.debug]">&nbsp;</div>
+          <br /><div id="[id.debug]" class="debug">&nbsp;</div>
           <div class="copyright">This is not a Copyright notice.</div>
           </div> <!-- content -->
           ])

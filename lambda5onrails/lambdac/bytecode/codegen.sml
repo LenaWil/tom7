@@ -75,6 +75,7 @@ struct
                  | cd G (C.At (t, w)) = Dat { d = cdict G t,
                                               a = cwdict G w }
                  | cd G (C.Primcon (C.INT, nil)) = Dp Dint
+                 | cd G (C.Primcon (C.EXN, nil)) = Dp Dexn
                  | cd G (C.Primcon (C.STRING, nil)) = Dp Dstring
                  (* don't care what t is; all dicts represented the same way *)
                  | cd G (C.Primcon (C.DICTIONARY, [t])) = Dp Ddict

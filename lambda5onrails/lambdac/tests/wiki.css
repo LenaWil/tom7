@@ -49,6 +49,7 @@
 
        div.copyright { font : 9px Verdana, Arial, Helvetica ;
 	               color : #999999 }
+       div.debug { color : #777777 }
 
        textarea.source { width : 90% ; margin-left : auto; margin-right : auto;
 	                 padding : 6px ; border : 2px inset #FFAAAA ; height : 300px }

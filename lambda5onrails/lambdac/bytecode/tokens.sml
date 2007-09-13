@@ -15,7 +15,7 @@ struct
       | TNONE | TSOME | PROGRAM | INJ | GO | MARSHAL | PRIMOP
 
       | DCONT | DCONTS | DADDR | DDICT | DINT | DSTRING | DVOID | DAA | DREF | DW
-      | DP | DREC | DSUM | DEXISTS | DALL | DMU | DLOOKUP | DAT | DSHAM
+      | DP | DREC | DSUM | DEXISTS | DALL | DMU | DLOOKUP | DAT | DSHAM | DEXN
 
     (* only for "basic" tokens, not constant-wrappers *)
     fun eq (BIND, BIND) = true
@@ -58,6 +58,7 @@ struct
       | eq (DAT, DAT) = true
       | eq (DW, DW) = true
       | eq (DSHAM, DSHAM) = true
+      | eq (DEXN, DEXN) = true
 
       | eq _ = false
 
