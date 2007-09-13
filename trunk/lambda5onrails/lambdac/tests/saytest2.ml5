@@ -2,17 +2,16 @@ unit
    import "std.mlh"
    import "dom.mlh"
 
-   (* required for now *)
-   extern bytecode world server
-   extern val alert : string -> unit @ home
-
    val e = dom.getbyid [page]
+
+   do runtime.no-messages ()
 
    fun tostring 0 = [z]
      | tostring n = [s([tostring (n - 1)])]
 
    fun message1 n = 
-       dom.setstring (e, [innerHTML], [This page tests the 'say' construct, which emits a javascript
+       dom.setstring (e, [innerHTML], [<div style="width : 500px ; margin-left : auto ; margin-right : auto">
+                                       This page tests the 'say' construct, which emits a javascript
                                        expression (as a string) that invokes ML5 code. This button's
                                        onclick property is set to such an expression.
                                        
@@ -22,9 +21,10 @@ unit
                                             onclick="[say message2 (n + 1)]" >
                                        this is message1, click me to be a different message!
                                        </div>
-                                       ])
+                                       </div>])
    and message2 n = 
-       dom.setstring (e, [innerHTML], [The button now has different functionality (two mutually recursive ML5
+       dom.setstring (e, [innerHTML], [<div style="width : 500px ; margin-left : auto ; margin-right : auto">
+                                       The button now has different functionality (two mutually recursive ML5
                                        functions provide the two states).
 
                                        <p>
@@ -32,6 +32,7 @@ unit
                                                    cursor:hand; cursor:pointer; width : 400px; text-align : center"
                                             onclick="[say message1 (n + 1)]" >
                                        this is message2. the counter is currently [tostring n]
+                                       </div>
                                        </div>
                                        ])
 
