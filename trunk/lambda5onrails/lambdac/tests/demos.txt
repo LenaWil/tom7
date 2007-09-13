@@ -3,6 +3,5 @@ get
 saytest2
 threads
 watchkey
-strings
 chat
 wiki
