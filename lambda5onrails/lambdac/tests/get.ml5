@@ -5,14 +5,14 @@ unit
 
   extern val display : string -> unit @ server
 
-  val n' = (from server get 
-	    let in
-		display("I'm the server!");
-		"Cool Server Data"
-	    end)
+  val res = from server get 
+            let in
+                display("I'm the server!");
+                "Cool Server Data"
+            end
 
-  do alert "I'm back!"
-  do alert n'
+  do alert [I'm back: [res]]
+
 in
-  export val x = n'
+
 end
