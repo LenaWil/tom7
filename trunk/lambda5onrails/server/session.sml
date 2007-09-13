@@ -189,8 +189,8 @@ struct
         "</head>\n" ^
         "<body>\n" ^
         "<p><div id=\"page\"></div>\n" ^
-        "<hr /><br />Server 5 debugging stuff:\n" ^
-        "<p><div id=\"messages\"></div>\n" ^ 
+        "<div id=\"messages\"><hr /><br />Server 5 debugging stuff:\n" ^
+        "<p></div>\n" ^ 
         "</body></html>\n";
 
       val res = ("Content-Type: text/html; charset=utf-8\r\n" ^
