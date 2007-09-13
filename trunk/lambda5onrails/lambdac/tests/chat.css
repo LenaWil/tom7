@@ -32,6 +32,8 @@
 
        PRE { border : 1px dashed #BBEEEE ; background: #F7FFFF ; padding : 3px ; margin : 2px ; }
 
+       div.old { color : #999999 }
+
        div.sidebar { border : 1px solid #BBBBBB ; margin-top : 48px ; margin-left : 2px ;
                      padding : 4px ; font-size : 10px }
 
