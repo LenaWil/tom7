@@ -19,8 +19,6 @@ unit
     val id.balloontest = [balloontest]
     val id.them = [them]
     val id.us = [us]
-    val id.themold = [themold]
-    val id.usold = [usold]
 
     do dom.setstring(dom.getnode(dom.doc, [body]),
                      "background",
@@ -45,9 +43,6 @@ unit
             halt ()
          end
         end
-
-    put us-old = [[us].old]
-    put them-old = [[them].old]
 
     fun inline emit s = trivialdb.update (us, s)
 
@@ -79,21 +74,14 @@ unit
             from server get emit s
         end
 
-    (* set our old message *)
-    fun rotate s =
-        let put s = s
-        in from server 
-            get trivialdb.update(us-old, s)
-        end
+    val input-change = send-all
 
     fun input-send () =
         let
             val s = dom.getstring(dom.getbyid id.input, [value])
         in
-            rotate s;
-            dom.setstring(dom.getbyid id.usold, [innerHTML], s);
-            dom.setstring(dom.getbyid id.input, [value], []);
-            send-all ()
+            send-all ();
+            dom.setstring(dom.getbyid id.input, [value], [])
         end
 
     do dom.setstring 
@@ -103,10 +91,8 @@ unit
           <div class="pagebox">
            <div class="heading">Server 5 Chat!</div> <br /> <br />
 
-           [balloon-left  [<div id="[id.themold]" class="old">&nbsp;</div><br />
-                           <div id="[id.them]">&nbsp;</div>]] <br />
-           [balloon-right [<div id="[id.usold]" class="old">&nbsp;</div><br />
-                           <div id="[id.us]">&nbsp;</div>]] <br />
+           [balloon-left  [<div id="[id.them]">&nbsp;</div>]] <br />
+           [balloon-right [<div id="[id.us]">&nbsp;</div>]] <br />
 
            <span id="[id.balloontest]">&nbsp;</span>
 
@@ -115,27 +101,22 @@ unit
              onkeyup="[say { event.keyCode = c }
                        case c of
                            ?\r => input-send ()
-                         | _ => send-all ()]"
+                         | _ => input-change ()]"
              id="[id.input]" />
           </div> <!-- pagebox -->
           ])
 
-    fun hook (elem, key) =
-        from server get
-        trivialdb.addhook (them,
-                           cont (fn () =>
-                                 let
-                                     put r = trivialdb.read them
-                                 in
-                                     from home get
-                                     dom.setstring(dom.getbyid elem,
-                                                   [innerHTML],
-                                                   r)
-                                 end))
-
-    do hook (id.them, them)
-    do hook (id.themold, them-old)
-      
+    do from server 
+        get trivialdb.addhook (them,
+                               cont (fn () =>
+                                     let
+                                         put r = trivialdb.read them
+                                     in
+                                         from home get
+                                         dom.setstring(dom.getbyid id.them,
+                                                       [innerHTML],
+                                                       r)
+                                     end))
 
 in
 end
