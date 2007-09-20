@@ -14,9 +14,11 @@ struct
         (SOME ("-writecps",
                "Write the final CPS program to disk")) "writecps"
 
+(*
     val optil = Params.flag false
         (SOME ("-optil", 
                "Optimize the intermediate language")) "optil"
+*)
 
     val optcps = Params.flag true
         (SOME ("-optcps", 
