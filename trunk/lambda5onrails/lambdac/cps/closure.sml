@@ -6,6 +6,7 @@
    I already fixed this, right?   -  5 Aug 2007
 
    No. See bugs/direct-not-closed.ml5.     - 24 Aug 2007
+            (that's fixed.)                - 20 Sep 2007
  *)
 
 (* This is a "simple" implementation of closure conversion.
@@ -117,11 +118,11 @@
 
    It turns out it's actually much more difficult to undo closure
    conversion than it is to do it somewhat well in the first place,
-   and that bad closure representations account for very large
+   and that bad closure representations account for a very significant
    fraction of the cost of running a program, in large part because
    closures require the reification of type information as
    dictionaries. So we also implement some common cases of direct
-   calls. See case_Primop below.
+   calls, and should expand these. See case_Primop below.
 
 *)
 
@@ -407,9 +408,9 @@ struct
         }
     end
 
-  (* PERF no longer using this variable set. we use the type information *)
   structure VS = Variable.Set
-  type stuff = VS.set
+  (* no longer using this variable set to track direct calls; we use the type information *)
+  type stuff = unit (* VS.set *)
 
   structure CA : PASSARG where type stuff = stuff =
   struct
@@ -442,6 +443,8 @@ struct
     fun case_AllArrow z ({selfe, selfv, selft}, G) { worlds, tys, vals = nil, body } = 
       AllArrow' { worlds=worlds, tys=tys, vals=nil, body = selft z G body }
       | case_AllArrow _ _ { worlds, tys, vals, body } = 
+      (* doesn't come up because of prenex restriction, unless an earlier phase
+         inserts it. *)
       raise Closure "unimplemented allarrow"
 
     fun case_TExists _ _ _ = 
@@ -550,7 +553,7 @@ struct
         (case cval obj of
            Fsel(l, n) =>
              (case cval l of
-                (* XXX should support polymorphic lambdas.
+                (* PERF should support direct calls to polymorphic fns.
                    To do so, we need to find either AllLam (Lams ..) or
                    a plain Lams. Then when search for calls to this,
                    we either find the value v or AllApp(v, ...). The
@@ -740,7 +743,9 @@ struct
                        val G = bindvar G v (Cont' (let val (_, args, _) = List.nth (vael, n)
                                                    in map #2 args
                                                    end)) here
-                       val ebod = selfe (VS.add(z, v)) G ebod
+
+                       (* we use type information now to track direct calls *)
+                       val ebod = selfe z (* (VS.add(z, v)) *) G ebod
                      in
                        (*
                        print "directcall lams:\n";
@@ -870,7 +875,7 @@ struct
 
          (* the recursive closures; one for each of our friends, including ourselves.
             (we get n^2 of these packages here, but most will probably be dead code. 
-             For PERF, we could only generate the ones that are free...) *)
+             For compiler PERF, we could only generate the ones that are free...) *)
          val recs = 
            (* f = (pack ( ENV ; dictfor ENV ; [env = env, f] )) *)
            map (fn (f, args, _) =>
@@ -1137,7 +1142,7 @@ struct
   end
 
   structure C = PassFn(CA)
-  fun convert w e = C.converte VS.empty (T.empty w) e
+  fun convert w e = C.converte () (* VS.empty *) (T.empty w) e
     handle Match => raise Closure "unimplemented/match"
 
 end

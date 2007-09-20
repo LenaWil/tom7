@@ -25,7 +25,12 @@ struct
            messages : string Q.queue ref }
 
   (* no threads, messages... *)
-  fun new p = I { prog = p, active = ref true, locals = Marshal.new (), threads = ref ` Q.empty (), messages = ref ` Q.empty () }
+  fun new p = I { prog = p, 
+                  active = ref true, 
+                  locals = Marshal.new (), 
+                  threads = ref ` Q.empty (), 
+                  messages = ref ` Q.empty () }
+
   fun destroy (I { active, ... }) = active := false
 
   fun addmessage (i as I { messages, ... }) x = messages := Q.enq(x, !messages)
@@ -187,10 +192,7 @@ struct
                             (fn B.String s => s 
                               | _ => raise Execute "jointext expects strings") args)
 
-
-
-
-         (* XXX more... *)
+         (* XXX more primops... *)
 
          | (po, _) => raise Execute ("unimplemented primop " ^ P.tostring po))
 

@@ -13,6 +13,11 @@
    this arrangement, it is important for
    enabling some other optimizations (e.g. 
    direct calls).
+
+   PERF: we could probably also monomorphize
+   letshams that are only used once, or at one
+   world?
+
 *)
 
 structure CPSHere :> CPSHERE =

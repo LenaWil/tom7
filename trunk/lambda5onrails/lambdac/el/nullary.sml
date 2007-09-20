@@ -173,8 +173,7 @@ struct
     and xul G x =
       case x of
         (* these are not bindings *)
-        ExportWorld (s, wo) => x
-      | ExportType (sl, t, to) => ExportType(sl, t, Option.map (tul G) to)
+        ExportType (sl, t, to) => ExportType(sl, t, Option.map (tul G) to)
       | ExportVal (sl, s, eo) => ExportVal(sl, s, Option.map (nul G) eo)
 
     fun nullary (Unit (ds, xs)) = 

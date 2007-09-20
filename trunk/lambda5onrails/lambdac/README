@@ -1,5 +1,5 @@
 
-    README         Tom Murphy          27 Jul 2007
+    README         Tom Murphy VII          20 Sep 2007
 
 The program lambdac compiles Lambda 5 on Rails code to client side
 Javascript and server-side bytecode. Its lineage is complex:
@@ -11,10 +11,11 @@ the 2006 Tech Report "The Cult of the Bound Variable: The 9th Annual
 ICFP Programming Contest" (CMU-CS-06-163) and documented briefly in
 the corresponding source release (http://boundvarible.org/).
 
+Lambdac is documented in my upcoming dissertation and in the paper (to
+appear in Trustworthy Global Computing 2007) "Type-safe Distributed
+Programming with ML5."
+
 Currently the CPS representation in the middle-end is engineered for
-correctness, not speed. This means that it does O(n^2) or worse
-traversals of the abstract syntax for some phases. Thus the compiler
-is limited to medium-sized examples for the time being. It should not
-be difficult to reimplement the CPS structure with de Bruijn indices
-or explicit substitutions to gain orders of magnitude better
-performance.
+correctness, not speed. I've put some effort into improving its
+performance, but on large ASTs this may take a very long time to
+compile. (Large ASTs can arise from medium-sized programs, sorry.)

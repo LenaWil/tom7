@@ -17,7 +17,10 @@ lambdac : makefile lambdac.cm *.sml ast/*.sml codegen/*.sml js/*.sml js/lib/*.sm
 #	grep -v basis lambdac.basis.du > lambdac.du
 
 clean :
-	rm -rf `find . -name "*~"` `find . -type d -name .cm` *.exe lambdac *.du
+	rm -rf `find . -name "*~"` `find . -type d -name .cm` *.exe lambdac *.du mlmon.out
+	rm -f bugs/*.b5 bugs/*.js 
+	rm -f regression/*.b5 regression/*.js 
+	rm -f bench/*.b5 bench/*.js
 
 wc :
 	find . -name "*.sml" | grep -v CM | grep -v \\.cm | xargs wc -l

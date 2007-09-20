@@ -529,7 +529,7 @@ struct
                     UV dv \ t => Shamrock ((wv, dv), t)
                   | _ => raise CPS "bad shamrock")
          (* no tvars. *)
-         | _ => raise CPS "unimplemented dict")
+         | _ => raise CPS "unimplemented or bad dict")
 
     | _ => raise CPS "bad cval"
       
@@ -704,10 +704,7 @@ struct
   fun countuinv v va = count va (UV v)
   val countuine = countuinv
 
-  (* PERF could be more efficient. would be especially worth it for type_eq, which
-     we use all over the place.
-
-     (really? with what, hash consing?) *)
+  (* if we had hashes, could maybe make this faster *)
   fun ctyp_eq p = ctyp_cmp p = EQUAL
   fun world_eq p = world_cmp p = EQUAL
 

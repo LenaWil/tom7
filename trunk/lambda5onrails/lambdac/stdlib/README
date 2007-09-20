@@ -1,0 +1,7 @@
+
+.mlh are ML5 header files.
+
+.uh files are from Humlock. Most of the language is the same, so some
+of these can be used in ML5 without much trouble, but they have not
+been ported yet. (One big difference is that strings are no longer mutable
+arrays.)

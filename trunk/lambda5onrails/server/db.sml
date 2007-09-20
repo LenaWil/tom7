@@ -1,5 +1,5 @@
 
-(* XXX this needs to support serialization to disk. *)
+(* This is from Wikiplia and isn't really used here *)
 structure DB =
 struct
 

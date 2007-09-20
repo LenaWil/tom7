@@ -1,5 +1,7 @@
 
-(* XXX this is dead code, from humlock *)
+(* XXX this is dead code, from humlock.
+   it's still here because the techniques might be useful for
+   lambdac. *)
 
 structure ILOpt :> ILOPT =
 struct

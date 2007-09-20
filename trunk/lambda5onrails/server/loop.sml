@@ -14,6 +14,13 @@
       /toserver/<sessionid>   ... hand the connection off to the active session
                                   with this ID
 
+      /source/file            ... show some source code, appropriate for viewing
+                                  in the web browser
+      /static/file            ... return the file like a web server does (images)
+
+      /demos                  ... show a list of demos
+      /exit                   ... shut down the server
+
       other urls              ... serve an error message
 
 *)

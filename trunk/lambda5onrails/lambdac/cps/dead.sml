@@ -79,6 +79,7 @@ struct
               score u "VLETSHAM" 50;
               vbod
             end
+      (* PERF vleta *)
       | _ => v
     end
 

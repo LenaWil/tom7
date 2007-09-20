@@ -319,7 +319,7 @@ struct
     (StringUtil.replace ">" "&gt;"
      (StringUtil.replace "&" "&amp;" s))
 
-  (* XXX maybe more checks to see if this is a valid file?
+  (* XXX maybe more checks to see if this is a source file?
      Right now they can read anything in the codepath directory. *)
   fun source sock file =
     if CharVector.exists (StringUtil.charspec "^-A-Za-z0-9._") file
@@ -392,21 +392,5 @@ struct
         pr favicon_ico;
         N.disconnect sock
       end
-(*
-   fun logo sock =
-      let
-        fun pr str = N.sendraw sock str
-      in
-        print "server icon\n";
-        pr
-        ("HTTP/1.1 200 OK\r\n" ^
-         "Date: " ^ Version.date () ^ "\r\n" ^
-         "Server: " ^ Version.version ^ "\r\n" ^
-         "Connection: close\r\n" ^
-         "Content-Type: image/x-png\r\n" ^
-         "\r\n");
-        pr logo_png;
-        N.disconnect sock
-      end
-*)
+
 end

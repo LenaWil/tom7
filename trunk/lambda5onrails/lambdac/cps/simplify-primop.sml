@@ -1,3 +1,11 @@
+(* This simplifies primops that are applied to constants.
+   Right now, we only reduce jointext, since the elaboration
+   of it often allows for a lot of reduction, and it can
+   be quite expensive at runtime. 
+
+   PERF: should simplify compares, math, etc.
+*)
+
 structure CPSSimplifyPrimop :> CPSSIMPLIFYPRIMOP =
 struct
 

@@ -145,12 +145,6 @@ struct
       (* known regressions first. *)
 
       val new_bug = sub (VV "x" // VV "y") "y" ("q" \\ VV "y")
-(*
-      val () = print "--------------------------\n"
-      val () = print "new_bug:\n"
-      val () = show new_bug
-      val () = print "\n"
-*)
       val () = correct_map new_bug
 
       (* bind variable and don't use it... *)
@@ -290,9 +284,8 @@ struct
       ()
     end handle (e as Conformance s) =>
       let in
-        print (s ^ "\n");
-(*        raise e *)
-        print "FIXME!\n"
+        print ("AST Conformance failed: " ^ s ^ "\n");
+        raise e
       end
 
 

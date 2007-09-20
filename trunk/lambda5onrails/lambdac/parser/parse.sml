@@ -624,8 +624,7 @@ struct
                    ])
 
       fun export G =
-        alt [`EXPORT >> `WORLD >> (id && opt (`EQUALS >> world)) wth ExportWorld,
-             `EXPORT >> `TYPE >> alt[tyvars && id, succeed nil && id]
+        alt [`EXPORT >> `TYPE >> alt[tyvars && id, succeed nil && id]
              && opt(`EQUALS >> typ) wth (fn ((atv,i),to) => ExportType (atv, i, to)),
              (* XXX should support type annotation? *)
              `EXPORT >> `VAL >> alt[tyvars && id, succeed nil && id]

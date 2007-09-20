@@ -203,7 +203,8 @@ struct
                   val bod = subte typ tv bod
                 in
                   score "UNPACK" 100;
-                  (* XXX then recurse on it! *)
+                  (* PERF then recurse on it... otherwise we have
+                     to wait until the next pass *)
                   bod
                 end
             | SOME _ => raise Known "known unpack non-pack"

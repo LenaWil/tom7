@@ -401,8 +401,7 @@ struct
 
     and xtol x =
       (case x of
-         ExportWorld (l, w) => %[$"export world", $l, $"=", wtol w]
-       | ExportVal (Poly({worlds, tys}, (l, t, w, v))) =>
+         ExportVal (Poly({worlds, tys}, (l, t, w, v))) =>
                  % ($"export val" ::
                     worldstys worlds tys ::
                        [$ l,

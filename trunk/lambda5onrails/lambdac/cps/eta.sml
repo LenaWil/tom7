@@ -1,6 +1,9 @@
 (* Eta reduction. CPS conversion can introduce lots of eta-expanded
    continuations, so we reduce these. This is a simple syntactic
-   substitution. *)
+   substitution. 
+
+   PERF: also alllam?
+*)
 
 structure CPSEta :> CPSETA =
 struct

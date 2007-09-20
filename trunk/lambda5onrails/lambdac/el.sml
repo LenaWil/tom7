@@ -118,7 +118,7 @@ struct
          or
          extern val (a, b) loop ~ a -> b
          or
-         extern val (a, b) loop : a -> b  @ w  =  real_name_of_loop
+         extern val (a, b) loop : a -> b  @ w  =  real_label_of_loop
          *)
       | ExternVal   of string list * string * typ * world option * string option
       | ExternWorld of worldkind * string
@@ -138,8 +138,7 @@ struct
     and export =
       (* in the case that the export is not supplied, 
          we assume the identifier also used for export *)
-      ExportWorld of string * world option
-    | ExportType of string list * string * typ option
+      ExportType of string list * string * typ option
     | ExportVal of string list * string * exp option
 
     withtype exp = exp_ * Pos.pos
