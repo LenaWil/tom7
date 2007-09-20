@@ -20,20 +20,21 @@ Cleanup:
   * Labels support "special" labels; not needed.
 
 Features:
-  * Exceptions (!)
+  * exn type (!)
   * validity for 'val' decls
-  * ability to onkeypress="f(event)"; 
 
 Other performance improvements
   * Could leak less memory with 'say' by marshaling the argument; then we only
-    need to put some kinds of things in the desiccation table.
+    need to put some kinds of things in the desiccation table. Refs could have
+    an optional field indicating that they are already in the table?
   * We should really generate more compact representations of sums and products
     by using numbered fields. It is silly to be comparing strings "true" and "false"
     at runtime...
   * direct calls to polymorphic and valid functions!
   * eliminate recursive mu when it is unused ('a option, bool, etc.)
     it costs because we must represent the type, and mu dictionaries are expensive
-    (substitutions)
+    (marshal context bindings)
+    ... it is nice to see them for debugging, though.
     ... probably this should be done at the IL level?
 
 Passes to implement:
@@ -42,6 +43,9 @@ CPS Optimization
   * really should run optimization rounds in a loop.
   * unused argument removal post-undict would be great, but
     the code is pretty messed up at that point...
+  * monomorphize code that does not need to be polymorphic or valid;
+    cheaper because there are fewer type representations. aggressive
+    monomorphization a la mlton might even produce better code.
   * split up or eliminate friends that are not friends.
     this is tricky only because we don't always have a good place
     to put the split up friends.
@@ -56,7 +60,8 @@ CPS Optimization
     (this happens frequently with rebuilt environments (?))
 
 Backend optimizations
-  * could flatten out lams so that we represent a function as a single integer...
+  * could flatten out lams so that we represent a function as a single integer,
+    and fsel as +
 
 --------------------------------------------------
     Old bugs from Humlock; possibly obsolete
