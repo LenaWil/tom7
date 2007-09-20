@@ -1,5 +1,6 @@
 (* XXX: interface has changed (moved NATIVE and PRIMCALL out of PRIMOP to
-   regularize it); should be easy to fix *)
+   regularize it); should be easy to fix for performance comparison/debugging
+   purposes. *)
 
 structure CPS :> CPS =
 struct

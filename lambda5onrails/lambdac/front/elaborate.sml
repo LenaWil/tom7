@@ -647,7 +647,9 @@ struct
                    fun buildf nil =
                        (* build the case, slapping all of the
                           body constraints on its outside *)
-                       foldr (fn (t, e) => (E.Constrain(e, t, NONE (* XXX5 *)), loc)) 
+                       (* XXX5 
+                          allow world constraints *)
+                       foldr (fn (t, e) => (E.Constrain(e, t, NONE), loc)) 
                              (E.Case (map (fn a => (E.Var a, loc)) args, 
                                       columns, NONE), loc)
                              constraints
@@ -796,9 +798,10 @@ struct
 
                 (* don't put the tag in the context, since
                    user code should never access it. *)
-                (* XXX not total for exns if we later add locality
-                   info (probably a better translation would add
-                   the locality info at the site of a Raise?) *)
+                (* XXX not total for exns if we later add (source code) 
+                   locality info (probably a better translation would 
+                   add the locality info at the site of a Raise--exceptions
+                   and exn are related but not the same!) *)
                 val nctx = C.bindex ctx (SOME tag)
                             (mono ` Arrow(true, [d], cod))
                             ctor
@@ -816,7 +819,12 @@ struct
                             dom = [d], cod = cod, 
                             (* PERF can't currently inline exn
                                constructors, because they are
-                               open. -- see code in ilopt. *)
+                               open. -- see code in ilopt. 
+                               (from humlock)
+
+                               XXX5: it should be okay to inline
+                               in lambdac; we have no restriction
+                               on the closedness of fns. *)
                             (* inline it! *)
                             inline = false,
                             recu = false, total = true,
@@ -1284,7 +1292,11 @@ struct
           end
 
     (* val and put bindings *)
-    (* XXX5 need to automatically validate *)
+    (* XXX5 generalization and validitization are not implemented for
+       val/put bindings. this should work like the fun case.
+       also: some things are not currently detected as values (constructor
+       applications, for instance).
+       *)
     | E.Bind (b, tyvars, E.PVar v, exp) =>
           let
               (* simply bind tyvars;
@@ -1300,8 +1312,6 @@ struct
               val (ee, tt) = elab nctx here exp
               val polydec = (case ee of
                                Value _ => true
-                             (* XXX5 constructor applications? probably should elaborated
-                                as values. *)
                              | _ => false)
 
               val () = (case b of
@@ -1317,8 +1327,6 @@ struct
                 else { t = tt, tl = nil, wl = nil }
 
               val vv = Variable.namedvar v
-
-              (* XXX should make binding valid if possible; see fun decls *)
 
               val ctx = C.bindex ctx (SOME v) (Poly ({worlds = wps,
                                                       tys = tps}, tt)) vv Normal 
@@ -1392,10 +1400,8 @@ struct
       val loc = Pos.initposex "dummy_export"
     in
       case export of
-        EL.ExportWorld (s, NONE) => elabx ctx here (EL.ExportWorld (s, SOME s))
-      | EL.ExportType (sl, s, NONE) => elabx ctx here (EL.ExportType (sl, s, SOME (EL.TVar s)))
+        EL.ExportType (sl, s, NONE) => elabx ctx here (EL.ExportType (sl, s, SOME (EL.TVar s)))
       | EL.ExportVal (sl, s, NONE) => elabx ctx here (EL.ExportVal (sl, s, SOME (EL.Var s, loc)))
-      | EL.ExportWorld (s, SOME id) => ExportWorld (s, elabw ctx loc id)
 
       | EL.ExportType (tys, s, SOME t) =>
           let

@@ -41,6 +41,8 @@ var lc_threadqueue = new lc_queue ();
 
 /* A thread is a pair of integers and array of values, so that we can use
    function.apply */
+/* We don't use this any more; we use the version that is supposed to
+   yield so that we can do minor yields */
 function XXX_lc_enq_thread(g, f, args) {
     lc_message('enqueue ' + g + '.' + f + '(args)');
     lc_threadqueue.enq( { g : g, f : f, args : args } );
@@ -79,7 +81,9 @@ function lc_schedule() {
     }
 };
 
-/* XXX maybe inside lc_enq_thread to force it always? */
+/* XXX maybe inside lc_enq_thread to force it always? 
+   shouldn't ever call this in client code any more
+*/
 function lc_yield() {
     /* ?? what timeout to use? */
     setTimeout(lc_schedule, 10);
@@ -353,7 +357,7 @@ function lc_umg(G, loc, d, b) {
 	    switch(t) {
 	    case "DP": {
 		var p = b.next ();
-		/* XX should check it's valid? */
+		/* XX should check it's one of the chars we understand? */
 		// lc_message("dp " + p + "/");
 		return { w : "DP", p : p };
 	    }
@@ -824,7 +828,7 @@ function lc_time_eq(a, b) {
     return (a === b) ? { t : "true" } : { t : "false" };
 }
 
-/* XXX should be a prim, not extern */
+/* XXX now a prim, not extern */
 function lc_itos(i) {
     return ''+i;
 };

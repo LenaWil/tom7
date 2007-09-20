@@ -350,10 +350,6 @@ struct
     
 
   fun fvexports nil = (empty, nil)
-    | fvexports (ExportWorld (l, w) :: rest) =
-                                       let val (fv, rest) = fvexports rest
-                                       in (fv, ExportWorld (l, w) :: rest)
-                                       end
     | fvexports (ExportType (k, l, v) :: rest) =
                                        let val (fv, rest) = fvexports rest
                                        in (fv, ExportType (k, l, v) :: rest)

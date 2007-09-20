@@ -1,6 +1,7 @@
 
-(* This needs cleanup badly; we explicate most of the initial environment now
-   by making extern declarations or by using primosp *)
+(* XXX5
+   This needs cleanup badly; we explicate most of the initial environment now
+   by making extern declarations or by using primops *)
 structure Initial :> INITIAL =
 struct
 
@@ -240,7 +241,6 @@ struct
     fun trueexp loc = (EL.Var truename, loc)
     fun falseexp loc = (EL.Var falsename, loc)
 
-    (* XXX bools should be NONEs *)      
     val trueexpil  = IL.Roll(ilbool, IL.Inject(ilboolsum, truename,  NONE))
     val falseexpil = IL.Roll(ilbool, IL.Inject(ilboolsum, falsename, NONE))
 

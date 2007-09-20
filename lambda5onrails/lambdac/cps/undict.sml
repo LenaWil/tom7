@@ -214,7 +214,10 @@ struct
         but the dictionary should actually come from an embedded alllam, if any.
 
         compare allarrow: we fatten the type arg bindings, but if there are to
-        be any real dictionaries, they are being passed in the value slots. *)
+        be any real dictionaries, they are being passed in the value slots. 
+
+        since this dictionary should never be bound, we should probably check this
+        statically (which has a bonus of producing smaller code) *)
      | Shamrock (w, t) => 
          let 
            val wd = V.namedvar "shamwdict_XXX"

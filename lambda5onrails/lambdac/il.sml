@@ -199,9 +199,8 @@ struct
         Unit of dec list * export list
 
     and export =
-      (* XXX5 I don't see how we could ever export a world *)
-        ExportWorld of label * world
-      | ExportType of var list * label * typ
+        (* there are no world exports. *)
+        ExportType of var list * label * typ
         (* if world is none, then export valid *)
       | ExportVal of (label * typ * world option * value) poly
 

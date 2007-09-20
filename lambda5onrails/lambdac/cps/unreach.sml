@@ -6,6 +6,11 @@
    a mutually recursive bundle, but this analysis
    is more complicated and its not clear it ever
    comes up.
+
+   (Well, it surely does if the programmer writes
+    it, but we have no obligation to clean up for
+    bad programs.)
+
 *)
 
 structure CPSUnreach :> CPSUNREACH =

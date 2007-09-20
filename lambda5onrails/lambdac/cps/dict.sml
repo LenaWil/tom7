@@ -177,7 +177,8 @@ struct
 
       (* Values. AllLam needs to take new arguments and AllApp needs to provide them.
          We also rewrite Shamrock introduction, and UVars that were instances of the shamrock. *)
-      fun case_AllLam z ({selfe, selfv, selft}, G) { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } =
+      fun case_AllLam z ({selfe, selfv, selft}, G) { worlds : var list, tys : var list, 
+                                                     vals : (var * ctyp) list, body : cval } =
            let 
              (* the argument variable, the unshamrocked uvar, its type *)
              (* These shamrocks are exempt from the Sham-AllLam conversion we perform above,
@@ -211,7 +212,8 @@ struct
               AllArrow' { worlds = worlds, tys = tys, vals = map #2 vals, body = bodt })
            end
 
-      fun case_AllApp z ({selfe, selfv, selft}, G)  { f : cval, worlds : world list, tys : ctyp list, vals : cval list } =
+      fun case_AllApp z ({selfe, selfv, selft}, G)  { f : cval, worlds : world list, 
+                                                      tys : ctyp list, vals : cval list } =
          let
            val (f, t) = selfv z G f
          in

@@ -4,7 +4,11 @@
    passes.
 
    To build a pass, provide a PASSARG. The passarg says how
-   to transform each 
+   to transform each construct, given the typing context and
+   open-recursive "selves" for values, types, and expressions.
+   The typical way to do this is to start with IDPass (below)
+   and reimplement only the cases that are relevant to the pass
+   in question.
 *)
 
 (* identity pass that sends along any 'stuff' untouched. *)

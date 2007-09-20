@@ -1,5 +1,6 @@
 structure QuietDownNJ = struct end
 
+(*   we generate multiple files, so -o doesn't really make sense *)
 (*
 val outf = Params.param ""
     (SOME ("-o",

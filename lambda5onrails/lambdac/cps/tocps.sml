@@ -72,8 +72,8 @@ struct
       | I.TRec ltl => Product' ` ListUtil.mapsecond (cvtt G) ltl
       | I.Mu (i, vtl) => 
           let
-            (* XXX for the purposes of cps conversion, we don't
-               care if types are mobile, because we're not doing type-checking, right? *)
+            (* for the purposes of cps conversion, we don't
+               care if types are mobile, because we're not doing type-checking *)
             val thismob = false
             val G = foldr (fn ((v, _), G) => bindtype G v thismob) G vtl
           in
@@ -523,7 +523,7 @@ struct
 
     and cvtd (G : env) (d : IL.dec) (k : env -> cexp) : cexp =
       (case d of
-         (* XXX check that world matches? *)
+
          I.Do e => cvte G e (fn (G, _, _, _) => k G)
 
        | I.ExternType (0, lab, v) => ExternType' (v, lab, NONE, k ` bindtype G v false)
@@ -1017,7 +1017,8 @@ struct
            val G = bindvar G handlervar handlerty ` WC' world
            val ce = cvtds decs G
          in
-           (* FIXME need the handler that purports to be here! *)
+           (* default top-level handler simply halts; the compiler should wrap the program
+              in something that prints or alerts "uncaught exception" *)
            Bind'(handlervar, Lam' (nv "nonrec-toplevel",
                                    [(nv "unused-exn", Zerocon' EXN)],
                                    Native' { var = nv "warn-unused",

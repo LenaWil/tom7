@@ -357,12 +357,6 @@ struct
                cvtv vbod k)
               )
 
-(*
-         |  _ => 
-             wi (fn p =>
-                 Bind (p, String (String.fromString "unimplemented val")) ::
-                 k ` Id p)
-*)
              )
 
 
@@ -466,7 +460,7 @@ struct
               C.Halt => [Return NONE]
 
             | C.ExternVal (var, lab, _, _, e) =>
-            (* XXX still not really sure how we interface with things here... *)
+                (* assume these are global javascript properties *)
                 (Var ` %[(vtoi var, SOME (Id ` Id.fromString lab))]) :: cvte e
 
             | C.Letsham (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
@@ -519,8 +513,7 @@ struct
                   Bind (vtoi v, Call { func = Id marshal, args = %[vd, va] }) ::
                   cvte e))
 
-            | C.Primop _ => (* [Throw ` String ` String.fromString "unimplemented primop"] *)
-                            raise JSCodegen "unimplemented or bad primop"
+            | C.Primop _ => raise JSCodegen "unimplemented or bad primop"
 
             | C.Say _ => raise JSCodegen "shouldn't see say in js codgen"
             | C.Say_cc (v, imps, k, e) =>
@@ -562,11 +555,15 @@ struct
                                                         StringUtil.delimit "," 
                                                         (ListUtil.mapi (fn ((s, t), i) =>
                                                                         "l" ^ Int.toString (i + 1) ^ ":" ^ s)
-                                                         (* XXX BUG: once this handler returns, the event
+                                                         (* Note: once this handler returns, the event
                                                             dies (loses its properties). we can't copy out
                                                             the whole object, because 'for i in' is 
                                                             NS_NOT_IMPLEMENTED in Firefox. So we need to
-                                                            grab exactly those fields that we want, right here. *)
+                                                            grab exactly those fields that we want, right here. 
+                                                            
+                                                            Now we pull event.keyCode (etc.) as the imports
+                                                            rather than the event itself.  - 20 Sep 2007
+                                                            *)
                                                          imps) ^ "})")
                                      ))
                      end :: cvte e
