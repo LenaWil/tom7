@@ -1,4 +1,5 @@
 
+(* This is old humlock stuff, and not currently used? *)
 structure CPSOptUtil :> CPSOPTUTIL =
 struct
 
