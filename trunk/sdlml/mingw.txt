@@ -1,5 +1,7 @@
 [[ NOTE, the version in explat has more up-to-date info on vista
-   and other problems you might have ]]
+   and other problems you might have. Probably that file should
+   replace this one and give unified instructions for compiling
+   sdlml programs on windows. ]]
 
 
 (* install first *)
