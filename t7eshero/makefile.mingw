@@ -2,14 +2,14 @@
 default : midtest.exe
 
 
-sdlml.o : sdlml.c
-	gcc -O `sdl-config --cflags` -c sdlml.c -o sdlml.o
+sdlml.o : ../sdlml/sdlml.c
+	gcc -O `sdl-config --cflags` -c ../sdlml/sdlml.c -o sdlml.o
 
 sound.o : sound.c
 	gcc -O `sdl-config --cflags` -c sound.c -o sound.o
 
 # not --cflags, that'll redefine main!
-win32main.o : win32main.c
+win32main.o : ../sdlml/win32main.c
 	gcc -O -I/usr/local/include/SDL -D_GNU_SOURCE=1 -c $< -o $@
 
 # 
@@ -29,3 +29,6 @@ midtest.exe : sdlml.o sound.o win32main.o *.sml midtest.cm makefile.mingw
 ctest : ctest.c
 	gcc -O `sdl-config --cflags` -c ctest.c -o ctest.o
 	gcc ctest.o `sdl-config --libs` -lSDL_image -o ctest
+
+clean :
+	rm -f midtest.exe *.o core
