@@ -92,3 +92,15 @@ For libtiff, configure 100%CPU locks on
         if test "x$CC" != xcc; then
           echo "$as_me:$LINENO: checking whether $CC and cc understand -c and -o together" >&5
         echo $ECHO_N "checking whether $CC and cc understand -c and -o together... $ECHO_C" >&6
+
+--------------------------------------------------
+
+notes on building SDL apps with mlton
+
+ .. t7eshero has better up-to-date building technology. look there.
+ if you supply an extra include directory with -cc-opt, make it its
+ own -cc-opt, not part of several in quotes. (You can provide separate
+ -cc-opt flags to mlton.) It seems that somewhere along the line someone
+ translates this from /usr/local/include to c:/msys/1.0/local/lib,
+ which without that translation fails to find gmp.h.
+

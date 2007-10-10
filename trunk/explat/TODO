@@ -10,6 +10,7 @@ second time through the game, it should alert the user when a merit
 badge opportunity is lost (e.g. "collect the X before the Y" displays
 "merit badge opportunity lost" (not saying which one) when Y is
 collected without X).
+ - merit badge counsellor
 
 =======
 

@@ -9,6 +9,9 @@ group is
 ../sml-lib/util/stringutil-sig.sml
 ../sml-lib/util/stringutil.sml
 
+../sdlml/sdl-sig.sml
+../sdlml/sdl.sml
+
 flag-sig.sml
 flag.sml
 
@@ -17,9 +20,6 @@ tile.sml
 
 world-sig.sml
 world.sml
-
-sdl-sig.sml
-sdl.sml
 
 clip-sig.sml
 clip.sml
