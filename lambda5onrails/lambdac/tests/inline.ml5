@@ -1,8 +1,0 @@
-unit
-    fun inline id x = x
-
-    val z = id 0
-
-    do z
-in
-end

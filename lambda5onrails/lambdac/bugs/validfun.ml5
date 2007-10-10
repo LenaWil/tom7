@@ -1,7 +1,0 @@
-(* We don't allow valid functions as exports, but we should. *)
-
-unit
-    fun vswap () = primapp Halt { int } ()
-in
-    export val z = vswap
-end

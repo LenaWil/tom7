@@ -1,7 +1,0 @@
-fact
-get
-saytest2
-threads
-watchkey
-chat
-wiki

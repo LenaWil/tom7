@@ -1,7 +1,0 @@
-unit
-    extern type bogus
-    
-    extern val z : bogus -> unit @ home
-
-in
-end
