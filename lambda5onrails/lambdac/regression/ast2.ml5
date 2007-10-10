@@ -1,6 +1,0 @@
-unit
-    fun (t) ref a = primapp Ref { t } (a)
-
-    val articlename = ref 12345
-in
-end

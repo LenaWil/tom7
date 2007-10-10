@@ -1,5 +1,0 @@
-unit
-    fun r (x : int) : string = r x
-in
-    export val zzzz = r
-end

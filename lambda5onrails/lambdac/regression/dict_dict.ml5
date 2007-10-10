@@ -1,8 +1,0 @@
-unit
-    extern world server
-    extern val server ~ server addr
-
-    val p = from server get (primapp halt {unit} ())
-in
-(*    export val pair = p *)
-end
