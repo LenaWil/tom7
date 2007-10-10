@@ -1,3 +1,4 @@
+(* XXX this is now inside SDL itself *)
 
 signature SDLIMAGE =
 sig
