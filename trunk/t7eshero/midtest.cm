@@ -15,12 +15,11 @@ group is
 ../sml-lib/files/midi/midi-sig.sml
 ../sml-lib/files/midi/midi.sml
 
+../sdlml/sdl-sig.sml
+../sdlml/sdl.sml
 
 flag-sig.sml
 flag.sml
-
-sdl-sig.sml
-sdl.sml
 
 midtest.sml
 
