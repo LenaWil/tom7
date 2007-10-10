@@ -2,11 +2,11 @@
 default : cliptest.exe
 
 
-sdlml.o : sdlml.c
-	gcc -O -I SDL/include `SDL/sdl-config --cflags` -c sdlml.c -o sdlml.o
+sdlml.o : ../sdlml/sdlml.c
+	gcc -O -I SDL/include `SDL/sdl-config --cflags` -c ../sdlml/sdlml.c -o sdlml.o
 
 cliptest.exe : sdlml.o *.sml cliptest.cm
-	mlton @MLton max-heap 200m -- -cc-opt "-I/usr/local/include" -link-opt "`SDL/sdl-config --libs` -lSDL_image -ltiff -lpng -ljpeg -lz" -output cliptest.exe -default-ann 'allowFFI true' cliptest.cm sdlml.o
+	mlton @MLton max-heap 200m -- -cc-opt "-I/usr/local/include" -link-opt "`SDL/sdl-config --libs` -lSDL_image -ltiff -lpng -ljpeg -lz" -verbose 3 -output cliptest.exe -default-ann 'allowFFI true' cliptest.cm sdlml.o
 
 
 # the order of these libraries and object files is really important! Weird things will
@@ -15,3 +15,6 @@ cliptest.exe : sdlml.o *.sml cliptest.cm
 ctest : ctest.c
 	gcc -O `SDL/sdl-config --cflags` -c ctest.c -o ctest.o
 	gcc ctest.o `SDL/sdl-config --libs` -lSDL_image -o ctest
+
+clean :
+	rm -f *.o cliptest.exe core
