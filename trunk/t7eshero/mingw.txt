@@ -1,3 +1,6 @@
+[[ NOTE, the version in explat has more up-to-date info on vista
+   and other problems you might have ]]
+
 
 (* install first *)
 get MinGW-something.exe from SOURCEFORGE PAGE
