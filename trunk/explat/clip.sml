@@ -10,8 +10,10 @@ struct
                height = 2 * Tile.TILEH }
 
    val bullet = { width = 23, height = 10 }
+   val monster = { width = 32, height = 32 }
 
    (* PERF slow! should precompute this! *)
+   (* could use a mipmap for the mask region? *)
    (* not possible to occupy this space if any
       pixel within the configuration rectangle 
       is solid. *)
