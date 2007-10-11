@@ -56,6 +56,8 @@ struct
   val ramp_lm = requireimage "rampup1.png"
   val ramp_mh = requireimage "rampup2.png"
 
+  val star = requireimage "redstar.png"
+
   val fireballr = requireimage "fireball.png"
   val fireballl = requireimage "fireball_left.png"
 
@@ -98,6 +100,7 @@ struct
 
   datatype object =
       Bullet of { dx : int, dy : int, x : int, y : int }
+    | Monster  of { dx : int, dy : int, x : int, y : int }
 
   val objects = ref (nil : object list)
       
@@ -140,6 +143,10 @@ struct
           fun doobj (Bullet { x, y, dx, dy }) =
               blitall (if dx > 0 then fireballr
                        else fireballl, screen,
+                       x - !scrollx, y - !scrolly)
+            | doobj (Monster { dx, dy, x, y }) =
+              blitall (if dx > 0 then star
+                       else star, screen,
                        x - !scrollx, y - !scrolly)
       in
           app doobj (!objects)
@@ -340,6 +347,135 @@ struct
       end 
 
 
+  fun movemonster (i, x, y, dx, dy) =
+      let
+              
+          val () = 
+              case i of
+                  nil => () 
+                | _ => print (StringUtil.delimit " & " (map inttos i) ^ "\n")
+
+          val dx =
+              if intends i (I_GO LEFT)
+                 andalso dx > ~ MAXWALK
+              then dx - 1
+              else dx
+          val dx = 
+              if intends i (I_GO RIGHT)
+                 andalso dx < MAXWALK
+              then dx + 1
+              else dx
+
+          val (dx, i) = if intends i I_BOOST
+                        then (dx * 2, List.filter (fn I_BOOST => false | _ => true) i)
+                        else (dx, i)
+
+          (* and if we don't intend to move at all, slow us down *)
+          val dx = 
+              if not (intends i (I_GO RIGHT)) andalso
+                 not (intends i (I_GO LEFT))
+              then (if dx > 0 then dx - 1
+                    else if dx < 0 then dx + 1 else 0)
+              else dx
+                  
+          (* jumping -- only when not in air already!
+             (either way the intention goes away) *)
+          val (dy, i) = 
+            if intends i (I_JUMP)
+               (* something to push off of.. *)
+               andalso Clip.clipped Clip.monster (x, y + 1)
+            then (dy - JUMP_VELOCITY,
+                  List.filter (fn I_JUMP => false | _ => true) i)
+            else (dy, List.filter (fn I_JUMP => false | _ => true) i)
+
+          (* falling *)
+          val dy = dy + 1 
+
+          (* air resistance *)
+          val dx = if dx > TERMINAL_VELOCITY
+                   then dx - 1
+                   else if dx < ~ TERMINAL_VELOCITY
+                        then dx + 1 
+                        else dx
+
+          val dy = if dy > TERMINAL_VELOCITY
+                   then dy - 1
+                   else if dy < ~ TERMINAL_VELOCITY
+                        then dy + 1
+                        else dy
+
+          (* XXX world effects... *)
+                       
+          val (x, y, dx, dy) =
+              let
+                  val xi = if dx < 0 then ~1 else 1
+                  val yi = if dy < 0 then ~1 else 1
+                  val xr = ref x
+                  val yr = ref y
+                  val stopx = ref false
+                  val stopy = ref false
+
+                  (* Allow vertical movement if walking up a gradient *)
+                  fun climb () =
+                    (yr := !yr - 1;
+                     true)
+
+                  fun nudgex _ = 
+                      let val next = !xr + xi
+                      in
+                          if !stopx 
+                          then ()
+                          else if Clip.clipped Clip.std (next, !yr)
+                               then 
+                                   (* can move up a little if
+                                      we are on a ramp:
+
+                                      . .
+                                      x #
+
+                                      *)
+                                   if not (Clip.clipped Clip.std (!xr, !yr - 1)
+                                           orelse
+                                           Clip.clipped Clip.std (next, !yr - 1))
+                                      andalso climb()
+                                   then xr := next
+                                   else stopx := true
+                               else xr := next
+                      end
+
+                  fun nudgey _ = 
+                      let val next = !yr + yi
+                      in
+                          if !stopy orelse Clip.clipped Clip.std (!xr, next)
+                          then stopy := true
+                          else yr := next
+                      end
+
+                  fun abs z = if z < 0 then ~ z else z
+
+              in
+                  (* try moving one pixel at a time
+                     in the desired direction, until
+                     it is not possible to move any 
+                     more. *)
+                  
+                  (* XXX this calculation should probably
+                     be symmetric. Here we do all of our
+                     X movement before considering the Y
+                     direction... *)
+
+                  Util.for 0 (abs dx - 1) nudgex;
+                  Util.for 0 (abs dy - 1) nudgey;
+
+                  (!xr, !yr, 
+                   if !stopx then 0 else dx, 
+                   if !stopy then 0 else dy)
+              end
+      in
+        (i, x, y, dx, dy)
+      end 
+
+
   fun drawdebug () =
     if !showclip
     then 
@@ -395,6 +531,13 @@ struct
                   Util.for 0 (abs dx - 1) nudgex;
                   if !stopx then NONE
                   else SOME (Bullet { x = !xr, y = y, dx = dx, dy = dy })
+              end
+            | doobj (Monster { x, y, dx, dy }) =
+              let
+                val (_, x, y, dx, dy) = movemonster ([I_GO LEFT, I_JUMP], x, y, dx, dy)
+              in
+                (* never goes away *)
+                SOME (Monster { x = x, y = y, dx = dx, dy = dy })
               end
       in
           objects := List.mapPartial doobj (!objects)
@@ -471,6 +614,19 @@ struct
                                           FLEFT => ~8
                                         | FRIGHT => 8) } :: !objects;
             loop cur
+        end
+
+    | SOME (E_KeyDown { sym = SDLK_m }) => 
+        let in
+          objects := Monster { x = (case !botface of
+                                      FLEFT => !botx - (surface_width star)
+                                    | FRIGHT => !botx + surface_width robotr),
+                               y = !boty + 12,
+                               dy = 0,
+                               dx = (case !botface of
+                                       FLEFT => ~8
+                                     | FRIGHT => 8) } :: !objects;
+          loop cur
         end
 
     | SOME (E_KeyDown { sym = SDLK_RETURN }) =>
