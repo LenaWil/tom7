@@ -349,12 +349,12 @@ struct
 
   fun movemonster (i, x, y, dx, dy) =
       let
-              
-          val () = 
-              case i of
-                  nil => () 
-                | _ => print (StringUtil.delimit " & " (map inttos i) ^ "\n")
 
+(*              
+          val i = [I_JUMP, I_GO (if x < !botx
+                                 then RIGHT
+                                 else LEFT)]
+*)
           val dx =
               if intends i (I_GO LEFT)
                  andalso dx > ~ MAXWALK
@@ -377,7 +377,7 @@ struct
               then (if dx > 0 then dx - 1
                     else if dx < 0 then dx + 1 else 0)
               else dx
-                  
+
           (* jumping -- only when not in air already!
              (either way the intention goes away) *)
           val (dy, i) = 
@@ -425,7 +425,7 @@ struct
                       in
                           if !stopx 
                           then ()
-                          else if Clip.clipped Clip.std (next, !yr)
+                          else if Clip.clipped Clip.monster (next, !yr)
                                then 
                                    (* can move up a little if
                                       we are on a ramp:
@@ -434,9 +434,9 @@ struct
                                       x #
 
                                       *)
-                                   if not (Clip.clipped Clip.std (!xr, !yr - 1)
+                                   if not (Clip.clipped Clip.monster (!xr, !yr - 1)
                                            orelse
-                                           Clip.clipped Clip.std (next, !yr - 1))
+                                           Clip.clipped Clip.monster (next, !yr - 1))
                                       andalso climb()
                                    then xr := next
                                    else stopx := true
@@ -446,7 +446,7 @@ struct
                   fun nudgey _ = 
                       let val next = !yr + yi
                       in
-                          if !stopy orelse Clip.clipped Clip.std (!xr, next)
+                          if !stopy orelse Clip.clipped Clip.monster (!xr, next)
                           then stopy := true
                           else yr := next
                       end
@@ -621,8 +621,8 @@ struct
           objects := Monster { x = (case !botface of
                                       FLEFT => !botx - (surface_width star)
                                     | FRIGHT => !botx + surface_width robotr),
-                               y = !boty + 12,
-                               dy = 0,
+                               y = !boty - 4,
+                               dy = ~4,
                                dx = (case !botface of
                                        FLEFT => ~8
                                      | FRIGHT => 8) } :: !objects;
