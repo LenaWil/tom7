@@ -17,9 +17,10 @@ sig
   (* is this pixel of the mask clipped? *)
   val clipmask : mask -> int * int -> bool
 
-  (* draw the tile to the given surface at the
+  (* at a particular time step,
+     draw the tile to the given surface at the
      given pixel coordinates *)
-  val draw : tile * SDL.surface * int * int -> unit
+  val draw : int * tile * SDL.surface * int * int -> unit
 
   (* for serialization *)
   val toword   : tile -> Word32.word

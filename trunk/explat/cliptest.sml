@@ -125,9 +125,106 @@ struct
       SOME ((x + !scrollx) div TILEW,
             (y + !scrolly) div TILEH)
 
+  datatype zone = ZBG | ZFG | ZMASK
+
+  val editzone = ref ZBG
+  val editx = ref 100
+  val edity = ref 100
+  val editbgtile = ref (Tile.fromword 0w1)
+  val editfgtile = ref (Tile.fromword 0w0)
+  val editmask = ref Tile.MSOLID
+  val editmenucolor = SDL.color (0wx44, 0wx14, 0wx14, 0wxFF)
+  val editzonecolor = SDL.color (0wxFF, 0wx14, 0wx14, 0wxFF)
+  val showedit = ref false
+  local
+      (* in tiles *)
+      val EDITW = 16
+      val EDITH = 4
+      val MARGIN = 4
+      val MARGIN_TOP = 18
+  in
+      fun drawedit now =
+          if !showedit
+          then
+             let
+             in
+                 (* menu border *)
+                 SDL.fillrect (screen, !editx, !edity,
+                               EDITW * TILEW + (MARGIN * 2),
+                               EDITH * TILEH + (MARGIN * 2 + MARGIN_TOP),
+                               editmenucolor);
+
+                 (* indicate the zone *)
+                 SDL.fillrect (screen, 
+                               !editx + (MARGIN - 2) +
+                               ((TILEW + 2) *
+                                (case !editzone of
+                                     ZBG => 0
+                                   | ZFG => 1
+                                   | ZMASK => 2)), 
+                               !edity + (MARGIN - 2),
+                               TILEW + 4,
+                               TILEH + 4,
+                               editzonecolor);
+
+                 (* the background, foreground, mask *)
+                 Tile.draw (now,
+                            !editbgtile, screen,
+                            !editx + MARGIN,
+                            !edity + MARGIN);
+                 Tile.draw (now,
+                            !editfgtile, screen,
+                            !editx + MARGIN + TILEW + 2,
+                            !edity + MARGIN);
+
+                 Util.for 0 (EDITH - 1)
+                 (fn y =>
+                  Util.for 0 (EDITW - 1)
+                  (fn x =>
+                   let val t = Tile.fromword (Word32.fromInt (EDITW * y + x))
+                   in
+                       Tile.draw (now,
+                                  t, screen, 
+                                  !editx + MARGIN + (TILEW * x),
+                                  !edity + MARGIN + MARGIN_TOP + (TILEH * y))
+                   end))
+             end
+          else ()
+
+      fun edit_hit (x, y) =
+          if !showedit 
+             andalso x >= !editx 
+             andalso y >= !edity
+             andalso x < !editx + (MARGIN * 2) + (TILEW * EDITW)
+             andalso y < !edity + (MARGIN * 2 + MARGIN_TOP) + (TILEH * EDITH)
+          then
+              let 
+                  (* XXX Should also allow window dragging (but do that
+                     in a general way) *)
+                  (* XXX Should allow to click fg/bg/mask to switch to
+                     editing that zone *)
+                  (* in tiles *)
+                  val x = x - (!editx + MARGIN)
+                  val y = y - (!edity + MARGIN_TOP + MARGIN)
+
+                  val idx = (Word32.fromInt
+                             ((y div TILEH) * EDITW +
+                              (x div TILEW)))
+              in
+                  (* XXX allow fg too *)
+                  (case !editzone of
+                       ZMASK => print "unimplemented mask click"
+                     | ZBG => editbgtile := Tile.fromword idx
+                     | ZFG => editfgtile := Tile.fromword idx);
+                          
+                  true
+              end
+          else false
+  end
+
   (* draw a view of the world where the top left of
      the screen is at scrollx/scrolly *)
-  fun drawworld layer =
+  fun drawworld (now, layer) =
     let
       (* tlx/tly is the (screen coordinate pixel) point 
          at which we draw the top-left tile. it is nonpositive *)
@@ -159,7 +256,8 @@ struct
           (fn x =>
            Util.for 0 TILESH
            (fn y =>
-            Tile.draw (World.tileat(layer, xstart + x, ystart + y), screen, 
+            Tile.draw (now,
+                       World.tileat(layer, xstart + x, ystart + y), screen, 
                        tlx + (x * TILEW),
                        tly + (y * TILEH))
             ))
@@ -454,35 +552,36 @@ struct
       end
 
 
-  fun loop { nexttick, intention } =
+  fun loop { nexttick, intention, iter } =
       if getticks () > nexttick
          andalso (not (!paused) orelse !advance)
       then 
           let
               val () =               clearsurface (screen, color (0w0, 0w0, 0w0, 0w0))
               val () =               setscroll ()
-              val () =               drawworld (SOME BACKGROUND)
+              val () =               drawworld (iter, SOME BACKGROUND)
               val () =               drawdebug ()
               val () =               drawobjects ()
-              val () =               drawbot true
-              val () =               drawworld (SOME FOREGROUND)
+              val () =               drawbot true (* XXX shadow *)
               val intention = movebot { nexttick = nexttick, intention = intention }
               val () =               moveobjects ()
+              val () =               drawbot false
+              val () =               drawworld (iter, SOME FOREGROUND)
+              val () =               drawedit iter
           in
-              drawbot false;
               flip screen;
               advance := false;
-              key { nexttick = getticks() + 0w20, intention = intention }
+              key { nexttick = getticks() + 0w20, intention = intention, iter = iter + 1 }
           end
       else
           let in
               SDL.delay 1;
-              key { nexttick = nexttick, intention = intention }
+              key { nexttick = nexttick, intention = intention, iter = iter }
           end
               
               
 
-  and key ( cur as { nexttick, intention = i } ) = 
+  and key ( cur as { nexttick, intention = i, iter } ) = 
     case pollevent () of
       SOME (E_KeyDown { sym = SDLK_ESCAPE }) => () (* quit *)
 
@@ -501,17 +600,24 @@ struct
 *)
 
     | SOME (E_MouseDown { x, y, ... }) =>
-          let in
-              (case onscreen (x, y) of
-                   NONE => print "offscreen click\n"
-                 | SOME (tx, ty) => 
-                       let in
-                           print ("MB: " ^ Int.toString tx ^ " / " ^ 
-                                  Int.toString ty ^ "\n");
-                           World.setmask (tx, ty) MSOLID
-                       end);
-              loop cur
-          end
+          if edit_hit (x, y)
+          then loop cur
+          else
+           let in
+               (* XXX depend on the layer we're currently editing *)
+               (case onscreen (x, y) of
+                    NONE => print "offscreen click\n"
+                  | SOME (tx, ty) => 
+                        let in
+                            print ("MB: " ^ Int.toString tx ^ " / " ^ 
+                                   Int.toString ty ^ "\n");
+                            case !editzone of
+                                ZMASK => World.setmask (tx, ty) (!editmask)
+                              | ZBG => World.settile (BACKGROUND, tx, ty) (!editbgtile)
+                              | ZFG => World.settile (FOREGROUND, tx, ty) (!editfgtile)
+                        end);
+               loop cur
+           end
 
     | SOME (E_KeyDown { sym = SDLK_LSHIFT }) => 
         let in
@@ -594,7 +700,7 @@ struct
          loop cur)
 
     | SOME (E_KeyDown { sym = SDLK_b }) => 
-        loop { nexttick = nexttick, intention = I_BOOST :: i }
+        loop { nexttick = nexttick, intention = I_BOOST :: i, iter = iter }
 
     | SOME (E_KeyDown { sym = SDLK_LEFT }) =>
         (* XXX for these there should also be an impulse event,
@@ -602,20 +708,31 @@ struct
            start moving left for one frame. *)
           (botface := FLEFT;
            if intends i (I_GO LEFT)
-           then loop { nexttick = nexttick, intention = i }
-           else loop { nexttick = nexttick, intention = (I_GO LEFT :: i) })
+           then loop { nexttick = nexttick, intention = i, iter = iter }
+           else loop { nexttick = nexttick, intention = (I_GO LEFT :: i), iter = iter })
 
     | SOME (E_KeyDown { sym = SDLK_SPACE }) =>
           if intends i (I_JUMP)
-          then loop { nexttick = nexttick, intention = i }
-          else loop { nexttick = nexttick, intention = (I_JUMP :: i) }
+          then loop { nexttick = nexttick, intention = i, iter = iter }
+          else loop { nexttick = nexttick, intention = (I_JUMP :: i), iter = iter }
 
     | SOME (E_KeyDown { sym = SDLK_RIGHT }) =>
           (botface := FRIGHT;
            if intends i (I_GO RIGHT)
-           then loop { nexttick = nexttick, intention = i }
-           else loop { nexttick = nexttick, intention = I_GO RIGHT :: i })
+           then loop { nexttick = nexttick, intention = i, iter = iter }
+           else loop { nexttick = nexttick, intention = I_GO RIGHT :: i, iter = iter })
 
+    | SOME (E_KeyDown { sym = SDLK_e }) => 
+          (showedit := not (!showedit);
+           loop cur)
+
+    | SOME (E_KeyDown { sym = SDLK_z }) => 
+          (editzone :=
+           (case !editzone of
+                ZMASK => ZBG
+              | ZBG => ZFG
+              | ZFG => ZMASK);
+           loop cur)
 
     | SOME (E_KeyDown { sym = SDLK_c }) => 
           (showclip := not (!showclip);
@@ -631,35 +748,39 @@ struct
           loop cur
 
     | SOME (E_KeyUp { sym = SDLK_LEFT }) =>
-            (loop { nexttick = nexttick, intention = List.filter (fn I_GO LEFT => false | _ => true) i })
+            (loop { nexttick = nexttick, intention = List.filter (fn I_GO LEFT => false | _ => true) i,
+                    iter = iter })
 
     | SOME (E_KeyUp { sym = SDLK_RIGHT }) =>
-              loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i }
+              loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i,
+                     iter = iter }
 
     | SOME (E_KeyDown { sym }) =>
           let in
               print ("unknown key " ^ SDL.sdlktos sym ^ "\n");
-              loop { nexttick = nexttick, intention = i }
+              loop { nexttick = nexttick, intention = i, iter = iter }
           end
 
 
 
     | SOME (E_JoyDown { button = 3, ... }) =>
           if intends i (I_JUMP)
-          then loop { nexttick = nexttick, intention = i }
-          else loop { nexttick = nexttick, intention = (I_JUMP :: i) }
+          then loop { nexttick = nexttick, intention = i, iter = iter }
+          else loop { nexttick = nexttick, intention = (I_JUMP :: i), iter = iter }
 
     | SOME (E_JoyDown { button = 1, ... }) =>
           (botface := FRIGHT;
            if intends i (I_GO RIGHT)
-           then loop { nexttick = nexttick, intention = i }
-           else loop { nexttick = nexttick, intention = I_GO RIGHT :: i })
+           then loop { nexttick = nexttick, intention = i, iter = iter }
+           else loop { nexttick = nexttick, intention = I_GO RIGHT :: i, iter = iter })
 
     | SOME (E_JoyUp { button = 1, ... }) =>
-            (loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i })
+            (loop { nexttick = nexttick, intention = List.filter (fn I_GO RIGHT => false | _ => true) i,
+                    iter = iter })
 
     | SOME (E_JoyUp { button = 0, ... }) =>
-            (loop { nexttick = nexttick, intention = List.filter (fn I_GO LEFT => false | _ => true) i })
+            (loop { nexttick = nexttick, intention = List.filter (fn I_GO LEFT => false | _ => true) i,
+                    iter = iter })
 
     | SOME (E_JoyDown { which, button }) =>  
             let in
@@ -678,7 +799,8 @@ struct
     | SOME E_Quit => ()
     | _ => loop cur
 
-  val () = loop { nexttick = 0w0, intention = nil }
+  (* XXX iter overflow possibility *)
+  val () = loop { nexttick = 0w0, intention = nil, iter = 0 }
     handle Test s => messagebox ("exn test: " ^ s)
         | SDL s => messagebox ("sdl error: " ^ s)
         | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
