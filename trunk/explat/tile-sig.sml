@@ -11,7 +11,8 @@ sig
   datatype mask = 
       MEMPTY 
     | MSOLID 
-    | MRAMP of slope (* | MCEIL of slope *)
+    | MRAMP of slope
+    | MCEIL of slope
     | MDIAG of diag (* corner that is filled in *)
 
   type tile

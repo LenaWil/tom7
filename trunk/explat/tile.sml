@@ -10,7 +10,8 @@ struct
   datatype mask = 
       MEMPTY 
     | MSOLID 
-    | MRAMP of slope (* | MCEIL of slope *)
+    | MRAMP of slope
+    | MCEIL of slope
     | MDIAG of diag (* corner that is filled in *)
 
   (* need to implement this somehow.. *)
@@ -25,6 +26,11 @@ struct
     | clipmask (MRAMP MH) (x, y) = y >= (7 - x div 2)
     | clipmask (MRAMP HM) (x, y) = y >= x div 2
     | clipmask (MRAMP ML) (x, y) = y >= (8 + x div 2)
+    | clipmask (MCEIL LM) (x, y) = y < (8 + (7 - x div 2))
+    | clipmask (MCEIL MH) (x, y) = y < (7 - x div 2)
+    | clipmask (MCEIL HM) (x, y) = y < x div 2
+    | clipmask (MCEIL ML) (x, y) = y < (8 + x div 2)
+
     | clipmask (MDIAG SW) (x, y)  = y >= x
     | clipmask (MDIAG SE) (x, y)  = y >= (15 - x)
     | clipmask (MDIAG NE) (x, y)  = y < x
@@ -42,12 +48,18 @@ struct
   
   val SETW = 16
   val tileset = requireimage "tiles.png"
+  val solid = requireimage "solid.png"
+  val error = requireimage "error_frame.png"
+
   val ramp_lm = requireimage "rampup1.png"
   val ramp_mh = requireimage "rampup2.png"
   val ramp_hm = requireimage "rampdown1.png"
   val ramp_ml = requireimage "rampdown2.png"
-  val solid = requireimage "solid.png"
-  val error = requireimage "error_frame.png"
+
+  val ceil_hm = requireimage "ceildown1.png"
+  val ceil_ml = requireimage "ceildown2.png"
+  val ceil_lm = requireimage "ceilup1.png"
+  val ceil_mh = requireimage "ceilup2.png"
 
   val diag_ne = requireimage "diag_ne.png"
   val diag_nw = requireimage "diag_nw.png"
@@ -64,6 +76,10 @@ struct
     | tilefor (MDIAG NE) = diag_ne
     | tilefor (MDIAG SW) = diag_sw
     | tilefor (MDIAG SE) = diag_se
+    | tilefor (MCEIL HM) = ceil_hm
+    | tilefor (MCEIL ML) = ceil_ml
+    | tilefor (MCEIL LM) = ceil_lm
+    | tilefor (MCEIL MH) = ceil_mh
     | tilefor _ = error
 
   (* should do something not ad hoc here... *)
@@ -71,8 +87,8 @@ struct
       if t >= 16 andalso t <= 18
       then 16 + (((n div 8) + (t - 16)) mod 3)
       else 
-          if t = 54 andalso ((t div 4) mod 3 = 1)
-          then 55
+          if t = 70 andalso ((t div 4) mod 3 = 1)
+          then 71
           else t
 
   fun drawmask (MEMPTY, surf, x, y) = ()

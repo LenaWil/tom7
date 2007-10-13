@@ -137,7 +137,8 @@ struct
           Vector.fromList 
           [ MEMPTY, MSOLID,
             MRAMP LM, MRAMP MH, MRAMP HM, MRAMP ML,
-            MDIAG NW, MDIAG NE, MDIAG SW, MDIAG SE
+            MDIAG NW, MDIAG NE, MDIAG SW, MDIAG SE,
+            MCEIL LM, MCEIL MH, MCEIL HM, MCEIL ML
             (* XXX more *)
             ]
 
@@ -222,14 +223,19 @@ struct
 
                   val idx = ((y div TILEH) * EDITW + (x div TILEW))
               in
-                  (case !editzone of
-                       ZMASK =>
-                           if idx >= 0 andalso idx < Vector.length MASKS
-                           then editmask := Vector.sub(MASKS, idx)
-                           else ()
-                     | ZBG => editbgtile := Tile.fromword (Word32.fromInt idx)
-                     | ZFG => editfgtile := Tile.fromword (Word32.fromInt idx));
-                          
+                  if idx >= 0
+                  then
+                      let in
+                          print ("tile/mask " ^ Int.toString idx ^ "\n");
+                          (case !editzone of
+                               ZMASK =>
+                                   if idx >= 0 andalso idx < Vector.length MASKS
+                                   then editmask := Vector.sub(MASKS, idx)
+                                   else ()
+                             | ZBG => editbgtile := Tile.fromword (Word32.fromInt idx)
+                             | ZFG => editfgtile := Tile.fromword (Word32.fromInt idx))
+                      end
+                  else ();
                   true
               end
           else false
