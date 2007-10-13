@@ -48,6 +48,7 @@ struct
   val robotr_fade = alphadim robotr
   val robotl_fade = alphadim robotl
   val solid = requireimage "solid.png"
+  val error = requireimage "error_frame.png"
 
   val redhi = requireimage "redhighlight.png"
   val greenhi = requireimage "greenhighlight.png"
@@ -57,6 +58,8 @@ struct
   val ramp_mh = requireimage "rampup2.png"
 
   val star = requireimage "redstar.png"
+  val spider_up = requireimage "spider_up.png"
+  val spider_down = requireimage "spider_down.png"
 
   val fireballr = requireimage "fireball.png"
   val fireballl = requireimage "fireball_left.png"
@@ -73,6 +76,15 @@ struct
 
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
+  datatype intention =
+      I_GO of dir
+    | I_JUMP
+    | I_BOOST
+
+  fun dir_reverse UP = DOWN
+    | dir_reverse DOWN = UP
+    | dir_reverse LEFT = RIGHT
+    | dir_reverse RIGHT = LEFT
 
   (* bot flags *)
   structure BF :>
@@ -98,9 +110,11 @@ struct
   val botdy = ref 0
   val botstate = BF.flags
 
+  datatype monster = STAR | SPIDER
+
   datatype object =
-      Bullet of { dx : int, dy : int, x : int, y : int }
-    | Monster  of { dx : int, dy : int, x : int, y : int }
+      Bullet   of { dx : int, dy : int, x : int, y : int }
+    | Monster  of { which : monster, dir : dir, dx : int, dy : int, x : int, y : int }
 
   val objects = ref (nil : object list)
       
@@ -113,7 +127,7 @@ struct
 
   (* draw a view of the world where the top left of
      the screen is at scrollx/scrolly *)
-  fun drawworld () =
+  fun drawworld layer =
     let
       (* tlx/tly is the (screen coordinate pixel) point 
          at which we draw the top-left tile. it is nonpositive *)
@@ -125,17 +139,39 @@ struct
       val xstart = !scrollx div TILEW
       val ystart = !scrolly div TILEH
     in
-      (* nb, always doing one extra tile, because we might
-         display only partial tiles if not aligned to scroll
-         view *)
-    Util.for 0 TILESW
-    (fn x =>
-     Util.for 0 TILESH
-     (fn y =>
-      case maskat (xstart + x, ystart + y) of
-        MEMPTY => ()
-      | t => blitall (tilefor t, screen, 
-                      tlx + (x * TILEW), tly + (y * TILEH))))
+      case layer of
+        (* not really a layer, but useful when editing / debugging *)
+        (* XXX I guess a different datatype, option is weird *)
+        NONE =>
+        (* nb, always doing one extra tile, because we might
+           display only partial tiles if not aligned to scroll
+           view *)
+          Util.for 0 TILESW
+          (fn x =>
+           Util.for 0 TILESH
+           (fn y =>
+            case maskat (xstart + x, ystart + y) of
+                MEMPTY => ()
+              | t => blitall (tilefor t, screen, 
+                              tlx + (x * TILEW), tly + (y * TILEH))))
+      | SOME BACKGROUND => 
+          Util.for 0 TILESW
+          (fn x =>
+           Util.for 0 TILESH
+           (fn y =>
+            Tile.draw (Word.bgtileat(x, y), screen, 
+                       tlx + (x * TILEW),
+                       tly + (y * TILEH))
+            ))
+      | SOME FOREGROUND => 
+          Util.for 0 TILESW
+          (fn x =>
+           Util.for 0 TILESH
+           (fn y =>
+            Tile.draw (Word.fgtileat(x, y), screen, 
+                       tlx + (x * TILEW),
+                       tly + (y * TILEH))
+            ))
     end
 
   fun drawobjects () =
@@ -144,9 +180,13 @@ struct
               blitall (if dx > 0 then fireballr
                        else fireballl, screen,
                        x - !scrollx, y - !scrolly)
-            | doobj (Monster { dx, dy, x, y }) =
-              blitall (if dx > 0 then star
-                       else star, screen,
+            | doobj (Monster { which, dx, dy, x, y, dir }) =
+              blitall ((case (dir, which, dy) of 
+                            (_, STAR, _) => star
+                          | (_, SPIDER, 0) => spider_down
+                          | (_, SPIDER, _) => spider_up
+                          | _ => error),
+                       screen,
                        x - !scrollx, y - !scrolly)
       in
           app doobj (!objects)
@@ -162,11 +202,6 @@ struct
       in
           blitall (img, screen, !botx - !scrollx, !boty - !scrolly)
       end
-
-  datatype intention =
-      I_GO of dir
-    | I_JUMP
-    | I_BOOST
 
   fun dtos LEFT = "left"
     | dtos RIGHT = "right"
@@ -207,20 +242,19 @@ struct
 
     end
 
-  fun movebot { nexttick, intention = i } =
-      (* first, react to the player's intentions *)
+  (* Move an entity, which is a solid object that has intentions *)
+  fun moveent clip (i, x, y, dx, dy) =
       let
-          val dx = !botdx
-          val dy = !botdy
-          val x = !botx
-          val y = !boty
-              
           (* val () = print (StringUtil.delimit ", " (map Int.toString [dx, dy, x, y]) ^ "\n") *)
+              (*
           val () = 
               case i of
                   nil => () 
                 | _ => print (StringUtil.delimit " & " (map inttos i) ^ "\n")
+                  *)
 
+          (* XXX these maximums should also be parameters *)
+          (* first, react to the entity's intentions: *)
           val dx =
               if intends i (I_GO LEFT)
                  andalso dx > ~ MAXWALK
@@ -249,12 +283,12 @@ struct
           val (dy, i) = 
             if intends i (I_JUMP)
                (* something to push off of.. *)
-               andalso Clip.clipped Clip.std (x, y + 1)
+               andalso Clip.clipped clip (x, y + 1)
             then (dy - JUMP_VELOCITY,
                   List.filter (fn I_JUMP => false | _ => true) i)
             else (dy, List.filter (fn I_JUMP => false | _ => true) i)
 
-          (* falling *)
+          (* gravity *)
           val dy = dy + 1 
 
           (* air resistance *)
@@ -292,7 +326,7 @@ struct
                       in
                           if !stopx 
                           then ()
-                          else if Clip.clipped Clip.std (next, !yr)
+                          else if Clip.clipped clip (next, !yr)
                                then 
                                    (* can move up a little if
                                       we are on a ramp:
@@ -301,9 +335,9 @@ struct
                                       x #
 
                                       *)
-                                   if not (Clip.clipped Clip.std (!xr, !yr - 1)
+                                   if not (Clip.clipped clip (!xr, !yr - 1)
                                            orelse
-                                           Clip.clipped Clip.std (next, !yr - 1))
+                                           Clip.clipped clip (next, !yr - 1))
                                       andalso climb()
                                    then xr := next
                                    else stopx := true
@@ -313,7 +347,7 @@ struct
                   fun nudgey _ = 
                       let val next = !yr + yi
                       in
-                          if !stopy orelse Clip.clipped Clip.std (!xr, next)
+                          if !stopy orelse Clip.clipped clip (!xr, next)
                           then stopy := true
                           else yr := next
                       end
@@ -339,142 +373,19 @@ struct
                    if !stopy then 0 else dy)
               end
       in
-          botdx := dx;
-          botdy := dy;
+          (i, x, y, dx, dy)
+      end 
+
+  fun movebot { nexttick, intention } =
+      let
+          val (i, x, y, dx, dy) = moveent Clip.std (intention, !botx, !boty, !botdx, !botdy)
+      in
           botx := x;
           boty := y;
+          botdx := dx;
+          botdy := dy;
           i
-      end 
-
-
-  fun movemonster (i, x, y, dx, dy) =
-      let
-
-(*              
-          val i = [I_JUMP, I_GO (if x < !botx
-                                 then RIGHT
-                                 else LEFT)]
-*)
-          val dx =
-              if intends i (I_GO LEFT)
-                 andalso dx > ~ MAXWALK
-              then dx - 1
-              else dx
-          val dx = 
-              if intends i (I_GO RIGHT)
-                 andalso dx < MAXWALK
-              then dx + 1
-              else dx
-
-          val (dx, i) = if intends i I_BOOST
-                        then (dx * 2, List.filter (fn I_BOOST => false | _ => true) i)
-                        else (dx, i)
-
-          (* and if we don't intend to move at all, slow us down *)
-          val dx = 
-              if not (intends i (I_GO RIGHT)) andalso
-                 not (intends i (I_GO LEFT))
-              then (if dx > 0 then dx - 1
-                    else if dx < 0 then dx + 1 else 0)
-              else dx
-
-          (* jumping -- only when not in air already!
-             (either way the intention goes away) *)
-          val (dy, i) = 
-            if intends i (I_JUMP)
-               (* something to push off of.. *)
-               andalso Clip.clipped Clip.monster (x, y + 1)
-            then (dy - JUMP_VELOCITY,
-                  List.filter (fn I_JUMP => false | _ => true) i)
-            else (dy, List.filter (fn I_JUMP => false | _ => true) i)
-
-          (* falling *)
-          val dy = dy + 1 
-
-          (* air resistance *)
-          val dx = if dx > TERMINAL_VELOCITY
-                   then dx - 1
-                   else if dx < ~ TERMINAL_VELOCITY
-                        then dx + 1 
-                        else dx
-
-          val dy = if dy > TERMINAL_VELOCITY
-                   then dy - 1
-                   else if dy < ~ TERMINAL_VELOCITY
-                        then dy + 1
-                        else dy
-
-          (* XXX world effects... *)
-                       
-          val (x, y, dx, dy) =
-              let
-                  val xi = if dx < 0 then ~1 else 1
-                  val yi = if dy < 0 then ~1 else 1
-                  val xr = ref x
-                  val yr = ref y
-                  val stopx = ref false
-                  val stopy = ref false
-
-                  (* Allow vertical movement if walking up a gradient *)
-                  fun climb () =
-                    (yr := !yr - 1;
-                     true)
-
-                  fun nudgex _ = 
-                      let val next = !xr + xi
-                      in
-                          if !stopx 
-                          then ()
-                          else if Clip.clipped Clip.monster (next, !yr)
-                               then 
-                                   (* can move up a little if
-                                      we are on a ramp:
-
-                                      . .
-                                      x #
-
-                                      *)
-                                   if not (Clip.clipped Clip.monster (!xr, !yr - 1)
-                                           orelse
-                                           Clip.clipped Clip.monster (next, !yr - 1))
-                                      andalso climb()
-                                   then xr := next
-                                   else stopx := true
-                               else xr := next
-                      end
-
-                  fun nudgey _ = 
-                      let val next = !yr + yi
-                      in
-                          if !stopy orelse Clip.clipped Clip.monster (!xr, next)
-                          then stopy := true
-                          else yr := next
-                      end
-
-                  fun abs z = if z < 0 then ~ z else z
-
-              in
-                  (* try moving one pixel at a time
-                     in the desired direction, until
-                     it is not possible to move any 
-                     more. *)
-                  
-                  (* XXX this calculation should probably
-                     be symmetric. Here we do all of our
-                     X movement before considering the Y
-                     direction... *)
-
-                  Util.for 0 (abs dx - 1) nudgex;
-                  Util.for 0 (abs dy - 1) nudgey;
-
-                  (!xr, !yr, 
-                   if !stopx then 0 else dx, 
-                   if !stopy then 0 else dy)
-              end
-      in
-        (i, x, y, dx, dy)
-      end 
-
+      end
 
   fun drawdebug () =
     if !showclip
@@ -532,12 +443,20 @@ struct
                   if !stopx then NONE
                   else SOME (Bullet { x = !xr, y = y, dx = dx, dy = dy })
               end
-            | doobj (Monster { x, y, dx, dy }) =
+            | doobj (Monster { which, dir, x, y, dx, dy }) =
               let
-                val (_, x, y, dx, dy) = movemonster ([I_GO LEFT, I_JUMP], x, y, dx, dy)
+                val clip = 
+                    case which of
+                        STAR => Clip.star
+                      | SPIDER => Clip.spider
+                val (_, x, y, dx, dy) = moveent clip ([I_GO dir, I_JUMP], x, y, dx, dy)
+                val dir = if dx = 0
+                          then dir_reverse dir
+                          else dir
+
               in
                 (* never goes away *)
-                SOME (Monster { x = x, y = y, dx = dx, dy = dy })
+                SOME (Monster { which = which, dir = dir, x = x, y = y, dx = dx, dy = dy })
               end
       in
           objects := List.mapPartial doobj (!objects)
@@ -597,7 +516,7 @@ struct
                        let in
                            print ("MB: " ^ Int.toString tx ^ " / " ^ 
                                   Int.toString ty ^ "\n");
-                           World.setworld (tx, ty) MSOLID
+                           World.setmask (tx, ty) MSOLID
                        end);
               loop cur
           end
@@ -618,9 +537,13 @@ struct
 
     | SOME (E_KeyDown { sym = SDLK_m }) => 
         let in
-          objects := Monster { x = (case !botface of
+          objects := Monster { which = STAR,
+                               x = (case !botface of
                                       FLEFT => !botx - (surface_width star)
                                     | FRIGHT => !botx + surface_width robotr),
+                               dir = (case !botface of
+                                      FLEFT => LEFT
+                                    | FRIGHT => RIGHT),
                                y = !boty - 4,
                                dy = ~4,
                                dx = (case !botface of
@@ -628,6 +551,23 @@ struct
                                      | FRIGHT => 8) } :: !objects;
           loop cur
         end
+    | SOME (E_KeyDown { sym = SDLK_n }) => 
+        let in
+          objects := Monster { which = SPIDER,
+                               x = (case !botface of
+                                      FLEFT => !botx - (surface_width star)
+                                    | FRIGHT => !botx + surface_width robotr),
+                               dir = (case !botface of
+                                      FLEFT => LEFT
+                                    | FRIGHT => RIGHT),
+                               y = !boty - 4,
+                               dy = ~4,
+                               dx = (case !botface of
+                                       FLEFT => ~8
+                                     | FRIGHT => 8) } :: !objects;
+          loop cur
+        end
+
 
     | SOME (E_KeyDown { sym = SDLK_RETURN }) =>
         let in

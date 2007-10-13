@@ -7,10 +7,13 @@
 signature WORLD =
 sig
 
-  val maskat : int * int -> Tile.mask
-  val tileat : int * int -> Tile.tile
+  datatype layer = FOREGROUND | BACKGROUND
 
-  val setworld : int * int -> Tile.mask -> unit
+  val maskat : int * int -> Tile.mask
+  val setmask : int * int -> Tile.mask -> unit
+
+  val tileat : layer * int * int -> Tile.tile
+  val settile : layer * int * int -> Tile.tile -> unit
 
   val save : unit -> unit
 
