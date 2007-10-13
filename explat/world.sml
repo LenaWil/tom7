@@ -60,6 +60,11 @@ struct
     | maskf (MDIAG NE) = "ne"
     | maskf (MDIAG SW) = "sw"
     | maskf (MDIAG SE) = "se"
+    | maskf (MCEIL LM) = "clm"
+    | maskf (MCEIL MH) = "cmh"
+    | maskf (MCEIL HM) = "chm"
+    | maskf (MCEIL ML) = "cml"
+
     | maskf _ = raise World "maskf"
 
   fun fmask "s" = MSOLID
@@ -71,6 +76,10 @@ struct
     | fmask "ne" = MDIAG NE
     | fmask "sw" = MDIAG SW
     | fmask "se" = MDIAG SE
+    | fmask "clm" = MCEIL LM
+    | fmask "cmh" = MCEIL MH
+    | fmask "chm" = MCEIL HM
+    | fmask "cml" = MCEIL ML
     | fmask _ = MEMPTY
 
   val MASKFILE = "world.0.mask"
@@ -137,7 +146,7 @@ struct
 
       in
           ()
-      end handle _ =>
+      end handle Io =>
           let in
               print "No saved world, so using default.\n";
               print "XXX I set masks, but not tiles. Enjoy invisible floors\n";
