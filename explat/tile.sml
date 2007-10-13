@@ -2,12 +2,14 @@
 structure Tile :> TILE =
 struct
 
+  exception Tile of string
+
   (* the mask tells us where things can walk *)
   datatype slope = LM | MH | HM | ML
   datatype mask = MEMPTY | MSOLID | MRAMP of slope (* | MCEIL of slope *)
 
   (* need to implement this somehow.. *)
-  datatype tile = Word32.word
+  type tile = Word32.word
 
   val TILEW = 16
   val TILEH = 16
@@ -18,7 +20,30 @@ struct
     | clipmask (MRAMP MH) (x, y) = y >= (7 - x div 2)
     | clipmask (MRAMP _) _ = false (* FIXME! *)
 
-  fun draw (t, surf, x, y) = () (* XXX FIXME *)
+  fun requireimage s =
+      let val s = "testgraphics/" ^ s
+      in
+          case SDL.Image.load s of
+              NONE => (print ("couldn't open " ^ s ^ "\n");
+                       raise Tile "couldn't find graphics")
+            | SOME p => p
+      end
+  
+  val SETW = 16
+  val tileset = requireimage "tiles.png"
+
+  fun draw (0w0, surf, x, y) = ()
+    (* PERF probably other solid colors can be done more efficiently *)
+    | draw (t, surf, x, y) =
+      let val t = Word32.toInt t
+      in
+          SDL.blit (tileset, 
+                    (t mod SETW) * TILEW,
+                    (t div SETW) * TILEH,
+                    TILEW, TILEH,
+                    surf,
+                    x, y)
+      end
 
   fun toword x = x
   fun fromword x = x (* XXX check bounds *)
