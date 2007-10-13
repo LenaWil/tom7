@@ -138,7 +138,10 @@ struct
           [ MEMPTY, MSOLID,
             MRAMP LM, MRAMP MH, MRAMP HM, MRAMP ML,
             MDIAG NW, MDIAG NE, MDIAG SW, MDIAG SE,
-            MCEIL LM, MCEIL MH, MCEIL HM, MCEIL ML
+            MCEIL LM, MCEIL MH, MCEIL HM, MCEIL ML,
+            MLEFT LM, MLEFT MH, MLEFT HM, MLEFT ML,
+            MRIGHT LM, MRIGHT MH, MRIGHT HM, MRIGHT ML
+
             (* XXX more *)
             ]
 
