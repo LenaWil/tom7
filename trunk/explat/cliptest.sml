@@ -154,21 +154,12 @@ struct
                 MEMPTY => ()
               | t => blitall (tilefor t, screen, 
                               tlx + (x * TILEW), tly + (y * TILEH))))
-      | SOME BACKGROUND => 
+      | SOME layer => 
           Util.for 0 TILESW
           (fn x =>
            Util.for 0 TILESH
            (fn y =>
-            Tile.draw (Word.bgtileat(x, y), screen, 
-                       tlx + (x * TILEW),
-                       tly + (y * TILEH))
-            ))
-      | SOME FOREGROUND => 
-          Util.for 0 TILESW
-          (fn x =>
-           Util.for 0 TILESH
-           (fn y =>
-            Tile.draw (Word.fgtileat(x, y), screen, 
+            Tile.draw (World.tileat(layer, xstart + x, ystart + y), screen, 
                        tlx + (x * TILEW),
                        tly + (y * TILEH))
             ))
@@ -470,10 +461,11 @@ struct
           let
               val () =               clearsurface (screen, color (0w0, 0w0, 0w0, 0w0))
               val () =               setscroll ()
-              val () =               drawworld ()
+              val () =               drawworld (SOME BACKGROUND)
               val () =               drawdebug ()
               val () =               drawobjects ()
               val () =               drawbot true
+              val () =               drawworld (SOME FOREGROUND)
               val intention = movebot { nexttick = nexttick, intention = intention }
               val () =               moveobjects ()
           in

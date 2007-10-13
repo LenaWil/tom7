@@ -3,6 +3,8 @@
 signature TILE =
 sig
 
+  exception Tile of string
+
   (* the mask tells us where things can walk *)
   datatype slope = LM | MH | HM | ML
   datatype mask = MEMPTY | MSOLID | MRAMP of slope (* | MCEIL of slope *)
