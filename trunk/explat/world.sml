@@ -18,7 +18,8 @@ struct
     then Array.sub(world, y * OPENW + x) 
     else MSOLID
 
-  fun tileat _ = raise World "tileat unimplemented"
+  fun bgtileat _ = raise World "tileat unimplemented"
+  fun fgtileat _ = raise World "tileat unimplemented"
 
   fun setworld (x, y) m = 
       if x < OPENW andalso x >= 0 andalso

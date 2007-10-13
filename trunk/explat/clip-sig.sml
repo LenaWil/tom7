@@ -13,7 +13,8 @@ sig
     (* for a bullet *)
     val bullet : config
     (* for a star monster *)
-    val monster : config
+    val star : config
+    val spider : config
 
     (* true if the robot cannot inhabit this pixel. *)
     val clipped : config -> int * int -> bool

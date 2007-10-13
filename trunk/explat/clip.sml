@@ -10,7 +10,8 @@ struct
                height = 2 * Tile.TILEH }
 
    val bullet = { width = 23, height = 10 }
-   val monster = { width = 32, height = 32 }
+   val star = { width = 32, height = 32 }
+   val spider = { width = 25, height = 21 }
 
    (* PERF slow! should precompute this! (how?) *)
    (* could use a mipmap for the mask region? *)
