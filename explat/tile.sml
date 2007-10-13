@@ -35,7 +35,7 @@ struct
   (* should do something not ad hoc here... *)
   fun animate (n, t) =
       if t >= 16 andalso t <= 18
-      then 16 + ((n + (t - 16)) mod 3)
+      then 16 + (((n div 8) + (t - 16)) mod 3)
       else t
 
   fun draw (_, 0w0, surf, x, y) = ()

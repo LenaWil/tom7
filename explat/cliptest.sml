@@ -139,7 +139,7 @@ struct
   local
       (* in tiles *)
       val EDITW = 16
-      val EDITH = 4
+      val EDITH = 6
       val MARGIN = 4
       val MARGIN_TOP = 18
   in
