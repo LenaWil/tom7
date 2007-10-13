@@ -54,11 +54,23 @@ struct
     | maskf MSOLID = "s"
     | maskf (MRAMP LM) = "lm"
     | maskf (MRAMP MH) = "mh"
+    | maskf (MRAMP HM) = "hm"
+    | maskf (MRAMP ML) = "ml"
+    | maskf (MDIAG NW) = "nw"
+    | maskf (MDIAG NE) = "ne"
+    | maskf (MDIAG SW) = "sw"
+    | maskf (MDIAG SE) = "se"
     | maskf _ = raise World "maskf"
 
   fun fmask "s" = MSOLID
     | fmask "lm" = MRAMP LM
     | fmask "mh" = MRAMP MH
+    | fmask "hm" = MRAMP HM
+    | fmask "ml" = MRAMP ML
+    | fmask "nw" = MDIAG NW
+    | fmask "ne" = MDIAG NE
+    | fmask "sw" = MDIAG SW
+    | fmask "se" = MDIAG SE
     | fmask _ = MEMPTY
 
   val MASKFILE = "world.0.mask"

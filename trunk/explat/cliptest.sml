@@ -47,15 +47,11 @@ struct
   val robotl = requireimage "robotl.png" (* XXX should be able to flip graphics *)
   val robotr_fade = alphadim robotr
   val robotl_fade = alphadim robotl
-  val solid = requireimage "solid.png"
   val error = requireimage "error_frame.png"
 
   val redhi = requireimage "redhighlight.png"
   val greenhi = requireimage "greenhighlight.png"
   val robobox = requireimage "robobox.png"
-
-  val ramp_lm = requireimage "rampup1.png"
-  val ramp_mh = requireimage "rampup2.png"
 
   val star = requireimage "redstar.png"
   val spider_up = requireimage "spider_up.png"
@@ -67,12 +63,6 @@ struct
   fun ttos MEMPTY = "empty"
     | ttos MSOLID = "solid"
     | ttos (MRAMP _) = "ramp?"
-
-  (* just drawing masks for now to test physics *)
-  fun tilefor MSOLID = solid
-    | tilefor (MRAMP LM) = ramp_lm
-    | tilefor (MRAMP MH) = ramp_mh
-    | tilefor _ = raise Test "tilefor"
 
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
@@ -139,9 +129,18 @@ struct
   local
       (* in tiles *)
       val EDITW = 16
-      val EDITH = 6
+      val EDITH = 7
       val MARGIN = 4
       val MARGIN_TOP = 18
+          
+      val MASKS = 
+          Vector.fromList 
+          [ MEMPTY, MSOLID,
+            MRAMP LM, MRAMP MH, MRAMP HM, MRAMP ML,
+            MDIAG NW, MDIAG NE, MDIAG SW, MDIAG SE
+            (* XXX more *)
+            ]
+
   in
       fun drawedit now =
           if !showedit
@@ -177,17 +176,31 @@ struct
                             !editx + MARGIN + TILEW + 2,
                             !edity + MARGIN);
 
-                 Util.for 0 (EDITH - 1)
-                 (fn y =>
-                  Util.for 0 (EDITW - 1)
-                  (fn x =>
-                   let val t = Tile.fromword (Word32.fromInt (EDITW * y + x))
-                   in
-                       Tile.draw (now,
-                                  t, screen, 
-                                  !editx + MARGIN + (TILEW * x),
-                                  !edity + MARGIN + MARGIN_TOP + (TILEH * y))
-                   end))
+                 case !editzone of
+                     ZMASK =>
+                        (Util.for 0 (EDITH - 1)
+                         (fn y =>
+                          Util.for 0 (EDITW - 1)
+                          (fn x =>
+                           (* might subscript *)
+                           let val m = Vector.sub (MASKS, EDITW * y + x)
+                           in
+                               Tile.drawmask (m, screen,
+                                              !editx + MARGIN + (TILEW * x),
+                                              !edity + MARGIN + MARGIN_TOP + (TILEH * y))
+                           end)) handle Subscript => ())
+                   | _ =>
+                         Util.for 0 (EDITH - 1)
+                         (fn y =>
+                          Util.for 0 (EDITW - 1)
+                          (fn x =>
+                           let val t = Tile.fromword (Word32.fromInt (EDITW * y + x))
+                           in
+                               Tile.draw (now,
+                                          t, screen, 
+                                          !editx + MARGIN + (TILEW * x),
+                                          !edity + MARGIN + MARGIN_TOP + (TILEH * y))
+                           end))
              end
           else ()
 
@@ -207,15 +220,15 @@ struct
                   val x = x - (!editx + MARGIN)
                   val y = y - (!edity + MARGIN_TOP + MARGIN)
 
-                  val idx = (Word32.fromInt
-                             ((y div TILEH) * EDITW +
-                              (x div TILEW)))
+                  val idx = ((y div TILEH) * EDITW + (x div TILEW))
               in
-                  (* XXX allow fg too *)
                   (case !editzone of
-                       ZMASK => print "unimplemented mask click"
-                     | ZBG => editbgtile := Tile.fromword idx
-                     | ZFG => editfgtile := Tile.fromword idx);
+                       ZMASK =>
+                           if idx >= 0 andalso idx < Vector.length MASKS
+                           then editmask := Vector.sub(MASKS, idx)
+                           else ()
+                     | ZBG => editbgtile := Tile.fromword (Word32.fromInt idx)
+                     | ZFG => editfgtile := Tile.fromword (Word32.fromInt idx));
                           
                   true
               end
@@ -249,8 +262,9 @@ struct
            (fn y =>
             case maskat (xstart + x, ystart + y) of
                 MEMPTY => ()
-              | t => blitall (tilefor t, screen, 
-                              tlx + (x * TILEW), tly + (y * TILEH))))
+              | m => Tile.drawmask(m, screen, 
+                                   tlx + (x * TILEW), tly + (y * TILEH))
+                    ))
       | SOME layer => 
           Util.for 0 TILESW
           (fn x =>
@@ -476,11 +490,12 @@ struct
           i
       end
 
+  (* draws the actual clip mask calculated pixel-by-pixel *)
   fun drawdebug () =
     if !showclip
     then 
       let in
-        print "DEBUG..\n";
+        (* print "DEBUG..\n"; *)
         Util.for 0 (width - 1)
         (fn x => 
          let in
@@ -507,8 +522,8 @@ struct
               *)
             end)
 (*          ; if x mod 16 = 0 then flip screen else () *)
-         end);
-        print "DONE.\n"
+         end)
+        (* print "DONE.\n" *)
       end
     else ()
 
@@ -551,6 +566,10 @@ struct
           objects := List.mapPartial doobj (!objects)
       end
 
+  fun drawmask iter =
+      case (!showedit, !editzone) of
+          (true, ZMASK) => drawworld (iter, NONE)
+        | _ => ()
 
   fun loop { nexttick, intention, iter } =
       if getticks () > nexttick
@@ -567,6 +586,7 @@ struct
               val () =               moveobjects ()
               val () =               drawbot false
               val () =               drawworld (iter, SOME FOREGROUND)
+              val () =               drawmask iter
               val () =               drawedit iter
           in
               flip screen;
