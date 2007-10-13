@@ -32,10 +32,18 @@ struct
   val SETW = 16
   val tileset = requireimage "tiles.png"
 
-  fun draw (0w0, surf, x, y) = ()
+  (* should do something not ad hoc here... *)
+  fun animate (n, t) =
+      if t >= 16 andalso t <= 18
+      then 16 + ((n + (t - 16)) mod 3)
+      else t
+
+  fun draw (_, 0w0, surf, x, y) = ()
     (* PERF probably other solid colors can be done more efficiently *)
-    | draw (t, surf, x, y) =
-      let val t = Word32.toInt t
+    | draw (n, t, surf, x, y) =
+      let 
+          val t = Word32.toInt t
+          val t = animate (n, t)
       in
           SDL.blit (tileset, 
                     (t mod SETW) * TILEW,

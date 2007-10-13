@@ -28,8 +28,11 @@ struct
                         BACKGROUND => #back world
                       | FOREGROUND => #fore world), 
                    y * OPENW + x)
-    else Tile.fromword 0w1
-
+    else 
+        (case layer of
+             BACKGROUND => Tile.fromword 0w1
+           | FOREGROUND => Tile.fromword 0w0)
+                 
   fun setmask (x, y) m = 
       if x < OPENW andalso x >= 0 andalso
          y < OPENH andalso y >= 0
