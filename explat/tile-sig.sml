@@ -14,6 +14,8 @@ sig
     | MRAMP of slope
     | MCEIL of slope
     | MDIAG of diag (* corner that is filled in *)
+    | MLEFT of slope
+    | MRIGHT of slope
 
   type tile
 

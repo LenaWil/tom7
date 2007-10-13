@@ -13,6 +13,8 @@ struct
     | MRAMP of slope
     | MCEIL of slope
     | MDIAG of diag (* corner that is filled in *)
+    | MLEFT of slope
+    | MRIGHT of slope
 
   (* need to implement this somehow.. *)
   type tile = Word32.word
@@ -30,6 +32,8 @@ struct
     | clipmask (MCEIL MH) (x, y) = y < (7 - x div 2)
     | clipmask (MCEIL HM) (x, y) = y < x div 2
     | clipmask (MCEIL ML) (x, y) = y < (8 + x div 2)
+
+      (* XXX LEFT/RIGHT *)
 
     | clipmask (MDIAG SW) (x, y)  = y >= x
     | clipmask (MDIAG SE) (x, y)  = y >= (15 - x)
@@ -61,6 +65,16 @@ struct
   val ceil_lm = requireimage "ceilup1.png"
   val ceil_mh = requireimage "ceilup2.png"
 
+  val left_hm = requireimage "left_hm.png"
+  val left_ml = requireimage "left_ml.png"
+  val left_lm = requireimage "left_lm.png"
+  val left_mh = requireimage "left_mh.png"
+
+  val right_hm = requireimage "right_hm.png"
+  val right_ml = requireimage "right_ml.png"
+  val right_lm = requireimage "right_lm.png"
+  val right_mh = requireimage "right_mh.png"
+
   val diag_ne = requireimage "diag_ne.png"
   val diag_nw = requireimage "diag_nw.png"
   val diag_sw = requireimage "diag_sw.png"
@@ -80,6 +94,15 @@ struct
     | tilefor (MCEIL ML) = ceil_ml
     | tilefor (MCEIL LM) = ceil_lm
     | tilefor (MCEIL MH) = ceil_mh
+    | tilefor (MLEFT HM) = left_hm
+    | tilefor (MLEFT ML) = left_ml
+    | tilefor (MLEFT LM) = left_lm
+    | tilefor (MLEFT MH) = left_mh
+    | tilefor (MRIGHT HM) = right_hm
+    | tilefor (MRIGHT ML) = right_ml
+    | tilefor (MRIGHT LM) = right_lm
+    | tilefor (MRIGHT MH) = right_mh
+
     | tilefor _ = error
 
   (* should do something not ad hoc here... *)

@@ -64,6 +64,14 @@ struct
     | maskf (MCEIL MH) = "cmh"
     | maskf (MCEIL HM) = "chm"
     | maskf (MCEIL ML) = "cml"
+    | maskf (MLEFT LM) = "llm"
+    | maskf (MLEFT MH) = "lmh"
+    | maskf (MLEFT HM) = "lhm"
+    | maskf (MLEFT ML) = "lml"
+    | maskf (MRIGHT LM) = "rlm"
+    | maskf (MRIGHT MH) = "rmh"
+    | maskf (MRIGHT HM) = "rhm"
+    | maskf (MRIGHT ML) = "rml"
 
     | maskf _ = raise World "maskf"
 
@@ -80,6 +88,15 @@ struct
     | fmask "cmh" = MCEIL MH
     | fmask "chm" = MCEIL HM
     | fmask "cml" = MCEIL ML
+    | fmask "llm" = MLEFT LM
+    | fmask "lmh" = MLEFT MH
+    | fmask "lhm" = MLEFT HM
+    | fmask "lml" = MLEFT ML
+    | fmask "rlm" = MRIGHT LM
+    | fmask "rmh" = MRIGHT MH
+    | fmask "rhm" = MRIGHT HM
+    | fmask "rml" = MRIGHT ML
+
     | fmask _ = MEMPTY
 
   val MASKFILE = "world.0.mask"
