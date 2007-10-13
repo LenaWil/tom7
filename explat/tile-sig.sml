@@ -7,7 +7,12 @@ sig
 
   (* the mask tells us where things can walk *)
   datatype slope = LM | MH | HM | ML
-  datatype mask = MEMPTY | MSOLID | MRAMP of slope (* | MCEIL of slope *)
+  datatype diag = NW | NE | SW | SE
+  datatype mask = 
+      MEMPTY 
+    | MSOLID 
+    | MRAMP of slope (* | MCEIL of slope *)
+    | MDIAG of diag (* corner that is filled in *)
 
   type tile
 
@@ -21,6 +26,8 @@ sig
      draw the tile to the given surface at the
      given pixel coordinates *)
   val draw : int * tile * SDL.surface * int * int -> unit
+
+  val drawmask : mask * SDL.surface * int * int -> unit
 
   (* for serialization *)
   val toword   : tile -> Word32.word
