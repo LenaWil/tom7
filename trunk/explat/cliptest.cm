@@ -12,6 +12,9 @@ group is
 ../sdlml/sdl-sig.sml
 ../sdlml/sdl.sml
 
+font-sig.sml
+font.sml
+
 flag-sig.sml
 flag.sml
 
