@@ -33,7 +33,16 @@ struct
     | clipmask (MCEIL HM) (x, y) = y < x div 2
     | clipmask (MCEIL ML) (x, y) = y < (8 + x div 2)
 
-      (* XXX LEFT/RIGHT *)
+    | clipmask (MLEFT HM) (x, y) = x < (8 + (7 - y div 2))
+    | clipmask (MLEFT ML) (x, y) = x < (7 - y div 2)
+    | clipmask (MLEFT LM) (x, y) = x < y div 2
+    | clipmask (MLEFT MH) (x, y) = x < (8 + y div 2)
+
+
+    | clipmask (MRIGHT LM) (x, y) = x >= (8 + (7 - y div 2))
+    | clipmask (MRIGHT MH) (x, y) = x >= (7 - y div 2)
+    | clipmask (MRIGHT HM) (x, y) = x >= y div 2
+    | clipmask (MRIGHT ML) (x, y) = x >= (8 + y div 2)
 
     | clipmask (MDIAG SW) (x, y)  = y >= x
     | clipmask (MDIAG SE) (x, y)  = y >= (15 - x)
@@ -110,7 +119,7 @@ struct
       if t >= 16 andalso t <= 18
       then 16 + (((n div 8) + (t - 16)) mod 3)
       else 
-          if t = 70 andalso ((t div 4) mod 3 = 1)
+          if t = 70 andalso ((n div 4) mod 3 = 1)
           then 71
           else t
 
