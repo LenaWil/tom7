@@ -43,6 +43,18 @@ struct
             | SOME p => p
       end
 
+  structure Font = FontFn (val surf = requireimage "font.png"
+                           val charmap =
+                           " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+                           "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
+                           (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
+                              BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
+                           val width = 9
+                           val height = 16
+                           val styles = 6
+                           val overlap = 1
+                           val dims = 3)
+
   val robotr = requireimage "robot.png"
   val robotl = requireimage "robotl.png" (* XXX should be able to flip graphics *)
   val robotr_fade = alphadim robotr
@@ -169,6 +181,14 @@ struct
                                TILEW + 4,
                                TILEH + 4,
                                editzonecolor);
+
+                 Font.draw_plain(screen, 
+                                 !editx + TILEW * 6,
+                                 !edity + 1,
+                                 (case !editzone of
+                                      ZBG => "background"
+                                    | ZFG => "foreground"
+                                    | ZMASK => "mask"));
 
                  (* the background, foreground, mask *)
                  Tile.draw (now,
