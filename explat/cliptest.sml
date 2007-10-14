@@ -547,7 +547,7 @@ struct
                   fun nudgex _ = 
                       let val next = !xr + xi
                       in
-                          if !stopx orelse Clip.clipped Clip.bullet (!xr, next)
+                          if !stopx orelse Clip.clipped Clip.bullet (next, y)
                           then stopx := true
                           else xr := next
                       end
