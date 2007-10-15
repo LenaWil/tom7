@@ -266,6 +266,7 @@ sig
 
     (* R, G, B, A *)
     val color : Word8.word * Word8.word * Word8.word * Word8.word -> color
+    val components : color -> Word8.word * Word8.word * Word8.word * Word8.word
 
     val makescreen : int * int -> surface
 
@@ -308,6 +309,7 @@ sig
     val drawpixel : surface * int * int * color -> unit
     val getpixel  : surface * int * int -> color
 
+    (* x, y, width, height *)
     val fillrect  : surface * int * int * int * int * color -> unit
 
     (* create a version of the surface that's 50% transparent *)

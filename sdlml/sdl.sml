@@ -37,7 +37,14 @@ struct
       Word32.orb
       (Word32.<< (Word32.fromInt (Word8.toInt g), 0w8),
        Word32.fromInt (Word8.toInt b))))
+
   fun components x =
+      (Word8.fromInt (Word32.toInt (Word32.andb(Word32.>>(x, 0w24), 0w255))),
+       Word8.fromInt (Word32.toInt (Word32.andb(Word32.>>(x, 0w16), 0w255))),
+       Word8.fromInt (Word32.toInt (Word32.andb(Word32.>>(x, 0w8), 0w255))),
+       Word8.fromInt (Word32.toInt (Word32.andb(x, 0w255))))
+
+  fun components32 x =
       (Word32.andb(Word32.>>(x, 0w24), 0w255),
        Word32.andb(Word32.>>(x, 0w16), 0w255),
        Word32.andb(Word32.>>(x, 0w8), 0w255),
@@ -987,7 +994,7 @@ struct
   in
       fun drawpixel (s, x, y, c) =
           let
-              val (r, g, b, a) = components c
+              val (r, g, b, a) = components32 c
           in
               if x < 0 orelse y < 0
                  orelse x >= surface_width s
@@ -1029,7 +1036,7 @@ struct
   in
     fun fillrect (s1, x, y, w, h, c) = 
         let 
-          val (r, g, b, _) = components c
+          val (r, g, b, _) = components32 c
         in
           fr (!!s1, x, y, w, h, r, g, b)
         end
