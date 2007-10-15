@@ -39,4 +39,6 @@ sig
           title_height : int,
           drawtitle : SDL.surface * int * int -> unit } -> window
 
+    val dims : window -> { w : int, h : int }
+
 end
