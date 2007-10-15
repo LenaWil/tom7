@@ -116,20 +116,34 @@ struct
 
   (* should do something not ad hoc here... *)
   fun animate (n, t) =
+      (* star *)
       if t >= 16 andalso t <= 18
       then 16 + (((n div 8) + (t - 16)) mod 3)
       else 
+          (* flower *)
           if t = 70 andalso ((n div 4) mod 3 = 1)
           then 71
-          else t
+          else 
+              (* bubble *)
+              if t = 64
+              then (case (n div 7) mod 9 of
+                        0 => 64
+                      | 1 => 65
+                      | 2 => 66
+                      | _ => 4 (* black nothing *))
+              else
+                  (* water surface *)
+                  if t = 82
+                  then 82 + ((n div 5) mod 4)
+                  else t
 
   fun drawmask (MEMPTY, surf, x, y) = ()
     | drawmask (m, surf, x, y) =
       SDL.blitall (tilefor m, surf, x, y)
 
-  fun draw (_, 0w0, surf, x, y) = ()
+  fun drawat (_, 0w0, surf, x, y) = ()
     (* PERF probably other solid colors can be done more efficiently *)
-    | draw (n, t, surf, x, y) =
+    | drawat (n, t, surf, x, y) =
       let 
           val t = Word32.toInt t
           val t = animate (n, t)
@@ -141,6 +155,8 @@ struct
                     surf,
                     x, y)
       end
+
+  fun draw (t, surf, x, y) = drawat(Animate.now (), t, surf, x, y)
 
   fun toword x = x
   fun fromword x = x (* XXX check bounds *)

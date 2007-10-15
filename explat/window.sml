@@ -3,8 +3,11 @@ structure Window :> WINDOW =
 struct
 
     datatype window =
-        W of { x : int ref,
+        W of { 
+               (* coordinates of window *)
+               x : int ref,
                y : int ref,
+               (* size of client area *)
                w : int ref,
                h : int ref,
                
@@ -59,33 +62,68 @@ struct
             val bottom = border
             val top = border + title_height
         in
+            (* solid *)
+            SDL.fillrect (surf, x, y,
+                          w + left + right,
+                          h + top + bottom,
+                          border_color);
+
+            (* highlights *)
+            (* XXX only if border *)
             SDL.fillrect (surf, x, y,
                           w + left + right,
                           1,
                           light_color);
             (* XXX left, right, bottom as well *)
 
-            SDL.fillrect (surf, x, y,
-                          w + left + right,
-                          h + top + bottom,
-                          border_color);
 
             drawtitle (surf, x + border, y + border);
             (* finally, draw child *)
-            child_draw (surf, x + left, y + bottom, w, h)
+            child_draw (surf, x + left, y + top, w, h)
         end
 
     (* XXX *)
-    fun handleevent (W { ... }) evt =
-(*
-             andalso x >= !editx 
-             andalso y >= !edity
-             andalso x < !editx + (MARGIN * 2) + (TILEW * EDITW)
-             andalso y < !edity + (MARGIN * 2 + MARGIN_TOP) + (TILEH * EDITH)
-*)
-        let in
-            print "window event handler unimplemented\n";
-            false
+    fun handleevent (W { x = ref x, y = ref y, w = ref w, h = ref h, 
+                         border, title_height, click,
+                         ... }) evt =
+        let 
+            val left = border
+            val right = border
+            val bottom = border
+            val top = border + title_height
+        in
+            case evt of 
+                SDL.E_MouseDown { x = mx, y = my, ... } =>
+                    if mx >= x andalso
+                       my >= y andalso
+                       mx < x + w + left + right andalso
+                       my < y + w + top + bottom
+                    then 
+                        let
+                        (* clicked in window. what kind of click was it? *)
+                        in
+                            if my < y + top
+                            then
+                                let in
+                                    print "TITLEBAR-click\n";
+                                    true
+                                end
+                            else
+                                let in
+                                    print "CLIENT-click\n";
+                                    click (mx - (x + left),
+                                           my - (y + top));
+                                    true
+                                end
+                        end
+                    else false
+              | _ => 
+                let in
+                    print "window event handler unimplemented\n";
+                    false
+                end
         end
 
+
+    fun dims (W { w, h, ...}) = { w = !w, h = !h }
 end

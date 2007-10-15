@@ -28,7 +28,9 @@ sig
   (* at a particular time step,
      draw the tile to the given surface at the
      given pixel coordinates *)
-  val draw : int * tile * SDL.surface * int * int -> unit
+  val drawat : int * tile * SDL.surface * int * int -> unit
+  (* or right now *)
+  val draw : tile * SDL.surface * int * int -> unit
 
   val drawmask : mask * SDL.surface * int * int -> unit
 
