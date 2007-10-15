@@ -142,8 +142,6 @@ struct
       (* in tiles *)
       val EDITW = 16
       val EDITH = 7
-      val MARGIN = 4
-      val MARGIN_TOP = 18
           
       val MASKS = 
           Vector.fromList 
@@ -157,111 +155,117 @@ struct
             (* XXX more *)
             ]
 
-  in
-      fun drawedit now =
-          if !showedit
-          then
-             let
-             in
-                 (* menu border *)
-                 SDL.fillrect (screen, !editx, !edity,
-                               EDITW * TILEW + (MARGIN * 2),
-                               EDITH * TILEH + (MARGIN * 2 + MARGIN_TOP),
-                               editmenucolor);
+      fun edit_click (x, y) =
+          let 
+              (* XXX Should allow to click fg/bg/mask to switch to
+                 editing that zone *)
+              (* in tiles *)
 
-                 (* indicate the zone *)
-                 SDL.fillrect (screen, 
-                               !editx + (MARGIN - 2) +
-                               ((TILEW + 2) *
-                                (case !editzone of
+              (* XXX this is wrong now *)
+              val idx = ((y div TILEH) * EDITW + (x div TILEW))
+          in
+              if idx >= 0
+              then
+                  let in
+                      print ("tile/mask " ^ Int.toString idx ^ "\n");
+                      (case !editzone of
+                           ZMASK =>
+                               if idx >= 0 andalso idx < Vector.length MASKS
+                               then editmask := Vector.sub(MASKS, idx)
+                               else ()
+                         | ZBG => editbgtile := Tile.fromword (Word32.fromInt idx)
+                         | ZFG => editfgtile := Tile.fromword (Word32.fromInt idx))
+                  end
+              else ()
+          end
+
+      fun draw_edit_child (surf, x, y, w, h) =
+          let
+              val EDITW = w div TILEW
+              val EDITH = h div TILEH
+          in
+              (* indicate the zone *)
+              SDL.fillrect (surf, 
+                            x + ~1 + 
+                            ((TILEW + 2) *
+                             (case !editzone of
                                      ZBG => 0
                                    | ZFG => 1
                                    | ZMASK => 2)), 
-                               !edity + (MARGIN - 2),
-                               TILEW + 4,
-                               TILEH + 4,
-                               editzonecolor);
+                            y - 1,
+                            TILEW + 4,
+                            TILEH + 4,
+                            editzonecolor);
+              
+              (* the background, foreground, mask *)
+              Tile.draw (now,
+                         !editbgtile, surf,
+                         x, y);
+              Tile.draw (now,
+                         !editfgtile, surf,
+                         x + TILEW + 2, y);
+              (* XXX mask too *)
 
-                 Font.draw_plain(screen, 
-                                 !editx + TILEW * 6,
-                                 !edity + 1,
-                                 (case !editzone of
-                                      ZBG => "background"
-                                    | ZFG => "foreground"
-                                    | ZMASK => "mask"));
-
-                 (* the background, foreground, mask *)
-                 Tile.draw (now,
-                            !editbgtile, screen,
-                            !editx + MARGIN,
-                            !edity + MARGIN);
-                 Tile.draw (now,
-                            !editfgtile, screen,
-                            !editx + MARGIN + TILEW + 2,
-                            !edity + MARGIN);
-
-                 case !editzone of
-                     ZMASK =>
-                        (Util.for 0 (EDITH - 1)
-                         (fn y =>
-                          Util.for 0 (EDITW - 1)
-                          (fn x =>
-                           (* might subscript *)
-                           let val m = Vector.sub (MASKS, EDITW * y + x)
-                           in
-                               Tile.drawmask (m, screen,
-                                              !editx + MARGIN + (TILEW * x),
-                                              !edity + MARGIN + MARGIN_TOP + (TILEH * y))
-                           end)) handle Subscript => ())
-                   | _ =>
-                         Util.for 0 (EDITH - 1)
-                         (fn y =>
-                          Util.for 0 (EDITW - 1)
-                          (fn x =>
-                           let val t = Tile.fromword (Word32.fromInt (EDITW * y + x))
-                           in
-                               Tile.draw (now,
-                                          t, screen, 
-                                          !editx + MARGIN + (TILEW * x),
-                                          !edity + MARGIN + MARGIN_TOP + (TILEH * y))
-                           end))
+              case !editzone of
+                  ZMASK =>
+                      (Util.for 0 (EDITH - 1)
+                       (fn yy =>
+                        Util.for 0 (EDITW - 1)
+                        (fn xx =>
+                         (* might subscript *)
+                         let val m = Vector.sub (MASKS, EDITW * yy + xx)
+                         in
+                             Tile.drawmask (m, surf,
+                                            xx + (TILEW * xx),
+                                            yy + (TILEH * yy))
+                         end)) handle Subscript => ())
+                | _ =>
+                      Util.for 0 (EDITH - 1)
+                      (fn yy =>
+                       Util.for 0 (EDITW - 1)
+                       (fn xx =>
+                        let val t = Tile.fromword (Word32.fromInt (EDITW * yy + xx))
+                        in
+                            Tile.draw (now,
+                                       t, surf, 
+                                       x + (TILEW * xx),
+                                       y + (TILEH * yy))
+                        end))
              end
+
+  in
+      val edit_window =
+          Window.make { click = fn _ => (),
+                        keydown = fn _ => false,
+                        keyup = fn _ => false,
+                        
+                        border = 2,
+                        border_color = editmenucolor,
+                        resizable = true,
+                        x = 100, y = 100,
+                        w = 200, h = 200,
+                        title_height = Font.height + 2,
+
+                        draw = draw_edit_child,
+                        drawtitle = 
+                        (fn (surf, x, y) =>
+                         Font.draw_plain(surf, 
+                                         x, y + 1,
+                                         (case !editzone of
+                                              ZBG => "background"
+                                            | ZFG => "foreground"
+                                            | ZMASK => "mask"))) }
+
+      fun drawedit now =
+          if !showedit
+          then Window.draw edit_window
           else ()
 
-      fun edit_hit (x, y) =
-          if !showedit 
-             andalso x >= !editx 
-             andalso y >= !edity
-             andalso x < !editx + (MARGIN * 2) + (TILEW * EDITW)
-             andalso y < !edity + (MARGIN * 2 + MARGIN_TOP) + (TILEH * EDITH)
-          then
-              let 
-                  (* XXX Should also allow window dragging (but do that
-                     in a general way) *)
-                  (* XXX Should allow to click fg/bg/mask to switch to
-                     editing that zone *)
-                  (* in tiles *)
-                  val x = x - (!editx + MARGIN)
-                  val y = y - (!edity + MARGIN_TOP + MARGIN)
-
-                  val idx = ((y div TILEH) * EDITW + (x div TILEW))
-              in
-                  if idx >= 0
-                  then
-                      let in
-                          print ("tile/mask " ^ Int.toString idx ^ "\n");
-                          (case !editzone of
-                               ZMASK =>
-                                   if idx >= 0 andalso idx < Vector.length MASKS
-                                   then editmask := Vector.sub(MASKS, idx)
-                                   else ()
-                             | ZBG => editbgtile := Tile.fromword (Word32.fromInt idx)
-                             | ZFG => editfgtile := Tile.fromword (Word32.fromInt idx))
-                      end
-                  else ();
-                  true
-              end
+      fun edit_hit (x, y) = 
+          if !showedit
+          then Window.click edit_window (x, y)
           else false
+
   end
 
   (* draw a view of the world where the top left of

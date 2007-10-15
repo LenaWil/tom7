@@ -15,6 +15,9 @@ group is
 font-sig.sml
 font.sml
 
+window-sig.sml
+window.sml
+
 flag-sig.sml
 flag.sml
 
