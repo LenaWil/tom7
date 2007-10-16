@@ -625,6 +625,9 @@ struct
               val () =               drawworld (iter, SOME FOREGROUND)
               val () =               drawmask iter
               val () =               drawedit iter
+              val () =       
+                 Font.draw(screen, 10, 10, 
+                           "Hello, ^1Welcome^< to my cool ^3program^<!")
           in
               flip screen;
               advance := false;
