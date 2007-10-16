@@ -5,6 +5,30 @@ struct
     open F
     val fontsurf = F.surf
 
+    structure Attr =
+    struct
+        (* PERF could cache current *)
+        datatype attr = 
+            C of int * attr
+          | A of int * attr
+          | NIL
+            
+        val pushcolor = C
+        val pushalpha = A
+        val empty = NIL
+
+        fun color (C (x, _)) = x
+          | color NIL = 0
+          | color (A (_, l)) = color l
+        fun alpha (A (a, _)) = a
+          | alpha (C (_, l)) = alpha l
+          | alpha NIL = 0
+
+        fun pop NIL = NIL
+          | pop (C (_, l)) = l
+          | pop (A (_, l)) = l
+    end
+
     val chars = Array.array(255, 0)
     val () =
         (* invert the map *)
@@ -19,10 +43,57 @@ struct
         Util.for 0 (size s - 1)
         (fn i =>
          SDL.blit(fontsurf, 
-                  Array.sub(chars, ord (String.sub(s, i))) * width, 0, width, height,
+                  Array.sub(chars, ord (String.sub(s, i))) * width, 0, 
+                  width, height,
                   surf, x + i * (width - overlap), y))
 
-    fun draw _ = raise Font "unimplemented"
+    fun draw (surf, x, y, s) = 
+        let
+            fun d(attr, x, i) =
+                let
+                    fun dr (c, i) =
+                     let in
+                         SDL.blit(fontsurf, (* XXX use alpha to select surf *)
+                                  Array.sub(chars, ord c) * width,
+                                  Attr.color attr * F.height,
+                                  width, height,
+                                  surf,
+                                  x, y);
+                         d(attr, x + (width - overlap), i + 1)
+                     end
+                in
+(*
+                    print ("size " ^ Int.toString(size s) ^ " i " ^
+                           Int.toString i ^ "\n");
+*)
+                   if i = size s then ()
+                   else
+                   case (String.sub (s, i), Int.compare(i, size s - 1)) of
+                        (_, GREATER) => () (* done *)
+                      | (#"^", LESS) => (* escape char, but only when not last *)
+                            (case String.sub(s, i + 1) of
+                                 #"<" => d(Attr.pop attr, x, i + 2)
+                               | #"^" => dr (#"^", i + 1)
+                               | c =>
+                                 if ord c >= ord #"0" andalso ord c <= ord #"9"
+                                 then d(Attr.pushcolor
+                                        ((ord c - ord #"0")
+                                         mod styles, attr),
+                                        x, i + 2)
+                                 else if ord c >= ord #"a" andalso 
+                                         ord c <= ord #"z"
+                                      then d(Attr.pushalpha
+                                             ((ord c - ord #"a")
+                                              mod dims, attr),
+                                             x, i + 2)
+                                      else (* ?? skip *)
+                                           d(attr, x, i + 2))
+                      | (c, _) => dr (c, i)
+                end
+                                  
+        in
+            d (Attr.empty, x, 0)
+        end
     fun drawcenter _ = raise Font "unimplemented"
     fun drawlines _ = raise Font "unimplemented"
     fun length _ = raise Font "unimplemented"
