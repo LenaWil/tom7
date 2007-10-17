@@ -82,6 +82,7 @@ struct
       I_GO of dir
     | I_JUMP
     | I_BOOST
+    | I_SUPERJUMP
 
   fun dir_reverse UP = DOWN
     | dir_reverse DOWN = UP
@@ -209,9 +210,9 @@ struct
               
               (* the background, foreground, mask *)
               Tile.draw (!editbgtile, surf,
-                         x, y);
+                         x, y, 0, 0);
               Tile.draw (!editfgtile, surf,
-                         x + TILEW + 2, y);
+                         x + TILEW + 2, y, 0, 0);
               (* XXX mask too *)
 
               case !editzone of
@@ -238,7 +239,8 @@ struct
                             Tile.draw (t, surf, 
                                        x + (TILEW * xx),
                                        TILEH + 2 +
-                                       y + (TILEH * yy))
+                                       y + (TILEH * yy),
+                                       0, 0)
                         end))
              end
 
@@ -309,7 +311,8 @@ struct
            (fn y =>
             Tile.draw (World.tileat(layer, xstart + x, ystart + y), screen, 
                        tlx + (x * TILEW),
-                       tly + (y * TILEH))
+                       tly + (y * TILEH),
+                       xstart + x, ystart + y)
             ))
     end
 
@@ -349,6 +352,7 @@ struct
 
   fun inttos (I_GO d) = "go " ^ dtos d
     | inttos I_JUMP = "jump"
+    | inttos I_SUPERJUMP = "superjump"
     | inttos I_BOOST = "boost"
 
   fun intends il i = List.exists (fn x => x = i) il
@@ -426,6 +430,14 @@ struct
             then (dy - JUMP_VELOCITY,
                   List.filter (fn I_JUMP => false | _ => true) i)
             else (dy, List.filter (fn I_JUMP => false | _ => true) i)
+
+          (* superjumps are cheat *)
+          val (dy, i) = 
+            if intends i (I_SUPERJUMP)
+            then (dy - (JUMP_VELOCITY * 2),
+                  List.filter (fn I_SUPERJUMP => false | _ => true) i)
+            else (dy, i)
+
 
           (* gravity *)
           val dy = dy + 1 
@@ -753,6 +765,9 @@ struct
 
     | E_KeyDown { sym = SDLK_b } => 
         loop { nexttick = nexttick, intention = I_BOOST :: i, iter = iter }
+
+    | E_KeyDown { sym = SDLK_UP } => 
+        loop { nexttick = nexttick, intention = I_SUPERJUMP :: i, iter = iter }
 
     | E_KeyDown { sym = SDLK_LEFT } =>
         (* XXX for these there should also be an impulse event,

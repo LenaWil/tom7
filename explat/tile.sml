@@ -21,6 +21,11 @@ struct
 
   val TILEW = 16
   val TILEH = 16
+  val TILEBITSW = 0w4
+  val TILEBITSH = 0w4
+  val MASKW = 0w15 : Word32.word
+  val MASKH = 0w15 : Word32.word
+
 
   fun clipmask MEMPTY _ = false
     | clipmask MSOLID _ = true
@@ -115,18 +120,18 @@ struct
     | tilefor _ = error
 
   (* should do something not ad hoc here... *)
-  fun animate (n, t) =
+  fun animate (n, t, wx, wy) =
       (* star *)
       if t >= 16 andalso t <= 18
       then 16 + (((n div 8) + (t - 16)) mod 3)
       else 
           (* flower *)
-          if t = 70 andalso ((n div 4) mod 3 = 1)
+          if t = 70 andalso (((n div 4) + wx) mod 3 = 1)
           then 71
           else 
               (* bubble *)
               if t = 64
-              then (case (n div 7) mod 9 of
+              then (case ((n div 7) + wx + wy) mod 9 of
                         0 => 64
                       | 1 => 65
                       | 2 => 66
@@ -141,12 +146,54 @@ struct
     | drawmask (m, surf, x, y) =
       SDL.blitall (tilefor m, surf, x, y)
 
-  fun drawat (_, 0w0, surf, x, y) = ()
+  fun drawat (_, 0w0, surf, x, y, _, _) = ()
+    (* stars (stationary) *)
+    | drawat (time, 0w48, surf, x, y, wx, wy) =
+      let
+          (* stars are drawn at a fixed location
+             on the screen, so figure out what
+             patch we're in and draw a whole tile's worth *)
+          val xx = Word32.fromInt wx
+          val yy = Word32.fromInt wy
+          val h = Word32.xorb(xx, 0wxDEADBEEF) + (yy * 0w31337)
+          val n = Word32.toInt (Word32.andb(h, 0w7))
+
+          fun star (0, _) = ()
+            | star (n, h) =
+              let
+                  (* assumes tilebits * 3 < 32 *)
+                  val px = Word32.andb(Word32.>>(h, TILEBITSW),
+                                       MASKW)
+                  val py = Word32.andb(Word32.>>(h, 0w1 + (0w2 * TILEBITSH)),
+                                       MASKH)
+                      
+                  val lightc = Word8.fromInt time * Word8.fromInt n 
+                  val c = SDL.color (lightc, lightc, 0wx22, 0wxFF)
+
+                  val tx = x + Word32.toInt px
+                  val ty = y + Word32.toInt py
+              in
+                  if tx >= 0 andalso ty >= 0
+                     andalso tx < SDL.surface_width surf
+                     andalso ty < SDL.surface_height surf
+                  then SDL.drawpixel(surf, tx, ty, c)
+                  else ();
+
+                  star (n - 1, 
+                        Word32.xorb(Word32.fromInt n * (h + 0w1234567),
+                                    Word32.orb(Word32.<<(h, 0w11),
+                                               Word32.>>(h, 0w32 - 0w11))))
+              end
+              
+      in
+          star (n, h)
+      end
+
     (* PERF probably other solid colors can be done more efficiently *)
-    | drawat (n, t, surf, x, y) =
+    | drawat (n, t, surf, x, y, wx, wy) =
       let 
           val t = Word32.toInt t
-          val t = animate (n, t)
+          val t = animate (n, t, wx, wy)
       in
           SDL.blit (tileset, 
                     (t mod SETW) * TILEW,
@@ -156,7 +203,7 @@ struct
                     x, y)
       end
 
-  fun draw (t, surf, x, y) = drawat(Animate.now (), t, surf, x, y)
+  fun draw (t, surf, x, y, wx, wy) = drawat(Animate.now (), t, surf, x, y, wx, wy)
 
   fun toword x = x
   fun fromword x = x (* XXX check bounds *)
