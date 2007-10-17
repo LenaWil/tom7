@@ -25,12 +25,16 @@ sig
   (* is this pixel of the mask clipped? *)
   val clipmask : mask -> int * int -> bool
 
-  (* at a particular time step,
+  (* drawat timestep tile surf pixel-x pixel-y  world-x world-y
+     at a particular time step,
      draw the tile to the given surface at the
-     given pixel coordinates *)
-  val drawat : int * tile * SDL.surface * int * int -> unit
+     given pixel coordinates.
+     most tiles ignore world-x and world-y; they are used for
+     effects like starfields, randomization, parallax, etc.
+     *)
+  val drawat : int * tile * SDL.surface * int * int * int * int -> unit
   (* or right now *)
-  val draw : tile * SDL.surface * int * int -> unit
+  val draw : tile * SDL.surface * int * int * int * int -> unit
 
   val drawmask : mask * SDL.surface * int * int -> unit
 
