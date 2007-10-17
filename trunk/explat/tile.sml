@@ -147,8 +147,25 @@ struct
       SDL.blitall (tilefor m, surf, x, y)
 
   fun drawat (_, 0w0, surf, x, y, _, _) = ()
+    | drawat (time, 0w33, surf, x, y, wx, wy) =
+      let
+          val xx = Word32.fromInt wx
+          val yy = Word32.fromInt wy
+          val h = Word32.xorb(xx * (0w1234567 + yy), 0wxDEADBEEF) + (yy * 0w31337)
+          val n = Word32.toInt (Word32.andb(h, 0w7))
+
+          val t = 
+              case Word32.andb(Word32.>> (h, 0w4), 0w7) of
+                  0w0 => 0w35
+                | 0w1 => 0w36
+                | 0w2 => 0w51
+                | 0w3 => 0w35
+                | _ => 0w52
+      in
+          drawat (time, t, surf, x, y, wx, wy)
+      end
     (* stars (stationary) *)
-    | drawat (time, 0w48, surf, x, y, wx, wy) =
+    | drawat (time, 0w32, surf, x, y, wx, wy) =
       let
           (* stars are drawn at a fixed location
              on the screen, so figure out what

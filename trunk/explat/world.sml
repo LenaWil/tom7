@@ -30,7 +30,7 @@ struct
                    y * OPENW + x)
     else 
         (case layer of
-             BACKGROUND => Tile.fromword 0w1
+             BACKGROUND => Tile.fromword 0w33 (* XXX random dirt *)
            | FOREGROUND => Tile.fromword 0w0)
                  
   fun setmask (x, y) m = 

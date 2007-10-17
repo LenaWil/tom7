@@ -74,14 +74,26 @@ struct
                           w + left + right,
                           1,
                           light_color);
-            (* XXX left, right, bottom as well *)
+            SDL.fillrect (surf, x, y,
+                          1,
+                          h + top + bottom,
+                          light_color);
 
+            SDL.fillrect (surf, x, y + h + top + bottom,
+                          w + left + right,
+                          1,
+                          dark_color);
+            SDL.fillrect (surf, x + w + left + right, y,
+                          1,
+                          h + top + bottom,
+                          dark_color);
 
             drawtitle (surf, x + border, y + border);
             (* finally, draw child *)
             child_draw (surf, x + left, y + top, w, h)
         end
 
+    val stfu = ref false
     (* XXX *)
     fun handleevent (W { x = ref x, y = ref y, w = ref w, h = ref h, 
                          border, title_height, click,
@@ -118,8 +130,12 @@ struct
                         end
                     else false
               | _ => 
-                let in
-                    print "window event handler unimplemented\n";
+                let 
+                in
+                    if !stfu
+                    then ()
+                    else print "window event handler unimplemented\n";
+                    stfu := true;
                     false
                 end
         end
