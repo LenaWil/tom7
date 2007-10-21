@@ -119,6 +119,27 @@ struct
 
     | tilefor _ = error
 
+  (* assumes power of two *)
+  val NSEEDS = 16
+  val seeds = 
+      Vector.fromList 
+      [0wxD76AA478 : Word32.word,
+       0wxE8C7B756,
+       0wx242070DB,
+       0wxC1BDCEEE,
+       0wxF57C0FAF,
+       0wx4787C62A,
+       0wxA8304613,
+       0wxFD469501,
+       0wx698098D8,
+       0wx8B44F7AF,
+       0wxFFFF5BB1,
+       0wx895CD7BE,
+       0wx6B901122,
+       0wxFD987193,
+       0wxA679438E,
+       0wx49B40821]
+
   (* should do something not ad hoc here... *)
   fun animate (n, t, wx, wy) =
       (* star *)
@@ -146,24 +167,41 @@ struct
     | drawmask (m, surf, x, y) =
       SDL.blitall (tilefor m, surf, x, y)
 
+
+  fun randomize (w1, w2, w3) = 
+      let
+          val xx = w1
+          val yy = w2 + Word32.andb(xx, 0w3)
+          val zz = Vector.sub(seeds, 
+                              Word32.toInt(Word32.andb(Word32.fromInt (NSEEDS - 1),
+                                                       yy)))
+          (* val () = print (" - " ^ Word32.toString zz ^ "\n") *)
+          val h = Word32.xorb(xx * yy, 0wxDEADBEEF) + (zz * 0w31337)
+      in
+          h
+      end
+
   fun drawat (_, 0w0, surf, x, y, _, _) = ()
     | drawat (time, 0w33, surf, x, y, wx, wy) =
       let
-          val xx = Word32.fromInt wx
-          val yy = Word32.fromInt wy
-          val h = Word32.xorb(xx * (0w1234567 + yy), 0wxDEADBEEF) + (yy * 0w31337)
-          val n = Word32.toInt (Word32.andb(h, 0w7))
-
+          val n = randomize (Word32.fromInt wx,
+                             Word32.fromInt wy,
+                             0w33)
+          val u = Word32.andb(Word32.>> (n, 0w7), 0w15)
           val t = 
-              case Word32.andb(Word32.>> (h, 0w4), 0w7) of
+              case u of
                   0w0 => 0w35
                 | 0w1 => 0w36
                 | 0w2 => 0w51
                 | 0w3 => 0w35
+                | 0w4 => 0w35
+                | 0w5 => 0w35
                 | _ => 0w52
       in
           drawat (time, t, surf, x, y, wx, wy)
       end
+
+    (* open problem: draw moving stars! *)
     (* stars (stationary) *)
     | drawat (time, 0w32, surf, x, y, wx, wy) =
       let
