@@ -28,36 +28,8 @@ group is
 ../../sml-lib/njlib/splaytree.sml
 ../../sml-lib/njlib/splay-map-fn.sml
 
-../../sml-lib/algo/edit-distance-sig.sml
-../../sml-lib/algo/edit-distance.sml
-
-../../sml-lib/misc/stamp-sig.sml
-../../sml-lib/misc/stamp.sml
-../../sml-lib/data/queue-sig.sml
-../../sml-lib/data/queue.sml
-
-../../sml-lib/parse/pos-sig.sml
-../../sml-lib/parse/pos.sml
-../../sml-lib/parse/parse-sig.sml
-../../sml-lib/parse/parse.sml
-
-../../sml-lib/text/layout-sig.sml
-../../sml-lib/text/layout.sml
-
 ../../sml-lib/util/growarray-sig.sml
 ../../sml-lib/util/growarray.sml
-
-(* ML5 lib *)
-../lambdac/intconst.sml
-../lambdac/primop.sml
-../lambdac/bytecode/bytecode.sml
-../lambdac/bytecode/tokens.sml
-../lambdac/bytecode/tokenize-sig.sml
-../lambdac/bytecode/tokenize.sml
-../lambdac/bytecode/parse-sig.sml
-../lambdac/bytecode/parse.sml
-../lambdac/bytecode/print-sig.sml
-../lambdac/bytecode/print.sml
 
 raw-network-sig.sml
 raw-network.sml
@@ -65,6 +37,7 @@ raw-network.sml
 network-sig.sml
 network.sml
 
+(*
 util.sml
 
 css.sml
@@ -94,3 +67,4 @@ session.sml
 loop.sml
 
 main.sml
+*)
