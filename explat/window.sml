@@ -11,6 +11,9 @@ struct
                w : int ref,
                h : int ref,
                
+               (* when dragging the window *)
+               drag : (int * int) option ref,
+
                (* from arg *)
                click : int * int -> unit,
                keydown : SDL.sdlk -> bool,
@@ -27,8 +30,9 @@ struct
                title_height, 
                x, y, w, h } =
         W { x = ref x, y = ref y, w = ref w, h = ref h,
+            drag = ref NONE,
             resizable = resizable, border = border, border_color = border_color,
-            title_height = title_height,
+            title_height = title_height, 
             drawtitle = drawtitle, draw = draw, keyup = keyup, keydown = keydown,
             click = click }
 
@@ -50,7 +54,7 @@ struct
         end
 
     fun draw (W { x = ref x, y = ref y, w = ref w, h = ref h,
-                  title_height,
+                  title_height, drag,
                   border, border_color, drawtitle, 
                   draw = child_draw, ... }) surf =
         let
@@ -66,7 +70,9 @@ struct
             SDL.fillrect (surf, x, y,
                           w + left + right,
                           h + top + bottom,
-                          border_color);
+                          if Option.isSome (!drag)
+                          then light_color
+                          else border_color);
 
             (* highlights *)
             (* XXX only if border *)
@@ -95,8 +101,8 @@ struct
 
     val stfu = ref false
     (* XXX *)
-    fun handleevent (W { x = ref x, y = ref y, w = ref w, h = ref h, 
-                         border, title_height, click,
+    fun handleevent (W { x, y, w = ref w, h = ref h, 
+                         border, title_height, click, drag,
                          ... }) evt =
         let 
             val left = border
@@ -105,26 +111,46 @@ struct
             val top = border + title_height
         in
             case evt of 
-                SDL.E_MouseDown { x = mx, y = my, ... } =>
-                    if mx >= x andalso
-                       my >= y andalso
-                       mx < x + w + left + right andalso
-                       my < y + w + top + bottom
+            SDL.E_MouseUp { ... } => 
+                (case !drag of
+                     NONE => false
+                   | _ => (drag := NONE; true))
+          | SDL.E_MouseMotion { xrel, yrel, ... } =>
+                (case !drag of
+                     NONE => false
+                   | SOME _ =>
+                         let 
+                             val x' = !x + xrel
+                             val y' = !y + yrel
+                             val x' = if x' < 0 then 0 else x'
+                             val y' = if y' < 0 then 0 else y'
+                         in
+                             x := x';
+                             y := y';
+                             true
+                         end)
+          | SDL.E_MouseDown { x = mx, y = my, ... } =>
+                    if mx >= !x andalso
+                       mx < !x + w + left + right andalso
+                       my >= !y andalso
+                       my < !y + w + top + bottom
                     then 
                         let
                         (* clicked in window. what kind of click was it? *)
                         in
-                            if my < y + top
+                            if my < !y + top
                             then
                                 let in
-                                    print "TITLEBAR-click\n";
+                                    (* XXX assumes not already dragging.. *)
+                                    drag := SOME (mx, my);
+                                    print "start drag\n";
                                     true
                                 end
                             else
                                 let in
                                     print "CLIENT-click\n";
-                                    click (mx - (x + left),
-                                           my - (y + top));
+                                    click (mx - (!x + left),
+                                           my - (!y + top));
                                     true
                                 end
                         end
