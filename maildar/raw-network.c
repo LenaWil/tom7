@@ -243,6 +243,7 @@ int ml_connect(const char * a, int p) {
 
 int ml_bindport(int s, int p) {
   struct sockaddr_in addr;
+  int val;
       
   addr.sin_family = AF_INET;
   addr.sin_port = htons(p);
@@ -252,7 +253,7 @@ int ml_bindport(int s, int p) {
   /* XXX SO_REUSEADDR */
 
   /* try our best to rebind even if we recently used it... */
-  int val = 1;
+  val = 1;
   /* these have error codes, but we're going to continue either way, so... */
   setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&val, sizeof(val));
   /* not available? */

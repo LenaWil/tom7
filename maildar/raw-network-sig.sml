@@ -83,6 +83,11 @@ sig
        raises RawNetwork if socket is already closed *)
     val hangup : sdesc -> unit
 
+    (* close the file descriptor, but don't hang up the connection
+       (useful when two processes might share an open socket, but
+       only one wants to talk to it) *)
+    val close : sdesc -> unit
+
       (*
     (* get the address of the host on the other end
        of this socket.

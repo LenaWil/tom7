@@ -183,6 +183,17 @@ struct
               | s => (numsocks := !numsocks + 1; (s, Unix))
         end
 
+    fun close (sk, _) =
+        let
+            val cl = _import "close" : int -> int ;
+        in
+            rdprintl ("closing fd " ^ Int.toString sk);
+            case cl sk of
+                ~1 => raise RawNetwork "socket is already closed! (hangup)"
+              | _ => (numsocks := !numsocks - 1)
+        end
+
+
     fun hangup (sk, _) = 
         let
 (*            val cl = _import "close" : int -> int ;*)
