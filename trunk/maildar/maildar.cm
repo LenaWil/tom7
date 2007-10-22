@@ -34,10 +34,15 @@ group is
 raw-network-sig.sml
 raw-network.sml
 
+child.sml
+loop.sml
+main.sml
+
+
+(*
 network-sig.sml
 network.sml
 
-(*
 util.sml
 
 css.sml

@@ -1,23 +1,16 @@
 
 fun message e =
   (case e of
-     Loop.Loop s => "loop: " ^ s
-   | RawNetwork.RawNetwork s => "rn: " ^ s
-   | Network.Network s => "network: " ^ s
-   | Session.Session s => "session: " ^ s
-   | Session.Expired => "session expired and not caught!"
-   | Execute.Execute s => "execute: " ^ s
-   | Http.Http s => "http: " ^ s
-   | Marshal.Marshal s => "marshal: " ^ s
+     RawNetwork.RawNetwork s => "rn: " ^ s
+   | Child.Child s => "child: " ^ s
    | _ => exnMessage e)
 
 val () = 
     case Params.docommandline () of
         nil => 
           (let in
-             TrivialDB.init ();
-             Loop.init ();
-             Loop.loop ()
+               Loop.init ();
+               Loop.loop nil
            end handle e => print ("ERROR: " ^ message e ^ "\n")
              )
       | _ =>

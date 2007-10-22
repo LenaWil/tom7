@@ -8,8 +8,11 @@ default : maildar
 # really old mlton
 MLTONFLAGS =
 
-maildar : *.sml maildar.cm raw-network.c 
-	-mlton $(MLTONFLAGS) maildar.cm raw-network.c
+raw-network.o : raw-network.c
+	gcc -O2 raw-network.c -c -o raw-network.o
+
+maildar : *.sml maildar.cm raw-network.o makefile
+	-mlton $(MLTONFLAGS) maildar.cm raw-network.o
 
 clean :
 	rm -rf *~ .cm CM core mlmon.out *.du *.o
