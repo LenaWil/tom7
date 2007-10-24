@@ -3,10 +3,76 @@ struct
 
     (* TODO: make last-chance timer that kills this process after 5 minutes *)
 
+    (* XXX in config.sml *)
     val MAX_MESSAGE = 1000000
+    val HOST = "tom7.org"
 
     structure R = RawNetwork
     exception Child of string
+
+    fun eprint s = TextIO.output(TextIO.stdErr, s)
+
+    exception BadMail of string
+    fun receive_mail (from, to, lines) =
+        let 
+            fun isspace #" " = true
+              (* continued headers indented by tab, not space *)
+              | isspace #"\t" = true 
+              | isspace _ = false
+
+            fun getheaders _ nil = raise BadMail "no body?"
+              | getheaders hdrs ("" :: "" :: t) = (rev hdrs, t)
+              | getheaders hdrs (h :: t) = getheaders (h :: hdrs) t
+            val (headers, body) = getheaders nil lines
+
+            (* search through headers for 
+               Content-Type: multipart/mixed;
+                  boundary=YYYYYYYYYYYYY
+               *)
+            fun getboundary nil = raise BadMail "no content-type"
+              | getboundary (s :: t) =
+                case StringUtil.token isspace s of
+                    ("Content-Type:", rest) =>
+                        (case StringUtil.token isspace rest of
+                             ("multipart/mixed;", more) =>
+                                 (* now, boundary= might be on
+                                    the same line or the next.
+                                    make these cases the same: *)
+                                 let
+                                     val b = more ^ " " ^ (case t of 
+                                                               nil => ""
+                                                             | nn :: _ => nn)
+
+                                     val () = eprint ("b: [" ^ b ^ "]\n")
+
+                                     (* this also assumes there is no quoted
+                                        space in the boundary, which is
+                                        reasonable *)
+                                     val (tok, _) = StringUtil.token isspace b
+                                 in
+                                     eprint ("btok: [" ^ tok ^ "]\n");
+                                     (* tok should be
+                                        boundary=YYYYYYY
+                                        or 
+                                        boundary="YYYYYYYYY" *)
+                                     (case StringUtil.token (fn #"=" => true
+                                                                 | _ => false) tok of
+                                          ("boundary", tok) =>
+                                              (* then just unquote it;
+                                                 I just assume quotes don't appear *)
+                                              StringUtil.filter 
+                                                (fn #"\"" => false | _ => true) (* " *) tok
+                                        | _ => raise BadMail "expected boundary for multipart/mixed")
+                                 end
+                           | _ => raise BadMail "expected content-type multipart/mixed")
+                  | _ => getboundary t
+
+            val boundary = getboundary headers
+            val () = eprint ("boundary: [" ^ boundary ^ "]\n")
+        in
+            ()
+        (* FIXME HERE do it *)
+        end
 
     fun sendall (sock : R.sdesc, str : string) =
         let
@@ -93,7 +159,7 @@ struct
           | ["from:", addr, ""] => SOME addr
           | _ => 
                 let in
-                    TextIO.output(TextIO.stdErr, "Bad addr line: " ^ s ^ "\n");
+                    eprint ("Bad addr line: " ^ s ^ "\n");
                     NONE
                 end
     
@@ -114,11 +180,11 @@ struct
                         let in
                             print ("data: " ^ line ^ "\n");
                             (case StringUtil.field (fn #" " => true 
+                                                    (* XXX already filtered these out *)
                                                      | #"\r" => true
                                                      | #"\n" => true
                                                      | _ => false) line of
-                                 (".", _) => (sendall(sock, "250 OK Accepted\n");
-                                              process p)
+                                 (".", _) => process p
                                | _ =>
                                      let in
                                          msize := !msize + size line;
@@ -157,10 +223,14 @@ struct
                     val from = valOf (!sender)
                     val to =   valOf (!recipient)
                 in
-                    TextIO.output(TextIO.stdErr, "From: " ^ from ^ " To: " ^ to ^ "\n");
-                    (* FIXME HERE do it *)
+                    eprint ("From: " ^ from ^ " To: " ^ to ^ "\n");
+                    receive_mail(from, to, rev (!message));
+                    sendall(sock, "250 OK Accepted\n");
                     finish p
-                end
+                end handle BadMail s => (sendall(sock, "500 Bad Mail: " ^ s ^ "\n");
+                                         eprint ("(process) bad mail: " ^ s ^ "\n");
+                                         R.hangup sock;
+                                         raise Done)
 
             and prot (p : L.pack) =
                 case L.recvline (sock, p) of
@@ -174,7 +244,7 @@ struct
                                                      | _ => false) line of
                                  ("HELO", _) => 
                                      let in
-                                         sendall(sock, "250 tom7.org Wide awake and physical.\n");
+                                         sendall(sock, "250 " ^ HOST ^ " Wide awake and physical.\n");
                                          prot p
                                      end
                                | ("MAIL", rest) => 
@@ -207,7 +277,7 @@ struct
                                      (case (!sender, !recipient) of
                                           (SOME _, SOME _) => 
                                               (sendall(sock, "354 Enter mail, ending with .\n");
-                                               TextIO.output(TextIO.stdErr, "Data time.\n");
+                                               eprint ("Data time.\n");
                                                getmode p)
                                         | _ =>
                                               (sendall(sock, "500 Need both sender and recipient before data.\n");
@@ -223,7 +293,7 @@ struct
                             prot p
                         end handle Done => ()
         in
-            TextIO.output(TextIO.stdErr, "I'm the child.\n");
+            eprint ("I'm the child.\n");
             sendall(sock,
                     "220 Don't get confused.\n");
             prot (L.empty);
@@ -236,7 +306,7 @@ struct
                     "221 Time to go\n");
             print (recvall sock);
 *)
-            TextIO.output(TextIO.stdErr, "\n\n--- exiting ---\n");
+            eprint ("\n\n--- exiting ---\n");
             Posix.Process.exit 0w0;
             ()
         end
