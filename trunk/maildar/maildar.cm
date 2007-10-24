@@ -20,6 +20,9 @@ group is
 ../../sml-lib/util/fsutil-sig.sml
 ../../sml-lib/util/fsutil.sml
 
+../../sml-lib/misc/base64-sig.sml
+../../sml-lib/misc/base64.sml
+
 ../../sml-lib/njlib/lib-base-sig.sml
 ../../sml-lib/njlib/lib-base.sml
 ../../sml-lib/njlib/ord-key-sig.sml
