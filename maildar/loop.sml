@@ -35,7 +35,7 @@ struct
           (* block waiting for connection... *)
           val () = print "waiting for connection..."
           val (peer, _) = R.accept (!! listener)
-          val () = print "connected!"
+          val () = print "connected!\n"
       in 
           (* fork child.
              parent closes peer, child closes listener. *)
