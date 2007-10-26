@@ -4,13 +4,23 @@ struct
     (* TODO: make last-chance timer that kills this process after 5 minutes *)
 
     (* XXX in config.sml *)
-    val MAX_MESSAGE = 1000000
-    val HOST = "tom7.org"
+    open Config
 
     structure R = RawNetwork
     exception Child of string
 
     fun eprint s = TextIO.output(TextIO.stdErr, s)
+
+    fun execute (from, to, parts) =
+        case Config.what_addr to of
+            
+            
+        
+
+    datatype part =
+        Text of string
+      (* decoding the base64 *)
+      | Data of string
 
     exception BadMail of string
     fun receive_mail (from, to, lines) =
@@ -20,10 +30,11 @@ struct
               | isspace #"\t" = true 
               | isspace _ = false
 
-            fun getheaders _ nil = raise BadMail "no body?"
-              | getheaders hdrs ("" :: "" :: t) = (rev hdrs, t)
-              | getheaders hdrs (h :: t) = getheaders (h :: hdrs) t
-            val (headers, body) = getheaders nil lines
+            fun getheaders true _ nil = raise BadMail "no body?"
+              | getheaders false hdrs nil = (rev hdrs, nil)
+              | getheaders _ hdrs ("" :: t) = (rev hdrs, t)
+              | getheaders needbody hdrs (h :: t) = getheaders needbody (h :: hdrs) t
+            val (headers, body) = getheaders true nil lines
 
             (* search through headers for 
                Content-Type: multipart/mixed;
@@ -69,9 +80,60 @@ struct
 
             val boundary = getboundary headers
             val () = eprint ("boundary: [" ^ boundary ^ "]\n")
+
+            (* per RFC 2046, add these dashes *)
+            val boundary = "--" ^ boundary
+                
+        (* Now we expect to see the message consist of parts 
+           separated by the unique string --boundary
+           starting lines (and possibly including other garbage at the
+           end of the line, ignored) *)
+            fun eatparts parts cur nil = rev (rev cur :: parts)
+              | eatparts parts cur (h :: t) =
+                if StringUtil.matchhead boundary h
+                then eatparts (rev cur :: parts) nil t
+                else eatparts parts (h :: cur) t
+
+            val parts = eatparts nil nil body
+
+            datatype encoding = ASCII | BASE64
+
+            fun dopart lines =
+                let
+                    val (h, b) = getheaders false nil lines
+                    (* assume ASCII when there are no headers *)
+                    fun gettype nil = ASCII
+                      | gettype (h :: t) =
+                        case StringUtil.token (fn #" " => true | _ => false) h of
+                            ("Content-Transfer-Encoding:", enc) =>
+                                (case StringUtil.token (fn #" " => true | _ => false) enc of
+                                     ("7bit", _) => ASCII
+                                   | ("base64", _) => BASE64
+                                   | _ => raise BadMail ("unknown content encoding " ^ enc))
+                          | _ => gettype t
+                in
+                    case gettype h of
+                        ASCII => Text (StringUtil.delimit "\n" b)
+                      | BASE64 =>
+                          (case Base64.decode (String.concat b) of
+                               NONE => raise BadMail "couldn't decode base64 region"
+                             | SOME data => Data data)
+                end
+
+            val parts = map dopart parts
         in
-            ()
-        (* FIXME HERE do it *)
+            app (fn Text s =>
+                 let in
+                     print "### Text part: ###\n";
+                     print s;
+                     print "\n"
+                 end
+                  | Data d => 
+                 let in
+                     print "### Data part ###\n";
+                     print ("(" ^ Int.toString (size d) ^ " bytes)\n")
+                 end) parts;
+            execute (from, to, parts)
         end
 
     fun sendall (sock : R.sdesc, str : string) =
@@ -255,10 +317,18 @@ struct
                                                   prot p
                                               end
                                         | SOME addr => 
+                                          if Config.senderok addr
+                                          then 
                                               let in
                                                   sender := SOME addr;
                                                   sendall(sock, "250 Sender ok\n");
                                                   prot p
+                                              end
+                                          else
+                                              let in
+                                                  sendall(sock, "500 Sender not permitted\n");
+                                                  R.hangup sock;
+                                                  raise Done
                                               end)
                                | ("RCPT", rest) =>
                                      (case getaddr rest of
