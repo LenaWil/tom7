@@ -16,7 +16,12 @@ sig
 
     (* What is the name of the mail host? *)
     val HOST : string
-        
+
+    val MSG_HOST : string
+    val MSG_PORT : int
+    val MSG_POSTNAME : string
+    val MSG_IMGTITLE : string
+
     (* After getting this many bytes, give up. *)
     val MAX_MESSAGE : int
 

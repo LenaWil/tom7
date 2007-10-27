@@ -216,13 +216,12 @@ int ml_connect(const char * a, int p) {
     dest.sin_addr = *((struct in_addr *)h->h_addr);
   } else dest.sin_addr.s_addr = inet_addr(a);
 
-  /*
   printf("Connecting to IP: %d.%d.%d.%d \n",
-	 255 & ((int)dest.sin_addr.s_addr >> 24),
-	 255 & ((int)dest.sin_addr.s_addr >> 16),
+	 255 & (int)dest.sin_addr.s_addr,
 	 255 & ((int)dest.sin_addr.s_addr >> 8),
-	 255 & (int)dest.sin_addr.s_addr);
-  */
+	 255 & ((int)dest.sin_addr.s_addr >> 16),
+	 255 & ((int)dest.sin_addr.s_addr >> 24));
+
   dest.sin_family = AF_INET;
   dest.sin_port = htons(p);
 
@@ -233,8 +232,9 @@ int ml_connect(const char * a, int p) {
      the old flags, first, so that I can preserve them. */
   fcntl(s, F_SETFL, O_NONBLOCK);
 
-  if(connect(s, (struct sockaddr *) &dest, sizeof (struct sockaddr)) == -1)
-    /*printf("CONNECT ERROR: %s\n", strerror(errno))*/;
+  if(connect(s, (struct sockaddr *) &dest, sizeof (struct sockaddr)) == -1) {
+    printf("CONNECT ERROR: %s\n", strerror(errno));
+  }
 
   fcntl(s, F_SETFD, 1); /* don't keep open across exec */
 
