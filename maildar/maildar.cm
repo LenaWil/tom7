@@ -37,11 +37,14 @@ group is
 raw-network-sig.sml
 raw-network.sml
 
+passwd-sig.sml
+passwd.sml
+
 config-sig.sml
 (* you must implement this; see config.sml.example *)
 config.sml
 
-send.sml
+action.sml
 child.sml
 loop.sml
 main.sml

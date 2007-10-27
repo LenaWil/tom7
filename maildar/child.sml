@@ -11,16 +11,8 @@ struct
 
     fun eprint s = TextIO.output(TextIO.stdErr, s)
 
-    fun execute (from, to, parts) =
-        case Config.what_addr to of
-            
-            
-        
-
-    datatype part =
-        Text of string
-      (* decoding the base64 *)
-      | Data of string
+    fun execute (from, to, subject, parts) =
+        Action.perform (Config.what_action to, subject, parts)
 
     exception BadMail of string
     fun receive_mail (from, to, lines) =
@@ -35,6 +27,15 @@ struct
               | getheaders _ hdrs ("" :: t) = (rev hdrs, t)
               | getheaders needbody hdrs (h :: t) = getheaders needbody (h :: hdrs) t
             val (headers, body) = getheaders true nil lines
+
+            val subject =
+                case ListUtil.findpartial
+                    (fn s =>
+                     if StringUtil.matchhead "Subject: " s
+                     then SOME (#2 (StringUtil.token isspace s))
+                     else NONE) headers of
+                    SOME s => s
+                  | NONE => "(no subject)"
 
             (* search through headers for 
                Content-Type: multipart/mixed;
@@ -113,27 +114,27 @@ struct
                           | _ => gettype t
                 in
                     case gettype h of
-                        ASCII => Text (StringUtil.delimit "\n" b)
+                        ASCII => Action.Text (StringUtil.delimit "\n" b)
                       | BASE64 =>
                           (case Base64.decode (String.concat b) of
                                NONE => raise BadMail "couldn't decode base64 region"
-                             | SOME data => Data data)
+                             | SOME data => Action.Data data)
                 end
 
             val parts = map dopart parts
         in
-            app (fn Text s =>
+            app (fn Action.Text s =>
                  let in
                      print "### Text part: ###\n";
                      print s;
                      print "\n"
                  end
-                  | Data d => 
+                  | Action.Data d => 
                  let in
                      print "### Data part ###\n";
                      print ("(" ^ Int.toString (size d) ^ " bytes)\n")
                  end) parts;
-            execute (from, to, parts)
+            execute (from, to, subject, parts)
         end
 
     fun sendall (sock : R.sdesc, str : string) =
@@ -240,7 +241,7 @@ struct
                     NONE => print "bye-bye\n"
                   | SOME (line, p) =>
                         let in
-                            print ("data: " ^ line ^ "\n");
+                            (* print ("data: " ^ line ^ "\n"); *)
                             (case StringUtil.field (fn #" " => true 
                                                     (* XXX already filtered these out *)
                                                      | #"\r" => true

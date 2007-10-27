@@ -2,6 +2,25 @@
 structure Loop =
 struct
 
+  val passwd_file = 
+      Params.param "/etc/passwd" 
+                   (SOME ("-passwd", "The passwd file")) 
+                   "passwd_file"
+
+  val drop_privs =
+        Params.flag true
+           (SOME
+            ("-drop-privs",
+             "Setuid to an unprivileged account"))
+           "drop_privs"
+           
+  val account =
+        Params.param "nobody"
+           (SOME
+            ("-account",
+             "Account to run as (if drop-privs set)"))
+           "account"
+
   val port = Params.param "25"
         (SOME("-port",
               "The port to listen on."))
@@ -20,7 +39,7 @@ struct
     | !! _ = raise Loop "impossible !! NONE"
 
   fun loop children =
-      let 
+      let
           fun wait ps = 
               (case Posix.Process.waitpid_nh 
                    (Posix.Process.W_ANY_CHILD, nil) of
@@ -55,6 +74,23 @@ struct
       end
 
   fun init () =
-    listener := SOME ` R.listen ` Params.asint 5555 port
+      let in
+          listener := SOME ` R.listen ` Params.asint 5555 port;
+          (* then drop privileges immediately *)
+          if (!drop_privs) then
+            let in
+              Passwd.readdb (!passwd_file);
+              case Passwd.lookup (!account) of
+                  NONE => 
+                      let in
+                          print ("Can't switch to user '" ^ !account ^ "'!\n");
+                          raise Exit
+                      end
+                | SOME {uid, ...} => 
+                      Posix.ProcEnv.setuid (Posix.ProcEnv.wordToUid 
+                                            (Word32.fromInt uid))
+            end
+          else ()
+      end
 
 end
