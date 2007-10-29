@@ -122,9 +122,10 @@ struct
                  ("pass", Config.WEBLOG_PASS),
                  ("cssclass", "mobile"),
                  ("kindname", "mobile"),
+                 ("weblink", ""),
                  ("kind", "5"), (* image *)
                  ("title", subject),
-                 ("content", message_body)]
+                 ("body", message_body)]
 
             val bodyparts =
                 map (fn (key, data) =>
@@ -145,7 +146,7 @@ struct
 
             val msg =
                 "POST /f/a/weblog/insert HTTP/1.1" ^ CRLF ^
-                "Host: " ^ Config.MSG_HOST ^ CRLF ^
+                "Host: " ^ Config.WEBLOG_HOST ^ CRLF ^
                 "Accept: text/xml,application/xml,application/xhtml+xml," ^
                     "text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5" ^ CRLF ^
                 "Accept-Language: en-us,en;q=0.5" ^ CRLF ^
@@ -158,6 +159,9 @@ struct
                 CRLF ^
                 body
         in
+            StringUtil.writefile "/tmp/coolz" msg;
+            print "Here's the message: (in /tmp/coolz)\n";
+
             connectsend(Config.WEBLOG_HOST, Config.WEBLOG_PORT, msg);
             print "message sent!\n"
         end
