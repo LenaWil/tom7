@@ -12,10 +12,13 @@ sig
     (* Passwords, which don't have to be correct
        if you don't want to use these features *)
     val MSG_ADMINPASS : string
-    val WEBLOG_ADMINPASS : string
+    val WEBLOG_PASS : string
 
     (* What is the name of the mail host? *)
     val HOST : string
+
+    val WEBLOG_HOST : string
+    val WEBLOG_PORT : int
 
     val MSG_HOST : string
     val MSG_PORT : int
@@ -30,5 +33,9 @@ sig
 
     (* determine the intended action from the to: addr *)
     val what_action : string -> action
+
+    (* applied to each textual line in the input; if false,
+       that line is excised *)
+    val linefilter : string -> bool
 
 end
