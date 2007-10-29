@@ -84,7 +84,7 @@ struct
                   NONE => 
                       let in
                           print ("Can't switch to user '" ^ !account ^ "'!\n");
-                          raise Exit
+                          raise Loop ("can't drop privileges")
                       end
                 | SOME {uid, ...} => 
                       Posix.ProcEnv.setuid (Posix.ProcEnv.wordToUid 

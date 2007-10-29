@@ -114,7 +114,12 @@ struct
                           | _ => gettype t
                 in
                     case gettype h of
-                        ASCII => Action.Text (StringUtil.delimit "\n" b)
+                        ASCII => 
+                            let
+                                val b = List.filter Config.linefilter b
+                            in
+                                Action.Text (StringUtil.delimit "\n" b)
+                            end
                       | BASE64 =>
                           (case Base64.decode (String.concat b) of
                                NONE => raise BadMail "couldn't decode base64 region"
