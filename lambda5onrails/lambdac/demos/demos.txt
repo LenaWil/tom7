@@ -4,3 +4,6 @@ saytest2
 trivialdb
 threads
 watchkey
+chat
+wiki
+

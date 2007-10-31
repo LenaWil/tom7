@@ -5,7 +5,7 @@ struct
   val width = 1024
   val str = StringUtil.readfile "dump.txt"
 
-  val height = 1 + (size str div 1024)
+  val height = 1 + (size str div width)
 
   val a = Array.tabulate(4 * width * height,
                          fn x =>
