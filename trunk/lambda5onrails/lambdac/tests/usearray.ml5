@@ -1,30 +1,41 @@
+(* Testing that array sub and update work correctly for a variety of arrays *)
+(* RJS, Nov 2 2007 *) 
+
 unit
 
 import "std.mlh"
+import "dom.mlh"
 
-val strarray = array(10,"Elet")
+val strarray = array(10,"Element")
+do update(strarray,9,"The Last Element")
 
 val intarray = array(10,3134)
+do update(intarray,9,31343134)
 
-datatype stuff = Elet | LastElet
-val stos = fn Elet => "Elet" | LastElet => "LastElet"
+datatype stuff = Elet of int | LastElet of string
+val stos = fn (Elet i) => [Elet #[itos i]] | (LastElet s) => [LastElet "[s]"]
 
-val stuffarray = array(10,Elet)
+val stuffarray = array(10,Elet 4)
+do update(stuffarray,9,LastElet "Goodbye!")
 
-do alert("Array access - string")
-do alert[This is the first element: [sub(strarray,0)]]
-do update(strarray,9,"The Last Elet")
-do alert[This is the last element: [sub(strarray,0)]]
-
-do alert("Array access - int")
-do alert[This is the first element: #[itos(sub(intarray,0))]]
-do update(intarray,9,100)
-do alert[This is the last element: #[itos(sub(intarray,0))]]
-
-do alert("Array access - datatype stuff")
-do alert[This is the first element: #[stos(sub(stuffarray,0))]]
-do update(stuffarray,9,LastElet)
-do alert[This is the last element: #[stos(sub(stuffarray,0))]]
-
+do dom.setstring 
+   (dom.getbyid [page],
+     [innerHTML],
+     [Array access - string
+      <ul>
+        <li>This is the first element: "[sub(strarray,0)]"</li> 
+        <li>This is the last element: "[sub(strarray,9)]"</li>
+      </ul>
+      Array access - int
+      <ul>
+        <li>This is the first element: #[itos(sub(intarray,0))]</li>
+        <li>This is the last element: #[itos(sub(intarray,9))]</li>
+      </ul>
+      Array access - datatype stuff
+      <ul>
+        <li>This is the first element: ** [stos(sub(stuffarray,0))] **</li>
+        <li>This is the last element: ** [stos(sub(stuffarray,9))] **</li>
+      </ul>
+     ])
 
 in end
