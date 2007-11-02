@@ -2,6 +2,7 @@ structure Leaf =
 struct
 
   datatype primcon = 
+    (* which is array.. *)
     VEC 
   | REF
     (* the type of dictionaries for this type *)
