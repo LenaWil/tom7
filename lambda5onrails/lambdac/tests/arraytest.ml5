@@ -1,0 +1,12 @@
+unit
+
+import "std.mlh"
+
+datatype values = 
+    Null
+  | String of string
+  | Int of int
+
+val bob = array(10,0)
+
+in end
