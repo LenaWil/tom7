@@ -156,8 +156,8 @@ fun eval_me(row,col,str) : string =
          | (v,Null) => v
          | (Int i,Int j) => Int(i * j)
          | (Int i,String j) => String [[itos i]*[j]]
-         | (String i,Int j) => String [######]
-         | (String i,String j) => String [[i] times [j]] 
+         | (String i,Int j) => String [[i]*[itos j]]
+         | (String i,String j) => String [[i]*[j]] 
          | _ => Null
 
       fun eval (data: data) : value = 
