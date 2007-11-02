@@ -12,7 +12,7 @@ MLTON_FLAGS = -verbose 1 -expert true
 #	rm -f lambdac.exe
 #	cp lambdac lambdac.exe
 
-lambdac : makefile lambdac.cm *.sml ast/*.sml codegen/*.sml js/*.sml js/lib/*.sml front/*.sml el/*.sml parser/*.sml util/*.sml cps/*.sml il/*.sml ../../sml-lib/util/*.sml ../../sml-lib/algo/*.sml
+lambdac : makefile lambdac.cm *.sml ast/*.sml codegen/*.sml js/*.sml js/lib/*.sml front/*.sml el/*.sml parser/*.sml util/*.sml cps/*.sml il/*.sml ../../sml-lib/util/*.sml ../../sml-lib/algo/*.sml bytecode/*.sml
 	-mlton $(MLTON_FLAGS) lambdac.cm
 #	grep -v basis lambdac.basis.du > lambdac.du
 

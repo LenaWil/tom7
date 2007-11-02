@@ -122,6 +122,7 @@ struct
       | ptoct (PT_VAR v) = TVar' v
       | ptoct PT_UNIT = Product' nil
       | ptoct (PT_REF p) = Primcon' (REF, [ptoct p])
+      | ptoct (PT_ARRAY p) = Primcon' (VEC, [ptoct p])
       | ptoct _ = raise CPS "unimplemented ptoct"
   end
 

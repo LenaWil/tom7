@@ -202,8 +202,12 @@ struct
              (fn va => wi (fn p => Bind (p, Project("l" ^ s, va), k ` Var p)))
 
 
-         | C.Inj _ => Error "inj unimplemented"
-             (* wi (fn p => Bind (p, String "inj unimplemented", k ` Var p)) *)
+         | C.Inj (s, _, SOME va) => 
+             cvtv va
+             (fn va => wi (fn p => Bind (p, Inj(s, SOME va), k ` Var p)))
+
+         | C.Inj (s, _, NONE) => 
+             wi (fn p => Bind (p, Inj(s, NONE), k ` Var p))
 
          | C.AllApp { f, worlds = _, tys = _, vals = vals as _ :: _ } => 
              cvtv f
