@@ -1,7 +1,3 @@
-unit
-
-import "std.mlh"
-
 datatype data = 
     Add of data * data
   | Mult of data * data
@@ -118,6 +114,4 @@ fun parse(str) =
         parse_check()
     end 
 
-do alert(dtos(parse[=+6*"ABC"+A10A2*"ABC"+45    6])) 
 
-in end
