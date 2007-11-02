@@ -8,8 +8,11 @@
 
     input.summary { width : 70% ; }
 
+    td.header { background : #AAAAAA }
+    div.disp { background : #FFFFBB ; padding : 2px; width : 64px ; 
+	       font-size : 10px; overflow-x : hidden ; overflow-y : hidden }
     input.cell { border : none ; margin : 0px ; padding : 2px ;
-                 width : 6em ; font-size : 10px }
+                 width : 64px ; font-size : 10px }
 
     .button { padding : 4px ; margin : 4px ; border : 2px outset #777777 ; 
 	      background : #DDDDDD ; cursor : hand ; cursor : pointer }

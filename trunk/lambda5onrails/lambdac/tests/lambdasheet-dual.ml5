@@ -50,7 +50,6 @@ unit
         let put cid = cellid cell
             put v = dom.getstring(dom.getbyid cid, [value])
         in
-            dom.blur ();
             from server get
             trivialdb.update (cid, v)
         end
@@ -58,51 +57,30 @@ unit
         (* could color this as unsaved? *)
 
     val table =
-     let
-         fun show-cell s =
-             let in
-                 dom.setstring(dom.getnode(dom.getbyid s, "style"),
-                               "display",
-                               "block");
-                 dom.focus(dom.getbyid s)
-             end
-         fun hide-cell s =
-             dom.setstring(dom.getnode(dom.getbyid s, "style"),
-                           "display",
-                           "none")
-
-         fun blur (x, y) =
-             let in
-                 cell-key (x, y) ?\r;
-                 hide-cell (cellid (x, y))
-             end
-
-         fun makecells (y, x) =
+     let fun makedcells (y, x) =
            if x >= WIDTH
            then ""
-           else [<td style="overflow-x:hidden;width:64px">\
-                 <div 
-                  onclick="[say show-cell (cellid (x, y))]"
-                  class="cell" type="text" id="[cellidd (x, y)]">&nbsp;</div>
-                 <input 
-                  style="display:none"
-                  class="cell" type="text" id="[cellid (x, y)]"
-                  onblur="[say blur (x, y)]"
+           else [<td>\
+                 <div class="disp" id="[cellidd (x, y)]">&nbsp;</div>\
+                 </td>[makedcells (y, x + 1)]]
+
+         fun makeicells (y, x) =
+           if x >= WIDTH
+           then ""
+           else [<td>\
+                 <input class="cell" type="text" id="[cellid (x, y)]"
+                  onblur="[say cell-key (x, y) ?\r]"
                   onkeyup="[say { event.keyCode = c } cell-key (x, y) c]"/>\
-                 </td>[makecells (y, x + 1)]]
+                 </td>[makeicells (y, x + 1)]]
 
          fun makerows y =
            if y >= HEIGHT
            then ""
-           else [<tr><td class="header">[rowname y]</td>[makecells (y, 0)]</tr>
+           else [<tr>[makedcells (y, 0)]</tr>
+                 <tr>[makeicells (y, 0)]</tr>
                  [makerows (y + 1)]]
-         fun makehead x =
-           if x >= WIDTH
-           then ""
-           else [<td class="header">[itos x]</td>[makehead (x + 1)]]
      in
-         [<table>
-          <tr><td>&nbsp;</td>[makehead 0]</tr>
+         [<table style="spreadsheet">
           [makerows 0]
           </table>]
      end
@@ -155,7 +133,7 @@ unit
              fun propagate n =
                  let in
                      app-cells update-display;
-                     ignore (js.settimeout (say propagate (n + 1), 100))
+                     ignore (js.settimeout (say propagate (n + 1), 1000))
                  end
          in
              list-app updated-cell l;
