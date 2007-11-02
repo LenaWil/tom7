@@ -822,11 +822,19 @@ function lc_time_difference(st, en) {
 
 function lc_time_lessthan(a, b) {
     return (a < b) ? { t : "true" } : { t : "false" };
-}
+};
 
 function lc_time_eq(a, b) {
     return (a === b) ? { t : "true" } : { t : "false" };
-}
+};
+
+function lc_array(len, init) {
+    var a = new Array(len);
+    for(var i = 0; i < init; i ++) {
+	a[i] = init;
+    }
+    return a;
+};
 
 /* XXX now a prim, not extern */
 function lc_itos(i) {

@@ -453,6 +453,12 @@ struct
         | primexp P.PGet [obj]  = Sel obj "v"
         | primexp P.PSet [obj, va] = Assign { lhs = Sel obj "v", oper = AssignOp.Equals, rhs = va }
 
+        | primexp P.PArray [num, init] = Call { func = Id ` $"lc_array",
+                                                args = %[num, init] }
+        | primexp P.PSub [arr, x] = Sele arr x
+        | primexp P.PUpdate [arr, x, a] = Assign { lhs = Sele arr x, oper = AssignOp.Equals, rhs = a }
+
+        (* XXX and arraylength *)
         | primexp po _ = raise JSCodegen ("unimplemented native primop " ^ Primop.tostring po)
 
       fun cvte exp : Statement.t list =
