@@ -33,6 +33,10 @@ struct
               "The port to listen on."))
         "port"
 
+  val steps = Params.param "60"
+        (SOME("-steps",
+              "Steps to do in one loop.")) "steps"
+
   infixr 9 `
   fun a ` b = a b
 
@@ -52,12 +56,15 @@ struct
 
   val log = TextIO.openAppend "log.txt"
 
+  fun dosteps 0 = true
+    | dosteps n = Session.step () andalso dosteps (n - 1)
+
   fun loop () =
     let
       (* Step our sessions. If there was anything to do, then use a very
          short timeout so that we can do more soon. Otherwise, wait longer
          so that we don't chew CPU. *)
-      val to = if Session.step ()
+      val to = if dosteps (Params.asint 6 steps)
                then Time.fromMilliseconds 5
                else Time.fromMilliseconds 1000
 

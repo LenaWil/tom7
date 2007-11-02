@@ -336,7 +336,7 @@ struct
                    let
                      val n = length sdl
                    in
-                     print ("in drect there are " ^ Int.toString n ^ "\n");
+                     (* print ("in drect there are " ^ Int.toString n ^ "\n"); *)
                      "DR " ^ Int.toString n ^ " " ^
                      StringUtil.delimit " " (map (fn (s,d) => s ^ " " ^ mar G loc (Dp Ddict) d) sdl)
                    end
