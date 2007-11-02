@@ -8,7 +8,7 @@ unit
     import "lock.mlh"
     import "regexp.mlh"
 
-    import "lambdasheets.mlh"
+    import "lambdasheet.mlh"
 
     put WIDTH = 12
     put HEIGHT = 12
