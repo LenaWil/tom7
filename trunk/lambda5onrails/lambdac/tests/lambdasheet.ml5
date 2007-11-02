@@ -15,17 +15,6 @@ unit
 
     do runtime.no-messages ()
 
-    (* really simple expressions, for now *)
-    datatype value =
-         Int of int
-       | String of string
-
-    datatype exp =
-         Plus of exp * exp
-       | Times of exp * exp
-       | Val of value
-      (* XXX vars *)
-
     fun inline cellid (x, y) = [c[itos x]_[itos y]]
     fun inline cellidd c = [d[cellid c]]
 
@@ -47,7 +36,14 @@ unit
     do dom.setstring 
         (dom.getbyid [page],
          [innerHTML],
-         [please wait.])
+         [<style>[datafile "lambdasheet.css"]</style>
+          <div id="sheet">
+          <div style="border : 1px solid #999999; text-align : center;\
+           margin-left : auto; margin-right: auto; font: 48px Verdana, \
+           Arial, Helvetica">please wait.</div>
+          </div><br />\
+          <img width="349" height="46" src="/static/lambdasheet-logo.png" />
+          ])
 
     fun cell-key cell ?\r = 
         let put cid = cellid cell
@@ -80,10 +76,9 @@ unit
      end
 
     do dom.setstring 
-        (dom.getbyid [page],
+        (dom.getbyid [sheet],
          [innerHTML],
-         [<style>[datafile "lambdasheet.css"]</style>
-          [table]])
+         table)
 
     (* fun display (_, _, v) = [<span style="color:#888888">[v]</span>] *)
     val display = eval_me
