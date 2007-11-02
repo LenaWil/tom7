@@ -1,17 +1,27 @@
+
+datatype value = 
+    String of string
+  | Int of int
+  | Null
+
 datatype data = 
     Add of data * data
   | Mult of data * data
-  | String of string
+  | V of value
   | Var of int * int
-  | Int of int 
+
+fun vtos v = 
+     case v of 
+       String(str) => str
+     | Int(i) => itos i
 
 fun dtos dat = 
     case dat of 
        Add(d1,d2) => [+ [dtos d1] [dtos d2]]
      | Mult(d1,d2) => [* [dtos d1] [dtos d2]]
-     | String(str) => ["[str]"]
+     | V(String(str)) => ["[str]"]
      | Var(row,col) => [`[itos row]`[itos col]]
-     | Int(i) => itos i
+     | V(Int(i)) => itos i
 
 fun inline isDigit(chr) = (chr <= ord ?9 andalso chr >= ord ?0)
 
@@ -58,7 +68,7 @@ fun parse(str) =
            end
 
        fun eatCellID() = 
-           if !off >= (len + 1) then String([######])
+           if !off >= (len + 1) then V(String([######]))
            else let
              val chr1 = ord(ssub(str,!off))
              val chr2 = ord(ssub(str,!off + 1)) - ord ?0
@@ -81,32 +91,32 @@ fun parse(str) =
            
 
         fun eatExpr() = 
-           if !off >= len then String([######]) 
+           if !off >= len then V(String([######]))
            else
            let in
              case ssub(str,!off) of 
                 ?  => (incr(); eatExpr())
-              | ?" => String(eatString())
+              | ?" => V(String(eatString()))
               | ?+ => (incr(); Add(eatExpr(),eatExpr()))
               | ?* => (incr(); (Mult(eatExpr(),eatExpr())))
               | c  =>
                 let in 
-                   if isDigit(ord c) then Int(eatInt())
+                   if isDigit(ord c) then V(Int(eatInt()))
                    else eatCellID()
                 end
  
            end  
 
         fun parse_check() = 
-            if len <= 0 then String("")
+            if len <= 0 then V(Null)
             else let 
               val first = ord(ssub(str,0))
             in
               if first = ord ?=
               then (incr(); eatExpr())
               else if isDigit first 
-              then Int(eatInt())
-              else String(str)  
+              then V(Int(eatInt()))
+              else V(String(str))
             end
 
 
@@ -115,3 +125,51 @@ fun parse(str) =
     end 
 
 
+val numrows = 12
+val numcols = 12
+val best_known_value = array(numrows*numcols,Null) 
+
+fun insert2d(row,col,v) = 
+    if row < 0 orelse col < 0 orelse row >= numrows orelse col >= numcols
+    then () else update(best_known_value,row*12 + col,v)
+
+fun sub2d(row,col) : value = 
+    if row < 0 orelse col < 0 orelse row >= numrows orelse col >= numcols
+    then Null else sub(best_known_value,row*12 + col)
+
+fun eval_me(row,col,str) : string = 
+    let
+      fun eval_add (v: value*value) : value = 
+        case v of
+           (Null,v) => v
+         | (v,Null) => v
+         | (Int i,Int j) => Int(i + j)
+         | (Int i,String j) => String [[itos i][j]]
+         | (String i,Int j) => String [[i][itos j]]
+         | (String i,String j) => String [[i][j]] 
+
+      fun eval_mult (v: value*value) : value = 
+        case v of 
+           (Null,v) => v
+         | (v,Null) => v
+         | (Int i,Int j) => Int(i * j)
+         | (Int i,String j) => String [[itos i]*[j]]
+         | (String i,Int j) => String [######]
+         | (String i,String j) => String [[i] times [j]] 
+
+      fun eval (data: data) : value = 
+        case data of 
+           V(v) => v
+         | Var(row,col) => sub2d(row,col)
+         | Mult(d1,d2) => eval_mult(eval d1,eval d2)
+         | Add(d1,d2) => eval_add(eval d1,eval d2)
+      
+      val evaluated : value = eval (parse str)      
+
+    in
+      insert2d(row,col,evaluated);
+      vtos evaluated
+    end
+      
+
+    
