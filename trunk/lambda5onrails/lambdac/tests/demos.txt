@@ -4,4 +4,5 @@ saytest2
 threads
 watchkey
 chat
+lambdasheet
 wiki

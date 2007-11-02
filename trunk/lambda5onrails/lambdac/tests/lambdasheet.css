@@ -1,0 +1,39 @@
+
+    A:link { color: #4444DD }
+    A:visited { color: #9999FF }
+    A:active { color: #DDDD44 }
+
+    BODY { font : 12px Verdana,Arial,Helvetica ; }
+    P { font : 12px Verdana,Arial,Helvetica ; }
+
+    input.summary { width : 70% ; }
+
+    input.cell { border : none ; margin : 0px ; padding : 2px ;
+                 width : 6em ; font-size : 10px }
+
+    .button { padding : 4px ; margin : 4px ; border : 2px outset #777777 ; 
+	      background : #DDDDDD ; cursor : hand ; cursor : pointer }
+
+    table {
+	    border-collapse: collapse;
+	    border: 2px solid #3f7c5f;
+	    font: normal 80%/140% arial, verdana, helvetica, sans-serif;
+	    color: #000;
+	    background: #fff;
+    }
+
+    td, th {
+	    border: 1px solid #e0e0e0;
+	    padding : 0px; margin : 0px
+    }
+
+    tbody th, tbody td {
+	    vertical-align: top;
+	    text-align: left;
+    }
+
+    tbody tr:hover {
+	    background: #ffffd9;
+    }
+
+    tbody td:hover { background: #eeeeb9; }

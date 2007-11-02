@@ -227,6 +227,16 @@ struct
                           [(truename, NONE),
                            (falsename, NONE)])]))
 
+            (* because parser can't parse fun inline = (x, y) = .. *)
+            val deceq =
+              %(EL.Fun { inline = true,
+                         funs = [(nil, "=", [([EL.PRecord[("1", EL.PVar "x"),
+                                                          ("2", EL.PVar "y")]],
+                                              NONE, (* type ann *)
+                                              %(EL.Primapp("Eq", nil, [%(EL.Var "x"),
+                                                                       %(EL.Var "y")]))
+                                              )])] })
+
             val dectypes =
               %(EL.ExternType(nil, eventname, SOME event_dict_name))
 
@@ -235,7 +245,7 @@ struct
               %(EL.ExternVal(nil, matchname, EL.TVar exnname, NONE, NONE))
 
         in
-          EL.Unit(impexns :: dectypes :: decbool :: ds, xs)
+          EL.Unit(impexns :: dectypes :: decbool :: deceq :: ds, xs)
         end
 
     fun trueexp loc = (EL.Var truename, loc)
