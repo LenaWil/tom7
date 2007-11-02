@@ -130,13 +130,13 @@ val numrows = 12
 val numcols = 12
 val best_known_value = array(numrows*numcols,Null) 
 
-fun insert2d(row,col,v) : unit = 
+val insert2d : (int * int * value -> unit) @ home = fn (row,col,v) => 
     if row < 0 orelse col < 0 orelse row >= numrows orelse col >= numcols
-    then () else update(best_known_value,row*12 + col,v)
+    then () else update(best_known_value,row + col*12,v)
 
-fun sub2d(row,col) : value = 
+val sub2d : (int * int -> value) @ home = fn (row,col) =>
     if row < 0 orelse col < 0 orelse row >= numrows orelse col >= numcols
-    then Null else sub(best_known_value,row*12 + col)
+    then Null else sub(best_known_value,row + col*12)
 
 fun eval_me(row,col,str) : string = 
     let
