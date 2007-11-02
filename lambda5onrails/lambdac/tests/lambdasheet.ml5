@@ -23,11 +23,22 @@ unit
        | Times of exp * exp
        | Val of value
       (* XXX vars *)
-    
-
-    do 1 = 2
 
     fun cellid (x, y) = [c[itos x]_[itos y]]
+    fun inline app-cells f =
+        let 
+            fun cells (y, x) =
+                if x >= WIDTH
+                then ()
+                else (f (x, y);
+                      cells (y, x + 1))
+            fun rows y =
+                if y >= HEIGHT
+                then ()
+                else (cells (y, 0); rows (y + 1))
+        in
+            rows 0
+        end
 
     do dom.setstring 
         (dom.getbyid [page],
@@ -50,7 +61,8 @@ unit
            if x >= WIDTH
            then ""
            else [<td><input class="cell" type="text" id="[cellid (x, y)]"
-                       onkeyup="[say { event.keyCode = c } cell-key (x, y) c]"/>\
+                   onblur="[say cell-key (x, y) ?\r]"
+                   onkeyup="[say { event.keyCode = c } cell-key (x, y) c]"/>\
                  </td>[makecells (y, x + 1)]]
          fun makerows y =
            if y >= HEIGHT
@@ -68,21 +80,28 @@ unit
          [<style>[datafile "lambdasheet.css"]</style>
           [table]])
 
+    fun updated-cell (x, y, v) = 
+        (* and blink its color? *)
+        dom.setstring (dom.getbyid (cellid (x, y)),
+                       "value",
+                       v)
+
     (* and update handlers *)
     do from server get
-        let 
-            fun cells (y, x) =
-                if x >= WIDTH
-                then ()
-                else ((* XXX *)
-                      cells (y, x + 1))
-            fun rows y =
-                if y >= HEIGHT
-                then ()
-                else (cells (y, 0); rows (y + 1))
-        in
-            rows 0
-        end
+        app-cells (fn (x, y) => 
+                   let val cid = cellid (x, y)
+                       put (x, y) = (x, y)
+                       fun doup () =
+                           let put v = trivialdb.read cid
+                           in from home get
+                               updated-cell (x, y, v)
+                           end
+                   in
+                       if trivialdb.read cid seq ""
+                       then ()
+                       else doup ();
+                       trivialdb.addhook(cid, cont doup)
+                   end) (* XXX *)
 
 in
 end
