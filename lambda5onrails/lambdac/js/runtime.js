@@ -830,7 +830,7 @@ function lc_time_eq(a, b) {
 
 function lc_array(len, init) {
     var a = new Array(len);
-    for(var i = 0; i < init; i ++) {
+    for(var i = 0; i < len; i ++) {
 	a[i] = init;
     }
     return a;
