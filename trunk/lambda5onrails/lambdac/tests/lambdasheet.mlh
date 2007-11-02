@@ -14,7 +14,7 @@ fun vtos v =
      case v of 
        String(str) => str
      | Int(i) => itos i
-     | Null => ""
+     | Null => [&nbsp;]
 
 fun dtos dat = 
     case dat of 
