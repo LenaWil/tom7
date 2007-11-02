@@ -1,0 +1,88 @@
+unit
+    import "std.mlh"
+    import "list.mlh"
+    import "string.mlh"
+    import "dom.mlh"
+    import "timer.mlh"
+    import "trivialdb.mlh"
+    import "lock.mlh"
+    import "regexp.mlh"
+
+    put WIDTH = 12
+    put HEIGHT = 12
+
+    do runtime.no-messages ()
+
+    (* really simple expressions, for now *)
+    datatype value =
+         Int of int
+       | String of string
+
+    datatype exp =
+         Plus of exp * exp
+       | Times of exp * exp
+       | Val of value
+      (* XXX vars *)
+    
+
+    do 1 = 2
+
+    fun cellid (x, y) = [c[itos x]_[itos y]]
+
+    do dom.setstring 
+        (dom.getbyid [page],
+         [innerHTML],
+         [please wait.])
+
+    fun cell-key cell ?\r = 
+        let put cid = cellid cell
+            put v = dom.getstring(dom.getbyid cid, [value])
+        in
+            from server get
+            (* alert [pretending to save [cellid cell]] *)
+            trivialdb.update (cid, v)
+        end
+      | cell-key cell c = ()
+        (* could color this as unsaved? *)
+
+    val table =
+     let fun makecells (y, x) =
+           if x >= WIDTH
+           then ""
+           else [<td><input class="cell" type="text" id="[cellid (x, y)]"
+                       onkeyup="[say { event.keyCode = c } cell-key (x, y) c]"/>\
+                 </td>[makecells (y, x + 1)]]
+         fun makerows y =
+           if y >= HEIGHT
+           then ""
+           else [<tr>[makecells (y, 0)]</tr>\n[makerows (y + 1)]]
+     in
+         [<table style="spreadsheet">
+          [makerows 0]
+          </table>]
+     end
+
+    do dom.setstring 
+        (dom.getbyid [page],
+         [innerHTML],
+         [<style>[datafile "lambdasheet.css"]</style>
+          [table]])
+
+    (* and update handlers *)
+    do from server get
+        let 
+            fun cells (y, x) =
+                if x >= WIDTH
+                then ()
+                else ((* XXX *)
+                      cells (y, x + 1))
+            fun rows y =
+                if y >= HEIGHT
+                then ()
+                else (cells (y, 0); rows (y + 1))
+        in
+            rows 0
+        end
+
+in
+end

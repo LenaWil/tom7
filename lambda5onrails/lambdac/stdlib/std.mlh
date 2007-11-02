@@ -18,6 +18,7 @@ fun inline < (x, y) = primapp Less { } (x, y)
 fun inline <=(x, y) = primapp Lesseq { } (x, y)
 fun inline > (x, y) = primapp Greater { } (x, y)
 fun inline >=(x, y) = primapp Greatereq { } (x, y)
+(* this dec also special, in initial *)
 (* fun inline = (x, y) = primapp Eq { } (x, y) *)
 fun inline <>(x, y) = primapp Neq { } (x, y)
 
