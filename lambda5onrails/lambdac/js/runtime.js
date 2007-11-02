@@ -805,6 +805,11 @@ function lc_domgetobj(node, field) {
     return node[field];
 };
 
+function lc_domfocus(node) {
+    node.focus ();
+};
+
+
 function lc_nomessages(unit) {
     var m = document.getElementById("messages");
     if (m != undefined) m.innerHTML = '';

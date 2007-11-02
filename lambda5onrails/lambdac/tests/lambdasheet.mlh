@@ -10,6 +10,8 @@ datatype data =
   | V of value
   | Var of int * int
 
+fun rowname n = substring("ABCDEFGHIJKLMNOP", n, 1)
+
 fun vtos v = 
      case v of 
        String(str) => str
@@ -25,6 +27,8 @@ fun dtos dat =
      | V(Int(i)) => itos i
 
 fun inline isDigit(chr) = (chr <= ord ?9 andalso chr >= ord ?0)
+
+val hash = [####]
 
 fun parse(str) = 
     let
@@ -69,7 +73,7 @@ fun parse(str) =
            end
 
        fun eatCellID() = 
-           if !off >= (len + 1) then V(String([######]))
+           if !off >= (len + 1) then V(String hash)
            else let
              val chr1 = ord(ssub(str,!off))
              val chr2 = ord(ssub(str,!off + 1)) - ord ?0
@@ -92,7 +96,7 @@ fun parse(str) =
            
 
         fun eatExpr() = 
-           if !off >= len then V(String([######]))
+           if !off >= len then V(String hash)
            else
            let in
              case ssub(str,!off) of 
