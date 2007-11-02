@@ -15,6 +15,11 @@ struct
               "The port to listen on."))
         "port"
 
+  val host = Params.param "gs82.sp.cs.cmu.edu"
+        (SOME("-host",
+              "The host to listen on."))
+        "host"
+
   val codepath = Params.param "../lambdac/tests/"
         (SOME("-codepath",
               "Where to find .b5, .js, .ml5 code, etc."))
@@ -171,8 +176,8 @@ struct
 
       val sessiondata =
         (* XXX should be from a config file *)
-        "var session_serverurl = 'http://gs82.sp.cs.cmu.edu:" ^ !port ^ "/toserver/';\n" ^
-        "var session_clienturl = 'http://gs82.sp.cs.cmu.edu:" ^ !port ^ "/toclient/';\n" ^
+        "var session_serverurl = 'http://" ^ !host ^ ":" ^ !port ^ "/toserver/';\n" ^
+        "var session_clienturl = 'http://" ^ !host ^ ":" ^ !port ^ "/toclient/';\n" ^
         "var session_id = " ^ Int.toString id ^ ";\n"
 
       (* this could be better... ;) 
