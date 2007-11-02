@@ -1,0 +1,38 @@
+
+include "lambadoc.ml5"
+fun parse(str) = 
+    let
+       datatype tok = 
+          NoToken
+        | LParen
+        | RParen
+        | Int of int
+        | Quote
+        | Char of char
+        | BadToken
+
+       val off = ref 0
+       fun incrRet a = (off := !off + 1; a)
+
+       fun eatInt() = 
+           let 
+             val num = ref 0
+             fun loop() = 
+                let val chr = ord(ssub(s,!off)) in
+                   if chr <= ord ?9 andalso chr >= ord ?0 
+                   then (num := !num * 10 + (chr - ord ?9); incrRet())
+                   else !num
+                end
+           in loop() end
+             
+       fun munch() = 
+           if !off >= size s then NoToken 
+           else
+           let in
+             case ssub(str,!off) of 
+               ?( => incrRet LParen
+              |?) => incrRet RParen
+              |?" => incRet Quote
+              |c  => NoToken
+
+    in () end 
