@@ -147,7 +147,9 @@ struct
                  | cd G (C.Conts _) = dict "DP" [("p", s"C")]
                  | cd G (C.At (t, w)) = dict "D@" [("v", cdict G t),
                                                    ("a", cwdict G w)]
+                 (* refs and vecs marshaled the same way. *)
                  | cd G (C.Primcon (C.REF, [_])) = dict "DP" [("p", s"r")]
+                 | cd G (C.Primcon (C.VEC, [_])) = dict "DP" [("p", s"r")]
                  | cd G (C.Primcon (C.INT, nil)) = dict "DP" [("p", s"i")]
                  | cd G (C.Primcon (C.EXN, nil)) = dict "DP" [("p", s"e")]
                  | cd G (C.Primcon (C.STRING, nil)) = dict "DP" [("p", s"s")]

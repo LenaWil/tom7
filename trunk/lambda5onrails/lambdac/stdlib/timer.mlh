@@ -4,6 +4,7 @@ val provide-timer = ()
 extern type js.timeoutid = lc_ref
 extern type js.intervalid = lc_ref
 
+(* these integer times measured in miliseconds *)
 (* runs it only once *)
 extern val js.settimeout : string * int -> js.timeoutid  @ home = setTimeout
 extern val js.cleartimeout : js.timeoutid -> unit  @ home = clearTimeout
