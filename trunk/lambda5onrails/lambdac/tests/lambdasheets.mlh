@@ -130,7 +130,7 @@ val numrows = 12
 val numcols = 12
 val best_known_value = array(numrows*numcols,Null) 
 
-fun insert2d(row,col,v) = 
+fun insert2d(row,col,v) : unit = 
     if row < 0 orelse col < 0 orelse row >= numrows orelse col >= numcols
     then () else update(best_known_value,row*12 + col,v)
 
@@ -157,6 +157,7 @@ fun eval_me(row,col,str) : string =
          | (Int i,String j) => String [[itos i]*[j]]
          | (String i,Int j) => String [######]
          | (String i,String j) => String [[i] times [j]] 
+         | _ => Null
 
       fun eval (data: data) : value = 
         case data of 
