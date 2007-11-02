@@ -34,13 +34,13 @@ struct
       fun string () =
         let val t = tok ()
         in
-          case StringUtil.urldecode ` String.substring(t, 1, size t - 1) of
+          case StringUtil.jsunescape ` String.substring(t, 1, size t - 1) of
             NONE => raise Marshal "um expected urlencoded string"
           | SOME s => s
         end
 
       fun addr () =
-        case StringUtil.urldecode ` tok () of
+        case StringUtil.jsunescape ` tok () of
           NONE => raise Marshal "um expected urlencoded addr"
         | SOME s => s
 
