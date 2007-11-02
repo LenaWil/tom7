@@ -36,6 +36,9 @@ struct
   fun addmessage (i as I { messages, ... }) x = messages := Q.enq(x, !messages)
   fun getlocals  (I { locals, ... }) = locals
 
+  val btrue = B.Inj ("true", NONE)
+  val bfalse = B.Inj ("false", NONE)
+
   fun step (i as I { prog, threads, ... }) =
     (* if there are threads, then do some work on the first one *)
     case Q.deq (!threads) of
@@ -43,7 +46,7 @@ struct
     | (SOME { global = (g, f), args }, q') => 
         let in
           threads := q';
-          print ("(Step) do thread " ^ Int.toString g ^ "." ^ Int.toString f ^ "..\n");
+          (* print ("(Step) do thread " ^ Int.toString g ^ "." ^ Int.toString f ^ "..\n"); *)
           (* Threads should only jump to a FunDec; a continuation that does not return.
              OneDecs (which are compiled AllLams) return values, and are invoked with Call.
              Absent means that this label only exists on specific other worlds. *)
@@ -74,7 +77,7 @@ struct
     | B.Bind (s, e, st) =>
         let 
         in
-          print ("bind " ^ s ^ "\n");
+          (* print ("bind " ^ s ^ "\n"); *)
           execute i (SM.insert(G, s, evaluate i G e)) st
         end
     | B.Case { obj, var, arms, def } =>
@@ -167,6 +170,37 @@ struct
          | (P.PGet, _) => raise Execute "bad pget"
          | (P.PSet, [B.Ref r, v]) => (r := v; B.Record nil)
          | (P.PSet, _) => raise Execute "bad pset"
+         | (P.PEqs, [B.String a, B.String b]) => 
+             if a = b then btrue else bfalse
+
+         | (P.B bop, [B.Int x, B.Int y]) => 
+             (case bop of
+                P.PCmp cmp =>
+                  if (case cmp of
+                        P.PEq => op=
+                      | P.PNeq => op<>
+                      | P.PLess => op<
+                      | P.PLesseq => op<=
+                      | P.PGreater => op>
+                      | P.PGreatereq => op>=) (x, y) 
+                  then btrue else bfalse
+                (* the rest return ints *)
+              | _ =>
+                    B.Int 
+                    ((case bop of
+                        P.PTimes => op*
+                      | P.PPlus  => op+
+                      | P.PMinus => op-
+                      | P.PDiv   => op div
+                      | P.PMod   => op mod
+(*
+                      | PAndb  => IntConst.andb
+                      | PXorb  => IntConst.xorb
+                      | POrb   => IntConst.orb
+*)
+                      (* shl/shr *)
+                      | _ => raise Execute "unimplemented binop") 
+                        (x, y)))
 
          | (P.PIntToString, [B.Int i]) => B.String (Int.toString (IntConst.toInt i))
          | (P.PIntToString, _) => raise Execute "bad inttostring"
