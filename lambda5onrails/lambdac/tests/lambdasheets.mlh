@@ -65,7 +65,7 @@ fun parse(str) =
              val len = scanend(0)
              val eaten_str = substring(str,start,len)
            in
-	     incr(eaten_str)   
+             incr(eaten_str)   
            end
 
        fun eatCellID() = 
@@ -148,6 +148,7 @@ fun eval_me(row,col,str) : string =
          | (Int i,String j) => String [[itos i][j]]
          | (String i,Int j) => String [[i][itos j]]
          | (String i,String j) => String [[i][j]] 
+         | _ => Null
 
       fun eval_mult (v: value*value) : value = 
         case v of 
