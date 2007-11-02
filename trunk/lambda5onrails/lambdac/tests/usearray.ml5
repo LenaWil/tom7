@@ -1,0 +1,30 @@
+unit
+
+import "std.mlh"
+
+val strarray = array(10,"Elet")
+
+val intarray = array(10,3134)
+
+datatype stuff = Elet | LastElet
+val stos = fn Elet => "Elet" | LastElet => "LastElet"
+
+val stuffarray = array(10,Elet)
+
+do alert("Array access - string")
+do alert[This is the first element: [sub(strarray,0)]]
+do update(strarray,9,"The Last Elet")
+do alert[This is the last element: [sub(strarray,0)]]
+
+do alert("Array access - int")
+do alert[This is the first element: #[itos(sub(intarray,0))]]
+do update(intarray,9,100)
+do alert[This is the last element: #[itos(sub(intarray,0))]]
+
+do alert("Array access - datatype stuff")
+do alert[This is the first element: #[stos(sub(stuffarray,0))]]
+do update(stuffarray,9,LastElet)
+do alert[This is the last element: #[stos(sub(stuffarray,0))]]
+
+
+in end
