@@ -85,8 +85,8 @@ unit
          [<style>[datafile "lambdasheet.css"]</style>
           [table]])
 
-    fun display (_, _, v) = [<span style="color:#888888">[v]</span>]
-    (* val display = eval_me *)
+    (* fun display (_, _, v) = [<span style="color:#888888">[v]</span>] *)
+    val display = eval_me
 
                                 
     fun update-display (x, y) =

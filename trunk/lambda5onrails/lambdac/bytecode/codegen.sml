@@ -81,6 +81,7 @@ struct
                  | cd G (C.Primcon (C.DICTIONARY, [t])) = Dp Ddict
                  (* ditto. *)
                  | cd G (C.Primcon (C.REF, [_])) = Dp Dref
+                 | cd G (C.Primcon (C.VEC, [_])) = Dp Dref
                  (* always represented the same way, regardless of which world *)
                  | cd G (C.Addr _) = Dp Daddr
                  | cd G (C.TWdict _) = Dp Dw
