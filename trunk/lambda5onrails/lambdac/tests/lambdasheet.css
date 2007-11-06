@@ -9,7 +9,7 @@
     input.summary { width : 70% ; }
 
     td.header { background : #AAAAAA }
-    div.disp { background : #FFFFBB ; padding : 2px; width : 64px ; 
+    div.disp { background : #F3FFE3 ; padding : 2px; width : 64px ; 
 	       font-size : 10px; overflow-x : hidden ; overflow-y : hidden }
     input.cell { border : none ; margin : 0px ; padding : 2px ;
                  width : 64px ; font-size : 10px }

@@ -39,10 +39,16 @@ unit
          [<style>[datafile "lambdasheet.css"]</style>
           <img width="349" height="46" 
             src="/static/lambdasheet-logo.png" />
+          [[] (* we focus this to send keystrokes away *)]
+          <input id="sink" style="display:none" />
           <div id="sheet">
           <div style="border : 1px solid #999999; text-align : center;\
            margin-left : auto; margin-right: auto; font: 48px Verdana, \
            Arial, Helvetica">please wait.</div>
+          </div>
+          <div>Syntax: =<i>exp</i> evaluates <i>exp</i>. An expression can be 
+            a number, a "string", a cell name like C6, +<i>e1</i> <i>e2</i> or
+            *<i>e1</i> <i>e2</i>.
           </div>
           ])
 
@@ -50,7 +56,7 @@ unit
         let put cid = cellid cell
             put v = dom.getstring(dom.getbyid cid, [value])
         in
-            dom.blur ();
+            dom.focus (dom.getbyid [sink]);
             from server get
             trivialdb.update (cid, v)
         end
@@ -80,10 +86,11 @@ unit
          fun makecells (y, x) =
            if x >= WIDTH
            then ""
-           else [<td style="overflow-x:hidden;width:64px">\
-                 <div 
+           else [<td 
                   onclick="[say show-cell (cellid (x, y))]"
-                  class="cell" type="text" id="[cellidd (x, y)]">&nbsp;</div>
+                  style="overflow-x:hidden;width:64px">\
+                 <div 
+                  class="disp" type="text" id="[cellidd (x, y)]">&nbsp;</div>
                  <input 
                   style="display:none"
                   class="cell" type="text" id="[cellid (x, y)]"
@@ -155,6 +162,7 @@ unit
              fun propagate n =
                  let in
                      app-cells update-display;
+                     (* alert ([propagate [itos n]]); *)
                      ignore (js.settimeout (say propagate (n + 1), 100))
                  end
          in
