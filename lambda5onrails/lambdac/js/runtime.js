@@ -809,6 +809,9 @@ function lc_domfocus(node) {
     node.focus ();
 };
 
+function lc_blurnode(node) {
+    node.blur ();
+};
 
 function lc_nomessages(unit) {
     var m = document.getElementById("messages");

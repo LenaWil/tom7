@@ -48,3 +48,5 @@ extern val dom.getbyid : string -> dom.node @ home = lc_document_getelementbyid
 
 extern val dom.focus : dom.node -> unit @ home = lc_domfocus
 extern val dom.blur : unit -> unit @ home = blur
+(* XX Doesn't work, remove from runtime too *)
+(* extern val dom.blurnode : dom.node -> unit @ home = lc_blur *)
