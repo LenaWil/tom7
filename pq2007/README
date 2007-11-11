@@ -1,0 +1,3 @@
+Source code from the Microsoft College Puzzle Challenge, 2007. Dice is
+pretty much specific to the contest; knightsweeper solves a
+minesweeper-like game where "mines" attack like knights from chess.
