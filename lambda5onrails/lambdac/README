@@ -1,9 +1,10 @@
 
-    README         Tom Murphy VII          20 Sep 2007
+    README         Tom Murphy VII          15 Nov 2007
 
-The program lambdac compiles Lambda 5 on Rails code to client side
+This is ML5/pgh, the compiler for ML5. It is also known
+as "lambdac." The program compiles ML5 code to client side
 Javascript and server-side bytecode. Its lineage is complex:
-    mtex -> hemlock -> aphasia2 -> humlock -> lambdac.
+    mtex -> hemlock -> aphasia2 -> humlock -> ML5/pgh.
 
 Hemlock is documented in "ML Grid Programming in ConCert" by Tom
 Murphy VII in the SIGPLAN ML Workshop 2006. Humlock is described in
