@@ -15,7 +15,7 @@ struct
           fun p s = TextIO.output(f, s)
         in
           p  "/* Generated code - do not edit! */\n\n";
-          p ("\n\n/* Created by LAMBDAC version " ^ Version.version ^ " */\n\n");
+          p ("\n\n/* Created by ML5/pgh version " ^ Version.version ^ " */\n\n");
           Layout.print (Javascript.Program.layout prog, p);
           TextIO.closeOut f;
           print ("Wrote " ^ n ^ "\n")
@@ -29,7 +29,7 @@ struct
           (* XXX bytecode format should support some kind of comments *)
           (*
           p  "/* Generated code - do not edit! */\n\n";
-          p ("\n\n/* Created by LAMBDAC version " ^ Version.version ^ " */\n\n");
+          p ("\n\n/* Created by ML5/pgh version " ^ Version.version ^ " */\n\n");
           *)
           Layout.print (BytePrint.ptol prog, p);
           TextIO.closeOut f;

@@ -637,9 +637,17 @@ struct
         alt [`UNIT >> "expected DECS after UNIT" **
              (call G decs -- 
               (fn (G,ds) => 
-               `IN >> "expected EXP after IN" **
+               alt
+               [`IN >> "expected EXPORTS after IN" **
                (repeat (call G export) << `END
-                wth (fn es => Unit(ds, es))))),
+                wth (fn es => Unit(ds, es))),
+                (* don't require IN..END if there
+                   are no exports (since we don't
+                   have separate compilation yet anyway,
+                   there is no reason to have them) *)
+                `END return Unit(ds, nil),
+                any -- punt "expected IN or END after UNIT DECS"]
+               )),
 
              any -- punt "expected UNIT decs IN exports END"]
 
