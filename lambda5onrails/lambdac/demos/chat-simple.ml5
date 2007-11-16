@@ -1,0 +1,122 @@
+(* A simple chat server.
+   The server stores a fixed buffer in the TDB and clients can append to it.
+*)
+
+unit
+    import "std.mlh"
+    import "list.mlh"
+    import "string.mlh"
+    import "dom.mlh"
+    import "timer.mlh"
+    import "trivialdb.mlh"
+    import "lock.mlh"
+    import "regexp.mlh"
+
+    do runtime.no-messages ()
+
+    val style = [<style>[datafile "chat.css"]</style>]
+    val id.input = [inputbox]
+    val id.balloontest = [balloontest]
+    val id.them = [them]
+    val id.us = [us]
+
+    do dom.setstring(dom.getnode(dom.doc, [body]),
+                     "background",
+                     "/static/chat-background.png")
+
+    (* Who am I? Who are you? *)
+    put (us, them) =
+        letcc ret
+        in
+         let fun choose p = throw p to ret
+         in
+            dom.setstring 
+            (dom.getbyid [page],
+             [innerHTML],
+             [[style]
+              <div class="promptbox">
+              <div class="heading">Chat! Choose your player:</div> <br />
+              <span class="button" onclick="[say choose ([chat.1], [chat.2])]">player 1</span>
+              <span class="button" onclick="[say choose ([chat.2], [chat.1])]">player 2</span>
+              </div> <!-- promptbox -->
+              ]);
+            halt ()
+         end
+        end
+
+    fun inline emit s = trivialdb.update (us, s)
+
+    fun balloon-right s =
+        [<table class="balloon" border="0" cellpadding="0" cellspacing="0">
+         <tr><td class="balloon" colspan="3"><img src="/static/chat-r-top.png"></td></tr>
+         <tr><td class="balloon" background="/static/chat-r-left.png" width="20">&nbsp;</td>
+             <td class="balloon chattext" bgcolor="#FFFFFF" width="365">[s]</td>
+             <td class="balloon" background="/static/chat-r-right.png" width="28">&nbsp;</td>
+         </tr>
+         <tr><td class="balloon" colspan="3"><img src="/static/chat-r-bottom.png"></td></tr>
+         </table>]
+
+    fun balloon-left s =
+        [<table class="balloon" border="0" cellpadding="0" cellspacing="0">
+         <tr><td class="balloon" colspan="3"><img src="/static/chat-l-top.png"></td></tr>
+         <tr><td class="balloon" background="/static/chat-l-left.png" width="23">&nbsp;</td>
+             <td class="balloon chattext" bgcolor="#FFFFFF" width="373">[s]</td>
+             <td class="balloon" background="/static/chat-l-right.png" width="17">&nbsp;</td>
+         </tr>
+         <tr><td class="balloon" colspan="3"><img src="/static/chat-l-bottom.png"></td></tr>
+         </table>]
+
+    fun send-all () = 
+        let 
+            put s = dom.getstring(dom.getbyid id.input, [value])
+        in
+            dom.setstring(dom.getbyid id.us, [innerHTML], s);
+            from server get emit s
+        end
+
+    val input-change = send-all
+
+    fun input-send () =
+        let
+            val s = dom.getstring(dom.getbyid id.input, [value])
+        in
+            send-all ();
+            dom.setstring(dom.getbyid id.input, [value], [])
+        end
+
+    do dom.setstring 
+        (dom.getbyid [page],
+         [innerHTML],
+         [<style>[datafile "chat.css"]</style>
+          <div class="pagebox">
+           <div class="heading">Server 5 Chat!</div> <br /> <br />
+
+           [balloon-left  [<div id="[id.them]">&nbsp;</div>]] <br />
+           [balloon-right [<div id="[id.us]">&nbsp;</div>]] <br />
+
+           <span id="[id.balloontest]">&nbsp;</span>
+
+           <input type="text" 
+             class="typebox"
+             onkeyup="[say { event.keyCode = c }
+                       case c of
+                           ?\r => input-send ()
+                         | _ => input-change ()]"
+             id="[id.input]" />
+          </div> <!-- pagebox -->
+          ])
+
+    do from server 
+        get trivialdb.addhook (them,
+                               cont (fn () =>
+                                     let
+                                         put r = trivialdb.read them
+                                     in
+                                         from home get
+                                         dom.setstring(dom.getbyid id.them,
+                                                       [innerHTML],
+                                                       r)
+                                     end))
+
+in
+end
