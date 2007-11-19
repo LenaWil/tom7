@@ -20,7 +20,7 @@ struct
               "The host to listen on."))
         "host"
 
-  val codepath = Params.param "../lambdac/tests/"
+  val codepath = Params.param "../ml5pgh/tests/"
         (SOME("-codepath",
               "Where to find .b5, .js, .ml5 code, etc."))
         "codepath"
@@ -171,7 +171,7 @@ struct
 
       (* XXX paths should be from a config file *)
       val sbc = BytecodeParse.parsefile (!codepath ^ prog ^ "_server.b5")
-      val rt = StringUtil.readfile "../lambdac/js/runtime.js"
+      val rt = StringUtil.readfile "../ml5pgh/js/runtime.js"
       val js = StringUtil.readfile (!codepath ^ prog ^ "_home.js")
 
       val sessiondata =

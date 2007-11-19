@@ -1,7 +1,7 @@
 
 (* XXX this is dead code, from humlock.
    it's still here because the techniques might be useful for
-   lambdac. *)
+   ML5/pgh. *)
 
 structure ILOpt :> ILOPT =
 struct

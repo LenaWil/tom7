@@ -239,8 +239,10 @@ bytecode/print-sig.sml
 bytecode/print.sml
 bytecode/codegen-sig.sml
 bytecode/codegen.sml
-(* XXX not necessary for lambdac;
-   currently used only in the server *)
+(* XXX not necessary for ml5/pgh;
+   currently used only in the server.
+   but we should type-check it to
+   make sure it agrees! *)
 bytecode/tokens.sml
 bytecode/tokenize-sig.sml
 bytecode/tokenize.sml
