@@ -185,7 +185,7 @@ struct
     fun bindex (C {vars, cons, dbs, worlds, wlabs }) sym typ var stat sort =
       let 
         val sym = (case sym of NONE => 
-                     LambdacUtil.newstr "bindex" | SOME s => s)
+                     ML5pghUtil.newstr "bindex" | SOME s => s)
       in
         if !showbinds
         then let in

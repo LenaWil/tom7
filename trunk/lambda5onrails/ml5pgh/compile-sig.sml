@@ -1,5 +1,5 @@
 
-(* Interface to the Lambdac compiler. *)
+(* Interface to the ML5/pgh compiler. *)
 
 signature COMPILE =
 sig

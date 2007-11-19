@@ -1005,8 +1005,8 @@ struct
                      val (rcols, robs) = ListPair.unzip rest
 
                      (* PERF should not be carrier so we can apply sumrep optimization *)
-                     val yes = LambdacUtil.newstr "Yes"
-                     val no  = LambdacUtil.newstr "No"
+                     val yes = ML5pghUtil.newstr "Yes"
+                     val no  = ML5pghUtil.newstr "No"
 
                      (* new object for this column turns the exception
                         matching into a datatype wrap *)
@@ -1054,7 +1054,7 @@ struct
                      (* let datatype ('a, 'b) whentag = 
                             Yes of 'a | No of 'b *)
                      val we = E.Let(% ` E.Datatype (["a"],
-                                    [(LambdacUtil.newstr "whentag",
+                                    [(ML5pghUtil.newstr "whentag",
                                       [(yes, SOME (E.TVar "a")),
                                        (no,  SOME (E.TRec nil))])]),
                                     % `
@@ -1167,7 +1167,7 @@ struct
                         | (E.PRecord spl, Util.A lcl) =>
                             let val spl =
                                 ListUtil.sort (ListUtil.byfirst
-                                               LambdacUtil.labelcompare) spl
+                                               ML5pghUtil.labelcompare) spl
                             in
                                 ListUtil.all2 
                                    (ListUtil.byfirst op=) spl lcl
@@ -1183,7 +1183,7 @@ struct
                             let
                                 val spl =
                                 ListUtil.sort (ListUtil.byfirst
-                                               LambdacUtil.labelcompare) spl
+                                               ML5pghUtil.labelcompare) spl
                             in
                                 Util.A `
                                 map (fn (lab, p) => (lab, p :: l)) spl

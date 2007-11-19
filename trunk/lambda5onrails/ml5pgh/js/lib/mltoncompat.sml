@@ -4,7 +4,7 @@ struct
 
   (* The mlton folks are working on a redesign of the basis
      library that adds a bunch of functionality but also changes
-     some fundamental things. The rest of Lambdac uses the
+     some fundamental things. The rest of ML5/pgh uses the
      existing basis library, so in order to use the JS lib,
      we need some compatibility stubs. *)
 
@@ -79,7 +79,6 @@ struct
      we turn that off, which makes most arguments ignored. *)
   structure Trace =
   struct
-
     fun trace3 (_, _, _, _, _) f = f 
     val trace3 : 'str * 'lay1 * 'lay2 * 'lay3 * 'lay4 -> 'f -> 'f = trace3
   end
