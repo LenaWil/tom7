@@ -1,0 +1,13 @@
+unit
+  import "std.mlh"
+
+  do dom.setstring 
+      (dom.getbyid [page],
+       [innerHTML],
+       [<div id="abox" style="border:2px solid black">hello</div>])
+
+  val b = dom.getbyid [abox]
+
+  do dom.setstring (b, [width], [200])
+
+end

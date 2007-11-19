@@ -91,7 +91,7 @@ struct
        | E.TAddr w => TAddr (elabw ctx loc w)
        | E.TRec ltl => let 
                            val ltl = ListUtil.sort 
-                                     (ListUtil.byfirst ML5pgh.labelcompare) ltl
+                                     (ListUtil.byfirst ML5pghUtil.labelcompare) ltl
                        in 
                            if ListUtil.alladjacent
                                 (ListUtil.byfirst op<>) ltl 
@@ -392,7 +392,7 @@ struct
                    val letl = ListUtil.mapsecond (elab ctx here) lel
                    val _ = ListUtil.alladjacent (ListUtil.byfirst op<>) 
                               (ListUtil.sort 
-                               (ListUtil.byfirst ML5pgh.labelcompare) lel)
+                               (ListUtil.byfirst ML5pghUtil.labelcompare) lel)
                            orelse error loc 
                               "Duplicate labels in record expression"
                in
