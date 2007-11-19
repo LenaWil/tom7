@@ -91,7 +91,7 @@ struct
        | E.TAddr w => TAddr (elabw ctx loc w)
        | E.TRec ltl => let 
                            val ltl = ListUtil.sort 
-                                     (ListUtil.byfirst LambdacUtil.labelcompare) ltl
+                                     (ListUtil.byfirst ML5pgh.labelcompare) ltl
                        in 
                            if ListUtil.alladjacent
                                 (ListUtil.byfirst op<>) ltl 
@@ -392,7 +392,7 @@ struct
                    val letl = ListUtil.mapsecond (elab ctx here) lel
                    val _ = ListUtil.alladjacent (ListUtil.byfirst op<>) 
                               (ListUtil.sort 
-                               (ListUtil.byfirst LambdacUtil.labelcompare) lel)
+                               (ListUtil.byfirst ML5pgh.labelcompare) lel)
                            orelse error loc 
                               "Duplicate labels in record expression"
                in
@@ -823,7 +823,7 @@ struct
                                (from humlock)
 
                                XXX5: it should be okay to inline
-                               in lambdac; we have no restriction
+                               in ml5/pgh; we have no restriction
                                on the closedness of fns. *)
                             (* inline it! *)
                             inline = false,

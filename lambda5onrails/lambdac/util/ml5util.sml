@@ -1,4 +1,4 @@
-structure LambdacUtil =
+structure ML5pghUtil =
 struct
     infixr 9 `
     fun a ` b = a b

@@ -287,7 +287,7 @@ val _ =
         [input] => (* OS.Process.exit(Test.compile input) *) Test.fail "unimplemented"
       | _ =>
             let in
-                print "Usage: lambdac file.ml5\n\n";
+                print "Usage: ml5pgh file.ml5\n\n";
                 print (Params.usage ());
                 Test.fail "bad usage"
             end
