@@ -117,7 +117,7 @@ struct
 
     val itos = Int.toString
 
-    val newstr = LambdacUtil.newstr
+    val newstr = ML5pghUtil.newstr
 
     (* This uses the outer context to figure out which evariables can be generalized. *)
     fun polygen ctx (ty : IL.typ) (atworld : IL.world) =

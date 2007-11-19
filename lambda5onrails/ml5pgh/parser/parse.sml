@@ -110,7 +110,7 @@ struct
   (* as `KEYWORD -- punt "expected KEYWORD KEYWORD2" *)
   fun punt msg _ = msg ** fail
 
-  val namedstring = LambdacUtil.newstr
+  val namedstring = ML5pghUtil.newstr
   val itos = Int.toString
 
   fun dirplus s1 s2 =

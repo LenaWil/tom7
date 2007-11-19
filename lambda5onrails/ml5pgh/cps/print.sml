@@ -23,7 +23,7 @@ struct
   fun recordortuple layout sep l r osep vals =
         let 
             val sorted = 
-                ListUtil.sort (ListUtil.byfirst LambdacUtil.labelcompare) vals
+                ListUtil.sort (ListUtil.byfirst ML5pghUtil.labelcompare) vals
         in
             if
                (* can't be length 1 *)
