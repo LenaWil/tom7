@@ -74,7 +74,7 @@ version.sml
 
 util/des-sig.sml
 util/des.sml
-util/lamutil.sml
+util/ml5util.sml
 
 ../../sml-lib/parse/pos-sig.sml
 ../../sml-lib/parse/pos.sml

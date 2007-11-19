@@ -60,6 +60,7 @@ struct
                  ... ]
          *)
       | Mu of int * (var * typ) list
+        (* for elaboration (type inference) *)
       | Evar of typ ebind ref
 
       | TVec of typ
@@ -75,12 +76,12 @@ struct
 
       | Arrows of (bool * typ list * typ) list
 
-    (* type constructors *)
+    (* type constructors. only used in elaboration *)
     and con =
         Typ of typ
       | Lambda of typ list -> typ
 
-    (* existential *)
+    (* existential, for type inference *)
     and 'a ebind =
         Free of int
       | Bound of 'a
@@ -180,7 +181,7 @@ struct
         (* quantifiers on the outside -- no poly recursion *)
         (* XXX5 could make PolyVal that requires syntactic value.. *)
       | Bind of bind * (var * typ * exp) poly
-        (* XXX5 uval *)
+        (* XXX5 uval (?) *)
       | Tagtype of var
         (* tag of typ in tagtype *)
       | Newtag of var * typ * var
