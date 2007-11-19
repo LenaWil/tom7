@@ -48,16 +48,16 @@ group is
 ../../sml-lib/util/growarray.sml
 
 (* ML5 lib *)
-../lambdac/intconst.sml
-../lambdac/primop.sml
-../lambdac/bytecode/bytecode.sml
-../lambdac/bytecode/tokens.sml
-../lambdac/bytecode/tokenize-sig.sml
-../lambdac/bytecode/tokenize.sml
-../lambdac/bytecode/parse-sig.sml
-../lambdac/bytecode/parse.sml
-../lambdac/bytecode/print-sig.sml
-../lambdac/bytecode/print.sml
+../ml5pgh/intconst.sml
+../ml5pgh/primop.sml
+../ml5pgh/bytecode/bytecode.sml
+../ml5pgh/bytecode/tokens.sml
+../ml5pgh/bytecode/tokenize-sig.sml
+../ml5pgh/bytecode/tokenize.sml
+../ml5pgh/bytecode/parse-sig.sml
+../ml5pgh/bytecode/parse.sml
+../ml5pgh/bytecode/print-sig.sml
+../ml5pgh/bytecode/print.sml
 
 raw-network-sig.sml
 raw-network.sml

@@ -1,1 +1,1 @@
-(setq compile-command "CM.make \"lambdac.cm\";")
+(setq compile-command "CM.make \"ml5pgh.cm\";")

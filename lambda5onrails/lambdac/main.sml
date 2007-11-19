@@ -12,8 +12,8 @@ val _ =
         [input] => Compile.compile input
       | _ =>
             let in
-                print ("LAMBDAC version " ^ Version.version ^ "\n\n");
-                print "Usage: lambdac file.ml5\n\n";
+                print ("ML5/pgh version " ^ Version.version ^ "\n\n");
+                print "Usage: ml5pgh file.ml5\n\n";
                 print (Params.usage ())
             end
 

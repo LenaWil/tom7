@@ -12,9 +12,9 @@ the 2006 Tech Report "The Cult of the Bound Variable: The 9th Annual
 ICFP Programming Contest" (CMU-CS-06-163) and documented briefly in
 the corresponding source release (http://boundvarible.org/).
 
-Lambdac is documented in my upcoming dissertation and in the paper (to
-appear in Trustworthy Global Computing 2007) "Type-safe Distributed
-Programming with ML5."
+ML5/pgh is documented in my upcoming dissertation and in the paper
+"Type-safe Distributed Programming with ML5" at Trustworthy Global
+Computing 2007.
 
 Currently the CPS representation in the middle-end is engineered for
 correctness, not speed. I've put some effort into improving its
