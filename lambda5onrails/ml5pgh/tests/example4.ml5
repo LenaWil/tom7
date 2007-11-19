@@ -1,0 +1,17 @@
+unit
+  import "std.mlh"
+  import "dom.mlh"
+
+  do dom.setstring 
+      (dom.getbyid [page],
+       [innerHTML],
+       [<input id="abox" value="hello, world" />])
+
+  val b = dom.getbyid [abox]
+  do alert (dom.getstring (b, [value]))
+
+  fun handler () = alert [hi]
+
+  do alert (say handler ())
+
+end
