@@ -168,6 +168,8 @@ struct
   val Say_cc' = Sayb true
 
   fun Newtag' (v, t, e) = $$NEWTAG_ // t // (MV v \\ e)
+  fun Untag' { typ, obj, target, bound, yes, no } =
+    $$UNTAG_ // typ // obj // target // (MV bound \\ yes) // no
 
   (* -------- injections:   vals -------- *)
 
@@ -280,6 +282,12 @@ struct
     | Say of var * (string * ctyp) list * 'cval * 'cexp
     | Say_cc of var * (string * ctyp) list * 'cval * 'cexp
     | Newtag of var * ctyp * 'cexp
+    | Untag of { typ : ctyp, (* of tag *)
+                 obj : 'cval,
+                 target : 'cval,
+                 bound : var, (* within yes *)
+                 yes : 'cexp,
+                 no : 'cexp }
 
   and ('cexp, 'cval) cvalfront =
       Lams of (var * (var * ctyp) list * 'cexp) list
@@ -563,6 +571,16 @@ struct
       (case look bind of
          (MV v \ e) => Newtag (v, t, e)
                 | _ => raise CPS "bad newtag")
+
+    | $UNTAG_ / typ / r =>
+         let val (obj, (target, (byes, no))) = slash3 r
+         in
+           case look byes of
+             v \ yes => Untag { typ = typ, obj = obj, target = target, yes = yes, 
+                                bound = MVi v, no = no }
+           | _ => raise CPS "bad untag"
+         end
+
     | $PRIMCALL_ / sym / r => 
       let val (dom, (cod, (args, bind))) = slash3 r
       in case (look sym, look dom, look args, look bind) of

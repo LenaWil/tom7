@@ -77,7 +77,7 @@ struct
      carried out in parallel; we do not substitute into replacements
      after carrying them out.
      
-     process the expression exp. carries out any substitutions in the
+     processing the expression exp carries out any substitutions in the
      context G, and returns (e, fv, ef) where e is the transformed
      expression, fv is the set of free variables (after substitution),
      and ef is a boolean indicating whether the expression is
@@ -86,7 +86,6 @@ struct
      effectful but ! is not.)
 
      *)
-
   fun oe G exp =
     case exp of
       Array eov =>
@@ -117,6 +116,7 @@ struct
            fvl || fvr,
            true)
         end
+
     | Binary {lhs, oper, rhs} => 
         let
           val (lhs, fvl, el) = oe G lhs
@@ -131,6 +131,7 @@ struct
            fvl || fvr,
            el orelse er)
         end
+
     | Call { args, func } => 
         let
           val (func, fvf, _) = oe G func
@@ -140,6 +141,7 @@ struct
            unionl fval || fvf,
            true)
         end
+
     | Cond { test, thenn, elsee } => 
         let
           val (test, fvs, es) = oe G test
@@ -150,6 +152,7 @@ struct
            fvs || fvt || fve,
            es orelse et orelse ee)
         end
+
     | Function { name, args, body } => 
         let
           val (args, G) =
@@ -183,6 +186,7 @@ struct
           (Function { name = name, args = args, body = % body },
            fv, false)
         end
+
     | Object oiv =>
         let
           val (oil, fvl, efs) = ListUtil.unzip3 ` map (oi G) ` vtol oiv
@@ -191,6 +195,7 @@ struct
            unionl fvl,
            anyeffect efs)
         end
+
     | Select { object, property } =>
         let val (object, fv, ef) = oe G object
             val (property, fvp, efp) = oe G property
@@ -198,10 +203,12 @@ struct
           (Select { object = object, property = property },
            fv || fvp, ef orelse efp)
         end
+
     | SelectId { object, property } =>
         let val (object, fv, ef) = oe G object
         in  (SelectId { object = object, property = property }, fv, false)
         end
+
     | Unary _ => unimp "unary"
 
 (*
@@ -319,6 +326,24 @@ struct
             end
         | _ => unimp "long-or-noinit-vars")
 
+    | osl G (If { test, thenn, elsee } :: sl) =
+        let
+          val (test, fvs, es) = oe G test
+          val (thenn, fvt) = os G thenn
+          val (elsee, fve) = (case elsee of
+                                NONE => (NONE, empty)
+                              | SOME s =>
+                                  let val (s, fve) = os G s
+                                  in (SOME s, fve)
+                                  end)
+          val (sl, fv') = osl G sl
+        in
+          (If { test = test,
+                thenn = thenn,
+                elsee = elsee } :: sl,
+           fv' || fvs || fvt || fve)
+        end
+
     | osl G (Block b :: sl) =
        let
          val (b, fv) = osl G ` vtol b
@@ -363,7 +388,6 @@ struct
     | osl G (ForIn _ :: _) = unimp "forin"
     | osl G (ForVar _ :: _) = unimp "forvar"
     | osl G (ForVarIn _ :: _) = unimp "forvarin"
-    | osl G (If _ :: _) = unimp "if"
     | osl G (Labeled (t, s) :: sl) = unimp "labeled"
     | osl G (While {test, body} :: _) = unimp "while"
     | osl G (With {body, object} :: _) = unimp "with"

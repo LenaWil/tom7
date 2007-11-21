@@ -155,6 +155,7 @@ struct
        ("INJ", INJ),
        ("MARSHAL", MARSHAL),
        ("PRIMOP", PRIMOP),
+       ("NEWTAG", NEWTAG),
 
        ("DCONT", DCONT),
        ("DCONTS", DCONTS),
@@ -176,8 +177,9 @@ struct
        ("DEXN", DEXN),
        ("DAT", DAT),
        ("DW", DW),
-       ("DSHAM", DSHAM)
-
+       ("DSHAM", DSHAM),
+       ("DTAG", DTAG)
+       
        ]
 
   (* PERF could use hash table or other sub-linear search structure *)

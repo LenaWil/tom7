@@ -69,6 +69,7 @@ struct
     || `DREF return Dref
     || `DW return Dw
     || `DEXN return Dexn
+    || `DTAG return Dtag
 
   fun exp () =
        `PROJ >> label && $exp wth Project
@@ -77,11 +78,11 @@ struct
     || `CALL >> $exp && repeated ($exp) wth Call
     || `INJ >> label && bopt ($exp) wth Inj
     || `MARSHAL >> $exp && $exp wth Marshal
+    || `NEWTAG return Newtag
     || `PRIMOP >> id && repeated ($exp) wth (fn (s, args) =>
                                              case Primop.fromstring s of
                                                NONE => raise BytecodeParse ("unknown primop " ^ s)
                                              | SOME po => Primop (po, args))
-    
 
     || `DP >> pdict wth Dp
     || `DREC >> repeated (label && $exp) wth Drec

@@ -220,7 +220,7 @@ struct
           Untag { typ = t,
                   obj = Value (Var vo),
                   target = Value (Var v),
-                  bound = v,
+                  bound = bound,
                   yes = e,
                   no = go rest }
       in

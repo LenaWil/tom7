@@ -247,7 +247,7 @@ struct
                 %[$"dict",
                   L.indent 2 ` tftol fatl vtol fatl vtol tf]
                    
-         | Tagged (v1, v2) => L.paren (%[$"tag", vtol v2, $"with", vtol v1])
+         | Tagged (v1, v2) => L.paren (%[$"tag", vtol v1, $"with", vtol v2])
 
          | Var v => $(V.tostring v)
          | UVar v => $("~" ^ V.tostring v)
@@ -362,6 +362,15 @@ struct
                    L.listex "[" "]" "," ` map (fn (v, t) =>
                                                %[%[varl v, $":"], L.indent 2 ` ttol t]) vtl]
                  ] :: estol e
+
+         | Untag { obj, typ, target, bound, yes, no } =>
+               [
+                 %[%[$"untag", vtol obj, $":", ttol typ],
+                   %[$"with", vtol target],
+                   %[%[$"  yes", $(V.tostring bound), $" => "], L.indent 4 ` etol yes,
+                     $"| no => ", L.indent 4 ` etol no]]
+                 ]
+
          | Case (va, v, arms, def) =>
                [
                %[%[$"case", vtol va, %[$"as", varl v], $"of"],

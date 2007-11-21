@@ -19,9 +19,15 @@ function lc_error(s) {
     // alert(s);
 };
 
+/* The current serial number for locally-generated tags.
+   Starts high to give us room to declare some global exceptions. */
+var lc_exnserial = 100;
+function lc_newtag () {
+    lc_exnserial ++;
+    return { a : "home", s : lc_exnserial };
+};
 
 /* Implementation of imperative queues, used for the "thread" queue. */
-
 function lc_queue () {
     /* queues start empty */
     this.contents = new Array();
@@ -770,8 +776,7 @@ function lc_marshal(dict, va) {
     return lc_marshalg({dummy : 0}, "home", dict, va);
 };
 
-/* XXX need an actual representation for exceptions. */
-var Match = 0;
+var Match = { a : "*", s : 0 };
 
 /* We should perhaps support an overlay network where
    there are multiple named worlds and some general way of

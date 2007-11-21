@@ -74,6 +74,10 @@ struct
     | ExternType (v, l, vso, e) => ExternType' (v, l, vso, fe e)
     | Say (v, stl, k, e) => Say' (v, ListUtil.mapsecond ft stl, fv k, fe e)
     | Say_cc (v, stl, k, e) => Say_cc' (v, ListUtil.mapsecond ft stl, fv k, fe e)
+    | Newtag (v, t, e) => Newtag' (v, ft t, fe e)
+    | Untag { typ, obj, target, bound, yes, no } =>
+        Untag' { typ = ft typ, obj = fv obj, target = fv target, yes = fe yes, no = fe no,
+                 bound = bound }
 
   fun pointwisevw fw ft fv fe value =
     case cval value of
@@ -108,6 +112,7 @@ struct
                           vals = ListUtil.mapsecond ft vals, body = fv body }
     | AllApp { f : cval, worlds : world list, tys : ctyp list, vals : cval list } =>
                 AllApp' { f = fv f, worlds = map fw worlds, tys = map ft tys, vals = map fv vals }
+    | Tagged (v1, v2) => Tagged' (fv v1, fv v2)
 
   local open Primop
         open Podata

@@ -827,7 +827,7 @@ struct
                                in ml5/pgh; we have no restriction
                                on the closedness of fns. *)
                             (* inline it! *)
-                            inline = false,
+                            inline = true,
                             recu = false, total = true,
                             body = Tag(Value ` Var carg, Value ` Var tagv) }]))],
                   nctx)

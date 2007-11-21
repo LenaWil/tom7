@@ -27,40 +27,41 @@ This file documents the marshaling format.
 
  tycon              bytecode         javascript       marshaled
 
- At(t, _)           v                v                v
- Cont _             {g, f}           {g, f}           g f       (integers)
- Conts _            int              int              int
- AllArrow           v                v                v
-  { body = t,       
-    vals = nil,
-    tys }
- AllArrow           int              int              int
-  { vals = _ :: _,
-    ... }
- WExists (_, t)     v                v                v
- TExists (_, vs)    {d,v0..vn-1}     {d,v0..vn-1}     d v0 .. vn
- Product stl        {l1..ln}         {l1..ln}         l1 v1 .. ln vn
- Addr _             string           string           urlencoded-string
- Shamrock t         v                v                v
- Sum stil           Inj(l,vo)        {t,v} or {t}     l v  or  l
-                                                      (object presence info from dict)
- Primcon INT        int              int              int
- Primcon STRING     string           string           .urlencoded-string
- Primcon REF        ref v            object           int
-                                       -or-               
-                                     int
- Mu (m, vt1..vtn)   v                v                v
- Primcon DICT t     ...
-                    dp d                              DP c
-                    drec svl                          DR n s1 v1 .. sn vn
-                    dsum svl                          DS n s1 + v1 s2 - .. 
-                                                           (values either + v or -)
-                    dex {d,a}                         DE d n a1 .. an
-                    dlookup s                         DL s
-                    dall sl d                         DA n s1 .. sn d
-                    at (d, w)                         D@ d w
-                    mu (m, (s1,d1)..(sn,dn))          DM m n s1 d1 .. sn dn
- TWdict w           str              str              urlencoded-string
+ At(t, _)           v                v                  v
+ Cont _             {g, f}           {g, f}             g f       (integers)
+ Conts _            int              int                int
+ AllArrow           v                v                  v
+  { body = t,                                           
+    vals = nil,                                         
+    tys }                                               
+ AllArrow           int              int                int
+  { vals = _ :: _,                                      
+    ... }                                               
+ WExists (_, t)     v                v                  v
+ TExists (_, vs)    {d,v0..vn-1}     {d,v0..vn-1}       d v0 .. vn
+ Product stl        {l1..ln}         {l1..ln}           l1 v1 .. ln vn
+ Addr _             string           string             urlencoded-string
+ Shamrock t         v                v                  v
+ Sum stil           Inj(l,vo)        {t,v} or {t}       l v  or  l
+                                                        (object presence info from dict)
+ Primcon INT        int              int                int
+ Primcon STRING     string           string             .urlencoded-string
+ Primcon REF        ref v            object             int
+                                       -or-                 
+                                     int                
+ Mu (m, vt1..vtn)   v                v                  v
+ Primcon DICT t     ...                                 
+                    dp d                                DP c
+                    drec svl                            DR n s1 v1 .. sn vn
+                    dsum svl                            DS n s1 + v1 s2 - .. 
+                                                             (values either + v or -)
+                    dex {d,a}                           DE d n a1 .. an
+                    dlookup s                           DL s
+                    dall sl d                           DA n s1 .. sn d
+                    at (d, w)                           D@ d w
+                    mu (m, (s1,d1)..(sn,dn))            DM m n s1 d1 .. sn dn
+ TWdict w           str              str                urlencoded-string
+ Primcon TAG t      Tag(addr,n)      {a : addr, s : n } urlencoded-string int
 
  primitive dicts are mapped to characters:
     Dcont -> c
@@ -74,6 +75,7 @@ This file documents the marshaling format.
     Dref -> r
     Dwdict -> w
     Dexn -> e
+    Dtag -> g
 
  TODO: vec, exn
 

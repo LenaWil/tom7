@@ -416,7 +416,7 @@ struct
                            [(joina, joint)],
                            k (G, Var' joina, joint, iw)),
                      Intcase' (va, arms, def))
-            end)
+            end)              
 
        | I.Sumcase (I.Sum t, exp, v, arms, def) => 
            cvte G exp
@@ -462,6 +462,49 @@ struct
                            k (G, Var' joina, joint, sw)),
                      Case' (va, v, arms, def))
             end)
+
+       | I.Untag { typ = _, obj, target, bound, yes, no } =>
+           cvte G obj
+           (fn (G, obj, _, _) =>
+            cvte G target
+            (fn (G, target, tagt, w) =>
+             case ctyp tagt of
+               Primcon (CPS.TAG, [typ]) =>
+                 let 
+                   val joinv = V.namedvar "casejoin"
+                   val joina = V.namedvar "r"
+
+                   (* see sumcase... *)
+                   val joint = ref (NONE : CPS.ctyp option)
+
+                   val no = cvte G no (fn (_, nv, t, nw) =>
+                                       let in
+                                         joint := SOME t;
+                                         Call' (Var' joinv, [nv])
+                                       end)
+                   val yes = cvte (bindvar G bound typ w) yes
+                                      (fn (_, yv, _, _) =>
+                                       Call' (Var' joinv, [yv]))
+
+                   val joint = 
+                     (case !joint of
+                        NONE => raise ToCPS "untag typ?!?"
+                      | SOME tj => tj)
+
+                 in
+                   Bind' (joinv,
+                          Lam' (V.namedvar "nonrec_untag",
+                                [(joina, joint)],
+                                k (G, Var' joina, joint, w)),
+
+                          Untag' { typ = typ,
+                                   obj = obj,
+                                   target = target,
+                                   no = no,
+                                   yes = yes,
+                                   bound = bound })
+                 end
+             | _ => raise ToCPS "tried to untag with non-tag"))
 
        | I.Tag (e1, e2) =>
            cvte G e1

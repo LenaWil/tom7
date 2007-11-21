@@ -27,6 +27,10 @@
    A local reference is represented as an object with a field v, containing the value.
    A remote reference is represented as an integer.
 
+   An extensible type tag is a pair { a, s } of the address (as a
+   string) where it was generated and a serial number (integer). A
+   tagged type is { t : tag, v : val } where t is such a tag.
+
    Dictionaries are represented as follows
  
     { w : tag, ... } where 
@@ -68,6 +72,7 @@ struct
   val recsleft   = Id.fromString "lc_recsleft"
   val go_mar     = Id.fromString "lc_go_mar"
   val marshal    = Id.fromString "lc_marshal"
+  val newtag     = Id.fromString "lc_newtag"
   val saveentry  = Id.fromString "lc_saveentry"
   val runentry   = "lc_enter"
   val homeaddr   = "home"
@@ -107,24 +112,6 @@ struct
          | C.WDict s => k ` String ` String.fromString s
          | C.Dict d => 
              let
-(*
-
-   Dictionaries are represented as follows
- 
-    { w : tag, ... } where 
-
-      tag (string)
-      DP       p : c, C, a, d, i, s, v, r, or A, w, e
-      DR       v : array of { l : String, v : Object }
-      DS       v : array of { l : String, v : Object (maybe missing) }
-      DM       m : Number, v : array of { s : String, v : Object }
-      DE       d : String, v : array of Object
-      DL       s : String  (lookup this var for typedict)
-      DW       s : String  (lookup this var for worlddict)
-      DA       s : array of String, w : array of String, v : Object
-      D@       v : Object, a : String
-      DH       d : bound String,  v : Object
-*)
 
                val s = String o String.fromString
                 
@@ -152,6 +139,7 @@ struct
                  | cd G (C.Primcon (C.VEC, [_])) = dict "DP" [("p", s"r")]
                  | cd G (C.Primcon (C.INT, nil)) = dict "DP" [("p", s"i")]
                  | cd G (C.Primcon (C.EXN, nil)) = dict "DP" [("p", s"e")]
+                 | cd G (C.Primcon (C.TAG, [_])) = dict "DP" [("p", s"g")]
                  | cd G (C.Primcon (C.STRING, nil)) = dict "DP" [("p", s"s")]
                  (* don't care what t is; all dicts represented the same way *)
                  | cd G (C.Primcon (C.DICTIONARY, [t])) = dict "DP" [("p", s"d")]
@@ -274,6 +262,17 @@ struct
                       k ` Id p)
                 end)
              end
+
+         | C.Tagged (v1, v2) =>
+             cvtv v1
+             (fn v1 =>
+              cvtv v2
+              (fn v2 =>
+               wi (fn p => Bind (p, Object ` %[ Property { property = pn "v",
+                                                           value = v1 },
+                                                Property { property = pn "t",
+                                                           value = v2 } ])
+                   :: k ` Id p)))
 
          | C.Inline va => cvtv va k
 
@@ -504,6 +503,30 @@ struct
                     is unit. *)
                  Bind (vtoi v, Call { func = Id ` $sym, args = %args }) ::
                  cvte e)
+
+            | C.Untag { typ = _, obj, target, bound, yes, no } => 
+                cvtv obj
+                (fn obj =>
+                 cvtv target
+                 (fn target =>
+                  (* need to test both components of the tag *)
+                  [If { test = Binary { oper = BinaryOp.LogicalAnd,
+                                        (* address *)
+                                        lhs = Binary { lhs = Sel target "a",
+                                                       oper = BinaryOp.StrictEquals,
+                                                       rhs = Sel (Sel obj "t") "a" },
+                                        (* serial number *)
+                                        rhs = Binary { lhs = Sel target "s",
+                                                       oper = BinaryOp.StrictEquals,
+                                                       rhs = Sel (Sel obj "t") "s" } },
+                        thenn = Block ` % ` 
+                                   (Bind (vtoi bound, Sel obj "v") ::
+                                    cvte yes),
+                        elsee = SOME ` Block ` % ` cvte no }]
+                  ))
+
+            | C.Newtag (v, _, e) => 
+                Bind (vtoi v, Call { func = Id newtag, args = %nil }) :: cvte e
 
             | C.Primop ([v], C.BIND, [va], e) =>
                 cvtv va

@@ -75,6 +75,12 @@ sig
 
     (* dynamically generate a tag in exn for the given type. *)
     | Newtag of var * ctyp * 'cexp
+    | Untag of { typ : ctyp, (* of tag *)
+                 obj : 'cval,
+                 target : 'cval,
+                 bound : var, (* within yes *)
+                 yes : 'cexp,
+                 no : 'cexp }
 
   and ('cexp, 'cval) cvalfront =
            (*   fn    arg   argt         body *)
@@ -209,6 +215,7 @@ sig
   val Primcall' : { var : var, sym : string, dom : ctyp list, 
                     cod : ctyp, args : cval list, bod : cexp } -> cexp
   val Newtag' : var * ctyp * cexp -> cexp
+  val Untag'  : { typ : ctyp, obj : cval, target : cval, bound : var, yes : cexp, no : cexp } -> cexp
 
   val Lams' : (var * (var * ctyp) list * cexp) list -> cval
   val Fsel' : cval * int -> cval

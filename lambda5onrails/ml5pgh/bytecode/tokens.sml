@@ -13,9 +13,11 @@ struct
       | BIND | END | JUMP | CASE | ERROR | RETURN
       | RECORD | PROJ | PRIMCALL | CALL | FUNDEC | ONEDEC | ABSENT
       | TNONE | TSOME | PROGRAM | INJ | GO | MARSHAL | PRIMOP
+      | NEWTAG
 
       | DCONT | DCONTS | DADDR | DDICT | DINT | DSTRING | DVOID | DAA | DREF | DW
       | DP | DREC | DSUM | DEXISTS | DALL | DMU | DLOOKUP | DAT | DSHAM | DEXN
+      | DTAG
 
     (* only for "basic" tokens, not constant-wrappers *)
     fun eq (BIND, BIND) = true
@@ -59,6 +61,7 @@ struct
       | eq (DW, DW) = true
       | eq (DSHAM, DSHAM) = true
       | eq (DEXN, DEXN) = true
+      | eq (DTAG, DTAG) = true
 
       | eq _ = false
 
