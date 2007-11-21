@@ -167,6 +167,8 @@ struct
   val Say' = Sayb false
   val Say_cc' = Sayb true
 
+  fun Newtag' (v, t, e) = $$NEWTAG_ // t // (MV v \\ e)
+
   (* -------- injections:   vals -------- *)
 
   (* function names bound in all bodies.. *)
@@ -208,6 +210,8 @@ struct
                           (SS (map #2 vtl) //
                            BB (map (MV o #1) vtl, bod)))
   fun Inline' v = $$INLINE_ // v
+
+  fun Tagged' (v1, v2) = $$TAGGED_ // v1 // v2
 
   (* slicker way to do this? *)
   fun Dict' tf = $$DICT_ //
@@ -275,6 +279,7 @@ struct
     | ExternType of var * string * (var * string) option * 'cexp
     | Say of var * (string * ctyp) list * 'cval * 'cexp
     | Say_cc of var * (string * ctyp) list * 'cval * 'cexp
+    | Newtag of var * ctyp * 'cexp
 
   and ('cexp, 'cval) cvalfront =
       Lams of (var * (var * ctyp) list * 'cexp) list
@@ -303,7 +308,7 @@ struct
     | VLeta of var * 'cval * 'cval
     | VLetsham of var * 'cval * 'cval
     | VTUnpack of var * var * (var * ctyp) list * 'cval * 'cval
-  (* nb. Binders must be implemented in outjection code below! *)
+    | Tagged of 'cval * 'cval
 
   datatype ('cexp, 'cval) cglofront =
       PolyCode of var * 'cval * ctyp (* @ var *)
@@ -431,6 +436,7 @@ struct
         Lams ` ListPair.map (fn (name, (args, body)) => (MVi name, args, body)) (fs, lams)
       end
     | $FSEL_ / va / i => Fsel (va, INTi i)
+    | $TAGGED_ / v1 / v2 => Tagged (v1, v2)
     | $(VINT_ i) => Int i
     | $VSTRING_ / $(STRING_ s) => String s
     | $PROJ_ / lab / va => Proj(STRINGi lab, va)
@@ -553,6 +559,10 @@ struct
     | $(PRIMOP_ po) / vas / bod => (case (look vas, look bod) of
                                       (S va, B(vl, exp)) => Primop(map MVi vl, po, va, exp)
                                     | _ => raise CPS "Bad primop")
+    | $NEWTAG_ / t / bind =>
+      (case look bind of
+         (MV v \ e) => Newtag (v, t, e)
+                | _ => raise CPS "bad newtag")
     | $PRIMCALL_ / sym / r => 
       let val (dom, (cod, (args, bind))) = slash3 r
       in case (look sym, look dom, look args, look bind) of

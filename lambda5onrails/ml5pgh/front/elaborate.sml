@@ -625,7 +625,8 @@ struct
                      | _ => ());
                   (exp, tt)
               end
-          | nil => raise Elaborate "impossible: *no* clauses in fn"
+          | nil => (* raise Elaborate "impossible: *no* clauses in fn" *)
+                   elab ctx here (EL.Raise (Initial.matchexp loc), loc)
           | _ =>
                let
                    (* we already have an arg since we're inside the
@@ -1255,7 +1256,7 @@ struct
               val PolyOccur =
                   case maybevalid of
                     NONE => Polyvar
-                  | SOME_ => Polyuvar
+                  | SOME _ => Polyuvar
           in
             (*
             print "binding fun:\n";

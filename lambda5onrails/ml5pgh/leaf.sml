@@ -9,7 +9,9 @@ struct
   | DICTIONARY
   | INT
   | STRING
+    (* or any tagged type *)
   | EXN
+  | TAG (* taking 1 type param *)
     (* marshalled data *)
   | BYTES 
 
@@ -31,6 +33,9 @@ struct
     | pc_cmp (BYTES, BYTES) = EQUAL
     | pc_cmp (BYTES, _) = LESS
     | pc_cmp (_, BYTES) = GREATER
+    | pc_cmp (TAG, TAG) = EQUAL
+    | pc_cmp (TAG, _) = LESS
+    | pc_cmp (_, TAG) = GREATER
     | pc_cmp (EXN, EXN) = EQUAL
 
   datatype primop = 
@@ -40,8 +45,6 @@ struct
     | BIND 
       (* takes 'a dict and 'a -> bytes *)
     | MARSHAL
-      (* takes a unit cont (or closure) and reifies it as a js string *)
-    (* | SAY | SAY_CC *)
 
   fun primop_cmp (LOCALHOST, LOCALHOST) = EQUAL
     | primop_cmp (LOCALHOST, _) = LESS
@@ -61,8 +64,6 @@ struct
 
   datatype leaf =
     (* worlds *)
-    (* XXX Not necessary: we now have real variable occurrences 
-       for worlds thanks to AST *) W_ | 
     WC_ of string |
     (* types *)
     AT_ | CONT_ | CONTS_ | ALLARROW_ | WEXISTS_ | TEXISTS_ | PRODUCT_ | TWDICT_ | ADDR_ |
@@ -71,12 +72,12 @@ struct
     CALL_ | HALT_ | GO_ | GO_CC_ | GO_MAR_ | PRIMOP_ of primop |
     PUT_ | LETSHAM_ | LETA_ | WUNPACK_ | TUNPACK_ | CASE_ | INTCASE_ | EXTERNVAL_ |
     EXTERNWORLD_ of IL.worldkind | EXTERNTYPE_ | PRIMCALL_ | NATIVE_ of Primop.primop |
-    SAY_ | 
+    SAY_ | NEWTAG_ |
     (* vals *)
     LAMS_ | FSEL_ | VINT_ of IL.intconst | VSTRING_ | PROJ_ | RECORD_ | HOLD_ | WPACK_ |
     TPACK_ | SHAM_ | INJ_ | ROLL_ | UNROLL_ | CODELAB_ | WDICTFOR_ | WDICT_ |
     DICTFOR_ | DICT_ | ALLLAM_ | ALLAPP_ | VLETA_ | VLETSHAM_ | VTUNPACK_ |
-    INLINE_ |
+    INLINE_ | TAGGED_ |
     (* globals *)
     POLYCODE_ | CODE_ |
 
@@ -85,10 +86,7 @@ struct
 
   fun leaf_cmp (l1, l2) =
     case (l1, l2) of
-      (W_, W_) => EQUAL
-    | (W_, _) => LESS
-    | (_, W_) => GREATER
-    | (WC_ s, WC_ s') => String.compare (s, s')
+      (WC_ s, WC_ s') => String.compare (s, s')
     | (WC_ _, _) => LESS
     | (_, WC_ _) => GREATER
     | (AT_, AT_) => EQUAL
@@ -327,6 +325,14 @@ struct
     | (CODE_, CODE_) => EQUAL
     | (CODE_, _) => LESS
     | (_, CODE_) => GREATER
+
+    | (TAGGED_, TAGGED_) => EQUAL
+    | (TAGGED_, _) => LESS
+    | (_, TAGGED_) => GREATER
+
+    | (NEWTAG_, NEWTAG_) => EQUAL
+    | (NEWTAG_, _) => LESS
+    | (_, NEWTAG_) => GREATER
 
     | (STRING_ s, STRING_ s') => String.compare(s, s')
     | (STRING_ _, _) => LESS

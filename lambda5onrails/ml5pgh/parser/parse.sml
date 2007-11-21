@@ -507,7 +507,7 @@ struct
            wth (fn (pats, (to, (_, e))) => (pats, to, e))
 
       and onefun' G =
-          expid -- (fn f => separate (call G funclause) 
+          expid -- (fn f => separate0 (call G funclause) 
                     (`BAR >> expid suchthat (fn x => x = f)) wth 
                     (fn a => (f, a)))
 
@@ -619,7 +619,7 @@ struct
                         datatypes wth (fn d => Datatype(nil, d))],
                  `FUN >> opt (`INLINE) && 
                    call G funs wth (fn (inl, fs) => Fun { inline = Option.isSome inl,
-                                                           funs = fs }),
+                                                          funs = fs }),
                  `FUN -- punt "expected (INLINE) FUNS after FUN"
                    ])
 

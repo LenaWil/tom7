@@ -37,6 +37,9 @@ Other performance improvements
     ... it is nice to see them for debugging, though.
     ... probably this should be done at the IL level?
 
+Bugs
+  * nullary 'fun' and 'fn' are wrong; they produce functions of type ('a -> ('b -> 'c)).
+
 Passes to implement:
 
 CPS Optimization

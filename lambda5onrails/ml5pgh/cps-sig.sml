@@ -73,6 +73,9 @@ sig
     | Say of var * (string * ctyp) list * 'cval * 'cexp
     | Say_cc of var * (string * ctyp) list * 'cval * 'cexp
 
+    (* dynamically generate a tag in exn for the given type. *)
+    | Newtag of var * ctyp * 'cexp
+
   and ('cexp, 'cval) cvalfront =
            (*   fn    arg   argt         body *)
       Lams of (var * (var * ctyp) list * 'cexp) list
@@ -108,6 +111,9 @@ sig
        are considered valuable. *)
     | AllLam of { worlds : var list, tys : var list, vals : (var * ctyp) list, body : 'cval }
     | AllApp of { f : 'cval, worlds : world list, tys : ctyp list, vals : 'cval list }
+
+    (* value, tag *)
+    | Tagged of 'cval * 'cval
 
     | VLeta of var * 'cval * 'cval
     | VLetsham of var * 'cval * 'cval
@@ -202,6 +208,7 @@ sig
   val Native' : { var : var, po : Primop.primop, tys : ctyp list, args : cval list, bod : cexp } -> cexp
   val Primcall' : { var : var, sym : string, dom : ctyp list, 
                     cod : ctyp, args : cval list, bod : cexp } -> cexp
+  val Newtag' : var * ctyp * cexp -> cexp
 
   val Lams' : (var * (var * ctyp) list * cexp) list -> cval
   val Fsel' : cval * int -> cval
@@ -229,6 +236,7 @@ sig
   val Dict' : (var * var, cval, var * var, cval) ctypfront -> cval
   val WDict' : string -> cval
   val Inline' : cval -> cval
+  val Tagged' : cval * cval -> cval
 
   val PolyCode' : var * cval * ctyp -> cglo
   val Code' : cval * ctyp * string -> cglo
