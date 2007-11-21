@@ -45,7 +45,4 @@ sig
     val eventname : string
 (*  val listname : string *)
 
-
-    val mobiletvars : Variable.Set.set
-
 end

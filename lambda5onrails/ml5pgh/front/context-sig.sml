@@ -1,4 +1,5 @@
 
+(* Contexts for elaboration. *)
 signature CONTEXT =
 sig
     (* what sort of thing (world, type, val), id *)
@@ -41,9 +42,6 @@ sig
 
     (* context extension operations *)
     
-    (* bind a valid variable *)
-    (* val bindu : context -> string -> IL.typ IL.poly -> Variable.var -> IL.idstatus -> context *)
-
     (* bind a world *)
     val bindw : context -> string -> Variable.var -> context
     val bindwlab : context -> string -> IL.worldkind -> context
@@ -56,5 +54,9 @@ sig
 
     (* bind an identifier to a type constructor with the indicated kind *)
     val bindc : context -> string -> IL.con -> IL.kind -> IL.tystatus -> context
+
+    (* note that an IL type variable is mobile. *)
+    val bindmobile : context -> Variable.var -> context
+    val ismobile : context -> Variable.var -> bool
 
 end

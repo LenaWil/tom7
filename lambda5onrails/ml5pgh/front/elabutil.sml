@@ -269,37 +269,16 @@ struct
     | unroll loc _ =
       error loc "internal error: unroll non-mu"
 
-    (* I implemented it again,
-       and then thought, this would be useful utility code!
-
-  fun unroll (wholemu as I.Mu(n, mubod)) =>
-    (* get the nth thing *)
-    let 
-      (* alist var->index *)
-      val vn = ListUtil.mapi Util.I mubod
-      val (_, thisone) = List.nth (mubod, n)
-        
-      val sub =
-        Subst.fromlist
-        (map (fn (v, n) => 
-              (v, I.Mu(n, mubod))) vn)
-    in
-      Subst.tsubst sub thisone
-    end handle Subscript =>
-      raise Pattern "bad mu!"
-        *)
-
   fun mono t = IL.Poly({worlds= nil, tys = nil}, t)
 
-
   local
-    val mobiles = ref nil : (Pos.pos * string * IL.typ) list ref
+    val mobiles = ref nil : (Context.context * Pos.pos * string * IL.typ) list ref
 
     (* mobility test.
        if force is true, then unset evars are set to unit
        to force mobility.
        if force is false and evars are seen, then defer this type for later *)
-    fun emobile pos s force t =
+    fun emobile G pos s force t =
       let
 
         (* argument: set of mobile type variables *)
@@ -314,9 +293,10 @@ struct
                   ev := IL.Bound (IL.TRec nil);
                   true
                 end
-              else (mobiles := (pos, s, t) :: !mobiles; true)
+              else (mobiles := (G, pos, s, t) :: !mobiles; true)
 
-          | IL.TVar v => V.Set.member (G, v)
+          | IL.TVar v => Context.ismobile G v
+
           | IL.TRec ltl => ListUtil.allsecond (em G) ltl
           | IL.Arrow _ => false
           | IL.Arrows _ => false
@@ -325,7 +305,7 @@ struct
 
           (* no matter which projection this is, all types have to be mobile *)
           | IL.Mu (i, vtl) => 
-              let val G = V.Set.addList(G, map #1 vtl)
+              let val G = foldr (fn (v, G) => Context.bindmobile G v) G ` map #1 vtl
               in ListUtil.allsecond (em G) vtl
               end
 
@@ -335,12 +315,16 @@ struct
           (* continuations aren't mobile. They could do anything. *)
           | IL.TCont t => false
           | IL.TRef _ => false
-          | IL.TTag _ => (* XXX5 ? *) false
+          (* the representation of a tag is always portable, but the 
+             tag type is only mobile if its body is mobile. This is
+             because a tag is permission to possibly use an extensible
+             type at that type. *)
+          | IL.TTag (t, _) => em G t
           | IL.At _ => true
           | IL.TAddr _ => true
           | IL.Shamrock _ => true
       in
-        em Initial.mobiletvars t
+        em G t
       end
 
 
@@ -364,15 +348,15 @@ struct
 
     fun check_mobile () =
       let in
-        List.app (fn (pos, msg, t) => 
-                  if emobile pos msg true t
+        List.app (fn (ctx, pos, msg, t) => 
+                  if emobile ctx pos msg true t
                   then () 
                   else notmobile Context.empty pos msg t) (!mobiles);
         clear_mobile ()
       end
  
     fun require_mobile ctx loc msg t =
-        if emobile loc msg false t
+        if emobile ctx loc msg false t
         then ()
         else notmobile ctx loc msg t
 

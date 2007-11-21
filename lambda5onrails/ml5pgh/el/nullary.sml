@@ -145,13 +145,13 @@ struct
            | Tagtype _ => (G, dec)
 
            (* actually, rewrite exception decs too *)
-           | Newtag (a, SOME t, b) => (G, Newtag (a, SOME ` tul G t, b))
-           | Newtag (a, NONE, b) => ((#1 G, SM.insert (#2 G, a, EXN)),
-                                     Newtag  (a, SOME ` TRec nil, b))
+           | Newtag (a, valid, SOME t, b) => (G, Newtag (a, valid, SOME ` tul G t, b))
+           | Newtag (a, valid, NONE, b) => ((#1 G, SM.insert (#2 G, a, EXN)),
+                                            Newtag  (a, valid, SOME ` TRec nil, b))
 
-           | Exception (a, SOME t) => (G, Exception (a, SOME ` tul G t))
-           | Exception (a, NONE) => ((#1 G, SM.insert (#2 G, a, EXN)),
-                                     Exception (a, SOME ` TRec nil))
+           | Exception (a, valid, SOME t) => (G, Exception (a, valid, SOME ` tul G t))
+           | Exception (a, valid, NONE) => ((#1 G, SM.insert (#2 G, a, EXN)),
+                                            Exception (a, valid, SOME ` TRec nil))
 
            | ExternWorld ew => (G, ExternWorld ew)
            | ExternVal(sl, s, t, w, ol) => (G, ExternVal(sl, s, tul G t, w, ol))

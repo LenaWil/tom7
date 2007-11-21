@@ -209,9 +209,9 @@ struct
                in (d, List.exists one dl)
                end
          (* these are simple *)
-         | E.Exception (i, _) => (d, i = vv)
+         | E.Exception (i, _, _) => (d, i = vv)
          | E.Tagtype t => (d, false)
-         | E.Newtag (i, _, _) => (d, i = vv)
+         | E.Newtag (i, _, _, _) => (d, i = vv)
          | E.Type _ => (d, false)
          | E.ExternType _ => (d, false)
          | E.ExternVal (tv, id, t, w, l) => (d, id = vv)
