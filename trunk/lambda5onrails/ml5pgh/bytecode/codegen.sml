@@ -63,6 +63,7 @@ struct
          (* if there are no vals, these are purely static *)
          | C.AllLam { worlds, tys, vals = nil, body } => cvtv body k
          | C.AllApp { worlds, tys, vals = nil, f } => cvtv f k
+    
 
          | C.WDict d => k ` String d
          | C.Dict d => 
@@ -82,6 +83,7 @@ struct
                  (* ditto. *)
                  | cd G (C.Primcon (C.REF, [_])) = Dp Dref
                  | cd G (C.Primcon (C.VEC, [_])) = Dp Dref
+                 | cd G (C.Primcon (C.TAG, [_])) = Dp Dtag
                  (* always represented the same way, regardless of which world *)
                  | cd G (C.Addr _) = Dp Daddr
                  | cd G (C.TWdict _) = Dp Dw
@@ -172,6 +174,14 @@ struct
              (case SM.find (labelmap, s) of
                 NONE => raise ByteCodegen ("couldn't find codelab " ^ s)
               | SOME i => k ` Int ` IntConst.fromInt i)
+
+         | C.Tagged (v1, v2) =>
+            cvtv v1
+            (fn v1 =>
+             cvtv v2
+             (fn v2 =>
+              wi (fn p => Bind (p, Record[("v", v1), ("t", v2)],
+                                k ` Var p))))
 
          (* PERF we perhaps should have canonicalized these things a long time ago so
             that we can use more efficient representations. This probably means putting
@@ -295,6 +305,9 @@ struct
             | C.Go_cc _ => raise ByteCodegen "shouldn't see go_cc in codegen"
             | C.ExternWorld _ => raise ByteCodegen "shouldn't see externworld in codegen"
 
+            | C.Newtag (v, _, e) => Bind(vtoi v, Newtag, cvte e)
+
+
             | C.Primcall { var = v, sym, args, bod = e, ... } => 
                 cvtvs args
                 (fn args =>
@@ -322,6 +335,15 @@ struct
 
             | C.Say _ => raise ByteCodegen "should not see SAY in codegen"
             | C.Say_cc _ => raise ByteCodegen "shouldn't see say_cc on server (!)"
+
+            | C.Native { var = v, args = nil, tys = nil, 
+                         po = Primop.PCompileWarn s, bod = e } => 
+                let in
+                  print ("Warning: " ^ s ^ "\n");
+                  (* PERF this record is almost always useless;
+                     check that it occurs, or optimize? *)
+                  Bind(vtoi v, Record nil, cvte e)
+                end
 
             | C.Native { var = v, args, bod = e, po, ... } => 
                 (* XXX could check arity *)

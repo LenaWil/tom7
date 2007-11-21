@@ -605,6 +605,19 @@ struct
                              $"has type: ",
                              IN ` TY ` ctyp' t])
 
+     | Untag { typ, obj, target, bound, yes, no } => 
+       (case (ctyp ` vok G obj, ctyp ` vok G target) of
+          (Primcon(CPS.EXN, []), Primcon(CPS.TAG, [t])) =>
+            if ctyp_eq (t, typ)
+            then 
+              let in
+                eok G no;
+                eok (bindvar G bound typ ` worldfrom G) yes
+              end
+            else fail[$"untag didn't agree with annotation: ",
+                      TY t, $"annotation: ", TY typ]
+     | _ => fail [$"untag on non-tag or non-exn"])
+
     | Intcase (va, arms, def) => 
        (case ctyp ` vok G va of
           Primcon(CPS.INT, []) =>
@@ -613,6 +626,7 @@ struct
               eok G def
             end
         | _ => fail [$"intcase on non-int"])
+
     | Case (va, v, arms, def) =>
        (case ctyp ` vok G va of
           Sum stl =>

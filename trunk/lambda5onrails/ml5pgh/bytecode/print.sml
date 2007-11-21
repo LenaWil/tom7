@@ -61,7 +61,7 @@ struct
      | Marshal (e1, e2) => %[$"MARSHAL", etol e1, etol e2]
 
      | Ref _ => raise BytePrint "can't write out refs"
-
+     | Newtag => $"NEWTAG"
      | Dat {d, a} => %[$"DAT", etol d, etol a]
      | Dp pd => %[$"DP", pdtol pd]
      | Drec sel => %[%[$"DREC", itol ` length sel],
@@ -89,6 +89,7 @@ struct
      | Ddict => $"DDICT"
      | Dint => $"DINT"
      | Dexn => $"DEXN"
+     | Dtag => $"DTAG"
      | Dw => $"DW"
      | Dstring => $"DSTRING"
      | Dvoid => $"DVOID")

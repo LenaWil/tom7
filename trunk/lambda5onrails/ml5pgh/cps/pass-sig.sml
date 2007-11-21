@@ -57,6 +57,8 @@ sig
   val case_Put : stuff -> selves * context -> var * cval * cexp -> exp_result
   val case_TUnpack : stuff -> selves * context -> var * var * (var * ctyp) list * cval * cexp -> exp_result
   val case_WUnpack : stuff -> selves * context -> var * var * cval * cexp -> exp_result
+  val case_Newtag : stuff -> selves * context -> var * ctyp * cexp -> exp_result
+  val case_Untag : stuff -> selves * context -> { typ : ctyp, obj : cval, target : cval, bound : var, yes : cexp, no : cexp } -> exp_result
 
   val case_AllApp : stuff -> selves * context -> { f : cval, worlds : world list, tys : ctyp list, vals : cval list } -> val_result
   val case_AllLam : stuff -> selves * context -> { worlds : var list, tys : var list, vals : (var * ctyp) list, body : cval } -> val_result
@@ -84,6 +86,7 @@ sig
   val case_WDict : stuff -> selves * context -> string -> val_result
   val case_WDictfor : stuff -> selves * context -> world -> val_result
   val case_WPack : stuff -> selves * context -> world * cval -> val_result
+  val case_Tagged : stuff -> selves * context -> cval * cval -> val_result
 
 end
 

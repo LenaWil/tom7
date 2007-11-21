@@ -72,7 +72,7 @@ struct
     CALL_ | HALT_ | GO_ | GO_CC_ | GO_MAR_ | PRIMOP_ of primop |
     PUT_ | LETSHAM_ | LETA_ | WUNPACK_ | TUNPACK_ | CASE_ | INTCASE_ | EXTERNVAL_ |
     EXTERNWORLD_ of IL.worldkind | EXTERNTYPE_ | PRIMCALL_ | NATIVE_ of Primop.primop |
-    SAY_ | NEWTAG_ |
+    SAY_ | NEWTAG_ | UNTAG_ |
     (* vals *)
     LAMS_ | FSEL_ | VINT_ of IL.intconst | VSTRING_ | PROJ_ | RECORD_ | HOLD_ | WPACK_ |
     TPACK_ | SHAM_ | INJ_ | ROLL_ | UNROLL_ | CODELAB_ | WDICTFOR_ | WDICT_ |
@@ -333,6 +333,10 @@ struct
     | (NEWTAG_, NEWTAG_) => EQUAL
     | (NEWTAG_, _) => LESS
     | (_, NEWTAG_) => GREATER
+
+    | (UNTAG_, UNTAG_) => EQUAL
+    | (UNTAG_, _) => LESS
+    | (_, UNTAG_) => GREATER
 
     | (STRING_ s, STRING_ s') => String.compare(s, s')
     | (STRING_ _, _) => LESS

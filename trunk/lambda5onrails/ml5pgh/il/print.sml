@@ -309,10 +309,10 @@ struct
            
            | Untag {typ, obj, target, bound, yes, no} =>
 
-                 %[$"untag", etol obj, $":", ttol typ,
-                   $"with", etol target,
-                   %[$"  yes", $(V.tostring bound), $" => ", etol yes,
-                     $"| no => ", etol no]]
+                 %[%[$"untag", etol obj, $":", ttol typ],
+                   %[$"with", etol target],
+                   %[%[$"  yes", $(V.tostring bound), $" => "], L.indent 4 ` etol yes,
+                     $"| no => ", L.indent 4 ` etol no]]
 
            | Throw (e1, e2) => L.paren(%[$"throw",
                                          etol e1,

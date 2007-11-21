@@ -216,6 +216,29 @@ struct
            Put' (v, va, selfe z G e)
          end
 
+  fun case_Newtag z ({selfe, selfv, selft}, G) (v, t, e) =
+    let
+      val t = selft z G t
+      val G = bindvar G v (Primcon'(TAG, [t])) ` worldfrom G
+    in
+      Newtag'(v, t, selfe z G e)
+    end
+
+  fun case_Untag z ({selfe, selfv, selft}, G) { typ : ctyp, obj : cval, target : cval, bound : var, yes : cexp, no : cexp } =
+    let
+      val (obj, _) = selfv z G obj
+      val (target, _) = selfv z G target
+        
+      val typ = selft z G typ
+    in
+      Untag' { typ = typ, 
+               obj = obj,
+               target = target,
+               bound = bound,
+               yes = selfe z (bindvar G bound typ ` worldfrom G) yes,
+               no  = selfe z G no }
+    end
+
   fun case_Go z ({selfe, selfv, selft}, G) (w, va, e) =
     let val (va, t) = selfv z G va
     in
@@ -287,7 +310,16 @@ struct
   fun case_WPack _ _ _ = raise Pass "unimplemented wpack"
 
   fun case_Int z ({selfe, selfv, selft}, G) i = (Int' i, Zerocon' INT)
-  fun case_String z ({selfe, selfv, selft}, G) i = (String' i, Zerocon' STRING)
+  fun case_String z ({selfe, selfv, selft}, G) s = (String' s, Zerocon' STRING)
+
+
+  fun case_Tagged z ({selfe, selfv, selft}, G) (va, vt) =
+    let
+      val (va, tt) = selfv z G va
+      val (vat, ttt) = selfv z G vt
+    in
+      (Tagged' (va, vat), Zerocon' EXN)
+    end
 
   fun case_Inline z ({selfe, selfv, selft}, G) va =
     let
@@ -702,6 +734,7 @@ struct
      | case_Primcon z ({selfe, selfv, selft}, G) (INT, []) = Zerocon' INT
      | case_Primcon z ({selfe, selfv, selft}, G) (STRING, []) = Zerocon' STRING
      | case_Primcon z ({selfe, selfv, selft}, G) (EXN, []) = Zerocon' EXN
+     | case_Primcon z ({selfe, selfv, selft}, G) (TAG, [t]) = Primcon' (TAG, [selft z G t])
      | case_Primcon _ _ (BYTES, _)      = raise Pass "bad primcon"
      | case_Primcon _ _ (VEC, _)        = raise Pass "bad primcon"
      | case_Primcon _ _ (REF, _)        = raise Pass "bad primcon"
@@ -709,6 +742,7 @@ struct
      | case_Primcon _ _ (INT, _)        = raise Pass "bad primcon"
      | case_Primcon _ _ (STRING, _)     = raise Pass "bad primcon"
      | case_Primcon _ _ (EXN, _)        = raise Pass "bad primcon"
+     | case_Primcon _ _ (TAG, _)        = raise Pass "bad primcon"
 
 
    fun case_Shamrock z ({selfe, selfv, selft}, G) (w, t) = Shamrock' (w, selft z (bindworld G w) t)
@@ -755,6 +789,7 @@ struct
       | VLeta a => case_VLeta z (s, G) a
       | VLetsham a => case_VLetsham z (s, G) a
       | VTUnpack a => case_VTUnpack z (s, G) a
+      | Tagged a => case_Tagged z (s, G) a
     end
 
   and converte z G ex = 
@@ -782,6 +817,8 @@ struct
       | ExternType a => case_ExternType z (s, G) a
       | Say a => case_Say z (s, G) a
       | Say_cc a => case_Say_cc z (s, G) a
+      | Newtag a => case_Newtag z (s, G) a
+      | Untag a => case_Untag z (s, G) a
     end
 
   and convertt z G ty =
