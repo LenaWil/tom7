@@ -26,23 +26,41 @@ struct
     open CPS
     structure I = IL
     structure V = Variable
-    open CPSTypeCheck
+    structure VM = V.Map
+    structure T = CPSTypeCheck
     val nv = V.namedvar
 
     infixr 9 `
     fun a ` b = a b
 
-    type env = context
+    type env = CPS.ctyp VM.map * T.context
+
+    fun gettype (M, G) args = T.gettype G args
+    fun bindtype (M, G) v b = (M, T.bindtype G v b)
+    fun bindworld (M, G) v = (M, T.bindworld G v)
+    fun worldfrom (_, G) = T.worldfrom G
+    fun setworld (M, G) w = (M, T.setworld G w)
+    fun getuvar (_, G) v = T.getuvar G v
+    fun getvar (_, G) v = T.getvar G v
+    fun bindvar (M, G) v t w = (M, T.bindvar G v t w)
+    fun binduvar (M, G) v f = (M, T.binduvar G v f)
+    fun bindu0var (M, G) v t = (M, T.bindu0var G v t)
+    fun bindworldlab (M, G) s k = (M, T.bindworldlab G s k)
 
     val handlervar = nv "handler"
     val handlerty = Cont' [Zerocon' EXN]
 
-    fun primtype v =
-      if V.eq(v, Initial.intvar) then Primcon'(INT, nil)
-      else if V.eq(v, Initial.exnvar) then Primcon'(EXN, nil)
-      else if V.eq(v, Initial.stringvar) then Primcon'(STRING, nil)
-      else if V.eq(v, Initial.charvar) then Primcon'(INT, nil) (* chars become ints. *)
-      else raise ToCPS ("unbound type variable " ^ V.tostring v)
+    val primtypes = foldr VM.insert' VM.empty
+      [(Initial.intvar, Primcon'(INT, nil)),
+       (Initial.exnvar, Primcon'(EXN, nil)),
+       (Initial.stringvar, Primcon'(STRING, nil)),
+       (* chars become ints. *)
+       (Initial.charvar, Primcon'(INT, nil))]
+
+    fun primtype ((M, _), v) =
+      case VM.find (M, v) of
+        SOME t => t
+      | NONE => raise ToCPS ("unbound type variable " ^ V.tostring v)
 
     fun cvtw (G : env) (w : IL.world) : CPS.world =
       (case w of
@@ -56,7 +74,7 @@ struct
         I.TVar v => 
           (* if this type is not bound, it had better be a prim *)
           ((ignore ` gettype G v;
-            TVar' v) handle TypeCheck _ => primtype v)
+            TVar' v) handle T.TypeCheck _ => primtype (G, v))
 
       | I.Evar (ref (I.Bound t)) => cvtt G t
       | I.Evar _ => raise ToCPS "tocps/unset evar"
@@ -139,7 +157,7 @@ struct
                                    case ctyp rt of
                                      Mu(i, vtl) =>
                                        (* ... *)
-                                       let val t = unroll (i, vtl)
+                                       let val t = T.unroll (i, vtl)
                                        in
                                          Bind' (vv, Unroll' v, 
                                                 k (bindvar G vv t w, Var' vv, t, w))
@@ -445,6 +463,13 @@ struct
                      Case' (va, v, arms, def))
             end)
 
+       | I.Tag (e1, e2) =>
+           cvte G e1
+           (fn (G, v1, _, _) =>
+            cvte G e2
+            (fn (G, v2, _, iw) =>
+             k (G, Tagged'(v1, v2), Zerocon' EXN, iw)))
+
        (* For exceptions, we need to bind a handler
           at the new world that jumps back to this
           world and then invokes the current one. *)
@@ -641,6 +666,37 @@ struct
                  else raise ToCPS ("unresolvable extern val because it is not of base type: " ^ l)
                end
          end
+
+       | I.Tagtype v =>
+         let 
+           (* don't bind it, so it is treated as primitive.
+              (XXX this is weird; probably all bindtypes should
+              just push TVar v into the map and we ignore the CPS type context
+              for translation) *)
+           (* val (M, G) = bindtype G v false *)
+           val (M, G) = G
+           val M = VM.insert (M, v, Zerocon' EXN)
+         in
+           k (M, G)
+         end
+
+       | I.Newtag (v, ty, tt) =>
+         (* has to be an extensible type *)
+         (case ctyp (cvtt G (I.TVar tt)) of
+            Primcon (CPS.EXN, nil) =>
+              let
+                val ty = cvtt G ty
+                (* XXX5 probably some tags should be valid, like Match.
+                   maybe we want a different binder for that?
+
+                   or maybe it is just that 'a tag is mobile when 'a 
+                   is mobile? then we can just Put after this if we want. *)
+                val G = bindvar G v (Primcon' (TAG, [ty])) ` worldfrom G
+              in
+                Newtag'(v, ty, k G)
+              end
+          | _ => raise ToCPS "ill typed: newtag in non-extensible type")
+
 
        | I.Bind (I.Val, I.Poly ({worlds = nil, tys = nil}, (v, t, e))) =>
          (* no poly -- just a val binding *)
@@ -1013,7 +1069,7 @@ struct
 
     fun convert (I.Unit(decs, _ (* exports *))) (I.WConst world) = 
          let
-           val G = empty ` WC' world
+           val G = (primtypes, T.empty ` WC' world)
            val G = bindvar G handlervar handlerty ` WC' world
            val ce = cvtds decs G
          in

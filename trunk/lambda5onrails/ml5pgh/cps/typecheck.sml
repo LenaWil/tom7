@@ -359,7 +359,8 @@ struct
     | Shamrock (w, t) => tok (bindworld G w) t
     | Primcon (VEC, [t]) => tok G t
     | Primcon (REF, [t]) => tok G t
-    | Primcon (DICT, [t]) => tok G t
+    | Primcon (DICTIONARY, [t]) => tok G t
+    | Primcon (TAG, [t]) => tok G t
     | Primcon (INT, []) => ()
     | Primcon (STRING, []) => ()
     | Primcon (EXN, []) => ()
@@ -428,6 +429,14 @@ struct
            then eok (bindvar G v (Zerocon' STRING) ` worldfrom G) e
            else fail [$"say_cc didn't agree with imports:", TYL (map #2 itl),                 
                       $"actual closure-converted cont: ", TY t]
+         end
+
+     | Newtag (v, t, e) =>
+         let
+           val () = tok G t
+           val G = bindvar G v (Primcon'(TAG, [t])) ` worldfrom G
+         in
+           eok G e
          end
 
      | Native { var = v, po, tys, args = l, bod = e } =>
@@ -688,6 +697,15 @@ struct
                        body = vok G body }
          end
      | Record svl => Product' ` ListUtil.mapsecond (vok G) svl
+
+     | Tagged (va, vt) =>
+         (case (vok G va, ctyp ` vok G vt) of
+            (t, Primcon(TAG, [t'])) =>
+              if ctyp_eq (t, t')
+              then Zerocon' EXN
+              else fail [$"tag and argument don't agree: ",
+                         TY t, $"tag: ", TY t']
+          | _ => fail [$"must tag with tag"])
 
      | Inline va => vok G va
 

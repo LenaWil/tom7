@@ -4,8 +4,6 @@ unit
 
    do case 0 of
 
-   fun f
-
    do fn
 
 end

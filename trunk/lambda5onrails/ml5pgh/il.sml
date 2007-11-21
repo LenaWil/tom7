@@ -181,7 +181,6 @@ struct
         (* quantifiers on the outside -- no poly recursion *)
         (* XXX5 could make PolyVal that requires syntactic value.. *)
       | Bind of bind * (var * typ * exp) poly
-        (* XXX5 uval (?) *)
       | Tagtype of var
         (* tag of typ in tagtype *)
       | Newtag of var * typ * var

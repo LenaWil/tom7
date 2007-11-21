@@ -1,0 +1,15 @@
+unit
+
+   tagtype exp
+   newtag Int of int in exp
+   newtag Seq of exp * exp in exp
+
+   val z = Seq (Int 0, Int 4)
+
+(*
+   fun eval (Int i) = i
+     | eval (Seq (e1, e2)) = (eval e1; eval e2)
+
+   do eval (Seq (Int 0, Int 4))
+*)
+end

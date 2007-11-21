@@ -106,6 +106,7 @@ struct
          | Primcon (INT, []) => $"int"
          | Primcon (STRING, []) => $"string"
          | Primcon (EXN, []) => $"exn"
+         | Primcon (TAG, [t]) => %[ttol t, $"tag"]
          | Primcon _ => $"XXX-bad-primcon-XXX"
 
          | Addr w => %[wtol w, $"addr"]
@@ -246,6 +247,8 @@ struct
                 %[$"dict",
                   L.indent 2 ` tftol fatl vtol fatl vtol tf]
                    
+         | Tagged (v1, v2) => L.paren (%[$"tag", vtol v2, $"with", vtol v1])
+
          | Var v => $(V.tostring v)
          | UVar v => $("~" ^ V.tostring v)
                ) handle Match => $"XXX_MATCH-VAL_XXX"
@@ -340,6 +343,9 @@ struct
                  L.indent 4 ` vtol va] :: estol rest
 
          | Halt => [$"HALT."]
+
+         | Newtag (v, t, e) => %[$"newtag", varl v,
+                                 %[$"of", ttol t]] :: estol e
 
          | Letsham (v, va, e) => %[%[$"letsham", varl v,
                                      $"="],
