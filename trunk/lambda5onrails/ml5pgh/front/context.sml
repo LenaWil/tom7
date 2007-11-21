@@ -10,6 +10,7 @@ struct
     structure S = StringMap
     structure SU = StringMapUtil
     structure SS = StringSet
+    structure VS = Variable.Set
 
     datatype varsort =
       Modal of IL.world
@@ -20,6 +21,7 @@ struct
                cons : (IL.kind * IL.con * IL.tystatus) S.map,
                worlds : Variable.var S.map,
                wlabs : IL.worldkind S.map,
+               mobiles : VS.set,
                (* obsolete, but might come back *)
                dbs  : unit S.map }
 
@@ -42,7 +44,7 @@ struct
                        Modal w => ILPrint.wtol w
                      | Valid v => Layout.str ("VALID " ^ Variable.tostring v ^ "."))
 
-    fun ctol (C { vars, cons, worlds, wlabs, dbs }) =
+    fun ctol (C { vars, cons, worlds, wlabs, mobiles, dbs }) =
       let
         val $ = L.str
         val % = L.mayAlign
@@ -62,7 +64,7 @@ struct
                      %[%[$s, $"==", $(Variable.tostring v), $":"],
                        L.indent 2 (%[ILPrint.ptol ILPrint.ttol tp,
                                      $"@", stol sort])]) vars),
-             $"XXX cons, wlabs"])]
+             $"XXX mobiles, cons, wlabs"])]
           
       end
 
@@ -169,7 +171,7 @@ struct
     fun con ctx sym = conex ctx NONE sym
 
 
-    fun bindwlab (C {vars, cons, dbs, worlds, wlabs }) sym kind = 
+    fun bindwlab (C {vars, cons, dbs, worlds, wlabs, mobiles }) sym kind = 
         C { vars = vars,
             cons = cons,
             wlabs = 
@@ -179,10 +181,11 @@ struct
                              then wlabs (* already there *)
                              else raise Context ("kinds don't agree on multiple " ^
                                                  "extern world declarations for " ^ sym)),
+            mobiles = mobiles,
             worlds = worlds,
             dbs = dbs }
 
-    fun bindex (C {vars, cons, dbs, worlds, wlabs }) sym typ var stat sort =
+    fun bindex (C {vars, cons, dbs, worlds, wlabs, mobiles }) sym typ var stat sort =
       let 
         val sym = (case sym of NONE => 
                      ML5pghUtil.newstr "bindex" | SOME s => s)
@@ -202,24 +205,27 @@ struct
             cons = cons,
             wlabs = wlabs,
             worlds = worlds,
+            mobiles = mobiles,
             dbs = dbs }
       end
 
     fun bindv c sym t v w = bindex c (SOME sym) t v IL.Normal (Modal w)
     fun bindu c sym typ var stat = bindex c (SOME sym) typ var stat (Valid (Variable.namedvar "unused"))
 
-    fun bindcex (C { cons, vars, dbs, worlds, wlabs }) module sym con kind status =
+    fun bindcex (C { cons, vars, dbs, worlds, mobiles, wlabs }) module sym con kind status =
         C { vars = vars,
             cons = S.insert (cons, sym, (kind, con, status)),
             wlabs = wlabs,
             worlds = worlds,
+            mobiles = mobiles,
             dbs = dbs }
 
     fun bindc c sym con kind status = bindcex c NONE sym con kind status
 
-    fun bindw (C { cons, vars, dbs, worlds, wlabs }) s v =
+    fun bindw (C { cons, vars, dbs, worlds, mobiles, wlabs }) s v =
         C { vars = vars,
             cons = cons,
+            mobiles = mobiles,
             wlabs = wlabs,
             worlds = S.insert (worlds, s, v),
             dbs = dbs }
@@ -227,7 +233,18 @@ struct
     val empty = C { worlds = S.empty, 
                     vars = S.empty, 
                     cons = S.empty, 
+                    mobiles = VS.empty,
                     wlabs = S.empty,
                     dbs = S.empty }
 
+    fun bindmobile (C { cons, vars, dbs, worlds, mobiles, wlabs }) v =
+      C { vars = vars,
+          cons = cons,
+          dbs = dbs,
+          worlds = worlds,
+          wlabs = wlabs,
+          mobiles = VS.add (mobiles, v) }
+
+    fun ismobile (C { mobiles, ... }) v = VS.member (mobiles, v)
+      
 end

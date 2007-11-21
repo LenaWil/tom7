@@ -47,9 +47,11 @@ struct
       | DATATYPE
       | DERIVING
       | EXCEPTION
+      | VEXCEPTION
       | HANDLE
       | TAGTYPE
       | NEWTAG
+      | NEWVTAG
       | ANDALSO
       | ANDTHEN
       | ORELSE
@@ -127,9 +129,11 @@ struct
       | eq (TYPE, TYPE) = true
       | eq (DATATYPE, DATATYPE) = true
       | eq (EXCEPTION, EXCEPTION) = true
+      | eq (VEXCEPTION, VEXCEPTION) = true
       | eq (HANDLE, HANDLE) = true
       | eq (TAGTYPE, TAGTYPE) = true
       | eq (NEWTAG, NEWTAG) = true
+      | eq (NEWVTAG, NEWVTAG) = true
       | eq (ANDALSO, ANDALSO) = true
       | eq (ANDTHEN, ANDTHEN) = true
       | eq (ORELSE, ORELSE) = true

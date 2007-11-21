@@ -291,11 +291,12 @@ struct
        TVar v => gettype G v (* bool indicates mobility *)
      | Product ltl => ListUtil.allsecond (tmobile G) ltl
      | Addr _ => true
-     | Primcon (INT, []) => true
-     | Primcon (STRING, []) => true
-     | Primcon (VEC, [t]) => tmobile G t
-     (* yes, required. tags are not mobile, though. *)
-     | Primcon (EXN, []) => true
+     | Primcon (CPS.INT, []) => true
+     | Primcon (CPS.STRING, []) => true
+     | Primcon (CPS.VEC, [t]) => tmobile G t
+     (* yes, required. not all tags are mobile, though. *)
+     | Primcon (CPS.EXN, []) => true
+     | Primcon (CPS.TAG, [t]) => tmobile G t
      | Mu (_, vtl) =>
          (* assume mobile for the sake of checking mobility... *)
          let val G = foldr (fn ((v, _), G) => bindtype G v true) G vtl

@@ -618,8 +618,8 @@ struct
                       (IL.Poly({worlds=nil, tys=nil},
                                (I.Arrow (_, _, cod as I.TVar _))), _, 
                        I.Tagger _, 
-                       (* Exception constructors are always local *)
-                       C.Modal _) =>
+                       (* Tag constructors can be local or valid. *)
+                       _) =>
                        (* ****** Exception Constructor **** *)
                        let
                            val parted = ListUtil.mapsecond
@@ -637,7 +637,7 @@ struct
                              case C.var nctx l of
                                (I.Poly ({worlds=nil, tys=nil}, 
                                         (I.Arrow (_, [ruledom], rulecod))), 
-                                _, I.Tagger vtag, C.Modal w) =>
+                                _, I.Tagger vtag, varsort) =>
                                  let
                                      (* objty = rulecod *)
 
@@ -646,8 +646,13 @@ struct
                                      val nctx = C.bindv nctx insidee 
                                                   (mono ruledom) insidev here
 
-                                     (* have to be at the same location as the tagger  *)
-                                     val () = unifyw nctx loc "tagcase" here w
+                                     (* have to be at the same location as the tagger,
+                                        if it is not valid *)
+                                     val () = 
+                                       (case varsort of
+                                          C.Modal w => unifyw nctx loc "tagcase" here w
+                                        (* world var is never used *)
+                                        | C.Valid _ => ())
                                        
 
                                      val () = unify nctx loc "tagcase codomain" 
@@ -687,7 +692,7 @@ struct
                              | _ => raise Pattern 
                                      ("expected tagtype constructor: " ^ l)
 
-                         val (thearms : (I.var * I.exp) list) = 
+                         val (thearms : (I.value * I.exp) list) = 
                              map onelab parted
 
                          val (de, dt) = elab nctx here ` ndef ()

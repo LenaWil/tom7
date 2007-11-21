@@ -198,6 +198,9 @@ struct
                          Context.bindex ctx (SOME s) c (namedvar "dummy") t (Context.Valid (Variable.namedvar "initial_unused")))
                         initialec vals
 
+    (* also, assume some types are mobile *)
+    val initial = foldr (fn (v, G) => Context.bindmobile G v) initial [intvar, charvar, stringvar]
+
 
     (* XXX infix *)
     val consname = "::"
@@ -260,8 +263,5 @@ struct
     fun matchexp loc = (EL.Var matchname, loc)
                              (* (EL.App ((EL.Var matchname, loc), 
                                 (EL.Record nil, loc)), loc) *)
-
-    val mobiletvars = foldr Variable.Set.add' Variable.Set.empty
-                          [intvar, charvar, stringvar]
 
 end

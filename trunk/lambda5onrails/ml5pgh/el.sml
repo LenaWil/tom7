@@ -109,10 +109,10 @@ struct
     | Datatype of string list * 
                   (string * (string * typ option) list) list
     | Tagtype of string
-      (* newtag Fail of string in exn *)
-    | Newtag of string * typ option * string
+      (* newtag Fail (valid?) of string in exn *)
+    | Newtag of string * bool * typ option * string
       (* just means newtag E of TO in "exn" *)
-    | Exception of string * typ option
+    | Exception of string * bool * typ option
 
     (* extern val (a, b) loop : a -> b  @ w
        or

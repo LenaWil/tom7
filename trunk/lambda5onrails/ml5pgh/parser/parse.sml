@@ -612,8 +612,12 @@ struct
 
                  `TAGTYPE >> id wth Tagtype,
                  `NEWTAG >> expid && opt (`OF >> typ) && `IN && id
-                   wth (fn (i,(to,(_,ty))) => Newtag (i, to, ty)),
-                 `EXCEPTION >> expid && opt (`OF >> typ) wth Exception,
+                   wth (fn (i,(to,(_,ty))) => Newtag (i, false, to, ty)),
+                 `NEWVTAG >> expid && opt (`OF >> typ) && `IN && id
+                   wth (fn (i,(to,(_,ty))) => Newtag (i, true, to, ty)),
+
+                 `EXCEPTION >> expid && opt (`OF >> typ) wth (fn (i, to) => Exception(i, false, to)),
+                 `VEXCEPTION >> expid && opt (`OF >> typ) wth (fn (i, to) => Exception(i, true, to)),
                  `DATATYPE >> "expected DATATYPES after DATATYPE" **
                    alt [tyvars && datatypes wth Datatype,
                         datatypes wth (fn d => Datatype(nil, d))],

@@ -216,10 +216,10 @@ struct
       let
         val vo = Variable.namedvar "tagcase"
         fun go nil = def
-          | go ((v, e) :: rest) =
+          | go ((v : value, e) :: rest) =
           Untag { typ = t,
                   obj = Value (Var vo),
-                  target = Value (Var v),
+                  target = Value v,
                   bound = bound,
                   yes = e,
                   no = go rest }
@@ -232,9 +232,9 @@ struct
     datatype idstatus = 
         Normal 
       | Constructor 
-      (* the var is the tag, in scope, that should be used
+      (* the value is the tag, in scope, that should be used
          to deconstruct this tagged expression *)
-      | Tagger of var 
+      | Tagger of value
       | Primitive of Primop.primop
 
 end

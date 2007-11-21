@@ -706,8 +706,12 @@ struct
     | E.Tagtype t =>
           let
               val tv = V.namedvar t
+
+              (* bind type, note that it is mobile *)
+              val ctx = C.bindc ctx t (Typ (TVar tv)) 0 Extensible
+              val ctx = C.bindmobile ctx tv
           in
-              ([Tagtype tv], C.bindc ctx t (Typ (TVar tv)) 0 Extensible)
+              ([Tagtype tv], ctx)
           end
 
     | E.ExternWorld (k, l) => ([ExternWorld (l, elabk k)], C.bindwlab ctx l ` elabk k)
@@ -776,11 +780,11 @@ struct
     (* some day we might add something to 'ty,' like a string list
        ref so that we can track the exception's history, or at least
        a string with its name and raise point. *)
-    | E.Exception (e, ty) => elabd ctx here (E.Newtag(e, ty, Initial.exnname), loc)
+    | E.Exception (e, valid, ty) => elabd ctx here (E.Newtag(e, valid, ty, Initial.exnname), loc)
 
-    (* Tags must be local, because the embodied type might not be 
-       mobile. *)
-    | E.Newtag (tag, dom, ext) =>
+    (* A tag can be declared to be modal or valid. If it's valid, it must have
+       a mobile body. *)
+    | E.Newtag (tag, mkvalid, dom, ext) =>
        (case C.con ctx ext of
           (0, Typ (cod as TVar ev), Extensible) =>
             let
@@ -797,40 +801,55 @@ struct
                 val ctor = V.namedvar tag
                 val carg = V.namedvar "tagarg"
 
-                (* don't put the tag in the context, since
-                   user code should never access it. *)
-                (* XXX not total for exns if we later add (source code) 
-                   locality info (probably a better translation would 
-                   add the locality info at the site of a Raise--exceptions
-                   and exn are related but not the same!) *)
-                val nctx = C.bindex ctx (SOME tag)
-                            (mono ` Arrow(true, [d], cod))
-                            ctor
-                            (Tagger tagv)
-                            (C.Modal here)
-
-            in
-                ([Newtag (tagv, d, ev),
-                  bindval ` mono `
-                  (ctor, Arrow(true, [d], cod),
-                   Value `
+                val fntype = Arrow(true, [d], cod)
+                (* the constructor function *)
+                fun fnvalue tag =
                    FSel (0,
                          Fns
                          [{ name = ctor, arg = [carg],
                             dom = [d], cod = cod, 
-                            (* PERF can't currently inline exn
-                               constructors, because they are
-                               open. -- see code in ilopt. 
-                               (from humlock)
-
-                               XXX5: it should be okay to inline
-                               in ml5/pgh; we have no restriction
-                               on the closedness of fns. *)
-                            (* inline it! *)
                             inline = true,
                             recu = false, total = true,
-                            body = Tag(Value ` Var carg, Value ` Var tagv) }]))],
-                  nctx)
+                            body = Tag(Value ` Var carg, Value tag) }])
+
+            in
+              if mkvalid
+              then
+                let 
+                  (* Tag type must be mobile if this is a vtag *)
+                  val () = require_mobile ctx loc "newvtag" d
+                  val mtagv = V.namedvar (tag ^ "_here")
+
+                  val wv = V.namedvar "newtag0"
+                in
+                  ([Newtag (mtagv, d, ev),
+                    (* make tag valid, because it is mobile *)
+                    Bind(Put, mono ` (tagv, TTag (d, ev), Value ` Var mtagv)),
+                    (* then declare the constructor valid *)
+                    Letsham(Poly ({worlds = nil, tys = nil},
+                                  (ctor, fntype, Sham (wv, fnvalue (Polyuvar { worlds = nil,
+                                                                               tys = nil,
+                                                                               var = tagv })))))
+                    ],
+                    (* now bind constructor validly *)
+                    C.bindex ctx (SOME tag)
+                          (mono ` Arrow(true, [d], cod))
+                          ctor
+                          (* use the valid tag to destruct *)
+                          (Tagger (Polyuvar { worlds = nil, tys = nil, var = tagv }))
+                          (C.Valid wv)
+                   )
+                end
+              else
+                ([Newtag (tagv, d, ev),
+                  bindval ` mono ` (ctor, fntype, Value ` fnvalue ` Var tagv)],
+                 (* bind tag locally (in IL only) *)
+                 C.bindex ctx (SOME tag)
+                            (mono ` Arrow(true, [d], cod))
+                            ctor
+                            (* use the modal var to destruct *)
+                            (Tagger ` Var tagv)
+                            (C.Modal here))
             end
         | _ => error loc (ext ^ " is not an extensible type"))
 
