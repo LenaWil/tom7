@@ -33,6 +33,10 @@ struct
                                          % ` map (fn (s, st) =>
                                                   %[lab s, L.indent 2 ` stol st]) arms,
                                          stol def]
+     | Untag { obj, target, bound, yes, no } =>
+         %[%[$"UNTAG", etol obj, etol target, $bound],
+           L.indent 2 ` stol yes,
+           L.indent 2 ` stol no]
      | Go (e1, e2) => %[$"GO", L.indent 2 ` etol e1, L.indent 2 ` etol e2]
      | Error s => %[$"ERROR", $("\"" ^ String.toString s ^ "\"")]
          )

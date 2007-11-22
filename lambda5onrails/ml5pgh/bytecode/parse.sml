@@ -123,6 +123,9 @@ struct
     || `JUMP >> $exp && $exp && repeated ($exp) wth (fn (a, (b, c)) => Jump (a, b, c))
     || `GO >> $exp && $exp wth Go
     || `ERROR >> strlit wth Error
+    || `UNTAG >> $exp && $exp && id && $stmt && $stmt
+         wth (fn (a, (b, (c, (d, e)))) => Untag { obj = a, target = b, bound = c,
+                                                  yes = d, no = e })
     || `CASE >> $exp && id && repeated (label && $stmt) && $stmt
          wth (fn (a, (b, (c, d))) => Case { obj = a, var = b, arms = c, def = d})
 
@@ -131,6 +134,7 @@ struct
     || `GO -- punt "parse error after GO"
     || `ERROR -- punt "parse error after ERROR"
     || `CASE -- punt "parse error after CASE"
+    || `UNTAG -- punt "parse error after UNTAG"
     || `RETURN -- punt "parse error after RETURN"
 
   val global = 
