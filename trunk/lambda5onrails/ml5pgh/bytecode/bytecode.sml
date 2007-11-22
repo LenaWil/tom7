@@ -19,6 +19,11 @@ struct
                 var : string,
                 arms : (string * statement) list,
                 def : statement }
+    | Untag of { obj : exp,
+                 target : exp,
+                 bound : string,
+                 yes : statement,
+                 no : statement }
       (* addr, bytes *)
     | Go of exp * exp
     | Error of string

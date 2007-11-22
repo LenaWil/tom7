@@ -306,7 +306,15 @@ struct
             | C.ExternWorld _ => raise ByteCodegen "shouldn't see externworld in codegen"
 
             | C.Newtag (v, _, e) => Bind(vtoi v, Newtag, cvte e)
-
+            | C.Untag { typ = _, obj, target, bound, yes, no } =>
+                cvtv obj
+                (fn obj =>
+                 cvtv target
+                 (fn target =>
+                  Untag { obj = obj, target = target,
+                          bound = vtoi bound,
+                          yes = cvte yes,
+                          no = cvte no }))
 
             | C.Primcall { var = v, sym, args, bod = e, ... } => 
                 cvtvs args
@@ -316,7 +324,7 @@ struct
             | C.Primop ([v], C.BIND, [va], e) =>
                 cvtv va
                 (fn va =>
-                 Bind (vtoi v, va,  cvte e))
+                 Bind (vtoi v, va, cvte e))
 
             | C.Primop (_, C.BIND, _, _) => raise ByteCodegen "bad bind"
 

@@ -156,6 +156,7 @@ struct
        ("MARSHAL", MARSHAL),
        ("PRIMOP", PRIMOP),
        ("NEWTAG", NEWTAG),
+       ("UNTAG", UNTAG),
 
        ("DCONT", DCONT),
        ("DCONTS", DCONTS),
