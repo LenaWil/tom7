@@ -348,11 +348,16 @@ function lc_umg(G, loc, d, b) {
 	    var ri = b.getint ();
 	    /* but we might reconstitute it depending on where
                we are. */
-	    if (loc == "home") return lc_locals[ri];
-	    else if (loc == "*blurred*") {
+	    if (loc == "home") {
+		// alert ("(um) ref @ home");
+		return lc_locals[ri];
+	    } else if (loc == "*blurred*") {
 		alert("tried to reconstitute ref when blurred...");
 		throw(0);
-	    } else return ri;
+	    } else {
+		// alert ("(um) ref @ 'elsewhere");
+		return ri;
+	    }
 	}
 	case "w": {
 	    /* world dictionary, represented as a string */
@@ -463,6 +468,7 @@ function lc_unmarshal(d, b) {
 var lc_comedict = { w : "DE", d : "entry", v : [{ w : "DP", p : "c"}, { w : "DL", s : "entry"}] };
 
 function lc_come(bytes) {
+    // alert("COME.");
     lc_message('come ' + bytes);
     var pack = lc_unmarshal(lc_comedict, bytes);
     lc_message('unmarshal success.');
@@ -512,6 +518,7 @@ function lc_go(bytes) {
 
 function lc_go_mar(addr, bytes) {
     /* what we do depends on which world this is. */
+    // alert("GO");
     switch(addr) {
     case "home":
 	/* self-call */
@@ -633,11 +640,13 @@ function lc_marshalg(G, loc, dict, va) {
            looked up; the dynamic dictionary is instead installed
            via an embedded AllLam. (Or else this shamrock does not
            use its world variable at all.) */
+	// alert("(m) blurring");
 	var G2 = { head : dict.d, data : "*wvoid*", next : G };
 	return lc_marshalg(G2, "*blurred*", dict.v, va);
     }
     case "D@": {
 	/* just changes focus */
+	// alert("(m) focusing @ " + dict.a);
 	return lc_marshalg(G, dict.a, dict.v, va);
     }
     case "DP": {
@@ -657,6 +666,7 @@ function lc_marshalg(G, loc, dict, va) {
                is already represented as a remote label (int) so we just
                marshal it as an integer. */
 	    if (loc == "home") {
+		// alert ("ref @ home");
 		var i = lc_add_local(va);
 		return ''+i;
             } else if (loc == "*blurred*") {
@@ -665,6 +675,7 @@ function lc_marshalg(G, loc, dict, va) {
 		alert("unimplemented: tried to marshal blurred ref");
 		throw(0);
 	    } else {
+		// alert ("ref @ 'elsewhere");
 		return ''+va;
 	    }
 	}
@@ -872,6 +883,8 @@ function lc_regexp_replace(s, r, d) {
     return s.replace(r, d);
 };
 
+// this generally doesn't work because events
+// have weird lifetimes
 function lc_event_keycode(e) {
     alert (e);
     alert (e.keyCode);

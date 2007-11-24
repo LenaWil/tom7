@@ -611,13 +611,22 @@ struct
                  `TYPE -- punt "expected type declaration after TYPE",
 
                  `TAGTYPE >> id wth Tagtype,
+                 `TAGTYPE -- punt "expected ID after TAGTYPE",
+
                  `NEWTAG >> expid && opt (`OF >> typ) && `IN && id
                    wth (fn (i,(to,(_,ty))) => Newtag (i, false, to, ty)),
                  `NEWVTAG >> expid && opt (`OF >> typ) && `IN && id
                    wth (fn (i,(to,(_,ty))) => Newtag (i, true, to, ty)),
 
+                 `NEWTAG -- punt "expected ID (OF TYP) IN ID after NEWTAG",
+                 `NEWVTAG -- punt "expected ID (OF TYP) IN ID after NEWVTAG",
+
                  `EXCEPTION >> expid && opt (`OF >> typ) wth (fn (i, to) => Exception(i, false, to)),
                  `VEXCEPTION >> expid && opt (`OF >> typ) wth (fn (i, to) => Exception(i, true, to)),
+
+                 `EXCEPTION -- punt "expected ID (OF TYP) after EXCEPTION",
+                 `VEXCEPTION -- punt "expected ID (OF TYP) after VEXCEPTION",
+
                  `DATATYPE >> "expected DATATYPES after DATATYPE" **
                    alt [tyvars && datatypes wth Datatype,
                         datatypes wth (fn d => Datatype(nil, d))],

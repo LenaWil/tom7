@@ -20,7 +20,9 @@ struct
     "sanguine", "runabout", "whorl", "humanist", "victive", "octave",
     "cartridge", "gamete", "ootid", "syzygy", "rampart", "filmic",
     "fantod", "lurid", "demure", "active", "gestate", "yeti",
-    "irascible", "gremlin", "vacate", "champ", "goldenrod"
+    "irascible", "gremlin", "vacate", "champ", "goldenrod",
+    "bravo", "charming", "cellar", "novel", "exacerbate", "wistful",
+    "fibrous", "firmament", "vault", "prosaic", "rarefied"
     ]
 
   val ctr = ref 0
