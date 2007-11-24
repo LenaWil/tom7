@@ -99,3 +99,15 @@ an integer index). We could
             tagging or accompanying data. This is in the form of a reified
             world value available for any static world in scope, just as
             we do with types for the purpose of marshaling.
+
+
+            So, what is the idea?
+
+            When we are marshaling and unmarshaling we have an idea (from
+            dicts) of the type and world of the thing we're operating on.
+            This guides the representation that we use. Usefully,
+            we can choose different representations for something given
+            where we are. In particular, a reference cell is always 
+            marshaled as an integer. However, how we unmarshal it is
+            dependent on its world. If the world is the same as the
+            current one, .. HERE

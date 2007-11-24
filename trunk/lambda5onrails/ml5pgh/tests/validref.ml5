@@ -1,0 +1,35 @@
+unit
+
+   infix 1 :=
+   fun inline (t) :=(r, a) = primapp Set { t } (r, a)
+   fun inline (t) ! r = primapp Get { t } (r)
+   fun inline (t) ref a = primapp Ref { t } (a)
+
+   extern bytecode world server
+   extern val server ~ server addr
+   extern val home ~ home addr
+   extern val display : string -> unit @ server
+   extern val alerti : int -> unit @ home = alert
+(*
+   fun refmaker () = 
+       let val r = ref 999
+       in
+           (from server get display "hi");
+           !r
+       end
+*)
+
+   fun refmaker () = 
+       let val r = ref 999
+           fun f () = from server get (display "hi"; 0)
+       in
+           f ();
+           f ();
+           !r
+       end
+
+   do refmaker
+   val x = refmaker ()
+   do alerti x
+
+end
