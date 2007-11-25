@@ -99,6 +99,8 @@ struct
       | UNIT
       | HOLD
       | LETA
+      | LETSHAM
+      | SHAM
 
       | JAVASCRIPT
       | BYTECODE
@@ -188,5 +190,7 @@ struct
       | eq (INLINE, INLINE) = true
       | eq (HOLD, HOLD) = true
       | eq (LETA, LETA) = true
+      | eq (LETSHAM, LETSHAM) = true
+      | eq (SHAM, SHAM) = true
       | eq _ = false
 end

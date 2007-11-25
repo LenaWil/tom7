@@ -160,7 +160,8 @@ struct
            | ExternType(sl, s, so) => (G, ExternType(sl, s, so))
 
            | Bind (b, sl, p, e) => (G, Bind (b, sl, pul G p, nul G e))
-           (* | Leta (sl, p, e) => (G, Leta (b, sl, pul G p, nul G e)) *)
+           | Leta (sl, id, e) => (G, Leta (sl, id, nul G e))
+           | Letsham (sl, id, e) => (G, Letsham (sl, id, nul G e))
 
            | Fun { inline, funs = fl } =>
                  (G,

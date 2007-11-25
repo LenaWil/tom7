@@ -290,6 +290,7 @@ struct
     (case ctyp typ of
        TVar v => gettype G v (* bool indicates mobility *)
      | Product ltl => ListUtil.allsecond (tmobile G) ltl
+     | At (t, w) => tmobile G t
      | Addr _ => true
      | Primcon (CPS.INT, []) => true
      | Primcon (CPS.STRING, []) => true

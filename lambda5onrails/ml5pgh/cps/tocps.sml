@@ -923,6 +923,14 @@ struct
          I.Int i => (Int' i, Zerocon' INT, worldfrom G)
        | I.String s => (String' s, Zerocon' STRING, worldfrom G)
 
+       | I.VRecord lvl => 
+             let val lvtwl = ListUtil.mapsecond (cvtv G) lvl
+             in
+                 (Record' (map (fn (l, (v, _, _)) => (l, v)) lvtwl),
+                  Product' (map (fn (l, (_, t, _)) => (l, t)) lvtwl),
+                  worldfrom G)
+             end
+
        | I.Fns (fl : { name : V.var,
                        arg  : V.var list,
                        dom  : I.typ list,
@@ -1101,13 +1109,15 @@ struct
               t,
               worldfrom G)
            end
-
+(*
        | _ => 
          let in
            print "\nToCPSv unimplemented:\n";
            Layout.print (ILPrint.vtol v, print);
            raise ToCPS "unimplemented"
-         end)
+         end
+*)
+)
 
     (* convert a unit *)
     fun cvtds nil G = Halt'

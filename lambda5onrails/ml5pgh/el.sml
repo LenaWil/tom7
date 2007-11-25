@@ -95,7 +95,8 @@ struct
     | Do of exp
     | Type of string list * string * typ
 
-    (* | Leta of string list * pat * exp *)
+    | Letsham of string list * string * exp
+    | Leta    of string list * string * exp
 
     (* XXX hard to support because elabd produces
        new context, not list of decls *)
@@ -135,7 +136,7 @@ struct
 
   (* fixity decls are handled at parse time *)
 
-  and bind = Val | Put (* letsham, leta, ... *)
+  and bind = Val | Put
 
   and elunit =
     Unit of dec list * export list

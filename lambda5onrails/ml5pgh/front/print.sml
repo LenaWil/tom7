@@ -45,8 +45,8 @@ struct
                    ptos p ^ " = " ^ etosi (i + 10) e
              | _ => "?d?")
 
-      and btos Val = "val"
-        | btos Put = "put"
+      and btos EL.Val = "val"
+        | btos EL.Put = "put"
 
   end
 
