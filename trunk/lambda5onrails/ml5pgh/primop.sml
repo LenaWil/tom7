@@ -76,6 +76,8 @@ struct
 
       (* generate an exception tag, sequentially *)
       | PNewtag
+
+      (* XXX5 these are dead, we shot them with double barrel *)
       (* store and retrieve exception handler fn 
          (these need to be relativized to the current thread) *)
       | PSethandler
