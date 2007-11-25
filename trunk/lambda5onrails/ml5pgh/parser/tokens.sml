@@ -97,6 +97,8 @@ struct
       | TILDE
       | ADDR
       | UNIT
+      | HOLD
+      | LETA
 
       | JAVASCRIPT
       | BYTECODE
@@ -184,5 +186,7 @@ struct
       | eq (SAY, SAY) = true
       | eq (PUT, PUT) = true
       | eq (INLINE, INLINE) = true
+      | eq (HOLD, HOLD) = true
+      | eq (LETA, LETA) = true
       | eq _ = false
 end

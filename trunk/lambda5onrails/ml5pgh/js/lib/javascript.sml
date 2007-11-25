@@ -252,7 +252,7 @@ struct
             "throw", "tilde", "try", "typeof", "var", "void", "while", "with"]
 
         local
-           val set = HashSet.new {hash = #hash}
+           val set = HashSet.new {hash = (fn {hash, string = _} => hash)}
            val () =
               List.app
               (fn s =>
