@@ -12,7 +12,11 @@ struct
             (case rev arcs of
                  nil => raise FSUtil "no file in chdir_excursion"
                (* don't need to move *)
-               | [file] => f file
+               | [file] => 
+                     let in
+                         (* print ("just: " ^  file ^ "\n"); *)
+                         f file
+                     end
                (* move to dir and come back *)
                | (file::rest) =>
                  let
@@ -20,6 +24,7 @@ struct
                                 {arcs = rev rest, isAbs=isAbs, vol=vol}
                      val old = OS.FileSys.getDir ()
                  in
+                     (* print ("old: " ^ old ^ "; new: " ^ new ^ "\n"); *)
                      let in
                          OS.FileSys.chDir new;
                          f file before
@@ -29,10 +34,12 @@ struct
 
         end
 
+(*
   fun dirplus "" p = p
     | dirplus d p =
       case CharVector.sub(d, size d - 1) of
           #"/" => d ^ p
         | _    => d ^ "/" ^ p
-
+*)
+    fun dirplus d p = OS.Path.concat (d, p)
 end

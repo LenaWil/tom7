@@ -177,6 +177,9 @@ struct
 
     and dec =
         Do of exp
+        (* XXX5 cleanup: should have Val binding that takes an
+           expression, then all the rest just take values for
+           generalization purposes. *)
         (* quantifiers on the outside -- no poly recursion *)
         (* XXX5 could make PolyVal that requires syntactic value.. *)
       | Bind of bind * (var * typ * exp) poly
