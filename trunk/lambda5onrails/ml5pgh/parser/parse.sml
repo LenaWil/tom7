@@ -1,7 +1,6 @@
 
-(* This is a combinator-style parser for the Aphasia 2 grammar.
-   The combinator library used is in aphasia2/cparsing/basic-sig.sml
-                                 and aphasia2/cparsing/utils-sig.sml.
+(* This is a combinator-style parser for the ML5 grammar.
+   The combinator library used is in (SML-LIB)/parse/.
 
    This structure contains parsers from token streams into expressions (etc.)
    See tokenize.sml for the tokenizer.
@@ -16,32 +15,10 @@
       tokenized, and then prepended to the current input. 
 *)
 
-(* FIXME:
-
-   Not parsing: PRecord,
-   ... what else?
-*)
-
-(* XXX:
-   
-   better error messages. This can be done with something like
-   Prolog's cut operator (!), where after seeing the keyword "FUN" we
-   can expect to successfully complete the declaration, or else give
-   an error. cparsing/utils-sig.sml's "guard" works rather like this.
-
-   look for BAD token and report failure
-
-   look for . at end of line from aphasia1 habits
- *)
-
-(* XXX: several phrases will parse, looking for a postfix operator
+(* PERF: several phrases will parse, looking for a postfix operator
    (handle), and then parse again if that fails. Instead we should
    do an optional parse of the postfix phrase to avoid doubling of
    work. *)
-
-(* XXX import should look in current directory of actual input file,
-   not just directory from which aaph was run *)
-
 
 structure Parse :> PARSE =
 struct
@@ -57,6 +34,8 @@ struct
   val root = if Option.isSome (StringUtil.find "smlnj" root)
              then OS.FileSys.getDir () (* Posix.FileSys.getcwd () *)
              else root
+
+  (* val () = print ("The root is: " ^ root ^ "\n") *)
 
   val ROOTMARKER = "#ROOT#"
                
@@ -113,17 +92,15 @@ struct
   val namedstring = ML5pghUtil.newstr
   val itos = Int.toString
 
-  fun dirplus s1 s2 =
-      (* XXX use platform dependent directory separator   (how?) *)
-      if CharVector.sub(s1, size s1 - 1) = #"/"
-      then s1 ^ s2
-      else s1 ^ "/" ^ s2
-
   (* look in every include path for this file *)
   fun tryopenwith func f =
       let
           fun one s =
-              (SOME (func (dirplus s f)))
+              let val t = FSUtil.dirplus s f
+              in
+                  (* print ("Try '" ^ t ^ "'...\n"); *)
+                  (SOME (func t))
+              end
               handle _ => NONE
       in
           case List.mapPartial one (incdirs()) of
