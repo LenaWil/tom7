@@ -472,6 +472,9 @@ struct
                       && call G exp wth Say,
                    `SAY -- punt "expected EXP after SAY",
 
+                   `HOLD >> call G exp wth Hold,
+                   `HOLD -- punt "expected EXP after HOLD",
+
                    `FROM >> (* "expected EXP GET EXP after FROM" ** *)
                    (call G exp &&
                     `GET && (* "expected EXP after GET" **  *) call G exp)

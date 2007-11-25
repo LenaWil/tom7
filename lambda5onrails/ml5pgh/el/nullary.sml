@@ -53,6 +53,7 @@ struct
               | Jointext el => Jointext ` map self el
               (* XXX import might shadow constructor *)
               | Say (imports, e) => Say (imports, self e)
+              | Hold e => Hold ` self e
               | Raise e => Raise ` self e
               | CompileWarn s => CompileWarn s
               | Handle (e, pel) =>
@@ -77,6 +78,7 @@ struct
                  else typ
            | TNum _ => typ
            | TAddr _ => typ
+           | TAt (t, w) => TAt (tul G t, w)
            | TApp (tl, s) => TApp (map (tul G) tl, s)
            | TRec stl => TRec ` ListUtil.mapsecond (tul G) stl
            | TArrow (a,b) => TArrow (tul G a, tul G b))
@@ -158,6 +160,7 @@ struct
            | ExternType(sl, s, so) => (G, ExternType(sl, s, so))
 
            | Bind (b, sl, p, e) => (G, Bind (b, sl, pul G p, nul G e))
+           (* | Leta (sl, p, e) => (G, Leta (b, sl, pul G p, nul G e)) *)
 
            | Fun { inline, funs = fl } =>
                  (G,

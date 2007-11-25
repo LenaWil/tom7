@@ -31,6 +31,8 @@ struct
     | Otherwise of exp * exp
     | If of exp * exp * exp
 
+    | Hold of exp
+
     | Primapp of string * typ list * exp list
 
     | Seq of exp * exp
@@ -79,6 +81,7 @@ struct
       TVar of string
     | TApp of typ list * string
     | TRec of (string * typ) list
+    | TAt of typ * world
     | TArrow of typ * typ
     (* shortcut for tuple length *)
     | TNum of int
@@ -91,6 +94,8 @@ struct
       Bind of bind * string list * pat * exp
     | Do of exp
     | Type of string list * string * typ
+
+    (* | Leta of string list * pat * exp *)
 
     (* XXX hard to support because elabd produces
        new context, not list of decls *)

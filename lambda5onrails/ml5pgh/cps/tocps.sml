@@ -81,6 +81,7 @@ struct
       (* var unimportant, because we translate all extensible types to EXN *)
       | I.TTag (t, _) => Primcon'(TAG, [cvtt G t])
       | I.TAddr w => Addr' ` cvtw G w
+      | I.At (t, w) => At' (cvtt G t, cvtw G w)
       | I.Sum lal => Sum' (map (fn (l, NonCarrier) => (l, NonCarrier)
                                  | (l, Carrier { definitely_allocated,
                                                  carried }) =>

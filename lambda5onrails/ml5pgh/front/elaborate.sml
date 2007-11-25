@@ -89,6 +89,7 @@ struct
                    handle Context.Absent _ => 
                        error loc ("Unbound type constructor " ^ str))
        | E.TAddr w => TAddr (elabw ctx loc w)
+       | E.TAt (t, w) => At (elabtex ctx prefix loc t, elabw ctx loc w)
        | E.TRec ltl => let 
                            val ltl = ListUtil.sort 
                                      (ListUtil.byfirst ML5pghUtil.labelcompare) ltl
@@ -503,6 +504,17 @@ struct
                in
                    force es ctx nil
                end
+
+        | E.Hold e =>
+            let
+                (* require it to be here, because it's an expr *)
+                val (ee, tt) = elab ctx here e
+                val nv = V.namedvar "h"
+            in
+                (Let(Bind(Val, mono(nv, tt, ee)),
+                     Value ` Hold(here, Var nv)),
+                 At(tt, here))
+            end
 
         | E.Raise e =>
             (case C.con ctx Initial.exnname of
