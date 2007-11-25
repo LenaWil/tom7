@@ -1,0 +1,8 @@
+
+unit
+
+    val x = sham(1, 2, 3)
+
+    letsham (a, b, c) = u
+
+end

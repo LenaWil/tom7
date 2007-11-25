@@ -211,6 +211,8 @@ struct
        ("=>", DARROW),
        ("put", PUT),
        ("leta", LETA),
+       ("letsham", LETSHAM),
+       ("sham", SHAM),
        ("hold", HOLD)
        ]
 

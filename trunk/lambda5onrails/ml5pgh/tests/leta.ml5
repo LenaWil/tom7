@@ -1,0 +1,26 @@
+
+unit
+
+  extern bytecode world server
+  extern val server ~ server addr
+
+  put x = hold (1, 2, 3) : (int * int * int) @ home
+
+  do from server get
+     let
+	 leta z = x
+     in
+	 hold z
+     end
+
+(*
+  do from server get
+     let
+	 (* not ok--would require projecting from x,
+	    which lives at home. *)
+	 leta (a, b, c) = x
+     in
+	 a
+     end
+*)
+end

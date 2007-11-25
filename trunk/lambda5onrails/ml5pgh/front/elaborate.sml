@@ -386,8 +386,6 @@ struct
                    (Primapp(Primop.PJointext (length ees), ees, nil), Initial.ilstring)
                end
 
-        (* XXX can generate better code when all the components are values
-           (and this is required to generalize, anyway) *)
         | E.Record lel =>
                let
                    val letl = ListUtil.mapsecond (elab ctx here) lel
@@ -397,8 +395,15 @@ struct
                            orelse error loc 
                               "Duplicate labels in record expression"
                in
-                 (Record (map (fn (l, (e, t)) => (l, e)) letl),
-                  TRec (map (fn (l, (e, t)) => (l, t)) letl))
+                   (* might be a value, if everything is a value *)
+                 if List.all (fn (_, (Value _, _)) => true | _ => false) letl
+                 then
+                     (Value ` VRecord (map (fn (l, (Value e, t)) => (l, e) 
+                                            | _ => error loc "impossible") letl),
+                      TRec (map (fn (l, (e, t)) => (l, t)) letl))
+                 else
+                     (Record (map (fn (l, (e, t)) => (l, e)) letl),
+                      TRec (map (fn (l, (e, t)) => (l, t)) letl))
                end
 
         | E.Proj (s, t, e) =>
@@ -505,15 +510,24 @@ struct
                    force es ctx nil
                end
 
+        (* could be "hold" or "held" depending on whether 
+           the body is a value. *)
         | E.Hold e =>
             let
-                (* require it to be here, because it's an expr *)
-                val (ee, tt) = elab ctx here e
-                val nv = V.namedvar "h"
+                val there = new_wevar ()
+                val (ee, tt) = elab ctx there e
             in
-                (Let(Bind(Val, mono(nv, tt, ee)),
-                     Value ` Hold(here, Var nv)),
-                 At(tt, here))
+                case ee of
+                    Value va => (Value ` Hold(there, va), At (tt, there))
+                  | _ => 
+                    let
+                        val nv = V.namedvar "h"
+                    in
+                        unifyw ctx loc "non-value hold" here there;
+                        (Let(Bind(Val, mono(nv, tt, ee)),
+                             Value ` Hold(here, Var nv)),
+                         At(tt, here))
+                    end
             end
 
         | E.Raise e =>
@@ -1323,9 +1337,50 @@ struct
                    end
           end
 
+    | E.Letsham _ => error loc "letsham unimplemented"
+
+    | E.Leta (tyvars, v, exp) =>
+         let
+             val nctx = mktyvars ctx tyvars
+
+             val (ee, tt) = elab nctx here exp
+             val there = new_wevar ()
+             val t = new_evar ()
+                 
+             val () = unify ctx loc "leta" tt (At(t, there))
+
+             val polydec = (case ee of
+                                Value v => SOME v
+                              | _ => NONE)
+
+             val { t = tt, tl = tps, wl = wps } = 
+                 if isSome polydec
+                 then polygen ctx tt there
+                 else { t = tt, tl = nil, wl = nil }
+
+             val vv = Variable.namedvar v
+
+             val ctx = C.bindex ctx (SOME v) (Poly ({worlds = wps,
+                                                     tys = tps}, t)) vv Normal 
+                                             (C.Modal there)
+
+
+             val va = Variable.namedvar "leta_serialize"
+         in
+             (* and it requires a value; serialize if it's not one *)
+             case polydec of
+                 NONE =>
+                     ([Bind(Val, mono(va, tt, ee)),
+                       Leta ` mono (vv, t, Var va)], ctx)
+               | SOME valu => 
+                     ([Leta ` Poly({ worlds = wps, tys = tps },
+                                   (* XXX5 is this supposed to be "t" or "t at w" (= tt)? (also above) *)
+                                   (vv, t, valu))], ctx)
+         end
+
     (* val and put bindings *)
-    (* XXX5 generalization and validitization are not implemented for
-       val/put bindings. this should work like the fun case.
+    (* XXX5 validitization is not implemented for
+       val bindings. this should work like the fun case.
        also: some things are not currently detected as values (constructor
        applications, for instance).
        *)
@@ -1338,6 +1393,9 @@ struct
                  one is still free and generalizable. 
                  XXX5 we let these sit in the exported context --
                       that's definitely wrong!
+                      
+                 how so? the identifiers are certainly gone because
+                 we don't use nctx after elaborating the body.
                  *)
               val nctx = mktyvars ctx tyvars
 
@@ -1351,7 +1409,8 @@ struct
                             (* XXX5 for poly declarations, should
                                have inserted forall-vars as mobile *)
                             require_mobile ctx loc "put" tt
-                        | E.Val => ())
+                        | E.Val => ()
+                            )
 
               val { t = tt, tl = tps, wl = wps } = 
                 if polydec
@@ -1364,7 +1423,8 @@ struct
                                                       tys = tps}, tt)) vv Normal 
                                               (case b of
                                                  E.Val => C.Modal here
-                                               | E.Put => C.Valid ` V.namedvar "put_unused")
+                                               | E.Put => C.Valid ` V.namedvar "put_unused"
+                                                     )
 
           in
             case b of

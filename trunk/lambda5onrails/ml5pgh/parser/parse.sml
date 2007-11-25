@@ -565,24 +565,32 @@ struct
                                      (fn (j,_) => i <> j) G)
                  ]
 
+      and bindword () = (`VAL return Val ||
+                         `PUT return Put
+                         (* `LETA return Leta || 
+                         `LETSHAM return Letsham *))
+
       and regulardec G =
-         !!(alt [`VAL >> (call G pat suchthat irrefutable) && `EQUALS && 
+         !!(alt [$bindword && (call G pat suchthat irrefutable) && `EQUALS && 
                    call G exp
-                   wth (fn (pat, (_, e)) => Bind(Val, nil, pat, e)),
-                 `VAL >> tyvars && (call G pat suchthat irrefutable) && 
+                   wth (fn (b, (pat, (_, e))) => Bind(b, nil, pat, e)),
+                 $bindword && tyvars && (call G pat suchthat irrefutable) && 
                    `EQUALS && call G exp
-                   wth (fn (tv, (pat, (_, e))) => Bind(Val, tv, pat, e)),
+                   wth (fn (b, (tv, (pat, (_, e)))) => Bind(b, tv, pat, e)),
 
-                 `VAL -- punt "expected val declaration after VAL",
+                 $bindword -- punt "expected bind declaration after VAL/PUT/LETA/LETSHAM",
 
-                 `PUT >> (call G pat suchthat irrefutable) && `EQUALS && 
-                   call G exp
-                   wth (fn (pat, (_, e)) => Bind(Put, nil, pat, e)),
-                 `PUT >> tyvars && (call G pat suchthat irrefutable) && 
-                   `EQUALS && call G exp
-                   wth (fn (tv, (pat, (_, e))) => Bind(Put, tv, pat, e)),
+                 (`LETSHAM >> id) && (`EQUALS >> call G exp)
+                    wth (fn (id, e) => Letsham (nil, id, e)),
+                 (`LETSHAM >> tyvars && id) && (`EQUALS >> call G exp)
+                    wth (fn ((tv, id), e) => Letsham (tv, id, e)),
+                 `LETSHAM -- punt "expected letsham declaration after LETSHAM",
 
-                 `PUT -- punt "expected val declaration after PUT",
+                 (`LETA >> id) && (`EQUALS >> call G exp)
+                    wth (fn (id, e) => Leta (nil, id, e)),
+                 (`LETA >> tyvars && id) && (`EQUALS >> call G exp)
+                    wth (fn ((tv, id), e) => Leta (tv, id, e)),
+                 `LETA -- punt "expected leta declaration after LETA",
 
                  `EXTERN >> `VAL >> alt[tyvars && id,
                                         succeed nil && id]
