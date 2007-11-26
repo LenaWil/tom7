@@ -368,11 +368,11 @@ struct
                    L.indent 4 (%[$":", ttol t, $"="])],
                  L.indent 4 (vtol va)]
 
-           | Letsham (Poly({worlds, tys}, (v, t, va))) =>
+           | Letsham (Poly({worlds, tys}, (v, (wv, t), va))) =>
                %[%[%([$"letsham"]
                      @ [worldstys worlds tys]
                      @ [$(V.tostring v)]),
-                   L.indent 4 (%[$"~", ttol t, $"="])],
+                   L.indent 4 (%[$"~", %[$(V.tostring wv), $".", ttol t], $"="])],
                  L.indent 4 (vtol va)]
 
            | ExternWorld (l, k) => %[$"extern world", wktol k, $l]

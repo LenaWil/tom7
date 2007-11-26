@@ -8,15 +8,16 @@ struct
 
   exception Subst of string
 
-  type 'a subst = 'a Variable.Map.map
+  structure VM = Variable.Map
+  type 'a subst = 'a VM.map
 
   fun fromlist l =
-      foldl Variable.Map.insert' Variable.Map.empty l
+      foldl VM.insert' VM.empty l
 
   (* XXX5 these should be in IL *)
   (* t/x in t *)
   fun tsubst s (x as (TVar v)) =
-      (case Variable.Map.find (s, v) of
+      (case VM.find (s, v) of
            SOME tt => tt
          | NONE => x)
     | tsubst s (TRec ltl) = TRec (ListUtil.mapsecond (tsubst s) ltl)
@@ -25,7 +26,7 @@ struct
     | tsubst s (Mu (i, vtl)) =
            let (* remove bindings for each variable *)
                val ns = foldl (fn ((v,_), s) => 
-                               Variable.Map.insert (s, v, TVar v)) s vtl
+                               VM.insert (s, v, TVar v)) s vtl
            in  Mu (i, ListUtil.mapsecond (tsubst ns) vtl)
            end
     | tsubst s (Evar(ref (Bound t))) = tsubst s t
@@ -39,6 +40,7 @@ struct
     | tsubst s (TTag (t, v)) = TTag (tsubst s t, v)
     | tsubst s (Arrows l) = Arrows (map (arrow s) l)
     | tsubst s (At (t, w)) = At (tsubst s t, w)
+    | tsubst s (Shamrock (wv, t)) = Shamrock (wv, tsubst s t)
     | tsubst s (TAddr w) = TAddr w
 
   and arrow s (b, dom, cod) = (b, map (tsubst s) dom, tsubst s cod)
@@ -62,8 +64,7 @@ struct
     | wsubst s (Arrow a) = Arrow (warrow s a)
     | wsubst s (Arrows l) = Arrows (map (warrow s) l)
     | wsubst s (Sum ltl) = Sum (ListUtil.mapsecond (arminfo_map (wsubst s)) ltl)
-    | wsubst s (Mu (i, vtl)) =
-           Mu (i, ListUtil.mapsecond (wsubst s) vtl)
+    | wsubst s (Mu (i, vtl)) = Mu (i, ListUtil.mapsecond (wsubst s) vtl)
     | wsubst s (Evar(ref (Bound t))) = wsubst s t
     | wsubst s (x as (Evar _)) = x
 
@@ -75,13 +76,18 @@ struct
     | wsubst s (TTag (t, v)) = TTag (wsubst s t, v)
 
     | wsubst s (TAddr w) = TAddr (wsubsw s w)
+    | wsubst s (x as Shamrock (wv, t)) = 
+      let val nv = Variable.alphavary wv
+          val t' = wsubst (fromlist [(wv, WVar nv)]) t
+      in Shamrock(wv, wsubst s t')
+      end
     | wsubst s (At (t, w)) = At (wsubst s t, wsubsw s w)
 
   and warrow s (b, dom, cod) = (b, map (wsubst s) dom, wsubst s cod)
 
   (* w/x in w' *)
   and wsubsw s (x as WVar v) =
-    (case Variable.Map.find (s, v) of
+    (case VM.find (s, v) of
        SOME ww => ww
      | NONE => x)
     | wsubsw s (WEvar(ref (Bound w))) = wsubsw s w

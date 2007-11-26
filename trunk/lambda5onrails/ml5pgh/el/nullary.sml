@@ -54,6 +54,7 @@ struct
               (* XXX import might shadow constructor *)
               | Say (imports, e) => Say (imports, self e)
               | Hold e => Hold ` self e
+              | Sham (wv, e) => Sham (wv, self e)
               | Raise e => Raise ` self e
               | CompileWarn s => CompileWarn s
               | Handle (e, pel) =>
@@ -79,6 +80,7 @@ struct
            | TNum _ => typ
            | TAddr _ => typ
            | TAt (t, w) => TAt (tul G t, w)
+           | TSham (wv, t) => TSham (wv, tul G t)
            | TApp (tl, s) => TApp (map (tul G) tl, s)
            | TRec stl => TRec ` ListUtil.mapsecond (tul G) stl
            | TArrow (a,b) => TArrow (tul G a, tul G b))

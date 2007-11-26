@@ -75,7 +75,6 @@ struct
           (* if this type is not bound, it had better be a prim *)
           ((ignore ` gettype G v;
             TVar' v) handle T.TypeCheck _ => primtype (G, v))
-
       | I.Evar (ref (I.Bound t)) => cvtt G t
       | I.Evar _ => raise ToCPS "tocps/unset evar"
       (* var unimportant, because we translate all extensible types to EXN *)
@@ -100,6 +99,12 @@ struct
           in
             Mu' (i, map (fn (v, t) => (v, cvtt G t)) vtl)
           end
+      | I.Shamrock (wv, t) =>
+          let
+              val G = bindworld G wv
+              val t = cvtt G t
+          in  Shamrock' (wv, t)
+          end
       | I.TCont t => Cont' [cvtt G t]
       | I.Arrow (_, dom, cod) => 
           Cont' (map (cvtt G) dom @ [Cont' [cvtt G cod], handlerty])
@@ -107,13 +112,14 @@ struct
           Conts' ` map (fn (_, dom, cod) => 
                         map (cvtt G) dom @ [Cont' [cvtt G cod], handlerty]) tl
       | I.TRef t => Primcon' (REF, [cvtt G t])
-
+(*
       | _ => 
           let in
             print "\nToCPSt unimplemented:";
             Layout.print (ILPrint.ttol t, print);
             raise ToCPS "unimplemented cvtt"
           end
+*)
 
     fun swap f = (fn (x, y) => f(y, x))
 
@@ -801,9 +807,11 @@ struct
        | I.Bind (_, _) => raise ToCPS "bind decl is polymorphic but not a value!"
 
        (* Probably letsham could be another bind? *)
-       | I.Letsham (I.Poly ({worlds = nil, tys = nil}, (v, t, va))) => 
+       (* XXX is always a value. is this just for PERF? *)
+       | I.Letsham (I.Poly ({worlds = nil, tys = nil}, (v, (wv, t), va))) => 
          let
-           val _ = cvtt G t
+           val (G' : env) = bindworld G wv
+           val _ = cvtt G' t
            val (va, tt, ww) = cvtv G va
          in
            case ctyp tt of
@@ -855,7 +863,7 @@ struct
             | _ => raise ToCPS "polyleta on non-at")
 
 
-       | I.Letsham (I.Poly ({worlds, tys}, (v, t, va))) => 
+       | I.Letsham (I.Poly ({worlds, tys}, (v, (wv, t), va))) => 
          (* When the var v is used, it will be applied to worlds and tys,
             so it must have AllArrow type. It also must be valid. Here we
             have a value that's Shamrocked and also polymorphic.
@@ -882,7 +890,7 @@ struct
             let
               val G = foldr (fn (wv, G) => bindworld G wv) G worlds
               val G = foldr (fn (tv, G) => bindtype G tv false) G tys
-              val _ = cvtt G t (* but we'll use the actual type instead *)
+              val _ = cvtt (bindworld G wv) t (* but we'll use the actual type instead *)
               val (va, tt, ww) = cvtv G va
             in
               (va, ctyp tt, ww)
