@@ -90,6 +90,9 @@ struct
                        error loc ("Unbound type constructor " ^ str))
        | E.TAddr w => TAddr (elabw ctx loc w)
        | E.TAt (t, w) => At (elabtex ctx prefix loc t, elabw ctx loc w)
+       (* XXX5 allow world var *)
+       | E.TSham (NONE, t) => Shamrock(V.namedvar "shamt_unused", elabtex ctx prefix loc t)
+       | E.TSham (SOME _, _) => error loc "sham vars unimplemented (and how did you get one??)"
        | E.TRec ltl => let 
                            val ltl = ListUtil.sort 
                                      (ListUtil.byfirst ML5pghUtil.labelcompare) ltl
@@ -510,6 +513,22 @@ struct
                    force es ctx nil
                end
 
+        | E.Sham (wv, e) => 
+            let
+                val wvv = V.namedvar (case wv of
+                                          NONE => "sham_unused"
+                                        | SOME s => s)
+                val nctx = (case wv of
+                                NONE => ctx
+                              | SOME wv => C.bindw ctx wv wvv)
+
+                val (ee, tt) = elab nctx here e
+            in
+                case ee of
+                    Value va => (Value ` Sham(wvv, va), Shamrock (wvv, tt))
+                  | _ => error loc "sham expects a value, got expression"
+            end
+
         (* could be "hold" or "held" depending on whether 
            the body is a value. *)
         | E.Hold e =>
@@ -853,9 +872,10 @@ struct
                     Bind(Put, mono ` (tagv, TTag (d, ev), Value ` Var mtagv)),
                     (* then declare the constructor valid *)
                     Letsham(Poly ({worlds = nil, tys = nil},
-                                  (ctor, fntype, Sham (wv, fnvalue (Polyuvar { worlds = nil,
-                                                                               tys = nil,
-                                                                               var = tagv })))))
+                                  (ctor, (wv, fntype), 
+                                   Sham (wv, fnvalue (Polyuvar { worlds = nil,
+                                                                 tys = nil,
+                                                                 var = tagv })))))
                     ],
                     (* now bind constructor validly *)
                     C.bindex ctx (SOME tag)
@@ -1057,14 +1077,16 @@ struct
                               val v = V.namedvar ("ctor_null_" ^ ctor)
 
                               val arms = ListUtil.mapsecond (arminfo_map musubst) arms
+                              val wv = V.namedvar "unused"
                             in
                               (ctor, v, cty,
                                Letsham `
                                Poly({worlds = nil, 
                                      tys = atvs},
-                                    (v, mu, Sham (V.namedvar "unused", 
-                                                  VRoll(mu,
-                                                        VInject(Sum arms, ctor, NONE))))))
+                                    (v, (wv, mu),
+                                     Sham (wv, 
+                                           VRoll(mu,
+                                                 VInject(Sum arms, ctor, NONE))))))
                             end
  
                              | (ctor, Carrier { carried = ty, ... }) =>
@@ -1081,6 +1103,7 @@ struct
 
                                 val ctorf = V.namedvar ("ctor_" ^ ctor)
                                 val x = V.namedvar "xdt"
+                                val wv = V.namedvar "unused"
                             in
                                 (ctor, ctorf,
                                  (* type of constructor *)
@@ -1089,9 +1112,9 @@ struct
                                  Letsham
                                  ` Poly({worlds = nil, tys = atvs},
                                             (ctorf,
-                                             Arrow(true, [dom], mu),
+                                             (wv, Arrow(true, [dom], mu)),
                                              Sham
-                                             (V.namedvar "unused",
+                                             (wv,
                                               FSel (0,
                                                     Fns
                                                     [{ name = V.namedvar "notrec",
@@ -1294,7 +1317,7 @@ struct
                                           (v, t, Hold (atworld, e)))))
                     | SOME wv => (fn Poly ({ worlds, tys }, (v, t, e)) =>
                                   Letsham(Poly ({worlds = worlds, tys = tys},
-                                                (v, t, Sham (wv, e))))
+                                                (v, (wv, t), Sham (wv, e))))
                                   )
               
               (* we bind the bundle as a var or uvar.. *)
@@ -1337,7 +1360,44 @@ struct
                    end
           end
 
-    | E.Letsham _ => error loc "letsham unimplemented"
+(*    | E.Letsham (tyvars, v, exp) => error loc "letsham unimplemented" *)
+
+    | E.Letsham (tyvars, v, exp) =>
+         let
+             val nctx = mktyvars ctx tyvars
+
+             val (ee, tt) = elab nctx here exp
+
+             val wv = V.namedvar "ls_wv"
+             val t = new_evar ()
+             val () = unify ctx loc "letsham" tt (Shamrock(wv, t))
+
+             val polydec = (case ee of
+                                Value v => SOME v
+                              | _ => NONE)
+
+             val { t = tt, tl = tps, wl = wps } = 
+                 if isSome polydec
+                 then polygen ctx tt here
+                 else { t = tt, tl = nil, wl = nil }
+
+             val vv = Variable.namedvar v
+
+             val ctx = C.bindex ctx (SOME v) (Poly ({worlds = wps,
+                                                     tys = tps}, t)) vv Normal 
+                                             (C.Valid wv)
+
+             val va = Variable.namedvar "letsham_serialize"
+         in
+             (* and it requires a value; serialize if it's not one *)
+             case polydec of
+                 NONE =>
+                     ([Bind(Val, mono(va, tt, ee)),
+                       Letsham ` mono (vv, (wv, t), Var va)], ctx)
+               | SOME valu => 
+                     ([Letsham ` Poly({ worlds = wps, tys = tps },
+                                      (vv, (wv, t), valu))], ctx)
+         end
 
     | E.Leta (tyvars, v, exp) =>
          let

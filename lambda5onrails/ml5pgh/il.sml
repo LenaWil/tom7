@@ -187,7 +187,7 @@ struct
         (* tag of typ in tagtype *)
       | Newtag of var * typ * var
 
-      | Letsham of (var * typ * value) poly
+      | Letsham of (var * (var * typ) * value) poly
       | Leta of (var * typ * value) poly
 
       | ExternWorld of label * worldkind

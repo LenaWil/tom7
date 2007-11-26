@@ -32,6 +32,7 @@ struct
     | If of exp * exp * exp
 
     | Hold of exp
+    | Sham of string option * exp
 
     | Primapp of string * typ list * exp list
 
@@ -81,6 +82,7 @@ struct
       TVar of string
     | TApp of typ list * string
     | TRec of (string * typ) list
+    | TSham of string option * typ
     | TAt of typ * world
     | TArrow of typ * typ
     (* shortcut for tuple length *)
@@ -97,10 +99,6 @@ struct
 
     | Letsham of string list * string * exp
     | Leta    of string list * string * exp
-
-    (* XXX hard to support because elabd produces
-       new context, not list of decls *)
-    (* | Local of dec * dec list *)
 
     (* fun (a, b, c) f p1 p2 p3 : t1 = e1
          |           f p1 p2 p3 : t2 = e2

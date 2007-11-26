@@ -292,6 +292,7 @@ struct
      | Product ltl => ListUtil.allsecond (tmobile G) ltl
      | At (t, w) => tmobile G t
      | Addr _ => true
+     | Shamrock (wv, t) => true
      | Primcon (CPS.INT, []) => true
      | Primcon (CPS.STRING, []) => true
      | Primcon (CPS.VEC, [t]) => tmobile G t

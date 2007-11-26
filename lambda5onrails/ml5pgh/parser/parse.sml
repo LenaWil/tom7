@@ -160,7 +160,10 @@ struct
                `UNIT return TRec nil,
                number wth (TNum o Word32.toInt),
                id wth TVar,
-               `LBRACE >> separate0 (label && (`COLON >> $arrowtype)) (`COMMA) << `RBRACE wth TRec,
+               (* XXX should allow specifying world var *)
+               (`LBRACE && `RBRACE) >> $mostatomic wth (fn t => TSham(NONE, t)),
+               (* don't allow empty record, because {} means shamrock. *)
+               `LBRACE >> separate (label && (`COLON >> $arrowtype)) (`COMMA) << `RBRACE wth TRec,
                `LPAREN >> $arrowtype << `RPAREN]
 
       and postfixapps t =
@@ -452,6 +455,10 @@ struct
                    `HOLD >> call G exp wth Hold,
                    `HOLD -- punt "expected EXP after HOLD",
 
+                   (* XXX should allow specifying the world var *)
+                   `SHAM >> call G exp wth (fn e => Sham(NONE, e)),
+                   `SHAM -- punt "expected EXP after SHAM",
+
                    `FROM >> (* "expected EXP GET EXP after FROM" ** *)
                    (call G exp &&
                     `GET && (* "expected EXP after GET" **  *) call G exp)
@@ -555,7 +562,7 @@ struct
                    `EQUALS && call G exp
                    wth (fn (b, (tv, (pat, (_, e)))) => Bind(b, tv, pat, e)),
 
-                 $bindword -- punt "expected bind declaration after VAL/PUT/LETA/LETSHAM",
+                 $bindword -- punt "expected bind declaration after VAL/PUT",
 
                  (`LETSHAM >> id) && (`EQUALS >> call G exp)
                     wth (fn (id, e) => Letsham (nil, id, e)),
