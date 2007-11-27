@@ -427,6 +427,8 @@ struct
 
                end
 
+        (* FIXME if ff is a constructor, then expand in place and
+           return the value. *)
         | E.App(ef, ea) =>
                let 
                  val (ff, ft) = elab ctx here ef
@@ -767,6 +769,15 @@ struct
             (* use imported label if given, otherwise it's the same as the id *)
             val implab = case lo of NONE => id | SOME l => l
 
+            (* might be modal or valid. *)
+            val (varsort, actx) =
+              case wo of
+                EL.Modal w => (Modal ` elabw ctx loc w, ctx)
+              | EL.Valid wid =>
+                  let val wv = V.namedvar wid
+                  in (Valid ` wv, C.bindw ctx wid wv)
+                  end
+
             fun checkdups atvs =
               ListUtil.alladjacent op <> `
               ListUtil.sort String.compare atvs
@@ -778,13 +789,12 @@ struct
               
             (* augment atvs with real variables too *)
             val atvs = map (fn x => (x, V.namedvar x)) atvs
-              
+             
             (* put tyvars in context for elaboration of type *)
             val actx =
               foldl (fn ((s, x),c) =>
                      C.bindc c s (Typ (TVar x)) 0 
-                     Regular) ctx atvs
-              
+                     Regular) actx atvs
 
             (* now elaborate the type. *)
             val tt = elabtex actx NONE loc ty
@@ -792,21 +802,13 @@ struct
               Poly ({ worlds = nil (* XXX5 *),
                       tys = map #2 atvs }, tt)
 
-            (* and world, if any *)
-            val ww = Option.map (elabw ctx loc) wo
-
             val v = V.namedvar id
 
           in
-            (* XXX5 generalize worlds *)
+            (* XXX5 allow worlds *)
             ( [ExternVal(Poly({worlds=nil, tys=map #2 atvs}, 
-                              (implab, v, tt, ww)))],
-             (* XXX5 should these be bound with different idstatus (Extern? Prim?) 
-                probably not. we implement the bindings in generality, though we
-                might want to inline certain forms for performance sake. *)
-             C.bindex ctx (SOME id) ptt v Normal (case ww of
-                                                    NONE => C.Valid ` V.namedvar "ew_unused"
-                                                  | SOME w => C.Modal w))
+                              (implab, v, tt, varsort)))],
+             C.bindex ctx (SOME id) ptt v Normal varsort)
           end
 
     | E.ExternType (nil, s, so) =>

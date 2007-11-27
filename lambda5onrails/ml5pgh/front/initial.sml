@@ -245,7 +245,7 @@ struct
 
             val impexns =
               (* match ~ exn *)
-              %(EL.ExternVal(nil, matchname, EL.TVar exnname, NONE, NONE))
+              %(EL.ExternVal(nil, matchname, EL.TVar exnname, EL.Valid "wv_unused", NONE))
 
         in
           EL.Unit(impexns :: dectypes :: decbool :: deceq :: ds, xs)

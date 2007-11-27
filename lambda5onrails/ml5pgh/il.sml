@@ -191,10 +191,10 @@ struct
       | Leta of (var * typ * value) poly
 
       | ExternWorld of label * worldkind
-      | ExternVal   of (label * var * typ * world option) poly
+      | ExternVal   of (label * var * typ * varsort) poly
       (* extern type (a, b) t *)
       | ExternType  of kind * label * var
-
+    
     and bind = Val | Put
 
     and ilunit = (* XXX5 *)
@@ -205,6 +205,12 @@ struct
         ExportType of var list * label * typ
         (* if world is none, then export valid *)
       | ExportVal of (label * typ * world option * value) poly
+
+     (* a variable can either be situated at a world (hypothesis   x : t @ w)
+        or it can be valid, binding a hypothetical world (hypothesis   x ~ v.t) *)
+    and varsort =
+      Modal of world
+    | Valid of var
 
     (* the kind is the number of curried arguments. 0 is kind T. *)
     withtype kind = int

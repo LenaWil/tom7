@@ -71,6 +71,7 @@ struct
     (* exps *)
     CALL_ | HALT_ | GO_ | GO_CC_ | GO_MAR_ | PRIMOP_ of primop |
     PUT_ | LETSHAM_ | LETA_ | WUNPACK_ | TUNPACK_ | CASE_ | INTCASE_ | EXTERNVAL_ |
+    EXTERNVALID_ | 
     EXTERNWORLD_ of IL.worldkind | EXTERNTYPE_ | PRIMCALL_ | NATIVE_ of Primop.primop |
     SAY_ | NEWTAG_ | UNTAG_ |
     (* vals *)
@@ -201,6 +202,10 @@ struct
     | (EXTERNVAL_, EXTERNVAL_) => EQUAL
     | (EXTERNVAL_, _) => LESS
     | (_, EXTERNVAL_) => GREATER
+
+    | (EXTERNVALID_, EXTERNVALID_) => EQUAL
+    | (EXTERNVALID_, _) => LESS
+    | (_, EXTERNVALID_) => GREATER
 
     | (EXTERNTYPE_, EXTERNTYPE_) => EQUAL
     | (EXTERNTYPE_, _) => LESS

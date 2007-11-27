@@ -264,15 +264,18 @@ struct
   (* returns a list of layout "lines" *)
   and estol e = 
       (case cexp e of
-           ExternVal (v, l, t, wo, rest) =>
+           ExternVal (v, l, t, w, rest) =>
                % [$"extern val",
                   $(V.tostring v),
                   L.indent 4 (%[$":", ttol t, 
                                       $"@", 
-                                      case wo of
-                                        NONE => $"VALID"
-                                      | SOME w => wtol w,
+                                      wtol w,
+                                      $"=", $l])] :: estol rest
 
+         | ExternValid (v, l, (wv, t), rest) =>
+               % [$"extern valid",
+                  $(V.tostring v),
+                  L.indent 4 (%[$"~", varl wv, $".", ttol t, 
                                       $"=", $l])] :: estol rest
 
          | ExternWorld(l, k, rest) =>

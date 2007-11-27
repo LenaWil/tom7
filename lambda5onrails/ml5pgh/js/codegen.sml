@@ -470,6 +470,9 @@ struct
                 (* assume these are global javascript properties *)
                 (Var ` %[(vtoi var, SOME (Id ` Id.fromString lab))]) :: cvte e
 
+            | C.ExternValid (var, lab, _, e) =>
+                (Var ` %[(vtoi var, SOME (Id ` Id.fromString lab))]) :: cvte e
+
             | C.Letsham (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
             | C.Leta    (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)
             | C.WUnpack (_, v, va, e) => cvtv va (fn ob => Bind (vtoi v, ob) :: cvte e)

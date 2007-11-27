@@ -64,14 +64,14 @@ struct
          
   fun case_Halt _ _ = Halt'
 
-  fun case_ExternVal z (s as {selfv, selfe, selft}, G) (v, l, t, wo, e) =
+  fun case_ExternVal z (s as {selfv, selfe, selft}, G) (v, l, t, w, e) =
     let val t = selft z G t
-    in
-      ExternVal'
-      (v, l, t, wo, 
-       selfe z (case wo of
-                  NONE => bindu0var G v t
-                | SOME w => bindvar G v t w) e)
+    in ExternVal' (v, l, t, w, selfe z (bindvar G v t w) e)
+    end
+
+  fun case_ExternValid z (s as {selfv, selfe, selft}, G) (v, l, (wv, t), e) =
+    let val t = selft z (bindworld G wv) t
+    in ExternValid' (v, l, (wv, t), selfe z (binduvar G v (wv, t)) e)
     end
 
   fun case_ExternType z (s as {selfv, selfe, selft}, G) (v, l, dict, e) =
@@ -813,6 +813,7 @@ struct
       | Intcase a => case_Intcase z (s, G) a
       | Case a => case_Case z (s, G) a
       | ExternVal a => case_ExternVal z (s, G) a
+      | ExternValid a => case_ExternValid z (s, G) a
       | ExternWorld a => case_ExternWorld z (s, G) a
       | ExternType a => case_ExternType z (s, G) a
       | Say a => case_Say z (s, G) a

@@ -65,7 +65,8 @@ sig
     (* contents var only bound in arms, not default *)
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | Intcase of 'cval * (IL.intconst * 'cexp) list * 'cexp
-    | ExternVal of var * string * ctyp * world option * 'cexp
+    | ExternVal of var * string * ctyp * world * 'cexp
+    | ExternValid of var * string * (var * ctyp) * 'cexp
     | ExternWorld of string * worldkind * 'cexp
     (* always kind 0; optional argument is a value import of the 
        (valid) dictionary for that type *)
@@ -207,7 +208,8 @@ sig
   val Case' : cval * var * (string * cexp) list * cexp -> cexp
   val Intcase' : cval * (IL.intconst * cexp) list * cexp -> cexp
 
-  val ExternVal' : var * string * ctyp * world option * cexp -> cexp
+  val ExternVal'   : var * string * ctyp * world * cexp -> cexp
+  val ExternValid' : var * string * (var * ctyp) * cexp -> cexp
   val ExternWorld' : string * worldkind * cexp -> cexp
   val ExternType' : var * string * (var * string) option * cexp -> cexp
   val TUnpack' : var * var * (var * ctyp) list * cval * cexp -> cexp

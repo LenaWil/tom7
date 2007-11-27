@@ -8,14 +8,9 @@ sig
     exception Context of string
 
     type context
+    datatype varsort = datatype IL.varsort
 
     val empty : context
-   
-    (* a variable can either be situated at a world (hypothesis   x : t @ w)
-       or it can be valid, binding a hypothetical world (hypothesis   x ~ v.t) *)
-    datatype varsort =
-      Modal of IL.world
-    | Valid of Variable.var
 
     val stol : varsort -> Layout.layout
     val ctol : context -> Layout.layout

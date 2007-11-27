@@ -388,17 +388,24 @@ struct
   fun eok G exp =
     (case cexp exp of
        Halt => ()
-     | ExternVal (v, l, t, wo, e) =>
+     | ExternVal (v, l, t, w, e) =>
          let
-           val () = Option.app (wok G) wo
+           val () = wok G w
            val () = tok G t
-           val G = 
-             case wo of
-               NONE => bindu0var G v t
-             | SOME w => bindvar G v t w
+           val G = bindvar G v t w
          in
            eok G e
          end
+
+     | ExternValid (v, l, (wv, t), e) => 
+         let
+           val Gt = bindworld G wv
+           val () = tok Gt t
+           val G = binduvar G v (wv, t)
+         in
+           eok G e
+         end
+
      | Primop ([v], BIND, [va], e) =>
          let
            val t = vok G va

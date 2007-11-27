@@ -43,7 +43,8 @@ sig
   val case_Intcase : stuff -> selves * context -> cval * (IL.intconst * cexp) list * cexp -> exp_result
   val case_Case : stuff -> selves * context -> cval * var * (string * cexp) list * cexp -> exp_result
   val case_ExternType : stuff -> selves * context -> var * string * (var * string) option * cexp -> exp_result
-  val case_ExternVal : stuff -> selves * context -> var * string * ctyp * world option * cexp -> exp_result
+  val case_ExternVal : stuff -> selves * context -> var * string * ctyp * world * cexp -> exp_result
+  val case_ExternValid : stuff -> selves * context -> var * string * (var * ctyp) * cexp -> exp_result
   val case_ExternWorld : stuff -> selves * context -> string * CPS.worldkind * cexp -> exp_result
   val case_Go : stuff -> selves * context -> world * cval * cexp -> exp_result
   val case_Go_cc : stuff -> selves * context -> { w : world, addr : cval, env : cval, f : cval } -> exp_result
