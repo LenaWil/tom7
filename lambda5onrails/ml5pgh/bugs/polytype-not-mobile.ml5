@@ -1,14 +1,17 @@
-(* XXX this can be trimmed further the problem is that 's' is
-   polymorphic, below, but we require that it be mobile. the mobility
-   check should not fail on unresolved tyvars (they should be set to
-   some mobile type, like unit) or else the setting of tyvars to unit
-   should just happen before the mobility check.
+(* XXX this can be trimmed further.
 
+   the problem is that 's' is polymorphic, below, but we require that
+   it be mobile. the mobility check should not fail on unresolved
+   tyvars (they should be set to some mobile type, like unit) or else
+   the setting of tyvars to unit should just happen before the
+   mobility check.
 
    actually oops: s's tyvar isn't unset here, it's just a valid
    function. we shouldn't generalize: the requirement that s be mobile
    should be considered part of the "outer context" for the purpose of
    generalization.
+
+   (there is a simpler example of this in the dissertation)
 
  *)
 
