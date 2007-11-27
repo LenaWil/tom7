@@ -280,9 +280,9 @@ struct
            (case C.cexp exp of
               C.Halt => End
 
-            | C.ExternVal (var, lab, _, _, e) =>
-            (* XXX still not really sure how we interface with things here... *)
-                Bind(vtoi var, Var lab, cvte e)
+            (* assume these are bound in the initial context *)
+            | C.ExternVal (var, lab, _, _, e) => Bind(vtoi var, Var lab, cvte e)
+            | C.ExternValid (var, lab, _, e) => Bind(vtoi var, Var lab, cvte e)
 
             | C.Letsham (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob, cvte e))
             | C.Leta    (v, va, e)    => cvtv va (fn ob => Bind (vtoi v, ob, cvte e))

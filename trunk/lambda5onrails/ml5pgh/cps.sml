@@ -147,10 +147,11 @@ struct
     $$INTCASE_ // va // SS ` map (fn (i, e) =>
                                   $$(VINT_ i) // e) iel // def
 
-  fun ExternVal' (v, s, t, wo, e) =
-    $$EXTERNVAL_ // $$(STRING_ s) // t // (case wo of
-                                             SOME w => w // (MV v \\ e)
-                                           | NONE => $$NONE_ // (UV v \\ e))
+  fun ExternVal' (v, s, t, w, e) =
+    $$EXTERNVAL_ // $$(STRING_ s) // t // w // (MV v \\ e)
+
+  fun ExternValid' (v, s, (wv, t), e) =
+    $$EXTERNVALID_ // $$(STRING_ s) // (WV wv \\ t) // (UV v \\ e)
 
   fun ExternWorld' (s, wk, e) = $$(EXTERNWORLD_ wk) // $$(STRING_ s) // e
   fun ExternType' (tv, s, vso, e) =
@@ -274,7 +275,8 @@ struct
     (* contents var only bound in arms, not default *)
     | Case of 'cval * var * (string * 'cexp) list * 'cexp
     | Intcase of 'cval * (IL.intconst * 'cexp) list * 'cexp
-    | ExternVal of var * string * ctyp * world option * 'cexp
+    | ExternVal of var * string * ctyp * world * 'cexp
+    | ExternValid of var * string * (var * ctyp) * 'cexp
     | ExternWorld of string * worldkind * 'cexp
     (* always kind 0; optional argument is a value import of the 
        (valid) dictionary for that type *)
@@ -647,12 +649,18 @@ struct
           | _ => raise CPS "bad intcase")
 
     | $EXTERNVAL_ / sym / r =>
-         let val (t, (wo, bind)) = slash2 r
-         in case (look wo, look bind) of
-              ($NONE_, UV v \ e) => ExternVal (v, STRINGi sym, t, NONE, e)
-            | (_, MV v \ e) => ExternVal (v, STRINGi sym, t, SOME wo, e)
+         let val (t, (w, bind)) = slash2 r
+         in case look bind of
+              MV v \ e => ExternVal (v, STRINGi sym, t, w, e)
             | _ => raise CPS "bad externval"
          end
+    | $EXTERNVALID_ / sym / r =>
+         let val (t, bind) = slash r
+         in case (look t, look bind) of
+           (WV wv \ t, UV v \ e) => ExternValid (v, STRINGi sym, (wv, t), e)
+         | _ => raise CPS "bad externvalid"
+         end
+
     | $(EXTERNWORLD_ wk) / sym / e => ExternWorld (STRINGi sym, wk, e)
     | $EXTERNTYPE_ / sym / r =>
          (case look2 r of

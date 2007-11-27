@@ -122,15 +122,21 @@ struct
        or
        extern val (a, b) loop ~ a -> b
        or
+       extern val (a, b) loop ~ w => (a -> b) at w
+       or
        extern val (a, b) loop : a -> b  @ w  =  real_label_of_loop
        *)
-    | ExternVal   of string list * string * typ * world option * string option
+    | ExternVal   of string list * string * typ * varsort * string option
     | ExternWorld of worldkind * string
     (* extern type (a, b) t 
        or
        extern type (a, b) t = real_t_lab
        *)
     | ExternType  of string list * string * string option
+
+  and varsort =
+      Valid of string
+    | Modal of world
 
   (* fixity decls are handled at parse time *)
 

@@ -578,9 +578,10 @@ struct
 
                  `EXTERN >> `VAL >> alt[tyvars && id,
                                         succeed nil && id]
-                   && alt [`COLON >> typ && `AT && world wth (fn (t, (_, w)) => (t, SOME w)),
+                   && alt [`COLON >> typ && `AT && world wth (fn (t, (_, w)) => (t, Modal w)),
                            `COLON -- punt "expected TYP AT WORLD after COLON",
-                           `TILDE >> typ wth (fn t => (t, NONE))
+                           `TILDE >> (id && (`DARROW >> typ) wth (fn (wv, t) => (t, Valid wv))
+                                      || typ wth (fn t => (t, Valid (namedstring "ev_wv_unused"))))
                            ]
                    && opt (`EQUALS >> id)
                    

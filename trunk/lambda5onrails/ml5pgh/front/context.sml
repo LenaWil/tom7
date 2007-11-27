@@ -12,9 +12,7 @@ struct
     structure SS = StringSet
     structure VS = Variable.Set
 
-    datatype varsort =
-      Modal of IL.world
-    | Valid of Variable.var
+    datatype varsort = datatype IL.varsort
 
     datatype context = 
         C of { vars : (IL.typ IL.poly * Variable.var * IL.idstatus * varsort) S.map,

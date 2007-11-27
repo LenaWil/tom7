@@ -383,8 +383,8 @@ struct
                         L.indent 4 (%[$":", ttol t, 
                                       $"@", 
                                       case w of
-                                        NONE => $"VALID"
-                                      | SOME w => wtol w,
+                                        Valid wv => %[$"VALID ", $(V.tostring wv), $"."]
+                                      | Modal w => wtol w,
                                       $"=", $l])])
            | ExternType (n, l, v) => 
                  %[$"extern type",

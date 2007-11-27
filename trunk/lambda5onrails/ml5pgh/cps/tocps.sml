@@ -618,7 +618,7 @@ struct
           so we need to generate a CPS-converted function that
           does a primcall to the underlying import, here.
           *)
-       | I.ExternVal (I.Poly ({worlds, tys}, (l, v, t, wo))) =>
+       | I.ExternVal (I.Poly ({worlds, tys}, (l, v, t, vs))) =>
          (* The external must be of the following types:
 
             base type, including abstract types.
@@ -690,13 +690,17 @@ struct
                                  AllLam' { worlds = worlds, tys = tys,
                                            vals = nil, body = lam })
                in
-                   case Option.map (cvtw G) wo of
-                       NONE => Lift' (v, va, k (bindu0var G v t))
-                     | SOME w => 
-                         (* only generate leta/hold if this is remote *)
-                         if world_eq (worldfrom G, w)
-                         then Bind' (v, va, k (bindvar G v t w))
-                         else Bindat' (v, w, va, k (bindvar G v t w))
+                   case vs of
+                       I.Valid wv => Lift' (v, va, k (binduvar G v (wv, t)))
+                     | I.Modal w => 
+                         let
+                           val w = cvtw G w
+                         in
+                           (* only generate leta/hold if this is remote *)
+                           if world_eq (worldfrom G, w)
+                           then Bind' (v, va, k (bindvar G v t w))
+                           else Bindat' (v, w, va, k (bindvar G v t w))
+                         end
                end
            | I.Arrow _ => raise ToCPS ("expected extern val, if arrow, to take exactly one arg: " ^ l)
 
@@ -712,9 +716,12 @@ struct
                in
                  if base b 
                  then 
-                   case Option.map (cvtw G) wo of
-                     NONE => ExternVal'(v, l, t, NONE, k (bindu0var G v t))
-                   | SOME ww => ExternVal'(v, l, t, SOME ww, k (bindvar G v t ww))
+                   case vs of
+                     I.Valid wv => ExternValid'(v, l, (wv, t), k ` binduvar G v (wv, t))
+                   | I.Modal ww => 
+                       let val ww = cvtw G ww
+                       in ExternVal' (v, l, t, ww, k ` bindvar G v t ww)
+                       end
                  else raise ToCPS ("unresolvable extern val because it is not of base type: " ^ l)
                end
          end
@@ -738,11 +745,6 @@ struct
             Primcon (CPS.EXN, nil) =>
               let
                 val ty = cvtt G ty
-                (* XXX5 probably some tags should be valid, like Match.
-                   maybe we want a different binder for that?
-
-                   or maybe it is just that 'a tag is mobile when 'a 
-                   is mobile? then we can just Put after this if we want. *)
                 val G = bindvar G v (Primcon' (TAG, [ty])) ` worldfrom G
               in
                 Newtag'(v, ty, k G)
