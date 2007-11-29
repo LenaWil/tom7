@@ -341,9 +341,7 @@ struct
        | I.Primapp (Primop.PChr, [e], _) => cvte G e k
        | I.Primapp (Primop.PBind, [e], _) => cvte G e k
 
-       (* treat every primapp as an extern primcall with a source/source
-          translation. *)
-       (* XXX perhaps these should be translated in some IL phase...? *)
+       (* primapps become native calls *)
        | I.Primapp (po, el, tl) =>
               let
                 (* assuming all prims are valid, otherwise we need an
@@ -375,8 +373,6 @@ struct
                 then raise ToCPS "unimplemented: primops with world args"
                 else ();
 
-                (* we end up generating a new import and lambda abstraction every time,
-                   but this is fine since we'd probably like to inline it. *)
                 cvtel G el
                 (fn (G, vwtl) =>
                  (* PERF inline? *)

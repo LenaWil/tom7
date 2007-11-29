@@ -25,6 +25,19 @@
 
 *)
 
+(*
+     could support something like 
+     guard : (var -> bool) -> ast -> ast
+     which wraps an AST with a function
+     that indicates whether the variable
+     can occur (the idea is that we never
+     need to look for value variables within
+     types, for instance.)
+
+     This seems to be unnecessary if we have
+     accurate free variable sets though.
+*)
+
 functor ASTFn(A : ASTARG) :> AST where type var  = A.var
                                    and type leaf = A.leaf =
 struct
@@ -33,6 +46,10 @@ struct
   fun I x = x
   infixr 9 `
   fun a ` b = a b
+
+  (* or K false if you don't believe in pointer equality *)
+  val fast_eq = Port.fast_eq
+  (* fun fast_eq _ = false *)
 
   structure VM = SplayMapFn(type ord_key = var
                             val compare = var_cmp)
@@ -564,23 +581,29 @@ struct
       in hideee f
       end
 
-  and obj_cmp (O{ f = $l1, ... }, O{ f = $l2, ... }) = leaf_cmp (l1, l2)
-    | obj_cmp (O{ f = $_, ... }, _) = LESS
-    | obj_cmp (_, O{ f = $_, ... }) = GREATER
-    | obj_cmp (O{ f = V v1, ... }, O{ f = V v2, ... }) = var_cmp (v1, v2)
-    | obj_cmp (O{ f = V _, ... }, _) = LESS
-    | obj_cmp (_, O{f = V _, ... }) = GREATER
-    | obj_cmp (O{ f = a1 / b1, ... }, O{ f = a2 / b2, ... }) =
+  (* try to succeed fast if they are they exact same object. *)
+  and obj_cmp (a, b) = 
+    if fast_eq (a, b) 
+    then EQUAL
+    else obj_cmp' (a, b)
+
+  and obj_cmp' (O{ f = $l1, ... }, O{ f = $l2, ... }) = leaf_cmp (l1, l2)
+    | obj_cmp' (O{ f = $_, ... }, _) = LESS
+    | obj_cmp' (_, O{ f = $_, ... }) = GREATER
+    | obj_cmp' (O{ f = V v1, ... }, O{ f = V v2, ... }) = var_cmp (v1, v2)
+    | obj_cmp' (O{ f = V _, ... }, _) = LESS
+    | obj_cmp' (_, O{f = V _, ... }) = GREATER
+    | obj_cmp' (O{ f = a1 / b1, ... }, O{ f = a2 / b2, ... }) =
     (case obj_cmp (a1, a2) of
        LESS => LESS
      | GREATER => GREATER
      | EQUAL => obj_cmp (b1, b2))
-    | obj_cmp (O{ f = _ / _, ... }, _) = LESS
-    | obj_cmp (_, O{ f = _ / _, ...}) = GREATER
-    | obj_cmp (O{ f = S l1, ...}, O{ f = S l2, ... }) = objl_cmp (l1, l2)
-    | obj_cmp (O{ f = S _, ...}, _) = LESS
-    | obj_cmp (_, O{ f = S _, ...}) = GREATER
-    | obj_cmp (O{ f = v1 \ a1, ...}, O { f = v2 \ a2, ... }) =
+    | obj_cmp' (O{ f = _ / _, ... }, _) = LESS
+    | obj_cmp' (_, O{ f = _ / _, ...}) = GREATER
+    | obj_cmp' (O{ f = S l1, ...}, O{ f = S l2, ... }) = objl_cmp (l1, l2)
+    | obj_cmp' (O{ f = S _, ...}, _) = LESS
+    | obj_cmp' (_, O{ f = S _, ...}) = GREATER
+    | obj_cmp' (O{ f = v1 \ a1, ...}, O { f = v2 \ a2, ... }) =
        if var_eq (v1, v2)
        then 
          let in
@@ -599,9 +622,9 @@ struct
          in
            obj_cmp (a1, a2)
          end
-    | obj_cmp (O { f = _ \ _, ...}, _) = LESS
-    | obj_cmp (_, O { f = _ \ _, ...}) = GREATER
-    | obj_cmp (O { f = B(vl1, a1), ...}, O{ f = B(vl2, a2), ... }) =
+    | obj_cmp' (O { f = _ \ _, ...}, _) = LESS
+    | obj_cmp' (_, O { f = _ \ _, ...}) = GREATER
+    | obj_cmp' (O { f = B(vl1, a1), ...}, O{ f = B(vl2, a2), ... }) =
        let
          val len1 = length vl1
          val len2 = length vl2
@@ -646,7 +669,10 @@ struct
         | EQUAL => objl_cmp (t1, t2))
 
   (* PERF shouldn't be so eager to substitute *)
-  fun ast_cmp (a1, a2) = obj_cmp (apply_subst a1, apply_subst a2)
+  fun ast_cmp (a1, a2) = 
+    if fast_eq (a1, a2) 
+    then EQUAL
+    else obj_cmp (apply_subst a1, apply_subst a2)
 
   fun looky self ast =
     (* first, push subst. *)
