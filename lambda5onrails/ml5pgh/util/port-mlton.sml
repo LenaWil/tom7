@@ -5,4 +5,6 @@ struct
 
   val exnhistory = MLton.Exn.history
 
+  val fast_eq = MLton.eq
+
 end
