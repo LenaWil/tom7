@@ -8,6 +8,7 @@ sig
   type cexp = CPS.cexp
   type ctyp = CPS.ctyp
 
+  (* could be parameter, for even more generic passes... *)
   type exp_result = cexp
   type val_result = cval * ctyp
   type typ_result = ctyp
@@ -18,9 +19,9 @@ sig
   type context = CPSTypeCheck.context
 
   (* open recursive calls *)
-  type selves = { selfv : stuff -> context -> CPS.cval -> CPS.cval * CPS.ctyp,
-                  selfe : stuff -> context -> CPS.cexp -> CPS.cexp,
-                  selft : stuff -> context -> CPS.ctyp -> CPS.ctyp }
+  type selves = { selfv : stuff -> context -> cval -> val_result,
+                  selfe : stuff -> context -> cexp -> exp_result,
+                  selft : stuff -> context -> ctyp -> typ_result }
 
   val case_Addr : stuff -> selves * context -> world -> typ_result
   val case_AllArrow : stuff -> selves * context -> { worlds : var list, tys : var list, vals : ctyp list, body : ctyp } -> typ_result

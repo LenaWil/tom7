@@ -11,6 +11,11 @@
    in question.
 *)
 
+(* note: we could avoid passing the stuff type by just making
+   it polymorphic in the code below and declaring a stuff type
+   of unit (or whatever). But then we would not be able to seal
+   it against the PASSARG sig, because that would make the
+   type monomorphic. *)
 (* identity pass that sends along any 'stuff' untouched. *)
 functor IDPass(type stuff
                val Pass : string -> exn) : PASSARG where type stuff = stuff =
@@ -61,7 +66,7 @@ struct
        in
          Call' (f, args)
        end
-         
+     
   fun case_Halt _ _ = Halt'
 
   fun case_ExternVal z (s as {selfv, selfe, selft}, G) (v, l, t, w, e) =

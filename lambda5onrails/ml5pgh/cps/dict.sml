@@ -2,20 +2,20 @@
    an invariant: that every bound type variable within a value or
    expression has associated with it in context a value that
    corresponds to that type's dictionary. (At this level, a dictionary
-   is an abstract thing; ultimately it will be used to contain the
-   marshaling functions for the type so that polymorphic code can
-   transfer data over the network.) The output of this translation
-   achieves the binding invariant by a set of representation
-   guarantees, which are listed below.
+   is an abstract thing; ultimately it will be a concrete
+   representation of the type so that polymorphic code can marshal
+   data to be transfered over the network.) The output of this
+   translation achieves the binding invariant by a set of
+   representation guarantees, which are listed below.
 
-   Type variables are bound in only three places in the CPS language.
+   Type variables are bound in only four places in the CPS language.
    The AllLam construct abstracts over worlds, types, and values. The
    ExternType imports an abstract type and binds it to a variable. The
    third is the TUnpack construct, which unpacks a existential type.
    However, we do not expect to see TPack and TUnpack until after
    closure conversion, so we do not translate them here. In all cases,
    the bound type has kind 0, so we do not need to worry about
-   dictionaries taking other dictionaries.
+   dictionaries taking other dictionaries as arguments.
 
    Type variables are bound by the type constructor Mu as well, but
    not by the corresponding term constructors. We do not need to worry
@@ -54,14 +54,12 @@
     see undict.sml)
 
    Representation Invariant 4: 
-    For TUnpack, the first element of the list will always be the
-    shamrocked dictionary for the type existentially bound. It is
-    immediately unshamrocked in the body to put it in the context.
-     (Notwithstanding the above, this unshamrocking can be eliminated
-      as an optimization, since it is irrelevant for marshaling.)
+    TPack requires a shamrocked dictionary as one of its components,
+    so this is not really an invariant.
 
    Representation Invariant 5: 
-    TPack always packs a list (sham dict :: ...) as in #4.
+    TUnpack binds the dictionary to a valid variable; this is part of
+    the construct itself so not really an invariant.
 
 
    We also do the same for worlds, associating each static world

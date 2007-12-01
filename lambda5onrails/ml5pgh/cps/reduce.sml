@@ -10,13 +10,17 @@
 
       Call (FSel(Lams), args)
 
+   and
+
+      #l (l = v, l2 = v2, ...)    to    v
+
    as the dynamic semantics would.
 
-   For lambdas this is always conservative (because we use varaible
-   bindings for values, so the term does not grow). For allapp we
-   might duplicate types, values, and worlds that appear multiple
-   times, since we use substitution to carry out the reduction of
-   AllApp. For example
+   For lambdas and records this is always conservative (because we use
+   varaible bindings for values, so the term does not grow). For
+   allapp we might duplicate types, values, and worlds that appear
+   multiple times, since we use substitution to carry out the
+   reduction of AllApp. For example
 
    (/\ a. (x <a, a, a, a, a>))<int * int>
 

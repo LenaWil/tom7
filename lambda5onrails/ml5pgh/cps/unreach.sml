@@ -2,6 +2,20 @@
    kind of unreachable code is in the default of
    an exhaustive sumcase.
 
+   We could do better exhaustiveness checking
+   by keeping track of what constructors a value 
+   of sum type might take on. For nested pattern
+   matches this could help us eliminate unnecessary
+   tests and inexhaustive match warnings. To do
+   a really good job of this, the analysis would
+   probably have to be flow (abstract interpretation)
+   based, since we hoist out matches during pattern
+   matching to avoid duplicating code.
+
+   PS. rather than insert "halt" we might want to
+   insert "impossible" or something so that we can
+   distinguish when we've failed!
+
    We could also reduce the number of friends in
    a mutually recursive bundle, but this analysis
    is more complicated and its not clear it ever

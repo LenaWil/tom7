@@ -8,9 +8,9 @@ Computation of the number of free variable occurrences might be wrong?
 It looks like we inline records, which we shouldn't do unless there is
 only 1 occurrence. We should have a suite of tests for AST.
 
- Should support "extern mobile type" (easy, just check
+ Could support "extern mobile type" (easy, just check
  mobility with concrete type at link time); see Dagstuhl
- talk for compelling example.
+ talk for example.
 
 Cleanup:
   * Use AST for IL (there are probably alpha conversion bugs in current implementation)
@@ -20,8 +20,9 @@ Cleanup:
   * Labels support "special" labels; not needed.
 
 Features:
-  * exn type (!)
   * validity for 'val' decls
+    - should come with rewrite of fun to fns, probably, so that it is
+      only in one place.
 
 Other performance improvements
   * Could leak less memory with 'say' by marshaling the argument; then we only
@@ -43,12 +44,14 @@ Bugs
 Passes to implement:
 
 CPS Optimization
+  * Dead doesn't eliminate some dead code that it could eliminate!
+    Dead is one of the most important optimizations, so it should be reasonably complete...
   * really should run optimization rounds in a loop.
   * unused argument removal post-undict would be great, but
     the code is pretty messed up at that point...
   * monomorphize code that does not need to be polymorphic or valid;
     cheaper because there are fewer type representations. aggressive
-    monomorphization a la mlton might even produce better code.
+    monomorphization a la mlton might even produce better (and less) code.
   * split up or eliminate friends that are not friends.
     this is tricky only because we don't always have a good place
     to put the split up friends.
@@ -65,6 +68,7 @@ CPS Optimization
 Backend optimizations
   * could flatten out lams so that we represent a function as a single integer,
     and fsel as +
+  * don't use named records!
 
 --------------------------------------------------
     Old bugs from Humlock; possibly obsolete
