@@ -11,7 +11,7 @@
 
 (* This is a "simple" implementation of closure conversion.
 
-   The Hemlock series of compilers had a very compilcated closure
+   The Hemlock series of compilers had a very complicated closure
    conversion algorithm that attempted to balance a number of
    constraints to produce as good code as possible. This led to a very
    complex and error-prone implementation. One of the reasons was that
@@ -22,7 +22,7 @@
    This language is much more complicated than the Hemlock CPS IL, so
    the closure conversion algorithm cannot be as ambitious. In
    addition to the new machinery having to do with the modal features,
-   we also must maintain a dictionary-passing invariant (see dict.sml)
+   we also must maintain the dictionary-passing invariant (see dict.sml)
    during this translation.
 
    Therefore the new strategy is to do something simple and general,
@@ -122,7 +122,8 @@
    fraction of the cost of running a program, in large part because
    closures require the reification of type information as
    dictionaries. So we also implement some common cases of direct
-   calls, and should expand these. See case_Primop below.
+   calls, and should expand these for better performance. See
+   case_Primop below.
 
 *)
 
