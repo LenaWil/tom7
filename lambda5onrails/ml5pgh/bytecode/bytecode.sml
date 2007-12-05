@@ -45,7 +45,7 @@ struct
     | Inj of string * exp option
     | Primop of Primop.primop * exp list
     | Newtag
-
+    (* XXX Tag of string * int *)
     | Marshal of exp * exp
 
     | Ref of exp ref
