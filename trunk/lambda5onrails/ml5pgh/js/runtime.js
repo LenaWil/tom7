@@ -885,6 +885,7 @@ function lc_regexp_replace(s, r, d) {
 
 // this generally doesn't work because events
 // have weird lifetimes
+// XXX now we have a new way to do this; trim it
 function lc_event_keycode(e) {
     alert (e);
     alert (e.keyCode);
