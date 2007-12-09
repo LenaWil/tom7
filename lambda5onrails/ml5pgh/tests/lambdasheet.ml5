@@ -1,3 +1,5 @@
+(* Lambdasheet spreadsheet demo.
+   By Tom Murphy 7 and Rob Simmons, November 2007. *)
 unit
     import "std.mlh"
     import "list.mlh"
