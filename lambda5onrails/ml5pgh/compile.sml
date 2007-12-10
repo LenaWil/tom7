@@ -20,6 +20,10 @@ struct
                "Optimize the intermediate language")) "optil"
 *)
 
+    val evaljs = Params.flag true
+        (SOME ("-evaljs",
+               "Evaluate JS at home for benchmark")) "evaljs"
+
     val optcps = Params.flag true
         (SOME ("-optcps", 
                "Optimize the CPS language")) "optcps"
@@ -218,6 +222,14 @@ struct
 
             (* would be nice to have another optimization phase here... *)
             val code = Codegen.generate p
+
+            val () = if !evaljs
+                     then 
+                         case ListUtil.Alist.find op= code "home" of
+                             SOME (Codegen.CodeJS { prog = p }) => JSEval.execute p
+                           | SOME _ => fail ("home wasn't js??")
+                           | NONE => fail ("can't execute because there is no home code")
+                     else ()
 
             val () = Write.write base code
 
