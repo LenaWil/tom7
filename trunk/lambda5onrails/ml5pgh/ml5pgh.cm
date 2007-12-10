@@ -234,6 +234,9 @@ js/codegen.sml
 js/opt-sig.sml
 js/opt.sml
 
+js/eval-sig.sml
+js/eval.sml
+
 bytecode/bytecode.sml
 bytecode/print-sig.sml
 bytecode/print.sml
