@@ -32,7 +32,7 @@ struct
       (* but expressions are CPS-converted. *)
     | End 
 
-  (* XXX should really make exp/val distinction here *)
+  (* XXX PERF should really make exp/val distinction here *)
   and exp =
       Record of (label * exp) list
     | Project of label * exp

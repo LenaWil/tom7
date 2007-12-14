@@ -1,353 +1,227 @@
 
-%% S5hybrid with world passing and validity context, version 4
+%% S5hybrid with world passing and validity context
 %% (internal language for ML5)
 %% Tom Murphy VII
-%% 11 Jan 2006
-
-% This version of the IL incorporates a validity context, based
-% on the ~ judgment in Sungwoo Park's "A Modal Language for the
-% safety of Mobile Values."
-
-% typ : type.
+%% 11 Jan 2006, 24 Oct 2007
 
 %%% Natural deduction with hybrids and quantification
 
-at  : typ -> world -> typ.             %infix none 2 at.
-=>  : typ -> typ -> typ.               %infix right 8 =>.
-all : (world -> typ) -> typ.
-exists : (world -> typ) -> typ.
-& : typ -> typ -> typ.                 %infix none 9 &.
-circ : typ -> typ.
-% representation for a world
-% blocks.elf
-addr : world -> typ.
-unit : typ.
+at  : ty -> world -> ty.            %infix none 2 at.
+=>  : ty -> ty -> ty.               %infix right 8 =>.
+all : (world -> ty) -> ty.
+exists : (world -> ty) -> ty.
+& : ty -> ty -> ty.                 %infix none 9 &.
+sh : (world -> ty) -> ty.
+addr : world -> ty.
+unit : ty.
 
-% need a world? 
-% h : world.
-
-%% expressions
-
-% exp : type.
-% val : type.
-% valid expressions 
-vexp : type.
-% vval : type.
-
-% a valid value is a suspended value
-% that can be used at any static world.
-
-% the vv constructor is a binder; it allows a value to 
-% refer to the (static) world at which it is ultimately 
-% used. This is compatible with an erasure semantics 
-% (since we only bind the static world) AS LONG AS we do
-% not use the static world in a dynamic way (like
-% in the 'const' constructor).
-% (perhaps a theorem is ultimately in order)
 vv : (world -> val) -> vval.
 
 % values are expressions, too.
 value : val -> exp.
-% and valid values are values.
-% this is slightly awkward because it makes
-% the canonical forms property mildly notrivial
-% (e.g. a value of => type can be either lam or
-% some valid lam.
 valid : vval -> val.
 
-hold : val -> val.
-% force e     ===     letforce x = e in x end
-
+held : val -> val.
 lam : (val -> exp) -> val.
 app : exp -> exp -> exp.
-mkpair : exp -> exp -> exp.
 pair : val -> val -> val.
 fst : exp -> exp.
 snd : exp -> exp.
 wlam : (world -> val) -> val.
-% XXX probably could be value
 wapp : exp -> world -> exp.
 const : world -> val.
 1 : val.
-
-cir : vexp -> val.
-
+sham : vval -> val.
 pack : world -> val -> val.
 unpack : exp -> (world -> val -> exp) -> exp.
-
-% could be a derived form for an in-place
-% application, but it is much more convenient
-% to generate these in the translation and
-% quite easy to implement in this language
+% could be a derived form, but easy to translate
 let : exp -> (val -> exp) -> exp.
-
 % give world, address, and remote expression
 get : world -> exp -> exp -> exp.
-
+put : exp -> (vval -> exp) -> exp.
 localhost : exp.
-
-letc : exp -> (vval -> exp) -> exp.
-
-% eliminate 'at'
+lets : exp -> (vval -> exp) -> exp.
 leta : exp -> (val -> exp) -> exp.
-
-
-%% valid expressions
-
-mobc   : exp -> vexp.
-cvalue : vval -> vexp.
 
 %% typing judgments for expressions
 
-% the mobility judgment tells us when
-% we can move a value of that type
-% efficiently with 'get'
-
-mobile : typ -> type.
+mobile : ty -> type.
 %mode mobile *A.
 
 addrM : mobile (addr W).
 atM  : mobile (A at W).
 &M   :  mobile A -> mobile B -> 
         mobile (A & B).
-allM : ({w} mobile (A w)) ->
-       mobile (all [w] A w).
-existsM : ({w} mobile (A w)) ->
-          mobile (exists [w] A w).
+allM : ({w} mobile (A w)) -> mobile (all [w] A w).
+existsM : ({w} mobile (A w)) -> mobile (exists [w] A w).
+shaM : mobile (sh Af).
 
 % |- e : t @ w
-of : exp -> typ -> world -> type.
-% ofv : val -> typ -> world -> type.
+of : exp -> ty -> world -> type.
+% (others were forward-declared)
 
-% |- e ~ t @ w
-ofs : vexp -> typ -> world -> type.
-
-% x ~ t   as hypothesis
-% ofvv : vval -> typ -> type.
-
-vvI : ({w} ofv (V w) A w) ->
-       ofvv (vv V) A.
-
-% a value is a valid value if it is well-typed
-% at any world.
-ofscval : ofs (cvalue V) A W <- ofvv V A.
-
-ofsmobc :  mobile A ->
-           of M A W ->
-	   ofs (mobc M) A W.
+vvI : ({w} ofv (Vf w) (Af w) w) -> ofvv (vv Vf) Af.
 
 % containments
 ofvalue : of (value V) A W <- ofv V A W.
+ofvvalid : ofv (valid V) (Af W) W <- ofvv V Af.
 
-ofvvalid : ofv (valid V) A W <- ofvv V A.
+% rules for shamrock
+shI : ofv (sham Vf) (sh Af) W <- ofvv Vf Af.
 
-% rules for circle
-cirI : ofv (cir VE) (circ A) W <- ofs VE A W.
-
-cirE : of M (circ A) W ->
-       ({x:vval} ofvv x A ->
-	  of (N x) C W) ->
-       of (letc M N) C W.
+shE : of M (sh A) W ->
+      ({x:vval} ofvv x A ->
+         of (N x) C W) ->
+      of (lets M N) C W.
 
 oflocalhost : of localhost (addr W) W.
-
 addrI : ofv (const W) (addr W) W'.
 
-existsI :  {A:world -> typ} % often need this annotation for Twelf's sake
-           ofv V (A W') W ->
-           ofv (pack W' V) (exists [w] A w) W.
+existsI : {A:world -> ty} % often need this annotation for Twelf's sake
+          ofv V (A W') W ->
+          ofv (pack W' V) (exists [w] A w) W.
+existsE : of M (exists A) W ->
+          ({w:world}{v:val} ofv v (A w) W ->
+            of (N w v) C W) ->
+          of (unpack M N) C W.
 
-existsE : 
-     of M (exists A) W ->
-     ({w:world}{v:val} ofv v (A w) W ->
-       of (N w v) C W) ->
-     of (unpack M N) C W.
-
-atI : ofv (hold V) (A at W') W
-     <- ofv V A W'.
-
-atE : 
-     of M (A at W') W ->
-     ({v:val} ofv v A W' ->
-       of (N v) C W) ->
-     of (leta M N) C W.
+atIv : ofv (held V) (A at W') W <- ofv V A W'.
+atE : of M (A at W') W ->
+      ({v:val} ofv v A W' ->
+	of (N v) C W) ->
+      of (leta M N) C W.
 
 unitI : ofv 1 unit W.
 
 =>I : ofv (lam [x:val] M x) (A => B) W
      <- ({x:val} ofv x A W ->
                  of (M x) B W).
-
-=>E : 
-      of M1 (A => B) W ->
+=>E : of M1 (A => B) W ->
       of M2 A W ->
       of (app M1 M2) B W.
 
-
-&Iv : 
-       ofv V1 A W ->
-       ofv V2 B W ->
-       ofv (pair V1 V2) (A & B) W.
-
-&I : 
-     of M1 A W ->
-     of M2 B W ->
-     of (mkpair M1 M2) (A & B) W.
-
-&E1 : of (fst M) A W
-     <- of M (A & B) W.
-
-&E2 : of (snd M) B W
-     <- of M (A & B) W.
+&Iv : ofv V1 A W ->
+      ofv V2 B W ->
+      ofv (pair V1 V2) (A & B) W.
+&E1 : of (fst M) A W <- of M (A & B) W.
+&E2 : of (snd M) B W <- of M (A & B) W.
 
 allI : ofv (wlam [w] M w) (all [w] A w) W
-     <- ({w:world} ofv (M w) (A w) W).
-
+    <- ({w:world} ofv (M w) (A w) W).
 allE : of (wapp M W') (B W') W
-     <- of M (all [w] B w) W.
+    <- of M (all [w] B w) W.
 
-oflet :
-     of M A W ->
-     ({y:val}{ofy : ofv y A W}
-        of (N y) C W) ->
-     of (let M N) C W.
+oflet : of M A W ->
+	({y:val}{ofy : ofv y A W}
+	   of (N y) C W) ->
+	of (let M N) C W.
 
-ofget : 
-     mobile A ->
-     of W'R (addr W') W ->
-     of M A W' ->
-     of (get W' W'R M) A W.
+ofget : mobile A ->
+	of W'R (addr W') W ->
+	of M A W' ->
+	of (get W' W'R M) A W.
 
-% simple reduction semantics
-% this is a highly simplified version of
-% what was presented in the Lambda 5 paper.
-% we don't use tables to store values.
-% (Also, we're not dealing with boxes and diamonds,
-% so the semantics given would need to change, anyway)
+ofput : mobile A ->
+	of M A W ->
+	({u:vval}{ofu:ofvv u ([w] A)}
+          of (N u) C W) ->
+	of (put M N) C W.
 
-% first, evaluation contexts. (an expression with a "hole")
+% continuation-based operational semantics
 
 ec : type.    %name ec E.
 
 efinish : ec.
 % waiting for world addr
 eget : ec -> exp -> ec.
+% waiting for val
+eput : ec -> (vval -> exp) -> ec.
 % evaluating remotely, returning to the world
-% stored (XXX w/ address?)
-eget2 : world -> ec -> val -> ec.
+eget2 : ec -> world -> ec.
 eapp1 : ec -> exp -> ec.
 eapp2 : ec -> val -> ec.
 ewapp : ec -> world -> ec.
 efst : ec -> ec.
 esnd : ec -> ec.
-emkpair1 : ec -> exp -> ec.
-emkpair2 : ec -> val -> ec.
 eleta : ec -> (val -> exp) -> ec.
 eunpack : ec -> (world -> val -> exp) -> ec.
 % waiting for exp to be evaluated
 elet : ec -> (val -> exp) -> ec.
 
-% wait for circled value
-eletc : ec -> (vval -> exp) -> ec.
-% (maybe) wait for valid expression to be evaluated
-eletc2 : ec -> (vval -> exp) -> ec.
+% wait for shamrocked value
+elets : ec -> (vval -> exp) -> ec.
 
 % E is a continuation expecting A at W
-ofec : ec -> typ -> world -> type.    %name ofec WE.
+ofec : ec -> ty -> world -> type.    %name ofec WE.
 
 ofec_efinish : ofec efinish A W.
+ofec_elets : ofec E C W ->
+	     ({v:vval} ofvv v A ->
+	       of (N v) C W) ->
+	     ofec (elets E N) (sh A) W.
 
-ofec_eletc : ofec E C W ->
-            ({v:vval} ofvv v A ->
-              of (N v) C W) ->
- 	    ofec (eletc E N) (circ A) W.
+ofec_eput : ofec E C W ->
+	    ({v:vval} ofvv v ([w] A) ->
+	      of (N v) C W) ->
+	    mobile A ->
+	    ofec (eput E N) A W.
 
-ofec_eletc2 : ofec E C W ->
-             ({v:vval} ofvv v A ->
-               of (N v) C W) ->
- 	     mobile A ->
-             ofec (eletc2 E N) A W.
-
-ofec_elet :  ofec E C W ->
+ofec_elet : ofec E C W ->
             ({v:val} ofv v A W ->
               of (N v) C W) ->
             ofec (elet E N) A W.
 
-ofec_eunpack :
-        ({w:world}{v:val} ofv v (A w) W ->
-         of (F w v) C W) ->
-        ofec E C W ->
-        ofec (eunpack E F) (exists A) W.
+ofec_eunpack : ({w:world}{v:val} ofv v (A w) W ->
+		of (F w v) C W) ->
+	       ofec E C W ->
+	       ofec (eunpack E F) (exists A) W.
 
-ofec_eget :
-        mobile A ->
-        ofec E A W ->
-        of M A W' ->
-        ofec (eget E M) (addr W') W.
+ofec_eget : mobile A ->
+	    ofec E A W ->
+	    of M A W' ->
+	    ofec (eget E M) (addr W') W.
 
-ofec_eget2 : 
-        mobile A ->
-        ofec E A W ->
-% why save remote address here?
-        ofv W'R (addr W') W ->
-        ofec (eget2 W E W'R) A W'.
-
-ofec_emkpair1 : 
-          ofec E (A & B) W ->
-          of  M B W ->
-          ofec (emkpair1 E M) A W.
-
-ofec_emkpair2 :
-          ofec E (A & B) W ->
-          ofv V A W ->
-          ofec (emkpair2 E V) B W.
+ofec_eget2 : mobile A ->
+	     ofec E A W ->
+	     ofec (eget2 E W) A W'.
 
 ofec_eapp1 : ofec (eapp1 E M) (A => B) W
-       <- ofec E B W
-       <- of M A W.
+          <- ofec E B W
+          <- of M A W.
 
 ofec_eapp2 : ofec (eapp2 E (lam F)) A W
-       <- ofec E B W
-       <- ofv (lam F) (A => B) W.
+          <- ofec E B W
+          <- ofv (lam F) (A => B) W.
 
 ofec_ewapp : ofec (ewapp E W') (all [w] A w) W
-        <- ofec E (A W') W.
+          <- ofec E (A W') W.
 
-ofec_efst : ofec (efst E) (A & B) W
-        <- ofec E A W.
+ofec_efst : ofec (efst E) (A & B) W <- ofec E A W.
+ofec_esnd : ofec (esnd E) (A & B) W <- ofec E B W.
 
-ofec_esnd : ofec (esnd E) (A & B) W
-        <- ofec E B W.
-
-ofec_eleta : 
-             ofec E C W ->
-	     ({x}{ofx : ofv x A W'} of (N x) C W) ->
+ofec_eleta : ofec E C W ->
+             ({x}{ofx : ofv x A W'} of (N x) C W) ->
              ofec (eleta E N) (A at W') W.
 
 % a value is 'moval' if it has associated
 % with it a vval (so it can be "lifted")
 
-moval : val -> vval -> type.
+moval : world -> val -> vval -> type.
 
-moat : moval (hold V) (vv [_] hold V).
-
-mopair : moval V1 V1' -> moval V2 V2' -> 
-         moval (pair V1 V2) (vv [_] pair (valid V1') (valid V2')).
-moall : ({w:world} moval (V w) (V' w)) -> 
-	moval (wlam V) (vv [_] wlam [w] (valid (V' w))).
-moexists : moval V V' -> moval (pack W' V) (vv [_] pack W' (valid V')).
-moaddr : moval (const M) (vv [_] const M).
-movv : moval (valid V) V.
-
+moat : moval _ (held V) (vv [_] held V).
+mopair : moval W V1 V1' -> moval W V2 V2' -> 
+         moval W (pair V1 V2) (vv [_] pair (valid V1') (valid V2')).
+moall : ({w:world} moval W (V w) (V' w)) -> 
+        moval W (wlam V) (vv [_] wlam [w] (valid (V' w))).
+moexists : moval W V V' -> moval W (pack W' V) (vv [_] pack W' (valid V')).
+moaddr : moval W (const M) (vv [_] const M).
+mosh : moval W (sham VV) (vv [_] sham VV).
+movv : moval W (valid (vv VV)) VV' <- moval W (VV W) VV'.
 
 % in empty context
-wellformed : ec -> exp -> world -> typ -> type.
+wellformed : ec -> exp -> world -> ty -> type.
 
-wf_mach : 
-      ofec E A W ->
-      of M A W ->
-      wellformed E M W A.
-
+wf_mach : ofec E A W -> of M A W -> wellformed E M W A.
 
 % then operational semantics
 
@@ -370,34 +244,26 @@ step_app2 : step W (eapp2 E (lam F)) (value X)  W E (F X).
 step_wappp : step W E (wapp M W')  W (ewapp E W') M.
 step_wapp  : step W (ewapp E W') (value (wlam F))  W E (value (F W')).
 
+step_putp : step W E (put M N)  W (eput E N) M.
+step_putr : moval W V V' ->
+            step W (eput E N) (value V)   W E (N V').
+
 % in get, we switch worlds
 step_getp : step W E (get W' W'R M)  W (eget E M) W'R.
 step_getf : step W  (eget E M) (value (const W'))  
-                 W' (eget2 W E (const W')) M.
+                 W' (eget2 E W) M. % saving the return address
 
-step_getr : moval V V' ->
-            step W' (eget2 W E W'V) (value V)  W E (value (valid V')).
-
-step_mkpairp : step W E (mkpair M N)  W (emkpair1 E N) M.
-step_mkpair1 : step W (emkpair1 E N) (value V)  W (emkpair2 E V) N.
-step_mkpair2 : step W (emkpair2 E V1) (value V2)  W E (value (pair V1 V2)).
+step_getr : moval W' V V' ->
+            step W' (eget2 E W) (value V)  W E (value (valid V')).
 
 step_letp : step W E (let M N)  W (elet E N) M.
 step_letr : step W (elet E N) (value V)  W E (N V).
 
-step_letcp : step W E (letc M N)  W (eletc E N) M.
+step_letsp : step W E (lets M N)  W (elets E N) M.
+step_letsr : step W (elets E N) (value (sham VV))  W E (N VV).
 
-
-% to be a bit nicer, we'd have a separate stepping state for evaluating
-% cexps. But they are very simple, so we can just pattern match here.
-step_letcfv : step W (eletc E N) (value (cir (cvalue V)))  W E (N V).
-step_letcfm : step W (eletc E N) (value (cir (mobc M)))  W (eletc2 E N) M.
-% then reduce, once M is a (mo)value.
-step_letcrm : moval V V' ->
-              step W (eletc2 E N) (value V)  W E (N V').
-
-step_letfp : step W E (leta M N)  W (eleta E N) M.
-step_letfr : step W (eleta E N) (value (hold V))  W E (N V).
+step_letap : step W E (leta M N)  W (eleta E N) M.
+step_letar : step W (eleta E N) (value (held V))  W E (N V).
 
 % we maintain the invt that when returning a value, it is
 % not of the form (valid (vv _))
@@ -411,13 +277,14 @@ step_self : step W efinish (value V)  W efinish (value V).
 % lemmas.
 
 % closed values of mobile type are movals.
-mobmov : mobile A -> ofv V A W -> moval V V' -> type.
+mobmov : mobile A -> ofv V A W -> moval W V V' -> type.
 %mode mobmov +MOB +WV -MOV.
 
-mobmov_at : mobmov atM (atI _) moat.
-mobmov_& : mobmov MA WA MOA ->
-           mobmov MB WB MOB ->
-            mobmov (&M MA MB) (&Iv WA WB) (mopair MOA MOB).
+mobmov_addr : mobmov addrM addrI moaddr.
+mobmov_at : mobmov atM (atIv _) moat.
+mobmov_sh : mobmov shaM (shI _) mosh.
+mobmov_& : mobmov MA WA MOA -> mobmov MB WB MOB ->
+           mobmov (&M MA MB) (&Iv WA WB) (mopair MOA MOB).
 
 mobmov_all : ({w:world} mobmov (MF w) (WF w) (MOF w)) ->
              mobmov (allM MF) (allI WF) (moall MOF).
@@ -426,46 +293,37 @@ mobmov_exists : (mobmov (MF W') WF MOF) ->
                  mobmov (existsM MF) 
                         (existsI _ WF : ofv (pack W' _) _ _) (moexists MOF).
 
-mobmov_addr : mobmov addrM addrI moaddr.
-
-mobmov_vvalid : mobmov MOB (ofvvalid _) movv.
-
-% if we have a well-formed valid value, then we
-% have a value well-formed at the same type for
-% our choice of world.
-usevalid : {W:world} ofvv (vv V) A -> ofv (V W) A W -> type.
-%mode usevalid +W +VV -WV.
-
-- : usevalid W (vvI F) (F W).
-
+mobmov_vvalid : mobmov (MOB : mobile (Af W)) 
+                       (ofvvalid (vvI (D : {w} ofv (Vf w) (Af w) w)) : ofv _ (Af W) W)
+		       (movv MOV : moval W _ _)
+ <- mobmov MOB (D W) MOV.
 
 % well-typed mobile values are valid values
-% (might now be too specific: do we need to
-% know how they use their world params?)
-momo : moval V V' ->
+momo : moval W V V' ->
        ofv V A W ->
-       ofvv V' A ->
+       ofvv V' ([w] A) ->
        type.
 %mode momo +MV +OV -OV'.
 
-momovv : momo movv (ofvvalid OV) OV.
+momovv : momo (movv MOB) (ofvvalid (vvI UV)) WVV
+      <- momo MOB (UV W) WVV.
 
 momoaddr : momo moaddr addrI (vvI [_] addrI).
-
-momoat : momo moat (atI M) (vvI [_] atI M).
+momoat : momo moat (atIv M) (vvI [_] atIv M).
+momosh : momo mosh (shI WVV) (vvI [_] shI WVV).
 
 momopair : momo (mopair MV1 MV2) (&Iv OM1 OM2) 
-	       (vvI [w] &Iv (ofvvalid D1) (ofvvalid D2))
-         <- momo MV1 OM1 D1
-         <- momo MV2 OM2 D2.
+               (vvI [w] &Iv (ofvvalid D1) (ofvvalid D2))
+        <- momo MV1 OM1 D1
+        <- momo MV2 OM2 D2.
 
 momoall : momo (moall MV) (allI OM) (vvI [w'] allI ([w] ofvvalid (D w)))
-         <- ({w:world}
-             momo (MV w) (OM w) (D w)).
+       <- ({w:world}
+           momo (MV w) (OM w) (D w)).
 
 momoexists :
     momo (moexists MOV) (existsI Aw WF) (vvI [w'] (existsI _ (ofvvalid F)))
-     <- momo MOV WF F.
+ <- momo MOV WF F.
 
 % safety theorem
 prog : wellformed E M W A ->
@@ -486,95 +344,80 @@ presv : wellformed E M W A ->
 prog_finish : prog (wf_mach ofec_efinish OF) step_self.
 
 % simple, pushing
-prog_&Ip : prog (wf_mach WE (&I WA WB)) step_mkpairp.
 prog_getp : prog (wf_mach WE (ofget MOB WR WA)) step_getp.
 prog_allEp : prog (wf_mach WE (allE WA)) step_wappp.
 prog_=>Ep : prog (wf_mach WE (=>E WF WA)) step_appp.
 prog_&E1p : prog (wf_mach WE (&E1 WA)) step_fstp.
 prog_&E2p : prog (wf_mach WE (&E2 WA)) step_sndp.
 prog_exEp : prog (wf_mach WE (existsE _ _)) step_existsp.
+prog_putp : prog (wf_mach WE (ofput MOB WM WN)) step_putp.
 
 % if rhs is validval, instantiate it
 prog_vv : prog (wf_mach WE (ofvalue (ofvvalid OV))) step_vvinst.
 
 % if rhs is value, then...
-
 prog_&E1 : prog (wf_mach (ofec_efst WE) (ofvalue (&Iv WA WB))) step_fstr.
 prog_&E2 : prog (wf_mach (ofec_esnd WE) (ofvalue (&Iv WA WB))) step_sndr.
 prog_=>Ef : prog (wf_mach (ofec_eapp1 WA WE) (ofvalue _)) step_app1.
 prog_=>Er : prog (wf_mach (ofec_eapp2 WF WE) (ofvalue _)) step_app2.
 prog_allEr : prog (wf_mach (ofec_ewapp WE) (ofvalue _)) step_wapp.
-prog_&If : prog (wf_mach (ofec_emkpair1 _ _) (ofvalue _)) step_mkpair1.
-prog_&Ir : prog (wf_mach (ofec_emkpair2 _ _) (ofvalue _)) step_mkpair2.
 prog_exEr : prog (wf_mach (ofec_eunpack _ _) (ofvalue _)) step_existsr.
+
+prog_putr : prog (wf_mach (ofec_eput WE WN MOB) (ofvalue WV)) (step_putr MOV)
+         <- mobmov MOB WV MOV.
 
 prog_getf : prog (wf_mach (ofec_eget MOB WE WF) (ofvalue _)) step_getf.
 prog_getr : mobmov MOB WV MOV ->
-            prog (wf_mach (ofec_eget2 MOB WE WW') (ofvalue WV)) (step_getr MOV).
+            prog (wf_mach (ofec_eget2 (MOB : mobile A)
+                           (WE : ofec E A W)) 
+		           (ofvalue (WV : ofv V A W'))) (step_getr MOV).
 
 prog_localhostr : prog (wf_mach WE oflocalhost) step_localhostr.
 
 prog_letp : prog (wf_mach WE (oflet _ _)) step_letp.
-prog_letf : prog (wf_mach (ofec_elet _ _) (ofvalue WV)) step_letr.
+prog_leta : prog (wf_mach (ofec_elet _ _) (ofvalue WV)) step_letr.
 
-prog_letcp : prog (wf_mach WE (cirE _ _)) step_letcp.
-prog_letcfv : prog (wf_mach (ofec_eletc _ _) (ofvalue (cirI (ofscval VALID))))
-		      step_letcfv.
+prog_letsp : prog (wf_mach WE (shE _ _)) step_letsp.
+prog_letsfv : prog (wf_mach (ofec_elets _ _) (ofvalue (shI VALID))) step_letsr.
 
-prog_letcfm : prog (wf_mach (ofec_eletc _ _) (ofvalue (cirI (ofsmobc MOB WV))))
-		      step_letcfm.
-
-prog_letcrm :  mobmov MOB WV MOV ->
-	       prog (wf_mach (ofec_eletc2 _ _ MOB) (ofvalue WV))
-	              (step_letcrm MOV).
-
-prog_letfr : prog (wf_mach (ofec_eleta WE WN) (ofvalue (atI WV)))
-	          step_letfr.
-
-prog_letfp : prog (wf_mach WE (atE _ _)) step_letfp.
-
-
+prog_letar : prog (wf_mach (ofec_eleta WE WN) (ofvalue (atIv WV))) step_letar.
+prog_letap : prog (wf_mach WE (atE _ _)) step_letap.
 
 %%%%%%%%%%%%%%%%%%%%%%%% 
 % cases for preservation
 %%%%%%%%%%%%%%%%%%%%%%%% 
 
-
 presv_self : presv (wf_mach ofec_efinish OF) step_self (wf_mach ofec_efinish OF).
-
 presv_fstr : presv (wf_mach (ofec_efst WE) (ofvalue (&Iv WA WB))) step_fstr 
                    (wf_mach WE (ofvalue WA)).
 presv_sndr : presv (wf_mach (ofec_esnd WE) (ofvalue (&Iv WA WB))) step_sndr 
                    (wf_mach WE (ofvalue WB)).
-
 presv_getp : presv (wf_mach WE (ofget MOB WFR WT)) step_getp 
                    (wf_mach (ofec_eget MOB WE WT) WFR).
-
 presv_getf : presv (wf_mach (ofec_eget MOB WE WT) (ofvalue addrI)) step_getf
-                   (wf_mach (ofec_eget2 MOB WE addrI) WT).
+                   (wf_mach (ofec_eget2 MOB WE) WT).
 
-
-presv_getr :
-%             usevalid _ VALID WV' ->
-             momo MOV WV VALID ->
-             presv (wf_mach (ofec_eget2 MOB WE W'R) (ofvalue WV)) (step_getr MOV)
+presv_getr : momo MOV WV VALID ->
+             presv (wf_mach (ofec_eget2 (MOB : mobile A) 
+                            (WE : ofec E A W)) (ofvalue (WV : ofv _ A W')))
+                   (step_getr (MOV : moval _ _ _))
                    (wf_mach WE (ofvalue (ofvvalid VALID))).
 
+presv_putp : presv (wf_mach (WE : ofec E C W) (ofput MOB (WM : of M A W) WN)) step_putp
+                   (wf_mach (ofec_eput WE WN MOB) WM).
+presv_putr : momo MOV WV VALID ->
+             presv (wf_mach (ofec_eput WE WN MOB) (ofvalue WV)) (step_putr MOV)
+                   (wf_mach WE (WN _ VALID)).
 presv_fstp : presv (wf_mach WE (&E1 WP)) step_fstp
                    (wf_mach (ofec_efst WE) WP).
-
 presv_sndp : presv (wf_mach WE (&E2 WP)) step_sndp
                    (wf_mach (ofec_esnd WE) WP).
-
 presv_appp : presv (wf_mach WE (=>E WF WA)) step_appp
                    (wf_mach (ofec_eapp1 WA WE) WF).
-
 presv_app1 : presv (wf_mach (ofec_eapp1 WA WE) (ofvalue WF)) step_app1
                    (wf_mach (ofec_eapp2 WF WE) WA).
-
 presv_app2 : presv (wf_mach (ofec_eapp2 (=>I WF) WE) (ofvalue WA)) step_app2
                    (wf_mach WE (WF X WA)).
-
 presv_existsp : presv (wf_mach WE (existsE WM WN)) step_existsp
                       (wf_mach (ofec_eunpack WN WE) WM).
 
@@ -590,66 +433,25 @@ presv_wapp : presv (wf_mach (ofec_ewapp WE) (ofvalue (allI WF)))
 presv_wappp : presv (wf_mach WE (allE WF)) step_wappp
                     (wf_mach (ofec_ewapp WE) WF).
 
-presv_mkpairp : 
-             presv (wf_mach WE (&I WA WB)) step_mkpairp
-                   (wf_mach (ofec_emkpair1 WE WB) WA).
-
-presv_mkpair1 :
-             presv (wf_mach (ofec_emkpair1 WE WB) (ofvalue WA)) step_mkpair1
-                   (wf_mach (ofec_emkpair2 WE WA) WB).
-
-presv_mkpair2 : 
-             presv (wf_mach (ofec_emkpair2 WE WA) (ofvalue WB)) step_mkpair2
-                   (wf_mach WE (ofvalue (&Iv WA WB))).
-
-presv_localhost : 
-             presv (wf_mach WE oflocalhost) step_localhostr
-                   (wf_mach WE (ofvalue addrI)).
-
-presv_letp :
-             presv (wf_mach WE (oflet WM WN)) step_letp
+presv_localhost : presv (wf_mach WE oflocalhost) step_localhostr
+                        (wf_mach WE (ofvalue addrI)).
+presv_letp : presv (wf_mach WE (oflet WM WN)) step_letp
                    (wf_mach (ofec_elet WE WN) WM).
+presv_letr : presv (wf_mach (ofec_elet WE WN) (ofvalue WV))
+                   step_letr (wf_mach WE (WN _ WV)).
+presv_letsp : presv (wf_mach WE (shE WM WN)) step_letsp
+                    (wf_mach (ofec_elets WE WN) WM).
+presv_letsr : presv (wf_mach (ofec_elets WE WN) (ofvalue (shI WV)))
+                    step_letsr (wf_mach WE (WN _ WV)).
+presv_letap : presv (wf_mach WE (atE WM WN)) 
+                    step_letap (wf_mach (ofec_eleta WE WN) WM).
+presv_letar : presv (wf_mach (ofec_eleta WE WN) (ofvalue (atIv WV)))
+                    step_letar (wf_mach WE (WN _ WV)).
+presv_vvinst : presv (wf_mach WE (ofvalue (ofvvalid (vvI WVV)))) step_vvinst
+               (wf_mach WE (ofvalue (WVV _))).
 
-presv_letr :
-             presv (wf_mach (ofec_elet WE WN) (ofvalue WV))
-                   step_letr
-                   (wf_mach WE (WN _ WV)).
-
-presv_letcp : presv (wf_mach WE (cirE WM WN)) step_letcp
-	            (wf_mach (ofec_eletc WE WN) WM).
-
-presv_letcfv : presv (wf_mach (ofec_eletc WE WN) (ofvalue (cirI (ofscval WV))))
-		     step_letcfv
-		     (wf_mach WE (WN _ WV)).
-
-presv_letcfm : presv (wf_mach (ofec_eletc WE WN) (ofvalue (cirI (ofsmobc MOB WM))))
-		     step_letcfm
-		     (wf_mach (ofec_eletc2 WE WN MOB) WM).
-
-presv_letcrm : momo MOV WV VALID ->
-	       presv (wf_mach (ofec_eletc2 WE WN MOB) (ofvalue WV))
-		     (step_letcrm MOV)
-		     (wf_mach WE (WN _ VALID)).
-
-presv_letfp : presv (wf_mach WE (atE WM WN)) 
-	            step_letfp
-	            (wf_mach (ofec_eleta WE WN) WM).
-
-presv_letfr : presv (wf_mach (ofec_eleta WE WN) (ofvalue (atI WV)))
-	            step_letfr
-	            (wf_mach WE (WN _ WV)).
-
-presv_vvinst : usevalid _ WV WV' ->
-               presv (wf_mach WE (ofvalue (ofvvalid WV))) step_vvinst
-               (wf_mach WE (ofvalue WV')).
-
-%block blockwewe : 
-             some {A : typ} {W : world} {W' : world}
-             block {x:exp}{OX : of x A W}{OX' : of x A W'}.
-
-%worlds (blockw | blockwewe) (usevalid _ _ _).
-%total A (usevalid _ A _).
-
+%block blockwewe : some {A : ty}{W : world}{W' : world}
+                   block {x:exp}{OX : of x A W}{OX' : of x A W'}.
 
 %worlds (blockw | blockwewe) (momo _ _ _).
 %total [A B] (momo A B _).

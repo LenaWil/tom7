@@ -315,7 +315,6 @@ struct
                wi (fn p => Bind (p, Call { func = Sele (Id codeglobal) f,
                                            args = %vals }) :: k ` Id p)))
 
-             (* weird? *)
          | C.VLetsham (v, va, c) =>
              cvtv va
              (fn va =>

@@ -11,7 +11,11 @@ val provide-lock = ()
    the top one on unlock?)
 
    XXX would be nice to make this an abstract type using
-   compilation units.. *)
+   compilation units.. 
+
+   (one modularity hack would use a hidden extensible type tag to
+   prevent anyone else from getting access to the bool ref.) *)
+
 
 (* if true, then currently locked *)
 type lock = bool ref

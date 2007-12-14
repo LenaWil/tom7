@@ -179,6 +179,3 @@ fun eval_me(row,col,str) : string =
       insert2d(row,col,evaluated);
       vtos evaluated
     end
-      
-
-    

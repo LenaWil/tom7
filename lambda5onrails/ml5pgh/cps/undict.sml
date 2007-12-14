@@ -85,8 +85,9 @@
    to dictionaries so that we can generate the dictionary for the new
    'pack' we create above.
 
-   We'll also translate any 'dictfor' so that it only operates on closed
-   types. The translation doesn't affect the type of anything.
+   We'll also translate any 'dictfor' so that it only operates on
+   closed types. (And the same for world dictionaries.) The
+   translation doesn't affect the type of anything.
 
    At this point we will have created all of the downstream uses of
    the dictionary passing invariant, so we no longer need to maintain
