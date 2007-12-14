@@ -48,6 +48,7 @@ struct
         (case SM.find (G, s) of
            NONE => raise Marshal "um dlookup not found"
          | SOME d => um G loc d)
+           (* XXX a might be 'lookup?' *)
         | um G _   (Dat { d, a = String w }) = um G w d
         | um _ _   (Dat _) = raise Marshal "malformed Dat dictionary"
         | um G loc (Dp Dint) = Int ` int ()

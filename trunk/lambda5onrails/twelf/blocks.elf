@@ -1,80 +1,61 @@
-% Unfortunately, perhaps due to an overconservative world subsumption implementation,
-% some block and world declarations need to be made very early.
+% Forward declarations of type families and blocks.
 
+world : type.                                       %name world W w.
 
-world : type.                           %name world W w.
+% It also becomes necessary to declare modes for some things, even though
+% they are not used as logic programs. World is a zero-place relation!
+
 %mode world.
 
 % internal language
-
-typ : type.                             %name typ A a.
-exp : type.
-val : type.
+ty  : type.                                        %name ty A a.
+exp  : type.
+val  : type.
 vval : type.
+ofv  : val -> ty -> world -> type.
+ofvv : vval -> (world -> ty) -> type.
 
-ofv : val -> typ -> world -> type.
-ofvv : vval -> typ -> type.
-
-
-% %block blockv : some {W:world}{A:typ} block {v:val}{ov:ofv v A W}.
-
-
-% cps language
-ctyp : type.    %name ctyp A a.
-cval : type.    %name cval V v.
-cvval : type.   %name cvval VV vv.
-ttoct : typ -> ctyp -> type.                      %name ttoct TTOCT ttoct.
-cofv : cval -> ctyp -> world -> type.             %name cofv WV wv.
-cofvv : cvval -> ctyp -> type.                    %name cofvv WVV wvv.
-
+% CPS language
+ctyp : type.                                        %name ctyp A a.
+cval : type.                                        %name cval V v.
+cvval : type.                                       %name cvval VV vv.
+ttoct : ty -> ctyp -> type.                         %name ttoct TTOCT ttoct.
+ttoctf : (world -> ty) -> (world -> ctyp) -> type.  %name ttoctf TTOCTF ttoctf.
+cofv  : cval -> ctyp -> world -> type.              %name cofv WV wv.
+cofvv : cvval -> (world -> ctyp) -> type.           %name cofvv WVV wvv.
 
 % CPS conversion
-tocpsv- : {WV  : ofv V A W}
-	  {CT  : ttoct A CA}
-	  {WCV : cofv CV CA W}
-	  type.
+tocpsv-  : {WV  : ofv V A W} {CT  : ttoct A CA} {WCV : cofv CV CA W} type.
 
-tocpsvv- : {WV : ofvv V A}
-           {CT : ttoct A CA}
-           {WCV : cofvv CV CA}
-           type.
-
-
+tocpsvv- : {WV : ofvv V Af} {CT : ttoctf Af CAf} {WCV : cofvv CV CAf} type.
 
 % almost everything is done with respect to hypothetical worlds
 %block blockw : block {w : world}.
 
-
 % when descending under a binding in the source language,
-% we'll assume that the variable can be translated to a cps
-% variable
+% we'll assume that the variable can be translated to a cps variable
 %block blockcvar : 
-	      some {A : typ} {A' : ctyp} {W : world} {CTA : ttoct A A'}
-	      block
-	       {x}{xof : ofv x A W}
-	       {x'}{x'of : cofv x' A' W}
+              some {A : ty} {A' : ctyp} {W : world} {CTA : ttoct A A'}
+              block
+               {x}{xof : ofv x A W}
+               {x'}{x'of : cofv x' A' W}
                % how to convert it
-	       {thm:tocpsv- xof CTA x'of}.
+               {thm:tocpsv- xof CTA x'of}.
+
 %block blockcvvar :
-	      some {A : typ} {A' : ctyp} {CTA : ttoct A A'}
-	      block {x}{xof : ofvv x A}
-		    {x'}{x'of : cofvv x' A'}
-		    {thm:tocpsvv- xof CTA x'of}.
+              some {Af : world -> ty} {Af' : world -> ctyp} {CTA : ttoctf Af Af'}
+              block {x}{xof : ofvv x Af}
+                    {x'}{x'of : cofvv x' Af'}
+                    {thm:tocpsvv- xof CTA x'of}.
 
-% Since we end up having to make worlds declarations for like cexp, we
-% need these.
-%block blockcv : block {v : cval}.
+% Since we end up having to make worlds declarations for relations
+% like cexp, we need these.
+%block blockcv  : block {v : cval}.
 %block blockcvv : block {v : cvval}.
+%block blockwcv  : some {W : world} {CA : ctyp}
+                   block {r}{rof : cofv r CA W}.
+%block blockwcvv : some {CAf : world -> ctyp}
+                   block {v}{vof : cofvv v CAf}.
 
-
-%block blockwcv :
-             some {W : world} {CA : ctyp}
-             block {r}{rof : cofv r CA W}.
-
-%block blockwcvv :
-	     some {CA : ctyp}
-             block {v}{vof : cofvv v CA}.
-
-% some world declarations have to be done way early.
-
+% some world declarations have to be done very early.
 %worlds (blockw | blockcvar | blockwcv | blockwcvv)  (world).

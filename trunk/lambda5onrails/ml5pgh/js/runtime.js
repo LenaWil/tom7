@@ -504,7 +504,7 @@ function lc_go(bytes) {
 	req.setRequestHeader ('Connection', 'close');
         req.send(bytes);
     } else if (window.ActiveXObject) {
-	alert('IE not supported (yet?)');
+	alert('Sorry, Internet Explorer is not supported (yet?)');
 	/* 
         req = new ActiveXObject("Microsoft.XMLHTTP");
         if (req) {
