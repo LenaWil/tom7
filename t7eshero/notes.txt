@@ -15,16 +15,19 @@ the main source of difficulty in matching.) The user's input is a
 time-indexed sequence of events. An event is either a note-on, a
 note-off, or a commit.
 
-* Subsequence matching
+* Ambiguity in subsequence matching
 
-Let us begin by ignoring hammered sonemes. Our job is to take the
-score and input and decide which sonemes have been successfully
-matched. We wish to allow the player some timing error, so we allow
-commitments to occur slightly before or after a target soneme.
-However, sonemes must be played in the proper order--even if their
-rearrangement would make them individually legal within the time error
-window. For example, suppose we allow 10 frames of error in either
-direction, and take the following score:
+Let us begin by ignoring durations and hammered sonemes. Our job is to
+take the score and input and decide which sonemes have been
+successfully matched. For this simplified problem, we track the on/off
+status of each note in the input and treat the 'commit' event as an
+impulse playing those notes that are currently on. We wish to allow
+the player some timing error, so we allow commitments to occur
+slightly before or after a target soneme. However, sonemes must be
+played in the proper order--even if their rearrangement would make
+them individually legal within the time error window. For example,
+suppose we allow 10 frames of error in either direction, and take the
+following score:
 
   A  @  100
   B  @  110
@@ -65,7 +68,7 @@ input:
 .. but then we'd have to rename the first B in the input (which could
 match it), which would make it unable to match the ones that follow.
 So this plan does not work--we need to think about the error window.
-But we can do it like this: treat the alphabet as consiting of tuples
+But we can do it like this: treat the alphabet as consisting of tuples
 of note and time, and then take "equality" to be "equality within
 epsilon" (this is not transitive, but that is not really important for
 these algorithms). In the dynamic programming algorithm for solving
@@ -74,11 +77,31 @@ equality between specific positions in the input strings.
 
 * Matching a soneme
 
+So, our first step is to define the same-soneme predicate. The rules
+of soneme matching are meant to simulate the way a guitar is played.
+Therefore, when playing an individual note, we allow any notes (frets)
+below it to be held, since those do not affect the pitch on a guitar.
+
+        score       input
+ same(Note N @ t, Commit (N1, ..., Nn N) @ t')
+   if N1 < N, ... Nn < N and |t-t'| <= epsilon
+
+Because chords are meant to simulate the specific hand shape used to
+play them, they must be played exactly.
+
+  same(Chord (N1, ... Nn) @ t, Commit (N1, ..., Nn) @ t')
+   if |t-t'| <= epsilon
+
 * Hammered sonemes
 
-Matching the player's imperfect input to the score (as in the score of
-music) is
 
+
+* Note durations
+
+* On-line matching
+
+Solve the problem exactly by optimizing the matching problem to
+take into account epsilon?
 
 --------------------------------------------------
 

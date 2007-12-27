@@ -4,8 +4,8 @@ default : midtest.exe
 sound.o : sound.c
 	gcc -O `sdl-config --cflags` -c sound.c -o sound.o
 
-sdlml.o : sdlml.c
-	gcc -O `sdl-config --cflags` -c sdlml.c -o sdlml.o
+sdlml.o : ../sdlml/sdlml.c
+	gcc -O `sdl-config --cflags` -c ../sdlml/sdlml.c -o sdlml.o
 
 midtest.exe : sound.o sdlml.o *.sml
 	mlton -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowFFI true' -output midtest.exe midtest.cm sound.o sdlml.o
