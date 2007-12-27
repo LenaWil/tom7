@@ -1,3 +1,86 @@
 
+Responding to Input                                        27 Dec 2007
+or, Generalized Tom 7 Entertainment System Hero is complexity-class-complete
+
+
+In this game there is a score of music and user input that attempts to
+match the score in real time. The score and input take place on a
+5-tone scale, though the number of tones is not really important for
+this discussion. The musical score is a time-indexed sequence of
+sonemes, which are individual notes or chords. (The way we match a
+soneme is different based on whether it is a note or a chord.) Sonemes
+have (possibly zero) duration and can optionally be "hammered." (A
+hammered soneme can be matched by edge effects in user input, and is
+the main source of difficulty in matching.) The user's input is a
+time-indexed sequence of events. An event is either a note-on, a
+note-off, or a commit.
+
+* Subsequence matching
+
+Let us begin by ignoring hammered sonemes. Our job is to take the
+score and input and decide which sonemes have been successfully
+matched. We wish to allow the player some timing error, so we allow
+commitments to occur slightly before or after a target soneme.
+However, sonemes must be played in the proper order--even if their
+rearrangement would make them individually legal within the time error
+window. For example, suppose we allow 10 frames of error in either
+direction, and take the following score:
+
+  A  @  100
+  B  @  110
+
+With these commitments from the user:
+
+  B @ 104
+  A @ 106
+
+Both events take place within 10 frames of their corresponding sonemes
+in the score, but because they occur out of order, we can only pick
+one of the two to match. Supposing that the error window is arbitrarily
+large, then the problem becomes longest common subsequence matching,
+which is O(|score| * |input|) using they dynamic programming algorithm
+(but apparently there is a faster algorith for that). In fact, we can
+take the error window out of the picture by preprocessing. What we do
+is imagine that we live in an extended alphabet that is constantly
+changing as we pass through the string. For instance, suppose that
+the input score is originally
+
+  |     |     |     |     |     |
+  A  B  B  B  A  A  A  A  B  A  B ...
+
+where the bars represent the width of the error window. Then if the
+input is
+
+  A A B B   B AB  B A  A   B  AAA ...
+
+we rename characters so that no character matches one outside its
+error window. But is that even possible? We'd like to rename the first
+B in the score so that it can't apparently match the second B in the
+input:
+
+  |     |     |     |     |     |
+  A  C  B  B  A  -  -  -  -  -  - ...
+  - - - ?   B --  - -  -   -  --- ...
+
+.. but then we'd have to rename the first B in the input (which could
+match it), which would make it unable to match the ones that follow.
+So this plan does not work--we need to think about the error window.
+But we can do it like this: treat the alphabet as consiting of tuples
+of note and time, and then take "equality" to be "equality within
+epsilon" (this is not transitive, but that is not really important for
+these algorithms). In the dynamic programming algorithm for solving
+maximum common subsequence, for example, we are always comparing
+equality between specific positions in the input strings.
+
+* Matching a soneme
+
+* Hammered sonemes
+
+Matching the player's imperfect input to the score (as in the score of
+music) is
+
+
+--------------------------------------------------
+
 Interesting: SDL patch that allows arbitrary scaling of video:
 http://garni.ch/dosbox/
