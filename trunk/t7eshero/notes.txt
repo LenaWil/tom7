@@ -73,7 +73,9 @@ of note and time, and then take "equality" to be "equality within
 epsilon" (this is not transitive, but that is not really important for
 these algorithms). In the dynamic programming algorithm for solving
 maximum common subsequence, for example, we are always comparing
-equality between specific positions in the input strings.
+equality between specific positions in the input strings. (We don't
+even require symmetry or reflexivity in this sense; the left and right
+side of the equality operator don't even need to be the same type!)
 
 * Matching a soneme
 
@@ -122,14 +124,42 @@ be used for hammered notes.
 
 * Hammered sonemes
 
+Sonemes can also be triggered by note-on and note-off events, if they
+are specially marked as "hammered." (Hammering refers to the act of
+hitting the guitar string with the fretting finger, causing it to
+vibrate or continue to vibrate. It also includes a pull-off, where
+the finger being pulled off a fret plucks the string and thereby
+plays the note fretted by the finger below it.) Let's first discuss
+hammer-on notes. The rules are as follows.
 
+ - only sonemes that are marked as "hammered" in the score 
+   can be played this way.
+ - only individual notes can be marked as "hammered", because
+   otherwise we need to coordinate multiple note-on events at
+   different times in order to trigger a hammered chord.
+     (this would be possible, but is not that common in real
+      guitar playing, anyway)
+ - A hammered note is triggered by a note-on event.
+ - A hammered soneme must follow a correctly played soneme 
+     (it must be part of a "streak", where every streak starts
+      with a commit event)
+ - A note-on event that does not correctly play a note is not
+   penalized, but it stops the streak.
+ - Note-off events are never penalized and never stop the streak.
+     (they can also play hammered notes as pull-offs, which is
+      discussed below.)
+
+To use the dynamic programming technique to allow for hammered notes,
+we must extend the matching predicate and expand the information
+included in the 
 
 * Note durations
 
 * On-line matching
 
 Solve the problem exactly by optimizing the matching problem to
-take into account epsilon?
+take into account epsilon? (Does latency always follow as a
+function of epsilon?)
 
 --------------------------------------------------
 
