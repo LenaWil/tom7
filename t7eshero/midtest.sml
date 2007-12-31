@@ -67,9 +67,15 @@ struct
 
   val background = requireimage "testgraphics/background.png"
 
-  val redstar = requireimage "testgraphics/redstar.png"
-  val STARWIDTH = surface_width redstar
-  val STARHEIGHT = surface_height redstar
+  val stars = Vector.fromList
+      [requireimage "testgraphics/greenstar.png",
+       requireimage "testgraphics/redstar.png",
+       requireimage "testgraphics/yellowstar.png",
+       requireimage "testgraphics/bluestar.png",
+       requireimage "testgraphics/orangestar.png"]
+       
+  val STARWIDTH = surface_width (Vector.sub(stars, 0))
+  val STARHEIGHT = surface_height (Vector.sub(stars, 0))
   val greenhi = requireimage "testgraphics/greenhighlight.png"
   val blackfade = requireimage "testgraphics/blackfade.png"
   val robobox = requireimage "testgraphics/robobox.png"
@@ -238,7 +244,9 @@ struct
                               | MIDI.NOTEON (_, note, vel) => 
                                     let val finger = note mod 5
                                     in
-                                    (finger * (STARWIDTH + 2),
+                                    (finger,
+                                     (* XXX fudge city *)
+                                     6 + finger * (STARWIDTH + 18),
                                      (height - 48) - ((when + dt) div 2)) :: 
                                     draw (when + dt) rest
                                     end
@@ -249,10 +257,11 @@ struct
                   val todraw = draw 0 (#2 (hd tracks)) (* XXX *)
               in
                   (* erase old events *)
-                  app (fn (x, y) => blit(background, x + 8, y, STARWIDTH, STARHEIGHT,
-                                         screen, x + 8, y)) clearme;
+                  app (fn (_, x, y) => blit(background, x + 8, y, STARWIDTH, STARHEIGHT,
+                                            screen, x + 8, y)) clearme;
                   (* draw some upcoming events... *)
-                  app (fn (x, y) => blitall(redstar, screen, x + 8, y)) todraw;
+                  app (fn (f, x, y) => blitall(Vector.sub(stars, f), 
+                                               screen, x + 8, y)) todraw;
                   flip screen;
                   todraw
               end
