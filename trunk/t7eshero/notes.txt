@@ -1,4 +1,21 @@
 
+MIDI File Encoding                                         31 Dec 2007
+
+The track name encodes what kind of track it is, and other information
+that is global to that track.
+
+The first character determines the track type.
+
+ + means a music track.
+    The next character determines the instrument used:
+       W: sawtooth
+       Q: square
+       N: noise
+
+... more track types here (e.g. score)
+
+----------------------------------------------------------------------
+
 Responding to Input                                        27 Dec 2007
 or, Generalized Tom 7 Entertainment System Hero is complexity-class-complete
 
