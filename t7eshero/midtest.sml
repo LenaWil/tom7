@@ -39,6 +39,10 @@ struct
 
   val screen = makescreen (width, height)
 
+  (* XXX these should describe what kind of track it is *)
+  datatype label =
+      Music of int
+
 (*
   val _ = Util.for 0 (Joystick.number () - 1)
       (fn x => print ("JOY " ^ Int.toString x ^ ": " ^ Joystick.name x ^ "\n"))
@@ -49,9 +53,8 @@ struct
 *)
 
   val initaudio_ = _import "ml_initsound" : unit -> unit ;
+  val setfreq_ = _import "ml_setfreq" : int * int * int * int -> unit ;
   val () = initaudio_ ()
-
-  val setfreq_ = _import "ml_setfreq" : int * int * int -> unit ;
 
   fun requireimage s =
     case Image.load s of
@@ -104,32 +107,25 @@ struct
      so 0th note is 8hz.
      *)
 (* XXX no floats on mingw, urgh
-  fun pitchof n = Real.trunc ( 80.0 * Math.pow (2.0, real n / 12.0) )
+  fun pitchof n = Real.trunc ( 800.0 * Math.pow (2.0, real n / 12.0) )
   val pitches = Vector.fromList (List.tabulate(128, pitchof))
 *)
-(*
-  val pitches = Vector.fromList 
-  [8,8,8,9,10,10,11,11,12,13,14,15,16,16,17,19,20,21,22,23,25,26,28,30,32,33,
-   35,38,40,42,45,47,50,53,57,60,63,67,71,76,80,85,90,95,101,107,114,120,127,
-   135,143,152,161,170,181,191,203,215,228,241,256,271,287,304,322,341,362,
-   383,406,430,456,483,511,542,574,608,645,683,724,767,812,861,912,966,1023,
-   1084,1149,1217,1290,1366,1448,1534,1625,1722,1824,1933,2047,2169,2298,2435,
-   2580,2733,2896,3068,3250,3444,3649,3866,4095,4339,4597,4870,5160,5467,5792,
-   6137,6501,6888,7298,7732,8192,8679,9195,9741,10321,10935,11585,12274]
-*)
-  (* in tenths of a hertz *)
-  val pitches = Vector.fromList
-  [80,84,89,95,100,106,113,119,126,134,142,151,160,169,179,190,201,213,226,
-   239,253,269,285,302,320,339,359,380,403,427,452,479,507,538,570,604,639,
-   678,718,761,806,854,905,958,1015,1076,1140,1208,1279,1356,1436,1522,1612,
-   1708,1810,1917,2031,2152,2280,2416,2560,2712,2873,3044,3225,3417,3620,3835,
-   4063,4305,4561,4832,5119,5424,5747,6088,6450,6834,7240,7671,8127,8610,9122,
-   9665,10239,10848,11494,12177,12901,13668,14481,15342,16254,17221,18245,
-   19330,20479,21697,22988,24354,25803,27337,28963,30685,32509,34443,36491,
-   38661,40959,43395,45976,48709,51606,54675,57926,61370,65019,68886,72982,
-   77322,81920,86791,91952,97419,103212,109350,115852,122741]
 
-  val transpose = ref 0
+  (* in hundredths of a hertz *)
+  val pitches = Vector.fromList
+  [800,847,897,951,1007,1067,1131,1198,1269,1345,1425,1510,1600,1695,1795,
+   1902,2015,2135,2262,2397,2539,2690,2850,3020,3200,3390,3591,3805,4031,4271,
+   4525,4794,5079,5381,5701,6040,6399,6780,7183,7610,8063,8542,9050,9589,
+   10159,10763,11403,12081,12799,13561,14367,15221,16126,17085,18101,19178,
+   20318,21526,22807,24163,25600,27122,28735,30443,32253,34171,36203,38356,
+   40637,43053,45614,48326,51199,54244,57470,60887,64507,68343,72407,76713,
+   81274,86107,91228,96652,102399,108489,114940,121774,129015,136687,144815,
+   153426,162549,172215,182456,193305,204799,216978,229880,243549,258031,
+   273375,289630,306853,325099,344431,364912,386610,409599,433956,459760,
+   487099,516063,546750,579261,613706,650199,688862,729824,773221,819200,
+   867912,919520,974198,1032127,1093500,1158523,1227413]
+
+  val transpose = ref 5 (* XXX? *)
   fun pitchof n =
       let
           val n = n + ! transpose
@@ -138,8 +134,14 @@ struct
           Vector.sub(pitches, n)
       end
 
+  (* must agree with sound.c *)
+  val INST_NONE   = 0
+  val INST_SQUARE = 1
+  val INST_SAW    = 2
+  val INST_NOISE  = 3
+
   val freqs = Array.array(16, 0)
-  fun setfreq (ch, f, vol) =
+  fun setfreq (ch, f, vol, inst) =
       let in
 (*
           print ("setfreq " ^ Int.toString ch ^ " = " ^
@@ -147,7 +149,7 @@ struct
 *)
           print("setfreq " ^ Int.toString ch ^ " = " ^
                         Int.toString f ^ " @ " ^ Int.toString vol ^ "\n");
-          setfreq_ (ch, f, vol);
+          setfreq_ (ch, f, vol, inst);
           (* "erase" old *)
           blitall (blackfade, screen, Array.sub(freqs, ch), 16 * (ch + 1));
           (* draw new *)
@@ -167,21 +169,21 @@ struct
   val NMIX = 12 (* XXX get from C code *)
   val mixes = Array.array(NMIX, false)
 
-  fun noteon (ch, n, v) =
+  fun noteon (ch, n, v, inst) =
       (case Array.sub(Array.sub(miditable, ch), n) of
            OFF => (* find channel... *)
                (case Array.findi (fn (_, b) => not b) mixes of
                     SOME (i, _) => 
                         let in
                             Array.update(mixes, i, true);
-                            setfreq(i, pitchof n, v);
+                            setfreq(i, pitchof n, v, inst);
                             Array.update(Array.sub(miditable, ch),
                                          n,
                                          PLAYING i)
                         end
                   | NONE => print "No more mix channels.\n")
          (* re-use mix channel... *)
-         | PLAYING i => setfreq(i, pitchof n, v)
+         | PLAYING i => setfreq(i, pitchof n, v, inst)
                     )
 
   fun noteoff (ch, n) =
@@ -190,7 +192,7 @@ struct
          | PLAYING i => 
                let in
                    Array.update(mixes, i, false);
-                   setfreq(i, pitchof 60, 0);
+                   setfreq(i, pitchof 60, 0, INST_NONE);
                    Array.update(Array.sub(miditable, ch),
                                 n,
                                 OFF)
@@ -208,12 +210,7 @@ struct
   val _ = ty = 1
       orelse raise Test ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
 
-  val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks
-(*
-  val track1 = (* channelify 1 *) (List.nth (events, 1))
-  val track2 = (* channelify 2 *) (List.nth (events, 2))
-  val track3 = (* channelify 3 *) (List.nth (events, 3))
-*)
+  (* val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks *)
 
   fun getticksi () = Word32.toInt (getticks ())
 
@@ -225,36 +222,44 @@ struct
   val skip = ref 0
   val often = ref 0
   fun loop' (lt, nil, _) = print "SONG END.\n"
-    | loop' (lt, tracks, clearme) =
+    | loop' (lt, track as ( (n, (label, evt)) :: trackrest ), clearme) =
       let
         val () = often := !often + 1
 
-          (* maybe not so fast?? *)
-          val clearme =
-            if !often = 3
-            then 
-              let 
-                val () = often := 0
-                  fun draw _ nil = nil
-                    | draw when ((dt, e) :: rest) = 
-                      if when > MAXAHEAD
-                      then nil
-                      else (case e of
-                                MIDI.NOTEON (_, note, 0) => draw (when + dt) rest
-                              | MIDI.NOTEON (_, note, vel) => 
-                                    let val finger = note mod 5
-                                    in
-                                    (finger,
-                                     (* XXX fudge city *)
-                                     6 + finger * (STARWIDTH + 18),
-                                     (height - 48) - ((when + dt) div 2)) :: 
-                                    draw (when + dt) rest
-                                    end
-                              | MIDI.NOTEOFF (_, note, _)  => draw (when + dt) rest
-                              | _ => draw (when + dt) rest
-                                    )
+        (* maybe not so fast?? *)
+        val clearme =
+          if !often = 3
+          then 
+            let 
+              val () = often := 0
+                fun draw _ nil = nil
+                  | draw when ((dt, (label, e)) :: rest) = 
+                    if when > MAXAHEAD
+                    then nil
+                    else 
+                        (case label of
+                             Music inst => (* XXX should do for score tracks, not music tracks *)
+                                 (* but for now don't show drum tracks, at least *)
+                                 if inst = INST_SAW (* <> INST_NOISE *)
+                                 then
+                                     (case e of
+                                          MIDI.NOTEON (_, note, 0) => draw (when + dt) rest
+                                        | MIDI.NOTEON (_, note, vel) => 
+                                              let val finger = note mod 5
+                                              in
+                                                  (finger,
+                                                   (* XXX fudge city *)
+                                                   6 + finger * (STARWIDTH + 18),
+                                                   (height - 48) - ((when + dt) div 2)) :: 
+                                                  draw (when + dt) rest
+                                              end
+                                        | MIDI.NOTEOFF (_, note, _)  => draw (when + dt) rest
+                                        | _ => draw (when + dt) rest)
+                                 else draw (when + dt) rest
+                           (* otherwise... ? *)
+                                      )
 
-                  val todraw = draw 0 (#2 (hd tracks)) (* XXX *)
+                val todraw = draw 0 track
               in
                   (* erase old events *)
                   app (fn (_, x, y) => blit(background, x + 8, y, STARWIDTH, STARHEIGHT,
@@ -265,33 +270,31 @@ struct
                   flip screen;
                   todraw
               end
-           else clearme
+            else clearme
 
           val period = (getticksi () + !skip) - lt
 
-          fun doready (tr, (n, evt) :: rest) =
-              let val nn = n - period
-              in
-                  (* easy to drift because we're lte... *)
-                  if nn <= 0 
-                  then
-                      let in
-                          (case evt of
-                               MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
-                             | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000) 
-                             | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
-                             | _ => print "unknown event\n");
-                          (tr, rest)
-                      end
-                  else (tr, (nn, evt) :: rest)
-              end
-            | doready (tr, nil) = (tr, nil)
+          val nn = n - period
 
-          (* only keep tracks with events left... *)
-          (* PERF could use mappartial *)
-          val tracks = List.filter (fn (t, _ :: _) => true | _ => false) (map doready tracks)
+          val track = 
+              (* easy to drift because we're lte... *)
+              if nn <= 0 
+              then
+                  let in
+                      (case label of
+                           Music inst =>
+                               (case evt of
+                                    MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
+                                  | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
+                                  | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
+                                  | _ => print "unknown event\n")
+                          (* otherwise no sound..? *) 
+                               );
+                      trackrest
+                  end
+              else ((nn, (label, evt)) :: trackrest)
       in
-          loop (lt + period, tracks, clearme)
+          loop (lt + period, track, clearme)
       end
 
   and loop x =
@@ -307,89 +310,40 @@ struct
           loop' x
       end
 
-  fun slow l = map (fn (delta, e) => (delta * 6, e)) l
+  (* fun slow l = map (fn (delta, e) => (delta * 6, e)) l *)
+  fun slow l = map (fn (delta, e) => (delta * 2, e)) l
 
-(*              
-  and key ( cur as { nexttick, intention = i } ) = 
-    case pollevent () of
-      SOME (E_KeyDown { sym = SDLK_ESCAPE }) => () (* quit *)
+  (* get the name of a track *)
+  fun findname nil = NONE
+    | findname ((_, MIDI.META (MIDI.NAME s)) :: _) = SOME s
+    | findname (_ :: rest) = findname rest
 
-    | SOME (E_MouseMotion { xrel, yrel, ...}) =>
-        let in 
-          botdx := !botdx + xrel; botdy := !botdy + yrel;
-          botdx := (if !botdx > 4 then 4
-                   else (if !botdx < ~4 then ~4
-                         else !botdx));
-          botdy := (if !botdy > 4 then 4
-                    else (if !botdy < ~4 then ~4
-                          else !botdy));
-          loop cur
-        end
+  (* Label all of the tracks
+     This uses the track's name to determine its label. *)
+  fun label tracks =
+      let
+          fun onetrack tr =
+              case findname tr of
+                  NONE => (print "Discarded track with no name.\n"; NONE)
+                | SOME "" => (print "Discarded track with empty name.\n"; NONE)
+                | SOME name => 
+                      (case CharVector.sub(name, 0) of
+                           #"+" =>
+                           SOME (case CharVector.sub (name, 1) of
+                                     #"Q" => Music INST_SQUARE
+                                   | #"W" => Music INST_SAW
+                                   | #"N" => Music INST_NOISE
+                                   | _ => (print "?? expected Q or W or N\n"; raise Test ""),
+                                 tr)
+                         | _ => (print "?? expected + or ...\n"; raise Test ""))
+      in
+          List.mapPartial onetrack tracks
+      end
+      
+  val tracks = label thetracks
+  val tracks = slow (MIDI.mergea tracks)
 
-    | SOME (E_KeyDown { sym = SDLK_RETURN }) =>
-        let in
-          paused := not (!paused);
-          loop cur
-        end
-
-    | SOME (E_KeyDown { sym = SDLK_PERIOD }) => 
-        let in
-          advance := true;
-          loop cur
-        end
-
-    | SOME (E_KeyDown { sym = SDLK_q }) =>
-        (setfreq 256;
-         loop cur)
-
-    | SOME (E_KeyDown { sym = SDLK_w }) =>
-        (setfreq 400;
-         loop cur)
-
-    | SOME (E_KeyDown { sym = SDLK_e }) =>
-        (setfreq 512;
-         loop cur)
-
-
-    | SOME (E_KeyDown { sym = SDLK_i }) =>
-        (scrolly := !scrolly - 3;
-         loop cur)
-    | SOME (E_KeyDown { sym = SDLK_j }) =>
-        (scrollx := !scrollx - 3;
-         loop cur)
-    | SOME (E_KeyDown { sym = SDLK_k }) =>
-        (scrolly := !scrolly + 3;
-         loop cur)
-    | SOME (E_KeyDown { sym = SDLK_l }) =>
-        (scrollx := !scrollx + 3;
-         loop cur)
-
-(*
-    | SOME (E_KeyDown { sym = SDLK_b }) => 
-        loop { nexttick = nexttick, intention = I_BOOST :: i }
-*)
-
-    | SOME (E_KeyDown { sym = SDLK_LEFT }) =>
-        (setfreq (!freq - 50);
-         loop cur)
-
-    | SOME (E_KeyDown { sym = SDLK_RIGHT }) =>
-        (setfreq (!freq + 30);
-         loop cur)
-
-    | SOME (E_KeyDown { sym }) =>
-          let in
-              print ("unknown key " ^ SDL.sdlktos sym ^ "\n");
-              loop { nexttick = nexttick, intention = i }
-          end
-
-    | SOME E_Quit => ()
-    | _ => loop cur
-*)
-
-  val tracks = slow (MIDI.merge thetracks)
-
-  val () = loop (getticksi (), [(0, tracks)], nil)
+  val () = loop (getticksi (), tracks, nil)
     handle Test s => messagebox ("exn test: " ^ s)
         | SDL s => messagebox ("sdl error: " ^ s)
         | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)

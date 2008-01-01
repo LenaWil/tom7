@@ -230,8 +230,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR szCmdLine, int sw)
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
 #endif
 {
-	printf("This is winmain.\n");
-	MessageBoxA(0, "winmain", "awesomeA", 0);
+  // printf("This is winmain.\n");
+  // MessageBoxA(0, "winmain", "awesomeA", 0);
 
 
 	HINSTANCE handle;
