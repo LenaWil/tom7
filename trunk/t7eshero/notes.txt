@@ -168,7 +168,21 @@ hammer-on notes. The rules are as follows.
 
 To use the dynamic programming technique to allow for hammered notes,
 we must extend the matching predicate and expand the information
-included in the 
+included in the "distance".
+
+   inputs...
+
+ s 0123456789
+ c 1.
+ o 2 ab
+ r 3 cX
+ e 4
+ . 5
+ : 6
+
+Consider the position X when the input is note-on Z and the score
+contains Z at that position. We can get to X from positions a, b,
+and c. From c corresponds to 
 
 * Note durations
 
