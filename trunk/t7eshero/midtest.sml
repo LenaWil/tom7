@@ -4,32 +4,24 @@
 
 structure Test =
 struct
-(*
+
+  fun messagebox _ = ()
+
+  (* Comment this out on Linux, or it will not link *)
   local
       val mb_ = _import "MessageBoxA" : MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
   in
-      fun message (s, t) = mb_(MLton.Pointer.null, s ^ "\000", t ^ "\000", MLton.Pointer.null)
+      fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", MLton.Pointer.null)
   end
-*)
-  fun message _ = ()
-
-  val () = message ("hello", "World")
 
   type ptr = MLton.Pointer.t
 
   exception Nope
 
   exception Test of string
+  exception Exit
 
   open SDL
-
-  fun messagebox s = 
-      let
-        (* val mb = _import "MessageBoxA" stdcall : int * string * string * int -> unit ; *)
-      in
-        (* mb (0, s ^ "\000", "message", 0) *)
-        print (s ^ "\n")
-      end
 
   val width = 256
   val height = 600
@@ -43,14 +35,15 @@ struct
   datatype label =
       Music of int
 
+  (* XXX assumes joystick 0 *)
 (*
   val _ = Util.for 0 (Joystick.number () - 1)
-      (fn x => print ("JOY " ^ Int.toString x ^ ": " ^ Joystick.name x ^ "\n"))
+      (fn x => messagebox ("JOY " ^ Int.toString x ^ ": " ^ Joystick.name x ^ "\n"))
+*)
 
   (* XXX requires joystick! *)
   val joy = Joystick.openjoy 0 
   val () = Joystick.setstate Joystick.ENABLE
-*)
 
   val initaudio_ = _import "ml_initsound" : unit -> unit ;
   val setfreq_ = _import "ml_setfreq" : int * int * int * int -> unit ;
@@ -217,6 +210,34 @@ struct
   (* how many ticks forward do we look? *)
   val MAXAHEAD = 1024
 
+  (* For 360 X-Plorer guitar, which strangely swaps yellow and blue keys *)
+  fun joymap 0 = 0
+    | joymap 1 = 1
+    | joymap 3 = 2
+    | joymap 2 = 3
+    | joymap 4 = 4
+    | joymap _ = 999 (* XXX *)
+
+  fun fingeron f =
+      let val x = 8 + 6 + f * (STARWIDTH + 18)
+          val y = height - 42
+      in
+          if f >= 0 andalso f <= 4
+          then blitall(Vector.sub(stars, f),
+                       screen, x, y)
+          else ()
+      end
+
+  fun fingeroff f =
+      let val x = 8 + 6 + f * (STARWIDTH + 18)
+          val y = height - 42
+      in
+          if f >= 0 andalso f <= 4
+          then blit(background, x, y, STARWIDTH, STARHEIGHT,
+                    screen, x, y)
+          else ()
+      end
+
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
   val skip = ref 0
@@ -300,18 +321,22 @@ struct
   and loop x =
       let in
           (case pollevent () of
-               SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Test "EXIT"
-             | SOME E_Quit => raise Test "EXIT"
+               SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Exit
+             | SOME E_Quit => raise Exit
              | SOME (E_KeyDown { sym = SDLK_i }) => skip := !skip + 2000
              | SOME (E_KeyDown { sym = SDLK_o }) => transpose := !transpose - 1
              | SOME (E_KeyDown { sym = SDLK_p }) => transpose := !transpose + 1
+             (* Assume joystic events are coming from the one joystick we enabled
+                (until we have multiplayer... ;)) *)
+             | SOME (E_JoyDown { button, ... }) => fingeron (joymap button)
+             | SOME (E_JoyUp { button, ... }) => fingeroff (joymap button)
              | _ => ()
                );
           loop' x
       end
 
   (* fun slow l = map (fn (delta, e) => (delta * 6, e)) l *)
-  fun slow l = map (fn (delta, e) => (delta * 2, e)) l
+  fun slow l = map (fn (delta, e) => (delta * 3, e)) l
 
   (* get the name of a track *)
   fun findname nil = NONE
@@ -346,6 +371,7 @@ struct
   val () = loop (getticksi (), tracks, nil)
     handle Test s => messagebox ("exn test: " ^ s)
         | SDL s => messagebox ("sdl error: " ^ s)
+        | Exit => ()
         | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
 
 end
