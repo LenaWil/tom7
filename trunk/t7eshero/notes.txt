@@ -182,7 +182,77 @@ included in the "distance".
 
 Consider the position X when the input is note-on Z and the score
 contains Z at that position. We can get to X from positions a, b,
-and c. From c corresponds to 
+and c. From b to X corresponds to a missed note, because we advance
+the position in the score without using any input. In this case,
+we terminate the streak in X. From c corresponds to ignoring the
+input but not advancing the score. This terminates the streak,
+since it is a note-on event, but it does not cause a miss. Coming
+from a, if 'a' is on a streak, then we continue the streak and
+succeed in playing the note. If 'a' is not on streak, then we
+cannot make this transition.
+
+Therefore, each entry in the table takes the form
+
+   { misses : int, streak : bool }
+
+We compare these tuples lexicographically, with misses being the major
+factor. That is, we prefer to be on a streak if possible, but the more
+important thing is a low number of sonemes missed. Let's consider the
+following cases in the dynamic programming algorithm now. Each takes
+the form
+
+    E
+  ...
+  :ab
+ S.cX
+
+Where E is the input event and S is the score event (indexed by time).
+As above, a, b, and c are the already-computed entries in the matrix
+adjacent to this one. Let's write a.n for the notes_hit component of a
+and a.s for the streak component. Then we have the following cases:
+
+If E is a Commit event and same(S, E) then
+
+  X = max [{ misses = a.m,     streak = true  }, (* hit *)
+           { misses = b.m + 1, streak = false }, (* skip *)
+           { misses = c.m + 1, streak = false }, (* miss *)
+           ]
+
+If not same(S, E) then
+
+  X = max [{ misses = a.m + 1, streak = false }, (* wrong *)
+           { misses = b.m + 1, streak = false }, (* skip *)
+           { misses = c.m + 1, streak = false }, (* miss *)
+           ]
+
+(For commit, we have little choice but to hit the correct soneme.)
+
+If E is a Note-on(N) event and S is Note(N') where N' is hammered,
+then
+
+  X = max [if a.s  and  N "=" N' (* must be on streak, same note *)
+           then { misses = a.m,     streak = true  }  (* hit *)
+           else { misses = a.m + 1, streak = false }, (* miss *)
+           { misses = b.m + 1, streak = false },      (* skip *)
+           { misses = c.m, streak = false }           (* extraneous *)
+           ]
+
+The interesting case is for a, where we must be on a streak in order
+to accept this note as a match. For c, we do not penalize extraneous
+note-on events but they interrupt the streak. If E is a Note-off(N)
+event (Since this is a pull-off, N here refers to the highest finger
+beneath the note that went off, not the note itself.) and S is
+Note(N') where N' is hammered, then
+
+  X = max [if a.s  and  N "=" N' (* must be on streak, same note *)
+           then { misses = a.m,     streak = true  }  (* hit *)
+           else { misses = a.m + 1, streak = false }, (* miss *)
+           { misses = b.m + 1, streak = false },      (* skip *)
+           { misses = c.m, streak = c.s }             (* extraneous *)
+           ]
+
+Note-off events are the same, but if they are extraneous (c) they do
+not interrupt the streak.
 
 * Note durations
 
