@@ -20,7 +20,7 @@ win32main.o : ../sdlml/win32main.c
 # but we don't want SDLmain
 
 # -Wl,--subsystem,windows
-midtest.exe : sdlml.o sound.o win32main.o *.sml midtest.cm makefile.mingw
+midtest.exe : sdlml.o sound.o win32main.o *.sml midtest.cm makefile.mingw ../sdlml/*.sml
 	mlton @MLton max-heap 200m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -DDEBUG_X86CODEGEN -Dmain=SDL_main" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz" -verbose 3 -keep g -keep o -output midtest.exe -default-ann 'allowFFI true' midtest.cm sdlml.o sound.o win32main.o
 
 # the order of these libraries and object files is really important! Weird things will

@@ -228,8 +228,9 @@ struct
           val y = height - 42
       in
           if f >= 0 andalso f <= 4
-          then blitall(Vector.sub(stars, f),
-                       screen, x, y)
+          then (blitall(Vector.sub(stars, f),
+                        screen, x, y);
+                flip screen)
           else ()
       end
 
@@ -238,9 +239,25 @@ struct
           val y = height - 42
       in
           if f >= 0 andalso f <= 4
-          then blit(background, x, y, STARWIDTH, STARHEIGHT,
-                    screen, x, y)
+          then (blit(background, x, y, STARWIDTH, STARHEIGHT,
+                     screen, x, y);
+                flip screen)
           else ()
+      end
+
+  fun commit () =
+      let
+      in blitall(robotr, screen, 0, height - 42);
+          flip screen
+      end
+
+  (* just drawing *)
+  fun commitup () =
+      let
+      in
+          blit(background, 0, height - 42, ROBOTW, ROBOTH,
+               screen, 0, height - 42);
+          flip screen
       end
 
   (* XXX assuming ticks = midi delta times; wrong! 
@@ -335,6 +352,15 @@ struct
                 (until we have multiplayer... ;)) *)
              | SOME (E_JoyDown { button, ... }) => fingeron (joymap button)
              | SOME (E_JoyUp { button, ... }) => fingeroff (joymap button)
+             | SOME (E_JoyHat { state, ... }) =>
+               (* XXX should have some history here--we want to ignore events
+                  triggered by left-right hat movements (those never happen
+                  on the xplorer though) *)
+               if Joystick.hat_up state orelse
+                  Joystick.hat_down state
+               then commit ()
+               else commitup ()
+
              | _ => ()
                );
           loop' x
