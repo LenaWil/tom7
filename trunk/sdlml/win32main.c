@@ -53,6 +53,11 @@
 #define isspace(a) (((CHAR)a == ' ') || ((CHAR)a == '\t'))
 #endif /* _WIN32_WCE < 300 */
 
+/* hack to indicate to the linker that we might import this from ml code */
+void requireMessageBox() {
+  MessageBoxA(0, "winmain", "awesomeA", 0);
+}
+
 /* Parse a command line buffer into arguments */
 static int ParseCommandLine(char *cmdline, char **argv)
 {
@@ -230,8 +235,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR szCmdLine, int sw)
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
 #endif
 {
-	printf("This is winmain.\n");
-	MessageBoxA(0, "winmain", "awesomeA", 0);
+        // printf("This is winmain.\n");
+	// MessageBoxA(0, "winmain", "awesomeA", 0);
 
 
 	HINSTANCE handle;

@@ -193,6 +193,10 @@ int ml_event8_3rd(SDL_Event * e) {
   return (((SDL_KeyboardEvent*)e)->state);
 }
 
+int ml_event8_4th(SDL_Event * e) {
+  return (((SDL_JoyHatEvent*)e)->value);
+}
+
 int ml_event_keyboard_sym(SDL_KeyboardEvent* e) {
   return e->keysym.sym;
 }
@@ -226,6 +230,7 @@ int ml_event_mbutton_button(SDL_MouseButtonEvent * e) {return e->button;}
 /* XXX should lock before calling (for certain modes)... */
 void ml_drawpixel(SDL_Surface *surf, int x, int y,
 		  int R, int G, int B) {
+  // printf("RGB %d %d %d\n", R, G, B);
   Uint32 color = SDL_MapRGB(surf->format, R, G, B);
   switch (surf->format->BytesPerPixel) {
     case 1: // Assuming 8-bpp
