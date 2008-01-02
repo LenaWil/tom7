@@ -42,7 +42,12 @@ struct
 *)
 
   (* XXX requires joystick! *)
+(*
   val joy = Joystick.openjoy 0 
+  val () = Joystick.setstate Joystick.ENABLE
+*)
+  (* just enable all joysticks. *)
+  val () = Util.for 0 (Joystick.number () - 1) Joystick.openjoy
   val () = Joystick.setstate Joystick.ENABLE
 
   val initaudio_ = _import "ml_initsound" : unit -> unit ;
