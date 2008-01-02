@@ -7,9 +7,12 @@ struct
   type safe = MLton.Pointer.t ref
   type ptr = MLton.Pointer.t 
 
+  (* XXX as RGBA, though it's not clear we use
+     this consistently *)
   type color = Word32.word
 
-  type mousestate = Word8.word
+  type mousestate  = Word8.word
+  type joyhatstate = Word8.word
 
   exception SDL of string
   exception Invalid
@@ -28,15 +31,15 @@ struct
           CharVector.tabulate (len, fn x => Array.sub(r, x))
       end
 
-  (* XXX endianness... *)
+  (* XXX endianness...?! *)
   fun color (r, g, b, a) = 
     Word32.orb
-    (Word32.<< (Word32.fromInt (Word8.toInt a), 0w24),
+    (Word32.<< (Word32.fromInt (Word8.toInt r), 0w24),
      Word32.orb
-     (Word32.<< (Word32.fromInt (Word8.toInt r), 0w16),
+     (Word32.<< (Word32.fromInt (Word8.toInt g), 0w16),
       Word32.orb
-      (Word32.<< (Word32.fromInt (Word8.toInt g), 0w8),
-       Word32.fromInt (Word8.toInt b))))
+      (Word32.<< (Word32.fromInt (Word8.toInt b), 0w8),
+       Word32.fromInt (Word8.toInt a))))
 
   fun components x =
       (Word8.fromInt (Word32.toInt (Word32.andb(Word32.>>(x, 0w24), 0w255))),
@@ -300,7 +303,7 @@ struct
     | E_JoyAxis
     | E_JoyDown of { which : int, button : int }
     | E_JoyUp of { which : int, button : int }
-    | E_JoyHat
+    | E_JoyHat of { which : int, hat : int, state : joyhatstate }
     | E_JoyBall
     | E_Resize
     | E_Expose
@@ -308,7 +311,6 @@ struct
     | E_User
     | E_Quit
     | E_Unknown
-
 
 
   fun sdlktos s =
@@ -873,7 +875,8 @@ struct
 
   val event8_2nd_ = _import "ml_event8_2nd" : ptr -> int ;
   val event8_3rd_ = _import "ml_event8_3rd" : ptr -> int ;
-    
+  val event8_4th_ = _import "ml_event8_4th" : ptr -> int ;
+
   val event_mmotion_x_ = _import "ml_event_mmotion_x" : ptr -> int ;
   val event_mmotion_y_ = _import "ml_event_mmotion_y" : ptr -> int ;
   val event_mmotion_xrel_ = _import "ml_event_mmotion_xrel" : ptr -> int ;
@@ -910,7 +913,9 @@ struct
                         y = event_mbutton_y_ e }
      | 7 => E_JoyAxis
      | 8 => E_JoyBall
-     | 9 => E_JoyHat
+     | 9 => E_JoyHat { which = event8_2nd_ e,
+                       hat = event8_3rd_ e,
+                       state = Word8.fromInt (event8_4th_ e) }
      | 10 => E_JoyDown
          { which = event8_2nd_ e, 
            button = event8_3rd_ e }
@@ -994,7 +999,7 @@ struct
   in
       fun drawpixel (s, x, y, c) =
           let
-              val (r, g, b, a) = components32 c
+              val (r, g, b, _) = components32 c
           in
               if x < 0 orelse y < 0
                  orelse x >= surface_width s
@@ -1071,6 +1076,7 @@ struct
   structure Joystick =
   struct
       datatype event_state = ENABLE | IGNORE
+      type hatstate = joyhatstate
       
       val number = _import "SDL_NumJoysticks" : unit -> int ;
           
@@ -1100,6 +1106,14 @@ struct
       (* nb, there is SDL_JoystickOpened. but why would we want to
          check this when it should be true by invariant? *)
       fun closejoy j = cj_ (!! j)
+
+      (* from SDL_joystick.h *)
+      fun hat_centered h = h = (0w0 : Word8.word)
+      fun hat_up h    = Word8.andb(h, 0w1) <> 0w0
+      fun hat_right h = Word8.andb(h, 0w2) <> 0w0
+      fun hat_down h  = Word8.andb(h, 0w4) <> 0w0
+      fun hat_left h  = Word8.andb(h, 0w8) <> 0w0
+
   end
 
   structure Image =
