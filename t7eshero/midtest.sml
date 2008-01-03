@@ -218,7 +218,7 @@ struct
   (* val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks *)
 
   (* XXX hammer time *)
-(*
+
   local val gt = ref 0w0 : Word32.word ref
   in
     fun getticks () =
@@ -227,9 +227,10 @@ struct
         !gt
       end
   end
-*)
 
-  fun getticksi () = Word32.toInt (getticks ())
+  (* allow fast forwarding into the future *)
+  val skip = ref 0
+  fun getticksi () = (Word32.toInt (getticks ()) + !skip)
 
   (* how many ticks forward do we look? *)
   val MAXAHEAD = 1024
@@ -339,19 +340,55 @@ struct
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
   val TICKBARS = 256
-  val skip = ref 0
-  val often = ref 0
-  fun loop' (lt, nil) = print "SONG END.\n"
-    | loop' (lt, track as ( (n, (label, evt)) :: trackrest )) =
+  val DRAWTICKS = (* 128 *) 1
+  fun loopplay (_,  _,  nil) = print "SONG END.\n"
+    | loopplay (lt, ld, track) =
       let
-        val () = often := !often + 1
+          val period = getticksi () - lt
 
-        (* maybe not so fast?? *)
-        val () =
-          if !often = 3
-          then 
+          fun nowevents ((n, (label, evt)) :: rest) =
+            (* easy to drift because we're lte... *)
             let 
-              val () = often := 0
+              val nn = n - period
+              val () = if nn < 0 then print ("drift " ^ Int.toString nn ^ "\n")
+                       else ()
+
+              (* try to account for drift *)
+              (* val () = if nn < 0 then skip := !skip + nn
+                       else () *)
+            in
+              if nn <= 0
+              then 
+                let in
+                  (case label of
+                     Music inst =>
+                       (case evt of
+                          MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
+                        | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
+                        | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
+                        | _ => print "unknown event\n")
+                          (* otherwise no sound..? *) 
+                          );
+                     (* immediately continue; there may be more events now *)
+                   nowevents rest
+                end
+              (* put it back, decreasing the delta time *)
+              else (nn, (label, evt)) :: rest
+            end
+            (* song will end on next trip *)
+            | nowevents nil = nil
+
+          val track = nowevents track
+      in
+          loop (lt + period, ld, track)
+      end
+
+  and loopdraw (lt, ld, track) =
+    let 
+      val now = getticksi ()
+    in
+      if now - ld >= DRAWTICKS
+      then let 
               val () = Scene.clear ()
 
               fun emit_span finger (spanstart, spanend) =
@@ -365,14 +402,19 @@ struct
 
               (* val () = print "----\n" *)
 
+              val period = now - lt
+
               fun draw spans _ nil = ()
-                 (* XXX this is wrong because we end spans that ain't started *)
+                (* XXX this is wrong because we end spans that ain't started *)
                (* Array.appi (fn (finger, spanstart) => emit_span finger spanstart MAXAHEAD) spans *)
                 | draw spans when ((dt, (label, e)) :: rest) = 
                     if when > MAXAHEAD
                     then ()
                     else 
-                      (* XXX factor out when + dt recursion *)
+                      let 
+                        val tiempo = when + dt
+
+                      in
                         (case label of
                              Music inst => (* XXX should do for score tracks, not music tracks *)
                                  (* but for now don't show drum tracks, at least *)
@@ -382,69 +424,46 @@ struct
                                      fun doevent (MIDI.NOTEON (x, note, 0)) = 
                                             doevent (MIDI.NOTEOFF (x, note, 0))
                                        | doevent (MIDI.NOTEOFF (_, note, _)) =
-                                              let val finger = note mod 5
-                                              in 
-                                                emit_span finger (Array.sub(spans, finger), when + dt);
-                                                (* no need to clear entry in array *)
-                                                draw spans (when + dt) rest
-                                              end
+                                            let val finger = note mod 5
+                                            in 
+                                              emit_span finger (Array.sub(spans, finger), tiempo)
+                                              (* no need to clear entry in array *)
+                                            end
                                        | doevent (MIDI.NOTEON (_, note, vel)) =
-                                              let val finger = note mod 5
-                                              in
-                                                  Scene.addstar (finger, when + dt);
-
-                                                  (* don't emit--we assume proper bracketing
-                                                     (even though this is not the case when
-                                                     we generate the score by mod5 or include
-                                                     multiple channels!) *)
-                                                  Array.update(spans, finger, when + dt);
-                                                  draw spans (when + dt) rest
-                                              end
-                                       | doevent _ = draw spans (when + dt) rest
+                                            let val finger = note mod 5
+                                            in
+                                              Scene.addstar (finger, tiempo);
+                                              
+                                              (* don't emit--we assume proper bracketing
+                                                 (even though this is not the case when
+                                                 we generate the score by mod5 or include
+                                                 multiple channels!) *)
+                                              Array.update(spans, finger, tiempo)
+                                            end
+                                       | doevent _ = ()
                                    in doevent e
                                    end
-                                 else draw spans (when + dt) rest
+                                 else ()
                            (* otherwise... ? *)
-                                      )             
-                           
-              val baroffset = TICKBARS - ((getticksi () + !skip) mod TICKBARS)
+                                      );
+                           draw spans tiempo rest
+                      end
+
+              val baroffset = TICKBARS - (now mod TICKBARS)
             in
               (* XXX why pass and also use array? should just be local var *)
               Util.for 0 (MAXAHEAD div TICKBARS)
               (fn n =>
                Scene.addbar (n mod 2, (n * TICKBARS) + baroffset)
                );
-              draw (Array.array(5, 0)) 0 track;
+
+              draw (Array.array(5, 0)) period track;
               Scene.draw ();
-              flip screen
+              flip screen;
+              loopplay (lt, now, track)
             end
-          else ()
-
-        (* might have taken a while to draw, so calculate now again *)
-          val period = (getticksi () + !skip) - lt
-
-          val nn = n - period
-
-          val track = 
-              (* easy to drift because we're lte... *)
-              if nn <= 0 
-              then
-                  let in
-                      (case label of
-                           Music inst =>
-                               (case evt of
-                                    MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
-                                  | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
-                                  | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
-                                  | _ => print "unknown event\n")
-                          (* otherwise no sound..? *) 
-                               );
-                      trackrest
-                  end
-              else ((nn, (label, evt)) :: trackrest)
-      in
-          loop (lt + period, track)
-      end
+      else loopplay (lt, ld, track)
+    end
 
   and loop x =
       let in
@@ -469,7 +488,7 @@ struct
 
              | _ => ()
                );
-          loop' x
+          loopdraw x
       end
 
   (* fun slow l = map (fn (delta, e) => (delta * 6, e)) l *)
@@ -505,7 +524,7 @@ struct
   val tracks = label thetracks
   val tracks = slow (MIDI.mergea tracks)
 
-  val () = loop (getticksi (), tracks)
+  val () = loop (getticksi (), getticksi (), tracks)
     handle Test s => messagebox ("exn test: " ^ s)
         | SDL s => messagebox ("sdl error: " ^ s)
         | Exit => ()
