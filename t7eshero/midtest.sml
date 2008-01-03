@@ -282,30 +282,37 @@ struct
   (* PERF could keep 'lastscene' and only draw changes? *)
   structure Scene =
   struct
+
+    val TEMPOCOLORS = Vector.fromList [color(0wx77, 0wx77, 0wx77, 0wxFF),
+                                       color(0wxAA, 0wxAA, 0wxAA, 0wxFF)]
     val starpics = stars
 
      (* color, x, y *)
     val stars = ref nil : (int * int * int) list ref
-      (* rectangles the liteup background to draw. x,y,w,h *)
+    (* rectangles the liteup background to draw. x,y,w,h *)
     val spans = ref nil : (int * int * int * int) list ref
+    (* color, y *)
+    val bars  = ref nil : (int * int) list ref
       
-      (* XXX fingers, strum, etc. *)
+    (* XXX fingers, strum, etc. *)
 
     fun clear () =
       let in
         stars := nil;
-        spans := nil
+        spans := nil;
+        bars  := nil
       end
 
     fun addstar (finger, stary) =
       (* XXX fudge city *)
       stars := 
       (finger,
-       (STARWIDTH div 2) +
+       (STARWIDTH div 4) +
        6 + finger * (STARWIDTH + 18),
        (* hit star half way *)
        (height - (NUTOFFSET + STARHEIGHT div 2)) - (stary div 2)) :: !stars
 
+    fun addbar (c, t) = bars := (c, (height - NUTOFFSET) - (t div 2)) :: !bars
 
     fun addspan (finger, spanstart, spanend) =
       spans :=
@@ -320,6 +327,9 @@ struct
         blitall(background, screen, 0, 0);
         (* spans first *)
         app (fn (x, y, w, h) => blit(backlite, x, y, w, h, screen, x, y)) (!spans);
+        (* tempo *)
+        (* XXX probably could have different colors for major and minor bars... *)
+        app (fn (c, y) => fillrect(screen, 16, y, width - 32, 2, Vector.sub(TEMPOCOLORS, c))) (!bars);
         (* stars on top *)
         app (fn (f, x, y) => blitall(Vector.sub(starpics, f), screen, x, y)) (!stars)
       end
@@ -328,6 +338,7 @@ struct
 
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
+  val TICKBARS = 256
   val skip = ref 0
   val often = ref 0
   fun loop' (lt, nil) = print "SONG END.\n"
@@ -395,14 +406,21 @@ struct
                                  else draw spans (when + dt) rest
                            (* otherwise... ? *)
                                       )             
+                           
+              val baroffset = TICKBARS - ((getticksi () + !skip) mod TICKBARS)
             in
               (* XXX why pass and also use array? should just be local var *)
+              Util.for 0 (MAXAHEAD div TICKBARS)
+              (fn n =>
+               Scene.addbar (n mod 2, (n * TICKBARS) + baroffset)
+               );
               draw (Array.array(5, 0)) 0 track;
               Scene.draw ();
               flip screen
             end
           else ()
 
+        (* might have taken a while to draw, so calculate now again *)
           val period = (getticksi () + !skip) - lt
 
           val nn = n - period
@@ -455,7 +473,7 @@ struct
       end
 
   (* fun slow l = map (fn (delta, e) => (delta * 6, e)) l *)
-  fun slow l = map (fn (delta, e) => (delta * 3, e)) l
+  fun slow l = map (fn (delta, e) => (delta * 4, e)) l
 
   (* get the name of a track *)
   fun findname nil = NONE
