@@ -29,9 +29,6 @@ struct
 
   val ROBOTH = 32
   val ROBOTW = 16
-    
-  (* distance of nut (on-tempo target bar) from bottom of screen *)
-  val NUTOFFSET = 20
 
   val screen = makescreen (width, height)
 
@@ -217,18 +214,6 @@ struct
 
   (* val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks *)
 
-  (* XXX hammer time *)
-(*
-  local val gt = ref 0w0 : Word32.word ref
-  in
-    fun getticks () =
-      let in
-        gt := !gt + 0w1;
-        !gt
-      end
-  end
-*)
-
   fun getticksi () = Word32.toInt (getticks ())
 
   (* how many ticks forward do we look? *)
@@ -282,126 +267,68 @@ struct
   (* PERF could keep 'lastscene' and only draw changes? *)
   structure Scene =
   struct
-    val starpics = stars
-
      (* color, x, y *)
     val stars = ref nil : (int * int * int) list ref
       (* rectangles the liteup background to draw. x,y,w,h *)
     val spans = ref nil : (int * int * int * int) list ref
       
       (* XXX fingers, strum, etc. *)
-
-    fun clear () =
-      let in
-        stars := nil;
-        spans := nil
-      end
-
-    fun addstar (finger, stary) =
-      (* XXX fudge city *)
-      stars := 
-      (finger,
-       (STARWIDTH div 2) +
-       6 + finger * (STARWIDTH + 18),
-       (* hit star half way *)
-       (height - (NUTOFFSET + STARHEIGHT div 2)) - (stary div 2)) :: !stars
-
-
-    fun addspan (finger, spanstart, spanend) =
-      spans :=
-      (6 + finger * (STARWIDTH + 18), 
-       (height - NUTOFFSET) - spanend div 2,
-       50 (* XXX *),
-       (spanend - spanstart) div 2) :: !spans
-
-    fun draw () =
-      let in
-        (* entire background first first *)
-        blitall(background, screen, 0, 0);
-        (* spans first *)
-        app (fn (x, y, w, h) => blit(backlite, x, y, w, h, screen, x, y)) (!spans);
-        (* stars on top *)
-        app (fn (f, x, y) => blitall(Vector.sub(starpics, f), screen, x, y)) (!stars)
-      end
-       
   end
 
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
   val skip = ref 0
   val often = ref 0
-  fun loop' (lt, nil) = print "SONG END.\n"
-    | loop' (lt, track as ( (n, (label, evt)) :: trackrest )) =
+  fun loop' (lt, nil, _) = print "SONG END.\n"
+    | loop' (lt, track as ( (n, (label, evt)) :: trackrest ), clearme) =
       let
         val () = often := !often + 1
 
         (* maybe not so fast?? *)
-        val () =
+        val clearme =
           if !often = 3
           then 
             let 
               val () = often := 0
-              val () = Scene.clear ()
-
-              fun emit_span finger (spanstart, spanend) =
-                let in
-(*
-                  print ("addspan " ^ itos finger ^ ": "
-                         ^ itos spanstart ^ " -> " ^ itos (Int.min(MAXAHEAD, spanend)) ^ "\n");
-*)
-                  Scene.addspan (finger, spanstart, Int.min(MAXAHEAD, spanend))
-                end
-
-              (* val () = print "----\n" *)
-
-              fun draw spans _ nil = ()
-                 (* XXX this is wrong because we end spans that ain't started *)
-               (* Array.appi (fn (finger, spanstart) => emit_span finger spanstart MAXAHEAD) spans *)
-                | draw spans when ((dt, (label, e)) :: rest) = 
+                fun draw _ nil = nil
+                  | draw when ((dt, (label, e)) :: rest) = 
                     if when > MAXAHEAD
-                    then ()
+                    then nil
                     else 
-                      (* XXX factor out when + dt recursion *)
                         (case label of
                              Music inst => (* XXX should do for score tracks, not music tracks *)
                                  (* but for now don't show drum tracks, at least *)
-                                 if inst = INST_SQUARE (* <> INST_NOISE *)
+                                 if inst = INST_SAW (* <> INST_NOISE *)
                                  then
-                                   let
-                                     fun doevent (MIDI.NOTEON (x, note, 0)) = 
-                                            doevent (MIDI.NOTEOFF (x, note, 0))
-                                       | doevent (MIDI.NOTEOFF (_, note, _)) =
-                                              let val finger = note mod 5
-                                              in 
-                                                emit_span finger (Array.sub(spans, finger), when + dt);
-                                                (* no need to clear entry in array *)
-                                                draw spans (when + dt) rest
-                                              end
-                                       | doevent (MIDI.NOTEON (_, note, vel)) =
+                                     (case e of
+                                          MIDI.NOTEON (_, note, 0) => draw (when + dt) rest
+                                        | MIDI.NOTEON (_, note, vel) => 
                                               let val finger = note mod 5
                                               in
-                                                  Scene.addstar (finger, when + dt);
-
-                                                  (* don't emit--we assume proper bracketing
-                                                     (even though this is not the case when
-                                                     we generate the score by mod5 or include
-                                                     multiple channels!) *)
-                                                  Array.update(spans, finger, when + dt);
-                                                  draw spans (when + dt) rest
+                                                  (finger,
+                                                   (* XXX fudge city *)
+                                                   6 + finger * (STARWIDTH + 18),
+                                                   (height - 48) - ((when + dt) div 2)) :: 
+                                                  draw (when + dt) rest
                                               end
-                                       | doevent _ = draw spans (when + dt) rest
-                                   in doevent e
-                                   end
-                                 else draw spans (when + dt) rest
+                                        | MIDI.NOTEOFF (_, note, _)  => draw (when + dt) rest
+                                        | _ => draw (when + dt) rest)
+                                 else draw (when + dt) rest
                            (* otherwise... ? *)
-                                      )             
-            in
-              (* XXX why pass and also use array? should just be local var *)
-              draw (Array.array(5, 0)) 0 track;
-              Scene.draw ();
-              flip screen
-            end
-          else ()
+                                      )
+
+                val todraw = draw 0 track
+              in
+                  (* erase old events *)
+                  app (fn (_, x, y) => blit(background, x + 8, y, STARWIDTH, STARHEIGHT,
+                                            screen, x + 8, y)) clearme;
+                  (* draw some upcoming events... *)
+                  app (fn (f, x, y) => blitall(Vector.sub(stars, f), 
+                                               screen, x + 8, y)) todraw;
+                  flip screen;
+                  todraw
+              end
+            else clearme
 
           val period = (getticksi () + !skip) - lt
 
@@ -425,7 +352,7 @@ struct
                   end
               else ((nn, (label, evt)) :: trackrest)
       in
-          loop (lt + period, track)
+          loop (lt + period, track, clearme)
       end
 
   and loop x =
@@ -487,7 +414,7 @@ struct
   val tracks = label thetracks
   val tracks = slow (MIDI.mergea tracks)
 
-  val () = loop (getticksi (), tracks)
+  val () = loop (getticksi (), tracks, nil)
     handle Test s => messagebox ("exn test: " ^ s)
         | SDL s => messagebox ("sdl error: " ^ s)
         | Exit => ()
