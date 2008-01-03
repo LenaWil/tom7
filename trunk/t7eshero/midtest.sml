@@ -219,11 +219,12 @@ struct
 
   (* XXX hammer time *)
 (*
+  val hammerspeed = 0w3
   local val gt = ref 0w0 : Word32.word ref
   in
     fun getticks () =
       let in
-        gt := !gt + 0w1;
+        gt := !gt + hammerspeed;
         !gt
       end
   end
@@ -344,8 +345,8 @@ struct
 
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
-  val TICKBARS = 256
-  val DRAWTICKS = (* 128 *) 50
+  val TICKBARS = (* 256 *) 240
+  val DRAWTICKS = (* 128 *) 5
   fun loopplay (_,  _,  nil) = print "SONG END.\n"
     | loopplay (lt, ld, track) =
       let
@@ -484,14 +485,21 @@ struct
                    draw spans tiempo rest
               end
             
+          (* Bars are wrong, for some reason. 
+             Maybe it has to do with drift?
+             Maybe it is because the input delta times are actually
+             sort of weird? *)
           val baroffset = TICKBARS - (now mod TICKBARS)
         in
-          (* XXX why pass and also use array? should just be local var *)
           Util.for 0 (MAXAHEAD div TICKBARS)
           (fn n =>
            Scene.addbar (n mod 2, (n * TICKBARS) + baroffset)
            );
-          
+
+          (* XXX why pass and also use array? should just be local var *)
+          (* XXX in order to handle spans that go off the screen, we need to
+             know whether we are currently in a span (that is, if some finger
+             is currently 'down' in the score). *)
           draw (Array.array(5, 0)) period track;
           Scene.draw ();
           flip screen;
@@ -558,6 +566,11 @@ struct
       
   val tracks = label thetracks
   val tracks = slow (MIDI.mergea tracks)
+
+  val () = app (fn (dt, (lab, evt)) =>
+                let in
+                  print ("dt: " ^ itos dt ^ "\n")
+                end) tracks
 
   val () = loop (getticksi (), getticksi (), tracks)
     handle Test s => messagebox ("exn test: " ^ s)
