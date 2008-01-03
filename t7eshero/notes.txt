@@ -256,6 +256,9 @@ not interrupt the streak.
 
 * Note durations
 
+We also have note durations, but these are treated independently of the
+matching algorithm. (?)
+
 * On-line matching
 
 Solve the problem exactly by optimizing the matching problem to

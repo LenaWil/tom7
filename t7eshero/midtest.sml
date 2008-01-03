@@ -67,6 +67,7 @@ struct
   val solid = requireimage "testgraphics/solid.png"
 
   val background = requireimage "testgraphics/background.png"
+  val backlite   = requireimage "testgraphics/backlite.png"
 
   val stars = Vector.fromList
       [requireimage "testgraphics/greenstar.png",
