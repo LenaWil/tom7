@@ -500,7 +500,7 @@ struct
           (* XXX in order to handle spans that go off the screen, we need to
              know whether we are currently in a span (that is, if some finger
              is currently 'down' in the score). *)
-          draw (Array.array(5, 0)) period track;
+          draw (Array.array(5, 0)) 0 (* period? XXX *) track;
           Scene.draw ();
           flip screen;
           loopplay (lt, now, track)
