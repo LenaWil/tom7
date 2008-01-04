@@ -25,6 +25,7 @@ volatile int cur_freq[NMIX];
 volatile int cur_vol[NMIX];
 volatile int cur_inst[NMIX];
 static   int val[NMIX];
+static float leftover[NMIX];
 
 void mixaudio (void * unused, Sint16 * stream, int len) {
   /* total number of samples; used to get rate */
@@ -57,11 +58,24 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 	*/
 	
 	// PERF this should be the value stored in cur_freq
-	int cycle = ((RATE * 100) / cur_freq[ch]);
+	float fcycle = ((RATE * 100) / cur_freq[ch]);
+	int cycle = (int)fcycle;
+	// leftover[ch] += (fcycle - (float)cycle);
 	// int pos = samples[ch] % cycle;
-	if (samples[ch] > cycle) {
+	if (samples[ch] >= cycle) {
 	  val[ch] = - val[ch];
-	  samples[ch] = 0;
+	  /* at higher frequencies, the difference in
+	     the sample period gets to be close to 1 sample, so
+	     we have a relatively large effect from floating point
+	     roundoff. Correct for this by accumulating error
+	     and making a longer period when we have a whole sample.
+	  */
+	  if (1 && leftover[ch] > 1.0) {
+	    samples[ch] = -1;
+	    leftover[ch] -= 1.0;
+	  } else {
+	    samples[ch] = 0;
+	  }
 	}
 	mag += val[ch] * cur_vol[ch];
 	break;
