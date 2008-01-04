@@ -346,7 +346,7 @@ struct
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
   val TICKBARS = (* 256 *) 240
-  val DRAWTICKS = (* 128 *) 5
+  val DRAWTICKS = (* 128 *) 3
   fun loopplay (_,  _,  nil) = print "SONG END.\n"
     | loopplay (lt, ld, track) =
       let
@@ -555,7 +555,7 @@ struct
                            #"+" =>
                            SOME (case CharVector.sub (name, 1) of
                                      #"Q" => Music INST_SQUARE
-                                   | #"W" => Music INST_SAW
+                                   | #"W" => Music INST_SQUARE (* INST_SAW *)
                                    | #"N" => Music INST_NOISE
                                    | _ => (print "?? expected Q or W or N\n"; raise Test ""),
                                  tr)
