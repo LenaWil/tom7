@@ -1,14 +1,20 @@
 #include <SDL.h>
 #include <SDL_audio.h>
+#include <math.h>
 
 // number of samples per second
 //#define RATE 22050
 #define RATE 44100
+
 #define PI 3.14152653589
 /* 512 = "A good value for games" */
 #define BUFFERSIZE 512
 // #define BUFFERSIZE 44100
 #define NCHANNELS 1
+
+/* frequencies are supplied by the client
+   in 1/HZFACTOR Hz increments */
+#define HZFACTOR 10000
 
 // number of simultaneous polyphonic notes
 #define NMIX 12
@@ -20,17 +26,20 @@
 #define INST_SQUARE 1
 #define INST_SAW    2
 #define INST_NOISE  3
+#define INST_SINE   4
 
 volatile int cur_freq[NMIX];
 volatile int cur_vol[NMIX];
 volatile int cur_inst[NMIX];
 static   int val[NMIX];
 static float leftover[NMIX];
+static   int samples[NMIX];
+
+
 
 void mixaudio (void * unused, Sint16 * stream, int len) {
   /* total number of samples; used to get rate */
   /* XXX glitch every time this overflows; should mod by RATE? */
-  static int samples[NMIX];
   static int seed;
   int i, ch;
   /* length is actually in bytes; halve it */
@@ -43,24 +52,34 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
     for(ch = 0; ch < NMIX; ch ++) {
 
       switch(cur_inst[ch]) {
-      case INST_SAW:
+      case INST_SINE: {
 	samples[ch] ++;
-	int cycle = ((RATE * 100) / cur_freq[ch]);
-	int pos = samples[ch] % cycle;
-	/* sweeping from -vol to +vol with period 'cycle' */
-	mag += -cur_vol[ch] + (int)( ((float)pos / cycle) * 2.0 * cur_vol[ch] );
+	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
+	/* as a fraction of cycle */
+	double t = fmod(samples[ch], cycle);
+	mag += (int) ( (double)cur_vol[ch] * sin((t/cycle) * 2.0 * PI) );
 
 	break;
+      }
+      case INST_SAW: {
+	samples[ch] ++;
+	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
+	double pos = fmod(samples[ch], cycle);
+	/* sweeping from -vol to +vol with period 'cycle' */
+	mag += -cur_vol[ch] + (int)( (pos / cycle) * 2.0 * cur_vol[ch] );
+
+	break;
+      }
       case INST_SQUARE: {
 	samples[ch] ++;
-	/* the frequency is the number of cycles per one hundred seconds.
-	   so the length of one cycle in samples is (RATE*100)/cur_freq. 
+	/* the frequency is the number of cycles per HZFACTOR seconds.
+	   so the length of one cycle in samples is (RATE*HZFACTOR)/cur_freq. 
 	*/
-	
+#if 0	
 	// PERF this should be the value stored in cur_freq
-	float fcycle = ((RATE * 100) / cur_freq[ch]);
+	float fcycle = (((float)RATE * HZFACTOR) / cur_freq[ch]);
 	int cycle = (int)fcycle;
-	// leftover[ch] += (fcycle - (float)cycle);
+	leftover[ch] += (fcycle - cycle);
 	// int pos = samples[ch] % cycle;
 	if (samples[ch] >= cycle) {
 	  val[ch] = - val[ch];
@@ -78,6 +97,12 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 	  }
 	}
 	mag += val[ch] * cur_vol[ch];
+#endif
+	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
+	double pos = fmod(samples[ch], cycle);
+	/* sweeping from -vol to +vol with period 'cycle' */
+	mag += (pos > (cycle/2.0))?cur_vol[ch]:-cur_vol[ch];
+
 	break;
       }
       case INST_NOISE:
@@ -107,6 +132,7 @@ void ml_setfreq(int ch, int nf, int nv, int inst) {
   cur_freq[ch] = nf;
   cur_vol[ch] = nv;
   cur_inst[ch] = inst;
+  samples[ch] = 0;
   SDL_UnlockAudio();
 }
 
