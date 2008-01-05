@@ -220,6 +220,9 @@ struct
   val m as (ty, divi, thetracks) = MIDI.readmidi r
   val _ = ty = 1
       orelse raise Test ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
+  val () = print ("MIDI division is " ^ itos divi ^ "\n")
+  val _ = divi > 0
+      orelse raise Test ("Division must be in PPQN form!\n")
 
   (* val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks *)
 
@@ -288,7 +291,15 @@ struct
           flip screen
       end
 
+  structure State =
+  struct
+      
+    val fingers = Array.array(5, false) (* all fingers start off *)
+
+  end
+
   (* PERF could keep 'lastscene' and only draw changes? *)
+  (* This is the description of what is currently displayed. *)
   structure Scene =
   struct
 
@@ -351,7 +362,7 @@ struct
 
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
-  val TICKBARS = (* 256 *) 240
+  val TICKBARS = (* 256 *) (* 240 *) divi * 2
   val DRAWTICKS = (* 128 *) 3
   fun loopplay (_,  _,  nil) = print "SONG END.\n"
     | loopplay (lt, ld, track) =
@@ -390,8 +401,10 @@ struct
              *)
           fun nowevents gap ((dt, (label, evt)) :: rest) =
             let 
+(*
               val () = if gap > dt then print ("late by " ^ Int.toString (gap - dt) ^ "\n")
                        else ()
+*)
 
               (* try to account for drift *)
               (* val () = if nn < 0 then skip := !skip + nn
@@ -522,7 +535,7 @@ struct
              | SOME (E_KeyDown { sym = SDLK_i }) => skip := !skip + 2000
              | SOME (E_KeyDown { sym = SDLK_o }) => transpose := !transpose - 1
              | SOME (E_KeyDown { sym = SDLK_p }) => transpose := !transpose + 1
-             (* Assume joystic events are coming from the one joystick we enabled
+             (* Assume joystick events are coming from the one joystick we enabled
                 (until we have multiplayer... ;)) *)
              | SOME (E_JoyDown { button, ... }) => fingeron (joymap button)
              | SOME (E_JoyUp { button, ... }) => fingeroff (joymap button)
@@ -560,8 +573,8 @@ struct
                       (case CharVector.sub(name, 0) of
                            #"+" =>
                            SOME (case CharVector.sub (name, 1) of
-                                     #"Q" => Music INST_SQUARE (* XXX INST_SQUARE *)
-                                   | #"W" => Music INST_SQUARE (* XXX INST_SAW *)
+                                     #"Q" => Music INST_SQUARE 
+                                   | #"W" => Music INST_SAW 
                                    | #"N" => Music INST_NOISE
                                    | #"S" => Music INST_SINE
                                    | _ => (print "?? expected Q or W or N\n"; raise Test ""),
@@ -574,10 +587,12 @@ struct
   val tracks = label thetracks
   val tracks = slow (MIDI.mergea tracks)
 
+(*
   val () = app (fn (dt, (lab, evt)) =>
                 let in
                   print ("dt: " ^ itos dt ^ "\n")
                 end) tracks
+*)
 
   val () = loop (getticksi (), getticksi (), tracks)
     handle Test s => messagebox ("exn test: " ^ s)
