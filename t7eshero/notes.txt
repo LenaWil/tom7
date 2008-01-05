@@ -10,6 +10,7 @@ The first character determines the track type.
     The next character determines the instrument used:
        W: sawtooth
        Q: square
+       S: sine
        N: noise
 
 ... more track types here (e.g. score)
