@@ -5,16 +5,16 @@
 structure Test =
 struct
 
-  fun messagebox _ = ()
+  fun messagebox s = print (s ^ "\n")
 
   (* Comment this out on Linux, or it will not link *)
-(*
+
   local
       val mb_ = _import "MessageBoxA" : MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
   in
       fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", MLton.Pointer.null)
   end
-*)
+
   type ptr = MLton.Pointer.t
 
   exception Nope
@@ -38,6 +38,7 @@ struct
   (* XXX these should describe what kind of track it is *)
   datatype label =
       Music of int
+    | Control
 
   (* XXX assumes joystick 0 *)
 (*
@@ -419,8 +420,15 @@ struct
                           MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
                         | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
                         | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
-                        | _ => print "unknown event\n")
+                        | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
                           (* otherwise no sound..? *) 
+                   | Control =>
+                       (case evt of
+                            MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
+                          | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
+                                print ("TIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
+                                       ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
+                          | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
                           );
 
                   nowevents (gap - dt) rest
@@ -500,6 +508,7 @@ struct
                        end
                      else ()
                        (* otherwise... ? *)
+                 | Control => ()
                        );
                    draw spans tiempo rest
               end
@@ -567,8 +576,8 @@ struct
       let
           fun onetrack tr =
               case findname tr of
-                  NONE => (print "Discarded track with no name.\n"; NONE)
-                | SOME "" => (print "Discarded track with empty name.\n"; NONE)
+                  NONE => SOME (Control, tr) (* (print "Discarded track with no name.\n"; NONE) *)
+                | SOME "" => SOME (Control, tr) (* (print "Discarded track with empty name.\n"; NONE) *)
                 | SOME name => 
                       (case CharVector.sub(name, 0) of
                            #"+" =>
