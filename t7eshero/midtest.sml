@@ -424,6 +424,7 @@ struct
                           (* otherwise no sound..? *) 
                    | Control =>
                        (case evt of
+                            (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
                             MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
                           | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
                                 print ("TIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
