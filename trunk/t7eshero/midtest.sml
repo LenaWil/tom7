@@ -589,7 +589,8 @@ struct
                                    | #"S" => Music INST_SINE
                                    | _ => (print "?? expected Q or W or N\n"; raise Test ""),
                                  tr)
-                         | _ => (print "?? expected + or ...\n"; raise Test ""))
+                         | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); SOME (Control, tr))
+                           )
       in
           List.mapPartial onetrack tracks
       end
