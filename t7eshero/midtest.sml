@@ -8,13 +8,13 @@ struct
   fun messagebox s = print (s ^ "\n")
 
   (* Comment this out on Linux, or it will not link *)
-
+(*
   local
       val mb_ = _import "MessageBoxA" : MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
   in
       fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", MLton.Pointer.null)
   end
-
+*)
   type ptr = MLton.Pointer.t
 
   exception Nope
@@ -94,16 +94,6 @@ struct
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
 
-  val botx = ref 50
-  val boty = ref 50
-  val botface = ref FRIGHT
-  (* position of top-left of scroll window *)
-  val scrollx = ref 0
-  val scrolly = ref 0
-  (* (* in sixteenths of a pixel per frame *) *)
-  val botdx = ref 0
-  val botdy = ref 0
-
   val paused = ref false
   val advance = ref false
 
@@ -134,7 +124,7 @@ struct
    72982423,77322184,81920000,86791217,91952091,97419847,103212732,109350081,
    115852375,122741316]
 
-  val transpose = ref 5 (* XXX? *)
+  val transpose = ref 0 (* XXX? *)
   fun pitchof n =
       let
           val n = n + ! transpose
@@ -292,10 +282,19 @@ struct
           flip screen
       end
 
+  (* Fudge a score track from the actual notes. *)
+  (* XXX should do for score tracks, not music tracks *)
+  (* but for now don't show drum tracks, at least *)
+  fun score_inst_XXX inst = inst <> INST_NOISE
+
   structure State =
   struct
-      
+
+    (* Player input *)
     val fingers = Array.array(5, false) (* all fingers start off *)
+
+    (* Is there a sustained note on this finger? *)
+    val spans = Array.array(5, false) (* and not in span *)
 
   end
 
@@ -432,6 +431,20 @@ struct
                           | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
                           );
 
+                  (* and adjust state *)
+                  (case label of
+                     Music inst =>
+                       if score_inst_XXX inst
+                       then
+                         case evt of
+                           MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note mod 5, false)
+                         | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note mod 5, true)
+                         | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note mod 5, false)
+                         | _ => ()
+                       else ()
+                    (* tempo here? *)
+                    | _ => ());
+
                   nowevents (gap - dt) rest
                 end
               (* the event is not ready yet. it must be measured as a
@@ -454,7 +467,15 @@ struct
       then 
         let 
           val () = Scene.clear ()
-            
+
+          (* spans may be so long they run off the screen. We keep track of
+             a bit of state for each finger, which is whether we are currently
+             in a span there. *)
+          val spans = Array.tabulate(5, fn f =>
+                                     if Array.sub(State.spans, f)
+                                     then SOME 0
+                                     else NONE)
+
           fun emit_span finger (spanstart, spanend) =
             let in
               (*
@@ -465,13 +486,14 @@ struct
             end
           
           (* val () = print "----\n" *)
-        
+
           val period = now - lt
-            
-          fun draw spans _ nil = ()
-            (* XXX this is wrong because we end spans that ain't started *)
-            (* Array.appi (fn (finger, spanstart) => emit_span finger spanstart MAXAHEAD) spans *)
-            | draw spans when ((dt, (label, e)) :: rest) = 
+
+          fun draw _ nil =
+            (* Make sure that we only end a span if it's started *)
+            Array.appi (fn (finger, SOME spanstart) => emit_span finger (spanstart, MAXAHEAD)
+                         | _ => ()) spans
+            | draw when ((dt, (label, e)) :: rest) = 
             if when > MAXAHEAD
             then ()
             else 
@@ -480,9 +502,8 @@ struct
                   
               in
                 (case label of
-                   Music inst => (* XXX should do for score tracks, not music tracks *)
-                     (* but for now don't show drum tracks, at least *)
-                     if inst <> INST_NOISE
+                   Music inst => 
+                     if score_inst_XXX inst
                      then
                        let
                          fun doevent (MIDI.NOTEON (x, note, 0)) = 
@@ -490,8 +511,11 @@ struct
                            | doevent (MIDI.NOTEOFF (_, note, _)) =
                                let val finger = note mod 5
                                in 
-                                 emit_span finger (Array.sub(spans, finger), tiempo)
-                               (* no need to clear entry in array *)
+                                 (case Array.sub(spans, finger) of
+                                    NONE => print "ended span we're not in?!\n"
+                                  | SOME ss => emit_span finger (ss, tiempo));
+                                    
+                                 Array.update(spans, finger, NONE)
                                end
                            | doevent (MIDI.NOTEON (_, note, vel)) =
                                let val finger = note mod 5
@@ -502,7 +526,7 @@ struct
                                     (even though this is not the case when
                                     we generate the score by mod5 or include
                                     multiple channels!) *)
-                                 Array.update(spans, finger, tiempo)
+                                 Array.update(spans, finger, SOME tiempo)
                                end
                            | doevent _ = ()
                        in doevent e
@@ -511,7 +535,7 @@ struct
                        (* otherwise... ? *)
                  | Control => ()
                        );
-                   draw spans tiempo rest
+                   draw tiempo rest
               end
             
           (* Bars are wrong, for some reason. 
@@ -525,11 +549,7 @@ struct
            Scene.addbar (n mod 2, (n * TICKBARS) + baroffset)
            );
 
-          (* XXX why pass and also use array? should just be local var *)
-          (* XXX in order to handle spans that go off the screen, we need to
-             know whether we are currently in a span (that is, if some finger
-             is currently 'down' in the score). *)
-          draw (Array.array(5, 0)) 0 (* period? XXX *) track;
+          draw 0 (* period? XXX *) track;
           Scene.draw ();
           flip screen;
           loopplay (lt, now, track)
