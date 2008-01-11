@@ -218,8 +218,8 @@ struct
   (* val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks *)
 
   (* XXX hammer time *)
-(*
-  val hammerspeed = 0w3
+(* 
+  val hammerspeed = 0w1
   local val gt = ref 0w0 : Word32.word ref
   in
     fun getticks () =
@@ -235,7 +235,7 @@ struct
   fun getticksi () = (Word32.toInt (getticks ()) + !skip)
 
   (* how many ticks forward do we look? *)
-  val MAXAHEAD = 1024
+  val MAXAHEAD = 960
 
   (* For 360 X-Plorer guitar, which strangely swaps yellow and blue keys *)
   fun joymap 0 = 0
@@ -494,8 +494,8 @@ struct
             Array.appi (fn (finger, SOME spanstart) => emit_span finger (spanstart, MAXAHEAD)
                          | _ => ()) spans
             | draw when ((dt, (label, e)) :: rest) = 
-            if when > MAXAHEAD
-            then ()
+            if when + dt > MAXAHEAD
+            then draw when nil
             else 
               let 
                 val tiempo = when + dt
@@ -506,15 +506,14 @@ struct
                      if score_inst_XXX inst
                      then
                        let
-                         fun doevent (MIDI.NOTEON (x, note, 0)) = 
-                               doevent (MIDI.NOTEOFF (x, note, 0))
+                         fun doevent (MIDI.NOTEON (x, note, 0)) = doevent (MIDI.NOTEOFF (x, note, 0))
                            | doevent (MIDI.NOTEOFF (_, note, _)) =
                                let val finger = note mod 5
                                in 
                                  (case Array.sub(spans, finger) of
-                                    NONE => print "ended span we're not in?!\n"
+                                    NONE => (* print "ended span we're not in?!\n" *) ()
                                   | SOME ss => emit_span finger (ss, tiempo));
-                                    
+
                                  Array.update(spans, finger, NONE)
                                end
                            | doevent (MIDI.NOTEON (_, note, vel)) =
