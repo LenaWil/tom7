@@ -329,8 +329,8 @@ struct
     val stars = ref nil : (int * int * int) list ref
     (* rectangles the liteup background to draw. x,y,w,h *)
     val spans = ref nil : (int * int * int * int) list ref
-    (* type, y *)
-    val bars  = ref nil : (color * int) list ref
+    (* type, y, height *)
+    val bars  = ref nil : (color * int * int) list ref
       
     (* XXX fingers, strum, etc. *)
 
@@ -352,13 +352,13 @@ struct
 
     fun addbar (b, t) = 
       let 
-        val c = 
+        val (c, h) = 
           case b of
-            Beat => BEATCOLOR
-          | Measure => MEASURECOLOR
-          | Timesig _ => TSCOLOR (* XXX also show time sig *)
+            Beat => (BEATCOLOR, 2)
+          | Measure => (MEASURECOLOR, 5)
+          | Timesig _ => (TSCOLOR (* XXX also show time sig *), 8)
       in
-          bars := (c, (height - NUTOFFSET) - (t div 2)) :: !bars
+          bars := (c, (height - NUTOFFSET) - (t div 2), h) :: !bars
       end
 
     fun addspan (finger, spanstart, spanend) =
@@ -380,7 +380,7 @@ struct
 
         (* tempo *)
         (* XXX probably could have different colors for major and minor bars... *)
-        app (fn (c, y) => fillrect(screen, 16, y, width - 32, 2, c)) (!bars);
+        app (fn (c, y, h) => fillrect(screen, 16, y - (h div 2), width - 32, h, c)) (!bars);
         (* stars on top *)
         app (fn (f, x, y) => blitall(Vector.sub(starpics, f), screen, x, y)) (!stars)
       end
