@@ -37,7 +37,10 @@ struct
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
 
   (* number of SDL ticks per midi tick. need to fix this to derive from tempo. *)
-  val SLOWFACTOR = 6
+  val SLOWFACTOR =
+    (case map Int.fromString (CommandLine.arguments ()) of
+       [_, SOME t] => t
+     | _ => 5)
 
   val screen = makescreen (width, height)
 
@@ -216,7 +219,7 @@ struct
   (* FIXME totally ad hoc!! *)
   val itos = Int.toString
   val f = (case CommandLine.arguments() of 
-               [st] => st
+               st :: _ => st
              | _ => "totally-membrane.mid")
   val r = (Reader.fromfile f) handle _ => 
       raise Test ("couldn't read " ^ f)
