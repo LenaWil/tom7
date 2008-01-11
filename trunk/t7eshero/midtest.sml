@@ -33,6 +33,12 @@ struct
   (* distance of nut (on-tempo target bar) from bottom of screen *)
   val NUTOFFSET = 20
 
+  (* Dummy event, used for bars and stuff *)
+  val DUMMY = MIDI.META (MIDI.PROP "dummy")
+
+  (* number of SDL ticks per midi tick. need to fix this to derive from tempo. *)
+  val SLOWFACTOR = 6
+
   val screen = makescreen (width, height)
 
   datatype bar =
@@ -221,6 +227,8 @@ struct
   val _ = divi > 0
       orelse raise Test ("Division must be in PPQN form!\n")
 
+  val divi = divi * SLOWFACTOR 
+
   (* val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks *)
 
   (* XXX hammer time *)
@@ -309,16 +317,17 @@ struct
   structure Scene =
   struct
 
-    val TEMPOCOLORS = Vector.fromList [color(0wx77, 0wx77, 0wx77, 0wxFF),
-                                       color(0wxAA, 0wxAA, 0wxAA, 0wxFF)]
+    val BEATCOLOR    = color(0wx77, 0wx77, 0wx77, 0wxFF)
+    val MEASURECOLOR = color(0wxDD, 0wx22, 0wx22, 0wxFF)
+    val TSCOLOR      = color(0wx22, 0wxDD, 0wx22, 0wxFF)
     val starpics = stars
 
-     (* color, x, y *)
+    (* color, x, y *)
     val stars = ref nil : (int * int * int) list ref
     (* rectangles the liteup background to draw. x,y,w,h *)
     val spans = ref nil : (int * int * int * int) list ref
-    (* color, y *)
-    val bars  = ref nil : (int * int) list ref
+    (* type, y *)
+    val bars  = ref nil : (color * int) list ref
       
     (* XXX fingers, strum, etc. *)
 
@@ -338,7 +347,16 @@ struct
        (* hit star half way *)
        (height - (NUTOFFSET + STARHEIGHT div 2)) - (stary div 2)) :: !stars
 
-    fun addbar (c, t) = bars := (c, (height - NUTOFFSET) - (t div 2)) :: !bars
+    fun addbar (b, t) = 
+      let 
+        val c = 
+          case b of
+            Beat => BEATCOLOR
+          | Measure => MEASURECOLOR
+          | Timesig _ => TSCOLOR (* XXX also show time sig *)
+      in
+          bars := (c, (height - NUTOFFSET) - (t div 2)) :: !bars
+      end
 
     fun addspan (finger, spanstart, spanend) =
       spans :=
@@ -359,7 +377,7 @@ struct
 
         (* tempo *)
         (* XXX probably could have different colors for major and minor bars... *)
-        app (fn (c, y) => fillrect(screen, 16, y, width - 32, 2, Vector.sub(TEMPOCOLORS, c))) (!bars);
+        app (fn (c, y) => fillrect(screen, 16, y, width - 32, 2, c)) (!bars);
         (* stars on top *)
         app (fn (f, x, y) => blitall(Vector.sub(starpics, f), screen, x, y)) (!stars)
       end
@@ -368,7 +386,7 @@ struct
 
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
-  val TICKBARS = (* 256 *) (* 240 *) divi * 2
+  val TICKBARS = (* 256 *) (* 240 *) divi * 2 (* XXX go bye*)
   val DRAWTICKS = (* 128 *) 3
   fun loopplay (_,  _,  nil) = print "SONG END.\n"
     | loopplay (lt, ld, track) =
@@ -435,6 +453,7 @@ struct
                                 print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
                                        ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
                           | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
+                   | Bar _ => () (* XXX could play metronome click *)
                           );
 
                   (* and adjust state *)
@@ -537,6 +556,7 @@ struct
                        in doevent e
                        end
                      else ()
+                 | Bar b => Scene.addbar(b, tiempo)
                        (* otherwise... ? *)
                  | Control => ()
                        );
@@ -547,12 +567,14 @@ struct
              Maybe it has to do with drift?
              Maybe it is because the input delta times are actually
              sort of weird? *)
-          val baroffset = TICKBARS - (now mod TICKBARS)
+          (* val baroffset = TICKBARS - (now mod TICKBARS) *)
         in
+(*
           Util.for 0 (MAXAHEAD div TICKBARS)
           (fn n =>
            Scene.addbar (n mod 2, (n * TICKBARS) + baroffset)
            );
+*)
 
           draw 0 (* period? XXX *) track;
           Scene.draw ();
@@ -598,11 +620,14 @@ struct
          impossible:
          *)
       fun getstarttime nil = (print "(TIME) no events?"; raise Test "")
-        | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: _) = (n, d, cpc, bb)
-        | getstarttime ((0, _) :: t) = getstarttime t
+        | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: rest) = ((n, d, cpc, bb), rest)
+        | getstarttime ((0, evt) :: t) = 
+        let val (x, rest) = getstarttime t
+        in (x, (0, evt) :: rest)
+        end
         | getstarttime (_ :: t) = (print ("(TIME) no 0 time events"); raise Test "")
 
-      val (n, d, cpc, bb) = getstarttime t
+      val ((n, d, cpc, bb), rest) = getstarttime t
 
       val () = if bb <> 8 
                then (messagebox ("The MIDI file may not redefine 32nd notes!");
@@ -641,18 +666,46 @@ struct
          using a complex time, like for sensations: 5,5,6,5. Instead we just
          put one minor bar for each beat. *)
 
+      (* For now the beat list is always [1, 1, 1, 1 ...] so that we put
+         a minor bar on every beat. *)
+      val beatlist = List.tabulate (n, fn _ => 1)
 
-      fun ibars (bl, ml) nil = nil (* XXX probably should finish out
-                                      the measure, draw end bar. *)
-        | ibars (bl, ml) ((dt, evt) :: rest)
+      (* FIXME test *)
+      (* val beatlist = [5, 5, 6, 5] *)
+
+      (* number of ticks at which we place minor bars; at end we place a major one *)
+      val ticklist = map (fn b => b * beat) beatlist
+
+      fun ibars tl nil = nil (* XXX probably should finish out
+                                the measure, draw end bar. *)
+
+        | ibars (ticksleft :: rtl) ((dt, evt) :: rest) = 
+        (* Which comes first, the next event or our next bar? *)
+        if dt <= ticksleft
+        then 
+          (case evt of
+             (* Time change event coming up! *)
+             (Control, MIDI.META (MIDI.TIME _)) =>
+             (* emit dummy event so that we can always start time changes with dt 0 *)
+             (dt, (Control, DUMMY)) :: add_measures ((0, evt) :: rest)
+
+           | _ => (dt, evt) :: ibars (ticksleft - dt :: rtl) rest)
+        else 
+          (* if we exhausted the list, then there is a major (measure) bar here. *)       
+          (case rtl of
+             nil => (ticksleft, (Bar Measure, DUMMY)) :: ibars ticklist ((dt - ticksleft, evt) :: rest)
+           | _   => (ticksleft, (Bar Beat, DUMMY))    :: ibars rtl      ((dt - ticksleft, evt) :: rest))
+
+        | ibars nil _ = raise Test "tickslist never nil" (* 0/4 time?? *)
 
     in
-      (* XXX *)
-      t
+      (0, (Control, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) ::
+      (0, (Bar (Timesig (n, Util.pow 2 d)), DUMMY)) ::
+      ibars ticklist rest
     end
 
   (* fun slow l = map (fn (delta, e) => (delta * 6, e)) l *)
-  fun slow l = map (fn (delta, e) => (delta * 4, e)) l
+  fun slow l = map (fn (delta, e) => (delta * SLOWFACTOR, e)) l
 
   (* get the name of a track *)
   fun findname nil = NONE
