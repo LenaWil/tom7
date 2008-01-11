@@ -35,10 +35,16 @@ struct
 
   val screen = makescreen (width, height)
 
+  datatype bar =
+      Measure
+    | Beat
+    | Timesig of int * int
+
   (* XXX these should describe what kind of track it is *)
   datatype label =
       Music of int
     | Control
+    | Bar of bar
 
   (* XXX assumes joystick 0 *)
 (*
@@ -426,7 +432,7 @@ struct
                             (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
                             MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
                           | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
-                                print ("TIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
+                                print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
                                        ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
                           | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
                           );
@@ -582,6 +588,69 @@ struct
           loopdraw x
       end
 
+  (* In an already-labeled track set, add measure marker events. *)
+  fun add_measures t =
+    let
+      (* Read through tracks, looking for TIME events in
+         Control tracks. 
+         Each TIME event starts a measure, naturally.
+         We need to find one at 0 time, otherwise this is
+         impossible:
+         *)
+      fun getstarttime nil = (print "(TIME) no events?"; raise Test "")
+        | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: _) = (n, d, cpc, bb)
+        | getstarttime ((0, _) :: t) = getstarttime t
+        | getstarttime (_ :: t) = (print ("(TIME) no 0 time events"); raise Test "")
+
+      val (n, d, cpc, bb) = getstarttime t
+
+      val () = if bb <> 8 
+               then (messagebox ("The MIDI file may not redefine 32nd notes!");
+                     raise Test "")
+               else ()
+
+      (* We ignore the clocksperclick, which gives the metronome rate. Even
+         though this is ostensibly what we want, the values are fairly
+         unpredictable. *)
+
+      (* First we determine the length of a measure in midi ticks. 
+         ?? Here only the ratio is important: 4/4 time has the same measure length as 2/2.
+
+         The midi division tells us how many clicks there are in a quarter note.
+         The denominator tells us how many beats there are per measure. So we can
+         first compute the number of midi ticks in a beat:
+         *)
+
+      val beat =
+        (* in general  divi/(2^(d-2)), but avoid using fractions
+           by special casing the d < 2 *)
+        case d of
+          (* n/1 time *)
+          0 => divi * 4
+          (* n/2 time: half notes *)
+        | 1 => divi * 2
+          (* n/4 time, n/8 time, etc. *)
+        | _ => divi div (Util.pow 2 (d - 2))
+
+      val () = print ("The beat value is: " ^ Int.toString beat ^ "\n")
+
+      val measure = n * beat
+      val () = print ("And the measure value is: " ^ Int.toString measure ^ "\n")
+
+      (* XXX would be better if we could also additionally label the beats when
+         using a complex time, like for sensations: 5,5,6,5. Instead we just
+         put one minor bar for each beat. *)
+
+
+      fun ibars (bl, ml) nil = nil (* XXX probably should finish out
+                                      the measure, draw end bar. *)
+        | ibars (bl, ml) ((dt, evt) :: rest)
+
+    in
+      (* XXX *)
+      t
+    end
+
   (* fun slow l = map (fn (delta, e) => (delta * 6, e)) l *)
   fun slow l = map (fn (delta, e) => (delta * 4, e)) l
 
@@ -616,7 +685,7 @@ struct
       
   val tracks = label thetracks
   val tracks = slow (MIDI.mergea tracks)
-
+  val tracks = add_measures tracks
 (*
   val () = app (fn (dt, (lab, evt)) =>
                 let in
