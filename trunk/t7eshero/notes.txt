@@ -289,11 +289,24 @@ The final issue is a confounding one. The game is played by scrolling
 the score and accepting user input as the song plays, but the algorithm
 we described needs the entire input and score in order to compute the
 match! We need to be able to give immediate feedback to the player,
-because this is part of the "feel" of the game 
+because this is part of the "feel" of the game. Up-to-date status is
+important for other features, like failing a song when the local
+match is too poor, or activating Star Power, etc. This means that we
+desire an "on-line" version of the algorithm.
 
-Solve the problem exactly by optimizing the matching problem to
-take into account epsilon? (Does latency always follow as a
-function of epsilon?)
+The reason that we are not totally screwed is that the epsilon
+parameter places a very tight constraint on matching that allows us
+to solve the exact problem on-line. Intuitively, a note played at
+the beginning of the song cannot match a note in the score at the
+end of the song (or any other note outside of the window defined by
+epsilon), and therefore we do not need to consider such pairs when
+determining the match.
+
+
+
+# Solve the problem exactly by optimizing the matching problem to
+# take into account epsilon? (Does latency always follow as a
+# function of epsilon?)
 
 --------------------------------------------------
 
