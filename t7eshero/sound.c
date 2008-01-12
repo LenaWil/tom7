@@ -110,7 +110,8 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 	seed *= 0x11234567;
 	seed += 0x77339919;
 
-	if (cur_vol[ch]) mag += seed % (cur_vol[ch] * 2) - cur_vol[ch];
+	/* half-volume for noise, otherwise too overpowering */
+	if (cur_vol[ch]) mag += (seed % (cur_vol[ch] * 2) - cur_vol[ch]) >> 1;
 	break;
       }
 
@@ -144,6 +145,8 @@ void ml_initsound() {
     for (i = 0; i < NMIX; i ++) {
       cur_freq[i] = 256;
       cur_vol[i] = 0;
+      samples[i] = 0;
+      cur_inst[i] = INST_NONE;
       val[i] = 1;
     }
   }
