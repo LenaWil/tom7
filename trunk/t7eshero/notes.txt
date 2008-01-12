@@ -15,6 +15,21 @@ The first character determines the track type.
 
 ... more track types here (e.g. score)
 
+  ! means a score track. 
+     The next character determines the difficulty level:
+       E: Easy
+       H: Hard
+       X: Expert
+       R: Real
+
+    These contain notes C5-E5 (MIDI 60-64)
+    corresponding to fingers 0-4 respectively.
+
+    In the score, a note with velocity < 64 is considered hammered.
+
+    (These scores can be generated automatically with genscore,
+     but they should be hand-tweaked!)
+
 ----------------------------------------------------------------------
 
 Responding to Input                                        27 Dec 2007
@@ -137,8 +152,8 @@ edit distance of 0 corresponds to perfect play:
 An "insertion" (from score->inputs) is an extraneous commit event, and
 a "deletion" is a missed note. A "modification" is the wrong note
 played (both an insertion and a deletion). Each is assessed a penalty.
-This also allows us to optionally not penalize insertions, which will
-be used for hammered notes.
+This also allows us to optionally not penalize insertions of certain
+events, which we will need to treat hammered notes.
 
 * Hammered sonemes
 
@@ -182,15 +197,15 @@ included in the "distance".
  : 6
 
 Consider the position X when the input is note-on Z and the score
-contains Z at that position. We can get to X from positions a, b,
-and c. From b to X corresponds to a missed note, because we advance
-the position in the score without using any input. In this case,
-we terminate the streak in X. From c corresponds to ignoring the
-input but not advancing the score. This terminates the streak,
-since it is a note-on event, but it does not cause a miss. Coming
-from a, if 'a' is on a streak, then we continue the streak and
-succeed in playing the note. If 'a' is not on streak, then we
-cannot make this transition.
+contains a hammered note Z at that position. We can get to X from
+positions a, b, and c. From b to X corresponds to a missed note,
+because we advance the position in the score without using any input.
+In this case, we terminate the streak in X. From c corresponds to
+ignoring the input but not advancing the score. This terminates the
+streak, since it is a note-on event, but it does not cause a miss.
+Coming from a, if 'a' is on a streak, then we continue the streak and
+succeed in playing the note. If 'a' is not on streak, then we cannot
+make this transition.
 
 Therefore, each entry in the table takes the form
 
@@ -235,7 +250,7 @@ then
            then { misses = a.m,     streak = true  }  (* hit *)
            else { misses = a.m + 1, streak = false }, (* miss *)
            { misses = b.m + 1, streak = false },      (* skip *)
-           { misses = c.m, streak = false }           (* extraneous *)
+           { misses = c.m,     streak = false }       (* extraneous *)
            ]
 
 The interesting case is for a, where we must be on a streak in order
@@ -249,7 +264,7 @@ Note(N') where N' is hammered, then
            then { misses = a.m,     streak = true  }  (* hit *)
            else { misses = a.m + 1, streak = false }, (* miss *)
            { misses = b.m + 1, streak = false },      (* skip *)
-           { misses = c.m, streak = c.s }             (* extraneous *)
+           { misses = c.m,     streak = c.s }         (* extraneous *)
            ]
 
 Note-off events are the same, but if they are extraneous (c) they do
@@ -257,10 +272,24 @@ not interrupt the streak.
 
 * Note durations
 
-We also have note durations, but these are treated independently of the
-matching algorithm. (?)
+We also have note durations, but these are treated independently of
+the matching algorithm. As each note in the score passes by in real
+time, if the player is fingering a matching input at that time (chord,
+note, etc.) then that note is assigned increasing point values for
+each unit of time passed. Whether the bonus points assigned to this
+note are ultimately given to the player is determined by the matching
+algorithm above. This is because we must start giving bonus points to
+the player if he is holding the chord when the long note begins, but
+we might not know if the note is going to be counted until the matching
+algorithm leaves its window (below).
 
 * On-line matching
+
+The final issue is a confounding one. The game is played by scrolling
+the score and accepting user input as the song plays, but the algorithm
+we described needs the entire input and score in order to compute the
+match! We need to be able to give immediate feedback to the player,
+because this is part of the "feel" of the game 
 
 Solve the problem exactly by optimizing the matching problem to
 take into account epsilon? (Does latency always follow as a

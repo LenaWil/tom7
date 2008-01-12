@@ -1,8 +1,9 @@
 
-(* Tom 7 Entertainment System Hero! *)
+(* Tom 7 Entertainment System Hero!
 
-(* FIXME On Windows, Check that SDL_AUDIODRIVER is dsound otherwise
-   this is unusable because of latency *)
+   
+
+*)
 
 structure T7ESHero =
 struct
@@ -260,7 +261,6 @@ struct
     | joymap 4 = 4
     | joymap _ = 999 (* XXX *)
 
-  (* FIXMEs *)
   fun fingeron f =
       let val x = 8 + 6 + f * (STARWIDTH + 18)
           val y = height - 42
@@ -285,7 +285,7 @@ struct
 
   fun commit () =
       let
-      in blitall(Vector.sub(stars,0), screen, 0, height - 42);
+      in blitall(robotr, screen, 0, height - 42);
           flip screen
       end
 
@@ -709,9 +709,6 @@ struct
   (* fun slow l = map (fn (delta, e) => (delta * 6, e)) l *)
   fun slow l = map (fn (delta, e) => (delta * SLOWFACTOR, e)) l
 
-  (* How to complete pre-delay? *)
-  fun delay t = (2 * divi, (Control, DUMMY)) :: t
-
   (* get the name of a track *)
   fun findname nil = NONE
     | findname ((_, MIDI.META (MIDI.NAME s)) :: _) = SOME s
@@ -744,8 +741,6 @@ struct
   val tracks = label thetracks
   val tracks = slow (MIDI.mergea tracks)
   val tracks = add_measures tracks
-
-  val tracks = delay tracks
 (*
   val () = app (fn (dt, (lab, evt)) =>
                 let in
