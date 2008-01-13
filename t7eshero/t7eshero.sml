@@ -388,7 +388,6 @@ struct
 
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
-  val TICKBARS = (* 256 *) (* 240 *) divi * 2 (* XXX go bye*)
   val DRAWTICKS = (* 128 *) 3
   fun loopplay (_,  _,  nil) = print "SONG END.\n"
     | loopplay (lt, ld, track) =
@@ -564,20 +563,8 @@ struct
                        );
                    draw tiempo rest
               end
-            
-          (* Bars are wrong, for some reason. 
-             Maybe it has to do with drift?
-             Maybe it is because the input delta times are actually
-             sort of weird? *)
-          (* val baroffset = TICKBARS - (now mod TICKBARS) *)
-        in
-(*
-          Util.for 0 (MAXAHEAD div TICKBARS)
-          (fn n =>
-           Scene.addbar (n mod 2, (n * TICKBARS) + baroffset)
-           );
-*)
 
+        in
           draw 0 (* period? XXX *) track;
           Scene.draw ();
           flip screen;
@@ -641,7 +628,6 @@ struct
          unpredictable. *)
 
       (* First we determine the length of a measure in midi ticks. 
-         ?? Here only the ratio is important: 4/4 time has the same measure length as 2/2.
 
          The midi division tells us how many clicks there are in a quarter note.
          The denominator tells us how many beats there are per measure. So we can
