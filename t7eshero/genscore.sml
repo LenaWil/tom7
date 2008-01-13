@@ -68,9 +68,16 @@ struct
 
   (* FIXME totally ad hoc!! *)
   val itos = Int.toString
-  val f = (case CommandLine.arguments() of 
-               st :: _ => st
-             | _ => "totally-membrane.mid")
+
+  val (f, includes) = 
+      (case CommandLine.arguments() of 
+           st :: includes => (st,
+                              map (fn SOME i => i
+                                    | NONE => (print "Expected a series of track numbers after the filename\n";
+                                               raise Exit)) (map Int.fromString includes))
+         | _ => (print "Expected a MIDI file on the command line.\n";
+                 raise Exit))
+
   val r = (Reader.fromfile f) handle _ => 
       raise Hero ("couldn't read " ^ f)
   val m as (ty, divi, thetracks) = MIDI.readmidi r
@@ -220,31 +227,41 @@ struct
       let
           fun onetrack (tr, i) =
               case findname tr of
-                  NONE => (Control, tr) (* (print "Discarded track with no name.\n"; NONE) *)
-                | SOME "" => (Control, tr) (* (print "Discarded track with empty name.\n"; NONE) *)
+                  NONE => SOME (Control, tr) (* (print "Discarded track with no name.\n"; NONE) *)
+                | SOME "" => SOME (Control, tr) (* (print "Discarded track with empty name.\n"; NONE) *)
                 | SOME name => 
-                      let in
-                          print ("Track " ^ StringUtil.pad ~2 (Int.toString i) ^ ": " ^ name ^ "\n");
-                          (case CharVector.sub(name, 0) of
-                               #"+" =>
-                               (case CharVector.sub (name, 1) of
-                                    #"Q" => Music INST_SQUARE 
-                                  | #"W" => Music INST_SAW 
-                                  | #"N" => Music INST_NOISE
-                                  | #"S" => Music INST_SINE
-                                  | _ => (print "?? expected Q or W or N\n"; raise Hero ""),
-                                    tr)
-                             | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); 
-                                     (Control, tr))
-                               )
-                      end
+                      if List.null includes (* so we can see the list; will die below *)
+                         orelse List.exists (fn x => x = i) includes
+                      then SOME
+                          let in
+                              print ("Track " ^ StringUtil.pad ~2 (Int.toString i) ^ ": " ^ name ^ "\n");
+                              (case CharVector.sub(name, 0) of
+                                   #"+" =>
+                                   (case CharVector.sub (name, 1) of
+                                        #"Q" => Music INST_SQUARE 
+                                      | #"W" => Music INST_SAW 
+                                      | #"N" => Music INST_NOISE
+                                      | #"S" => Music INST_SINE
+                                      | _ => (print "?? expected Q or W or N\n"; raise Hero ""),
+                                        tr)
+                                 | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); 
+                                         (Control, tr))
+                                        )
+                          end
+                      else NONE
       in
-          ListUtil.mapi onetrack tracks
+          List.mapPartial (fn x => x) (ListUtil.mapi onetrack tracks)
       end
       
   val tracks = label thetracks
   val tracks = MIDI.mergea tracks
   val tracks = add_measures tracks
+
+  val () = if List.null includes
+           then (print "Specify a list of track numbers to include in the score, as arguments.\n";
+                 raise Exit)
+           else ()
+
 (*
   val () = app (fn (dt, (lab, evt)) =>
                 let in
