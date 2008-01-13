@@ -302,7 +302,8 @@ end of the song (or any other note outside of the window defined by
 epsilon), and therefore we do not need to consider such pairs when
 determining the match.
 
-
+Imagine the full n*m grid representing the score (x axis) and input
+(y axis). 
 
 # Solve the problem exactly by optimizing the matching problem to
 # take into account epsilon? (Does latency always follow as a
