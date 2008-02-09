@@ -24,17 +24,6 @@ struct
   exception Hero of string
   exception Exit
 
-  open SDL
-
-  val width = 256
-  val height = 600
-
-  val ROBOTH = 32
-  val ROBOTW = 16
-    
-  (* distance of nut (on-tempo target bar) from bottom of screen *)
-  val NUTOFFSET = 20
-
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
 
@@ -43,8 +32,6 @@ struct
     (case map Int.fromString (CommandLine.arguments ()) of
        [_, SOME t] => t
      | _ => 5)
-
-  val screen = makescreen (width, height)
 
   datatype bar =
       Measure
@@ -57,58 +44,11 @@ struct
     | Control
     | Bar of bar
 
-  (* XXX assumes joystick 0 *)
-(*
-  val _ = Util.for 0 (Joystick.number () - 1)
-      (fn x => messagebox ("JOY " ^ Int.toString x ^ ": " ^ Joystick.name x ^ "\n"))
-*)
+  local val initaudio_ = _import "ml_initsound" : unit -> unit ;
+  in val () = initaudio_ ()
+  end
 
-  (* XXX requires joystick! *)
-(*
-  val joy = Joystick.openjoy 0 
-  val () = Joystick.setstate Joystick.ENABLE
-*)
-  (* just enable all joysticks. *)
-  val () = Util.for 0 (Joystick.number () - 1) Joystick.openjoy
-  val () = Joystick.setstate Joystick.ENABLE
-
-  val initaudio_ = _import "ml_initsound" : unit -> unit ;
   val setfreq_ = _import "ml_setfreq" : int * int * int * int -> unit ;
-  val () = initaudio_ ()
-
-  fun requireimage s =
-    case Image.load s of
-      NONE => (print ("couldn't open " ^ s ^ "\n");
-               raise Nope)
-    | SOME p => p
-
-  val solid = requireimage "testgraphics/solid.png"
-
-  val background = requireimage "testgraphics/background.png"
-  val backlite   = requireimage "testgraphics/backlite.png"
-
-  val stars = Vector.fromList
-      [requireimage "testgraphics/greenstar.png",
-       requireimage "testgraphics/redstar.png",
-       requireimage "testgraphics/yellowstar.png",
-       requireimage "testgraphics/bluestar.png",
-       requireimage "testgraphics/orangestar.png"]
-       
-  val STARWIDTH = surface_width (Vector.sub(stars, 0))
-  val STARHEIGHT = surface_height (Vector.sub(stars, 0))
-  val greenhi = requireimage "testgraphics/greenhighlight.png"
-  val blackfade = requireimage "testgraphics/blackfade.png"
-  val robobox = requireimage "testgraphics/robobox.png"
-  val blackall = alphadim blackfade
-  val () = clearsurface(blackall, color (0w0, 0w0, 0w0, 0w255))
-
-  val () = blitall(background, screen, 0, 0)
-
-  datatype dir = UP | DOWN | LEFT | RIGHT
-  datatype facing = FLEFT | FRIGHT
-
-  val paused = ref false
-  val advance = ref false
 
   (* note 60 is middle C = 256hz,
      so 0th note is 8hz.
@@ -174,8 +114,6 @@ struct
           flip screen
       end
 
-
-
   datatype status = 
       OFF
     | PLAYING of int
@@ -232,163 +170,25 @@ struct
 
   (* val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks *)
 
-  (* XXX hammer time *)
-(* 
+      
+  (* The crux of this fork is that "time" proceeds only through manual
+     intervention. Each tick is a sample. *)
   val hammerspeed = 0w1
   local val gt = ref 0w0 : Word32.word ref
   in
-    fun getticks () =
-      let in
+    fun getticks () = !gt
+    fun maketick () =
+    let in
         gt := !gt + hammerspeed;
         !gt
-      end
-  end
-*)
-
-  (* allow fast forwarding into the future *)
-  val skip = ref 0
-  fun getticksi () = (Word32.toInt (getticks ()) + !skip)
-
-  (* how many ticks forward do we look? *)
-  val MAXAHEAD = 960
-
-  (* For 360 X-Plorer guitar, which strangely swaps yellow and blue keys *)
-  fun joymap 0 = 0
-    | joymap 1 = 1
-    | joymap 3 = 2
-    | joymap 2 = 3
-    | joymap 4 = 4
-    | joymap _ = 999 (* XXX *)
-
-  (* FIXMEs *)
-  fun fingeron f =
-      let val x = 8 + 6 + f * (STARWIDTH + 18)
-          val y = height - 42
-      in
-          if f >= 0 andalso f <= 4
-          then (blitall(Vector.sub(stars, f),
-                        screen, x, y);
-                flip screen)
-          else ()
-      end
-
-  fun fingeroff f =
-      let val x = 8 + 6 + f * (STARWIDTH + 18)
-          val y = height - 42
-      in
-          if f >= 0 andalso f <= 4
-          then (blit(background, x, y, STARWIDTH, STARHEIGHT,
-                     screen, x, y);
-                flip screen)
-          else ()
-      end
-
-  fun commit () =
-      let
-      in blitall(Vector.sub(stars,0), screen, 0, height - 42);
-          flip screen
-      end
-
-  (* just drawing *)
-  fun commitup () =
-      let
-      in
-          blit(background, 0, height - 42, ROBOTW, ROBOTH,
-               screen, 0, height - 42);
-          flip screen
-      end
-
-  (* Fudge a score track from the actual notes. *)
-  (* XXX should do for score tracks, not music tracks *)
-  (* but for now don't show drum tracks, at least *)
-  fun score_inst_XXX inst = inst <> INST_NOISE
-
-  structure State =
-  struct
-
-    (* Player input *)
-    val fingers = Array.array(5, false) (* all fingers start off *)
-
-    (* Is there a sustained note on this finger? *)
-    val spans = Array.array(5, false) (* and not in span *)
-
+    end
   end
 
-  (* PERF could keep 'lastscene' and only draw changes? *)
-  (* This is the description of what is currently displayed. *)
-  structure Scene =
-  struct
-
-    val BEATCOLOR    = color(0wx77, 0wx77, 0wx77, 0wxFF)
-    val MEASURECOLOR = color(0wxDD, 0wx22, 0wx22, 0wxFF)
-    val TSCOLOR      = color(0wx22, 0wxDD, 0wx22, 0wxFF)
-    val starpics = stars
-
-    (* color, x, y *)
-    val stars = ref nil : (int * int * int) list ref
-    (* rectangles the liteup background to draw. x,y,w,h *)
-    val spans = ref nil : (int * int * int * int) list ref
-    (* type, y, height *)
-    val bars  = ref nil : (color * int * int) list ref
-      
-    (* XXX fingers, strum, etc. *)
-
-    fun clear () =
-      let in
-        stars := nil;
-        spans := nil;
-        bars  := nil
-      end
-
-    fun addstar (finger, stary) =
-      (* XXX fudge city *)
-      stars := 
-      (finger,
-       (STARWIDTH div 4) +
-       6 + finger * (STARWIDTH + 18),
-       (* hit star half way *)
-       (height - (NUTOFFSET + STARHEIGHT div 2)) - (stary div 2)) :: !stars
-
-    fun addbar (b, t) = 
-      let 
-        val (c, h) = 
-          case b of
-            Beat => (BEATCOLOR, 2)
-          | Measure => (MEASURECOLOR, 5)
-          | Timesig _ => (TSCOLOR (* XXX also show time sig *), 8)
-      in
-          bars := (c, (height - NUTOFFSET) - (t div 2), h) :: !bars
-      end
-
-    fun addspan (finger, spanstart, spanend) =
-      spans :=
-      (21 + finger * (STARWIDTH + 18), 
-       (height - NUTOFFSET) - spanend div 2,
-       18 (* XXX *),
-       (spanend - spanstart) div 2) :: !spans
-
-    fun draw () =
-      let in
-        (* entire background first first *)
-        blitall(background, screen, 0, 0);
-        (* spans first *)
-        (* XXX *)
-        (* app (fn (x, y, w, h) => fillrect(screen, x, y, w, h, Vector.sub(TEMPOCOLORS, 1))) (!spans); *)
-
-        app (fn (x, y, w, h) => blit(backlite, x, y, w, h, screen, x, y)) (!spans);
-
-        (* tempo *)
-        (* XXX probably could have different colors for major and minor bars... *)
-        app (fn (c, y, h) => fillrect(screen, 16, y - (h div 2), width - 32, h, c)) (!bars);
-        (* stars on top *)
-        app (fn (f, x, y) => blitall(Vector.sub(starpics, f), screen, x, y)) (!stars)
-      end
-       
-  end
+  fun getticksi () = Word32.toInt (getticks ())
 
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
-  val DRAWTICKS = (* 128 *) 3
+
   fun loopplay (_,  _,  nil) = print "SONG END.\n"
     | loopplay (lt, ld, track) =
       let
@@ -456,20 +256,6 @@ struct
                           | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
                    | Bar _ => () (* XXX could play metronome click *)
                           );
-
-                  (* and adjust state *)
-                  (case label of
-                     Music inst =>
-                       if score_inst_XXX inst
-                       then
-                         case evt of
-                           MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note mod 5, false)
-                         | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note mod 5, true)
-                         | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note mod 5, false)
-                         | _ => ()
-                       else ()
-                    (* tempo here? *)
-                    | _ => ());
 
                   nowevents (gap - dt) rest
                 end
@@ -598,6 +384,9 @@ struct
                );
           loopdraw x
       end
+
+  (* This stuff is not necessary for rendering into samples, but could be
+     useful anyway. *)
 
   (* In an already-labeled track set, add measure marker events. *)
   fun add_measures t =
