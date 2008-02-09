@@ -1,6 +1,7 @@
-#include <SDL.h>
-#include <SDL_audio.h>
 #include <math.h>
+
+// This no longer interacts with SDL
+// and ought to be ported to SML
 
 // number of samples per second
 //#define RATE 22050
@@ -75,29 +76,6 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 	/* the frequency is the number of cycles per HZFACTOR seconds.
 	   so the length of one cycle in samples is (RATE*HZFACTOR)/cur_freq. 
 	*/
-#if 0	
-	// PERF this should be the value stored in cur_freq
-	float fcycle = (((float)RATE * HZFACTOR) / cur_freq[ch]);
-	int cycle = (int)fcycle;
-	leftover[ch] += (fcycle - cycle);
-	// int pos = samples[ch] % cycle;
-	if (samples[ch] >= cycle) {
-	  val[ch] = - val[ch];
-	  /* at higher frequencies, the difference in
-	     the sample period gets to be close to 1 sample, so
-	     we have a relatively large effect from floating point
-	     roundoff. Correct for this by accumulating error
-	     and making a longer period when we have a whole sample.
-	  */
-	  if (1 && leftover[ch] > 1.0) {
-	    samples[ch] = -1;
-	    leftover[ch] -= 1.0;
-	  } else {
-	    samples[ch] = 0;
-	  }
-	}
-	mag += val[ch] * cur_vol[ch];
-#endif
 	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
 	double pos = fmod(samples[ch], cycle);
 	/* sweeping from -vol to +vol with period 'cycle' */
@@ -130,48 +108,19 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
    (probably) be harmless--but we would want to at least
    change the vol/freq/inst atomically. */
 void ml_setfreq(int ch, int nf, int nv, int inst) {
-  SDL_LockAudio();
   cur_freq[ch] = nf;
   cur_vol[ch] = nv;
   cur_inst[ch] = inst;
   samples[ch] = 0;
-  SDL_UnlockAudio();
 }
 
 void ml_initsound() {
-  SDL_AudioSpec fmt;
-
-  {
-    int i;
-    for (i = 0; i < NMIX; i ++) {
-      cur_freq[i] = 256;
-      cur_vol[i] = 0;
-      samples[i] = 0;
-      cur_inst[i] = INST_NONE;
-      val[i] = 1;
-    }
+  int i;
+  for (i = 0; i < NMIX; i ++) {
+    cur_freq[i] = 256;
+    cur_vol[i] = 0;
+    samples[i] = 0;
+    cur_inst[i] = INST_NONE;
+    val[i] = 1;
   }
-
-  /* Set 16-bit stereo audio at 22Khz */
-  fmt.freq = RATE;
-  fmt.format = AUDIO_S16SYS;
-  fmt.channels = NCHANNELS;
-  fmt.samples = BUFFERSIZE;
-  fmt.callback = (void(*)(void*, Uint8*, int)) mixaudio;
-  fmt.userdata = NULL;
-
-  SDL_AudioSpec got;
-
-  // XXX should check that we got the desired settings...
-  if ( SDL_OpenAudio(&fmt, &got) < 0 ) {
-    fprintf(stderr, "Unable to open audio: %s\n", SDL_GetError());
-    exit(1);
-  }
-
-  fprintf(stderr, "Audio data: %d samples, %d channels, %d rate\n",
-	  got.samples, got.channels, got.freq);
-  
-  fprintf(stderr, "%d\n", (int)(Sint16)(int)(90000));
-
-  SDL_PauseAudio(0);
 }
