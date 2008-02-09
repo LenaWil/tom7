@@ -1,5 +1,5 @@
 
-default : genscore.exe t7eshero.exe
+default : renderhero.exe
 
 
 sdlml.o : ../sdlml/sdlml.c
@@ -22,18 +22,8 @@ win32main.o : ../sdlml/win32main.c
 # -Wl,--subsystem,windows
 # -verbose 3
 # -keep g -keep o
-t7eshero.exe : sdlml.o sound.o win32main.o flag*.sml t7eshero.sml t7eshero.cm makefile.mingw ../sdlml/*.sml
-	mlton @MLton max-heap 200m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -DDEBUG_X86CODEGEN -Dmain=SDL_main" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz" -output t7eshero.exe -default-ann 'allowFFI true' t7eshero.cm sdlml.o sound.o win32main.o
-
-genscore.exe : genscore.sml genscore.cm makefile.mingw
-	mlton @MLton max-heap 400m -- -cc-opt "-I/usr/local/include" -link-opt "-L/usr/local/lib" -output genscore.exe genscore.cm
-
-# the order of these libraries and object files is really important! Weird things will
-# happen if it's wrong!
-#  -lz -ltiff -lpng -ljpeg
-ctest : ctest.c
-	gcc -O `sdl-config --cflags` -c ctest.c -o ctest.o
-	gcc ctest.o `sdl-config --libs` -lSDL_image -o ctest
+renderhero.exe : sdlml.o sound.o win32main.o flag*.sml renderhero.sml renderhero.cm makefile.mingw ../sdlml/*.sml
+	mlton @MLton max-heap 200m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -DDEBUG_X86CODEGEN -Dmain=SDL_main" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz" -output renderhero.exe -default-ann 'allowFFI true' renderhero.cm sdlml.o sound.o win32main.o
 
 clean :
-	rm -f t7eshero.exe *.o core
+	rm -f renderhero.exe *.o core

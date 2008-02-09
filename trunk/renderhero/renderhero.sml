@@ -1,10 +1,10 @@
 
-(* Tom 7 Entertainment System Hero! *)
+(* Renderhero is a fork of Tom 7 Entertainment System Hero that
+   simply renders the MIDI file to a WAV file offline. The purpose
+   is to provide sample-accurate rendering for e.g. making music
+   videos that may need tight time-based synchronization. *)
 
-(* FIXME On Windows, Check that SDL_AUDIODRIVER is dsound otherwise
-   this is unusable because of latency *)
-
-structure T7ESHero =
+structure RenderHero =
 struct
 
   fun messagebox s = print (s ^ "\n")

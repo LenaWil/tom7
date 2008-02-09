@@ -3,13 +3,3 @@ noise pitch? (with lowpass/highpass?)
 
 too many simultaneous noise notes sounds very bad
 
-
-SDL_AUDIODRIVER=waveout works but has ridiculous latency.
-dsound doesn't work, but should have better latency. can we make it work?
- (this worked at one point, wtf?)
- (oh, you have to use the pre-built SDL dll from escape in order
-  to get dsound support.)
-
-
-libjpeg on mingwin...
-
