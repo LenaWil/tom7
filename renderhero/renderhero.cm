@@ -18,8 +18,5 @@ group is
 ../sdlml/sdl-sig.sml
 ../sdlml/sdl.sml
 
-flag-sig.sml
-flag.sml
-
 t7eshero.sml
 

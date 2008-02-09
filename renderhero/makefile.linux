@@ -1,5 +1,5 @@
 
-default : t7eshero.exe
+default : renderhero.exe
 
 sound.o : sound.c
 	gcc -O `sdl-config --cflags` -c sound.c -o sound.o
@@ -7,8 +7,8 @@ sound.o : sound.c
 sdlml.o : ../sdlml/sdlml.c
 	gcc -O `sdl-config --cflags` -c ../sdlml/sdlml.c -o sdlml.o
 
-t7eshero.exe : sound.o sdlml.o *.sml
-	mlton -verbose 1 -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowFFI true' -output t7eshero.exe t7eshero.cm sound.o sdlml.o
+renderhero.exe : sound.o sdlml.o *.sml
+	mlton -verbose 1 -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowFFI true' -output renderhero.exe renderhero.cm sound.o sdlml.o
 
 clean :
 	rm -f core.* *~ *.exe *.o
