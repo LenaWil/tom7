@@ -18,6 +18,11 @@ sig
 
   type context = CPSTypeCheck.context
 
+  (* XXX instead of literally passing these, why not have 'selves' be an
+     argument to the functor? Is that possible? To tie the knot we'd
+     probably need to use a reference cell (or recursive module) but
+     it would make the implementations substantially simpler. *)
+
   (* open recursive calls *)
   type selves = { selfv : stuff -> context -> cval -> val_result,
                   selfe : stuff -> context -> cexp -> exp_result,
