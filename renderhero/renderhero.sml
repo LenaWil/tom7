@@ -31,7 +31,10 @@ struct
   val SLOWFACTOR =
     (case map Int.fromString (CommandLine.arguments ()) of
        [_, SOME t] => t
-     | _ => 5)
+     | _ => (* 100 * (* beats per minute *) *)
+(*          60  * (* seconds per minute *) *)
+            400  (* samples per second *) (* XXX param?? *)
+            )
 
   datatype bar =
       Measure
@@ -105,13 +108,7 @@ struct
                         Int.toString f ^ " @ " ^ Int.toString vol ^ "\n");
 *)
           setfreq_ (ch, f, vol, inst);
-          (* "erase" old *)
-          blitall (blackfade, screen, Array.sub(freqs, ch), 16 * (ch + 1));
-          (* draw new *)
-          (if vol > 0 then blitall (solid, screen, f, 16 * (ch + 1))
-           else ());
-          Array.update(freqs, ch, f);
-          flip screen
+          Array.update(freqs, ch, f)
       end
 
   datatype status = 
@@ -170,6 +167,10 @@ struct
 
   (* val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks *)
 
+  structure GA = GrowMonoArrayFn_Safe(structure A = Word16Array
+                                      val default = 0w0 : Word16.word)
+
+  val rendered = GA.empty ()
       
   (* The crux of this fork is that "time" proceeds only through manual
      intervention. Each tick is a sample. *)
@@ -189,6 +190,7 @@ struct
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
 
+  (* XXX don't need ld arg *)
   fun loopplay (_,  _,  nil) = print "SONG END.\n"
     | loopplay (lt, ld, track) =
       let
@@ -242,7 +244,8 @@ struct
                      Music inst =>
                        (case evt of
                           MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
-                        | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
+                        | MIDI.NOTEON(ch, note, vel) => (print ".";
+                                                         noteon (ch, note, 12000, inst))
                         | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
                         | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
                           (* otherwise no sound..? *) 
@@ -271,118 +274,26 @@ struct
           loop (now, ld, track)
       end
 
-  and loopdraw (lt, ld, track) =
-    let 
-      val now = getticksi ()
-    in
-      if now - ld >= DRAWTICKS
-      then 
-        let 
-          val () = Scene.clear ()
-
-          (* spans may be so long they run off the screen. We keep track of
-             a bit of state for each finger, which is whether we are currently
-             in a span there. *)
-          val spans = Array.tabulate(5, fn f =>
-                                     if Array.sub(State.spans, f)
-                                     then SOME 0
-                                     else NONE)
-
-          fun emit_span finger (spanstart, spanend) =
-            let in
-              (*
-              print ("addspan " ^ itos finger ^ ": "
-              ^ itos spanstart ^ " -> " ^ itos (Int.min(MAXAHEAD, spanend)) ^ "\n");
-              *)
-              Scene.addspan (finger, spanstart, Int.min(MAXAHEAD, spanend))
-            end
-          
-          (* val () = print "----\n" *)
-
-          val period = now - lt
-
-          fun draw _ nil =
-            (* Make sure that we only end a span if it's started *)
-            Array.appi (fn (finger, SOME spanstart) => emit_span finger (spanstart, MAXAHEAD)
-                         | _ => ()) spans
-            | draw when ((dt, (label, e)) :: rest) = 
-            if when + dt > MAXAHEAD
-            then draw when nil
-            else 
-              let 
-                val tiempo = when + dt
-                  
-              in
-                (case label of
-                   Music inst => 
-                     if score_inst_XXX inst
-                     then
-                       let
-                         fun doevent (MIDI.NOTEON (x, note, 0)) = doevent (MIDI.NOTEOFF (x, note, 0))
-                           | doevent (MIDI.NOTEOFF (_, note, _)) =
-                               let val finger = note mod 5
-                               in 
-                                 (case Array.sub(spans, finger) of
-                                    NONE => (* print "ended span we're not in?!\n" *) ()
-                                  | SOME ss => emit_span finger (ss, tiempo));
-
-                                 Array.update(spans, finger, NONE)
-                               end
-                           | doevent (MIDI.NOTEON (_, note, vel)) =
-                               let val finger = note mod 5
-                               in
-                                 Scene.addstar (finger, tiempo);
-                                 
-                                 (* don't emit--we assume proper bracketing
-                                    (even though this is not the case when
-                                    we generate the score by mod5 or include
-                                    multiple channels!) *)
-                                 Array.update(spans, finger, SOME tiempo)
-                               end
-                           | doevent _ = ()
-                       in doevent e
-                       end
-                     else ()
-                 | Bar b => Scene.addbar(b, tiempo)
-                       (* otherwise... ? *)
-                 | Control => ()
-                       );
-                   draw tiempo rest
-              end
-
-        in
-          draw 0 (* period? XXX *) track;
-          Scene.draw ();
-          flip screen;
-          loopplay (lt, now, track)
-        end
-      else loopplay (lt, ld, track)
-    end
-
   and loop x =
-      let in
-          (case pollevent () of
-               SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Exit
-             | SOME E_Quit => raise Exit
-             | SOME (E_KeyDown { sym = SDLK_i }) => skip := !skip + 2000
-             | SOME (E_KeyDown { sym = SDLK_o }) => transpose := !transpose - 1
-             | SOME (E_KeyDown { sym = SDLK_p }) => transpose := !transpose + 1
-             (* Assume joystick events are coming from the one joystick we enabled
-                (until we have multiplayer... ;)) *)
-             | SOME (E_JoyDown { button, ... }) => fingeron (joymap button)
-             | SOME (E_JoyUp { button, ... }) => fingeroff (joymap button)
-             | SOME (E_JoyHat { state, ... }) =>
-               (* XXX should have some history here--we want to ignore events
-                  triggered by left-right hat movements (those never happen
-                  on the xplorer though) *)
-               if Joystick.hat_up state orelse
-                  Joystick.hat_down state
-               then commit ()
-               else commitup ()
+      let 
+          (* render one sample *)
+          val n = 1
+          val samples = Array.array(1, 0w0 : Word16.word)
+          val mixaudio_ = _import "mixaudio" : ptr * Word16.word array * int -> unit ;
+      in
+          mixaudio_(MLton.Pointer.null, samples, n * 2);
+          
+          (*
+          if Array.sub(samples, 0) <> 0w0
+          then raise Hero ("COOL: " ^ Word16.toString (Array.sub(samples, 0)))
+          else ();
+          *)
 
-             | _ => ()
-               );
-          loopdraw x
+          Util.for 0 (n - 1) (fn i => GA.append rendered (Array.sub(samples, i)));
+          
+          (* advance time; continue *)
+          maketick ();
+          loopplay x
       end
 
   (* This stuff is not necessary for rendering into samples, but could be
@@ -510,7 +421,8 @@ struct
                                    | #"S" => Music INST_SINE
                                    | _ => (print "?? expected Q or W or N\n"; raise Hero ""),
                                  tr)
-                         | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); SOME (Control, tr))
+                         | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); 
+                                 SOME (Control, tr))
                            )
       in
           List.mapPartial onetrack tracks
@@ -521,17 +433,21 @@ struct
   val tracks = add_measures tracks
 
   val tracks = delay tracks
-(*
-  val () = app (fn (dt, (lab, evt)) =>
-                let in
-                  print ("dt: " ^ itos dt ^ "\n")
-                end) tracks
-*)
 
-  val () = loop (getticksi (), getticksi (), tracks)
+  (* Start with the play loop, because we want to begin at time 0, sample 0 *)
+  val () = loopplay (getticksi (), getticksi (), tracks)
     handle Hero s => messagebox ("exn test: " ^ s)
-        | SDL s => messagebox ("sdl error: " ^ s)
         | Exit => ()
         | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
 
+  val () = print "Rendered. Writing wave...\n"
+
+  (* PERF why bother finalizing if we're also copying? *)
+  val f = GA.finalize rendered
+  val a = Vector.tabulate(Word16Array.length f,
+                          fn x => Int16.fromInt (Word16.toIntX (Word16Array.sub (f, x))))
+
+  val () = Wave.tofile { frames = Wave.Bit16 (Vector.fromList [a]),
+                         samplespersec = 0w44100 } "test.wav"
+      handle Wave.Wave s => print ("WAVE ERROR: " ^ s ^ "\n")
 end

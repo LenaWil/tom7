@@ -36,7 +36,8 @@ static   int val[NMIX];
 static float leftover[NMIX];
 static   int samples[NMIX];
 
-
+// is this guaranteed to be 16-bit?
+typedef signed short int Sint16;
 
 void mixaudio (void * unused, Sint16 * stream, int len) {
   /* total number of samples; used to get rate */
