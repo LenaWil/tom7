@@ -27,7 +27,11 @@ struct
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
 
-  (* number of SDL ticks per midi tick. need to fix this to derive from tempo. *)
+  (* number of samples per midi tick. 
+     this is computed from the tempo now, on-line
+     
+     *)
+(*
   val SLOWFACTOR =
     (case map Int.fromString (CommandLine.arguments ()) of
        [_, SOME t] => t
@@ -35,6 +39,7 @@ struct
 (*          60  * (* seconds per minute *) *)
             400  (* samples per second *) (* XXX param?? *)
             )
+*)
 
   datatype bar =
       Measure
@@ -163,7 +168,7 @@ struct
   val _ = divi > 0
       orelse raise Hero ("Division must be in PPQN form!\n")
 
-  val divi = divi * SLOWFACTOR 
+  (* val divi = divi * SLOWFACTOR *)
 
   (* val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks *)
 
@@ -187,14 +192,57 @@ struct
 
   fun getticksi () = Word32.toInt (getticks ())
 
+
+  fun div_exact (m : IntInf.int, n) =
+      let
+          val q = m div n
+      in
+          if n * q <> m
+          then raise Hero (IntInf.toString m ^ " div " ^ 
+                           IntInf.toString n ^ " cannot be represented exactly")
+          else q
+      end
+      
+  infix div_exact
+
+  val SAMPLERATE = 44100 * 4 (* XXX must agree with .c *)
+  (* Given a MIDI tempo in microseconds-per-quarter note
+     (which is what the TEMPO event carries),
+     compute the number of samples per MIDI tick,
+     and insist that this can be represented exactly
+     as an integer. *)
+  fun spt_from_upq upq =
+      let
+          val () = print ("Microseconds per quarternote: " ^
+                          Int.toString upq ^ "\n")
+
+          (* microseconds per tick  NO *)
+          (* val uspt = IntInf.fromInt upq * IntInf.fromInt divi *)
+
+          (* samples per tick is
+             
+             usec per tick      samples per usec
+             (upq / divi)    *  (fps / 1000000)
+
+             *)
+          val fpq = (IntInf.fromInt SAMPLERATE * IntInf.fromInt upq) div_exact 
+                    (IntInf.fromInt 1000000 * IntInf.fromInt divi)
+      in
+          print ("Samples per tick is now: " ^ IntInf.toString fpq ^ "\n");
+          IntInf.toInt fpq
+      end
+
   (* XXX assuming ticks = midi delta times; wrong! 
      (even when slowed by factor of 4 below) *)
 
   (* XXX don't need ld arg *)
-  fun loopplay (_,  _,  nil) = print "SONG END.\n"
-    | loopplay (lt, ld, track) =
+  fun loopplay (_,  _,  _, nil) = print "SONG END.\n"
+    | loopplay (lt, ld, spt, track) =
       let
           val now = getticksi ()
+
+          (* hack attack *)
+          val spt = ref spt
           (* val () = print ("Lt: " ^ itos lt ^ " Now: " ^ itos now ^ "\n") *)
 
           (* Last time we were here it was time 'lt', and now it is 'now'. The
@@ -252,7 +300,12 @@ struct
                    | Control =>
                        (case evt of
                             (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
-                            MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
+                            MIDI.META (MIDI.TEMPO n) => 
+                                let in
+                                    print ("TEMPO " ^ itos n ^ "\n");
+                                    spt := spt_from_upq n
+                                end
+                                
                           | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
                                 print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
                                        ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
@@ -271,16 +324,17 @@ struct
 
           val track = nowevents (now - lt) track
       in
-          loop (now, ld, track)
+          loop (now, ld, !spt, track)
       end
 
-  and loop x =
+  and loop (x as (_, _, spt, _)) =
       let 
-          (* render one sample *)
-          val n = 1
-          val samples = Array.array(1, 0w0 : Word16.word)
+          (* render spt (samples-per-tick) samples *)
+          val n = spt
+          val samples = Array.array(n, 0w0 : Word16.word)
           val mixaudio_ = _import "mixaudio" : ptr * Word16.word array * int -> unit ;
       in
+          (* two bytes per sample *)
           mixaudio_(MLton.Pointer.null, samples, n * 2);
           
           (*
@@ -393,7 +447,7 @@ struct
     end
 
   (* fun slow l = map (fn (delta, e) => (delta * 6, e)) l *)
-  fun slow l = map (fn (delta, e) => (delta * SLOWFACTOR, e)) l
+  (* fun slow l = map (fn (delta, e) => (delta * SLOWFACTOR, e)) l *)
 
   (* How to complete pre-delay? *)
   fun delay t = (2 * divi, (Control, DUMMY)) :: t
@@ -429,16 +483,22 @@ struct
       end
       
   val tracks = label thetracks
-  val tracks = slow (MIDI.mergea tracks)
+  val tracks = MIDI.mergea tracks
+  (* val tracks = slow (MIDI.mergea tracks) *)
   val tracks = add_measures tracks
 
   val tracks = delay tracks
 
   (* Start with the play loop, because we want to begin at time 0, sample 0 *)
-  val () = loopplay (getticksi (), getticksi (), tracks)
+  (* need to start with tempo 120 = 0x07a120 ms per tick *)
+  val () = loopplay (getticksi (), getticksi (), spt_from_upq 0x07a120 , tracks)
     handle Hero s => messagebox ("exn test: " ^ s)
         | Exit => ()
-        | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
+        | e => 
+        let in
+            app (fn s => print (s ^ "\n")) (MLton.Exn.history e);
+            messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
+        end
 
   val () = print "Rendered. Writing wave...\n"
 
@@ -448,6 +508,6 @@ struct
                           fn x => Int16.fromInt (Word16.toIntX (Word16Array.sub (f, x))))
 
   val () = Wave.tofile { frames = Wave.Bit16 (Vector.fromList [a]),
-                         samplespersec = 0w44100 } "test.wav"
+                         samplespersec = Word32.fromInt SAMPLERATE } "test.wav"
       handle Wave.Wave s => print ("WAVE ERROR: " ^ s ^ "\n")
 end

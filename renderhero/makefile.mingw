@@ -23,7 +23,7 @@ win32main.o : ../sdlml/win32main.c
 # -verbose 3
 # -keep g -keep o
 renderhero.exe : sdlml.o sound.o win32main.o renderhero.sml renderhero.cm makefile.mingw ../sml-lib/files/wave/*.sml ../sml-lib/files/midi/*.sml
-	mlton @MLton max-heap 400m -- -cc-opt "-I/usr/local/include" -link-opt "-L/usr/local/lib" -default-ann 'allowFFI true' renderhero.cm sound.o
+	mlton @MLton max-heap 400m -- -cc-opt "-I/usr/local/include" -link-opt "-L/usr/local/lib" -default-ann 'allowFFI true' -const 'Exn.keepHistory true' renderhero.cm sound.o
 
 #	mlton @MLton max-heap 200m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -DDEBUG_X86CODEGEN -Dmain=SDL_main" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz" -output renderhero.exe -default-ann 'allowFFI true' renderhero.cm sdlml.o sound.o win32main.o
 
