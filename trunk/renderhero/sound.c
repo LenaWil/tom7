@@ -5,7 +5,9 @@
 
 // number of samples per second
 //#define RATE 22050
-#define RATE 44100
+//#define RATE 44100
+#define RATE (44100 * 4)
+
 
 #define PI 3.14152653589
 /* 512 = "A good value for games" */
