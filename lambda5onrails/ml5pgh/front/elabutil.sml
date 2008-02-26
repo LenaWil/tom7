@@ -274,6 +274,14 @@ struct
   local
     val mobiles = ref nil : (Context.context * Pos.pos * string * IL.typ) list ref
 
+    (* Like Context.has_evar; if we have decided that an evar must be mobile,
+       then we can't generalize it because we don't have bounded quantification
+       over mobile types. *)
+    fun mobiles_have_evar n =
+        List.exists (fn (G, _, _, t) =>
+                     raise Fail "XXX FIXME HERE"
+                     ) (!mobiles)
+
     (* mobility test.
        if force is true, then unset evars are set to unit
        to force mobility.

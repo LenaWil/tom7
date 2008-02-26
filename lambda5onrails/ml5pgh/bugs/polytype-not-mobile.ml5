@@ -16,8 +16,19 @@
  *)
 
 unit
+(*
     import "std.mlh"
     import "trivialdb.mlh"
+*)
+    infix 1 :=
+    fun inline (t) :=(r, a) = primapp Set { t } (r, a)
+    fun inline (t) ! r = primapp Get { t } (r)
+    fun inline (t) ref a = primapp Ref { t } (a)
+    datatype a list = nil | :: of a * list
+    infixr ::
+    extern bytecode world server
+    extern val server ~ server addr
+    extern val home ~ home addr
 
     extern val alert : string -> unit @ home
 
