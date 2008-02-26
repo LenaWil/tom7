@@ -22,24 +22,21 @@ struct
   exception Nope
 
   exception Hero of string
-  exception Exit
+
+  (* This uses lots of top-level evaluation, making exception handling awkward *)
+  fun report e =
+      case e of 
+          Hero s => (messagebox ("exn test: " ^ s); raise e)
+        | Wave.Wave s => (print ("WAVE ERROR: " ^ s ^ "\n"); raise e)
+        | e => 
+              let in
+                  app (fn s => print (s ^ "\n")) (MLton.Exn.history e);
+                  messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e);
+                  raise e
+              end
 
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
-
-  (* number of samples per midi tick. 
-     this is computed from the tempo now, on-line
-     
-     *)
-(*
-  val SLOWFACTOR =
-    (case map Int.fromString (CommandLine.arguments ()) of
-       [_, SOME t] => t
-     | _ => (* 100 * (* beats per minute *) *)
-(*          60  * (* seconds per minute *) *)
-            400  (* samples per second *) (* XXX param?? *)
-            )
-*)
 
   datatype bar =
       Measure
@@ -203,7 +200,9 @@ struct
           else q
       end
       
-  infix div_exact
+  fun div_exacti (m, n) = IntInf.toInt (div_exact (IntInf.fromInt m, IntInf.fromInt n))
+
+  infix div_exact div_exacti
 
   val SAMPLERATE = 44100 * 4 (* XXX must agree with .c *)
   (* Given a MIDI tempo in microseconds-per-quarter note
@@ -231,9 +230,6 @@ struct
           print ("Samples per tick is now: " ^ IntInf.toString fpq ^ "\n");
           IntInf.toInt fpq
       end
-
-  (* XXX assuming ticks = midi delta times; wrong! 
-     (even when slowed by factor of 4 below) *)
 
   (* XXX don't need ld arg *)
   fun loopplay (_,  _,  _, nil) = print "SONG END.\n"
@@ -457,6 +453,36 @@ struct
     | findname ((_, MIDI.META (MIDI.NAME s)) :: _) = SOME s
     | findname (_ :: rest) = findname rest
 
+  val DIVI_DIVISION = 4 (* I care about sixteenth notes *)
+  val FRAMES_PER_TICK = 3 (* report in frames *)
+  (* For ActionScript geometric renderers *)
+  fun print_track t =
+      let 
+          (* number of ticks per sixteenth note *)
+          val divisor = divi div_exacti DIVI_DIVISION
+
+          fun noteson extra ((delta, e) :: l) =
+              let val delta = delta + extra
+                  val extra = 
+                      case e of
+                          MIDI.NOTEON(_, note, 0) => delta
+                        | MIDI.NOTEON(_, note, v) => 
+                           let in
+                              print
+                              ("{ d:" ^ Int.toString ((delta * FRAMES_PER_TICK) 
+                                                      div_exacti divisor) ^
+                               ", n:" ^ Int.toString note ^ "}, ");
+                              0
+                            end
+                        | _ => delta
+              in
+                  noteson extra l
+              end
+            | noteson _ nil = ()
+      in
+          noteson 0 t
+      end
+
   (* Label all of the tracks
      This uses the track's name to determine its label. *)
   fun label tracks =
@@ -469,8 +495,18 @@ struct
                       (case CharVector.sub(name, 0) of
                            #"+" =>
                            SOME (case CharVector.sub (name, 1) of
-                                     #"Q" => Music INST_SQUARE 
-                                   | #"W" => Music INST_SAW 
+                                     #"Q" => 
+                                     let in 
+                                         (* XXX hack attack, should be command line or sth? *)
+                                         (* print_track tr; *)
+                                         Music INST_SQUARE 
+                                     end
+                                   | #"W" => 
+                                     let in
+                                         (* XXX hack attack *)
+                                         print_track tr;
+                                         Music INST_SAW 
+                                     end
                                    | #"N" => Music INST_NOISE
                                    | #"S" => Music INST_SINE
                                    | _ => (print "?? expected Q or W or N\n"; raise Hero ""),
@@ -480,7 +516,7 @@ struct
                            )
       in
           List.mapPartial onetrack tracks
-      end
+      end handle e => report e
       
   val tracks = label thetracks
   val tracks = MIDI.mergea tracks
@@ -492,13 +528,7 @@ struct
   (* Start with the play loop, because we want to begin at time 0, sample 0 *)
   (* need to start with tempo 120 = 0x07a120 ms per tick *)
   val () = loopplay (getticksi (), getticksi (), spt_from_upq 0x07a120 , tracks)
-    handle Hero s => messagebox ("exn test: " ^ s)
-        | Exit => ()
-        | e => 
-        let in
-            app (fn s => print (s ^ "\n")) (MLton.Exn.history e);
-            messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
-        end
+    handle e => report e
 
   val () = print "Rendered. Writing wave...\n"
 
@@ -509,5 +539,6 @@ struct
 
   val () = Wave.tofile { frames = Wave.Bit16 (Vector.fromList [a]),
                          samplespersec = Word32.fromInt SAMPLERATE } "test.wav"
-      handle Wave.Wave s => print ("WAVE ERROR: " ^ s ^ "\n")
+      handle e => report e
+
 end
