@@ -8,15 +8,12 @@ struct
     type ('a, 'b) hash = ('a * 'b) list
 
     datatype object =
-        O of (object hash
+        O (* of (object hash *)
       | S of string
       | R of real
         
         
-    fun execprog (Program.T st) =
-        
-            
-
+    fun execprog (Program.T st) = () (* HERE *)
 
     fun execute (p : Program.t) =
         let

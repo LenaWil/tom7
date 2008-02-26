@@ -1,12 +1,14 @@
 
-There are many self-checks (e.g. closure conversion checks that it
-produces closed code) that are redundant to type checking and other
+PERF: There are many self-checks (e.g. closure conversion checks that
+it produces closed code) that are redundant to type checking and other
 later checks. We ought to run these only when a "paranoid" flag is
 set.
 
 Computation of the number of free variable occurrences might be wrong?
 It looks like we inline records, which we shouldn't do unless there is
 only 1 occurrence. We should have a suite of tests for AST.
+   (now there is such a suite, but I don't remember looking to see
+    if this still happens.)
 
  Could support "extern mobile type" (easy, just check
  mobility with concrete type at link time); see Dagstuhl
@@ -17,7 +19,7 @@ Cleanup:
   * Get rid of inexhaustive matches
   * Dead code (e.g. IlUtil)
   * Extraneous keywords from old compilers.
-  * Labels support "special" labels; not needed.
+  * Labels support "special" labels; confusing and unnecessary.
 
 Features:
   * validity for 'val' decls
