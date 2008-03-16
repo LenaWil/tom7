@@ -39,6 +39,8 @@ struct
   end
 *)
   type ptr = MLton.Pointer.t
+  infixr 9 `
+  fun a ` b = a b
 
   exception Nope
 
@@ -87,6 +89,96 @@ struct
   val _ = divi > 0
       orelse raise Hero ("Division must be in PPQN form!\n")
 
+  datatype normalized =
+      BAR of bar
+    | OFF of int
+    | ON  of int
+
+  (* Clean up to establish invariants. Ensure that we never get a
+     NOTE-ON once another note has been going for more than 0 ticks. *)
+  fun normalize t =
+      let
+          val finish = OFF
+
+          fun getnow acc ((0, e) :: more) = getnow (e :: acc) more
+            | getnow acc _ = rev acc
+
+          fun withdelta plusdelta nil = raise Hero "withdelta on nil"
+            | withdelta plusdelta (e :: rest) = (plusdelta, e) :: map (fn ee => (0, ee)) rest
+
+          fun go plusdelta nil nil = nil
+            | go plusdelta (active : int list) nil =
+              (* if there are any active at the end, then stop 'em *)
+              withdelta plusdelta ` map finish active
+            | go plusdelta active ((delta, first) :: more) =
+              let
+                  val nowevts = first :: getnow nil more
+                  (* We don't care about control messages, channels, instruments, or velocities. *)
+                  val ending = List.mapPartial (fn (Music _, MIDI.NOTEON(ch, note, 0)) => SOME note
+                                                 | (Music _, MIDI.NOTEOFF(ch, note, _)) => SOME note
+                                                 | _ => NONE) nowevts
+                  val starting = List.mapPartial (fn (Music _, MIDI.NOTEON(ch, note, 0)) => NONE
+                                                   | (Music _, MIDI.NOTEON(ch, note, vel)) => SOME note
+                                                   | _ => NONE) nowevts
+                  val bars = List.mapPartial (fn (Bar b, _) => SOME b | _ => NONE) nowevts
+
+                  (* okay, so we have some notes ending this instant ('ending'),
+                     and some notes starting ('starting'), and maybe some other stuff ('bars').
+                     First we need to turn off any active notes that are ending now, so we don't
+                     get confused into thinking they're still active. *)
+                  val (stops, active) =
+                      let
+                          fun rem stops active (note :: rest) =
+                              (case List.partition (fn n => n = note) active of
+                                   ([match], nomatch) => rem (OFF match :: stops) nomatch rest
+                                 | (nil, active) => 
+                                       let in
+                                           print ("Note " ^ Int.toString note ^ " was not active but turned off?\n");
+                                           rem stops active rest
+                                       end
+                                 | _ => raise Hero "invt violation: note multiply active!")
+                            | rem stops active nil = (stops, active)
+
+                      in
+                          rem nil active ending
+                      end
+
+                  (* If we are starting new notes here, we have to kill anything that's
+                     now still active. This is the main way we establish the invariant. *)
+                  val (stops, active) = if not (List.null starting) 
+                                        then (stops @ map finish active, nil)
+                                        else (stops, active)
+
+                  val (starts, active) =
+                      if List.null starting
+                      then (nil, active)
+                      else 
+                          (* just start them, but make sure they're unique. *)
+                          let
+                              fun add act (note :: notes) =
+                                  if List.exists (fn n => n = note) act
+                                  then
+                                      let in
+                                          print ("Note begun multiply: " ^ Int.toString note ^ "\n");
+                                          add act notes
+                                      end
+                                  else add (note :: act) notes
+                                | add act nil = act
+
+                              val act = add nil starting
+                          in
+                              (map ON act, act)
+                          end
+                  val nows = stops @ map BAR bars @ starts
+              in
+                  case nows of
+                      nil => go (plusdelta + delta) active more
+                    | _ => withdelta (plusdelta + delta) nows @ go 0 active more
+              end
+      in
+          go 0 nil t
+      end
+
 (*
                   (case label of
                      Music inst =>
@@ -122,6 +214,7 @@ struct
                     | _ => ());
 *)
 
+
   (* In an already-labeled track set, add measure marker events. *)
   fun add_measures t =
     let
@@ -131,19 +224,19 @@ struct
          We need to find one at 0 time, otherwise this is
          impossible:
          *)
-      fun getstarttime nil = (print "(TIME) no events?"; raise Hero "")
+      fun getstarttime nil = (print "(TIME) no events?"; raise Hero "(TIME) no events??")
         | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: rest) = ((n, d, cpc, bb), rest)
         | getstarttime ((0, evt) :: t) = 
         let val (x, rest) = getstarttime t
         in (x, (0, evt) :: rest)
         end
-        | getstarttime (_ :: t) = (print ("(TIME) no 0 time events"); raise Hero "")
+        | getstarttime (_ :: t) = (print ("(TIME) no 0 time events"); raise Hero "(TIME) no 0 time events")
 
       val ((n, d, cpc, bb), rest) = getstarttime t
 
       val () = if bb <> 8 
                then (messagebox ("The MIDI file may not redefine 32nd notes!");
-                     raise Hero "")
+                     raise Hero "The MIDI file may not redefine 32nd notes!")
                else ()
 
       (* We ignore the clocksperclick, which gives the metronome rate. Even
@@ -252,15 +345,21 @@ struct
       in
           List.mapPartial (fn x => x) (ListUtil.mapi onetrack tracks)
       end
-      
-  val tracks = label thetracks
-  val tracks = MIDI.mergea tracks
-  val tracks = add_measures tracks
 
   val () = if List.null includes
            then (print "Specify a list of track numbers to include in the score, as arguments.\n";
                  raise Exit)
            else ()
+  val () =
+      let
+          val tracks = label thetracks
+          val tracks = MIDI.mergea tracks
+          val tracks = add_measures tracks
+          val tracks = normalize tracks
+      in
+          ()
+      end handle Hero s => print ("Error: " ^ s  ^ "\n")
+                    | e => print ("Uncaught exn: " ^ exnName e ^ "\n")
 
 (*
   val () = app (fn (dt, (lab, evt)) =>
