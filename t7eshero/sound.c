@@ -127,7 +127,8 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 /* PERF not obvious that we need to or want to lock out
    audio here, since changing the frequency within a buffer
    would give us better response time and a data race would
-   (probably) be harmless */
+   (probably) be harmless--but we would want to at least
+   change the vol/freq/inst atomically. */
 void ml_setfreq(int ch, int nf, int nv, int inst) {
   SDL_LockAudio();
   cur_freq[ch] = nf;
@@ -151,7 +152,7 @@ void ml_initsound() {
     }
   }
 
-  /* Set 16-bit stereo audio at 22Khz */
+  /* Set 16-bit stereo audio at sample rate RATE */
   fmt.freq = RATE;
   fmt.format = AUDIO_S16SYS;
   fmt.channels = NCHANNELS;

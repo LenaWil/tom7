@@ -32,6 +32,101 @@ The first character determines the track type.
 
 ----------------------------------------------------------------------
 
+Generating a Score                                         11 Mar 2008
+
+For maximum scalability and hack value, we should be able to create a
+score automatically from a MIDI file. There are a number of compounding
+issues:
+
+ A  There are different "difficulty" levels with different requirements:
+     for "real" there ought to be one score event for every note/chord in
+     the original. For "easy" we only ought to use the lowest three
+     fingers, and never any really fast notes, etc.
+
+ B  The original MIDI files have a much wider range in note values than
+     we have fingers in the score.
+
+ C  Most songs consist of repeating phrases, which ought to be played
+     the same way each time they are encountered--regardless of context.
+
+ D  The MIDI music can do things that are not allowed in the score, such
+     as beginning one note event while others are already active. (We
+     do non-standardly allow a chord whose notes trail off at different
+     times.)
+
+ E  The MIDI files do not come from guitars and are often awkward to
+     play on real guitars.
+
+ F Even though we might need to use a different finger for two
+     occurrences of a given note, we should never do so for
+     consecutive ocurrences.
+
+Some of these are dealt with easily. For E, we don't really care (in
+fact we explicitly want Real mode to be ridiculous) except that we
+want the guitar part to be fun moreso than realistic. (Therefore what
+we really want is a model of "plausible" guitar movements
+corresponding to the notes, and to produce a good member of the
+model.) For A, we just need to build a model that is parameterized by
+the number of fingers allowed (and other requirements).
+
+Additionally, we should feel free to implement an expensive algorithm
+(taking several minutes) since we run this process off-line.
+
+For D, we should perform some pre-processing to normalize the MIDI
+into a form that we can assume some things about. This would be one of
+the things we'd want to get rid of. We might also want to detect notes
+that are short enough to be considered "individual" notes, and set
+those to some canonical length (1 tick). (Really, during this phase
+there's no reason to complicate matters by having both "individual"
+and "long" notes, since we have to solve the problem in generality for
+"long" notes. Let's just treat that as a presentational issue.)
+
+Okay so here we go, a series of non-overlapping sonemes, spread out
+over the entirety of MIDI note space. We just need to lay those out on
+the 5-note scale. Any allocation is legal, but some have better scores
+than others. 
+
+Let's not go overboard. We'll make one simplifying assumption, which is
+that we only make individual measures optimal, given the context in
+which they occur originally. Split the song into (unique) measures.
+Process them in topological order. To process:
+
+ * try all(!) assignments of sonemes to notes for a measure. This is
+   naively exponential time, though most measures don't have more than
+   12 or so notes in them (which is about the upper limit that we
+   could process within reason..) However, since the cost dependencies
+   are local, dynamic programming will probably work. Find the best one
+   and save it (forever) for that measure.
+
+ * Whenever we do a measure M, take the argmax(min(Mi, M)) over the Mi
+   that immediately precede M in the MIDI. That is, we want to avoid
+   very awkward transitions from measure to measure, if possible.
+   However, we don't care too much about optimizing these globally.
+   It is assumed that the size of {Mi} is small, since this is a
+   multiplicative factor over how much work we do for M.
+
+
+The goodness of a note assignment is the negation of its badness, which
+is easier to define. The badness is the sum of penalties, which are
+assessed as follows.
+
+ * For a pair of consecutive sonemes N1 N2 in the MIDI, where N1 < N2,
+   if S1 = S2 then score -3. If S1 > S2 then score -2.
+
+ * Likewise for N1 > N2.
+
+ * If N1 = N2 and S1 <> S2, score -10. (maybe higher! This is really really bad)
+
+ * The > and < are defined in the obvious way for individual notes. For
+   chords, we do something a little more complicated? (esp. since there
+   are 5cN different ways to configure a N-note chord, hrmmm.)
+
+ * For easy, medium, hard, and expert modes score a penalty for really
+   reachy chords. (Which should probably increase as the level is easier.)
+
+
+----------------------------------------------------------------------
+
 Responding to Input                                        27 Dec 2007
 or, Generalized Tom 7 Entertainment System Hero is complexity-class-complete
 
