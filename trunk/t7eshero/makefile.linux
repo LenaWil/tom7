@@ -10,5 +10,8 @@ sdlml.o : ../sdlml/sdlml.c
 t7eshero.exe : sound.o sdlml.o *.sml
 	mlton -verbose 1 -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowFFI true' -output t7eshero.exe t7eshero.cm sound.o sdlml.o
 
+genscore.exe : genscore.sml genscore.cm
+	mlton -default-ann 'allowFFI true' genscore.cm
+
 clean :
 	rm -f core.* *~ *.exe *.o

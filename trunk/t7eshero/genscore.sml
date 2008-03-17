@@ -38,7 +38,6 @@ struct
       fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", MLton.Pointer.null)
   end
 *)
-  type ptr = MLton.Pointer.t
   infixr 9 `
   fun a ` b = a b
 
