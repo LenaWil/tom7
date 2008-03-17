@@ -54,6 +54,7 @@ struct
       Measure
     | Beat
     | Timesig of int * int
+    | Nothing
 
   (* XXX these should describe what kind of track it is *)
   datatype label =
@@ -93,6 +94,82 @@ struct
       BAR of bar
     | OFF of int
     | ON  of int
+
+  datatype lengthened =
+      LBAR of bar
+      (* non-nil *)
+    | NOTES of (int * int option ref) list
+
+  (* Do the rendering once it's been normalized. *)
+  fun render (t ) =
+      let
+      (* The first step is to break these up into measures. *)
+
+      in
+          raise Hero "unimplemented"
+      end
+
+  (* Chunk the song into measures.
+     We also collapse ON/OFF events, since we know they don't overlap
+     (they can overlap measure boundaries, but that doesn't affect scoring.) *)
+  fun measures (t : (int * lengthened) list) =
+      let
+          (* All measures so far, in reverse *)
+          val revmeasures = ref nil
+          (* val () = read nil t *)
+      in
+          raise Hero "unimplemented2"
+      end
+
+  (* Assuming normalized tracks, we can get rid of ON/OFF style
+     events by computing the length of each note and putting it
+     right in the event itself. We'll also group all of the notes
+     that turn on at the same time into a chord. *)
+  fun makelengths (t : (int * normalized) list) =
+      let
+          (* set the references in the NOTES we emit *)
+          val null = (fn _ => raise Hero "Note was ended that never began?!")
+          val current = Array.array(128, null)
+          fun write ticks nil = nil
+            | write ticks ((d, BAR b) :: more) =
+              (d, LBAR b) :: write (ticks + d) more
+            | write ticks ((d, ON i) :: more) =
+              let
+                  (* XXX collect them up... *)
+                  fun getnow acc ((0, ON i) :: more) = getnow (i :: acc) more
+                    | getnow acc more = (rev acc, more)
+
+                  val (nows, thens) = getnow nil more
+                  val nows = i :: nows
+
+                  fun onenow note =
+                      let
+                          val b = ref (fn () => ())
+                          val r = ref NONE
+                      in
+                          Array.update(current,
+                                       note,
+                                       fn t =>
+                                       let in
+                                           r := SOME (t - (ticks + d));
+                                           !b ();
+                                           b := (fn () => raise Hero "note multiply ended")
+                                       end);
+                          (note, r)
+                      end
+              in
+                  (d, NOTES ` map onenow nows) :: write (ticks + d) thens
+              end
+            | write ticks ((d, OFF i) :: more) =
+              let in
+                  Array.sub(current, i) (ticks + d);
+                  (* and the off event is gone. But insert a dummy event to account
+                     for the delta. *)
+                  (d, LBAR Nothing) :: write (ticks + d) more
+              end
+      in
+          write 0 t
+      end
 
   (* Clean up to establish invariants. Ensure that we never get a
      NOTE-ON once another note has been going for more than 0 ticks. *)
@@ -356,6 +433,7 @@ struct
           val tracks = MIDI.mergea tracks
           val tracks = add_measures tracks
           val tracks = normalize tracks
+          val tracks = makelengths tracks
       in
           ()
       end handle Hero s => print ("Error: " ^ s  ^ "\n")
