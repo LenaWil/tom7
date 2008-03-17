@@ -108,14 +108,30 @@ struct
           raise Hero "unimplemented"
       end
 
-  (* Chunk the song into measures.
-     We also collapse ON/OFF events, since we know they don't overlap
-     (they can overlap measure boundaries, but that doesn't affect scoring.) *)
+  (* Chunk the song into measures. This is really simple now
+     that NOTES events have lengths in them, the only complication
+     being deltas on events that we want to ignore, like LBAR Nothing. *)
   fun measures (t : (int * lengthened) list) =
       let
           (* All measures so far, in reverse *)
           val revmeasures = ref nil
-          (* val () = read nil t *)
+          fun newmeasure revd = revmeasures := (rev revd) :: !revmeasures
+
+          fun read this xdelta nil = newmeasure this
+				| read this xdelta ((d, NOTES ns) :: rest) = 
+              let
+						fun getlength (n, ref (SOME l)) = (n, l)
+						  | getlength _ = raise Hero "NOTES's length not set!"
+				  in
+						read ((d + xdelta, map getlength ns) :: this) 0 rest
+				  end
+				| read this xdelta ((d, LBAR Measure) :: rest) = 
+				  (newmeasure this;
+					read nil 0 rest)
+				| read this xdelta ((d, LBAR _) :: rest) = 
+				  read this (d + xdelta) rest
+
+          val () = read nil 0 t
       in
           raise Hero "unimplemented2"
       end
@@ -433,6 +449,7 @@ struct
           val tracks = add_measures tracks
           val tracks = normalize tracks
           val tracks = makelengths tracks
+          val tracks = measures tracks
       in
           ()
       end handle Hero s => print ("Error: " ^ s  ^ "\n")
