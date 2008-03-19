@@ -99,13 +99,73 @@ struct
       (* non-nil *)
     | NOTES of (int * int option ref) list
 
-  (* Do the rendering once it's been normalized. *)
-  fun render (t ) =
+  (* note/durations. non-nil *)
+  type measure_event = (int * int) list
+  (* delta, chord *)
+  type measure = (int * measure_event) list
+
+  structure MeasureKey : ORD_KEY =
+  struct
+      type ord_key = measure
+
+      val devent = Util.lex_order Int.compare 
+                     (Util.lex_list_order 
+                      (Util.lex_order Int.compare Int.compare))
+
+      val compare : measure * measure -> order = Util.lex_list_order devent
+  end
+
+  structure MM = SplayMapFn(MeasureKey)
+
+  (* Render a single measure. We got rid of the deltas and lengths. *)
+  fun render_one m =
       let
-      (* The first step is to break these up into measures. *)
+          (* given the assignment for the previous 
+             event, compute the best possible assignment
+             for the tail.
+             *)
+          fun best_rest _ nil = nil
+            | best_rest (evt, ass) (ns :: rest) = raise Hero "unimplemented"
 
       in
           raise Hero "unimplemented"
+      end
+
+  (* Do the rendering once it's been normalized. *)
+  fun render (t : measure list) =
+      let
+          (* Maps measures we've already rendered to their rendered versions. *)
+          val completed = ref (MM.empty)
+          fun get m = MM.find(!completed, m)
+
+          fun do_one m =
+              let
+                  (* we don't care about the deltas, or the note lengths
+                     for the purposes of assignment. take those out first. *)
+                  val (dels, sons) = ListPair.unzip m
+                  val (nots, lens) = ListPair.unzip (map ListPair.unzip sons)
+
+                  val nots = render_one nots
+
+                  (* Now put them back together... *)
+                  val sons' = map ListPair.zip (ListPair.zip (nots, lens))
+                  val res = ListPair.zip (dels, sons')
+              in
+                  completed := MM.insert(!completed, m, res)
+              end
+
+          fun maybe_do_one m =
+              case get m of
+                  NONE => do_one m
+                | SOME _ => ()
+
+      in
+          app maybe_do_one t;
+          map (fn m =>
+               case get m of
+                   SOME n => n
+                 | NONE => 
+                   raise Hero "After rendering, a measure wasn't completed?") t
       end
 
   (* Chunk the song into measures. This is really simple now
@@ -118,22 +178,22 @@ struct
           fun newmeasure revd = revmeasures := (rev revd) :: !revmeasures
 
           fun read this xdelta nil = newmeasure this
-				| read this xdelta ((d, NOTES ns) :: rest) = 
+            | read this xdelta ((d, NOTES ns) :: rest) = 
               let
-						fun getlength (n, ref (SOME l)) = (n, l)
-						  | getlength _ = raise Hero "NOTES's length not set!"
-				  in
-						read ((d + xdelta, map getlength ns) :: this) 0 rest
-				  end
-				| read this xdelta ((d, LBAR Measure) :: rest) = 
-				  (newmeasure this;
-					read nil 0 rest)
-				| read this xdelta ((d, LBAR _) :: rest) = 
-				  read this (d + xdelta) rest
-
+                  fun getlength (n, ref (SOME l)) = (n, l)
+                    | getlength _ = raise Hero "NOTES's length not set!"
+              in
+                  read ((d + xdelta, map getlength ns) :: this) 0 rest
+              end
+            | read this xdelta ((d, LBAR Measure) :: rest) = 
+              (newmeasure this;
+               read nil 0 rest)
+            | read this xdelta ((d, LBAR _) :: rest) = 
+              read this (d + xdelta) rest
+              
           val () = read nil 0 t
       in
-          raise Hero "unimplemented2"
+          rev (!revmeasures)
       end
 
   (* Assuming normalized tracks, we can get rid of ON/OFF style
@@ -150,7 +210,7 @@ struct
               (d, LBAR b) :: write (ticks + d) more
             | write ticks ((d, ON i) :: more) =
               let
-                  (* XXX collect them up... *)
+                  (* collect them up... *)
                   fun getnow acc ((0, ON i) :: more) = getnow (i :: acc) more
                     | getnow acc more = (rev acc, more)
 
@@ -450,6 +510,7 @@ struct
           val tracks = normalize tracks
           val tracks = makelengths tracks
           val tracks = measures tracks
+          val tracks = render tracks
       in
           ()
       end handle Hero s => print ("Error: " ^ s  ^ "\n")
