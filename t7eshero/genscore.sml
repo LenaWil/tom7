@@ -68,15 +68,15 @@ struct
   val INST_NOISE  = 3
   val INST_SINE   = 4
 
-  (* FIXME totally ad hoc!! *)
   val itos = Int.toString
 
   val (f, includes) = 
       (case CommandLine.arguments() of 
-           st :: includes => (st,
-                              map (fn SOME i => i
-                                    | NONE => (print "Expected a series of track numbers after the filename\n";
-                                               raise Exit)) (map Int.fromString includes))
+           st :: includes => 
+               (st,
+                map (fn SOME i => i
+              | NONE => (print "Expected a series of track numbers after the filename\n";
+                         raise Exit)) (map Int.fromString includes))
          | _ => (print "Expected a MIDI file on the command line.\n";
                  raise Exit))
 
@@ -117,18 +117,95 @@ struct
 
   structure MM = SplayMapFn(MeasureKey)
 
+  val RADIX = 5 (* XXX configurable. Also, include open? *)
+  val gamut = List.tabulate (RADIX, fn x => x)
+
   (* Render a single measure. We got rid of the deltas and lengths. *)
-  fun render_one m =
+  fun render_one (m : int list list) =
       let
+          val total = ref 0
           (* given the assignment for the previous 
              event, compute the best possible assignment
-             for the tail.
-             *)
-          fun best_rest _ nil = nil
-            | best_rest (evt, ass) (ns :: rest) = raise Hero "unimplemented"
+             for the tail, and its penalty. *)
+          (* PERF: memoize!! *)
+          fun best_rest BEST_REST (_, nil) = (total := !total + 1; 
+                                 if (!total mod 1000) = 0
+                                 then print (Int.toString (!total) ^ "\n")
+                                 else ();
+                                 (nil, 0))
+            | best_rest BEST_REST ((evt, ass), ns :: rest) =
+              let
+                  (* all legal assignments for evt. 
+                     It turns out this only depends on
+                     the length of evt; its cardinality is
+                       RADIX choose (length evt).
+                     *)
+                  fun all_assignments n = ListUtil.choosek n gamut
+                      
+                  val olds = ListPair.zip (evt, ass)
 
+                  (* The heart of genscore. Compute a penalty for this assignment,
+                     given the previous assignment.
+                     The penalty is "linear" over the components of the soneme, so
+                     we do this note by note.
+                     *)
+                  fun this_penalty (enew, anew) =
+                      let
+                          fun note_penalty (e1, a1) (e2, a2) =
+                              case Int.compare (e1, e2) of
+                                  EQUAL => if a1 = a2
+                                           then 0 (* good! *)
+                                           else 10 (* really bad! *)
+                                | LESS => (case Int.compare (a1, a2) of
+                                               LESS => 0 (* good! *)
+                                             | EQUAL => 3 (* bad! *)
+                                             | GREATER => 1 (* a little bad *))
+                                | GREATER => (case Int.compare (a1, a2) of
+                                                  GREATER => 0
+                                                | EQUAL => 3
+                                                | LESS => 1)
+
+                          val news = ListPair.zip (enew, anew)
+                      in
+                          ListPair.foldl (fn (old, new, s) =>
+                                          s + note_penalty old new) 0 (olds, news)
+                      end
+
+                  val nevt = length evt
+                  val () = if nevt > RADIX
+                           then raise Hero "can't do chords larger than radix!"
+                           else ()
+
+                  (* try all, choose best. *)
+                  fun getbest (best, bestpen) (ass :: more) =
+                      let
+                          val (tail, tailpen) = BEST_REST ((ns, ass), rest)
+                          val pen = this_penalty (ns, ass)
+                      in
+                          if pen + tailpen < bestpen
+                          then getbest (ass :: tail, pen + tailpen) more
+                          else getbest (best, bestpen) more
+                      end
+                    | getbest (best, bestpen) nil = (best, bestpen)
+
+              in
+                  getbest (nil, 9999999) (all_assignments nevt)
+              end
+
+          (* Memoize or this is ridiculously expensive.
+             PERF: use hashing or a dense int map, not eq! *)
+          val tabler = Memoize.eq_tabler op=
+          val best_rest = Memoize.memoizerec tabler best_rest
+
+          (* pretend there is a (normally illegal) empty soneme with empty
+             assignment, since this won't influence the choice for the
+             first note. XXX To make this better, we might as well put the
+             last note from (a) previous measure, if there is one. *)
+          val (best, bestpen) = best_rest ((nil, nil), m)
       in
-          raise Hero "unimplemented"
+          print ("Got best penalty of " ^ Int.toString bestpen ^ " with " ^
+                 Int.toString (!total) ^ " assignments viewed\n");
+          best
       end
 
   (* Do the rendering once it's been normalized. *)
@@ -265,19 +342,24 @@ struct
             | go plusdelta active ((delta, first) :: more) =
               let
                   val nowevts = first :: getnow nil more
-                  (* We don't care about control messages, channels, instruments, or velocities. *)
-                  val ending = List.mapPartial (fn (Music _, MIDI.NOTEON(ch, note, 0)) => SOME note
-                                                 | (Music _, MIDI.NOTEOFF(ch, note, _)) => SOME note
-                                                 | _ => NONE) nowevts
-                  val starting = List.mapPartial (fn (Music _, MIDI.NOTEON(ch, note, 0)) => NONE
-                                                   | (Music _, MIDI.NOTEON(ch, note, vel)) => SOME note
-                                                   | _ => NONE) nowevts
+                  (* We don't care about control messages, channels, instruments, or
+                     velocities. *)
+                  val ending = List.mapPartial 
+                      (fn (Music _, MIDI.NOTEON(ch, note, 0)) => SOME note
+                    | (Music _, MIDI.NOTEOFF(ch, note, _)) => SOME note
+                    | _ => NONE) nowevts
+                  val starting = List.mapPartial 
+                      (fn (Music _, MIDI.NOTEON(ch, note, 0)) => NONE
+                    | (Music _, MIDI.NOTEON(ch, note, vel)) => SOME note
+                    | _ => NONE) nowevts
                   val bars = List.mapPartial (fn (Bar b, _) => SOME b | _ => NONE) nowevts
 
-                  (* okay, so we have some notes ending this instant ('ending'),
-                     and some notes starting ('starting'), and maybe some other stuff ('bars').
-                     First we need to turn off any active notes that are ending now, so we don't
-                     get confused into thinking they're still active. *)
+                  (* okay, so we have some notes ending this instant 
+                     ('ending'), and some notes starting ('starting'), 
+                     and maybe some other stuff ('bars'). First we need
+                     to turn off any active notes that are ending now, 
+                     so we don't get confused into thinking they're still
+                     active. *)
                   val (stops, active) =
                       let
                           fun rem stops active (note :: rest) =
@@ -498,19 +580,22 @@ struct
           List.mapPartial (fn x => x) (ListUtil.mapi onetrack tracks)
       end
 
+  val tracks = label thetracks
+
   val () = if List.null includes
            then (print "Specify a list of track numbers to include in the score, as arguments.\n";
                  raise Exit)
            else ()
   val () =
       let
-          val tracks = label thetracks
           val tracks = MIDI.mergea tracks
           val tracks = add_measures tracks
           val tracks = normalize tracks
           val tracks = makelengths tracks
           val tracks = measures tracks
           val tracks = render tracks
+          (* val tracks = makemidiagain tracks *)
+              
       in
           ()
       end handle Hero s => print ("Error: " ^ s  ^ "\n")
