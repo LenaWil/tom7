@@ -117,8 +117,76 @@ struct
 
   structure MM = SplayMapFn(MeasureKey)
 
+  fun printmeasures t =
+      let
+          fun show_measure m =
+              StringUtil.delimit " "
+              (map (fn (d, nots) =>
+                    "(" ^
+                    Int.toString d ^ ", [" ^
+                    StringUtil.delimit ", " (map (fn (n, len) =>
+                                                  Int.toString n ^ ":" ^
+                                                  Int.toString len) nots) ^
+                    "])") m)
+      in
+          List.app (fn m => print (show_measure m ^ "\n")) t
+      end
+
   val RADIX = 5 (* XXX configurable. Also, include open? *)
   val gamut = List.tabulate (RADIX, fn x => x)
+
+  (* after rendering, make back into a midi track
+     (only NOTEON and NOTEOFF events). *)
+
+  val DEF_CHANNEL = 1   (* shouldn't really matter *)
+  val DEF_VEL     = 127 (* likewise *)
+  fun humidify (t : measure list) =
+      let
+          val () = print "humidify:\n"
+          val () = printmeasures t
+          fun make subtract ((delta, ndl) :: rest) =
+            let in
+                print ("make " ^ Int.toString subtract ^ " (" ^ Int.toString delta
+                       ^ ", [" ^ StringUtil.delimit ", " (map (fn (n,l) =>
+                                                               "(" ^ Int.toString n ^ ":" ^
+                                                               Int.toString l ^ ")")
+                                                          ndl) ^ "]\n");
+              if delta < subtract
+              then raise Hero ("Wasn't normalized, oops: " ^ Int.toString delta ^ 
+                               " < " ^ Int.toString subtract)
+              else 
+                  let
+                      (* sort by length so that we can emit their OFFs in
+                         the right order *)
+                      val ndl = ListUtil.sort (ListUtil.bysecond Int.compare) ndl
+                      val () = if List.null ndl
+                               then raise Hero "humidify: note notes in event!"
+                               else ()
+                  in
+                      (* (there's always at least one note) *)
+                      (delta - subtract, MIDI.NOTEON(DEF_CHANNEL, #1 (hd ndl), DEF_VEL)) ::
+                      map (fn (n, len) => (0, MIDI.NOTEON(DEF_CHANNEL, n, DEF_VEL))) (tl ndl) @
+                      
+                      (* then the offs *)
+                      let
+                          fun eat dt [(lastn, lastlen)] = 
+                              (lastlen - dt, MIDI.NOTEOFF(DEF_CHANNEL, lastn, 0)) ::
+                              (* now that we've emitted some note-offs, the deltas
+                                 for the next measure event are inaccurate by the
+                                 length of the longest note. that's this one. *)
+                              make lastlen rest
+                            | eat dt ((n, len) :: more) =
+                              (len - dt, MIDI.NOTEOFF(DEF_CHANNEL, n, 0)) :: eat len more
+                            | eat dt nil = raise Hero "no notes in measureevent"
+                      in
+                          eat 0 ndl
+                      end
+                  end
+            end
+            | make _ nil = nil
+      in
+          make 0 (List.concat t)
+      end
 
   (* Render a single measure. We got rid of the deltas and lengths. *)
   fun render_one (m : int list list) =
@@ -128,13 +196,14 @@ struct
              event, compute the best possible assignment
              for the tail, and its penalty. *)
           (* PERF: memoize!! *)
-          fun best_rest BEST_REST (_, nil) = (total := !total + 1; 
-                                 if (!total mod 1000) = 0
-                                 then print (Int.toString (!total) ^ "\n")
-                                 else ();
-                                 (nil, 0))
+          fun best_rest BEST_REST (_, nil) = (nil, 0)
             | best_rest BEST_REST ((evt, ass), ns :: rest) =
               let
+                  val () = (total := !total + 1; 
+                            if (!total mod 1000) = 0
+                            then print (Int.toString (!total) ^ "\n")
+                            else ())
+
                   (* all legal assignments for evt. 
                      It turns out this only depends on
                      the length of evt; its cardinality is
@@ -166,14 +235,20 @@ struct
                                                 | LESS => 1)
 
                           val news = ListPair.zip (enew, anew)
+                          val () = if List.null news
+                                   then raise Hero "assignment was empty??"
+                                   else ()
                       in
                           ListPair.foldl (fn (old, new, s) =>
                                           s + note_penalty old new) 0 (olds, news)
                       end
 
-                  val nevt = length evt
-                  val () = if nevt > RADIX
+                  val nns = length ns
+                  val () = if nns > RADIX
                            then raise Hero "can't do chords larger than radix!"
+                           else ()
+                  val () = if nns = 0
+                           then raise Hero "chord is empty!"
                            else ()
 
                   (* try all, choose best. *)
@@ -189,13 +264,16 @@ struct
                     | getbest (best, bestpen) nil = (best, bestpen)
 
               in
-                  getbest (nil, 9999999) (all_assignments nevt)
+                  getbest (nil, 9999999) (all_assignments nns)
               end
 
           (* Memoize or this is ridiculously expensive.
              PERF: use hashing or a dense int map, not eq! *)
           val tabler = Memoize.eq_tabler op=
           val best_rest = Memoize.memoizerec tabler best_rest
+
+          val () = print ("Assign a measure of length: " ^
+                          Int.toString (length m) ^ "\n")
 
           (* pretend there is a (normally illegal) empty soneme with empty
              assignment, since this won't influence the choice for the
@@ -208,10 +286,19 @@ struct
           best
       end
 
+  (* FIXME debugging! *)
+  fun render_one m = m
+
   (* Do the rendering once it's been normalized. *)
   fun render (t : measure list) =
       let
+          val () = print "render:\n"
+          val () = printmeasures t
+
           (* Maps measures we've already rendered to their rendered versions. *)
+          (* XXX should probably render independent of deltas, since the delta
+             on the first note tells us something about what came before it.
+             assignments don't use deltas, anyway. *)
           val completed = ref (MM.empty)
           fun get m = MM.find(!completed, m)
 
@@ -219,13 +306,21 @@ struct
               let
                   (* we don't care about the deltas, or the note lengths
                      for the purposes of assignment. take those out first. *)
-                  val (dels, sons) = ListPair.unzip m
-                  val (nots, lens) = ListPair.unzip (map ListPair.unzip sons)
+                  val (dels : int list, sons : (int * int) list list) = ListPair.unzip m
+
+                  val notslens : (int list * int list) list = map ListPair.unzip sons
+                  val (nots : int list list, lens : int list list) = ListPair.unzip notslens
+
+                  val () = if List.exists List.null nots
+                           then raise Hero "empty notes"
+                           else ()
 
                   val nots = render_one nots
 
+                  val notslens : (int list * int list) list = ListPair.zip (nots, lens)
+
                   (* Now put them back together... *)
-                  val sons' = map ListPair.zip (ListPair.zip (nots, lens))
+                  val sons' = map ListPair.zip notslens
                   val res = ListPair.zip (dels, sons')
               in
                   completed := MM.insert(!completed, m, res)
@@ -250,6 +345,26 @@ struct
      being deltas on events that we want to ignore, like LBAR Nothing. *)
   fun measures (t : (int * lengthened) list) =
       let
+          val () = print "Measures:"
+          val () =
+              let
+                  fun pnorm (BAR bar) = "BAR"
+                    | pnorm (OFF i) = "OFF:" ^ Int.toString i
+                    | pnorm (ON i) = "ON:" ^ Int.toString i
+                  fun plen (LBAR bar) = "BAR"
+                    | plen (NOTES iiorl) =
+                      "[" ^ StringUtil.delimit ", " 
+                            (map (fn (i, ior) =>
+                                  Int.toString i ^ ":" ^
+                                  (case !ior of
+                                       NONE => "?"
+                                     | SOME l => Int.toString l)) iiorl) ^ "]"
+              in
+                  print (StringUtil.delimit "\n" (map (fn (d, l) => 
+                                                      "(" ^ Int.toString d ^ ", " ^ 
+                                                       plen l ^ ")") t))
+              end
+          
           (* All measures so far, in reverse *)
           val revmeasures = ref nil
           fun newmeasure revd = revmeasures := (rev revd) :: !revmeasures
@@ -259,12 +374,16 @@ struct
               let
                   fun getlength (n, ref (SOME l)) = (n, l)
                     | getlength _ = raise Hero "NOTES's length not set!"
+
+                  val () = if List.null ns 
+                           then raise Hero "measures: ns empty??"
+                           else ()
               in
                   read ((d + xdelta, map getlength ns) :: this) 0 rest
               end
             | read this xdelta ((d, LBAR Measure) :: rest) = 
               (newmeasure this;
-               read nil 0 rest)
+               read nil (d + xdelta) rest)
             | read this xdelta ((d, LBAR _) :: rest) = 
               read this (d + xdelta) rest
               
@@ -309,8 +428,13 @@ struct
                                        end);
                           (note, r)
                       end
+
+                  val notes = map onenow nows
+                  val () = if List.null notes 
+                           then raise Hero "no now notes?"
+                           else ()
               in
-                  (d, NOTES ` map onenow nows) :: write (ticks + d) thens
+                  (d, NOTES notes) :: write (ticks + d) thens
               end
             | write ticks ((d, OFF i) :: more) =
               let in
@@ -367,7 +491,8 @@ struct
                                    ([match], nomatch) => rem (OFF match :: stops) nomatch rest
                                  | (nil, active) => 
                                        let in
-                                           print ("Note " ^ Int.toString note ^ " was not active but turned off?\n");
+                                           print ("Note " ^ Int.toString note ^ 
+                                                  " was not active but turned off?\n");
                                            rem stops active rest
                                        end
                                  | _ => raise Hero "invt violation: note multiply active!")
@@ -393,7 +518,8 @@ struct
                                   if List.exists (fn n => n = note) act
                                   then
                                       let in
-                                          print ("Note begun multiply: " ^ Int.toString note ^ "\n");
+                                          print ("Note begun multiple times: " ^ 
+                                                 Int.toString note ^ "\n");
                                           add act notes
                                       end
                                   else add (note :: act) notes
@@ -412,42 +538,6 @@ struct
       in
           go 0 nil t
       end
-
-(*
-                  (case label of
-                     Music inst =>
-                       (case evt of
-                          MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
-                        | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
-                        | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
-                        | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
-                          (* otherwise no sound..? *) 
-                   | Control =>
-                       (case evt of
-                            (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
-                            MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
-                          | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
-                                print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
-                                       ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
-                          | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
-                   | Bar _ => () (* XXX could play metronome click *)
-                          );
-
-                  (* and adjust state *)
-                  (case label of
-                     Music inst =>
-                       if score_inst_XXX inst
-                       then
-                         case evt of
-                           MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note mod 5, false)
-                         | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note mod 5, true)
-                         | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note mod 5, false)
-                         | _ => ()
-                       else ()
-                    (* tempo here? *)
-                    | _ => ());
-*)
-
 
   (* In an already-labeled track set, add measure marker events. *)
   fun add_measures t =
@@ -580,6 +670,7 @@ struct
           List.mapPartial (fn x => x) (ListUtil.mapi onetrack tracks)
       end
 
+  val () = MIDI.writemidi "copy.mid" (1, divi, thetracks)
   val tracks = label thetracks
 
   val () = if List.null includes
@@ -594,10 +685,10 @@ struct
           val tracks = makelengths tracks
           val tracks = measures tracks
           val tracks = render tracks
-          (* val tracks = makemidiagain tracks *)
-              
+          val tracks = humidify tracks
+          val tracks = thetracks @ [tracks]
       in
-          ()
+          MIDI.writemidi "genscore.mid" (1, divi, tracks)
       end handle Hero s => print ("Error: " ^ s  ^ "\n")
                     | e => print ("Uncaught exn: " ^ exnName e ^ "\n")
 
