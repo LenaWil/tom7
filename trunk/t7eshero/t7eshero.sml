@@ -54,6 +54,7 @@ struct
   (* XXX these should describe what kind of track it is *)
   datatype label =
       Music of int
+    | Score
     | Control
     | Bar of bar
 
@@ -455,17 +456,19 @@ struct
                                        ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
                           | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
                    | Bar _ => () (* XXX could play metronome click *)
+                   | Score => ()
                           );
 
                   (* and adjust state *)
                   (case label of
-                     Music inst =>
-                       if score_inst_XXX inst
+                     Score =>
+                       if true (* score_inst_XXX inst*)
                        then
                          case evt of
-                           MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note mod 5, false)
-                         | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note mod 5, true)
-                         | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note mod 5, false)
+                             (* XXX should ensure note in bounds *)
+                           MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note, false)
+                         | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note, true)
+                         | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note, false)
                          | _ => ()
                        else ()
                     (* tempo here? *)
@@ -528,35 +531,33 @@ struct
                   
               in
                 (case label of
-                   Music inst => 
-                     if score_inst_XXX inst
-                     then
+                   Music inst => ()
+                 | Score => 
                        let
                          fun doevent (MIDI.NOTEON (x, note, 0)) = doevent (MIDI.NOTEOFF (x, note, 0))
                            | doevent (MIDI.NOTEOFF (_, note, _)) =
                                let val finger = note mod 5
                                in 
-                                 (case Array.sub(spans, finger) of
-                                    NONE => (* print "ended span we're not in?!\n" *) ()
-                                  | SOME ss => emit_span finger (ss, tiempo));
+                                   (case Array.sub(spans, finger) of
+                                      NONE => (* print "ended span we're not in?!\n" *) ()
+                                    | SOME ss => emit_span finger (ss, tiempo));
 
-                                 Array.update(spans, finger, NONE)
+                                   Array.update(spans, finger, NONE)
                                end
                            | doevent (MIDI.NOTEON (_, note, vel)) =
                                let val finger = note mod 5
                                in
-                                 Scene.addstar (finger, tiempo);
+                                   Scene.addstar (finger, tiempo);
                                  
-                                 (* don't emit--we assume proper bracketing
-                                    (even though this is not the case when
-                                    we generate the score by mod5 or include
-                                    multiple channels!) *)
-                                 Array.update(spans, finger, SOME tiempo)
+                                   (* don't emit--we assume proper bracketing
+                                      (even though this is not the case when
+                                      we generate the score by mod5 or include
+                                      multiple channels!) *)
+                                   Array.update(spans, finger, SOME tiempo)
                                end
                            | doevent _ = ()
                        in doevent e
                        end
-                     else ()
                  | Bar b => Scene.addbar(b, tiempo)
                        (* otherwise... ? *)
                  | Control => ()
@@ -720,6 +721,11 @@ struct
                                    | #"N" => Music INST_NOISE
                                    | #"S" => Music INST_SINE
                                    | _ => (print "?? expected Q or W or N\n"; raise Hero ""),
+                                 tr)
+                         | #"!" =>
+                           SOME (case CharVector.sub (name, 1) of
+                                     #"R" => Score
+                                   | _ => (print "I only support REAL score!"; raise Hero "real"),
                                  tr)
                          | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); SOME (Control, tr))
                            )

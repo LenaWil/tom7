@@ -46,6 +46,10 @@ struct
   exception Hero of string
   exception Exit
 
+  val output = Params.param "genscore.mid" (SOME("-o",
+                                                 "Set the output file.")) 
+                            "output"
+
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
 
@@ -71,13 +75,17 @@ struct
   val itos = Int.toString
 
   val (f, includes) = 
-      (case CommandLine.arguments() of 
+      (case Params.docommandline() of 
            st :: includes => 
                (st,
                 map (fn SOME i => i
               | NONE => (print "Expected a series of track numbers after the filename\n";
+                         print "Also:\n";
+                         print (Params.usage());
                          raise Exit)) (map Int.fromString includes))
          | _ => (print "Expected a MIDI file on the command line.\n";
+                 print "Also:\n";
+                 print (Params.usage());
                  raise Exit))
 
   val r = (Reader.fromfile f) handle _ => 
@@ -134,6 +142,7 @@ struct
 
   val RADIX = 5 (* XXX configurable. Also, include open? *)
   val gamut = List.tabulate (RADIX, fn x => x)
+  val OFFSET = 0
 
   (* after rendering, make back into a midi track
      (only NOTEON and NOTEOFF events). *)
@@ -164,19 +173,19 @@ struct
                                else ()
                   in
                       (* (there's always at least one note) *)
-                      (delta - subtract, MIDI.NOTEON(DEF_CHANNEL, #1 (hd ndl), DEF_VEL)) ::
-                      map (fn (n, len) => (0, MIDI.NOTEON(DEF_CHANNEL, n, DEF_VEL))) (tl ndl) @
+                      (delta - subtract, MIDI.NOTEON(DEF_CHANNEL, OFFSET + #1 (hd ndl), DEF_VEL)) ::
+                      map (fn (n, len) => (0, MIDI.NOTEON(DEF_CHANNEL, OFFSET + n, DEF_VEL))) (tl ndl) @
                       
                       (* then the offs *)
                       let
                           fun eat dt [(lastn, lastlen)] = 
-                              (lastlen - dt, MIDI.NOTEOFF(DEF_CHANNEL, lastn, 0)) ::
+                              (lastlen - dt, MIDI.NOTEOFF(DEF_CHANNEL, OFFSET + lastn, 0)) ::
                               (* now that we've emitted some note-offs, the deltas
                                  for the next measure event are inaccurate by the
                                  length of the longest note. that's this one. *)
                               make lastlen rest
                             | eat dt ((n, len) :: more) =
-                              (len - dt, MIDI.NOTEOFF(DEF_CHANNEL, n, 0)) :: eat len more
+                              (len - dt, MIDI.NOTEOFF(DEF_CHANNEL, OFFSET + n, 0)) :: eat len more
                             | eat dt nil = raise Hero "no notes in measureevent"
                       in
                           eat 0 ndl
@@ -244,9 +253,14 @@ struct
                       end
 
                   val nns = length ns
-                  val () = if nns > RADIX
-                           then raise Hero "can't do chords larger than radix!"
-                           else ()
+                  val (nns, ns) = if nns > RADIX
+                                  then 
+                                      let in
+                                          print "can't do (real) chords larger than radix!";
+                                          (RADIX, List.take (ns, RADIX))
+                                      end
+                                  else (nns, ns)
+
                   val () = if nns = 0
                            then raise Hero "chord is empty!"
                            else ()
@@ -287,7 +301,7 @@ struct
       end
 
   (* FIXME debugging! *)
-  fun render_one m = m
+  (* fun render_one m = m *)
 
   (* Do the rendering once it's been normalized. *)
   fun render (t : measure list) =
@@ -360,7 +374,7 @@ struct
                                        NONE => "?"
                                      | SOME l => Int.toString l)) iiorl) ^ "]"
               in
-                  print (StringUtil.delimit "\n" (map (fn (d, l) => 
+                  print (StringUtil.delimit "  " (map (fn (d, l) => 
                                                       "(" ^ Int.toString d ^ ", " ^ 
                                                        plen l ^ ")") t))
               end
@@ -454,7 +468,7 @@ struct
           val finish = OFF
 
           fun getnow acc ((0, e) :: more) = getnow (e :: acc) more
-            | getnow acc _ = rev acc
+            | getnow acc l = (rev acc, l)
 
           fun withdelta plusdelta nil = raise Hero "withdelta on nil"
             | withdelta plusdelta (e :: rest) = (plusdelta, e) :: map (fn ee => (0, ee)) rest
@@ -465,7 +479,8 @@ struct
               withdelta plusdelta ` map finish active
             | go plusdelta active ((delta, first) :: more) =
               let
-                  val nowevts = first :: getnow nil more
+                  val (nowevts, more) = getnow nil more
+                  val nowevts = first :: nowevts
                   (* We don't care about control messages, channels, instruments, or
                      velocities. *)
                   val ending = List.mapPartial 
@@ -670,7 +685,9 @@ struct
           List.mapPartial (fn x => x) (ListUtil.mapi onetrack tracks)
       end
 
+  (* XXX debug *)
   val () = MIDI.writemidi "copy.mid" (1, divi, thetracks)
+
   val tracks = label thetracks
 
   val () = if List.null includes
@@ -686,9 +703,11 @@ struct
           val tracks = measures tracks
           val tracks = render tracks
           val tracks = humidify tracks
+          (* we only generate REAL score for now *)
+          val tracks = (0, MIDI.META ` MIDI.NAME "!R") :: tracks
           val tracks = thetracks @ [tracks]
       in
-          MIDI.writemidi "genscore.mid" (1, divi, tracks)
+          MIDI.writemidi (!output) (1, divi, tracks)
       end handle Hero s => print ("Error: " ^ s  ^ "\n")
                     | e => print ("Uncaught exn: " ^ exnName e ^ "\n")
 
