@@ -33,7 +33,7 @@ struct
   val ROBOTW = 16
     
   (* distance of nut (on-tempo target bar) from bottom of screen *)
-  val NUTOFFSET = 20
+  val NUTOFFSET = 127
 
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
@@ -51,7 +51,7 @@ struct
     | Beat
     | Timesig of int * int
 
-  (* XXX these should describe what kind of track it is *)
+  (* These should describe what kind of track an event is drawn from *)
   datatype label =
       Music of int
     | Score
@@ -231,9 +231,8 @@ struct
 
   val divi = divi * SLOWFACTOR 
 
-  (* val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks *)
-
-  (* XXX hammer time *)
+  (* XXX hammer time.
+     if I do this it should be in Song below *)
 (* 
   val hammerspeed = 0w1
   local val gt = ref 0w0 : Word32.word ref
@@ -246,12 +245,11 @@ struct
   end
 *)
 
-  (* allow fast forwarding into the future *)
-  val skip = ref 0
-  fun getticksi () = (Word32.toInt (getticks ()) + !skip)
 
   (* how many ticks forward do we look? *)
   val MAXAHEAD = 960
+  (* how many ticks in the past do we draw? *)
+  val DRAWLAG = 0 (* FIXME *)
 
   (* For 360 X-Plorer guitar, which strangely swaps yellow and blue keys *)
   fun joymap 0 = 0
@@ -303,6 +301,147 @@ struct
   (* XXX should do for score tracks, not music tracks *)
   (* but for now don't show drum tracks, at least *)
   fun score_inst_XXX inst = inst <> INST_NOISE
+
+
+  (* This gives access to the stream of song events. There is a single
+     universal notion of "now" which updates at a constant pace. This
+     gives us a cursor into song events that we use for e.g. controling
+     the audio subsystem.
+
+     It is also possible to create cursors that work at a fixed offset
+     (positive or negative) from "now". For example, we want to draw
+     notes that have already occured, so that we can show status about
+     them. We also want to be able to perform the matching algorithm
+     over a small window of notes in the past and future.
+
+     *)
+  structure Song :
+  sig
+      type cursor
+      (* give offset in ticks. A negative offset cursor displays events
+         from the past. *)
+      val cursor : int -> (int * (label * MIDI.event)) list -> cursor
+
+          
+      (* get the events that are occurring now or which this cursor has
+         already passed. Advances the cursor to immediately after the
+         events. *)
+      val nowevents : cursor -> (label * MIDI.event) list
+
+      (* show the upcoming events from the cursor's perspective. *)
+      val look : cursor -> (int * (label * MIDI.event)) list
+
+      (* How many ticks are we behind real time? Always non-negative.
+         Always 0 after calling nowevents, look, or cursor, until
+         update is called again. *)
+      val lag : cursor -> int
+
+      (* Initializes the local clock. *)
+      val init : unit -> unit
+
+      (* Updates the local clock from the wall clock. Call as often as
+         desired. Time does not advance between calls to this, for
+         synchronization across cursors. *)
+      val update : unit -> unit
+
+      (* Advance the given number of ticks, as if time had just
+         non-linearly done that. Implies an update. *)
+      val fast_forward : int -> unit
+
+  end =
+  struct
+
+      (* allow fast forwarding into the future *)
+      val skip = ref 0
+      val now = ref 0
+      fun update () = now := (Word32.toInt (getticks ()) + !skip)
+      fun fast_forward n = skip := !skip + n
+
+      type cursor = { lt : int ref, evts : (int * (label * MIDI.event)) list ref }
+      fun lag { lt = ref n, evts = _ } = !now - n
+
+      (* move the cursor so that lt is now, updating the events as
+         needed. *)
+      (* The cursor is looking at time 'lt', and now it is 'now'. The
+         events in the track are measured as deltas from lt. We
+         want to play any event that was late (or on time): that
+         occurred between lt and now. This is the case when the delta time
+         is less than or equal to (now - lt).
+
+         There may be many such events, each measured as a delta from the
+         previous one. For example, we might have
+
+                        now = 17
+           1 1  2   5   |
+           -A-B- -C- - -v- -D
+          . : . : . : . : . :
+          ^
+          |
+          lt = 10
+
+          We want to emit events A-C, and reduce the delta time on D to 2,
+          then continue with lt=now. To do so, we call the period of time
+          left to emit the 'gap'; this begins as now - lt = 7.
+
+          We then emit any events with delta time less than the gap,
+          reducing the gap as we do so. (We can think of this as also
+          updating lt. Instead we just set lt to now when we finish
+          with the gap.)
+
+          When the gap is too small to include the next event, we reduce
+          its delta time by the remaining gap amount to restore the
+          representation invariant for the cursor. *)
+      fun nowevents { lt, evts } =
+          let
+              (* returns the events that are now. modifies evts ref *)
+              fun ne gap ((dt, (label, evt)) :: rest) =
+                  if dt <= gap
+                  then (label, evt) :: ne (gap - dt) rest
+
+                  (* the event is not ready yet. it must be measured as a
+                     delta from 'now' *)
+                  else (evts := (dt - gap, (label, evt)) :: rest; nil)
+
+                (* song will end on next trip *)
+                | ne _ nil = (evts := nil; nil)
+
+              (* sets evts to the tail, returns now events *)
+              val ret = ne (!now - !lt) (!evts)
+          in
+              (* up to date *)
+              lt := !now;
+              ret
+          end
+          
+      (* It turns out this offset is just a modification to the the delta
+         for the first event. If we are pushing the cursor into the past,
+         then the offset will be negative, which corresponds to a larger
+         delta (wait longer). If we're going to the future, then we're
+         reducing the delta. The delta could become negative. If so, we
+         are skipping those events. The nowevents function gives us the
+         events that are occurring now or that have already passed, so if
+         we call that and discard them, our cursor will be at the appropriate
+         future position. *)
+      fun cursor off nil = { lt = ref (!now), evts = ref nil }
+        | cursor off ((d, e) :: song) = 
+          let val c = { lt = ref 0, evts = ref ((d - off, e) :: song) }
+          in
+              ignore (nowevents c);
+              c
+          end
+
+      fun look (c as { lt = _, evts }) =
+          let in
+              (* get rid of anything that has passed *)
+              ignore (nowevents c);
+              !evts
+          end
+
+      (* Actually just need to take a measurement, but clearer to
+         give these separate names. *)
+      val init = update
+  end
+
 
   structure State =
   struct
@@ -387,112 +526,68 @@ struct
        
   end
 
-  (* XXX assuming ticks = midi delta times; wrong! 
-     (even when slowed by factor of 4 below) *)
+  (* XXX assuming ticks = midi delta times; wrong! We'll live with it for now. *)
+
+  (* This is the main loop. There are three mutually recursive functions.
+     The loop function checks input and deals with it appropriately.
+     The loopplay function plays the notes to the audio subsystem.
+     The loopdraw function displays the score. 
+
+     The loopplay function wants to look at the note (event) that's happening next.
+     But draw actually wants to see somewhat old events, so that it can show a little
+     bit of history. Therefore the two functions are going to be looking at different
+     positions in the same list of track events. *)
+
   val DRAWTICKS = (* 128 *) 3
-  fun loopplay (_,  _,  nil) = print "SONG END.\n"
-    | loopplay (lt, ld, track) =
+  fun loopplay cursor =
       let
-          val now = getticksi ()
-          (* val () = print ("Lt: " ^ itos lt ^ " Now: " ^ itos now ^ "\n") *)
-
-          (* Last time we were here it was time 'lt', and now it is 'now'. The
-             events in the track are measured as deltas from lt. We
-             want to play any event that was late (or on time): that
-             occurred between lt and now. This is the case when the delta time
-             is less than now - lt.
-             
-             There may be many such events, each measured as a delta from the
-             previous one. For example, we might have
-             
-                            now = 17
-               1 1  2   5   |
-               -A-B- -C- - -v- -D
-              . : . : . : . : . :
-              ^
-              |
-              lt = 10
-              
-              We want to emit events A-C, and reduce the delta time on D to 2,
-              then continue with lt=now. To do so, we call the period of time
-              left to emit the 'gap'; this begins as now - lt = 7.
-
-              We then emit any events with delta time less than the gap,
-              reducing the gap as we do so. (We can think of this as also
-              updating lt, but there is no reason for that.)
-
-              When the gap is too small to include the next event, we reduce
-              its delta time by the remaining gap amount.
-
-             *)
-          fun nowevents gap ((dt, (label, evt)) :: rest) =
-            let 
-(*
-              val () = if gap > dt then print ("late by " ^ Int.toString (gap - dt) ^ "\n")
-                       else ()
-*)
-
-              (* try to account for drift *)
-              (* val () = if nn < 0 then skip := !skip + nn
-                       else () *)
-            in
-              if dt <= gap
-              then 
-                let in
-                  (case label of
-                     Music inst =>
-                       (case evt of
-                          MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
-                        | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
-                        | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
-                        | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
-                          (* otherwise no sound..? *) 
-                   | Control =>
-                       (case evt of
-                            (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
-                            MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
-                          | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
-                                print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
-                                       ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
-                          | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
-                   | Bar _ => () (* XXX could play metronome click *)
-                   | Score => ()
-                          );
-
-                  (* and adjust state *)
-                  (case label of
-                     Score =>
-                       if true (* score_inst_XXX inst*)
-                       then
-                         case evt of
-                             (* XXX should ensure note in bounds *)
-                           MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note, false)
-                         | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note, true)
-                         | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note, false)
-                         | _ => ()
-                       else ()
-                    (* tempo here? *)
-                    | _ => ());
-
-                  nowevents (gap - dt) rest
-                end
-              (* the event is not ready yet. it must be measured as a
-                 delta from 'now' *)
-              else (dt - gap, (label, evt)) :: rest
-            end
-            (* song will end on next trip *)
-            | nowevents _ nil = nil
-
-          val track = nowevents (now - lt) track
+          val nows = Song.nowevents cursor
       in
-          loop (now, ld, track)
+          List.app 
+          (fn (label, evt) =>
+           let in
+               (case label of
+                    Music inst =>
+                        (case evt of
+                             MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
+                           | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
+                           | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
+                           | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
+                           (* otherwise no sound..? *) 
+                  | Control =>
+                             (case evt of
+                                  (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
+                                  MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
+                                | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
+                                      print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
+                                             ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
+                                | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
+                  | Bar _ => () (* XXX could play metronome click *)
+                  | Score => ()
+                                  );
+
+                (* XXX this probably shouldn't be here. it should be in draw. There is a separate
+                   state for currently active notes, which we can use for whammy, etc. *)
+                (* and adjust state *)
+                (case label of
+                   Score =>
+                     if true (* score_inst_XXX inst*)
+                     then
+                       case evt of
+                           (* XXX should ensure note in bounds *)
+                         MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note, false)
+                       | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note, true)
+                       | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note, false)
+                       | _ => ()
+                     else ()
+                  (* tempo here? *)
+                  | _ => ())
+
+          end) nows
       end
 
-  and loopdraw (lt, ld, track) =
-    let 
-      val now = getticksi ()
-    in
-      if now - ld >= DRAWTICKS
+  fun loopdraw cursor =
+      if Song.lag cursor >= DRAWTICKS
       then 
         let 
           val () = Scene.clear ()
@@ -500,6 +595,7 @@ struct
           (* spans may be so long they run off the screen. We keep track of
              a bit of state for each finger, which is whether we are currently
              in a span there. *)
+          (* XXX wrong: desynchronized *)
           val spans = Array.tabulate(5, fn f =>
                                      if Array.sub(State.spans, f)
                                      then SOME 0
@@ -516,70 +612,67 @@ struct
           
           (* val () = print "----\n" *)
 
-          val period = now - lt
-
           fun draw _ nil =
-            (* Make sure that we only end a span if it's started *)
-            Array.appi (fn (finger, SOME spanstart) => emit_span finger (spanstart, MAXAHEAD)
-                         | _ => ()) spans
-            | draw when ((dt, (label, e)) :: rest) = 
-            if when + dt > MAXAHEAD
-            then draw when nil
-            else 
-              let 
-                val tiempo = when + dt
-                  
-              in
-                (case label of
-                   Music inst => ()
-                 | Score => 
-                       let
-                         fun doevent (MIDI.NOTEON (x, note, 0)) = doevent (MIDI.NOTEOFF (x, note, 0))
-                           | doevent (MIDI.NOTEOFF (_, note, _)) =
-                               let val finger = note mod 5
-                               in 
-                                   (case Array.sub(spans, finger) of
-                                      NONE => (* print "ended span we're not in?!\n" *) ()
-                                    | SOME ss => emit_span finger (ss, tiempo));
+              (* Make sure that we only end a span if it's started *)
+              Array.appi (fn (finger, SOME spanstart) => emit_span finger (spanstart, MAXAHEAD)
+                  | _ => ()) spans
 
-                                   Array.update(spans, finger, NONE)
-                               end
-                           | doevent (MIDI.NOTEON (_, note, vel)) =
-                               let val finger = note mod 5
-                               in
-                                   Scene.addstar (finger, tiempo);
-                                 
-                                   (* don't emit--we assume proper bracketing
-                                      (even though this is not the case when
-                                      we generate the score by mod5 or include
-                                      multiple channels!) *)
-                                   Array.update(spans, finger, SOME tiempo)
-                               end
-                           | doevent _ = ()
-                       in doevent e
-                       end
-                 | Bar b => Scene.addbar(b, tiempo)
-                       (* otherwise... ? *)
-                 | Control => ()
-                       );
-                   draw tiempo rest
-              end
+            | draw when (track as ((dt, (label, e)) :: rest)) = 
+              if when + dt > MAXAHEAD
+              then draw when nil
+              else 
+                let 
+                  val tiempo = when + dt
+                in
+                  (case label of
+                     Music inst => ()
+                   | Score => 
+                         let
+                           fun doevent (MIDI.NOTEON (x, note, 0)) = 
+                                 doevent (MIDI.NOTEOFF (x, note, 0))
+                             | doevent (MIDI.NOTEOFF (_, note, _)) =
+                                 let val finger = note mod 5
+                                 in 
+                                     (case Array.sub(spans, finger) of
+                                        NONE => (* print "ended span we're not in?!\n" *) ()
+                                      | SOME ss => emit_span finger (ss, tiempo));
 
+                                     Array.update(spans, finger, NONE)
+                                 end
+                             | doevent (MIDI.NOTEON (_, note, vel)) =
+                                 let val finger = note mod 5
+                                 in
+                                     Scene.addstar (finger, tiempo);
+
+                                     (* don't emit--we assume proper bracketing
+                                        (even though this is not the case when
+                                        we generate the score by mod5 or include
+                                        multiple channels!) *)
+                                     Array.update(spans, finger, SOME tiempo)
+                                 end
+                             | doevent _ = ()
+                         in doevent e
+                         end
+                   | Bar b => Scene.addbar(b, tiempo)
+                         (* otherwise... ? *)
+                   | Control => ()
+                         );
+
+                     draw tiempo rest
+                end
         in
-          draw 0 (* period? XXX *) track;
+          draw 0 (Song.look cursor);
           Scene.draw ();
-          flip screen;
-          loopplay (lt, now, track)
+          flip screen
         end
-      else loopplay (lt, ld, track)
-    end
+      else ()
 
-  and loop x =
+  fun loop (playcursor, drawcursor) =
       let in
           (case pollevent () of
                SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Exit
              | SOME E_Quit => raise Exit
-             | SOME (E_KeyDown { sym = SDLK_i }) => skip := !skip + 2000
+             | SOME (E_KeyDown { sym = SDLK_i }) => Song.fast_forward 2000
              | SOME (E_KeyDown { sym = SDLK_o }) => transpose := !transpose - 1
              | SOME (E_KeyDown { sym = SDLK_p }) => transpose := !transpose + 1
              (* Assume joystick events are coming from the one joystick we enabled
@@ -597,7 +690,11 @@ struct
 
              | _ => ()
                );
-          loopdraw x
+
+           Song.update ();
+           loopplay playcursor;
+           loopdraw drawcursor;
+           loop (playcursor, drawcursor)
       end
 
   (* In an already-labeled track set, add measure marker events. *)
@@ -745,7 +842,10 @@ struct
                 end) tracks
 *)
 
-  val () = loop (getticksi (), getticksi (), tracks)
+  val playcursor = Song.cursor 0 tracks
+  val drawcursor = Song.cursor 0 tracks (* XXX offset! *)
+
+  val () = loop (playcursor, drawcursor)
     handle Hero s => messagebox ("exn test: " ^ s)
         | SDL s => messagebox ("sdl error: " ^ s)
         | Exit => ()
