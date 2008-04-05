@@ -704,7 +704,9 @@ struct
           val tracks = render tracks
           val tracks = humidify tracks
           (* we only generate REAL score for now *)
-          val tracks = (0, MIDI.META ` MIDI.NAME "!R") :: tracks
+          val tracks = (0, MIDI.META ` 
+                            MIDI.NAME ("!R" ^ 
+                                       StringUtil.delimit "," (map Int.toString includes))) :: tracks
           val tracks = thetracks @ [tracks]
       in
           MIDI.writemidi (!output) (1, divi, tracks)

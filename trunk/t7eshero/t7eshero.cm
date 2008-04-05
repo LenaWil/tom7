@@ -19,6 +19,9 @@ group is
 ../sml-lib/util/stringutil-sig.sml
 ../sml-lib/util/stringutil.sml
 
+../sml-lib/util/growarray-sig.sml
+../sml-lib/util/growarray.sml
+
 ../sml-lib/files/reader-sig.sml
 ../sml-lib/files/reader.sml
 

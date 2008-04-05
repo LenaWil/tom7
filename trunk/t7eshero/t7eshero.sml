@@ -10,14 +10,16 @@ struct
   fun messagebox s = print (s ^ "\n")
 
   (* Comment this out on Linux, or it will not link *)
-(*
+
   local
       val mb_ = _import "MessageBoxA" : MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
   in
       fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", MLton.Pointer.null)
   end
-*)
+
   type ptr = MLton.Pointer.t
+  infixr 9 `
+  fun a ` b = a b
 
   exception Nope
 
@@ -50,13 +52,6 @@ struct
       Measure
     | Beat
     | Timesig of int * int
-
-  (* These should describe what kind of track an event is drawn from *)
-  datatype label =
-      Music of int
-    | Score
-    | Control
-    | Bar of bar
 
   (* XXX assumes joystick 0 *)
 (*
@@ -94,7 +89,10 @@ struct
        requireimage "testgraphics/yellowstar.png",
        requireimage "testgraphics/bluestar.png",
        requireimage "testgraphics/orangestar.png"]
-       
+
+  val missed = requireimage "testgraphics/missed.png"
+  val hit = requireimage "testgraphics/hit.png"
+
   val STARWIDTH = surface_width (Vector.sub(stars, 0))
   val STARHEIGHT = surface_height (Vector.sub(stars, 0))
   val greenhi = requireimage "testgraphics/greenhighlight.png"
@@ -292,11 +290,103 @@ struct
           flip screen
       end
 
-  (* Fudge a score track from the actual notes. *)
-  (* XXX should do for score tracks, not music tracks *)
-  (* but for now don't show drum tracks, at least *)
-  fun score_inst_XXX inst = inst <> INST_NOISE
+  datatype state =
+      Future
+    | Missed
+    | Hit
 
+  (* ... ? *)
+  datatype input =
+      FingerDown of int
+    | FingerUp of int
+    | Commit
+      
+  structure Match :
+  sig
+
+      type scoreevt
+
+      (* These should describe what kind of track an event is drawn from *)
+      datatype label =
+          Music of int * int
+        | Score of scoreevt (* the tracks that are gated by this score *)
+        | Control
+        | Bar of bar
+
+      val state : scoreevt -> state
+      val makeinitialevt : int list -> scoreevt
+
+      (* can change the state of some scoreevts *)
+      val input : input -> unit
+
+      (* initialize (gates, events)
+         produces a t7eshero track of (int * (label * event))
+         where the labels are Score. Also initializes the
+         internal matching matrix. *)
+      val initialize : (int list * (int * MIDI.event) list) ->
+                       (int * (label * MIDI.event)) list
+
+  end =
+  struct
+
+      type scoreevt = 
+          { (* audio tracks that are gated by this event *)
+            gate : int list,
+            state : state ref }
+
+
+      (* These should describe what kind of track an event is drawn from *)
+      datatype label =
+          Music of int * int
+        | Score of scoreevt (* the tracks that are gated by this score *)
+        | Control
+        | Bar of bar
+
+          (* XXX *)
+      fun makeinitialevt tl = { gate = tl, state = ref Future }
+
+      fun state ({ state, ... } : scoreevt) = !state
+          
+      (* FIXME *)
+      fun input _ = ()
+
+
+      structure GA = GrowArray
+      (* The matching array is 
+
+         song events on this axis; one column per event ......
+        |
+        |
+        |
+        |
+        v
+
+        input events on the vertical axis, one row per input.
+        
+         *)
+      (* This is a growarray of Arrays (vectors?), each of length
+         equal to the number of events in the song.
+         *)
+      val matching = GA.empty () : int vector GA.growarray
+
+      (* contains all of the scoreevts in the song *)
+      val song = ref (Vector.fromList nil) : (int * scoreevt) vector ref
+      fun initialize (gates, track) =
+          (* let's do *)
+          let
+              (* For the purpose of matching we don't care about
+                 note lengths at all (phew) so we don't care about
+                 NOTEOFF events. *)
+              val starts = MIDI.filter (fn (MIDI.NOTEON(_, _, 0)) => false
+                                         | (MIDI.NOTEON _) => true
+                                         | _ => false) track
+          in
+              raise Hero "sorry unimplemented"
+          end
+
+  end
+
+  datatype label = datatype Match.label
 
   (* This gives access to the stream of song events. There is a single
      universal notion of "now" which updates at a constant pace. This
@@ -466,7 +556,7 @@ struct
     val starpics = stars
 
     (* color, x, y *)
-    val stars = ref nil : (int * int * int) list ref
+    val stars = ref nil : (int * int * int * Match.scoreevt) list ref
     (* rectangles the liteup background to draw. x,y,w,h *)
     val spans = ref nil : (int * int * int * int) list ref
     (* type, y, height *)
@@ -483,14 +573,15 @@ struct
 
     val NUTOFFSET = 0 (* FIXME trick *)
 
-    fun addstar (finger, stary) =
+    fun addstar (finger, stary, evt) =
       (* XXX fudge city *)
       stars := 
       (finger,
        (STARWIDTH div 4) +
        6 + finger * (STARWIDTH + 18),
        (* hit star half way *)
-       (height - (NUTOFFSET + STARHEIGHT div TICKSPERPIXEL)) - (stary div TICKSPERPIXEL)) :: !stars
+       (height - (NUTOFFSET + STARHEIGHT div TICKSPERPIXEL)) - (stary div TICKSPERPIXEL),
+       evt) :: !stars
 
     fun addbar (b, t) = 
       let 
@@ -524,7 +615,16 @@ struct
         (* XXX probably could have different colors for major and minor bars... *)
         app (fn (c, y, h) => fillrect(screen, 16, y - (h div 2), width - 32, h, c)) (!bars);
         (* stars on top *)
-        app (fn (f, x, y) => blitall(Vector.sub(starpics, f), screen, x, y)) (!stars)
+        app (fn (f, x, y, e) => 
+             let in
+                 blitall(Vector.sub(starpics, f), screen, x, y);
+
+                 (* plus icon *)
+                 (case Match.state e of
+                      Missed => blitall(missed, screen, x, y)
+                    | Hit => blitall(hit, screen, x, y)
+                    | _ => ())
+             end) (!stars)
       end
        
   end
@@ -548,7 +648,7 @@ struct
           List.app 
           (fn (label, evt) =>
            case label of
-               Music inst =>
+               Music (inst, track) =>
                    (case evt of
                         MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
                       | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
@@ -564,7 +664,7 @@ struct
                                    ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
                       | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
              | Bar _ => () (* XXX could play metronome click *)
-             | Score => ())
+             | Score _ => ())
           nows
       end
 
@@ -581,7 +681,7 @@ struct
               List.app 
               (fn (label, evt) =>
                (case label of
-                    Score =>
+                    Score _ =>
                       if true (* score_inst_XXX inst*)
                       then
                           case evt of
@@ -625,8 +725,8 @@ struct
                   val tiempo = when + dt
                 in
                   (case label of
-                     Music inst => ()
-                   | Score => 
+                     Music _ => ()
+                   | Score scoreevt => 
                          let
                            fun doevent (MIDI.NOTEON (x, note, 0)) = 
                                  doevent (MIDI.NOTEOFF (x, note, 0))
@@ -642,7 +742,7 @@ struct
                              | doevent (MIDI.NOTEON (_, note, vel)) =
                                  let val finger = note mod 5
                                  in
-                                     Scene.addstar (finger, tiempo);
+                                     Scene.addstar (finger, tiempo, scoreevt);
 
                                      (* don't emit--we assume proper bracketing
                                         (even though this is not the case when
@@ -806,37 +906,56 @@ struct
      This uses the track's name to determine its label. *)
   fun label tracks =
       let
-          fun onetrack tr =
-              case findname tr of
-                  NONE => SOME (Control, tr) (* (print "Discarded track with no name.\n"; NONE) *)
-                | SOME "" => SOME (Control, tr) (* (print "Discarded track with empty name.\n"; NONE) *)
-                | SOME name => 
-                      (case CharVector.sub(name, 0) of
-                           #"+" =>
-                           SOME (case CharVector.sub (name, 1) of
-                                     #"Q" => Music INST_SQUARE 
-                                   | #"W" => Music INST_SAW 
-                                   | #"N" => Music INST_NOISE
-                                   | #"S" => Music INST_SINE
-                                   | _ => (print "?? expected Q or W or N\n"; raise Hero ""),
-                                 tr)
-                         | #"!" =>
-                           SOME (case CharVector.sub (name, 1) of
-                                     #"R" => Score
-                                   | _ => (print "I only support REAL score!"; raise Hero "real"),
-                                 tr)
-                         | _ => (print ("confused by named track '" ^ 
-                                        name ^ "'?? expected + or ...\n"); SOME (Control, tr))
-                           )
-      in
-          List.mapPartial onetrack tracks
-      end
-      
-  val tracks = label thetracks
-  val tracks = slow (MIDI.mergea tracks)
-  val tracks = add_measures tracks
+          fun foldin (data, tr) : (int * (label * MIDI.event)) list = 
+              map (fn (d, e) => (d, (data, e))) tr
 
-  val tracks = delay tracks
+          fun onetrack (tr, i) =
+            case findname tr of
+                NONE => SOME ` foldin (Control, tr)
+              | SOME "" => SOME ` foldin (Control, tr)
+              | SOME name => 
+                  (case CharVector.sub(name, 0) of
+                       #"+" =>
+                       SOME `
+                       foldin
+                       (case CharVector.sub (name, 1) of
+                            #"Q" => Music (INST_SQUARE, i)
+                          | #"W" => Music (INST_SAW, i)
+                          | #"N" => Music (INST_NOISE, i)
+                          | #"S" => Music (INST_SINE, i)
+                          | _ => (print "?? expected S or Q or W or N\n"; raise Hero ""),
+                            tr)
+
+                     | #"!" =>
+                       (case CharVector.sub (name, 1) of
+                            #"R" =>
+                              (* XXX only if this is the score we desire. *)
+                              SOME `
+                              Match.initialize
+                              (map (fn i => 
+                                    case Int.fromString i of
+                                        NONE => raise Hero "bad tracknum in Score name"
+                                      | SOME i => i) ` 
+                               String.tokens (StringUtil.ischar #",")
+                               ` String.substring(name, 2, size name - 2),
+                               tr)
+                          | _ => (print "I only support REAL score!"; raise Hero "real"))
+
+                     | _ => (print ("confused by named track '" ^ 
+                                    name ^ "'?? expected + or ! ...\n"); 
+                             SOME ` foldin (Control, tr))
+                       )
+      in
+          List.mapPartial (fn x => x) (ListUtil.mapi onetrack tracks)
+      end
+
+  val () =
+      let
+          val (tracks : (int * (label * MIDI.event)) list list) = label thetracks
+          val tracks = slow (MIDI.merge tracks)
+          val tracks = add_measures tracks
+              
+          val tracks = delay tracks
 (*
   val () = app (fn (dt, (lab, evt)) =>
                 let in
@@ -844,10 +963,11 @@ struct
                 end) tracks
 *)
 
-  val playcursor = Song.cursor 0 tracks
-  val drawcursor = Song.cursor (0 - Scene.DRAWLAG) tracks (* XXX offset! *)
-
-  val () = loop (playcursor, drawcursor)
+          val playcursor = Song.cursor 0 tracks
+          val drawcursor = Song.cursor (0 - Scene.DRAWLAG) tracks (* XXX offset! *)
+      in
+          loop (playcursor, drawcursor)
+      end
     handle Hero s => messagebox ("exn test: " ^ s)
         | SDL s => messagebox ("sdl error: " ^ s)
         | Exit => ()
