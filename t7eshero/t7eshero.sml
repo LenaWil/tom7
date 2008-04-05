@@ -246,11 +246,6 @@ struct
 *)
 
 
-  (* how many ticks forward do we look? *)
-  val MAXAHEAD = 960
-  (* how many ticks in the past do we draw? *)
-  val DRAWLAG = 0 (* FIXME *)
-
   (* For 360 X-Plorer guitar, which strangely swaps yellow and blue keys *)
   fun joymap 0 = 0
     | joymap 1 = 1
@@ -459,6 +454,12 @@ struct
   structure Scene =
   struct
 
+    val TICKSPERPIXEL = 2
+    (* how many ticks forward do we look? *)
+    val MAXAHEAD = 960
+    (* how many MIDI ticks in the past do we draw? *)
+    val DRAWLAG = NUTOFFSET * TICKSPERPIXEL
+
     val BEATCOLOR    = color(0wx77, 0wx77, 0wx77, 0wxFF)
     val MEASURECOLOR = color(0wxDD, 0wx22, 0wx22, 0wxFF)
     val TSCOLOR      = color(0wx22, 0wxDD, 0wx22, 0wxFF)
@@ -480,6 +481,8 @@ struct
         bars  := nil
       end
 
+    val NUTOFFSET = 0 (* FIXME trick *)
+
     fun addstar (finger, stary) =
       (* XXX fudge city *)
       stars := 
@@ -487,7 +490,7 @@ struct
        (STARWIDTH div 4) +
        6 + finger * (STARWIDTH + 18),
        (* hit star half way *)
-       (height - (NUTOFFSET + STARHEIGHT div 2)) - (stary div 2)) :: !stars
+       (height - (NUTOFFSET + STARHEIGHT div TICKSPERPIXEL)) - (stary div TICKSPERPIXEL)) :: !stars
 
     fun addbar (b, t) = 
       let 
@@ -497,15 +500,15 @@ struct
           | Measure => (MEASURECOLOR, 5)
           | Timesig _ => (TSCOLOR (* XXX also show time sig *), 8)
       in
-          bars := (c, (height - NUTOFFSET) - (t div 2), h) :: !bars
+          bars := (c, (height - NUTOFFSET) - (t div TICKSPERPIXEL), h) :: !bars
       end
 
     fun addspan (finger, spanstart, spanend) =
       spans :=
       (21 + finger * (STARWIDTH + 18), 
-       (height - NUTOFFSET) - spanend div 2,
+       (height - NUTOFFSET) - spanend div TICKSPERPIXEL,
        18 (* XXX *),
-       (spanend - spanstart) div 2) :: !spans
+       (spanend - spanstart) div TICKSPERPIXEL) :: !spans
 
     fun draw () =
       let in
@@ -538,64 +541,61 @@ struct
      bit of history. Therefore the two functions are going to be looking at different
      positions in the same list of track events. *)
 
-  val DRAWTICKS = (* 128 *) 3
   fun loopplay cursor =
       let
           val nows = Song.nowevents cursor
       in
           List.app 
           (fn (label, evt) =>
-           let in
-               (case label of
-                    Music inst =>
-                        (case evt of
-                             MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
-                           | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
-                           | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
-                           | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
-                           (* otherwise no sound..? *) 
-                  | Control =>
-                             (case evt of
-                                  (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
-                                  MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
-                                | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
-                                      print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
-                                             ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
-                                | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
-                  | Bar _ => () (* XXX could play metronome click *)
-                  | Score => ()
-                                  );
-
-                (* XXX this probably shouldn't be here. it should be in draw. There is a separate
-                   state for currently active notes, which we can use for whammy, etc. *)
-                (* and adjust state *)
-                (case label of
-                   Score =>
-                     if true (* score_inst_XXX inst*)
-                     then
-                       case evt of
-                           (* XXX should ensure note in bounds *)
-                         MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note, false)
-                       | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note, true)
-                       | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note, false)
-                       | _ => ()
-                     else ()
-                  (* tempo here? *)
-                  | _ => ())
-
-          end) nows
+           case label of
+               Music inst =>
+                   (case evt of
+                        MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
+                      | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
+                      | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
+                      | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
+             (* otherwise no sound..? *) 
+             | Control =>
+                   (case evt of
+                        (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
+                        MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
+                      | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
+                            print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
+                                   ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
+                      | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
+             | Bar _ => () (* XXX could play metronome click *)
+             | Score => ())
+          nows
       end
 
+  val DRAWTICKS = (* 128 *) 3
   fun loopdraw cursor =
       if Song.lag cursor >= DRAWTICKS
       then 
         let 
           val () = Scene.clear ()
 
-          (* spans may be so long they run off the screen. We keep track of
-             a bit of state for each finger, which is whether we are currently
-             in a span there. *)
-          (* XXX wrong: desynchronized *)
+          (* We have to keep track of a bit of state for each finger: whether we are
+             currently in a span for that one. *)
+          val () = 
+              List.app 
+              (fn (label, evt) =>
+               (case label of
+                    Score =>
+                      if true (* score_inst_XXX inst*)
+                      then
+                          case evt of
+                              (* XXX should ensure note in bounds *)
+                              MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note, false)
+                            | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note, true)
+                            | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note, false)
+                            | _ => ()
+                      else ()
+                  (* tempo here? *)
+                  | _ => ())) (Song.nowevents cursor)
+
+          (* spans may be so long they run off the screen. We use the state information
+             maintained above. *)
           val spans = Array.tabulate(5, fn f =>
                                      if Array.sub(State.spans, f)
                                      then SOME 0
@@ -607,18 +607,18 @@ struct
               print ("addspan " ^ itos finger ^ ": "
               ^ itos spanstart ^ " -> " ^ itos (Int.min(MAXAHEAD, spanend)) ^ "\n");
               *)
-              Scene.addspan (finger, spanstart, Int.min(MAXAHEAD, spanend))
+              Scene.addspan (finger, spanstart, Int.min(Scene.MAXAHEAD, spanend))
             end
           
           (* val () = print "----\n" *)
 
           fun draw _ nil =
               (* Make sure that we only end a span if it's started *)
-              Array.appi (fn (finger, SOME spanstart) => emit_span finger (spanstart, MAXAHEAD)
+              Array.appi (fn (finger, SOME spanstart) => emit_span finger (spanstart, Scene.MAXAHEAD)
                   | _ => ()) spans
 
             | draw when (track as ((dt, (label, e)) :: rest)) = 
-              if when + dt > MAXAHEAD
+              if when + dt > Scene.MAXAHEAD
               then draw when nil
               else 
                 let 
@@ -707,7 +707,8 @@ struct
          impossible:
          *)
       fun getstarttime nil = (print "(TIME) no events?"; raise Hero "")
-        | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: rest) = ((n, d, cpc, bb), rest)
+        | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: rest) = 
+          ((n, d, cpc, bb), rest)
         | getstarttime ((0, evt) :: t) = 
         let val (x, rest) = getstarttime t
         in (x, (0, evt) :: rest)
@@ -824,7 +825,8 @@ struct
                                      #"R" => Score
                                    | _ => (print "I only support REAL score!"; raise Hero "real"),
                                  tr)
-                         | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); SOME (Control, tr))
+                         | _ => (print ("confused by named track '" ^ 
+                                        name ^ "'?? expected + or ...\n"); SOME (Control, tr))
                            )
       in
           List.mapPartial onetrack tracks
@@ -843,7 +845,7 @@ struct
 *)
 
   val playcursor = Song.cursor 0 tracks
-  val drawcursor = Song.cursor 0 tracks (* XXX offset! *)
+  val drawcursor = Song.cursor (0 - Scene.DRAWLAG) tracks (* XXX offset! *)
 
   val () = loop (playcursor, drawcursor)
     handle Hero s => messagebox ("exn test: " ^ s)
