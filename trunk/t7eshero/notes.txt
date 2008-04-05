@@ -31,6 +31,71 @@ The first character determines the track type.
      but they should be hand-tweaked!)
 
 ----------------------------------------------------------------------
+                                                            5 Apr 2008
+
+Hack session.
+
+To get this minimally useful I'm just gonna go for it. For the online
+dynamic programming algorithm below, I'll just create the entire matrix
+in RAM and fill it in. We pay |score events| space and time for every
+input event, but that's fairly small (a few hundred events in a typical
+song).
+
+The unknown to me is how to make the scoring algorithm interact with
+the graphical and audio show in a fun way. Specifically: the score is
+currently just a separate MIDI track with nothing to connect its
+events to the audio events. If we miss a note, or release early, we
+should be able to modulate the associated audio events. Because of the
+way we're using the MIDI format to store the audio and score, there's
+no obvious way to store the connection between a score event and the
+audio note(s) it corresponds to. However, the way we're currently
+generating scores automatically leaves a 1-1 mapping between notes
+that can be recovered as long as we know the input tracks that were
+used to generate the score in the first place. So let's store those
+and make the connection that way.
+
+Fine, so we have the matching matrix and we have the notes of the
+score flying by. How are they connected? Let's give each score event
+a reference cell. It can have some states:
+
+  Future -- maybe being drawn, but it is outside the matching window
+  (into the future) and therefore is not playing and has no special
+  status.
+
+  Live -- inside the matching window. Can be activated. We don't want
+  the note to play as soon as it enters the window, of course.
+  (Does it matter? We might want to draw them different or something.)
+
+  Playing -- a note that is actually playing, having crossed the nut.
+  As long as we are on a streak, the sound begins. Once it goes out
+  of the matching window without being matched (or when we otherwise
+  know it can't be matched), we can Fail it which causes it to stop
+  playing and emit a bad sound.
+
+  NotPlaying -- a note that isn't playing, but has crossed the nut.
+  When we're off streak, no input means no sound for those events.
+  If it is successfully matched when we exit the matching window,
+  then we can start playing it.
+  If it passes out of the matching window or we otherwise know it
+  can't be matched, then we can Fail it. 
+
+  All notes that are on the other side of the scoring window (Past)
+  are either Played or Failed.
+
+
+Point is: Score events have a state, which is uninteresting until they
+enter the match window. At that point the state becomes volatile, and
+we are fudging the audio and display of it based on whether we are on
+streak or not (which keeps good success and fail flows but can produce
+the wrong results on edges, but this is necessary on account of our
+inability to predict the future perfectly!) When they exit the matching
+window their fates are sealed as Played or Failed. 
+
+In some of these states we need to maintain a reference to the
+associated audio/video event so that we can stop or start it. A
+reference will suffice, most likely.
+
+----------------------------------------------------------------------
 
 Generating a Score                                         11 Mar 2008
 
