@@ -89,6 +89,7 @@ struct
        requireimage "testgraphics/bluestar.png",
        requireimage "testgraphics/orangestar.png"]
 
+  val hammerstar = requireimage "testgraphics/hammerstar.png"
   val missed = requireimage "testgraphics/missed.png"
   val hit = requireimage "testgraphics/hit.png"
 
@@ -239,6 +240,7 @@ struct
       orelse raise Hero ("Division must be in PPQN form!\n")
 
   val divi = divi * SLOWFACTOR 
+  val PREDELAY = 2 * divi (* ?? *)
 
   (* XXX hammer time.
      if I do this it should be in Song below *)
@@ -263,45 +265,6 @@ struct
     | joymap 4 = 4
     | joymap _ = 999 (* XXX *)
 
-  (* FIXMEs *)
-(*
-  fun fingeron f =
-      let val x = 8 + 6 + f * (STARWIDTH + 18)
-          val y = height - 42
-      in
-          if f >= 0 andalso f <= 4
-          then (blitall(Vector.sub(stars, f),
-                        screen, x, y);
-                flip screen)
-          else ()
-      end
-
-  fun fingeroff f =
-      let val x = 8 + 6 + f * (STARWIDTH + 18)
-          val y = height - 42
-      in
-          if f >= 0 andalso f <= 4
-          then (blit(background, x, y, STARWIDTH, STARHEIGHT,
-                     screen, x, y);
-                flip screen)
-          else ()
-      end
-
-  fun commit () =
-      let
-      in blitall(Vector.sub(stars,0), screen, 0, height - 42);
-          flip screen
-      end
-
-  (* just drawing *)
-  fun commitup () =
-      let
-      in
-          blit(background, 0, height - 42, ROBOTW, ROBOTH,
-               screen, 0, height - 42);
-          flip screen
-      end
-*)
 
   datatype state =
       Future
@@ -314,6 +277,7 @@ struct
     | FingerUp of int
     | Commit of int list
 
+  val EPSILON = 100
   structure Match :
   sig
 
@@ -327,6 +291,9 @@ struct
         | Bar of bar
 
       val state : scoreevt -> state
+      val setstate : scoreevt -> state -> unit
+
+      val hammered : scoreevt -> bool
 
       (* input (absolute time, input event)
          can change the state of some scoreevts *)
@@ -339,16 +306,22 @@ struct
       val initialize : (int list * (int * MIDI.event) list) ->
                        (int * (label * MIDI.event)) list
 
+      (* number of total known misses *)
+      val misses : unit -> int
+
+      (* dump debugging infos *)
+      val dump : unit -> unit
+
   end =
   struct
-
-      val EPSILON = 15
 
       datatype scoreevt = 
           SE of { (* audio tracks that are gated by this event *)
                   gate : int list,
                   state : state ref,
                   idx : int,
+                  hammered : bool,
+                  (* sorted ascending *)
                   soneme : int list }
         | SE_BOGUS
 
@@ -360,9 +333,13 @@ struct
         | Control
         | Bar of bar
 
-
       fun state (SE { state, ... }) = !state
         | state  SE_BOGUS = raise Hero "Bogus"
+      fun setstate SE_BOGUS _ = raise Hero "set bogus"
+        | setstate (SE { state, ... }) s = state := s
+
+      fun hammered (SE { hammered, ... }) = hammered
+        | hammered SE_BOGUS = raise Hero "hammer bogus"
 
       structure GA = GrowArray
       (* The matching array is 
@@ -387,6 +364,15 @@ struct
       (* contains all of the scoreevts in the song *)
       val song = ref (Vector.fromList nil) : (int * scoreevt) vector ref
 
+      (* commit notelists must be in sorted (ascending) order *)
+      fun same (Commit nil, SE _) = false
+        | same (Commit nl, SE { soneme = [one], ... }) =
+          List.last nl = one
+        | same (Commit nl, SE { soneme, ... }) = nl = soneme
+        | same (_, SE_BOGUS) = raise Hero "bogus same??"
+          (* XXX hammers not supported yet *)
+        | same (_, SE _) = false
+
       (* This is the heart of T7esHero. Process a piece of input by adding
          a new row to the matrix. *)
       fun input (now, input) = 
@@ -394,7 +380,8 @@ struct
               val current_length = GA.length matching
               val prevrow = 
                   if current_length = 0
-                  then (fn _ => (false, 0))
+                  then (* no inputs, so you've missed this many events *)
+                       (fn x => (false, x))
                   else 
                       let val (_, _, a) = GA.sub matching (current_length - 1)
                       in (fn i => Array.sub(a, i))
@@ -405,7 +392,7 @@ struct
                  by being out of epsilon range. Oh, well. *)
               (* PERF doesn't need to be initialized here *)
               val nsong = Vector.length (!song)
-              val new = Array.array (nsong, (false, 0))
+              val new = Array.array (nsong, (false, ~1))
 
               val () =
               Util.for 0 (nsong - 1)
@@ -423,10 +410,20 @@ struct
                       the ith event in the score. First thing is,
                       if the input and the event are not within
                       epsilon of one another, it's definitely a miss. *)
-                       Int.abs (t - now) <= EPSILON
-                       andalso 
-                       (* ... *)
-                       true
+                       Int.abs (t - now) <= EPSILON andalso 
+                       same (input, se)
+
+                   (* If we ever hit the note, register it as hit. It's
+                      possible that this will show too many successes in
+                      some cases, but it's just for display purposes. *)
+                   val () = if didhit
+                            then 
+                                ((* messagebox ("hit! t: " ^ Int.toString t ^
+                                             ", now: " ^ Int.toString now); *) 
+                                 case se of
+                                     SE { state, ... } => state := Hit
+                                   | SE_BOGUS => raise Hero "whaaa??")
+                            else ()
 
                    (* less here means "better" *)
                    fun less ((s1, i1), (s2, i2)) =
@@ -448,15 +445,14 @@ struct
                    case input of
                        Commit nl =>
                            if didhit
-                           then 
-                               min ((false, #2 upleft + 1),
-                                    (false, #2 left + 1),
-                                    (false, #2 up + 1))
-                           else
-                               min ((* hit! *)
-                                    (true, #2 upleft),
-                                    (false, #2 left + 1),
-                                    (false, #2 up + 1))
+                           then min ((* hit! *)
+                                     (true, #2 upleft),
+                                     (false, #2 left + 1),
+                                     (false, #2 up + 1))
+                           else min ((false, #2 upleft + 1),
+                                     (false, #2 left + 1),
+                                     (false, #2 up + 1))
+
                                
                      (* XXX currently ignoring all other input! *)
                      | _ => min ((false, #2 upleft + 1),
@@ -469,6 +465,12 @@ struct
           in
               GA.append matching (now, input, new)              
           end
+
+      
+      (* XXX need to compute. We should keep a cache to
+         avoid looking through the whole array... *)
+      fun misses () = 0
+
 
       fun initialize (gates, track) =
           (* let's do *)
@@ -497,17 +499,26 @@ struct
                       val (nows, laters) = now rest
                       val nows = evt :: nows
 
-                      val soneme = map get nows
+                      val soneme = ListUtil.sort Int.compare ` map get nows
 
                       val se = SE { gate = gates, 
                                     state = ref Future,
                                     idx = idx,
+                                    hammered = 
+                                      (case nows of
+                                           [(_, MIDI.NOTEON (_, _, vel))] => vel <= 64
+                                         | _ => false),
                                     soneme = soneme }
 
                       (* they all share the same scoreevt *)
                       val () = app (fn (s, _) => s := se) nows
                   in
-                      (total + d, se) :: makeabsolute (idx + 1) (total + d) laters
+                      (* XXX hack: since we get this before slowing, we need to multiply
+                         here too. we need a better treatment of tempo anyway, so we can
+                         live with this for now. We also later add a predelay in there...
+                         *)
+                      (PREDELAY + SLOWFACTOR * (total + d), se) :: 
+                        makeabsolute (idx + 1) (total + d) laters
                   end
                 | makeabsolute _ _ nil = nil
 
@@ -518,6 +529,58 @@ struct
                    (if vel > 0 then messagebox ("at " ^ Int.toString d ^ " bogus!") else ())
                    | _ => ()) track;
               track
+          end
+
+      (* XXX should probably limit the number of columns... *)
+      fun dump () =
+          let
+              val f = TextIO.openOut "dump.txt"
+
+              fun setos (SE { soneme, state, ... }) =
+                         (case !state of
+                              Hit => "O"
+                            | Missed => "X"
+                            | _ => "") ^ StringUtil.delimit "" (map Int.toString soneme)
+                | setos SE_BOGUS = "?!?"
+
+              (* the song.. *)
+              val s = "" :: "" :: map (fn (x, se) =>
+                                       setos se ^
+                                       "\n@" ^ Int.toString x)
+                                       (Vector.foldr op:: nil (!song))
+
+              fun intos (Commit nl) = StringUtil.delimit "" (map Int.toString nl)
+                | intos (FingerDown f) = "v" ^ Int.toString f
+                | intos (FingerUp f) = "^" ^ Int.toString f
+
+              (* the inputs and scores... *)
+              val tab = ref nil
+              val () =
+                  Util.for 0 (GA.length matching - 1)
+                  (fn i =>
+                   let
+                       val (when, input, arr) = GA.sub matching i
+                       val l = Array.foldr op:: nil arr
+                   in
+                       tab := 
+                       (intos input :: ("@" ^ Int.toString when) ::
+                        map (fn (b, misses) => 
+                             (if b then "!"
+                              else "") ^ Int.toString misses) l) :: !tab
+                   end)
+
+              val fulltab = (s :: rev (!tab))
+              val trunctab = map (fn l => 
+                                  if List.length l > 40
+                                  then List.take(l, 40)
+                                  else l) fulltab
+              val trunctab = if List.length trunctab > 192
+                             then List.take(trunctab, 192)
+                             else trunctab
+          in
+              StringUtil.writefile "dump.txt" `
+              StringUtil.table 999999
+              trunctab
           end
 
   end
@@ -578,6 +641,7 @@ struct
       (* allow fast forwarding into the future *)
       val skip = ref 0
       val now = ref 0
+      val started = ref 0
       fun update () = now := (Word32.toInt (getticks ()) + !skip)
       fun fast_forward n = skip := !skip + n
 
@@ -661,12 +725,14 @@ struct
               !evts
           end
 
-      (* Actually just need to take a measurement, but clearer to
-         give these separate names. *)
-      val init = update
+      fun init () =
+          let in
+              update();
+              started := !now
+          end
 
       (* shadowing for export *)
-      val now = fn () => !now
+      val now = fn () => !now - !started
   end
 
 
@@ -784,18 +850,27 @@ struct
         app (fn (x, y, w, h) => blit(backlite, x, y, w, h, screen, x, y)) (!spans);
 
         (* tempo *)
-        (* XXX probably could have different colors for major and minor bars... *)
-        app (fn (c, y, h) => fillrect(screen, 16, y - (h div 2), width - 32, h, c)) (!bars);
+        app (fn (c, y, h) => 
+             if y < (height - NUTOFFSET)
+             then fillrect(screen, 16, y - (h div 2), width - 32, h, c)
+             else ()) (!bars);
+
         (* stars on top *)
         app (fn (f, x, y, e) => 
              let in
-                 blitall(Vector.sub(starpics, f), screen, x, y);
+                 (* blitall(Vector.sub(starpics, f), screen, x, y); *)
 
                  (* plus icon *)
                  (case Match.state e of
                       Missed => blitall(missed, screen, x, y)
-                    | Hit => blitall(hit, screen, x, y)
-                    | _ => ())
+                    | Hit => () (* blitall(hit, screen, x, y) *)
+                    | _ => 
+                          let in
+                              blitall(Vector.sub(starpics, f), screen, x, y);
+                              if Match.hammered e
+                              then blitall(hammerstar, screen, x, y)
+                              else ()
+                          end)
              end) (!stars);
 
         (* finger state *)
@@ -946,7 +1021,24 @@ struct
         end
       else ()
 
-  fun loop (playcursor, drawcursor) =
+  fun loopfail cursor =
+      let
+          val nows = Song.nowevents cursor
+      in
+          List.app (fn (_, MIDI.NOTEON(_, _, 0)) => ()
+                     | (Score se, MIDI.NOTEON(x, note, vel)) =>
+                       (case Match.state se of
+                             Hit => ()
+                           | Missed => () (* how would we have already decided this? *)
+                           | Future => 
+                                 let in
+                                     (* XXX should play a noise *)
+                                     Match.setstate se Missed
+                                 end)
+                     | _ => ()) nows
+      end
+
+  fun loop (playcursor, drawcursor, failcursor) =
       let in
           (case pollevent () of
                SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Exit
@@ -971,9 +1063,10 @@ struct
                );
 
            Song.update ();
+           loopfail failcursor;
            loopplay playcursor;
            loopdraw drawcursor;
-           loop (playcursor, drawcursor)
+           loop (playcursor, drawcursor, failcursor)
       end
 
   (* In an already-labeled track set, add measure marker events. *)
@@ -1074,7 +1167,7 @@ struct
   fun slow l = map (fn (delta, e) => (delta * SLOWFACTOR, e)) l
 
   (* How to complete pre-delay? *)
-  fun delay t = (2 * divi, (Control, DUMMY)) :: t
+  fun delay t = (PREDELAY, (Control, DUMMY)) :: t
 
   (* get the name of a track *)
   fun findname nil = NONE
@@ -1143,13 +1236,14 @@ struct
 *)
 
           val playcursor = Song.cursor 0 tracks
-          val drawcursor = Song.cursor (0 - Scene.DRAWLAG) tracks (* XXX offset! *)
+          val drawcursor = Song.cursor (0 - Scene.DRAWLAG) tracks
+          val failcursor = Song.cursor (0 - EPSILON) tracks
       in
-          loop (playcursor, drawcursor)
+          loop (playcursor, drawcursor, failcursor)
       end
     handle Hero s => messagebox ("exn test: " ^ s)
         | SDL s => messagebox ("sdl error: " ^ s)
-        | Exit => ()
+        | Exit => (Match.dump ())
         | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
 
 end
