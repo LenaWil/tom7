@@ -109,17 +109,29 @@ struct
 
   val () = blitall(background, screen, 0, 0)
 
-  structure Font = FontFn (val surf = requireimage "font.png"
+  structure Font = FontFn (val surf = requireimage "testgraphics/fontbig.png"
                            val charmap =
                            " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
                            "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
                            (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
                               BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
-                           val width = 9
-                           val height = 16
+                           val width = 18
+                           val height = 32
                            val styles = 6
-                           val overlap = 1
+                           val overlap = 2
                            val dims = 3)
+
+  structure FontHuge = FontFn (val surf = requireimage "testgraphics/fonthuge.png"
+                               val charmap =
+                                   " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+                                   "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
+                               (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
+                                  BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
+                               val width = 27
+                               val height = 48
+                               val styles = 6
+                               val overlap = 3
+                               val dims = 3)
 
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
@@ -896,8 +908,8 @@ struct
     val stars = ref nil : (int * int * int * Match.scoreevt) list ref
     (* rectangles the liteup background to draw. x,y,w,h *)
     val spans = ref nil : (int * int * int * int) list ref
-    (* type, y, height *)
-    val bars  = ref nil : (color * int * int) list ref
+    (* type, y, message, height *)
+    val bars  = ref nil : (color * int * string * int) list ref
       
     (* XXX fingers, strum, etc. *)
 
@@ -922,13 +934,13 @@ struct
 
     fun addbar (b, t) = 
       let 
-        val (c, h) = 
+        val (c, s, h) = 
           case b of
-            Beat => (BEATCOLOR, 2)
-          | Measure => (MEASURECOLOR, 5)
-          | Timesig _ => (TSCOLOR (* XXX also show time sig *), 8)
+            Beat => (BEATCOLOR, "", 2)
+          | Measure => (MEASURECOLOR, "", 5)
+          | Timesig (n, d) => (TSCOLOR, "^3" ^ Int.toString n ^ "^0/^3" ^ Int.toString d ^ "^4 time", 8)
       in
-          bars := (c, (height - mynut) - (t div TICKSPERPIXEL), h) :: !bars
+          bars := (c, (height - mynut) - (t div TICKSPERPIXEL), s, h) :: !bars
       end
 
     fun addspan (finger, spanstart, spanend) =
@@ -949,9 +961,13 @@ struct
         app (fn (x, y, w, h) => blit(backlite, x, y, w, h, screen, x, y)) (!spans);
 
         (* tempo *)
-        app (fn (c, y, h) => 
+        app (fn (c, y, s, h) => 
              if y < (height - NUTOFFSET)
-             then fillrect(screen, 16, y - (h div 2), width - 32, h, c)
+             then 
+                 let in
+                     fillrect(screen, 16, y - (h div 2), width - 32, h, c);
+                     FontHuge.draw(screen, 4, y - (h div 2) - FontHuge.height, s)
+                 end
              else ()) (!bars);
 
         (* stars on top *)
@@ -979,6 +995,8 @@ struct
                       (STARWIDTH div 4) + 6 + i * (STARWIDTH + 18),
                       (height - NUTOFFSET) - (STARWIDTH div 2))
          else ())
+
+        (* Font.draw (screen, 0, 0, "hello my future girlfriend") *)
       end
        
   end
