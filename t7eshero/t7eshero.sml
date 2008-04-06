@@ -89,7 +89,13 @@ struct
        requireimage "testgraphics/bluestar.png",
        requireimage "testgraphics/orangestar.png"]
 
-  val hammerstar = requireimage "testgraphics/hammerstar.png"
+  val hammers = Vector.fromList
+      [requireimage "testgraphics/greenhammer.png",
+       requireimage "testgraphics/redhammer.png",
+       requireimage "testgraphics/yellowhammer.png",
+       requireimage "testgraphics/bluehammer.png",
+       requireimage "testgraphics/orangehammer.png"]
+
   val missed = requireimage "testgraphics/missed.png"
   val hit = requireimage "testgraphics/hit.png"
 
@@ -365,13 +371,19 @@ struct
       val song = ref (Vector.fromList nil) : (int * scoreevt) vector ref
 
       (* commit notelists must be in sorted (ascending) order *)
-      fun same (Commit nil, SE _) = false
+      datatype howsame = Equal | NeedStreak | NotEqual
+      fun same (Commit nil, SE _) = NotEqual
         | same (Commit nl, SE { soneme = [one], ... }) =
-          List.last nl = one
-        | same (Commit nl, SE { soneme, ... }) = nl = soneme
+          if List.last nl = one then Equal else NotEqual
+        | same (Commit nl, SE { soneme, ... }) = if nl = soneme then Equal else NotEqual
+
+        | same (FingerDown n, SE { soneme = [one], hammered = true, ... }) = 
+             if n = one then NeedStreak else NotEqual
+        | same (FingerUp n, SE { soneme = [one], hammered = true, ... }) = 
+             if n = one then NeedStreak else NotEqual
+
         | same (_, SE_BOGUS) = raise Hero "bogus same??"
-          (* XXX hammers not supported yet *)
-        | same (_, SE _) = false
+        | same (_, SE _) = NotEqual
 
       (* This is the heart of T7esHero. Process a piece of input by adding
          a new row to the matrix. *)
@@ -410,13 +422,15 @@ struct
                       the ith event in the score. First thing is,
                       if the input and the event are not within
                       epsilon of one another, it's definitely a miss. *)
-                       Int.abs (t - now) <= EPSILON andalso 
-                       same (input, se)
+                       if Int.abs (t - now) <= EPSILON 
+                       then same (input, se)
+                       else NotEqual
 
                    (* If we ever hit the note, register it as hit. It's
                       possible that this will show too many successes in
                       some cases, but it's just for display purposes. *)
-                   val () = if didhit
+                   val () = if didhit = Equal orelse 
+                              (didhit = NeedStreak andalso #1 upleft)
                             then 
                                 ((* messagebox ("hit! t: " ^ Int.toString t ^
                                              ", now: " ^ Int.toString now); *) 
@@ -444,7 +458,7 @@ struct
                    val best =
                    case input of
                        Commit nl =>
-                           if didhit
+                           if didhit = Equal
                            then min ((* hit! *)
                                      (true, #2 upleft),
                                      (false, #2 left + 1),
@@ -453,12 +467,43 @@ struct
                                      (false, #2 left + 1),
                                      (false, #2 up + 1))
 
-                               
+                     | FingerDown nl => 
+                           if didhit = NeedStreak
+                           then min ((* hit! *)
+                                     if #1 upleft
+                                     then (true, #2 upleft)
+                                     else (false, #2 upleft + 1),
+                                     (* decide to skip *)
+                                     (false, #2 left + 1),
+                                     (* ignore: off streak but no penalty *)
+                                     (false, #2 up))
+                           else min ((false, #2 upleft + 1),
+                                     (false, #2 left + 1),
+                                     (* safe to ignore always, but breaks streak *)
+                                     (false, #2 up))
+
+                     (* Same as finger down, but doesn't break streak *)
+                     | FingerUp nl => 
+                           if didhit = NeedStreak
+                           then min ((* hit! *)
+                                     if #1 upleft
+                                     then (true, #2 upleft)
+                                     else (false, #2 upleft + 1),
+                                     (* decide to skip *)
+                                     (false, #2 left + 1),
+                                     (* ignore: off streak but no penalty *)
+                                     (#1 up, #2 up))
+                           else min ((false, #2 upleft + 1),
+                                     (false, #2 left + 1),
+                                     (* safe to ignore always *)
+                                     (#1 up, #2 up))
+                               (*
                      (* XXX currently ignoring all other input! *)
                      | _ => min ((false, #2 upleft + 1),
                                  (false, #2 left + 1),
                                  (* consume input, doing nothing *)
                                  up)
+                               *)
                in
                    Array.update(new, i, best)
                end)
@@ -546,6 +591,9 @@ struct
               (* the song.. *)
               val s = "" :: "" :: map (fn (x, se) =>
                                        setos se ^
+                                       (if hammered se
+                                        then "#"
+                                        else "") ^
                                        "\n@" ^ Int.toString x)
                                        (Vector.foldr op:: nil (!song))
 
@@ -748,15 +796,33 @@ struct
 
 
     fun fingeron n = 
-        let in
+        let 
+            fun highest i =
+                if i = FINGERS
+                then Match.input (Song.now (), FingerDown n)
+                else
+                    if Array.sub(fingers, i)
+                    then ()
+                    else highest (i + 1)
+        in
             Array.update(fingers, n, true);
-            Match.input (Song.now (), FingerDown n)
+            (* if there are no fingers higher than this, 
+               then it can be a hammer event. *)
+            highest (n + 1)
         end
     
     fun fingeroff n =
-        let in
+        let 
+            fun belowit i =
+                if i < 0
+                then ()
+                else if Array.sub(fingers, i)
+                     (* it's the finger below that is pulled off to *)
+                     then Match.input (Song.now (), FingerUp i)
+                     else belowit (i - 1)
+        in
             Array.update(fingers, n, false);
-            Match.input (Song.now (), FingerUp n)
+            belowit (n - 1)
         end
 
     fun commit () =
@@ -866,10 +932,9 @@ struct
                     | Hit => () (* blitall(hit, screen, x, y) *)
                     | _ => 
                           let in
-                              blitall(Vector.sub(starpics, f), screen, x, y);
                               if Match.hammered e
-                              then blitall(hammerstar, screen, x, y)
-                              else ()
+                              then blitall(Vector.sub(hammers, f), screen, x, y)
+                              else blitall(Vector.sub(starpics, f), screen, x, y)
                           end)
              end) (!stars);
 
