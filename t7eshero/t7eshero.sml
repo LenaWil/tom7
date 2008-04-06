@@ -318,7 +318,7 @@ struct
     | FingerUp of int
     | Commit of int list
 
-  val EPSILON = 100
+  val EPSILON = 150
   structure Match :
   sig
 
@@ -910,14 +910,17 @@ struct
     val spans = ref nil : (int * int * int * int) list ref
     (* type, y, message, height *)
     val bars  = ref nil : (color * int * string * int) list ref
+
+    val texts = ref nil : (string * int) list ref
       
-    (* XXX fingers, strum, etc. *)
+    (* XXX strum, etc. *)
 
     fun clear () =
       let in
         stars := nil;
         spans := nil;
-        bars  := nil
+        bars  := nil;
+        texts := nil
       end
 
     val mynut = 0
@@ -931,6 +934,9 @@ struct
        (* hit star half way *)
        (height - (mynut + STARHEIGHT div TICKSPERPIXEL)) - (stary div TICKSPERPIXEL),
        evt) :: !stars
+
+    fun addtext (s, t) =
+        texts := (s, (height - mynut) - (t div TICKSPERPIXEL)) :: !texts
 
     fun addbar (b, t) = 
       let 
@@ -994,7 +1000,12 @@ struct
          then blitall(hit, screen, 
                       (STARWIDTH div 4) + 6 + i * (STARWIDTH + 18),
                       (height - NUTOFFSET) - (STARWIDTH div 2))
-         else ())
+         else ());
+
+        app (fn (s, y) =>
+             if FontHuge.sizex_plain s > (width - 64)
+             then Font.draw(screen, 4, y - Font.height, s) 
+             else FontHuge.draw(screen, 4, y - FontHuge.height, s)) (!texts)
 
         (* Font.draw (screen, 0, 0, "hello my future girlfriend") *)
       end
@@ -1125,7 +1136,14 @@ struct
                          end
                    | Bar b => Scene.addbar(b, tiempo)
                          (* otherwise... ? *)
-                   | Control => ()
+                   | Control =>
+                         (case e of
+                              MIDI.META (MIDI.MARK m) =>
+                                  if size m > 0 andalso String.sub(m, 0) = #"#"
+                                  then Scene.addtext(String.substring(m, 1, size m - 1), tiempo)
+                                  else ()
+                            | _ => ())
+
                          );
 
                      draw tiempo rest

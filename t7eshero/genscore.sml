@@ -50,6 +50,10 @@ struct
                                                  "Set the output file.")) 
                             "output"
 
+  val hammertime = Params.param "25" (SOME("-hammertime",
+                                           "Threshold (in MIDI ticks) for allowing hammering"))
+                            "hammertime"
+
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
 
@@ -148,18 +152,21 @@ struct
      (only NOTEON and NOTEOFF events). *)
 
   val DEF_CHANNEL = 1   (* shouldn't really matter *)
-  val DEF_VEL     = 127 (* likewise *)
+  val DEF_VEL     = 127 (* has to be greater than 64 *)
+  val HAM_VEL     = 32  (* and less than 64 *)
   fun humidify (t : measure list) =
       let
           val () = print "humidify:\n"
           val () = printmeasures t
           fun make subtract ((delta, ndl) :: rest) =
             let in
+(*
                 print ("make " ^ Int.toString subtract ^ " (" ^ Int.toString delta
                        ^ ", [" ^ StringUtil.delimit ", " (map (fn (n,l) =>
                                                                "(" ^ Int.toString n ^ ":" ^
                                                                Int.toString l ^ ")")
                                                           ndl) ^ "]\n");
+*)
               if delta < subtract
               then raise Hero ("Wasn't normalized, oops: " ^ Int.toString delta ^ 
                                " < " ^ Int.toString subtract)
@@ -171,11 +178,17 @@ struct
                       val () = if List.null ndl
                                then raise Hero "humidify: note notes in event!"
                                else ()
+
+                      val hammer = length ndl = 1 andalso delta < Params.asint 0 hammertime
                   in
                       (* (there's always at least one note) *)
-                      (delta - subtract, MIDI.NOTEON(DEF_CHANNEL, OFFSET + #1 (hd ndl), DEF_VEL)) ::
-                      map (fn (n, len) => (0, MIDI.NOTEON(DEF_CHANNEL, OFFSET + n, DEF_VEL))) (tl ndl) @
-                      
+                      (delta - subtract, MIDI.NOTEON(DEF_CHANNEL, OFFSET + #1 (hd ndl), if hammer 
+                                                                                        then HAM_VEL 
+                                                                                        else DEF_VEL)) ::
+                      map (fn (n, len) => (0, MIDI.NOTEON(DEF_CHANNEL, OFFSET + n, if hammer
+                                                                                   then HAM_VEL
+                                                                                   else DEF_VEL))) (tl ndl) @
+
                       (* then the offs *)
                       let
                           fun eat dt [(lastn, lastlen)] = 
