@@ -102,6 +102,18 @@ struct
 
   val () = blitall(background, screen, 0, 0)
 
+  structure Font = FontFn (val surf = requireimage "font.png"
+                           val charmap =
+                           " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+                           "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
+                           (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
+                              BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
+                           val width = 9
+                           val height = 16
+                           val styles = 6
+                           val overlap = 1
+                           val dims = 3)
+
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
 
@@ -379,11 +391,12 @@ struct
          a new row to the matrix. *)
       fun input (now, input) = 
           let
+              val current_length = GA.length matching
               val prevrow = 
-                  if GA.size matching = 0
-                  then (fn _ => 0)
+                  if current_length = 0
+                  then (fn _ => (false, 0))
                   else 
-                      let val a = GA.sub (matching, prev - 1)
+                      let val (_, _, a) = GA.sub matching (current_length - 1)
                       in (fn i => Array.sub(a, i))
                       end
 
@@ -392,8 +405,9 @@ struct
                  by being out of epsilon range. Oh, well. *)
               (* PERF doesn't need to be initialized here *)
               val nsong = Vector.length (!song)
-              val new = Array.array (nsong, 0)
+              val new = Array.array (nsong, (false, 0))
 
+              val () =
               Util.for 0 (nsong - 1)
               (fn i =>
                let
@@ -402,7 +416,7 @@ struct
                    val (upleft, left) = 
                        if i > 0 
                        then (prevrow (i - 1), Array.sub(new, i - 1))
-                       else (0, 0)
+                       else ((false, 0), (false, 0))
                            
                    val didhit =
                    (* OK, so we're comparing the input event against
@@ -412,36 +426,45 @@ struct
                        Int.abs (t - now) <= EPSILON
                        andalso 
                        (* ... *)
+                       true
 
-                   fun argmin (val1, res1,
-                               val2, res2,
-                               val3, res3) =
-                       if val1 < val2
-                       then (if val1 < val3
-                             then res1
-                             else res3)
-                       else (if val2 < val3
-                             then res2
-                             else res3)
+                   (* less here means "better" *)
+                   fun less ((s1, i1), (s2, i2)) =
+                       case Int.compare (i1, i2) of
+                           LESS => true
+                         | GREATER => false
+                         | EQUAL => s1 andalso (not s2)
 
-               in
+                   fun min (val1, val2, val3) =
+                       if less(val1, val2)
+                       then (if less(val1, val3)
+                             then val1
+                             else val3)
+                       else (if less(val2, val3)
+                             then val2
+                             else val3)
+
+                   val best =
                    case input of
                        Commit nl =>
                            if didhit
                            then 
-                               argmin ((false, #2 upleft + 1),
-                                       (false, #2 left + 1),
-                                       (false, #2 up + 1))
-                           else
-                               argmin ((true, #2 upleft),
-                                       (false, #2 left + 1),
-                                       (false, #2 up + 1))
-
-                     (* XXX currently ignoring all other input! *)
-                     | _ => argmin ((false, #2 upleft + 1),
+                               min ((false, #2 upleft + 1),
                                     (false, #2 left + 1),
-                                    (* consume input, doing nothing *)
-                                    up)
+                                    (false, #2 up + 1))
+                           else
+                               min ((* hit! *)
+                                    (true, #2 upleft),
+                                    (false, #2 left + 1),
+                                    (false, #2 up + 1))
+                               
+                     (* XXX currently ignoring all other input! *)
+                     | _ => min ((false, #2 upleft + 1),
+                                 (false, #2 left + 1),
+                                 (* consume input, doing nothing *)
+                                 up)
+               in
+                   Array.update(new, i, best)
                end)
           in
               GA.append matching (now, input, new)              

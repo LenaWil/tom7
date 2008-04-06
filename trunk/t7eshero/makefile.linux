@@ -7,7 +7,7 @@ sound.o : sound.c
 sdlml.o : ../sdlml/sdlml.c
 	gcc -O `sdl-config --cflags` -c ../sdlml/sdlml.c -o sdlml.o
 
-t7eshero.exe : sound.o sdlml.o *.sml
+t7eshero.exe : sound.o sdlml.o *.sml ../sdlml/*.sml
 	mlton -verbose 1 -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowFFI true' -output t7eshero.exe t7eshero.cm sound.o sdlml.o
 
 genscore.exe : genscore.sml genscore.cm
