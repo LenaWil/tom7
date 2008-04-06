@@ -96,6 +96,16 @@ struct
        requireimage "testgraphics/bluehammer.png",
        requireimage "testgraphics/orangehammer.png"]
 
+  val zaps = Vector.fromList
+      [requireimage "zap1.png",
+       requireimage "zap1.png",
+       requireimage "zap2.png",
+       requireimage "zap2.png",
+       requireimage "zap3.png",
+       requireimage "zap3.png",
+       requireimage "zap4.png", (* XXX ahck ataccak *)
+       requireimage "zap4.png"]
+
   val missed = requireimage "testgraphics/missed.png"
   val hit = requireimage "testgraphics/hit.png"
 
@@ -310,7 +320,7 @@ struct
   datatype state =
       Future
     | Missed
-    | Hit
+    | Hit of int ref (* animation frame *)
 
   (* ... ? *)
   datatype input =
@@ -471,7 +481,10 @@ struct
                                 ((* messagebox ("hit! t: " ^ Int.toString t ^
                                              ", now: " ^ Int.toString now); *) 
                                  case se of
-                                     SE { state, ... } => state := Hit
+                                     SE { state, ... } => 
+                                         (case !state of
+                                              Hit _ => ()
+                                            | _ => state := Hit (ref 0))
                                    | SE_BOGUS => raise Hero "whaaa??")
                             else ()
 
@@ -628,7 +641,7 @@ struct
 
               fun setos (SE { soneme, state, ... }) =
                          (case !state of
-                              Hit => "O"
+                              Hit _ => "O"
                             | Missed => "X"
                             | _ => "") ^ StringUtil.delimit "" (map Int.toString soneme)
                 | setos SE_BOGUS = "?!?"
@@ -978,19 +991,28 @@ struct
 
         (* stars on top *)
         app (fn (f, x, y, e) => 
-             let in
+             let 
+                 fun drawnormal () =
+                     let in
+                         if Match.hammered e
+                         then blitall(Vector.sub(hammers, f), screen, x, y)
+                         else blitall(Vector.sub(starpics, f), screen, x, y)
+                     end
+             in
                  (* blitall(Vector.sub(starpics, f), screen, x, y); *)
 
                  (* plus icon *)
                  (case Match.state e of
                       Missed => blitall(missed, screen, x, y)
-                    | Hit => () (* blitall(hit, screen, x, y) *)
-                    | _ => 
-                          let in
-                              if Match.hammered e
-                              then blitall(Vector.sub(hammers, f), screen, x, y)
-                              else blitall(Vector.sub(starpics, f), screen, x, y)
-                          end)
+                    | Hit n =>
+                          if y >= ((height - NUTOFFSET) - (STARHEIGHT div 2))
+                          then
+                              (if !n >= Vector.length zaps
+                               then ()
+                               else (blitall(Vector.sub(zaps, !n), screen, x, y);
+                                     n := !n + 1))
+                          else drawnormal ()
+                    | _ => drawnormal ())
              end) (!stars);
 
         (* finger state *)
@@ -1163,7 +1185,7 @@ struct
           List.app (fn (_, MIDI.NOTEON(_, _, 0)) => ()
                      | (Score se, MIDI.NOTEON(x, note, vel)) =>
                        (case Match.state se of
-                             Hit => ()
+                             Hit _ => ()
                            | Missed => () (* how would we have already decided this? *)
                            | Future => 
                                  let in
