@@ -31,8 +31,7 @@ struct
   val width = 256
   val height = 600
 
-  val ROBOTH = 32
-  val ROBOTW = 16
+  val FINGERS = 5
     
   (* distance of nut (on-tempo target bar) from bottom of screen *)
   val NUTOFFSET = 127
@@ -253,6 +252,7 @@ struct
     | joymap _ = 999 (* XXX *)
 
   (* FIXMEs *)
+(*
   fun fingeron f =
       let val x = 8 + 6 + f * (STARWIDTH + 18)
           val y = height - 42
@@ -289,6 +289,7 @@ struct
                screen, 0, height - 42);
           flip screen
       end
+*)
 
   datatype state =
       Future
@@ -299,8 +300,8 @@ struct
   datatype input =
       FingerDown of int
     | FingerUp of int
-    | Commit
-      
+    | Commit of int list
+
   structure Match :
   sig
 
@@ -314,10 +315,10 @@ struct
         | Bar of bar
 
       val state : scoreevt -> state
-      val makeinitialevt : int list -> scoreevt
 
-      (* can change the state of some scoreevts *)
-      val input : input -> unit
+      (* input (absolute time, input event)
+         can change the state of some scoreevts *)
+      val input : int * input -> unit
 
       (* initialize (gates, events)
          produces a t7eshero track of (int * (label * event))
@@ -329,10 +330,15 @@ struct
   end =
   struct
 
-      type scoreevt = 
-          { (* audio tracks that are gated by this event *)
-            gate : int list,
-            state : state ref }
+      val EPSILON = 15
+
+      datatype scoreevt = 
+          SE of { (* audio tracks that are gated by this event *)
+                  gate : int list,
+                  state : state ref,
+                  idx : int,
+                  soneme : int list }
+        | SE_BOGUS
 
 
       (* These should describe what kind of track an event is drawn from *)
@@ -342,14 +348,9 @@ struct
         | Control
         | Bar of bar
 
-          (* XXX *)
-      fun makeinitialevt tl = { gate = tl, state = ref Future }
 
-      fun state ({ state, ... } : scoreevt) = !state
-          
-      (* FIXME *)
-      fun input _ = ()
-
+      fun state (SE { state, ... }) = !state
+        | state  SE_BOGUS = raise Hero "Bogus"
 
       structure GA = GrowArray
       (* The matching array is 
@@ -366,22 +367,134 @@ struct
          *)
       (* This is a growarray of Arrays (vectors?), each of length
          equal to the number of events in the song.
+
+         Absolute time, the event, the dp score (= streak,#misses).
          *)
-      val matching = GA.empty () : int vector GA.growarray
+      val matching = GA.empty () : (int * input * (bool * int) array) GA.growarray
 
       (* contains all of the scoreevts in the song *)
       val song = ref (Vector.fromList nil) : (int * scoreevt) vector ref
+
+      (* This is the heart of T7esHero. Process a piece of input by adding
+         a new row to the matrix. *)
+      fun input (now, input) = 
+          let
+              val prevrow = 
+                  if GA.size matching = 0
+                  then (fn _ => 0)
+                  else 
+                      let val a = GA.sub (matching, prev - 1)
+                      in (fn i => Array.sub(a, i))
+                      end
+
+              (* This is pretty inefficient. We really only need to look at
+                 a fraction of it because most of the comparisons are refuted
+                 by being out of epsilon range. Oh, well. *)
+              (* PERF doesn't need to be initialized here *)
+              val nsong = Vector.length (!song)
+              val new = Array.array (nsong, 0)
+
+              Util.for 0 (nsong - 1)
+              (fn i =>
+               let
+                   val (t, se) = Vector.sub(!song, i)
+                   val up = prevrow i
+                   val (upleft, left) = 
+                       if i > 0 
+                       then (prevrow (i - 1), Array.sub(new, i - 1))
+                       else (0, 0)
+                           
+                   val didhit =
+                   (* OK, so we're comparing the input event against
+                      the ith event in the score. First thing is,
+                      if the input and the event are not within
+                      epsilon of one another, it's definitely a miss. *)
+                       Int.abs (t - now) <= EPSILON
+                       andalso 
+                       (* ... *)
+
+                   fun argmin (val1, res1,
+                               val2, res2,
+                               val3, res3) =
+                       if val1 < val2
+                       then (if val1 < val3
+                             then res1
+                             else res3)
+                       else (if val2 < val3
+                             then res2
+                             else res3)
+
+               in
+                   case input of
+                       Commit nl =>
+                           if didhit
+                           then 
+                               argmin ((false, #2 upleft + 1),
+                                       (false, #2 left + 1),
+                                       (false, #2 up + 1))
+                           else
+                               argmin ((true, #2 upleft),
+                                       (false, #2 left + 1),
+                                       (false, #2 up + 1))
+
+                     (* XXX currently ignoring all other input! *)
+                     | _ => argmin ((false, #2 upleft + 1),
+                                    (false, #2 left + 1),
+                                    (* consume input, doing nothing *)
+                                    up)
+               end)
+          in
+              GA.append matching (now, input, new)              
+          end
+
       fun initialize (gates, track) =
           (* let's do *)
           let
+              (* Add scorevent holders so we can update them later. *)
+              val track = map (fn (d, e) => (d, (ref SE_BOGUS, e))) track
+
               (* For the purpose of matching we don't care about
                  note lengths at all (phew) so we don't care about
                  NOTEOFF events. *)
-              val starts = MIDI.filter (fn (MIDI.NOTEON(_, _, 0)) => false
-                                         | (MIDI.NOTEON _) => true
+              val starts = MIDI.filter (fn (_, MIDI.NOTEON(_, _, 0)) => false
+                                         | (_, MIDI.NOTEON _) => true
                                          | _ => false) track
+
+              fun makeabsolute idx total ((d, evt) :: rest) =
+                  let
+                      fun now ((0, evt) :: more) = 
+                          let val (nows, laters) = now more
+                          in (evt :: nows, laters)
+                          end
+                        | now l = (nil, l)
+
+                      fun get (_, MIDI.NOTEON (ch, n, vel)) = n
+                        | get _ = raise Hero "impossible"
+
+                      val (nows, laters) = now rest
+                      val nows = evt :: nows
+
+                      val soneme = map get nows
+
+                      val se = SE { gate = gates, 
+                                    state = ref Future,
+                                    idx = idx,
+                                    soneme = soneme }
+
+                      (* they all share the same scoreevt *)
+                      val () = app (fn (s, _) => s := se) nows
+                  in
+                      (total + d, se) :: makeabsolute (idx + 1) (total + d) laters
+                  end
+                | makeabsolute _ _ nil = nil
+
+              val () = song := Vector.fromList (makeabsolute 0 0 starts)
+              val track = map (fn (d, (ref se, e)) => (d, (Score se, e))) track
           in
-              raise Hero "sorry unimplemented"
+              app (fn (d, (Score SE_BOGUS, MIDI.NOTEON(_, _, vel))) =>
+                   (if vel > 0 then messagebox ("at " ^ Int.toString d ^ " bogus!") else ())
+                   | _ => ()) track;
+              track
           end
 
   end
@@ -390,8 +503,8 @@ struct
 
   (* This gives access to the stream of song events. There is a single
      universal notion of "now" which updates at a constant pace. This
-     gives us a cursor into song events that we use for e.g. controling
-     the audio subsystem.
+     gives us a cursor into song events that we use for e.g.
+     controlling the audio subsystem.
 
      It is also possible to create cursors that work at a fixed offset
      (positive or negative) from "now". For example, we want to draw
@@ -432,6 +545,9 @@ struct
       (* Advance the given number of ticks, as if time had just
          non-linearly done that. Implies an update. *)
       val fast_forward : int -> unit
+
+      (* Absolute real-time since calling init *)
+      val now : unit -> int
 
   end =
   struct
@@ -525,6 +641,9 @@ struct
       (* Actually just need to take a measurement, but clearer to
          give these separate names. *)
       val init = update
+
+      (* shadowing for export *)
+      val now = fn () => !now
   end
 
 
@@ -532,10 +651,40 @@ struct
   struct
 
     (* Player input *)
-    val fingers = Array.array(5, false) (* all fingers start off *)
+    val fingers = Array.array(FINGERS, false) (* all fingers start off *)
 
-    (* Is there a sustained note on this finger? *)
-    val spans = Array.array(5, false) (* and not in span *)
+    (* Is there a sustained note on this finger (off the bottom of the screen,
+       not the nut)? *)
+    val spans = Array.array(FINGERS, false) (* and not in span *)
+
+
+    fun fingeron n = 
+        let in
+            Array.update(fingers, n, true);
+            Match.input (Song.now (), FingerDown n)
+        end
+    
+    fun fingeroff n =
+        let in
+            Array.update(fingers, n, false);
+            Match.input (Song.now (), FingerUp n)
+        end
+
+    fun commit () =
+        let 
+            fun theevent i =
+                if i = FINGERS
+                then nil
+                else
+                    if Array.sub(fingers, i)
+                    then i :: theevent (i + 1)
+                    else theevent (i + 1)
+        in
+            Match.input (Song.now (), Commit (theevent 0))
+        end
+
+    (* ? *)
+    fun commitup () = ()
 
   end
 
@@ -571,7 +720,7 @@ struct
         bars  := nil
       end
 
-    val NUTOFFSET = 0 (* FIXME trick *)
+    val mynut = 0
 
     fun addstar (finger, stary, evt) =
       (* XXX fudge city *)
@@ -580,7 +729,7 @@ struct
        (STARWIDTH div 4) +
        6 + finger * (STARWIDTH + 18),
        (* hit star half way *)
-       (height - (NUTOFFSET + STARHEIGHT div TICKSPERPIXEL)) - (stary div TICKSPERPIXEL),
+       (height - (mynut + STARHEIGHT div TICKSPERPIXEL)) - (stary div TICKSPERPIXEL),
        evt) :: !stars
 
     fun addbar (b, t) = 
@@ -591,13 +740,13 @@ struct
           | Measure => (MEASURECOLOR, 5)
           | Timesig _ => (TSCOLOR (* XXX also show time sig *), 8)
       in
-          bars := (c, (height - NUTOFFSET) - (t div TICKSPERPIXEL), h) :: !bars
+          bars := (c, (height - mynut) - (t div TICKSPERPIXEL), h) :: !bars
       end
 
     fun addspan (finger, spanstart, spanend) =
       spans :=
       (21 + finger * (STARWIDTH + 18), 
-       (height - NUTOFFSET) - spanend div TICKSPERPIXEL,
+       (height - mynut) - spanend div TICKSPERPIXEL,
        18 (* XXX *),
        (spanend - spanstart) div TICKSPERPIXEL) :: !spans
 
@@ -624,7 +773,16 @@ struct
                       Missed => blitall(missed, screen, x, y)
                     | Hit => blitall(hit, screen, x, y)
                     | _ => ())
-             end) (!stars)
+             end) (!stars);
+
+        (* finger state *)
+        Util.for 0 (FINGERS - 1)
+        (fn i =>
+         if Array.sub(State.fingers, i)
+         then blitall(hit, screen, 
+                      (STARWIDTH div 4) + 6 + i * (STARWIDTH + 18),
+                      (height - NUTOFFSET) - (STARWIDTH div 2))
+         else ())
       end
        
   end
@@ -682,15 +840,13 @@ struct
               (fn (label, evt) =>
                (case label of
                     Score _ =>
-                      if true (* score_inst_XXX inst*)
-                      then
-                          case evt of
-                              (* XXX should ensure note in bounds *)
-                              MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note, false)
-                            | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note, true)
-                            | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note, false)
-                            | _ => ()
-                      else ()
+                        (case evt of
+                             (* XXX should ensure note in bounds *)
+                             MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note, false)
+                           | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note, true)
+                           | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note, false)
+                           | _ => ())
+
                   (* tempo here? *)
                   | _ => ())) (Song.nowevents cursor)
 
@@ -777,16 +933,16 @@ struct
              | SOME (E_KeyDown { sym = SDLK_p }) => transpose := !transpose + 1
              (* Assume joystick events are coming from the one joystick we enabled
                 (until we have multiplayer... ;)) *)
-             | SOME (E_JoyDown { button, ... }) => fingeron (joymap button)
-             | SOME (E_JoyUp { button, ... }) => fingeroff (joymap button)
+             | SOME (E_JoyDown { button, ... }) => State.fingeron (joymap button)
+             | SOME (E_JoyUp { button, ... }) => State.fingeroff (joymap button)
              | SOME (E_JoyHat { state, ... }) =>
                (* XXX should have some history here--we want to ignore events
                   triggered by left-right hat movements (those never happen
                   on the xplorer though) *)
                if Joystick.hat_up state orelse
                   Joystick.hat_down state
-               then commit ()
-               else commitup ()
+               then State.commit ()
+               else State.commitup ()
 
              | _ => ()
                );

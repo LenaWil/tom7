@@ -185,6 +185,8 @@ assessed as follows.
  * The > and < are defined in the obvious way for individual notes. For
    chords, we do something a little more complicated? (esp. since there
    are 5cN different ways to configure a N-note chord, hrmmm.)
+   Actually it seems to work fine for chords too: line 'em up note by note,
+   and then charge the penalties pairwise.
 
  * For easy, medium, hard, and expert modes score a penalty for really
    reachy chords. (Which should probably increase as the level is easier.)
@@ -234,12 +236,12 @@ Both events take place within 10 frames of their corresponding sonemes
 in the score, but because they occur out of order, we can only pick
 one of the two to match. Supposing that the error window is
 arbitrarily large, then the problem becomes longest common subsequence
-matching, which is O(|score| * |input|) using they dynamic programming
-algorithm (but apparently there is a faster algorith for that). Can we
-avoid considering the error window by preprocessing? Perhaps we could
-imagine that we living in an extended alphabet that is constantly
-changing as we pass through the string. For instance, suppose that the
-input score is originally
+matching, which is O(|score| * |input|) using the dynamic programming
+algorithm (but apparently there is a faster algorithm for that). Can
+we avoid considering the error window by preprocessing? Perhaps we
+could imagine that we living in an extended alphabet that is
+constantly changing as we pass through the string. For instance,
+suppose that the input score is originally
 
   |     |     |     |     |     |
   A  B  B  B  A  A  A  A  B  A  B ...
@@ -373,9 +375,10 @@ Therefore, each entry in the table takes the form
 
 We compare these tuples lexicographically, with misses being the major
 factor. That is, we prefer to be on a streak if possible, but the more
-important thing is a low number of sonemes missed. Let's consider the
-following cases in the dynamic programming algorithm now. Each takes
-the form
+important thing is a low number of sonemes missed. (Below I call
+something with fewer misses "greater" than something with more. Maybe
+that's confusing.) Let's consider the following cases in the dynamic
+programming algorithm now. Each takes the form
 
     E
   ...
