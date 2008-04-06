@@ -137,6 +137,7 @@ struct
 *)
 
   (* in ten thousandths of a hertz *)
+  val PITCHFACTOR = 10000
   val pitches = Vector.fromList
   [80000,84757,89797,95137,100794,106787,113137,119865,126992,134543,142544,
    151020,160000,169514,179594,190273,201587,213574,226274,239729,253984,
@@ -171,7 +172,8 @@ struct
   val INST_SINE   = 4
 
   val freqs = Array.array(16, 0)
-  fun setfreq (ch, f, vol, inst) =
+  fun setfreq (ch, f, vol, inst) = setfreq_ (ch, f, vol, inst)
+(*
       let in
 (*
           print ("setfreq " ^ Int.toString ch ^ " = " ^
@@ -190,8 +192,7 @@ struct
           Array.update(freqs, ch, f);
           flip screen
       end
-
-
+*)
 
   datatype status = 
       OFF
@@ -199,7 +200,9 @@ struct
   (* for each channel, all possible midi notes *)
   val miditable = Array.array(16, Array.array(127, OFF))
   val NMIX = 12 (* XXX get from C code *)
-  val mixes = Array.array(NMIX, false)
+  val MISSCH = NMIX - 1
+  (* save one for the miss noise channel *)
+  val mixes = Array.array(NMIX - 1, false)
 
   fun noteon (ch, n, v, inst) =
       (case Array.sub(Array.sub(miditable, ch), n) of
@@ -229,7 +232,27 @@ struct
                                 n,
                                 OFF)
                end)
-      
+
+  local val misstime = ref 0
+      fun sf () = setfreq(MISSCH, PITCHFACTOR * 4 * !misstime, 12700, INST_SQUARE)
+  in
+
+      fun maybeunmiss t =
+          if !misstime <= 0
+          then setfreq(MISSCH, pitchof 60, 0, INST_NONE)
+          else 
+              let in
+                  misstime := !misstime - t;
+                  sf ()
+              end
+          
+      fun miss () =
+          let in
+              misstime := 300;
+              sf ();
+              maybeunmiss 0
+          end
+  end
 
   (* FIXME totally ad hoc!! *)
   val itos = Int.toString
@@ -312,8 +335,9 @@ struct
       val initialize : (int list * (int * MIDI.event) list) ->
                        (int * (label * MIDI.event)) list
 
-      (* number of total known misses *)
-      val misses : unit -> int
+      (* number of total known misses at time now.
+         (time must never decrease) *)
+      val misses : int -> int
 
       (* dump debugging infos *)
       val dump : unit -> unit
@@ -512,9 +536,18 @@ struct
           end
 
       
-      (* XXX need to compute. We should keep a cache to
-         avoid looking through the whole array... *)
-      fun misses () = 0
+      (* Once the matrix is complete, the total number of
+         misses is the value in the bottom-right cell. (We
+         must accout for all song events and input events.)
+
+         When we're on-line, we should only look at the
+         matrix that has passed the point of no return.
+
+         It's ... hmm, maybe it's easier to just do this
+         in our failloop.
+         
+         *)
+      fun misses t = 0
 
 
       fun initialize (gates, track) =
@@ -972,7 +1005,7 @@ struct
                Music (inst, track) =>
                    (case evt of
                         MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
-                      | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 12000, inst) 
+                      | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 120 * vel, inst) 
                       | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
                       | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
              (* otherwise no sound..? *) 
@@ -1088,6 +1121,7 @@ struct
 
   fun loopfail cursor =
       let
+          val () = maybeunmiss (Song.lag cursor)
           val nows = Song.nowevents cursor
       in
           List.app (fn (_, MIDI.NOTEON(_, _, 0)) => ()
@@ -1097,7 +1131,8 @@ struct
                            | Missed => () (* how would we have already decided this? *)
                            | Future => 
                                  let in
-                                     (* XXX should play a noise *)
+                                     (* play a noise *)
+                                     miss ();
                                      Match.setstate se Missed
                                  end)
                      | _ => ()) nows
