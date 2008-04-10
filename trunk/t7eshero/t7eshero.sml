@@ -255,7 +255,10 @@ struct
                                 OFF)
                end)
 
-  local val misstime = ref 0
+  val missnum = ref 0
+  local 
+      val misstime = ref 0
+
       fun sf () = setfreq(MISSCH, PITCHFACTOR * 4 * !misstime, 12700, INST_SQUARE)
   in
 
@@ -270,6 +273,7 @@ struct
           
       fun miss () =
           let in
+              missnum := !missnum + 1;
               misstime := 300;
               sf ();
               maybeunmiss 0
@@ -359,7 +363,7 @@ struct
 
       (* number of total known misses at time now.
          (time must never decrease) *)
-      val misses : int -> int
+      (* val misses : int -> int *)
 
       (* dump debugging infos *)
       val dump : unit -> unit
@@ -572,7 +576,7 @@ struct
          in our failloop.
          
          *)
-      fun misses t = 0
+      (* fun misses t = 0*)
 
 
       fun initialize (gates, track) =
@@ -949,7 +953,10 @@ struct
        evt) :: !stars
 
     fun addtext (s, t) =
-        texts := (s, (height - mynut) - (t div TICKSPERPIXEL)) :: !texts
+        let in
+            missnum := 0; (* FIXME hack city *)
+            texts := (s, (height - mynut) - (t div TICKSPERPIXEL)) :: !texts
+        end
 
     fun addbar (b, t) = 
       let 
@@ -1027,7 +1034,12 @@ struct
         app (fn (s, y) =>
              if FontHuge.sizex_plain s > (width - 64)
              then Font.draw(screen, 4, y - Font.height, s) 
-             else FontHuge.draw(screen, 4, y - FontHuge.height, s)) (!texts)
+             else FontHuge.draw(screen, 4, y - FontHuge.height, s)) (!texts);
+
+        if !missnum > 0
+        then FontHuge.draw (screen, 4, height - (FontHuge.height + 6),
+                            "^2" ^ Int.toString (!missnum) ^ " ^4 misses")
+        else ()
 
         (* Font.draw (screen, 0, 0, "hello my future girlfriend") *)
       end
@@ -1073,7 +1085,7 @@ struct
           nows
       end
 
-  val DRAWTICKS = (* 128 *) 3
+  val DRAWTICKS = (* 128 *) 12
   fun loopdraw cursor =
       if Song.lag cursor >= DRAWTICKS
       then 
@@ -1206,7 +1218,11 @@ struct
              | SOME (E_KeyDown { sym = SDLK_p }) => transpose := !transpose + 1
              (* Assume joystick events are coming from the one joystick we enabled
                 (until we have multiplayer... ;)) *)
-             | SOME (E_JoyDown { button, ... }) => State.fingeron (joymap button)
+             | SOME (E_JoyDown { button, ... }) => 
+               let in
+                   (* messagebox (Int.toString button); *)
+                   State.fingeron (joymap button)
+               end
              | SOME (E_JoyUp { button, ... }) => State.fingeroff (joymap button)
              | SOME (E_JoyHat { state, ... }) =>
                (* XXX should have some history here--we want to ignore events
