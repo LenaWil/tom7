@@ -110,8 +110,8 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 	seed *= 0x11234567;
 	seed += 0x77339919;
 
-	/* half-volume for noise, otherwise too overpowering */
-	if (cur_vol[ch]) mag += (seed % (cur_vol[ch] * 2) - cur_vol[ch]) >> 1;
+	/* quarter-volume for noise, otherwise too overpowering */
+	if (cur_vol[ch]) mag += (seed % (cur_vol[ch] * 2) - cur_vol[ch]) >> 2;
 	break;
       }
 
