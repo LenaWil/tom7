@@ -1,4 +1,13 @@
 
+TODO
+
+ * hammer-on calculation is wrong for:
+     * first note of the song
+     * a very fast note after the same finger we just did.
+
+
+----------------------------------------------------------------------
+
 MIDI File Encoding                                         31 Dec 2007
 
 The track name encodes what kind of track it is, and other information

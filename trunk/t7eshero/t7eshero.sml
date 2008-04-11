@@ -12,9 +12,11 @@ struct
   (* Comment this out on Linux, or it will not link *)
 
   local
-      val mb_ = _import "MessageBoxA" : MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
+      val mb_ = _import "MessageBoxA" : 
+          MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
   in
-      fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", MLton.Pointer.null)
+      fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", 
+                             MLton.Pointer.null)
   end
 
   type ptr = MLton.Pointer.t
@@ -111,6 +113,8 @@ struct
 
   val STARWIDTH = surface_width (Vector.sub(stars, 0))
   val STARHEIGHT = surface_height (Vector.sub(stars, 0))
+  val ZAPWIDTH = surface_width (Vector.sub(zaps, 0))
+  val ZAPHEIGHT = surface_height (Vector.sub(zaps, 0))
   val greenhi = requireimage "testgraphics/greenhighlight.png"
   val blackfade = requireimage "testgraphics/blackfade.png"
   val robobox = requireimage "testgraphics/robobox.png"
@@ -119,29 +123,31 @@ struct
 
   val () = blitall(background, screen, 0, 0)
 
-  structure Font = FontFn (val surf = requireimage "testgraphics/fontbig.png"
-                           val charmap =
-                           " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
-                           "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
-                           (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
-                              BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
-                           val width = 18
-                           val height = 32
-                           val styles = 6
-                           val overlap = 2
-                           val dims = 3)
+  structure Font = 
+  FontFn (val surf = requireimage "testgraphics/fontbig.png"
+          val charmap =
+              " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+              "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
+          (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
+             BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
+          val width = 18
+          val height = 32
+          val styles = 6
+          val overlap = 2
+          val dims = 3)
 
-  structure FontHuge = FontFn (val surf = requireimage "testgraphics/fonthuge.png"
-                               val charmap =
-                                   " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
-                                   "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
-                               (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
-                                  BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
-                               val width = 27
-                               val height = 48
-                               val styles = 6
-                               val overlap = 3
-                               val dims = 3)
+  structure FontHuge = 
+  FontFn (val surf = requireimage "testgraphics/fonthuge.png"
+          val charmap =
+          " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+          "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
+          (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
+             BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
+          val width = 27
+          val height = 48
+          val styles = 6
+          val overlap = 3
+          val dims = 3)
 
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
@@ -259,7 +265,8 @@ struct
   local 
       val misstime = ref 0
 
-      fun sf () = setfreq(MISSCH, PITCHFACTOR * 4 * !misstime, 12700, INST_SQUARE)
+      fun sf () = setfreq(MISSCH, PITCHFACTOR * 4 * !misstime, 
+                          10000, INST_SQUARE)
   in
 
       fun maybeunmiss t =
@@ -1016,7 +1023,9 @@ struct
                           then
                               (if !n >= Vector.length zaps
                                then ()
-                               else (blitall(Vector.sub(zaps, !n), screen, x, y);
+                               else (blitall(Vector.sub(zaps, !n), screen, 
+                                             x - ((ZAPWIDTH - STARWIDTH) div 2),
+                                             y - ((ZAPHEIGHT - STARHEIGHT) div 2));
                                      n := !n + 1))
                           else drawnormal ()
                     | _ => drawnormal ())
@@ -1068,7 +1077,7 @@ struct
                Music (inst, track) =>
                    (case evt of
                         MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
-                      | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 120 * vel, inst) 
+                      | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 90 * vel, inst) 
                       | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
                       | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
              (* otherwise no sound..? *) 

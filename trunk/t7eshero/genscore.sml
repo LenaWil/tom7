@@ -54,6 +54,11 @@ struct
                                            "Threshold (in MIDI ticks) for allowing hammering"))
                             "hammertime"
 
+(* XXX implement *)
+  (* more than 2 or 3 will usually make this run out of memory and die *)
+  val history = Params.param "1" (SOME("-history",
+                                       "Events of history to consider during assignment."))
+
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
 
