@@ -58,6 +58,7 @@ struct
   (* more than 2 or 3 will usually make this run out of memory and die *)
   val history = Params.param "1" (SOME("-history",
                                        "Events of history to consider during assignment."))
+                            "history"
 
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
@@ -215,17 +216,23 @@ struct
           make 0 (List.concat t)
       end
 
+  val DISCOUNT = 4
+
   (* Render a single measure. We got rid of the deltas and lengths. *)
   fun render_one (m : int list list) =
       let
+          val HISTORY = Params.asint 1 history
+
           val total = ref 0
           (* given the assignment for the previous 
-             event, compute the best possible assignment
+             event(s), compute the best possible asasignment
              for the tail, and its penalty. *)
           (* PERF: memoize!! *)
           fun best_rest BEST_REST (_, nil) = (nil, 0)
-            | best_rest BEST_REST ((evt, ass), ns :: rest) =
+            | best_rest BEST_REST (hist, ns :: rest) =
               let
+                  (* hist = (evt, ass) :: ... *)
+
                   val () = (total := !total + 1; 
                             if (!total mod 1000) = 0
                             then print (Int.toString (!total) ^ "\n")
@@ -238,14 +245,15 @@ struct
                      *)
                   fun all_assignments n = ListUtil.choosek n gamut
                       
-                  val olds = ListPair.zip (evt, ass)
+                  val olds = map ListPair.zip hist
 
-                  (* The heart of genscore. Compute a penalty for this assignment,
-                     given the previous assignment.
+                  (* The heart of genscore. Compute a penalty for this assignment
+                     relative to a previous assignment.
+
                      The penalty is "linear" over the components of the soneme, so
                      we do this note by note.
                      *)
-                  fun this_penalty (enew, anew) =
+                  fun this_penalty old (enew, anew) =
                       let
                           fun note_penalty (e1, a1) (e2, a2) =
                               case Int.compare (e1, e2) of
@@ -267,7 +275,19 @@ struct
                                    else ()
                       in
                           ListPair.foldl (fn (old, new, s) =>
-                                          s + note_penalty old new) 0 (olds, news)
+                                          s + note_penalty old new) 0 (old, news)
+                      end
+
+                  (* compute the penalty relative to all olds. we discount as we
+                     get deeper into the list (older notes) *)
+                  fun all_penalty assignment =
+                      let
+                          fun ap acc _ nil = acc
+                            | ap acc 0 _ = acc
+                            | ap acc n (old :: more) =
+                              ap (acc * DISCOUNT + this_penalty old assignment) (n - 1) more
+                      in
+                          ap 0 HISTORY olds
                       end
 
                   val nns = length ns
@@ -286,8 +306,8 @@ struct
                   (* try all, choose best. *)
                   fun getbest (best, bestpen) (ass :: more) =
                       let
-                          val (tail, tailpen) = BEST_REST ((ns, ass), rest)
-                          val pen = this_penalty (ns, ass)
+                          val (tail, tailpen) = BEST_REST ((ns, ass) :: hist, rest)
+                          val pen = all_penalty (ns, ass)
                       in
                           if pen + tailpen < bestpen
                           then getbest (ass :: tail, pen + tailpen) more
@@ -299,19 +319,33 @@ struct
                   getbest (nil, 9999999) (all_assignments nns)
               end
 
+          fun eq_list_hist ((l1, ill1), (l2, ill2)) =
+              let
+                  fun elh 0 _ = true
+                    | elh _ (nil, nil) = true
+                    | elh n (h :: t, h' :: t') = h = h' andalso elh (n - 1) (t, t')
+                    | elh _ (_ :: _, nil) = false
+                    | elh _ (nil, _ :: _) = false
+              in
+                  elh HISTORY (l1, l2) andalso ill1 = ill2
+              end
+
           (* Memoize or this is ridiculously expensive.
              PERF: use hashing or a dense int map, not eq! *)
-          val tabler = Memoize.eq_tabler op=
+          val tabler = Memoize.eq_tabler eq_list_hist
           val best_rest = Memoize.memoizerec tabler best_rest
 
           val () = print ("Assign a measure of length: " ^
-                          Int.toString (length m) ^ "\n")
+                          Int.toString (length m) ^
+                          " with history: " ^ Int.toString HISTORY ^ 
+                          "\n")
 
-          (* pretend there is a (normally illegal) empty soneme with empty
-             assignment, since this won't influence the choice for the
-             first note. XXX To make this better, we might as well put the
+          (* start with an empty history buffer, which doesn't penalize any
+             following assignment.
+
+             XXX To make this better, we might as well put the
              last note from (a) previous measure, if there is one. *)
-          val (best, bestpen) = best_rest ((nil, nil), m)
+          val (best, bestpen) = best_rest (nil, m)
       in
           print ("Got best penalty of " ^ Int.toString bestpen ^ " with " ^
                  Int.toString (!total) ^ " assignments viewed\n");
