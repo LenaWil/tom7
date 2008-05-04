@@ -75,9 +75,7 @@ int ml_connectux(char * path) {
 
   if (s < 0) return -1;
 
-  /* XXX: shouldn't there be a system constant for this?? */
-  maxlen = (sizeof (saun)) - ((int)&saun.sun_path - (int)&saun) - 2;
-
+  maxlen = sizeof (saun.sun_path) - 1; // room for NUL
 
   if (strlen(path) > maxlen) return -1;
 
@@ -106,8 +104,7 @@ int ml_uslisten (char * path) {
 
   if (s < 0) return -1;
 
-  /* XXX: shouldn't there be a system constant for this?? */
-  maxlen = (sizeof (svr)) - ((int)&svr.sun_path - (int)&svr) - 2;
+  maxlen = sizeof (svr.sun_path) - 1; // for NUL
 
   if (strlen(path) > maxlen) return -1;
 

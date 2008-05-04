@@ -88,7 +88,7 @@ struct
                       end
                 | SOME {uid, ...} => 
                       Posix.ProcEnv.setuid (Posix.ProcEnv.wordToUid 
-                                            (Word32.fromInt uid))
+                                            (SysWord.fromInt uid))
             end
           else ()
       end
