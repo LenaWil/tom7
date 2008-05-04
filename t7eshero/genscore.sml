@@ -101,6 +101,9 @@ struct
   val r = (Reader.fromfile f) handle _ => 
       raise Hero ("couldn't read " ^ f)
   val m as (ty, divi, thetracks) = MIDI.readmidi r
+      handle e as (MIDI.MIDI s) => (print("Couldn't read MIDI file: " ^ s ^ "\n");
+                                    raise e)
+
   val _ = ty = 1
       orelse raise Hero ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
   val () = print ("MIDI division is " ^ itos divi ^ "\n")
