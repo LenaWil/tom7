@@ -383,8 +383,7 @@ struct
             print (recvall sock);
 *)
             eprint ("\n\n--- exiting ---\n");
-            Posix.Process.exit 0w0;
-            ()
+            ignore (Posix.Process.exit 0w0)
         end
 
 end

@@ -31,9 +31,11 @@ struct
     val recvsize = Params.param "1024" (SOME ("-recvsize",
                                               "Size of receive buffer.")) "recvsize"
 
-    val eagain = _import "ML_EAGAIN" : int ; 
-    val pf_inet = _import "ML_PF_INET" : int ; 
-    val sock_stream = _import "ML_SOCK_STREAM" : int ;
+    fun readonly (a, b) = a ()
+
+    val eagain = readonly _symbol "ML_EAGAIN" : (unit -> Int32.int) * (Int32.int -> unit) ; 
+    val pf_inet = readonly _symbol "ML_PF_INET" : (unit -> Int32.int) * (Int32.int -> unit) ; 
+    val sock_stream = readonly _symbol "ML_SOCK_STREAM" : (unit -> Int32.int) * (Int32.int -> unit) ;
 
     exception RawNetwork of string
 
@@ -275,96 +277,99 @@ struct
     structure M = SplayMapFn(type ord_key = int
                              val compare = Int.compare)
 
-    fun select (ins : sdesc list, outs : sdesc list, to) =
-        let
-            (* XXX poll is more stable than select on Cygwin (select works on top of poll) *)
-            (* we first build a map of file descriptors and the events
-               (read/write) to detect. then the list is allocated with malloc
-               and passed to poll with the chosen timeout.
+    local
+      val rd   = readonly _symbol "ml_poll_rd" : (unit -> Word16.word) * (Word16.word -> unit) ;
+      val wr   = readonly _symbol "ml_poll_wr" : (unit -> Word16.word) * (Word16.word -> unit) ;
+      val ex   = readonly _symbol "ml_poll_ex" : (unit -> Word16.word) * (Word16.word -> unit) ;
+      val hup  = readonly _symbol "ml_poll_hup" : (unit -> Word16.word) * (Word16.word -> unit) ;
+      val nval = readonly _symbol "ml_poll_nval" : (unit -> Word16.word) * (Word16.word -> unit) ;
 
-               when poll returns, the list is examined to determine which
-               sockets are ready for read/write or had exceptions. *)
+      val sys_alloc_pollfds = _import "ml_alloc_pollfds" : int -> int;
+      val sys_dealloc_pollfds = _import "free" : int -> unit ;
+      val sys_set_pollfds = _import "ml_set_pollfds" : int * int * int * Word16.word -> unit;
+      val sys_get_pollfds = _import "ml_get_pollfds" : int * int -> Word16.word;
+      val sys_poll = _import "ml_poll" : int * int * int -> int;
 
-            val _ = rdprintl ("select (ins: " ^
-                              StringUtil.delimit "," (map tostring ins) ^
-                              " outs: " ^
-                              StringUtil.delimit "," (map tostring outs)^ ")")
+    in
+      fun select (ins : sdesc list, outs : sdesc list, to) =
+          let
+              (* XXX poll is more stable than select on Cygwin (select works on top of poll) *)
+              (* we first build a map of file descriptors and the events
+                 (read/write) to detect. then the list is allocated with malloc
+                 and passed to poll with the chosen timeout.
 
-            val sys_alloc_pollfds = _import "ml_alloc_pollfds" : int -> int;
-            val sys_dealloc_pollfds = _import "free" : int -> unit ;
-            val sys_set_pollfds = _import "ml_set_pollfds" : int * int * int * Word16.word -> unit;
-            val sys_get_pollfds = _import "ml_get_pollfds" : int * int -> Word16.word;
-            val sys_poll = _import "ml_poll" : int * int * int -> int;
+                 when poll returns, the list is examined to determine which
+                 sockets are ready for read/write or had exceptions. *)
 
-            val rd   = _import "ml_poll_rd" : Word16.word ;
-            val wr   = _import "ml_poll_wr" : Word16.word ;
-            val ex   = _import "ml_poll_ex" : Word16.word ;
-            val hup  = _import "ml_poll_hup" : Word16.word ;
-            val nval = _import "ml_poll_nval" : Word16.word ;
+              val _ = rdprintl ("select (ins: " ^
+                                StringUtil.delimit "," (map tostring ins) ^
+                                " outs: " ^
+                                StringUtil.delimit "," (map tostring outs)^ ")")
 
-            infix || &&
-            val op && = Word16.andb
-            val op || = Word16.orb
+              infix || &&
+              val op && = Word16.andb
+              val op || = Word16.orb
 
-            fun notzero 0 = raise RawNetwork "out of memory"
-              | notzero x = x
+              fun notzero 0 = raise RawNetwork "out of memory"
+                | notzero x = x
 
-            (* *)
-            fun add f ((s, sty), m) =
-                case M.find (m, s)
-                  (* assumes style hasn't changed!! *)
-                 of SOME (f', _) => M.insert (m, s, (f' || f, sty))
-                  | NONE => M.insert (m, s, (f, sty))
+              (* *)
+              fun add f ((s, sty), m) =
+                  case M.find (m, s)
+                    (* assumes style hasn't changed!! *)
+                   of SOME (f', _) => M.insert (m, s, (f' || f, sty))
+                    | NONE => M.insert (m, s, (f, sty))
 
-            (* insert all descriptors in map,
-               poll for read and write,
-               since exceptions are reported automatically *)
-            val fdmap = M.empty
-            val fdmap = List.foldl (add rd) fdmap ins
-            val fdmap = List.foldl (add wr) fdmap outs
-            (* We're always interested in exceptions on
-               ins and outs. *)
-            val fdmap = List.foldl (add ex) fdmap ins
-            val fdmap = List.foldl (add ex) fdmap outs
-            val n = M.numItems fdmap
+              (* insert all descriptors in map,
+                 poll for read and write,
+                 since exceptions are reported automatically *)
+              val fdmap = M.empty
+              val fdmap = List.foldl (add rd) fdmap ins
+              val fdmap = List.foldl (add wr) fdmap outs
+              (* We're always interested in exceptions on
+                 ins and outs. *)
+              val fdmap = List.foldl (add ex) fdmap ins
+              val fdmap = List.foldl (add ex) fdmap outs
+              val n = M.numItems fdmap
 
-            (* insert all descriptors in array *)
-            val fds = notzero (sys_alloc_pollfds n)
-            fun ins (s,(f, _),n) = (sys_set_pollfds (fds, n, s, f); n+1)
-            val _ = M.foldli ins 0 fdmap
+              (* insert all descriptors in array *)
+              val fds = notzero (sys_alloc_pollfds n)
+              fun ins (s,(f, _),n) = (sys_set_pollfds (fds, n, s, f); n+1)
+              val _ = M.foldli ins 0 fdmap
 
-            (* poll *)
-            (* on linux 2.4, the timeout argument is milliseconds.
-               but I seem to recall switching between msec and usec.
-               is it different on other platforms? 
-               
-                   - Tom7    26 Jun 2007
-               *)
-            val t = Option.getOpt (Option.map (IntInf.toInt o Time.toMilliseconds) to, ~1)
-            val rv = sys_poll (fds, n, t)
+              (* poll *)
+              (* on linux 2.4, the timeout argument is milliseconds.
+                 but I seem to recall switching between msec and usec.
+                 is it different on other platforms? 
 
-            (* create list of sockets with events *)
-            fun upd (s, (_, sty), (n, rl, wl, el)) =
-                let
-                    (* add socket to list if flags intersect *)
-                    fun add f f' l =
-                        if (f && f') <> 0w0
-                        then (s, sty) :: l
-                        else l
-                    val f' = sys_get_pollfds (fds, n)
-                in
-                    (n+1,
-                     add f' rd rl,
-                     add f' wr wl,
-                     add f' (ex || hup || nval) el)
-                end
-            val (_, rds, wrs, exs) = M.foldli upd (0, [], [], []) fdmap
-        in
-            sys_dealloc_pollfds fds;
-            case rv of
-                ~1 => raise RawNetwork "poll failed"
-              | _ => (rds,wrs,exs)
-        end
+                     - Tom7    26 Jun 2007
+                 *)
+              val t = Option.getOpt (Option.map (IntInf.toInt o Time.toMilliseconds) to, ~1)
+              val rv = sys_poll (fds, n, t)
+
+              (* create list of sockets with events *)
+              fun upd (s, (_, sty), (n, rl, wl, el)) =
+                  let
+                      (* add socket to list if flags intersect *)
+                      fun add f f' l =
+                          if (f && f') <> 0w0
+                          then (s, sty) :: l
+                          else l
+                      val f' = sys_get_pollfds (fds, n)
+                  in
+                      (n+1,
+                       add f' rd rl,
+                       add f' wr wl,
+                       add f' (ex || hup || nval) el)
+                  end
+              val (_, rds, wrs, exs) = M.foldli upd (0, [], [], []) fdmap
+          in
+              sys_dealloc_pollfds fds;
+              case rv of
+                  ~1 => raise RawNetwork "poll failed"
+                | _ => (rds,wrs,exs)
+          end
+    end
 
     fun opensocks () = !numsocks
 
