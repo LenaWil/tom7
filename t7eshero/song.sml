@@ -1,5 +1,6 @@
 structure Song :> SONG =
 struct
+
   (* allow fast forwarding into the future *)
   val skip = ref 0
   val now = ref 0

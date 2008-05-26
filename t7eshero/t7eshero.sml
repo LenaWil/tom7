@@ -16,26 +16,10 @@ struct
   exception Nope and Exit
   val Hero = Hero.Hero
 
-  fun messagebox s = print (s ^ "\n")
-
-  (* Comment this out on Linux, or it will not link *)
-  local
-      val mb_ = _import "MessageBoxA" : ptr * string * string * ptr -> unit ;
-  in
-      fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", 
-                             MLton.Pointer.null)
-  end
-
-  val width = 256
-  val height = 600
-
-  val FINGERS = 5
-    
-  (* distance of nut (on-tempo target bar) from bottom of screen *)
-  val NUTOFFSET = 127
-
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
+
+  val messagebox = Hero.messagebox
 
   (* FIXME INSTANCE *)
   (* XXX This should be smarter: Derived from tempo or at least saved somewhere. *)
@@ -44,8 +28,6 @@ struct
     (case map Int.fromString (CommandLine.arguments ()) of
        [_, SOME t] => t
      | _ => 5)
-
-  val screen = makescreen (width, height)
 
   (* XXX assumes joystick 0 *)
 (*
@@ -57,81 +39,6 @@ struct
   val () = Util.for 0 (Joystick.number () - 1) Joystick.openjoy
   val () = Joystick.setstate Joystick.ENABLE
 
-  fun requireimage s =
-    case Image.load s of
-      NONE => (print ("couldn't open " ^ s ^ "\n");
-               raise Nope)
-    | SOME p => p
-
-  val solid = requireimage "testgraphics/solid.png"
-
-  val background = requireimage "testgraphics/background.png"
-  val backlite   = requireimage "testgraphics/backlite.png"
-
-  val stars = Vector.fromList
-      [requireimage "testgraphics/greenstar.png",
-       requireimage "testgraphics/redstar.png",
-       requireimage "testgraphics/yellowstar.png",
-       requireimage "testgraphics/bluestar.png",
-       requireimage "testgraphics/orangestar.png"]
-
-  val hammers = Vector.fromList
-      [requireimage "testgraphics/greenhammer.png",
-       requireimage "testgraphics/redhammer.png",
-       requireimage "testgraphics/yellowhammer.png",
-       requireimage "testgraphics/bluehammer.png",
-       requireimage "testgraphics/orangehammer.png"]
-
-  val zaps = Vector.fromList
-      [requireimage "zap1.png",
-       requireimage "zap1.png",
-       requireimage "zap2.png",
-       requireimage "zap2.png",
-       requireimage "zap3.png",
-       requireimage "zap3.png",
-       requireimage "zap4.png", (* XXX hack attack *)
-       requireimage "zap4.png"]
-
-  val missed = requireimage "testgraphics/missed.png"
-  val hit = requireimage "testgraphics/hit.png"
-
-  val STARWIDTH = surface_width (Vector.sub(stars, 0))
-  val STARHEIGHT = surface_height (Vector.sub(stars, 0))
-  val ZAPWIDTH = surface_width (Vector.sub(zaps, 0))
-  val ZAPHEIGHT = surface_height (Vector.sub(zaps, 0))
-  val greenhi = requireimage "testgraphics/greenhighlight.png"
-  val blackfade = requireimage "testgraphics/blackfade.png"
-  val robobox = requireimage "testgraphics/robobox.png"
-  val blackall = alphadim blackfade
-  val () = clearsurface(blackall, color (0w0, 0w0, 0w0, 0w255))
-
-  val () = blitall(background, screen, 0, 0)
-
-  structure Font = 
-  FontFn (val surf = requireimage "testgraphics/fontbig.png"
-          val charmap =
-              " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
-              "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
-          (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
-             BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
-          val width = 18
-          val height = 32
-          val styles = 6
-          val overlap = 2
-          val dims = 3)
-
-  structure FontHuge = 
-  FontFn (val surf = requireimage "testgraphics/fonthuge.png"
-          val charmap =
-          " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
-          "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
-          (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
-             BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
-          val width = 27
-          val height = 48
-          val styles = 6
-          val overlap = 3
-          val dims = 3)
 
   val missnum = ref 0
   local 
@@ -182,204 +89,8 @@ struct
 
   datatype label = datatype Match.label
 
-  structure State =
-  struct
-
-    (* Player input *)
-    val fingers = Array.array(FINGERS, false) (* all fingers start off *)
-
-    (* Is there a sustained note on this finger (off the bottom of the screen,
-       not the nut)? *)
-    val spans = Array.array(FINGERS, false) (* and not in span *)
-
-
-    fun fingeron n = 
-        let 
-            fun highest i =
-                if i = FINGERS
-                then Match.input (Song.now (), Hero.FingerDown n)
-                else
-                    if Array.sub(fingers, i)
-                    then ()
-                    else highest (i + 1)
-        in
-            Array.update(fingers, n, true);
-            (* if there are no fingers higher than this, 
-               then it can be a hammer event. *)
-            highest (n + 1)
-        end
-    
-    fun fingeroff n =
-        let 
-            fun belowit i =
-                if i < 0
-                then ()
-                else if Array.sub(fingers, i)
-                     (* it's the finger below that is pulled off to *)
-                     then Match.input (Song.now (), Hero.FingerUp i)
-                     else belowit (i - 1)
-        in
-            Array.update(fingers, n, false);
-            belowit (n - 1)
-        end
-
-    fun commit () =
-        let 
-            fun theevent i =
-                if i = FINGERS
-                then nil
-                else
-                    if Array.sub(fingers, i)
-                    then i :: theevent (i + 1)
-                    else theevent (i + 1)
-        in
-            Match.input (Song.now (), Hero.Commit (theevent 0))
-        end
-
-    (* ? *)
-    fun commitup () = ()
-
-  end
-
-  (* PERF could keep 'lastscene' and only draw changes? *)
-  (* This is the description of what is currently displayed. *)
-  structure Scene =
-  struct
-
-    val TICKSPERPIXEL = 2
-    (* how many ticks forward do we look? *)
-    val MAXAHEAD = 960
-    (* how many MIDI ticks in the past do we draw? *)
-    val DRAWLAG = NUTOFFSET * TICKSPERPIXEL
-
-    val BEATCOLOR    = color(0wx77, 0wx77, 0wx77, 0wxFF)
-    val MEASURECOLOR = color(0wxDD, 0wx22, 0wx22, 0wxFF)
-    val TSCOLOR      = color(0wx22, 0wxDD, 0wx22, 0wxFF)
-    val starpics = stars
-
-    (* color, x, y *)
-    val stars = ref nil : (int * int * int * Match.scoreevt) list ref
-    (* rectangles the liteup background to draw. x,y,w,h *)
-    val spans = ref nil : (int * int * int * int) list ref
-    (* type, y, message, height *)
-    val bars  = ref nil : (color * int * string * int) list ref
-
-    val texts = ref nil : (string * int) list ref
-      
-    (* XXX strum, etc. *)
-
-    fun clear () =
-      let in
-        stars := nil;
-        spans := nil;
-        bars  := nil;
-        texts := nil
-      end
-
-    val mynut = 0
-
-    fun addstar (finger, stary, evt) =
-      (* XXX fudge city *)
-      stars := 
-      (finger,
-       (STARWIDTH div 4) +
-       6 + finger * (STARWIDTH + 18),
-       (* hit star half way *)
-       (height - (mynut + STARHEIGHT div TICKSPERPIXEL)) - (stary div TICKSPERPIXEL),
-       evt) :: !stars
-
-    fun addtext (s, t) =
-        let in
-            missnum := 0; (* FIXME hack city *)
-            texts := (s, (height - mynut) - (t div TICKSPERPIXEL)) :: !texts
-        end
-
-    fun addbar (b, t) = 
-      let 
-        val (c, s, h) = 
-          case b of
-            Hero.Beat => (BEATCOLOR, "", 2)
-          | Hero.Measure => (MEASURECOLOR, "", 5)
-          | Hero.Timesig (n, d) => (TSCOLOR, "^3" ^ Int.toString n ^ "^0/^3" ^ Int.toString d ^ "^4 time", 8)
-      in
-          bars := (c, (height - mynut) - (t div TICKSPERPIXEL), s, h) :: !bars
-      end
-
-    fun addspan (finger, spanstart, spanend) =
-      spans :=
-      (21 + finger * (STARWIDTH + 18), 
-       (height - mynut) - spanend div TICKSPERPIXEL,
-       18 (* XXX *),
-       (spanend - spanstart) div TICKSPERPIXEL) :: !spans
-
-    fun draw () =
-      let in
-        (* entire background first first *)
-        blitall(background, screen, 0, 0);
-        (* spans first *)
-
-        app (fn (x, y, w, h) => blit(backlite, x, y, w, h, screen, x, y)) (!spans);
-
-        (* tempo *)
-        app (fn (c, y, s, h) => 
-             if y < (height - NUTOFFSET)
-             then 
-                 let in
-                     fillrect(screen, 16, y - (h div 2), width - 32, h, c);
-                     FontHuge.draw(screen, 4, y - (h div 2) - FontHuge.height, s)
-                 end
-             else ()) (!bars);
-
-        (* stars on top *)
-        app (fn (f, x, y, e) => 
-             let 
-                 fun drawnormal () =
-                     let in
-                         if Match.hammered e
-                         then blitall(Vector.sub(hammers, f), screen, x, y)
-                         else blitall(Vector.sub(starpics, f), screen, x, y)
-                     end
-             in
-                 (* blitall(Vector.sub(starpics, f), screen, x, y); *)
-
-                 (* plus icon *)
-                 (case Match.state e of
-                      Hero.Missed => blitall(missed, screen, x, y)
-                    | Hero.Hit n =>
-                          if y >= ((height - NUTOFFSET) - (STARHEIGHT div 2))
-                          then
-                              (if !n >= Vector.length zaps
-                               then ()
-                               else (blitall(Vector.sub(zaps, !n), screen, 
-                                             x - ((ZAPWIDTH - STARWIDTH) div 2),
-                                             y - ((ZAPHEIGHT - STARHEIGHT) div 2));
-                                     n := !n + 1))
-                          else drawnormal ()
-                    | _ => drawnormal ())
-             end) (!stars);
-
-        (* finger state *)
-        Util.for 0 (FINGERS - 1)
-        (fn i =>
-         if Array.sub(State.fingers, i)
-         then blitall(hit, screen, 
-                      (STARWIDTH div 4) + 6 + i * (STARWIDTH + 18),
-                      (height - NUTOFFSET) - (STARWIDTH div 2))
-         else ());
-
-        app (fn (s, y) =>
-             if FontHuge.sizex_plain s > (width - 64)
-             then Font.draw(screen, 4, y - Font.height, s) 
-             else FontHuge.draw(screen, 4, y - FontHuge.height, s)) (!texts);
-
-        if !missnum > 0
-        then FontHuge.draw (screen, 4, height - (FontHuge.height + 6),
-                            "^2" ^ Int.toString (!missnum) ^ " ^4 misses")
-        else ()
-
-      end
-       
-  end
+  structure Scene = SceneFn(val screen = Sprites.screen
+                            val missnum = missnum)
 
   (* This is the main loop. There are three mutually recursive functions.
      The loop function checks input and deals with it appropriately.
@@ -518,7 +229,7 @@ struct
         in
           draw 0 (Song.look cursor);
           Scene.draw ();
-          flip screen
+          flip Sprites.screen
         end
       else ()
 
@@ -585,14 +296,14 @@ struct
          We need to find one at 0 time, otherwise this is
          impossible:
          *)
-      fun getstarttime nil = (print "(TIME) no events?"; raise Hero "")
+      fun getstarttime nil = (messagebox "(TIME) no events?"; raise Hero "")
         | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: rest) = 
           ((n, d, cpc, bb), rest)
         | getstarttime ((0, evt) :: t) = 
         let val (x, rest) = getstarttime t
         in (x, (0, evt) :: rest)
         end
-        | getstarttime (_ :: t) = (print ("(TIME) no 0 time events"); raise Hero "")
+        | getstarttime (_ :: t) = (messagebox ("(TIME) no 0 time events"); raise Hero "")
 
       val ((n, d, cpc, bb), rest) = getstarttime t
 
@@ -702,7 +413,7 @@ struct
                           | #"W" => Music (Sound.INST_SAW, i)
                           | #"N" => Music (Sound.INST_NOISE, i)
                           | #"S" => Music (Sound.INST_SINE, i)
-                          | _ => (print "?? expected S or Q or W or N\n"; raise Hero ""),
+                          | _ => (messagebox "?? expected S or Q or W or N\n"; raise Hero ""),
                             tr)
 
                      | #"!" =>
@@ -735,15 +446,7 @@ struct
           val (tracks : (int * (label * MIDI.event)) list list) = label thetracks
           val tracks = slow (MIDI.merge tracks)
           val tracks = add_measures tracks
-              
           val tracks = delay tracks
-(*
-  val () = app (fn (dt, (lab, evt)) =>
-                let in
-                  print ("dt: " ^ itos dt ^ "\n")
-                end) tracks
-*)
-
           val playcursor = Song.cursor 0 tracks
           val drawcursor = Song.cursor (0 - Scene.DRAWLAG) tracks
           val failcursor = Song.cursor (0 - Match.EPSILON) tracks
