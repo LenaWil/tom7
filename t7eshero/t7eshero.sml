@@ -21,14 +21,6 @@ struct
 
   val messagebox = Hero.messagebox
 
-  (* FIXME INSTANCE *)
-  (* XXX This should be smarter: Derived from tempo or at least saved somewhere. *)
-  (* number of SDL ticks per midi tick. *)
-  val SLOWFACTOR =
-    (case map Int.fromString (CommandLine.arguments ()) of
-       [_, SOME t] => t
-     | _ => 5)
-
   (* XXX assumes joystick 0 *)
 (*
   val _ = Util.for 0 (Joystick.number () - 1)
@@ -66,26 +58,43 @@ struct
           end
   end
 
-  local
-      val f = case CommandLine.arguments() of 
-          st :: _ => st
-        | _ => "totally-membrane.mid"
-  in
-      val (divi, thetracks) = Game.fromfile f
-  end
+  structure Title = TitleFn(val screen = Sprites.screen)
+
+  val (f, SLOWFACTOR, joymap, diff) =
+      case CommandLine.arguments() of
+        nil =>
+            let
+                val { midi : string,
+                      difficulty : Hero.difficulty,
+                      slowfactor : int,
+                      config : Title.config } = Title.loop()
+            in
+                (midi, slowfactor, Title.joymap config, difficulty)
+            end
+    | f :: _ => 
+        let
+            (* If using command line, then you must use 360 USB X-Plorer guitar,
+               which strangely swaps yellow and blue keys *)
+            fun joymap 0 = 0
+              | joymap 1 = 1
+              | joymap 3 = 2
+              | joymap 2 = 3
+              | joymap 4 = 4
+              | joymap _ = 999 (* XXX *)
+
+            (* number of SDL ticks per midi tick. *)
+            val SLOWFACTOR =
+                (case map Int.fromString (CommandLine.arguments ()) of
+                     [_, SOME t] => t
+                   | _ => 5)
+        in
+            (f, SLOWFACTOR, joymap, Hero.Real)
+        end
+
+  val (divi, thetracks) = Game.fromfile f
   val divi = divi * SLOWFACTOR
   val PREDELAY = 2 * divi (* ?? *)
 
-  (* FIXME INSTANCE *)
-  (* XXX This should be configurable from the main menu and loaded from
-     a settings file. *)
-  (* For 360 X-Plorer guitar, which strangely swaps yellow and blue keys *)
-  fun joymap 0 = 0
-    | joymap 1 = 1
-    | joymap 3 = 2
-    | joymap 2 = 3
-    | joymap 4 = 4
-    | joymap _ = 999 (* XXX *)
 
   datatype label = datatype Match.label
 
