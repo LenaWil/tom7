@@ -46,6 +46,12 @@ struct
   val missed = requireimage "testgraphics/missed.png"
   val hit = requireimage "testgraphics/hit.png"
 
+  val title = requireimage "testgraphics/title.png"
+  val humps = Vector.fromList(map requireimage ["testgraphics/hump1.png",
+                                                "testgraphics/hump2.png",
+                                                "testgraphics/hump3.png",
+                                                "testgraphics/hump4.png"])
+
   val STARWIDTH = SDL.surface_width (Vector.sub(stars, 0))
   val STARHEIGHT = SDL.surface_height (Vector.sub(stars, 0))
   val ZAPWIDTH = SDL.surface_width (Vector.sub(zaps, 0))
@@ -84,5 +90,19 @@ struct
           val styles = 6
           val overlap = 3
           val dims = 3)
+
+  structure FontMax = 
+  FontFn (val surf = requireimage "testgraphics/fontmax.png"
+          val charmap =
+          " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+          "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
+          (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
+             BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
+          val width = 27 * 2
+          val height = 48 * 2
+          val styles = 6
+          val overlap = 3 * 2
+          (* 18mb per image! *)
+          val dims = 1)
 
 end

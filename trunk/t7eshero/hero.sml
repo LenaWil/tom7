@@ -20,6 +20,10 @@ struct
     | FingerUp of int
     | Commit of int list
 
+  datatype difficulty =
+      Real
+  (* XXX ... *)
+
   val FINGERS = 5
 
   fun messagebox s = print (s ^ "\n")

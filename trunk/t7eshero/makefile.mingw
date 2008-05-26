@@ -23,7 +23,7 @@ win32main.o : ../sdlml/win32main.c
 # -verbose 3
 # -keep g -keep o
 # -DDEBUG_X86CODEGEN 
-t7eshero.exe : sdlml.o sound.o win32main.o hero.sml sprites.sml sound-sig.sml sound.sml match-sig.sml match.sml song-sig.sml song.sml state.sml scene.sml game.sml t7eshero.sml t7eshero.cm makefile.mingw ../sdlml/*.sml
+t7eshero.exe : sdlml.o sound.o win32main.o title-sig.sml title.sml hero.sml sprites.sml sound-sig.sml sound.sml match-sig.sml match.sml song-sig.sml song.sml state.sml scene.sml game.sml t7eshero.sml t7eshero.cm makefile.mingw ../sdlml/*.sml
 	mlton @MLton max-heap 512m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -Dmain=SDL_main" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz" -output t7eshero.exe -default-ann 'allowFFI true' t7eshero.cm sdlml.o sound.o win32main.o
 
 genscore.exe : genscore.sml genscore.cm makefile.mingw

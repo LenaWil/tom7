@@ -45,5 +45,7 @@ song.sml
 state.sml
 scene.sml
 game.sml
+title-sig.sml
+title.sml
 t7eshero.sml
 
