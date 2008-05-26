@@ -7,28 +7,25 @@
 structure T7ESHero =
 struct
 
-  fun messagebox s = print (s ^ "\n")
-
-  (* Comment this out on Linux, or it will not link *)
-
-  local
-      val mb_ = _import "MessageBoxA" : 
-          MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
-  in
-      fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", 
-                             MLton.Pointer.null)
-  end
-
+  open SDL
+  val itos = Int.toString
   type ptr = MLton.Pointer.t
   infixr 9 `
   fun a ` b = a b
 
-  exception Nope
-
+  exception Nope and Exit
   exception Hero of string
-  exception Exit
 
-  open SDL
+
+  fun messagebox s = print (s ^ "\n")
+
+  (* Comment this out on Linux, or it will not link *)
+  local
+      val mb_ = _import "MessageBoxA" : ptr * string * string * ptr -> unit ;
+  in
+      fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", 
+                             MLton.Pointer.null)
+  end
 
   val width = 256
   val height = 600
@@ -41,7 +38,9 @@ struct
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
 
-  (* number of SDL ticks per midi tick. need to fix this to derive from tempo. *)
+  (* FIXME INSTANCE *)
+  (* XXX This should be smarter: Derived from tempo or at least saved somewhere. *)
+  (* number of SDL ticks per midi tick. *)
   val SLOWFACTOR =
     (case map Int.fromString (CommandLine.arguments ()) of
        [_, SOME t] => t
@@ -68,10 +67,6 @@ struct
   (* just enable all joysticks. *)
   val () = Util.for 0 (Joystick.number () - 1) Joystick.openjoy
   val () = Joystick.setstate Joystick.ENABLE
-
-  val initaudio_ = _import "ml_initsound" : unit -> unit ;
-  val setfreq_ = _import "ml_setfreq" : int * int * int * int -> unit ;
-  val () = initaudio_ ()
 
   fun requireimage s =
     case Image.load s of
@@ -105,7 +100,7 @@ struct
        requireimage "zap2.png",
        requireimage "zap3.png",
        requireimage "zap3.png",
-       requireimage "zap4.png", (* XXX ahck ataccak *)
+       requireimage "zap4.png", (* XXX hack attack *)
        requireimage "zap4.png"]
 
   val missed = requireimage "testgraphics/missed.png"
@@ -152,126 +147,19 @@ struct
   datatype dir = UP | DOWN | LEFT | RIGHT
   datatype facing = FLEFT | FRIGHT
 
-  val paused = ref false
-  val advance = ref false
 
-  (* note 60 is middle C = 256hz,
-     so 0th note is 8hz.
-     *)
-(* XXX no floats on mingw, urgh
-  val () = Control.Print.printLength := 10000
-  fun pitchof n = Real.round ( 80000.0 * Math.pow (2.0, real n / 12.0) )
-  val pitches = Vector.fromList (List.tabulate(128, pitchof))
-*)
-
-  (* in ten thousandths of a hertz *)
-  val PITCHFACTOR = 10000
-  val pitches = Vector.fromList
-  [80000,84757,89797,95137,100794,106787,113137,119865,126992,134543,142544,
-   151020,160000,169514,179594,190273,201587,213574,226274,239729,253984,
-   269087,285088,302040,320000,339028,359188,380546,403175,427149,452548,
-   479458,507968,538174,570175,604080,640000,678056,718376,761093,806349,
-   854298,905097,958917,1015937,1076347,1140350,1208159,1280000,1356113,
-   1436751,1522185,1612699,1708595,1810193,1917833,2031873,2152695,2280701,
-   2416318,2560000,2712226,2873503,3044370,3225398,3417190,3620387,3835666,
-   4063747,4305390,4561401,4832636,5120000,5424451,5747006,6088740,6450796,
-   6834380,7240773,7671332,8127493,8610779,9122803,9665273,10240000,10848902,
-   11494011,12177481,12901592,13668760,14481547,15342664,16254987,17221559,
-   18245606,19330546,20480000,21697804,22988023,24354962,25803183,27337520,
-   28963094,30685329,32509974,34443117,36491211,38661092,40960000,43395608,
-   45976045,48709923,51606366,54675040,57926188,61370658,65019947,68886234,
-   72982423,77322184,81920000,86791217,91952091,97419847,103212732,109350081,
-   115852375,122741316]
-
-  val transpose = ref 0 (* XXX? *)
-  fun pitchof n =
-      let
-          val n = n + ! transpose
-          val n = if n < 0 then 0 else if n > 127 then 127 else n
-      in
-          Vector.sub(pitches, n)
-      end
-
-  (* must agree with sound.c *)
-  val INST_NONE   = 0
-  val INST_SQUARE = 1
-  val INST_SAW    = 2
-  val INST_NOISE  = 3
-  val INST_SINE   = 4
-
-  val freqs = Array.array(16, 0)
-  fun setfreq (ch, f, vol, inst) = setfreq_ (ch, f, vol, inst)
-(*
-      let in
-(*
-          print ("setfreq " ^ Int.toString ch ^ " = " ^
-                 Int.toString f ^ " @ " ^ Int.toString vol ^ "\n");
-*)
-(*
-          print("setfreq " ^ Int.toString ch ^ " = " ^
-                        Int.toString f ^ " @ " ^ Int.toString vol ^ "\n");
-*)
-          setfreq_ (ch, f, vol, inst);
-          (* "erase" old *)
-          blitall (blackfade, screen, Array.sub(freqs, ch), 16 * (ch + 1));
-          (* draw new *)
-          (if vol > 0 then blitall (solid, screen, f, 16 * (ch + 1))
-           else ());
-          Array.update(freqs, ch, f);
-          flip screen
-      end
-*)
-
-  datatype status = 
-      OFF
-    | PLAYING of int
-  (* for each channel, all possible midi notes *)
-  val miditable = Array.array(16, Array.array(127, OFF))
-  val NMIX = 12 (* XXX get from C code *)
-  val MISSCH = NMIX - 1
-  (* save one for the miss noise channel *)
-  val mixes = Array.array(NMIX - 1, false)
-
-  fun noteon (ch, n, v, inst) =
-      (case Array.sub(Array.sub(miditable, ch), n) of
-           OFF => (* find channel... *)
-               (case Array.findi (fn (_, b) => not b) mixes of
-                    SOME (i, _) => 
-                        let in
-                            Array.update(mixes, i, true);
-                            setfreq(i, pitchof n, v, inst);
-                            Array.update(Array.sub(miditable, ch),
-                                         n,
-                                         PLAYING i)
-                        end
-                  | NONE => print "No more mix channels.\n")
-         (* re-use mix channel... *)
-         | PLAYING i => setfreq(i, pitchof n, v, inst)
-                    )
-
-  fun noteoff (ch, n) =
-      (case Array.sub(Array.sub(miditable, ch), n) of
-           OFF => (* already off *) ()
-         | PLAYING i => 
-               let in
-                   Array.update(mixes, i, false);
-                   setfreq(i, pitchof 60, 0, INST_NONE);
-                   Array.update(Array.sub(miditable, ch),
-                                n,
-                                OFF)
-               end)
 
   val missnum = ref 0
   local 
       val misstime = ref 0
 
-      fun sf () = setfreq(MISSCH, PITCHFACTOR * 4 * !misstime, 
-                          10000, INST_SQUARE)
+      fun sf () = Sound.setfreq(Sound.MISSCH, Sound.PITCHFACTOR * 4 * !misstime, 
+                                10000, Sound.INST_SQUARE)
   in
 
       fun maybeunmiss t =
           if !misstime <= 0
-          then setfreq(MISSCH, pitchof 60, 0, INST_NONE)
+          then Sound.setfreq(Sound.MISSCH, Sound.pitchof 60, 0, Sound.INST_NONE)
           else 
               let in
                   misstime := !misstime - t;
@@ -287,8 +175,8 @@ struct
           end
   end
 
+  (* FIXME INSTANCE *)
   (* FIXME totally ad hoc!! *)
-  val itos = Int.toString
   val f = (case CommandLine.arguments() of 
                st :: _ => st
              | _ => "totally-membrane.mid")
@@ -318,7 +206,9 @@ struct
   end
 *)
 
-
+  (* FIXME INSTANCE *)
+  (* XXX This should be configurable from the main menu and loaded from
+     a settings file. *)
   (* For 360 X-Plorer guitar, which strangely swaps yellow and blue keys *)
   fun joymap 0 = 0
     | joymap 1 = 1
@@ -347,7 +237,7 @@ struct
 
       (* These should describe what kind of track an event is drawn from *)
       datatype label =
-          Music of int * int
+          Music of Sound.inst * int
         | Score of scoreevt (* the tracks that are gated by this score *)
         | Control
         | Bar of bar
@@ -391,7 +281,7 @@ struct
 
       (* These should describe what kind of track an event is drawn from *)
       datatype label =
-          Music of int * int
+          Music of Sound.inst * int
         | Score of scoreevt (* the tracks that are gated by this score *)
         | Control
         | Bar of bar
@@ -420,7 +310,7 @@ struct
       (* This is a growarray of Arrays (vectors?), each of length
          equal to the number of events in the song.
 
-         Absolute time, the event, the dp score (= streak,#misses).
+         Absolute time, the event, the dp score (= streak, #misses).
          *)
       val matching = GA.empty () : (int * input * (bool * int) array) GA.growarray
 
@@ -583,7 +473,7 @@ struct
          in our failloop.
          
          *)
-      (* fun misses t = 0*)
+      (* fun misses t = 0 *)
 
 
       fun initialize (gates, track) =
@@ -988,8 +878,6 @@ struct
         (* entire background first first *)
         blitall(background, screen, 0, 0);
         (* spans first *)
-        (* XXX *)
-        (* app (fn (x, y, w, h) => fillrect(screen, x, y, w, h, Vector.sub(TEMPOCOLORS, 1))) (!spans); *)
 
         app (fn (x, y, w, h) => blit(backlite, x, y, w, h, screen, x, y)) (!spans);
 
@@ -1050,12 +938,9 @@ struct
                             "^2" ^ Int.toString (!missnum) ^ " ^4 misses")
         else ()
 
-        (* Font.draw (screen, 0, 0, "hello my future girlfriend") *)
       end
        
   end
-
-  (* XXX assuming ticks = midi delta times; wrong! We'll live with it for now. *)
 
   (* This is the main loop. There are three mutually recursive functions.
      The loop function checks input and deals with it appropriately.
@@ -1076,9 +961,9 @@ struct
            case label of
                Music (inst, track) =>
                    (case evt of
-                        MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
-                      | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, 90 * vel, inst) 
-                      | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
+                        MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
+                      | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 90 * vel, inst) 
+                      | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
                       | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
              (* otherwise no sound..? *) 
              | Control =>
@@ -1169,9 +1054,9 @@ struct
                                      Scene.addstar (finger, tiempo, scoreevt);
 
                                      (* don't emit--we assume proper bracketing
-                                        (even though this is not the case when
-                                        we generate the score by mod5 or include
-                                        multiple channels!) *)
+                                        as produced by genscore. (This won't
+                                        necessarily be the case for arbitrary
+                                        MIDI files.) *)
                                      Array.update(spans, finger, SOME tiempo)
                                  end
                              | doevent _ = ()
@@ -1223,8 +1108,8 @@ struct
                SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Exit
              | SOME E_Quit => raise Exit
              | SOME (E_KeyDown { sym = SDLK_i }) => Song.fast_forward 2000
-             | SOME (E_KeyDown { sym = SDLK_o }) => transpose := !transpose - 1
-             | SOME (E_KeyDown { sym = SDLK_p }) => transpose := !transpose + 1
+             | SOME (E_KeyDown { sym = SDLK_o }) => Sound.transpose := !Sound.transpose - 1
+             | SOME (E_KeyDown { sym = SDLK_p }) => Sound.transpose := !Sound.transpose + 1
              (* Assume joystick events are coming from the one joystick we enabled
                 (until we have multiplayer... ;)) *)
              | SOME (E_JoyDown { button, ... }) => 
@@ -1374,10 +1259,10 @@ struct
                        SOME `
                        foldin
                        (case CharVector.sub (name, 1) of
-                            #"Q" => Music (INST_SQUARE, i)
-                          | #"W" => Music (INST_SAW, i)
-                          | #"N" => Music (INST_NOISE, i)
-                          | #"S" => Music (INST_SINE, i)
+                            #"Q" => Music (Sound.INST_SQUARE, i)
+                          | #"W" => Music (Sound.INST_SAW, i)
+                          | #"N" => Music (Sound.INST_NOISE, i)
+                          | #"S" => Music (Sound.INST_SINE, i)
                           | _ => (print "?? expected S or Q or W or N\n"; raise Hero ""),
                             tr)
 

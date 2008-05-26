@@ -29,6 +29,9 @@ t7eshero.exe : sdlml.o sound.o win32main.o t7eshero.sml t7eshero.cm makefile.min
 genscore.exe : genscore.sml genscore.cm makefile.mingw
 	mlton @MLton max-heap 400m -- -cc-opt "-I/usr/local/include" -link-opt "-L/usr/local/lib" -output genscore.exe genscore.cm
 
+wc :
+	wc -l *.sml sound.c
+
 # the order of these libraries and object files is really important! Weird things will
 # happen if it's wrong!
 #  -lz -ltiff -lpng -ljpeg
