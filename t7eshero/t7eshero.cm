@@ -34,7 +34,11 @@ group is
 ../sdlml/font-sig.sml
 ../sdlml/font.sml
 
+hero.sml
 sound-sig.sml
 sound.sml
+match-sig.sml
+match.sml
+game.sml
 t7eshero.sml
 
