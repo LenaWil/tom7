@@ -34,5 +34,7 @@ group is
 ../sdlml/font-sig.sml
 ../sdlml/font.sml
 
+sound-sig.sml
+sound.sml
 t7eshero.sml
 
