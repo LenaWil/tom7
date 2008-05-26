@@ -8,6 +8,7 @@
    human input to understand how the song "feels", particularly
    with regard to repeating phrases in which there are some things
    that should be obviously "up" vs. "down".
+   (Actually I do that now. See below.)
 
    One important thing we do is to make sure that there are no
    illegal overlaps: a note that starts while another note is
@@ -18,10 +19,6 @@
    To run this program, you must specify which tracks the score
    should be derived from. The track numbers are displayed when
    the program is run without any tracks specified.
-
-   TODO: mod 5 or mod 3 are bad ideas, since those are common
-   intervals. If we have two on the same fret at the same time, we
-   should probably instead shift one over, so it looks like a chord!
 
 *)
 
@@ -230,7 +227,7 @@ struct
           (* given the assignment for the previous 
              event(s), compute the best possible asasignment
              for the tail, and its penalty. *)
-          (* PERF: memoize!! *)
+
           fun best_rest BEST_REST (_, nil) = (nil, 0)
             | best_rest BEST_REST (hist, ns :: rest) =
               let
@@ -322,20 +319,52 @@ struct
                   getbest (nil, 9999999) (all_assignments nns)
               end
 
-          fun eq_list_hist ((l1, ill1), (l2, ill2)) =
+          (* Hash, only looking at the first HISTORY elements of l *)
+          fun hash_list_hist (l : (int list * int list) list, ill : int list list) =
               let
-                  fun elh 0 _ = true
-                    | elh _ (nil, nil) = true
-                    | elh n (h :: t, h' :: t') = h = h' andalso elh (n - 1) (t, t')
-                    | elh _ (_ :: _, nil) = false
-                    | elh _ (nil, _ :: _) = false
+                  (* hash intlist *)
+                  fun hil s nil = s
+                    | hil s (h :: t) = hil (s + 0wx123457) t + (s * Word32.fromInt h)
+
+                  fun elh 0 _ = 0wxDEADBEEF
+                    | elh _ nil = 0wxDEADBEEF
+                    | elh n ((ha, hb) :: t) = (Word32.fromInt n) * 
+                                              (hil (Word32.fromInt n * 0w11) ha) + 
+                                              (hil (Word32.notb(Word32.fromInt n)) hb) +
+                                              elh (n - 1) t
+
+                  fun el nil = 0wx5E18008
+                    | el (h :: t) = 0w7 * (hil 0w257 h) + el t
               in
-                  elh HISTORY (l1, l2) andalso ill1 = ill2
+                  Word32.xorb (el ill, elh HISTORY l)
+                               
               end
 
-          (* Memoize or this is ridiculously expensive.
-             PERF: use hashing or a dense int map, not eq! *)
-          val tabler = Memoize.eq_tabler eq_list_hist
+          fun cmp_list_hist ((l1 : (int list * int list) list, ill1 : int list list), (l2, ill2)) =
+              let
+                  val cl = Util.lex_list_order Int.compare
+                  val cll = Util.lex_list_order cl
+                  fun elh 0 _ = EQUAL
+                    | elh _ (nil, nil) = EQUAL
+                    | elh n ((ha, hb) :: t, (ha', hb') :: t') = 
+                      (case cl (ha, ha') of
+                           LESS => LESS
+                         | GREATER => GREATER
+                         | EQUAL =>
+                               (case cl (hb, hb') of
+                                    LESS => LESS
+                                  | GREATER => GREATER
+                                  | EQUAL => elh (n - 1) (t, t')))
+                    | elh _ (_ :: _, nil) = LESS
+                    | elh _ (nil, _ :: _) = GREATER
+              in
+                  case elh HISTORY (l1, l2) of
+                      EQUAL => cll (ill1, ill2)
+                    | ord => ord
+              end
+
+          (* maybe hash would be faster? *)
+          val tabler = Memoize.cmp_tabler cmp_list_hist
           val best_rest = Memoize.memoizerec tabler best_rest
 
           val () = print ("Assign a measure of length: " ^
@@ -354,9 +383,6 @@ struct
                  Int.toString (!total) ^ " assignments viewed\n");
           best
       end
-
-  (* FIXME debugging! *)
-  (* fun render_one m = m *)
 
   (* Do the rendering once it's been normalized. *)
   fun render (t : measure list) =
