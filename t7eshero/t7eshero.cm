@@ -35,6 +35,7 @@ group is
 ../sdlml/font.sml
 
 hero.sml
+chars.sml
 sprites.sml
 sound-sig.sml
 sound.sml

@@ -69,9 +69,7 @@ struct
   FontFn (val surf = requireimage "testgraphics/fontbig.png"
           val charmap =
               " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
-              "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
-          (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
-             BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
+              "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
           val width = 18
           val height = 32
           val styles = 6
@@ -82,22 +80,19 @@ struct
   FontFn (val surf = requireimage "testgraphics/fonthuge.png"
           val charmap =
           " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
-          "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
-          (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
-             BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
+          "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
           val width = 27
           val height = 48
           val styles = 6
           val overlap = 3
           val dims = 3)
 
+  (* PERF probably not being used; bigger than I thought *)
   structure FontMax = 
   FontFn (val surf = requireimage "testgraphics/fontmax.png"
           val charmap =
           " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
-          "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
-          (* CHECKMARK ESC HEART LCMARK1 LCMARK2 BAR_0 BAR_1 BAR_2 BAR_3 
-             BAR_4 BAR_5 BAR_6 BAR_7 BAR_8 BAR_9 BAR_10 BARSTART LRARROW LLARROW *)
+          "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
           val width = 27 * 2
           val height = 48 * 2
           val styles = 6

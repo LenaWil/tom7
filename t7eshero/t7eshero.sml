@@ -13,8 +13,8 @@ struct
   infixr 9 `
   fun a ` b = a b
 
-  exception Nope and Exit
   val Hero = Hero.Hero
+  val Exit = Hero.Exit
 
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
@@ -463,9 +463,9 @@ struct
           loop (playcursor, drawcursor, failcursor)
       end
     handle Hero.Hero s => messagebox ("hero error: " ^ s)
-        | SDL s => messagebox ("sdl error: " ^ s)
+        | SDL.SDL s => messagebox ("sdl error: " ^ s)
         | Game.Game s => messagebox ("sdl error: " ^ s)
-        | Exit => Match.dump ()
+        | Hero.Exit => Match.dump ()
         | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
 
 end
