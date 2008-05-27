@@ -3,6 +3,7 @@ structure Hero =
 struct
 
   exception Hero of string
+  exception Exit
 
   datatype bar =
       Measure
