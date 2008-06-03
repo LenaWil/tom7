@@ -1,0 +1,618 @@
+;;                        -*- lisp -*-
+
+ ;; Tom 7's .emacs file!
+ ;; Code licensed under the GPL.
+
+;; I prevent Fundamental mode from having font-lock turned on, so that I
+;; can set text properties in the message window.
+(setq font-lock-global-modes '(not fundamental-mode))
+(global-font-lock-mode 1)
+;(if ('toggle-transient-mark-mode)
+    (transient-mark-mode)
+;    (toggle-transient-mark-mode))
+  
+(defun frame-settings (f)
+  (progn
+    (if (null f) () (select-frame f))
+    (menu-bar-mode -1)
+    (tool-bar-mode -1)
+    (blink-cursor-mode -1)
+    (set-background-color "grey15")
+    (set-foreground-color "grey80")
+    ;; set the font depending on the platform
+    (cond
+     ((eq window-system 'w32)
+      (set-default-font 
+       "-*-FixedSys-*-r-*-*-13-*-*-*-c-*-fontset-standard"))
+     ((eq window-system 'x)
+      (set-default-font 
+       "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"))
+     (t t))
+    ))
+
+(add-hook 'after-make-frame-functions 'frame-settings)
+
+(frame-settings nil)
+
+(if (not (eq window-system 'w32))
+    (setq explicit-shell-file-name "bash"))
+
+(global-set-key "\M-g" 'goto-line)
+(global-set-key "\C-x\C-d" 'dired)
+(global-set-key "\C-c\C-q" 'toggle-read-only)
+(global-set-key "\C-xd" 'insert-datestamp)
+(global-set-key "\C-xt" 'insert-timestamp)
+(global-set-key "\C-x$" 'insert-id)
+(global-set-key "\M-:" 'eval-print-last-sexp)
+(global-set-key "\C-h" 'backward-delete-char-untabify)
+(global-set-key "\M-\C-h" 'backward-kill-word)
+(global-set-key "\M-;" 'delete-whitespace-right)
+(global-set-key "\M-\t" 'untabify-buffer)
+(global-set-key "\M-k" 'copy-line)
+(global-set-key "\M-\"" 'quote-word)
+(global-set-key "\C-\\" 'mode-line-other-buffer)
+(global-set-key "\C-o" 'bury-buffer)
+(global-set-key "\C-]" 'cycle-recent-forward)
+(global-set-key "\C-p" 'cycle-recent-backward)
+(global-set-key "\C-xm" 'shell-make)
+
+(defun shell-make ()
+  (interactive "")
+  (shell) ;; hopefully shell already exists; this switches there
+  (shell-send compile-command)
+  ;; switch back?
+  )
+
+(defun shell-send (s)
+  (goto-char (point-max))
+  (beginning-of-line)
+  ;; better if this didn't put it in the kill ring
+  (if (= (point) (point-max))
+      t
+    (kill-line))
+  (insert s)
+  (comint-send-input)
+  )
+
+(defun set-compile-command ()
+  (interactive "") ;; allow arg?
+  (setq compile-command (comint-previous-input-string 0))
+  (message (concat "Compile command is: " compile-command))
+)
+
+(defun shell-bind-key (key)
+  "Sets the last command executed in the shell to the key specified interactively."
+  (interactive "kBind last command to key: \n")
+  (lexical-let ((the-last-command (comint-previous-input-string 0)))
+    (message (concat "Key set to: " the-last-command))
+    (local-set-key key (lambda (&rest unused)
+			 (interactive "") ;; necessary
+			 (shell-send the-last-command)))
+    ))
+
+
+(defvar compile-command "make"
+  "*Default command to compile with `shell-make'")
+
+;; used to put a unique identifier in a source file, based on its
+;; character position (like, change all "oops!" messages to include
+;; the position in the file where it was generated)
+
+(defun insert-position ()
+  (interactive "*")
+  (insert (format "%d" (point))))
+  
+
+;; find a number right before the point. Increment it
+;; numerically by the prefix arg, or else 1 if none given.
+;; doesn't move the point at all.
+;; (XXX probably doesn't do the right thing when point is inside
+;; a number.)
+(defun increment-num (&optional number)
+  (interactive "P")
+  (let* ((n (if number number 1)))
+    (save-excursion
+      (re-search-backward "\\<[0-9]+\\>" (- (point) 122))
+      (replace-match (format "%d" (+ n (string-to-int (match-string 0))))))))
+
+
+;;; Tom 7's buffer cycling code.
+
+(defvar buffer-cycle-size 5
+  "*Number of buffers to cycle through with `cycle-recent'.")
+
+;; where is this? it must be built in...
+(defun nth (n l)
+  (cond ((= n 0) (car l))
+        (t (nth (1- n) (cdr l)))))
+
+(defun cycle-showbufs (targ bbl mx cur)
+  (cond ((> cur mx) "")
+        ((null bbl) "")
+        (t (concat (cond
+                    ((= targ cur) 
+                     (let* ((ss (format "%s" (buffer-name (car bbl)))))
+                       (set-text-properties 0 (length ss)
+                                            '(face tom7-hw-familyname)
+                                            ss)
+                       ss))
+                    (t (buffer-name (car bbl))))
+                   "  "
+                   (cycle-showbufs targ (cdr bbl) mx (1+ cur))))))
+
+(defvar buffer-cycle-pos 0
+  "*Current position of buffer cycling for `cycle-recent'.")
+
+;; XXX when doing C-x b, we should make buffer-cycle-pos 0.
+
+(defun cycle-filter (l)
+  "*How to filter out buffers from the cycle list."
+  (remove-if (lambda (buff) ""
+               (or (and (not (string= "*shell*" (buffer-name buff)))
+                        (string-match ".*\\*.*\\*" (buffer-name buff)))))
+             l))
+
+(defun cycle-recent (n)
+  (progn
+    (let* ((bl (cycle-filter (buffer-list)))
+           (nlook (min (list-length bl) buffer-cycle-size))
+           (msg (progn
+                  (setq buffer-cycle-pos (mod (+ n buffer-cycle-pos) nlook))
+                  (cycle-showbufs buffer-cycle-pos bl (1- nlook) 0))))
+      (message "%d/%d:   %s" (1+ buffer-cycle-pos) nlook msg)
+
+      ;; switch to that buffer, but don't record our interest in it
+      ;; (this mixes up the list and causes cycling to behave strangely!)
+      (switch-to-buffer (nth buffer-cycle-pos bl) t))))
+
+(defun cycle-recent-forward ()
+  "*Cycle to the next in up to `buffer-cycle-size' of the active buffers."
+  (interactive "")
+  (cycle-recent 1))
+
+(defun cycle-recent-backward ()
+  "*Cycle to the next in up to `buffer-cycle-size' of the active buffers."
+  (interactive "")
+  (cycle-recent -1))
+
+(autoload 'slide-mode "slide-mode" "Major mode for giving simple presentations in emacs." t)
+
+;; tal mode
+
+(setq auto-mode-alist (cons '("\\.tali?$" . tal-mode) auto-mode-alist))
+(autoload 'tal-mode "tal" "Major mode for editing TAL files." t)
+(setq tal-do-fontify t)
+
+;; provide a default value for twelf-root if it is not
+;; already defined. Is there a more direct way to do this?
+(defvar twelf-root "/usr/src/twelf/"
+  "The path to the local twelf installation.")
+;; load twelf mode (no errors)
+(message twelf-root)
+(load (concat twelf-root "emacs/twelf-init.el") t)
+
+;; spreadsheets
+;; XXX absolute path won't work
+(add-to-list 'load-path "/usr0/src/site-lisp/ses")
+(add-to-list 'load-path "c:/code/sitelisp/ses")
+(autoload 'ses-mode "ses.el" "Spreadsheet mode" t)
+
+;; misc tom 7 code
+
+(defun untabify-buffer (&optional noisy)
+  "This untabifies the entire buffer, leaving the cursor where it is. (But destroying the mark.) Provide argument and no message will be printed."
+  (interactive "P")
+  (save-excursion
+    (untabify (point-min) (point-max))
+    (if noisy () (message "[Tom 7] Untabified Buffer"))
+  ))
+
+(defun copy-line ()
+  "This copies the current line into the kill ring, leaving the cursor where it is. Copies entire line, including terminating newline (unless this is the last line in the file and has no trailing newline)."
+  (interactive "*")
+  (save-excursion 
+    (beginning-of-line)
+    (let ((beg (point))) 
+      (end-of-line) 
+      (forward-line 1) 
+      (copy-region-as-kill beg (point)))
+    (message "[Tom 7] Line copied")
+    ))
+
+(defun quote-word ()
+  "This puts double-quotes around the current (or previous) word."
+  (interactive "*")
+  (save-excursion
+    (forward-word -1)
+    (insert "\"")
+    (forward-word 1)
+    (insert "\"")
+    ))
+
+
+(setq inhibit-startup-echo-area-message "Asterisk")
+(setq inhibit-startup-message t)
+
+(autoload 'ange-ftp-set-user "ange-ftp" "ange-ftp stuff" t)
+(autoload 'aphasia-mode "aphasia" "Major mode for editing aphasia source code." t)
+(autoload 'sml-mode "sml-mode" "Major mode for editing ML programs." t)
+(autoload 'aaph-mode "aaph" "Major mode for editing aphasia 2 source." t)
+
+(setq auto-mode-alist
+      (append '(("\\.a$" . aphasia-mode)
+		("\\.db$" . aphasia-mode)
+		("\\.ah$" . aphasia-mode)
+		("\\.as$" . c-mode) ;; close enough...
+		("\\.sml$" . sml-mode)
+		("\\.sig$" . sml-mode)
+                ("\\.fun$" . sml-mode)
+		("\\.uml$" . aaph-mode)
+		("\\.uh$" . aaph-mode)
+		("\\.aah?$" . aaph-mode)
+		("\\.hml$" . sml-mode) ;; XXX some day make hemlock-mode
+		("README$" . english-mode)
+		("\\.txt$" . english-mode)
+		("\\.mli?$" . sml-mode) ;; XXX need caml-mode
+		("\\.mst$" . homework-mode)
+		("\\.wrd$" . homework-mode)
+		("\\.pop$" . c-mode)
+		("\\.sig$" . sml-mode)) auto-mode-alist))
+
+(defun delete-whitespace-right ()
+"Deletes whitespace to the right of point, until the end of 
+ line or a non-whitespace character."
+  (interactive "*")
+  (let ((orig-pos (point)))
+    (delete-region
+     orig-pos
+     (progn
+       (skip-chars-forward " \t")
+       (constrain-to-field nil orig-pos t)))))
+
+(autoload 'htmlize "htmlize" "Turn a buffer into html" t)
+; provides timestamp and datestamp
+(require 'id)
+
+(defun tab-nonsense ()
+  "Sets my tab prefs."
+  (progn
+    (setq tab-width 4)
+    (setq indent-tabs-mode nil)))
+
+(setq enable-local-variables 'query)
+(setq next-line-add-newlines nil)
+(setq add-log-full-name "Tom 7")
+
+(setq completion-ignored-extensions (list ".o" "~" ".bin" ".bak" ".aph" ".elc" ".idx" ".dvi" ".class" ".lib" ".exe" ".com" ".gif" ".jpg" ".GIF" ".JPG" ".png" ".bmp" ".psd"))
+
+(set-scroll-bar-mode nil)
+(setq scroll-margin 1)
+(setq sentence-end-double-space nil)
+(setq tab-stop-list
+        '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76))
+(setq ids-creator-id "tom7")
+
+(make-empty-face 'tom7-subtle-text)
+(defvar tom7-subtle-text-face   'tom7-subtle-text
+  "Face name to use for 'subtle' text.")
+
+
+(add-hook 'text-mode-hook 'tab-nonsense)
+(add-hook 'fundamental-mode 'tab-nonsesne)
+
+(defun untabify-before-save ()
+  (progn 
+    (untabify-buffer 0)
+    nil))
+  
+
+(defun save-without-tabs ()
+  (progn
+    (add-hook 'local-write-file-hooks 'untabify-before-save)
+    nil))
+
+(add-hook 'sml-mode-hook 'save-without-tabs)
+;; XXX move to aphasia mode
+(add-hook 'aphasia-mode-hook 'turn-on-font-lock)
+
+(put 'downcase-region 'disabled nil)
+
+(put 'upcase-region 'disabled nil)
+
+;;; english-mode
+
+(make-empty-face 'tom7-article)
+(defvar tom7-article-face       'tom7-article
+  "Face name to use for english articles.")
+
+(make-empty-face 'tom7-preposition)
+(defvar tom7-preposition-face   'tom7-preposition
+  "Face name to use for english prepositions.")
+
+(make-empty-face 'tom7-careful)
+(defvar tom7-careful-face       'tom7-careful
+  "Face name to use for gentle warnings.")
+
+(make-empty-face 'tom7-header)
+(defvar tom7-header-face        'tom7-header
+  "Face name to use for headers.")
+
+(make-empty-face 'tom7-initial)
+(defvar tom7-initial-face       'tom7-initial
+  "Face name to use for initial words in sentences.")
+
+(make-empty-face 'tom7-longword)
+(defvar tom7-longword-face      'tom7-longword
+  "Face name to use for long words (>12 chars) in enlish text.")
+
+(defcustom english-mode-hook nil
+  "Normal hook run when entering English mode"
+  :type 'hook
+  :group 'data)
+
+(defun english-mode ()
+  "Tom's mode for writing english text."
+  (interactive)
+  (kill-all-local-variables)
+  (outline-mode)
+  (setq mode-name "English")
+  (setq major-mode 'english-mode)
+  (flyspell-mode 1)
+  (turn-on-font-lock)
+  (flyspell-buffer)
+  (run-hooks 'english-mode-hook))
+
+(setq preposition-re "\\([oi]n\\|at\\|of\\|to\\|with\\(in\\)?\\|from\\|near\\|by\\|\\(be\\|a\\)side\\|above\\|below\\|around\\|under\\)")
+
+(font-lock-add-keywords 'english-mode '(
+("\\<\\(the\\|an?\\)\\>" . tom7-article-face)
+("\\<\\([A-Z][a-z']*\\)\\>" . tom7-initial-face)
+("\\<\\(which\\|their\\|them\\|they\\|usage\\|like\\)\\>" . tom7-careful-face)
+("^[ ]*\\(\\*.*\\)$" 1 tom7-header-face append)
+("\\<[a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z]*\\>" . tom7-longword-face)
+("\\<\\([oi]n\\|at\\|of\\|to\\|with\\(in\\)?\\|from\\|near\\|by\\|\\(be\\|a\\)side\\|above\\|below\\|around\\|under\\)\\." 1 tom7-careful-face prepend)
+("\\<\\([oi]n\\|at\\|of\\|to\\|with\\(in\\)?\\|from\\|near\\|by\\|\\(be\\|a\\)side\\|above\\|below\\|around\\|under\\)\\>" . tom7-preposition-face)
+))
+
+;;; english-mode ends here
+
+
+;;; homework-mode
+
+(make-empty-face 'tom7-hw-familyname)
+(defvar tom7-hw-familyname-face 'tom7-hw-familyname
+  "Face name to use for family names in homework documents.")
+
+(make-empty-face 'tom7-hw-familydef)
+(defvar tom7-hw-familydef-face  'tom7-hw-familydef
+  "Face name to use for family names (at definition) in homework documents.")
+
+(make-empty-face 'tom7-hw-infinite)
+(defvar tom7-hw-infinite-face   'tom7-hw-infinite
+  "Face name to use for marking lines in unique families that are infinite.")
+
+(defcustom homework-mode-hook nil
+  "Normal hook run when entering Homework mode"
+  :type 'hook
+  :group 'data)
+
+(defvar homework-mode-syntax-table nil
+  "Syntax table used while in scribe mode.")
+
+(setq homework-mode-syntax-table (copy-syntax-table text-mode-syntax-table))
+
+;; a-la scribe mode. This is pretty dirty...
+(let ((st (syntax-table)))
+  (unwind-protect
+      (progn
+        (setq homework-mode-syntax-table (copy-syntax-table
+                                        text-mode-syntax-table))
+        (set-syntax-table homework-mode-syntax-table)
+        (modify-syntax-entry ?\" "_   ")
+        (modify-syntax-entry ?\\ "_   ")
+        (modify-syntax-entry ?%  "$   ")
+        
+        (set-syntax-table st))))
+
+(defun homework-mode ()
+  "Tom's mode for editing Homework files."
+  (interactive)
+  (kill-all-local-variables)
+  (setq mode-name "Homework")
+  (setq major-mode 'homework-mode)
+  (turn-on-font-lock)
+  (set-syntax-table homework-mode-syntax-table)
+  (run-hooks 'homework-mode-hook))
+
+(font-lock-add-keywords 'homework-mode '(
+("^#!?\\([A-Za-z0-9]+\\)$" 1 tom7-hw-familydef-face)
+("^\\(!\\)" 1 tom7-hw-infinite-face)
+("\\(%\\)" 1 tom7-subtle-text-face)
+("%/!*\\([A-Za-z0-9]+\\)/[^%]*%" 1 font-lock-variable-name-face)
+("%[&`^]*\\([A-Za-z0-9]+\\)%" 1 tom7-hw-familyname-face)
+("%[&`^]*[-?+]\\([A-Za-z0-9]+\\)%" 1 font-lock-variable-name-face)
+("%[^%\"]*\\(\\\"[^%]*\\)%" 1 font-lock-string-face)
+("%[&`^]*\\([A-Za-z0-9]+\\):?=[^%]*%" 1 font-lock-variable-name-face)
+("%[&`^]*[A-Za-z0-9]+:?=[&`^]*\\([A-Za-z0-9]+\\)%" 1 tom7-hw-familyname-face)
+))
+
+;;; homework-mode ends here
+
+;; make comint automatically jump to the last line when doing
+;; M-p. This is good for compiling...
+
+(defun comint-end-then-prev (arg)
+"Zips to the end of the buffer ('command line') then
+ invokes comint-previous-input."
+  (interactive "*p")
+  (progn 
+    (if (= (point) (point-max))
+        ()
+      (progn
+        (goto-char (point-max))
+        (comint-kill-input)
+        (setq comint-input-ring-index nil)))
+    (comint-previous-input arg)))
+
+;; XXX add shell-bind-key
+(add-hook 'comint-mode-hook
+          '(lambda ()
+             (progn
+               (local-set-key "\M-p" 'comint-end-then-prev)
+               (local-set-key "\M-]" 'send-invisible))))
+
+(add-hook 'font-lock-mode-hook
+	  '(lambda ()
+	     (font-lock-add-keywords
+	      nil
+	      '(("\\(unimplemented\\|PERF\\|FIXME!*\\|XXX*\\|\\<[H][E][R][E]\\>\\)" 1 
+		 font-lock-warning-face t)))
+	     (set-face-foreground (quote font-lock-warning-face)
+				  "red")
+	     ))
+
+;;;;;;;;; fix outline mode levels
+
+;; XXX metaprogramming? might as well use it if we're programming
+;; in lisp....
+(make-empty-face 'outline-mode-one-face)
+(defvar outline-mode-one-face   'outline-mode-one-face
+  "First level of colorization for outline mode.")
+(make-empty-face 'outline-mode-two-face)
+(defvar outline-mode-two-face   'outline-mode-two-face
+  "Second level of colorization for outline mode.")
+(make-empty-face 'outline-mode-three-face)
+(defvar outline-mode-three-face   'outline-mode-three-face
+  "Third level of colorization for outline mode.")
+(make-empty-face 'outline-mode-four-face)
+(defvar outline-mode-four-face   'outline-mode-four-face
+  "Fourth level of colorization for outline mode.")
+(make-empty-face 'outline-mode-five-face)
+(defvar outline-mode-five-face   'outline-mode-five-face
+  "Fifth level of colorization for outline mode.")
+(make-empty-face 'outline-mode-six-face)
+(defvar outline-mode-six-face   'outline-mode-six-face
+  "Sixth level of colorization for outline mode.")
+(make-empty-face 'outline-mode-seven-face)
+(defvar outline-mode-seven-face   'outline-mode-seven-face
+  "Seventh level of colorization for outline mode.")
+(make-empty-face 'outline-mode-eight-face)
+(defvar outline-mode-eight-face   'outline-mode-eight-face
+  "Eighth level of colorization for outline mode.")
+
+(defun set-om-faces ()
+  (setq outline-font-lock-keywords
+	'((eval . 
+		  (list (concat "^" outline-regexp ".+")
+			0 '(or (cdr (assq (outline-font-lock-level)
+					  '((1 . outline-mode-one-face)
+					    (2 . outline-mode-two-face)
+					    (3 . outline-mode-three-face)
+					    (4 . outline-mode-four-face)
+					    (5 . outline-mode-five-face)
+					    (6 . outline-mode-six-face)
+					    (7 . outline-mode-seven-face)
+					    (8 . outline-mode-eight-face))))
+			       font-lock-warning-face)
+			nil t)))))
+
+(add-hook 'outline-mode-hook 'set-om-faces)
+(set-om-faces)
+
+;; try to trick customize so that it rewrites the correct part of my
+;; code 
+(defun csf (args) (custom-set-faces args))
+
+(custom-set-faces
+  ;; custom-set-faces was added by Custom -- don't edit or cut/paste it!
+  ;; Your init file should contain only one such instance.
+ '(blue ((t (:foreground "skyblue"))))
+ '(comint-highlight-prompt ((((background dark)) (:foreground "#AAEEEE"))))
+ '(cursor ((t (:background "lightskyblue" :foreground "black"))))
+ '(custom-state-face ((((class color) (background dark)) (:foreground "#99CC99"))))
+ '(flyspell-duplicate-face ((t (:foreground "#DDDDAA"))))
+ '(flyspell-incorrect-face ((t (:foreground "#EE6666"))))
+ '(font-lock-comment-face ((t (:foreground "Grey50"))))
+ '(font-lock-constant-face ((((class color) (background dark)) (:foreground "#AABBCC"))))
+ '(font-lock-doc-string-face ((t (:foreground "MediumSeaGreen"))))
+ '(font-lock-function-name-face ((t (:foreground "skyblue"))))
+ '(font-lock-keyword-face ((t (:foreground "#DDDDAA"))))
+ '(font-lock-preprocessor-face ((t (:foreground "lightgreen"))))
+ '(font-lock-string-face ((t (:foreground "#99BB77"))))
+ '(font-lock-type-face ((t (:foreground "#BBBBDD"))))
+ '(font-lock-variable-name-face ((t (:foreground "skyblue"))))
+ '(fringe ((((class color) (background dark)) (:background "grey10" :foreground "grey25"))))
+ '(green ((t (:foreground "SeaGreen"))))
+ '(highlight ((t (:foreground "White" :background "SlateGrey"))))
+ '(info-xref ((t (:foreground "#AAFFFF" :weight bold))))
+ '(isearch ((t (:foreground "LightSlateBlue" :background "navyblue"))))
+ '(isearch-lazy-highlight-face ((((class color) (background dark)) (:background "grey30"))))
+ '(outline-mode-eight-face ((t (:foreground "#7777CC"))))
+ '(outline-mode-five-face ((t (:foreground "#8888DD"))))
+ '(outline-mode-four-face ((t (:foreground "#9999EE"))))
+ '(outline-mode-one-face ((t (:foreground "#CCCCFF"))))
+ '(outline-mode-seven-face ((t (:foreground "#7777CC"))))
+ '(outline-mode-six-face ((t (:foreground "#7777DD"))))
+ '(outline-mode-three-face ((t (:foreground "#AAAAEE"))))
+ '(outline-mode-two-face ((t (:foreground "#BBBBFF"))))
+ '(paren-match ((t (:background "grey35"))))
+ '(region ((((class color) (background dark)) (:background "darkslategray" :foreground "white"))))
+ '(secondary-selection ((t (:foreground "white" :background "darkslategray"))))
+ '(show-paren-match-face ((((class color)) (:background "#222244"))))
+ '(minibuffer-prompt ((((background dark)) (:foreground "#CCCCAA"))))
+ '(tom7-article ((t (:foreground "grey65"))))
+ '(tom7-careful ((t (:foreground "#E7CCCC"))))
+ '(tom7-header ((t (:foreground "#EE99EE"))))
+ '(tom7-hw-familydef ((t (:foreground "#DDDDAA"))))
+ '(tom7-hw-familydef-face ((t (:foreground "#DDDDAA"))))
+ '(tom7-hw-familyname ((t (:foreground "#7777EE"))))
+ '(tom7-hw-familyname-face ((t (:foreground "#0000FF"))))
+ '(tom7-hw-infinite ((t (:foreground "#994499"))))
+ '(tom7-initial ((t (:foreground "#CCCCEE"))))
+ '(tom7-longword ((t (:foreground "#CCDDCC"))))
+ '(tom7-preposition ((t (:foreground "#AACCAA"))))
+ '(tom7-subtle-text ((t (:foreground "grey60"))))
+ '(twelf-font-comment ((t (:foreground "Grey50"))))
+ '(twelf-font-comment-face ((t (:foreground "Grey50"))))
+ '(twelf-font-constant ((t (:foreground "#AABBCC"))))
+ '(twelf-font-decl ((t (:foreground "#DDDDAA"))))
+ '(twelf-font-decl-face ((t (:foreground "#DDDDAA"))))
+ '(twelf-font-evar-face ((t (:foreground "#99BBDD"))))
+ '(twelf-font-fvar-face ((t (:foreground "#99CCAA"))))
+ '(twelf-font-keyword ((t (:foreground "#DDBBDD"))))
+ '(twelf-font-keyword-face ((t (:foreground "#DDBBDD"))))
+ '(twelf-font-parm-face ((t (:foreground "#99CC99"))))
+ '(twelf-font-percent-key-face ((t (:stipple nil :background "grey15" :foreground "#AA88FF" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight bold :height 134 :width normal :family "misc-fixed"))))
+ '(widget-button-face ((t (:foreground "black" :weight bold))))
+ '(widget-documentation-face ((((class color) (background dark)) (:foreground "LightSeaGreen")) (((class color) (background light)) (:foreground "dark green")) (t nil)))
+ '(widget-inactive-face ((((class grayscale color) (background dark)) (:foreground "grey40"))))
+ '(woman-bold-face ((t (:foreground "#AAEEFF" :weight bold))))
+ '(zmacs-region ((t (:foreground "green" :background "darkslategrey")))))
+
+;; set comment face lighter on the console; otherwise emacs chooses black!!
+(unless window-system
+  (progn
+    (csf
+     '(region ((((class color) (background dark)) (:foreground "white" :background "darkslategray")))))
+    (csf
+     '(secondary-selection ((t (:foreground "white" :background "darkslategray")))))
+    (csf
+     '(font-lock-string-face ((t (:foreground "green")))))
+    (csf
+     '(font-lock-comment-face ((t (:foreground "Grey90")))))))
+
+
+(message "(* Eighty Megabytes and Counting Still... *)")
+
+(custom-set-variables
+  ;; custom-set-variables was added by Custom -- don't edit or cut/paste it!
+  ;; Your init file should contain only one such instance.
+ '(comint-input-ignoredups t)
+ '(echo-keystrokes 0.5)
+ '(flyspell-issue-welcome-flag nil)
+ '(show-paren-delay 0.0)
+ '(show-paren-style (quote expression))
+ '(tramp-default-method "sm"))
+
+(put 'erase-buffer 'disabled nil)
+
