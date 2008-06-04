@@ -11,6 +11,9 @@
     (transient-mark-mode)
 ;    (toggle-transient-mark-mode))
   
+;; XXX
+(load "c:\\code\\sitelisp\\lost.el")
+
 (defun frame-settings (f)
   (progn
     (if (null f) () (select-frame f))
