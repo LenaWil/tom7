@@ -21,12 +21,14 @@
 ;;;      erase it and reset the count
 ;;; - beep every few seconds with increasing annoyance
 
+;; (blink-cursor-mode 0)
+;; (setq lost-seconds 1)
+
 (defvar lost-seconds (* 60 108))
 (defvar lost-dangertime (* 60 4))
 
 (defun lost-insist-swan-settings ()
   (interactive)
-  (blink-cursor-mode 1)
   (local-set-key [13] 'lost-execute)
   (let* ((cu (assq 'cursor-color (frame-parameters)))
 	 (bg (assq 'background-color (frame-parameters)))
@@ -39,6 +41,11 @@
 	  (setq lost-old-background (cdr bg))
 	  (setq lost-old-foreground (cdr fg))
 	  (setq lost-old-cursor (cdr cu))
+	  ;; if blinking, then blink-cursor-idle-timer will be set
+	  ;; (this is sort of a hack, but emacs does not seem to supply
+	  ;;  a first-class way of getting this information.)
+	  (setq lost-old-blink (cond (blink-cursor-idle-timer 1) (t 0)))
+	  (blink-cursor-mode 1)
 	  (set-background-color "black")
 	  (set-foreground-color "green")
 	  ;(custom-set-faces '(cursor ((t (:background "green" :foreground "black")))))
@@ -46,12 +53,15 @@
 
 	  ))))
 
+
 ;; assumes they were changed by lost-insist-swan-settings
 (defun lost-restore-settings ()
+  ;; don't need to reset enter key because it's killed with swan buffer
   (set-foreground-color lost-old-foreground)
   (set-background-color lost-old-background)
   (set-cursor-color lost-old-cursor)
   ;; XXX restore blink state of cursor
+  (blink-cursor-mode lost-old-blink)
 ; (assq 'background-color (frame-parameters))
 )
 
