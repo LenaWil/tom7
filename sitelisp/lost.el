@@ -88,37 +88,39 @@
   (cond ((< n 10) (format "0%d" n))
 	(t (format "%d" n))))
 
+(defun lost-threedig (n)
+  (cond ((< n 100) (format "0%s" (lost-twodig n)))
+	(t (format "%d" n))))
+
 ; during good times
-(make-empty-face 'lost-hour-face)
-(make-empty-face 'lost-minsec-face)
+(make-empty-face 'lost-min-face)
+(make-empty-face 'lost-sec-face)
 
 ; for hieroglyphics
-(make-empty-face 'lost-hhour-face)
-(make-empty-face 'lost-hminsec-face)
+(make-empty-face 'lost-hmin-face)
+(make-empty-face 'lost-hsec-face)
 
 (defvar lost-hieroglyphics (string 2209 2210 2211 2212 2246 2247 2245 2271 2229 2225))
 
-(defvar lost-h-a  "?")
+(defvar lost-h-aaa  "???")
 (defvar lost-h-bb "??")
-(defvar lost-h-cc "??")
+
 (defun lost-hieroglyph ()
   (aref lost-hieroglyphics (random (length lost-hieroglyphics))))
 (defun lost-hieroglyphics-freakout ()
-  (setq lost-h-a  (string (lost-hieroglyph)))
-  (setq lost-h-bb (string (lost-hieroglyph) (lost-hieroglyph)))
-  (setq lost-h-cc (string (lost-hieroglyph) (lost-hieroglyph)))
-  )
+  (setq lost-h-aaa  (string (lost-hieroglyph) (lost-hieroglyph) (lost-hieroglyph)))
+  (setq lost-h-bb (string (lost-hieroglyph) (lost-hieroglyph))))
 ; (lost-hieroglyphics-freakout)
 ; don't even allow customization of the faces..
-(set-face-foreground 'lost-hour-face "#FFFFFF")
-(set-face-background 'lost-hour-face "#000000")
-(set-face-foreground 'lost-minsec-face "#000000")
-(set-face-background 'lost-minsec-face "#FFFFFF")
+(set-face-foreground 'lost-min-face "#FFFFFF")
+(set-face-background 'lost-min-face "#000000")
+(set-face-foreground 'lost-sec-face "#000000")
+(set-face-background 'lost-sec-face "#FFFFFF")
 
-(set-face-foreground 'lost-hhour-face "#FF0000")
-(set-face-background 'lost-hhour-face "#000000")
-(set-face-foreground 'lost-hminsec-face "#000000")
-(set-face-background 'lost-hminsec-face "#FF0000")
+(set-face-foreground 'lost-hmin-face "#FF0000")
+(set-face-background 'lost-hmin-face "#000000")
+(set-face-foreground 'lost-hsec-face "#000000")
+(set-face-background 'lost-hsec-face "#FF0000")
 
 (defun lost-periodic ()
   ; always go there
@@ -128,27 +130,23 @@
   (let ((ms
 	(cond ((< lost-seconds 0)
 	       (lost-hieroglyphics-freakout)
-	       (format "%s:%s:%s"
+	       (format "%s %s"
 		   ;; good if I could get actual hieroglyphs,
 		   ;; maybe blinking?
-		   (propertize lost-h-a  'face 'lost-hhour-face)
-		   (propertize lost-h-bb 'face 'lost-hminsec-face)
-		   (propertize lost-h-cc 'face 'lost-hminsec-face))
+		   (propertize lost-h-aaa 'face 'lost-hmin-face)
+		   (propertize lost-h-bb 'face 'lost-hsec-face))
 	       )
 
 	      (t
-	       (let* ((hh (/ lost-seconds (* 60 60)))
-		      (rem (mod lost-seconds (* 60 60)))
-		      (mm (/ rem 60))
-		      (ss (mod rem 60))) 
+	       (let* ((mm (/ lost-seconds 60))
+		      (ss (mod lost-seconds 60)))
 		 
-		; XXX 2digit always
-		 (format "%s:%s:%s" 
-			 ; is it two digit hour?
-			 (propertize (format "%d" hh) 'face 'lost-hour-face)
-			 (propertize (lost-twodig mm) 'face 'lost-minsec-face)
-			 (propertize (lost-twodig ss) 'face 'lost-minsec-face)))
-		 ))))
+		 (format "%s %s" 
+			 ; 3 digit minutes, 2 digit seconds
+			 (propertize (lost-threedig mm) 'face 'lost-min-face)
+			 (propertize (lost-twodig ss) 'face 'lost-sec-face))
+
+		 )))))
     (setq lost-mode-string ms)
     (force-mode-line-update)
     )
