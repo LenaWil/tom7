@@ -96,6 +96,19 @@
 (make-empty-face 'lost-hhour-face)
 (make-empty-face 'lost-hminsec-face)
 
+(defvar lost-hieroglyphics (string 2209 2210 2211 2212 2246 2247 2245 2271 2229 2225))
+
+(defvar lost-h-a  "?")
+(defvar lost-h-bb "??")
+(defvar lost-h-cc "??")
+(defun lost-hieroglyph ()
+  (aref lost-hieroglyphics (random (length lost-hieroglyphics))))
+(defun lost-hieroglyphics-freakout ()
+  (setq lost-h-a  (string (lost-hieroglyph)))
+  (setq lost-h-bb (string (lost-hieroglyph) (lost-hieroglyph)))
+  (setq lost-h-cc (string (lost-hieroglyph) (lost-hieroglyph)))
+  )
+; (lost-hieroglyphics-freakout)
 ; don't even allow customization of the faces..
 (set-face-foreground 'lost-hour-face "#FFFFFF")
 (set-face-background 'lost-hour-face "#000000")
@@ -114,13 +127,13 @@
   ; always update modeline clock
   (let ((ms
 	(cond ((< lost-seconds 0)
-	       
+	       (lost-hieroglyphics-freakout)
 	       (format "%s:%s:%s"
 		   ;; good if I could get actual hieroglyphs,
 		   ;; maybe blinking?
-		   (propertize "?" 'face 'lost-hhour-face)
-		   (propertize "??" 'face 'lost-hminsec-face)
-		   (propertize "??" 'face 'lost-hminsec-face))
+		   (propertize lost-h-a  'face 'lost-hhour-face)
+		   (propertize lost-h-bb 'face 'lost-hminsec-face)
+		   (propertize lost-h-cc 'face 'lost-hminsec-face))
 	       )
 
 	      (t
