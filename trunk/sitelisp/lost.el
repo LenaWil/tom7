@@ -188,7 +188,6 @@
 (defun lost-cur-display ()
   (cond ((< lost-seconds 0)
 	 (lost-hieroglyphics-freakout)
-	 ;; system doesn't fail for another 10 seconds after hitting 0
 
 	 (list
 	  (propertize lost-h-a 'face 'lost-hmin-face)
