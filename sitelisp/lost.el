@@ -1,28 +1,19 @@
 ;;; lost.el --- every 108 minutes the button must be pressed
-
-;;; XXX cleanup this!
-
-; (load "c:\\code\\sitelisp\\lost.el")
-; (autoload 'lost-mode "lost.el" "Lost mode" t)
-
-;;; Author: Tom Murphy 7
-;;; Based on type-break.el by Noah Friedman, GPL
-
+;;;
+;;; Author: Tom Murphy 7  (http://tom7.org/)
+;;; Some tricks from type-break.el by Noah Friedman, GPL
+;;;              and timeclock.el  by John Wiegley, GPL
+;;;
 ;;; Licensed under the GNU GPL version 2 or later.
 ;;; (See the file COPYING for details.)
-
-;; a periodic (once per second?) timer should:
-;;; - update the modeline with the current timeout.
-;;; - if the timeout is less than 4 minutes:
-;;;    - insist that the buffer *swan* exists
-;;;     - (if it doesn't, make it with a prompt)
-;;;    - insist that it is displayed
-;;;    - if it has the correct numbers entered, then
-;;;      erase it and reset the count
-;;; - beep every few seconds with increasing annoyance
-
-;; (blink-cursor-mode 0)
-;; (setq lost-seconds 1)
+;;;
+;;; To employ this useful mode, simply add:
+;;;  
+;;;   (load "c:\\code\\sitelisp\\lost.el")
+;;;   (setq lost-no-beep nil)  ; optional, if you want beeping
+;;;   
+;;; or the equivalent for your platform to your .emacs file.
+;;; The mode is activated on startup and cannot be disabled.
 
 (defun nth (n l)
   (cond ((= n 0) (car l))
@@ -30,6 +21,7 @@
 
 (defvar lost-seconds (* 60 108))
 (defvar lost-dangertime (* 60 4))
+(defvar lost-no-beep t)
 
 (defun lost-insist-swan-settings ()
   (interactive)
@@ -39,9 +31,6 @@
 	 (fg (assq 'foreground-color (frame-parameters))))
     (if (not (and bg fg (string= (cdr bg) "black") (string= (cdr fg) "green")))
 	(progn
-	  ; (insert (cdr bg))
-	  ; (insert (cdr fg))
-	  ; (insert "YESSS")
 	  (setq lost-old-background (cdr bg))
 	  (setq lost-old-foreground (cdr fg))
 	  (setq lost-old-cursor (cdr cu))
@@ -52,21 +41,16 @@
 	  (blink-cursor-mode 1)
 	  (set-background-color "black")
 	  (set-foreground-color "green")
-	  ;(custom-set-faces '(cursor ((t (:background "green" :foreground "black")))))
 	  (set-cursor-color "green")
-
 	  ))))
 
-
-;; assumes they were changed by lost-insist-swan-settings
+;; assumes they were changed and saved by lost-insist-swan-settings
 (defun lost-restore-settings ()
   ;; don't need to reset enter key because it's killed with swan buffer
   (set-foreground-color lost-old-foreground)
   (set-background-color lost-old-background)
   (set-cursor-color lost-old-cursor)
-  ;; XXX restore blink state of cursor
   (blink-cursor-mode lost-old-blink)
-; (assq 'background-color (frame-parameters))
 )
 
 ; Used for animation loops faster than 1 second
@@ -75,16 +59,13 @@
 (defvar lost-resetting-n 0)
 
 (defun lost-rand-min ()
-  (propertize (format "%d" (random 9)) 'face 'lost-min-face)
-)
+  (propertize (format "%d" (random 9)) 'face 'lost-min-face))
 
 (defun lost-rand-sec ()
-  (propertize (format "%d" (random 9)) 'face 'lost-sec-face)
-)
+  (propertize (format "%d" (random 9)) 'face 'lost-sec-face))
 
 (defun lost-rand-display ()
-  (list (lost-rand-min) (lost-rand-min) (lost-rand-min)
-	" "
+  (list (lost-rand-min) (lost-rand-min) (lost-rand-min) " "
 	(lost-rand-sec) (lost-rand-sec)))
 
 ; given two lists of equal length, take the first n of a
@@ -92,8 +73,6 @@
 (defun lost-tween (n a b)
   (cond ((= n 0) b)
 	(t (cons (car a) (lost-tween (1- n) (cdr a) (cdr b))))))
-
-; (lost-tween 3 (list "A" "B" "C" "D") (list "X" "Y" "Z" "W"))
 
 (defun lost-start-timer ()
   (setq lost-slow-timer (run-at-time 0 1 'lost-periodic)))
@@ -106,7 +85,6 @@
 ;; In the second phase, we reset the timer to 108 minutes, and
 ;; then replace flipping digits with new stable reset digits.
 (defun lost-resetting-timer ()
-  ; increment first.
   (setq lost-resetting-n (+ lost-resetting-n 1))
   (cond 
    ((= lost-resetting-n (* 2 6 lost-reset-time-per-digit))
@@ -121,9 +99,11 @@
 	    (lost-tween (/ lost-resetting-n lost-reset-time-per-digit) b a)))
     (force-mode-line-update))
 
+   ;; phase change
    ((= lost-resetting-n (* 6 lost-reset-time-per-digit))
     (setq lost-seconds (* 60 108)))
 
+   ;; phase 2
    ((> lost-resetting-n (* 6 lost-reset-time-per-digit))
     (let ((a (lost-cur-display))
 	  (b (lost-rand-display)))
@@ -192,36 +172,35 @@
 (set-face-background 'lost-min-face "#000000")
 (set-face-foreground 'lost-sec-face "#000000")
 (set-face-background 'lost-sec-face "#FFFFFF")
-(set-face-attribute 'lost-min-face nil :strike-through "#444455")
-(set-face-attribute 'lost-sec-face nil :strike-through "#444455")
+(set-face-attribute  'lost-min-face nil :strike-through "#444455")
+(set-face-attribute  'lost-sec-face nil :strike-through "#444455")
 
 (set-face-foreground 'lost-hmin-face "#FF0000")
 (set-face-background 'lost-hmin-face "#000000")
 (set-face-foreground 'lost-hsec-face "#000000")
 (set-face-background 'lost-hsec-face "#FF0000")
-(set-face-attribute 'lost-hmin-face nil :strike-through "#554444")
-(set-face-attribute 'lost-hsec-face nil :strike-through "#554444")
+(set-face-attribute  'lost-hmin-face nil :strike-through "#554444")
+(set-face-attribute  'lost-hsec-face nil :strike-through "#554444")
 
 
 ;; return a list of six propertized strings, one for
 ;; each of the five flippy characters and the separator.
 (defun lost-cur-display ()
-  (cond ((< lost-seconds 0)
+  ;; freakout starts at 10 seconds
+  (cond ((< lost-seconds 10)
 	 (lost-hieroglyphics-freakout)
+	 (and (<= lost-seconds 0) (= 0 (mod (- 0 lost-seconds) 5)) (message "SYSTEM FAILURE"))
 	 (list
-	  ;; good if I could get actual hieroglyphs,
-	  ;; maybe blinking?
-	     (propertize lost-h-a 'face 'lost-hmin-face)
-	     (propertize lost-h-b 'face 'lost-hmin-face)
-	     (propertize lost-h-c 'face 'lost-hmin-face)
-	     " "
-	     (propertize lost-h-d 'face 'lost-hsec-face)
-	     (propertize lost-h-e 'face 'lost-hsec-face)))
+	  (propertize lost-h-a 'face 'lost-hmin-face)
+	  (propertize lost-h-b 'face 'lost-hmin-face)
+	  (propertize lost-h-c 'face 'lost-hmin-face)
+	  " "
+	  (propertize lost-h-d 'face 'lost-hsec-face)
+	  (propertize lost-h-e 'face 'lost-hsec-face)))
 	
 	  (t
 	   (let* ((mm (/ lost-seconds 60))
 		  (ss (mod lost-seconds 60)))
-
 	     (list
 	      (propertize (format "%d" (/ mm 100)) 'face 'lost-min-face)
 	      (propertize (format "%d" (mod (/ mm 10) 10)) 'face 'lost-min-face)
@@ -244,13 +223,13 @@
   (force-mode-line-update)
 
   (cond
-
-   ; allow input
+   ; allow input after 4 minute mark
    ((< lost-seconds lost-dangertime)
-    
-    ; (beep 'no-terminate-macro)
+ 
+    ;; Beeping is supposed to increase in severity at the 1 minute
+    ;; mark, but emacs doesn't have an easy way to do this.
+    (or lost-no-beep (beep 'no-terminate-macro))
     (switch-to-buffer "*swan*")
-    ;; should prevent this from happening if it's already done; flickers.
     (lost-insist-swan-settings)
     ;; does the buffer start with the prompt?
     (let ((prompt-ok
@@ -269,106 +248,22 @@
   (goto-char (point-max)))
 
 (setq lost-mode-string "LOST")
-;; Properties are ignored in emacs 22+ unless variable is risky.
+;; Properties of strings in modeline are ignored in emacs 22+ 
+;; unless the variable is risky.
 (put 'lost-mode-string 'risky-local-variable t)
 
-;; from timeclock. find the global-mode-string symbol in the
-;; modeline format. 
+;; Sets lost-mode-string to appear in the modeline, using
+;; global-mode-string. This seems volatile between emacs
+;; versions; if you know a stable way, please tell me.
 (defun lost-set-modeline ()
   ;; global-mode string has to start with a list or string
   ;; if the contents are to be evaluated and treated as mode
   ;; line formats.
   (or global-mode-string (setq global-mode-string '("")))
-;  (let ((list-entry (memq 'global-mode-string
-;			  mode-line-format)))
-;    (unless (or (null list-entry)
-;		(memq 'lost-mode-string mode-line-format))
-;      (setcdr list-entry
-;	      (cons 'lost-mode-string
-;		    (cdr list-entry))))
-;    )
-  ;; have to put this at the end, or else it's interpreted
-  ;; as a condition.
   (setq global-mode-string
 	(append global-mode-string '(lost-mode-string)))
-  (force-mode-line-update)
-  )
+  (force-mode-line-update))
 
+;; go
 (lost-set-modeline)
-
-; (setq mode-line-format (cons (propertize "awesome" 'face 'lost-hhour-face) mode-line-format))
-; (setq mode-line-format 'awesome)
-; (setq awesome (propertize "awesome" 'face 'lost-hhour-face))
-; (put 'awesome 'risky-local-variable t)
-
-
-; (setq lost-set-modeline (lambda ()))
-; (setq lost-periodic (lambda ()))
-
-; (assq 'global-mode-string mode-line-format)
-; (memq 'global-mode-string mode-line-modes)
-
-; (mapcar (lambda (x) (progn
-; 		      (insert " ")
-; 		      (cond ((stringp x) (insert x))
-; 			  ((symbolp x) (insert (symbol-name x)))
-; 			  (t (insert "?"))))) mode-line-format)
-; 
-; (setq global-mode-string "awesome")
-
-; symbol
-
-; mode-line-format
-
-; (goto-char (point-min))
-; (insert ">: ")
-; (looking-at ">: ")
-; (lost-periodic)
-
-; (setq lost-seconds (* 60 108))
-; (setq lost-seconds (* 60 5))
-; (setq lost-seconds 5)
-
-;;;;
 (lost-start-timer)
-
-;; emacs-version
-
-;; 
-;; 
-;; 
-;; 
-;; (defgroup lost nil
-;;   "Every 108 minutes the button must be pressed."
-;;   :prefix "lost"
-;;   :group 'keyboard)
-;; 
-;; ;;;###autoload
-;; (defcustom lost-mode nil
-;;   "Toggle lost-mode."
-;;   :set (lambda (symbol value)
-;; 	 (type-break-mode (if value 1 -1)))
-;;   :initialize 'custom-initialize-default
-;;   :type 'boolean
-;;   :group 'type-break
-;;   :require 'type-break)
-;; 
-;; ;;;###autoload
-;; (defvar lost-interval (* 60 108))
-;; 
-;; ;; XXX uhhh...?
-;; (defvar lost-post-command-hook '(lost-check)
-;;   "Hook run indirectly by post-command-hook for typing break functions.
-;; This is not really intended to be set by the user, but it's probably
-;; harmless to do so.  Mainly it is used by various parts of the typing break
-;; program to delay actions until after the user has completed some command.
-;; It exists because `post-command-hook' itself is inaccessible while its
-;; functions are being run, and some type-break--related functions want to
-;; remove themselves after running.")
-;; 
-;; (provide 'type-break)
-;; 
-;; (if type-break-mode
-;;     (type-break-mode 1))
-;; 
-;; ;;; type-break.el ends here
