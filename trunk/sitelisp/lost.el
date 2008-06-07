@@ -1,5 +1,7 @@
 ;;; lost.el --- every 108 minutes the button must be pressed
 
+;;; XXX cleanup this!
+
 ; (load "c:\\code\\sitelisp\\lost.el")
 ; (autoload 'lost-mode "lost.el" "Lost mode" t)
 
@@ -8,8 +10,6 @@
 
 ;;; Licensed under the GNU GPL version 2 or later.
 ;;; (See the file COPYING for details.)
-
-;; (sit-for 2)
 
 ;; a periodic (once per second?) timer should:
 ;;; - update the modeline with the current timeout.
@@ -199,8 +199,8 @@
 (set-face-background 'lost-hmin-face "#000000")
 (set-face-foreground 'lost-hsec-face "#000000")
 (set-face-background 'lost-hsec-face "#FF0000")
-(set-face-attribute 'lost-min-face nil :strike-through "#554444")
-(set-face-attribute 'lost-sec-face nil :strike-through "#554444")
+(set-face-attribute 'lost-hmin-face nil :strike-through "#554444")
+(set-face-attribute 'lost-hsec-face nil :strike-through "#554444")
 
 
 ;; return a list of six propertized strings, one for
