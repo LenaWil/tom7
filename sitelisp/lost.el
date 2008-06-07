@@ -124,6 +124,7 @@
 	   (kill-buffer "*swan*")
 
 	   (and lost-fast-timer (cancel-timer lost-fast-timer))
+	   (setq lost-system-failure "")
 	   (setq lost-resetting-n 0)
 	   (setq lost-fast-timer (run-at-time 0 0.05 'lost-resetting-timer))
 	   (cancel-timer lost-slow-timer)
@@ -166,8 +167,6 @@
   (setq lost-h-d (string (lost-hieroglyph)))
   (setq lost-h-e (string (lost-hieroglyph))))
 
-; (lost-hieroglyphics-freakout)
-; don't even allow customization of the faces..
 (set-face-foreground 'lost-min-face "#FFFFFF")
 (set-face-background 'lost-min-face "#000000")
 (set-face-foreground 'lost-sec-face "#000000")
@@ -183,13 +182,14 @@
 (set-face-attribute  'lost-hsec-face nil :strike-through "#554444")
 
 
+(defvar lost-system-failure "")
 ;; return a list of six propertized strings, one for
 ;; each of the five flippy characters and the separator.
 (defun lost-cur-display ()
-  ;; freakout starts at 10 seconds
-  (cond ((< lost-seconds 10)
+  (cond ((< lost-seconds 0)
 	 (lost-hieroglyphics-freakout)
-	 (and (<= lost-seconds 0) (= 0 (mod (- 0 lost-seconds) 5)) (message "SYSTEM FAILURE"))
+	 ;; system doesn't fail for another 10 seconds after hitting 0
+
 	 (list
 	  (propertize lost-h-a 'face 'lost-hmin-face)
 	  (propertize lost-h-b 'face 'lost-hmin-face)
@@ -210,6 +210,10 @@
 	      (propertize (format "%d" (mod ss 10)) 'face 'lost-sec-face))
 	     ))))
 
+(defvar lost-mod14-n 0)
+(defun lost-mod14 ()
+  (setq lost-mod14-n (mod (1+ lost-mod14-n) 14))
+  lost-mod14-n)
 
 (defun lost-periodic ()
   ; always go there
@@ -222,15 +226,36 @@
 				   )))
   (force-mode-line-update)
 
+  ;; speed up in hieroglyphics mode. we don't see the seconds
+  ;; anyway.
+  (and (= lost-seconds 0)
+       (progn (cancel-timer lost-slow-timer)
+	      (setq lost-slow-timer (run-at-time 0 .2 'lost-periodic))))
+
   (cond
    ; allow input after 4 minute mark
    ((< lost-seconds lost-dangertime)
- 
+
     ;; Beeping is supposed to increase in severity at the 1 minute
     ;; mark, but emacs doesn't have an easy way to do this.
     (or lost-no-beep (beep 'no-terminate-macro))
     (switch-to-buffer "*swan*")
     (lost-insist-swan-settings)
+
+    ;; When we're really dead...
+    ;; (note timescale has increased by 5 at this point)
+    (cond 
+     ((and (<= lost-seconds (- 0 50)) (= 0 (mod (- 0 lost-seconds) 2)))
+      ;; chop so as not to grow forever
+      (and (> (length lost-system-failure) 900)
+	   (setq lost-system-failure 
+		 (substring lost-system-failure
+			    (+ (lost-mod14) (- (length lost-system-failure) 900)) nil)))
+      (setq lost-system-failure
+	    ;; lack of separating spaces intentional
+	    (concat lost-system-failure "System Failure"))
+      (message lost-system-failure)))
+
     ;; does the buffer start with the prompt?
     (let ((prompt-ok
 	   (save-excursion
