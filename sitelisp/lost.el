@@ -11,7 +11,7 @@
 
 ;; (sit-for 2)
 
-;; a periodic (once a second?) timer should:
+;; a periodic (once per second?) timer should:
 ;;; - update the modeline with the current timeout.
 ;;; - if the timeout is less than 4 minutes:
 ;;;    - insist that the buffer *swan* exists
@@ -23,6 +23,10 @@
 
 ;; (blink-cursor-mode 0)
 ;; (setq lost-seconds 1)
+
+(defun nth (n l)
+  (cond ((= n 0) (car l))
+        (t (nth (1- n) (cdr l)))))
 
 (defvar lost-seconds (* 60 108))
 (defvar lost-dangertime (* 60 4))
@@ -65,6 +69,70 @@
 ; (assq 'background-color (frame-parameters))
 )
 
+; Used for animation loops faster than 1 second
+(defvar lost-fast-timer nil)
+; Run reset loop this many times
+(defvar lost-resetting-n 0)
+
+(defun lost-rand-min ()
+  (propertize (format "%d" (random 9)) 'face 'lost-min-face)
+)
+
+(defun lost-rand-sec ()
+  (propertize (format "%d" (random 9)) 'face 'lost-sec-face)
+)
+
+(defun lost-rand-display ()
+  (list (lost-rand-min) (lost-rand-min) (lost-rand-min)
+	" "
+	(lost-rand-sec) (lost-rand-sec)))
+
+; given two lists of equal length, take the first n of a
+; followed by the remainder from b.
+(defun lost-tween (n a b)
+  (cond ((= n 0) b)
+	(t (cons (car a) (lost-tween (1- n) (cdr a) (cdr b))))))
+
+; (lost-tween 3 (list "A" "B" "C" "D") (list "X" "Y" "Z" "W"))
+
+(defun lost-start-timer ()
+  (setq lost-slow-timer (run-at-time 0 1 'lost-periodic)))
+
+;; in ticks
+(defvar lost-reset-time-per-digit 3)
+;; Timer-reset animation. There are two distinct phases.
+;; In the first phase, we keep the current display and
+;; fill the digits up from left to right with random flipping.
+;; In the second phase, we reset the timer to 108 minutes, and
+;; then replace flipping digits with new stable reset digits.
+(defun lost-resetting-timer ()
+  ; increment first.
+  (setq lost-resetting-n (+ lost-resetting-n 1))
+  (cond 
+   ((= lost-resetting-n (* 2 6 lost-reset-time-per-digit))
+    (cancel-timer lost-fast-timer)
+    (lost-start-timer)
+    )
+   ;; phase 1
+   ((< lost-resetting-n (* 6 lost-reset-time-per-digit))
+    (let ((a (lost-cur-display))
+	  (b (lost-rand-display)))
+      (setq lost-mode-string
+	    (lost-tween (/ lost-resetting-n lost-reset-time-per-digit) b a)))
+    (force-mode-line-update))
+
+   ((= lost-resetting-n (* 6 lost-reset-time-per-digit))
+    (setq lost-seconds (* 60 108)))
+
+   ((> lost-resetting-n (* 6 lost-reset-time-per-digit))
+    (let ((a (lost-cur-display))
+	  (b (lost-rand-display)))
+      (setq lost-mode-string
+	    (lost-tween (/ (- lost-resetting-n (* 6 lost-reset-time-per-digit))
+			   lost-reset-time-per-digit) a b)))
+    (force-mode-line-update))
+))
+
 (defun lost-execute ()
   (interactive "")
   (let ((numbers-ok (save-excursion
@@ -73,16 +141,17 @@
     (cond (numbers-ok
 	   (lost-restore-settings)
 	   ;; should animate this?
-	   (setq lost-seconds (* 60 108))
 	   (kill-buffer "*swan*")
+
+	   (and lost-fast-timer (cancel-timer lost-fast-timer))
+	   (setq lost-resetting-n 0)
+	   (setq lost-fast-timer (run-at-time 0 0.05 'lost-resetting-timer))
+	   (cancel-timer lost-slow-timer)
 	   (message "Every 108 minutes the button must be pressed.")
-	   ; (restore-old-settings)
 	   )
 	  (t (message "??")
 	     (lost-make-prompt)))
-
     ))
-
 
 (defun lost-twodig (n)
   (cond ((< n 10) (format "0%d" n))
@@ -102,54 +171,77 @@
 
 (defvar lost-hieroglyphics (string 2209 2210 2211 2212 2246 2247 2245 2271 2229 2225))
 
-(defvar lost-h-aaa  "???")
-(defvar lost-h-bb "??")
+(defvar lost-h-a "?")
+(defvar lost-h-b "?")
+(defvar lost-h-c "?")
+(defvar lost-h-d "?")
+(defvar lost-h-e "?")
 
 (defun lost-hieroglyph ()
   (aref lost-hieroglyphics (random (length lost-hieroglyphics))))
 (defun lost-hieroglyphics-freakout ()
-  (setq lost-h-aaa  (string (lost-hieroglyph) (lost-hieroglyph) (lost-hieroglyph)))
-  (setq lost-h-bb (string (lost-hieroglyph) (lost-hieroglyph))))
+  (setq lost-h-a (string (lost-hieroglyph)))
+  (setq lost-h-b (string (lost-hieroglyph)))
+  (setq lost-h-c (string (lost-hieroglyph)))
+  (setq lost-h-d (string (lost-hieroglyph)))
+  (setq lost-h-e (string (lost-hieroglyph))))
+
 ; (lost-hieroglyphics-freakout)
 ; don't even allow customization of the faces..
 (set-face-foreground 'lost-min-face "#FFFFFF")
 (set-face-background 'lost-min-face "#000000")
 (set-face-foreground 'lost-sec-face "#000000")
 (set-face-background 'lost-sec-face "#FFFFFF")
+(set-face-attribute 'lost-min-face nil :strike-through "#444455")
+(set-face-attribute 'lost-sec-face nil :strike-through "#444455")
 
 (set-face-foreground 'lost-hmin-face "#FF0000")
 (set-face-background 'lost-hmin-face "#000000")
 (set-face-foreground 'lost-hsec-face "#000000")
 (set-face-background 'lost-hsec-face "#FF0000")
+(set-face-attribute 'lost-min-face nil :strike-through "#554444")
+(set-face-attribute 'lost-sec-face nil :strike-through "#554444")
+
+
+;; return a list of six propertized strings, one for
+;; each of the five flippy characters and the separator.
+(defun lost-cur-display ()
+  (cond ((< lost-seconds 0)
+	 (lost-hieroglyphics-freakout)
+	 (list
+	  ;; good if I could get actual hieroglyphs,
+	  ;; maybe blinking?
+	     (propertize lost-h-a 'face 'lost-hmin-face)
+	     (propertize lost-h-b 'face 'lost-hmin-face)
+	     (propertize lost-h-c 'face 'lost-hmin-face)
+	     " "
+	     (propertize lost-h-d 'face 'lost-hsec-face)
+	     (propertize lost-h-e 'face 'lost-hsec-face)))
+	
+	  (t
+	   (let* ((mm (/ lost-seconds 60))
+		  (ss (mod lost-seconds 60)))
+
+	     (list
+	      (propertize (format "%d" (/ mm 100)) 'face 'lost-min-face)
+	      (propertize (format "%d" (mod (/ mm 10) 10)) 'face 'lost-min-face)
+	      (propertize (format "%d" (mod mm 10)) 'face 'lost-min-face)
+	      " "
+	      (propertize (format "%d" (/ ss 10)) 'face 'lost-sec-face)
+	      (propertize (format "%d" (mod ss 10)) 'face 'lost-sec-face))
+	     ))))
+
 
 (defun lost-periodic ()
   ; always go there
   (setq lost-seconds (- lost-seconds 1))
 
   ; always update modeline clock
-  (let ((ms
-	(cond ((< lost-seconds 0)
-	       (lost-hieroglyphics-freakout)
-	       (format "%s %s"
-		   ;; good if I could get actual hieroglyphs,
-		   ;; maybe blinking?
-		   (propertize lost-h-aaa 'face 'lost-hmin-face)
-		   (propertize lost-h-bb 'face 'lost-hsec-face))
-	       )
-
-	      (t
-	       (let* ((mm (/ lost-seconds 60))
-		      (ss (mod lost-seconds 60)))
-		 
-		 (format "%s %s" 
-			 ; 3 digit minutes, 2 digit seconds
-			 (propertize (lost-threedig mm) 'face 'lost-min-face)
-			 (propertize (lost-twodig ss) 'face 'lost-sec-face))
-
-		 )))))
-    (setq lost-mode-string ms)
-    (force-mode-line-update)
-    )
+  (let ((ms (lost-cur-display)))
+    (setq lost-mode-string (concat (nth 0 ms) (nth 1 ms) (nth 2 ms)
+				   (nth 3 ms) (nth 4 ms) (nth 5 ms)
+				   )))
+  (force-mode-line-update)
 
   (cond
 
@@ -238,7 +330,7 @@
 ; (setq lost-seconds 5)
 
 ;;;;
-(run-at-time 0 1 'lost-periodic)
+(lost-start-timer)
 
 ;; emacs-version
 
