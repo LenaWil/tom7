@@ -1,4 +1,4 @@
-;;; lost.el --- every 108 minutes the button must be pressed
+;;; lost.el --- every 108 minutes the button must be pushed
 ;;;
 ;;; Author: Tom Murphy 7  (http://tom7.org/)
 ;;; Some tricks from type-break.el by Noah Friedman, GPL
@@ -128,7 +128,7 @@
 	   (setq lost-resetting-n 0)
 	   (setq lost-fast-timer (run-at-time 0 0.05 'lost-resetting-timer))
 	   (cancel-timer lost-slow-timer)
-	   (message "Every 108 minutes the button must be pressed.")
+	   (message "Every 108 minutes the button must be pushed.")
 	   )
 	  (t (message "??")
 	     (lost-make-prompt)))
