@@ -22,6 +22,8 @@
 #define MAX_MIX (32700)
 #define MIN_MIX (-32700)
 
+#define VOL_FACTOR (0.6)
+
 #define INST_NONE   0
 #define INST_SQUARE 1
 #define INST_SAW    2
@@ -132,7 +134,7 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 void ml_setfreq(int ch, int nf, int nv, int inst) {
   SDL_LockAudio();
   cur_freq[ch] = nf;
-  cur_vol[ch] = nv;
+  cur_vol[ch] = (int)(VOL_FACTOR * (float)nv);
   cur_inst[ch] = inst;
   samples[ch] = 0;
   SDL_UnlockAudio();
