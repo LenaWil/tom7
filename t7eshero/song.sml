@@ -11,7 +11,8 @@ struct
   fun update () = now := (Word32.toInt (SDL.getticks ()) + !skip)
   fun fast_forward n = skip := !skip + n
 
-  type cursor = { lt : int ref, evts : (int * (Match.label * MIDI.event)) list ref }
+  type gameevt = Match.label * MIDI.event
+  type 'evt cursor = { lt : int ref, evts : (int * 'evt) list ref }
   fun lag { lt = ref n, evts = _ } = !now - n
 
   (* move the cursor so that lt is now, updating the events as
@@ -48,13 +49,13 @@ struct
   fun nowevents { lt, evts } =
       let
           (* returns the events that are now. modifies evts ref *)
-          fun ne gap ((dt, (label, evt)) :: rest) =
+          fun ne gap ((dt, evt) :: rest) =
               if dt <= gap
-              then (label, evt) :: ne (gap - dt) rest
+              then evt :: ne (gap - dt) rest
 
               (* the event is not ready yet. it must be measured as a
                  delta from 'now' *)
-              else (evts := (dt - gap, (label, evt)) :: rest; nil)
+              else (evts := (dt - gap, evt) :: rest; nil)
 
             (* song will end on next trip *)
             | ne _ nil = (evts := nil; nil)
