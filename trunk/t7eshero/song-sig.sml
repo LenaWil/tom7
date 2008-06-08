@@ -10,24 +10,24 @@
    over a small window of notes in the past and future. *)
 signature SONG =
 sig
-    type cursor
+    type 'evt cursor
     (* give offset in ticks. A negative offset cursor displays events
        from the past. *)
-    val cursor : int -> (int * (Match.label * MIDI.event)) list -> cursor
+    val cursor : int -> (int * 'evt) list -> 'evt cursor
 
 
     (* get the events that are occurring now or which this cursor has
        already passed. Advances the cursor to immediately after the
        events. *)
-    val nowevents : cursor -> (Match.label * MIDI.event) list
+    val nowevents : 'evt cursor -> 'evt list
 
     (* show the upcoming events from the cursor's perspective. *)
-    val look : cursor -> (int * (Match.label * MIDI.event)) list
+    val look : 'evt cursor -> (int * 'evt) list
 
     (* How many ticks are we behind real time? Always non-negative.
        Always 0 after calling nowevents, look, or cursor, until
        update is called again. *)
-    val lag : cursor -> int
+    val lag : 'evt cursor -> int
 
     (* Initializes the local clock. *)
     val init : unit -> unit
