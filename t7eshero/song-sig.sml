@@ -14,7 +14,7 @@ sig
     (* give offset in ticks. A negative offset cursor displays events
        from the past. *)
     val cursor : int -> (int * 'evt) list -> 'evt cursor
-
+    val cursor_loop : int -> (int * 'evt) list -> 'evt cursor
 
     (* get the events that are occurring now or which this cursor has
        already passed. Advances the cursor to immediately after the

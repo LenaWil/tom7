@@ -12,8 +12,8 @@ struct
   fun fast_forward n = skip := !skip + n
 
   type gameevt = Match.label * MIDI.event
-  type 'evt cursor = { lt : int ref, evts : (int * 'evt) list ref }
-  fun lag { lt = ref n, evts = _ } = !now - n
+  type 'evt cursor = { lt : int ref, evts : (int * 'evt) list ref, orig : (int * 'evt) list, loop : bool }
+  fun lag { lt = ref n, evts = _, orig = _, loop =_ } = !now - n
 
   (* move the cursor so that lt is now, updating the events as
      needed. *)
@@ -46,7 +46,7 @@ struct
       When the gap is too small to include the next event, we reduce
       its delta time by the remaining gap amount to restore the
       representation invariant for the cursor. *)
-  fun nowevents { lt, evts } =
+  fun nowevents { lt, evts, orig, loop } =
       let
           (* returns the events that are now. modifies evts ref *)
           fun ne gap ((dt, evt) :: rest) =
@@ -57,8 +57,11 @@ struct
                  delta from 'now' *)
               else (evts := (dt - gap, evt) :: rest; nil)
 
-            (* song will end on next trip *)
-            | ne _ nil = (evts := nil; nil)
+            | ne gap nil = 
+                  if loop
+                  then (evts := orig; ne gap orig)
+                  (* song will end on next trip *)
+                  else (evts := nil; nil)
 
           (* sets evts to the tail, returns now events *)
           val ret = ne (!now - !lt) (!evts)
@@ -75,17 +78,22 @@ struct
      reducing the delta. The delta could become negative. If so, we
      are skipping those events. The nowevents function gives us the
      events that are occurring now or that have already passed, so if
-     we call that and discard them, our cursor will be at the appropriate
-     future position. *)
-  fun cursor off nil = { lt = ref (!now), evts = ref nil }
-    | cursor off ((d, e) :: song) = 
-      let val c = { lt = ref 0, evts = ref ((d - off, e) :: song) }
+     we call that and discard them, our cursor will be at the
+     appropriate future position. *)
+  fun cursor' l off nil = { lt = ref (!now), evts = ref nil, orig = nil, loop = l }
+    | cursor' l off ((d, e) :: song) = 
+      let val c = { lt = ref 0, evts = ref ((d - off, e) :: song), orig = song, loop = l }
       in
           ignore (nowevents c);
           c
       end
 
-  fun look (c as { lt = _, evts }) =
+  fun cursor x = cursor' false x
+  fun cursor_loop x = cursor' true x
+
+
+  (* XXX how to look past the end of the song when looping? *)
+  fun look (c as { lt = _, evts, orig = _, loop = _ }) =
       let in
           (* get rid of anything that has passed *)
           ignore (nowevents c);

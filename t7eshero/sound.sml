@@ -114,4 +114,14 @@ struct
                                 OFF)
                end)
 
+  fun all_off () =
+      let in
+          (* turn off MIDI notes *)
+          Array.app (Array.modify (fn n => OFF)) miditable;
+          (* turn off actual sound *)
+          Array.appi (fn (i, _) => setfreq(i, pitchof 60, 0, INST_NONE)) freqs;
+          (* mix channel in-use masks *)
+          Array.modify (fn _ => false) mixes
+      end
+      
 end

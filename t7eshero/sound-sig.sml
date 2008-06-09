@@ -34,4 +34,6 @@ sig
     (* noteoff (ch, midinote) *)
     val noteoff : int * int -> unit
 
+    val all_off : unit -> unit
+
 end
