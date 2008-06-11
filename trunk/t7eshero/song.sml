@@ -3,17 +3,20 @@ struct
 
   (* allow fast forwarding into the future *)
   val skip = ref 0
-  val now = ref 0
+  val nnow = ref 0
   val started = ref 0
 
   (* XXX not clear we want a direct dependency on SDL here, but fairly
      easy to change later. *)
-  fun update () = now := (Word32.toInt (SDL.getticks ()) + !skip)
+  fun update () = nnow := (Word32.toInt (SDL.getticks ()) + !skip)
   fun fast_forward n = skip := !skip + n
+
+  fun now () = !nnow - !started
+
 
   type gameevt = Match.label * MIDI.event
   type 'evt cursor = { lt : int ref, evts : (int * 'evt) list ref, orig : (int * 'evt) list, loop : bool }
-  fun lag { lt = ref n, evts = _, orig = _, loop =_ } = !now - n
+  fun lag { lt = ref n, evts = _, orig = _, loop =_ } = now() - n
 
   (* move the cursor so that lt is now, updating the events as
      needed. *)
@@ -64,10 +67,10 @@ struct
                   else (evts := nil; nil)
 
           (* sets evts to the tail, returns now events *)
-          val ret = ne (!now - !lt) (!evts)
+          val ret = ne (now() - !lt) (!evts)
       in
           (* up to date *)
-          lt := !now;
+          lt := now();
           ret
       end
 
@@ -80,7 +83,7 @@ struct
      events that are occurring now or that have already passed, so if
      we call that and discard them, our cursor will be at the
      appropriate future position. *)
-  fun cursor' l off nil = { lt = ref (!now), evts = ref nil, orig = nil, loop = l }
+  fun cursor' l off nil = { lt = ref (now()), evts = ref nil, orig = nil, loop = l }
     | cursor' l off ((d, e) :: song) = 
       let val c = { lt = ref 0, evts = ref ((d - off, e) :: song), orig = song, loop = l }
       in
@@ -103,9 +106,7 @@ struct
   fun init () =
       let in
           update();
-          started := !now
+          started := !nnow
       end
 
-  (* shadowing for export *)
-  val now = fn () => !now - !started
 end
