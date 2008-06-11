@@ -396,66 +396,14 @@ struct
   (* How to complete pre-delay? *)
   fun delay t = (PREDELAY, (Control, DUMMY)) :: t
 
-  (* get the name of a track *)
-  fun findname nil = NONE
-    | findname ((_, MIDI.META (MIDI.NAME s)) :: _) = SOME s
-    | findname (_ :: rest) = findname rest
-
-  (* Label all of the tracks
-     This uses the track's name to determine its label. *)
-  fun label tracks =
-      let
-          fun foldin (data, tr) : (int * (label * MIDI.event)) list = 
-              map (fn (d, e) => (d, (data, e))) tr
-
-          fun onetrack (tr, i) =
-            case findname tr of
-                NONE => SOME ` foldin (Control, tr)
-              | SOME "" => SOME ` foldin (Control, tr)
-              | SOME name => 
-                  (case CharVector.sub(name, 0) of
-                       #"+" =>
-                       SOME `
-                       foldin
-                       (case CharVector.sub (name, 1) of
-                            #"Q" => Music (Sound.INST_SQUARE, i)
-                          | #"W" => Music (Sound.INST_SAW, i)
-                          | #"N" => Music (Sound.INST_NOISE, i)
-                          | #"S" => Music (Sound.INST_SINE, i)
-                          | _ => (messagebox "?? expected S or Q or W or N\n"; raise Hero ""),
-                            tr)
-
-                     | #"!" =>
-                       (case CharVector.sub (name, 1) of
-                            #"R" =>
-                              (* XXX only if this is the score we desire.
-                                 (Right now we expect there's just one.) *)
-                              SOME `
-                              Match.initialize
-                              (PREDELAY, SLOWFACTOR, (* XXX *)
-                               map (fn i => 
-                                    case Int.fromString i of
-                                        NONE => raise Hero "bad tracknum in Score name"
-                                      | SOME i => i) ` 
-                               String.tokens (StringUtil.ischar #",")
-                               ` String.substring(name, 2, size name - 2),
-                               tr)
-                          | _ => (print "I only support REAL score!"; raise Hero "real"))
-
-                     | _ => (print ("confused by named track '" ^ 
-                                    name ^ "'?? expected + or ! ...\n"); 
-                             SOME ` foldin (Control, tr))
-                       )
-      in
-          List.mapPartial (fn x => x) (ListUtil.mapi onetrack tracks)
-      end
-
   val () =
       let
-          val (tracks : (int * (label * MIDI.event)) list list) = label thetracks
+          val (tracks : (int * (label * MIDI.event)) list list) = 
+              Game.label PREDELAY SLOWFACTOR thetracks
           val tracks = slow (MIDI.merge tracks)
           val tracks = add_measures tracks
           val tracks = delay tracks
+          val () = Song.init ()
           val playcursor = Song.cursor 0 tracks
           val drawcursor = Song.cursor (0 - Scene.DRAWLAG) tracks
           val failcursor = Song.cursor (0 - Match.EPSILON) tracks
