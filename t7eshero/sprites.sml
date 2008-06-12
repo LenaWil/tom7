@@ -14,10 +14,21 @@ struct
                raise Hero.Hero "couldn't open required file")
     | SOME p => p
 
+  fun requireimage2x f =
+      let val s = requireimage f
+      in
+          SDL.surf2x s
+          before SDL.freesurface s
+      end
+
   val solid = requireimage "testgraphics/solid.png"
 
   val background = requireimage "testgraphics/background.png"
   val backlite   = requireimage "testgraphics/backlite.png"
+
+  val guitar = requireimage2x "testgraphics/guitar.png"
+  val press = requireimage2x "testgraphics/press.png"
+  val press_ok = requireimage2x "testgraphics/press_ok.png"
 
   val stars = Vector.fromList
       [requireimage "testgraphics/greenstar.png",

@@ -1,6 +1,7 @@
 
-default : genscore.exe t7eshero.exe
+default : genscore.exe t7eshero.exe songs
 
+songs : googlescore.mid
 
 sdlml.o : ../sdlml/sdlml.c
 	gcc -O `sdl-config --cflags` -c ../sdlml/sdlml.c -o sdlml.o
@@ -32,6 +33,12 @@ genscore.exe : genscore.sml genscore.cm makefile.mingw
 wc :
 	wc -l *.sml sound.c
 
+# add more...
+googlescore.mid : google.mid genscore.exe
+	./genscore -history 4 -hammertime 26 google.mid 0 2 4 6 7 -o googlescore.mid
+
+
+
 # the order of these libraries and object files is really important! Weird things will
 # happen if it's wrong!
 #  -lz -ltiff -lpng -ljpeg
@@ -41,3 +48,4 @@ ctest : ctest.c
 
 clean :
 	rm -f t7eshero.exe *.o core
+
