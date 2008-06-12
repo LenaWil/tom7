@@ -22,7 +22,7 @@
 #define MAX_MIX (32700)
 #define MIN_MIX (-32700)
 
-#define VOL_FACTOR (0.6)
+#define VOL_FACTOR (0.3)
 
 #define INST_NONE   0
 #define INST_SQUARE 1
