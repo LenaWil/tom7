@@ -45,14 +45,14 @@ struct
        requireimage "testgraphics/orangehammer.png"]
 
   val zaps = Vector.fromList
-      [requireimage "zap1.png",
-       requireimage "zap1.png",
-       requireimage "zap2.png",
-       requireimage "zap2.png",
-       requireimage "zap3.png",
-       requireimage "zap3.png",
-       requireimage "zap4.png", (* XXX hack attack *)
-       requireimage "zap4.png"]
+      [requireimage "testgraphics/zap1.png",
+       requireimage "testgraphics/zap1.png",
+       requireimage "testgraphics/zap2.png",
+       requireimage "testgraphics/zap2.png",
+       requireimage "testgraphics/zap3.png",
+       requireimage "testgraphics/zap3.png",
+       requireimage "testgraphics/zap4.png", (* XXX hack attack *)
+       requireimage "testgraphics/zap4.png"]
 
   val missed = requireimage "testgraphics/missed.png"
   val hit = requireimage "testgraphics/hit.png"
