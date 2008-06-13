@@ -167,8 +167,7 @@ struct
                     fun draw () =
                         let
                         in
-                            (* XXX should have configure bg *)
-                            blitall(Sprites.title, screen, 0, 0);
+                            blitall(Sprites.configure, screen, 0, 0);
                             (* blitall(Vector.sub(Sprites.humps, !humpframe), screen, 128, 333); *)
                             blitall(Sprites.guitar, screen, 0 - buttonpos (!done), Y_GUITAR);
                             blitall(Sprites.press, screen, PRESS_OFFSET, Y_PRESS);
