@@ -23,6 +23,7 @@ struct
 
   val solid = requireimage "testgraphics/solid.png"
 
+  val configure  = requireimage "testgraphics/configure.png"
   val background = requireimage "testgraphics/background.png"
   val backlite   = requireimage "testgraphics/backlite.png"
 
