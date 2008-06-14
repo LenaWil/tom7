@@ -30,6 +30,8 @@ struct
   val guitar = requireimage2x "testgraphics/guitar.png"
   val press = requireimage2x "testgraphics/press.png"
   val press_ok = requireimage2x "testgraphics/press_ok.png"
+  val strum_down = requireimage2x "testgraphics/strum_down.png"
+  val strum_up = requireimage2x "testgraphics/strum_up.png"
 
   val stars = Vector.fromList
       [requireimage "testgraphics/greenstar.png",

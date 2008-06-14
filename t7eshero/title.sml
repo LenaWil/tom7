@@ -170,7 +170,10 @@ struct
                             blitall(Sprites.configure, screen, 0, 0);
                             (* blitall(Vector.sub(Sprites.humps, !humpframe), screen, 128, 333); *)
                             blitall(Sprites.guitar, screen, 0 - buttonpos (!done), Y_GUITAR);
-                            blitall(Sprites.press, screen, PRESS_OFFSET, Y_PRESS);
+                            blitall(case !done of
+                                        5 => Sprites.strum_up
+                                      | 6 => Sprites.strum_down
+                                      | _ => Sprites.press, screen, PRESS_OFFSET, Y_PRESS);
                             Util.for 0 (!done - 1)
                             (fn x =>
                              blitall(Sprites.press_ok, screen, 
