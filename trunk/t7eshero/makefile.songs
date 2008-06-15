@@ -1,11 +1,11 @@
 #                             -*- makefile -*-
 
-songs : googlescore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid
+songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid
 
 ALL = genscore.exe makefile.songs
 
 # add more...
-googlescore.mid : google.mid $(ALL)
+googscore.mid : goog.mid $(ALL)
 	./genscore -history 4 -hammertime 26 $< 0 2 4 5 7 8 -o $@
 
 ctetrisscore.mid : ctetris.mid $(ALL)
