@@ -79,6 +79,17 @@ struct
   val () = SDL.clearsurface(blackall, SDL.color (0w0, 0w0, 0w0, 0w255))
              handle SDL.SDL s => Hero.messagebox s
 
+  structure FontSmall = 
+  FontFn (val surf = requireimage "testgraphics/font.png"
+          val charmap =
+              " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+              "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
+          val width = 9
+          val height = 16
+          val styles = 6
+          val overlap = 1
+          val dims = 3)
+
   structure Font = 
   FontFn (val surf = requireimage "testgraphics/fontbig.png"
           val charmap =
