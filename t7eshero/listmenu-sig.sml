@@ -12,7 +12,7 @@ sig
           items : 'item list,
           itemheight : 'item -> int,
           (* draw an item, x/y/selected *)
-          draw : 'item * int * int * bool -> unit,
+          drawitem : 'item * int * int * bool -> unit,
           (* XXX needs joymap for config.. *)
           
           (* must clear the screen, at least *)

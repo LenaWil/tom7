@@ -2,6 +2,7 @@ functor TitleFn(val screen : SDL.surface) :> TITLE =
 struct
 
     open SDL
+    structure FontSmall = Sprites.FontSmall
     structure Font = Sprites.Font
     structure FontMax = Sprites.FontMax
     structure FontHuge = Sprites.FontHuge
@@ -259,16 +260,31 @@ struct
 
             (* profile select sub-menu *)
             and signin () =
-                case LM.select { x = 8, y = 40,
-                                 width = 256 - 16,
-                                 height = 400,
-                                 items = ["Hello", "World"],
-                                 draw = (fn _ => ()),
-                                 itemheight = (fn _ => Font.height),
-                                 parent_draw = draw,
-                                 parent_heartbeat = heartbeat } of
-                    NONE => ()
-                  | SOME s => (Hero.messagebox s)
+                let
+                    datatype saction =
+                        CreateNew
+                      | SelectOld of Profile.profile
+
+                    fun itemheight CreateNew = Font.height
+                      | itemheight (SelectOld _) = Font.height
+                    fun drawitem (CreateNew, x, y, sel) = Font.draw(screen, x, y, 
+                                                                    if sel then "^3Create Profile"
+                                                                    else "^2Create Profile")
+                      | drawitem (SelectOld p, x, y, sel) = Font.draw(screen, x, y, 
+                                                                      if sel then ("^3" ^ Profile.name p)
+                                                                      else Profile.name p)
+                in
+                    case LM.select { x = 8, y = 40,
+                                     width = 256 - 16,
+                                     height = 400,
+                                     items = CreateNew :: map SelectOld (Profile.all ()),
+                                     drawitem = drawitem,
+                                     itemheight = itemheight,
+                                     parent_draw = draw,
+                                     parent_heartbeat = heartbeat } of
+                        NONE => ()
+                      | SOME s => () (* XXX createnew... *)
+                end
 
             and draw () =
                 let
