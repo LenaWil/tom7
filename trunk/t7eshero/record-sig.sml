@@ -16,7 +16,7 @@ sig
     (* ty, seconds since epoch *)
     type record = recordtype * IntInf.int
 
-    (* XXX serialize *)
+    (* serialize *)
     val tostring : record -> string
     val fromstring : string -> record
 end
