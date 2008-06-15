@@ -1,5 +1,4 @@
-(* A player's profile stores personal records, finished songs,
-   achievements, etc. *)
+(* A player's profile stores personal records, finished songs, achievements, etc. *)
 signature PROFILE =
 sig
 
@@ -12,15 +11,24 @@ sig
 
     val all : unit -> profile list
 
+    datatype achievement =
+        (* get perfect on a song *)
+        PerfectMatch
+
     (* accessors *)
     val name : profile -> string
     val pic : profile -> string (* filename of image *)
+    val records : profile -> (Setlist.songid * Record.record list) list
+    val achievements : profile -> (achievement * Setlist.songid option * IntInf.int) list
+    val lastused : profile -> IntInf.int
 
-    (* per-song records *)
-    type 'a record = { best : 'a, 
-                       > : 'a * 'a -> bool,
-                       (* seconds since epoch *)
-                       when : IntInf.int,
-                       tostring : 'a -> string }
+    (* posessions, fans, etc. *)
+
+    (* mutators *)
+    val setname : profile -> string -> unit
+    val setpic  : profile -> string -> unit
+    val setrecords : profile -> (Setlist.songid * Record.record list) list -> unit
+    val setachievements : profile -> (achievement * Setlist.songid option * IntInf.int) list -> unit
+    val setlastused : profile -> IntInf.int -> unit
 
 end

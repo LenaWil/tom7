@@ -39,6 +39,9 @@ chars.sml
 sprites.sml
 sound-sig.sml
 sound.sml
+setlist.sml
+record-sig.sml
+record.sml
 profile-sig.sml
 profile.sml
 match-sig.sml

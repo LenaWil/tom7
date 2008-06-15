@@ -12,6 +12,7 @@ struct
         (* never strummed a hammer note *)
       | AuthenticHammer
       | Percent of int
+      (* | Dance (lots of shaking accelerometers) *)
 
     (* ty, seconds since epoch *)
     type record = recordtype * IntInf.int
@@ -19,18 +20,18 @@ struct
     (* XXX serialize *)
     fun tostring (r, i) =
 	(IntInf.toString i ^ "|" ^
-	 case r of
+	 (case r of
 	     Misses x => "M|" ^ Int.toString x
 	   | UpStrum => "U"
 	   | AuthenticStrummer => "A"
 	   | AuthenticHammer => "H"
-	   | Percent x => "P|" ^ Int.toString x)
+	   | Percent x => "P|" ^ Int.toString x))
 
     fun fromstring s =
-	let val l = String.tokens (StringUtil.ischar #"|") s of
-	    val when = valOf (Int.toString (hd l))
+	let val l = String.tokens (StringUtil.ischar #"|") s
+	    val when = valOf (IntInf.fromString (hd l))
 	    val what =
-		case l of
+		case tl l of
 		    ["M", x] => Misses (valOf (Int.fromString x))
 		  | ["P", x] => Percent (valOf (Int.fromString x))
 		  | ["U"] => UpStrum
