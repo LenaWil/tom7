@@ -5,6 +5,7 @@ struct
     type songid = Setlist.songid
 
     val FILENAME = "profiles.hero"
+    val DEFAULT_PROFILE_PIC = "profilepics/default.png"
 
     datatype achievement =
         (* get perfect on a song *)
@@ -20,11 +21,20 @@ struct
     (* an individual profile *)
     type profile = { name : string ref,
 		     pic : string ref,
+		     picsurf : SDL.surface ref,
 		     records : (songid * Record.record list) list ref,
 		     achievements : (achievement * songid option * IntInf.int) list ref,
 		     lastused : IntInf.int ref }
 
     val profiles = ref nil : profile list ref
+
+    fun openpic s =
+	case SDL.Image.load s of
+	    (* maybe could be error graphic *)
+	    NONE => (case SDL.Image.load DEFAULT_PROFILE_PIC of
+			 NONE => raise Profile "missing default profile pic?!"
+		       | SOME s => s)
+	  | SOME s => s
 
     fun uo f NONE = "-"
       | uo f (SOME x) = "+" ^ f x
@@ -66,7 +76,7 @@ struct
 				     valOf (IntInf.fromString when) handle Option => raise Profile "bad achwhen")
 	       | _ => raise Profile "bad achs") (unlist a)
 
-    fun ptostring { name, pic, records, achievements, lastused } =
+    fun ptostring { name, pic, records, achievements, lastused, picsurf = _ } =
 	ue (!name) ^ "?" ^ ue (!pic) ^ "?" ^ IntInf.toString (!lastused) ^ "?" ^
 	ue (rstostring (!records)) ^ "?" ^ ue (achstostring (!achievements))
 
@@ -74,6 +84,7 @@ struct
 	case String.tokens QQ s of
 	    [name, pic, lastused, records, ach] =>
 		{ name = ref (une name),
+		  picsurf = ref (openpic (une pic)),
 		  pic = ref (une pic),
 		  lastused = ref (valOf (IntInf.fromString lastused) handle Option => raise Profile "bad lastused"),
 		  records = ref (rsfromstring (une records)),
@@ -86,6 +97,7 @@ struct
 	    val s = StringUtil.readfile FILENAME handle _ => "%" (* empty list *)
 	    val ps = unlist s
 	in
+	    (* XXX LEAK needs to free surface parameters *)
 	    profiles := map pfromstring ps
 	end
 
@@ -96,6 +108,7 @@ struct
     val records : profile -> (songid * Record.record list) list = ! o #records
     val achievements : profile -> (achievement * songid option * IntInf.int) list = ! o #achievements
     val lastused : profile -> IntInf.int = ! o #lastused
+    val surface : profile -> SDL.surface = ! o #picsurf
 
     fun set f r x = (f r) := x
 
@@ -104,5 +117,25 @@ struct
     val setrecords : profile -> (songid * Record.record list) list -> unit = set #records
     val setachievements : profile -> (achievement * songid option * IntInf.int) list -> unit = set #achievements
     val setlastused : profile -> IntInf.int -> unit = set #lastused
+
+    fun genplayer i =
+	let
+	    val s = "Player " ^ Int.toString i
+	in
+	    if List.exists (fn { name, ... } => s = !name) (!profiles) 
+	    then genplayer (i + 1)
+	    else s
+	end
+    fun add_default () = 
+	let val p = { name = ref (genplayer 1), 
+		      pic = ref DEFAULT_PROFILE_PIC,
+		      picsurf = ref (openpic DEFAULT_PROFILE_PIC),
+		      lastused = ref(Time.toSeconds (Time.now ())),
+		      records = ref nil,
+		      achievements = ref nil }
+	in 
+	    profiles := p :: !profiles;
+	    p
+	end
 
 end

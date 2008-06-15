@@ -261,18 +261,32 @@ struct
             (* profile select sub-menu *)
             and signin () =
                 let
+                    fun createnew () =
+                        let val p = Profile.add_default()
+                        in
+                            Profile.save();
+                            (* XXX start editing *)
+                            signin ()
+                        end
+
                     datatype saction =
                         CreateNew
                       | SelectOld of Profile.profile
 
                     fun itemheight CreateNew = Font.height
-                      | itemheight (SelectOld _) = Font.height
+                      | itemheight (SelectOld _) = 72
                     fun drawitem (CreateNew, x, y, sel) = Font.draw(screen, x, y, 
                                                                     if sel then "^3Create Profile"
                                                                     else "^2Create Profile")
-                      | drawitem (SelectOld p, x, y, sel) = Font.draw(screen, x, y, 
-                                                                      if sel then ("^3" ^ Profile.name p)
-                                                                      else Profile.name p)
+                      | drawitem (SelectOld p, x, y, sel) = 
+                        let in
+                            (* XXX also, draw border for it *)
+                            SDL.fillrect(screen, x + 2, y + 2, 66, 66, SDL.color (0wxFF, 0wxFF, 0wxFF, 0wxFF));
+                            SDL.blitall(Profile.surface p, screen, x + 4, y + 4);
+                            Font.draw(screen, x + 72, y + 4, 
+                                      if sel then ("^3" ^ Profile.name p)
+                                      else Profile.name p)
+                        end
                 in
                     case LM.select { x = 8, y = 40,
                                      width = 256 - 16,
@@ -283,7 +297,8 @@ struct
                                      parent_draw = draw,
                                      parent_heartbeat = heartbeat } of
                         NONE => ()
-                      | SOME s => () (* XXX createnew... *)
+                      | SOME CreateNew => createnew()
+                      | SOME (SelectOld profile) => Hero.messagebox (Profile.name profile)
                 end
 
             and draw () =
