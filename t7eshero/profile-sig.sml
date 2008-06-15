@@ -15,17 +15,22 @@ sig
         (* get perfect on a song *)
         PerfectMatch
 
+    (* Create a profile with some random defaults *)
+    val add_default : unit -> profile
+
     (* accessors *)
     val name : profile -> string
     val pic : profile -> string (* filename of image *)
     val records : profile -> (Setlist.songid * Record.record list) list
     val achievements : profile -> (achievement * Setlist.songid option * IntInf.int) list
     val lastused : profile -> IntInf.int
+    val surface : profile -> SDL.surface
 
     (* posessions, fans, etc. *)
 
     (* mutators *)
     val setname : profile -> string -> unit
+    (* also updates surface *)
     val setpic  : profile -> string -> unit
     val setrecords : profile -> (Setlist.songid * Record.record list) list -> unit
     val setachievements : profile -> (achievement * Setlist.songid option * IntInf.int) list -> unit

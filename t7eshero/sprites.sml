@@ -72,7 +72,6 @@ struct
   val ZAPHEIGHT = SDL.surface_height (Vector.sub(zaps, 0))
   val greenhi = requireimage "testgraphics/greenhighlight.png"
   val blackfade = requireimage "testgraphics/blackfade.png"
-  val robobox = requireimage "testgraphics/robobox.png"
 
   val blackall = SDL.alphadim blackfade (* just to copy size *)
                    handle SDL.SDL s => (Hero.messagebox s; raise Hero.Hero s)
