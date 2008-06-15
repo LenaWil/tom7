@@ -1,25 +1,12 @@
 
 (* Tom 7 Entertainment System Hero!
 
-   This program generates default scores for a song (in a midi file)
-   using the notes actually played as a guide. 
-
-   This is very simple; doing a good job needs a certain amount of
-   human input to understand how the song "feels", particularly
-   with regard to repeating phrases in which there are some things
-   that should be obviously "up" vs. "down".
-   (Actually I do that now. See below.)
-
-   One important thing we do is to make sure that there are no
-   illegal overlaps: a note that starts while another note is
-   active. If the second note starts after the first, we terminate
-   the first one at that point. If they both start at the same time
-   on the same fret, we erase the one with the earlier finish.
-
-   To run this program, you must specify which tracks the score
-   should be derived from. The track numbers are displayed when
-   the program is run without any tracks specified.
-
+   This program performs some tasks on MIDI files.
+   
+   Right now the only task is to set a "minimum watermark" length of a
+   MIDI note. This is because the sound engine doesn't quite handle 0-length
+   notes as well (that is, wrongly but good soundingly) as the SC-880, so
+   they need to be bumped up to a few ticks to get the right sound.
 *)
 
 structure T7ESHero =
@@ -27,14 +14,6 @@ struct
 
   fun messagebox s = print (s ^ "\n")
 
-  (* Comment this out on Linux, or it will not link *)
-(*
-  local
-      val mb_ = _import "MessageBoxA" : MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
-  in
-      fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", MLton.Pointer.null)
-  end
-*)
   infixr 9 `
   fun a ` b = a b
 
@@ -43,19 +22,9 @@ struct
   exception Hero of string
   exception Exit
 
-  val output = Params.param "genscore.mid" (SOME("-o",
+  val output = Params.param "fixup.mid" (SOME("-o",
                                                  "Set the output file.")) 
                             "output"
-
-  val hammertime = Params.param "25" (SOME("-hammertime",
-                                           "Threshold (in MIDI ticks) for allowing hammering"))
-                            "hammertime"
-
-(* XXX implement *)
-  (* more than 2 or 3 will usually make this run out of memory and die *)
-  val history = Params.param "1" (SOME("-history",
-                                       "Events of history to consider during assignment."))
-                            "history"
 
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
@@ -799,12 +768,5 @@ struct
           MIDI.writemidi (!output) (1, divi, tracks)
       end handle Hero s => print ("Error: " ^ s  ^ "\n")
                     | e => print ("Uncaught exn: " ^ exnName e ^ "\n")
-
-(*
-  val () = app (fn (dt, (lab, evt)) =>
-                let in
-                  print ("dt: " ^ itos dt ^ "\n")
-                end) tracks
-*)
 
 end

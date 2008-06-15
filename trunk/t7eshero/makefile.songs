@@ -1,0 +1,36 @@
+#                             -*- makefile -*-
+
+songs : googlescore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid
+
+ALL = genscore.exe makefile.songs
+
+# add more...
+googlescore.mid : google.mid $(ALL)
+	./genscore -history 4 -hammertime 26 $< 0 2 4 5 7 8 -o $@
+
+ctetrisscore.mid : ctetris.mid $(ALL)
+	./genscore -history 4 -hammertime 26 $< 0 2 5 -o $@
+
+econoscore.mid : econo.mid $(ALL)
+	./genscore -history 5 -hammertime 26 $< 0 2 4 -o $@
+
+duelscore.mid : duel.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 2 4 5 -o $@
+
+foofscore.mid : foof.mid $(ALL)
+	./genscore -history 5 -hammertime 26 $< 0 2 -o $@
+
+lunchscore.mid : lunch.mid $(ALL)
+	./genscore -history 5 -hammertime 26 $< 0 2 -o $@
+
+tracyfanscore.mid : tracyfan.mid $(ALL)
+	./genscore -history 5 -hammertime 26 $< 0 1 -o $@
+
+blixscore.mid : blix.mid $(ALL)
+	./genscore -history 6 -hammertime 26 $< 0 2 3 -o $@
+
+zzzscore.mid : zzzzzzz.mid $(ALL)
+	./genscore -history 5 -hammertime 26 $< 0 1 -o $@
+
+smlscore.mid : sml.mid $(ALL)
+	./genscore -history 5 -hammertime 26 $< 0 1 -o $@
