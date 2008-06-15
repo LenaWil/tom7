@@ -38,8 +38,11 @@ struct
     val une = (fn x => case StringUtil.urldecode x of
 	       NONE => raise Profile "bad urlencoded string"
 	     | SOME s => s)
-    fun ulist l = StringUtil.delimit "?" (map ue l)
-    fun unlist l = map une (String.tokens QQ l)
+    (* To keep invariant that nothing has the empty string as a representation *)
+    fun ulist nil = "%"
+      | ulist l = StringUtil.delimit "?" (map ue l)
+    fun unlist "%" = nil
+      | unlist s = map une (String.tokens QQ s)
 
     fun rsfromstring ss =
 	map (fn s =>
@@ -80,7 +83,7 @@ struct
     fun save () = StringUtil.writefile FILENAME (ulist (map ptostring (!profiles)))
     fun load () =
 	let
-	    val s = StringUtil.readfile FILENAME
+	    val s = StringUtil.readfile FILENAME handle _ => "%" (* empty list *)
 	    val ps = unlist s
 	in
 	    profiles := map pfromstring ps
