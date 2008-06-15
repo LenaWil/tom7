@@ -2,6 +2,7 @@ functor TitleFn(val screen : SDL.surface) :> TITLE =
 struct
 
     open SDL
+    structure Font = Sprites.Font
     structure FontMax = Sprites.FontMax
     structure FontHuge = Sprites.FontHuge
 
@@ -15,7 +16,7 @@ struct
     type config = { joymap : int -> int }
     val joymap : config -> int -> int = #joymap
 
-    datatype selection = Play | Configure
+    datatype selection = Play | SignIn | Configure
 
     exception Selected
 
@@ -34,6 +35,8 @@ struct
     val TITLEMIDI = "title.mid"
     val PRECURSOR = 180
     val SLOWFACTOR = 5
+
+    structure LM = ListMenuFn(val screen = screen)
         
     local val seed = ref (0wxDEADBEEF : Word32.word)
     in
@@ -57,6 +60,8 @@ struct
 
     fun loop () =
         let
+            val () = Profile.load ()
+
             (* from 0..(humplen-1) *)
             val humpframe = ref 0
             val humprev = ref false
@@ -68,15 +73,17 @@ struct
             val () = Song.init ()
             val cursor = Song.cursor_loop (0 - PRECURSOR) (slow (MIDI.merge tracks))
 
-            fun move_up () =
+            fun move_down () =
                 selected :=
                 (case !selected of
-                     Play => Configure
+                     Play => SignIn
+                   | SignIn => Configure
                    | Configure => Play)
 
-            val move_down = move_up
+            fun move_up () = (move_down(); move_down())
 
             val playstring = ref "^1Play"
+            val signstring = ref "^1Sign in"
             val confstring = ref "^1Configure"
 
             fun loopplay () =
@@ -94,7 +101,7 @@ struct
                                                                       inst) 
                         | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
                         | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
-                          | _ => ()))
+                        | _ => ()))
                     nows
                 end
 
@@ -115,14 +122,17 @@ struct
                         
                     playstring := "^1Play";
                     confstring := "^1Configure";
+                    signstring := "^1Sign in";
 
                     (case !selected of
                          Play => playstring := fancy "Play"
+                       | SignIn => signstring := fancy "Sign in"
                        | Configure => confstring := fancy "Configure")
                 end
 
-            val Y_PLAY = 148
-            val Y_CONF = 148 + FontHuge.height + 12
+            val Y_PLAY = 148 + (FontHuge.height + 12) * 0
+            val Y_SIGN = 148 + (FontHuge.height + 12) * 1
+            val Y_CONF = 148 + (FontHuge.height + 12) * 2
             val MENUTICKS = 0w60
 
             (* configure sub-menu *)
@@ -179,46 +189,47 @@ struct
                              blitall(Sprites.press_ok, screen, 
                                      (0 - buttonpos (!done))
                                      + PRESS_OFFSET
-                                     + buttonpos x, Y_OK));
-                            flip screen
+                                     + buttonpos x, Y_OK))
                         end
 
-                    fun go next =
+                    val nexta = ref (getticks ())
+                    fun heartbeat () = 
                         let 
                             val () = Song.update ()
                             val () = loopplay ()
-                            val () = input ()
-                            val now = getticks()
+                            val now = getticks ()
                         in
-                            if now > next
+                            if now > !nexta
                             then (advance();
-                                  draw(); 
-                                  go (now + MENUTICKS))
-                            else (go next)
+                                  nexta := now + MENUTICKS)
+                            else ()
+                        end
+    
+                    val nextd = ref 0w0
+                    fun go () =
+                        let 
+                            val () = heartbeat ()
+                            val () = input ()
+                            val now = getticks ()
+                        in
+                            (if now > !nextd
+                             then (draw (); 
+                                   nextd := now + MENUTICKS;
+                                   flip screen)
+                             else ());
+                            go ()
                         end
                 in
-                    go (getticks())
-                        handle AbortConfigure => ()
-                             | FinishConfigure => Hero.messagebox "hehe, not saving config yet"
+                    go () handle AbortConfigure => ()
+                               | FinishConfigure => Hero.messagebox "hehe, not saving config yet"
                 end
 
-
-            fun draw () =
-                let
-                in
-                    blitall(Sprites.title, screen, 0, 0);
-                    blitall(Vector.sub(Sprites.humps, !humpframe), screen, 128, 333);
-                    FontHuge.draw(screen, 36, Y_PLAY, !playstring);
-                    FontHuge.draw(screen, 36, Y_CONF, !confstring);
-                    (case !selected of
-                         Play => FontHuge.draw(screen, 4, Y_PLAY, Chars.HEART)
-                       | Configure => FontHuge.draw(screen, 4, Y_CONF, Chars.HEART));
-                    flip screen
-                end
+            val nexta = ref (getticks ())
 
             fun select () =
                 case !selected of
                     Play => raise Selected
+                  | SignIn => signin ()
                   | Configure => 
                         let in
                             configure ()
@@ -230,7 +241,7 @@ struct
                             *)
                         end
 
-            fun input () =
+            and input () =
                 case pollevent () of
                     SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Hero.Exit
                   | SOME E_Quit => raise Hero.Exit
@@ -246,22 +257,61 @@ struct
                          else ()
                   | _ => ()
 
-            fun go next =
+            (* profile select sub-menu *)
+            and signin () =
+                case LM.select { x = 8, y = 40,
+                                 width = 256 - 16,
+                                 height = 400,
+                                 items = ["Hello", "World"],
+                                 draw = (fn _ => ()),
+                                 itemheight = (fn _ => Font.height),
+                                 parent_draw = draw,
+                                 parent_heartbeat = heartbeat } of
+                    NONE => ()
+                  | SOME s => (Hero.messagebox s)
+
+            and draw () =
+                let
+                in
+                    blitall(Sprites.title, screen, 0, 0);
+                    blitall(Vector.sub(Sprites.humps, !humpframe), screen, 128, 333);
+                    FontHuge.draw(screen, 36, Y_PLAY, !playstring);
+                    FontHuge.draw(screen, 36, Y_SIGN, !signstring);
+                    FontHuge.draw(screen, 36, Y_CONF, !confstring);
+                    (case !selected of
+                         Play => FontHuge.draw(screen, 4, Y_PLAY, Chars.HEART)
+                       | SignIn => FontHuge.draw(screen, 4, Y_SIGN, Chars.HEART)
+                       | Configure => FontHuge.draw(screen, 4, Y_CONF, Chars.HEART))
+                end
+
+            and heartbeat () = 
                 let 
                     val () = Song.update ()
                     val () = loopplay ()
-                    val () = input ()
-                    val now = getticks()
+                    val now = getticks ()
                 in
-                    if now > next
+                    if now > !nexta
                     then (advance();
-                          draw(); 
-                          go (now + MENUTICKS))
-                    else (go next)
+                          nexta := now + MENUTICKS)
+                    else ()
                 end
 
+            val nextd = ref 0w0
+            fun go () =
+                let 
+                    val () = heartbeat ()
+                    val () = input ()
+                    val now = getticks ()
+                in
+                    (if now > !nextd
+                     then (draw (); 
+                           nextd := now + MENUTICKS;
+                           flip screen)
+                     else ());
+                     go ()
+                end
         in
-            go 0w0 handle Selected => 
+            go () handle Selected => 
                 let in
                     Sound.all_off ();
                     dummy
