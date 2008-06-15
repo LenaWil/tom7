@@ -1,13 +1,19 @@
 
 
+
+ * fix scoring
+
+ * improve performance of DP algorithm (space usage)
+
  * option to merge up short measures for genscore (foof.mid)
 
  * low watermark filter for 0-length MIDI notes (goog.mid drums, sigbovik?)
 
+ * noise pitch? (with lowpass/highpass?)
 
 canyon.mid can't be read??
 
-noise pitch? (with lowpass/highpass?)
+
 
 too many simultaneous noise notes sounds very bad
    (maybe fixed this. there was a channel-polyphony bug, 
