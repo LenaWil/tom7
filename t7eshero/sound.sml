@@ -79,45 +79,67 @@ struct
       OFF
     | PLAYING of int
   (* for each channel, all possible midi notes *)
-  val miditable = Array.array(16, Array.array(127, OFF))
+  val miditable = Vector.tabulate(16, fn _ => Array.array(128, OFF))
   val NMIX = 12 (* XXX get from C code *)
   val MISSCH = NMIX - 1
   (* save one for the miss noise channel *)
   val mixes = Array.array(NMIX - 1, false)
 
+  fun debug () =
+      Util.for 0 15
+      (fn ch =>
+       let val a = Vector.sub(miditable, ch)
+       in
+           print ("ch " ^ Int.toString ch ^ ": ");
+           Util.for 0 127
+           (fn n =>
+            case Array.sub(a, n) of
+                OFF => ()
+              | PLAYING i => print (" " ^ Int.toString n ^ "=" ^ Int.toString i));
+           print "\n"
+       end)
+
   fun noteon (ch, n, v, inst) =
-      (case Array.sub(Array.sub(miditable, ch), n) of
-           OFF => (* find channel... *)
-               (case Array.findi (fn (_, b) => not b) mixes of
-                    SOME (i, _) => 
-                        let in
-                            Array.update(mixes, i, true);
-                            setfreq(i, pitchof n, v, inst);
-                            Array.update(Array.sub(miditable, ch),
-                                         n,
-                                         PLAYING i)
-                        end
-                  | NONE => print "No more mix channels.\n")
-         (* re-use mix channel... *)
-         | PLAYING i => setfreq(i, pitchof n, v, inst)
-                    )
+      let in
+          (* print ("(noteon " ^ Int.toString ch ^ " " ^ Int.toString n ^ "@" ^
+                 Int.toString v ^ ")\n"); *)
+          (case Array.sub(Vector.sub(miditable, ch), n) of
+               OFF => (* find channel... *)
+                   (case Array.findi (fn (_, b) => not b) mixes of
+                        SOME (i, _) => 
+                            let in
+                                Array.update(mixes, i, true);
+                                setfreq(i, pitchof n, v, inst);
+                                Array.update(Vector.sub(miditable, ch),
+                                             n,
+                                             PLAYING i);
+                            (* debug () *) ()
+                            end
+                      | NONE => print "No more mix channels.\n")
+             (* re-use mix channel... *)
+             | PLAYING i => setfreq(i, pitchof n, v, inst))
+      end
 
   fun noteoff (ch, n) =
-      (case Array.sub(Array.sub(miditable, ch), n) of
-           OFF => (* already off *) ()
-         | PLAYING i => 
-               let in
-                   Array.update(mixes, i, false);
-                   setfreq(i, pitchof 60, 0, INST_NONE);
-                   Array.update(Array.sub(miditable, ch),
-                                n,
-                                OFF)
-               end)
+      let in
+          (* print ("(noteoff " ^ Int.toString ch ^ " " ^ Int.toString n ^ ")"); *)
+          (case Array.sub(Vector.sub(miditable, ch), n) of
+               OFF => (* already off *) ()
+             | PLAYING i => 
+                   let in
+                       Array.update(mixes, i, false);
+                       setfreq(i, pitchof 60, 0, INST_NONE);
+                       Array.update(Vector.sub(miditable, ch),
+                                    n,
+                                    OFF);
+                   (* debug () *) ()
+                   end)
+      end
 
   fun all_off () =
       let in
           (* turn off MIDI notes *)
-          Array.app (Array.modify (fn n => OFF)) miditable;
+          Vector.app (Array.modify (fn n => OFF)) miditable;
           (* turn off actual sound *)
           Array.appi (fn (i, _) => setfreq(i, pitchof 60, 0, INST_NONE)) freqs;
           (* mix channel in-use masks *)
