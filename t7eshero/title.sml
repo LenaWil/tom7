@@ -273,20 +273,22 @@ struct
                     val songs = List.mapPartial 
                         (fn s =>
                          case String.fields (fn #"|" => true | _ => false) s of
-                             [file, slowfactor, title, artist] =>
+                             [file, slowfactor, title, artist, year] =>
                                  (case Int.fromString (trim slowfactor) of
                                       NONE => (print ("Bad slowfactor: " ^ slowfactor ^ "\n");
                                                NONE)
-                                    | SOME slowfactor => SOME (trim file, slowfactor, trim title, trim artist))
+                                    | SOME slowfactor => SOME (trim file, slowfactor, trim title, trim artist,
+                                                               trim year))
                            | _ => (print ("Bad line: " ^ s ^ "\n"); NONE)) songs
 
-                    fun itemheight _ = FontSmall.height + SmallFont.height
-                    fun drawitem ((_, _, title, artist), x, y, sel) = 
+                    fun itemheight _ = FontSmall.height + SmallFont.height + 6
+                    fun drawitem ((_, _, title, artist, year), x, y, sel) = 
                         let in
                             FontSmall.draw(screen, x, y, 
                                            if sel then "^3" ^ title
                                            else title);
-                            SmallFont.draw(screen, x, y + FontSmall.height, "^4by ^1" ^ artist)
+                            SmallFont.draw(screen, x, y + FontSmall.height, "^4by ^1" ^ artist ^ 
+                                           "^4(" ^ year ^ ")")
                             (* XXX show records *)
                         end
                 in
@@ -299,7 +301,7 @@ struct
                                      parent_draw = draw,
                                      parent_heartbeat = heartbeat } of
                         NONE => ()
-                      | SOME (file, factor, _, _) => 
+                      | SOME (file, factor, _, _, _) => 
                             (* XXX need to get real joymap from config. *)
                             raise Selected
                             { midi = file,
