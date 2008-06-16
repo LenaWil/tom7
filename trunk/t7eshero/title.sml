@@ -6,6 +6,8 @@ struct
     structure Font = Sprites.Font
     structure FontMax = Sprites.FontMax
     structure FontHuge = Sprites.FontHuge
+    structure SmallFont3x = Sprites.SmallFont3x
+    structure SmallFont = Sprites.SmallFont
 
     (* XXX where? Config? Input? *)
     datatype rawevent =
@@ -19,7 +21,10 @@ struct
 
     datatype selection = Play | SignIn | Configure
 
-    exception Selected
+    exception Selected of { midi : string,
+                            difficulty : Hero.difficulty,
+                            slowfactor : int,
+                            config : config }
 
     fun dummy_joymap 0 = 0
       | dummy_joymap 1 = 1
@@ -33,6 +38,7 @@ struct
                   slowfactor = 5,
                   config = { joymap = dummy_joymap } }
 
+    val SONGS_FILE = "songs.hero"
     val TITLEMIDI = "title.mid"
     val PRECURSOR = 180
     val SLOWFACTOR = 5
@@ -229,7 +235,7 @@ struct
 
             fun select () =
                 case !selected of
-                    Play => raise Selected
+                    Play => play ()
                   | SignIn => signin ()
                   | Configure => 
                         let in
@@ -257,6 +263,51 @@ struct
                          then move_down()
                          else ()
                   | _ => ()
+
+            (* Choose song *)
+            and play () =
+                let
+                    val trim = StringUtil.losespecl StringUtil.whitespec o StringUtil.losespecr StringUtil.whitespec
+                    val songs = StringUtil.readfile SONGS_FILE
+                    val songs = String.tokens (fn #"\n" => true | _ => false) songs
+                    val songs = List.mapPartial 
+                        (fn s =>
+                         case String.fields (fn #"|" => true | _ => false) s of
+                             [file, slowfactor, title, artist] =>
+                                 (case Int.fromString (trim slowfactor) of
+                                      NONE => (print ("Bad slowfactor: " ^ slowfactor ^ "\n");
+                                               NONE)
+                                    | SOME slowfactor => SOME (trim file, slowfactor, trim title, trim artist))
+                           | _ => (print ("Bad line: " ^ s ^ "\n"); NONE)) songs
+
+                    fun itemheight _ = FontSmall.height + SmallFont.height
+                    fun drawitem ((_, _, title, artist), x, y, sel) = 
+                        let in
+                            FontSmall.draw(screen, x, y, 
+                                           if sel then "^3" ^ title
+                                           else title);
+                            SmallFont.draw(screen, x, y + FontSmall.height, "^4by ^1" ^ artist)
+                            (* XXX show records *)
+                        end
+                in
+                    case LM.select { x = 8, y = 40,
+                                     width = 256 - 16,
+                                     height = 400,
+                                     items = songs,
+                                     drawitem = drawitem,
+                                     itemheight = itemheight,
+                                     parent_draw = draw,
+                                     parent_heartbeat = heartbeat } of
+                        NONE => ()
+                      | SOME (file, factor, _, _) => 
+                            (* XXX need to get real joymap from config. *)
+                            raise Selected
+                            { midi = file,
+                              difficulty = Hero.Real,
+                              slowfactor = factor,
+                              config = { joymap = dummy_joymap } }
+                end
+
 
             (* profile select sub-menu *)
             and signin () =
@@ -342,10 +393,10 @@ struct
                      go ()
                 end
         in
-            go () handle Selected => 
+            go () handle Selected what => 
                 let in
                     Sound.all_off ();
-                    dummy
+                    what
                 end
         end
 
