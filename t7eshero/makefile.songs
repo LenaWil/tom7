@@ -1,6 +1,6 @@
 #                             -*- makefile -*-
 
-songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid
+songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid siloscore.mid
 
 ALL = genscore.exe
 #  makefile.songs
@@ -53,3 +53,6 @@ ackscore.mid : ack.mid $(ALL)
 
 ratheadscore.mid : rathead.mid $(ALL)
 	./genscore -history 8 -hammertime 36 $< 0 2 4 -o $@
+
+siloscore.mid : silo.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 1 -o $@
