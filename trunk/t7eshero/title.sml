@@ -287,8 +287,8 @@ struct
                             FontSmall.draw(screen, x, y, 
                                            if sel then "^3" ^ title
                                            else title);
-                            SmallFont.draw(screen, x, y + FontSmall.height, "^4by ^1" ^ artist ^ 
-                                           "^4(" ^ year ^ ")")
+                            SmallFont.draw(screen, x, y + FontSmall.height, "^1by ^0" ^ artist ^ 
+                                           " ^4(" ^ year ^ ")")
                             (* XXX show records *)
                         end
                 in
