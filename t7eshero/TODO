@@ -5,7 +5,7 @@
 
  * improve performance of DP algorithm (space usage)
 
- * option to merge up short measures for genscore (foof.mid)
+ * option to merge up short measures for genscore (foof.mid, recanter.mid)
 
  * low watermark filter for 0-length MIDI notes (goog.mid drums, sigbovik?)
 
