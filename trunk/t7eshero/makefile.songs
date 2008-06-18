@@ -1,6 +1,6 @@
 #                             -*- makefile -*-
 
-songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid siloscore.mid
+songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid siloscore.mid kaasdoopscore.mid octreescore.mid sigscore.mid armyscore.mid bottomscore.mid recanterscore.mid sincescore.mid
 
 ALL = genscore.exe
 #  makefile.songs
@@ -56,3 +56,24 @@ ratheadscore.mid : rathead.mid $(ALL)
 
 siloscore.mid : silo.mid $(ALL)
 	./genscore -history 5 -hammertime 36 $< 0 1 -o $@
+
+kaasdoopscore.mid : kaasdoop.mid $(ALL)
+	./genscore -history 4 -hammertime 36 $< 0 2 -o $@
+
+octreescore.mid : octree.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 3 6 -o $@
+
+sigscore.mid : sigbovik.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 1 2 5 7 -o $@
+
+armyscore.mid : army.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
+
+bottomscore.mid : bottom.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 3 -o $@
+
+recanterscore.mid : recanter.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
+
+sincescore.mid : since.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
