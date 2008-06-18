@@ -57,240 +57,239 @@ struct
 
   type joy = safe
 
-
-    datatype sdlk =
-        SDLK_UNKNOWN            
-      | SDLK_BACKSPACE          
-      | SDLK_TAB                
-      | SDLK_CLEAR              
-      | SDLK_RETURN             
-      | SDLK_PAUSE              
-      | SDLK_ESCAPE             
-      | SDLK_SPACE              
-      | SDLK_EXCLAIM            
-      | SDLK_QUOTEDBL           
-      | SDLK_HASH               
-      | SDLK_DOLLAR             
-      | SDLK_AMPERSAND          
-      | SDLK_QUOTE              
-      | SDLK_LEFTPAREN          
-      | SDLK_RIGHTPAREN         
-      | SDLK_ASTERISK           
-      | SDLK_PLUS               
-      | SDLK_COMMA              
-      | SDLK_MINUS              
-      | SDLK_PERIOD             
-      | SDLK_SLASH              
-      | SDLK_0                  
-      | SDLK_1                  
-      | SDLK_2                  
-      | SDLK_3                  
-      | SDLK_4                  
-      | SDLK_5                  
-      | SDLK_6                  
-      | SDLK_7                  
-      | SDLK_8                  
-      | SDLK_9                  
-      | SDLK_COLON              
-      | SDLK_SEMICOLON          
-      | SDLK_LESS               
-      | SDLK_EQUALS             
-      | SDLK_GREATER            
-      | SDLK_QUESTION           
-      | SDLK_AT                 
-      | SDLK_LEFTBRACKET        
-      | SDLK_BACKSLASH          
-      | SDLK_RIGHTBRACKET       
-      | SDLK_CARET              
-      | SDLK_UNDERSCORE         
-      | SDLK_BACKQUOTE          
-      | SDLK_a                  
-      | SDLK_b                  
-      | SDLK_c                  
-      | SDLK_d                  
-      | SDLK_e                  
-      | SDLK_f                  
-      | SDLK_g                  
-      | SDLK_h                  
-      | SDLK_i                  
-      | SDLK_j                  
-      | SDLK_k                  
-      | SDLK_l                  
-      | SDLK_m                  
-      | SDLK_n                  
-      | SDLK_o                  
-      | SDLK_p                  
-      | SDLK_q                  
-      | SDLK_r                  
-      | SDLK_s                  
-      | SDLK_t                  
-      | SDLK_u                  
-      | SDLK_v                  
-      | SDLK_w                  
-      | SDLK_x                  
-      | SDLK_y                  
-      | SDLK_z                  
-      | SDLK_DELETE             
-      | SDLK_WORLD_0            
-      | SDLK_WORLD_1            
-      | SDLK_WORLD_2            
-      | SDLK_WORLD_3            
-      | SDLK_WORLD_4            
-      | SDLK_WORLD_5            
-      | SDLK_WORLD_6            
-      | SDLK_WORLD_7            
-      | SDLK_WORLD_8            
-      | SDLK_WORLD_9            
-      | SDLK_WORLD_10           
-      | SDLK_WORLD_11           
-      | SDLK_WORLD_12           
-      | SDLK_WORLD_13           
-      | SDLK_WORLD_14           
-      | SDLK_WORLD_15           
-      | SDLK_WORLD_16           
-      | SDLK_WORLD_17           
-      | SDLK_WORLD_18           
-      | SDLK_WORLD_19           
-      | SDLK_WORLD_20           
-      | SDLK_WORLD_21           
-      | SDLK_WORLD_22           
-      | SDLK_WORLD_23           
-      | SDLK_WORLD_24           
-      | SDLK_WORLD_25           
-      | SDLK_WORLD_26           
-      | SDLK_WORLD_27           
-      | SDLK_WORLD_28           
-      | SDLK_WORLD_29           
-      | SDLK_WORLD_30           
-      | SDLK_WORLD_31           
-      | SDLK_WORLD_32           
-      | SDLK_WORLD_33           
-      | SDLK_WORLD_34           
-      | SDLK_WORLD_35           
-      | SDLK_WORLD_36           
-      | SDLK_WORLD_37           
-      | SDLK_WORLD_38           
-      | SDLK_WORLD_39           
-      | SDLK_WORLD_40           
-      | SDLK_WORLD_41           
-      | SDLK_WORLD_42           
-      | SDLK_WORLD_43           
-      | SDLK_WORLD_44           
-      | SDLK_WORLD_45           
-      | SDLK_WORLD_46           
-      | SDLK_WORLD_47           
-      | SDLK_WORLD_48           
-      | SDLK_WORLD_49           
-      | SDLK_WORLD_50           
-      | SDLK_WORLD_51           
-      | SDLK_WORLD_52           
-      | SDLK_WORLD_53           
-      | SDLK_WORLD_54           
-      | SDLK_WORLD_55           
-      | SDLK_WORLD_56           
-      | SDLK_WORLD_57           
-      | SDLK_WORLD_58           
-      | SDLK_WORLD_59           
-      | SDLK_WORLD_60           
-      | SDLK_WORLD_61           
-      | SDLK_WORLD_62           
-      | SDLK_WORLD_63           
-      | SDLK_WORLD_64           
-      | SDLK_WORLD_65           
-      | SDLK_WORLD_66           
-      | SDLK_WORLD_67           
-      | SDLK_WORLD_68           
-      | SDLK_WORLD_69           
-      | SDLK_WORLD_70           
-      | SDLK_WORLD_71           
-      | SDLK_WORLD_72           
-      | SDLK_WORLD_73           
-      | SDLK_WORLD_74           
-      | SDLK_WORLD_75           
-      | SDLK_WORLD_76           
-      | SDLK_WORLD_77           
-      | SDLK_WORLD_78           
-      | SDLK_WORLD_79           
-      | SDLK_WORLD_80           
-      | SDLK_WORLD_81           
-      | SDLK_WORLD_82           
-      | SDLK_WORLD_83           
-      | SDLK_WORLD_84           
-      | SDLK_WORLD_85           
-      | SDLK_WORLD_86           
-      | SDLK_WORLD_87           
-      | SDLK_WORLD_88           
-      | SDLK_WORLD_89           
-      | SDLK_WORLD_90           
-      | SDLK_WORLD_91           
-      | SDLK_WORLD_92           
-      | SDLK_WORLD_93           
-      | SDLK_WORLD_94           
-      | SDLK_WORLD_95           
-      | SDLK_KP0                
-      | SDLK_KP1                
-      | SDLK_KP2                
-      | SDLK_KP3                
-      | SDLK_KP4                
-      | SDLK_KP5                
-      | SDLK_KP6                
-      | SDLK_KP7                
-      | SDLK_KP8                
-      | SDLK_KP9                
-      | SDLK_KP_PERIOD          
-      | SDLK_KP_DIVIDE          
-      | SDLK_KP_MULTIPLY        
-      | SDLK_KP_MINUS           
-      | SDLK_KP_PLUS            
-      | SDLK_KP_ENTER           
-      | SDLK_KP_EQUALS          
-      | SDLK_UP                 
-      | SDLK_DOWN               
-      | SDLK_RIGHT              
-      | SDLK_LEFT               
-      | SDLK_INSERT             
-      | SDLK_HOME               
-      | SDLK_END                
-      | SDLK_PAGEUP             
-      | SDLK_PAGEDOWN           
-      | SDLK_F1                 
-      | SDLK_F2                 
-      | SDLK_F3                 
-      | SDLK_F4                 
-      | SDLK_F5                 
-      | SDLK_F6                 
-      | SDLK_F7                 
-      | SDLK_F8                 
-      | SDLK_F9                 
-      | SDLK_F10                
-      | SDLK_F11                
-      | SDLK_F12                
-      | SDLK_F13                
-      | SDLK_F14                
-      | SDLK_F15                
-      | SDLK_NUMLOCK            
-      | SDLK_CAPSLOCK           
-      | SDLK_SCROLLOCK          
-      | SDLK_RSHIFT             
-      | SDLK_LSHIFT             
-      | SDLK_RCTRL              
-      | SDLK_LCTRL              
-      | SDLK_RALT               
-      | SDLK_LALT               
-      | SDLK_RMETA              
-      | SDLK_LMETA              
-      | SDLK_LSUPER             
-      | SDLK_RSUPER             
-      | SDLK_MODE               
-      | SDLK_COMPOSE            
-      | SDLK_HELP               
-      | SDLK_PRINT              
-      | SDLK_SYSREQ             
-      | SDLK_BREAK              
-      | SDLK_MENU               
-      | SDLK_POWER              
-      | SDLK_EURO               
-      | SDLK_UNDO               
+  datatype sdlk =
+      SDLK_UNKNOWN
+    | SDLK_BACKSPACE
+    | SDLK_TAB
+    | SDLK_CLEAR
+    | SDLK_RETURN
+    | SDLK_PAUSE
+    | SDLK_ESCAPE
+    | SDLK_SPACE
+    | SDLK_EXCLAIM
+    | SDLK_QUOTEDBL
+    | SDLK_HASH
+    | SDLK_DOLLAR
+    | SDLK_AMPERSAND
+    | SDLK_QUOTE
+    | SDLK_LEFTPAREN
+    | SDLK_RIGHTPAREN
+    | SDLK_ASTERISK
+    | SDLK_PLUS
+    | SDLK_COMMA
+    | SDLK_MINUS
+    | SDLK_PERIOD
+    | SDLK_SLASH
+    | SDLK_0
+    | SDLK_1
+    | SDLK_2
+    | SDLK_3
+    | SDLK_4
+    | SDLK_5
+    | SDLK_6
+    | SDLK_7
+    | SDLK_8
+    | SDLK_9
+    | SDLK_COLON
+    | SDLK_SEMICOLON
+    | SDLK_LESS
+    | SDLK_EQUALS
+    | SDLK_GREATER
+    | SDLK_QUESTION
+    | SDLK_AT
+    | SDLK_LEFTBRACKET
+    | SDLK_BACKSLASH
+    | SDLK_RIGHTBRACKET
+    | SDLK_CARET
+    | SDLK_UNDERSCORE
+    | SDLK_BACKQUOTE
+    | SDLK_a
+    | SDLK_b
+    | SDLK_c
+    | SDLK_d
+    | SDLK_e
+    | SDLK_f
+    | SDLK_g
+    | SDLK_h
+    | SDLK_i
+    | SDLK_j
+    | SDLK_k
+    | SDLK_l
+    | SDLK_m
+    | SDLK_n
+    | SDLK_o
+    | SDLK_p
+    | SDLK_q
+    | SDLK_r
+    | SDLK_s
+    | SDLK_t
+    | SDLK_u
+    | SDLK_v
+    | SDLK_w
+    | SDLK_x
+    | SDLK_y
+    | SDLK_z
+    | SDLK_DELETE
+    | SDLK_WORLD_0
+    | SDLK_WORLD_1
+    | SDLK_WORLD_2
+    | SDLK_WORLD_3
+    | SDLK_WORLD_4
+    | SDLK_WORLD_5
+    | SDLK_WORLD_6
+    | SDLK_WORLD_7
+    | SDLK_WORLD_8
+    | SDLK_WORLD_9
+    | SDLK_WORLD_10
+    | SDLK_WORLD_11
+    | SDLK_WORLD_12
+    | SDLK_WORLD_13
+    | SDLK_WORLD_14
+    | SDLK_WORLD_15
+    | SDLK_WORLD_16
+    | SDLK_WORLD_17
+    | SDLK_WORLD_18
+    | SDLK_WORLD_19
+    | SDLK_WORLD_20
+    | SDLK_WORLD_21
+    | SDLK_WORLD_22
+    | SDLK_WORLD_23
+    | SDLK_WORLD_24
+    | SDLK_WORLD_25
+    | SDLK_WORLD_26
+    | SDLK_WORLD_27
+    | SDLK_WORLD_28
+    | SDLK_WORLD_29
+    | SDLK_WORLD_30
+    | SDLK_WORLD_31
+    | SDLK_WORLD_32
+    | SDLK_WORLD_33
+    | SDLK_WORLD_34
+    | SDLK_WORLD_35
+    | SDLK_WORLD_36
+    | SDLK_WORLD_37
+    | SDLK_WORLD_38
+    | SDLK_WORLD_39
+    | SDLK_WORLD_40
+    | SDLK_WORLD_41
+    | SDLK_WORLD_42
+    | SDLK_WORLD_43
+    | SDLK_WORLD_44
+    | SDLK_WORLD_45
+    | SDLK_WORLD_46
+    | SDLK_WORLD_47
+    | SDLK_WORLD_48
+    | SDLK_WORLD_49
+    | SDLK_WORLD_50
+    | SDLK_WORLD_51
+    | SDLK_WORLD_52
+    | SDLK_WORLD_53
+    | SDLK_WORLD_54
+    | SDLK_WORLD_55
+    | SDLK_WORLD_56
+    | SDLK_WORLD_57
+    | SDLK_WORLD_58
+    | SDLK_WORLD_59
+    | SDLK_WORLD_60
+    | SDLK_WORLD_61
+    | SDLK_WORLD_62
+    | SDLK_WORLD_63
+    | SDLK_WORLD_64
+    | SDLK_WORLD_65
+    | SDLK_WORLD_66
+    | SDLK_WORLD_67
+    | SDLK_WORLD_68
+    | SDLK_WORLD_69
+    | SDLK_WORLD_70
+    | SDLK_WORLD_71
+    | SDLK_WORLD_72
+    | SDLK_WORLD_73
+    | SDLK_WORLD_74
+    | SDLK_WORLD_75
+    | SDLK_WORLD_76
+    | SDLK_WORLD_77
+    | SDLK_WORLD_78
+    | SDLK_WORLD_79
+    | SDLK_WORLD_80
+    | SDLK_WORLD_81
+    | SDLK_WORLD_82
+    | SDLK_WORLD_83
+    | SDLK_WORLD_84
+    | SDLK_WORLD_85
+    | SDLK_WORLD_86
+    | SDLK_WORLD_87
+    | SDLK_WORLD_88
+    | SDLK_WORLD_89
+    | SDLK_WORLD_90
+    | SDLK_WORLD_91
+    | SDLK_WORLD_92
+    | SDLK_WORLD_93
+    | SDLK_WORLD_94
+    | SDLK_WORLD_95
+    | SDLK_KP0
+    | SDLK_KP1
+    | SDLK_KP2
+    | SDLK_KP3
+    | SDLK_KP4
+    | SDLK_KP5
+    | SDLK_KP6
+    | SDLK_KP7
+    | SDLK_KP8
+    | SDLK_KP9
+    | SDLK_KP_PERIOD
+    | SDLK_KP_DIVIDE
+    | SDLK_KP_MULTIPLY
+    | SDLK_KP_MINUS
+    | SDLK_KP_PLUS
+    | SDLK_KP_ENTER
+    | SDLK_KP_EQUALS
+    | SDLK_UP
+    | SDLK_DOWN
+    | SDLK_RIGHT
+    | SDLK_LEFT
+    | SDLK_INSERT
+    | SDLK_HOME
+    | SDLK_END
+    | SDLK_PAGEUP
+    | SDLK_PAGEDOWN
+    | SDLK_F1
+    | SDLK_F2
+    | SDLK_F3
+    | SDLK_F4
+    | SDLK_F5
+    | SDLK_F6
+    | SDLK_F7
+    | SDLK_F8
+    | SDLK_F9
+    | SDLK_F10
+    | SDLK_F11
+    | SDLK_F12
+    | SDLK_F13
+    | SDLK_F14
+    | SDLK_F15
+    | SDLK_NUMLOCK
+    | SDLK_CAPSLOCK
+    | SDLK_SCROLLOCK
+    | SDLK_RSHIFT
+    | SDLK_LSHIFT
+    | SDLK_RCTRL
+    | SDLK_LCTRL
+    | SDLK_RALT
+    | SDLK_LALT
+    | SDLK_RMETA
+    | SDLK_LMETA
+    | SDLK_LSUPER
+    | SDLK_RSUPER
+    | SDLK_MODE
+    | SDLK_COMPOSE
+    | SDLK_HELP
+    | SDLK_PRINT
+    | SDLK_SYSREQ
+    | SDLK_BREAK
+    | SDLK_MENU
+    | SDLK_POWER
+    | SDLK_EURO
+    | SDLK_UNDO
 
 
     datatype event =
@@ -1005,7 +1004,7 @@ struct
                  orelse x >= surface_width s
                  orelse y >= surface_height s
               then
-                  raise SDL ("pixel out of bounds: " ^ Int.toString x ^ "," ^ Int.toString y ^
+                  raise SDL ("drawpixel out of bounds: " ^ Int.toString x ^ "," ^ Int.toString y ^
                               " with surface size: " ^ Int.toString (surface_width s) ^ "x" ^
                               Int.toString (surface_height s))
               else dp (!!s, x, y, r, g, b)
@@ -1013,7 +1012,7 @@ struct
   end
 
   (* XXX no alpha.. *)
-  local val gp = _import "ml_getpixel" : ptr * int * int * Word8.word ref * Word8.word ref * Word8.word ref -> unit ;
+  local val gp = _import "ml_getpixela" : ptr * int * int * Word8.word ref * Word8.word ref * Word8.word ref * Word8.word ref -> unit ;
   in
       fun getpixel (s, x, y) =
           let
@@ -1022,7 +1021,7 @@ struct
                  orelse x >= surface_width s
                  orelse y >= surface_height s
               then
-                  raise SDL ("pixel out of bounds: " ^ Int.toString x ^ "," ^ Int.toString y ^
+                  raise SDL ("getpixel out of bounds: " ^ Int.toString x ^ "," ^ Int.toString y ^
                               " with surface size: " ^ Int.toString (surface_width s) ^ "x" ^
                               Int.toString (surface_height s))
               else 
@@ -1030,20 +1029,21 @@ struct
                   val r = ref 0w0
                   val g = ref 0w0
                   val b = ref 0w0
+                  val a = ref 0w0
                 in
-                  gp (!!s, x, y, r, g, b);
-                  color (!r, !g, !b, 0w255)
+                  gp (!!s, x, y, r, g, b, a);
+                  color (!r, !g, !b, !a)
                 end
           end
   end
 
-  local val fr = _import "ml_fillrect" : ptr * int * int * int * int   * Word32.word * Word32.word * Word32.word -> unit ;
+  local val fr = _import "ml_fillrecta" : ptr * int * int * int * int   * Word32.word * Word32.word * Word32.word * Word32.word -> unit ;
   in
     fun fillrect (s1, x, y, w, h, c) = 
         let 
-          val (r, g, b, _) = components32 c
+          val (r, g, b, a) = components32 c
         in
-          fr (!!s1, x, y, w, h, r, g, b)
+          fr (!!s1, x, y, w, h, r, g, b, a)
         end
   end
 
@@ -1060,6 +1060,37 @@ struct
                  dy + ((yy - sy) * 16),
                  16, 16, color)
       end))
+
+  local val fs = _import "SDL_FreeSurface" : ptr -> unit ;
+  in fun freesurface s = fs (!!s)
+  end
+      
+
+  local val ms = _import "ml_makesurface" : int * int * int -> ptr ;
+  in
+      fun makesurface (w, h) =
+          let val s = ms (w, h, 1)
+          in
+              if s = null
+              then raise SDL "couldn't create surface"
+              else ref s
+          end
+  end
+
+  fun surf2x src =
+      let 
+          val dst = makesurface(2 * surface_width src, 
+                                2 * surface_height src)
+      in
+          Util.for 0 (surface_height src - 1)
+          (fn yy =>
+           Util.for 0 (surface_width src - 1)
+           (fn xx =>
+            let val color = getpixel(src, xx, yy)
+            in fillrect(dst, xx * 2, yy * 2, 2, 2, color)
+            end));
+          dst
+      end
 
   (* **** initialization **** *)
   local val init = _import "ml_init" : unit -> int ;
