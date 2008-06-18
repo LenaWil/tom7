@@ -1,6 +1,6 @@
 #                             -*- makefile -*-
 
-songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid siloscore.mid kaasdoopscore.mid octreescore.mid sigscore.mid armyscore.mid bottomscore.mid recanterscore.mid sincescore.mid smitescore.mid matrixscore.mid
+songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid siloscore.mid kaasdoopscore.mid octreescore.mid sigscore.mid armyscore.mid bottomscore.mid recanterscore.mid sincescore.mid smitescore.mid matrixscore.mid freescore.mid
 
 ALL = genscore.exe
 #  makefile.songs
@@ -22,7 +22,7 @@ foofscore.mid : foof.mid $(ALL)
 	./genscore -history 5 -hammertime 26 $< 0 2 -o $@
 
 lunchscore.mid : lunch.mid $(ALL)
-	./genscore -history 5 -hammertime 26 $< 0 2 -o $@
+	./genscore -nosort -history 5 -hammertime 26 $< 0 2 -o $@
 
 tracyfanscore.mid : tracyfan.mid $(ALL)
 	./genscore -history 5 -hammertime 26 $< 0 1 -o $@
@@ -36,6 +36,7 @@ zzzscore.mid : zzzzzzz.mid $(ALL)
 smlscore.mid : sml.mid $(ALL)
 	./genscore -history 5 -hammertime 26 $< 0 1 -o $@
 
+# maybe better with -nosort? compare
 noodlescore.mid : noodle.mid $(ALL)
 	./genscore -history 4 -hammertime 26 $< 0 3 -o $@
 
@@ -82,4 +83,7 @@ smitescore.mid : smite.mid $(ALL)
 	./genscore -history 5 -hammertime 36 $< 0 1 3 4 -o $@
 
 matrixscore.mid : matrix.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 1 -o $@
+
+freescore.mid : free.mid $(ALL)
 	./genscore -history 5 -hammertime 36 $< 0 1 -o $@

@@ -1,12 +1,12 @@
-medleyscore.mid    |5|   Medley                      | Tom 7 Entertainment System    | ?
+medleyscore.mid    |5|   Medley                      | Tom 7 Entertainment System    | many
 googscore.mid      |5|   Theme from The Goog         | Tom 7 Entertainment System    | 2008
 ctetrisscore.mid   |5|   Continuous Tetris	     | Tom 7 Entertainment System    | 2007
 econoscore.mid     |5|   Theme from EconoCard	     | Tom 7 Entertainment System    | 2001
-duelscore.mid      |5|   Duel			     | Tom 7 Entertainment System    | ?
-tracyfanscore.mid  |5|   Theme from TracyFan	     | Tom 7 Entertainment System    | ?
+duelscore.mid      |5|   Duel			     | Tom 7 Entertainment System    | 1998
+tracyfanscore.mid  |5|   Theme from TracyFan	     | Tom 7 Entertainment System    | 1999
 lunchscore.mid     |3|   Theme from Lunch	     | Tom 7 Entertainment System    | 1998
 foofscore.mid      |3|   Theme from 0xF00F	     | Tom 7 Entertainment System    | 2001
-blixscore.mid      |5|   My Hero Blix		     | Tom 7 Entertainment System    | ?
+blixscore.mid      |5|   My Hero Blix		     | Tom 7 Entertainment System    | 2003
 zzzscore.mid       |5|   Theme from Zzzzzzz	     | Tom 7 Entertainment System    | 2001
 smlscore.mid       |5|   Theme from Standard ML      | Tom 7 Entertainment System    | 1999
 noodlescore.mid    |4|   Theme from A Noodle         | Tom 7 Entertainment System    | 1999
@@ -24,3 +24,5 @@ bottomscore.mid    |3|   Theme from Bottom           | Tom 7 Entertainment Syste
 recanterscore.mid  |2|   Recanter                    | Tom 7 Entertainment System    | 1999
 sincescore.mid     |5|   Since                       | Tom 7 Entertainment System    | 1999
 smitescore.mid     |5|   Smite                       | Tom 7 Entertainment System    | 1999
+matrixscore.mid    |5|   Theme from Matrix Algebra   | Tom 7 Entertainment System    | 1999
+freescore.mid      |5|   Free                        | Tom 7 Entertainment System    | 2000

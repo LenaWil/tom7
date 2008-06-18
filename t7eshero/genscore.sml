@@ -43,6 +43,10 @@ struct
   exception Hero of string
   exception Exit
 
+  val nosort = Params.flag false (SOME("-nosort", 
+                                       "Don't sort notes (sometimes makes weirder, and thus better, scores)"))
+                            "nosort"
+
   val output = Params.param "genscore.mid" (SOME("-o",
                                                  "Set the output file.")) 
                             "output"
@@ -534,6 +538,11 @@ struct
                   val () = if List.null notes 
                            then raise Hero "no now notes?"
                            else ()
+
+                  val notes = 
+                      if !nosort
+                      then notes
+                      else ListUtil.sort (ListUtil.byfirst Int.compare) notes
               in
                   (d, NOTES notes) :: write (ticks + d) thens
               end
