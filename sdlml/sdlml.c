@@ -73,7 +73,7 @@ void ml_setjoystate(int i) {
 
 /* try to make a hardware surface, and, failing that,
    make a software surface */
-SDL_Surface * makesurface(int w, int h, int alpha) {
+SDL_Surface * ml_makesurface(int w, int h, int alpha) {
 
   /* PERF need to investigate relative performance 
      of sw/hw surfaces */
@@ -288,8 +288,34 @@ void ml_getpixel(SDL_Surface *surf, int x, int y,
     }
 }
 
+void ml_getpixela(SDL_Surface *surf, int x, int y,
+		  unsigned char * R, unsigned char * G, unsigned char * B, unsigned char * A) {
+  switch (surf->format->BytesPerPixel) {
+    case 4: // Probably 32-bpp
+      {
+        Uint32 *bufp;
+        bufp = (Uint32 *)surf->pixels + y*surf->pitch/4 + x;
+	SDL_GetRGBA(*bufp, surf->format, R, G, B, A);
+      }
+      break;
+  default:
+    printf("want 32bpp\n");
+    abort();
+    }
+}
+
 void ml_fillrect(SDL_Surface *dst, int x, int y, int w, int h, int r, int g, int b) {
   Uint32 c = SDL_MapRGB(dst->format, r, g, b);
+  SDL_Rect rect;
+  rect.x = x;
+  rect.y = y;
+  rect.w = w;
+  rect.h = h;
+  SDL_FillRect(dst, &rect, c);
+}
+
+void ml_fillrecta(SDL_Surface *dst, int x, int y, int w, int h, int r, int g, int b, int a) {
+  Uint32 c = SDL_MapRGBA(dst->format, r, g, b, a);
   SDL_Rect rect;
   rect.x = x;
   rect.y = y;
@@ -304,7 +330,7 @@ SDL_Surface * ml_alphadim(SDL_Surface * src) {
 
   int ww = src->w, hh = src->h;
   
-  SDL_Surface * ret = makesurface(ww, hh, 1);
+  SDL_Surface * ret = ml_makesurface(ww, hh, 1);
 
   if (!ret) return 0;
 
