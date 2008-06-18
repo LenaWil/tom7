@@ -29,12 +29,13 @@ struct
 
   fun messagebox s = print (s ^ "\n")
 
-  (* Comment this out on Linux, or it will not link *)
+  (* Comment this out on Linux and OSX, or it will not link *)
+(*
   local
       val mb_ = _import "MessageBoxA" : MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
   in
       fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", 
                              MLton.Pointer.null)
   end
-
+*)
 end
