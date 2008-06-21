@@ -28,13 +28,7 @@ struct
 *)
 
   (* just enable all joysticks. If there are no joysticks, then you cannot play. *)
-  val () = Util.for 0 (Joystick.number () - 1) Joystick.openjoy
-  val () = Util.for 0 (Joystick.number () - 1) 
-      (fn j =>
-       print (Int.toString j ^ ": " ^ Joystick.name j ^ "\n"))
-
-  val () = Joystick.setstate Joystick.ENABLE
-
+  val () = Input.register_all ()
 
   val missnum = ref 0
   local 
