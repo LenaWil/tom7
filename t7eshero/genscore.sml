@@ -239,7 +239,7 @@ struct
 
                   val () = (total := !total + 1; 
                             if (!total mod 50000) = 0
-                            then print (Int.toString (!total) ^ "\n")
+                            then print (f ^ ": " ^ Int.toString (!total) ^ "\n")
                             else ())
 
                   (* all legal assignments for evt. 
