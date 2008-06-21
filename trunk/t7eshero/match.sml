@@ -216,6 +216,8 @@ struct
   fun initialize (PREDELAY, SLOWFACTOR, gates, track) =
       (* let's do *)
       let
+          val () = GA.clear matching
+
           (* Add scorevent holders so we can update them later. *)
           val track = map (fn (d, e) => (d, (ref SE_BOGUS, e))) track
 

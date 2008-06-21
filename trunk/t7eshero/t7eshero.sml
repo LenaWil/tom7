@@ -15,17 +15,12 @@ struct
 
   val Hero = Hero.Hero
   val Exit = Hero.Exit
+  exception Abort (* abort gameplay, return to menu *)
 
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
 
   val messagebox = Hero.messagebox
-
-  (* XXX assumes joystick 0 *)
-(*
-  val _ = Util.for 0 (Joystick.number () - 1)
-      (fn x => messagebox ("JOY " ^ Int.toString x ^ ": " ^ Joystick.name x ^ "\n"))
-*)
 
   (* just enable all joysticks. If there are no joysticks, then you cannot play. *)
   val () = Input.register_all ()
@@ -55,348 +50,380 @@ struct
               sf ();
               maybeunmiss 0
           end
+
+      fun reset_miss () = 
+          let in
+              misstime := 0;
+              missnum := 0
+          end
   end
 
   structure Title = TitleFn(val screen = Sprites.screen)
 
-  val (f, SLOWFACTOR, diff) =
-      case CommandLine.arguments() of
-        nil =>
-            let
-                val { midi : string,
-                      difficulty : Hero.difficulty,
-                      slowfactor : int,
-                      config : Title.config } = Title.loop()
-            in
-                (midi, slowfactor, difficulty)
-            end
-    | f :: _ => 
-        let
-            (* number of SDL ticks per midi tick. *)
-            val SLOWFACTOR =
-                (case map Int.fromString (CommandLine.arguments ()) of
-                     [_, SOME t] => t
-                   | _ => 5)
-        in
-            (f, SLOWFACTOR, Hero.Real)
-        end
-
-  val (divi, thetracks) = Game.fromfile f
-  val divi = divi * SLOWFACTOR
-  val PREDELAY = 2 * divi (* ?? *)
-
-
-  datatype label = datatype Match.label
 
   structure Scene = SceneFn(val screen = Sprites.screen
                             val missnum = missnum)
 
-  (* This is the main loop. There are three mutually recursive functions.
-     The loop function checks input and deals with it appropriately.
-     The loopplay function plays the notes to the audio subsystem.
-     The loopdraw function displays the score. 
 
-     The loopplay function wants to look at the note (event) that's happening next.
-     But draw actually wants to see somewhat old events, so that it can show a little
-     bit of history. Therefore the two functions are going to be looking at different
-     positions in the same list of track events. *)
+  (* The game loop shows the title, plays the selected song,
+     then shows postmortem, then returns back to the title. *)
+  fun gameloop () =
+  let
+    val () = reset_miss ()
+    val () = State.reset ()
 
-  fun loopplay cursor =
-      let
-          val nows = Song.nowevents cursor
-      in
-          List.app 
-          (fn (label, evt) =>
-           case label of
-               Music (inst, track) =>
-                   (case evt of
-                        MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
-                      | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 90 * vel, inst) 
-                      | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
-                      | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
-             (* otherwise no sound..? *) 
-             | Control =>
-                   (case evt of
-                        (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
-                        MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
-                      | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
-                            print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
-                                   ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
-                      | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
-             | Bar _ => () (* XXX could play metronome click *)
-             | Score _ => ())
-          nows
-      end
 
-  val DRAWTICKS = (* 128 *) 12
-  fun loopdraw cursor =
-      if Song.lag cursor >= DRAWTICKS
-      then 
-        let 
-          val () = Scene.clear ()
+    val (f, SLOWFACTOR, diff) =
+        case CommandLine.arguments() of
+          nil =>
+              let
+                  val { midi : string,
+                        difficulty : Hero.difficulty,
+                        slowfactor : int,
+                        config : Title.config } = Title.loop()
+              in
+                  (midi, slowfactor, difficulty)
+              end
+      | f :: _ => 
+          let
+              (* number of SDL ticks per midi tick. *)
+              val SLOWFACTOR =
+                  (case map Int.fromString (CommandLine.arguments ()) of
+                       [_, SOME t] => t
+                     | _ => 5)
+          in
+              (f, SLOWFACTOR, Hero.Real)
+          end
 
-          (* We have to keep track of a bit of state for each finger: whether we are
-             currently in a span for that one. *)
-          val () = 
-              List.app 
-              (fn (label, evt) =>
-               (case label of
-                    Score _ =>
-                        (case evt of
-                             (* XXX should ensure note in bounds *)
-                             MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note, false)
-                           | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note, true)
-                           | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note, false)
-                           | _ => ())
+    val (divi, thetracks) = Game.fromfile f
+    val divi = divi * SLOWFACTOR
+    val PREDELAY = 2 * divi (* ?? *)
 
-                  (* tempo here? *)
-                  | _ => ())) (Song.nowevents cursor)
 
-          (* spans may be so long they run off the screen. We use the state information
-             maintained above. *)
-          val spans = Array.tabulate(5, fn f =>
-                                     if Array.sub(State.spans, f)
-                                     then SOME 0
-                                     else NONE)
+    datatype label = datatype Match.label
 
-          fun emit_span finger (spanstart, spanend) =
-            let in
-              (*
-              print ("addspan " ^ itos finger ^ ": "
-              ^ itos spanstart ^ " -> " ^ itos (Int.min(MAXAHEAD, spanend)) ^ "\n");
-              *)
-              Scene.addspan (finger, spanstart, Int.min(Scene.MAXAHEAD, spanend))
-            end
-          
-          (* val () = print "----\n" *)
+    (* This is the main loop. There are three mutually recursive functions.
+       The loop function checks input and deals with it appropriately.
+       The loopplay function plays the notes to the audio subsystem.
+       The loopdraw function displays the score. 
 
-          fun draw _ nil =
-              (* Make sure that we only end a span if it's started *)
-              Array.appi (fn (finger, SOME spanstart) => emit_span finger (spanstart, Scene.MAXAHEAD)
-                  | _ => ()) spans
+       The loopplay function wants to look at the note (event) that's happening next.
+       But draw actually wants to see somewhat old events, so that it can show a little
+       bit of history. Therefore the two functions are going to be looking at different
+       positions in the same list of track events. *)
 
-            | draw when (track as ((dt, (label, e)) :: rest)) = 
-              if when + dt > Scene.MAXAHEAD
-              then draw when nil
-              else 
-                let 
-                  val tiempo = when + dt
-                in
-                  (case label of
-                     Music _ => ()
-                   | Score scoreevt => 
-                         let
-                           fun doevent (MIDI.NOTEON (x, note, 0)) = 
-                                 doevent (MIDI.NOTEOFF (x, note, 0))
-                             | doevent (MIDI.NOTEOFF (_, note, _)) =
-                                 let val finger = note mod 5
-                                 in 
-                                     (case Array.sub(spans, finger) of
-                                        NONE => (* print "ended span we're not in?!\n" *) ()
-                                      | SOME ss => emit_span finger (ss, tiempo));
-
-                                     Array.update(spans, finger, NONE)
-                                 end
-                             | doevent (MIDI.NOTEON (_, note, vel)) =
-                                 let val finger = note mod 5
-                                 in
-                                     Scene.addstar (finger, tiempo, scoreevt);
-
-                                     (* don't emit--we assume proper bracketing
-                                        as produced by genscore. (This won't
-                                        necessarily be the case for arbitrary
-                                        MIDI files.) *)
-                                     Array.update(spans, finger, SOME tiempo)
-                                 end
-                             | doevent _ = ()
-                         in doevent e
-                         end
-                   | Bar b => Scene.addbar(b, tiempo)
-                         (* otherwise... ? *)
-                   | Control =>
-                         (case e of
-                              MIDI.META (MIDI.MARK m) =>
-                                  if size m > 0 andalso String.sub(m, 0) = #"#"
-                                  then Scene.addtext(String.substring(m, 1, size m - 1), tiempo)
-                                  else ()
-                            | _ => ())
-
-                         );
-
-                     draw tiempo rest
-                end
+    fun loopplay cursor =
+        let
+            val nows = Song.nowevents cursor
         in
-          draw 0 (Song.look cursor);
-          Scene.draw ();
-          flip Sprites.screen
+            List.app 
+            (fn (label, evt) =>
+             case label of
+                 Music (inst, track) =>
+                     (case evt of
+                          MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
+                        | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 90 * vel, inst) 
+                        | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
+                        | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
+               (* otherwise no sound..? *) 
+               | Control =>
+                     (case evt of
+                          (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
+                          MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
+                        | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
+                              print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
+                                     ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
+                        | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
+               | Bar _ => () (* XXX could play metronome click *)
+               | Score _ => ())
+            nows
         end
-      else ()
 
-  fun loopfail cursor =
-      let
-          val () = maybeunmiss (Song.lag cursor)
-          val nows = Song.nowevents cursor
-      in
-          List.app (fn (_, MIDI.NOTEON(_, _, 0)) => ()
-                     | (Score se, MIDI.NOTEON(x, note, vel)) =>
-                       (case Match.state se of
-                             Hero.Hit _ => ()
-                           | Hero.Missed => () (* how would we have already decided this? *)
-                           | Hero.Future => 
-                                 let in
-                                     (* play a noise *)
-                                     miss ();
-                                     Match.setstate se Hero.Missed
-                                 end)
-                     | _ => ()) nows
-      end
-
-  fun loop (playcursor, drawcursor, failcursor) =
-      let in
-          (case pollevent () of
-               SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Exit
-             | SOME E_Quit => raise Exit
-             | SOME (E_KeyDown { sym = SDLK_i }) => Song.fast_forward 2000
-             | SOME (E_KeyDown { sym = SDLK_o }) => Sound.transpose := !Sound.transpose - 1
-             | SOME (E_KeyDown { sym = SDLK_p }) => Sound.transpose := !Sound.transpose + 1
-
-             | SOME e =>
-               (* Currently, allow events from any device to be for Player 1, since
-                  there is only one player. *)
-                 (case Input.map e of
-                      SOME (_, Input.ButtonDown b) => State.fingeron b
-                    | SOME (_, Input.ButtonUp b) => State.fingeroff b
-                    | SOME (_, Input.StrumUp) => State.commit ()
-                    | SOME (_, Input.StrumDown) => State.commit ()
-                    | _ => ())
-
-             | NONE => ());
-
-           Song.update ();
-           loopfail failcursor;
-           loopplay playcursor;
-           loopdraw drawcursor;
-           loop (playcursor, drawcursor, failcursor)
-      end
-
-  (* In an already-labeled track set, add measure marker events. *)
-  fun add_measures t =
-    let
-      (* Read through tracks, looking for TIME events in
-         Control tracks. 
-         Each TIME event starts a measure, naturally.
-         We need to find one at 0 time, otherwise this is
-         impossible:
-         *)
-      fun getstarttime nil = (messagebox "(TIME) no events?"; raise Hero "")
-        | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: rest) = 
-          ((n, d, cpc, bb), rest)
-        | getstarttime ((0, evt) :: t) = 
-        let val (x, rest) = getstarttime t
-        in (x, (0, evt) :: rest)
-        end
-        | getstarttime (_ :: t) = (messagebox ("(TIME) no 0 time events"); raise Hero "")
-
-      val ((n, d, cpc, bb), rest) = getstarttime t
-
-      val () = if bb <> 8 
-               then (messagebox ("The MIDI file may not redefine 32nd notes!");
-                     raise Hero "")
-               else ()
-
-      (* We ignore the clocksperclick, which gives the metronome rate. Even
-         though this is ostensibly what we want, the values are fairly
-         unpredictable. *)
-
-      (* First we determine the length of a measure in midi ticks. 
-
-         The midi division tells us how many clicks there are in a quarter note.
-         The denominator tells us how many beats there are per measure. So we can
-         first compute the number of midi ticks in a beat:
-         *)
-
-      val beat =
-        (* in general  divi/(2^(d-2)), but avoid using fractions
-           by special casing the d < 2 *)
-        case d of
-          (* n/1 time *)
-          0 => divi * 4
-          (* n/2 time: half notes *)
-        | 1 => divi * 2
-          (* n/4 time, n/8 time, etc. *)
-        | _ => divi div (Util.pow 2 (d - 2))
-
-      val () = print ("The beat value is: " ^ Int.toString beat ^ "\n")
-
-      val measure = n * beat
-      val () = print ("And the measure value is: " ^ Int.toString measure ^ "\n")
-
-      (* XXX would be better if we could also additionally label the beats when
-         using a complex time, like for sensations: 5,5,6,5. Instead we just
-         put one minor bar for each beat. *)
-
-      (* For now the beat list is always [1, 1, 1, 1 ...] so that we put
-         a minor bar on every beat. *)
-      val beatlist = List.tabulate (n, fn _ => 1)
-
-      (* FIXME test *)
-      (* val beatlist = [5, 5, 6, 5] *)
-
-      (* number of ticks at which we place minor bars; at end we place a major one *)
-      val ticklist = map (fn b => b * beat) beatlist
-
-      fun ibars tl nil = nil (* XXX probably should finish out
-                                the measure, draw end bar. *)
-
-        | ibars (ticksleft :: rtl) ((dt, evt) :: rest) = 
-        (* Which comes first, the next event or our next bar? *)
-        if dt <= ticksleft
+    val DRAWTICKS = (* 128 *) 12
+    fun loopdraw cursor =
+        if Song.lag cursor >= DRAWTICKS
         then 
-          (case evt of
-             (* Time change event coming up! *)
-             (Control, MIDI.META (MIDI.TIME _)) =>
-             (* emit dummy event so that we can always start time changes with dt 0 *)
-             (dt, (Control, DUMMY)) :: add_measures ((0, evt) :: rest)
+          let 
+            val () = Scene.clear ()
 
-           | _ => (dt, evt) :: ibars (ticksleft - dt :: rtl) rest)
-        else 
-          (* if we exhausted the list, then there is a major (measure) bar here. *)       
-          (case rtl of
-             nil => (ticksleft, (Bar Hero.Measure, DUMMY)) :: ibars ticklist ((dt - ticksleft, evt) :: rest)
-           | _   => (ticksleft, (Bar Hero.Beat, DUMMY))    :: ibars rtl      ((dt - ticksleft, evt) :: rest))
+            (* We have to keep track of a bit of state for each finger: whether we are
+               currently in a span for that one. *)
+            val () = 
+                List.app 
+                (fn (label, evt) =>
+                 (case label of
+                      Score _ =>
+                          (case evt of
+                               (* XXX should ensure note in bounds *)
+                               MIDI.NOTEON (ch, note, 0) => Array.update(State.spans, note, false)
+                             | MIDI.NOTEON (ch, note, _) => Array.update(State.spans, note, true)
+                             | MIDI.NOTEOFF(ch, note, _) => Array.update(State.spans, note, false)
+                             | _ => ())
 
-        | ibars nil _ = raise Hero "tickslist never nil" (* 0/4 time?? *)
+                    (* tempo here? *)
+                    | _ => ())) (Song.nowevents cursor)
 
-    in
-      (0, (Control, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) ::
-      (0, (Bar (Hero.Timesig (n, Util.pow 2 d)), DUMMY)) ::
-      ibars ticklist rest
-    end
+            (* spans may be so long they run off the screen. We use the state information
+               maintained above. *)
+            val spans = Array.tabulate(5, fn f =>
+                                       if Array.sub(State.spans, f)
+                                       then SOME 0
+                                       else NONE)
 
-  (* fun slow l = map (fn (delta, e) => (delta * 6, e)) l *)
-  fun slow l = map (fn (delta, e) => (delta * SLOWFACTOR, e)) l
+            fun emit_span finger (spanstart, spanend) =
+              let in
+                (*
+                print ("addspan " ^ itos finger ^ ": "
+                ^ itos spanstart ^ " -> " ^ itos (Int.min(MAXAHEAD, spanend)) ^ "\n");
+                *)
+                Scene.addspan (finger, spanstart, Int.min(Scene.MAXAHEAD, spanend))
+              end
 
-  (* How to complete pre-delay? *)
-  fun delay t = (PREDELAY, (Control, DUMMY)) :: t
+            (* val () = print "----\n" *)
 
-  val () =
+            fun draw _ nil =
+                (* Make sure that we only end a span if it's started *)
+                Array.appi (fn (finger, SOME spanstart) => emit_span finger (spanstart, Scene.MAXAHEAD)
+                    | _ => ()) spans
+
+              | draw when (track as ((dt, (label, e)) :: rest)) = 
+                if when + dt > Scene.MAXAHEAD
+                then draw when nil
+                else 
+                  let 
+                    val tiempo = when + dt
+                  in
+                    (case label of
+                       Music _ => ()
+                     | Score scoreevt => 
+                           let
+                             fun doevent (MIDI.NOTEON (x, note, 0)) = 
+                                   doevent (MIDI.NOTEOFF (x, note, 0))
+                               | doevent (MIDI.NOTEOFF (_, note, _)) =
+                                   let val finger = note mod 5
+                                   in 
+                                       (case Array.sub(spans, finger) of
+                                          NONE => (* print "ended span we're not in?!\n" *) ()
+                                        | SOME ss => emit_span finger (ss, tiempo));
+
+                                       Array.update(spans, finger, NONE)
+                                   end
+                               | doevent (MIDI.NOTEON (_, note, vel)) =
+                                   let val finger = note mod 5
+                                   in
+                                       Scene.addstar (finger, tiempo, scoreevt);
+
+                                       (* don't emit--we assume proper bracketing
+                                          as produced by genscore. (This won't
+                                          necessarily be the case for arbitrary
+                                          MIDI files.) *)
+                                       Array.update(spans, finger, SOME tiempo)
+                                   end
+                               | doevent _ = ()
+                           in doevent e
+                           end
+                     | Bar b => Scene.addbar(b, tiempo)
+                           (* otherwise... ? *)
+                     | Control =>
+                           (case e of
+                                MIDI.META (MIDI.MARK m) =>
+                                    if size m > 0 andalso String.sub(m, 0) = #"#"
+                                    then Scene.addtext(String.substring(m, 1, size m - 1), tiempo)
+                                    else ()
+                              | _ => ())
+
+                           );
+
+                       draw tiempo rest
+                  end
+          in
+            draw 0 (Song.look cursor);
+            Scene.draw ();
+            flip Sprites.screen
+          end
+        else ()
+
+    fun loopfail cursor =
+        let
+            val () = maybeunmiss (Song.lag cursor)
+            val nows = Song.nowevents cursor
+        in
+            List.app (fn (_, MIDI.NOTEON(_, _, 0)) => ()
+                       | (Score se, MIDI.NOTEON(x, note, vel)) =>
+                         (case Match.state se of
+                               Hero.Hit _ => ()
+                             | Hero.Missed => () (* how would we have already decided this? *)
+                             | Hero.Future => 
+                                   let in
+                                       (* play a noise *)
+                                       miss ();
+                                       Match.setstate se Hero.Missed
+                                   end)
+                       | _ => ()) nows
+        end
+
+    fun loop (playcursor, drawcursor, failcursor) =
+        let in
+            (case pollevent () of
+                 SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Abort
+               | SOME E_Quit => raise Exit
+               | SOME (E_KeyDown { sym = SDLK_i }) => Song.fast_forward 2000
+               | SOME (E_KeyDown { sym = SDLK_o }) => Sound.transpose := !Sound.transpose - 1
+               | SOME (E_KeyDown { sym = SDLK_p }) => Sound.transpose := !Sound.transpose + 1
+
+               | SOME e =>
+                 (* Currently, allow events from any device to be for Player 1, since
+                    there is only one player. *)
+                   (case Input.map e of
+                        SOME (_, Input.ButtonDown b) => State.fingeron b
+                      | SOME (_, Input.ButtonUp b) => State.fingeroff b
+                      | SOME (_, Input.StrumUp) => State.commit ()
+                      | SOME (_, Input.StrumDown) => State.commit ()
+                      | _ => ())
+
+               | NONE => ());
+
+             Song.update ();
+             loopfail failcursor;
+             loopplay playcursor;
+             loopdraw drawcursor;
+
+             (* failcursor is the last cursor, so when it's done, we're done. *)
+             if Song.done failcursor
+             then ()
+             else loop (playcursor, drawcursor, failcursor)
+        end
+
+    (* In an already-labeled track set, add measure marker events. *)
+    fun add_measures t =
       let
-          val (tracks : (int * (label * MIDI.event)) list list) = 
-              Game.label PREDELAY SLOWFACTOR thetracks
-          val tracks = slow (MIDI.merge tracks)
-          val tracks = add_measures tracks
-          val tracks = delay tracks
-          val () = Song.init ()
-          val playcursor = Song.cursor 0 tracks
-          val drawcursor = Song.cursor (0 - Scene.DRAWLAG) tracks
-          val failcursor = Song.cursor (0 - Match.EPSILON) tracks
-      in
-          loop (playcursor, drawcursor, failcursor)
-      end
-    handle Hero.Hero s => messagebox ("hero error: " ^ s)
-        | SDL.SDL s => messagebox ("sdl error: " ^ s)
-        | Game.Game s => messagebox ("sdl error: " ^ s)
-        | Hero.Exit => Match.dump ()
-        | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
+        (* Read through tracks, looking for TIME events in
+           Control tracks. 
+           Each TIME event starts a measure, naturally.
+           We need to find one at 0 time, otherwise this is
+           impossible:
+           *)
+        fun getstarttime nil = (messagebox "(TIME) no events?"; raise Hero "")
+          | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: rest) = 
+            ((n, d, cpc, bb), rest)
+          | getstarttime ((0, evt) :: t) = 
+          let val (x, rest) = getstarttime t
+          in (x, (0, evt) :: rest)
+          end
+          | getstarttime (_ :: t) = (messagebox ("(TIME) no 0 time events"); raise Hero "")
 
+        val ((n, d, cpc, bb), rest) = getstarttime t
+
+        val () = if bb <> 8 
+                 then (messagebox ("The MIDI file may not redefine 32nd notes!");
+                       raise Hero "")
+                 else ()
+
+        (* We ignore the clocksperclick, which gives the metronome rate. Even
+           though this is ostensibly what we want, the values are fairly
+           unpredictable. *)
+
+        (* First we determine the length of a measure in midi ticks. 
+
+           The midi division tells us how many clicks there are in a quarter note.
+           The denominator tells us how many beats there are per measure. So we can
+           first compute the number of midi ticks in a beat:
+           *)
+
+        val beat =
+          (* in general  divi/(2^(d-2)), but avoid using fractions
+             by special casing the d < 2 *)
+          case d of
+            (* n/1 time *)
+            0 => divi * 4
+            (* n/2 time: half notes *)
+          | 1 => divi * 2
+            (* n/4 time, n/8 time, etc. *)
+          | _ => divi div (Util.pow 2 (d - 2))
+
+        val () = print ("The beat value is: " ^ Int.toString beat ^ "\n")
+
+        val measure = n * beat
+        val () = print ("And the measure value is: " ^ Int.toString measure ^ "\n")
+
+        (* XXX would be better if we could also additionally label the beats when
+           using a complex time, like for sensations: 5,5,6,5. Instead we just
+           put one minor bar for each beat. *)
+
+        (* For now the beat list is always [1, 1, 1, 1 ...] so that we put
+           a minor bar on every beat. *)
+        val beatlist = List.tabulate (n, fn _ => 1)
+
+        (* FIXME test *)
+        (* val beatlist = [5, 5, 6, 5] *)
+
+        (* number of ticks at which we place minor bars; at end we place a major one *)
+        val ticklist = map (fn b => b * beat) beatlist
+
+        fun ibars tl nil = nil (* XXX probably should finish out
+                                  the measure, draw end bar. *)
+
+          | ibars (ticksleft :: rtl) ((dt, evt) :: rest) = 
+          (* Which comes first, the next event or our next bar? *)
+          if dt <= ticksleft
+          then 
+            (case evt of
+               (* Time change event coming up! *)
+               (Control, MIDI.META (MIDI.TIME _)) =>
+               (* emit dummy event so that we can always start time changes with dt 0 *)
+               (dt, (Control, DUMMY)) :: add_measures ((0, evt) :: rest)
+
+             | _ => (dt, evt) :: ibars (ticksleft - dt :: rtl) rest)
+          else 
+            (* if we exhausted the list, then there is a major (measure) bar here. *)       
+            (case rtl of
+               nil => (ticksleft, (Bar Hero.Measure, DUMMY)) :: ibars ticklist ((dt - ticksleft, evt) :: rest)
+             | _   => (ticksleft, (Bar Hero.Beat, DUMMY))    :: ibars rtl      ((dt - ticksleft, evt) :: rest))
+
+          | ibars nil _ = raise Hero "tickslist never nil" (* 0/4 time?? *)
+
+      in
+        (0, (Control, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) ::
+        (0, (Bar (Hero.Timesig (n, Util.pow 2 d)), DUMMY)) ::
+        ibars ticklist rest
+      end
+
+    (* fun slow l = map (fn (delta, e) => (delta * 6, e)) l *)
+    fun slow l = map (fn (delta, e) => (delta * SLOWFACTOR, e)) l
+
+    (* How to complete pre-delay? *)
+    fun delay t = (PREDELAY, (Control, DUMMY)) :: t
+
+    val () =
+        let
+            val (tracks : (int * (label * MIDI.event)) list list) = 
+                Game.label PREDELAY SLOWFACTOR thetracks
+            val tracks = slow (MIDI.merge tracks)
+            val tracks = add_measures tracks
+            val tracks = delay tracks
+            val () = Song.init ()
+            val playcursor = Song.cursor 0 tracks
+            val drawcursor = Song.cursor (0 - Scene.DRAWLAG) tracks
+            val failcursor = Song.cursor (0 - Match.EPSILON) tracks
+        in
+            loop (playcursor, drawcursor, failcursor)
+        end handle Abort => 
+            let in
+                (* should go FAILURE!!!! *)
+                ()
+            end
+  in
+      Sound.all_off ();
+      print "GAME END.\n";
+      (* XXX highscores... *)
+      gameloop () 
+  end handle Hero.Hero s => messagebox ("hero error: " ^ s)
+           | SDL.SDL s => messagebox ("sdl error: " ^ s)
+           | Game.Game s => messagebox ("sdl error: " ^ s)
+           | Input.Input s => messagebox ("input subsystem error: " ^ s)
+           | Hero.Exit => ()
+           | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
+
+  (* and, begin. *)
+  val () = gameloop ()
 end

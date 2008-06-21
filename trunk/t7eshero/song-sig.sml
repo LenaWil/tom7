@@ -37,6 +37,9 @@ sig
        synchronization across cursors. *)
     val update : unit -> unit
 
+    (* Are there no more events in the future? *)
+    val done : 'evt cursor -> bool
+
     (* Advance the given number of ticks, as if time had just
        non-linearly done that. Implies an update. *)
     val fast_forward : int -> unit
