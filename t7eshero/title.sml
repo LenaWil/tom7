@@ -243,7 +243,7 @@ struct
                 in
                     go () handle AbortConfigure => Input.restoremap device old
                                  (* XXX should have some titlescreen message fade-out queue *)
-                               | FinishConfigure => ()
+                               | FinishConfigure => Input.save ()
                 end
 
             val nexta = ref (getticks ())

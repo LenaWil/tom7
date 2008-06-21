@@ -5,6 +5,8 @@ struct
     exception Input of string
     structure Joystick = SDL.Joystick
 
+    val FILENAME = "input.hero"
+
     datatype device =
         Keyboard
         (* index into joys array *)
@@ -28,6 +30,25 @@ struct
       | C_StrumDown
       | C_Button of int
 
+
+    val ue = StringUtil.urlencode
+    val une = (fn x => case StringUtil.urldecode x of
+               NONE => raise Input "bad urlencoded string"
+             | SOME s => s)
+    (* To keep invariant that nothing has the empty string as a representation *)
+    fun ulist nil = "%"
+      | ulist l = StringUtil.delimit "?" (map ue l)
+    fun unlist "%" = nil
+      | unlist s = map une (String.tokens (fn #"?" => true | _ => false) s)
+
+    fun retostring (Key k) = "k?" ^ SDL.sdlktostring k
+      | retostring (JButton i) = "b?" ^ Int.toString i
+      | retostring (JHat { hat, state }) = "h?" ^ Int.toString hat ^ "?" ^ ue (SDL.Joystick.hatstatetostring state)
+
+    fun cetostring (C_StrumUp) = "u"
+      | cetostring (C_StrumDown) = "d"
+      | cetostring (C_Button b) = "b?" ^ Int.toString b
+
     type mapping = (rawevent * configevent) list
     val mempty = nil
     fun minsert nil (k, v) = [(k, v)]
@@ -35,6 +56,9 @@ struct
                                          else (kk, vv) :: minsert r (k, v)
     fun mlookup nil k = NONE
       | mlookup ((kk, vv) :: r) k = if k = kk then SOME vv else mlookup r k
+
+    fun mtostring l = ulist (map (fn (k, v) => ue(retostring k) ^ "?" ^ ue(cetostring v)) l)
+
 
     type joyinfo = 
         { joy : SDL.joy,
@@ -160,7 +184,23 @@ struct
         then raise Input "joystick out of range"
         else Joy n
 
-    fun save () = raise Input "unimplemented"
+    fun save () =
+        let
+            val keymap = mtostring (!keymap)
+            val joys = Array.foldr
+                       (fn ({ joy = _, name, axes, balls, hats, mapping, buttons }, r) =>
+                        let
+                            val id = ue name ^ 
+                                "?" ^ Int.toString axes ^
+                                "?" ^ Int.toString balls ^
+                                "?" ^ Int.toString hats ^
+                                "?" ^ Int.toString buttons
+                        in
+                            (ue id ^ "?" ^ ue (mtostring mapping)) :: r
+                        end) nil (!joys)
+        in
+            StringUtil.writefile FILENAME (ue keymap ^ "?" ^ ulist joys)
+        end
     fun load () = raise Input "unimplemented"
 
     (* export *)
