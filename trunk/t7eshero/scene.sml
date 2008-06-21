@@ -57,7 +57,6 @@ struct
 
   fun addtext (s, t) =
       let in
-          missnum := 0; (* FIXME hack city *)
           texts := (s, (height - mynut) - (t div TICKSPERPIXEL)) :: !texts
       end
 
@@ -129,7 +128,7 @@ struct
       Util.for 0 (Hero.FINGERS - 1)
       (fn i =>
        if Array.sub(State.fingers, i)
-       then blitall(S.hit, screen, 
+       then blitall(Vector.sub(S.fingers, i), screen, 
                     (S.STARWIDTH div 4) + 6 + i * (S.STARWIDTH + 18),
                     (height - S.NUTOFFSET) - (S.STARWIDTH div 2))
        else ());

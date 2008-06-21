@@ -60,7 +60,10 @@ struct
        requireimage "testgraphics/zap4.png"]
 
   val missed = requireimage "testgraphics/missed.png"
-  val hit = requireimage "testgraphics/hit.png"
+
+  val fingers = Vector.tabulate(Hero.FINGERS, 
+                                (fn i =>
+                                 requireimage ("testgraphics/finger" ^ Int.toString i ^ ".png")))
 
   val title = requireimage "testgraphics/title.png"
   val humps = Vector.fromList(map requireimage ["testgraphics/hump1.png",
