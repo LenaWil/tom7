@@ -94,8 +94,9 @@ struct
             if !already_registered then raise Input "already registered."
             else ();
             already_registered := true;
+            print ("There are " ^ Int.toString (Joystick.number ()) ^ " joysticks.\n");
             joys :=
-            Array.tabulate(Joystick.number () - 1, 
+            Array.tabulate(Joystick.number (),
                            (fn i => 
                             let val j = Joystick.openjoy i
                             in 
