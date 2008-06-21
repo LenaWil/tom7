@@ -246,7 +246,7 @@ sig
 
   (* for serialization of keyboard configs, for example. *)
   val sdlktostring : sdlk -> string
-  val sdlktostring : string -> sdlk option
+  val sdlkfromstring : string -> sdlk option
 
   structure Joystick :
   sig
