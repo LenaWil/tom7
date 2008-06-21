@@ -60,4 +60,10 @@ struct
   (* don't need to do anything, right? *)
   fun commitup () = ()
 
+  fun reset () = Util.for 0 (Hero.FINGERS - 1) (fn i => 
+                                                let in
+                                                    Array.update(fingers, i, false);
+                                                    Array.update(spans, i, false)
+                                                end)
+
 end

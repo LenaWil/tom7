@@ -74,6 +74,10 @@ struct
           ret
       end
 
+  (* Done if there are no more events, and we are not looping forever. *)
+  fun done { lt, evts = ref nil, orig, loop = false } = true
+    | done _ = false
+
   (* It turns out this offset is just a modification to the the delta
      for the first event. If we are pushing the cursor into the past,
      then the offset will be negative, which corresponds to a larger
@@ -106,6 +110,7 @@ struct
   fun init () =
       let in
           update();
+          skip := 0;
           started := !nnow
       end
 
