@@ -9,12 +9,6 @@ struct
     structure SmallFont3x = Sprites.SmallFont3x
     structure SmallFont = Sprites.SmallFont
 
-    (* XXX where? Config? Input? *)
-    datatype rawevent =
-        Key of SDL.sdlk
-      | JButton of { which : int, button : int }
-      | JHat of { which : int, hat : int, state : SDL.Joystick.hatstate }
-    (* ... more, if we support them *)
 
     type config = { joymap : int -> int }
     val joymap : config -> int -> int = #joymap
@@ -148,7 +142,7 @@ struct
                 let
                     exception AbortConfigure and FinishConfigure
                     val done = ref 0
-                    val values = Array.array(NINPUTS, NONE : rawevent option)
+                    val values = Array.array(NINPUTS, NONE : Input.rawevent option)
 
                     val Y_GUITAR = 300
                     val Y_PRESS = Y_GUITAR - (57 * 2)
