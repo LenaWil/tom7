@@ -19,6 +19,9 @@ group is
 ../sml-lib/util/stringutil-sig.sml
 ../sml-lib/util/stringutil.sml
 
+(* XXX should probably be in sml-lib *)
+fsutil-portable.sml
+
 ../sml-lib/util/growarray-sig.sml
 ../sml-lib/util/growarray.sml
 
@@ -33,6 +36,9 @@ group is
 
 ../sdlml/font-sig.sml
 ../sdlml/font.sml
+
+(* has effect, should be first. *)
+prelude.sml
 
 hero.sml
 input-sig.sml
