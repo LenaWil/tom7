@@ -29,6 +29,7 @@ struct
 
   (* just enable all joysticks. If there are no joysticks, then you cannot play. *)
   val () = Input.register_all ()
+  val () = Input.load () handle Input.Input s => messagebox ("input file error: " ^ s)
 
   val missnum = ref 0
   local 

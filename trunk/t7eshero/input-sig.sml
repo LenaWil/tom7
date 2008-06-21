@@ -65,6 +65,7 @@ sig
     val devices : unit -> device list
 
     val save : unit -> unit
+    (* Load after registering joysticks to restore saved configuration for them *)
     val load : unit -> unit
 
 end

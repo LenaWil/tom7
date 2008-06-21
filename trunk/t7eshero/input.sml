@@ -31,6 +31,9 @@ struct
       | C_Button of int
 
 
+    fun QQ #"?" = true
+      | QQ _ = false
+
     val ue = StringUtil.urlencode
     val une = (fn x => case StringUtil.urldecode x of
                NONE => raise Input "bad urlencoded string"
@@ -39,15 +42,31 @@ struct
     fun ulist nil = "%"
       | ulist l = StringUtil.delimit "?" (map ue l)
     fun unlist "%" = nil
-      | unlist s = map une (String.tokens (fn #"?" => true | _ => false) s)
+      | unlist s = map une (String.tokens QQ s)
 
     fun retostring (Key k) = "k?" ^ SDL.sdlktostring k
       | retostring (JButton i) = "b?" ^ Int.toString i
       | retostring (JHat { hat, state }) = "h?" ^ Int.toString hat ^ "?" ^ ue (SDL.Joystick.hatstatetostring state)
 
+    fun refromstring s =
+        case String.tokens QQ s of
+            ["k", ks] => (Key (valOf (SDL.sdlkfromstring ks)) handle Option => raise Input "bad key")
+          | ["b", jb] => (JButton (valOf (Int.fromString jb)) handle Option => raise Input "bad button")
+          | ["h", jh, js] => (JHat { hat = valOf (Int.fromString jh),
+                                     state = valOf (SDL.Joystick.hatstatefromstring js) }
+                              handle Option => raise Input "bad hat")
+          | _ => raise Input ("bad re: " ^ s)
+
     fun cetostring (C_StrumUp) = "u"
       | cetostring (C_StrumDown) = "d"
       | cetostring (C_Button b) = "b?" ^ Int.toString b
+
+    fun cefromstring "u" = C_StrumUp
+      | cefromstring "d" = C_StrumDown
+      | cefromstring s =
+        case String.tokens QQ s of
+            ["b", i] => (C_Button (valOf (Int.fromString i)) handle Option => raise Input "bad ce button")
+          | _ => raise Input "bad ce"
 
     type mapping = (rawevent * configevent) list
     val mempty = nil
@@ -58,7 +77,11 @@ struct
       | mlookup ((kk, vv) :: r) k = if k = kk then SOME vv else mlookup r k
 
     fun mtostring l = ulist (map (fn (k, v) => ue(retostring k) ^ "?" ^ ue(cetostring v)) l)
-
+    fun mfromstring sl = 
+        map (fn s =>
+             case String.tokens QQ s of
+                 [k, v] => (refromstring (une k), cefromstring (une v))
+               | _ => raise Input "bad mapping entry") (unlist sl)
 
     type joyinfo = 
         { joy : SDL.joy,
@@ -201,7 +224,44 @@ struct
         in
             StringUtil.writefile FILENAME (ue keymap ^ "?" ^ ulist joys)
         end
-    fun load () = raise Input "unimplemented"
+    fun load () =
+        let
+            (* pair of empty lists *)
+            val f = StringUtil.readfile FILENAME handle _ => (ue (mtostring mempty)) ^ "?%25"
+        in
+            case String.tokens QQ f of
+                [k, j] => 
+                    let 
+                        fun i s = valOf (Int.fromString s) handle _ => raise Input "bad int"
+                        fun unj s =
+                            case String.tokens QQ s of
+                                [id, m] =>
+                                    (case String.tokens QQ (une id) of
+                                         [name, axes, balls, hats, buttons] =>
+                                             (une name, i axes, i balls, i hats, i buttons, mfromstring (une m))
+                                       | _ => raise Input ("bad joystick entry in " ^ FILENAME ^ ": " ^ id))
+                              | _ => raise Input ("bad joystick entry in " ^ FILENAME ^ " (2)")
+                        val js = map unj (unlist j)
+                    in
+                        keymap := mfromstring (une k);
+                        (* now configure these joysticks if any are currently activated. *)
+                        Util.for 0 (Array.length (!joys) - 1)
+                        (fn j =>
+                         let val { joy = _, name, axes, balls, hats, mapping = _, buttons } = Array.sub(!joys, j)
+                         in
+                             case List.find (fn (n, a, b, h, u, _) =>
+                                             n = name andalso a = axes andalso b = balls andalso h = hats
+                                             andalso u = buttons) js of
+                                 NONE => print ("Didn't configure joystick " ^ name ^ "\n")
+                               | SOME (_, _, _, _, _, m) => 
+                                     let in
+                                         print ("Restoring joystick " ^ name ^ " from saved\n");
+                                         restoremap (Joy j) m
+                                     end
+                         end)
+                    end
+          | _ => raise Input ("corrupted " ^ FILENAME ^ " file?")
+        end
 
     (* export *)
     val map = input_map
