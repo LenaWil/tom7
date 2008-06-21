@@ -185,8 +185,10 @@ struct
                                        (* ignore up events; these are handled by input *)
                                        E_KeyDown { sym } => accept (Input.Key sym)
                                      | E_JoyDown { button, which = _ } => accept (Input.JButton button)
-                                     | E_JoyHat { hat, state, which = _ } => accept (Input.JHat { hat = hat,
-                                                                                                  state = state })
+                                     | E_JoyHat { hat, state, which = _ } => 
+                                           if Joystick.hat_centered state 
+                                           then ()
+                                           else accept (Input.JHat { hat = hat, state = state })
                                      | _ => print "Unsupported event during configure.\n")
                                 else print "Foreign event during configure.\n"
                           | NONE => ()
