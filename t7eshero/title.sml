@@ -9,7 +9,7 @@ struct
     structure SmallFont3x = Sprites.SmallFont3x
     structure SmallFont = Sprites.SmallFont
 
-
+    (* XXX joymap is obsolete *)
     type config = { joymap : int -> int }
     val joymap : config -> int -> int = #joymap
 
@@ -137,12 +137,22 @@ struct
             val MENUTICKS = 0w60
 
             (* configure sub-menu *)
-            val NINPUTS = 7 (* GRYBO, strum-up, strum-down, ... *)
-            fun configure () =
+            val configorder = Vector.fromList [Input.C_Button 0,
+                                               Input.C_Button 1,
+                                               Input.C_Button 2,
+                                               Input.C_Button 3,
+                                               Input.C_Button 4,
+                                               Input.C_StrumUp,
+                                               Input.C_StrumDown]
+            val NINPUTS = Vector.length configorder
+            fun configure device =
                 let
                     exception AbortConfigure and FinishConfigure
                     val done = ref 0
-                    val values = Array.array(NINPUTS, NONE : Input.rawevent option)
+
+                    (* in case we cancel *)
+                    val old = Input.getmap device
+                    val () = Input.clearmap device
 
                     val Y_GUITAR = 300
                     val Y_PRESS = Y_GUITAR - (57 * 2)
@@ -156,7 +166,7 @@ struct
 
                     fun accept e =
                         let in
-                            Array.update(values, !done, SOME e);
+                            Input.setmap device e (Vector.sub(configorder, !done));
                             done := !done + 1;
                             if !done = NINPUTS
                             then raise FinishConfigure
@@ -167,11 +177,19 @@ struct
                         case pollevent () of
                             SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise AbortConfigure
                           | SOME E_Quit => raise Hero.Exit
-                          (* any other key is interpreted as a guitar key *)
-                          | SOME (E_KeyDown { sym }) => accept (Key sym)
-                          | SOME (E_JoyDown jb) => accept (JButton jb)
-                          | SOME (E_JoyHat jh) => accept (JHat jh)
-                          | _ => ()
+                          | SOME e =>
+                                if Input.belongsto e device
+                                then  
+                                  (* we only support these events right now *)
+                                  (case e of
+                                       (* ignore up events; these are handled by input *)
+                                       E_KeyDown { sym } => accept (Input.Key sym)
+                                     | E_JoyDown { button, which = _ } => accept (Input.JButton button)
+                                     | E_JoyHat { hat, state, which = _ } => accept (Input.JHat { hat = hat,
+                                                                                                  state = state })
+                                     | _ => print "Unsupported event during configure.\n")
+                                else print "Foreign event during configure.\n"
+                          | NONE => ()
 
                     (* nothin' doin' *)
                     fun advance () = ()
@@ -221,26 +239,19 @@ struct
                             go ()
                         end
                 in
-                    go () handle AbortConfigure => ()
-                               | FinishConfigure => Hero.messagebox "hehe, not saving config yet"
+                    go () handle AbortConfigure => Input.restoremap device old
+                                 (* XXX should have some titlescreen message fade-out queue *)
+                               | FinishConfigure => ()
                 end
 
             val nexta = ref (getticks ())
 
-            fun select () =
+            (* it depends which device we click with for configuring *)
+            fun select device =
                 case !selected of
                     Play => play ()
                   | SignIn => signin ()
-                  | Configure => 
-                        let in
-                            configure ()
-                            (*
-                            blitall(Sprites.guitar, screen, 3, 300);
-                            blitall(Sprites.press, screen, 25, 200);
-                            flip screen;
-                            Hero.messagebox "Sorry, can't configure yet"
-                            *)
-                        end
+                  | Configure => configure device
 
             and input () =
                 case pollevent () of
@@ -248,8 +259,9 @@ struct
                   | SOME E_Quit => raise Hero.Exit
                   | SOME (E_KeyDown { sym = SDLK_UP }) => move_up ()
                   | SOME (E_KeyDown { sym = SDLK_DOWN }) => move_down ()
-                  | SOME (E_KeyDown { sym = SDLK_ENTER }) => select ()
-                  | SOME (E_JoyDown { button, ... }) => select ()
+                  | SOME (E_KeyDown { sym = SDLK_ENTER }) => select Input.keyboard
+                  (* XXXX should use input map, duh *)
+                  | SOME (E_JoyDown { button, which, ... }) => select (Input.joy which)
                   | SOME (E_JoyHat { state, ... }) =>
                     if Joystick.hat_up state
                     then move_up ()

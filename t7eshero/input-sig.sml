@@ -15,10 +15,17 @@ sig
       | ButtonDown of int
         (* XXX axes... *)
 
+    (* We assume the up/down action of a button is on the same
+       key or button, otherwise everything will be screwed up.
+       So we configure with respect to configevents, not inevents. *)
+    datatype configevent =
+        C_StrumUp
+      | C_StrumDown
+      | C_Button of int
 
     datatype rawevent =
         Key of SDL.sdlk
-      | JButton of { button : int }
+      | JButton of int
       | JHat of { hat : int, state : SDL.Joystick.hatstate }
     (* ... more, if we support them *)
 
@@ -35,7 +42,7 @@ sig
     val clearmap : device -> unit
 
     (* Set the mapping for a particular device event. *)
-    val setmap : device -> rawevent -> inevent -> unit
+    val setmap : device -> rawevent -> configevent -> unit
     val restoremap : device -> mapping -> unit
 
     (* Is this (unmapped) SDL event associated with the device? *)

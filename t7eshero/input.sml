@@ -19,15 +19,22 @@ struct
 
     datatype rawevent =
         Key of SDL.sdlk
-      | JButton of { button : int }
+      | JButton of int
       | JHat of { hat : int, state : SDL.Joystick.hatstate }
     (* ... more, if we support them *)
 
-    type ('a, 'b) mapping = ('a * 'b) list
+    datatype configevent =
+        C_StrumUp
+      | C_StrumDown
+      | C_Button of int
+
+    type mapping = (rawevent * configevent) list
     val mempty = nil
-    fun minsert (k, v) nil = [(k, v)]
-      | minsert (k, v) ((kk, vv) :: r) = if (k = kk) then (k, v) :: r
-                                         else (kk, vv) :: minsert (k, v) r
+    fun minsert nil (k, v) = [(k, v)]
+      | minsert ((kk, vv) :: r) (k, v) = if (k = kk) then (k, v) :: r
+                                         else (kk, vv) :: minsert r (k, v)
+    fun mlookup nil k = NONE
+      | mlookup ((kk, vv) :: r) k = if k = kk then SOME vv else mlookup r k
 
     type joyinfo = 
         { joy : SDL.joy,
@@ -36,30 +43,29 @@ struct
           balls : int,
           hats : int,
           buttons : int,
-          mapping : (rawevent, inevent) mapping }
+          mapping : mapping }
     val joys = ref (Array.fromList nil) : joyinfo Array.array ref
-    val keymap = ref mempty : (rawevent, inevent) mapping ref
+    val keymap = ref mempty : mapping ref
 
-    (* FIXME need default keyboard mapping *)
-    fun clearmap Keyboard = keymap := mempty
-      | clearmap (Joy i) =
-        let val { joy, name, axes, balls, hats, buttons, mapping = _ } = Array.sub(!joys, i)
-        in
-            Array.update(!joys, i,
-                         { joy = joy, name = name, axes = axes, balls = balls, hats = hats,
-                           buttons = buttons,
-                           (* XXX could use default repository of configs? *)
-                           mapping = mempty })
-        end
+    fun getmap Keyboard = !keymap
+      | getmap (Joy i) = #mapping (Array.sub(!joys, i))
 
-    fun setmap Keyboard re ine = keymap := minsert (re, ine) (!keymap)
-      | setmap (Joy i) re ine =
+    fun restoremap Keyboard m = keymap := m
+      | restoremap (Joy i) m =
         let val { joy, name, axes, balls, hats, buttons, mapping } = Array.sub(!joys, i)
         in
             Array.update(!joys, i,
                          { joy = joy, name = name, axes = axes, balls = balls, hats = hats,
-                           buttons = buttons, mapping = minsert (re, ine) mapping })
+                           buttons = buttons, mapping = m })
         end
+
+
+    (* FIXME need default keyboard mapping *)
+    fun clearmap Keyboard = restoremap Keyboard mempty
+        (* XXX could use default repository of configs? *)
+      | clearmap (Joy i) = restoremap (Joy i) mempty
+
+    fun setmap dev re ine = restoremap dev (minsert (getmap dev) (re, ine))
 
     fun belongsto (SDL.E_KeyDown _) Keyboard = true
       | belongsto (SDL.E_KeyUp _) Keyboard = true (* ? *)
@@ -92,7 +98,9 @@ struct
             Array.tabulate(Joystick.number () - 1, 
                            (fn i => 
                             let val j = Joystick.openjoy i
-                            in { joy = j,
+                            in 
+                               print ("Registering joystick " ^ Joystick.name i ^ "\n");
+                               { joy = j,
                                  name = Joystick.name i,
                                  axes = Joystick.numaxes j,
                                  balls = Joystick.numballs j,
@@ -104,8 +112,47 @@ struct
         end
 
     fun input_map e =
-        NONE (* XXX *)
+        let
+            datatype dir = PRESS | RELEASE
+            fun withdir d PRESS   (C_Button f)  = (d, ButtonDown f)
+              | withdir d RELEASE (C_Button f)  = (d, ButtonUp f)
+              | withdir d _       (C_StrumDown) = (d, StrumDown)
+              | withdir d _       (C_StrumUp)   = (d, StrumUp)
+        in
+        (case e of
+             SDL.E_KeyDown _ => NONE (* XXX unimplemented *)
+           | SDL.E_JoyDown { which, button, ... } =>
+            (case mlookup (getmap (Joy which)) (JButton button) of
+                 SOME ce => SOME(withdir (Joy which) PRESS ce)
+               | NONE => NONE)
 
+           | SDL.E_JoyUp { which, button, ... } =>
+            (case mlookup (getmap (Joy which)) (JButton button) of
+                 SOME ce => SOME(withdir (Joy which) RELEASE ce)
+               | NONE => NONE)
+
+           | SDL.E_JoyHat { which, hat, state, ... } =>
+                  (* Assumes that centered hat is "release".
+
+                     XXX But there's a minor problem: If we have the
+                     hat configured for strumming in the up-down
+                     direction, and someone holds up (1 correct
+                     strum), and then while holding up somehow
+                     triggers left/right movement, we get an incorrect
+                     strum for each time we come back to the up
+                     position. This doesn't happen on the guitars I've
+                     observed so far. *)
+                 (* XXX Actually this won't let us use the hat as a button, because we're looking
+                    it up by a specific state. I'll try to fix it if I ever find a guitar that
+                    works that way. *)
+             (case mlookup (getmap (Joy which)) (JHat { hat = hat, state = state }) of
+                  SOME ce => 
+                      if Joystick.hat_centered state
+                      then SOME(withdir (Joy which) RELEASE ce)
+                      else SOME(withdir (Joy which) PRESS   ce)
+                | NONE => NONE)
+           | _ => NONE)
+        end
 
     fun joy n =
         if n < 0 orelse n >= Array.length(!joys)

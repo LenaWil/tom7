@@ -58,7 +58,7 @@ struct
 
   structure Title = TitleFn(val screen = Sprites.screen)
 
-  val (f, SLOWFACTOR, joymap, diff) =
+  val (f, SLOWFACTOR, diff) =
       case CommandLine.arguments() of
         nil =>
             let
@@ -67,26 +67,17 @@ struct
                       slowfactor : int,
                       config : Title.config } = Title.loop()
             in
-                (midi, slowfactor, Title.joymap config, difficulty)
+                (midi, slowfactor, difficulty)
             end
     | f :: _ => 
         let
-            (* If using command line, then you must use 360 USB X-Plorer guitar,
-               which strangely swaps yellow and blue keys *)
-            fun joymap 0 = 0
-              | joymap 1 = 1
-              | joymap 3 = 2
-              | joymap 2 = 3
-              | joymap 4 = 4
-              | joymap _ = 999 (* XXX *)
-
             (* number of SDL ticks per midi tick. *)
             val SLOWFACTOR =
                 (case map Int.fromString (CommandLine.arguments ()) of
                      [_, SOME t] => t
                    | _ => 5)
         in
-            (f, SLOWFACTOR, joymap, Hero.Real)
+            (f, SLOWFACTOR, Hero.Real)
         end
 
   val (divi, thetracks) = Game.fromfile f
@@ -267,25 +258,18 @@ struct
              | SOME (E_KeyDown { sym = SDLK_i }) => Song.fast_forward 2000
              | SOME (E_KeyDown { sym = SDLK_o }) => Sound.transpose := !Sound.transpose - 1
              | SOME (E_KeyDown { sym = SDLK_p }) => Sound.transpose := !Sound.transpose + 1
-             (* Assume joystick events are coming from the one joystick we enabled
-                (until we have multiplayer... ;)) *)
-             | SOME (E_JoyDown { button, ... }) => 
-               let in
-                   (* messagebox (Int.toString button); *)
-                   State.fingeron (joymap button)
-               end
-             | SOME (E_JoyUp { button, ... }) => State.fingeroff (joymap button)
-             | SOME (E_JoyHat { state, ... }) =>
-               (* XXX should have some history here--we want to ignore events
-                  triggered by left-right hat movements (those never happen
-                  on the xplorer though) *)
-               if Joystick.hat_up state orelse
-                  Joystick.hat_down state
-               then State.commit ()
-               else State.commitup ()
 
-             | _ => ()
-               );
+             | SOME e =>
+               (* Currently, allow events from any device to be for Player 1, since
+                  there is only one player. *)
+                 (case Input.map e of
+                      SOME (_, Input.ButtonDown b) => State.fingeron b
+                    | SOME (_, Input.ButtonUp b) => State.fingeroff b
+                    | SOME (_, Input.StrumUp) => State.commit ()
+                    | SOME (_, Input.StrumDown) => State.commit ()
+                    | _ => ())
+
+             | NONE => ());
 
            Song.update ();
            loopfail failcursor;
