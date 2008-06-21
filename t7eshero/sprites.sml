@@ -5,6 +5,8 @@ struct
   val height = 600
   val screen = SDL.makescreen (width, height)
 
+  val () = Hero.messagebox (Posix.FileSys.getcwd ())
+
   (* distance of nut (on-tempo target bar) from bottom of screen *)
   val NUTOFFSET = 127
 

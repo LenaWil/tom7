@@ -29,6 +29,12 @@ struct
 
   fun messagebox s = print (s ^ "\n")
 
+  fun messagebox s =
+      let val f = TextIO.openAppend("/tmp/t7es.txt")
+      in
+          TextIO.output(f, s ^"\n");
+          TextIO.closeOut(f)
+      end
   (* Comment this out on Linux and OSX, or it will not link *)
 (*
   local
