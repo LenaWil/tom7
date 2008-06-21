@@ -859,6 +859,15 @@ struct
               (* print ("key @ " ^ Int.toString n ^ " is " ^ sdlktos r ^ "\n"); *)
               r
           end
+
+    (* not fast; linear search *)
+    fun keysdl k =
+        case Vector.findi (fn (_, x) => x = k) sdlk of
+            NONE => raise SDL "bad key??"
+          | SOME (i, _) => i
+
+    fun sdlktostring k = Int.toString (keysdl k)
+    fun sdlkfromstring s = Option.map sdlkey (Int.fromString s) handle Overflow => NONE
   end
 
   (* PERF can use mlton pointer structure to do this stuff,
@@ -1116,6 +1125,11 @@ struct
       val nj_  = _import "ml_joystickname" : int * char array -> unit ;
       val jes_ = _import "ml_setjoystate" : int -> unit ;
 
+      val na_ = _import "SDL_JoystickNumAxes" : MLton.Pointer.t -> int ;
+      val nb_ = _import "SDL_JoystickNumBalls" : MLton.Pointer.t -> int ;
+      val nh_ = _import "SDL_JoystickNumHats" : MLton.Pointer.t -> int ;
+      val nu_ = _import "SDL_JoystickNumButtons" : MLton.Pointer.t -> int ;
+
       fun check n = if n >= 0 andalso n < number ()
                     then n
                     else raise SDL "joystick id out of range"
@@ -1145,6 +1159,13 @@ struct
       fun hat_down h  = Word8.andb(h, 0w4) <> 0w0
       fun hat_left h  = Word8.andb(h, 0w8) <> 0w0
 
+      fun numaxes j = na_ (!! j)
+      fun numballs j = nb_ (!! j)
+      fun numhats j = nh_ (!! j)
+      fun numbuttons j = nu_ (!! j)
+
+      val hatstatetostring = Word8.toString
+      fun hatstatefromstring s = Word8.fromString s handle Overflow => NONE
   end
 
   structure Image =

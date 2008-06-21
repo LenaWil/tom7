@@ -244,19 +244,28 @@ sig
     | SDLK_EURO
     | SDLK_UNDO
 
+  (* for serialization of keyboard configs, for example. *)
+  val sdlktostring : sdlk -> string
+  val sdlktostring : string -> sdlk option
+
   structure Joystick :
   sig
       (* if the joystick is enabled, then events will
          be returned for it. Otherwise they must be
          checked manually. *)
       datatype event_state = ENABLE | IGNORE
-      type hatstate
+      eqtype hatstate
 
       val number : unit -> int
       val name : int -> string
 
       val openjoy : int -> joy
       val closejoy : joy -> unit
+
+      val numaxes : joy -> int
+      val numballs : joy -> int
+      val numhats : joy -> int
+      val numbuttons : joy -> int
 
       val setstate : event_state -> unit
 
@@ -265,6 +274,10 @@ sig
       val hat_right : hatstate -> bool
       val hat_left : hatstate -> bool
       val hat_down : hatstate -> bool
+
+      (* For serialization of joystick configuration. *)
+      val hatstatetostring : hatstate -> string
+      val hatstatefromstring : string -> hatstate option
   end
 
   datatype event =
