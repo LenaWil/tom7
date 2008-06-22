@@ -32,6 +32,7 @@ struct
                   slowfactor = 5,
                   config = { joymap = dummy_joymap } }
 
+    (* XXX should probably be in setlist *)
     val SONGS_FILE = "songs.hero"
     val TITLEMIDI = "title.mid"
     val PRECURSOR = 180
@@ -59,9 +60,19 @@ struct
                             implode [#"^", chr (ord #"0" + (random_int() mod 6)), c])
                        (explode s))
 
+    val () = Profile.load ()
+    (* Ensure we have a profile to use for right now *)
+    val () = if length (Profile.all ()) = 0
+             then let in 
+                      ignore (Profile.add_default());
+                      Profile.save()
+                  end
+             else ()
+
+    val profile = ref (hd (Profile.all ()))
+
     fun loop () =
         let
-            val () = Profile.load ()
 
             (* from 0..(humplen-1) *)
             val humpframe = ref 0
@@ -134,6 +145,8 @@ struct
             val Y_PLAY = 148 + (FontHuge.height + 12) * 0
             val Y_SIGN = 148 + (FontHuge.height + 12) * 1
             val Y_CONF = 148 + (FontHuge.height + 12) * 2
+            val X_ROBOT = 128
+            val Y_ROBOT = 333
             val MENUTICKS = 0w60
 
             (* configure sub-menu *)
@@ -359,14 +372,22 @@ struct
                                      parent_heartbeat = heartbeat } of
                         NONE => ()
                       | SOME CreateNew => createnew()
-                      | SOME (SelectOld profile) => Hero.messagebox (Profile.name profile)
+                      | SOME (SelectOld pf) => profile := pf
                 end
 
             and draw () =
                 let
+                    fun drawitem item =
+                        let val (f, x, y) = Vector.sub(Items.frames item, !humpframe)
+                        in blitall(f, screen, X_ROBOT + x, Y_ROBOT + y)
+                        end
                 in
                     blitall(Sprites.title, screen, 0, 0);
-                    blitall(Vector.sub(Sprites.humps, !humpframe), screen, 128, 333);
+
+                    Items.app_behind (Profile.outfit (!profile)) drawitem;
+                    blitall(Vector.sub(Sprites.humps, !humpframe), screen, X_ROBOT, Y_ROBOT);
+                    Items.app_infront (Profile.outfit (!profile)) drawitem;
+
                     FontHuge.draw(screen, 36, Y_PLAY, !playstring);
                     FontHuge.draw(screen, 36, Y_SIGN, !signstring);
                     FontHuge.draw(screen, 36, Y_CONF, !confstring);
