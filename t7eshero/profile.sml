@@ -95,8 +95,7 @@ struct
                   records = ref (rsfromstring (une records)),
                   achievements = ref (achsfromstring (une ach)),
                   closet = ref (map Items.fromid (String.tokens (fn #"," => true | _ => false) (une closet))),
-                  outfit = ref (Items.wfromstring (une outfit))
-                  }
+                  outfit = ref (Items.wfromstring (une outfit)) }
       | _ => raise Profile "bad profile"
 
     fun save () = StringUtil.writefile FILENAME (ulist (map ptostring (!profiles)))

@@ -37,4 +37,7 @@ sig
     (* dump debugging infos *)
     val dump : unit -> unit
 
+    (* needs the tracks in order to conveniently count missed notes *)
+    val stats : (int * (label * MIDI.event)) list -> { misses : int, percent : int * int }
+
 end
