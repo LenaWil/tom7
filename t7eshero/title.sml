@@ -35,6 +35,8 @@ struct
     (* XXX should probably be in setlist *)
     val SONGS_FILE = "songs.hero"
     val TITLEMIDI = "title.mid"
+    val TITLEMIDI = "postmortem.mid" (* XXXX *)
+        
     val PRECURSOR = 180
     val SLOWFACTOR = 5
 

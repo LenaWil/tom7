@@ -6,6 +6,7 @@ For demo:
  * Some recognizable non-free songs
 
  * Rate the existing song list, or improve through genscoring?
+ * turn off same-note hammer and first-note hammer through postprocessing
 
  * Failing in a song
  * Achievements: Snakes

@@ -410,6 +410,7 @@ struct
             val () = loop (playcursor, drawcursor, failcursor)
 
             (* Get postmortem statistics *)
+            (* val () = Postmortem.*)
             val { misses, percent = (hit, total), ... } = Match.stats tracks
         in
             print ("At end: " ^ Int.toString misses ^ " misses\n");
