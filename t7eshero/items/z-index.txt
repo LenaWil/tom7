@@ -1,0 +1,14 @@
+
+Items are like this:
+
+RedGuitar | Red Guitar | guitar1.png |0|77| guitar2.png |0|77| guitar3.png |0|77| guitar4.png |0|77|   5
+
+where the first field is the unique canonical name for it, and the
+second field is a freeform description in-game. Then there are four
+triplets of filename and x/y offset, for the four frames of the robot
+animation. (Note that the frames will ping-pong.) Finally, the z-index
+indicates the order in which items will be drawn. Numbers closer to
+negative infinity are drawn first. The robot is drawn at 0, which is
+an illegal z-index for an item. Ties are broken by lexicographic
+ordering on the canonical name.
+
