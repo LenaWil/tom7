@@ -65,5 +65,7 @@ scene.sml
 game.sml
 title-sig.sml
 title.sml
+postmortem-sig.sml
+postmortem.sml
 t7eshero.sml
 
