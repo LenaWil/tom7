@@ -16,7 +16,7 @@ struct
 
   val TICKSPERPIXEL = 2
   (* how many ticks forward do we look? *)
-  val MAXAHEAD = 960
+  val MAXAHEAD = 1200
   (* how many MIDI ticks in the past do we draw? *)
   val DRAWLAG = S.NUTOFFSET * TICKSPERPIXEL
 

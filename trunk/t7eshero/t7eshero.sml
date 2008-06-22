@@ -410,15 +410,9 @@ struct
             val () = loop (playcursor, drawcursor, failcursor)
 
             (* Get postmortem statistics *)
-            (* val () = Postmortem.*)
-            val { misses, percent = (hit, total), ... } = Match.stats tracks
+            val () = Postmortem.loop tracks
+
         in
-            print ("At end: " ^ Int.toString misses ^ " misses\n");
-            if total > 0
-            then print ("At end: " ^ Int.toString hit ^ "/" ^ Int.toString total ^
-                        " (" ^ Real.fmt (StringCvt.FIX (SOME 1)) (real hit * 100.0 / real total) ^ 
-                        "%) of notes hit\n")
-            else ();
             ()
         end handle Abort => 
             let in
