@@ -81,26 +81,24 @@ struct
 
     fun ptostring { name, pic, records, achievements, lastused, picsurf = _, closet, outfit } =
         ue (!name) ^ "?" ^ ue (!pic) ^ "?" ^ IntInf.toString (!lastused) ^ "?" ^
-        ue (rstostring (!records)) ^ "?" ^ ue (achstostring (!achievements))
-        (* XXX closet, outfit *)
+        ue (rstostring (!records)) ^ "?" ^ ue (achstostring (!achievements)) ^ "?" ^
+        ue (StringUtil.delimit "," (map Items.id (!closet))) ^ "?" ^
+        ue (Items.wtostring (!outfit))
 
     fun pfromstring s =
         case String.tokens QQ s of
-            [name, pic, lastused, records, ach] =>
+            [name, pic, lastused, records, ach, closet, outfit] =>
                 { name = ref (une name),
                   picsurf = ref (openpic (une pic)),
                   pic = ref (une pic),
                   lastused = ref (valOf (IntInf.fromString lastused) handle Option => raise Profile "bad lastused"),
                   records = ref (rsfromstring (une records)),
                   achievements = ref (achsfromstring (une ach)),
-
-                  (* XXXXXXXXXXXXXXX *)
-                  closet = ref (Items.default_closet()),
-                  outfit = ref (Items.default_outfit())
+                  closet = ref (map Items.fromid (String.tokens (fn #"," => true | _ => false) (une closet))),
+                  outfit = ref (Items.wfromstring (une outfit))
                   }
       | _ => raise Profile "bad profile"
 
-    (* FIXME: doesn't save closet, outfit *)
     fun save () = StringUtil.writefile FILENAME (ulist (map ptostring (!profiles)))
     fun load () =
         let

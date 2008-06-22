@@ -24,11 +24,18 @@ sig
         
     val name : item -> string
     val frames : item -> (SDL.surface * int * int) Vector.vector
+    val id : item -> string
 
     val default_outfit : unit -> worn
     val default_closet : unit -> item list
 
     (* loads the database of items. It is immutable. *)
     val load : unit -> unit
+        
+    val fromid : string -> item
 
+    (* for serialization *)
+    val wtostring : worn -> string
+    val wfromstring : string -> worn
+        
 end
