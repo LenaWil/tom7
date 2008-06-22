@@ -20,7 +20,7 @@ struct
   (* These should describe what kind of track an event is drawn from *)
   datatype label =
       Music of Sound.inst * int
-    | Score of scoreevt (* the tracks that are gated by this score *)
+    | Score of scoreevt
     | Control
     | Bar of Hero.bar
 
@@ -84,9 +84,12 @@ struct
                   in (fn i => Array.sub(a, i))
                   end
 
-          (* This is pretty inefficient. We really only need to look at
+          (* PERF 
+             This is pretty inefficient. We really only need to look at
              a fraction of it because most of the comparisons are refuted
-             by being out of epsilon range. Oh, well. *)
+             by being out of epsilon range. Oh, well. Surprisingly, this
+             performs pretty well in practice, I guess because the songs
+             are all pretty short. *)
           (* PERF doesn't need to be initialized here *)
           val nsong = Vector.length (!song)
           val new = Array.array (nsong, (false, ~1))
@@ -211,6 +214,34 @@ struct
      in our failloop.
 
      *)
+
+ (* When the song is over, we want to report off-line
+    stats for the postmortem and high score table. *)
+  fun stats tracks =
+      let
+          val (hit, total) =
+              foldl (fn ((delta, evt), (hit, total)) =>
+                     (case evt of
+                          (_, MIDI.NOTEON(_, _, 0)) => (hit, total)
+                        | (Score (SE { state = ref state, ... }), MIDI.NOTEON _) =>
+                              (case state of
+                                   (* XXX could measure average/total latency here. *)
+                                   Hero.Hit _ => (hit + 1, total + 1)
+                                 | Hero.Missed => (hit, total + 1)
+                                 | Hero.Future =>
+                                       let in
+                                           Hero.messagebox "future: impossible!";
+                                           raise Hero "impossible!"
+                                       end)
+                       | _ => (hit, total))) (0, 0) tracks
+      in
+          { misses = total - hit, (* XXX *)
+            percent = (hit, total)
+
+            }
+      end
+      
+
   (* fun misses t = 0 *)
 
   fun initialize (PREDELAY, SLOWFACTOR, gates, track) =

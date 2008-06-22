@@ -401,13 +401,24 @@ struct
                 Game.label PREDELAY SLOWFACTOR thetracks
             val tracks = slow (MIDI.merge tracks)
             val tracks = add_measures tracks
-            val tracks = delay tracks
+            val (tracks : (int * (label * MIDI.event)) list) = delay tracks
             val () = Song.init ()
             val playcursor = Song.cursor 0 tracks
             val drawcursor = Song.cursor (0 - Scene.DRAWLAG) tracks
             val failcursor = Song.cursor (0 - Match.EPSILON) tracks
+
+            val () = loop (playcursor, drawcursor, failcursor)
+
+            (* Get postmortem statistics *)
+            val { misses, percent = (hit, total), ... } = Match.stats tracks
         in
-            loop (playcursor, drawcursor, failcursor)
+            print ("At end: " ^ Int.toString misses ^ " misses\n");
+            if total > 0
+            then print ("At end: " ^ Int.toString hit ^ "/" ^ Int.toString total ^
+                        " (" ^ Real.fmt (StringCvt.FIX (SOME 1)) (real hit * 100.0 / real total) ^ 
+                        "%) of notes hit\n")
+            else ();
+            ()
         end handle Abort => 
             let in
                 (* should go FAILURE!!!! *)

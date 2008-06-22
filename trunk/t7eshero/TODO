@@ -1,7 +1,24 @@
 
+For demo:
+
+ * Postmortem and high-scores
+ * Profile editor (at least name, pic)
+ * Some recognizable non-free songs
+
+ * Rate the existing song list, or improve through genscoring?
+
+ * Failing in a song
+ * Achievements: Snakes
+ * A few more items
+
+ * Noise shaping?
+
+--------------------------------------------------
+
 More midi triage. Did the whole cake\ dir, but need cake\also and cake\newsongs ....
 
 
+ * crashes ???
 
  * stdafx needs help during the fun part, merging notes from the basss
 
@@ -16,10 +33,6 @@ More midi triage. Did the whole cake\ dir, but need cake\also and cake\newsongs 
  * police?
  * quarterl?
 
-
- * Some kind of bug in genscore where identical adjacent chords might be
-   rendered differently (because of sorting of the component notes?) (matrix.mid)
-
  * fix scoring
 
  * improve performance of DP algorithm (space usage)
@@ -31,12 +44,6 @@ More midi triage. Did the whole cake\ dir, but need cake\also and cake\newsongs 
  * noise pitch? (with lowpass/highpass?)
 
 canyon.mid can't be read??
-
-
-
-too many simultaneous noise notes sounds very bad
-   (maybe fixed this. there was a channel-polyphony bug, 
-    and I turned down the default volume)
 
 
 SDL_AUDIODRIVER=waveout works but has ridiculous latency.
