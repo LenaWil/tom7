@@ -3,6 +3,7 @@ More midi triage. Left off at spinal.wrk. (YEAH)
 
 
  * Powerade could be fun but needs track 0 to be split
+ * Maybe hock is possible, needs lots of tuning
 
  * Some kind of bug in genscore where identical adjacent chords might be
    rendered differently (because of sorting of the component notes?) (matrix.mid)

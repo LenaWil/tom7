@@ -1,6 +1,6 @@
 #                             -*- makefile -*-
 
-songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid siloscore.mid kaasdoopscore.mid octreescore.mid sigscore.mid armyscore.mid bottomscore.mid recanterscore.mid sincescore.mid smitescore.mid matrixscore.mid freescore.mid nivscore.mid macrosscore.mid honkscore.mid originalscore.mid bansheescore.mid mircscore.mid sarnatscore.mid pizzascore.mid proofscore.mid kleescore.mid
+songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid siloscore.mid kaasdoopscore.mid octreescore.mid sigscore.mid armyscore.mid bottomscore.mid recanterscore.mid sincescore.mid smitescore.mid matrixscore.mid freescore.mid nivscore.mid macrosscore.mid honkscore.mid originalscore.mid bansheescore.mid mircscore.mid sarnatscore.mid pizzascore.mid proofscore.mid kleescore.mid spinalscore.mid dndscore.mid devinscore.mid shaskellscore.mid gatoradescore.mid vehixscore.mid
 
 ALL = genscore.exe
 #  makefile.songs
@@ -115,5 +115,24 @@ pizzascore.mid : pizza.mid $(ALL)
 proofscore.mid : proof.mid $(ALL)
 	./genscore -history 5 -hammertime 36 $< 0 2 3 -o $@
 
+# ridiculous
 kleescore.mid : klee.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 2 4 7 -o $@
+	./genscore -history 4 -hammertime 36 $< 0 2 4 7 -o $@
+
+spinalscore.mid : spinal.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
+
+dndscore.mid : dnd.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 4 5 -o $@
+
+devinscore.mid : devin.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
+
+shaskellscore.mid : shaskell.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 1 4 -o $@
+
+gatoradescore.mid : gatorade.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 2 3 5 -o $@
+
+vehixscore.mid : vehix.mid $(ALL)
+	./genscore -history 5 -hammertime 36 $< 0 1 4 5 -o $@
