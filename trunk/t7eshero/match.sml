@@ -219,6 +219,8 @@ struct
     stats for the postmortem and high score table. *)
   fun stats tracks =
       let
+          (* This is the generous version from gameplay.
+             It allows us to hit two notes with one strum! *)
           val (hit, total) =
               foldl (fn ((delta, evt), (hit, total)) =>
                      (case evt of
