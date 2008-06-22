@@ -25,6 +25,8 @@ sig
     val achievements : profile -> (achievement * Setlist.songid option * IntInf.int) list
     val lastused : profile -> IntInf.int
     val surface : profile -> SDL.surface
+    val closet : profile -> Items.item list
+    val outfit : profile -> Items.worn
 
     (* posessions, fans, etc. *)
 
@@ -35,5 +37,7 @@ sig
     val setrecords : profile -> (Setlist.songid * Record.record list) list -> unit
     val setachievements : profile -> (achievement * Setlist.songid option * IntInf.int) list -> unit
     val setlastused : profile -> IntInf.int -> unit
+    val setcloset : profile -> Items.item list -> unit
+    val setoutfit : profile -> Items.worn -> unit
 
 end

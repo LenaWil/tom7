@@ -50,6 +50,8 @@ sound.sml
 listmenu-sig.sml
 listmenu.sml
 setlist.sml
+items-sig.sml
+items.sml
 record-sig.sml
 record.sml
 profile-sig.sml
