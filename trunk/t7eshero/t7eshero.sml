@@ -421,6 +421,7 @@ struct
   end handle Hero.Hero s => messagebox ("hero error: " ^ s)
            | SDL.SDL s => messagebox ("sdl error: " ^ s)
            | Game.Game s => messagebox ("sdl error: " ^ s)
+           | Items.Items s => messagebox ("items database error: " ^ s)
            | Input.Input s => messagebox ("input subsystem error: " ^ s)
            | Hero.Exit => ()
            | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)

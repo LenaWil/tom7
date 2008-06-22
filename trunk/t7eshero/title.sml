@@ -60,16 +60,20 @@ struct
                             implode [#"^", chr (ord #"0" + (random_int() mod 6)), c])
                        (explode s))
 
-    val () = Profile.load ()
-    (* Ensure we have a profile to use for right now *)
-    val () = if length (Profile.all ()) = 0
-             then let in 
-                      ignore (Profile.add_default());
-                      Profile.save()
-                  end
-             else ()
-
-    val profile = ref (hd (Profile.all ()))
+    val profile = 
+        let in
+            Profile.load();
+            (* ensure that we have at least a profile to use now. *)
+            if length (Profile.all ()) = 0
+            then let in 
+                ignore (Profile.add_default());
+                Profile.save()
+                 end
+            else ();
+            ref (hd (Profile.all ()))
+        end
+        handle Items.Items s => (Hero.messagebox s; raise Hero.Hero "couldn't load profile")
+             (* | Profile.Profile s => (Hero.messagebox s; raise Hero.Hero "couldn't load profile")*)
 
     fun loop () =
         let

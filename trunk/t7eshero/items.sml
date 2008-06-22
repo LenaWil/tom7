@@ -26,6 +26,7 @@ struct
 
     val name : item -> string = #name
     val frames : item -> (SDL.surface * int * int) Vector.vector = #frames
+    val id : item -> string = #id
 
     fun has (a, b) i = 
         List.exists (fn x => eq (x, i)) a orelse
@@ -82,15 +83,28 @@ struct
             items := lines
         end
 
+    fun fromid id' =
+        case List.find (fn { id, ... } => id = id') (!items) of
+            NONE => raise Items ("item '" ^ id' ^ "' not found")
+          | SOME i => i
+
+    fun wtostring (wa, wb) = StringUtil.delimit "," (map id wa @ map id wb)
+    fun wfromstring s =
+        let val l = String.tokens (fn #"," => true | _ => false) s
+        in foldr (fn (i, w) => add w (fromid i)) (nil, nil) l
+        end
+
     (* XXX these should probably be in config files? *)
+    val default_closet_items = ["RedGuitar", "BlueJeans"]
     fun default_closet () =
-        case List.find (fn { id = "RedGuitar", ... } => true | _ => false) (!items) of
-            SOME i => [i]
-          | NONE =>
-                let in
-                    Hero.messagebox "Can't find default closet item!";
-                    nil
-                end
+        let
+            val l = List.filter (fn { id, ... } => List.exists (fn id' => id = id') default_closet_items) (!items)
+        in
+            if length l <> length default_closet_items
+            then Hero.messagebox "Can't find at least one default closet item!"
+            else ();
+            l
+        end
 
     fun default_outfit () = (nil, default_closet ())
 

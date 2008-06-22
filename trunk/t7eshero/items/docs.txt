@@ -3,17 +3,17 @@ Items are like this:
 
 RedGuitar | guitar | Red Guitar | guitar1.png |0|77| guitar2.png |0|77| guitar3.png |0|77| guitar4.png |0|77|   5
 
-... where the first field is the unique canonical name for it. The
-second field identifies a group of mutually-exclusive items (e.g., so
-that the robot will not have two wigs on at the same time) and is
-freeform. The third field is a freeform description of the item for
-in-game display. It may include color codes. Then there are four
-triplets of filename and x/y offset, for the four frames of the robot
-animation. (Note that the frames will ping-pong.) Finally, the z-index
-indicates the order in which items will be drawn. Numbers closer to
-negative infinity are drawn first. The robot is drawn at 0, which is
-an illegal z-index for an item. Ties are broken by lexicographic
-ordering on the canonical name.
+... where the first field is the unique canonical name for it (just
+letters and numbers please). The second field identifies a group of
+mutually-exclusive items (e.g., so that the robot will not have two
+wigs on at the same time) and is freeform. The third field is a
+freeform description of the item for in-game display. It may include
+color codes. Then there are four triplets of filename and x/y offset,
+for the four frames of the robot animation. (Note that the frames will
+ping-pong.) Finally, the z-index indicates the order in which items
+will be drawn. Numbers closer to negative infinity are drawn first.
+The robot is drawn at 0, which is an illegal z-index for an item. Ties
+are broken by lexicographic ordering on the canonical name.
 
 
 It is helpful to have some kind of consistency to z-indices so that we
