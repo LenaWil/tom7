@@ -47,4 +47,7 @@ sig
     (* Absolute real-time since calling init *)
     val now : unit -> int
 
+    (* Reset a cursor to the beginning of the song. Should follow a call to init. *)
+    val rewind : 'evt cursor -> unit
+
 end
