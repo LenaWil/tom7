@@ -299,7 +299,7 @@ struct
     | E_MouseMotion of { which : int, state : mousestate, x : int, y : int, xrel : int, yrel : int }
     | E_MouseDown of { button : int, x : int, y : int }
     | E_MouseUp of { button : int, x : int, y : int }
-    | E_JoyAxis
+    | E_JoyAxis of { which : int, axis : int, v : int }
     | E_JoyDown of { which : int, button : int }
     | E_JoyUp of { which : int, button : int }
     | E_JoyHat of { which : int, hat : int, state : joyhatstate }
@@ -894,6 +894,8 @@ struct
   val event_mbutton_y_ = _import "ml_event_mbutton_y" : ptr -> int ;
   val event_mbutton_button_ = _import "ml_event_mbutton_button" : ptr -> int ;
 
+  val event_joyaxis_value_ = _import "ml_event_joyaxis_value" : ptr -> int ;
+
   fun clearsurface (s, w) = clearsurface_ (!! s, w)
 
   fun surface_width s = surface_width_ (!!s)
@@ -919,7 +921,9 @@ struct
      | 6 => E_MouseUp { button = event8_2nd_ e,
                         x = event_mbutton_x_ e,
                         y = event_mbutton_y_ e }
-     | 7 => E_JoyAxis
+     | 7 => E_JoyAxis { which = event8_2nd_ e,
+                        axis = event8_3rd_ e,
+                        v = event_joyaxis_value_ e }
      | 8 => E_JoyBall
      | 9 => E_JoyHat { which = event8_2nd_ e,
                        hat = event8_3rd_ e,

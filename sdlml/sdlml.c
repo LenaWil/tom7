@@ -197,6 +197,10 @@ int ml_event8_4th(SDL_Event * e) {
   return (((SDL_JoyHatEvent*)e)->value);
 }
 
+int ml_event_joyaxis_value(SDL_JoyAxisEvent *e) {
+  return e->value;
+}
+
 int ml_event_keyboard_sym(SDL_KeyboardEvent* e) {
   return e->keysym.sym;
 }
