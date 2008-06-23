@@ -19,7 +19,7 @@ struct
     val MENUTICKS = 0w60
 
     exception Done
-    fun loop () =
+    fun loop profile =
         let
             val () = Sound.all_off ()
 
@@ -28,6 +28,9 @@ struct
             fun slow l = map (fn (delta, e) => (delta * SLOWFACTOR, e)) l
             val () = Song.init ()
             val cursor = Song.cursor_loop (0 - PRECURSOR) (slow (MIDI.merge tracks))
+
+            val humpframe = ref 0
+            val humprev = ref false
 
             val nexta = ref 0w0
             val start = SDL.getticks()
@@ -55,7 +58,7 @@ struct
             (* XXX will be using listmenu, right? *)
             and input () =
                 case pollevent () of
-                    SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Done
+                    SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Done (* Abort? *)
                   | SOME E_Quit => raise Hero.Exit
                   | SOME (E_KeyDown { sym = SDLK_ENTER }) => exit()
                   | SOME e => 
@@ -71,23 +74,42 @@ struct
                 let
                     val X_ROBOT = 68
                     val Y_ROBOT = 333
+
+                    fun drawitem item =
+                        let val (f, x, y) = Vector.sub(Items.frames item, !humpframe)
+                        in blitall(f, screen, X_ROBOT + x, Y_ROBOT + y)
+                        end
+
+                    val closet = Profile.closet profile
+                        
+                    val c = ref 100
                 in
                     blitall(background, screen, 0, 0);
+                    Items.app_behind (Profile.outfit profile) drawitem;
+                    blitall(Vector.sub(Sprites.humps, !humpframe), screen, X_ROBOT, Y_ROBOT);
+                    Items.app_infront (Profile.outfit profile) drawitem;
 
-                    FontHuge.draw(screen, X_PERCENT, Y_PERCENT,
-                                  "^3" ^ 
-                                  Real.fmt (StringCvt.FIX (SOME 1)) (real hit * 100.0 / real total) ^ "^0%");
-                    FontSmall.draw(screen, X_COUNT, Y_COUNT,
-                                   "^1(^5" ^ Int.toString hit ^ "^1/^5" ^ Int.toString total ^ "^1) notes");
-                    (* XXX extraneous, max streak, average latency, etc. *)
-                    FontSmall.draw(screen, X_DANCE, Y_DANCE,
-                                   "Danced: ^5" ^ Real.fmt (StringCvt.FIX (SOME 2)) totaldist ^ "^0m (^5" ^
-                                   Real.fmt (StringCvt.FIX (SOME 3)) (totaldist / totaltime)
-                                   ^ "^0m/s)");
-                    FontSmall.draw(screen, X_STRUM, Y_STRUM,
-                                   "Strum: ^5" ^ Int.toString upstrums ^ "^0 up, ^5" ^
-                                   Int.toString downstrums ^ "^0 down");
+                    List.app (fn item =>
+                              let in
+                                  FontSmall.draw(screen, 10, !c, Items.name item);
+                                  c := FontSmall.height + !c
+                              end) closet;
                     ()
+                end
+
+            and advance () =
+                let in
+                    (* XXX should pause on first, last frames a bit *)
+                    (if !humprev
+                     then humpframe := !humpframe - 1
+                     else humpframe := !humpframe + 1);
+                    (if !humpframe < 0
+                     then (humpframe := 0; humprev := false)
+                     else ());
+                    (if !humpframe >= (Vector.length Sprites.humps)
+                     then (humpframe := (Vector.length Sprites.humps - 1); 
+                           humprev := true)
+                     else ())
                 end
 
             and heartbeat () = 
@@ -97,7 +119,7 @@ struct
                     val now = getticks ()
                 in
                     if now > !nexta
-                    then ((* advance(); *)
+                    then (advance();
                           nexta := now + MENUTICKS)
                     else ()
                 end
@@ -117,7 +139,18 @@ struct
                      go ()
                 end
         in
-            go () handle Done => Sound.all_off ()
+            go () handle Done => 
+                let in
+                    Sound.all_off ();
+                    Profile.save ()
+                end
+(*
+            | Abort => 
+                let in
+                    (* restore profile somehow? *)
+                    Sound.all_off ()
+                end
+*)
         end
 
 end
