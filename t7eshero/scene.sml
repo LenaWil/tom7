@@ -9,6 +9,7 @@ struct
   structure S = Sprites
   structure Font = S.Font
   structure FontHuge = S.FontHuge
+  structure FontSmall = S.FontSmall
   val height = S.height
   val width = S.width
 
@@ -138,10 +139,13 @@ struct
            then Font.draw(screen, 4, y - Font.height, s) 
            else FontHuge.draw(screen, 4, y - FontHuge.height, s)) (!texts);
 
-      if !missnum > 0
-      then FontHuge.draw (screen, 4, height - (FontHuge.height + 6),
-                          "^2" ^ Int.toString (!missnum) ^ " ^4 misses")
-      else ()
+      (if !missnum > 0
+       then FontHuge.draw (screen, 4, height - (FontHuge.height + 6),
+                           "^2" ^ Int.toString (!missnum) ^ " ^4 misses")
+       else ());
+
+      FontSmall.draw(screen, 4, height - (FontHuge.height * 2),
+                     "Dance distance: ^2" ^ Real.fmt (StringCvt.FIX (SOME 3)) (!State.dancedist) ^ "^0m")
 
     end
 

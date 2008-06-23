@@ -6,6 +6,8 @@
 structure State =
 struct
 
+  structure GA = GrowArray
+
   (* Player input *)
   val fingers = Array.array(Hero.FINGERS, false) (* all fingers start off *)
 
@@ -60,8 +62,39 @@ struct
   (* don't need to do anything, right? *)
   fun commitup () = ()
 
+  val dancedist = ref 0.0
+  (* We imagine the dancer in N-dimensional space, without any notion of
+     N ahead of time. We start at the origin. We move by getting an
+     update for one axis. When we move we increment dancedist by the
+     length of the vector. The configured axes are guaranteed to be
+     dense and small, starting from zero, so we use a growarray. 
+
+     One problem(?) with this is that guitars with more axes have an easier
+     time achieving dance distance, since they have more dimensions in which
+     to move. (But how many can they really have??) There are lots of other
+     things that can make a guitar easier for dancing, like more sensitive
+     accelerometers. What we really need is some kind of calibration step,
+     but one that doesn't let you cheat...
+
+     Actually I decided there's no point in measuring this in N-dimensional
+     space, but to just do Manhattan distance. *)
+  val dancept = GA.empty() : real GA.growarray
+
+  (* XXX should time-limit this so that we don't give advantage to *)
+  fun dance (axis, r) =
+      let
+          val () = if GA.has dancept axis
+                   then ()
+                   else GA.update dancept axis 0.0
+      in
+          dancedist := !dancedist + Real.abs(GA.sub dancept axis - r);
+          GA.update dancept axis r
+      end
+
   fun reset () = Util.for 0 (Hero.FINGERS - 1) (fn i => 
                                                 let in
+                                                    dancedist := 0.0;
+                                                    GA.clear dancept;
                                                     Array.update(fingers, i, false);
                                                     Array.update(spans, i, false)
                                                 end)
