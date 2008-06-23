@@ -12,12 +12,16 @@ struct
         (* index into joys array *)
       | Joy of int
 
+    datatype axis =
+        AxisWhammy
+      | AxisUnknown of int
+
     datatype inevent =
         StrumUp
       | StrumDown
       | ButtonUp of int
       | ButtonDown of int
-        (* XXX axes... *)
+      | Axis of axis * real
 
     datatype rawevent =
         Key of SDL.sdlk
@@ -83,13 +87,35 @@ struct
                  [k, v] => (refromstring (une k), cefromstring (une v))
                | _ => raise Input "bad mapping entry") (unlist sl)
 
+
+    type axisconfig = { which : int, axis : axis, min : int, max : int }
+    fun axistostring AxisWhammy = "w"
+      | axistostring (AxisUnknown i) = Int.toString i
+    fun axisfromstring "w" = AxisWhammy
+      | axisfromstring x = (AxisUnknown (valOf (Int.fromString x))) handle _ => raise Input "bad axis"
+
+    fun atostring l =
+        ulist (map (fn { which, axis, min, max } =>
+                    Int.toString which ^ "?" ^ axistostring axis ^ "?" ^
+                    Int.toString min ^ "?" ^ Int.toString max) l)
+    fun afromstring s =
+        map (fn s =>
+             case String.tokens QQ s of
+                 [id, axis, min, max] =>
+                     { which = valOf (Int.fromString id),
+                       axis = axisfromstring axis,
+                       min = valOf (Int.fromString min),
+                       max = valOf (Int.fromString max) }
+               | _ => raise Input "bad axis entry") (unlist s)
+
     type joyinfo = 
         { joy : SDL.joy,
           name : string,
-          axes : int,
+          naxes : int,
           balls : int,
           hats : int,
           buttons : int,
+          axes : axisconfig list,
           mapping : mapping }
     val joys = ref (Array.fromList nil) : joyinfo Array.array ref
     val keymap = ref mempty : mapping ref
@@ -99,13 +125,20 @@ struct
 
     fun restoremap Keyboard m = keymap := m
       | restoremap (Joy i) m =
-        let val { joy, name, axes, balls, hats, buttons, mapping } = Array.sub(!joys, i)
+        let val { joy, name, naxes, balls, hats, buttons, axes, mapping } = Array.sub(!joys, i)
         in
             Array.update(!joys, i,
-                         { joy = joy, name = name, axes = axes, balls = balls, hats = hats,
-                           buttons = buttons, mapping = m })
+                         { joy = joy, name = name, naxes = naxes, balls = balls, hats = hats,
+                           buttons = buttons, mapping = m, axes = axes })
         end
 
+    fun setaxes i a =
+        let val { joy, name, naxes, balls, hats, buttons, axes, mapping } = Array.sub(!joys, i)
+        in
+            Array.update(!joys, i,
+                         { joy = joy, name = name, naxes = naxes, balls = balls, hats = hats,
+                           buttons = buttons, mapping = mapping, axes = a })
+        end
 
     (* FIXME need default keyboard mapping *)
     fun clearmap Keyboard = restoremap Keyboard mempty
@@ -113,6 +146,13 @@ struct
       | clearmap (Joy i) = restoremap (Joy i) mempty
 
     fun setmap dev re ine = restoremap dev (minsert (getmap dev) (re, ine))
+    fun setaxis Keyboard _ = raise Input "can't set axis for a keyboard"
+      | setaxis (Joy i) a =
+        let 
+            (* all other axes *)
+            val axes = List.filter (fn { which, ... } => which <> #which a) (#axes (Array.sub(!joys, i)))
+        in  setaxes i (a :: axes)
+        end
 
     fun belongsto (SDL.E_KeyDown _) Keyboard = true
       | belongsto (SDL.E_KeyUp _) Keyboard = true (* ? *)
@@ -125,10 +165,10 @@ struct
 
     fun devicename Keyboard = "Keyboard"
       | devicename (Joy i) =
-        let val { name, axes, balls, hats, buttons, ... } = Array.sub(!joys, i)
+        let val { name, naxes, balls, hats, buttons, ... } = Array.sub(!joys, i)
         in
             Int.toString i ^ ": " ^ 
-            name ^ " " ^ Int.toString axes ^ "/" ^ Int.toString balls ^ "/" ^
+            name ^ " " ^ Int.toString naxes ^ "/" ^ Int.toString balls ^ "/" ^
             Int.toString hats ^ "/" ^ Int.toString buttons
         end
 
@@ -151,9 +191,10 @@ struct
                                print ("Registering joystick " ^ Joystick.name i ^ "\n");
                                { joy = j,
                                  name = Joystick.name i,
-                                 axes = Joystick.numaxes j,
+                                 naxes = Joystick.numaxes j,
                                  balls = Joystick.numballs j,
                                  hats = Joystick.numhats j,
+                                 axes = nil,
                                  mapping = mempty,
                                  buttons = Joystick.numbuttons j }
                             end));
@@ -212,15 +253,17 @@ struct
         let
             val keymap = mtostring (!keymap)
             val joys = Array.foldr
-                       (fn ({ joy = _, name, axes, balls, hats, mapping, buttons }, r) =>
+                       (fn ({ joy = _, name, naxes, balls, hats, buttons, mapping, axes }, r) =>
                         let
                             val id = ue name ^ 
-                                "?" ^ Int.toString axes ^
+                                "?" ^ Int.toString naxes ^
                                 "?" ^ Int.toString balls ^
                                 "?" ^ Int.toString hats ^
                                 "?" ^ Int.toString buttons
                         in
-                            (ue id ^ "?" ^ ue (mtostring mapping)) :: r
+                            (ue id ^ "?" ^ 
+                             ue (atostring axes) ^ "?" ^
+                             ue (mtostring mapping)) :: r
                         end) nil (!joys)
         in
             StringUtil.writefile FILENAME (ue keymap ^ "?" ^ ulist joys)
@@ -236,10 +279,12 @@ struct
                         fun i s = valOf (Int.fromString s) handle _ => raise Input "bad int"
                         fun unj s =
                             case String.tokens QQ s of
-                                [id, m] =>
+                                [id, a, m] =>
                                     (case String.tokens QQ (une id) of
-                                         [name, axes, balls, hats, buttons] =>
-                                             (une name, i axes, i balls, i hats, i buttons, mfromstring (une m))
+                                         [name, naxes, balls, hats, buttons] =>
+                                             (une name, i naxes, i balls, i hats, i buttons, 
+                                              mfromstring (une m),
+                                              afromstring (une a))
                                        | _ => raise Input ("bad joystick entry in " ^ FILENAME ^ ": " ^ id))
                               | _ => raise Input ("bad joystick entry in " ^ FILENAME ^ " (2)")
                         val js = map unj (unlist j)
@@ -248,16 +293,18 @@ struct
                         (* now configure these joysticks if any are currently activated. *)
                         Util.for 0 (Array.length (!joys) - 1)
                         (fn j =>
-                         let val { joy = _, name, axes, balls, hats, mapping = _, buttons } = Array.sub(!joys, j)
+                         let val { joy = _, name, naxes, balls, hats, buttons, 
+                                   mapping = _, axes = _ } = Array.sub(!joys, j)
                          in
-                             case List.find (fn (n, a, b, h, u, _) =>
-                                             n = name andalso a = axes andalso b = balls andalso h = hats
+                             case List.find (fn (n, a, b, h, u, _, _) =>
+                                             n = name andalso a = naxes andalso b = balls andalso h = hats
                                              andalso u = buttons) js of
                                  NONE => print ("Didn't configure joystick " ^ name ^ "\n")
-                               | SOME (_, _, _, _, _, m) => 
+                               | SOME (_, _, _, _, _, m, x) => 
                                      let in
                                          print ("Restoring joystick " ^ name ^ " from saved\n");
-                                         restoremap (Joy j) m
+                                         restoremap (Joy j) m;
+                                         setaxes j x
                                      end
                          end)
                     end

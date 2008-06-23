@@ -8,12 +8,20 @@ sig
     eqtype device
     type mapping
 
+    (* Currently we don't try to figure out which accelerometer axis is
+       which, since we only use them for dancing. *)
+    datatype axis =
+        AxisWhammy
+      | AxisUnknown of int
+
     datatype inevent =
         StrumUp
       | StrumDown
       | ButtonUp of int
       | ButtonDown of int
-        (* XXX axes... *)
+        (* Axis is (above) and a float 0.0--1.0 indicating its position out of
+           its configured min--max range. *)
+      | Axis of axis * real
 
     (* We assume the up/down action of a button is on the same
        key or button, otherwise everything will be screwed up.
@@ -23,6 +31,10 @@ sig
       | C_StrumDown
       | C_Button of int
 
+    (* Rawevent isn't the right name for this. It should be called
+       impulseid or something. We are trying to identify physical
+       thingies that can be pressed and released. Each has at least
+       two real events (up and down) associated with it. *)
     datatype rawevent =
         Key of SDL.sdlk
       | JButton of int
@@ -44,6 +56,8 @@ sig
     (* Set the mapping for a particular device event. *)
     val setmap : device -> rawevent -> configevent -> unit
     val restoremap : device -> mapping -> unit
+    (* only for joysticks *)
+    val setaxis : device -> { which : int, axis : axis, min : int, max : int } -> unit
 
     (* Is this (unmapped) SDL event associated with the device? *)
     val belongsto : SDL.event -> device -> bool

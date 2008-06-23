@@ -198,11 +198,8 @@ struct
                                     then phase := P_Button (d + 1)
                                     else phase := P_Axes
                                 end
-                          | _ => 
-                                let in
-                                    Hero.messagebox "unimplemented hehe sux 2 b u";
-                                    raise Hero.Exit
-                                end
+                          | P_Axes => raise FinishConfigure
+
 
                     fun input () =
                         case pollevent () of
@@ -329,7 +326,22 @@ struct
                 in
                     go () handle AbortConfigure => Input.restoremap device old
                                  (* XXX should have some titlescreen message fade-out queue *)
-                               | FinishConfigure => Input.save ()
+                               | FinishConfigure => 
+                        let in
+                            (* save (unknown) axes. *)
+                            Util.for 0 (GrowArray.length axes - 1)
+                            (fn a =>
+                             if GrowArray.has axes a
+                             then let 
+                                      val {min, max} = GrowArray.sub axes a
+                                  in
+                                      Input.setaxis device { which = a, axis = Input.AxisUnknown a,
+                                                             min = min, max = max }
+                                  end
+                             else ());
+                            (* XXX should save whammy here too *)
+                            Input.save ()
+                        end
                 end
 
             val nexta = ref (getticks ())
