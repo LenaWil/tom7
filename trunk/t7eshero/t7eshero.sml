@@ -278,9 +278,8 @@ struct
                    (case Input.map e of
                         SOME (_, Input.ButtonDown b) => State.fingeron b
                       | SOME (_, Input.ButtonUp b) => State.fingeroff b
-                      (* XXX count upstrums, downstrums for stats *)
-                      | SOME (_, Input.StrumUp) => State.commit ()
-                      | SOME (_, Input.StrumDown) => State.commit ()
+                      | SOME (_, Input.StrumUp) => (State.upstrum(); State.commit ())
+                      | SOME (_, Input.StrumDown) => (State.downstrum(); State.commit ())
                       | SOME (_, Input.Axis (Input.AxisUnknown i, r)) => State.dance (i, r)
                       | _ => ())
 

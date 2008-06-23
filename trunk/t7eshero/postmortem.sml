@@ -19,11 +19,33 @@ struct
     val MENUTICKS = 0w60
     val MINIMUM_TIME = 0w2000
 
-    datatype medal = PerfectMatch
+    (* It's hard to calibrate the cutoffs for dancing awards. Here are
+       some measurements with the 360 X-Plorer, configured correctly:
+
+       0.056m/s was my normal standing posture for Goog. 
+       0.1 when I was rocking out.
+       0.016 when I was trying to stay as still as possible and still play.
+       (But on other songs I can get 0.0...)
+       I can get 0.0 if I just sit there and don't play anything. *)
+        
+
+    (* To earn a medal, you have to get at least 90% on the song. *)
+    datatype medal = 
+        (* Got 100% *)
+        PerfectMatch
+        (* Averaged at least 0.25 m/s dancing *)
+      | Snakes
+        (* Less than 0.02 m/s (?) average dancing *)
+      | Stoic
+        (* Only strummed upward. *)
+      | Plucky
+        (* Only strummed downward. *)
+      | Pokey
 
     exception Done
     fun loop tracks =
         let
+            val () = Sound.all_off ()
 
             val { misses, percent = (hit, total), ... } = Match.stats tracks
             val () = print ("At end: " ^ Int.toString misses ^ " misses\n");
@@ -33,6 +55,11 @@ struct
                                  "%) of notes hit\n")
                      else ()
 
+            val { totaldist, totaltime, upstrums, downstrums } = State.stats ()
+
+            val () = print ("Danced: " ^ Real.fmt (StringCvt.FIX (SOME 2)) totaldist ^ "m (" ^
+                            Real.fmt (StringCvt.FIX (SOME 3)) (totaldist / totaltime)
+                            ^ "m/s)\n")
 
             val (divi, thetracks) = Game.fromfile BGMIDI
             val tracks = Game.label PRECURSOR SLOWFACTOR thetracks
@@ -84,7 +111,12 @@ struct
                     val X_PERCENT = 50
                     val Y_PERCENT = 100
                     val X_COUNT = 50
-                    val Y_COUNT = 100 + FontHuge.height + 3
+                    val Y_COUNT = Y_PERCENT + FontHuge.height + 3
+                    val X_DANCE = 50
+                    val Y_DANCE = Y_COUNT + FontSmall.height + 3
+                    val X_STRUM = 50
+                    val Y_STRUM = Y_DANCE + FontSmall.height + 3
+
                 in
                     blitall(background, screen, 0, 0);
 
@@ -94,7 +126,13 @@ struct
                     FontSmall.draw(screen, X_COUNT, Y_COUNT,
                                    "^1(^4" ^ Int.toString hit ^ "^1/^4" ^ Int.toString total ^ "^1) notes");
                     (* XXX extraneous, max streak, average latency, etc. *)
-                    (* distance danced *)
+                    FontSmall.draw(screen, X_DANCE, Y_DANCE,
+                                   "Danced: ^2" ^ Real.fmt (StringCvt.FIX (SOME 2)) totaldist ^ "^0m (" ^
+                                   Real.fmt (StringCvt.FIX (SOME 3)) (totaldist / totaltime)
+                                   ^ "m/s)");
+                    FontSmall.draw(screen, X_STRUM, Y_STRUM,
+                                   "Strum: ^2" ^ Int.toString upstrums ^ "^0 up, ^2" ^
+                                   Int.toString downstrums ^ "^0 down");
                     ()
                 end
 
