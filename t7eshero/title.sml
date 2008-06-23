@@ -151,10 +151,10 @@ struct
                        | Wardrobe => wardstring := fancy "Wardrobe")
                 end
 
-            val Y_PLAY = 148 + (FontHuge.height + 12) * 0
-            val Y_SIGN = 148 + (FontHuge.height + 12) * 1
-            val Y_CONF = 148 + (FontHuge.height + 12) * 2
-            val Y_WARD = 148 + (FontHuge.height + 12) * 3
+            val Y_PLAY = 148 + (FontHuge.height) * 0
+            val Y_SIGN = 148 + (FontHuge.height) * 1
+            val Y_CONF = 148 + (FontHuge.height) * 2
+            val Y_WARD = 148 + (FontHuge.height) * 3
             val X_ROBOT = 128
             val Y_ROBOT = 333
             val MENUTICKS = 0w60
@@ -362,7 +362,7 @@ struct
                   | Configure => configure device
                   | Wardrobe => 
                         let in
-                            Wardrobe.loop ();
+                            Wardrobe.loop (!profile);
                             Song.init ();
                             Song.rewind cursor
                             (* and draw? *)
