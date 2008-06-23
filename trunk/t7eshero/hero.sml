@@ -25,6 +25,23 @@ struct
       Real
   (* XXX ... *)
 
+  (* To earn a medal, you have to get at least 90% on the song. *)
+  datatype medal = 
+      (* Got 100% *)
+      PerfectMatch
+    (* Averaged at least 0.25 m/s dancing *)
+    | Snakes
+    (* Less than 0.02 m/s (?) average dancing *)
+    | Stoic
+    (* Only strummed upward. *)
+    | Plucky
+    (* Only strummed downward. *)
+    | Pokey
+    (* never hammered a note (hard to measure?) *)
+    | AuthenticStrummer
+    (* never strummed a hammer note *)
+    | AuthenticHammer
+
   val FINGERS = 5
 
   fun messagebox s =

@@ -74,17 +74,19 @@ struct
     val () = State.reset ()
 
 
-    val (f, SLOWFACTOR, diff) =
+    val (f, SLOWFACTOR, diff, profile) =
         case CommandLine.arguments() of
           nil =>
               let
                   val { midi : string,
                         difficulty : Hero.difficulty,
                         slowfactor : int,
-                        config : Title.config } = Title.loop()
+                        config : Title.config,
+                        profile : Profile.profile } = Title.loop()
               in
-                  (midi, slowfactor, difficulty)
+                  (midi, slowfactor, difficulty, profile)
               end
+        (* XXXXX this is not a good way to use the program any more. *)
       | f :: _ => 
           let
               (* number of SDL ticks per midi tick. *)
@@ -93,8 +95,13 @@ struct
                        [_, SOME t] => t
                      | _ => 5)
           in
-              (f, SLOWFACTOR, Hero.Real)
+              (* XXX this makes (and possibly saves) a profile every time
+                 we beat a song. *)
+              (f, SLOWFACTOR, Hero.Real, Profile.add_default())
           end
+
+    (* XXX not sure what the interface should be. but they are midi filenames. *)
+    val songid = Setlist.fromstring f
 
     val (divi, thetracks) = Game.fromfile f
     val divi = divi * SLOWFACTOR
@@ -411,7 +418,7 @@ struct
             val () = loop (playcursor, drawcursor, failcursor)
 
             (* Get postmortem statistics *)
-            val () = Postmortem.loop tracks
+            val () = Postmortem.loop (songid, profile, tracks)
 
         in
             ()

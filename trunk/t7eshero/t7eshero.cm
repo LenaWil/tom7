@@ -41,6 +41,7 @@ fsutil-portable.sml
 prelude.sml
 
 hero.sml
+serialize.sml
 input-sig.sml
 input.sml
 chars.sml
