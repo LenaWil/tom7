@@ -18,7 +18,9 @@ struct
     val SLOWFACTOR = 5
     val MENUTICKS = 0w60
 
-    exception Done
+    structure LM = ListMenuFn(val screen = screen)
+
+    exception Done and Abort
     fun loop profile =
         let
             val () = Sound.all_off ()
@@ -35,6 +37,9 @@ struct
             val nexta = ref 0w0
             val start = SDL.getticks()
             fun exit () = raise Done
+
+            val closet = Profile.closet profile
+            val outfit = ref (Profile.outfit profile)
 
             fun loopplay () =
                 let
@@ -56,6 +61,7 @@ struct
                 end
 
             (* XXX will be using listmenu, right? *)
+(*
             and input () =
                 case pollevent () of
                     SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Done (* Abort? *)
@@ -69,6 +75,7 @@ struct
                            | SOME (_, Input.StrumDown) => ()
                            | _ => ())
                   | NONE => ()
+*)
 
             and draw () =
                 let
@@ -85,9 +92,9 @@ struct
                     val c = ref 100
                 in
                     blitall(background, screen, 0, 0);
-                    Items.app_behind (Profile.outfit profile) drawitem;
+                    Items.app_behind (!outfit) drawitem;
                     blitall(Vector.sub(Sprites.humps, !humpframe), screen, X_ROBOT, Y_ROBOT);
-                    Items.app_infront (Profile.outfit profile) drawitem;
+                    Items.app_infront (!outfit) drawitem;
 
                     List.app (fn item =>
                               let in
@@ -124,6 +131,7 @@ struct
                     else ()
                 end
 
+(*
             val nextd = ref 0w0
             fun go () =
                 let 
@@ -138,19 +146,58 @@ struct
                      else ());
                      go ()
                 end
-        in
-            go () handle Done => 
-                let in
-                    Sound.all_off ();
-                    Profile.save ()
-                end
-(*
-            | Abort => 
-                let in
-                    (* restore profile somehow? *)
-                    Sound.all_off ()
-                end
 *)
+
+            val WIDTH = 256 - 16
+            fun itemheight _ = FontSmall.height + 1
+            fun drawitem (item, x, y, sel) =
+                let in
+                    (if sel
+                     then SDL.fillrect(screen, x, y, 
+                                       WIDTH - LM.WIDTH_OVERHEAD,
+                                       FontSmall.height,
+                                       SDL.color (0wx44, 0wx44, 0wx77, 0wxFF))
+                     else ());
+                    (case item of
+                         NONE => FontSmall.draw(screen, x + (FontSmall.width - FontSmall.overlap) * 3, y, "^1Save outfit")
+                       | SOME item => 
+                          let in
+                             (if Items.has (!outfit) item
+                              then FontSmall.draw(screen, x, y, Chars.CHECKMARK)
+                              else ());
+                             FontSmall.draw(screen, x + (FontSmall.width - FontSmall.overlap) * 3, y, Items.name item)
+                          end)
+                end
+
+            fun repeat () =
+                (case LM.select { x = 8, y = 90,
+                                  width = WIDTH,
+                                  height = 200,
+                                  items = NONE :: map SOME closet,
+                                  drawitem = drawitem,
+                                  itemheight = itemheight,
+                                  parent_draw = draw,
+                                  parent_heartbeat = heartbeat } of
+                     NONE => raise Abort
+                   | SOME NONE => raise Done
+                   | SOME (SOME item) => 
+                         let in
+                             (if Items.has (!outfit) item
+                              then outfit := Items.remove (!outfit) item
+                              else outfit := Items.add (!outfit) item);
+                             repeat ()
+                         end)
+                
+        in
+            (repeat () 
+             handle Done => 
+                 let in
+                     Profile.setoutfit profile (!outfit);
+                     Profile.save ()
+                 end
+                  | Abort => ());
+
+            Sound.all_off ()
         end
 
 end
