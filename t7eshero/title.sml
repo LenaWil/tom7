@@ -98,7 +98,13 @@ struct
                    | Configure => Wardrobe
                    | Wardrobe => Play)
 
-            fun move_up () = (move_down(); move_down())
+            fun move_up () =
+                selected :=
+                (case !selected of
+                     Play => Wardrobe
+                   | Wardrobe => Configure
+                   | Configure => SignIn
+                   | SignIn => Play)
 
             val playstring = ref "^1Play"
             val signstring = ref "^1Sign in"
