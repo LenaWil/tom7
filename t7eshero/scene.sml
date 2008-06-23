@@ -145,8 +145,10 @@ struct
        else ());
 
       FontSmall.draw(screen, 4, height - (FontHuge.height * 2),
-                     "Dance distance: ^2" ^ Real.fmt (StringCvt.FIX (SOME 3)) (!State.dancedist) ^ "^0m")
-
+                     "Dance distance: ^2" ^ Real.fmt (StringCvt.FIX (SOME 3)) (!State.dancedist) ^ "^0m (" ^
+                     Real.fmt (StringCvt.FIX (SOME 5)) 
+                       (!State.dancedist / (real (Word32.toInt(SDL.getticks() - !State.dancetime)) / 1000.0))
+                     ^ "m/s)")
     end
 
 end
