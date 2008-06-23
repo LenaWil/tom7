@@ -327,7 +327,9 @@ struct
                     go () handle AbortConfigure => Input.restoremap device old
                                  (* XXX should have some titlescreen message fade-out queue *)
                                | FinishConfigure => 
-                        let in
+                        let 
+                            val uidx = ref 0
+                        in
                             (* save (unknown) axes. *)
                             Util.for 0 (GrowArray.length axes - 1)
                             (fn a =>
@@ -335,8 +337,9 @@ struct
                              then let 
                                       val {min, max} = GrowArray.sub axes a
                                   in
-                                      Input.setaxis device { which = a, axis = Input.AxisUnknown a,
-                                                             min = min, max = max }
+                                      Input.setaxis device { which = a, axis = Input.AxisUnknown (!uidx),
+                                                             min = min, max = max };
+                                      uidx := !uidx + 1
                                   end
                              else ());
                             (* XXX should save whammy here too *)

@@ -281,6 +281,7 @@ struct
                       (* XXX count upstrums, downstrums for stats *)
                       | SOME (_, Input.StrumUp) => State.commit ()
                       | SOME (_, Input.StrumDown) => State.commit ()
+                      | SOME (_, Input.Axis (Input.AxisUnknown i, r)) => State.dance (i, r)
                       | _ => ())
 
                | NONE => ());

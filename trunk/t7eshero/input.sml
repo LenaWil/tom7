@@ -211,6 +211,22 @@ struct
         in
         (case e of
              SDL.E_KeyDown _ => NONE (* XXX unimplemented *)
+
+           | SDL.E_JoyAxis { which = j, axis, v } =>
+            let val axes = #axes (Array.sub(!joys, j))
+            in
+                (* in axisconfig, which refers to the axis not the joystick *)
+                case List.find (fn { which = a, ... } => a = axis) axes of
+                    SOME { axis, min, max, ... } => 
+                        let (* clamp to the alleged min/max *)
+                            val v = Int.max(min, v)
+                            val v = Int.min(max, v)
+                        in
+                            SOME(Joy j, Axis (axis, real (v - min) / real (max - min)))
+                        end
+                  | NONE => NONE
+            end
+
            | SDL.E_JoyDown { which, button, ... } =>
             (case mlookup (getmap (Joy which)) (JButton button) of
                  SOME ce => SOME(withdir (Joy which) PRESS ce)
