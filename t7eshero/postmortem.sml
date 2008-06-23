@@ -29,21 +29,8 @@ struct
        I can get 0.0 if I just sit there and don't play anything. *)
         
 
-    (* To earn a medal, you have to get at least 90% on the song. *)
-    datatype medal = 
-        (* Got 100% *)
-        PerfectMatch
-        (* Averaged at least 0.25 m/s dancing *)
-      | Snakes
-        (* Less than 0.02 m/s (?) average dancing *)
-      | Stoic
-        (* Only strummed upward. *)
-      | Plucky
-        (* Only strummed downward. *)
-      | Pokey
-
     exception Done
-    fun loop tracks =
+    fun loop (songid, profile, tracks) =
         let
             val () = Sound.all_off ()
 
@@ -60,6 +47,12 @@ struct
             val () = print ("Danced: " ^ Real.fmt (StringCvt.FIX (SOME 2)) totaldist ^ "m (" ^
                             Real.fmt (StringCvt.FIX (SOME 3)) (totaldist / totaltime)
                             ^ "m/s)\n")
+
+            (* get old records for this song, if any. Then decide if we made new records. *)
+            val { percent = oldpercent, misses = oldmisses, medals = oldmedals } =
+                case List.find (fn (sid, _) => sid = songid) (Profile.records profile) of
+                    NONE => { percent = 0, misses = total + 1, medals = nil }
+                  | SOME (_, r) => r
 
             val (divi, thetracks) = Game.fromfile BGMIDI
             val tracks = Game.label PRECURSOR SLOWFACTOR thetracks

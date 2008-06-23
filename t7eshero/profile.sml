@@ -7,12 +7,11 @@ struct
     val FILENAME = "profiles.hero"
     val DEFAULT_PROFILE_PIC = "profilepics/default.png"
 
+    open Serialize
+
     datatype achievement =
         (* get perfect on a song *)
         PerfectMatch
-
-    fun QQ #"?" = true
-      | QQ _ = false
 
     fun atostring PerfectMatch = "PM"
     fun afromstring "PM" = PerfectMatch
@@ -22,7 +21,7 @@ struct
     type profile = { name : string ref,
                      pic : string ref,
                      picsurf : SDL.surface ref,
-                     records : (songid * Record.record list) list ref,
+                     records : (songid * Record.record) list ref,
                      achievements : (achievement * songid option * IntInf.int) list ref,
                      lastused : IntInf.int ref,
                      closet : Items.item list ref,
@@ -39,34 +38,17 @@ struct
                        | SOME s => s)
           | SOME s => s
 
-    fun uo f NONE = "-"
-      | uo f (SOME x) = "+" ^ f x
-    fun uno f "-" = NONE
-      | uno f s =
-        if CharVector.sub(s, 0) = #"+"
-        then SOME (f (String.substring(s, 1, size s - 1)))
-        else raise Profile "bad option"
-
-    val ue = StringUtil.urlencode
-    val une = (fn x => case StringUtil.urldecode x of
-               NONE => raise Profile "bad urlencoded string"
-             | SOME s => s)
-    (* To keep invariant that nothing has the empty string as a representation *)
-    fun ulist nil = "%"
-      | ulist l = StringUtil.delimit "?" (map ue l)
-    fun unlist "%" = nil
-      | unlist s = map une (String.tokens QQ s)
 
     fun rsfromstring ss =
         map (fn s =>
              case String.tokens QQ s of
-                 [song, recs] => (Setlist.fromstring song, map Record.fromstring (unlist recs))
+                 [song, record] => (Setlist.fromstring (une song), Record.fromstring (une record))
                | _ => raise Profile "bad record") (unlist ss)
 
     fun rstostring rs =
-        ulist (map (fn (s, rl) =>
+        ulist (map (fn (s, r) =>
                     ue (Setlist.tostring s) ^ "?" ^
-                    ulist (map Record.tostring rl)) rs)
+                    ue (Record.tostring r)) rs)
 
     fun achstostring achs =
         ulist (map (fn (a, so, i) =>
@@ -101,7 +83,7 @@ struct
     fun save () = StringUtil.writefile FILENAME (ulist (map ptostring (!profiles)))
     fun load () =
         let
-            val s = StringUtil.readfile FILENAME handle _ => "%" (* empty list *)
+            val s = StringUtil.readfile FILENAME handle _ => Serialize.ulist nil
             val ps = unlist s
         in
             (* XXX LEAK needs to free surface parameters. But we shouldn't double-load anyway. *)
@@ -112,7 +94,7 @@ struct
 
     val name : profile -> string = ! o #name
     val pic : profile -> string = ! o #pic
-    val records : profile -> (songid * Record.record list) list = ! o #records
+    val records : profile -> (songid * Record.record) list = ! o #records
     val achievements : profile -> (achievement * songid option * IntInf.int) list = ! o #achievements
     val lastused : profile -> IntInf.int = ! o #lastused
     val surface : profile -> SDL.surface = ! o #picsurf
@@ -123,7 +105,7 @@ struct
 
     val setname : profile -> string -> unit = set #name
     val setpic  : profile -> string -> unit = set #pic
-    val setrecords : profile -> (songid * Record.record list) list -> unit = set #records
+    val setrecords : profile -> (songid * Record.record) list -> unit = set #records
     val setachievements : profile -> (achievement * songid option * IntInf.int) list -> unit = set #achievements
     val setlastused : profile -> IntInf.int -> unit = set #lastused
     val setcloset : profile -> Items.item list -> unit = set #closet

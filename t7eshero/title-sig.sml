@@ -11,7 +11,8 @@ sig
     val loop : unit -> { midi : string,
                          difficulty : Hero.difficulty,
                          slowfactor : int,
-                         config : config }
+                         config : config,
+                         profile : Profile.profile }
 
     (* Get the configured joystick map. 
        XXX: This should be improved to select the particular

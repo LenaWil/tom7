@@ -131,23 +131,6 @@ struct
                     else ()
                 end
 
-(*
-            val nextd = ref 0w0
-            fun go () =
-                let 
-                    val () = heartbeat ()
-                    val () = input ()
-                    val now = getticks ()
-                in
-                    (if now > !nextd
-                     then (draw (); 
-                           nextd := now + MENUTICKS;
-                           flip screen)
-                     else ());
-                     go ()
-                end
-*)
-
             val WIDTH = 256 - 16
             fun itemheight _ = FontSmall.height + 1
             fun drawitem (item, x, y, sel) =
@@ -185,6 +168,8 @@ struct
                              (if Items.has (!outfit) item
                               then outfit := Items.remove (!outfit) item
                               else outfit := Items.add (!outfit) item);
+                             (* XXX should keep current position in list, rather
+                                than jump to the top.*)
                              repeat ()
                          end)
                 

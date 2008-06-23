@@ -35,18 +35,7 @@ struct
       | C_Button of int
 
 
-    fun QQ #"?" = true
-      | QQ _ = false
-
-    val ue = StringUtil.urlencode
-    val une = (fn x => case StringUtil.urldecode x of
-               NONE => raise Input "bad urlencoded string"
-             | SOME s => s)
-    (* To keep invariant that nothing has the empty string as a representation *)
-    fun ulist nil = "%"
-      | ulist l = StringUtil.delimit "?" (map ue l)
-    fun unlist "%" = nil
-      | unlist s = map une (String.tokens QQ s)
+    open Serialize
 
     fun retostring (Key k) = "k?" ^ SDL.sdlktostring k
       | retostring (JButton i) = "b?" ^ Int.toString i

@@ -18,7 +18,8 @@ struct
     exception Selected of { midi : string,
                             difficulty : Hero.difficulty,
                             slowfactor : int,
-                            config : config }
+                            config : config,
+                            profile : Profile.profile }
 
     fun dummy_joymap 0 = 0
       | dummy_joymap 1 = 1
@@ -434,7 +435,8 @@ struct
                             { midi = file,
                               difficulty = Hero.Real,
                               slowfactor = factor,
-                              config = { joymap = dummy_joymap } }
+                              config = { joymap = dummy_joymap },
+                              profile = !profile }
                 end
 
 

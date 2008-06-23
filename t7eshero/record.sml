@@ -3,43 +3,39 @@ structure Record :> RECORD =
 struct
     exception Record of string
 
-    datatype recordtype =
-        Misses of int
-        (* only strummed up for the whole song *)
-      | UpStrum
-        (* never hammered a note (hard to measure?) *)
-      | AuthenticStrummer
-        (* never strummed a hammer note *)
-      | AuthenticHammer
-      | Percent of int
-      (* | Dance (lots of shaking accelerometers) *)
+    type record =
+        { percent : int,
+          misses : int,
+          medals : Hero.medal list }
 
-    (* ty, seconds since epoch *)
-    type record = recordtype * IntInf.int
+    fun mtostring Hero.PerfectMatch = "PM"
+      | mtostring Hero.Snakes = "SN"
+      | mtostring Hero.Stoic = "ST"
+      | mtostring Hero.Plucky = "PL"
+      | mtostring Hero.Pokey = "PO"
+      | mtostring Hero.AuthenticStrummer = "AS"
+      | mtostring Hero.AuthenticHammer = "AH"
 
-    (* XXX serialize *)
-    fun tostring (r, i) =
-	(IntInf.toString i ^ "|" ^
-	 (case r of
-	     Misses x => "M|" ^ Int.toString x
-	   | UpStrum => "U"
-	   | AuthenticStrummer => "A"
-	   | AuthenticHammer => "H"
-	   | Percent x => "P|" ^ Int.toString x))
+    fun mfromstring "PM" = Hero.PerfectMatch
+      | mfromstring "SN" = Hero.Snakes
+      | mfromstring "ST" = Hero.Stoic
+      | mfromstring "PL" = Hero.Plucky
+      | mfromstring "PO" = Hero.Pokey
+      | mfromstring "AS" = Hero.AuthenticStrummer
+      | mfromstring "AH" = Hero.AuthenticHammer
+      | mfromstring _ = raise Record "bad medal"
+
+    fun tostring { percent, misses, medals } =
+        Int.toString percent ^ "?" ^ Int.toString misses ^ "?" ^
+        Serialize.ulist (map mtostring medals)
 
     fun fromstring s =
-	let val l = String.tokens (StringUtil.ischar #"|") s
-	    val when = valOf (IntInf.fromString (hd l))
-	    val what =
-		case tl l of
-		    ["M", x] => Misses (valOf (Int.fromString x))
-		  | ["P", x] => Percent (valOf (Int.fromString x))
-		  | ["U"] => UpStrum
-		  | ["A"] => AuthenticStrummer
-		  | ["H"] => AuthenticHammer
-		  | _ => raise Record "bad/unknown record?"
-	in
-	    (what, when)
-	end handle Empty => raise Record "bad record" (* hd *)
-		 | Option => raise Record "bad record" (* valOf *)
+        (case String.tokens Serialize.QQ s of
+             [p, m, ms] =>
+                 { percent = valOf (Int.fromString p),
+                   misses = valOf (Int.fromString m),
+                   medals = map mfromstring (Serialize.unlist ms) }
+           | _ => raise Record "bad record")
+             handle Option => raise Record "bad percent/misses record"
+
 end

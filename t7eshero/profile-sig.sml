@@ -21,7 +21,7 @@ sig
     (* accessors *)
     val name : profile -> string
     val pic : profile -> string (* filename of image *)
-    val records : profile -> (Setlist.songid * Record.record list) list
+    val records : profile -> (Setlist.songid * Record.record) list
     val achievements : profile -> (achievement * Setlist.songid option * IntInf.int) list
     val lastused : profile -> IntInf.int
     val surface : profile -> SDL.surface
@@ -34,7 +34,7 @@ sig
     val setname : profile -> string -> unit
     (* also updates surface *)
     val setpic  : profile -> string -> unit
-    val setrecords : profile -> (Setlist.songid * Record.record list) list -> unit
+    val setrecords : profile -> (Setlist.songid * Record.record) list -> unit
     val setachievements : profile -> (achievement * Setlist.songid option * IntInf.int) list -> unit
     val setlastused : profile -> IntInf.int -> unit
     val setcloset : profile -> Items.item list -> unit
