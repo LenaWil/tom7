@@ -114,4 +114,10 @@ struct
           started := !nnow
       end
 
+  fun rewind { lt : int ref, evts : (int * 'evt) list ref, orig : (int * 'evt) list, loop : bool } =
+      let in
+          lt := now();
+          evts := orig
+      end
+
 end

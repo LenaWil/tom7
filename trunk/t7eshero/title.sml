@@ -13,7 +13,7 @@ struct
     type config = { joymap : int -> int }
     val joymap : config -> int -> int = #joymap
 
-    datatype selection = Play | SignIn | Configure
+    datatype selection = Play | SignIn | Configure | Wardrobe
 
     exception Selected of { midi : string,
                             difficulty : Hero.difficulty,
@@ -95,13 +95,15 @@ struct
                 (case !selected of
                      Play => SignIn
                    | SignIn => Configure
-                   | Configure => Play)
+                   | Configure => Wardrobe
+                   | Wardrobe => Play)
 
             fun move_up () = (move_down(); move_down())
 
             val playstring = ref "^1Play"
             val signstring = ref "^1Sign in"
             val confstring = ref "^1Configure"
+            val wardstring = ref "^1Wardrobe"
 
             fun loopplay () =
                 let
@@ -140,16 +142,19 @@ struct
                     playstring := "^1Play";
                     confstring := "^1Configure";
                     signstring := "^1Sign in";
+                    wardstring := "^1Wardrobe";
 
                     (case !selected of
                          Play => playstring := fancy "Play"
                        | SignIn => signstring := fancy "Sign in"
-                       | Configure => confstring := fancy "Configure")
+                       | Configure => confstring := fancy "Configure"
+                       | Wardrobe => wardstring := fancy "Wardrobe")
                 end
 
             val Y_PLAY = 148 + (FontHuge.height + 12) * 0
             val Y_SIGN = 148 + (FontHuge.height + 12) * 1
             val Y_CONF = 148 + (FontHuge.height + 12) * 2
+            val Y_WARD = 148 + (FontHuge.height + 12) * 3
             val X_ROBOT = 128
             val Y_ROBOT = 333
             val MENUTICKS = 0w60
@@ -355,6 +360,13 @@ struct
                     Play => play ()
                   | SignIn => signin ()
                   | Configure => configure device
+                  | Wardrobe => 
+                        let in
+                            Wardrobe.loop ();
+                            Song.init ();
+                            Song.rewind cursor
+                            (* and draw? *)
+                        end
 
             and input () =
                 case pollevent () of
@@ -479,10 +491,12 @@ struct
                     FontHuge.draw(screen, 36, Y_PLAY, !playstring);
                     FontHuge.draw(screen, 36, Y_SIGN, !signstring);
                     FontHuge.draw(screen, 36, Y_CONF, !confstring);
+                    FontHuge.draw(screen, 36, Y_WARD, !wardstring);
                     (case !selected of
                          Play => FontHuge.draw(screen, 4, Y_PLAY, Chars.HEART)
                        | SignIn => FontHuge.draw(screen, 4, Y_SIGN, Chars.HEART)
-                       | Configure => FontHuge.draw(screen, 4, Y_CONF, Chars.HEART))
+                       | Configure => FontHuge.draw(screen, 4, Y_CONF, Chars.HEART)
+                       | Wardrobe => FontHuge.draw(screen, 4, Y_WARD, Chars.HEART))
                 end
 
             and heartbeat () = 
