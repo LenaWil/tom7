@@ -119,6 +119,7 @@ struct
       | belongsto (SDL.E_JoyDown { which, ... }) (Joy w) = w = which
       | belongsto (SDL.E_JoyUp { which, ... }) (Joy w) = w = which
       | belongsto (SDL.E_JoyHat { which, ... }) (Joy w) = w = which
+      | belongsto (SDL.E_JoyAxis { which, ...}) (Joy w) = w = which
     (* XXX JoyAxis and JoyBall, but these are not implemented in SDLML yet! *)
       | belongsto _ _ = false
 

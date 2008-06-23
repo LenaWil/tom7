@@ -19,6 +19,8 @@ struct
     val MENUTICKS = 0w60
     val MINIMUM_TIME = 0w2000
 
+    datatype medal = PerfectMatch
+
     exception Done
     fun loop tracks =
         let
@@ -79,13 +81,20 @@ struct
 
             and draw () =
                 let
+                    val X_PERCENT = 50
+                    val Y_PERCENT = 100
+                    val X_COUNT = 50
+                    val Y_COUNT = 100 + FontHuge.height + 3
                 in
                     blitall(background, screen, 0, 0);
 
-                    FontHuge.draw(screen, 100, 100, 
-                                  "^2" ^ 
+                    FontHuge.draw(screen, X_PERCENT, Y_PERCENT,
+                                  "^3" ^ 
                                   Real.fmt (StringCvt.FIX (SOME 1)) (real hit * 100.0 / real total) ^ "^0%");
-
+                    FontSmall.draw(screen, X_COUNT, Y_COUNT,
+                                   "^1(^4" ^ Int.toString hit ^ "^1/^4" ^ Int.toString total ^ "^1) notes");
+                    (* XXX extraneous, max streak, average latency, etc. *)
+                    (* distance danced *)
                     ()
                 end
 

@@ -166,7 +166,14 @@ struct
             fun configure device =
                 let
                     exception AbortConfigure and FinishConfigure
-                    val done = ref 0
+                    datatype phase =
+                        P_Button of int
+                      | P_Axes
+
+                    val phase = ref (P_Button 0)
+
+                    type axis = { min : int, max : int }
+                    val axes = GrowArray.empty() : axis GrowArray.growarray
 
                     (* in case we cancel *)
                     val old = Input.getmap device
@@ -183,32 +190,65 @@ struct
                               else raise Hero.Hero "??")
 
                     fun accept e =
-                        let in
-                            Input.setmap device e (Vector.sub(configorder, !done));
-                            done := !done + 1;
-                            if !done = NINPUTS
-                            then raise FinishConfigure
-                            else ()
-                        end
+                        case !phase of
+                            P_Button d =>
+                                let in
+                                    Input.setmap device e (Vector.sub(configorder, d));
+                                    if d < (NINPUTS - 1)
+                                    then phase := P_Button (d + 1)
+                                    else phase := P_Axes
+                                end
+                          | _ => 
+                                let in
+                                    Hero.messagebox "unimplemented hehe sux 2 b u";
+                                    raise Hero.Exit
+                                end
 
                     fun input () =
                         case pollevent () of
                             SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise AbortConfigure
                           | SOME E_Quit => raise Hero.Exit
                           | SOME e =>
-                                if Input.belongsto e device
-                                then  
-                                  (* we only support these events right now *)
-                                  (case e of
-                                       (* ignore up events; these are handled by input *)
-                                       E_KeyDown { sym } => accept (Input.Key sym)
-                                     | E_JoyDown { button, which = _ } => accept (Input.JButton button)
-                                     | E_JoyHat { hat, state, which = _ } => 
-                                           if Joystick.hat_centered state 
-                                           then ()
-                                           else accept (Input.JHat { hat = hat, state = state })
-                                     | _ => print "Unsupported event during configure.\n")
-                                else print "Foreign event during configure.\n"
+                             (case !phase of
+                               P_Button _ =>
+                                   if Input.belongsto e device
+                                   then  
+                                       (* we only support these events for "buttons" right now *)
+                                       (case e of
+                                            (* ignore up events; these are handled by input *)
+                                            E_KeyDown { sym } => accept (Input.Key sym)
+                                          | E_JoyDown { button, which = _ } => accept (Input.JButton button)
+                                          | E_JoyHat { hat, state, which = _ } => 
+                                                if Joystick.hat_centered state 
+                                                then ()
+                                                else accept (Input.JHat { hat = hat, state = state })
+                                          | _ => print "Unsupported event during configure.\n")
+                                   else print "Foreign event during configure.\n"
+                             | P_Axes =>
+                                   (* XXX should allow keys, quit event *)
+                                   if Input.belongsto e device
+                                   then
+                                       (* we can only handle axis events here *)
+                                       (case e of
+                                            E_JoyAxis { which, axis, v } => 
+                                                let 
+                                                    val {min, max} =
+                                                        if GrowArray.has axes axis
+                                                        then GrowArray.sub axes axis
+                                                        else { min = 32767, max = ~32768 }
+                                                in
+                                                    print (Int.toString which ^ "/" ^ Int.toString axis ^ ": "
+                                                           ^ Int.toString v ^ "\n");
+                                                    GrowArray.update axes axis { min = Int.min(min, v),
+                                                                                 max = Int.max(max, v) }
+                                                end
+                                          | _ =>
+                                                (case Input.map e of
+                                                     (* dummy arg to accept, unused *)
+                                                     SOME (_, Input.ButtonDown 0) => accept (Input.JButton 0)
+                                                   | _ => print "Non-axis event during axis configure.\n"))
+
+                                   else print "Foreign event during axes\n")
                           | NONE => ()
 
                     (* nothin' doin' *)
@@ -217,18 +257,46 @@ struct
                         let
                         in
                             blitall(Sprites.configure, screen, 0, 0);
-                            (* blitall(Vector.sub(Sprites.humps, !humpframe), screen, 128, 333); *)
-                            blitall(Sprites.guitar, screen, 0 - buttonpos (!done), Y_GUITAR);
-                            blitall(case !done of
-                                        5 => Sprites.strum_up
-                                      | 6 => Sprites.strum_down
-                                      | _ => Sprites.press, screen, PRESS_OFFSET, Y_PRESS);
-                            Util.for 0 (!done - 1)
-                            (fn x =>
-                             blitall(Sprites.press_ok, screen, 
-                                     (0 - buttonpos (!done))
-                                     + PRESS_OFFSET
-                                     + buttonpos x, Y_OK))
+
+                            (case !phase of
+                                 P_Button d =>
+                                     let in
+                                         blitall(Sprites.guitar, screen, 0 - buttonpos d, Y_GUITAR);
+                                         blitall(case d of
+                                                     5 => Sprites.strum_up
+                                                   | 6 => Sprites.strum_down
+                                                   | _ => Sprites.press, screen, PRESS_OFFSET, Y_PRESS);
+                                         Util.for 0 (d - 1)
+                                         (fn x =>
+                                          blitall(Sprites.press_ok, screen, 
+                                                  (0 - buttonpos d)
+                                                  + PRESS_OFFSET
+                                                  + buttonpos x, Y_OK))
+                                     end
+                               | P_Axes =>
+                                     let 
+                                         val X_MESSAGE = 10
+                                         val Y_MESSAGE = 100
+                                         val y = ref (Y_MESSAGE + Font.height * 3)
+                                     in
+                                         (* XXX should skip if device is a keyboard. *)
+                                         Font.draw (screen, X_MESSAGE, Y_MESSAGE, "Rotate the guitar,");
+                                         Font.draw (screen, X_MESSAGE, Y_MESSAGE + Font.height, "^2but no whammy");
+                                         Util.for 0 (GrowArray.length axes - 1)
+                                         (fn a =>
+                                          if GrowArray.has axes a
+                                          then let 
+                                                   val {min, max} = GrowArray.sub axes a
+                                               in
+                                                   FontSmall.draw(screen, X_MESSAGE, !y,
+                                                                  "^0" ^ Int.toString a ^ "^1: ^3" ^
+                                                                  Int.toString min ^ "^1 - ^3" ^
+                                                                  Int.toString max);
+                                                   y := !y + FontSmall.height + 1
+                                               end
+                                          else ());
+                                         ()
+                                     end)
                         end
 
                     val nexta = ref (getticks ())

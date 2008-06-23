@@ -278,6 +278,7 @@ struct
                    (case Input.map e of
                         SOME (_, Input.ButtonDown b) => State.fingeron b
                       | SOME (_, Input.ButtonUp b) => State.fingeroff b
+                      (* XXX count upstrums, downstrums for stats *)
                       | SOME (_, Input.StrumUp) => State.commit ()
                       | SOME (_, Input.StrumDown) => State.commit ()
                       | _ => ())
