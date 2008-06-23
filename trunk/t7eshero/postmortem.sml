@@ -124,14 +124,14 @@ struct
                                   "^3" ^ 
                                   Real.fmt (StringCvt.FIX (SOME 1)) (real hit * 100.0 / real total) ^ "^0%");
                     FontSmall.draw(screen, X_COUNT, Y_COUNT,
-                                   "^1(^4" ^ Int.toString hit ^ "^1/^4" ^ Int.toString total ^ "^1) notes");
+                                   "^1(^5" ^ Int.toString hit ^ "^1/^5" ^ Int.toString total ^ "^1) notes");
                     (* XXX extraneous, max streak, average latency, etc. *)
                     FontSmall.draw(screen, X_DANCE, Y_DANCE,
-                                   "Danced: ^2" ^ Real.fmt (StringCvt.FIX (SOME 2)) totaldist ^ "^0m (" ^
+                                   "Danced: ^5" ^ Real.fmt (StringCvt.FIX (SOME 2)) totaldist ^ "^0m (^5" ^
                                    Real.fmt (StringCvt.FIX (SOME 3)) (totaldist / totaltime)
-                                   ^ "m/s)");
+                                   ^ "^0m/s)");
                     FontSmall.draw(screen, X_STRUM, Y_STRUM,
-                                   "Strum: ^2" ^ Int.toString upstrums ^ "^0 up, ^2" ^
+                                   "Strum: ^5" ^ Int.toString upstrums ^ "^0 up, ^5" ^
                                    Int.toString downstrums ^ "^0 down");
                     ()
                 end
