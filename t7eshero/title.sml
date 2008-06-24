@@ -433,7 +433,7 @@ struct
                                                                String.concat (map mtostring medals),
                                                             fn () => 
                                                             colorp percent
-                                                            (if percent = 99
+                                                            (if percent = 99 orelse misses > 0 andalso misses <= 3
                                                              then  ("-" ^ Int.toString misses)
                                                              else Int.toString percent ^ "%") ^ " " ^
                                                                String.concat (map mstostring medals))
