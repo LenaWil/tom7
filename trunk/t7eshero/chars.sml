@@ -23,6 +23,19 @@ struct
     val LRARROW = implode [chr 145]
     val LLARROW = implode [chr 146]
 
+(*
+    val MATCH = implode [chr 147, chr 148]
+    val POKEY = implode [chr 149, chr 150]
+    val PLUCKY = implode [chr 151, chr 152]
+    val SNAKES = implode [chr 153, chr 154]
+    val STOIC = implode [chr 155, chr 156]
+*)
+    val MATCH = "^6ef"
+    val POKEY = "^6gh"
+    val PLUCKY = "^6ij"
+    val SNAKES = "^6kl"
+    val STOIC = "^6mn"
+
     val chars = String.concat
         [CHECKMARK, ESC, HEART, LCMARK1, LCMARK2,
          BAR_0, BAR_1, BAR_2, BAR_3, BAR_4, BAR_5, BAR_6,
