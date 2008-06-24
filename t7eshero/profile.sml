@@ -88,7 +88,7 @@ struct
         in
             (* XXX LEAK needs to free surface parameters. But we shouldn't double-load anyway. *)
             profiles := map pfromstring ps
-        end
+        end handle Record.Record s => (Hero.messagebox ("Record: " ^ s); raise Hero.Exit)
 
     fun all () = !profiles
 

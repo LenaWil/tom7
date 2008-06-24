@@ -27,15 +27,15 @@ struct
 
     fun tostring { percent, misses, medals } =
         Int.toString percent ^ "?" ^ Int.toString misses ^ "?" ^
-        Serialize.ulist (map mtostring medals)
+        Serialize.ue (Serialize.ulist (map mtostring medals))
 
     fun fromstring s =
         (case String.tokens Serialize.QQ s of
              [p, m, ms] =>
                  { percent = valOf (Int.fromString p),
                    misses = valOf (Int.fromString m),
-                   medals = map mfromstring (Serialize.unlist ms) }
-           | _ => raise Record "bad record")
+                   medals = map mfromstring (Serialize.unlist (Serialize.une ms)) }
+           | _ => raise Record ("bad record: " ^ s) )
              handle Option => raise Record "bad percent/misses record"
 
 end

@@ -376,6 +376,25 @@ struct
             (* Choose song *)
             and play () =
                 let
+                    (* XXX draw mini icons! *)
+                    fun mtostring Hero.PerfectMatch = "P"
+                      | mtostring Hero.Snakes = "S"
+                      | mtostring Hero.Stoic = "s"
+                      | mtostring Hero.Plucky = "P"
+                      | mtostring Hero.Pokey = "O"
+                      | mtostring Hero.AuthenticStrummer = "A"
+                      | mtostring Hero.AuthenticHammer = "a"
+
+                    fun mstostring Hero.PerfectMatch = "P"
+                      | mstostring Hero.Snakes = "S"
+                      | mstostring Hero.Stoic = "s"
+                      | mstostring Hero.Plucky = "P"
+                      | mstostring Hero.Pokey = "O"
+                      | mstostring Hero.AuthenticStrummer = "A"
+                      | mstostring Hero.AuthenticHammer = "a"
+
+                    val WIDTH = 256 - 16
+
                     val trim = StringUtil.losespecl StringUtil.whitespec o StringUtil.losespecr StringUtil.whitespec
                     val songs = StringUtil.readfile SONGS_FILE
                     val songs = String.tokens (fn #"\n" => true | _ => false) songs
@@ -386,23 +405,66 @@ struct
                                  (case Int.fromString (trim slowfactor) of
                                       NONE => (print ("Bad slowfactor: " ^ slowfactor ^ "\n");
                                                NONE)
-                                    | SOME slowfactor => SOME (trim file, slowfactor, trim title, trim artist,
-                                                               trim year))
+                                    | SOME slowfactor => 
+                                          let val file = trim file
+                                              val rs = 
+                                              case List.find (fn (sid, _) => sid = Setlist.fromstring file)
+                                                  (Profile.records (!profile)) of
+                                                  NONE => ("", "") (* no record. *)
+                                                | SOME (_, { percent, misses, medals }) =>
+                                                      let 
+                                                          fun colorp p s =
+                                                              if p = 100 
+                                                              then Chars.fancy s ^ "^0"
+                                                              else if p >= 90
+                                                                   then "^5" ^ s ^ "^<"
+                                                                   else if p >= 80
+                                                                        then "^1" ^ s ^ "^<"
+                                                                        else if p >= 50
+                                                                             then "^3" ^ s ^ "^<"
+                                                                             else "^2" ^ s ^ "^<"
+                                                      in
+                                                          print ("GOT RECORD for " ^ file ^ "\n");
+                                                          ("^4" ^
+                                                           (if percent = 99 orelse misses > 0 andalso misses <= 3
+                                                            then "-" ^ Int.toString misses
+                                                            else Int.toString percent ^ "%") ^ " " ^
+                                                               String.concat (map mtostring medals),
+                                                            colorp percent
+                                                            (if percent = 99
+                                                             then  ("-" ^ Int.toString misses)
+                                                             else Int.toString percent ^ "%") ^ " " ^
+                                                               String.concat (map mstostring medals))
+                                                      end
+                                          in
+                                              SOME (file, slowfactor, trim title, trim artist,
+                                                    trim year, rs)
+                                          end)
                            | _ => (print ("Bad line: " ^ s ^ "\n"); NONE)) songs
 
-                    fun itemheight _ = FontSmall.height + SmallFont.height + 6
-                    fun drawitem ((_, _, title, artist, year), x, y, sel) = 
+                    fun itemheight _ = FontSmall.height + SmallFont.height + FontSmall.height + 8
+                    fun drawitem (i as (_, _, title, artist, year, (r, rs)), x, y, sel) = 
                         let in
-                            FontSmall.draw(screen, x, y, 
+                            (if sel
+                             then SDL.fillrect(screen, x, y, 
+                                               WIDTH - LM.WIDTH_OVERHEAD,
+                                               itemheight i,
+                                               SDL.color (0wx44, 0wx44, 0wx77, 0wxFF))
+                             else ());
+
+                            FontSmall.draw(screen, x + 2, y, 
                                            if sel then "^3" ^ title
                                            else title);
-                            SmallFont.draw(screen, x, y + FontSmall.height, "^1by ^0" ^ artist ^ 
-                                           " ^4(" ^ year ^ ")")
-                            (* XXX show records *)
+
+                            SmallFont.draw(screen, x + 2, y + 2 + FontSmall.height, "^4by ^0" ^ artist ^ 
+                                           " ^1(" ^ year ^ ")");
+                            
+                            FontSmall.draw(screen, x + 2, y + 4 + FontSmall.height + SmallFont.height,
+                                           if sel then rs else r)
                         end
                 in
                     case LM.select { x = 8, y = 40,
-                                     width = 256 - 16,
+                                     width = WIDTH,
                                      height = 400,
                                      items = songs,
                                      drawitem = drawitem,
@@ -410,8 +472,8 @@ struct
                                      parent_draw = draw,
                                      parent_heartbeat = heartbeat } of
                         NONE => ()
-                      | SOME (file, factor, _, _, _) => 
-                            (* XXX need to get real joymap from config. *)
+                      | SOME (file, factor, _, _, _, _) => 
+                            (* XXX joymap is dead to me. *)
                             raise Selected
                             { midi = file,
                               difficulty = Hero.Real,

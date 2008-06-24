@@ -99,6 +99,16 @@ struct
                      AuthenticStrummer, AuthenticHammer]
                 else nil
 
+            (* old and new, avoiding duplicates *)
+            val allmedals = List.filter (fn m' => not (List.exists (fn m => m = m') oldmedals)) medals @ oldmedals
+
+            (* save profile right away *)
+            val () = Profile.setrecords profile ((songid, { percent = Int.max(oldpercent,
+                                                                              (hit * 100) div total),
+                                                            misses = Int.min(oldmisses, misses),
+                                                            medals = allmedals }) ::
+                                                 List.filter (fn (sid, _) => songid <> sid) (Profile.records profile))
+            val () = Profile.save()
 
             val (divi, thetracks) = Game.fromfile BGMIDI
             val tracks = Game.label PRECURSOR SLOWFACTOR thetracks
@@ -158,11 +168,11 @@ struct
 
                     val X_MEDALS = 15
                     val X_MEDALTEXT = 15 + 64 + 8
-                    val Y_MEDALS = Y_STRUM + 32
+                    val Y_MEDALS = Y_STRUM + 40
                     val H_MEDALS = 68
 
-                    val X_NEW = X_MEDALS + 64 - 20
-                    val YOFF_NEW = 10
+                    val X_NEW = X_MEDALS + 64 - 22
+                    val YOFF_NEW = 12
 
                     val my = ref Y_MEDALS
                 in
