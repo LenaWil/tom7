@@ -21,6 +21,8 @@ struct
     (* negative zindex, positive zindex. sorted by zindex. *)
     type worn = item list * item list
 
+    fun award l = List.find (fn { id, ... } => not (List.exists (fn { id = id', ... } => id = id') l))
+
     fun app_behind (s, _) f = List.app f s
     fun app_infront (_, s) f = List.app f s
 
@@ -95,7 +97,7 @@ struct
         end
 
     (* XXX these should probably be in config files? *)
-    val default_closet_items = ["RedGuitar", "BlueJeans"]
+    val default_closet_items = ["RedGuitar"]
     fun default_closet () =
         let
             val l = List.filter (fn { id, ... } => List.exists (fn id' => id = id') default_closet_items) (!items)

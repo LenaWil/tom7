@@ -41,9 +41,8 @@ struct
   val pokeymedal = requireimage "testgraphics/pokeymedal.png"
   val pluckymedal = requireimage "testgraphics/pluckymedal.png"
 
-      (* FIXME *)
-  val stoicmedal = requireimage "testgraphics/pluckymedal.png"
-  val snakesmedal = requireimage "testgraphics/pluckymedal.png"
+  val stoicmedal = requireimage "testgraphics/stoicmedal.png"
+  val snakesmedal = requireimage "testgraphics/snakesmedal.png"
 
   val stars = Vector.fromList
       [requireimage "testgraphics/greenstar.png",
