@@ -122,6 +122,18 @@ struct
                           then raise Done
                           else ()
 
+            (* got a new medal? then get clothes. *)
+            val award = if List.exists (fn m => not (List.exists (fn m' => m = m') oldmedals)) medals
+                        then (case Items.award (Profile.closet profile) of
+                                  NONE => NONE
+                                | SOME i =>
+                                      let in
+                                          Profile.setcloset profile (i :: Profile.closet profile);
+                                          Profile.save();
+                                          SOME i
+                                      end)
+                        else NONE
+
             fun loopplay () =
                 let
                     val nows = Song.nowevents cursor
@@ -203,6 +215,12 @@ struct
                           else ());
                          my := !my + H_MEDALS
                      end) medals;
+
+                    (case award of
+                         SOME i =>
+                             FontSmall.draw(screen, X_MEDALS, !my + 8,
+                                            "^6IJ^5 You got a ^3" ^ Items.name i ^ "^5!")
+                       | NONE => ());
 
                     ()
                 end
