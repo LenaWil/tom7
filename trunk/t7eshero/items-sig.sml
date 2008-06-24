@@ -29,6 +29,9 @@ sig
     val default_outfit : unit -> worn
     val default_closet : unit -> item list
 
+    (* Give an arbitrary item back that isn't already in the list *)
+    val award : item list -> item option
+
     (* loads the database of items. It is immutable. *)
     val load : unit -> unit
         
