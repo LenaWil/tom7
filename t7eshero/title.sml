@@ -539,7 +539,9 @@ struct
 
                     Items.app_behind (Profile.outfit (!profile)) drawitem;
                     blitall(Vector.sub(Sprites.humps, !humpframe), screen, X_ROBOT, Y_ROBOT);
-                    Items.app_infront (Profile.outfit (!profile)) drawitem;
+                    Items.app_infront (Profile.outfit (!profile)) (fn i => if Items.zindex i < 50
+                                                                           then drawitem i
+                                                                           else ());
 
                     FontHuge.draw(screen, 36, Y_PLAY, !playstring);
                     FontHuge.draw(screen, 36, Y_SIGN, !signstring);
@@ -549,7 +551,13 @@ struct
                          Play => FontHuge.draw(screen, 4, Y_PLAY, Chars.HEART)
                        | SignIn => FontHuge.draw(screen, 4, Y_SIGN, Chars.HEART)
                        | Configure => FontHuge.draw(screen, 4, Y_CONF, Chars.HEART)
-                       | Wardrobe => FontHuge.draw(screen, 4, Y_WARD, Chars.HEART))
+                       | Wardrobe => FontHuge.draw(screen, 4, Y_WARD, Chars.HEART));
+
+                         (* XXX hack attack.. *)
+                    Items.app_infront (Profile.outfit (!profile)) (fn i => if Items.zindex i >= 50
+                                                                           then drawitem i
+                                                                           else ())
+
                 end
 
             and heartbeat () = 

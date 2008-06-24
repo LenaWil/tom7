@@ -21,7 +21,7 @@ struct
     (* negative zindex, positive zindex. sorted by zindex. *)
     type worn = item list * item list
 
-    fun award l = List.find (fn { id, ... } => not (List.exists (fn { id = id', ... } => id = id') l))
+    fun award (l : item list) = List.find (fn { id, ... } => not (List.exists (fn { id = id', ... } : item => id = id') l)) (!items)
 
     fun app_behind (s, _) f = List.app f s
     fun app_infront (_, s) f = List.app f s
@@ -29,6 +29,7 @@ struct
     val name : item -> string = #name
     val frames : item -> (SDL.surface * int * int) Vector.vector = #frames
     val id : item -> string = #id
+    val zindex : item -> int = #zindex
 
     fun has (a, b) i = 
         List.exists (fn x => eq (x, i)) a orelse
