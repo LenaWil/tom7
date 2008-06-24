@@ -377,23 +377,24 @@ struct
             and play () =
                 let
                     (* XXX draw mini icons! *)
-                    fun mtostring Hero.PerfectMatch = "P"
-                      | mtostring Hero.Snakes = "S"
-                      | mtostring Hero.Stoic = "s"
-                      | mtostring Hero.Plucky = "P"
-                      | mtostring Hero.Pokey = "O"
+                    fun mtostring Hero.PerfectMatch = Chars.MATCH
+                      | mtostring Hero.Snakes = Chars.SNAKES
+                      | mtostring Hero.Stoic = Chars.STOIC
+                      | mtostring Hero.Plucky = Chars.PLUCKY
+                      | mtostring Hero.Pokey = Chars.POKEY
                       | mtostring Hero.AuthenticStrummer = "A"
                       | mtostring Hero.AuthenticHammer = "a"
 
-                    fun mstostring Hero.PerfectMatch = "P"
-                      | mstostring Hero.Snakes = "S"
-                      | mstostring Hero.Stoic = "s"
-                      | mstostring Hero.Plucky = "P"
-                      | mstostring Hero.Pokey = "O"
+                    fun mstostring Hero.PerfectMatch = Chars.MATCH
+                      | mstostring Hero.Snakes = Chars.SNAKES
+                      | mstostring Hero.Stoic = Chars.STOIC
+                      | mstostring Hero.Plucky = Chars.PLUCKY
+                      | mstostring Hero.Pokey = Chars.POKEY
                       | mstostring Hero.AuthenticStrummer = "A"
                       | mstostring Hero.AuthenticHammer = "a"
 
                     val WIDTH = 256 - 16
+                    val HEIGHT = 444
 
                     val trim = StringUtil.losespecl StringUtil.whitespec o StringUtil.losespecr StringUtil.whitespec
                     val songs = StringUtil.readfile SONGS_FILE
@@ -410,7 +411,7 @@ struct
                                               val rs = 
                                               case List.find (fn (sid, _) => sid = Setlist.fromstring file)
                                                   (Profile.records (!profile)) of
-                                                  NONE => ("", "") (* no record. *)
+                                                  NONE => ("", fn () => "") (* no record. *)
                                                 | SOME (_, { percent, misses, medals }) =>
                                                       let 
                                                           fun colorp p s =
@@ -430,6 +431,7 @@ struct
                                                             then "-" ^ Int.toString misses
                                                             else Int.toString percent ^ "%") ^ " " ^
                                                                String.concat (map mtostring medals),
+                                                            fn () => 
                                                             colorp percent
                                                             (if percent = 99
                                                              then  ("-" ^ Int.toString misses)
@@ -459,13 +461,13 @@ struct
                             SmallFont.draw(screen, x + 2, y + 2 + FontSmall.height, "^4by ^0" ^ artist ^ 
                                            " ^1(" ^ year ^ ")");
                             
-                            FontSmall.draw(screen, x + 2, y + 4 + FontSmall.height + SmallFont.height,
-                                           if sel then rs else r)
+                            FontSmall.draw(screen, x + 42, y + 4 + FontSmall.height + SmallFont.height,
+                                           if sel then rs() else r)
                         end
                 in
                     case LM.select { x = 8, y = 40,
                                      width = WIDTH,
-                                     height = 400,
+                                     height = HEIGHT,
                                      items = songs,
                                      drawitem = drawitem,
                                      itemheight = itemheight,

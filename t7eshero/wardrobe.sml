@@ -49,33 +49,17 @@ struct
                     (fn (label, evt) =>
                      (case label of
                           Match.Music (inst, _) =>
-                     (case evt of
-                          MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
-                        | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 
-                                                                      90 * vel, 
-                                                                      inst) 
-                        | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
-                        | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
-                        | _ => ()))
+                          (case evt of
+                               MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
+                             | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 
+                                                                           90 * vel, 
+                                                                           inst) 
+                             | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
+                             | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
+                             | _ => ()))
                     nows
                 end
 
-            (* XXX will be using listmenu, right? *)
-(*
-            and input () =
-                case pollevent () of
-                    SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Done (* Abort? *)
-                  | SOME E_Quit => raise Hero.Exit
-                  | SOME (E_KeyDown { sym = SDLK_ENTER }) => exit()
-                  | SOME e => 
-                        (case Input.map e of
-                             SOME (_, Input.ButtonDown b) => exit()
-                           | SOME (_, Input.ButtonUp b) => ()
-                           | SOME (_, Input.StrumUp) => ()
-                           | SOME (_, Input.StrumDown) => ()
-                           | _ => ())
-                  | NONE => ()
-*)
 
             and draw () =
                 let

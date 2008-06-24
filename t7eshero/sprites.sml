@@ -122,7 +122,7 @@ struct
               "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
           val width = 9
           val height = 16
-          val styles = 6
+          val styles = 7
           val overlap = 1
           val dims = 3)
 
@@ -133,7 +133,7 @@ struct
               "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
           val width = 18
           val height = 32
-          val styles = 6
+          val styles = 7
           val overlap = 2
           val dims = 3)
 
@@ -144,7 +144,7 @@ struct
           "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
           val width = 27
           val height = 48
-          val styles = 6
+          val styles = 7
           val overlap = 3
           val dims = 3)
 
@@ -156,7 +156,7 @@ struct
           "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
           val width = 27 * 2
           val height = 48 * 2
-          val styles = 6
+          val styles = 7
           val overlap = 3 * 2
           (* 18mb per image! *)
           val dims = 1)
