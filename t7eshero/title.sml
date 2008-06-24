@@ -42,25 +42,6 @@ struct
 
     structure LM = ListMenuFn(val screen = screen)
         
-    local val seed = ref (0wxDEADBEEF : Word32.word)
-    in
-        fun random () =
-            let
-                val () = seed := Word32.xorb(!seed, 0wxF13844F5)
-                val () = seed := Word32.*(!seed, 0wx7773137)
-                val () = seed := Word32.+(!seed, 0wx7654321)
-            in
-                seed := !seed + 0w1;
-                !seed
-            end
-        fun random_int () =
-            Word32.toInt (Word32.andb(random (), 0wx7FFFFFFF))
-    end
-
-    fun fancy s =
-        String.concat (map (fn c =>
-                            implode [#"^", chr (ord #"0" + (random_int() mod 6)), c])
-                       (explode s))
 
     val profile = 
         let in
@@ -152,10 +133,10 @@ struct
                     wardstring := "^1Wardrobe";
 
                     (case !selected of
-                         Play => playstring := fancy "Play"
-                       | SignIn => signstring := fancy "Sign in"
-                       | Configure => confstring := fancy "Configure"
-                       | Wardrobe => wardstring := fancy "Wardrobe")
+                         Play => playstring := Chars.fancy "Play"
+                       | SignIn => signstring := Chars.fancy "Sign in"
+                       | Configure => confstring := Chars.fancy "Configure"
+                       | Wardrobe => wardstring := Chars.fancy "Wardrobe")
                 end
 
             val Y_PLAY = 148 + (FontHuge.height) * 0

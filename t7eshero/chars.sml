@@ -28,4 +28,25 @@ struct
          BAR_0, BAR_1, BAR_2, BAR_3, BAR_4, BAR_5, BAR_6,
          BAR_7, BAR_8, BAR_9, BAR_10, BARSTART, LRARROW, LLARROW]
 
+
+    local val seed = ref (0wxDEADBEEF : Word32.word)
+    in
+        fun random () =
+            let
+                val () = seed := Word32.xorb(!seed, 0wxF13844F5)
+                val () = seed := Word32.*(!seed, 0wx7773137)
+                val () = seed := Word32.+(!seed, 0wx7654321)
+            in
+                seed := !seed + 0w1;
+                !seed
+            end
+        fun random_int () =
+            Word32.toInt (Word32.andb(random (), 0wx7FFFFFFF))
+    end
+
+    fun fancy s =
+        String.concat (map (fn c =>
+                            implode [#"^", chr (ord #"0" + (random_int() mod 6)), c])
+                       (explode s))
+
 end

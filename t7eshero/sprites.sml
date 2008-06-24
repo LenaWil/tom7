@@ -35,6 +35,16 @@ struct
   val strum_down = requireimage2x "testgraphics/strum_down.png"
   val strum_up = requireimage2x "testgraphics/strum_up.png"
 
+  val new = requireimage "testgraphics/new.png"
+
+  val matchmedal = requireimage "testgraphics/matchmedal.png"
+  val pokeymedal = requireimage "testgraphics/pokeymedal.png"
+  val pluckymedal = requireimage "testgraphics/pluckymedal.png"
+
+      (* FIXME *)
+  val stoicmedal = requireimage "testgraphics/pluckymedal.png"
+  val snakesmedal = requireimage "testgraphics/pluckymedal.png"
+
   val stars = Vector.fromList
       [requireimage "testgraphics/greenstar.png",
        requireimage "testgraphics/redstar.png",
