@@ -1,0 +1,36 @@
+
+Managing movieclips depths in flash is tricky.
+This game uses certain rules about depths.
+
+Anything that is visible must have a depth of 100 or greater. 
+Its depth should be equal to its 
+
+There are some reserved depths between 0 and 100:
+
+ 0 : never used, except temporarily in order to delete a
+     movie clip
+
+ 99: the floor has this depth.
+
+ 98960-98969: foreground movieclips
+ 98970-98979: foreground effects
+ 99500: Menubar
+ 99980: player familiar
+ 99999: the border around the screen has this depth
+ 
+
+other important stuff:
+
+We universally use these codes to represent the
+four directions:
+
+1  right
+2  left
+3  down
+4  up
+
+Tools:
+
+1 eyeball
+2 hand
+
