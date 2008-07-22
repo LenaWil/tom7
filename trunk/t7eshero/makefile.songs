@@ -1,153 +1,194 @@
 #                             -*- makefile -*-
 
-songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid siloscore.mid kaasdoopscore.mid octreescore.mid sigscore.mid armyscore.mid bottomscore.mid recanterscore.mid sincescore.mid smitescore.mid matrixscore.mid freescore.mid nivscore.mid macrosscore.mid honkscore.mid originalscore.mid bansheescore.mid mircscore.mid sarnatscore.mid pizzascore.mid proofscore.mid kleescore.mid spinalscore.mid dndscore.mid devinscore.mid shaskellscore.mid gatoradescore.mid vehixscore.mid stdafxscore.mid directxscore.mid europescore.mid eyesscore.mid cupscore.mid
+songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid siloscore.mid kaasdoopscore.mid octreescore.mid sigscore.mid armyscore.mid bottomscore.mid recanterscore.mid sincescore.mid smitescore.mid matrixscore.mid freescore.mid nivscore.mid macrosscore.mid honkscore.mid originalscore.mid bansheescore.mid mircscore.mid sarnatscore.mid pizzascore.mid proofscore.mid kleescore.mid spinalscore.mid dndscore.mid devinscore.mid shaskellscore.mid gatoradescore.mid vehixscore.mid stdafxscore.mid directxscore.mid europescore.mid eyesscore.mid cupscore.mid alleyscore.mid bahscore.mid anacondascore.mid baldscore.mid chantscore.mid debrascore.mid divisionscore.mid elevscore.mid headcatscore.mid helixscore.mid hgisscore.mid heroscore.mid
 
 ALL = genscore.exe
 #  makefile.songs
 
+# XXX -noxmeasure used to be the default, so I did not install it in these
+# in case it makes a formerly good song worse. It should usually result in
+# better results, so try it!
+
 # add more...
 googscore.mid : goog.mid $(ALL)
-	./genscore -history 4 -hammertime 26 $< 0 2 4 5 7 8 -o $@
+	./genscore -noxmeasure -history 4 -hammertime 26 $< 0 2 4 5 7 8 -o $@
 
 ctetrisscore.mid : ctetris.mid $(ALL)
-	./genscore -history 4 -hammertime 26 $< 0 2 5 -o $@
+	./genscore -noxmeasure -history 4 -hammertime 26 $< 0 2 5 -o $@
 
 econoscore.mid : econo.mid $(ALL)
-	./genscore -history 5 -hammertime 26 $< 0 2 4 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 26 $< 0 2 4 -o $@
 
 duelscore.mid : duel.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 2 4 5 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 2 4 5 -o $@
 
 foofscore.mid : foof.mid $(ALL)
 	./genscore -history 5 -hammertime 26 $< 0 2 -o $@
 
 lunchscore.mid : lunch.mid $(ALL)
-	./genscore -nosort -history 5 -hammertime 26 $< 0 2 -o $@
+	./genscore -noxmeasure -nosort -history 5 -hammertime 26 $< 0 2 -o $@
 
 tracyfanscore.mid : tracyfan.mid $(ALL)
-	./genscore -history 5 -hammertime 26 $< 0 1 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 26 $< 0 1 -o $@
 
 blixscore.mid : blix.mid $(ALL)
-	./genscore -history 6 -hammertime 26 $< 0 2 3 -o $@
+	./genscore -noxmeasure -history 6 -hammertime 26 $< 0 2 3 -o $@
 
 zzzscore.mid : zzzzzzz.mid $(ALL)
-	./genscore -history 5 -hammertime 26 $< 0 1 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 26 $< 0 1 -o $@
 
 smlscore.mid : sml.mid $(ALL)
-	./genscore -history 5 -hammertime 26 $< 0 1 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 26 $< 0 1 -o $@
 
 # maybe better with -nosort? compare
 noodlescore.mid : noodle.mid $(ALL)
-	./genscore -history 4 -hammertime 26 $< 0 3 -o $@
+	./genscore -noxmeasure -history 4 -hammertime 26 $< 0 3 -o $@
 
 mattascore.mid : matta.mid $(ALL)
-	./genscore -history 4 -hammertime 26 $< 0 1 4 -o $@
+	./genscore -noxmeasure -history 4 -hammertime 26 $< 0 1 4 -o $@
 
 trigscore.mid : trig.mid $(ALL)
 	./genscore -history 6 -hammertime 36 $< 0 4 -o $@
 
 fneetscore.mid : fneet.mid $(ALL)
-	./genscore -history 4 -hammertime 36 $< 0 1 2 5 8 -o $@
+	./genscore -noxmeasure -history 4 -hammertime 36 $< 0 1 2 5 8 -o $@
 
 ackscore.mid : ack.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 -o $@
 
 ratheadscore.mid : rathead.mid $(ALL)
 	./genscore -history 8 -hammertime 36 $< 0 2 4 -o $@
 
 siloscore.mid : silo.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 -o $@
 
 kaasdoopscore.mid : kaasdoop.mid $(ALL)
-	./genscore -history 4 -hammertime 36 $< 0 2 -o $@
+	./genscore -noxmeasure -history 4 -hammertime 36 $< 0 2 -o $@
 
 octreescore.mid : octree.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 3 6 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 3 6 -o $@
 
 sigscore.mid : sigbovik.mid $(ALL)
-	./genscore -history 4 -hammertime 36 $< 0 1 2 5 7 -o $@
+	./genscore -noxmeasure -history 4 -hammertime 36 $< 0 1 2 5 7 -o $@
 
 armyscore.mid : army.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 3 -o $@
 
 bottomscore.mid : bottom.mid $(ALL)
 	./genscore -history 5 -hammertime 36 $< 0 3 -o $@
 
 recanterscore.mid : recanter.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
+	./genscore -history 5 -hammertime 66 $< 0 1 3 -o $@
 
 sincescore.mid : since.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 3 -o $@
 
 smitescore.mid : smite.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 3 4 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 3 4 -o $@
 
 matrixscore.mid : matrix.mid $(ALL)
 	./genscore -history 5 -hammertime 36 $< 0 1 -o $@
 
 freescore.mid : free.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 -o $@
 
 nivscore.mid : nivbible.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 3 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 3 -o $@
 
 macrosscore.mid : macros.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 3 -o $@
 
 honkscore.mid : honkhonk.mid $(ALL)
-	./genscore -history 5 -hammertime 61 $< 0 2 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 61 $< 0 2 -o $@
 
 originalscore.mid : original.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 2 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 2 -o $@
 
 bansheescore.mid : banshee.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 2 3 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 2 3 -o $@
 
 mircscore.mid : mirc.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 2 3 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 2 3 -o $@
 
 sarnatscore.mid : sarnat.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 3 -o $@
 
 pizzascore.mid : pizza.mid $(ALL)
-	./genscore -history 4 -hammertime 36 $< 0 2 4 -o $@
+	./genscore -noxmeasure -history 4 -hammertime 36 $< 0 2 4 -o $@
 
 proofscore.mid : proof.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 2 3 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 2 3 -o $@
 
 # ridiculous
 kleescore.mid : klee.mid $(ALL)
-	./genscore -history 4 -hammertime 36 $< 0 2 4 7 -o $@
+	./genscore -noxmeasure -history 4 -hammertime 36 $< 0 2 4 7 -o $@
 
 spinalscore.mid : spinal.mid $(ALL)
 	./genscore -history 5 -hammertime 56 $< 0 1 3 -o $@
 
 dndscore.mid : dnd.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 4 5 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 4 5 -o $@
 
 devinscore.mid : devin.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 3 -o $@
 
 shaskellscore.mid : shaskell.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 4 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 4 -o $@
 
 gatoradescore.mid : gatorade.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 2 3 5 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 2 3 5 -o $@
 
 vehixscore.mid : vehix.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 4 5 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 4 5 -o $@
 
 stdafxscore.mid : stdafx.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 4 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 4 -o $@
 
 directxscore.mid : directx.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 4 2 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 4 2 -o $@
 
 europescore.mid : europe.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 3 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 3 -o $@
 
 eyesscore.mid : eyes.mid $(ALL)
-	./genscore -history 5 -hammertime 36 $< 0 1 4 -o $@
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 4 -o $@
 
 cupscore.mid : cup.mid $(ALL)
+	./genscore -noxmeasure -history 4 -hammertime 36 $< 0 2 -o $@
+
+alleyscore.mid : alley.mid $(ALL)
+	./genscore -noxmeasure -history 5 -hammertime 36 $< 0 1 2 -o $@
+
+anacondascore.mid : anaconda.mid $(ALL)
+	./genscore -noxmeasure -history 5 -hammertime 26 $< 0 2 -o $@
+
+bahscore.mid : bah.mid $(ALL)
+	./genscore -noxmeasure -history 4 -hammertime 36 $< 0 4 11 6 14 15 16 -o $@
+
+baldscore.mid : baldwin.mid $(ALL)
+	./genscore -noxmeasure -history 4 -hammertime 36 $< 0 3 5 8 -o $@
+
+chantscore.mid : chant.mid $(ALL)
+	./genscore -noxmeasure -history 4 -hammertime 999 $< 0 2 4 3 -o $@
+
+debrascore.mid : debra.mid $(ALL)
+	./genscore -noxmeasure -history 4 -hammertime 26 $< 0 3 5 8 7 -o $@
+
+divisionscore.mid : division.mid $(ALL)
+	./genscore -history 4 -hammertime 26 $< 0 1 2 -o $@
+
+# better with noxmeasure
+elevscore.mid : elevate.mid $(ALL)
+	./genscore -noxmeasure -history 4 -hammertime 36 $< 0 1 -o $@
+
+headcatscore.mid : headcat.mid $(ALL)
 	./genscore -history 4 -hammertime 36 $< 0 2 -o $@
+
+helixscore.mid : helix.mid $(ALL)
+	./genscore -noxmeasure -history 4 -hammertime 36 $< 0 1 2 -o $@
+
+hgisscore.mid : hgis.mid $(ALL)
+	./genscore -history 4 -hammertime 36 $< 0 4 -o $@
+
+heroscore.mid : heroabuse.mid $(ALL)
+	./genscore -history 4 -hammertime 56 $< 0 1 2 -o $@

@@ -77,8 +77,11 @@ struct
 
                   (* XXX TODO: 
                      pageup and pagedown are hard to support because items are variable-sized.
-                  | SOME (E_KeyDown { sym = SDLK_PAGEUP }) => 
+                     This is an ad hoc hack for now.
                     *)
+                  | SOME (E_KeyDown { sym = SDLK_PAGEDOWN }) => Util.for 0 7 (move_down o ignore)
+                  | SOME (E_KeyDown { sym = SDLK_PAGEUP }) => Util.for 0 7 (move_up o ignore)
+
 
                   | SOME (E_JoyDown { button, ... }) => select ()
                   (* XXX should use joymap for this *)

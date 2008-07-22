@@ -29,15 +29,21 @@
 #define INST_SAW    2
 #define INST_NOISE  3
 #define INST_SINE   4
+#define INST_RHODES 5
 
 volatile int cur_freq[NMIX];
 volatile int cur_vol[NMIX];
 volatile int cur_inst[NMIX];
 static   int val[NMIX];
 static float leftover[NMIX];
+// Arbitrary integer data associated with the channel's state.
+// For periodic instruments, it stores the number of samples
+// that have transpired. For noise, it stores the previous sample
+// value for filtering.
 static   int samples[NMIX];
 
-
+#define NBANDS 8
+static   int oldpass[NMIX][NBANDS];
 
 void mixaudio (void * unused, Sint16 * stream, int len) {
   /* total number of samples; used to get rate */
@@ -54,6 +60,10 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
     for(ch = 0; ch < NMIX; ch ++) {
 
       switch(cur_inst[ch]) {
+      case INST_RHODES: {
+	// XXX
+      } 
+	/* FALLTHROUGH */
       case INST_SINE: {
 	samples[ch] ++;
 	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
@@ -113,7 +123,24 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 	seed += 0x77339919;
 
 	/* quarter-volume for noise, otherwise too overpowering */
-	if (cur_vol[ch]) mag += (seed % (cur_vol[ch] * 2) - cur_vol[ch]) >> 2;
+	if (cur_vol[ch]) {
+	  int samp = (seed % (cur_vol[ch] * 2) - cur_vol[ch]) >> 2;
+
+	  // lowpass filter. Should really do a bandpass the cutoffs
+	  // are some interval around the target frequency.
+
+	  int i, freq = HZFACTOR * 16;
+	  for(i = 0; i < NBANDS; i ++, freq <<= 1) {
+            #define ALPHA 0.7
+	    if (cur_freq[ch] < freq) {
+	      samp = oldpass[ch][i] + ALPHA * (samp - oldpass[ch][i]);
+	      samp = samp * (1.2);
+	    }
+	    oldpass[ch][i] = samp;
+	  }
+
+	  mag += samp * 0.75;
+	}
 	break;
       }
 
@@ -136,7 +163,19 @@ void ml_setfreq(int ch, int nf, int nv, int inst) {
   cur_vol[ch] = (int)(VOL_FACTOR * (float)nv);
   cur_freq[ch] = nf;
   cur_inst[ch] = inst;
-  samples[ch] = 0;
+
+  if (inst == INST_NOISE) {
+    int i;
+    for(i = 0; i < NBANDS; i ++) oldpass[ch][i] = 0;
+  } else {
+    samples[ch] = 0;
+  }
+#if 0
+  if (inst != INST_NONE) {
+    printf("Set %d = %d (Hz/10000) %d %d\n", ch, nf, nv, inst);
+    if (nf < HZFACTOR * 2000) printf ("BANDPASS.");
+  }
+#endif
   // SDL_UnlockAudio();
 }
 

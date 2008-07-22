@@ -35,6 +35,7 @@ struct
 
     (* XXX should probably be in setlist *)
     val SONGS_FILE = "songs.hero"
+    val SONGS_NONFREE = "songs-nonfree.hero"
     val TITLEMIDI = "title.mid"
         
     val PRECURSOR = 180
@@ -398,11 +399,12 @@ struct
 
                     val trim = StringUtil.losespecl StringUtil.whitespec o StringUtil.losespecr StringUtil.whitespec
                     val songs = StringUtil.readfile SONGS_FILE
+                    val songs = (songs ^ "\n" ^ StringUtil.readfile SONGS_NONFREE) handle _ => songs
                     val songs = String.tokens (fn #"\n" => true | _ => false) songs
                     val songs = List.mapPartial 
                         (fn s =>
                          case String.fields (fn #"|" => true | _ => false) s of
-                             [file, slowfactor, title, artist, year] =>
+                             [file, slowfactor, hard, fave, title, artist, year] =>
                                  (case Int.fromString (trim slowfactor) of
                                       NONE => (print ("Bad slowfactor: " ^ slowfactor ^ "\n");
                                                NONE)
