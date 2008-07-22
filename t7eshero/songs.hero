@@ -1,48 +1,60 @@
-googscore.mid      |5|   Theme from The Goog         | Tom 7 Entertainment System    | 2008
-bansheescore.mid   |4|   Theme from Banshee          | Tom 7 Entertainment System    | 2000
-ctetrisscore.mid   |5|   Continuous Tetris	     | Tom 7 Entertainment System    | 2007
-econoscore.mid     |5|   Theme from EconoCard	     | Tom 7 Entertainment System    | 2001
-europescore.mid    |5|   Europe                      | Tom 7 Entertainment System    | 2001
-freescore.mid      |5|   Free                        | Tom 7 Entertainment System    | 2000
-octreescore.mid    |5|   Theme from Octree           | Tom 7 Entertainment System    | 1999
-duelscore.mid      |5|   Duel			     | Tom 7 Entertainment System    | 1998
-gatoradescore.mid  |5|   Theme from Gatorade         | Tom 7 Entertainment System    | 2001
-proofscore.mid     |6|   I'm a Proof!                | Tom 7 Entertainment System    | 2000
-tracyfanscore.mid  |5|   Theme from TracyFan	     | Tom 7 Entertainment System    | 1999
-pizzascore.mid     |5|   Theme from Pizza            | Tom 7 Entertainment System    | 2000
-foofscore.mid      |3|   Theme from 0xF00F	     | Tom 7 Entertainment System    | 2001
-blixscore.mid      |5|   My Hero Blix		     | Tom 7 Entertainment System    | 2003
-zzzscore.mid       |5|   Theme from Zzzzzzz	     | Tom 7 Entertainment System    | 2001
-smlscore.mid       |5|   Theme from Standard ML      | Tom 7 Entertainment System    | 1999
-noodlescore.mid    |4|   Theme from A Noodle         | Tom 7 Entertainment System    | 1999
-titlescore.mid     |5|   Title Theme                 | Tom 7 Entertainment System    | 2007
-mattascore.mid     |2|   Theme from Matt Armistead   | Tom 7 Entertainment System    | 1999
-trigscore.mid      |3|   Theme from Trig             | Tom 7 Entertainment System    | 1999
-fneetscore.mid     |5|   Fneet                       | Tom 7 Entertainment System    | 1999
-ratheadscore.mid   |5|   Rat-Head                    | Tom 7 Entertainment System    | 1999
-siloscore.mid      |5|   Silo                        | Tom 7 Entertainment System    | 1999
-kaasdoopscore.mid  |5|   Kaasdoop                    | Tom 7 Entertainment System    | 1999
-armyscore.mid      |5|   Theme from Army             | Tom 7 Entertainment System    | 1999
-bottomscore.mid    |3|   Theme from Bottom           | Tom 7 Entertainment System    | 1999
-recanterscore.mid  |2|   Recanter                    | Tom 7 Entertainment System    | 1999
-sincescore.mid     |5|   Since                       | Tom 7 Entertainment System    | 1999
-smitescore.mid     |5|   Smite                       | Tom 7 Entertainment System    | 1999
-matrixscore.mid    |4|   Theme from Matrix Algebra   | Tom 7 Entertainment System    | 1999
-nivscore.mid       |5|   Theme from Niv Study Bible  | Tom 7 Entertainment System    | 2000
-lunchscore.mid     |3|   Theme from Lunch	     | Tom 7 Entertainment System    | 1998
-macrosscore.mid    |5|   Theme from Macros           | Tom 7 Entertainment System    | 2000
-honkscore.mid      |3|   Honk Honk                   | Tom 7 Entertainment System    | 2000
-originalscore.mid  |5|   Original Citrus             | Tom 7 Entertainment System    | 2000
-mircscore.mid      |5|   Theme from mIRC             | Tom 7 Entertainment System    | 2000
-sarnatscore.mid    |5|   Theme from Jeff Sarnat      | Tom 7 Entertainment System    | 2000
-spinalscore.mid    |3|   Theme from Spinal Fluid     | Tom 7 Entertainment System    | 2001
-dndscore.mid       |5|   Theme from dnd              | Tom 7 Entertainment System    | 2001
-devinscore.mid     |5|   Theme from Devin            | Tom 7 Entertainment System    | 2001
-shaskellscore.mid  |5|   Theme from shaskell         | Tom 7 Entertainment System    | 2001
-vehixscore.mid     |5|   Vehix                       | Tom 7 Entertainment System    | 2001
-stdafxscore.mid    |7|   Theme from stdafx.h         | Tom 7 Entertainment System    | 2001
-directxscore.mid   |5|   Theme from DirectX          | Tom 7 Entertainment System    | 2001
-eyesscore.mid      |5|   Theme from Eyes             | Tom 7 Entertainment System    | 2001
-ackscore.mid       |4|   Ack                         | Tom 7 Entertainment System    | 1999
-medleyscore.mid    |5|   Medley                      | Tom 7 Entertainment System    | many
-cupscore.mid       |5|   California University of Pennsylvania  | Tom 7 Entertainment System    | 2003
+googscore.mid      |5| 7| 8|   Theme from The Goog           | Tom 7 Entertainment System    | 2008
+bansheescore.mid   |4|-1|-1|   Theme from Banshee            | Tom 7 Entertainment System    | 2000
+ctetrisscore.mid   |5|-1|-1|   Continuous Tetris             | Tom 7 Entertainment System    | 2007
+econoscore.mid     |5| 6| 6|   Theme from EconoCard          | Tom 7 Entertainment System    | 2001
+europescore.mid    |5|-1|-1|   Europe                        | Tom 7 Entertainment System    | 2001
+freescore.mid      |5| 5| 4|   Free                          | Tom 7 Entertainment System    | 2000
+octreescore.mid    |5|-1|-1|   Theme from Octree             | Tom 7 Entertainment System    | 1999
+duelscore.mid      |5|-1|-1|   Duel                          | Tom 7 Entertainment System    | 1998
+gatoradescore.mid  |5|-1|-1|   Theme from Gatorade           | Tom 7 Entertainment System    | 2001
+proofscore.mid     |6|-1|-1|   I'm a Proof!                  | Tom 7 Entertainment System    | 2000
+tracyfanscore.mid  |5|-1|-1|   Theme from TracyFan           | Tom 7 Entertainment System    | 1999
+pizzascore.mid     |5|-1|-1|   Theme from Pizza              | Tom 7 Entertainment System    | 2000
+foofscore.mid      |3|-1|-1|   Theme from 0xF00F             | Tom 7 Entertainment System    | 2001
+blixscore.mid      |5|-1|-1|   My Hero Blix                  | Tom 7 Entertainment System    | 2003
+zzzscore.mid       |5|-1|-1|   Theme from Zzzzzzz            | Tom 7 Entertainment System    | 2001
+smlscore.mid       |5| 7| 4|   Theme from Standard ML        | Tom 7 Entertainment System    | 1999
+noodlescore.mid    |3| 4| 4|   Theme from A Noodle           | Tom 7 Entertainment System    | 1999
+titlescore.mid     |5| 8| 5|   Title Theme                   | Tom 7 Entertainment System    | 2007
+mattascore.mid     |2|-1|-1|   Theme from Matt Armistead     | Tom 7 Entertainment System    | 1999
+trigscore.mid      |3|-1|-1|   Theme from Trig               | Tom 7 Entertainment System    | 1999
+fneetscore.mid     |5| 7| 8|   Fneet                         | Tom 7 Entertainment System    | 1999
+ratheadscore.mid   |5|-1|-1|   Rat-Head                      | Tom 7 Entertainment System    | 1999
+siloscore.mid      |5|-1|-1|   Silo                          | Tom 7 Entertainment System    | 1999
+kaasdoopscore.mid  |5|-1|-1|   Kaasdoop                      | Tom 7 Entertainment System    | 1999
+armyscore.mid      |5|-1|-1|   Theme from Army               | Tom 7 Entertainment System    | 1999
+bottomscore.mid    |3|-1|-1|   Theme from Bottom             | Tom 7 Entertainment System    | 1999
+recanterscore.mid  |2|-1|-1|   Recanter                      | Tom 7 Entertainment System    | 1999
+sincescore.mid     |5|-1|-1|   Since                         | Tom 7 Entertainment System    | 1999
+smitescore.mid     |5|-1|-1|   Smite                         | Tom 7 Entertainment System    | 1999
+matrixscore.mid    |4|-1|-1|   Theme from Matrix Algebra     | Tom 7 Entertainment System    | 1999
+nivscore.mid       |5|-1|-1|   Theme from Niv Study Bible    | Tom 7 Entertainment System    | 2000
+lunchscore.mid     |3|-1|-1|   Theme from Lunch              | Tom 7 Entertainment System    | 1998
+macrosscore.mid    |5| 6| 7|   Theme from Macros             | Tom 7 Entertainment System    | 2000
+honkscore.mid      |3|-1|-1|   Honk Honk                     | Tom 7 Entertainment System    | 2000
+originalscore.mid  |5|-1|-1|   Original Citrus               | Tom 7 Entertainment System    | 2000
+mircscore.mid      |5| 4| 5|   Theme from mIRC               | Tom 7 Entertainment System    | 2000
+sarnatscore.mid    |5|-1|-1|   Theme from Jeff Sarnat        | Tom 7 Entertainment System    | 2000
+spinalscore.mid    |3| 6| 6|   Theme from Spinal Fluid       | Tom 7 Entertainment System    | 2001
+dndscore.mid       |5|-1|-1|   Theme from dnd                | Tom 7 Entertainment System    | 2001
+devinscore.mid     |5|-1|-1|   Theme from Devin              | Tom 7 Entertainment System    | 2001
+shaskellscore.mid  |5|-1|-1|   Theme from shaskell           | Tom 7 Entertainment System    | 2001
+vehixscore.mid     |5|-1|-1|   Vehix                         | Tom 7 Entertainment System    | 2001
+stdafxscore.mid    |7|-1|-1|   Theme from stdafx.h           | Tom 7 Entertainment System    | 2001
+directxscore.mid   |5|-1|-1|   Theme from DirectX            | Tom 7 Entertainment System    | 2001
+eyesscore.mid      |5|-1|-1|   Theme from Eyes               | Tom 7 Entertainment System    | 2001
+ackscore.mid       |4|-1|-1|   Ack                           | Tom 7 Entertainment System    | 1999
+medleyscore.mid    |5|-1|-1|   Medley                        | Tom 7 Entertainment System    | many
+cupscore.mid       |5| 9| 5|   California University of Pennsylvania  | Tom 7 Entertainment System    | 2003
+alleyscore.mid     |5| 4| 3|   Theme from an Alley           | Tom 7 Entertainment System    | 2000
+anacondascore.mid  |5|-1|-1|   Theme from Anaconda           | Tom 7 Entertainment System    | 1998
+bahscore.mid       |5|-1|-1|   Theme from Bah                | Tom 7 Entertainment System    | 1998
+baldscore.mid      |3|-1|-1|   Theme from Baldwin            | Tom 7 Entertainment System    | 1999
+chantscore.mid     |5| 6| 6|   Chant                         | Tom 7 Entertainment System    | 1998
+debrascore.mid     |5| 5| 6|   Theme from Debra              | Tom 7 Entertainment System    | 1998
+divisionscore.mid  |3|-1|-1|   Theme from Divsion            | Tom 7 Entertainment System    | 1998
+elevscore.mid      |5|-1|-1|   Elevate                       | Tom 7 Entertainment System    | 2000
+headcatscore.mid   |5| 5| 7|   Theme from Headcat            | Tom 7 Entertainment System    | 2007
+helixscore.mid     |5| 4| 5|   Theme from Helix              | Tom 7 Entertainment System    | 1996
+hgisscore.mid      |5|-1|-1|   Hgis                          | Tom 7 Entertainment System    | 1998
+heroscore.mid      |3|-1|-1|   Hero Abuse                    | Tom 7 Entertainment System    | ?

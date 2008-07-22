@@ -101,8 +101,10 @@ struct
 
   fun noteon (ch, n, v, inst) =
       let in
-          (* print ("(noteon " ^ Int.toString ch ^ " " ^ Int.toString n ^ "@" ^
-                 Int.toString v ^ ")\n"); *)
+          (*
+          print ("(noteon " ^ Int.toString ch ^ " " ^ Int.toString n ^ "@" ^
+                 Int.toString v ^ ")\n");
+*)
           (case Array.sub(Vector.sub(miditable, ch), n) of
                OFF => (* find channel... *)
                    (case Array.findi (fn (_, b) => not b) mixes of

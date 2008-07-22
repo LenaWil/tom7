@@ -43,6 +43,10 @@ struct
   exception Hero of string
   exception Exit
 
+  val nomeasurehist = Params.flag false (SOME("-noxmeasure",
+                                              "Don't save history across measure (sometimes produces better scores)"))
+                         "noxmeasure"
+
   val nosort = Params.flag false (SOME("-nosort", 
                                        "Don't sort notes (sometimes makes weirder, and thus better, scores)"))
                             "nosort"
@@ -222,15 +226,18 @@ struct
 
   val DISCOUNT = 4
 
-  (* Render a single measure. We got rid of the deltas and lengths. *)
-  fun render_one (m : int list list) =
+  (* Render a single measure. We got rid of the deltas and lengths.
+     Returns the assignment as a list of pairs of (old notes, finger assignments).
+     Takes the assignment that was given for the previous measure (An empty
+     list has the effect of ignoring any prior context.)
+     *)
+  fun render_one (prev_measure : (int list * int list) list) (m : int list list) =
       let
           val HISTORY = Params.asint 1 history
 
           val total = ref 0
-          (* given the assignment for the previous 
-             event(s), compute the best possible asasignment
-             for the tail, and its penalty. *)
+          (* given the assignment for the previous event(s), compute the best
+             possible assignment for the tail, and its penalty. *)
 
           fun best_rest BEST_REST (_, nil) = (nil, 0)
             | best_rest BEST_REST (hist, ns :: rest) =
@@ -251,11 +258,18 @@ struct
                       
                   val olds = map ListPair.zip hist
 
-                  (* The heart of genscore. Compute a penalty for this assignment
-                     relative to a previous assignment.
+                  (* The heart of genscore. Compute a penalty for this 
+                     assignment relative to a previous assignment.
 
-                     The penalty is "linear" over the components of the soneme, so
-                     we do this note by note.
+                     The penalty is "linear" over the components of
+                     the soneme, so we do this note by note.
+
+                     nb. I think it might make sense to hard-code the
+                     case where the event is the same as the previous
+                     one, so that we don't bother trying all of the
+                     possibilities in that case. (That is, consider
+                     the adjacent non-equal penalty infinite and then
+                     optimize out the infinitely costly alternatives.)
                      *)
                   fun this_penalty old (enew, anew) =
                       let
@@ -314,7 +328,7 @@ struct
                           val pen = all_penalty (ns, ass)
                       in
                           if pen + tailpen < bestpen
-                          then getbest (ass :: tail, pen + tailpen) more
+                          then getbest ((ns, ass) :: tail, pen + tailpen) more
                           else getbest (best, bestpen) more
                       end
                     | getbest (best, bestpen) nil = (best, bestpen)
@@ -341,7 +355,6 @@ struct
                     | el (h :: t) = 0w7 * (hil 0w257 h) + el t
               in
                   Word32.xorb (el ill, elh HISTORY l)
-                               
               end
 
           fun cmp_list_hist ((l1 : (int list * int list) list, ill1 : int list list), (l2, ill2)) =
@@ -378,12 +391,11 @@ struct
                           "\n")
 *)
 
-          (* start with an empty history buffer, which doesn't penalize any
-             following assignment.
-
-             XXX To make this better, we might as well put the
-             last note from (a) previous measure, if there is one. *)
-          val (best, bestpen) = best_rest (nil, m)
+          (* We start with the history of the previous measure's assignment
+             (only). This helps especially when important transitions
+             only happen at measure boundaries. Recall that the history
+             is stored in reverse order from the assignment. *)
+          val (best, bestpen) = best_rest (rev prev_measure, m)
       in
 (*
           print ("Got best penalty of " ^ Int.toString bestpen ^ " with " ^
@@ -405,7 +417,10 @@ struct
           val completed = ref (MM.empty)
           fun get m = MM.find(!completed, m)
 
-          fun do_one m =
+          (* Compute the assignment for the measure and return it. Put the re-lengthend
+             result along with the raw assignment (for cross-measure history) in the
+             completed cache. Optionally gets the assignment for the previous measure. *)
+          fun do_one prev m =
               let
                   (* we don't care about the deltas, or the note lengths
                      for the purposes of assignment. take those out first. *)
@@ -418,7 +433,8 @@ struct
                            then raise Hero "empty notes"
                            else ()
 
-                  val nots = render_one nots
+                  val assignment = render_one (Option.getOpt (prev, nil)) nots
+                  val nots = map #2 assignment
 
                   val notslens : (int list * int list) list = ListPair.zip (nots, lens)
 
@@ -426,19 +442,36 @@ struct
                   val sons' = map ListPair.zip notslens
                   val res = ListPair.zip (dels, sons')
               in
-                  completed := MM.insert(!completed, m, res)
+                  completed := MM.insert(!completed, m, (res, assignment));
+                  assignment
               end
 
-          fun maybe_do_one m =
+          (* Do one, returning its assignment. If we've already done it and it's in
+             the cache, use that, but still return the assignment in case the next
+             measure is fresh. *)
+          fun maybe_do_one prev m =
               case get m of
-                  NONE => do_one m
-                | SOME _ => ()
+                  NONE => do_one prev m
+                | SOME (_, this) => this
+
+          (* Apply, also passing along (SOME r) where r is the result of
+             application to the previous element, if any. *)
+          fun appwithprev (f : 'b option -> 'a -> 'b) (l : 'a list) =
+              let
+                  fun awp _ nil = ()
+                    | awp (p : 'b option) (h :: t) = 
+                      let val r = f p h
+                      in awp (SOME r) t
+                      end
+              in
+                  awp NONE l
+              end
 
       in
-          app maybe_do_one t;
+          appwithprev maybe_do_one t;
           map (fn m =>
                case get m of
-                   SOME n => n
+                   SOME (n, _) => n
                  | NONE => 
                    raise Hero "After rendering, a measure wasn't completed?") t
       end

@@ -1,19 +1,16 @@
 
 For demo:
 
- * Postmortem and high-scores
  * Profile editor (at least name, pic)
  * Some recognizable non-free songs
 
  * Rate the existing song list, or improve through genscoring?
 
- * Achievements: Snakes
  * A few more items
 
  * Noise shaping?
 
 items:
-  pacman sweater
   coconut bra
   facial tongue  
   ...
@@ -26,12 +23,16 @@ Not tonight:
 --------------------------------------------------
 
 More midi triage. Did the whole cake\ dir, but need cake\also and cake\newsongs ....
+   left off in cake\also  at j-bocm.wrk.
 
+ * go through songs and try removing -noxmeasure; should usually make it better.
 
  * crashes ???
 
  * stdafx needs help during the fun part, merging notes from the basss
 
+ * cats.wrk
+ * robots in general (but 1 track, argh)
  * Powerade could be fun but needs track 0 to be split
  * Maybe hock is possible, needs lots of tuning
  * Marriage too, but it needs some splitting
@@ -43,15 +44,22 @@ More midi triage. Did the whole cake\ dir, but need cake\also and cake\newsongs 
  * police?
  * quarterl?
 
+ * honk-honk is sorta too long.
+
  * fix scoring
 
  * improve performance of DP algorithm (space usage)
 
- * option to merge up short measures for genscore (foof.mid, recanter.mid)
+ * option to merge up short measures for genscore. x-measure option does
+   a pretty good job on most songs.
 
  * low watermark filter for 0-length MIDI notes (goog.mid drums, sigbovik?)
 
+ * drum kit samples? Would be pretty easy to play samples.
+
  * noise pitch? (with lowpass/highpass?)
+
+ * more instruments, especially rhodes.
 
 canyon.mid can't be read??
 
