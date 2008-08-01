@@ -103,7 +103,8 @@ struct
             print "message sent!\n"
         end
 
-      | perform (Config.Radar i, subject, parts) =
+      (* Old-style Radar post. Now images are uploaded separately, creating templates. *)
+      | perform (Config.OldRadar i, subject, parts) =
         let
             val sep = "XXX-MAKE-RANDOM"
 
@@ -165,6 +166,61 @@ struct
             connectsend(Config.WEBLOG_HOST, Config.WEBLOG_PORT, msg);
             print "message sent!\n"
         end
+
+      | perform (Config.RadarImage i, subject, parts) =
+        (* message body is ignored for image posts. *)
+        (case ListUtil.findpartial (fn Data s => SOME s | _ => NONE) parts of
+           NONE => print "Image post ignored: no attachment."
+         | SOME theimage =>
+            let
+                val sep = "XXX-MAKE-RANDOM"
+
+                val pieces =
+                    (* no need for seql, seqh if password given,
+                       nor poison, pw. *)
+                    [("n", Int.toString i),
+                     ("pass", Config.WEBLOG_PASS),
+                     ("caption", subject)]
+
+                val bodyparts =
+                    map (fn (key, data) =>
+                         "Content-Disposition: form-data; name=\"" ^ key ^ "\"" ^ CRLF ^
+                         CRLF ^
+                         data) pieces @
+                    (* XXX this is bogus when there's no image, but it should
+                       probably not mess anything up on the server *)
+                    ["Content-Disposition: form-data; name=\"thumb\"; filename=\"maildar.jpg\"" ^ CRLF ^
+                     "Content-Type: image/jpeg" ^ CRLF ^
+                     CRLF ^
+                     theimage]
+
+                val body =
+                    "--" ^ sep ^ CRLF ^
+                    StringUtil.delimit (CRLF ^ "--" ^ sep ^ CRLF) bodyparts ^
+                    CRLF ^ "--" ^ sep ^ "--" ^ CRLF
+
+                val msg =
+                    "POST /f/a/weblog/insertimg HTTP/1.1" ^ CRLF ^
+                    "Host: " ^ Config.WEBLOG_HOST ^ CRLF ^
+                    "Accept: text/xml,application/xml,application/xhtml+xml," ^
+                        "text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5" ^ CRLF ^
+                    "Accept-Language: en-us,en;q=0.5" ^ CRLF ^
+                    "Accept-Encoding: gzip,deflate" ^ CRLF ^
+                    "Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7" ^ CRLF ^
+                    "User-Agent: maildar" ^ CRLF ^
+                    "Connection: close" ^ CRLF ^
+                    "Content-Type: multipart/form-data; boundary=" ^ sep ^ CRLF ^
+                    "Content-Length: " ^ Int.toString (size body) ^ CRLF ^
+                    CRLF ^
+                    body
+            in
+                StringUtil.writefile "/tmp/coolz" msg;
+                print "Here's the message: (in /tmp/coolz)\n";
+
+                connectsend(Config.WEBLOG_HOST, Config.WEBLOG_PORT, msg);
+                print "message sent!\n"
+            end)
+
       (* | perform _ = print "XXX unimplemented" *)
 
 

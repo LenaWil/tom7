@@ -7,7 +7,8 @@ sig
 
     datatype action =
         MessageBoard of int
-      | Radar of int
+      | OldRadar of int
+      | RadarImage of int
 
     (* Passwords, which don't have to be correct
        if you don't want to use these features *)
