@@ -103,6 +103,9 @@ struct
             val allmedals = List.filter (fn m' => not (List.exists (fn m => m = m') oldmedals)) medals @ oldmedals
 
             (* save profile right away *)
+            (* XXX if there are NO notes in the song, this crashes. maybe that
+               should be considered an illegal song, but we should not
+               be so brutal. *)
             val () = Profile.setrecords profile ((songid, { percent = Int.max(oldpercent,
                                                                               (hit * 100) div total),
                                                             misses = Int.min(oldmisses, misses),

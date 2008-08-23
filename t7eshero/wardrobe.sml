@@ -13,7 +13,7 @@ struct
     val background = Sprites.requireimage "testgraphics/wardrobe.png"
     val screen = Sprites.screen
 
-    val BGMIDI = "postmortem.mid" (* XXXX *)
+    val BGMIDI = "store.mid" (* XXX: sines should not click so much. *)
     val PRECURSOR = 180
     val SLOWFACTOR = 5
     val MENUTICKS = 0w60
