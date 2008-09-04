@@ -43,27 +43,31 @@ struct
   exception Hero of string
   exception Exit
 
+  val watermark_min = Params.param "2" (SOME("-watermark",
+                                             "Make zero-length notes actually be this long (measured in MIDI ticks)"))
+                         "watermark"
+
   val nomeasurehist = Params.flag false (SOME("-noxmeasure",
                                               "Don't save history across measure (sometimes produces better scores)"))
                          "noxmeasure"
 
   val nosort = Params.flag false (SOME("-nosort", 
                                        "Don't sort notes (sometimes makes weirder, and thus better, scores)"))
-                            "nosort"
+                         "nosort"
 
   val output = Params.param "genscore.mid" (SOME("-o",
                                                  "Set the output file.")) 
-                            "output"
+                         "output"
 
   val hammertime = Params.param "25" (SOME("-hammertime",
                                            "Threshold (in MIDI ticks) for allowing hammering"))
-                            "hammertime"
+                         "hammertime"
 
-(* XXX implement *)
+  (* XXX implement *)
   (* more than 2 or 3 will usually make this run out of memory and die *)
   val history = Params.param "1" (SOME("-history",
                                        "Events of history to consider during assignment."))
-                            "history"
+                         "history"
 
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
@@ -814,9 +818,56 @@ struct
           List.mapPartial (fn x => x) (ListUtil.mapi onetrack tracks)
       end
 
+  (* Correct for zero-length NOTEON-NOTEOFF spans, by making them have
+     watermark_min length. This is easy. For each group of events (which
+     is an initial event and all the events that occur 0 delta ticks
+     after it) we see if there is a NOTEON with a corresponding NOTEOFF
+     occurring later in the list. If so, we push that NOTEOFF event forward
+     into the event stream (except we stop and deposit it early if we
+     encounter another matching NOTEON event). *)
+  fun watermark (tr : (int * MIDI.event) list) =
+      let
+          fun push_off (ch, note) dt nil = [(dt, MIDI.NOTEOFF(ch, note, 0))]
+            | push_off (ch, note) dt ((t, evt) :: rest) =
+              (* does the new event come before or after the head? *)
+              if dt <= t
+              then (dt, MIDI.NOTEOFF(ch, note, 0)) :: (t - dt, evt) :: rest
+              else 
+                  let fun skip () = (t, evt) :: push_off (ch, note) (dt - t) rest
+                  in case evt of
+                      MIDI.NOTEON(ch', note', v') =>
+                          if ch = ch' andalso note = note'
+                          then (* deposit early. *)
+                              push_off (ch, note) t ((t, evt) :: rest)
+                          else skip ()
+                    | _ => skip ()
+                  end
+      in
+          case tr of
+              nil => nil
+            | (this as (t, MIDI.NOTEON(ch, note, v))) :: rest =>
+                  let
+                      fun ensure nil = nil
+                        | ensure ((that as (0, MIDI.NOTEOFF(ch', note', _))) :: more) =
+                          if ch = ch' andalso note = note'
+                          then 
+                              let in
+                                  print ("Making minimum watermark for " ^ itos ch ^ "/" ^ itos note ^ "\n");
+                                  push_off (ch, note) (Params.asint 1 watermark_min) more
+                              end
+                          else that :: ensure more
+                        | ensure ((that as (0, evt)) :: more) = that :: ensure more
+                        | ensure later = later
+                  in
+                      this :: watermark (ensure rest)
+                  end
+            | next :: rest => next :: watermark rest
+      end
+
   (* XXX debug *)
   val () = MIDI.writemidi "copy.mid" (1, divi, thetracks)
 
+  val thetracks = map watermark thetracks
   val tracks = label thetracks
 
   val () = if List.null includes
