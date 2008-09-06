@@ -51,6 +51,7 @@ struct
   val INST_SAW    = 2
   val INST_NOISE  = 3
   val INST_SINE   = 4
+  val INST_RHODES = 5
 
   val freqs = Array.array(16, 0)
   fun setfreq (ch, f, vol, inst) = setfreq_ (ch, f, vol, inst)

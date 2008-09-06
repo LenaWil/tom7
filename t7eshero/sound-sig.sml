@@ -19,6 +19,7 @@ sig
     val INST_SAW : inst
     val INST_NOISE : inst
     val INST_SINE : inst
+    val INST_RHODES : inst
 
     (* setfreq (ch, freq, vol, inst) *)
     val setfreq : int * int * int * inst -> unit
