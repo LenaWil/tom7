@@ -51,7 +51,8 @@ struct
                           | #"W" => Match.Music (Sound.INST_SAW, i)
                           | #"N" => Match.Music (Sound.INST_NOISE, i)
                           | #"S" => Match.Music (Sound.INST_SINE, i)
-                          | _ => (messagebox "?? expected S or Q or W or N\n"; raise Hero.Hero ""),
+                          | #"R" => Match.Music (Sound.INST_RHODES, i)
+                          | _ => (messagebox "?? expected R or S or Q or W or N\n"; raise Hero.Hero ""),
                             tr)
 
                      | #"!" =>

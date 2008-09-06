@@ -8,7 +8,9 @@ For demo:
 
  * A few more items
 
- * Noise shaping?
+ * Should put volume envelope on sines; clicky in wardrobe
+
+ * Use configuration throughout code; menu goes crazy on mac 
 
 items:
   coconut bra
@@ -23,14 +25,19 @@ Not tonight:
 --------------------------------------------------
 
 More midi triage. Did the whole cake\ dir, but need cake\also and cake\newsongs ....
-   left off in cake\also  at now.wrk.
+   left off in cake\also  at proviso.wrk
 
  * go through songs and try removing -noxmeasure; should usually make it better.
 
- * crashes ???
+ * crashes ??? (when running out of channels?)
+
+ * kaomai needs -quantize option to genscore.
+ * continuous tetris has extra garbage at end
 
  * stdafx needs help during the fun part, merging notes from the bass
+
  * rt2i needs some volume adjustment, mainly turning down the big squares
+ * goog could use drum volume boost
 
  * cats.wrk
  * robots in general (but 1 track, argh)
@@ -45,6 +52,8 @@ More midi triage. Did the whole cake\ dir, but need cake\also and cake\newsongs 
  * police?
  * quarterl?
 
+ * Ohio is too long without another part. But it's a nice easy tune.
+
  * honk-honk is sorta too long.
 
  * fix scoring
@@ -53,8 +62,6 @@ More midi triage. Did the whole cake\ dir, but need cake\also and cake\newsongs 
 
  * option to merge up short measures for genscore. x-measure option does
    a pretty good job on most songs.
-
- * low watermark filter for 0-length MIDI notes (goog.mid drums, sigbovik?)
 
  * drum kit samples? Would be pretty easy to play samples.
 

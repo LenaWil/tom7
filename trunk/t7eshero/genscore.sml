@@ -90,6 +90,7 @@ struct
   val INST_SAW    = 2
   val INST_NOISE  = 3
   val INST_SINE   = 4
+  val INST_RHODES = 5
 
   val itos = Int.toString
 
@@ -807,7 +808,8 @@ struct
                                       | #"W" => Music INST_SAW 
                                       | #"N" => Music INST_NOISE
                                       | #"S" => Music INST_SINE
-                                      | _ => (print "?? expected Q or W or N\n"; raise Hero ""),
+                                      | #"R" => Music INST_RHODES
+                                      | _ => (print "?? expected R or S or Q or W or N\n"; raise Hero ""),
                                         tr)
                                  | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); 
                                          (Control, tr))
@@ -848,6 +850,8 @@ struct
             | (this as (t, MIDI.NOTEON(ch, note, v))) :: rest =>
                   let
                       fun ensure nil = nil
+                        | ensure ((that as (0, MIDI.NOTEON(ch', note', 0))) :: more) =
+                          ensure ((0, MIDI.NOTEOFF(ch', note', 0)) :: more)
                         | ensure ((that as (0, MIDI.NOTEOFF(ch', note', _))) :: more) =
                           if ch = ch' andalso note = note'
                           then 
@@ -855,8 +859,16 @@ struct
                                   print ("Making minimum watermark for " ^ itos ch ^ "/" ^ itos note ^ "\n");
                                   push_off (ch, note) (Params.asint 1 watermark_min) more
                               end
-                          else that :: ensure more
-                        | ensure ((that as (0, evt)) :: more) = that :: ensure more
+                          else 
+                              let in
+                                  (* print "ensure: not same noteoff\n"; *)
+                                  that :: ensure more
+                              end
+                        | ensure ((that as (0, evt)) :: more) = 
+                              let in
+                                  (* print "ensure: not noteoff\n"; *)
+                                  that :: ensure more
+                              end
                         | ensure later = later
                   in
                       this :: watermark (ensure rest)
