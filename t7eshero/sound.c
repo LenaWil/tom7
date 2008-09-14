@@ -31,6 +31,9 @@
 #define INST_SINE   4
 #define INST_RHODES 5
 
+#define ENV_FADEIN_SAMPLES 32
+#define ENV_FADEOUT_SAMPLES 32
+
 volatile int cur_freq[NMIX];
 volatile int cur_vol[NMIX];
 volatile int cur_inst[NMIX];
@@ -41,6 +44,10 @@ static float leftover[NMIX];
 // that have transpired. For noise, it stores the previous sample
 // value for filtering.
 static   int samples[NMIX];
+// If -1, do nothing special. if >= 0, for that many samples, continue
+// making the current sound, decreasing it in volume and decreasing fades,
+// until reaching -1, and then set the instrument to NONE and volume to 0.
+static   int fades[NMIX];
 
 #define NBANDS 8
 static   int oldpass[NMIX][NBANDS];
@@ -65,11 +72,28 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
       } 
 	/* FALLTHROUGH */
       case INST_SINE: {
-	samples[ch] ++;
 	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
 	/* as a fraction of cycle */
 	double t = fmod(samples[ch], cycle);
-	mag += (int) ( (double)cur_vol[ch] * sin((t/cycle) * 2.0 * PI) );
+	double val = ( (double)cur_vol[ch] * sin((t/cycle) * 2.0 * PI) );
+	if (samples[ch] < ENV_FADEIN_SAMPLES) {
+	  val *= (samples[ch] / (float)ENV_FADEIN_SAMPLES);
+	}
+	// printf("Fading %d @%d\n", ch, fades[ch]);
+	if (fades[ch] >= 0) {
+	  fades[ch] --;
+	  val *= (fades[ch] / (float)ENV_FADEOUT_SAMPLES);
+	}
+
+	mag += (int) val;
+	samples[ch] ++;
+
+ 	if (fades[ch] == 0) {
+	  // printf("Fade ends for %d.\n", ch);
+	  cur_inst[ch] = INST_NONE;
+	  cur_vol[ch] = 0;
+	  fades[ch] = -1;
+	}
 
 	break;
       }
@@ -160,22 +184,32 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
    change the vol/freq/inst atomically. */
 void ml_setfreq(int ch, int nf, int nv, int inst) {
   // SDL_LockAudio();
-  cur_vol[ch] = (int)(VOL_FACTOR * (float)nv);
-  cur_freq[ch] = nf;
-  cur_inst[ch] = inst;
-
-  if (inst == INST_NOISE) {
-    int i;
-    for(i = 0; i < NBANDS; i ++) oldpass[ch][i] = 0;
-  } else {
-    samples[ch] = 0;
-  }
 #if 0
-  if (inst != INST_NONE) {
-    printf("Set %d = %d (Hz/10000) %d %d\n", ch, nf, nv, inst);
-    if (nf < HZFACTOR * 2000) printf ("BANDPASS.");
-  }
+  if (ch < 11) { // || inst != INST_NONE) {
+    printf("(cur inst: %d) Set %d = %d (Hz/10000) %d %d\n", cur_inst[ch], ch, nf, nv, inst);
+      //      if (nf < HZFACTOR * 2000) printf ("BANDPASS.");
+    }
 #endif
+
+  if ((nv == 0 || inst == INST_NONE) && (cur_inst[ch] == INST_SINE || cur_inst[ch] == INST_RHODES)) {
+
+    // printf("Made ch %d start fading\n", ch);
+    // set fadeout samples.
+    fades[ch] = ENV_FADEOUT_SAMPLES;
+
+  } else {
+    cur_vol[ch] = (int)(VOL_FACTOR * (float)nv);
+    cur_freq[ch] = nf;
+    cur_inst[ch] = inst;
+    fades[ch] = -1;
+    
+    if (inst == INST_NOISE) {
+      int i;
+      for(i = 0; i < NBANDS; i ++) oldpass[ch][i] = 0;
+    } else {
+      samples[ch] = 0;
+    }
+  }
   // SDL_UnlockAudio();
 }
 
@@ -190,6 +224,7 @@ void ml_initsound() {
       samples[i] = 0;
       cur_inst[i] = INST_NONE;
       val[i] = 1;
+      fades[i] = -1;
     }
   }
 
