@@ -10,6 +10,7 @@ group is
  util/port-mlton.sml
 #endif
 
+(*
 ../sml-lib/util/util-sig.sml
 ../sml-lib/util/util.sml
 
@@ -36,16 +37,8 @@ fsutil-portable.sml
 
 ../sdlml/font-sig.sml
 ../sdlml/font.sml
+*)
 
 (* has effect, should be first. *)
 clicktest.sml
 
-(*
-hero.sml
-
-serialize.sml
-input-sig.sml
-input.sml
-chars.sml
-sprites.sml
-*)

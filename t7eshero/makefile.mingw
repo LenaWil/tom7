@@ -39,6 +39,9 @@ wc :
 clicktest.exe : clicktest.sml clicktest.cm makefile.mingw
 	mlton @MLton max-heap 512m -- -cc-opt "-I/usr/local/include" -keep g -keep o -verbose 3 -cc-opt "-g -DDEBUG_X86CODEGEN -Dmain=SDL_main" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz" -output $@ -default-ann 'allowFFI true' clicktest.cm sdlml.o sound.o win32main.o
 
+clicktest-plain.exe : clicktest.sml makefile.mingw
+	mlton @MLton max-heap 512m -- -cc-opt "-I/usr/local/include" -keep g -keep o -verbose 3 -cc-opt "-g -DDEBUG_X86CODEGEN" -link-opt "-L/usr/local/lib -lmingw32 -mwindows" -output $@ -default-ann 'allowFFI true' clicktest.sml
+
 # the order of these libraries and object files is really important! Weird things will
 # happen if it's wrong!
 #  -lz -ltiff -lpng -ljpeg
