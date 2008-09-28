@@ -49,6 +49,20 @@ escape. Don't build your own! Then you have to export SDL_AUDIODRIVER=dsound
 before running. (Could do this with setenv I guess..)
 
 
+Oops here's another thing to do:
+edit c:/MinGW/lib/mlton/sml/basis/posix/io.sml
+and change the line with isReg to add a handler:
+
+    local
+       val pos0 = Position.fromInt 0
+       (* nb. added this handle via discussion on mlton list.
+          without it, can't run without a console on mingw. *)
+       fun isReg fd = FS.ST.isReg(FS.fstat fd) handle _ => false
+       fun posFns (closed, fd) = 
+          if (isReg fd)
+       ...
+
+
 --------------------------------------------------
 upgrading
 

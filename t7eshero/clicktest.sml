@@ -6,4 +6,4 @@
   (* Merely having this code linked in means that mlton dies
      during initialization. (Even though it's dead code.) *)
 
-(*  fun g s = print s *)
+  fun g s = print s
