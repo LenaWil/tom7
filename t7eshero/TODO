@@ -30,6 +30,8 @@ More midi triage. Did the whole cake\ dir and cake\also dir,
 
  * go through songs and try removing -noxmeasure; should usually make it better.
 
+ * sigbovik should not loop twice. maybe should have lead vocals track.
+
  * crashes ??? (when running out of channels?)
 
  * kaomai needs -quantize option to genscore.
