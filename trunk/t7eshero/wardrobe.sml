@@ -119,12 +119,6 @@ struct
             fun itemheight _ = FontSmall.height + 1
             fun drawitem (item, x, y, sel) =
                 let in
-                    (if sel
-                     then SDL.fillrect(screen, x, y, 
-                                       WIDTH - LM.WIDTH_OVERHEAD,
-                                       FontSmall.height,
-                                       SDL.color (0wx44, 0wx44, 0wx77, 0wxFF))
-                     else ());
                     (case item of
                          NONE => FontSmall.draw(screen, x + (FontSmall.width - FontSmall.overlap) * 3, y, "^1Save outfit")
                        | SOME item => 
@@ -143,6 +137,9 @@ struct
                                   items = NONE :: map SOME closet,
                                   drawitem = drawitem,
                                   itemheight = itemheight,
+                                  bgcolor = SOME LM.DEFAULT_BGCOLOR,
+                                  selcolor = SOME (SDL.color (0wx44, 0wx44, 0wx77, 0wxFF)),
+                                  bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
                                   parent_draw = draw,
                                   parent_heartbeat = heartbeat } of
                      NONE => raise Abort
