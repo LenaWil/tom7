@@ -14,12 +14,21 @@ sig
           (* draw an item, x/y/selected *)
           drawitem : 'item * int * int * bool -> unit,
           (* XXX needs joymap for config.. *)
-          
+
+          (* If not supplied, then don't draw these *)
+          bordercolor : SDL.color option,
+          bgcolor : SDL.color option,
+          selcolor : SDL.color option,
+
           (* must clear the screen, at least *)
           parent_draw : unit -> unit,
           parent_heartbeat : unit -> unit
 
           } -> 'item option
+
+    val DEFAULT_BORDERCOLOR : SDL.color
+    val DEFAULT_BGCOLOR : SDL.color
+    val DEFAULT_SELCOLOR : SDL.color
 
     (* When you ask for a listmenu of width w, you get (w - WIDTH_OVERHEAD)
        in width for your items. *)
