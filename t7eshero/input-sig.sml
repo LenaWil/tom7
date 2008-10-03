@@ -31,11 +31,9 @@ sig
       | C_StrumDown
       | C_Button of int
 
-    (* Rawevent isn't the right name for this. It should be called
-       impulseid or something. We are trying to identify physical
-       thingies that can be pressed and released. Each has at least
-       two real events (up and down) associated with it. *)
-    datatype rawevent =
+    (* These are physical thingies that can be pressed and released. They
+       have SDL events (up and down) associated with them. *)
+    datatype actualbutton =
         Key of SDL.sdlk
       | JButton of int
       | JHat of { hat : int, state : SDL.Joystick.hatstate }
@@ -54,7 +52,7 @@ sig
     val clearmap : device -> unit
 
     (* Set the mapping for a particular device event. *)
-    val setmap : device -> rawevent -> configevent -> unit
+    val setmap : device -> actualbutton -> configevent -> unit
     val restoremap : device -> mapping -> unit
     (* only for joysticks *)
     val setaxis : device -> { which : int, axis : axis, min : int, max : int } -> unit

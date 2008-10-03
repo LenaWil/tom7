@@ -23,7 +23,7 @@ struct
       | ButtonDown of int
       | Axis of axis * real
 
-    datatype rawevent =
+    datatype actualbutton =
         Key of SDL.sdlk
       | JButton of int
       | JHat of { hat : int, state : SDL.Joystick.hatstate }
@@ -61,7 +61,7 @@ struct
             ["b", i] => (C_Button (valOf (Int.fromString i)) handle Option => raise Input "bad ce button")
           | _ => raise Input "bad ce"
 
-    type mapping = (rawevent * configevent) list
+    type mapping = (actualbutton * configevent) list
     val mempty = nil
     fun minsert nil (k, v) = [(k, v)]
       | minsert ((kk, vv) :: r) (k, v) = if (k = kk) then (k, v) :: r
@@ -193,13 +193,22 @@ struct
     fun input_map e =
         let
             datatype dir = PRESS | RELEASE
-            fun withdir d PRESS   (C_Button f)  = (d, ButtonDown f)
-              | withdir d RELEASE (C_Button f)  = (d, ButtonUp f)
-              | withdir d _       (C_StrumDown) = (d, StrumDown)
-              | withdir d _       (C_StrumUp)   = (d, StrumUp)
+            fun withdir d PRESS   (C_Button f)  = SOME(d, ButtonDown f)
+              | withdir d RELEASE (C_Button f)  = SOME(d, ButtonUp f)
+              | withdir d RELEASE (C_StrumDown) = NONE
+              | withdir d RELEASE (C_StrumUp)   = NONE
+              | withdir d PRESS   (C_StrumDown) = SOME(d, StrumDown)
+              | withdir d PRESS   (C_StrumUp)   = SOME(d, StrumUp)
         in
         (case e of
-             SDL.E_KeyDown _ => NONE (* XXX unimplemented *)
+             SDL.E_KeyDown { sym } =>
+                 (case mlookup (getmap Keyboard) (Key sym) of
+                      SOME ce => withdir Keyboard PRESS ce
+                    | NONE => NONE)
+           | SDL.E_KeyUp { sym } =>
+                 (case mlookup (getmap Keyboard) (Key sym) of
+                      SOME ce => withdir Keyboard RELEASE ce
+                    | NONE => NONE)
 
            | SDL.E_JoyAxis { which = j, axis, v } =>
             let val axes = #axes (Array.sub(!joys, j))
@@ -218,33 +227,32 @@ struct
 
            | SDL.E_JoyDown { which, button, ... } =>
             (case mlookup (getmap (Joy which)) (JButton button) of
-                 SOME ce => SOME(withdir (Joy which) PRESS ce)
+                 SOME ce => withdir (Joy which) PRESS ce
                | NONE => NONE)
 
            | SDL.E_JoyUp { which, button, ... } =>
             (case mlookup (getmap (Joy which)) (JButton button) of
-                 SOME ce => SOME(withdir (Joy which) RELEASE ce)
+                 SOME ce => withdir (Joy which) RELEASE ce
                | NONE => NONE)
 
            | SDL.E_JoyHat { which, hat, state, ... } =>
-                  (* Assumes that centered hat is "release".
+              (* Assumes that centered hat is "release".
 
-                     XXX But there's a minor problem: If we have the
-                     hat configured for strumming in the up-down
-                     direction, and someone holds up (1 correct
-                     strum), and then while holding up somehow
-                     triggers left/right movement, we get an incorrect
-                     strum for each time we come back to the up
-                     position. This doesn't happen on the guitars I've
-                     observed so far. *)
-                 (* XXX Actually this won't let us use the hat as a button, because we're looking
-                    it up by a specific state. I'll try to fix it if I ever find a guitar that
-                    works that way. *)
+                 XXX But there's a minor problem: If we have the hat
+                 configured for strumming in the up-down direction,
+                 and someone holds up (1 correct strum), and then
+                 while holding up somehow triggers left/right
+                 movement, we get an incorrect strum for each time we
+                 come back to the up position. This doesn't happen on
+                 the guitars I've observed so far. *)
+             (* XXX Actually this won't let us use the hat as a button, because
+                we're looking it up by a specific state. I'll try to
+                fix it if I ever find a guitar that works that way. *)
              (case mlookup (getmap (Joy which)) (JHat { hat = hat, state = state }) of
                   SOME ce => 
                       if Joystick.hat_centered state
-                      then SOME(withdir (Joy which) RELEASE ce)
-                      else SOME(withdir (Joy which) PRESS   ce)
+                      then withdir (Joy which) RELEASE ce
+                      else withdir (Joy which) PRESS   ce
                 | NONE => NONE)
            | _ => NONE)
         end
