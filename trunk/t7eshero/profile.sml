@@ -113,14 +113,16 @@ struct
 
     fun genplayer i =
         let
-            val s = "Player " ^ Int.toString i
+            val s = if i > 100
+                    then "Player " ^ Int.toString (i - 100)
+                    else BandName.random_name ()
         in
             if List.exists (fn { name, ... } => s = !name) (!profiles) 
             then genplayer (i + 1)
             else s
         end
     fun add_default () = 
-        let val p = { name = ref (genplayer 1), 
+        let val p = { name = ref (genplayer 1),
                       pic = ref DEFAULT_PROFILE_PIC,
                       picsurf = ref (openpic DEFAULT_PROFILE_PIC),
                       lastused = ref(Time.toSeconds (Time.now ())),
