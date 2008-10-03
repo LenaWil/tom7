@@ -279,9 +279,6 @@ struct
                             (case e of
                                  E_KeyDown { sym = SDLK_ESCAPE } => raise Abort
                                | E_Quit => raise Exit
-                               | (E_KeyDown { sym = SDLK_i }) => Song.fast_forward 2000
-                               | (E_KeyDown { sym = SDLK_o }) => Sound.transpose := !Sound.transpose - 1
-                               | (E_KeyDown { sym = SDLK_p }) => Sound.transpose := !Sound.transpose + 1
                                | e =>
                                      (* Currently, allow events from any device to be for Player 1, since
                                         there is only one player. *)
@@ -291,7 +288,14 @@ struct
                                         | SOME (_, Input.StrumUp) => (State.upstrum(); State.commit ())
                                         | SOME (_, Input.StrumDown) => (State.downstrum(); State.commit ())
                                         | SOME (_, Input.Axis (Input.AxisUnknown i, r)) => State.dance (i, r)
-                                        | _ => ()));
+                                        | SOME _ => ()
+                                        | NONE => 
+                                              (* only if not mapped *)
+                                              (case e of
+                                                   (E_KeyDown { sym = SDLK_i }) => Song.fast_forward 2000
+                                                 | (E_KeyDown { sym = SDLK_o }) => Sound.transpose := !Sound.transpose - 1
+                                                 | (E_KeyDown { sym = SDLK_p }) => Sound.transpose := !Sound.transpose + 1
+                                                 | _ => ())));
                               polls ()
                         end
                   | NONE => ()
