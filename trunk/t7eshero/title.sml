@@ -28,14 +28,6 @@ struct
       | dummy_joymap 4 = 4
       | dummy_joymap _ = 999 (* XXX *)
 
-    val dummy = { midi = "medleyscore.mid",
-                  difficulty = Hero.Real,
-                  slowfactor = 5,
-                  config = { joymap = dummy_joymap } }
-
-    (* XXX should probably be in setlist *)
-    val SONGS_FILE = "songs.hero"
-    val SONGS_NONFREE = "songs-nonfree.hero"
     val TITLEMIDI = "title.mid"
         
     val PRECURSOR = 180
@@ -216,7 +208,7 @@ struct
                                           | _ => print "Unsupported event during configure.\n")
                                    else print "Foreign event during configure.\n"
                              | P_Axes =>
-                                   (* XXX should allow keys, quit event *)
+                                   (* XXX maybe should skip this if device is a keyboard. *)
                                    if Input.belongsto e device
                                    then
                                        (* we can only handle axis events here *)
@@ -359,20 +351,31 @@ struct
 
             and input () =
                 case pollevent () of
+                    (* XXX Escape and cancel button should show a quit prompt *)
                     SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Hero.Exit
                   | SOME E_Quit => raise Hero.Exit
-                  | SOME (E_KeyDown { sym = SDLK_UP }) => move_up ()
-                  | SOME (E_KeyDown { sym = SDLK_DOWN }) => move_down ()
-                  | SOME (E_KeyDown { sym = SDLK_ENTER }) => select Input.keyboard
-                  (* XXXX should use input map, duh *)
-                  | SOME (E_JoyDown { button, which, ... }) => select (Input.joy which)
-                  | SOME (E_JoyHat { state, ... }) =>
-                    if Joystick.hat_up state
-                    then move_up ()
-                    else if Joystick.hat_down state
-                         then move_down()
-                         else ()
-                  | _ => ()
+                  | SOME e =>
+                      (case Input.map e of
+                           SOME (d, Input.ButtonDown 0) => select d
+                         | SOME (_, Input.ButtonDown 1) => raise Hero.Exit
+                         | SOME (_, Input.StrumUp) => move_up ()
+                         | SOME (_, Input.StrumDown) => move_down ()
+                         | SOME _ => () (* XXX other buttons should do something funny? *)
+                         | NONE => 
+                               (case e of
+                                    E_KeyDown { sym = SDLK_UP } => move_up ()
+                                  | E_KeyDown { sym = SDLK_DOWN } => move_down ()
+                                  | E_KeyDown { sym = SDLK_ENTER } => select Input.keyboard
+                                  (* Might be able to reach configure menu with unconfigured joystick.. *)
+                                  | E_JoyDown { button, which, ... } => select (Input.joy which)
+                                  | E_JoyHat { state, ... } =>
+                                        if Joystick.hat_up state
+                                        then move_up ()
+                                        else if Joystick.hat_down state
+                                             then move_down()
+                                             else ()
+                                  | _ => ()))
+                  | NONE => ()
 
             (* Choose song *)
             and play () =
@@ -398,8 +401,8 @@ struct
                     val HEIGHT = 444
 
                     val trim = StringUtil.losespecl StringUtil.whitespec o StringUtil.losespecr StringUtil.whitespec
-                    val songs = StringUtil.readfile SONGS_FILE
-                    val songs = (songs ^ "\n" ^ StringUtil.readfile SONGS_NONFREE) handle _ => songs
+                    val songs = StringUtil.readfile Setlist.SONGS_FILE
+                    val songs = (songs ^ "\n" ^ StringUtil.readfile Setlist.SONGS_NONFREE) handle _ => songs
                     val songs = String.tokens (fn #"\n" => true | _ => false) songs
                     val songs = List.mapPartial 
                         (fn s =>
@@ -449,13 +452,6 @@ struct
                     fun itemheight _ = FontSmall.height + SmallFont.height + FontSmall.height + 8
                     fun drawitem (i as (_, _, title, artist, year, (r, rs)), x, y, sel) = 
                         let in
-                            (if sel
-                             then SDL.fillrect(screen, x, y, 
-                                               WIDTH - LM.WIDTH_OVERHEAD,
-                                               itemheight i,
-                                               SDL.color (0wx44, 0wx44, 0wx77, 0wxFF))
-                             else ());
-
                             FontSmall.draw(screen, x + 2, y, 
                                            if sel then "^3" ^ title
                                            else title);
@@ -473,6 +469,9 @@ struct
                                      items = songs,
                                      drawitem = drawitem,
                                      itemheight = itemheight,
+                                     bgcolor = SOME LM.DEFAULT_BGCOLOR,
+                                     selcolor = SOME (SDL.color (0wx44, 0wx44, 0wx77, 0wxFF)),
+                                     bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
                                      parent_draw = draw,
                                      parent_heartbeat = heartbeat } of
                         NONE => ()
@@ -486,6 +485,56 @@ struct
                               profile = !profile }
                 end
 
+            (* FIXME XXX this doesn't do anything useful right now.
+               Should let you change the player's name and icon,
+               see and clear statistics, etc. *)
+            and editprofile profile =
+                let
+
+                    datatype item =
+                        PlayerName
+                      | PlayerIcon
+                      | PlayerStats
+
+                    fun itemheight PlayerName = FontSmall.height * 2
+                      | itemheight PlayerIcon = 72
+                      | itemheight PlayerStats = FontSmall.height
+
+                    val profile_name = "Profile name:"
+
+                    fun drawitem (PlayerName, x, y, sel) = 
+                        let in
+                            FontSmall.draw(screen, x, y, 
+                                           (if sel then "^3" else "^2") ^
+                                               profile_name);
+                            if sel
+                            then SmallFont.draw(screen, x + FontSmall.sizex_plain profile_name,
+                                                (* share baseline *)
+                                                y + (FontSmall.height - SmallFont.height - 3),
+                                                " (^5edit^0)")
+                            else ();
+                            FontSmall.draw(screen, x, y + FontSmall.height,
+                                           Profile.name profile)
+                        end
+                      | drawitem _ = ()
+                in
+                    case LM.select { x = 8, y = 40,
+                                     width = 256 - 16,
+                                     height = 400,
+                                     items = [PlayerName, PlayerIcon, PlayerStats],
+                                     drawitem = drawitem,
+                                     itemheight = itemheight,
+                                     bgcolor = SOME LM.DEFAULT_BGCOLOR,
+                                     selcolor = SOME LM.DEFAULT_SELCOLOR,
+                                     bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
+                                     parent_draw = draw,
+                                     parent_heartbeat = heartbeat } of
+                        NONE => ()
+(*
+                      | SOME CreateNew => createnew()
+                      | SOME (SelectOld pf) => profile := pf
+*)
+                end
 
             (* profile select sub-menu *)
             and signin () =
@@ -494,8 +543,8 @@ struct
                         let val p = Profile.add_default()
                         in
                             Profile.save();
-                            (* XXX start editing *)
-                            signin ()
+                            (* start editing immediately *)
+                            editprofile p
                         end
 
                     datatype saction =
@@ -512,9 +561,9 @@ struct
                             (* XXX also, draw border for it *)
                             SDL.fillrect(screen, x + 2, y + 2, 66, 66, SDL.color (0wxFF, 0wxFF, 0wxFF, 0wxFF));
                             SDL.blitall(Profile.surface p, screen, x + 4, y + 4);
-                            Font.draw(screen, x + 72, y + 4, 
-                                      if sel then ("^3" ^ Profile.name p)
-                                      else Profile.name p)
+                            FontSmall.draw(screen, x + 72, y + 4, 
+                                           if sel then ("^3" ^ Profile.name p)
+                                           else Profile.name p)
                         end
                 in
                     case LM.select { x = 8, y = 40,
@@ -523,6 +572,9 @@ struct
                                      items = CreateNew :: map SelectOld (Profile.all ()),
                                      drawitem = drawitem,
                                      itemheight = itemheight,
+                                     bgcolor = SOME LM.DEFAULT_BGCOLOR,
+                                     selcolor = SOME (SDL.color (0wx55, 0wx22, 0wx00, 0wxFF)),
+                                     bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
                                      parent_draw = draw,
                                      parent_heartbeat = heartbeat } of
                         NONE => ()
