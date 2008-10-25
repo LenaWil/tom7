@@ -10,6 +10,7 @@ sig
     val load : unit -> unit
 
     val all : unit -> profile list
+    val profiles : profile list ref (* XXX *)
 
     datatype achievement =
         (* get perfect on a song *)
