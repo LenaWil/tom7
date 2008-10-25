@@ -1,5 +1,6 @@
 (* A player's profile stores personal records, finished songs, achievements, etc. *)
-structure Profile :(*>*) PROFILE =
+(* Legacy format. *)
+structure ProfileOld : PROFILE =
 struct
     exception Profile of string
     type songid = Setlist.songid
@@ -7,28 +8,18 @@ struct
     val FILENAME = "profiles.hero"
     val DEFAULT_PROFILE_PIC = "profilepics/default.png"
 
-    open Serialize
+    open SerializeOld
 
-    datatype achievement =
-        (* get perfect on a song *)
-        PerfectMatch
+    datatype achievement = datatype Profile.achievement
 
     fun atostring PerfectMatch = "PM"
     fun afromstring "PM" = PerfectMatch
       | afromstring _ = raise Profile "bad achievement"
 
     (* an individual profile *)
-    type profile = { name : string ref,
-                     pic : string ref,
-                     picsurf : SDL.surface ref,
-                     records : (songid * Record.record) list ref,
-                     achievements : (achievement * songid option * IntInf.int) list ref,
-                     lastused : IntInf.int ref,
-                     closet : Items.item list ref,
-                     outfit : Items.worn ref
-                     }
+    type profile = Profile.profile
 
-    val profiles = ref nil : profile list ref
+    val profiles = Profile.profiles
 
     fun openpic s =
         case SDL.Image.load s of

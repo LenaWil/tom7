@@ -44,6 +44,7 @@ random.sml
 hero.sml
 bandname.sml
 serialize.sml
+serialize-old.sml
 input-sig.sml
 input.sml
 chars.sml
@@ -59,6 +60,7 @@ record-sig.sml
 record.sml
 profile-sig.sml
 profile.sml
+profile-old.sml
 match-sig.sml
 match.sml
 song-sig.sml
