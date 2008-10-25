@@ -31,24 +31,30 @@ struct
            such that f(s) does not contain ss or sn for any s.
            and f'(f(s)) = s
 
-       We can build such a serializer by specifying a ss and sn and a
-       non-alphanumeric escaping character ce (not appearing in ss or
-       sn). The escaping character indicates that a two-character hex
-       sequence follows. *)
+       We can build such a serializer by specifying a ss and a
+       non-alphanumeric escaping character ce (not appearing in ss)
+       The single-character string ce becomes sn. In the encoded
+       message, the escaping character indicates that a two-character
+       hex sequence follows. *)
 
-    fun list_serializer cs cn ce =
+    fun list_serializer cs ce =
         let
+            val cn = implode [ce]
+            val () = if Option.isSome (StringUtil.find cn cs)
+                     then raise Serialize "bad list serializer: ce in cs"
+                     else ()
+
             (* to encode, we use the escape character to encode any substrings
                in the avoid list entirely as hex. (We only need to encode enough
                of the substring so that the substring doesn't appear, but it is
                somewhat trickier than that because we don't want to cause any other
                avoid string to appear by virtue of encoding, so we just totally
                encode.) *)
-            val avoid = [implode [ce], cn, cs]
+            val avoid = [implode [ce], cs]
 
             fun encoder (avoidme :: rest) s =
                 let val sl = map (encoder rest) (StringUtil.sfields avoidme s)
-                    val sep = String.concat (implode[ce] :: map (StringUtil.bytetohex o ord) (explode avoidme))
+                    val sep = String.concat(map (fn s => implode[ce] ^ s) (map (StringUtil.bytetohex o ord) (explode avoidme)))
                 in StringUtil.delimit sep sl
                 end
               | encoder nil s = s
@@ -79,6 +85,6 @@ struct
             (ulist, unlist)
         end
 
-    val (ulist, unlist) = list_serializer "?" "%" #"%"
+    val (ulist, unlist) = list_serializer "?" #"%"
 
 end

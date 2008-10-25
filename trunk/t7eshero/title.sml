@@ -38,7 +38,7 @@ struct
 
     val profile = 
         let in
-            ProfileOld.load();
+            Profile.load();
             (* ensure that we have at least a profile to use now. *)
             if length (Profile.all ()) = 0
             then let in 

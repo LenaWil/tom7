@@ -39,16 +39,17 @@ struct
           | SOME s => s
 
 
+    val (songs_ulist, songs_unlist) = Serialize.list_serializer "\n" #"\\"
     fun rsfromstring ss =
         map (fn s =>
              case String.tokens QQ s of
                  [song, record] => (Setlist.fromstring (une song), Record.fromstring (une record))
-               | _ => raise Profile "bad record") (unlist ss)
+               | _ => raise Profile "bad record") (songs_unlist ss)
 
     fun rstostring rs =
-        ulist (map (fn (s, r) =>
-                    ue (Setlist.tostring s) ^ "?" ^
-                    ue (Record.tostring r)) rs)
+        songs_ulist (map (fn (s, r) =>
+                          ue (Setlist.tostring s) ^ "?" ^
+                          ue (Record.tostring r)) rs)
 
     fun achstostring achs =
         ulist (map (fn (a, so, i) =>
@@ -61,30 +62,33 @@ struct
                                      valOf (IntInf.fromString when) handle Option => raise Profile "bad achwhen")
                | _ => raise Profile "bad achs") (unlist a)
 
+    val (pro_ulist, pro_unlist) = Serialize.list_serializer " " #"#"
     fun ptostring { name, pic, records, achievements, lastused, picsurf = _, closet, outfit } =
-        ue (!name) ^ "?" ^ ue (!pic) ^ "?" ^ IntInf.toString (!lastused) ^ "?" ^
-        ue (rstostring (!records)) ^ "?" ^ ue (achstostring (!achievements)) ^ "?" ^
-        ue (StringUtil.delimit "," (map Items.id (!closet))) ^ "?" ^
-        ue (Items.wtostring (!outfit))
+        pro_ulist [!name, !pic, IntInf.toString (!lastused),
+                   rstostring (!records), achstostring (!achievements),
+                   StringUtil.delimit "," (map Items.id (!closet)),
+                   Items.wtostring (!outfit)]
 
     fun pfromstring s =
-        case String.tokens QQ s of
+        case pro_unlist s of
             [name, pic, lastused, records, ach, closet, outfit] =>
-                { name = ref (une name),
-                  picsurf = ref (openpic (une pic)),
-                  pic = ref (une pic),
+                { name = ref name,
+                  picsurf = ref (openpic pic),
+                  pic = ref pic,
                   lastused = ref (valOf (IntInf.fromString lastused) handle Option => raise Profile "bad lastused"),
-                  records = ref (rsfromstring (une records)),
-                  achievements = ref (achsfromstring (une ach)),
-                  closet = ref (map Items.fromid (String.tokens (fn #"," => true | _ => false) (une closet))),
-                  outfit = ref (Items.wfromstring (une outfit)) }
+                  records = ref (rsfromstring records),
+                  achievements = ref (achsfromstring ach),
+                  closet = ref (map Items.fromid (String.tokens (fn #"," => true | _ => false) closet)),
+                  outfit = ref (Items.wfromstring outfit) }
       | _ => raise Profile "bad profile"
 
-    fun save () = StringUtil.writefile FILENAME (ulist (map ptostring (!profiles)))
+
+    val (profiles_ulist, profiles_unlist) = Serialize.list_serializer "\n--------\n" #"$"
+    fun save () = StringUtil.writefile FILENAME (profiles_ulist (map ptostring (!profiles)))
     fun load () =
         let
-            val s = StringUtil.readfile FILENAME handle _ => Serialize.ulist nil
-            val ps = unlist s
+            val s = StringUtil.readfile FILENAME handle _ => profiles_ulist nil
+            val ps = profiles_unlist s
         in
             (* XXX LEAK needs to free surface parameters. But we shouldn't double-load anyway. *)
             profiles := map pfromstring ps
