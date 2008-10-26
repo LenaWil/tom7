@@ -9,24 +9,12 @@ struct
     structure SmallFont3x = Sprites.SmallFont3x
     structure SmallFont = Sprites.SmallFont
 
-    (* XXX joymap is obsolete *)
-    type config = { joymap : int -> int }
-    val joymap : config -> int -> int = #joymap
-
     datatype selection = Play | SignIn | Configure | Wardrobe
 
     exception Selected of { midi : string,
                             difficulty : Hero.difficulty,
                             slowfactor : int,
-                            config : config,
                             profile : Profile.profile }
-
-    fun dummy_joymap 0 = 0
-      | dummy_joymap 1 = 1
-      | dummy_joymap 3 = 2
-      | dummy_joymap 2 = 3
-      | dummy_joymap 4 = 4
-      | dummy_joymap _ = 999 (* XXX *)
 
     val TITLEMIDI = "title.mid"
         
@@ -471,7 +459,6 @@ struct
                             { midi = file,
                               difficulty = Hero.Real,
                               slowfactor = slowfactor,
-                              config = { joymap = dummy_joymap },
                               profile = !profile }
                 end
 
@@ -597,7 +584,7 @@ struct
                        | Configure => FontHuge.draw(screen, 4, Y_CONF, Chars.HEART)
                        | Wardrobe => FontHuge.draw(screen, 4, Y_WARD, Chars.HEART));
 
-                         (* XXX hack attack.. *)
+                    (* XXX hack attack.. *)
                     Items.app_infront (Profile.outfit (!profile)) (fn i => if Items.zindex i >= 50
                                                                            then drawitem i
                                                                            else ())
