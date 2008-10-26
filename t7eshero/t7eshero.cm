@@ -53,6 +53,7 @@ sound-sig.sml
 sound.sml
 listmenu-sig.sml
 listmenu.sml
+setlist-sig.sml
 setlist.sml
 items-sig.sml
 items.sml
