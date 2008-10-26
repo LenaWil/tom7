@@ -556,7 +556,10 @@ struct
                                      parent_heartbeat = heartbeat } of
                         NONE => ()
                       | SOME CreateNew => createnew()
-                      | SOME (SelectOld pf) => profile := pf
+                      | SOME (SelectOld pf) => (profile := pf;
+                                                Profile.setusednow pf;
+                                                Profile.save())
+
                 end
 
             and draw () =

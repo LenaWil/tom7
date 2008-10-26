@@ -102,6 +102,8 @@ struct
     val setcloset : profile -> Items.item list -> unit = set #closet
     val setoutfit : profile -> Items.worn -> unit = set #outfit
 
+    fun setusednow p = setlastused p (Time.toSeconds (Time.now ()))
+
     fun genplayer i =
         let
             val s = if i > 100

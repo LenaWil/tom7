@@ -41,4 +41,7 @@ sig
     val setcloset : profile -> Items.item list -> unit
     val setoutfit : profile -> Items.worn -> unit
 
+    (* Usually updating the last-used time with now, so for convenience: *)
+    val setusednow : profile -> unit
+
 end
