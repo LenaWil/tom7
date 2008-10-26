@@ -89,9 +89,12 @@ struct
         let
             val s = StringUtil.readfile FILENAME handle _ => profiles_ulist nil
             val ps = profiles_unlist s
+            val ps = map pfromstring ps
+            val ps = ListUtil.sort (fn ({ lastused, ... }, { lastused = lastused', ... }) =>
+                                    (ListUtil.Sorted.reverse IntInf.compare) (!lastused, !lastused')) ps
         in
             (* XXX LEAK needs to free surface parameters. But we shouldn't double-load anyway. *)
-            profiles := map pfromstring ps
+            profiles := ps
         end handle Record.Record s => (Hero.messagebox ("Record: " ^ s); raise Hero.Exit)
 
     fun all () = !profiles
@@ -114,6 +117,8 @@ struct
     val setlastused : profile -> IntInf.int -> unit = set #lastused
     val setcloset : profile -> Items.item list -> unit = set #closet
     val setoutfit : profile -> Items.worn -> unit = set #outfit
+
+    fun setusednow p = setlastused p (Time.toSeconds (Time.now ()))
 
     fun genplayer i =
         let
