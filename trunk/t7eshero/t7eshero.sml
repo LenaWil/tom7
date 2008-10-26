@@ -81,7 +81,6 @@ struct
                   val { midi : string,
                         difficulty : Hero.difficulty,
                         slowfactor : int,
-                        config : Title.config,
                         profile : Profile.profile } = Title.loop()
               in
                   (midi, slowfactor, difficulty, profile)
