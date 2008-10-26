@@ -79,7 +79,7 @@ struct
 
             (* get old records for this song, if any. Then decide if we made new records. *)
             val { percent = oldpercent, misses = oldmisses, medals = oldmedals } =
-                case List.find (fn (sid, _) => sid = songid) (Profile.records profile) of
+                case List.find (fn (sid, _) => Setlist.eq(sid, songid)) (Profile.records profile) of
                     NONE => { percent = 0, misses = total + 1, medals = nil }
                   | SOME (_, r) => r
 
@@ -110,7 +110,8 @@ struct
                                                                               (hit * 100) div total),
                                                             misses = Int.min(oldmisses, misses),
                                                             medals = allmedals }) ::
-                                                 List.filter (fn (sid, _) => songid <> sid) (Profile.records profile))
+                                                 List.filter (fn (sid, _) => not (Setlist.eq(songid, sid)))
+                                                 (Profile.records profile))
             val () = Profile.save()
 
             val (divi, thetracks) = Game.fromfile BGMIDI
