@@ -1050,6 +1050,37 @@ struct
           end
   end
 
+  fun colormixfrac (c, cc, f) =
+      let
+          val (r, g, b, a) = components32 c
+          val (rr, gg, bb, aa) = components32 cc
+
+          val factor  = Real.trunc (f * 256.0);
+          val ofactor = 256 - factor
+
+          val >> = Word32.>>
+          val & = Word32.andb
+          infix >> &
+
+          val rrr = (r * factor + rr * ofactor) >> (8);
+          val ggg = (g * factor + gg * ofactor) >> (8);
+          val bbb = (b * factor + bb * ofactor) >> (8);
+          val aaa = (a * factor + aa * ofactor) >> (8);
+      in
+          (rrr, ggg, bbb, aaa)
+      end
+
+  return (o24 << 24) | (o16 << 16) | (o8 << 8) | o;
+
+
+  fun blitpixel (s, x, y, c)
+      let
+          val (r, g, b, a) = components c
+          val (or, og, ob, oa) = getpixel (s, x, y)
+      in
+          drawpixel 
+      end
+
   local val fr = _import "ml_fillrecta" : ptr * int * int * int * int   * Word32.word * Word32.word * Word32.word * Word32.word -> unit ;
   in
     fun fillrect (s1, x, y, w, h, c) = 
