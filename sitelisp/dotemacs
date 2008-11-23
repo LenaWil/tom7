@@ -12,7 +12,7 @@
 ;    (toggle-transient-mark-mode))
   
 ;; XXX
-(load "c:\\code\\sitelisp\\lost.el")
+; (load "c:\\code\\sitelisp\\lost.el")
 
 (defun frame-settings (f)
   (progn
@@ -31,11 +31,18 @@
       (set-default-font 
        "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"))
      (t t))
+;    (modify-frame-parameters f (list '(height . 75)))
     ))
 
 (add-hook 'after-make-frame-functions 'frame-settings)
 
 (frame-settings nil)
+
+;; Here's how to programmatically set the window size.
+;; (frame-parameters)
+;; (modify-frame-parameters nil (list '(left . 40)))
+;; (modify-frame-parameters nil (list '(height . 75)))
+
 
 (if (not (eq window-system 'w32))
     (setq explicit-shell-file-name "bash"))
