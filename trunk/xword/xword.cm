@@ -1,0 +1,9 @@
+
+group is
+
+ $/basis.cm
+
+ ../sml-lib/data/trie-sig.sml
+ ../sml-lib/data/trie.sml
+
+ xword.sml
