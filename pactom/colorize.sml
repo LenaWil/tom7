@@ -1,18 +1,26 @@
-
-val () = print "hi!"
-
 structure Colorize = 
 struct 
 
-  val x = XML.parsefile "test.xml"
+  val () = print "parse...\n"
+
+  val x = XML.parsefile "test.kml"
       handle (e as (XML.XML s)) => (print ("Error: " ^ s); raise e)
 
   datatype tree = datatype XML.tree
 
-  fun printxml (Text s) = "\"" ^ s ^ "\""
+  val () = print "print...\n"
+
+  fun printxml (Text s) = s
     | printxml (Elem ((s, attrs), tl)) =
-      ("<" ^ s ^ ">" ^
-       StringUtil.delimit "," (map printxml tl) ^
+      ("<" ^ s ^
+       String.concat (map (fn (s, so) => 
+                           case so of
+                               SOME v => 
+                                   (* XXX escape quotes in v *)
+                                   (" " ^ s ^ "=\"" ^ v ^ "\"")
+                             | NONE => s) attrs) ^
+       ">" ^
+       String.concat (map printxml tl) ^
        "</" ^ s ^ ">")
 
   val () = print (printxml x)
