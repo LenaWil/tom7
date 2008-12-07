@@ -26,4 +26,7 @@ group is
 
  xword.sml
 
- 
+#if (defined(SMLNJ_VERSION))
+#else
+ main.sml
+#endif
