@@ -1,5 +1,8 @@
 
-default : colorize
+default : tosvg
 
-colorize : colorize.sml colorize.cm ../sml-lib/files/xml/xml.sml ../sml-lib/files/xml/xml-sig.sml
+colorize : colorize.sml colorize.cm ../sml-lib/files/xml/xml.sml ../sml-lib/files/xml/xml-sig.sml ../sml-lib/misc/color*.sml
 	mlton colorize.cm
+
+tosvg : tosvg.sml tosvg.cm ../sml-lib/files/xml/xml.sml ../sml-lib/files/xml/xml-sig.sml ../sml-lib/misc/color*.sml
+	mlton tosvg.cm

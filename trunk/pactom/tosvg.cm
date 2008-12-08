@@ -25,5 +25,5 @@ group is
 ../sml-lib/files/xml/xml-sig.sml
 ../sml-lib/files/xml/xml.sml
 
-colorize.sml
+tosvg.sml
 
