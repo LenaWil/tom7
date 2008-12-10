@@ -77,7 +77,8 @@ struct
 	  fun printpolyline coords =
 	      let in
 		  print ("<polyline fill=\"none\" stroke=\"#" ^ randomcolor() ^ "\" stroke-width=\"1\" points=\""); (* " *)
-		  app (fn (lat, lon) => print (rtos (2000.0 * (80.0 + lat)) ^ "," ^ rtos (2000.0 * (lon - 40.0)) ^ " ")) coords;
+		  (* XXX mapping is nonlinear. see elevsvg. *)
+		  app (fn (lat, lon) => print (rtos (2000.0 * (80.0 + lat)) ^ "," ^ rtos (2000.0 * (1.0 - (lon - 40.0))) ^ " ")) coords;
                   print "\"/>\n"
 	      end
 
