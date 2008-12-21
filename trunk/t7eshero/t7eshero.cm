@@ -22,6 +22,12 @@ group is
 (* XXX should probably be in sml-lib *)
 fsutil-portable.sml
 
+../sml-lib/util/simplestream-sig.sml
+../sml-lib/util/simplestream.sml
+
+../sml-lib/crypt/SHA1/sha1-sig.sml
+../sml-lib/crypt/SHA1/sha1.sml
+
 ../sml-lib/util/growarray-sig.sml
 ../sml-lib/util/growarray.sml
 
@@ -53,7 +59,8 @@ sound-sig.sml
 sound.sml
 listmenu-sig.sml
 listmenu.sml
-setlist-sig.sml
+(* XXX someone needs to check this shit in *)
+(* setlist-sig.sml*)
 setlist.sml
 items-sig.sml
 items.sml

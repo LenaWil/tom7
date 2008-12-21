@@ -1,4 +1,4 @@
-structure Setlist :> SETLIST =
+structure Setlist (* :> SETLIST *) =
 struct
 
     (* using midi name for now *)
