@@ -1070,15 +1070,13 @@ struct
           (rrr, ggg, bbb, aaa)
       end
 
-  return (o24 << 24) | (o16 << 16) | (o8 << 8) | o;
-
-
-  fun blitpixel (s, x, y, c)
+  fun blitpixel (s, x, y, c) =
       let
           val (r, g, b, a) = components c
           val (or, og, ob, oa) = getpixel (s, x, y)
       in
-          drawpixel 
+          (* drawpixel  *)
+          raise SDL "Sorry unimplemented! 20 Dec 2008"
       end
 
   local val fr = _import "ml_fillrecta" : ptr * int * int * int * int   * Word32.word * Word32.word * Word32.word * Word32.word -> unit ;
