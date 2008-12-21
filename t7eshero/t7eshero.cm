@@ -59,6 +59,7 @@ sound-sig.sml
 sound.sml
 listmenu-sig.sml
 listmenu.sml
+update.sml
 (* XXX someone needs to check this shit in *)
 (* setlist-sig.sml*)
 setlist.sml

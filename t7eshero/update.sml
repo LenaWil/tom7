@@ -43,17 +43,20 @@ struct
        callback is called periodically with the number of
        bytes received so far and the total size, if known.
        *)
-    fun get_url url (callback : int * int option -> unit) url =
+    fun get_url url (callback : int * int option -> unit) =
         let in
             print ("XXX: Unimplemented: HTTP fetches!\n");
             "awesome   u    aaaaaaaaaaaaaaaa\n" ^
             "cooool.txt  u  bbbbbbbbbbbbbbbb\n"
         end
 
-    (* Compute the SHA-1 hash of a file on disk, or return
-       NONE if the file does not exist. *)
+    (* Compute the SHA-1 hash of a file on disk as a lowercase ASCII
+       string, or return NONE if the file does not exist. *)
     fun sha1file file =
-        
+        let in
+            print ("XXX unimplemented: SHA1 hash");
+            SOME "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12"
+        end
     
     datatype action =
         ActionGet of { file : string, sha1 : string }
@@ -71,17 +74,19 @@ struct
             List.mapPartial 
             (fn line =>
              case String.tokens (fn #" " => true | _ => false) line of
-                 [filename, _, #"*"] =>
+                 [filename, _, "*"] =>
                      (* XXX relative to some data directory? *)
                      if FSUtil.exists filename
-                     then SOME (ActionDelete filename)
+                     then SOME (ActionDelete { file = filename})
                      else NONE
                | [filename, encoding, sha1] =>
-                     if 
-                   (* ignore blank lines *)
+                     if sha1 = Option.getOpt (sha1file filename, "z")
+                     then NONE
+                     else SOME (ActionGet { file = filename,
+                                            sha1 = sha1 })
+               (* ignore blank lines *)
                | nil => NONE
-               | _ => raise Update "Ill-formed manifest."
-                         ) lines
+               | _ => raise Update "Ill-formed manifest.") lines
         end
 
 end

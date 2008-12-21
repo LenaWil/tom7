@@ -34,6 +34,10 @@ struct
 
         end
 
+  (* assume exists = can open. This is probably not the best implementation.. *)
+  fun exists f =
+      (BinIO.closeIn (BinIO.openIn f); true) handle _ => false
+
 (*
   fun dirplus "" p = p
     | dirplus d p =
