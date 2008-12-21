@@ -41,6 +41,16 @@ struct
       (Word32.<< (Word32.fromInt (Word8.toInt b), 0w8),
        Word32.fromInt (Word8.toInt a))))
 
+  (* 32-bit words, but must be 0w0-0w255. *)
+  fun color32 (r : Word32.word, g, b, a) = 
+    Word32.orb
+    (Word32.<< (r, 0w24),
+     Word32.orb
+     (Word32.<< (g, 0w16),
+      Word32.orb
+      (Word32.<< (b, 0w8),
+       a)))
+
   fun components x =
       (Word8.fromInt (Word32.toInt (Word32.andb(Word32.>>(x, 0w24), 0w255))),
        Word8.fromInt (Word32.toInt (Word32.andb(Word32.>>(x, 0w16), 0w255))),
@@ -1050,33 +1060,39 @@ struct
           end
   end
 
-  fun colormixfrac (c, cc, f) =
+  (* for w in [0, 255] we get w/255 of c, (255 - w)/255 of cc *)
+  fun colormixfrac8 (c : color, cc : color, w : Word8.word) =
       let
+          val w = Word32.fromInt (Word8.toInt w)
           val (r, g, b, a) = components32 c
           val (rr, gg, bb, aa) = components32 cc
 
-          val factor  = Real.trunc (f * 256.0);
-          val ofactor = 256 - factor
+          val factor  = w
+          val ofactor = 0w256 - factor
 
           val >> = Word32.>>
           val & = Word32.andb
           infix >> &
 
-          val rrr = (r * factor + rr * ofactor) >> (8);
-          val ggg = (g * factor + gg * ofactor) >> (8);
-          val bbb = (b * factor + bb * ofactor) >> (8);
-          val aaa = (a * factor + aa * ofactor) >> (8);
+          val rrr = (r * factor + rr * ofactor) >> (0w8);
+          val ggg = (g * factor + gg * ofactor) >> (0w8);
+          val bbb = (b * factor + bb * ofactor) >> (0w8);
+          val aaa = (a * factor + aa * ofactor) >> (0w8);
       in
-          (rrr, ggg, bbb, aaa)
+          color32 (rrr, ggg, bbb, aaa)
       end
+
+  (* For f in [0.0, 1.0], we get f * c + (1.0 - f) * cc. *)
+  fun colormixfrac (c : color, cc : color, f : real) =
+      colormixfrac8 (c, cc, Word8.fromInt (Real.trunc (f * 256.0)))
 
   fun blitpixel (s, x, y, c) =
       let
-          val (r, g, b, a) = components c
-          val (or, og, ob, oa) = getpixel (s, x, y)
+          val (_, _, _, a) = components c
+          val oldc = getpixel (s, x, y)
+          val newc = colormixfrac8 (c, oldc, a)
       in
-          (* drawpixel  *)
-          raise SDL "Sorry unimplemented! 20 Dec 2008"
+          drawpixel (s, x, y, newc)
       end
 
   local val fr = _import "ml_fillrecta" : ptr * int * int * int * int   * Word32.word * Word32.word * Word32.word * Word32.word -> unit ;
