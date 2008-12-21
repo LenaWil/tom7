@@ -328,7 +328,7 @@ sig
   val drawpixel : surface * int * int * color -> unit
   val getpixel  : surface * int * int -> color
 
-  (* Blit a pixel with proper alpha compositing. *)
+  (* Blit a pixel with proper alpha compositing. XXX not implemented *)
   val blitpixel : surface * int * int * color -> unit
 
   (* x, y, width, height *)
