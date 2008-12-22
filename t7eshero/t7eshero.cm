@@ -43,6 +43,9 @@ fsutil-portable.sml
 ../sdlml/font-sig.sml
 ../sdlml/font.sml
 
+(* Used in initialization. Must be after SDL. *)
+platform.sml
+
 (* has effect, should be first. *)
 prelude.sml
 
