@@ -53,6 +53,7 @@ app : t7eshero.exe
 	rm -f /tmp/T7ESHero.app/Contents/MacOS/OSX_build/SDL_mixer.framework/Headers/*.h
 	rm -rf `find /tmp/T7ESHero.app -name CVS`
 	rm -rf `find /tmp/T7ESHero.app -name .DS_Store`
+	rm -rf `find /tmp/T7ESHero.app -name .svn`
 
 desktop : app
 	rm -rf ~/Desktop/T7ESHero.app.old
