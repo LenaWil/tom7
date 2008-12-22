@@ -301,26 +301,26 @@ struct
     | SDLK_EURO
     | SDLK_UNDO
 
-
-    datatype event =
-      E_Active
-    | E_KeyDown of { sym : sdlk }
-    | E_KeyUp of { sym : sdlk }
-    | E_MouseMotion of { which : int, state : mousestate, x : int, y : int, xrel : int, yrel : int }
-    | E_MouseDown of { button : int, x : int, y : int }
-    | E_MouseUp of { button : int, x : int, y : int }
-    | E_JoyAxis of { which : int, axis : int, v : int }
-    | E_JoyDown of { which : int, button : int }
-    | E_JoyUp of { which : int, button : int }
-    | E_JoyHat of { which : int, hat : int, state : joyhatstate }
-    | E_JoyBall
-    | E_Resize
-    | E_Expose
-    | E_SysWM
-    | E_User
-    | E_Quit
-    | E_Unknown
-
+  datatype platform = WIN32 | LINUX | OSX
+      
+  datatype event =
+    E_Active
+  | E_KeyDown of { sym : sdlk }
+  | E_KeyUp of { sym : sdlk }
+  | E_MouseMotion of { which : int, state : mousestate, x : int, y : int, xrel : int, yrel : int }
+  | E_MouseDown of { button : int, x : int, y : int }
+  | E_MouseUp of { button : int, x : int, y : int }
+  | E_JoyAxis of { which : int, axis : int, v : int }
+  | E_JoyDown of { which : int, button : int }
+  | E_JoyUp of { which : int, button : int }
+  | E_JoyHat of { which : int, hat : int, state : joyhatstate }
+  | E_JoyBall
+  | E_Resize
+  | E_Expose
+  | E_SysWM
+  | E_User
+  | E_Quit
+  | E_Unknown
 
   fun sdlktos s =
       (case s of
@@ -1151,12 +1151,22 @@ struct
       end
 
   (* **** initialization **** *)
-  local val init = _import "ml_init" : unit -> int ;
+  local 
+      val init = _import "ml_init" : unit -> int ;
+      val plat = _import "ml_platform" : unit -> int ;
   in
     val () = 
       case init () of
         0 => raise SDL "could not initialize"
       | _ => ()
+
+    val platform =
+      case plat () of
+          1 => WIN32
+        | 2 => OSX
+        | 3 => LINUX
+        | ~1 => raise SDL "Platform was not defined in makefile?"
+        | _ => raise SDL "sdl.sml is out of sync with sdl.c"
   end
 
   val getticks = _import "SDL_GetTicks" : unit -> Word32.word ;
