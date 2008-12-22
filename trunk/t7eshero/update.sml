@@ -43,24 +43,31 @@ struct
        callback is called periodically with the number of
        bytes received so far and the total size, if known.
        *)
-    fun get_url url (callback : int * int option -> unit) =
+    fun get_url (url : string) (callback : int * int option -> unit) : string =
         let in
+            print ("GET " ^ url ^ "\n");
             print ("XXX: Unimplemented: HTTP fetches!\n");
             "awesome   u    aaaaaaaaaaaaaaaa\n" ^
             "cooool.txt  u  bbbbbbbbbbbbbbbb\n"
         end
 
+    (* Return the canonical URL for the update file f with SHA-1 hash h *)
+    fun make_url (f : string) (h : string) : string =
+        "http://t7eshero.spacebar.org/" ^ Platform.shortname ^ "/" ^ 
+        StringUtil.replace "/" "$" f
+
     (* Compute the SHA-1 hash of a file on disk as a lowercase ASCII
        string, or return NONE if the file does not exist. *)
     fun sha1file file =
-        let in
-            print ("XXX unimplemented: SHA1 hash");
-            SOME "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12"
-        end
+        if FSUtil.exists file
+        then SOME (SHA1.bintohex (SHA1.hash_stream
+                                  (SimpleStream.fromfilechunks 512 file)))
+        else NONE
     
     datatype action =
         ActionGet of { file : string, sha1 : string }
       | ActionDelete of { file : string }
+
     (* Given the manifest as a string, parse into a series of actions that
        we need to take in order to perform the upgrade. This checks
        the filesystem and doesn't record an action if there's nothing
@@ -77,7 +84,7 @@ struct
                  [filename, _, "*"] =>
                      (* XXX relative to some data directory? *)
                      if FSUtil.exists filename
-                     then SOME (ActionDelete { file = filename})
+                     then SOME (ActionDelete { file = filename })
                      else NONE
                | [filename, encoding, sha1] =>
                      if sha1 = Option.getOpt (sha1file filename, "z")
@@ -88,5 +95,30 @@ struct
                | nil => NONE
                | _ => raise Update "Ill-formed manifest.") lines
         end
+
+    datatype replacement =
+        ReplaceDelete of { file : string }
+      | ReplaceFile of { file : string, tempfile : string }
+
+    (* Given an action, do what we gotta do get ready to perform it.
+       This basically means downloading files we need to temporary
+       locations and checking that their hashes are correct. 
+
+       Raises Update if we can't make progress.
+       *)
+    fun prepare_actions (callback : string * int * int option -> unit) 
+                        (actions : action list) =
+       List.mapPartial
+       (fn ActionDelete { file } => SOME (ReplaceDelete { file = file })
+         | ActionGet { file, sha1 } => 
+        let val data = get_url (make_url file sha1) 
+                               (fn (i, t) => callback (file, i, t))
+            val tempfile = FSUtil.tempfilename ("update-" ^ sha1 ^ "-")
+        in
+            if SHA1.bintohex (SHA1.hash data) = sha1
+            then (StringUtil.writefile tempfile data;
+                  SOME (ReplaceFile { file = file, tempfile = tempfile }))
+            else raise Update ("Downloaded file " ^ file ^ " had wrong SHA-1 hash!")
+        end) actions
 
 end
