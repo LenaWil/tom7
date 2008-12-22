@@ -299,6 +299,10 @@ sig
     | E_Quit
     | E_Unknown
 
+  (* Supported platforms. *)
+  datatype platform = WIN32 | LINUX | OSX
+  val platform : platform
+
   (* R, G, B, A *)
   val color : Word8.word * Word8.word * Word8.word * Word8.word -> color
   val components : color -> Word8.word * Word8.word * Word8.word * Word8.word

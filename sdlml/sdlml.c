@@ -49,6 +49,19 @@ int ml_init() {
   }
 }
 
+int ml_platform() {
+#if defined(WIN32)
+  return 1;
+#elif defined(OSX)
+  return 2;
+#elif defined(LINUX)
+  return 3;
+#else
+#  error "You must define (-D) WIN32, OSX, or LINUX when compiling sdl.o. This is used to determine the platform."
+    return -1;
+#endif
+}
+
 void slock(SDL_Surface *surf) {
   if(SDL_MUSTLOCK(surf))
     SDL_LockSurface(surf);
