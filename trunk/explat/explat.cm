@@ -1,5 +1,15 @@
 group is
 
+(* to compile with sml/nj.
+   not likely to work! *)
+#if (defined(SMLNJ_VERSION))
+ $/basis.cm
+ util/port-nj.sml
+#else
+ (* assume we are using mlton then *)
+ util/port-mlton.sml
+#endif
+
 ../sml-lib/util/util-sig.sml
 ../sml-lib/util/util.sml
 
@@ -14,6 +24,12 @@ group is
 
 ../sdlml/font-sig.sml
 ../sdlml/font.sml
+
+../sml-lib/util/fsutil-sig.sml
+../sml-lib/util/fsutil.sml
+
+(* Has effect, must come first. *)
+prelude.sml
 
 animate-sig.sml
 animate.sml
