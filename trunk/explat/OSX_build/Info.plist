@@ -7,8 +7,8 @@
 	<key>CFBundleExecutable</key>
 	<string>t7eshero.exe</string>
 	<key>CFBundleIconFile</key>
-	<string>T7ESHero.icns</string>
+	<string>Explat.icns</string>
 	<key>CFBundleName</key>
-	<string>T7ESHero</string>
+	<string>Explat</string>
 </dict>
 </plist>
