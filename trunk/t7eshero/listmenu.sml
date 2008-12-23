@@ -28,8 +28,7 @@ struct
           selcolor : color option,
           
           (* must clear the screen, at least *)
-          parent_draw : unit -> unit,
-          parent_heartbeat : unit -> unit
+          parent : Drawable.drawable
 
           } : 'item option =
         let
@@ -135,7 +134,7 @@ struct
                         end
 
                 in
-                    parent_draw ();
+                    Drawable.draw parent;
                     (* selector area. always max *)
                     (* XXX alpha is not supported in fillrect. We should use it. *)
                     ofillrect (screen, x, y, width, height, bgcolor);
@@ -153,7 +152,7 @@ struct
 
             fun go next =
                 let 
-                    val () = parent_heartbeat ()
+                    val () = Drawable.heartbeat parent
                     val () = input ()
                     val now = getticks()
                 in

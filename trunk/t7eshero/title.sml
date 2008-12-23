@@ -450,8 +450,8 @@ struct
                                      bgcolor = SOME LM.DEFAULT_BGCOLOR,
                                      selcolor = SOME (SDL.color (0wx44, 0wx44, 0wx77, 0wxFF)),
                                      bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
-                                     parent_draw = draw,
-                                     parent_heartbeat = heartbeat } of
+                                     parent = Drawable.drawable { draw = draw, heartbeat = heartbeat,
+                                                                  resize = Drawable.don't } } of
                         NONE => ()
                       | SOME ({file, slowfactor, ...}, _) => 
                             (* XXX joymap is dead to me. *)
@@ -504,8 +504,9 @@ struct
                                      bgcolor = SOME LM.DEFAULT_BGCOLOR,
                                      selcolor = SOME LM.DEFAULT_SELCOLOR,
                                      bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
-                                     parent_draw = draw,
-                                     parent_heartbeat = heartbeat } of
+                                     parent = Drawable.drawable { draw = draw,
+                                                                  heartbeat = heartbeat,
+                                                                  resize = Drawable.don't } } of
                         NONE => ()
 (*
                       | SOME CreateNew => createnew()
@@ -552,8 +553,9 @@ struct
                                      bgcolor = SOME LM.DEFAULT_BGCOLOR,
                                      selcolor = SOME (SDL.color (0wx55, 0wx22, 0wx00, 0wxFF)),
                                      bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
-                                     parent_draw = draw,
-                                     parent_heartbeat = heartbeat } of
+                                     parent = Drawable.drawable { draw = draw,
+                                                                  heartbeat = heartbeat,
+                                                                  resize = Drawable.don't } } of
                         NONE => ()
                       | SOME CreateNew => createnew()
                       | SOME (SelectOld pf) => (profile := pf;
