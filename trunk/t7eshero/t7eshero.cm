@@ -71,8 +71,13 @@ chars.sml
 sprites.sml
 sound-sig.sml
 sound.sml
+(* Would be nice to make these next two part of a library,
+   but they currently write the Sprites.screen directly and
+   use the configured joystick input *)
 listmenu-sig.sml
 listmenu.sml
+prompt-sig.sml
+prompt.sml
 update.sml
 (* XXX someone needs to check this shit in *)
 (* setlist-sig.sml*)
