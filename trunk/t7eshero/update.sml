@@ -139,7 +139,7 @@ struct
                        handle _ => raise Update ("couldn't rename " ^ tempfile ^ " to " ^ file)
                  end) replacements
 
-    structure TS = TextScroll(Sprites.Font)
+    structure TS = TextScroll(Sprites.FontSmall)
 
     fun update () =
         let
@@ -152,7 +152,7 @@ struct
                                   then TS.rewrite
                                   else (lf := file; TS.write)) ts s
             fun draw () = TS.draw Sprites.screen ts
-
+            val this = Drawable.drawable { draw = draw, resize = Drawable.don't, heartbeat = Drawable.don't }
             (* XXX display to SDL surface *)
             fun show_progress (file, i, NONE) = saysame file ("Get " ^ file ^ " @ " ^
                                                               Int.toString i ^ "\n")
@@ -165,13 +165,18 @@ struct
             val () = TS.write ts "^1Checking files^<..."
             val () = draw ()
             val actions = parse_manifest manifest
-            (* XXX prompt user *)
-            val () = TS.write ts "^Downloding files^<..."
-            val () = draw ()
-            val replacements = prepare_replacements show_draw actions
-            val () = perform_replacements replacements
         in
-            draw ()
+            if Prompt.yesno this "Perform update?"
+            then 
+                let
+                    val () = TS.write ts "^Downloding files^<..."
+                    val () = draw ()
+                    val replacements = prepare_replacements show_draw actions
+                    val () = perform_replacements replacements
+                in
+                    draw ()
+                end
+            else draw ()
         end
 
 end

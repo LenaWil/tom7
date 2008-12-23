@@ -166,9 +166,9 @@ struct
               end)
         end
 
-    val DEFAULTBORDER = SDL.color(0w0, 0w0, 0w0, 0w127)
-    val DEFAULTCTOP = SDL.color(0w200, 0w220, 0w200, 0w220)
-    val DEFAULTCBOT = SDL.color(0w180, 0w180, 0w180, 0w190)
+    val DEFAULTBORDER = SDL.color(0w0, 0w00, 0w200, 0w127)
+    val DEFAULTCTOP = SDL.color(0w100, 0w100, 0w150, 0w150)
+    val DEFAULTCBOT = SDL.color(0w80, 0w80, 0w80, 0w110)
         
     fun yesno p s = prompt { x = NONE, y = NONE, width = NONE, height = NONE,
                              question = s, ok = "Yes", cancel = SOME "No",
