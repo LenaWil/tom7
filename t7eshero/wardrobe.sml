@@ -140,8 +140,9 @@ struct
                                   bgcolor = SOME LM.DEFAULT_BGCOLOR,
                                   selcolor = SOME (SDL.color (0wx44, 0wx44, 0wx77, 0wxFF)),
                                   bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
-                                  parent_draw = draw,
-                                  parent_heartbeat = heartbeat } of
+                                  parent = Drawable.drawable { draw = draw, heartbeat = heartbeat,
+                                                               resize = Drawable.don't }
+                                  } of
                      NONE => raise Abort
                    | SOME NONE => raise Done
                    | SOME (SOME item) => 

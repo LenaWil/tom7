@@ -31,6 +31,9 @@ fsutil-portable.sml
 ../sml-lib/util/growarray-sig.sml
 ../sml-lib/util/growarray.sml
 
+../sml-lib/data/lastn-buffer-sig.sml
+../sml-lib/data/lastn-buffer.sml
+
 ../sml-lib/files/reader-sig.sml
 ../sml-lib/files/reader.sml
 
@@ -42,6 +45,14 @@ fsutil-portable.sml
 
 ../sdlml/font-sig.sml
 ../sdlml/font.sml
+
+(* Should probably be in SDLML *)
+drawable-sig.sml
+drawable.sml
+
+(* Should probably be in SDLML *)
+textscroll-sig.sml
+textscroll.sml
 
 (* Used in initialization. Must be after SDL. *)
 platform.sml

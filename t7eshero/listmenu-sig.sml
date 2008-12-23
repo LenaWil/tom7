@@ -21,8 +21,7 @@ sig
           selcolor : SDL.color option,
 
           (* must clear the screen, at least *)
-          parent_draw : unit -> unit,
-          parent_heartbeat : unit -> unit
+          parent : Drawable.drawable
 
           } -> 'item option
 
