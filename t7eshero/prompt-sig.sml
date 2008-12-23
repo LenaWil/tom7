@@ -37,12 +37,12 @@ sig
           } -> bool
 
     (* Yes/No question *)
-    val yesno : string -> bool
+    val yesno : Drawable.drawable -> string -> bool
     (* Continue/Cancel question *)
-    val okcancel : string -> bool
+    val okcancel : Drawable.drawable -> string -> bool
 
     (* Surprise! Something has failed. *)
-    val no : string -> bool
+    val no : Drawable.drawable -> string -> bool
 
     (* XXX bug, etc... *)
 end

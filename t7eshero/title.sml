@@ -1,13 +1,16 @@
 functor TitleFn(val screen : SDL.surface) :> TITLE =
 struct
 
-    open SDL
     structure FontSmall = Sprites.FontSmall
     structure Font = Sprites.Font
     structure FontMax = Sprites.FontMax
     structure FontHuge = Sprites.FontHuge
     structure SmallFont3x = Sprites.SmallFont3x
     structure SmallFont = Sprites.SmallFont
+    structure S = SDL
+    structure Joystick = S.Joystick
+    datatype sdlk = datatype SDL.sdlk
+    datatype event = datatype SDL.event
 
     datatype selection = Play | SignIn | Configure | Wardrobe
 
@@ -176,7 +179,7 @@ struct
 
 
                     fun input () =
-                        case pollevent () of
+                        case S.pollevent () of
                             SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise AbortConfigure
                           | SOME E_Quit => raise Hero.Exit
                           | SOME e =>
@@ -227,22 +230,22 @@ struct
                     fun draw () =
                         let
                         in
-                            blitall(Sprites.configure, screen, 0, 0);
+                            S.blitall(Sprites.configure, screen, 0, 0);
 
                             (case !phase of
                                  P_Button d =>
                                      let in
-                                         blitall(Sprites.guitar, screen, 0 - buttonpos d, Y_GUITAR);
-                                         blitall(case d of
-                                                     5 => Sprites.strum_up
-                                                   | 6 => Sprites.strum_down
-                                                   | _ => Sprites.press, screen, PRESS_OFFSET, Y_PRESS);
+                                         S.blitall(Sprites.guitar, screen, 0 - buttonpos d, Y_GUITAR);
+                                         S.blitall(case d of
+                                                       5 => Sprites.strum_up
+                                                     | 6 => Sprites.strum_down
+                                                     | _ => Sprites.press, screen, PRESS_OFFSET, Y_PRESS);
                                          Util.for 0 (d - 1)
                                          (fn x =>
-                                          blitall(Sprites.press_ok, screen, 
-                                                  (0 - buttonpos d)
-                                                  + PRESS_OFFSET
-                                                  + buttonpos x, Y_OK))
+                                          S.blitall(Sprites.press_ok, screen, 
+                                                    (0 - buttonpos d)
+                                                    + PRESS_OFFSET
+                                                    + buttonpos x, Y_OK))
                                      end
                                | P_Axes =>
                                      let 
@@ -270,12 +273,12 @@ struct
                                      end)
                         end
 
-                    val nexta = ref (getticks ())
+                    val nexta = ref (S.getticks ())
                     fun heartbeat () = 
                         let 
                             val () = Song.update ()
                             val () = loopplay ()
-                            val now = getticks ()
+                            val now = S.getticks ()
                         in
                             if now > !nexta
                             then (advance();
@@ -288,12 +291,12 @@ struct
                         let 
                             val () = heartbeat ()
                             val () = input ()
-                            val now = getticks ()
+                            val now = S.getticks ()
                         in
                             (if now > !nextd
                              then (draw (); 
                                    nextd := now + MENUTICKS;
-                                   flip screen)
+                                   S.flip screen)
                              else ());
                             go ()
                         end
@@ -321,7 +324,7 @@ struct
                         end
                 end
 
-            val nexta = ref (getticks ())
+            val nexta = ref (S.getticks ())
 
             (* it depends which device we click with for configuring *)
             fun select device =
@@ -338,7 +341,7 @@ struct
                         end
 
             and input () =
-                case pollevent () of
+                case S.pollevent () of
                     (* XXX Escape and cancel button should show a quit prompt *)
                     SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Hero.Exit
                   | SOME E_Quit => raise Hero.Exit
@@ -448,7 +451,7 @@ struct
                                      drawitem = drawitem,
                                      itemheight = itemheight,
                                      bgcolor = SOME LM.DEFAULT_BGCOLOR,
-                                     selcolor = SOME (SDL.color (0wx44, 0wx44, 0wx77, 0wxFF)),
+                                     selcolor = SOME (S.color (0wx44, 0wx44, 0wx77, 0wxFF)),
                                      bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
                                      parent = Drawable.drawable { draw = draw, heartbeat = heartbeat,
                                                                   resize = Drawable.don't } } of
@@ -537,13 +540,17 @@ struct
                       | drawitem (SelectOld p, x, y, sel) = 
                         let in
                             (* XXX also, draw border for it *)
-                            SDL.fillrect(screen, x + 2, y + 2, 66, 66, SDL.color (0wxFF, 0wxFF, 0wxFF, 0wxFF));
-                            SDL.blitall(Profile.surface p, screen, x + 4, y + 4);
+                            S.fillrect(screen, x + 2, y + 2, 66, 66, S.color (0wxFF, 0wxFF, 0wxFF, 0wxFF));
+                            S.blitall(Profile.surface p, screen, x + 4, y + 4);
                             FontSmall.draw(screen, x + 72, y + 4, 
                                            if sel then ("^3" ^ Profile.name p)
                                            else Profile.name p)
                         end
+                    val this = Drawable.drawable { draw = draw,
+                                                   heartbeat = heartbeat,
+                                                   resize = Drawable.don't }
                 in
+                    Prompt.yesno this "T7ESHero rulez!";
                     case LM.select { x = 8, y = 40,
                                      width = 256 - 16,
                                      height = 400,
@@ -551,11 +558,9 @@ struct
                                      drawitem = drawitem,
                                      itemheight = itemheight,
                                      bgcolor = SOME LM.DEFAULT_BGCOLOR,
-                                     selcolor = SOME (SDL.color (0wx55, 0wx22, 0wx00, 0wxFF)),
+                                     selcolor = SOME (S.color (0wx55, 0wx22, 0wx00, 0wxFF)),
                                      bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
-                                     parent = Drawable.drawable { draw = draw,
-                                                                  heartbeat = heartbeat,
-                                                                  resize = Drawable.don't } } of
+                                     parent = this } of
                         NONE => ()
                       | SOME CreateNew => createnew()
                       | SOME (SelectOld pf) => (profile := pf;
@@ -568,13 +573,13 @@ struct
                 let
                     fun drawitem item =
                         let val (f, x, y) = Vector.sub(Items.frames item, !humpframe)
-                        in blitall(f, screen, X_ROBOT + x, Y_ROBOT + y)
+                        in S.blitall(f, screen, X_ROBOT + x, Y_ROBOT + y)
                         end
                 in
-                    blitall(Sprites.title, screen, 0, 0);
+                    S.blitall(Sprites.title, screen, 0, 0);
 
                     Items.app_behind (Profile.outfit (!profile)) drawitem;
-                    blitall(Vector.sub(Sprites.humps, !humpframe), screen, X_ROBOT, Y_ROBOT);
+                    S.blitall(Vector.sub(Sprites.humps, !humpframe), screen, X_ROBOT, Y_ROBOT);
                     Items.app_infront (Profile.outfit (!profile)) (fn i => if Items.zindex i < 50
                                                                            then drawitem i
                                                                            else ());
@@ -600,7 +605,7 @@ struct
                 let 
                     val () = Song.update ()
                     val () = loopplay ()
-                    val now = getticks ()
+                    val now = S.getticks ()
                 in
                     if now > !nexta
                     then (advance();
@@ -613,12 +618,12 @@ struct
                 let 
                     val () = heartbeat ()
                     val () = input ()
-                    val now = getticks ()
+                    val now = S.getticks ()
                 in
                     (if now > !nextd
                      then (draw (); 
                            nextd := now + MENUTICKS;
-                           flip screen)
+                           S.flip screen)
                      else ());
                      go ()
                 end

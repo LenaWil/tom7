@@ -7,7 +7,7 @@
 structure T7ESHero =
 struct
 
-  open SDL
+  structure S = SDL
   val itos = Int.toString
   type ptr = MLton.Pointer.t
   infixr 9 `
@@ -246,7 +246,7 @@ struct
           in
             draw 0 (Song.look cursor);
             Scene.draw ();
-            flip Sprites.screen
+            S.flip Sprites.screen
           end
         else ()
 
@@ -272,12 +272,12 @@ struct
     fun loop (playcursor, drawcursor, failcursor) =
         let 
             fun polls () =
-                case pollevent () of
+                case S.pollevent () of
                     SOME e =>
                         let in
                             (case e of
-                                 E_KeyDown { sym = SDLK_ESCAPE } => raise Abort
-                               | E_Quit => raise Exit
+                                 S.E_KeyDown { sym = S.SDLK_ESCAPE } => raise Abort
+                               | S.E_Quit => raise Exit
                                | e =>
                                      (* Currently, allow events from any device to be for Player 1, since
                                         there is only one player. *)
@@ -291,9 +291,9 @@ struct
                                         | NONE => 
                                               (* only if not mapped *)
                                               (case e of
-                                                   (E_KeyDown { sym = SDLK_i }) => Song.fast_forward 2000
-                                                 | (E_KeyDown { sym = SDLK_o }) => Sound.transpose := !Sound.transpose - 1
-                                                 | (E_KeyDown { sym = SDLK_p }) => Sound.transpose := !Sound.transpose + 1
+                                                   (S.E_KeyDown { sym = S.SDLK_i }) => Song.fast_forward 2000
+                                                 | (S.E_KeyDown { sym = S.SDLK_o }) => Sound.transpose := !Sound.transpose - 1
+                                                 | (S.E_KeyDown { sym = S.SDLK_p }) => Sound.transpose := !Sound.transpose + 1
                                                  | _ => ())));
                               polls ()
                         end
@@ -427,7 +427,6 @@ struct
 
             (* Get postmortem statistics *)
             val () = Postmortem.loop (songid, profile, tracks)
-
         in
             ()
         end handle Abort => 

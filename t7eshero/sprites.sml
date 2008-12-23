@@ -19,7 +19,7 @@ struct
   fun requireimage2x f =
       let val s = requireimage f
       in
-          SDL.surf2x s
+          SDL.Util.surf2x s
           before SDL.freesurface s
       end
 
@@ -87,7 +87,7 @@ struct
   val greenhi = requireimage "testgraphics/greenhighlight.png"
   val blackfade = requireimage "testgraphics/blackfade.png"
 
-  val blackall = SDL.alphadim blackfade (* just to copy size *)
+  val blackall = SDL.Util.alphadim blackfade (* just to copy size *)
                    handle SDL.SDL s => (Hero.messagebox s; raise Hero.Hero s)
   val () = SDL.clearsurface(blackall, SDL.color (0w0, 0w0, 0w0, 0w255))
              handle SDL.SDL s => Hero.messagebox s
