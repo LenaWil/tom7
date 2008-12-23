@@ -547,7 +547,6 @@ struct
                                                    heartbeat = heartbeat,
                                                    resize = Drawable.don't }
                 in
-                    Prompt.yesno this "T7ESHero rulez!";
                     case LM.select { x = 8, y = 40,
                                      width = 256 - 16,
                                      height = 400,
