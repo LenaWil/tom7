@@ -2,7 +2,15 @@
 structure Chars =
 struct
 
-    (* XXX add colors *)
+    (* colors and control codes *)
+    val WHITE = "^0"
+    val BLUE = "^1"
+    val RED = "^2"
+    val YELLOW = "^3"
+    val GREY = "^4"
+    val GRAY = GREY
+    val GREEN = "^5"
+    val POP = "^<"
     
     (* these just have to be any non-ascii chars. *)
     val CHECKMARK = implode [chr 128]

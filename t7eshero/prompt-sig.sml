@@ -45,4 +45,5 @@ sig
     val no : Drawable.drawable -> string -> bool
 
     (* XXX bug, etc... *)
+    val bug : Drawable.drawable -> string -> unit
 end

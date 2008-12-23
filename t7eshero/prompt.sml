@@ -57,6 +57,7 @@ struct
                 case icon of 
                     NONE => (~MIDM, 0)
                   | SOME i => (SDL.surface_width i, SDL.surface_height i)
+            (* XXXX word wrap. *)
             val qlines = String.fields (fn #"\n" => true | _ => false) question
             val qheight = Int.max (iheight, length qlines * F.height)
             val aheight = F.height + (if Option.isSome cancel then F.height else 0)
@@ -166,7 +167,7 @@ struct
               end)
         end
 
-    val DEFAULTBORDER = SDL.color(0w0, 0w00, 0w200, 0w127)
+    val DEFAULTBORDER = SDL.color(0w0, 0w0, 0w200, 0w127)
     val DEFAULTCTOP = SDL.color(0w100, 0w100, 0w150, 0w150)
     val DEFAULTCBOT = SDL.color(0w80, 0w80, 0w80, 0w110)
         
@@ -180,4 +181,13 @@ struct
 
     fun okcancel _ = raise Prompt "unimplemented"
     fun no _ = raise Prompt "unimplemented"
+
+    fun bug p s = ignore (prompt { x = NONE, y = NONE, width = NONE, height = NONE,
+                                   question = Chars.RED ^ s, ok = "Drat", cancel = NONE,
+                                   icon = NONE, (* XXX get one *)
+                                   bordercolor = SOME (SDL.color (0w200, 0w0, 0w0, 0w127)),
+                                   bgcolortop = SOME DEFAULTCTOP,
+                                   bgcolorbot = SOME DEFAULTCBOT,
+                                   parent = p })
+
 end

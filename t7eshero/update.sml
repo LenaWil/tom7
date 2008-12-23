@@ -57,6 +57,7 @@ struct
             callback (0, SOME 1000);
             print ("XXX: Unimplemented: HTTP fetches!\n");
             ("awesome   u    aaaaaaaaaaaaaaaa\n" ^
+             "garbage   u    *\n" ^
              "cooool.txt  u  bbbbbbbbbbbbbbbb\n")
             before
             callback (1000, SOME 1000)
@@ -141,6 +142,14 @@ struct
 
     structure TS = TextScroll(Sprites.FontSmall)
 
+    fun show_actions ts draw nil = (TS.write ts (Chars.GREEN ^ "All files up to date."); draw())
+      | show_actions ts draw acts =
+        let in
+            app (fn ActionDelete { file } => TS.write ts (Chars.RED ^ "(^0x^<) " ^ file)
+                  | ActionGet { file, sha1 } => TS.write ts (Chars.BLUE ^ "(^0v^<) " ^ file)) acts;
+            draw ()
+        end
+
     fun update () =
         let
             val lf = ref ""
@@ -151,7 +160,12 @@ struct
             fun saysame file s = (if file = !lf
                                   then TS.rewrite
                                   else (lf := file; TS.write)) ts s
-            fun draw () = TS.draw Sprites.screen ts
+            fun draw () = 
+                let in
+                    SDL.fillrect (Sprites.screen, 0, 0, Sprites.width, Sprites.height, 
+                                  SDL.color (0w20, 0w30, 0w40, 0w255));
+                    TS.draw Sprites.screen ts
+                end
             val this = Drawable.drawable { draw = draw, resize = Drawable.don't, heartbeat = Drawable.don't }
             (* XXX display to SDL surface *)
             fun show_progress (file, i, NONE) = saysame file ("Get " ^ file ^ " @ " ^
@@ -166,6 +180,7 @@ struct
             val () = draw ()
             val actions = parse_manifest manifest
         in
+            show_actions ts draw actions;
             if Prompt.yesno this "Perform update?"
             then 
                 let
@@ -175,8 +190,11 @@ struct
                     val () = perform_replacements replacements
                 in
                     draw ()
-                end
-            else draw ()
+                end handle Update s => Prompt.bug this ("Update failed:\n" ^ s)
+                         | e => Prompt.bug this ("Update failed?!\n" ^ exnName e)
+            else draw ();
+            Prompt.yesno this "I finished";
+            ()
         end
 
 end
