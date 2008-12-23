@@ -1,6 +1,7 @@
 functor ListMenuFn(val screen : SDL.surface) :> LISTMENU =
 struct
 
+    structure U = Util
     open SDL
 
     val SKIP_X = 2
@@ -96,8 +97,8 @@ struct
                                        pageup and pagedown are hard to support because items are variable-sized.
                                        This is an ad hoc hack for now.
                                        *)
-                                    | E_KeyDown { sym = SDLK_PAGEDOWN } => Util.for 0 7 (move_down o ignore)
-                                    | E_KeyDown { sym = SDLK_PAGEUP } => Util.for 0 7 (move_up o ignore)
+                                    | E_KeyDown { sym = SDLK_PAGEDOWN } => U.for 0 7 (move_down o ignore)
+                                    | E_KeyDown { sym = SDLK_PAGEUP } => U.for 0 7 (move_up o ignore)
 
                                     (* might allow you to get to configure with only an unconfigured joystick. *)
                                     | E_JoyDown { button, ... } => select ()

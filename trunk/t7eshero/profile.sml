@@ -13,9 +13,15 @@ struct
         (* get perfect on a song *)
         PerfectMatch
 
+    fun error s =
+        let in
+            print ("Profile error: " ^ s ^ "\n");
+            raise Profile s
+        end
+
     fun atostring PerfectMatch = "PM"
     fun afromstring "PM" = PerfectMatch
-      | afromstring _ = raise Profile "bad achievement"
+      | afromstring _ = error "bad achievement"
 
     (* an individual profile *)
     type profile = { name : string ref,
@@ -34,7 +40,7 @@ struct
         case SDL.Image.load s of
             (* maybe could be error graphic *)
             NONE => (case SDL.Image.load DEFAULT_PROFILE_PIC of
-                         NONE => raise Profile "missing default profile pic?!"
+                         NONE => error "missing default profile pic?!"
                        | SOME s => s)
           | SOME s => s
 
@@ -44,7 +50,7 @@ struct
         map (fn s =>
              case String.tokens QQ s of
                  [song, record] => (Setlist.fromstring (une song), Record.fromstring (une record))
-               | _ => raise Profile "bad record") (songs_unlist ss)
+               | _ => error "bad record") (songs_unlist ss)
 
     fun rstostring rs =
         songs_ulist (map (fn (s, r) =>
@@ -59,8 +65,8 @@ struct
         map (fn s => 
              case String.tokens QQ s of
                  [ach, so, when] => (afromstring ach, uno Setlist.fromstring so, 
-                                     valOf (IntInf.fromString when) handle Option => raise Profile "bad achwhen")
-               | _ => raise Profile "bad achs") (unlist a)
+                                     valOf (IntInf.fromString when) handle Option => error "bad achwhen")
+               | _ => error "bad achs") (unlist a)
 
     val (pro_ulist, pro_unlist) = Serialize.list_serializer " " #"#"
     fun ptostring { name, pic, records, achievements, lastused, picsurf = _, closet, outfit } =
@@ -75,12 +81,12 @@ struct
                 { name = ref name,
                   picsurf = ref (openpic pic),
                   pic = ref pic,
-                  lastused = ref (valOf (IntInf.fromString lastused) handle Option => raise Profile "bad lastused"),
+                  lastused = ref (valOf (IntInf.fromString lastused) handle Option => error "bad lastused"),
                   records = ref (rsfromstring records),
                   achievements = ref (achsfromstring ach),
                   closet = ref (map Items.fromid (String.tokens (fn #"," => true | _ => false) closet)),
                   outfit = ref (Items.wfromstring outfit) }
-      | _ => raise Profile "bad profile"
+      | _ => error "bad profile"
 
 
     val (profiles_ulist, profiles_unlist) = Serialize.list_serializer "\n--------\n" #"$"

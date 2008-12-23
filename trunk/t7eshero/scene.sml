@@ -7,6 +7,7 @@ struct
 
   (* PERF could keep 'lastscene' and only draw changes? *)
   structure S = Sprites
+  structure U = Util
   structure Font = S.Font
   structure FontHuge = S.FontHuge
   structure FontSmall = S.FontSmall
@@ -126,7 +127,7 @@ struct
            end) (!stars);
 
       (* finger state *)
-      Util.for 0 (Hero.FINGERS - 1)
+      U.for 0 (Hero.FINGERS - 1)
       (fn i =>
        if Array.sub(State.fingers, i)
        then blitall(Vector.sub(S.fingers, i), screen, 
