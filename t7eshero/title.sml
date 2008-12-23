@@ -12,7 +12,7 @@ struct
     datatype sdlk = datatype SDL.sdlk
     datatype event = datatype SDL.event
 
-    datatype selection = Play | SignIn | Configure | Wardrobe
+    datatype selection = Play | SignIn | Configure | Wardrobe | Update
 
     exception Selected of { midi : string,
                             difficulty : Hero.difficulty,
@@ -48,7 +48,7 @@ struct
             (* from 0..(humplen-1) *)
             val humpframe = ref 0
             val humprev = ref false
-            val selected = ref Play
+            val selected = ref 0
 
             val (divi, thetracks) = Game.fromfile TITLEMIDI
             val tracks = Game.label PRECURSOR SLOWFACTOR thetracks
@@ -56,26 +56,19 @@ struct
             val () = Song.init ()
             val cursor = Song.cursor_loop (0 - PRECURSOR) (slow (MIDI.merge tracks))
 
-            fun move_down () =
-                selected :=
-                (case !selected of
-                     Play => SignIn
-                   | SignIn => Configure
-                   | Configure => Wardrobe
-                   | Wardrobe => Play)
-
-            fun move_up () =
-                selected :=
-                (case !selected of
-                     Play => Wardrobe
-                   | Wardrobe => Configure
-                   | Configure => SignIn
-                   | SignIn => Play)
+            val items = Vector.fromList [Play, SignIn, Wardrobe, Configure, Update]
+            fun posof d =
+                case Vector.findi (fn (_, x) => x = d) items of
+                    NONE => raise Hero.Hero "menuitem not in vector"
+                  | SOME (i, _) => i
+            fun move_down () = selected := (!selected + 1) mod Vector.length items
+            fun move_up () = selected := (!selected - 1) mod Vector.length items
 
             val playstring = ref "^1Play"
             val signstring = ref "^1Sign in"
             val confstring = ref "^1Configure"
             val wardstring = ref "^1Wardrobe"
+            val updastring = ref "^1Update"
 
             fun loopplay () =
                 let
@@ -115,18 +108,21 @@ struct
                     confstring := "^1Configure";
                     signstring := "^1Sign in";
                     wardstring := "^1Wardrobe";
+                    updastring := "^1Update";
 
-                    (case !selected of
+                    (case Vector.sub(items, !selected) of
                          Play => playstring := Chars.fancy "Play"
                        | SignIn => signstring := Chars.fancy "Sign in"
                        | Configure => confstring := Chars.fancy "Configure"
-                       | Wardrobe => wardstring := Chars.fancy "Wardrobe")
+                       | Wardrobe => wardstring := Chars.fancy "Wardrobe"
+                       | Update => updastring := Chars.fancy "Update" )
                 end
 
-            val Y_PLAY = 148 + (FontHuge.height) * 0
-            val Y_SIGN = 148 + (FontHuge.height) * 1
-            val Y_CONF = 148 + (FontHuge.height) * 2
-            val Y_WARD = 148 + (FontHuge.height) * 3
+            val Y_PLAY = 148 + (FontHuge.height) * posof Play
+            val Y_SIGN = 148 + (FontHuge.height) * posof SignIn
+            val Y_CONF = 148 + (FontHuge.height) * posof Configure
+            val Y_WARD = 148 + (FontHuge.height) * posof Wardrobe
+            val Y_UPDA = 148 + (FontHuge.height) * posof Update
             val X_ROBOT = 128
             val Y_ROBOT = 333
             val MENUTICKS = 0w60
@@ -328,10 +324,11 @@ struct
 
             (* it depends which device we click with for configuring *)
             fun select device =
-                case !selected of
+                case Vector.sub(items, !selected) of
                     Play => play ()
                   | SignIn => signin ()
                   | Configure => configure device
+                  | Update => Update.update () (* XXX *)
                   | Wardrobe => 
                         let in
                             Wardrobe.loop (!profile);
@@ -588,11 +585,13 @@ struct
                     FontHuge.draw(screen, 36, Y_SIGN, !signstring);
                     FontHuge.draw(screen, 36, Y_CONF, !confstring);
                     FontHuge.draw(screen, 36, Y_WARD, !wardstring);
-                    (case !selected of
+                    FontHuge.draw(screen, 36, Y_UPDA, !updastring);
+                    (case Vector.sub(items, !selected) of
                          Play => FontHuge.draw(screen, 4, Y_PLAY, Chars.HEART)
                        | SignIn => FontHuge.draw(screen, 4, Y_SIGN, Chars.HEART)
                        | Configure => FontHuge.draw(screen, 4, Y_CONF, Chars.HEART)
-                       | Wardrobe => FontHuge.draw(screen, 4, Y_WARD, Chars.HEART));
+                       | Wardrobe => FontHuge.draw(screen, 4, Y_WARD, Chars.HEART)
+                       | Update => FontHuge.draw(screen, 4, Y_UPDA, Chars.HEART));
 
                     (* XXX hack attack.. *)
                     Items.app_infront (Profile.outfit (!profile)) (fn i => if Items.zindex i >= 50
