@@ -40,6 +40,9 @@ fsutil-portable.sml
 ../sml-lib/files/midi/midi-sig.sml
 ../sml-lib/files/midi/midi.sml
 
+../sml-lib/crypt/mersenne-twister-sig.sml
+../sml-lib/crypt/mersenne-twister.sml
+
 ../sdlml/sdl-sig.sml
 ../sdlml/sdl.sml
 

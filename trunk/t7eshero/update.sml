@@ -3,11 +3,11 @@
    songs. We also don't attempt to upgrade the binary itself, for now.
    (That's actually easy on Linux and OSX but I think Windows is
    the most likely platform since you don't need any funny drivers
-   for that.
+   for that.)
    
    Updating works like this. We fetch a file at a known URL from the
-   t7eshero. That file is a manifest for the game's data directory
-   contents. The manifest looks like this
+   t7eshero server. That file is a manifest for the game's data
+   directory contents. The manifest looks like this
 
    filename      u     SHA1-or-command\n
    filename      u     SHA1-or-command\n
@@ -31,7 +31,11 @@
    filenames as in the manifest. If all are successful, we move away
    the old versions, then move in the replacements. We should then
    tell the various modules in the application to reload their stuff,
-   if necessary. *)
+   if necessary. 
+
+   TODO: Platform-specific manifest that allows updating the game and
+   its libraries.
+*)
 structure Update =
 struct
     
@@ -39,10 +43,10 @@ struct
 
     (* Return the canonical URL for the update file f with SHA-1 hash h *)
     fun make_url (f : string) (h : string) : string =
-        "http://t7eshero.spacebar.org/" ^ Platform.shortname ^ "/" ^ 
+        "http://t7eshero.spacebar.org/data/" ^ 
         StringUtil.replace "/" "$" f
 
-    fun manifest_url () = "http://t7eshero.spacebar.org/" ^ Platform.shortname ^ ".manifest"
+    fun manifest_url () = "http://t7eshero.spacebar.org/data.manifest"
     
     (* get_url url callback
        get the specified url from a remote host. Returned as a
