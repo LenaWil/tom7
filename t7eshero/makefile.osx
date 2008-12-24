@@ -26,6 +26,9 @@ t7eshero.exe : sound.o sdlml.o t7eshero.cm *.sml ../sdlml/*.sml sdlmain.o messag
 genscore.exe : genscore.sml genscore.cm
 	mlton -output $@ -default-ann 'allowFFI true' genscore.cm
 
+mkupgrade.exe : mkupgrade.sml mkupgrade.cm
+	mlton -output $@ -default-ann 'allowFFI true' mkupgrade.cm
+
 RELEASEFILES=t7eshero.exe *.mid icon.png *.hero
 
 # XXX some of this mixer crap is an escape mistake. actually,
