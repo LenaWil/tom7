@@ -326,8 +326,6 @@ sig
 
   val clearsurface : surface * color -> unit
 
-  val blit16x : surface * int * int * int * int  * surface * int * int -> unit
-
   (* draw a pixel to the surface. XXX the alpha component is ignored. *)
   val drawpixel : surface * int * int * color -> unit
   val getpixel  : surface * int * int -> color
@@ -338,22 +336,46 @@ sig
   (* x, y, width, height *)
   val fillrect  : surface * int * int * int * int * color -> unit
 
-  (* create a version of the surface that's 50% transparent *)
-  val alphadim : surface -> surface
-  (* make a surface twice as wide and twice as tall, doing nearest-neighbor
-     interpolation. *)
-  val surf2x : surface -> surface
-      
   (* make a surface with the given width and height. it will be uninitialized. *)
   val makesurface : int * int -> surface
   (* invalidates the surface *)
   val freesurface : surface -> unit
 
+  (* These are not separate structures because they rely on access to the
+     implementations of surface, color, etc. *)
   structure Image :
   sig
 
     val load : string -> surface option
 
+  end
+
+  structure Util :
+  sig
+
+    (* Make an n-pixel border inside a surface *)
+    val outline : surface * int * color -> unit
+
+    (* Create a surface of the given width and height and color. This is
+       typically used as an alternative to fillrect when we want to do
+       alpha compositing with the screen. *)
+    val makealpharect : int * int * color -> surface
+
+    (* make an alpha rectangle with a vertical gradient between the two
+       specified colors. bias should be between 0 and 1; a higher bias
+       means the gradient will have more of the bottom color. *)
+    val makealpharectgrad : { w : int, h : int, 
+                              ctop : color, cbot : color, 
+                              bias : real } -> surface
+
+    (* create a version of the surface that's 50% transparent *)
+    val alphadim : surface -> surface
+
+    (* make a surface twice as wide and twice as tall, doing nearest-neighbor
+       interpolation. *)
+    val surf2x : surface -> surface
+        
+    val blit16x : surface * int * int * int * int  * surface * int * int -> unit
   end
 
 end

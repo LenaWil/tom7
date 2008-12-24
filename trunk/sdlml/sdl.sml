@@ -1005,18 +1005,9 @@ struct
     fun blit (s, sx, sy, sw, sh, d, dx, dy) = b (!!s, sx, sy, sw, sh, !!d, dx, dy)
   end
    
-
-  local val ad = _import "ml_alphadim" : ptr -> ptr ;
-  in
-    fun alphadim s = 
-      let val p = ad(!!s)
-      in
-        if p = null
-        then raise SDL "couldn't alphadim"
-        else ref p
-      end
-  end
-
+  (* PERF: Probably porting the C code to unsafe ML code would result in significantly
+     improved performance. The C call overhead is big and the compiler can't optimize
+     over the call boundary. *)
   local val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
   in
       fun drawpixel (s, x, y, c) =
@@ -1034,6 +1025,7 @@ struct
           end
   end
 
+  (* PERF: similar *)
   (* XXX no alpha.. *)
   local val gp = _import "ml_getpixela" : ptr * int * int * Word8.word ref * Word8.word ref * Word8.word ref * Word8.word ref -> unit ;
   in
@@ -1105,20 +1097,6 @@ struct
         end
   end
 
-  (* by drawing big rects *)
-  fun blit16x (src, sx, sy, sw, sh,  dst, dx, dy) =
-    Util.for sy (sy + sh - 1)
-    (fn yy =>
-     Util.for sx (sx + sw - 1)
-     (fn xx =>
-      let val color = getpixel(src, xx, yy)
-      in
-        fillrect(dst, 
-                 dx + ((xx - sx) * 16),
-                 dy + ((yy - sy) * 16),
-                 16, 16, color)
-      end))
-
   local val fs = _import "SDL_FreeSurface" : ptr -> unit ;
   in fun freesurface s = fs (!!s)
   end
@@ -1134,21 +1112,6 @@ struct
               else ref s
           end
   end
-
-  fun surf2x src =
-      let 
-          val dst = makesurface(2 * surface_width src, 
-                                2 * surface_height src)
-      in
-          Util.for 0 (surface_height src - 1)
-          (fn yy =>
-           Util.for 0 (surface_width src - 1)
-           (fn xx =>
-            let val color = getpixel(src, xx, yy)
-            in fillrect(dst, xx * 2, yy * 2, 2, 2, color)
-            end));
-          dst
-      end
 
   (* **** initialization **** *)
   local 
@@ -1240,6 +1203,84 @@ struct
       end
   end
 
+  structure Util =
+  struct
 
+    fun surf2x src =
+        let 
+            val dst = makesurface(2 * surface_width src, 
+                                  2 * surface_height src)
+        in
+            Util.for 0 (surface_height src - 1)
+            (fn yy =>
+             Util.for 0 (surface_width src - 1)
+             (fn xx =>
+              let val color = getpixel(src, xx, yy)
+              in fillrect(dst, xx * 2, yy * 2, 2, 2, color)
+              end));
+            dst
+        end
+
+    local val ad = _import "ml_alphadim" : ptr -> ptr ;
+    in
+      fun alphadim s = 
+        let val p = ad(!!s)
+        in
+          if p = null
+          then raise SDL "couldn't alphadim"
+          else ref p
+        end
+    end
+
+    (* by drawing big rects *)
+    fun blit16x (src, sx, sy, sw, sh,  dst, dx, dy) =
+      Util.for sy (sy + sh - 1)
+      (fn yy =>
+       Util.for sx (sx + sw - 1)
+       (fn xx =>
+        let val color = getpixel(src, xx, yy)
+        in
+          fillrect(dst, 
+                   dx + ((xx - sx) * 16),
+                   dy + ((yy - sy) * 16),
+                   16, 16, color)
+        end))
+
+    (* PERF: reduce overlaps in corners *)
+    fun outline (surf, n, c) =
+        let 
+            val w = surface_width surf
+            val h = surface_height surf
+        in
+            fillrect(surf, 0, 0, w, n, c);
+            fillrect(surf, 0, 0, n, h, c);
+            fillrect(surf, w - n, 0, n, h, c);
+            fillrect(surf, 0, h - n, w, n, c)
+        end
+
+    fun makealpharect (w, h, c) =
+        let
+            val s = makesurface (w, h)
+        in
+            fillrect(s, 0, 0, w, h, c);
+            s
+        end
+
+    fun makealpharectgrad { w, h, ctop, cbot, bias } =
+        let
+            val s = makesurface (w, h)
+            val rh = real h
+        in
+            Util.for 0 (h - 1)
+            (fn i =>
+             (* XXX: no bias yet *)
+             let val frac = 1.0 - (real i / rh)
+                 val c = colormixfrac (ctop, cbot, frac)
+             in fillrect(s, 0, i, w, 1, c)
+             end);
+            s
+        end
+
+  end (* Util *)
 end
 
