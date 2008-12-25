@@ -30,6 +30,11 @@
      ((eq window-system 'x)
       (set-default-font 
        "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"))
+     ((eq window-system 'ns)
+      (set-default-font
+       ;; Working OS X font: http://spacebar.org/stuff/FixedSys.dfont.zip
+       ;; Don't use FixedSys Excelsior 2 or 3; they are "anti"-aliased!
+       "FixedSys-15"))
      (t t))
 ;    (modify-frame-parameters f (list '(height . 75)))
     ))
@@ -42,7 +47,10 @@
 ;; (frame-parameters)
 ;; (modify-frame-parameters nil (list '(left . 40)))
 ;; (modify-frame-parameters nil (list '(height . 75)))
-
+;;
+;; You can use this to read the current cryptic font string on any platform:
+;; (insert (cdr (assq 'font (frame-parameters))))
+;; But note that it doesn't always fork for set-default-font (eg on the mac.)
 
 (if (not (eq window-system 'w32))
     (setq explicit-shell-file-name "bash"))
