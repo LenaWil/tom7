@@ -454,7 +454,6 @@ struct
                                                                   resize = Drawable.don't } } of
                         NONE => ()
                       | SOME ({file, slowfactor, ...}, _) => 
-                            (* XXX joymap is dead to me. *)
                             raise Selected
                             { midi = file,
                               difficulty = Hero.Real,

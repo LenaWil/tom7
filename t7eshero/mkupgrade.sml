@@ -32,7 +32,7 @@ struct
             app (fn f =>
                  case sha1file f of
                      NONE => raise MakeUpgrade ("Can't find " ^ f)
-                   | SOME sh => print (f ^ " u " ^ sh ^ "\n"))
+                   | SOME sh => print (f ^ " u " ^ sh ^ "\n")) lfiles
         end
 
 end
