@@ -82,8 +82,7 @@ listmenu.sml
 prompt-sig.sml
 prompt.sml
 update.sml
-(* XXX someone needs to check this shit in *)
-(* setlist-sig.sml*)
+setlist-sig.sml
 setlist.sml
 items-sig.sml
 items.sml

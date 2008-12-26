@@ -74,35 +74,20 @@ struct
     val () = State.reset ()
 
 
-    val (f, SLOWFACTOR, diff, profile) =
-        case CommandLine.arguments() of
-          nil =>
-              let
-                  val { midi : string,
-                        difficulty : Hero.difficulty,
-                        slowfactor : int,
-                        profile : Profile.profile } = Title.loop()
-              in
-                  (midi, slowfactor, difficulty, profile)
-              end
-        (* XXXXX this is not a good way to use the program any more. *)
-      | f :: _ => 
-          let
-              (* number of SDL ticks per midi tick. *)
-              val SLOWFACTOR =
-                  (case map Int.fromString (CommandLine.arguments ()) of
-                       [_, SOME t] => t
-                     | _ => 5)
-          in
-              (* XXX this makes (and possibly saves) a profile every time
-                 we beat a song. *)
-              (f, SLOWFACTOR, Hero.Real, Profile.add_default())
-          end
+    val (song, diff, profile) =
+        let
+            val { song : Setlist.songinfo,
+                  difficulty : Hero.difficulty,
+                  profile : Profile.profile } = Title.loop ()
+        in
+            (song, difficulty, profile)
+        end
 
-    (* XXX not sure what the interface should be. but they are midi filenames. *)
-    val songid = Setlist.fromstring f
+    (* XXX should pull these out of the song as needed, I think? *)
+    val songid = #id song
+    val SLOWFACTOR = #slowfactor song
 
-    val (divi, thetracks) = Game.fromfile f
+    val (divi, thetracks) = Game.fromfile (#file song)
     val divi = divi * SLOWFACTOR
     val PREDELAY = 2 * divi (* ?? *)
 
@@ -118,7 +103,6 @@ struct
        But draw actually wants to see somewhat old events, so that it can show a little
        bit of history. Therefore the two functions are going to be looking at different
        positions in the same list of track events. *)
-
     fun loopplay cursor =
         let
             val nows = Song.nowevents cursor

@@ -333,7 +333,7 @@ struct
 
         in
             (case loop_subscribe () of
-                 NONE => ignore (Prompt.yesno this "Canceled bye")
+                 NONE => ignore (Prompt.yesno this "Cancelled bye")
                | SOME ms => 
                  let in
                    app (fn mf =>

@@ -14,9 +14,8 @@ struct
 
     datatype selection = Play | SignIn | Configure | Wardrobe | Update
 
-    exception Selected of { midi : string,
+    exception Selected of { song : Setlist.songinfo,
                             difficulty : Hero.difficulty,
-                            slowfactor : int,
                             profile : Profile.profile }
 
     val TITLEMIDI = "title.mid"
@@ -389,45 +388,42 @@ struct
                     val HEIGHT = 444
 
 
-                    fun getrecords songinfo =
-                        let val key = Setlist.tokey songinfo
-                        in
-                            (* XXX use MD5 here *)
-                            case List.find (fn (sid, _) => Setlist.eq(sid, key)) 
-                                 (Profile.records (!profile)) of
-                                NONE => ("", fn () => "") (* no record. *)
-                              | SOME (_, { percent, misses, medals }) =>
-                                let 
-                                    fun colorp p s =
-                                        if p = 100 
-                                        then Chars.fancy s ^ "^0"
-                                        else if p >= 90
-                                             then "^5" ^ s ^ "^<"
-                                             else if p >= 80
-                                                  then "^1" ^ s ^ "^<"
-                                                  else if p >= 50
-                                                       then "^3" ^ s ^ "^<"
-                                                       else "^2" ^ s ^ "^<"
-                                in
-                                    print ("GOT RECORD for " ^ #file songinfo ^ "\n");
-                                    ("^4" ^
+                    fun getrecords (songinfo as { id, ... }) =
+                        case List.find (fn (sid, _) => Setlist.eq(sid, id)) 
+                            (Profile.records (!profile)) of
+                            NONE => ("", fn () => "") (* no record. *)
+                          | SOME (_, { percent, misses, medals }) =>
+                            let 
+                                fun colorp p s =
+                                    if p = 100 
+                                    then Chars.fancy s ^ "^0"
+                                    else if p >= 90
+                                         then "^5" ^ s ^ "^<"
+                                         else if p >= 80
+                                              then "^1" ^ s ^ "^<"
+                                              else if p >= 50
+                                                   then "^3" ^ s ^ "^<"
+                                                   else "^2" ^ s ^ "^<"
+                            in
+                                print ("GOT RECORD for " ^ #file songinfo ^ "\n");
+                                ("^4" ^
+                                 (if percent = 99 orelse misses > 0 andalso misses <= 3
+                                  then "-" ^ Int.toString misses
+                                  else Int.toString percent ^ "%") ^ " " ^
+                                     String.concat (map mtostring medals),
+                                     fn () => 
+                                     colorp percent
                                      (if percent = 99 orelse misses > 0 andalso misses <= 3
-                                      then "-" ^ Int.toString misses
+                                      then  ("-" ^ Int.toString misses)
                                       else Int.toString percent ^ "%") ^ " " ^
-                                         String.concat (map mtostring medals),
-                                         fn () => 
-                                         colorp percent
-                                         (if percent = 99 orelse misses > 0 andalso misses <= 3
-                                          then  ("-" ^ Int.toString misses)
-                                          else Int.toString percent ^ "%") ^ " " ^
-                                             String.concat (map mstostring medals))
-                                end
-                        end
+                                         String.concat (map mstostring medals))
+                            end
 
                     val songs = ListUtil.mapto getrecords (Setlist.allsongs())
 
                     fun itemheight _ = FontSmall.height + SmallFont.height + FontSmall.height + 8
-                    fun drawitem (i as ({title, artist, year, ...} : Setlist.songinfo, (r, rs)), x, y, sel) = 
+                    fun drawitem (i as ({title, artist, year, ...} : Setlist.songinfo, 
+                                        (r, rs)), x, y, sel) = 
                         let in
                             FontSmall.draw(screen, x + 2, y, 
                                            if sel then "^3" ^ title
@@ -453,11 +449,10 @@ struct
                                      parent = Drawable.drawable { draw = draw, heartbeat = heartbeat,
                                                                   resize = Drawable.don't } } of
                         NONE => ()
-                      | SOME ({file, slowfactor, ...}, _) => 
+                      | SOME (song, _) => 
                             raise Selected
-                            { midi = file,
+                            { song = song,
                               difficulty = Hero.Real,
-                              slowfactor = slowfactor,
                               profile = !profile }
                 end
 
