@@ -10,7 +10,7 @@ struct
     structure SmallFont3x = Sprites.SmallFont3x
     structure SmallFont = Sprites.SmallFont
 
-    val background = Sprites.requireimage "testgraphics/postmortem.png"    
+    val background = Sprites.requireimage "postmortem.png"    
     val screen = Sprites.screen
 
     val BGMIDI = "postmortem.mid"

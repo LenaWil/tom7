@@ -10,7 +10,7 @@ struct
     structure SmallFont3x = Sprites.SmallFont3x
     structure SmallFont = Sprites.SmallFont
 
-    val background = Sprites.requireimage "testgraphics/wardrobe.png"
+    val background = Sprites.requireimage "wardrobe.png"
     val screen = Sprites.screen
 
     val BGMIDI = "store.mid" (* XXX: sines should not click so much. *)

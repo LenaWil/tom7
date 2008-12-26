@@ -9,9 +9,10 @@ struct
 
   (* distance of nut (on-tempo target bar) from bottom of screen *)
   val NUTOFFSET = 127
+  val GRAPHICS = "graphics/" 
 
   fun requireimage s =
-    case (SDL.Image.load s) handle _ => NONE of
+    case (SDL.Image.load (FSUtil.dirplus GRAPHICS s)) handle _ => NONE of
       NONE => (Hero.messagebox ("couldn't open " ^ s ^ "\n");
                raise Hero.Hero "couldn't open required file")
     | SOME p => p
@@ -23,69 +24,69 @@ struct
           before SDL.freesurface s
       end
 
-  val solid = requireimage "testgraphics/solid.png"
+  val solid = requireimage "solid.png"
 
-  val configure  = requireimage "testgraphics/configure.png"
-  val background = requireimage "testgraphics/background.png"
-  val backlite   = requireimage "testgraphics/backlite.png"
+  val configure  = requireimage "configure.png"
+  val background = requireimage "background.png"
+  val backlite   = requireimage "backlite.png"
 
-  val guitar = requireimage2x "testgraphics/guitar.png"
-  val press = requireimage2x "testgraphics/press.png"
-  val press_ok = requireimage2x "testgraphics/press_ok.png"
-  val strum_down = requireimage2x "testgraphics/strum_down.png"
-  val strum_up = requireimage2x "testgraphics/strum_up.png"
+  val guitar = requireimage2x "guitar.png"
+  val press = requireimage2x "press.png"
+  val press_ok = requireimage2x "press_ok.png"
+  val strum_down = requireimage2x "strum_down.png"
+  val strum_up = requireimage2x "strum_up.png"
 
-  val new = requireimage "testgraphics/new.png"
+  val new = requireimage "new.png"
 
-  val matchmedal = requireimage "testgraphics/matchmedal.png"
-  val pokeymedal = requireimage "testgraphics/pokeymedal.png"
-  val pluckymedal = requireimage "testgraphics/pluckymedal.png"
+  val matchmedal = requireimage "matchmedal.png"
+  val pokeymedal = requireimage "pokeymedal.png"
+  val pluckymedal = requireimage "pluckymedal.png"
 
-  val stoicmedal = requireimage "testgraphics/stoicmedal.png"
-  val snakesmedal = requireimage "testgraphics/snakesmedal.png"
+  val stoicmedal = requireimage "stoicmedal.png"
+  val snakesmedal = requireimage "snakesmedal.png"
 
   val stars = Vector.fromList
-      [requireimage "testgraphics/greenstar.png",
-       requireimage "testgraphics/redstar.png",
-       requireimage "testgraphics/yellowstar.png",
-       requireimage "testgraphics/bluestar.png",
-       requireimage "testgraphics/orangestar.png"]
+      [requireimage "greenstar.png",
+       requireimage "redstar.png",
+       requireimage "yellowstar.png",
+       requireimage "bluestar.png",
+       requireimage "orangestar.png"]
 
   val hammers = Vector.fromList
-      [requireimage "testgraphics/greenhammer.png",
-       requireimage "testgraphics/redhammer.png",
-       requireimage "testgraphics/yellowhammer.png",
-       requireimage "testgraphics/bluehammer.png",
-       requireimage "testgraphics/orangehammer.png"]
+      [requireimage "greenhammer.png",
+       requireimage "redhammer.png",
+       requireimage "yellowhammer.png",
+       requireimage "bluehammer.png",
+       requireimage "orangehammer.png"]
 
   val zaps = Vector.fromList
-      [requireimage "testgraphics/zap1.png",
-       requireimage "testgraphics/zap1.png",
-       requireimage "testgraphics/zap2.png",
-       requireimage "testgraphics/zap2.png",
-       requireimage "testgraphics/zap3.png",
-       requireimage "testgraphics/zap3.png",
-       requireimage "testgraphics/zap4.png", (* XXX hack attack *)
-       requireimage "testgraphics/zap4.png"]
+      [requireimage "zap1.png",
+       requireimage "zap1.png",
+       requireimage "zap2.png",
+       requireimage "zap2.png",
+       requireimage "zap3.png",
+       requireimage "zap3.png",
+       requireimage "zap4.png", (* XXX hack attack *)
+       requireimage "zap4.png"]
 
-  val missed = requireimage "testgraphics/missed.png"
+  val missed = requireimage "missed.png"
 
   val fingers = Vector.tabulate(Hero.FINGERS, 
                                 (fn i =>
-                                 requireimage ("testgraphics/finger" ^ Int.toString i ^ ".png")))
+                                 requireimage ("finger" ^ Int.toString i ^ ".png")))
 
-  val title = requireimage "testgraphics/title.png"
-  val humps = Vector.fromList(map requireimage ["testgraphics/hump1.png",
-                                                "testgraphics/hump2.png",
-                                                "testgraphics/hump3.png",
-                                                "testgraphics/hump4.png"])
+  val title = requireimage "title.png"
+  val humps = Vector.fromList(map requireimage ["hump1.png",
+                                                "hump2.png",
+                                                "hump3.png",
+                                                "hump4.png"])
 
   val STARWIDTH = SDL.surface_width (Vector.sub(stars, 0))
   val STARHEIGHT = SDL.surface_height (Vector.sub(stars, 0))
   val ZAPWIDTH = SDL.surface_width (Vector.sub(zaps, 0))
   val ZAPHEIGHT = SDL.surface_height (Vector.sub(zaps, 0))
-  val greenhi = requireimage "testgraphics/greenhighlight.png"
-  val blackfade = requireimage "testgraphics/blackfade.png"
+  val greenhi = requireimage "greenhighlight.png"
+  val blackfade = requireimage "blackfade.png"
 
   val blackall = SDL.Util.alphadim blackfade (* just to copy size *)
                    handle SDL.SDL s => (Hero.messagebox s; raise Hero.Hero s)
@@ -93,7 +94,7 @@ struct
              handle SDL.SDL s => Hero.messagebox s
 
   structure SmallFont = 
-  FontFn (val surf = requireimage "testgraphics/fontsmall.png"
+  FontFn (val surf = requireimage "fontsmall.png"
           val charmap =
               " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
               "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
@@ -104,7 +105,7 @@ struct
           val dims = 3)
 
   structure SmallFont3x = 
-  FontFn (val surf = requireimage "testgraphics/smallfont3x.png"
+  FontFn (val surf = requireimage "smallfont3x.png"
           val charmap =
               " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
               "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
@@ -115,7 +116,7 @@ struct
           val dims = 3)
 
   structure FontSmall = 
-  FontFn (val surf = requireimage "testgraphics/font.png"
+  FontFn (val surf = requireimage "font.png"
           val charmap =
               " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
               "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
@@ -126,7 +127,7 @@ struct
           val dims = 3)
 
   structure Font = 
-  FontFn (val surf = requireimage "testgraphics/fontbig.png"
+  FontFn (val surf = requireimage "fontbig.png"
           val charmap =
               " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
               "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
@@ -137,7 +138,7 @@ struct
           val dims = 3)
 
   structure FontHuge = 
-  FontFn (val surf = requireimage "testgraphics/fonthuge.png"
+  FontFn (val surf = requireimage "fonthuge.png"
           val charmap =
           " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
           "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
@@ -149,7 +150,7 @@ struct
 
   (* PERF probably not being used; bigger than I thought *)
   structure FontMax = 
-  FontFn (val surf = requireimage "testgraphics/fontmax.png"
+  FontFn (val surf = requireimage "fontmax.png"
           val charmap =
           " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
           "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars

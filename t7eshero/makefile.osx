@@ -42,7 +42,7 @@ app : t7eshero.exe
 	mkdir /tmp/T7ESHero.app/Contents/MacOS
 	cp -R OSX_build/* /tmp/T7ESHero.app/Contents/
 	cp ${RELEASEFILES} /tmp/T7ESHero.app/Contents/MacOS/
-	cp -R testgraphics /tmp/T7ESHero.app/Contents/MacOS/
+	cp -R graphics /tmp/T7ESHero.app/Contents/MacOS/
 # XXX don't only need the score songs, not the source songs...
 	cp -R songs /tmp/T7ESHero.app/Contents/MacOS/
 	cp -R profilepics /tmp/T7ESHero.app/Contents/MacOS/
