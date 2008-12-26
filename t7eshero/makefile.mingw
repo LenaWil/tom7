@@ -3,8 +3,9 @@
 
 default : genscore.exe t7eshero.exe songs
 
-songs : genscore.exe makefile.songs
-	make -j 4 -f makefile.songs
+songs : genscore.exe songs/makefile.songs songs/makefile.nonfree
+	make -C songs -j 4 -f makefile.songs
+	make -C songs-nonfree -j 4 -f makefile.nonfree
 
 sdlml.o : ../sdlml/sdlml.c
 	gcc -O `sdl-config --cflags` -c ../sdlml/sdlml.c -o sdlml.o

@@ -29,7 +29,7 @@ genscore.exe : genscore.sml genscore.cm
 mkupgrade.exe : mkupgrade.sml mkupgrade.cm
 	mlton -output $@ -default-ann 'allowFFI true' mkupgrade.cm
 
-RELEASEFILES=t7eshero.exe *.mid icon.png *.hero
+RELEASEFILES=t7eshero.exe *.mid icon.png *.hero *.subscribed
 
 # XXX some of this mixer crap is an escape mistake. actually,
 # I'm not using mixer am I?
