@@ -13,7 +13,8 @@ struct
     fun ofillrect (s, x, y, w, h, SOME c) = fillrect (s, x, y, w, h, c)
       | ofillrect _ = ()
 
-    fun 'item select
+    fun 'item select { items = nil, ... } = NONE
+      | select
         { x : int,
           y : int,
           width : int,

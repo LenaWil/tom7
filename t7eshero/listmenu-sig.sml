@@ -9,6 +9,7 @@ sig
           y : int,
           width : int,
           height : int,
+          (* If there are no items, returns NONE immediately. *)
           items : 'item list,
           itemheight : 'item -> int,
           (* draw an item, x/y/selected *)
