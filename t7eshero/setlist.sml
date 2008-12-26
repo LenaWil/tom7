@@ -17,9 +17,10 @@ struct
 
     (* XXX Should be some better way of indicating what songs are available,
        and updating that list (downloads) *)
-    val SONGS_FILE = "songs.hero"
-    val SONGS_NONFREE = "songs-nonfree.hero"
-    val SONGS_DIR = "songs/"
+    val SONGS = ("songs.hero", "songs/")
+    val SONGS_NONFREE = ("songs-nonfree.hero", "songs-nonfree/")
+    val songfiles = [SONGS, SONGS_NONFREE]
+
 
     val cmp = String.compare (* unused *)
     val eq = op =
@@ -38,12 +39,12 @@ struct
         then SOME (SHA1.hash_stream (SimpleStream.fromfilechunks 512 file))
         else NONE
 
+    fun getlines f = Script.linesfromfile f handle _ => nil
+
     val trim = StringUtil.losespecl StringUtil.whitespec o StringUtil.losespecr StringUtil.whitespec
-    val songs = StringUtil.readfile SONGS_FILE
-    val songs = (songs ^ "\n" ^ StringUtil.readfile SONGS_NONFREE) handle _ => songs
-    val songs = String.tokens (fn #"\n" => true | _ => false) songs
+    val songs = List.concat (map (fn (f, d) => map (fn s => (s, d)) (getlines f)) songfiles)
     val songs = List.mapPartial 
-        (fn s =>
+        (fn (s, dir) =>
          case String.fields (fn #"|" => true | _ => false) s of
              [file, slowfactor, hard, fave, title, artist, year] =>
                  (case (Int.fromString (trim slowfactor),
@@ -54,7 +55,7 @@ struct
                     | (_, _, NONE) => (print ("Bad fave: " ^ fave ^ "\n"); NONE)
                     | (SOME slowfactor, SOME hard, SOME fave) => 
                           let 
-                              val file = FSUtil.dirplus SONGS_DIR (trim file)
+                              val file = FSUtil.dirplus dir (trim file)
                           in
                               case sha1binfile file of
                                   NONE => (print ("Couldn't load song: " ^ file ^ "\n"); NONE)
