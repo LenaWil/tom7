@@ -72,6 +72,8 @@ More midi triage. Did the whole cake\ dir and cake\also dir,
  * option to merge up short measures for genscore. x-measure option does
    a pretty good job on most songs.
 
+ * move general purpose SDL stuff into ../sdlml/
+
  * drum kit samples? Would be pretty easy to play samples.
 
  * noise pitch? (with lowpass/highpass?)

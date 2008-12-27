@@ -12,6 +12,8 @@ struct
          "mint",
          "crab",
          "square",
+         "coffee",
+         "calorie",
          "warning",
          "toast",
          "missile",
@@ -46,6 +48,8 @@ struct
          "jet-set",
          "exact",
          "fresh",
+         "free",
+         "tired",
          "better",
          "expired"]
 
