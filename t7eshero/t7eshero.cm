@@ -4,10 +4,10 @@ group is
    not likely to work! *)
 #if (defined(SMLNJ_VERSION))
  $/basis.cm
- util/port-nj.sml
+ ../sml-lib/port/port-nj.sml
 #else
  (* assume we are using mlton then *)
- util/port-mlton.sml
+ ../sml-lib/port/mlton.sml
 #endif
 
 ../sml-lib/util/util-sig.sml
@@ -87,6 +87,7 @@ prompt.sml
 update.sml
 setlist-sig.sml
 setlist.sml
+highscores.sml
 items-sig.sml
 items.sml
 record-sig.sml

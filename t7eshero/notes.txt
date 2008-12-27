@@ -3,7 +3,10 @@ TODO
 
  * hammer-on calculation is wrong for:
      * first note of the song
-     * a very fast note after the same finger we just did.
+     * a very fast note after the same finger we just did
+       (not sure this is wrong really, since it could be a
+        pull-off, I think this is just uncommon in other
+        games.)
 
 
 ----------------------------------------------------------------------
