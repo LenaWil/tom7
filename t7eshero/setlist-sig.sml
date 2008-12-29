@@ -15,7 +15,10 @@ sig
     val allsongs : unit -> songinfo list
 
     val eq : songid * songid -> bool
+    val cmp : songid * songid -> order
     val tostring : songid -> string
-    val fromstring : string -> songid
+    val fromstring : string -> songid option
+
+    structure Map : ORD_MAP where type Key.ord_key = songid
 
 end

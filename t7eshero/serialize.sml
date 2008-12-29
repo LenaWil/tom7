@@ -87,4 +87,9 @@ struct
 
     val (ulist, unlist) = list_serializer "?" #"%"
 
+    fun expectopt err f s = 
+        case f s of
+            SOME r => r
+          | NONE => raise Serialize ("error parsing: " ^ err)
+
 end

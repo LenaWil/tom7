@@ -22,17 +22,19 @@ struct
     val songfiles = [SONGS, SONGS_NONFREE]
 
 
-    val cmp = String.compare (* unused *)
+    val cmp = String.compare
     val eq = op =
+
+    structure Map = SplayMapFn (struct
+                                    type ord_key = songid
+                                    val compare = cmp
+                                end)
 
     exception Setlist of string
 
     (* val tokey : songinfo -> string = #file *)
     fun tostring (x : songid) : string = SHA1.bintohex x
-    fun fromstring (x : string) =
-        case SHA1.parse_hex x of
-            NONE => raise Setlist "bad SHA-1"
-          | SOME s => s
+    val fromstring = SHA1.parse_hex
 
     fun sha1binfile file =
         if FSUtil.exists file
@@ -72,4 +74,5 @@ struct
 
 
     fun allsongs () = songs
+
 end

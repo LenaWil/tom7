@@ -182,6 +182,7 @@ struct
     fun okcancel _ = raise Prompt "unimplemented"
     fun no _ = raise Prompt "unimplemented"
 
+
     fun bug p s = ignore (prompt { x = NONE, y = NONE, width = NONE, height = NONE,
                                    question = Chars.RED ^ s, ok = "Drat", cancel = NONE,
                                    icon = NONE, (* XXX get one *)
@@ -189,5 +190,14 @@ struct
                                    bgcolortop = SOME DEFAULTCTOP,
                                    bgcolorbot = SOME DEFAULTCBOT,
                                    parent = p })
+
+
+    fun info p s = ignore (prompt { x = NONE, y = NONE, width = NONE, height = NONE,
+                                    question = s, ok = "OK!", cancel = NONE,
+                                    icon = NONE, (* XXX get one *)
+                                    bordercolor = SOME (SDL.color (0w30, 0w30, 0w30, 0w127)),
+                                    bgcolortop = SOME DEFAULTCTOP,
+                                    bgcolorbot = SOME DEFAULTCBOT,
+                                    parent = p })
 
 end
