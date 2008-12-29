@@ -52,7 +52,7 @@
    TODO: Platform-specific manifest that allows updating the game and
    its libraries.
 *)
-structure Update =
+structure Update (* XXX SIG *) =
 struct
     
     exception Update of string
@@ -75,6 +75,8 @@ struct
        string. 
        callback is called periodically with the number of
        bytes received so far and the total size, if known.
+
+       XXX needs a way to fail
        *)
     fun get_url (url : string) (callback : int * int option -> unit) : string =
         (case url of

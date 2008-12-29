@@ -8,6 +8,18 @@ struct
           misses : int,
           medals : Hero.medal list }
 
+    fun cmp ({ percent = _, misses = missa, medals = meda },
+             { percent = _, misses = missb, medals = medb }) =
+        case Int.compare (missa, missb) of
+            EQUAL =>
+                let
+                    val meda = ListUtil.sort Hero.medal_cmp meda
+                    val medb = ListUtil.sort Hero.medal_cmp medb
+                in
+                    List.collate Hero.medal_cmp (meda, medb)
+                end
+          | ord => ord
+        
     fun mtostring Hero.PerfectMatch = "PM"
       | mtostring Hero.Snakes = "SN"
       | mtostring Hero.Stoic = "ST"

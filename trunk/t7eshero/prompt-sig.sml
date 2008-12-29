@@ -41,6 +41,8 @@ sig
     (* Continue/Cancel question *)
     val okcancel : Drawable.drawable -> string -> bool
 
+    val info : Drawable.drawable -> string -> unit
+
     (* Surprise! Something has failed. *)
     val no : Drawable.drawable -> string -> bool
 
