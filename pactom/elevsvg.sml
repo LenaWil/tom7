@@ -108,7 +108,7 @@ struct
 
   fun ertos r = if (r > ~0.000001 andalso r < 0.000001) then "0.0" else (Real.fmt (StringCvt.FIX (SOME 4)) r)
   fun rtos r = if r < 0.0 
-               then "-" ^ ertos (1.0 - r)
+               then "-" ^ ertos (0.0 - r)
                else ertos r
 
   fun xaxis x = x / 20.0
