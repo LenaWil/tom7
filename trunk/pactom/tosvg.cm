@@ -21,9 +21,18 @@ group is
 ../sml-lib/misc/color-sig.sml
 ../sml-lib/misc/color.sml
 
+../sml-lib/misc/latlon-sig.sml
+../sml-lib/misc/latlon.sml
+
+../sml-lib/crypt/mersenne-twister-sig.sml
+../sml-lib/crypt/mersenne-twister.sml
+
 ../sml-lib/files/xml/fxlib.cm
 ../sml-lib/files/xml/xml-sig.sml
 ../sml-lib/files/xml/xml.sml
+
+pactom-sig.sml
+pactom.sml
 
 tosvg.sml
 
