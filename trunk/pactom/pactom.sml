@@ -7,9 +7,14 @@ struct
   datatype tree = datatype XML.tree
 
   (* XXX add some stuff. *)
-  type pactom = { xml : tree, 
+  type pactom = { xml : tree,
+                  overlays : { href : string, rotation : real,
+                               north : real, south : real,
+                               east : real, west : real } Vector.vector,
                   paths : (LatLon.pos * real) list Vector.vector }
-  fun paths { xml, paths } = paths
+  fun paths { xml, paths, overlays } = paths
+  fun overlays { xml, paths, overlays } = overlays
+  fun xml { xml, paths, overlays } = xml
 
   (* XXX dead? PERF: Slow *)
   fun printxml (Text s) =
@@ -38,6 +43,7 @@ struct
       let
           val x = XML.parsefile f handle XML.XML s => raise PacTom ("Couldn't parse xml: " ^ s)
           val paths = ref nil
+          val overlays = ref nil
 
           fun process (Elem(("coordinates", nil), [Text coordtext])) =
               let val coords = String.tokens (fn #" " => true | _ => false) coordtext
@@ -52,12 +58,68 @@ struct
                   paths := coords :: !paths
               end
             | process (Elem(("coordinates", _), _)) = raise PacTom "coordinates with subtags or attrs?"
+            | process (t as Elem(("GroundOverlay", _), _)) =
+              let
+                  (* name and description are there, but we don't need them for this purpose (?).
+                     color is useless.
+                     href is the location of the graphic file.
+                     viewBoundScale is ??
+                     north, south, east, west specify the bounding box parallels and meridians.
+                     rotation specifies the degrees of rotation -180 to 180, where 0 is north and 90 is west.
+                     *)
+                  val leaves = XML.getleaves t
+                  fun findone tag = 
+                      case ListUtil.Alist.find op= leaves tag of
+                          (* XXX are there any sensible defaults, like 0 for rotation? *)
+                          NONE => raise PacTom ("GroundOverlay didn't specify " ^ tag)
+                        | SOME [v] => v
+                        | SOME nil => raise PacTom "impossible"
+                        | SOME _ => raise PacTom ("GroundOverlay specified more than one " ^ tag)
+
+                  fun findoner tag = 
+                      let val v = findone tag
+                      in
+                          case Real.fromString v of
+                              NONE => raise PacTom ("Non-numeric " ^ tag ^ " in GroundOverlay: " ^ v)
+                            | SOME r => r
+                      end
+
+                  val href = findone "href"
+                  val north = findoner "north"
+                  val south = findoner "south"
+                  val east = findoner "east"
+                  val west = findoner "west"
+                  val rotation = findoner "rotation"
+(*
+                <name>Lincoln place - Mifflin Rd Park</name>
+                <description>dirt lot with Jersey barriers. Looks like it might have formerly been a parking lot?</description>
+                <color>cfffffff</color>
+                <Icon>
+                        <href>C:/old-f/pictures/pac tom/not-a-road.png</href>
+                        <viewBoundScale>0.75</viewBoundScale>
+                </Icon>
+                <LatLonBox>
+                        <north>40.37134954421344</north>
+                        <south>40.37107590394126</south>
+                        <east>-79.91349939576577</east>
+                        <west>-79.91547483878412</west>
+                        <rotation>-46.49832619008645</rotation>
+                </LatLonBox>
+*)
+              in
+                  overlays := { href = href, 
+                                north = north, south = south, 
+                                east = east, west = west, 
+                                rotation = rotation } :: !overlays
+              end
             | process (e as Text _) = ()
             | process (Elem(t, tl)) = app process tl
 
       in
           process x;
-          { xml = x, paths = Vector.fromList (rev (!paths)) }
+          { xml = x, 
+            overlays = Vector.fromList (rev (!overlays)), 
+            paths = Vector.fromList (rev (!paths)) }
       end
 
   (* always alpha 1.0 *)
@@ -80,8 +142,9 @@ struct
                then "-" ^ ertos (0.0 - r)
                else ertos r
 
-  fun projectpaths proj { paths, xml = _ } =
+  fun projectpaths proj pt =
       let
+          val paths = paths pt
           val maxx = ref (~1.0 / 0.0)
           val minx = ref (1.0 / 0.0)
           val maxy = ref (~1.0 / 0.0)
@@ -107,35 +170,5 @@ struct
           { paths = paths,
             minx = !minx, maxx = !maxx, miny = !miny, maxy = !maxy }
       end
-
-
-(*
-  val () =
-      let 
-          fun printpolyline coords =
-              let in
-                  print ("<polyline fill=\"none\" stroke=\"#" ^ randomcolor() ^ "\" stroke-width=\"1\" points=\""); (* " *)
-                  (* XXX mapping is nonlinear. see elevsvg. *)
-                  app (fn (lat, lon) => print (rtos (2000.0 * (80.0 + lat)) ^ "," ^ rtos (2000.0 * (1.0 - (lon - 40.0))) ^ " ")) coords;
-                  print "\"/>\n"
-              end
-
-      in
-          print "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
-          print "<!-- Generator: PacTom.sml  -->\n";
-          print "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\" [\n";
-          print "<!ENTITY ns_flows \"http://ns.adobe.com/Flows/1.0/\">\n";
-          print "]>\n";
-          print "<svg version=\"1.1\"\n";
-          print " xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n";
-          print " xmlns:a=\"http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/\"\n";
-          (* XXX *)
-          print " x=\"0px\" y=\"0px\" width=\"263px\" height=\"243px\"\n";
-          print " xml:space=\"preserve\">\n";
-          app printpolyline (rev (!paths));
-          print "</svg>\n"
-      end
-*)
-
 
 end
