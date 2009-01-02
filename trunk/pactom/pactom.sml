@@ -7,14 +7,16 @@ struct
   datatype tree = datatype XML.tree
 
   (* XXX add some stuff. *)
-  type pactom = { xml : tree,
-                  overlays : { href : string, rotation : real,
+  type pactom = { xmls : tree list,
+                  overlays : { href : string, 
+                               rotation : real, 
+                               alpha : Word8.word,
                                north : real, south : real,
                                east : real, west : real } Vector.vector,
                   paths : (LatLon.pos * real) list Vector.vector }
-  fun paths { xml, paths, overlays } = paths
-  fun overlays { xml, paths, overlays } = overlays
-  fun xml { xml, paths, overlays } = xml
+  fun paths { xmls, paths, overlays } = paths
+  fun overlays { xmls, paths, overlays } = overlays
+  fun xmls { xmls, paths, overlays } = xmls
 
   (* XXX dead? PERF: Slow *)
   fun printxml (Text s) =
@@ -38,10 +40,8 @@ struct
   val seed = MersenneTwister.init32 0wxDEADBEEF
   fun rand () = MersenneTwister.rand32 seed
 
-
-  fun fromkmlfile f =
+  fun fromkmlfiles fs =
       let
-          val x = XML.parsefile f handle XML.XML s => raise PacTom ("Couldn't parse xml: " ^ s)
           val paths = ref nil
           val overlays = ref nil
 
@@ -61,20 +61,27 @@ struct
             | process (t as Elem(("GroundOverlay", _), _)) =
               let
                   (* name and description are there, but we don't need them for this purpose (?).
-                     color is useless.
+                     color has an alpha component as the first two hex digits. If it's not specified, assume FFFFFF.
                      href is the location of the graphic file.
-                     viewBoundScale is ??
+                     viewBoundScale is always 0.75?
                      north, south, east, west specify the bounding box parallels and meridians.
                      rotation specifies the degrees of rotation -180 to 180, where 0 is north and 90 is west.
                      *)
                   val leaves = XML.getleaves t
-                  fun findone tag = 
+
+                  
+                  fun findoneopt tag = 
                       case ListUtil.Alist.find op= leaves tag of
                           (* XXX are there any sensible defaults, like 0 for rotation? *)
-                          NONE => raise PacTom ("GroundOverlay didn't specify " ^ tag)
-                        | SOME [v] => v
+                          NONE => NONE
+                        | SOME [v] => SOME v
                         | SOME nil => raise PacTom "impossible"
                         | SOME _ => raise PacTom ("GroundOverlay specified more than one " ^ tag)
+
+                  fun findone tag =
+                      case findoneopt tag of
+                          NONE => raise PacTom ("GroundOverlay didn't specify " ^ tag)
+                        | SOME v => v
 
                   fun findoner tag = 
                       let val v = findone tag
@@ -89,7 +96,21 @@ struct
                   val south = findoner "south"
                   val east = findoner "east"
                   val west = findoner "west"
-                  val rotation = findoner "rotation"
+                  val rotation = 
+                      case findoneopt "rotation" of
+                          NONE => 0.0
+                        | SOME s => 
+                              case Real.fromString s of
+                                  NONE => raise PacTom ("Non-numeric rotation in GroundOverlay: " ^ s)
+                                | SOME r => r
+                  val color = 
+                      case findoneopt "color" of
+                          NONE => "ffffffff"
+                        | SOME c => c
+                  val alpha =
+                      case Color.onefromhexstring (String.substring(color, 0, 2)) of
+                          NONE => raise PacTom ("bad color: " ^ color)
+                        | SOME w => w
 (*
                 <name>Lincoln place - Mifflin Rd Park</name>
                 <description>dirt lot with Jersey barriers. Looks like it might have formerly been a parking lot?</description>
@@ -110,17 +131,27 @@ struct
                   overlays := { href = href, 
                                 north = north, south = south, 
                                 east = east, west = west, 
+                                alpha = alpha,
                                 rotation = rotation } :: !overlays
               end
             | process (e as Text _) = ()
             | process (Elem(t, tl)) = app process tl
 
+          val xs = map (fn f =>
+                        let val x = XML.parsefile f 
+                            handle XML.XML s => 
+                                raise PacTom ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
+                        in
+                            process x;
+                            x
+                        end) fs
       in
-          process x;
-          { xml = x, 
+          { xmls = xs, 
             overlays = Vector.fromList (rev (!overlays)), 
             paths = Vector.fromList (rev (!paths)) }
       end
+
+  fun fromkmlfile f = fromkmlfiles [f]
 
   (* always alpha 1.0 *)
   fun randomanycolor () = 
