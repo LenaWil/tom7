@@ -6,6 +6,12 @@ sig
     (* Pactom data *)
     type pactom
     val paths : pactom -> (LatLon.pos * real) list Vector.vector
+    val overlays : pactom -> { href : string, 
+                               rotation : real, 
+                               alpha : Word8.word,
+                               north : real, south : real,
+                               east : real, west : real } Vector.vector
+
     val projectpaths : LatLon.projection -> pactom ->
         { (* x, y, elevation *)
           paths : (real * real * real) list Vector.vector,
@@ -15,6 +21,7 @@ sig
     val home : LatLon.pos
 
     val fromkmlfile : string -> pactom
+    val fromkmlfiles : string list -> pactom
 
     val rand : unit -> Word32.word
     (* As hex string (rrggbb) *)
