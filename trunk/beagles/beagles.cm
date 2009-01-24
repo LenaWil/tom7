@@ -1,0 +1,32 @@
+group is
+
+#if (defined(SMLNJ_VERSION))
+ $/basis.cm
+ ../sml-lib/port/nj.sml *)
+#else
+ (* assume we are using mlton then *)
+ ../sml-lib/port/mlton.sml
+#endif
+
+../sml-lib/util/util-sig.sml
+../sml-lib/util/util.sml
+
+../sml-lib/util/stringutil-sig.sml
+../sml-lib/util/stringutil.sml
+
+../sml-lib/util/listutil-sig.sml
+../sml-lib/util/listutil.sml
+
+../sml-lib/util/growmonoarray-sig.sml
+../sml-lib/util/growmonoarray.sml
+
+../sml-lib/misc/color-sig.sml
+../sml-lib/misc/color.sml
+
+../sml-lib/files/reader-sig.sml
+../sml-lib/files/reader.sml
+
+../sml-lib/files/csv/csv-sig.sml
+../sml-lib/files/csv/csv.sml
+
+beagles.sml
