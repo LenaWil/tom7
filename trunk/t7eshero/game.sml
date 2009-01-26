@@ -52,6 +52,7 @@ struct
                           | #"N" => Match.Music (Sound.INST_NOISE, i)
                           | #"S" => Match.Music (Sound.INST_SINE, i)
                           | #"R" => Match.Music (Sound.INST_RHODES, i)
+                          | #"D" => Match.Music (Sound.INST_SAMPLER Samples.sid, i)
                           | _ => (messagebox "?? expected R or S or Q or W or N\n"; raise Hero.Hero ""),
                             tr)
 

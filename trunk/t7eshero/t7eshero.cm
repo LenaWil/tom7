@@ -51,6 +51,9 @@ fsutil-portable.sml
 ../sml-lib/files/midi/midi-sig.sml
 ../sml-lib/files/midi/midi.sml
 
+../sml-lib/files/wave/wave-sig.sml
+../sml-lib/files/wave/wave.sml
+
 ../sml-lib/crypt/mersenne-twister-sig.sml
 ../sml-lib/crypt/mersenne-twister.sml
 
@@ -85,6 +88,9 @@ chars.sml
 sprites.sml
 sound-sig.sml
 sound.sml
+samples-sig.sml
+samples.sml
+
 (* Would be nice to make these next two part of a library,
    but they currently write the Sprites.screen directly and
    use the configured joystick input *)

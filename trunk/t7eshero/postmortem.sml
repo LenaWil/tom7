@@ -149,7 +149,7 @@ struct
                      (case evt of
                           MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
                         | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 
-                                                                      90 * vel, 
+                                                                      Sound.midivel vel, 
                                                                       inst) 
                         | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
                         | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
