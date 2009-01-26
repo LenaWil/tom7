@@ -2,18 +2,28 @@
 structure Sound :> SOUND =
 struct
 
+  exception Sound of string
+
   val initaudio_ = _import "ml_initsound" : unit -> unit ;
   val setfreq_ = _import "ml_setfreq" : int * int * int * int -> unit ;
   val () = initaudio_ ()
 
-(* note 60 is middle C = 256hz,
-   so 0th note is 8hz. *)
+  local val sampleroffset_ = _import "ml_sampleroffset" : unit -> int ;
+  in
+      val SAMPLER_OFFSET = sampleroffset_ ()
+  end
 
-(* XXX no floats on mingw, urgh
-  val () = Control.Print.printLength := 10000
-  fun pitchof n = Real.round ( 80000.0 * Math.pow (2.0, real n / 12.0) )
-  val pitches = Vector.fromList (List.tabulate(128, pitchof))
-*)
+  (* note 60 is middle C = 256hz,
+     so 0th note is 8hz. *)
+
+  (* XXX no floats on mingw, urgh
+     val () = Control.Print.printLength := 10000
+     fun pitchof n = Real.round ( 80000.0 * Math.pow (2.0, real n / 12.0) )
+     val pitches = Vector.fromList (List.tabulate(128, pitchof))
+   *)
+
+  type volume = int
+  fun midivel m = m * 90
 
   (* in ten thousandths of a hertz *)
   val PITCHFACTOR = 10000
@@ -45,6 +55,8 @@ struct
       end
 
   type inst = int
+  type waveform = int
+
   (* must agree with sound.c *)
   val INST_NONE   = 0
   val INST_SQUARE = 1
@@ -52,6 +64,30 @@ struct
   val INST_NOISE  = 3
   val INST_SINE   = 4
   val INST_RHODES = 5
+  fun INST_SAMPLER s = SAMPLER_OFFSET + s
+
+  val WAVE_NONE   = INST_NONE
+  val WAVE_SQUARE = INST_SQUARE
+  val WAVE_SAW    = INST_SAW
+  val WAVE_NOISE  = INST_NOISE
+  val WAVE_SINE   = INST_SINE
+  val WAVE_RHODES = INST_RHODES
+  fun WAVE_SAMPLE s = SAMPLER_OFFSET + s
+
+
+  (* FIXME implement! *)
+  type sample = int
+  type sampleset = int
+  local 
+      val register_sample_ = _import "ml_register_sample" : int vector * int -> int ;
+      val register_sampleset_ = _import "ml_register_sampleset" : int vector * int -> int ;
+  in
+      (* XXX should check whether there is space or not. C code aborts if these get
+         too high, but better to raise an exception. *)
+      fun register_sample v = register_sample_ (v, Vector.length v)
+      fun register_sampleset v = register_sampleset_ (v, Vector.length v)
+      val silence : sample = 0 (* C registers this for us. *)
+  end
 
   val freqs = Array.array(16, 0)
   fun setfreq (ch, f, vol, inst) = setfreq_ (ch, f, vol, inst)
@@ -112,7 +148,14 @@ struct
                         SOME (i, _) => 
                             let in
                                 Array.update(mixes, i, true);
-                                setfreq(i, pitchof n, v, inst);
+                                (* If a waveform, use hz. If a sample,
+                                   use sample index. *)
+                                if (inst >= SAMPLER_OFFSET)
+                                then 
+                                    if n <= 0 orelse n >= 128
+                                    then raise Sound "sampler index out of range"
+                                    else setfreq(i, n, v, inst)
+                                else setfreq(i, pitchof n, v, inst);
                                 Array.update(Vector.sub(miditable, ch),
                                              n,
                                              PLAYING i);

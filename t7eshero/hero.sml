@@ -75,6 +75,8 @@ struct
 
   fun messagebox s = print (s ^ "\n")
 
+  fun fail s = (messagebox s; raise Hero s)
+
   (* Comment this out on Linux and OSX, or it will not link *)
 (*
   local

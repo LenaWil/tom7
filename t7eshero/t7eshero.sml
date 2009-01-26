@@ -32,12 +32,13 @@ struct
       val misstime = ref 0
 
       fun sf () = Sound.setfreq(Sound.MISSCH, Sound.PITCHFACTOR * 4 * !misstime, 
-                                10000, Sound.INST_SQUARE)
+                                Sound.midivel (10000 div 90),
+                                Sound.WAVE_SQUARE)
   in
 
       fun maybeunmiss t =
           if !misstime <= 0
-          then Sound.setfreq(Sound.MISSCH, Sound.pitchof 60, 0, Sound.INST_NONE)
+          then Sound.setfreq(Sound.MISSCH, Sound.pitchof 60, Sound.midivel 0, Sound.WAVE_NONE)
           else 
               let in
                   misstime := !misstime - t;
@@ -113,7 +114,8 @@ struct
                  Music (inst, track) =>
                      (case evt of
                           MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
-                        | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 90 * vel, inst) 
+                        | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 
+                                                                      Sound.midivel vel, inst) 
                         | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
                         | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
                (* otherwise no sound..? *) 

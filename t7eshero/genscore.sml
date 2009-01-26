@@ -80,17 +80,13 @@ struct
 
   (* XXX these should describe what kind of track it is *)
   datatype label =
-      Music of int
+      Music
     | Control
     | Bar of bar
 
   (* must agree with sound.c *)
-  val INST_NONE   = 0
-  val INST_SQUARE = 1
-  val INST_SAW    = 2
-  val INST_NOISE  = 3
-  val INST_SINE   = 4
-  val INST_RHODES = 5
+  val legal_instruments = ["Q", "W", "S", "N", "R", "D"]
+  fun is_legal s = List.exists (fn s' => s = s') legal_instruments
 
   val itos = Int.toString
 
@@ -618,12 +614,12 @@ struct
                   (* We don't care about control messages, channels, instruments, or
                      velocities. *)
                   val ending = List.mapPartial 
-                      (fn (Music _, MIDI.NOTEON(ch, note, 0)) => SOME note
-                    | (Music _, MIDI.NOTEOFF(ch, note, _)) => SOME note
+                      (fn (Music, MIDI.NOTEON(ch, note, 0)) => SOME note
+                    | (Music, MIDI.NOTEOFF(ch, note, _)) => SOME note
                     | _ => NONE) nowevts
                   val starting = List.mapPartial 
-                      (fn (Music _, MIDI.NOTEON(ch, note, 0)) => NONE
-                    | (Music _, MIDI.NOTEON(ch, note, vel)) => SOME note
+                      (fn (Music, MIDI.NOTEON(ch, note, 0)) => NONE
+                    | (Music, MIDI.NOTEON(ch, note, vel)) => SOME note
                     | _ => NONE) nowevts
                   val bars = List.mapPartial (fn (Bar b, _) => SOME b | _ => NONE) nowevts
 
@@ -801,19 +797,16 @@ struct
                       then SOME
                           let in
                               print ("Track " ^ StringUtil.pad ~2 (Int.toString i) ^ ": " ^ name ^ "\n");
-                              (case CharVector.sub(name, 0) of
-                                   #"+" =>
-                                   (case CharVector.sub (name, 1) of
-                                        #"Q" => Music INST_SQUARE 
-                                      | #"W" => Music INST_SAW 
-                                      | #"N" => Music INST_NOISE
-                                      | #"S" => Music INST_SINE
-                                      | #"R" => Music INST_RHODES
-                                      | _ => (print "?? expected R or S or Q or W or N\n"; raise Hero ""),
-                                        tr)
-                                 | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); 
-                                         (Control, tr))
-                                        )
+                              case CharVector.sub(name, 0) of
+                                  #"+" =>
+                                  let val s = String.substring(name, 1, 1)
+                                  in
+                                      if is_legal s
+                                      then (Music, tr)
+                                      else (print ("Not a legal instrument code: " ^ s ^ "\n"); raise Hero "")
+                                  end
+                                | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); 
+                                        (Control, tr))
                           end
                       else NONE
       in
