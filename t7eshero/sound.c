@@ -41,12 +41,10 @@
 volatile int cur_freq[NMIX];
 volatile int cur_vol[NMIX];
 volatile int cur_inst[NMIX];
-static   int val[NMIX];
-static float leftover[NMIX];
 // Arbitrary integer data associated with the channel's state.
 // For periodic instruments, it stores the number of samples
-// that have transpired. For noise, it stores the previous sample
-// value for filtering.
+// that have transpired. For noise, it is unused. For waves, it stores
+// the number of samples that we have emitted so far.
 static   int samples[NMIX];
 // If -1, do nothing special. if >= 0, for that many samples, continue
 // making the current sound, decreasing it in volume and decreasing fades,
@@ -127,30 +125,10 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 	samples[ch] ++;
 	/* the frequency is the number of cycles per HZFACTOR seconds.
 	   so the length of one cycle in samples is (RATE*HZFACTOR)/cur_freq. 
+	   
+	   PERF: fmod is pretty slow and it is easy to make square
+	   waves with other means.
 	*/
-#if 0	
-	// PERF this should be the value stored in cur_freq
-	float fcycle = (((float)RATE * HZFACTOR) / cur_freq[ch]);
-	int cycle = (int)fcycle;
-	leftover[ch] += (fcycle - cycle);
-	// int pos = samples[ch] % cycle;
-	if (samples[ch] >= cycle) {
-	  val[ch] = - val[ch];
-	  /* at higher frequencies, the difference in
-	     the sample period gets to be close to 1 sample, so
-	     we have a relatively large effect from floating point
-	     roundoff. Correct for this by accumulating error
-	     and making a longer period when we have a whole sample.
-	  */
-	  if (1 && leftover[ch] > 1.0) {
-	    samples[ch] = -1;
-	    leftover[ch] -= 1.0;
-	  } else {
-	    samples[ch] = 0;
-	  }
-	}
-	mag += val[ch] * cur_vol[ch];
-#endif
 	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
 	double pos = fmod(samples[ch], cycle);
 	/* sweeping from -vol to +vol with period 'cycle' */
@@ -207,17 +185,16 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
   }
 }
 
-/* PERF not obvious that we need to or want to lock out
-   audio here, since changing the frequency within a buffer
-   would give us better response time and a data race would
-   (probably) be harmless--but we would want to at least
-   change the vol/freq/inst atomically.
-
-   FIXME: data race is bad for sampler.
- */
+/* PERF: Might be safe to only lock for certain kinds of changes (like
+   to the sampler) that have bad data race issues. Not locking would
+   improve performance and also latency for in-frame frequency
+   changes. However, it's not clear what memory model is in play here
+   (might an update change half a word at a time, creating weird
+   glitches?). Let us be proper.
+*/
 void ml_setfreq(int ch, int nf, int nv, int inst) {
-  // SDL_LockAudio();
-#if 1
+  SDL_LockAudio();
+#if 0
   if (ch < 11 /* && inst >= SAMPLER_OFFSET */) { // || inst != INST_NONE) {
     printf("(cur inst: %d) Set %d = %d (Hz/10000) %d %d\n", cur_inst[ch], ch, nf, nv, inst);
       //      if (nf < HZFACTOR * 2000) printf ("BANDPASS.");
@@ -243,7 +220,7 @@ void ml_setfreq(int ch, int nf, int nv, int inst) {
       samples[ch] = 0;
     }
   }
-  // SDL_UnlockAudio();
+  SDL_UnlockAudio();
 }
 
 void ml_initsound() {
@@ -278,7 +255,6 @@ void ml_initsound() {
       cur_vol[i] = 0;
       samples[i] = 0;
       cur_inst[i] = INST_NONE;
-      val[i] = 1;
       fades[i] = -1;
     }
   }
@@ -294,15 +270,13 @@ void ml_initsound() {
   SDL_AudioSpec got;
 
   // XXX should check that we got the desired settings...
-  if ( SDL_OpenAudio(&fmt, &got) < 0 ) {
+  if (SDL_OpenAudio(&fmt, &got) < 0) {
     fprintf(stderr, "Unable to open audio: %s\n", SDL_GetError());
     exit(1);
   }
 
   fprintf(stderr, "Audio data: %d samples, %d channels, %d rate\n",
 	  got.samples, got.channels, got.freq);
-  
-  fprintf(stderr, "%d\n", (int)(Sint16)(int)(90000));
 
   SDL_PauseAudio(0);
 }
