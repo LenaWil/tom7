@@ -53,7 +53,8 @@ struct
          "better",
          "expired"]
 
-    val nouns = Vector.fromList (irregular_nouns @ map (fn s => (s, s ^ "s")) regular_nouns)
+    val nouns = Vector.fromList (irregular_nouns @ 
+                                 map (fn s => (s, s ^ "s")) regular_nouns)
 
     fun cap s = CharVector.tabulate (size s,
                                      fn 0 => Char.toUpper (String.sub(s, 0)) 

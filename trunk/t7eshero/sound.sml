@@ -81,16 +81,27 @@ struct
   local 
       val register_sample_ = _import "ml_register_sample" : int vector * int -> int ;
       val register_sampleset_ = _import "ml_register_sampleset" : int vector * int -> int ;
+      fun save r e = (r := e; e)
   in
+      val last_sample = ref 0
+      val last_sampleset = ref 0
       (* XXX should check whether there is space or not. C code aborts if these get
          too high, but better to raise an exception. *)
-      fun register_sample v = register_sample_ (v, Vector.length v)
-      fun register_sampleset v = register_sampleset_ (v, Vector.length v)
+      fun register_sample v = save last_sample (register_sample_ (v, Vector.length v))
+      fun register_sampleset v = save last_sampleset (register_sampleset_ (v, Vector.length v))
       val silence : sample = 0 (* C registers this for us. *)
   end
 
   val freqs = Array.array(16, 0)
-  fun setfreq (ch, f, vol, inst) = setfreq_ (ch, f, vol, inst)
+  fun setfreq (ch, f, vol, inst) = 
+      let in
+          if inst >= SAMPLER_OFFSET
+          then if f >= 128 orelse f < 0
+               then raise Sound "Sampler should get sample index, not hz, as freq"
+               else ()
+          else ();
+          setfreq_ (ch, f, vol, inst)
+      end
 (*
       let in
 (*
@@ -163,7 +174,10 @@ struct
                             end
                       | NONE => print "No more mix channels.\n")
              (* re-use mix channel... *)
-             | PLAYING i => setfreq(i, pitchof n, v, inst))
+             | PLAYING i => 
+                    if inst >= SAMPLER_OFFSET
+                    then setfreq(i, n, v, inst)
+                    else setfreq(i, pitchof n, v, inst))
       end
 
   fun noteoff (ch, n) =

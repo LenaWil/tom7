@@ -30,10 +30,16 @@ end
    print will raise an exception. Redefine print so that it *)
 
 val print_works = 
-    let in
+    let
+        val v = SDL.version()
+    in
         (* unfortunately this cannot be the empty string, or it
            is optimized out *)
         print "Welcome to Tom 7 Entertainment System Hero.\n"; 
+        print ("SDL version: " ^ 
+               Int.toString (#major v) ^ "." ^ 
+               Int.toString (#minor v) ^ "#" ^ 
+               Int.toString (#patch v) ^ "\n");
         true
     end handle _ => false
 
