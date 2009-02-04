@@ -165,14 +165,23 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 	// FIXME: Multithreading!
 	int w = cur_inst[ch] - SAMPLER_OFFSET;
 	if (w < 0 || w >= num_sets) {
-	  fprintf(stderr, "Instrument %d unknown (or sample %d out of range)\n", 
+	  fprintf(stderr, 
+		  "Instrument %d unknown (or sample %d out of range)\n", 
 		  cur_inst[ch], w);
 	  abort();
-	} 
-	if (samples[ch] < waves[sets[w][cur_freq[ch]]].nsamples) {
-	  // Need to modulate for volume...
-	  mag += waves[sets[w][cur_freq[ch]]].samples[samples[ch]]; // * cur_vol[ch];
-	  samples[ch]++;
+	} else {
+	  int waveindex = sets[w][cur_freq[ch]];
+	  if (waveindex >= num_waves ||
+	      waveindex < 0) {
+	    fprintf(stderr, "Wave in sampler bay is balls: %d\n", waveindex);
+	    abort();
+	  }
+	  if (samples[ch] < waves[sets[w][cur_freq[ch]]].nsamples) {
+	    // Need to modulate for volume...
+	    mag += waves[waveindex].samples[samples[ch]]; 
+	    // * cur_vol[ch];
+	    samples[ch]++;
+	  }
 	}
       }
       }
@@ -196,12 +205,14 @@ void ml_setfreq(int ch, int nf, int nv, int inst) {
   SDL_LockAudio();
 #if 0
   if (ch < 11 /* && inst >= SAMPLER_OFFSET */) { // || inst != INST_NONE) {
-    printf("(cur inst: %d) Set %d = %d (Hz/10000) %d %d\n", cur_inst[ch], ch, nf, nv, inst);
+    printf("(cur inst: %d) Set %d = %d (Hz/10000) %d %d\n", 
+	   cur_inst[ch], ch, nf, nv, inst);
       //      if (nf < HZFACTOR * 2000) printf ("BANDPASS.");
     }
 #endif
 
-  if ((nv == 0 || inst == INST_NONE) && (cur_inst[ch] == INST_SINE || cur_inst[ch] == INST_RHODES)) {
+  if ((nv == 0 || inst == INST_NONE) && 
+      (cur_inst[ch] == INST_SINE || cur_inst[ch] == INST_RHODES)) {
 
     // printf("Made ch %d start fading\n", ch);
     // set fadeout samples.
@@ -209,10 +220,19 @@ void ml_setfreq(int ch, int nf, int nv, int inst) {
 
   } else {
     cur_vol[ch] = (int)(VOL_FACTOR * (float)nv);
+    // Without lock, this can put the sampler wave way out of
+    // the range of the array.
     cur_freq[ch] = nf;
     cur_inst[ch] = inst;
     fades[ch] = -1;
     
+    if (inst >= SAMPLER_OFFSET) {
+      if (nf >= 128 || nf < 0) {
+	fprintf(stderr, "Sampler wave %d out of gamut\n", nf);
+	abort();
+      }
+    }
+
     if (inst == INST_NOISE) {
       int i;
       for(i = 0; i < NBANDS; i ++) oldpass[ch][i] = 0;
@@ -306,7 +326,7 @@ int ml_register_sampleset (int * v, int n) {
   if (n != 128) {
     fprintf(stderr, "Wanted sampler to have size 128, got %d\n", n);
     abort();
-  } else if (num_sets == MAX_SETS) {
+  } else if (num_sets >= MAX_SETS) {
     fprintf(stderr, "Exceeded the maximum number of sample sets\n");
     abort();
   } else {
