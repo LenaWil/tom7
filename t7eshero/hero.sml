@@ -66,6 +66,8 @@ struct
 
   val FINGERS = 5
 
+  val MENUTICKS = 0w60
+
   fun messagebox s =
       let val f = TextIO.openAppend("/tmp/t7es.txt")
       in

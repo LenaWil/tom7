@@ -116,6 +116,7 @@ game.sml
 wardrobe.sml
 highscores.sml
 update.sml
+configure.sml
 title-sig.sml
 title.sml
 postmortem-sig.sml

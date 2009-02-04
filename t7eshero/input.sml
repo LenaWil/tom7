@@ -21,6 +21,12 @@ struct
       | StrumDown
       | ButtonUp of int
       | ButtonDown of int
+
+      (* These are just impulse events (no 'up') *)
+      | Drum of int
+      | PedalUp
+      | PedalDown
+
       | Axis of axis * real
 
     datatype actualbutton =
@@ -39,7 +45,9 @@ struct
 
     fun retostring (Key k) = "k?" ^ SDL.sdlktostring k
       | retostring (JButton i) = "b?" ^ Int.toString i
-      | retostring (JHat { hat, state }) = "h?" ^ Int.toString hat ^ "?" ^ ue (SDL.Joystick.hatstatetostring state)
+      | retostring (JHat { hat, state }) = 
+        "h?" ^ Int.toString hat ^ "?" ^ 
+        ue (SDL.Joystick.hatstatetostring state)
 
     fun refromstring s =
         case String.tokens QQ s of
