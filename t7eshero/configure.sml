@@ -19,6 +19,16 @@ struct
                                      Input.C_StrumUp,
                                      Input.C_StrumDown]
   val NINPUTS = Vector.length configorder
+
+  (* Configure should start by showing each of the connected devices by
+     its name, then ask the user to send some input event on the
+     device he wants to configure. Then we want to know what sort of
+     instrument it should be configured as. (But for the keyboard, we
+     should be able to configure it as a guitar and drums
+     simultaneously, right?)
+
+     *)
+
   (* loopplay is called periodically, to play the background music. *)
   fun configure (loopplay : unit -> unit) device =
       let

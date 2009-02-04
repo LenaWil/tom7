@@ -265,7 +265,10 @@ struct
 
             (* FIXME XXX this doesn't do anything useful right now.
                Should let you change the player's name and icon,
-               see and clear statistics, etc. *)
+               see and clear statistics, etc. 
+
+               Move to another module.
+               *)
             and editprofile profile =
                 let
 
@@ -315,7 +318,9 @@ struct
 *)
                 end
 
-            (* profile select sub-menu *)
+            (* profile select sub-menu.
+
+               XXX: Move to another module. *)
             and signin () =
                 let
                     fun createnew () =
