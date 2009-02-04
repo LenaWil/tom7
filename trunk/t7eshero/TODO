@@ -18,6 +18,8 @@ For release:
 
  * Use configuration throughout code; menu goes crazy on mac  (I think done now?)
 
+ * Crap space at end of Tornado, which also ends abruptly
+
 items:
   coconut bra
   facial tongue  

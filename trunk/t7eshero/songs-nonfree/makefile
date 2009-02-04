@@ -1,6 +1,6 @@
 #                             -*- makefile -*-
 
-songs : bbcscore.mid ng1score.mid popcornscore.mid 14cheerscore.mid
+songs : bbcscore.mid ng1score.mid popcornscore.mid 14cheerscore.mid bionic1score.mid
 
 ALL = ../genscore.exe
 
@@ -16,5 +16,8 @@ popcornscore.mid : popcorn.mid $(ALL)
 
 14cheerscore.mid : 14cheer.mid $(ALL)
 	../genscore.exe -history 5 -hammertime 56 $< 0 2 -o $@
+
+bionic1score.mid : bionic1.mid $(ALL)
+	../genscore.exe -history 5 -hammertime 42 $< 0 3 8 10 -o $@
 
 # also need bloody3 (or whatever that great one is) from castlevania!
