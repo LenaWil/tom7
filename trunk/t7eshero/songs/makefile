@@ -177,6 +177,9 @@ chantscore.mid : chant.mid $(ALL)
 debrascore.mid : debra.mid $(ALL)
 	../genscore.exe -noxmeasure -history 4 -hammertime 26 $< 0 3 5 8 7 -o $@
 
+deinoscore.mid : deinococcus.mid $(ALL)
+	../genscore.exe -history 5 -hammertime 56 $< 0 5 3 -o $@
+
 divisionscore.mid : division.mid $(ALL)
 	../genscore.exe -history 4 -hammertime 26 $< 0 1 2 -o $@
 
@@ -283,9 +286,6 @@ ctetris2score.mid : ctetris2.mid $(ALL)
 
 customerscore.mid : customer.mid $(ALL)
 	../genscore.exe -history 5 -hammertime 56 $< 0 4 -o $@
-
-deinoscore.mid : deinococcus.mid $(ALL)
-	../genscore.exe -history 5 -hammertime 56 $< 0 5 3 -o $@
 
 foosscore.mid : foos.mid $(ALL)
 	../genscore.exe -history 5 -hammertime 56 $< 0 1 5 3 6 -o $@

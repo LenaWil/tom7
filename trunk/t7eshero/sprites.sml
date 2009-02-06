@@ -30,7 +30,10 @@ struct
   val background = requireimage "background.png"
   val backlite   = requireimage "backlite.png"
 
-  val guitar = requireimage2x "guitar.png"
+  val guitar = requireimage "guitar.png"
+  val drums = requireimage "drums.png"
+  val guitar2x = requireimage2x "guitar.png"
+  val drums2x = requireimage2x "drums.png"
   val press = requireimage2x "press.png"
   val press_ok = requireimage2x "press_ok.png"
   val strum_down = requireimage2x "strum_down.png"

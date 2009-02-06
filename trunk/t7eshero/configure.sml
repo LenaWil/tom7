@@ -20,6 +20,10 @@ struct
                                      Input.C_StrumDown]
   val NINPUTS = Vector.length configorder
 
+  exception AbortConfigure and FinishConfigure
+
+  structure LM = ListMenuFn(val screen = screen)
+
   (* Configure should start by showing each of the connected devices by
      its name, then ask the user to send some input event on the
      device he wants to configure. Then we want to know what sort of
@@ -29,10 +33,38 @@ struct
 
      *)
 
-  (* loopplay is called periodically, to play the background music. *)
-  fun configure (loopplay : unit -> unit) device =
+  (* Once we've chosen a device, what kind of controller shall we configure it as? *)
+  fun configure_how (loopplay : unit -> unit) device =
       let
-          exception AbortConfigure and FinishConfigure
+          val HEIGHT = Sprites.height - 40
+
+          (* XXX or both, for keyboard. *)
+          datatype how = HGuitar | HDrums
+          fun drawitem (HGuitar, x, y, _) = S.blitall (Sprites.guitar, screen, x, y)
+            | drawitem (HDrums, x, y, _) = S.blitall (Sprites.drums, screen, x, y)
+          val heartbeat = loopplay
+          fun draw () = S.blitall(Sprites.configure, screen, 0, 0);
+          fun itemheight HGuitar = S.surface_height Sprites.guitar
+            | itemheight HDrums = S.surface_height Sprites.drums
+      in
+          case LM.select { x = 0, y = 40,
+                           width = Sprites.width,
+                           height = HEIGHT,
+                           items = [HGuitar, HDrums],
+                           drawitem = drawitem,
+                           itemheight = itemheight,
+                           bgcolor = SOME LM.DEFAULT_BGCOLOR,
+                           selcolor = SOME (S.color (0wx44, 0wx44, 0wx77, 0wxFF)),
+                           bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
+                           parent = Drawable.drawable { draw = draw, heartbeat = heartbeat,
+                                                        resize = Drawable.don't } } of
+              NONE => ()
+            | SOME HGuitar => configure_guitar loopplay device
+      end
+
+  (* loopplay is called periodically, to play the background music. *)
+  and configure_guitar (loopplay : unit -> unit) device =
+      let
           datatype phase =
               P_Button of int
             | P_Axes
@@ -125,7 +157,7 @@ struct
                   (case !phase of
                        P_Button d =>
                            let in
-                               S.blitall(Sprites.guitar, screen, 0 - buttonpos d, Y_GUITAR);
+                               S.blitall(Sprites.guitar2x, screen, 0 - buttonpos d, Y_GUITAR);
                                S.blitall(case d of
                                              5 => Sprites.strum_up
                                            | 6 => Sprites.strum_down
@@ -213,5 +245,7 @@ struct
                   Input.save ()
               end
       end
+
+  val configure = configure_how
 
 end
