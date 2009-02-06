@@ -14,6 +14,7 @@ sig
         AxisWhammy
       | AxisUnknown of int
 
+    (* These are the kinds of events that the game can receive from configure devices. *)
     datatype inevent =
         StrumUp
       | StrumDown
@@ -35,6 +36,7 @@ sig
         C_StrumUp
       | C_StrumDown
       | C_Button of int
+      | C_Drum of int
 
     (* These are physical thingies that can be pressed and released. They
        have SDL events (up and down) associated with them. *)

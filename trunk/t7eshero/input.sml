@@ -21,7 +21,6 @@ struct
       | StrumDown
       | ButtonUp of int
       | ButtonDown of int
-
       (* These are just impulse events (no 'up') *)
       | Drum of int
       | PedalUp
@@ -39,7 +38,7 @@ struct
         C_StrumUp
       | C_StrumDown
       | C_Button of int
-
+      | C_Drum of int
 
     open Serialize
 
@@ -61,12 +60,14 @@ struct
     fun cetostring (C_StrumUp) = "u"
       | cetostring (C_StrumDown) = "d"
       | cetostring (C_Button b) = "b?" ^ Int.toString b
+      | cetostring (C_Drum d) = "r?" ^ Int.toString d
 
     fun cefromstring "u" = C_StrumUp
       | cefromstring "d" = C_StrumDown
       | cefromstring s =
         case String.tokens QQ s of
             ["b", i] => (C_Button (valOf (Int.fromString i)) handle Option => raise Input "bad ce button")
+          | ["r", i] => (C_Drum (valOf (Int.fromString i)) handle Option => raise Input "bad re button")
           | _ => raise Input "bad ce"
 
     type mapping = (actualbutton * configevent) list
@@ -198,6 +199,7 @@ struct
             Joystick.setstate Joystick.ENABLE
         end
 
+    (* XXX drums. *)
     fun input_map e =
         let
             datatype dir = PRESS | RELEASE

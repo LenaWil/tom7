@@ -10,16 +10,6 @@ struct
   datatype event = datatype SDL.event
   structure Joystick = S.Joystick
 
-  (* configure sub-menu *)
-  val configorder = Vector.fromList [Input.C_Button 0,
-                                     Input.C_Button 1,
-                                     Input.C_Button 2,
-                                     Input.C_Button 3,
-                                     Input.C_Button 4,
-                                     Input.C_StrumUp,
-                                     Input.C_StrumDown]
-  val NINPUTS = Vector.length configorder
-
   exception AbortConfigure and FinishConfigure
 
   structure LM = ListMenuFn(val screen = screen)
@@ -33,38 +23,163 @@ struct
 
      *)
 
+  val nexta = ref (0w0 : Word32.word)
+  val nextd = ref (0w0 : Word32.word)
+
+  fun heartbeat (loopplay : unit -> unit) () : unit = 
+      let 
+          val () = Song.update ()
+          val () = loopplay ()
+          val now = S.getticks ()
+      in
+          if now > !nexta
+          then ((* advance(); *)
+                nexta := now + Hero.MENUTICKS)
+          else ()
+      end
+  
+  and go input draw loopplay =
+      let 
+          val () = heartbeat loopplay ()
+          val () = input ()
+          val now = S.getticks ()
+      in
+          (if now > !nextd
+           then (draw (); 
+                 nextd := now + Hero.MENUTICKS;
+                 S.flip screen)
+           else ());
+          go input draw loopplay
+      end
+
   (* Once we've chosen a device, what kind of controller shall we configure it as? *)
+  (* loopplay is called periodically, to play the background music. *)
   fun configure_how (loopplay : unit -> unit) device =
       let
-          val HEIGHT = Sprites.height - 40
+          val YOFFSET = 160
+          val HEIGHT = Sprites.height - YOFFSET
 
           (* XXX or both, for keyboard. *)
           datatype how = HGuitar | HDrums
           fun drawitem (HGuitar, x, y, _) = S.blitall (Sprites.guitar, screen, x, y)
             | drawitem (HDrums, x, y, _) = S.blitall (Sprites.drums, screen, x, y)
-          val heartbeat = loopplay
           fun draw () = S.blitall(Sprites.configure, screen, 0, 0);
           fun itemheight HGuitar = S.surface_height Sprites.guitar
             | itemheight HDrums = S.surface_height Sprites.drums
+
+          (* in case we cancel *)
+          val old = Input.getmap device
+          val () = Input.clearmap device
+
       in
-          case LM.select { x = 0, y = 40,
-                           width = Sprites.width,
-                           height = HEIGHT,
-                           items = [HGuitar, HDrums],
-                           drawitem = drawitem,
-                           itemheight = itemheight,
-                           bgcolor = SOME LM.DEFAULT_BGCOLOR,
-                           selcolor = SOME (S.color (0wx44, 0wx44, 0wx77, 0wxFF)),
-                           bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
-                           parent = Drawable.drawable { draw = draw, heartbeat = heartbeat,
-                                                        resize = Drawable.don't } } of
-              NONE => ()
-            | SOME HGuitar => configure_guitar loopplay device
+          nexta := S.getticks();
+          nextd := 0w0;
+          (case LM.select { x = 0, y = YOFFSET,
+                            width = Sprites.width,
+                            height = HEIGHT,
+                            items = [HGuitar, HDrums],
+                            drawitem = drawitem,
+                            itemheight = itemheight,
+                            bgcolor = SOME LM.DEFAULT_BGCOLOR,
+                            selcolor = SOME (S.color (0wx44, 0wx44, 0wx77, 0wxFF)),
+                            bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
+                            parent = Drawable.drawable { draw = draw, 
+                                                         heartbeat = heartbeat loopplay,
+                                                         resize = Drawable.don't } } of
+               NONE => ()
+             | SOME HGuitar => configure_guitar loopplay device
+             | SOME HDrums => configure_drums loopplay device)
+               handle AbortConfigure => Input.restoremap device old
+      end
+
+  (* XXX would be good if we could merge the following two, which were developed by
+     cut and paste and have lots of duplicate code *)
+
+  and configure_drums (loopplay : unit -> unit) device =
+      let
+          datatype phase = P_Button of int
+
+          val configorder = Vector.fromList [Input.C_Drum 0,
+                                             Input.C_Drum 1,
+                                             Input.C_Drum 2,
+                                             Input.C_Drum 3,
+                                             Input.C_Drum 4]
+          val NINPUTS = Vector.length configorder
+
+          val phase = ref (P_Button 0)
+
+          val Y_DRUMS = 300
+          fun y_press 4 = 400 (* bass pedal *)
+            | y_press n = 200
+          fun x_press 4 = 128
+            | x_press n = n * (256 div 4) + 32
+
+          fun accept e =
+              case !phase of
+                  P_Button d =>
+                      let in
+                          Input.setmap device e (Vector.sub(configorder, d));
+                          if d < (NINPUTS - 1)
+                          then phase := P_Button (d + 1)
+                          else raise FinishConfigure
+                      end
+
+          fun input () =
+              case S.pollevent () of
+                  SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise AbortConfigure
+                | SOME E_Quit => raise Hero.Exit
+                | SOME e =>
+                      if Input.belongsto e device
+                      then  
+                          (* we only support these events for "buttons" right now *)
+                          (case e of
+                               (* ignore up events; these are handled by input *)
+                               E_KeyDown { sym } => accept (Input.Key sym)
+                             | E_KeyUp _ => ()
+                             | E_JoyDown { button, which = _ } => accept (Input.JButton button)
+                             | E_JoyUp _ => ()
+                             | E_JoyHat { hat, state, which = _ } => 
+                                   if Joystick.hat_centered state 
+                                   then ()
+                                   else accept (Input.JHat { hat = hat, state = state })
+                             | _ => print "Unsupported event during configure.\n")
+                      else print "Foreign event during configure.\n"
+                | NONE => ()
+
+          fun draw () =
+              let
+              in
+                  S.blitall(Sprites.configure, screen, 0, 0);
+
+                  case !phase of
+                      P_Button d =>
+                          let in
+                              S.blitall (Sprites.drums, screen, 16, Y_DRUMS);
+                              S.blitall (case d of
+                                             4 => Sprites.strum_up
+                                           | _ => Sprites.press, screen, x_press d, y_press d);
+                              (* XXX could print OKs for the ones already done *)
+                              ()
+                           end
+              end
+
+      in
+          go input draw loopplay handle FinishConfigure => Input.save ()
       end
 
   (* loopplay is called periodically, to play the background music. *)
   and configure_guitar (loopplay : unit -> unit) device =
-      let
+      let         
+          (* configure sub-menu *)
+          val configorder = Vector.fromList [Input.C_Button 0,
+                                             Input.C_Button 1,
+                                             Input.C_Button 2,
+                                             Input.C_Button 3,
+                                             Input.C_Button 4,
+                                             Input.C_StrumUp,
+                                             Input.C_StrumDown]
+          val NINPUTS = Vector.length configorder
+
           datatype phase =
               P_Button of int
             | P_Axes
@@ -77,7 +192,7 @@ struct
           (* in case we cancel *)
           val old = Input.getmap device
           val () = Input.clearmap device
-
+              
           val Y_GUITAR = 300
           val Y_PRESS = Y_GUITAR - (57 * 2)
           val Y_OK = Y_GUITAR + (81 * 2)
@@ -147,8 +262,6 @@ struct
                          else print "Foreign event during axes\n")
                 | NONE => ()
 
-          (* nothin' doin' *)
-          fun advance () = ()
           fun draw () =
               let
               in
@@ -194,38 +307,12 @@ struct
                                ()
                            end)
               end
-
-          val nexta = ref (S.getticks ())
-          fun heartbeat () = 
-              let 
-                  val () = Song.update ()
-                  val () = loopplay ()
-                  val now = S.getticks ()
-              in
-                  if now > !nexta
-                  then (advance();
-                        nexta := now + Hero.MENUTICKS)
-                  else ()
-              end
-
-          val nextd = ref 0w0
-          fun go () =
-              let 
-                  val () = heartbeat ()
-                  val () = input ()
-                  val now = S.getticks ()
-              in
-                  (if now > !nextd
-                   then (draw (); 
-                         nextd := now + Hero.MENUTICKS;
-                         S.flip screen)
-                   else ());
-                  go ()
-              end
       in
-          go () handle AbortConfigure => Input.restoremap device old
-                       (* XXX should have some titlescreen message fade-out queue *)
-                     | FinishConfigure => 
+          nexta := S.getticks();
+          nextd := 0w0;
+          go input draw loopplay
+          handle FinishConfigure => 
+(* XXX should have some titlescreen message fade-out queue *)
               let 
                   val uidx = ref 0
               in
