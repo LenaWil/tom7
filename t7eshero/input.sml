@@ -23,8 +23,6 @@ struct
       | ButtonDown of int
       (* These are just impulse events (no 'up') *)
       | Drum of int
-      | PedalUp
-      | PedalDown
 
       | Axis of axis * real
 
@@ -209,6 +207,8 @@ struct
               | withdir d RELEASE (C_StrumUp)   = NONE
               | withdir d PRESS   (C_StrumDown) = SOME(d, StrumDown)
               | withdir d PRESS   (C_StrumUp)   = SOME(d, StrumUp)
+              | withdir d PRESS   (C_Drum f)    = SOME(d, Drum f)
+              | withdir d RELEASE (C_Drum _)    = NONE
         in
         (case e of
              SDL.E_KeyDown { sym } =>

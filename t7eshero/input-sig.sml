@@ -22,8 +22,6 @@ sig
       | ButtonDown of int
       (* These are just impulse events (no 'up') *)
       | Drum of int
-      | PedalUp
-      | PedalDown
 
         (* Axis is (above) and a float 0.0--1.0 indicating its position out of
            its configured min--max range. *)

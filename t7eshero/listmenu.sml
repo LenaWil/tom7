@@ -78,6 +78,8 @@ struct
                   | SOME E_Quit => raise Hero.Exit
                   | SOME e =>
                         (case Input.map e of
+                             (* XXX in input we should standardize this behavior
+                                into "intentions", so that we can use drums and stuff *)
                              SOME (_, Input.ButtonDown 0) => select ()
                            | SOME (_, Input.ButtonDown 1) => raise Abort
                            | SOME (_, Input.StrumUp) => move_up ()

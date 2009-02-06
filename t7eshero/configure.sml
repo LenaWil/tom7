@@ -110,7 +110,7 @@ struct
 
           val Y_DRUMS = 300
           fun y_press 4 = 400 (* bass pedal *)
-            | y_press n = 200
+            | y_press n = 20
           fun x_press 4 = 128
             | x_press n = n * (256 div 4) + 32
 
