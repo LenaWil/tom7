@@ -911,6 +911,17 @@ struct
   fun surface_width s = surface_width_ (!!s)
   fun surface_height s = surface_height_ (!!s)
 
+  val version_ = _import "ml_version_packed" : unit -> Word32.word ;
+  fun version () =
+      let
+          val p = version_ ()
+          fun shifted n = Word32.toInt (Word32.andb(0w255, Word32.>>(p, n)))
+      in
+          { major = shifted 0w16,
+            minor = shifted 0w8,
+            patch = shifted 0w0 }
+      end
+
   fun convertevent_ e =
    (* XXX need to get props too... *)
     (case eventtag_ e of

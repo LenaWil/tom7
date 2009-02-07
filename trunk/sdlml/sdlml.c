@@ -1,6 +1,9 @@
+/* Hooks and glue for using SDL through SML. Portable to win32, linux, osx.
+   This is incomplete and a little messy. But we try to make it better.
 
+    - Tom                   29 Jan 2009
+*/
 #include <SDL.h>
-// #include <windows.h>
 
 /* by default, use display format. but
    when in console mode (for instance)
@@ -375,4 +378,10 @@ SDL_Surface * ml_alphadim(SDL_Surface * src) {
   sulock(ret);
 
   return ret;
+}
+
+int ml_version_packed() {
+  const SDL_version * v = SDL_Linked_Version();
+  fprintf(stderr, "Version: %u.%u.%u\n", v->major, v->minor, v->patch);
+  return (v->major << 16) | (v->minor << 8) | v->patch;
 }

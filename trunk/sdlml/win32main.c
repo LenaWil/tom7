@@ -6,6 +6,7 @@
 
 // added by tom
 #define NO_STDIO_REDIRECT 1
+// #define DEBUG_STARTUP 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +37,12 @@
 #  undef main
 # endif /* _WIN32_WCE_EMULATION */
 #endif /* main */
+
+#ifdef DEBUG_STARTUP
+# define STARTUP_MESSAGE(s) do { printf(s "\n"); MessageBoxA(0, s, "startup message", 0); } while(0)
+#else
+# define STARTUP_MESSAGE(s) do {  } while(0)
+#endif
 
 /* The standard output files */
 #define STDOUT_FILE	TEXT("stdout.txt")
@@ -185,6 +192,8 @@ int console_main(int argc, char *argv[])
 	char *bufp, *appname;
 	int status;
 
+	STARTUP_MESSAGE("console_main");
+
 	/* Get the class name from argv[0] */
 	appname = argv[0];
 	if ( (bufp=SDL_strrchr(argv[0], '\\')) != NULL ) {
@@ -224,6 +233,8 @@ int console_main(int argc, char *argv[])
 	/* Run the application main() code */
 	status = SDL_main(argc, argv);
 
+	STARTUP_MESSAGE("Back from sdl_main");
+
 	/* Exit cleanly, calling atexit() functions */
 	exit(status);
 
@@ -238,9 +249,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPWSTR szCmdLine, int sw)
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
 #endif
 {
-        // printf("This is winmain.\n");
-	// MessageBoxA(0, "winmain", "awesomeA", 0);
-
 
 	HINSTANCE handle;
 	char **argv;
@@ -262,6 +270,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
 #ifndef NO_STDIO_REDIRECT
 	FILE *newfp;
 #endif
+
+        STARTUP_MESSAGE("winmain");
 
 	/* Start up DDHELP.EXE before opening any files, so DDHELP doesn't
 	   keep them open.  This is a hack.. hopefully it will be fixed 
