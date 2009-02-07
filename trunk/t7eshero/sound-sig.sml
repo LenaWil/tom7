@@ -49,14 +49,19 @@ sig
     val WAVE_NOISE : waveform
     val WAVE_SINE : waveform
     val WAVE_RHODES : waveform
+    val WAVE_SAMPLER : sampleset -> waveform
 
-    (* setfreq (ch, freq, vol, inst) *)
+    (* setfreq (ch, freq, vol, inst).
+       If the waveform is SAMPLER, then freq is the
+       sample to play, in the range 0--127. *)
     val setfreq : int * int * volume * waveform -> unit
 
     (* number of channels *)
     val NMIX : int
     (* channel set aside for sound effects *)
     val MISSCH : int
+    (* channels set aside for drums *)
+    val DRUMCH : int -> int
 
     (* noteon (ch, midinote, vol, inst) *)
     val noteon : int * int * volume * inst -> unit

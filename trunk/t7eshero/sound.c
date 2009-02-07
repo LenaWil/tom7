@@ -16,8 +16,10 @@
    in 1/HZFACTOR Hz increments */
 #define HZFACTOR 10000
 
-// number of simultaneous polyphonic notes
-#define NMIX 12
+// number of simultaneous polyphonic notes:
+// 11 regular, 1 miss effect, 5 drums
+// (but the ML code can allocate these however it likes.)
+#define NMIX 17
 
 #define MAX_MIX (32700)
 #define MIN_MIX (-32700)
@@ -303,6 +305,10 @@ void ml_initsound() {
 
 int ml_sampleroffset () {
   return SAMPLER_OFFSET;
+}
+
+int ml_total_mix_channels () {
+  return NMIX;
 }
 
 int ml_register_sample (int * v, int n) {
