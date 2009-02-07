@@ -231,8 +231,11 @@ struct
      Returns the assignment as a list of pairs of (old notes, finger assignments).
      Takes the assignment that was given for the previous measure (An empty
      list has the effect of ignoring any prior context.)
+     
+     done and total are just the counts of measures done and total, for printing progress.
      *)
-  fun render_one (prev_measure : (int list * int list) list) (m : int list list) =
+  fun render_one (prev_measure : (int list * int list) list) (m : int list list) 
+      (measures_done, measures_total) =
       let
           val HISTORY = Params.asint 1 history
 
@@ -247,7 +250,9 @@ struct
 
                   val () = (total := !total + 1; 
                             if (!total mod 50000) = 0
-                            then print (f ^ ": " ^ Int.toString (!total) ^ "\n")
+                            then print (f ^ " [" ^ Int.toString measures_done ^ "/" ^
+                                        Int.toString measures_total ^ "]: " ^ 
+                                        Int.toString (!total) ^ "\n")
                             else ())
 
                   (* all legal assignments for evt. 
@@ -434,7 +439,8 @@ struct
                            then raise Hero "empty notes"
                            else ()
 
-                  val assignment = render_one (Option.getOpt (prev, nil)) nots
+                  val assignment = render_one (Option.getOpt (prev, nil)) nots (MM.numItems (!completed),
+                                                                                length t)
                   val nots = map #2 assignment
 
                   val notslens : (int list * int list) list = ListPair.zip (nots, lens)
