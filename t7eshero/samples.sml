@@ -190,4 +190,14 @@ struct
             sou020
             *)
 
+    (* these are good, but pretty intense
+       snare comes in kinda late too
+       *)
+    val default_drumbank = Vector.fromList [38, 42, 45, 49, 14]
+    (* better. basically realistic. like the melodic tom. 
+       but too loud...
+       *)
+    val default_drumbank = Vector.fromList [40, 42, 45, 49, 2]
+
+    val default_drumbank = Vector.fromList [40, 42, 110, 46, 2]
 end

@@ -7,4 +7,7 @@ sig
 
     val sid : Sound.sampleset
 
+    (* mapping from drums (0--4) to sampler offsets. *)
+    val default_drumbank : int Vector.vector
+
 end

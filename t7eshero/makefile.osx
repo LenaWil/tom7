@@ -19,9 +19,10 @@ sdlml.o : ../sdlml/sdlml.c
 	gcc -O $(CPPFLAGS) -c ../sdlml/sdlml.c -o sdlml.o
 
 #  -arch ppc linkopt won't work, sorry
+#  -verbose 1
 t7eshero.exe : sound.o sdlml.o t7eshero.cm *.sml ../sdlml/*.sml sdlmain.o messagebox_fake.o
 	export MACOSX_DEPLOYMENT_TARGET=${VERSION_TARGET}
-	mlton -verbose 1 -cc-opt "-g -Dmain=SDL_main" -link-opt "-arch i386 -F${FRAMEWORKS} -framework SDL_net -framework SDL_image ${LIBS} -framework SDL -framework OpenGL -framework AGL -framework IOKit -framework Carbon -framework Cocoa -framework SDL_mixer" -default-ann 'allowFFI true' -output $@ t7eshero.cm sound.o sdlml.o sdlmain.o messagebox_fake.o
+	mlton -cc-opt "-g -Dmain=SDL_main" -link-opt "-arch i386 -F${FRAMEWORKS} -framework SDL_net -framework SDL_image ${LIBS} -framework SDL -framework OpenGL -framework AGL -framework IOKit -framework Carbon -framework Cocoa -framework SDL_mixer" -default-ann 'allowFFI true' -output $@ t7eshero.cm sound.o sdlml.o sdlmain.o messagebox_fake.o
 
 genscore.exe : genscore.sml genscore.cm
 	mlton -output $@ -default-ann 'allowFFI true' genscore.cm
@@ -43,6 +44,7 @@ app : t7eshero.exe
 	cp -R OSX_build/* /tmp/T7ESHero.app/Contents/
 	cp ${RELEASEFILES} /tmp/T7ESHero.app/Contents/MacOS/
 	cp -R graphics /tmp/T7ESHero.app/Contents/MacOS/
+	cp -R samples /tmp/T7ESHero.app/Contents/MacOS/
 # XXX don't only need the score songs, not the source songs...
 	cp -R songs /tmp/T7ESHero.app/Contents/MacOS/
 	cp -R profilepics /tmp/T7ESHero.app/Contents/MacOS/

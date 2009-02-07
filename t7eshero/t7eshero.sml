@@ -31,9 +31,12 @@ struct
   local 
       val misstime = ref 0
 
-      fun sf () = Sound.setfreq(Sound.MISSCH, Sound.PITCHFACTOR * 4 * !misstime, 
-                                Sound.midivel (10000 div 90),
-                                Sound.WAVE_SQUARE)
+      fun sf () = 
+          (*  FIXME XXXX restore me, just wanna play around without damage
+          Sound.setfreq(Sound.MISSCH, Sound.PITCHFACTOR * 4 * !misstime, 
+                        Sound.midivel (10000 div 90),
+                        Sound.WAVE_SQUARE) *)
+          ()
   in
 
       fun maybeunmiss t =
@@ -257,6 +260,7 @@ struct
 
     fun loop (playcursor, drawcursor, failcursor) =
         let 
+            
             fun polls () =
                 case S.pollevent () of
                     SOME e =>
@@ -273,6 +277,11 @@ struct
                                         | SOME (_, Input.StrumUp) => (State.upstrum(); State.commit ())
                                         | SOME (_, Input.StrumDown) => (State.downstrum(); State.commit ())
                                         | SOME (_, Input.Axis (Input.AxisUnknown i, r)) => State.dance (i, r)
+                                        | SOME (_, Input.Drum d) =>
+                                              Sound.setfreq(Sound.DRUMCH d, 
+                                                            Vector.sub(Samples.default_drumbank, d),
+                                                            Sound.midivel 127, 
+                                                            Sound.WAVE_SAMPLER Samples.sid)
                                         | SOME _ => ()
                                         | NONE => 
                                               (* only if not mapped *)

@@ -8,8 +8,11 @@ struct
   val setfreq_ = _import "ml_setfreq" : int * int * int * int -> unit ;
   val () = initaudio_ ()
 
-  local val sampleroffset_ = _import "ml_sampleroffset" : unit -> int ;
+  local 
+      val sampleroffset_ = _import "ml_sampleroffset" : unit -> int ;
+      val total_mix_channels_ = _import "ml_total_mix_channels" : unit -> int ;
   in
+      val NMIX = total_mix_channels_ ()
       val SAMPLER_OFFSET = sampleroffset_ ()
   end
 
@@ -72,8 +75,7 @@ struct
   val WAVE_NOISE  = INST_NOISE
   val WAVE_SINE   = INST_SINE
   val WAVE_RHODES = INST_RHODES
-  fun WAVE_SAMPLE s = SAMPLER_OFFSET + s
-
+  val WAVE_SAMPLER = INST_SAMPLER
 
   (* FIXME implement! *)
   type sample = int
@@ -128,10 +130,14 @@ struct
     | PLAYING of int
   (* for each channel, all possible midi notes *)
   val miditable = Vector.tabulate(16, fn _ => Array.array(128, OFF))
-  val NMIX = 12 (* XXX get from C code *)
+
+  val NFREECH = NMIX - 1 - 5
+  fun DRUMCH n = if n < 0 orelse n > 4 
+                 then raise Sound "there are only drum channels 0-5."
+                 else NMIX - 1 - (n + 1)
   val MISSCH = NMIX - 1
   (* save one for the miss noise channel *)
-  val mixes = Array.array(NMIX - 1, false)
+  val mixes = Array.array(NFREECH, false)
 
   fun debug () =
       Util.for 0 15
@@ -200,8 +206,9 @@ struct
       let in
           (* turn off MIDI notes *)
           Vector.app (Array.modify (fn n => OFF)) miditable;
-          (* turn off actual sound *)
-          Array.appi (fn (i, _) => setfreq(i, pitchof 60, 0, INST_NONE)) freqs;
+          (* turn off actual sound. don't use the arrays here because we
+             want to shut off drums and effects channels too. *)
+          Util.for 0 (NMIX - 1) (fn i => setfreq(i, pitchof 60, 0, INST_NONE));
           (* mix channel in-use masks *)
           Array.modify (fn _ => false) mixes
       end
