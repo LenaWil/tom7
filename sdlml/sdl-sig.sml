@@ -341,6 +341,8 @@ sig
   (* invalidates the surface *)
   val freesurface : surface -> unit
 
+  val version : unit -> { major : int, minor : int, patch : int }
+
   (* These are not separate structures because they rely on access to the
      implementations of surface, color, etc. *)
   structure Image :
