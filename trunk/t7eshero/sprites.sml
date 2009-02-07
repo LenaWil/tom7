@@ -34,6 +34,11 @@ struct
   val drums = requireimage "drums.png"
   val guitar2x = requireimage2x "guitar.png"
   val drums2x = requireimage2x "drums.png"
+  val punch = requireimage "punch.png"
+  val kick = requireimage "kick.png"
+  val arrow_down = requireimage2x "arrow_down.png"
+  val arrow_up = requireimage2x "arrow_up.png"
+
   val press = requireimage2x "press.png"
   val press_ok = requireimage2x "press_ok.png"
   val strum_down = requireimage2x "strum_down.png"

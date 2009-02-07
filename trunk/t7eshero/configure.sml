@@ -61,7 +61,8 @@ struct
 
           (* XXX or both, for keyboard. *)
           datatype how = HGuitar | HDrums
-          fun drawitem (HGuitar, x, y, _) = S.blitall (Sprites.guitar, screen, x, y)
+          (* XXX guitar graphic is too wide *)
+          fun drawitem (HGuitar, x, y, _) = S.blitall (Sprites.guitar, screen, x - 6, y)
             | drawitem (HDrums, x, y, _) = S.blitall (Sprites.drums, screen, x, y)
           fun draw () = S.blitall(Sprites.configure, screen, 0, 0);
           fun itemheight HGuitar = S.surface_height Sprites.guitar
@@ -104,15 +105,28 @@ struct
                                              Input.C_Drum 2,
                                              Input.C_Drum 3,
                                              Input.C_Drum 4]
+              (* XXX and keypad, and buttons... *)
           val NINPUTS = Vector.length configorder
 
           val phase = ref (P_Button 0)
 
+          val X_DRUMS = 0
           val Y_DRUMS = 300
-          fun y_press 4 = 400 (* bass pedal *)
-            | y_press n = 20
-          fun x_press 4 = 128
-            | x_press n = n * (256 div 4) + 32
+
+          (* In these, 4 is the bass pedal. *)
+          fun press 4 = Sprites.kick
+            | press _ = Sprites.punch
+          fun arrow 4 = Sprites.arrow_up
+            | arrow _ = Sprites.arrow_down
+          fun y_arrow 4 = 456
+            | y_arrow n = 250
+
+          fun x_arrow 4 = 145
+            | x_arrow n = n * (220 div 4) + 32
+          fun y_press 4 = 520
+            | y_press n = 170
+          fun x_press 4 = 80
+            | x_press n = 20
 
           fun accept e =
               case !phase of
@@ -154,10 +168,9 @@ struct
                   case !phase of
                       P_Button d =>
                           let in
-                              S.blitall (Sprites.drums, screen, 16, Y_DRUMS);
-                              S.blitall (case d of
-                                             4 => Sprites.strum_up
-                                           | _ => Sprites.press, screen, x_press d, y_press d);
+                              S.blitall (Sprites.drums, screen, X_DRUMS, Y_DRUMS);
+                              S.blitall (press d, screen, x_press d, y_press d);
+                              S.blitall (arrow d, screen, x_arrow d, y_arrow d);
                               (* XXX could print OKs for the ones already done *)
                               ()
                            end
