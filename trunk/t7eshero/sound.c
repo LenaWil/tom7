@@ -56,6 +56,8 @@ static   int fades[NMIX];
 #define NBANDS 8
 static   int oldpass[NMIX][NBANDS];
 
+double effect;
+
 // Waves that have been registered and copied into memory.
 static struct {
   int nsamples;
@@ -205,6 +207,8 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 */
 void ml_setfreq(int ch, int nf, int nv, int inst) {
   SDL_LockAudio();
+
+  if (inst < SAMPLER_OFFSET) nf += effect * nf; // XXXX
 #if 0
   if (ch < 11 /* && inst >= SAMPLER_OFFSET */) { // || inst != INST_NONE) {
     printf("(cur inst: %d) Set %d = %d (Hz/10000) %d %d\n", 
@@ -342,4 +346,10 @@ int ml_register_sampleset (int * v, int n) {
     }
     return num_sets++;
   }
+}
+
+void ml_seteffect (double r) {
+  if (r < 0.0) r = 0.0;
+  else if (r > 1.0) r = 1.0; 
+  effect = r;
 }

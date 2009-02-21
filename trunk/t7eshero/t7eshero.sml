@@ -277,12 +277,13 @@ struct
                                         | SOME (_, Input.StrumUp) => (State.upstrum(); State.commit ())
                                         | SOME (_, Input.StrumDown) => (State.downstrum(); State.commit ())
                                         | SOME (_, Input.Axis (Input.AxisUnknown i, r)) => State.dance (i, r)
+                                        | SOME (_, Input.Axis (Input.AxisWhammy, r)) => Sound.seteffect r
                                         | SOME (_, Input.Drum d) =>
                                               Sound.setfreq(Sound.DRUMCH d, 
                                                             Vector.sub(Samples.default_drumbank, d),
                                                             Sound.midivel 127, 
                                                             Sound.WAVE_SAMPLER Samples.sid)
-                                        | SOME _ => ()
+                                        (* | SOME _ => () *)
                                         | NONE => 
                                               (* only if not mapped *)
                                               (case e of
@@ -431,6 +432,7 @@ struct
             end
   in
       Sound.all_off ();
+      Sound.seteffect 0.0;
       print "GAME END.\n";
       (* XXX highscores... *)
       gameloop () 

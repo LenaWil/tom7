@@ -196,11 +196,14 @@ struct
           datatype phase =
               P_Button of int
             | P_Axes
+            | P_Whammy
 
           val phase = ref (P_Button 0)
 
           type axis = { min : int, max : int }
           val axes = GrowArray.empty() : axis GrowArray.growarray
+          val whammyaxis = ref NONE
+          val whammy = ref { min = 32767, max = ~32768 }
 
           (* in case we cancel *)
           val old = Input.getmap device
@@ -225,7 +228,8 @@ struct
                           then phase := P_Button (d + 1)
                           else phase := P_Axes
                       end
-                | P_Axes => raise FinishConfigure
+                | P_Axes => phase := P_Whammy
+                | P_Whammy => raise FinishConfigure
 
 
           fun input () =
@@ -272,7 +276,37 @@ struct
                                            SOME (_, Input.ButtonDown 0) => accept (Input.JButton 0)
                                          | _ => print "Non-axis event during axis configure.\n"))
 
-                         else print "Foreign event during axes\n")
+                         else print "Foreign event during axes\n"
+
+                    | P_Whammy => 
+                            (* XXX maybe should skip this too if keyboard. *)
+                            if Input.belongsto e device
+                            then
+                                (* we can only handle axis events here *)
+                                (case e of
+                                     E_JoyAxis { which, axis, v } => 
+                                         (* must not have been configured already, or be a new axis
+                                            if we already started configuring the whammy axis... *)
+                                         if GrowArray.has axes axis orelse (case !whammyaxis of
+                                                                                NONE => false
+                                                                              | SOME a => axis <> a)
+                                         then () (* Impossible to avoid dancing even when configuring *)
+                                         else
+                                             let val { min, max } = !whammy
+                                             in
+                                                 print (Int.toString which ^ "/" ^ Int.toString axis ^ ": "
+                                                        ^ Int.toString v ^ "\n");
+                                                 whammyaxis := SOME axis;
+                                                 whammy := { min = Int.min(min, v),
+                                                             max = Int.max(max, v) }
+                                             end
+                                   | _ =>
+                                        (case Input.map e of
+                                             (* dummy arg to accept, unused *)
+                                             SOME (_, Input.ButtonDown 0) => accept (Input.JButton 0)
+                                           | _ => print "Non-axis event during whammy configure.\n"))
+                             else print "Foreign event during whammy\n")
+
                 | NONE => ()
 
           fun draw () =
@@ -318,6 +352,26 @@ struct
                                      end
                                 else ());
                                ()
+                           end
+                     | P_Whammy =>
+                           let 
+                               val X_MESSAGE = 10
+                               val Y_MESSAGE = 100
+                               val y = Y_MESSAGE + Font.height * 3
+                           in
+                               (* XXX should skip if device is a keyboard. *)
+                               Font.draw (screen, X_MESSAGE, Y_MESSAGE, "Push in and out the");
+                               Font.draw (screen, X_MESSAGE, Y_MESSAGE + Font.height, "   ^4 whammy");
+
+                               case (!whammyaxis, !whammy) of
+                                   (SOME a, {min, max}) =>
+                                       FontSmall.draw(screen, X_MESSAGE, y,
+                                                      "^0" ^ Int.toString a ^ "^1: ^3" ^
+                                                      Int.toString min ^ "^1 - ^3" ^
+                                                      Int.toString max)
+                                 | (NONE, _) => 
+                                       FontSmall.draw(screen, X_MESSAGE, y,
+                                                      "^2no whammy configured yet ^3 :(")
                            end)
               end
       in
@@ -325,7 +379,7 @@ struct
           nextd := 0w0;
           go input draw loopplay
           handle FinishConfigure => 
-(* XXX should have some titlescreen message fade-out queue *)
+              (* XXX should have some titlescreen message fade-out queue *)
               let 
                   val uidx = ref 0
               in
@@ -341,7 +395,12 @@ struct
                             uidx := !uidx + 1
                         end
                    else ());
-                  (* XXX should save whammy here too *)
+                  (* save whammy *)
+                  case !whammyaxis of
+                      NONE => ()
+                    | SOME a => Input.setaxis device { which = a, axis = Input.AxisWhammy, 
+                                                       min = #min (!whammy), max = #max (!whammy) };
+
                   Input.save ()
               end
       end
