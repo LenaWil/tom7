@@ -212,5 +212,11 @@ struct
           (* mix channel in-use masks *)
           Array.modify (fn _ => false) mixes
       end
+
+  local
+      val seteffect_ = _import "ml_seteffect" : real -> unit ;
+  in
+      val seteffect = seteffect_
+  end
       
 end

@@ -69,6 +69,11 @@ sig
     (* noteoff (ch, midinote) *)
     val noteoff : int * int -> unit
 
+    (* Set the effect amount, from 0.0 (none) to 1.0 (full). 
+       XXX: Add the ability to configure the active effect!
+       *)
+    val seteffect : real -> unit
+
     val all_off : unit -> unit
 
 end
