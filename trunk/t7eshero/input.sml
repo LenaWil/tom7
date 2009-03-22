@@ -267,6 +267,18 @@ struct
            | _ => NONE)
         end
 
+    (* XXXX HAX *)
+    val input_map =
+        fn e => 
+        let val r = input_map e
+        in
+            (case r of
+                 SOME(_, StrumUp) => Womb.signal ()
+               | SOME(_, StrumDown) => Womb.signal ()
+               | _ => ());
+            r
+        end
+
     fun joy n =
         if n < 0 orelse n >= Array.length(!joys)
         then raise Input "joystick out of range"
