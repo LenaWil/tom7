@@ -74,6 +74,10 @@ textscroll.sml
 (* Used in initialization. Must be after SDL. *)
 platform.sml
 
+(* External hardware support. *)
+womb-sig.sml
+womb.sml
+
 (* has effect, should be first. *)
 prelude.sml
 

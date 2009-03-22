@@ -57,6 +57,35 @@ static   int fades[NMIX];
 static   int oldpass[NMIX][NBANDS];
 
 double effect;
+// #define EFFECT_FREQ(f) (((f) * (1.0 + (0.059463094359 * effect))))
+#define EFFECT_FREQ(f) (f)
+#define EFFECT_POST(s) (s)
+
+static const int decimate_masks[] = {
+  0x0000,
+  0x0001,
+  0x0003,
+  0x0007,
+  0x000F,
+  0x001F,
+  0x003F,
+  0x007F,
+  0x00FF,
+  0x00FF,
+  0x01FF,
+  0x03FF,
+  0x07FF,
+  0x0FFF,
+  0x1FFF,
+  0x3FFF,
+  0x7FFF,
+  0xFFFF,
+};
+// #define EFFECT_POST(s) ( (Sint16) ( ((s) >> (int)(effect * 15.0)) << (int)(effect * 15.0) ) )
+// for some reason this gets real loud when at max?
+// #define EFFECT_POST(s) (((s + 32768) & ~decimate_masks[(int)(effect * 15.0)]) - 32768)
+
+#define EFFECT_POST(s) ( ((ctr % (1 + (int)(effect * 32.0))))?last_sample:(s) )
 
 // Waves that have been registered and copied into memory.
 static struct {
@@ -73,12 +102,15 @@ static int num_sets;
 void mixaudio (void * unused, Sint16 * stream, int len) {
   /* total number of samples; used to get rate */
   /* XXX glitch every time this overflows; should mod by RATE? */
-  static int seed;
   int i, ch;
+  static int seed;
+  static int last_sample, ctr;
+
   /* length is actually in bytes; halve it */
   len >>= 1;
   for(i = 0; i < len; i ++) {
     int mag = 0;
+    ctr++;
 
     /* compute the mixed magnitude of all channels,
        based on the current state of each channel */
@@ -91,7 +123,7 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
       } 
 	/* FALLTHROUGH */
       case INST_SINE: {
-	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
+	double cycle = (((double)RATE * HZFACTOR) / EFFECT_FREQ(cur_freq[ch]) );
 	/* as a fraction of cycle */
 	double t = fmod(samples[ch], cycle);
 	double val = ( (double)cur_vol[ch] * sin((t/cycle) * 2.0 * PI) );
@@ -118,7 +150,7 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
       }
       case INST_SAW: {
 	samples[ch] ++;
-	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
+	double cycle = (((double)RATE * HZFACTOR) / EFFECT_FREQ(cur_freq[ch]));
 	double pos = fmod(samples[ch], cycle);
 	/* sweeping from -vol to +vol with period 'cycle' */
 	mag += -cur_vol[ch] + (int)( (pos / cycle) * 2.0 * cur_vol[ch] );
@@ -133,7 +165,7 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 	   PERF: fmod is pretty slow and it is easy to make square
 	   waves with other means.
 	*/
-	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
+	double cycle = (((double)RATE * HZFACTOR) / EFFECT_FREQ(cur_freq[ch]));
 	double pos = fmod(samples[ch], cycle);
 	/* sweeping from -vol to +vol with period 'cycle' */
 	mag += (pos > (cycle/2.0))?cur_vol[ch]:-cur_vol[ch];
@@ -155,7 +187,7 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 	  int i, freq = HZFACTOR * 16;
 	  for(i = 0; i < NBANDS; i ++, freq <<= 1) {
             #define ALPHA 0.7
-	    if (cur_freq[ch] < freq) {
+	    if (EFFECT_FREQ(cur_freq[ch]) < freq) {
 	      samp = oldpass[ch][i] + ALPHA * (samp - oldpass[ch][i]);
 	      samp = samp * (1.2);
 	    }
@@ -193,8 +225,8 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
     /* PERF clipping seems to happen automatically in the cast? */
     if (mag > MAX_MIX) mag = MAX_MIX;
     else if (mag < MIN_MIX) mag = MIN_MIX;
-
-    stream[i] = (Sint16) mag;
+    
+    last_sample = stream[i] = (Sint16) EFFECT_POST(mag);
   }
 }
 
@@ -208,7 +240,7 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 void ml_setfreq(int ch, int nf, int nv, int inst) {
   SDL_LockAudio();
 
-  if (inst < SAMPLER_OFFSET) nf += effect * nf; // XXXX
+  // if (inst < SAMPLER_OFFSET) nf += effect * nf; // XXXX
 #if 0
   if (ch < 11 /* && inst >= SAMPLER_OFFSET */) { // || inst != INST_NONE) {
     printf("(cur inst: %d) Set %d = %d (Hz/10000) %d %d\n", 
@@ -352,4 +384,12 @@ void ml_seteffect (double r) {
   if (r < 0.0) r = 0.0;
   else if (r > 1.0) r = 1.0; 
   effect = r;
+}
+
+void ml_writeword (FILE * f, int w) {
+  fwrite(&w, sizeof(int), 1, f);
+}
+
+void ml_fseek (FILE * f, int offset) {
+  fseek(f, offset, SEEK_SET);
 }
