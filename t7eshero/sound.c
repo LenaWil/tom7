@@ -393,3 +393,69 @@ void ml_writeword (FILE * f, int w) {
 void ml_fseek (FILE * f, int offset) {
   fseek(f, offset, SEEK_SET);
 }
+
+
+#ifdef WIN32
+#include <windows.h>
+
+HANDLE wombfile = INVALID_HANDLE_VALUE;
+// XXX consider VirtualAlloc for alignment.
+char wombsector[512] = {0};
+
+int ml_openwomb () {
+  wombfile = CreateFile("i:\\FILE.TXT", 
+			GENERIC_READ | GENERIC_WRITE,
+			/* Sharing */
+			FILE_SHARE_READ | FILE_SHARE_WRITE,
+			/* Useless security thing */
+			NULL,
+			/* Don't create it */
+			OPEN_EXISTING,
+			/* probably ignored since the file exists */
+			FILE_ATTRIBUTE_NORMAL |
+			/* but want to not buffer (XXX makes alignment restrictions?). */
+			FILE_FLAG_NO_BUFFERING |
+			/* immediate writes. */
+			// FILE_FLAG_WRITE_THROUGH
+			0,
+			/* template file, ignored because exists. */
+			NULL);
+  return wombfile != INVALID_HANDLE_VALUE;
+}
+
+int ml_signal () {
+  if (wombfile != INVALID_HANDLE_VALUE) {
+    DWORD written;
+    // CancelIO(wombfile);
+    if (SetFilePointer(wombfile, 0, 0, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
+      printf("SEEK FAILED.\n");
+    }
+    if (!WriteFile(wombfile,
+		   wombsector,
+		   (DWORD)(sizeof(wombsector)),
+		   &written,
+		   NULL)) {
+      printf("WRITEFILE FAILED.\n");
+      DWORD dw = GetLastError();
+      LPVOID message;
+      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+		    FORMAT_MESSAGE_FROM_SYSTEM |
+		    FORMAT_MESSAGE_IGNORE_INSERTS,
+		    NULL,
+		    dw,
+		    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		    (LPTSTR) &message,
+		    0, NULL);
+
+      printf(" ... %s\n", message);
+    }
+  }
+}
+
+#else // WIN32
+
+// always fail.
+int ml_openwomb() { return 0; }
+void ml_signal() { }
+
+#endif  // otherwise..

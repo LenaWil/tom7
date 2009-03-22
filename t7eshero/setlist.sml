@@ -63,7 +63,7 @@ struct
                                   NONE => (print ("Couldn't load song: " ^ file ^ "\n"); NONE)
                                 | SOME sha =>
                                       let in
-                                          print ("Loaded " ^ file ^ " with " ^ SHA1.bintohex sha ^ "\n");
+                                          (* print ("Loaded " ^ file ^ " with " ^ SHA1.bintohex sha ^ "\n"); *)
                                           SOME { file = file, slowfactor = slowfactor, 
                                                  hard = hard, fave = fave,
                                                  title = trim title, artist = trim artist, 

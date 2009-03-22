@@ -18,6 +18,9 @@
 structure Womb :> WOMB =
 struct
 
+(* Straightforward stdio version. Doesn't seem to work on windows very well. *)
+
+(*
     val fopen = _import "fopen" : string * string -> MLton.Pointer.t ;
     val fclose = _import "fclose" : MLton.Pointer.t -> unit ;
     val writeword = _import "ml_writeword" : MLton.Pointer.t * Word32.word -> unit ;
@@ -43,5 +46,32 @@ struct
                 fflush(!womb)
             end
         else ()
+*)
+
+(* Use SML's IO. Still too much buffering. *)
+(*
+    val womb = SOME (let val f = BinIO.openOut "i:\\FILE.TXT"
+                     in (f, BinIO.getPosOut f)
+                     end) handle _ => NONE
+            
+    fun detect () = Option.isSome womb
+    
+    fun signal () =
+        case womb of
+            NONE => ()
+          | SOME (f, begin) =>
+                let in
+                    BinIO.setPosOut(f, begin);
+                    BinIO.output1 (f, 0wx2A);
+                    BinIO.flushOut f
+                end
+*)
+
+(* C version tuned to each platform. *)
+    val openwomb_ = _import "ml_openwomb" : unit -> int ;
+    val signal_ = _import "ml_signal" : unit -> unit ;
+
+    fun detect () = openwomb_ () <> 0
+    fun signal () = signal_ ()
 
 end
