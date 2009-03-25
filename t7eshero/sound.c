@@ -465,10 +465,83 @@ int ml_signal (int w) {
   }
 }
 
-#else // WIN32
+#else // not WIN32
 
+#if 0
+// Totally sux on OS X; doesn't do any writes until
+// the file is CLOSED!
+
+FILE * womb = NULL;
+char wombsector[16] = {0};
+int ml_openwomb() {
+  womb = fopen("/Volumes/Drive Name/FILE.TXT", "wb");
+  if (womb) {
+    setbuf(womb, NULL);
+    wombsector[0] = 'w';
+    wombsector[1] = 'o';
+    wombsector[2] = 'm';
+    wombsector[3] = 'b';
+  }
+  return !!womb;
+}
+
+void ml_signal(int w) {
+  if (womb != NULL) {
+    wombsector[4] = (w >> 24) & 255;
+    wombsector[5] = (w >> 16) & 255;
+    wombsector[6] = (w >>  8) & 255;
+    wombsector[7] = (w >>  0) & 255;
+    fseek(womb, 0, SEEK_SET);
+    fwrite(&wombsector, sizeof(wombsector), 1, womb);
+    fflush(womb);
+  }
+}
+#endif
+
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+int wombfd = 0;
+char wombsector[512] = {0};
+int ml_openwomb() {
+  wombfd = open("/Volumes/Drive Name/FILE.TXT", O_RDWR);
+  if (wombfd) {
+    // XXX fnctls...
+    fcntl(wombfd, F_NOCACHE, 1);
+    fcntl(wombfd, F_SETFL, O_NONBLOCK);
+    wombsector[0] = 'w';
+    wombsector[1] = 'o';
+    wombsector[2] = 'm';
+    wombsector[3] = 'b';
+  }
+  return !!wombfd;
+}
+
+void ml_signal(int w) {
+  if (wombfd != 0) {
+    wombsector[4] = (w >> 24) & 255;
+    wombsector[5] = (w >> 16) & 255;
+    wombsector[6] = (w >>  8) & 255;
+    wombsector[7] = (w >>  0) & 255;
+    // XXX consider pwrite, which takes offset
+    // lseek(wombfd, 0, SEEK_SET);
+    if (sizeof(wombsector) != 
+	//	write(wombfd, &wombsector, sizeof(wombsector))) {
+	pwrite(wombfd, &wombsector, sizeof(wombsector), 0)) {
+      printf("write failed.\n");
+    }
+    // fcntl(wombfd, F_FULLFSYNC);
+    fsync(wombfd);
+  }
+}
+
+
+/*
 // always fail.
 int ml_openwomb() { return 0; }
-void ml_signal() { }
+void ml_signal(int w) { }
+*/
 
 #endif  // otherwise..

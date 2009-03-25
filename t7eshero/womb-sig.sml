@@ -37,6 +37,8 @@ sig
     val H : light
     val I : light
 
+    val lights : light Vector.vector
+
     (* Call periodically *)
     val heartbeat : unit -> unit
 
