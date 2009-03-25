@@ -87,6 +87,8 @@ struct
             (song, difficulty, profile)
         end
 
+    val start_time = SDL.getticks()
+
     (* XXX should pull these out of the song as needed, I think? *)
     val songid = #id song
     val SLOWFACTOR = #slowfactor song
@@ -422,7 +424,7 @@ struct
             val () = loop (playcursor, drawcursor, failcursor)
 
             (* Get postmortem statistics *)
-            val () = Postmortem.loop (songid, profile, tracks)
+            val () = Postmortem.loop (songid, profile, tracks, start_time)
         in
             ()
         end handle Abort => 
