@@ -1,5 +1,8 @@
 #                              -*- makefile -*-
 
+# To run on OSX, you unfortunately need to install a driver:
+# http://tattiebogle.net/index.php/ProjectRoot/Xbox360Controller/OsxDriver
+
 default : t7eshero.exe
 
 VERSION_TARGET=10.2
@@ -57,6 +60,8 @@ app : t7eshero.exe
 	rm -f /tmp/T7ESHero.app/Contents/Frameworks/SDL.framework/Headers/*.h
 	rm -f /tmp/T7ESHero.app/Contents/Frameworks/SDL_image.framework/Headers/*.h
 	rm -f /tmp/T7ESHero.app/Contents/Frameworks/SDL_net.framework/Headers/*.h
+#XXX wrong path? in frameworks
+#XXX should probably delete whole OSX_Build dir.
 	rm -f /tmp/T7ESHero.app/Contents/MacOS/OSX_build/SDL_mixer.framework/Headers/*.h
 	rm -rf `find /tmp/T7ESHero.app -name CVS`
 	rm -rf `find /tmp/T7ESHero.app -name .DS_Store`
