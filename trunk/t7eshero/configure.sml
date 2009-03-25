@@ -130,10 +130,10 @@ struct
                   then 
                       let val now = SDL.getticks()
                           val gap = Word32.toInt (now - starttime)
-                      in TX.write tx ("^2" ^ Int.toString (!nwrites) ^ "^0 in " ^
-                                      "^2" ^ Int.toString gap ^ "^3ms ^0 =" ^
-                                      "^2" ^ Real.fmt (StringCvt.FIX (SOME 1)) (real (!nwrites) / real gap) ^ 
-                                      "^3ms ^0ea.");
+                      in TX.write tx ("^3" ^ Int.toString (!nwrites) ^ "^0 in " ^
+                                      "^3" ^ Int.toString gap ^ "^2ms ^0 =" ^
+                                      "^3" ^ Real.fmt (StringCvt.FIX (SOME 1)) (real gap / real (!nwrites)) ^ 
+                                      "^2ms ^0ea.");
                           dirty := true
                       end
                   else ()
