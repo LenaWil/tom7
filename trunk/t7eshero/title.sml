@@ -73,17 +73,28 @@ struct
             fun loopplay () =
                 let
                     val nows = Song.nowevents cursor
+
+                    (* XXX *)
+                    fun noteon (ch, note, vel, inst) =
+                        let in
+                            Womb.liteon (Vector.sub(Womb.lights, note mod Vector.length Womb.lights));
+                            Sound.noteon (ch, note, Sound.midivel vel, inst)
+                        end
+                    fun noteoff (ch, note) =
+                        let in
+                            Womb.liteoff (Vector.sub(Womb.lights, note mod Vector.length Womb.lights));
+                            Sound.noteoff (ch, note)
+                        end
+
                 in
                     List.app 
                     (fn (label, evt) =>
                      (case label of
                           Match.Music (inst, _) =>
                      (case evt of
-                          MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
-                        | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 
-                                                                      Sound.midivel vel, 
-                                                                      inst) 
-                        | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
+                          MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
+                        | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, vel, inst)
+                        | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
                         | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
                         | _ => ()))
                     nows

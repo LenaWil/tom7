@@ -69,12 +69,6 @@ struct
   structure Scene = SceneFn(val screen = Sprites.screen
                             val missnum = missnum)
 
-
-  local open Womb
-  in
-      val lights = Vector.fromList [A, B, C, D, E, F, G, H]
-  end
-
   (* The game loop shows the title, plays the selected song,
      then shows postmortem, then returns back to the title. *)
   fun gameloop () =
@@ -121,12 +115,12 @@ struct
 
             fun noteon (ch, note, vel, inst) =
                 let in
-                    Womb.liteon (Vector.sub(lights, note mod Vector.length lights));
+                    Womb.liteon (Vector.sub(Womb.lights, note mod Vector.length Womb.lights));
                     Sound.noteon (ch, note, Sound.midivel vel, inst)
                 end
             fun noteoff (ch, note) =
                 let in
-                    Womb.liteoff (Vector.sub(lights, note mod Vector.length lights));
+                    Womb.liteoff (Vector.sub(Womb.lights, note mod Vector.length Womb.lights));
                     Sound.noteoff (ch, note)
                 end
         in

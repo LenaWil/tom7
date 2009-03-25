@@ -101,6 +101,8 @@ struct
     val H = Word32.<<(0w1, 0w24)
     val I = Word32.<<(0w1, 0w27)
 
+    val lights = Vector.fromList [A, B, C, D, E, F, G, H]
+
 (* C version tuned to each platform. *)
     exception Womb of string
     type light = Word32.word
