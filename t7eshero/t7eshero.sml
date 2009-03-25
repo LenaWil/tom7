@@ -70,6 +70,11 @@ struct
                             val missnum = missnum)
 
 
+  local open Womb
+  in
+      val lights = Vector.fromList [A, B, C, D, E, F, G, H]
+  end
+
   (* The game loop shows the title, plays the selected song,
      then shows postmortem, then returns back to the title. *)
   fun gameloop () =
@@ -112,16 +117,27 @@ struct
     fun loopplay cursor =
         let
             val nows = Song.nowevents cursor
+
+
+            fun noteon (ch, note, vel, inst) =
+                let in
+                    Womb.liteon (Vector.sub(lights, note mod Vector.length lights));
+                    Sound.noteon (ch, note, Sound.midivel vel, inst)
+                end
+            fun noteoff (ch, note) =
+                let in
+                    Womb.liteoff (Vector.sub(lights, note mod Vector.length lights));
+                    Sound.noteoff (ch, note)
+                end
         in
             List.app 
             (fn (label, evt) =>
              case label of
                  Music (inst, track) =>
                      (case evt of
-                          MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
-                        | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 
-                                                                      Sound.midivel vel, inst) 
-                        | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
+                          MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
+                        | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, vel, inst)
+                        | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
                         | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
                (* otherwise no sound..? *) 
                | Control =>
@@ -433,6 +449,7 @@ struct
                 ()
             end
   in
+      Womb.signal nil;
       Sound.all_off ();
       Sound.seteffect 0.0;
       print "GAME END.\n";

@@ -395,6 +395,9 @@ void ml_fseek (FILE * f, int offset) {
 }
 
 
+// You might want to disable all of this junk,
+// since it is for proprietary one-off hardware
+// that you probably don't have.
 #ifdef WIN32
 #include <windows.h>
 
@@ -403,6 +406,11 @@ HANDLE wombfile = INVALID_HANDLE_VALUE;
 char wombsector[512] = {0};
 
 int ml_openwomb () {
+  // magic words to signal a command
+  wombsector[0] = 'w';
+  wombsector[1] = 'o';
+  wombsector[2] = 'm';
+  wombsector[3] = 'b';
   wombfile = CreateFile("i:\\FILE.TXT", 
 			GENERIC_READ | GENERIC_WRITE,
 			/* Sharing */
@@ -423,8 +431,13 @@ int ml_openwomb () {
   return wombfile != INVALID_HANDLE_VALUE;
 }
 
-int ml_signal () {
+int ml_signal (int w) {
   if (wombfile != INVALID_HANDLE_VALUE) {
+    // write command data.
+    wombsector[4] = (w >> 24) & 255;
+    wombsector[5] = (w >> 16) & 255;
+    wombsector[6] = (w >>  8) & 255;
+    wombsector[7] = (w >>  0) & 255;
     DWORD written;
     // CancelIO(wombfile);
     if (SetFilePointer(wombfile, 0, 0, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
