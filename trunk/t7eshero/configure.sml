@@ -61,16 +61,18 @@ struct
           val HEIGHT = Sprites.height - YOFFSET
 
           (* XXX or both, for keyboard. *)
-          datatype how = HGuitar | HDrums | HWomb
+          datatype how = HGuitar | HDrums | HWomb | HWombBench
           (* XXX guitar graphic is too wide *)
           fun drawitem (HGuitar, x, y, _) = S.blitall (Sprites.guitar, screen, x - 6, y)
             | drawitem (HDrums, x, y, _) = S.blitall (Sprites.drums, screen, x, y)
               (* XXX womb graphic *)
             | drawitem (HWomb, x, y, _) = Font.draw (screen, x, y, "laser suspension womb")
+            | drawitem (HWombBench, x, y, _) = Font.draw (screen, x, y, "womb ^1bench")
           fun draw () = S.blitall(Sprites.configure, screen, 0, 0);
           fun itemheight HGuitar = S.surface_height Sprites.guitar
             | itemheight HDrums = S.surface_height Sprites.drums
             | itemheight HWomb = Font.height
+            | itemheight HWombBench = Font.height
 
           (* in case we cancel *)
           val old = Input.getmap device
@@ -83,7 +85,7 @@ struct
                             width = Sprites.width,
                             height = HEIGHT,
                             items = [HGuitar, HDrums] @ (if Womb.already_found () 
-                                                         then [HWomb] else nil),
+                                                         then [HWomb, HWombBench] else nil),
                             drawitem = drawitem,
                             itemheight = itemheight,
                             bgcolor = SOME LM.DEFAULT_BGCOLOR,
@@ -95,8 +97,76 @@ struct
                NONE => ()
              | SOME HGuitar => configure_guitar loopplay device
              | SOME HDrums => configure_drums loopplay device
-             | SOME HWomb => configure_womb loopplay device)
+             | SOME HWomb => configure_womb loopplay device
+             | SOME HWombBench => configure_wombbench loopplay device)
                handle AbortConfigure => Input.restoremap device old
+      end
+
+  (* Measure bandwidth of Womb.signal commands. *)
+  and configure_wombbench (loopplay : unit -> unit) _ =
+      let
+          val tx = TX.make { x = 0, y = 0, width = Sprites.width, height = Sprites.height,
+                             bordercolor = NONE,
+                             bgcolor = NONE }
+
+          val () = TX.clear tx
+          val () = TX.write tx "Benchmark womb. Press key to exit.";
+
+          val nwrites = ref 0
+          val starttime = SDL.getticks()
+          val data = ref 0wx12345
+          val dirty = ref true
+          fun accept e = raise FinishConfigure
+
+          fun signal () = 
+              let in
+                  data := Word32.*(!data, 0w31337);
+                  data := Word32.xorb(!data, 0wx9876543);
+                  data := Word32.orb(Word32.<< (!data, 0w3), Word32.>> (!data, 0w29));
+                  data := Word32.+(!data, 0wx9999999);
+                  Womb.signal_raw (!data);
+                  nwrites := !nwrites + 1;
+                  if (!nwrites mod 200) = 0
+                  then 
+                      let val now = SDL.getticks()
+                          val gap = Word32.toInt (now - starttime)
+                      in TX.write tx ("^2" ^ Int.toString (!nwrites) ^ "^0 in " ^
+                                      "^2" ^ Int.toString gap ^ "^3ms ^0 =" ^
+                                      "^2" ^ Real.fmt (StringCvt.FIX (SOME 1)) (real (!nwrites) / real gap) ^ 
+                                      "^3ms ^0ea.");
+                          dirty := true
+                      end
+                  else ()
+              end
+
+          fun input () =
+              case S.pollevent () of
+                  SOME (E_KeyDown { sym = _ }) => raise AbortConfigure
+                | SOME E_Quit => raise Hero.Exit
+                | SOME _ => ()
+                | NONE => ()
+
+          fun draw () = 
+              if !dirty
+              then 
+                  let in
+                      S.blitall(Sprites.configure, screen, 0, 0);
+                      TX.draw screen tx;
+                      SDL.flip screen;
+                      dirty := false
+                  end
+              else ()
+
+          fun gogo () =
+              let in
+                  signal();
+                  input();
+                  draw();
+                  gogo()
+              end
+      in
+          (* never actually save. *)
+          gogo() handle FinishConfigure => ()
       end
 
   (* don't care about womb's device; this is more for exploration *)
