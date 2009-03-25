@@ -317,6 +317,7 @@ struct
              Song.update ();
              loopfail failcursor;
              loopplay playcursor;
+             Womb.heartbeat ();
              loopdraw drawcursor;
 
              (* failcursor is the last cursor, so when it's done, we're done. *)

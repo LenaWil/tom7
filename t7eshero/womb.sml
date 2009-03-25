@@ -39,7 +39,7 @@
    h    24        blue
    i    27        red
 *)
-structure Womb :> WOMB =
+structure RawWomb :> RAW_WOMB where type light = Word32.word =
 struct
 
 (* Straightforward stdio version. Doesn't seem to work on windows very well. *)
@@ -105,22 +105,74 @@ struct
     exception Womb of string
     type light = Word32.word
 
-    (* assume it starts off *)
-    val cur = ref (0w0 : Word32.word)
-
     val openwomb_ = _import "ml_openwomb" : unit -> int ;
     val signal_ = _import "ml_signal" : Word32.word -> unit ;
 
-    val found = ref false;
+    val found = ref false
     fun already_found () = !found
     fun detect () =
         if !found
         then raise Womb "already opened."
         else (found := openwomb_ () <> 0; !found)
-    fun signal_raw w = (cur := w; signal_ w)
+    fun signal_raw w = signal_ w
+
+    fun heartbeat () = ()
+
+end
+
+structure BufferedRawWomb :> RAW_WOMB where type light = Word32.word =
+struct
+    open RawWomb
+
+    (* XXX should be configured or benchmarked. *)
+    val MIN_WRITE =
+        case SDL.platform of
+            SDL.WIN32 => 0w2 (* takes something like 1.7ms on vista *)
+          | SDL.OSX => 0w6 (* takes like 5.6 on OSX *)
+          | _ => 0w1 (* ?? *)
+        
+    val cur = ref (0w0 : Word32.word)
+    val want = ref (0w0 : Word32.word)
+    val lasttime = ref (SDL.getticks())
+
+    fun flush now =
+        let in
+            lasttime := now;
+            cur := !want;
+            RawWomb.signal_raw (!cur)
+        end
+
+    fun heartbeat_at now =
+        if (!want <> !cur) andalso now - !lasttime >= MIN_WRITE
+        then flush now
+        else ()
+
+    fun heartbeat () = heartbeat_at (SDL.getticks())
+
+    fun signal_raw w =
+        let 
+            val now = SDL.getticks ()
+        in
+            want := w;
+            heartbeat_at now
+        end
+
+end 
+
+functor WombFn(W : RAW_WOMB where type light = Word32.word) :> WOMB =
+struct
+    open W
+
+    (* assume it starts off *)
+    val cur = ref (0w0 : Word32.word)
+
+    fun signal_raw w = (cur := w; W.signal_raw w)
 
     fun signal ls = signal_raw (foldr Word32.orb 0w0 ls)
 
     fun liteon l = signal_raw (Word32.orb(!cur, l))
     fun liteoff l = signal_raw (Word32.andb(!cur, Word32.notb l))
+
 end
+
+structure Womb = WombFn(BufferedRawWomb)

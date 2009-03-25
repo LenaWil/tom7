@@ -3,7 +3,7 @@
    This is proprietary one-off hardware, so you probably want to disable
    this.
 *)
-signature WOMB =
+signature RAW_WOMB =
 sig
     
     (* Detect the presence of the device and initialize.
@@ -14,9 +14,8 @@ sig
     (* Did we already find and initialize the womb? *)
     val already_found : unit -> bool
 
-    (* Signal the device immediately, setting these raw bits. *)
+    (* Signal the device, setting these raw bits. *)
     val signal_raw : Word32.word -> unit
-
 
 (*
              ,---,----,         +---------+
@@ -37,6 +36,16 @@ sig
     val G : light
     val H : light
     val I : light
+
+    (* Call periodically *)
+    val heartbeat : unit -> unit
+
+end
+
+signature WOMB =
+sig
+
+    include RAW_WOMB
 
     (* Set exactly these lights on *)
     val signal : light list -> unit
