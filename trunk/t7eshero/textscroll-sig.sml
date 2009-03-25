@@ -24,7 +24,7 @@ sig
 
     val clear : textscroll -> unit
     (* Add a line to the bottom. *)
-    val write   : textscroll -> string -> unit
+    val write : textscroll -> string -> unit
     (* Replace the line at the bottom *)
     val rewrite : textscroll -> string -> unit
     val draw : SDL.surface -> textscroll -> unit

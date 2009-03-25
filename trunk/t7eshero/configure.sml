@@ -13,6 +13,7 @@ struct
   exception AbortConfigure and FinishConfigure
 
   structure LM = ListMenuFn(val screen = screen)
+  structure TX = TextScroll(FontSmall)
 
   (* Configure should start by showing each of the connected devices by
      its name, then ask the user to send some input event on the
@@ -60,13 +61,16 @@ struct
           val HEIGHT = Sprites.height - YOFFSET
 
           (* XXX or both, for keyboard. *)
-          datatype how = HGuitar | HDrums
+          datatype how = HGuitar | HDrums | HWomb
           (* XXX guitar graphic is too wide *)
           fun drawitem (HGuitar, x, y, _) = S.blitall (Sprites.guitar, screen, x - 6, y)
             | drawitem (HDrums, x, y, _) = S.blitall (Sprites.drums, screen, x, y)
+              (* XXX womb graphic *)
+            | drawitem (HWomb, x, y, _) = Font.draw (screen, x, y, "laser suspension womb")
           fun draw () = S.blitall(Sprites.configure, screen, 0, 0);
           fun itemheight HGuitar = S.surface_height Sprites.guitar
             | itemheight HDrums = S.surface_height Sprites.drums
+            | itemheight HWomb = Font.height
 
           (* in case we cancel *)
           val old = Input.getmap device
@@ -78,7 +82,8 @@ struct
           (case LM.select { x = 0, y = YOFFSET,
                             width = Sprites.width,
                             height = HEIGHT,
-                            items = [HGuitar, HDrums],
+                            items = [HGuitar, HDrums] @ (if Womb.already_found () 
+                                                         then [HWomb] else nil),
                             drawitem = drawitem,
                             itemheight = itemheight,
                             bgcolor = SOME LM.DEFAULT_BGCOLOR,
@@ -89,8 +94,56 @@ struct
                                                          resize = Drawable.don't } } of
                NONE => ()
              | SOME HGuitar => configure_guitar loopplay device
-             | SOME HDrums => configure_drums loopplay device)
+             | SOME HDrums => configure_drums loopplay device
+             | SOME HWomb => configure_womb loopplay device)
                handle AbortConfigure => Input.restoremap device old
+      end
+
+  (* don't care about womb's device; this is more for exploration *)
+  and configure_womb (loopplay : unit -> unit) _ =
+      let
+          val tx = TX.make { x = 0, y = 0, width = Sprites.width, height = Sprites.height,
+                             bordercolor = NONE,
+                             bgcolor = NONE }
+
+          val () = TX.clear tx
+          val () = TX.write tx "Config womb. Press key to cycle bit.";
+
+          val bit = ref 0
+
+          fun accept e = raise FinishConfigure
+
+          fun signal () = 
+              let in
+                  TX.write tx ("Bit #" ^ Int.toString (!bit));
+                  Womb.signal_raw (Word32.<< (0w1, Word.fromInt (!bit)))
+              end
+          val () = signal ()
+
+          fun input () =
+              case S.pollevent () of
+                  SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise AbortConfigure
+                | SOME E_Quit => raise Hero.Exit
+                | SOME (E_KeyDown { sym }) =>
+                      let in
+                         (* any other key advances bit. *)
+                          bit := !bit + 1;
+                          if (!bit > 32)
+                          then bit := 0
+                          else ();
+                          signal ()
+                      end
+                | SOME _ => ()
+                | NONE => ()
+
+          fun draw () = 
+              let in
+                  S.blitall(Sprites.configure, screen, 0, 0);
+                  TX.draw screen tx
+              end
+      in
+          (* never actually save. *)
+          go input draw loopplay handle FinishConfigure => ()
       end
 
   (* XXX would be good if we could merge the following two, which were developed by

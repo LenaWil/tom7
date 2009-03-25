@@ -14,7 +14,31 @@
    This is a big hack. The operating system could choose to write to
    this alleged disk pretty much any way it wants, defragging it or
    creating metadata or whatever. But for the tiny FAT16 filesystem
-   that the Womb presents, it has fairly predictable behavior. *)
+   that the Womb presents, it has fairly predictable behavior. 
+
+   Because of the pinout of the chip is not particularly regular, I
+   didn't take any care to arrange the bits in any order. Here are the
+   actual values.
+
+
+             ,---,----,         +---------+
+     hat    / a b  e f \        |       i |  board
+   (front) /  c d  g h  \       |         |
+          |              |      +---------+
+           `---~~~~-----'
+              brim
+
+       bit(0-31)  color
+   a    23        blue
+   b    18        green
+   c    28        blue
+   d    17        green
+   e    26        green
+   f    22        blue
+   g    25        green
+   h    24        blue
+   i    27        red
+*)
 structure Womb :> WOMB =
 struct
 
@@ -67,11 +91,36 @@ struct
                 end
 *)
 
+    val A = Word32.<<(0w1, 0w23)
+    val B = Word32.<<(0w1, 0w18)
+    val C = Word32.<<(0w1, 0w28)
+    val D = Word32.<<(0w1, 0w17)
+    val E = Word32.<<(0w1, 0w26)
+    val F = Word32.<<(0w1, 0w22)
+    val G = Word32.<<(0w1, 0w25)
+    val H = Word32.<<(0w1, 0w24)
+    val I = Word32.<<(0w1, 0w27)
+
 (* C version tuned to each platform. *)
+    exception Womb of string
+    type light = Word32.word
+
+    (* assume it starts off *)
+    val cur = ref (0w0 : Word32.word)
+
     val openwomb_ = _import "ml_openwomb" : unit -> int ;
-    val signal_ = _import "ml_signal" : unit -> unit ;
+    val signal_ = _import "ml_signal" : Word32.word -> unit ;
 
-    fun detect () = openwomb_ () <> 0
-    fun signal () = signal_ ()
+    val found = ref false;
+    fun already_found () = !found
+    fun detect () =
+        if !found
+        then raise Womb "already opened."
+        else (found := openwomb_ () <> 0; !found)
+    fun signal_raw w = (cur := w; signal_ w)
 
+    fun signal ls = signal_raw (foldr Word32.orb 0w0 ls)
+
+    fun liteon l = signal_raw (Word32.orb(!cur, l))
+    fun liteoff l = signal_raw (Word32.andb(!cur, Word32.notb l))
 end
