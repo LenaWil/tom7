@@ -1,9 +1,0 @@
-
-;; miscellaneous notes for elisp hacking
-
-;; interesting ...
-;(put 'header-line-string 'risky-local-variable t)
-;(setq header-line-string
-; '(#("Test: " 0 5 (help-echo "hello" face font-lock-builtin-face))))
-;(setq show-header-line t)
-;(setq header-line-format '((show-header-line header-line-string)))

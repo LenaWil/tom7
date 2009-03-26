@@ -1,6 +1,0 @@
-unit
-    fun f(x : string) = 0
-(*     do f "hello" *)
-in
-    export val f = f
-end

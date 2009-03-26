@@ -1,9 +1,0 @@
-unit
-
-   datatype void =
-
-   do case 0 of
-
-   do fn
-
-end

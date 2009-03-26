@@ -1,5 +1,0 @@
-unit
-    fun f(x : string) = 0
-    do f "hello"
-in
-end

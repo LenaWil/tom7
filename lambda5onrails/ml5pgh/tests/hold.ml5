@@ -1,8 +1,0 @@
-
-unit
-
-  val x = hold [ [[hello]] [[world]] ]
-
-  put u = x
-
-end

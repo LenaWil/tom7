@@ -1,5 +1,0 @@
-unit
-    fun swap (x, y) = (y, x)
-in
-    export val (a, b) f = swap : (a * b) -> (b * a)
-end

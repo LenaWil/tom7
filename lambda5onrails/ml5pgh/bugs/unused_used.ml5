@@ -1,8 +1,0 @@
-unit
-     datatype t = A | B of u | C of int
-     and      u = E of t | F of string
-
-     do E
-in
-    (* export val m = E *)
-end
