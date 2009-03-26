@@ -1,9 +1,13 @@
 structure Sprites =
 struct
 
+  val width = 800
+  val height = 600
+(*
   val width = 256
   val height = 600
-  val screen = SDL.makescreen (width, height)
+  val screen = SDL.makescreen (width, height) *)
+  val screen = SDL.makefullscreen (width, height)
 
   val () = Hero.messagebox (Posix.FileSys.getcwd ())
 

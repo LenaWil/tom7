@@ -1,4 +1,13 @@
 
+TODO:
+  * junk on screen in fullscreen mode
+  * writes fail on os x because of async?
+  * drums still work during postmortem?
+  * drums lite lights?
+  * light patterns when streak, FC, etc.
+  * lasers
+  * setlist mode
+
 Definitely:
 
   Gnocci Dokie.           (REAL GUITAR?)
