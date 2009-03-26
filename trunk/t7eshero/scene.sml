@@ -145,6 +145,21 @@ struct
                            "^2" ^ Int.toString (!missnum) ^ " ^4 misses")
        else ());
 
+       let
+           val s = Match.streak()
+           val (fd, fh, ff) = 
+               if s > 50
+               then (Sprites.FontMax.draw, Sprites.FontMax.height, Chars.fancy)
+               else if s > 20 
+                    then (FontHuge.draw, FontHuge.height, Chars.fancy)
+                    else (FontHuge.draw, FontHuge.height, (fn s => "^4" ^ s))
+       in   
+           if s > 10
+           then fd (screen, 4, height div 2 - (fh div 2),
+                    ff (Int.toString s ^ " streak!"))
+           else ()
+       end;
+
       FontSmall.draw(screen, 4, height - (FontHuge.height * 2),
                      "Dance distance: ^2" ^ Real.fmt (StringCvt.FIX (SOME 3)) (!State.dancedist) ^ "^0m (" ^
                      Real.fmt (StringCvt.FIX (SOME 5)) 
