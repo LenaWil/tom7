@@ -12,7 +12,31 @@ sig
           year : string,
           id : songid }
 
+    datatype interlude =
+        SwitchToGuitar
+      | SwitchToDrums
+      | GetWomb
+
+    datatype background =
+        BG_SOLID of SDL.color
+
+    datatype showpart =
+        Song of { song : songid,
+                  misses : bool,
+                  drumbank : int Vector.vector option,
+                  background : background
+                  (* ... ? *)
+                  }
+      | Postmortem
+      | Interlude of interlude
+
+    type showinfo =
+        { name : string,
+          date : string,
+          parts : showpart list }
+
     val allsongs : unit -> songinfo list
+    val allshows : unit -> showinfo list
 
     val eq : songid * songid -> bool
     val cmp : songid * songid -> order

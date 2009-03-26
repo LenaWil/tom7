@@ -11,18 +11,23 @@ TODO:
 
 Definitely:
 
-  Gnocci Dokie.           (REAL GUITAR?)
+
   Theme from goog.         GUITAR                      103.4 s
   Theme from msiegler.     DRUMS                        75   s
   Continuous Tetris II.    GUITAR                       50.9 s     (can fc!)
   Gatorade                 GUITAR                       64.3 s
+  Petrolatum               GUITAR (or DRUMS?)           68.4 s     (can fc!)
+  jlw  (GUITAR)  could use tiny speed-up                52.6 s
+  Macros   (GUITAR)  neat, not that hard                60.0 s
+                                        ... totals              473 sec = 7.8 min
+
+   And:
+  Gnocci Dokie.           (REAL GUITAR?)
 
 Good chances:
 
   Nausea  (DRUMS)                                       79   s
   Spinal Fluid (GUITAR). Good, hard.                    54.1 s
-  jlw  (GUITAR)  could use tiny speed-up                52.6 s
-  Macros   (GUITAR)  neat, doable                       60.0 s
   Silo (GUITAR) so fun!                                 27.6 s
   I'm a Proof  (GUITAR). Hard but impressive.           36.1 s    (NEED DRUM FIX)
   Bloody3        (GUITAR)  Hard but impressive.         54   s   (cover...)
