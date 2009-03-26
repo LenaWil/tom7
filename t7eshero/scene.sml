@@ -12,7 +12,7 @@ struct
   structure FontHuge = S.FontHuge
   structure FontSmall = S.FontSmall
   val height = S.height
-  val width = S.width
+  val width = S.gamewidth
 
   open SDL
 

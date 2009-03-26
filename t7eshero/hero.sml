@@ -21,10 +21,6 @@ struct
     | FingerUp of int
     | Commit of int list
 
-  datatype difficulty =
-      Real
-  (* XXX ... *)
-
   (* To earn a medal, you have to get at least 90% on the song. *)
   datatype medal = 
       (* Got 100% *)

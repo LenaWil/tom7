@@ -3,6 +3,9 @@ struct
 
   val width = 800
   val height = 600
+
+  (* game area *)
+  val gamewidth = 256
 (*
   val width = 256
   val height = 600

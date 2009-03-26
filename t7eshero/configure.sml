@@ -82,7 +82,7 @@ struct
           nexta := S.getticks();
           nextd := 0w0;
           (case LM.select { x = 0, y = YOFFSET,
-                            width = Sprites.width,
+                            width = Sprites.gamewidth,
                             height = HEIGHT,
                             items = [HGuitar, HDrums] @ (if Womb.already_found () 
                                                          then [HWomb, HWombBench] else nil),
@@ -105,7 +105,8 @@ struct
   (* Measure bandwidth of Womb.signal commands. *)
   and configure_wombbench (loopplay : unit -> unit) _ =
       let
-          val tx = TX.make { x = 0, y = 0, width = Sprites.width, height = Sprites.height,
+          val tx = TX.make { x = 0, y = 0, 
+                             width = Sprites.gamewidth, height = Sprites.height,
                              bordercolor = NONE,
                              bgcolor = NONE }
 
@@ -172,7 +173,7 @@ struct
   (* don't care about womb's device; this is more for exploration *)
   and configure_womb (loopplay : unit -> unit) _ =
       let
-          val tx = TX.make { x = 0, y = 0, width = Sprites.width, height = Sprites.height,
+          val tx = TX.make { x = 0, y = 0, width = Sprites.gamewidth, height = Sprites.height,
                              bordercolor = NONE,
                              bgcolor = NONE }
 

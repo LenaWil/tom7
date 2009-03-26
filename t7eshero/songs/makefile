@@ -108,6 +108,7 @@ honkscore.mid : honkhonk.mid $(ALL)
 originalscore.mid : original.mid $(ALL)
 	../genscore.exe -noxmeasure -history 5 -hammertime 36 $< 0 2 -o $@
 
+# great
 bansheescore.mid : banshee.mid $(ALL)
 	../genscore.exe -noxmeasure -history 5 -hammertime 36 $< 0 2 3 -o $@
 

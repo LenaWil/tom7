@@ -16,6 +16,7 @@ sig
         SwitchToGuitar
       | SwitchToDrums
       | GetWomb
+    (* WARP ZONE *)
 
     datatype background =
         BG_SOLID of SDL.color

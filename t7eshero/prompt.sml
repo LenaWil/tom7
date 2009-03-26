@@ -78,7 +78,7 @@ struct
             (* TODO: allow negative absolute offsets *)
             val x = 
                 case x of
-                    NONE => (Sprites.width - width) div 2
+                    NONE => (Sprites.gamewidth - width) div 2
                   | SOME x => x
 
             val y = 

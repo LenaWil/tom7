@@ -77,13 +77,12 @@ struct
     val () = State.reset ()
 
 
-    val (song, diff, profile) =
+    val (song, profile) =
         let
             val { song : Setlist.songinfo,
-                  difficulty : Hero.difficulty,
                   profile : Profile.profile } = Title.loop ()
         in
-            (song, difficulty, profile)
+            (song, profile)
         end
 
     val start_time = SDL.getticks()

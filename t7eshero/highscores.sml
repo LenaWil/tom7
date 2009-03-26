@@ -103,7 +103,8 @@ struct
 
             val lf = ref ""
             val ts = TS.make { x = 0, y = 0,
-                               width = Sprites.width, height = Sprites.height,
+                               width = Sprites.gamewidth, 
+                               height = Sprites.height,
                                bgcolor = SOME (SDL.color (0w0, 0w0, 0w0, 0w255)),
                                bordercolor = NONE }
                 
@@ -112,7 +113,7 @@ struct
                                   else (lf := file; TS.write)) ts s
             fun draw () = 
                 let in
-                    SDL.fillrect (screen, 0, 0, Sprites.width, Sprites.height, 
+                    SDL.fillrect (screen, 0, 0, Sprites.gamewidth, Sprites.height, 
                                   SDL.color (0w20, 0w30, 0w40, 0w255));
                     TS.draw screen ts
                 end
