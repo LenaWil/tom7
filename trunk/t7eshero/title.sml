@@ -15,7 +15,6 @@ struct
     datatype selection = Play | SignIn | Configure | Wardrobe | Update
 
     exception Selected of { song : Setlist.songinfo,
-                            difficulty : Hero.difficulty,
                             profile : Profile.profile }
 
     val TITLEMIDI = "title.mid"
@@ -270,7 +269,6 @@ struct
                       | SOME (song, _) => 
                             raise Selected
                             { song = song,
-                              difficulty = Hero.Real,
                               profile = !profile }
                 end
 
