@@ -1,0 +1,128 @@
+group is
+
+(* to compile with sml/nj.
+   not likely to work! *)
+#if (defined(SMLNJ_VERSION))
+ $/basis.cm
+ ../sml-lib/port/nj.sml
+#else
+ (* assume we are using mlton then *)
+ ../sml-lib/port/mlton.sml
+#endif
+
+../sml-lib/njlib/lib-base-sig.sml
+../sml-lib/njlib/lib-base.sml
+../sml-lib/njlib/ord-key-sig.sml
+../sml-lib/njlib/ord-map-sig.sml
+../sml-lib/njlib/splaytree-sig.sml
+../sml-lib/njlib/splaytree.sml
+../sml-lib/njlib/splay-map-fn.sml
+
+../sml-lib/util/util-sig.sml
+../sml-lib/util/util.sml
+
+../sml-lib/util/listutil-sig.sml
+../sml-lib/util/listutil.sml
+
+../sml-lib/util/stringutil-sig.sml
+../sml-lib/util/stringutil.sml
+
+(* XXX should probably be in sml-lib *)
+fsutil-portable.sml
+
+../sml-lib/util/simplestream-sig.sml
+../sml-lib/util/simplestream.sml
+
+../sml-lib/util/script-sig.sml
+../sml-lib/util/script.sml
+
+../sml-lib/crypt/SHA1/sha1-sig.sml
+../sml-lib/crypt/SHA1/sha1.sml
+
+../sml-lib/util/growarray-sig.sml
+../sml-lib/util/growarray.sml
+
+../sml-lib/data/lastn-buffer-sig.sml
+../sml-lib/data/lastn-buffer.sml
+
+../sml-lib/files/reader-sig.sml
+../sml-lib/files/reader.sml
+
+../sml-lib/files/midi/midi-sig.sml
+../sml-lib/files/midi/midi.sml
+
+../sml-lib/files/wave/wave-sig.sml
+../sml-lib/files/wave/wave.sml
+
+../sml-lib/crypt/mersenne-twister-sig.sml
+../sml-lib/crypt/mersenne-twister.sml
+
+../sdlml/sdl-sig.sml
+../sdlml/sdl.sml
+
+../sdlml/font-sig.sml
+../sdlml/font.sml
+
+(* Should probably be in SDLML *)
+drawable-sig.sml
+drawable.sml
+
+(* Should probably be in SDLML *)
+textscroll-sig.sml
+textscroll.sml
+
+(* Used in initialization. Must be after SDL. *)
+platform.sml
+
+(* External hardware support. *)
+womb-sig.sml
+womb.sml
+
+(* has effect, should be first. *)
+prelude.sml
+
+random.sml
+hero.sml
+bandname.sml
+serialize.sml
+serialize-old.sml
+input-sig.sml
+input.sml
+chars.sml
+sprites.sml
+sound-sig.sml
+sound.sml
+samples-sig.sml
+samples.sml
+
+(* Would be nice to make these next two part of a library,
+   but they currently write the Sprites.screen directly and
+   use the configured joystick input *)
+listmenu-sig.sml
+listmenu.sml
+prompt-sig.sml
+prompt.sml
+setlist-sig.sml
+setlist.sml
+items-sig.sml
+items.sml
+record-sig.sml
+record.sml
+profile-sig.sml
+profile.sml
+match-sig.sml
+match.sml
+song-sig.sml
+song.sml
+state.sml
+scene.sml
+game.sml
+wardrobe.sml
+highscores.sml
+update.sml
+configure.sml
+title-sig.sml
+title.sml
+postmortem-sig.sml
+postmortem.sml
+t7eshero.sml

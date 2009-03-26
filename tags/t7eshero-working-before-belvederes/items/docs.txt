@@ -1,0 +1,39 @@
+
+Items are like this:
+
+RedGuitar | guitar | Red Guitar | guitar1.png |0|77| guitar2.png |0|77| guitar3.png |0|77| guitar4.png |0|77|   5
+
+... where the first field is the unique canonical name for it (just
+letters and numbers please). The second field identifies a group of
+mutually-exclusive items (e.g., so that the robot will not have two
+wigs on at the same time) and is freeform. The third field is a
+freeform description of the item for in-game display. It may include
+color codes. Then there are four triplets of filename and x/y offset,
+for the four frames of the robot animation. (Note that the frames will
+ping-pong.) Finally, the z-index indicates the order in which items
+will be drawn. Numbers closer to negative infinity are drawn first.
+The robot is drawn at 0, which is an illegal z-index for an item. Ties
+are broken by lexicographic ordering on the canonical name.
+
+
+It is helpful to have some kind of consistency to z-indices so that we
+can figure out where an item should go without looking at all of the
+other items. Here is a rough plan:
+
+
+(no real plan for negative stuff yet)
+
+things that are basically changing the robot's body (colors): 2
+things that adorn the metal directly (tattoos): 4
+wearables that go under underwear (naughty, fishnet): 6
+underwear: 8
+shoes: 10
+pants (since we usually want shirts to hang over pants): 12
+t-shirts, polos: 14
+over-shirts (sweaters, button-down): 16
+jackets: 18
+tops items worn over jackets (life preserver): 20
+items worn around the waist (floaty tube): 22
+
+items carried in the hands (guitar): 30
+

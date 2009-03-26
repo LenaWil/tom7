@@ -1,0 +1,96 @@
+
+For release:
+
+ * Profile editor (at least name, pic)
+ * Some recognizable non-free songs
+
+ * Rate the existing song list, or improve through genscoring?
+    .. particularly, pick out songs that are actually good and
+       launch with those. Keep the rest in triage.
+
+ * not all of the songs are checked in (chant, unauth, ..)
+ * clean up the MIDIs checked into the main dir. not all are used.
+
+ * A few more items
+ * A few more profile pics
+
+ * Should put volume envelope on sines; clicky in wardrobe
+
+ * Use configuration throughout code; menu goes crazy on mac  (I think done now?)
+
+ * Crap space at end of Tornado, which also ends abruptly
+
+items:
+  coconut bra
+  facial tongue  
+  ...
+
+Not tonight:
+ * Failing in a song
+ * turn off same-note hammer and first-note hammer through postprocessing
+
+
+--------------------------------------------------
+
+More midi triage. Did the whole cake\ dir and cake\also dir, 
+     	  	   but need cake\newsongs (next is laundry.wrk)
+                   and other miscellaney (c:\cakewalk projects)
+
+ * go through songs and try removing -noxmeasure; should usually make it better.
+
+ * sigbovik should not loop twice. maybe should have lead vocals track.
+
+ * crashes ??? (when running out of channels?)
+
+ * kaomai needs -quantize option to genscore.
+ * continuous tetris has extra garbage at end
+
+ * stdafx needs help during the fun part, merging notes from the bass
+
+ * rt2i needs some volume adjustment, mainly turning down the big squares
+ * goog could use drum volume boost
+
+ * cats.wrk
+ * robots in general (but 1 track, argh)
+ * Powerade could be fun but needs track 0 to be split
+ * Maybe hock is possible, needs lots of tuning
+ * Marriage too, but it needs some splitting
+ * H4x0r
+ * Verizon (awesomly weird)
+ * Visa! (needs splitting too, until track 5 comes in)
+ * Amy (needs splittin)
+ * dental (weird)
+ * police?
+ * quarterl?
+
+ * Ohio is too long without another part. But it's a nice easy tune.
+
+ * honk-honk is sorta too long.
+
+ * fix scoring
+
+ * improve performance of DP algorithm (space usage)
+
+ * option to merge up short measures for genscore. x-measure option does
+   a pretty good job on most songs.
+
+ * move general purpose SDL stuff into ../sdlml/
+
+ * drum kit samples? Would be pretty easy to play samples.
+
+ * noise pitch? (with lowpass/highpass?)
+
+ * more instruments, especially rhodes.
+
+canyon.mid can't be read??
+
+
+SDL_AUDIODRIVER=waveout works but has ridiculous latency.
+dsound doesn't work, but should have better latency. can we make it work?
+ (this worked at one point, wtf?)
+ (oh, you have to use the pre-built SDL dll from escape in order
+  to get dsound support.)
+
+
+libjpeg on mingwin...
+
