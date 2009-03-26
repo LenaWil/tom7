@@ -15,7 +15,12 @@ struct
       let
           val r = (Reader.fromfile f) handle _ => 
               raise Game ("couldn't read " ^ f)
-          val m as (ty, divi, thetracks) = MIDI.readmidi r
+          val m as (ty, divi, thetracks) = MIDI.readmidi r handle MIDI.MIDI s =>
+              let in
+                  print (s ^ "\n");
+                  raise Game ("MIDI error: " ^ s)
+              end
+              
           val _ = ty = 1
               orelse raise Game ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
           val () = print ("MIDI division is " ^ itos divi ^ "\n")

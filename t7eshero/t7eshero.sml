@@ -32,11 +32,11 @@ struct
       val misstime = ref 0
 
       fun sf () = 
-          (*  FIXME XXXX restore me, just wanna play around without damage
+          (*  FIXME XXXX restore me, just wanna play around without damage *)
           Sound.setfreq(Sound.MISSCH, Sound.PITCHFACTOR * 4 * !misstime, 
                         Sound.midivel (10000 div 90),
-                        Sound.WAVE_SQUARE) *)
-          ()
+                        Sound.WAVE_SQUARE) 
+(*          () *)
   in
 
       fun maybeunmiss t =
@@ -421,12 +421,21 @@ struct
     (* How to complete pre-delay? *)
     fun delay t = (PREDELAY, (Control, DUMMY)) :: t
 
+    (* Replace forced end label with real end. *)
+    fun endify nil = nil
+      | endify ((f as (_, (_, MIDI.META (MIDI.MARK m)))) :: r) =
+        if m = "!END"
+        then nil
+        else f :: endify r
+      | endify (f :: r) = f :: endify r
+
     val () =
         let
             val (tracks : (int * (label * MIDI.event)) list list) = 
                 Game.label PREDELAY SLOWFACTOR thetracks
             val tracks = slow (MIDI.merge tracks)
             val tracks = add_measures tracks
+            val tracks = endify tracks
             val (tracks : (int * (label * MIDI.event)) list) = delay tracks
             val () = Song.init ()
             val playcursor = Song.cursor 0 tracks
@@ -435,7 +444,7 @@ struct
 
             val t = print ("This will take " ^ 
                            Real.fmt (StringCvt.FIX (SOME 1)) 
-                           (real (* MIDI.total_ticks tracks *) 5 / 1000.0) ^
+                           (real (MIDI.total_ticks tracks) / 1000.0) ^
                            " sec\n")
 
             val () = loop (playcursor, drawcursor, failcursor)

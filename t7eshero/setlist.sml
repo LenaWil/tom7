@@ -15,12 +15,35 @@ struct
           year : string,
           id : songid }
 
+    datatype interlude =
+        SwitchToGuitar
+      | SwitchToDrums
+      | GetWomb
+
+    datatype background =
+        BG_SOLID of SDL.color
+
+    datatype showpart =
+        Song of { song : songid,
+                  misses : bool,
+                  drumbank : int Vector.vector option,
+                  background : background }
+      | Postmortem
+      | Interlude of interlude
+
+    type showinfo =
+        { name : string,
+          date : string,
+          parts : showpart list }
+
     (* XXX Should be some better way of indicating what songs are available,
        and updating that list (downloads) *)
     val SONGS = ("songs.hero", "songs/")
     val SONGS_NONFREE = ("songs-nonfree.hero", "songs-nonfree/")
     val songfiles = [SONGS, SONGS_NONFREE]
 
+    (* XXXX Definitely should do better than this! *)
+    val showfiles = ["belvederes.show"]
 
     val cmp = String.compare
     val eq = op =
@@ -47,7 +70,7 @@ struct
     val songs = List.concat (map (fn (f, d) => map (fn s => (s, d)) (getlines f)) songfiles)
     val songs = List.mapPartial 
         (fn (s, dir) =>
-         case String.fields (fn #"|" => true | _ => false) s of
+         case String.fields (StringUtil.ischar #"|") s of
              [file, slowfactor, hard, fave, title, artist, year] =>
                  (case (Int.fromString (trim slowfactor),
                         Int.fromString (trim hard),
@@ -72,7 +95,35 @@ struct
                           end)
            | _ => (print ("Bad line: " ^ s ^ "\n"); NONE)) songs
 
+    fun parseshow f =
+        case getlines f of
+            header :: lines =>
+                let val parts = List.mapPartial
+                    (fn s =>
+                     case map trim (String.fields (StringUtil.ischar #"|") s) of
+                         ["song", file, misses, drumbank, background] =>
+                             let in
+                                 print "unimplemented\n";
+                                 NONE
+                             end
+                       | ["post"] => SOME Postmortem
+                       | "interlude" :: l =>
+                             (case l of
+                                  ["switchtoguitar"] => SOME(Interlude SwitchToGuitar)
+                                | ["switchtodrums"] => SOME(Interlude SwitchToDrums)
+                                | ["getwomb"] => SOME(Interlude GetWomb)
+                                | _ => (print ("Bad interlude: " ^ s ^ "\n"); NONE))
+                       | _ => (print ("(" ^ f ^ ") Bad line: " ^ s ^ "\n"); NONE)) lines
+                in
+                    case map trim (String.fields (StringUtil.ischar #"|") header) of
+                        ["show", name, date] => SOME { name = name, date = date, parts = parts }
+                      | _ => (print ("Bad show starting: " ^ header ^ "\n"); NONE)
+                end
+          | nil => (print ("Empty show: " ^ f ^ "\n"); NONE)
+
+    val shows = List.mapPartial parseshow showfiles
 
     fun allsongs () = songs
+    fun allshows () = shows
 
 end

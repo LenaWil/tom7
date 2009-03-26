@@ -14,12 +14,6 @@ For release:
  * A few more items
  * A few more profile pics
 
- * Should put volume envelope on sines; clicky in wardrobe
-
- * Use configuration throughout code; menu goes crazy on mac  (I think done now?)
-
- * Crap space at end of Tornado, which also ends abruptly
-
 items:
   coconut bra
   facial tongue  
@@ -43,7 +37,6 @@ More midi triage. Did the whole cake\ dir and cake\also dir,
  * crashes ??? (when running out of channels?)
 
  * kaomai needs -quantize option to genscore.
- * continuous tetris has extra garbage at end
 
  * stdafx needs help during the fun part, merging notes from the bass
 
@@ -75,10 +68,6 @@ More midi triage. Did the whole cake\ dir and cake\also dir,
    a pretty good job on most songs.
 
  * move general purpose SDL stuff into ../sdlml/
-
- * drum kit samples? Would be pretty easy to play samples.
-
- * noise pitch? (with lowpass/highpass?)
 
  * more instruments, especially rhodes.
 
