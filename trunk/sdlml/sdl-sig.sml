@@ -308,6 +308,7 @@ sig
   val components : color -> Word8.word * Word8.word * Word8.word * Word8.word
 
   val makescreen : int * int -> surface
+  val makefullscreen : int * int -> surface
 
   (* src: x, y, w, h   dst: x, y *)
   val blit : surface * int * int * int * int * surface * int * int -> unit

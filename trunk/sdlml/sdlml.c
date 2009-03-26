@@ -157,6 +157,38 @@ SDL_Surface * ml_makescreen(int w, int h) {
   return ret;
 }
 
+SDL_Surface * ml_makefullscreen(int w, int h) {
+  /* Can't use HWSURFACE here, because not handling this SDL_BlitSurface
+     case mentioned in the documentation:
+
+     "If either of the surfaces were in video memory, and the blit returns -2, 
+     the video memory was lost, so it should be reloaded with artwork 
+     and re-blitted." 
+
+     Plus, on Windows, the only time you get HWSURFACE is with FULLSCREEN.
+
+     -- Adam
+  */
+
+  /* SDL_ANYFORMAT	
+     "Normally, if a video surface of the requested bits-per-pixel (bpp) 
+     is not available, SDL will emulate one with a shadow surface. 
+     Passing SDL_ANYFORMAT prevents this and causes SDL to use the 
+     video surface, regardless of its pixel depth."
+
+     Probably should not pass this.
+
+     -- Adam
+  */
+
+  /* SDL_DOUBLEBUF only valid with SDL_HWSURFACE! */
+  SDL_Surface * ret = SDL_SetVideoMode(w, h, 32,
+				       SDL_FULLSCREEN |
+				       SDL_DOUBLEBUF |
+				       SDL_HWSURFACE);
+  return ret;
+}
+
 void ml_blitall(SDL_Surface * src, SDL_Surface * dst, int x, int y) {
   // char msg[512];
   // sprintf(msg, "%p %p %d %d\n", src, dst, x, y);
