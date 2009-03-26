@@ -16,6 +16,9 @@ struct
               soneme : int list }
     | SE_BOGUS
 
+  val streaksize = ref 0
+  fun streak () = !streaksize
+  fun endstreak () = streaksize := 0
 
   (* These should describe what kind of track an event is drawn from *)
   datatype label =
@@ -126,7 +129,8 @@ struct
                                  SE { state, ... } => 
                                      (case !state of
                                           Hero.Hit _ => ()
-                                        | _ => state := Hero.Hit (ref 0))
+                                        | _ => (streaksize := !streaksize + 1;
+                                                state := Hero.Hit (ref 0)))
                                | SE_BOGUS => raise Hero "whaaa??")
                         else ()
 
@@ -250,6 +254,7 @@ struct
       (* let's do *)
       let
           val () = GA.clear matching
+          val () = endstreak ()
 
           (* Add scorevent holders so we can update them later. *)
           val track = map (fn (d, e) => (d, (ref SE_BOGUS, e))) track

@@ -22,7 +22,7 @@ titlescore.mid     |5| 8| 5|   Title Theme                   | Tom 7 Entertainme
 mattascore.mid     |2|-1|-1|   Theme from Matt Armistead     | Tom 7 Entertainment System    | 1999
 trigscore.mid      |3|-1|-1|   Theme from Trig               | Tom 7 Entertainment System    | 1999
 fneetscore.mid     |5| 7| 8|   Fneet                         | Tom 7 Entertainment System    | 1999
-ratheadscore.mid   |5|-1|-1|   Rat-Head                      | Tom 7 Entertainment System    | 1999
+ratheadscore.mid   |5| 3| 5|   Rat-Head                      | Tom 7 Entertainment System    | 1999
 siloscore.mid      |5| 4| 7|   Silo                          | Tom 7 Entertainment System    | 1999
 kaasdoopscore.mid  |5|-1|-1|   Kaasdoop                      | Tom 7 Entertainment System    | 1999
 armyscore.mid      |5|-1|-1|   Theme from Army               | Tom 7 Entertainment System    | 1999
@@ -103,4 +103,4 @@ nauseascore.mid    |5| 3| 5|   Nausea                        | Tom 7 Entertainme
 ospd3score.mid     |5|-1|-1|   Theme from OSPD3              | Tom 7 Entertainment System    | 2003
 ghcscore.mid       |3|-1|-1|   Glasgow Haskell Compiler      | Tom 7 Entertainment System    | 2003
 planarianscore.mid |5|-1|-1|   Planarian                     | Tom 7                         | 2002
-
+jlwscore.mid       |6|-1|-1|   Theme from jlw                | Tom 7 Entertainment System    | 2002

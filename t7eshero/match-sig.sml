@@ -34,7 +34,11 @@ sig
        (time must never decrease) *)
     (* val misses : int -> int *)
 
-    (* dump debugging infos *)
+    (* XXX HAX. Number of consecutive hits *)
+    val streak : unit -> int
+    val endstreak : unit -> unit
+
+    (* dump debugging infos. SLOW! *)
     val dump : unit -> unit
 
     (* needs the tracks in order to conveniently count missed notes *)
