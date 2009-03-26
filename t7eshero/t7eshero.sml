@@ -434,7 +434,8 @@ struct
             val failcursor = Song.cursor (0 - Match.EPSILON) tracks
 
             val t = print ("This will take " ^ 
-                           Real.fmt (StringCvt.FIX (SOME 1)) (real (MIDI.total_ticks tracks) / 1000.0) ^
+                           Real.fmt (StringCvt.FIX (SOME 1)) 
+                           (real (* MIDI.total_ticks tracks *) 5 / 1000.0) ^
                            " sec\n")
 
             val () = loop (playcursor, drawcursor, failcursor)

@@ -507,7 +507,7 @@ int wombfd = 0;
 char wombsector[512] = {0};
 int ml_openwomb() {
   wombfd = open("/Volumes/Drive Name/FILE.TXT", O_RDWR);
-  if (wombfd) {
+  if (wombfd > 0) {
     // XXX fnctls...
     fcntl(wombfd, F_NOCACHE, 1);
     fcntl(wombfd, F_SETFL, O_NONBLOCK);
@@ -516,7 +516,7 @@ int ml_openwomb() {
     wombsector[2] = 'm';
     wombsector[3] = 'b';
   }
-  return !!wombfd;
+  return wombfd > 0;
 }
 
 void ml_signal(int w) {
