@@ -993,6 +993,19 @@ struct
   end
 
   local 
+    val mkfscreen = _import "ml_makefullscreen" : int * int -> ptr ;
+  in
+    fun makefullscreen (w, h) =
+      let
+        val p = mkfscreen (w, h)
+      in
+        if p = null
+        then raise SDL "couldn't make screen"
+        else ref p
+      end
+  end
+
+  local 
     val mkscreen = _import "ml_makescreen" : int * int -> ptr ;
   in
     fun makescreen (w, h) =
@@ -1004,6 +1017,7 @@ struct
         else ref p
       end
   end
+
 
   local val ba = _import "ml_blitall" : ptr * ptr * int * int -> unit ;
         val b  = _import "ml_blit" : ptr * int * int * int * int * ptr * int * int -> unit ;
