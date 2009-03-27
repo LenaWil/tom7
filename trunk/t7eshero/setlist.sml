@@ -21,6 +21,7 @@ struct
 
     datatype background =
         BG_SOLID of SDL.color
+      | BG_RANDOM
 
     datatype showpart =
         Song of { song : songid,
@@ -137,16 +138,19 @@ struct
                                           { song = s, misses = misses, drumbank = db,
                                             (* XXX parse background. at least colors... *)
                                             background = 
-                                            case explode background of
+                                            if background = "random"
+                                            then BG_RANDOM
+                                            else
+                                              case explode background of
                                                 [#"#", r, rr, g, gg, b, bb] =>
                                                   (case map Word8.fromString [implode [r, rr],
                                                                               implode [g, gg],
                                                                               implode [b, bb]] of
-                                                       [SOME R, SOME G, SOME B] =>
-                                                           BG_SOLID (SDL.color (R, G, B, 0wxFF))
-                                                     | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)))
+                                                     [SOME R, SOME G, SOME B] =>
+                                                       BG_SOLID (SDL.color (R, G, B, 0wxFF))
+                                                   | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)))
                                               | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF))
-                                                       })
+                                                     })
                                       end)
                        | ["post"] => SOME Postmortem
                        | ["ward"] => SOME Wardrobe
