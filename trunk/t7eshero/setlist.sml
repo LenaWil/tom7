@@ -136,7 +136,17 @@ struct
                                           SOME (Song
                                           { song = s, misses = misses, drumbank = db,
                                             (* XXX parse background. at least colors... *)
-                                            background = BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)) })
+                                            background = 
+                                            case explode background of
+                                                [#"#", r, rr, g, gg, b, bb] =>
+                                                  (case map Word8.fromString [implode [r, rr],
+                                                                              implode [g, gg],
+                                                                              implode [b, bb]] of
+                                                       [SOME R, SOME G, SOME B] =>
+                                                           BG_SOLID (SDL.color (R, G, B, 0wxFF))
+                                                     | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)))
+                                              | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF))
+                                                       })
                                       end)
                        | ["post"] => SOME Postmortem
                        | "interlude" :: l =>

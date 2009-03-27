@@ -10,6 +10,7 @@ struct
     structure SmallFont3x = Sprites.SmallFont3x
     structure SmallFont = Sprites.SmallFont
 
+    exception Postmortem of string
     val background = Sprites.requireimage "postmortem.png"    
     val screen = Sprites.screen
 
@@ -30,90 +31,11 @@ struct
         
     datatype medal = datatype Hero.medal
 
-    fun medalg PerfectMatch = Sprites.matchmedal
-      | medalg Snakes = Sprites.snakesmedal
-      | medalg Stoic = Sprites.stoicmedal
-      | medalg Plucky = Sprites.pluckymedal
-      | medalg Pokey = Sprites.pokeymedal
-      | medalg AuthenticStrummer = Sprites.press_ok (* XXX *)
-      | medalg AuthenticHammer = Sprites.press_ok (* XXX *)
-        
-    fun medal1 PerfectMatch = "Perfect"
-      | medal1 Snakes = "Snakes!"
-      | medal1 Stoic = "Stoic."
-      | medal1 Plucky = "Plucky!"
-      | medal1 Pokey = "Pokey!"
-      | medal1 AuthenticStrummer = "Authentic"
-      | medal1 AuthenticHammer = "Authentic"
-
-    fun medal2 PerfectMatch = "Match!"
-      | medal2 Snakes = ""
-      | medal2 Stoic = ""
-      | medal2 Plucky = ""
-      | medal2 Pokey = ""
-      | medal2 AuthenticStrummer = "Strummer"
-      | medal2 AuthenticHammer = "Hammer"
-
     exception Done
-    fun loop (songid, profile, tracks) =
+    fun loop () =
         let
-            val start_song : Word32.word = 0w0 (* XXX *)
             val () = Sound.all_off ()
-
-            val { misses, percent = (hit, total), ... } = Match.stats tracks
-            val () = print ("At end: " ^ Int.toString misses ^ " misses\n");
-
-            val percent = (real hit * 100.0 / real total)
-            val () = if total > 0
-                     then print ("At end: " ^ Int.toString hit ^ "/" ^ Int.toString total ^
-                                 " (" ^ Real.fmt (StringCvt.FIX (SOME 1)) percent ^ 
-                                 "%) of notes hit\n")
-                     else ()
-
-            val { totaldist, totaltime, upstrums, downstrums } = State.stats ()
-
-            val dancerate = totaldist / totaltime
-
-            val () = print ("Danced: " ^ Real.fmt (StringCvt.FIX (SOME 2)) totaldist ^ "m (" ^
-                            Real.fmt (StringCvt.FIX (SOME 3)) dancerate
-                            ^ "m/s)\n")
-
-            (* get old records for this song, if any. Then decide if we made new records. *)
-            val { percent = oldpercent, misses = oldmisses, medals = oldmedals } =
-                case List.find (fn (sid, _) => Setlist.eq(sid, songid)) (Profile.records profile) of
-                    NONE => { percent = 0, misses = total + 1, medals = nil }
-                  | SOME (_, r) => r
-
-            (* Need 90% to qualify for medals. *)
-            val medals = 
-                if percent >= 90.0
-                then
-                    List.filter
-                    (fn PerfectMatch => hit = total
-                      | Snakes => dancerate >= 0.25
-                      | Stoic => dancerate < 0.02
-                      | Plucky => downstrums = 0
-                      | Pokey => upstrums = 0
-                      | AuthenticStrummer => false (* XXX *)
-                      | AuthenticHammer => false)
-                    [PerfectMatch, Snakes, Stoic, Plucky, Pokey,
-                     AuthenticStrummer, AuthenticHammer]
-                else nil
-
-            (* old and new, avoiding duplicates *)
-            val allmedals = List.filter (fn m' => not (List.exists (fn m => m = m') oldmedals)) medals @ oldmedals
-
-            (* save profile right away *)
-            (* XXX if there are NO notes in the song, this crashes. maybe that
-               should be considered an illegal song, but we should not
-               be so brutal. *)
-            val () = Profile.setrecords profile ((songid, { percent = Int.max(oldpercent,
-                                                                              (hit * 100) div total),
-                                                            misses = Int.min(oldmisses, misses),
-                                                            medals = allmedals }) ::
-                                                 List.filter (fn (sid, _) => not (Setlist.eq(songid, sid)))
-                                                 (Profile.records profile))
-            val () = Profile.save()
+            val () = Sound.seteffect 0.0
 
             val (divi, thetracks) = Game.fromfile BGMIDI
             val tracks = Game.label PRECURSOR SLOWFACTOR thetracks
@@ -123,22 +45,17 @@ struct
 
             val nexta = ref 0w0
             val start_postmortem = SDL.getticks()
-            val total_time = Real.fromInt (Word32.toInt (start_postmortem - start_song))
             fun exit () = if SDL.getticks() - start_postmortem > MINIMUM_TIME
                           then raise Done
                           else ()
 
-            (* got a new medal? then get clothes. *)
-            val award = if List.exists (fn m => not (List.exists (fn m' => m = m') oldmedals)) medals
-                        then (case Items.award (Profile.closet profile) of
-                                  NONE => NONE
-                                | SOME i =>
-                                      let in
-                                          Profile.setcloset profile (i :: Profile.closet profile);
-                                          Profile.save();
-                                          SOME i
-                                      end)
-                        else NONE
+            (* XXX support multi-song postmortem! *)
+            val { allmedals, oldmedals, medals,
+                  percent, hit, total, danced, dancerate,
+                  upstrums, downstrums, totalseconds, award } =
+                case !(#final (Stats.head ())) of
+                    NONE => raise Postmortem "no stats!?"
+                  | SOME f => f
 
             fun loopplay () =
                 let
@@ -201,29 +118,30 @@ struct
 
                     FontHuge.draw(screen, X_PERCENT, Y_PERCENT,
                                   "^3" ^ 
-                                  Real.fmt (StringCvt.FIX (SOME 1)) (real hit * 100.0 / real total) ^ "^0%");
+                                  Real.fmt (StringCvt.FIX (SOME 1)) percent ^ "^0%");
                     FontSmall.draw(screen, X_COUNT, Y_COUNT,
                                    "^1(^5" ^ Int.toString hit ^ "^1/^5" ^ Int.toString total ^ "^1) notes");
+
                     (* XXX extraneous, max streak, average latency, etc. *)
                     FontSmall.draw(screen, X_DANCE, Y_DANCE,
-                                   "Danced: ^5" ^ Real.fmt (StringCvt.FIX (SOME 2)) totaldist ^ "^0m (^5" ^
-                                   Real.fmt (StringCvt.FIX (SOME 3)) (totaldist / totaltime)
+                                   "Danced: ^5" ^ Real.fmt (StringCvt.FIX (SOME 2)) danced ^ "^0m (^5" ^
+                                   Real.fmt (StringCvt.FIX (SOME 3)) danced
                                    ^ "^0m/s)");
+
                     FontSmall.draw(screen, X_STRUM, Y_STRUM,
                                    "Strum: ^5" ^ Int.toString upstrums ^ "^0 up, ^5" ^
                                    Int.toString downstrums ^ "^0 down");
 
                     FontSmall.draw(screen, X_TIME, Y_TIME,
                                    "Time: ^5" ^ Real.fmt (StringCvt.FIX (SOME 1)) 
-                                   (total_time / 1000.0) ^ "^0s (^5" ^
-                                   Real.fmt (StringCvt.FIX (SOME 2)) (total_time / 60000.0) ^ "^0m)");
+                                   totalseconds ^ "^0s");
 
                     app
                     (fn m =>
                      let in
-                         SDL.blitall(medalg m, screen, X_MEDALS, !my);
-                         Font.draw(screen, X_MEDALTEXT, !my, Chars.fancy (medal1 m));
-                         Font.draw(screen, X_MEDALTEXT, !my + Font.height + 2, Chars.fancy (medal2 m));
+                         SDL.blitall(Sprites.medalg m, screen, X_MEDALS, !my);
+                         Font.draw(screen, X_MEDALTEXT, !my, Chars.fancy (Sprites.medal1 m));
+                         Font.draw(screen, X_MEDALTEXT, !my + Font.height + 2, Chars.fancy (Sprites.medal2 m));
                          (if not (List.exists (fn m' => m = m') oldmedals)
                           then SDL.blitall(Sprites.new, screen, X_NEW, !my - YOFF_NEW)
                           else ());

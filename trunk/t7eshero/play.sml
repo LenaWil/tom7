@@ -12,9 +12,8 @@ struct
     val misstime = ref 0
 
     fun sf () = 
-        (*  FIXME XXXX restore me, just wanna play around without damage *)
         Sound.setfreq(Sound.MISSCH, Sound.PITCHFACTOR * 4 * !misstime, 
-                      Sound.midivel (10000 div 90),
+                      Sound.midivel (7000 div 90),
                       Sound.WAVE_SQUARE) 
 (*          () *)
   in
