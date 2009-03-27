@@ -510,7 +510,7 @@ int ml_openwomb() {
   if (wombfd > 0) {
     // XXX fnctls...
     fcntl(wombfd, F_NOCACHE, 1);
-    fcntl(wombfd, F_SETFL, O_NONBLOCK);
+    // fcntl(wombfd, F_SETFL, O_NONBLOCK);
     wombsector[0] = 'w';
     wombsector[1] = 'o';
     wombsector[2] = 'm';

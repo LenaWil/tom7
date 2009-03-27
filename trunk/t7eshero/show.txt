@@ -1,7 +1,7 @@
 
 TODO:
+ * MANY HAPPY RETURNS END
   * don't die with bad profiles. just ignore them.
-  * junk on screen in fullscreen mode
   * writes fail on os x because of async?
   * drums still work during postmortem?
   * drums lite lights?

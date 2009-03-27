@@ -9,13 +9,16 @@ struct
   val itos = Int.toString
 
   local 
+    val domiss = ref true
     val misstime = ref 0
 
     fun sf () = 
-        Sound.setfreq(Sound.MISSCH, Sound.PITCHFACTOR * 4 * !misstime, 
-                      Sound.midivel (7000 div 90),
-                      Sound.WAVE_SQUARE) 
-(*          () *)
+        if !domiss
+        then
+            Sound.setfreq(Sound.MISSCH, Sound.PITCHFACTOR * 4 * !misstime, 
+                          Sound.midivel (7000 div 90),
+                          Sound.WAVE_SQUARE) 
+        else ()
   in
 
     (* Maybe stop dying sound. *)
@@ -30,11 +33,13 @@ struct
 
     fun miss () =
         let in
-            Stats.miss ();
+            if !domiss then Stats.miss () else ();
             misstime := 300;
             sf ();
             maybeunmiss 0
         end
+
+    fun setmiss b = domiss := b
   end
 
 
