@@ -184,7 +184,7 @@ struct
             and play () =
                 let
                     datatype playitem = 
-                        Show of Setlist.showinfo 
+                        Show of Setlist.showinfo * real
                       (* functions for rendering text, XXX not beautiful *)
                       | OneSong of Setlist.songinfo * (string * (unit -> string))
 
@@ -240,8 +240,37 @@ struct
                                          String.concat (map mstostring medals))
                             end
 
+                    (* XXX should go in Game? *)
+                    (* just count the songs. *)
+                    fun getlength { name, date, parts } =
+                        foldr op+ 0.0
+                        (List.mapPartial 
+                         (fn Setlist.Song { song, ... } =>
+                          let
+                              val { file, slowfactor, ... } =
+                                  Setlist.getsong song
+
+                              val (divi, thetracks) = Game.fromfile file
+                              val divi = divi * slowfactor
+                              val PREDELAY = 2 * divi (* ?? *)
+
+                              val (tracks : (int * (Match.label * MIDI.event)) list list) = 
+                                  Game.label PREDELAY slowfactor thetracks
+                              val tracks = Game.slow slowfactor (MIDI.merge tracks)
+                              val tracks = Game.add_measures divi tracks
+                              val tracks = Game.endify tracks
+                              val (tracks : (int * (Match.label * MIDI.event)) list) = 
+                                  Game.delay PREDELAY tracks
+                          in
+                              (* now compute time in ticks = ms *)
+                              SOME (real (MIDI.total_ticks tracks))
+                          end
+                       (* Assume 0 for other stuff *)
+                       | _ => NONE) parts)
+                         
+
                     val items : playitem list = 
-                        map Show (Setlist.allshows()) @
+                        map Show (ListUtil.mapto getlength (Setlist.allshows())) @
                         map OneSong (ListUtil.mapto getrecords (Setlist.allsongs()))
 
                     (* For now, use same height. *)
@@ -271,17 +300,24 @@ struct
                                      FontSmall.draw(screen, x + 42, y3,
                                                     if sel then rs() else r)
                                  end
-                               | Show { name, date, parts, ... } =>
-                                 let in
-                                     FontSmall.draw(screen, x + 2, y,
-                                                    if sel then "^3" ^ name
-                                                    else name);
-                                     SmallFont.draw(screen, x + 2, y2,
-                                                    "^4" ^ date)
+                               | Show ({ name, date, parts, ... }, ms) =>
+                                 let 
+                                     val s = Real.trunc (ms / 1000.0)
+                                     val m = s div 60
+                                     val s = s mod 60
+                                 in
+                                     Font.draw(screen, x + 2, y,
+                                               if sel then "^3" ^ name
+                                               else name);
+                                     FontSmall.draw(screen, x + 2, y2 + 10,
+                                                    "^4" ^ date ^
+                                                    " ^1(^0" ^
+                                                    Int.toString m ^ "^1m^0" ^
+                                                    Int.toString s ^ "^1s)")
                                  end);
                             if not sel
                             then SDL.fillrect(screen, x + 3, y4, 
-                                              WIDTH - 6, 2,
+                                              WIDTH - 10, 2,
                                               S.color (0wx22, 0wx22, 0wx27, 0wxFF))
                             else ()
                         end
@@ -301,7 +337,7 @@ struct
                       | SOME what => 
                             raise Selected
                             { show = (case what of
-                                          Show s => s
+                                          Show (s, _) => s
                                         (* If single song, make show in place. *)
                                         | OneSong (song, _) => 
                                               { name = #title song,
