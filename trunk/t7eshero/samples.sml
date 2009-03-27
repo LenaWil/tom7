@@ -199,5 +199,8 @@ struct
        *)
     val default_drumbank = Vector.fromList [40, 42, 45, 49, 2]
 
+    (* bad TOM *)
     val default_drumbank = Vector.fromList [40, 42, 110, 46, 2]
+
+    val default_drumbank = Vector.fromList [40, 42, 44, 46, 2]
 end

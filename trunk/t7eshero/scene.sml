@@ -127,10 +127,10 @@ struct
          SDL.fillrect (screen, 
                        Sprites.gamewidth, 0,
                        Sprites.width - Sprites.gamewidth, Sprites.height,
-                       SDL.color(Word8.fromInt (Random.random_int()),
-                                         Word8.fromInt (Random.random_int()),
-                                         Word8.fromInt (Random.random_int()),
-                                         0wxFF)));
+                       SDL.color(Word8.fromInt (Random.random_int() mod 256),
+                                 Word8.fromInt (Random.random_int() mod 256),
+                                 Word8.fromInt (Random.random_int() mod 256),
+                                 0wxFF)));
 
       (* entire background first first *)
       blitall(S.background, screen, 0, 0);
