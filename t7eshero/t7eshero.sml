@@ -31,16 +31,17 @@ struct
     val { show : Setlist.showinfo, 
           profile : Profile.profile } = Title.loop ()
 
-
     fun doshow nil = ()
-      | doshow ((Setlist.Song { song = songid, misses, drumbank, background }) :: rest) =
+      | doshow ((Setlist.Song { song = songid, misses, 
+                                drumbank, background }) :: rest) =
        (let
             (* Need to have a song in effect. *)
             val () = Stats.push songid
-
-            (* XXX should pull these out of the song as needed, I think? *)
             val song = Setlist.getsong songid
-            (* val songid = #id song *)
+
+            val () = Play.Scene.background := background
+            val () = Play.Scene.initfromsong song
+
             val SLOWFACTOR = #slowfactor song
 
             val (divi, thetracks) = Game.fromfile (#file song)
@@ -59,7 +60,7 @@ struct
             val drawcursor = Song.cursor (0 - Play.Scene.DRAWLAG) tracks
             val failcursor = Song.cursor (0 - Match.EPSILON) tracks
 
-                (* XXX *)
+            (* XXX *)
             val t = print ("This will take " ^ 
                            Real.fmt (StringCvt.FIX (SOME 1)) 
                            (real (MIDI.total_ticks tracks) / 1000.0) ^
@@ -67,12 +68,23 @@ struct
 
             val () = Play.loop (playcursor, drawcursor, failcursor)
 
+            val () = Stats.finish tracks profile
+
+            val () = Sound.all_off ()
+            val () = Sound.seteffect 0.0
         in
             doshow rest
-        end )
-      (* | doshow (Setlist.Postmortem :: rest) = *)
-            (* Get postmortem statistics *)
-            (* val () = Postmortem.loop (songid, profile, tracks) *)
+        end)
+      | doshow (Setlist.Postmortem :: rest) =
+            if Stats.has ()
+            then
+                let in
+                    (* Get postmortem statistics *)
+                    Postmortem.loop ();
+                    Stats.clear ();
+                    doshow rest
+                end
+            else doshow rest
 
     val () = doshow (#parts show)
                 handle Play.Abort =>
@@ -96,6 +108,7 @@ struct
            | Game.Game s => messagebox ("sdl error: " ^ s)
            | Items.Items s => messagebox ("items database error: " ^ s)
            | Input.Input s => messagebox ("input subsystem error: " ^ s)
+           | Postmortem.Postmortem s => messagebox ("postmortem problem: " ^ s)
            | Hero.Exit => ()
            | e => messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e)
 end

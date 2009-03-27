@@ -59,9 +59,33 @@ struct
   val matchmedal = requireimage "matchmedal.png"
   val pokeymedal = requireimage "pokeymedal.png"
   val pluckymedal = requireimage "pluckymedal.png"
-
   val stoicmedal = requireimage "stoicmedal.png"
   val snakesmedal = requireimage "snakesmedal.png"
+
+  fun medalg Hero.PerfectMatch = matchmedal
+    | medalg Hero.Snakes = snakesmedal
+    | medalg Hero.Stoic = stoicmedal
+    | medalg Hero.Plucky = pluckymedal
+    | medalg Hero.Pokey = pokeymedal
+    | medalg Hero.AuthenticStrummer = press_ok (* XXX *)
+    | medalg Hero.AuthenticHammer = press_ok (* XXX *)
+
+  fun medal1 Hero.PerfectMatch = "Perfect"
+    | medal1 Hero.Snakes = "Snakes!"
+    | medal1 Hero.Stoic = "Stoic."
+    | medal1 Hero.Plucky = "Plucky!"
+    | medal1 Hero.Pokey = "Pokey!"
+    | medal1 Hero.AuthenticStrummer = "Authentic"
+    | medal1 Hero.AuthenticHammer = "Authentic"
+
+  fun medal2 Hero.PerfectMatch = "Match!"
+    | medal2 Hero.Snakes = ""
+    | medal2 Hero.Stoic = ""
+    | medal2 Hero.Plucky = ""
+    | medal2 Hero.Pokey = ""
+    | medal2 Hero.AuthenticStrummer = "Strummer"
+    | medal2 Hero.AuthenticHammer = "Hammer"
+
 
   val stars = Vector.fromList
       [requireimage "greenstar.png",

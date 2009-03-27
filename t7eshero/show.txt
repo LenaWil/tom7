@@ -7,7 +7,8 @@ TODO:
   * drums lite lights?
   * light patterns when streak, FC, etc.
   * lasers
-  * setlist mode
+
+  * way to skip song in emergency (eg show interrupted, crash)
 
 Definitely:
 

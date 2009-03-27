@@ -202,6 +202,12 @@ struct
                    end)
       end
 
+  local
+      val seteffect_ = _import "ml_seteffect" : real -> unit ;
+  in
+      val seteffect = seteffect_
+  end
+
   fun all_off () =
       let in
           (* turn off MIDI notes *)
@@ -210,13 +216,8 @@ struct
              want to shut off drums and effects channels too. *)
           Util.for 0 (NMIX - 1) (fn i => setfreq(i, pitchof 60, 0, INST_NONE));
           (* mix channel in-use masks *)
-          Array.modify (fn _ => false) mixes
+          Array.modify (fn _ => false) mixes;
+          seteffect 0.0
       end
-
-  local
-      val seteffect_ = _import "ml_seteffect" : real -> unit ;
-  in
-      val seteffect = seteffect_
-  end
       
 end

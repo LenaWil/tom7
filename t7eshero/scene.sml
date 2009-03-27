@@ -24,6 +24,40 @@ struct
   val MEASURECOLOR = color(0wxDD, 0wx22, 0wx22, 0wxFF)
   val TSCOLOR      = color(0wx22, 0wxDD, 0wx22, 0wxFF)
 
+  val background = ref (Setlist.BG_SOLID (SDL.color (0wx00, 0wx55, 0wx00, 0wxFF)))
+      : Setlist.background ref
+
+  val title = ref ""
+  val artist = ref ""
+  val year = ref ""
+
+  (* in ms. *)
+  val STATSTIME = 0w10000
+
+  (* Stats end after this time. *)
+  val statstime = ref (0w0 : Word32.word)
+  val prev = ref (NONE : { song : string,
+                           allmedals : Hero.medal list,
+                           percent : real } option)
+
+  (* XXX maybe init from stats so we don't get staging of push and this wrong? *)
+  fun initfromsong ({ artist = aa, year = yy, title = tt, fave, hard, ... } :
+                    Setlist.songinfo) =
+      let in
+          title := tt;
+          artist := aa;
+          year := yy;
+          statstime := (SDL.getticks() + STATSTIME);
+          prev :=
+          (case Stats.prev () of
+               NONE => NONE
+             | SOME { final = ref NONE, ... } => NONE (* ?? *)
+             | SOME { song, final = ref (SOME { percent, allmedals, ... }), ... } => 
+                   SOME { song = #title (Setlist.getsong song),
+                          percent = percent,
+                          allmedals = allmedals })
+      end
+
   (* color, x, y *)
   val stars = ref nil : (int * int * int * Match.scoreevt) list ref
   (* rectangles the liteup background to draw. x,y,w,h *)
@@ -80,10 +114,45 @@ struct
 
   fun draw () =
     let in
+      (* clear non-bg area *)
+      (case !background of
+           Setlist.BG_SOLID c =>
+        SDL.fillrect (screen, Sprites.gamewidth, 0, 
+                      Sprites.width - Sprites.gamewidth, Sprites.height, c));
+
       (* entire background first first *)
       blitall(S.background, screen, 0, 0);
-      (* spans first *)
 
+      (* Song info. *)
+      Font.draw (screen, Sprites.gamewidth + 16, 4, "^3" ^ !title);
+      Font.draw (screen, Sprites.gamewidth + 16, 4 + Font.height + 2,
+                 "^4by ^0" ^ !artist);
+      Font.draw (screen, Sprites.gamewidth + 16, 4 + (Font.height + 2) * 2,
+                 " ^1(" ^ !year ^ ")");
+
+      (* Prev stats. *)
+      (case (SDL.getticks() <= !statstime, !prev) of
+           (true, SOME { song, allmedals, percent }) =>
+               let in
+                   FontSmall.draw (screen, Sprites.gamewidth + 16, 
+                                   Sprites.height - 128, "^3Last: ^0" ^ song);
+                   ListUtil.appi
+                   (fn (m, i) =>
+                    let 
+                        val x = Sprites.gamewidth + 16 + i * 72
+                    in
+                        SDL.blitall(Sprites.medalg m, screen, x, Sprites.height - 100);
+                        FontSmall.draw(screen, x, Sprites.height - 32, Sprites.medal1 m);
+                        FontSmall.draw(screen, x, Sprites.height - 16, Sprites.medal2 m)
+                    end) allmedals;
+
+                   FontHuge.draw(screen, Sprites.width - (FontHuge.width * 4 + 8),
+                                 Sprites.height - 128,
+                                 "^1" ^ Int.toString (Real.trunc percent) ^ "^4%")
+               end
+         | _ => ());
+
+      (* spans first *)
       app (fn (x, y, w, h) => blit(S.backlite, x, y, w, h, screen, x, y)) (!spans);
 
       (* tempo *)
@@ -146,23 +215,25 @@ struct
        let
            val s = Match.streak()
            val (fd, fh, ff) = 
-               if s > 50
+               if s > 75
                then (Sprites.FontMax.draw, Sprites.FontMax.height, Chars.fancy)
-               else if s > 20 
+               else if s > 50
                     then (FontHuge.draw, FontHuge.height, Chars.fancy)
                     else (FontHuge.draw, FontHuge.height, (fn s => "^4" ^ s))
        in   
-           if s > 10
+           if s > 25
            then fd (screen, 4, height div 2 - (fh div 2),
                     ff (Int.toString s ^ " streak!"))
            else ()
        end;
 
+      (* XXX in stats pane *)
       FontSmall.draw(screen, 4, height - (FontHuge.height * 2),
-                     "Dance distance: ^2" ^ Real.fmt (StringCvt.FIX (SOME 3)) (!State.dancedist) ^ "^0m (" ^
+                     "Dance distance: ^2" ^ Real.fmt (StringCvt.FIX (SOME 3)) (!State.dancedist) ^ "^0m" 
+                     (*(" ^
                      Real.fmt (StringCvt.FIX (SOME 5)) 
                        (!State.dancedist / (real (Word32.toInt(SDL.getticks() - !State.dancetime)) / 1000.0))
-                     ^ "m/s)")
+                     ^ "m/s)" *))
     end
 
 end
