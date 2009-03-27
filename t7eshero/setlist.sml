@@ -131,7 +131,7 @@ struct
                                                              SOME (Vector.fromList [a, b, c, d, e])
                                                        | _ => (print ("!!! bad drumbank: " ^
                                                                       drumbank ^ "\n"); NONE)))
-                                          val misses = misses = "nomiss"
+                                          val misses = misses <> "nomiss"
                                       in
                                           SOME (Song
                                           { song = s, misses = misses, drumbank = db,

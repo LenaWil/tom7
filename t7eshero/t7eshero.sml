@@ -66,6 +66,7 @@ struct
                            (real (MIDI.total_ticks tracks) / 1000.0) ^
                            " sec\n")
 
+            val () = Play.setmiss misses
             val () = Play.loop (playcursor, drawcursor, failcursor)
 
             val () = Stats.finish tracks profile
