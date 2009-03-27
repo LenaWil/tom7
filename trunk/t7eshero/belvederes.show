@@ -10,8 +10,6 @@ song | siloscore.mid | | | #440022
 song | jlwscore.mid | | | #123456
 song | ctetris2score.mid | | | #335500
 
-comment (did up to this point, good so far!)
-
 ward
 interlude | YOU GOT | DRUMS
 song | leannescore.mid | nomiss | | #002200
@@ -29,14 +27,14 @@ song | kakaoscore.mid | | | #110044
 
 post
 interlude | YOU RESCUED | DRUMS!
-song | tornadoscore.mid | | | random
+song | tornadoscore.mid | nomiss | | #220000
 song | gnocciscore.mid | nomiss | | #000000
 
 ward
-interlude | WELCOME TO | WARP ZON
-song | sensscore.mid | nomiss | | #440000
+interlude | WELCOME TO | WARP ZONE
+song | sensscore.mid | | | random 100
 song | sarnatscore.mid | | | #112341
 song | manyhappyscore.mid | | | #CCCC00
-song | googscore.mid | | | random
+song | googscore.mid | | | random 250
 post
-interlude | THANK | YOU  ;-)
+interlude | YOU'RE WINNER | THANK YOU  ;-)
