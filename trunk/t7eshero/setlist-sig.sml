@@ -32,6 +32,7 @@ sig
                   }
       | Postmortem
       | Interlude of interlude
+      | Wardrobe
 
     type showinfo =
         { name : string,

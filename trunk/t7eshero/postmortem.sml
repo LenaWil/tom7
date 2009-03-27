@@ -20,6 +20,16 @@ struct
     val MENUTICKS = 0w60
     val MINIMUM_TIME = 0w2000
 
+    local open Womb
+    in
+        val womb_pattern =
+            Womb.pattern 0w50
+            [[A,D,G,F, J],
+             [C,B,E,H, L],
+             [A,D,G,F, M],
+             [C,B,E,H, K]]
+    end
+
     (* It's hard to calibrate the cutoffs for dancing awards. Here are
        some measurements with the 360 X-Plorer, configured correctly:
 
@@ -61,6 +71,11 @@ struct
                 let
                     val nows = Song.nowevents cursor
                 in
+                    if List.exists (fn (Match.Music _, MIDI.NOTEON(ch, note, v)) =>
+                                    v > 0 | _ => false) nows
+                    then Womb.next womb_pattern
+                    else ();
+
                     List.app 
                     (fn (label, evt) =>
                      (case label of

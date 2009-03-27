@@ -20,6 +20,14 @@ struct
 
     structure LM = ListMenuFn(val screen = screen)
 
+    local open Womb
+    in
+        val womb_pattern =
+            Womb.pattern 0w100
+            [[A,J,M], [B,K,L], [E,J,M], [F,K,L],
+             [H,J,M], [G,K,L], [D,J,M], [C,K,L]]
+    end
+
     exception Done and Abort
     fun loop profile =
         let
@@ -106,6 +114,7 @@ struct
             and heartbeat () = 
                 let 
                     val () = Song.update ()
+                    val () = Womb.maybenext womb_pattern
                     val () = loopplay ()
                     val now = getticks ()
                 in
