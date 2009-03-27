@@ -31,17 +31,22 @@ struct
     val { show : Setlist.showinfo, 
           profile : Profile.profile } = Title.loop ()
 
+    val level = ref 0
+    val total_levels =
+        foldr (fn (Setlist.Song _, n) => n + 1 | (_, n) => n) 0 (#parts show)
+        
     fun doshow nil = ()
       | doshow ((Setlist.Song { song = songid, misses, 
                                 drumbank, background }) :: rest) =
        (let
+            val () = level := !level + 1
             val () = Sound.all_off () (* should be done by conscientious predecessor *)
             (* Need to have a song in effect. *)
             val () = Stats.push songid
             val song = Setlist.getsong songid
 
             val () = Play.Scene.background := background
-            val () = Play.Scene.initfromsong song
+            val () = Play.Scene.initfromsong (song, !level, total_levels)
 
             val SLOWFACTOR = #slowfactor song
 

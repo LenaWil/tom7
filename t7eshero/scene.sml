@@ -35,6 +35,7 @@ struct
   val artist = ref ""
   val year = ref ""
   val timesig = ref ""
+  val progress = ref ""
 
   (* in ms. *)
   val STATSTIME = 0w13000
@@ -50,7 +51,7 @@ struct
 
   (* XXX maybe init from stats so we don't get staging of push and this wrong? *)
   fun initfromsong ({ artist = aa, year = yy, title = tt, fave, hard, ... } :
-                    Setlist.songinfo) =
+                    Setlist.songinfo, thislevel, totallevels) =
       let in
           title := tt;
           artist := aa;
@@ -63,7 +64,8 @@ struct
              | SOME { song, final = ref (SOME { percent, allmedals, ... }), ... } => 
                    SOME { song = #title (Setlist.getsong song),
                           percent = percent,
-                          allmedals = allmedals })
+                          allmedals = allmedals });
+          progress := "^2level ^3" ^ Int.toString thislevel ^ "^2/^3" ^ Int.toString totallevels
       end
 
   (* color, x, y *)
@@ -257,6 +259,12 @@ struct
                      Sprites.gamewidth + 16,
                      height - (FontHuge.height * 4),
                      !timesig);
+
+       FontHuge.draw(screen,
+                     Sprites.gamewidth + 16,
+                     height - (FontHuge.height * 8),
+                     !progress);
+
        
        FontSmall.draw(screen, 
                       Sprites.gamewidth + 16, 
