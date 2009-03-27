@@ -235,10 +235,13 @@ struct
                                    Hero.Hit _ => (hit + 1, total + 1)
                                  | Hero.Missed => (hit, total + 1)
                                  | Hero.Future =>
+                                       (* only in early exit scenarios. *)
+                                       (hit, total + 1)
+(*
                                        let in
                                            Hero.messagebox "future: impossible!";
                                            raise Hero "impossible!"
-                                       end)
+                                       end *))
                        | _ => (hit, total))) (0, 0) tracks
       in
           { misses = total - hit, (* XXX *)

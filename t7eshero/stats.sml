@@ -104,6 +104,7 @@ struct
             (* XXX if there are NO notes in the song, this crashes. maybe that
                should be considered an illegal song, but we should not
                be so brutal. *)
+            val total = if total = 0 then 1 else total (* XXXX hax *)
             val () = Profile.setrecords profile ((songid, { percent = Int.max(oldpercent,
                                                                               (hit * 100) div total),
                                                             misses = Int.min(oldmisses, misses),

@@ -35,6 +35,7 @@ struct
       | doshow ((Setlist.Song { song = songid, misses, 
                                 drumbank, background }) :: rest) =
        (let
+            val () = Sound.all_off () (* should be done by conscientious predecessor *)
             (* Need to have a song in effect. *)
             val () = Stats.push songid
             val song = Setlist.getsong songid
@@ -96,6 +97,17 @@ struct
             let in
                 Interlude.loop profile (m1, m2);
                 Sound.all_off();
+                doshow rest
+            end
+      | doshow (Setlist.Command Setlist.WombOn :: rest) =
+            let in
+                Womb.enable();
+                doshow rest
+            end
+      | doshow (Setlist.Command Setlist.WombOff :: rest) =
+            let in
+                Womb.signal_raw 0w0;
+                Womb.disable();
                 doshow rest
             end
 
