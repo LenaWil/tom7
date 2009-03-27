@@ -84,7 +84,8 @@ struct
                         
                     val c = ref 100
                 in
-                    SDL.clearsurface (screen, SDL.color (0wx22, 0wx00, 0wx00, 0wxFF));
+                    SDL.fillrect (screen, 0, 0, SDL.width, SDL.height,
+                                  SDL.color (0wx22, 0wx00, 0wx00, 0wxFF));
                     Items.app_behind (!outfit) drawitem;
                     blitall(Vector.sub(Sprites.humps, !humpframe), screen, X_ROBOT, Y_ROBOT);
                     Items.app_infront (!outfit) drawitem;
