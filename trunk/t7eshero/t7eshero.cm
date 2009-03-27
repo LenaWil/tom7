@@ -104,6 +104,10 @@ prompt-sig.sml
 prompt.sml
 setlist-sig.sml
 setlist.sml
+
+stats-sig.sml
+stats.sml
+
 items-sig.sml
 items.sml
 record-sig.sml
@@ -125,4 +129,6 @@ title-sig.sml
 title.sml
 postmortem-sig.sml
 postmortem.sml
+(* XXX sig *)
+play.sml
 t7eshero.sml

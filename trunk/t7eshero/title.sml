@@ -14,7 +14,7 @@ struct
 
     datatype selection = Play | SignIn | Configure | Wardrobe | Update
 
-    exception Selected of { song : Setlist.songinfo,
+    exception Selected of { show : Setlist.showinfo,
                             profile : Profile.profile }
 
     val TITLEMIDI = "title.mid"
@@ -102,7 +102,6 @@ struct
             fun advance () =
                 let
                 in
-                    (* XXX should pause on first, last frames a bit *)
                     (if !humprev
                      then humpframe := !humpframe - 1
                      else humpframe := !humpframe + 1);
@@ -184,6 +183,11 @@ struct
             (* Choose song *)
             and play () =
                 let
+                    datatype playitem = 
+                        Show of Setlist.showinfo 
+                      (* functions for rendering text, XXX not beautiful *)
+                      | OneSong of Setlist.songinfo * (string * (unit -> string))
+
                     (* XXX draw mini icons! *)
                     fun mtostring Hero.PerfectMatch = Chars.MATCH
                       | mtostring Hero.Snakes = Chars.SNAKES
@@ -236,28 +240,56 @@ struct
                                          String.concat (map mstostring medals))
                             end
 
-                    val songs = ListUtil.mapto getrecords (Setlist.allsongs())
+                    val items : playitem list = 
+                        map Show (Setlist.allshows()) @
+                        map OneSong (ListUtil.mapto getrecords (Setlist.allsongs()))
 
-                    fun itemheight _ = FontSmall.height + SmallFont.height + FontSmall.height + 8
-                    fun drawitem (i as ({title, artist, year, ...} : Setlist.songinfo, 
-                                        (r, rs)), x, y, sel) = 
-                        let in
-                            FontSmall.draw(screen, x + 2, y, 
-                                           if sel then "^3" ^ title
-                                           else title);
+                    (* For now, use same height. *)
+                    fun itemheight _ = 
+                        FontSmall.height + SmallFont.height + FontSmall.height + 10
 
-                            SmallFont.draw(screen, x + 2, y + 2 + FontSmall.height, 
-                                           "^4by ^0" ^ artist ^ 
-                                           " ^1(" ^ year ^ ")");
-                            
-                            FontSmall.draw(screen, x + 42, y + 4 + FontSmall.height + SmallFont.height,
-                                           if sel then rs() else r)
+                    fun drawitem (i, x, y, sel) = 
+                        let 
+                            val y2 = y + 2 + FontSmall.height
+                            val y3 = y + 4 + FontSmall.height + SmallFont.height
+                            val y4 = y + 4 + FontSmall.height + SmallFont.height + 
+                                             FontSmall.height + 2
+
+                        in
+                            (case i of
+                                 OneSong ({title, artist, year, ...} : Setlist.songinfo, 
+                                          (r, rs)) =>
+                                 let in
+                                     FontSmall.draw(screen, x + 2, y, 
+                                                    if sel then "^3" ^ title
+                                                    else title);
+                                     
+                                     SmallFont.draw(screen, x + 2, y2,
+                                                    "^4by ^0" ^ artist ^ 
+                                                    " ^1(" ^ year ^ ")");
+                                     
+                                     FontSmall.draw(screen, x + 42, y3,
+                                                    if sel then rs() else r)
+                                 end
+                               | Show { name, date, parts, ... } =>
+                                 let in
+                                     FontSmall.draw(screen, x + 2, y,
+                                                    if sel then "^3" ^ name
+                                                    else name);
+                                     SmallFont.draw(screen, x + 2, y2,
+                                                    "^4" ^ date)
+                                 end);
+                            if not sel
+                            then SDL.fillrect(screen, x + 3, y4, 
+                                              WIDTH - 6, 2,
+                                              S.color (0wx22, 0wx22, 0wx27, 0wxFF))
+                            else ()
                         end
                 in
                     case LM.select { x = 8, y = 40,
                                      width = WIDTH,
                                      height = HEIGHT,
-                                     items = songs,
+                                     items = items,
                                      drawitem = drawitem,
                                      itemheight = itemheight,
                                      bgcolor = SOME LM.DEFAULT_BGCOLOR,
@@ -266,9 +298,23 @@ struct
                                      parent = Drawable.drawable { draw = draw, heartbeat = heartbeat,
                                                                   resize = Drawable.don't } } of
                         NONE => ()
-                      | SOME (song, _) => 
+                      | SOME what => 
                             raise Selected
-                            { song = song,
+                            { show = (case what of
+                                          Show s => s
+                                        (* If single song, make show in place. *)
+                                        | OneSong (song, _) => 
+                                              { name = #title song,
+                                                date = #year song,
+                                                parts = 
+                                                [Setlist.Song 
+                                                 { song = #id song,
+                                                   misses = true,
+                                                   drumbank = NONE,
+                                                   background =
+                                                   Setlist.BG_SOLID
+                                                   (SDL.color (0wx00, 0wx00, 0wx00, 0wxFF)) },
+                                                 Setlist.Postmortem] }),
                               profile = !profile }
                 end
 
@@ -444,6 +490,7 @@ struct
             go () handle Selected what => 
                 let in
                     Sound.all_off ();
+                    Womb.signal_raw 0w0;
                     what
                 end
         end

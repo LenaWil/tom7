@@ -53,6 +53,11 @@ struct
                                     val compare = cmp
                                 end)
 
+    structure SM = SplayMapFn (struct
+                                   type ord_key = string
+                                   val compare = String.compare
+                               end)
+
     exception Setlist of string
 
     (* val tokey : songinfo -> string = #file *)
@@ -63,6 +68,9 @@ struct
         if FSUtil.exists file
         then SOME (SHA1.hash_stream (SimpleStream.fromfilechunks 512 file))
         else NONE
+
+    (* maps (base) filenames to songids. *)
+    val files = (ref SM.empty) : songid SM.map ref
 
     fun getlines f = Script.linesfromfile f handle _ => nil
 
@@ -80,20 +88,28 @@ struct
                     | (_, _, NONE) => (print ("Bad fave: " ^ fave ^ "\n"); NONE)
                     | (SOME slowfactor, SOME hard, SOME fave) => 
                           let 
-                              val file = FSUtil.dirplus dir (trim file)
+                              val fileext = FSUtil.dirplus dir (trim file)
                           in
-                              case sha1binfile file of
-                                  NONE => (print ("Couldn't load song: " ^ file ^ "\n"); NONE)
+                              case sha1binfile fileext of
+                                  NONE => (print ("Couldn't load song: " ^ fileext ^ "\n"); NONE)
                                 | SOME sha =>
                                       let in
+                                          files := SM.insert(!files, trim file, sha);
                                           (* print ("Loaded " ^ file ^ " with " ^ SHA1.bintohex sha ^ "\n"); *)
-                                          SOME { file = file, slowfactor = slowfactor, 
+                                          SOME { file = fileext, slowfactor = slowfactor, 
                                                  hard = hard, fave = fave,
                                                  title = trim title, artist = trim artist, 
                                                  year = trim year, id = sha }
                                       end
                           end)
            | _ => (print ("Bad line: " ^ s ^ "\n"); NONE)) songs
+
+    val songmap = foldl (fn (s as { id, ... }, m) => Map.insert (m, id, s)) Map.empty songs
+    fun getsong id =
+        case Map.find (songmap, id) of
+            SOME s => s
+          | NONE => raise Setlist ("couldn't find song id " ^ id)
+
 
     fun parseshow f =
         case getlines f of
@@ -102,10 +118,26 @@ struct
                     (fn s =>
                      case map trim (String.fields (StringUtil.ischar #"|") s) of
                          ["song", file, misses, drumbank, background] =>
-                             let in
-                                 print "unimplemented\n";
-                                 NONE
-                             end
+                             (case SM.find (!files, file) of
+                                  NONE => (print ("!! couldn't find file: [" ^ file ^ "]\n"); NONE)
+                                | SOME s =>
+                                      let 
+                                          val db =
+                                          (case drumbank of
+                                               "" => NONE
+                                             | _ => (case map Int.fromString 
+                                                         (String.fields (StringUtil.ischar #",") drumbank) of
+                                                         [SOME a, SOME b, SOME c, SOME d, SOME e] => 
+                                                             SOME (Vector.fromList [a, b, c, d, e])
+                                                       | _ => (print ("!!! bad drumbank: " ^
+                                                                      drumbank ^ "\n"); NONE)))
+                                          val misses = misses = "nomiss"
+                                      in
+                                          SOME (Song
+                                          { song = s, misses = misses, drumbank = db,
+                                            (* XXX parse background. at least colors... *)
+                                            background = BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)) })
+                                      end)
                        | ["post"] => SOME Postmortem
                        | "interlude" :: l =>
                              (case l of
