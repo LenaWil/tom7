@@ -23,6 +23,10 @@ struct
         BG_SOLID of SDL.color
       | BG_RANDOM
 
+    datatype command =
+        WombOn
+      | WombOff
+
     datatype showpart =
         Song of { song : songid,
                   misses : bool,
@@ -31,6 +35,7 @@ struct
       | Postmortem
       | Interlude of interlude
       | Wardrobe
+      | Command of command
 
     type showinfo =
         { name : string,
@@ -154,6 +159,8 @@ struct
                                       end)
                        | ["post"] => SOME Postmortem
                        | ["ward"] => SOME Wardrobe
+                       | ["command", "wombon"] => SOME (Command WombOn)
+                       | ["command", "womboff"] => SOME (Command WombOff)
                        | ["interlude", m1, m2] => SOME(Interlude (m1, m2))
                        | _ => (print ("(" ^ f ^ ") Bad line: " ^ s ^ "\n"); NONE)) lines
                 in

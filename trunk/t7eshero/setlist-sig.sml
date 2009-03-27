@@ -21,6 +21,10 @@ sig
         BG_SOLID of SDL.color
       | BG_RANDOM
 
+    datatype command =
+        WombOn
+      | WombOff
+
     datatype showpart =
         Song of { song : songid,
                   misses : bool,
@@ -31,6 +35,7 @@ sig
       | Postmortem
       | Interlude of interlude
       | Wardrobe
+      | Command of command
 
     type showinfo =
         { name : string,

@@ -24,7 +24,18 @@ struct
 
     structure LM = ListMenuFn(val screen = screen)
     structure Configure = ConfigureFn(val screen = screen)
-        
+
+    local open Womb
+        val dash = [[I], [I], [I], []]
+        val gap : Womb.light list list = List.tabulate(10, fn _ => nil)
+    in
+
+        val womb_pattern =
+            Womb.pattern 0w60
+            (dash @ gap @
+             dash @ dash @ dash @ gap @
+             dash @ dash @ gap @ gap)
+    end
 
     val profile = 
         let in
@@ -76,12 +87,12 @@ struct
                     (* XXX *)
                     fun noteon (ch, note, vel, inst) =
                         let in
-                            Womb.liteon (Vector.sub(Womb.lights, note mod Vector.length Womb.lights));
+                            (* Womb.liteon (Vector.sub(Womb.lights, note mod Vector.length Womb.lights)); *)
                             Sound.noteon (ch, note, Sound.midivel vel, inst)
                         end
                     fun noteoff (ch, note) =
                         let in
-                            Womb.liteoff (Vector.sub(Womb.lights, note mod Vector.length Womb.lights));
+                            (* Womb.liteoff (Vector.sub(Womb.lights, note mod Vector.length Womb.lights)); *)
                             Sound.noteoff (ch, note)
                         end
 
@@ -499,6 +510,7 @@ struct
             and heartbeat () = 
                 let 
                     val () = Song.update ()
+                    val () = Womb.maybenext womb_pattern
                     val () = loopplay ()
                     val now = S.getticks ()
                 in

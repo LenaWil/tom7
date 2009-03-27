@@ -1,8 +1,10 @@
 show | Belvedere's | 27 March 2009
 
+command | womboff
 song | petrolscore.mid | | | #440000
 post
-interlude | YOU GOT | WOMB
+command | wombon
+interlude | YOU GOT LASER | SUSPENSION WOMB
 song | gatoradescore.mid | | | #000044
 song | siloscore.mid | | | #440022
 song | jlwscore.mid | | | #123456

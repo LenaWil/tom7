@@ -41,7 +41,8 @@ struct
 
     fun setmiss b = domiss := b
   end
-
+  
+  exception EarlyExit
 
   (* This is the main loop. There are three mutually recursive functions.
      The loop function checks input and deals with it appropriately.
@@ -227,6 +228,8 @@ struct
                       let in
                         (case e of
                              SDL.E_KeyDown { sym = SDL.SDLK_ESCAPE } => raise Abort
+                                 (* Skip to end of song, for show emergencies. *)
+                           | SDL.E_KeyDown { sym = SDL.SDLK_n } => raise EarlyExit
                            | SDL.E_Quit => raise Hero.Exit
                            | e =>
                                (* Currently, allow events from any device to be for Player 1, since
@@ -266,6 +269,6 @@ struct
            if Song.done failcursor
            then ()
            else loop (playcursor, drawcursor, failcursor)
-      end
+      end handle EarlyExit => ()
 
 end

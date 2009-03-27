@@ -178,10 +178,15 @@ functor WombFn(W : RAW_WOMB where type light = Word32.word) :> WOMB =
 struct
     open W
 
+    val disabled = ref false
+
     (* assume it starts off *)
     val cur = ref (0w0 : Word32.word)
 
-    fun signal_raw w = (cur := w; W.signal_raw w)
+    fun signal_raw w = 
+        if !disabled
+        then ()
+        else (cur := w; W.signal_raw w)
 
     fun signal ls = signal_raw (foldr Word32.orb 0w0 ls)
 
@@ -214,6 +219,9 @@ struct
         if SDL.getticks() >= !nexttime
         then next p
         else ()
+
+    fun disable () = (signal_raw 0w0; disabled := true)
+    fun enable () = disabled := false
 
 end
 

@@ -75,4 +75,7 @@ sig
     (* Call as often as you wish. *)
     val maybenext : pattern -> unit
 
+    val disable : unit -> unit
+    val enable : unit -> unit
+
 end
