@@ -22,8 +22,8 @@
 
 
              ,---,----,         +---------+
-     hat    / a b  e f \        |       i |  board
-   (front) /  c d  g h  \       |         |
+     hat   j/ a b  e f \l       |       i |  board
+   (front)k/  c d  g h  \m      |         |
           |              |      +---------+
            `---~~~~-----'
               brim
@@ -38,6 +38,10 @@
    g    25        green
    h    24        blue
    i    27        red
+   j    29        red laser  (back)
+   k    30        red laser  (fore)
+   l    10        red laser  (back)
+   m     9        red laser  (fore)
 *)
 structure RawWomb :> RAW_WOMB where type light = Word32.word =
 struct
@@ -100,8 +104,14 @@ struct
     val G = Word32.<<(0w1, 0w25)
     val H = Word32.<<(0w1, 0w24)
     val I = Word32.<<(0w1, 0w27)
+    val J = Word32.<<(0w1, 0w29)
+    val K = Word32.<<(0w1, 0w30)
+    val L = Word32.<<(0w1, 0w10)
+    val M = Word32.<<(0w1, 0w9)
 
-    val lights = Vector.fromList [A, B, C, D, E, F, G, H]
+    val lights = Vector.fromList [A, B, C, D, E, F, G, H,
+                                  (* lasers *)
+                                  J, K, L, M]
 
 (* C version tuned to each platform. *)
     exception Womb of string
