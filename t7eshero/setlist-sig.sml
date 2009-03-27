@@ -19,7 +19,7 @@ sig
 
     datatype background =
         BG_SOLID of SDL.color
-      | BG_RANDOM
+      | BG_RANDOM of int (* frames between swaps *)
 
     datatype command =
         WombOn

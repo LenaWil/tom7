@@ -84,17 +84,19 @@ struct
                         
                     val c = ref 100
                 in
-                    SDL.fillrect (screen, 0, 0, SDL.width, SDL.height,
+                    SDL.fillrect (screen, 0, 0, Sprites.width, Sprites.height,
                                   SDL.color (0wx22, 0wx00, 0wx00, 0wxFF));
                     Items.app_behind (!outfit) drawitem;
                     blitall(Vector.sub(Sprites.humps, !humpframe), screen, X_ROBOT, Y_ROBOT);
                     Items.app_infront (!outfit) drawitem;
 
+                    (*
                     List.app (fn item =>
                               let in
                                   FontSmall.draw(screen, 10, !c, Items.name item);
                                   c := FontSmall.height + !c
                               end) closet;
+                    *)
 
                     (* and messages. *)
                     FontMax.draw(screen, (Sprites.width - FontMax.sizex_plain message1) div 2, 

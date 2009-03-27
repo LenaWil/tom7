@@ -1,0 +1,85 @@
+
+
+Products
+ Remove 	 Unit Price 	 Qty 	 Subtotal
+40 Pin PIC Development Board with USB		$37.95		 $37.95
+
+USB Cable A to B - 6 Foot		$3.95		 $3.95
+Common BJT Transistors - NPN 2N3904		$0.68		 $13.60
+Super Bright LED - Red 10mm		$1.50		 $4.50
+Super Bright LED - Green 10mm		$1.50		 $4.50
+Super Bright LED - Blue 10mm
+
+
+Super bright 10mm LEDs. 4 of each color RGB @ $1.50:
+
+R http://www.sparkfun.com/commerce/product_info.php?products_id=8862
+G http://www.sparkfun.com/commerce/product_info.php?products_id=8861
+B http://www.sparkfun.com/commerce/product_info.php?products_id=8860
+
+Red was out of stock, so I got smaller but same-brightness yellow ones:
+http://www.sparkfun.com/commerce/product_info.php?products_id=530
+
+Need transistors to switch the lasers and LEDs. 20 @ $.68 (bulk discount)
+http://www.sparkfun.com/commerce/product_info.php?products_id=521
+
+USB dev board is the advance-based microcomputer architecture:
+http://www.sparkfun.com/commerce/product_info.php?products_id=8562
+
+ICD2 clone is used to program the PIC on the above.
+http://www.sparkfun.com/commerce/product_info.php?products_id=5
+
+
+USB cable to plug in ICD2 and to plug womb into computer. I have
+an extra sitting around so I only got this one. It's long so I
+can jump around while performing:
+http://www.sparkfun.com/commerce/product_info.php?products_id=513
+
+
+I ended up getting these lasers, though there are cheaper ones out
+there that I didn't trust:  8 @ $14.95
+http://www.sparkfun.com/commerce/product_info.php?products_id=594
+
+
+Pretty good for calculating resistance values:
+http://ledcalc.com/
+
+
+In the bag mike brought:
+
+big orange orange black: 33 ohm
+smaller orange blue black: 36 ohm
+(looks like some red blue black too? 26 ohm)
+
+
+LED calcs.
+For input voltage 7.22v
+
+  The big LEDs want 65--80mA at 3.2v. 56-66ohm is good. (two big ones in series)
+
+  The small yellow LEDs: 16-18 mA at 2.2v. 330 ohm is good.
+
+  Lasers: 35mA at 3.1v. 120ohm is good.
+
+
+Output bits on 4550 usb board:
+Basically all the unconnected pins can be put in digital I/O mode.
+
+All D ports are I/O:
+RD0,RD1,RD2     (RD3 is on-board LED, can be jumpered off)
+RD4,RD5,RD6,RD7
+
+All these C ports can be I/O:
+RC0,RC1,RC2
+RC6,RC7
+
+Also these:
+RE0,RE1,RE2
+
+All these A ports can be I/O:
+RA0,RA1,RA2,RA3,RA4,RA5
+
+RB0-RB3 can be digital I/O:
+RB0,RB1,RB2,RB3
+
+(total free: 25)

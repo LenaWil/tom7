@@ -24,6 +24,10 @@ struct
   val MEASURECOLOR = color(0wxDD, 0wx22, 0wx22, 0wxFF)
   val TSCOLOR      = color(0wx22, 0wxDD, 0wx22, 0wxFF)
 
+  (* for random mode *)
+  val lastcolor = ref(SDL.color (0wx00, 0wx55, 0wx00, 0wxFF))
+  val nexttime = ref (SDL.getticks())
+
   val background = ref (Setlist.BG_SOLID (SDL.color (0wx00, 0wx55, 0wx00, 0wxFF)))
       : Setlist.background ref
 
@@ -33,7 +37,7 @@ struct
   val timesig = ref ""
 
   (* in ms. *)
-  val STATSTIME = 0w10000
+  val STATSTIME = 0w13000
 
   (* Stats end after this time. *)
   val statstime = ref (0w0 : Word32.word)
@@ -117,22 +121,32 @@ struct
      (spanend - spanstart) div TICKSPERPIXEL) :: !spans
 
   fun draw () =
-    let in
-      (* clear non-bg area *)
+    let 
+        val now = SDL.getticks ()
+    in
+      (* clear non-game area *)
       (case !background of
            Setlist.BG_SOLID c =>
         SDL.fillrect (screen, Sprites.gamewidth, 0, 
                       Sprites.width - Sprites.gamewidth, Sprites.height, c)
-       | Setlist.BG_RANDOM =>
-         SDL.fillrect (screen, 
-                       Sprites.gamewidth, 0,
-                       Sprites.width - Sprites.gamewidth, Sprites.height,
-                       SDL.color(Word8.fromInt (Random.random_int() mod 256),
-                                 Word8.fromInt (Random.random_int() mod 256),
-                                 Word8.fromInt (Random.random_int() mod 256),
-                                 0wxFF)));
+         | Setlist.BG_RANDOM ticks =>
+           let in
+               if now >= !nexttime
+               then 
+                   let in
+                       lastcolor := SDL.color(Word8.fromInt (Random.random_int() mod 256),
+                                              Word8.fromInt (Random.random_int() mod 256),
+                                              Word8.fromInt (Random.random_int() mod 256),
+                                              0wxFF);
+                       nexttime := now + (Word32.fromInt ticks)
+                   end
+               else ();
+               SDL.fillrect (screen, 
+                             Sprites.gamewidth, 0,
+                             Sprites.width - Sprites.gamewidth, Sprites.height, !lastcolor)
+           end);
 
-      (* entire background first first *)
+      (* background image first *)
       blitall(S.background, screen, 0, 0);
 
       (* Song info. *)
@@ -143,7 +157,7 @@ struct
                  " ^1(" ^ !year ^ ")");
 
       (* Prev stats. *)
-      (case (SDL.getticks() <= !statstime, !prev) of
+      (case (now <= !statstime, !prev) of
            (true, SOME { song, allmedals, percent }) =>
                let in
                    FontSmall.draw (screen, Sprites.gamewidth + 16, 
