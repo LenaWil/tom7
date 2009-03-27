@@ -1,11 +1,13 @@
 
 TODO:
+  * MAKE 20 MINUTES!
   * don't die with bad profiles. just ignore them.
-  * writes fail on os x because of async?
+  * show time signature always
+  * show album covers
   * drums still work during postmortem?
   * drums lite lights?
   * light patterns when streak, FC, etc.
-s
+  * actually set drum patterns
   * way to skip song in emergency (eg show interrupted, crash)
 
 Definitely:
