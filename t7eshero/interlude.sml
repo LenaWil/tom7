@@ -1,4 +1,6 @@
 (* Pausing screen for interstitials. *)
+(* XXXX lots of this is duplicated from Wardrobe. The robot drawing code should be
+   factored out, in particular. *)
 structure Interlude =
 struct
 
@@ -28,7 +30,7 @@ struct
     end
 
     exception Done and Abort
-    fun loop profile =
+    fun loop profile (message1, message2) =
         let
             val () = Sound.all_off ()
 
@@ -58,20 +60,20 @@ struct
                           Match.Music (inst, _) =>
                           (case evt of
                                MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
-                             | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 
+                             (* XXX no midi in this interstitial? *)
+                             | MIDI.NOTEON(ch, note, vel) => () (* Sound.noteon (ch, note, 
                                                                            Sound.midivel vel, 
-                                                                           inst) 
+                                                                           inst) *)
                              | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
                              | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
                              | _ => ()))
                     nows
                 end
 
-
             and draw () =
                 let
-                    val X_ROBOT = 68
-                    val Y_ROBOT = 333
+                    val X_ROBOT = Sprites.width - (SDL.surface_width(Vector.sub(Sprites.humps, 0)) + 24)
+                    val Y_ROBOT = (Sprites.height - SDL.surface_height(Vector.sub(Sprites.humps, 0))) div 2
 
                     fun drawitem item =
                         let val (f, x, y) = Vector.sub(Items.frames item, !humpframe)
@@ -82,7 +84,7 @@ struct
                         
                     val c = ref 100
                 in
-                    blitall(background, screen, 0, 0);
+                    SDL.clearsurface (screen, SDL.color (0wx22, 0wx00, 0wx00, 0wxFF));
                     Items.app_behind (!outfit) drawitem;
                     blitall(Vector.sub(Sprites.humps, !humpframe), screen, X_ROBOT, Y_ROBOT);
                     Items.app_infront (!outfit) drawitem;
@@ -92,6 +94,15 @@ struct
                                   FontSmall.draw(screen, 10, !c, Items.name item);
                                   c := FontSmall.height + !c
                               end) closet;
+
+                    (* and messages. *)
+                    FontMax.draw(screen, (Sprites.width - FontMax.sizex_plain message1) div 2, 
+                                 16, Chars.fancy message1);
+                    FontMax.draw(screen, (Sprites.width - FontMax.sizex_plain message2) div 2,
+                                 (Sprites.height - 16) - FontMax.height, 
+                                 Chars.fancy message2);
+
+                    (* XXX possibly graphic? *)
                     ()
                 end
 
@@ -104,7 +115,7 @@ struct
                     (if !humpframe < 0
                      then (humpframe := 0; humprev := false)
                      else ());
-                    (if !humpframe >= (Vector.length Sprites.humps)
+                    (if !humpframe >= Vector.length Sprites.humps
                      then (humpframe := (Vector.length Sprites.humps - 1); 
                            humprev := true)
                      else ())
@@ -123,56 +134,36 @@ struct
                     else ()
                 end
 
-            val WIDTH = 256 - 16
-            fun itemheight _ = FontSmall.height + 1
-            fun drawitem (item, x, y, sel) =
-                let in
-                    (case item of
-                         NONE => FontSmall.draw(screen, x + (FontSmall.width - FontSmall.overlap) * 3, y, "^1Save outfit")
-                       | SOME item => 
-                          let in
-                             (if Items.has (!outfit) item
-                              then FontSmall.draw(screen, x, y, Chars.CHECKMARK)
-                              else ());
-                             FontSmall.draw(screen, x + (FontSmall.width - FontSmall.overlap) * 3, y, Items.name item)
-                          end)
+            and input () =
+                case pollevent () of
+                    SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Done
+                  | SOME E_Quit => raise Hero.Exit
+                  | SOME (E_KeyDown { sym = SDLK_ENTER }) => exit()
+                  | SOME e => 
+                        (case Input.map e of
+                             SOME (_, Input.ButtonDown b) => exit()
+                           | SOME (_, Input.ButtonUp b) => ()
+                           | SOME (_, Input.StrumUp) => ()
+                           | SOME (_, Input.StrumDown) => ()
+                           | _ => ())
+                  | NONE => ()
+
+            val nextd = ref 0w0
+            fun go () =
+                let 
+                    val () = heartbeat ()
+                    val () = input ()
+                    val now = getticks ()
+                in
+                    (if now > !nextd
+                     then (draw (); 
+                           nextd := now + MENUTICKS;
+                           flip screen)
+                     else ());
+                     go ()
                 end
-
-            fun repeat () =
-                (case LM.select { x = 8, y = 90,
-                                  width = WIDTH,
-                                  height = 200,
-                                  items = NONE :: map SOME closet,
-                                  drawitem = drawitem,
-                                  itemheight = itemheight,
-                                  bgcolor = SOME LM.DEFAULT_BGCOLOR,
-                                  selcolor = SOME (SDL.color (0wx44, 0wx44, 0wx77, 0wxFF)),
-                                  bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
-                                  parent = Drawable.drawable { draw = draw, heartbeat = heartbeat,
-                                                               resize = Drawable.don't }
-                                  } of
-                     NONE => raise Abort
-                   | SOME NONE => raise Done
-                   | SOME (SOME item) => 
-                         let in
-                             (if Items.has (!outfit) item
-                              then outfit := Items.remove (!outfit) item
-                              else outfit := Items.add (!outfit) item);
-                             (* XXX should keep current position in list, rather
-                                than jump to the top.*)
-                             repeat ()
-                         end)
-                
         in
-            (repeat () 
-             handle Done => 
-                 let in
-                     Profile.setoutfit profile (!outfit);
-                     Profile.save ()
-                 end
-                  | Abort => ());
-
-            Sound.all_off ()
+            go () handle Done => Sound.all_off ()
         end
 
 end

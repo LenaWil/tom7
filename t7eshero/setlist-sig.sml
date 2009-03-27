@@ -14,11 +14,8 @@ sig
           year : string,
           id : songid }
 
-    datatype interlude =
-        SwitchToGuitar
-      | SwitchToDrums
-      | GetWomb
-    (* WARP ZONE *)
+    (* message at top and bottom *)
+    type interlude = string * string
 
     datatype background =
         BG_SOLID of SDL.color

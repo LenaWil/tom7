@@ -105,7 +105,7 @@ struct
                     (if !humpframe < 0
                      then (humpframe := 0; humprev := false)
                      else ());
-                    (if !humpframe >= (Vector.length Sprites.humps)
+                    (if !humpframe >= Vector.length Sprites.humps
                      then (humpframe := (Vector.length Sprites.humps - 1); 
                            humprev := true)
                      else ())
