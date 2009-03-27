@@ -55,8 +55,9 @@ struct
       | medal2 AuthenticHammer = "Hammer"
 
     exception Done
-    fun loop (songid, profile, tracks, start_song : Word32.word) =
+    fun loop (songid, profile, tracks) =
         let
+            val start_song : Word32.word = 0w0 (* XXX *)
             val () = Sound.all_off ()
 
             val { misses, percent = (hit, total), ... } = Match.stats tracks
@@ -122,7 +123,7 @@ struct
 
             val nexta = ref 0w0
             val start_postmortem = SDL.getticks()
-	    val total_time = Real.fromInt (Word32.toInt (start_postmortem - start_song))
+            val total_time = Real.fromInt (Word32.toInt (start_postmortem - start_song))
             fun exit () = if SDL.getticks() - start_postmortem > MINIMUM_TIME
                           then raise Done
                           else ()
@@ -183,8 +184,8 @@ struct
                     val X_STRUM = 50
                     val Y_STRUM = Y_DANCE + FontSmall.height + 3
 
-		    val X_TIME = 50
-		    val Y_TIME = Y_STRUM + FontSmall.height + 3
+                    val X_TIME = 50
+                    val Y_TIME = Y_STRUM + FontSmall.height + 3
 
                     val X_MEDALS = 15
                     val X_MEDALTEXT = 15 + 64 + 8
@@ -212,10 +213,10 @@ struct
                                    "Strum: ^5" ^ Int.toString upstrums ^ "^0 up, ^5" ^
                                    Int.toString downstrums ^ "^0 down");
 
-		    FontSmall.draw(screen, X_TIME, Y_TIME,
-				   "Time: ^5" ^ Real.fmt (StringCvt.FIX (SOME 1)) 
-				   (total_time / 1000.0) ^ "^0s (^5" ^
-				   Real.fmt (StringCvt.FIX (SOME 2)) (total_time / 60000.0) ^ "^0m)");
+                    FontSmall.draw(screen, X_TIME, Y_TIME,
+                                   "Time: ^5" ^ Real.fmt (StringCvt.FIX (SOME 1)) 
+                                   (total_time / 1000.0) ^ "^0s (^5" ^
+                                   Real.fmt (StringCvt.FIX (SOME 2)) (total_time / 60000.0) ^ "^0m)");
 
                     app
                     (fn m =>

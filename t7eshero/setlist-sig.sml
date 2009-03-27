@@ -1,6 +1,8 @@
 signature SETLIST =
 sig
 
+    exception Setlist of string
+
     type songid
     type songinfo =
         { file : string,
@@ -43,6 +45,8 @@ sig
     val cmp : songid * songid -> order
     val tostring : songid -> string
     val fromstring : string -> songid option
+
+    val getsong : songid -> songinfo
 
     structure Map : ORD_MAP where type Key.ord_key = songid
 

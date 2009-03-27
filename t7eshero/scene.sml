@@ -1,8 +1,6 @@
 (* This is the description of what is currently "displayed", and the
    routine to draw that display to the actual screen. *)
-(* XXX sig *)
-functor SceneFn(val screen : SDL.surface
-                val missnum : int ref) =
+functor SceneFn(val screen : SDL.surface) (* XXX :> SCENE *) =
 struct
 
   (* PERF could keep 'lastscene' and only draw changes? *)
@@ -140,9 +138,9 @@ struct
            then Font.draw(screen, 4, y - Font.height, s) 
            else FontHuge.draw(screen, 4, y - FontHuge.height, s)) (!texts);
 
-      (if !missnum > 0
+      (if Stats.misses() > 0
        then FontHuge.draw (screen, 4, height - (FontHuge.height + 6),
-                           "^2" ^ Int.toString (!missnum) ^ " ^4 misses")
+                           "^2" ^ Int.toString (Stats.misses()) ^ " ^4 misses")
        else ());
 
        let
