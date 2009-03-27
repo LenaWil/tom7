@@ -5,8 +5,7 @@ TODO:
   * drums still work during postmortem?
   * drums lite lights?
   * light patterns when streak, FC, etc.
-  * lasers
-
+s
   * way to skip song in emergency (eg show interrupted, crash)
 
 Definitely:
