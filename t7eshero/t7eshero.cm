@@ -124,6 +124,7 @@ stats.sml
 scene.sml
 game.sml
 wardrobe.sml
+interlude.sml
 highscores.sml
 update.sml
 configure.sml
