@@ -49,7 +49,7 @@ struct
     val songfiles = [SONGS, SONGS_NONFREE]
 
     (* XXXX Definitely should do better than this! *)
-    val showfiles = ["belvederes.show"]
+    val showfiles = ["belvederes.show", "practice.show"]
 
     val cmp = String.compare
     val eq = op =
