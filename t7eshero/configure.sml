@@ -103,8 +103,10 @@ struct
       end
 
   (* Measure bandwidth of Womb.signal commands. *)
-  and configure_wombbench (loopplay : unit -> unit) _ =
+  and configure_wombbench (_ : unit -> unit) _ =
       let
+          (* disable, because it also diddles bits *)
+          fun loopplay () = ()
           val tx = TX.make { x = 0, y = 0, 
                              width = Sprites.gamewidth, height = Sprites.height,
                              bordercolor = NONE,
@@ -171,8 +173,11 @@ struct
       end
 
   (* don't care about womb's device; this is more for exploration *)
-  and configure_womb (loopplay : unit -> unit) _ =
+  and configure_womb (_ : unit -> unit) _ =
       let
+          (* disable, because it also diddles bits *)
+          fun loopplay () = ()
+
           val tx = TX.make { x = 0, y = 0, width = Sprites.gamewidth, height = Sprites.height,
                              bordercolor = NONE,
                              bgcolor = NONE }
