@@ -19,6 +19,7 @@ sig
 
     datatype background =
         BG_SOLID of SDL.color
+      | BG_RANDOM
 
     datatype showpart =
         Song of { song : songid,

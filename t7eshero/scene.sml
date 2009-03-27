@@ -122,7 +122,15 @@ struct
       (case !background of
            Setlist.BG_SOLID c =>
         SDL.fillrect (screen, Sprites.gamewidth, 0, 
-                      Sprites.width - Sprites.gamewidth, Sprites.height, c));
+                      Sprites.width - Sprites.gamewidth, Sprites.height, c)
+       | Setlist.BG_RANDOM =>
+         SDL.fillrect (screen, 
+                       Sprites.gamewidth, 0,
+                       Sprites.width - Sprites.gamewidth, Sprites.height,
+                       SDL.color(Word8.fromInt (Random.random_int()),
+                                         Word8.fromInt (Random.random_int()),
+                                         Word8.fromInt (Random.random_int()),
+                                         0wxFF)));
 
       (* entire background first first *)
       blitall(S.background, screen, 0, 0);
