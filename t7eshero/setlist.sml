@@ -30,6 +30,7 @@ struct
                   background : background }
       | Postmortem
       | Interlude of interlude
+      | Wardrobe
 
     type showinfo =
         { name : string,
@@ -149,6 +150,7 @@ struct
                                                        })
                                       end)
                        | ["post"] => SOME Postmortem
+                       | ["ward"] => SOME Wardrobe
                        | "interlude" :: l =>
                              (case l of
                                   ["switchtoguitar"] => SOME(Interlude SwitchToGuitar)

@@ -21,12 +21,12 @@
    actual values.
 
 
-             ,---,----,         +---------+
-     hat   j/ a b  e f \l       |       i |  board
-   (front)k/  c d  g h  \m      |         |
-          |              |      +---------+
-           `---~~~~-----'
-              brim
+              ,---,----,         +---------+
+     hat    j/ a b  e f \l       |       i |  board
+   (front) k/  c d  g h  \m      |         |
+           |              |      +---------+
+            `---~~~~-----'
+               brim
 
        bit(0-31)  color
    a    23        blue
@@ -113,6 +113,9 @@ struct
                                   (* lasers *)
                                   J, K, L, M]
 
+    val leds = Vector.fromList [A, B, C, D, E, F, G, H]
+    val lasers = Vector.fromList [J, K, L, M]
+
 (* C version tuned to each platform. *)
     exception Womb of string
     type light = Word32.word
@@ -184,6 +187,33 @@ struct
 
     fun liteon l = signal_raw (Word32.orb(!cur, l))
     fun liteoff l = signal_raw (Word32.andb(!cur, Word32.notb l))
+        
+    type pattern = 
+        { (* non-empty. *)
+          bits : Word32.word Vector.vector,
+          (* in 0 .. bits.length - 1 *)
+          cur : int ref,
+          period : Word32.word,
+          nexttime : Word32.word ref }
+
+    fun pattern w nil = pattern w [nil]
+      | pattern w l =
+          { bits = Vector.fromList (map (foldl Word32.orb 0w0) l),
+            cur = ref 0,
+            period = w,
+            nexttime = ref (w + SDL.getticks ()) }
+
+    fun next { bits, cur, period, nexttime } =
+        let in
+            cur := ((!cur + 1) mod Vector.length bits);
+            nexttime := SDL.getticks () + period;
+            signal_raw (Vector.sub(bits, !cur))
+        end
+
+    fun maybenext (p as { bits = _, cur = _, period = _, nexttime }) =
+        if SDL.getticks() >= !nexttime
+        then next p
+        else ()
 
 end
 

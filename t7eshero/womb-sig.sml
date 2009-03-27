@@ -18,12 +18,12 @@ sig
     val signal_raw : Word32.word -> unit
 
 (*
-             ,---,----,         +---------+
-     hat    / a b  e f \        |       i |  board
-   (front) /  c d  g h  \       |         |
-          |              |      +---------+
-           `---~~~~-----'
-              brim
+              ,---,----,         +---------+
+     hat    j/ a b  e f \l       |       i |  board
+   (front) k/  c d  g h  \m      |         |
+           |              |      +---------+
+            `---~~~~-----'
+               brim
 *)
 
     type light
@@ -36,8 +36,16 @@ sig
     val G : light
     val H : light
     val I : light
+    val J : light
+    val K : light
+    val L : light
+    val M : light
 
+    (* Everything, except board. *)
     val lights : light Vector.vector
+    (* Just LEDs *)
+    val leds : light Vector.vector
+    val lasers : light Vector.vector
 
     (* Call periodically *)
     val heartbeat : unit -> unit
@@ -55,5 +63,16 @@ sig
     (* change just this light's state *)
     val liteon : light -> unit
     val liteoff : light -> unit
+
+    (* cyclic pattern repeating at specific rate *)
+    type pattern
+    (* Number of ticks, then a list of sets of lights. *)
+    val pattern : Word32.word -> light list list -> pattern
+        
+    (* Force the next in sequence. *)
+    val next : pattern -> unit
+
+    (* Call as often as you wish. *)
+    val maybenext : pattern -> unit
 
 end

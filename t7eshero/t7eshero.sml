@@ -86,6 +86,12 @@ struct
                     doshow rest
                 end
             else doshow rest
+      | doshow (Setlist.Wardrobe :: rest) =
+            let in
+                Wardrobe.loop profile;
+                Sound.all_off();
+                doshow rest
+            end
 
     val () = doshow (#parts show)
                 handle Play.Abort =>

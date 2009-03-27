@@ -1,6 +1,5 @@
 
 TODO:
- * MANY HAPPY RETURNS END
   * don't die with bad profiles. just ignore them.
   * writes fail on os x because of async?
   * drums still work during postmortem?
