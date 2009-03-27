@@ -15,10 +15,9 @@ struct
           year : string,
           id : songid }
 
-    datatype interlude =
-        SwitchToGuitar
-      | SwitchToDrums
-      | GetWomb
+    (* message at top and bottom *)
+    type interlude = string * string
+      
 
     datatype background =
         BG_SOLID of SDL.color
@@ -151,12 +150,7 @@ struct
                                       end)
                        | ["post"] => SOME Postmortem
                        | ["ward"] => SOME Wardrobe
-                       | "interlude" :: l =>
-                             (case l of
-                                  ["switchtoguitar"] => SOME(Interlude SwitchToGuitar)
-                                | ["switchtodrums"] => SOME(Interlude SwitchToDrums)
-                                | ["getwomb"] => SOME(Interlude GetWomb)
-                                | _ => (print ("Bad interlude: " ^ s ^ "\n"); NONE))
+                       | ["interlude", m1, m2] => SOME(Interlude (m1, m2))
                        | _ => (print ("(" ^ f ^ ") Bad line: " ^ s ^ "\n"); NONE)) lines
                 in
                     case map trim (String.fields (StringUtil.ischar #"|") header) of

@@ -92,6 +92,12 @@ struct
                 Sound.all_off();
                 doshow rest
             end
+      | doshow (Setlist.Interlude (m1, m2) :: rest) =
+            let in
+                Interlude.loop profile (m1, m2);
+                Sound.all_off();
+                doshow rest
+            end
 
     val () = doshow (#parts show)
                 handle Play.Abort =>
