@@ -30,6 +30,7 @@ struct
   val title = ref ""
   val artist = ref ""
   val year = ref ""
+  val timesig = ref ""
 
   (* in ms. *)
   val STATSTIME = 0w10000
@@ -39,6 +40,9 @@ struct
   val prev = ref (NONE : { song : string,
                            allmedals : Hero.medal list,
                            percent : real } option)
+
+  fun settimesig (n, d) = timesig := "^3" ^ Int.toString n ^ "^1/^3" ^ Int.toString d ^ "^1 time"
+      
 
   (* XXX maybe init from stats so we don't get staging of push and this wrong? *)
   fun initfromsong ({ artist = aa, year = yy, title = tt, fave, hard, ... } :
@@ -227,9 +231,15 @@ struct
            else ()
        end;
 
-      (* XXX in stats pane *)
-      FontSmall.draw(screen, 4, height - (FontHuge.height * 2),
-                     "Dance distance: ^2" ^ Real.fmt (StringCvt.FIX (SOME 3)) (!State.dancedist) ^ "^0m" 
+       FontHuge.draw(screen,
+                     Sprites.gamewidth + 16,
+                     height - (FontHuge.height * 4),
+                     !timesig);
+       
+       FontSmall.draw(screen, 
+                      Sprites.gamewidth + 16, 
+                      height - (FontHuge.height * 3),
+                      "Dance distance: ^2" ^ Real.fmt (StringCvt.FIX (SOME 3)) (!State.dancedist) ^ "^0m" 
                      (*(" ^
                      Real.fmt (StringCvt.FIX (SOME 5)) 
                        (!State.dancedist / (real (Word32.toInt(SDL.getticks() - !State.dancetime)) / 1000.0))

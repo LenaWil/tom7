@@ -83,8 +83,11 @@ struct
                         (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
                         MIDI.META (MIDI.TEMPO n) => print ("TEMPO " ^ itos n ^ "\n")
                       | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
-                            print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
-                                   ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
+                            let in
+                                print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
+                                       ^ itos cpc ^ " bb: " ^ itos bb ^ "\n");
+                                Scene.settimesig (n, Util.pow 2 d)
+                            end
                       | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
              | Bar _ => () (* XXX could play metronome click *)
              | Score _ => ())

@@ -340,3 +340,6 @@ petrolscore.mid : petrolatum.mid $(ALL)
 
 gnocciscore.mid : gnocci.mid $(ALL)
 	../genscore.exe -history 4 -hammertime 36 $< 0 1 2 5 -o $@
+
+kakaoscore.mid : kakao.mid $(ALL)
+	../genscore.exe -history 5 -hammertime 36 $< 0 1 4 -o $@
