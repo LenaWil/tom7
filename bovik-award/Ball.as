@@ -1,0 +1,3 @@
+class Ball extends MovieClip {
+
+}

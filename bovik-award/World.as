@@ -7,12 +7,14 @@ class World extends MovieClip {
   var extent;
   var dx;
   var dy;
+  var bd; // ball diameter
 
   public function onLoad() {
     ball = this['ball'];
     extent = this['extent'];
     dx = 1;
     dy = -1;
+    bd = ball._width / 4;
   }
   
   public function onEnterFrame() {
@@ -47,14 +49,21 @@ class World extends MovieClip {
       if (o != 'ball' && o != 'extent' && this[o].isblock) {
 	// collide?
 	var block = this[o];
-	if (ball._x >= block._x &&
-	    ball._y >= block._y &&
-	    ball._x <= (block._x + block._width) &&
-	    ball._y <= (block._y + block._height)) {
+	if ((ball._x + bd) >= block._x &&
+	    (ball._y + bd) >= block._y &&
+	    (ball._x - bd) <= (block._x + block._width) &&
+	    (ball._y - bd) <= (block._y + block._height)) {
 	  block.isblock = false;
-	  block._visible = false;
-	  dx = -dx;
-	  dy = -dy;
+	  block.fade();
+	  
+	  var ex = (block._x + (block._width / 2)) - ball._x;
+	  var ey = (block._y + (block._width / 2)) - ball._y;
+	  
+	  if (Math.abs(ex) > Math.abs(ey)) {
+	    dx = -dx;
+	  } else {
+	    dy = -dy;
+	  }
 	}
       }
     }
