@@ -9,15 +9,18 @@ class Block extends MovieClip {
     birthtime = 0;
     isblock = true;
     // this.gotoAndStop(2);
+    this.stop();
   }
 
   public function fade() {
-    fadetime = 50;
+    this.play();
+    // fadetime = 50;
     // birthtime = 300;
-    this.gotoAndStop(2);
+    // this.gotoAndStop(2);
   }
 
   public function onEnterFrame() {
+    /*
     if (fadetime > 0) {
       this._alpha = 10 + fadetime * 2;
       fadetime--;
@@ -25,5 +28,6 @@ class Block extends MovieClip {
       // reborn?
 
     }
+    */
   }
 }
