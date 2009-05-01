@@ -60,12 +60,14 @@ struct
 
           fun noteon (ch, note, vel, inst) =
               let in
-                  Womb.liteon (Vector.sub(Womb.lights, note mod Vector.length Womb.lights));
+                  Womb.liteson[Vector.sub(Womb.leds, note mod Vector.length Womb.leds),
+                               Vector.sub(Womb.lasers, note mod Vector.length Womb.lasers)];
                   Sound.noteon (ch, note, Sound.midivel vel, inst)
               end
           fun noteoff (ch, note) =
               let in
-                  Womb.liteoff (Vector.sub(Womb.lights, note mod Vector.length Womb.lights));
+                  Womb.litesoff [Vector.sub(Womb.leds, note mod Vector.length Womb.leds),
+                                 Vector.sub(Womb.lasers, note mod Vector.length Womb.lasers)];
                   Sound.noteoff (ch, note)
               end
       in

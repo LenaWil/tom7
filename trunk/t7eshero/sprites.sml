@@ -13,10 +13,13 @@ struct
 
 (*  val screen = SDL.makefullscreen (width, height) *)
       (* XXX control by commandline flag *)
+  val FORCE_FULLSCREEN = true
   val screen = 
       case SDL.platform of
           SDL.OSX => SDL.makefullscreen (width, height)
-        | _ => SDL.makescreen (width, height)
+        | _ => if FORCE_FULLSCREEN
+               then SDL.makefullscreen (width, height)
+               else SDL.makescreen (width, height)
 
   val () = Hero.messagebox (Posix.FileSys.getcwd ())
 
