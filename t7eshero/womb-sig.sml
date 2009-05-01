@@ -64,6 +64,9 @@ sig
     val liteon : light -> unit
     val liteoff : light -> unit
 
+    val liteson : light list -> unit
+    val litesoff : light list -> unit
+
     (* cyclic pattern repeating at specific rate *)
     type pattern
     (* Number of ticks, then a list of sets of lights. *)

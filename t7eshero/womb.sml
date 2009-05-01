@@ -192,7 +192,10 @@ struct
 
     fun liteon l = signal_raw (Word32.orb(!cur, l))
     fun liteoff l = signal_raw (Word32.andb(!cur, Word32.notb l))
-        
+
+    fun liteson ls = signal_raw (Word32.orb(!cur, foldr Word32.orb 0w0 ls))
+    fun litesoff ls = signal_raw (Word32.andb(!cur, Word32.notb (foldr Word32.orb 0w0 ls)))
+
     type pattern = 
         { (* non-empty. *)
           bits : Word32.word Vector.vector,
@@ -225,4 +228,5 @@ struct
 
 end
 
-structure Womb = WombFn(BufferedRawWomb)
+(* structure Womb = WombFn(BufferedRawWomb) XXXXX *)
+structure Womb = WombFn(RawWomb)
