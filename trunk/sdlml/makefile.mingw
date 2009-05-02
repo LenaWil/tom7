@@ -1,12 +1,16 @@
 #                             -*- makefile -*-
 
-# probably shouldn't have a makefile for this library...
+# XXX probably shouldn't have a makefile for this library,
+# but a small example app would be useful.
 
 default : sdlml.o
 
 
 sdlml.o : sdlml.c
 	gcc -O `sdl-config --cflags` -c sdlml.c -o sdlml.o
+
+sdlnet.o : sdlnet.c
+	gcc -O `sdl-config --cflags` -c sdlnet.c -o sdlnet.o
 
 # not --cflags, that'll redefine main!
 win32main.o : win32main.c

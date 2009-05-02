@@ -1,3 +1,10 @@
+(* Simple DirectMedia Layer.
+
+   This is a partial SML interface to the SDL library, which can be
+   found at libsdl.org. It covers SDL and SDL_Image, the latter which
+   needs to have access to the internals of types like 'surface', (and
+   you pretty much always want it anyway). Other optional libraries
+   are in the same directory. *)
 signature SDL =
 sig
 
