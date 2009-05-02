@@ -1,7 +1,11 @@
 (* Keep track of global records. The authoritative store is on the
    server. A synchronization process allows the client to send new
-   high scores when updating.
-   *)
+   high scores when updating. Local records are scored in the profile
+   database; we send only the ones that beat the global record to
+   the server during synchronization. *)
+(* XXX Should generalize this to allow more than one high score per
+   song. The only thing that's tricky is knowing when a client-side
+   record is good enough to send to the server, and there only mildly. *)
 structure Highscores (* XXX SIG *) =
 struct
 
@@ -46,7 +50,7 @@ struct
        callback is called periodically with the number of
        bytes received so far and the total size, if known.
 
-       XXX needs a way to fail
+       XXX needs a way to fail  .. option durr
        *)
     fun get_url (url : string) (callback : int * int option -> unit) : string =
         (case url of
@@ -65,25 +69,24 @@ struct
                  callback (1000, SOME 1000)
              end)
 
-    (* get and write a new high scores file. *)
-    fun update_with parent (callback : string * int * int option -> unit) =
-        let
-            val scoredata = get_url (highscores_url ()) (fn (a, b) =>
-                                                         callback ("high scores", a, b))
-            val () = StringUtil.writefile HIGHSCORES scoredata
-            val () = loadscores ()
+    (* Is this performance worthy of prompting and uploading to the server? *)
+    fun is_new_record (sid : Setlist.songid, (name : string, 
+                                              { percent = _,
+                                                misses : int,
+                                                medals = _ } : Record.record,
+                                              when : IntInf.int)) : bool =
+        case SM.find(!scores, sid) of
+            NONE => true (* no global record for this song *)
+          (* Only way to beat it is to get fewer misses. *)
+          | SOME (mm, tt, nn) => misses < mm
 
+    fun send_scores parent (callback : string * int * int option -> unit) =
+        let
             (* All local records. *)
             val loc : (Setlist.songid * 
                        (string * Record.record * IntInf.int)) list =
                 Profile.local_records ()
-            (* Filter out ones that are beaten by the global high score table. *)
-            fun isbest (sid, (name, {percent = _, misses, medals = _}, t)) =
-                case SM.find(!scores, sid) of
-                    NONE => true (* no global record for this song *)
-                  (* Only way to beat it is to get fewer misses. *)
-                  | SOME (mm, tt, nn) => misses < mm
-            val loc = List.filter isbest loc
+            val loc = List.filter is_new_record loc
         in
             if List.null loc
             then Prompt.info parent "High scores synchronized!"
@@ -91,6 +94,18 @@ struct
                 (* Send to server.. *)
                 raise Highscores "unimplemented"
         end
+
+    (* get and write a new high scores file. *)
+    fun update_with parent (callback : string * int * int option -> unit) =
+        let
+            val scoredata = get_url (highscores_url ()) (fn (a, b) =>
+                                                         callback ("high scores", a, b))
+        in
+            StringUtil.writefile HIGHSCORES scoredata;
+            loadscores ();
+            (* When updating, also send our new scores *)
+            send_scores parent callback
+        end     
 
     structure TS = TextScroll(Sprites.FontSmall)
 
