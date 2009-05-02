@@ -63,6 +63,9 @@ fsutil-portable.sml
 ../sdlml/font-sig.sml
 ../sdlml/font.sml
 
+../sdlml/sdlnet-sig.sml
+../sdlml/sdlnet.sml
+
 (* Should probably be in SDLML *)
 drawable-sig.sml
 drawable.sml
@@ -125,6 +128,7 @@ scene.sml
 game.sml
 wardrobe.sml
 interlude.sml
+highscores-sig.sml
 highscores.sml
 update.sml
 configure.sml
