@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>
+	<name>neighborhoods.kml</name>
+	<StyleMap id="msn_ylw-pushpin">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin1</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sh_ylw-pushpin">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>cc000055</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sn_ylw-pushpin">
+		<IconStyle>
+			<scale>1.1</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+		<PolyStyle>
+			<color>ccffffff</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sn_ylw-pushpin0">
+		<PolyStyle>
+			<color>ccff0055</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin0">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin2</styleUrl>
+		</Pair>
+	</StyleMap>
+	<StyleMap id="msn_ylw-pushpin1">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin0</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin4</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sn_ylw-pushpin1">
+		<PolyStyle>
+			<color>cc000055</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sh_ylw-pushpin0">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>ccff00ff</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sn_ylw-pushpin2">
+		<PolyStyle>
+			<color>cc00aaff</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sh_ylw-pushpin1">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>cc000055</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin2">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin4</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin1</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sh_ylw-pushpin2">
+		<IconStyle>
+			<scale>1.3</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+		<PolyStyle>
+			<color>ccffffff</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin00">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin2</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin3</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sh_ylw-pushpin3">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>cc00aaff</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sh_ylw-pushpin4">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>ccff0055</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin3">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin3</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin0</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sn_ylw-pushpin3">
+		<PolyStyle>
+			<color>ccff00ff</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sn_ylw-pushpin4">
+		<PolyStyle>
+			<color>cc000055</color>
+		</PolyStyle>
+	</Style>
+	<Folder>
+		<name>Neighborhoods</name>
+		<open>1</open>
+		<description>Highly accurate neighborhood boundaries, based on maproom data (http://www.city.pittsburgh.pa.us/cp/maps/)</description>
+		<Placemark>
+			<name>Shadyside</name>
+			<styleUrl>#msn_ylw-pushpin0</styleUrl>
+			<Polygon>
+				<tessellate>1</tessellate>
+				<outerBoundaryIs>
+					<LinearRing>
+						<coordinates>
+-79.94730163854305,40.44709632144986,0 -79.93576296235011,40.44793863991156,0 -79.92965815982329,40.44982319694685,0 -79.92750980464969,40.45050792814028,0 -79.92401625378366,40.45193121390944,0 -79.92198955791763,40.45271262967054,0 -79.92074782011797,40.45290254382865,0 -79.91531665366935,40.45362235929646,0 -79.91233501836616,40.45400956947608,0 -79.91737115284126,40.45750446367759,0 -79.9213602956076,40.46016911729694,0 -79.92269794500386,40.46061561013766,0 -79.93407067923381,40.45726275444531,0 -79.93647959048063,40.45655374490999,0 -79.94149367916666,40.45506608750212,0 -79.9419516688212,40.45596223827754,0 -79.94423783741557,40.45527735472225,0 -79.94306356992837,40.45458255805748,0 -79.94964140136301,40.45259524120203,0 -79.94845674884006,40.44976421556278,0 -79.94730163854305,40.44709632144986,0 </coordinates>
+					</LinearRing>
+				</outerBoundaryIs>
+			</Polygon>
+		</Placemark>
+		<Placemark>
+			<name>Friendship</name>
+			<styleUrl>#msn_ylw-pushpin00</styleUrl>
+			<Polygon>
+				<tessellate>1</tessellate>
+				<outerBoundaryIs>
+					<LinearRing>
+						<coordinates>
+-79.93408132875197,40.45725833136895,0 -79.93425533126759,40.45756470043372,0 -79.93069007072296,40.46350878967523,0 -79.93448296408789,40.46478418609436,0 -79.93508223363408,40.46475622358692,0 -79.93582216313784,40.46294330402839,0 -79.93607866337364,40.46297261739688,0 -79.93705783418965,40.45757954275811,0 -79.9369196418332,40.45743896850282,0 -79.9364666074291,40.45655699440938,0 -79.93408132875197,40.45725833136895,0 </coordinates>
+					</LinearRing>
+				</outerBoundaryIs>
+			</Polygon>
+		</Placemark>
+		<Placemark>
+			<name>East Liberty</name>
+			<styleUrl>#msn_ylw-pushpin1</styleUrl>
+			<Polygon>
+				<tessellate>1</tessellate>
+				<outerBoundaryIs>
+					<LinearRing>
+						<coordinates>
+-79.92270007099876,40.46061279710447,0 -79.92135821278795,40.46016909111367,0 -79.91737428664071,40.4575032882056,0 -79.91664826792922,40.45810767177406,0 -79.91658170187564,40.45833477271442,0 -79.91561827728057,40.46006970507022,0 -79.91562744698864,40.46041954717352,0 -79.91582591488528,40.46129465919174,0 -79.91605905952137,40.46190696445348,0 -79.91639271480578,40.4624830090033,0 -79.91693431868744,40.46306738936863,0 -79.91773836712058,40.46388955916356,0 -79.91850552459259,40.46456860162416,0 -79.91882124500869,40.4647412719885,0 -79.91980684909773,40.46509970383325,0 -79.91940941782903,40.46578005406082,0 -79.91908734637414,40.46608385523188,0 -79.91871260965456,40.46627864046626,0 -79.91792636253032,40.46658160462587,0 -79.91738484586584,40.46672532757504,0 -79.91603023075278,40.46700683057773,0 -79.91689468630328,40.46855274170008,0 -79.92104875859454,40.46967835361556,0 -79.92626418347356,40.47153485830633,0 -79.9283522117677,40.47233538522889,0 -79.93120157867362,40.47344474336448,0 -79.93154546891485,40.47439378197042,0 -79.93152193062792,40.47232688529068,0 -79.93279015391741,40.4706384526161,0 -79.9275133433901,40.46876424029852,0 -79.93069222961904,40.46350722570755,0 -79.93425451974851,40.45756434497783,0 -79.93407849073795,40.45725932245472,0 -79.92270007099876,40.46061279710447,0 </coordinates>
+					</LinearRing>
+				</outerBoundaryIs>
+			</Polygon>
+		</Placemark>
+		<Placemark>
+			<name>Larimer</name>
+			<styleUrl>#msn_ylw-pushpin3</styleUrl>
+			<Polygon>
+				<tessellate>1</tessellate>
+				<outerBoundaryIs>
+					<LinearRing>
+						<coordinates>
+-79.91233780406685,40.4540120510847,0 -79.90940933235204,40.4567929680917,0 -79.90573618825681,40.46179626568782,0 -79.90558875106895,40.46227669248398,0 -79.90559358276013,40.46262013154123,0 -79.90569499889756,40.46300799032995,0 -79.90587477615914,40.4633496509112,0 -79.90848560292452,40.46691000691043,0 -79.90871534305217,40.46753207248401,0 -79.90874859400113,40.46793735364814,0 -79.90853454341402,40.47025994341897,0 -79.90906149340287,40.47027696320122,0 -79.90942601923669,40.4701959356787,0 -79.90972071504919,40.4700083453337,0 -79.91073318235839,40.46913495676026,0 -79.91101130896557,40.46893065904023,0 -79.91159900418717,40.46862028359864,0 -79.91437478904453,40.46746512855314,0 -79.91513192441957,40.46721139740271,0 -79.91603444722389,40.46700506707357,0 -79.91738736691981,40.46672040982949,0 -79.91793007386467,40.46657660027772,0 -79.91871319210678,40.46627454389088,0 -79.91909044798511,40.46607909011825,0 -79.91941423360306,40.46577484713038,0 -79.91981203957789,40.46509567185716,0 -79.91882356644318,40.46474002192845,0 -79.91851038479661,40.4645672795291,0 -79.91774245868355,40.46388724848299,0 -79.91693977303389,40.46306587256018,0 -79.91639599815638,40.46247796892581,0 -79.91606149557862,40.4619018825021,0 -79.91582815134615,40.46128924010202,0 -79.91562762769713,40.4604167658886,0 -79.9156180507559,40.46006571233428,0 -79.91658341849922,40.45833051861894,0 -79.91664977283345,40.45810462327007,0 -79.91737129017075,40.45749267240295,0 -79.91233780406685,40.4540120510847,0 </coordinates>
+					</LinearRing>
+				</outerBoundaryIs>
+			</Polygon>
+		</Placemark>
+		<Placemark>
+			<name>Homewood West</name>
+			<styleUrl>#msn_ylw-pushpin</styleUrl>
+			<Polygon>
+				<tessellate>1</tessellate>
+				<outerBoundaryIs>
+					<LinearRing>
+						<coordinates>
+-79.90548845415638,40.45525043361089,0 -79.9052752776349,40.4555270533718,0 -79.90278335067725,40.4549003564537,0 -79.9022135885804,40.45569808265139,0 -79.90111157844694,40.45849044224372,0 -79.89903725457593,40.46386463006191,0 -79.90065556602131,40.46423857291221,0 -79.90435947825803,40.463266767345,0 -79.90559898338186,40.46261599521327,0 -79.90558677893611,40.46227472424067,0 -79.90573801764842,40.46179119956764,0 -79.90940745424597,40.45678217456801,0 -79.90548845415638,40.45525043361089,0 </coordinates>
+					</LinearRing>
+				</outerBoundaryIs>
+			</Polygon>
+		</Placemark>
+		<Placemark>
+			<name>Homewood South</name>
+			<styleUrl>#msn_ylw-pushpin2</styleUrl>
+			<Polygon>
+				<tessellate>1</tessellate>
+				<outerBoundaryIs>
+					<LinearRing>
+						<coordinates>
+-79.90110108371165,40.45849358462873,0 -79.90221402683196,40.4556976163607,0 -79.90279434607216,40.45488434417777,0 -79.90529195484474,40.45552279146808,0 -79.90549699482898,40.45523436913656,0 -79.8947649744192,40.4509741112533,0 -79.89337033123563,40.45025877095004,0 -79.89251732422781,40.44952179747558,0 -79.89238490940669,40.45039896229753,0 -79.89109034757718,40.44994363291907,0 -79.89067406143906,40.44973706855913,0 -79.88911454126865,40.44849066727124,0 -79.8883589724601,40.44770954692325,0 -79.88594838464705,40.44691472509798,0 -79.88464133406251,40.44926768861341,0 -79.884140940214,40.44910521013704,0 -79.88488993251782,40.4519834696748,0 -79.88529642513802,40.45254037252517,0 -79.88599209253266,40.45505378324376,0 -79.90110108371165,40.45849358462873,0 </coordinates>
+					</LinearRing>
+				</outerBoundaryIs>
+			</Polygon>
+		</Placemark>
+	</Folder>
+</Document>
+</kml>
