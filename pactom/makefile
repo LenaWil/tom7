@@ -14,4 +14,4 @@ makepoints : makepoints.sml makepoints.cm  ../sml-lib/files/xml/xml.sml ../sml-l
 	mlton makepoints.cm
 
 points.kml : makepoints neighborhoods.kml
-	./makepoints > points.kml
+	time ./makepoints > points.kml

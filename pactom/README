@@ -2,3 +2,23 @@
 Code for the Pac Tom project.                                19 Nov 2008
 See http://radar.spacebar.org/f/a/weblog/category/1/pac_tom for details.
 
+
+neighborhoods.kml -   KML file containing Pittsburgh's neighborhoods
+                      as polygons. Based on the PDF maps from the
+                      Pittsburgh map room and believed to be public
+                      domain.
+
+                      The maps are fairly accurate (borders closely
+                      track landmarks like roads, rivers, and train
+                      tracks when possible). Curves are approximated
+                      with line segments. Borders that go through
+                      wooded areas (etc.) are eyeballed as well as
+                      I could from the PDFs, which also appear to
+                      be eyeballed.
+
+                      Currently in this file (because it is in
+                      progress) the points do not coincide exactly,
+                      but makepoints.sml shows how to normalize this
+                      with the sml-lib polygon library. A future
+                      version of this kml will probably have them
+                      normalized by default.
