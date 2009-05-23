@@ -2,119 +2,17 @@
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
 <Document>
 	<name>neighborhoods.kml</name>
-	<Style id="sh_ylw-pushpin7">
+	<Style id="sn_ylw-pushpin70">
+		<PolyStyle>
+			<color>cc00ff55</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sh_ylw-pushpin100">
 		<IconStyle>
 			<scale>1.2</scale>
 		</IconStyle>
-		<PolyStyle>
-			<color>cc206aff</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sn_ylw-pushpin110">
-		<PolyStyle>
-			<color>cc0000ff</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sn_ylw-pushpin">
-		<IconStyle>
-			<scale>1.1</scale>
-			<Icon>
-				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
-			</Icon>
-			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
-		</IconStyle>
-		<PolyStyle>
-			<color>cc3effa5</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sn_ylw-pushpin80">
-		<IconStyle>
-			<scale>1.1</scale>
-			<Icon>
-				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
-			</Icon>
-			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
-		</IconStyle>
-		<PolyStyle>
-			<color>ccffffff</color>
-		</PolyStyle>
-	</Style>
-	<StyleMap id="msn_ylw-pushpin03">
-		<Pair>
-			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin40</styleUrl>
-		</Pair>
-		<Pair>
-			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin21</styleUrl>
-		</Pair>
-	</StyleMap>
-	<Style id="sn_ylw-pushpin60">
 		<PolyStyle>
 			<color>ccff0055</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sn_ylw-pushpin05">
-		<PolyStyle>
-			<color>ccffff00</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sh_ylw-pushpin21">
-		<IconStyle>
-			<scale>1.2</scale>
-		</IconStyle>
-		<PolyStyle>
-			<color>cc00aaff</color>
-		</PolyStyle>
-	</Style>
-	<StyleMap id="msn_ylw-pushpin60">
-		<Pair>
-			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin05</styleUrl>
-		</Pair>
-		<Pair>
-			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin12</styleUrl>
-		</Pair>
-	</StyleMap>
-	<StyleMap id="msn_ylw-pushpin80">
-		<Pair>
-			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin101</styleUrl>
-		</Pair>
-		<Pair>
-			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin60</styleUrl>
-		</Pair>
-	</StyleMap>
-	<Style id="sh_ylw-pushpin8">
-		<IconStyle>
-			<scale>1.3</scale>
-			<Icon>
-				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
-			</Icon>
-			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
-		</IconStyle>
-		<PolyStyle>
-			<color>ccff5500</color>
-		</PolyStyle>
-	</Style>
-	<StyleMap id="msn_ylw-pushpin9">
-		<Pair>
-			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin80</styleUrl>
-		</Pair>
-		<Pair>
-			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin80</styleUrl>
-		</Pair>
-	</StyleMap>
-	<Style id="sh_ylw-pushpin9">
-		<IconStyle>
-			<scale>1.2</scale>
-		</IconStyle>
-		<PolyStyle>
-			<color>ccff55ff</color>
 		</PolyStyle>
 	</Style>
 	<StyleMap id="msn_ylw-pushpin50">
@@ -127,22 +25,19 @@
 			<styleUrl>#sh_ylw-pushpin9</styleUrl>
 		</Pair>
 	</StyleMap>
-	<Style id="sn_ylw-pushpin8">
+	<Style id="sn_ylw-pushpin40">
 		<PolyStyle>
-			<color>cc206aff</color>
+			<color>cc00aaff</color>
 		</PolyStyle>
 	</Style>
-	<Style id="sh_ylw-pushpin110">
-		<IconStyle>
-			<scale>1.2</scale>
-		</IconStyle>
+	<Style id="sn_ylw-pushpin50">
 		<PolyStyle>
-			<color>ccff55ff</color>
+			<color>ccffff55</color>
 		</PolyStyle>
 	</Style>
-	<Style id="sn_ylw-pushpin12">
+	<Style id="sn_ylw-pushpin110">
 		<PolyStyle>
-			<color>ccff55ff</color>
+			<color>cc0000ff</color>
 		</PolyStyle>
 	</Style>
 	<StyleMap id="msn_ylw-pushpin101">
@@ -155,6 +50,18 @@
 			<styleUrl>#sh_ylw-pushpin51</styleUrl>
 		</Pair>
 	</StyleMap>
+	<Style id="sh_ylw-pushpin80">
+		<IconStyle>
+			<scale>1.3</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+		<PolyStyle>
+			<color>ccffffff</color>
+		</PolyStyle>
+	</Style>
 	<StyleMap id="msn_ylw-pushpin110">
 		<Pair>
 			<key>normal</key>
@@ -165,6 +72,11 @@
 			<styleUrl>#sh_ylw-pushpin90</styleUrl>
 		</Pair>
 	</StyleMap>
+	<Style id="sn_ylw-pushpin60">
+		<PolyStyle>
+			<color>ccff0055</color>
+		</PolyStyle>
+	</Style>
 	<StyleMap id="msn_ylw-pushpin41">
 		<Pair>
 			<key>normal</key>
@@ -175,12 +87,16 @@
 			<styleUrl>#sh_ylw-pushpin100</styleUrl>
 		</Pair>
 	</StyleMap>
-	<Style id="sh_ylw-pushpin90">
+	<Style id="sh_ylw-pushpin13">
 		<IconStyle>
-			<scale>1.2</scale>
+			<scale>1.3</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
 		</IconStyle>
 		<PolyStyle>
-			<color>cc0000ff</color>
+			<color>cc3effa5</color>
 		</PolyStyle>
 	</Style>
 	<StyleMap id="msn_ylw-pushpin120">
@@ -193,19 +109,187 @@
 			<styleUrl>#sh_ylw-pushpin06</styleUrl>
 		</Pair>
 	</StyleMap>
+	<Style id="sh_ylw-pushpin110">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>ccff55ff</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sh_ylw-pushpin60">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>cc000055</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin14">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin8</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin13</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sn_ylw-pushpin80">
+		<IconStyle>
+			<scale>1.1</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+		<PolyStyle>
+			<color>ccffffff</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin140">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin81</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin7</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sh_ylw-pushpin51">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>cc7f0000</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin21">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin50</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin120</styleUrl>
+		</Pair>
+	</StyleMap>
 	<Style id="sn_ylw-pushpin9">
 		<PolyStyle>
 			<color>ccff00ff</color>
 		</PolyStyle>
 	</Style>
-	<StyleMap id="msn_ylw-pushpin">
+	<StyleMap id="msn_ylw-pushpin15">
 		<Pair>
 			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin</styleUrl>
+			<styleUrl>#sn_ylw-pushpin14</styleUrl>
 		</Pair>
 		<Pair>
 			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin0</styleUrl>
+			<styleUrl>#sh_ylw-pushpin110</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sh_ylw-pushpin21">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>cc00aaff</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin16">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin13</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin8</styleUrl>
+		</Pair>
+	</StyleMap>
+	<StyleMap id="msn_ylw-pushpin31">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin70</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin70</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sh_ylw-pushpin121">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>ccffff00</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sh_ylw-pushpin40">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>ccff00ff</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin70">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin9</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin40</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sh_ylw-pushpin06">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>cc00ffff</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sh_ylw-pushpin8">
+		<IconStyle>
+			<scale>1.3</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+		<PolyStyle>
+			<color>ccff5500</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin03">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin40</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin21</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sh_ylw-pushpin120">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>ccffff55</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin60">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin05</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin121</styleUrl>
 		</Pair>
 	</StyleMap>
 	<Style id="sh_ylw-pushpin70">
@@ -216,14 +300,64 @@
 			<color>cc00ff55</color>
 		</PolyStyle>
 	</Style>
-	<StyleMap id="msn_ylw-pushpin14">
+	<StyleMap id="msn_ylw-pushpin80">
 		<Pair>
 			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin8</styleUrl>
+			<styleUrl>#sn_ylw-pushpin101</styleUrl>
 		</Pair>
 		<Pair>
 			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin7</styleUrl>
+			<styleUrl>#sh_ylw-pushpin60</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sh_ylw-pushpin7">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>cc206aff</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin9">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin80</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin80</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sn_ylw-pushpin05">
+		<PolyStyle>
+			<color>ccffff00</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sn_ylw-pushpin">
+		<IconStyle>
+			<scale>1.1</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+		<PolyStyle>
+			<color>cc0055ff</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sn_ylw-pushpin23">
+		<PolyStyle>
+			<color>cc7f0000</color>
+		</PolyStyle>
+	</Style>
+	<StyleMap id="msn_ylw-pushpin">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin0</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin0</styleUrl>
 		</Pair>
 	</StyleMap>
 	<Style id="sn_ylw-pushpin13">
@@ -238,122 +372,24 @@
 			<color>ccff5500</color>
 		</PolyStyle>
 	</Style>
-	<StyleMap id="msn_ylw-pushpin21">
-		<Pair>
-			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin50</styleUrl>
-		</Pair>
-		<Pair>
-			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin120</styleUrl>
-		</Pair>
-	</StyleMap>
-	<Style id="sn_ylw-pushpin70">
-		<PolyStyle>
-			<color>cc00ff55</color>
-		</PolyStyle>
-	</Style>
-	<StyleMap id="msn_ylw-pushpin15">
-		<Pair>
-			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin14</styleUrl>
-		</Pair>
-		<Pair>
-			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin110</styleUrl>
-		</Pair>
-	</StyleMap>
-	<StyleMap id="msn_ylw-pushpin16">
-		<Pair>
-			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin13</styleUrl>
-		</Pair>
-		<Pair>
-			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin8</styleUrl>
-		</Pair>
-	</StyleMap>
-	<Style id="sn_ylw-pushpin14">
-		<PolyStyle>
-			<color>ccff55ff</color>
-		</PolyStyle>
-	</Style>
-	<StyleMap id="msn_ylw-pushpin31">
-		<Pair>
-			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin70</styleUrl>
-		</Pair>
-		<Pair>
-			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin70</styleUrl>
-		</Pair>
-	</StyleMap>
-	<Style id="sh_ylw-pushpin100">
-		<IconStyle>
-			<scale>1.2</scale>
-		</IconStyle>
-		<PolyStyle>
-			<color>ccff0055</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sh_ylw-pushpin80">
-		<IconStyle>
-			<scale>1.3</scale>
-			<Icon>
-				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
-			</Icon>
-			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
-		</IconStyle>
-		<PolyStyle>
-			<color>ccffffff</color>
-		</PolyStyle>
-	</Style>
-	<StyleMap id="msn_ylw-pushpin70">
-		<Pair>
-			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin9</styleUrl>
-		</Pair>
-		<Pair>
-			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin40</styleUrl>
-		</Pair>
-	</StyleMap>
 	<Style id="sn_ylw-pushpin32">
 		<PolyStyle>
 			<color>cc00ffff</color>
 		</PolyStyle>
 	</Style>
-	<Style id="sh_ylw-pushpin06">
-		<IconStyle>
-			<scale>1.2</scale>
-		</IconStyle>
+	<StyleMap id="msn_ylw-pushpin0">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#sn_ylw-pushpin</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#sh_ylw-pushpin</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="sn_ylw-pushpin12">
 		<PolyStyle>
-			<color>cc00ffff</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sn_ylw-pushpin0">
-		<IconStyle>
-			<scale>1.1</scale>
-			<Icon>
-				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
-			</Icon>
-			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
-		</IconStyle>
-		<PolyStyle>
-			<color>cc0055ff</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sh_ylw-pushpin120">
-		<IconStyle>
-			<scale>1.2</scale>
-		</IconStyle>
-		<PolyStyle>
-			<color>ccffff55</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sn_ylw-pushpin50">
-		<PolyStyle>
-			<color>ccffff55</color>
+			<color>ccff55ff</color>
 		</PolyStyle>
 	</Style>
 	<Style id="sh_ylw-pushpin">
@@ -368,32 +404,52 @@
 			<color>cc0055ff</color>
 		</PolyStyle>
 	</Style>
-	<Style id="sn_ylw-pushpin40">
-		<PolyStyle>
-			<color>cc00aaff</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sh_ylw-pushpin51">
+	<Style id="sh_ylw-pushpin9">
 		<IconStyle>
 			<scale>1.2</scale>
 		</IconStyle>
 		<PolyStyle>
-			<color>cc7f0000</color>
+			<color>ccff55ff</color>
 		</PolyStyle>
 	</Style>
-	<StyleMap id="msn_ylw-pushpin0">
-		<Pair>
-			<key>normal</key>
-			<styleUrl>#sn_ylw-pushpin0</styleUrl>
-		</Pair>
-		<Pair>
-			<key>highlight</key>
-			<styleUrl>#sh_ylw-pushpin</styleUrl>
-		</Pair>
-	</StyleMap>
-	<Style id="sh_ylw-pushpin0">
+	<Style id="sn_ylw-pushpin101">
+		<PolyStyle>
+			<color>cc000055</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sn_ylw-pushpin0">
 		<IconStyle>
-			<scale>1.3</scale>
+			<scale>1.1</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+		<PolyStyle>
+			<color>cc00ff55</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sn_ylw-pushpin14">
+		<PolyStyle>
+			<color>ccff55ff</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sn_ylw-pushpin81">
+		<PolyStyle>
+			<color>cc206aff</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sh_ylw-pushpin90">
+		<IconStyle>
+			<scale>1.2</scale>
+		</IconStyle>
+		<PolyStyle>
+			<color>cc0000ff</color>
+		</PolyStyle>
+	</Style>
+	<Style id="sn_ylw-pushpin8">
+		<IconStyle>
+			<scale>1.1</scale>
 			<Icon>
 				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
 			</Icon>
@@ -403,38 +459,16 @@
 			<color>cc3effa5</color>
 		</PolyStyle>
 	</Style>
-	<Style id="sn_ylw-pushpin101">
-		<PolyStyle>
-			<color>cc000055</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sh_ylw-pushpin60">
+	<Style id="sh_ylw-pushpin0">
 		<IconStyle>
-			<scale>1.2</scale>
+			<scale>1.3</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+			</Icon>
+			<hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
 		</IconStyle>
 		<PolyStyle>
-			<color>cc000055</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sh_ylw-pushpin40">
-		<IconStyle>
-			<scale>1.2</scale>
-		</IconStyle>
-		<PolyStyle>
-			<color>ccff00ff</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sh_ylw-pushpin12">
-		<IconStyle>
-			<scale>1.2</scale>
-		</IconStyle>
-		<PolyStyle>
-			<color>ccffff00</color>
-		</PolyStyle>
-	</Style>
-	<Style id="sn_ylw-pushpin23">
-		<PolyStyle>
-			<color>cc7f0000</color>
+			<color>cc00ff55</color>
 		</PolyStyle>
 	</Style>
 	<Folder>
@@ -612,7 +646,7 @@
 		</Placemark>
 		<Placemark>
 			<name>Beltzhoover</name>
-			<styleUrl>#msn_ylw-pushpin14</styleUrl>
+			<styleUrl>#msn_ylw-pushpin140</styleUrl>
 			<Polygon>
 				<tessellate>1</tessellate>
 				<outerBoundaryIs>
@@ -644,20 +678,33 @@
 				<outerBoundaryIs>
 					<LinearRing>
 						<coordinates>
--80.00830835075468,40.41178430163569,0 -80.00859119924257,40.41220148877157,0 -80.00903839891213,40.41258553270927,0 -80.01003763134176,40.41305860420758,0 -80.01035073329904,40.41251273663082,0 -80.01134482833825,40.41160979217252,0 -80.01182532554824,40.41142075119527,0 -80.0149356920527,40.41067095691439,0 -80.01539267090982,40.41052708763155,0 -80.0156909854225,40.410356353388,0 -80.01764485273191,40.40858860479833,0 -80.01791833026735,40.40825549419977,0 -80.01818066698561,40.40770776402647,0 -80.0184672621036,40.40645524446214,0 -80.01907160148808,40.40450320618557,0 -80.01921579384805,40.40421989830215,0 -80.01948332324859,40.4038772953385,0 -80.02227159475009,40.40165199782798,0 -80.02384898930953,40.40008990999397,0 -80.02616840150003,40.39833638721022,0 -80.02937801407454,40.39721380449754,0 -80.03113761391609,40.39662784640975,0 -80.03072724499613,40.39536047317672,0 -80.030771548606,40.39506128850783,0 -80.0286666012079,40.39123742361061,0 -80.02784072626827,40.39162487607547,0 -80.01811408046297,40.38642321096143,0 -80.01711631602574,40.38629911423025,0 -80.01642026463189,40.38512096586727,0 -80.01497378831715,40.38603477138151,0 -80.01387539659152,40.38653901309376,0 -80.013530744108,40.38607056945484,0 -80.01359336041753,40.38558968572661,0 -80.01412519541687,40.385633727167,0 -80.01336299625089,40.38348558683874,0 -80.01262082328812,40.38340317043327,0 -80.0127520646658,40.38277022267195,0 -80.01233696138115,40.38274981498338,0 -80.01243219434178,40.38266159875117,0 -80.0131622973023,40.38269541976311,0 -80.01300217155524,40.38174353208647,0 -80.01249527947859,40.38047916256909,0 -80.01056950392936,40.38004298071198,0 -80.0103275160281,40.38061286877831,0 -80.00910196472223,40.38106151351409,0 -80.00906416225818,40.38117855210579,0 -80.00893004960302,40.38119212887037,0 -80.00815735427487,40.38090937973608,0 -80.00803538801769,40.38092189632581,0 -80.00770711523765,40.38114962095497,0 -80.00742406567323,40.38092599510117,0 -80.0072184494596,40.3816438006634,0 -80.00784089377237,40.3830547934834,0 -80.00645822371897,40.38351391036184,0 -80.00638103094029,40.38441944048248,0 -80.00702601989254,40.38614819287447,0 -80.00796035305893,40.38759685632821,0 -80.00745395070923,40.38803098976229,0 -80.00751700915535,40.38829452791509,0 -80.00715837522068,40.38838653216371,0 -80.0071168140886,40.38851389860277,0 -80.00743054742416,40.38885473029854,0 -80.00709146455642,40.38901098753063,0 -80.00691003273261,40.38879864509268,0 -80.00661194540129,40.38870096939959,0 -80.00590022138852,40.38866327789769,0 -80.00588435639502,40.38838629164052,0 -80.00472805377258,40.38835156369098,0 -80.00280347570188,40.38872643401277,0 -80.00218941677686,40.38822755272561,0 -79.99920097427338,40.38894871393181,0 -79.99944792471379,40.39036348015707,0 -79.99817960658395,40.39058961408369,0 -79.99823963065829,40.39041401912351,0 -79.99792868436393,40.39042849276377,0 -79.99791677839063,40.39135352210567,0 -79.99796193722754,40.39218101022473,0 -79.99765269926206,40.39296325414322,0 -79.9973774418792,40.39299009034459,0 -79.99740982308802,40.39351791194426,0 -79.99732747354555,40.39495699946809,0 -79.99741671678115,40.39525945465607,0 -79.99752942038472,40.3954766137722,0 -79.99981407287964,40.39824607100166,0 -80.00007318297394,40.39873534831828,0 -80.00020366708722,40.39917103665307,0 -80.00054200078228,40.40165788438434,0 -80.00067207601194,40.40209645299328,0 -80.00170373201779,40.40190449311803,0 -80.00221718529402,40.40351270139723,0 -80.00248008894297,40.4039485480299,0 -80.00277331128464,40.40428120266807,0 -80.00506636616893,40.4059147549989,0 -80.00538542341121,40.40627749127967,0 -80.00551694191566,40.40648917631212,0 -80.00565982486124,40.40684727280055,0 -80.00569997226702,40.40707135200029,0 -80.00569862869341,40.40728552674649,0 -80.00560132320577,40.40831805259655,0 -80.00560782735472,40.4084842208097,0 -80.00564415609257,40.40869931632358,0 -80.0057181139877,40.40888926005943,0 -80.00581905717338,40.40906944141225,0 -80.0059554014759,40.40925157279047,0 -80.00619365088184,40.40947457569206,0 -80.00644264883005,40.40964327622024,0 -80.00721754108363,40.41007030490324,0 -80.00747595673282,40.41028746662399,0 -80.0077657155687,40.41064714053211,0 -80.00830835075468,40.41178430163569,0 </coordinates>
+-80.00830835075468,40.41178430163569,0 -80.00859119924257,40.41220148877157,0 -80.00903839891213,40.41258553270927,0 -80.01003763134176,40.41305860420758,0 -80.01035073329904,40.41251273663082,0 -80.01134482833825,40.41160979217252,0 -80.01182532554824,40.41142075119527,0 -80.0149356920527,40.41067095691439,0 -80.01539267090982,40.41052708763155,0 -80.0156909854225,40.410356353388,0 -80.01764485273191,40.40858860479833,0 -80.01791833026735,40.40825549419977,0 -80.01818066698561,40.40770776402647,0 -80.0184672621036,40.40645524446214,0 -80.01907160148808,40.40450320618557,0 -80.01921579384805,40.40421989830215,0 -80.01948332324859,40.4038772953385,0 -80.02227159475009,40.40165199782798,0 -80.02384898930953,40.40008990999397,0 -80.02616840150003,40.39833638721022,0 -80.02937801407454,40.39721380449754,0 -80.03113761391609,40.39662784640975,0 -80.03072724499613,40.39536047317672,0 -80.030771548606,40.39506128850783,0 -80.0286666012079,40.39123742361061,0 -80.02784072626827,40.39162487607547,0 -80.01811408046297,40.38642321096143,0 -80.01711631602574,40.38629911423025,0 -80.01642026463189,40.38512096586727,0 -80.01497378831715,40.38603477138151,0 -80.01387539659152,40.38653901309376,0 -80.013530744108,40.38607056945484,0 -80.01359336041753,40.38558968572661,0 -80.01412519541687,40.385633727167,0 -80.01336299625089,40.38348558683874,0 -80.01262082328812,40.38340317043327,0 -80.0127520646658,40.38277022267195,0 -80.01233696138115,40.38274981498338,0 -80.01243219434178,40.38266159875117,0 -80.0131622973023,40.38269541976311,0 -80.01300217155524,40.38174353208647,0 -80.01249527947859,40.38047916256909,0 -80.01056950392936,40.38004298071198,0 -80.0103275160281,40.38061286877831,0 -80.00910196472223,40.38106151351409,0 -80.00906416225818,40.38117855210579,0 -80.00893004960302,40.38119212887037,0 -80.00815735427487,40.38090937973608,0 -80.00803538801769,40.38092189632581,0 -80.00770711523765,40.38114962095497,0 -80.00742406567323,40.38092599510117,0 -80.0072184494596,40.3816438006634,0 -80.00784089377237,40.3830547934834,0 -80.00645822371897,40.38351391036184,0 -80.00638103094029,40.38441944048248,0 -80.00702601989254,40.38614819287447,0 -80.00796035305893,40.38759685632821,0 -80.00745395070923,40.38803098976229,0 -80.00751700915535,40.38829452791509,0 -80.00715837522068,40.38838653216371,0 -80.0071168140886,40.38851389860277,0 -80.00743054742416,40.38885473029854,0 -80.00709146455642,40.38901098753063,0 -80.00691003273261,40.38879864509268,0 -80.00661194540129,40.38870096939959,0 -80.00590022138852,40.38866327789769,0 -80.00588435639502,40.38838629164052,0 -80.00472805377258,40.38835156369098,0 -80.00280347570188,40.38872643401277,0 -80.00218941677686,40.38822755272561,0 -79.99920097427338,40.38894871393181,0 -79.99944792471379,40.39036348015707,0 -79.99817960658395,40.39058961408369,0 -79.99823963065829,40.39041401912351,0 -79.99792868436393,40.39042849276377,0 -79.99791677839063,40.39135352210567,0 -79.99796193722754,40.39218101022473,0 -79.99765269926206,40.39296325414322,0 -79.9973774418792,40.39299009034459,0 -79.99740982308802,40.39351791194426,0 -79.99732747354555,40.39495699946809,0 -79.99736097983497,40.3951673425841,0 -79.99745594686515,40.39538068647867,0 -79.99766697298379,40.39564946441224,0 -79.99981407287964,40.39824607100166,0 -80.00007318297394,40.39873534831828,0 -80.00020366708722,40.39917103665307,0 -80.00054200078228,40.40165788438434,0 -80.00067207601194,40.40209645299328,0 -80.00170373201779,40.40190449311803,0 -80.00221718529402,40.40351270139723,0 -80.00248008894297,40.4039485480299,0 -80.00277331128464,40.40428120266807,0 -80.00506636616893,40.4059147549989,0 -80.00538542341121,40.40627749127967,0 -80.00551694191566,40.40648917631212,0 -80.00565982486124,40.40684727280055,0 -80.00569997226702,40.40707135200029,0 -80.00569862869341,40.40728552674649,0 -80.00560132320577,40.40831805259655,0 -80.00560782735472,40.4084842208097,0 -80.00564415609257,40.40869931632358,0 -80.0057181139877,40.40888926005943,0 -80.00581905717338,40.40906944141225,0 -80.0059554014759,40.40925157279047,0 -80.00619365088184,40.40947457569206,0 -80.00644264883005,40.40964327622024,0 -80.00721754108363,40.41007030490324,0 -80.00747595673282,40.41028746662399,0 -80.00830835075468,40.41178430163569,0 </coordinates>
 					</LinearRing>
 				</outerBoundaryIs>
 			</Polygon>
 		</Placemark>
 		<Placemark>
 			<name>Beechview</name>
-			<styleUrl>#msn_ylw-pushpin</styleUrl>
+			<styleUrl>#msn_ylw-pushpin14</styleUrl>
 			<Polygon>
 				<tessellate>1</tessellate>
 				<outerBoundaryIs>
 					<LinearRing>
 						<coordinates>
 -80.02227735181192,40.40164797595977,0 -80.01948281996894,40.40387339905714,0 -80.01921689176095,40.40421768548842,0 -80.01907514762091,40.40449973629256,0 -80.01847053299416,40.40645223422535,0 -80.01818151122703,40.40770518565152,0 -80.01791957499252,40.40825417910602,0 -80.01764831748419,40.40858578697466,0 -80.01569204390043,40.41035273447488,0 -80.01539468688559,40.4105235261712,0 -80.01494038816463,40.41067013682942,0 -80.0118270870074,40.41141937311276,0 -80.01134601962082,40.41160539290813,0 -80.01035225242045,40.41251061686941,0 -80.01003578643447,40.41305812711774,0 -80.0109771578439,40.41353897783676,0 -80.01387466096998,40.41441078678783,0 -80.0144629042092,40.41472072124297,0 -80.01485455370191,40.41505348694943,0 -80.01517279786567,40.41547294956006,0 -80.01534319164949,40.41580913953921,0 -80.01610977964195,40.41825185269912,0 -80.01618630048782,40.41860573951435,0 -80.01620560389671,40.41909709993042,0 -80.01608191147132,40.41986363679196,0 -80.01610645101576,40.42022731836948,0 -80.01623016689271,40.42061598040309,0 -80.01646091462409,40.42098569188102,0 -80.01774182667866,40.42240124153705,0 -80.01962688621995,40.42399704778639,0 -80.02025989321231,40.4237735759738,0 -80.02072859040096,40.42357625039596,0 -80.02113158614539,40.42336979305748,0 -80.02138682809418,40.42350831094642,0 -80.02134733006339,40.42367957250642,0 -80.02150000661756,40.42436146160271,0 -80.02134479119688,40.42464264832942,0 -80.02107560513777,40.42515176682901,0 -80.02165040919536,40.42540293207956,0 -80.02259255097536,40.42565956261679,0 -80.02337728308565,40.42592423042606,0 -80.02423618326749,40.42635036608285,0 -80.02500432888579,40.42694337600381,0 -80.02545908903008,40.42744855378138,0 -80.0265599446938,40.42880508029406,0 -80.02703892552553,40.42930170656252,0 -80.02746976428952,40.42958728667956,0 -80.02806205418209,40.42993945428253,0 -80.02916065052268,40.42917128341112,0 -80.02960139212676,40.4288179779092,0 -80.02997884068282,40.42844073464488,0 -80.03043337194478,40.42783484794491,0 -80.03067428100884,40.42730266167573,0 -80.03084435275189,40.42680587430127,0 -80.0309331591674,40.42622358206022,0 -80.0309228095805,40.42557465727084,0 -80.03080494604113,40.42484398005568,0 -80.03038032518268,40.42458243837444,0 -80.03013477816612,40.42432457735565,0 -80.02997509653503,40.42401447884593,0 -80.02977015521735,40.42334990349173,0 -80.02964808109834,40.4225991893939,0 -80.0299974203994,40.41523075102654,0 -80.03017423391135,40.41442998509355,0 -80.03081713933804,40.41239628666803,0 -80.03174539136769,40.40985741485667,0 -80.03258133062838,40.40838799870985,0 -80.03301001740044,40.4078109711622,0 -80.03352154832663,40.40738586988447,0 -80.03421206002237,40.40701969041105,0 -80.03400168220469,40.40668515107332,0 -80.03377378444674,40.40617930000488,0 -80.03442877088865,40.40595119806021,0 -80.03473935636492,40.40594012542992,0 -80.03504805987973,40.40587239084953,0 -80.03523129197298,40.40575743244546,0 -80.03550918974899,40.40525188412939,0 -80.03630013533518,40.40530198315663,0 -80.03634450314728,40.40420956042819,0 -80.03541123800531,40.40431206937976,0 -80.03538815430703,40.40406620311584,0 -80.0356667867873,40.40172395513788,0 -80.03681785736835,40.40071815373526,0 -80.0324837758052,40.40169002953008,0 -80.03136758944694,40.40036821367323,0 -80.03172730083442,40.40003711320552,0 -80.02938034167734,40.39721200006631,0 -80.02617468365381,40.39833425621115,0 -80.02384960243808,40.400088434259,0 -80.02227735181192,40.40164797595977,0 </coordinates>
+					</LinearRing>
+				</outerBoundaryIs>
+			</Polygon>
+		</Placemark>
+		<Placemark>
+			<name>Overbrook</name>
+			<styleUrl>#msn_ylw-pushpin</styleUrl>
+			<Polygon>
+				<tessellate>1</tessellate>
+				<outerBoundaryIs>
+					<LinearRing>
+						<coordinates>
+-79.99765547136624,40.39296414923249,0 -79.99796632228993,40.39216973103159,0 -79.9979170095943,40.39135310170333,0 -79.99792789440654,40.39042911586469,0 -79.99823926530959,40.39041570873762,0 -79.99818141576253,40.39058845460286,0 -79.99945822188822,40.3903600953291,0 -79.99920401293115,40.38894972606776,0 -80.00218814923709,40.38822645524358,0 -80.00280168354844,40.38872532407566,0 -80.00473058130093,40.38835002924969,0 -80.0058868670055,40.38838515190732,0 -80.00590381901701,40.3886615590642,0 -80.00661694930464,40.38869747395071,0 -80.00691310132497,40.38880330195261,0 -80.00709234325392,40.38900964710874,0 -80.00743603571502,40.38884839711076,0 -80.0071171112601,40.38850947225194,0 -80.00715849335556,40.38838526404344,0 -80.00751885059547,40.3882923269795,0 -80.00745529587871,40.38803047677756,0 -80.00796203626561,40.38759762161908,0 -80.00702569360011,40.38614174220346,0 -80.00638176539533,40.38441904940718,0 -80.00646126744553,40.38351304247352,0 -80.00525763533859,40.3839005816058,0 -80.00387991658513,40.38222895559005,0 -80.00329223120116,40.38132810530448,0 -80.00153819966941,40.37985828162483,0 -80.00290989918996,40.37890887777282,0 -80.0042299116446,40.37821162603077,0 -80.0050083848502,40.37744125386951,0 -80.0056408213503,40.37668849394239,0 -80.0062545939788,40.37528699813186,0 -80.00672113863668,40.37487080654551,0 -80.00563139649715,40.37460752215833,0 -80.00420634795391,40.37394730284468,0 -80.00371096775375,40.37442588425763,0 -80.00105451229592,40.37484040937472,0 -79.99903827005983,40.37709696812561,0 -79.99770496840908,40.37624201890063,0 -79.99544759260451,40.37565372213422,0 -79.99401921082122,40.37584444336584,0 -79.99413647011286,40.37666705576226,0 -79.99411866349247,40.37694323502328,0 -79.99406459766789,40.3771967695023,0 -79.99359067791779,40.37828029988862,0 -79.99275339361762,40.37870358940455,0 -79.99193356533779,40.37874799116778,0 -79.99101886696587,40.3789507278771,0 -79.99042908487104,40.37892336396565,0 -79.98964962324213,40.37873923781518,0 -79.98595030592824,40.37802607691083,0 -79.98479528844116,40.37955676646411,0 -79.98555123686299,40.38070395671616,0 -79.98419236759436,40.38159590625212,0 -79.98652292424615,40.38175261415762,0 -79.98695670150843,40.3844671047662,0 -79.98780103644953,40.38438741540647,0 -79.98835969264185,40.38431466456133,0 -79.98899685323397,40.38411797301994,0 -79.98961834952264,40.38400684583837,0 -79.9901268093803,40.38397788082778,0 -79.99171560727335,40.38396395610265,0 -79.99213054221065,40.38392703326748,0 -79.9928900891821,40.38377445553918,0 -79.99311456348372,40.38378657310557,0 -79.9936531649884,40.38393188582181,0 -79.99293785895213,40.38449534080897,0 -79.99031747979342,40.38504292075476,0 -79.99053266379569,40.38567144337313,0 -79.9920075563744,40.3853885420147,0 -79.99196152212937,40.38569766025273,0 -79.99221418055639,40.38744769486523,0 -79.99095016667776,40.38776333904669,0 -79.99108518335179,40.38815720937105,0 -79.99108111374831,40.38845691003865,0 -79.99103753122405,40.38895512070941,0 -79.99126383899542,40.38955776523844,0 -79.99168682236181,40.3902648308225,0 -79.99219668373425,40.39008765742901,0 -79.99250522297584,40.39020216616685,0 -79.99256851936066,40.3904812772853,0 -79.99297702174796,40.39046687724468,0 -79.99322592371287,40.39147432804,0 -79.99283949334226,40.39155184084985,0 -79.99281322196765,40.39187551229409,0 -79.99265523459684,40.39187192346751,0 -79.99264022325309,40.39202991644177,0 -79.99280192116157,40.3920632386257,0 -79.99280186081587,40.39222857382549,0 -79.99344492054063,40.39235725788396,0 -79.9935309442841,40.39262063654756,0 -79.99436436988601,40.3924838845027,0 -79.99449752849397,40.39322896277133,0 -79.99534499468885,40.3931579607,0 -79.99549078573891,40.39426804265184,0 -79.99562057035897,40.39441372793186,0 -79.99629518937593,40.39445809358209,0 -79.99629929230794,40.3945337330568,0 -79.9971219382969,40.39569607901627,0 -79.99713888954356,40.39560633268789,0 -79.99745403788893,40.39538159829066,0 -79.99736121782375,40.39516670139243,0 -79.99733016186018,40.39495143676349,0 -79.99741401966402,40.3935152094557,0 -79.99738446551019,40.39298516916066,0 -79.99765547136624,40.39296414923249,0 </coordinates>
 					</LinearRing>
 				</outerBoundaryIs>
 			</Polygon>
