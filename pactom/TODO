@@ -1,0 +1,6 @@
+
+plot actual distance (& bearing?) from home over run distance (or fraction of run)
+
+for captured area, only fill if the start and finish are 100m or closer
+
+tosvg 3d world runner, use mercator projection
