@@ -39,9 +39,25 @@ struct
               
           val normed = PointLocation.normalize 0.00002 (!polys)
 
+          local 
+              val home = LatLon.fromdegs { lat = 40.452911, lon = ~79.936313 }
+              val projection = LatLon.gnomonic home
+              fun scalex x = x * 80000.0
+              fun scaley y = y * ~80000.0
+          in
+              val scaled = ListUtil.mapsecond (fn poly =>
+                                               Polygon.frompoints (map (fn (lon, lat) =>
+                                                                        let 
+                                                                            val pt = LatLon.fromdegs { lat = lat, lon = lon }
+                                                                            val (x, y) = projection pt
+                                                                        in
+                                                                            (scalex x, scaley y)
+                                                                        end) (Polygon.points poly))) normed
+          end
+
           val f = TextIO.openOut "neighborhoods-locator-test.svg"
               (* XXX needs massive scaling! Also, conversion to x/y. *)
-          val () = PointLocation.tosvg (PointLocation.locator normed) (fn s => TextIO.output (f, s))
+          val () = PointLocation.tosvg (PointLocation.locator scaled) (fn s => TextIO.output (f, s))
           val () = TextIO.closeOut f
       in
           List.concat (map (Polygon.points o #2) normed)
