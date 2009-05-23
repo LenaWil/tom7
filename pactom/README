@@ -12,9 +12,13 @@ neighborhoods.kml -   KML file containing Pittsburgh's neighborhoods
                       track landmarks like roads, rivers, and train
                       tracks when possible). Curves are approximated
                       with line segments. Borders that go through
-                      wooded areas (etc.) are eyeballed as well as
-                      I could from the PDFs, which also appear to
-                      be eyeballed.
+                      wooded areas (etc.) are eyeballed as well as I
+                      could from the PDFs, which also appear to be
+                      eyeballed. The quality varies depending on the
+                      characteristics of the neighborhood. Shadyside
+                      is probably accurate within a few dozen square
+                      feet, whereas Hays is almost completely
+                      guesswork.
 
                       Currently in this file (because it is in
                       progress) the points do not coincide exactly,
