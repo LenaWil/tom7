@@ -1050,6 +1050,85 @@ struct
           end
   end
 
+  local val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
+  in
+      fun clippixel (s, x, y, c) =
+          let
+              val (r, g, b, _) = components32 c
+          in
+              if x < 0 orelse y < 0
+                 orelse x >= surface_width s
+                 orelse y >= surface_height s
+              then ()
+              else dp (!!s, x, y, r, g, b)
+          end
+  end
+
+  local val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
+  in
+      fun drawcircle (ss, x0, y0, radius, c) =
+          let
+              val s = !!ss
+              val (r, g, b, _) = components32 c
+
+              val sw = surface_width ss
+              val sh = surface_height ss
+
+              fun clippixel (x, y) =
+                  if x < 0 orelse y < 0
+                     orelse x >= sw
+                     orelse y >= sh
+                  then ()
+                  else dp (s, x, y, r, g, b)
+
+              val f = 1 - radius
+              val ddF_x = 1
+              val ddF_y = ~2 * radius
+              val x = 0
+              val y = radius
+
+              val () = clippixel(x0, y0 + radius)
+              val () = clippixel(x0, y0 - radius)
+              val () = clippixel(x0 + radius, y0)
+              val () = clippixel(x0 - radius, y0)
+
+              fun loop (x, y, f, ddF_x, ddF_y) =
+                  if x < y
+                  then 
+                      let
+                          (*
+                          val () =
+                              print ("x: " ^ Int.toString x ^
+                                     " y: " ^ Int.toString y ^
+                                     " f: " ^ Int.toString f ^
+                                     " ddfx: " ^ Int.toString ddF_x ^
+                                     " ddfy: " ^ Int.toString ddF_y ^ "\n")
+                              *)
+                          val (y, f, ddF_y) =
+                              if f >= 0
+                              then (y - 1, 2 + f + ddF_y, 2 + ddF_y)
+                              else (y, f, ddF_y)
+                          val x = x + 1
+                          val ddF_x = ddF_x + 2
+                          val f = ddF_x + f
+                      in
+                          clippixel(x0 + x, y0 + y);
+                          clippixel(x0 - x, y0 + y);
+                          clippixel(x0 + x, y0 - y);
+                          clippixel(x0 - x, y0 - y);
+                          clippixel(x0 + y, y0 + x);
+                          clippixel(x0 - y, y0 + x);
+                          clippixel(x0 + y, y0 - x);
+                          clippixel(x0 - y, y0 - x);
+                          loop (x, y, f, ddF_x, ddF_y)
+                      end
+                  else ()
+          in
+              loop (x, y, f, ddF_x, ddF_y)
+          end
+
+  end
+
   (* PERF: similar *)
   (* XXX no alpha.. *)
   local val gp = _import "ml_getpixela" : ptr * int * int * Word8.word ref * Word8.word ref * Word8.word ref * Word8.word ref -> unit ;

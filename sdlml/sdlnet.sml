@@ -58,4 +58,6 @@ struct
               | n => CharVector.tabulate (n, fn i => Array.sub(a, i))
         end
 
+    fun 
+
 end
