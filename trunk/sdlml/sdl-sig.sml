@@ -1,10 +1,3 @@
-(* Simple DirectMedia Layer.
-
-   This is a partial SML interface to the SDL library, which can be
-   found at libsdl.org. It covers SDL and SDL_Image, the latter which
-   needs to have access to the internals of types like 'surface', (and
-   you pretty much always want it anyway). Other optional libraries
-   are in the same directory. *)
 signature SDL =
 sig
 
@@ -336,7 +329,13 @@ sig
 
   (* draw a pixel to the surface. XXX the alpha component is ignored. *)
   val drawpixel : surface * int * int * color -> unit
+  val clippixel : surface * int * int * color -> unit
   val getpixel  : surface * int * int -> color
+
+  (* drawcircle surf x y radius color
+     draws a circle (not filled)
+     *)
+  val drawcircle : surface * int * int * int * color -> unit
 
   (* Blit a pixel with proper alpha compositing. XXX not implemented *)
   val blitpixel : surface * int * int * color -> unit

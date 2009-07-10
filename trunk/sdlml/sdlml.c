@@ -337,7 +337,7 @@ void ml_getpixel(SDL_Surface *surf, int x, int y,
   default:
     printf("want 32bpp\n");
     abort();
-    }
+  }
 }
 
 void ml_getpixela(SDL_Surface *surf, int x, int y,
