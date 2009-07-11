@@ -4,7 +4,7 @@ struct
 
   exception ToSVG of string
 
-  val x = XML.parsefile "pactom.kml"
+  val x = XML.parsefile (* "pactom.kml" *) "rct.kml"
       handle (e as (XML.XML s)) => (print ("Error: " ^ s); raise e)
 
   datatype tree = datatype XML.tree
