@@ -18,4 +18,4 @@ struct
         fun random_bool () = 0w0 = Word32.andb(0wx000008000, random ())
 
     end
-end
+end.

@@ -14,6 +14,8 @@
 ;; XXX
 ; (load "c:\\code\\sitelisp\\lost.el")
 
+(add-to-list 'load-path "/Users/twm/tom7misc/sitelisp")
+
 (defun frame-settings (f)
   (progn
     (if (null f) () (select-frame f))
@@ -73,6 +75,9 @@
 (global-set-key "\C-]" 'cycle-recent-forward)
 (global-set-key "\C-p" 'cycle-recent-backward)
 (global-set-key "\C-xm" 'shell-make)
+;; aquamacs redefines these??
+(global-set-key [C-right] 'forward-word)
+(global-set-key [C-left] 'backward-word)
 
 (defun shell-make ()
   (interactive "")
@@ -318,17 +323,25 @@
 (add-hook 'text-mode-hook 'tab-nonsense)
 (add-hook 'fundamental-mode 'tab-nonsesne)
 
+(defun untabify-buffer (&optional noisy)
+  "This untabifies the entire buffer, leaving the cursor where it is. (But destroying the mark.) Provide argument and no message will be printed."
+  (interactive "P")
+  (save-excursion
+    (untabify (point-min) (point-max))
+    (if noisy () (message "Untabified Buffer"))
+  ))
+
 (defun untabify-before-save ()
   (progn 
     (untabify-buffer 0)
     nil))
-  
 
 (defun save-without-tabs ()
   (progn
     (add-hook 'local-write-file-hooks 'untabify-before-save)
     nil))
 
+; (setq sml-mode-hook nil)
 (add-hook 'sml-mode-hook 'save-without-tabs)
 ;; XXX move to aphasia mode
 (add-hook 'aphasia-mode-hook 'turn-on-font-lock)
