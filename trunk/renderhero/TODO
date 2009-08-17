@@ -1,5 +1,10 @@
 
-noise pitch? (with lowpass/highpass?)
+These are notes for my synth/tracker I'd like to write, since this is
+the closest thing to code for that.
+
+effect based on very low-bitrate MP3
+
+noise pitch? (with lowpass/highpass?) (already did this in t7eshero)
 
 too many simultaneous noise notes sounds very bad
 

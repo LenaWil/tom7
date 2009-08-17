@@ -7,7 +7,8 @@
    
    Updating works like this. We fetch a file at a known URL from the
    t7eshero server for the platform (platform.manifests) which lists
-   all of the available components for that platform:
+   all of the available components (some meaningful set of files) for
+   that platform:
 
    component1   r   This is some required component.
    component2   o   This is an optional component.
@@ -49,8 +50,6 @@
    tell the various modules in the application to reload their stuff,
    if necessary.
 
-   TODO: Platform-specific manifest that allows updating the game and
-   its libraries.
 *)
 structure Update (* XXX SIG *) =
 struct

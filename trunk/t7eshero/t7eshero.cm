@@ -33,6 +33,9 @@ fsutil-portable.sml
 ../sml-lib/util/simplestream-sig.sml
 ../sml-lib/util/simplestream.sml
 
+../sml-lib/util/growmonoarray-sig.sml
+../sml-lib/util/growmonoarray.sml
+
 ../sml-lib/util/script-sig.sml
 ../sml-lib/util/script.sml
 

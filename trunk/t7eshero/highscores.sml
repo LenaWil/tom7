@@ -50,6 +50,7 @@ struct
        callback is called periodically with the number of
        bytes received so far and the total size, if known.
 
+       XXX obviously, not a real implementation yet
        XXX needs a way to fail  .. option durr
        *)
     fun get_url (url : string) (callback : int * int option -> unit) : string =
