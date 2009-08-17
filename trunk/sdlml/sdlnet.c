@@ -25,3 +25,26 @@ int ml_resolvehost(char *name, Uint32 *addr) {
     return -1;
   }
 }
+
+TCPsocket ml_tcp_open(int addr, int port) {
+  IPaddress ip;
+  ip.host = addr;
+  ip.port = port;
+  return SDLNet_TCP_Open(&ip);
+}
+
+void ml_getpeeraddress(TCPSocket sock, int *addr, int *port) {
+  IPaddress *ip = SDLNet_TCP_GetPeerAddress(sock);
+  if (!ip) {
+    *addr = 0;
+    *port =0;
+  } else {
+    *addr = ip->host;
+    *port = ip->port;
+  }
+}
+
+int ml_send_offset(TCPSock sock, char *bytes, int offset, int len) {
+  return SDLNet_TCP_Send(sock, bytes + offset, len);
+}
+
