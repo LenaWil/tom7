@@ -1,5 +1,5 @@
 
-default : renderhero.exe
+default : renderhero.exe dumpmidi.exe
 
 
 sdlml.o : ../sdlml/sdlml.c
@@ -27,5 +27,9 @@ renderhero.exe : sdlml.o sound.o win32main.o renderhero.sml renderhero.cm makefi
 
 #	mlton @MLton max-heap 200m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -DDEBUG_X86CODEGEN -Dmain=SDL_main" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz" -output renderhero.exe -default-ann 'allowFFI true' renderhero.cm sdlml.o sound.o win32main.o
 
+
+dumpmidi.exe : dumpmidi.sml dumpmidi.cm makefile.mingw ../sml-lib/files/midi/*.sml
+	mlton @MLton max-heap 400m -- -const 'Exn.keepHistory true' dumpmidi.cm
+
 clean :
-	rm -f renderhero.exe *.o core
+	rm -f renderhero.exe dumpmidi.exe *.o core
