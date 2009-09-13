@@ -17,7 +17,7 @@ struct
           (* number of full lines that can fit. start empty. *)
           content = LN.buffer (height div (F.height), "") }
 
-    (* XXX from textscroll *)
+    (* XXX from textscroll.cc *)
     val DEFAULT_BGCOLOR = SDL.color (0wx26, 0wx26, 0wx26, 0wxAA)
     val DEFAULT_BORDERCOLOR = SDL.color (0wx00, 0wx00, 0wx00, 0wxFF)
 
