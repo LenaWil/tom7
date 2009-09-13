@@ -17,6 +17,8 @@ struct
     exception Selected of { show : Setlist.showinfo,
                             profile : Profile.profile }
 
+    (* XXX not songs/title.mid because we want the game to function even
+       if someone unsubscribes all songs. *)
     val TITLEMIDI = "title.mid"
         
     val PRECURSOR = 180

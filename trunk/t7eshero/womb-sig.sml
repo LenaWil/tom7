@@ -1,7 +1,7 @@
 
 (* Support for Laser Suspension Womb.
    This is proprietary one-off hardware, so you probably want to disable
-   this.
+   this. (Though it's harmless if it does not detect one.)
 *)
 signature RAW_WOMB =
 sig

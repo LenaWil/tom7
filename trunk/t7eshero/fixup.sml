@@ -7,6 +7,8 @@
    MIDI note. This is because the sound engine doesn't quite handle 0-length
    notes as well (that is, wrongly but good soundingly) as the SC-880, so
    they need to be bumped up to a few ticks to get the right sound.
+
+   XXX don't think I finished this.  13 Sep 2009
 *)
 
 structure T7ESHero =
