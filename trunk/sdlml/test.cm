@@ -19,3 +19,5 @@ group is
   ../sml-lib/util/stringutil.sml	
   http-sig.sml
   http.sml
+
+  http-test.sml

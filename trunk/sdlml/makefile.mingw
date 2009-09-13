@@ -1,9 +1,6 @@
 #                             -*- makefile -*-
 
-# XXX probably shouldn't have a makefile for this library,
-# but a small example app would be useful.
-
-default : sdlml.o
+default : test.exe
 
 
 sdlml.o : sdlml.c
@@ -16,21 +13,11 @@ sdlnet.o : sdlnet.c
 win32main.o : win32main.c
 	gcc -O -I/usr/local/include/SDL -D_GNU_SOURCE=1 -c $< -o $@
 
-# 
-# `SDL/sdl-config --cflags`
-
 # `SDL/sdl-config --libs` gives this:
 # -L/usr/local/lib -lmingw32 -lSDLmain -lSDL -mwindows
 # but we don't want SDLmain
 
-# -Wl,--subsystem,windows
-# for example...
-# midtest.exe : sdlml.o sound.o win32main.o *.sml midtest.cm makefile.mingw ../sdlml/*.sml
-# 	mlton @MLton max-heap 200m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -DDEBUG_X86CODEGEN -Dmain=SDL_main" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz" -verbose 3 -keep g -keep o -output midtest.exe -default-ann 'allowFFI true' midtest.cm sdlml.o sound.o win32main.o
-
 # the order of these libraries and object files is really important! Weird things will
 # happen if it's wrong!
-#  -lz -ltiff -lpng -ljpeg
-# ctest : ctest.c
-# 	gcc -O `sdl-config --cflags` -c ctest.c -o ctest.o
-# 	gcc ctest.o `sdl-config --libs` -lSDL_image -o ctest
+test.exe : sdlml.o sdlnet.o win32main.o *.sml
+	mlton @MLton max-heap 512m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -Dmain=SDL_main" -link-opt "--enable-stdcall-fixup" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz -lSDL_net -lkernel32" -output $@ -default-ann 'allowFFI true' test.cm sdlml.o sdlnet.o win32main.o

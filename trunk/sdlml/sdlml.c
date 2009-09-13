@@ -95,11 +95,11 @@ SDL_Surface * ml_makesurface(int w, int h, int alpha) {
      of sw/hw surfaces */
   SDL_Surface * ss = 0;
 #if 0
-    SDL_CreateRGBSurface(SDL_HWSURFACE |
-			 (alpha?SDL_SRCALPHA:0),
-			 w, h, 32, 
-			 rmask, gmask, bmask,
-			 amask);
+  SDL_CreateRGBSurface(SDL_HWSURFACE |
+		       (alpha?SDL_SRCALPHA:0),
+		       w, h, 32, 
+		       rmask, gmask, bmask,
+		       amask);
 #endif
 
   if (!ss) ss = SDL_CreateRGBSurface(SDL_SWSURFACE |
@@ -190,14 +190,10 @@ SDL_Surface * ml_makefullscreen(int w, int h) {
 }
 
 void ml_blitall(SDL_Surface * src, SDL_Surface * dst, int x, int y) {
-  // char msg[512];
-  // sprintf(msg, "%p %p %d %d\n", src, dst, x, y);
-  // MessageBoxA(0, msg, "do blit:", 0);
   SDL_Rect r;
   r.x = x;
   r.y = y;
   SDL_BlitSurface(src, 0, dst, &r);
-  // MessageBoxA(0, "Successful Blit", "uh", 0);
 }
 
 void ml_blit(SDL_Surface * src, int srcx, int srcy, int srcw, int srch, 
