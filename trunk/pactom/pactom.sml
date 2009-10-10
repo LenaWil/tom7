@@ -195,4 +195,130 @@ struct
             minx = !minx, maxx = !maxx, miny = !miny, maxy = !maxy }
       end
 
+  type waypoint = { path : int, pt : int }
+
+  structure G = RealUndirectedGraph
+
+  fun latlontree ({ paths, ... } : pactom) =
+      let
+          val t = ref LatLonTree.empty : { path : int, pt : int } LatLonTree.latlontree ref
+          fun addpath (path_idx, points) =
+              let
+                  fun addpoint (point_idx, (pos, elev)) =
+                      t := LatLonTree.insert (!t) { path = path_idx, pt = point_idx } pos
+              in
+                  Vector.appi addpoint points
+              end
+      in
+          Vector.appi addpath paths;
+          !t
+      end
+
+  (* If points on the same path are greater than 50m apart, assume a
+     data problem and don't create that edge. *)
+  val PATH_ERROR_M = 250.0
+
+  (* Waypoints might literally be on top of one another. We should really
+     be merging them, but that's pretty tricky, so add a tiny distance. *)
+  val EPSILON = 0.0000001 (* 1mm *)
+
+  fun wtos { path, pt } = Int.toString path ^ "." ^ Int.toString pt
+
+  fun graph (pactom as { paths, ... } : pactom) =
+      let
+          val g : waypoint G.graph = G.empty ()
+
+          (* First, insert all nodes. *)
+          fun pointstonodes (path_idx, points) =
+              Vector.mapi (fn (point_idx, (pos, elev)) =>
+                           G.add g { path = path_idx, pt = point_idx }) points
+          val nodepaths = Vector.mapi pointstonodes paths
+          fun waynode { path, pt } = Vector.sub(Vector.sub (nodepaths, path), pt)
+          fun wayloc { path, pt } = Vector.sub(Vector.sub (paths, path), pt)
+
+          (* distance in meters between waypoints. *)
+          fun waypoint_distance (w1, w2) =
+              let
+                  val (pos1, elev1) = wayloc w1
+                  val (pos2, elev2) = wayloc w2
+              in
+                  LatLon.dist_meters (pos1, pos2)
+              end
+
+             
+          fun addnewedge (w1, w2) =
+              let
+                  val n1 = waynode w1
+                  val n2 = waynode w2
+              in
+                  case G.hasedge n1 n2 of
+                      NONE => 
+                          let
+                              val d = waypoint_distance (w1, w2)
+                          in
+                              case Real.compare (d, 0.0) of
+                                  LESS =>
+                                      raise PacTom ("Distance less than 0? " ^
+                                                    wtos w1 ^ " -> " ^ wtos w2 ^ ": " ^
+                                                    Real.toString d ^ "m\n")
+                                | EQUAL => G.addedge n1 n2 EPSILON
+                                | GREATER => G.addedge n1 n2 d
+                          end
+                    | SOME _ => ()
+              end
+
+          (* If they're on the same path, then they're mutually reachable.
+             We filter out data problems, like jumps of more than several hundred
+             meters. *)
+          fun addpath (path_idx, path) =
+              Util.for 0 (Vector.length path - 2)
+              (fn point_idx =>
+               let
+                   val w1 = { path = path_idx, pt = point_idx }
+                   val w2 = { path = path_idx, pt = point_idx + 1 }
+               in
+                   if waypoint_distance (w1, w2) <= PATH_ERROR_M
+                   then addnewedge (w1, w2)
+                   else
+                       let
+                       in
+                           print ("Consecutive waypoint distance exceeds maximum: " ^
+                                  wtos w1 ^ " -> " ^ wtos w2 ^ ": " ^
+                                  Real.fmt (StringCvt.FIX (SOME 3)) 
+                                  (waypoint_distance (w1, w2)) ^ "\n")
+                       end
+               end)
+          val () = Vector.appi addpath paths
+
+          (* Now, add adjacencies. *)
+          val t = latlontree pactom
+              
+          (* XXX this should actually work by looking at line segments and
+             intersecting them. What we do here "cuts corners", literally. *)
+          (* FIXME do it! *)
+      in
+          { graph = g, promote = waynode, latlontree = t }
+      end
+
+  fun spanning_graph (pactom : pactom) (rootnear : LatLon.pos) :
+      { graph : waypoint G.span G.graph,
+        promote : waypoint -> waypoint G.span G.node } =
+      let
+          (* Create graph. We don't need the graph itself, because we
+             compute the shortest path graph using the node (which is
+             associated with this graph) closest to home. *)
+          val { graph = _, latlontree, promote = ur_p } = graph pactom
+          val (way_root, root_dist) = 
+              case LatLonTree.closestpoint latlontree rootnear of
+                  NONE => raise PacTom "There are no points! Can't continue."
+                | SOME p => p
+          val () = print ("The closest point is " ^ 
+                          Real.fmt (StringCvt.FIX (SOME 3)) root_dist ^ "m\n")
+          val root_node = ur_p way_root
+          val { graph = shortest_g, promote = shortest_p } = G.shortestpaths root_node 
+          (* XXX here, could make a histogram of road-distance from home *)
+          val { graph = span_g, promote = span_p } = G.spanningtree shortest_g
+      in
+          { graph = span_g, promote = span_p o shortest_p o ur_p }
+      end
 end

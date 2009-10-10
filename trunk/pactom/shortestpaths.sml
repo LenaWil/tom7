@@ -4,7 +4,8 @@
    Output to KML or SVG. *)
 
 structure Radial = 
-struct 
+struct
+  structure G = PacTom.G
 
   fun msg s = TextIO.output(TextIO.stdErr, s ^ "\n")
 
@@ -20,51 +21,72 @@ struct
                 "      and " ^ Int.toString (Vector.length (PacTom.overlays pt)) ^ 
                 " overlays")
 
-  val () = 
+  val { graph, promote } = PacTom.spanning_graph pt PacTom.home
+      handle e as G.UndirectedGraph s => (msg s; raise e)
+           | e as PacTom.PacTom s => (msg s; raise e)
 
-  val () =
-      let 
-          fun prpt (x, y) = print (PacTom.rtos x ^ "," ^ PacTom.rtos y ^ " ")
+  fun prloc l =
+      let val { lat, lon } = LatLon.todegs l
+      in print (PacTom.rtos lat ^ "," ^ PacTom.rtos lon ^ " ")
+      end
 
-          fun printpolyline nil =
-              print "Can't plot empty path.\n"
-            | printpolyline ((start, _) :: coords) =
-              let 
-                  fun plot nil _ _ = ()
-                    | plot ((pos, elev) :: t) prev total_miles =
-                      let
-                          val theta = (total_miles / REVOLUTION_MILES) * Math.pi * 2.0
-                          val r = LatLon.dist_miles (PacTom.home, pos) * 100.0
+  val paths = PacTom.paths pt
 
-                          val x = r * Math.cos theta
-                          val y = r * Math.sin theta
-                      in
-                          prpt (x, y);
-                          plot t pos (total_miles + LatLon.dist_miles (prev, pos))
-                      end
-              in
-                  print ("<polyline fill=\"none\" opacity=\"0.75\" stroke=\"#" ^ 
-                         PacTom.randombrightcolor() ^ 
-                         "\" stroke-width=\"1\" points=\""); (* " *)
-                  (* XXX Should put point at 0 deg, radius = |start - home| *)
-                  plot coords start 0.0;
-
-                  print "\"/>\n"
-              end
+  fun printedge node =
+      let
+          val G.S { a = { path, pt }, dist, parent } = G.get node
+          val (pos, _) = Vector.sub (Vector.sub (paths, path), pt)
       in
-          print "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
-          print "<!-- Generator: ToSVG.sml  -->\n";
-          print "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\" [\n";
-          print "<!ENTITY ns_flows \"http://ns.adobe.com/Flows/1.0/\">\n";
-          print "]>\n";
-          print "<svg version=\"1.1\"\n";
-          print " xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n";
-          print " xmlns:a=\"http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/\"\n";
-          (* XXX *)
-          print " x=\"0px\" y=\"0px\" width=\"263px\" height=\"243px\"\n";
-          print " xml:space=\"preserve\">\n";
-          Vector.app printpolyline (PacTom.paths pt);
-          print "</svg>\n"
+          case parent of
+              SOME parnode =>
+                  let val G.S { a = { path, pt }, ... } = G.get parnode
+                      val (ppos, _) = Vector.sub (Vector.sub(paths, path), pt)
+                  in
+                      print ("<LineString><coordinates>");
+                      prloc pos;
+                      print " ";
+                      prloc ppos;
+                      print (" </coordinates></LineString>\n")
+                  end
+           | NONE => () (* XXX show unreachable/terminus somehow? *)
+      end
+  
+  val () =
+      let in
+      print "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+      print ("<kml xmlns=\"http://www.opengis.net/kml/2.2\" " ^
+             "xmlns:gx=\"http://www.google.com/kml/ext/2.2\" " ^
+             "xmlns:kml=\"http://www.opengis.net/kml/2.2\" " ^
+             "xmlns:atom=\"http://www.w3.org/2005/Atom\">\n");
+      print  "<Folder>\n";
+      print  "  <name>Shortest Paths</name>\n";
+      print  "  <visibility>1</visibility>\n";
+      print  "  <Placemark>\n";
+      print  "          <name>Shortest Path Segments</name>\n";
+      print  "          <visibility>1</visibility>\n";
+      print  "          <open>1</open>\n";
+      print  "          <Style>\n";
+      print  "                  <IconStyle>\n";
+      print  "                          <color>ff2f2fc3</color>\n";
+      print  "                          <scale>3</scale>\n";
+      print  "                          <heading>0</heading>\n";
+      print  "                  </IconStyle>\n";
+      print  "                  <LineStyle>\n";
+      print  "                          <color>ff2f2fc3</color>\n";
+      print  "                          <width>3</width>\n";
+      print  "                  </LineStyle>\n";
+      print  "                  <PolyStyle>\n";
+      print  "                          <color>ff2f2fc3</color>\n";
+      print  "                  </PolyStyle>\n";
+      print  "          </Style>\n";
+      print  "        <MultiGeometry>\n";
+
+      G.app printedge graph;
+
+      print  "        </MultiGeometry>\n";
+      print  "  </Placemark>\n";
+      print  "</Folder>\n";
+      print  "</kml>\n"
       end
 
 end

@@ -1,5 +1,6 @@
 
-default : programs outputs
+# default : programs outputs
+default : shortestpaths shortest.kml
 
 PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/misc/color*.sml ../sml-lib/misc/latlon*.sml ../sml-lib/geom/latlontree*.sml ../sml-lib/geom/quadtree*.sml ../sml-lib/geom/pointlocation*.sml ../sml-lib/data/undirected-graph*.sml ../sml-lib/util/growarray*.sml ../sml-lib/algo/heap*.sml
 
@@ -7,6 +8,7 @@ PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/mis
 programs : shortestpaths colorize tosvg elevsvg makepoints radial
 
 shortestpaths : shortestpaths.sml shortestpaths.cm ${PACTOMLIB} 
+	mlton shortestpaths.cm
 
 colorize : colorize.sml colorize.cm ${PACTOMLIB}
 	mlton colorize.cm
@@ -33,3 +35,6 @@ radial.svg : radial
 
 points.kml : makepoints neighborhoods.kml
 	time ./makepoints > points.kml
+
+shortest.kml : shortestpaths pactom.kml
+	time ./shortestpaths > shortest.kml

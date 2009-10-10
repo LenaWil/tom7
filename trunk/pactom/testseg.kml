@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Folder>
+	<name>Test Tom</name>
+	<visibility>1</visibility>
+	<Placemark>
+		<name>Achievement Unlocked! (fix) Level 1</name>
+		<visibility>1</visibility>
+		<open>1</open>
+		<Style>
+			<IconStyle>
+				<color>ff2f2fc3</color>
+				<scale>3</scale>
+				<heading>0</heading>
+			</IconStyle>
+			<LineStyle>
+				<color>ff2f2fc3</color>
+				<width>3</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>ff2f2fc3</color>
+			</PolyStyle>
+		</Style>
+        <MultiGeometry>
+
+		<LineString>
+			<coordinates>
+-79.94260800000001,40.443934 -79.942793,40.449056 </coordinates>
+		</LineString>
+
+		<LineString>
+			<coordinates>
+ -79.934596,40.45765800000001 -79.934483,40.457672 </coordinates>
+		</LineString>
+        </MultiGeometry>
+	</Placemark>
+</Folder>
+</kml>

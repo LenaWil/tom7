@@ -23,11 +23,32 @@ sig
     val fromkmlfile : string -> pactom
     val fromkmlfiles : string list -> pactom
 
+    (* Distances are accurate great-circle distances, ignoring elevation. *)
+    structure G : UNDIRECTEDGRAPH where type weight = real
+
+    (* As indices into the vector of paths, and into those paths. *)
+    type waypoint = { path : int, pt : int }
     (* Put every point into a data structure for querying by location.
-       Each is associated with the path it's from.
+       Each is associated with the path it's from, by index into the vector.
        *)
-    val latlontree : (LatLon.pos * real) Vector.vector Vector.vector ->
-        { path : int, pt : int } LatLonTree.latlontree
+    val latlontree : pactom -> waypoint LatLonTree.latlontree
+
+    (* Compute the graph of reachability, which is all of the points in the
+       paths, connected when they are close enough to imply connectedness. *)
+    val graph : pactom -> { graph : waypoint G.graph,
+                            (* Same indices as in original paths. *)
+                            promote : waypoint -> waypoint G.node,
+                            (* Same as above. *)
+                            latlontree : waypoint LatLonTree.latlontree }
+
+    (* A minimal spanning tree, rooted at the node closest to the given
+       position.
+       For each node, it has its distance back to the root (or NONE, if
+       unreachable), and if it is reachable, then the parent node to 
+       take to get there (except for the root, which is NONE). *)
+    val spanning_graph : pactom -> LatLon.pos ->
+                           { graph : waypoint G.span G.graph,
+                             promote : waypoint -> waypoint G.span G.node }
 
     val rand : unit -> Word32.word
     (* As hex string (rrggbb) *)
