@@ -35,7 +35,6 @@ group is
 ../sml-lib/util/growarray.sml
 ../sml-lib/algo/heap-sig.sml
 ../sml-lib/algo/heap.sml
-
 ../sml-lib/data/undirected-graph-sig.sml
 ../sml-lib/data/undirected-graph.sml
 
@@ -51,5 +50,5 @@ group is
 pactom-sig.sml
 pactom.sml
 
-radial.sml
+shortestpaths.sml
 
