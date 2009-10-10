@@ -1,22 +1,26 @@
 
-default : tosvg makepoints points.kml radial
+default : shortestpaths tosvg makepoints points.kml radial
 
-colorize : colorize.sml colorize.cm ../sml-lib/files/xml/xml.sml ../sml-lib/files/xml/xml-sig.sml ../sml-lib/misc/color*.sml
+PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/misc/color*.sml ../sml-lib/misc/latlon*.sml
+
+shortestpaths : shortestpaths.sml shortestpaths.cm ${PACTOMLIB} ../sml-lib/geom/*.sml ../sml-lib/data/undirected-graph*.sml
+
+colorize : colorize.sml colorize.cm ${PACTOMLIB}
 	mlton colorize.cm
 
-tosvg : tosvg.sml pactom*.sml tosvg.cm ../sml-lib/files/xml/xml.sml ../sml-lib/files/xml/xml-sig.sml ../sml-lib/misc/color*.sml ../sml-lib/misc/latlon*.sml
+tosvg : tosvg.sml tosvg.cm ${PACTOMLIB}
 	mlton tosvg.cm
 
-elevsvg : elevsvg.sml elevsvg.cm ../sml-lib/files/xml/xml.sml ../sml-lib/files/xml/xml-sig.sml ../sml-lib/misc/color*.sml
+elevsvg : elevsvg.sml elevsvg.cm ${PACTOMLIB}
 	mlton elevsvg.cm
 
-makepoints : makepoints.sml makepoints.cm ../sml-lib/files/xml/xml.sml ../sml-lib/files/xml/xml-sig.sml  ../sml-lib/geom/*.sml ../sml-lib/misc/latlon*.sml
+makepoints : makepoints.sml makepoints.cm ${PACTOMLIB} ../sml-lib/geom/*.sml
 	mlton makepoints.cm
 
 points.kml : makepoints neighborhoods.kml
 	time ./makepoints > points.kml
 
-radial : radial.sml pactom*.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/geom/*.sml ../sml-lib/misc/latlon*.sml radial.cm
+radial : radial.sml radial.cm ${PACTOMLIB} ../sml-lib/geom/*.sml
 	mlton radial.cm
 
 radial.svg : radial
