@@ -39,7 +39,7 @@ struct
                          "\" stroke-width=\"1\" points=\""); (* " *)
                   (* XXX No, should use bounding box that's the output of projectpaths.. *)
                   (* XXX vertical axis has flipped meaning in SVG *)
-                  List.app (fn (x, y, e) => prpt (x, y)) coords;
+                  Vector.app (fn (x, y, e) => prpt (x, y)) coords;
                   print "\"/>\n"
               end
 

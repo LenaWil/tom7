@@ -27,6 +27,8 @@ struct
      *)
   val REVOLUTION_MILES = 20.0
 
+  fun vector_tolist v = Vector.foldr op:: nil v
+
   val () =
       let 
           fun prpt (x, y) = print (PacTom.rtos x ^ "," ^ PacTom.rtos y ^ " ")
@@ -68,7 +70,7 @@ struct
           (* XXX *)
           print " x=\"0px\" y=\"0px\" width=\"263px\" height=\"243px\"\n";
           print " xml:space=\"preserve\">\n";
-          Vector.app printpolyline (PacTom.paths pt);
+          Vector.app (printpolyline o vector_tolist) (PacTom.paths pt);
           print "</svg>\n"
       end
 
