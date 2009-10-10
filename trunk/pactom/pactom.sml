@@ -41,115 +41,126 @@ struct
   fun rand () = MersenneTwister.rand32 seed
 
   fun fromkmlfiles fs =
-      let
-          val paths = ref nil
-          val overlays = ref nil
+    let
+      val paths = ref nil
+      val overlays = ref nil
 
-          fun process (Elem(("coordinates", nil), [Text coordtext])) =
-              let val coords = String.tokens (fn #" " => true | _ => false) coordtext
-                  val coords = map (fn t =>
-                                    case String.fields (fn #"," => true | _ => false) t of
-                                        [long, lat, elev] =>
-                                            (case (Real.fromString long, Real.fromString lat, Real.fromString elev) of
-                                                 (SOME long, SOME lat, SOME elev) => (LatLon.fromdegs {lat = lat, lon = long}, elev)
-                                               | _ => raise PacTom ("non-numeric lat/lon/elev: " ^ long ^ "," ^ lat ^ "," ^ elev))
-                                      | _ => raise PacTom ("bad coord token: " ^ t)) coords
-              in
-                  paths := coords :: !paths
-              end
-            | process (Elem(("coordinates", _), _)) = raise PacTom "coordinates with subtags or attrs?"
-            | process (t as Elem(("GroundOverlay", _), _)) =
-              let
-                  (* name and description are there, but we don't need them for this purpose (?).
-                     color has an alpha component as the first two hex digits. If it's not specified, assume FFFFFF.
-                     href is the location of the graphic file.
-                     viewBoundScale is always 0.75?
-                     north, south, east, west specify the bounding box parallels and meridians.
-                     rotation specifies the degrees of rotation -180 to 180, where 0 is north and 90 is west.
-                     *)
-                  val leaves = XML.getleaves t
+      fun process (Elem(("coordinates", nil), [Text coordtext])) =
+        let val coords = String.tokens (fn #" " => true | _ => false) coordtext
+            val coords = 
+                map (fn t =>
+                     case String.fields (fn #"," => true | _ => false) t of
+                       [long, lat, elev] =>
+                         (case (Real.fromString long, 
+                                Real.fromString lat, 
+                                Real.fromString elev) of
+                              (SOME long, SOME lat, SOME elev) => 
+                                  (LatLon.fromdegs {lat = lat, lon = long}, elev)
+                            | _ => raise PacTom ("non-numeric lat/lon/elev: " ^ 
+                                                 long ^ "," ^ lat ^ "," ^ elev))
+                     | _ => raise PacTom ("bad coord token: " ^ t)) coords
+        in
+            paths := coords :: !paths
+        end
+      | process (Elem(("coordinates", _), _)) = 
+        raise PacTom "coordinates with subtags or attrs?"
+      | process (t as Elem(("GroundOverlay", _), _)) =
+        let
+            (* name and description are there, but we don't need them for this
+               purpose (?).
 
-                  
-                  fun findoneopt tag = 
-                      case ListUtil.Alist.find op= leaves tag of
-                          (* XXX are there any sensible defaults, like 0 for rotation? *)
-                          NONE => NONE
-                        | SOME [v] => SOME v
-                        | SOME nil => raise PacTom "impossible"
-                        | SOME _ => raise PacTom ("GroundOverlay specified more than one " ^ tag)
+               color has an alpha component as the first two hex
+                 digits. If it's not specified, assume FFFFFF.
+               href is the location of the graphic file.
+               viewBoundScale is always 0.75?
+               north, south, east, west specify the bounding box 
+                 parallels and meridians.
+               rotation specifies the degrees of rotation -180 to 180,
+                 where 0 is north and 90 is west. *)
+            val leaves = XML.getleaves t
 
-                  fun findone tag =
-                      case findoneopt tag of
-                          NONE => raise PacTom ("GroundOverlay didn't specify " ^ tag)
-                        | SOME v => v
+            fun findoneopt tag = 
+                case ListUtil.Alist.find op= leaves tag of
+                    (* XXX are there any sensible defaults, like 0 for rotation? *)
+                    NONE => NONE
+                  | SOME [v] => SOME v
+                  | SOME nil => raise PacTom "impossible"
+                  | SOME _ => raise PacTom ("GroundOverlay specified more than one " ^ tag)
 
-                  fun findoner tag = 
-                      let val v = findone tag
-                      in
-                          case Real.fromString v of
-                              NONE => raise PacTom ("Non-numeric " ^ tag ^ " in GroundOverlay: " ^ v)
-                            | SOME r => r
-                      end
+            fun findone tag =
+                case findoneopt tag of
+                    NONE => raise PacTom ("GroundOverlay didn't specify " ^ tag)
+                  | SOME v => v
 
-                  val href = findone "href"
-                  val north = findoner "north"
-                  val south = findoner "south"
-                  val east = findoner "east"
-                  val west = findoner "west"
-                  val rotation = 
-                      case findoneopt "rotation" of
-                          NONE => 0.0
-                        | SOME s => 
-                              case Real.fromString s of
-                                  NONE => raise PacTom ("Non-numeric rotation in GroundOverlay: " ^ s)
-                                | SOME r => r
-                  val color = 
-                      case findoneopt "color" of
-                          NONE => "ffffffff"
-                        | SOME c => c
-                  val alpha =
-                      case Color.onefromhexstring (String.substring(color, 0, 2)) of
-                          NONE => raise PacTom ("bad color: " ^ color)
-                        | SOME w => w
+            fun findoner tag = 
+                let val v = findone tag
+                in
+                    case Real.fromString v of
+                        NONE => raise PacTom ("Non-numeric " ^ tag ^ 
+                                              " in GroundOverlay: " ^ v)
+                      | SOME r => r
+                end
+
+            val href = findone "href"
+            val north = findoner "north"
+            val south = findoner "south"
+            val east = findoner "east"
+            val west = findoner "west"
+            val rotation = 
+                case findoneopt "rotation" of
+                    NONE => 0.0
+                  | SOME s => 
+                        case Real.fromString s of
+                            NONE => raise PacTom 
+                                ("Non-numeric rotation in GroundOverlay: " ^ s)
+                          | SOME r => r
+            val color = 
+                case findoneopt "color" of
+                    NONE => "ffffffff"
+                  | SOME c => c
+            val alpha =
+                case Color.onefromhexstring (String.substring(color, 0, 2)) of
+                    NONE => raise PacTom ("bad color: " ^ color)
+                  | SOME w => w
 (*
-                <name>Lincoln place - Mifflin Rd Park</name>
-                <description>dirt lot with Jersey barriers. Looks like it might have formerly been a parking lot?</description>
-                <color>cfffffff</color>
-                <Icon>
-                        <href>C:/old-f/pictures/pac tom/not-a-road.png</href>
-                        <viewBoundScale>0.75</viewBoundScale>
-                </Icon>
-                <LatLonBox>
-                        <north>40.37134954421344</north>
-                        <south>40.37107590394126</south>
-                        <east>-79.91349939576577</east>
-                        <west>-79.91547483878412</west>
-                        <rotation>-46.49832619008645</rotation>
-                </LatLonBox>
+          <name>Lincoln place - Mifflin Rd Park</name>
+          <description>dirt lot with Jersey barriers. Looks like it might have formerly been a parking lot?</description>
+          <color>cfffffff</color>
+          <Icon>
+                  <href>C:/old-f/pictures/pac tom/not-a-road.png</href>
+                  <viewBoundScale>0.75</viewBoundScale>
+          </Icon>
+          <LatLonBox>
+                  <north>40.37134954421344</north>
+                  <south>40.37107590394126</south>
+                  <east>-79.91349939576577</east>
+                  <west>-79.91547483878412</west>
+                  <rotation>-46.49832619008645</rotation>
+          </LatLonBox>
 *)
-              in
-                  overlays := { href = href, 
-                                north = north, south = south, 
-                                east = east, west = west, 
-                                alpha = alpha,
-                                rotation = rotation } :: !overlays
-              end
-            | process (e as Text _) = ()
-            | process (Elem(t, tl)) = app process tl
+        in
+            overlays := { href = href, 
+                          north = north, south = south, 
+                          east = east, west = west, 
+                          alpha = alpha,
+                          rotation = rotation } :: !overlays
+        end
+      | process (e as Text _) = ()
+      | process (Elem(t, tl)) = app process tl
 
-          val xs = map (fn f =>
-                        let val x = XML.parsefile f 
-                            handle XML.XML s => 
-                                raise PacTom ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
-                        in
-                            process x;
-                            x
-                        end) fs
-      in
-          { xmls = xs, 
-            overlays = Vector.fromList (rev (!overlays)), 
-            paths = Vector.fromList (rev (!paths)) }
-      end
+      val xs = map (fn f =>
+                    let val x = XML.parsefile f 
+                        handle XML.XML s => 
+                            raise PacTom ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
+                    in
+                        process x;
+                        x
+                    end) fs
+    in
+        { xmls = xs, 
+          overlays = Vector.fromList (rev (!overlays)), 
+          paths = Vector.fromList (rev (!paths)) }
+    end
 
   fun fromkmlfile f = fromkmlfiles [f]
 
