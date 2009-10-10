@@ -49,16 +49,11 @@ struct
         let val coords = String.tokens (fn #" " => true | _ => false) coordtext
             val coords = 
                 map (fn t =>
-                     case String.fields (fn #"," => true | _ => false) t of
-                       [long, lat, elev] =>
-                         (case (Real.fromString long, 
-                                Real.fromString lat, 
-                                Real.fromString elev) of
-                              (SOME long, SOME lat, SOME elev) => 
-                                  (LatLon.fromdegs {lat = lat, lon = long}, elev)
-                            | _ => raise PacTom ("non-numeric lat/lon/elev: " ^ 
-                                                 long ^ "," ^ lat ^ "," ^ elev))
-                     | _ => raise PacTom ("bad coord token: " ^ t)) coords
+                     case map Real.fromString
+                         (String.fields (fn #"," => true | _ => false) t) of
+                       [SOME long, SOME lat, SOME elev] =>
+                           (LatLon.fromdegs {lat = lat, lon = long}, elev)
+                     | _ => raise PacTom ("non-numeric lat/lon/elev: " ^ t)) coords
         in
             paths := coords :: !paths
         end
@@ -124,7 +119,8 @@ struct
                   | SOME w => w
 (*
           <name>Lincoln place - Mifflin Rd Park</name>
-          <description>dirt lot with Jersey barriers. Looks like it might have formerly been a parking lot?</description>
+          <description>dirt lot with Jersey barriers. 
+            Looks like it might have formerly been a parking lot?</description>
           <color>cfffffff</color>
           <Icon>
                   <href>C:/old-f/pictures/pac tom/not-a-road.png</href>
@@ -171,13 +167,16 @@ struct
   (* Same value and saturation, different hue. *)
   fun randombrightcolor () =
       Color.tohexstring (Color.hsvtorgb 
-                         (Word8.fromInt (Word32.toInt (Word32.andb(Word32.>>(rand (), 0w7), 0wxFF))),
+                         (Word8.fromInt 
+                          (Word32.toInt (Word32.andb(Word32.>>(rand (), 0w7), 0wxFF))),
                           0wxFF,
                           0wxFF))
 
 
   (* No exponential notation *)
-  fun ertos r = if (r > ~0.000001 andalso r < 0.000001) then "0.0" else (Real.fmt (StringCvt.FIX (SOME 4)) r)
+  fun ertos r = if (r > ~0.000001 andalso r < 0.000001) 
+                then "0.0" 
+                else (Real.fmt (StringCvt.FIX (SOME 4)) r)
 
   (* Don't use SML's dumb ~ *)
   fun rtos r = if r < 0.0 

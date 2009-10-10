@@ -13,55 +13,59 @@ struct
   exception MakePoints of string
 
   fun readkmlfile f =
-      let
-          val polys = ref nil
+    let
+        val polys = ref nil
 
-          fun process (Elem(("coordinates", nil), [Text coordtext])) =
-              let val coords = String.tokens (fn #" " => true | _ => false) coordtext
-                  val coords = map (fn t =>
-                                    case String.fields (fn #"," => true | _ => false) t of
-                                        [long, lat, elev] =>
-                                            (case (Real.fromString long, Real.fromString lat, Real.fromString elev) of
-                                                 (SOME lon, SOME lat, SOME _) => (lon, lat)
-                                               | _ => raise MakePoints ("non-numeric lat/lon/elev: " ^ long ^ "," ^ lat ^ "," ^ elev))
-                                      | _ => raise MakePoints ("bad coord token: " ^ t)) coords
-              in
-                  polys := ((), Polygon.frompoints coords) :: !polys
-              end
-            | process (Elem(("coordinates", _), _)) = raise MakePoints "coordinates with subtags or attrs?"
-            | process (e as Text _) = ()
-            | process (Elem(t, tl)) = app process tl
+        fun process (Elem(("coordinates", nil), [Text coordtext])) =
+            let 
+              val coords = String.tokens (fn #" " => true | _ => false) coordtext
+              val coords = 
+                map (fn t =>
+                     case map Real.fromString (String.fields (fn #"," => true 
+                                                                  | _ => false) t) of
+                         [SOME lon, SOME lat, SOME _] => (lon, lat)
+                       | _ => raise MakePoints ("non-numeric lat/lon/elev: " ^ t)) coords
+            in
+                polys := ((), Polygon.frompoints coords) :: !polys
+            end
+          | process (Elem(("coordinates", _), _)) = 
+            raise MakePoints "coordinates with subtags or attrs?"
+          | process (e as Text _) = ()
+          | process (Elem(t, tl)) = app process tl
 
-          val x = XML.parsefile f 
-              handle XML.XML s => 
-                  raise MakePoints ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
-          val () = process x
-              
-          val normed = PointLocation.normalize 0.00002 (!polys)
+        val x = XML.parsefile f 
+            handle XML.XML s => 
+                raise MakePoints ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
+        val () = process x
 
-          local 
-              val home = LatLon.fromdegs { lat = 40.452911, lon = ~79.936313 }
-              val projection = LatLon.gnomonic home
-              fun scalex x = x * 80000.0
-              fun scaley y = y * ~80000.0
-          in
-              val scaled = ListUtil.mapsecond (fn poly =>
-                                               Polygon.frompoints (map (fn (lon, lat) =>
-                                                                        let 
-                                                                            val pt = LatLon.fromdegs { lat = lat, lon = lon }
-                                                                            val (x, y) = projection pt
-                                                                        in
-                                                                            (scalex x, scaley y)
-                                                                        end) (Polygon.points poly))) normed
-          end
+        val normed = PointLocation.normalize 0.00002 (!polys)
 
-          val f = TextIO.openOut "neighborhoods-locator-test.svg"
-              (* XXX needs massive scaling! Also, conversion to x/y. *)
-          val () = PointLocation.tosvg (PointLocation.locator scaled) (fn s => TextIO.output (f, s))
-          val () = TextIO.closeOut f
-      in
-          List.concat (map (Polygon.points o #2) normed)
-      end
+        local 
+            val home = LatLon.fromdegs { lat = 40.452911, lon = ~79.936313 }
+            val projection = LatLon.gnomonic home
+            fun scalex x = x * 80000.0
+            fun scaley y = y * ~80000.0
+        in
+            val scaled = ListUtil.mapsecond 
+                (fn poly =>
+                 Polygon.frompoints 
+                 (map (fn (lon, lat) =>
+                       let 
+                           val pt = LatLon.fromdegs { lat = lat, lon = lon }
+                           val (x, y) = projection pt
+                       in
+                           (scalex x, scaley y)
+                       end) (Polygon.points poly))) normed
+        end
+
+        val f = TextIO.openOut "neighborhoods-locator-test.svg"
+            (* XXX needs massive scaling! Also, conversion to x/y. *)
+        val () = PointLocation.tosvg (PointLocation.locator scaled) 
+                                     (fn s => TextIO.output (f, s))
+        val () = TextIO.closeOut f
+    in
+        List.concat (map (Polygon.points o #2) normed)
+    end
 
   (* No exponential notation *)
   fun ertos r = if (r > ~0.000001 andalso r < 0.000001) 

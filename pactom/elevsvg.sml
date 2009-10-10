@@ -4,26 +4,10 @@ struct
 
   exception ToSVG of string
 
-  val x = XML.parsefile (* "pactom.kml" *) "rct.kml"
+  val x = XML.parsefile "pactom.kml" (* "rct.kml" *)
       handle (e as (XML.XML s)) => (print ("Error: " ^ s); raise e)
 
   datatype tree = datatype XML.tree
-
-  fun printxml (Text s) =
-      (StringUtil.replace "<" "&lt;"
-       (StringUtil.replace ">" "&gt;"
-        (StringUtil.replace "&" "&amp;" s)))
-    | printxml (Elem ((s, attrs), tl)) =
-      ("<" ^ s ^
-       String.concat (map (fn (s, so) => 
-                           case so of
-                               SOME v => 
-                                   (* XXX escape quotes in v *)
-                                   (" " ^ s ^ "=\"" ^ v ^ "\"")
-                             | NONE => s) attrs) ^
-       ">" ^
-       String.concat (map printxml tl) ^
-       "</" ^ s ^ ">")
 
   val seed = ref (0wxDEADBEEF : Word32.word)
       
@@ -51,6 +35,7 @@ struct
   val elev_min = ref 99999.0
   val paths = ref nil
 
+  (* XXX use PacTom. *)
   fun process (Elem(("coordinates", nil), [Text coordtext])) =
       let val coords = String.tokens (fn #" " => true | _ => false) coordtext
           val coords = map (fn t =>
