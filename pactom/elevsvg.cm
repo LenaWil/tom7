@@ -28,5 +28,7 @@ group is
 ../sml-lib/files/xml/xml-sig.sml
 ../sml-lib/files/xml/xml.sml
 
+(* XXX use pactom. *)
+
 elevsvg.sml
 

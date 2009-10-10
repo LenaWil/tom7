@@ -5,7 +5,7 @@ sig
 
     (* Pactom data *)
     type pactom
-    val paths : pactom -> (LatLon.pos * real) list Vector.vector
+    val paths : pactom -> (LatLon.pos * real) Vector.vector Vector.vector
     val overlays : pactom -> { href : string, 
                                rotation : real, 
                                alpha : Word8.word,
@@ -14,7 +14,7 @@ sig
 
     val projectpaths : LatLon.projection -> pactom ->
         { (* x, y, elevation *)
-          paths : (real * real * real) list Vector.vector,
+          paths : (real * real * real) Vector.vector Vector.vector,
           (* bounding rectangle in projected space *)
           minx : real, maxx : real, miny : real, maxy : real }
 
@@ -22,6 +22,12 @@ sig
 
     val fromkmlfile : string -> pactom
     val fromkmlfiles : string list -> pactom
+
+    (* Put every point into a data structure for querying by location.
+       Each is associated with the path it's from.
+       *)
+    val latlontree : (LatLon.pos * real) Vector.vector Vector.vector ->
+        { path : int, pt : int } LatLonTree.latlontree
 
     val rand : unit -> Word32.word
     (* As hex string (rrggbb) *)

@@ -13,27 +13,10 @@ struct
                                alpha : Word8.word,
                                north : real, south : real,
                                east : real, west : real } Vector.vector,
-                  paths : (LatLon.pos * real) list Vector.vector }
+                  paths : (LatLon.pos * real) Vector.vector Vector.vector }
   fun paths { xmls, paths, overlays } = paths
   fun overlays { xmls, paths, overlays } = overlays
   fun xmls { xmls, paths, overlays } = xmls
-
-  (* XXX dead? PERF: Slow *)
-  fun printxml (Text s) =
-      (StringUtil.replace "<" "&lt;"
-       (StringUtil.replace ">" "&gt;"
-        (StringUtil.replace "&" "&amp;" s)))
-    | printxml (Elem ((s, attrs), tl)) =
-      ("<" ^ s ^
-       String.concat (map (fn (s, so) => 
-                           case so of
-                               SOME v => 
-                                   (* XXX escape quotes in v *)
-                                   (" " ^ s ^ "=\"" ^ v ^ "\"")
-                             | NONE => s) attrs) ^
-       ">" ^
-       String.concat (map printxml tl) ^
-       "</" ^ s ^ ">")
 
   val home = LatLon.fromdegs { lat = 40.452911, lon = ~79.936313 }
 
@@ -155,7 +138,7 @@ struct
     in
         { xmls = xs, 
           overlays = Vector.fromList (rev (!overlays)), 
-          paths = Vector.fromList (rev (!paths)) }
+          paths = Vector.map Vector.fromList (Vector.fromList (rev (!paths))) }
     end
 
   fun fromkmlfile f = fromkmlfiles [f]
@@ -200,13 +183,13 @@ struct
                   then max := p
                   else ()
               end
-          val paths = Vector.map (List.map (fn (p, z) =>
-                                            let val (x, y) = proj p
-                                            in 
-                                                bound x minx maxx;
-                                                bound y miny maxy;
-                                                (x, y, z)
-                                            end)) paths
+          val paths = Vector.map (Vector.map (fn (p, z) =>
+                                              let val (x, y) = proj p
+                                              in 
+                                                  bound x minx maxx;
+                                                  bound y miny maxy;
+                                                  (x, y, z)
+                                              end)) paths
       in
           { paths = paths,
             minx = !minx, maxx = !maxx, miny = !miny, maxy = !maxy }

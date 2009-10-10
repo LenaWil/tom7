@@ -1,4 +1,7 @@
-(* Converts KML trails into a radial image that shows distance from home by time. *)
+(* Takes all of the Pactom data, and builds a reachability graph.
+   Then, compute the shortest distances to home.
+   Then, compute a minimal spanning tree comprising all points.
+   Output to KML or SVG. *)
 
 structure Radial = 
 struct 
@@ -17,15 +20,7 @@ struct
                 "      and " ^ Int.toString (Vector.length (PacTom.overlays pt)) ^ 
                 " overlays")
 
-  (* The graphic is as follows:
-
-     We use polar coordinates to draw each path. (XXX Straight up is 0
-     degrees), where positive degrees is clockwise. A path is plotted
-     in increasing degrees according to its total distance. Its radius
-     is the distance from some home spot (PacTom.home). 
-
-     *)
-  val REVOLUTION_MILES = 20.0
+  val () = 
 
   val () =
       let 
