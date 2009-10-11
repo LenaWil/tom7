@@ -9,7 +9,7 @@ struct
 
   fun msg s = TextIO.output(TextIO.stdErr, s ^ "\n")
 
-  val pt = PacTom.fromkmlfiles ["pactom.kml"]
+  val pt = PacTom.fromkmlfiles ["pactom.kml", "pac2.kml"]
       handle e as (PacTom.PacTom s) =>
           let in
               msg s;
@@ -25,14 +25,24 @@ struct
       handle e as G.UndirectedGraph s => (msg s; raise e)
            | e as PacTom.PacTom s => (msg s; raise e)
 
-  fun prloc l =
+  fun loctos l =
       let val { lat, lon } = LatLon.todegs l
-      in print (PacTom.rtos lat ^ "," ^ PacTom.rtos lon ^ " ")
+      in (PacTom.rtos lon ^ "," ^ PacTom.rtos lat)
       end
 
   val paths = PacTom.paths pt
 
-  fun printedge node =
+  (* Google Earth goes nuts if we try to generate a placemark for each
+     line segment, with a color set for each one. We really don't need
+     that many different colors, though. Instead organize the line segments
+     by color bin, so that all the segments of the same color are in the
+     same bin and don't need to be separate placemarks. *)
+  val color_bins = Array.array(180, nil : string list)
+  fun radians_to_bin r =
+      Real.trunc (real (Array.length color_bins) * r / (Math.pi * 2.0))
+      mod Array.length color_bins
+
+  fun binedge node =
       let
           val G.S { a = { path, pt }, dist, parent } = G.get node
           val (pos, _) = Vector.sub (Vector.sub (paths, path), pt)
@@ -42,13 +52,43 @@ struct
                   let val G.S { a = { path, pt }, ... } = G.get parnode
                       val (ppos, _) = Vector.sub (Vector.sub(paths, path), pt)
                   in
-                      print ("<LineString><coordinates>");
-                      prloc pos;
-                      print " ";
-                      prloc ppos;
-                      print (" </coordinates></LineString>\n")
+                      case LatLon.angle (pos, ppos) of
+                          NONE => msg "no angle!"
+                        | SOME r => 
+                              let val b = radians_to_bin r
+                              in
+                                  Array.update (color_bins, b,
+                                                ("<LineString><coordinates>" ^
+                                                 loctos pos ^ " " ^
+                                                 loctos ppos ^
+                                                 " </coordinates></LineString>\n")
+                                                :: Array.sub (color_bins, b))
+                              end
                   end
            | NONE => () (* XXX show unreachable/terminus somehow? *)
+      end
+
+  (* generate bins. *)
+  val () = G.app binedge graph
+
+  fun anglecolor f =
+      let val (r, g, b) = Color.hsvtorgbf (f, 1.0, 1.0)
+      in Color.tohexstring (Word8.fromInt (Real.trunc (r * 255.0)),
+                            Word8.fromInt (Real.trunc (g * 255.0)),
+                            Word8.fromInt (Real.trunc (b * 255.0)))
+      end
+
+  fun printbin (idx, l) =
+      let 
+          val color = anglecolor (real idx / real (Array.length color_bins))
+      in
+          print "<Placemark><Style><LineStyle><color>";
+          print ("7f" ^ color);
+          print "</color><width>3</width></LineStyle></Style>";
+          print "<MultiGeometry>\n";
+          (* now each line ... *)
+          app print l;
+          print "</MultiGeometry></Placemark>\n"
       end
   
   val () =
@@ -61,30 +101,9 @@ struct
       print  "<Folder>\n";
       print  "  <name>Shortest Paths</name>\n";
       print  "  <visibility>1</visibility>\n";
-      print  "  <Placemark>\n";
-      print  "          <name>Shortest Path Segments</name>\n";
-      print  "          <visibility>1</visibility>\n";
-      print  "          <open>1</open>\n";
-      print  "          <Style>\n";
-      print  "                  <IconStyle>\n";
-      print  "                          <color>ff2f2fc3</color>\n";
-      print  "                          <scale>3</scale>\n";
-      print  "                          <heading>0</heading>\n";
-      print  "                  </IconStyle>\n";
-      print  "                  <LineStyle>\n";
-      print  "                          <color>ff2f2fc3</color>\n";
-      print  "                          <width>3</width>\n";
-      print  "                  </LineStyle>\n";
-      print  "                  <PolyStyle>\n";
-      print  "                          <color>ff2f2fc3</color>\n";
-      print  "                  </PolyStyle>\n";
-      print  "          </Style>\n";
-      print  "        <MultiGeometry>\n";
 
-      G.app printedge graph;
+      Array.appi printbin color_bins;
 
-      print  "        </MultiGeometry>\n";
-      print  "  </Placemark>\n";
       print  "</Folder>\n";
       print  "</kml>\n"
       end

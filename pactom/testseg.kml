@@ -1,38 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
 <Folder>
-	<name>Test Tom</name>
-	<visibility>1</visibility>
-	<Placemark>
-		<name>Achievement Unlocked! (fix) Level 1</name>
-		<visibility>1</visibility>
-		<open>1</open>
-		<Style>
-			<IconStyle>
-				<color>ff2f2fc3</color>
-				<scale>3</scale>
-				<heading>0</heading>
-			</IconStyle>
-			<LineStyle>
-				<color>ff2f2fc3</color>
-				<width>3</width>
-			</LineStyle>
-			<PolyStyle>
-				<color>ff2f2fc3</color>
-			</PolyStyle>
-		</Style>
-        <MultiGeometry>
-
-		<LineString>
-			<coordinates>
--79.94260800000001,40.443934 -79.942793,40.449056 </coordinates>
-		</LineString>
-
-		<LineString>
-			<coordinates>
- -79.934596,40.45765800000001 -79.934483,40.457672 </coordinates>
-		</LineString>
-        </MultiGeometry>
-	</Placemark>
+  <name>Shortest Paths</name>
+  <visibility>1</visibility>
+  <Placemark><Style><LineStyle><color>7f2ffff3</color><width>3</width></LineStyle></Style><LineString><coordinates>-79.94630540,40.44408220  -79.94625400,40.44410300  </coordinates></LineString></Placemark>
+<!--
+<LineString><coordinates>-79.94630540,40.44408220  -79.94625400,40.44410300  </coordinates></LineString>
+<LineString><coordinates>-79.94634500,40.44408310  -79.94629200,40.44415300  </coordinates></LineString>
+<LineString><coordinates>-79.94635570,40.44414710  -79.94625900,40.44423400  </coordinates></LineString>
+<LineString><coordinates>-79.94628150,40.44435520  -79.94608400,40.44448600  </coordinates></LineString>
+<LineString><coordinates>-79.94634690,40.44444070  -79.94628600,40.44450100  </coordinates></LineString>
+<LineString><coordinates>-79.94634500,40.44443680  -79.94634100,40.44443910  </coordinates></LineString>
+<LineString><coordinates>-79.94633920,40.44442530  -79.94633920,40.44442530  </coordinates></LineString>
+-->
+  </Placemark>
 </Folder>
 </kml>
