@@ -2,6 +2,8 @@
 structure PacTom :> PACTOM = 
 struct 
 
+  fun msg s = TextIO.output(TextIO.stdErr, s ^ "\n")
+
   exception PacTom of string
 
   datatype tree = datatype XML.tree
@@ -159,7 +161,8 @@ struct
   (* No exponential notation *)
   fun ertos r = if (r > ~0.000001 andalso r < 0.000001) 
                 then "0.0" 
-                else (Real.fmt (StringCvt.FIX (SOME 4)) r)
+                    (* XXX using 8 for kml, was 4 for svg *)
+                else (Real.fmt (StringCvt.FIX (SOME 8)) r)
 
   (* Don't use SML's dumb ~ *)
   fun rtos r = if r < 0.0 
@@ -217,6 +220,9 @@ struct
   (* If points on the same path are greater than 50m apart, assume a
      data problem and don't create that edge. *)
   val PATH_ERROR_M = 250.0
+  (* Distance within we create an implicit edge between nearby points,
+     even if I didn't physically travel between them *)
+  val MERGE_DISTANCE_M = 25.0
 
   (* Waypoints might literally be on top of one another. We should really
      be merging them, but that's pretty tricky, so add a tiny distance. *)
@@ -245,31 +251,34 @@ struct
                   LatLon.dist_meters (pos1, pos2)
               end
 
-             
-          fun addnewedge (w1, w2) =
-              let
-                  val n1 = waynode w1
-                  val n2 = waynode w2
-              in
-                  case G.hasedge n1 n2 of
-                      NONE => 
-                          let
-                              val d = waypoint_distance (w1, w2)
-                          in
-                              case Real.compare (d, 0.0) of
-                                  LESS =>
-                                      raise PacTom ("Distance less than 0? " ^
-                                                    wtos w1 ^ " -> " ^ wtos w2 ^ ": " ^
-                                                    Real.toString d ^ "m\n")
-                                | EQUAL => G.addedge n1 n2 EPSILON
-                                | GREATER => G.addedge n1 n2 d
-                          end
-                    | SOME _ => ()
-              end
+          fun addnewedge (w1, w2) = 
+              if w1 = w2
+              then false
+              else
+                let
+                    val n1 = waynode w1
+                    val n2 = waynode w2
+                in
+                    case G.hasedge n1 n2 of
+                        NONE => 
+                            let
+                                val d = waypoint_distance (w1, w2)
+                            in
+                                case Real.compare (d, 0.0) of
+                                    LESS =>
+                                        raise PacTom ("Distance less than 0? " ^
+                                                      wtos w1 ^ " -> " ^ wtos w2 ^ ": " ^
+                                                      Real.toString d ^ "m\n")
+                                  | EQUAL => (G.addedge n1 n2 EPSILON; true)
+                                  | GREATER => (G.addedge n1 n2 d; true)
+                            end
+                      | SOME _ => false
+                end
 
           (* If they're on the same path, then they're mutually reachable.
              We filter out data problems, like jumps of more than several hundred
              meters. *)
+          (* PERF: Every time we call this we already have the distance. *)
           fun addpath (path_idx, path) =
               Util.for 0 (Vector.length path - 2)
               (fn point_idx =>
@@ -278,15 +287,12 @@ struct
                    val w2 = { path = path_idx, pt = point_idx + 1 }
                in
                    if waypoint_distance (w1, w2) <= PATH_ERROR_M
-                   then addnewedge (w1, w2)
+                   then ignore (addnewedge (w1, w2))
                    else
-                       let
-                       in
-                           print ("Consecutive waypoint distance exceeds maximum: " ^
-                                  wtos w1 ^ " -> " ^ wtos w2 ^ ": " ^
-                                  Real.fmt (StringCvt.FIX (SOME 3)) 
-                                  (waypoint_distance (w1, w2)) ^ "\n")
-                       end
+                       msg ("Consecutive waypoint distance exceeds maximum: " ^
+                            wtos w1 ^ " -> " ^ wtos w2 ^ ": " ^
+                            Real.fmt (StringCvt.FIX (SOME 3)) 
+                            (waypoint_distance (w1, w2)))
                end)
           val () = Vector.appi addpath paths
 
@@ -295,7 +301,31 @@ struct
               
           (* XXX this should actually work by looking at line segments and
              intersecting them. What we do here "cuts corners", literally. *)
-          (* FIXME do it! *)
+          val nlinked = ref 0
+          fun addclosepath (path_idx, path) =
+              let
+                  val theselinked = ref 0
+                  fun addclosepoint (point_idx, _) =
+                      let val way = { path = path_idx, pt = point_idx }
+                          val adj = LatLonTree.lookup t (#1 (wayloc way)) MERGE_DISTANCE_M
+                      in
+                          app (fn neighbor =>
+                               if addnewedge (way, neighbor)
+                               then theselinked := !theselinked + 1
+                               else ()) adj
+                      end
+              in
+                  Vector.appi addclosepoint path;
+                  msg (Int.toString path_idx ^ " / " ^
+                       Int.toString (Vector.length paths) ^ " : " ^
+                       Int.toString (!theselinked));
+                  (* Should warn if the path was not linked in at all.
+                     But this count won't do it... *)
+                  nlinked := !nlinked + !theselinked
+              end
+              
+          val () = Vector.appi addclosepath paths
+          val () = msg ("Added " ^ Int.toString (!nlinked) ^ " merged edges")
       in
           { graph = g, promote = waynode, latlontree = t }
       end
@@ -312,11 +342,11 @@ struct
               case LatLonTree.closestpoint latlontree rootnear of
                   NONE => raise PacTom "There are no points! Can't continue."
                 | SOME p => p
-          val () = print ("The closest point is " ^ 
-                          Real.fmt (StringCvt.FIX (SOME 3)) root_dist ^ "m\n")
+          val () = msg ("The closest point is " ^ 
+                        Real.fmt (StringCvt.FIX (SOME 3)) root_dist ^ "m")
           val root_node = ur_p way_root
           val { graph = shortest_g, promote = shortest_p } = G.shortestpaths root_node 
-          (* XXX here, could make a histogram of road-distance from home *)
+          (* XXX with this graph, could make a histogram of road-distance from home *)
           val { graph = span_g, promote = span_p } = G.spanningtree shortest_g
       in
           { graph = span_g, promote = span_p o shortest_p o ur_p }
