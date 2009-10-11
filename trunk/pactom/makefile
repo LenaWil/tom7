@@ -36,5 +36,5 @@ radial.svg : radial
 points.kml : makepoints neighborhoods.kml
 	time ./makepoints > points.kml
 
-shortest.kml : shortestpaths pactom.kml
+shortest.kml : shortestpaths pactom.kml pac2.kml
 	time ./shortestpaths > shortest.kml

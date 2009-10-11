@@ -204,17 +204,27 @@ struct
 
   fun latlontree ({ paths, ... } : pactom) =
       let
-          val t = ref LatLonTree.empty : { path : int, pt : int } LatLonTree.latlontree ref
+          (* First get all points so that we can shuffle them. wLatLontree is
+             sensitive to insertion order, and definitely sucks with
+             close-by, roughly horizontal or linear paths, which are
+             rife in the input *)
+
+          val all = ref (nil : ({ path : int, pt : int } * LatLon.pos) list)
           fun addpath (path_idx, points) =
               let
                   fun addpoint (point_idx, (pos, elev)) =
-                      t := LatLonTree.insert (!t) { path = path_idx, pt = point_idx } pos
+                      all := ({ path = path_idx, pt = point_idx }, pos) :: !all
               in
                   Vector.appi addpoint points
               end
+
+          val () = Vector.appi addpath paths
+          val all_a = Array.fromList (!all)
       in
-          Vector.appi addpath paths;
-          !t
+          MersenneTwister.shuffle seed all_a;
+          Array.foldl (fn ((way, pos), t) => LatLonTree.insert t way pos) 
+                      LatLonTree.empty 
+                      all_a
       end
 
   (* If points on the same path are greater than 50m apart, assume a
