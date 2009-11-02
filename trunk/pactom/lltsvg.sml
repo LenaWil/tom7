@@ -18,6 +18,6 @@ struct
                 " overlays")
 
   val llt = PacTom.latlontree pt
-  val () = LatLonTree.tosvg llt 10 true print 
+  val () = LatLonTree.tosvg llt 12 true print 
 
 end
