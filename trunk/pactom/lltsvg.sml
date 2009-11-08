@@ -5,7 +5,7 @@ struct
 
   fun msg s = TextIO.output(TextIO.stdErr, s ^ "\n")
 
-  val pt = PacTom.fromkmlfiles ["pactom.kml", "pac2.kml"]
+  val pt = PacTom.fromkmlfiles ["pac.kml", "pac2.kml"]
       handle e as (PacTom.PacTom s) =>
           let in
               msg s;

@@ -1,7 +1,7 @@
 structure Colorize = 
 struct 
 
-  val x = XML.parsefile "pactom.kml"
+  val x = XML.parsefile "pac.kml"
       handle (e as (XML.XML s)) => (print ("Error: " ^ s); raise e)
 
   datatype tree = datatype XML.tree
@@ -40,7 +40,9 @@ struct
   (* Same value and saturation, different hue. *)
   fun randomcolor () =
       "ff" ^ Color.tohexstring (Color.hsvtorgb 
-                                (Word8.fromInt (Word32.toInt (Word32.andb(Word32.>>(rand (), 0w7), 0wxFF))),
+                                (Word8.fromInt 
+                                 (Word32.toInt 
+                                  (Word32.andb(Word32.>>(rand (), 0w7), 0wxFF))),
                                  0wxFF,
                                  0wxFF))
 
@@ -50,4 +52,5 @@ struct
     | process (Elem(t, tl)) = Elem(t, map process tl)
 
   val () = print (printxml (process x))
+
 end
