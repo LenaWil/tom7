@@ -65,3 +65,6 @@ release/pactom.kmz : pac.kml pac2.kml kmlcat
 	rm -f release/pactom.kmz
 	zip release/pactom.kmz _pactom.kml
 
+
+clean :
+	rm -f _pactom.kml release/pactom.kmz *~
