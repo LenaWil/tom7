@@ -1,12 +1,16 @@
 
 # default : programs outputs
-default : shortestpaths shortest.kml
+default : kmlcat
+# default : shortestpaths shortest.kml
 # default : llt.svg
 
 PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/misc/color*.sml ../sml-lib/misc/latlon*.sml ../sml-lib/geom/latlontree*.sml ../sml-lib/geom/quadtree*.sml ../sml-lib/geom/pointlocation*.sml ../sml-lib/data/undirected-graph*.sml ../sml-lib/util/growarray*.sml ../sml-lib/algo/heap*.sml
 
 # Generating programs.
-programs : shortestpaths colorize tosvg elevsvg makepoints radial lltsvg
+programs : shortestpaths colorize tosvg elevsvg makepoints radial lltsvg kmlcat
+
+kmlcat : kmlcat.sml kmlcat.cm ../sml-lib/util/*.sml
+	mlton kmlcat.cm
 
 shortestpaths : shortestpaths.sml shortestpaths.cm ${PACTOMLIB} 
 	mlton shortestpaths.cm
@@ -45,3 +49,19 @@ shortest.kml : shortestpaths pactom.kml pac2.kml
 
 llt.svg : lltsvg pactom.kml pac2.kml
 	time ./lltsvg > llt.svg
+
+
+# For release, we expect the following files in the current directory:
+#   pac.kml
+#   pac2.kml
+
+release : release/pactom.kmz
+
+
+# XXX also annotations, neighborhood, etc.
+release/pactom.kmz : pac.kml pac2.kml kmlcat
+	rm -f _pactom.kml
+	./kmlcat pac.kml pac2.kml > _pactom.kml
+	rm -f release/pactom.kmz
+	zip release/pactom.kmz _pactom.kml
+
