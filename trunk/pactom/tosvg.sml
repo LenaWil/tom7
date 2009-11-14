@@ -27,7 +27,7 @@ struct
               end
           val { paths, bounds } = PacTom.projectpaths projection pt
           (* val { minx, maxx, miny, maxy } = PacTom.getbounds bounds *)
-          fun prpt (x, y) = print (PacTom.rtos (PacTom.offsetx bounds x)  ^ "," ^ 
+          fun prpt (x, y) = print (PacTom.rtos (PacTom.offsetx bounds x) ^ "," ^ 
                                    PacTom.rtos (PacTom.offsety bounds y) ^ " ")
           fun averagepts l =
               let

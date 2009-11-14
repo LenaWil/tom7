@@ -121,7 +121,61 @@ struct
       end
 
   fun writesvg "" = msg "Skipping SVG."
-    | writesvg fname = () (* XXX *)
+    | writesvg fname =
+      let
+          val f = TextIO.openOut fname
+          fun write s = TextIO.output(f, s)
+          fun projection p = 
+              let val (x, y) = LatLon.gnomonic PacTom.home p
+              in 
+                  (* Scale up massively, and invert Y axis. *)
+                  (240000.0 * x, ~240000.0 * y)
+              end
+
+          (* Generate bounding box. PERF: Could precompute projections,
+             and this strategy means each node is added n times, where
+             n is its degree. But far from being the slowest part of
+             this program.. *)
+          val bounds = PacTom.nobounds ()
+          fun addpt p = PacTom.boundpoint bounds (projection p)
+          (* Process each end point of each segment of each bin *)
+          val () = Array.app (fn (segments : (LatLon.pos * LatLon.pos) list) =>
+                              app (fn (a, b) => (addpt a; addpt b)) segments) color_bins
+
+
+          fun writept (x : real, y : real) = 
+              write (PacTom.rtos (PacTom.offsetx bounds x) ^ " " ^ 
+                     PacTom.rtos (PacTom.offsety bounds y))
+
+
+          fun writebin (idx, segments) =
+              let 
+                  val color = anglecolor (real idx / real (Array.length color_bins))
+                  fun writeseg (pos : LatLon.pos, ppos : LatLon.pos) =
+                      let in
+                          write "M ";
+                          writept (projection pos);
+                          (* PERF per SVG spec these don't need to have spaces, 
+                             but convert wants them *)
+                          write " L ";
+                          writept (projection ppos);
+                          write " "
+                      end
+              in
+                  write ("<path fill=\"none\" stroke=\"#" ^ color ^ "\" " ^
+                         " opacity=\"0.7\"" ^
+                         " stroke-width=\"0.6\" d=\""); (* " *)
+                  app writeseg segments;
+                  write "\"/>\n"
+              end
+      in
+          write (PacTom.svgheader { x = 0, y = 0, 
+                                    width = Real.trunc (PacTom.width bounds), 
+                                    height = Real.trunc (PacTom.height bounds),
+                                    generator = "shortestpaths.sml" });
+          Array.appi writebin color_bins;
+          write (PacTom.svgfooter ())
+      end
 
   fun main () =
       let in

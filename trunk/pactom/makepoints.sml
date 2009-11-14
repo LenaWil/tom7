@@ -119,7 +119,10 @@ struct
 
       in
           print "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-          print "<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:kml=\"http://www.opengis.net/kml/2.2\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n";
+          print ("<kml xmlns=\"http://www.opengis.net/kml/2.2\"" ^ 
+                 " xmlns:gx=\"http://www.google.com/kml/ext/2.2\"" ^
+                 " xmlns:kml=\"http://www.opengis.net/kml/2.2\"" ^
+                 " xmlns:atom=\"http://www.w3.org/2005/Atom\">\n");
           print "<Document>\n";
           print "<name>neighborhood dots (generated)</name>\n";
           print "<Style id=\"sn_placemark_circle\">\n";
