@@ -12,11 +12,19 @@ sig
                                north : real, south : real,
                                east : real, west : real } Vector.vector
 
+    (* Imperative bounding box *)
+    type bounds
+    (* Raises PacTom if no points have ever been added. *)
+    val getbounds : bounds -> { minx : real, maxx : real, miny : real, maxy : real }
+    val nobounds : unit -> bounds
+    val boundpoint : bounds -> real * real -> unit
+
     val projectpaths : LatLon.projection -> pactom ->
         { (* x, y, elevation *)
           paths : (real * real * real) Vector.vector Vector.vector,
           (* bounding rectangle in projected space *)
-          minx : real, maxx : real, miny : real, maxy : real }
+          bounds : bounds }
+
 
     val home : LatLon.pos
 
