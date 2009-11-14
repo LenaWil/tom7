@@ -1,7 +1,8 @@
 
 # default : programs outputs
 # default : kmlcat
-default : shortest.kml shortest.svg
+# default : shortest.kml shortest.svg
+default : tosvg map.svg
 # default : llt.svg
 
 all : programs outputs obsolete release
@@ -41,19 +42,22 @@ lltsvg : lltsvg.sml lltsvg.cm ${PACTOMLIB}
 # outputs
 # XXX these should explicitly depend on inputs, like pac.kml
 
-outputs : radial.svg points.kml llt.svg
+outputs : radial.svg points.kml llt.svg map.svg
+
+map.svg : tosvg pac.kml pacannotations.kml pac2.kml
+	${TIME} ./tosvg > $@
 
 radial.svg : radial
-	${TIME} ./radial > radial.svg
+	${TIME} ./radial > $@
 
 points.kml : makepoints neighborhoods.kml
-	${TIME} ./makepoints > points.kml
+	${TIME} ./makepoints > $@
 
 shortest.kml shortest.svg : shortestpaths pac.kml pac2.kml
 	${TIME} ./shortestpaths -kmlout shortest.kml -svgout shortest.svg
 
 llt.svg : lltsvg pac.kml pac2.kml
-	${TIME} ./lltsvg > llt.svg
+	${TIME} ./lltsvg > $@
 
 # Obsolete
 obsolete : parsexml
@@ -88,4 +92,4 @@ clean :
 
 # clean final generated files too
 veryclean : clean
-	rm -f shortest.kml shortest.svg
+	rm -f shortest.kml shortest.svg map.svg

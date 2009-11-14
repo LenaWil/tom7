@@ -180,6 +180,15 @@ struct
                       maxy = ref (~1.0 / 0.0),
                       miny = ref (1.0 / 0.0) }
 
+  fun offsetx { empty = ref true, ... } _ = raise PacTom "no points in bounds"
+    | offsetx { minx = ref r, ... } x = x - r
+
+  fun offsety { empty = ref true, ... } _ = raise PacTom "no points in bounds"
+    | offsety { miny = ref r, ... } y = y - r
+
+  fun width (bounds : bounds) = offsetx bounds (! (#maxx bounds))
+  fun height (bounds : bounds) = offsety bounds (! (#maxy bounds))
+
   fun getbounds { empty, maxx, minx, maxy, miny } =
       if !empty
       then raise PacTom "no points in bounds"

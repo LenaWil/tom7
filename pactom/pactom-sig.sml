@@ -16,8 +16,16 @@ sig
     type bounds
     (* Raises PacTom if no points have ever been added. *)
     val getbounds : bounds -> { minx : real, maxx : real, miny : real, maxy : real }
+    (* Starts with no points. *)
     val nobounds : unit -> bounds
     val boundpoint : bounds -> real * real -> unit
+    (* The offset of the point within the bounding box.
+       Probably should only use this after you're done adding all the
+       points to the bounds. *)
+    val offsetx : bounds -> real -> real
+    val offsety : bounds -> real -> real
+    val width : bounds -> real
+    val height : bounds -> real
 
     val projectpaths : LatLon.projection -> pactom ->
         { (* x, y, elevation *)
