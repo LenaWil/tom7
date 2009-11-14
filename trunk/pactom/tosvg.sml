@@ -20,7 +20,8 @@ struct
   val () =
       let 
           val projection = LatLon.gnomonic PacTom.home
-          val { paths, minx, maxx, miny, maxy } = PacTom.projectpaths projection pt
+          val { paths, bounds } = PacTom.projectpaths projection pt
+          (* val { minx, maxx, miny, maxy } = PacTom.getbounds bounds *)
           fun scalex x = x * 80000.0
           fun scaley y = y * 80000.0
           fun prpt (x, y) = print (PacTom.rtos (scalex x) ^ "," ^ 
@@ -75,22 +76,11 @@ struct
               end
 
       in
-          print "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
-          print "<!-- Generator: ToSVG.sml  -->\n";
-          print ("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" " ^
-                 "\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\" [\n");
-          print "<!ENTITY ns_flows \"http://ns.adobe.com/Flows/1.0/\">\n";
-          print "]>\n";
-          print "<svg version=\"1.1\"\n";
-          print (" xmlns=\"http://www.w3.org/2000/svg\" " ^
-                 "xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n";
-          print " xmlns:a=\"http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/\"\n";
-          (* XXX *)
-          print " x=\"0px\" y=\"0px\" width=\"263px\" height=\"243px\"\n";
-          print " xml:space=\"preserve\">\n";
+          print (PacTom.svgheader { x = 0, y = 0, width = 263, height = 243,
+                                    generator = "tosvg.sml" });
           Vector.app printpolyline paths;
           Vector.app printoverlay (PacTom.overlays pt);
-          print "</svg>\n"
+          print (PacTom.svgfooter ())
       end
 
 end

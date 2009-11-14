@@ -169,14 +169,25 @@ struct
                then "-" ^ ertos (0.0 - r)
                else ertos r
 
-  fun projectpaths proj pt =
+  type bounds = { empty : bool ref,
+                  maxx : real ref, minx : real ref,
+                  maxy : real ref, miny : real ref }
+
+  (* Initialize to infinite bounds *)
+  fun nobounds () = { empty = ref true,
+                      maxx = ref (~1.0 / 0.0),
+                      minx = ref (1.0 / 0.0),
+                      maxy = ref (~1.0 / 0.0),
+                      miny = ref (1.0 / 0.0) }
+
+  fun getbounds { empty, maxx, minx, maxy, miny } =
+      if !empty
+      then raise PacTom "no points in bounds"
+      else { maxx = !maxx, minx = !minx,
+             maxy = !maxy, miny = !miny }
+
+  fun boundpoint { empty, maxx, minx, maxy, miny } (x, y) =
       let
-          val paths = paths pt
-          val maxx = ref (~1.0 / 0.0)
-          val minx = ref (1.0 / 0.0)
-          val maxy = ref (~1.0 / 0.0)
-          val miny = ref (1.0 / 0.0)
-              
           fun bound p min max =
               let in
                   if p < !min
@@ -186,16 +197,24 @@ struct
                   then max := p
                   else ()
               end
+      in
+          bound x minx maxx;
+          bound y miny maxy;
+          empty := false
+      end
+
+  fun projectpaths proj pt =
+      let
+          val paths = paths pt
+          val b = nobounds ()
+              
           val paths = Vector.map (Vector.map (fn (p, z) =>
                                               let val (x, y) = proj p
-                                              in 
-                                                  bound x minx maxx;
-                                                  bound y miny maxy;
-                                                  (x, y, z)
+                                              in boundpoint b (x, y);
+                                                 (x, y, z)
                                               end)) paths
       in
-          { paths = paths,
-            minx = !minx, maxx = !maxx, miny = !miny, maxy = !maxy }
+          { paths = paths, bounds = b }
       end
 
   type waypoint = { path : int, pt : int }
@@ -352,8 +371,8 @@ struct
               case LatLonTree.closestpoint latlontree rootnear of
                   NONE => raise PacTom "There are no points! Can't continue."
                 | SOME p => p
-          val () = msg ("The closest point is " ^ 
-                        Real.fmt (StringCvt.FIX (SOME 3)) root_dist ^ "m")
+          val () = msg ("The closest point to the root is " ^ 
+                        Real.fmt (StringCvt.FIX (SOME 3)) root_dist ^ "m away")
           val root_node = ur_p way_root
           val { graph = shortest_g, promote = shortest_p } = G.shortestpaths root_node 
           (* XXX with this graph, could make a histogram of road-distance from home *)

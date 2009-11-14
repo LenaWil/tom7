@@ -4,6 +4,8 @@
 default : shortest.kml shortest.svg
 # default : llt.svg
 
+all : programs outputs obsolete release
+
 PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/misc/color*.sml ../sml-lib/misc/latlon*.sml ../sml-lib/geom/latlontree*.sml ../sml-lib/geom/quadtree*.sml ../sml-lib/geom/pointlocation*.sml ../sml-lib/data/undirected-graph*.sml ../sml-lib/util/growarray*.sml ../sml-lib/algo/heap*.sml
 
 TIME=
@@ -53,6 +55,11 @@ shortest.kml shortest.svg : shortestpaths pac.kml pac2.kml
 llt.svg : lltsvg pac.kml pac2.kml
 	${TIME} ./lltsvg > llt.svg
 
+# Obsolete
+obsolete : parsexml
+
+parsexml : parsexml.cm parsexml.sml ${PACTOMLIB}
+	mlton parsexml.cm
 
 # For release, we expect the following files in the current directory:
 #   pac.kml
