@@ -24,6 +24,9 @@ group is
 ../sml-lib/misc/latlon-sig.sml
 ../sml-lib/misc/latlon.sml
 
+../sml-lib/misc/params-sig.sml
+../sml-lib/misc/params.sml
+
 ../sml-lib/crypt/mersenne-twister-sig.sml
 ../sml-lib/crypt/mersenne-twister.sml
 

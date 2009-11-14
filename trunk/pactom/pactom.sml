@@ -361,4 +361,30 @@ struct
       in
           { graph = span_g, promote = span_p o shortest_p o ur_p }
       end
+
+
+  fun svgheader { x, y, width, height, generator } =
+      let in
+          "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" ^
+          (if generator = ""
+           then ""
+           else "<!-- Generator: " ^ generator ^ " -->\n") ^
+
+          "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" " ^
+          "\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\" [\n" ^
+
+          "<!ENTITY ns_flows \"http://ns.adobe.com/Flows/1.0/\">\n]>\n" ^
+          
+          "<svg version=\"1.1\"\n" ^
+          " xmlns=\"http://www.w3.org/2000/svg\"" ^
+          " xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n" ^
+          " xmlns:a=\"http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/\"\n" ^
+          " x=\"" ^ Int.toString x ^ "px\"" ^
+          " y=\"" ^ Int.toString y ^ "px\"" ^
+          " width=\"" ^ Int.toString width ^ "px\"" ^
+          " height=\"" ^ Int.toString height ^ "px\"\n" ^
+          " xml:space=\"preserve\">\n"
+      end
+
+  fun svgfooter () = "</svg>\n"
 end

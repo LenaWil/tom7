@@ -60,4 +60,10 @@ sig
        and tilde for negative. (XXX should also cap out or fail on inf, nan) *)
     val rtos : real -> string
 
+    (* Give viewport. Generator is a freeform html-safe string; ignored if blank. *)
+    val svgheader : { x : int, y : int, 
+                      width : int, height : int, 
+                      generator : string } -> string
+    val svgfooter : unit -> string
+
 end
