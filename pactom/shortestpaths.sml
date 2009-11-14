@@ -7,6 +7,11 @@ structure Radial =
 struct
   structure G = PacTom.G
 
+  val svgout = Params.param "" (SOME ("-svgout",
+                                      "SVG output file, if desired.")) "svgout"
+  val kmlout = Params.param "" (SOME ("-kmlout",
+                                      "KML output file, if desired.")) "kmlout"
+
   fun msg s = TextIO.output(TextIO.stdErr, s ^ "\n")
 
   val pt = PacTom.fromkmlfiles ["pac.kml", "pac2.kml"]
@@ -37,7 +42,7 @@ struct
      that many different colors, though. Instead organize the line segments
      by color bin, so that all the segments of the same color are in the
      same bin and don't need to be separate placemarks. *)
-  val color_bins = Array.array(180, nil : string list)
+  val color_bins = Array.array(180, nil : (LatLon.pos * LatLon.pos) list)
   fun radians_to_bin r =
       Real.trunc (real (Array.length color_bins) * r / (Math.pi * 2.0))
       mod Array.length color_bins
@@ -57,12 +62,9 @@ struct
                         | SOME r => 
                               let val b = radians_to_bin r
                               in
-                                  Array.update (color_bins, b,
-                                                ("<LineString><coordinates>" ^
-                                                 loctos pos ^ " " ^
-                                                 loctos ppos ^
-                                                 " </coordinates></LineString>\n")
-                                                :: Array.sub (color_bins, b))
+                                  Array.update 
+                                  (color_bins, b,
+                                   (pos, ppos) :: Array.sub (color_bins, b))
                               end
                   end
            | NONE => () (* XXX show unreachable/terminus somehow? *)
@@ -78,34 +80,60 @@ struct
                             Word8.fromInt (Real.trunc (b * 255.0)))
       end
 
-  fun printbin (idx, l) =
+  fun writebinkml write (idx, segments) =
       let 
           val color = anglecolor (real idx / real (Array.length color_bins))
+          fun writept (pos, ppos) =
+              write("<LineString><coordinates>" ^
+                    loctos pos ^ " " ^
+                    loctos ppos ^
+                    " </coordinates></LineString>\n")
       in
-          print "<Placemark><Style><LineStyle><color>";
-          print ("7f" ^ color);
-          print "</color><width>3</width></LineStyle></Style>";
-          print "<MultiGeometry>\n";
-          (* now each line ... *)
-          app print l;
-          print "</MultiGeometry></Placemark>\n"
+          write "<Placemark><Style><LineStyle><color>";
+          write ("7f" ^ color);
+          write "</color><width>3</width></LineStyle></Style>";
+          write "<MultiGeometry>\n";
+          (* now each segment ... *)
+          app writept segments;
+          write "</MultiGeometry></Placemark>\n"
       end
   
-  val () =
-      let in
-      print "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-      print ("<kml xmlns=\"http://www.opengis.net/kml/2.2\" " ^
-             "xmlns:gx=\"http://www.google.com/kml/ext/2.2\" " ^
-             "xmlns:kml=\"http://www.opengis.net/kml/2.2\" " ^
-             "xmlns:atom=\"http://www.w3.org/2005/Atom\">\n");
-      print  "<Folder>\n";
-      print  "  <name>Shortest Paths</name>\n";
-      print  "  <visibility>1</visibility>\n";
+  fun writekml "" = msg "Skipping KML."
+    | writekml fname =
+      let val f = TextIO.openOut fname
+          fun write s = TextIO.output(f, s)
+      in
+        write "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        write ("<kml xmlns=\"http://www.opengis.net/kml/2.2\" " ^
+               "xmlns:gx=\"http://www.google.com/kml/ext/2.2\" " ^
+               "xmlns:kml=\"http://www.opengis.net/kml/2.2\" " ^
+               "xmlns:atom=\"http://www.w3.org/2005/Atom\">\n");
+        write  "<Folder>\n";
+        write  "  <name>Shortest Paths</name>\n";
+        write  "  <visibility>1</visibility>\n";
 
-      Array.appi printbin color_bins;
+        Array.appi (writebinkml write) color_bins;
 
-      print  "</Folder>\n";
-      print  "</kml>\n"
+        write  "</Folder>\n";
+        write  "</kml>\n";
+        
+        TextIO.closeOut f
       end
 
+  fun writesvg "" = msg "Skipping SVG."
+    | writesvg fname = () (* XXX *)
+
+  fun main () =
+      let in
+          writekml (!kmlout);
+          writesvg (!svgout)
+      end
+      
+
+  val () = 
+      Params.main0 
+      ("Takes no arguments and reads KML files in the " ^
+       "current directory. Should specify at least one output " ^
+       "format, or nothing will happen.") main
+      
 end

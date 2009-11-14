@@ -1,10 +1,12 @@
 
 # default : programs outputs
-default : kmlcat
-# default : shortestpaths shortest.kml
+# default : kmlcat
+default : shortest.kml shortest.svg
 # default : llt.svg
 
 PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/misc/color*.sml ../sml-lib/misc/latlon*.sml ../sml-lib/geom/latlontree*.sml ../sml-lib/geom/quadtree*.sml ../sml-lib/geom/pointlocation*.sml ../sml-lib/data/undirected-graph*.sml ../sml-lib/util/growarray*.sml ../sml-lib/algo/heap*.sml
+
+TIME=
 
 # Generating programs.
 programs : shortestpaths colorize tosvg elevsvg makepoints radial lltsvg kmlcat
@@ -21,6 +23,7 @@ colorize : colorize.sml colorize.cm ${PACTOMLIB}
 tosvg : tosvg.sml tosvg.cm ${PACTOMLIB}
 	mlton tosvg.cm
 
+# XXX need output for this
 elevsvg : elevsvg.sml elevsvg.cm ${PACTOMLIB}
 	mlton elevsvg.cm
 
@@ -34,29 +37,31 @@ lltsvg : lltsvg.sml lltsvg.cm ${PACTOMLIB}
 	mlton lltsvg.cm
 
 # outputs
-# XXX these should explicitly depend on inputs, like pactom.kml
+# XXX these should explicitly depend on inputs, like pac.kml
 
 outputs : radial.svg points.kml llt.svg
 
 radial.svg : radial
-	time ./radial > radial.svg
+	${TIME} ./radial > radial.svg
 
 points.kml : makepoints neighborhoods.kml
-	time ./makepoints > points.kml
+	${TIME} ./makepoints > points.kml
 
-shortest.kml : shortestpaths pactom.kml pac2.kml
-	time ./shortestpaths > shortest.kml
+shortest.kml shortest.svg : shortestpaths pac.kml pac2.kml
+	${TIME} ./shortestpaths -kmlout shortest.kml -svgout shortest.svg
 
-llt.svg : lltsvg pactom.kml pac2.kml
-	time ./lltsvg > llt.svg
+llt.svg : lltsvg pac.kml pac2.kml
+	${TIME} ./lltsvg > llt.svg
 
 
 # For release, we expect the following files in the current directory:
 #   pac.kml
 #   pac2.kml
 
-release : release/pactom.kmz
-
+RELEASEFILES=release/pactom.kmz
+release : ${RELEASEFILES} $(addsuffix .size, ${RELEASEFILES})
+upload : release
+	pscp -r release root@spacebar.org:/var/www/pac/
 
 # XXX also annotations, neighborhood, etc.
 release/pactom.kmz : pac.kml pac2.kml kmlcat
@@ -65,6 +70,15 @@ release/pactom.kmz : pac.kml pac2.kml kmlcat
 	rm -f release/pactom.kmz
 	zip release/pactom.kmz _pactom.kml
 
+# Produces a human-readable size (i.e. "2.7M") and strips newlines.
+# These are used on the web page to report the size of downloadable
+# files.
+release/%.size : release/%
+	du --si $^ | cut -f 1 | tr -d '\012' > $@
 
 clean :
-	rm -f _pactom.kml release/pactom.kmz *~
+	rm -f _pactom.kml release/pactom.kmz release/*.size *~
+
+# clean final generated files too
+veryclean : clean
+	rm -f shortest.kml shortest.svg
