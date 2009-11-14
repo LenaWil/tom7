@@ -19,13 +19,16 @@ struct
 
   val () =
       let 
-          val projection = LatLon.gnomonic PacTom.home
+          fun projection p = 
+              let val (x, y) = LatLon.gnomonic PacTom.home p
+              in 
+                  (* Scale up massively, and invert Y axis. *)
+                  (240000.0 * x, ~240000.0 * y)
+              end
           val { paths, bounds } = PacTom.projectpaths projection pt
           (* val { minx, maxx, miny, maxy } = PacTom.getbounds bounds *)
-          fun scalex x = x * 80000.0
-          fun scaley y = y * 80000.0
-          fun prpt (x, y) = print (PacTom.rtos (scalex x) ^ "," ^ 
-                                   PacTom.rtos (scaley y) ^ " ")
+          fun prpt (x, y) = print (PacTom.rtos (PacTom.offsetx bounds x)  ^ "," ^ 
+                                   PacTom.rtos (PacTom.offsety bounds y) ^ " ")
           fun averagepts l =
               let
                   val (xx, yy) = 
@@ -38,9 +41,7 @@ struct
               let in
                   print ("<polyline fill=\"none\" stroke=\"#" ^ 
                          PacTom.randombrightcolor() ^ 
-                         "\" stroke-width=\"1\" points=\""); (* " *)
-                  (* XXX No, should use bounding box that's the output of 
-                     projectpaths.. *)
+                         "\" stroke-width=\"0.7\" points=\""); (* " *)
                   (* XXX vertical axis has flipped meaning in SVG *)
                   Vector.app (fn (x, y, e) => prpt (x, y)) coords;
                   print "\"/>\n"
@@ -57,14 +58,16 @@ struct
                      generally small. *)
                   val cp = averagepts [tl, tr, bl, br]
               in
-                  (* XXX fake! *)
-                  print ("<g transform=\"rotate(" ^ PacTom.rtos rotation ^ " "); (* " *)
+                  (* XXX fake! Note that rotate works fine in illustrator but does
+                     the wrong thing in convert. should probably work around this by
+                     always rotating around 0 *)
+                  print ("<g transform=\"rotate(" ^ PacTom.rtos (~ rotation) ^ " "); (* " *)
                   (* rotate around the object's own center point. *)
                   prpt cp;
                   print (")\" opacity=\"" ^ 
                          PacTom.rtos (real (Word8.toInt alpha) / 255.0) ^ "\">");
                   print ("<polyline fill=\"none\" stroke=\"#000000\" " ^
-                         "stroke-width=\"2\" points=\""); (* " *)
+                         "stroke-width=\"0.3\" points=\""); (* " *)
                   prpt tl;
                   prpt tr;
                   prpt br;
@@ -76,7 +79,9 @@ struct
               end
 
       in
-          print (PacTom.svgheader { x = 0, y = 0, width = 263, height = 243,
+          print (PacTom.svgheader { x = 0, y = 0, 
+                                    width = Real.trunc (PacTom.width bounds), 
+                                    height = Real.trunc (PacTom.height bounds),
                                     generator = "tosvg.sml" });
           Vector.app printpolyline paths;
           Vector.app printoverlay (PacTom.overlays pt);
