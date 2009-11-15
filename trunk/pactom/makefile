@@ -59,14 +59,19 @@ shortest.kml shortest.svg : shortestpaths pac.kml pac2.kml
 llt.svg : lltsvg pac.kml pac2.kml
 	${TIME} ./lltsvg > $@
 
+
+# MAKETHUMB=convert -scale 400
+# MAKETHUMB="/c/program files/inkscape/inkscape"
+MAKETHUMB=rsvg/rsvg-convert --keep-aspect-ratio --width=400
+
 # Convert SVGs to thumbnails for webpage
 thumbnails : map.png shortest.png
 
 map.png : map.svg
-	convert -scale 400 $< $@
+	${MAKETHUMB} $< -o $@
 
 shortest.png : shortest.svg
-	convert -scale 400 $< $@
+	${MAKETHUMB} $< -o $@
 
 # Obsolete
 obsolete : parsexml
@@ -78,10 +83,13 @@ parsexml : parsexml.cm parsexml.sml ${PACTOMLIB}
 #   pac.kml
 #   pac2.kml
 
-RELEASEFILES=release/pactom.kmz
+RELEASEFILES=release/pactom.kmz release/shortest.svg release/map.svg
 release : ${RELEASEFILES} $(addsuffix .size, ${RELEASEFILES})
 upload : release
 	pscp -r release root@spacebar.org:/var/www/pac/
+
+release/%.svg : %.svg
+	cp $< $@
 
 # XXX also annotations, neighborhood, etc.
 release/pactom.kmz : pac.kml pac2.kml kmlcat
