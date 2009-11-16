@@ -7,7 +7,7 @@ default : shortest.kml shortest.svg
 
 all : programs outputs thumbnails obsolete release
 
-PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/misc/color*.sml ../sml-lib/misc/latlon*.sml ../sml-lib/geom/latlontree*.sml ../sml-lib/geom/quadtree*.sml ../sml-lib/geom/pointlocation*.sml ../sml-lib/data/undirected-graph*.sml ../sml-lib/util/growarray*.sml ../sml-lib/algo/heap*.sml
+PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/misc/color*.sml ../sml-lib/geom/latlon*.sml ../sml-lib/geom/snappoint*.sml ../sml-lib/geom/latlontree*.sml ../sml-lib/geom/quadtree*.sml ../sml-lib/geom/pointlocation*.sml ../sml-lib/data/undirected-graph*.sml ../sml-lib/util/growarray*.sml ../sml-lib/algo/heap*.sml
 
 TIME=
 
@@ -83,10 +83,14 @@ parsexml : parsexml.cm parsexml.sml ${PACTOMLIB}
 #   pac.kml
 #   pac2.kml
 
-RELEASEFILES=release/pactom.kmz release/shortest.svg release/map.svg
+RELEASEFILES=release/pactom.kmz release/shortest.svg release/map.svg release/map.png release/shortest.png
 release : ${RELEASEFILES} $(addsuffix .size, ${RELEASEFILES})
+	date +"%d %b %Y at %H:%M" > release/updated
 upload : release
 	pscp -r release root@spacebar.org:/var/www/pac/
+
+release/%.png : %.png
+	cp $< $@
 
 release/%.svg : %.svg
 	cp $< $@

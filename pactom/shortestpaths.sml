@@ -136,16 +136,16 @@ struct
              and this strategy means each node is added n times, where
              n is its degree. But far from being the slowest part of
              this program.. *)
-          val bounds = PacTom.nobounds ()
-          fun addpt p = PacTom.boundpoint bounds (projection p)
+          val bounds = Bounds.nobounds ()
+          fun addpt p = Bounds.boundpoint bounds (projection p)
           (* Process each end point of each segment of each bin *)
           val () = Array.app (fn (segments : (LatLon.pos * LatLon.pos) list) =>
                               app (fn (a, b) => (addpt a; addpt b)) segments) color_bins
 
 
           fun writept (x : real, y : real) = 
-              write (PacTom.rtos (PacTom.offsetx bounds x) ^ " " ^ 
-                     PacTom.rtos (PacTom.offsety bounds y))
+              write (PacTom.rtos (Bounds.offsetx bounds x) ^ " " ^ 
+                     PacTom.rtos (Bounds.offsety bounds y))
 
 
           fun writebin (idx, segments) =
@@ -153,13 +153,10 @@ struct
                   val color = anglecolor (real idx / real (Array.length color_bins))
                   fun writeseg (pos : LatLon.pos, ppos : LatLon.pos) =
                       let in
-                          write "M ";
+                          write "M";
                           writept (projection pos);
-                          (* PERF per SVG spec these don't need to have spaces, 
-                             but convert wants them *)
-                          write " L ";
-                          writept (projection ppos);
-                          write " "
+                          write "L";
+                          writept (projection ppos)
                       end
               in
                   write ("<path fill=\"none\" stroke=\"#" ^ color ^ "\" " ^
@@ -170,8 +167,8 @@ struct
               end
       in
           write (PacTom.svgheader { x = 0, y = 0, 
-                                    width = Real.trunc (PacTom.width bounds), 
-                                    height = Real.trunc (PacTom.height bounds),
+                                    width = Real.trunc (Bounds.width bounds), 
+                                    height = Real.trunc (Bounds.height bounds),
                                     generator = "shortestpaths.sml" });
           Array.appi writebin color_bins;
           write (PacTom.svgfooter ())

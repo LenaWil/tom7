@@ -12,61 +12,6 @@ struct
 
   exception MakePoints of string
 
-  fun readkmlfile f =
-    let
-        val polys = ref nil
-
-        fun process (Elem(("coordinates", nil), [Text coordtext])) =
-            let 
-              val coords = String.tokens (fn #" " => true | _ => false) coordtext
-              val coords = 
-                map (fn t =>
-                     case map Real.fromString (String.fields (fn #"," => true 
-                                                                  | _ => false) t) of
-                         [SOME lon, SOME lat, SOME _] => (lon, lat)
-                       | _ => raise MakePoints ("non-numeric lat/lon/elev: " ^ t)) coords
-            in
-                polys := ((), Polygon.frompoints coords) :: !polys
-            end
-          | process (Elem(("coordinates", _), _)) = 
-            raise MakePoints "coordinates with subtags or attrs?"
-          | process (e as Text _) = ()
-          | process (Elem(t, tl)) = app process tl
-
-        val x = XML.parsefile f 
-            handle XML.XML s => 
-                raise MakePoints ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
-        val () = process x
-
-        val normed = PointLocation.normalize 0.00002 (!polys)
-
-        local 
-            val home = LatLon.fromdegs { lat = 40.452911, lon = ~79.936313 }
-            val projection = LatLon.gnomonic home
-            fun scalex x = x * 80000.0
-            fun scaley y = y * ~80000.0
-        in
-            val scaled = ListUtil.mapsecond 
-                (fn poly =>
-                 Polygon.frompoints 
-                 (map (fn (lon, lat) =>
-                       let 
-                           val pt = LatLon.fromdegs { lat = lat, lon = lon }
-                           val (x, y) = projection pt
-                       in
-                           (scalex x, scaley y)
-                       end) (Polygon.points poly))) normed
-        end
-
-        val f = TextIO.openOut "neighborhoods-locator-test.svg"
-            (* XXX needs massive scaling! Also, conversion to x/y. *)
-        val () = PointLocation.tosvg (PointLocation.locator scaled) 
-                                     (fn s => TextIO.output (f, s))
-        val () = TextIO.closeOut f
-    in
-        List.concat (map (Polygon.points o #2) normed)
-    end
-
   (* No exponential notation *)
   fun ertos r = if (r > ~0.000001 andalso r < 0.000001) 
                 then "0.0" 
@@ -101,11 +46,18 @@ struct
         | LESS => count l x
         | GREATER => count r x
 
-  fun writepoints pts f =
+  fun writepoints (hoods : (string * LatLon.pos Vector.vector) Vector.vector) f =
       let
+          val pts = map #2 (Vector.foldr op:: nil hoods)
+          val pts : LatLon.pos list = List.concat (map (Vector.foldr op:: nil) pts)
+          val pts : (real * real) list = map (fn p =>
+                                              let val { lat, lon } = LatLon.todegs p
+                                              in (lon, lat)
+                                              end) pts
+
           val f = TextIO.openOut f
 
-          val set = fromlist (map (fn (lon, lat) => (lon, lat)) pts)
+          val set = fromlist pts
 
           fun placemarks (lon, lat) =
               (* This isn't really the test we want, because we want to show
@@ -159,7 +111,7 @@ struct
           TextIO.closeOut f
       end
 
-  val pts = readkmlfile "neighborhoods.kml"
+  val pts = PacTom.neighborhoodsfromkml "neighborhoods.kml"
   val () = writepoints pts "neighbordots.kml"
 
 
