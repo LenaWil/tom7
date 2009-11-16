@@ -6,7 +6,7 @@ See http://radar.spacebar.org/f/a/weblog/category/1/pac_tom for details.
 neighborhoods.kml -   KML file containing Pittsburgh's neighborhoods
                       as polygons. Based on the PDF maps from the
                       Pittsburgh map room and believed to be public
-                      domain.
+                      domain. Not yet complete.
 
                       The maps are fairly accurate (borders closely
                       track landmarks like roads, rivers, and train
@@ -26,3 +26,13 @@ neighborhoods.kml -   KML file containing Pittsburgh's neighborhoods
                       with the sml-lib polygon library. A future
                       version of this kml will probably have them
                       normalized by default.
+
+... TODO: lots more ...
+
+
+To build everything you need to install rsvg-convert in the
+subdirectory rsvg (not checked in), or modify the makefile. For
+installing on Windows, I used these instructions:
+
+http://meta.wikimedia.org/wiki/Talk:SVG_image_support#Windows_version_of_RSVG.3F
+

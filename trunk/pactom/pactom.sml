@@ -5,6 +5,7 @@ struct
   fun msg s = TextIO.output(TextIO.stdErr, s ^ "\n")
 
   exception PacTom of string
+  open Bounds
 
   datatype tree = datatype XML.tree
 
@@ -31,13 +32,13 @@ struct
       val overlays = ref nil
 
       fun process (Elem(("coordinates", nil), [Text coordtext])) =
-        let val coords = String.tokens (fn #" " => true | _ => false) coordtext
+        let val coords = String.tokens (Util.is #" ") coordtext
             val coords = 
                 map (fn t =>
                      case map Real.fromString
-                         (String.fields (fn #"," => true | _ => false) t) of
-                       [SOME long, SOME lat, SOME elev] =>
-                           (LatLon.fromdegs {lat = lat, lon = long}, elev)
+                         (String.fields (Util.is #",") t) of
+                       [SOME lon, SOME lat, SOME elev] =>
+                           (LatLon.fromdegs {lat = lat, lon = lon}, elev)
                      | _ => raise PacTom ("non-numeric lat/lon/elev: " ^ t)) coords
         in
             paths := coords :: !paths
@@ -145,6 +146,93 @@ struct
 
   fun fromkmlfile f = fromkmlfiles [f]
 
+  fun neighborhoodsfromkml f =
+    let
+        val polys = ref nil
+
+        (* XXX: need pointwise for xml *)
+        fun eachplacemark (Elem(("Placemark", nil), tl)) =
+            let
+                val name = ref NONE
+                fun findname (Elem(("name", nil), [Text n])) = 
+                    (case !name of
+                         NONE => name := SOME n
+                       | SOME nn => 
+                             raise PacTom ("multiple names for placemark: " ^
+                                           nn ^ " and " ^ n))
+                  | findname (Elem(("name", _), _)) =
+                         raise PacTom "name with subtags or attributes?"
+                  | findname (Elem(t, tl)) = app findname tl
+                  | findname (Text _) = ()
+
+                fun findcoords (Elem(("coordinates", nil), [Text coordtext])) =
+                    let 
+                        val coords = String.tokens (Util.is #" ") coordtext
+                        val coords = 
+                            map (fn t =>
+                                 case map Real.fromString (String.fields (Util.is #",") t) of
+                                     [SOME lon, SOME lat, SOME _] => LatLon.fromdegs {lon = lon, lat = lat}
+                                   | _ => raise PacTom ("non-numeric lat/lon/elev: " ^ t)) coords
+                    in
+                        case !name of
+                            NONE => raise PacTom "no name preceding coordinates!"
+                          | SOME name => polys := (name, Vector.fromList coords) :: !polys
+                    end
+                  | findcoords (Elem(("coordinates", _), _)) = 
+                    raise PacTom "coordinates with subtags or attrs?"
+                  | findcoords (Text _) = ()
+                  | findcoords (Elem(_, tl)) = app findcoords tl
+
+            in
+                app findname tl;
+                app findcoords tl
+            end
+          | eachplacemark (Elem(("Placemark", _), _)) =
+            raise PacTom "Didn't expect attributes on placemark"
+          | eachplacemark (Text _) = ()
+          | eachplacemark (Elem(_, tl)) = app eachplacemark tl
+
+        val x = XML.parsefile f 
+            handle XML.XML s => 
+                raise PacTom ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
+        val () = eachplacemark x
+    in
+        Vector.fromList (!polys)
+    end
+
+(*
+  fun normalize_neighborhoods projection hoods =
+      let
+        val normed = SnapLatLon.snap 0.00002 (!polys)
+
+        local
+            val home = LatLon.fromdegs { lat = 40.452911, lon = ~79.936313 }
+            val projection = LatLon.gnomonic home
+            fun scalex x = x * 80000.0
+            fun scaley y = y * ~80000.0
+        in
+            val scaled = ListUtil.mapsecond 
+                (fn poly =>
+                 Polygon.frompoints 
+                 (map (fn (lon, lat) =>
+                       let 
+                           val pt = LatLon.fromdegs { lat = lat, lon = lon }
+                           val (x, y) = projection pt
+                       in
+                           (scalex x, scaley y)
+                       end) (Polygon.points poly))) normed
+        end
+
+        val f = TextIO.openOut "neighborhoods-locator-test.svg"
+            (* XXX needs massive scaling! Also, conversion to x/y. *)
+        val () = PointLocation.tosvg (PointLocation.locator scaled) 
+                                     (fn s => TextIO.output (f, s))
+        val () = TextIO.closeOut f
+    in
+        List.concat (map (Polygon.points o #2) normed)
+    end
+*)
+
   (* always alpha 1.0 *)
   fun randomanycolor () = 
       StringUtil.padex #"0" ~6 (Word32.toString (rand()))
@@ -169,48 +257,6 @@ struct
                then "-" ^ ertos (0.0 - r)
                else ertos r
 
-  type bounds = { empty : bool ref,
-                  maxx : real ref, minx : real ref,
-                  maxy : real ref, miny : real ref }
-
-  (* Initialize to infinite bounds *)
-  fun nobounds () = { empty = ref true,
-                      maxx = ref (~1.0 / 0.0),
-                      minx = ref (1.0 / 0.0),
-                      maxy = ref (~1.0 / 0.0),
-                      miny = ref (1.0 / 0.0) }
-
-  fun offsetx { empty = ref true, ... } _ = raise PacTom "no points in bounds"
-    | offsetx { minx = ref r, ... } x = x - r
-
-  fun offsety { empty = ref true, ... } _ = raise PacTom "no points in bounds"
-    | offsety { miny = ref r, ... } y = y - r
-
-  fun width (bounds : bounds) = offsetx bounds (! (#maxx bounds))
-  fun height (bounds : bounds) = offsety bounds (! (#maxy bounds))
-
-  fun getbounds { empty, maxx, minx, maxy, miny } =
-      if !empty
-      then raise PacTom "no points in bounds"
-      else { maxx = !maxx, minx = !minx,
-             maxy = !maxy, miny = !miny }
-
-  fun boundpoint { empty, maxx, minx, maxy, miny } (x, y) =
-      let
-          fun bound p min max =
-              let in
-                  if p < !min
-                  then min := p
-                  else ();
-                  if p > !max
-                  then max := p
-                  else ()
-              end
-      in
-          bound x minx maxx;
-          bound y miny maxy;
-          empty := false
-      end
 
   fun projectpaths proj pt =
       let

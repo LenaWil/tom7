@@ -27,8 +27,8 @@ struct
               end
           val { paths, bounds } = PacTom.projectpaths projection pt
           (* val { minx, maxx, miny, maxy } = PacTom.getbounds bounds *)
-          fun prpt (x, y) = print (PacTom.rtos (PacTom.offsetx bounds x) ^ "," ^ 
-                                   PacTom.rtos (PacTom.offsety bounds y) ^ " ")
+          fun prpt (x, y) = print (PacTom.rtos (Bounds.offsetx bounds x) ^ "," ^ 
+                                   PacTom.rtos (Bounds.offsety bounds y) ^ " ")
           fun averagepts l =
               let
                   val (xx, yy) = 
@@ -80,8 +80,8 @@ struct
 
       in
           print (PacTom.svgheader { x = 0, y = 0, 
-                                    width = Real.trunc (PacTom.width bounds), 
-                                    height = Real.trunc (PacTom.height bounds),
+                                    width = Real.trunc (Bounds.width bounds), 
+                                    height = Real.trunc (Bounds.height bounds),
                                     generator = "tosvg.sml" });
           Vector.app printpolyline paths;
           Vector.app printoverlay (PacTom.overlays pt);

@@ -12,26 +12,11 @@ sig
                                north : real, south : real,
                                east : real, west : real } Vector.vector
 
-    (* Imperative bounding box *)
-    type bounds
-    (* Raises PacTom if no points have ever been added. *)
-    val getbounds : bounds -> { minx : real, maxx : real, miny : real, maxy : real }
-    (* Starts with no points. *)
-    val nobounds : unit -> bounds
-    val boundpoint : bounds -> real * real -> unit
-    (* The offset of the point within the bounding box.
-       Probably should only use this after you're done adding all the
-       points to the bounds. *)
-    val offsetx : bounds -> real -> real
-    val offsety : bounds -> real -> real
-    val width : bounds -> real
-    val height : bounds -> real
-
     val projectpaths : LatLon.projection -> pactom ->
         { (* x, y, elevation *)
           paths : (real * real * real) Vector.vector Vector.vector,
           (* bounding rectangle in projected space *)
-          bounds : bounds }
+          bounds : Bounds.bounds }
 
 
     val home : LatLon.pos
@@ -39,15 +24,24 @@ sig
     val fromkmlfile : string -> pactom
     val fromkmlfiles : string list -> pactom
 
+    (* Loads neighborhoods kml, normalizes, and returns the data.
+       The kml must consist only of <LinearRing> geometric elements,
+       because it assumes that all <coordinates> tags contain polygons. *)
+    val neighborhoodsfromkml : string -> (string * LatLon.pos Vector.vector) Vector.vector
+
+(*
+    val projectnormalizepolys : LatLon.projection 
+(real * real) list
+*)
+
     (* Distances are accurate great-circle distances, ignoring elevation. *)
     structure G : UNDIRECTEDGRAPH where type weight = real
 
     (* As indices into the vector of paths, and into those paths. *)
     type waypoint = { path : int, pt : int }
     (* Put every point into a data structure for querying by location.
-       Each is associated with the path it's from, by index into the vector.
-       *)
-    val latlontree : pactom -> waypoint LatLonTree.latlontree
+       Each is associated with the path it's from, by index into the vector. *)
+    val latlontree : pactom -> waypoint LatLonTree.tree
 
     (* Compute the graph of reachability, which is all of the points in the
        paths, connected when they are close enough to imply connectedness. *)
@@ -55,7 +49,7 @@ sig
                             (* Same indices as in original paths. *)
                             promote : waypoint -> waypoint G.node,
                             (* Same as above. *)
-                            latlontree : waypoint LatLonTree.latlontree }
+                            latlontree : waypoint LatLonTree.tree }
 
     (* A minimal spanning tree, rooted at the node closest to the given
        position.
