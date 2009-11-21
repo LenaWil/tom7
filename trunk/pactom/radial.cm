@@ -21,12 +21,12 @@ group is
 ../sml-lib/misc/color-sig.sml
 ../sml-lib/misc/color.sml
 
-../sml-lib/crypt/mersenne-twister-sig.sml
-../sml-lib/crypt/mersenne-twister.sml
-
 ../sml-lib/files/xml/fxlib.cm
 ../sml-lib/files/xml/xml-sig.sml
 ../sml-lib/files/xml/xml.sml
+
+../sml-lib/crypt/mersenne-twister-sig.sml
+../sml-lib/crypt/mersenne-twister.sml
 
 ../sml-lib/util/growarray-sig.sml
 ../sml-lib/util/growarray.sml
@@ -45,6 +45,8 @@ group is
 ../sml-lib/geom/quadtree.sml
 ../sml-lib/geom/latlontree-sig.sml
 ../sml-lib/geom/latlontree.sml
+../sml-lib/geom/snappoints-sig.sml
+../sml-lib/geom/snappoints.sml
 ../sml-lib/geom/pointlocation-sig.sml
 ../sml-lib/geom/pointlocation.sml
 

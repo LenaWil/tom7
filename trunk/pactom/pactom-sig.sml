@@ -24,15 +24,16 @@ sig
     val fromkmlfile : string -> pactom
     val fromkmlfiles : string list -> pactom
 
+    type neighborhoods = (string * LatLon.pos Vector.vector) Vector.vector
+
     (* Loads neighborhoods kml, normalizes, and returns the data.
        The kml must consist only of <LinearRing> geometric elements,
        because it assumes that all <coordinates> tags contain polygons. *)
-    val neighborhoodsfromkml : string -> (string * LatLon.pos Vector.vector) Vector.vector
+    val neighborhoodsfromkml : string -> neighborhoods
 
-(*
-    val projectnormalizepolys : LatLon.projection 
-(real * real) list
-*)
+    val projecthoods : LatLon.projection -> neighborhoods ->
+                       { borders : (string * (real * real) Vector.vector) Vector.vector,
+                         bounds : Bounds.bounds }
 
     (* Distances are accurate great-circle distances, ignoring elevation. *)
     structure G : UNDIRECTEDGRAPH where type weight = real
@@ -65,6 +66,8 @@ sig
     val randomanycolor : unit -> string
     (* High saturation and value, random hue. *)
     val randombrightcolor : unit -> string
+    (* Low saturation, high value, random hue. *)
+    val randompalecolor : unit -> string
 
     (* Suitable for XML output. Avoids expontential notation
        and tilde for negative. (XXX should also cap out or fail on inf, nan) *)
