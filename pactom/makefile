@@ -1,15 +1,15 @@
 
 # default : programs outputs thumbnails
 # default : kmlcat
-default : shortest.kml shortest.svg
-# default : tosvg map.svg
+# default : shortest.kml shortest.svg
+default : tosvg map.svg
 # default : llt.svg
 
 all : programs outputs thumbnails obsolete release
 
 PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/misc/color*.sml ../sml-lib/geom/latlon*.sml ../sml-lib/geom/snappoint*.sml ../sml-lib/geom/latlontree*.sml ../sml-lib/geom/quadtree*.sml ../sml-lib/geom/pointlocation*.sml ../sml-lib/data/undirected-graph*.sml ../sml-lib/util/growarray*.sml ../sml-lib/algo/heap*.sml
 
-TIME=
+TIME=time
 
 # Generating programs.
 programs : shortestpaths colorize tosvg elevsvg makepoints radial lltsvg kmlcat
@@ -44,10 +44,10 @@ lltsvg : lltsvg.sml lltsvg.cm ${PACTOMLIB}
 
 outputs : radial.svg points.kml llt.svg map.svg
 
-map.svg : tosvg pac.kml pacannotations.kml pac2.kml
+map.svg : tosvg pac.kml pacannotations.kml pac2.kml neighborhoods.kml
 	${TIME} ./tosvg > $@
 
-radial.svg : radial
+radial.svg : radial pac.kml pac2.kml
 	${TIME} ./radial > $@
 
 points.kml : makepoints neighborhoods.kml

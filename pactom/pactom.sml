@@ -21,6 +21,8 @@ struct
   fun overlays { xmls, paths, overlays } = overlays
   fun xmls { xmls, paths, overlays } = xmls
 
+  type neighborhoods = (string * LatLon.pos Vector.vector) Vector.vector
+
   val home = LatLon.fromdegs { lat = 40.452911, lon = ~79.936313 }
 
   val seed = MersenneTwister.init32 0wxDEADBEEF
@@ -176,7 +178,7 @@ struct
                     in
                         case !name of
                             NONE => raise PacTom "no name preceding coordinates!"
-                          | SOME name => polys := (name, Vector.fromList coords) :: !polys
+                          | SOME name => polys := (name, coords) :: !polys
                     end
                   | findcoords (Elem(("coordinates", _), _)) = 
                     raise PacTom "coordinates with subtags or attrs?"
@@ -196,42 +198,36 @@ struct
             handle XML.XML s => 
                 raise PacTom ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
         val () = eachplacemark x
+
+        val () = TextIO.output (TextIO.stdErr, "Snap neighborhoods...\n")
+        (* XXX PERF this is crazy slow!! *)
+        (* XXX snap distance needs to be tuned. *)
+        val polys = SnapLatLon.snap 5.0 (!polys)
     in
-        Vector.fromList (!polys)
+        TextIO.output (TextIO.stdErr, "Done!\n");
+        Vector.fromList (ListUtil.mapsecond Vector.fromList polys)
     end
+
+  fun projecthoods projection (hoods : neighborhoods) :
+      { borders : (string * (real * real) Vector.vector) Vector.vector,
+        bounds : Bounds.bounds } =
+      let
+          val bounds = Bounds.nobounds ()
+          val hoods = 
+              Vector.map (fn (name, poly) => (name, Vector.map projection poly)) hoods
 
 (*
-  fun normalize_neighborhoods projection hoods =
-      let
-        val normed = SnapLatLon.snap 0.00002 (!polys)
-
-        local
-            val home = LatLon.fromdegs { lat = 40.452911, lon = ~79.936313 }
-            val projection = LatLon.gnomonic home
-            fun scalex x = x * 80000.0
-            fun scaley y = y * ~80000.0
-        in
-            val scaled = ListUtil.mapsecond 
-                (fn poly =>
-                 Polygon.frompoints 
-                 (map (fn (lon, lat) =>
-                       let 
-                           val pt = LatLon.fromdegs { lat = lat, lon = lon }
-                           val (x, y) = projection pt
-                       in
-                           (scalex x, scaley y)
-                       end) (Polygon.points poly))) normed
-        end
-
-        val f = TextIO.openOut "neighborhoods-locator-test.svg"
-            (* XXX needs massive scaling! Also, conversion to x/y. *)
-        val () = PointLocation.tosvg (PointLocation.locator scaled) 
-                                     (fn s => TextIO.output (f, s))
-        val () = TextIO.closeOut f
-    in
-        List.concat (map (Polygon.points o #2) normed)
-    end
+      val f = TextIO.openOut "neighborhoods-locator-test.svg"
+          (* XXX needs massive scaling! Also, conversion to x/y. *)
+      val () = PointLocation.tosvg (PointLocation.locator scaled) 
+                                   (fn s => TextIO.output (f, s))
+      val () = TextIO.closeOut f
 *)
+
+    in
+        Vector.app (fn (_, poly) => Vector.app (Bounds.boundpoint bounds) poly) hoods;
+        { borders = hoods, bounds = bounds }
+    end
 
   (* always alpha 1.0 *)
   fun randomanycolor () = 
@@ -244,6 +240,13 @@ struct
                           (Word32.toInt (Word32.andb(Word32.>>(rand (), 0w7), 0wxFF))),
                           0wxFF,
                           0wxFF))
+
+  fun randompalecolor () =
+      Color.tohexstring (Color.hsvtorgb 
+                         (Word8.fromInt 
+                          (Word32.toInt (Word32.andb(Word32.>>(rand (), 0w7), 0wxFF))),
+                          0wx33,
+                          0wxAA))
 
 
   (* No exponential notation *)
@@ -261,7 +264,7 @@ struct
   fun projectpaths proj pt =
       let
           val paths = paths pt
-          val b = nobounds ()
+          val b = Bounds.nobounds ()
               
           val paths = Vector.map (Vector.map (fn (p, z) =>
                                               let val (x, y) = proj p
