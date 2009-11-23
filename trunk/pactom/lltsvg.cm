@@ -45,6 +45,8 @@ group is
 ../sml-lib/geom/quadtree.sml
 ../sml-lib/geom/latlontree-sig.sml
 ../sml-lib/geom/latlontree.sml
+../sml-lib/geom/snappoints-sig.sml
+../sml-lib/geom/snappoints.sml
 ../sml-lib/geom/pointlocation-sig.sml
 ../sml-lib/geom/pointlocation.sml
 
