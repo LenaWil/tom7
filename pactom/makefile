@@ -9,7 +9,7 @@ all : programs outputs thumbnails obsolete release
 
 PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/misc/color*.sml ../sml-lib/geom/latlon*.sml ../sml-lib/geom/snappoint*.sml ../sml-lib/geom/latlontree*.sml ../sml-lib/geom/quadtree*.sml ../sml-lib/geom/pointlocation*.sml ../sml-lib/data/undirected-graph*.sml ../sml-lib/util/growarray*.sml ../sml-lib/algo/heap*.sml
 
-TIME=time
+TIME=
 
 # Generating programs.
 programs : shortestpaths colorize tosvg elevsvg makepoints radial lltsvg kmlcat
