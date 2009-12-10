@@ -5,7 +5,7 @@
 default : tosvg map.svg
 # default : llt.svg
 
-all : programs outputs thumbnails obsolete release
+all : programs outputs thumbnails pdfs obsolete release
 
 PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/misc/color*.sml ../sml-lib/geom/latlon*.sml ../sml-lib/geom/snappoint*.sml ../sml-lib/geom/latlontree*.sml ../sml-lib/geom/quadtree*.sml ../sml-lib/geom/pointlocation*.sml ../sml-lib/data/undirected-graph*.sml ../sml-lib/util/growarray*.sml ../sml-lib/algo/heap*.sml
 
@@ -63,15 +63,20 @@ llt.svg : lltsvg pac.kml pac2.kml
 # MAKETHUMB=convert -scale 400
 # MAKETHUMB="/c/program files/inkscape/inkscape"
 MAKETHUMB=rsvg/rsvg-convert --keep-aspect-ratio --width=400
+MAKEPDF=rsvg/rsvg-convert -f pdf
 
 # Convert SVGs to thumbnails for webpage
 thumbnails : map.png shortest.png
+pdfs : map.pdf shortest.pdf
 
 map.png : map.svg
 	${MAKETHUMB} $< -o $@
 
 shortest.png : shortest.svg
 	${MAKETHUMB} $< -o $@
+
+%.pdf : %.svg
+	${MAKEPDF} $< -o $@
 
 # Obsolete
 obsolete : parsexml
@@ -83,9 +88,9 @@ parsexml : parsexml.cm parsexml.sml ${PACTOMLIB}
 #   pac.kml
 #   pac2.kml
 
-RELEASEFILES=release/pactom.kmz release/shortest.svg release/map.svg release/map.png release/shortest.png
+RELEASEFILES=release/pactom.kmz release/shortest.svg release/map.svg release/map.png release/shortest.png release/shortest.pdf release/map.pdf
 release : ${RELEASEFILES} $(addsuffix .size, ${RELEASEFILES})
-	date +"%d %b %Y at %H:%M" > release/updated
+	date +"%d %b %Y at %H:%M" | tr -d '\012' > release/updated
 upload : release
 	pscp -r release root@spacebar.org:/var/www/pac/
 
@@ -93,6 +98,9 @@ release/%.png : %.png
 	cp $< $@
 
 release/%.svg : %.svg
+	cp $< $@
+
+release/%.pdf : %.pdf
 	cp $< $@
 
 # XXX also annotations, neighborhood, etc.
