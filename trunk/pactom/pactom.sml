@@ -281,7 +281,7 @@ struct
 
   fun latlontree ({ paths, ... } : pactom) =
       let
-          (* First get all points so that we can shuffle them. wLatLontree is
+          (* First get all points so that we can shuffle them. LatLontree is
              sensitive to insertion order, and definitely sucks with
              close-by, roughly horizontal or linear paths, which are
              rife in the input *)
