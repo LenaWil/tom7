@@ -1,0 +1,24 @@
+<style type="text/css">
+
+       H1 { font: bold 16pt Verdana,Arial,Helvetica }
+       P { font: 12px Verdana,Arial,Helvetica }
+
+       TH { font: bold 12px Verdana,Arial,Helvetica ; 
+            text-align: center}
+
+       TD { font: 12px Verdana,Arial,Helvetica }
+
+       A:link { color: #4444DD ; font-weight: bold; }
+       A:visited { color: #6666FF }
+       A:active { color: #DDDD44 }
+
+       .tiny { font : 9px Verdana, Arial, Helvetica, sans-serif }
+       .platformname { font-size : 32px; font-family: "Trebuchet MS", Verdana, Sans Serif; font-weight : bold }
+       .downloadlink { font-size : 22px; font-family: "Trebuchet MS", Verdana, Sans Serif; font-weight : bold;
+		       padding : 8px }
+
+       .blackline { border: 2pt;
+		    border-style: solid;
+		    border-color: black; }
+
+</style>

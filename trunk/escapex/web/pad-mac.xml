@@ -1,0 +1,109 @@
+<?xml version="1.0" ?>
+<XML_DIZ_INFO>
+	<MASTER_PAD_VERSION_INFO>
+		<MASTER_PAD_VERSION>2.01</MASTER_PAD_VERSION>
+		<MASTER_PAD_EDITOR>PADGen 2.0.1.22 http://www.padgen.org</MASTER_PAD_EDITOR>
+		<MASTER_PAD_INFO>Portable Application Description, or PAD for short, is a data set that is used by shareware authors to disseminate information to anyone interested in their software products. To find out more go to http://www.asp-shareware.org/pad</MASTER_PAD_INFO>
+	</MASTER_PAD_VERSION_INFO>
+	<Company_Info>
+		<Company_Name>Tom Murphy 7</Company_Name>
+		<Address_1 />
+		<Address_2 />
+		<City_Town>Pittsburgh</City_Town>
+		<State_Province>PA</State_Province>
+		<Zip_Postal_Code>15232</Zip_Postal_Code>
+		<Country>USA</Country>
+		<Company_WebSite_URL>http://tom7.org/</Company_WebSite_URL>
+		<Contact_Info>
+			<Author_First_Name>Tom</Author_First_Name>
+			<Author_Last_Name>Murphy</Author_Last_Name>
+			<Author_Email>imightbetm@aol.com</Author_Email>
+			<Contact_First_Name>Tom</Contact_First_Name>
+			<Contact_Last_Name>Murphy</Contact_Last_Name>
+			<Contact_Email>imightbetm@aol.com</Contact_Email>
+		</Contact_Info>
+		<Support_Info>
+			<Sales_Email>imightbetm@aol.com</Sales_Email>
+			<Support_Email>imightbetm@aol.com</Support_Email>
+			<General_Email>imightbetm@aol.com</General_Email>
+			<Sales_Phone />
+			<Support_Phone />
+			<General_Phone />
+			<Fax_Phone />
+		</Support_Info>
+	</Company_Info>
+	<Program_Info>
+		<Program_Name>Escape (OS X)</Program_Name>
+		<Program_Version>5.8.08</Program_Version>
+		<Program_Release_Month>8</Program_Release_Month>
+		<Program_Release_Day>8</Program_Release_Day>
+		<Program_Release_Year>2005</Program_Release_Year>
+		<Program_Cost_Dollars>0</Program_Cost_Dollars>
+		<Program_Cost_Other_Code />
+		<Program_Cost_Other />
+		<Program_Type>Freeware</Program_Type>
+		<Program_Release_Status>Beta</Program_Release_Status>
+		<Program_Install_Support>No Install Support</Program_Install_Support>
+		<Program_OS_Support>Mac OS X</Program_OS_Support>
+		<Program_Language>English</Program_Language>
+		<Program_Change_Info />
+		<Program_Specific_Category>Games</Program_Specific_Category>
+		<Program_Category_Class>Games &amp; Entertainment::Puzzle &amp; Word Games</Program_Category_Class>
+		<Program_Categories>games, puzzle games, tile games</Program_Categories>
+		<Program_System_Requirements />
+		<Includes_JAVA_VM>N</Includes_JAVA_VM>
+		<Includes_VB_Runtime>N</Includes_VB_Runtime>
+		<Includes_DirectX>N</Includes_DirectX>
+		<File_Info>
+			<Filename_Versioned>escape58.zip</Filename_Versioned>
+			<Filename_Previous>escape53.zip</Filename_Previous>
+			<Filename_Generic>escape.zip</Filename_Generic>
+			<Filename_Long>escape-beta-osx.zip</Filename_Long>
+			<File_Size_Bytes>1369516</File_Size_Bytes>
+			<File_Size_K>1370</File_Size_K>
+			<File_Size_MB>1.37</File_Size_MB>
+		</File_Info>
+		<Expire_Info>
+			<Has_Expire_Info>N</Has_Expire_Info>
+			<Expire_Count />
+			<Expire_Based_On>Days</Expire_Based_On>
+			<Expire_Other_Info />
+			<Expire_Month />
+			<Expire_Day />
+			<Expire_Year />
+		</Expire_Info>
+	</Program_Info>
+	<Program_Descriptions>
+		<English>
+			<Keywords>escape, puzzle game, lolo, chip's challenge, windows, macintosh, mac, win, linux, games, SDL, free, freeware, shareware, GPL, open source, puzzle, tiles, grid, sokoban, boxes, push, level editor, internet, sharing, online</Keywords>
+			<Char_Desc_45>Tile-based puzzle game with internet features</Char_Desc_45>
+			<Char_Desc_80>A deep tile-based puzzle game with built in level editor and internet sharing</Char_Desc_80>
+			<Char_Desc_250>Escape is a tile-based puzzle game in the style of "Adventures of Lolo" or "Chip's Challenge." Unlike either of those games, Escape doesn't rely at all on reflexes--it's all about your brain.</Char_Desc_250>
+			<Char_Desc_450>A tile-based puzzle game in the style of "Adventures of Lolo" or "Chip's Challenge." Unlike either of those games, Escape doesn't rely at all on reflexes--it's all about your brain. A level editor is included, and puzzles can be shared online.
+</Char_Desc_450>
+			<Char_Desc_2000>Escape is a tile-based puzzle game in the style of "Adventures of Lolo" or "Chip's Challenge." Unlike either of those games, Escape doesn't rely at all on reflexes--it's all about your brain. The game is played on a grid in wich the player must manipulate blocks, lasers, switches, and other devices in order to reach the exit. Of course, this is more easily said than done!
+
+Although Escape comes with hundreds of levels, the game places an emphasis on the composition of new puzzles. Thus Escape has a built-in level editor and facilities for automatically sharing puzzles with other players.
+</Char_Desc_2000>
+		</English>
+	</Program_Descriptions>
+	<Web_Info>
+		<Application_URLs>
+			<Application_Info_URL>http://escape.spacebar.org/</Application_Info_URL>
+			<Application_Order_URL>http://escape.spacebar.org/</Application_Order_URL>
+			<Application_Screenshot_URL>http://escape.spacebar.org/images/splitsville.gif</Application_Screenshot_URL>
+			<Application_Icon_URL>http://escape.spacebar.org/images/icon.gif</Application_Icon_URL>
+			<Application_XML_File_URL>http://escape.spacebar.org/pad.xml</Application_XML_File_URL>
+		</Application_URLs>
+		<Download_URLs>
+			<Primary_Download_URL>http://escape.spacebar.org/escape-beta-osx.zip</Primary_Download_URL>
+			<Secondary_Download_URL />
+			<Additional_Download_URL_1 />
+			<Additional_Download_URL_2 />
+		</Download_URLs>
+	</Web_Info>
+	<Permissions>
+		<Distribution_Permissions>This program can be freely distributed, according to the terms of the GNU Public License. See the file COPYING included in the distribution.</Distribution_Permissions>
+		<EULA>The license agreement is contained in the file COPYING in the distribution.</EULA>
+	</Permissions>
+</XML_DIZ_INFO>
