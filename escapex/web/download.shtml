@@ -1,0 +1,221 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html><head>
+<title>Escape Puzzle Game: Download for Windows XP, Mac OS X, Linux</title>
+<meta name=keywords content="escape, puzzle game, lolo, chip's challenge, windows, macintosh, mac, win, linux, games, SDL, free, freeware, shareware, GPL, open source, puzzle, tiles, grid, sokoban, boxes, push, level editor, internet, download, zip, instructions, help, source code, tutorial, SDL, SDL_net, SDL_image">
+<meta name=description content="Download instructions for Escape (Windows / Mac OS X / Linux).">
+<link rel=stylesheet type="text/css" href="escape.css" title="escape" />
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+<!-- try to fix pngs on ie -->
+<!--[if gte IE 5.5000]>
+<script type="text/javascript" src="pngfix.js"></script>
+<![endif]-->
+</head><body background="images/barsbg.png" leftmargin=0 topmargin=0 marginwidth=0 marginheight=0>
+
+<table width="704" style="margin-left : auto; margin-right : auto" cellspacing=0 border=0 cellpadding=0><tr>
+
+<td valign=top><img src="spacer.gif" height=100 width=89>
+<table border=0 cellspacing=0 cellpadding=0>
+<!--#include virtual="/buttons.inc"-->
+</table>
+</td>
+
+<!-- left border -->
+<td bgcolor="#444477" width=3 valign=top><img src="spacer.gif" width=3 height=3></td>
+
+<!-- main content -->
+<td style="background : #FFFFFF;" bgcolor="#FFFFFF">
+<table cellpadding=4><tr><td>
+<center><img src="images/downtitle.gif" width=494 height=87></center>
+
+<p><b><a href="index.shtml">Escape</a></b> is available for
+<b>Windows</b>, <b>Mac OS X</b>, and <b>x86 Linux</b>. Detailed
+instructions for each platform are below.</p>
+
+<p><b>Note:</b> If you have already downloaded an older version of
+Escape, try using the in-game upgrade feature rather than downloading
+a fresh copy from this page. This will only download the necessary
+files and will preserve any progress your players have made.
+
+<!-- Windows -->
+<table width="100%">
+<tr>
+<td rowspan=2 valign=top><a href="escapesetup.exe"><img border=0 src="images/win32-logo.png" width=120 height=120></a></td>
+<td width="100%" valign=top><span class="platformname">Windows</span></td>
+<td valign=top><div class="downloadlink"><a href="escapesetup.exe">escapesetup.exe</a></div></td></tr>
+<tr><td colspan=2 valign="top">
+<span class=tiny>Current version: <!--#include virtual="/win32/CURRENT" --></span>
+
+<p align=justify>To install on Windows, download the installer file
+above. After downloading, double-click the installer, choose a
+directory (the default should work fine) and click <b>install</b>. You
+can run Escape using the block icon on your desktop or in your Start
+menu.</p>
+
+<p align=justify>Some advanced users may prefer to download a <b><a
+href="escape-beta.zip">zip file</a></b> to perform manual
+installation.</p>
+
+<p align=justify>You can place the Escape directory anywhere, and
+moving it will not affect your progress. To uninstall, simply delete
+the directory.</p>
+
+</td></tr></table>
+
+<br/><br/>
+
+<!-- OS X -->
+<table width="100%">
+<tr>
+<td rowspan=2 valign=top><a href="escape-beta-osx.zip"><img border=0 src="images/osx-logo.png" width=120 height=120></a></td>
+<td width="100%" valign=top><div class="platformname">Mac OS X</div></td>
+<td valign=top><div class="downloadlink"><a href="escape-beta-osx.zip">escape-beta-osx.zip</a></div></td></tr>
+<tr><td colspan=2 valign="top">
+<span class=tiny>Current version: <!--#include virtual="/osx/CURRENT" --></span>
+
+<p align=justify>After downloading on Mac OS X, the archive should
+automatically be extracted. Inside is a single application labeled
+<b>Escape</b>. Simply double-click this icon to play. You can move it
+anywhere without disturbing player files in progress. To uninstall,
+simply delete the icon.
+
+<p align=justify>Escape is not compatible with OS 9 or earlier.</p>
+
+</td></tr></table>
+
+<br/><br/>
+
+<!-- Linux -->
+<table width="100%">
+<tr>
+<td rowspan=2 valign=top><a href="escape-beta.tar.gz"><img border=0 src="images/linux-logo.png" width=120 height=120></a></td>
+<td width="100%" valign=top><div class="platformname">x86 Linux</div></td>
+<td valign=top><div class="downloadlink"><a href="escape-beta.tar.gz">escape-beta.tar.gz</a></div></td></tr>
+<tr><td colspan=2 valign="top">
+<span class=tiny>Current version: <!--#include virtual="/linux/CURRENT" --></span>
+
+<p align=justify>These are statically-linked binaries for x86 linux.
+They are supposed to be portable to any x86 linux box (and perhaps
+other Unix-like operating systems with linux compatibility layers)
+without the need for libraries. To install, simply
+unzip and untar the archive to a directory of your choice. Then run
+<b>escape.exe</b> while in an X session.</p>
+
+<p align=justify>Many linux users prefer to install software from source
+code. To do so, use the source archive below.</p>
+
+</td></tr></table>
+
+<br/><br/>
+
+<!-- Source Code -->
+<table width="100%">
+<tr>
+<td rowspan=2 valign=top><a href="/source/escape-src.tar.bz2"><img border=0 src="images/source-logo.png" width=120 height=120></a></td>
+<td width="100%" valign=top><div class="platformname">Source Code</div></td>
+<td valign=top><div class="downloadlink"><a href="/source/escape-src.tar.bz2">escape-src.tar.bz2</a></div></td></tr>
+<tr><td colspan=2 valign="top">
+<span class=tiny>Current version: <!--#include virtual="/linux/CURRENT" --></span>
+
+<p align=justify>This is C++ source code for Escape, as well as all
+the graphics and game data. Also included is the source code to the
+Escape server and NES versions. For more up-to-the-minute sources, you
+can access the <b><a
+href="http://tom7misc.cvs.sourceforge.net/tom7misc/escapex/">CVS</a></b>
+repository at Sourceforge.</p>
+
+<p align=justify>Instructions for building are included in the file
+<b>HACKING</b> within the archive.</p>
+
+<p align=justify>Escape uses SDL and other (L)GPL libraries. For GPL
+compliance the source code to those libraries can be downloaded <b><a
+href="source/SDL/">here</a></b>, however, it's probably a better idea
+to download them from their homes on the web. 
+       (<b><a href="http://www.libsdl.org/download-1.2.php">SDL</a></b>,
+        <b><a href="http://www.libsdl.org/projects/SDL_net/">SDL_net</a></b>,
+        <b><a href="http://www.libsdl.org/projects/SDL_image/">SDL_image</a></b>,
+        <b><a href="http://www.libsdl.org/projects/SDL_mixer/">SDL_mixer</a></b>)
+</p>
+
+
+</td></tr></table>
+
+<br/><br/>
+
+<a name="AmigaOS4"></a>
+<table width="100%">
+<tr>
+<td rowspan=2 valign=top><a href="http://os4depot.net/index.php?function=showfile&file=game/puzzle/escape.lha"><img border=0 src="/images/amiga-logo.png" width=120 height=120></a></td>
+<td width="100%" valign=top><div class="platformname">Amiga OS4</div></td>
+<td valign=top><div class="downloadlink"><a href="http://os4depot.net/index.php?function=showfile&file=game/puzzle/escape.lha">(offsite&nbsp;link)</a></div></td></tr>
+<tr><td colspan=2 valign="top">
+<span class=tiny>April 2005</span>
+
+<p align=justify>Edgar Schwan has ported Escape to the new Amiga OS
+called "OS4." It seems to support all the features that the Windows,
+Mac, and Linux builds did in April 2005, although I have not tried it.
+He also includes some sound effects!</p>
+
+</td></tr></table>
+
+</td></tr></table>
+
+<br/><br/>
+
+<a name="DOS"></a>
+<table width="100%">
+<tr>
+<td rowspan=2 valign=top><div style="width:120px;"><center><a href="/escape-dos.zip"><img border=0 src="/images/dos.gif" width=90 height=96></a></center></div></td>
+<td width="100%" valign=top><div class="platformname">MS-DOS</div></td>
+<td valign=top><div class="downloadlink"><a href="/escape-dos.zip">escape-dos.zip</a></div></td></tr>
+<tr><td colspan=2 valign="top">
+<span class=tiny>August 1996</span>
+
+<p align=justify>Here is the original Escape for DOS, from over 10
+years ago. Don't use this one if your computer can handle the modern
+version! It includes about 100 levels. Note: levels created with the
+built-in editor are not necessarily compatible with the modern Escape,
+because I have fixed bugs in the behavior of some tiles.</p>
+
+</td></tr></table>
+
+<br/><br/>
+
+<a name="NES"></a>
+<table width="100%">
+<tr>
+<td rowspan=2 valign=top><a href="/escape.nes"><img border=0 src="images/nes-logo.png" width=120 height=120></a></td>
+<td width="100%" valign=top><div class="platformname">Nintendo Entertainment System</div></td>
+<td valign=top><div class="downloadlink"><a href="/escape.nes">escape.nes</a></div></td></tr>
+<tr><td colspan=2 valign="top">
+<span class=tiny>Current version: 1.0; Summer 2004</span>
+
+<p align=justify>This is Adam Goode's experimental port of Escape to
+the 8-bit Nintendo Entertainment System. You will need a NES Emulator
+or flash cartridge to play.</p>
+
+<p align=justify>This version is just for fun; the ones above have many
+more features.</p>
+
+</td></tr></table>
+
+
+<p>Go back to the <b><a href="index.shtml">escape home page</a></b>.</p>
+
+
+</td></tr></table><!-- main content area -->
+
+<td bgcolor="#444477" width=3 valign=top><img src="spacer.gif" width=3 height=3></td>
+
+</td></tr></table>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-3572278-1");
+pageTracker._initData();
+pageTracker._trackPageview();
+</script>
+</body></html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html><head>
+<title>Escape Puzzle Game: Screenshots</title>
+<meta name=keywords content="escape, puzzle game, lolo, chip's challenge, windows, macintosh, mac, win, linux, games, SDL, free, freeware, shareware, GPL, open source, puzzle, tiles, grid, sokoban, boxes, push, level editor, internet, download, screenshot, screenshots, graphics">
+<meta name=description content="Screenshots of Escape (a puzzle game for Windows / Mac OS X / Linux).">
+<link rel=stylesheet type="text/css" href="escape.css" title="escape" />
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+<!-- try to fix pngs on ie -->
+<!--[if gte IE 5.5000]>
+<script type="text/javascript" src="pngfix.js"></script>
+<![endif]-->
+</head><body background="images/barsbg.png" leftmargin=0 topmargin=0 marginwidth=0 marginheight=0>
+
+<table width="704" style="margin-left : auto; margin-right : auto" cellspacing=0 border=0 cellpadding=0><tr>
+
+
+<td valign=top><img src="spacer.gif" height=100 width=89>
+<table border=0 cellspacing=0 cellpadding=0>
+<!--#include virtual="/buttons.inc"-->
+</table>
+</td>
+
+<!-- left border -->
+<td bgcolor="#444477" width=3 valign=top><img src="spacer.gif" width=3 height=3></td>
+
+<!-- main content -->
+<td style="background : #FFFFFF;" bgcolor="#FFFFFF">
+<table cellpadding=4><tr><td>
+<center><img src="images/screentitle.gif" width=494 height=87></center>
+
+<p>Here you will find screenshots of <b><a
+href="index.shtml">Escape</a></b> in action. The game looks essentially
+the same on Windows, Mac OS X, and Linux.</p>
+
+<p>Simply click on a thumbnail to view a full-size version, then use your
+browser's <b>back</b> button to return to this page.</p>
+
+<table width="100%">
+<tr>
+  <td><center>
+    <a href="images/california-roll-screenshot.png"><img src="images/california-roll-thumb.png" border=0></a>
+    <br><a href="images/california-roll-screenshot.png"><b>Level: California Roll</b></a><br><div style="font-size:x-small">(mjn)</div>
+    </center></td>
+
+  <td><center>
+    <a href="images/buttonblocker-screenshot.png"><img src="images/buttonblocker-thumb.png" border=0></a>
+    <br><a href="images/buttonblocker-screenshot.png"><b>Level: Button Blocker:<br>The Ultimate Challenge</b></a><br><div style="font-size:x-small">(John Lewis, noname)</div>
+    </center></td>
+</tr>
+
+<tr><td colspan=2>&nbsp;</td></tr>
+
+<tr>
+  <td><center>
+    <a href="images/mainmenu-screenshot.png"><img src="images/mainmenu-thumb.gif" border=0 width=200 height=150></a>
+    <br><a href="images/mainmenu-screenshot.png"><b>Main Menu</b></a>
+    </center></td>
+  <td><center>
+    <a href="images/editor-screenshot.png"><img src="images/editor-thumb.gif" border=0 width=200 height=150></a>
+    <br><a href="images/editor-screenshot.png"><b>Level Editor</b></a>
+    </center></td>
+</tr>
+
+<tr><td colspan=2>&nbsp;</td></tr>
+
+<tr>
+  <td><center>
+    <a href="images/load-screenshot.png"><img src="images/load-thumb.gif" border=0 width=200 height=150></a>
+    <br><a href="images/load-screenshot.png"><b>Level Browser</b></a>
+    </center></td>
+  <td><center>
+    <a href="images/laserdeath-screenshot.png"><img src="images/laserdeath-thumb.gif" border=0 width=200 height=150></a>
+    <br><a href="images/laserdeath-screenshot.png"><b>Death by Laser</b></a>
+    </center></td>
+</tr>
+
+<tr><td colspan=2>&nbsp;</td></tr>
+
+<tr>
+  <td><center>
+    <a href="images/outof.png"><img src="images/outof-thumb.gif" border=0 width=200 height=114></a>
+    <br><a href="images/outof.png"><b>Level: Out of&#133; and into&#133;</b></a>
+    </center></td>
+  <td><center>
+    <a href="images/splitsville.gif"><img src="images/splitsville-thumb.gif" border=0 width=200 height=119></a>
+    <br><a href="images/splitsville.gif"><b>Level: Splitsville</b></a>
+    </center></td>
+</tr>
+
+<!--
+  old screenshots...
+
+  <td><center>
+    <a href="images/goal.png"><img src="images/goal-thumb.gif" border=0 width=200 height=114></a>
+    <br><a href="images/goal.png"><b>Level: Game-Winning Goal</b></a>
+    </center></td>
+
+-->
+
+</table>
+
+<p>This collage of screenshots is from the <b><a
+href="download.shtml#DOS">MS-DOS version</a></b> of Escape from 1996.
+The top is the main menu, the middle is a screenshot of playing the
+game, and the bottom is the level editor.</p>
+
+<center>
+<a href="images/dos-screenshots.gif"><img src="images/dos-screenshots-thumb.gif" border=0 /></a>
+<br/><a href="images/dos-screenshots.gif"><b>DOS title, gameplay, editor</b></a>
+</center>
+
+<p>The following screenshots are from the <b><a
+href="download.shtml#NES">8-bit Nintendo version</a></b>, which
+obviously has lower graphical capabilities than the modern version
+above.
+
+<table width="100%">
+<tr>
+  <td><center>
+     <a href="images/nes-screenshot.gif"><img src="images/nes-thumb.gif" border=0></a>
+     <br><a href="images/nes-screenshot.gif"><b>NES Gameplay</b></a>
+     </center></td>
+
+  <td><center>
+     <a href="images/frontcover-small.png"><img src="images/frontcover-thumb.gif" border=0></a>
+     <br><a href="images/frontcover-small.png"><b>Front Cover</b></a>
+     </center></td>
+
+  <td><center>
+     <a href="images/backcover-small.png"><img src="images/backcover-thumb.gif" border=0></a>
+     <br><a href="images/backcover-small.png"><b>Back Cover</b></a>
+     </center></td>
+</tr>
+</table>
+
+<p>Go back to the <b><a href="index.shtml">escape home page</a></b>.</p>
+
+</td></tr></table><!-- main content area -->
+
+<td bgcolor="#444477" width=3 valign=top><img src="spacer.gif" width=3 height=3></td>
+
+</td></tr></table>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-3572278-1");
+pageTracker._initData();
+pageTracker._trackPageview();
+</script>
+</body></html>

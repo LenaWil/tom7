@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html><head>
+<title>Escape : Free Puzzle game for Windows, Linux, Mac OSX</title>
+<link rel="alternate" type="application/rss+xml" title="New Escape Level Feed" href="http://escape.spacebar.org/f/a/escape/recentrss" />
+<link rel="stylesheet" type="text/css" href="escape.css" title="escape" />
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+<meta name="keywords" content="escape, puzzle game, lolo, chip's challenge, windows, macintosh, mac, osx, os x, win, linux, games, SDL, free, freeware, shareware, GPL, open source, puzzle, tiles, grid, sokoban, boxes, push, level editor, internet, sharing, online, download, tom7" />
+<meta name="description" content="Escape is a deep tile-based puzzle game with internet features." />
+<!-- try to fix pngs on ie -->
+<!--[if gte IE 5.5000]>
+<script type="text/javascript" src="pngfix.js"></script>
+<![endif]-->
+</head><body background="images/barsbg.png" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">
+
+<table width="704" style="margin-left : auto; margin-right : auto" cellspacing="0" border="0" cellpadding="0"><tr>
+
+<!-- buttons at left -->
+<td valign="top"><img src="spacer.gif" alt="" height="100" width="89" />
+<table border="0" cellspacing="0" cellpadding="0">
+<!--#include virtual="/buttons.inc"-->
+</table>
+</td>
+
+<!-- left border -->
+<td bgcolor="#444477" width="3" valign="top"><img src="spacer.gif" alt="" width="3" height="3" /></td>
+
+<!-- main content -->
+<td style="background : #FFFFFF;" bgcolor="#FFFFFF">
+<table cellpadding="4"><tr><td>
+<center><img src="images/webtitle.gif" width="494" height="87" alt="Escape"/></center>
+
+<p align=justify><b>Escape</b> is a fun puzzle game in the tradition of
+Adventures of Lolo or Chip's Challenge (see the screenshots below).
+Unlike either of those games, Escape doesn't rely at all on
+reflexes&mdash;it's all about your brain.</p>
+
+<p>But who wants to read? Just download the game for free:</p>
+
+<p>
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr><td colspan="3" valign="top"><a href="download.shtml"><img src="images/choose-platform.png" border="0" alt="Choose a platform or get help / more options..." width="578" height="29" /></a></td></tr>
+<tr>
+<td>
+  <table style="width : 180px; border : 1px solid #000055 ; background : #DDDDFF ; background-image: url(images/stripebg.gif) ; cellpadding : 2px">
+  <tr><td>
+      <center><a href="escapesetup.exe"><img border="0" src="images/win32-logo.png" alt="Windows" width="120" height="120" /></a></center>
+       <center><b>Windows (any version)</b>
+       <br /><b><a href="escapesetup.exe">escapesetup.exe</a>
+                (<a href="escape-beta.zip">zip</a>)</b>
+       </center>
+       </td></tr> 
+  </table>
+</td>
+
+<td>
+  <table style="width : 180px; border : 1px solid #000055 ; background : #DDDDFF ; background-image: url(images/stripebg.gif) ; cellpadding : 2px">
+  <tr><td>
+      <center><a href="escape-beta-osx.zip"><img border="0" src="images/osx-logo.png" alt="Mac OS X" width="120" height="120" /></a></center>
+       <center><b>Mac OS X (any version)</b>
+       <br /><b><a href="escape-beta-osx.zip">escape-beta-osx.zip</a></b>
+       </center>
+       </td></tr> 
+  </table>
+</td>
+
+<td>
+  <table style="width : 180px; border : 1px solid #000055 ; background : #DDDDFF ; background-image: url(images/stripebg.gif) ; cellpadding : 2px">
+  <tr><td>
+      <center><a href="escape-beta.tar.gz"><img border="0" src="images/linux-logo.png" alt="x86 Linux" width="120" height="120" /></a></center>
+       <center><b>Linux (x86 static binary)</b>
+       <br /><b><a href="escape-beta.tar.gz">escape-beta.tar.gz</a></b>
+       </center>
+       </td></tr> 
+  </table>
+</td>
+
+</tr></table></p>
+
+<p align=justify>Once you've installed it, Escape can upgrade itself
+and also downloaded the newest levels. Read the <b><a
+href="win32/escape.txt">documentation</a></b> for more info. You can
+also read the <b><a href="win32/changelog">change log</a></b> to learn
+what has changed between versions.</p>
+
+<p>I appreciate your <b><a
+href="http://radar.spacebar.org/f/a/weblog/comment/1/898">feedback</a></b>.</p>
+
+<p>Quick links until comments are viewable in-game: <b><a
+href="/f/a/escape/comments">most recent comments</a></b> (<b><a
+href="/f/a/escape/comments?spoilers=1">including spoilers</a></b>)</p>
+
+<p><b>Most recent levels (<a href="levels.shtml">more</a>)</b> &nbsp; <a href="/f/a/escape/recentrss"><img align="bottom" src="images/rss_button.gif" border="0" alt="rss" width="31" height="12" /></a>
+<br /><!--#include virtual="/f/a/escape/recent/5"--></p>
+
+<p><b>Screenshots (<a href="screenshots.shtml">more</a>)</b></p>
+<center>
+<p><img src="images/splitsville.gif" width="583" height="347" alt="Screenshot" /></p>
+<p><img src="images/sfo.png" width="488" height="540" alt="Screenshot" /></p>
+</center>
+
+<p>Escape is part of the <b><a href="http://tom7.org/">tom7.org</a></b> family
+of websites.</p>
+
+</td></tr></table><!-- main content area -->
+
+<td bgcolor="#444477" width="3" valign="top"><img src="spacer.gif" alt="" width="3" height="3" /></td>
+
+</td></tr></table>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-3572278-1");
+pageTracker._initData();
+pageTracker._trackPageview();
+</script>
+</body></html>

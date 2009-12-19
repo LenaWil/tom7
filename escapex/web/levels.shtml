@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html><head>
+<title>Escape Puzzle Game: Level Browser</title>
+<link rel="alternate" type="application/rss+xml" title="New Escape Level Feed" href="http://escape.spacebar.org/f/a/escape/recentrss" />
+<link rel="stylesheet" type="text/css" href="escape.css" title="escape" />
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+<meta name=keywords content="escape, puzzle game, lolo, chip's challenge, windows, macintosh, mac, win, linux, games, SDL, free, freeware, shareware, GPL, open source, puzzle, tiles, grid, sokoban, boxes, push, level editor, internet, sharing, online, levels, .esx, browser, png, screenshot">
+<meta name=description content="Browse levels for Escape online.">
+<!-- try to fix pngs on ie -->
+<!--[if gte IE 5.5000]>
+<script type="text/javascript" src="pngfix.js"></script>
+<![endif]-->
+</head><body background="images/barsbg.png" leftmargin=0 topmargin=0 marginwidth=0 marginheight=0>
+
+<table width="704" style="margin-left : auto; margin-right : auto" cellspacing=0 border=0 cellpadding=0><tr>
+
+
+<td valign="top"><img src="spacer.gif" alt="" height="100" width="89" />
+<table border="0" cellspacing="0" cellpadding="0">
+<!--#include virtual="/buttons.inc"-->
+</table>
+</td>
+
+<!-- left border -->
+<td bgcolor="#444477" width=3 valign=top><img src="spacer.gif" width=3 height=3></td>
+
+<!-- main content -->
+<td style="background : #FFFFFF;" bgcolor="#FFFFFF">
+<table cellpadding=4><tr><td>
+<center><img src="images/levelstitle.gif" width=494 height=87></center>
+
+<p><b><a href="index.shtml">Escape</a></b> has a built-in level editor and allows you to
+easily share your creations with other players through this server. This page allows
+you to browse through the level collection on the web, to see detailed information about
+the levels or to see what's new when you're away from the game.
+
+<p>Another way to browse levels is by looking at the list of most recent comments:
+<b><a href="/f/a/escape/comments">most recent comments</a></b> (<b><a
+href="/f/a/escape/comments?spoilers=1">including spoilers</a></b>)</p>
+
+<p>The list of new levels is also available as an RSS feed
+(<a href="/f/a/escape/recentrss">every
+level</a> <a href="/f/a/escape/recentrss"><img align=bottom
+src="images/rss_button.gif" border=0 alt="rss all" width=31
+height=12></a> or <a href="/f/a/escape/summaryrss">weekly
+summary</a> <a href="/f/a/escape/summaryrss"><img align="bottom"
+src="images/rss_button.gif" border=0 alt="rss weekly" width=31
+height=12></a>), which you can subscribe to with an RSS-enabled
+newsreader. There is even a livejournal
+user <b><a href="http://www.livejournal.com/users/escape_feed/">escape_feed</a></b>
+to befriend. You can also become a fan of
+the <b><a href="http://www.facebook.com/pages/Escape/295413065073">Escape
+Facebook page</a></b>.</p>
+
+<p><b>The newest levels</b> based on upload time:
+<br><!--#include virtual="/f/a/escape/recent/10/detail"-->
+
+<br /><a name="hof"></a>
+<p><b>All-time most stylish levels</b> based on user ratings:
+
+<!--#include virtual="/style.inc" -->
+
+<br />
+<p><b>All-time most difficult levels</b> based on user ratings:
+
+<!--#include virtual="/difficulty.inc" -->
+
+<p>To upload your own levels, follow these steps:
+<ol style="list-style-type:decimal">
+<li>Ensure your player is registered (press <b>r</b> on the main menu)</li>
+<li>Create a level, and save it in the "My Levels" directory. Exit the
+editor.</li>
+<li>Load your level and solve it. Your solution must be saved so
+that it can be verified by the server.</li>
+<li>Once you are happy with your level and have the yellow check
+mark, you can press <b>ctrl-u</b> to upload it. It will appear here
+instantly!</li>
+</ol></p>
+
+<br/><br/>
+<p>Go back to the <b><a href="index.shtml">escape home page</a></b>.
+
+
+</td></tr></table><!-- main content area -->
+
+<td bgcolor="#444477" width=3 valign=top><img src="spacer.gif" width=3 height=3></td>
+
+</td></tr></table>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-3572278-1");
+pageTracker._initData();
+pageTracker._trackPageview();
+</script>
+</body></html>
