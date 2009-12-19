@@ -120,8 +120,8 @@ code. To do so, use the source archive below.</p>
 <p align=justify>This is C++ source code for Escape, as well as all
 the graphics and game data. Also included is the source code to the
 Escape server and NES versions. For more up-to-the-minute sources, you
-can access the <b><a
-href="http://tom7misc.cvs.sourceforge.net/tom7misc/escapex/">CVS</a></b>
+can access
+the <b><a href="http://tom7misc.svn.sourceforge.net/viewvc/tom7misc/trunk/escapex/">SVN</a></b>
 repository at Sourceforge.</p>
 
 <p align=justify>Instructions for building are included in the file
