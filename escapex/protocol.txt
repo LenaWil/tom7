@@ -1,0 +1,136 @@
+
+ * Updating Escape *
+
+Via HTTP GET, the client fetches a static file. The directory
+containing the file 'UPGRADE' (and then, the update files) is named
+based on the platform. These platforms are "win32", "linux" and
+"macosx."
+
+GET /linux/UPGRADE HTTP/1.0
+
+4                  (number of files)
+200301010          (oldest auto-upgrade version)
+200309010          (recommend upgrade if below this version)
+200309240          (current version)
+Linux 24 Sept 2003 (arbitrary "last updated time" -- no particular format)
+
+(then, n files)
+(filename)   (encodeflags) (md5sum)
+tiles.png    u             b682e05047ce68e4df74b77f20b4ac50
+font.png     u             4133af6aca83d189e9c67144310d36bf
+escape.txt   uz            95e27d5bb359017d86b5ff5aaf1536f4
+escape.exe   uz            f5184d3685b64de881fce439d9116c2a
+
+Anything after the n files, or after the md5sum on file lines, is
+ignored. The md5sum is computed on the contents of the raw file, and
+is intended so that clients can ignore the download if they already
+have the file (it is expected that most upgrades will be of just the
+binary and documentation).
+
+The encode flags specify the ways that the file can be downloaded. If
+'u', then an uncompressed file of the same name can be found in the same
+directory. If 'z', then a gzip-compressed file can be found with an extra
+.gz extension, etc. Initially, I won't support any compression or encoding.
+
+These files can be fetched by standard HTTP. (ie GET /linux/font.png
+HTTP/1.0). They should be downloaded to alternate filenames, the
+originals unlinked, and then the alternates renamed to the correct
+names. (On windows, this can be tricky.) After that, force the program
+to restart.
+
+All other updates are done independent of the platform.
+
+ * Updating the list of collections *
+
+
+Via HTTP GET, the client fetches a static file:
+
+GET /COLLECTIONS HTTP/1.0
+(regular HTTP headers)
+
+2 (number of collections)
+
+(fname)  (version) (long name)
+official 200309240 Official
+eula     200309240 Escape User Level Archive
+
+
+Blank lines, extra spaces, and (parentheticals) are just for ease of
+presentation here and are not present in the actual input. fname is
+the directory name (and filename for the level list below) used for
+the collection; it may not contain spaces or special characters. We
+don't list subdirectories here either; those are expressed within the
+collection itself. version is the minimum version of Escape necessary
+to use all of the levels in the collection. The long name is the name
+that should be displayed to the users. Anything after the nth
+collection line should be ignored.
+
+
+ * Updating a collection of levels *
+   (version 2)
+
+The user first fetches a file that lists all of the levels in the
+current collection like this:
+
+GET /official.txt HTTP/1.0
+(regular HTTP headers)
+
+Official           (name of collection -- becomes esi for .)
+200404150          (minimum escape version)
+5                  (number of subdirectories)
+2                  (number of levels in collection)
+24 Sept 2003       (arbitrary "last updated time"/version string 
+                    -- no particular format)
+
+(subdir) (description -- becomes esi)
+easy      Easy
+hard      Hard
+tricky    Tricky
+misc      Miscellaneous Levels
+misc/old  Old Stuff
+
+(filename) (md5sum)
+easy/andro.esx 2e8925f2ab62166a3664a1857d4e2de3
+hard/other.esx eee3a57219acd8ecc408f322289d66d1
+
+Blank lines, extra spaces, and (parentheticals) are just for ease of
+presentation here and are not present in the actual input. The
+filenames and subdirectory names may not include spaces. Anything
+after the md5sum on the line should be ignored (it's for future
+expansion...). Anything after the nth level line should also be
+ignored.
+
+The number of subdirectories includes all prefixes. So above, we
+list misc and misc/old separately. The directories must appear in
+order such that the following constraint is met: any path p1/dir
+must appear after p1 itself. The root directory does not appear;
+it's name is given by the collection name.
+
+This exchange happens with a standard HTTP GET request. The server can
+generate this file whenever the database changes and then it can be
+served statically.
+
+All of the client's work happens in the directory corresponding to the
+collection. (This has the same name as the collection's "fname".)
+First, the client makes sure that the directory structure is in place,
+and the index files are written. Existing subdirectories that aren't
+in the collection are pruned (moved to the attic--see below).
+
+Now, the client moves any file it has to its new location.
+Any file it has but that is not in the list is moved to some
+other directory ("attic") to prevent lossage. This is to allow
+reorganization of the level hierarchy at will. Because solutions
+are stored by their md5sums, this reorganization won't affect
+any player's progress.
+
+Then, the client figures out what new files it wants. It requests
+them via HTTP GET like this:
+
+GET /official/2e/8925f2ab62166a3664a1857d4e2de3 HTTP/1.0
+(regular HTTP headers)
+
+(the first two digits of the md5sum are used as a subdirectory to
+improve filesystem performance, since there may be *many* files).
+
+These are also served statically, as binary data.
+

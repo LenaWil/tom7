@@ -1,0 +1,126 @@
+
+  Principles of Escape Tile Design
+             or
+  The Laws of Escape Physics
+
+
+This document is intended as a sort of self-narrative on the
+principles of Escape. Since it's just a computer program, that is of
+course silly; the C++ source file move.h "defines" the physics of the
+universe. However, the interaction between features of the game
+(which, on their own, are simple) leads to some subtle effects worth
+thinking about clearly. The idea here is to lay out abstract
+"principles" that can be used as guidelines when deciding between
+several different possibilities. Designing around such principles has
+the benefit that the player can use them to intuit game semantics; a
+knowledge of "why" helps him deduce "what" without reading the code.
+This can be the case even if he doesn't know the principles directly.
+
+However, we must recognize that the Escape semantics are inevitably
+complex and filled with opportunities for hidden information. Although
+it's desirable to reduce complexity and hidden information, this may
+not always be possible. Therefore, the burden remains squarely with
+the puzzle author to compose levels that are scrutable.
+
+
+The Laws of Escape Physics are listed in order of decreasing
+importance. If behavior 'B' is implied by later rules but 'A' by
+earlier rules, then behavior 'A' must hold.
+
+1. Finitism
+
+  Every Escape move terminates in finite time.
+
+
+2. Determinism
+
+  The Escape physics must be deterministic. Executing the same move
+  in the same state multiple times must yield the same result.
+
+
+3. Discreteness
+
+  All action takes place on a discrete grid, in discrete time steps.
+
+
+4. Conservation of Matter
+
+  With the exception of explicit destruction (zapping blocks by
+  electricity; pushing grey into holes; breakable blocks; bombs),
+  Escape "matter" is conserved. In particular, there should be no
+  mechanism that creates blocks out of nothing. (A "bug" in DOS Escape
+  allowed this, because a certain combination of panels would both
+  push a block onto another square and move it into the bizarro world,
+  where it would be safe from being erased.)
+
+  That means, for instance, that no panel interaction should increase
+  or decrease the total number of blocks (of any type) in the world
+  (including, of course, the bizarro world).
+
+
+5. End-of-Turn Metaphysics
+
+  Metaphysical events, such as the player dying or "escaping" the level,
+  occur only at the end of the turn. A turn is made up of the individual
+  motions of each entity.
+
+
+6. Forward-Independence of Motion
+
+  Each turn is composed of one or more motions. The player makes
+  exactly one motion, and each bot makes one or zero motions. The
+  player's motion happens first, followed by each bot's motion, in
+  order of bot number. Because these motions happen sequentially, each
+  motion acts on the board in the state that it was in at the
+  end of the last motion. There is no "forward dependence" (changing
+  one's move based on what will happen in a later motion) and no chance
+  to retry an unsuccessful motion after a later entity has moved.
+
+  However, bots do affect each other in various ways: destroying each
+  other, pushing, etc.
+
+
+7. Panels are Triggered by Edge-Effects
+
+  Panels are not triggered by the presence of objects atop them.
+  Panels are also stateless: there is no 'on' or 'off' position.
+  Rather, panels are triggered by the "edge effect" of a block or
+  entity moving atop them. Panels are triggered at the end of each
+  motion. Because these happen all at once, triggering a panel twice
+  in one motion is the same as not triggering it at all (so sometimes
+  the game indeed represents this as zero triggers). However, two
+  triggers in the same *turn* cannot necessarily be cancelled, since
+  there may be intervening motions that depend on the panel's effects.
+
+  This edge-effect behavior also implies that there are no transitive
+  effects of panels, since triggered panels only cause swaps, not
+  block/entity motion. Observe the non-obvious fact that this would
+  not hold if we gave a stateful semantics to panels based on the
+  presence of a block or entity: Imagine a sequence of panels 0..n,
+  where panel i targets the location of panel i + 1. Each panel
+  location is currently occupied by a robot, with panel 0 being
+  unoccupied and adjacent to the player. When the player steps on
+  panel 0, the panel at location 1 flips into the bizarro world. Since
+  it no longer has an entity atop it, this triggers it and flips the
+  panel at location 2 into the bizarro world, etc.. If panel n targets
+  back to panel 0, this causes the chain reaction to in fact form an
+  infinite cycle.
+
+  (This cyclic problem is exhibited even in the simplified case of a
+   panel that targets itself, so this is not even dependent on bots.)
+
+  (Also, an instance of panel abuse can be achieved with only gold
+   blocks, by causing a panel that the player is standing on to appear
+   or disappear. That panel can be arbitrarily far away.)
+
+
+8. The Entity Exclusion Principle
+
+  Two entities may not (sustainably) share the same location on the
+  grid.
+
+  This implies the following (perhaps strange) behavior. If a bot is
+  on a panel, and a Dalek walks onto that bot, then the panel triggers
+  once (from the edge effect of the Dalek walking onto it). Since the
+  Dalek and the other bot become one broken bot, this edge effect is
+  "unpaired."

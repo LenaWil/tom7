@@ -1,0 +1,17 @@
+
+Here's how the online stuff should work.
+
+
+
+When playing a level, and especially upon completing it, the player
+should be given the chance to rate the puzzle and leave comments.
+These go via a web form to a database. We need personal UIDs in
+order for this to work.
+
+
+Intially a puzzle should be submitted to a "free-for-all" collection,
+for which there is no editorial oversight. Authors need to be able
+to retract a puzzle and replace it with a newer version. Solvers
+need to be able to upload solutions to show alternate solutions.
+
+

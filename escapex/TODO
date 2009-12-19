@@ -1,0 +1,536 @@
+			-*- outline -*-
+
+* Current Projects
+
+I think I introduced a regression in the behavior of wires from Radiant's "Global Thermonuclear War"
+
+appears that there's a bug where a phantom "play" icon shows up way off to
+the right when playing on wide monitors (2560+)
+
+put optipng on all build machines
+http://sourceforge.net/project/downloading.php?groupname=optipng&filename=optipng-0.5.4-exe.zip&use_mirror=umn
+
+* Binary linux distribution apparently includes uncleaned mylevels directory, which is weird
+
+** Ability to store data within the executable itself
+*** e.g. levels for tutorial, levels and sols for benchmark, regression suite?
+*** then need ability to load PNGs (etc.) from static data in memory...
+*** (all data for multiuser install)
+
+** EscapeMark
+  Need benchmark for testing speed gains between e.g. PPC and Universal Binary on MacBook. (?)
+
+
+** Upgrade bug on osx
+*** Released zip file has actual directories/copies where symlinks should be. Not sure why this is, but it shouldn't be the case and the upgrade code should be able to unlink directories (renaming them away.)
+**** that's done, but not released.. (can people still upgrade? after trying twice?)
+
+* Linux port
+** dependency on libgdk 1.2 (apparently not on many systems)--can ship it.
+
+** Remotes
+*** Computer = DES? MD5?
+*** duh, don't need to repeat animation frames that are identical
+
+** Levels in progress/todo:
+*** FRA (frankfurt)
+*** MCI (kansas city)
+*** LHR (London Heathrow)
+*** PIT (Pittsburgh) - in progress, good
+*** HEL (Helsinki)
+*** TKU (Turku)
+*** PHL (Philadelphia International Airport)
+*** NCE (Nice)
+*** PDX (Portland)
+*** ...
+
+** Fix levels
+*** Skirting the Issue (cooked by max)
+*** Splitsville (cooked by everyone)
+
+** Web Page
+*** user guide
+*** screenshots!
+**** new level screenshots (new player!)
+**** some screenshot with animation (BETA3)
+**** New level browser screenshot
+**** bots
+*** buttons / banners for links    (BETA3?)
+**** walking escapist
+
+** New level browser based on tags, not dirs
+*** should support agglomeration from many locations
+    so that we can do multi-user installs (a la mergefs)
+*** should support "escape database" files so that
+    we needn't touch so many files just to look through
+    triage
+*** should probably be multi-threaded so that we don't
+    have to wait until every solution is checked
+
+** level notes.
+   grand prix: first blue to the left (stop at ud slider),
+   then blue down, send red left then up.
+
+** Upgrade System (BETA3)
+*** important! 
+   we can now fetch files that belong in ..
+   by putting them in the web dir with @.
+   but the build system needs to be updated to
+   deal with this (on OSX).
+
+*** prevent upgrade when user-compiled on linux
+
+** Animation
+*** why doesn't wave go all at once in max's "Wave"?
+  because: although two non-interfering animations can
+  be played within the same serial, we don't organize
+  several independent two-serial events to run in parallel.
+*** make things snappier/smoother
+**** holding down key should work
+**** move while animation is playing?
+  (rather than cancel, as we currently do,
+   maybe we could just add the animations
+   into the queue?)
+  some animations could fly around in the
+  background while the player continues
+  to move. a generic disambiguation system
+  would be perfect for this..
+**** try to make it so that if the player
+    will move in some phase, that the
+    movement phase is first. this gives
+    more snappy-feeling movement (see
+    max's chamber, my favorite test case)
+*** make yellow slide lr more like ud
+*** speed pref?
+*** turn on/off anim in level?
+**** now easy with the menu at top
+*** don't slam exit door -- have closedoor event
+*** test scrolling                 (BETA3)
+*** frames_error[] for defaults    (BETA3)
+*** player                         (BETA3)
+**** player winning (graphic exists in graphics/guy_happy.psd)
+**** player pushing udlr           (BETA3?)
+  should lean over, so hands are actually
+  up against the block!
+**** player 'pressing'
+  could be same as push anim (still) for now
+**** player 'kicking'
+  could be same as press anim for now
+**** teleport
+**** laser death
+***** could be improved (laser flicks off?)
+***** improve: laser from below can go to chest
+*** traps
+**** improve trap2 -> trap1
+*** wires animation
+**** swaps triggered by button push (and remotes) aren't delayed
+     like the wire anims are.
+**** anim for button
+**** weird discontinuity with overlapping wires triggered by
+     the same button (correct, but not slick). Probably two
+     overlapping wire pulses should just happen serially.
+*** stepping on panel?
+*** replace jiggle with individual anims for
+    each sphere, including the last one when
+    it doesn't move
+*** bugs:
+*** bot on panel dying (see kacper's bot collision bug)
+*** yorder comparison is not stable.
+    the pointer comparison is useless because
+    the pointers change during animation (?)
+*** panel (un)triggered when stepping into a
+    teleporter doesn't animate!
+*** jiggle animation can be wrong (see animation.cpp)
+*** push a series of steel blocks off the 
+    screen; the last one does not move, it
+    just gets overwritten by the one before it
+*** stepping onto an exit that is disappearing
+    (because we're stepping off a panel) still
+    draws the door open anim
+    .. this is not really semantically wrong,
+    but the two actions should be in different
+    phases, at least.
+
+** Sound                                 (BETA3)
+*** use ogg instead of wav?
+*** option on/off
+*** way to prevent the same sound from being
+    played multiple times in the same moment
+**** adding sounds
+***** player walks
+****** onto panel
+***** robot walks
+***** laser death
+***** robot crash
+***** object zapped
+***** enter exit
+***** block pushed
+***** sphere flying
+***** sphere hits
+***** break block
+***** exit wakes
+***** get heartframer
+***** push button
+***** trap falls
+***** grey into hole
+***** bomb explodes
+***** ...
+
+
+** Bookmarks
+*** option: delete bookmarks when level is solved?
+*** show bookmark "ghost racers"??
+     (probably wouldn't make much sense unless you could
+      see ghosts for the rest of the board's contents,
+      but that wouldn't be too hard.)
+
+** Usability
+*** Installer
+**** prompt to run when done installing
+**** choose directory allow typing
+*** File browser: rename files
+*** Handhold
+**** suggest register (when?)
+**** suggest tutorial (when any remains)
+*** When saving in editor: Overwrite file? y/N
+
+** net stuff??
+*** register player
+**** now we do care about cryptographic randomness
+**** probably better to use passwords so a player can share
+      logins across multiple machines
+*** viewing comments
+**** from game
+*** sync ratings automatically, perhaps when updating.
+    (should set a flag to say that some ratings have
+     been unsent -- or could do this rating by rating)
+
+** Code cleanup and modernization
+*** gcc 4.0 warnings
+*** vc++ warnings
+*** triage xxx/fixme/perf
+*** split up deeply nested code
+*** move.h bad tabification
+**** main.cpp
+***** this shouldn't all be in main, anyway
+**** load.cpp !!
+**** edit.cpp !
+*** abstract interfaces (as in http.h) where possible
+**** edit.h
+**** level.h ?
+**** play.h (still needs cleanup)
+*** rationalize treatment of SDL_QUIT message
+*** get rid of msg in upgrade/update. it is redundant.
+
+** Bugs
+
+*** Solution management (defaults, automatic saving when beating a level, downloads, 
+    bookmarks vs. solutions, etc.) is pretty messed up. Write a real spec for 
+    addsolution, implement it, and use it.
+*** Should use unicode symbols for keys always, so that
+    people get consistent game/menu behavior (pieguy in dvorak)
+*** when showing botnums, a detonated bomb's number sticks around
+*** Timer prefab: bot at bottom will walk up if player
+    is above him vertically. 
+*** CRASH: if there are no levels at all, right after saying
+    "there are no levels at all!"
+*** CRASH: apparently possible to overflow the event buffer (or something) 
+    while animation is going on; we only interrupt on keypress. 
+    This can totally happen when the mouse is moved during a long
+    animation. To test: load a level with long animations (in solution
+    playback), and then move the mouse quickly while pressing keys
+    randomly.
+*** CRASH: randstyle 7 on blank level
+*** view doesn't show bot numbers when zoomed out.
+*** editor doesn't show msg when zoomed out. This is bad, especially
+    in "choose destination" mode
+*** CRASH on ToF? v2 when pushing grey blocks (can't reproduce, valgrinds ok)
+*** start game. don't move mouse. (or put it above the topmost
+    level on load screen) go to load screen, scroll down and sit there
+    for a while level jumps up by 6 or so!! (BETA3?!) (is this just my
+    mouse on metroid? it only happens there.) (it happens with lolo
+    too, which is a touchpad!) SDL is totally sending periodic mm
+    events when the mouse is NOT being touched. (enable printing in
+    selector.h to see) what's the deal?
+*** OSX has different menu selected color, because of byte order
+*** packpng does not run when compiled with VS.NET (on laptop)
+*** win32: makefile doesn't stop if packpng returns -1
+*** valgrind warns on closedir: "mutex is still in use" (??)
+*** Load
+**** hit esc from a directory two levels deep. now re-enter load
+    screen and go to .. --- it sends you straight to the root.
+*** LIBPNG has security holes and should be upgraded on platforms where
+    it is shipped. Escape doesn't load untrusted pngs, but one day we
+    may support a skin system, at which point this would become
+    potentially exploitable.
+
+    Unfortunately, word has it that SDL_Image uses an ancient libpng
+    API, so we may be screwed.
+*** hit 1 to load. remove one of the directories from the command line. 
+    try to change to it. now, you won't be able to change to anything
+    because the path will be screwed up.
+
+    ie:
+    where: './attic-old/attic-old/fixme/fixme/official/triage/triage/attic-old'
+
+*** textbox: extra word wrapping 
+    this is a longer line\n
+    shorterline
+    where line + shorterline is too long to fit
+*** leaks
+**** editing
+      .. some leaks in retract
+*** pass allow_corrupted to dircache too (it doesn't count them now)
+*** warning: unsigned/signed comparison in util
+*** valgrind: randstyle illegal read (see editai)
+   this mode is currently disabled, and it sucks anyway...
+*** edit allows load over changed level
+   though we warn for most other actions that destroy an unsaved level
+
+** Hidden info
+*** toggle display of bots/bombs (or make them translucent. noname's trick)
+*** show bomb timer nums
+*** exploded move (animate with no dab)
+
+** Hardening
+*** automatically back up player file 
+**** recover player should let you pick from a list
+*** make a pass over with 
+**** deleted/corrupted files
+**** no disk space / read-only drive
+  From first start, we can't do anything because
+  there is no default.esp and we can't make it.
+  Also, SDL tries to create files, at least on win32,
+  before we even get control.
+**** interrupted network connection
+**** really long inputs
+**** totally empty root dir (no .. entry)
+
+** Perf
+*** 2.6 gigs of allocation?
+    I think that some of the retraction stuff must be very allocation-heavy.
+    Playing with it just a little results in 2.6 gigs of allocation!!! (which
+    is ultimately freed...)
+
+    Actually I saw this without doing retraction (only a few hundred megs in
+    that case). String stuff?
+==12334==
+==12334== ERROR SUMMARY: 279 errors from 4 contexts (suppressed: 185 from 4)
+==12334== malloc/free: in use at exit: 2154726 bytes in 451 blocks.
+==12334== malloc/free: 4546124 allocs, 4545673 frees, 2649989249 bytes allocated.
+
+*** more aggressive caching for dirs? (like what?)
+*** load performance
+   With the progress indicator, this becomes much less painful!
+
+   We now cache solutions, but this doesn't help much.
+
+   After profiling (with levels in cache disk), we learn that
+   the time is indeed spent loading and verifying the levels.
+   The right thing to do here is to not be recursive, and maybe
+   even to delay doing stuff like solution checking until we
+   need to actually display them on the screen.
+
+   On windows, there seems to be a lot of disk thrashing on the
+   first launch (until the files get in cache)...
+
+
+Tucows has a very old version; update:
+http://tucows.com/preview/383408
+
+** Little nice things
+*** when a non-empty checkpoint exists, draw tiny version in top-right
+*** improve look of textbox
+*** progress indicator when updating levels. The first user experience
+    is bad here.
+*** solution/bookmark recovery: see edit.cpp.
+    should keep a list of candidate "old" md5s to check for solutions + bookmarks
+    (could just run solution recovery like ctrl_0)
+*** autosave edited levels
+*** when losing a comment, at least copy it to the clipboard. ugh.
+*** when uploading, rename the solution within the player file to "Original"
+    if it is untitled
+*** when uploading, explain what kinds of things should be uploaded
+   **** no boring levels (autodetect?)
+*** escape.spacebar.org link on title screen
+*** if escape is started through a symlink (linux), it should
+    find its 'real' location. (It may fail to find libs this way, btw)
+*** when setting destination after scrolling, it doesn't show the
+    destination temporarily, as it does if you don't scroll.
+*** improve general mainmenu icon color scheme
+*** playback of solution while rating/commenting
+*** Mainshow
+**** make the levels more interesting
+    .. load some from triage?
+**** Neal suggests "Pac-Man" like cast movie
+*** sad face for when reporting errors (like, "your comment was lost")
+*** show nsolved ncooked (in sideinfo)
+    not sure if this is a good idea
+*** "you solved it" centered wrt level, not screen?
+*** scrolling arrows centered wrt drawing, not level
+*** way to minimize app with keystroke
+*** player selector
+**** show player details at bottom, like on load screen?
+***** might want to save more info, then
+
+
+** Graphics
+*** QICON kind of sucks
+*** THINSPACE, NEGSPACE and other 'magic' formatting characters
+*** hand anti-alias the font
+*** implement 'color stack' for fonts 
+**** font::closestack
+  .. adds and removes pops to make parens balanced.
+
+** "messages" in escape levels
+  Is this really a good idea? It's quite fun to try to express
+  things merely using the stuff in the game.
+*** prompts (waits keypress)
+*** status line
+*** 'hint' flag with 'hinting' mode
+
+** editor fanciness
+*** random styles and random generator
+**** 'pattern' matching system
+**** overwrite yes/no
+**** retract1
+*** undo
+*** drag off edge causes line to edge, at least
+
+** player file size
+04/22/2005  05:17 PM           154,568 tom7.esp (text format, many more sols...)
+02/14/2005  06:39 PM            59,701 tom.esp
+01/06/2005  01:12 PM            50,140 tom.esp
+-rw-r--r--    1 tom7     users       48929 Jun 23 13:27 tom.esp
+-rw-r--r--    1 tom7     users       33669 Jun 23 19:54 tom.esp (sub-byte encodings)
+*** in rleencode, write smaller frame headers
+    rledecode already supports this.
+*** improve solution optimization
+    (look for shorter paths between level-changing events)
+    it seems that some of the reachability stuff should
+    make this pretty easy. 
+
+    even simpler, just replay the solutions, and if we ever reach
+    the same x/y location twice, try deleting the series
+    of moves in-between, and re-validating the solution.
+
+    multi-solution optimization
+*** prune solutions in player files 
+   (ie, restrict to files actually on disk!!)
+   ... tom's is growing pretty big now.
+
+
+** Little nice things
+*** init_flips still seems wrong. Pitched
+    rectangle doesn't have height h (TILEH)
+    in its center!
+*** zooming
+    make tileu buttons for it
+*** center the drawing (horizontally, at least) 
+    when I can't fit all tiles. 
+    (also when I can ?!)
+*** draw alpha-dimmed tiles around border?
+     (tilesdim is now there.)
+**** draw it!
+
+** Fancy graphics
+*** hq2x version for very high resolutions?
+*** meld adjacent blue blocks, etc.
+   this will interfere badly with animation, so it's
+   probably not worth it.
+*** select source dir for game graphics ("skins")
+**** useful to have 'color blind' option (turns anims off,
+                                          probably)
+*** select other player graphics
+*** tile backgrounds
+   should be purely graphical (not affecting gameplay)
+   esp 'exit' in like, choochu shuba
+   (use 'dest' to find background tile? -- no, that's
+    messy. just use a new layer, like:)
+*** variations layer
+   another layer with variations for the tiles (mainly
+   static items like floor, exit, walls, black). I think
+   this is superior to the "tile background" hack above
+
+** Build system
+*** after make upgrade on windows, md5.obj is messed
+*** make recommend (etc.)
+
+** new tiles
+*** fire tile that spreads fire to (flammable) adjacent tiles at some rate
+    (say every 4 turns), turning it into burned ash, kills player
+*** mirrors for beams, should be easy except for
+    animation.
+*** one-way tiles (a la lolo)
+
+*** more bots
+**** move in a certain direction
+    (then we want 'direction' tiles to change the robot's direction)
+**** 'don medusa' moving laser
+**** sleeping bombs? (don't ignite when pushed, last heart framer
+     ignites them)
+
+*** powers that can be picked up
+**** bridge, a la lolo
+    (crosses what, water?)
+**** zapper: when pressing against a block that
+     can't be moved, vaporize it (use once)
+     .. shouldn't apply to blue; we need a nice-looking
+     invincible block
+     .. actually, should match bombability
+**** key?
+     different colors, and they unlock specific doors
+**** radiant's "colored footsteps" that color the player
+     and allow him to push colored panels down. I'd draw
+     it as colored balloons.
+
+*** brian's 4-way POOF! block
+    .. needs generic disembodied 'push' routine
+    - good if triggered by wires?
+*** 4x4 rotator. when pressed, it rotates its target
+    4x4 squares clockwise.
+*** warp to bizarro world??
+*** tile creator 
+    (if to its left/right/whatever, there is floor and no
+     guy, create a block. maybe this would work better as
+     a single tile that creates blocks on itself)
+    (could be triggered by a button?)
+    (could copy whatever is to its right, etc.?)
+*** max's "spring" block (player springs out like gold block)
+*** "heart framers" and friends:
+**** lolo "treasure" (kills all bots)
+***** sleeping "treasure"
+*** "jelly" that you pull by "swimming" through it:
+       _GJ_  -- move right -->    _JG_
+*** water: player can swim through it, bots avoid (except
+    daleks, who jump in and kill themselves) ?
+
+*** minotaur
+*** "bomb squad" robot that is controlled by push buttons
+*** more stuff controlled by wires and buttons (ie panels)
+**** panel-like flipper that is activated by pulse; pretty easy.
+**** robot that can be controlled by pushbuttonss
+      probably bad for these to be controlled by wires, because
+      then we could do two in the same push, which would lead to
+      ambiguity because there are no diagonal motions. We could
+      still have two pushes in the same TURN (one by player, one
+      by bot), but those have unambiguous order and we could either
+      do them all or just do the last or first one.
+**** blaster that destroys certain tiles (bombable) horizontally
+     when it receives a pulse.. 
+     - also an ordering problem, but here we could at least just 
+     trigger all blasters simultaneously at the end of the motion.
+**** "floor sensor" or whatever 
+
+** web browser integration?
+*** can put <img src="http://localhost:34883/blah"> in pages ...
+
+** "Known Issues"
+*** switching color depths while escape is running breaks things
+*** can't do multi-user installations on non-linux platforms yet. just have each
+    user install for himself
+*** alt-tabbing leaves the alt key held (press it again when returning)
+*** It is possible to crash the game by overflowing the event buffer
+    during long calculations or animation. (You have to try, though..)
+    This seems to be an SDL problem, but some defensive coding could
+    probably eliminate it.
