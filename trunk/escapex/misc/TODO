@@ -1,0 +1,28 @@
+
+In hugbot, pretty easy to support lasers without any extra memory
+(only time) overhead.
+
+
+We can have a computational measure of difficulty based on the number
+of false steps: after computing the precursor graph, we can compute
+a new minimum distance to the solution based on the following metric
+per node
+
+   total = compute all SUCCESSORS of the state
+   ok = number of successors that are in the
+        precursor graph at all
+
+   of those ok nodes, the distance to them
+   is defined to be total/ok
+
+   the idea is to weight steps that have many
+   dead ends
+
+   extensions: could compute the size of the
+   successor graph, because a blind alley is
+   worse, the longer it is
+
+
+another way to think of this is as the probability that a random walk
+(perhaps guided by some heuristic, which defines the graph and the
+probability of making any given move) will ultimately reach the goal.
