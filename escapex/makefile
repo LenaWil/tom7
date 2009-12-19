@@ -7,6 +7,9 @@ ifndef LINUX
 ifndef OSX
 # makefile for windows. Windows is weird.
 
+# On windows I have switched to mingw (export MINGW=true; see below),
+# so Visual C++ may stop working as it drifts out of date, sorry.
+
 SDLVERSION=1.2.11
 
 # normally use these
@@ -65,6 +68,7 @@ zip : .dummy ${RELEASEFILES}
 	mkdir escape-beta/mylevels
 	cp -a official escape-beta
 	rm -rf escape-beta/official/CVS escape-beta/triage/CVS
+	rm -rf escape-beta/official/.svn escape-beta/triage/.svn
 	cp mylevels/index.esi escape-beta/mylevels/
 	rm -f escape-beta.zip
 	echo "=============================="
@@ -281,7 +285,7 @@ escape-src.tar.bz2 :
 	cd /usr0/src/escape-src && cvs up -dP
 	rm -rf /usr0/src/escape-src/web /usr0/src/escape-src/*.es{p,d}
 	cd /usr0/src/escape-src && chmod a-x `find . -name "*.h"` `find . -name "*.cpp"` `find . -name "*.pack"` `find . -name "*.esx"` `find . -name "*.m"`
-	cd /usr0/src && tar -c escape-src --exclude "*CVS*" --exclude "*.cvsignore" > /tmp/escape-src.tar
+	cd /usr0/src && tar -c escape-src --exclude "*CVS*" --exclude "*.svn*" --exclude "*.cvsignore" > /tmp/escape-src.tar
 	cd /tmp && bzip2 escape-src.tar
 	mv /tmp/escape-src.tar.bz2 .
 
@@ -422,6 +426,7 @@ app : escape.exe
 	rm -f /tmp/Escape.app/Contents/Frameworks/SDL_net.framework/Headers/*.h
 	rm -f /tmp/Escape.app/Contents/MacOS/OSX_build/SDL_mixer.framework/Headers/*.h
 	rm -rf `find /tmp/Escape.app -name CVS`
+	rm -rf `find /tmp/Escape.app -name .svn`
 	rm -rf `find /tmp/Escape.app -name .DS_Store`
 
 desktop : app
@@ -568,7 +573,7 @@ escape-src.tar.bz2 :
 	cd /usr0/src/escape-src && cvs up -dP
 	rm -rf /usr0/src/escape-src/web /usr0/src/escape-src/*.es{p,d}
 	cd /usr0/src/escape-src && chmod a-x `find . -name "*.h"` `find . -name "*.cpp"` `find . -name "*.pack"` `find . -name "*.esx"` `find . -name "*.m"`
-	cd /usr0/src && tar -c escape-src --exclude "*CVS*" --exclude "*.cvsignore" > /tmp/escape-src.tar
+	cd /usr0/src && tar -c escape-src --exclude "*CVS*" --exclude "*.svn*" --exclude "*.cvsignore" > /tmp/escape-src.tar
 	cd /tmp && bzip2 escape-src.tar
 	mv /tmp/escape-src.tar.bz2 .
 
