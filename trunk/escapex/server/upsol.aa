@@ -1,0 +1,138 @@
+let
+    import "escape.aah"
+
+in
+    protect "bad solution"
+
+    (fn () =>
+     let
+         val id = credentials ()
+         val username = get escape : user ( id ) : name
+             
+         val md = tr("A-Z", "a-z", requires [md])
+             
+         val matches = 
+             select id
+             from escape : level 
+             where md = {md}
+             
+         do  empty matches andthen failm "no such level"
+
+         val levid = head matches
+
+         val speedonly = 1 = requiren [speedonly]
+         val name = 
+             let val n = requires [name]
+             in if n seq "Untitled" andalso speedonly
+                then "Speedrun"
+                else n
+             end
+
+         do  name seq "" andthen failm "solution must have a title"
+
+         (* get solution *)
+         val solloc = requires [sol.location]
+         val solmd5 = md5file solloc
+
+         val sol = Escape.sfromfile solloc
+
+         val desc = cgigetstring ([desc], fn _ => "")
+
+         val len = Escape.slength sol
+         val now = time ()
+
+         val oldbest = getrecord levid
+
+         val noinsert = (speedonly andalso (len >= oldbest))
+
+         do
+         (len <= MAXALTSOLUTION orelse len < oldbest)
+           otherwise failm 
+              [Maximum alt solution length: [itos MAXALTSOLUTION]]
+
+         (* get rid of file *)
+         do
+         system ("/bin/rm -f " ^ solloc)
+
+         val lev = loadlevel md
+
+         (* verify *)
+         do Escape.verify (lev, sol)
+           otherwise failm "The solution is invalid!"
+
+         (* XXX look for duplicates *)
+
+         (* trying to preserve comment even if the solution
+            won't be inserted *)
+         val solid = 
+           if noinsert
+           then 0
+           else
+           insert (levid, name, username, speedonly,
+                   Escape.stobase64 sol, len, solmd5,
+                   now)
+           into escape : solution : (of, name, author, speedrecord,
+                                     moves, len, md5, date)
+     in
+
+         (* delete speed-only levels that are worse than the best
+            (might even include this one, in race conditions) 
+            if someone re-uploads a non-speedrun at the same length
+            as an existing speed record, then that won't get rid
+            of the speed record, since it was "first" *)
+
+         noinsert otherwise
+         let
+             (* presumably, this has changed *)
+             val best = getrecord levid
+         in
+             app (select id from escape : solution
+                  where of = {levid}
+                    and speedrecord = {true}
+                    and len > {best},
+                  fn x => delete escape : solution ( x ))
+         end;
+
+         (* add corresponding comment *)
+         let
+             (* is this record still there? *)
+             val didinsert =
+                 not noinsert andalso
+                 (not (empty (select id from escape : solution
+                              where id = {solid} limit {1})))
+
+             (* this doesn't appear to work correctly? *)
+             val iscomment = not (size desc = 0 orelse 
+                                  match (re "[ \n]*", desc))
+             
+             (* now there are several cases *)
+             val com =
+                 if speedonly
+                 then (if didinsert
+                       then 
+                           [Added speedrun: [itos len] moves (old:\
+                             [itos oldbest]).[if iscomment then [\n[desc]] 
+                                              else []]]
+                       else [(note: speedrun of\
+                              [itos len] moves didn't break record;\
+                              not added)\n[desc]])
+                 else if iscomment
+                      then [Added solution "[name]":\n[desc]]
+                      else [Added solution "[name]."]
+         in
+             (* but don't add any info comment if there is no description and
+                the solution wasn't actually inserted *)
+             (iscomment orelse didinsert) andthen
+               insert (id, levid, now, com, true, not iscomment)
+               into escape : lcomment : (byuser, of, date, comment, spoiler, info);
+
+             if didinsert
+             then print "ok\n"
+             else if iscomment
+                  then print "fail: Comment added, but solution is not a new record!"
+                  else print "fail: Your solution is not a new record!"
+         end
+
+     end)
+
+end

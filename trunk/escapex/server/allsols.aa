@@ -1,0 +1,39 @@
+(* Rather than print a list and let the user choose from them, we just
+   give all the solutions in one go. PERF: this is probably requested
+   more often than it is changed, so we could generate a static page. *)
+let
+    import "escape.aah"
+in
+    protect "bad level?"
+
+    (fn () =>
+     let
+         (* no authentication necessary *)
+         val url = limit (?/, cgiurl ())
+
+         (* default to the last 10 *)
+         val levmd5 = 
+             (case url of
+                  l :: nil => tr("A-Z", "a-z", l)
+                | _ => failm "Bad md5")
+
+         val levid =
+             (case (select id from escape : level
+                    where md = {levmd5}) of
+                  l :: nil => l
+                | _ => failm "MD5 not found")
+
+         val sols =
+             select (id, name, author, date, moves)
+             from escape : solution
+             where of = {levid}
+
+         fun psol (id, name, author, date, moves) =
+             print
+             [[itos id] [itos date] [name]\n[author]\n[moves]\n]
+     in
+         print [[itos (length sols)]\n];
+         app (sols, psol)
+     end)
+
+end

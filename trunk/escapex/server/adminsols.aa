@@ -1,0 +1,34 @@
+let
+    import "escape.aah"
+    val p = cgigetstring ([pass], K "")
+    val url = limit (?/, cgiurl())
+    val n = stoi (head url)
+
+    val (title, author) = get escape : level ( n ) : (title, author)
+
+    val sols = 
+        select (id, name, author, speedrecord) 
+        from escape : solution
+        where of = {n}
+        
+    (* should also verify each solution here (maybe contingent on
+       a flag) *)
+
+    fun prsol (id, name, author, speedrecord) =
+        print [<br>(del: <a href="[FCGI]/escape/delsol/[itos id]\
+               ?pass=[ADMINPASS]">!</a>)
+               [itos id]. [name] by [author] 
+               [if speedrecord then [SR]
+                else [NO]]\n]
+
+in
+
+    p seq ESCAPE-ADMINPASS otherwise die [wrong password];
+
+    adminheader [Escape Server : Solutions for '[title]'];
+
+    empty sols andthen print [<b>There are no solutions.</b>];
+
+    app(sols, prsol)
+
+end

@@ -1,0 +1,11 @@
+let
+    import "escape.aah"
+    val n = requiren [n]
+    val p = requires [pass]
+in
+    p seq ESCAPE-ADMINPASS otherwise die "wrong password";
+
+    update-collection n;
+
+    redir [[FCGI]/escape/admin?pass=[ADMINPASS]]
+end

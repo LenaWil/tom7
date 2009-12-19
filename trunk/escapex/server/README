@@ -1,0 +1,24 @@
+
+ Escape Server Code                        10 May 2004
+
+
+ The Escape server  is a set of database-driven  web scripts. They are
+ written in  Aphasia 2 (http://aphasia.sourceforge.net/),  which is an
+ advanced  functional scripting  language  for the  web, developed  by
+ myself. Aphasia  2 is  a lot nicer  than the first  Aphasia prototype
+ (for instance, anyone familiar with  SML will at least understand the
+ syntax  and most  of the  type system),  but it  still has  a  lot of
+ pre-requisites for installation, and is still a highly volatile piece
+ of software.
+
+
+ The  server  maintains  the   database  of  levels,  users,  ratings,
+ comments, etc.  In general there  is one script  for each of  the RPC
+ actions  that   can  be  performed.   There  are  also  a   bunch  of
+ administrative scripts, that allow me to move and delete levels.
+
+ There's not really  any point in other people  running Escape servers
+ (in fact  I prefer to keep  a centralized repository  of all levels),
+ but the  code is here  in case anyone  wants to. It is  also licensed
+ under the GPL.
+

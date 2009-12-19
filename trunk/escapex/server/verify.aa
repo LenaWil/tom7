@@ -1,0 +1,38 @@
+let
+  import "escape.aah"
+
+  val levs =
+        select (id, title, md) 
+        from escape : level
+        order by id desc
+        (* first level with solution stored is #275;
+           don't even bother with the rest *)
+        where id >= {275}
+
+  fun vfy (id, title, md) =
+     (let
+         do  print [<br>[itos id]. [md] <b>[nocolor title]</b>.. ]
+         val pre = MD5ROOT ^ (substr (md, 0, 2))
+         val pos = substr (md, 2, size md - 2)
+
+         val lev = Escape.fromfile [[pre]/[pos]]
+         val sol = Escape.sfromfile [[SOLROOT][md].sol]
+      in
+         if Escape.verify (lev, sol)
+         then print [... ok\n]
+         else print [... <b><font size=+2 color="#880000">fails</font></b>!\n]
+      end handle _ => print [<b><font size=+2 color="#888800">oops</font></b>\n]) 
+          handle1 (print [<b><font size=+2 color="#888800">oops1</font></b>\n])
+
+  val p = cgigetstring ([pass], K "")
+in 
+
+  p seq ESCAPE-ADMINPASS otherwise die "bad password";
+
+  adminheader [Verifying Levels];
+
+  app(levs, vfy);
+
+  print [<p>That's it!</p>]
+
+end

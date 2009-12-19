@@ -1,0 +1,81 @@
+let
+    import "escape.aah"
+    import "cgi.aah"
+
+    val url = limit (?/, cgiurl ())
+
+    (* default to the last 15 *)
+    val n = 15
+
+    val levs = 
+        select (id, title, author, md, uploaded) 
+        from escape : level
+        order by id desc
+        limit {n}
+
+    fun dodate n = datefmt("%a, %d %b %Y %H:%M:%S %z", n)
+
+    val lastdate = (case levs of
+                        (_, _, _, _, up) :: _ => up
+                      | _ => 0)
+
+    val now = time ()
+
+in
+    contenttype "text/xml";
+
+
+    print [<?xml version="1.0" encoding="iso-8859-1"?>\n];
+    print [<?xml-stylesheet type="text/xsl" href="/rss.xsl" media="screen"?>\n];
+    print [<rss version="2.0">\n];
+    print [<channel>\n];
+    print [  <title>Escape Levels</title>\n];
+    print [  <link>http://[HOST]/</link>\n];
+    print [  <description>New levels uploaded to the Escape server</description>\n];
+    print [  <language>en-us</language>\n];
+    print [  <copyright>Copyright [
+           datefmt("%Y", now)] Tom 7</copyright>\n];
+    print [  <generator>Escape server</generator>\n];
+    print [  <ttl>60</ttl>\n];
+    print [  <lastBuildDate>[dodate lastdate]</lastBuildDate>\n];
+
+    (* XXX use this to give the feed an image *)
+    (*
+    (currentimage > 0) andthen {
+        let (name, location, w, h) = 
+            weblog : logimage [ currentimage ] : (name, location, w, h);
+
+        print ("  <image>\n"
+               "    <url>http://", host, imghttpdir, location, "</url>\n"
+               "    <title>", name, "</title>\n"
+               "    <link>http://", host, "</link>\n"
+               "    <width>", w, "</width>\n"
+               "    <height>", h, "</height>\n"
+               "  </image>\n");
+    };
+     *)
+
+    app (levs,
+         fn (id, title, author, md, uploaded) =>
+         let
+            val guid = [http://[HOST][FCGI]/escape/level/[itos id]]
+         in
+            print [\n  <item>\n];
+            print [    <title>[tohtml (nocolor (limitto MAXTITLE-RSS title))]</title>\n];
+            print [    <description>\n];
+
+            print [      &lt;center&gt;&lt;a href=&quot;[guid]&quot;&gt;&lt;img border=0 src=&quot;http://[HOST][PNGWEB][md].png&quot;&gt;&lt;/a&gt;&lt;br&gt;&lt;b&gt;[tohtml (nocolor (limitto MAXTITLE-RSS title))]&lt;/b&gt; by [tohtml (nocolor author)]&lt;/center&gt;\n];
+
+            print [    </description>\n];
+            print ("    <pubDate>", dodate uploaded, "</pubDate>\n");
+            print ("    <guid isPermaLink=\"true\">", guid, "</guid>\n");
+            print ("    <comments>", guid, "</comments>\n");
+
+            print ("    <link>", guid, "</link>\n");
+
+            print ("  </item>\n")
+         end);
+
+    print ("</channel>\n</rss>\n\n")
+
+end

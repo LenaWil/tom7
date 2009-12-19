@@ -1,0 +1,30 @@
+
+let
+  import "escape.aah"
+
+  val levs =
+	select (id, title, md) 
+	from escape : level
+	order by id desc
+
+	 
+  val p = cgigetstring ([pass], K "")
+
+
+  fun scr(id, title, md) =
+      let in
+	  print [<br>[itos id]. [title]... ];
+	  make-screenshot md;
+	  print [done\n]
+      end
+in 
+
+  p seq ESCAPE-ADMINPASS otherwise die "bad password";
+
+  adminheader [Generating Screenshots];
+
+  app(levs, scr);
+
+  print [<p>That's it!</p>]
+
+end

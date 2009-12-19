@@ -1,0 +1,116 @@
+(* Generate the best-of lists. *)
+
+let
+    import "escape.aah"
+    val p = requires [pass]
+
+    (* keep up to 'max' best seen so far,
+       in sorted order from worst to best. *)
+    fun keep (lessthan, max, (len, l), elt) =
+        (* start with sorted insert *)
+        let
+            fun ins nil = elt :: nil
+              | ins (h :: t) = 
+                if lessthan (elt, h)
+                then elt :: h :: t
+                else h :: ins t
+
+            val l = ins l
+        in
+            (* toss the worst if we're at max *)
+            if len = max
+            then (len,
+                  case l of
+                      nil => die "impossible"
+                    | _ :: t => t)
+            else (1 + len, l)
+        end
+
+    val SCALE = 10000
+
+    fun onelev (nvotes, d, s, r, coo, sol, md, up, ow, t, i) =
+        let in
+            print [.\n];
+            ((d * SCALE) div nvotes, 
+             (s * SCALE) div nvotes, 
+             (r * SCALE) div nvotes, 
+             (coo * SCALE) div nvotes,
+             md, up, ow, t, i)
+        end
+
+    (* XXX could maybe exclude graveyard? *)
+    val levels = 
+        list-map onelev
+        (select (nvotes, difficulty, style, rigidity, cooked, solved,
+                 md, uploaded, owner, title, id) 
+         from escape : level
+         where nvotes >= {BEST-MINVOTES})
+
+    val style =
+        ([style],
+         (fn ( _,  s, _, _, _, _, _, _, _) => s),
+         (fn ((_, s1, _, _, _, _, _, _, _),
+              (_, s2, _, _, _, _, _, _, _)) => s1 < s2),
+         [style.inc])
+
+    val difficulty =
+        ([difficulty],
+         (fn (  d, _, _, _, _, _, _, _, _) => d),
+         (fn ((d1, _, _, _, _, _, _, _, _),
+              (d2, _, _, _, _, _, _, _, _)) => d1 < d2),
+         [difficulty.inc])
+
+    fun genby lt =
+        let
+            fun k (best, nil) = best
+              | k (best, h :: t) =
+                k (keep (lt, BEST-NUM, best, h), t)
+                
+            val (_, best) = k ((0, nil), levels)
+        in
+            list-rev best
+        end
+
+    fun writeit (str, sel, lt, fname) =
+        let
+            val res = genby lt
+            val f = fopen [[ROOT][fname]]
+        in
+            fprint(f, [<table>\n]);
+            list-app (fn (lev as (d, s, r, coo, md, up, ow, t, i)) =>
+                      let 
+                          val a = get escape : level ( i ) : author
+                          do make-screenshot md
+                          fun link s = [<a href="[FCGI]/escape/level/[itos i]">[s]</a>]
+                          fun linkc s = link (colorize s)      
+                      in
+                          fprint
+                          (f, 
+                           [<tr>
+                            <td valign="top">[link[<img src="[PNGWEB][md].png"
+                                                   border=0>]]</td>
+                            <td valign="top">[linkc t]
+                            <br />by [a]
+                            <br /><b>[str]</b>: [scorestring (sel lev, SCALE)]
+                            </td></tr>\n])
+                      end) res;
+            fprint(f, [</table>\n]);
+            fclose f
+        end
+
+in
+    p seq ESCAPE-ADMINPASS otherwise die "wrong password";
+
+    writeit difficulty;
+    writeit style;
+(*
+    list-app (fn (d, _, _, _, md, uploaded, owner, title, id) =>
+              print [<br/>[itos id]. dif: [itos d] = [title]\n]) (genby difficulty);
+
+    print "<p>best:\n";
+
+    list-app (fn (_, s, _, _, md, uploaded, owner, title, id) =>
+              print [<br/>[itos id]. sty: [itos s] = [title]\n]) (genby style);
+*)
+    print "<br/>done.\n"
+end

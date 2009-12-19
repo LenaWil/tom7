@@ -1,0 +1,14 @@
+let
+    import "escape.aah"
+    val p = cgigetstring ([pass], K "")
+    val fname = requires [fname]
+    val minv = requiren [minv]
+    val name = requires [name]
+in
+    p seq ESCAPE-ADMINPASS otherwise die [wrong password];
+
+    insert (fname, minv, name) 
+    into escape : collection : (fname, minv, name);
+    
+    redir [[FCGI]/escape/admin?pass=[ESCAPE-ADMINPASS]]
+end

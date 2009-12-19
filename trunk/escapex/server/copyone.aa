@@ -1,0 +1,117 @@
+let
+    import "escape.aah"
+    val p = cgigetstring ([pass], K "")
+    do  p seq ESCAPE-ADMINPASS otherwise die [wrong password]
+
+    val url = limit (?/, cgiurl())
+    val n = stoi (head url)
+
+    val (col, subdir, lev) = 
+        get escape : levelrel ( n ) : (col, subdir, lev)
+
+    val (title, md) =
+        get escape : level ( lev ) : (title, md)
+
+    val cdirs = get-subdirs n
+
+    val domove = 1 = cgigetnum ([move], K 0)
+in
+
+    case optn [destcol] of
+        NONE =>
+            let 
+                val cols =
+                    select (id, name, fname) 
+                    from escape : collection
+                    order by id
+            in
+                adminheader [Escape Server : Copy / Move <b>[title]</b>];
+
+                print [<p><b>Choose a destination Collection:</b>];
+                app (cols,
+                     fn (id, name, fname) =>
+                     let in
+                         print [<br><a href="[FCGI]/escape/copyone/[itos 
+                                n]?move=[if domove then [1] 
+                                else [0]]&pass=[ADMINPASS]&destcol=[itos id]"
+                                >[fname]</a> &nbsp; &nbsp; &nbsp; - 
+                                &nbsp; &nbsp; &nbsp; [name]];
+                         id = col andthen print [ <b>(current)</b>];
+                         print [\n]
+                     end)
+            end
+      | SOME destcol => 
+        (case optn [destdir] of
+          NONE =>
+            let 
+                val cdirs = (0, "(root)", "") :: get-subdirs destcol
+                val ctitle = get escape : collection ( destcol ) : fname
+            in
+                adminheader [Escape Server : Copy / Move <b>[title]</b> to
+                             [ctitle]];
+
+                print [<p><b>Choose a destination subdir:</b>];
+
+                print [<form action="[FCGI]/escape/copyone/[itos n]" method=get>
+                       <input type=hidden name=pass value="[ADMINPASS]">
+                       <input type=hidden name=destcol value=[itos destcol]>
+                       <input type=checkbox name=move value=1 
+                       [if domove then [ checked=true] else []]> 
+                       move (otherwise copy)
+                       <p><table>];
+
+                app (cdirs,
+                     fn (id, path, idx) =>
+                     print [<tr><td><input type=radio
+                            [if id = 0 then [ checked=true] else []]
+                            name="destdir" value="[itos id]"></td>
+                            <td>[path]</td><td>[idx]</td></tr>\n]);
+
+                print [</table>
+                       <input type=submit value="Copy/Move">
+                       </form>\n]
+
+            end
+        | SOME destdir =>
+             let 
+                 val colname = get escape : collection (destcol) : fname
+                 val dirname = 
+                     if destdir > 0
+                     then [/[get escape : subdir (destdir) : fname]]
+                     else []
+             in
+
+                 (* sanity check *)
+                 destdir > 0 andthen 
+                 let val colof = get escape : subdir (destdir) : colof
+                 in  colof = destcol otherwise failm "subdir isn't in selected col"
+                 end;
+
+                 (* set some short-lived cookies to save defaults *)
+                 setcookie (LASTMCOOKIE, if domove then [1] else [0],
+                            [[FCGI]/escape/], COOKIEHOST, time () + 24 * 3600);
+
+                 setcookie (LASTDCOOKIE, itos destdir,
+                            [[FCGI]/escape/], COOKIEHOST, time () + 24 * 3600);
+
+                 if domove
+                 then 
+                     let in
+                         set escape : levelrel (n) : (col, subdir) = 
+                               (destcol, destdir);
+
+                         ignore
+                         (insert (ADMIN-ID, lev, time (),
+                                  [(admin) Moved to [colname][dirname].], 
+                                  false, true)
+                          into escape : lcomment : 
+                                (byuser, of, date, comment, spoiler, info))
+
+                     end
+                 else ignore (insert (destcol, destdir, lev) 
+                              into escape : levelrel : (col, subdir, lev));
+
+                 redir [[FCGI]/escape/adminone/[itos col]?pass=[ADMINPASS]]
+             end)
+
+end

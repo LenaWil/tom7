@@ -1,0 +1,22 @@
+let
+    import "escape.aah"
+    val p = cgigetstring ([pass], K "")
+    val c = requiren [c]
+    val d = requiren [d]
+
+    val fname = requires [fname]
+    val idx = requires [idx]
+
+in
+
+    p seq ESCAPE-ADMINPASS otherwise die [wrong password];
+
+    (* check invariant that d.colof = c *)
+    (d = 0 orelse get escape : subdir (d) : colof = c)
+       otherwise failm "but d.colof <> c!";
+
+    insert (fname, idx, c, d) 
+    into escape : subdir : (fname, longidx, colof, parent);
+
+    redir [[FCGI]/escape/adminone/[itos c]?pass=[ADMINPASS]]
+end

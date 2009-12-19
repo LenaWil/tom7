@@ -1,0 +1,87 @@
+(* RSS feed for recent activity. 
+   These posts are inserted by generatesummary 
+   at whatever period it likes (say, weekly), and simply
+   rendered here for rss subscribers.
+*)
+let
+    import "escape.aah"
+    import "cgi.aah"
+
+    val url = limit (?/, cgiurl ())
+
+    (* default to the last 5 *)
+    val LIMIT = 5
+
+    val posts =
+        select (id, title, date, description)
+        from escape : summarypost
+        order by date desc
+        limit {LIMIT}
+
+    fun dodate n = datefmt("%a, %d %b %Y %H:%M:%S %z", n)
+
+    val lastdate = (case posts of
+                        (_, _, ld, _) :: _ => ld
+                      | _ => 0)
+
+    val now = time ()
+
+in
+    contenttype "text/xml";
+
+
+    print [<?xml version="1.0" encoding="iso-8859-1"?>\n];
+    print [<?xml-stylesheet type="text/xsl" href="/rss.xsl" media="screen"?>\n];
+    print [<rss version="2.0">\n];
+    print [<channel>\n];
+    print [  <title>Escape Activity</title>\n];
+    print [  <link>http://[HOST]/</link>\n];
+    print [  <description>Summaries of Escape activity</description>\n];
+    print [  <language>en-us</language>\n];
+    print [  <copyright>Copyright [
+           datefmt("%Y", now)] Tom 7</copyright>\n];
+    print [  <generator>Escape server</generator>\n];
+    print [  <ttl>60</ttl>\n];
+    print [  <lastBuildDate>[dodate lastdate]</lastBuildDate>\n];
+
+    (* XXX use this to give the feed an image *)
+    (*
+    (currentimage > 0) andthen {
+        let (name, location, w, h) = 
+            weblog : logimage [ currentimage ] : (name, location, w, h);
+
+        print ("  <image>\n"
+               "    <url>http://", host, imghttpdir, location, "</url>\n"
+               "    <title>", name, "</title>\n"
+               "    <link>http://", host, "</link>\n"
+               "    <width>", w, "</width>\n"
+               "    <height>", h, "</height>\n"
+               "  </image>\n");
+    };
+     *)
+
+    app (posts,
+         fn (id, title, date, description) =>
+         let
+            val guid = [http://[HOST][FCGI]/escape/viewsummary/[itos id]] (* HERE *)
+         in
+            print [\n  <item>\n];
+            print [    <title>[tohtml title]</title>\n];
+            print [    <description>\n];
+
+            (* XXX not correct if the description contains newlines,
+               but generatesummary currently does not produce any. *)
+            print (tohtml description);
+
+            print [    </description>\n];
+            print [    <pubDate>[dodate date]</pubDate>\n];
+            print [    <guid isPermaLink="true">[guid]</guid>\n];
+            print [    <comments>[guid]</comments>\n];
+
+            print [    <link>[guid]</link>\n];
+            print [  </item>\n]
+         end);
+
+    print [</channel>\n</rss>\n\n]
+
+end

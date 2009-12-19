@@ -1,0 +1,68 @@
+let
+    import "escape.aah"
+    val p = cgigetstring ([pass], K "")
+in
+    p seq ESCAPE-ADMINPASS otherwise
+    let in
+        print
+        [<form action="[FCGI]/escape/admin" method=get>
+         <input type=password name=pass> password
+         <input type=submit>
+         </form>];
+        die [wrong password]
+    end;
+
+    adminheader [Escape Server Administration];
+
+    (* for each collection, allow administration of it *)
+    let val cols =
+        select (id, name, fname) 
+        from escape : collection
+        order by id
+    in
+        print [<p><b>Modify existing collections.</b>\n];
+        app (cols,
+             fn (id, name, fname) =>
+             let in
+                 print [<br>(<a href="[FCGI]/escape/fixup?n=[itos 
+                             id]&pass=[ADMINPASS]">fix</a>) [itos 
+                             id]. <a href="[FCGI]/escape/adminone/[itos 
+                        id]?pass=[ESCAPE-ADMINPASS]">[fname]</a> "[name]"\n]
+             end)
+    end;
+
+    print [<p><b><a href="[FCGI]/escape/users?pass=[ADMINPASS]">List Users</a></b>];
+
+    print [<p><b><a href="[FCGI]/escape/ratings?pass=[ADMINPASS]">List Recent Ratings</a></b>];
+
+    print [<p><b><a href="[FCGI]/escape/autothin?pass=[ADMINPASS]">Auto-thin triage</a></b>
+           <br>This will remove all levels from triage that have at least
+           [itos THIN-NVOTES] votes, are at least [itos THIN-MINTIME] seconds
+           old, but whose average difficulty rating (times 100) is less than
+           [itos THIN-MINDIFFICULTY] and average style rating (times 100) is
+           less than [itos THIN-MINSTYLE]. They will be sent to the "thinned"
+           collection.];
+
+
+    print [<p><b><a href="[FCGI]/escape/genbest?pass=[ADMINPASS]">Generate Hall 
+           of Fame</a></b>
+           <br>Generates style.inc and difficulty.inc for the globally most stylish and
+           most difficult levels, respectively.];
+
+    (* allow the creation of new collections *)
+    print [<p><b>Use this form to create new collections.</b>
+           <form action="[FCGI]/escape/newcol" method=post>
+           <input type=text name=fname> fname
+           <input type=hidden name=pass value=[ADMINPASS]>
+           <br><input type=text name=name> display name
+           <br><input type=text name=minv value=[itos DEFAULT-MINV]> min version
+           <br><input type=submit value="Create New Collection">
+           </form>];
+
+    print [<p><b><a href="[FCGI]/escape/verify?pass=[ADMINPASS]">\
+           verify all solutions</a></b></p>\n];
+
+    print [<p><b><a href="[FCGI]/escape/makescreenshots?pass=[ADMINPASS]">\
+           regenerate missing screenshots</a></b> (expensive! -- may cause 
+           timeouts)</p>\n]
+end

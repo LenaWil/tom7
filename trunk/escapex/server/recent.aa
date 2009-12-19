@@ -1,0 +1,64 @@
+let
+    import "escape.aah"
+    import "cgi.aah"
+
+    val url = limit (?/, cgiurl ())
+
+    (* can get any number of recent levels,
+       also can set detail flag *)
+
+    val (n, detail) = 
+        case url of
+            n :: d => (stoi n, 
+                       (case d of
+                            d :: _ => d seq "detail"
+                          | _ => false))
+          | _ => (0, false)
+
+    (* but zero levels is bogus *)
+    val n = if n <= 0 then 10 else n
+
+    val levs = 
+        select (id, title, author, md) 
+        from escape : level
+        order by id desc
+        limit {n}
+
+    fun plevel-simple (id, title, author, _) =
+        print [<tr><td>#[itos id]</td><td><b><a href="[FCGI]/escape/level/[itos id]">[nocolor (limitto MAXTITLE-RECENT title)]</a></b></td><td>by [nocolor author]</td></tr>\n]
+
+    fun plevel-detail ((id, title, author, md), parity) =
+        let 
+            fun link s = [<a href="[FCGI]/escape/level/[itos id]">[s]</a>]
+            fun linkc s = link (colorize s)      
+
+            do make-screenshot md
+            val c = if parity then "#EEEEEE" else "#FFEEFF"
+        in
+            print [<tr><td bgcolor="[c]">#[itos id]</td>
+                   <td bgcolor="[c]" valign=top><center>
+                      [link[<img src="[PNGWEB][md].png" 
+                                        border=0>]]
+                   </center></td>
+                   <td bgcolor="[c]" valign=top><b>[linkc (limitto MAXTITLE-RECENT-DETAIL title)]</a></b>
+                   <br>by [colorize author]</td>
+                   </tr>\n];
+            if parity then false else true
+        end
+
+in
+    if detail
+    then 
+        let in
+            print [<table cellspacing=0 cellpadding=2 
+                   border=0 width="100%">\n];
+            foldl (levs, false, plevel-detail);
+            print "</table>\n"
+        end
+    else 
+        let in
+            print "<table>\n";
+            app (levs, plevel-simple);
+            print "</table>\n"
+        end
+end

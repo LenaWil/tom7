@@ -1,0 +1,24 @@
+
+(* record a rating *)
+let
+    import "escape.aah"
+    import "cgi.aah"
+in
+  protect "ping failed"
+
+  (fn () =>
+   let
+       val id = credentials ()
+       val md = opts "md"
+   in
+       case opts "md" of
+          NONE => print "ok pinged!\n"
+        | SOME md => 
+	   (case select id
+	         from escape : level 
+                 where md = {md}
+	         limit {1} of
+              nil => failm "no such level"
+            | _ => print "ok level exists!\n")
+   end)
+end

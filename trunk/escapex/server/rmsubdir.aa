@@ -1,0 +1,33 @@
+let
+    import "escape.aah"
+    val p = cgigetstring ([pass], K "")
+    do  p seq ESCAPE-ADMINPASS otherwise die [wrong password]
+
+    val url = limit (?/, cgiurl())
+    val n = stoi (head url)
+
+    do  n = 0 andthen failm "can't remove root dir!"
+
+    val (par, c) = get escape : subdir (n) : (parent, colof)
+
+in
+
+    (case select id from escape : subdir 
+	  where parent = {n} of
+	  nil =>
+	      let in
+		  (* no subdirs, ok *)
+	          (* move everything to parent dir *)
+
+		  app(select id from escape : levelrel
+		      where subdir = {n},
+		      fn i =>
+		      set escape : levelrel (i) : subdir = par);
+
+		  delete escape : subdir (n);
+
+		  redir [[FCGI]/escape/adminone/[itos c]?pass=[ADMINPASS]]
+	      end
+	| _ => failm "remove subdirectories first!")
+
+end

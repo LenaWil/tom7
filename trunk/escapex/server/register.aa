@@ -1,0 +1,39 @@
+let 
+    import "escape.aah"
+in
+    protect "register"
+    (fn () =>
+     let
+         val sl = requiren [seql]
+         val sh = requiren [seqh]
+         val n  = requires [name]
+     in
+         dirty n andthen
+           failm "This name seems inappropriate.";
+
+         (* XXX add something to prevent an IP from registering
+            more than X times in Y days *)
+
+         case (select id 
+               from escape : user 
+               where seql = {sl} and seqh = {sh}) of
+             nil =>
+             let
+                 (* client should agree on these rules
+                    so that there are no surprises! *)
+                 val n' = tr ("-A-Za-z0-9_ ().", "/cd/", n)
+                 val nn = if size n' > 12 
+                          then substr (n', 0, 12)
+                          else n'
+             in
+                 insert (sl, sh, time (), nn, cgihost(), TRUST-NORMAL)
+                 into escape : user : (seql, seqh, joindate, name, lasthost, trust);
+                 
+                 print ("ok ", lastid (), "\n")
+             end
+         (* already registered, just pretend we already did it *)
+           | (id :: nil) => print [ok [itos id]\n]
+           | _ => print "fail multiple registrations??\n"
+     end)
+
+end
