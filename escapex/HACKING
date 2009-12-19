@@ -154,7 +154,14 @@ Because what I really want is Java's interfaces, I may use multiple
 inheritance. But at most one (and probably none) of the parent classes
 will be ever be concrete.
 
-  ** Things to know **
+ ** Code history **
+
+On 18 Dec 2009 I moved all of the source code and data from CVS at
+Sourceforge to SVN at Sourceforge, still in the tom7misc project. I
+did not preserve history, so if you want to do an archaeological diff,
+you'll have to look there.
+
+ ** Things to know **
 
   * Fonts *
 
