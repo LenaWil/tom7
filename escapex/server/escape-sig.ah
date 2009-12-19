@@ -1,0 +1,13 @@
+
+/* $Id: escape-sig.ah,v 1.2 2003/10/31 20:56:42 tom7 Exp $ */
+
+signature Escape {
+
+    /* mutable boards */
+    type level.
+
+    fromfile        string -> level.
+    gettitle        level -> string.
+    getauthor       level -> string.
+
+}

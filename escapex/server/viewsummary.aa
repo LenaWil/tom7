@@ -1,0 +1,29 @@
+let
+    import "escape.aah"
+    import "cgi.aah"
+
+    val url = limit (?/, cgiurl ())
+
+    val n = 
+        (case url of
+             l :: nil => stoi l
+           | _ => die "Bad summary id")
+
+    open escape : summarypost ( n ) : (title, date, description)
+in
+    htmlhead [Escape summary post from [datefmt ([%d %b %Y %H:%M], date)]];
+
+    print [<div style="width:600;margin-left:auto;margin-right:auto;border : 2px solid #AAAAAA; padding : 0.7em;\
+           margin-top: 2em">
+           <div style="font:bold 13px Verdana,Helvetica,sans-serif;color:#777777;float:right;text-align:right">\
+           [datefmt ([%d %b %Y %H:%M], date)]</div>
+           <b style="font-size:16px">[title]</b>
+           <br style="clear:both">
+           <div style="width:95%;border-top:2px solid #CCCCCC;margin-top:4px;\
+           height:4px;margin-left:auto;margin-right:auto;">&nbsp;</div>
+           <p style="font:14px Verdana,Helvetica,sans-serif">[description]
+           <p>&hearts; Wouldn't you rather be at the <a href="/">Escape home page</a>?
+           </div>];
+
+    print [</body></html>]
+end

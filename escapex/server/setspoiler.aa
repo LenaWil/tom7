@@ -1,0 +1,15 @@
+let
+    import "escape.aah"
+    import "cgi.aah"
+
+    val pass = cgigetstring ([pass], K "")
+    val n = requiren [n]
+
+in
+    pass seq ESCAPE-ADMINPASS otherwise die "wrong password";
+
+    set escape : lcomment ( n ) : spoiler =
+       (requiren [spoiler] > 0);
+    
+    redir [[FCGI]/escape/comments?spoilers=1&pass=[pass]]
+end

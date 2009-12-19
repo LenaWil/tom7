@@ -1,0 +1,23 @@
+let
+    import "escape.aah"
+    val n = requiren [x]
+
+    do (requires[pass] seq ADMINPASS) otherwise die "wrong password"
+    open escape : lcomment ( n ) : comment
+
+    val return = 
+        case opts [ret] of
+            NONE => [/escape/comments]
+          | SOME r => r
+        
+in
+    set escape : lcomment ( n ) : comment = requires[body];
+(*
+        (defs [host] hostby,
+         defs [name] nameby,
+         (case opts [body] of
+              SOME b => replace("\n", "\n<br/>", b)
+            | NONE => body)); *)
+
+    redir [[FCGI][return]?pass=[ADMINPASS]&spoilers=1]
+end

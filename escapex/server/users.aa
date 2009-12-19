@@ -1,0 +1,48 @@
+let
+    import "escape.aah"
+    val p = cgigetstring ([pass], K "")
+
+    val now = time ()
+    val startat = cgigetnum ([startat], K 0)
+    val startat = if startat < 0 then 0 else startat
+
+    fun navlinks () =
+        print
+        [<p><b>[if startat > 0
+                then [<a href="?pass=[p]&startat=[itos (startat - USERS-PERPAGE)]">\
+                      prev [itos USERS-PERPAGE]</a>]
+                else [at start]] \
+         | <a href="?pass=[p]&startat=[itos (startat + USERS-PERPAGE)]">\
+         next [itos USERS-PERPAGE]</a></b>\n]
+in
+    p seq ESCAPE-ADMINPASS otherwise
+    let in
+        print
+        [<form method=get>
+         <input type=password name=pass> password
+         <input type=submit>
+         </form>];
+        die [wrong password]
+    end;
+
+    adminheader [Escape Server Administration : Users];
+
+    
+    navlinks ();
+    
+    print "<table><tr><td colspan=2>user</td><td>age</td><td>host</td><td>trust</td></tr>\n";
+    app(select (id, joindate, name, lasthost, trust) 
+        from escape : user
+        order by id desc
+        limit {startat}, {USERS-PERPAGE},
+        fn (id, jd, name, host, trust) =>
+        print [<tr><td>[itos id].</td><td><b>[name]</b></td>\
+               <td>[ago (now - jd)]</td>\
+               <td>[host]</td>\
+               <td>[if trust = 2 then []
+                    else itos trust]</td></tr>\n]);
+    print "</table>\n";
+
+    navlinks ()
+    (* XXX prev,nextlinks *)
+end

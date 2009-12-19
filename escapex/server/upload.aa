@@ -1,0 +1,145 @@
+
+let
+    import "escape.aah"
+
+
+    fun debug s = print ([<br/> [s]\n])
+    fun debug s = ()
+in
+    protect "bad level/solution (or out of disk space)"
+
+    (fn () =>
+     let
+         do debug [hello]
+
+         val id = credentials ()
+         val username = get escape : user ( id ) : name
+
+         do debug [[itos id] = [username]]
+
+         (* get level *)
+         val levloc = requires "lev.location"
+         val levmd5 = md5file levloc
+             
+         (* get solution *)
+         val solloc = requires "sol.location"
+         val solmd5 = md5file solloc
+
+         do debug [[levloc], [solloc]]
+
+         val msg = cgigetstring([text], fn _ => [])
+
+         val lev = Escape.fromfile levloc
+
+         do debug [Parsed level.]
+
+         val sol = Escape.sfromfile solloc
+
+         do debug [Parsed level and solution.]
+
+         (* put file in md5 pool *)
+         val pre = MD5ROOT ^ (substr (levmd5, 0, 2))
+         val pos = substr (levmd5, 2, size levmd5 - 2)
+
+         val author = Escape.getauthor lev
+         val title = Escape.gettitle lev
+
+         val nctitle = nocolor title
+     in
+         ensuredir pre;
+
+         (match (re "[ ]*", nctitle) orelse nctitle seq "Untitled")
+           andthen failm "Level must have a title";
+
+         (dirty nctitle)
+           andthen failm "Level title is inappropriate";
+
+         match (re "[ ]*", author) orelse nctitle seq "Default"
+           andthen failm "Level must have an author";
+
+         Escape.verify (lev, sol)
+           otherwise failm "The solution is invalid!";
+
+         Escape.slength sol <= MAXSOLUTION
+           otherwise failm [Maximum solution length: [itos MAXSOLUTION]];
+
+         let val sames = select id from escape : level
+                         where title = {title}
+             val grave = get escape : site ( 1 ) : graveyard
+         in
+             (* is there a level with the same title... *)
+             exists(sames,
+                    fn i =>
+                    (* ... that isn't deleted? *)
+                    not (empty 
+                         (select col from escape : levelrel
+                          where lev = {i} and col <> {grave}
+                          limit {1})))
+             andthen failm "A level exists with this exact title."
+         end;
+
+         fexists (pre ^ "/" ^ pos)
+           andthen failm "Same level already uploaded!";
+
+         (hascolorcodes author)
+           andthen failm "Can't use color codes in Author.";
+         let 
+             (* insert level *)
+             do system ("/bin/mv " ^ levloc ^ " " ^
+                        (pre ^ "/" ^ pos))
+
+             (* this appears to be irrelevant now,
+                since we store solutions in the database *)
+             do system ("/bin/mv " ^ solloc ^ " " ^
+                        (SOLROOT ^ levmd5 ^ ".sol"))
+
+             val now = time ()
+
+             val levid = 
+                 insert (levmd5,
+                         title,
+                         author,
+                         now,
+                         0, 0, 0, 0, 0, 0, id)
+                 into escape : level : (md, title, author,
+                                        uploaded,
+                                        nvotes, difficulty,
+                                        style, rigidity,
+                                        cooked, solved, owner)
+
+             val post =
+                 ['[nocolor title]' uploaded by [username]] ^
+                 (if msg seq []
+                  then [.]
+                  else [: \n[msg]])
+
+         in
+             (* put solution as "official" *)
+             insert (levid, "Original", username, solmd5, now,
+                     Escape.stobase64 sol, Escape.slength sol, false)
+             into escape : solution : (of, name, author, md5, date,
+                                       moves, len, speedrecord);
+
+             (* put level in "triage" collection *)
+             insert (TRIAGE-COLLECTION, levid)
+             into escape : levelrel : (col, lev);
+
+             (* add info comment *)
+             insert (id, levid, now, post, false, true)
+             into escape : lcomment : (byuser, of, date, comment, 
+                                       spoiler, info);
+
+             (* fix triage collection *)
+             print "ok\n";
+             
+             done ();
+
+             (* this stuff takes a long time. *)
+             update-collection TRIAGE-COLLECTION;
+
+             (* make screenshot *)
+             make-screenshot levmd5
+         end
+     end)
+
+end

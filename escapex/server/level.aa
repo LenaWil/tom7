@@ -1,0 +1,151 @@
+let
+    import "escape.aah"
+    import "cgi.aah"
+
+    val url = limit (?/, cgiurl ())
+
+    (* default to the last 10 *)
+    val n = 
+        (case url of
+             l :: nil => stoi l
+           | _ => die "Bad level")
+
+    open escape : level ( n ) : (md, title, author, uploaded,
+                                 nvotes, difficulty, style,
+                                 rigidity, cooked, solved)
+
+    val allow-spoilers = 1 = cgigetnum("spoilers", fn _ => 0)
+
+    val coms = 
+        select (id, of, byuser, date, spoiler, comment)
+        from escape : lcomment
+        where any {if allow-spoilers
+                   then "1=1"
+                   else "spoiler='f'"}
+        where of = {n}
+        order by id desc
+
+    val next =
+        select (id, title) 
+        from escape : level
+        where id > {n}
+        order by id
+        limit {1}
+
+    val prev =
+        select (id, title)
+        from escape : level
+        where id < {n}
+        order by id desc
+        limit {1}
+
+
+    val ctitle = colorize title
+
+    fun pcomment (id, par, byuser, date, spoiler, comment) =
+        let 
+        in
+            print 
+            [<tr>
+             <td bgcolor="#DDDDFF">[itos id]</td>
+             <td bgcolor="#DDDDFF"><b>[colorize (limitto MAXTITLE-COMMENTS title)]</b></td>
+             <td bgcolor="#EEEEFF">[get escape : user (byuser) : name] ([itos byuser])</td>
+             <td bgcolor="#EEEEFF">[datefmt ([%a %d %b %Y %H:%M], date)]</td>
+             <td bgcolor="#EEEEFF">[if spoiler then [<b>SPOILER</b>]
+                                    else [&nbsp;]]</td></tr>
+             <tr>
+             <td>&nbsp;</td>
+             <td colspan=4>[mkcomment comment]</td>
+             </tr>
+             <tr><td>&nbsp;</td></tr>\n]
+        end
+
+    fun pmaybe ((x, t) :: _) s =
+        [<span class=small><b>[s]:</b>
+          <a href="[FCGI]/escape/level/[itos x]\
+         [if allow-spoilers then [?spoilers=1] else []]">#[itos x]</a>
+          "[colorize (limitto MAXTITLE-LEVEL-NAV t)]"</span>]
+      | pmaybe _ s = []
+
+    val (srname, srlen, srauthor, srdate) =
+        case (select (name, len, author, date)
+              from escape : solution
+              where of = {n}
+              (* oldest first *)
+              order by len, date
+              limit {1}) of
+            nil => ([<font color="#770000">Solve me!</font>], 
+                    99999, [nobody], 0)
+          | h :: _ => h
+
+in
+    (* try to make if not already made *)
+    make-screenshot md;
+
+    htmlhead [Escape Level : "[nocolor title]" by [colorize author]];
+
+    print [<table width=600 cellspacing=1 cellpadding=1>
+           <tr><td colspan=2 bgcolor="#DDFFEE"><a href="/">&laquo; back</a>
+            &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+            <b>Browsing Levels: #[itos n] "[ctitle]"</b></td></tr>
+           <tr><td colspan=2 bgcolor="#99DD99" height=2>\
+           <img src="/spacer.gif" width=1 height=1></td></tr>
+           <tr><td colspan=2><img src="/spacer.gif" width=1 height=1></td></tr>
+           <tr><td halign=left>[pmaybe prev [prev]]</td>
+           <td halign=right>[pmaybe next [next]]</td></tr>
+           </table>];
+
+    print
+       [<p>
+        <table><tr><td><center><img src="[PNGWEB][md].png">
+        <br>"<b>[ctitle]</b>" by [author]</center>
+        </td></tr></table>];
+
+    print
+       [<p>
+        <table><tr>
+        [* rating data *]\
+        <td valign=top>
+        <table>
+        <tr><td colspan=2>
+        <span class=small>added [datefmt ([%d %b %Y %H:%M], 
+                                          uploaded)]</span></td></tr>
+        <tr><td><b>Solved</b></td><td>[itos solved]/[itos nvotes]</td></tr>
+        <tr><td><b>Cooked</b></td><td>[itos cooked]/[itos nvotes]</td></tr>
+        <tr><td><b>Difficulty</b></td><td>[scorestring (difficulty, nvotes)]</td></tr>
+        <tr><td><b>Style</b></td><td>[scorestring (style, nvotes)]</td></tr>
+        <tr><td><b>Rigidity</b></td><td>[scorestring (rigidity, nvotes)]</td></tr>
+        </table></td>
+        [* speedrun data *]\
+        <td valign=top>
+        <table>
+        <tr><td colspan=2><center><b>Shortest Solution</b></center></td>
+        [if allow-spoilers
+         then 
+             [<tr><td><b>Name</b></td><td>[srname]</td></tr>
+              <tr><td><b>Length</b></td><td>[itos srlen] move[case srlen of 1 => "" | _ => "s"]</td></tr>]
+         else ""]
+        <tr><td><b>By</b></td><td>[srauthor]</td></tr>
+        <tr><td><b>On</b></td><td><span class=small>[datefmt ([%d %b %Y %H:%M], 
+                                                              srdate)]</td></td></tr>
+        </table>
+        </td></tr></table>
+        ];
+
+    print "<p><table width=600 cellspacing=0 cellpadding=2>\n";
+    print [<tr><td colspan=5 bgcolor="#DDFFEE"><b>Comments</b>
+           (<a class=small href="[FCGI]/escape/level/[itos n]\
+           ?spoilers=[if allow-spoilers
+                      then [0] else [1]]">\
+           [if allow-spoilers
+            then [turn spoilers off] 
+            else [turn spoilers on]]</a>)</td></tr>\n];
+
+    print [<tr><td colspan=5 height=2 bgcolor="#99DD99">\
+           <img src="/spacer.gif" width=1 height=1></td></tr>\n];
+
+    app (coms, pcomment);
+    print "</table>\n";
+
+    print [</body></html>]
+end

@@ -1,0 +1,128 @@
+
+let
+    import "escape.aah"
+    import "cgi.aah"
+
+    (* XXX allow "simplified" output for browsing with escape client *)
+
+    val lim = 25
+    val start = cgigetnum("start", fn _ => 0)
+
+    val allow-spoilers = 1 = cgigetnum("spoilers", fn _ => 0)
+    val no-info = 1 = cgigetnum("noinfo", fn _ => 0)
+
+    val pass = cgigetstring ([pass], (fn _ => cgigetstring([adminpass], K "")))
+    val admin = pass seq ESCAPE-ADMINPASS
+
+    do  admin andthen adminheader [Administrating Comments] 
+
+    val coms = 
+        select (id, of, byuser, date, spoiler, comment)
+        from escape : lcomment
+        where any {if allow-spoilers
+                   then "1=1"
+                   else "spoiler='f'"}
+          and any {if no-info
+                   then "info='f'"
+                   else "1=1"}
+        order by id desc
+        limit {start}, {lim}
+
+    do htmlheadtop "Escape: Most recent comments"
+    val eip = eip-headers-default ()
+    do htmlheadbot ()
+
+    fun level n s =
+        [<b><a href="[FCGI]/escape/level/[itos n][if
+         allow-spoilers then [?spoilers=1]
+         else []]">[colorize (limitto MAXTITLE-COMMENTS s)]</a></b>]
+
+    fun beginlev lev date =
+        let
+            val (title, md) = get escape : level (lev) : (title, md)
+            (* PERF sensible? It's only an extra 'stat' for a
+               file the web server is going to open anyway... *)
+            val _ = make-screenshot md
+        in
+            print 
+            [<tr>
+             <td bgcolor="#DDDDFF"><b>[level lev title]</b></td>
+             <td bgcolor="#EEEEFF"><font color=#888888 
+             size=-1>[datefmt ("%a %d %b %Y %H:%M", date)]</font></td>
+             </td></tr>
+             <tr>
+             <td colspan=2><table width="100%">
+               <td valign=top>
+               [level lev [<img src="[PNGWEB][md].png" border=0>]]</td>
+               <td valign=top width="100%">]
+        end
+
+    fun endlev () =
+        print [</td></tr>
+               </table></td>
+               </tr>
+               <tr><td>&nbsp;</td></tr>\n]
+
+    fun pcomments nil _ = endlev()
+      | pcomments ((id, lev, byuser, date, spoiler, comment) :: rest) lastlev =
+        let 
+            val first = not (lev = lastlev)
+
+            val comment = mkcomment comment
+        in
+            (first andthen
+             let in
+                 lastlev > 0 andthen endlev ();
+                 beginlev lev date
+             end);
+            
+            first otherwise print [<br/>\n];
+            print [<span class="small"><b>&lt;</b></span><b>[get escape : user (byuser) : name]</b><span class="small"><b>&gt;</b></span>&nbsp;[
+                   if spoiler
+                   then [<span class="small"><font color=#AAAAAA>(SPOILER)</font></span>&nbsp;]
+                   else[]][
+                   if admin 
+                   then [<span class="small">(<a 
+                         href="[FCGI]/escape/setspoiler?n=[itos id]\
+                         &pass=[pass]\
+                         &spoiler=[if spoiler then [0">un] else [1">]]\
+                         spoil</a>)</span>&nbsp;\
+                         <font color=#AAAAAA size =-2>(del<a 
+                         href="[FCGI]/escape/delcomment?n=[itos id]\
+                         &when=[itos (time())]&pass=[pass]">!</a>)</font>]
+                   else []]];
+
+
+            if admin
+            then eip-editable-area eip comment [[FCGI]/escape/domodcomment]
+                 [body] [100%]
+                 (("x", itos id) :: ("pass", pass) :: nil)
+            else print comment;
+
+            pcomments rest lev
+        end
+
+    fun bar () =
+    (* There are two columns: the title of the level and the date
+       of the most recent comment. *)
+    print [<tr><td colspan="2" bgcolor="#DDFFEE">
+           <table width="100%"><tr><td><a href="/">&laquo; home</a></td><td><b>Browsing all comments</b>
+           (spoilers: <b><a href="[FCGI]/escape/comments?spoilers=1&noinfo=[if no-info then [1] else [0]]">on</a>&nbsp;|&nbsp;<a href="[FCGI]/escape/comments?spoilers=0&noinfo=[if no-info then [1] else [0]]">off</a></b>) (info: <b><a href="[FCGI]/escape/comments?spoilers=[if allow-spoilers then [1] else [0]]">on</a>&nbsp;|&nbsp;<a href="[FCGI]/escape/comments?spoilers=[if allow-spoilers then [1] else [0]]&noinfo=1">off</a></b>)</td><td>
+           <a href="comments?start=[itos (start + 25)][
+           if allow-spoilers then [&spoilers=1] else []][
+           if no-info then [&noinfo=1] else []]">next 25</a>
+           <td></tr></table> <!-- header alignment -->
+           </td>
+           </tr>
+           <tr><td colspan=2 bgcolor="#99DD99" height=2><img src="/spacer.gif" width=1 height=1></td></tr>
+           <tr><td colspan=2 bgcolor="#FFFFFF" height=2><img src="/spacer.gif" width=2 height=1></td></tr>]
+
+in
+    print "<table width=630 cellspacing=0 cellpadding=2>\n";
+
+    bar ();
+    pcomments coms 0;
+    bar ();
+           
+    print "</table>\n"
+end

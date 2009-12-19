@@ -1,0 +1,88 @@
+
+(* record a rating *)
+let
+    import "escape.aah"
+in
+  protect "bad lev"
+
+  (fn () =>
+   let
+       val id = credentials ()
+
+       val md = tr("A-Z", "a-z", requires [md])
+
+       val matches = 
+	   select (id, nvotes, difficulty, style, rigidity, cooked, solved)
+	   from escape : level 
+	   where md = {md}
+
+       do  empty matches andthen failm "no such level"
+
+       val (lev, ovotes, odiff, ostyle, 
+	    origid, ocooked, osolved) = head matches
+
+       (* get new ratings *)
+    
+       (* restrict to [0..m] *)
+       fun mmax (n,m) = if n < 0 then 0 else if n > m then m else n
+
+       (* these will be added to the total *)
+       val ndiff   = mmax(requiren [diff], 10)
+       val nstyle  = mmax(requiren [style], 10)
+       val nrigid  = mmax(requiren [rigid], 10)
+       val ncooked = 1 = requiren [cooked]
+       val nsolved = 1 = requiren [solved]
+
+       (* did this user rate it before? 
+	  
+	  If so, we have to remove the old rating before
+	  adding the new one. *)
+
+       val prev =
+	   select (id, difficulty, style, rigidity, cooked, solved)
+	   from escape : lrating
+	   where of = {lev} and byuser = {id}
+
+
+       (* m___ will be subtracted from the total *)
+       val (mvotes, mdiff, mstyle, mrigidity, mcooked, msolved) = 
+	   (case prev of
+		nil => 
+		    let in
+			(* first time rating. add new. *)
+			insert (lev, id, ndiff, nstyle, nrigid, ncooked, nsolved) 
+			into escape : lrating : (of, byuser, difficulty, style,
+						     rigidity, cooked, solved);
+			(0, 0, 0, 0, 0, 0)
+		    end
+	      | (it, d, s, r, c, v) :: _ =>
+		    let in
+			(* rating exists. modify it. *)
+			set escape : lrating ( it )
+			: (difficulty, style, rigidity, cooked, solved) =
+			   (ndiff, nstyle, nrigid, ncooked, nsolved);
+
+			(1, d, s, r, if c then 1 else 0, if v then 1 else 0)
+		    end)
+
+      (* get speed record for this level *)
+       val fastest =
+	   (case (select len from escape : solution
+		  where of = {lev}
+		  order by len
+		  limit {1}) of
+		nil => 999999
+	      | (h :: _) => h)
+   in       
+       set escape : level ( lev ) :
+           (nvotes, difficulty, style, rigidity, cooked, solved) =
+	   (ovotes + 1 - mvotes,
+	    odiff + ndiff - mdiff,
+	    ostyle + nstyle - mstyle,
+	    origid + nrigid - mrigidity, 
+	    ocooked + (if ncooked then 1 else 0) - mcooked,
+	    osolved + (if nsolved then 1 else 0) - msolved);
+
+       print [ok [itos fastest]]
+   end)
+end

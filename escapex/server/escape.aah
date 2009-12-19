@@ -1,0 +1,445 @@
+
+(* to import siteconfig, set include dir with -I to aaph *)
+import "siteconfig.aah"
+import "std.aah"
+import "combinators.aah"
+import "cgi.aah"
+import "escape.db"
+import "sort.aah"
+import "string.aah"
+import "ajax.aah"
+import "eip.aah"
+import "list.aah"
+
+signature Escape =
+
+  type level
+  type solution
+
+  val fromfile : string -> level
+  val gettitle : level -> string
+  val getauthor : level -> string
+
+  val sfromfile : string -> solution
+  val stobase64 : solution -> string
+  val verify : (level * solution) -> bool
+  val slength : solution -> int
+
+end
+
+val ADMIN-ID = 1
+
+val ADMINPASS = ESCAPE-ADMINPASS
+val ROOT = "/var/www/escape/"
+val MD5ROOT = ROOT ^ "md5/"
+val SOLROOT = "/var/www/escape-sols/"
+val PNGROOT = ROOT ^ "png/"
+val PNGWEB = "/png/"
+
+val SCREENSHOT-EXE = [/usr/src/escapex/screenshot.exe]
+
+val LASTMCOOKIE = [esc.lastm]
+val LASTDCOOKIE = [esc.lastd]
+val COOKIEHOST = [.spacebar.org]
+val HOST = [escape.spacebar.org]
+
+val MAXNAME = 12
+val MAXTITLE-COMMENTS = 64
+val MAXTITLE-RECENT = 48
+val MAXTITLE-RECENT-DETAIL = 40
+val MAXTITLE-RSS = 48
+val MAXTITLE-LEVEL-NAV = 40
+
+val SUMMARY-MAX = 5
+val FIRSTSUMMARYPERIOD = (24 * 60 * 60) * 180
+val SUMMARY-PERIOD-TEXT = [Recent new levels]
+
+(* in moves *)
+val MAXSOLUTION = 19999
+val MAXALTSOLUTION = 4999
+
+val TRIAGE-COLLECTION = 1
+val GRAVEYARD-COLLECTION = 4
+val THINNED-COLLECTION = 6
+val THINNED-NAME = "minor leagues"
+
+val DEFAULT-MINV = 200404240
+
+val THIN-NVOTES = 5
+(* in seconds *)
+val THIN-MINTIME = (24 * 60 * 60) * 5
+(* times 100 *)
+val THIN-MINDIFFICULTY = 300
+val THIN-MINSTYLE = 250
+
+val TRUST-BANNED = 0
+val TRUST-SPURNED = 1
+val TRUST-NORMAL = 2
+val TRUST-TRUSTED = 3
+val TRUST-ADMIN = 4
+
+val USERS-PERPAGE = 100
+val RATINGS-PERPAGE = 50
+
+(* how many to list in best style and best difficulty
+   categories *)
+val BEST-NUM = 20
+val BEST-MINVOTES = 5
+
+exception Fail of string
+
+fun failm s = raise (Fail s)
+fun fail () = raise (Fail "unknown")
+
+(* invoke f, but print out a failure message
+   if an exception is raised (including old exceptions) *)
+fun protect msg f =
+    ((f ()) handle Fail s => print ("fail " ^ msg ^ ": " ^ s))
+        handle1 print ("fail (bug) " ^ msg)
+
+(* from 30218947510... to 30/218947510... *)
+fun splitmd md =
+    [[substr(md, 0, 2)]/[substr(md, 2, size md - 2)]]
+
+(* Give fraction; returns score as "9.86". *)
+fun scorestring (n, nvotes) =
+    if nvotes > 0
+    then 
+        let val pmil = (n * 1000) div (nvotes * 10)
+            val fp = itos (pmil mod 100)
+            val fp = if size fp = 1
+                     then [0[fp]]
+                     else fp
+        in
+            [[itos (pmil div 100)].[fp]]
+        end
+    else [N/A]
+
+
+fun credentials () =
+    let
+        val id = cgigetnum("id", fn _ => failm "no id?")
+        val seql = cgigetnum("seql", fn _ => failm "no seql?")
+        val seqh = cgigetnum("seqh", fn _ => failm "no seqh?")
+        val (rsl, rsh) = get escape : user ( id ) : (seql, seqh)
+    in
+        (rsl = seql andalso rsh = seqh)
+        otherwise failm "wrong credentials";
+        id
+    end
+
+fun mkcomment s = 
+    replace ("\n", "<br/>\n",
+             replace(">", "&gt;", 
+                     replace("<", "&lt;", 
+                             replace("&", "&amp;", s))))
+    
+    
+fun make-screenshot md =
+    let
+        val f = PNGROOT ^ md ^ ".png"
+    in
+        fexists f
+        otherwise
+        let 
+            val cmd = [[SCREENSHOT-EXE] [MD5ROOT ^ splitmd md] [f]]
+        in
+            (* print [<p><b>[cmd]</b></p>]; *)
+            system cmd
+        end
+    end
+
+(* return a list of subdirs (of the collection c) as
+   (id, full/path/to/subdir, index name) *)
+fun get-subdirs c =
+    let
+        (* get all subdirectories and build alist. *)
+        val rawdirs = select (id, fname, longidx, parent)
+                      from escape : subdir
+                      where colof = {c}
+
+        fun findd nil _ = die "bad directory structure internally"
+          | findd ((res as (i, _, _, _)) :: t) x =
+            if i = x
+            then res
+            else findd t x
+
+        (* build cooked dirs by expanding paths to full strings *)
+        fun dodirs nil = nil
+          | dodirs ((i, f, x, p) :: t) =
+            let
+                fun expand 0 s = s
+                  | expand n s =
+                    let val (_, fp, _, r) = findd rawdirs n 
+                    in
+                        expand r (fp ^ "/" ^ s)
+                    end
+            in
+                (i, expand p f, x) :: dodirs t
+            end
+
+        val cdirs = dodirs rawdirs
+    in
+        (* they must be sorted as in protocol.txt.
+           one easy way to ensure this is string length. *)
+
+        sort (fn ((_, a, _), (_, b, _)) =>
+              int-compare (size a, size b)) cdirs
+    end
+
+(* display a string in html.
+   since escape uses ^< to close color tags,
+   this interferes with html's tag mechanism *)
+val disp = tohtml
+
+(* given a dir list from get-subdirs, and a directory index d,
+   return the string correspondnig to that subdir. The string
+   will be appropriate for prepending to a filename. (so it
+   ends with / unless it is the root) *)
+fun lookup-dir cdirs 0 = ""
+  | lookup-dir nil _ = die "database corrupt: dir not found"
+  | lookup-dir ((i, name, _)::rest) d =
+    if i = d 
+    then name ^ "/"
+    else lookup-dir rest d
+
+
+(* get the length of the best solution for a level *)
+fun getrecord levid =
+    (case (select len from escape : solution
+           where of = {levid}
+           order by len, date
+           limit {1}) of
+         nil => 999999
+       | (h :: _) => h)
+
+fun update-collection c =
+    let
+
+        open escape : collection(c) : (name, minv, fname)
+        val f = fopen (ROOT ^ fname ^ ".txt")
+        val levs = select (lev, subdir) from escape : levelrel
+                   where col = {c}
+
+        val cdirs = get-subdirs c
+
+        fun printl s = fprint(f, [[s]\n])
+
+        fun printdir (id, dir, idx) = fprint(f, [[dir] [idx]\n])
+
+
+        fun printlev (lev, dir) =
+            let 
+                open escape : level(lev) : (nvotes, difficulty, style, 
+                                            rigidity, cooked, solved, md,
+                                            uploaded, owner)
+                val best = getrecord lev
+            in
+                fprint(f, 
+                       [[lookup-dir cdirs dir]lev[itos lev].esx [md
+                        ] [itos nvotes] [itos difficulty] [itos style] [itos rigidity
+                        ] [itos cooked] [itos solved
+                        ] [itos uploaded] [itos best
+                        ] [itos owner]\n])
+            end
+
+    in
+        printl name;
+        printl (itos minv);
+        printl (itos (length cdirs));
+        printl (itos (length levs));
+        printl [XXX arbitrary version string - aaph];
+        app (cdirs, printdir);
+        app (levs, printlev);
+        fclose f
+    end
+
+
+fun htmlheadtop s =
+    let in
+        print 
+        [<html><head><title>[s]</title>
+         [* for iphone; improves scaling *]\
+         <meta name="viewport" content="width=640">
+
+         <STYLE TYPE="text/css">
+         
+         H1 { font: bold 16pt Verdana,Arial,Helvetica }
+         P  { font: 12px Verdana,Arial,Helvetica }
+         
+         TH { font: bold 12px Verdana,Arial,Helvetica ; 
+              text-align: center}
+         
+         TD { font: 12px Verdana,Arial,Helvetica }
+
+         .small { font : 9px Verdana,Arial,Helvetica }
+               
+         A:link { color: #4444DD; font : bold 12px Verdana,Arial,Helvetica }
+         A:visited { color: #9999FF; font : bold 12px Verdana,Arial,Helvetica }
+         A:active { color: #DDDD44; font : bold 12px Verdana,Arial,Helvetica }
+         
+         .blackline { border: 2pt;
+                      border-style: solid;
+                      border-color: black; }
+         </STYLE>]
+    end
+
+fun htmlheadbot () =
+    let in
+        print 
+        [</head><body bgcolor="#FFFFFF">
+         <font face="Verdana,Arial,Helvetica" size=-1>]
+    end
+
+fun htmlhead s = (htmlheadtop s; htmlheadbot ())
+
+val HEADCOLOR = [#4422BB]
+(* only call once the password is checked! *)
+fun adminheader s =
+    let in
+        htmlhead s;
+        print [<table width="100%" border=0 cellpadding=2 cellspacing=0>
+               <tr><td colspan=2 height=4 bgcolor="[HEADCOLOR]"></td></tr>
+               <tr><td>(<a href="[FCGI]/escape/admin?pass=[ADMINPASS]">admin</a>)</td>
+               <td width="100%"><center>[s]</center></td></tr>
+               <tr><td colspan=2 height=4 bgcolor="[HEADCOLOR]"></td></tr>
+               </table>]
+    end
+
+(* safely turn escape colors into html colors *)
+fun colorize s =
+    let 
+        val l = explode s
+        fun c nil 0 = nil
+            (* unmatched -- close all remaining tags *)
+          | c nil n = "</font>" :: c nil (n - 1)
+          | c (?^ :: code :: rest) n =
+            (if code ceq ?<
+             then (if n > 0
+                  then "</font>" :: c rest (n - 1)
+                  else (* unmatched tags *) c rest n)
+             else
+                (case (ord code - ord ?0) mod 7 of
+                     (* actually, white in game *)
+                     0 => [<font color="#000000">]
+                   | 1 => [<font color="#a1a2c8">]
+                   | 2 => [<font color="#FF756A">]
+                   | 3 => [<font color="#FFfa6a">]
+                   | 4 => [<font color="#777777">]
+                   | 5 => [<font color="#6aef5a">]
+                         (* pics or blank *)
+                   | _ => [<font color="#000000">]) ::
+                     c rest (n + 1))
+          | c (char :: rest) n = implode (char :: nil) :: c rest n
+    in
+        string-concat (c l 0)
+    end
+
+(* should also strip html code, etc *)
+fun nocolor s =
+    let
+        val l = explode s
+        fun c nil = nil
+          | c (?^ :: _ :: rest) = c rest
+          | c (ch :: rest) = ch :: c rest
+    in
+        implode (c l)
+    end
+
+fun hascolorcodes s =
+    let
+        fun c (?^ :: _) = true
+          | c (_ :: rest) = c rest
+          | c nil = false
+    in
+        c (explode s)
+    end
+
+
+fun loadlevel md =
+    let
+        val pre = MD5ROOT ^ (substr (md, 0, 2))
+        val pos = substr (md, 2, size md - 2)
+    in
+        Escape.fromfile [[pre]/[pos]]
+    end
+
+(* limit a string to n characters, for n >= 3 *)
+fun limitto n s =
+    if size s > n
+    then 
+        if n >= 3 
+        then substr (s, 0, n - 3) ^ [...]
+        else [...]
+    else s
+
+val naughty =
+    "asshole" ::
+    "bitch"   ::
+    "cock"    ::
+    "cunt"    ::
+    "dick"    ::
+    "fuck"    ::
+    "nigger"  ::
+    "piss"    ::
+    "pussy"   ::
+    "shit"    ::
+    "slut"    ::
+    "tits"    ::
+    nil
+
+(* is this a "dirty" string? *)
+fun dirty s =
+    let 
+        val s = tr ("A-Z", "a-z", s)
+        val s = tr ("a-z", "/cd/", s)
+    in
+        exists (naughty,
+                fn n => finds (s, n) >= 0)
+    end
+
+fun ago n =
+    let
+        val l = 
+            (1, 0, "1 sec ago", "secs")  ::
+            (60, 15, "a minute ago", "mins")  ::
+            (60 * 60, 3 * 60, "an hour ago", "hours") ::
+            (60 * 60 * 24, 6 * 60 * 60, "a day ago", "days") ::
+            (60 * 60 * 24 * 7, 2 * 60 * 60 * 24, 
+                                "a week ago", "weeks") ::
+            (* well... *)
+            (60 * 60 * 24 * 30, 3 * 60 * 60 * 24 * 7,
+                                "a month ago", "months") ::
+            (60 * 60 * 24 * 365, 10 * 60 * 60 * 24 * 30,
+                                "a year ago", "years") ::
+            (2147483646, 0, "forever ago", "eons") ::
+            nil
+
+        fun plural 1 s _ = s
+          | plural n _ s = [[itos n] [s] ago]
+
+        fun findbest ((divi, slack, names, namep) :: 
+                      (rest as (modu, _, sing, _) :: _)) =
+            if n < modu
+            then 
+                (* if we're "almost" to the next division,
+                   round up. *)
+                (if ( n + slack < modu )
+                 then
+                     (* not even close to next. *)
+                     (* but we might be close to "5 hours"
+                        rather than "4 hours... *)
+                     if (n div divi = (n + slack) div divi)
+                     then
+                         (* nope, pretty robust. *)
+                         plural (n div divi) names namep
+                     else [almost [plural ((n + slack) div divi)
+                                   names namep]]
+                 else
+                     (* round up to next *)
+                     [almost [sing]])
+            else findbest rest
+          | findbest _ = die "impossible"
+    in
+       findbest l
+    end

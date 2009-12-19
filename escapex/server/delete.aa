@@ -1,0 +1,66 @@
+let
+    import "escape.aah"
+
+    val p = cgigetstring ([pass], K "")
+    do  p seq ESCAPE-ADMINPASS otherwise die [wrong password]
+
+    val url = limit (?/, cgiurl())
+    val n = stoi (head url)
+
+    open escape : levelrel ( n ) : (col, subdir, lev)
+    open escape : level ( lev ) : (title, md)
+
+
+    val others =
+        select id from escape : levelrel
+        where lev = {lev}
+        limit {2}
+
+    fun thisone () = 
+        let in
+
+            delete escape : levelrel ( n );
+            update-collection col;
+            redir [[FCGI]/escape/adminone/[itos col]?pass=[ADMINPASS]]      
+        end
+
+in
+
+    if length others > 1
+    then thisone () 
+    else
+        (* last one ! *)
+        (case optn [confirm] of
+             NONE =>
+                 let in
+                     adminheader [Escape Server : Confirm delete <b>[title]</b>];
+
+                     print [<p><b>[title]</b> = [md]\n];
+
+                     print [<p>This is the last reference to this level.
+                            The file will be deleted from disk and the level
+                            entry will be removed. Click to confirm:
+                            (<a href="[FCGI]/escape/delete/[itos n]\
+                            ?pass=[ADMINPASS]&confirm=1">x</a>)]
+                 end
+           | SOME _ =>
+                 let 
+                    fun rmrating r = delete escape : lrating ( r )
+                    fun rmcomment c = delete escape : lcomment ( c )
+                 in
+
+                    app(select id from escape : lrating where of = {lev},
+                        rmrating);
+                    app(select id from escape : lcomment where of = {lev},
+                        rmcomment);
+
+                    delete escape : level ( lev );
+
+                    (* XX and remove from disk...?
+                       (what if someone else uses this same md5?) *)
+                    
+                    thisone ()
+                 end) 
+
+
+end

@@ -1,0 +1,15 @@
+let
+    import "escape.aah"
+    val p = cgigetstring ([pass], K "")
+    val url = limit (?/, cgiurl())
+    val n = stoi (head url)
+
+    val l = get escape : solution ( n ) : of
+in
+
+    p seq ESCAPE-ADMINPASS otherwise die [wrong password];
+
+    delete escape : solution ( n );
+
+    redir [[FCGI]/escape/adminone/[itos l]?pass=[ADMINPASS]]
+end

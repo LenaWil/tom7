@@ -1,0 +1,48 @@
+let
+    import "escape.aah"
+    val p = cgigetstring ([pass], K "")
+
+    val now = time ()
+    val startat = cgigetnum ([startat], K 0)
+    val startat = if startat < 0 then 0 else startat
+
+    fun navlinks () =
+        print
+        [<p><b>[if startat > 0
+                then [<a href="?pass=[p]&startat=[itos (startat - RATINGS-PERPAGE)]">\
+                      prev [itos RATINGS-PERPAGE]</a>]
+                else [at start]] \
+         | <a href="?pass=[p]&startat=[itos (startat + RATINGS-PERPAGE)]">\
+         next [itos RATINGS-PERPAGE]</a></b>\n]
+in
+    p seq ESCAPE-ADMINPASS otherwise
+    let in
+        print
+        [<form method=get>
+         <input type=password name=pass> password
+         <input type=submit>
+         </form>];
+        die [wrong password]
+    end;
+
+    adminheader [Escape Server Administration : Recent Ratings];
+
+    
+    navlinks ();
+    
+    print "<table><tr><td colspan=2>level</td><td>user</td><td>dif/sty/rig</td><td>other</td></tr>\n";
+    app(select (id, of, byuser, difficulty, style, rigidity, solved, cooked) 
+        from escape : lrating
+        order by id desc
+        limit {startat}, {RATINGS-PERPAGE},
+        fn (id, off, u, dif, sty, rig, sol, coo) =>
+        print [<tr><td>[itos id].</td><td><b><a href="[FCGI]/escape/level/[itos off]?spoilers=1">\
+               [limitto 45 (get escape : level ( off ) : title)]</a></b></td>\
+               <td>[get escape : user ( u ) : name]</td>\
+               <td>[itos dif]/[itos sty]/[itos rig]</td>\
+               <td>[if sol then [SOLVED] else []]
+                   [if coo then [COOKED] else []]</td></tr>\n]);
+    print "</table>\n";
+
+    navlinks ()
+end

@@ -1,0 +1,110 @@
+(* Generate the weekly (or whatever) summary. *)
+let
+    import "escape.aah"
+    val p = requires [pass]
+
+    val SCALE = 10000
+    fun scale (n, 0) = 0
+      | scale (n, d) = (n * SCALE) div d
+
+    fun onelev (nvotes, d, s, md, up, ow, t, au, i) =
+        (ow, (scale (d, nvotes), scale (s, nvotes), 
+              md, up, t, au, i))
+
+
+    val lastsummarydate =
+        case (select date 
+              from escape : summarypost
+              order by date desc) of
+            nil => time () - FIRSTSUMMARYPERIOD
+          | h :: _ => h
+
+    (* XXX could maybe exclude graveyard? *)
+    val levels = 
+        list-map onelev
+        (select (nvotes, difficulty, style, md, uploaded, owner, title, author, id)
+         from escape : level
+         (* XXX should perhaps bake in a constant lag here, so that
+            we don't consider (and thus disadvantage) levels that were
+            just uploaded. they are unlikely to have ratings. *)
+         where uploaded > {lastsummarydate})
+
+    (* Count of all levels in the period. *)
+    val total-levels = list-length levels
+
+    (* Now summarize. Idea is to find the K best levels during the period,
+       where we don't privilege a certain uploader. Do this by
+       stratifying by author, so that we can then take everyone's best
+       level first, then everybody's second best, etc. *)
+    val levels = list-stratify int-compare levels
+
+    (* Don't need author ids any more. *)
+    val levels = list-map (fn (_, b) => b) levels
+
+    (* Sort each author's levels from best to worst. *)
+
+    fun lev-compare ((_, sty, _, _, _, _, _),
+                     (_, styy, _, _, _, _, _)) =
+                    (* XXX break ties with difficulty.
+                       note reversal so we get descending sort *)
+                    int-compare (styy, sty)
+
+    (* Put each author's best levels first *)
+    val levels = list-map (list-sort lev-compare) levels
+
+    fun author-compare (nil, nil) = EQUAL
+      | author-compare (nil, _) = GREATER
+      | author-compare (_, nil) = LESS
+      | author-compare (a :: _, aa :: _) = lev-compare (a, aa)
+
+    fun choosebest k nil = nil
+      | choosebest k levels =
+        let
+            (* normalize *)
+            val levels = list-sort author-compare levels
+
+            fun choose (0, _, _) = nil
+              | choose (k, used, nil) = choosebest k used (* out of authors *)
+              | choose (k, used, nil :: l) = choose (k, used, l) (* author out of levels *)
+              | choose (k, used, (best :: rest) :: l) =
+                best :: choose (k - 1, rest :: used, l)
+        in
+            choose (k, nil, levels)
+        end
+
+    fun render (l : (int * int * string * int * string * string * int) list) =
+        let
+            fun renderone (dif, sty, md, up, t, au, id) =
+                [<br/> &bull; <a href="http://[HOST][FCGI]/escape/level/[itos id]">\
+                 [tohtml (nocolor t)]</a> by \
+                 [tohtml au]]
+
+            val rendered = string-concat (list-map renderone l)
+
+            val (dif, sty, md, up, t, au, id) = list-head l
+        in
+            make-screenshot md;
+            [<b>[SUMMARY-PERIOD-TEXT]</b>: \
+             [rendered] \
+             <p><center> \
+             <a href="http://[HOST][FCGI]/escape/level/[itos id]">\
+             <img src="http://[HOST][PNGWEB][md].png" border="0"></a>\
+             <br/><a href="http://[HOST][FCGI]/escape/level/[itos id]">[colorize t]</a> \
+             <br/>by [tohtml au] \
+             </center>]
+        end
+
+in
+    p seq ESCAPE-ADMINPASS otherwise die "wrong password";
+
+    (* If there are no levels, then don't output any summary at all. *)
+    (case choosebest SUMMARY-MAX levels of
+         nil => print "(no levels; no summary)\n"
+       | levels => 
+             ignore (insert ([[itos total-levels] new Escape levels],
+                             time (),
+                             render levels)
+                     into escape : summarypost : (title, date, description)));
+
+    print "<br/>done.\n"
+end

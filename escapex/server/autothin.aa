@@ -1,0 +1,69 @@
+let
+    import "escape.aah"
+    val p = cgigetstring ([pass], K "")
+    val now = time ()
+in
+    p seq ESCAPE-ADMINPASS otherwise
+    let in
+        print
+        [<form action="[FCGI]/escape/admin" method=get>
+         <input type=password name=pass> password
+         <input type=submit>
+         </form>];
+        die [wrong password]
+    end;
+
+    adminheader [Escape Server Administration: Auto Thinning];
+
+    app(select (id, lev) from
+        escape : levelrel
+        where col = {TRIAGE-COLLECTION},
+        
+        fn (id, lev) =>
+        let
+            open escape : level (lev) : (uploaded, nvotes, 
+                                         difficulty, style,
+                                         owner, title)
+
+            val dif = if nvotes > 0 then (difficulty * 100) div nvotes else 10000
+            val sty = if nvotes > 0 then (style * 100) div nvotes else 10000
+
+            fun ptos n =
+                let val n = n div 10
+                in
+                    [[itos (n div 10)].[itos (n mod 10)]]
+                end
+        in
+            (* check that owner is not trusted,
+               also check that there are no high votes
+               by trusted users *)
+            if nvotes >= THIN-NVOTES 
+               andalso dif < THIN-MINDIFFICULTY
+               andalso sty < THIN-MINSTYLE
+               andalso (uploaded + THIN-MINTIME) < now
+            then
+                let in
+                    print ([<br>Match: <b>[title]</b> ([ptos dif]/[ptos sty] @ [itos nvotes])\n]);
+                    (* then put at root of thinned collection *)
+                    set escape : levelrel (id) : (col, subdir) = (THINNED-COLLECTION, 0);
+                    (* add a comment *)
+                    
+                    ignore
+                    (insert (ADMIN-ID, lev, time (),
+                             [(admin) Automatically moved to [THINNED-NAME].
+                              (Difficulty: [ptos dif]   Style: [ptos sty])], 
+                             false, true)
+                     into escape : lcomment : 
+                       (byuser, of, date, comment, spoiler, info))
+                    
+                end
+            else ()
+        end);
+
+    print "<p>Updating thinned:\n";
+    update-collection THINNED-COLLECTION;
+    print "<p>Updating triage:\n";
+    update-collection TRIAGE-COLLECTION;
+
+    print "<p>Done.\n"
+end

@@ -1,0 +1,68 @@
+(* Delete (move to graveyard) a level that is owned by the player. 
+   This is only invoked by the game. *)
+
+let
+    import "escape.aah"
+in
+    protect "error"
+
+    (fn () =>
+     let
+         val id = credentials ()
+         val username = get escape : user ( id ) : name
+
+             
+         val md = tr("A-Z", "a-z", requires [md])
+
+         val msg = cgigetstring([text], fn _ => [])
+
+         val matches = 
+             select id
+             from escape : level 
+             where md = {md}
+             
+         do  empty matches andthen failm "no such level"
+             
+         val lev = head matches
+
+         open escape : level (lev) : owner
+             
+     in
+         (* now check that the user has permission to do this *)
+         (owner = id orelse (requires [pass] seq ADMINPASS))
+           otherwise failm "You are not the owner!";
+
+         (case (select id 
+                from escape : levelrel
+                where lev = {lev} and col = {TRIAGE-COLLECTION}) of
+              nil => failm "Can only delete from triage."
+            | (lid :: nil) =>
+                  let 
+                      val m =
+                          [Moved to graveyard] ^
+                          (if msg seq []
+                           then [.]
+                           else [: \n[msg]])
+                  in
+                      delete escape : levelrel (lid);
+
+                      (* insert it, if it's not already in the graveyard *)
+                      empty (select id from escape : levelrel
+                             where lev = {lev} and col = {GRAVEYARD-COLLECTION}) 
+                        andthen
+                          insert (GRAVEYARD-COLLECTION, 0, lev)
+                          into escape : levelrel : (col, subdir, lev);
+
+                      ignore
+                        (insert (id, lev, time (), m, false, true)
+                         into escape : lcomment : 
+                                 (byuser, of, date, comment, spoiler, info));
+
+                      update-collection TRIAGE-COLLECTION;
+                      update-collection GRAVEYARD-COLLECTION;
+
+                      print "ok\n"
+                  end
+            | _ => failm "Appears multiple times in triage??")
+     end)
+end

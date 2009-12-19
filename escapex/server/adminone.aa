@@ -1,0 +1,110 @@
+let
+    import "escape.aah"
+    val p = cgigetstring ([pass], K "")
+    val url = limit (?/, cgiurl())
+    val n = stoi (head url)
+
+    val (name, fname, minv) = 
+        get escape : collection ( n ) : (name, fname, minv)
+
+    (* some settings saved in a cookie *)
+    val lastm = 1 = getcookien (LASTMCOOKIE, fn _ => 0)
+
+    val lastinfo =
+        case optcookien LASTDCOOKIE of
+            SOME dd =>
+                (let val (ldn, lastc) = 
+                     get escape : subdir ( dd ) : (fname, colof)
+                 in
+                     SOME (ldn, lastc, dd, get escape : collection ( lastc ) : fname)
+                 end handle _ => NONE)
+          | NONE =>  NONE
+
+    val cdirs = get-subdirs n
+in
+    p seq ESCAPE-ADMINPASS otherwise die [wrong password];
+
+    adminheader [Escape Server : Collection <b>[fname]</b>];
+
+    let 
+        val levs = select (id, subdir, lev) 
+                   from escape : levelrel
+                   where col = {n}
+                   
+        fun prlev (lid, sd, lev) =
+            let
+                val (md, title, author, owner, nvotes,
+                     difficulty, style, rigidity, cooked, solved) =
+                    get escape : level (lev) : 
+                    (md, title, author, owner, nvotes,
+                     difficulty, style, rigidity, cooked, solved)
+            in
+                print 
+                [<tr><td>[itos lev].</td>
+                 <td><span class=small>(<a href="[FCGI]/escape/adminsols/\
+                 [itos lev]?pass=[ADMINPASS]">sols</a>)</span></td>
+                 <td>[disp (limitto 40 title)]</td>
+                 <td>[disp (limitto 24 author)]</td>
+                 <td>[itos owner]</td>
+                 <td>[if sd > 0 then itos sd else []]</td>];
+
+                print
+                [<td><a href="[FCGI]/escape/copyone/[itos 
+                 lid]?move=0&pass=[ADMINPASS]">copy</a> /
+                 <a href="[FCGI]/escape/copyone/[itos 
+                 lid]?move=1&pass=[ADMINPASS]">move</a> /
+                 del (<a href="[FCGI]/escape/delete/[itos
+                 lid]?pass=[ADMINPASS]">!</a>) ];
+
+                (* save the "last operation" *)
+                (case lastinfo of
+                     NONE => ()
+                   | SOME (ldn, lastc, lastd, lcn) => 
+                      print [ &nbsp; <a href="[FCGI]/escape/copyone/[itos
+                             lid]?move=[if lastm then [1] else 
+                             [0]]&pass=[ADMINPASS]&destcol=[itos 
+                             lastc]&destdir=[itos lastd]">[if lastm then
+                             [move] else [copy]] to [lcn] : [ldn]</a>]);
+                print [</td>];
+
+                (* XX show ratings with flag? *)
+
+                print [</tr>\n]
+            end
+
+    in
+        print [<table>\n];
+        print [<tr><th>#</th><th colspan=2>title</th><th>author</th>
+               <th>owner</th><th>sdir</th><th>ops</th></tr>\n];
+        app (levs, prlev);
+        print [</table>\n]
+    end;
+
+    print [<p><b><a href="[FCGI]/escape/showspeedruns/[itos n]\
+           ?pass=[ADMINPASS]">Show speedruns</a>];
+
+    print [<p><b>Subdirectories</b>\n];
+
+    app ((0, "(root)", "root directory") :: cdirs,
+         fn (id, dir, idx) =>
+         let in
+             print [<br>[itos id]. [dir] &nbsp; &nbsp; &nbsp; - 
+                    &nbsp; &nbsp; &nbsp; [idx]];
+             print [ (<a href="[FCGI]/escape/modsubdir/[itos n]/[itos id]\
+                    ?pass=[ADMINPASS]">modify/add subdir</a>)];
+             id > 0 andthen 
+             print [ (remove subdir
+                    (<a href="[FCGI]/escape/rmsubdir/[itos id]\
+                    ?pass=[ADMINPASS]">!</a>))\n]
+         end);
+
+    print [<p><b>Modify Details</b>
+           <form action="[FCGI]/escape/modone" method=post>
+           <input type=hidden name=pass value=[ADMINPASS]>
+           <input type=hidden name=n value=[itos n]>
+           <br><input type=text name=fname value="[fname]"> fname
+           <br><input type=text name=name value="[name]"> display name
+           <br><input type=text name=minv value=[itos minv]> minv
+           <br><input type=submit value="Modify Collection">
+           </form>\n]
+end

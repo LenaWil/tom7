@@ -1,0 +1,177 @@
+
+database escape {
+
+  table site {
+    /* there's just one */
+    key id. 
+
+    /* id of graveyard collection */
+    int graveyard.
+  }
+
+  table user {
+    /* unique id */
+    key id.
+    
+    /* sequence numbers are secret to the player,
+       and stored in his player file. */
+    int seql.
+    int seqh.
+
+    /* time that this player registered */
+    int joindate.
+
+    /* can be anything */
+    string name.
+    string lasthost.
+
+    /* Trust levels:
+
+       0: banned  (can't do anything)
+       1: spurned (ratings don't count,
+                   maximum of two uploads per day?)
+       2: normal  (regular privileges 2001-2005)
+       3: trusted (levels immune to auto-thin,
+                   can vote to keep levels,
+                   mark comments as spoilers,
+                   ??)
+       4: admin   (delete any level)
+       */
+    int trust.
+  }
+
+  table collection {
+    key id.
+
+    string name.
+    string fname.
+
+    int minv.
+  }
+
+  /* subdirectories of collections.
+     a collection may have 0 or more
+     of these */
+  table subdir {
+    key id.
+
+    /* only the last dir in the path;
+       never abc/def */
+    string fname.
+    string longidx.
+
+    int colof.
+
+    /* 0 if subdir of root.
+       require subdir[n].colof = colof */
+    int parent.
+  }
+
+  table level {
+    key id.
+
+    /* md5 hash of level */
+    string md.
+
+    string title.
+    string author.
+
+    /* date */
+    int uploaded.
+
+    /* a player. */
+    int owner.
+
+    /* average ratings: as totals */
+    int nvotes.
+    int difficulty.
+    int style.
+    int rigidity.
+
+    /* totals */
+    int cooked.
+    int solved.
+  }
+
+  /* put a level in a collection */
+  table levelrel {
+    key id.
+
+    int col.
+    int subdir.
+    int lev.
+  }
+
+  /* ratings and comments on levels */
+  table lrating {
+    key id.
+    /* level */
+    int of.
+    /* user  */
+    int byuser.
+
+    /* rating stuff ... 
+       should range 0..10 inclusive. */
+    int difficulty.
+    int style.
+    int rigidity.
+    
+    bool solved.
+
+    /* false also if not solved */
+    bool cooked.
+  }
+
+  table lcomment {
+    key id.
+    /* level */
+    int of.
+    /* user */
+    int byuser.
+
+    int date.
+
+    bool spoiler.
+    /* is this an 'info only' comment? */
+    bool info.
+
+    /* the comment ... */
+    blob comment.
+  }
+
+  table solution {
+    key id.
+
+    /* level */
+    int of.
+
+    string name.
+    string author.
+    int date.
+
+    /* as ascii */
+    string md5.
+
+    /* as base64 data */
+    blob moves.
+    int len.
+
+    /* if this is set, then this
+       is just an attempt at the
+       speed record. anything better
+       can replace it. */
+    bool speedrecord.
+  }
+
+  /* Generated summary posts. Each of these is displayed
+     straightforwardly by summaryrss. */
+  table summarypost {
+    key id.
+    /* as HTML */
+    blob title.
+    int date.
+    /* as HTML */
+    blob description.
+  }
+
+}

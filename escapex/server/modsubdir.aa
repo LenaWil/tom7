@@ -1,0 +1,49 @@
+let
+    import "escape.aah"
+in
+    protect "modsubdir" 
+    (fn () =>
+     let 
+         val p = cgigetstring ([pass], K "")
+         val url = limit (?/, cgiurl())
+         val c = stoi (head url)
+         val d = stoi (head (tail url))
+             
+         val (fname, longidx, colof) = 
+             case d of
+                 0 => ("root", "(root)", 0)
+               | _ => get escape : subdir ( d ) : (fname, longidx, colof)
+
+     in
+         p seq ESCAPE-ADMINPASS otherwise die [wrong password];
+         
+         adminheader [Escape Server : Subdir <b>[itos d]</b>];
+         
+         (* check invariant that d.colof = c *)
+         (d = 0 orelse get escape : subdir (d) : colof = c)
+                otherwise failm "but d.colof <> c!";
+         
+         (* this business is a little annoying because we have to
+            treat the root dir (0) specially. *)
+         print [<p><b>Add subdirectories</b>
+                <form action="[FCGI]/escape/addsubdir" method=post>
+                <input type=hidden name=pass value="[ADMINPASS]">
+                <input type=hidden name=c value=[itos c]>
+                <input type=hidden name=d value=[itos d]>
+                <br><input type=text name=fname> filename of subdir
+                <br><input type=text name=idx> index display name
+                <br><input type=submit value="Create Subdir">
+                </form>\n];
+         
+         d > 0 andthen
+         print [<p><b>Modify this subdir</b>
+                <form action="[FCGI]/escape/domodsubdir/[itos d]" method=post>
+                <input type=hidden name=pass value="[ADMINPASS]">
+                <input type=text name=fname value="[fname]"> filename
+                <br><input type=text name=longidx value="[longidx]"> 
+                     index display name
+                <br><input type=submit value="Modify this subdir">
+                </form>\n]
+
+     end)
+end
