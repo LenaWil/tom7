@@ -1,0 +1,4 @@
+OSX_build/Frameworks/SDL_mixer.framework/Versions/Current A
+OSX_build/Frameworks/SDL_mixer.framework/Versions/A/SDL_mixer ../../SDL_mixer
+OSX_build/Frameworks/SDL_mixer.framework/Versions/A/Resources ../../Resources
+../Frameworks/SDL_mixer.framework ../MacOS/OSX_build/Frameworks/SDL_mixer.framework

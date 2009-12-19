@@ -1,0 +1,5 @@
+
+// just one icon, for the application
+
+IDR_APPLICATION   ICON DISCARDABLE "escape.ico"
+

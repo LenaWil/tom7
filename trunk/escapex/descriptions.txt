@@ -1,0 +1,52 @@
+Escape is a tile-based puzzle game in the style of "Adventures of Lolo" or "Chip's Challenge." Unlike either of those games, Escape doesn't rely at all on reflexes--it's all about your brain.
+
+Although Escape comes with hundreds of levels, the game places an emphasis on the composition of new puzzles. Thus Escape has a built-in level editor and facilities for automatically sharing puzzles with other players.
+
+--------------------------------------------- 45 chars
+Tile-based puzzle game with internet features
+
+80 chars
+--------------------------------------------------------------------------------
+A deep tile-based puzzle game with built in level editor and internet sharing
+
+250 chars
+-------------------------------------------------------------------------------
+A tile-based puzzle game in the style of "Adventures of Lolo" or "Chip's Challenge." Unlike either of those games, Escape doesn't rely at all on reflexes--it's all about your brain. A level editor is included, and puzzles can be shared online.
+
+1500 chars
+-------------------------------------------------------------------------------
+Escape is a tile-based puzzle game in the style of "Adventures of Lolo" or "Chip's Challenge." Unlike either of those games, Escape doesn't rely at all on reflexes--it's all about your brain. The game is played on a grid in wich the player must manipulate blocks, lasers, switches, and other devices in order to reach the exit. Of course, this is more easily said than done!
+
+Although Escape comes with hundreds of levels, the game places an emphasis on the composition of new puzzles. Thus Escape has a built-in level editor and facilities for automatically sharing puzzles with other players.
+
+
+100 words
+--------------------------------------------------------------------------------
+Escape is a tile-based puzzle game in the style of "Adventures of Lolo" or "Chip's Challenge." Unlike either of those games, Escape doesn't rely at all on reflexes--it's all about your brain. The game is played on a grid in wich the player must manipulate blocks, lasers, switches, and other devices in order to reach the exit. 
+
+Although Escape comes with hundreds of levels, the game places an emphasis on the composition of new puzzles. Thus Escape has a built-in level editor and facilities for automatically sharing puzzles with other players.
+
+
+
+Sites:
+
+http://www.macupdate.com/   (seems very popular)
+gamehippo.com
+
+
+
+For Chip's Challenge players
+----------------------------------
+Hey guys. I was a big fan of Chip's Challenge back in 90s. In fact, I
+made my own puzzle game "Escape" that's quite similar (but of course
+it has many differences, new ideas, and all new levels, or what would
+be the point?) that I think you guys might like, too.
+
+http://escape.spacebar.org/
+
+It's totally free and runs on most computers. It's hooked into the
+internet so that people can compete for speed records, and upload
+their level creations instantly.
+
+ - Tom 7
+  http://tom7.org/

@@ -1,0 +1,172 @@
+
+ ** Compiling Escape **
+
+Note: If you don't want to install the sound libraries, you can
+compile with -DNOSOUND to disable it. There's no sound yet, so
+this might be a good idea.
+
+
+To compile on Windows:
+
+Although there are project files for Visual Studio, these often get
+out of date. The main way to compile is using GNU 'make'.
+
+Get the development library for SDL (libsdl.org), the VC6 one. I am
+using version 1.2.6. Put that in a directory parallel to this one,
+called "SDL-1.2.6". Right inside that directory should be the "lib",
+"include" dirs, etc.
+
+Get SDL_image from libsdl.org as well, I use
+SDL_image-devel-1.2.4-VC6. Unzip this in another parallel directory
+called "SDL_image-1.2.4" (so that "lib", "include", etc. are in that
+dir.) For image, you also need to download the source zip
+(SDL_image-1.2.4.zip). Inside that there is a VisualC.zip, which, in
+its graphics subdirectory, contains an include and lib dir. Put the
+contents of those in the SDL_image include and lib dirs. (We need the
+png headers and libraries so that we can save pngs).
+
+Do the same for SDL_net and SDL_mixer. I use versions
+SDL_net-devel-1.2.5-VC6 and SDL_mixer-devel-1.2.6-VC6.
+
+
+Copy all of the DLL files (jpeg.dll libpng13.dll zlib1.dll
+SDL_image.dll from sdl_image, SDL_net.dll from sdl_net, sdl.dll from
+SDL, **XXX MIXER ONES**) into the escapex dir.
+
+If you don't have the same versions as me, you'll need to change the
+names in the makefile.
+
+You probably also need cygwin installed, or some other unix clone
+that provides make, rm, and cp.
+
+Run vcvars32.bat, which is your VC98 binaries dir. This puts the
+compiler tools in your path.
+
+Type make. 
+
+
+
+To compile on Linux (RedHat):
+
+Get SDL, SDL_image, SDL_net, and SDL_mixer (versions from above) as
+RPMs (both libs and devel), and install. You may need to install
+libogg and libvorbis (http://www.vorbis.com/download_unix.psp) for
+SDL_mixer and libpng for SDL_image.
+
+
+Type (if you are using bash):
+
+export LINUX=true
+make
+
+This same procedure should work on other linux distributions as well.
+Note that there are two modes of building: static and dynamic. If you
+have difficulty at link time, then try:
+
+export DYNAMIC=true
+make clean
+make
+
+
+
+
+To compile on OSX:
+
+You should be able to just type (in bash):
+
+export OSX=true
+make framelinks
+make
+
+.. since the library binaries ("Frameworks") are checked into the
+repository and included in the source distribution. However, some
+people have reported problems, which I can't debug due to a lack of
+access to Macs (I build on Sourceforge's OSX 10.2 shell server). If
+you have any ideas, please let me know.
+
+
+
+Escape should run on any platform where SDL, SDL_net, SDL_image, and
+SDL_mixer work. I am interested in ports to other architectures and
+operating systems, so let me know if you can assist.
+
+ ** Outstanding Issues **
+
+To build the generated animation headers, you must use the packpng
+program. This is only part of the makefile for windows, but it should
+be straightforward to make it work on other platforms, provided that
+the png headers are available. However, the headers and packed animation
+graphic are checked into the repository, so it is not necessary to build
+them unless you modify the animations.
+
+I have had difficulty running packpng when compiled with VS.NET, perhaps
+because of the incompatibilities with libpng's setjmp use. I would love
+to debug this, but I have made no progress. Tips?
+
+
+ ** Understanding the code **
+
+There is no design document yet, because there are several things
+that I expect to change. Basically, start in main.cpp and follow
+things from there...
+
+See the document protocol.txt for an explanation of the network
+update features.
+
+Here are some quirks to my C++ style, that might be good to know:
+
+
+I don't use exceptions, because they are typically unportable, affect
+performance throughout the code, and their semantics are inscrutible.
+Therefore I usually don't use constructors and destructors, because
+there is no way for a constructor to "fail" in C++ aside from
+exceptions.
+
+Instead, there are create() and destroy() methods for every class.
+create() is static and will return 0 on failure.
+
+"auto" scope is sometimes useful when there are many exits from a
+block. However, it is inflexible because you cannot return the address
+of an auto object. The "extent" template creates an auto object that
+will destroy some other object (by calling its destroy method) when it
+goes out of scope. However, the target object can be "released" so
+that its address may be returned. In extent.h there are also templates
+for extents on objects that use destructors and arrays of objects that
+use destructors.
+
+Because what I really want are SML's signatures and structures, I
+treat header files like signatures and cpp files like structures. For
+instance, http.h describes an abstract interface by only specifying
+virtual functions and a static constructor, and the actual
+implementation in http.cpp creates a class called httpreal, deriving
+from http so that it can hide all the implementation details -- not
+just by using 'private,' but, you really don't need to see them at all
+in the header.
+
+When programming this way, gcc gives some really confusing error
+messages. For instance, if you have a function that is not implemented
+by the deriving class, you will get a bunch of missing vtable errors,
+talking about not-in-charge-this and in-charge-that. Very weird. On
+the other hand, it makes it much easier to manage the code once you get
+it to compile. ;)
+
+Because what I really want is Java's interfaces, I may use multiple
+inheritance. But at most one (and probably none) of the parent classes
+will be ever be concrete.
+
+  ** Things to know **
+
+  * Fonts *
+
+The characters in the font are fixed width, but are drawn with
+an overlap. If AB is drawn, then the first column of pixels in B
+will be drawn over the last column of pixels in A. For multi-character
+glyphs (ie, the long checkmark), you'll want to account for this. See
+the font graphic for an example. One non-obvious consequence is that
+even if you simply duplicate the last column of pixels in the next
+character, alpha-transparent pixels will be drawn twice, doubling
+their opacity.
+
+The characters are all defined in chars.h. Always use this instead
+of giving color and glyph codes directly.
+

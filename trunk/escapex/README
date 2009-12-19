@@ -1,0 +1,17 @@
+
+
+The file escape.txt contains user-level documentation on how to
+play Escape.
+
+
+The file HACKING, which is only present if you have downloaded the
+source code, describes how to compile and modify the game. If you're
+only interested in making your own levels, you do not need the source
+code.
+
+
+All of the code, except where noted at the top of a source file, is
+Copyright (c) 1996-2007 Tom Murphy VII. It is made available to you
+under the terms of the GNU General Public License, using the version
+and license found in the file COPYING that accompanies the source
+code.

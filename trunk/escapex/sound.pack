@@ -1,0 +1,7 @@
+S_REDLIGHT sounds/redlight.wav
+S_GREENLIGHT sounds/greenlight.wav
+S_BLUELIGHT sounds/bluelight.wav
+S_POWEROFF sounds/poweroff.wav
+S_ERROR sounds/error.wav
+S_WHIZZ sounds/whizz.wav
+S_CLICK sounds/click.wav

@@ -1,0 +1,225 @@
+nothing animation\nothing.png
+
+bombsplosion animation\bombsplosion.png
+
+door_opens0 animation\door_opens0.png
+door_opens1 animation\door_opens1.png
+door_opens2 animation\door_opens2.png
+
+doorwake_1 animation\doorwake_1.png
+doorwake_2 animation\doorwake_2.png
+doorwake_3 animation\doorwake_3.png
+doorwake_4 animation\doorwake_4.png
+doorwake_5 animation\doorwake_5.png
+doorwake_6 animation\doorwake_6.png
+doorwake_7 animation\doorwake_7.png
+
+juicedwire_ns animation\juicedwire_ns.png
+juicedwire_ns1 animation\juicedwire_ns1.png
+juicedwire_ne animation\juicedwire_ne.png
+juicedwire_ne1 animation\juicedwire_ne1.png
+juicedwire_nw animation\juicedwire_nw.png
+juicedwire_nw1 animation\juicedwire_nw1.png
+juicedwire_se animation\juicedwire_se.png
+juicedwire_se1 animation\juicedwire_se1.png
+juicedwire_sw animation\juicedwire_sw.png
+juicedwire_sw1 animation\juicedwire_sw1.png
+juicedwire_we animation\juicedwire_we.png
+juicedwire_we1 animation\juicedwire_we1.png
+
+juicedwire_nswe_ud animation\juicedwire_nswe_ud1.png
+juicedwire_nswe_ud1 animation\juicedwire_nswe_ud2.png
+juicedwire_nswe_lr animation\juicedwire_nswe_lr1.png
+juicedwire_nswe_lr1 animation\juicedwire_nswe_lr2.png
+
+bluefloor0 animation\bluefloor0.png
+bluefloor1 animation\bluefloor1.png
+
+greenfloor0 animation\greenfloor0.png
+greenfloor1 animation\greenfloor1.png
+
+redfloor0 animation\redfloor0.png
+redfloor1 animation\redfloor1.png
+
+shrinking_hole0 animation\shrinking_hole0.png
+shrinking_hole1 animation\shrinking_hole1.png
+shrinking_hole2 animation\shrinking_hole2.png
+shrinking_hole3 animation\shrinking_hole3.png
+shrinking_hole4 animation\shrinking_hole4.png
+
+slider_rotating animation\slider_rotating.png
+
+elecoff0 animation\elecoff0.png
+elecoff1 animation\elecoff1.png
+elecoff2 animation\elecoff2.png
+elecoff3 animation\elecoff3.png
+elecoff4 animation\elecoff4.png
+
+ongoesoff0 animation\ongoesoff0.png
+ongoesoff1 animation\ongoesoff1.png
+
+onezero_fade0 animation\onezero_fade0.png
+onezero_fade1 animation\onezero_fade1.png
+
+transponder_lite1 animation\transponder_lite1.png
+transponder_lite2 animation\transponder_lite2.png
+transponder_lite3 animation\transponder_lite3.png
+transponder_lite4 animation\transponder_lite4.png
+transponder_lite5 animation\transponder_lite5.png
+
+remote_lite0 animation\remote0.png
+remote_lite1 animation\remote1.png
+remote_lite2 animation\remote2.png
+remote_lite3 animation\remote3.png
+remote_lite4 animation\remote4.png
+remote_lite5 animation\remote5.png
+remote_lite6 animation\remote6.png
+
+bsphere_slide_lr animation\bsphere-slide-horiz.png
+bsphere_slide_lr2 animation\bsphere-slide-horiz2.png
+bsphere_slide_ud animation\bsphere-slide-vert.png
+bsphere_slide_ud2 animation\bsphere-slide-vert2.png
+
+gsphere_slide_lr animation\gsphere-slide-horiz.png
+gsphere_slide_lr2 animation\gsphere-slide-horiz2.png
+gsphere_slide_ud animation\gsphere-slide-vert.png
+gsphere_slide_ud2 animation\gsphere-slide-vert2.png
+
+rsphere_slide_lr animation\rsphere-slide-horiz.png
+rsphere_slide_lr2 animation\rsphere-slide-horiz2.png
+rsphere_slide_ud animation\rsphere-slide-vert.png
+rsphere_slide_ud2 animation\rsphere-slide-vert2.png
+
+sphere_slide_lr animation\sphere-slide-horiz.png
+sphere_slide_lr2 animation\sphere-slide-horiz2.png
+sphere_slide_ud animation\sphere-slide-vert.png
+sphere_slide_ud2 animation\sphere-slide-vert2.png
+
+yellow_slide_lr animation\yellow-slide-horiz.png
+yellow_slide_ud animation\yellow-slide-vert.png
+yellow_stretch_ud animation\yellow-stretch-ud.png
+yellow_stretch_lr animation\yellow-stretch-lr.png
+
+greyshrink0 animation\greyshrink0.png
+greyshrink1 animation\greyshrink1.png
+greyshrink2 animation\greyshrink2.png
+greyshrink3 animation\greyshrink3.png
+
+zap0 animation\zap0.png
+zap1 animation\zap1.png
+zap2 animation\zap2.png
+zap3 animation\zap3.png
+zap4 animation\zap4.png
+
+break0 animation\break0.png
+break1 animation\break1.png
+break2 animation\break2.png
+
+smokepuff0 animation\smokepuff0.png
+smokepuff1 animation\smokepuff1.png
+smokepuff2 animation\smokepuff2.png
+smokepuff3 animation\smokepuff3.png
+
+trap1_falls0 animation\trap1_falls0.png
+trap1_falls1 animation\trap1_falls1.png
+trap1_falls2 animation\trap1_falls2.png
+trap1_falls3 animation\trap1_falls3.png
+
+trap2_falls0 animation\trap2_falls0.png
+trap2_falls1 animation\trap2_falls1.png
+
+green_pushright0 animation\green_pushright0.png
+green_pushright1 animation\green_pushright1.png
+green_pushright2 animation\green_pushright2.png
+green_pushright3 animation\green_pushright3.png
+green_pushright4 animation\green_pushright4.png
+
+green_pushleft0 animation\green_pushleft0.png
+green_pushleft1 animation\green_pushleft1.png
+green_pushleft2 animation\green_pushleft2.png
+green_pushleft3 animation\green_pushleft3.png
+green_pushleft4 animation\green_pushleft4.png
+
+green_pushdown0 animation\green_pushdown0.png
+green_pushdown1 animation\green_pushdown1.png
+green_pushdown2 animation\green_pushdown2.png
+green_pushdown3 animation\green_pushdown3.png
+green_pushdown4 animation\green_pushdown4.png
+
+green_pushup0 animation\green_pushup0.png
+green_pushup1 animation\green_pushup1.png
+green_pushup2 animation\green_pushup2.png
+green_pushup3 animation\green_pushup3.png
+green_pushup4 animation\green_pushup4.png
+
+blue_lights0 animation\blue_lights0.png
+blue_lights1 animation\blue_lights1.png
+blue_lights2 animation\blue_lights2.png
+blue_lights3 animation\blue_lights3.png
+blue_lights4 animation\blue_lights4.png
+blue_lights5 animation\blue_lights5.png
+
+red_lights0 animation\red_lights0.png
+red_lights1 animation\red_lights1.png
+red_lights2 animation\red_lights2.png
+red_lights3 animation\red_lights3.png
+red_lights4 animation\red_lights4.png
+red_lights5 animation\red_lights5.png
+
+green_lights0 animation\green_lights0.png
+green_lights1 animation\green_lights1.png
+green_lights2 animation\green_lights2.png
+green_lights3 animation\green_lights3.png
+green_lights4 animation\green_lights4.png
+green_lights5 animation\green_lights5.png
+
+walk_forward_0 animation\walk_forward_0.png
+walk_forward_a animation\walk_forward_a.png
+walk_forward_a2 animation\walk_forward_a2.png
+walk_forward_b animation\walk_forward_b.png
+walk_forward_b2 animation\walk_forward_b2.png
+
+walk_right_0 animation\walk_right_0.png
+walk_right_a animation\walk_right_a.png
+walk_right_a2 animation\walk_right_a2.png
+walk_right_b animation\walk_right_b.png
+walk_right_b2 animation\walk_right_b2.png
+
+walk_left_0 animation\walk_left_0.png
+walk_left_a animation\walk_left_a.png
+walk_left_a2 animation\walk_left_a2.png
+walk_left_b animation\walk_left_b.png
+walk_left_b2 animation\walk_left_b2.png
+
+walk_backward_0 animation\walk_backward_0.png
+walk_backward_a animation\walk_backward_a.png
+walk_backward_a2 animation\walk_backward_a2.png
+walk_backward_b animation\walk_backward_b.png
+walk_backward_b2 animation\walk_backward_b2.png
+
+lasered0 animation\lasered0.png
+lasered1 animation\lasered1.png
+lasered2 animation\lasered2.png
+
+hugbot_forward_0 animation\hugbot_forward_0.png
+hugbot_forward_1 animation\hugbot_forward_1.png
+
+dalek_forward_0 animation\dalek_forward_0.png
+dalek_forward_1 animation\dalek_forward_1.png
+
+deadrobot animation\deadrobot.png
+
+hf_evaporate0 animation\hf_evaporate0.png
+hf_evaporate1 animation\hf_evaporate1.png
+
+hugbot_asleep animation\hugbot_asleep.png
+dalek_asleep animation\dalek_asleep.png
+
+bomb_still animation\bomb_still.png
+bomb_lit_3 animation\bomb_lit3.png
+bomb_lit_2 animation\bomb_lit2.png
+bomb_lit_1 animation\bomb_lit1.png
+bomb_lit_0 animation\bomb_lit0.png
+
+error animation\error_frame.png
+attention animation\attention.png

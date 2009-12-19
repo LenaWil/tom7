@@ -1,0 +1,54 @@
+POST /f/a/s/msg/reallyreply HTTP/1.1
+Host: spacebar.org:9999
+User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.5b) Gecko/20030814
+Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,image/jpeg,image/gif;q=0.2,*/*;q=0.1
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip,deflate
+Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7
+Keep-Alive: 300
+Connection: keep-alive
+Content-Type: multipart/form-data; boundary=---------------------------23281168279961
+Content-Length: 1147
+
+-----------------------------23281168279961
+Content-Disposition: form-data; name="seql"
+
+1939306477
+-----------------------------23281168279961
+Content-Disposition: form-data; name="seqh"
+
+2067099163
+-----------------------------23281168279961
+Content-Disposition: form-data; name="pw"
+
+
+-----------------------------23281168279961
+Content-Disposition: form-data; name="n"
+
+5
+-----------------------------23281168279961
+Content-Disposition: form-data; name="msg"
+
+28328
+-----------------------------23281168279961
+Content-Disposition: form-data; name="postname"
+
+TOBEX master control
+-----------------------------23281168279961
+Content-Disposition: form-data; name="subject"
+
+re: thankx!!!!! angie_666
+-----------------------------23281168279961
+Content-Disposition: form-data; name="content"
+
+hello
+-----------------------------23281168279961
+Content-Disposition: form-data; name="image"; filename=""
+Content-Type: application/octet-stream
+
+
+-----------------------------23281168279961
+Content-Disposition: form-data; name="imgtitle"
+
+yes i am a space ninja
+-----------------------------23281168279961--

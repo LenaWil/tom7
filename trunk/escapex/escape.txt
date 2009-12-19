@@ -1,0 +1,469 @@
+
+           Escape               Tom 7        6 Apr 2007
+           Beta Version 3
+
+
+Here's what Escape is:
+
+   Escape is a tile-based puzzle game in the style of "Adventures of
+   Lolo" or "Chip's Challenge." Unlike either of those games, Escape
+   doesn't rely at all on reflexes--it's all about your brain.
+
+   Although Escape comes with hundreds of levels, the game places an
+   emphasis on the composition of new puzzles. Thus Escape has a
+   built-in level editor and facilities for automatically sharing
+   puzzles with other players.
+
+   This is a "Beta" release of Escape. Everything should work, and
+   everything is intended to be user-friendly. If it doesn't or isn't,
+   you should let me know! The Escape web page (http://escape.spacebar.org/)
+   provides a form for leaving comments.
+
+
+Here's how to play:
+
+
+   Escape mostly uses the keyboard, except for the editor, which makes
+   use of the mouse. Almost everything is done with the arrow keys;
+   Enter typically selects something and Esc backs out.
+
+   After starting Escape, use the menu to make a new player. Name it
+   whatever you want. This will be the default author name for levels
+   that you create. It also keeps track of your solutions.
+
+   The first time you play you should also try to update the game from
+   the internet, because it's likely that I have updated it. Press '3'
+   from the main menu. (If you are using a pre-packaged version of
+   this game, then this option will be disabled. Ask your system
+   administrator to upgrade the package, or download a single-user
+   install from the Escape web site.) You may want to also update your
+   level collection; you should definitely get the official collection
+   along with "triage," which is where most of the levels live. To do
+   this, press '4'. Note: Every level that you download is solvable,
+   even though they can be quite frustrating! The server makes sure of
+   it. (The only exception is the "quarantine" collection, which is
+   pretty boring anyway.)
+
+   From the main menu, you can press '1' to load and play some levels.
+   Before doing that you should probably play the tutorial, which you
+   can access by pressing 'T' (it will automatically select the next
+   tutorial level for you until they're all done). The tutorial
+   attempts to teach you (without words) how the various tiles work.
+   However, you'll need to know this:
+
+       The arrow keys move you around.
+       The enter key will restart the level.
+       The escape key sends you back to the main menu.
+
+Alas, there are a few tricky things in the tutorial. If you get stuck:
+
+   You can move around the "wire" blocks.
+
+   In the second 'wire' tutorial level, there is a button connected to
+   two lights at the bottom right of the level. Everyone seems to miss
+   this one for some reason.
+
+
+Here's how to create levels:
+
+   If your player is not registered, first do that by pressing 'r'
+   on the main menu. You only need to do this once.
+
+   From the main menu, hit '2' to edit.
+
+   Click on the second row of tiles at the top of the screen to set
+   the current drawing tile. Then use the left mouse button to draw.
+   The other options at the top allow you to do various things, like
+   clear or set the player start location. To test the level, press
+   'p' or click on the play icon.
+
+   When you've created a good puzzle, make sure you play and complete
+   your level through the 'load' menu on the main menu. This saves
+   your solution inside your player file. (You'll know that this is
+   done when there's a check mark next to the level.)
+
+   When you've created a level that you're happy with and solved it,
+   you can press ctrl-u on the "load" screen to upload it to the
+   server for others to play. You must have registered and have a
+   check mark as described above. Your level will appear in the
+   "triage" collection right away. If you upload a level, you agree to
+   license it to us (and everyone) under the GPL. See the file COPYING
+   for more details. Please don't upload levels that aren't your own
+   creation (unless you have permission from the author)!
+
+   Other editing tips:
+
+     The square bracket keys ] and [ allow you to zoom in and out.
+     This is necessary if you want to make destinations for panels or
+     teleporters be far away (off-screen). However, I caution you
+     against doing this; it's generally better for players if they can 
+     "see what's going on" with a level.
+
+     You can also scroll around your level with the arrow keys.
+
+     By using the right mouse button, you can drag a selection
+     rectangle, which can then be moved with ctrl-arrow keys.
+
+     Once making a selection, you can "expand" the pattern in the
+     selection by using shift-arrow keys. This tries to do the right
+     thing with series of panels, but just experiment to see what
+     happens!
+
+     The middle mouse button acts as an "eyedropper," which allows you
+     to select as your current drawing tile the tile under the cursor.
+
+Here is an English description of the rules of the game:
+
+   This section is pretty boring, unless you're confused about the
+   way the game is behaving in some specific level, or if you want
+   to explore the obscure corners of level design. Skip to the next
+   section if you want to get on with the game; the included
+   tutorial is designed to teach you this stuff.
+
+   Everything in Escape happens on a grid of tiles. There are only
+   four possible moves: each of the four directions up, down, left and
+   right. After each move, the player dies if any laser can 'see' him
+   in any direction. (The tile that he's standing on doesn't block
+   lasers.) If he's not dead, and is standing on an Exit tile, then he
+   wins. Because these conditions are only checked at the end of a
+   move, it is possible to start a level in the path of a laser or on
+   the exit without dying or winning, respectively. Indeed, several
+   levels do this in order to tease you. Things like robots and bombs
+   can kill you, too; see below.
+
+   Although the game features animation, there is absolutely no
+   'action' component to solving levels. The game behaves the same
+   whether animation is turned on or off, and it is impossible to
+   outrun moving blocks or lasers or bots. Take your time.
+
+   Many of the tiles have simple behavior. We list them by number (the
+   order in which they appear in the editor), codename (by which they
+   are referred to in the Escape source code) and graphical
+   description.
+
+   (0) FLOOR. This light grey brick pattern allows free passage.
+
+   (1) RED. Red blocks can be moved around by pushing. They move
+       only over FLOOR and the various panels.
+
+   (2) BLUE. Blue blocks are invincible and immobile.
+
+   (3) GREY. Grey blocks are as red, but can be pushed into holes.
+
+   (4) GREEN. Green blocks can be pushed one space in any direction
+       (only onto floor), at which point they turn into blue blocks.
+
+   (5) EXIT. Reaching an exit is the only way to solve a level.
+
+   (6) HOLE. A hole is impassable unless a grey block is pushed into
+       it to fill it up. At that point it is replaced with floor.
+      
+   (7) GOLD. Gold blocks can be pushed in any direction, and they
+       will fly along until they reach a surface that blocks them
+       (anything but floors and panels). Unlike pushing a red or
+       grey block, the player does not move when shoving a gold
+       one.
+ 
+   (8) LASER. Lasers are the only thing that kills the player. As
+       remarked above, the player dies after his move if a laser
+       is aligned with his square and no laser-blocking tile
+       intervenes. All tiles block lasers except for: FLOOR ELECTRIC
+       ROUGH RDOWN GDOWN BDOWN TRAP2 TRAP1 PANEL BPANEL GPANEL RPANEL
+       BLACK HOLE.
+
+   (9) PANEL. The standard panel appears as a grey circle on the
+       floor. Panels can be pushed down by any kind of block except
+       for horizontal and vertical sliders. (A discussion of panels
+       and their effects follows this list of tiles.)
+
+  (10, 11, 12, 13, 14) STOP, RIGHT, LEFT, UP, DOWN. Decorative
+       versions of blue blocks.
+
+  (15) ROUGH. Rough looks similar to floor (it has a finer pattern).
+       It does not block the player, but blocks cannot be pushed onto
+       it.
+       
+  (16) ELECTRIC. Electrified floor is bright yellow. It consumes
+       blocks that are pushed into it, and blocks the player.
+
+  (17) ON. Pressing the ON button turns it OFF, making all electrified
+       floors turn into regular floors.
+
+  (18) OFF. The deactivated state of an ON button, which acts as an
+       inert blue block.
+
+  (19) TRANSPORT. When stepped in, the transporter sends the player
+       to a constant destination somewhere in the playing field.
+
+  (20) BROKEN. This looks like a cracked version of the grey blocks.
+       Pressing against it causes it to disappear and turn into floor,
+       although the player remains where he is.
+
+  (21, 22) LR, UD. These blocks with left-right or up-down arrows can
+       be pushed only along the horizontal (resp. vertical) axes.
+       Unlike most blocks, they cannot be pushed onto panels.
+
+  (23, 24) 0, 1. Pressing against a 0 or 1 block will cause the 
+       left-right and up-down blocks to swap.
+
+  (25, 26, 27, 28, 29, 30) NS, NE, NW, SE, SW, WE. These wires connect
+       up buttons and lights. They can be pushed around like red blocks,
+       and additionally can press down panels.
+
+  (31) BUTTON. This looks like a pink square surrounded by yellow and
+       and black 'caution' tape. Pressing the button sends pulses of
+       electricity down all connected wires, which triggers lights.
+
+  (32, 33, 34) BLIGHT, RLIGHT, GLIGHT. When a pulse reaches a light,
+       all floor of the corresponding color switches from the 'down'
+       state to the 'up' state and vice versa. Note: If a light
+       receives two pulses (from two different wires), then the net
+       result of two switches will be nothing. Similarly, three
+       pulses result in a net result identical to one pulse.
+
+  (35) BLACK. Empty black space is impassable, although it permits
+       the passage of laser beams.
+
+  (36, 37, 38, 39, 40, 41) BUP, BDOWN, RUP, RDOWN, GUP, GDOWN.
+       Colored floors (blue, red, and green) have two states: down
+       and up. In their down states they act identical to rough.
+       In the up state they act as blue walls. 
+
+  (42, 43, 44, 45) BSPHERE, RSPHERE, GSPHERE, SPHERE. These shiny
+       colored spheres behave as gold blocks, except that a contiguous
+       series of them can be pushed from one end to shoot a sphere
+       out of the other end. (Think of these like those hanging metal
+       marble klick-klack office toys.) The blue, red, and green
+       spheres can also push down colored panels.
+
+  (46) TRAP2. This is a cleverly concealed trap of leaves and sticks.
+       When the player steps off it, it becomes the less-well concealed
+       trap, TRAP1.
+
+  (47) TRAP1. This is a few sticks laying over a hole. The player can
+       step on it, but when he steps off, it will become a HOLE.
+
+  (48, 49, 50) (BPANEL, RPANEL, GPANEL). These colored panels work as
+       the standard grey panel, but can only be activated by the sphere
+       of the same color. Other blocks pass over them with no effect.
+
+  (51) STEEL. Steel blocks are to red blocks what spheres are to yellow.
+       You can push any number of them in a row as one unit, but they
+       otherwise act as red blocks.
+
+  (52, 53, 54) (BSTEEL, RSTEEL, GSTEEL). These colored versions of the
+       steel tiles are like the colored spheres, in that they can activate
+       colored panels. But otherwise, they behave like regular grey steel.
+
+  (55) HEARTFRAMER. Collect all of these pink hearts (by walking onto
+       them) to wake up anything that's sleeping. Until you pick them
+       up, they block lasers and bots, etc. (Heart framers that are in
+       the bizarro world don't count towards "the last one.")
+
+  (56) SLEEPINGDOOR. This is an exit that's asleep. It acts like a
+       blue block until you wake it by collecting the heart framers,
+       and then becomes a regular exit. Only sleeping doors in the
+       foreground (not bizarro world) are affected when the last heart
+       framer is picked up.
+
+  (57) TRANSPONDER. A wire that beams electricity through the air to
+       another transponder. The beam is harmless, but is obstructed by
+       the same things that block lasers (including the player). When
+       the beam is received, an electric pulse continues traveling in
+       the same direction. Can be pushed like red blocks.
+
+  (58) NSWE. A cross-over wire that allows both north-south current
+       and west-east current.
+
+  (59) REMOTE. Panels that are activated by pulses of electricity.
+       They also pass through the pulse like the NSWE tile, but are not
+       pushable.
+
+
+   To understand the behavior of the panels, first we must introduce
+   the concept of the 'bizarro world.' The grid on which Escape takes
+   place has a counterpart of equal size, referred to as the alternate
+   layer or the bizarro world. When tiles disappear as the result of
+   a panel, they are actually swapped with the corresponding tile in
+   the bizarro world. You can edit the contents of bizarro world by
+   pressing 'y' in the editor, and 'y' again to switch back.
+
+   Suppose we have the following scenario, where P is the player, o is
+   a panel on the floor, and # is a block.
+
+   .......
+   .Po..#.
+   .......
+
+   Each panel has a destination; let's suppose the destination is the
+   spot where the # is. If the player steps onto the tile, the # will
+   disappear:
+
+   .......
+   ..P....
+   .......
+
+   In actuality, the # has just moved to the bizarro world, and the spot
+   now contains some floor. If the bizarro world had contained something
+   else, we'd see that instead.
+
+   Suppose there were another panel with the same destination. We could
+   trigger both (perhaps by putting blocks on them), in which case the
+   destination tile would be swapped into bizarro world, and then swapped
+   back out.
+
+   Some facts about panels and the bizarro world:
+
+     This swap with the bizarro world is the last thing that happens
+     as a move is executed. This matters; consider the case where a
+     gold block is pushed off a panel towards a tile that is affected by
+     the panel. 
+
+     All swaps (such as those resulting from pressing 0 or 1 or ON)
+     affect only the tiles on the currently visible (ie., normal) layer.
+   
+     A block on a panel is thought of as a kind of tile, so the whole
+     assembly is transported to/from the bizarro world when a swap
+     takes place.
+
+     The bizarro world and regular world both share the same destination.
+     that is, if one contains a panel and the other contains a transporter,
+     both will necessarily reference the same spot on the playing field.
+
+     Bots, bombs, and the player are not affected by things swapping
+     under their feet (wheels).
+
+     Panels are not triggered by the mere presence or absence of an
+     object (or player) on top of them. Instead, they are triggered by
+     the "edge effect" of pushing an object on top of them, and then
+     triggered again when the object is removed. This means that if a
+     panel disappears while you're stepping on it, it won't be
+     untriggered (even though there is nothing "on it" now), and also
+     won't be untriggered when you step off that square (there's no
+     panel there, any more). Taking advantage of this allows for the
+     creation of "one-way" combinations of panels that have a
+     permanent effect merely from stepping over them.
+
+   Robots:
+
+     Well, that's not it! In addition to these tiles, there may be
+     other entities on the map with you, making their own moves. These
+     are robots.
+
+     Each robot has a number (that you can't see, unless you're editing the
+     level). After you make your move, each of the robots makes a move, in
+     order. If a robot can't move (or prefers not to), then it stays still.
+     If the turn ends with the player on top of a robot, then he dies!   
+
+     The different sorts of robots are as follows:
+
+     - Broken: Broken robots don't do anything, they just sit there.
+
+     - Hugbot: Hugbots try to get near you to give you a hug. But because
+       they don't have any arms, they tend to push you. Hugbots prefer to
+       move horizontally towards you, but they will move vertically if
+       something is in their way, or if they're already in the same column
+       as you.
+
+     - Daleks: Exterminate! Daleks are like hugbots, but they try to
+       electrocute you, so if they walk into you, you die. However,
+       Daleks are extremely reckless. They will walk onto electric tiles,
+       vaporizing themselves, or will walk into other robots, causing the
+       two of them to fuse into a pile of broken metal.
+
+     - Sleeping Hugbots and Daleks: These guys are just as idle as
+       broken bots, but wake up when the last heart framer is taken.
+
+     It is possible to push every kind of robot. Broken and sleeping
+     bots essentially act like blocks that you can move over some
+     kinds of floor that blocks can't go over. Pushing hugbots and
+     Daleks is generally pointless, since they tend to just push you
+     right back (or kill you). But this can still be useful to push
+     them into electricity (destroying them), in the way of a Dalek,
+     etc. Many advanced bot manipulation levels involve lots of bot
+     pushing, so experiment!
+
+   Bombs:
+
+     No, there's more! Bombs are a kind of bot, although they always
+     "move" last. You can push a bomb around like a broken bot. But
+     when you do, it becomes lit. When a bomb is pushed (even if it
+     has already been lit), the fuse is reset to a number between 0
+     and 10. The level author can modify this value for each bomb.
+
+     Bombs always "move" after regular bots. On their "motion", lit
+     fuses count down. If the fuse expires, then the bomb explodes. An
+     exploding bomb destroys adjacent bots, and also causes other
+     adjacent bombs to explode immediately. It also destroys certain
+     tiles, turning them into floor. At the end of the turn, if the
+     player is standing adjacent or atop a square where a bomb
+     exploded, he dies.
+
+     Here are the tiles that can be destroyed by bombs: 
+       EXIT SLEEPINGDOOR LASER BROKEN GREY RED GREEN GOLD NS WE NW NE
+       SW SE NSWE TRANSPONDER BUTTON BLIGHT GLIGHT RLIGHT BLUE STOP
+       HEARTFRAMER PANEL RPANEL GPANEL BPANEL REMOTE
+
+
+Here is what I'm interested in from you:
+
+   Bug reports and feature suggestions. I've tried to stamp out all
+   the bugs, and there are some sorely needed features in the works,
+   but of course I still want to hear these things.
+
+   Levels. See above for instructions on how to create them.
+
+   Ratings. You can rate a level in the triage collection by pressing
+   ctrl-r from the load screen. I'd like to collect quality ratings in
+   order to prepare an "official" collection of the best levels. Comments
+   are also useful; press ctrl-c and write anything you like. You
+   must have already registered in order to do rating and comments!
+   Ratings are shown in the game, but to view comments you must visit the
+   escape server's web page at http://escape.spacebar.org.
+
+   Speedruns. You can now upload solutions for the levels that you play.
+   If you have the shortest solution for a level (or the first), then
+   after rating, the game will automatically prompt you to upload your
+   solution. If you have solutions stored from before this feature was
+   introduced, you can upload them by pressing ctrl-m on a level, then
+   selecting your solution and pressing ctrl-u. Be sure to upload with
+   the "speedrun" check box selected.
+
+
+Here's some more boring stuff. Go play instead of reading this:
+
+   Please see the file HACKING in the source distribution for information
+   on how to compile and modify Escape yourself.
+
+License:
+
+   The Escape program, graphics, and documentation are Copyright
+   1996-2007 Tom Murphy VII, except where noted at the top of a source
+   file. They are distributed under the terms of the GNU Public
+   License, which you can read in the file COPYING that is included
+   with the distribution.
+
+Thanks:
+
+   I am indebted to the following people for helping make Escape.
+
+   Max Heath - Many awesome levels and bug reports for OSX
+   Adam Goode - For his experimental NES and Java ports, patches, etc.
+   Don Crimbchin - Essentially responsible for the OSX port. Thanks!!
+   The Funtik Family - Makers and consumers of levels for classic Escape
+   Brian Potetz - Impressive coverage, bug reports, suggestions, levels
+   Stephan Schonberg - Lots of bug reports, some impressively obscure!
+   Jason Reed - Testing and debugging on PPC Linux, several clever levels
+   Anderson Wilson - Test case that helped solve dataloss bug, nice levels
+   William Lovas - Convenient Mac laptop for testing
+   Heather Hendrickson - Author of several levels, provider of support
+   Mike Murphy - Author of several classic Escape levels
+   Michael Donohue - Ran Coverity to find at least one bug worth fixing
+
+   And of course all of the other authors of levels included in the
+   game.
+
+
+Enjoy Escape and thanks for playing!
+
+ - Tom 7
