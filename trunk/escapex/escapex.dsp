@@ -94,27 +94,27 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\analysis.cpp
+SOURCE=.\analysis.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\base64.cpp
+SOURCE=.\base64.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\chunks.cpp
+SOURCE=.\chunks.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\cleanup.cpp
+SOURCE=.\cleanup.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\commenting.cpp
+SOURCE=.\commenting.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\dircache.cpp
+SOURCE=.\dircache.cc
 # End Source File
 # Begin Source File
 
@@ -122,19 +122,19 @@ SOURCE=.\dirent.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\dirindex.cpp
+SOURCE=.\dirindex.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\draw.cpp
+SOURCE=.\draw.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\edit.cpp
+SOURCE=.\edit.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\editai.cpp
+SOURCE=.\editai.cc
 # End Source File
 # Begin Source File
 
@@ -142,107 +142,107 @@ SOURCE=.\escape.rc
 # End Source File
 # Begin Source File
 
-SOURCE=.\font.cpp
+SOURCE=.\font.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\generator.cpp
+SOURCE=.\generator.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\http.cpp
+SOURCE=.\http.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\level.cpp
+SOURCE=.\level.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\load.cpp
+SOURCE=.\load.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\main.cpp
+SOURCE=.\main.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\mainmenu.cpp
+SOURCE=.\mainmenu.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\md5.cpp
+SOURCE=.\md5.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\menu.cpp
+SOURCE=.\menu.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\message.cpp
+SOURCE=.\message.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\play.cpp
+SOURCE=.\play.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\player.cpp
+SOURCE=.\player.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\playerdb.cpp
+SOURCE=.\playerdb.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\prefs.cpp
+SOURCE=.\prefs.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\prime.cpp
+SOURCE=.\prime.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\prompt.cpp
+SOURCE=.\prompt.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\rating.cpp
+SOURCE=.\rating.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\registration.cpp
+SOURCE=.\registration.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\sdlutil.cpp
+SOURCE=.\sdlutil.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\textbox.cpp
+SOURCE=.\textbox.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\textscroll.cpp
+SOURCE=.\textscroll.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\update.cpp
+SOURCE=.\update.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\upgrade.cpp
+SOURCE=.\upgrade.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\upload.cpp
+SOURCE=.\upload.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\upper.cpp
+SOURCE=.\upper.cc
 # End Source File
 # Begin Source File
 
-SOURCE=.\util.cpp
+SOURCE=.\util.cc
 # End Source File
 # Begin Source File
 

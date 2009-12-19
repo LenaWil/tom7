@@ -1,22 +1,25 @@
 /*
-    SDL_main.c, placed in the public domain by Sam Lantinga  4/13/98
+  This is part of the runtime for the Windows build. It sets some
+  things up and then calls main() in the SDL-standard way.
 
-    The WinMain function -- calls your program's main() function
+  Based on SDL_main.c, placed in the public domain by 
+  Sam Lantinga on 4/13/98.
 */
 
 /* XXX Should probably ditch this and just use sdlmain.lib. This file
    is not appreciably different from that one and I don't understand
    or want to maintain it. Once I tried to put the upgrade stuff here
    before dlls were loaded, but that doesn't work. Now we just use a
-   trampoline program: replace.exe */
+   trampoline program: replace.exe.
 
-/* On the other hand -- this gives me a convenient way to turn back on
-   console IO */
+   On the other hand, this gives me a convenient way to turn back on
+   console IO:
+*/
 
 // #define NO_STDIO_REDIRECT
 
 #ifndef WIN32
-# error "winmain.cpp is only for win32 builds!"
+# error "winmain.cc is only for win32 builds!"
 #endif
 
 #include <stdio.h>

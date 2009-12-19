@@ -40,7 +40,7 @@ void          rewinddir(DIR *);
 #endif /* win32 */
 
 /* no good place to put this, since
-   dirent.cpp is not linked in unix */
+   dirent.cc is not linked in unix */
 inline int dirsize (const char * dir) {
   DIR * d = opendir(dir);
   if (!d) return 0;

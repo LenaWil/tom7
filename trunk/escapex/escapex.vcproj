@@ -109,145 +109,145 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm">
 			<File
-				RelativePath="analysis.cpp">
+				RelativePath="analysis.cc">
 			</File>
 			<File
-				RelativePath="animation.cpp">
+				RelativePath="animation.cc">
 			</File>
 			<File
-				RelativePath="base64.cpp">
+				RelativePath="base64.cc">
 			</File>
 			<File
-				RelativePath="chunks.cpp">
+				RelativePath="chunks.cc">
 			</File>
 			<File
-				RelativePath="cleanup.cpp">
+				RelativePath="cleanup.cc">
 			</File>
 			<File
-				RelativePath="client.cpp">
+				RelativePath="client.cc">
 			</File>
 			<File
-				RelativePath="commenting.cpp">
+				RelativePath="commenting.cc">
 			</File>
 			<File
-				RelativePath="dircache.cpp">
+				RelativePath="dircache.cc">
 			</File>
 			<File
-				RelativePath="dirent.cpp">
+				RelativePath="dirent.cc">
 			</File>
 			<File
-				RelativePath="dirindex.cpp">
+				RelativePath="dirindex.cc">
 			</File>
 			<File
-				RelativePath="dirt.cpp">
+				RelativePath="dirt.cc">
 			</File>
 			<File
-				RelativePath="draw.cpp">
+				RelativePath="draw.cc">
 			</File>
 			<File
-				RelativePath="edit.cpp">
+				RelativePath="edit.cc">
 			</File>
 			<File
-				RelativePath="editai.cpp">
+				RelativePath="editai.cc">
 			</File>
 			<File
-				RelativePath="editprefab.cpp">
+				RelativePath="editprefab.cc">
 			</File>
 			<File
-				RelativePath="font.cpp">
+				RelativePath="font.cc">
 			</File>
 			<File
-				RelativePath="generator.cpp">
+				RelativePath="generator.cc">
 			</File>
 			<File
-				RelativePath="handhold.cpp">
+				RelativePath="handhold.cc">
 			</File>
 			<File
-				RelativePath="http.cpp">
+				RelativePath="http.cc">
 			</File>
 			<File
-				RelativePath="level.cpp">
+				RelativePath="level.cc">
 			</File>
 			<File
-				RelativePath="load.cpp">
+				RelativePath="load.cc">
 			</File>
 			<File
-				RelativePath="main.cpp">
+				RelativePath="main.cc">
 			</File>
 			<File
-				RelativePath="mainmenu.cpp">
+				RelativePath="mainmenu.cc">
 			</File>
 			<File
-				RelativePath="mainshow.cpp">
+				RelativePath="mainshow.cc">
 			</File>
 			<File
-				RelativePath="md5.cpp">
+				RelativePath="md5.cc">
 			</File>
 			<File
-				RelativePath="menu.cpp">
+				RelativePath="menu.cc">
 			</File>
 			<File
-				RelativePath="message.cpp">
+				RelativePath="message.cc">
 			</File>
 			<File
-				RelativePath="optimize.cpp">
+				RelativePath="optimize.cc">
 			</File>
 			<File
-				RelativePath="play.cpp">
+				RelativePath="play.cc">
 			</File>
 			<File
-				RelativePath="player.cpp">
+				RelativePath="player.cc">
 			</File>
 			<File
-				RelativePath="playerdb.cpp">
+				RelativePath="playerdb.cc">
 			</File>
 			<File
-				RelativePath="prefs.cpp">
+				RelativePath="prefs.cc">
 			</File>
 			<File
-				RelativePath="prime.cpp">
+				RelativePath="prime.cc">
 			</File>
 			<File
-				RelativePath="progress.cpp">
+				RelativePath="progress.cc">
 			</File>
 			<File
-				RelativePath="prompt.cpp">
+				RelativePath="prompt.cc">
 			</File>
 			<File
-				RelativePath="rating.cpp">
+				RelativePath="rating.cc">
 			</File>
 			<File
-				RelativePath="registration.cpp">
+				RelativePath="registration.cc">
 			</File>
 			<File
-				RelativePath="sdlutil.cpp">
+				RelativePath="sdlutil.cc">
 			</File>
 			<File
-				RelativePath="smanage.cpp">
+				RelativePath="smanage.cc">
 			</File>
 			<File
-				RelativePath="sound.cpp">
+				RelativePath="sound.cc">
 			</File>
 			<File
-				RelativePath="textbox.cpp">
+				RelativePath="textbox.cc">
 			</File>
 			<File
-				RelativePath="textscroll.cpp">
+				RelativePath="textscroll.cc">
 			</File>
 			<File
-				RelativePath="update.cpp">
+				RelativePath="update.cc">
 			</File>
 			<File
-				RelativePath="upgrade.cpp">
+				RelativePath="upgrade.cc">
 			</File>
 			<File
-				RelativePath="upload.cpp">
+				RelativePath="upload.cc">
 			</File>
 			<File
-				RelativePath="upper.cpp">
+				RelativePath="upper.cc">
 			</File>
 			<File
-				RelativePath="util.cpp">
+				RelativePath="util.cc">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -256,7 +256,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="winmain.cpp">
+				RelativePath="winmain.cc">
 			</File>
 		</Filter>
 		<Filter

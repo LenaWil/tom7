@@ -107,7 +107,7 @@ to debug this, but I have made no progress. Tips?
  ** Understanding the code **
 
 There is no design document yet, because there are several things
-that I expect to change. Basically, start in main.cpp and follow
+that I expect to change. Basically, start in main.cc and follow
 things from there...
 
 See the document protocol.txt for an explanation of the network
@@ -135,10 +135,10 @@ for extents on objects that use destructors and arrays of objects that
 use destructors.
 
 Because what I really want are SML's signatures and structures, I
-treat header files like signatures and cpp files like structures. For
+treat header files like signatures and cc files like structures. For
 instance, http.h describes an abstract interface by only specifying
 virtual functions and a static constructor, and the actual
-implementation in http.cpp creates a class called httpreal, deriving
+implementation in http.cc creates a class called httpreal, deriving
 from http so that it can hide all the implementation details -- not
 just by using 'private,' but, you really don't need to see them at all
 in the header.
