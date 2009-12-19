@@ -1,0 +1,24 @@
+
+    Escape for NES                15 Dec 2004
+
+
+This is a port of Escape to the Nintendo Entertainment System. (Yes,
+the 8-bit console from the 1980s!) It was made by Adam Goode for his
+NES development course.
+
+To build, Adam tells me that you get nesasm, and simply run it on
+escape.asm. Some of the graphics and data are built by various opaque
+perl scripts that are included in the source, but even Adam doesn't
+remember how to run those.
+
+Fortunately, the ROM file is available, so you don't need to compile
+it yourself. Just load it up in your favorite emulator (or flash
+cartridge), and play!
+
+
+
+The NES port worked with all features of Escape (on levels 18x10 or
+smaller) as of Summer 2004. However, newer versions of Escape have a
+better compression algorithm for levels (which Escape for NES won't
+support), and new tiles. So, Escape for NES should be seen as an
+experimental fork rather than a supported alternate platform. ;)
