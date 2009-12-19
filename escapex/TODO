@@ -140,7 +140,7 @@ http://sourceforge.net/project/downloading.php?groupname=optipng&filename=optipn
     the pointers change during animation (?)
 *** panel (un)triggered when stepping into a
     teleporter doesn't animate!
-*** jiggle animation can be wrong (see animation.cpp)
+*** jiggle animation can be wrong (see animation.cc)
 *** push a series of steel blocks off the 
     screen; the last one does not move, it
     just gets overwritten by the one before it
@@ -211,10 +211,10 @@ http://sourceforge.net/project/downloading.php?groupname=optipng&filename=optipn
 *** triage xxx/fixme/perf
 *** split up deeply nested code
 *** move.h bad tabification
-**** main.cpp
+**** main.cc
 ***** this shouldn't all be in main, anyway
-**** load.cpp !!
-**** edit.cpp !
+**** load.cc !!
+**** edit.cc !
 *** abstract interfaces (as in http.h) where possible
 **** edit.h
 **** level.h ?
@@ -343,7 +343,7 @@ http://tucows.com/preview/383408
 *** improve look of textbox
 *** progress indicator when updating levels. The first user experience
     is bad here.
-*** solution/bookmark recovery: see edit.cpp.
+*** solution/bookmark recovery: see edit.cc.
     should keep a list of candidate "old" md5s to check for solutions + bookmarks
     (could just run solution recovery like ctrl_0)
 *** autosave edited levels

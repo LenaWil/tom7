@@ -29,7 +29,7 @@
 #endif
 
 #ifndef WIN32
-# error "replace.cpp is only for win32 builds!"
+# error "replace.cc is only for win32 builds!"
 #endif
 
 

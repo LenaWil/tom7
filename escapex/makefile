@@ -50,13 +50,13 @@ LINKCMDLINE=link oldnames.lib "..\SDL-${SDLVERSION}\lib\SDL.lib" "..\SDL_image-1
 .dummy :
 
 version : .dummy
-	cl /nologo /D "WIN32" /GX version.cpp
+	cl /nologo /D "WIN32" /GX version.cc
 	./version.exe
 	make clean
 	make default
 
 wc :
-	wc -l *.cpp *.h
+	wc -l *.cc *.h
 
 RELEASEFILES=escape.exe replace.exe font.png fontsmall.png tiles.png tileutil.png title.png icon.png escape.txt SDL.dll SDL_image.dll SDL_net.dll jpeg.dll libpng13.dll zlib1.dll COPYING changelog animation.png SDL_mixer.dll splash.png
 
@@ -94,7 +94,7 @@ installerup : escapesetup.exe
 # some rules for making objects, etc.
 
 # how to compile object files
-%.obj : %.cpp selector.h extent.h
+%.obj : %.cc selector.h extent.h
 	${COMPILE} $<
 
 animation_load.h : animation.pack
@@ -106,24 +106,24 @@ animation_load.h : animation.pack
 	rm -f animation.png
 	mv animation.better animation.png
 
-sound_load.h : sound.pack packsound.cpp
+sound_load.h : sound.pack packsound.cc
 	make packsound.exe
 	packsound.exe sound.pack sound
 
-sound.obj : sound.cpp sound_load.h sound.h
+sound.obj : sound.cc sound_load.h sound.h
 	${COMPILE} $<
 
-level.obj : level.cpp move.h
+level.obj : level.cc move.h
 	${COMPILE} $<
 
-animation.obj : animation.cpp animation.h animation_load.h animation_decs.h animation_defs.h sound_load.h
+animation.obj : animation.cc animation.h animation_load.h animation_decs.h animation_defs.h sound_load.h
 	${COMPILE} $<
 
 # it has to be different for the console =(
-%-console.obj : %.cpp
+%-console.obj : %.cc
 	${COMPILECMDLINE} $^ /Fo$@
 
-sdlutil-console.obj : sdlutil.cpp
+sdlutil-console.obj : sdlutil.cc
 	${COMPILECMDLINE} -DUSE_DISPLAY_FORMAT=0 $^ /Fo$@
 
 escape.res : escape.rc escape.ico
@@ -176,7 +176,7 @@ endif
 ifdef LINUX
 # makefile for linux
 
-  OFILES = main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o
+OFILES = main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o
 
 default : escape.exe
 
@@ -207,18 +207,18 @@ packsound.exe : util-console.o packsound-console.o
 	g++ -o $@ $^ -lSDL_image `sdl-config --static-libs` -ltiff -lpng -ljpeg -lz -lvorbisfile -lvorbis -logg
 	strip packsound.exe
 
-sound.o : sound.cpp sound_load.h
+sound.o : sound.cc sound_load.h
 	g++ ${CXXFLAGS} ${CPPFLAGS} -c -o $@ $<
 
-level.o : level.cpp move.h
+level.o : level.cc move.h
 	g++ ${CXXFLAGS} ${CPPFLAGS} -c -o $@ $<
 
-sound_load.h : sound.pack packsound.cpp
+sound_load.h : sound.pack packsound.cc
 	make packsound.exe
 	./packsound.exe sound.pack sound
 
 
-%-console.o : %.cpp
+%-console.o : %.cc
 	g++ ${CXXFLAGS} ${CPPFLAGS} -DNOSOUND=1 -DUSE_DISPLAY_FORMAT=0 $^ -c -o $@
 
 # but this should be static
@@ -232,7 +232,7 @@ convert : convert.o level.o util.o
 .dummy :
 
 version : .dummy
-	g++ version.cpp -o version.exe
+	g++ version.cc -o version.exe
 	./version.exe
 	make clean
 	make escape.exe
@@ -243,8 +243,8 @@ RELEASEFILES=escape.exe font.png fontsmall.png tiles.png tileutil.png title.png 
 releasefiles.linux : ${RELEASEFILES}
 	echo ${RELEASEFILES} > releasefiles.linux
 
-mkupgrade.exe : mkupgrade.cpp md5.cpp
-	g++ -DLINUX mkupgrade.cpp md5.cpp -o mkupgrade.exe
+mkupgrade.exe : mkupgrade.cc md5.cc
+	g++ -DLINUX mkupgrade.cc md5.cc -o mkupgrade.exe
 
 CURRENT : .dummy escape.exe releasefiles.linux symlinks.linux deletefiles.linux mkupgrade.exe
 	strip escape.exe
@@ -284,7 +284,7 @@ source : escape-src.tar.bz2
 escape-src.tar.bz2 :
 	cd /usr0/src/escape-src && cvs up -dP
 	rm -rf /usr0/src/escape-src/web /usr0/src/escape-src/*.es{p,d}
-	cd /usr0/src/escape-src && chmod a-x `find . -name "*.h"` `find . -name "*.cpp"` `find . -name "*.pack"` `find . -name "*.esx"` `find . -name "*.m"`
+	cd /usr0/src/escape-src && chmod a-x `find . -name "*.h"` `find . -name "*.cc"` `find . -name "*.pack"` `find . -name "*.esx"` `find . -name "*.m"`
 	cd /usr0/src && tar -c escape-src --exclude "*CVS*" --exclude "*.svn*" --exclude "*.cvsignore" > /tmp/escape-src.tar
 	cd /tmp && bzip2 escape-src.tar
 	mv /tmp/escape-src.tar.bz2 .
@@ -296,7 +296,7 @@ sourceup : source CURRENT
 
 
 wc :
-	wc -l *.cpp *.h
+	wc -l *.cc *.h
 
 clean :
 	rm -f *.o escape.exe core core.[0-9]* gmon.out escape-src.tar.bz2 escape-beta.tar.gz vgcore.*
@@ -346,15 +346,15 @@ escape.exe : main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o
 .dummy :
 
 version : .dummy
-	g++ version.cpp -o version.exe
+	g++ version.cc -o version.exe
 	./version.exe
 	make clean
 	make escape.exe
 
 RELEASEFILES=escape.exe font.png fontsmall.png tiles.png tileutil.png title.png icon.png escape.txt COPYING changelog animation.png splash.png
 
-mkupgrade.exe : mkupgrade.cpp md5.cpp
-	g++ -DOSX mkupgrade.cpp md5.cpp -o mkupgrade.exe
+mkupgrade.exe : mkupgrade.cc md5.cc
+	g++ -DOSX mkupgrade.cc md5.cc -o mkupgrade.exe
 
 releasefiles.osx :
 	echo ${RELEASEFILES} > releasefiles.osx
@@ -442,7 +442,7 @@ zipup : escape-beta-osx.zip
 	scp escape-beta-osx.zip tom@spacebar.org:/Y/escape/
 
 wc :
-	wc -l *.cpp *.h
+	wc -l *.cc *.h
 
 clean :
 	rm -f *.o escape.exe core core.[0-9]* .DS_Store
@@ -489,20 +489,20 @@ packsound.exe : util-console.o packsound-console.o
 	g++ -o $@ $^ -lSDL_image `sdl-config --static-libs` -ltiff -lpng -ljpeg -lz
 	strip packsound.exe
 
-sound.o : sound.cpp sound_load.h
+sound.o : sound.cc sound_load.h
 	g++ ${CXXFLAGS} ${CPPFLAGS} -c -o $@ $<
 
-level.o : level.cpp move.h
+level.o : level.cc move.h
 	g++ ${CXXFLAGS} ${CPPFLAGS} -c -o $@ $<
 
-sound_load.h : sound.pack packsound.cpp
+sound_load.h : sound.pack packsound.cc
 	make packsound.exe
 	./packsound.exe sound.pack sound
 
 PNGHEADERS = -I /usr/local/include
 # -I ../libpng-1.2.21
 
-%-console.o : %.cpp
+%-console.o : %.cc
 	g++ ${CXXFLAGS} ${CPPFLAGS} -DNOSOUND=1 -DUSE_DISPLAY_FORMAT=0 ${PNGHEADERS} $^ -c -o $@
 
 # XXXX doesn't seem to run (?)
@@ -520,7 +520,7 @@ convert : convert.o level.o util.o
 .dummy :
 
 version : .dummy
-	g++ version.cpp -o version.exe
+	g++ version.cc -o version.exe
 	./version.exe
 	make clean
 	make escape.exe
@@ -531,8 +531,8 @@ RELEASEFILES=escape.exe font.png fontsmall.png tiles.png tileutil.png title.png 
 releasefiles.linux : ${RELEASEFILES}
 	echo ${RELEASEFILES} > releasefiles.linux
 
-mkupgrade.exe : mkupgrade.cpp md5.cpp
-	g++ -DLINUX mkupgrade.cpp md5.cpp -o mkupgrade.exe
+mkupgrade.exe : mkupgrade.cc md5.cc
+	g++ -DLINUX mkupgrade.cc md5.cc -o mkupgrade.exe
 
 CURRENT : .dummy escape.exe releasefiles.linux symlinks.linux deletefiles.linux mkupgrade.exe
 	strip escape.exe
@@ -572,7 +572,7 @@ source : escape-src.tar.bz2
 escape-src.tar.bz2 :
 	cd /usr0/src/escape-src && cvs up -dP
 	rm -rf /usr0/src/escape-src/web /usr0/src/escape-src/*.es{p,d}
-	cd /usr0/src/escape-src && chmod a-x `find . -name "*.h"` `find . -name "*.cpp"` `find . -name "*.pack"` `find . -name "*.esx"` `find . -name "*.m"`
+	cd /usr0/src/escape-src && chmod a-x `find . -name "*.h"` `find . -name "*.cc"` `find . -name "*.pack"` `find . -name "*.esx"` `find . -name "*.m"`
 	cd /usr0/src && tar -c escape-src --exclude "*CVS*" --exclude "*.svn*" --exclude "*.cvsignore" > /tmp/escape-src.tar
 	cd /tmp && bzip2 escape-src.tar
 	mv /tmp/escape-src.tar.bz2 .
@@ -584,7 +584,7 @@ sourceup : source CURRENT
 
 
 wc :
-	wc -l *.cpp *.h
+	wc -l *.cc *.h
 
 clean :
 	rm -f *.o escape.exe core core.[0-9]* gmon.out escape-src.tar.bz2 escape-beta.tar.gz vgcore.*
