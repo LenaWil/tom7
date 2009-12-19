@@ -1,0 +1,51 @@
+
+group is
+
+(* to compile with sml/nj *)
+#if (defined(SMLNJ_VERSION))
+ $/basis.cm
+ ../../sml-lib/misc/wordn.sml
+ mltoncompat.sml
+#endif
+
+../../sml-lib/util/util-sig.sml
+../../sml-lib/util/util.sml
+
+../../sml-lib/util/listutil-sig.sml
+../../sml-lib/util/listutil.sml
+
+../../sml-lib/util/vectorutil-sig.sml
+../../sml-lib/util/vectorutil.sml
+
+../../sml-lib/util/stringutil-sig.sml
+../../sml-lib/util/stringutil.sml
+
+#if (defined(SMLNJ_VERSION))
+#else
+  ../../sml-lib/util/fsutil-sig.sml
+  ../../sml-lib/util/fsutil.sml
+#endif
+
+../../sml-lib/algo/heap-sig.sml
+../../sml-lib/algo/heap.sml
+
+  retract.sml
+(*
+  retract-yellow5.sml
+
+  retract-bomb.sml
+  retract-steel.sml
+
+  retract-slider.sml
+  retract-escapefwd.sml
+*)
+  fixedwordvec-sig.sml
+(*
+  fixedword6x6.sml
+  fixedword5x6.sml
+  fixedword5x10.sml
+*)
+  fixedword5x8.sml
+  retract-hugblock.sml
+
+  retract-main.sml

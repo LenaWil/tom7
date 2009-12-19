@@ -1,0 +1,10 @@
+CM
+.cm
+retract
+mlmon.out
+stdout.txt
+*.exe
+BOMB
+HUG
+fixedword*x*.sml
+makefixedword
