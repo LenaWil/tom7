@@ -1,0 +1,104 @@
+
+todo: multiple bombs exploding in the same location
+
+remotes.txt - Test various things about remotes.
+
+bombtimers.esx - Test shortest, medium, and longest bomb timers.
+
+bomb_bots.esx - Test subtle interactions between bots and bombs.
+
+bomb_panels.esx - Tests that panels are properly destroyed
+        by bombs.
+
+bombable1.esx - Tests that some bombable tiles are indeed
+        destroyed by bombs.
+
+huggeneral.esx - General tests for Hugbots.
+
+dalgeneral.esx - General tests for Daleks. 
+
+lasersafe.esx - Tests all of the things that can block
+        lasers (except other lasers, but that is
+        untestable). 
+
+pacthing_bug.esx - Panel activation must happen at the end
+        of a motion; here's a situation from "Pac-Thing"
+        that tests one aspect of that with pushing a bot.
+
+transponders.esx - Tests various things about transponders
+        and cross-over wires.
+
+gpa.esx - Panel abuse with gold blocks.
+
+trap_panel_order.esx - tests bug where panels didn't happen
+        last when self-targeting and a trap is behind.
+
+tpp.esx - tests bug from jumps (tom7 variation),
+        where pushing a bot across a panel could cause the
+        trap to not fall, because panels didn't happen last
+
+pestcontrol.esx - tests some bot behavior, but mainly intended
+        as an animation test for bots. (from Stephen)
+
+roughtest.esx - tests bug from "rough.esx" where two panels
+		with their destination set to the floor between
+		them causes a block pushed over the configuration
+		to duplicate itself.
+
+steel1.esx - Steel should behave the same, even though it is
+        a totally different part of the code.
+
+selfpanel.esx - When pushing a block onto a panel that targets
+		itself, that block should disappear. This is
+		used in the level "don't touch".
+
+elecbug.esx - If the target of a panel is electric, and we push
+        a gold block off the panel into that electric, we need
+        to set the alternate world to electric, not the current
+        world.
+
+sdead.esx - Starting dead. Since the rule is that we check for
+        death or winning *after* each move, it is safe to start
+        in the path of a laser.
+
+spheretest.esx - Tests various things about spheres and colored
+        panels.
+
+heartf.esx - Tests various things about heart framers and sleeping
+        exits. They should block lasers, ones in the "bizarro world"
+        shouldn't count, bots can't pick them up or walk over sleeping
+        exits.
+
+botontop.esx - tests bugs regarding pushing a block out from under a
+        bot, etc.
+
+brokenbots.esx - Tests the semantics of broken bots. They can be
+        pushed over most kinds of stuff and into electricity.
+
+dalek_elec.esx - Tests daleks and electricity. Bug from "the dalek
+        question", as well as entity exclusion principle on strange
+        start conditions.
+
+dalekdie.esx - Tests panel edge effects when daleks (and other bots)
+        die. The behavior is somewhat unintuitive, but is correct.
+
+panelab.esx - General "panel abuse" for "permanent" panel effects.
+
+steel2.esx - Various tests for steel tiles.
+
+badswaps.esx - Regression against a bug where swaps would be initiated
+        incorrectly. Since the destination for a tile that doesn't have
+        a panel is usually 0, this kills the player if tile 0,0 is ever
+        swapped.
+
+worstcase.esx - A level that's about as large and expensive as it gets
+        for the current limits.
+
+checkstepoff.esx - A function has to be called whenever the player leaves
+        a tile, so this coverage-tests that check.
+
+botorder.esx - Tests that bots are moving in the correct order.
+
+otherside-bug.esx - Regression against a bug where a transporter would
+        trigger a stepoff swap before checking if the player is
+        landing on a panel. Panel swaps must happen last.
