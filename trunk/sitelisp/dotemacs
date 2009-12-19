@@ -57,6 +57,8 @@
 (if (not (eq window-system 'w32))
     (setq explicit-shell-file-name "bash"))
 
+(require 'switch-files)
+
 (global-set-key "\M-g" 'goto-line)
 (global-set-key "\C-x\C-d" 'dired)
 (global-set-key "\C-c\C-q" 'toggle-read-only)
@@ -71,7 +73,7 @@
 (global-set-key "\M-k" 'copy-line)
 (global-set-key "\M-\"" 'quote-word)
 (global-set-key "\C-\\" 'mode-line-other-buffer)
-(global-set-key "\C-o" 'bury-buffer)
+(global-set-key "\C-o" 'switch-files)
 (global-set-key "\C-]" 'cycle-recent-forward)
 (global-set-key "\C-p" 'cycle-recent-backward)
 (global-set-key "\C-xm" 'shell-make)
