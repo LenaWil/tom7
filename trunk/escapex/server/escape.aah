@@ -54,6 +54,10 @@ val SUMMARY-MAX = 5
 val FIRSTSUMMARYPERIOD = (24 * 60 * 60) * 180
 val SUMMARY-PERIOD-TEXT = [Recent new levels]
 
+val LEVEL-LIMIT-SECONDS = (24 * 60 * 60)
+val LEVEL-LIMIT-NAME = [a 24-hour period]
+val LEVEL-LIMIT-NUM = 5
+
 (* in moves *)
 val MAXSOLUTION = 19999
 val MAXALTSOLUTION = 4999
@@ -94,8 +98,9 @@ fun fail () = raise (Fail "unknown")
 (* invoke f, but print out a failure message
    if an exception is raised (including old exceptions) *)
 fun protect msg f =
-    ((f ()) handle Fail s => print ("fail " ^ msg ^ ": " ^ s))
-        handle1 print ("fail (bug) " ^ msg)
+   (((f ()) handle Fail s => print ("fail " ^ msg ^ ": \n" ^ s))
+            handle _ => print ("fail (?): \n" ^ msg))
+        handle1 print ("fail (bug): \n" ^ msg)
 
 (* from 30218947510... to 30/218947510... *)
 fun splitmd md =
@@ -215,7 +220,6 @@ fun getrecord levid =
 
 fun update-collection c =
     let
-
         open escape : collection(c) : (name, minv, fname)
         val f = fopen (ROOT ^ fname ^ ".txt")
         val levs = select (lev, subdir) from escape : levelrel
@@ -236,11 +240,11 @@ fun update-collection c =
                 val best = getrecord lev
             in
                 fprint(f, 
-                       [[lookup-dir cdirs dir]lev[itos lev].esx [md
-                        ] [itos nvotes] [itos difficulty] [itos style] [itos rigidity
-                        ] [itos cooked] [itos solved
-                        ] [itos uploaded] [itos best
-                        ] [itos owner]\n])
+                       [[lookup-dir cdirs dir]lev[itos lev].esx [md] \
+                        [itos nvotes] [itos difficulty] [itos style] [itos rigidity] \
+                        [itos cooked] [itos solved] \
+                        [itos uploaded] [itos best] \
+                        [itos owner]\n])
             end
 
     in

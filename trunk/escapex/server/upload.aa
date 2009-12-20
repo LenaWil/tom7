@@ -11,11 +11,12 @@ in
     (fn () =>
      let
          do debug [hello]
+         val now = time ()
 
-         val id = credentials ()
-         val username = get escape : user ( id ) : name
+         val userid = credentials ()
+         val username = get escape : user ( userid ) : name
 
-         do debug [[itos id] = [username]]
+         do debug [[itos userid] = [username]]
 
          (* get level *)
          val levloc = requires "lev.location"
@@ -83,6 +84,19 @@ in
 
          (hascolorcodes author)
            andthen failm "Can't use color codes in Author.";
+
+         (* Check for other levels uploaded by the same player. *)
+         (* XXX skip for trusted players. *)
+         let 
+             val sames = select id from escape : level
+                         where owner = {userid}
+                         and uploaded > {now - LEVEL-LIMIT-SECONDS}
+         in
+             (1 + length sames) > LEVEL-LIMIT-NUM 
+             andthen failm [Can't upload more than [itos LEVEL-LIMIT-NUM] \
+                            levels in [LEVEL-LIMIT-NAME]]
+         end;
+
          let 
              (* insert level *)
              do system ("/bin/mv " ^ levloc ^ " " ^
@@ -93,14 +107,12 @@ in
              do system ("/bin/mv " ^ solloc ^ " " ^
                         (SOLROOT ^ levmd5 ^ ".sol"))
 
-             val now = time ()
-
              val levid = 
                  insert (levmd5,
                          title,
                          author,
                          now,
-                         0, 0, 0, 0, 0, 0, id)
+                         0, 0, 0, 0, 0, 0, userid)
                  into escape : level : (md, title, author,
                                         uploaded,
                                         nvotes, difficulty,
@@ -125,7 +137,7 @@ in
              into escape : levelrel : (col, lev);
 
              (* add info comment *)
-             insert (id, levid, now, post, false, true)
+             insert (userid, levid, now, post, false, true)
              into escape : lcomment : (byuser, of, date, comment, 
                                        spoiler, info);
 

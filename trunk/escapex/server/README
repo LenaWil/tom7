@@ -4,7 +4,7 @@
 
  The Escape server  is a set of database-driven  web scripts. They are
  written in  Aphasia 2 (http://aphasia.sourceforge.net/),  which is an
- advanced  functional scripting  language  for the  web, developed  by
+ "advanced" functional  scripting language  for the web,  developed by
  myself. Aphasia  2 is  a lot nicer  than the first  Aphasia prototype
  (for instance, anyone familiar with  SML will at least understand the
  syntax  and most  of the  type system),  but it  still has  a  lot of
