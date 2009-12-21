@@ -6,7 +6,7 @@
 
 #include "progress.h"
 
-// #define AN_SLOW 50
+// #define AN_SLOW 100
 #define AN_SLOW 0
 
 #define WALKPUSH_DIST 6
@@ -725,6 +725,42 @@ static aframe frames_hf_evaporate[] =
     {&animation::hf_evaporate1, -6, -6, 60},
     {0, 0, 0, 60} };
 
+static aframe frames_guy_teleport_out[] =
+  { {&animation::guy_teleport0, 1, -28, 0},
+    {&animation::guy_teleport1, 1, -29, 20},
+    {&animation::guy_teleport2, 1, -31, 20},
+    {&animation::guy_teleport3, 1, -32, 20},
+    {&animation::guy_teleport4, 1, -33, 20},
+    {&animation::guy_teleport5, 1, -34, 20},
+    {&animation::guy_teleport6, 1, -35, 20},
+    {0, 0, 0, 20} };
+
+static aframe frames_guy_teleport_in[] =
+  { {&animation::guy_teleport6, 1, -28, 0},
+    {&animation::guy_teleport5, 1, -28, 20},
+    {&animation::guy_teleport4, 1, -28, 20},
+    {&animation::guy_teleport3, 1, -28, 20},
+    {&animation::guy_teleport2, 1, -28, 20},
+    {&animation::guy_teleport1, 1, -28, 20},
+    {&animation::guy_teleport0, 1, -28, 20},
+    {0, 0, 0, 20} };
+
+static aframe frames_dalek_teleport_out[] =
+  { {&animation::dalek_teleport0, 1, -28, 0},
+    {&animation::dalek_teleport1, 1, -29, 20},
+    {&animation::dalek_teleport2, 1, -31, 20},
+    {&animation::dalek_teleport3, 1, -32, 20},
+    {&animation::dalek_teleport4, 1, -33, 20},
+    {0, 0, 0, 20} };
+
+static aframe frames_dalek_teleport_in[] =
+  { {&animation::dalek_teleport4, 1, -28, 20},
+    {&animation::dalek_teleport3, 1, -28, 20},
+    {&animation::dalek_teleport2, 1, -28, 20},
+    {&animation::dalek_teleport1, 1, -28, 20},
+    {&animation::dalek_teleport0, 1, -28, 20},
+    {0, 0, 0, 20} };
+
 typedef ptrlist<animation> alist;
 
 static inline SDL_Surface * FACING_FRAME(dir d, bot entt, int data) {
@@ -780,6 +816,65 @@ void animation::start(drawing & dr,
 		      aevent * ae) {
   
   switch(ae->t) {
+  case tag_teleportout: {
+    teleportout_t * at = &(ae->u.teleportout);
+
+    aframe * frames_ent;
+    switch(at->entt) {
+    case B_PLAYER:
+      frames_ent = frames_guy_teleport_out;
+      break;
+    case B_DALEK:
+      frames_ent = frames_dalek_teleport_out;
+      break;
+    default:
+      frames_ent = frames_error;
+      break;
+    }
+
+    int xx, yy;
+    if (dr.onscreen(at->x, at->y, xx, yy)) {
+      // animation * a = new anplacetile(T_TRANSPORT, xx, yy);
+      animation * a = /* a->next = */ new aninplace(xx, yy, 1, frames_ent);
+      alist::push(anims, a);
+    }
+    break;
+  }
+
+  case tag_teleportin: {
+    teleportin_t * at = &(ae->u.teleportin);
+
+    aframe * frames_ent;
+    SDL_Surface * finale;
+    int overlapy;
+    switch(at->entt) {
+    case B_PLAYER:
+      frames_ent = frames_guy_teleport_in;
+      finale = animation::pic_guy_down[0];
+      overlapy = GUY_OVERLAPY;
+      break;
+    case B_DALEK:
+      frames_ent = frames_dalek_teleport_in;
+      finale = animation::pic_dalek_down[0];
+      overlapy = DALEK_OVERLAPY;
+      break;
+    default:
+      frames_ent = frames_error;
+      finale = animation::error;
+      overlapy = 0;
+      break;
+    }
+
+    int xx, yy;
+    if (dr.onscreen(at->x, at->y, xx, yy)) {
+      anfinale * ag = new anfinale(finale, xx, yy - overlapy);
+      animation * a = new aninplace(xx, yy, 1, frames_ent);
+      a->next = ag;
+      alist::push(sprites, a);
+    }
+    break;
+  }
+
   case tag_getheartframer: {
     getheartframer_t * ag = &(ae->u.getheartframer);
 
@@ -787,10 +882,11 @@ void animation::start(drawing & dr,
     if (dr.onscreen(ag->x, ag->y, xx, yy)) {
       animation * a = new anplacetile(T_FLOOR, xx, yy);
       a->next = new aninplace(xx, yy, 1, frames_hf_evaporate);
-      alist::push(anims, a);
+      alist::push(sprites, a);
     }
     break;
   }
+
   case tag_wakeup: {
     wakeup_t * aw = &(ae->u.wakeup);
 
@@ -821,6 +917,7 @@ void animation::start(drawing & dr,
     }
     break;
   }
+
   case tag_lasered: {
     lasered_t * al = &(ae->u.lasered);
 
@@ -916,8 +1013,9 @@ void animation::start(drawing & dr,
       ar->next = af;
       alist::push(anims, ar);
     }
-  }
     break;
+  }
+
   case tag_liteup: {
     liteup_t * al = &(ae->u.liteup);
 
@@ -945,6 +1043,7 @@ void animation::start(drawing & dr,
     
     break;
   }
+
   case tag_litewire: {
     litewire_t * aj = &(ae->u.litewire);
     
@@ -978,9 +1077,9 @@ void animation::start(drawing & dr,
 
       alist::push(anims, ar);
     }
-
     break;
   }
+
   case tag_pushgreen: {
     pushgreen_t * ag = &(ae->u.pushgreen);
 
@@ -1084,9 +1183,9 @@ void animation::start(drawing & dr,
 
       alist::push(anims, ap);
     }
-
     break;
   }
+
   case tag_button: {
     button_t * ab = &(ae->u.button);
 
@@ -1123,9 +1222,9 @@ void animation::start(drawing & dr,
     }
 
     alist::push(anims, ap);
-
     break;
   }
+
   case tag_toggle: {
     toggle_t * at = &(ae->u.toggle);
 
@@ -1198,6 +1297,7 @@ void animation::start(drawing & dr,
     }
     break;
   }
+
   case tag_breaks: {
     breaks_t * ab = &(ae->u.breaks);
     
@@ -1214,6 +1314,7 @@ void animation::start(drawing & dr,
     }
     break;
   }
+
   case tag_swap: {
     swap_t * as = &(ae->u.swap);
     
@@ -1237,6 +1338,7 @@ void animation::start(drawing & dr,
     }
     break;
   }
+
   case tag_jiggle: {
     /* do little jiggling. */
     jiggle_t * aj = &(ae->u.jiggle);
@@ -1303,6 +1405,7 @@ void animation::start(drawing & dr,
 
     break;
   }
+
   case tag_fly: {
     fly_t * af = &(ae->u.fly);
 
@@ -1436,9 +1539,9 @@ void animation::start(drawing & dr,
     alist::push(anims, new ansound(S_WHIZZ));
     alist::push(anims, ap);
 
-
     break;
   }
+
   case tag_push: {
     push_t * ap = &(ae->u.push);
 
@@ -1494,6 +1597,7 @@ void animation::start(drawing & dr,
     }
     break;
   }
+
   case tag_botexplode: {
     botexplode_t * as = &(ae->u.botexplode);
     int sx, sy;
@@ -1510,6 +1614,7 @@ void animation::start(drawing & dr,
     }
     break;
   }
+
   case tag_press: {
     /* XXX draw frames for this; right now it's just STAND */
     /* XXX incorporate ent type as below */
@@ -1601,11 +1706,11 @@ void animation::start(drawing & dr,
       
       /* walking is a sprite! */
       alist::push(sprites, af);
-      
     }
     break;
   }
-  }
+
+  } /* Switch anim tag */
 }
 
 bool anflying::init(unsigned int now) {
