@@ -99,10 +99,8 @@ void drawing::destroyimages() {
 
 }
 
-/* XXX g is ignored (probably should deprecate this) */ 
-/* draw guy g facing d at screen location x/y */
-void drawing::drawguy(whichguy g,
-		      dir d,
+/* draw guy facing d at screen location x/y */
+void drawing::drawguy(dir d,
 		      int sx, int sy,
 		      int zoomfactor,
 		      SDL_Surface * surf, bool dead) {
@@ -490,7 +488,7 @@ void drawing::drawlev(int layer, /* dir facing, */
 
       if (onscreen(bx, by, bsx, bsy)) {
 	if (bots[i].e == B_PLAYER) 
-	  drawguy(GUY_OFFICE, bots[i].d, bsx, bsy, 
+	  drawguy(bots[i].d, bsx, bsy, 
 		  zoomfactor, surf, isdead);
 	else
 	  drawbot(bots[i].e, bots[i].d, bsx, bsy,
@@ -583,7 +581,7 @@ void drawing::drawdests(SDL_Surface * surf, bool shuffle) {
                                     sdlutil::mix2 \
 				    (sdlutil::getpixel \
 				     (surf, xxx, yyy), \
-				     sdlutil::amask))
+				    sdlutil::amask))
 		
 		DARK(xx-1, yy);
 		DARK(xx+1, yy);

@@ -146,7 +146,7 @@ int play_menuitem[] = {
   TU_FUNDO,
   TU_PLAYPAUSE,
   TU_FREDO,
-  0, MI_NODRAW, /* skip -- nmoves */
+  MI_NODRAW, MI_NODRAW, /* skip -- nmoves */
 };
 
 #define POS_RESTORESTATE 1
@@ -157,8 +157,7 @@ int play_menuitem[] = {
 #define POS_PLAYPAUSE 7
 #define POS_FUNDO 6
 #define POS_FREDO 8
-// XXX (sizeof (play_menuitem) / sizeof (int))?
-#define NUM_PLAYMENUITEMS 11
+#define NUM_PLAYMENUITEMS (sizeof (play_menuitem) / sizeof (int))
 
 #define THUMBW 180
 #define THUMBH 110
@@ -385,7 +384,7 @@ void preal :: drawmenu() {
   int showw = (screen->w / TILEW) - 1;
 
   /* could be showw + 1 */
-  for(int j = 0; j < showw; j++) {
+  for(int j = 0; j < (showw + 1) && j < NUM_PLAYMENUITEMS; j++) {
     if (j == POS_MOVECOUNTER) {
       string count;
       if (solpos != sol->length) {
@@ -406,7 +405,7 @@ void preal :: drawmenu() {
       } else {
 	drawing::drawtileu(2 + j * TILEW, 2, TU_PLAYPAUSE, 0);
       }
-    } else if (j < NUM_PLAYMENUITEMS && play_menuitem[j]) {
+    } else {
       drawing::drawtileu(2 + j * TILEW, 2, play_menuitem[j], 0);
     }
   }
@@ -1068,7 +1067,7 @@ playresult preal::doplay_save(player * plr, level * start,
 
 	  /* clicky? */
 	  if (e->y <= TILEH + 4) {
-	    int targ = (e->x - 2) / TILEW;
+	    unsigned int targ = (e->x - 2) / TILEW;
 	    
 	    if (targ < NUM_PLAYMENUITEMS) {
 	      switch(play_menuitem[targ]) {

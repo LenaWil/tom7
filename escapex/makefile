@@ -97,7 +97,7 @@ installerup : escapesetup.exe
 %.obj : %.cc selector.h extent.h
 	${COMPILE} $<
 
-animation_load.h : animation.pack
+animation_load.h animation.png animation_decs.h animation_defs.h : animation.pack
 	rm -f animation_load.h animation.png animation_decs.h animation_defs.h
 	make packpng.exe
 	packpng.exe animation.pack animation
@@ -495,9 +495,21 @@ sound.o : sound.cc sound_load.h
 level.o : level.cc move.h
 	g++ ${CXXFLAGS} ${CPPFLAGS} -c -o $@ $<
 
+animation.o : animation.cc animation.h animation_load.h
+	g++ ${CXXFLAGS} ${CPPFLAGS} -c -o $@ $<
+
 sound_load.h : sound.pack packsound.cc
 	make packsound.exe
 	./packsound.exe sound.pack sound
+
+animation_load.h animation.png animation_decs.h animation_defs.h : animation.pack
+	rm -f animation_load.h animation.png animation_decs.h animation_defs.h
+	make packpng.exe
+	packpng.exe animation.pack animation
+	rm -f animation.better
+	pngcrush/pngcrush -e .better animation.png
+	rm -f animation.png
+	mv animation.better animation.png
 
 PNGHEADERS = -I /usr/local/include
 # -I ../libpng-1.2.21

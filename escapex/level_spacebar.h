@@ -14,12 +14,6 @@ using namespace std;
 #define LEVEL_MAX_ROBOTS 15
 #define LEVEL_BOMB_MAX_TIMER   10
 
-/* XXX we probably aren't going to support
-   multiple different player characters */
-enum whichguy {
-  GUY_OFFICE,
-};
-
 typedef int dir;
 
 enum {

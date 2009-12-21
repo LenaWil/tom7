@@ -10,7 +10,7 @@
 
 /* as a result of a move, a list of animation events
    (avent) will be returned. Each event describes
-   something that happened in a level (ie, a block
+   something that happened in a level (e.g., a block
    was pushed from one square to another, a series
    of tiles were flipped from 'up' state to 'down,' 
    or the player was shot by a laser). The 
@@ -39,7 +39,8 @@ enum atag { tag_fly, tag_push, tag_jiggle, tag_breaks, tag_swap,
 	    tag_trap, tag_pushgreen, tag_litewire, tag_liteup,
 	    tag_opendoor, tag_lasered, tag_winner, tag_botexplode,
 	    tag_wakeupdoor, tag_getheartframer, tag_wakeup,
-	    tag_transponderbeam, tag_bombsplosion,
+	    tag_transponderbeam, tag_bombsplosion, tag_teleportout,
+	    tag_teleportin,
 };
 
 
@@ -64,9 +65,15 @@ struct breaks_t { int x; int y; };
 /* swap from pressing a panel */
 struct swap_t { int x; int y; int was; int now; };
 
-/* player walking */
+/* entity (player, bot) walking */
 struct walk_t { int srcx; int srcy; dir d; bool pushing; 
                 int whatunder; bot entt; int data; };
+
+/* entity (player, bot) teleporting out */
+struct teleportout_t { int x; int y; bot entt; };
+
+/* same, but teleporting in */
+struct teleportin_t { int x; int y; bot entt; };
 
 /* player pressing in some direction 
    it's a kick if the player is moving a gold block
@@ -145,6 +152,8 @@ struct aevent {
     getheartframer_t getheartframer;
     wakeup_t wakeup;
     bombsplosion_t bombsplosion;
+    teleportout_t teleportout;
+    teleportin_t teleportin;
   } u;
 };
 

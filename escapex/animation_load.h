@@ -1429,6 +1429,102 @@
   if (!bomb_lit_0) return false;
   SDL_BlitSurface(all, &r, bomb_lit_0, 0);
 
+  r.x = 511;
+  r.y = 451;
+  r.w = 32;
+  r.h = 60;
+  guy_teleport0 = sdlutil::makesurface(r.w, r.h);
+  if (!guy_teleport0) return false;
+  SDL_BlitSurface(all, &r, guy_teleport0, 0);
+
+  r.x = 90;
+  r.y = 494;
+  r.w = 32;
+  r.h = 60;
+  guy_teleport1 = sdlutil::makesurface(r.w, r.h);
+  if (!guy_teleport1) return false;
+  SDL_BlitSurface(all, &r, guy_teleport1, 0);
+
+  r.x = 525;
+  r.y = 148;
+  r.w = 32;
+  r.h = 60;
+  guy_teleport2 = sdlutil::makesurface(r.w, r.h);
+  if (!guy_teleport2) return false;
+  SDL_BlitSurface(all, &r, guy_teleport2, 0);
+
+  r.x = 532;
+  r.y = 340;
+  r.w = 32;
+  r.h = 60;
+  guy_teleport3 = sdlutil::makesurface(r.w, r.h);
+  if (!guy_teleport3) return false;
+  SDL_BlitSurface(all, &r, guy_teleport3, 0);
+
+  r.x = 421;
+  r.y = 505;
+  r.w = 32;
+  r.h = 60;
+  guy_teleport4 = sdlutil::makesurface(r.w, r.h);
+  if (!guy_teleport4) return false;
+  SDL_BlitSurface(all, &r, guy_teleport4, 0);
+
+  r.x = 453;
+  r.y = 505;
+  r.w = 32;
+  r.h = 60;
+  guy_teleport5 = sdlutil::makesurface(r.w, r.h);
+  if (!guy_teleport5) return false;
+  SDL_BlitSurface(all, &r, guy_teleport5, 0);
+
+  r.x = 485;
+  r.y = 511;
+  r.w = 32;
+  r.h = 60;
+  guy_teleport6 = sdlutil::makesurface(r.w, r.h);
+  if (!guy_teleport6) return false;
+  SDL_BlitSurface(all, &r, guy_teleport6, 0);
+
+  r.x = 517;
+  r.y = 511;
+  r.w = 32;
+  r.h = 60;
+  dalek_teleport0 = sdlutil::makesurface(r.w, r.h);
+  if (!dalek_teleport0) return false;
+  SDL_BlitSurface(all, &r, dalek_teleport0, 0);
+
+  r.x = 545;
+  r.y = 0;
+  r.w = 32;
+  r.h = 60;
+  dalek_teleport1 = sdlutil::makesurface(r.w, r.h);
+  if (!dalek_teleport1) return false;
+  SDL_BlitSurface(all, &r, dalek_teleport1, 0);
+
+  r.x = 545;
+  r.y = 60;
+  r.w = 32;
+  r.h = 60;
+  dalek_teleport2 = sdlutil::makesurface(r.w, r.h);
+  if (!dalek_teleport2) return false;
+  SDL_BlitSurface(all, &r, dalek_teleport2, 0);
+
+  r.x = 544;
+  r.y = 208;
+  r.w = 32;
+  r.h = 60;
+  dalek_teleport3 = sdlutil::makesurface(r.w, r.h);
+  if (!dalek_teleport3) return false;
+  SDL_BlitSurface(all, &r, dalek_teleport3, 0);
+
+  r.x = 544;
+  r.y = 268;
+  r.w = 32;
+  r.h = 60;
+  dalek_teleport4 = sdlutil::makesurface(r.w, r.h);
+  if (!dalek_teleport4) return false;
+  SDL_BlitSurface(all, &r, dalek_teleport4, 0);
+
   r.x = 366;
   r.y = 129;
   r.w = 48;

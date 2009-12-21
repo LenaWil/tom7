@@ -65,10 +65,10 @@ struct dcreal : public dircache {
 
   virtual void getidx(string dir, dirindex *& idx);
   virtual int get(string dir, dirindex *& idx, 
-		  int & tot, int & sol,
-		  void (*prog)(void * d, int n, int total, 
-				   const string &, const int) = 0,
-		  void * pd = 0);
+                  int & tot, int & sol,
+                  void (*prog)(void * d, int n, int total, 
+                               const string &, const int) = 0,
+                  void * pd = 0);
 };
 
 dircache::~dircache() {}
@@ -101,9 +101,9 @@ void dcreal::getidx(string dir, dirindex *& idx) {
 }
 
 int dcreal::get(string dir, dirindex *& idx, int & tot, int & sol,
-		void (*prog)(void * d, int n, int total, 
-			     const string &, const int),
-		void * pd) {
+                void (*prog)(void * d, int n, int total, 
+                             const string &, const int),
+                void * pd) {
   // printf("get: %s\n", dir.c_str());
 
   dir = normalize(dir);
@@ -153,41 +153,42 @@ int dcreal::get(string dir, dirindex *& idx, int & tot, int & sol,
 
       if (util::isdir(ldn)) {
 
-	/* can't include . or .., dumb to
-	   include CVS */
-	if (!(dn == "." ||
-	      dn == "CVS" ||
-	      dn == "..")) {
+        /* can't include . or .., dumb to
+           include CVS and .svn */
+        if (!(dn == "." ||
+              dn == "CVS" ||
+              dn == ".svn" ||
+              dn == "..")) {
 
-	  int tsub, ssub;
+          int tsub, ssub;
 
-	  dirindex * iii_unused = 0;
-	  if (get(ldn, iii_unused, tsub, ssub, prog, pd)) {
-	    ttt += tsub;
-	    sss += ssub;
-	  }
+          dirindex * iii_unused = 0;
+          if (get(ldn, iii_unused, tsub, ssub, prog, pd)) {
+            ttt += tsub;
+            sss += ssub;
+          }
 
-	}
+        }
 
       } else {
 
-	string contents = util::readfilemagic(ldn, LEVELMAGIC);
+        string contents = util::readfilemagic(ldn, LEVELMAGIC);
 
-	level * l = level::fromstring(contents);
+        level * l = level::fromstring(contents);
 
-	if (l) {
-	  string md5c = md5::hash(contents);
+        if (l) {
+          string md5c = md5::hash(contents);
 
-	  ttt ++;
+          ttt ++;
 
-	  solution * s;
-	  if ((s = plr->getsol(md5c)) && (s->verified || level::verify(l,s))) {
-	    s->verified = true;
-	    sss ++;
-	  }
+          solution * s;
+          if ((s = plr->getsol(md5c)) && (s->verified || level::verify(l,s))) {
+            s->verified = true;
+            sss ++;
+          }
 
-	  l->destroy ();
-	}
+          l->destroy ();
+        }
       }
     }
 

@@ -1,3 +1,21 @@
+2009-12-20  Tom 7  <Tom@WARPZONE>
+
+        * animation.cc: Finally added teleport animation for both the
+          player and daleks.
+
+        * server/upload.aa: Instituted a limit to th number of levels
+          that can be uploaded in a 24-hour period.
+
+2009-12-19  Tom 7  <Tom@WARPZONE>
+
+        * play.cc: Fixed bug with menu display while playing, which could
+          show spurious move counters and play/pause buttons, especially
+          on very wide monitors.
+
+        * makefile: Switched to mingw on Windows, switched to Subversion,
+          and modernized file naming conventions. Don't search .svn
+          directories for escape files.
+
 2009-01-04  Tom 7  <Tom@WARPZONE>
 
         * animation.cpp: Fixed a somewhat serious bug with the animation

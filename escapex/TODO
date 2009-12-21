@@ -4,9 +4,6 @@
 
 I think I introduced a regression in the behavior of wires from Radiant's "Global Thermonuclear War"
 
-appears that there's a bug where a phantom "play" icon shows up way off to
-the right when playing on wide monitors (2560+)
-
 put optipng on all build machines
 http://sourceforge.net/project/downloading.php?groupname=optipng&filename=optipng-0.5.4-exe.zip&use_mirror=umn
 
@@ -24,6 +21,9 @@ http://sourceforge.net/project/downloading.php?groupname=optipng&filename=optipn
 ** Upgrade bug on osx
 *** Released zip file has actual directories/copies where symlinks should be. Not sure why this is, but it shouldn't be the case and the upgrade code should be able to unlink directories (renaming them away.)
 **** that's done, but not released.. (can people still upgrade? after trying twice?)
+
+* Server
+** Limit the number of levels that a non-trusted user can upload in one day.
 
 * Linux port
 ** dependency on libgdk 1.2 (apparently not on many systems)--can ship it.
@@ -116,7 +116,7 @@ http://sourceforge.net/project/downloading.php?groupname=optipng&filename=optipn
   could be same as push anim (still) for now
 **** player 'kicking'
   could be same as press anim for now
-**** teleport
+**** teleporting off-screen
 **** laser death
 ***** could be improved (laser flicks off?)
 ***** improve: laser from below can go to chest

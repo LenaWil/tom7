@@ -221,5 +221,19 @@ bomb_lit_2 animation\bomb_lit2.png
 bomb_lit_1 animation\bomb_lit1.png
 bomb_lit_0 animation\bomb_lit0.png
 
+guy_teleport0 animation\guy_teleport0.png
+guy_teleport1 animation\guy_teleport1.png
+guy_teleport2 animation\guy_teleport2.png
+guy_teleport3 animation\guy_teleport3.png
+guy_teleport4 animation\guy_teleport4.png
+guy_teleport5 animation\guy_teleport5.png
+guy_teleport6 animation\guy_teleport6.png
+
+dalek_teleport0 animation\dalek_teleport0.png
+dalek_teleport1 animation\dalek_teleport1.png
+dalek_teleport2 animation\dalek_teleport2.png
+dalek_teleport3 animation\dalek_teleport3.png
+dalek_teleport4 animation\dalek_teleport4.png
+
 error animation\error_frame.png
 attention animation\attention.png

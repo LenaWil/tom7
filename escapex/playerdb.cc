@@ -126,12 +126,9 @@ void pdbentry::draw (int x, int y, bool selected) {
     break;
 
   case K_PLAYER:
-    /* Draw the player graphic. XXX This should be grabbed from
-       the player file, once we have multiple different
-       players! Once we have animation, the player should be
-       animated when he is selected. */
-    drawing::drawguy(GUY_OFFICE, DIR_DOWN, ix, iy,
-		     0, screen);
+    /* Draw the player graphic. Should actually animate the
+       player that's selected. */
+    drawing::drawguy(DIR_DOWN, ix, iy, 0, screen);
     
     fon->draw(tx, ty, display(selected));
     break;

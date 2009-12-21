@@ -88,7 +88,6 @@ struct animation {
        just to be more stable */
     if (r) return r;
     else return (a - b);
-    
   }
 
   /* false if fail */
@@ -219,7 +218,7 @@ struct aninplace : public animation {
   virtual bool init(unsigned int now);
   virtual void erase(dirt *);
 
-  ~aninplace() { }
+  virtual ~aninplace() { }
 };
 
 /* sort of special, because it is used as the
@@ -314,7 +313,7 @@ struct anflying : public animation {
 
   virtual int yorder() { return py; }
 
-  ~anflying() {
+  virtual ~anflying() {
     /* not above! */
   }
 

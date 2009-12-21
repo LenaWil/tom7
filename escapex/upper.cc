@@ -189,6 +189,7 @@ void upreal :: insertdir(string src) {
     if (basef == "" /* ?? */ ||
 	basef == "." ||
 	basef == ".." ||
+	basef == ".svn" ||
 	basef == "CVS") continue;
 
     if(util::isdir(f)) {

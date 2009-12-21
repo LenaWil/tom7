@@ -117,8 +117,7 @@ struct drawing {
   /* Drawing functions */
 
   /* screen coordinates */
-  static void drawguy(whichguy g,
-		      dir d,
+  static void drawguy(dir d,
 		      int sx, int sy,
 		      int zoomfactor,
 		      SDL_Surface * surf = 0, bool dead = false);

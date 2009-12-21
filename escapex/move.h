@@ -93,6 +93,8 @@
 #undef WAKEUP
 #undef STANDBOT
 #undef GETHEARTFRAMER
+#undef TELEPORTOUT
+#undef TELEPORTIN
 #undef TRANSPONDERBEAM
 #undef BOMBSPLOSION
 
@@ -242,6 +244,17 @@
    PUSHMOVE(getheartframer, e)          \
      e->x = xx; e->y = yy;              \
    }
+# define TELEPORTOUT(ei, xx, yy)           \
+   PUSHMOVE(teleportout, e)                \
+     e->x = xx; e->y = yy;                 \
+     e->entt = (ei==-1)?B_PLAYER:bott[ei]; \
+   }
+# define TELEPORTIN(ei, xx, yy)            \
+   PUSHMOVE(teleportin, e)                 \
+     e->x = xx; e->y = yy;                 \
+     e->entt = (ei==-1)?B_PLAYER:bott[ei]; \
+   }
+
 # define TRANSPONDERBEAM(xx, yy, destx, desty, fr, delay) \
     PUSHMOVE(transponderbeam, e)        \
       e->x = destx;                     \
@@ -280,12 +293,14 @@
 # define GETHEARTFRAMER(a, b) do { ; } while(0)
 # define TRANSPONDERBEAM(xx, yy, destx, desty, fr, delay) do { ; } while(0)
 # define BOMBSPLOSION(xx, yy) do { ; } while(0)
+# define TELEPORTOUT(ei, xx, yy) do { ; } while(0)
+# define TELEPORTIN(ei, xx, yy) do { ; } while(0)
 #endif
 
 /* helper functions */
 /* after stepping off a tile, deactivate a panel
    if there was one there. */
-  /* nb: only for regular panels */
+/* nb: only for regular panels */
 #define CHECKLEAVEPANEL(xx, yy) do {  \
   if (tileat(xx, yy) == T_PANEL) {    \
     AFFECTI(destat(xx, yy));          \
@@ -427,8 +442,8 @@ static void postanimate(level * l, disamb * ctx,
 
 #ifdef ANIMATING_MOVE
  void level::bombsplode_animate(int now, 
-				int b, disamb * ctx, alist *& events,
-				alist **& etail) {
+                int b, disamb * ctx, alist *& events,
+                alist **& etail) {
 #else
  void level::bombsplode(int now, int b) {
 #endif
@@ -442,7 +457,7 @@ static void postanimate(level * l, disamb * ctx,
     for(dir dd = FIRST_DIR_SELF; dd < LAST_DIR; dd ++) {
       int bx, by;
       if (travel(x, y, dd, bx, by)) {
-	AFFECT(bx, by);
+    AFFECT(bx, by);
       }
     }
 
@@ -453,58 +468,58 @@ static void postanimate(level * l, disamb * ctx,
     for(dir dd = FIRST_DIR_SELF; dd <= LAST_DIR; dd ++) {
       int bx, by;
       if (travel(x, y, dd, bx, by)) {
-	if (bombable(tileat(bx, by))) {
-	  /* animate? */
-	  settile(bx, by, T_FLOOR);
-	  /* clear flags */
-	  setflag(bx, by, flagat(bx, by) & ~(TF_HASPANEL |
-					     TF_RPANELL  |
+    if (bombable(tileat(bx, by))) {
+      /* animate? */
+      settile(bx, by, T_FLOOR);
+      /* clear flags */
+      setflag(bx, by, flagat(bx, by) & ~(TF_HASPANEL |
+                         TF_RPANELL  |
                                              TF_RPANELH));
-	}
+    }
 
-	{
-	  int z = index(bx, by);
+    {
+      int z = index(bx, by);
           for(int bdie = 0; bdie < nbots; bdie ++) {
-	    if (boti[bdie] == z) {
-	      PREAFFECTENTEX(bdie);
-	      // AFFECTI(boti[b]);
-	      POSTAFFECTENTEX(bdie);
+        if (boti[bdie] == z) {
+          PREAFFECTENTEX(bdie);
+          // AFFECTI(boti[b]);
+          POSTAFFECTENTEX(bdie);
 
-	      bot bd = bott[bdie];
+          bot bd = bott[bdie];
               if (bd == B_DELETED ||
                   bd == B_BOMB_X) /* ignore */ continue;
 
-	      if (level::isbomb(bd)) {
-		/* chain reaction */
-		if (bdie < now) {
-		  #ifdef ANIMATING_MOVE
-		     bombsplode_animate(now, bdie, ctx, events, etail);
-		  #else
-		     bombsplode(now, bdie);
-		  #endif
-		  break;
-		} else {
-		  /* will explode this turn (unless a bot
-		     pushes it??) */
-		  bota[bdie] = 0;
-		  break;
-		}
+          if (level::isbomb(bd)) {
+        /* chain reaction */
+        if (bdie < now) {
+          #ifdef ANIMATING_MOVE
+             bombsplode_animate(now, bdie, ctx, events, etail);
+          #else
+             bombsplode(now, bdie);
+          #endif
+          break;
+        } else {
+          /* will explode this turn (unless a bot
+             pushes it??) */
+          bota[bdie] = 0;
+          break;
+        }
               } else {
-		/* non-bomb, so just kill it */
-		/* FIXME: This isn't correct in the case that
-		   some bots move after the bomb explodes; they
-		   might move *onto* the explosion. See
-		   "revenge of the malformed levels 2". Of
-		   course, this can only happen if there are
-		   bots with higher numbers than bombs, which
-		   levels can't be made by the editor. Possibly
-		   they should be rejected by the sanitizer as
-		   well. */
-		BOTEXPLODE(bdie);
-		bott[bdie] = B_DELETED;
-		break;
-	      } /* isbomb? */
-	    } /* bot here? */
+        /* non-bomb, so just kill it */
+        /* FIXME: This isn't correct in the case that
+           some bots move after the bomb explodes; they
+           might move *onto* the explosion. See
+           "revenge of the malformed levels 2". Of
+           course, this can only happen if there are
+           bots with higher numbers than bombs, which
+           levels can't be made by the editor. Possibly
+           they should be rejected by the sanitizer as
+           well. */
+        BOTEXPLODE(bdie);
+        bott[bdie] = B_DELETED;
+        break;
+          } /* isbomb? */
+        } /* bot here? */
           } /* loop over bots */
         } /* block */
       } /* adjacent? */
@@ -549,28 +564,28 @@ static void postanimate(level * l, disamb * ctx,
         dir bd2 = DIR_NONE; /* second choice */
         unsigned int bc = 0; /* its capabilities */
 
-	if (level::isbomb(bott[b])) {
-	  /* bombs never move */
-	  bd = DIR_NONE;
+    if (level::isbomb(bott[b])) {
+      /* bombs never move */
+      bd = DIR_NONE;
 
-	  if (bota[b] == 0) {
-	     /* time's up: explodes */
+      if (bota[b] == 0) {
+         /* time's up: explodes */
 #            ifdef ANIMATING_MOVE
                bombsplode_animate(b, b, ctx, events, etail);
 #            else
-	       bombsplode(b, b);
+           bombsplode(b, b);
 #            endif
 
-	  } else if (bota[b] > 0) {
+      } else if (bota[b] > 0) {
              /* fuse burns */
              bota[b]--;
              /* XXX animate? */
-	  } else {
-	    /* unlit: do nothing */
-	  }
+      } else {
+        /* unlit: do nothing */
+      }
           continue;
 
-	} else
+    } else
         switch(bott[b]) {        
           /* nb, not isbomb */
           case B_BOMB_X:
@@ -743,7 +758,7 @@ static void postanimate(level * l, disamb * ctx,
            /* if a bomb, light and reset fuse */
            /* XXX animate? */
            if (pushent != -1 &&
-	       isbomb(bott[pushent]))
+           isbomb(bott[pushent]))
                bota[pushent] = ((int)bott[pushent] - (int)B_BOMB_0);
 
            POSTAFFECTENT;
@@ -984,14 +999,14 @@ static void postanimate(level * l, disamb * ctx,
 
         if (next == T_ELECTRIC) break;
 
-	// Otherwise, going to fly through this spot.
+    // Otherwise, going to fly through this spot.
 #ifdef AM
-	bool did = AFFECT(goldx, goldy);
-	printf("%d %d: %s %d %d\n", goldx, goldy, did?"did":"not",
-	       ctx->serialat(goldx, goldy),
-	       ctx->serial);
+    bool did = AFFECT(goldx, goldy);
+    printf("%d %d: %s %d %d\n", goldx, goldy, did?"did":"not",
+           ctx->serialat(goldx, goldy),
+           ctx->serial);
 #endif
-	// AFFECT(goldx, goldy);
+    // AFFECT(goldx, goldy);
       }
 
       /* goldx is dest, newx is source */
@@ -1074,12 +1089,20 @@ static void postanimate(level * l, disamb * ctx,
         return(false);
       }
     }
+
     case T_TRANSPORT: {
       /* not if there's an entity there */
       if (playerat(newx, newy) ||
           botat(newx, newy)) return false;
 
       if (cap & (CAP_CANTELEPORT | CAP_ISPLAYER)) {
+         AFFECT(newx, newy);
+         PREAFFECTENT;
+         POSTAFFECTENT;
+         WALKED(d, true);
+         PREAFFECTENT;
+         POSTAFFECTENT;
+         TELEPORTOUT(enti, newx, newy);
 
          int targx, targy;
          where(dests[w * newy + newx], targx, targy);
@@ -1090,10 +1113,18 @@ static void postanimate(level * l, disamb * ctx,
          CHECKSTEPOFF(entx, enty);
          SETENTPOS(targx, targy);
 
+         AFFECT(targx, targy);
+         PREAFFECTENT;
+         POSTAFFECTENT;
+         /* teleporting always faces the player down;
+            there's just one animation. */
+         SETENTDIR(DIR_DOWN);
+         TELEPORTIN(enti, targx, targy);
+
          switch(targ) {
          case T_PANEL:
-           AFFECTI(destat(targx,targy));
-           SWAPO(destat(targx,targy));
+           AFFECTI(destat(targx, targy));
+           SWAPO(destat(targx, targy));
            break;
          default:;
          }
@@ -1150,15 +1181,15 @@ static void postanimate(level * l, disamb * ctx,
 #endif
           isconnected(newx, newy, dd)) {
 
-	  /* send a pulse in that direction. */
-	  int pulsex = newx, pulsey = newy;
-	  dir pd = dd;
+      /* send a pulse in that direction. */
+      int pulsex = newx, pulsey = newy;
+      dir pd = dd;
 
-	  int dist = 0;
+      int dist = 0;
 
-	  while(pd != DIR_NONE &&
+      while(pd != DIR_NONE &&
                 travel(pulsex, pulsey, pd, pulsex, pulsey)) {
-	    int targ = tileat(pulsex, pulsey);
+        int targ = tileat(pulsex, pulsey);
 
         /* liteup animation if a wire. note: this code
            would lite up any tile (floor, exit, etc.) except
@@ -1171,10 +1202,10 @@ static void postanimate(level * l, disamb * ctx,
            case T_REMOTE:
              break;
            default:
-	     /* Should affect here, because for example remotes
-	        might target some of these wires. But then subsequent
-	        wires are delayed because of the delay hack we use.
-	        So, if affecting advances the serial, reset the delay.
+         /* Should affect here, because for example remotes
+            might target some of these wires. But then subsequent
+            wires are delayed because of the delay hack we use.
+            So, if affecting advances the serial, reset the delay.
                 XXX: The result is correct but not desirable; wires
                 pause in the middle of their electricity. Probably
                 should arrange it so it all goes in one shot. */
@@ -1188,129 +1219,129 @@ static void postanimate(level * l, disamb * ctx,
 
         dist ++;
 
-	    switch(targ) {
-	    case T_REMOTE:
-	      #ifdef AM
-		AFFECT(pulsex, pulsey);
-		PUSHMOVE(liteup, e)
-		   e->x = pulsex;
-		   e->y = pulsey;
-		   e->what = targ;
-		   e->delay = dist;
-		}
-	      #endif
-	      remotes = new swaplist(destat(pulsex, pulsey), remotes);
+        switch(targ) {
+        case T_REMOTE:
+          #ifdef AM
+        AFFECT(pulsex, pulsey);
+        PUSHMOVE(liteup, e)
+           e->x = pulsex;
+           e->y = pulsey;
+           e->what = targ;
+           e->delay = dist;
+        }
+          #endif
+          remotes = new swaplist(destat(pulsex, pulsey), remotes);
 
         /* since this counts as being connected so far, we want to
-  	  	   make sure that the circuit continues before animating
-		   it ... */
+           make sure that the circuit continues before animating
+           it ... */
               if (
                   #ifndef AM
                   0 &&
                   #endif
                   !isconnected(pulsex, pulsey, pd)) pd = DIR_NONE;
-	      continue;
+          continue;
 
-	    case T_BLIGHT:
-	    case T_RLIGHT:
-	    case T_GLIGHT:
-	      #ifdef AM
-	      AFFECT(pulsex, pulsey);
-	      PUSHMOVE(liteup, e)
-		 e->x = pulsex;
-		 e->y = pulsey;
-		 e->what = targ;
-		 e->delay = dist;
-	      }
-	      #endif
+        case T_BLIGHT:
+        case T_RLIGHT:
+        case T_GLIGHT:
+          #ifdef AM
+          AFFECT(pulsex, pulsey);
+          PUSHMOVE(liteup, e)
+         e->x = pulsex;
+         e->y = pulsey;
+         e->what = targ;
+         e->delay = dist;
+          }
+          #endif
               if (targ == T_BLIGHT) bswaps ++;
               if (targ == T_RLIGHT) rswaps ++;
               if (targ == T_GLIGHT) gswaps ++;
               pd = DIR_NONE;
               break;
 
-	    case T_TRANSPONDER: {
+        case T_TRANSPONDER: {
               // printf("transponder at %d/%d\n", pulsex, pulsey);
-	      #ifdef AM
-		int transx = pulsex;
-		int transy = pulsey;
-	      #endif
+          #ifdef AM
+        int transx = pulsex;
+        int transy = pulsey;
+          #endif
               if (!travel(pulsex, pulsey, pd, pulsex, pulsey)) 
                 pd = DIR_NONE;
-	      else {
-		/* keep going until we hit another transponder. */
-		do {
-		   int ta = tileat(pulsex, pulsey);
+          else {
+        /* keep going until we hit another transponder. */
+        do {
+           int ta = tileat(pulsex, pulsey);
                    // printf(" ... at %d/%d: %d\n", pulsex, pulsey, ta);
-		   if (!allowbeam(ta) || 
-		       botat(pulsex, pulsey) || 
-		       playerat(pulsex, pulsey)) {
-		      /* hit something. is it a transponder? */
-		      if (ta == T_TRANSPONDER) {
-			/* okay, then we are on the 'old' tile with
-			   the direction set, so we're ready to continue
-			   the pulse loop */
+           if (!allowbeam(ta) || 
+               botat(pulsex, pulsey) || 
+               playerat(pulsex, pulsey)) {
+              /* hit something. is it a transponder? */
+              if (ta == T_TRANSPONDER) {
+            /* okay, then we are on the 'old' tile with
+               the direction set, so we're ready to continue
+               the pulse loop */
                         #ifdef AM
-			  LITEWIRE(pulsex, pulsey, targ, pd, dist);
-			  TRANSPONDERBEAM(pulsex, pulsey, 
-	                                  transx, transy, 
-					  pd, dist);
-			#endif
-		      } else {
-			/* didn't hit transponder! stop. */
-			pd = DIR_NONE;
-		      }
-		      break;
-		   } else {
+              LITEWIRE(pulsex, pulsey, targ, pd, dist);
+              TRANSPONDERBEAM(pulsex, pulsey, 
+                                      transx, transy, 
+                      pd, dist);
+            #endif
+              } else {
+            /* didn't hit transponder! stop. */
+            pd = DIR_NONE;
+              }
+              break;
+           } else {
                       /* in preparation for beam across these squares... */
                       #ifdef AM
                         AFFECT(pulsex, pulsey);
                       #endif
-		   }
-		   /* otherwise keep going... */
-		} while (travel(pulsex, pulsey, pd, pulsex, pulsey));
-	      }
+           }
+           /* otherwise keep going... */
+        } while (travel(pulsex, pulsey, pd, pulsex, pulsey));
+          }
 
-	      break;
+          break;
             }
 
-	    case T_NSWE:
-	      /* just keep going in same direction */
-	      continue;
+        case T_NSWE:
+          /* just keep going in same direction */
+          continue;
 
-	    case T_NS:
-	      if (pd == DIR_UP || pd == DIR_DOWN) continue;
-	      else pd = DIR_NONE;
-	      break;
+        case T_NS:
+          if (pd == DIR_UP || pd == DIR_DOWN) continue;
+          else pd = DIR_NONE;
+          break;
 
-	    case T_WE:
-	      if (pd == DIR_LEFT || pd == DIR_RIGHT) continue;
-	      else pd = DIR_NONE;
-	      break;
+        case T_WE:
+          if (pd == DIR_LEFT || pd == DIR_RIGHT) continue;
+          else pd = DIR_NONE;
+          break;
 
-	    case T_NW:
-	      if (pd == DIR_DOWN) pd = DIR_LEFT;
-	      else if (pd == DIR_RIGHT) pd = DIR_UP;
-	      else pd = DIR_NONE;
-	      break;
+        case T_NW:
+          if (pd == DIR_DOWN) pd = DIR_LEFT;
+          else if (pd == DIR_RIGHT) pd = DIR_UP;
+          else pd = DIR_NONE;
+          break;
 
-	    case T_SW:
-	      if (pd == DIR_UP) pd = DIR_LEFT;
-	      else if (pd == DIR_RIGHT) pd = DIR_DOWN;
-	      else pd = DIR_NONE;
-	      break;
+        case T_SW:
+          if (pd == DIR_UP) pd = DIR_LEFT;
+          else if (pd == DIR_RIGHT) pd = DIR_DOWN;
+          else pd = DIR_NONE;
+          break;
 
-	    case T_NE:
-	      if (pd == DIR_DOWN) pd = DIR_RIGHT;
-	      else if (pd == DIR_LEFT) pd = DIR_UP;
-	      else pd = DIR_NONE;
-	      break;
+        case T_NE:
+          if (pd == DIR_DOWN) pd = DIR_RIGHT;
+          else if (pd == DIR_LEFT) pd = DIR_UP;
+          else pd = DIR_NONE;
+          break;
 
-	    case T_SE:
-	      if (pd == DIR_UP) pd = DIR_RIGHT;
-	      else if (pd == DIR_LEFT) pd = DIR_DOWN;
-	      else pd = DIR_NONE;
-	      break;
+        case T_SE:
+          if (pd == DIR_UP) pd = DIR_RIGHT;
+          else if (pd == DIR_LEFT) pd = DIR_DOWN;
+          else pd = DIR_NONE;
+          break;
 
         default: /* any non-wire stops electricity */
           pd = DIR_NONE;
@@ -1340,17 +1371,17 @@ static void postanimate(level * l, disamb * ctx,
         swaplist * t = remotes;
         remotes = remotes -> next;
 #ifdef AM
-	{ int x, y; where(t->target, x, y);
-	  printf("(was %d %d) ",
-		 ctx->serialat(x, y),
-		 ctx->serial);
-	  bool did = AFFECTI(t->target);
-	  printf("%d=%d,%d: %s %d %d\n", 
-		 t->target, x, y, did?"did":"not", 
-		 ctx->serialat(x, y), 
-		 ctx->serial);
-	  // AFFECTI(t->target);
-	}
+    { int x, y; where(t->target, x, y);
+      printf("(was %d %d) ",
+         ctx->serialat(x, y),
+         ctx->serial);
+      bool did = AFFECTI(t->target);
+      printf("%d=%d,%d: %s %d %d\n", 
+         t->target, x, y, did?"did":"not", 
+         ctx->serialat(x, y), 
+         ctx->serial);
+      // AFFECTI(t->target);
+    }
 #endif
         SWAPO(t->target);
         delete t;

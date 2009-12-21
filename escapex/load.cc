@@ -749,9 +749,10 @@ int loadlevelreal::changedir(string what, bool remember) {
       string dn = de->d_name;
 
       /* senseless to include current dir,
-	 CVS dirs... */
+	 CVS and SVN dirs... */
       if (!(dn == "." ||
 	    dn == "CVS" ||
+	    dn == ".svn" ||
 	    /* for now, don't even allow the user
 	       to go above the home directory,
 	       since we don't handle that
