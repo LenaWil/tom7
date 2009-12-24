@@ -17,11 +17,6 @@ http://sourceforge.net/project/downloading.php?groupname=optipng&filename=optipn
 ** EscapeMark
   Need benchmark for testing speed gains between e.g. PPC and Universal Binary on MacBook. (?)
 
-
-** Upgrade bug on osx
-*** Released zip file has actual directories/copies where symlinks should be. Not sure why this is, but it shouldn't be the case and the upgrade code should be able to unlink directories (renaming them away.)
-**** that's done, but not released.. (can people still upgrade? after trying twice?)
-
 * Server
 ** Limit the number of levels that a non-trusted user can upload in one day.
 

@@ -86,10 +86,10 @@ escapesetup.exe : .dummy ${RELEASEFILES} escape.nsi
 installer : escapesetup.exe
 
 zipup : escape-beta.zip
-	pscp escape-beta.zip tom@spacebar.org:/Y/escape/
+	pscp escape-beta.zip root@spacebar.org:/var/www/escape/
 
 installerup : escapesetup.exe
-	pscp escapesetup.exe tom@spacebar.org:/Y/escape/
+	pscp escapesetup.exe root@spacebar.org:/var/www/escape/
 
 # some rules for making objects, etc.
 
@@ -156,7 +156,7 @@ CURRENT : .dummy mkupgrade.exe
 	./mkupgrade.exe -v > CURRENT
 
 release : UPGRADE CURRENT
-	pscp -C ${RELEASEFILES} UPGRADE CURRENT tom@escape.spacebar.org:/Y/escape/win32/
+	pscp -C ${RELEASEFILES} UPGRADE CURRENT root@spacebar.org:/var/www/escape/win32/
 	rm -f UPGRADE CURRENT mkupgrade.exe
 
 clean :
@@ -254,7 +254,7 @@ CURRENT : .dummy escape.exe releasefiles.linux symlinks.linux deletefiles.linux 
 UPGRADE: CURRENT
 
 release : UPGRADE
-	scp -C ${RELEASEFILES} UPGRADE CURRENT tom@escape.spacebar.org:/Y/escape/linux/
+	scp -C ${RELEASEFILES} UPGRADE CURRENT root@spacebar.org:/var/www/escape/linux/
 	rm -f UPGRADE mkupgrade.exe
 
 zip : escape-beta.tar.gz
@@ -275,7 +275,7 @@ escape-beta.tar.gz : escape.exe
 	mv /tmp/escape-beta.tar.gz .
 
 zipup : escape-beta.tar.gz
-	scp escape-beta.tar.gz tom@escape.spacebar.org:/Y/escape/
+	scp escape-beta.tar.gz root@spacebar.org:/var/www/escape/
 
 source : escape-src.tar.bz2
 
@@ -291,8 +291,8 @@ escape-src.tar.bz2 :
 
 # XXX two copies.. better if we could make src.tar be a symlink to the versioned tar.
 sourceup : source CURRENT
-	scp escape-src.tar.bz2 tom@escape.spacebar.org:/Y/escape/source/
-	scp escape-src.tar.bz2 tom@escape.spacebar.org:/Y/escape/source/escape-src-`cat CURRENT`.tar.bz2
+	scp escape-src.tar.bz2 root@spacebar.org:/var/www/escape/source/
+	scp escape-src.tar.bz2 root@spacebar.org:/var/www/escape/source/escape-src-`cat CURRENT`.tar.bz2
 
 
 wc :
@@ -377,7 +377,7 @@ release : UPGRADE
 	rm -f UPGRADE CURRENT mkupgrade.executables
 
 releaseup : release
-	cd ../release && scp * tom@spacebar.org:/Y/escape/osx
+	cd ../release && scp * root@spacebar.org:/var/www/escape/osx
 
 zip : escape-beta-osx.zip
 
@@ -436,10 +436,11 @@ desktop : app
 
 escape-beta-osx.zip : app
 	cd /tmp && zip -r -9 -y escape-beta-osx.zip Escape.app
-	mv /tmp/escape-beta-osx.zip .
+	rm -f escape-beta-osx.zip
+	cp /tmp/escape-beta-osx.zip .
 
 zipup : escape-beta-osx.zip
-	scp escape-beta-osx.zip tom@spacebar.org:/Y/escape/
+	scp escape-beta-osx.zip root@spacebar.org:/var/www/escape/
 
 wc :
 	wc -l *.cc *.h
@@ -554,7 +555,7 @@ CURRENT : .dummy escape.exe releasefiles.linux symlinks.linux deletefiles.linux 
 UPGRADE: CURRENT
 
 release : UPGRADE
-	scp -C ${RELEASEFILES} UPGRADE CURRENT tom@escape.spacebar.org:/Y/escape/linux/
+	scp -C ${RELEASEFILES} UPGRADE CURRENT root@spacebar.org:/var/www/escape/linux/
 	rm -f UPGRADE mkupgrade.exe
 
 zip : escape-beta.tar.gz
@@ -575,7 +576,7 @@ escape-beta.tar.gz : escape.exe
 	mv /tmp/escape-beta.tar.gz .
 
 zipup : escape-beta.tar.gz
-	scp escape-beta.tar.gz tom@escape.spacebar.org:/Y/escape/
+	scp escape-beta.tar.gz root@spacebar.org:/var/www/escape/
 
 source : escape-src.tar.bz2
 
@@ -591,8 +592,8 @@ escape-src.tar.bz2 :
 
 # XXX two copies.. better if we could make src.tar be a symlink to the versioned tar.
 sourceup : source CURRENT
-	scp escape-src.tar.bz2 tom@escape.spacebar.org:/Y/escape/source/
-	scp escape-src.tar.bz2 tom@escape.spacebar.org:/Y/escape/source/escape-src-`cat CURRENT`.tar.bz2
+	scp escape-src.tar.bz2 root@spacebar.org:/var/www/escape/source/
+	scp escape-src.tar.bz2 root@spacebar.org:/var/www/escape/source/escape-src-`cat CURRENT`.tar.bz2
 
 
 wc :
