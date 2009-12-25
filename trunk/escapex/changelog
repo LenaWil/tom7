@@ -1,9 +1,15 @@
+2009-12-24  Tom 7  <twm@twm-macbookpro15.local>
+
+        * level.cc: Check more corner cases when loading levels, to
+          protect against particularly subversive authors. (Thanks
+          radiant!)
+
 2009-12-20  Tom 7  <Tom@WARPZONE>
 
         * animation.cc: Finally added teleport animation for both the
           player and daleks.
 
-        * server/upload.aa: Instituted a limit to th number of levels
+        * server/upload.aa: Instituted a limit to the number of levels
           that can be uploaded in a 24-hour period.
 
 2009-12-19  Tom 7  <Tom@WARPZONE>
