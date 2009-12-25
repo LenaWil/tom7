@@ -414,6 +414,8 @@ app : escape.exe
 	cp ${RELEASEFILES} /tmp/Escape.app/Contents/MacOS/
 	cp -R triage /tmp/Escape.app/Contents/MacOS/
 	cp -R official /tmp/Escape.app/Contents/MacOS/
+	# XXX not in release.
+	cp -R regression /tmp/Escape.app/Contents/MacOS/
 	mkdir /tmp/Escape.app/Contents/MacOS/mylevels
 	cp mylevels/index.esi /tmp/Escape.app/Contents/MacOS/mylevels/
 	mkdir /tmp/Escape.app/Contents/MacOS/OSX_build
