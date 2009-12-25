@@ -68,7 +68,6 @@ struct editor : public drawable {
   void pftimer();
   void pffile();
   void next_bombtimer();
-  void fixup_botorder();
   bool clearbot(int x, int y);
   bool moveplayersafe();
 

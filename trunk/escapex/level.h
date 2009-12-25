@@ -14,7 +14,7 @@ using namespace std;
 #define LEVEL_MAX_WIDTH  100
 #define LEVEL_MAX_AREA   2048
 #define LEVEL_MAX_ROBOTS 15
-#define LEVEL_BOMB_MAX_TIMER   10
+#define LEVEL_BOMB_MAX_TIMER 10
 
 typedef int dir;
 
@@ -513,11 +513,18 @@ struct level {
   static level * blank(int w, int h);
   static level * defboard(int w, int h);
 
-  /* correct a level (bad tiles, bad destinations). returns
-     true if the level was already sane. */
+  /* correct a level (bad tiles, bad destinations, overlapping
+     bots, etc.) for saving or loading. In-progress levels
+     (blocks on panels, lit bombs, etc.) are not considered
+     sane; only levels that one could create in the editor.
+     returns true if the level was already sane. */
   bool sanitize();
 
-  void destroy ();
+  /* Rearrange the bots in place to be in canonical order
+     (bombs must be last). */
+  void fixup_botorder();
+
+  void destroy();
 
   /* play to see if it wins, does not modify level or sol */
   static bool verify(level * lev, solution * s);

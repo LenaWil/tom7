@@ -431,7 +431,7 @@ void editor::erasebot() {
     changed = 1;
   }
 
-  fixup_botorder();
+  dr.lev->fixup_botorder();
   redraw ();
 }
 
@@ -518,7 +518,7 @@ void editor::sleepwake() {
     } else dr.message = "No bot there!";
   }
 
-  fixup_botorder();
+  dr.lev->fixup_botorder();
   redraw ();
 }
 
@@ -592,7 +592,7 @@ void editor::addbot(int x, int y, bot b) {
   { for(int z = 0; z < n; z ++) dr.lev->bota[z] = -1; }
 
 
-  fixup_botorder();
+  dr.lev->fixup_botorder();
   changed = 1;
 }
 
@@ -1889,53 +1889,6 @@ bool editor::getdest(int & x, int & y, string msg) {
   return 0;
 }
 
-/* puts bots in canonical order (bombs must be last) */
-void editor::fixup_botorder() {
-  /* other fields are constant */
-  struct bb {
-    bot t;
-    int i;
-  };
-
-  bb * bots = (bb*) malloc(sizeof(bb) * dr.lev->nbots);
-  {
-    int j = 0;
-    /* first put in non-bombs */
-    {
-      for(int i = 0; i < dr.lev->nbots; i ++) {
-	if (!level::isbomb(dr.lev->bott[i])) {
-	  bots[j].t = dr.lev->bott[i];
-	  bots[j].i = dr.lev->boti[i];
-	  j ++;
-	}
-      }
-    }
-
-    /* then bombs */
-    {
-      for(int i = 0; i < dr.lev->nbots; i ++) {
-	if (level::isbomb(dr.lev->bott[i])) {
-	  bots[j].t = dr.lev->bott[i];
-	  bots[j].i = dr.lev->boti[i];
-	  j ++;
-	}
-      }
-    }
-  }
-
-  /* now put them back. */
-  {
-    for(int i = 0; i < dr.lev->nbots; i ++) {
-      dr.lev->bott[i] = bots[i].t;
-      dr.lev->boti[i] = bots[i].i;
-      dr.lev->botd[i] = DIR_DOWN;
-      dr.lev->bota[i] = -1;
-    }
-  }
-
-  free(bots);
-}
-
 /* fix various things before playing or saving. */
 void editor::fixup () {
 
@@ -2003,7 +1956,10 @@ void editor::fixup () {
     dr.lev->nbots = bdi;
   }
 
-  fixup_botorder();
+  dr.lev->fixup_botorder();
+
+  // XXX At this point the level should always
+  // pass sanitize test. Check?
 
 }
 

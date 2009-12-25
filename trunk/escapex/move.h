@@ -28,25 +28,8 @@
    }
 */
 
-/* there are three basic kinds of robots as
-   respects their interaction with players
-   and each other.
-
-   Inert robots cannot push or share space
-   with any other robot or the player.
-    (but how is this possible re another
-     robot transporting atop it?)
-
-   Bots that treat other bots and the player
-   as invisible obstacles. These bots 
-   generally destroy anything that they land
-   on--meaning that they turn into broken
-   bots, which don't move and also kill
-   bots and players.
-
-   Bots that push other bots, or players,
-*/
-
+/* Capabilities of entities (players and bots). */
+   
 #ifndef GUYCAP
 # define CAP_ISPLAYER 1
 # define CAP_CANTELEPORT 2

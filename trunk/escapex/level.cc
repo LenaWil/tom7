@@ -120,23 +120,22 @@ void level::swapo(int idx) {
   flags[idx] = 
     
     /* panel bits */
-    ((flags[idx]&TF_HASPANEL) ? TF_OPANEL : TF_NONE) |
-    ((flags[idx]&TF_OPANEL) ? TF_HASPANEL : TF_NONE) |
+    ((flags[idx] & TF_HASPANEL) ? TF_OPANEL : TF_NONE) |
+    ((flags[idx] & TF_OPANEL) ? TF_HASPANEL : TF_NONE) |
 
     /* refinement */
-    ((flags[idx]&TF_RPANELL) ? TF_ROPANELL : TF_NONE) |
-    ((flags[idx]&TF_RPANELH) ? TF_ROPANELH : TF_NONE) |
+    ((flags[idx] & TF_RPANELL) ? TF_ROPANELL : TF_NONE) |
+    ((flags[idx] & TF_RPANELH) ? TF_ROPANELH : TF_NONE) |
 
     /* orefinement */
-    ((flags[idx]&TF_ROPANELL) ? TF_RPANELL : TF_NONE) |
-    ((flags[idx]&TF_ROPANELH) ? TF_RPANELH : TF_NONE) |
+    ((flags[idx] & TF_ROPANELL) ? TF_RPANELL : TF_NONE) |
+    ((flags[idx] & TF_ROPANELH) ? TF_RPANELH : TF_NONE) |
 
     /* erase old */
     (flags[idx] & ~(TF_HASPANEL | TF_OPANEL |
 		    TF_RPANELL | TF_RPANELH |
 		    TF_ROPANELL | TF_ROPANELH));
 }
-
 
 static tile realpanel(int f) {
   if (f & TF_RPANELH) {
@@ -333,12 +332,14 @@ bool level::sanitize() {
   bool was_sane = true;
   
   int len = w * h;
-
+  
+  /* XXX what to do with zero height and width levels? */
+  
   {
   for (int i = 0; i < len; i ++) {
     
     /* a destination outside the level */
-    if (dests[i] >= len) {
+    if (dests[i] < 0 || dests[i] >= len) {
       FSDEBUG printf("insane: dest out of range: %d\n", dests[i]);
       was_sane = false;
       dests[i] = 0;
@@ -357,10 +358,33 @@ bool level::sanitize() {
       otiles[i] = T_BLACK;
     }
 
-    /* FIXME: also flags */
-  }
-  }
+    // Determine the flags that should be set.
+    int expected_flags = TF_NONE;
+    if (ispanel(tiles[i])) {
+      expected_flags |= TF_HASPANEL;
+      switch (tiles[i]) {
+      case T_RPANEL: expected_flags |= TF_RPANELH | TF_RPANELL; break;
+      case T_GPANEL: expected_flags |= TF_RPANELH; break;
+      case T_BPANEL: expected_flags |= TF_RPANELL; break;
+      }
+    }
+    if (ispanel(otiles[i])) {
+      expected_flags |= TF_OPANEL;
+      switch (otiles[i]) {
+      case T_RPANEL: expected_flags |= TF_ROPANELH | TF_ROPANELL; break;
+      case T_GPANEL: expected_flags |= TF_ROPANELH; break;
+      case T_BPANEL: expected_flags |= TF_ROPANELL; break;
+      }
+    }
 
+    if (flags[i] != expected_flags) {
+      FSDEBUG printf("insane: expected flags at %d: %d but got %d\n", 
+		     i, expected_flags, flags[i]);
+      was_sane = false;
+      flags[i] = expected_flags;
+    }
+  }
+  }
 
   /* staring position outside the level */
   if (guyx >= w) { was_sane = false; guyx = w - 1; }
@@ -371,21 +395,24 @@ bool level::sanitize() {
 
   /* bots */
   {
-     if ((nbots > 0) && (!boti || !bott)) {
-       FSDEBUG printf("insane: non-zero bots but missing bot data\n");
-       was_sane = false;
-       nbots = 0;
-       free(boti);
-       free(bott);
-       boti = 0;
-       bott = 0;
-     }
-     
+    if ((nbots > 0) && (!boti || !bott)) {
+      FSDEBUG printf("insane: non-zero bots but missing bot data\n");
+      was_sane = false;
+      nbots = 0;
+      free(boti);
+      free(bott);
+      boti = 0;
+      bott = 0;
+    }
+    
+    /* First, make sure that all bots are within reason, not worrying
+       about them overlapping. */
     for(int i = 0; i < nbots; i++) {
       int x, y;
       where(boti[i], x, y);
-      /* XXX wrong, since it puts all bad bots
-	 on top of one another */
+
+      /* This might put bad bots on top of one another at position 0,
+	 but we delete them later. */
       if (x >= w || x < 0 || y >= h || y < 0) { 
 	FSDEBUG printf("insane: bot out of level\n");
 	was_sane = false; boti[i] = 0; 
@@ -395,23 +422,99 @@ bool level::sanitize() {
 	FSDEBUG printf("insane: too many bots, or bot index bad\n");
 	was_sane = false; bott[i] = B_DALEK; 
       }
+    }
 
-      /* bots shan't be on top of one another! */
-#if 0
-      for (int j = 0; j < nbots; j++) {
-	if (i != j && bot[i] == bot[j]) {
-	  FSDEBUG printf("insane: bot pile\n");
-	  was_sane = false; /* XXX repair ... */
+    /* Now delete any overlapping bots. */
+    for (int i = 0; i < nbots; i++) {
+      for (int j = i + 1; j < nbots; j++) {
+	if (boti[i] == boti[j]) {
+	  /* So delete bot at index j. Do this
+	     by swapping with the end and just
+	     resizing. */
+	  was_sane = false;
+	  int t = nbots - 1;
+	  int ti = boti[t];
+	  boti[t] = boti[j];
+	  boti[j] = ti;
+	  int td = botd[t];
+	  botd[t] = botd[j];
+	  botd[j] = td;
+	  bot tt = bott[t];
+	  bott[t] = bott[j];
+	  bott[j] = tt;
+	  int ta = bota[t];
+	  bota[t] = bota[j];
+	  bota[j] = ta;
+
+	  nbots--;
+	  /* And need to check bot j again, since it's
+	     different. */
+	  j--;
 	}
       }
-#endif
+    }
 
-      /* XXX don't allow bots like B_DELETED,
-	 B_BOMB_n, etc. */
+    /* Now, are the bots in noncanonical order? 
+       If there is a global inconsistency then there must
+       be a local one, so do that fast existence check.
+     */
+    for (int i = 0; i < nbots - 1; i++) {
+      if (isbomb(bott[i]) && !isbomb(bott[i + 1])) {
+	was_sane = false;
+	/* Preserves relative bot order. */
+	fixup_botorder();
+	break;
+      }
     }
   }
 
   return was_sane;
+}
+
+void level::fixup_botorder() {
+  /* other fields are constant */
+  struct bb {
+    bot t;
+    int i;
+  };
+
+  bb * bots = (bb*) malloc(sizeof(bb) * nbots);
+  {
+    int j = 0;
+    /* first put in non-bombs */
+    {
+      for(int i = 0; i < nbots; i ++) {
+	if (!isbomb(bott[i])) {
+	  bots[j].t = bott[i];
+	  bots[j].i = boti[i];
+	  j ++;
+	}
+      }
+    }
+
+    /* then bombs */
+    {
+      for(int i = 0; i < nbots; i ++) {
+	if (isbomb(bott[i])) {
+	  bots[j].t = bott[i];
+	  bots[j].i = boti[i];
+	  j ++;
+	}
+      }
+    }
+  }
+
+  /* now put them back. */
+  {
+    for(int i = 0; i < nbots; i ++) {
+      bott[i] = bots[i].t;
+      boti[i] = bots[i].i;
+      botd[i] = DIR_DOWN;
+      bota[i] = -1;
+    }
+  }
+
+  free(bots);
 }
 
 level * level::fromstring(string s, bool allow_corrupted) {
@@ -1031,14 +1134,15 @@ level * level::fromoldstring(string s) {
   /* otiles always floor */
 
   for(int j = 0; j < 180; j ++) {
-    n->dests[j] = 18 * (-1 + (int)s[j+180+180]) + (-1 + (int)s[j+180]);
+    n->dests[j] = 18 * (-1 + (int)s[j + 180 + 180]) + 
+      (-1 + (int)s[j + 180]);
   }
 
-  n->guyx = s[180+180+180] - 1;
-  n->guyy = s[180+180+180+1] - 1;
+  n->guyx = s[180 + 180 + 180] - 1;
+  n->guyy = s[180 + 180 + 180 + 1] - 1;
   n->guyd = DIR_DOWN;
 
-  n->title = s.substr(180+180+180+2, 25);
+  n->title = s.substr(180 + 180 + 180 + 2, 25);
 
   /* chop trailing spaces from author */
   int v;
@@ -1136,7 +1240,7 @@ level * level::blank(int w, int h) {
   for(int i = 0; i < w * h; i ++) {
     n->tiles[i]  = T_FLOOR;
     n->otiles[i] = T_FLOOR;
-    n->dests[i]  = 0; /* 0,0 */
+    n->dests[i]  = 0; /* 0, 0 */
     n->flags[i]  = 0;
   }
   
@@ -1151,13 +1255,13 @@ level * level::defboard(int w, int h) {
   /* top, bottom */
   for(int i = 0; i < w; i++) {
     n->tiles[i] = T_BLUE;
-    n->tiles[(h-1) * w + i] = T_BLUE;
+    n->tiles[(h - 1) * w + i] = T_BLUE;
   }
 
   /* left, right */
   for(int j = 0; j < h; j++) {
     n->tiles[j * w] = T_BLUE;
-    n->tiles[j * w + (w-1)] = T_BLUE;
+    n->tiles[j * w + (w - 1)] = T_BLUE;
   }
 
   return n;
@@ -1200,9 +1304,8 @@ bool level::verify(level * lev, solution * s) {
   bool won = l->play(s, moves);
 
   l->destroy();
-
   
-  return (won && moves == s->length);
+  return won && moves == s->length;
 }
 
 bool level::play_subsol(solution * s, int & moves, int start, int len) {
@@ -1306,5 +1409,4 @@ void level::resize(int neww, int newh) {
      as well as making any destinations point within
      the level */
   sanitize();
-
 }
