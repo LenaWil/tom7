@@ -5,8 +5,9 @@
    the server during synchronization. *)
 (* XXX Should generalize this to allow more than one high score per
    song. The only thing that's tricky is knowing when a client-side
-   record is good enough to send to the server, and there only mildly. *)
-structure Highscores (* XXX SIG *) =
+   record is good enough to send to the server, and there only mildly.
+   Just make the scores ref before be a list map. *)
+structure Highscores :> HIGHSCORES =
 struct
 
     exception Highscores of string
@@ -20,7 +21,10 @@ struct
        *)
     val HIGHSCORES = "highscores.hero"
 
-    fun highscores_url () = "http://t7es.spacebar.org/f/a/t7eshero/highscores"
+    fun highscores_url () = 
+        "http://spacebar.org/stuff/fakehighscores"
+        (* XXX *)
+        (* "http://t7es.spacebar.org/f/a/t7eshero/highscores" *)
 
     val scores = ref (SM.empty : (int * IntInf.int * string) SM.map)
     fun loadscores () =
@@ -44,32 +48,6 @@ struct
             ()
         end
 
-    (* get_url url callback
-       get the specified url from a remote host. Returned as a
-       string. 
-       callback is called periodically with the number of
-       bytes received so far and the total size, if known.
-
-       XXX obviously, not a real implementation yet
-       XXX needs a way to fail  .. option durr
-       *)
-    fun get_url (url : string) (callback : int * int option -> unit) : string =
-        (case url of
-             "http://t7eshero.spacebar.org/f/a/t7eshero/highscores" =>
-                 "44A49EACEB959A2FDE97672520CBEA2B8AE7F3BA  6  1234567  my%20band\n"
-           | url => 
-             let in
-                 callback (0, NONE);
-                 print ("GET " ^ url ^ "\n");
-                 callback (0, SOME 1000);
-                 print ("XXX: Unimplemented: HTTP fetches!\n");
-                 ("awesome   u    aaaaaaaaaaaaaaaa\n" ^
-                  "garbage   u    *\n" ^
-                  "cooool.txt  u  bbbbbbbbbbbbbbbb\n")
-                 before
-                 callback (1000, SOME 1000)
-             end)
-
     (* Is this performance worthy of prompting and uploading to the server? *)
     fun is_new_record (sid : Setlist.songid, (name : string, 
                                               { percent = _,
@@ -81,7 +59,7 @@ struct
           (* Only way to beat it is to get fewer misses. *)
           | SOME (mm, tt, nn) => misses < mm
 
-    fun send_scores parent (callback : string * int * int option -> unit) =
+    fun send_scores parent { progress, message } =
         let
             (* All local records. *)
             val loc : (Setlist.songid * 
@@ -97,22 +75,29 @@ struct
         end
 
     (* get and write a new high scores file. *)
-    fun update_with parent (callback : string * int * int option -> unit) =
-        let
-            val scoredata = get_url (highscores_url ()) (fn (a, b) =>
-                                                         callback ("high scores", a, b))
-        in
-            StringUtil.writefile HIGHSCORES scoredata;
-            loadscores ();
-            (* When updating, also send our new scores *)
-            send_scores parent callback
-        end     
+    fun update_with parent { progress : string * int * int option -> unit,
+                             message : string -> unit } =
+        case HTTP.get_url (highscores_url ()) (fn (got, total) =>
+                                               progress ("high scores", got, total)) of
+            HTTP.Success scoredata =>
+                let in
+                    StringUtil.writefile HIGHSCORES scoredata;
+                    loadscores ();
+                    message ("Read " ^ Int.toString (SM.numItems (!scores)) ^ " high scores.");
+
+                    (* When updating, also send our new scores *)
+                    send_scores parent { progress = progress, message = message }
+                end
+          | HTTP.NetworkFailure s => message ("Network failure: " ^ s)
+          | HTTP.Rejected s => message ("Couldn't update high scores: " ^ s)
 
     structure TS = TextScroll(Sprites.FontSmall)
 
     fun update () =
         let
-            (* XXX common with Update *)
+            (* XXX common with Update. Lots of this is pointlessly complicated
+               because it is for fetching multiple files, but there is just
+               one file, which is the high score server. *)
             (* Gotta turn off sound because we'll freeze otherwise during
                HTTP requests *)
             val () = Sound.all_off ()
@@ -123,7 +108,7 @@ struct
                                height = Sprites.height,
                                bgcolor = SOME (SDL.color (0w0, 0w0, 0w0, 0w255)),
                                bordercolor = NONE }
-                
+
             fun saysame file s = (if file = !lf
                                   then TS.rewrite
                                   else (lf := file; TS.write)) ts s
@@ -144,9 +129,13 @@ struct
               | show_progress (file, i, SOME t) = saysame file ("Get " ^ file ^ " @ " ^
                                                                 Int.toString i ^ "/" ^
                                                                 Int.toString t ^ "\n")
-            fun show_draw x = (show_progress x; redraw ())
+            fun message s = (lf := ""; TS.write ts s)
+            fun thenredraw f x = (f x; redraw ())
         in
-            update_with this show_draw
+            (* XXX should probably prompt with failures? *)
+            update_with this { progress = thenredraw show_progress,
+                               message = thenredraw message };
+            Prompt.info this "exiting highscores.update"
         end
 
 end

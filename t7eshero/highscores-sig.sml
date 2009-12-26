@@ -7,4 +7,7 @@ sig
        (Same format as entry in Profiles.local_records.) *)
     val is_new_record : Setlist.songid * (string * Record.record * IntInf.int) -> bool
 
+    (* Synchronize our high scores with the server's. *)
+    val update : unit -> unit
+
 end

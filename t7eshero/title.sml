@@ -1,3 +1,5 @@
+(* The title is the outermost loop of the game, from which we select
+   the song to play, enter configuration/update/wardrobe mode, etc. *)
 functor TitleFn(val screen : SDL.surface) :> TITLE =
 struct
 
@@ -31,7 +33,9 @@ struct
         val dash = [[I], [I], [I], []]
         val gap : Womb.light list list = List.tabulate(10, fn _ => nil)
     in
-
+        (* Signals T-O-M in morse code on-board only (to confirm that it's
+           working), but keep the hat itself quiet until activated by
+           the setlist event. *)
         val womb_pattern =
             Womb.pattern 0w60
             (dash @ gap @
@@ -103,11 +107,11 @@ struct
                     (fn (label, evt) =>
                      (case label of
                           Match.Music (inst, _) =>
-                     (case evt of
-                          MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
-                        | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, vel, inst)
-                        | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
-                        | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
+                            (case evt of
+                                 MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
+                               | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, vel, inst)
+                               | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
+                               | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
                         | _ => ()))
                     nows
                 end
@@ -121,8 +125,8 @@ struct
                     (if !humpframe < 0
                      then (humpframe := 0; humprev := false)
                      else ());
-                    (if !humpframe >= (Vector.length Sprites.humps)
-                     then (humpframe := (Vector.length Sprites.humps - 1); 
+                    (if !humpframe >= Vector.length Sprites.humps
+                     then (humpframe := Vector.length Sprites.humps - 1;
                            humprev := true)
                      else ());
                         
@@ -181,6 +185,8 @@ struct
                                (case e of
                                     E_KeyDown { sym = SDLK_UP } => move_up ()
                                   | E_KeyDown { sym = SDLK_DOWN } => move_down ()
+                                  (* XXX temporary hook *)
+                                  | E_KeyDown { sym = SDLK_h } => Highscores.update ()
                                   | E_KeyDown { sym = SDLK_ENTER } => select Input.keyboard
                                   (* Might be able to reach configure menu with unconfigured joystick.. *)
                                   | E_JoyDown { button, which, ... } => select (Input.joy which)
@@ -544,6 +550,5 @@ struct
                     what
                 end
         end
-
 
 end
