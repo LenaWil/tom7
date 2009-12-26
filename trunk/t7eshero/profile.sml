@@ -45,7 +45,7 @@ struct
           | SOME s => s
 
 
-    val (songs_ulist, songs_unlist) = Serialize.list_serializer "\n" #"\\"
+    val (songs_ulist, songs_unlist) = (Serialize.ulistnewline, Serialize.unlistnewline)
     fun rsfromstring ss =
         map (fn s =>
              case String.tokens QQ s of
@@ -91,7 +91,8 @@ struct
       | _ => error "bad profile"
 
 
-    val (profiles_ulist, profiles_unlist) = Serialize.list_serializer "\n--------\n" #"$"
+    val (profiles_ulist, profiles_unlist) = 
+        Serialize.list_serializerex (fn #"\r" => false | _ => true) "\n--------\n" #"$"
     fun save () = StringUtil.writefile FILENAME (profiles_ulist (map ptostring (!profiles)))
     fun load () =
         let

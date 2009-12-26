@@ -35,7 +35,7 @@ struct
       | mfromstring "PO" = Hero.Pokey
       | mfromstring "AS" = Hero.AuthenticStrummer
       | mfromstring "AH" = Hero.AuthenticHammer
-      | mfromstring _ = raise Record "bad medal"
+      | mfromstring s = raise Record ("bad medal [" ^ s ^ "]")
 
     fun tostring { percent, misses, medals } =
         Int.toString percent ^ "?" ^ Int.toString misses ^ "?" ^
