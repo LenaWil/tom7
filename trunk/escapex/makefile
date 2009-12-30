@@ -279,21 +279,21 @@ zipup : escape-beta.tar.gz
 
 source : escape-src.tar.bz2
 
-# 	cd /usr0/src/escape-src && find . -name CVS > /usr0/src/escape-src/.tarignore
+# 	cd /usr/src/escape-src && find . -name CVS > /usr/src/escape-src/.tarignore
 #       this includes binaries for OSX...
 escape-src.tar.bz2 :
-	cd /usr0/src/escape-src && cvs up -dP
-	rm -rf /usr0/src/escape-src/web /usr0/src/escape-src/*.es{p,d}
-	cd /usr0/src/escape-src && chmod a-x `find . -name "*.h"` `find . -name "*.cc"` `find . -name "*.pack"` `find . -name "*.esx"` `find . -name "*.m"`
-	cd /usr0/src && tar -c escape-src --exclude "*CVS*" --exclude "*.svn*" --exclude "*.cvsignore" > /tmp/escape-src.tar
+	cd /usr/src/escape-src && svn up
+	rm -rf /usr/src/escape-src/web /usr/src/escape-src/*.es{p,d}
+	cd /usr/src/escape-src && chmod a-x `find . -name "*.h"` `find . -name "*.cc"` `find . -name "*.pack"` `find . -name "*.esx"` `find . -name "*.m"`
+	cd /usr/src && tar -c escape-src --exclude "*CVS*" --exclude "*.svn*" --exclude "*.cvsignore" > /tmp/escape-src.tar
 	cd /tmp && bzip2 escape-src.tar
 	mv /tmp/escape-src.tar.bz2 .
 
-# XXX two copies.. better if we could make src.tar be a symlink to the versioned tar.
+# assumes we're running it on spacebar
 sourceup : source CURRENT
-	scp escape-src.tar.bz2 root@spacebar.org:/var/www/escape/source/
-	scp escape-src.tar.bz2 root@spacebar.org:/var/www/escape/source/escape-src-`cat CURRENT`.tar.bz2
-
+	cp escape-src.tar.bz2 /var/www/escape/source/escape-src`cat CURRENT`.tar.bz2
+	rm -rf /var/www/escape/source/escape-src.tar.bz2
+	ln -s escape-src.tar.bz2 /var/www/escape/source/escape-src`cat CURRENT`.tar.bz2
 
 wc :
 	wc -l *.cc *.h
