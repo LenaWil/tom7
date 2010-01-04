@@ -26,6 +26,9 @@ struct
         (* XXX *)
         (* "http://t7es.spacebar.org/f/a/t7eshero/highscores" *)
 
+    fun addhighscores_url () =
+        "http://spacebar.org/f/a/t7eshero/addhighscores"
+
     val scores = ref (SM.empty : (int * IntInf.int * string) SM.map)
     fun loadscores () =
         let
@@ -70,7 +73,7 @@ struct
             if List.null loc
             then Prompt.info parent "High scores synchronized!"
             else
-                (* Send to server.. *)
+                (* HERE Send to server.. *)
                 raise Highscores "unimplemented"
         end
 
