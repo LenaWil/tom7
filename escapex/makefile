@@ -9,6 +9,7 @@ ifndef OSX
 
 # On windows I have switched to mingw (export MINGW=true; see below),
 # so Visual C++ may stop working as it drifts out of date, sorry.
+# I will delete it soon.
 
 SDLVERSION=1.2.11
 
@@ -137,9 +138,6 @@ escape.exe : main.obj level.obj sdlutil.obj play.obj font.obj dirent.obj load.ob
 replace.exe : replace-console.obj util-console.obj
 	${LINKCMDLINE} /out:$@ $^ user32.lib
 
-convert.exe : convert-console.obj level-console.obj util-console.obj dirent-console.obj
-	${LINKCMDLINE} /out:$@ $^
-
 packpng.exe : util-console.obj font-console.obj level-console.obj sdlutil-console.obj packpng-console.obj pngsave-console.obj winmain-console.obj
 	${LINKCMDLINE} /out:$@ $^ libpng13.lib
 
@@ -160,7 +158,7 @@ release : UPGRADE CURRENT
 	rm -f UPGRADE CURRENT mkupgrade.exe
 
 clean :
-	rm -f *.obj convert.exe escape.exe *.tmp *.delme *.pdb *.ilk *.o *.idb *.plg *.opt replace.exe *.ncb *.aps packpng.exe screenshot.exe replace.exe mkupgrade.exe version.exe
+	rm -f *.obj escape.exe *.tmp *.delme *.pdb *.ilk *.o *.idb *.plg *.opt replace.exe *.ncb *.aps packpng.exe screenshot.exe replace.exe mkupgrade.exe version.exe
 	touch mv_is_dumb~
 	touch .\#mv_is_dumb
 	mv -f *~ .\#* attic
@@ -225,10 +223,6 @@ sound_load.h : sound.pack packsound.cc
 screenshot.exe : draw-console.o pngsave-console.o level-console.o font-console.o util-console.o sdlutil-console.o screenshot-console.o animation-console.o sound-console.o message-console.o drawable-console.o progress-console.o
 	g++ -g -static -o screenshot.exe $^ -lSDL_image `sdl-config --static-libs` -ltiff -lpng -ljpeg -lz -lvorbisfile -lvorbis -logg
 
-# XX deprecated
-convert : convert.o level.o util.o
-	g++ -static -lSDL_image -lSDL_net -lSDL_mixer `sdl-config --libs` -ltiff -lpng -ljpeg -lz -lvorbisfile -lvorbis -logg $^ -o convert
-
 .dummy :
 
 version : .dummy
@@ -254,7 +248,7 @@ CURRENT : .dummy escape.exe releasefiles.linux symlinks.linux deletefiles.linux 
 UPGRADE: CURRENT
 
 release : UPGRADE
-	scp -C ${RELEASEFILES} UPGRADE CURRENT root@spacebar.org:/var/www/escape/linux/
+	pscp -C ${RELEASEFILES} UPGRADE CURRENT root@spacebar.org:/var/www/escape/linux/
 	rm -f UPGRADE mkupgrade.exe
 
 zip : escape-beta.tar.gz
@@ -414,8 +408,6 @@ app : escape.exe
 	cp ${RELEASEFILES} /tmp/Escape.app/Contents/MacOS/
 	cp -R triage /tmp/Escape.app/Contents/MacOS/
 	cp -R official /tmp/Escape.app/Contents/MacOS/
-	# XXX not in release.
-	cp -R regression /tmp/Escape.app/Contents/MacOS/
 	mkdir /tmp/Escape.app/Contents/MacOS/mylevels
 	cp mylevels/index.esi /tmp/Escape.app/Contents/MacOS/mylevels/
 	mkdir /tmp/Escape.app/Contents/MacOS/OSX_build
@@ -454,7 +446,7 @@ clean :
 # end OSX makefile
 endif
 
-# experimental mingw makefile
+# mingw makefile (alternative to Visual C++ on win32; becoming default soon)
 ifdef MINGW
 
 OFILES = main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o icon.o
@@ -528,10 +520,6 @@ packpng.exe : util-console.o font-console.o level-console.o sdlutil-console.o pa
 screenshot.exe : draw-console.o pngsave-console.o level-console.o font-console.o util-console.o sdlutil-console.o screenshot-console.o animation-console.o sound-console.o message-console.o drawable-console.o progress-console.o
 	g++ -g -static -o screenshot.exe $^ -lSDL_image `sdl-config --static-libs` -ltiff -lpng -ljpeg -lz
 
-# XX deprecated
-convert : convert.o level.o util.o
-	g++ -static -lSDL_image -lSDL_net `sdl-config --libs` -ltiff -lpng -ljpeg -lz $^ -o convert
-
 .dummy :
 
 version : .dummy
@@ -540,25 +528,26 @@ version : .dummy
 	make clean
 	make escape.exe
 
-LIBFILES=libjpeg.so.62 libogg.so.0 libpng.so.2 libSDL-1.2.so.0 libSDL_net-1.2.so.0 libtiff.so.3 libvorbisfile.so.3 libvorbis.so.0 libz.so.1 libartsc.so.0 libesd.so.0
-RELEASEFILES=escape.exe font.png fontsmall.png tiles.png tileutil.png title.png icon.png escape.txt COPYING changelog animation.png splash.png ${LIBFILES}
+RELEASEFILES=escape.exe replace.exe font.png fontsmall.png tiles.png tileutil.png title.png icon.png escape.txt SDL.dll SDL_image.dll SDL_net.dll jpeg.dll libpng13.dll zlib1.dll COPYING changelog animation.png SDL_mixer.dll splash.png
 
-releasefiles.linux : ${RELEASEFILES}
-	echo ${RELEASEFILES} > releasefiles.linux
+releasefiles.win32 : ${RELEASEFILES}
+	echo ${RELEASEFILES} > releasefiles.win32
 
 mkupgrade.exe : mkupgrade.cc md5.cc
-	g++ -DLINUX mkupgrade.cc md5.cc -o mkupgrade.exe
+	g++ -DWIN32 mkupgrade.cc md5.cc -o mkupgrade.exe
 
-CURRENT : .dummy escape.exe releasefiles.linux symlinks.linux deletefiles.linux mkupgrade.exe
+CURRENT : .dummy escape.exe releasefiles.win32 symlinks.win32 deletefiles.win32 mkupgrade.exe
 	strip escape.exe
-	./mkupgrade.exe releasefiles.linux symlinks.linux deletefiles.linux > UPGRADE
+	./mkupgrade.exe releasefiles.win32 symlinks.win32 deletefiles.win32 > UPGRADE
 	./mkupgrade.exe -v > CURRENT
 
 UPGRADE: CURRENT
 
 release : UPGRADE
-	scp -C ${RELEASEFILES} UPGRADE CURRENT root@spacebar.org:/var/www/escape/linux/
-	rm -f UPGRADE mkupgrade.exe
+	echo "Note, use of pscp and scp don't seem to work when making under mingw,"
+	echo "so you want to use cygwin bash for this."
+	pscp -C ${RELEASEFILES} UPGRADE CURRENT root@spacebar.org:/var/www/escape/win32/
+	rm -f UPGRADE CURRENT mkupgrade.exe
 
 zip : escape-beta.tar.gz
 
@@ -578,7 +567,9 @@ escape-beta.tar.gz : escape.exe
 	mv /tmp/escape-beta.tar.gz .
 
 zipup : escape-beta.tar.gz
-	scp escape-beta.tar.gz root@spacebar.org:/var/www/escape/
+	echo "Note, use of pscp and scp don't seem to work when making under mingw,"
+	echo "so you want to use cygwin bash for this."
+	pscp escape-beta.tar.gz root@spacebar.org:/var/www/escape/
 
 source : escape-src.tar.bz2
 
@@ -594,8 +585,10 @@ escape-src.tar.bz2 :
 
 # XXX two copies.. better if we could make src.tar be a symlink to the versioned tar.
 sourceup : source CURRENT
-	scp escape-src.tar.bz2 root@spacebar.org:/var/www/escape/source/
-	scp escape-src.tar.bz2 root@spacebar.org:/var/www/escape/source/escape-src-`cat CURRENT`.tar.bz2
+	echo "Note, use of pscp and scp don't seem to work when making under mingw,"
+	echo "so you want to use cygwin bash for this."
+	pscp escape-src.tar.bz2 root@spacebar.org:/var/www/escape/source/
+	pscp escape-src.tar.bz2 root@spacebar.org:/var/www/escape/source/escape-src-`cat CURRENT`.tar.bz2
 
 
 wc :

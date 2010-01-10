@@ -319,7 +319,7 @@ string md5::hashf(FILE * f) {
 
 string md5::ascii(string s) {
 
-  char * hd = "0123456789abcdef";
+  const char * hd = "0123456789abcdef";
   /* XX require specific length? */
   unsigned int sz = s.length();
 
