@@ -62,7 +62,7 @@ llt.svg : lltsvg pac.kml pac2.kml
 
 # MAKETHUMB=convert -scale 400
 # MAKETHUMB="/c/program files/inkscape/inkscape"
-MAKETHUMB=rsvg/rsvg-convert --keep-aspect-ratio --width=400
+MAKETHUMB=rsvg/rsvg-convert --keep-aspect-ratio --width=500
 MAKEPDF=rsvg/rsvg-convert -f pdf
 
 # Convert SVGs to thumbnails for webpage
@@ -120,5 +120,6 @@ clean :
 	rm -f _pactom.kml release/pactom.kmz release/*.size *~
 
 # clean final generated files too
+# XXX this should kill release dir right?
 veryclean : clean
-	rm -f shortest.kml shortest.svg map.svg
+	rm -f shortest.kml shortest.svg map.svg kmlcat tosvg shortestpaths colorize tosvg elevsvg makepoints radial lltsvg
