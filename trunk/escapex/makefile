@@ -232,7 +232,11 @@ version : .dummy
 	make escape.exe
 
 LIBFILES=libjpeg.so.62 libogg.so.0 libpng.so.2 libSDL-1.2.so.0 libSDL_net-1.2.so.0 libtiff.so.3 libvorbisfile.so.3 libvorbis.so.0 libz.so.1 libartsc.so.0 libesd.so.0
-RELEASEFILES=escape.exe font.png fontsmall.png tiles.png tileutil.png title.png icon.png escape.txt COPYING changelog animation.png splash.png ${LIBFILES}
+
+# XXX Unfortunately, no machine on which to build linux binaries in 2010.
+RELEASEFILES=
+# RELEASEFILES=escape.exe font.png fontsmall.png tiles.png tileutil.png title.png icon.png escape.txt COPYING changelog animation.png splash.png ${LIBFILES}
+
 
 releasefiles.linux : ${RELEASEFILES}
 	echo ${RELEASEFILES} > releasefiles.linux
@@ -285,9 +289,9 @@ escape-src.tar.bz2 :
 
 # assumes we're running it on spacebar
 sourceup : source CURRENT
-	cp escape-src.tar.bz2 /var/www/escape/source/escape-src`cat CURRENT`.tar.bz2
+	cp escape-src.tar.bz2 /var/www/escape/source/escape-src-`cat CURRENT`.tar.bz2
 	rm -rf /var/www/escape/source/escape-src.tar.bz2
-	ln -s escape-src.tar.bz2 /var/www/escape/source/escape-src`cat CURRENT`.tar.bz2
+	ln -s /var/www/escape/source/escape-src-`cat CURRENT`.tar.bz2 escape-src.tar.bz2
 
 wc :
 	wc -l *.cc *.h
