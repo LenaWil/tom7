@@ -53,6 +53,13 @@ RPMs (both libs and devel), and install. You may need to install
 libogg and libvorbis (http://www.vorbis.com/download_unix.psp) for
 SDL_mixer and libpng for SDL_image.
 
+Since it's such a pain, I started collecting the names of packages
+that you need to fetch for a Debian/Ubuntu system, but good luck:
+
+apt-get install libvorbis-dev
+apt-get install libsdl-mixer1.2-dev libsdl-mixer1.2
+
+
 
 Type (if you are using bash):
 
