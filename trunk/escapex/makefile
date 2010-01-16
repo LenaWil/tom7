@@ -291,7 +291,7 @@ escape-src.tar.bz2 :
 sourceup : source CURRENT
 	cp escape-src.tar.bz2 /var/www/escape/source/escape-src-`cat CURRENT`.tar.bz2
 	rm -rf /var/www/escape/source/escape-src.tar.bz2
-	ln -s /var/www/escape/source/escape-src-`cat CURRENT`.tar.bz2 escape-src.tar.bz2
+	ln -s escape-src-`cat CURRENT`.tar.bz2 /var/www/escape/source/escape-src.tar.bz2
 
 wc :
 	wc -l *.cc *.h
