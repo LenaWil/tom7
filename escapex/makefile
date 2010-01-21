@@ -281,7 +281,8 @@ source : escape-src.tar.bz2
 #       this includes binaries for OSX...
 escape-src.tar.bz2 :
 	cd /usr/src/escape-src && svn up
-	rm -rf /usr/src/escape-src/web /usr/src/escape-src/*.es{p,d}
+	rm -rf /usr/src/escape-src/web
+	rm -rf /usr/src/escape-src/*.esp /usr/src/escape-src/*.esd
 	cd /usr/src/escape-src && chmod a-x `find . -name "*.h"` `find . -name "*.cc"` `find . -name "*.pack"` `find . -name "*.esx"` `find . -name "*.m"`
 	cd /usr/src && tar -c escape-src --exclude "*CVS*" --exclude "*.svn*" --exclude "*.cvsignore" > /tmp/escape-src.tar
 	cd /tmp && bzip2 escape-src.tar
