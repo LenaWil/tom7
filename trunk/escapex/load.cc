@@ -382,16 +382,15 @@ struct loadlevelreal : public loadlevel {
 
 };
 
-loadlevelreal::sortstyle loadlevelreal :: sortby = loadlevelreal::SORT_DATE;
-string loadlevelreal :: lastdir;
-string loadlevelreal :: lastfile;
+loadlevelreal::sortstyle loadlevelreal::sortby = loadlevelreal::SORT_DATE;
+string loadlevelreal::lastdir;
+string loadlevelreal::lastfile;
 
-loadlevel * loadlevel :: create(player * p, string dir,
-				bool td, bool ac) {
+loadlevel * loadlevel::create(player * p, string dir, bool td, bool ac) {
   return loadlevelreal::create (p, dir, td, ac);
 }
 
-loadlevel :: ~loadlevel () {}
+loadlevel::~loadlevel () {}
 
 void loadlevelreal::select_lastfile() {
   for(int i = 0; i < sel->number; i ++) {
@@ -621,7 +620,7 @@ loadlevelreal * loadlevelreal::create(player * p, string default_dir,
 }
 
 
-string loadlevelreal :: selectlevel () {
+string loadlevelreal::selectlevel () {
   return loop();
 }
 

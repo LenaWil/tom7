@@ -96,7 +96,7 @@ void playerdb_::insertmenu(int start) {
   sel->items[start++].kind = K_IMPORT;
 }
 
-void pdbentry::draw (int x, int y, bool selected) {
+void pdbentry::draw(int x, int y, bool selected) {
 
   int ix = x + 4;
   int iy = y + 4;
@@ -443,7 +443,7 @@ player * playerdb_::chooseplayer() {
   return 0;
 }
 
-void playerdb_ :: promptnew () {
+void playerdb_::promptnew() {
   /* XXX could default to getenv(LOGNAME) on linux */
   string ssss = safeify(prompt::ask(0,
 				    "Enter name for new player: "));
@@ -461,7 +461,7 @@ void playerdb_ :: promptnew () {
    backups? */
 /* XXX this would be much nicer if it actually let
    you browse the directory for a player file */
-void playerdb_ :: promptimport () {
+void playerdb_::promptimport() {
 #if 0
   prompt * pp = prompt::create();
   extent<prompt> ep(pp);
@@ -502,6 +502,6 @@ void playerdb_ :: promptimport () {
   sel->redraw();
 }
 
-playerdb * playerdb :: create() {
-  return playerdb_ :: create();
+playerdb * playerdb::create() {
+  return playerdb_::create();
 }

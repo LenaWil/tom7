@@ -110,7 +110,7 @@ struct upgradereal : public upgrader {
 };
 
 
-upgrader * upgrader :: create(player * p) {
+upgrader * upgrader::create(player * p) {
   return upgradereal::create(p);
 }
 

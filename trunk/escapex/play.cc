@@ -380,7 +380,7 @@ struct bookmarkitem : public menuitem {
 };
 
 
-void preal :: drawmenu() {
+void preal::drawmenu() {
   int showw = (screen->w / TILEW) - 1;
 
   /* could be showw + 1 */
@@ -443,7 +443,7 @@ void preal :: drawmenu() {
   
 }
 
-void preal :: draw() {
+void preal::draw() {
   dr.setscroll();
 
   Uint32 color = 
@@ -495,7 +495,7 @@ void preal :: draw() {
   // dr.drawextra();
 }
 
-playstate preal :: curstate() {
+playstate preal::curstate() {
   int unused;
   dir unusedd;
   if (solpos != 0 && dr.lev->isdead(unused, unused, unusedd)) 
@@ -505,19 +505,19 @@ playstate preal :: curstate() {
   else return STATE_OKAY;
 }
 
-void preal :: redraw () {
+void preal::redraw() {
   draw();
   SDL_Flip(screen);
 }
 
-void preal:: screenresize () {
+void preal::screenresize() {
   dr.width = screen->w - dr.posx;
   dr.height = screen->h - dr.posy;
 }
 
 void preal::videoresize(SDL_ResizeEvent * eventp) {
-  screen = sdlutil::makescreen(eventp->w, 
-			       eventp->h);
+  screen = sdlutil::makescreen(eventp->w,
+ 			       eventp->h);
   screenresize();
   redraw();
 }
@@ -1384,6 +1384,8 @@ playresult preal::doplay_save(player * plr, level * start,
 	SDL_ResizeEvent * eventp = (SDL_ResizeEvent*)&event;
 	videoresize(eventp);
 	/* sync size of dirty buffer */
+	/* XXX move this into member so that we can do it in
+	   screenresize and use handle_video_events. */
 	dirty->matchscreen();
 	break;
       }

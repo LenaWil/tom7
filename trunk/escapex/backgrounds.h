@@ -18,6 +18,7 @@ struct backgrounds {
 			     float gradient_hue);
 
   static const float blueish;
+  static const float purpleish;
 
  private:
   backgrounds();

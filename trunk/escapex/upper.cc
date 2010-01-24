@@ -116,13 +116,13 @@ struct upreal : public upper {
 
 };
 
-upper * upper :: create(http * h, textscroll * t,
-			drawable * d, string f) {
+upper * upper::create(http * h, textscroll * t,
+		      drawable * d, string f) {
   return upreal::create(h, t, d, f);
 }
 
-upreal * upreal :: create(http * h, textscroll * t,
-			  drawable * d, string f) {
+upreal * upreal::create(http * h, textscroll * t,
+			drawable * d, string f) {
   upreal * ur = new upreal();
   ur->hh = h;
   ur->tx = t;
@@ -134,7 +134,7 @@ upreal * upreal :: create(http * h, textscroll * t,
   return ur;
 }
 
-void upreal :: init () {
+void upreal::init () {
   /* initialize 'olds' and 'contents' */
 
   olds = oldtable::create(HASHSIZE);
@@ -156,7 +156,7 @@ void upreal :: init () {
 
 }
 
-void upreal :: savedir(string d, string i) {
+void upreal::savedir(string d, string i) {
 
   /* XXX: could fail if d is a file. In this
      case we're sort of in trouble, since we
@@ -172,7 +172,7 @@ void upreal :: savedir(string d, string i) {
 
 }
 
-void upreal :: insertdir(string src) {
+void upreal::insertdir(string src) {
   DIR * d = opendir(src.c_str());
     
   say((string)YELLOW"insertdir " + src + POP);
@@ -212,7 +212,7 @@ void upreal :: insertdir(string src) {
 }
 
 
-void upreal :: destroy () {
+void upreal::destroy () {
 
   stringlist::diminish(newlistf);
   stringlist::diminish(newlistm);
@@ -223,8 +223,8 @@ void upreal :: destroy () {
   delete this;
 }
 
-bool upreal :: setfile(string f, string md, ratestatus votes,
-		       int date, int speedrecord, int owner) {
+bool upreal::setfile(string f, string md, ratestatus votes,
+		     int date, int speedrecord, int owner) {
 
   say((string)"setfile(" + f + (string)", " 
       GREY + md + (string)POP ")", true);
@@ -336,7 +336,7 @@ static void deleteif(oldentry * oe, int dummy_param) {
   }
 }
 
-bool upreal :: commit() {
+bool upreal::commit() {
 
   say(YELLOW " ======= " WHITE " commit phase " POP " ======= " POP);
 

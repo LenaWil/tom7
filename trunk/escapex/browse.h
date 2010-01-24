@@ -20,7 +20,7 @@
 struct browse : public drawable {
 
   static browse * create(bool allow_corrupted = false);
-  virtual ~browse();
+  virtual ~browse() {}
   virtual void destroy() = 0;
 
   /* Display the browser modally until the user selects a level;

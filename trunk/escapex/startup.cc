@@ -24,12 +24,12 @@
    based on that system's conventions.
 */
 #ifndef MULTIUSER
- string startup :: self;
+ string startup::self;
 #endif
 
 /* copy (or symlink) all levels (recursively) into the current directory. */
 /* (no trailing / on path) */
-int startup :: install_levels (string path) {
+int startup::install_levels(string path) {
   DIR * d = opendir(path.c_str());
   if (!d) return 0;
   dirent * de;
@@ -66,7 +66,7 @@ int startup :: install_levels (string path) {
   return 1;
 }
 
-int startup :: setdir (int argc, char ** argv) {
+int startup::setdir (int argc, char ** argv) {
 # ifdef MULTIUSER
 #  ifdef LINUX
 

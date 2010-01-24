@@ -6,6 +6,7 @@
 #include "chars.h"
 
 const float backgrounds::blueish = 178.0f;
+const float backgrounds::purpleish = 260.0f; // 247.0f;
 
 static Uint32 hueish(SDL_Surface * surf, float base_hue) {
   float h = base_hue + (util::randfrac() * (233.0f - 178.0f));
@@ -48,7 +49,7 @@ void backgrounds::gradientblocks(SDL_Surface *& surf,
   for(int y = 0; y < 1 + h / (TILEW >> 1); y ++)
     for(int x = 0; x < 1 + w / (TILEH >> 1); x ++) {
       drawing::drawtile(x * (TILEH >> 1), y * (TILEW >> 1),
-			((x + y) & 1) ? T_BLUE : T_GREY,
+			((x + y) & 1) ? tile_white : tile_black,
 			1, surf);
     }
 

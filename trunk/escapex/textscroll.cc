@@ -5,9 +5,9 @@
 
 #define BACKLOG 256
 
-struct tsreal : public textscroll {
+struct textscroll_ : public textscroll {
 
-  static tsreal * create(font * f);
+  static textscroll_ * create(font * f);
   virtual void destroy();
   virtual void say(string s);
   virtual void unsay();
@@ -18,7 +18,7 @@ struct tsreal : public textscroll {
 
   virtual void drawto(SDL_Surface * surf = 0);
 
-  virtual ~tsreal ();
+  virtual ~textscroll_ ();
   
   string log[BACKLOG];
   int pwrite;
@@ -27,18 +27,18 @@ struct tsreal : public textscroll {
 
 };
 
-textscroll * textscroll :: create(font * f) {
-  return tsreal::create(f);
+textscroll * textscroll::create(font * f) {
+  return textscroll_::create(f);
 }
 
-tsreal :: ~tsreal () {}
-textscroll :: ~textscroll () {}
+textscroll_::~textscroll_ () {}
+textscroll::~textscroll () {}
 
-void tsreal :: destroy () { delete this; }
-void tsreal :: screenresize () {}
+void textscroll_::destroy () { delete this; }
+void textscroll_::screenresize () {}
 
-tsreal * tsreal :: create (font * f) {
-  tsreal * ts = new tsreal();
+textscroll_ * textscroll_::create (font * f) {
+  textscroll_ * ts = new textscroll_();
   ts->ft = f;
   ts->posx = 0;
   ts->posy = 0;
@@ -49,7 +49,7 @@ tsreal * tsreal :: create (font * f) {
   return ts;
 }
 
-void tsreal::say(string s) {
+void textscroll_::say(string s) {
   /* write new entry */
   log[pwrite] = s;
   pwrite ++;
@@ -58,7 +58,7 @@ void tsreal::say(string s) {
 
 /* weird results if unsay() with
    an empty buffer */
-void tsreal::unsay() {
+void textscroll_::unsay() {
   if (pwrite) {
     pwrite --;
     log[pwrite] = "";
@@ -72,7 +72,7 @@ void tsreal::unsay() {
    It's a little tricky because we're
    going backwards, but it's still easier
    than going forwards */
-void tsreal :: drawto (SDL_Surface * surf) {
+void textscroll_::drawto (SDL_Surface * surf) {
   
   if (!surf) surf = screen;
 
@@ -88,7 +88,7 @@ void tsreal :: drawto (SDL_Surface * surf) {
   }
 }
 
-void tsreal :: draw () { 
+void textscroll_::draw () { 
   drawto(screen); 
 }
 

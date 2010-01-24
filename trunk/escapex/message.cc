@@ -6,9 +6,8 @@
 #include "util.h"
 #include "chars.h"
 
-struct mreal : public message {
-
-  static mreal * create();
+struct message_ : public message {
+  static message_ * create();
   virtual void destroy();
 
   /*  enter: true
@@ -17,12 +16,15 @@ struct mreal : public message {
 
   virtual void draw();
   virtual void screenresize();
-  virtual ~mreal();
 
   SDL_Surface * alpharect;
   bool loop (char * actualchar, string charspec);
 
   void init ();
+  void redraw() {
+    draw();
+    SDL_Flip(screen);
+  }
 
   int nlines;
   int posx;
@@ -32,7 +34,7 @@ void message::drawonlyv(int posy,
 			string ttitle,
 			string ook, string ccancel, 
 			string icon) {
-  mreal * m = mreal::create();
+  message_ * m = message_::create();
   m->below = nodraw;
   m->posy = posy;
   m->title = icon + WHITE " " + ttitle;
@@ -44,28 +46,25 @@ void message::drawonlyv(int posy,
   m->destroy();
 }
 
+void message_::destroy() {
+  if (alpharect) SDL_FreeSurface(alpharect);
+  delete this;
+}
 
-mreal * mreal::create() {
-  mreal * pp = new mreal();
+message::~message() {}
+message_ * message_::create() {
+  message_ * pp = new message_();
   pp->below = 0;
   pp->alpharect = 0;
   pp->posx = 0;
   pp->nlines = 0;
   return pp;
 }
-
-void mreal::destroy() {
-  if (alpharect) SDL_FreeSurface(alpharect);
-  delete this;
-}
-
-mreal::~mreal() {}
-message::~message() {}
 message * message::create() {
-  return mreal::create();
+  return message_::create();
 }
 
-void mreal::init() {
+void message_::init() {
 
   /* find longest line */
   int ll = 0;
@@ -112,16 +111,16 @@ void mreal::init() {
 
 }
 
-bool mreal::ask(char * actualchar, string charspec) {
+bool message_::ask(char * actualchar, string charspec) {
   init ();
   return loop(actualchar, charspec);
 }
 
-void mreal::screenresize() {
+void message_::screenresize() {
   if (below) below->screenresize();
 }
 
-void mreal::draw() {
+void message_::draw() {
 
   /* clear back */
   if (!below) {
@@ -147,15 +146,14 @@ void mreal::draw() {
 	      (string)YELLOW "ESCAPE" POP ": " + cancel);
 }
 
-bool mreal::loop(char * actualchar, string charspec) {
+bool message_::loop(char * actualchar, string charspec) {
 
-  draw();
-  SDL_Flip(screen);
+  redraw();
 
   SDL_Event e;
 
-  while ( SDL_WaitEvent(&e) >= 0 ) {
-
+  while (SDL_WaitEvent(&e) >= 0) {
+    if (handle_video_event(this, e)) continue;
     int key;
 
     switch(e.type) {
@@ -217,20 +215,7 @@ bool mreal::loop(char * actualchar, string charspec) {
 	/* XXX else might flash screen or something */
       }
       break;
-    case SDL_VIDEORESIZE: {
-      SDL_ResizeEvent * eventp = (SDL_ResizeEvent*)&e;
-      screen = sdlutil::makescreen(eventp->w, 
-				   eventp->h);
-      screenresize();
-      draw();
-      SDL_Flip(screen);
-      break;
-    }
-    case SDL_VIDEOEXPOSE:
-      draw();
-      SDL_Flip(screen);
-      break;
-    default: break;
+    default:;
     }
   }
   return false; /* XXX ??? */

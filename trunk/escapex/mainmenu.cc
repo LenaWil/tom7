@@ -277,21 +277,11 @@ mainmenu::result mmreal::show() {
     while (SDL_PollEvent(&e)) {
       int key;
 
+      if (handle_video_event(this, e)) continue;
 
       switch(e.type) {
       case SDL_QUIT:
 	return QUIT;
-      case SDL_VIDEORESIZE: {
-	SDL_ResizeEvent * eventp = (SDL_ResizeEvent*)&e;
-	screen = sdlutil::makescreen(eventp->w, 
-				     eventp->h);
-	screenresize();
-	redraw();
-	continue;
-      }
-      case SDL_VIDEOEXPOSE:
-	redraw();
-	continue;
 
       case SDL_KEYDOWN:
 	key = e.key.keysym.sym;
@@ -354,46 +344,42 @@ mainmenu::result mmreal::show() {
 	}
       default: break;
       }
+
       /* if we got here, then we don't know how to
 	 preempt the event, so use the selector. */
-
-      
-    msel::peres pr = sel->doevent(e);
-    switch(pr.type) {
-    case msel::PE_SELECTED:
-      switch(sel->items[sel->selected].t) {
-      case MM_TUTORIAL:
-	playtutorial();
-	redraw();
-	continue;
-      case MM_LOAD: return LOAD;
-      case MM_LOAD_NEW: return LOAD_NEW;
-      case MM_EDIT: return EDIT;
-      case MM_QUIT: return QUIT;
-      case MM_UPGRADE:
-	  if (network) return UPGRADE;
-	  else continue;
-      case MM_UPDATE:
-	  if (network) return UPDATE;
-	  else continue;
-      case MM_PREFS:
-	  prefs::show(pp);
+      msel::peres pr = sel->doevent(e);
+      switch(pr.type) {
+      case msel::PE_SELECTED:
+	switch(sel->items[sel->selected].t) {
+	case MM_TUTORIAL:
+	  playtutorial();
 	  redraw();
 	  continue;
-      default: break;
+	case MM_LOAD: return LOAD;
+	case MM_LOAD_NEW: return LOAD_NEW;
+	case MM_EDIT: return EDIT;
+	case MM_QUIT: return QUIT;
+	case MM_UPGRADE:
+	    if (network) return UPGRADE;
+	    else continue;
+	case MM_UPDATE:
+	    if (network) return UPDATE;
+	    else continue;
+	case MM_PREFS:
+	    prefs::show(pp);
+	    redraw();
+	    continue;
+	default: break;
+	}
+	/* ??? */
+	break;
+	/* FALLTHROUGH */
+      case msel::PE_EXIT:
+      case msel::PE_CANCEL:
+	return QUIT;
+      default:
+      case msel::PE_NONE:;
       }
-      /* ??? */
-      break;
-      /* FALLTHROUGH */
-    case msel::PE_EXIT: /* XXX */
-    case msel::PE_CANCEL:
-      return QUIT;
-    default:
-    case msel::PE_NONE:
-      ;
-    }
-
-
     }
   }
 
