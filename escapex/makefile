@@ -130,7 +130,7 @@ sdlutil-console.obj : sdlutil.cc
 escape.res : escape.rc escape.ico
 	rc /r /fo escape.res escape.rc
 
-escape.exe : main.obj level.obj sdlutil.obj play.obj font.obj dirent.obj load.obj util.obj md5.obj player.obj playerdb.obj prompt.obj draw.obj drawable.obj edit.obj editai.obj editprefab.obj mainmenu.obj upgrade.obj http.obj textscroll.obj message.obj update.obj dircache.obj upper.obj registration.obj upload.obj rating.obj menu.obj prefs.obj escape.res chunks.obj dirindex.obj textbox.obj analysis.obj generator.obj prime.obj commenting.obj cleanup.obj mainshow.obj handhold.obj animation.obj dirt.obj sound.obj base64.obj winmain.obj optimize.obj smanage.obj client.obj progress.obj leveldb.obj startup.obj background.obj
+escape.exe : main.obj level.obj sdlutil.obj play.obj font.obj dirent.obj load.obj util.obj md5.obj player.obj playerdb.obj prompt.obj draw.obj drawable.obj edit.obj editai.obj editprefab.obj mainmenu.obj upgrade.obj http.obj textscroll.obj message.obj update.obj dircache.obj upper.obj registration.obj upload.obj rating.obj menu.obj prefs.obj escape.res chunks.obj dirindex.obj textbox.obj analysis.obj generator.obj prime.obj commenting.obj cleanup.obj mainshow.obj handhold.obj animation.obj dirt.obj sound.obj base64.obj winmain.obj optimize.obj smanage.obj client.obj progress.obj leveldb.obj startup.obj backgrounds.obj
 	${LINK} /out:"escape.exe" $^
 
 # other executables that need to be built:
@@ -174,7 +174,7 @@ endif
 ifdef LINUX
 # makefile for linux
 
-OFILES = main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o background.o
+OFILES = main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o backgrounds.o
 
 default : escape.exe
 
@@ -338,7 +338,7 @@ CPPFLAGS = -arch i386 -arch ppc -I/usr/local/include -I${FRAMEWORKS}/SDL.framewo
 # used to use /usr/local/lib
 LIBS=-L/usr/lib
 
-escape.exe : main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o sdlmain.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o background.o
+escape.exe : main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o sdlmain.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o backgrounds.o
 	export MACOSX_DEPLOYMENT_TARGET=${VERSION_TARGET}
 	g++ -arch i386 -arch ppc -F${FRAMEWORKS} -framework SDL_net -framework SDL_image ${LIBS} -framework SDL -framework OpenGL -framework AGL -framework IOKit -framework Carbon -framework Cocoa -framework SDL_mixer $^ -o escape.exe
 
@@ -454,7 +454,7 @@ endif
 # mingw makefile (alternative to Visual C++ on win32; becoming default soon)
 ifdef MINGW
 
-OFILES = main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o icon.o browse.o background.o
+OFILES = main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o icon.o browse.o backgrounds.o
 
 default : escape.exe
 

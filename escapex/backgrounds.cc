@@ -1,4 +1,5 @@
 
+#include "backgrounds.h"
 #include "draw.h"
 #include "extent.h"
 #include "util.h"

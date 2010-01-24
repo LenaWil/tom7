@@ -234,7 +234,7 @@ int main (int argc, char ** argv) {
 
       } else if (r == mainmenu::LOAD_NEW) {
 
-#if 1
+#if 0
 	for(;;) // XXX loop in browser instead.
 	  if (browse * bb = browse::create()) {
 	    extent<browse> bb_d(bb);

@@ -12,6 +12,7 @@
 #include "play.h"
 #include "handhold.h"
 #include "md5.h"
+#include "background.h"
 
 /* testing */
 #include "animation.h"
@@ -93,11 +94,9 @@ struct mmreal : public mainmenu, public drawable {
   player * pp;
   SDL_Surface * titlegraphic;
   SDL_Surface * background;
-  SDL_Surface * blue;
 
   mainshow * mshow;
 
-  static Uint32 blueish(SDL_Surface * sur);
   void makebackground ();
   void compute_tutorial ();
   bool tutorial_left;
@@ -267,7 +266,6 @@ mainmenu::result mmreal::show() {
     SDL_Delay(1);
 
     /* turn on animation? */
-#   if 1
     Uint32 now = SDL_GetTicks();
 
     if (now > nextframe) {
@@ -277,10 +275,6 @@ mainmenu::result mmreal::show() {
     }
 
     while (SDL_PollEvent(&e)) {
-#   else
-    while (SDL_WaitEvent(&e)) {
-#   endif
-
       int key;
 
 
@@ -401,7 +395,7 @@ mainmenu::result mmreal::show() {
 
 
     }
-    }
+  }
 
   return QUIT;
 }
@@ -412,77 +406,11 @@ void mmreal::screenresize() {
 
 /* the background is pretty complex, so we precompute it */
 void mmreal::makebackground() {
-  if (background) SDL_FreeSurface(background);
-  if (blue) SDL_FreeSurface(blue);
-
   int w = screen->w;
   int h = screen->h;
-  background = sdlutil::makesurface(w, h, false);
+
+  backgrounds::gradientblocks(background);
   if (!background) return;
-
-  // sdlutil::printsurfaceinfo(background);
-  
-  blue = sdlutil::makesurface(w, h);
-  if (!blue) return;
-
-  /* why is this necessary? */
-  /* I think it is setting the alpha channel,
-     because if I just FillRect a small area,
-     only that area shows through. */
-
-#if 0
-  sdlutil::clearsurface(background,
-			SDL_MapRGBA(background->format,
-				    0xFF, 0xFF, 0xFF, 0xFF));
-#endif
-
-  for(int y = 0; y < 1 + h / (TILEW >> 1); y ++)
-    for(int x = 0; x < 1 + w / (TILEH >> 1); x ++) {
-      
-      drawing::drawtile(x * (TILEH >> 1), y * (TILEW >> 1),
-			((x + y)&1)?T_BLUE:T_GREY,
-			1, background);
-    }
-
-
-  /* gradient. we pick a bunch of random points and then
-     interpolate between them. */
-
-  sdlutil::clearsurface(blue, 
-			SDL_MapRGBA(blue->format, 
-				    0xFF, 0xFF, 0xFF, 0xFF));
-
-  int x = 0;
-  Uint32 last = blueish(blue);
-  Uint32 next = blueish(blue);
-  int count = 1;
-  int num = 0;
-  while (x < w) {
-    SDL_Rect rect;
-    rect.y = 0;
-    rect.h = h;
-    rect.w = 1;
-    rect.x = x;
-
-    Uint32 clr;
-
-    if (num >= count) {
-      /* pick a new nextination color */
-      clr = sdlutil::mixfrac(last, next, 0.5f);
-      last = next;
-      next = blueish(blue);
-      count = 2 + (int)(util::randfrac() * 28.0f);
-      num = 0;
-    } else {
-      num ++;
-      clr = sdlutil::mixfrac(last, next, num/(float)count);
-    }
-
-    SDL_FillRect(blue, &rect, clr);
-    x ++;
-  }
-
-  SDL_BlitSurface(blue, 0, background, 0);
 
   /* draw alpharect for bottom */
   int botoff = fon->height * 2 + 4;
@@ -533,15 +461,6 @@ void mmreal::makebackground() {
 
 }
 
-Uint32 mmreal::blueish(SDL_Surface * sur) {
-
-  float h = 178.0f + (util::randfrac() * (233.0f - 178.0f));
-  float s = .29f + (util::randfrac() * (.84f - .29f));
-  float v = .12f + (util::randfrac() * (.50f - .12f));
-  float a = .50f + (util::randfrac() * (1.0f - .50f));
-  return sdlutil::hsv(sur, h / 360.0f, s, v, a);
-}
-
 mainmenu * mainmenu::create(player * plr) {
   return mmreal::create(plr);
 }
@@ -552,7 +471,6 @@ mmreal * mmreal::create(player * plr) {
   if (!mm) return 0;
   mm->titlegraphic = 0;
   mm->background = 0;
-  mm->blue = 0;
 
   extent<mmreal> em(mm);
 
@@ -615,6 +533,5 @@ void mmreal::destroy () {
   if (titlegraphic) SDL_FreeSurface(titlegraphic);
   if (background) SDL_FreeSurface(background);
   if (mshow) delete mshow;
-  if (blue) SDL_FreeSurface(blue);
   delete this;
 }
