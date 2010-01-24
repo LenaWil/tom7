@@ -17,6 +17,7 @@ struct backgrounds {
 			     int tile_black,
 			     float gradient_hue);
 
+  /* Hues in degrees */
   static const float blueish;
   static const float purpleish;
 

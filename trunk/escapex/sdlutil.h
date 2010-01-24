@@ -29,6 +29,14 @@ struct sdlutil {
   /* make a n pixel border around a surface. */
   static void outline(SDL_Surface *, int n, int r, int g, int b, int a);
 
+  /* Blit the entire source surface to the destination at the given
+     position. */
+  static void blitall(SDL_Surface * src, SDL_Surface * dst, int x, int y);
+
+  /* Just like SDL_Fillrect, but no need to crate SDL_Rects */
+  static void fillrect(SDL_Surface *, Uint32 color, 
+		       int x, int y, int w, int h);
+
   /* create a rectangle of the specified size, filled with a color
      at a certain alpha value. This can then be blit to the screen. */
   static SDL_Surface * makealpharect(int w, int h, int r, 
