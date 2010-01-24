@@ -2,7 +2,7 @@
 #include "escapex.h"
 #include "level.h"
 #include "sdlutil.h"
-#include "load.h"
+#include "browse.h"
 #include "md5.h"
 
 #include <string.h>
@@ -20,11 +20,10 @@
 #include "upload.h"
 #include "prompt.h"
 
+#include "leveldb.h"
 #include "commenting.h"
 
-#include "dirindex.h"
 #include "optimize.h"
-#include "smanage.h"
 #include "client.h"
 
 #include "menu.h"
@@ -36,330 +35,52 @@
 #  include <sys/time.h>
 #endif
 
+#if 0 // XXX
+
 /* how frequently to make a move in solution playback */
 #define LOADFRAME_TICKS 100
 #define STEPS_BEFORE_SOL 5
 
-/* XXX rationalize ".." stuff.
-   Currently we disallow it completely, which
-   seems like a good solution.
-
-   But there is still something strange about entering
-   .. from the "root" directory (see TODO)
-*/
-
-/* XXX this has gotten pretty big.
-   move it to another file */
-/* XXX normalize these by pulling
-   sizex, sizey, author (at least)
-   out of lev */
 struct llentry {
-  string fname;
-  string name;
-  string md5;
-  int isdir;
-  
-  string author;
-  int sizex;
-  int sizey;
+  /* Global level/collection information. */
+  one_result lev;
 
-  int solved;
-  int total;
-
-  bool corrupted;
-
-  /* always owned by player; don't free */
-  rating * myrating;
-  ratestatus votes;
-  int date;
-  int speedrecord;
-  bool owned;
-
-  /* true if this is a 'managed' file 
-     (part of a web collection) */
-  bool managed;
-
-  level * lev;
-
+  /* Denormalized other info? */
   static int height() { return fon->height; }
   string display(bool selected);
   void draw(int x, int y, bool sel);
   string convert() { return fname; }
-  bool matches(char k);
-
-  ~llentry() { if (lev) lev->destroy(); }
-  llentry() { lev = 0; }
-  
-  static void swap(llentry * l, llentry * r) {
-#   define SWAP(t,f) {t f ## _tmp = l->f; l->f = r->f; r->f = f ## _tmp; }
-    SWAP(string, md5);
-    SWAP(string, fname);
-    SWAP(string, name);
-    SWAP(int, date);
-    SWAP(int, speedrecord);
-    SWAP(bool, owned);
-    SWAP(bool, managed);
-    SWAP(int, isdir);
-    SWAP(string, author);
-    SWAP(bool, corrupted);
-    SWAP(int, sizex);
-    SWAP(int, sizey);
-    SWAP(int, solved);
-    SWAP(int, total);
-    SWAP(level *, lev);
-    SWAP(rating *, myrating);
-    SWAP(ratestatus, votes);
-#   undef SWAP
-  }
-
-  string actualfile(stringlist * p) {
-    string file = fname;
-    stringlist * pathtmp = stringlist::copy(p);
-    while (pathtmp) {
-      file = stringpop(pathtmp) + 
-	     string(DIRSEP) + file;
-    }
-    return file;
-  }
-
-  /* default: directories are first */
-  static bool default_dirs(int & ret,
-			  const llentry & l,
-			  const llentry & r) {
-
-    /* make this appear first */
-    if (l.fname == ".." && r.fname != "..") {
-      ret = -1; return true; 
-    }
-    if (l.fname != ".." && r.fname == "..") {
-      ret = 1; return true;
-    }
-  
-    /* then directories */
-    if (l.isdir && !r.isdir) { ret = -1; return true; }
-    if (!l.isdir && r.isdir) { ret = 1; return true; }
-    
-    /* if one is a dir, both are. sort by
-       number of levels first. */
-    if (l.isdir) {
-      ret = 1;
-      if (l.total > r.total) ret = -1;
-      if (l.total == r.total) ret = 0; 
-      return true;
-    }
-
-    return false;
-
-  }
-
-  /* newest first -- only if webindex */
-  static int cmp_bydate(const llentry & l,
-			const llentry & r) {
-
-    int order;
-    if (default_dirs(order, l, r)) return order;
-    
-    if (l.date > r.date) return -1;
-    else if (l.date < r.date) return 1;
-    /* or by solved? */
-    else return cmp_byname(l, r);
-  }
-
-  static int cmp_bywebsolved(const llentry & l,
-			     const llentry & r) {
-    
-    int order;
-    if (default_dirs(order, l, r)) return order;
-
-    if (l.votes.solved < r.votes.solved) return -1;
-    else if (l.votes.solved == r.votes.solved) return cmp_byname(l, r);
-    else return 1;
-  }
-
-  static int cmp_bysolved(const llentry & l,
-			  const llentry & r) {
-    int order;
-    if (default_dirs(order, l, r)) return order;
-
-    if (l.solved < r.solved) return -1;
-    else if (l.solved == r.solved) return cmp_byname(l, r);
-    else return 1;
-
-  }
-
-  /* descending sort by personal rating field */
-# define MINE(letter, field) \
-  static int cmp_bymy ## letter(const llentry & l, \
-		                const llentry & r) { \
-    int order; \
-    if (default_dirs(order, l, r)) return order; \
-                                                  \
-    int nl = (l.myrating)?(l.myrating-> field):-1; \
-    int nr = (r.myrating)?(r.myrating-> field):-1; \
-                                                   \
-    if (nl < nr) return 1;                         \
-    else if (nl == nr) return cmp_byname(l, r);    \
-    else return -1;                                \
-  }
-
-  MINE(d, difficulty)
-  MINE(s, style)
-  MINE(r, rigidity)
-# undef MINE
-
-  /* descending sort by global rating field */
-# define GLOB(letter, field) \
-  static int cmp_byglobal ## letter(const llentry & l, \
-			            const llentry & r) { \
-    int order; \
-    if (default_dirs(order, l, r)) return order; \
-                                                 \
-    float nl = l.votes.nvotes?(l.votes. field / \
-			       (float)l.votes.nvotes):-1.0f; \
-    float nr = r.votes.nvotes?(r.votes. field / \
-			       (float)r.votes.nvotes):-1.0f; \
-    if (nl < nr) return 1; \
-    else if (nl > nr) return -1; \
-    else return cmp_byname(l, r); \
-  }
-
-  GLOB(d, difficulty)
-  GLOB(s, style)
-  GLOB(r, rigidity)
-# undef GLOB
-
-  static int cmp_byauthor(const llentry & l,
-			  const llentry & r) {
-    
-    int order;
-    if (default_dirs(order, l, r)) return order;
-
-    int c = util::natural_compare(l.author, r.author);
-
-    if (!c) return cmp_byname(l, r);
-    else return c;
-  }
-
-  static int cmp_byname(const llentry & l,
-			const llentry & r) {
-
-    int order;
-    if (default_dirs(order, l, r)) return order;
-
-    /* XXX filter color codes here */
-    /* XXX ignore case -- strcasecmp is not available on win32? */  
-    
-    /* then, sort by names. */
-    if (l.name == r.name) {
-      /* they might both be empty -- then
-	 use filenames. */
-      if (l.name == "") {
-	if (l.fname == r.fname) return 0;
-	
-	/* we assume filenames are unique */
-	return util::natural_compare(l.fname, r.fname);
-      } else return 0;
-    }
-
-    /* this also includes the case where one has a
-       name and the other doesn't */
-    return util::library_compare(l.name, r.name);
-  }
-
-  static int cmp_none(const llentry & l,
-		      const llentry & r) {
-    return 0;
-  }
-
-
-  static string none() { return ""; }
 };
 
-typedef selector<llentry, string> selor;
+struct browse_ : public browse {
 
-struct loadlevelreal : public loadlevel {
+  virtual void draw() {
+    
 
-  virtual void draw ();
-  virtual void screenresize() {}
+  }
 
   virtual void destroy() {
     if (showlev) showlev->destroy();
-    sel->destroy ();
-    if (cache) cache->destroy();
-    while(path) stringpop(path);
     delete this;
   }
 
-  virtual bool first_unsolved(string & file, string & title);
-
-  virtual ~loadlevelreal() {}
-
   virtual string selectlevel();
   
-  loadlevelreal() : helppos(0) {}
-
   static loadlevelreal * create(player * p, string dir, 
 				bool inexact, bool ac);
 
 
-  private:
-  /* rep inv:
-     always of the form (../)*(realdir)* */
-  /* XXX I think I now require/maintain that
-     there be no .. at all in the path */
-  stringlist * path;
-
-  int helppos;
-  static const int numhelp;
-  static string helptexts(int);
-
-  enum sortstyle {
-    SORT_DATE,
-    SORT_ALPHA, SORT_SOLVED,
-    SORT_PD, SORT_PS, SORT_PR,
-    SORT_GD, SORT_GS, SORT_GR,
-    SORT_AUTHOR, SORT_WEBSOLVED,
-  };
-
-  /* getsort returns a comparison function. C++
-     syntax for this is ridiculous */
-  static int (*getsort(sortstyle s)) (const llentry & l,
-				      const llentry & r) {
-    switch(s) {
-    default:
-    case SORT_DATE: return llentry::cmp_bydate;
-    case SORT_ALPHA: return llentry::cmp_byname;
-    case SORT_SOLVED: return llentry::cmp_bysolved;
-    case SORT_WEBSOLVED: return llentry::cmp_bywebsolved;
-    case SORT_PD: return llentry::cmp_bymyd;
-    case SORT_PS: return llentry::cmp_bymys;
-    case SORT_PR: return llentry::cmp_bymyr;
-    case SORT_GD: return llentry::cmp_byglobald;
-    case SORT_GS: return llentry::cmp_byglobals;
-    case SORT_GR: return llentry::cmp_byglobalr;
-    case SORT_AUTHOR: return llentry::cmp_byauthor;
-    }
-  }
-
-  static sortstyle sortby;
-
-  struct dircache * cache;
-
-  player * plr;
+ private:
+  /* From constructor argument. */
   bool allow_corrupted;
 
-  /* save last dir we entered */
-  static string lastdir;
-  /* and last filename we selected */
-  static string lastfile;
-  /* and last sort order */
-  
-
-
-  string locate(string);
-  int changedir(string, bool remember = true);
+  /* save query we performed. */
+  static lquery lastquery;
+  /* and last MD5 we selected */
+  static string lastmd5;
 
   /* this for solution preview */
+  /* Ticks to wait before starting the preview */
   Uint32 showstart;
   level * showlev;
   int solstep;
@@ -1668,3 +1389,5 @@ string loadlevelreal::helptexts(int i) {
 
   return RED "help index too high";
 }
+
+#endif

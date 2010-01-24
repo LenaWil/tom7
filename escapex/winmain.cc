@@ -16,7 +16,8 @@
    console IO:
 */
 
-// #define NO_STDIO_REDIRECT
+// (Usually commented out for releases.)
+#define NO_STDIO_REDIRECT
 
 #ifndef WIN32
 # error "winmain.cc is only for win32 builds!"

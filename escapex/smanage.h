@@ -1,4 +1,7 @@
 
+/* XXX This is deprecated (in favor of the bookmarks menu)
+   and should be deleted. */
+
 #ifndef __SMANAGE_H
 #define __SMANAGE_H
 

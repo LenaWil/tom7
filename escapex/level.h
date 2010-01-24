@@ -206,11 +206,11 @@ struct solution {
   
   dir * dirs;
 
-  string tostring();
+  string tostring() const;
 
   static solution * fromstring(string s);
 
-  solution * clone() {
+  solution * clone() const {
     solution * s = new solution();
     s->length = length;
     s->allocated = allocated;
@@ -255,9 +255,9 @@ struct solution {
 
   struct iter {
     int pos;
-    solution * sol;
+    const solution * sol;
   
-    iter(solution * s) : pos(0), sol(s) {}
+    iter(const solution * s) : pos(0), sol(s) {}
     bool hasnext() { return pos < sol->length; }
     void next() { pos ++; }
     dir item () { return sol->dirs[pos]; }
@@ -497,7 +497,7 @@ struct level {
   void bombsplode(int now, int bombi);
 
   /* create clone of current state. */
-  level * clone();
+  level * clone() const;
 
   /* writes current state into a string */
   string tostring();
@@ -527,17 +527,17 @@ struct level {
   void destroy();
 
   /* play to see if it wins, does not modify level or sol */
-  static bool verify(level * lev, solution * s);
+  static bool verify(const level * lev, const solution * s);
   /* returns a simplified solution, if s solves lev somewhere
      along the way. if the return is false, then out is garbage */
-  static bool verify_prefix(level * lev, solution * s, solution *& out);
+  static bool verify_prefix(const level * lev, const solution * s, solution *& out);
 
   /* execute solution. returns early (# moves set in moves)
      if we die (return false) or win (return true). false upon
      completing without winning or dying. */
-  bool play(solution *, int & moves);
+  bool play(const solution *, int & moves);
   /* only 'length' moves of the solution, starting from move 'start' */
-  bool play_subsol(solution *, int & moves, int start, int length);
+  bool play_subsol(const solution *, int & moves, int start, int length);
 
   static int * rledecode(string s, unsigned int & idx, int n);
   static string rleencode(int n, int * a);

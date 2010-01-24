@@ -27,6 +27,8 @@
 #include "animation.h"
 #include "sound.h"
 #include "startup.h"
+#include "leveldb.h"
+#include "progress.h"
 
 #define DEFAULT_DIR "."
 #define SPLASH_FILE DATADIR "splash.png"
@@ -101,6 +103,7 @@ int main (int argc, char ** argv) {
 
   /* set caption and icon */
   {
+    printf("Welcome to escape " VERSION ".\n");
     SDL_WM_SetCaption("escape " VERSION, "");
     SDL_Surface * icon = IMG_Load(ICON_FILE);
     if (icon) SDL_WM_SetIcon(icon, 0);
@@ -198,6 +201,12 @@ int main (int argc, char ** argv) {
 
     extent<mainmenu> em(mm);
 
+    // XXX here?
+    leveldb::setplayer(plr);
+    leveldb::addsourcedir("triage");
+    leveldb::addsourcedir("mylevels");
+    leveldb::addsourcedir("official");
+
     while(1) {
 
       mainmenu::result r = mm->show();
@@ -208,20 +217,53 @@ int main (int argc, char ** argv) {
         /* we stay in 'load' mode until
            the user hits escape on the load screen. */
         for(;;) {
-          loadlevel * ll = 
-	    loadlevel::create(plr, DEFAULT_DIR, true, false);
-	  if (!ll) {
+	  if (loadlevel * ll = 
+	      loadlevel::create(plr, DEFAULT_DIR, true, false)) {
+	    string res = ll->selectlevel ();
+	    
+	    play::playrecord(res, plr);
+	    
+	    ll->destroy ();
+	    
+	    if (res == "") break;
+	  } else {
 	    message::bug(0, "Error creating load screen");
 	    break;
 	  }
-          string res = ll->selectlevel ();
-	  
-	  play::playrecord(res, plr);
-
-	  ll->destroy ();
-
-	  if (res == "") break;
         }
+
+      } else if (r == mainmenu::LOAD_NEW) {
+
+#if 1
+	for(;;) // XXX loop in browser instead.
+	  if (browse * bb = browse::create()) {
+	    extent<browse> bb_d(bb);
+	    // XXX: Instead, have a version of the browser
+	    // that invokes playrecord on the stack, and a
+	    // separate bb->selectfile() for editing.
+	    string res = bb->selectlevel();
+	    if (res.empty()) break;
+
+	    play::playrecord(res, plr);
+
+	  } else {
+	    message::bug(0, "Error creating browser");
+	    break;
+	  }
+#else
+
+	float disk, lev;
+	Uint32 epoch = 0;
+	while (!leveldb::uptodate(&disk, &lev)) {
+	  char msg[512];
+	  sprintf(msg, "Still working %.2f%% disk %.2f%% lev\n",
+		  disk * 100.0, lev * 100.0);
+	  progress::drawbar(&epoch, lev * 1000, 1000, msg, 200);
+	  leveldb::donate(0, 0, 10);
+	}
+
+	message::bug(0, "Sorry, browser not hooked up yet");
+#endif
 
       } else if (r == mainmenu::EDIT) {
         /* edit a level */
