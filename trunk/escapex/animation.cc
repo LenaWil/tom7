@@ -419,12 +419,12 @@ static aframe frames_remotelite[] =
     {&animation::remote_lite1, 0, 0, 40},
     {&animation::remote_lite2, 0, 0, 40},
     {&animation::remote_lite3, 0, 0, 40},
-    {&animation::remote_lite4, 0, 0, 40},
-    {&animation::remote_lite5, 0, 0, 40},
+    {&animation::remote_lite2, 0, 0, 40},
+    {&animation::remote_lite3, 0, 0, 40},
     {&animation::remote_lite6, 0, 0, 40},
     {0, 0, 0, 40} };
 
-/* XXX different send and recv anims */
+/* XXX make different send and recv anims */
 static aframe frames_transponder[] =
   { {&animation::transponder_lite1, 0, 0, 0},
     {&animation::transponder_lite2, 0, 0, 40},

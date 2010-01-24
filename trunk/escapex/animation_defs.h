@@ -57,8 +57,6 @@ static SDL_Surface * remote_lite0;
 static SDL_Surface * remote_lite1;
 static SDL_Surface * remote_lite2;
 static SDL_Surface * remote_lite3;
-static SDL_Surface * remote_lite4;
-static SDL_Surface * remote_lite5;
 static SDL_Surface * remote_lite6;
 static SDL_Surface * bsphere_slide_lr;
 static SDL_Surface * bsphere_slide_lr2;
