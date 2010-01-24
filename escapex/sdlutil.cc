@@ -366,6 +366,22 @@ SDL_Surface * sdlutil::makealpharectgrad(int w, int h,
   return ret;
 }
 
+void sdlutil::fillrect(SDL_Surface * s, Uint32 color, int x, int y, int w, int h) {
+  SDL_Rect dst;
+  dst.x = x;
+  dst.y = y;
+  dst.w = w;
+  dst.h = h;
+  SDL_FillRect(s, &dst, color);
+}
+
+void sdlutil::blitall(SDL_Surface * src, SDL_Surface * dst, int x, int y) {
+  SDL_Rect rec;
+  rec.x = x;
+  rec.y = y;
+  SDL_BlitSurface(src, 0, dst, &rec);
+}
+
 void sdlutil::outline(SDL_Surface * s, int n, int r, int g, int b, int a) {
 
   Uint32 color = SDL_MapRGBA(s->format, r, g, b, a);

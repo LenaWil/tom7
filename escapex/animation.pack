@@ -235,5 +235,12 @@ dalek_teleport2 animation\dalek_teleport2.png
 dalek_teleport3 animation\dalek_teleport3.png
 dalek_teleport4 animation\dalek_teleport4.png
 
+curveborder_tan_tl animation\curveborder_tan_tl.png
+curveborder_tan_tr animation\curveborder_tan_tr.png
+curveborder_tan_bl animation\curveborder_tan_bl.png
+curveborder_tan_br animation\curveborder_tan_br.png
+
+choose_a_level animation\choose_a_level.png
+
 error animation\error_frame.png
 attention animation\attention.png

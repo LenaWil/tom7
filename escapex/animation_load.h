@@ -1525,6 +1525,46 @@
   if (!dalek_teleport4) return false;
   SDL_BlitSurface(all, &r, dalek_teleport4, 0);
 
+  r.x = 297;
+  r.y = 0;
+  r.w = 12;
+  r.h = 12;
+  curveborder_tan_tl = sdlutil::makesurface(r.w, r.h);
+  if (!curveborder_tan_tl) return false;
+  SDL_BlitSurface(all, &r, curveborder_tan_tl, 0);
+
+  r.x = 309;
+  r.y = 0;
+  r.w = 12;
+  r.h = 12;
+  curveborder_tan_tr = sdlutil::makesurface(r.w, r.h);
+  if (!curveborder_tan_tr) return false;
+  SDL_BlitSurface(all, &r, curveborder_tan_tr, 0);
+
+  r.x = 297;
+  r.y = 12;
+  r.w = 12;
+  r.h = 12;
+  curveborder_tan_bl = sdlutil::makesurface(r.w, r.h);
+  if (!curveborder_tan_bl) return false;
+  SDL_BlitSurface(all, &r, curveborder_tan_bl, 0);
+
+  r.x = 309;
+  r.y = 12;
+  r.w = 12;
+  r.h = 12;
+  curveborder_tan_br = sdlutil::makesurface(r.w, r.h);
+  if (!curveborder_tan_br) return false;
+  SDL_BlitSurface(all, &r, curveborder_tan_br, 0);
+
+  r.x = 0;
+  r.y = 554;
+  r.w = 337;
+  r.h = 36;
+  choose_a_level = sdlutil::makesurface(r.w, r.h);
+  if (!choose_a_level) return false;
+  SDL_BlitSurface(all, &r, choose_a_level, 0);
+
   r.x = 366;
   r.y = 129;
   r.w = 48;
@@ -1533,8 +1573,8 @@
   if (!error) return false;
   SDL_BlitSurface(all, &r, error, 0);
 
-  r.x = 297;
-  r.y = 0;
+  r.x = 321;
+  r.y = 41;
   r.w = 16;
   r.h = 13;
   attention = sdlutil::makesurface(r.w, r.h);
