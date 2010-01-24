@@ -40,7 +40,7 @@ struct player {
   string fname;
   string name;
 
-  /* online stuff : not used yet */
+  /* online stuff */
   /* Unique id online */
   int webid;
   /* secrets */

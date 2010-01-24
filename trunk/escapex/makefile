@@ -81,13 +81,13 @@ zip : .dummy ${RELEASEFILES}
 releasefiles.win32 : makefile
 	echo ${RELEASEFILES} > releasefiles.win32
 
+zipup : escape-beta.zip
+	pscp escape-beta.zip root@spacebar.org:/var/www/escape/
+
 escapesetup.exe : .dummy ${RELEASEFILES} escape.nsi
 	makensis escape.nsi
 
 installer : escapesetup.exe
-
-zipup : escape-beta.zip
-	pscp escape-beta.zip root@spacebar.org:/var/www/escape/
 
 installerup : escapesetup.exe
 	pscp escapesetup.exe root@spacebar.org:/var/www/escape/
@@ -130,7 +130,7 @@ sdlutil-console.obj : sdlutil.cc
 escape.res : escape.rc escape.ico
 	rc /r /fo escape.res escape.rc
 
-escape.exe : main.obj level.obj sdlutil.obj play.obj font.obj dirent.obj load.obj util.obj md5.obj player.obj playerdb.obj prompt.obj draw.obj drawable.obj edit.obj editai.obj editprefab.obj mainmenu.obj upgrade.obj http.obj textscroll.obj message.obj update.obj dircache.obj upper.obj registration.obj upload.obj rating.obj menu.obj prefs.obj escape.res chunks.obj dirindex.obj textbox.obj analysis.obj generator.obj prime.obj commenting.obj cleanup.obj mainshow.obj handhold.obj animation.obj dirt.obj sound.obj base64.obj winmain.obj optimize.obj smanage.obj client.obj progress.obj leveldb.obj startup.obj
+escape.exe : main.obj level.obj sdlutil.obj play.obj font.obj dirent.obj load.obj util.obj md5.obj player.obj playerdb.obj prompt.obj draw.obj drawable.obj edit.obj editai.obj editprefab.obj mainmenu.obj upgrade.obj http.obj textscroll.obj message.obj update.obj dircache.obj upper.obj registration.obj upload.obj rating.obj menu.obj prefs.obj escape.res chunks.obj dirindex.obj textbox.obj analysis.obj generator.obj prime.obj commenting.obj cleanup.obj mainshow.obj handhold.obj animation.obj dirt.obj sound.obj base64.obj winmain.obj optimize.obj smanage.obj client.obj progress.obj leveldb.obj startup.obj background.obj
 	${LINK} /out:"escape.exe" $^
 
 # other executables that need to be built:
@@ -174,7 +174,7 @@ endif
 ifdef LINUX
 # makefile for linux
 
-OFILES = main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o
+OFILES = main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o background.o
 
 default : escape.exe
 
@@ -338,7 +338,7 @@ CPPFLAGS = -arch i386 -arch ppc -I/usr/local/include -I${FRAMEWORKS}/SDL.framewo
 # used to use /usr/local/lib
 LIBS=-L/usr/lib
 
-escape.exe : main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o sdlmain.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o
+escape.exe : main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o sdlmain.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o background.o
 	export MACOSX_DEPLOYMENT_TARGET=${VERSION_TARGET}
 	g++ -arch i386 -arch ppc -F${FRAMEWORKS} -framework SDL_net -framework SDL_image ${LIBS} -framework SDL -framework OpenGL -framework AGL -framework IOKit -framework Carbon -framework Cocoa -framework SDL_mixer $^ -o escape.exe
 
@@ -454,7 +454,7 @@ endif
 # mingw makefile (alternative to Visual C++ on win32; becoming default soon)
 ifdef MINGW
 
-OFILES = main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o icon.o
+OFILES = main.o level.o sdlutil.o load.o font.o play.o util.o md5.o player.o playerdb.o prompt.o draw.o drawable.o edit.o editprefab.o mainmenu.o upgrade.o http.o textscroll.o message.o update.o editai.o dircache.o upper.o registration.o upload.o rating.o menu.o prefs.o chunks.o dirindex.o textbox.o analysis.o generator.o prime.o commenting.o cleanup.o mainshow.o handhold.o animation.o dirt.o sound.o base64.o optimize.o smanage.o client.o progress.o leveldb.o startup.o icon.o browse.o background.o
 
 default : escape.exe
 
@@ -475,13 +475,14 @@ LDLIBS = -lSDL_image -lSDL_net  `sdl-config --libs` -ltiff -lpng -ljpeg -lz
 # for multiuser, add -DMULTIUSER -DDATADIR=\"/tmp/escapedata/\" -DSTARTUP_LEVELS=\"/tmp/escapelevels\"
 # with appropriate paths to the static data (trailing slash for data dir; no trailing for startup)
 CPPFLAGS = -DNOSOUND=1 `sdl-config --cflags` 
-CXXFLAGS = -g -Wall -O ${PROF} -Wno-non-virtual-dtor
+CXXFLAGS = -g -Wall -O ${PROF} 
+# -Wno-non-virtual-dtor
 
 icon.o : escape.ico escape.rc
 	windres -i escape.rc -o $@
 
 escape.exe : ${OFILES}
-	g++ ${PROF} -o escape.exe ${LDFLAGS} $^ ${LDLIBS}
+	g++ -g ${PROF} -o escape.exe ${LDFLAGS} $^ ${LDLIBS}
 
 default : escape.exe
 
@@ -496,6 +497,9 @@ level.o : level.cc move.h
 	g++ ${CXXFLAGS} ${CPPFLAGS} -c -o $@ $<
 
 animation.o : animation.cc animation.h animation_load.h
+	g++ ${CXXFLAGS} ${CPPFLAGS} -c -o $@ $<
+
+leveldb.o : leveldb.cc leveldb.h leveldb-query.h
 	g++ ${CXXFLAGS} ${CPPFLAGS} -c -o $@ $<
 
 sound_load.h : sound.pack packsound.cc
@@ -517,7 +521,6 @@ PNGHEADERS = -I /usr/local/include
 %-console.o : %.cc
 	g++ ${CXXFLAGS} ${CPPFLAGS} -DNOSOUND=1 -DUSE_DISPLAY_FORMAT=0 ${PNGHEADERS} $^ -c -o $@
 
-# XXXX doesn't seem to run (?)
 packpng.exe : util-console.o font-console.o level-console.o sdlutil-console.o packpng-console.o pngsave-console.o winmain-console.o
 	g++ -o $@ ${LDFLAGS} $^ ${LDLIBS}
 
@@ -556,25 +559,23 @@ release : UPGRADE
 
 zip : escape-beta.tar.gz
 
-escape-beta.tar.gz : escape.exe
-	rm -rf /tmp/escape
-	rm -f /tmp/escape-beta.tar
-	rm -f /tmp/escape-beta.tar.gz
-	rm -f escape-beta.tar.gz
-	mkdir /tmp/escape
-	strip escape.exe
-	cp ${RELEASEFILES} /tmp/escape
-	cp -a triage /tmp/escape
-	cp -a official /tmp/escape
-	mkdir /tmp/escape/mylevels
-	cp mylevels/index.esi /tmp/escape/mylevels/
-	cd /tmp && tar -c escape > escape-beta.tar && gzip escape-beta.tar
-	mv /tmp/escape-beta.tar.gz .
-
 zipup : escape-beta.tar.gz
 	echo "Note, use of pscp and scp don't seem to work when making under mingw,"
 	echo "so you want to use cygwin bash for this."
 	pscp escape-beta.tar.gz root@spacebar.org:/var/www/escape/
+
+# default location
+MAKENSIS="c:\program files\nsis\makensis.exe"
+
+escapesetup.exe : .dummy ${RELEASEFILES} escape.nsi
+	${MAKENSIS} escape.nsi
+
+installer : escapesetup.exe
+
+installerup : escapesetup.exe
+	echo "Note, use of pscp and scp don't seem to work when making under mingw,"
+	echo "so you want to use cygwin bash for this."
+	pscp escapesetup.exe root@spacebar.org:/var/www/escape/
 
 source : escape-src.tar.bz2
 

@@ -34,6 +34,7 @@ enum mmetype {
   MM_UPDATE,
   MM_PREFS,
   MM_QUIT,
+  MM_LOAD_NEW,
   MM_N_ITEMS,
 };
 
@@ -79,7 +80,7 @@ struct mmreal : public mainmenu, public drawable {
 
   virtual ~mmreal() {}
 
-private:
+ private:
   friend struct mmentry;
 
   void redraw () {
@@ -148,6 +149,11 @@ void mmentry::draw(int x, int y, bool sel) {
     drawing::drawtileu(sxi, y, TU_1, 0, screen);
     fon->draw(sx, ctry, YELLOW "Load a level.");
     break;
+  case MM_LOAD_NEW:
+    drawing::drawtileu(sxi, y, TU_LOAD, 0, screen);
+    fon->draw(sx, ctry, YELLOW "New level browser!");
+    break;
+
   case MM_EDIT:
     drawing::drawtileu(sxi, y, TU_2, 0, screen);
     fon->draw(sx, ctry, "Edit a level.");
@@ -189,6 +195,7 @@ void mmentry::draw(int x, int y, bool sel) {
 
 
 void mmreal::compute_tutorial () {
+  // XXX use leveldb for this.
 
   loadlevel * ll = loadlevel::create(pp, TUTORIAL_DIR, false, false);
   if (!ll) {
@@ -311,6 +318,9 @@ mainmenu::result mmreal::show() {
 	case SDLK_1:
 	  return LOAD;
 
+	case SDLK_b:
+	  return LOAD_NEW;
+
 	case SDLK_e:
 	case SDLK_2:
 	  return EDIT;
@@ -363,6 +373,7 @@ mainmenu::result mmreal::show() {
 	redraw();
 	continue;
       case MM_LOAD: return LOAD;
+      case MM_LOAD_NEW: return LOAD_NEW;
       case MM_EDIT: return EDIT;
       case MM_QUIT: return QUIT;
       case MM_UPGRADE:
@@ -578,6 +589,7 @@ mmreal * mmreal::create(player * plr) {
   }
 
   mm->sel->items[i++].t = MM_LOAD;
+  mm->sel->items[i++].t = MM_LOAD_NEW;
   mm->sel->items[i++].t = MM_EDIT;
   if (network) {
 #   ifndef MULTIUSER

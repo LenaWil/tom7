@@ -3,10 +3,9 @@
 #include <assert.h>
 #include "extent.h"
 
-/* This code is non-SDL, so it
-   should be portable! */
+/* This code is non-SDL, so it should be portable! */
 
-string solution::tostring () {
+string solution::tostring() const {
   return sizes(length) + level::rleencode(length, (int*)dirs);
 }
 
@@ -1171,7 +1170,7 @@ void level::destroy() {
   delete this;
 }
 
-level * level::clone() {
+level * level::clone() const {
 
   level * n = new level();
 
@@ -1267,7 +1266,7 @@ level * level::defboard(int w, int h) {
   return n;
 }
 
-bool level::verify_prefix(level * lev, solution * s, solution *& out) {
+bool level::verify_prefix(const level * lev, const solution * s, solution *& out) {
   level * l = lev->clone();
   extent<level> el(l);
 
@@ -1297,8 +1296,8 @@ bool level::verify_prefix(level * lev, solution * s, solution *& out) {
   return false;
 }
 
-bool level::verify(level * lev, solution * s) {
-  level * l = lev->clone ();
+bool level::verify(const level * lev, const solution * s) {
+  level * l = lev->clone();
 
   int moves;
   bool won = l->play(s, moves);
@@ -1308,7 +1307,7 @@ bool level::verify(level * lev, solution * s) {
   return won && moves == s->length;
 }
 
-bool level::play_subsol(solution * s, int & moves, int start, int len) {
+bool level::play_subsol(const solution * s, int & moves, int start, int len) {
   moves = 0;
   for(int z = 0; z < len; z ++) {
     
@@ -1329,7 +1328,7 @@ bool level::play_subsol(solution * s, int & moves, int start, int len) {
   return false;
 }
 
-bool level::play(solution * s, int & moves) {
+bool level::play(const solution * s, int & moves) {
   return play_subsol(s, moves, 0, s->length);
 }
 

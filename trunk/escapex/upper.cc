@@ -364,6 +364,9 @@ bool upreal :: commit() {
     /* everything is rooted within dirname */
     nlf = dirname + DIRSEP + nlf;
 
+    /* Try removing before opening; Adam seems to think this
+       improves our chances of success. */
+    util::remove(nlf);
     FILE * a = util::fopenp(nlf, "wb");
     if (!a) {
       say((string)RED "couldn't write " + nlf + POP);

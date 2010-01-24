@@ -1,4 +1,7 @@
 
+/* XXX This is deprecated (in favor of the bookmarks menu) 
+   and should be deleted. */
+
 #include "smanage.h"
 #include "extent.h"
 #include "message.h"

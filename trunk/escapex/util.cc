@@ -172,7 +172,7 @@ static bool hasmagicf(FILE * f, const string & mag) {
   return true;
 }
 
-bool util::hasmagic(string s, string mag) {
+bool util::hasmagic(string s, const string &mag) {
   FILE * f = fopen(s.c_str(), "rb");
   if (!f) return false;
 
@@ -182,7 +182,7 @@ bool util::hasmagic(string s, string mag) {
   return hm;
 }
 
-string util::readfilemagic(string s, string mag) {
+string util::readfilemagic(string s, const string &mag) {
   if (isdir(s)) return "";
   if (s == "") return "";
 
@@ -273,7 +273,7 @@ int shout(int b, string s, unsigned int & idx) {
   return r;
 }
 
-unsigned int util :: hash(string s) {
+unsigned int util::hash(string s) {
   unsigned int h = 0x714FA5DD;
   for(unsigned int i = 0; i < s.length(); i ++) {
     h = (h << 11) | (h >> (32 - 11));
@@ -283,7 +283,7 @@ unsigned int util :: hash(string s) {
   return h;
 }
 
-string util :: lcase(string in) {
+string util::lcase(string in) {
   string out;
   for(unsigned int i = 0; i < in.length(); i++) {
     if (in[i] >= 'A' &&
@@ -294,7 +294,7 @@ string util :: lcase(string in) {
   return out;
 }
 
-string util :: ucase(string in) {
+string util::ucase(string in) {
   string out;
   for(unsigned int i = 0; i < in.length(); i++) {
     if (in[i] >= 'a' &&
@@ -305,7 +305,7 @@ string util :: ucase(string in) {
   return out;
 }
 
-string util :: fileof(string s) {
+string util::fileof(string s) {
   int i = s.length () - 1;
   for(; i >= 0; i --) {
     if (s[i] == DIRSEPC) {
@@ -315,7 +315,7 @@ string util :: fileof(string s) {
   return s;
 }
 
-string util :: pathof(string s) {
+string util::pathof(string s) {
   if (s == "") return ".";
   int i = s.length () - 1;
   for(; i >= 0; i --) {
@@ -327,7 +327,7 @@ string util :: pathof(string s) {
 }
 
 /* XX can use endswith below */
-string util :: ensureext(string f, string ext) {
+string util::ensureext(string f, string ext) {
   if (f.length () < ext.length())
     return f + ext;
   else {
@@ -338,22 +338,22 @@ string util :: ensureext(string f, string ext) {
   }
 }
 
-bool util :: endswith (string big, string small_) {
+bool util::endswith (string big, string small_) {
   if (small_.length() > big.length()) return false;
   return big.substr(big.length() - small_.length (),
 		    small_.length()) == small_;
 }
 
-bool util :: startswith (string big, string small_) {
+bool util::startswith (string big, string small_) {
   if (small_.length () > big.length()) return false;
   return big.substr(0, small_.length()) == small_;
 }
 
-int util :: changedir(string s) {
+int util::changedir(string s) {
   return !chdir(s.c_str());
 }
 
-int util :: getpid() {
+int util::getpid() {
   return ::getpid();
 }
 
@@ -363,13 +363,13 @@ int stoi(string s) {
 
 /* XXX race. should use creat
    with O_EXCL on unix, at least. */
-FILE * util :: open_new(string fname) {
+FILE * util::open_new(string fname) {
   if (!existsfile(fname))
     return fopen(fname.c_str(), "wb+");
   else return 0;
 }
 
-string util :: getline(string & chunk) {
+string util::getline(string & chunk) {
   string ret;
   for(unsigned int i = 0; i < chunk.length(); i ++) {
     if (chunk[i] == '\r') continue;
@@ -730,6 +730,15 @@ bool util::copy(string src, string dst) {
   return true;
 }
 
+string util::dirplus(const string &dir_, const string &file) {
+  if (dir_.empty()) return file;
+  if (!file.empty() && file[0] == DIRSEPC) return file;
+  string dir = dir_;
+  if (dir[dir.size() - 1] != DIRSEPC)
+    dir += DIRSEPC;
+  return dir + file;
+}
+
 void util::toattic(string f) {
   string nf = f;
   // printf("TOATTIC %s...\n", f.c_str());
@@ -904,7 +913,7 @@ bool util::launchurl(const string & url) {
 }
 
 
-float util :: randfrac() {
+float util::randfrac() {
   return random() / (float)RAND_MAX;
 }
 
@@ -933,7 +942,7 @@ bool util::setclipboard(string as) {
    web sequence numbers are chosen randomly, now, so we
    actually do. 
 */
-int util :: random () {
+int util::random () {
 # ifdef WIN32
   return ::rand();
 # else

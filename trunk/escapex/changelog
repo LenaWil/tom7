@@ -1,4 +1,8 @@
-2009-12-24  Tom 7  <twm@twm-macbookpro15.local>
+2010-01-18  Tom 7  <Tom@WARPZONE>
+
+        * upper.cc: Made the upgrade process more robust (thanks adam!)
+
+2009-12-24  Tom 7  <twm@...>
 
         * level.cc: Check more corner cases when loading levels, to
           protect against particularly subversive authors. (Thanks

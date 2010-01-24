@@ -14,7 +14,7 @@ struct startup {
 
   static int setdir (int argc, char ** argv);
 
-  private:
+ private:
 
   static int install_levels(string);
 };

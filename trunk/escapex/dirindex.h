@@ -1,6 +1,19 @@
 #ifndef __DIRINDEX_H
 #define __DIRINDEX_H
 
+/* a directory index provides meta-information about a directory in a
+   managed collection (ie, triage). it includes:
+     * a nice name (title) for the directory
+     * global ratings for each level
+     * dates that the levels were created (can be used to sort)
+     * current speed records for each level
+     * (your idea here)
+
+   indices are written as index.esi in each managed directory. 
+
+   Note: This is being replaced by leveldb for the 4.0 series.
+*/
+
 #include "util.h"
 
 #define DIRINDEXNAME "index.esi"
@@ -18,16 +31,6 @@ struct ratestatus {
   ratestatus() : nvotes(0), difficulty(0), style(0), 
        rigidity(0), cooked(0), solved(0) {}
 };
-
-/* a directory index provides meta-information about a directory in a
-   managed collection (ie, triage). it includes:
-     * a nice name (title) for the directory
-     * global ratings for each level
-     * dates that the levels were created (can be used to sort)
-     * current speed records for each level
-     * (your idea here)
-
-   indices are written as index.esi in each managed directory. */
 
 struct dirindex {
   

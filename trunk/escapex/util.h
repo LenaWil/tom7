@@ -2,10 +2,11 @@
 #ifndef __UTIL_H
 #define __UTIL_H
 
-#include <stdio.h>
-#include <string>
 #include <cstdlib>
+#include <map>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string>
 
 using namespace std;
 
@@ -261,8 +262,8 @@ struct bitbuffer {
 
 struct util {
   /* only read if the file begins with the magic string */
-  static bool hasmagic(string, string magic);
-  static string readfilemagic(string, string magic);
+  static bool hasmagic(string, const string &magic);
+  static string readfilemagic(string, const string &magic);
 
 
   static string ptos(void *);
@@ -277,7 +278,12 @@ struct util {
 
   static bool existsfile(string);
 
-  /* spec is a characte spec like "A-Z0-9`,." 
+  /* dirplus("/usr/local", "core") and
+     dirplus("/usr/local/", core")  both give  "/usr/local/core"
+     dirplus("/usr/local", "/etc/passwd")  gives "/etc/passwd"  */
+  static string dirplus(const string &dir, const string &file);
+
+  /* spec is a character spec like "A-Z0-9`,." 
      XXX document */
   static bool matchspec(string spec, char c);
 
@@ -389,6 +395,15 @@ struct util {
   static bool setclipboard(string);
 
   /* templates follow. */
+
+  /* Return m[key] if it already exists, or allocate a new entry,
+     insert it, and return that. */
+  template <class K, class V>
+  static V* findorinsertnew(map<K, V*> &m, const K &key) {
+    V *& pos = m[key];
+    if (!pos) pos = new V;
+    return pos;
+  }
 
 
   /* T needs copy constructor */
