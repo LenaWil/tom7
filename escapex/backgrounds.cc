@@ -5,15 +5,20 @@
 #include "util.h"
 #include "chars.h"
 
-static Uint32 blueish(SDL_Surface * surf) {
-  float h = 178.0f + (util::randfrac() * (233.0f - 178.0f));
+const float backgrounds::blueish = 178.0f;
+
+static Uint32 hueish(SDL_Surface * surf, float base_hue) {
+  float h = base_hue + (util::randfrac() * (233.0f - 178.0f));
   float s = .29f + (util::randfrac() * (.84f - .29f));
   float v = .12f + (util::randfrac() * (.50f - .12f));
   float a = .50f + (util::randfrac() * (1.0f - .50f));
   return sdlutil::hsv(surf, h / 360.0f, s, v, a);
 }
 
-void backgrounds::gradientblocks(SDL_Surface *& surf) {
+void backgrounds::gradientblocks(SDL_Surface *& surf,
+				 int tile_white,
+				 int tile_black,
+				 float gradient_hue) {
   /* PERF could avoid doing this if not resizing, but nobody calls it
      that way (would look weird anyway because gradient would keep
      spazzing out) */
@@ -56,8 +61,8 @@ void backgrounds::gradientblocks(SDL_Surface *& surf) {
 				    0xFF, 0xFF, 0xFF, 0xFF));
 
   int x = 0;
-  Uint32 last = blueish(gradient);
-  Uint32 next = blueish(gradient);
+  Uint32 last = hueish(gradient, gradient_hue);
+  Uint32 next = hueish(gradient, gradient_hue);
   int count = 1;
   int num = 0;
   while (x < w) {
@@ -73,7 +78,7 @@ void backgrounds::gradientblocks(SDL_Surface *& surf) {
       /* pick a new nextination color */
       clr = sdlutil::mixfrac(last, next, 0.5f);
       last = next;
-      next = blueish(gradient);
+      next = hueish(gradient, gradient_hue);
       count = 2 + (int)(util::randfrac() * 28.0f);
       num = 0;
     } else {

@@ -12,7 +12,7 @@
 #include "play.h"
 #include "handhold.h"
 #include "md5.h"
-#include "background.h"
+#include "backgrounds.h"
 
 /* testing */
 #include "animation.h"
@@ -409,7 +409,10 @@ void mmreal::makebackground() {
   int w = screen->w;
   int h = screen->h;
 
-  backgrounds::gradientblocks(background);
+  backgrounds::gradientblocks(background,
+			      T_GREY,
+			      T_BLUE,
+			      backgrounds::blueish);
   if (!background) return;
 
   /* draw alpharect for bottom */
