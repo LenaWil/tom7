@@ -17,7 +17,6 @@ struct drawable {
   virtual void screenresize() = 0;
 
   static void init();
-
 };
 
 extern drawable * nodraw;

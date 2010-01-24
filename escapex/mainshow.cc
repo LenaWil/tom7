@@ -110,7 +110,7 @@ void mainshow::trymove() {
 void mainshow::randomspot(int & x, int & y) {
 
   int idx = 
-    util :: random () % ((dr.lev->w - 2) * (dr.lev->h - 2));
+    util::random () % ((dr.lev->w - 2) * (dr.lev->h - 2));
 
   x = 1 + idx % (dr.lev->w - 2);
   y = 1 + idx / (dr.lev->w - 2);

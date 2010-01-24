@@ -4,13 +4,10 @@
 #include "extent.h"
 #include "draw.h"
 
-struct reg : public registration {
-
-  static reg * create(player * p);
+struct registration_ : public registration {
+  registration_() {}
 
   virtual void registrate();
-
-  virtual ~reg () {}
 
   virtual void screenresize();
   virtual void draw();
@@ -35,20 +32,14 @@ struct reg : public registration {
   player * plr;
 };
 
-registration:: ~registration() {}
-
-registration * registration :: create (player * p) {
-  return reg :: create(p);
-}
-
-reg * reg :: create (player * p) {
-  reg * r = new reg();
+registration * registration::create(player * p) {
+  registration_ * r = new registration_();
   r->plr = p;
   r->tx = textscroll::create(fon);
   return r;
 }
 
-void reg::registrate() {
+void registration_::registrate() {
 
   http * hh = client::connect(plr, tx, this);
   if (!hh) { 
@@ -121,11 +112,11 @@ void reg::registrate() {
   return;
 }
 
-void reg::screenresize() {
+void registration_::screenresize() {
   /* XXX resize tx */
 }
 
-void reg::draw() {
+void registration_::draw() {
   sdlutil::clearsurface(screen, BGCOLOR);
   tx->draw();
 }

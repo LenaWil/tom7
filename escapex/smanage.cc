@@ -747,6 +747,7 @@ void smanage::playback(player * plr, level * lev, namedsolution * ns) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       
+      if (handle_video_event(&p, event)) continue;
 
       switch(event.type) {
       case SDL_KEYDOWN: {
@@ -833,18 +834,6 @@ void smanage::playback(player * plr, level * lev, namedsolution * ns) {
       }
 
       case SDL_QUIT: return;
-
-      case SDL_VIDEORESIZE: {
-	SDL_ResizeEvent * eventp = (SDL_ResizeEvent*)&event;
-	screen = sdlutil::makescreen(eventp->w, 
-				     eventp->h);
-	p.screenresize();
-	p.draw();
-	break;
-      }
-      case SDL_VIDEOEXPOSE:
-	p.draw();
-	break;
       }
     }
   }

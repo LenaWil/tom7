@@ -164,7 +164,7 @@ void textinput::draw_ch(int xpos, int ypos, int f, char c) {
   }
 }
 
-void textinput :: draw(int xp, int yp, int f) {
+void textinput::draw(int xp, int yp, int f) {
   draw_ch(xp, yp, f, 0);
 }
 
@@ -834,7 +834,8 @@ resultkind menu::menuize() {
   SDL_Event e;
 
   /* event loop */
-  while ( SDL_WaitEvent(&e) >= 0 ) {
+  while (SDL_WaitEvent(&e) >= 0) {
+    if (handle_video_event(this, e)) continue;
 
     switch(e.type) {
     case SDL_MOUSEBUTTONDOWN: {
@@ -910,20 +911,7 @@ resultkind menu::menuize() {
       PROCESSRESULT(res);
       break;
     }
-      /* it would be good if this stuff were somewhere
-	 centralized */
-    case SDL_VIDEORESIZE: {
-      SDL_ResizeEvent * eventp = (SDL_ResizeEvent*)&e;
-      screen = sdlutil::makescreen(eventp->w, 
-				   eventp->h);
-      screenresize();
-      redraw();
-      break;
-    }
-    case SDL_VIDEOEXPOSE:
-      redraw();
-      break;
-    default: break;
+    default:;
     }
   }
   /* XXX possible? what does waitevent < 0 mean? */

@@ -13,7 +13,7 @@ struct registration : public drawable {
   /* modifies p->webid to nonzero if successful */
   virtual void registrate() = 0;
 
-  virtual ~registration() = 0;
+  virtual ~registration() {}
 
   virtual void draw() = 0;
   virtual void screenresize() = 0;

@@ -57,7 +57,7 @@
 */
 
 template <class Item, class Ret>
-struct selector {
+struct selector : public drawable {
 
   int botmargin;
   int yfit;
@@ -206,12 +206,12 @@ struct selector {
     return s;
   }
 
-  void redraw () {
+  virtual void redraw () {
     draw();
     SDL_Flip(screen);
   }
 
-  void draw () {
+  virtual void draw () {
 
     if (below) {
       below->draw();
@@ -249,6 +249,13 @@ struct selector {
 
   }
 
+  /* Don't have to do anything because our size is specified in
+     terms of the screen size. (Though maybe that's not ideal.)
+     But give the parent a chance to rejigger. */
+  virtual void screenresize() {
+    below->screenresize();
+  }
+
   bool pointitem(int y, int & n) {
     int topsize = fon->lines(title) * fon->height + 2;
 
@@ -283,10 +290,10 @@ struct selector {
   };
 
   peres doevent(SDL_Event e) {
-
     int key;
-
     DPRINTF("sel.h doevent %d\n", e.type);
+
+    if (handle_video_event(this, e)) return peres(PE_NONE);
 
     switch(e.type) {
     /* new! mouse stuff */
@@ -315,7 +322,7 @@ struct selector {
 	  selected = nth;
 	  redraw();
 	}
-      } 
+      }
 
       break;
     }
@@ -377,17 +384,6 @@ struct selector {
 	    redraw ();
 	  }
 	}
-      break;
-    case SDL_VIDEORESIZE: {
-      DPRINTF(" vidr\n");
-      SDL_ResizeEvent * eventp = (SDL_ResizeEvent*)&e;
-      screen = sdlutil::makescreen(eventp->w, 
-				   eventp->h);
-      redraw();
-      break;
-    }
-    case SDL_VIDEOEXPOSE:
-      redraw();
       break;
     default: 
       DPRINTF(" other!\n");

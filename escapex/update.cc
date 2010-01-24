@@ -148,7 +148,7 @@ inputresult subtoggle::key(SDL_Event e) {
 
 }
 
-updater * updater :: create(player * p) {
+updater * updater::create(player * p) {
   return updatereal::create(p);
 }
 

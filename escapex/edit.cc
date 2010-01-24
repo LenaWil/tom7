@@ -832,8 +832,8 @@ void editor::edit(level * origlev) {
   redraw ();
 
   for(;;) {
-    //  while ( SDL_WaitEvent(&event) >= 0 ) {
-    while ( SDL_PollEvent(&event) ) {
+    while (SDL_PollEvent(&event)) {
+      if (handle_video_event(this, event)) continue;
 
       switch(event.type) {
 
@@ -1778,19 +1778,7 @@ void editor::edit(level * origlev) {
 	} /* switch unicode */
 	} /* switch sym */
 	break;
-      case SDL_VIDEORESIZE: {
-	SDL_ResizeEvent * eventp = (SDL_ResizeEvent*)&event;
-	screen = sdlutil::makescreen(eventp->w, 
-				     eventp->h);
-
-	screenresize();
-	redraw ();
-	break;
-      }
-      case SDL_VIDEOEXPOSE:
-	redraw();
-	break;
-      default: break;
+      default:;
       }
     }
     
@@ -1820,7 +1808,8 @@ bool editor::getdest(int & x, int & y, string msg) {
   redraw();
 
   for(;;) {
-    while ( SDL_PollEvent(&event) ) {
+    while (SDL_PollEvent(&event)) {
+      if (handle_video_event(this, event)) continue;
 
       switch(event.type) {
 
@@ -1867,19 +1856,7 @@ bool editor::getdest(int & x, int & y, string msg) {
 	dr.makescrollreasonable();
 	redraw();
 	break;
-      case SDL_VIDEORESIZE: {
-	SDL_ResizeEvent * eventp = (SDL_ResizeEvent*)&event;
-	screen = sdlutil::makescreen(eventp->w, 
-				     eventp->h);
-
-	screenresize();
-	redraw ();
-	break;
-      }
-      case SDL_VIDEOEXPOSE:
-	redraw();
-	break;
-      default: break;
+      default:;
       }
     }
     
