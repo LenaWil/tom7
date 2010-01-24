@@ -71,8 +71,6 @@ remote_lite0 animation\remote0.png
 remote_lite1 animation\remote1.png
 remote_lite2 animation\remote2.png
 remote_lite3 animation\remote3.png
-remote_lite4 animation\remote4.png
-remote_lite5 animation\remote5.png
 remote_lite6 animation\remote6.png
 
 bsphere_slide_lr animation\bsphere-slide-horiz.png

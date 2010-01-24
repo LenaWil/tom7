@@ -473,27 +473,11 @@
   r.y = 256;
   r.w = 32;
   r.h = 32;
-  remote_lite4 = sdlutil::makesurface(r.w, r.h);
-  if (!remote_lite4) return false;
-  SDL_BlitSurface(all, &r, remote_lite4, 0);
-
-  r.x = 160;
-  r.y = 256;
-  r.w = 32;
-  r.h = 32;
-  remote_lite5 = sdlutil::makesurface(r.w, r.h);
-  if (!remote_lite5) return false;
-  SDL_BlitSurface(all, &r, remote_lite5, 0);
-
-  r.x = 192;
-  r.y = 256;
-  r.w = 32;
-  r.h = 32;
   remote_lite6 = sdlutil::makesurface(r.w, r.h);
   if (!remote_lite6) return false;
   SDL_BlitSurface(all, &r, remote_lite6, 0);
 
-  r.x = 224;
+  r.x = 160;
   r.y = 256;
   r.w = 34;
   r.h = 30;
@@ -501,16 +485,16 @@
   if (!bsphere_slide_lr) return false;
   SDL_BlitSurface(all, &r, bsphere_slide_lr, 0);
 
-  r.x = 261;
-  r.y = 0;
+  r.x = 194;
+  r.y = 256;
   r.w = 36;
   r.h = 28;
   bsphere_slide_lr2 = sdlutil::makesurface(r.w, r.h);
   if (!bsphere_slide_lr2) return false;
   SDL_BlitSurface(all, &r, bsphere_slide_lr2, 0);
 
-  r.x = 261;
-  r.y = 28;
+  r.x = 230;
+  r.y = 256;
   r.w = 30;
   r.h = 34;
   bsphere_slide_ud = sdlutil::makesurface(r.w, r.h);
@@ -518,7 +502,7 @@
   SDL_BlitSurface(all, &r, bsphere_slide_ud, 0);
 
   r.x = 261;
-  r.y = 62;
+  r.y = 0;
   r.w = 28;
   r.h = 36;
   bsphere_slide_ud2 = sdlutil::makesurface(r.w, r.h);
@@ -526,39 +510,39 @@
   SDL_BlitSurface(all, &r, bsphere_slide_ud2, 0);
 
   r.x = 261;
-  r.y = 98;
+  r.y = 36;
   r.w = 34;
   r.h = 30;
   gsphere_slide_lr = sdlutil::makesurface(r.w, r.h);
   if (!gsphere_slide_lr) return false;
   SDL_BlitSurface(all, &r, gsphere_slide_lr, 0);
 
-  r.x = 258;
-  r.y = 256;
+  r.x = 261;
+  r.y = 66;
   r.w = 36;
   r.h = 28;
   gsphere_slide_lr2 = sdlutil::makesurface(r.w, r.h);
   if (!gsphere_slide_lr2) return false;
   SDL_BlitSurface(all, &r, gsphere_slide_lr2, 0);
 
-  r.x = 258;
-  r.y = 284;
+  r.x = 261;
+  r.y = 94;
   r.w = 30;
   r.h = 34;
   gsphere_slide_ud = sdlutil::makesurface(r.w, r.h);
   if (!gsphere_slide_ud) return false;
   SDL_BlitSurface(all, &r, gsphere_slide_ud, 0);
 
-  r.x = 289;
-  r.y = 62;
+  r.x = 260;
+  r.y = 256;
   r.w = 28;
   r.h = 36;
   gsphere_slide_ud2 = sdlutil::makesurface(r.w, r.h);
   if (!gsphere_slide_ud2) return false;
   SDL_BlitSurface(all, &r, gsphere_slide_ud2, 0);
 
-  r.x = 224;
-  r.y = 286;
+  r.x = 194;
+  r.y = 284;
   r.w = 34;
   r.h = 30;
   rsphere_slide_lr = sdlutil::makesurface(r.w, r.h);
@@ -573,31 +557,31 @@
   if (!rsphere_slide_lr2) return false;
   SDL_BlitSurface(all, &r, rsphere_slide_lr2, 0);
 
-  r.x = 291;
-  r.y = 28;
+  r.x = 289;
+  r.y = 0;
   r.w = 30;
   r.h = 34;
   rsphere_slide_ud = sdlutil::makesurface(r.w, r.h);
   if (!rsphere_slide_ud) return false;
   SDL_BlitSurface(all, &r, rsphere_slide_ud, 0);
 
-  r.x = 288;
-  r.y = 128;
+  r.x = 291;
+  r.y = 94;
   r.w = 28;
   r.h = 36;
   rsphere_slide_ud2 = sdlutil::makesurface(r.w, r.h);
   if (!rsphere_slide_ud2) return false;
   SDL_BlitSurface(all, &r, rsphere_slide_ud2, 0);
 
-  r.x = 36;
-  r.y = 288;
+  r.x = 160;
+  r.y = 286;
   r.w = 34;
   r.h = 30;
   sphere_slide_lr = sdlutil::makesurface(r.w, r.h);
   if (!sphere_slide_lr) return false;
   SDL_BlitSurface(all, &r, sphere_slide_lr, 0);
 
-  r.x = 70;
+  r.x = 36;
   r.y = 288;
   r.w = 36;
   r.h = 28;
@@ -606,7 +590,7 @@
   SDL_BlitSurface(all, &r, sphere_slide_lr2, 0);
 
   r.x = 288;
-  r.y = 164;
+  r.y = 130;
   r.w = 30;
   r.h = 34;
   sphere_slide_ud = sdlutil::makesurface(r.w, r.h);
@@ -614,14 +598,14 @@
   SDL_BlitSurface(all, &r, sphere_slide_ud, 0);
 
   r.x = 288;
-  r.y = 198;
+  r.y = 164;
   r.w = 28;
   r.h = 36;
   sphere_slide_ud2 = sdlutil::makesurface(r.w, r.h);
   if (!sphere_slide_ud2) return false;
   SDL_BlitSurface(all, &r, sphere_slide_ud2, 0);
 
-  r.x = 106;
+  r.x = 72;
   r.y = 288;
   r.w = 40;
   r.h = 25;
@@ -629,23 +613,23 @@
   if (!yellow_slide_lr) return false;
   SDL_BlitSurface(all, &r, yellow_slide_lr, 0);
 
-  r.x = 294;
-  r.y = 234;
+  r.x = 288;
+  r.y = 200;
   r.w = 25;
   r.h = 36;
   yellow_slide_ud = sdlutil::makesurface(r.w, r.h);
   if (!yellow_slide_ud) return false;
   SDL_BlitSurface(all, &r, yellow_slide_ud, 0);
 
-  r.x = 294;
-  r.y = 270;
+  r.x = 288;
+  r.y = 236;
   r.w = 26;
   r.h = 36;
   yellow_stretch_ud = sdlutil::makesurface(r.w, r.h);
   if (!yellow_stretch_ud) return false;
   SDL_BlitSurface(all, &r, yellow_stretch_ud, 0);
 
-  r.x = 146;
+  r.x = 112;
   r.y = 288;
   r.w = 38;
   r.h = 26;
@@ -653,727 +637,727 @@
   if (!yellow_stretch_lr) return false;
   SDL_BlitSurface(all, &r, yellow_stretch_lr, 0);
 
-  r.x = 184;
-  r.y = 288;
+  r.x = 288;
+  r.y = 272;
   r.w = 32;
   r.h = 32;
   greyshrink0 = sdlutil::makesurface(r.w, r.h);
   if (!greyshrink0) return false;
   SDL_BlitSurface(all, &r, greyshrink0, 0);
 
-  r.x = 288;
-  r.y = 306;
+  r.x = 228;
+  r.y = 290;
   r.w = 32;
   r.h = 32;
   greyshrink1 = sdlutil::makesurface(r.w, r.h);
   if (!greyshrink1) return false;
   SDL_BlitSurface(all, &r, greyshrink1, 0);
 
-  r.x = 106;
-  r.y = 313;
+  r.x = 295;
+  r.y = 34;
   r.w = 32;
   r.h = 32;
   greyshrink2 = sdlutil::makesurface(r.w, r.h);
   if (!greyshrink2) return false;
   SDL_BlitSurface(all, &r, greyshrink2, 0);
 
-  r.x = 138;
-  r.y = 314;
+  r.x = 260;
+  r.y = 304;
   r.w = 32;
   r.h = 32;
   greyshrink3 = sdlutil::makesurface(r.w, r.h);
   if (!greyshrink3) return false;
   SDL_BlitSurface(all, &r, greyshrink3, 0);
 
-  r.x = 0;
-  r.y = 318;
+  r.x = 292;
+  r.y = 304;
   r.w = 50;
   r.h = 46;
   zap0 = sdlutil::makesurface(r.w, r.h);
   if (!zap0) return false;
   SDL_BlitSurface(all, &r, zap0, 0);
 
-  r.x = 50;
-  r.y = 318;
+  r.x = 72;
+  r.y = 314;
   r.w = 50;
   r.h = 46;
   zap1 = sdlutil::makesurface(r.w, r.h);
   if (!zap1) return false;
   SDL_BlitSurface(all, &r, zap1, 0);
 
-  r.x = 216;
-  r.y = 318;
+  r.x = 0;
+  r.y = 316;
   r.w = 50;
   r.h = 46;
   zap2 = sdlutil::makesurface(r.w, r.h);
   if (!zap2) return false;
   SDL_BlitSurface(all, &r, zap2, 0);
 
-  r.x = 317;
-  r.y = 62;
+  r.x = 122;
+  r.y = 316;
   r.w = 50;
   r.h = 46;
   zap3 = sdlutil::makesurface(r.w, r.h);
   if (!zap3) return false;
   SDL_BlitSurface(all, &r, zap3, 0);
 
-  r.x = 316;
-  r.y = 108;
+  r.x = 172;
+  r.y = 316;
   r.w = 50;
   r.h = 46;
   zap4 = sdlutil::makesurface(r.w, r.h);
   if (!zap4) return false;
   SDL_BlitSurface(all, &r, zap4, 0);
 
-  r.x = 321;
-  r.y = 0;
+  r.x = 319;
+  r.y = 66;
   r.w = 40;
   r.h = 41;
   break0 = sdlutil::makesurface(r.w, r.h);
   if (!break0) return false;
   SDL_BlitSurface(all, &r, break0, 0);
 
-  r.x = 318;
-  r.y = 154;
+  r.x = 319;
+  r.y = 107;
   r.w = 40;
   r.h = 41;
   break1 = sdlutil::makesurface(r.w, r.h);
   if (!break1) return false;
   SDL_BlitSurface(all, &r, break1, 0);
 
-  r.x = 319;
-  r.y = 195;
+  r.x = 318;
+  r.y = 148;
   r.w = 40;
   r.h = 41;
   break2 = sdlutil::makesurface(r.w, r.h);
   if (!break2) return false;
   SDL_BlitSurface(all, &r, break2, 0);
 
-  r.x = 320;
-  r.y = 236;
+  r.x = 316;
+  r.y = 189;
   r.w = 64;
   r.h = 64;
   smokepuff0 = sdlutil::makesurface(r.w, r.h);
   if (!smokepuff0) return false;
   SDL_BlitSurface(all, &r, smokepuff0, 0);
 
-  r.x = 320;
-  r.y = 300;
+  r.x = 327;
+  r.y = 0;
   r.w = 64;
   r.h = 64;
   smokepuff1 = sdlutil::makesurface(r.w, r.h);
   if (!smokepuff1) return false;
   SDL_BlitSurface(all, &r, smokepuff1, 0);
 
-  r.x = 100;
-  r.y = 346;
+  r.x = 222;
+  r.y = 336;
   r.w = 64;
   r.h = 64;
   smokepuff2 = sdlutil::makesurface(r.w, r.h);
   if (!smokepuff2) return false;
   SDL_BlitSurface(all, &r, smokepuff2, 0);
 
-  r.x = 359;
-  r.y = 154;
+  r.x = 342;
+  r.y = 253;
   r.w = 64;
   r.h = 64;
   smokepuff3 = sdlutil::makesurface(r.w, r.h);
   if (!smokepuff3) return false;
   SDL_BlitSurface(all, &r, smokepuff3, 0);
 
-  r.x = 361;
-  r.y = 0;
+  r.x = 359;
+  r.y = 64;
   r.w = 32;
   r.h = 32;
   trap1_falls0 = sdlutil::makesurface(r.w, r.h);
   if (!trap1_falls0) return false;
   SDL_BlitSurface(all, &r, trap1_falls0, 0);
 
-  r.x = 393;
-  r.y = 0;
+  r.x = 359;
+  r.y = 96;
   r.w = 32;
   r.h = 32;
   trap1_falls1 = sdlutil::makesurface(r.w, r.h);
   if (!trap1_falls1) return false;
   SDL_BlitSurface(all, &r, trap1_falls1, 0);
 
-  r.x = 367;
-  r.y = 32;
+  r.x = 359;
+  r.y = 128;
   r.w = 32;
   r.h = 32;
   trap1_falls2 = sdlutil::makesurface(r.w, r.h);
   if (!trap1_falls2) return false;
   SDL_BlitSurface(all, &r, trap1_falls2, 0);
 
-  r.x = 367;
-  r.y = 64;
+  r.x = 342;
+  r.y = 317;
   r.w = 32;
   r.h = 32;
   trap1_falls3 = sdlutil::makesurface(r.w, r.h);
   if (!trap1_falls3) return false;
   SDL_BlitSurface(all, &r, trap1_falls3, 0);
 
-  r.x = 367;
-  r.y = 96;
+  r.x = 374;
+  r.y = 317;
   r.w = 32;
   r.h = 32;
   trap2_falls0 = sdlutil::makesurface(r.w, r.h);
   if (!trap2_falls0) return false;
   SDL_BlitSurface(all, &r, trap2_falls0, 0);
 
-  r.x = 384;
-  r.y = 218;
+  r.x = 342;
+  r.y = 349;
   r.w = 32;
   r.h = 32;
   trap2_falls1 = sdlutil::makesurface(r.w, r.h);
   if (!trap2_falls1) return false;
   SDL_BlitSurface(all, &r, trap2_falls1, 0);
 
-  r.x = 384;
-  r.y = 250;
+  r.x = 374;
+  r.y = 349;
   r.w = 35;
   r.h = 32;
   green_pushright0 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushright0) return false;
   SDL_BlitSurface(all, &r, green_pushright0, 0);
 
-  r.x = 170;
-  r.y = 320;
+  r.x = 286;
+  r.y = 350;
   r.w = 42;
   r.h = 32;
   green_pushright1 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushright1) return false;
   SDL_BlitSurface(all, &r, green_pushright1, 0);
 
-  r.x = 0;
-  r.y = 364;
+  r.x = 50;
+  r.y = 360;
   r.w = 56;
   r.h = 32;
   green_pushright2 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushright2) return false;
   SDL_BlitSurface(all, &r, green_pushright2, 0);
 
-  r.x = 164;
-  r.y = 364;
+  r.x = 106;
+  r.y = 362;
   r.w = 64;
   r.h = 32;
   green_pushright3 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushright3) return false;
   SDL_BlitSurface(all, &r, green_pushright3, 0);
 
-  r.x = 228;
-  r.y = 364;
+  r.x = 328;
+  r.y = 381;
   r.w = 64;
   r.h = 32;
   green_pushright4 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushright4) return false;
   SDL_BlitSurface(all, &r, green_pushright4, 0);
 
-  r.x = 292;
-  r.y = 364;
+  r.x = 0;
+  r.y = 392;
   r.w = 64;
   r.h = 32;
   green_pushleft0 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushleft0) return false;
   SDL_BlitSurface(all, &r, green_pushleft0, 0);
 
-  r.x = 356;
-  r.y = 364;
+  r.x = 64;
+  r.y = 394;
   r.w = 64;
   r.h = 32;
   green_pushleft1 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushleft1) return false;
   SDL_BlitSurface(all, &r, green_pushleft1, 0);
 
-  r.x = 0;
-  r.y = 396;
+  r.x = 128;
+  r.y = 394;
   r.w = 56;
   r.h = 32;
   green_pushleft2 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushleft2) return false;
   SDL_BlitSurface(all, &r, green_pushleft2, 0);
 
-  r.x = 384;
-  r.y = 282;
+  r.x = 380;
+  r.y = 160;
   r.w = 42;
   r.h = 32;
   green_pushleft3 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushleft3) return false;
   SDL_BlitSurface(all, &r, green_pushleft3, 0);
 
-  r.x = 384;
-  r.y = 314;
+  r.x = 380;
+  r.y = 192;
   r.w = 35;
   r.h = 32;
   green_pushleft4 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushleft4) return false;
   SDL_BlitSurface(all, &r, green_pushleft4, 0);
 
-  r.x = 56;
-  r.y = 364;
+  r.x = 391;
+  r.y = 0;
   r.w = 32;
   r.h = 35;
   green_pushdown0 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushdown0) return false;
   SDL_BlitSurface(all, &r, green_pushdown0, 0);
 
-  r.x = 399;
-  r.y = 32;
+  r.x = 391;
+  r.y = 35;
   r.w = 32;
   r.h = 41;
   green_pushdown1 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushdown1) return false;
   SDL_BlitSurface(all, &r, green_pushdown1, 0);
 
-  r.x = 399;
-  r.y = 73;
+  r.x = 391;
+  r.y = 76;
   r.w = 32;
   r.h = 56;
   green_pushdown2 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushdown2) return false;
   SDL_BlitSurface(all, &r, green_pushdown2, 0);
 
-  r.x = 419;
-  r.y = 218;
+  r.x = 184;
+  r.y = 362;
   r.w = 32;
   r.h = 64;
   green_pushdown3 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushdown3) return false;
   SDL_BlitSurface(all, &r, green_pushdown3, 0);
 
-  r.x = 420;
-  r.y = 314;
+  r.x = 406;
+  r.y = 224;
   r.w = 32;
   r.h = 64;
   green_pushdown4 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushdown4) return false;
   SDL_BlitSurface(all, &r, green_pushdown4, 0);
 
-  r.x = 420;
-  r.y = 378;
+  r.x = 409;
+  r.y = 288;
   r.w = 32;
   r.h = 64;
   green_pushup0 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushup0) return false;
   SDL_BlitSurface(all, &r, green_pushup0, 0);
 
-  r.x = 423;
-  r.y = 129;
+  r.x = 409;
+  r.y = 352;
   r.w = 32;
   r.h = 64;
   green_pushup1 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushup1) return false;
   SDL_BlitSurface(all, &r, green_pushup1, 0);
 
-  r.x = 164;
-  r.y = 396;
+  r.x = 286;
+  r.y = 382;
   r.w = 32;
   r.h = 56;
   green_pushup2 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushup2) return false;
   SDL_BlitSurface(all, &r, green_pushup2, 0);
 
-  r.x = 196;
-  r.y = 396;
+  r.x = 216;
+  r.y = 400;
   r.w = 32;
   r.h = 41;
   green_pushup3 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushup3) return false;
   SDL_BlitSurface(all, &r, green_pushup3, 0);
 
-  r.x = 228;
-  r.y = 396;
+  r.x = 248;
+  r.y = 400;
   r.w = 32;
   r.h = 35;
   green_pushup4 = sdlutil::makesurface(r.w, r.h);
   if (!green_pushup4) return false;
   SDL_BlitSurface(all, &r, green_pushup4, 0);
 
-  r.x = 260;
-  r.y = 396;
+  r.x = 318;
+  r.y = 413;
   r.w = 48;
   r.h = 48;
   blue_lights0 = sdlutil::makesurface(r.w, r.h);
   if (!blue_lights0) return false;
   SDL_BlitSurface(all, &r, blue_lights0, 0);
 
-  r.x = 308;
-  r.y = 396;
+  r.x = 366;
+  r.y = 416;
   r.w = 48;
   r.h = 48;
   blue_lights1 = sdlutil::makesurface(r.w, r.h);
   if (!blue_lights1) return false;
   SDL_BlitSurface(all, &r, blue_lights1, 0);
 
-  r.x = 356;
-  r.y = 396;
+  r.x = 414;
+  r.y = 416;
   r.w = 48;
   r.h = 48;
   blue_lights2 = sdlutil::makesurface(r.w, r.h);
   if (!blue_lights2) return false;
   SDL_BlitSurface(all, &r, blue_lights2, 0);
 
-  r.x = 56;
-  r.y = 410;
+  r.x = 423;
+  r.y = 0;
   r.w = 48;
   r.h = 48;
   blue_lights3 = sdlutil::makesurface(r.w, r.h);
   if (!blue_lights3) return false;
   SDL_BlitSurface(all, &r, blue_lights3, 0);
 
-  r.x = 104;
-  r.y = 410;
+  r.x = 423;
+  r.y = 48;
   r.w = 48;
   r.h = 48;
   blue_lights4 = sdlutil::makesurface(r.w, r.h);
   if (!blue_lights4) return false;
   SDL_BlitSurface(all, &r, blue_lights4, 0);
 
-  r.x = 0;
-  r.y = 428;
+  r.x = 423;
+  r.y = 96;
   r.w = 48;
   r.h = 48;
   blue_lights5 = sdlutil::makesurface(r.w, r.h);
   if (!blue_lights5) return false;
   SDL_BlitSurface(all, &r, blue_lights5, 0);
 
-  r.x = 431;
-  r.y = 0;
+  r.x = 422;
+  r.y = 144;
   r.w = 48;
   r.h = 48;
   red_lights0 = sdlutil::makesurface(r.w, r.h);
   if (!red_lights0) return false;
   SDL_BlitSurface(all, &r, red_lights0, 0);
 
-  r.x = 431;
-  r.y = 48;
+  r.x = 0;
+  r.y = 424;
   r.w = 48;
   r.h = 48;
   red_lights1 = sdlutil::makesurface(r.w, r.h);
   if (!red_lights1) return false;
   SDL_BlitSurface(all, &r, red_lights1, 0);
 
-  r.x = 196;
-  r.y = 437;
+  r.x = 48;
+  r.y = 426;
   r.w = 48;
   r.h = 48;
   red_lights2 = sdlutil::makesurface(r.w, r.h);
   if (!red_lights2) return false;
   SDL_BlitSurface(all, &r, red_lights2, 0);
 
-  r.x = 404;
-  r.y = 442;
+  r.x = 96;
+  r.y = 426;
   r.w = 48;
   r.h = 48;
   red_lights3 = sdlutil::makesurface(r.w, r.h);
   if (!red_lights3) return false;
   SDL_BlitSurface(all, &r, red_lights3, 0);
 
-  r.x = 244;
-  r.y = 444;
+  r.x = 144;
+  r.y = 426;
   r.w = 48;
   r.h = 48;
   red_lights4 = sdlutil::makesurface(r.w, r.h);
   if (!red_lights4) return false;
   SDL_BlitSurface(all, &r, red_lights4, 0);
 
-  r.x = 292;
-  r.y = 444;
+  r.x = 248;
+  r.y = 438;
   r.w = 48;
   r.h = 48;
   red_lights5 = sdlutil::makesurface(r.w, r.h);
   if (!red_lights5) return false;
   SDL_BlitSurface(all, &r, red_lights5, 0);
 
-  r.x = 340;
-  r.y = 444;
+  r.x = 438;
+  r.y = 192;
   r.w = 48;
   r.h = 48;
   green_lights0 = sdlutil::makesurface(r.w, r.h);
   if (!green_lights0) return false;
   SDL_BlitSurface(all, &r, green_lights0, 0);
 
-  r.x = 451;
-  r.y = 193;
+  r.x = 438;
+  r.y = 240;
   r.w = 48;
   r.h = 48;
   green_lights1 = sdlutil::makesurface(r.w, r.h);
   if (!green_lights1) return false;
   SDL_BlitSurface(all, &r, green_lights1, 0);
 
-  r.x = 451;
-  r.y = 241;
+  r.x = 441;
+  r.y = 288;
   r.w = 48;
   r.h = 48;
   green_lights2 = sdlutil::makesurface(r.w, r.h);
   if (!green_lights2) return false;
   SDL_BlitSurface(all, &r, green_lights2, 0);
 
-  r.x = 452;
-  r.y = 289;
+  r.x = 441;
+  r.y = 336;
   r.w = 48;
   r.h = 48;
   green_lights3 = sdlutil::makesurface(r.w, r.h);
   if (!green_lights3) return false;
   SDL_BlitSurface(all, &r, green_lights3, 0);
 
-  r.x = 452;
-  r.y = 337;
+  r.x = 192;
+  r.y = 441;
   r.w = 48;
   r.h = 48;
   green_lights4 = sdlutil::makesurface(r.w, r.h);
   if (!green_lights4) return false;
   SDL_BlitSurface(all, &r, green_lights4, 0);
 
-  r.x = 452;
-  r.y = 385;
+  r.x = 296;
+  r.y = 461;
   r.w = 48;
   r.h = 48;
   green_lights5 = sdlutil::makesurface(r.w, r.h);
   if (!green_lights5) return false;
   SDL_BlitSurface(all, &r, green_lights5, 0);
 
-  r.x = 455;
-  r.y = 96;
+  r.x = 471;
+  r.y = 0;
   r.w = 32;
   r.h = 36;
   walk_forward_0 = sdlutil::makesurface(r.w, r.h);
   if (!walk_forward_0) return false;
   SDL_BlitSurface(all, &r, walk_forward_0, 0);
 
-  r.x = 455;
-  r.y = 132;
+  r.x = 471;
+  r.y = 36;
   r.w = 32;
   r.h = 36;
   walk_forward_a = sdlutil::makesurface(r.w, r.h);
   if (!walk_forward_a) return false;
   SDL_BlitSurface(all, &r, walk_forward_a, 0);
 
-  r.x = 452;
-  r.y = 433;
+  r.x = 471;
+  r.y = 72;
   r.w = 33;
   r.h = 36;
   walk_forward_a2 = sdlutil::makesurface(r.w, r.h);
   if (!walk_forward_a2) return false;
   SDL_BlitSurface(all, &r, walk_forward_a2, 0);
 
-  r.x = 152;
-  r.y = 452;
+  r.x = 471;
+  r.y = 108;
   r.w = 32;
   r.h = 36;
   walk_forward_b = sdlutil::makesurface(r.w, r.h);
   if (!walk_forward_b) return false;
   SDL_BlitSurface(all, &r, walk_forward_b, 0);
 
-  r.x = 48;
-  r.y = 458;
+  r.x = 470;
+  r.y = 144;
   r.w = 33;
   r.h = 36;
   walk_forward_b2 = sdlutil::makesurface(r.w, r.h);
   if (!walk_forward_b2) return false;
   SDL_BlitSurface(all, &r, walk_forward_b2, 0);
 
-  r.x = 81;
-  r.y = 458;
+  r.x = 462;
+  r.y = 384;
   r.w = 26;
   r.h = 36;
   walk_right_0 = sdlutil::makesurface(r.w, r.h);
   if (!walk_right_0) return false;
   SDL_BlitSurface(all, &r, walk_right_0, 0);
 
-  r.x = 107;
-  r.y = 458;
+  r.x = 462;
+  r.y = 420;
   r.w = 26;
   r.h = 36;
   walk_right_a = sdlutil::makesurface(r.w, r.h);
   if (!walk_right_a) return false;
   SDL_BlitSurface(all, &r, walk_right_a, 0);
 
-  r.x = 479;
-  r.y = 0;
+  r.x = 462;
+  r.y = 456;
   r.w = 26;
   r.h = 36;
   walk_right_a2 = sdlutil::makesurface(r.w, r.h);
   if (!walk_right_a2) return false;
   SDL_BlitSurface(all, &r, walk_right_a2, 0);
 
-  r.x = 479;
-  r.y = 36;
+  r.x = 344;
+  r.y = 464;
   r.w = 26;
   r.h = 36;
   walk_right_b = sdlutil::makesurface(r.w, r.h);
   if (!walk_right_b) return false;
   SDL_BlitSurface(all, &r, walk_right_b, 0);
 
-  r.x = 452;
-  r.y = 469;
+  r.x = 370;
+  r.y = 464;
   r.w = 26;
   r.h = 36;
   walk_right_b2 = sdlutil::makesurface(r.w, r.h);
   if (!walk_right_b2) return false;
   SDL_BlitSurface(all, &r, walk_right_b2, 0);
 
-  r.x = 478;
-  r.y = 469;
+  r.x = 396;
+  r.y = 464;
   r.w = 26;
   r.h = 36;
   walk_left_0 = sdlutil::makesurface(r.w, r.h);
   if (!walk_left_0) return false;
   SDL_BlitSurface(all, &r, walk_left_0, 0);
 
-  r.x = 487;
-  r.y = 72;
+  r.x = 422;
+  r.y = 464;
   r.w = 26;
   r.h = 36;
   walk_left_a = sdlutil::makesurface(r.w, r.h);
   if (!walk_left_a) return false;
   SDL_BlitSurface(all, &r, walk_left_a, 0);
 
-  r.x = 487;
-  r.y = 108;
+  r.x = 0;
+  r.y = 472;
   r.w = 26;
   r.h = 36;
   walk_left_a2 = sdlutil::makesurface(r.w, r.h);
   if (!walk_left_a2) return false;
   SDL_BlitSurface(all, &r, walk_left_a2, 0);
 
-  r.x = 487;
-  r.y = 144;
+  r.x = 26;
+  r.y = 474;
   r.w = 26;
   r.h = 36;
   walk_left_b = sdlutil::makesurface(r.w, r.h);
   if (!walk_left_b) return false;
   SDL_BlitSurface(all, &r, walk_left_b, 0);
 
-  r.x = 485;
-  r.y = 433;
+  r.x = 52;
+  r.y = 474;
   r.w = 26;
   r.h = 36;
   walk_left_b2 = sdlutil::makesurface(r.w, r.h);
   if (!walk_left_b2) return false;
   SDL_BlitSurface(all, &r, walk_left_b2, 0);
 
-  r.x = 0;
-  r.y = 476;
+  r.x = 78;
+  r.y = 474;
   r.w = 26;
   r.h = 36;
   walk_backward_0 = sdlutil::makesurface(r.w, r.h);
   if (!walk_backward_0) return false;
   SDL_BlitSurface(all, &r, walk_backward_0, 0);
 
-  r.x = 184;
-  r.y = 485;
+  r.x = 104;
+  r.y = 474;
   r.w = 26;
   r.h = 36;
   walk_backward_a = sdlutil::makesurface(r.w, r.h);
   if (!walk_backward_a) return false;
   SDL_BlitSurface(all, &r, walk_backward_a, 0);
 
-  r.x = 210;
-  r.y = 485;
+  r.x = 130;
+  r.y = 474;
   r.w = 26;
   r.h = 36;
   walk_backward_a2 = sdlutil::makesurface(r.w, r.h);
   if (!walk_backward_a2) return false;
   SDL_BlitSurface(all, &r, walk_backward_a2, 0);
 
-  r.x = 499;
-  r.y = 180;
+  r.x = 156;
+  r.y = 474;
   r.w = 26;
   r.h = 36;
   walk_backward_b = sdlutil::makesurface(r.w, r.h);
   if (!walk_backward_b) return false;
   SDL_BlitSurface(all, &r, walk_backward_b, 0);
 
-  r.x = 499;
-  r.y = 216;
+  r.x = 486;
+  r.y = 180;
   r.w = 26;
   r.h = 36;
   walk_backward_b2 = sdlutil::makesurface(r.w, r.h);
   if (!walk_backward_b2) return false;
   SDL_BlitSurface(all, &r, walk_backward_b2, 0);
 
-  r.x = 133;
-  r.y = 488;
+  r.x = 486;
+  r.y = 216;
   r.w = 33;
   r.h = 35;
   lasered0 = sdlutil::makesurface(r.w, r.h);
   if (!lasered0) return false;
   SDL_BlitSurface(all, &r, lasered0, 0);
 
-  r.x = 388;
-  r.y = 490;
+  r.x = 486;
+  r.y = 251;
   r.w = 33;
   r.h = 35;
   lasered1 = sdlutil::makesurface(r.w, r.h);
   if (!lasered1) return false;
   SDL_BlitSurface(all, &r, lasered1, 0);
 
-  r.x = 236;
-  r.y = 492;
+  r.x = 488;
+  r.y = 384;
   r.w = 33;
   r.h = 35;
   lasered2 = sdlutil::makesurface(r.w, r.h);
   if (!lasered2) return false;
   SDL_BlitSurface(all, &r, lasered2, 0);
 
-  r.x = 269;
-  r.y = 492;
+  r.x = 489;
+  r.y = 286;
   r.w = 32;
   r.h = 37;
   hugbot_forward_0 = sdlutil::makesurface(r.w, r.h);
   if (!hugbot_forward_0) return false;
   SDL_BlitSurface(all, &r, hugbot_forward_0, 0);
 
-  r.x = 301;
-  r.y = 492;
+  r.x = 489;
+  r.y = 323;
   r.w = 32;
   r.h = 37;
   hugbot_forward_1 = sdlutil::makesurface(r.w, r.h);
   if (!hugbot_forward_1) return false;
   SDL_BlitSurface(all, &r, hugbot_forward_1, 0);
 
-  r.x = 333;
-  r.y = 492;
+  r.x = 488;
+  r.y = 419;
   r.w = 32;
   r.h = 37;
   dalek_forward_0 = sdlutil::makesurface(r.w, r.h);
   if (!dalek_forward_0) return false;
   SDL_BlitSurface(all, &r, dalek_forward_0, 0);
 
-  r.x = 26;
-  r.y = 494;
+  r.x = 488;
+  r.y = 456;
   r.w = 32;
   r.h = 37;
   dalek_forward_1 = sdlutil::makesurface(r.w, r.h);
   if (!dalek_forward_1) return false;
   SDL_BlitSurface(all, &r, dalek_forward_1, 0);
 
-  r.x = 58;
-  r.y = 494;
+  r.x = 240;
+  r.y = 486;
   r.w = 32;
   r.h = 32;
   deadrobot = sdlutil::makesurface(r.w, r.h);
   if (!deadrobot) return false;
   SDL_BlitSurface(all, &r, deadrobot, 0);
 
-  r.x = 500;
-  r.y = 252;
+  r.x = 182;
+  r.y = 489;
   r.w = 44;
   r.h = 44;
   hf_evaporate0 = sdlutil::makesurface(r.w, r.h);
   if (!hf_evaporate0) return false;
   SDL_BlitSurface(all, &r, hf_evaporate0, 0);
 
-  r.x = 500;
-  r.y = 296;
+  r.x = 448;
+  r.y = 493;
   r.w = 44;
   r.h = 44;
   hf_evaporate1 = sdlutil::makesurface(r.w, r.h);
   if (!hf_evaporate1) return false;
   SDL_BlitSurface(all, &r, hf_evaporate1, 0);
 
-  r.x = 505;
+  r.x = 503;
   r.y = 0;
   r.w = 32;
   r.h = 37;
@@ -1381,7 +1365,7 @@
   if (!hugbot_asleep) return false;
   SDL_BlitSurface(all, &r, hugbot_asleep, 0);
 
-  r.x = 513;
+  r.x = 504;
   r.y = 37;
   r.w = 32;
   r.h = 37;
@@ -1389,7 +1373,7 @@
   if (!dalek_asleep) return false;
   SDL_BlitSurface(all, &r, dalek_asleep, 0);
 
-  r.x = 513;
+  r.x = 504;
   r.y = 74;
   r.w = 32;
   r.h = 37;
@@ -1397,7 +1381,7 @@
   if (!bomb_still) return false;
   SDL_BlitSurface(all, &r, bomb_still, 0);
 
-  r.x = 513;
+  r.x = 503;
   r.y = 111;
   r.w = 32;
   r.h = 37;
@@ -1405,120 +1389,120 @@
   if (!bomb_lit_3) return false;
   SDL_BlitSurface(all, &r, bomb_lit_3, 0);
 
-  r.x = 500;
-  r.y = 340;
+  r.x = 492;
+  r.y = 493;
   r.w = 32;
   r.h = 37;
   bomb_lit_2 = sdlutil::makesurface(r.w, r.h);
   if (!bomb_lit_2) return false;
   SDL_BlitSurface(all, &r, bomb_lit_2, 0);
 
-  r.x = 500;
-  r.y = 377;
+  r.x = 344;
+  r.y = 500;
   r.w = 32;
   r.h = 37;
   bomb_lit_1 = sdlutil::makesurface(r.w, r.h);
   if (!bomb_lit_1) return false;
   SDL_BlitSurface(all, &r, bomb_lit_1, 0);
 
-  r.x = 511;
-  r.y = 414;
+  r.x = 376;
+  r.y = 500;
   r.w = 32;
   r.h = 37;
   bomb_lit_0 = sdlutil::makesurface(r.w, r.h);
   if (!bomb_lit_0) return false;
   SDL_BlitSurface(all, &r, bomb_lit_0, 0);
 
-  r.x = 511;
-  r.y = 451;
+  r.x = 512;
+  r.y = 148;
   r.w = 32;
   r.h = 60;
   guy_teleport0 = sdlutil::makesurface(r.w, r.h);
   if (!guy_teleport0) return false;
   SDL_BlitSurface(all, &r, guy_teleport0, 0);
 
-  r.x = 90;
-  r.y = 494;
+  r.x = 519;
+  r.y = 208;
   r.w = 32;
   r.h = 60;
   guy_teleport1 = sdlutil::makesurface(r.w, r.h);
   if (!guy_teleport1) return false;
   SDL_BlitSurface(all, &r, guy_teleport1, 0);
 
-  r.x = 525;
-  r.y = 148;
+  r.x = 521;
+  r.y = 268;
   r.w = 32;
   r.h = 60;
   guy_teleport2 = sdlutil::makesurface(r.w, r.h);
   if (!guy_teleport2) return false;
   SDL_BlitSurface(all, &r, guy_teleport2, 0);
 
-  r.x = 532;
-  r.y = 340;
+  r.x = 521;
+  r.y = 328;
   r.w = 32;
   r.h = 60;
   guy_teleport3 = sdlutil::makesurface(r.w, r.h);
   if (!guy_teleport3) return false;
   SDL_BlitSurface(all, &r, guy_teleport3, 0);
 
-  r.x = 421;
-  r.y = 505;
+  r.x = 521;
+  r.y = 388;
   r.w = 32;
   r.h = 60;
   guy_teleport4 = sdlutil::makesurface(r.w, r.h);
   if (!guy_teleport4) return false;
   SDL_BlitSurface(all, &r, guy_teleport4, 0);
 
-  r.x = 453;
-  r.y = 505;
+  r.x = 524;
+  r.y = 448;
   r.w = 32;
   r.h = 60;
   guy_teleport5 = sdlutil::makesurface(r.w, r.h);
   if (!guy_teleport5) return false;
   SDL_BlitSurface(all, &r, guy_teleport5, 0);
 
-  r.x = 485;
-  r.y = 511;
+  r.x = 408;
+  r.y = 500;
   r.w = 32;
   r.h = 60;
   guy_teleport6 = sdlutil::makesurface(r.w, r.h);
   if (!guy_teleport6) return false;
   SDL_BlitSurface(all, &r, guy_teleport6, 0);
 
-  r.x = 517;
-  r.y = 511;
+  r.x = 536;
+  r.y = 0;
   r.w = 32;
   r.h = 60;
   dalek_teleport0 = sdlutil::makesurface(r.w, r.h);
   if (!dalek_teleport0) return false;
   SDL_BlitSurface(all, &r, dalek_teleport0, 0);
 
-  r.x = 545;
-  r.y = 0;
+  r.x = 536;
+  r.y = 60;
   r.w = 32;
   r.h = 60;
   dalek_teleport1 = sdlutil::makesurface(r.w, r.h);
   if (!dalek_teleport1) return false;
   SDL_BlitSurface(all, &r, dalek_teleport1, 0);
 
-  r.x = 545;
-  r.y = 60;
+  r.x = 524;
+  r.y = 508;
   r.w = 32;
   r.h = 60;
   dalek_teleport2 = sdlutil::makesurface(r.w, r.h);
   if (!dalek_teleport2) return false;
   SDL_BlitSurface(all, &r, dalek_teleport2, 0);
 
-  r.x = 544;
-  r.y = 208;
+  r.x = 272;
+  r.y = 509;
   r.w = 32;
   r.h = 60;
   dalek_teleport3 = sdlutil::makesurface(r.w, r.h);
   if (!dalek_teleport3) return false;
   SDL_BlitSurface(all, &r, dalek_teleport3, 0);
 
-  r.x = 544;
-  r.y = 268;
+  r.x = 304;
+  r.y = 509;
   r.w = 32;
   r.h = 60;
   dalek_teleport4 = sdlutil::makesurface(r.w, r.h);
@@ -1526,31 +1510,31 @@
   SDL_BlitSurface(all, &r, dalek_teleport4, 0);
 
   r.x = 297;
-  r.y = 0;
+  r.y = 66;
   r.w = 12;
   r.h = 12;
   curveborder_tan_tl = sdlutil::makesurface(r.w, r.h);
   if (!curveborder_tan_tl) return false;
   SDL_BlitSurface(all, &r, curveborder_tan_tl, 0);
 
-  r.x = 309;
-  r.y = 0;
+  r.x = 297;
+  r.y = 78;
   r.w = 12;
   r.h = 12;
   curveborder_tan_tr = sdlutil::makesurface(r.w, r.h);
   if (!curveborder_tan_tr) return false;
   SDL_BlitSurface(all, &r, curveborder_tan_tr, 0);
 
-  r.x = 297;
-  r.y = 12;
+  r.x = 535;
+  r.y = 120;
   r.w = 12;
   r.h = 12;
   curveborder_tan_bl = sdlutil::makesurface(r.w, r.h);
   if (!curveborder_tan_bl) return false;
   SDL_BlitSurface(all, &r, curveborder_tan_bl, 0);
 
-  r.x = 309;
-  r.y = 12;
+  r.x = 547;
+  r.y = 120;
   r.w = 12;
   r.h = 12;
   curveborder_tan_br = sdlutil::makesurface(r.w, r.h);
@@ -1558,23 +1542,23 @@
   SDL_BlitSurface(all, &r, curveborder_tan_br, 0);
 
   r.x = 0;
-  r.y = 554;
+  r.y = 569;
   r.w = 337;
   r.h = 36;
   choose_a_level = sdlutil::makesurface(r.w, r.h);
   if (!choose_a_level) return false;
   SDL_BlitSurface(all, &r, choose_a_level, 0);
 
-  r.x = 366;
-  r.y = 129;
+  r.x = 535;
+  r.y = 132;
   r.w = 48;
   r.h = 16;
   error = sdlutil::makesurface(r.w, r.h);
   if (!error) return false;
   SDL_BlitSurface(all, &r, error, 0);
 
-  r.x = 321;
-  r.y = 41;
+  r.x = 568;
+  r.y = 0;
   r.w = 16;
   r.h = 13;
   attention = sdlutil::makesurface(r.w, r.h);

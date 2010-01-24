@@ -57,8 +57,6 @@ SDL_Surface * animation::remote_lite0;
 SDL_Surface * animation::remote_lite1;
 SDL_Surface * animation::remote_lite2;
 SDL_Surface * animation::remote_lite3;
-SDL_Surface * animation::remote_lite4;
-SDL_Surface * animation::remote_lite5;
 SDL_Surface * animation::remote_lite6;
 SDL_Surface * animation::bsphere_slide_lr;
 SDL_Surface * animation::bsphere_slide_lr2;
