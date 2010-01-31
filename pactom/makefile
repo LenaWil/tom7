@@ -2,7 +2,7 @@
 # default : programs outputs thumbnails
 # default : kmlcat
 # default : shortest.kml shortest.svg
-default : tosvg map.svg
+default : map map.svg
 # default : llt.svg
 
 all : programs outputs thumbnails pdfs obsolete release
@@ -12,7 +12,7 @@ PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/mis
 TIME=
 
 # Generating programs.
-programs : shortestpaths colorize tosvg elevsvg makepoints radial lltsvg kmlcat
+programs : shortestpaths colorize map elevsvg makepoints radial lltsvg kmlcat
 
 kmlcat : kmlcat.sml kmlcat.cm ../sml-lib/util/*.sml
 	mlton kmlcat.cm
@@ -23,8 +23,8 @@ shortestpaths : shortestpaths.sml shortestpaths.cm ${PACTOMLIB}
 colorize : colorize.sml colorize.cm ${PACTOMLIB}
 	mlton colorize.cm
 
-tosvg : tosvg.sml tosvg.cm ${PACTOMLIB}
-	mlton tosvg.cm
+map : map.sml map.cm ${PACTOMLIB}
+	mlton map.cm
 
 # XXX need output for this
 elevsvg : elevsvg.sml elevsvg.cm ${PACTOMLIB}
@@ -44,8 +44,8 @@ lltsvg : lltsvg.sml lltsvg.cm ${PACTOMLIB}
 
 outputs : radial.svg points.kml llt.svg map.svg
 
-map.svg : tosvg pac.kml pacannotations.kml pac2.kml neighborhoods.kml
-	${TIME} ./tosvg > $@
+map.svg : map pac.kml pacannotations.kml pac2.kml neighborhoods.kml
+	${TIME} ./map > $@
 
 radial.svg : radial pac.kml pac2.kml
 	${TIME} ./radial > $@
@@ -62,7 +62,7 @@ llt.svg : lltsvg pac.kml pac2.kml
 
 # MAKETHUMB=convert -scale 400
 # MAKETHUMB="/c/program files/inkscape/inkscape"
-MAKETHUMB=rsvg/rsvg-convert --keep-aspect-ratio --width=500
+MAKETHUMB=rsvg/rsvg-convert --keep-aspect-ratio --width=580
 MAKEPDF=rsvg/rsvg-convert -f pdf
 
 # Convert SVGs to thumbnails for webpage
@@ -119,7 +119,8 @@ release/%.size : release/%
 clean :
 	rm -f _pactom.kml release/pactom.kmz release/*.size *~
 
-# clean final generated files too
-# XXX this should kill release dir right?
+# clean final generated files too, including the whole release dir
 veryclean : clean
-	rm -f shortest.kml shortest.svg map.svg kmlcat tosvg shortestpaths colorize tosvg elevsvg makepoints radial lltsvg
+	rm -rf release
+	mkdir release
+	rm -f shortest.kml shortest.svg map.svg shortest.pdf map.pdf radial.svg points.kml radial.pdf kmlcat map shortestpaths colorize elevsvg makepoints radial lltsvg
