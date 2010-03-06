@@ -28,6 +28,8 @@ struct
   val seed = MersenneTwister.init32 0wxDEADBEEF
   fun rand () = MersenneTwister.rand32 seed
 
+  fun ++r = r := 1 + !r
+
   fun fromkmlfiles fs =
     let
       val paths = ref nil
@@ -146,6 +148,179 @@ struct
           paths = Vector.map Vector.fromList (Vector.fromList (rev (!paths))) }
     end
 
+  structure IntMap = SplayMapFn(type ord_key = int
+                                val compare = Int.compare)
+  datatype highway =
+      Residential
+    | Primary
+    | Secondary
+    | Tertiary
+    | Service
+    | Steps
+    | Foot
+    | Motorway
+    | MotorwayLink
+    | Unclassified
+    | Other of string
+
+  fun highway_compare (l, r) =
+      case (l, r) of
+          (Residential, Residential) => EQUAL
+        | (Residential, _) => LESS
+        | (_, Residential) => GREATER
+        | (Primary, Primary) => EQUAL
+        | (Primary, _) => LESS
+        | (_, Primary) => GREATER
+        | (Secondary, Secondary) => EQUAL
+        | (Secondary, _) => LESS
+        | (_, Secondary) => GREATER
+        | (Tertiary, Tertiary) => EQUAL
+        | (Tertiary, _) => LESS
+        | (_, Tertiary) => GREATER
+        | (Service, Service) => EQUAL
+        | (Service, _) => LESS
+        | (_, Service) => GREATER
+        | (Steps, Steps) => EQUAL
+        | (Steps, _) => LESS
+        | (_, Steps) => GREATER
+        | (Foot, Foot) => EQUAL
+        | (Foot, _) => LESS
+        | (_, Foot) => GREATER
+        | (Motorway, Motorway) => EQUAL
+        | (Motorway, _) => LESS
+        | (_, Motorway) => GREATER
+        | (MotorwayLink, MotorwayLink) => EQUAL
+        | (MotorwayLink, _) => LESS
+        | (_, MotorwayLink) => GREATER
+        | (Unclassified, Unclassified) => EQUAL
+        | (Unclassified, _) => LESS
+        | (_, Unclassified) => GREATER
+        | (Other s1, Other s2) => String.compare (s1, s2)
+
+  fun highwayfromstring tys =
+      case tys of
+          "residential" => Residential
+        | "primary" => Primary
+        | "secondary" => Secondary
+        | "tertiary" => Tertiary
+        | "service" => Service
+        | "steps" => Steps
+        | "foot" => Foot
+        | "motorway" => Motorway
+        | "motorway_link" => MotorwayLink
+        | "unclassified" => Unclassified
+        | _ => Other tys
+
+  type street = { pts : int Vector.vector, typ : highway, name : string option }
+  structure StreetSet = SplaySetFn(type ord_key = street
+                                   val compare : street Util.orderer =
+                                       Util.lexicographic
+                                       [Util.order_field #pts (Util.lex_vector_order Int.compare),
+                                        Util.order_field #typ highway_compare,
+                                        Util.order_field #name (Util.option_compare String.compare)])
+  structure StreetSetUtil = SetUtil(structure S = StreetSet)
+
+  type osm = { points : LatLon.pos IntMap.map,
+               streets : street Vector.vector }
+
+  fun loadosms fl =
+    let
+      val bad_node = ref 0
+      val not_highway = ref 0
+      val empty_way = ref 0
+      val num_points = ref 0
+      val num_streets = ref 0
+      val overlap_points = ref 0
+      val points = ref (IntMap.empty : LatLon.pos IntMap.map)
+      val streets = ref StreetSet.empty
+
+      fun onefile f =
+        let
+          val x = XML.parsefile f 
+              handle XML.XML s => 
+                  raise PacTom ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
+
+          fun isway (Elem(("nd", _), _) :: l) = true
+            | isway (_ :: rest) = isway rest
+            | isway nil = false
+
+          fun getattr attrs k = ListUtil.Alist.find op= attrs k
+              
+          fun gettag k nil = NONE
+            | gettag k (Elem(("tag", attrs), _) :: l) =
+              (case getattr attrs "k" of
+                   NONE => gettag k l
+                 | SOME keyname =>
+                       if keyname = k
+                       then (case getattr attrs "v" of
+                                 NONE => (* error? *) gettag k l
+                               | SOME v => SOME v)
+                       else gettag k l)
+            | gettag k (_ :: l) = gettag k l
+
+          (* XXX need to filter out streets whose points are never loaded. *)
+
+          fun process (Elem(("node", attrs), body)) =
+              (case (getattr attrs "id", getattr attrs "lat", getattr attrs "lon") of
+                   (SOME id, SOME lat, SOME lon) =>
+                       (case (Int.fromString id, Real.fromString lat, Real.fromString lon) of
+                            (SOME id, SOME lat, SOME lon) =>
+                                (case IntMap.find(!points, id) of
+                                     NONE => 
+                                         (++num_points;
+                                          points := IntMap.insert(!points, id, 
+                                                                  LatLon.fromdegs { lat = lat,
+                                                                                    lon = lon }))
+                                   | SOME _ => ++overlap_points)
+                          | _ => raise PacTom "non-numeric id/lat/lon??")
+                 | _ => ++bad_node)
+            | process (Elem(("way", attrs), body)) =
+                   if isway body
+                   then (case gettag "highway" body of
+                             NONE => ++not_highway
+                           | SOME tys => 
+                                 let
+                                     val pts = ref nil
+                                     fun proc (Elem(("nd", [("ref", s)]), _)) =
+                                         (case Int.fromString s of
+                                              NONE => raise PacTom "non-numeric nd ref?"
+                                            | SOME i => pts := i :: !pts)
+                                       | proc _ = ()
+                                 in
+                                     app proc body;
+                                     ++num_streets;
+                                     streets :=
+                                     StreetSet.add(!streets,
+                                                   { pts = Vector.fromList (rev (!pts)),
+                                                     typ = highwayfromstring tys,
+                                                     name = gettag "name" body })
+                                 end)
+                   else ++empty_way
+            (* nb. whole thing is in an <osm> tag. Should descend under that
+               and then expect these all to be top-level, rather than recursing *)
+            | process (Elem((_, _), body)) = app process body
+            | process _ = ()
+        in
+            process x
+        end
+
+      val () = app onefile fl
+      val streets = Vector.fromList (StreetSetUtil.tolist (!streets))
+    in
+        TextIO.output(TextIO.stdErr,
+                      "OSM files:      " ^ Int.toString (length fl) ^ "\n" ^
+                      "Bad nodes:      " ^ Int.toString (!bad_node) ^ "\n" ^
+                      "Not highway:    " ^ Int.toString (!not_highway) ^ "\n" ^
+                      "Empty way:      " ^ Int.toString (!empty_way) ^ "\n" ^
+                      "Streets seen:   " ^ Int.toString (!num_streets) ^ "\n" ^
+                      "Unique streets: " ^ Int.toString (Vector.length streets) ^ "\n" ^
+                      "Points:         " ^ Int.toString (!num_points) ^ "\n" ^
+                      "Repeated pts:   " ^ Int.toString (!overlap_points) ^ "\n");
+        { points = !points, streets = streets }
+    end
+
+  fun loadosm f = loadosms [f]
+      
   fun fromkmlfile f = fromkmlfiles [f]
 
   fun neighborhoodsfromkml f =
@@ -200,11 +375,15 @@ struct
         val () = eachplacemark x
 
         val () = TextIO.output (TextIO.stdErr, "Snap neighborhoods...\n")
+        val start = Time.now ()
         (* XXX PERF this is crazy slow!! *)
         (* XXX snap distance needs to be tuned. *)
         val polys = SnapLatLon.snap 5.0 (!polys)
     in
-        TextIO.output (TextIO.stdErr, "Done!\n");
+        TextIO.output (TextIO.stdErr, 
+                       " ... Done in " ^ 
+                       LargeInt.toString (Time.toSeconds (Time.-(Time.now(), start))) ^ 
+                       " sec\n");
         Vector.fromList (ListUtil.mapsecond Vector.fromList polys)
     end
 
@@ -307,8 +486,8 @@ struct
   (* If points on the same path are greater than 50m apart, assume a
      data problem and don't create that edge. *)
   val PATH_ERROR_M = 250.0
-  (* Distance within we create an implicit edge between nearby points,
-     even if I didn't physically travel between them *)
+  (* Distance within which we create an implicit edge between nearby
+     points, even if I didn't physically travel between them *)
   val MERGE_DISTANCE_M = 25.0
 
   (* Waypoints might literally be on top of one another. We should really
@@ -417,6 +596,10 @@ struct
           { graph = g, promote = waynode, latlontree = t }
       end
 
+(*
+  fun simplified_graph (pactom : pactom) =
+*)      
+
   fun spanning_graph (pactom : pactom) (rootnear : LatLon.pos) :
       { graph : waypoint G.span G.graph,
         promote : waypoint -> waypoint G.span G.node } =
@@ -439,6 +622,73 @@ struct
           { graph = span_g, promote = span_p o shortest_p o ur_p }
       end
 
+  (* SVG stuff. *)
+
+  type svggraphic = { (* XML re-rendered *)
+                      body : string,
+                      (* from <svg> tag *)
+                      width : real,
+                      height : real }
+
+  fun loadgraphic file =
+      let 
+          val losewhites = StringUtil.losespecsides StringUtil.whitespec
+          fun process (Elem (("svg", attrs), body)) =
+              let
+                  fun getpx s =
+                    case ListUtil.Alist.find op= attrs s of
+                        NONE => raise PacTom ("expected to find a '" ^ s ^ 
+                                              "' attr")
+                      | SOME px =>
+                         let val px = losewhites px
+                         in
+                             if StringUtil.matchtail "px" px
+                             then (case Real.fromString px of
+                                       NONE => raise PacTom "non-numeric px dimension?"
+                                     | SOME f => f)
+                             else raise PacTom "can only parse dimensions in px form"
+                         end
+
+                  val (width, height) = (getpx "width", getpx "height")
+                  val (x, y) = (getpx "x", getpx "y")
+                  val _ = (Real.== (x, 0.0) andalso Real.== (y, 0.0)) orelse
+                      raise PacTom "For now, only x=0 and y=0 svgs are supported"
+
+                  (* re-render as a string. *)
+                  val body =
+                      case body of
+                          [one] => XML.tostring one
+                        (* PERF don't need to create a group, since we'll place
+                           the graphic inside a group when we render. Could just
+                           concat all the subtree strings? *)
+                        | many => XML.tostring (Elem(("g", nil), body))
+              in
+                  { width = width, height = height, body = body }
+              end
+            | process _ = 
+              raise PacTom "expected SVG file to be a single <svg> tag."
+
+          val x = XML.parsefile file
+              handle XML.XML s => 
+                  raise PacTom ("Couldn't parse " ^ file ^ "'s xml: " ^ s)
+
+      in
+          process x
+      end
+
+  fun graphicsize { body = _, width, height } = (width, height)
+
+  fun placegraphic { graphic = {body, width, height}, x, y, scale, rotate } =
+      let
+          fun doscale NONE s = s
+            | doscale (SOME r) s = "<g transform=\"scale(" ^ rtos r ^ ")\">" ^ s ^ "</g>"
+          fun dorotate NONE s = s
+            | dorotate (SOME r) s = "<g transform=\"rotate(" ^ rtos r ^ ")\">" ^ s ^ "</g>"
+          fun dotranslate (x, y) s = 
+              "<g transform=\"translate(" ^ rtos x ^ " " ^ rtos y ^ ")\">" ^ s ^ "</g>"
+      in
+          dotranslate (x, y) (doscale scale (dorotate rotate body))
+      end
 
   fun svgheader { x, y, width, height, generator } =
       let in
@@ -464,4 +714,19 @@ struct
       end
 
   fun svgfooter () = "</svg>\n"
+      
+  type svgtext = (string * string) list
+  fun svgtext { x, y, face, size = fontsize, text } = 
+      let 
+          fun onetext (color, s) =
+              (* XXX need to escape for SVG. *)
+              "<tspan fill=\"" ^ color ^ "\">" ^ s ^ "</tspan>"
+      in
+          "<text x=\"" ^ rtos x ^ "\" y=\"" ^ rtos y ^ "\" font-family=\"" ^
+          face ^ "\" font-size=\"" ^ rtos fontsize ^ "\">" ^
+          String.concat (map onetext text) ^
+          "</text>"
+      end
+
+
 end

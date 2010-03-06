@@ -6,14 +6,23 @@ struct
 
   val () = msg "Load KMLs..."
 
-  val (pt, hoods) = (PacTom.fromkmlfiles ["pac.kml", "pacannotations.kml",
-                                          "pac2.kml"],
-                     PacTom.neighborhoodsfromkml "neighborhoods.kml")
+  val (pt, osm, hoods) = 
+      (PacTom.fromkmlfiles ["pac.kml", "pacannotations.kml",
+                            "pac2.kml"],
+       PacTom.loadosms ["pittsburgh-north.osm",
+                        "pittsburgh-northeast.osm",
+                        "pittsburgh-center.osm",
+                        "pittsburgh-south.osm",
+                        "pittsburgh-west.osm",
+                        "pittsburgh-southwest.osm"],
+       PacTom.neighborhoodsfromkml "neighborhoods.kml")
       handle e as (PacTom.PacTom s) =>
           let in
               msg s;
               raise e
           end
+
+  val logo = PacTom.loadgraphic "interstate-logo.svg"   
 
   val () = msg ("There are " ^ Int.toString (Vector.length (PacTom.paths pt)) ^ 
                 " paths\n" ^
@@ -46,7 +55,7 @@ struct
                   (xx / real (length l), yy / real (length l))
               end
 
-          (* XXX these look terrible. *)
+          (* XXX these look terrible on white backgrounds *)
           fun printhoodfill (name, poly) =
               let val pts = Vector.foldr op:: nil poly
                   val pts = pts @ [hd pts]
@@ -131,27 +140,101 @@ struct
                   ()
               end
 
+          fun ++r = r := 1 + !r
+          val missing_point = ref 0
+
+          (* XXX not using this until we clip the osm *)
+          fun boundosm ({ points, streets } : PacTom.osm) =
+             let
+                 fun onestreet { pts, ... } =
+                    let
+                        fun onepoint i =
+                          case PacTom.IntMap.find (points, i) of
+                            NONE => ()
+                          | SOME pos => Bounds.boundpoint bounds (projection pos)
+                    in Vector.app onepoint pts
+                    end
+             in Vector.app onestreet streets
+             end
+
+          fun printosm ({ points, streets } : PacTom.osm) =
+             let
+                 fun onestreet { pts, ... } =
+                    let
+                        fun onepoint i =
+                          case PacTom.IntMap.find (points, i) of
+                            NONE => ++missing_point
+                          | SOME pos => prpt (projection pos)
+                    in
+                        print ("<polyline fill=\"none\" stroke=\"#000000\" " ^
+                               "opacity=\"0.5\" " ^
+                               "stroke-width=\"0.3\" points=\""); (* " *)
+                        Vector.app onepoint pts;
+                        print ("\" />\n") (* " *)
+                    end
+             in
+                 Vector.app onestreet streets;
+                 TextIO.output(TextIO.stdErr, "Missing points: " ^
+                               Int.toString (!missing_point) ^ "\n")
+             end
+
+          (* val () = boundosm osm *)
+
+          val () = Bounds.addmarginfrac bounds 0.035 
+
+          val width = Real.trunc (Bounds.width bounds)
+          val height = Real.trunc (Bounds.height bounds)
+
+          (* scale for logo so that it takes 1/10 of the height. *)
+          val logoheight = real height / 10.0
+          val padding = logoheight / 8.0
+          val logox = padding
+          val logoy = real height - logoheight - padding
+          val logoscale = logoheight / #2 (PacTom.graphicsize logo) 
+          val logowidth = logoscale * #1 (PacTom.graphicsize logo)
+
+          val textx = logowidth + padding * 2.0
+          val fontsize = 28.0 (* XXX compute it! *)
+          val fontheight = fontsize (* XXX compute it! *)
+          val firstliney = logoy + fontheight - 8.5
+          val secondliney = firstliney + fontheight + 6.0
+
+          val datestring = 
+              StringUtil.losespecl (StringUtil.ischar #"0")
+              (Date.fmt "%d %b %Y" (Date.fromTimeLocal (Time.now())))
+
       in
           msg "Output SVG...";
           print (PacTom.svgheader { x = 0, y = 0, 
-                                    width = Real.trunc (Bounds.width bounds), 
-                                    height = Real.trunc (Bounds.height bounds),
+                                    width = width, 
+                                    height = height,
                                     generator = "tosvg.sml" });
-          print
-          ("<defs>\n" ^
-           "<symbol id=\"MySymbol\" viewBox=\"0 0 1 1\">\n" ^
-           " <desc>MySymbol - four rectangles in a grid</desc>\n" ^
-           " <rect x=\"0\" y=\"0\" width=\"0.2\" height=\"0.2\"/>\n" ^
-           " <rect x=\"0.8\" y=\"0\" width=\"0.2\" height=\"0.2\"/>\n" ^
-           " <rect x=\"0\" y=\"0.8\" width=\"0.2\" height=\"0.2\"/>\n" ^
-           " <rect x=\"0.8\" y=\"0.8\" width=\"0.2\" height=\"0.2\"/>\n" ^
-           "</symbol>\n" ^
-           "</defs>\n");
+
+          (* a background *)
+          print ("<rect x=\"-10\" y=\"-10\" width=\"" ^
+                 Int.toString (width + 20) ^ "\" height=\"" ^
+                 Int.toString (height + 20) ^ "\" " ^
+                 "style=\"fill:rgb(32,20,20)\" />\n");
 
           Vector.app printhoodfill borders;
           Vector.app printhoodline borders;
+
+          (* printosm osm; *)
+
           Vector.app printpolyline paths;
-          Vector.app printoverlay (PacTom.overlays pt);
+(*          Vector.app printoverlay (PacTom.overlays pt); *)
+
+          print (PacTom.placegraphic { graphic = logo, x = logox, y = logoy,
+                                       scale = SOME logoscale, rotate = NONE });
+          print (PacTom.svgtext { x = textx, y = firstliney, face = "Franklin Gothic Medium",
+                                  size = fontsize, text = [("#FFFF9E", "Pac Tom Project")] });
+
+          print (PacTom.svgtext { x = textx, y = secondliney, face = "Franklin Gothic Medium",
+                                  size = fontsize, 
+                                  text = [("#CCCCCC", datestring),
+                                          ("#666666", " - "),
+                                          ("#6297C9", "http://pac.tom7.org")] });
+
           print (PacTom.svgfooter ())
       end
 
