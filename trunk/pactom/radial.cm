@@ -1,4 +1,3 @@
-
 group is
 
 #if (defined(SMLNJ_VERSION))
@@ -9,49 +8,7 @@ group is
  (* util/port-mlton.sml *)
 #endif
 
-../sml-lib/util/util-sig.sml
-../sml-lib/util/util.sml
+  pactomlib.cm
 
-../sml-lib/util/stringutil-sig.sml
-../sml-lib/util/stringutil.sml
-
-../sml-lib/util/listutil-sig.sml
-../sml-lib/util/listutil.sml
-
-../sml-lib/misc/color-sig.sml
-../sml-lib/misc/color.sml
-
-../sml-lib/files/xml/fxlib.cm
-../sml-lib/files/xml/xml-sig.sml
-../sml-lib/files/xml/xml.sml
-
-../sml-lib/crypt/mersenne-twister-sig.sml
-../sml-lib/crypt/mersenne-twister.sml
-
-../sml-lib/util/growarray-sig.sml
-../sml-lib/util/growarray.sml
-../sml-lib/algo/heap-sig.sml
-../sml-lib/algo/heap.sml
-../sml-lib/data/undirected-graph-sig.sml
-../sml-lib/data/undirected-graph.sml
-
-../sml-lib/geom/bounds-sig.sml
-../sml-lib/geom/bounds.sml
-../sml-lib/geom/latlon-sig.sml
-../sml-lib/geom/latlon.sml
-../sml-lib/geom/polygon-sig.sml
-../sml-lib/geom/polygon.sml
-../sml-lib/geom/quadtree-sig.sml
-../sml-lib/geom/quadtree.sml
-../sml-lib/geom/latlontree-sig.sml
-../sml-lib/geom/latlontree.sml
-../sml-lib/geom/snappoints-sig.sml
-../sml-lib/geom/snappoints.sml
-../sml-lib/geom/pointlocation-sig.sml
-../sml-lib/geom/pointlocation.sml
-
-pactom-sig.sml
-pactom.sml
-
-radial.sml
+  radial.sml
 

@@ -9,6 +9,7 @@ all : programs outputs thumbnails pdfs obsolete release
 
 PACTOMLIB=pactom.sml pactom-sig.sml ../sml-lib/files/xml/xml*.sml ../sml-lib/misc/color*.sml ../sml-lib/geom/latlon*.sml ../sml-lib/geom/snappoint*.sml ../sml-lib/geom/latlontree*.sml ../sml-lib/geom/quadtree*.sml ../sml-lib/geom/pointlocation*.sml ../sml-lib/data/undirected-graph*.sml ../sml-lib/util/growarray*.sml ../sml-lib/algo/heap*.sml
 
+# has trouble on new cygwin, because it's a bash builtin?
 TIME=
 
 # Generating programs.
@@ -44,7 +45,7 @@ lltsvg : lltsvg.sml lltsvg.cm ${PACTOMLIB}
 
 outputs : radial.svg points.kml llt.svg map.svg
 
-map.svg : map pac.kml pacannotations.kml pac2.kml neighborhoods.kml
+map.svg : map pac.kml pacannotations.kml pac2.kml neighborhoods.kml interstate-logo.svg
 	${TIME} ./map > $@
 
 radial.svg : radial pac.kml pac2.kml

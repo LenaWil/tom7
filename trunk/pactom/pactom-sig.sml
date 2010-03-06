@@ -52,6 +52,18 @@ sig
                             (* Same as above. *)
                             latlontree : waypoint LatLonTree.tree }
 
+    (* Like graph, but adds and moves points to simplify it.
+       Currently, nearly equivalent edges are merged, preserving
+       connectedness. XXX: This should add points at intersections,
+       then also merge edges that are nearly overlapping and colinear.
+       
+       Because this changes the set of points, the  XXX
+
+    val simplified_graph : pactom -> { graph : waypoint G.graph,
+                                       promote : waypoint -> waypoint G.node,
+                                       latlontree : waypoint LatLonTree.tree }
+       *)
+
     (* A minimal spanning tree, rooted at the node closest to the given
        position.
        For each node, it has its distance back to the root (or NONE, if
@@ -60,6 +72,33 @@ sig
     val spanning_graph : pactom -> LatLon.pos ->
                            { graph : waypoint G.span G.graph,
                              promote : waypoint -> waypoint G.span G.node }
+
+    (* OSM stuff. *)
+    structure IntMap : ORD_MAP where type Key.ord_key = int
+
+    datatype highway =
+        Residential
+      | Primary
+      | Secondary
+      | Tertiary
+      | Service
+      | Steps
+      | Foot
+      | Motorway
+      | MotorwayLink
+      | Unclassified
+      | Other of string
+
+    type osm = { points : LatLon.pos IntMap.map,
+                 streets : { pts : int Vector.vector, 
+                             typ : highway, 
+                             name : string option } Vector.vector }
+
+    (* Load OSM data from the named file. Raises PacTom on some sorts of errors; 
+       ignores others. *)
+    val loadosm : string -> osm
+    (* Load multiple files at once, merging their contents. *)
+    val loadosms : string list -> osm
 
     val rand : unit -> Word32.word
     (* As hex string (rrggbb) *)
@@ -73,10 +112,24 @@ sig
        and tilde for negative. (XXX should also cap out or fail on inf, nan) *)
     val rtos : real -> string
 
+    (* Loads SVG graphic from disk. Only supports an unspecified subset of SVG;
+       recommended "save for web" in Illustrator with a conservative settings. *)
+    type svggraphic
+    val loadgraphic : string -> svggraphic
+    (* Optionally scale it (as multiplicative factor), and rotate (as degrees). *)
+    val placegraphic : { graphic : svggraphic, x : real, y : real, 
+                         scale : real option, rotate : real option } -> string
+    val graphicsize : svggraphic -> real * real
+
     (* Give viewport. Generator is a freeform html-safe string; ignored if blank. *)
     val svgheader : { x : int, y : int, 
                       width : int, height : int, 
                       generator : string } -> string
     val svgfooter : unit -> string
+
+    (* e.g. [("#FFFFFF", "this text is "), ("#0000FF", "blue")] *)
+    type svgtext = (string * string) list
+    val svgtext : { x : real, y : real, face : string, size : real, 
+                    text : svgtext } -> string
 
 end
