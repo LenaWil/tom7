@@ -50,40 +50,64 @@ class You extends MovieClip {
     }
   }
 
+  /* Starting at the 1-dimensional position 'pos' (which may not be
+     blocked), move with velocity dpos along it. If the member
+     function f returns true, then we are blocked; move to
+     (approximately) the closest position where we're not blocked.
+     Returns the new position and velocity (set to zero if we hit
+     something.) */
+  public function move1DClip(pos, dpos, f) {
+    var newpos = pos + dpos;
+
+    // XXX probably should check invariant since it can probably 
+    // be violated in rare cases (fp issues).
+    if (f.apply(this, [newpos])) {
+
+      // invariant: pos is good, newpos is bad
+      // XXX EPSILON?
+      while (Math.abs(newpos - pos) > .01) {
+        var mid = (newpos + pos) / 2;
+        if (f.apply(this, [mid])) {
+          newpos = mid;
+        } else {
+          pos = mid;
+        }
+      }
+
+      return { pos : pos, dpos : 0 };
+    } else {
+      return { pos : newpos, dpos : dpos };
+    }
+  }
+
   public function onEnterFrame() {
-    var oldx = this._x;
-    var oldy = this._y;
-    this._x += dx;
-    this._y += dy;
+    // By invariant, when we enter the frame, we're not inside
+    // any blocks. First, resolve y:
+
+    var oy = move1DClip(this._y, dy, (dy < 0) ? blockedup : blockeddown);
+    this._y = oy.pos;
+    dy = oy.dpos;
+
+    // Now x:
+    var ox = move1DClip(this._x, dx, (dx < 0) ? blockedleft : blockedright);
+    this._x = ox.pos;
+    dx = ox.dpos;
+
+    // We know we're not inside anything. We can safely
+    // modify the velocity in response to user input,
+    // gravity, etc.
 
     var otg = ontheground();
 
-    if (dy < 0 && blockedup()) {
-      dy = 0;
-    }
-
-    if (blockedright()) {
-      // XXX snap to pos
-      if (dx > 0) dx = 0;
+    if (holdingRight) {
+      dx += ACCEL;
+      if (dx > MAXSPEED) dx = MAXSPEED;
+    } else if (holdingLeft) {
+      dx -= ACCEL;
+      if (dx < -MAXSPEED) dx = -MAXSPEED;
     } else {
-      if (holdingRight) {
-        dx += ACCEL;
-        if (dx > MAXSPEED) dx = MAXSPEED;
-      }
-    }
-
-    if (blockedleft()) {
-      if (dx < 0) dx = 0;
-    } else {
-      if (holdingLeft) {
-        dx -= ACCEL;
-        if (dx < -MAXSPEED) dx = -MAXSPEED;
-      }
-    }
-
-    // If not holding either direction,
-    // slow down and stop (quickly)
-    if (!holdingLeft && !holdingRight) {
+      // If not holding either direction,
+      // slow down and stop (quickly)
       if (otg) {
         // On the ground, slow to a stop very quickly
         if (dx > DECEL_GROUND) dx -= DECEL_GROUND;
@@ -99,7 +123,7 @@ class You extends MovieClip {
 
     if (otg) {
       // XXX snap to pos
-      dy = 0;
+      // dy = 0;
     } else {
       dy += GRAVITY;
     }
@@ -130,6 +154,7 @@ class You extends MovieClip {
                         this._width * .8);
   }
 
+/*
   public function blockedleft() {
     return heightblocked(this._x, 
                          this._y + this._height * .1, 
@@ -146,6 +171,32 @@ class You extends MovieClip {
     return widthblocked(this._x + this._width * .1,
                         this._y,
                         this._width * .8);
+  }
+*/
+
+  var CORNER = 0;
+  public function blockedleft(newx) {
+    return heightblocked(newx, 
+                         this._y + this._height * CORNER, 
+                         this._height * (1 - 2 * CORNER));
+  }
+
+  public function blockedright(newx) {
+    return heightblocked(newx + this._width, 
+                         this._y + this._height * CORNER, 
+                         this._height * (1 - 2 * CORNER));
+  }
+
+  public function blockedup(newy) {
+    return widthblocked(this._x + this._width * CORNER,
+                        newy,
+                        this._width * (1 - 2 * CORNER));
+  }
+
+  public function blockeddown(newy) {
+    return widthblocked(this._x + this._width * CORNER,
+                        newy + this._height,
+                        this._width * (1 - 2 * CORNER));
   }
 
 
