@@ -1,0 +1,4 @@
+class DeadYou extends MovieClip {
+
+
+}
