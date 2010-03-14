@@ -5,14 +5,20 @@ class You extends MovieClip {
 
   var holdingLeft = false;
   var holdingRight = false;
+  var holdingDown = false;
+
+  // Contains my destination door
+  // when warping.
+  var doordest : String;
 
   // Physics constants
-  var ACCEL = 2;
-  var DECEL_GROUND = 0.6;
+  var ACCEL = 3;
+  var DECEL_GROUND = 0.75;
   var DECEL_AIR = 0.05;
-  var JUMP_IMPULSE = 7.5;
-  var GRAVITY = 0.3;
-  var MAXSPEED = 4;
+  var JUMP_IMPULSE = 9.8;
+  var GRAVITY = 0.5;
+  var MAXSPEED = 5.5;
+  var DIVE = 0.3;
 
   public function onLoad() {
     Key.addListener(this);
@@ -36,6 +42,7 @@ class You extends MovieClip {
       holdingRight = true;
       break;
     case 40: // down
+      holdingDown = true;
       break;
     }
   }
@@ -45,8 +52,13 @@ class You extends MovieClip {
     switch(k) {
     case 37:
       holdingLeft = false;
+      break;
     case 39:
       holdingRight = false;
+      break;
+    case 40:
+      holdingDown = false;
+      break;
     }
   }
 
@@ -99,6 +111,12 @@ class You extends MovieClip {
 
     var otg = ontheground();
 
+    if (holdingDown) {
+      if (!otg) {
+        dy += DIVE;
+      }
+    }
+
     if (holdingRight) {
       dx += ACCEL;
       if (dx > MAXSPEED) dx = MAXSPEED;
@@ -127,6 +145,45 @@ class You extends MovieClip {
     } else {
       dy += GRAVITY;
     }
+
+    // Check warping.
+    for(var d in _root.doors) {
+      var mcd = _root.doors[d];
+      /* must be going the correct dir, and
+         have actually hit the door */
+      if (mcd.correctdir(dx, dy) && centerhit(mcd)) {
+
+        /* set my doortarget. when the door loads,
+           it checks my target and maybe moves me
+           there. */
+        this.doordest = mcd.doortarget;
+
+        /* nb this invalidates mcd */
+        this.changeframe(mcd.frametarget);
+
+        // TODO: might disable input in order to
+        // enable cutscenes, etc.
+
+        // Shouldn't continue looking at doors!
+        return;
+      }
+    }
+
+  }
+
+  /* go to a frame, doing cleanup and
+     initialization... */
+  public function changeframe(s : String) {
+    /* clear doors */
+    trace('clear doors to go to ' + s);
+    _root["doors"] = [];
+    _root.gotoAndStop(s);
+  }
+
+  public function centerhit(mc) {
+    return mc.hitTest(this._x + this._width * .5, 
+                      this._y + this._height * .5,
+                      true);
   }
 
   // Is the point x,y in any block?
