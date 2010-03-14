@@ -1,4 +1,4 @@
-class You extends MovieClip {
+class You extends PhysicsObject {
 
   var dx = 0;
   var dy = 0;
@@ -10,15 +10,6 @@ class You extends MovieClip {
   // Contains my destination door
   // when warping.
   var doordest : String;
-
-  // Physics constants
-  var ACCEL = 3;
-  var DECEL_GROUND = 0.75;
-  var DECEL_AIR = 0.05;
-  var JUMP_IMPULSE = 9.8;
-  var GRAVITY = 0.5;
-  var MAXSPEED = 5.5;
-  var DIVE = 0.3;
 
   public function onLoad() {
     Key.addListener(this);
@@ -144,10 +135,11 @@ class You extends MovieClip {
       // dy = 0;
     } else {
       dy += GRAVITY;
+      if (dy > TERMINAL_VELOCITY) dy = TERMINAL_VELOCITY;
     }
 
     // Check warping.
-    for(var d in _root.doors) {
+    for (var d in _root.doors) {
       var mcd = _root.doors[d];
       /* must be going the correct dir, and
          have actually hit the door */
@@ -169,13 +161,22 @@ class You extends MovieClip {
       }
     }
 
+    // Check triggers.
+    for (var d in _root.triggers) {
+      var mct = _root.triggers[d];
+      // TODO: Could allow trigger to specify hit style,
+      // eg. center, any, all.
+      if (mct.correctdir(dx, dy) && centerhit(mct)) {
+        if (mct.activate != undefined) mct.activate();
+        else trace("no activate");
+      }
+    }
   }
 
   /* go to a frame, doing cleanup and
      initialization... */
   public function changeframe(s : String) {
     /* clear doors */
-    trace('clear doors to go to ' + s);
     _root["doors"] = [];
     _root.gotoAndStop(s);
   }
