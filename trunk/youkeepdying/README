@@ -8,3 +8,37 @@ usual :))
 Unfortunately it cannot be edited without Macromedia Flash. However,
 the source code and graphics may be redistributed under the terms of
 the GNU Public License (see COPYING).
+
+
+
+Like my unfinished "adventuregame" project, this uses Flash as both
+the graphics editor and assembler and the game data editor. Visible in
+the editor are control objects in each scene; these have some
+influence on the game but hide themselves from the player upon
+loading. Their properties are set in the editor, like:
+
+// This example from adventuregame
+onClipEvent(load) {
+	this.doorname = "tokitchen";
+	this.frametarget = "kitchen";
+	this.doortarget = "toinside";
+	this.dir = 2;
+}
+
+The support code is in the corresponding .as file.
+
+
+
+Assumptions:
+
+ - The aspect ratio of a door determines whether it is a horizontal
+   or vertical door. For vertical (tall) doors, the player's y position
+   is preserved and x position is set to that of the destination door's 
+   registration mark (typically the door's center). The player is then
+   moved upward to make sure he is not inside any floor. To establish
+   this invariant, the destination registration mark may never be inside
+   the clip region!
+
+
+
+ - Every room must have exactly one spawn point.
