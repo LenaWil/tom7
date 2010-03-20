@@ -169,6 +169,20 @@ class You extends PhysicsObject {
   public function changeframe(s : String) {
     /* clear doors */
     _root["doors"] = [];
+    /* clear squares */
+    /*
+      XXX: This is better than having the
+      bodies kill themselves on the first
+      frame, but takes more coordination:
+      How do we know the squares are all
+      movieclips? etc.
+
+      for (var o in _root.squares) {
+      _root.squares[o].removeMovieClip();
+      }
+    */
+    _root.squares = [];
+
     _root.gotoAndStop(s);
   }
 

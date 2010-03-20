@@ -13,7 +13,7 @@ class Spawn extends MovieClip {
     /* for debuggin' */
     this._alpha = 15;
     /* should be invisible. */
-    // this._visible = false;
+    this._visible = false;
 
     if (dir == undefined) dir = 1;
 

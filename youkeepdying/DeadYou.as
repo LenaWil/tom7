@@ -1,5 +1,7 @@
 class DeadYou extends PhysicsObject {
 
+  var homeframe : Number;
+
   var floating;
   var solid;
 
@@ -17,6 +19,13 @@ class DeadYou extends PhysicsObject {
   }
 
   public function onEnterFrame() {
+    // If we changed off the frame on which
+    // this body was born, destroy.
+    if (_root._currentframe != homeframe) {
+      destroy();
+      return;
+    }
+
     if (!floating) {
       movePhysics();
     }
@@ -33,6 +42,7 @@ class DeadYou extends PhysicsObject {
         break;
       }
     }
+    this.swapDepths(0);
     this.removeMovieClip();
   }
 
@@ -51,6 +61,7 @@ class DeadYou extends PhysicsObject {
         _root.squares = [];
       _root.squares.push(this);
     }
+    
+    homeframe = _root._currentframe;
   }
-
 }
