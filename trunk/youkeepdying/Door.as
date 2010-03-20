@@ -24,21 +24,21 @@ class Door extends MovieClip {
 
     if (this.frametarget && this.doortarget) {
       /* put in local door list, but create
-	 that list if it doesn't exist first. */
+         that list if it doesn't exist first. */
       if (!_root["doors"].length) {
-	_root["doors"] = [];
+        _root["doors"] = [];
       }
       _root["doors"].push(this);
     } else {
       /* Don't bother putting it in the door list
-	 if it doesn't take us anywhere, because
-	 then we avoid the hit tests on every frame. */
+         if it doesn't take us anywhere, because
+         then we avoid the hit tests on every frame. */
 
       // XXX for debugging, show doors that have no
       // destination
       // trace(this.doorname + ' bogus: ' + this);
-      this._visible = true;
-      this._rotation = 45;
+      // this._visible = true;
+      // this._rotation = 45;
     }
 
     /* Upon changing rooms, the player will have
@@ -49,7 +49,7 @@ class Door extends MovieClip {
 
     // trace(this.doorname + ' =?= ' + _root["you"].doordest);
     if (this.doorname ==
-	_root["you"].doordest) {
+        _root["you"].doordest) {
       // trace("doorwarp!");  
 
       /* reg point at center for doors */
@@ -59,13 +59,13 @@ class Door extends MovieClip {
       /*
       switch(this["dir"]) {
       case 1: dd = 2;
-	break;
+        break;
       case 2: dd = 1;
-	break;
+        break;
       case 3: dd = 4;
-	break;
+        break;
       case 4: dd = 3;
-	break;
+        break;
       }
       */
       // XXX warptall/warpwide
@@ -73,7 +73,7 @@ class Door extends MovieClip {
       _root["you"]._y = cy;
       // _root["you"].warp(cx, cy, dd);
     }
-	
+        
   }
 
   public function correctdir(dx, dy) {
