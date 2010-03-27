@@ -14,13 +14,15 @@ class Door extends MovieClip {
   //    3
   var dir : Number;
 
+  var tall;
+
   public function onLoad() {
     /* for debuggin' */
     // this._alpha = 50;
     /* should be invisible. */
     this._visible = false;
 
-    // XXX compute tall or wide!
+    if (this._height > this._width) tall = true;
 
     if (this.frametarget && this.doortarget) {
       /* put in local door list, but create
@@ -40,42 +42,11 @@ class Door extends MovieClip {
       // this._visible = true;
       // this._rotation = 45;
     }
-
-    /* Upon changing rooms, the player will have
-       his 'doordest' property set to the door
-       he should spawn in. The door itself is
-       responsible for arranging this at the time
-       it loads. See if we're that door: */
-
-    // trace(this.doorname + ' =?= ' + _root["you"].doordest);
-    if (this.doorname ==
-        _root["you"].doordest) {
-      // trace("doorwarp!");  
-
-      /* reg point at center for doors */
-      var cx = this._x;
-      var cy = this._y;
-      var dd;
-      /*
-      switch(this["dir"]) {
-      case 1: dd = 2;
-        break;
-      case 2: dd = 1;
-        break;
-      case 3: dd = 4;
-        break;
-      case 4: dd = 3;
-        break;
-      }
-      */
-      // XXX warptall/warpwide
-      _root["you"]._x = cx;
-      _root["you"]._y = cy;
-      // _root["you"].warp(cx, cy, dd);
-    }
-        
   }
 
+  // Probably something sensible to check wrt
+  // tall/wide. How can I enter a tall door
+  // with direction downward?
   public function correctdir(dx, dy) {
     switch(this.dir) {
     case 1: return dx > 0;

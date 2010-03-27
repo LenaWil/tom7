@@ -12,10 +12,10 @@ class PhysicsObject extends MovieClip {
   var ACCEL = 3;
   var DECEL_GROUND = 0.95;
   var DECEL_AIR = 0.05;
-  var JUMP_IMPULSE = 9.8;
-  var GRAVITY = 0.5;
+  var JUMP_IMPULSE = 11.8;
+  var GRAVITY = 0.7;
   var TERMINAL_VELOCITY = 9;
-  var MAXSPEED = 5.5;
+  var MAXSPEED = 5.9;
   var DIVE = 0.3;
 
   /* These are typically overridden so that
@@ -62,9 +62,53 @@ class PhysicsObject extends MovieClip {
     }
   }
 
+  /* Try to move the minimal distance towards safepos
+     that gets us unstuck, according to the function f. If
+     we're not stuck at all, keep the same position. */
+  public function getOut1D(pos, safepos, f) {
+    trace('getout1d ' + pos + ' -> ' + safepos);
+    if (f.apply(this, [pos])) {
+      trace('started stuck.');
+      // Invariant: pos is bad, safepos is good.
+      while (Math.abs(pos - safepos) > 0.1) {
+        var mid = (safepos + pos) / 2;
+        var stuck = f.apply(this, [mid]);
+        trace(pos + ' -> ' + mid + (stuck ? '!' : '') + ' <- ' + safepos);
+        if (stuck) {
+          pos = mid;
+        } else {
+          safepos = mid;
+        }
+      }
+      return safepos;
+    } else {
+      return pos;
+    }
+  }
+
+  public function getOutVert(safey) {
+    if (safey > this._y) {
+      // get out of ceiling
+      this._y = getOut1D(this._y, safey, blockedup);
+    } else {
+      // get out of floor
+      this._y = getOut1D(this._y, safey, blockeddown);
+    }
+  }
+
+  public function getOutHoriz(safex) {
+    if (safex > this._x) {
+      // get out of left wall
+      this._x = getOut1D(this._x, safex, blockedleft);
+    } else {
+      // get out of right wall
+      this._x = getOut1D(this._x, safex, blockedright);
+    }
+  }
+
   /* Resolves physics:
-      - Use DX and DY to modify the position, subject to 
-     
+     - Use DX and DY to modify the position, subject to 
+     ...
    */
   public function movePhysics() {
     // By invariant, when we enter the frame, we're not inside
