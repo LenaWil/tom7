@@ -9,17 +9,24 @@ class Spawn extends MovieClip {
   //  2   1
   var dir : Number;
 
+  var lastframe : Number;
+
   public function onLoad() {
-    /* for debuggin' */
-    this._alpha = 15;
-    /* should be invisible. */
-    this._visible = false;
+    onEnterFrame();
+  }
 
-    if (dir == undefined) dir = 1;
+  public function onEnterFrame() {
+    if (lastframe != _root._currentframe) {
+      lastframe = _root._currentframe;
+      trace('re-spawn');
+      /* for debuggin' */
+      // this._alpha = 15;
+      /* should be invisible. */
+      // this._visible = false;
+      if (dir == undefined) dir = 1;
 
-    /* put in local trigger list, but create
-       that list if it doesn't exist first. */
-    _root["spawn"] = this;
+      _root["spawn"] = this;
+    }
   }
 
 }

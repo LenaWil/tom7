@@ -102,8 +102,8 @@ class You extends PhysicsObject {
     dy = 0;
     var mcs = _root.spawn;
     if (mcs) {
-      this._x = mcs._x;
-      this._y = mcs._y;
+      this._x = mcs._x - this._width / 2;
+      this._y = mcs._y - this._height / 2;
       // XXX play respawn animation!
     } else {
       trace("There's no spawn on this screen!");
@@ -122,7 +122,48 @@ class You extends PhysicsObject {
     return holdingDown;
   }
 
+  // Since we don't want to rely on the initialization
+  // order of objects on the stage, we do any room-entering
+  // stuff here.
+  var homeframe : Number;
+  public function firstTime() {
+    if (homeframe != _root._currentframe) {
+      homeframe = _root._currentframe;
+
+      /* Upon changing rooms, the player will have
+         his 'doordest' property set to the door
+         he should spawn in. Check all of the doors
+         to find the appropriate one. */
+
+      for (var o in _root.doors) {
+        var door = _root.doors[o];
+        if (door.doorname == this.doordest) {
+
+          /* reg point at center for doors */
+          var cx = door._x;
+          var cy = door._y;
+
+          // Depending on whether the door is wide or tall,
+          // preserve one of our two coordinates. Always
+          // pull ourselves out of the ceiling, wall, or
+          // floor, also depending on the orientation. 
+          // This assumes that cx, cy is always a safe
+          // (non-stuck) location for the player.
+          if (door.tall) {
+            this._x = cx - this._width / 2;
+            this.getOutVert(cy);
+          } else {
+            this._y = cy - this._height / 2;
+            this.getOutHoriz(cx);
+          }
+        }
+      }
+    }
+  }
+
   public function onEnterFrame() {
+    firstTime();
+
     // We know we're not inside anything. We can safely
     // modify the velocity in response to user input,
     // gravity, etc.
