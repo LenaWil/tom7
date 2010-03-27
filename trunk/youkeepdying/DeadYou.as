@@ -40,7 +40,7 @@ class DeadYou extends PhysicsObject {
   }
 
   public function fade(f) {
-    dfade = -f;
+    dfade = f;
   }
 
   public function destroy() {
@@ -73,6 +73,10 @@ class DeadYou extends PhysicsObject {
         _root.squares = [];
       _root.squares.push(this);
     }
+
+    // Ensure deletion when exiting board.
+    if (!_root.deleteme) _root.deleteme = [];
+    _root.deleteme.push_back(this);
     
     homeframe = _root._currentframe;
   }
