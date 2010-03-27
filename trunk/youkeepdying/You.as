@@ -179,6 +179,10 @@ class You extends PhysicsObject {
     }
   }
 
+  var pingpong = ['1', '1', '2', '2', '3', '3', '2', '2']
+
+  var framemod : Number = 0;
+  var facingright = true;
   public function onEnterFrame() {
     firstTime();
     if (this.respawning > 0) {
@@ -213,6 +217,39 @@ class You extends PhysicsObject {
     // gravity, etc.
 
     movePhysics();
+
+    // Set animation frames.
+    var otg = ontheground();
+    if (otg) {
+      if (dx > 1) {
+        facingright = true;
+        framemod++;
+        framemod = (framemod + 1) % 8;
+        this.gotoAndStop('r' + pingpong[framemod]);
+      } else if (dx > 0) {
+        this.gotoAndStop('r0');
+      } else if (dx < -1) {
+        facingright = false;
+        framemod++;
+        framemod = (framemod + 1) % 8;
+        this.gotoAndStop('l' + pingpong[framemod]);
+      } else if (dx < 0) {
+        this.gotoAndStop('l0');
+      } else {
+        if (facingright) {
+          this.gotoAndStop('r0');
+        } else {
+          this.gotoAndStop('l0');
+        }
+      }
+      // ...
+    } else {
+      if (facingright) {
+        this.gotoAndStop('ra');
+      } else {
+        this.gotoAndStop('la');
+      }
+    }
 
     // Check warping.
     for (var d in _root.doors) {
