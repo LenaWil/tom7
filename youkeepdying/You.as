@@ -7,6 +7,11 @@ class You extends PhysicsObject {
   var holdingRight = false;
   var holdingDown = false;
 
+  var width = 64.65;
+  var height = 43.75;
+
+  var respawning : Number = 0;
+
   // Contains my destination door
   // when warping.
   var doordest : String;
@@ -22,7 +27,7 @@ class You extends PhysicsObject {
     switch(k) {
     case 32: // space
     case 38: // up
-      if (ontheground()) {
+      if (respawning == 0 && ontheground()) {
         dy = -JUMP_IMPULSE;
       }
       break;
@@ -102,12 +107,21 @@ class You extends PhysicsObject {
     dy = 0;
     var mcs = _root.spawn;
     if (mcs) {
-      this._x = mcs._x - this._width / 2;
-      this._y = mcs._y - this._height / 2;
-      // XXX play respawn animation!
+      // play respawn animation
+      mcs.becomeVisible();
+      this.waitRespawn();
     } else {
       trace("There's no spawn on this screen!");
     }
+  }
+
+  // When spawning, we're already at the target position.
+  // Become invisible for a moment, disable physics, and lock keys.
+  public function waitRespawn() {
+    // Animation is about 15 frames (600ms). Could be settable by
+    // the death trigger?
+    this.respawning = 15;
+    this._visible = false;
   }
 
   public function wishleft() {
@@ -130,6 +144,9 @@ class You extends PhysicsObject {
     if (homeframe != _root._currentframe) {
       homeframe = _root._currentframe;
 
+      // XXX
+      // trace(this.width + ' ' + this.height);
+
       /* Upon changing rooms, the player will have
          his 'doordest' property set to the door
          he should spawn in. Check all of the doors
@@ -150,10 +167,10 @@ class You extends PhysicsObject {
           // This assumes that cx, cy is always a safe
           // (non-stuck) location for the player.
           if (door.tall) {
-            this._x = cx - this._width / 2;
+            this._x = cx - this.width / 2;
             this.getOutVert(cy);
           } else {
-            this._y = cy - this._height / 2;
+            this._y = cy - this.height / 2;
             this.getOutHoriz(cx);
           }
         }
@@ -163,6 +180,32 @@ class You extends PhysicsObject {
 
   public function onEnterFrame() {
     firstTime();
+    if (this.respawning > 0) {
+      // If respawning, this is a countdown timer.
+      // We ignore keys and physics because we're
+      // invisible.
+      this.respawning--;
+
+      // If the timer just ran out, then do the
+      // respawn. We set position at the last
+      // moment since the spawn itself might be
+      // moving. (XXX also absorb a little of
+      // its velocity!)
+      if (this.respawning == 0) {
+        var mcs = _root.spawn;
+        if (mcs) {
+          this._x = mcs._x - this.width / 2;
+          this._y = mcs._y - this.height / 2;
+          this._visible = true;
+        } else {
+          trace('when respawn timer ended, the spawn ' +
+                'spot was gone!?');
+        }
+        // And continue into regular behavior...
+      } else {
+        return;
+      }
+    }
 
     // We know we're not inside anything. We can safely
     // modify the velocity in response to user input,

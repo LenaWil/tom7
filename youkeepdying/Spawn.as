@@ -12,6 +12,7 @@ class Spawn extends MovieClip {
   var lastframe : Number;
 
   public function onLoad() {
+    this._visible = false;
     onEnterFrame();
   }
 
@@ -19,6 +20,14 @@ class Spawn extends MovieClip {
     if (lastframe != _root._currentframe) {
       lastframe = _root._currentframe;
       trace('re-spawn');
+
+      // XXX look up state to see if we should be
+      // displayed. Jump straight to 'there' if
+      // we are (no reason to highlight the spawn's
+      // location when just arriving on the board)
+      this._visible = false;
+      this.stop();
+
       /* for debuggin' */
       // this._alpha = 15;
       /* should be invisible. */
@@ -27,6 +36,14 @@ class Spawn extends MovieClip {
 
       _root["spawn"] = this;
     }
+  }
+
+  // When first "unlocking" a spawn spot,
+  // play this animation.
+  // XXX maybe every time?
+  public function becomeVisible() {
+    this._visible = true;
+    this.gotoAndPlay('appear');
   }
 
 }

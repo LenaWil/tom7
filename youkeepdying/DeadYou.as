@@ -5,6 +5,9 @@ class DeadYou extends PhysicsObject {
   var floating;
   var solid;
 
+  var width = 64.65;
+  var height = 43.75;
+
   // Called from last frame of animation, if
   // we want to detach immediately.
   public function bye() {
