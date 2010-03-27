@@ -252,7 +252,7 @@ class You extends PhysicsObject {
      initialization... */
   public function changeframe(s : String) {
     /* clear doors */
-    _root["doors"] = [];
+    _root.doors = [];
     /* clear squares */
     /*
       XXX: This is better than having the
@@ -266,6 +266,15 @@ class You extends PhysicsObject {
       }
     */
     _root.squares = [];
+
+    _root.triggers = [];
+    
+    for (var o in _root.deleteme) {
+      trace('del ' + o);
+      _root.deleteme[o].swapDepths(0);
+      _root.deleteme[o].removeMovieClip();
+    }
+    _root.deleteme = [];
 
     _root.gotoAndStop(s);
   }
