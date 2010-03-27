@@ -6,14 +6,18 @@ class PhysicsObject extends MovieClip {
   var dx = 0;
   var dy = 0;
 
+  // Almost always want to override these!
+  var width = 1;
+  var height = 1;
+
   // Physics constants. These can be overridden
   // by the subclass, though things like gravity
   // probably should be true constants.
   var ACCEL = 3;
   var DECEL_GROUND = 0.95;
   var DECEL_AIR = 0.05;
-  var JUMP_IMPULSE = 11.8;
-  var GRAVITY = 0.7;
+  var JUMP_IMPULSE = 13.8;
+  var GRAVITY = 1.0;
   var TERMINAL_VELOCITY = 9;
   var MAXSPEED = 5.9;
   var DIVE = 0.3;
@@ -160,8 +164,8 @@ class PhysicsObject extends MovieClip {
   }
 
   public function centerhit(mc) {
-    return mc.hitTest(this._x + this._width * .5, 
-                      this._y + this._height * .5,
+    return mc.hitTest(this._x + this.width * .5, 
+                      this._y + this.height * .5,
                       true);
   }
 
@@ -195,9 +199,9 @@ class PhysicsObject extends MovieClip {
 
   var GROUND_SLOP = 2.0;
   public function ontheground() {
-    return widthblocked(this._x + this._width * .1,
-                        this._y + this._height + GROUND_SLOP,
-                        this._width * .8);
+    return widthblocked(this._x + this.width * .1,
+                        this._y + this.height + GROUND_SLOP,
+                        this.width * .8);
   }
 
   public function x1() {
@@ -205,7 +209,7 @@ class PhysicsObject extends MovieClip {
   }
 
   public function x2() {
-    return this._x + this._width;
+    return this._x + this.width;
   }
 
   public function y1() {
@@ -213,32 +217,32 @@ class PhysicsObject extends MovieClip {
   }
 
   public function y2() {
-    return this._y + this._height;
+    return this._y + this.height;
   }
 
   var CORNER = 0;
   public function blockedleft(newx) {
     return heightblocked(newx, 
-                         this._y + this._height * CORNER, 
-                         this._height * (1 - 2 * CORNER));
+                         this._y + this.height * CORNER, 
+                         this.height * (1 - 2 * CORNER));
   }
 
   public function blockedright(newx) {
-    return heightblocked(newx + this._width, 
-                         this._y + this._height * CORNER, 
-                         this._height * (1 - 2 * CORNER));
+    return heightblocked(newx + this.width, 
+                         this._y + this.height * CORNER, 
+                         this.height * (1 - 2 * CORNER));
   }
 
   public function blockedup(newy) {
-    return widthblocked(this._x + this._width * CORNER,
+    return widthblocked(this._x + this.width * CORNER,
                         newy,
-                        this._width * (1 - 2 * CORNER));
+                        this.width * (1 - 2 * CORNER));
   }
 
   public function blockeddown(newy) {
-    return widthblocked(this._x + this._width * CORNER,
-                        newy + this._height,
-                        this._width * (1 - 2 * CORNER));
+    return widthblocked(this._x + this.width * CORNER,
+                        newy + this.height,
+                        this.width * (1 - 2 * CORNER));
   }
   
 }
