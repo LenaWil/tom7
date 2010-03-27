@@ -26,6 +26,10 @@ class Trigger extends MovieClip {
     _root["triggers"].push(this);
   }
 
+  public function isHit(phys : PhysicsObject, dx : Number, dy : Number) {
+    return correctdir(dx, dy) && phys.centerhit(this);
+  }
+
   public function correctdir(dx, dy) {
     switch(this.dir) {
     case 1: return dx > 0;

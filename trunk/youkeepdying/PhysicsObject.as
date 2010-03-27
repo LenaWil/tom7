@@ -36,6 +36,11 @@ class PhysicsObject extends MovieClip {
     return false;
   }
 
+  // These are latched: They physics code sets them
+  // and the client must clear them.
+  var collision_right = false;
+  var collision_left = false;
+
   /* Starting at the 1-dimensional position 'pos' (which may not be
      blocked), move with velocity dpos along it. If the member
      function f returns true, then we are blocked; move to
@@ -169,6 +174,10 @@ class PhysicsObject extends MovieClip {
                       true);
   }
 
+  public function anyhit(mc) {
+    return mc.hitTest(this);
+  }
+
   // Is the point x,y in any block?
   public function pointblocked(x, y) {
     for (var o in _root.squares) {
@@ -204,6 +213,16 @@ class PhysicsObject extends MovieClip {
                         this.width * .8);
   }
 
+  public function leftfootonground() {
+    return pointblocked(this._x + this.width * .1, 
+                        this._y + this.height + GROUND_SLOP);
+  }
+
+  public function rightfootonground() {
+    return pointblocked(this._x + this.width * .8, 
+                        this._y + this.height + GROUND_SLOP);
+  }
+  
   public function x1() {
     return this._x;
   }
@@ -222,15 +241,19 @@ class PhysicsObject extends MovieClip {
 
   var CORNER = 0;
   public function blockedleft(newx) {
-    return heightblocked(newx, 
-                         this._y + this.height * CORNER, 
-                         this.height * (1 - 2 * CORNER));
+    var yes = heightblocked(newx, 
+                            this._y + this.height * CORNER, 
+                            this.height * (1 - 2 * CORNER));
+    collision_left = collision_left || yes;
+    return yes;
   }
 
   public function blockedright(newx) {
-    return heightblocked(newx + this.width, 
+    var yes = heightblocked(newx + this.width, 
                          this._y + this.height * CORNER, 
                          this.height * (1 - 2 * CORNER));
+    collision_right = collision_right || yes;
+    return yes;
   }
 
   public function blockedup(newy) {

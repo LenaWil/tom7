@@ -18,6 +18,7 @@ class You extends PhysicsObject {
 
   public function onLoad() {
     Key.addListener(this);
+
     this.stop();
   }
 
@@ -239,9 +240,11 @@ class You extends PhysicsObject {
     // Check triggers.
     for (var d in _root.triggers) {
       var mct = _root.triggers[d];
+      
       // TODO: Could allow trigger to specify hit style,
       // eg. center, any, all.
-      if (mct.correctdir(dx, dy) && centerhit(mct)) {
+
+      if (mct.isHit(this, dx, dy)) {
         if (mct.activate != undefined) mct.activate();
         else trace("no activate");
       }
