@@ -4,6 +4,7 @@ class DeadYou extends PhysicsObject {
 
   var floating;
   var solid;
+  var dfade = 0;
 
   var width = 64.65;
   var height = 43.75;
@@ -32,6 +33,14 @@ class DeadYou extends PhysicsObject {
     if (!floating) {
       movePhysics();
     }
+
+    if (dfade) {
+      this._alpha -= dfade;
+    }
+  }
+
+  public function fade(f) {
+    dfade = -f;
   }
 
   public function destroy() {
