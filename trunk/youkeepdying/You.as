@@ -11,15 +11,24 @@ class You extends PhysicsObject {
   var width = 64.65;
   var height = 43.75;
 
+  // Single item we're currently holding;
+  // optional.
+  var item : Item = undefined;
+
   var respawning : Number = 0;
+  var respawn_warp : String = undefined;
 
   // Contains my destination door
   // when warping.
   var doordest : String;
 
+  public function hasUmbrella() {
+    return this.item && this.item.hasUmbrella();
+  }
+
   public function onLoad() {
     Key.addListener(this);
-
+    this.setdepth(5000);
     this.stop();
   }
 
@@ -54,6 +63,7 @@ class You extends PhysicsObject {
       // so that the player doesn't keep jumping
       // when holding it down.
       holdingUp = false;
+      break;
     case 37:
       holdingLeft = false;
       break;
@@ -84,8 +94,12 @@ class You extends PhysicsObject {
   // XXX Need to sort out the depths stuff for realzie.
   var bodies = 0;
   public function die(anim, opts) {
+    // Discard item. Maybe in some special cases we'd keep it?
+    // it works fine.
+    this.item = undefined;
+
     bodies++;
-    var body = _root.attachMovie("deadyou", "body_" + bodies, 999 + bodies);
+    var body = _root.attachMovie("deadyou", "body_" + bodies, 1999 + bodies);
     // It's a clone of me so it keeps my physical parameters.
     body._x = this._x;
     body._y = this._y;
@@ -104,22 +118,32 @@ class You extends PhysicsObject {
     var solid = (opts.solid == undefined) ? true : opts.solid;
 
     body.init(floating, solid);
-    
-    // And respawn us.
-    respawn();
-  }
 
-  // XXX with delay?
-  public function respawn() {
-    dx = 0;
-    dy = 0;
-    var mcs = _root.spawn;
-    if (mcs) {
-      // play respawn animation
-      mcs.becomeVisible();
-      this.waitRespawn();
+    this._visible = false;
+
+    // XXX option that overrides respawn still, for
+    // portal gameplay
+    this.dx = 0;
+    this.dy = 0;
+
+    if (opts.warpto == undefined) {
+      // Same screen respawn; normal.
+      respawn_warp = undefined;
+      this.respawning = 15;
+
+      var mcs = _root.spawn;
+      if (mcs) {
+        // play respawn animation
+        mcs.becomeVisible();
+        this.waitRespawn();
+      } else {
+        trace("There's no spawn on this screen!");
+      }
+
     } else {
-      trace("There's no spawn on this screen!");
+      respawn_warp = opts.warpto;
+      this.respawning = 15;
+
     }
   }
 
@@ -129,7 +153,6 @@ class You extends PhysicsObject {
     // Animation is about 15 frames (600ms). Could be settable by
     // the death trigger?
     this.respawning = 15;
-    this._visible = false;
   }
 
   public function wishjump() {
@@ -159,10 +182,23 @@ class You extends PhysicsObject {
       // XXX
       // trace(this.width + ' ' + this.height);
 
-      /* Upon changing rooms, the player will have
-         his 'doordest' property set to the door
-         he should spawn in. Check all of the doors
-         to find the appropriate one. */
+      /* Upon changing rooms via spawn, the player has his
+         'respawn_warp' property set to the string name of
+         the frame. If it's set, then we're on that frame
+         and should respawn. */
+      if (respawn_warp != undefined) {
+        respawn_warp = undefined;
+        _root.spawn.becomeVisible();
+        // Wait until respawn animation finishes.
+        this.waitRespawn();
+
+        // Ignore door warps.
+        return;
+      }
+
+      /* Upon changing rooms via a door, the player will have his
+         'doordest' property set to the door he should spawn in. Check
+         all of the doors to find the appropriate one. */
 
       for (var o in _root.doors) {
         var door = _root.doors[o];
@@ -208,16 +244,22 @@ class You extends PhysicsObject {
       // moving. (XXX also absorb a little of
       // its velocity!)
       if (this.respawning == 0) {
-        var mcs = _root.spawn;
-        if (mcs) {
-          this._x = mcs._x - this.width / 2;
-          this._y = mcs._y - this.height / 2;
-          this._visible = true;
+        if (this.respawn_warp != undefined) {
+          this.changeframe(this.respawn_warp);
+          // Do not continue; new frame!
+          return;
         } else {
-          trace('when respawn timer ended, the spawn ' +
-                'spot was gone!?');
+          var mcs = _root.spawn;
+          if (mcs) {
+            this._x = mcs._x - this.width / 2;
+            this._y = mcs._y - this.height / 2;
+            this._visible = true;
+          } else {
+            trace('when respawn timer ended, the spawn ' +
+                  'spot was gone!?');
+          }
+          // And continue into regular behavior...
         }
-        // And continue into regular behavior...
       } else {
         return;
       }
@@ -262,6 +304,28 @@ class You extends PhysicsObject {
       }
     }
 
+    var xattach, yattach;
+    if (facingright) {
+      // XXX fakey. Scaled by .25
+      xattach = 241 / 4;
+      yattach = 40 / 4;
+    } else {
+      xattach = 17 / 4;
+      yattach = 27 / 4;
+    }
+
+    if (this.item != undefined) {
+      // Offset of the 'hold' point from the
+      // item's registration point (which is its
+      // top left, so that it can be a physics object)
+      var xh = this.item.xhold ? this.item.xhold : 0;
+      var yh = this.item.yhold ? this.item.yhold : 0;
+
+      // assume zero...
+      this.item._x = this._x + xattach - xh;
+      this.item._y = this._y + yattach - yh;
+    }
+
     // Check warping.
     for (var d in _root.doors) {
       var mcd = _root.doors[d];
@@ -293,6 +357,19 @@ class You extends PhysicsObject {
         else trace("no activate");
       }
     }
+
+    if (this.item == undefined) {
+      for (var d in _root.items) {
+        var mci = _root.items[d];
+        if (mci.isHit(this, dx, dy)) {
+          this.item = mci;
+          // Item should be held behind
+          // the player (right?)
+          this.item.setdepth(4000);
+          // Play "get" animation or sound...
+        }
+      }
+    }
   }
 
   /* go to a frame, doing cleanup and
@@ -318,11 +395,38 @@ class You extends PhysicsObject {
     _root.physareas = [];
     
     for (var o in _root.deleteme) {
-      trace('del ' + o);
       _root.deleteme[o].swapDepths(0);
       _root.deleteme[o].removeMovieClip();
     }
     _root.deleteme = [];
+    
+    // Make spawn dot invisible, since it
+    // can clearly persist across boards. 
+    // Deleting it here causes problems where
+    // it won't be there when we come back?
+    if (_root.spawn) {
+      // _root.spawn.swapDepths(0);
+      // _root.spawn.removeMovieClip();
+      // _root.spawn = undefined;
+      _root.spawn._visible = false;
+    }
+
+    // Also detach items, unless we're carrying
+    // them.
+    for (var o in _root.items) {
+      if (this.item == _root.items[o]) {
+        trace('holding onto ' + this.item);
+      } else {
+        _root.items[o].swapDepths(0);
+        _root.items[o].removeMovieClip();
+      }
+    }
+    // Item stays with us.
+    if (this.item) {
+      _root.items = [this.item];
+    } else {
+      _root.items = [];
+    }
 
     _root.gotoAndStop(s);
   }
