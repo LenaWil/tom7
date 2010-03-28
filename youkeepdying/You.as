@@ -3,6 +3,7 @@ class You extends PhysicsObject {
   var dx = 0;
   var dy = 0;
 
+  var holdingUp = false;
   var holdingLeft = false;
   var holdingRight = false;
   var holdingDown = false;
@@ -28,9 +29,7 @@ class You extends PhysicsObject {
     switch(k) {
     case 32: // space
     case 38: // up
-      if (respawning == 0 && ontheground()) {
-        dy = -JUMP_IMPULSE;
-      }
+      holdingUp = true;
       break;
     case 37: // left
       holdingLeft = true;
@@ -47,6 +46,14 @@ class You extends PhysicsObject {
   public function onKeyUp() {
     var k = Key.getCode();
     switch(k) {
+    case 32:
+    case 38:
+      // XXX ok if player is pressing both and
+      // releases one??
+      // XXX also, this should really be impulse
+      // so that the player doesn't keep jumping
+      // when holding it down.
+      holdingUp = false;
     case 37:
       holdingLeft = false;
       break;
@@ -123,6 +130,10 @@ class You extends PhysicsObject {
     // the death trigger?
     this.respawning = 15;
     this._visible = false;
+  }
+
+  public function wishjump() {
+    return holdingUp;
   }
 
   public function wishleft() {
@@ -277,10 +288,6 @@ class You extends PhysicsObject {
     // Check triggers.
     for (var d in _root.triggers) {
       var mct = _root.triggers[d];
-      
-      // TODO: Could allow trigger to specify hit style,
-      // eg. center, any, all.
-
       if (mct.isHit(this, dx, dy)) {
         if (mct.activate != undefined) mct.activate();
         else trace("no activate");
@@ -308,6 +315,7 @@ class You extends PhysicsObject {
     _root.squares = [];
 
     _root.triggers = [];
+    _root.physareas = [];
     
     for (var o in _root.deleteme) {
       trace('del ' + o);

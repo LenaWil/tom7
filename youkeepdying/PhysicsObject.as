@@ -13,17 +13,24 @@ class PhysicsObject extends MovieClip {
   // Physics constants. These can be overridden
   // by the subclass, though things like gravity
   // probably should be true constants.
-  var ACCEL = 3;
-  var DECEL_GROUND = 0.95;
-  var DECEL_AIR = 0.05;
-  var JUMP_IMPULSE = 13.8;
-  var GRAVITY = 1.0;
-  var TERMINAL_VELOCITY = 9;
-  var MAXSPEED = 5.9;
-  var DIVE = 0.3;
+  public function defaultconstants() {
+    return { 
+      accel: 3,
+      decel_ground: 0.95,
+      decel_air: 0.05,
+      jump_impulse: 13.8,
+      gravity: 1.0,
+      terminal_velocity: 9,
+      maxspeed: 5.9,
+      dive: 0.3 };
+  };
 
   /* These are typically overridden so that
-   the object is not just deadweight. */
+     the object is not just deadweight. */
+  public function wishjump() {
+    return false;
+  }
+
   public function wishleft() {
     return false;
   }
@@ -132,39 +139,55 @@ class PhysicsObject extends MovieClip {
     this._x = ox.pos;
     dx = ox.dpos;
 
+    // Check physics areas to get the physics constants, which we use
+    // for the rest of the updates.
+    var C = defaultconstants();
+    for (var d in _root.physareas) {
+      var mca = _root.physareas[d];
+      if (mca.isHit(this, dx, dy)) {
+        if (mca.getConstants != undefined) 
+          mca.getConstants(this, C);
+        else trace("no getConstants");
+      }
+    }
+
     var otg = ontheground();
+
+    if (otg && wishjump()) {
+      dy = -C.jump_impulse;
+    }
 
     if (wishdive()) {
       if (!otg) {
-        dy += DIVE;
+        dy += C.dive;
       }
     }
 
     if (wishright()) {
-      dx += ACCEL;
-      if (dx > MAXSPEED) dx = MAXSPEED;
+      dx += C.accel;
+      if (dx > C.maxspeed) dx = C.maxspeed;
     } else if (wishleft()) {
-      dx -= ACCEL;
-      if (dx < -MAXSPEED) dx = -MAXSPEED;
+      dx -= C.accel;
+      if (dx < -C.maxspeed) dx = -C.maxspeed;
     } else {
       // If not holding either direction,
       // slow down and stop (quickly)
       if (otg) {
         // On the ground, slow to a stop very quickly
-        if (dx > DECEL_GROUND) dx -= DECEL_GROUND;
-        else if (dx < -DECEL_GROUND) dx += DECEL_GROUND;
+        if (dx > C.decel_ground) dx -= C.decel_ground;
+        else if (dx < -C.decel_ground) dx += C.decel_ground;
         else dx = 0;
       } else {
         // In the air, not so much.
-        if (dx > DECEL_AIR) dx -= DECEL_AIR;
-        else if (dx < -DECEL_AIR) dx += DECEL_AIR;
+        if (dx > C.decel_air) dx -= C.decel_air;
+        else if (dx < -C.decel_air) dx += C.decel_air;
         else dx = 0;
       }
     }
 
     if (!otg) {
-      dy += GRAVITY;
-      if (dy > TERMINAL_VELOCITY) dy = TERMINAL_VELOCITY;
+      dy += C.gravity;
+      if (dy > C.terminal_velocity) dy = C.terminal_velocity;
     }
   }
 
