@@ -2,7 +2,7 @@
 // Spawn points. There should be exactly one per
 // screen, since the player could in principle die
 // on any screen (e.g. infections).
-class Spawn extends MovieClip {
+class Spawn extends Depthable {
 
   // Facing direction for player (should be 1 or 2).
   // Default is facing right (1).
@@ -12,6 +12,8 @@ class Spawn extends MovieClip {
   var lastframe : Number;
 
   public function onLoad() {
+    // behind player
+    // this.setdepth(2000);
     this._visible = false;
     onEnterFrame();
   }
@@ -19,7 +21,6 @@ class Spawn extends MovieClip {
   public function onEnterFrame() {
     if (lastframe != _root._currentframe) {
       lastframe = _root._currentframe;
-      trace('re-spawn');
 
       // XXX look up state to see if we should be
       // displayed. Jump straight to 'there' if
@@ -34,7 +35,7 @@ class Spawn extends MovieClip {
       // this._visible = false;
       if (dir == undefined) dir = 1;
 
-      _root["spawn"] = this;
+      _root.spawn = this;
     }
   }
 

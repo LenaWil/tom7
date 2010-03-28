@@ -1,7 +1,7 @@
 // Rectangular "physics" object. The player,
-// dead player bodies, and enemies use this
+// dead player bodies, items, and enemies use this
 // base class.
-class PhysicsObject extends MovieClip {
+class PhysicsObject extends Depthable {
   // Velocity x/y
   var dx = 0;
   var dy = 0;
@@ -9,6 +9,12 @@ class PhysicsObject extends MovieClip {
   // Almost always want to override these!
   var width = 1;
   var height = 1;
+
+  // Overridden for objects that should behave
+  // like they're carrying an umbrella.
+  public function hasUmbrella() {
+    return false;
+  }
 
   // Physics constants. These can be overridden
   // by the subclass, though things like gravity
