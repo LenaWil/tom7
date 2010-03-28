@@ -40,6 +40,4 @@ class Trigger extends MovieClip {
     }
   }
 
-  /* XXX .... */
-
 }
