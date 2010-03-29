@@ -11,6 +11,8 @@ class You extends PhysicsObject {
   var width = 64.65;
   var height = 43.75;
 
+  var FPS = 25;
+
   // Single item we're currently holding;
   // optional.
   var item : Item = undefined;
@@ -76,6 +78,33 @@ class You extends PhysicsObject {
     }
   }
 
+  var ailment = undefined;
+  var aileffects = 0;
+  public function ail(ailname, deathanim, frames, opts) {
+    // Can't get more ailed (unless maybe time is less?)
+    // (Should I really be able to avoid burning by having
+    // some slow-acting ailment?)
+    if (this.ailment) return;
+
+    aileffects++;
+    var mc = _root.attachMovie("ailments", "ail_" + aileffects, 
+                               // above my body
+                               5500 + aileffects);
+
+    mc.gotoAndPlay(ailname);
+    // It's a clone of me so it keeps my physical parameters.
+    mc._x = this._x;
+    mc._y = this._y;
+    mc._xscale = this._xscale;
+    mc._yscale = this._yscale;
+
+    ailment = { ailname : ailname,
+                mc : mc,
+                deathanim : deathanim,
+                frames : frames,
+                opts : opts };
+  }
+
   // You keep dying!
   // This takes care of everything relating to death.
   // The single player instance always respawns (possibly
@@ -97,6 +126,15 @@ class You extends PhysicsObject {
     // Discard item. Maybe in some special cases we'd keep it?
     // it works fine.
     this.item = undefined;
+
+    // Ailments should basically never persist.
+    if (this.ailment) {
+      // clear message... not clear what to say here?
+      _root.message.say('You keep dying!');
+      this.ailment = undefined;
+      this.ailment.mc.swapDepths(0);
+      this.ailment.mc.removeMovieClip();
+    }
 
     bodies++;
     var body = _root.attachMovie("deadyou", "body_" + bodies, 1999 + bodies);
@@ -179,9 +217,6 @@ class You extends PhysicsObject {
     if (homeframe != _root._currentframe) {
       homeframe = _root._currentframe;
 
-      // XXX
-      // trace(this.width + ' ' + this.height);
-
       /* Upon changing rooms via spawn, the player has his
          'respawn_warp' property set to the string name of
          the frame. If it's set, then we're on that frame
@@ -262,6 +297,29 @@ class You extends PhysicsObject {
         }
       } else {
         return;
+      }
+    }
+
+    if (this.ailment != undefined) {
+      this.ailment.frames--;
+      if (this.ailment.frames == 0) {
+        _root.message.say('You have died of ' + 
+                          this.ailment.ailname + '!');
+        // Copy so we can clear ailment.
+        var da = this.ailment.deathanim;
+        var opts = this.ailment.opts;
+        this.ailment.mc.swapDepths(0);
+        this.ailment.mc.removeMovieClip();
+        this.ailment = undefined;
+        this.die(da, opts);
+        // Don't continue with turn if dying.
+        return;
+      } else {
+        this.ailment.mc._x = this._x;
+        this.ailment.mc._y = this._y;
+        var secs = Math.round(this.ailment.frames / FPS);
+        _root.message.say('[' + secs + ']  ' +
+                          this.ailment.ailname + '!');
       }
     }
 

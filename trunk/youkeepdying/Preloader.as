@@ -21,6 +21,9 @@ class Preloader extends MovieClip {
       Stage.showMenu = false;
       /* attach player--once! */
       _root.attachMovie("you", "you", 1, {_x:100, _y:200, _xscale:25, _yscale:25});
+
+      _root.attachMovie("message", "message", 29999, 
+                        {_x:64, _y:14});
       /* this position is bogus; it's replaced as soon as the player moves. */
       // _root.attachMovie("familiar", "familiar", 99980, {_x:100, _y:180});
       /* attach menubar */
@@ -29,7 +32,7 @@ class Preloader extends MovieClip {
       // _root["memory"] = new Memory();
       // stop();
       // XXX should be 'start'
-      _root.gotoAndStop('cave');
+      _root.gotoAndStop('bleed');
     }
 
   }
