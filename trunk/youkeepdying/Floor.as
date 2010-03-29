@@ -2,7 +2,7 @@ class Floor extends MovieClip {
   var homeframe : Number;
 
   public function onLoad() {
-    trace('floor is born');
+    //trace('floor is born');
     this.swapDepths(99);
     // this._visible = false;
     homeframe = _root._currentframe;
