@@ -32,7 +32,7 @@ class Preloader extends MovieClip {
       // _root["memory"] = new Memory();
       // stop();
       // XXX should be 'start'
-      _root.gotoAndStop('bleed');
+      _root.gotoAndStop('bees');
     }
 
   }

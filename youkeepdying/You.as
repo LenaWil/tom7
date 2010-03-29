@@ -83,7 +83,7 @@ class You extends PhysicsObject {
   public function ail(ailname, deathanim, frames, opts) {
     // Can't get more ailed (unless maybe time is less?)
     // (Should I really be able to avoid burning by having
-    // some slow-acting ailment?)
+    // bees on me??)
     if (this.ailment) return;
 
     aileffects++;
@@ -127,15 +127,6 @@ class You extends PhysicsObject {
     // it works fine.
     this.item = undefined;
 
-    // Ailments should basically never persist.
-    if (this.ailment) {
-      // clear message... not clear what to say here?
-      _root.message.say('You keep dying!');
-      this.ailment = undefined;
-      this.ailment.mc.swapDepths(0);
-      this.ailment.mc.removeMovieClip();
-    }
-
     bodies++;
     var body = _root.attachMovie("deadyou", "body_" + bodies, 1999 + bodies);
     // It's a clone of me so it keeps my physical parameters.
@@ -143,6 +134,27 @@ class You extends PhysicsObject {
     body._y = this._y;
     body._xscale = this._xscale;
     body._yscale = this._yscale;
+
+    // Ailments should basically never persist.
+    if (opts.byailment) {
+      // Only thing special to do is pass on the
+      // ailment to the dead body, if infectious.
+      if (opts.infectious) {
+        // takes the movie clip and everything;
+        // no need to detach it.
+        body.ailment = this.ailment;
+        this.ailment = undefined;
+      } else {
+        this.ailment = undefined;
+        this.ailment.mc.swapDepths(0);
+        this.ailment.mc.removeMovieClip();
+      }
+    } else if (this.ailment) {
+      _root.message.say('You keep dying!');
+      this.ailment = undefined;
+      this.ailment.mc.swapDepths(0);
+      this.ailment.mc.removeMovieClip();
+    }
 
     // XXX should be able to override physics: For example when
     // being zapped we should just freeze in place. When being shot
@@ -305,13 +317,8 @@ class You extends PhysicsObject {
       if (this.ailment.frames == 0) {
         _root.message.say('You have died of ' + 
                           this.ailment.ailname + '!');
-        // Copy so we can clear ailment.
-        var da = this.ailment.deathanim;
-        var opts = this.ailment.opts;
-        this.ailment.mc.swapDepths(0);
-        this.ailment.mc.removeMovieClip();
-        this.ailment = undefined;
-        this.die(da, opts);
+        this.ailment.opts.byailment = true;
+        this.die(this.ailment.deathanim, this.ailment.opts);
         // Don't continue with turn if dying.
         return;
       } else {
