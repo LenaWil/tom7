@@ -12,7 +12,8 @@ class Preloader extends MovieClip {
 
     frames++;
 
-    if (now < total) {
+    // This doesn't work!? Actually waiting does seem to help.
+    if (now < total || frames < 50) {
       this._alpha = 80.0 * Math.sin(frames / 9) + 20.0;
     } else {
       /* necessary if we want to trap escape key, etc. */
@@ -33,6 +34,9 @@ class Preloader extends MovieClip {
       // stop();
       // XXX should be 'start'
       _root.gotoAndStop('bees');
+
+      this.swapDepths(0);
+      this.removeMovieClip();
     }
 
   }
