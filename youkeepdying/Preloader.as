@@ -33,7 +33,7 @@ class Preloader extends MovieClip {
       // _root["memory"] = new Memory();
       // stop();
       // XXX should be 'start'
-      _root.gotoAndStop('start');
+      _root.gotoAndStop('bleed');
 
       this.swapDepths(0);
       this.removeMovieClip();
