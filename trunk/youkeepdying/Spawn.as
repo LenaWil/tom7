@@ -4,6 +4,10 @@
 // on any screen (e.g. infections).
 class Spawn extends Depthable {
 
+  // Only used in subclasses.
+  var dx : Number = 0;
+  var dy : Number = 0;
+
   // Facing direction for player (should be 1 or 2).
   // Default is facing right (1).
   //  2   1

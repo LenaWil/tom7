@@ -148,7 +148,7 @@ class You extends PhysicsObject {
     body._xscale = this._xscale;
     body._yscale = this._yscale;
 
-    // Ailments should basically never persist.
+    // Don't persist ailments unless they're infectious.
     if (opts.byailment) {
       // Only thing special to do is pass on the
       // ailment to the dead body, if infectious.
@@ -166,9 +166,9 @@ class You extends PhysicsObject {
       }
     } else if (this.ailment) {
       _root.message.say('You keep dying!');
-      this.ailment = undefined;
       this.ailment.mc.swapDepths(0);
       this.ailment.mc.removeMovieClip();
+      this.ailment = undefined;
     }
 
     // XXX should be able to override physics: For example when
@@ -313,6 +313,8 @@ class You extends PhysicsObject {
         } else {
           var mcs = _root.spawn;
           if (mcs) {
+            this.dx = mcs.dx;
+            this.dy = mcs.dy;
             this._x = mcs._x - this.width / 2;
             this._y = mcs._y - this.height / 2;
             this._visible = true;
