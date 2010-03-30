@@ -24,6 +24,18 @@ class You extends PhysicsObject {
   // when warping.
   var doordest : String;
 
+  // Keep track of what dudes I touched, since
+  // I don't want triple point tests or iterated
+  // adjacency to make lots of little pushes.
+  var touchset = [];
+  public function touch(other : PhysicsObject) {
+    for (var o in touchset) {
+      if (touchset[o] == other)
+        return;
+    }
+    touchset.push(other);
+  }
+
   public function hasUmbrella() {
     return this.item && this.item.hasUmbrella();
   }
@@ -78,7 +90,6 @@ class You extends PhysicsObject {
     }
   }
 
-  var ailment = undefined;
   var aileffects = 0;
   public function ail(ailname, deathanim, frames, opts) {
     // Can't get more ailed (unless maybe time is less?)
@@ -102,6 +113,8 @@ class You extends PhysicsObject {
                 mc : mc,
                 deathanim : deathanim,
                 frames : frames,
+                // for resetting ailment timer
+                startframes : frames,
                 opts : opts };
   }
 
@@ -326,8 +339,10 @@ class You extends PhysicsObject {
       } else {
         this.ailment.mc._x = this._x;
         this.ailment.mc._y = this._y;
-        var secs = Math.round(this.ailment.frames * 10 / FPS)
-        _root.message.say('[' + secs + ']  ' +
+        var dsecs = Math.round(this.ailment.frames * 10 / FPS);
+        var isec = Math.round(dsecs / 10);
+        var fsec = dsecs % 10;
+        _root.message.say('[' + isec + '.' + fsec + ']  ' +
                           this.ailment.ailname + '!');
       }
     }
@@ -336,7 +351,37 @@ class You extends PhysicsObject {
     // modify the velocity in response to user input,
     // gravity, etc.
 
+    touchset = [];
     movePhysics();
+
+    // Now, if we touched someone, give it some
+    // love.
+    for (var o in touchset) {
+      var other = touchset[o];
+
+      // Contract its ailments, if it's infectious and
+      // we're not.
+      if (!this.ailment && other.ailment) {
+        this.ailment = other.ailment;
+        // also need to reset timer...
+        this.ailment.frames = this.ailment.startframes;
+        other.ailment = undefined;
+      }
+
+      var diffx = other._x - this._x;
+      var diffy = other._y - this._y;
+    
+      var normx = diffx / width;
+      var normy = diffy / height;
+
+      // Don't push from side to side when like
+      // standing on a dude but not centered.
+      if (Math.abs(normx) > Math.abs(normy)) {
+        other.dx += normx;
+      } else {
+        other.dy += normy;
+      }
+    }
 
     // Set animation frames.
     var otg = ontheground();
