@@ -10,11 +10,20 @@ class PhysicsObject extends Depthable {
   var width = 1;
   var height = 1;
 
+  // Any physics object can have an ailment, which
+  // can be contagious.
+  var ailment = undefined;
+
   // Overridden for objects that should behave
   // like they're carrying an umbrella.
   public function hasUmbrella() {
     return false;
   }
+
+  // Called when touching another physics object. To
+  // tell the angle of touch you've got to compare
+  // positions.
+  public function touch(phys : PhysicsObject) {}
 
   // Physics constants. These can be overridden
   // by the subclass, though things like gravity
@@ -209,16 +218,21 @@ class PhysicsObject extends Depthable {
 
   // Is the point x,y in any block?
   public function pointblocked(x, y) {
+
+    // These count as 'touching'.
     for (var o in _root.squares) {
       var b = _root.squares[o];
       /* no self-collisions! */
       if (b != this) {
         if (x >= b.x1() && x <= b.x2() &&
-            y >= b.y1() && y <= b.y2())
+            y >= b.y1() && y <= b.y2()) {
+          this.touch(b);
           return true;
+        }
       }
     }
 
+    // These don't count as 'touching'.
     for (var o in _root.blocks) {
       var b = _root.blocks[o];
       if (b.hitTest(x, y, true)) return true;

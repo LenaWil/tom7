@@ -9,9 +9,6 @@ class DeadYou extends PhysicsObject {
   var width = 64.65;
   var height = 43.75;
 
-  // I can have an ailment like You.
-  var ailment : Object = undefined;
-
   // Called from last frame of animation, if
   // we want to detach immediately.
   public function bye() {
