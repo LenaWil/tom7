@@ -142,12 +142,14 @@ class You extends PhysicsObject {
       if (opts.infectious) {
         // takes the movie clip and everything;
         // no need to detach it.
+        trace('infected!');
         body.ailment = this.ailment;
         this.ailment = undefined;
       } else {
-        this.ailment = undefined;
+        trace('cured');
         this.ailment.mc.swapDepths(0);
         this.ailment.mc.removeMovieClip();
+        this.ailment = undefined;
       }
     } else if (this.ailment) {
       _root.message.say('You keep dying!');
@@ -324,7 +326,7 @@ class You extends PhysicsObject {
       } else {
         this.ailment.mc._x = this._x;
         this.ailment.mc._y = this._y;
-        var secs = Math.round(this.ailment.frames / FPS);
+        var secs = Math.round(this.ailment.frames * 10 / FPS)
         _root.message.say('[' + secs + ']  ' +
                           this.ailment.ailname + '!');
       }
@@ -465,8 +467,9 @@ class You extends PhysicsObject {
     }
     _root.deleteme = [];
     
-    // Make spawn dot invisible, since it
-    // can clearly persist across boards. 
+    // Make spawn dot hidden, since it
+    // can visibly persist across boards, which
+    // can spoil some puzzles.
     // Deleting it here causes problems where
     // it won't be there when we come back?
     if (_root.spawn) {

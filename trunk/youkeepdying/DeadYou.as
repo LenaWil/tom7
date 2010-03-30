@@ -9,6 +9,7 @@ class DeadYou extends PhysicsObject {
   var width = 64.65;
   var height = 43.75;
 
+  // I can have an ailment like You.
   var ailment : Object = undefined;
 
   // Called from last frame of animation, if
@@ -63,6 +64,15 @@ class DeadYou extends PhysicsObject {
         break;
       }
     }
+
+    // Might have an ailment we need to dispose of.
+    if (this.ailment) {
+      this.ailment.mc.swapDepths(0);
+      this.ailment.mc.removeMovieClip();
+    }
+    this.ailment = undefined;
+
+
     this.swapDepths(0);
     this.removeMovieClip();
   }
