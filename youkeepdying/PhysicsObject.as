@@ -35,6 +35,7 @@ class PhysicsObject extends Depthable {
       decel_air: 0.05,
       jump_impulse: 13.8,
       gravity: 1.0,
+      xgravity: 0.0,
       terminal_velocity: 9,
       maxspeed: 5.9,
       dive: 0.3 };
@@ -200,10 +201,16 @@ class PhysicsObject extends Depthable {
       }
     }
 
-    if (!otg) {
+    if (otg) {
+      dx += C.xgravity;
+      if (dx < -C.terminal_velocity) dx = -C.terminal_velocity;
+      else if (dx > C.terminal_velocity) dx = C.terminal_velocity;
+    } else {
       dy += C.gravity;
       if (dy > C.terminal_velocity) dy = C.terminal_velocity;
     }
+
+
   }
 
   public function centerhit(mc) {

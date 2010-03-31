@@ -1,10 +1,17 @@
 class TriggerBeehive extends Trigger {
+
+  var beetime : Number;
+
+  public function onLoad() {
+    if (beetime == undefined) beetime = 6 * 25;
+    super.onLoad();
+  }
+
   public function activate() {
     // _root.cloud.play();
-    // _root.message.say('YOU KEEP DYING');
     _root.you.ail('bees',
                   'bees',
-                  12 * 25,
+                  beetime,
                   {solid:true, infectious:'once'});
   }
 
