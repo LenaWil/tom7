@@ -4,7 +4,7 @@ class Floor extends MovieClip {
   public function onLoad() {
     //trace('floor is born');
     this.swapDepths(99);
-    this._visible = false;
+    // this._visible = false;
     homeframe = _root._currentframe;
     if (!_root.blocks) _root.blocks = [];
     _root.blocks.push(this);

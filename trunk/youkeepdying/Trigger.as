@@ -16,7 +16,7 @@ class Trigger extends MovieClip {
     /* for debuggin' */
     this._alpha = 15;
     /* should be invisible. */
-    this._visible = false;
+    // this._visible = false;
 
     /* put in local trigger list, but create
        that list if it doesn't exist first. */

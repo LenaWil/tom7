@@ -331,7 +331,7 @@ class You extends PhysicsObject {
 
     if (this.ailment != undefined) {
       this.ailment.frames--;
-      if (this.ailment.frames == 0) {
+      if (this.ailment.frames <= 0) {
         _root.message.say('You have died of ' + 
                           this.ailment.ailname + '!');
         this.ailment.opts.byailment = true;
@@ -383,6 +383,13 @@ class You extends PhysicsObject {
       } else {
         other.dy += normy;
       }
+    }
+
+    // Make sure we're not interfering with the message.
+    if (this._y < 130) {
+      _root.message._y = (290 + _root.message._y) / 2;
+    } else {
+      _root.message._y = (14 + _root.message._y) / 2;
     }
 
     // Set animation frames.
