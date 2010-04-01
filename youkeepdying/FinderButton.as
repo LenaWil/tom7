@@ -20,7 +20,9 @@ class FinderButton extends Finder {
       _root[gatetrigger].enabled = false;
     if (gate != undefined)
       _root[gate].setState(false);
-    // XXX button anim.
+    if (button != undefined) {
+      _root[button].setPressed(true);
+    }
   }
 
   public function deactivate() {
@@ -29,7 +31,9 @@ class FinderButton extends Finder {
     if (gate != undefined) {
       _root[gate].setState(true);
     }
-    // XXX button anim.
+    if (button != undefined) {
+      _root[button].setPressed(false);
+    }
   }
 
 }
