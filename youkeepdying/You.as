@@ -498,6 +498,10 @@ class You extends PhysicsObject {
   public function changeframe(s : String) {
     /* clear doors */
     _root.doors = [];
+
+    // XXX these should be called "physobjects"
+    // because they are treated that way by
+    // some code (eg finders)
     /* clear squares */
     /*
       XXX: This is better than having the
@@ -512,6 +516,7 @@ class You extends PhysicsObject {
     */
     _root.squares = [];
 
+    _root.finders = [];
     _root.triggers = [];
     _root.physareas = [];
     
@@ -526,6 +531,12 @@ class You extends PhysicsObject {
     // can spoil some puzzles.
     // Deleting it here causes problems where
     // it won't be there when we come back?
+    // (I think this is because the default instance
+    // name is based on the library name if I don't
+    // set them explicitly, and when you move forward
+    // a frame if there's an instance of the same
+    // library name with the same instance name,
+    // it is treated as the same object.)
     if (_root.spawn) {
       // _root.spawn.swapDepths(0);
       // _root.spawn.removeMovieClip();
