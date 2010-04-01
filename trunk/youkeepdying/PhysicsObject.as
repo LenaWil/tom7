@@ -212,6 +212,13 @@ class PhysicsObject extends Depthable {
 
 
   }
+  
+  public function centerin(mc) {
+    var cx = this._x + this.width * .5;
+    var cy = this._y + this.height * .5;
+    return cx >= mc.x1() && cx <= mc.x2() &&
+      cy >= mc.y1() && cy <= mc.y2();
+  }
 
   public function centerhit(mc) {
     return mc.hitTest(this._x + this.width * .5, 
