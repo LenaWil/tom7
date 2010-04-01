@@ -207,7 +207,10 @@ class You extends PhysicsObject {
 
     } else {
       respawn_warp = opts.warpto;
-      this.respawning = 15;
+      if (opts.wait)
+        this.respawning = opts.wait;
+      else
+        this.respawning = 15;
 
     }
   }
@@ -262,26 +265,34 @@ class You extends PhysicsObject {
          'doordest' property set to the door he should spawn in. Check
          all of the doors to find the appropriate one. */
 
-      for (var o in _root.doors) {
-        var door = _root.doors[o];
-        if (door.doorname == this.doordest) {
+      if (this.doordest) {
+        for (var o in _root.doors) {
+          var door = _root.doors[o];
+          if (door.doorname == this.doordest) {
+            
+            /* reg point at center for doors */
+            var cx = door._x;
+            var cy = door._y;
 
-          /* reg point at center for doors */
-          var cx = door._x;
-          var cy = door._y;
-
-          // Depending on whether the door is wide or tall,
-          // preserve one of our two coordinates. Always
-          // pull ourselves out of the ceiling, wall, or
-          // floor, also depending on the orientation. 
-          // This assumes that cx, cy is always a safe
-          // (non-stuck) location for the player.
-          if (door.tall) {
-            this._x = cx - this.width / 2;
-            this.getOutVert(cy);
-          } else {
-            this._y = cy - this.height / 2;
-            this.getOutHoriz(cx);
+            if (door.warp) {
+              this._x = cx - this.width / 2;
+              this._y = cy - this.height / 2;
+            } else {
+              // To preserve continuity:
+              // Depending on whether the door is wide or tall,
+              // preserve one of our two coordinates. Always
+              // pull ourselves out of the ceiling, wall, or
+              // floor, also depending on the orientation. 
+              // This assumes that cx, cy is always a safe
+              // (non-stuck) location for the player.
+              if (door.tall) {
+                this._x = cx - this.width / 2;
+                this.getOutVert(cy);
+              } else {
+                this._y = cy - this.height / 2;
+                this.getOutHoriz(cx);
+              }
+            }
           }
         }
       }
@@ -452,7 +463,8 @@ class You extends PhysicsObject {
       var mcd = _root.doors[d];
       /* must be going the correct dir, and
          have actually hit the door */
-      if (mcd.correctdir(dx, dy) && centerhit(mcd)) {
+      if (mcd.frametarget && mcd.doortarget &&
+          mcd.correctdir(dx, dy) && centerhit(mcd)) {
 
         /* set my doortarget. when the door loads,
            it checks my target and maybe moves me

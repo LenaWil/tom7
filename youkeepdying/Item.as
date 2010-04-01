@@ -12,7 +12,8 @@ class Item extends PhysicsObject {
   }
 
   public function isHit(phys : PhysicsObject, dx : Number, dy : Number) {
-    return phys.centerhit(this, false);
+    // Items use bounding boxes
+    return phys.centerin(this);
   }
 
   public function onEnterFrame() {

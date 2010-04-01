@@ -15,6 +15,7 @@ class Door extends MovieClip {
   var dir : Number;
 
   var tall;
+  var warp;
 
   public function onLoad() {
     /* for debuggin' */
@@ -22,26 +23,33 @@ class Door extends MovieClip {
     /* should be invisible. */
     this._visible = false;
 
-    if (this._height > this._width) tall = true;
+    if (this.warp == undefined) this.warp = false;
 
-    if (this.frametarget && this.doortarget) {
-      /* put in local door list, but create
-         that list if it doesn't exist first. */
-      if (!_root["doors"].length) {
-        _root["doors"] = [];
-      }
-      _root["doors"].push(this);
+    if (this._height > this._width) {
+      trace(this.doorname + ' is tall');
+      tall = true;
     } else {
-      /* Don't bother putting it in the door list
-         if it doesn't take us anywhere, because
-         then we avoid the hit tests on every frame. */
-
-      // XXX for debugging, show doors that have no
-      // destination
-      // trace(this.doorname + ' bogus: ' + this);
-      // this._visible = true;
-      // this._rotation = 45;
+      trace(this.doorname + ' is wide');
+      tall = false;
     }
+
+    /* put in local door list, but create
+       that list if it doesn't exist first. */
+    if (!_root.doors.length)
+      _root.doors = [];
+
+    _root.doors.push(this);
+
+    /* We need to put it in the list even if there
+       is no destination (and thus no point in doing
+       hittests) because the You class controls
+       warping and needs to look for this door. */
+
+    // XXX for debugging, show doors that have no
+    // destination
+    // trace(this.doorname + ' bogus: ' + this);
+    // this._visible = true;
+    // this._rotation = 45;
   }
 
   // Probably something sensible to check wrt
