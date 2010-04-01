@@ -21,21 +21,27 @@ class Preloader extends MovieClip {
       fscommand("trapallkeys", "true");
       fscommand("showmenu", "false");
       Stage.showMenu = false;
-      /* attach player--once! */
-      _root.attachMovie("you", "you", 1, {
-          // XXX should be 100
-        _x:250,
-          // XXX should be 200      
-            _y:50, 
-            _xscale:25, _yscale:25});
 
       _root.attachMovie("message", "message", 29999, 
                         {_x:64, _y:14});
       /* this is the global memory, also a singleton */
       // _root["memory"] = new Memory();
       // stop();
-      // XXX should be 'start'
-      _root.gotoAndStop('paper2');
+
+      // Usually, nosignal.
+      var startframe = 'nosignal';
+
+      // Nosignal spanws the player via Instructions.
+      if (startframe != 'nosignal') {
+        /* attach player--once! */
+        _root.attachMovie("you", "you", 1,
+                          {_x:250,
+                           _y:50, 
+                           _xscale:25,
+                           _yscale:25});
+      }
+
+      _root.gotoAndStop(startframe);
 
       this.swapDepths(0);
       this.removeMovieClip();

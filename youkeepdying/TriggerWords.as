@@ -6,7 +6,6 @@ class TriggerWords extends Trigger {
   }
 
   public function isHit(phys : PhysicsObject, dx : Number, dy : Number) {
-    trace('??');
     return phys.centerhit(this); // && dy > -1;
   }
 }
