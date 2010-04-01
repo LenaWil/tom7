@@ -39,7 +39,7 @@ class PhysicsObject extends Depthable {
       terminal_velocity: 9,
       maxspeed: 5.9,
       dive: 0.3 };
-  };
+  }
 
   /* These are typically overridden so that
      the object is not just deadweight. */
@@ -173,11 +173,13 @@ class PhysicsObject extends Depthable {
       dy = -C.jump_impulse;
     }
 
+    /*
     if (wishdive()) {
       if (!otg) {
         dy += C.dive;
       }
     }
+    */
 
     if (wishright()) {
       dx += C.accel;

@@ -13,6 +13,8 @@ class You extends PhysicsObject {
 
   var FPS = 25;
 
+  var gotkeys = false;
+
   // Single item we're currently holding;
   // optional.
   var item : Item = undefined;
@@ -48,6 +50,7 @@ class You extends PhysicsObject {
 
   public function onKeyDown() {
     var k = Key.getCode();
+    gotkeys = true;
     //     trace(k);
     switch(k) {
     case 32: // space
