@@ -17,6 +17,8 @@ class ElectricGate extends Depthable {
 
   public function setState(newact) {
     // trace('setstate ' + newact);
+    // XXX this (just animation) is buggy! Should lock the
+    // anim or something to prevent races.
     if (newact && !active) {
       this.gotoAndPlay('goingon');
     } else if (!newact && active) {
