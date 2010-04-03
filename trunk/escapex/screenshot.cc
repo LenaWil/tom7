@@ -9,9 +9,7 @@
 #include "pngsave.h"
 #include "animation.h"
 
-SDL_Surface * screen;
 string self;
-int network;
 
 int main (int argc, char ** argv) {
 

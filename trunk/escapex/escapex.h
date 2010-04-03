@@ -29,7 +29,6 @@ using namespace std;
 #  endif
 #endif
 
-
 #define STARTW 800
 #define STARTH 600
 
@@ -45,8 +44,6 @@ using namespace std;
    an empty or near-empty surface) */
 #define DRAW_NSIZES 4
 
-extern SDL_Surface * screen;
-
 /* Handle a video event: Exposure or resize. Returns true if
    it was such an event. On resize, makes a new screen surface
    of the appropriate size. Either way, call parent's draw method
@@ -57,6 +54,8 @@ bool handle_video_event(drawable *parent, const SDL_Event &e);
 extern int network;
 /* is the audio subsystem started? */
 extern int audio;
+
+extern SDL_Surface * screen;
 
 #ifndef PLATFORM
 #  ifdef WIN32
