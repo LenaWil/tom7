@@ -22,6 +22,8 @@ class Preloader extends MovieClip {
       fscommand("showmenu", "false");
       Stage.showMenu = false;
 
+      _root.memory = new Memory();
+
       _root.attachMovie("message", "message", 29999, 
                         {_x:64, _y:14});
       /* this is the global memory, also a singleton */
@@ -29,7 +31,7 @@ class Preloader extends MovieClip {
       // stop();
 
       // Usually, nosignal.
-      var startframe = 'nosignal';
+      var startframe = 'clouds';
 
       // Nosignal spanws the player via Instructions.
       if (startframe != 'nosignal') {
@@ -41,7 +43,8 @@ class Preloader extends MovieClip {
                            _yscale:25});
       }
 
-      _root.gotoAndStop(startframe);
+      _root.memory.gotoFrame(startframe);
+      // _root.gotoAndStop(startframe);
 
       this.swapDepths(0);
       this.removeMovieClip();

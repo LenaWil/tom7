@@ -576,7 +576,7 @@ class You extends PhysicsObject {
       _root.items = [];
     }
 
-    _root.gotoAndStop(s);
+    _root.memory.gotoFrame(s);
   }
 
 }
