@@ -26,12 +26,16 @@ class Spawn extends Depthable {
     if (lastframe != _root._currentframe) {
       lastframe = _root._currentframe;
 
-      // XXX look up state to see if we should be
-      // displayed. Jump straight to 'there' if
-      // we are (no reason to highlight the spawn's
-      // location when just arriving on the board)
-      this._visible = false;
-      this.stop();
+      if (_root.memory.activatedThisSpawn()) {
+        // No reason to play the spawn-spawn animation
+        // when just arriving on the board.
+        this.gotoAndStop('there');
+        this._visible = true;
+      } else {
+        // Not found yet.
+        this._visible = false;
+        this.stop();
+      }
 
       /* for debuggin' */
       // this._alpha = 15;
@@ -43,10 +47,12 @@ class Spawn extends Depthable {
     }
   }
 
-  // When first "unlocking" a spawn spot,
-  // play this animation.
-  // XXX maybe every time?
+  // Always play the animation when the spawn
+  // is used. XXX it's weird that the dot re-fades
+  // in each time, but it's usually covered by the
+  // player.
   public function becomeVisible() {
+    _root.memory.activateThisSpawn();
     this._visible = true;
     this.gotoAndPlay('appear');
   }
