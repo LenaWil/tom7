@@ -26,12 +26,14 @@ class Preloader extends MovieClip {
 
       _root.attachMovie("message", "message", 29999, 
                         {_x:64, _y:14});
-      /* this is the global memory, also a singleton */
-      // _root["memory"] = new Memory();
+
+      _root.attachMovie("resetmessage", "resetmessage", 49999, 
+                        {_x:550 / 2, _y:400 / 2});
+
       // stop();
 
       // Usually, nosignal.
-      var startframe = 'clouds';
+      var startframe = 'nosignal';
 
       // Nosignal spanws the player via Instructions.
       if (startframe != 'nosignal') {

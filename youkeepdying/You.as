@@ -7,6 +7,8 @@ class You extends PhysicsObject {
   var holdingLeft = false;
   var holdingRight = false;
   var holdingDown = false;
+  var holdingEsc = false;
+  var escKey = 'esc';
 
   var width = 64.65;
   var height = 43.75;
@@ -51,8 +53,20 @@ class You extends PhysicsObject {
   public function onKeyDown() {
     var k = Key.getCode();
     gotkeys = true;
-    //     trace(k);
+    // _root.message.say(k);
     switch(k) {
+    case 192: // ~
+      escKey = '~';
+      holdingEsc = true;
+      break;
+    case 82: // r
+      escKey = 'r';
+      holdingEsc = true;
+      break;
+    case 27: // esc
+      escKey = 'esc';
+      holdingEsc = true;
+      break;
     case 32: // space
     case 38: // up
       holdingUp = true;
@@ -72,6 +86,12 @@ class You extends PhysicsObject {
   public function onKeyUp() {
     var k = Key.getCode();
     switch(k) {
+    case 192: // ~
+    case 82: // r
+    case 27: // esc
+      holdingEsc = false;
+      break;
+
     case 32:
     case 38:
       // XXX ok if player is pressing both and
@@ -302,8 +322,10 @@ class You extends PhysicsObject {
     }
   }
 
-  var pingpong = ['1', '1', '2', '2', '3', '3', '2', '2']
+  var pingpong = ['1', '1', '2', '2', '3', '3', '2', '2'];
 
+  // Number of frames that escape has been held
+  var esctime : Number = 0;
   var framemod : Number = 0;
   var facingright = true;
   public function onEnterFrame() {
@@ -361,6 +383,30 @@ class You extends PhysicsObject {
         _root.message.say('[' + isec + '.' + fsec + ']  ' +
                           this.ailment.ailname + '!');
       }
+    }
+
+    if (holdingEsc) {
+      if (_root.memory.activatedThisSpawn()) {
+        var MAXESCTIME = 60;
+        esctime++;
+        _root.resetmessage.setmessage('[' + (MAXESCTIME - esctime) + 
+                                      ']  hold ' + escKey + ' to reset');
+        _root.resetmessage._visible = true;
+        if (esctime >= MAXESCTIME) {
+          // You don't keep resetting
+          esctime = 0;
+          holdingEsc = false;
+          _root.resetmessage._visible = false;
+          this.reset();
+        }
+      } else {
+        esctime = 0;
+        _root.resetmessage.setmessage('Can\'t reset in this room yet.');
+        _root.resetmessage._visible = true;
+      }
+    } else {
+      esctime = 0;
+      _root.resetmessage._visible = false;
     }
 
     // We know we're not inside anything. We can safely
@@ -506,6 +552,42 @@ class You extends PhysicsObject {
         }
       }
     }
+  }
+
+  var resetframe : String;
+  public function reset() {
+    // XXX Should prevent resetting in some special
+    // circumstances (already dead, respawning,
+    // especially with warpto?)
+
+    this.dx = 0;
+    this.dy = 0;
+
+    // Use existing mechanism for leaving and
+    // arriving, by warping via a trampoline screen.
+    // It's kind of a hack, but it's the safest.
+    this.resetframe = _root.memory.currentframe;
+    this.doordest = 'warp';
+    // XXX It's possible to die in the trampoline
+    // room, if you time an ailment just right.
+    this.changeframe('reset_trampoline');
+
+    /*
+    // Destroy all items.
+    // XXX It would be slightly better if this also
+    // respawned an item if on its home screen, but
+    // that is easily accomplished by the player
+    // leaving the room and returning.
+    this.item = undefined;
+    for (var o in _root.items) {
+      _root.items[o].swapDepths(0);
+      _root.items[o].removeMovieClip();
+    }
+    _root.items = [];
+
+    */
+    // Kill
+
   }
 
   /* go to a frame, doing cleanup and
