@@ -16,6 +16,7 @@ class Door extends MovieClip {
 
   var tall;
   var warp;
+  var rel;
 
   public function onLoad() {
     /* for debuggin' */

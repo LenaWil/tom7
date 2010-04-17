@@ -33,7 +33,7 @@ class Preloader extends MovieClip {
       // stop();
 
       // Usually, nosignal.
-      var startframe = 'nosignal';
+      var startframe = 'paper1';
 
       // Nosignal spanws the player via Instructions.
       if (startframe != 'nosignal') {

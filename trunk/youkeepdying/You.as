@@ -8,6 +8,10 @@ class You extends PhysicsObject {
   var holdingRight = false;
   var holdingDown = false;
   var holdingEsc = false;
+  // Block escape until a key is released.
+  // This keeps the user from continuously
+  // resetting, which is usually undesirable.
+  var blockEsc = false;
   var escKey = 'esc';
 
   var width = 64.65;
@@ -27,6 +31,17 @@ class You extends PhysicsObject {
   // Contains my destination door
   // when warping.
   var doordest : String;
+  // Contains the fractional position of the player
+  // as he entered the source door. This is complicated
+  // by the fact that we only know the height (or width,
+  // for wide doors) of the door and its registration
+  // point, but not how the reg point relates to the
+  // ends. Assuming the reg point is in the center,
+  // which is typical, then this takes on values
+  // in the range [-.5, .5], where .25 is midway between
+  // the center and the bottom or right edge.
+  // Never exceeds [-1, 1], by fiat.
+  var srcdoorfrac : Number;
 
   // Keep track of what dudes I touched, since
   // I don't want triple point tests or iterated
@@ -44,6 +59,10 @@ class You extends PhysicsObject {
     return this.item && this.item.hasUmbrella();
   }
 
+  public function hasCopysicle() {
+    return this.item && this.item.hasCopysicle();
+  }
+
   public function onLoad() {
     Key.addListener(this);
     this.setdepth(5000);
@@ -56,16 +75,22 @@ class You extends PhysicsObject {
     // _root.message.say(k);
     switch(k) {
     case 192: // ~
-      escKey = '~';
-      holdingEsc = true;
+      // escKey = '~';
+      // if (!blockEsc) holdingEsc = true;
+      // XXXXXXXXXX
+      _root.you.ail('bees',
+                    'bees',
+                    6 * 25,
+                    {solid:true, infectious:'once'});
+
       break;
     case 82: // r
       escKey = 'r';
-      holdingEsc = true;
+      if (!blockEsc) holdingEsc = true;
       break;
     case 27: // esc
       escKey = 'esc';
-      holdingEsc = true;
+      if (!blockEsc) holdingEsc = true;
       break;
     case 32: // space
     case 38: // up
@@ -89,7 +114,9 @@ class You extends PhysicsObject {
     case 192: // ~
     case 82: // r
     case 27: // esc
+      // this.die('spikes', {solid:true, floating:false});
       holdingEsc = false;
+      blockEsc = false;
       break;
 
     case 32:
@@ -285,8 +312,9 @@ class You extends PhysicsObject {
       }
 
       /* Upon changing rooms via a door, the player will have his
-         'doordest' property set to the door he should spawn in. Check
-         all of the doors to find the appropriate one. */
+         'doordest' property set (and srcdoorfrac) to the door he
+         should spawn in. Check all of the doors to find the
+         appropriate one. */
 
       if (this.doordest) {
         for (var o in _root.doors) {
@@ -308,10 +336,23 @@ class You extends PhysicsObject {
               // floor, also depending on the orientation. 
               // This assumes that cx, cy is always a safe
               // (non-stuck) location for the player.
+              // If 'rel' is set, then we preserve the relative
+              // location within the door, rather than the
+              // absolute (based on the stage) position.
               if (door.tall) {
+                if (door.rel && this.srcdoorfrac != undefined) {
+                  trace('sdf: ' + this.srcdoorfrac + ' cy: ' + cy +
+                        ' dh: ' + door._height);
+                  this._y = cy - (this.height / 2) + 
+                    this.srcdoorfrac * door._height;
+                }
                 this._x = cx - this.width / 2;
                 this.getOutVert(cy);
               } else {
+                if (door.rel && this.srcdoorfrac != undefined) {
+                  this._x = cx - (this.width / 2) + 
+                    this.srcdoorfrac * door._width;
+                }
                 this._y = cy - this.height / 2;
                 this.getOutHoriz(cx);
               }
@@ -394,6 +435,7 @@ class You extends PhysicsObject {
         _root.resetmessage._visible = true;
         if (esctime >= MAXESCTIME) {
           // You don't keep resetting
+          blockEsc = true;
           esctime = 0;
           holdingEsc = false;
           _root.resetmessage._visible = false;
@@ -513,12 +555,28 @@ class You extends PhysicsObject {
       /* must be going the correct dir, and
          have actually hit the door */
       if (mcd.frametarget && mcd.doortarget &&
-          mcd.correctdir(dx, dy) && centerhit(mcd)) {
+          mcd.correctdir(dx, dy) && centerhit(mcd) &&
+          // hax
+          (!mcd.requireumbrella || this.hasUmbrella()) &&
+          (!mcd.requirecopysicle || this.hasCopysicle())
+          ) {
 
         /* set my doortarget. when the door loads,
            it checks my target and maybe moves me
            there. */
         this.doordest = mcd.doortarget;
+
+        var cx = this._x + this.width / 2;
+        var cy = this._y + this.height / 2;
+        if (mcd.tall) {
+          this.srcdoorfrac = (cy - mcd._y) / mcd._height;
+        } else {
+          this.srcdoorfrac = (cx - mcd._x) / mcd._width;
+        }
+        if (this.srcdoorfrac < -1) this.srcdoorfrac = -1;
+        if (this.srcdoorfrac > 1) this.srcdoorfrac = 1;
+
+        trace('in sdf: ' + this.srcdoorfrac);
 
         /* nb this invalidates mcd */
         this.changeframe(mcd.frametarget);
@@ -551,6 +609,15 @@ class You extends PhysicsObject {
           // Play "get" animation or sound...
         }
       }
+    }
+  }
+
+  // Incinerators can do a regular death in case they're
+  // on-screen.
+  public function incinerate() {
+    // But don't die while dying.
+    if (this.respawning == 0) {
+      this.die('evaporate', {solid:false, floating:true});
     }
   }
 

@@ -74,6 +74,10 @@ class DeadYou extends PhysicsObject {
     this.removeMovieClip();
   }
 
+  public function incinerate() {
+    destroy();
+  }
+
   // This must be called before the object's first frame!
   public function init(shouldfloat, issolid) {
     floating = shouldfloat;

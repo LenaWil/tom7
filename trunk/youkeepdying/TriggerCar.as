@@ -5,6 +5,7 @@ class TriggerCar extends Trigger {
   }
 
   public function isHit(phys : PhysicsObject, dx : Number, dy : Number) {
-    return phys.centerhit(this) && !phys.hasUmbrella();
+    return phys.centerhit(this) && !(phys.hasUmbrella() ||
+                                     phys.hasCopysicle());
   }
 }

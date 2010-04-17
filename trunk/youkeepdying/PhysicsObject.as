@@ -20,6 +20,18 @@ class PhysicsObject extends Depthable {
     return false;
   }
 
+  public function hasCopysicle() {
+    return false;
+  }
+
+  // Overridden by DeadYou and You.
+  // Will want to consolidate some functionality
+  // here if there are ever more than two types
+  // of physics objects...
+  public function incinerate() {
+
+  }
+
   // Called when touching another physics object. To
   // tell the angle of touch you've got to compare
   // positions.
@@ -98,14 +110,14 @@ class PhysicsObject extends Depthable {
      that gets us unstuck, according to the function f. If
      we're not stuck at all, keep the same position. */
   public function getOut1D(pos, safepos, f) {
-    trace('getout1d ' + pos + ' -> ' + safepos);
+    // trace('getout1d ' + pos + ' -> ' + safepos);
     if (f.apply(this, [pos])) {
       trace('started stuck.');
       // Invariant: pos is bad, safepos is good.
       while (Math.abs(pos - safepos) > 0.1) {
         var mid = (safepos + pos) / 2;
         var stuck = f.apply(this, [mid]);
-        trace(pos + ' -> ' + mid + (stuck ? '!' : '') + ' <- ' + safepos);
+        // trace(pos + ' -> ' + mid + (stuck ? '!' : '') + ' <- ' + safepos);
         if (stuck) {
           pos = mid;
         } else {

@@ -15,12 +15,12 @@ class Finder extends MovieClip {
   }
 
   // Override this. Called on an arbitrary physics object that's
-  // triggering the finder, on every frame that the button is
-  // pressed.
+  // triggering the finder, on every frame that the finder is
+  // touched.
   public function activate(phys : PhysicsObject) {
   }
 
-  // Called on every frame that the button is not pressed.
+  // Called on every frame that the finder is not pressed.
   public function deactivate() {
   }
 
@@ -32,22 +32,30 @@ class Finder extends MovieClip {
     return phys.hitTest(cx, cy, false);
   }
 
+  var homeframe : Number = undefined;
   public function onEnterFrame() {
-    // Me and the squares.
-    if (isHit(_root.you, _root.you.dx, _root.you.dy)) {
-      this.activate(_root.you);
-      return;
-    }
-
-    for (var o in _root.squares) {
-      var mc = _root.squares[o];
-      if (isHit(mc, mc.dx, mc.dy)) {
-	this.activate(mc);
-	return;
+    // Don't run on the first frame, since objects
+    // may not have moved themselves to the proper
+    // position yet.
+    if (homeframe == undefined) {
+      homeframe = _root._currentframe;
+    } else {
+      // Me and the squares.
+      if (isHit(_root.you, _root.you.dx, _root.you.dy)) {
+        this.activate(_root.you);
+        return;
       }
-    }
 
-    this.deactivate(mc);
+      for (var o in _root.squares) {
+        var mc = _root.squares[o];
+        if (isHit(mc, mc.dx, mc.dy)) {
+          this.activate(mc);
+          return;
+        }
+      }
+
+      this.deactivate(mc);
+    }
   }
 
 }
