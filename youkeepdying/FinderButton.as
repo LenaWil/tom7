@@ -1,4 +1,3 @@
-
 class FinderButton extends Finder {
   // The name of the Button movieclip, 
   // which animates along with the trigger.

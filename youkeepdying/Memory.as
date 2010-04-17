@@ -39,9 +39,10 @@ class Memory {
      'nosignal',
      'titleslide',
      'slide2',
-     // 'paper1', // can't die
-     'paper2'
-     // 'rightpaper', // can't die
+     'paper1',
+     'paper2',
+     'rightpaper'
+     // 'futurework',  // can't die
      ];
 
   var underconstruction = [ 'cavetop',
