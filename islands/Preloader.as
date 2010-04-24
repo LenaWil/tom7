@@ -40,6 +40,8 @@ class Preloader extends MovieClip {
                         {_x:550 / 2, _y:400 / 2});
       */
 
+      _root.viewport = new Viewport();
+
       // Usually, nosignal.
       // _root.gotoAndStop(startframe);
       _root.gotoAndStop('menu');

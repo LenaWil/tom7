@@ -11,6 +11,7 @@ class PressSpacebar extends MovieClip {
     switch(k) {
     case 32: // space
 
+      Key.removeListener(this);
       this.removeMovieClip();
 
       var startframe = 'level1';      
