@@ -1,8 +1,23 @@
 class PressSpacebar extends MovieClip {
 
+  var titlemusic : Sound;
+  var volume : Number = 0;
+
   public function onLoad() {
+    titlemusic = new Sound(this);
+    titlemusic.attachSound('titlemp3');
+    titlemusic.setVolume(0);
+    volume = 0;
+    titlemusic.start(0, 99999);
     Key.addListener(this);
     this._visible = false;
+  }
+
+  public function onEnterFrame() {
+    if (volume < 100) {
+      volume++;
+      titlemusic.setVolume(volume);
+    }
   }
 
 
@@ -12,6 +27,9 @@ class PressSpacebar extends MovieClip {
     case 32: // space
 
       Key.removeListener(this);
+
+      // better to fade out...
+      this.titlemusic.stop();
       this.removeMovieClip();
 
       var startframe = 'level1';      

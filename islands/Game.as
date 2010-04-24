@@ -5,13 +5,8 @@ class Airplane extends Positionable {
   var holdingRight = false;
   var holdingDown = false;
   var holdingEsc = false;
-  var holdingSpace = false;
   var blockEsc = false;
   var escKey = 'esc';
-
-  // Objects that don't need anything done except
-  // to be removed if we leave the scene.
-  // (in root now) var deleteme = [];
 
   var gamemusic : Sound;
   var volume : Number = 0;
@@ -30,7 +25,7 @@ class Airplane extends Positionable {
   public function onLoad() {
 
     gamemusic = new Sound(this);
-    gamemusic.attachSound('bouncymp3');
+    // gamemusic.attachSound('bouncymp3');
     gamemusic.setVolume(0);
     volume = 0;
     gamemusic.start(0, 99999);
@@ -59,7 +54,6 @@ class Airplane extends Positionable {
       if (!blockEsc) holdingEsc = true;
       break;
     case 32: // space
-      /*
       crabs++;
       var c = 
         _root.attachMovie("bouncecrab", "bouncecrab" + crabs, 
@@ -69,8 +63,6 @@ class Airplane extends Positionable {
       c.gamey = this.gamey;
       c.dx = this.dx;
       c.dy = this.dy;
-      */
-      holdingSpace = true;
 
       break;
     case 38: // up
@@ -99,7 +91,6 @@ class Airplane extends Positionable {
       break;
 
     case 32:
-      holdingSpace = false;
       break;
     case 38:
       holdingUp = false;
@@ -116,51 +107,6 @@ class Airplane extends Positionable {
     }
   }
 
-  // These are latched: They physics code sets them
-  // and the client must clear them.
-  var collision_right = false;
-  var collision_left = false;
-  var collision_up = false;
-  var collision_down = false;
-
-  /* Starting at the 1-dimensional position 'pos' (which may not be
-     blocked), move with velocity dpos along it. If the member
-     function f returns true, then we are blocked; move to
-     (approximately) the closest position where we're not blocked.
-     Returns the new position and velocity (set to zero if we hit
-     something.) */
-  public function move1DClip(pos, dpos, f) {
-    var newpos = pos + dpos;
-
-    // XXX probably should check invariant since it can probably 
-    // be violated in rare cases (fp issues).
-    if (f.apply(this, [newpos])) {
-
-      // invariant: pos is good, newpos is bad
-      // XXX EPSILON?
-      while (Math.abs(newpos - pos) > .01) {
-        var mid = (newpos + pos) / 2;
-        if (f.apply(this, [mid])) {
-          newpos = mid;
-        } else {
-          pos = mid;
-        }
-      }
-
-      return { pos : pos, dpos : 0 };
-    } else {
-      return { pos : newpos, dpos : dpos };
-    }
-  }
-
-  public function blockedx(newx) {
-    return _root.background.hit(_root.viewport.placex(newx), this._y);
-  }
-
-  public function blockedy(newy) {
-    return _root.background.hit(this._x, _root.viewport.placey(newy));
-  }
-
   public function onEnterFrame() {
 
     if (volume < 100) {
@@ -169,22 +115,8 @@ class Airplane extends Positionable {
     }
 
     // Only physical quantities affect physical position.
-    
-    var oy = move1DClip(gamey, dy, blockedy);
-    gamey = oy.pos;
-    dy = oy.dpos;
-
-    _root.viewport.place(this);
-
-    // Now x:
-    var ox = move1DClip(gamex, dx, blockedx);
-    gamex = ox.pos;
-    dx = ox.dpos;
-
-    /*
     this.gamex += dx;
     this.gamey += dy;
-    */
 
     /*
     this._rotation += 0.3;
@@ -205,10 +137,8 @@ class Airplane extends Positionable {
     // quantities.
     var sint = Math.sin(theta * 0.0174532925);
     var cost = Math.cos(theta * 0.0174532925);
-    if (holdingSpace) {
-      dy += 1.3 * sint;
-      dx += .9 * cost;
-    }
+    dy += 3 * sint;
+    dx += .9 * cost;
 
     // trace(theta + ' : ' + cost + ' -> ' + dx);
 
@@ -220,14 +150,14 @@ class Airplane extends Positionable {
 
     // Then, the user is able to adjust the
     // intended angle and thrust.
-    if (holdingDown) {
+    if (holdingUp) {
       dtheta -= 1;
-      if (dtheta < -10) dtheta = -10;
-    } else if (holdingUp) {
+      if (dtheta < -5) dtheta = -5;
+    } else if (holdingDown) {
       dtheta += 1;
-      if (dtheta > 10) dtheta = 10;
+      if (dtheta > 5) dtheta = 5;
     } else {
-      dtheta *= .7;
+      dtheta *= .2;
     }
 
     // Point in the direction of theta.
@@ -245,28 +175,23 @@ class Airplane extends Positionable {
     var altitude = 1500 - this.gamey;
     _root.altimeter.setAltitude(altitude);
 
-    /* XXX all game worlds should be enclosed
     if (this.gamey < -3000 || altitude <= -1500 ||
         this.gamex < -3000 || this.gamex > 3660) {
       die();
     }
-    */
 
     // trace(this.clip._x);
 
     // Did I crash into the floor?
-    if (_root.background.hit(this._x, this._y)) {
-      // trace('collide with floor');
-      // trace(' ');
+    if (_root.background.hit(this._x + this._width / 2,
+                             this._y + this._height / 2)) {
+      trace('collide with floor');
       die();
     }
+
   }
 
   public function die() {
-    for (var o in _root.deleteme) {
-      _root.deleteme[o].removeMovieClip();
-    }
-
     gamemusic.stop();
     this.removeMovieClip();
     _root.background.removeMovieClip();
