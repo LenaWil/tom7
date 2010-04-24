@@ -2,6 +2,8 @@
 class Background extends Positionable {
 
   var parallax = [];
+  //  var fixed = [];
+  var clip : MovieClip;
 
   public function onLoad() {
     this.setdepth(100);
@@ -15,7 +17,9 @@ class Background extends Positionable {
         // XXX get from name
         parallax.push({ d : i ++, mc : this[o]});
         //        this[o]._alpha = 10;
-      }
+      } /* else if (o.indexOf('fixed') == 0) {
+        fixed.push({ x : this[o]._x, y : this[o]._y, mc : this[o]});
+        } */
     }
   }
 
@@ -32,10 +36,24 @@ class Background extends Positionable {
       var pctoffx = (_root.viewport.gamex - cx) / cx;
       var pctoffy = (_root.viewport.gamey - cy) / cy;
 
-      mc._x = pctoffx * (parallax[i].d * .1) * this._width;
-      mc._y = pctoffy * (parallax[i].d * .1) * this._height;
+      mc._x = pctoffx * (parallax[i].d * .05) * this._width;
+      mc._y = pctoffy * (parallax[i].d * .05) * this._height;
       // trace(mc + ' ' + pctoffx + ' ' + pctoffy + ' ## ' + mc._x + ' ' + mc._y);
     }
+
+    /*
+    for (var i = 0; i < fixed.length; i++) {
+      var f = fixed[i];
+      _root.viewport.unplace(this, f, 0, 0);
+    }
+    */
+  }
+
+  public function hit(x : Number, y : Number /* mc : MovieClip */) {
+    // Basically just care about screen coordinates, assuming
+    // everything is up to date.
+    _root.viewport.place(this);
+    return this.clip.hitTest(x, y, true);
   }
 
 }

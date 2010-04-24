@@ -4,3 +4,7 @@
 
 1000 - airplane
 
+100 - parallax and game background
+
+15 - fixed backgrounds
+
