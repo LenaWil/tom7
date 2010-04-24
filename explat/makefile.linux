@@ -1,12 +1,12 @@
 
-default : cliptest.exe
+default : explat.exe
 
 
 sdlml.o : ../sdlml/sdlml.c
 	gcc -O `sdl-config --cflags` -c ../sdlml/sdlml.c -o sdlml.o
 
-cliptest.exe : sdlml.o *.sml makefile
-	mlton -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowFFI true' -output cliptest.exe cliptest.cm sdlml.o 
+explat.exe : sdlml.o *.sml makefile messagebox_fake.o
+	mlton -link-opt "-lSDL_image -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowFFI true' -output explat.exe explat.cm sdlml.o messagebox_fake.o
 
 clean :
 	rm -f core core.* *~ *.exe *.o
