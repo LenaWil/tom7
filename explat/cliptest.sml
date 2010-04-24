@@ -8,7 +8,10 @@ struct
 
   exception Test of string
 
+  (* XXX urg, bad choice *)
+  structure U = Util
   open SDL
+  structure Util = U
 
   fun messagebox s = 
       let
@@ -57,8 +60,8 @@ struct
 
   val robotr = requireimage "robot.png"
   val robotl = requireimage "robotl.png" (* XXX should be able to flip graphics *)
-  val robotr_fade = alphadim robotr
-  val robotl_fade = alphadim robotl
+  val robotr_fade = SDL.Util.alphadim robotr
+  val robotl_fade = SDL.Util.alphadim robotl
   val error = requireimage "error_frame.png"
 
   val redhi = requireimage "redhighlight.png"
