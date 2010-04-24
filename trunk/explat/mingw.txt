@@ -104,3 +104,18 @@ notes on building SDL apps with mlton
  translates this from /usr/local/include to c:/msys/1.0/local/lib,
  which without that translation fails to find gmp.h.
 
+
+16 Sep 2008:
+
+Oops here's another thing to do:
+edit c:/MinGW/lib/mlton/sml/basis/posix/io.sml
+and change the line with isReg to add a handler:
+
+    local
+       val pos0 = Position.fromInt 0
+       (* nb. added this handle via discussion on mlton list.
+          without it, can't run without a console on mingw. *)
+       fun isReg fd = FS.ST.isReg(FS.fstat fd) handle _ => false
+       fun posFns (closed, fd) = 
+          if (isReg fd)
+       ...
