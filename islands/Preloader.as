@@ -6,6 +6,10 @@ class Preloader extends MovieClip {
 
   var frames : Number = 0; 
 
+  public function onLoad() {
+    _root.stop();
+  }
+
   public function onEnterFrame() {
     var total = Math.round(_root.getBytesTotal());
     var now = Math.round(_root.getBytesLoaded());
@@ -37,11 +41,8 @@ class Preloader extends MovieClip {
       */
 
       // Usually, nosignal.
-      var startframe = 'level1';
-      _root.attachMovie("you", "you", 1, {_x:250, _y:50,})
-
-      _root.memory.gotoFrame(startframe);
       // _root.gotoAndStop(startframe);
+      _root.gotoAndStop('menu');
 
       this.swapDepths(0);
       this.removeMovieClip();
