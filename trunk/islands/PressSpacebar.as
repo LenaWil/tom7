@@ -3,6 +3,7 @@ class PressSpacebar extends MovieClip {
   var titlemusic : Sound;
   var volume : Number = 0;
 
+  // XXX use music obj!
   public function onLoad() {
     titlemusic = new Sound(this);
     titlemusic.attachSound('titlemp3');
@@ -39,6 +40,8 @@ class PressSpacebar extends MovieClip {
       _root.viewport.place(_root.airplane);
       _root.viewport.place(_root.background);
 
+      _root.music.setmusic(_root.music.bouncy);
+      // _root.music.setmusic(_root.music.noisy);
       _root.gotoAndStop('firstlevel');
       break;
     }

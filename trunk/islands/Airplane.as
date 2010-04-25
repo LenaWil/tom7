@@ -23,7 +23,6 @@ class Airplane extends Positionable {
   // Clip region for plane itself (death)
   var clip : MovieClip;
 
-  // var dr : Number = 15;
   var dtheta : Number = 0;
   var theta : Number = 0;  // Right
   var dx : Number = 0;
@@ -40,12 +39,6 @@ class Airplane extends Positionable {
 
   public function onLoad() {
 
-    gamemusic = new Sound(this);
-    // gamemusic.attachSound('bouncymp3');
-    gamemusic.setVolume(0);
-    volume = 0;
-    gamemusic.start(0, 99999);
-
     locator = _root.attachMovie("locator", "locator", 90000, {_x : 250, _y : 250});
     // locator._visible = false;
     locator.stop();
@@ -53,18 +46,35 @@ class Airplane extends Positionable {
     Key.addListener(this);
     this.setdepth(1000);
 
-    // XXX use spawn
-    gamex = 150;
-    gamey = 220;
-
-    maxwarp = Math.max(_width, _height);
+    reset();
   }
 
   var crabs = 0;
 
+  // Reset on the same level.
+  public function reset() {
+    // XXX use spawn
+    gamex = 150;
+    gamey = 220;
+
+    dx = 0;
+    dy = 0;
+    theta = 0;
+    dtheta = 0;
+
+    offscreenframes = undefined;
+
+    maxwarp = Math.max(_width, _height);
+    this._visible = true;
+  }
+
   public function onKeyDown() {
     var k = Key.getCode();
+    trace(k);
     switch(k) {
+    case 16: // leftshift;
+      // _root.music.playdeathsound();
+      break;
     case 192: // ~
       escKey = '~';
       break;
@@ -409,8 +419,7 @@ class Airplane extends Positionable {
   }
 
   public function onEnterFrame() {
-
-
+    _root.music.tick();
 
     if (volume < 100) {
       volume += 5;
@@ -582,6 +591,7 @@ class Airplane extends Positionable {
     for (var o in _root.deaths) {
       if (_root.background.hitpart(_root.deaths[o], gamex, gamey)) {
         _root.messagestripe.setmessage('you keep dying');
+        die();
         showmsg = true;
       }
     }
@@ -590,6 +600,14 @@ class Airplane extends Positionable {
       _root.messagestripe.setmessage('Landing! Press ? to explode');
       showmsg = true;
     }
+
+
+    // maybe a key for this?
+    if (!showmsg) {
+      _root.messagestripe.setmessage('' + _root.music.position());
+      showmsg = true;
+    }
+
     
     _root.messagestripe._visible = showmsg;
 
@@ -602,6 +620,9 @@ class Airplane extends Positionable {
   }
 
   public function die() {
+    _root.music.playdeathsound();
+    reset();
+    /*
     for (var o in _root.deleteme) {
       _root.deleteme[o].removeMovieClip();
     }
@@ -611,6 +632,7 @@ class Airplane extends Positionable {
     _root.background.removeMovieClip();
     _root.altimeter.removeMovieClip();
     _root.gotoAndStop('isntland');
+    */
   }
 
 }
