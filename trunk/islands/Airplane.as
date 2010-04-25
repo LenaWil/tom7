@@ -43,8 +43,9 @@ class Airplane extends Positionable {
     Key.addListener(this);
     this.setdepth(1000);
 
-    gamex = 20;
-    gamey = 30;
+    // XXX use spawn
+    gamex = 150;
+    gamey = 220;
 
     maxwarp = Math.max(_width, _height);
   }
@@ -518,13 +519,6 @@ class Airplane extends Positionable {
 
     var altitude = 1500 - this.gamey;
     _root.altimeter.setAltitude(altitude);
-
-    /* XXX all game worlds should be enclosed
-    if (this.gamey < -3000 || altitude <= -1500 ||
-        this.gamex < -3000 || this.gamex > 3660) {
-        die();
-    }
-    */
 
     var showmsg = false;
     for (var o in _root.deaths) {

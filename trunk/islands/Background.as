@@ -4,12 +4,6 @@ class Background extends Positionable {
   var clip : MovieClip;
   var island : MovieClip;
 
-  /* in game coordinates */
-  var MINX = -4400;
-  var MAXX = 5200;
-  var MINY = -2000;
-  var MAXY = 2600;
-
   public function onLoad() {
     this.setdepth(100);
     this.gamex = 0;
@@ -48,17 +42,20 @@ class Background extends Positionable {
     // Basically just care about screen coordinates, assuming
     // everything is up to date.
     _root.viewport.place(this);
-    return this.clip.hitTest(_root.viewport.placex(x), _root.viewport.placey(y), true);
+    return this.clip.hitTest(_root.viewport.placex(x), 
+                             _root.viewport.placey(y), true);
   }
 
   public function hitland(x : Number, y : Number) {
     _root.viewport.place(this);
-    return this.island.hitTest(_root.viewport.placex(x), _root.viewport.placey(y), true);
+    return this.island.hitTest(_root.viewport.placex(x), 
+                               _root.viewport.placey(y), true);
   }
 
   public function hitpart(part : MovieClip, x : Number, y : Number) {
     _root.viewport.place(this);
-    return part.hitTest(_root.viewport.placex(x), _root.viewport.placey(y), true);
+    return part.hitTest(_root.viewport.placex(x), 
+                        _root.viewport.placey(y), true);
   }
 
 }
