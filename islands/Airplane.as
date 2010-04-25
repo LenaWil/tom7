@@ -327,7 +327,7 @@ class Airplane extends Positionable {
       } else {
         // Must reflect dx. dy can stay the same because it's
         // a flat wall.
-        return { ndx : -0.5 * odx, ndy : ody }
+        return { ndx : -0.3 * odx, ndy : ody }
       }
     } else {
       // If it's actually open, then at worst a deflection.
@@ -505,10 +505,10 @@ class Airplane extends Positionable {
 
     // Then, the user is able to adjust the
     // intended angle and thrust.
-    if (holdingDown) {
+    if (holdingDown || holdingLeft) {
       dtheta -= 1;
       if (dtheta < -10) dtheta = -10;
-    } else if (holdingUp) {
+    } else if (holdingUp || holdingRight) {
       dtheta += 1;
       if (dtheta > 10) dtheta = 10;
     } else {
@@ -572,8 +572,11 @@ class Airplane extends Positionable {
       locator._visible = false;
     }
 
-    var altitude = 1500 - this.gamey;
+    var altitude = Math.round(1500 - this.gamey);
     _root.altimeter.setAltitude(altitude);
+
+    _root.angleometer.setDegs(this.theta);
+    _root.velometer.setVelocity(this.dx, this.dy);
 
     var showmsg = false;
     for (var o in _root.deaths) {
