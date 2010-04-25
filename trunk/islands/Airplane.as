@@ -25,12 +25,17 @@ class Airplane extends Positionable {
   var dx : Number = 0;
   var dy : Number = 0;
 
+  var lastx : Number = 0;
+  var lasty : Number = 0;
+
   var pi : Number = 3.141592653589;
+
+  var maxwarp : Number;
 
   public function onLoad() {
 
     gamemusic = new Sound(this);
-    gamemusic.attachSound('bouncymp3');
+    // gamemusic.attachSound('bouncymp3');
     gamemusic.setVolume(0);
     volume = 0;
     gamemusic.start(0, 99999);
@@ -40,6 +45,8 @@ class Airplane extends Positionable {
 
     gamex = 20;
     gamey = 30;
+
+    maxwarp = Math.max(_width, _height);
   }
 
   var crabs = 0;
@@ -140,7 +147,9 @@ class Airplane extends Positionable {
       // XXX EPSILON?
       while (Math.abs(newpos - pos) > .01) {
         var mid = (newpos + pos) / 2;
-        if (f.apply(this, [mid])) {
+        var stuck = f.apply(this, [mid]);
+        // trace(pos + ' -> ' + mid + (stuck ? '!' : '') + ' <- ' + safepos);
+        if (stuck) {
           newpos = mid;
         } else {
           pos = mid;
@@ -153,33 +162,289 @@ class Airplane extends Positionable {
     }
   }
 
+  // Assumes destx and desty are blocked, safex and safey are
+  // safe. Get as close as possible to the destination, but
+  // not blocked.
+  public function moveTowards2D(safex, safey, destx, desty) {
+
+    if (blockedat(safex, safey)) {
+      trace ('NO');
+      die();
+      return;
+    }
+
+    while (((destx - safex) *
+            (destx - safex) +
+            (desty - safey) *
+            (desty - safey)) > 0.001) {
+      var candx = (destx + safex) / 2;
+      var candy = (desty + safey) / 2;
+      if (blockedat(candx, candy)) {
+        destx = candx;
+        desty = candy;
+      } else {
+        safex = candx;
+        safey = candy;
+      }
+    }
+
+    gamex = safex;
+    gamey = safey;
+    // leftover energy reflected into dude
+    // dx = destx - gamex;
+    // dy = desty - gamey;
+  }
+
+  /* Compute approximate bounce using only local
+     point-inside tests. We have this 3x3 grid
+
+     +--+--+--+
+     |  |  |  |
+     +--+--+--+
+     |  |()|  |
+     +--+--+--+
+     |  |  |  |
+     +--+--+--+
+
+     where we're in the center. We know the center
+     is clear by precondition. The goal is to figure
+     out how to bounce
+  */
+  public function doBounce() {
+    // trace(' do bounce: ');
+
+    if (blockedat(gamex, gamey)) {
+      trace('no bounce!');
+      die();
+    }
+
+    var r = 2.5;
+    /*
+    for (var row = 0; row < 3; row++) {
+      var s = '';
+      for (var col = 0; col < 3; col++) {
+        if (blockedat(gamex + (r * (col - 1)), gamey + (r * (row - 1))))
+          s += '#';
+        else 
+          s += '-';
+      }
+      trace(s);
+    }
+    */
+
+    var A = blockedat(gamex - r, gamey - r);
+    var B = blockedat(gamex, gamey - r)
+    var C = blockedat(gamex + r, gamey - r);
+
+    var D = blockedat(gamex - r, gamey);
+    // no E 
+    var F = blockedat(gamex + r, gamey);
+
+    var G = blockedat(gamex - r, gamey + r);
+    var H = blockedat(gamex, gamey + r)
+    var I = blockedat(gamex + r, gamey + r);
+
+    var adx = Math.abs(dx);
+    var ady = Math.abs(dy);
+
+    if (adx > ady) {
+      // X-major
+      if (dx > 0) {
+        var obj = bMtx(A, B, C,
+                       D,    F,
+                       G, H, I,  dx, dy);
+        dx = obj.ndx;
+        dy = obj.ndy;
+      } else {
+        var obj = bMtx(C, B, A,
+                       F,    D,
+                       I, H, G,  -dx, dy);
+        dx = -obj.ndx;
+        dy = obj.ndy;
+      }
+    } else {
+      if (dy > 0) {
+        var obj = bMtx(C, F, I,
+                       B,    H,
+                       A, D, G,  dy, -dx);
+        dx = -obj.ndy;
+        dy = obj.ndx;
+      } else {
+        var obj = bMtx(G, D, A,
+                       H,    B,
+                       I, F, C,  -dy, dx);
+        dx = obj.ndy;
+        dy = -obj.ndx;
+      }
+    }
+
+    // dx *= 0.8;
+    // dy *= 0.8;
+    // NBOUNCES++;
+    // trace('bounce #' + NBOUNCES + ' with ' + dx + ' ' + dy);
+  }
+
+  var NBOUNCES : Number = 0;
+
+  /* Assuming quote-unqoute odx is the major
+     dimension of movement, odx the minor. */
+  public function bMtx(A, B, C,
+                       D,    F,
+                       G, H, I,   odx, ody) {
+//     trace('BMTX ' + odx + ' ' + ody);
+//     trace('   ' + (B?'#':'-') + (C?'#':'-'));
+//     trace(' -> ' + (F?'#':'-'));
+//     trace('   ' + (H?'#':'-') +(I?'#':'-'));
+// 
+    var DEFLECTMIN : Number = 1;
+    if (F || (C && I)) {
+      // Blocked to my right. If C (up) or I (down) is
+      // clear, we might deflect instead of reflect,
+      // depending on dy.
+      if ((ody <= 0 || (ody < DEFLECTMIN && I)) && !C) {
+        // trace('deflect up')
+        return { ndx : odx * 0.8, ndy : 0.5 * ody - .2 * odx };
+      } else if ((ody >= 0 || (ody > -DEFLECTMIN && C)) && !I) {
+        //        trace('deflect down');
+        return { ndx : odx * 0.8, ndy : 0.5 * ody + .2 * odx };
+      } else {
+        // Must reflect x. Y can change the same because it's
+        // a flat wall.
+        return { ndx : -odx, ndy : ody }
+      }
+    } else {
+      // If it's actually open, then at worst a deflection.
+      if ((dy < 0) && (B || C)) {
+        // trace('BC deflect down');
+        return { ndx : odx /* 0.8 */, ndy : -0.5 * ody /* + .2 * odx */ };
+      } else if ((dy > 0) && (H || I)) {
+        var ndx = odx; // * 0.9;
+        var ndy = -0.5 * ody;
+        if (ndy > 0) ndy = -0.1;
+        // trace('HI deflect up: ' + odx + ', ' + ody + ' -> ' + ndx + ', ' + ndy);
+        return { ndx : ndx, ndy : ndy };
+      } else {
+        // !
+        // Do we want to check the case that A or G is set,
+        // and maybe still deflect?
+        return { ndx : odx, ndy : ody };
+      }
+    }
+  }
+
+  /*
+    Try to get out of being stuck by iteratively exploring the space around me.
+    Returns false if I can't quickly find a safe spot.
+   */
+  public function getOut() {
+    // If I wasn't blocked in my last position, just go back there.,
+    if (!blockedat(lastx, lasty)) {
+      if (NBOUNCES) trace('last out');
+      moveTowards2D(lastx, lasty, gamex, gamey);
+      return;
+    }
+
+    // Probably best to start opposite our motion vector.
+    var degs : Number = 0;
+    var r : Number = 0.5;
+
+    // trace('getting out');
+
+    do {
+
+      for (var degs = 0; degs < 360; degs++) {
+        var sint = Math.sin(degs * 0.0174532925);
+        var cost = Math.cos(degs * 0.0174532925);
+        var vx = cost * r;
+        var vy = sint * r;
+        
+        if (!blockedat(gamex + vx, gamey + vy)) {
+          moveTowards2D(gamex + vx, gamey + vy, gamex, gamey);
+          // trace('gotout ' + vx + ' ' + vy + ' @' + degs + ' x ' + r);
+          // dx = vx * .5;
+          // dy = vy * .5;
+          return true;
+        } else {
+          // trace('still blocked with degs: ' + degs + ' and r: ' + r);
+        }
+      }
+      // degs += 37;
+      r ++; // = maxwarp / 12; // ((360 / 17) * 3);
+    } while (r < maxwarp);
+    trace('so stuck!!');
+    return false;
+  }
+
   public function blockedx(newx) {
-    return _root.background.hit(_root.viewport.placex(newx), this._y);
+    return blockedat(newx, this.gamey);
   }
 
   public function blockedy(newy) {
-    return _root.background.hit(this._x, _root.viewport.placey(newy));
+    return blockedat(this.gamex, newy);
+  }
+
+  public function blockedat(newx, newy) {
+    // Could also check other solid obstacles.
+    return _root.background.hit(newx, newy);
   }
 
   public function onEnterFrame() {
+
+
 
     if (volume < 100) {
       volume += 5;
       gamemusic.setVolume(volume);
     }
 
+    // Did I crash into the floor?
+    // If so, try to get out.
+
+      // trace('collide with floor');
+      // trace(' ');
+      // die();
+    // XXX probably don't need this outside test,
+    // but there are some corner math conditions, perhaps
+    if (blockedat(gamex, gamey)) {
+      if (NBOUNCES > 0) trace('in some shit');
+
+      if (!getOut()) {
+        trace(' * stuck * ');
+        die();
+      }
+    }
+
     // Only physical quantities affect physical position.
-    
+    /*    
     var oy = move1DClip(gamey, dy, blockedy);
     gamey = oy.pos;
     dy = oy.dpos;
-
-    _root.viewport.place(this);
 
     // Now x:
     var ox = move1DClip(gamex, dx, blockedx);
     gamex = ox.pos;
     dx = ox.dpos;
+    */
+
+    // new getout tech is actually better than move1dclip?
+    if (blockedat(gamex + dx, gamey + dy)) {
+      if (NBOUNCES > 0) trace('was blockedat');
+
+      moveTowards2D(gamex, gamey, gamex + dx, gamey + dy);
+
+      // reflect in current position, updating dx and dy.
+      doBounce();
+
+    } else { 
+      if (NBOUNCES > 0) trace('wasnot blocked');
+      gamex += dx;
+      gamey += dy;
+    }
+    //    this.gamex += dx;
+    //    this.gamey += dy;
+
+    lastx = gamex;
+    lasty = gamey;
 
     /*
     this.gamex += dx;
@@ -248,18 +513,15 @@ class Airplane extends Positionable {
     /* XXX all game worlds should be enclosed
     if (this.gamey < -3000 || altitude <= -1500 ||
         this.gamex < -3000 || this.gamex > 3660) {
-      die();
+        die();
     }
     */
 
     // trace(this.clip._x);
-
-    // Did I crash into the floor?
-    if (_root.background.hit(this._x, this._y)) {
-      // trace('collide with floor');
-      // trace(' ');
-      die();
+    if (NBOUNCES > 0) {
+      trace('now dx dy are ' + dx + ' ' + dy);
     }
+
   }
 
   public function die() {

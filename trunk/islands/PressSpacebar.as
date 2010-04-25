@@ -35,6 +35,8 @@ class PressSpacebar extends MovieClip {
       var startframe = 'level1';      
       _root.attachMovie("altimeter", "altimeter", 20000, {_x : 660, _y : 12});
       _root.attachMovie("airplane", "airplane", 1, {_x:50, _y:150});
+      _root.viewport.place(_root.airplane);
+      _root.viewport.place(_root.background);
 
       _root.gotoAndStop('firstlevel');
       break;
