@@ -37,7 +37,7 @@ class PressSpacebar extends MovieClip {
       _root.viewport.place(_root.airplane);
       _root.viewport.place(_root.background);
 
-      _root.gotoAndStop('secondlevel');
+      _root.gotoAndStop('firstlevel');
       break;
     }
   }

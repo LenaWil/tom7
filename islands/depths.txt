@@ -1,4 +1,5 @@
 
+90000 - locator
 
 80000 - altimeter
 
