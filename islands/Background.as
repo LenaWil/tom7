@@ -53,7 +53,7 @@ class Background extends Positionable {
     // Basically just care about screen coordinates, assuming
     // everything is up to date.
     _root.viewport.place(this);
-    return this.clip.hitTest(x, y, true);
+    return this.clip.hitTest(_root.viewport.placex(x), _root.viewport.placey(y), true);
   }
 
 }
