@@ -1,9 +1,13 @@
 
 90000 - locator
 
+80002 - velometer
+80001 - angleometer
 80000 - altimeter
 
 1000 - airplane
+
+500-700 - decorations
 
 100 - parallax and game background
 
