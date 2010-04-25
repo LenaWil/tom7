@@ -61,6 +61,17 @@ class Viewport {
     var newx = (gox * .3 + curx * .7); // 2;
     var newy = (goy * .3 + cury * .7); // 2;
 
+    if (newx < _root.background.MINX)
+      newx = _root.background.MINX;
+    else if (newx + width > _root.background.MAXX)
+      newx = _root.background.MAXX - width;
+
+    if (newy < _root.background.MINY)
+      newy = _root.background.MINY;
+    else if (newy + height > _root.background.MAXY)
+      newy = _root.background.MAXY - height;
+
+
     gamex = newx;
     gamey = newy;
     

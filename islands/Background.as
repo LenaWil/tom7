@@ -1,9 +1,14 @@
-// Should probably be special (do parallax)
 class Background extends Positionable {
 
   var parallax = [];
-  //  var fixed = [];
   var clip : MovieClip;
+  var island : MovieClip;
+
+  /* in game coordinates */
+  var MINX = -4400;
+  var MAXX = 5200;
+  var MINY = -2000;
+  var MAXY = 2600;
 
   public function onLoad() {
     this.setdepth(100);
@@ -14,16 +19,13 @@ class Background extends Positionable {
     for (var o in this) {
       trace(o);
       if (o.indexOf('parallax') == 0) {
-        // XXX get from name
+        // XXX get depth from name
         parallax.push({ d : i ++, mc : this[o]});
-        //        this[o]._alpha = 10;
-      } /* else if (o.indexOf('fixed') == 0) {
-        fixed.push({ x : this[o]._x, y : this[o]._y, mc : this[o]});
-        } */
+      }
     }
+
   }
 
-  // NO : // Compute parallax in terms of real _x values.  
   public function onEnterFrame() {
     var cx = this._width / 2;
     var cy = this._height / 2;
@@ -38,22 +40,25 @@ class Background extends Positionable {
 
       mc._x = pctoffx * (parallax[i].d * .05) * this._width;
       mc._y = pctoffy * (parallax[i].d * .05) * this._height;
-      // trace(mc + ' ' + pctoffx + ' ' + pctoffy + ' ## ' + mc._x + ' ' + mc._y);
     }
-
-    /*
-    for (var i = 0; i < fixed.length; i++) {
-      var f = fixed[i];
-      _root.viewport.unplace(this, f, 0, 0);
-    }
-    */
   }
 
   public function hit(x : Number, y : Number /* mc : MovieClip */) {
+    //    if (x < MINX || x > MAXX || y < MINY || y > MAXY) return true;
     // Basically just care about screen coordinates, assuming
     // everything is up to date.
     _root.viewport.place(this);
     return this.clip.hitTest(_root.viewport.placex(x), _root.viewport.placey(y), true);
+  }
+
+  public function hitland(x : Number, y : Number) {
+    _root.viewport.place(this);
+    return this.island.hitTest(_root.viewport.placex(x), _root.viewport.placey(y), true);
+  }
+
+  public function hitpart(part : MovieClip, x : Number, y : Number) {
+    _root.viewport.place(this);
+    return part.hitTest(_root.viewport.placex(x), _root.viewport.placey(y), true);
   }
 
 }

@@ -40,6 +40,9 @@ class Preloader extends MovieClip {
                         {_x:550 / 2, _y:400 / 2});
       */
 
+      _root.attachMovie("messagestripe", "messagestripe", 49999,
+			{_x: -6, _y: 105});
+
       _root.viewport = new Viewport();
 
       // Usually, nosignal.
