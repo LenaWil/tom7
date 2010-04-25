@@ -303,20 +303,29 @@ class Airplane extends Positionable {
       // depending on dy.
       if ((ody <= 0 || (ody < DEFLECTMIN && I)) && !C) {
         // trace('deflect up')
-        return { ndx : odx * 0.8, ndy : 0.5 * ody - .2 * odx };
+        var ndx = odx; // * 0.9;
+        var ndy = -0.5 * ody;
+        if (ndy > 0) ndy = -0.1;
+        return { ndx : ndx, ndy : ndy };
       } else if ((ody >= 0 || (ody > -DEFLECTMIN && C)) && !I) {
         //        trace('deflect down');
-        return { ndx : odx * 0.8, ndy : 0.5 * ody + .2 * odx };
+        var ndx = odx; // * 0.9;
+        var ndy = -0.5 * ody;
+        if (ndy < 0) ndy = 0.1;
+        return { ndx : ndx, ndy : ndy };
       } else {
-        // Must reflect x. Y can change the same because it's
+        // Must reflect dx. dy can stay the same because it's
         // a flat wall.
-        return { ndx : -odx, ndy : ody }
+        return { ndx : -0.5 * odx, ndy : ody }
       }
     } else {
       // If it's actually open, then at worst a deflection.
       if ((dy < 0) && (B || C)) {
         // trace('BC deflect down');
-        return { ndx : odx /* 0.8 */, ndy : -0.5 * ody /* + .2 * odx */ };
+        var ndx = odx; // * 0.9;
+        var ndy = -0.5 * ody;
+        if (ndy < 0) ndy = 0.1;
+        return { ndx : ndx, ndy : ndy };
       } else if ((dy > 0) && (H || I)) {
         var ndx = odx; // * 0.9;
         var ndy = -0.5 * ody;
@@ -324,7 +333,7 @@ class Airplane extends Positionable {
         // trace('HI deflect up: ' + odx + ', ' + ody + ' -> ' + ndx + ', ' + ndy);
         return { ndx : ndx, ndy : ndy };
       } else {
-        // !
+        // Appears to be no obstacles!
         // Do we want to check the case that A or G is set,
         // and maybe still deflect?
         return { ndx : odx, ndy : ody };
@@ -516,6 +525,22 @@ class Airplane extends Positionable {
         die();
     }
     */
+
+    var showmsg = false;
+    for (var o in _root.deaths) {
+      if (_root.background.hitpart(_root.deaths[o], gamex, gamey)) {
+        _root.messagestripe.setmessage('you keep dying');
+        showmsg = true;
+      }
+    }
+
+    if (_root.background.hitland(gamex, gamey)) {
+      _root.messagestripe.setmessage('Landing! Press ? to explode');
+      showmsg = true;
+    }
+    
+    _root.messagestripe._visible = showmsg;
+
 
     // trace(this.clip._x);
     if (NBOUNCES > 0) {
