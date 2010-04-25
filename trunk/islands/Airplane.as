@@ -9,6 +9,10 @@ class Airplane extends Positionable {
   var blockEsc = false;
   var escKey = 'esc';
 
+  // Number of frames we've been offscreen,
+  // or undefined if we're not offscreen.
+  var offscreenframes = undefined;
+
   // Objects that don't need anything done except
   // to be removed if we leave the scene.
   // (in root now) var deleteme = [];
@@ -32,6 +36,8 @@ class Airplane extends Positionable {
 
   var maxwarp : Number;
 
+  var locator;
+
   public function onLoad() {
 
     gamemusic = new Sound(this);
@@ -40,6 +46,10 @@ class Airplane extends Positionable {
     volume = 0;
     gamemusic.start(0, 99999);
 
+    locator = _root.attachMovie("locator", "locator", 90000, {_x : 250, _y : 250});
+    // locator._visible = false;
+    locator.stop();
+    
     Key.addListener(this);
     this.setdepth(1000);
 
@@ -516,6 +526,51 @@ class Airplane extends Positionable {
 
     _root.viewport.place(this);
     _root.viewport.place(_root.background);
+
+    var xpct = 0.5, ypct = 0.5;
+    var offscreen = false;
+    if (this._x < 0) {
+      xpct = 0;
+      offscreen = true;
+    } else if (this._x > _root.viewport.width) {
+      xpct = 1.0;
+      offscreen = true;
+    }
+
+    if (this._y < 0) {
+      ypct = 0;
+      offscreen = true;
+    } else if (this._y > _root.viewport.height) {
+      ypct = 1;
+      offscreen = true;
+    }
+
+    if (offscreen) {
+      if (offscreenframes == undefined) offscreenframes = 0;
+      offscreenframes++;
+
+      var nlx = xpct * _root.viewport.width * .8 + .1 * _root.viewport.width;
+      var nly = ypct * _root.viewport.height * .8 + .1 * _root.viewport.height;
+
+      locator._x = locator._x * .9 + nlx * .1;
+      locator._y = locator._y * .9 + nly * .1;
+
+      locator._visible = true;
+      locator.pointAt(this);
+
+      var step = Math.round(offscreenframes / 16);
+      // trace(step);
+
+      if (step > 13) {
+        die();
+      } else {
+        locator.gotoAndStop(step);
+      }
+
+    } else {
+      offscreenframes = undefined;
+      locator._visible = false;
+    }
 
     var altitude = 1500 - this.gamey;
     _root.altimeter.setAltitude(altitude);

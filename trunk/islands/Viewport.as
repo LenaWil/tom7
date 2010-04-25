@@ -68,16 +68,16 @@ class Viewport {
           _root.bottomborder + ' ');
     */
 
-    if (newx < _root.leftborder)
+    if (newx < _root.leftborder) {
       newx = _root.leftborder;
-    else if (newx + width > _root.rightborder)
+    } else if (newx + width > _root.rightborder) {
       newx = _root.rightborder - width;
+    }
 
     if (newy < _root.topborder)
       newy = _root.topborder;
     else if (newy + height > _root.bottomborder)
       newy = _root.bottomborder - height;
-
 
     gamex = newx;
     gamey = newy;
