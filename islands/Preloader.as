@@ -45,6 +45,8 @@ class Preloader extends MovieClip {
 
       _root.viewport = new Viewport();
       _root.global = new Global();
+      // _root.music = new Music();
+      _root.attachMovie("music", "music", 5);
 
       // Usually, nosignal.
       // _root.gotoAndStop(startframe);
