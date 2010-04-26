@@ -433,8 +433,16 @@ class Airplane extends Positionable {
     return _root.background.hit(newx, newy);
   }
 
+  var homeframe : Number = 0;
+
   public function onEnterFrame() {
     _root.music.tick();
+
+    if (homeframe != _root.currentframe) {
+      reset();
+      homeframe = _root.currentframe;
+      return;
+    }
 
     if (deadframes > 0) {
       deadframes--;
@@ -627,7 +635,8 @@ class Airplane extends Positionable {
         _root.messagestripe.displayfor(50);
 
         // XXX no!
-        die('Is lands!');
+        // die('Is lands!');
+        _root.global.nextLevel();
       } else {
         _root.messagestripe.setmessage('Landing!');
         _root.messagestripe.setnumbers(125 - landingframes);

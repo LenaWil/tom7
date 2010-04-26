@@ -49,6 +49,11 @@ class Global {
     currentlevelindex %= thelevels.length;
 
     _root.background.destroy();
+    for (var o in _root.deleteme) {
+      _root.deleteme[o].swapDepths(0);
+      _root.deleteme[o].removeMovieClip();
+    }
+    _root.deleteme = [];
 
     var lev = thelevels[currentlevelindex];
     var mus;
