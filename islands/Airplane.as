@@ -12,12 +12,13 @@ class Airplane extends Positionable {
   // Number of frames we've been offscreen,
   // or undefined if we're not offscreen.
   var offscreenframes = undefined;
+  // number of frames I've been landing
+  var landingframes = 0;
 
   // Objects that don't need anything done except
   // to be removed if we leave the scene.
   // (in root now) var deleteme = [];
 
-  var gamemusic : Sound;
   var volume : Number = 0;
 
   // Clip region for plane itself (death)
@@ -31,11 +32,15 @@ class Airplane extends Positionable {
   var lastx : Number = 0;
   var lasty : Number = 0;
 
+  var deathmsg : String = '';
+
   var pi : Number = 3.141592653589;
 
   var maxwarp : Number;
 
   var locator;
+
+  var deadframes : Number = 0;
 
   public function onLoad() {
 
@@ -64,13 +69,17 @@ class Airplane extends Positionable {
 
     offscreenframes = undefined;
 
+    _root.messagestripe.setnumbers('');
+    _root.messagestripe.setmessage('');
+    _root.messagestripe._visible = false;
+
     maxwarp = Math.max(_width, _height);
     this._visible = true;
   }
 
   public function onKeyDown() {
     var k = Key.getCode();
-    trace(k);
+    // trace(k);
     switch(k) {
     case 16: // leftshift;
       // _root.music.playdeathsound();
@@ -425,9 +434,19 @@ class Airplane extends Positionable {
   public function onEnterFrame() {
     _root.music.tick();
 
-    if (volume < 100) {
-      volume += 5;
-      gamemusic.setVolume(volume);
+    if (deadframes > 0) {
+      deadframes--;
+      if (deadframes == 0) {
+        // Last one.
+        reset();
+        _root.messagestripe._visible = false;
+        return;
+      } else {
+        _root.messagestripe.setmessage(deathmsg);
+        _root.messagestripe.displayfor(3);
+        _root.messagestripe.setnumbers(deadframes);
+        return;
+      }
     }
 
     // Did I crash into the floor?
@@ -575,7 +594,7 @@ class Airplane extends Positionable {
       // trace(step);
 
       if (step > 13) {
-        die();
+        die('where\'d you go?');
       } else {
         locator.gotoAndStop(step);
       }
@@ -594,15 +613,29 @@ class Airplane extends Positionable {
     var showmsg = false;
     for (var o in _root.deaths) {
       if (_root.background.hitpart(_root.deaths[o], gamex, gamey)) {
-        _root.messagestripe.setmessage('you keep dying');
-        die();
-        showmsg = true;
+        // _root.messagestripe.setmessage('you keep dying');
+        die('isn\'t lands!');
       }
     }
 
     if (_root.background.hitland(gamex, gamey)) {
-      _root.messagestripe.setmessage('Landing! Press ? to explode');
-      showmsg = true;
+      landingframes++;
+      if (landingframes > 125) {
+        _root.messagestripe.setmessage('Is lands!');
+        _root.messagestripe.displayfor(50);
+        die('Is lands!');
+      } else {
+        _root.messagestripe.setmessage('Landing!');
+        _root.messagestripe.setnumbers(125 - landingframes);
+        _root.messagestripe.displayfor(35);
+      }
+    } else {
+      if (landingframes > 0) {
+        _root.messagestripe.setmessage('Bye-bye!');
+        _root.messagestripe.setnumbers('');
+        _root.messagestripe.displayfor(35);
+      } 
+      landingframes = 0;
     }
 
 
@@ -613,9 +646,6 @@ class Airplane extends Positionable {
       showmsg = true;
     }
     */
-    
-    _root.messagestripe._visible = showmsg;
-
 
     // trace(this.clip._x);
     if (NBOUNCES > 0) {
@@ -625,30 +655,39 @@ class Airplane extends Positionable {
   }
 
   var LASTPART = 6;
-  public function die() {
-    _root.music.playdeathsound();
-    // Become detritus.
-    for (var i = 1; i <= LASTPART; i++) {
-      var idx = _root.global.decorationidx();
-      if (idx != undefined)
-        _root.attachMovie("part" + i,
-                          "part" + idx,
-                          _root.global.FIRSTDECORATION + idx,
-                          { idx: idx,
-                              gamex: this.gamex,
-                              gamey: this.gamey,
-                              theta: this.theta,
-                              dx: this.dx,
-                              dy: this.dy });
+  public function die(msg) {
+    if (msg == undefined) {
+      deathmsg = 'isn\'t lands!';
+    } else {
+      deathmsg = msg;
     }
 
-    reset();
+    // not if already dying!
+    if (deadframes == 0) {
+      this._visible = false;
+      _root.music.playdeathsound();
+      // Become detritus.
+      for (var i = 1; i <= LASTPART; i++) {
+        var idx = _root.global.decorationidx();
+        if (idx != undefined)
+          _root.attachMovie("part" + i,
+                            "part" + idx,
+                            _root.global.FIRSTDECORATION + idx,
+                            { idx: idx,
+                                gamex: this.gamex,
+                                gamey: this.gamey,
+                                theta: this.theta,
+                                dx: this.dx,
+                                dy: this.dy });
+      }
+      deadframes = 25;
+    }
+
     /*
     for (var o in _root.deleteme) {
       _root.deleteme[o].removeMovieClip();
     }
 
-    gamemusic.stop();
     this.removeMovieClip();
     _root.background.removeMovieClip();
     _root.altimeter.removeMovieClip();
