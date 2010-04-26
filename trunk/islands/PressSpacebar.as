@@ -3,6 +3,9 @@ class PressSpacebar extends MovieClip {
   var titlemusic : Sound;
   var volume : Number = 0;
 
+  var planestarty : Number;
+  var plane : MovieClip;
+
   // XXX use music obj!
   public function onLoad() {
     titlemusic = new Sound(this);
@@ -12,13 +15,51 @@ class PressSpacebar extends MovieClip {
     titlemusic.start(0, 99999);
     Key.addListener(this);
     this._visible = false;
+    planestarty = _root.plane._y;
+    trace(planestarty);
   }
 
+  var MAXCLOUDS = 25;
+  var which : Number = 0;
+  var nclouds : Number = 0;
+  var frames : Number = 0;
   public function onEnterFrame() {
+    frames++;
     if (volume < 100) {
       volume++;
       titlemusic.setVolume(volume);
     }
+
+    // Add clouds
+    if (nclouds < MAXCLOUDS && Math.random() < 0.1) {
+      which = Math.round(Math.random() * 64) % 2;
+      // trace(which);
+
+      var idx = _root.global.decorationidx();
+      if (idx != undefined) {
+        nclouds++;
+        var depth = 50 + 50 * (idx / _root.global.MAXDECORATIONS);
+        var cloud =
+          _root.attachMovie("cloud" + (which + 1), "cloud" + idx, 
+                            _root.global.FIRSTDECORATION + idx, {
+                            par: this,
+                                depth: depth,
+                                idx: idx,
+                                _x: 900, 
+                                _y: Math.random() * 600});
+      }
+    }
+
+    // Move plane pleasantly
+    _root.plane._y = planestarty + 16 * Math.sin(frames / 80);
+    _root.plane._rotation = -8 * Math.sin(frames / 80);
+    // trace(frames + ' ' + _root.plane._y);
+  }
+
+  public function kill(mc: Cloud) {
+    _root.global.giveup(mc.idx);
+    nclouds--;
+    _root.removeMovieClip(mc);
   }
 
 
