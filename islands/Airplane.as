@@ -86,6 +86,10 @@ class Airplane extends Positionable {
       escKey = 'esc';
       if (!blockEsc) holdingEsc = true;
       break;
+    case 191: // ?
+      die();
+      break;
+
     case 32: // space
       /*
       crabs++;
@@ -603,11 +607,12 @@ class Airplane extends Positionable {
 
 
     // maybe a key for this?
+    /*
     if (!showmsg) {
       _root.messagestripe.setmessage('' + _root.music.position());
       showmsg = true;
     }
-
+    */
     
     _root.messagestripe._visible = showmsg;
 
@@ -619,8 +624,24 @@ class Airplane extends Positionable {
 
   }
 
+  var LASTPART = 6;
   public function die() {
     _root.music.playdeathsound();
+    // Become detritus.
+    for (var i = 1; i <= LASTPART; i++) {
+      var idx = _root.global.decorationidx();
+      if (idx != undefined)
+        _root.attachMovie("part" + i,
+                          "part" + idx,
+                          _root.global.FIRSTDECORATION + idx,
+                          { idx: idx,
+                              gamex: this.gamex,
+                              gamey: this.gamey,
+                              theta: this.theta,
+                              dx: this.dx,
+                              dy: this.dy });
+    }
+
     reset();
     /*
     for (var o in _root.deleteme) {
