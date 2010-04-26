@@ -96,7 +96,9 @@ class Airplane extends Positionable {
       if (!blockEsc) holdingEsc = true;
       break;
     case 191: // ?
-      die();
+      // die();
+      _root.global.nextLevel();
+      return;
       break;
 
     case 32: // space
@@ -623,6 +625,8 @@ class Airplane extends Positionable {
       if (landingframes > 125) {
         _root.messagestripe.setmessage('Is lands!');
         _root.messagestripe.displayfor(50);
+
+        // XXX no!
         die('Is lands!');
       } else {
         _root.messagestripe.setmessage('Landing!');

@@ -23,7 +23,7 @@ class Preloader extends MovieClip {
     // Maybe should have some lower bound on this so you
     // get to see the fun loading screen?!@?
     if (now < total) {
-      this._alpha = 80.0 * Math.sin(frames / 9) + 20.0;
+      // this._alpha = 80.0 * Math.sin(frames / 9) + 20.0;
     } else {
       /* necessary if we want to trap escape key, etc. */
       fscommand("trapallkeys", "true");

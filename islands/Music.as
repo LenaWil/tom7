@@ -22,6 +22,17 @@ class Music extends MovieClip {
     }
   };
 
+  var title = {
+  name : 'titlemp3',
+  death : function(ms) {
+      // XXXXX
+      if (ms < 13500)
+        return 'noisydeath1mp3';
+      else
+        return 'noisydeath2mp3';
+    }
+  };
+
   var current = undefined;
 
   var backgroundclip : MovieClip;
