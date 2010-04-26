@@ -4,8 +4,16 @@ class Background extends Positionable {
   var clip : MovieClip;
   var island : MovieClip;
 
+  public function destroy() {
+    this._visible = false;
+    this.swapDepths(0);
+    this.removeMovieClip();
+    _root.background = undefined;
+  }
+
   public function onLoad() {
     this.setdepth(100);
+    _root.background = this;
     this.gamex = 0;
     this.gamey = 0;
 

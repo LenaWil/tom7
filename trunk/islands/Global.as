@@ -37,4 +37,30 @@ class Global {
     decorations[i] = undefined;
   }
 
+  
+  // And some other random unrelated thing...
+  var thelevels = ['firstlevel', 'secondlevel', 'winlevel'];
+  var currentlevelindex : Number = undefined;
+  public function nextLevel() {
+    if (currentlevelindex == undefined)
+      currentlevelindex = 0;
+    else
+      currentlevelindex ++;
+    currentlevelindex %= thelevels.length;
+
+    _root.background.destroy();
+
+    var lev = thelevels[currentlevelindex];
+    var mus;
+    if (lev == 'firstlevel') {
+      mus = _root.music.bouncy;
+    } else if (lev == 'secondlevel') {
+      mus = _root.music.noisy;
+    } else {
+      mus = _root.music.title;
+    }
+
+    _root.music.setmusic(mus);
+    _root.gotoAndStop(lev);
+  }
 }
