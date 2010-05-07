@@ -15,6 +15,12 @@ struct
   structure SM = SplayMapFn(type ord_key = string
                             val compare = String.compare)
 
+  val rollbackto = Params.param "0"
+    (SOME("-rollbackto",
+          "If nonzero, act as though all revisions after this one do not " ^
+          "exist, when first loading the database."))
+    "rollbackto"
+
   type revision = IntInf.int
   val FIRST_REVISION : revision = 0
 
@@ -166,6 +172,44 @@ struct
            if cur = rev then head
            else findy (chunkstr ` etos head) revs
          end)
+
+  fun rollback revn =
+    let
+      (* Can't use map, because we need to totally remove keys whose
+         first revision postdates the rollback point. *)
+
+      val newdb = ref SM.empty : { head : Bytes.exp,
+                                   cur  : revision,
+                                   revs : (revision * plan) list } SM.map ref
+
+      fun onekey (key, value as { head : Bytes.exp,
+                                  cur  : revision,
+                                  revs : (revision * plan) list }) =
+        if cur <= revn
+        then newdb := SM.insert (!newdb, key, value)
+        else
+          let 
+            fun roll d ((cur, plan) :: rest) =
+              let val d = playback d plan
+              in
+                (* now at revision *)
+                if cur <= revn
+                then newdb := SM.insert (!newdb, key, 
+                                         { head =
+                                           Parse.parse (String.concat (Vector.foldr op:: nil d)),
+                                           cur = cur,
+                                           revs = rest })
+                else roll d rest
+              end
+              | roll _ _ = () (* no revisions at rollback point; don't insert. *)
+              
+          in
+            roll (chunkstr ` etos head) revs
+          end
+    in
+      SM.appi onekey (#1 (!db));
+      db := (!newdb, revn)
+    end
 
   fun history key =
     (case SM.find (#1 (!db), key) of
@@ -380,10 +424,17 @@ struct
                                           revs = rev (!revs), cur = cur });
           readkeys ()
         end
+
+      val rbt = Params.asint 1 rollbackto
     in
       readkeys ();
       TextIO.closeIn f;
       db := (!base, cur);
+
+      if rbt <> 0
+      then rollback (IntInf.fromInt rbt)
+      else ();
+
       changes := true
     end
     
