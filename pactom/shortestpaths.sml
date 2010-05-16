@@ -166,12 +166,12 @@ struct
                   write "\"/>\n"
               end
       in
-          write (PacTom.svgheader { x = 0, y = 0, 
-                                    width = Real.trunc (Bounds.width bounds), 
-                                    height = Real.trunc (Bounds.height bounds),
-                                    generator = "shortestpaths.sml" });
+          write (TextSVG.svgheader { x = 0, y = 0, 
+                                     width = Real.trunc (Bounds.width bounds), 
+                                     height = Real.trunc (Bounds.height bounds),
+                                     generator = "shortestpaths.sml" });
           Array.appi writebin color_bins;
-          write (PacTom.svgfooter ())
+          write (TextSVG.svgfooter ())
       end
 
   fun main () =

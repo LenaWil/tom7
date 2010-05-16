@@ -140,14 +140,14 @@ struct
 
       in
           (* XXX compute actual size *)
-          print (PacTom.svgheader { x = 0, y = 0, width = 264, height = 243,
-                                    generator = "elevsvg.sml" });
+          print (TextSVG.svgheader { x = 0, y = 0, width = 264, height = 243,
+                                     generator = "elevsvg.sml" });
 
           app printpolyline (rev (!paths));
           printxkey 0;
           printykey (Real.trunc (!elev_min - 10.0));
 
-          print (PacTom.svgfooter ())
+          print (TextSVG.svgfooter ())
       end
 
 end

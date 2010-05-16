@@ -36,6 +36,9 @@ group is
   ../sml-lib/files/xml/xml-sig.sml
   ../sml-lib/files/xml/xml.sml
 
+  ../sml-lib/files/svg/textsvg-sig.sml
+  ../sml-lib/files/svg/textsvg.sml
+
   ../sml-lib/util/growarray-sig.sml
   ../sml-lib/util/growarray.sml
   ../sml-lib/algo/heap-sig.sml
