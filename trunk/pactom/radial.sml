@@ -60,12 +60,12 @@ struct
               end
       in
           (* XXX compute actual size *)
-          print (PacTom.svgheader { x = 0, y = 0, width = 264, height = 243,
-                                    generator = "radial.sml" });
+          print (TextSVG.svgheader { x = 0, y = 0, width = 264, height = 243,
+                                     generator = "radial.sml" });
 
           Vector.app (printpolyline o vector_tolist) (PacTom.paths pt);
 
-          print (PacTom.svgfooter ())
+          print (TextSVG.svgfooter ())
       end
 
 end

@@ -22,7 +22,7 @@ struct
               raise e
           end
 
-  val logo = PacTom.loadgraphic "interstate-logo.svg"   
+  val logo = TextSVG.loadgraphic "interstate-logo.svg"   
 
   val () = msg ("There are " ^ Int.toString (Vector.length (PacTom.paths pt)) ^ 
                 " paths\n" ^
@@ -190,8 +190,8 @@ struct
           val padding = logoheight / 8.0
           val logox = padding
           val logoy = real height - logoheight - padding
-          val logoscale = logoheight / #2 (PacTom.graphicsize logo) 
-          val logowidth = logoscale * #1 (PacTom.graphicsize logo)
+          val logoscale = logoheight / #2 (TextSVG.graphicsize logo) 
+          val logowidth = logoscale * #1 (TextSVG.graphicsize logo)
 
           val textx = logowidth + padding * 2.0
           val fontsize = 28.0 (* XXX compute it! *)
@@ -205,10 +205,10 @@ struct
 
       in
           msg "Output SVG...";
-          print (PacTom.svgheader { x = 0, y = 0, 
-                                    width = width, 
-                                    height = height,
-                                    generator = "tosvg.sml" });
+          print (TextSVG.svgheader { x = 0, y = 0, 
+                                     width = width, 
+                                     height = height,
+                                     generator = "tosvg.sml" });
 
           (* a background *)
           print ("<rect x=\"-10\" y=\"-10\" width=\"" ^
@@ -224,18 +224,18 @@ struct
           Vector.app printpolyline paths;
 (*          Vector.app printoverlay (PacTom.overlays pt); *)
 
-          print (PacTom.placegraphic { graphic = logo, x = logox, y = logoy,
-                                       scale = SOME logoscale, rotate = NONE });
-          print (PacTom.svgtext { x = textx, y = firstliney, face = "Franklin Gothic Medium",
-                                  size = fontsize, text = [("#FFFF9E", "Pac Tom Project")] });
+          print (TextSVG.placegraphic { graphic = logo, x = logox, y = logoy,
+                                        scale = SOME logoscale, rotate = NONE });
+          print (TextSVG.svgtext { x = textx, y = firstliney, face = "Franklin Gothic Medium",
+                                   size = fontsize, text = [("#FFFF9E", "Pac Tom Project")] });
 
-          print (PacTom.svgtext { x = textx, y = secondliney, face = "Franklin Gothic Medium",
-                                  size = fontsize, 
-                                  text = [("#CCCCCC", datestring),
-                                          ("#666666", " - "),
-                                          ("#6297C9", "http://pac.tom7.org")] });
+          print (TextSVG.svgtext { x = textx, y = secondliney, face = "Franklin Gothic Medium",
+                                   size = fontsize, 
+                                   text = [("#CCCCCC", datestring),
+                                           ("#666666", " - "),
+                                           ("#6297C9", "http://pac.tom7.org")] });
 
-          print (PacTom.svgfooter ())
+          print (TextSVG.svgfooter ())
       end
 
 end
