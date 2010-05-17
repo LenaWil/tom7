@@ -1,0 +1,39 @@
+
+group is
+
+#if (defined(SMLNJ_VERSION))
+ $/basis.cm
+ (* util/port-nj.sml *)
+#else
+ (* assume we are using mlton then *)
+ (* util/port-mlton.sml *)
+#endif
+
+  ../sml-lib/util/stringutil-sig.sml
+  ../sml-lib/util/stringutil.sml
+  ../sml-lib/util/listutil-sig.sml
+  ../sml-lib/util/listutil.sml
+
+  ../sml-lib/util/growarray-sig.sml
+  ../sml-lib/util/growarray.sml
+
+  ../sml-lib/misc/params-sig.sml
+  ../sml-lib/misc/params.sml
+
+  ../sml-lib/geom/bounds-sig.sml
+  ../sml-lib/geom/bounds.sml
+
+  ../sml-lib/files/reader-sig.sml
+  ../sml-lib/files/reader.sml
+
+  ../sml-lib/files/xml/fxlib.cm
+  ../sml-lib/files/xml/xml-sig.sml
+  ../sml-lib/files/xml/xml.sml
+
+  ../sml-lib/files/svg/textsvg-sig.sml
+  ../sml-lib/files/svg/textsvg.sml
+
+  ../sml-lib/files/embroidery/pes-sig.sml
+  ../sml-lib/files/embroidery/pes.sml
+
+  pes-tosvg.sml
