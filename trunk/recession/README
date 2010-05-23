@@ -1,0 +1,9 @@
+       Recession                 23 May 2010
+
+Recession is a simple RSS aggregator. You configure it with some RSS
+URLs, and it periodically fetches them and merges the results with
+a mysql database.
+
+When I say simple I mean simple for me. This requires mlton, sml-lib,
+sdlml, and mysql to install. Probably there is some linux package you
+can just install that works better for normal people.
