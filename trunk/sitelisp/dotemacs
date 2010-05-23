@@ -254,6 +254,15 @@
     (insert "\"")
     ))
 
+(defun tablature ()
+  "Inserts a blank ASCII guitar tablature staff."
+  (interactive "*")
+  (insert "E ------------------------------------------------------------\n"
+	  "a ------------------------------------------------------------\n"
+	  "d ------------------------------------------------------------\n"
+	  "g ------------------------------------------------------------\n"
+	  "b ------------------------------------------------------------\n"
+	  "e ------------------------------------------------------------\n"))
 
 (setq inhibit-startup-echo-area-message "Asterisk")
 (setq inhibit-startup-message t)
@@ -347,6 +356,9 @@
 (add-hook 'sml-mode-hook 'save-without-tabs)
 ;; XXX move to aphasia mode
 (add-hook 'aphasia-mode-hook 'turn-on-font-lock)
+
+(add-hook 'c-mode-hook 'save-without-tabs)
+(add-hook 'cc-mode-hook 'save-without-tabs)
 
 (put 'downcase-region 'disabled nil)
 
@@ -498,7 +510,7 @@
 	  '(lambda ()
 	     (font-lock-add-keywords
 	      nil
-	      '(("\\(unimplemented\\|PERF\\|FIXME!*\\|XXX*\\|\\<[H][E][R][E]\\>\\)" 1 
+	      '(("\\(unimplemented\\|TODO\\|PERF\\|FIXME!*\\|XXX*\\|\\<[H][E][R][E]\\>\\)" 1 
 		 font-lock-warning-face t)))
 	     (set-face-foreground (quote font-lock-warning-face)
 				  "red")
