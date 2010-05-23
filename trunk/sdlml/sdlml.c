@@ -60,7 +60,7 @@ int ml_platform() {
 #elif defined(LINUX)
   return 3;
 #else
-#  error "You must define (-D) WIN32, OSX, or LINUX when compiling sdl.o. This is used to determine the platform."
+#  error "You must define (-D) WIN32, OSX, or LINUX when compiling sdlml.o. This is used to determine the platform."
     return -1;
 #endif
 }

@@ -4,10 +4,10 @@ default : test.exe
 
 
 sdlml.o : sdlml.c
-	gcc -O `sdl-config --cflags` -c sdlml.c -o sdlml.o
+	gcc -DWIN32 -O `sdl-config --cflags` -c sdlml.c -o sdlml.o
 
 sdlnet.o : sdlnet.c
-	gcc -O `sdl-config --cflags` -c sdlnet.c -o sdlnet.o
+	gcc -DWIN32 -O `sdl-config --cflags` -c sdlnet.c -o sdlnet.o
 
 # not --cflags, that'll redefine main!
 win32main.o : win32main.c
