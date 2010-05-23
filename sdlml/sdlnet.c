@@ -43,7 +43,10 @@ int ml_resolvehost(char *name, Uint32 *addr) {
 #ifdef WIN32
     // ip.host = ml_htonl(ip.host);
 #else
-# error sorry
+    // XXX Apparently I gave up on other platforms,
+    // but there probably is something we're supposed
+    // to do here. Find and fix! -tom7  23 May 2010
+    // # error sorry
 #endif
     printf("resolve: %d.%d.%d.%d\n",
 	   (ip.host >> 24) & 255,
