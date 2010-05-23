@@ -1221,7 +1221,9 @@ struct
   local 
       val init = _import "ml_init" : unit -> int ;
       val plat = _import "ml_platform" : unit -> int ;
+      val cmode = _import "ml_consolemode" : unit -> int ;
   in
+
     val () = 
       case init () of
         0 => raise SDL "could not initialize"
@@ -1234,6 +1236,9 @@ struct
         | 3 => LINUX
         | ~1 => raise SDL "Platform was not defined in makefile?"
         | _ => raise SDL "sdl.sml is out of sync with sdl.c"
+
+    val console_mode = cmode () <> 0
+
   end
 
   val getticks = _import "SDL_GetTicks" : unit -> Word32.word ;

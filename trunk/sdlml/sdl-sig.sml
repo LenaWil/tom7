@@ -303,6 +303,9 @@ sig
   datatype platform = WIN32 | LINUX | OSX
   val platform : platform
 
+  (* True if we are in console mode (unable to access screen, sound, etc.) *)
+  val console_mode : bool
+
   (* R, G, B, A *)
   val color : Word8.word * Word8.word * Word8.word * Word8.word -> color
   val components : color -> Word8.word * Word8.word * Word8.word * Word8.word

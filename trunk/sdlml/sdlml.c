@@ -1,14 +1,21 @@
 /* Hooks and glue for using SDL through SML. Portable to win32, linux, osx.
    This is incomplete and a little messy. But we try to make it better.
 
-    - Tom                   29 Jan 2009
+    - Tom                   23 May 2010
 */
 #include <SDL.h>
 
-/* by default, use display format. but
-   when in console mode (for instance)
-   there is no display!! */
-#ifndef USE_DISPLAY_FORMAT
+#ifdef USE_DISPLAY_FORMAT
+# if USE_DISPLAY_FORMAT == 0
+#  error "sdlml.c no longer supports explicitly setting USE_DISPLAY_FORMAT. If you want console mode, use -DCONSOLE_MODE."
+# endif
+#endif
+
+#ifdef CONSOLE_MODE
+// Use the display format for surfaces, unless
+// in console mode, where there is no display!
+# define USE_DISPLAY_FORMAT 0
+#else
 # define USE_DISPLAY_FORMAT 1
 #endif
 
@@ -35,13 +42,24 @@
 #endif
 
 int ml_init() {
-  if (SDL_Init (SDL_INIT_VIDEO | 
-                SDL_INIT_TIMER | 
-		SDL_INIT_JOYSTICK |
-		SDL_INIT_AUDIO |
-		/* for debugging */
-		SDL_INIT_NOPARACHUTE |
-		SDL_INIT_AUDIO) < 0) {
+#ifdef CONSOLE_MODE
+
+  if (SDL_Init(SDL_INIT_NOPARACHUTE) < 0) {
+    printf("Unable to initialize SDL. (%s)\n", SDL_GetError());
+    return 0;
+  } else {
+    return 1;
+  }
+
+#else
+
+  if (SDL_Init(SDL_INIT_VIDEO | 
+	       SDL_INIT_TIMER | 
+	       SDL_INIT_JOYSTICK |
+	       SDL_INIT_AUDIO |
+	       /* for debugging */
+	       SDL_INIT_NOPARACHUTE |
+	       SDL_INIT_AUDIO) < 0) {
 
     printf("Unable to initialize SDL. (%s)\n", SDL_GetError());
     
@@ -50,6 +68,8 @@ int ml_init() {
     SDL_EnableUNICODE(1);
     return 1;
   }
+
+#endif
 }
 
 int ml_platform() {
@@ -61,7 +81,15 @@ int ml_platform() {
   return 3;
 #else
 #  error "You must define (-D) WIN32, OSX, or LINUX when compiling sdlml.o. This is used to determine the platform."
-    return -1;
+  return -1;
+#endif
+}
+
+int ml_consolemode() {
+#ifdef CONSOLE_MODE
+  return 1;
+#else
+  return 0;
 #endif
 }
 
@@ -270,9 +298,9 @@ int ml_event_mmotion_yrel(SDL_MouseMotionEvent* e) {
   return e->yrel;
 }
 
-int ml_event_mbutton_x(SDL_MouseButtonEvent * e) {return e->x;}
-int ml_event_mbutton_y(SDL_MouseButtonEvent * e) {return e->y;}
-int ml_event_mbutton_button(SDL_MouseButtonEvent * e) {return e->button;}
+int ml_event_mbutton_x(SDL_MouseButtonEvent * e) { return e->x; }
+int ml_event_mbutton_y(SDL_MouseButtonEvent * e) { return e->y; }
+int ml_event_mbutton_button(SDL_MouseButtonEvent * e) { return e->button; }
 
 
 /* XXX should lock before calling (for certain modes)... */
@@ -349,7 +377,7 @@ void ml_getpixela(SDL_Surface *surf, int x, int y,
   default:
     printf("want 32bpp\n");
     abort();
-    }
+  }
 }
 
 void ml_fillrect(SDL_Surface *dst, int x, int y, int w, int h, int r, int g, int b) {
@@ -387,7 +415,7 @@ SDL_Surface * ml_alphadim(SDL_Surface * src) {
 
   int y, x;
 
-  for(y = 0; y < hh; y ++)
+  for(y = 0; y < hh; y ++) {
     for(x = 0; x < ww; x ++) {
       Uint32 color = *((Uint32 *)src->pixels + y*src->pitch/4 + x);
       
@@ -401,6 +429,7 @@ SDL_Surface * ml_alphadim(SDL_Surface * src) {
       *((Uint32 *)ret->pixels + y*ret->pitch/4 + x) = color;
 
     }
+  }
 
   sulock(src);
   sulock(ret);
