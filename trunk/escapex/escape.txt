@@ -459,9 +459,11 @@ Thanks:
    Heather Hendrickson - Author of several levels, provider of support
    Mike Murphy - Author of several classic Escape levels
    Michael Donohue - Ran Coverity to find at least one bug worth fixing
+   Cortney Higgins - Mac laptop for testing, provider of support
+   Martina Marugg - Help and patience debugging the OSX version
 
    And of course all of the other authors of levels included in the
-   game.
+   game, and players that leave constructive comments and ratings.
 
 
 Enjoy Escape and thanks for playing!
