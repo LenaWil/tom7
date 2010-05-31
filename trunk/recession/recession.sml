@@ -3,16 +3,55 @@ structure Recession =
 struct
 
   exception Recession of string
+  datatype entry = datatype MySQL.entry
 
+(*
   val configfile = Params.param "" (* XXX default location? *)
     (SOME("-config",
           "The file containing recession configuration.")) "configfile"
+*)
 
   val aphconfig = Params.param "/var/www/aphid.conf"
     (SOME("-aphconfig",
           "The file containing Aphasia configuration.")) "aphconfig"
 
   (* XXX timeouts, etc. *)
+
+  fun getconfigs mysql =
+    let
+      (* TODO: Allow user to configure which feeds are updated.
+         Allow database to mark some as disabled. *)
+      val res = case MySQL.query mysql
+          ("select id, url, lastpost, algorithm, logof from " ^
+           "rss.subscription") of
+          NONE => raise Recession ("Failed to get subscriptions: " ^ 
+                                   getOpt (MySQL.error mysql, "??"))
+        | SOME r => r
+
+      fun row [SOME (Int id), SOME (String url), SOME (Int lastpost),
+               SOME (String algorithm), SOME (Int logof)] =
+          { id = id, url = url, lastpost = lastpost, 
+            algorithm = algorithm, logof = logof }
+        | row r = raise Recession ("Unexpected row type: " ^ 
+                                   MySQL.rowtos r)
+
+      val configs = map row (MySQL.readall mysql res)
+    in
+      MySQL.free res;
+      configs
+    end
+
+  fun query_check mysql query =
+      case MySQL.query mysql query of 
+          NONE => raise Recession ("Query failed: " ^ 
+                                   getOpt (MySQL.error mysql, "??"))
+        | SOME r => MySQL.free r
+
+  fun query_noresult mysql query =
+      case MySQL.query mysql query of 
+          NONE => ()
+        | SOME r => (MySQL.free r;
+                     raise Recession "Wasn't expecting response from query!")
 
   fun main () =
     let
@@ -25,19 +64,67 @@ struct
 
       val mysql = MySQL.connectex "localhost" "root" password 0 unixsock
 
-      fun process (raw, config as { icon, summarizer, ... }) =
+      val configs = getconfigs mysql
+      val () = app (fn { id, url, lastpost, algorithm, logof } =>
+                    print (Int.toString id ^ ". " ^ url ^ " (" ^ algorithm ^ ")\n")) 
+                   configs
+
+      fun process (raw, config as { id, url, lastpost, algorithm, logof }) =
+        case Algorithms.getalgorithm algorithm of
+            NONE => raise Recession ("Unknown algorithm " ^ algorithm)
+          | SOME algorithm =>
           let 
               val xml = XML.parsestring raw
               val items = RSS.items xml
+
+              fun datefromsec sec = Date.fromTimeUniv (Time.fromSeconds (LargeInt.fromInt sec))
+              val lastpost = datefromsec lastpost
+
+              fun date_max (a, b) =
+                  case Date.compare (a, b) of
+                      LESS => b
+                    | _ => a
+
+              (* only look at posts strictly after the lastpost. *)
+              fun keep_new { date, ... } =
+                  (case Date.compare (lastpost, date) of
+                       LESS => true
+                     | _ => false)
+
+              val items = List.filter keep_new items
+              val items = ListUtil.maptopartial algorithm items
           in
-              print raw;
-              print "\n\n as xml \n\n";
-              print (XML.tostring xml);
-              print "\n\n";
-              app (fn { title, date, ... } => 
-                   print (" -> " ^ title ^ " on " ^ Date.toString date ^ "\n")) items;
-              print "\n\n";
-              raise Recession "unimplemented"
+              case items of
+                  nil => print "No new posts.\n"
+                | all as (({ date, ... }, _) :: _) =>
+                   let
+                       val new_newest = foldl date_max date (map (#date o #1) all)
+                       val new_newest_s = IntInf.toString (Time.toSeconds (Date.toTime new_newest))
+                   in
+                       (* First, update the current high water mark. *)
+                       print ("Update lastpost to " ^ new_newest_s ^ "\n");
+                       query_noresult mysql
+                       ("update rss.subscription set lastpost = " ^ new_newest_s ^
+                        " where id = " ^ Int.toString id);
+                       
+                       (* Now, insert each of the items. *)
+                       app (fn ({ date, guid, ... }, { url, title }) =>
+                            let in
+                                print (" -> " ^ title ^ " on " ^ Date.toString date ^ "\n");
+                                query_noresult mysql
+                                ("insert into rss.item " ^
+                                 "(subscriptionof, logof, postdate, url, title, guid) values " ^
+                                 MySQL.escapevalues mysql [Int id, Int logof,
+                                                           Int (IntInf.toInt 
+                                                                (Time.toSeconds 
+                                                                 (Date.toTime
+                                                                  date))),
+                                                           String url,
+                                                           String title,
+                                                           String guid])
+                            end) all;
+                       print ("Inserted " ^ Int.toString (length all) ^ " new posts.\n")
+                   end
           end
 
       (* Body, wrapped by error handlers. *)
@@ -57,9 +144,7 @@ struct
 
         in
             (* "http://connect.garmin.com/feed/rss/activities?feedname=Garmin%20Connect%20-%20brighterorange&owner=brighterorange", *)
-          app onefeed [{url = "http://radar.spacebar.org/f/a/weblog/rss/1",
-                        icon = "pactom.png",
-                        summarizer = (fn _ => raise Recession "unimplemented")}]
+          app onefeed configs
         end
 
     in
