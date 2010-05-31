@@ -967,7 +967,7 @@ then comment out the highlighted region instead. "
 (font-lock-add-keywords 'aaph-mode '(
 (
 ;; regexp for all aphasia 2 keywords:
-"\\<\\(if\\|then\\|else\\|do\\|fun\\|and\\(also\\|then\\)?\\|orelse\\|otherwise\\|op\\(en\\)?\\|val\\|fn\\|let\\|in\\|end\\|case\\|of\\|sig\\(nature\\)?\\|raise\\|type\\|data\\(type\\|base\\)\\|exception\\|nonfix\\|local\\|handle1?\\|as\\|infixr?\\|abstype\\|import\\|select\\|from\\|delete\\|insert\\|into\\|[sg]et\\|where\\|\\(distinct\\)\\|\\(order +by\\)\\|limit\\)\\>" 
+"\\<\\(if\\|then\\|else\\|do\\|fun\\|and\\(also\\|then\\)?\\|or\\(else\\)?\\|otherwise\\|op\\(en\\)?\\|val\\|fn\\|let\\|in\\|end\\|case\\|of\\|sig\\(nature\\)?\\|raise\\|type\\|data\\(type\\|base\\)\\|exception\\|nonfix\\|local\\|handle1?\\|as\\|infixr?\\|abstype\\|import\\|select\\|from\\|delete\\|insert\\|into\\|[sg]et\\|where\\|\\(distinct\\)\\|\\(order +by\\)\\|limit\\)\\>" 
 . font-lock-keyword-face)
 (
 ;; regexp for aaph constants -- adapted from sml, should be trimmed
