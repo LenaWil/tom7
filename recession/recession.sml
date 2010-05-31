@@ -41,6 +41,19 @@ struct
       configs
     end
 
+  fun monthnum Date.Jan = 1
+    | monthnum Date.Feb = 2
+    | monthnum Date.Mar = 3
+    | monthnum Date.Apr = 4
+    | monthnum Date.May = 5
+    | monthnum Date.Jun = 6
+    | monthnum Date.Jul = 7
+    | monthnum Date.Aug = 8
+    | monthnum Date.Sep = 9
+    | monthnum Date.Oct = 10
+    | monthnum Date.Nov = 11
+    | monthnum Date.Dec = 12
+
   fun query_check mysql query =
       case MySQL.query mysql query of 
           NONE => raise Recession ("Query failed: " ^ 
@@ -113,12 +126,15 @@ struct
                                 print (" -> " ^ title ^ " on " ^ Date.toString date ^ "\n");
                                 query_noresult mysql
                                 ("insert into rss.item " ^
-                                 "(subscriptionof, logof, postdate, url, title, guid) values " ^
+                                 "(subscriptionof, logof, postdate, postmonth, postyear, " ^
+                                 "url, title, guid) values " ^
                                  MySQL.escapevalues mysql [Int id, Int logof,
                                                            Int (IntInf.toInt 
                                                                 (Time.toSeconds 
                                                                  (Date.toTime
                                                                   date))),
+                                                           Int (monthnum (Date.month date)),
+                                                           Int (Date.year date),
                                                            String url,
                                                            String title,
                                                            String guid])
