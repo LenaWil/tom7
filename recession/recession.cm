@@ -54,8 +54,11 @@ group is
 ../sml-lib/files/rss/rss-sig.sml
 ../sml-lib/files/rss/rss.sml
 
+../sml-lib/util/re.cm
+
 algorithm-sig.sml
 facebook.sml
+pactom.sml
 algorithms.sml
 
 recession.sml
