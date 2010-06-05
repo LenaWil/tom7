@@ -50,7 +50,8 @@ struct
 		      "<span class=\"ptnummiles\">" ^ Real.fmt (StringCvt.FIX (SOME 1)) miles ^
 		      "</span><span class=\"ptmiles\">mi.</span> in " ^
 		      "<span class=\"pttime\">" ^ sopt time ^ "</span> &nbsp;" ^
-		      "(<span class=\"ptelevnum\">" ^ sopt elev ^ "</span>ft. gain)",
+		      "<span class=\"ptelev\">(<span class=\"ptelevnum\">" ^ sopt elev ^ "</span>" ^
+		      "ft. gain)</span>",
 		      url = link }
 		end
 
