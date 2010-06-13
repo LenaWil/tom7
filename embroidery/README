@@ -1,0 +1,11 @@
+        Embroidery                                 13 Jun 2010
+
+This directory contains applications for working with machine
+embroidery files (mainly those compatible with the Singer Futura
+line). It uses sml-lib's implementation of those file formats
+and SVG to convert between them so that the embroidery files
+can be edited in sensible graphics programs.
+
+This code is Copyright (c) 2010 Tom Murphy VII, and licensed to
+you under the terms of the GNU Public License. See the file
+COPYING for details.
