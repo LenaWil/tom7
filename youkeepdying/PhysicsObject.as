@@ -32,6 +32,11 @@ class PhysicsObject extends Depthable {
 
   }
 
+  // Only affected by floor, not other physics objects.
+  public function ignoresquares() {
+    return false;
+  }
+
   // Called when touching another physics object. To
   // tell the angle of touch you've got to compare
   // positions.
@@ -75,6 +80,8 @@ class PhysicsObject extends Depthable {
   // and the client must clear them.
   var collision_right = false;
   var collision_left = false;
+  var collision_up = false;
+  var collision_down = false;
 
   /* Starting at the 1-dimensional position 'pos' (which may not be
      blocked), move with velocity dpos along it. If the member
@@ -179,6 +186,12 @@ class PhysicsObject extends Depthable {
       }
     }
 
+    setVelocity(C);
+  }
+
+  /* Can override this if you don't want to use the normal
+     controls (and physics) */
+  public function setVelocity(C) {
     var otg = ontheground();
 
     if (otg && wishjump()) {
@@ -224,7 +237,6 @@ class PhysicsObject extends Depthable {
       if (dy > C.terminal_velocity) dy = C.terminal_velocity;
     }
 
-
   }
   
   public function centerin(mc) {
@@ -248,14 +260,16 @@ class PhysicsObject extends Depthable {
   public function pointblocked(x, y) {
 
     // These count as 'touching'.
-    for (var o in _root.squares) {
-      var b = _root.squares[o];
-      /* no self-collisions! */
-      if (b != this) {
-        if (x >= b.x1() && x <= b.x2() &&
-            y >= b.y1() && y <= b.y2()) {
-          this.touch(b);
-          return true;
+    if (!ignoresquares()) {
+      for (var o in _root.squares) {
+        var b = _root.squares[o];
+        /* no self-collisions! */
+        if (b != this) {
+          if (x >= b.x1() && x <= b.x2() &&
+              y >= b.y1() && y <= b.y2()) {
+            this.touch(b);
+            return true;
+          }
         }
       }
     }
@@ -328,15 +342,19 @@ class PhysicsObject extends Depthable {
   }
 
   public function blockedup(newy) {
-    return widthblocked(this._x + this.width * CORNER,
-                        newy,
-                        this.width * (1 - 2 * CORNER));
+    var yes = widthblocked(this._x + this.width * CORNER,
+                           newy,
+                           this.width * (1 - 2 * CORNER));
+    collision_up = collision_up || yes;
+    return yes;
   }
 
   public function blockeddown(newy) {
-    return widthblocked(this._x + this.width * CORNER,
-                        newy + this.height,
-                        this.width * (1 - 2 * CORNER));
+    var yes = widthblocked(this._x + this.width * CORNER,
+                           newy + this.height,
+                           this.width * (1 - 2 * CORNER));
+    collision_down = collision_down || yes;
+    return yes;
   }
   
 }

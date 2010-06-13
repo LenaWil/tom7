@@ -75,14 +75,15 @@ class You extends PhysicsObject {
     // _root.message.say(k);
     switch(k) {
     case 192: // ~
-      // escKey = '~';
-      // if (!blockEsc) holdingEsc = true;
+      escKey = '~';
+      if (!blockEsc) holdingEsc = true;
       // XXXXXXXXXX
+      /*
       _root.you.ail('bees',
                     'bees',
                     6 * 25,
                     {solid:true, infectious:'once'});
-
+      */
       break;
     case 82: // r
       escKey = 'r';
@@ -418,8 +419,8 @@ class You extends PhysicsObject {
       } else {
         this.ailment.mc._x = this._x;
         this.ailment.mc._y = this._y;
-        var dsecs = Math.round(this.ailment.frames * 10 / FPS);
-        var isec = Math.round(dsecs / 10);
+        var dsecs = Math.floor(this.ailment.frames * 10 / FPS);
+        var isec = Math.floor(dsecs / 10);
         var fsec = dsecs % 10;
         _root.message.say('[' + isec + '.' + fsec + ']  ' +
                           this.ailment.ailname + '!');

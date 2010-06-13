@@ -33,9 +33,9 @@ class Preloader extends MovieClip {
       // stop();
 
       // Usually, nosignal.
-      var startframe = 'paper1';
+      var startframe = 'deepcloset';
 
-      // Nosignal spanws the player via Instructions.
+      // Nosignal spawns the player via Instructions.
       if (startframe != 'nosignal') {
         /* attach player--once! */
         _root.attachMovie("you", "you", 1,
