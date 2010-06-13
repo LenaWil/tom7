@@ -13,6 +13,8 @@ group is
   ../sml-lib/util/stringutil.sml
   ../sml-lib/util/listutil-sig.sml
   ../sml-lib/util/listutil.sml
+  ../sml-lib/util/fsutil-sig.sml
+  ../sml-lib/util/fsutil.sml
 
   ../sml-lib/util/growarray-sig.sml
   ../sml-lib/util/growarray.sml
@@ -33,7 +35,10 @@ group is
   ../sml-lib/files/svg/textsvg-sig.sml
   ../sml-lib/files/svg/textsvg.sml
 
+  ../sml-lib/files/embroidery/pec-sig.sml
+  ../sml-lib/files/embroidery/pec.sml
+
   ../sml-lib/files/embroidery/pes-sig.sml
   ../sml-lib/files/embroidery/pes.sml
 
-  pes-tosvg.sml
+  pe-tosvg.sml
