@@ -31,7 +31,6 @@ class Memory {
      'caveinterstitial',
      // introduction to bees
      'bees',
-     'demoend',
      'stomach',
      'impossible',
      'waterbeepuzzle',
@@ -41,8 +40,12 @@ class Memory {
      'slide2',
      'paper1',
      'paper2',
-     'rightpaper'
+     'rightpaper',
      // 'futurework',  // can't die
+     'copycloset',
+     'deepcloset',
+
+     'demoend'
      ];
 
   var underconstruction = [ 'cavetop',
