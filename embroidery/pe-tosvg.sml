@@ -4,6 +4,7 @@ struct
 
     exception PEToSVG of string
 
+    (* FIXME: Actually this writes to stdout! duh! *)
     val svgout = Params.param "" 
         (SOME ("-o",
                "SVG output file; otherwise derive this " ^
@@ -29,8 +30,7 @@ struct
                 | "pes" => (PES.readpes reader 
                             handle PES.PES s => raise PEToSVG s)
                 | _ => raise PEToSVG "file must end with PEC or PES"
-      in
-        let
+
           val bounds = Bounds.nobounds ()
           val () = makebounds bounds pec
           val () = Bounds.addmarginfrac bounds 0.035 
@@ -54,7 +54,7 @@ struct
           fun printpec ({ blocks, ... } : PEC.pecfile) =
               Vector.app printpolyline blocks
 
-        in
+      in
           print (TextSVG.svgheader { x = 0, y = 0, 
                                      width = width, 
                                      height = height,
@@ -62,7 +62,7 @@ struct
           printpec pec;
           
           print (TextSVG.svgfooter ())
-        end
+
       end
 
     val () = Params.main1 
