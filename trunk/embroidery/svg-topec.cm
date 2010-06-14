@@ -21,6 +21,13 @@ group is
   ../sml-lib/util/growmonoarray-sig.sml
   ../sml-lib/util/growmonoarray.sml
 
+  ../sml-lib/util/stream-sig.sml
+  ../sml-lib/util/stream.sml
+  ../sml-lib/parse/pos-sig.sml
+  ../sml-lib/parse/pos.sml
+  ../sml-lib/parse/parse-sig.sml
+  ../sml-lib/parse/parse.sml
+
   ../sml-lib/misc/params-sig.sml
   ../sml-lib/misc/params.sml
 
@@ -37,13 +44,10 @@ group is
   ../sml-lib/files/xml/xml-sig.sml
   ../sml-lib/files/xml/xml.sml
 
-  ../sml-lib/files/svg/textsvg-sig.sml
-  ../sml-lib/files/svg/textsvg.sml
+  ../sml-lib/files/svg/svg-sig.sml
+  ../sml-lib/files/svg/svg.sml
 
   ../sml-lib/files/embroidery/pec-sig.sml
   ../sml-lib/files/embroidery/pec.sml
 
-  ../sml-lib/files/embroidery/pes-sig.sml
-  ../sml-lib/files/embroidery/pes.sml
-
-  pe-tosvg.sml
+  svg-topec.sml
