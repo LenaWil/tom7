@@ -35,6 +35,48 @@ struct
 					  stitches = Vector.fromList cl } ::
 			      !blocks
 			  end))
+	    | processtags (Elem (("path", attrs), nil)) =
+	       (case XML.getattr attrs "d" of
+		    NONE => TextIO.output(TextIO.stdErr, "path without d?\n")
+		  | SOME s =>
+		    (case Option.map SVG.normalizepath 
+			   (SVG.parsepathstring s) of
+			 NONE => TextIO.output(TextIO.stdErr,
+					       "ignoring path with " ^
+					       "unparsable d")
+		       | SOME SVG.P_Empty =>
+			         TextIO.output(TextIO.stdErr,
+					       "path with empty d")
+		       | SOME (SVG.P_Relative _) => 
+			         TextIO.output(TextIO.stdErr,
+					       "don't support relative " ^
+					       "paths yet")
+		       | SOME (SVG.P_Absolute (startx, starty, nl)) =>
+			  let
+			      fun cvt (px, py, nc :: rest) =
+				(case nc of
+				     SVG.PC_Close => [(startx, starty)]
+				   | SVG.PC_Line (dx, dy) =>
+					 let
+					     val (px, py) =
+						 (px + dx, py + dy)
+					 in
+					     (px, py) :: cvt (px, py, rest)
+					 end
+				   | _ =>
+					 raise SVGToPEC ("unsupported path " ^
+							 " command."))
+				| cvt (_, _, nil) = nil
+			      val cl = cvt (startx, starty, nl)
+			      val cl = map (fn (x, y) =>
+					    (Real.round x, Real.round y)) cl
+			  in
+			      blocks := { colorindex = 0,
+					  stitches = Vector.fromList cl } ::
+			      !blocks
+			  end))
+	    | processtags (Elem (("g", nil), body)) =
+		   app processtags body
 	    | processtags (Elem ((tag, _), _)) =
 		   TextIO.output(TextIO.stdErr,
 				 "ignoring toplevel <" ^ tag ^ ">\n")
