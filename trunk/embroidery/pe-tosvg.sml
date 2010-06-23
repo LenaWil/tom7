@@ -33,7 +33,8 @@ struct
 
           val bounds = Bounds.nobounds ()
           val () = makebounds bounds pec
-          val () = Bounds.addmarginfrac bounds 0.035 
+          (* Don't do this: It introduces discretization error in round trip. *)
+          (* val () = Bounds.addmarginfrac bounds 0.035 *)
 
           val width = Real.trunc (Bounds.width bounds)
           val height = Real.trunc (Bounds.height bounds)
