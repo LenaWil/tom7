@@ -25,7 +25,7 @@ border=0></a></td>
 border=0></a></td>
 <td valign="top"><a href="/f/a/escape/level/1430">Newark Liberty Airport (EWR)</a>
 <br />by Tom 7
-<br /><b>difficulty</b>: 9.37
+<br /><b>difficulty</b>: 9.33
 </td></tr>
 <tr>
 <td valign="top"><a href="/f/a/escape/level/593"><img src="/png/1ac6873beab6b324dbf4bf5951dfadc9.png"
@@ -56,6 +56,13 @@ border=0></a></td>
 <br /><b>difficulty</b>: 8.83
 </td></tr>
 <tr>
+<td valign="top"><a href="/f/a/escape/level/466"><img src="/png/1ead431eed60dd03811f10b52ebbee2c.png"
+border=0></a></td>
+<td valign="top"><a href="/f/a/escape/level/466">Dimensional Trap 17</a>
+<br />by Henri Kareinen (mod by Brian Potetz)
+<br /><b>difficulty</b>: 8.60
+</td></tr>
+<tr>
 <td valign="top"><a href="/f/a/escape/level/591"><img src="/png/d80d63ff42c1e193f3ef1a00770d43aa.png"
 border=0></a></td>
 <td valign="top"><a href="/f/a/escape/level/591">Waste of Time</a>
@@ -70,18 +77,18 @@ border=0></a></td>
 <br /><b>difficulty</b>: 8.55
 </td></tr>
 <tr>
-<td valign="top"><a href="/f/a/escape/level/2285"><img src="/png/bbb2569bb8c9c430684c3d272bfdc2aa.png"
-border=0></a></td>
-<td valign="top"><a href="/f/a/escape/level/2285">Avalanche 2</a>
-<br />by John Lewis (original by pieguy)
-<br /><b>difficulty</b>: 8.40
-</td></tr>
-<tr>
 <td valign="top"><a href="/f/a/escape/level/1565"><img src="/png/3ebf6495687776b7fe92c23724153ee7.png"
 border=0></a></td>
 <td valign="top"><a href="/f/a/escape/level/1565">revenge of the computers 4</a>
 <br />by pieguy
 <br /><b>difficulty</b>: 8.40
+</td></tr>
+<tr>
+<td valign="top"><a href="/f/a/escape/level/2285"><img src="/png/bbb2569bb8c9c430684c3d272bfdc2aa.png"
+border=0></a></td>
+<td valign="top"><a href="/f/a/escape/level/2285">Avalanche 2</a>
+<br />by John Lewis (original by pieguy)
+<br /><b>difficulty</b>: 8.33
 </td></tr>
 <tr>
 <td valign="top"><a href="/f/a/escape/level/594"><img src="/png/6cead8cdd8fec6e8b8d1cb4fc1b17bcf.png"
@@ -112,11 +119,11 @@ border=0></a></td>
 <br /><b>difficulty</b>: 8.10
 </td></tr>
 <tr>
-<td valign="top"><a href="/f/a/escape/level/311"><img src="/png/b5078714502d1e99ea64d33a6dbb1957.png"
+<td valign="top"><a href="/f/a/escape/level/2443"><img src="/png/12d6af635d93e4786042fd0c50de8158.png"
 border=0></a></td>
-<td valign="top"><a href="/f/a/escape/level/311">Crosshairs (the Potetz Variation)</a>
-<br />by Brian Potetz (original level by Max)
-<br /><b>difficulty</b>: 8.09
+<td valign="top"><a href="/f/a/escape/level/2443">Single File (mod2)</a>
+<br />by Max (mod by Gary and noname)
+<br /><b>difficulty</b>: 8.00
 </td></tr>
 <tr>
 <td valign="top"><a href="/f/a/escape/level/2027"><img src="/png/b68cd6433b4b5eaad31a44393f030f6f.png"
@@ -130,13 +137,6 @@ border=0></a></td>
 border=0></a></td>
 <td valign="top"><a href="/f/a/escape/level/669">Five Alive</a>
 <br />by Tom 7 (+Computer)
-<br /><b>difficulty</b>: 8.00
-</td></tr>
-<tr>
-<td valign="top"><a href="/f/a/escape/level/644"><img src="/png/b079c0fa9d35603f5c2d733038dcfe90.png"
-border=0></a></td>
-<td valign="top"><a href="/f/a/escape/level/644">Roller Coaster (steel)</a>
-<br />by mjn
 <br /><b>difficulty</b>: 8.00
 </td></tr>
 </table>
