@@ -11,7 +11,7 @@ border=0></a></td>
 border=0></a></td>
 <td valign="top"><a href="/f/a/escape/level/1430">Newark Liberty Airport (EWR)</a>
 <br />by Tom 7
-<br /><b>style</b>: 9.50
+<br /><b>style</b>: 9.44
 </td></tr>
 <tr>
 <td valign="top"><a href="/f/a/escape/level/594"><img src="/png/6cead8cdd8fec6e8b8d1cb4fc1b17bcf.png"
@@ -19,13 +19,6 @@ border=0></a></td>
 <td valign="top"><a href="/f/a/escape/level/594">Grand Prix (v3)</a>
 <br />by mjn
 <br /><b>style</b>: 9.44
-</td></tr>
-<tr>
-<td valign="top"><a href="/f/a/escape/level/2399"><img src="/png/41ad7692fb0bd83b003efe612970bf29.png"
-border=0></a></td>
-<td valign="top"><a href="/f/a/escape/level/2399">Crosshairs (Gary's Variation)</a>
-<br />by Gary (original level by Max)
-<br /><b>style</b>: 9.00
 </td></tr>
 <tr>
 <td valign="top"><a href="/f/a/escape/level/644"><img src="/png/b079c0fa9d35603f5c2d733038dcfe90.png"
@@ -46,14 +39,7 @@ border=0></a></td>
 border=0></a></td>
 <td valign="top"><a href="/f/a/escape/level/311">Crosshairs (the Potetz Variation)</a>
 <br />by Brian Potetz (original level by Max)
-<br /><b>style</b>: 9.00
-</td></tr>
-<tr>
-<td valign="top"><a href="/f/a/escape/level/371"><img src="/png/f1df5df958df28f687be7459c04fe3fe.png"
-border=0></a></td>
-<td valign="top"><a href="/f/a/escape/level/371">Treehouse (v3)</a>
-<br />by Max
-<br /><b>style</b>: 8.85
+<br /><b>style</b>: 8.83
 </td></tr>
 <tr>
 <td valign="top"><a href="/f/a/escape/level/138"><img src="/png/5f7f36830c7d2e2d70a29bc5066e343f.png"
@@ -74,6 +60,13 @@ border=0></a></td>
 border=0></a></td>
 <td valign="top"><a href="/f/a/escape/level/669">Five Alive</a>
 <br />by Tom 7 (+Computer)
+<br /><b>style</b>: 8.75
+</td></tr>
+<tr>
+<td valign="top"><a href="/f/a/escape/level/371"><img src="/png/f1df5df958df28f687be7459c04fe3fe.png"
+border=0></a></td>
+<td valign="top"><a href="/f/a/escape/level/371">Treehouse (v3)</a>
+<br />by Max
 <br /><b>style</b>: 8.75
 </td></tr>
 <tr>
@@ -123,14 +116,7 @@ border=0></a></td>
 border=0></a></td>
 <td valign="top"><a href="/f/a/escape/level/211">Reflections</a>
 <br />by Max
-<br /><b>style</b>: 8.42
-</td></tr>
-<tr>
-<td valign="top"><a href="/f/a/escape/level/2285"><img src="/png/bbb2569bb8c9c430684c3d272bfdc2aa.png"
-border=0></a></td>
-<td valign="top"><a href="/f/a/escape/level/2285">Avalanche 2</a>
-<br />by John Lewis (original by pieguy)
-<br /><b>style</b>: 8.40
+<br /><b>style</b>: 8.37
 </td></tr>
 <tr>
 <td valign="top"><a href="/f/a/escape/level/305"><img src="/png/08dd8d645989bcfcd014378ecf14eaf9.png"
@@ -138,5 +124,19 @@ border=0></a></td>
 <td valign="top"><a href="/f/a/escape/level/305">Grounded</a>
 <br />by Max
 <br /><b>style</b>: 8.35
+</td></tr>
+<tr>
+<td valign="top"><a href="/f/a/escape/level/692"><img src="/png/b96e9e78ae2af79bb0b62bc1f1baa5fa.png"
+border=0></a></td>
+<td valign="top"><a href="/f/a/escape/level/692">revenge of the computers 2</a>
+<br />by pieguy
+<br /><b>style</b>: 8.33
+</td></tr>
+<tr>
+<td valign="top"><a href="/f/a/escape/level/617"><img src="/png/d78a40d89cda1e58e502c3b00ff1865c.png"
+border=0></a></td>
+<td valign="top"><a href="/f/a/escape/level/617">revenge of the computers 1</a>
+<br />by pieguy
+<br /><b>style</b>: 8.33
 </td></tr>
 </table>
