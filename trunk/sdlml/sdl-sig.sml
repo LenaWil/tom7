@@ -328,6 +328,13 @@ sig
   val getticks : unit -> Word32.word
   val delay : int -> unit
 
+  (* Test if the button is down in the state. *)
+  val mouse_left : mousestate -> bool
+  val mouse_middle : mousestate -> bool
+  val mouse_right : mousestate -> bool
+  val mouse_wheelup : mousestate -> bool
+  val mouse_wheeldown : mousestate -> bool
+
   val clearsurface : surface * color -> unit
 
   (* draw a pixel to the surface. XXX the alpha component is ignored. *)
