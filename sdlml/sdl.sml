@@ -987,6 +987,20 @@ struct
           end
     end
 
+  (* These need to agree with SDL_mouse.h, but that ain't going anywhere. *)
+  val SDL_BUTTON_LEFT = 0w1 : Word8.word
+  val SDL_BUTTON_MIDDLE = 0w2 : Word8.word
+  val SDL_BUTTON_RIGHT = 0w3 : Word8.word
+  val SDL_BUTTON_WHEELUP = 0w4 : Word8.word
+  val SDL_BUTTON_WHEELDOWN = 0w5 : Word8.word
+
+  fun mouse_left state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_LEFT - 1)) <> 0w0
+  fun mouse_middle state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_MIDDLE - 1)) <> 0w0
+  fun mouse_right state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_RIGHT - 1)) <> 0w0
+  fun mouse_wheelup state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELUP - 1)) <> 0w0
+  fun mouse_wheeldown state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELDOWN - 1)) <> 0w0
+
+
   local val fl = _import "SDL_Flip" : ptr -> unit ;
   in
     fun flip p = fl (!!p)
