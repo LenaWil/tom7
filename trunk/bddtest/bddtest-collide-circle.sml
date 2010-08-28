@@ -45,9 +45,6 @@ struct
   val mousex = ref 0
   val mousey = ref 0
 
-  val savex = ref 0
-  val savey = ref 0
-
   exception Done
 
   fun key () =
@@ -60,11 +57,6 @@ struct
                    let in 
                        mousex := x;
                        mousey := y
-                   end
-             | E_MouseDown { button = _, x, y, ... } =>
-                   let in
-                       savex := x;
-                       savey := y
                    end
              | _ => ()
 
@@ -93,31 +85,8 @@ struct
               else color (0w255, 0w0, 0w255, 0w0)
 
           val (x, y) = vectoscreen pt
-
-          val p1 = vec2 (toworld (!savex, !savey))
-          val p2 = vec2 (toworld (!mousex, !mousey))
-          val input = { p1 = vec2 (toworld (!savex, !savey)),
-                        p2 = vec2 (toworld (!mousex, !mousey)),
-                        max_fraction = 1.0 }
-
       in
-          (case BDDCircle.ray_cast (circle, xf, input) of
-               NONE => SDL.drawline (screen, x, y, !savex, !savey,
-                                     color (0w255, 0w0, 0w0, 0w255))
-             | SOME { normal, fraction } => 
-                   let
-                   in
-                       SDL.drawline (screen, x, y, !savex, !savey,
-                                     color (0w255, 0w255, 0w0, 0w255))
-                   end);
           SDL.drawcircle (screen, x, y, 3, c)
-      end
-
-  fun drawsave () =
-      let
-      in
-          SDL.drawcircle (screen, !savex, !savey, 2,
-                          color (0w255, 0w255, 0w255, 0w0))
       end
 
   fun loop () =
@@ -125,7 +94,6 @@ struct
 
           clearsurface (screen, color (0w255, 0w0, 0w0, 0w0));
           
-          drawsave ();
           drawcircle ();
           drawmouse ();
 
