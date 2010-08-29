@@ -1,4 +1,3 @@
-
 structure BDDTest =
 struct
 
@@ -10,6 +9,17 @@ struct
   structure U = Util
   open SDL
   structure Util = U
+
+  structure Font = FontFn 
+  (val surf = Images.requireimage "font.png"
+   val charmap =
+       " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+       "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* " *)
+   val width = 9
+   val height = 16
+   val styles = 6
+   val overlap = 1
+   val dims = 3)
 
   val WIDTH = 800
   val HEIGHT = 600
@@ -247,6 +257,14 @@ struct
                           color (0w255, 0w255, 0w255, 0w0))
       end
 
+  fun drawinstructions ()=
+      let
+      in
+          Font.draw 
+          (screen, 1, 1, 
+           "^3BoxDiaDia test^<. ^1left mouse^< to cast ray. ^1right^< to rotate familiar.")
+      end
+
   fun loop () =
       let in
 
@@ -265,6 +283,8 @@ struct
           drawfamiliar ();
           drawmouse ();
           drawdists ();
+
+          drawinstructions ();
 
           flip screen;
 
