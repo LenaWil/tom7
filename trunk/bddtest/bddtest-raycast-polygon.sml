@@ -95,9 +95,6 @@ struct
       let
           val num = Array.length (#vertices polygon)
           val c = color (0w255, 0w255, 0w255, 0w200)
-
-          val { center, ... } = BDDPolygon.compute_mass (polygon, 1.0)
-          val (cx, cy) = vectoscreen center
       in
           Util.for 0 (num - 1)
           (fn i =>
@@ -108,9 +105,7 @@ struct
                val (xx, yy) = vectoscreen (Array.sub(#vertices polygon, i2))
            in
                SDL.drawline (screen, x, y, xx, yy, c)
-           end);
-
-          SDL.drawcircle (screen, cx, cy, 2, c)
+           end)
       end
 
   fun drawmouse () =
