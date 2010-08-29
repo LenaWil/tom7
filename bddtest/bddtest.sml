@@ -137,10 +137,9 @@ struct
                           hexcolor 0xFFFFFF)
       end
 
-  fun drawpolygonat (xf, polygon) =
+  fun drawpolygonat (xf, polygon, c) =
       let
           val num = Array.length (#vertices polygon)
-          val c = hexcolor 0xFFFFA0
 
           val { center, ... } = BDDPolygon.compute_mass (polygon, 1.0)
           val (cx, cy) = vectoscreen (xf @*: center)
@@ -160,14 +159,14 @@ struct
       end
 
   fun drawpolygon polygon =
-      drawpolygonat (BDDMath.identity_transform (), polygon)
+      drawpolygonat (BDDMath.identity_transform (), polygon, hexcolor 0xFFFFA0)
 
   fun drawfamiliar () =
       let
           val pt = vec2 (toworld (!mousex, !mousey))
           val xf = BDDMath.transform_pos_angle (pt, !frot)
       in
-          drawpolygonat (xf, familiar)
+          drawpolygonat (xf, familiar, hexcolor 0xFFFFFF)
       end
 
   (* closest points between familiar and other objects *)
@@ -247,6 +246,50 @@ struct
       end
       else ()
 
+  exception FAILURE
+  fun drawpolycollisions () =
+      if DRAW_COLLISIONS
+      then
+      let
+          val pt = vec2 (toworld (!mousex, !mousey))
+          val fident = BDDMath.identity_transform ()
+          val ffam = BDDMath.transform_pos_angle (pt, !frot)
+          val { point_count,
+                typ, local_point, local_normal, points,
+                ... } =
+              BDDCollision.collide_polygons (familiar, ffam,
+                                             polygon, fident)
+      in
+          if point_count = 0
+          then ()
+          else
+              let 
+                  val (xf, xff) = case typ of
+                      BDDTypes.E_FaceA => (ffam, fident)
+                    | BDDTypes.E_FaceB => (fident, ffam)
+                    | _ => raise FAILURE
+
+                  (* val () = print "COLLIDE.\n" *)
+                  (* It's in local coordinates to the familiar *)
+                  val w = xf @*: local_point
+                  val (x, y) = vectoscreen w
+
+                  val (xn, yn) = vectoscreen 
+                      (xf @*: (local_point :+: 0.2 *: local_normal))
+
+                  fun onepoint { local_point = lp2, ... } =
+                      let val (xx, yy) = vectoscreen (xff @*: lp2)
+                      in
+                          SDL.drawcircle (screen, xx, yy, 2, hexcolor 0x5678FF)
+                      end
+              in
+                  SDL.drawline (screen, x, y, xn, yn, hexcolor 0x771234);
+                  SDL.drawcircle (screen, x, y, 2, hexcolor 0xFF5678);
+                  Array.app onepoint points
+              end
+      end
+      else ()
+
   fun drawrays () =
       if DRAW_RAYS
       then 
@@ -285,7 +328,7 @@ struct
           (* Ray *)
           (case collisions of
                nil => SDL.drawline (screen, x, y, !savex, !savey,
-                                    hexcolor 0x0000FF)
+                                    hexcolor 0x442244)
              | { normal, fraction } :: _ => 
                    let
                        val d = p2 :-: p1
@@ -362,6 +405,7 @@ struct
           drawrays ();
           drawdists ();
           drawcollisions ();
+          drawpolycollisions ();
 
           drawinstructions ();
 
