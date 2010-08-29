@@ -144,7 +144,9 @@ struct
   (* closest points between familiar and other objects *)
   val shapes = [BDDShape.Circle circle,
                 BDDShape.Polygon polygon]
-  val distance_proxies = map BDDDistance.shape_proxy shapes
+  val distance_proxies = map (fn s =>
+                              (BDDDistance.shape_proxy s,
+                               BDDDistance.initial_cache ())) shapes
   fun drawdists () =
       let
           val fidentity = BDDMath.identity_transform ()
@@ -156,10 +158,10 @@ struct
           val c = color (0w128, 0w0, 0w64, 0w255)
           val cc = color (0w255, 0w0, 0w128, 0w255)
                       
-          fun one proxy =
+          fun one (proxy, cache) =
               let
                   (* XXX try keeping this around *)
-                  val cache = BDDDistance.initial_cache ()
+                  (* val cache = BDDDistance.initial_cache () *)
                   val { pointa, pointb, iterations, ... } =
                       BDDDistance.distance ({ proxya = fprox,
                                               proxyb = proxy,
