@@ -52,6 +52,15 @@ struct
                              (136, 51),
                              (116, 330)]))
 
+  (* roughly centered around screen origin *)
+  val familiar = BDDPolygon.polygon
+      (map screentovec (rev [(377, 268),
+                             (386, 321),
+                             (418, 329),
+                             (428, 305)]))
+
+  val frot = ref 0.0
+
   val mousex = ref 0
   val mousey = ref 0
 
@@ -59,6 +68,8 @@ struct
   val savey = ref 0
 
   exception Done
+
+  val rightmouse = ref false
 
   fun key () =
       case pollevent () of
@@ -71,11 +82,17 @@ struct
                        mousex := x;
                        mousey := y
                    end
-             | E_MouseDown { button = _, x, y, ... } =>
+             | E_MouseDown { button = 1, x, y, ... } =>
                    let in
                        savex := x;
                        savey := y
                    end
+
+             (* right mouse *)
+             | E_MouseDown { button = 3, ... } =>
+                   rightmouse := true
+             | E_MouseUp { button = 3, ... } => 
+                   rightmouse := false
              | _ => ()
 
   fun drawcircle () =
@@ -91,26 +108,75 @@ struct
                           color (0w255, 0w255, 0w255, 0w255))
       end
 
-  fun drawpolygon () =
+  fun drawpolygonat (xf, polygon) =
       let
           val num = Array.length (#vertices polygon)
           val c = color (0w255, 0w255, 0w255, 0w200)
 
           val { center, ... } = BDDPolygon.compute_mass (polygon, 1.0)
-          val (cx, cy) = vectoscreen center
+          val (cx, cy) = vectoscreen (xf @*: center)
       in
           Util.for 0 (num - 1)
           (fn i =>
            let val i2 = if i = num - 1
                         then 0
                         else i + 1
-               val (x, y) = vectoscreen (Array.sub(#vertices polygon, i))
-               val (xx, yy) = vectoscreen (Array.sub(#vertices polygon, i2))
+               val (x, y) = vectoscreen (xf @*: Array.sub(#vertices polygon, i))
+               val (xx, yy) = vectoscreen (xf @*: Array.sub(#vertices polygon, i2))
            in
                SDL.drawline (screen, x, y, xx, yy, c)
            end);
 
           SDL.drawcircle (screen, cx, cy, 2, c)
+      end
+
+  fun drawpolygon polygon =
+      drawpolygonat (BDDMath.identity_transform (), polygon)
+
+  fun drawfamiliar () =
+      let
+          val pt = vec2 (toworld (!mousex, !mousey))
+          val xf = BDDMath.transform_pos_angle (pt, !frot)
+      in
+          drawpolygonat (xf, familiar)
+      end
+
+  (* closest points between familiar and other objects *)
+  val shapes = [BDDShape.Circle circle,
+                BDDShape.Polygon polygon]
+  val distance_proxies = map BDDDistance.shape_proxy shapes
+  fun drawdists () =
+      let
+          val fidentity = BDDMath.identity_transform ()
+          val pt = vec2 (toworld (!mousex, !mousey))
+          val ffam = BDDMath.transform_pos_angle (pt, !frot)
+
+          val fprox = BDDDistance.shape_proxy (BDDShape.Polygon familiar)
+
+          val c = color (0w128, 0w0, 0w64, 0w255)
+          val cc = color (0w255, 0w0, 0w128, 0w255)
+                      
+          fun one proxy =
+              let
+                  (* XXX try keeping this around *)
+                  val cache = BDDDistance.initial_cache ()
+                  val { pointa, pointb, iterations, ... } =
+                      BDDDistance.distance ({ proxya = fprox,
+                                              proxyb = proxy,
+                                              transforma = ffam,
+                                              transformb = fidentity,
+                                              use_radii = true },
+                                            cache)
+                  val (ax, ay) = vectoscreen pointa
+                  val (bx, by) = vectoscreen pointb
+              in
+                  print (Int.toString iterations ^ "\n");
+                  SDL.drawline (screen, ax, ay, bx, by, c);
+                  SDL.drawcircle (screen, ax, ay, 2, c);
+                  SDL.drawcircle (screen, bx, by, 2, c)
+              end
+      in
+          app one distance_proxies
       end
 
   fun drawmouse () =
@@ -119,6 +185,7 @@ struct
           val pt = vec2 (toworld (!mousex, !mousey))
               
           (* Colliding? *)
+          (* XXX use shapes list *)
           val c = 
               if BDDCircle.test_point (circle, xf, pt) orelse
                  BDDPolygon.test_point (polygon, xf, pt)
@@ -133,6 +200,7 @@ struct
                         p2 = vec2 (toworld (!mousex, !mousey)),
                         max_fraction = 1.0 }
 
+          (* XXX should use shapes list *)
           (* Collide against everything. *)
           val collisions =
               List.mapPartial (fn x => x)
@@ -181,11 +249,20 @@ struct
       let in
 
           clearsurface (screen, color (0w255, 0w0, 0w0, 0w0));
-          
+
+          if !rightmouse
+          then (frot := !frot + 0.002;
+                if !frot > 2.0 * Math.pi
+                then frot := !frot - 2.0 * Math.pi
+                else ())
+          else ();
+
           drawsave ();
-          drawpolygon ();
+          drawpolygon polygon;
           drawcircle ();
+          drawfamiliar ();
           drawmouse ();
+          drawdists ();
 
           flip screen;
 
