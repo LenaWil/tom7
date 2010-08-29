@@ -342,10 +342,15 @@ sig
   val clippixel : surface * int * int * color -> unit
   val getpixel  : surface * int * int -> color
 
-  (* drawcircle surf x y radius color
+  (* drawcircle (surf, x, y, radius, color)
      draws a circle (not filled)
      *)
   val drawcircle : surface * int * int * int * color -> unit
+  (* drawline (surf, x0, y0, x1, y1, color) *)
+  val drawline : surface * int * int * int * int * color -> unit
+
+  (* For f in [0.0, 1.0], we get f * c + (1.0 - f) * cc. *)
+  val colormixfrac : color * color * real -> color
 
   (* Blit a pixel with proper alpha compositing. XXX not implemented *)
   val blitpixel : surface * int * int * color -> unit
