@@ -335,6 +335,10 @@ sig
   val mouse_wheelup : mousestate -> bool
   val mouse_wheeldown : mousestate -> bool
 
+  (* Enable or disable display of the mouse cursor. true displays it, which
+     is the initial state. *)
+  val show_cursor : bool -> unit
+
   val clearsurface : surface * color -> unit
 
   (* draw a pixel to the surface. XXX the alpha component is ignored. *)
@@ -348,6 +352,9 @@ sig
   val drawcircle : surface * int * int * int * color -> unit
   (* drawline (surf, x0, y0, x1, y1, color) *)
   val drawline : surface * int * int * int * int * color -> unit
+  (* drawrect (surf, x0, y0, x1, y1, color) 
+     Axis aligned hollow rectangle. Includes corners. *)
+  val drawbox : surface * int * int * int * int * color -> unit
 
   (* For f in [0.0, 1.0], we get f * c + (1.0 - f) * cc. *)
   val colormixfrac : color * color * real -> color

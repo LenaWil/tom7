@@ -4,10 +4,16 @@ default : test.exe
 
 
 sdlml.o : sdlml.c
-	gcc -DWIN32 -O `sdl-config --cflags` -c sdlml.c -o sdlml.o
+	gcc -DWIN32 -O `sdl-config --cflags` -c $< -o $@
 
 sdlnet.o : sdlnet.c
-	gcc -DWIN32 -O `sdl-config --cflags` -c sdlnet.c -o sdlnet.o
+	gcc -DWIN32 -O `sdl-config --cflags` -c $< -o $@
+
+sdlmix.o : sdlmix.c
+	gcc -DWIN32 -O `sdl-config --cflags` -c $< -o $@
+
+pngsave.o : pngsave.c
+	gcc -DWIN32 -I /usr/local/include -O -c $< -o $@
 
 # not --cflags, that'll redefine main!
 win32main.o : win32main.c
@@ -19,5 +25,5 @@ win32main.o : win32main.c
 
 # the order of these libraries and object files is really important! Weird things will
 # happen if it's wrong!
-test.exe : sdlml.o sdlnet.o win32main.o *.sml
-	mlton @MLton max-heap 512m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -Dmain=SDL_main" -link-opt "--enable-stdcall-fixup" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz -lSDL_net -lkernel32" -output $@ -default-ann 'allowFFI true' test.cm sdlml.o sdlnet.o win32main.o
+test.exe : sdlml.o sdlnet.o sdlmix.o pngsave.o win32main.o *.sml makefile.mingw test.cm
+	mlton @MLton max-heap 512m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -Dmain=SDL_main" -link-opt "--enable-stdcall-fixup" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz -lSDL_net -lSDL_mixer -lvorbisfile -lvorbis -logg -lkernel32" -output $@ -default-ann 'allowFFI true' test.cm sdlml.o sdlnet.o sdlmix.o pngsave.o win32main.o

@@ -10,6 +10,12 @@ group is
   font-sig.sml
   font.sml
 
+  sdlmix-sig.sml
+  sdlmix.sml
+
+  pngsave-sig.sml
+  pngsave.sml
+
   ../sml-lib/util/growmonoarray-sig.sml
   ../sml-lib/util/growmonoarray.sml
   sdlnet-sig.sml
