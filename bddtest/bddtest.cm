@@ -48,4 +48,6 @@ group is
 
   prelude.sml
 
+  images.sml
+
   bddtest.sml
