@@ -51,6 +51,12 @@ struct
       (Word32.<< (b, 0w8),
        a)))
 
+  (* Must agree with SDL_events.h *)
+  val SDL_QUERY = ~1
+  val SDL_IGNORE = 0
+  val SDL_DISABLE = 0
+  val SDL_ENABLE = 1
+
   fun components x =
       (Word8.fromInt (Word32.toInt (Word32.andb(Word32.>>(x, 0w24), 0w255))),
        Word8.fromInt (Word32.toInt (Word32.andb(Word32.>>(x, 0w16), 0w255))),
@@ -307,7 +313,8 @@ struct
     E_Active
   | E_KeyDown of { sym : sdlk }
   | E_KeyUp of { sym : sdlk }
-  | E_MouseMotion of { which : int, state : mousestate, x : int, y : int, xrel : int, yrel : int }
+  | E_MouseMotion of { which : int, state : mousestate, 
+                       x : int, y : int, xrel : int, yrel : int }
   | E_MouseDown of { button : int, x : int, y : int }
   | E_MouseUp of { button : int, x : int, y : int }
   | E_JoyAxis of { which : int, axis : int, v : int }
@@ -1000,7 +1007,12 @@ struct
   fun mouse_wheelup state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELUP - 0w1)) <> 0w0
   fun mouse_wheeldown state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELDOWN - 0w1)) <> 0w0
 
-
+  local val sc = _import "SDL_ShowCursor" : int -> int ;
+  in
+    fun show_cursor true = ignore (sc SDL_ENABLE)
+      | show_cursor false = ignore (sc SDL_DISABLE)
+  end
+      
   local val fl = _import "SDL_Flip" : ptr -> unit ;
   in
     fun flip p = fl (!!p)
@@ -1217,6 +1229,17 @@ struct
               app clippixel (x0, y0) (x1, y1)
           end
   end
+
+  (* PERF don't need bresenham complexity to do this; pretty easy to pre-clip.
+     draws corners multiple times *)
+  fun drawbox (surf, x0, y0, x1, y1, c) =
+      let in
+          drawline (surf, x0, y0, x1, y0, c);
+          drawline (surf, x1, y0, x1, y1, c);
+          drawline (surf, x0, y1, x1, y1, c);
+          drawline (surf, x0, y0, x0, y1, c)
+      end
+      
 
   (* PERF: similar *)
   (* XXX no alpha.. *)
