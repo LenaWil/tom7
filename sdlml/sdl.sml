@@ -939,7 +939,7 @@ struct
      | 5 => E_MouseDown { button = event_mbutton_button_ e,
                           x = event_mbutton_x_ e,
                           y = event_mbutton_y_ e }
-     | 6 => E_MouseUp { button = event8_2nd_ e,
+     | 6 => E_MouseUp { button = event_mbutton_button_ e,
                         x = event_mbutton_x_ e,
                         y = event_mbutton_y_ e }
      | 7 => E_JoyAxis { which = event8_2nd_ e,
@@ -988,17 +988,17 @@ struct
     end
 
   (* These need to agree with SDL_mouse.h, but that ain't going anywhere. *)
-  val SDL_BUTTON_LEFT = 0w1 : Word8.word
-  val SDL_BUTTON_MIDDLE = 0w2 : Word8.word
-  val SDL_BUTTON_RIGHT = 0w3 : Word8.word
-  val SDL_BUTTON_WHEELUP = 0w4 : Word8.word
-  val SDL_BUTTON_WHEELDOWN = 0w5 : Word8.word
+  val SDL_BUTTON_LEFT = 0w1 : Word.word
+  val SDL_BUTTON_MIDDLE = 0w2 : Word.word
+  val SDL_BUTTON_RIGHT = 0w3 : Word.word
+  val SDL_BUTTON_WHEELUP = 0w4 : Word.word
+  val SDL_BUTTON_WHEELDOWN = 0w5 : Word.word
 
-  fun mouse_left state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_LEFT - 1)) <> 0w0
-  fun mouse_middle state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_MIDDLE - 1)) <> 0w0
-  fun mouse_right state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_RIGHT - 1)) <> 0w0
-  fun mouse_wheelup state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELUP - 1)) <> 0w0
-  fun mouse_wheeldown state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELDOWN - 1)) <> 0w0
+  fun mouse_left state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_LEFT - 0w1)) <> 0w0
+  fun mouse_middle state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_MIDDLE - 0w1)) <> 0w0
+  fun mouse_right state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_RIGHT - 0w1)) <> 0w0
+  fun mouse_wheelup state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELUP - 0w1)) <> 0w0
+  fun mouse_wheeldown state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELDOWN - 0w1)) <> 0w0
 
 
   local val fl = _import "SDL_Flip" : ptr -> unit ;
@@ -1140,7 +1140,82 @@ struct
           in
               loop (x, y, f, ddF_x, ddF_y)
           end
+  end
 
+  local 
+      val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
+      structure W = Word32
+      val w2i = W.toIntX
+      val i2w = W.fromInt
+
+      fun pair_swap (x, y) = (y, x)
+      fun pair_map f (x, y) = (f x, f y)
+      fun pair_map2 f (x1, y1) (x2, y2) = (f (x1, x2), f (y1, y2))
+
+      fun build ((x0, y0), (x1, y1), (dx, dy), (stepx, stepy), post) =
+        let val frac0 = dy - Int.quot (dx, 2)
+            fun step (x0, y0, frac) =
+              if x0 = x1
+              then NONE
+              else
+                  let val (y0, frac) = if frac >= 0 
+                                       then (y0 + stepy, frac - dx) 
+                                       else (y0, frac)
+                      val x0 = x0 + stepx
+                      val frac = frac + dy
+                  in SOME ((x0, y0, frac), post (x0, y0)) 
+                  end
+        in ({step = step, seed = (x0, y0, frac0)}, post (x0, y0)) 
+        end
+
+      fun line p0 p1 =
+        let
+            val d = pair_map2 op- p1 p0
+            fun abs c = if c < 0 then (~c, ~1) else (c, 1)
+            val ((dx', stepx), (dy', stepy)) = pair_map abs d
+            val step = (stepx, stepy)
+            val d'' as (dx'', dy'') = pair_map (fn n => n * 2) (dx', dy')
+
+            val swap = pair_swap
+            val cvt = (fn x => x)
+            val seed =
+                if dx'' > dy''
+                then (p0, p1, d'', step, cvt)
+                else (swap p0, swap p1, swap d'', swap step, swap)
+        in build seed
+        end
+
+  in
+      fun drawline (ss, x0, y0, x1, y1, c) =
+          let
+              val s = !!ss
+              val (r, g, b, _) = components32 c
+
+              val sw = surface_width ss
+              val sh = surface_height ss
+
+              fun clippixel (x, y) =
+                  if x < 0 orelse y < 0
+                     orelse x >= sw
+                     orelse y >= sh
+                  then ()
+                  else dp (s, x, y, r, g, b)
+
+              fun app f p0 p1 =
+                  let 
+                      val ({step, seed}, v) = line p0 p1
+                      fun loop seed =
+                          case step seed of
+                              NONE => ()
+                            | SOME (seed', v) => (f v; loop seed')
+                  in 
+                      f v;
+                      loop seed
+                  end
+          in
+              (* PERF could pre-clip, or stop as soon as we get off screen? *)
+              app clippixel (x0, y0) (x1, y1)
+          end
   end
 
   (* PERF: similar *)
