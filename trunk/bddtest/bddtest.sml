@@ -128,11 +128,22 @@ struct
                         p2 = vec2 (toworld (!mousex, !mousey)),
                         max_fraction = 1.0 }
 
+          (* Collide against everything. *)
+          val collisions =
+              List.mapPartial (fn x => x)
+              [BDDCircle.ray_cast (circle, xf, input),
+               BDDPolygon.ray_cast (polygon, xf, input)]
+
+          (* Take the closest collision. *)
+          val collisions = ListUtil.sort
+              (fn ({ fraction = f, ... }, { fraction = ff, ... }) =>
+               Real.compare (f, ff)) collisions
       in
-          (case BDDCircle.ray_cast (circle, xf, input) of
-               NONE => SDL.drawline (screen, x, y, !savex, !savey,
+          (* Ray *)
+          (case collisions of
+               nil => SDL.drawline (screen, x, y, !savex, !savey,
                                      color (0w255, 0w0, 0w0, 0w255))
-             | SOME { normal, fraction } => 
+             | { normal, fraction } :: _ => 
                    let
                        val d = p2 :-: p1
                        val p3 = p1 :+: (fraction *: d)
@@ -149,6 +160,8 @@ struct
                                      color (0w255, 0w255, 0w22, 0w90))
 
                    end);
+
+          (* mouse cursor *)
           SDL.drawcircle (screen, x, y, 3, c)
       end
 
