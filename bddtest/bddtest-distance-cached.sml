@@ -25,8 +25,6 @@ struct
   val HEIGHT = 600
   val screen = makescreen (WIDTH, HEIGHT)
 
-  val () = SDL.show_cursor false
-
   val METERS_PER_PIXEL = 0.01
   fun tometers d = real d * METERS_PER_PIXEL
   fun toworld (xp, yp) =
@@ -35,23 +33,6 @@ struct
           val yp = yp - 300
       in
           (tometers xp, tometers yp)
-      end
-
-  val DRAW_DISTANCES = true
-  val DRAW_RAYS = true
-  val DRAW_COLLISIONS = true
-
-  (* 0xRRGGBB *)
-  fun hexcolor c =
-      let
-          val b = c mod 256
-          val g = (c div 256) mod 256
-          val r = ((c div 256) div 256) mod 256
-      in
-          SDL.color (Word8.fromInt r, 
-                     Word8.fromInt g,
-                     Word8.fromInt b,
-                     0w255)
       end
 
      
@@ -134,13 +115,13 @@ struct
       in
           SDL.drawcircle (screen,
                           x, y, r,
-                          hexcolor 0xFFFFFF)
+                          color (0w255, 0w255, 0w255, 0w255))
       end
 
   fun drawpolygonat (xf, polygon) =
       let
           val num = Array.length (#vertices polygon)
-          val c = hexcolor 0xFFFFA0
+          val c = color (0w255, 0w255, 0w255, 0w200)
 
           val { center, ... } = BDDPolygon.compute_mass (polygon, 1.0)
           val (cx, cy) = vectoscreen (xf @*: center)
@@ -177,8 +158,6 @@ struct
                               (BDDDistance.shape_proxy s,
                                BDDDistance.initial_cache ())) shapes
   fun drawdists () =
-      if DRAW_DISTANCES
-      then
       let
           val fidentity = BDDMath.identity_transform ()
           val pt = vec2 (toworld (!mousex, !mousey))
@@ -186,8 +165,8 @@ struct
 
           val fprox = BDDDistance.shape_proxy (BDDShape.Polygon familiar)
 
-          val c = hexcolor 0x0033FF
-          val cc = hexcolor 0x0077FF
+          val c = color (0w128, 0w0, 0w64, 0w255)
+          val cc = color (0w255, 0w0, 0w128, 0w255)
                       
           fun one (proxy, cache) =
               let
@@ -203,7 +182,7 @@ struct
                   val (ax, ay) = vectoscreen pointa
                   val (bx, by) = vectoscreen pointb
               in
-                  (* print (Int.toString iterations ^ "\n"); *)
+                  print (Int.toString iterations ^ "\n");
                   SDL.drawline (screen, ax, ay, bx, by, c);
                   SDL.drawcircle (screen, ax, ay, 2, c);
                   SDL.drawcircle (screen, bx, by, 2, c)
@@ -211,45 +190,8 @@ struct
       in
           app one distance_proxies
       end
-      else ()
 
-  fun drawcollisions () =
-      if DRAW_COLLISIONS
-      then
-      let
-          val pt = vec2 (toworld (!mousex, !mousey))
-          val fident = BDDMath.identity_transform ()
-          val ffam = BDDMath.transform_pos_angle (pt, !frot)
-          val { point_count,
-                typ, local_point, local_normal, points,
-                ... } =
-              BDDCollision.collide_polygon_and_circle (familiar, ffam,
-                                                       circle, fident)
-      in
-          if point_count = 0
-          then ()
-          else
-              let 
-                  (* It's in local coordinates to the familiar *)
-                  val w = ffam @*: local_point
-                  val (x, y) = vectoscreen w
-
-                  val (xn, yn) = vectoscreen 
-                      (ffam @*: (local_point :+: 0.2 *: local_normal))
-
-                  val { local_point = lp2, ... } = Array.sub(points, 0)
-                  val (xx, yy) = vectoscreen (fident @*: lp2)
-              in
-                  SDL.drawline (screen, x, y, xn, yn, hexcolor 0x771234);
-                  SDL.drawcircle (screen, x, y, 2, hexcolor 0xFF5678);
-                  SDL.drawcircle (screen, xx, yy, 2, hexcolor 0x5678FF)
-              end
-      end
-      else ()
-
-  fun drawrays () =
-      if DRAW_RAYS
-      then 
+  fun drawmouse () =
       let
           val xf = BDDMath.identity_transform ()
           val pt = vec2 (toworld (!mousex, !mousey))
@@ -259,8 +201,8 @@ struct
           val c = 
               if BDDCircle.test_point (circle, xf, pt) orelse
                  BDDPolygon.test_point (polygon, xf, pt)
-              then hexcolor 0xFF0000
-              else hexcolor 0x00FF00
+              then color (0w255, 0w255, 0w0, 0w0)
+              else color (0w255, 0w0, 0w255, 0w0)
 
           val (x, y) = vectoscreen pt
 
@@ -285,7 +227,7 @@ struct
           (* Ray *)
           (case collisions of
                nil => SDL.drawline (screen, x, y, !savex, !savey,
-                                    hexcolor 0x0000FF)
+                                     color (0w255, 0w0, 0w0, 0w255))
              | { normal, fraction } :: _ => 
                    let
                        val d = p2 :-: p1
@@ -295,45 +237,27 @@ struct
                        val (xxx, yyy) = vectoscreen p4
                    in
                        SDL.drawline (screen, x, y, xx, yy,
-                                     hexcolor 0x442244);
+                                     color (0w255, 0w255, 0w0, 0w255));
                        SDL.drawline (screen, xx, yy, !savex, !savey,
-                                     hexcolor 0xFF00FF);
+                                     color (0w255, 0w66, 0w44, 0w66));
                        (* draw normal too *)
                        SDL.drawline (screen, xx, yy, xxx, yyy,
-                                     hexcolor 0xFF2290)
+                                     color (0w255, 0w255, 0w22, 0w90))
+
                    end);
 
           (* mouse cursor *)
-          (* SDL.drawcircle (screen, x, y, 3, c) *)
-          ()
+          SDL.drawcircle (screen, x, y, 3, c)
       end
-      else ()
 
   fun drawsave () =
       let
       in
           SDL.drawcircle (screen, !savex, !savey, 2,
-                          hexcolor 0xFFFF00)
+                          color (0w255, 0w255, 0w255, 0w0))
       end
 
-  fun drawaabbs () =
-      let
-          fun one shape =
-            let
-                val xf = BDDMath.identity_transform ()
-                val { lowerbound, upperbound } = 
-                    BDDShape.compute_aabb (shape, xf)
-                    
-                val (x0, y0) = vectoscreen lowerbound
-                val (x1, y1) = vectoscreen upperbound
-            in
-                SDL.drawbox (screen, x0, y0, x1, y1, hexcolor 0x323232)
-            end
-      in
-          app one shapes
-      end
-
-  fun drawinstructions () =
+  fun drawinstructions ()=
       let
       in
           Font.draw 
@@ -353,15 +277,12 @@ struct
                 else ())
           else ();
 
-          drawaabbs ();
-
           drawsave ();
           drawpolygon polygon;
           drawcircle ();
           drawfamiliar ();
-          drawrays ();
+          drawmouse ();
           drawdists ();
-          drawcollisions ();
 
           drawinstructions ();
 
