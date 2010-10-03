@@ -38,8 +38,9 @@ int ml_resolveip(Uint32 addr, char *dest, int maxlen) {
 int ml_resolvehost(char *name, Uint32 *addr) {
   IPaddress ip;
   if (0 == SDLNet_ResolveHost(&ip, name, 0)) {
-    // XXX don't know why this is backwards. is it a
-    // mingw bug?
+    // XXX experienced some backwardsness here at some
+    // point, possibly a mingw bug? Don't know what
+    // the resolution was. -tom 25 Dec 2009
 #ifdef WIN32
     // ip.host = ml_htonl(ip.host);
 #else
