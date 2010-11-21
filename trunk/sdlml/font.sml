@@ -100,7 +100,7 @@ struct
                we currently support, but in future it might actually affect
                the width. *)
             fun d (attr, w, i) =
-                let fun dr (c, i) = d (attr, w + (width - overlap), i + 1)
+                let fun dr (_, i) = d (attr, w + (width - overlap), i + 1)
                 in
                    if i = size s then w
                    else
