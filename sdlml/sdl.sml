@@ -17,8 +17,10 @@ struct
   exception SDL of string
   exception Invalid
   val null = MLton.Pointer.null
+(*
   fun check (ref p) = if p = null then raise Invalid else ()
   fun clear r = r := null
+*)
 
   fun !! (ref p) = if p = null then raise Invalid else p
 
@@ -1157,8 +1159,6 @@ struct
   local 
       val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
       structure W = Word32
-      val w2i = W.toIntX
-      val i2w = W.fromInt
 
       fun pair_swap (x, y) = (y, x)
       fun pair_map f (x, y) = (f x, f y)
@@ -1213,7 +1213,7 @@ struct
                   then ()
                   else dp (s, x, y, r, g, b)
 
-              fun app f p0 p1 =
+              fun app (f : int * int -> unit) p0 p1 =
                   let 
                       val ({step, seed}, v) = line p0 p1
                       fun loop seed =
@@ -1279,13 +1279,12 @@ struct
           val ofactor = 0w256 - factor
 
           val >> = Word32.>>
-          val & = Word32.andb
-          infix >> &
+          infix >>
 
-          val rrr = (r * factor + rr * ofactor) >> (0w8);
-          val ggg = (g * factor + gg * ofactor) >> (0w8);
-          val bbb = (b * factor + bb * ofactor) >> (0w8);
-          val aaa = (a * factor + aa * ofactor) >> (0w8);
+          val rrr = (r * factor + rr * ofactor) >> 0w8;
+          val ggg = (g * factor + gg * ofactor) >> 0w8;
+          val bbb = (b * factor + bb * ofactor) >> 0w8;
+          val aaa = (a * factor + aa * ofactor) >> 0w8;
       in
           color32 (rrr, ggg, bbb, aaa)
       end
@@ -1389,7 +1388,7 @@ struct
               readcstring r
           end
 
-      fun openjoy n = ref (oj_ ( check n ))
+      fun openjoy n = ref (oj_ (check n))
 
       (* nb, there is SDL_JoystickOpened. but why would we want to
          check this when it should be true by invariant? *)
