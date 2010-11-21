@@ -6,6 +6,12 @@ struct
   infix 6 :+: :-: %-% %+% +++
   infix 7 *: *% +*: +*+ #*% @*:
 
+  structure BDD = BDDWorld(
+    type fixture_data = unit
+    type body_data = unit
+    type joint_data = unit)
+  open BDD
+
   structure U = Util
   open SDL
   structure Util = U
@@ -71,73 +77,8 @@ struct
   fun vectoscreen v = toscreen (vec2xy v)
   fun screentovec (x, y) = vec2 (toworld (x, y))
 
-  val circle = { radius = 0.3,
-                 p = vec2 (1.0, 0.3) }
-
-  val polygon = BDDPolygon.polygon 
-      (map screentovec (rev [(225, 280),
-                             (295, 124),
-                             (185, 36),
-                             (136, 51),
-                             (116, 330)]))
-
-  (* roughly centered around screen origin *)
-  val familiar = BDDPolygon.polygon
-      (map screentovec (rev [(377, 268),
-                             (386, 321),
-                             (418, 329),
-                             (428, 305)]))
-
-  val frot = ref 0.0
-
-  val mousex = ref 0
-  val mousey = ref 0
-
-  val savex = ref 0
-  val savey = ref 0
-
-  exception Done
-
-  val rightmouse = ref false
-
-  fun key () =
-      case pollevent () of
-          NONE => ()
-        | SOME evt =>
-           case evt of
-               E_KeyDown { sym = SDLK_ESCAPE } => raise Done
-             | E_MouseMotion { state : mousestate, x : int, y : int, ... } =>
-                   let in 
-                       mousex := x;
-                       mousey := y
-                   end
-             | E_MouseDown { button = 1, x, y, ... } =>
-                   let in
-                       savex := x;
-                       savey := y
-                   end
-
-             (* right mouse *)
-             | E_MouseDown { button = 3, ... } =>
-                   rightmouse := true
-             | E_MouseUp { button = 3, ... } => 
-                   rightmouse := false
-             | _ => ()
-
-  fun drawcircle () =
-      let
-          (* drawcircle surf x y radius color
-             draws a circle (not filled)
-             *)
-          val (x, y) = toscreen (vec2xy (#p circle))
-          val r = Real.round (topixels (#radius circle))
-      in
-          SDL.drawcircle (screen,
-                          x, y, r,
-                          hexcolor 0xFFFFFF)
-      end
-
-  fun drawpolygonat (xf, polygon, c) =
+  val WHITE = hexcolor 0xFFFFFF
+  fun drawpolygon (xf, polygon) =
       let
           val num = Array.length (#vertices polygon)
 
@@ -152,236 +93,252 @@ struct
                val (x, y) = vectoscreen (xf @*: Array.sub(#vertices polygon, i))
                val (xx, yy) = vectoscreen (xf @*: Array.sub(#vertices polygon, i2))
            in
-               SDL.drawline (screen, x, y, xx, yy, c)
+               SDL.drawline (screen, x, y, xx, yy, WHITE)
            end);
-
-          SDL.drawcircle (screen, cx, cy, 2, c)
+          SDL.drawcircle (screen, cx, cy, 2, WHITE)
       end
 
-  fun drawpolygon polygon =
-      drawpolygonat (BDDMath.identity_transform (), polygon, hexcolor 0xFFFFA0)
-
-  fun drawfamiliar () =
+  fun drawcircle (xf, { radius, p }) =
       let
-          val pt = vec2 (toworld (!mousex, !mousey))
-          val xf = BDDMath.transform_pos_angle (pt, !frot)
+          val p = xf @*: p
+          (* drawcircle surf x y radius color
+             draws a circle (not filled)
+             *)
+          val (x, y) = toscreen (vec2xy p)
+          val r = Real.round (topixels radius)
       in
-          drawpolygonat (xf, familiar, hexcolor 0xFFFFFF)
+          SDL.drawcircle (screen, x, y, r, WHITE)
       end
 
-  (* closest points between familiar and other objects *)
-  val shapes = [BDDShape.Circle circle,
-                BDDShape.Polygon polygon]
-  val distance_proxies = map (fn s =>
-                              (BDDDistance.shape_proxy s,
-                               BDDDistance.initial_cache ())) shapes
-  fun drawdists () =
-      if DRAW_DISTANCES
-      then
+
+  fun drawshape (xf, BDDShape.Circle c) = drawcircle (xf, c)
+    | drawshape (xf, BDDShape.Polygon p) = drawpolygon (xf, p)
+
+
+  fun printpolygon (xf, polygon) =
       let
-          val fidentity = BDDMath.identity_transform ()
-          val pt = vec2 (toworld (!mousex, !mousey))
-          val ffam = BDDMath.transform_pos_angle (pt, !frot)
+          val num = Array.length (#vertices polygon)
 
-          val fprox = BDDDistance.shape_proxy (BDDShape.Polygon familiar)
-
-          val c = hexcolor 0x0033FF
-          val cc = hexcolor 0x0077FF
-                      
-          fun one (proxy, cache) =
-              let
-                  (* XXX try keeping this around *)
-                  (* val cache = BDDDistance.initial_cache () *)
-                  val { pointa, pointb, iterations, ... } =
-                      BDDDistance.distance ({ proxya = fprox,
-                                              proxyb = proxy,
-                                              transforma = ffam,
-                                              transformb = fidentity,
-                                              use_radii = true },
-                                            cache)
-                  val (ax, ay) = vectoscreen pointa
-                  val (bx, by) = vectoscreen pointb
-              in
-                  (* print (Int.toString iterations ^ "\n"); *)
-                  SDL.drawline (screen, ax, ay, bx, by, c);
-                  SDL.drawcircle (screen, ax, ay, 2, c);
-                  SDL.drawcircle (screen, bx, by, 2, c)
-              end
+          val { center, ... } = BDDPolygon.compute_mass (polygon, 1.0)
+          val (cx, cy) = vectoscreen (xf @*: center)
       in
-          app one distance_proxies
+          print "poly: ";
+          Util.for 0 (num - 1)
+          (fn i =>
+           let val i2 = if i = num - 1
+                        then 0
+                        else i + 1
+               val (x, y) = vectoscreen (xf @*: Array.sub(#vertices polygon, i))
+               val (xx, yy) = vectoscreen (xf @*: Array.sub(#vertices polygon, i2))
+           in
+               print (Int.toString x ^ "," ^ Int.toString y ^ " -> ")
+           end);
+          print "\n"
       end
-      else ()
 
-  fun drawcollisions () =
-      if DRAW_COLLISIONS
-      then
+  fun printcircle (xf, { radius, p }) =
       let
-          val pt = vec2 (toworld (!mousex, !mousey))
-          val fident = BDDMath.identity_transform ()
-          val ffam = BDDMath.transform_pos_angle (pt, !frot)
-          val { point_count,
-                typ, local_point, local_normal, points,
-                ... } =
-              BDDCollision.collide_polygon_and_circle (familiar, ffam,
-                                                       circle, fident)
+          val p = xf @*: p
+          val (x, y) = toscreen (vec2xy p)
+          val r = Real.round (topixels radius)
       in
-          if point_count = 0
-          then ()
-          else
-              let 
-                  (* It's in local coordinates to the familiar *)
-                  val w = ffam @*: local_point
-                  val (x, y) = vectoscreen w
-
-                  val (xn, yn) = vectoscreen 
-                      (ffam @*: (local_point :+: 0.2 *: local_normal))
-
-                  val { local_point = lp2, ... } = Array.sub(points, 0)
-                  val (xx, yy) = vectoscreen (fident @*: lp2)
-              in
-                  SDL.drawline (screen, x, y, xn, yn, hexcolor 0x771234);
-                  SDL.drawcircle (screen, x, y, 2, hexcolor 0xFF5678);
-                  SDL.drawcircle (screen, xx, yy, 2, hexcolor 0x5678FF)
-              end
-      end
-      else ()
-
-  exception FAILURE
-  fun drawpolycollisions () =
-      if DRAW_COLLISIONS
-      then
-      let
-          val pt = vec2 (toworld (!mousex, !mousey))
-          val fident = BDDMath.identity_transform ()
-          val ffam = BDDMath.transform_pos_angle (pt, !frot)
-          val { point_count,
-                typ, local_point, local_normal, points,
-                ... } =
-              BDDCollision.collide_polygons (familiar, ffam,
-                                             polygon, fident)
-      in
-          if point_count = 0
-          then ()
-          else
-              let 
-                  val (xf, xff) = case typ of
-                      BDDTypes.E_FaceA => (ffam, fident)
-                    | BDDTypes.E_FaceB => (fident, ffam)
-                    | _ => raise FAILURE
-
-                  (* val () = print "COLLIDE.\n" *)
-                  (* It's in local coordinates to the familiar *)
-                  val w = xf @*: local_point
-                  val (x, y) = vectoscreen w
-
-                  val (xn, yn) = vectoscreen 
-                      (xf @*: (local_point :+: 0.2 *: local_normal))
-
-                  fun onepoint { local_point = lp2, ... } =
-                      let val (xx, yy) = vectoscreen (xff @*: lp2)
-                      in
-                          SDL.drawcircle (screen, xx, yy, 2, hexcolor 0x5678FF)
-                      end
-              in
-                  SDL.drawline (screen, x, y, xn, yn, hexcolor 0x771234);
-                  SDL.drawcircle (screen, x, y, 2, hexcolor 0xFF5678);
-                  Array.app onepoint points
-              end
-      end
-      else ()
-
-  fun drawrays () =
-      if DRAW_RAYS
-      then 
-      let
-          val xf = BDDMath.identity_transform ()
-          val pt = vec2 (toworld (!mousex, !mousey))
-              
-          (* Colliding? *)
-          (* XXX use shapes list *)
-          val c = 
-              if BDDCircle.test_point (circle, xf, pt) orelse
-                 BDDPolygon.test_point (polygon, xf, pt)
-              then hexcolor 0xFF0000
-              else hexcolor 0x00FF00
-
-          val (x, y) = vectoscreen pt
-
-          val p1 = vec2 (toworld (!savex, !savey))
-          val p2 = vec2 (toworld (!mousex, !mousey))
-          val input = { p1 = vec2 (toworld (!savex, !savey)),
-                        p2 = vec2 (toworld (!mousex, !mousey)),
-                        max_fraction = 1.0 }
-
-          (* XXX should use shapes list *)
-          (* Collide against everything. *)
-          val collisions =
-              List.mapPartial (fn x => x)
-              [BDDCircle.ray_cast (circle, xf, input),
-               BDDPolygon.ray_cast (polygon, xf, input)]
-
-          (* Take the closest collision. *)
-          val collisions = ListUtil.sort
-              (fn ({ fraction = f, ... }, { fraction = ff, ... }) =>
-               Real.compare (f, ff)) collisions
-      in
-          (* Ray *)
-          (case collisions of
-               nil => SDL.drawline (screen, x, y, !savex, !savey,
-                                    hexcolor 0x442244)
-             | { normal, fraction } :: _ => 
-                   let
-                       val d = p2 :-: p1
-                       val p3 = p1 :+: (fraction *: d)
-                       val (xx, yy) = vectoscreen p3
-                       val p4 = p3 :+: (0.3 *: normal)
-                       val (xxx, yyy) = vectoscreen p4
-                   in
-                       SDL.drawline (screen, x, y, xx, yy,
-                                     hexcolor 0x442244);
-                       SDL.drawline (screen, xx, yy, !savex, !savey,
-                                     hexcolor 0xFF00FF);
-                       (* draw normal too *)
-                       SDL.drawline (screen, xx, yy, xxx, yyy,
-                                     hexcolor 0xFF2290)
-                   end);
-
-          (* mouse cursor *)
-          (* SDL.drawcircle (screen, x, y, 3, c) *)
-          ()
-      end
-      else ()
-
-  fun drawsave () =
-      let
-      in
-          SDL.drawcircle (screen, !savex, !savey, 2,
-                          hexcolor 0xFFFF00)
+          print ("circle at " ^ Int.toString x ^ "/" ^ Int.toString y ^ 
+                 " @" ^ Int.toString r ^ "\n")
       end
 
-  fun drawaabbs () =
-      let
-          fun one shape =
-            let
-                val xf = BDDMath.identity_transform ()
-                val { lowerbound, upperbound } = 
-                    BDDShape.compute_aabb (shape, xf)
-                    
-                val (x0, y0) = vectoscreen lowerbound
-                val (x1, y1) = vectoscreen upperbound
-            in
-                SDL.drawbox (screen, x0, y0, x1, y1, hexcolor 0x323232)
-            end
-      in
-          app one shapes
-      end
 
+  fun printshape (xf, BDDShape.Circle c) = printcircle (xf, c)
+    | printshape (xf, BDDShape.Polygon p) = printpolygon (xf, p)
+
+(*
+  val circle = { radius = 0.3,
+                 p = vec2 (1.0, 0.3) }
+
+  val polygon = BDDPolygon.polygon 
+      (map screentovec (rev [(225, 280),
+                             (295, 124),
+                             (185, 36),
+                             (136, 51),
+                             (116, 330)]))
+
+  (* roughly centered around screen origin *)
+*)
+  val small_circle = BDDShape.Circle { radius = 0.3,
+                                       p = vec2 (0.0, 0.0) }
+  val familiar_shape = BDDShape.Polygon 
+      (BDDPolygon.polygon
+       (map screentovec (rev [(377, 268),
+                              (386, 321),
+                              (418, 329),
+                              (428, 305)])))
+
+
+  val gravity = vec2 (0.0, 9.8)
+  (* No sleep, for now *)
+  val world = World.world (gravity, false)
+
+
+  val drop = World.create_body 
+      (world,
+       { typ = Body.Dynamic,
+         (* Start at origin. *)
+         position = vec2 (0.0, 0.0),
+         angle = 0.0,
+         linear_velocity = vec2 (0.1, 0.1),
+         angular_velocity = 0.0,
+         linear_damping = 0.0,
+         angular_damping = 0.0,
+         allow_sleep = false,
+         awake = true,
+         fixed_rotation = false,
+         bullet = false,
+         active = true,
+         data = (),
+         inertia_scale = 1.0 })
+
+  (* put a fixture on the drop *)
+  val drop_fixture = 
+      Body.create_fixture_default (drop, familiar_shape,
+                                   (* small_circle, *) (), 1.0)
+
+  (* PS if dynamic and linear velocity of 0,~2, then they have a non-touching
+     collision, which might be a good test case. *)
+  val ground = World.create_body
+      (world,
+       { typ = Body.Static,
+         position = vec2 (0.0, 1.0),
+         angle = 0.0,
+         linear_velocity = vec2 (0.0, 0.0),
+         angular_velocity = 0.0, 
+         linear_damping = 0.0,
+         angular_damping = 0.0,
+         allow_sleep = false,
+         awake = true,
+         fixed_rotation = false,
+         bullet = false,
+         active = true,
+         data = (),
+         inertia_scale = 1.0 })
+
+  val ground_floor =
+      Body.create_fixture_default (ground, 
+                                   BDDShape.Polygon
+                                   (BDDPolygon.box (6.0, 0.2)),
+                                   (), 1.0)
+
+  exception Done
+
+  val rightmouse = ref false
+
+  val PURPLE = hexcolor 0xFF00FF
+  val RED = hexcolor 0xFF0000
+  fun drawworld world =
+    let
+      fun onebody b =
+        let
+            val xf = Body.get_transform b
+            val fixtures = Body.get_fixtures b
+            fun onefixture f =
+                let val shape = Fixture.shape f
+                in drawshape (xf, shape)
+                end
+        in
+            oapp Fixture.get_next onefixture fixtures
+        end
+
+      fun onecontact c =
+        let
+            val world_manifold = { normal = vec2 (~999.0, ~999.0),
+                                   points = Array.fromList
+                                   [ vec2 (~111.0, ~111.0),
+                                     vec2 (~222.0, ~222.0) ] }
+            val { point_count, ... } = Contact.get_manifold c
+            val () = Contact.get_world_manifold (world_manifold, c)
+            (* Where should the normal be drawn from? one of the points? *)
+            val (sx, sy) = vectoscreen (vec2 (0.0, 0.0))
+            val (dx, dy) = vectoscreen (#normal world_manifold)
+        in
+            SDL.drawline (screen, sx, sy, dx, dy, RED);
+
+            for 0 (point_count - 1) 
+            (fn i =>
+             let val pt = Array.sub(#points world_manifold, i)
+                 val (x, y) = vectoscreen pt
+             in
+                 SDL.drawcircle (screen, x, y, 2, PURPLE)
+             end)
+        end
+   in
+      oapp Body.get_next onebody (World.get_body_list world);
+      oapp Contact.get_next onecontact (World.get_contact_list world)
+    end
+
+  fun printworld world =
+    let
+      fun onebody b =
+        let
+            val xf = Body.get_transform b
+            val fixtures = Body.get_fixtures b
+            fun onefixture f =
+                let
+                    val shape = Fixture.shape f
+                in
+                    print "Fixture.\n";
+                    printshape (xf, shape)
+                end
+        in
+            print "Body.\n";
+            oapp Fixture.get_next onefixture fixtures
+        end
+
+      fun onecontact c =
+        let
+            val world_manifold = { normal = vec2 (~999.0, ~999.0),
+                                   points = Array.fromList
+                                   [ vec2 (~111.0, ~111.0),
+                                     vec2 (~222.0, ~222.0) ] }
+            val { point_count, ... } = Contact.get_manifold c
+            val () = Contact.get_world_manifold (world_manifold, c)
+        in
+            print "Contact! ";
+            if Contact.is_touching c
+            then print "touching "
+            else ();
+            print (Int.toString point_count ^ " points: ");
+            for 0 (point_count - 1) 
+            (fn i =>
+             let val pt = Array.sub(#points world_manifold, i)
+                 val (x, y) = vectoscreen pt
+             in
+                 print (Int.toString x ^ "," ^ Int.toString y ^ " ")
+             end);
+
+            print "\n"
+        end
+    in
+      oapp Body.get_next onebody (World.get_body_list world);
+      oapp Contact.get_next onecontact (World.get_contact_list world)
+    end
+
+  fun key () =
+      case pollevent () of
+          NONE => ()
+        | SOME evt =>
+           case evt of
+               E_KeyDown { sym = SDLK_ESCAPE } => raise Done
+             | E_KeyDown { sym = SDLK_SPACE } => 
+                   let in
+                       (* 100ms time step *)
+                       World.step (world, 0.01, 10, 10);
+                       printworld world
+                   end
+             | _ => ()
   fun drawinstructions () =
       let
       in
           Font.draw 
           (screen, 1, 1, 
-           "^3BoxDiaDia test^<. ^1left mouse^< to cast ray. ^1right^< to rotate familiar.")
+           "^3BoxDiaDia dynamics test^<. You just watch")
       end
 
   fun loop () =
@@ -389,36 +346,32 @@ struct
 
           clearsurface (screen, color (0w255, 0w0, 0w0, 0w0));
 
-          if !rightmouse
-          then (frot := !frot + 0.002;
-                if !frot > 2.0 * Math.pi
-                then frot := !frot - 2.0 * Math.pi
-                else ())
-          else ();
-
-          drawaabbs ();
-
-          drawsave ();
-          drawpolygon polygon;
-          drawcircle ();
-          drawfamiliar ();
-          drawrays ();
-          drawdists ();
-          drawcollisions ();
-          drawpolycollisions ();
-
+          drawworld world;
           drawinstructions ();
 
           flip screen;
 
           key ();
           delay 1;
+          (* World.step (world, 0.001, 10, 10); *)
+
           loop ()
       end
 
 
-
   val () = loop ()
-
+  handle e =>
+      let in
+          print ("unhandled exception " ^
+                 exnName e ^ ": " ^
+                 exnMessage e ^ ": ");
+          (case e of
+               BDDDynamics.BDDDynamics s => print s
+             | _ => print "unknown");
+          print "\nhistory:\n";
+          app (fn l => print ("  " ^ l ^ "\n")) (Port.exnhistory e);
+          print "\n"
+      end
+                   
 end
 
