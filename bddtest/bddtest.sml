@@ -8,7 +8,7 @@ struct
 
   structure BDD = BDDWorld(
     type fixture_data = unit
-    type body_data = unit
+    type body_data = string
     type joint_data = unit)
   open BDD
 
@@ -120,7 +120,7 @@ struct
           val num = Array.length (#vertices polygon)
 
           val { center, ... } = BDDPolygon.compute_mass (polygon, 1.0)
-          val (cx, cy) = vectoscreen (xf @*: center)
+          (* val (cx, cy) = vectoscreen (xf @*: center) *)
       in
           print "poly: ";
           Util.for 0 (num - 1)
@@ -129,7 +129,7 @@ struct
                         then 0
                         else i + 1
                val (x, y) = vectoscreen (xf @*: Array.sub(#vertices polygon, i))
-               val (xx, yy) = vectoscreen (xf @*: Array.sub(#vertices polygon, i2))
+               (* val (xx, yy) = vectoscreen (xf @*: Array.sub(#vertices polygon, i2)) *)
            in
                print (Int.toString x ^ "," ^ Int.toString y ^ " -> ")
            end);
@@ -182,9 +182,9 @@ struct
       (world,
        { typ = Body.Dynamic,
          (* Start at origin. *)
-         position = vec2 (0.0, 0.0),
+         position = vec2 (0.0, 0.12),
          angle = 0.0,
-         linear_velocity = vec2 (0.1, 0.1),
+         linear_velocity = vec2 (0.1, 0.2),
          angular_velocity = 0.0,
          linear_damping = 0.0,
          angular_damping = 0.0,
@@ -193,20 +193,22 @@ struct
          fixed_rotation = false,
          bullet = false,
          active = true,
-         data = (),
+         data = "drop",
          inertia_scale = 1.0 })
 
   (* put a fixture on the drop *)
   val drop_fixture = 
-      Body.create_fixture_default (drop, familiar_shape,
-                                   (* small_circle, *) (), 1.0)
+      Body.create_fixture_default (drop, 
+                                   (* familiar_shape, *)
+                                   small_circle,
+                                   (), 1.0)
 
   (* PS if dynamic and linear velocity of 0,~2, then they have a non-touching
      collision, which might be a good test case. *)
   val ground = World.create_body
       (world,
        { typ = Body.Static,
-         position = vec2 (0.0, 1.0),
+         position = vec2 (0.0, 0.75),
          angle = 0.0,
          linear_velocity = vec2 (0.0, 0.0),
          angular_velocity = 0.0, 
@@ -217,7 +219,7 @@ struct
          fixed_rotation = false,
          bullet = false,
          active = true,
-         data = (),
+         data = "ground",
          inertia_scale = 1.0 })
 
   val ground_floor =
@@ -273,11 +275,17 @@ struct
       oapp Contact.get_next onecontact (World.get_contact_list world)
     end
 
+  val rtos = Real.fmt (StringCvt.FIX (SOME 2))
+
   fun printworld world =
     let
       fun onebody b =
+          (* Print only the drop. *)
+        if Body.get_data b = "drop"
+        then
         let
             val xf = Body.get_transform b
+                (*
             val fixtures = Body.get_fixtures b
             fun onefixture f =
                 let
@@ -288,8 +296,13 @@ struct
                 end
         in
             print "Body.\n";
-            oapp Fixture.get_next onefixture fixtures
+            oapp Fixture.get_next onefixture fixtures *)
+            val pos = transformposition xf
+        in
+            print ("  xf: " ^ rtos (vec2x pos) ^
+                   " " ^ rtos (vec2y pos) ^ "\n")
         end
+        else ()
 
       fun onecontact c =
         let
@@ -308,9 +321,9 @@ struct
             for 0 (point_count - 1) 
             (fn i =>
              let val pt = Array.sub(#points world_manifold, i)
-                 val (x, y) = vectoscreen pt
+                 (* val (x, y) = vectoscreen pt *)
              in
-                 print (Int.toString x ^ "," ^ Int.toString y ^ " ")
+                 print (rtos (vec2x pt) ^ "," ^ rtos (vec2y pt) ^ " ")
              end);
 
             print "\n"
@@ -320,6 +333,7 @@ struct
       oapp Contact.get_next onecontact (World.get_contact_list world)
     end
 
+  val iters = ref 0
   fun key () =
       case pollevent () of
           NONE => ()
@@ -328,9 +342,11 @@ struct
                E_KeyDown { sym = SDLK_ESCAPE } => raise Done
              | E_KeyDown { sym = SDLK_SPACE } => 
                    let in
+                       print ("=== Step " ^ Int.toString (!iters) ^ " ===\n");
                        (* 100ms time step *)
                        World.step (world, 0.01, 10, 10);
-                       printworld world
+                       printworld world;
+                       iters := !iters + 1
                    end
              | _ => ()
   fun drawinstructions () =
