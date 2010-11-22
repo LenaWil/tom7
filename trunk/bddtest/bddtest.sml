@@ -277,6 +277,11 @@ struct
 
   val rtos = Real.fmt (StringCvt.FIX (SOME 2))
 
+  fun getfixturename (f : fixture) =
+    let val b = Fixture.get_body f
+    in Body.get_data b
+    end
+
   fun printworld world =
     let
       fun onebody b =
@@ -312,8 +317,10 @@ struct
                                      vec2 (~222.0, ~222.0) ] }
             val { point_count, ... } = Contact.get_manifold c
             val () = Contact.get_world_manifold (world_manifold, c)
+            val name1 = getfixturename (Contact.get_fixture_a c)
+            val name2 = getfixturename (Contact.get_fixture_b c)
         in
-            print "Contact! ";
+            print (name1 ^ "-" ^ name2 ^ " Contact! ");
             if Contact.is_touching c
             then print "touching "
             else ();
@@ -356,7 +363,7 @@ struct
           (screen, 1, 1, 
            "^3BoxDiaDia dynamics test^<. You just watch")
       end
-
+(*
   fun loop () =
       let in
 
@@ -373,7 +380,19 @@ struct
 
           loop ()
       end
+*)
 
+  val () = print "*** Startup ***\n"
+  val () = printworld world
+
+  fun loop () =
+      for 0 1
+      (fn i =>
+       let in
+           print ("\n=== Step " ^ Int.toString i ^ " ===\n");
+           World.step (world, 0.01, 10, 10);
+           printworld world
+       end)
 
   val () = loop ()
   handle e =>

@@ -14,6 +14,10 @@ sdlmix.o: ../sdlml/sdlmix.c
 bddtest.exe : sdlml.o *.sml bddtest.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml
 	mlton @MLton max-heap 200m -- -const 'Exn.keepHistory true' -default-ann 'warnUnused true' -default-ann 'sequenceNonUnit warn' -cc-opt "-I/usr/local/include" -link-opt "`/usr/local/bin/sdl-config --libs` -lSDL_image -lSDL_mixer -ltiff -lpng -ljpeg -lz -lmad -lvorbisfile -lvorbis -logg" -output $@ -default-ann 'allowFFI true' bddtest.cm sdlml.o sdlmix.o messagebox_fake.o
 
+# -const 'Exn.keepHistory true'
+bddtest-polygon-collisions.exe : sdlml.o *.sml bddtest-polygon-collisions.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml
+	mlton @MLton max-heap 200m -- -const 'Exn.keepHistory true' -default-ann 'warnUnused true' -default-ann 'sequenceNonUnit warn' -cc-opt "-I/usr/local/include" -link-opt "`/usr/local/bin/sdl-config --libs` -lSDL_image -lSDL_mixer -ltiff -lpng -ljpeg -lz -lmad -lvorbisfile -lvorbis -logg" -output $@ -default-ann 'allowFFI true' bddtest-polygon-collisions.cm sdlml.o sdlmix.o messagebox_fake.o
+
 
 # C++ versions
 
@@ -27,3 +31,6 @@ box2dtest.exe : box2dtest.cc ${OFILES}
 
 hello.exe : hello.cc
 	g++ -O -I . hello.cc -o hello.exe
+
+clean :
+	rm -f *.o *.exe ${OFILES}

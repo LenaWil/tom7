@@ -85,6 +85,14 @@ void printfixture (const b2Transform &xf, b2Fixture *f) {
   
 }
 
+const char *GetFixtureName(b2Fixture *f) {
+  if (!f) return "NULL_FIXTURE";
+  const b2Body *b = f->GetBody();
+  if (!b) return "NULL_BODY";
+  if (!b->GetUserData()) return "NULL_DATA";
+  else return (const char *)b->GetUserData();
+}
+
 void printworld (b2World *world) {
   for (b2Body *b = world->GetBodyList(); b != NULL; b = b->GetNext()) {
     // Only print drop's activity
@@ -103,7 +111,9 @@ void printworld (b2World *world) {
   }
 
   for (b2Contact *c = world->GetContactList(); c != NULL; c = c->GetNext()) {
-    printf("Contact! ");
+    const char *name1 = GetFixtureName(c->GetFixtureA());
+    const char *name2 = GetFixtureName(c->GetFixtureB());
+    printf("%s-%s Contact! ", name1, name2);
     if (c->IsTouching()) {
       printf("touching ");
     }
@@ -217,14 +227,16 @@ int main () {
   b2Fixture *ground_fixture = groundBody->CreateFixture(&groundShape, 1.0);
   
 
-  
-  for (int i = 0; i < 20; i++) {
+  printf("\n*** Startup ***\n");
+  printworld(&world);  
+
+  for (int i = 0; i < 1; i++) {
     printf("\n=== Step %d ===\n", i);
     world.Step (0.01, 10, 10);
     printworld(&world);
   }
 
-  printf("\nDone.\n");
+  printf("\n\nDone.\n");
   return 0;
   /*
 
