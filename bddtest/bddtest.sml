@@ -304,8 +304,7 @@ struct
             oapp Fixture.get_next onefixture fixtures *)
             val pos = transformposition xf
         in
-            print ("  xf: " ^ rtos (vec2x pos) ^
-                   " " ^ rtos (vec2y pos) ^ "\n")
+            print ("drop xf: " ^ xftos xf ^ "\n")
         end
         else ()
 
@@ -363,6 +362,7 @@ struct
           (screen, 1, 1, 
            "^3BoxDiaDia dynamics test^<. You just watch")
       end
+
 (*
   fun loop () =
       let in
@@ -386,13 +386,14 @@ struct
   val () = printworld world
 
   fun loop () =
-      for 0 1
+      for 0 (* 14 *) 14
       (fn i =>
        let in
            print ("\n=== Step " ^ Int.toString i ^ " ===\n");
            World.step (world, 0.01, 10, 10);
            printworld world
        end)
+
 
   val () = loop ()
   handle e =>

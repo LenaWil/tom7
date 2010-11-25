@@ -97,10 +97,8 @@ void printworld (b2World *world) {
   for (b2Body *b = world->GetBodyList(); b != NULL; b = b->GetNext()) {
     // Only print drop's activity
     if (0 == strcmp((const char*) b->GetUserData(), "drop")) {
-      printf("Body: \n");
       b2Transform xf = b->GetTransform();
-      printf("  xf: %.2f %.2f  @%.2f\n", xf.position.x, xf.position.y,
-	     xf.GetAngle());
+      printf("drop xf: %s\n", xftos(xf).c_str());
       /*
       for (b2Fixture *f = b->GetFixtureList(); f != NULL; f = f->GetNext()) {
 	printf("  Fixture.\n");
@@ -125,6 +123,7 @@ void printworld (b2World *world) {
       printf("%.2f %.2f, ", world_manifold.points[i].x,
 	     world_manifold.points[i].y);
     }
+    printf("\n");
   }
   /*
       fun onebody b =
@@ -230,7 +229,7 @@ int main () {
   printf("\n*** Startup ***\n");
   printworld(&world);  
 
-  for (int i = 0; i < 1; i++) {
+  for (int i = 0; i <= 14 /* 14 */; i++) {
     printf("\n=== Step %d ===\n", i);
     world.Step (0.01, 10, 10);
     printworld(&world);

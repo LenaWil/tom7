@@ -10,13 +10,18 @@ sdlml.o : ../sdlml/sdlml.c
 sdlmix.o: ../sdlml/sdlmix.c
 	gcc -O `/usr/local/bin/sdl-config --cflags` -c ../sdlml/sdlmix.c -o sdlmix.o
 
+SMLS = prelude.sml images.sml real32.sml
+
 # -const 'Exn.keepHistory true'
-bddtest.exe : sdlml.o *.sml bddtest.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml
+bddtest.exe : sdlml.o bddtest.sml ${SMLS} bddtest.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml
 	mlton @MLton max-heap 200m -- -const 'Exn.keepHistory true' -default-ann 'warnUnused true' -default-ann 'sequenceNonUnit warn' -cc-opt "-I/usr/local/include" -link-opt "`/usr/local/bin/sdl-config --libs` -lSDL_image -lSDL_mixer -ltiff -lpng -ljpeg -lz -lmad -lvorbisfile -lvorbis -logg" -output $@ -default-ann 'allowFFI true' bddtest.cm sdlml.o sdlmix.o messagebox_fake.o
 
 # -const 'Exn.keepHistory true'
-bddtest-polygon-collisions.exe : sdlml.o *.sml bddtest-polygon-collisions.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml
+bddtest-polygon-collisions.exe : sdlml.o bddtest-polygon-collisions.sml ${SMLS} bddtest-polygon-collisions.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml
 	mlton @MLton max-heap 200m -- -const 'Exn.keepHistory true' -default-ann 'warnUnused true' -default-ann 'sequenceNonUnit warn' -cc-opt "-I/usr/local/include" -link-opt "`/usr/local/bin/sdl-config --libs` -lSDL_image -lSDL_mixer -ltiff -lpng -ljpeg -lz -lmad -lvorbisfile -lvorbis -logg" -output $@ -default-ann 'allowFFI true' bddtest-polygon-collisions.cm sdlml.o sdlmix.o messagebox_fake.o
+
+bdiff.exe : bdiff.sml bdiff.cm makefile ../sml-lib/util/*.sml
+	mlton @MLton max-heap 200m --  -cc-opt "-I/usr/local/include" -link-opt "-L/usr/local/lib -lmingw32 -mwindows" -output $@ bdiff.cm
 
 
 # C++ versions
@@ -31,6 +36,16 @@ box2dtest.exe : box2dtest.cc ${OFILES}
 
 hello.exe : hello.cc
 	g++ -O -I . hello.cc -o hello.exe
+
+
+box2d.trace : box2dtest.exe
+	./box2dtest > box2d.trace
+
+bdd.trace : bddtest.exe
+	./bddtest > bdd.trace
+
+# compare : box2d.trace bdd.trace bdiff.exe
+# 	./bdiff
 
 clean :
 	rm -f *.o *.exe ${OFILES}
