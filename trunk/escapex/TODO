@@ -188,6 +188,7 @@ http://sourceforge.net/project/downloading.php?groupname=optipng&filename=optipn
 **** suggest register (when?)
 **** suggest tutorial (when any remains)
 *** When saving in editor: Overwrite file? y/N
+*** Pie charts for ratings instead of bar widths?
 
 ** net stuff??
 *** register player
@@ -219,6 +220,8 @@ http://sourceforge.net/project/downloading.php?groupname=optipng&filename=optipn
 
 ** Bugs
 
+*** When a level can't be downloaded from the server, all updating stops,
+    and it reports success (2959 bug)?
 *** Solution management (defaults, automatic saving when beating a level, downloads, 
     bookmarks vs. solutions, etc.) is pretty messed up. Write a real spec for 
     addsolution, implement it, and use it.

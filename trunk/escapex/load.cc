@@ -341,6 +341,10 @@ struct loadlevelreal : public loadlevel {
     }
   }
 
+  // aka "ctrl-0"
+  void solvefrombookmarks(const string &filename, bool wholedir);
+
+
   static sortstyle sortby;
 
   struct dircache * cache;
@@ -978,6 +982,130 @@ void loadlevelreal::drawsmall() {
   }
 }
 
+void loadlevelreal::solvefrombookmarks(const string &filename,
+				       bool wholedir) {
+  player * rp = player::fromfile(filename);
+  if (!rp) {
+    message::quick(this, 
+		   "Couldn't open/understand that player file.",
+		   "OK", "", PICS XICON POP);
+    sel->redraw();
+    return;
+  }
+
+  extent<player> erp(rp);
+
+  int nsolved = 0;
+
+  /* progress meter.. */
+  int pe = 0; // SDL_GetTicks() + (PROGRESS_TICKS * 2);
+
+  int total = 0;
+  {
+    for(int i = 0; i < sel->number; i ++) {
+      if ((!sel->items[i].isdir) &&
+	  (!sel->items[i].solved)) {
+	total ++;
+      }
+    }
+  }
+
+  /* for each unsolved level, try to recover solution */
+  int done = 0;
+  string solveds;
+  // XXX honor wholedir
+  for(int i = 0; i < sel->number; i ++) {
+    if ((wholedir || i == sel->selected) &&
+	!sel->items[i].isdir &&
+	!sel->items[i].solved) {
+
+      done++;
+
+      /* check every solution in rp. */
+      ptrlist<solution> * all = rp->all_solutions();
+
+      /* we don't need to delete these solutions */
+      int snn = 0;
+
+      // XXX check for esc keypress
+      while (all) {
+	solution * s = ptrlist<solution>::pop(all);
+
+	/* PERF verify does its own cloning */
+	level * l = sel->items[i].lev->clone();
+
+	solution * out;
+
+	progress::drawbar((void*)&pe,
+			  done, total, 
+			  GREY "(" + itos(nsolved) + ") " POP
+			  + sel->items[i].name + " " + 
+			  GREY + "(sol #" + itos(snn) + ")"
+			  "\n" 
+			  ALPHA100 GREEN +
+			  solveds);
+
+	snn ++;
+
+	/* printf("try %p on %p\n", s, l); */
+	if (level::verify_prefix(l, s, out)) {
+
+	  /* XX should be length of prefix that solves */
+	  sel->items[i].solved = 1;
+	  string af = sel->items[i].actualfile(path);
+
+	  /* XXX PERF md5s are stored */
+	  FILE * f = fopen(af.c_str(), "rb");
+	  if (!f) {
+	    message::bug(this, "couldn't open in recovery");
+	    sel->redraw ();
+	    continue;
+	  }
+	  string md5 = md5::hashf(f);
+
+	  fclose(f);
+
+	  /* extend progress msg */
+	  {
+	    if (solveds != "") solveds += GREY ", ";
+	    solveds += GREEN ALPHA100 + l->title;
+	    solveds = font::truncate(solveds, 
+				     /* keep right side, not left */
+				     -(
+				       -1 + 
+				       (screen->w /
+					(fonsmall->width - fonsmall->overlap))));
+	    /* force draw */
+	    pe = 0;
+	  }
+
+	  /* save solution now */
+	  {
+	    namedsolution ns(out, "Recovered", plr->name, 
+			     time(0), false);
+	    plr->addsolution(md5, &ns);
+	  }
+	  nsolved ++;
+	  out->destroy();
+
+	  /* then don't bother looking at the tail */
+	  ptrlist<solution>::diminish(all);
+	}
+
+	l->destroy();
+      }
+    }
+  }
+
+  if (nsolved > 0) {
+    plr->writefile();
+  } else {
+    message::quick(this,
+		   "Couldn't recover any new solutions.",
+		   "OK", "", PICS EXCICON POP);
+  }
+}
+
 string loadlevelreal::loop() {
 
   sel->redraw();
@@ -1328,134 +1456,67 @@ string loadlevelreal::loop() {
 	  continue;
 	case SDLK_0:
 	  if (event.key.keysym.mod & KMOD_CTRL) {
-	    // XXX TODO: Should use menu, and prompt for whether we're trying
-	    // to solve every level in the diretory, or just the selected one.
-	    string recp = prompt::ask(this, "Recover solutions from file: ",
-				      lastrecover);
-	  
-	    player * rp = player::fromfile(recp);
 
-	    if (!rp) {
-	      message::quick(this, 
-			     "Couldn't open/understand that player file.",
-			     "OK", "", PICS XICON POP);
-	      sel->redraw ();
-	      continue;
+	    label message1, message2, message3, message4;
+	    message1.text = PICS BOOKMARKPIC POP " Solve from bookmarks.";
+	    message2.text = "    Note: This will often solve loose or short levels";
+	    message3.text = "    that you've never seen before, which is a little";
+	    message4.text = "    bit like cheating, right?";
+
+	    vspace spacer(fon->height);
+
+	    textinput filename;
+	    filename.question = "Player file:";
+	    filename.explanation = 
+	      "Name of the player file (.esp) to read solutions from.";
+	    filename.accept_on_enter = false;
+	    // XXX TODO: Set current player file as the default, since
+	    // that is usually what you want.
+	    filename.input = lastrecover;
+
+	    toggle everything;
+	    everything.checked = false;
+	    everything.question = "Everything in the directory.";
+	    everything.explanation = 
+	      "If checked, then try solving every level in the directory.\n"
+	      "Not recommended unless you are recovering a bookmarks file.";
+
+	    int what;
+	    okay solve("Try to solve", &what, 1);
+	    solve.explanation = 
+	      "Try to solve the level or levels.\n"
+	      "Saves solutions if successful!";
+
+	    cancel can;
+	    can.text = "Cancel";
+
+	    ptrlist<menuitem> * l = 0;
+
+	    ptrlist<menuitem>::push(l, &can);
+	    ptrlist<menuitem>::push(l, &spacer);
+
+	    ptrlist<menuitem>::push(l, &solve);
+	    ptrlist<menuitem>::push(l, &everything);
+	    ptrlist<menuitem>::push(l, &filename);
+
+	    ptrlist<menuitem>::push(l, &spacer);
+	    ptrlist<menuitem>::push(l, &message4);
+	    ptrlist<menuitem>::push(l, &message3);
+	    ptrlist<menuitem>::push(l, &message2);
+	    ptrlist<menuitem>::push(l, &message1);
+
+	    /* display menu */
+	    menu * mm = menu::create(this, "Solve from bookmarks?", l, false);
+	    resultkind res = mm->menuize();
+
+	    if (res == MR_OK) {
+	      solvefrombookmarks(filename.input, everything.checked);
 	    }
 
-	    extent<player> erp(rp);
+	    ptrlist<menuitem>::diminish(l);
+	    mm->destroy();
 
-	    int nsolved = 0;
-
-	    /* progress meter.. */
-	    int pe = 0; // SDL_GetTicks() + (PROGRESS_TICKS * 2);
-
-	    int total = 0;
-	    {
-	      for(int i = 0; i < sel->number; i ++) {
-		if ((!sel->items[i].isdir) &&
-		    (!sel->items[i].solved)) {
-		  total ++;
-		}
-	      }
-	    }
-
-	    /* for each unsolved level, try to recover solution */
-	    int done = 0;
-	    string solveds;
-	    for(int i = 0; i < sel->number; i ++) {
-	      if ((!sel->items[i].isdir) &&
-		  (!sel->items[i].solved)) {
-		
-		done++;
-		
-		/* check every solution in rp. */
-		ptrlist<solution> * all = rp->all_solutions();
-
-		/* we don't need to delete these solutions */
-		int snn = 0;
-
-		// XXX check for esc keypress
-		while (all) {
-		  solution * s = ptrlist<solution>::pop(all);
-
-		  /* PERF verify does its own cloning */
-		  level * l = sel->items[i].lev->clone();
-
-		  solution * out;
-		  
-		  progress::drawbar((void*)&pe,
-				    done, total, 
-				    GREY "(" + itos(nsolved) + ") " POP
-				    + sel->items[i].name + " " + 
-				    GREY + "(sol #" + itos(snn) + ")"
-				    "\n" 
-				    ALPHA100 GREEN +
-				    solveds);
-		  
-		  snn ++;
-
-		  /* printf("try %p on %p\n", s, l); */
-		  if (level::verify_prefix(l, s, out)) {
-
-		    /* XX should be length of prefix that solves */
-		    sel->items[i].solved = 1;
-		    string af = sel->items[i].actualfile(path);
-
-		    /* XXX PERF md5s are stored */
-		    FILE * f = fopen(af.c_str(), "rb");
-		    if (!f) {
-		      message::bug(this, "couldn't open in recovery");
-		      sel->redraw ();
-		      continue;
-		    }
-		    string md5 = md5::hashf(f);
-
-		    fclose(f);
-
-		    /* extend progress msg */
-		    {
-		      if (solveds != "") solveds += GREY ", ";
-		      solveds += GREEN ALPHA100 + l->title;
-		      solveds = font::truncate(solveds, 
-					       /* keep right side, not left */
-					       -(
-					       -1 + 
-					       (screen->w /
-						(fonsmall->width - fonsmall->overlap))));
-		      /* force draw */
-		      pe = 0;
-		    }
-
-		    /* save solution now */
-		    {
-		      namedsolution ns(out, "Recovered", plr->name, 
-				       time(0), false);
-		      plr->addsolution(md5, &ns);
-		    }
-		    nsolved ++;
-		    out->destroy();
-
-		    /* then don't bother looking at the tail */
-		    ptrlist<solution>::diminish(all);
-		  }
-
-		  l->destroy();
-		}
-	      }
-	    }
-
-
-	    if (nsolved > 0) {
-
-	      plr->writefile();
-
-	    } else message::quick(this,
-				  "Couldn't recover any new solutions.",
-				  "OK", "", PICS EXCICON POP);
-
-
-	    fix_show ();
+	    fix_show();
 	    sel->redraw();
 	  } else break;
 	  continue;
