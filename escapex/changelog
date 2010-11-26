@@ -1,3 +1,8 @@
+2010-11-26  Tom 7  <Tom@WARPZONE>
+
+        * load.cc: Improved the interface for ctrl-0 (from the loader)
+          and made it possible to just run it on a single level.
+
 2010-01-18  Tom 7  <Tom@WARPZONE>
 
         * upper.cc: Made the upgrade process more robust (thanks adam!)
