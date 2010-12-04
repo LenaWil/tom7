@@ -59,7 +59,7 @@ static   int oldpass[NMIX][NBANDS];
 double effect;
 // #define EFFECT_FREQ(f) (((f) * (1.0 + (0.059463094359 * effect))))
 #define EFFECT_FREQ(f) (f)
-#define EFFECT_POST(s) (s)
+// #define EFFECT_POST(s) (s)
 
 static const int decimate_masks[] = {
   0x0000,
@@ -119,106 +119,107 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
       switch(cur_inst[ch]) {
       case INST_NONE: break;
       case INST_RHODES: {
-	// XXX
+        // XXX
       } 
-	/* FALLTHROUGH */
+        /* FALLTHROUGH */
       case INST_SINE: {
-	double cycle = (((double)RATE * HZFACTOR) / EFFECT_FREQ(cur_freq[ch]) );
-	/* as a fraction of cycle */
-	double t = fmod(samples[ch], cycle);
-	double val = ( (double)cur_vol[ch] * sin((t/cycle) * 2.0 * PI) );
-	if (samples[ch] < ENV_FADEIN_SAMPLES) {
-	  val *= (samples[ch] / (float)ENV_FADEIN_SAMPLES);
-	}
-	// printf("Fading %d @%d\n", ch, fades[ch]);
-	if (fades[ch] >= 0) {
-	  fades[ch] --;
-	  val *= (fades[ch] / (float)ENV_FADEOUT_SAMPLES);
-	}
+        double cycle = (((double)RATE * HZFACTOR) / EFFECT_FREQ(cur_freq[ch]) );
+        /* as a fraction of cycle */
+        double t = fmod(samples[ch], cycle);
+        double val = ( (double)cur_vol[ch] * sin((t/cycle) * 2.0 * PI) );
+        if (samples[ch] < ENV_FADEIN_SAMPLES) {
+          val *= (samples[ch] / (float)ENV_FADEIN_SAMPLES);
+        }
+        // printf("Fading %d @%d\n", ch, fades[ch]);
+        if (fades[ch] >= 0) {
+          fades[ch] --;
+          val *= (fades[ch] / (float)ENV_FADEOUT_SAMPLES);
+        }
 
-	mag += (int) val;
-	samples[ch] ++;
+        mag += (int) val;
+        samples[ch] ++;
 
- 	if (fades[ch] == 0) {
-	  // printf("Fade ends for %d.\n", ch);
-	  cur_inst[ch] = INST_NONE;
-	  cur_vol[ch] = 0;
-	  fades[ch] = -1;
-	}
+        if (fades[ch] == 0) {
+          // printf("Fade ends for %d.\n", ch);
+          cur_inst[ch] = INST_NONE;
+          cur_vol[ch] = 0;
+          fades[ch] = -1;
+        }
 
-	break;
+        break;
       }
       case INST_SAW: {
-	samples[ch] ++;
-	double cycle = (((double)RATE * HZFACTOR) / EFFECT_FREQ(cur_freq[ch]));
-	double pos = fmod(samples[ch], cycle);
-	/* sweeping from -vol to +vol with period 'cycle' */
-	mag += -cur_vol[ch] + (int)( (pos / cycle) * 2.0 * cur_vol[ch] );
+        samples[ch] ++;
+        double cycle = (((double)RATE * HZFACTOR) / EFFECT_FREQ(cur_freq[ch]));
+        double pos = fmod(samples[ch], cycle);
+        /* sweeping from -vol to +vol with period 'cycle' */
+        mag += -cur_vol[ch] + (int)( (pos / cycle) * 2.0 * cur_vol[ch] );
 
-	break;
+        break;
       }
       case INST_SQUARE: {
-	samples[ch] ++;
-	/* the frequency is the number of cycles per HZFACTOR seconds.
-	   so the length of one cycle in samples is (RATE*HZFACTOR)/cur_freq. 
-	   
-	   PERF: fmod is pretty slow and it is easy to make square
-	   waves with other means.
-	*/
-	double cycle = (((double)RATE * HZFACTOR) / EFFECT_FREQ(cur_freq[ch]));
-	double pos = fmod(samples[ch], cycle);
-	/* sweeping from -vol to +vol with period 'cycle' */
-	mag += (pos > (cycle/2.0))?cur_vol[ch]:-cur_vol[ch];
+        samples[ch] ++;
+        /* the frequency is the number of cycles per HZFACTOR seconds.
+           so the length of one cycle in samples is (RATE*HZFACTOR)/cur_freq. 
+           
+           PERF: fmod is pretty slow and it is easy to make square
+           waves with other means.
+        */
+        double cycle = (((double)RATE * HZFACTOR) / EFFECT_FREQ(cur_freq[ch]));
+        double pos = fmod(samples[ch], cycle);
+        /* sweeping from -vol to +vol with period 'cycle' */
+        mag += (pos > (cycle/2.0))?cur_vol[ch]:-cur_vol[ch];
 
-	break;
+        break;
       }
       case INST_NOISE:
-	seed ^= 0xDEADBEEF;
-	seed *= 0x11234567;
-	seed += 0x77339919;
+        seed ^= 0xDEADBEEF;
+        seed *= 0x11234567;
+        seed += 0x77339919;
 
-	/* quarter-volume for noise, otherwise too overpowering */
-	if (cur_vol[ch]) {
-	  int samp = (seed % (cur_vol[ch] * 2) - cur_vol[ch]) >> 2;
+        /* quarter-volume for noise, otherwise too overpowering */
+        if (cur_vol[ch]) {
+          int samp = (seed % (cur_vol[ch] * 2) - cur_vol[ch]) >> 2;
 
-	  // lowpass filter. Should really do a bandpass where the
-	  // cutoffs are some interval around the target frequency.
+          // lowpass filter. Should really do a bandpass where the
+          // cutoffs are some interval around the target frequency.
 
-	  int i, freq = HZFACTOR * 16;
-	  for(i = 0; i < NBANDS; i ++, freq <<= 1) {
+          int i, freq = HZFACTOR * 16;
+          for(i = 0; i < NBANDS; i ++, freq <<= 1) {
             #define ALPHA 0.7
-	    if (EFFECT_FREQ(cur_freq[ch]) < freq) {
-	      samp = oldpass[ch][i] + ALPHA * (samp - oldpass[ch][i]);
-	      samp = samp * (1.2);
-	    }
-	    oldpass[ch][i] = samp;
-	  }
+            if (EFFECT_FREQ(cur_freq[ch]) < freq) {
+              samp = oldpass[ch][i] + ALPHA * (samp - oldpass[ch][i]);
+              samp = samp * (1.2);
+            }
+            oldpass[ch][i] = samp;
+          }
 
-	  mag += samp * 0.75;
-	}
-	break;
+          mag += samp * 0.75;
+        }
+        break;
       default: {
-	// FIXME: Multithreading!
-	int w = cur_inst[ch] - SAMPLER_OFFSET;
-	if (w < 0 || w >= num_sets) {
-	  fprintf(stderr, 
-		  "Instrument %d unknown (or sample %d out of range)\n", 
-		  cur_inst[ch], w);
-	  abort();
-	} else {
-	  int waveindex = sets[w][cur_freq[ch]];
-	  if (waveindex >= num_waves ||
-	      waveindex < 0) {
-	    fprintf(stderr, "Wave in sampler bay is balls: %d\n", waveindex);
-	    abort();
-	  }
-	  if (samples[ch] < waves[sets[w][cur_freq[ch]]].nsamples) {
-	    // Need to modulate for volume...
-	    mag += waves[waveindex].samples[samples[ch]]; 
-	    // * cur_vol[ch];
-	    samples[ch]++;
-	  }
-	}
+        // FIXME: Multithreading!
+        int w = cur_inst[ch] - SAMPLER_OFFSET;
+        if (w < 0 || w >= num_sets) {
+          fprintf(stderr, 
+                  "Instrument %d unknown (or sample %d out of range)\n", 
+                  cur_inst[ch], w);
+          abort();
+        } else {
+          int waveindex = sets[w][cur_freq[ch]];
+          if (waveindex >= num_waves ||
+              waveindex < 0) {
+            fprintf(stderr, "Wave in sampler bay is balls: %d\n", waveindex);
+            abort();
+          }
+          if (samples[ch] < waves[sets[w][cur_freq[ch]]].nsamples) {
+            // XXX volume control!!
+            // Need to modulate for volume...
+            mag += (waves[waveindex].samples[samples[ch]] * 0.5); 
+            // * cur_vol[ch];
+            samples[ch]++;
+          }
+        }
       }
       }
     }
@@ -244,7 +245,7 @@ void ml_setfreq(int ch, int nf, int nv, int inst) {
 #if 0
   if (ch < 11 /* && inst >= SAMPLER_OFFSET */) { // || inst != INST_NONE) {
     printf("(cur inst: %d) Set %d = %d (Hz/10000) %d %d\n", 
-	   cur_inst[ch], ch, nf, nv, inst);
+           cur_inst[ch], ch, nf, nv, inst);
       //      if (nf < HZFACTOR * 2000) printf ("BANDPASS.");
     }
 #endif
@@ -266,8 +267,8 @@ void ml_setfreq(int ch, int nf, int nv, int inst) {
     
     if (inst >= SAMPLER_OFFSET) {
       if (nf >= 128 || nf < 0) {
-	fprintf(stderr, "Sampler wave %d out of gamut\n", nf);
-	abort();
+        fprintf(stderr, "Sampler wave %d out of gamut\n", nf);
+        abort();
       }
     }
 
@@ -300,7 +301,7 @@ void ml_initsound() {
     int i, j;
     for(i = 0; i < MAX_SETS; i++) {
       for(j = 0; j < 128; j++) {
-	sets[i][j] = 0;
+        sets[i][j] = 0;
       }
     } 
     num_sets = 0;
@@ -334,7 +335,7 @@ void ml_initsound() {
   }
 
   fprintf(stderr, "Audio data: %d samples, %d channels, %d rate\n",
-	  got.samples, got.channels, got.freq);
+          got.samples, got.channels, got.freq);
 
   SDL_PauseAudio(0);
 }
@@ -412,22 +413,22 @@ int ml_openwomb () {
   wombsector[2] = 'm';
   wombsector[3] = 'b';
   wombfile = CreateFile("i:\\FILE.TXT", 
-			GENERIC_READ | GENERIC_WRITE,
-			/* Sharing */
-			FILE_SHARE_READ | FILE_SHARE_WRITE,
-			/* Useless security thing */
-			NULL,
-			/* Don't create it */
-			OPEN_EXISTING,
-			/* probably ignored since the file exists */
-			FILE_ATTRIBUTE_NORMAL |
-			/* but want to not buffer (XXX makes alignment restrictions?). */
-			FILE_FLAG_NO_BUFFERING |
-			/* immediate writes. */
-			// FILE_FLAG_WRITE_THROUGH
-			0,
-			/* template file, ignored because exists. */
-			NULL);
+                        GENERIC_READ | GENERIC_WRITE,
+                        /* Sharing */
+                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        /* Useless security thing */
+                        NULL,
+                        /* Don't create it */
+                        OPEN_EXISTING,
+                        /* probably ignored since the file exists */
+                        FILE_ATTRIBUTE_NORMAL |
+                        /* but want to not buffer (XXX makes alignment restrictions?). */
+                        FILE_FLAG_NO_BUFFERING |
+                        /* immediate writes. */
+                        // FILE_FLAG_WRITE_THROUGH
+                        0,
+                        /* template file, ignored because exists. */
+                        NULL);
   return wombfile != INVALID_HANDLE_VALUE;
 }
 
@@ -444,21 +445,21 @@ int ml_signal (int w) {
       printf("SEEK FAILED.\n");
     }
     if (!WriteFile(wombfile,
-		   wombsector,
-		   (DWORD)(sizeof(wombsector)),
-		   &written,
-		   NULL)) {
+                   wombsector,
+                   (DWORD)(sizeof(wombsector)),
+                   &written,
+                   NULL)) {
       printf("WRITEFILE FAILED.\n");
       DWORD dw = GetLastError();
       LPVOID message;
       FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-		    FORMAT_MESSAGE_FROM_SYSTEM |
-		    FORMAT_MESSAGE_IGNORE_INSERTS,
-		    NULL,
-		    dw,
-		    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		    (LPTSTR) &message,
-		    0, NULL);
+                    FORMAT_MESSAGE_FROM_SYSTEM |
+                    FORMAT_MESSAGE_IGNORE_INSERTS,
+                    NULL,
+                    dw,
+                    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                    (LPTSTR) &message,
+                    0, NULL);
 
       printf(" ... %s\n", message);
     }
@@ -528,8 +529,8 @@ void ml_signal(int w) {
     // XXX consider pwrite, which takes offset
     // lseek(wombfd, 0, SEEK_SET);
     if (sizeof(wombsector) != 
-	//	write(wombfd, &wombsector, sizeof(wombsector))) {
-	pwrite(wombfd, &wombsector, sizeof(wombsector), 0)) {
+        //      write(wombfd, &wombsector, sizeof(wombsector))) {
+        pwrite(wombfd, &wombsector, sizeof(wombsector), 0)) {
       printf("write failed.\n");
     }
     // fcntl(wombfd, F_FULLFSYNC);
