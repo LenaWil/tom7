@@ -42,7 +42,7 @@ box2d.trace : box2dtest.exe
 	./box2dtest > box2d.trace
 
 bdd.trace : bddtest.exe
-	./bddtest > bdd.trace
+	./bddtest | tr '~' '-' > bdd.trace
 
 # compare : box2d.trace bdd.trace bdiff.exe
 # 	./bdiff

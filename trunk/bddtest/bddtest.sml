@@ -199,8 +199,8 @@ struct
   (* put a fixture on the drop *)
   val drop_fixture = 
       Body.create_fixture_default (drop, 
-                                   (* familiar_shape, *)
-                                   small_circle,
+                                   familiar_shape,
+                                   (* small_circle, *)
                                    (), 1.0)
 
   (* PS if dynamic and linear velocity of 0,~2, then they have a non-touching
@@ -363,7 +363,7 @@ struct
            "^3BoxDiaDia dynamics test^<. You just watch")
       end
 
-(*
+
   fun loop () =
       let in
 
@@ -376,15 +376,16 @@ struct
 
           key ();
           delay 1;
-          (* World.step (world, 0.001, 10, 10); *)
+          World.step (world, 0.001, 10, 10);
 
           loop ()
       end
-*)
+
 
   val () = print "*** Startup ***\n"
   val () = printworld world
 
+(*
   fun loop () =
       for 0 (* 14 *) 14
       (fn i =>
@@ -393,7 +394,7 @@ struct
            World.step (world, 0.01, 10, 10);
            printworld world
        end)
-
+*)
 
   val () = loop ()
   handle e =>
