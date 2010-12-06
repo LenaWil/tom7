@@ -10,14 +10,17 @@ sdlml.o : ../sdlml/sdlml.c
 sdlmix.o: ../sdlml/sdlmix.c
 	gcc -O `/usr/local/bin/sdl-config --cflags` -c ../sdlml/sdlmix.c -o sdlmix.o
 
+pngsave.o : ../sdlml/pngsave.c
+	gcc -O -I /usr/local/include `/usr/local/bin/sdl-config --cflags` -c ../sdlml/pngsave.c -o pngsave.o
+
 SMLS = prelude.sml images.sml real32.sml
 
 # -const 'Exn.keepHistory true'
 bddtest.exe : sdlml.o bddtest.sml ${SMLS} bddtest.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml
 	mlton @MLton max-heap 200m -- -const 'Exn.keepHistory true' -default-ann 'warnUnused true' -default-ann 'sequenceNonUnit warn' -cc-opt "-I/usr/local/include" -link-opt "`/usr/local/bin/sdl-config --libs` -lSDL_image -lSDL_mixer -ltiff -lpng -ljpeg -lz -lmad -lvorbisfile -lvorbis -logg" -output $@ -default-ann 'allowFFI true' bddtest.cm sdlml.o sdlmix.o messagebox_fake.o
 
-bddanimate.exe : sdlml.o bddanimate.sml ${SMLS} bddanimate.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml
-	mlton @MLton max-heap 200m -- -const 'Exn.keepHistory true' -default-ann 'warnUnused true' -default-ann 'sequenceNonUnit warn' -cc-opt "-I/usr/local/include" -link-opt "`/usr/local/bin/sdl-config --libs` -lSDL_image -lSDL_mixer -ltiff -lpng -ljpeg -lz -lmad -lvorbisfile -lvorbis -logg" -output $@ -default-ann 'allowFFI true' bddanimate.cm sdlml.o sdlmix.o messagebox_fake.o
+bddanimate.exe : sdlml.o pngsave.o bddanimate.sml ${SMLS} bddanimate.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml
+	mlton @MLton max-heap 200m -- -const 'Exn.keepHistory true' -default-ann 'warnUnused true' -default-ann 'sequenceNonUnit warn' -cc-opt "-I/usr/local/include" -link-opt "`/usr/local/bin/sdl-config --libs` -lSDL_image -lSDL_mixer -ltiff -lpng -ljpeg -lz -lmad -lvorbisfile -lvorbis -logg" -output $@ -default-ann 'allowFFI true' bddanimate.cm sdlml.o sdlmix.o pngsave.o messagebox_fake.o
 
 # -const 'Exn.keepHistory true'
 bddtest-polygon-collisions.exe : sdlml.o bddtest-polygon-collisions.sml ${SMLS} bddtest-polygon-collisions.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml
