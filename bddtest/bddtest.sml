@@ -385,7 +385,7 @@ struct
   val () = print "*** Startup ***\n"
   val () = printworld world
 
-(*
+
   fun loop () =
       for 0 (* 14 *) 14
       (fn i =>
@@ -394,7 +394,7 @@ struct
            World.step (world, 0.01, 10, 10);
            printworld world
        end)
-*)
+
 
   val () = loop ()
   handle e =>

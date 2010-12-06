@@ -35,6 +35,9 @@ group is
   ../sdlml/font-sig.sml
   ../sdlml/font.sml
 
+  ../sdlml/pngsave-sig.sml
+  ../sdlml/pngsave.sml
+
   prelude.sml
 
   images.sml
