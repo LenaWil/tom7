@@ -55,6 +55,21 @@ b2ContactSolver::b2ContactSolver(b2Contact** contacts, int32 contactCount,
 		float32 wA = bodyA->m_angularVelocity;
 		float32 wB = bodyB->m_angularVelocity;
 
+		printf("CS: ra %s rb %s f %s r %s\n"
+		       "    va %s vb %s wa %s wb %s\n"
+		       "    sweepa: %s\n"
+		       "    sweepb: %s\n"
+		       "    xfa: %s\n"
+		       "    xfb: %s\n",
+		       rtos(radiusA).c_str(), rtos(radiusB).c_str(),
+		       rtos(friction).c_str(), rtos(restitution).c_str(),
+		       vtos(vA).c_str(), vtos(vB).c_str(),
+		       rtos(wA).c_str(), rtos(wB).c_str(),
+		       sweeptos(bodyA->m_sweep).c_str(),
+		       sweeptos(bodyB->m_sweep).c_str(),
+		       xftos(bodyA->m_xf).c_str(),
+		       xftos(bodyB->m_xf).c_str());
+
 		b2Assert(manifold->pointCount > 0);
 
 		b2WorldManifold worldManifold;
@@ -207,6 +222,12 @@ void b2ContactSolver::SolveVelocityConstraints()
 		b2Vec2 normal = c->normal;
 		b2Vec2 tangent = b2Cross(normal, 1.0f);
 		float32 friction = c->friction;
+		printf("Solve vel: v_a %s v_b %s w_a %s w_b %s norm %s\n",
+		       vtos(vA).c_str(), vtos(vB).c_str(),
+		       rtos(wA).c_str(), rtos(wB).c_str(),
+		       vtos(normal).c_str());
+		printf("      xfa %s xfb %s\n",
+		       xftos(bodyA->m_xf).c_str(), xftos(bodyB->m_xf).c_str());
 
 		b2Assert(c->pointCount == 1 || c->pointCount == 2);
 
@@ -237,7 +258,7 @@ void b2ContactSolver::SolveVelocityConstraints()
 			wB += invIB * b2Cross(ccp->rB, P);
 
 			ccp->tangentImpulse = newImpulse;
-		} /* TWM DONE */
+		}
 
 		// Solve normal constraints
 		if (c->pointCount == 1)
@@ -360,7 +381,7 @@ void b2ContactSolver::SolveVelocityConstraints()
 					b2Assert(b2Abs(vn2 - cp2->velocityBias) < k_errorTol);
 #endif
 					break;
-				} /* TWM DONE */
+				}
 
 				//
 				// Case 2: vn1 = 0 and x2 = 0
@@ -401,7 +422,7 @@ void b2ContactSolver::SolveVelocityConstraints()
 					b2Assert(b2Abs(vn1 - cp1->velocityBias) < k_errorTol);
 #endif
 					break;
-				} /* TWM DONE */
+				}
 
 
 				//
@@ -485,6 +506,9 @@ void b2ContactSolver::SolveVelocityConstraints()
 		bodyA->m_angularVelocity = wA;
 		bodyB->m_linearVelocity = vB;
 		bodyB->m_angularVelocity = wB;
+		printf("      aft alv %s aav %s blv %s bav %s\n",
+		       vtos(vA).c_str(), rtos(wA).c_str(),
+		       vtos(vB).c_str(), rtos(wB).c_str());
 	}
 }
 
@@ -497,6 +521,10 @@ void b2ContactSolver::StoreImpulses()
 
 		for (int32 j = 0; j < c->pointCount; ++j)
 		{
+		  printf("SI #%d lp %s ni %s ti %s\n",
+			 j, vtos(m->points[j].localPoint).c_str(),
+			 rtos(c->points[j].normalImpulse).c_str(),
+			 rtos(c->points[j].tangentImpulse).c_str());
 			m->points[j].normalImpulse = c->points[j].normalImpulse;
 			m->points[j].tangentImpulse = c->points[j].tangentImpulse;
 		}
@@ -527,6 +555,10 @@ struct b2PositionSolverManifold
 
 				point = 0.5f * (pointA + pointB);
 				separation = b2Dot(pointB - pointA, normal) - cc->radius;
+
+				printf("    circles: pa %s pb %s sep %s\n",
+				       vtos(pointA).c_str(), vtos(pointB).c_str(),
+				       rtos(separation).c_str());
 			}
 			break;
 
@@ -538,6 +570,9 @@ struct b2PositionSolverManifold
 				b2Vec2 clipPoint = cc->bodyB->GetWorldPoint(cc->points[index].localPoint);
 				separation = b2Dot(clipPoint - planePoint, normal) - cc->radius;
 				point = clipPoint;
+				printf("    facea: pp %s cp %s sep %s\n",
+				       vtos(planePoint).c_str(), vtos(clipPoint).c_str(),
+				       rtos(separation).c_str());
 			}
 			break;
 
@@ -549,6 +584,10 @@ struct b2PositionSolverManifold
 				b2Vec2 clipPoint = cc->bodyA->GetWorldPoint(cc->points[index].localPoint);
 				separation = b2Dot(clipPoint - planePoint, normal) - cc->radius;
 				point = clipPoint;
+
+				printf("    faceb: pp %s cp %s sep %s\n",
+				       vtos(planePoint).c_str(), vtos(clipPoint).c_str(),
+				       rtos(separation).c_str());
 
 				// Ensure normal points from A to B
 				normal = -normal;
@@ -567,7 +606,7 @@ bool b2ContactSolver::SolvePositionConstraints(float32 baumgarte)
 {
 	float32 minSeparation = 0.0f;
 
-	printf("Solving %d position constraints.\n", m_constraintCount);
+	printf("SolvePositionConstraints: %d\n", m_constraintCount);
 
 	for (int32 i = 0; i < m_constraintCount; ++i)
 	{
@@ -579,6 +618,11 @@ bool b2ContactSolver::SolvePositionConstraints(float32 baumgarte)
 		float32 invIA = bodyA->m_mass * bodyA->m_invI;
 		float32 invMassB = bodyB->m_mass * bodyB->m_invMass;
 		float32 invIB = bodyB->m_mass * bodyB->m_invI;
+
+		printf("  Solve pos: ima %s imb %s iia %s iib %s pts %d\n",
+		       rtos(invMassA).c_str(), rtos(invMassB).c_str(),
+		       rtos(invIA).c_str(), rtos(invIB).c_str(),
+		       c->pointCount);
 
 		// Solve normal constraints
 		for (int32 j = 0; j < c->pointCount; ++j)
@@ -592,6 +636,10 @@ bool b2ContactSolver::SolvePositionConstraints(float32 baumgarte)
 
 			b2Vec2 rA = point - bodyA->m_sweep.c;
 			b2Vec2 rB = point - bodyB->m_sweep.c;
+
+			printf("    pt %s sep %s ra %s rb %s\n",
+			       vtos(point).c_str(), rtos(separation).c_str(),
+			       vtos(rA).c_str(), vtos(rB).c_str());
 
 			// Track max constraint error.
 			minSeparation = b2Min(minSeparation, separation);
@@ -617,7 +665,14 @@ bool b2ContactSolver::SolvePositionConstraints(float32 baumgarte)
 			bodyB->m_sweep.a += invIB * b2Cross(rB, P);
 			bodyB->SynchronizeTransform();
 		}
+		printf("  sweepa: %s\n"
+		       "  sweepb: %s\n", 
+		       sweeptos(bodyA->m_sweep).c_str(),
+		       sweeptos(bodyB->m_sweep).c_str());
+
 	}
+
+	printf("  minsep: %s\n", rtos(minSeparation).c_str());
 
 	// We can't expect minSpeparation >= -b2_linearSlop because we don't
 	// push the separation above -b2_linearSlop.

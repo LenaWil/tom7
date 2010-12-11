@@ -44,8 +44,8 @@ hello.exe : hello.cc
 	g++ -O -I . hello.cc -o hello.exe
 
 
-box2d.trace : box2dtest.exe
-	./box2dtest > box2d.trace
+box2d.trace : box2dtest.exe makefile
+	./box2dtest | sed -e 's/New drop-ground/New name1-name2/g' | sed -e 's/Post-collide drop-ground/Post-collide name1-name2/g' | sed -e 's/-0.0000/0.0000/g' > box2d.trace
 
 bdd.trace : bddtest.exe
 	./bddtest | tr '~' '-' > bdd.trace

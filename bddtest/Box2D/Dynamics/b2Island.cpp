@@ -289,11 +289,14 @@ void b2Island::Solve(const b2TimeStep& step, const b2Vec2& gravity, bool allowSl
 		b->m_sweep.a += step.dt * b->m_angularVelocity;
 
 		printf("  uync sw: %s\n", sweeptos(b->m_sweep).c_str());
+		printf("  uync xf: %s\n", xftos(b->m_xf).c_str());
 
 		// Compute new transform
 		b->SynchronizeTransform();
 
 		printf("  sync sw: %s\n", sweeptos(b->m_sweep).c_str());
+
+		printf("  sync xf: %s\n", xftos(b->m_xf).c_str());
 
 		// Note: shapes are synchronized later.
 	}

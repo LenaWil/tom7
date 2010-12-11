@@ -874,8 +874,7 @@ void b2World::Step(float32 dt, int32 velocityIterations, int32 positionIteration
       c->GetWorldManifold(&world_manifold);
       printf("%d points: ", manifold->pointCount);
       for (int i = 0; i < manifold->pointCount; i++) {
-	printf("%.2f %.2f, ", world_manifold.points[i].x,
-	       world_manifold.points[i].y);
+	printf("%s, ", vtos(world_manifold.points[i]).c_str());
       }
       printf("\n");
     }
