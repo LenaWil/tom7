@@ -31,6 +31,7 @@
 
 using namespace std;
 
+
 /// This function is used to ensure that a floating point number is
 /// not a NaN or infinity.
 inline bool b2IsValid(float32 x)
@@ -208,11 +209,13 @@ struct b2Mat22
         }
 
         /// Construct this matrix using scalars.
+  /* unused -twm
         b2Mat22(float32 a11, float32 a12, float32 a21, float32 a22)
         {
                 col1.x = a11; col1.y = a21;
                 col2.x = a12; col2.y = a22;
         }
+  */
 
         /// Construct this matrix using an angle. This matrix becomes
         /// an orthonormal rotation matrix.
@@ -236,6 +239,7 @@ struct b2Mat22
         void Set(float32 angle)
         {
                 float32 c = cosf(angle), s = sinf(angle);
+                (* printf("c: %.4f s: %.4f\n", c, s); *)
                 col1.x = c; col2.x = -s;
                 col1.y = s; col2.y = c;
         }

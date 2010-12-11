@@ -19,7 +19,8 @@
 #include <Box2D/Common/b2Math.h>
 
 const b2Vec2 b2Vec2_zero(0.0f, 0.0f);
-const b2Mat22 b2Mat22_identity(1.0f, 0.0f, 0.0f, 1.0f);
+// XXX got rid of 4-arg constructor -twm
+const b2Mat22 b2Mat22_identity(b2Vec2(1.0f, 0.0f), b2Vec2(0.0f, 1.0f));
 const b2Transform b2Transform_identity(b2Vec2_zero, b2Mat22_identity);
 
 /// Solve A * x = b, where b is a column vector. This is more efficient

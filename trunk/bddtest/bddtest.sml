@@ -363,7 +363,7 @@ struct
            "^3BoxDiaDia dynamics test^<. You just watch")
       end
 
-
+(*
   fun loop () =
       let in
 
@@ -380,9 +380,9 @@ struct
 
           loop ()
       end
+*)
 
-
-  val () = print "*** Startup ***\n"
+  val () = print "\n*** Startup ***\n"
   val () = printworld world
 
 

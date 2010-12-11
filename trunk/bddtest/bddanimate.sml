@@ -221,10 +221,15 @@ struct
 
           (* put a fixture on the drop *)
           val drop_fixture = 
-              Body.create_fixture_default (drop, 
-                                           familiar_shape,
-                                           (* small_circle, *)
-                                           (), 1.0)
+              Body.create_fixture (drop, 
+                                   { shape = familiar_shape,
+                                     (* small_circle, *)
+                                     data = (),
+                                     friction = 0.2,
+                                     restitution = 0.75,
+                                     density = 1.0,
+                                     is_sensor = false,
+                                     filter = Fixture.default_filter })
       in
           ()
       end
@@ -258,10 +263,15 @@ struct
 
           (* put a fixture on the drop *)
           val drop_fixture = 
-              Body.create_fixture_default (drop, 
-                                           familiar_shape,
-                                           (* small_circle, *)
-                                           (), 1.0)
+              Body.create_fixture (drop, 
+                                   { shape = familiar_shape,
+                                     (* small_circle, *)
+                                     data = (),
+                                     friction = 0.2,
+                                     restitution = 0.75,
+                                     density = 1.0,
+                                     is_sensor = false,
+                                     filter = Fixture.default_filter })
 
 
   (* PS if dynamic and linear velocity of 0,~2, then they have a non-touching

@@ -174,6 +174,7 @@ void printworld (b2World *world) {
 }
 
 int main () {
+  printf("\n");
   b2Vec2 gravity(0.0, 9.8);
   b2World world(gravity, false);
 
@@ -202,8 +203,8 @@ int main () {
   dropCircle.m_p.Set(0.0, 0.0);
   dropCircle.m_radius = 0.3;
 
-  // b2Fixture *drop_fixture = dropBody->CreateFixture(&dropShape, 1.0);
-  b2Fixture *drop_fixture = dropBody->CreateFixture(&dropCircle, 1.0);
+  b2Fixture *drop_fixture = dropBody->CreateFixture(&familiarShape, 1.0);
+  // b2Fixture *drop_fixture = dropBody->CreateFixture(&dropCircle, 1.0);
 
   // Create ground.
   b2BodyDef groundDef;

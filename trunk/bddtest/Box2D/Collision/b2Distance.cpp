@@ -71,10 +71,10 @@ struct b2SimplexVertex
 	int32 indexB;	// wB index
 
   void print() {
-    printf("%.2f,%.2f|"
-	   "%.2f,%.2f|"
-	   "%.2f,%.2f|"
-	   "%.2f|"
+    printf("%.4f,%.4f|"
+	   "%.4f,%.4f|"
+	   "%.4f,%.4f|"
+	   "%.4f|"
 	   "%d|%d",
 	   wA.x, wA.y,
 	   wB.x, wB.y,
@@ -476,7 +476,7 @@ void b2Distance(b2DistanceOutput* output,
 	b2Simplex simplex;
 	simplex.ReadCache(cache, proxyA, transformA, proxyB, transformB);
 
-	printf("distance start simplex\n  ");
+	printf("distance start simplex:\n  ");
 	simplex.print();
 	printf("\n");
 
