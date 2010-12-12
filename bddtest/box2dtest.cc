@@ -120,8 +120,7 @@ void printworld (b2World *world) {
     c->GetWorldManifold(&world_manifold);
     printf("%d points: ", manifold->pointCount);
     for (int i = 0; i < manifold->pointCount; i++) {
-      printf("%.2f %.2f, ", world_manifold.points[i].x,
-	     world_manifold.points[i].y);
+      printf("%s, ", vtos(world_manifold.points[i]).c_str());
     }
     printf("\n");
   }
@@ -206,6 +205,20 @@ int main () {
   b2Fixture *drop_fixture = dropBody->CreateFixture(&familiarShape, 1.0);
   // b2Fixture *drop_fixture = dropBody->CreateFixture(&dropCircle, 1.0);
 
+  b2BodyDef drop2Def;
+  drop2Def.type = b2_dynamicBody;
+  drop2Def.position.Set(0.0, -1.12);
+  drop2Def.linearVelocity.Set(0.4, -0.2);
+  drop2Def.allowSleep = false;
+  drop2Def.awake = true;
+  drop2Def.bullet = false;
+  drop2Def.active = true;
+  drop2Def.inertiaScale = 1.0;
+  drop2Def.userData = (void*)"drop2";
+
+  b2Body *drop2Body = world.CreateBody(&drop2Def);
+  b2Fixture *drop2_fixture = drop2Body->CreateFixture(&familiarShape, 1.0);
+
   // Create ground.
   b2BodyDef groundDef;
   groundDef.type = b2_staticBody;
@@ -230,7 +243,7 @@ int main () {
   printf("\n*** Startup ***\n");
   printworld(&world);  
 
-  for (int i = 0; i <= 14 /* 14 */; i++) {
+  for (int i = 0; i <= 501 /* 14 */; i++) {
     printf("\n=== Step %d ===\n", i);
     world.Step (0.01, 10, 10);
     printworld(&world);

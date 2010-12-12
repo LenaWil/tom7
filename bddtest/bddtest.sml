@@ -203,6 +203,31 @@ struct
                                    (* small_circle, *)
                                    (), 1.0)
 
+  val drop2 = World.create_body 
+      (world,
+       { typ = Body.Dynamic,
+         position = vec2 (0.0, ~1.12),
+         angle = 0.0,
+         linear_velocity = vec2 (0.4, ~0.2),
+         angular_velocity = 0.0,
+         linear_damping = 0.0,
+         angular_damping = 0.0,
+         allow_sleep = false,
+         awake = true,
+         fixed_rotation = false,
+         bullet = false,
+         active = true,
+         data = "drop2",
+         inertia_scale = 1.0 })
+
+  (* put a fixture on the drop *)
+  val drop2_fixture = 
+      Body.create_fixture_default (drop2,
+                                   familiar_shape,
+                                   (* small_circle, *)
+                                   (), 1.0)
+
+
   (* PS if dynamic and linear velocity of 0,~2, then they have a non-touching
      collision, which might be a good test case. *)
   val ground = World.create_body
@@ -275,8 +300,6 @@ struct
       oapp Contact.get_next onecontact (World.get_contact_list world)
     end
 
-  val rtos = Real.fmt (StringCvt.FIX (SOME 2))
-
   fun getfixturename (f : fixture) =
     let val b = Fixture.get_body f
     in Body.get_data b
@@ -329,7 +352,7 @@ struct
              let val pt = Array.sub(#points world_manifold, i)
                  (* val (x, y) = vectoscreen pt *)
              in
-                 print (rtos (vec2x pt) ^ "," ^ rtos (vec2y pt) ^ " ")
+                 print (vtos pt ^ ", ")
              end);
 
             print "\n"
@@ -346,6 +369,7 @@ struct
         | SOME evt =>
            case evt of
                E_KeyDown { sym = SDLK_ESCAPE } => raise Done
+(*
              | E_KeyDown { sym = SDLK_SPACE } => 
                    let in
                        print ("=== Step " ^ Int.toString (!iters) ^ " ===\n");
@@ -354,6 +378,7 @@ struct
                        printworld world;
                        iters := !iters + 1
                    end
+*)
              | _ => ()
   fun drawinstructions () =
       let
@@ -363,9 +388,11 @@ struct
            "^3BoxDiaDia dynamics test^<. You just watch")
       end
 
-(*
   fun loop () =
       let in
+          print ("\n=== Step " ^ Int.toString (!iters) ^ " ===\n");
+          iters := !iters + 1;
+
 
           clearsurface (screen, color (0w255, 0w0, 0w0, 0w0));
 
@@ -380,34 +407,36 @@ struct
 
           loop ()
       end
-*)
 
   val () = print "\n*** Startup ***\n"
   val () = printworld world
-
-
+(*
   fun loop () =
-      for 0 (* 14 *) 14
+      for 0 (* 14 *) 501
       (fn i =>
        let in
            print ("\n=== Step " ^ Int.toString i ^ " ===\n");
            World.step (world, 0.01, 10, 10);
            printworld world
        end)
+*)
 
+  fun eprint s = TextIO.output (TextIO.stdErr, s)
 
   val () = loop ()
   handle e =>
       let in
-          print ("unhandled exception " ^
-                 exnName e ^ ": " ^
-                 exnMessage e ^ ": ");
+          eprint ("unhandled exception " ^
+                  exnName e ^ ": " ^
+                  exnMessage e ^ ": ");
           (case e of
-               BDDDynamics.BDDDynamics s => print s
-             | _ => print "unknown");
-          print "\nhistory:\n";
-          app (fn l => print ("  " ^ l ^ "\n")) (Port.exnhistory e);
-          print "\n"
+               BDDDynamics.BDDDynamics s => eprint s
+             | BDDContactSolver.BDDContactSolver s => eprint s
+             | BDDMath.BDDMath s => eprint s
+             | _ => eprint "unknown");
+          eprint "\nhistory:\n";
+          app (fn l => eprint ("  " ^ l ^ "\n")) (Port.exnhistory e);
+          eprint "\n"
       end
                    
 end

@@ -27,6 +27,8 @@ group is
   ../sml-lib/util/fsutil-sig.sml
   ../sml-lib/util/fsutil.sml
 
+  prelude.sml
+
   ../sml-lib/bdd/bdd.cm
 
   ../sdlml/sdl-sig.sml
@@ -34,8 +36,6 @@ group is
 
   ../sdlml/font-sig.sml
   ../sdlml/font.sml
-
-  prelude.sml
 
   images.sml
 
