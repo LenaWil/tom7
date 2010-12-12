@@ -338,6 +338,13 @@ void b2World::DestroyJoint(b2Joint* j)
 void b2World::Solve(const b2TimeStep& step)
 {
   printf("SOLVE.\n");
+  for (b2Body* b = m_bodyList; b; b = b->m_next) {
+    printf("Presolve sweep: %s\n"
+	   "            xf: %s\n", 
+	   sweeptos(b->m_sweep).c_str(),
+	   xftos(b->m_xf).c_str());
+  }
+
 	// Size the island for the worst case.
 	b2Island island(m_bodyCount,
 					m_contactManager.m_contactCount,
@@ -523,7 +530,6 @@ void b2World::Solve(const b2TimeStep& step)
 // and adjust the position to ensure clearance.
 void b2World::SolveTOI(b2Body* body)
 {
-  printf("SOLVE_TOI\n");
 	// Find the minimum contact.
 	b2Contact* toiContact = NULL;
 	float32 toi = 1.0f;
@@ -609,14 +615,17 @@ void b2World::SolveTOI(b2Body* body)
 			input.tMax = toi;
 
 
-			printf("tmax: %.4f\n", toi);
-			printf("toi test:\n");
+			printf("tmax: %s toi test:\n", rtos(toi).c_str());
 			b2TOIOutput output;
 			b2TimeOfImpact(&output, &input);
 
+			printf("2sweepa: %s\n", sweeptos(bodyA->m_sweep).c_str());
+			printf("2sweepb: %s\n", sweeptos(bodyB->m_sweep).c_str());
+
+
 			if (output.state == b2TOIOutput::e_touching) {
 			  if (output.t < toi) {
-			      printf("  yes at %.4f\n", output.t);
+			      printf("  yes at %s\n", rtos(output.t).c_str());
 			      toiContact = contact;
 			      toi = output.t;
 			      toiOther = other;
@@ -737,6 +746,7 @@ void b2World::SolveTOI(b2Body* body)
 // Time is not conserved.
 void b2World::SolveTOI()
 {
+  printf("SOLVE_TOI()\n");
 	// Prepare all contacts.
 	for (b2Contact* c = m_contactManager.m_contactList; c; c = c->m_next)
 	{
@@ -775,6 +785,7 @@ void b2World::SolveTOI()
 			continue;
 		}
 
+		printf("Collide non-bullet.\n");
 		SolveTOI(body);
 
 		body->m_flags |= b2Body::e_toiFlag;
@@ -793,6 +804,7 @@ void b2World::SolveTOI()
 			continue;
 		}
 
+		printf("Collide bullet.\n");
 		SolveTOI(body);
 
 		body->m_flags |= b2Body::e_toiFlag;
@@ -831,8 +843,7 @@ void b2World::Step(float32 dt, int32 velocityIterations, int32 positionIteration
       c->GetWorldManifold(&world_manifold);
       printf("%d points: ", manifold->pointCount);
       for (int i = 0; i < manifold->pointCount; i++) {
-	printf("%.2f %.2f, ", world_manifold.points[i].x,
-	       world_manifold.points[i].y);
+	printf("%s, ", vtos(world_manifold.points[i]).c_str());
       }
       printf("\n");
     }
@@ -887,11 +898,28 @@ void b2World::Step(float32 dt, int32 velocityIterations, int32 positionIteration
 		Solve(step);
 	}
 
+	// XXXXX debuggy
+  for (b2Body* b = m_bodyList; b; b = b->m_next) {
+    printf("Postsolve sweep: %s\n"
+	   "             xf: %s\n", 
+	   sweeptos(b->m_sweep).c_str(),
+	   xftos(b->m_xf).c_str());
+  }
+
+
 	// Handle TOI events.
 	if (m_continuousPhysics && step.dt > 0.0f)
 	{
 		SolveTOI();
 	}
+
+  for (b2Body* b = m_bodyList; b; b = b->m_next) {
+    printf("Posttoi sweep: %s\n"
+	   "           xf: %s\n", 
+	   sweeptos(b->m_sweep).c_str(),
+	   xftos(b->m_xf).c_str());
+  }
+
 
 	if (step.dt > 0.0f)
 	{

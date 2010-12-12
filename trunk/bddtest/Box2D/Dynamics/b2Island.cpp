@@ -205,10 +205,13 @@ void b2Island::Solve(const b2TimeStep& step, const b2Vec2& gravity, bool allowSl
 		// v2 = (1.0f - c * dt) * v1
 		b->m_linearVelocity *= b2Clamp(1.0f - step.dt * b->m_linearDamping, 0.0f, 1.0f);
 		b->m_angularVelocity *= b2Clamp(1.0f - step.dt * b->m_angularDamping, 0.0f, 1.0f);
-		printf("  vel: %s %s\n",
+		printf("  vel: %s %s\n"
+		       "  xf: %s\n"
+		       "  sweep: %s\n",
 		       vtos(b->m_linearVelocity).c_str(),
-		       rtos(b->m_angularVelocity).c_str());
-		       
+		       rtos(b->m_angularVelocity).c_str(),
+		       xftos(b->m_xf).c_str(),
+		       sweeptos(b->m_sweep).c_str());
 	}
 
 	// Partition contacts so that contacts with static bodies are solved last.
@@ -243,6 +246,7 @@ void b2Island::Solve(const b2TimeStep& step, const b2Vec2& gravity, bool allowSl
 			m_joints[j]->SolveVelocityConstraints(step);
 		}
 
+		printf("* Vel iter %d\n", i);
 		contactSolver.SolveVelocityConstraints();
 	}
 

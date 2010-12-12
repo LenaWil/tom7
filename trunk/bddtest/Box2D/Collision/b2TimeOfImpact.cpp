@@ -269,6 +269,10 @@ void b2TimeOfImpact(b2TOIOutput* output, const b2TOIInput* input)
 
 	// Large rotations can make the root finder fail, so we normalize the
 	// sweep angles.
+	printf("TOI sweepa: %s\n"
+	       "TOI sweepb: %s\n",
+	       sweeptos(sweepA).c_str(),
+	       sweeptos(sweepB).c_str());
 	sweepA.Normalize();
 	sweepB.Normalize();
 

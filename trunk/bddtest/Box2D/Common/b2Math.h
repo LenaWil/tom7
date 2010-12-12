@@ -239,7 +239,7 @@ struct b2Mat22
         void Set(float32 angle)
         {
                 float32 c = cosf(angle), s = sinf(angle);
-                (* printf("c: %.4f s: %.4f\n", c, s); *)
+                /* printf("c: %.4f s: %.4f\n", c, s); */
                 col1.x = c; col2.x = -s;
                 col1.y = s; col2.y = c;
         }
@@ -621,20 +621,27 @@ inline void b2Sweep::Advance(float32 t)
         a0 = (1.0f - t) * a0 + t * a;
 }
 
-/// Normalize an angle in radians to be between -pi and pi
-inline void b2Sweep::Normalize()
-{
-        float32 twoPi = 2.0f * b2_pi;
-        float32 d =  twoPi * floorf(a0 / twoPi);
-        a0 -= d;
-        a -= d;
-}
-
 
 inline string rtos(float f) {
   char buf[512];
   sprintf(buf, "%.4f", f);
   return buf;
+}
+
+/// Normalize an angle in radians to be between -pi and pi
+inline void b2Sweep::Normalize()
+{
+        float32 twoPi = 2.0f * b2_pi;
+        float32 d =  twoPi * floorf(a0 / twoPi);
+        printf("sweep_normalize: %s a0 / 2pi %s floor %d d %s res: %s %s\n",
+               rtos(a0).c_str(), 
+               rtos(a0 / twoPi).c_str(),
+               (int)floorf(a0 / twoPi), 
+               rtos(d).c_str(),
+               rtos(a0 - d).c_str(),
+               rtos(a - d).c_str());
+        a0 -= d;
+        a -= d;
 }
 
 inline string vtos(const b2Vec2 &v) {
@@ -643,13 +650,20 @@ inline string vtos(const b2Vec2 &v) {
   return buf;
 }
 
+inline string mat22tos(const b2Mat22 &m) {
+  char buf[512];
+  sprintf(buf, "[%.4f %.4f / %.4f %.4f]",
+          m.col1.x, m.col2.x,
+          m.col1.y, m.col2.y);
+  return string(buf);
+}
+
 inline string xftos(const b2Transform &xf) {
   char buf[512];
-  sprintf(buf, "%.4f,%.4f @%.4f [%.4f %.4f / %.4f %.4f]",
+  sprintf(buf, "%.4f,%.4f @%.4f %s",
           xf.position.x, xf.position.y,
           xf.GetAngle(),
-          xf.R.col1.x, xf.R.col2.x,
-          xf.R.col1.y, xf.R.col2.y);
+          mat22tos(xf.R).c_str());
   return string(buf);
 }
 

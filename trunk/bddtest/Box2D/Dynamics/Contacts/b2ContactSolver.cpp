@@ -148,9 +148,16 @@ b2ContactSolver::b2ContactSolver(b2Contact** contacts, int32 contactCount,
 			float32 rn2A = b2Cross(ccp2->rA, cc->normal);
 			float32 rn2B = b2Cross(ccp2->rB, cc->normal);
 
+			printf("Block solver: %s %s %s %s \n",
+			       rtos(rn1A).c_str(), rtos(rn1B).c_str(),
+			       rtos(rn2A).c_str(), rtos(rn2B).c_str());
+
 			float32 k11 = invMassA + invMassB + invIA * rn1A * rn1A + invIB * rn1B * rn1B;
 			float32 k22 = invMassA + invMassB + invIA * rn2A * rn2A + invIB * rn2B * rn2B;
 			float32 k12 = invMassA + invMassB + invIA * rn1A * rn2A + invIB * rn1B * rn2B;
+
+			printf("          ks: %s %s %s\n",
+			       rtos(k11).c_str(), rtos(k22).c_str(), rtos(k12).c_str());
 
 			// Ensure a reasonable condition number.
 			const float32 k_maxConditionNumber = 100.0f;
@@ -160,6 +167,7 @@ b2ContactSolver::b2ContactSolver(b2Contact** contacts, int32 contactCount,
 				cc->K.col1.Set(k11, k12);
 				cc->K.col2.Set(k12, k22);
 				cc->normalMass = cc->K.GetInverse();
+				printf("    inverted: %s\n", mat22tos(cc->normalMass).c_str());
 			}
 			else
 			{
@@ -412,12 +420,15 @@ void b2ContactSolver::SolveVelocityConstraints()
 					cp1->normalImpulse = x.x;
 					cp2->normalImpulse = x.y;
 
-#if B2_DEBUG_SOLVER == 1
+// B2_DEBUG_SOLVER == 1
+#if 1 
 					// Postconditions
 					dv1 = vB + b2Cross(wB, cp1->rB) - vA - b2Cross(wA, cp1->rA);
 
 					// Compute normal velocity
 					vn1 = b2Dot(dv1, normal);
+					printf("Case 2: dv1 %s vn1 %s\n",
+					       vtos(dv1).c_str(), rtos(vn1).c_str());
 
 					b2Assert(b2Abs(vn1 - cp1->velocityBias) < k_errorTol);
 #endif
@@ -659,10 +670,12 @@ bool b2ContactSolver::SolvePositionConstraints(float32 baumgarte)
 
 			bodyA->m_sweep.c -= invMassA * P;
 			bodyA->m_sweep.a -= invIA * b2Cross(rA, P);
+			printf("    ba sweep: %s\n", sweeptos(bodyA->m_sweep).c_str());
 			bodyA->SynchronizeTransform();
 
 			bodyB->m_sweep.c += invMassB * P;
 			bodyB->m_sweep.a += invIB * b2Cross(rB, P);
+			printf("    bb sweep: %s\n", sweeptos(bodyB->m_sweep).c_str());
 			bodyB->SynchronizeTransform();
 		}
 		printf("  sweepa: %s\n"

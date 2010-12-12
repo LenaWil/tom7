@@ -178,7 +178,7 @@ bool b2DynamicTree::MoveProxy(int32 proxyId, const b2AABB& aabb, const b2Vec2& d
 
 	m_nodes[proxyId].aabb = b;
 
-	printf("  inc aabb: %.2f %.2f to %.2f %.2f\n",
+	printf("  moved_aabb: %.2f %.2f to %.2f %.2f\n",
 	       b.lowerBound.x, b.lowerBound.y,
 	       b.upperBound.x, b.upperBound.y);
 

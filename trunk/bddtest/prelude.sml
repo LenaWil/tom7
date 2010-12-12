@@ -52,3 +52,7 @@ val () =
 (* Shadow the global print function. There are other ways to
    print that would fail too, but this is the only one we use. *)
 val print = fn s => if print_works then print s else ()
+
+
+(* XXX useful for disabling traces *)
+val print = ignore

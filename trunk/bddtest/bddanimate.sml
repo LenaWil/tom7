@@ -197,7 +197,7 @@ struct
   (* No sleep, for now *)
   val world = World.world (gravity, false)
 
-(*
+
   fun add_drop (s, x, y) =
       let
           val drop = World.create_body 
@@ -242,8 +242,8 @@ struct
         let in
             add_drop (y = 0, real x * 1.25, real y * 1.25)
         end))
-*)
 
+(*
           val drop = World.create_body 
               (world,
                { typ = Body.Dynamic,
@@ -272,7 +272,7 @@ struct
                                      density = 1.0,
                                      is_sensor = false,
                                      filter = Fixture.default_filter })
-
+*)
 
   (* PS if dynamic and linear velocity of 0,~2, then they have a non-touching
      collision, which might be a good test case. *)
