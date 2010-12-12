@@ -64,6 +64,7 @@ struct
           (tometers xp, tometers yp)
       end
 
+  val DRAW_NORMALS = false
   val DRAW_DISTANCES = true
   val DRAW_RAYS = true
   val DRAW_COLLISIONS = true
@@ -208,7 +209,7 @@ struct
                  position = (* vec2 (0.0, 1.12) *) vec2(x, y),
                  angle = 0.0,
                  linear_velocity = vec2 (0.1, 0.2),
-                 angular_velocity = 0.0,
+                 angular_velocity = 1.0,
                  linear_damping = 0.0,
                  angular_damping = 0.0,
                  allow_sleep = false,
@@ -240,7 +241,7 @@ struct
        Util.for ~2 2
        (fn x =>
         let in
-            add_drop (y = 0, real x * 1.25, real y * 1.25)
+            add_drop (y = 1, real x * 1.25, real y * 0.75)
         end))
 
 (*
@@ -335,7 +336,9 @@ struct
             val (sx, sy) = vectoscreen (vec2 (0.0, 0.0))
             val (dx, dy) = vectoscreen (#normal world_manifold)
         in
-            SDL.drawline (screen, sx, sy, dx, dy, RED);
+            if DRAW_NORMALS
+            then SDL.drawline (screen, sx, sy, dx, dy, RED)
+            else ();
 
             for 0 (point_count - 1) 
             (fn i =>
@@ -420,7 +423,8 @@ struct
           NONE => ()
         | SOME evt =>
            case evt of
-               E_KeyDown { sym = SDLK_ESCAPE } => raise Done
+               E_Quit => raise Done
+             | E_KeyDown { sym = SDLK_ESCAPE } => raise Done
              | E_MouseMotion { state : mousestate, x : int, y : int, ... } =>
                    let in 
                        mousex := x;
@@ -608,19 +612,24 @@ struct
        end)
 *)
 
+  fun eprint s = TextIO.output (TextIO.stdErr, s)
+
   val () = Params.main0 "No arguments." loop
   handle e =>
       let in
-          print ("unhandled exception " ^
-                 exnName e ^ ": " ^
-                 exnMessage e ^ ": ");
+          eprint ("unhandled exception " ^
+                  exnName e ^ ": " ^
+                  exnMessage e ^ ": ");
           (case e of
-               BDDDynamics.BDDDynamics s => print s
-             | Animate s => print s
-             | _ => print "unknown");
-          print "\nhistory:\n";
-          app (fn l => print ("  " ^ l ^ "\n")) (Port.exnhistory e);
-          print "\n"
+               BDDDynamics.BDDDynamics s => eprint s
+             | BDDDynamicTree.BDDDynamicTree s => eprint s
+             | BDDContactSolver.BDDContactSolver s => eprint s
+             | BDDMath.BDDMath s => eprint s
+             | Animate s => eprint s
+             | _ => eprint "unknown");
+          eprint "\nhistory:\n";
+          app (fn l => eprint ("  " ^ l ^ "\n")) (Port.exnhistory e);
+          eprint "\n"
       end
                    
 end

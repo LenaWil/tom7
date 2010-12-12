@@ -206,9 +206,9 @@ struct
   val drop2 = World.create_body 
       (world,
        { typ = Body.Dynamic,
-         position = vec2 (0.0, ~1.12),
+         position = vec2 (0.0, ~1.0),
          angle = 0.0,
-         linear_velocity = vec2 (0.4, ~0.2),
+         linear_velocity = vec2 (0.4, 6.0),
          angular_velocity = 0.0,
          linear_damping = 0.0,
          angular_damping = 0.0,
@@ -410,7 +410,7 @@ struct
 
   val () = print "\n*** Startup ***\n"
   val () = printworld world
-(*
+
   fun loop () =
       for 0 (* 14 *) 501
       (fn i =>
@@ -419,7 +419,7 @@ struct
            World.step (world, 0.01, 10, 10);
            printworld world
        end)
-*)
+
 
   fun eprint s = TextIO.output (TextIO.stdErr, s)
 
@@ -433,6 +433,7 @@ struct
                BDDDynamics.BDDDynamics s => eprint s
              | BDDContactSolver.BDDContactSolver s => eprint s
              | BDDMath.BDDMath s => eprint s
+             | BDDDynamicTree.BDDDynamicTree s => eprint s
              | _ => eprint "unknown");
           eprint "\nhistory:\n";
           app (fn l => eprint ("  " ^ l ^ "\n")) (Port.exnhistory e);

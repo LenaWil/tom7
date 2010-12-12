@@ -207,8 +207,8 @@ int main () {
 
   b2BodyDef drop2Def;
   drop2Def.type = b2_dynamicBody;
-  drop2Def.position.Set(0.0, -1.12);
-  drop2Def.linearVelocity.Set(0.4, -0.2);
+  drop2Def.position.Set(0.0, -1.0);
+  drop2Def.linearVelocity.Set(0.4, 6.0);
   drop2Def.allowSleep = false;
   drop2Def.awake = true;
   drop2Def.bullet = false;
