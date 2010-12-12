@@ -195,8 +195,8 @@ struct
 
 
   val gravity = vec2 (0.0, 9.8)
-  (* No sleep, for now *)
-  val world = World.world (gravity, false)
+  (* No sleep, for now XXX j/k *)
+  val world = World.world (gravity, true)
 
 
   fun add_drop (s, x, y) =
@@ -212,7 +212,7 @@ struct
                  angular_velocity = 1.0,
                  linear_damping = 0.0,
                  angular_damping = 0.0,
-                 allow_sleep = false,
+                 allow_sleep = true,
                  awake = true,
                  fixed_rotation = false,
                  bullet = false,
@@ -286,7 +286,7 @@ struct
          angular_velocity = 0.0, 
          linear_damping = 0.0,
          angular_damping = 0.0,
-         allow_sleep = false,
+         allow_sleep = true,
          awake = true,
          fixed_rotation = false,
          bullet = false,
@@ -560,6 +560,35 @@ struct
       end
       
 
+  val total_step = ref (0 : IntInf.int)
+  val total_draw = ref (0 : IntInf.int)
+  fun drawtiming () =
+      let
+          val (x, y) =
+              if Params.asint 0 frames > 0
+              then (Params.asint 0 cropx,
+                    Params.asint 0 cropy)
+              else (1, 1)
+          val y = y + Font.height * 2
+              
+          val tot = Real.fromLargeInt (!total_step + !total_draw)
+          val pcts = (100.0 * Real.fromLargeInt (!total_step)) / tot
+          val pctd = (100.0 * Real.fromLargeInt (!total_draw)) / tot
+
+          fun ptos p =
+              if Real.isFinite p
+              then Int.toString (Real.round p)
+              else "?"
+      in
+          (* only if not saving pngs *)
+          if Params.asint 0 frames > 0
+          then ()
+          else Font.draw (screen, x, y,
+                          ptos pcts ^ "% step " ^
+                          ptos pctd ^ "% draw " ^
+                          "^4FPS TODO")
+      end
+
   fun loop () =
       let 
           (* One of these tails is called, depending on whether we're
@@ -567,9 +596,14 @@ struct
           fun interactive () =
               let in
                   key ();
-                  delay 1;
+                  delay 0;
                   iters := !iters + 1;
-                  World.step (world, 0.0005, 10, 10);
+                  let val start_step = Time.now ()
+                  in
+                      World.step (world, 0.005, 10, 10);
+                      total_step := !total_step + 
+                        Time.toMicroseconds (Time.-(Time.now (), start_step))
+                  end;
                   loop ()
               end
 
@@ -579,14 +613,18 @@ struct
                   World.step (world, 0.0005, 10, 10);
                   loop ()
               end
+          val start_draw = Time.now ()
       in
-
+          
           clearsurface (screen, color (0w255, 0w0, 0w0, 0w0));
 
           drawworld world;
           drawinstructions ();
+          drawtiming ();
 
           flip screen;
+
+          total_draw := !total_draw + Time.toMicroseconds (Time.-(Time.now (), start_draw));
 
           case (!output, Params.asint 0 frames) of
               (_, 0) => interactive ()
