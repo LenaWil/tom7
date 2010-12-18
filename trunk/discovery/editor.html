@@ -2,10 +2,15 @@
 <head>
 <title>Disco? Very! Level editor</title>
 <script src="constants.js"></script>
+<script src="tiles.js"></script>
 <script src="map.js"></script>
 <style>
 img.tile {
   position: absolute;
+  width: 32px;
+  height: 32px;
+  image-rendering: -moz-crisp-edges; 
+  -ms-interpolation-mode: nearest-neighbor;
 }
 
 span.saveload {
@@ -62,8 +67,6 @@ br.clear {
 
 // Map from tile ID to tile.
 var tilemap = [];
-// Array of tiles in preferred order.
-var tiles = [];
 
 // Current frame number, updated by periodic timer.
 var framenum = 0;
@@ -148,31 +151,17 @@ function onenterframe() {
 
 /* Load tile images, make default map. */
 function init() {
-  // Parse TILEMAP.
-  var content = document.getElementById('tilemap').value;
-  var lines = content.split("\n");
-  for (var i = 0; i < lines.length; i++) {
-    var parts = lines[i].split(" ");
-    if (parts.length >= 4 && (parts.length % 2 == 0)) {
-      var num = dec(parts[0]);
-      var bits = parts[1];
-      var isbg = bits[15] == '1';
-      var frames = [];
-      for (var j = 2; j < parts.length; j += 2) {
-        if (parts[j] != "null") {
-          var img = parts[j];
-          var delay = parseInt(parts[j + 1], 10);
-          frames.push({img: img, delay: delay});
-          // preload it!
-          (new Image()).src = tilesrc(tile);
-        }
-      }
-      var tile = { num: num, bits: bits, isbg: isbg, frames: frames };
-      tilemap[num] = tile;
-      tiles.push(tile);
-    } else if (parts.length != 0 && !(parts.length == 1 && parts[0].length == 0)) {
-      alert('Line with wrong number of parts: ' + lines[i]);
-      return;
+  for (var i = 0; i < tiles.length; i++) {
+    // Populate map by id.
+    tilemap[tiles[i].id] = tiles[i];
+    var oframes = tiles[i].frames;
+    tiles[i].frames = [];
+    for (var j = 0; j < oframes.length; j += 2) {
+      tiles[i].frames.push({img: oframes[j], 
+                            delay: oframes[j + 1]});
+      // preload it!
+      if (tiles[i].frames)
+        (new Image()).src = tilesrc(tiles[i]);
     }
   }
 
@@ -312,9 +301,13 @@ function redrawstatus() {
   TEXT('Currently selected: ', elt);
   var img = IMG(null, elt);
   var tile = tilemap[cur_tile];
-  img.src = anyimage(tilemap[cur_tile]);
+  if (hasimage(tilemap[cur_tile])) {
+    img.src = anyimage(tilemap[cur_tile]);
+  } else {
+    img.src = 'no.png';
+  }
   img.frames = tilemap[cur_tile].frames;
-  TEXT(' Tile #' + cur_tile + ': ' + (anyimage(tile) || '(empty)'), elt);
+  TEXT(' Tile #' + cur_tile + ': ' + (hasimage(tile) ? anyimage(tile) : '(empty)'), elt);
 }
 
 function selectHandler(idx) {
@@ -340,6 +333,8 @@ function redrawtiles() {
       var img = IMG(null, d);
       img.src = anyimage(tiles[i]);
       img.frames = tiles[i].frames;
+      img.style.width = 32;
+      img.style.height = 32;
     } else {
       TEXT('no', d);
     }
@@ -512,19 +507,6 @@ function load() {
   <br><textarea id="mapdata" style="border: 2px solid #CCAAAAA; padding: 3px; width: 100%; height:200px; margin-top: 0.7em; font-size:8px">
 </textarea>
 <br clear="left">
-
-<!-- This should literally be the file ../TILEMAP, which is now the master copy. -->
-
-<!--                
-                    b
-                    g  --> <textarea id="tilemap" style="display:none">
-0000 0000000000000000 null 1
-0001 0000000000000000 floor 1
-0002 0000000000000001 solidteal 1
-0003 0000000000000001 solidtealv1 1
-0004 0000000000000001 solidtealv2 1
-0005 0000000000000001 solidtealv3 1
-</textarea>
 
 </div>
 </body>
