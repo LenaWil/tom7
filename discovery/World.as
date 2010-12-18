@@ -63,7 +63,7 @@ class World {
     var g = tilemap[ground[y * TILESW + x]];
     //    trace(g + ' ' + y + ' ' + x);
     if (g.frames.length > 0) {
-      var depth = startdepth + y * TILESH + x;
+      var depth = startdepth + y * TILESW + x;
       var mc : MovieClip = 
 	_root.createEmptyMovieClip('b' + y + '_' + x,
 				   depth);
@@ -97,6 +97,15 @@ class World {
 	makeClipAt(x, y, FGTILEDEPTH, foreground, fgtiles);
       }
     }
+  }
+
+  public function solidTileAt(screenx, screeny) {
+    var tilex = int(screenx / WIDTH);
+    var tiley = int(screeny / HEIGHT);
+
+    // XXX should have tile prop.
+    // trace(tilemap[foreground[tiley * TILESW + tilex]]);
+    return tilemap[foreground[tiley * TILESW + tilex]].id != 0;
   }
 
 }

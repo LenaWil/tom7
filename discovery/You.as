@@ -128,7 +128,6 @@ class You extends PhysicsObject {
 
     touchset = [];
 
-    // XXX do do physics
     movePhysics();
 
     // Now, if we touched someone, give it some
@@ -162,8 +161,8 @@ class You extends PhysicsObject {
 
     // Set animation frames.
     var otg = ontheground();
-    if (true || otg) {
-      if (true || dx > 1) {
+    if (otg) {
+      if (dx > 1) {
         facingright = true;
         framemod++;
 	framemod = framemod % 2;
