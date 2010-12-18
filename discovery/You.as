@@ -102,6 +102,9 @@ class You extends PhysicsObject {
     case 40: // down
       holdingDown = true;
       break;
+    default:
+      _root.status.selectDance(k);
+      break;
     }
   }
 
