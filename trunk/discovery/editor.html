@@ -1,6 +1,8 @@
 <html>
 <head>
 <title>Disco? Very! Level editor</title>
+<script src="constants.js"></script>
+<script src="map.js"></script>
 <style>
 img.tile {
   position: absolute;
@@ -13,8 +15,15 @@ span.saveload {
 }
 
 span.icon {
-  font-size: 11px;
+  font-size: 25px;
   margin-right: 2px;
+  position: relative;
+  top: 4px;
+}
+
+span.roomname {
+  cursor: pointer;
+  font-size: 10px;
 }
 
 div.selectable {
@@ -67,6 +76,10 @@ function makeElement(what, cssclass, elt) {
 }
 function IMG(cssclass, elt) { return makeElement('IMG', cssclass, elt); }
 function DIV(cssclass, elt) { return makeElement('DIV', cssclass, elt); }
+function SPAN(cssclass, elt) { return makeElement('SPAN', cssclass, elt); }
+function TABLE(cssclass, elt) { return makeElement('TABLE', cssclass, elt); }
+function TR(cssclass, elt) { return makeElement('TR', cssclass, elt); }
+function TD(cssclass, elt) { return makeElement('TD', cssclass, elt); }
 function BR(cssclass, elt) { return makeElement('BR', cssclass, elt); }
 function TEXT(contents, elt) {
   var e = document.createTextNode(contents);
@@ -86,10 +99,9 @@ function hasimage(tile) {
   return tile.frames.length > 0;
 }
 
-var background = [];
-var foreground = [];
-var WIDTH = 32, HEIGHT = 32;
-var TILESW = 25, TILESH = 18;
+// Current room.
+var cur = room_start;
+var cur_name = 'start';
 
 var FRAMESMS = 50;
 function onenterframe() {
@@ -164,6 +176,12 @@ function init() {
     }
   }
 
+  redraw();
+  onenterframe();
+}
+
+function defaultroom() {
+  var foreground = [], background = [];
   for (var i = 0; i < TILESW * TILESH; i++)
     background.push(2);
 
@@ -180,22 +198,29 @@ function init() {
   for (var i = 0; i < TILESW; i++)
     foreground.push(1);
 
-  redraw();
-  onenterframe();
+  return { bg: background, fg: foreground };
+}
+
+function roombgat(room, x, y) {
+  return room.bg[y * TILESW + x];
+}
+
+function roomfgat(room, x, y) {
+  return room.fg[y * TILESW + x];
 }
 
 function fgat(x, y) {
-  return foreground[y * TILESW + x];
+  return cur.fg[y * TILESW + x];
 }
 function setfgat(x, y, t) {
-  foreground[y * TILESW + x] = t;
+  cur.fg[y * TILESW + x] = t;
 }
 
 function bgat(x, y) {
-  return background[y * TILESW + x];
+  return cur.bg[y * TILESW + x];
 }
 function setbgat(x, y, t) {
-  background[y * TILESW + x] = t;
+  cur.bg[y * TILESW + x] = t;
 }
 
 function screentopos(x, y) {
@@ -322,41 +347,123 @@ function redrawtiles() {
   BR('clear', elt);
 }
 
+function mapmapClickHandler(name) {
+  return function() {
+    cur_name = name;
+    var r = 'room_' + name;
+    window[r] = window[r] || defaultroom();
+    cur = window[r];
+    redraw();
+  };
+}
+
+function redrawmapmap() {
+  var elt = document.getElementById('mapmap');
+  elt.innerHTML = '';
+  var t = TABLE('', elt);
+
+  for (var y = 0; y < map.length; y++) {
+    var r = TR('', t);
+    for (var x = 0; x < map[y].length; x++) {
+      var d = TD('', r);
+      var s = SPAN('roomname', d);
+      if (map[y][x] == cur_name) {
+        s.style.fontWeight = 'bold';
+        s.style.color = '#000099';
+      }
+      TEXT(map[y][x], s);
+      s.onclick = mapmapClickHandler(map[y][x]);
+    }
+  }
+
+}
+
 function redraw() {
   redrawmap();
   redrawstatus();
   redrawtiles();
-}
-
-// Returns n as a 4-digit hex string
-function hex(n) {
-  var s = n.toString(16);
-  switch (s.length) {
-  case 0: return '0000';
-  case 1: return '000' + s;
-  case 2: return '00' + s;
-  case 3: return '0' + s;
-  default: return s;
-  }
+  redrawmapmap();
 }
 
 function dec(h) {
   return parseInt(h, 16);
 }
 
-function save() {
-  var elt = document.getElementById('mapdata');
-  var lines = [];
+function roomtostring(room) {
+  var out = '';
+  out += '{ bg: [\n';
   for (var y = 0; y < TILESH; y++) {
+    if (y > 0) out += ',\n';
     var line = [];
     for (var x = 0; x < TILESW; x++) {
-      line.push(hex(fgat(x, y)));
+      line.push(roombgat(room, x, y));
     }
-    lines.push(line.join(" "));
+    out += '  ' + line.join(',');
   }
-  elt.value = lines.join("\n");
+  out += '],\n  fg: [\n';
+
+  for (var y = 0; y < TILESH; y++) {
+    if (y > 0) out += ',\n';
+    var line = [];
+    for (var x = 0; x < TILESW; x++) {
+      line.push(roomfgat(room, x, y));
+    }
+    out += '  ' + line.join(',');
+  }
+  out += '] }';
+  return out;
 }
 
+function save() {
+  var elt = document.getElementById('mapdata');
+  
+  var out = 'var map = [\n';
+  // Print mapmap
+  for (var y = 0; y < map.length; y++) {
+    if (y > 0) out += ',\n ';
+    out += '[';
+    var line = [];
+    for (var x = 0; x < map[y].length; x++) {
+      // XXX escaping
+      line.push("'" + map[y][x] + "'");
+    }
+    out += line.join(', ');
+    out += ']';
+  }
+  out += '\n ];\n\n';
+
+  // Now all rooms.
+  for (var y = 0; y < map.length; y++) {
+    for (var x = 0; x < map[y].length; x++) {
+      var roomname = 'room_' + map[y][x];
+      var roomdata = window[roomname] || defaultroom();
+
+      out += 'var ' + roomname + ' =\n';
+      out += roomtostring(roomdata);
+      out += ';\n\n';
+    }
+  }
+
+  elt.value = out;
+}
+
+function rename() {
+  var newname = prompt('New room name? (js symbol)', cur_name);
+  for (var y = 0; y < map.length; y ++) {
+    for (var x = 0; x < map[y].length; x++) {
+      if (map[y][x] == cur_name) {
+        map[y][x] = newname;
+      }
+    }
+  }
+
+  window[cur_name] = undefined;
+  window[newname] = cur;
+  cur_name = newname;
+  redraw();
+}
+
+/*
 function load() {
   var elt = document.getElementById('mapdata');
   var newforeground = [];
@@ -385,6 +492,7 @@ function load() {
   foreground = newforeground;
   redraw();
 }
+*/
 
 </script>
 </head>
@@ -396,11 +504,14 @@ function load() {
 <div id="tiles" style="margin-left: 810px; border: 1px solid #CCCCCC">
 </div>
 <br>
+<div id="mapmap" style="margin-left: 810px">
+</div>
 <div style="margin-left: 810px">
 [<span class="icon">&hearts;</span><span class="saveload" onclick="save()">save to textarea</span>]&nbsp;
-[<span class="icon">&#9836;</span><span class="saveload" onclick="load()">load from textarea</span>]
-  <br><textarea id="mapdata" style="border: 2px solid #CCAAAAA; padding: 3px; width: 100%; height:200px; margin-top: 0.7em">
+[<span class="icon">&#x270e;</span><span class="saveload" onclick="rename()">rename</span>]
+  <br><textarea id="mapdata" style="border: 2px solid #CCAAAAA; padding: 3px; width: 100%; height:200px; margin-top: 0.7em; font-size:8px">
 </textarea>
+<br clear="left">
 
 <!-- This should literally be the file ../TILEMAP, which is now the master copy. -->
 
