@@ -10,8 +10,8 @@ class DiscoballTitle extends MovieClip {
   public function onLoad() {
     Key.addListener(this);
     titlemusic = new Sound(this);
-    // XXX Musics
-    // titlemusic.attachSound('titlemp3');
+    // XXX should have title music
+    titlemusic.attachSound('start.mp3');
     titlemusic.setVolume(0);
     titlemusic.start(0, 99999);
 
