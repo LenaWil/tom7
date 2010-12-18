@@ -134,7 +134,7 @@ function onenterframe() {
   setTimeout(onenterframe, FRAMESMS);
 }
 
-/* Load tile images, make foreground dense with nothings */
+/* Load tile images, make default map. */
 function init() {
   // Parse TILEMAP.
   var content = document.getElementById('tilemap').value;
@@ -143,8 +143,8 @@ function init() {
     var parts = lines[i].split(" ");
     if (parts.length >= 4 && (parts.length % 2 == 0)) {
       var num = dec(parts[0]);
-      // n.b. ignored.
       var bits = parts[1];
+      var isbg = bits[15] == '1';
       var frames = [];
       for (var j = 2; j < parts.length; j += 2) {
         if (parts[j] != "null") {
@@ -155,7 +155,7 @@ function init() {
           (new Image()).src = tilesrc(tile);
         }
       }
-      var tile = { num: num, bits: bits, frames: frames };
+      var tile = { num: num, bits: bits, isbg: isbg, frames: frames };
       tilemap[num] = tile;
       tiles.push(tile);
     } else if (parts.length != 0 && !(parts.length == 1 && parts[0].length == 0)) {
@@ -167,8 +167,18 @@ function init() {
   for (var i = 0; i < TILESW * TILESH; i++)
     background.push(2);
 
-  for (var i = 0; i < TILESW * TILESH; i++)
-    foreground.push(0);
+  for (var i = 0; i < TILESW; i++)
+    foreground.push(1);
+  
+  for (var i = 0; i < TILESH - 2; i++) {
+    foreground.push(1);
+    for (var j = 0; j < TILESW - 2; j++)
+      foreground.push(0);
+    foreground.push(1);
+  }
+
+  for (var i = 0; i < TILESW; i++)
+    foreground.push(1);
 
   redraw();
   onenterframe();
@@ -196,7 +206,11 @@ function screentopos(x, y) {
 function clickmeClickHandler() {
   return function(event) {
     var pos = screentopos(event.pageX, event.pageY);
-    setfgat(pos.x, pos.y, cur_tile);
+    if (cur_foreground) {
+      setfgat(pos.x, pos.y, cur_tile);
+    } else {
+      setbgat(pos.x, pos.y, cur_tile);
+    }
     redrawmap();
   }
 }
@@ -206,7 +220,11 @@ function clickmeMouseMoveHandler() {
   return function(event) {
     if (mouse_down) {
       var pos = screentopos(event.pageX, event.pageY);
-      setfgat(pos.x, pos.y, cur_tile);
+      if (cur_foreground) {
+        setfgat(pos.x, pos.y, cur_tile);
+      } else {
+        setbgat(pos.x, pos.y, cur_tile);
+      }
       redrawmap();
     }
   }
@@ -237,6 +255,9 @@ function redrawmap() {
         img.frames = tile.frames;
         img.style.top = y * HEIGHT;
         img.style.left = x * WIDTH;
+        if (!cur_foreground) {
+          img.style.opacity = '0.7';
+        }
       }
     }
   }
@@ -258,6 +279,11 @@ var cur_tile = 1;
 function redrawstatus() {
   var elt = document.getElementById('status');
   elt.innerHTML = '';
+  if (cur_foreground) {
+    TEXT('Editing FOREGROUND. ', elt);
+  } else {
+    TEXT('Editing BACKGROUND. ', elt);
+  }
   TEXT('Currently selected: ', elt);
   var img = IMG(null, elt);
   var tile = tilemap[cur_tile];
@@ -269,8 +295,12 @@ function redrawstatus() {
 function selectHandler(idx) {
   return function() {
     cur_tile = idx;
+    // By default, use the tile's natural fg/bg setting
+    cur_foreground = !tiles[idx].isbg;
     redrawstatus();
     redrawtiles();
+    // because changing cur_foreground changes alpha of fg layer
+    redrawmap();
   };
 }
 
