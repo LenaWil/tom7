@@ -14,3 +14,8 @@ var TILESH = 18;
 // z depths, just used in flash.
 var BGTILEDEPTH = 400;
 var FGTILEDEPTH = 6000;
+
+// Height of game area (not counting status bar).
+var GAMESCREENWIDTH = WIDTH * TILESW;
+var GAMESCREENHEIGHT = HEIGHT * TILESH;
+

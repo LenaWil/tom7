@@ -1,6 +1,8 @@
 import flash.display.*;
 class You extends PhysicsObject {
 
+  #include "constants.js"
+
   var dx = 0;
   var dy = 0;
 
@@ -30,9 +32,9 @@ class You extends PhysicsObject {
 
   var framedata = {
   robowalk : { l: ['robowalkl1', 'robowalkl2'],
-	       r: ['robowalkr1', 'robowalkr2'] },
+               r: ['robowalkr1', 'robowalkr2'] },
   jump : { l: ['jumpl'],
-	   r: ['jumpr'] }
+           r: ['jumpr'] }
   };
 
   var frames = {};
@@ -43,11 +45,11 @@ class You extends PhysicsObject {
       var l = framedata[o].l;
       var r = framedata[o].r || l;
       for (var i = 0; i < l.length; i++)
-	frames[o].l.push({ src : l[i],
-	      bm: BitmapData.loadBitmap(l[i] + '.png') });
+        frames[o].l.push({ src : l[i],
+              bm: BitmapData.loadBitmap(l[i] + '.png') });
       for (var i = 0; i < r.length; i++)
-	frames[o].r.push({ src : r[i],
-	      bm: BitmapData.loadBitmap(r[i] + '.png') });
+        frames[o].r.push({ src : r[i],
+              bm: BitmapData.loadBitmap(r[i] + '.png') });
     }
   }
 
@@ -150,11 +152,10 @@ class You extends PhysicsObject {
     return holdingDown;
   }
 
-  // Number of frames that escape has been held
   var framemod : Number = 0;
   var facingright = true;
   public function onEnterFrame() {
-    // Avoid overflow at the expens of jitter.
+    // Avoid overflow at the expense of jitter.
     framemod++;
     if (framemod > 100000)
       framemod = 0;
@@ -197,17 +198,17 @@ class You extends PhysicsObject {
     if (otg) {
       if (dx > 1) {
         facingright = true;
-	setframe('robowalk', facingright, framemod);
+        setframe('robowalk', facingright, framemod);
       } else if (dx > 0) {
-	facingright = true;
-	setframe('robowalk', facingright, 0);
+        facingright = true;
+        setframe('robowalk', facingright, 0);
       } else if (dx < -1) {
         facingright = false;
         setframe('robowalk', facingright, framemod);
       } else if (dx < 0) {
         setframe('robowalk', facingright, 0);
       } else {
-	// standing still on ground.
+        // standing still on ground.
         setframe('robowalk', facingright, 0);
       }
       // ...
@@ -216,20 +217,57 @@ class You extends PhysicsObject {
       setframe('jump', facingright, framemod);
     }
 
+    // XXX Check fell out of world -> death
+    // (or check that world is always valid and thus
+    // prevents this...)
+    
+
+    // Check room transitions. nb.: This exits early
+    // when we warp, so it should happen last.
+    var centerx = (x2() + x1()) * 0.5;
+    if (centerx < 0 && dx < 0) {
+      // Walked off the screen to the left.
+      _root.world.gotoRoom(_root.world.leftRoom());
+      this._x += GAMESCREENWIDTH;
+      return;
+    } 
+
+    if (centerx >= GAMESCREENWIDTH && dx > 0) {
+      _root.world.gotoRoom(_root.world.rightRoom());
+      this._x -= GAMESCREENWIDTH;
+      return;
+    } 
+
+    var centery = (y2() + y1()) * 0.5;
+    if (centery < 0 && dy < 0) {
+      _root.world.gotoRoom(_root.world.upRoom());
+      this._y += GAMESCREENHEIGHT;
+      return;
+    } 
+
+    // Wow I am dumb. Did you catch that bug in the
+    // screencaps faster than I did? Probably.
+    if (centery >= GAMESCREENHEIGHT && dy > 0) {
+      _root.world.gotoRoom(_root.world.downRoom());
+      this._y -= GAMESCREENHEIGHT;
+      return;
+    }
   }
 
   var anim: MovieClip = null;
   public function setframe(what, fright, frmod) {
-    // PERF don't need to do this if we're alread on the
+    // PERF don't need to do this if we're already on the
     // right frame, which is the common case.
     if (anim) anim.removeMovieClip();
     anim = this.createEmptyMovieClip('anim',
-				     this.getNextHighestDepth());
+                                     this.getNextHighestDepth());
     anim._y = 0;
     anim._x = 0;
 
     var fs = (fright ? frames[what].r : frames[what].l);
-    var f = frmod % fs.length;
+    // XXX animation should be able to set its own period.
+    // XXX pingpong
+    var f = int(frmod / 8) % fs.length;
     // trace(what + ' ' + frmod + f);
     anim.attachBitmap(fs[f].bm, anim.getNextHighestDepth());
   }

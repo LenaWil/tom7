@@ -17,7 +17,11 @@ class World {
 
   var background = [];
   var foreground = [];
+  
+  // Map from room name to its coordinates in the map.
+  var coords = {};
 
+  var mapwidth = 0;
   var tilemap = {};
   public function init() {
     // Make tilemap and link bitmaps.
@@ -31,8 +35,47 @@ class World {
 	      bm: BitmapData.loadBitmap(oframes[f] + '.png') });
       }
     }
+
+    // XXX Could check no duplicate rooms (leads to bizarre behavior)
+    // XXX Could check that adjacent rooms have equivalent edges
+    // XXX Could check that outside world edges are solid.
+    for (var y = 0; y < map.length; y++) {
+      // Assumes they're all the same.
+      mapwidth = map[y].length;
+      for (var x = 0; x < map[y].length; x++) {
+	coords[map[y][x]] = { x: x, y: y };
+      }
+    }
   }
   
+  // What room is left from the current one?
+  public function leftRoom() {
+    var c = coords[currentroom];
+    return map[c.y][c.x - 1];
+  }
+
+  public function rightRoom() {
+    var c = coords[currentroom];
+    return map[c.y][c.x + 1];
+  }
+
+  public function upRoom() {
+    var c = coords[currentroom];
+    return map[c.y - 1][c.x];
+  }
+
+  public function downRoom() {
+    var c = coords[currentroom];
+    return map[c.y + 1][c.x];
+  }
+
+  public function roomdata(s) {
+    return this['room_' + s];
+  }
+
+  // Movieclips to delete when leaving the current room.
+  var deleteme = [];
+
   // Transition to a new room.
   var currentroom : String;
   public function gotoRoom(s) {
@@ -52,6 +95,23 @@ class World {
       trace('now in room ' + s);
 
       rerender();
+
+      // Kill any special stuff.
+      for (var o in deleteme) {
+	deleteme[o].removeMovieClip();
+      }
+
+      _root.squares = [];
+
+      // Special room?
+      if (currentroom == 'boss') {
+	_root.boss = _root.attachMovie('boss', 'boss', 9900, {_x:400, _y:050});
+	_root.boss.init();
+	_root.squares.push(_root.boss);
+	deleteme.push(_root.boss);
+      } else {
+	_root.boss = null;
+      }
       
     } else {
       trace('no room ' + s);
@@ -103,9 +163,39 @@ class World {
     var tilex = int(screenx / WIDTH);
     var tiley = int(screeny / HEIGHT);
 
+    // Look at adjacent rooms. Treat world edges as solid.
+    var fgm = foreground;
+    if (tilex >= TILESW || tilex < 0 || tiley < 0 || tiley >= TILESH) {
+      var c = coords[currentroom];
+      var cx = c.x, cy = c.y;
+      if (tilex >= TILESW) {
+	// Out of world?
+	if (cx >= mapwidth) return true;
+	tilex -= TILESW;
+	cx++;
+      } else if (tilex < 0) {
+	if (cx == 0) return true;
+	tilex += TILESW;
+	cx--;
+      }
+
+      if (tiley >= TILESH) {
+	if (cy >= map.length) return true;
+	tiley -= TILESH;
+	cy++;
+      } else if (tiley < 0) {
+	if (cy == 0) return true;
+	tiley += TILESH;
+	cy--;
+      }
+
+      // trace('look at room @' + cx + ',' + cy);
+      fgm = roomdata(map[cy][cx]).fg;
+    }
+
     // XXX should have tile prop.
     // trace(tilemap[foreground[tiley * TILESW + tilex]]);
-    return tilemap[foreground[tiley * TILESW + tilex]].id != 0;
+    return tilemap[fgm[tiley * TILESW + tilex]].id != 0;
   }
 
 }
