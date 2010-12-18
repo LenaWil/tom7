@@ -105,7 +105,7 @@ class World {
 
       // Special room?
       if (currentroom == 'boss') {
-	_root.boss = _root.attachMovie('boss', 'boss', 9900, {_x:400, _y:050});
+	_root.boss = _root.attachMovie('boss', 'boss', 4900, {_x:400, _y:200});
 	_root.boss.init();
 	_root.squares.push(_root.boss);
 	deleteme.push(_root.boss);
