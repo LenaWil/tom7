@@ -3,6 +3,7 @@
 
 400 - 850: bg tiles
 
+4900 - boss
 5000 - you
 
 6000 - 6450: fg tiles
