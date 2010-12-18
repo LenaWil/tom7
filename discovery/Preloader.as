@@ -42,6 +42,7 @@ class Preloader extends MovieClip {
 
       // _root.viewport = new Viewport();
       _root.world = new World();
+      _root.world.init();
       // _root.music = new Music();
       // XXX what is this for? Needed??
       _root.attachMovie("music", "music", 5);
