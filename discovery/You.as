@@ -32,18 +32,50 @@ class You extends PhysicsObject {
 
   var framedata = {
   robowalk : { l: ['robowalkl1', 'robowalkl2'],
-               r: ['robowalkr1', 'robowalkr2'] },
+               r: ['robowalkr1', 'robowalkr2'],
+               div: 8 },
+  breakdance : { l : ['breakdancel', 'breakdancef',
+                      'breakdancer', 'breakdanceb'],
+                 // Might not be noticeable, but you
+                 // rotate in the opposite direction.
+                 r : ['breakdancer', 'breakdancef',
+                      'breakdancel', 'breakdanceb'],
+                 div: 4 },
   jump : { l: ['jumpl'],
-           r: ['jumpr'] }
+           r: ['jumpr'],
+           div: 1},
+  breakjump : { l : ['breakdancel'],
+                r : ['breakdancer'],
+                div: 1}
   };
 
   var frames = {};
 
+  // Maybe should fail if the new shape is clipped.
+  public function setdimensions(d) {
+    switch(d) {
+      // Breakdance makes you shorter.
+    case 'x':
+      top = 37 * 2;
+      left = 23 * 2;
+      right = 20 * 2;
+      bottom = 3 * 2;
+      break;
+    case 'z':
+    default:
+      top = 12 * 2;
+      left = 23 * 2;
+      right = 20 * 2;
+      bottom = 3 * 2;
+    }
+  }
+
   public function init() {
     for (var o in framedata) {
-      frames[o] = { l: [], r: [] };
+      frames[o] = { l: [], r: [], div: framedata[o].div || 8 };
       var l = framedata[o].l;
       var r = framedata[o].r || l;
+      
       for (var i = 0; i < l.length; i++)
         frames[o].l.push({ src : l[i],
               bm: BitmapData.loadBitmap(l[i] + '.png') });
@@ -196,28 +228,42 @@ class You extends PhysicsObject {
     }
     */
 
+    // What dance am I doing?
+    var what_stand = 'robowalk', what_jump = 'jump';
+    switch(_root.status.getCurrentDance()) {
+    default:
+    case 'z':
+      what_stand = 'robowalk';
+      what_jump = 'jump';
+      break;
+    case 'x':
+      what_stand = 'breakdance';
+      what_jump = 'breakjump';
+      break;
+    }
+
     // Set animation frames.
     var otg = ontheground();
     if (otg) {
       if (dx > 1) {
         facingright = true;
-        setframe('robowalk', facingright, framemod);
+        setframe(what_stand, facingright, framemod);
       } else if (dx > 0) {
         facingright = true;
-        setframe('robowalk', facingright, 0);
+        setframe(what_stand, facingright, 0);
       } else if (dx < -1) {
         facingright = false;
-        setframe('robowalk', facingright, framemod);
+        setframe(what_stand, facingright, framemod);
       } else if (dx < 0) {
-        setframe('robowalk', facingright, 0);
+        setframe(what_stand, facingright, 0);
       } else {
         // standing still on ground.
-        setframe('robowalk', facingright, 0);
+        setframe(what_stand, facingright, 0);
       }
       // ...
     } else {
       // In the air.
-      setframe('jump', facingright, framemod);
+      setframe(what_jump, facingright, framemod);
     }
 
     // XXX Check fell out of world -> death
@@ -241,7 +287,7 @@ class You extends PhysicsObject {
       return;
     } 
 
-    var centery = (y2() + y1()) * 0.5;
+    var centery = y2();
     if (centery < 0 && dy < 0) {
       _root.world.gotoRoom(_root.world.upRoom());
       this._y += GAMESCREENHEIGHT;
@@ -268,9 +314,8 @@ class You extends PhysicsObject {
     anim._x = 0;
 
     var fs = (fright ? frames[what].r : frames[what].l);
-    // XXX animation should be able to set its own period.
     // XXX pingpong
-    var f = int(frmod / 8) % fs.length;
+    var f = int(frmod / frames[what].div) % fs.length;
     // trace(what + ' ' + frmod + f);
     anim.attachBitmap(fs[f].bm, anim.getNextHighestDepth());
   }

@@ -5,5 +5,6 @@
 
 4900 - boss
 5000 - you
+5010 - status
 
 6000 - 6450: fg tiles

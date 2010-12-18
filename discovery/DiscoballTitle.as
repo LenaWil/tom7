@@ -1,5 +1,7 @@
 class DiscoballTitle extends MovieClip {
 
+  #include "constants.js"
+
   var titlemusic : Sound;
 
   var TWOPI : Number = 3.141592653589 * 2.0;
@@ -80,11 +82,16 @@ class DiscoballTitle extends MovieClip {
       this.removeMovieClip();
 
       _root.gotoAndStop('game');
+
+      // trace(GAMESCREENHEIGHT); ?? why doesn't this work?
+      _root.status = _root.attachMovie('status', 'status', 15010,
+                                       {_x: 0, _y: 576});
+      _root.status.init();
+
       // XXX?
-      _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:150});
+      _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:350});
       _root.you.init();
       _root.world.gotoRoom('start');
-
 
       /*
       _root.attachMovie("altimeter", "altimeter", 80000, {_x : 690, _y : 12});
