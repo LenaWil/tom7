@@ -1,7 +1,4 @@
-/*
-   Preloader for Islands.
-
-*/
+/* Preloader for Disco? Very!. */
 class Preloader extends MovieClip {
 
   var frames : Number = 0; 
@@ -13,8 +10,6 @@ class Preloader extends MovieClip {
   public function onEnterFrame() {
     var total = Math.round(_root.getBytesTotal());
     var now = Math.round(_root.getBytesLoaded());
-
-    trace('loading ' + now + ' / ' + total);
 
     var pct = now / total * 100;
 
@@ -41,15 +36,13 @@ class Preloader extends MovieClip {
       */
 
       _root.attachMovie("messagestripe", "messagestripe", 49999,
-			{_x: -6, _y: 105});
+                        {_x: -6, _y: 105});
 
-      _root.viewport = new Viewport();
-      _root.global = new Global();
+      // _root.viewport = new Viewport();
+      // _root.global = new Global();
       // _root.music = new Music();
       _root.attachMovie("music", "music", 5);
 
-      // Usually, nosignal.
-      // _root.gotoAndStop(startframe);
       _root.gotoAndStop('menu');
 
       this.swapDepths(0);
