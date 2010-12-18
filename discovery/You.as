@@ -1,3 +1,4 @@
+import flash.display.*;
 class You extends PhysicsObject {
 
   var dx = 0;
@@ -14,10 +15,41 @@ class You extends PhysicsObject {
   var blockEsc = false;
   var escKey = 'esc';
 
+  // Size of graphic
   var width = 128;
   var height = 128;
 
+  // Subtracted from clip region.
+  // Player's top-left corner is at x+left, y+top.
+  var top = 12 * 2;
+  var left = 23 * 2;
+  var right = 20 * 2;
+  var bottom = 3 * 2;
+
   var FPS = 25;
+
+  var framedata = {
+  robowalk : { l: ['robowalkl1', 'robowalkl2'],
+	       r: ['robowalkr1', 'robowalkr2'] },
+  jump : { l: ['jumpl'],
+	   r: ['jumpr'] }
+  };
+
+  var frames = {};
+
+  public function init() {
+    for (var o in framedata) {
+      frames[o] = { l: [], r: [] };
+      var l = framedata[o].l;
+      var r = framedata[o].r || l;
+      for (var i = 0; i < l.length; i++)
+	frames[o].l.push({ src : l[i],
+	      bm: BitmapData.loadBitmap(l[i] + '.png') });
+      for (var i = 0; i < r.length; i++)
+	frames[o].r.push({ src : r[i],
+	      bm: BitmapData.loadBitmap(r[i] + '.png') });
+    }
+  }
 
   // Keep track of what dudes I touched, since
   // I don't want triple point tests or iterated
@@ -122,9 +154,10 @@ class You extends PhysicsObject {
   var framemod : Number = 0;
   var facingright = true;
   public function onEnterFrame() {
-    // We know we're not inside anything. We can safely
-    // modify the velocity in response to user input,
-    // gravity, etc.
+    // Avoid overflow at the expens of jitter.
+    framemod++;
+    if (framemod > 100000)
+      framemod = 0;
 
     touchset = [];
 
@@ -164,35 +197,41 @@ class You extends PhysicsObject {
     if (otg) {
       if (dx > 1) {
         facingright = true;
-        framemod++;
-	framemod = framemod % 2;
-        this.gotoAndStop('robowalkr' + (framemod + 1));
+	setframe('robowalk', facingright, framemod);
       } else if (dx > 0) {
-        this.gotoAndStop('robowalkr1');
+	facingright = true;
+	setframe('robowalk', facingright, 0);
       } else if (dx < -1) {
         facingright = false;
-        framemod++;
-        framemod = framemod % 2;
-        this.gotoAndStop('robowalkl' + (framemod + 1));
+        setframe('robowalk', facingright, framemod);
       } else if (dx < 0) {
-        this.gotoAndStop('robowalkl1');
+        setframe('robowalk', facingright, 0);
       } else {
-        if (facingright) {
-          this.gotoAndStop('robowalkr1');
-        } else {
-          this.gotoAndStop('robowalkl1');
-        }
+	// standing still on ground.
+        setframe('robowalk', facingright, 0);
       }
       // ...
     } else {
-      // Need frames for air; disable true || otg above.
-      if (facingright) {
-        this.gotoAndStop('robowalkl1');
-      } else {
-        this.gotoAndStop('robowalkr1');
-      }
+      // In the air.
+      setframe('jump', facingright, framemod);
     }
 
+  }
+
+  var anim: MovieClip = null;
+  public function setframe(what, fright, frmod) {
+    // PERF don't need to do this if we're alread on the
+    // right frame, which is the common case.
+    if (anim) anim.removeMovieClip();
+    anim = this.createEmptyMovieClip('anim',
+				     this.getNextHighestDepth());
+    anim._y = 0;
+    anim._x = 0;
+
+    var fs = (fright ? frames[what].r : frames[what].l);
+    var f = frmod % fs.length;
+    // trace(what + ' ' + frmod + f);
+    anim.attachBitmap(fs[f].bm, anim.getNextHighestDepth());
   }
 
 }
