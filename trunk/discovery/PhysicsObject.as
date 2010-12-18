@@ -28,7 +28,7 @@ class PhysicsObject extends Depthable {
       decel_ground: 0.95,
       decel_air: 0.05,
       jump_impulse: 13.8,
-	gravity: 0.0 /* 1.0 */,
+      gravity: 1.0,
       xgravity: 0.0,
       terminal_velocity: 9,
       maxspeed: 5.9,
@@ -225,7 +225,7 @@ class PhysicsObject extends Depthable {
       cy >= mc.y1() && cy <= mc.y2();
   }
 
-  // Is the point x,y in any block?
+  // Is the point x, y in any block?
   public function pointblocked(x, y) {
 
     // These count as 'touching'.
@@ -243,12 +243,9 @@ class PhysicsObject extends Depthable {
       }
     }
 
-    // XXX check grid.
+    // Can of course also be blocked by the map.
     // These don't count as 'touching'.
-    // for (var o in _root.blocks) {
-    // var b = _root.blocks[o];
-    // if (b.hitTest(x, y, true)) return true;
-    // }
+    return _root.world.solidTileAt(x, y);
   }
 
   public function widthblocked(x, y, w) {
@@ -263,8 +260,6 @@ class PhysicsObject extends Depthable {
 
   var GROUND_SLOP = 2.0;
   public function ontheground() {
-    return true;
-    // XXX!
     return widthblocked(this._x + this.width * .1,
                         this._y + this.height + GROUND_SLOP,
                         this.width * .8);
