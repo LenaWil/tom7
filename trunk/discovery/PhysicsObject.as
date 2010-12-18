@@ -9,6 +9,11 @@ class PhysicsObject extends Depthable {
   var width = 128;
   var height = 128;
 
+  var top = 0;
+  var left = 0;
+  var right = 0;
+  var bottom = 0;
+
   // Only affected by floor, not other physics objects.
   public function ignoresquares() {
     return false;
@@ -24,14 +29,14 @@ class PhysicsObject extends Depthable {
   // probably should be true constants.
   public function defaultconstants() {
     return { 
-      accel: 3,
+      accel: 3.6,
       decel_ground: 0.95,
       decel_air: 0.05,
-      jump_impulse: 13.8,
+      jump_impulse: 16.8,
       gravity: 1.0,
       xgravity: 0.0,
-      terminal_velocity: 9,
-      maxspeed: 5.9,
+      terminal_velocity: 10,
+      maxspeed: 7.9,
       dive: 0.3 };
   }
 
@@ -217,13 +222,15 @@ class PhysicsObject extends Depthable {
     }
 
   }
-  
+
+  /*   XXX needs clip region
   public function centerin(mc) {
     var cx = this._x + this.width * .5;
     var cy = this._y + this.height * .5;
     return cx >= mc.x1() && cx <= mc.x2() &&
       cy >= mc.y1() && cy <= mc.y2();
   }
+  */
 
   // Is the point x, y in any block?
   public function pointblocked(x, y) {
@@ -258,13 +265,14 @@ class PhysicsObject extends Depthable {
       pointblocked(x, y + (h / 2));
   }
 
-  var GROUND_SLOP = 2.0;
+  var GROUND_SLOP = 2.0; // ???
   public function ontheground() {
-    return widthblocked(this._x + this.width * .1,
-                        this._y + this.height + GROUND_SLOP,
-                        this.width * .8);
+    return widthblocked(x1(),
+                        y2() + GROUND_SLOP,
+                        (this.width - this.left - this.right));
   }
 
+  /*
   public function leftfootonground() {
     return pointblocked(this._x + this.width * .1, 
                         this._y + this.height + GROUND_SLOP);
@@ -274,52 +282,52 @@ class PhysicsObject extends Depthable {
     return pointblocked(this._x + this.width * .8, 
                         this._y + this.height + GROUND_SLOP);
   }
+  */
   
   public function x1() {
-    return this._x;
+    return this._x + this.left;
   }
 
   public function x2() {
-    return this._x + this.width;
+    return this._x + this.width - this.right;
   }
 
   public function y1() {
-    return this._y;
+    return this._y + this.top;
   }
 
   public function y2() {
-    return this._y + this.height;
+    return this._y + this.height - this.bottom;
   }
 
-  var CORNER = 0;
+  public function clipheight() {
+    return this.height - this.top - this.bottom;
+  }
+
+  public function clipwidth() {
+    return this.width - this.left - this.right;
+  }
+
   public function blockedleft(newx) {
-    var yes = heightblocked(newx, 
-                            this._y + this.height * CORNER, 
-                            this.height * (1 - 2 * CORNER));
+    var yes = heightblocked(newx + this.left, y1(), clipheight());
     collision_left = collision_left || yes;
     return yes;
   }
 
   public function blockedright(newx) {
-    var yes = heightblocked(newx + this.width, 
-                         this._y + this.height * CORNER, 
-                         this.height * (1 - 2 * CORNER));
+    var yes = heightblocked(newx + this.width - this.right, y1(), clipheight());
     collision_right = collision_right || yes;
     return yes;
   }
 
   public function blockedup(newy) {
-    var yes = widthblocked(this._x + this.width * CORNER,
-                           newy,
-                           this.width * (1 - 2 * CORNER));
+    var yes = widthblocked(x1(), newy + this.top, clipwidth());
     collision_up = collision_up || yes;
     return yes;
   }
 
   public function blockeddown(newy) {
-    var yes = widthblocked(this._x + this.width * CORNER,
-                           newy + this.height,
-                           this.width * (1 - 2 * CORNER));
+    var yes = widthblocked(x1(), newy + this.height - this.bottom, clipwidth());
     collision_down = collision_down || yes;
     return yes;
   }
