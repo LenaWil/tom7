@@ -35,12 +35,15 @@ class Preloader extends MovieClip {
                         {_x:550 / 2, _y:400 / 2});
       */
 
+      /*
       _root.attachMovie("messagestripe", "messagestripe", 49999,
                         {_x: -6, _y: 105});
+      */
 
       // _root.viewport = new Viewport();
-      // _root.global = new Global();
+      _root.world = new World();
       // _root.music = new Music();
+      // XXX what is this for? Needed??
       _root.attachMovie("music", "music", 5);
 
       _root.gotoAndStop('menu');
