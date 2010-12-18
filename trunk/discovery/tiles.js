@@ -16,5 +16,8 @@ var tiles =
  { id: 12, isbg: false,  frames: ['cubebot1', 1] },
  { id: 13, isbg: false,  frames: ['cubebot2', 1] },
  { id: 14, isbg: false,  frames: ['cubebot3', 1] },
- { id: 15, isbg: false,  frames: ['cubebot4', 1] }
+ { id: 15, isbg: false,  frames: ['cubebot4', 1] },
+ { id: 16, isbg: true,  frames: ['restroomsdown', 1] },
+ { id: 17, isbg: true,  frames: ['restroomsleft', 1] },
+ { id: 18, isbg: true,  frames: ['restrooms2', 1] }
  ];

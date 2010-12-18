@@ -452,8 +452,8 @@ function rename() {
     }
   }
 
-  window[cur_name] = undefined;
-  window[newname] = cur;
+  window['room_' + cur_name] = undefined;
+  window['room_' + newname] = cur;
   cur_name = newname;
   redraw();
 }
