@@ -26,6 +26,10 @@ class Status extends Depthable {
   var currentdance = 'z';
   var hasdance = { z: true, x: true };
 
+  // True once the boss has been defeated, and then true
+  // forever.
+  var boss_defeated = false;
+
   public function learnDance(name) {
     // XXX should display a good indication of this!
     hasdance[name] = true;
@@ -85,18 +89,18 @@ class Status extends Depthable {
     for (var i = 0; i < dancedata.length; i++) {
       var d = dancedata[i];
       if (hasdance[d]) {
-	var mc = this.createEmptyMovieClip('dance_status' + d,
-					   this.getNextHighestDepth());
-	mc._xscale = 200;
-	mc._yscale = 200;
-	mc._y = 0;
-	mc._x = xx;
-	xx += WIDTH;
-	mc.attachBitmap((d == currentdance) ?
-			dances[d].bmon :
-			dances[d].bmoff,
-			mc.getNextHighestDepth());
-	deleteme.push(mc);
+        var mc = this.createEmptyMovieClip('dance_status' + d,
+                                           this.getNextHighestDepth());
+        mc._xscale = 200;
+        mc._yscale = 200;
+        mc._y = 0;
+        mc._x = xx;
+        xx += WIDTH;
+        mc.attachBitmap((d == currentdance) ?
+                        dances[d].bmon :
+                        dances[d].bmoff,
+                        mc.getNextHighestDepth());
+        deleteme.push(mc);
       }
     }
 

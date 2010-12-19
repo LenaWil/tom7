@@ -23,8 +23,12 @@ class Boss extends Depthable {
   // corresponds to the surfac of the dance floor.
   var FLOORY = 342;
   // Left and right edges of personal dance space.
-  var FLOORXL = 400 - left;;
+  var FLOORXL = 400 - (19 * 2);
   var FLOORXR = 450;
+
+  // Area in which the player's dancing counts.
+  var PLAYERFLOORXL = 145;
+  var PLAYERFLOORXR = 400;
 
   var FPS = 25;
 
@@ -44,7 +48,7 @@ class Boss extends Depthable {
      the boss can switch to GASP frames for a little
      while, and a crowd cheering noise.
   */
-  /*
+
   var danceoff = 
     [
      // First round: Player needs to robo walk.
@@ -53,24 +57,57 @@ class Boss extends Depthable {
      // already in that state.
      {
      target: { dance: 'z' },
-     script: [ { f: 'brobowalk',
-                 
-              
+     steps: [ 
+          { reps: 4,
+            moves: [
+            { f: 'brobowalk',
+              t: 16,
+              x: FLOORXL,
+              y: FLOORY },
+            { f: 'brobowalk',
+              t: 16,
+              x: FLOORXR,
+              y: FLOORY }
+            ]
+          },
+          { reps: 1,
+            moves: [{ f: 'brobowalk',
+                      t: 16,
+                      x: (FLOORXL + FLOORXR) * 0.5,
+                      y: FLOORY }] }
+        ]
      }
 
      ];
-  */
 
   // Current round of dancing.  
   var danceround = 0;
   // Current step within the script.
   var dancestep = 0;
+  // Number of reps completed in this step (of reps).
+  var dancerep = 0;
+  // Current move within this rep.
+  var dancemove = 0;
+  // Number of frames completed in this move (of t).
+  var danceframe = 0;
+
+
+  // You pass the round if !dancefail && dancesuccess.
+  // Dancesuccess is set when you meet the target criteria.
+  // (Currently just having that dance set at any time
+  // while on the dancefloor.)
+  // Dancefail is set if you switch to the WRONG dance,
+  // or are thrusted.
+  var dancefail = false;
+  var dancesuccess = false;
+
 
   var framedata = {
   brobowalk : { l: ['brobowalk1', 'brobowalk2', 'brobowalk3', 'brobowalk2'] },
   // XXX jump frames!
   jump : { l: ['brobowalk1'] },
-  thrust: { l: ['bthrust'] }
+  thrust: { l: ['bthrust'] },
+  defeated: { l: ['bdefeated1', 'bdefeated2'] }
   };
 
   var frames = {};
@@ -96,10 +133,6 @@ class Boss extends Depthable {
     this._y = FLOORY;
     this.stop();
   }
-
-  // XXX should remember if I was defeated across
-  // spawns, by using global property
-  var defeated = false;
 
   var thrustframes = 0;
 
@@ -160,6 +193,7 @@ class Boss extends Depthable {
       shcounter = 0;
     }
 
+
     // XXX "physics."
     if (this._y > FLOORY) {
       this._y = FLOORY;
@@ -171,7 +205,7 @@ class Boss extends Depthable {
 
     // When boss is on the screen and not defeated,
     // prevent the player from passing.
-    if (!defeated) {
+    if (!_root.status.boss_defeated) {
       if (_root.you.x2() > 418) {
         trace('No!');
 
@@ -188,6 +222,23 @@ class Boss extends Depthable {
         // command.
         _root.you._x = 417 - (_root.you.width - _root.you.right);
         _root.you.thrusted(thrustframes);
+
+        // Fail dance.
+        dancefailed = true;
+      }
+    }
+
+    // Allow dancing to count.
+    if (!_root.status.boss_defeated && 
+        _root.you.x1() >= PLAYERFLOORXL &&
+        _root.you.x2() < PLAYERFLOORXR) {
+
+      if (!dancesuccess &&
+          _root.status.getCurrentDance() ==
+          danceoff[danceround].target.dance) {
+        // XXX play cheering
+        dancesuccess = true;
+        trace('success!');
       }
     }
 
@@ -198,24 +249,80 @@ class Boss extends Depthable {
       setframe('thrust', framemod);
       this._x = 417 + this.left - ((thrustframes * (thrustframes / 3)) / 3);
 
-    } else if (defeated) {
-      // XXX
+    } else if (_root.status.boss_defeated) {
+
+      setframe('defeated', framemod);
 
     } else {
-      // Set animation frames.
-      var otg = this._y > (FLOORY + 1);
-      if (otg) {
-        if (Math.abs(dx) < 1) {
-          // XXX was 0. should give the boss some
-          // dancing.
-          setframe('brobowalk', framemod);
-        } else {
-          setframe('brobowalk', framemod);
+
+
+      /*
+      trace(' round ' + danceround +
+            ' step ' + dancestep +
+            ' rep ' + dancerep +
+            ' move ' + dancemove +
+            ' frame ' + danceframe);
+      */
+      // Series of steps
+      var round = danceoff[danceround];
+      // Series of moves, .reps repetitions
+      var step = round.steps[dancestep];
+      // Series of frames, each lasts .t
+      var move = step.moves[dancemove];
+      // XXX also allow linear interpolation,
+      // which is probably what we usually want?
+      // XXX or at least setting of blend rate
+      this._x = this._x * 0.8 + move.x * 0.2;
+      this._y = this._y * 0.8 + move.y * 0.2;
+      setframe(move.f, framemod);
+      danceframe++;
+      if (danceframe > move.t) {
+        // Next rep!
+        danceframe = 0;
+        dancemove++;
+        if (dancemove >= step.moves.length) {
+          // Next move!
+          dancemove = 0;
+          dancerep++;
+          if (dancerep > step.reps) {
+            dancerep = 0;
+            // Next step!
+            dancestep++;
+            // Maybe go to next round, or start over.
+            if (dancestep >= round.steps.length) {
+              dancestep = 0;
+              
+              if (!dancefail && dancesuccess) {
+                // For next round, whether we proceed
+                // or start over.
+                dancefail = false;
+                dancesuccess = false;
+
+                danceround++;
+                if (danceround >= danceoff.length) {
+                  // XXX Play applause!
+                  _root.status.boss_defeated = true;
+                }
+
+              } else {
+                // If we simply didn't succeed, then
+                // this is the moment that we failed,
+                // so play boooooo sounds or laughing
+                // or something.
+                // XXX HERE
+                dancefail = false;
+                dancesuccess = false;
+                danceround = 0;
+
+              }
+            }
+          }
         }
-      } else {
-        // In the air.
-        setframe('jump', framemod);
       }
+
+      // Set animation frames.
+      // XXX not necessary any more
+      var otg = this._y > (FLOORY + 1);
     }
   }
 
