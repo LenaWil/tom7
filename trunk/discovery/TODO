@@ -1,9 +1,10 @@
 
 Priority:
+ - Ability to find dances in the wild
+ - Health -> lose -> lose screen
  - Dances
  - Win screen
  - Boss polish (better indicator, die when selecting the wrong dance)
- - Health -> lose -> lose screen
  - Music
  - Map
  - Animate tiles

@@ -48,6 +48,11 @@ class World {
     }
   }
   
+
+  public function getCurrentRoom() {
+    return currentroom;
+  }
+
   // What room is left from the current one?
   public function leftRoom() {
     var c = coords[currentroom];
@@ -99,6 +104,10 @@ class World {
         _root.boss = null;
       }
 
+      if (_root.pickup) {
+        _root.pickup();
+      }
+
       // Kill any special stuff.
       for (var o in deleteme) {
         deleteme[o].removeMovieClip();
@@ -107,6 +116,23 @@ class World {
       rerender();
 
       _root.squares = [];
+
+      if (currentroom == 'xpickup') {
+        trace('XPICKUP.');
+        _root.pickup = _root.attachMovie('dancepickup',
+                                         'dancepickup',
+                                         4050,
+                                         // XXXXXXXXXXXX
+                                         {_x: 400, _y: 200});
+        deleteme.push(_root.pickup);
+      } else if (currentroom == 'cpickup') {
+        _root.pickup = _root.attachMovie('dancepickup',
+                                         'dancepickup',
+                                         4050,
+                                         // XXXXXXXXXXXX
+                                         {_x: 400, _y: 200});
+        deleteme.push(_root.pickup);
+      }
 
       // Special room?
       if (currentroom == 'boss') {

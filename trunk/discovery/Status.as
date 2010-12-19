@@ -23,11 +23,13 @@ class Status extends Depthable {
   // stomp (breaks floors)
 
   var currentdance = 'z';
-  var hasdance = { z: true, x: true, c: true };
+  var hasdance = { z: true /* , x: true, c: true */ };
 
   // True once the boss has been defeated, and then true
   // forever.
   var boss_defeated = false;
+
+  var newdancebm;
 
   public function learnDance(name) {
     // XXX should display a good indication of this!
@@ -77,7 +79,34 @@ class Status extends Depthable {
         bmon: BitmapData.loadBitmap('dance' + dancedata[i] + '-selected.png')
       };
     }
+    newdancebm = BitmapData.loadBitmap('gotdance1.png');
     redraw();
+  }
+
+  public function bitmapFor(d) {
+    return dances[d].bmon;
+  }
+
+  var gotnewdanceframes = 0;
+  var dirty = true;
+  public function showGotDance() {
+    gotnewdanceframes = 3 * 24;
+    dirty = true;
+  }
+
+  public function onEnterFrame() {
+    // New dance bar.
+    if (gotnewdanceframes > 0) {
+      gotnewdanceframes--;
+      if (gotnewdanceframes == 0) {
+        dirty = true;
+      }
+    }
+
+    if (dirty) {
+      redraw();
+      dirty = false;
+    }
   }
 
   var deleteme = [];
@@ -102,6 +131,21 @@ class Status extends Depthable {
         deleteme.push(mc);
       }
     }
+
+    // gotdance bar
+    if (gotnewdanceframes > 0) {
+      var gd = this.createEmptyMovieClip('dance_status' + d,
+                                         this.getNextHighestDepth());
+      xx += 6;
+      gd._xscale = 200;
+      gd._yscale = 200;
+      gd._y = 0;
+      gd._x = xx;
+      gd.attachBitmap(newdancebm,
+                      gd.getNextHighestDepth());
+      deleteme.push(gd);
+    }
+    
 
     // XXX health bar
   }

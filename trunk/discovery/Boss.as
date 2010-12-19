@@ -110,6 +110,46 @@ class Boss extends Depthable {
              }
              // invitations?
             ]
+     },
+
+     {
+     target: { dance: 'c' },
+     steps: [ 
+             { reps: 2,
+               moves: [
+               { f: 'hyperfloor',
+                 t: 16,
+                 x: FLOORXL,
+                 y: FLOORY },
+               // up, then down.
+               { f: 'hyperjump',
+                 t: 10,
+                 x: FLOORXL,
+                 y: FLOORY - 200 },
+               { f: 'hyperjump',
+                 t: 6,
+                 x: FLOORXL,
+                 y: FLOORY },
+
+               // Now goto right.
+               { f: 'hyperfloor',
+                 t: 16,
+                 x: FLOORXR,
+                 y: FLOORY },
+               // up, then down at right too
+               { f: 'hyperjump',
+                 t: 10,
+                 x: FLOORXR,
+                 y: FLOORY - 200 },
+               { f: 'hyperjump',
+                 t: 6,
+                 x: FLOORXR,
+                 y: FLOORY }
+
+               ]
+             }
+             // invitations?
+            ]
      }
 
      ];
@@ -144,6 +184,8 @@ class Boss extends Depthable {
   thrust: { l: ['bthrust'] },
   defeated: { l: ['bdefeated1', 'bdefeated2'] },
   invite: { l: ['binvite2', 'binvite1'] },
+  hyperfloor: { l: ['bhyperjump2'] },
+  hyperjump: { l: ['bhyperjump'] },
   breakdance: { l: ['bbreakdance1', 'bbreakdance2'] }
   };
 
