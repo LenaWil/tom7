@@ -1,15 +1,19 @@
 
 Priority:
- - Boss battle -> win
- - Health -> lose
- - Map
  - Dances
- - Graphics
+ - Win screen
+ - Boss polish (better indicator, die when selecting the wrong dance)
+ - Health -> lose -> lose screen
  - Music
+ - Map
+ - Animate tiles
+ - Graphics
+
  - Tweak physics & feel
  - Heal self with medikit, drinks
  - Objects
  - Extras
+
 
 
 disc over? Y

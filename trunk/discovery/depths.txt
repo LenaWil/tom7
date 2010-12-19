@@ -3,6 +3,8 @@
 
 400 - 850: bg tiles
 
+3000 - danceoff indicator
+
 4500 - boss shadows
 4900 - boss
 5000 - you
