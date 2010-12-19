@@ -107,9 +107,13 @@ class World {
       if (currentroom == 'boss') {
 	_root.boss = _root.attachMovie('boss', 'boss', 4900, {_x:400, _y:200});
 	_root.boss.init();
-	_root.squares.push(_root.boss);
+	// No need to interact with boss physically.
+	// _root.squares.push(_root.boss);
 	deleteme.push(_root.boss);
       } else {
+	if (_root.boss) {
+	  _root.boss.kill();
+	}
 	_root.boss = null;
       }
       
