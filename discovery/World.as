@@ -30,9 +30,9 @@ class World {
       var oframes = tiles[i].frames;
       tiles[i].frames = [];
       for (var f = 0; f < oframes.length; f += 2) {
-	tiles[i].frames.push({ src: oframes[f],
-	      delay: oframes[f + 1],
-	      bm: BitmapData.loadBitmap(oframes[f] + '.png') });
+        tiles[i].frames.push({ src: oframes[f],
+              delay: oframes[f + 1],
+              bm: BitmapData.loadBitmap(oframes[f] + '.png') });
       }
     }
 
@@ -43,7 +43,7 @@ class World {
       // Assumes they're all the same.
       mapwidth = map[y].length;
       for (var x = 0; x < map[y].length; x++) {
-	coords[map[y][x]] = { x: x, y: y };
+        coords[map[y][x]] = { x: x, y: y };
       }
     }
   }
@@ -89,32 +89,43 @@ class World {
 
       currentroom = s;
       if (!roomsvisited[s]) {
-	nroomsvisited++;
-	roomsvisited[s] = true;
+        nroomsvisited++;
+        roomsvisited[s] = true;
       }
       trace('now in room ' + s);
 
-      rerender();
+      if (_root.boss) {
+        _root.boss.kill();
+        _root.boss = null;
+      }
 
       // Kill any special stuff.
       for (var o in deleteme) {
-	deleteme[o].removeMovieClip();
+        deleteme[o].removeMovieClip();
       }
+
+      rerender();
 
       _root.squares = [];
 
       // Special room?
       if (currentroom == 'boss') {
-	_root.boss = _root.attachMovie('boss', 'boss', 4900, {_x:400, _y:200});
-	_root.boss.init();
-	// No need to interact with boss physically.
-	// _root.squares.push(_root.boss);
-	deleteme.push(_root.boss);
+        _root.boss = _root.attachMovie('boss', 'boss', 4900, {_x:400, _y:200});
+        _root.boss.init();
+
+        _root.indicator = _root.attachMovie('danceoffindicator',
+                                            'danceoffindicator',
+                                            3000,
+                                            {_x: 5 * 32, _y: 3 * 32});
+        _root.indicator.init();
+
+        // No need to interact with boss physically.
+        // _root.squares.push(_root.boss);
+        deleteme.push(_root.boss);
+        deleteme.push(_root.indicator);
       } else {
-	if (_root.boss) {
-	  _root.boss.kill();
-	}
-	_root.boss = null;
+        _root.boss = null;
+        _root.indicator = null;
       }
       
     } else {
@@ -129,9 +140,9 @@ class World {
     if (g.frames.length > 0) {
       var depth = startdepth + y * TILESW + x;
       var mc : MovieClip = 
-	_root.createEmptyMovieClip('b' + y + '_' + x,
-				   depth);
-	//_root.attachMovie("Star", "m" + depth, depth);
+        _root.createEmptyMovieClip('b' + y + '_' + x,
+                                   depth);
+        //_root.attachMovie("Star", "m" + depth, depth);
       mc._xscale = 200;
       mc._yscale = 200;
       mc._y = y * HEIGHT;
@@ -157,8 +168,8 @@ class World {
     // Make tiles.
     for (var y = 0; y < TILESH; y++) {
       for (var x = 0; x < TILESW; x++) {
-	makeClipAt(x, y, BGTILEDEPTH, background, bgtiles);
-	makeClipAt(x, y, FGTILEDEPTH, foreground, fgtiles);
+        makeClipAt(x, y, BGTILEDEPTH, background, bgtiles);
+        makeClipAt(x, y, FGTILEDEPTH, foreground, fgtiles);
       }
     }
   }
@@ -173,24 +184,24 @@ class World {
       var c = coords[currentroom];
       var cx = c.x, cy = c.y;
       if (tilex >= TILESW) {
-	// Out of world?
-	if (cx >= mapwidth) return true;
-	tilex -= TILESW;
-	cx++;
+        // Out of world?
+        if (cx >= mapwidth) return true;
+        tilex -= TILESW;
+        cx++;
       } else if (tilex < 0) {
-	if (cx == 0) return true;
-	tilex += TILESW;
-	cx--;
+        if (cx == 0) return true;
+        tilex += TILESW;
+        cx--;
       }
 
       if (tiley >= TILESH) {
-	if (cy >= map.length) return true;
-	tiley -= TILESH;
-	cy++;
+        if (cy >= map.length) return true;
+        tiley -= TILESH;
+        cy++;
       } else if (tiley < 0) {
-	if (cy == 0) return true;
-	tiley += TILESH;
-	cy--;
+        if (cy == 0) return true;
+        tiley += TILESH;
+        cy--;
       }
 
       // trace('look at room @' + cx + ',' + cy);

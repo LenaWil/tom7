@@ -49,7 +49,24 @@ class Boss extends Depthable {
      while, and a crowd cheering noise.
   */
 
-  var danceoff = 
+  // Sometimes Flash complains about non-constant
+  // initializers, so do it in a function.
+  var danceoff = [];
+  public function initdance() {
+
+    // Canned 'invitation' step
+    var invite_step = 
+      { reps: 1,
+        moves: [{ f: 'invite',
+                  t: 16,
+                  x: FLOORXL * 0.4 + FLOORXR * 0.6,
+                  y: FLOORY },
+      { f: 'invite',
+        t: 16,
+        x: FLOORXL * 0.6 + FLOORXR * 0.4,
+        y: FLOORY }] };
+
+    danceoff =
     [
      // First round: Player needs to robo walk.
      // Note that the player is USUALLY robo walking,
@@ -58,27 +75,45 @@ class Boss extends Depthable {
      {
      target: { dance: 'z' },
      steps: [ 
-          { reps: 4,
-            moves: [
-            { f: 'brobowalk',
-              t: 16,
-              x: FLOORXL,
-              y: FLOORY },
-            { f: 'brobowalk',
-              t: 16,
-              x: FLOORXR,
-              y: FLOORY }
+             // Start with this so the player sees it without
+             // waiting for anything.
+             invite_step,
+             { reps: 2,
+               moves: [
+               { f: 'robowalk',
+                 t: 16,
+                 x: FLOORXL,
+                 y: FLOORY },
+               { f: 'robowalk',
+                 t: 16,
+                 x: FLOORXR,
+                 y: FLOORY }
+               ]
+             }
             ]
-          },
-          { reps: 1,
-            moves: [{ f: 'brobowalk',
-                      t: 16,
-                      x: (FLOORXL + FLOORXR) * 0.5,
-                      y: FLOORY }] }
-        ]
+     },
+
+     {
+     target: { dance: 'x' },
+     steps: [ 
+             { reps: 2,
+               moves: [
+               { f: 'breakdance',
+                 t: 16,
+                 x: FLOORXL,
+                 y: FLOORY },
+               { f: 'breakdance',
+                 t: 16,
+                 x: FLOORXR,
+                 y: FLOORY }
+               ]
+             }
+             // invitations?
+            ]
      }
 
      ];
+  }
 
   // Current round of dancing.  
   var danceround = 0;
@@ -103,16 +138,19 @@ class Boss extends Depthable {
 
 
   var framedata = {
-  brobowalk : { l: ['brobowalk1', 'brobowalk2', 'brobowalk3', 'brobowalk2'] },
+  robowalk : { l: ['brobowalk1', 'brobowalk2', 'brobowalk3', 'brobowalk2'] },
   // XXX jump frames!
   jump : { l: ['brobowalk1'] },
   thrust: { l: ['bthrust'] },
-  defeated: { l: ['bdefeated1', 'bdefeated2'] }
+  defeated: { l: ['bdefeated1', 'bdefeated2'] },
+  invite: { l: ['binvite2', 'binvite1'] },
+  breakdance: { l: ['bbreakdance1', 'bbreakdance2'] }
   };
 
   var frames = {};
 
   public function init() {
+    initdance();
     for (var o in framedata) {
       // n.b. boss is always 'facing' left, but keeping this as
       // a subfield to make it easier to maintain in parallel with
@@ -224,7 +262,9 @@ class Boss extends Depthable {
         _root.you.thrusted(thrustframes);
 
         // Fail dance.
-        dancefailed = true;
+        dancefail = true;
+
+        _root.indicator.wrong(48);
       }
     }
 
@@ -239,6 +279,7 @@ class Boss extends Depthable {
         // XXX play cheering
         dancesuccess = true;
         trace('success!');
+        _root.indicator.right(48);
       }
     }
 
@@ -301,6 +342,9 @@ class Boss extends Depthable {
                 danceround++;
                 if (danceround >= danceoff.length) {
                   // XXX Play applause!
+
+                  // XXX should disco/very
+                  _root.indicator.disco(0);
                   _root.status.boss_defeated = true;
                 }
 
@@ -309,7 +353,11 @@ class Boss extends Depthable {
                 // this is the moment that we failed,
                 // so play boooooo sounds or laughing
                 // or something.
-                // XXX HERE
+
+                if (!dancesuccess) {
+                  _root.indicator.wrong(48);
+                }
+
                 dancefail = false;
                 dancesuccess = false;
                 danceround = 0;

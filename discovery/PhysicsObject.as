@@ -77,7 +77,7 @@ class PhysicsObject extends Depthable {
     // XXX probably should check invariant since it can probably 
     // be violated in rare cases (fp issues).
     if (f.apply(this, [newpos])) {
-
+      
       // invariant: pos is good, newpos is bad
       // XXX EPSILON?
       while (Math.abs(newpos - pos) > .01) {

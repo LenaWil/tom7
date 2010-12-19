@@ -269,6 +269,10 @@ class You extends PhysicsObject {
       // Irrespective of dance.
       setframe('hurt', facingright, framemod);
     } else {
+
+      // XXX if on dance floor, then animate the dance
+      // even when standing still.
+
       var otg = ontheground();
       if (otg) {
         if (dx > 1) {
