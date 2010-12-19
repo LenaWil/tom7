@@ -40,6 +40,10 @@ class PhysicsObject extends Depthable {
       dive: 0.3 };
   }
 
+  public function getConstants() {
+    return defaultconstants();
+  }
+
   /* These are typically overridden so that
      the object is not just deadweight. */
   public function wishjump() {
@@ -158,17 +162,7 @@ class PhysicsObject extends Depthable {
 
     // Check physics areas to get the physics constants, which we use
     // for the rest of the updates.
-    var C = defaultconstants();
-    /*
-    for (var d in _root.physareas) {
-      var mca = _root.physareas[d];
-      if (mca.isHit(this, dx, dy)) {
-        if (mca.getConstants != undefined) 
-          mca.getConstants(this, C);
-        else trace("no getConstants");
-      }
-    }
-    */
+    var C = getConstants();
 
     setVelocity(C);
   }

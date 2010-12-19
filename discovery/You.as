@@ -187,6 +187,18 @@ class You extends PhysicsObject {
     }
   }
 
+  public function getConstants() {
+    var C = defaultconstants();
+    switch(_root.status.getCurrentDance()) {
+    case 'c':
+      C.jump_impulse = 28.0;
+      C.gravity = 0.4;
+    default:;
+
+    }
+    return C;
+  }
+
   public function wishjump() {
     return nokeys == 0 && holdingUp;
   }
