@@ -51,6 +51,12 @@ class You extends PhysicsObject {
   breakjump : { l : ['breakdancel'],
                 r : ['breakdancer'],
                 div: 1},
+  hyperstand : { l : ['hyperjumpl', 'hyperjumpl2'],
+                 r : ['hyperjumpr', 'hyperjumpr2'],
+                 div : 6 },
+  hyperjump : { l : ['hyperjumpl'],
+                r : ['hyperjumpr'],
+                div: 1 },
   // XXX should have blink anim.
   hurt : { l : ['hurtl'],
            r : ['hurtr'],
@@ -70,6 +76,7 @@ class You extends PhysicsObject {
       bottom = 3 * 2;
       break;
     case 'z':
+    case 'c':
     default:
       top = 12 * 2;
       left = 23 * 2;
@@ -252,6 +259,9 @@ class You extends PhysicsObject {
       what_stand = 'breakdance';
       what_jump = 'breakjump';
       break;
+    case 'c':
+      what_stand = 'hyperstand';
+      what_jump = 'hyperjump';
     }
 
     // Set animation frames.

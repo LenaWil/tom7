@@ -12,7 +12,7 @@ class Status extends Depthable {
   // as the key you press to select it, and how it's
   // show on screen. Graphics in dance<CHAR>.png and
   // dance<CHAR>-seleted.png.
-  var dancedata = [ 'z', 'x' ];
+  var dancedata = [ 'z', 'x', 'c' ];
 
   var dances = {};
 
@@ -21,10 +21,9 @@ class Status extends Depthable {
 
   // TODO:
   // stomp (breaks floors)
-  // something that makes you jump extra high
 
   var currentdance = 'z';
-  var hasdance = { z: true, x: true };
+  var hasdance = { z: true, x: true, c: true };
 
   // True once the boss has been defeated, and then true
   // forever.
