@@ -22,13 +22,13 @@ class Boss extends PhysicsObject {
   var framedata = {
   brobowalk : { l: ['brobowalk1', 'brobowalk2', 'brobowalk3', 'brobowalk2'] },
   // XXX jump frames!
-  jump : { l: ['brobowalk1'] }
+  jump : { l: ['brobowalk1'] },
+  thrust: { l: ['bthrust'] }
   };
 
   var frames = {};
 
   public function init() {
-    trace('SPAWN BOSS');
     for (var o in framedata) {
       // n.b. boss is always 'facing' left, but keeping this as
       // a subfield to make it easier to maintain in parallel with
@@ -41,18 +41,7 @@ class Boss extends PhysicsObject {
     }
   }
 
-  // XXX ???
-  // Keep track of what dudes I touched, since
-  // I don't want triple point tests or iterated
-  // adjacency to make lots of little pushes.
-  var touchset = [];
-  public function touch(other : PhysicsObject) {
-    for (var o in touchset) {
-      if (touchset[o] == other)
-        return;
-    }
-    touchset.push(other);
-  }
+  public function touch(other : PhysicsObject) {}
 
   public function onLoad() {
     this._xscale = 200.0;
@@ -78,6 +67,32 @@ class Boss extends PhysicsObject {
   public function wishdive() {
     return false;
   }
+  
+  // XXX should remember if I was defeated across
+  // spawns, by using global property
+  var defeated = false;
+
+  var thrustframes = 0;
+
+  // Maximum length of shadow.
+  var MAXSHADOW = 6;
+
+  var lastframe = null;
+  // Holds movieclips of our previous positions
+  var shadows = [];
+  var shcounter = 0;
+
+  // Just make sure to clean up shadow, since those
+  // are placed in the root.
+  // XXX there is still a problem where these can
+  // stick around.
+  public function kill() {
+    trace('kill boss');
+    for (var o in shadows) {
+      shadows[o].removeMovieClip();
+      shadows = [];
+    }
+  }
 
   // Number of frames that escape has been held
   var framemod : Number = 0;
@@ -87,43 +102,84 @@ class Boss extends PhysicsObject {
     if (framemod > 100000)
       framemod = 0;
 
-    touchset = [];
+    // Or more generally, whenever we want to save shadow.
+    if (thrustframes > 0 && lastframe && shcounter < 100) {
+      var sh = 
+	_root.createEmptyMovieClip('shadow' + shcounter,
+				   // Maybe should count down?
+				   4500 + shcounter);
+      sh._y = this._y;
+      sh._x = this._x;
+      sh._xscale = 200.0;
+      sh._yscale = 200.0;
+      // XXX make it depend on depth, probably below
+      sh._alpha = 50.0;
+      
+      sh.attachBitmap(lastframe, anim.getNextHighestDepth());
+      shadows.push(sh);
+      shcounter ++;
+    }
+
+    // Shrink shadow if it's too long or if we're not growing
+    // it any more.
+    if (thrustframes == 0 || shadows.length == MAXSHADOW) {
+      // Throw away the oldest element.
+      shadows[0].removeMovieClip();
+      shadows = shadows.slice(1, shadows.length);
+    } else if (thrustframes == 0 && shadows.length == 0) {
+      // Shadow is done, so reset depths information.
+      shcounter = 0;
+    }
 
     movePhysics();
 
-    // Now, if we touched someone, give it some
-    // love.
-    for (var o in touchset) {
-      var other = touchset[o];
+    // When boss is on the screen and not defeated,
+    // prevent the player from passing.
+    if (!defeated) {
+      if (_root.you.x2() > 418) {
+	trace('No!');
 
-      var diffx = other._x - this._x;
-      var diffy = other._y - this._y;
-    
-      var normx = diffx / width;
-      var normy = diffy / height;
+	// If the player tries to jump over boss, make the
+	// boss instantly warp to his position to block him.
+	var newy = _root.you._y + _root.you.top - this.top;
+	if (this._y > newy) this._y = newy;
+	thrustframes = 28;
 
-      // Don't push from side to side when like
-      // standing on a dude but not centered.
-      if (Math.abs(normx) > Math.abs(normy)) {
-        other.dx += normx;
-      } else {
-        other.dy += normy;
+	// XXX Would probably be good to show some alpha shadows
+	// when thrusting... not that hard, really.
+
+	// Absolute prevention, even if player ignores thrusted
+	// command.
+	_root.you._x = 417 - (_root.you.width - _root.you.right);
+	_root.you.thrusted(thrustframes);
       }
     }
 
-    // Set animation frames.
-    var otg = ontheground();
-    if (otg) {
-      if (Math.abs(dx) < 1) {
-	// XXX was 0. should give the boss some
-	// dancing.
-	setframe('brobowalk', framemod);
-      } else {
-	setframe('brobowalk', framemod);
-      }
+
+    // Special animation mode?
+    if (thrustframes > 0) {
+      thrustframes --;
+      setframe('thrust', framemod);
+      this._x = 417 + this.left - ((thrustframes * (thrustframes / 3)) / 3);
+
+    } else if (defeated) {
+      // XXX
+
     } else {
-      // In the air.
-      setframe('jump', framemod);
+      // Set animation frames.
+      var otg = ontheground();
+      if (otg) {
+	if (Math.abs(dx) < 1) {
+	  // XXX was 0. should give the boss some
+	  // dancing.
+	  setframe('brobowalk', framemod);
+	} else {
+	  setframe('brobowalk', framemod);
+	}
+      } else {
+	// In the air.
+	setframe('jump', framemod);
+      }
     }
   }
 
@@ -143,6 +199,7 @@ class Boss extends PhysicsObject {
     var f = int(frmod / 8) % fs.length;
     // trace(what + ' ' + frmod + ' of ' + fs.length + ' = ' + f);
     anim.attachBitmap(fs[f].bm, anim.getNextHighestDepth());
+    lastframe = fs[f].bm;
   }
 
 }

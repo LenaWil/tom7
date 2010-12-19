@@ -458,6 +458,20 @@ function rename() {
   redraw();
 }
 
+function fill() {
+  save();
+  for (var y = 0; y < TILESH; y++) {
+    for (var x = 0; x < TILESW; x++) {
+      if (cur_foreground) {
+        setfgat(x, y, cur_tile);
+      } else {
+        setbgat(x, y, cur_tile);
+      }
+    }
+  }  
+  redraw();
+}
+
 /*
 function load() {
   var elt = document.getElementById('mapdata');
@@ -489,6 +503,8 @@ function load() {
 }
 */
 
+
+
 </script>
 </head>
 <body style="font: 12px Verdana,Helvetica,sans-serif" onload="init();">
@@ -504,6 +520,7 @@ function load() {
 <div style="margin-left: 810px">
 [<span class="icon">&hearts;</span><span class="saveload" onclick="save()">save to textarea</span>]&nbsp;
 [<span class="icon">&#x270e;</span><span class="saveload" onclick="rename()">rename</span>]
+[<span class="icon">&#x2614;</span><span class="saveload" onclick="fill()">fill</span>]
   <br><textarea id="mapdata" style="border: 2px solid #CCAAAAA; padding: 3px; width: 100%; height:200px; margin-top: 0.7em; font-size:8px">
 </textarea>
 <br clear="left">

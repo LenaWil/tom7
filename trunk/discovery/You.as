@@ -17,6 +17,10 @@ class You extends PhysicsObject {
   var blockEsc = false;
   var escKey = 'esc';
 
+  // Number of frames during which I'm not allowed
+  // to use keys.
+  var nokeys = 0;
+
   // Size of graphic
   var width = 128;
   var height = 128;
@@ -46,7 +50,11 @@ class You extends PhysicsObject {
            div: 1},
   breakjump : { l : ['breakdancel'],
                 r : ['breakdancer'],
-                div: 1}
+                div: 1},
+  // XXX should have blink anim.
+  hurt : { l : ['hurtl'],
+           r : ['hurtr'],
+           div: 1 }
   };
 
   var frames = {};
@@ -108,6 +116,7 @@ class You extends PhysicsObject {
   public function onKeyDown() {
     var k = Key.getCode();
     // _root.message.say(k);
+
     switch(k) {
     case 192: // ~
       escKey = '~';
@@ -172,19 +181,19 @@ class You extends PhysicsObject {
   }
 
   public function wishjump() {
-    return holdingUp;
+    return nokeys == 0 && holdingUp;
   }
 
   public function wishleft() {
-    return holdingLeft;
+    return nokeys == 0 && holdingLeft;
   }
 
   public function wishright() {
-    return holdingRight;
+    return nokeys == 0 && holdingRight;
   }
 
   public function wishdive() {
-    return holdingDown;
+    return nokeys == 0 && holdingDown;
   }
 
   var framemod : Number = 0;
@@ -198,6 +207,9 @@ class You extends PhysicsObject {
     touchset = [];
 
     movePhysics();
+
+    if (nokeys > 0)
+      nokeys--;
 
     // Now, if we touched someone, give it some
     // love.
@@ -243,33 +255,43 @@ class You extends PhysicsObject {
     }
 
     // Set animation frames.
-    var otg = ontheground();
-    if (otg) {
-      if (dx > 1) {
-        facingright = true;
-        setframe(what_stand, facingright, framemod);
-      } else if (dx > 0) {
-        facingright = true;
-        setframe(what_stand, facingright, 0);
-      } else if (dx < -1) {
-        facingright = false;
-        setframe(what_stand, facingright, framemod);
-      } else if (dx < 0) {
-        setframe(what_stand, facingright, 0);
-      } else {
-        // standing still on ground.
-        setframe(what_stand, facingright, 0);
-      }
-      // ...
-    } else {
-      // In the air.
-      setframe(what_jump, facingright, framemod);
-    }
+    if (nokeys > 0) {
+      // Assume nokeys = hurting.
 
-    // XXX Check fell out of world -> death
-    // (or check that world is always valid and thus
-    // prevents this...)
-    
+      // When we're struck, we are pushed away from
+      // the harm, so remain facing it.
+      if (dx > 0) {
+        facingright = false;
+      } else if (dx < 0) {
+        facingright = true;
+      }
+      
+      // Irrespective of dance.
+      setframe('hurt', facingright, framemod);
+    } else {
+      var otg = ontheground();
+      if (otg) {
+        if (dx > 1) {
+          facingright = true;
+          setframe(what_stand, facingright, framemod);
+        } else if (dx > 0) {
+          facingright = true;
+          setframe(what_stand, facingright, 0);
+        } else if (dx < -1) {
+          facingright = false;
+          setframe(what_stand, facingright, framemod);
+        } else if (dx < 0) {
+          setframe(what_stand, facingright, 0);
+        } else {
+          // standing still on ground.
+          setframe(what_stand, facingright, 0);
+        }
+        // ...
+      } else {
+        // In the air.
+        setframe(what_jump, facingright, framemod);
+      }
+    }    
 
     // Check room transitions. nb.: This exits early
     // when we warp, so it should happen last.
@@ -318,6 +340,14 @@ class You extends PhysicsObject {
     var f = int(frmod / frames[what].div) % fs.length;
     // trace(what + ' ' + frmod + f);
     anim.attachBitmap(fs[f].bm, anim.getNextHighestDepth());
+  }
+
+  public function thrusted(frames) {
+    // XXX damage anim.
+    this.dx = -20;
+    if (this.nokeys < frames) {
+      this.nokeys = frames;
+    }
   }
 
 }
