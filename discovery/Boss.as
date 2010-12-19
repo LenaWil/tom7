@@ -1,5 +1,5 @@
 import flash.display.*;
-class Boss extends PhysicsObject {
+class Boss extends Depthable {
 
   #include "constants.js"
 
@@ -17,7 +17,54 @@ class Boss extends PhysicsObject {
   var right = 18 * 2;
   var bottom = 0 * 2;
 
+
+  // Not a physics object. We just pretend, in order to
+  // prevent tomfoolery. This is the Y position that
+  // corresponds to the surfac of the dance floor.
+  var FLOORY = 342;
+  // Left and right edges of personal dance space.
+  var FLOORXL = 400 - left;;
+  var FLOORXR = 450;
+
   var FPS = 25;
+
+  /* The danceoff is a script that the boss plays,
+     where after each round he waits for you to do
+     the 'same' dance. If you do them all, he is
+     defeated and lets you pass. If you fail at any
+     step, he laughs(?) and starts over.
+     
+     Each round is a series of x/y destinations that
+     he tweens to, while an animation is playing.
+     There's also a target, which is what the player
+     must do in order to pass the round. 
+
+     There should be some visual and some audio
+     indication of success and failure. For example,
+     the boss can switch to GASP frames for a little
+     while, and a crowd cheering noise.
+  */
+  /*
+  var danceoff = 
+    [
+     // First round: Player needs to robo walk.
+     // Note that the player is USUALLY robo walking,
+     // and is likely to arrive on the dance floor
+     // already in that state.
+     {
+     target: { dance: 'z' },
+     script: [ { f: 'brobowalk',
+                 
+              
+     }
+
+     ];
+  */
+
+  // Current round of dancing.  
+  var danceround = 0;
+  // Current step within the script.
+  var dancestep = 0;
 
   var framedata = {
   brobowalk : { l: ['brobowalk1', 'brobowalk2', 'brobowalk3', 'brobowalk2'] },
@@ -36,38 +83,20 @@ class Boss extends PhysicsObject {
       frames[o] = { l: [] };
       var l = framedata[o].l;
       for (var i = 0; i < l.length; i++)
-	frames[o].l.push({ src : l[i],
-	      bm: BitmapData.loadBitmap(l[i] + '.png') });
+        frames[o].l.push({ src : l[i],
+              bm: BitmapData.loadBitmap(l[i] + '.png') });
     }
   }
-
-  public function touch(other : PhysicsObject) {}
 
   public function onLoad() {
     this._xscale = 200.0;
     this._yscale = 200.0;
     this.setdepth(4900);
+    this._x = FLOORXL;
+    this._y = FLOORY;
     this.stop();
   }
 
-  // XXX not sure if I'll use this; probably will
-  // just have state machine and set physics directly.
-  public function wishjump() {
-    return false;
-  }
-
-  public function wishleft() {
-    return false;
-  }
-
-  public function wishright() {
-    return false;
-  }
-
-  public function wishdive() {
-    return false;
-  }
-  
   // XXX should remember if I was defeated across
   // spawns, by using global property
   var defeated = false;
@@ -105,9 +134,9 @@ class Boss extends PhysicsObject {
     // Or more generally, whenever we want to save shadow.
     if (thrustframes > 0 && lastframe && shcounter < 100) {
       var sh = 
-	_root.createEmptyMovieClip('shadow' + shcounter,
-				   // Maybe should count down?
-				   4500 + shcounter);
+        _root.createEmptyMovieClip('shadow' + shcounter,
+                                   // Maybe should count down?
+                                   4500 + shcounter);
       sh._y = this._y;
       sh._x = this._x;
       sh._xscale = 200.0;
@@ -131,27 +160,34 @@ class Boss extends PhysicsObject {
       shcounter = 0;
     }
 
-    movePhysics();
+    // XXX "physics."
+    if (this._y > FLOORY) {
+      this._y = FLOORY;
+      this.dy = 0;
+    } else if (this._y < FLOORY) {
+      this._y += this.dy;
+      this.dy += 1.0;
+    }
 
     // When boss is on the screen and not defeated,
     // prevent the player from passing.
     if (!defeated) {
       if (_root.you.x2() > 418) {
-	trace('No!');
+        trace('No!');
 
-	// If the player tries to jump over boss, make the
-	// boss instantly warp to his position to block him.
-	var newy = _root.you._y + _root.you.top - this.top;
-	if (this._y > newy) this._y = newy;
-	thrustframes = 28;
+        // If the player tries to jump over boss, make the
+        // boss instantly warp to his position to block him.
+        var newy = _root.you._y + _root.you.top - this.top;
+        if (this._y > newy) this._y = newy;
+        thrustframes = 28;
 
-	// XXX Would probably be good to show some alpha shadows
-	// when thrusting... not that hard, really.
+        // XXX Would probably be good to show some alpha shadows
+        // when thrusting... not that hard, really.
 
-	// Absolute prevention, even if player ignores thrusted
-	// command.
-	_root.you._x = 417 - (_root.you.width - _root.you.right);
-	_root.you.thrusted(thrustframes);
+        // Absolute prevention, even if player ignores thrusted
+        // command.
+        _root.you._x = 417 - (_root.you.width - _root.you.right);
+        _root.you.thrusted(thrustframes);
       }
     }
 
@@ -167,18 +203,18 @@ class Boss extends PhysicsObject {
 
     } else {
       // Set animation frames.
-      var otg = ontheground();
+      var otg = this._y > (FLOORY + 1);
       if (otg) {
-	if (Math.abs(dx) < 1) {
-	  // XXX was 0. should give the boss some
-	  // dancing.
-	  setframe('brobowalk', framemod);
-	} else {
-	  setframe('brobowalk', framemod);
-	}
+        if (Math.abs(dx) < 1) {
+          // XXX was 0. should give the boss some
+          // dancing.
+          setframe('brobowalk', framemod);
+        } else {
+          setframe('brobowalk', framemod);
+        }
       } else {
-	// In the air.
-	setframe('jump', framemod);
+        // In the air.
+        setframe('jump', framemod);
       }
     }
   }
@@ -189,7 +225,7 @@ class Boss extends PhysicsObject {
     // right frame, which is the common case.
     if (anim) anim.removeMovieClip();
     anim = this.createEmptyMovieClip('anim',
-				     this.getNextHighestDepth());
+                                     this.getNextHighestDepth());
     anim._y = 0;
     anim._x = 0;
 
