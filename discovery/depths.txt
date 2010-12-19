@@ -5,6 +5,7 @@
 
 3000 - danceoff indicator
 
+4050 - dance pickup
 4500 - boss shadows
 4900 - boss
 5000 - you

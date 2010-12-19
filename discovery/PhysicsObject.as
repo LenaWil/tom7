@@ -14,6 +14,11 @@ class PhysicsObject extends Depthable {
   var right = 0;
   var bottom = 0;
 
+  // Hack. Touching gives a dance?
+  public function givesDance() {
+    return '';
+  }
+
   // Only affected by floor, not other physics objects.
   public function ignoresquares() {
     return false;

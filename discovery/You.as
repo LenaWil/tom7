@@ -235,18 +235,29 @@ class You extends PhysicsObject {
     for (var o in touchset) {
       var other = touchset[o];
 
-      var diffx = other._x - this._x;
-      var diffy = other._y - this._y;
-    
-      var normx = diffx / width;
-      var normy = diffy / height;
-
-      // Don't push from side to side when like
-      // standing on a dude but not centered.
-      if (Math.abs(normx) > Math.abs(normy)) {
-        other.dx += normx;
+      var gd = other.givesDance();
+      if (gd != '') {
+        _root.status.learnDance(gd);
+        // Should give a better indication, but
+        // switching is pretty obvious.
+        _root.status.switchDance(gd);
+        _root.status.showGotDance();
+        other.take();
+        
       } else {
-        other.dy += normy;
+        var diffx = other._x - this._x;
+        var diffy = other._y - this._y;
+    
+        var normx = diffx / width;
+        var normy = diffy / height;
+
+        // Don't push from side to side when like
+        // standing on a dude but not centered.
+        if (Math.abs(normx) > Math.abs(normy)) {
+          other.dx += normx;
+        } else {
+          other.dy += normy;
+        }
       }
     }
 
