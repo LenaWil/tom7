@@ -89,11 +89,12 @@ class DiscoballTitle extends MovieClip {
       _root.status.init();
 
       // XXX?
-      _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:350});
+      // _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:350});
+      _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:100});
       _root.you.init();
 
       // XXX!
-      _root.world.gotoRoom('catacombs1');
+      _root.world.gotoRoom('hole2');
       // _root.world.gotoRoom('start');
 
       /*

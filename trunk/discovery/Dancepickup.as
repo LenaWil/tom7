@@ -17,7 +17,6 @@ class Dancepickup extends PhysicsObject {
   }
 
   public function onLoad() {
-    trace('hiiii');
     this.width = 32;
     this.height = 32;
     this._xscale = 200;
@@ -57,7 +56,9 @@ class Dancepickup extends PhysicsObject {
   var fadeframes = 0;
 
   public function take() {
-    fadeframes = MAXFADE;
+    // Don't allow the player to keep taking it.
+    if (fadeframes == 0)
+      fadeframes = MAXFADE;
   }
 
   // Physics object so that it falls to land on a surface.

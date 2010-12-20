@@ -1,21 +1,20 @@
 
-Priority:
- - Ability to find dances in the wild
- - Health -> lose -> lose screen
- - Dances
- - Win screen
- - Boss polish (better indicator, die when selecting the wrong dance)
- - Music
- - Map
- - Animate tiles
- - Graphics
+REMOVE CHEAT CODES!
 
+Priority:
+ - Map
+ - Boss polish (better indicator, die when selecting the wrong dance)
+ - Win screen
+ - Graphics
+ - Improve discoball
+
+Not doing:
+ - Health -> lose -> lose screen
  - Tweak physics & feel
  - Heal self with medikit, drinks
  - Objects
  - Extras
-
-
+ - Animate tiles
 
 disc over? Y
 dis cover? Y!

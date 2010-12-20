@@ -84,5 +84,6 @@ var tiles =
  { id: 80, isbg: false, deadly: true, frames: ['spikedown2', 1] },
  { id: 81, isbg: false, deadly: true, frames: ['spikedown3', 1] },
  { id: 82, isbg: false, frames: ['rock1', 1] },
- { id: 83, isbg: true, frames: ['tealblackdiag', 1]}
+ { id: 83, isbg: true, frames: ['tealblackdiag', 1]},
+ { id: 84, isbg: false, deadly: true, frames: ['glass', 1] }
  ];
