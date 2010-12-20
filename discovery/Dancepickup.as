@@ -40,6 +40,9 @@ class Dancepickup extends PhysicsObject {
     case 'cpickup':
       whatdance = 'c';
       break;
+    case 'vpickup':
+      whatdance = 'v';
+      break;
     case 'zpickup':
     default:
       whatdance = 'z';

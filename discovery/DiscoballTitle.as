@@ -89,24 +89,16 @@ class DiscoballTitle extends MovieClip {
       _root.status.init();
 
       // XXX?
-      // _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:350});
-      _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:100});
-      _root.you.init();
-
-      // XXX!
-      _root.world.gotoRoom('hole2');
-      // _root.world.gotoRoom('start');
-
-      /*
-      _root.attachMovie("altimeter", "altimeter", 80000, {_x : 690, _y : 12});
-      _root.attachMovie("angleometer", "angleometer", 80001, {_x : 600, _y : 12});
-      _root.attachMovie("velometer", "velometer", 80002, {_x : 510, _y : 12});
-
-      _root.viewport.place(_root.airplane);
-      _root.viewport.place(_root.background);
-
-      _root.global.nextLevel();
-      */
+      
+      if (true) {
+        // Normal
+        _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:350});
+        _root.you.init();
+        _root.world.gotoRoom('start');
+      } else {
+        _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:100});
+        _root.world.gotoRoom('hole2');
+      }
 
       break;
     }

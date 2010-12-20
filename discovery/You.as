@@ -252,7 +252,7 @@ class You extends PhysicsObject {
       if (_root.world.foregroundTileAt(xx, yy) == 84) {
         _root.world.deleteForegroundTileAt(xx, yy);
         _root.world.rerender();
-        this.dy -= 2.0;
+        this.dy -= 9.0;
       }
     default:;
     }
