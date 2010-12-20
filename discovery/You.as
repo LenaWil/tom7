@@ -27,7 +27,7 @@ class You extends PhysicsObject {
 
   // Subtracted from clip region.
   // Player's top-left corner is at x+left, y+top.
-  var top = 12 * 2;
+  var top = 14 * 2;
   var left = 23 * 2;
   var right = 20 * 2;
   var bottom = 3 * 2;
@@ -60,7 +60,13 @@ class You extends PhysicsObject {
   // XXX should have blink anim.
   hurt : { l : ['hurtl'],
            r : ['hurtr'],
-           div: 1 }
+           div: 1 },
+  punchstand : { l: ['punchl', 'punchr'],
+                 r: ['punchr', 'punchl'],
+                 div: 6 },
+  punchjump : { l: ['windmilll'],
+                r: ['windmillr'],
+                div: 1 }
   };
 
   var frames = {};
@@ -137,6 +143,14 @@ class You extends PhysicsObject {
       escKey = 'esc';
       if (!blockEsc) holdingEsc = true;
       break;
+      // XXXXXXXXXXXX cheats
+    case 66:
+      _root.status.learnDance('x');
+      _root.status.learnDance('c');
+      _root.status.learnDance('v');
+      _root.status.showGotDance();
+      break;
+
     case 32: // space
     case 38: // up
       holdingUp = true;
@@ -193,6 +207,10 @@ class You extends PhysicsObject {
     case 'c':
       C.jump_impulse = 28.0;
       C.gravity = 0.4;
+      break;
+    case 'v':
+      C.accel = 2.1;
+      break;
     default:;
 
     }
@@ -224,6 +242,20 @@ class You extends PhysicsObject {
       framemod = 0;
 
     touchset = [];
+
+    // Before physics, allow breaking blocks. 
+    switch(_root.status.getCurrentDance()) {
+    case 'v':
+      // Is it glass?
+      var xx = (this.x1() + this.x2()) * 0.5;
+      var yy = this.y2() + 2;
+      if (_root.world.foregroundTileAt(xx, yy) == 84) {
+        _root.world.deleteForegroundTileAt(xx, yy);
+        _root.world.rerender();
+        this.dy -= 2.0;
+      }
+    default:;
+    }
 
     movePhysics();
 
@@ -272,6 +304,7 @@ class You extends PhysicsObject {
 
     // What dance am I doing?
     var what_stand = 'robowalk', what_jump = 'jump';
+    var what_animate = false;
     switch(_root.status.getCurrentDance()) {
     default:
     case 'z':
@@ -285,7 +318,16 @@ class You extends PhysicsObject {
     case 'c':
       what_stand = 'hyperstand';
       what_jump = 'hyperjump';
+      break;
+    case 'v':
+      what_stand = 'punchstand';
+      what_jump = 'punchjump';
+      what_animate = true;
+      break;
     }
+
+    if (_root.boss && _root.boss.youOnDanceFloor())
+      what_animate = true;
 
     // Set animation frames.
     if (nokeys > 0) {
@@ -313,15 +355,15 @@ class You extends PhysicsObject {
           setframe(what_stand, facingright, framemod);
         } else if (dx > 0) {
           facingright = true;
-          setframe(what_stand, facingright, 0);
+          setframe(what_stand, facingright, what_animate ? framemod : 0);
         } else if (dx < -1) {
           facingright = false;
           setframe(what_stand, facingright, framemod);
         } else if (dx < 0) {
-          setframe(what_stand, facingright, 0);
+          setframe(what_stand, facingright, what_animate ? framemod : 0);
         } else {
           // standing still on ground.
-          setframe(what_stand, facingright, 0);
+          setframe(what_stand, facingright, what_animate ? framemod : 0);
         }
         // ...
       } else {

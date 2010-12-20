@@ -21,6 +21,10 @@ class World {
   // Map from room name to its coordinates in the map.
   var coords = {};
 
+  var currentmusic = null;
+  var backgroundclip = null;
+  var backgroundmusic = null;
+
   var mapwidth = 0;
   var tilemap = {};
   public function init() {
@@ -46,6 +50,8 @@ class World {
         coords[map[y][x]] = { x: x, y: y };
       }
     }
+
+    backgroundclip = _root.createEmptyMovieClip("backgroundclip", 80);
   }
   
 
@@ -81,6 +87,36 @@ class World {
   // Movieclips to delete when leaving the current room.
   var deleteme = [];
 
+  public function musicForRoom(r) {
+    switch(r) {
+    case 'start':
+    case 'vipcorneru':
+    case 'hole2':
+      return 'start.mp3';
+    case 'undervip':
+    case 'catacombs1':
+      return 'catacombs.mp3';
+    case 'hole3':
+      return 'sewers.mp3';
+    default:
+      return null;
+    }
+  }
+
+  public function volumeForRoom(r) {
+    switch(r) {
+    default:
+    case 'stairs':
+      return 100;
+    case 'clubfront':
+      return 50;
+    case 'outside':
+      return 25;
+    case 'hole2':
+      return 8;
+    }
+  }
+
   // Transition to a new room.
   var currentroom : String;
   public function gotoRoom(s) {
@@ -98,6 +134,29 @@ class World {
         roomsvisited[s] = true;
       }
       trace('now in room ' + s);
+
+      var roommusic = musicForRoom(currentroom);
+      if (roommusic != null &&
+          currentmusic != roommusic) {
+        // Does this leak??
+        if (backgroundmusic)
+          backgroundmusic.stop();
+        backgroundclip.removeMovieClip();
+
+        backgroundclip = _root.createEmptyMovieClip("backgroundclip", 80);
+        backgroundmusic = new Sound(backgroundclip);
+        trace('play :' + roommusic);
+        backgroundmusic.attachSound(roommusic);
+        // XXX fade in?
+        backgroundmusic.setVolume(100);
+        backgroundmusic.start(0, 99999);
+        currentmusic = roommusic;
+      }
+
+      var roomvolume = volumeForRoom(currentroom);
+      if (roomvolume != null && backgroundmusic) {
+        backgroundmusic.setVolume(roomvolume);
+      }
 
       if (_root.boss) {
         _root.boss.kill();
@@ -200,10 +259,32 @@ class World {
     }
   }
 
+  // Only works for tiles on the current screen.
+  public function foregroundTileAt(screenx, screeny) {
+    var tilex = int(screenx / WIDTH);
+    var tiley = int(screeny / HEIGHT);
+
+    if (tilex >= TILESW || tilex < 0 || tiley < 0 || tiley >= TILESH)
+      return 0;
+    
+    return foreground[tiley * TILESW + tilex];
+  }
+
+  public function deleteForegroundTileAt(screenx, screeny) {
+    var tilex = int(screenx / WIDTH);
+    var tiley = int(screeny / HEIGHT);
+
+    if (tilex >= TILESW || tilex < 0 || tiley < 0 || tiley >= TILESH)
+      return;
+    
+    foreground[tiley * TILESW + tilex] = 0;
+  }
+
   public function solidTileAt(screenx, screeny) {
     var tilex = int(screenx / WIDTH);
     var tiley = int(screeny / HEIGHT);
 
+    // var show = false;
     // Look at adjacent rooms. Treat world edges as solid.
     var fgm = foreground;
     if (tilex >= TILESW || tilex < 0 || tiley < 0 || tiley >= TILESH) {
@@ -230,13 +311,18 @@ class World {
         cy--;
       }
 
-      // trace('look at room @' + cx + ',' + cy);
+      // trace('look at room @' + cx + ',' + cy + ': ' + tilex + ',' + tiley);
+      // show = true;
       fgm = roomdata(map[cy][cx]).fg;
     }
 
     // XXX should have tile prop.
     // trace(tilemap[foreground[tiley * TILESW + tilex]]);
-    return tilemap[fgm[tiley * TILESW + tilex]].id != 0;
+    // XXX why not just fgm[..] ? Isn't that the ID?
+    var tile = fgm[tiley * TILESW + tilex];
+    // if (show)
+    // trace('tile: ' + tile + ': ' + tilemap[tile].id);
+    return tilemap[tile].id != 0;
   }
 
 }

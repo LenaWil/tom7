@@ -12,15 +12,12 @@ class Status extends Depthable {
   // as the key you press to select it, and how it's
   // show on screen. Graphics in dance<CHAR>.png and
   // dance<CHAR>-seleted.png.
-  var dancedata = [ 'z', 'x', 'c' ];
+  var dancedata = [ 'z', 'x', 'c', 'v' ];
 
   var dances = {};
 
   // Z is the start dance, "robo walk".
   // X is breakdance, which makes you shorter.
-
-  // TODO:
-  // stomp (breaks floors)
 
   var currentdance = 'z';
   var hasdance = { z: true /* , x: true, c: true */ };
@@ -32,7 +29,7 @@ class Status extends Depthable {
   var newdancebm;
 
   public function learnDance(name) {
-    // XXX should display a good indication of this!
+    trace('learned dance ' + name);
     hasdance[name] = true;
     redraw ();
   }

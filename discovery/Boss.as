@@ -112,6 +112,23 @@ class Boss extends Depthable {
             ]
      },
 
+     { target: { dance: 'v' },
+       steps: [
+             { reps: 2,
+               moves: [
+               { f: 'punch',
+                 t: 16,
+                 x: FLOORXL,
+                 y: FLOORY },
+               { f: 'punch',
+                 t: 16,
+                 x: FLOORXR,
+                 y: FLOORY }
+               ]
+             }
+             ]
+     },
+
      {
      target: { dance: 'c' },
      steps: [ 
@@ -186,7 +203,8 @@ class Boss extends Depthable {
   invite: { l: ['binvite2', 'binvite1'] },
   hyperfloor: { l: ['bhyperjump2'] },
   hyperjump: { l: ['bhyperjump'] },
-  breakdance: { l: ['bbreakdance1', 'bbreakdance2'] }
+  breakdance: { l: ['bbreakdance1', 'bbreakdance2'] },
+  punch: { l: ['bpunchl', 'bpunchr'] }
   };
 
   var frames = {};
@@ -234,6 +252,12 @@ class Boss extends Depthable {
       shadows[o].removeMovieClip();
       shadows = [];
     }
+  }
+
+  public function youOnDanceFloor() {
+    return !_root.status.boss_defeated && 
+      _root.you.x1() >= PLAYERFLOORXL &&
+      _root.you.x2() < PLAYERFLOORXR;
   }
 
   // Number of frames that escape has been held
@@ -311,9 +335,7 @@ class Boss extends Depthable {
     }
 
     // Allow dancing to count.
-    if (!_root.status.boss_defeated && 
-        _root.you.x1() >= PLAYERFLOORXL &&
-        _root.you.x2() < PLAYERFLOORXR) {
+    if (youOnDanceFloor()) {
 
       if (!dancesuccess &&
           _root.status.getCurrentDance() ==
