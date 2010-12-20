@@ -172,7 +172,7 @@ class Boss extends Depthable {
      ];
   }
 
-  // Current round of dancing.  
+  // Current round of dancing.
   var danceround = 0;
   // Current step within the script.
   var dancestep = 0;
@@ -204,6 +204,7 @@ class Boss extends Depthable {
   hyperfloor: { l: ['bhyperjump2'] },
   hyperjump: { l: ['bhyperjump'] },
   breakdance: { l: ['bbreakdance1', 'bbreakdance2'] },
+  embarrassed: { l: ['embarrassed'] },
   punch: { l: ['bpunchl', 'bpunchr'] }
   };
 
@@ -242,6 +243,8 @@ class Boss extends Depthable {
   var shadows = [];
   var shcounter = 0;
 
+  var embarrassedframes = 0;
+
   // Just make sure to clean up shadow, since those
   // are placed in the root.
   // XXX there is still a problem where these can
@@ -255,7 +258,8 @@ class Boss extends Depthable {
   }
 
   public function youOnDanceFloor() {
-    return !_root.status.boss_defeated && 
+    return (embarrassedframes == 0) &&
+      !_root.status.boss_defeated && 
       _root.you.x1() >= PLAYERFLOORXL &&
       _root.you.x2() < PLAYERFLOORXR;
   }
@@ -358,6 +362,16 @@ class Boss extends Depthable {
 
       setframe('defeated', framemod);
 
+    } else if (embarrassedframes > 0) {
+      embarrassedframes --;
+      if (embarrassedframes == 0) {
+        danceround = 0;
+        dancestep = 0;
+        dancemove = 0;
+      }
+
+      setframe('embarrassed', framemod);
+
     } else {
 
 
@@ -420,6 +434,7 @@ class Boss extends Depthable {
 
                 if (!dancesuccess) {
                   _root.indicator.wrong(48);
+                  embarrassedframes = 48;
                 }
 
                 dancefail = false;

@@ -191,6 +191,13 @@ class World {
                                          // XXXXXXXXXXXX
                                          {_x: 400, _y: 200});
         deleteme.push(_root.pickup);
+      } else if (currentroom == 'vpickup') {
+        _root.pickup = _root.attachMovie('dancepickup',
+                                         'dancepickup',
+                                         4050,
+                                         // XXXXXXXXXXXX
+                                         {_x: 400, _y: 200});
+        deleteme.push(_root.pickup);
       }
 
       // Special room?
