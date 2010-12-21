@@ -2,11 +2,15 @@
 REMOVE CHEAT CODES!
 
 Priority:
- - Map
- - Boss polish (better indicator, die when selecting the wrong dance)
  - Win screen
  - Graphics
  - Improve discoball
+ - Bugs
+ - Scrolling indicator
+
+Bugs:
+ - Boss shadow
+ - jumping when on the top of the screen.
 
 Not doing:
  - Health -> lose -> lose screen
@@ -15,6 +19,10 @@ Not doing:
  - Objects
  - Extras
  - Animate tiles
+
+Could improve, but basically done:
+ - Map
+ - Boss polish (better indicator, die when selecting the wrong dance)
 
 disc over? Y
 dis cover? Y!

@@ -17,6 +17,8 @@ class World {
 
   var background = [];
   var foreground = [];
+
+  var been_in_vip = false;
   
   // Map from room name to its coordinates in the map.
   var coords = {};
@@ -92,10 +94,12 @@ class World {
     case 'start':
     case 'vipcorneru':
     case 'hole2':
+    case 'boss':
       return 'start.mp3';
     case 'undervip':
     case 'catacombs1':
       return 'catacombs.mp3';
+    case 'vip':
     case 'hole3':
       return 'sewers.mp3';
     default:
@@ -110,8 +114,12 @@ class World {
       return 100;
     case 'clubfront':
       return 50;
+    case 'sky':
     case 'outside':
       return 25;
+    case 'skyu':
+    case 'sky2u':
+    case 'sky2':
     case 'hole2':
       return 8;
     }
@@ -176,6 +184,10 @@ class World {
 
       _root.squares = [];
 
+      if (currentroom == 'vip') {
+        been_in_vip = true;
+      }
+
       if (currentroom == 'xpickup') {
         trace('XPICKUP.');
         _root.pickup = _root.attachMovie('dancepickup',
@@ -196,7 +208,7 @@ class World {
                                          'dancepickup',
                                          4050,
                                          // XXXXXXXXXXXX
-                                         {_x: 400, _y: 200});
+                                         {_x: 420, _y: 150});
         deleteme.push(_root.pickup);
       }
 
@@ -290,8 +302,9 @@ class World {
   public function solidTileAt(screenx, screeny) {
     var tilex = int(screenx / WIDTH);
     var tiley = int(screeny / HEIGHT);
+    //    trace('solidtileat ' +screenx + ',' + screeny + ' -> ' + tilex + ',' + tiley);
 
-    // var show = false;
+    var show = false;
     // Look at adjacent rooms. Treat world edges as solid.
     var fgm = foreground;
     if (tilex >= TILESW || tilex < 0 || tiley < 0 || tiley >= TILESH) {
@@ -319,7 +332,7 @@ class World {
       }
 
       // trace('look at room @' + cx + ',' + cy + ': ' + tilex + ',' + tiley);
-      // show = true;
+      show = true;
       fgm = roomdata(map[cy][cx]).fg;
     }
 
@@ -327,8 +340,8 @@ class World {
     // trace(tilemap[foreground[tiley * TILESW + tilex]]);
     // XXX why not just fgm[..] ? Isn't that the ID?
     var tile = fgm[tiley * TILESW + tilex];
-    // if (show)
-    // trace('tile: ' + tile + ': ' + tilemap[tile].id);
+    // if (true || show)
+    // trace('tile@ ' + tilex + "," + tiley + ": " + tile + ' =  ' + tilemap[tile].id);
     return tilemap[tile].id != 0;
   }
 

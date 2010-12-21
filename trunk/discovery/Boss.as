@@ -253,15 +253,16 @@ class Boss extends Depthable {
     trace('kill boss');
     for (var o in shadows) {
       shadows[o].removeMovieClip();
-      shadows = [];
     }
+    shadows = [];
   }
 
   public function youOnDanceFloor() {
     return (embarrassedframes == 0) &&
       !_root.status.boss_defeated && 
       _root.you.x1() >= PLAYERFLOORXL &&
-      _root.you.x2() < PLAYERFLOORXR;
+      _root.you.x2() < PLAYERFLOORXR &&
+      _root.you.ontheground();
   }
 
   // Number of frames that escape has been held
@@ -323,9 +324,6 @@ class Boss extends Depthable {
         if (this._y > newy) this._y = newy;
         thrustframes = 28;
 
-        // XXX Would probably be good to show some alpha shadows
-        // when thrusting... not that hard, really.
-
         // Absolute prevention, even if player ignores thrusted
         // command.
         _root.you._x = 417 - (_root.you.width - _root.you.right);
@@ -334,7 +332,7 @@ class Boss extends Depthable {
         // Fail dance.
         dancefail = true;
 
-        _root.indicator.wrong(48);
+        _root.indicator.dance(48);
       }
     }
 
@@ -421,8 +419,7 @@ class Boss extends Depthable {
                 if (danceround >= danceoff.length) {
                   // XXX Play applause!
 
-                  // XXX should disco/very
-                  _root.indicator.disco(0);
+                  _root.indicator.disco();
                   _root.status.boss_defeated = true;
                 }
 

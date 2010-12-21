@@ -4,7 +4,7 @@ import flash.display.*;
 // Displays success/failures.
 
 class DanceoffIndicator extends Depthable {
-  
+
   #include "constants.js"
 
   var bmback;
@@ -32,7 +32,23 @@ class DanceoffIndicator extends Depthable {
     '------------------------' +
     '------------------------' +
     '------------------------';
-    
+
+  var s_youre =
+    '#--#-----------#--------' +
+    '#--#--##--#--#-#-#---##-' +
+    '#--#-#--#-#--#---###-#-#' +
+    '-###-#--#-#--#---#-#-###' +
+    '---#-#--#-#--#---#---#--' +
+    '###---##---##----#----##';
+
+  var s_vip =
+    '--##--##--####--#####---' +
+    '--##--##---##---##--##--' +
+    '--##--##---##---##--##--' +
+    '--##--##---##---#####---' +
+    '---####----##---##------' +
+    '----##----####--##------';
+
   var s_danceoff =
     '--#-------------------#-' +
     '--#-##------------##--#-' +
@@ -83,12 +99,23 @@ class DanceoffIndicator extends Depthable {
     dirty = true;
   }
 
+  var disco_forever = 0;
   public function onEnterFrame() {
     if (frames > 0) {
       frames--;
       if (frames == 0) {
-	cur = s_off;
-	dirty = true;
+        if (disco_forever == 1) {
+          cur = _root.world.been_in_vip ? s_vip : s_very;
+          frames = 40;
+          disco_forever = 2;
+        } else if (disco_forever == 2) {
+          cur = _root.world.been_in_vip ? s_youre : s_disco;
+          frames = 40;
+          disco_forever = 1;
+        } else {
+          cur = s_off;
+        }
+        dirty = true;
       }
     }
 
@@ -97,16 +124,25 @@ class DanceoffIndicator extends Depthable {
   }
 
   public function right(f) { setMessage(s_right, f); }
-  public function disco(f) { setMessage(s_disco, f); }
+  public function disco() {
+    setMessage(_root.world.been_in_vip ? s_youre : s_disco, 40);
+    disco_forever = 1;
+  }
   public function wrong(f) { setMessage(s_wrong, f); }
   public function dance(f) { setMessage(s_danceoff, f); }
   public function off() { setMessage(s_off, 0); }
+
+  public function onLoad() {
+    if (_root.world.been_in_vip) {
+      disco();
+    }
+  }
 
   var deleteme = [];
   public function redraw() {
     if (dirty) {
       for (var o in deleteme)
-	deleteme[o].removeMovieClip();
+        deleteme[o].removeMovieClip();
 
       var bg = this.createEmptyMovieClip('di_bg', this.getNextHighestDepth());
       bg._y = 0;
@@ -115,17 +151,17 @@ class DanceoffIndicator extends Depthable {
       deleteme.push(bg);
 
       for (var y = 0; y < SHEIGHT; y++) {
-	for (var x = 0; x < SWIDTH; x++) {
-	  // Anything but hyphen turns it on.
-	  if (cur.charCodeAt(y * SWIDTH + x) != 45) {
-	    var mc = this.createEmptyMovieClip('di_' + y + '_' + x,
-					       this.getNextHighestDepth());
-	    mc._y = 5 + y * 9;
-	    mc._x = 5 + x * 9;
-	    mc.attachBitmap(bmlite, mc.getNextHighestDepth());
-	    deleteme.push(mc);
-	  }
-	}
+        for (var x = 0; x < SWIDTH; x++) {
+          // Anything but hyphen turns it on.
+          if (cur.charCodeAt(y * SWIDTH + x) != 45) {
+            var mc = this.createEmptyMovieClip('di_' + y + '_' + x,
+                                               this.getNextHighestDepth());
+            mc._y = 5 + y * 9;
+            mc._x = 5 + x * 9;
+            mc.attachBitmap(bmlite, mc.getNextHighestDepth());
+            deleteme.push(mc);
+          }
+        }
       }
     }
     dirty = false;

@@ -300,7 +300,7 @@ class PhysicsObject extends Depthable {
   }
 
   public function clipheight() {
-    return this.height - this.top - this.bottom;
+    return 0.95 * (this.height - this.top - this.bottom);
   }
 
   public function clipwidth() {

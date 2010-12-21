@@ -88,8 +88,6 @@ class DiscoballTitle extends MovieClip {
                                        {_x: 0, _y: 576});
       _root.status.init();
 
-      // XXX?
-      
       if (true) {
         // Normal
         _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:350});
@@ -97,7 +95,8 @@ class DiscoballTitle extends MovieClip {
         _root.world.gotoRoom('start');
       } else {
         _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:100});
-        _root.world.gotoRoom('hole2');
+        _root.you.init();
+        _root.world.gotoRoom('vipcorneru');
       }
 
       break;
