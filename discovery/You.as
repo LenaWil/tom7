@@ -74,7 +74,8 @@ class You extends PhysicsObject {
   // Maybe should fail if the new shape is clipped.
   public function setdimensions(d) {
     switch(d) {
-      // Breakdance makes you shorter.
+      // Breakdance and punch make you shorter.
+    case 'v':
     case 'x':
       top = 37 * 2;
       left = 23 * 2;
@@ -144,12 +145,15 @@ class You extends PhysicsObject {
       if (!blockEsc) holdingEsc = true;
       break;
       // XXXXXXXXXXXX cheats
+
+      /*
     case 66:
       _root.status.learnDance('x');
       _root.status.learnDance('c');
       _root.status.learnDance('v');
       _root.status.showGotDance();
       break;
+      */
 
     case 32: // space
     case 38: // up
@@ -252,7 +256,7 @@ class You extends PhysicsObject {
       if (_root.world.foregroundTileAt(xx, yy) == 84) {
         _root.world.deleteForegroundTileAt(xx, yy);
         _root.world.rerender();
-        this.dy -= 9.0;
+        this.dy -= 5.0;
       }
     default:;
     }

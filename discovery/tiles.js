@@ -85,5 +85,37 @@ var tiles =
  { id: 81, isbg: false, deadly: true, frames: ['spikedown3', 1] },
  { id: 82, isbg: false, frames: ['rock1', 1] },
  { id: 83, isbg: true, frames: ['tealblackdiag', 1]},
- { id: 84, isbg: false, deadly: true, frames: ['glass', 1] }
+ { id: 84, isbg: false, frames: ['glass', 1] },
+ { id: 85, isbg: true, frames: ['glasstable1', 1] },
+ { id: 86, isbg: true, frames: ['glasstable2', 1] },
+ // duplicate: 32,0: 436e5c0116
+ // duplicate: 48,0: 436e5c0116
+ { id: 87, isbg: true, frames: ['glasstable3', 1] },
+ // duplicate: 80,0: 436e5c0116
+ { id: 88, isbg: true, frames: ['glasstable4', 1] },
+ { id: 89, isbg: false, frames: ['glasstable5', 1] },
+ { id: 90, isbg: false, frames: ['glasstable6', 1] },
+ { id: 91, isbg: false, frames: ['glasstable7', 1] },
+ { id: 92, isbg: false, frames: ['glasstable8', 1] },
+ { id: 93, isbg: false, frames: ['glasstable9', 1] },
+ { id: 94, isbg: false, frames: ['glasstable10', 1] },
+ { id: 95, isbg: false, frames: ['glasstable11', 1] },
+ { id: 96, isbg: false, frames: ['glasstable12', 1] },
+ { id: 97, isbg: false, frames: ['glasstable13', 1] },
+ { id: 98, isbg: false, frames: ['glasstable14', 1] },
+ { id: 99, isbg: false, frames: ['glasstable15', 1] },
+ // duplicate: 64,32: 436e5c0116
+ { id: 100, isbg: false, frames: ['glasstable16', 1] },
+ { id: 101, isbg: false, frames: ['glasstable17', 1] },
+ { id: 102, isbg: true, frames: ['wallpaper1', 1] },
+ { id: 103, isbg: true, frames: ['wallpaper2', 1] },
+ { id: 104, isbg: true, frames: ['wallpaper3', 1] },
+ { id: 105, isbg: true, frames: ['wallpaper4', 1] },
+ { id: 106, isbg: true, frames: ['wallpaper5', 1] },
+ { id: 107, isbg: true, frames: ['wallpaper6', 1] },
+ { id: 108, isbg: true, frames: ['wallpaper7', 1] },
+ { id: 109, isbg: true, frames: ['wallpaper8', 1] },
+ { id: 110, isbg: true, frames: ['wallpaper9', 1] },
+ { id: 111, isbg: true, frames: ['brokenteal1', 1] },
+ { id: 112, isbg: true, frames: ['brokenteal2', 1] }
  ];
