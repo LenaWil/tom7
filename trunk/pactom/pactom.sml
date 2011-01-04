@@ -36,14 +36,15 @@ struct
       val overlays = ref nil
 
       fun process (Elem(("coordinates", nil), [Text coordtext])) =
-        let val coords = String.tokens (Util.is #" ") coordtext
+        let val coords = String.tokens (StringUtil.charspec " \t\r\n") coordtext
             val coords = 
                 map (fn t =>
                      case map Real.fromString
                          (String.fields (Util.is #",") t) of
                        [SOME lon, SOME lat, SOME elev] =>
                            (LatLon.fromdegs {lat = lat, lon = lon}, elev)
-                     | _ => raise PacTom ("non-numeric lat/lon/elev: " ^ t)) coords
+                     | _ => raise PacTom ("non-numeric lat/lon/elev: '" ^ t ^
+                                          "'")) coords
         in
             paths := coords :: !paths
         end
