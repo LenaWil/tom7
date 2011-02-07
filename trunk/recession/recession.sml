@@ -1,4 +1,3 @@
-
 structure Recession =
 struct
 
@@ -73,7 +72,7 @@ struct
       val password = lookup "MYSQL_APH_PASSWD"
       val unixsock = lookup "MYSQL_APH_SOCK"
 
-      val () = app (fn (k, v) => print (k ^ "=" ^ v ^ "\n")) alist
+      (* val () = app (fn (k, v) => print (k ^ "=" ^ v ^ "\n")) alist *)
 
       val mysql = MySQL.connectex "localhost" "root" password 0 unixsock
 
@@ -86,12 +85,16 @@ struct
         case Algorithms.getalgorithm algorithm of
             NONE => raise Recession ("Unknown algorithm " ^ algorithm)
           | SOME algorithm =>
-          let 
+          let
+              (* val () = print ("Raw XML:\n" ^ raw ^ "\n") *)
+
               val xml = XML.parsestring raw
+              (* val () = print ("Parsed:\n" ^ XML.tostring xml ^ "\n") *)
               val items = RSS.items xml
 
-              fun datefromsec sec = Date.fromTimeUniv (Time.fromSeconds (LargeInt.fromInt sec))
+              fun datefromsec sec = Date.fromTimeLocal (Time.fromSeconds (LargeInt.fromInt sec))
               val lastpost = datefromsec lastpost
+              val () = print ("Last post: " ^ Date.toString lastpost ^ "\n")
 
               fun date_max (a, b) =
                   case Date.compare (a, b) of
@@ -103,6 +106,12 @@ struct
                   (case Date.compare (lastpost, date) of
                        LESS => true
                      | _ => false)
+
+              val () = app (fn { date, title, ... } =>
+                            let val s = IntInf.toString (Time.toSeconds (Date.toTime date))
+                            in
+                                print (s ^ " " ^ Date.toString date ^ "  " ^ title ^ "\n")
+                            end) items
 
               val items = List.filter keep_new items
               val items = ListUtil.maptopartial algorithm items
