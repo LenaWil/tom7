@@ -1,0 +1,56 @@
+
+group is
+
+#if (defined(SMLNJ_VERSION))
+ $/basis.cm
+ ../sml-lib/port/nj.sml
+#else
+ (* assume we are using mlton then *)
+ ../sml-lib/port/mlton.sml
+#endif
+
+  ../sml-lib/njlib/lib-base-sig.sml
+  ../sml-lib/njlib/lib-base.sml
+  ../sml-lib/njlib/ord-key-sig.sml
+  ../sml-lib/njlib/ord-map-sig.sml
+  ../sml-lib/njlib/ord-set-sig.sml
+  ../sml-lib/njlib/splaytree-sig.sml
+  ../sml-lib/njlib/splaytree.sml
+  ../sml-lib/njlib/splay-map-fn.sml
+  ../sml-lib/njlib/splay-set-fn.sml
+
+  ../sml-lib/util/stringutil-sig.sml
+  ../sml-lib/util/stringutil.sml
+  ../sml-lib/util/listutil-sig.sml
+  ../sml-lib/util/listutil.sml
+
+  ../sml-lib/misc/params-sig.sml
+  ../sml-lib/misc/params.sml
+
+  ../sml-lib/util/simplestream-sig.sml
+  ../sml-lib/util/simplestream.sml
+
+(*
+  ../sml-lib/util/script-sig.sml
+  ../sml-lib/util/script.sml
+*)
+
+  ../sml-lib/njlib/list-map-fn.sml
+  ../sml-lib/njlib/list-set-fn.sml
+  ../sml-lib/njlib/regexp/frontend/syntax-sig.sml
+  ../sml-lib/njlib/regexp/frontend/syntax.sml
+  ../sml-lib/njlib/regexp/glue/match-tree.sml
+  ../sml-lib/njlib/regexp/backend/fsm.sml
+  ../sml-lib/njlib/regexp/frontend/parser-sig.sml
+  ../sml-lib/njlib/regexp/backend/engine-sig.sml
+  ../sml-lib/njlib/regexp/frontend/awk-syntax.sml
+  ../sml-lib/njlib/regexp/backend/bt-engine.sml
+  ../sml-lib/njlib/regexp/glue/regexp-sig.sml
+  ../sml-lib/njlib/regexp/glue/regexp-fn.sml
+
+  ../sml-lib/util/re-sig.sml
+  ../sml-lib/util/re.sml
+
+(*   ../sml-lib/util/re.cm *)
+
+  preprocess.sml
