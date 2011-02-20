@@ -27,6 +27,9 @@ struct
 
   val seed = MersenneTwister.init32 0wxDEADBEEF
   fun rand () = MersenneTwister.rand32 seed
+  fun randf () = 
+      real (Word32.toInt (Word32.andb(0wx7FFFFFFE, MersenneTwister.rand32 seed))) /
+      real 0x7FFFFFFE
 
   fun ++r = r := 1 + !r
 
@@ -427,7 +430,6 @@ struct
                           (Word32.toInt (Word32.andb(Word32.>>(rand (), 0w7), 0wxFF))),
                           0wx33,
                           0wxAA))
-
 
   (* No exponential notation *)
   fun ertos r = if (r > ~0.000001 andalso r < 0.000001) 
