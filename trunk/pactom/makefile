@@ -89,7 +89,7 @@ parsexml : parsexml.cm parsexml.sml ${PACTOMLIB}
 #   pac.kml
 #   pac2.kml
 
-RELEASEFILES=release/pactom.kmz release/shortest.svg release/map.svg release/map.png release/shortest.png release/shortest.pdf release/map.pdf
+RELEASEFILES=release/pactom.kmz release/shortest.svg release/map.svg release/map.png release/shortest.png release/shortest.pdf release/map.pdf release/radial.svg release/radial.pdf
 release : ${RELEASEFILES} $(addsuffix .size, ${RELEASEFILES})
 	date +"%d %b %Y at %H:%M" | tr -d '\012' > release/updated
 upload : release

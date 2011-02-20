@@ -101,6 +101,7 @@ sig
     val loadosms : string list -> osm
 
     val rand : unit -> Word32.word
+    val randf : unit -> real
     (* As hex string (rrggbb) *)
     val randomanycolor : unit -> string
     (* High saturation and value, random hue. *)
