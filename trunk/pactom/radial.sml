@@ -70,35 +70,55 @@ struct
           fun miles_to_theta m =
               (m / REVOLUTION_MILES) * Math.pi * 2.0
 
+          val CENTERX = real GRAPHIC_SIZE / 2.0
+          val CENTERY = real GRAPHIC_SIZE / 2.0
+
+          (* Defer circles so that they're on top of the paths. *)
+          val endcircles = ref nil
+
           fun printpolyline nil =
               print "Can't plot empty path.\n"
             | printpolyline ((start, _) :: coords) =
               let 
-                  fun plot nil _ _ = ()
-                    | plot ((pos, elev) :: t) prev total_miles =
+                  (* Returns the polar location, centered around 0,0 *)
+                  fun getxy (pos, total) = 
                       let
-                          val theta = miles_to_theta total_miles
+                          val theta = miles_to_theta total
                           val r = miles_to_r (LatLon.dist_miles (PacTom.home, pos))
 
                           val x = r * Math.cos theta
                           val y = r * Math.sin theta
+                      in (x, y)
+                      end
+
+                  fun plot nil last total_miles = (last, total_miles)
+                    | plot ((pos, elev) :: t) prev total_miles =
+                      let
+                          val (x, y) = getxy (pos, total_miles)
                       in
                           prptcentered (x, y);
                           plot t pos (total_miles + LatLon.dist_miles (prev, pos))
                       end
-              in
-                  print ("<polyline fill=\"none\" opacity=\"0.5\" stroke=\"#" ^ 
-                         randomvariant() ^ 
-                         "\" stroke-width=\"1\" points=\""); (* " 
+
+                  val () = print ("<polyline fill=\"none\" opacity=\"0.5\" stroke=\"#" ^ 
+                                  randomvariant() ^ 
+                                  "\" stroke-width=\"1\" points=\""); (* " 
                   *)
+
+                  val (lastpos, totaldist) = plot coords start 0.0;
+                  val () = print "\"/>\n"
+
+                  val (endx, endy) = getxy (lastpos, totaldist)
+              in
                   (* XXX Should put point at 0 deg, radius = |start - home| *)
-                  plot coords start 0.0;
-
-                  print "\"/>\n"
+                  (* end point. *)
+                  endcircles := 
+                  ("<circle cx=\"" ^ PacTom.rtos (CENTERX + endx) ^
+                      "\" cy=\"" ^ PacTom.rtos (CENTERY + endy) ^
+                      "\" fill=\"#FF4444\" stroke-width=\"0.22\"" ^
+                   " r=\"1.85\" opacity=\"0.75\"" ^
+                   " stroke=\"#220000\" />\n") :: !endcircles
               end
-
-          val CENTERX = real GRAPHIC_SIZE / 2.0
-          val CENTERY = real GRAPHIC_SIZE / 2.0
 
           fun makecircles m =
               if real m < MAX_DISTANCE
@@ -208,6 +228,7 @@ struct
                                            ("#6297C9", "http://pac.tom7.org")] });
 
           Vector.app printpolyline paths;
+          List.app print (!endcircles);
 
           print (TextSVG.svgfooter ())
       end

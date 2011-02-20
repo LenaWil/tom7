@@ -66,6 +66,9 @@ llt.svg : lltsvg pac.kml pac2.kml
 MAKETHUMB=rsvg/rsvg-convert --keep-aspect-ratio --width=580
 MAKEPDF=rsvg/rsvg-convert -f pdf
 
+# XXX Text rendering is not that good this way. Might want to render at a much
+# larger size then downsample with imagemagick?
+
 # Convert SVGs to thumbnails for webpage
 thumbnails : map.png shortest.png
 pdfs : map.pdf shortest.pdf
@@ -74,6 +77,9 @@ map.png : map.svg
 	${MAKETHUMB} $< -o $@
 
 shortest.png : shortest.svg
+	${MAKETHUMB} $< -o $@
+
+radial.png : radial.svg
 	${MAKETHUMB} $< -o $@
 
 %.pdf : %.svg
@@ -89,7 +95,7 @@ parsexml : parsexml.cm parsexml.sml ${PACTOMLIB}
 #   pac.kml
 #   pac2.kml
 
-RELEASEFILES=release/pactom.kmz release/shortest.svg release/map.svg release/map.png release/shortest.png release/shortest.pdf release/map.pdf release/radial.svg release/radial.pdf
+RELEASEFILES=release/pactom.kmz release/shortest.svg release/map.svg release/map.png release/shortest.png release/shortest.pdf release/map.pdf release/radial.svg release/radial.pdf release/radial.png
 release : ${RELEASEFILES} $(addsuffix .size, ${RELEASEFILES})
 	date +"%d %b %Y at %H:%M" | tr -d '\012' > release/updated
 upload : release
