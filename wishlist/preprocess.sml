@@ -38,9 +38,9 @@ struct
   fun ++ r = r := !r + 1
 
   val scribble =
-      RE.find "/scribble/play\\?.*&word=([a-zA-Z0-9.]+)"
-  val muddle = RE.find "/muddle/play\\?.*words=([a-zA-Z+]+)"
-  val test = RE.find "/s/test\\?word=([a-zA-Z]+)"
+      RE.find "s[/%2Ff]+scribble[/%2Ff]+play.*&word=([a-zA-Z0-9.]+)"
+  val muddle = RE.find "s[/%2Ff]+muddle[/%2Ff]+play.*words=([a-zA-Z+]+)"
+  val test = RE.find "s[/%2Ff]+test.*word=([a-zA-Z]+)"
 
   fun stripscribble s =
       case StringUtil.find "." s of
@@ -53,7 +53,8 @@ struct
         | SOME m => SOME (m 1)
 
   fun parseapp url =
-      if StringUtil.matchhead "/f/a/s" url
+      if StringUtil.matchhead "/f/a/s" url orelse
+         StringUtil.matchhead "/fcgi-bin/aphid" url
       then
           (case match muddle url of
                SOME ws => SOME (Muddle, 

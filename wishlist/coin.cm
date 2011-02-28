@@ -19,6 +19,21 @@ group is
   ../sml-lib/njlib/splay-map-fn.sml
   ../sml-lib/njlib/splay-set-fn.sml
 
+  ../sml-lib/util/growarray-sig.sml
+  ../sml-lib/util/growarray.sml
+
+  ../sml-lib/algo/heap-sig.sml
+  ../sml-lib/algo/heap.sml
+
+  ../sml-lib/util/simplestream-sig.sml
+  ../sml-lib/util/simplestream.sml
+
+  ../sml-lib/util/stream-sig.sml
+  ../sml-lib/util/stream.sml
+  ../sml-lib/util/streamutil-sig.sml
+  ../sml-lib/util/streamutil.sml
+
+
   ../sml-lib/util/stringutil-sig.sml
   ../sml-lib/util/stringutil.sml
   ../sml-lib/util/listutil-sig.sml
@@ -32,23 +47,4 @@ group is
   ../sml-lib/misc/params-sig.sml
   ../sml-lib/misc/params.sml
 
-  ../sml-lib/util/simplestream-sig.sml
-  ../sml-lib/util/simplestream.sml
-
-  ../sml-lib/njlib/list-map-fn.sml
-  ../sml-lib/njlib/list-set-fn.sml
-  ../sml-lib/njlib/regexp/frontend/syntax-sig.sml
-  ../sml-lib/njlib/regexp/frontend/syntax.sml
-  ../sml-lib/njlib/regexp/glue/match-tree.sml
-  ../sml-lib/njlib/regexp/backend/fsm.sml
-  ../sml-lib/njlib/regexp/frontend/parser-sig.sml
-  ../sml-lib/njlib/regexp/backend/engine-sig.sml
-  ../sml-lib/njlib/regexp/frontend/awk-syntax.sml
-  ../sml-lib/njlib/regexp/backend/bt-engine.sml
-  ../sml-lib/njlib/regexp/glue/regexp-sig.sml
-  ../sml-lib/njlib/regexp/glue/regexp-fn.sml
-
-  ../sml-lib/util/re-sig.sml
-  ../sml-lib/util/re.sml
-
-  wishlist.sml
+  coin.sml
