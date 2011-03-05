@@ -33,8 +33,8 @@ group is
   ../sml-lib/util/streamutil-sig.sml
   ../sml-lib/util/streamutil.sml
 
-  ../sml-lib/data/nmarkov-sig.sml
-  ../sml-lib/data/nmarkov.sml
+  ../sml-lib/data/nmarkov-cmp-sig.sml
+  ../sml-lib/data/nmarkov-cmp.sml
 
   ../sml-lib/util/stringutil-sig.sml
   ../sml-lib/util/stringutil.sml
