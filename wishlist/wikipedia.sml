@@ -28,8 +28,8 @@ struct
        if IntInf.mod(!nlines, 100000) = 0
        then (TextIO.output 
              (TextIO.stdErr, IntInf.toString (!nlines) ^ " lines " ^
-              IntInf.toString (!nbytes) ^ " bytes...\n");
-             raise Wikipedia "PROFILING.")
+              IntInf.toString (!nbytes) ^ " bytes...\n") (* ;
+           raise Wikipedia "PROFILING." *))
        else ();
        s
      end
@@ -75,8 +75,11 @@ struct
   structure M2C : NMARKOVARG =
   struct
     type symbol = char
-    val cmp = Char.compare
     val n = 2
+    val radix = 256
+    (* PERF can pack these much more densely. *)
+    val toint = ord
+    val fromint = chr
   end
 
   structure M = MarkovFn(M2C)
