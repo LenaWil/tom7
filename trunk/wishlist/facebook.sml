@@ -41,7 +41,9 @@ struct
   structure M2C : NMARKOVARG =
   struct
     type symbol = char
-    val cmp = Char.compare
+    val radix = 256
+    val toint = ord
+    val fromint = chr
     val n = 2
   end
 

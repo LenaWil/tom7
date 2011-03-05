@@ -5,14 +5,14 @@ struct
   val lines = SimpleStream.tolinestream (SimpleStream.fromfilechar "wordlist.asc")
   val dict = Script.wordlist "wordlist.asc"
 
-  structure M2C : NMARKOVARG =
+  structure M2C : NMARKOVCMPARG =
   struct
     type symbol = char
     val cmp = Char.compare
     val n = 4
   end
 
-  structure M = MarkovFn(M2C)
+  structure M = MarkovCmpFn(M2C)
 
   val rtos = Real.fmt (StringCvt.FIX (SOME 2))
   val rtos9 = Real.fmt (StringCvt.FIX (SOME 9))
