@@ -28,6 +28,10 @@ Verlag-Verlag volume no.~0x40-2A.
 \yen 0.00}
 }
 
+
+\renewcommand\>{$>$}
+\newcommand\<{$<$}
+
 \date{3 March 2011}
 
 \maketitle
@@ -82,9 +86,12 @@ compares the results, and proposes specific words that should be
 added, with their meanings.
 
 Disclaimer possibly indicated for SIGBOVIK: The ``research'' contained
-herein is 100\% legitimate. I have attempted to present it in a
-tutorial style that assumes little mathematical or computer science
-background. I have also left off the last {\it S} for {\it Savings}.
+herein is 100\% legitimate.\!\footnote{Source code is available at
+{\tt http://tom7misc.svn.
+sourceforge.net/viewvc/tom7misc/trunk/wishlist/}} I have attempted to
+present it in a tutorial style that assumes little mathematical or
+computer science background. I have also left off the last {\it S} for
+{\it Savings}.
 
 \section{First idea: Wishlist}
 
@@ -290,6 +297,78 @@ another. Here is the Markov chain for those words.
 \end{centering}
 \vspace{0.2in}
 
+The letters across the top are the ``previous letter'' and the ones
+across the left are the ``next letter'' and the box contains the
+corresponding count. For example, the pair ``el'' appears four times.
+(Pairs of letters are called ``bigrams'' by nerds, some nerd-poseurs,
+and Markov who I can't tell if he was a nerd by his picture, because
+he does have a pretty austere beard, but also did a lot of math.) One
+of the useful things about a Markov chain is that it lets us predict
+the next letter that we might see. For example, if we see ``half'',
+then the column labeled {\bf f} above tells us that the next letter is
+twice as often an {\it e} than a {\it u}, and that no other letters
+ever occurred. Typically we think of these as being probabilities
+inferred from our observations, so we say there's a 2/3 chance of {\it
+e} following {\it f} and a 1/3 chance of {\it u}. Now the word ``llllll''
+isn't so likely any more, because there's only a 1/4 chance of the
+next letter being {\it l} once we see {\it l}.
+
+Words are not just their interiors; it's also important what letters
+tend to start and end words. We can do this by imagining that each
+word starts and ends with some fake letters, and include those in the
+Markov chain. Let's use {\bf \<} for the start symbol and {\bf \>} for
+the end. So we pretend we observed ``\<hello\>'', ``\<helpful\>'', and
+``\<felafel\>''. Speaking of which, could you imagine if there were such
+a thing as a helpful felafel? Would you eat it? Because then it
+probably can't help you any more, except to get fat.
+
+\vspace{0.2in}
+\begin{centering}
+\begin{tabular}{|c|r|r|r|r|r|r|r|r|r|} % {helopfua}
+\hline
+\,  &  {\bf \<}    & {\bf h}   & {\bf e}   & {\bf l}   & {\bf o}   & {\bf p}   & {\bf f}   & {\bf u}   & {\bf a}    \\
+\hline  %  \<     h     e     l     o     p     f     u     a
+{\bf h} &  2  &  0   & 0   & 0   & 0   & 0   & 0   & 0   & 0    \\
+\hline    
+{\bf e} &  0  &  2   & 0   & 0   & 0   & 0   & 2   & 0   & 0    \\
+\hline    
+{\bf l} &  0  &  0   & 4   & 1   & 0   & 0   & 0   & 1   & 0    \\
+\hline    
+{\bf o} &  0  &  0   & 0   & 1   & 0   & 0   & 0   & 0   & 0    \\
+\hline    
+{\bf p} &  0  &  0   & 0   & 1   & 0   & 0   & 0   & 0   & 0    \\
+\hline    
+{\bf f} &  1  &  0   & 0   & 0   & 0   & 1   & 0   & 0   & 1    \\
+\hline    
+{\bf u} &  0  &  0   & 0   & 0   & 0   & 0   & 1   & 0   & 0    \\
+\hline    
+{\bf a} &  0  &  0   & 0   & 1   & 0   & 0   & 0   & 0   & 0    \\
+\hline    
+{\bf \>} &  0  &  0   & 0   & 2   & 1   & 0   & 0   & 0   & 0    \\
+\hline
+\end{tabular}
+\end{centering}
+\vspace{0.2in}
+
+We just added these like other letters, but since the beginning symbol
+{\bf \<} never occurs after other letters, we don't need a row for it
+(it would be all zeroes), and similarly since no letters ever follow
+{\bf \>} we don't need a column for it. Now the word ``lllll'' is
+impossible because no words start with {\it l}.
+
+\begin{verbatim}
+0.166666667 hel
+0.166666667 helpful
+0.166666667 hello
+0.083333333 felpful
+0.083333333 fello
+0.083333333 fel
+0.041666667 helafel
+0.041666667 helafelpful
+0.041666667 helafello
+\end{verbatim}
+
+% laplace smoothing?
 
 most people remember induction, perhaps 
 
