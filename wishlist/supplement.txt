@@ -133,3 +133,6 @@ tace
 grat
 mu
 quare
+a
+i
+o

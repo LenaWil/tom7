@@ -97,7 +97,7 @@ computer science background. I have also left off the last {\it S} for
 
 My website ``{\sf snoot.org}'' has a number of games on it, including
 a Scrabble clone called Scribble\footnote{{\tt
-http://snoot.org/toys/scribble/}} and Boggle clone called
+    http://snoot.org/toys/scribble/}} and Boggle clone called
 Muddle.\!\footnote{{\tt http://snoot.org/toys/muddle/}} This website
 has been running for almost ten years, comprising over 150,000
 Scribble games totaling 3.8 million words placed and 628,000 Muddle
@@ -105,54 +105,137 @@ games with over 10 million words found. During each game, players
 repeatedly attempt to play words that aren't real. The computer
 rebukes them, but hope really springs eternal with these people. It's
 like they truly deeply wish to break out of the shackles of the
-Official Scrabble Players Dictionary. So the first approach to
-determining what words ought to exist is to analyze the words that
-people tried to play, in order to try to extract the essence of
-word-yearning.
+Official Scrabble Players Dictionary.\!\footnote{For the analyses in
+  this paper that depend on a list of legal words, I actually use a
+  modified version of SOWPODS, which is the tournament list used in
+  Australia and the UK, and significantly more permissive than the US
+  Tournament Word List. Though the modified version is non-canonical,
+  I stuck with it because it's what's been in use on the site for
+  ten years.} So the first approach to determining what
+words ought to exist is to analyze the words that people tried to
+play, in order to try to extract the essence of word-yearning.
 
 This analysis is quite straightforward. I took the ten years of logs
 files and extracted each attempt to play a word in Scribble or Muddle.
 These log files are quite large, so the first step is just to get a
 count, for each alleged word, and store those in a more convenient
-format. There were XXX total words attemped in Scrabble and XXX in
-Muddle. The most frequent ones appear in
-Figure~\ref{fig:mostfrequent}. The most frequent words are all
-legitimate words, since players have a bias towards attempting words
-that will not be rebuked by the computer. Seeing the words that people
-wish existed is a simple matter of filtering out the words that
-already exist, using the Scrabble dictionary. XXX\% of the words
-attempted in Scribble and XXX\% in Muddle were not real. The most
-frequent ones appear in Figure~\ref{fig:mostfrequentfake}.
+format. There were 3,572,226 total words attempted\footnote{Here a
+  word attempted is the major word of the play. This does not include
+  incidental words (typically two-letter ones) formed in the
+  perpendicular direction.} in Scribble and 13,727,511 in Muddle. The
+most frequent ones appear in Figure~\ref{fig:mostfrequent}. Aside from
+the one-letter ones, the most frequent words are legitimate words,
+since players have a bias towards attempting words that will not be
+rebuked by the computer.
+
+Seeing the words that people wish existed is a simple matter of
+filtering out the words that already exist, using the Scrabble
+dictionary. (I also filtered out one-letter ``words''. It is easy to
+see that no one-letter words should exist, again because of
+ambiguities created in spelling bees. Not only when literally spelling
+``bees'', but according to the official Scripps National Spelling Bee
+rules, the speller may optionally pronounce the word to be spelled
+before and after spelling it. So if ``s'' were a word, then the
+following ridiculous exchange obtains: Judge: ``S. The letter {\it s}.
+Etruscan origin.'' Speller: ``S. S. S.'' and the judge cannot tell if
+the speller meant to state the word before and after, or thinks the
+word is spelled ``sss''.) 22.3\% of the words attempted in Scribble
+and 36.8\% in Muddle were not real. The most frequent ones appear in
+Figure~\ref{fig:mostfrequentfake}.
 
 \begin{figure}
-\caption{Someone needs to fill this in with the data.}
+\begin{tabular}{|rl@{\qquad}rl|}
+\multicolumn{2}{l}{{\bf \large Scribble}} &
+\multicolumn{2}{l}{{\bf \large Muddle}} \\
+\hline
+Count & Word & Count & Word \\
+\hline
+45,605  &  a        &     20,412  &  late  \\
+42,315  &  i        &     19,405  &  rate  \\
+32,499  &  d$^*$    &     19,276  &  dear  \\
+12,981  &  in       &     19,049  &  tear  \\
+12,851  &  oe       &     19,019  &  date  \\
+12,528  &  s$^*$    &     18,771  &  lear  \\
+12,207  &  re       &     18,423  &  deal  \\
+11,159  &  tv       &     18,231  &  real  \\
+10,720  &  jo       &     18,138  &  lead  \\
+10,386  &  it       &     18,076  &  tale  \\
+10,369  &  et       &     17,969  &  lane  \\
+9,659   &  qua      &     17,956  &  sear  \\
+9,218   &  xi       &     17,570  &  read  \\
+9,099   &  go       &     17,193  &  teal  \\
+9,052   &  ow       &     17,170  &  lean  \\
+8,801   &  qat      &     17,071  &  dare  \\
+8,602   &  aa       &     16,923  &  dale  \\
+8,278   &  un       &     16,892  &  seal  \\
+8,142   &  en       &     16,806  &  sale  \\
+8,005   &  or       &     16,465  &  seat  \\
+\hline
+\end{tabular}
+\caption{Most frequently attempted words in Scribble and Muddle. Asterisks
+indicate non-words.}
 \label{fig:mostfrequent}
 \end{figure}
 
 \begin{figure}
-\caption{Someone needs to fill this in with the data.}
+
+\begin{tabular}{|rl@{\qquad}rl|}
+\multicolumn{2}{l}{{\bf \large Scribble}} &
+\multicolumn{2}{l}{{\bf \large Muddle}} \\
+\hline
+Count & Word & Count & Word \\
+\hline
+11,159 &  tv         &     16,251 &  dane    \\
+4,003  &  ok         &     6,156  &  rane    \\
+2,862  &  iraq       &     5,603  &  sare    \\
+2,725  &  zen        &     5,576  &  nate    \\
+2,448  &  cho        &     4,863  &  mear    \\
+1,538  &  viz        &     4,750  &  cale    \\
+1,418  &  sdasda     &     4,616  &  nees    \\
+1,396  &  von        &     4,568  &  nale    \\
+1,136  &  etc        &     4,507  &  fale    \\
+878    &  int        &     4,347  &  deat    \\
+829    &  june       &     4,263  &  tean    \\
+745    &  lp         &     4,251  &  nile    \\
+719    &  zion       &     4,160  &  mens    \\
+665    &  cia        &     4,087  &  deel    \\
+661    &  jim        &     3,851  &  deam    \\
+651    &  iraqi      &     3,828  &  dana    \\
+648    &  ques       &     3,781  &  beed    \\
+542    &  que        &     3,769  &  lans    \\
+502    &  tim        &     3,725  &  tade    \\
+\hline
+\end{tabular}
+\caption{Most frequently attempted non-words in Scrabble and Muddle.}
 \label{fig:mostfrequentfake}
 \end{figure}
 
-XXX I need to write an analysis of the list and put it here.
-
-In my opinion these are pretty good candidates for words to exist.
-Probably if you were playing someone really intense in Scrabble, and
-he or she played one of these, and was super deadpan about it and
-maybe had caused some crying contests before, and a known
+There's a clear difference between these two lists. The Scribble list
+is dominated by words involving difficult-to-play letters like {\it v}
+(there are no legal two-letter {\it v}-words). Most of the words would
+probably be acknowledged as real, just not legal in Scribble. The ones
+that don't already have meanings, like ``cho'' and ``int'' and ``que''
+seem to be pretty good candidates to exist. The Muddle list is all
+four-letter words (the minimum allowed length) using common letters.
+Other than the ones that are already words, like ``dane'' and ``nile''
+and ``mens'' (as in ``mens section'' or ``the powerfuel weapon kills
+hard so many mens''), these are all good candidates for words to
+exist. Probably if you were playing someone really intense in
+Scrabble, and he or she played one of these, and was super deadpan
+about it and maybe had caused some crying contests before, and a known
 sesquipedalianist, you would let these fly because they look like real
-words to me. A point in their favor is that they are quite low-scoring
-words in Scrabble; one might expect that the words most wished for are
-like ``qzkwv'' for the scoring potential. The effect is probably due
-to a few factors: Players are less likely to attempt obvious
-non-words, common letters appear more often on the rack and on the
-board and so the opportunity to play words like in
+words to me. A point in their favor is that they would be quite
+low-scoring words in Scrabble; not a {\it z} or {\it q} to be found.
+Even in the Scribble list there's no ``qzkwv'' junk. The effect is
+probably due to a few factors: Players are less likely to attempt
+obvious non-words, common letters appear more often on the rack and on
+the board and so the opportunity to play words like in
 Figure~\ref{fig:mostfrequentfake} presents itself more frequently, and
 in Muddle, there is no advantage to using unusual letters, except the
-joy of being a weirdo. Nonetheless, this list is surely biased by the
-specifics of Scribble and Muddle, and the question at hand is not just
-what words ought to exist for the purpose of internet word games, but
-for general purposes.
+joy of being a weirdo. Nonetheless, these lists are surely biased by
+the specifics of Scribble and Muddle, and the question at hand is not
+just what words ought to exist for the purpose of internet word games,
+but for general purposes.
 
 \begin{figure}
 \caption{Someone needs a diagram or table here of the count histogram.}
@@ -161,7 +244,8 @@ for general purposes.
 
 Another downside is that this method completely ignores the many words
 that are attempted only once or a small number of times. The
-distribution is heavy-tailed; XXX\% of the words attempted are not
+distribution is heavy-tailed; of the 564,610 unique words attempted,
+501,939 of them aren't real! XXX\% of the words attempted are not
 even in the top XXX (Figure~\ref{fig:gamedistribution}). Though those
 words individually are not good candidates to exist, like tiny stars
 wished upon in the night sky,\!\footnote{Astronomers now agree that
@@ -369,6 +453,9 @@ impossible because no words start with {\it l}.
 \end{verbatim}
 
 % laplace smoothing?
+% TODO: the empty string?
+
+TODO: most likely words in italian, too.
 
 most people remember induction, perhaps 
 
@@ -384,8 +471,15 @@ Rob: etsy, nuuog
 Chris: tapping on the bisphenol-A, nurm
 David: wafflucinations
 Lea: hnfff sound
+Reed: pansepticon
+Jessica: gruntle (like not disgruntled)
 
 In order to not reprint everyone's bullshit---but not introduce bias by selectively removing data---I discarded random subsets of the data until it did not contain bullshit any more.
+
+% TODO: backformation, stripping dis- and anti- and un- from words
+% then checking to see if they're still words?
+
+% ``Scrallbe'' is kind of like god mode for scrabble.
 
 \section{Recommendations}
 

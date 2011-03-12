@@ -58,12 +58,49 @@ struct
        SimpleStream.app oneline fs
    end
 
-  val dict = Script.wordlist "wordlist.asc"
+  (* val dict = Script.wordlist "wordlist.asc" *)
+  val dict = Script.wordlist "sowpods.txt"
+  (* Seemed to be missing from the wordlist *)
   val dict2 = Script.wordlist "supplement.txt"
+  (* Things like 'iraq' and 'tv' that don't count as non-words, IMO. *)
+  val dict3 = (fn _ => false) (* Script.wordlist "imo.txt" *)
+
   (* Verified as legitimately not being words *)
-  val legitimate = Script.wordlist "legitimate.txt"
-  fun isword w = dict w orelse dict2 w
+  val legitimate = (fn _ => false) (* Script.wordlist "legitimate.txt" *)
+  fun isword w = dict w orelse dict2 w orelse dict3 w
   val () = eprint "Wordlist loaded.\n"
+
+  fun int_reverse (a, b) = Int.compare (b, a)
+  structure IM = SplayMapFn(type ord_key = int
+                            val compare = int_reverse)
+
+  fun printcdf histo file =
+      let
+          val f = TextIO.openOut file
+          val (tots, totm, totb) = (ref 0, ref 0, ref 0)
+          val j = ref 0
+      in
+          IM.appi (fn (i, (s, m, b)) =>
+                   let in
+                       tots := !tots + !s;
+                       totm := !totm + !m;
+                       totb := !totb + !b;
+                       ++j;
+
+                       (* Thin data except in the interesting parts. *)
+                       if i < 100 orelse
+                          i > 40000 orelse
+                          !j mod 10 = 0
+                       then
+                           TextIO.output (f,
+                                          Int.toString i ^ "\t" ^
+                                          Int.toString (!tots) ^ "\t" ^
+                                          Int.toString (!totm) ^ "\n"(*  ^
+                                          Int.toString (!totb) ^ "\n" *))
+                       else ()
+                   end) histo;
+          TextIO.closeOut f
+      end
 
   fun main fs =
    let
@@ -73,10 +110,21 @@ struct
        val total_s = ref 0
        val total_m = ref 0
        val total_t = ref 0
+       val real_s = ref 0
+       val real_m = ref 0
+       val real_t = ref 0
        (* Frequently used words *)
        val mostused = ref nil
+       (* In scrabble, muddle *)
+       val mostused_s = ref nil
+       val mostused_m = ref nil
        (* Frequently used words that aren't real *)
        val mostused_fake = ref nil
+       val mostused_fake_s = ref nil
+       val mostused_fake_m = ref nil
+
+       (* Count of words that were used that many times. *)
+       val histo = ref IM.empty
 
        fun scoretable l =
            StringUtil.table 80
@@ -86,8 +134,26 @@ struct
                   word,
                   if legitimate word
                   then "!"
-                  else ""]) l)
+                  else (if isword word
+                        then "."
+                        else "")]) l)
    in
+       eprint "Analyze...\n";
+       SM.app (fn (s, m, _) =>
+               let 
+                   fun refornew i =
+                       case IM.find (!histo, i) of
+                           NONE =>
+                               let val r = (ref 0, ref 0, ref 0)
+                               in histo := IM.insert (!histo, i, r); r
+                               end
+                         | SOME r => r
+               in
+                   ++ (#1 (refornew s));
+                   ++ (#2 (refornew m));
+                   ++ (#3 (refornew (s + m)))
+               end) (!counts);
+                   
        SM.app (fn _ => ++unique) (!counts);
        SM.app (fn (s, m, t) => 
                let in
@@ -96,10 +162,18 @@ struct
                    total_t := !total_t + t
                end) (!counts);
        SM.appi (fn (w, (s, m, t)) =>
+                let in
+                    if isword w then real_s := !real_s + s else ();
+                    if isword w then real_m := !real_m + m else ();
+                    if isword w then real_t := !real_t + t else ()
+                end) (!counts);
+       SM.appi (fn (w, (s, m, t)) =>
                 let
                     (* XXX can do much better! Normalize for letter
                        frequency, score, etc. *)
-                    val score : real = real (s + m + t) * Math.ln (real (size w)) * Math.ln (real (size w))
+                    val score : real = real (s + m + t) (* * 
+                        Math.ln (real (size w)) * 
+                        Math.ln (real (size w)) *)
                     fun byscore ((s, w), (ss, ww)) =
                         (* Compare backwards, so that largest scores go first. *)
                         case Real.compare (ss, s) of
@@ -107,6 +181,8 @@ struct
                           | c => c
                 in
                     mostused := ListUtil.Sorted.insertbest 20 byscore (!mostused) (score, w);
+                    mostused_s := ListUtil.Sorted.insertbest 20 byscore (!mostused_s) (real s, w);
+                    mostused_m := ListUtil.Sorted.insertbest 20 byscore (!mostused_m) (real m, w);
                     (if isword w
                      then ()
                      else
@@ -114,38 +190,46 @@ struct
                              ++unique_fake;
                              mostused_fake := 
                              ListUtil.Sorted.insertbest 80 byscore
-                             (!mostused_fake) (score, w)
+                             (!mostused_fake) (score, w);
+
+                             mostused_fake_s := 
+                             ListUtil.Sorted.insertbest 50 byscore
+                             (!mostused_fake_s) (real s, w);
+
+                             mostused_fake_m := 
+                             ListUtil.Sorted.insertbest 50 byscore
+                             (!mostused_fake_m) (real m, w)
                          end)
                 end) (!counts);
 
-(*
-            (* insertbest max cmp l a
-               inserts a into l, but ensures that the
-               resulting list has at most 'max' elements (by dropping
-               elements from the end) *)
-            val insertbest : int -> ('a * 'a -> order) -> 'a list -> 'a ->
-                              'a list
-*)
+       eprint " ... done.\n";
+       print (StringUtil.table 80
+              [["badline", Int.toString (!badline)],
+               ["total", Int.toString (!total)],
+               ["total s", Int.toString (!total_s)],
+               ["total m", Int.toString (!total_m)],
+               ["total t", Int.toString (!total_t)],
+               ["real s", Int.toString (!real_s)],
+               ["real m", Int.toString (!real_m)],
+               ["real t", Int.toString (!real_t)],
+               ["unique", Int.toString (!unique)],
+               ["unique fake", Int.toString (!unique_fake)],
+               ["lines", Int.toString (!lines)]]);
+       print "\nMost used overall:\n";
+       print (scoretable (!mostused));
+       print "\nMost used scribble:\n";
+       print (scoretable (!mostused_s));
+       print "\nMost used muddle:\n";
+       print (scoretable (!mostused_m));
 
-(*
-SM.appi (fn (w, (s, m, t)) =>
-                print (Int.toString s ^ " " ^ Int.toString m ^ " " ^
-                       Int.toString t ^ " " ^ w ^ "\n")) (!counts);
-*)
-       eprint "done.\n";
-       eprint (StringUtil.table 80
-               [["badline", Int.toString (!badline)],
-                ["total", Int.toString (!total)],
-                ["total s", Int.toString (!total_s)],
-                ["total m", Int.toString (!total_m)],
-                ["total t", Int.toString (!total_t)],
-                ["unique", Int.toString (!unique)],
-                ["unique fake", Int.toString (!unique_fake)],
-                ["lines", Int.toString (!lines)]]);
-       eprint "\nMost used overall:\n";
-       eprint (scoretable (!mostused));
-       eprint "\nMost used fake:\n";
-       eprint (scoretable (!mostused_fake))
+       print "\nMost used fake:\n";
+       print (scoretable (!mostused_fake));
+       print "\nMost used fake scribble:\n";
+       print (scoretable (!mostused_fake_s));
+       print "\nMost used fake muddle:\n";
+       print (scoretable (!mostused_fake_m));
+
+       printcdf (!histo) "wishlist.cdf"
    end
 
   val () = Params.main
