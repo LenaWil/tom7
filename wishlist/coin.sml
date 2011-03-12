@@ -1,9 +1,15 @@
 (* Coin words with coinduction. *)
 structure Coin =
 struct
-  
+
+(*  
   val lines = SimpleStream.tolinestream (SimpleStream.fromfilechar "wordlist.asc")
   val dict = Script.wordlist "wordlist.asc"
+*)
+
+  val lines = SimpleStream.tolinestream (SimpleStream.fromfilechar "sowpods.txt")
+  val dict = Script.wordlist "sowpods.txt"
+
 
 (*
   structure M2C : NMARKOVCMPARG =
@@ -19,7 +25,7 @@ struct
   structure M2C : NMARKOVARG =
   struct
     type symbol = char
-    val n = 3
+    val n = 1 (* 3 *)
     val radix = 28
     fun toint c = ord c - ord #"a"
     fun fromint x = chr (x + ord #"a")
@@ -58,7 +64,7 @@ struct
   val most_fake = Stream.filter (fn { string, p = _ } => not (dict (implode string))) most_probable
   val tops = StreamUtil.headn 100 most_fake
 
-  (* XXX output includes end symbol. is this desired? fix here or in nmarkov. *)
+  val () = print ("Markov chain with n=" ^ Int.toString M2C.n ^ ".\n")
   val () = print (Int.toString (length tops) ^ " top paths:\n");
   val () = app (fn { string, p } =>
                 print (rtos9 p ^ " " ^ implode string ^ "\n")) tops

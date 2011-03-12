@@ -102,6 +102,30 @@ struct
           TextIO.closeOut f
       end
 
+  fun printdata f hist =
+      let
+          val tot = ref 0
+          val j = ref 0
+      in
+          IM.appi (fn (i, r) =>
+                   let in
+                       tot := !tot + !r;
+                       ++j;
+
+                       (* Thin data except in the interesting parts. *)
+                       if i < 100 orelse
+                          i > 40000 orelse
+                          true
+                          (* !j mod 10 = 0 *)
+                       then
+                           TextIO.output (f,
+                                          Int.toString i ^ " " ^
+                                          Int.toString (!tot) ^ "\n")
+                       else ()
+                   end) hist;
+          TextIO.output (f, "e\n")
+      end
+
   fun main fs =
    let
        val () = app onefile fs
@@ -124,7 +148,9 @@ struct
        val mostused_fake_m = ref nil
 
        (* Count of words that were used that many times. *)
-       val histo = ref IM.empty
+       val histo_s = ref IM.empty
+       val histo_m = ref IM.empty
+       val histo_b = ref IM.empty
 
        fun scoretable l =
            StringUtil.table 80
@@ -141,17 +167,17 @@ struct
        eprint "Analyze...\n";
        SM.app (fn (s, m, _) =>
                let 
-                   fun refornew i =
-                       case IM.find (!histo, i) of
+                   fun refornew h i =
+                       case IM.find (!h, i) of
                            NONE =>
-                               let val r = (ref 0, ref 0, ref 0)
-                               in histo := IM.insert (!histo, i, r); r
+                               let val r = ref 0
+                               in h := IM.insert (!h, i, r); r
                                end
                          | SOME r => r
                in
-                   ++ (#1 (refornew s));
-                   ++ (#2 (refornew m));
-                   ++ (#3 (refornew (s + m)))
+                   ++ (refornew histo_s s);
+                   ++ (refornew histo_m m);
+                   ++ (refornew histo_b (s + m))
                end) (!counts);
                    
        SM.app (fn _ => ++unique) (!counts);
@@ -229,7 +255,28 @@ struct
        print "\nMost used fake muddle:\n";
        print (scoretable (!mostused_fake_m));
 
-       printcdf (!histo) "wishlist.cdf"
+       let
+           val f = TextIO.openOut "wishlist.plot"
+       in
+           TextIO.output (f,
+                          "set term gif size 2048 1024\n" ^
+                          "set xlabel 'Number of words\n" ^
+                          "set data style lines\n" ^
+                          "set autoscale xy\n" ^
+                          "set output 'wishlist.gif'\n" ^
+                          "set ylabel 'Seen this many times or fewer\n" ^
+                          "set title 'wishlist CDF'\n" ^
+                          (* "set ydata time\n" ^ *)
+                          (* "set format y '%M:%S'" ^ *)
+                          "plot '-' using 1:(log($2)) title 's', " ^
+                          "'-' using 1:(log($2)) title 'm', " ^
+                          "'-' using 1:(log($2)) title 'b'\n");
+
+           printdata f (!histo_s);
+           printdata f (!histo_m);
+           printdata f (!histo_b);
+           TextIO.closeOut f
+       end
    end
 
   val () = Params.main
