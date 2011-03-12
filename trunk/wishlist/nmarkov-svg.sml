@@ -23,8 +23,14 @@ struct
   val rtos = Real.fmt (StringCvt.FIX (SOME 2))
   val rtos9 = Real.fmt (StringCvt.FIX (SOME 9))
 
-  fun makesvg (chain : M.chain) =
+  val GRAPHIC_SIZE = 1024
+  val TABLE_SIZE = 1024.0
+  val CELL_WIDTH = TABLE_SIZE / real modulus
+
+  fun makesvg (filename : string, chain : M.chain) =
       let
+          val f = TextIO.openOut filename
+          fun fprint s = TextIO.output (f, s)
           (* Get normalized probabilities in (radix^n * radix) array. *)
           fun makecol n =
               let
@@ -49,16 +55,32 @@ struct
                                                 maxprobt := (statetos st, 
                                                              tostring (M.fromint i)))
                                           else ()) c) cols
-          val () = print ("FYI max probability: " ^ rtos (!maxprob) ^ " @"
-                          #1 (!maxprobt) ^ "->" ^ #2 (!maxprobt) ^ "\n")
+          val (st, sym) = !maxprobt
+          val () = TextIO.output (TextIO.stdErr,
+                                  "FYI max probability: " ^ rtos (!maxprob) ^ " @" ^
+                                  st ^ "->" ^ sym ^ "\n")
       in
-(*
-          (* XXX compute actual size *)
-          print (TextSVG.svgheader { x = 0, y = 0, 
-                                     width = GRAPHIC_SIZE,
-                                     height = GRAPHIC_SIZE,
-                                     generator = "radial.sml" });
+          fprint (TextSVG.svgheader { x = 0, y = 0, 
+                                      width = GRAPHIC_SIZE,
+                                      height = GRAPHIC_SIZE,
+                                      generator = "nmarkov-svg.sml" });
 
+          Array.appi (fn (col, (sym, state, rows)) =>
+                      Array.appi (fn (row, p) =>
+                                  let
+                                      (* val () = print (rtos p ^ " / " ^ rtos (!maxprob)) *)
+                                      val intensity = 1.0 - (p / !maxprob)
+                                      val c = Color.rgbf (intensity, intensity, intensity)
+                                      val c = Color.tohexstring c
+                                      (* val () = print (".. " ^ c ^ "\n") *)
+                                  in
+                                      fprint ("<rect x=\"" ^ rtos (real col * CELL_WIDTH) ^ 
+                                              "\" y=\"" ^ rtos (real row * CELL_WIDTH) ^
+                                              "\" width=\"" ^ rtos CELL_WIDTH ^
+                                              "\" height=\"" ^ rtos CELL_WIDTH ^
+                                              "\" style=\"fill:#" ^ c ^ "\" />\n")
+                                  end) rows) cols;
+(*
           (* Black background. *)
           print ("<rect x=\"-10\" y=\"-10\" width=\"" ^
                   Int.toString (GRAPHIC_SIZE + 20) ^ "\" height=\"" ^
@@ -82,6 +104,7 @@ struct
           Vector.app printpolyline paths;
           List.app print (!endcircles);
 *)
-          print (TextSVG.svgfooter ())
+          fprint (TextSVG.svgfooter ());
+          TextIO.closeOut f
       end
 end

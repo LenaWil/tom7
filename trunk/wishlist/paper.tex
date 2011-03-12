@@ -445,13 +445,14 @@ impossible because no words start with {\it l}.
 
 It basically makes sense to consider the probability of a whole word
 to be the chance of simultaneously seeing each pair of letters in it,
-which is just the product. So the word ``hel'' is $2/3$ (for {\bf
-  \<h}) $\times$ 2/2 (for {\bf he}) $\times$ 4/4 (for {\bf el}) $\times$ 2/6 (for
-{\bf l\>}), which is $0.222$. These are the most likely words overall (I
-discuss how to generate such lists in Section~\ref{sec:coin}):
+which is just the product of all the probabilities. So the word
+``hel'' is $2/3$ (for {\bf \<h}) $\times$ 2/2 (for {\bf he}) $\times$
+4/4 (for {\bf el}) $\times$ 2/6 (for {\bf l\>}), which is $0.222$.
+These are the most likely words overall (I discuss how to generate
+such lists in Section~\ref{sec:coin}):
 
 \vspace{0.2in}
-\begin{tabular}{rl@{\quad}rl}
+\begin{tabular}{rl@{\quad\quad}rl}
 22.2\%  &  hel      &      2.5\%  &  helpfel  \\
 11.1\%  &  helo     &      2.5\%  &  helafel  \\
  7.4\%  &  fel      &      1.9\%  &  fulo     \\
@@ -466,7 +467,41 @@ the Markov chain, but are novel. I think helafelo is a pretty rad word,
 right?
 
 The next step is to build a Markov chain for a list of real words and
-see what results. 
+see what results. I built one for the SOWPODS word list, and these
+are the most likely words, with real words filtered out:
+
+% XXX improve layout
+\vspace{0.2in}
+\begin{tabular}{rl@{\quad\quad}rl}
+0.049901545  & s     &   0.001768358  & y   \\
+0.017526947  & d     &   0.001761301  & p   \\
+0.009521421  & g     &   0.001653041  & a   \\
+0.005506083  & c     &   0.001652864  & n   \\
+0.004376836  & r     &   0.001563810  & ps  \\
+0.004218223  & t     &   0.001383503  & ms  \\
+0.004088377  & e     &   0.001371545  & ts  \\
+0.003560976  & m     &   0.001327023  & ds  \\
+0.003248559  & ss    &   0.001188715  & hy  \\
+0.002001529  & rs    &   0.001166457  & k   \\
+0.001958674  & h     &   0.001160619  & ng  \\
+0.001873761  & l     &   0.001142785  & ly  \\
+\end{tabular}
+\vspace{0.2in}
+
+Ugh, poop city! Actually, it turns out that when you see enough words,
+you see enough pairs that all sorts of junk looks likely. For example,
+``ng'' is easily explained by many words starting with {\it n}, {\it
+g} often following {\it n}, and many words ending with {\it g}. Even
+though each pair makes sense, the whole thing doesn't look like a word,
+because we expect to at least see a vowel at some point, for one thing.
+
+There is a standard solution to this problem, which is to generalize
+the Markov chain to keep more than one letter of history. So instead
+of just tallying how often {\it g} follows {\it n}, we count how often
+{\it g} follows {\it in} (and any other pair of letters). This makes
+the table pretty large, but I went through some trouble to put a
+graphic in Figure~\ref{fig:sowpodstrigrams} because it looks pretty
+cool.
 
 % laplace smoothing?
 % TODO: the empty string?
@@ -476,6 +511,9 @@ TODO: most likely words in italian, too.
 most people remember induction, perhaps 
 
 coinduction: never gonna give you up. once you pop you can't stop.
+
+% word list from Italian Scrabble, which I bet is called
+% {Scrabbizzimo!}
 
 \subsection{Coining words with coinduction} \label{sec:coin}
 
@@ -497,11 +535,15 @@ In order to not reprint everyone's bullshit---but not introduce bias by selectiv
 % TODO: backformation, stripping dis- and anti- and un- from words
 % then checking to see if they're still words?
 
+% TODO: portmanteautally
+
 % ``Scrallbe'' is kind of like god mode for scrabble.
 
 \section{Recommendations}
 
-sweeeeeeeeeeeeeeeeeeet with 19 {\it e}s.
+sweeeeeeeeeeeeeeeeeeet with 19 {\it e}s, which means ``Really sweet.''
+
+``rane'' sounds too much like ``rain'', but ``sare'' has a unique pronunciation and many people seem to think it's already a word. ``cho'' is similarly easy to pronounce and spell. I propose that it be defined as ``A kind of cheese,'' so that we can really nail the new triple entendre on the classic joke.
 
 % \begin{Verbatim}
 facebook wall posts, 4-grams

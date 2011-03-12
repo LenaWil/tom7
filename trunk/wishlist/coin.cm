@@ -49,6 +49,9 @@ group is
   ../sml-lib/misc/params-sig.sml
   ../sml-lib/misc/params.sml
 
+  ../sml-lib/misc/color-sig.sml
+  ../sml-lib/misc/color.sml
+
   ../sml-lib/files/xml/fxlib.cm
   ../sml-lib/files/xml/xml-sig.sml
   ../sml-lib/files/xml/xml.sml
