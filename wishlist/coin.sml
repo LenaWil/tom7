@@ -71,6 +71,6 @@ struct
 
   structure NMS = NMarkovSVG(structure M = M
                              fun tostring c = implode [c])
-  val s = NMS.makesvg chain
+  val s = NMS.makesvg ("coin" ^ Int.toString M2C.n ^ ".svg", chain)
 
 end
