@@ -238,20 +238,22 @@ just what words ought to exist for the purpose of internet word games,
 but for general purposes.
 
 \begin{figure}
-\caption{Someone needs a diagram or table here of the count histogram.}
+\includegraphics[width=\linewidth]{wishlist-cdf}
+\caption{Distribution of word frequency. Approximately 25,000
+  different words (y axis) were issued 55 times or fewer (x axis).}
 \label{fig:gamedistribution}
 \end{figure}
 
 Another downside is that this method completely ignores the many words
-that are attempted only once or a small number of times. The
-distribution is heavy-tailed; of the 564,610 unique words attempted,
-501,939 of them aren't real! XXX\% of the words attempted are not
-even in the top XXX (Figure~\ref{fig:gamedistribution}). Though those
-words individually are not good candidates to exist, like tiny stars
-wished upon in the night sky,\!\footnote{Astronomers now agree that
-stars do exist, by the way.} in aggregate they form a significant
-planetarium that may tell us what {\it kind} of words people wish
-existed. For example, if we saw that the words ``sweeeeeeet'',
+that are attempted only once or a small number of times. Players are
+very creative; of the 564,610 unique words attempted, 501,939 of them
+aren't real! The vast majority of words are attempted only a handful
+of times (Figure~\ref{fig:gamedistribution}). Though those words
+individually are not good candidates to exist, like tiny stars wished
+upon in the night sky,\!\footnote{Astronomers now agree that stars do
+  exist, by the way.} in aggregate they form a significant planetarium
+that may tell us what {\it kind} of words people wish existed. For
+example, if we saw that the words ``sweeeeeeet'',
 ``sweeeeeeeeeeeeet'', ``sweeeet'' and ``sweeeeeeeeeeeeeet'' occurred a
 few times each, we could infer that people wished that words like
 ``sweet'' with strictly more than two {\it e}s were real words. They
@@ -261,9 +263,10 @@ as there existed some legal variation with more than two {\it e}s.
 estimates, the words ``swe$^n$t'' for various medium-sized $n$
 (10--20) appear on the Internet with similar frequency. The only
 exception is ``sweeeeeeeeeeeeeeeeeeet'', with 19 {\it e}s, which
-unexpectedly appears three times as often as 18 or 20 {\it e}s does.)
-In order to lance these two boils, in the next section I explore
-statistical methods for generalizing from lots of individual examples.
+unexpectedly appears three times as often as 18 or 20 {\it e}s does;
+see Figure~\ref{fig:sweet}.) In order to lance these two boils, in the
+next section I explore statistical methods for generalizing from lots
+of individual examples.
 
 % XXX should really try to get this in the right column, since it
 % overflows the margins
@@ -292,22 +295,22 @@ statistical methods for generalizing from lots of individual examples.
 34,800 & 20 &  sweeeeeeeeeeeeeeeeeeeet \\
 %
 16,100$^5$ & 25 & sweeeeeeeeeeeeeeeeeeeeeeeeet \\ % for weeeeeeeeeeeeeeeeeeeeeeeee t
-10,100 & 30 & sweeeeeeeeeeeeeeeeeeeeeeeeeeeeeet \\
-2,800 & 40 &  sweeeeeeeeeeeeeeeeeeeeeeeeeeeeee\ldots t \\
-923 & 50 &    sweeeeeeeeeeeeeeeeeeeeeeeeeeeeee\ldots t \\
-118 & 75 &    sweeeeeeeeeeeeeeeeeeeeeeeeeeeeee\ldots t \\
-38 & 100 &    sweeeeeeeeeeeeeeeeeeeeeeeeeeeeee\ldots t \\
-?$^6$ & 200 &     sweeeeeeeeeeeeeeeeeeeeeeeeeeeeee\ldots t \\ % word is too long for Google
+10,100 & 30 & sweeeeeeeeeeeeeeeeeeeeeeeeee\ldots t \\
+2,800 & 40 &  sweeeeeeeeeeeeeeeeeeeeeeeeee\ldots t \\
+923 & 50 &    sweeeeeeeeeeeeeeeeeeeeeeeeee\ldots t \\
+118 & 75 &    sweeeeeeeeeeeeeeeeeeeeeeeeee\ldots t \\
+38 & 100 &    sweeeeeeeeeeeeeeeeeeeeeeeeee\ldots t  \\
+?$^6$ & 200 & sweeeeeeeeeeeeeeeeeeeeeeeeee\ldots t     \\ % word is too long for Google
 \end{tabular}
 \caption{Frequency of ``swe$^n$t'' on the internet for various $n$, estimated
 by Google. Notes: {\bf (1)} Spell correction offered for ``sweeeeet''. {\bf (2, 3, 4)} Spell corrections
 offered to e$^{9}$, e$^{14}$ and e$^{15}$ respectively. {\bf (5)} Spell correction offered for ``weeeeeeeeeeeeeeeeeeeeeeeee t'' (?) {\bf (6)} With two hundred {\it e}s, the word is too long for Google, which asks me to ``try using a shorter word.'' Thanks Google, but I already did try the shorter ones.}
-\label{ref:sweet}
+\label{fig:sweet}
 \end{figure}
 
 \section{Statistical Models}
 
-The reason that people are more likely to play words like ``tane'' is
+The reason that people are more likely to play words like ``rane'' is
 that the letters are common---they appear more often in words, and
 more often in the Scrabble bag. But it's not simply a matter of the
 frequency of letters; if it were, we would expect to see words like
@@ -440,17 +443,30 @@ We just added these like other letters, but since the beginning symbol
 {\bf \>} we don't need a column for it. Now the word ``lllll'' is
 impossible because no words start with {\it l}.
 
-\begin{verbatim}
-0.166666667 hel
-0.166666667 helpful
-0.166666667 hello
-0.083333333 felpful
-0.083333333 fello
-0.083333333 fel
-0.041666667 helafel
-0.041666667 helafelpful
-0.041666667 helafello
-\end{verbatim}
+It basically makes sense to consider the probability of a whole word
+to be the chance of simultaneously seeing each pair of letters in it,
+which is just the product. So the word ``hel'' is $2/3$ (for {\bf
+  \<h}) $\times$ 2/2 (for {\bf he}) $\times$ 4/4 (for {\bf el}) $\times$ 2/6 (for
+{\bf l\>}), which is $0.222$. These are the most likely words overall (I
+discuss how to generate such lists in Section~\ref{sec:coin}):
+
+\vspace{0.2in}
+\begin{tabular}{rl@{\quad}rl}
+22.2\%  &  hel      &      2.5\%  &  helpfel  \\
+11.1\%  &  helo     &      2.5\%  &  helafel  \\
+ 7.4\%  &  fel      &      1.9\%  &  fulo     \\
+ 3.7\%  &  hell     &      1.9\%  &  hello    \\
+ 3.7\%  &  felo     &      1.2\%  &  fell     \\
+ 3.7\%  &  ful      &      1.2\%  &  helafelo \\
+\end{tabular}
+\vspace{0.2in}
+
+This is pretty good. These words resemble the ones we observed to build
+the Markov chain, but are novel. I think helafelo is a pretty rad word,
+right?
+
+The next step is to build a Markov chain for a list of real words and
+see what results. 
 
 % laplace smoothing?
 % TODO: the empty string?
@@ -461,7 +477,9 @@ most people remember induction, perhaps
 
 coinduction: never gonna give you up. once you pop you can't stop.
 
-\section{Ockham's Regexp?}
+\subsection{Coining words with coinduction} \label{sec:coin}
+
+% \section{Ockham's Regexp?}
 
 \section{Survey}
 

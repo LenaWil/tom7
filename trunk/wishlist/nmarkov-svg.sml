@@ -18,6 +18,8 @@ struct
           l
       end
 
+  fun statetos s = String.concat (map tostring (M.history s))
+
   val rtos = Real.fmt (StringCvt.FIX (SOME 2))
   val rtos9 = Real.fmt (StringCvt.FIX (SOME 9))
 
@@ -39,12 +41,16 @@ struct
               
           (* Maximum probability anywhere. *)
           val maxprob = ref 0.0
-          val () = Array.app (fn (_, _, c) =>
-                              Array.app (fn d =>
-                                         if d > !maxprob
-                                         then maxprob := d
-                                         else ()) c) cols
-          val () = print ("FYI max probability: " ^ rtos (!maxprob) ^ "\n")
+          val maxprobt = ref ("?", "?")
+          val () = Array.app (fn (_, st, c) =>
+                              Array.appi (fn (i, d) =>
+                                          if d > !maxprob
+                                          then (maxprob := d;
+                                                maxprobt := (statetos st, 
+                                                             tostring (M.fromint i)))
+                                          else ()) c) cols
+          val () = print ("FYI max probability: " ^ rtos (!maxprob) ^ " @"
+                          #1 (!maxprobt) ^ "->" ^ #2 (!maxprobt) ^ "\n")
       in
 (*
           (* XXX compute actual size *)
