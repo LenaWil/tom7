@@ -1,0 +1,269 @@
+badline                                                                 52       
+total                                                                   17316879 
+total s                                                                 3572226  
+total m                                                                 13727511 
+total t                                                                 17142    
+real s                                                                  3175613  
+real m                                                                  9860412  
+real t                                                                  10814    
+unique                                                                  564610   
+unique fake                                                             466528   
+lines                                                                   2341169  
+
+Most used overall:
+score   word verified 
+51715.0 a    .        
+43515.0 i    .        
+39017.0 d             
+21215.0 s             
+20982.0 late .        
+19901.0 rate .        
+19682.0 dear .        
+19648.0 date .        
+19523.0 tear .        
+18882.0 lear .        
+18824.0 deal .        
+18658.0 real .        
+18432.0 lead .        
+18424.0 tale .        
+18302.0 lane .        
+18049.0 sear .        
+18027.0 read .        
+17592.0 lean .        
+17581.0 teal .        
+17439.0 dare .        
+
+Most used scribble:
+score   word verified 
+45605.0 a    .        
+42315.0 i    .        
+32499.0 d             
+12981.0 in   .        
+12851.0 oe   .        
+12528.0 s             
+12207.0 re   .        
+11159.0 tv            
+10720.0 jo   .        
+10386.0 it   .        
+10369.0 et   .        
+9659.0  qua  .        
+9218.0  xi   .        
+9099.0  go   .        
+9052.0  ow   .        
+8801.0  qat  .        
+8602.0  aa   .        
+8278.0  un   .        
+8142.0  en   .        
+8005.0  or   .        
+
+Most used muddle:
+score   word verified 
+20412.0 late .        
+19405.0 rate .        
+19276.0 dear .        
+19049.0 tear .        
+19019.0 date .        
+18771.0 lear .        
+18423.0 deal .        
+18231.0 real .        
+18138.0 lead .        
+18076.0 tale .        
+17969.0 lane .        
+17956.0 sear .        
+17570.0 read .        
+17193.0 teal .        
+17170.0 lean .        
+17071.0 dare .        
+16923.0 dale .        
+16892.0 seal .        
+16806.0 sale .        
+16465.0 seat .        
+
+Most used fake:
+score   word  verified 
+39017.0 d              
+21215.0 s              
+16458.0 dane           
+11161.0 tv             
+7693.0  ieee           
+6208.0  rane           
+5629.0  nate           
+5627.0  sare           
+5565.0  l              
+5329.0  t              
+5051.0  e              
+4892.0  mear           
+4801.0  cale           
+4662.0  nees           
+4607.0  r              
+4589.0  nale           
+4550.0  fale           
+4452.0  nile           
+4442.0  b              
+4359.0  deat           
+4276.0  tean           
+4217.0  mens           
+4107.0  deel           
+4018.0  ok             
+3886.0  deam           
+3868.0  dana           
+3811.0  beed           
+3792.0  g              
+3774.0  lans           
+3729.0  tade           
+3710.0  rans           
+3693.0  dats           
+3693.0  hane           
+3687.0  f              
+3633.0  c              
+3619.0  beal           
+3530.0  rame           
+3503.0  danes          
+3500.0  dase           
+3464.0  tase           
+3407.0  leen           
+3400.0  lage           
+3390.0  seet           
+3386.0  peet           
+3295.0  p              
+3288.0  lates          
+3214.0  hees           
+3209.0  reat           
+3196.0  lape           
+3069.0  pade           
+3040.0  fase           
+3029.0  dall           
+3028.0  tard           
+2950.0  reep           
+2947.0  nade           
+2942.0  lait           
+2939.0  sead           
+2935.0  ques           
+2893.0  iraq           
+2804.0  leds           
+2802.0  dont           
+2773.0  zen            
+2760.0  rome           
+2748.0  deas           
+2742.0  reas           
+2673.0  nore           
+2656.0  meas           
+2636.0  bart           
+2612.0  dile           
+2607.0  n              
+2597.0  nots           
+2595.0  pead           
+2577.0  fean           
+2577.0  neet           
+2558.0  dave           
+2545.0  nead           
+2538.0  nell           
+2533.0  gail           
+2514.0  sape           
+2490.0  fred           
+
+Most used fake scribble:
+score   word   verified 
+32499.0 d               
+12528.0 s               
+11159.0 tv              
+6159.0  ieee            
+4003.0  ok              
+2862.0  iraq            
+2725.0  zen             
+2448.0  cho             
+1538.0  viz             
+1418.0  sdasda          
+1396.0  von             
+1136.0  etc             
+878.0   int             
+829.0   june            
+822.0   .               
+745.0   lp              
+719.0   zion            
+665.0   cia             
+661.0   jim             
+651.0   iraqi           
+648.0   ques            
+542.0   que             
+508.0   f               
+502.0   tim             
+493.0   leo             
+479.0   quo             
+426.0   quam            
+421.0   iq              
+401.0   e               
+399.0   fiji            
+392.0   rio             
+383.0   oz              
+381.0   ni              
+375.0   le              
+370.0   ra              
+369.0   vi              
+368.0   suez            
+362.0   mit             
+356.0   l               
+350.0   wa              
+348.0   erie            
+332.0   sdadsa          
+330.0   tu              
+327.0   fi              
+316.0   min             
+309.0   kev             
+306.0   usa             
+300.0   im              
+294.0   zoe             
+292.0   b               
+
+Most used fake muddle:
+score   word  verified 
+16251.0 dane           
+8686.0  s              
+6518.0  d              
+6156.0  rane           
+5603.0  sare           
+5576.0  nate           
+5217.0  t              
+5209.0  l              
+4863.0  mear           
+4750.0  cale           
+4649.0  e              
+4616.0  nees           
+4568.0  nale           
+4531.0  r              
+4507.0  fale           
+4347.0  deat           
+4263.0  tean           
+4251.0  nile           
+4160.0  mens           
+4149.0  b              
+4087.0  deel           
+3851.0  deam           
+3828.0  dana           
+3781.0  beed           
+3769.0  lans           
+3725.0  tade           
+3695.0  g              
+3693.0  rans           
+3689.0  dats           
+3641.0  hane           
+3610.0  beal           
+3520.0  rame           
+3496.0  dase           
+3487.0  danes          
+3462.0  c              
+3457.0  tase           
+3394.0  leen           
+3389.0  lage           
+3377.0  seet           
+3352.0  peet           
+3285.0  lates          
+3249.0  p              
+3208.0  hees           
+3188.0  reat           
+3180.0  lape           
+3179.0  f              
+3059.0  pade           
+3029.0  fase           
+3021.0  dall           
+2979.0  tard           
