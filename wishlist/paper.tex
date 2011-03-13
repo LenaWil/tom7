@@ -42,29 +42,39 @@ what do I put here
 
 \vspace{1em}
 {\noindent \small {\bf Keywords}:
- cryptolexicography, n-Markov models, coinduction
+ computational cryptolexicography, n-Markov models, coinduction
 }
 
 \section*{Introduction}
 During a recent high-stakes game of Scrabble-brand Crossword
 Puzzle\footnote{Scrabble is a registered trademark of Hasbro
-Inc./Milton Bradley, and Mattel/JW Spear \& Sons plc.} I had what
+  Inc./Milton Bradley, and Mattel/JW Spear \& Sons plc.} I had what
 could only be described as a killer bingo word (all 7 tiles) that,
 after careful study, I determined could not be placed anywhere on the
 board. Later in that same game, I had another sequence of letters that
 just totally seemed like it should be able to make some long-ass
 words, like for example ``oilsoap'' which turns out is not a legal
 Scrabble word.\!\footnote{There are actually no 7-letter words that
-can be made from these letters. Don't even bother. Even if playing off
-an existing letter on the board, the best we can do are the non-bingos
-``topsoil,'' ``topsail,'' or ``poloist'' with an available {\it t}.}
-This naturally made me frustrated and I wanted to do something about
-it. Why can't ``oilsoap'' be a word? Or ``loopsia''? Words are
-introduced into the lexicon all the time. My first reaction of course
-was to make an online version of Scrabble where all words are legal.
-This is available at {\tt http://snoot.org/toys/scrallbe}, and is
-pretty boring, I gotta be honest.
-% TODO: Screenshot of Scrallbe
+  can be made from these letters. Don't even bother. Even if playing
+  off an existing letter on the board, the best we can do are the
+  non-bingos ``topsoil,'' ``topsail,'' or ``poloist'' with an
+  available {\it t}.} This naturally made me frustrated and I wanted
+to do something about it. Why can't ``oilsoap'' be a word? Or
+``loopsia''? Words are introduced into the lexicon all the time. My
+first reaction of course was to make an online version of Scrabble
+where all words are legal. This is called Scrallbe (where they can
+{\it all be} words!\footnote{As of 2011, the official Scrabble slogan
+  is ``every word's a winner!'' which is clearly false.}) This is
+available at {\tt http://snoot.org/toys/scrallbe}, and is pretty
+boring, I gotta be honest (Figure~\ref{fig:scrallbe}).
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.75 \linewidth]{scrallbe-screenshot}
+\end{center}\vspace{-0.1in}
+\caption{In-progress Scrallbe game, 753 points.}
+\label{fig:scrallbe}
+\end{figure}
 
 The thing is, it's just more fun when some words aren't words. Think
 about it: If all words were real, then you could never make a really
@@ -144,6 +154,7 @@ and 36.8\% in Muddle were not real. The most frequent ones appear in
 Figure~\ref{fig:mostfrequentfake}.
 
 \begin{figure}
+\begin{center}
 \begin{tabular}{|rl@{\qquad}rl|}
 \multicolumn{2}{l}{{\bf \large Scribble}} &
 \multicolumn{2}{l}{{\bf \large Muddle}} \\
@@ -172,13 +183,14 @@ Count & Word & Count & Word \\
 8,005   &  or       &     16,465  &  seat  \\
 \hline
 \end{tabular}
+\end{center}
 \caption{Most frequently attempted words in Scribble and Muddle. Asterisks
 indicate non-words.}
 \label{fig:mostfrequent}
 \end{figure}
 
 \begin{figure}
-
+\begin{center}
 \begin{tabular}{|rl@{\qquad}rl|}
 \multicolumn{2}{l}{{\bf \large Scribble}} &
 \multicolumn{2}{l}{{\bf \large Muddle}} \\
@@ -206,6 +218,7 @@ Count & Word & Count & Word \\
 502    &  tim        &     3,725  &  tade    \\
 \hline
 \end{tabular}
+\end{center}
 \caption{Most frequently attempted non-words in Scrabble and Muddle.}
 \label{fig:mostfrequentfake}
 \end{figure}
@@ -337,8 +350,7 @@ of the current problem. Suppose we know that the words ``hello'',
 ``helpful'' and ``felafel'' are the only real words. The following
 is a frequency table of how often each letter occurs.
 
-\vspace{0.2in}
-\begin{centering}
+\begin{center}
 \begin{tabular}{|r|r|r|r|r|r|r|r|} % {helopfua}
 \hline
 h   & e   & l   & o   & p   & f   & u   & a    \\
@@ -346,8 +358,7 @@ h   & e   & l   & o   & p   & f   & u   & a    \\
 2   & 4   & 6   & 1   & 1   & 3   & 1   & 1    \\
 \hline
 \end{tabular}
-\end{centering}
-\vspace{0.2in}
+\end{center}
 
 This tells us that {\it l} is by far the most common letter, so the
 most likely word is probably ``l'' or ``llllllll'' or something. A
@@ -358,8 +369,7 @@ another. Here is the Markov chain for those words.
 % of the current problem. Suppose we know that the words ``hello'',
 % ``helpful'' and ``felafel'' are the only real words. The following
 
-\vspace{0.2in}
-\begin{centering}
+\begin{center}
 \begin{tabular}{|c|r|r|r|r|r|r|r|r|} % {helopfua}
 \hline
 \,  &  {\bf h}   & {\bf e}   & {\bf l}   & {\bf o}   & {\bf p}   & {\bf f}   & {\bf u}   & {\bf a} \\
@@ -381,8 +391,7 @@ another. Here is the Markov chain for those words.
 {\bf a}   &  0   & 0   & 1   & 0   & 0   & 0   & 0   & 0    \\
 \hline
 \end{tabular}
-\end{centering}
-\vspace{0.2in}
+\end{center}
 
 The letters across the top are the ``previous letter'' and the ones
 across the left are the ``next letter'' and the box contains the
@@ -409,8 +418,7 @@ the end. So we pretend we observed ``\<hello\>'', ``\<helpful\>'', and
 a thing as a helpful felafel? Would you eat it? Because then it
 probably can't help you any more, except to get fat.
 
-\vspace{0.2in}
-\begin{centering}
+\begin{center}
 \begin{tabular}{|c|r|r|r|r|r|r|r|r|r|} % {helopfua}
 \hline
 \,  &  {\bf \<}    & {\bf h}   & {\bf e}   & {\bf l}   & {\bf o}   & {\bf p}   & {\bf f}   & {\bf u}   & {\bf a}    \\
@@ -434,8 +442,7 @@ probably can't help you any more, except to get fat.
 {\bf \>} &  0  &  0   & 0   & 2   & 1   & 0   & 0   & 0   & 0    \\
 \hline
 \end{tabular}
-\end{centering}
-\vspace{0.2in}
+\end{center}
 
 We just added these like other letters, but since the beginning symbol
 {\bf \<} never occurs after other letters, we don't need a row for it
@@ -451,7 +458,7 @@ which is just the product of all the probabilities. So the word
 These are the most likely words overall (I discuss how to generate
 such lists in Section~\ref{sec:coin}):
 
-\vspace{0.2in}
+\begin{center}
 \begin{tabular}{rl@{\quad\quad}rl}
 22.2\%  &  hel      &      2.5\%  &  helpfel  \\
 11.1\%  &  helo     &      2.5\%  &  helafel  \\
@@ -460,18 +467,27 @@ such lists in Section~\ref{sec:coin}):
  3.7\%  &  felo     &      1.2\%  &  fell     \\
  3.7\%  &  ful      &      1.2\%  &  helafelo \\
 \end{tabular}
-\vspace{0.2in}
+\end{center}
 
 This is pretty good. These words resemble the ones we observed to build
 the Markov chain, but are novel. I think helafelo is a pretty rad word,
 right?
 
+\begin{figure}
+\includegraphics[width=\linewidth]{coin1}
+\caption{Markov chain for the SOWPODS word list, where darker squares
+indicate higher probability. The darkest is the transition from {\it q}
+to {\it u} ($98\%$), which is not surprising.}
+\label{fig:sowpodsbigrams}
+\end{figure}
+
 The next step is to build a Markov chain for a list of real words and
-see what results. I built one for the SOWPODS word list, and these
+see what results. I built one for the SOWPODS word list, which results
+in the table in Figure~\ref{fig:sowpodsbigrams}. These
 are the most likely words, with real words filtered out:
 
 % XXX improve layout
-\vspace{0.2in}
+\begin{center}
 \begin{tabular}{rl@{\quad\quad}rl}
 0.049901545  & s     &   0.001768358  & y   \\
 0.017526947  & d     &   0.001761301  & p   \\
@@ -486,7 +502,8 @@ are the most likely words, with real words filtered out:
 0.001958674  & h     &   0.001160619  & ng  \\
 0.001873761  & l     &   0.001142785  & ly  \\
 \end{tabular}
-\vspace{0.2in}
+\end{center}
+
 
 Ugh, poop city! Actually, it turns out that when you see enough words,
 you see enough pairs that all sorts of junk looks likely. For example,
@@ -498,30 +515,238 @@ because we expect to at least see a vowel at some point, for one thing.
 There is a standard solution to this problem, which is to generalize
 the Markov chain to keep more than one letter of history. So instead
 of just tallying how often {\it g} follows {\it n}, we count how often
-{\it g} follows {\it in} (and any other pair of letters). This makes
-the table pretty large, but I went through some trouble to put a
-graphic in Figure~\ref{fig:sowpodstrigrams} because it looks pretty
-cool.
+{\it g} follows {\it in} (and any other pair of letters).\!\footnote{
+  The details are straightforward, except possibly that we now imagine
+  each word to start with two (or in general, $n$) copies of the start
+  symbol, so that we see ``\<\<helpful\>''. The column corresponding
+  to the history {\bf \<\<} tells us the frequency of letters that
+  start words, and for example the column {\bf \<h} tells us the
+  frequency of letters that follow {\it h} when it appears at the
+  start of a word. We do not need to repeat the ending character \>
+  because once we see it, we never do anything but end the word.} This
+makes the table pretty large, so you'll just have to look at
+Figure~\ref{fig:sowpodsbigrams} again and imagine it being 28 times
+wider. But the good news is that it invents much better words:
+
+\begin{verbatim}
+Markov chain with n=2.
+100 top paths:
+0.007092576 ing
+0.002483309 ses
+0.001694275 des
+0.001548279 nes
+0.001403047 sts
+0.001314279 se
+0.001287353 ings
+0.001262904 ded
+0.001170356 cal
+0.001101124 le
+0.001078157 der
+0.001070769 ove
+0.001016514 gly
+0.000882527 hy
+0.000853499 ung
+0.000838535 cy
+0.000816757 pres
+0.000802384 pers
+0.000787731 ps
+0.000771953 ders
+0.000746855 ly
+0.000732157 ines
+0.000709460 ve
+0.000650273 sm
+0.000650062 ty
+0.000642246 pred
+0.000627432 ble
+0.000622587 hed
+0.000603012 ter
+0.000587263 gy
+0.000564629 sms
+0.000549088 py
+0.000545497 ans
+0.000541832 ber
+0.000531745 ce
+0.000489139 ang
+0.000487316 unt
+0.000482908 snes
+\end{verbatim}
+
+\begin{verbatim}
+Markov chain with n=3.
+100 top paths:
+0.001093377 des
+0.000789743 pers
+0.000767821 cal
+0.000622381 pres
+0.000452415 nons
+0.000449855 ress
+0.000426892 ing
+0.000404454 pred
+0.000387570 ent
+0.000366753 dist
+0.000357115 ble
+0.000353576 ches
+0.000348642 gly
+0.000345564 inted
+0.000340691 dists
+0.000339750 lity
+0.000336468 und
+0.000331914 dises
+0.000331389 int
+0.000320104 ints
+0.000291846 ching
+0.000284350 tely
+0.000284228 dise
+0.000279669 ster
+0.000279431 ves
+0.000276676 stic
+0.000272655 tric
+0.000263922 cally
+0.000261415 ter
+0.000260898 ents
+0.000258270 rous
+0.000253990 dising
+0.000245834 phy
+0.000244272 dised
+0.000240505 hous
+0.000239726 resses
+0.000237100 sters
+0.000236753 ove
+0.000230976 dism
+0.000227701 ched
+0.000225104 fing
+0.000222993 ence
+0.000221624 ters
+0.000219511 disms
+0.000219246 unders
+\end{verbatim}
+
+\begin{verbatim}
+Markov chain with n=4.
+100 top paths:
+0.000454575 unders
+0.000341807 dising
+0.000293774 pers
+0.000285248 cally
+0.000232842 inted
+0.000204856 heter
+0.000198642 tric
+0.000188363 ster
+0.000185238 hier
+0.000183216 unded
+0.000174876 heters
+0.000169220 sters
+0.000153800 stic
+0.000142753 pering
+0.000132595 dises
+0.000131040 ching
+0.000129387 shing
+0.000125442 dest
+0.000115038 teless
+0.000113312 resis
+0.000112909 dist
+0.000112793 dists
+0.000112397 mising
+0.000109589 sation
+0.000109555 fing
+0.000108931 dised
+0.000107632 ches
+0.000102999 cated
+0.000101327 dise
+0.000097730 sations
+0.000096676 inding
+0.000095270 nons
+0.000093852 lary
+0.000093357 ency
+0.000091199 ther
+0.000090608 ories
+0.000090405 alled
+0.000088604 apped
+0.000088235 hous
+0.000087780 trous
+0.000082438 undered
+0.000081713 noning
+0.000079613 dism
+0.000079071 thers
+0.000078380 ented
+0.000076765 irred
+0.000076363 disms
+0.000074970 geness
+0.000074910 veness
+0.000071079 vities
+0.000070308 mised
+0.000068585 ques
+0.000068096 unding
+0.000067618 sher
+0.000067429 peries
+\end{verbatim}
+
+\begin{verbatim}
+n=5
+GetTempFileName failed with error 5
+\end{verbatim}
+
+Wikipedia favorites: smally (.000287),
+websity (.000156),
+stude (.000156),
+chool (.000124),
+fontry (.000120),
+undex (.000102),
+octory (.0000990),
+coibot (.0000960),
+footnot (.0000837),
+reporth (.0000518),
+delection (.0000484),
+grounty (.0000459),
+betweek (.0000437),
+fination (.0000431),
+manuary (.0000388),
+whicle (.0000360),
+stategory (.0000262),
 
 % laplace smoothing?
 % TODO: the empty string?
 
 TODO: most likely words in italian, too.
 
-most people remember induction, perhaps 
-
-coinduction: never gonna give you up. once you pop you can't stop.
-
 % word list from Italian Scrabble, which I bet is called
 % {Scrabbizzimo!}
 
 \subsection{Coining words with coinduction} \label{sec:coin}
 
-% \section{Ockham's Regexp?}
+In the earlier sections I blithely produced tables of the most
+probable words according to an $n$-Markov chain. It is not obvious how
+to do this (or that it is even possible), so I explain the algorithm
+in this section. It's safely skippable, I mean if you don't want to
+know about a pretty cool algorithm that's not that complicated and
+might even be new, plus {\em dual math}.
+
+Computing the probability of an individual word is easy. We prefix it
+with $n$ copies of the start symbol \<, suffix it with a single \>,
+and then look up the probability of each symbol given its $n$
+preceding symbols in the table, and multiply those all together. We
+can compute the probability of any word this way. The problem with
+sorting all of the possible words by their probabilities is that there
+are an infinite number of them. We can't just look at short words
+first, either, because for example the word ``thethethe'' is many
+times more likely ($p = 6.08\times 10^{-11}$) than the shorter
+``qatzs'' ($9.07\times 10^{-12}$).
+
+The solution is to use coinduction. Most people remember induction
+from school, maybe, which is the one where you have some base case
+like ``0 is even'', and then you prove that all numbers are either
+even or odd by assuming ``$n$ is even or odd'' and proving ``$n + 1$
+is even or odd''. 
+
+most people remember induction, perhaps 
+coinduction: never gonna give you up. once you pop you can't stop.
+
 
 \section{Survey}
 
-On occasion I have been accused of ``overthinking'' 
+On occasion I have been accused of ``overthinking'' problems, whatever
+that means. So to compare, I next hazarded a tried and true technique
+from grade school, the survey.
 
 Rob: etsy, nuuog
 Chris: tapping on the bisphenol-A, nurm

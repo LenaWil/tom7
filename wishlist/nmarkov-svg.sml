@@ -70,6 +70,8 @@ struct
                                   let
                                       (* val () = print (rtos p ^ " / " ^ rtos (!maxprob)) *)
                                       val intensity = 1.0 - (p / !maxprob)
+                                      (* Do square so it's not so white *)
+                                      val intensity = intensity * intensity
                                       val c = Color.rgbf (intensity, intensity, intensity)
                                       val c = Color.tohexstring c
                                       (* val () = print (".. " ^ c ^ "\n") *)
@@ -78,8 +80,30 @@ struct
                                               "\" y=\"" ^ rtos (real row * CELL_WIDTH) ^
                                               "\" width=\"" ^ rtos CELL_WIDTH ^
                                               "\" height=\"" ^ rtos CELL_WIDTH ^
-                                              "\" style=\"fill:#" ^ c ^ "\" />\n")
+                                              "\" fill=\"#" ^ c ^ "\" />\n")
                                   end) rows) cols;
+
+          (* XXX improve by making hierarchical. *)
+          Array.appi (fn (i, (syms, _, _)) =>
+           fprint (TextSVG.svgtext { x = real i * CELL_WIDTH + (0.3 * CELL_WIDTH), 
+                                     y = ~0.1 * CELL_WIDTH,
+                                     face = "Franklin Gothic Medium",
+                                     size = 0.6 * CELL_WIDTH,
+                                     text = [("#000000", 
+                                              String.concat
+                                              (map tostring syms))] }))
+           cols;
+                      
+
+          Util.for 0 (M.radix - 1)
+          (fn i =>
+           fprint (TextSVG.svgtext { x = ~0.5 * CELL_WIDTH, 
+                                     y = real i * CELL_WIDTH + (0.8 * CELL_WIDTH),
+                                     face = "Franklin Gothic Medium",
+                                     size = 0.6 * CELL_WIDTH,
+                                     text = [("#000000", tostring (M.fromint i))] })
+           );
+
 (*
           (* Black background. *)
           print ("<rect x=\"-10\" y=\"-10\" width=\"" ^
