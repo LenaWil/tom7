@@ -25,7 +25,7 @@ struct
   structure M2C : NMARKOVARG =
   struct
     type symbol = char
-    val n = 1 (* 3 *)
+    val n = 2 (* 3 *)
     val radix = 28
     fun toint c = ord c - ord #"a"
     fun fromint x = chr (x + ord #"a")
@@ -64,13 +64,30 @@ struct
   val most_fake = Stream.filter (fn { string, p = _ } => not (dict (implode string))) most_probable
   val tops = StreamUtil.headn 100 most_fake
 
+  fun prprob s =
+      let val s = StringUtil.lcase s
+      in
+          print ("Probability of [" ^ s ^ "]: " ^ 
+                 Real.toString (M.string_probability { chain = chain,
+                                                       begin_symbol = BEGIN_SYMBOL,
+                                                       end_symbol = END_SYMBOL,
+                                                       string = explode s }) ^
+                 "\n")
+      end
+  val () = prprob "thethethe"
+  val () = prprob "qatzs"
+
   val () = print ("Markov chain with n=" ^ Int.toString M2C.n ^ ".\n")
   val () = print (Int.toString (length tops) ^ " top paths:\n");
   val () = app (fn { string, p } =>
                 print (rtos9 p ^ " " ^ implode string ^ "\n")) tops
 
+(*
   structure NMS = NMarkovSVG(structure M = M
-                             fun tostring c = implode [c])
+                             fun tostring c = 
+                                 if c = BEGIN_SYMBOL then "<"
+                                 else if c = END_SYMBOL then ">"
+                                      else implode [c])
   val s = NMS.makesvg ("coin" ^ Int.toString M2C.n ^ ".svg", chain)
-
+*)
 end
