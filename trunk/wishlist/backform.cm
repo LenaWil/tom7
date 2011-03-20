@@ -49,6 +49,11 @@ group is
   ../sml-lib/util/script-sig.sml
   ../sml-lib/util/script.sml
 
+(*
+  ../sml-lib/util/growarray-sig.sml
+  ../sml-lib/util/growarray.sml
+*)
+
   ../sml-lib/misc/params-sig.sml
   ../sml-lib/misc/params.sml
 

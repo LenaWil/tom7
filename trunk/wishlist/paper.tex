@@ -741,6 +741,140 @@ is even or odd''.
 most people remember induction, perhaps 
 coinduction: never gonna give you up. once you pop you can't stop.
 
+\section{Backformation}
+
+\begin{verbatim}
+Best fixes...
+1.000000000 -zzyingly    1/1
+1.000000000 -zzying      1/1
+1.000000000 -zzuolanas   1/1
+1.000000000 -zzuolana    1/1
+1.000000000 -zzotints    1/1
+1.000000000 -zzotintos   1/1
+1.000000000 -zzotinto    1/1
+1.000000000 -zzotinting  1/1
+1.000000000 -zzotinters  1/1
+1.000000000 -zzotinter   1/1
+1.000000000 -zzotinted   1/1
+1.000000000 -zzotint     1/1
+1.000000000 -zzonites    1/1
+1.000000000 -zzonite     1/1
+1.000000000 -zzoners     1/1
+1.000000000 -zzoner      1/1
+1.000000000 -zzolans     1/1
+1.000000000 -zzolanic    1/1
+1.000000000 -zzolan      1/1
+1.000000000 -zzmen       1/1
+1.000000000 -zzman       1/1
+1.000000000 -zzlike      1/1
+1.000000000 -zzini       1/1
+1.000000000 -zzicatos    1/1
+1.000000000 -zzicato     1/1
+1.000000000 -zzicati     1/1
+1.000000000 -zzian       1/1
+\end{verbatim}
+1/1 is not really much support.
+
+Ones that are only seen n/1 time never apply (because ...). Filtered:
+
+(actually we should probably be using binomial likelihood)
+
+\begin{verbatim}
+Best fixes...
+1.000000000 -zzazzes     3/3
+1.000000000 -zzazz       3/3
+1.000000000 -zzans       3/3
+1.000000000 -zzanim      2/2
+1.000000000 -zzan        3/3
+1.000000000 -zygotic     3/3
+1.000000000 -zygotes     2/2
+1.000000000 -zygote      2/2
+1.000000000 -zygosity    2/2
+1.000000000 -zygosis     2/2
+1.000000000 -zpas        2/2
+1.000000000 -zpahs       2/2
+1.000000000 -zpah        2/2
+1.000000000 -zpa         2/2
+1.000000000 -zooks       2/2
+1.000000000 -zonites     3/3
+1.000000000 -zonite      3/3
+1.000000000 -zonians     2/2
+1.000000000 -zonian      2/2
+1.000000000 -zists       2/2
+1.000000000 -zist        2/2
+\end{verbatim}
+
+Not much better!
+
+Only ones with denominator 10+ times.
+\begin{verbatim}
+Best fixes...
+1.000000000 -wrought    10/10
+1.000000000 -writings   12/12
+1.000000000 -wraps      10/10
+1.000000000 -wrap       11/11
+1.000000000 -worms      69/69
+1.000000000 -worm       69/69
+1.000000000 -working    21/21
+1.000000000 -worked     14/14
+1.000000000 -winds      17/17
+1.000000000 -wind       18/18
+1.000000000 -wide       12/12
+1.000000000 -weights    19/19
+1.000000000 -weight     22/22
+1.000000000 -waxes      12/12
+1.000000000 -wax        12/12
+1.000000000 -waters     37/37
+1.000000000 -water      41/41
+1.000000000 -walking    11/11
+1.000000000 -walkers    17/17
+1.000000000 -walker     17/17
+1.000000000 -valuing    10/10
+1.000000000 -valued     11/11
+1.000000000 -towns      11/11
+1.000000000 -tight      15/15
+1.000000000 -thought    12/12
+1.000000000 -thinks     11/11
+\end{verbatim}
+
+Much better! These are still sort of degenerate and won't help
+us find new words because they ALWAYS apply!
+
+Instead anything with p strictly less than 1.
+\begin{verbatim}
+Best fixes...
+0.985714286 -makers     69/70
+0.985714286 -maker      69/70
+0.983606557 -wood       120/122
+0.983471074 -woods      119/121
+0.982758621 -down       57/58
+0.982658960 -works      170/173
+0.981818182 -houses     108/110
+0.981818182 -house      108/110
+0.981132075 kilo-       52/53
+0.980752406 -less       1121/1143
+0.980743395 over-       2190/2233
+0.980000000 -books      49/50
+0.980000000 -book       49/50
+0.979591837 -proof      48/49
+0.979310345 -lessnesses 142/145
+0.979069767 -ships      421/430
+0.978723404 -lessness   184/188
+0.978723404 -board      138/141
+0.978494624 -woman      91/93
+0.978021978 -women      89/91
+0.977528090 -ship       435/445
+0.977272727 -manship    43/44
+0.976744186 -weeds      84/86
+0.976470588 after-      83/85
+0.976190476 -manships   41/42
+0.976190476 -making     41/42
+0.976190476 -craft      41/42
+0.976190476 -boats      41/42
+0.976190476 -boat       41/42
+\end{verbatim}
+
+Wow, now we're talking!
 
 \section{Survey}
 
