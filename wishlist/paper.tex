@@ -37,7 +37,8 @@ Verlag-Verlag volume no.~0x40-2A.
 \maketitle
 
 \begin{abstract}
-what do I put here
+This paper is an earnest attempt to answer the following question
+scientifically: What words ought to exist?
 \end{abstract}
 
 \vspace{1em}
@@ -666,7 +667,7 @@ natural language corpus (with many occurrences of each word, or no
 occurrences of unpopular words) rather than a flat list of all alleged
 words.
 
-Since the best research is intensely navel-gazing, I started by 
+{\bf Facebook.}\ Since the best research is intensely navel-gazing, I started by 
 analyzing a corpus of my own writing, specifically my Facebook status
 updates since March~2006. There were 1,386 status updates containing
 such jems as ``Tom Murphy VII thinks mathfrak is straight ballin''
@@ -675,6 +676,8 @@ most likely words with $n=4$:
 
 \begin{center}
 \begin{tabular}{rl@{\quad\quad}rl}
+\multicolumn{4}{c}{My Facebook status updates, $n=4$.} \\
+\hline
 .252\% &  pittsburgh   & .097\% &  can't    \\   
 .209\% &  steelers     & .083\% &  i'm      \\   
 .209\% &  sfo          & .083\% &  icfp     \\   
@@ -688,11 +691,35 @@ most likely words with $n=4$:
 \end{center}
 
 This is the worst. Not only does it contain loads of one-letter words that
-we have already determined are verboten\footnote{Note that since $n=4$ these
+we have already determined are verboten,\!\footnote{Note that since $n=4$ these
 words have to actually appear in status updates to have nonzero probability for
-this list. ``g'' is explained by frequent occurrences of ``e.g.'', for example.},
+this list. ``g'' is explained by frequent occurrences of ``e.g.'', for example.}
 but the rest are just non-words that I tend to use like the names of cities,
-prestigious conferences, or IATA airport codes.
+prestigious conferences, or IATA airport codes. The main problem is that there
+is simply not enough data from which to generalize.
+
+{\bf Wikipedia.}\ I tried again, but with Wikipedia, using a snapshot
+of the English site from June~2009. This is 23 gigabytes of data, most
+of it expository text composed by native speakers, plus bathroom humor
+vandalism. The list produced by this analysis is much better, though it
+contains artifacts from non-English Wiki language used in articles. The
+unabridged list appears in the appendix; my hand-selected favorites:
+
+\begin{center}
+\begin{tabular}{rl@{\quad\quad}rl}
+\multicolumn{4}{c}{English Wikipedia, $n=3$.}     \\
+\hline
+.0287\% & smally      &     .00518\% & reporth    \\
+.0156\% & websity     &     .00484\% & delection  \\
+.0156\% & stude       &     .00459\% & grounty    \\
+.0124\% & chool       &     .00437\% & betweek    \\
+.0120\% & fontry      &     .00431\% & fination   \\
+.0102\% & undex       &     .00388\% & manuary    \\
+.0099\% & octory      &     .00360\% & whicle     \\
+.0096\% & coibot      &     .00262\% & stategory  \\
+.0084\% & footnot     &                           \\
+\end{tabular}
+\end{center}
 
 
 
@@ -700,24 +727,7 @@ prestigious conferences, or IATA airport codes.
 
 
 
-
-Wikipedia favorites: smally (.000287),
-websity (.000156),
-stude (.000156),
-chool (.000124),
-fontry (.000120),
-undex (.000102),
-octory (.0000990),
-coibot (.0000960),
-footnot (.0000837),
-reporth (.0000518),
-delection (.0000484),
-grounty (.0000459),
-betweek (.0000437),
-fination (.0000431),
-manuary (.0000388),
-whicle (.0000360),
-stategory (.0000262),
+Lots of these could be the names of tech startups or Pok\'emon.
 
 % laplace smoothing?
 
@@ -752,13 +762,43 @@ coinduction: never gonna give you up. once you pop you can't stop.
 
 \section{Special cases}
 
-The empty string??
-% TODO: the empty string?
+The empty string?? Is that a word? Could it be? Dude that is blowing my mind.
 
 \section{Backformation} \label{sec:backformation}
 
+The lexicon is generative, in the sense that it's possible to make new
+words that are generally acceptable, by following rules. Most people
+recognize pluralization of nouns by adding {\it --s} (even for novel
+words), or adding prefixes like {\it anti--}. We could investigate
+words that ought to exist by the application of rules, such as {\it
+  examplelikelikelikelikelikelike}, but I see no straightforward way
+to justify the relative strength of such words.
+
+A related way for words to enter the lexicon is by backformation. This
+is the reverse of the above process: A word like {\it laser}
+(initially an initialism) is legal, and then by running the rules of
+English backwards, we start to use {\it lase} as a word (the verb
+that a laser most frequently applies). In this section, I attempt
+to determine formation rules in English (by simple lexical analysis
+of the set of legal words) and then run these rules backwards to find
+words that seemingly should already exist.
+
+{\bf Prefixes and suffixes.}\ The first order of business is to find
+prefixes and suffixes that are usually modular. The kind of thing
+we're tring to find are ``anti--'' and ``--ing''; stuff you can often
+add to a word to make a related word. The approach is straightforward.
+For each word, consider splitting it at each position. For {\it dealing},
+we have {\it d/ealing}, {\it de/aling}, etc. For every such split,
+take the prefix (e.g. ``de'') and remainder (``aling''); if the remainder
+is still a legal word, then the prefix gets one point. {\it aling} is not
+a word so no points here for ``de''. We also do the same thing for suffixes
+(using the exact same splits, symmetrically). In this case we'll only get
+points for ``--ing'' since {\it deal} is a word. Every time a prefix or
+suffix appears we test to see if it is being applied modularly, and
+the final score is just the fraction of such times. Here are the ones with
+the highest scores:
+
 \begin{verbatim}
-Best fixes...
 1.000000000 -zzyingly    1/1
 1.000000000 -zzying      1/1
 1.000000000 -zzuolanas   1/1
@@ -767,62 +807,32 @@ Best fixes...
 1.000000000 -zzotintos   1/1
 1.000000000 -zzotinto    1/1
 1.000000000 -zzotinting  1/1
-1.000000000 -zzotinters  1/1
-1.000000000 -zzotinter   1/1
-1.000000000 -zzotinted   1/1
-1.000000000 -zzotint     1/1
-1.000000000 -zzonites    1/1
-1.000000000 -zzonite     1/1
-1.000000000 -zzoners     1/1
-1.000000000 -zzoner      1/1
-1.000000000 -zzolans     1/1
-1.000000000 -zzolanic    1/1
-1.000000000 -zzolan      1/1
-1.000000000 -zzmen       1/1
-1.000000000 -zzman       1/1
-1.000000000 -zzlike      1/1
-1.000000000 -zzini       1/1
-1.000000000 -zzicatos    1/1
-1.000000000 -zzicato     1/1
-1.000000000 -zzicati     1/1
-1.000000000 -zzian       1/1
+...
 \end{verbatim}
-1/1 is not really much support.
 
-Ones that are only seen n/1 time never apply (because ...). Filtered:
-
-(actually we should probably be using binomial likelihood)
+Well, it's good to know that 100\% of the time, you can remove
+``--zzotinting'' from a word and it will still be a word. But this
+inference is supported by just one observation (the word {\it
+  mezzotinting}); there are actually hundreds of such unique prefixes
+and suffixes. We need a better list.\!\footnote{The right thing to do
+  here is probably to use binomial likelihood rather than the
+  scale-independent fraction. But simpler approaches produce pretty
+  good lists.} Removing the ones that appear just a single time
+doesn't really help that much:
 
 \begin{verbatim}
-Best fixes...
 1.000000000 -zzazzes     3/3
 1.000000000 -zzazz       3/3
 1.000000000 -zzans       3/3
 1.000000000 -zzanim      2/2
 1.000000000 -zzan        3/3
 1.000000000 -zygotic     3/3
-1.000000000 -zygotes     2/2
-1.000000000 -zygote      2/2
-1.000000000 -zygosity    2/2
-1.000000000 -zygosis     2/2
-1.000000000 -zpas        2/2
-1.000000000 -zpahs       2/2
-1.000000000 -zpah        2/2
-1.000000000 -zpa         2/2
-1.000000000 -zooks       2/2
-1.000000000 -zonites     3/3
-1.000000000 -zonite      3/3
-1.000000000 -zonians     2/2
-1.000000000 -zonian      2/2
-1.000000000 -zists       2/2
-1.000000000 -zist        2/2
 \end{verbatim}
 
-Not much better!
+Still bad. Let's turn up the juice to prefixes and suffixes that
+appear at least 10 times.
 
-Only ones with denominator 10+ times.
 \begin{verbatim}
-Best fixes...
 1.000000000 -wrought    10/10
 1.000000000 -writings   12/12
 1.000000000 -wraps      10/10
@@ -830,33 +840,16 @@ Best fixes...
 1.000000000 -worms      69/69
 1.000000000 -worm       69/69
 1.000000000 -working    21/21
-1.000000000 -worked     14/14
-1.000000000 -winds      17/17
-1.000000000 -wind       18/18
-1.000000000 -wide       12/12
-1.000000000 -weights    19/19
-1.000000000 -weight     22/22
-1.000000000 -waxes      12/12
-1.000000000 -wax        12/12
-1.000000000 -waters     37/37
-1.000000000 -water      41/41
-1.000000000 -walking    11/11
-1.000000000 -walkers    17/17
-1.000000000 -walker     17/17
-1.000000000 -valuing    10/10
-1.000000000 -valued     11/11
-1.000000000 -towns      11/11
-1.000000000 -tight      15/15
-1.000000000 -thought    12/12
-1.000000000 -thinks     11/11
 \end{verbatim}
 
-Much better! These are still sort of degenerate and won't help
-us find new words because they ALWAYS apply!
+Much better! But the next step is going to be to try removing these
+prefixes and suffixes from words that have them, to find new words.
+Since these have modularity of 100\%, we already know that every
+time we apply them, the result will already be a word. So they are
+useless for our analysis. Here are the most modular prefixes
+and suffixes with modularity {\it strictly less than} 1.
 
-Instead anything with p strictly less than 1.
 \begin{verbatim}
-Best fixes...
 0.985714286 -makers     69/70
 0.985714286 -maker      69/70
 0.983606557 -wood       120/122
@@ -888,7 +881,58 @@ Best fixes...
 0.976190476 -boat       41/42
 \end{verbatim}
 
-Wow, now we're talking!
+Wow, now we're talking! The single word that cannot have ``--maker''
+removed is {\it comaker}, suggesting that {\it co} should be word
+(noun: ``What a comaker makes.'').
+
+Given this list, the next step is to identify potential words that
+can be backformed by removing prefixes or adding suffixes from existing
+words. Such a string can often be found via multiple prefixes and
+suffixes. For example, {\it twing} can be formed by removing ``--ing''
+from {\it twinging} (a false positive, since the root word is actually
+{\it twinge} in this case) as well as by removing the prefix ``lef--'',
+which has modularity of 20\% (including splits such as ``lef/tie'').
+Maybe not good justification, but {\it twing} is a pretty good word
+anyway.
+
+We define the probability of a word as its Markov probability (with
+$n=4$, as this seems to produce the best results), times the
+probability that at least one of the potential backformation rules
+applies.\!\footnote{As above we only allow backformation rules that
+  have at least 10 occurrences, to prevent degeneracy.} Here are the
+most likely words by backformation:
+
+\begin{verbatim}
+word    prob   most likely backformation rules
+==============================================
+dises   .023%  para- (0.42) fluori- (0.39) 
+               melo- (0.35) bran- (0.31)  
+tring   .020%  hams- (0.36) scep- (0.35) 
+               bows- (0.33) hearts- (0.29)  
+disms   .017%  triba- (0.31) drui- (0.30) 
+               bar- (0.27) invali- (0.27)  
+ching   .017%  day- (0.86) hot- (0.69) 
+               star- (0.51) guillo- (0.50)    
+sking   .017%  dama- (0.24) imbo- (0.18) 
+               fri- (0.18) atta- (0.17)     
+cally   .015%  anti- (0.78) specifi- (0.61)
+               magnifi- (0.55) phoni-    
+pring   .015%  days- (0.67) heads- (0.62)
+               outs- (0.54) ups- (0.51)    
+\end{verbatim}
+
+I think that this approach shows promise, but there appear to be a few
+problems: Many of these ``rules'' can be explained by bad segmentation
+(``heads--'' appearing to be modular, for example, is really just
+``head--'' plus ``s'' being a common letter.) Second, I believe the
+disjunctive probability of any rule applying is too naive for
+determining the score. For example, {\it tions} has almost a thousand
+different prefixes that could apply to it; the chance of {\it any one}
+of them applying is very nearly 1. But this is actually because ``tions''
+is just a common way for a word to end. Legitimate root words to which
+many good prefixes are applied cannot be easily distinguished from
+common suffixes by this symmetric algorithm. More work is called for
+here.
 
 \section{Survey}
 
@@ -916,7 +960,7 @@ Jessica: &  gruntle \\
 \end{tabular}
 \end{center}
 
-From this we can conclude that 16\% of people wish {\it nurm} was a word, and so on.
+From this we can conclude that 16\% of people wish {\it nurm} were a word, and so on.
 These words did not come with definitions, except for {\it gruntle}, which Jessica
 gives as ``the opposite of distgruntle''. This is actually already a word, but
 it was the inspiration for Section~\ref{sec:backformation}. {\it etsy} is the name

@@ -12,7 +12,7 @@ struct
   structure M2C : NMARKOVARG =
   struct
     type symbol = char
-    val n = 2 (* 3 *)
+    val n = 4 (* 3 *)
     val radix = 28
     fun toint c = ord c - ord #"a"
     fun fromint x = chr (x + ord #"a")
