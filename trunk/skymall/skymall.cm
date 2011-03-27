@@ -1,0 +1,48 @@
+
+group is
+
+#if (defined(SMLNJ_VERSION))
+ $/basis.cm
+ ../sml-lib/port/nj.sml
+#else
+ (* assume we are using mlton then *)
+ ../sml-lib/port/mlton.sml
+#endif
+
+  ../sml-lib/njlib/lib-base-sig.sml
+  ../sml-lib/njlib/lib-base.sml
+  ../sml-lib/njlib/ord-key-sig.sml
+  ../sml-lib/njlib/ord-map-sig.sml
+  ../sml-lib/njlib/ord-set-sig.sml
+  ../sml-lib/njlib/splaytree-sig.sml
+  ../sml-lib/njlib/splaytree.sml
+  ../sml-lib/njlib/splay-map-fn.sml
+  ../sml-lib/njlib/splay-set-fn.sml
+
+  ../sml-lib/util/stringutil-sig.sml
+  ../sml-lib/util/stringutil.sml
+  ../sml-lib/util/listutil-sig.sml
+  ../sml-lib/util/listutil.sml
+  ../sml-lib/util/fsutil-sig.sml
+  ../sml-lib/util/fsutil.sml
+
+  ../sml-lib/util/script-sig.sml
+  ../sml-lib/util/script.sml
+
+  ../sml-lib/misc/params-sig.sml
+  ../sml-lib/misc/params.sml
+
+  ../sml-lib/util/simplestream-sig.sml
+  ../sml-lib/util/simplestream.sml
+
+  ../sml-lib/crypt/SHA1/sha1-sig.sml
+  ../sml-lib/crypt/SHA1/sha1.sml
+
+  ../sml-lib/crypt/MD5/md5-sig.sml
+  ../sml-lib/crypt/MD5/md5.sml
+
+  ../sml-lib/crypt/mersenne-twister-sig.sml
+  ../sml-lib/crypt/mersenne-twister.sml
+
+  skymall.sml
+
