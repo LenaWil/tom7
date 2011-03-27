@@ -18,3 +18,7 @@ facebook.exe : facebook.cm facebook.sml ../sml-lib/data/nmarkov*.sml
 
 backform.exe : backform.cm backform.sml ../sml-lib/data/nmarkov*.sml
 	mlton -output $@ backform.cm
+
+paper.pdf : paper.tex coin1.pdf italiancoin1.pdf wishlist-cdf.pdf scrallbe-screenshot.png
+	pdflatex paper.tex
+	pdflatex paper.tex

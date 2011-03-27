@@ -7,8 +7,11 @@ struct
   val dict = Script.wordlist "wordlist.asc"
 *)
 
-  val lines = SimpleStream.tolinestream (SimpleStream.fromfilechar "sowpods.txt")
-  val dict = Script.wordlist "sowpods.txt"
+  (* val DICTFILE = "sowpods.txt" *)
+  val DICTFILE = "zingarelli2005.txt"
+
+  val lines = SimpleStream.tolinestream (SimpleStream.fromfilechar DICTFILE)
+  val dict = Script.wordlist DICTFILE
 
 
 (*
@@ -25,7 +28,7 @@ struct
   structure M2C : NMARKOVARG =
   struct
     type symbol = char
-    val n = 2 (* 3 *)
+    val n = 1 (* 3 *)
     val radix = 28
     fun toint c = ord c - ord #"a"
     fun fromint x = chr (x + ord #"a")
@@ -82,12 +85,11 @@ struct
   val () = app (fn { string, p } =>
                 print (rtos9 p ^ " " ^ implode string ^ "\n")) tops
 
-(*
   structure NMS = NMarkovSVG(structure M = M
                              fun tostring c = 
                                  if c = BEGIN_SYMBOL then "<"
                                  else if c = END_SYMBOL then ">"
                                       else implode [c])
-  val s = NMS.makesvg ("coin" ^ Int.toString M2C.n ^ ".svg", chain)
-*)
+  val s = NMS.makesvg (DICTFILE ^ "-coin" ^ Int.toString M2C.n ^ ".svg", chain)
+
 end

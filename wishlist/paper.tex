@@ -116,7 +116,7 @@ repeatedly attempt to play words that aren't real. The computer
 rebukes them, but hope really springs eternal with these people. It's
 like they truly deeply wish to break out of the shackles of the
 Official Scrabble Players Dictionary.\!\footnote{For the analyses in
-  this paper that depend on a list of legal words, I actually use a
+  this section that depend on a list of legal words, I actually use a
   modified version of SOWPODS, which is the tournament list used in
   Australia and the UK, and significantly more permissive than the US
   Tournament Word List. Though the modified version is non-canonical,
@@ -252,8 +252,10 @@ but for general purposes.
 
 \begin{figure}
 \includegraphics[width=\linewidth]{wishlist-cdf}
-\caption{Distribution of word frequency. Approximately 25,000
-  different words (y axis) were issued 55 times or fewer (x axis).}
+\vspace{-0.1in}\caption{Cumulative distribution of word frequency.
+  Approximately 25,000 different words (y axis) were issued 55 times
+  or fewer (x axis). The ``total'' area does not appear much larger
+  than its components because this is a log-log plot.}
 \label{fig:gamedistribution}
 \end{figure}
 
@@ -321,7 +323,7 @@ offered to e$^{9}$, e$^{14}$ and e$^{15}$ respectively. {\bf (5)} Spell correcti
 \label{fig:sweet}
 \end{figure}
 
-\section{Statistical Models}
+\section{Statistical models}
 
 The reason that people are more likely to play words like ``rane'' is
 that the letters are common---they appear more often in words, and
@@ -489,18 +491,18 @@ are the most likely words, with real words filtered out:
 % XXX improve layout
 \begin{center}
 \begin{tabular}{rl@{\quad\quad}rl}
-0.049901545  & s     &   0.001768358  & y   \\
-0.017526947  & d     &   0.001761301  & p   \\
-0.009521421  & g     &   0.001653041  & a   \\
-0.005506083  & c     &   0.001652864  & n   \\
-0.004376836  & r     &   0.001563810  & ps  \\
-0.004218223  & t     &   0.001383503  & ms  \\
-0.004088377  & e     &   0.001371545  & ts  \\
-0.003560976  & m     &   0.001327023  & ds  \\
-0.003248559  & ss    &   0.001188715  & hy  \\
-0.002001529  & rs    &   0.001166457  & k   \\
-0.001958674  & h     &   0.001160619  & ng  \\
-0.001873761  & l     &   0.001142785  & ly  \\
+4.99\%  & s     &   0.17\%  & y   \\
+1.75\%  & d     &   0.17\%  & p   \\
+0.95\%  & g     &   0.16\%  & a   \\
+0.55\%  & c     &   0.16\%  & n   \\
+0.43\%  & r     &   0.15\%  & ps  \\
+0.42\%  & t     &   0.13\%  & ms  \\
+0.40\%  & e     &   0.13\%  & ts  \\
+0.35\%  & m     &   0.13\%  & ds  \\
+0.32\%  & ss    &   0.11\%  & hy  \\
+0.20\%  & rs    &   0.11\%  & k   \\
+0.19\%  & h     &   0.11\%  & ng  \\
+0.18\%  & l     &   0.11\%  & ly  \\
 \end{tabular}
 \end{center}
 
@@ -528,163 +530,176 @@ makes the table pretty large, so you'll just have to look at
 Figure~\ref{fig:sowpodsbigrams} again and imagine it being 28 times
 wider. But the good news is that it invents much better words:
 
-\begin{verbatim}
-Markov chain with n=2.
-100 top paths:
-0.007092576 ing
-0.002483309 ses
-0.001694275 des
-0.001548279 nes
-0.001403047 sts
-0.001314279 se
-0.001287353 ings
-0.001262904 ded
-0.001170356 cal
-0.001101124 le
-0.001078157 der
-0.001070769 ove
-0.001016514 gly
-0.000882527 hy
-0.000853499 ung
-0.000838535 cy
-0.000816757 pres
-0.000802384 pers
-0.000787731 ps
-0.000771953 ders
-0.000746855 ly
-0.000732157 ines
-0.000709460 ve
-0.000650273 sm
-0.000650062 ty
-0.000642246 pred
-0.000627432 ble
-0.000622587 hed
-0.000603012 ter
-0.000587263 gy
-0.000564629 sms
-0.000549088 py
-0.000545497 ans
-0.000541832 ber
-0.000531745 ce
-0.000489139 ang
-0.000487316 unt
-0.000482908 snes
-\end{verbatim}
+\begin{center}
+\begin{tabular}{rl@{\quad\quad}rl}
+\multicolumn{4}{c}{Markov chain with $n=2$.} \\
+\hline
+.709\% & ing     &   .110\% & le    \\
+.248\% & ses     &   .107\% & der   \\
+.169\% & des     &   .107\% & ove   \\
+.154\% & nes     &   .101\% & gly   \\
+.140\% & sts     &   .088\% & hy    \\
+.131\% & se      &   .085\% & ung   \\
+.128\% & ings    &   .083\% & cy    \\
+.126\% & ded     &   .081\% & pres  \\
+.117\% & cal     &   .080\% & pers  \\
+\end{tabular}
+\end{center}
 
-\begin{verbatim}
-Markov chain with n=3.
-100 top paths:
-0.001093377 des
-0.000789743 pers
-0.000767821 cal
-0.000622381 pres
-0.000452415 nons
-0.000449855 ress
-0.000426892 ing
-0.000404454 pred
-0.000387570 ent
-0.000366753 dist
-0.000357115 ble
-0.000353576 ches
-0.000348642 gly
-0.000345564 inted
-0.000340691 dists
-0.000339750 lity
-0.000336468 und
-0.000331914 dises
-0.000331389 int
-0.000320104 ints
-0.000291846 ching
-0.000284350 tely
-0.000284228 dise
-0.000279669 ster
-0.000279431 ves
-0.000276676 stic
-0.000272655 tric
-0.000263922 cally
-0.000261415 ter
-0.000260898 ents
-0.000258270 rous
-0.000253990 dising
-0.000245834 phy
-0.000244272 dised
-0.000240505 hous
-0.000239726 resses
-0.000237100 sters
-0.000236753 ove
-0.000230976 dism
-0.000227701 ched
-0.000225104 fing
-0.000222993 ence
-0.000221624 ters
-0.000219511 disms
-0.000219246 unders
-\end{verbatim}
+These are even, like, pronounceable. The best news is that they keep
+getting better the more history we keep:
 
-\begin{verbatim}
-Markov chain with n=4.
-100 top paths:
-0.000454575 unders
-0.000341807 dising
-0.000293774 pers
-0.000285248 cally
-0.000232842 inted
-0.000204856 heter
-0.000198642 tric
-0.000188363 ster
-0.000185238 hier
-0.000183216 unded
-0.000174876 heters
-0.000169220 sters
-0.000153800 stic
-0.000142753 pering
-0.000132595 dises
-0.000131040 ching
-0.000129387 shing
-0.000125442 dest
-0.000115038 teless
-0.000113312 resis
-0.000112909 dist
-0.000112793 dists
-0.000112397 mising
-0.000109589 sation
-0.000109555 fing
-0.000108931 dised
-0.000107632 ches
-0.000102999 cated
-0.000101327 dise
-0.000097730 sations
-0.000096676 inding
-0.000095270 nons
-0.000093852 lary
-0.000093357 ency
-0.000091199 ther
-0.000090608 ories
-0.000090405 alled
-0.000088604 apped
-0.000088235 hous
-0.000087780 trous
-0.000082438 undered
-0.000081713 noning
-0.000079613 dism
-0.000079071 thers
-0.000078380 ented
-0.000076765 irred
-0.000076363 disms
-0.000074970 geness
-0.000074910 veness
-0.000071079 vities
-0.000070308 mised
-0.000068585 ques
-0.000068096 unding
-0.000067618 sher
-0.000067429 peries
-\end{verbatim}
+\begin{center}
+\begin{tabular}{rl@{\quad\quad}rl}
+\multicolumn{4}{c}{Markov chain with $n=3$.} \\
+\hline
+.109\% & des     &   .038\%  & ent     \\
+.078\% & pers    &   .036\%  & dist    \\
+.076\% & cal     &   .035\%  & ble     \\
+.062\% & pres    &   .035\%  & ches    \\
+.045\% & nons    &   .034\%  & gly     \\
+.044\% & ress    &   .034\%  & inted   \\
+.042\% & ing     &   .034\%  & dists   \\
+.040\% & pred    &   .033\%  & lity    \\
+\end{tabular}
+\end{center}
 
-\begin{verbatim}
-n=5
-GetTempFileName failed with error 5
-\end{verbatim}
+
+\begin{center}
+\begin{tabular}{rl@{\quad\quad}rl}
+\multicolumn{4}{c}{Markov chain with $n=4$.} \\
+\hline
+.045\% & unders  &   .017\% & heters  \\
+.034\% & dising  &   .016\% & sters   \\
+.029\% & pers    &   .015\% & stic    \\
+.028\% & cally   &   .014\% & pering  \\
+.023\% & inted   &   .013\% & dises   \\
+.020\% & heter   &   .013\% & ching   \\
+.019\% & tric    &   .012\% & shing   \\
+.018\% & ster    &   .012\% & dest    \\
+.018\% & hier    &   .011\% & teless  \\
+.018\% & unded   &   .011\% & resis   \\
+\end{tabular}
+\end{center}
+
+\begin{center}
+\begin{tabular}{rl@{\quad\quad}rl}
+\multicolumn{4}{c}{Markov chain with $n=5$.} \\
+\hline
+\multicolumn{4}{l}{{\tt GetTempFileName failed with error 5}} \\
+\end{tabular}
+\end{center}
+
+With four letters of history, the words produced are quite good! (The
+results at $n=5$ are somewhat disappointing since the program crashes
+from running out of memory. The table at $n=5$ would have over 481
+million entries.) Many of these seem like real words. Some even
+suggest meaning because they contain common morphemes. To make the
+case that these are not just real-looking words but characteristic of
+the English language, compare the results of the same algorithm on the
+dictionary from the Italian language edition of Scrabble, which is
+probably called {\it Scrabblizzimo!} (Figure~\ref{fig:italian}).
+Italian is lexicographically a more compact language than English
+(Figure~\ref{fig:italianbigrams}); there are only 21 letters (outside
+of occasional interlopers in loan words like {\it jeans} and {\it
+  taxi}). Moreover, even though the dictionary contains 585,000 words
+(twice as many as English), the probabilities of observing these
+non-words are much higher than the most likely English ones.
+
+\begin{figure}
+\includegraphics[width=\linewidth]{italiancoin1}
+\caption{Markov chain for the Italian language. Again darker cells
+  indicate higher probability. Italian has more lexicographic
+  structure recognizable from bigraphs than English does: Note that
+  the extremely rare letters ``j'', ``k'', ``q'', ``w'', ``x'', and
+  ``y'' have almost empty rows. ``z'' very frequently follows ``z'',
+  as in {\it pizza}. Words almost always end in a vowel.}
+\label{fig:italianbigrams}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{rl@{\quad\quad}rl}
+.137\%  &  ammo       &   .026\%  &  rino      \\
+.071\%  &  rice       &   .025\%  &  diste     \\
+.061\%  &  rico       &   .024\%  &  risti     \\
+.055\%  &  este       &   .023\%  &  disci     \\
+.053\%  &  scono      &   .022\%  &  riasse    \\
+.049\%  &  immo       &   .022\%  &  riassi    \\
+.047\%  &  assero     &   .021\%  &  cate      \\
+.047\%  &  scano      &   .019\%  &  rite      \\
+.038\%  &  rammo      &   .019\%  &  cando     \\
+.034\%  &  cata       &   .018\%  &  riassero  \\
+.034\%  &  assimo     &   .018\%  &  riassimo  \\
+.032\%  &  riate      &   .018\%  &  dete      \\
+.032\%  &  disce      &   .018\%  &  disca     \\
+.030\%  &  esti       &   .017\%  &  risca     \\
+.029\%  &  rica       &   .017\%  &  cente     \\
+.028\%  &  endo       &   .016\%  &  acci      \\
+.027\%  &  dissimo    &   .015\%  &  centi     \\
+.026\%  &  rici       &   .015\%  &  girono    \\
+\end{tabular}
+\end{center}
+\caption{Most probable words induced by the Markov Markov chain for
+  the Italian language ($n=4$).}
+\label{fig:italian}
+\end{figure}
+
+
+\subsection{Usage-weighted methods}
+
+One criticism of this approach is that it considers every word in the
+word list to be equally important.\!\footnote{In fact, the common part
+  of words with many different conjugations is in essence counted many
+  times. This means {\it ornithology} in its six different forms
+  contributes six times as much to our model as the word {\it the}!} I
+object on the philosophical grounds that some words that already exist
+{\em ought to exist more} than other words that already exist. For
+example, {\it congenital} is a much nicer word than the plain ugly
+{\it congenial}, and is reflected by the fact that {\it congenial} is
+used five times more frequently than {\it
+  congenial}.\!\footnote{14,200,000 times to 2,820,000, on the
+  Internet, according to Google.} In this section, we produce Markov
+models of words weighted by the frequency with which people tend to
+use them. This is just a simple matter of training the model on some
+natural language corpus (with many occurrences of each word, or no
+occurrences of unpopular words) rather than a flat list of all alleged
+words.
+
+Since the best research is intensely navel-gazing, I started by 
+analyzing a corpus of my own writing, specifically my Facebook status
+updates since March~2006. There were 1,386 status updates containing
+such jems as ``Tom Murphy VII thinks mathfrak is straight ballin''
+and ``Tom Murphy VII global L\_50 reused for unused\_36166!!''. The
+most likely words with $n=4$:
+
+\begin{center}
+\begin{tabular}{rl@{\quad\quad}rl}
+.252\% &  pittsburgh   & .097\% &  can't    \\   
+.209\% &  steelers     & .083\% &  i'm      \\   
+.209\% &  sfo          & .083\% &  icfp     \\   
+.195\% &  it's         & .083\% &  app      \\   
+.125\% &  bdl          & .069\% &  x        \\   
+.111\% &  sigbovik     & .069\% &  drunj    \\   
+.109\% &  facebook     & .069\% &  g        \\   
+.097\% &  mic          & .061\% &  ther     \\   
+.097\% &  s            & .055\% &  doesn't  \\
+\end{tabular}
+\end{center}
+
+This is the worst. Not only does it contain loads of one-letter words that
+we have already determined are verboten\footnote{Note that since $n=4$ these
+words have to actually appear in status updates to have nonzero probability for
+this list. ``g'' is explained by frequent occurrences of ``e.g.'', for example.},
+but the rest are just non-words that I tend to use like the names of cities,
+prestigious conferences, or IATA airport codes.
+
+
+
+
+
+
+
 
 Wikipedia favorites: smally (.000287),
 websity (.000156),
@@ -705,12 +720,6 @@ whicle (.0000360),
 stategory (.0000262),
 
 % laplace smoothing?
-% TODO: the empty string?
-
-TODO: most likely words in italian, too.
-
-% word list from Italian Scrabble, which I bet is called
-% {Scrabbizzimo!}
 
 \subsection{Coining words with coinduction} \label{sec:coin}
 
@@ -741,7 +750,12 @@ is even or odd''.
 most people remember induction, perhaps 
 coinduction: never gonna give you up. once you pop you can't stop.
 
-\section{Backformation}
+\section{Special cases}
+
+The empty string??
+% TODO: the empty string?
+
+\section{Backformation} \label{sec:backformation}
 
 \begin{verbatim}
 Best fixes...
@@ -882,14 +896,34 @@ On occasion I have been accused of ``overthinking'' problems, whatever
 that means. So to compare, I next hazarded a tried and true technique
 from grade school, the survey.
 
-Rob: etsy, nuuog
-Chris: tapping on the bisphenol-A, nurm
-David: wafflucinations
-Lea: hnfff sound
-Reed: pansepticon
-Jessica: gruntle (like not disgruntled)
+I asked a few people who happened to be around, ``What word ought to
+exist?'' Most people did not know what to make of this question, and
+also, because people seem to revel in the opportunity to get (well
+deserved) revenge on me by being disruptive trolls, many of the
+answers were designed to be unusable. In order to not reprint
+everyone's bullshit---but not introduce bias by selectively removing
+data---I discarded random subsets of the data until it did not contain
+bullshit any more.
 
-In order to not reprint everyone's bullshit---but not introduce bias by selectively removing data---I discarded random subsets of the data until it did not contain bullshit any more.
+\begin{center}
+\begin{tabular}{rl}
+Rob: &  etsy, nuuog \\
+Chris: &  nurm \\
+David: &  wafflucinations \\
+Lea: &  hnfff \\
+Reed: &  pansepticon \\
+Jessica: &  gruntle \\
+\end{tabular}
+\end{center}
+
+From this we can conclude that 16\% of people wish {\it nurm} was a word, and so on.
+These words did not come with definitions, except for {\it gruntle}, which Jessica
+gives as ``the opposite of distgruntle''. This is actually already a word, but
+it was the inspiration for Section~\ref{sec:backformation}. {\it etsy} is the name
+of a popular on-line crafts community so I don't know why Rob would suggest that.
+The meaning of {\it wafflucinations} is clear from morphological analysis.
+
+
 
 % TODO: length normalization. just take the average (or max?)
 % probability for a word of length n, and normalize by that (which means what?)?
@@ -901,11 +935,24 @@ In order to not reprint everyone's bullshit---but not introduce bias by selectiv
 
 % ``Scrallbe'' is kind of like god mode for scrabble.
 
-\section{Recommendations}
+\section{Conclusion}
+
+\subsection{Recommendations}
 
 sweeeeeeeeeeeeeeeeeeet with 19 {\it e}s, which means ``Really sweet.''
 
 ``rane'' sounds too much like ``rain'', but ``sare'' has a unique pronunciation and many people seem to think it's already a word. ``cho'' is similarly easy to pronounce and spell. I propose that it be defined as ``A kind of cheese,'' so that we can really nail the new triple entendre on the classic joke.
+
+In this paper I investigated several different ways of answering the
+question: What words ought to exist? Each method produces different
+words, and some don't work that well, but nonetheless we have several
+rich sources of words, each time scientifically justified.
+
+Nobody really likes writing conclusions, so I will just now summarize
+the paper by the giving the most likely sentences that I have not
+already written.
+
+% XXXX
 
 % \begin{Verbatim}
 facebook wall posts, 4-grams
