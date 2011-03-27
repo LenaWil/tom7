@@ -44,7 +44,7 @@ struct
     val radix = 256
     val toint = ord
     val fromint = chr
-    val n = 2
+    val n = 4
   end
 
   structure M = MarkovFn(M2C)
@@ -59,10 +59,12 @@ struct
                                   string = explode s }
   val () = print "Observe...\n"
 
+  val seen = ref 0
   val alphabetic = StringUtil.charspec "-A-Za-z'"
   fun observe ("Tom Murphy VII", p) =
       let val p = String.tokens (not o alphabetic) p
-      in app (ows o StringUtil.lcase) p
+      in  seen := !seen + 1;
+          app (ows o StringUtil.lcase) p
       end
     | observe _ = ()
   val () = appposts observe xml
@@ -82,6 +84,8 @@ struct
   val () = print (Int.toString (length tops) ^ " top paths:\n");
   val () = app (fn (p, s) =>
                 print (rtos9 p ^ " " ^ s ^ "\n")) tops
+
+  val () = print ("I saw: " ^ Int.toString (!seen) ^ "\n")
 
 (*
   (* Sentences *)
