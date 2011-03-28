@@ -4,6 +4,7 @@
 % \usepackage{eclbkbox}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{code}
 % \usepackage{amscd}
 % \usepackage{xy}
 \usepackage{graphicx}
@@ -11,6 +12,8 @@
 % \usepackage{color}
 % \usepackage[dark,all,bottom,landscape,timestamp]{draftcopy}
 % \usepackage{everypage}
+
+\pagestyle{empty}
 
 % \usepackage{ulem}
 % go back to italics for emphasis, though
@@ -32,7 +35,7 @@ Verlag-Verlag volume no.~0x40-2A.
 \renewcommand\>{$>$}
 \newcommand\<{$<$}
 
-\date{3 March 2011}
+\date{1 April 2011}
 
 \maketitle
 
@@ -251,7 +254,7 @@ the specifics of Scribble and Muddle, and the question at hand is not
 just what words ought to exist for the purpose of internet word games,
 but for general purposes.
 
-\begin{figure}
+\begin{figure}[t]
 \includegraphics[width=\linewidth]{wishlist-cdf}
 \vspace{-0.1in}\caption{Cumulative distribution of word frequency.
   Approximately 25,000 different words (y axis) were issued 55 times
@@ -476,7 +479,7 @@ This is pretty good. These words resemble the ones we observed to build
 the Markov chain, but are novel. I think helafelo is a pretty rad word,
 right?
 
-\begin{figure}
+\begin{figure}[t]
 \includegraphics[width=\linewidth]{coin1}
 \caption{Markov chain for the SOWPODS word list, where darker squares
 indicate higher probability. The darkest is the transition from {\it q}
@@ -607,7 +610,7 @@ of occasional interlopers in loan words like {\it jeans} and {\it
 (twice as many as English), the probabilities of observing these
 non-words are much higher than the most likely English ones.
 
-\begin{figure}
+\begin{figure}[t]
 \includegraphics[width=\linewidth]{italiancoin1}
 \caption{Markov chain for the Italian language. Again darker cells
   indicate higher probability. Italian has more lexicographic
@@ -657,7 +660,7 @@ word list to be equally important.\!\footnote{In fact, the common part
 object on the philosophical grounds that some words that already exist
 {\em ought to exist more} than other words that already exist. For
 example, {\it congenital} is a much nicer word than the plain ugly
-{\it congenial}, and is reflected by the fact that {\it congenial} is
+{\it congenial}, and is reflected by the fact that {\it congenital} is
 used five times more frequently than {\it
   congenial}.\!\footnote{14,200,000 times to 2,820,000, on the
   Internet, according to Google.} In this section, we produce Markov
@@ -722,11 +725,6 @@ unabridged list appears in the appendix; my hand-selected favorites:
 \end{center}
 
 
-
-
-
-
-
 Lots of these could be the names of tech startups or Pok\'emon.
 
 % laplace smoothing?
@@ -754,11 +752,153 @@ times more likely ($p = 6.08\times 10^{-11}$) than the shorter
 The solution is to use coinduction. Most people remember induction
 from school, maybe, which is the one where you have some base case
 like ``0 is even'', and then you prove that all numbers are either
-even or odd by assuming ``$n$ is even or odd'' and proving ``$n + 1$
-is even or odd''. 
+even or odd by assuming ``$n - 1$ is even or odd'' and proving ``$n$
+is even or odd''. From this we conclude that every number is either
+even or odd. The idea is the proof shows how to, for any given number
+$m$, count down to the base case ``0 is even'', and then repeatedly
+apply the $n-1$ step (inductive step) to get back up to $m$. This is a
+great way to prove facts about finite things like numbers. Think of
+induction as a way you prove a statement like ``Good to the last
+drop,'' or ``There's always room for Jello.''
 
-most people remember induction, perhaps 
-coinduction: never gonna give you up. once you pop you can't stop.
+Coinduction is a good proof technique for infinite things, like a
+sorted infinite list of possible strings. The idea behind coinduction
+is kind of like, you prove something like ``0 is a number'' (the base
+case), then prove something like ``if $n$ is a number, then $n+1$ is a
+larger number'', and then conclude that there exists an infinite
+series of numbers, each larger than the previous one. Think of
+coinduction as a way you prove a statement like ``Once you pop, you
+can't stop,'' or ``Never gonna give you up.''
+
+To sort the infinite list we don't actually use coinduction (we're
+not going to prove anything, just implement it), but its computational
+counterpart, corecursion. I just can't resist the ``coin'' pun.
+
+What we do is define a function ``most probable paths'', which returns
+a (possibly infinite) stream of strings for a given starting state.
+Each string is finite and ends with the terminal symbol \>, and they
+appear sorted by decreasing probability. (The most probable words
+overall will be just the first elements from the stream returned by
+this function when using a starting state like \<\<\< for $n=3$.)
+Since we don't want to explore all possible strings in order to
+produce this list (there are infinitely many), the trick is to put a
+lower bound on the probability of the words that will be included.
+There are always finitely many words with probability greater than a
+given positive value, unless the Markov chain contains a cycle where
+each edge has probability 1. (This is impossible for Markov chains
+created only by observing finite strings, such as all the ones in this
+paper.) It is efficient to use a very small lower bound with this
+algorithm, like 0.00000000000001.
+
+So the specification for ``most probable paths'' is to return all of
+the strings (that end with \>) that exceed the given lower bound in
+probability, sorted in descending probability order. It is easy to
+check the path directly to \>; we compare its probability to the lower
+bound by just looking it up in the table, and consider it if it
+exceeds the lower bound. For any other symbol {\it sym}, we will
+proceed (co)recursively: Call the probability of seeing {\it sym} next
+{\it p}, and then compute {\it tails}, all of the most probable paths
+starting in the state we would be in upon seeing {\it sym}. We turn
+{\it tails} into the sorted stream for the current state by just
+adding {\it sym} to the beginning of each string in it, and
+multiplying the probability by {\it p}. It remains sorted because
+multiplying by the same {\it p} is monotonic. The most important
+thing, which makes the algorithm practical (indeed terminate at all),
+is that we pass in a new lower bound: The current lower bound divided
+by {\it p}. After all, the outputs will be multipled by {\it p}, so
+they have to exceed this in order to meet the lower bound. This tends
+to increase the lower bound (sometimes over 1) since probabilities are
+between 0 and 1. This way, we only need to search a few symbols deep
+before it's clear that no string can exceed the lower bound.
+
+Now we have a list of sorted streams, at most one for each symbol in
+our alphabet. It is fairly straightforward to merge these into a
+single sorted stream, by only looking at the first element from each
+one. Pseudocode for {\tt most\_probable\_paths} appears in
+Figure~\ref{fig:mostprobablepaths} and for {\tt merge\_sorted} in
+Figure~\ref{fig:mergesorted}. Performance of this code is great;
+building the Markov chains (or even just reading the dictionary files)
+dominates the latency of the analyses in this paper.
+
+\begin{figure*}
+\begin{code}
+fun most\_probable\_paths \{ lower_bound : real, state : state \}
+       : \{ string : symbol list, p : real \} stream =
+  let
+    fun nexts i =
+      case symbol\_from\_int i of 
+      NONE => nil
+    | SOME sym =>
+      let 
+        val p = (* probability of seeing sym in this state *)
+      in
+        if p < lower\_bound
+        then nexts (i + 1)
+        else if sym = end\_symbol
+             then S.singleton \{ string = nil, p = p \} :: nexts (i + 1)
+             else 
+               let
+                   val lb' = lower\_bound / p
+                   val tails =
+                       most\_probable\_paths \{ lower\_bound = lb',
+                                             state = advance\_state (state, sym) \}
+               in
+                   (* Now multiply through the probabilities and add the symbol
+                      to the head of the strings. *)
+                   Stream.map (fn \{ string = t, p = p' \} =>
+                               \{ string = sym :: t, p = p * p' \}) tails ::
+                   nexts (i + 1)
+               end
+      end
+
+    (* Try all next symbols. *)
+    val streams = nexts 0
+  in
+    S.merge\_sorted bysecond\_real\_descending streams
+  end
+\end{code}
+\caption{Pseudocode for {\tt most\_probable\_paths}. {\tt advance\_state}
+gives a new state from a previous state and symbol observed, so that
+for example {\tt advance\_state(abc, z)} gives {\tt bcz}. The pseudocode
+for {\tt merge\_sorted} is given in Figure~\ref{fig:mergesorted}.}
+\label{fig:mostprobablepaths}
+\end{figure*}
+
+\begin{figure*}[t]
+\begin{code}
+fun merge\_sorted cmp l =
+  let
+      fun ms nil () = Nil
+        | ms (s :: t) () =
+          case force s of
+              Nil => ms t ()
+            | Cons (v, ss) =>
+              ms\_insert v [ss] t
+
+      and ms\_insert bv sg nil =
+          Cons (bv, delay (ms sg))
+        | ms\_insert bv sg (s :: t) =
+          case force s of
+              Nil => ms\_insert bv sg t
+            | Cons (v, ss) =>
+                case cmp (bv, v) of
+                    GREATER =>
+                      ms\_insert v (singleton bv :: ss :: sg) t
+                  | \_ => ms\_insert bv (s :: sg) t
+  in
+      delay (ms l)
+  end
+\end{code}
+\caption{Pseudocode for {\tt merge\_sorted}. {\tt ms} merges a
+sorted list, and {\tt ms\_insert} is a helper where we have a
+candidate best value {\tt bv} which will either be the one we
+return at the head of the stream, or we'll replace it and then
+stick {\tt bv} somewhere to be returned later. (This algorithm
+can be improved by making a data structure like a (co)heap;
+this is just a simple first pass.)}
+\label{fig:mergesorted}
+\end{figure*}
+
 
 \section{Special cases}
 
@@ -962,7 +1102,7 @@ Jessica: &  gruntle \\
 
 From this we can conclude that 16\% of people wish {\it nurm} were a word, and so on.
 These words did not come with definitions, except for {\it gruntle}, which Jessica
-gives as ``the opposite of distgruntle''. This is actually already a word, but
+gives as ``the opposite of disgruntle''. This is actually already a word, but
 it was the inspiration for Section~\ref{sec:backformation}. {\it etsy} is the name
 of a popular on-line crafts community so I don't know why Rob would suggest that.
 The meaning of {\it wafflucinations} is clear from morphological analysis.
@@ -972,218 +1112,1789 @@ The meaning of {\it wafflucinations} is clear from morphological analysis.
 % TODO: length normalization. just take the average (or max?)
 % probability for a word of length n, and normalize by that (which means what?)?
 
-% TODO: backformation, stripping dis- and anti- and un- from words
-% then checking to see if they're still words?
-
 % TODO: portmanteautally
 
 % ``Scrallbe'' is kind of like god mode for scrabble.
 
 \section{Conclusion}
 
-\subsection{Recommendations}
-
-sweeeeeeeeeeeeeeeeeeet with 19 {\it e}s, which means ``Really sweet.''
-
-``rane'' sounds too much like ``rain'', but ``sare'' has a unique pronunciation and many people seem to think it's already a word. ``cho'' is similarly easy to pronounce and spell. I propose that it be defined as ``A kind of cheese,'' so that we can really nail the new triple entendre on the classic joke.
-
 In this paper I investigated several different ways of answering the
 question: What words ought to exist? Each method produces different
 words, and some don't work that well, but nonetheless we have several
-rich sources of words, each time scientifically justified.
+rich sources of words, each time scientifically justified. I conclude
+with a section of recommendations for words that ought to exist, along
+with definitions.
 
-Nobody really likes writing conclusions, so I will just now summarize
-the paper by the giving the most likely sentences that I have not
-already written.
+\subsection{Recommendations}
 
-% XXXX
+{\it Sweeeeeeeeeeeeeeeeeeet} with 19 {\it e}s is the clear favorite
+based on analysis of usage, so this one should be introduced. It means
+``Really sweet.''
 
-% \begin{Verbatim}
-facebook wall posts, 4-grams
-100 top paths:
-0.002525504 pittsburgh
-0.002093510 steelers
-0.002093510 sfo
-0.001953943 it's
-0.001256106 bdl
-0.001116539 sigbovik
-0.001099196 facebook
-0.000976971 mic
-0.000976971 s
-0.000976971 can't
-0.000837404 i'm
-0.000837404 icfp
-0.000837404 app
-0.000697837 x
-0.000697837 drunj
-0.000697837 g
-0.000616021 ther
-0.000558269 doesn't
-0.000558269 's
-0.000558269 sr
-0.000558269 pm
-0.000558269 fyi
-0.000558269 wtf
-0.000558269 k
-0.000558269 don't
-0.000558269 today's
-0.000558269 m
-0.000558269 what's
-0.000456766 iphone
-0.000429438 inted
-0.000418702 oh
-0.000418702 phl
-0.000418702 gonna
-0.000418702 pre
-0.000418702 zrh
-0.000418702 th
-0.000418702 h
-0.000418702 b
-0.000418702 n
-0.000418702 ok
-0.000418702 d
-0.000418702 that's
-0.000418702 rex
-0.000418702 fanzibar
-0.000418702 st
-0.000418702 kinda
-0.000418702 didn't
-0.000355262 cally
-0.000334962 brillobox
-0.000314027 superburrito
-0.000305304 weath
-0.000279135 techno
-0.000279135 vii
+{\it Rane} sounds too much like {\it rain}, but {\it sare} has a
+unique pronunciation and many people seem to think it's already a
+word. I propose that {\it sare} be introduced as a noun meaning, ``a
+word that sounds real but isn't.''
 
+{\it Cho} is similarly easy to pronounce and spell. I propose that it
+be defined as ``A kind of cheese,'' so that we can really nail the new
+triple entendre on the classic joke. {\it Chomaker} is someone who
+makes that kind of cheese.
 
-trigrams, including comments:
-100 top paths:
-0.003013897 it's
-0.001856422 ther
-0.001704432 i'm
-0.001503910 sfo
-0.001102867 -
-0.001102867 oh
-0.001050350 don't
-0.001002607 haha
-0.001002607 s
-0.000902346 bdl
-0.000808769 mic
-0.000808769 that's
-0.000776981 pittsburgh
-0.000705812 thes
-0.000701825 ok
-0.000645063 can't
-0.000601564 icfp
-0.000601564 k
-0.000583335 didn't
-0.000507201 runj
-0.000501303 g
-0.000501303 omg
-0.000501303 x
-0.000485262 ins
-0.000453126 sout
-0.000450580 ands
-0.000449950 coff
-0.000425932 reat
-0.000425133 ning
-0.000416189 pittle
-0.000412468 getty
-0.000407151 ster
-0.000401043 sr
-0.000401043 pm
-0.000401043 m
-0.000401043 wtf
-0.000401043 aw
-0.000401043 d
-0.000401043 fyi
-0.000401043 ple
-0.000401043 's
-0.000400791 phon
-0.000386315 weat
-0.000384116 befor
-0.000375978 els
-0.000374307 als
-0.000357782 nothe
-0.000354769 app
-0.000354769 appy
-0.000354422 they're
-0.000353750 wate
-0.000345727 there's
-0.000340508 res
-0.000339344 mes
-0.000334202 ove
-0.000326473 wher
-0.000324373 lity
-0.000319011 hotos
-0.000316613 dea
-0.000315777 sigbovik
-0.000315105 ver
-0.000314965 thand
-0.000310607 outh
-0.000300782 n
+{\it Unders} was one of the most frequently occuring words towards the
+top of many analyses. This word should be a colloquialism for
+underwear, which would probably already be understood from context.
 
+{\it Dise} is suggested by both the Markov model (as {\it dises}, {\it
+  dising}) and backformation (as {\it dises}). I like thinking of it
+as being the root of {\it paradise}, where {\it para--} means
+something like ``along side of'' or ``resembling''. So {\it dise} is
+the place you're really looking for when you get to paradise and
+realize it's just a mediocre country club.
 
-facebook, n = 2
-100 top paths:
-0.010628671 ing
-0.007144197 th
-0.005025442 st
-0.004291375 re
-0.002932937 ne
-0.002662094 se
-0.002546194 whe
-0.002108786 ther
-0.001923496 al
-0.001669458 con
-0.001652820 wor
-0.001498222 ch
-0.001495485 wis
-0.001379778 i'm
-0.001336166 jus
-0.001302469 sh
-0.001280888 yout
-0.001244352 fo
-0.001225250 le
-0.001224422 pre
-0.001221357 ar
-0.001201881 com
-0.001200574 ge
-0.001165417 thes
-0.001116295 som
-0.001108305 fing
-0.001104851 ang
-0.001102867 -
-0.001102706 it's
-0.001039704 ist
-0.001036886 hing
-0.001007930 ou
-0.001002607 s
-0.000967282 de
-0.000932965 en
-0.000926568 tor
-0.000827260 wat
-0.000827151 oh
-0.000814235 cor
-0.000812961 ned
-0.000783696 lis
-0.000762020 ple
-0.000760162 whis
-0.000759898 sed
-0.000755396 res
-0.000728412 mor
-0.000728049 ong
-0.000727818 don
-0.000720098 cand
-0.000710277 ning
-0.000708380 ithe
-0.000693547 ame
-0.000659248 ty
-0.000656211 dow
-0.000635771 ha
-0.000633225 ext
-0.000601564 k
-% \end{Verbatim}
+{\it Helafelo} is one hell of a fellow.
+
+\medskip
+{\bf Addendum.} During the preparation of this paper, the Scrallbe
+game has converged on a culture where the words played are real-seeming,
+with creative definitions. Examples: {\it frodeo} (``Gandalf is the
+clown.'') {\it pridefax} (``An unproven treatment for telephone
+anxiety.'') {\it eeeee} (``eeeee'') {\it orzigato} (``Move mr. roboto.
+for great justice.'') {\it stovebed} (``Now you don't have to get out
+from under the covers to make breakfast.'') {\it ovawiki} (``The free
+egg cell that anyone can edit.'') {\it gaptave} (``Two discontinuous
+musical intervals.'') {\it achoolane} (``Nostril (colloq.)'') {\it
+  gplerious} (``Completely overcome by software licenses.) {\it
+  bestcano} (``Some eruptions are better than others.'') Thanks to the
+players for their contributions, especially Ben~Blum, Chrisamaphone,
+Rob~Simmons, and Flammin~Fingers.
+
+\section*{Appendix}
+
+Here are the most likely words induced by the English Wikipedia, with $n=3$.
+I have left off the probabilities; they can be reproduced by downloading
+Wikipedia and running the software yourself, which only takes like 9 hours.
+
+s
+ther
+w
+en
+t
+c
+d
+f
+m
+b
+ser
+e
+diff
+u
+sup
+p
+n
+de
+tal
+othe
+th
+wikipedia
+rd
+con
+id
+r
+ame
+edia
+cal
+uk
+wiki
+und
+als
+st
+l
+km
+wp
+g
+x
+ext
+j
+des
+td
+ter
+h
+co
+k
+sout
+don
+o
+cound
+v
+ver
+wer
+med
+res
+ind
+la
+em
+re
+ins
+afd
+ands
+div
+htm
+infor
+rom
+wher
+ple
+mi
+acces
+ii
+ent
+unive
+ff
+refere
+ger
+bution
+lish
+ince
+wikiped
+auth
+dist
+oth
+smally
+rea
+al
+y
+est
+cle
+fr
+lation
+tral
+gov
+nd
+mily
+isbn
+cond
+bel
+befor
+hould
+ber
+pers
+inder
+les
+gree
+mation
+lar
+chan
+dia
+ove
+stary
+compan
+mon
+val
+san
+cate
+nothe
+pdf
+tes
+ster
+nort
+pril
+hist
+sq
+clast
+ful
+ment
+q
+aft
+tr
+nown
+lign
+del
+z
+ave
+dify
+stor
+sity
+artic
+pring
+rese
+mas
+li
+ord
+ca
+thes
+oldid
+lin
+es
+ress
+flage
+blace
+pland
+mar
+mes
+conce
+exter
+wate
+mp
+jame
+lity
+ft
+cology
+spany
+mic
+ve
+han
+thist
+spam
+cand
+sher
+smal
+subdiv
+tem
+jan
+ture
+inded
+bothe
+ared
+cour
+rect
+thers
+ope
+mm
+dom
+der
+mand
+tt
+dr
+phy
+cd
+websity
+stude
+lor
+bbc
+ru
+mer
+flor
+succes
+ence
+tely
+aust
+stan
+clas
+et
+outh
+pl
+ints
+vfd
+fc
+wikipedit
+sus
+forman
+contry
+au
+edu
+inding
+el
+lic
+bord
+mr
+ston
+whic
+ide
+hous
+mich
+auser
+google
+pt
+le
+doi
+engle
+ed
+gen
+userved
+cols
+num
+nate
+cer
+withis
+clude
+shous
+inted
+wikipedian
+thered
+andex
+chool
+ning
+attle
+chael
+sta
+plation
+ampion
+crea
+fontry
+lege
+prese
+grough
+iii
+mader
+augh
+ll
+ching
+fb
+furt
+yearch
+examp
+octor
+nove
+furth
+bein
+tra
+nover
+texter
+mont
+sted
+gener
+quary
+inclub
+ander
+sco
+ast
+gr
+wome
+ality
+lon
+hough
+ano
+exas
+polid
+sease
+dec
+sor
+ga
+nov
+unty
+shor
+imdb
+offic
+partic
+oved
+forn
+lan
+fm
+undex
+rus
+arted
+alia
+cong
+vill
+eason
+gue
+shough
+cc
+vil
+tember
+octory
+jr
+gove
+writy
+thand
+anding
+rev
+colog
+gover
+edian
+publist
+mics
+comple
+syster
+olding
+coor
+useum
+spect
+expan
+puble
+bate
+tribut
+oned
+coibot
+betwo
+conter
+cles
+leason
+fina
+freen
+eng
+fa
+que
+fied
+tre
+hamp
+guage
+wered
+nic
+awar
+yout
+usic
+cgi
+andy
+nrhp
+clar
+arting
+bc
+cated
+rober
+feb
+ames
+ven
+jun
+thould
+defere
+artics
+sen
+frand
+cred
+ada
+cana
+rection
+modiff
+sal
+los
+ret
+ched
+decial
+collow
+notalk
+nl
+yor
+elete
+sain
+ance
+cens
+chand
+apr
+delect
+dea
+stant
+bruary
+commer
+righ
+ch
+tor
+peral
+andia
+arth
+roup
+founty
+hor
+scies
+alth
+pete
+footnot
+html
+ath
+tribs
+ac
+chas
+eith
+pa
+tl
+refor
+bes
+bor
+cently
+fonter
+neer
+tration
+reat
+hi
+awa
+chris
+da
+wikipedits
+atter
+pp
+ents
+dvd
+arge
+wan
+sch
+sr
+fere
+inds
+norts
+tha
+nament
+anot
+oper
+aspx
+rence
+website
+minal
+brity
+dts
+apring
+goalso
+alber
+rown
+graphy
+anded
+min
+alian
+ength
+mility
+abbr
+talign
+bec
+com
+authe
+hite
+pic
+pation
+jone
+ords
+demy
+alt
+wated
+alife
+totalk
+lond
+tage
+ad
+ana
+evers
+amg
+gened
+colo
+engton
+mina
+lates
+porth
+fff
+lifor
+footbally
+stry
+shing
+hase
+lis
+eletion
+rol
+mally
+inton
+ded
+doesn
+ny
+mus
+pro
+du
+pre
+somes
+dired
+na
+becamp
+ire
+inces
+cologo
+mong
+swith
+acts
+aree
+ang
+els
+noth
+unic
+mous
+dest
+ali
+deat
+smale
+poing
+dc
+ission
+iv
+oct
+posity
+pred
+poss
+kore
+anda
+ja
+ms
+gard
+coi
+frome
+afc
+nhl
+publice
+mothe
+jers
+maded
+qual
+geory
+roy
+vid
+pur
+studing
+ip
+ign
+fath
+cally
+coundex
+col
+abouth
+twork
+threen
+img
+ess
+lishe
+lable
+reland
+cing
+chi
+thern
+dete
+ar
+ving
+di
+eur
+wers
+il
+dio
+hl
+ando
+seast
+sation
+orge
+ble
+sep
+db
+classion
+cm
+las
+conver
+evel
+ing
+popula
+uns
+polic
+vs
+frans
+ker
+ann
+phich
+ovember
+alish
+cher
+therence
+prock
+ife
+feate
+uservice
+indid
+unded
+powere
+hs
+phot
+assion
+von
+dece
+theight
+proview
+ama
+prote
+kg
+birthe
+specian
+userve
+se
+nois
+cfm
+ma
+len
+ause
+gle
+jp
+flagic
+differe
+counder
+rance
+swed
+lee
+tel
+ont
+sould
+whics
+artion
+rans
+ric
+parly
+overy
+ves
+sa
+grea
+ans
+une
+tary
+ss
+jul
+ne
+fami
+dever
+ange
+hms
+oright
+dation
+cription
+prothe
+univer
+lat
+tota
+un
+adming
+aaa
+ampan
+perfor
+athe
+seased
+pov
+becaust
+alson
+thed
+methe
+aff
+spand
+inc
+sis
+stral
+refered
+endex
+xfd
+texamp
+valign
+sha
+dists
+fron
+heade
+lood
+thest
+unived
+italk
+brary
+colled
+ucfirst
+ite
+gan
+ep
+rary
+oney
+wikipedition
+ra
+ex
+scord
+cition
+hout
+clos
+bon
+lp
+imple
+acade
+flagico
+bost
+isn
+spection
+samp
+ral
+tead
+sant
+roces
+yorks
+ories
+bords
+unition
+che
+dra
+epison
+eff
+stal
+abour
+ach
+earch
+busic
+reate
+conves
+ses
+hims
+mone
+fran
+carly
+nated
+lished
+fra
+pm
+oh
+att
+delet
+unior
+reporth
+daving
+emple
+tworld
+noved
+trand
+ross
+ie
+vall
+orld
+vi
+becauser
+caust
+dard
+exand
+feder
+ches
+yound
+gence
+bol
+stribut
+rement
+gf
+sugges
+tity
+forder
+aug
+systed
+mathe
+websited
+abover
+ltd
+recember
+colle
+wils
+mos
+sman
+lete
+dow
+eles
+throup
+ba
+unt
+expr
+formany
+df
+ments
+tect
+pape
+hool
+exper
+butions
+hited
+delection
+deces
+coung
+gon
+gers
+stors
+abc
+partics
+writion
+furthe
+rade
+mult
+bb
+lism
+afries
+frence
+bish
+arence
+tems
+musion
+colore
+ethe
+bute
+vie
+ia
+hing
+oute
+hom
+clain
+nom
+missue
+hus
+ns
+chich
+oxfor
+contribut
+vict
+autom
+boile
+novers
+aus
+airst
+jos
+proble
+werence
+georgan
+rel
+eas
+opedia
+rs
+ned
+aut
+iss
+pg
+ct
+othis
+indo
+shi
+dst
+alf
+ian
+grounty
+hile
+mor
+jor
+grap
+parth
+elet
+regory
+thems
+ell
+septed
+pc
+url
+gnf
+unds
+appy
+studed
+offere
+gb
+timent
+sed
+dary
+eved
+hally
+deate
+hr
+taly
+noming
+duri
+cented
+thead
+aliam
+mored
+pmid
+hered
+hong
+recore
+vious
+wates
+fathe
+goved
+squary
+soment
+mout
+rela
+eview
+unives
+shere
+trate
+betweek
+gia
+mory
+cas
+dal
+fi
+enge
+stribs
+colspan
+vol
+facted
+amer
+reser
+loc
+fination
+deven
+andid
+leade
+tand
+protes
+gar
+dely
+til
+alled
+sary
+tro
+alist
+ng
+cha
+charly
+ab
+hel
+begion
+mana
+sk
+powed
+ted
+calign
+wikipe
+dar
+nm
+churce
+mil
+ren
+dise
+rever
+sel
+howere
+nexter
+commen
+sonal
+oly
+subser
+coibothe
+shool
+hal
+froman
+eu
+waship
+pr
+rease
+ph
+rical
+op
+assed
+bility
+ording
+conces
+mal
+stitle
+iucn
+sri
+os
+mond
+lations
+mance
+artment
+rigin
+rt
+brite
+ffff
+jsp
+lb
+dd
+wikipeding
+lant
+sett
+arter
+te
+yource
+sh
+contribs
+footbal
+zh
+aution
+acter
+addit
+govers
+coln
+useries
+ract
+thich
+tain
+inten
+sec
+aa
+blo
+janual
+hon
+nowing
+letion
+tition
+pute
+goldid
+communite
+wors
+fontribut
+areat
+titute
+rected
+summent
+stational
+hu
+counded
+sp
+eld
+ples
+yeare
+nating
+fing
+foll
+reque
+fiel
+pol
+josed
+atland
+phile
+manuary
+civision
+ok
+feded
+ult
+dj
+sas
+alle
+cg
+buildid
+kee
+redia
+ap
+unk
+ko
+cr
+inver
+nomy
+sund
+toon
+reg
+aaaa
+cath
+dll
+lc
+ters
+communive
+bal
+prope
+refef
+ania
+mrs
+hased
+worder
+pria
+arry
+centing
+spon
+ade
+vand
+dor
+sourch
+tooks
+seph
+capan
+pbb
+colong
+sql
+petion
+shors
+fift
+prily
+prial
+brition
+fl
+seption
+nz
+fonto
+cbs
+fally
+whill
+losed
+cluded
+mations
+monal
+sland
+pict
+russion
+profilm
+coundo
+reture
+harly
+soute
+sc
+rr
+titution
+therent
+shouser
+pager
+outhe
+quent
+spons
+fn
+ited
+proces
+bable
+atte
+whicle
+sile
+si
+rece
+unitor
+yan
+grought
+cos
+pian
+comput
+trans
+jource
+arthe
+tury
+specia
+artice
+provid
+raction
+deleter
+alo
+fored
+ti
+eague
+wiking
+conth
+ree
+musly
+ars
+mf
+ups
+schood
+rey
+donal
+sected
+writed
+freet
+formate
+cre
+colution
+opers
+chen
+bd
+hp
+sember
+folled
+pagest
+smales
+wen
+socies
+cs
+engin
+aften
+chur
+delp
+bia
+ce
+nors
+cource
+ussion
+fontribs
+summan
+arties
+jon
+dism
+lang
+sking
+augus
+theren
+xs
+seve
+deball
+er
+uning
+truction
+nomic
+creat
+gian
+acco
+sv
+pera
+alls
+rict
+relete
+rects
+coord
+stre
+ences
+aread
+spane
+meth
+brea
+ener
+thernal
+thire
+whical
+rounty
+thu
+cl
+pola
+una
+thround
+uservation
+volved
+hund
+aga
+cames
+menter
+froma
+uset
+publis
+frey
+libe
+posite
+northe
+ska
+appedia
+recial
+ro
+fant
+hought
+mination
+geo
+presult
+andon
+occup
+ala
+nas
+thists
+ew
+maring
+secore
+nee
+dian
+inders
+inves
+infore
+hower
+sume
+scal
+kans
+indust
+eding
+ka
+aux
+brid
+var
+orded
+gived
+backgrough
+hugh
+ado
+prive
+eb
+rading
+joing
+hown
+euro
+lim
+kan
+chus
+alifor
+wille
+deced
+conven
+blogy
+nbc
+quall
+coller
+partion
+folle
+eleter
+reven
+reques
+lition
+humber
+moder
+backgroup
+tribution
+flages
+lears
+forch
+reight
+pault
+evely
+mayork
+sition
+feath
+recont
+guit
+metion
+hony
+deview
+nume
+confere
+fle
+unitory
+rican
+ima
+accore
+deside
+ris
+pedia
+lisher
+acture
+aland
+userview
+thate
+polor
+kar
+nel
+sents
+pany
+cluding
+vard
+bing
+woul
+havel
+greer
+thang
+genry
+effere
+locall
+desh
+thors
+empt
+sult
+quence
+mir
+blook
+porthe
+tran
+rew
+bording
+shought
+kely
+neight
+lam
+stion
+publishe
+hors
+wis
+apan
+nony
+sourn
+nage
+orce
+profest
+jonal
+fonth
+younty
+deta
+pd
+wa
+lo
+peries
+flign
+fource
+ros
+rfc
+mely
+mt
+smalled
+ge
+retion
+relect
+vern
+alid
+aligh
+userves
+speer
+willa
+infl
+undon
+dels
+aftern
+gres
+namedia
+advan
+distor
+oria
+subdiving
+lx
+presign
+blocal
+edway
+def
+scho
+fic
+counds
+belf
+sily
+metry
+cread
+pi
+novery
+occes
+cribut
+holor
+reces
+inte
+howed
+cout
+chis
+ency
+actory
+lange
+cf
+nc
+bornia
+adven
+revie
+sames
+newspan
+shan
+orial
+userry
+suff
+eth
+moto
+showere
+hunty
+nucle
+witz
+ider
+mune
+flagicont
+aire
+shtm
+fri
+guary
+rigion
+mome
+afted
+heate
+mo
+formedia
+oble
+cnn
+nea
+ha
+canage
+borning
+tol
+navbox
+ava
+octors
+md
+frent
+offical
+wal
+arent
+anon
+artish
+cration
+rell
+dir
+auding
+ira
+butional
+labout
+bott
+southe
+dence
+sporth
+formall
+ps
+intry
+thamp
+stube
+unus
+usering
+ron
+usert
+conse
+brote
+lib
+oces
+bg
+proad
+tas
+werent
+chese
+lyn
+atta
+pris
+oile
+drage
+unre
+whenry
+ement
+stada
+chara
+raphy
+tection
+rica
+reletion
+foothe
+titler
+lassion
+areen
+theim
+conship
+formand
+ution
+unio
+ided
+guid
+riging
+brited
+buch
+septem
+eleted
+conds
+preser
+ta
+ort
+feld
+ine
+actional
+alize
+tex
+fer
+aused
+engly
+eque
+sevel
+atted
+smalle
+thome
+alty
+reath
+gation
+prefere
+hd
+nr
+peration
+covember
+govember
+livision
+fren
+dq
+aren
+deve
+va
+ffcc
+jo
+prian
+afl
+gion
+medy
+stategory
+nomich
+tured
+mel
+ene
+appa
+licy
+linal
+rought
+areate
+bethe
+othey
+eral
+opport
+ara
+kw
+whild
+cance
+communited
+varing
+brothe
+pia
+mu
+sched
+socian
+poin
+vis
+obs
+squal
+paking
+sma
+convers
+noing
+maken
+cathe
+ni
+solor
+alry
+flagicons
+aaaaa
+weren
+artical
+mtv
+flagion
+chall
+alm
+upons
+dister
+searly
+sur
+towned
+oring
+ests
+avg
+whis
+publicy
+ec
+thange
+gp
+ced
+pes
+whick
+figh
+peted
+fed
+sween
+discore
+sil
+ds
+sournal
+tay
+dier
+kim
+adver
+reak
+mote
+wouldn
+paign
+inal
+medit
+pointo
+cata
+sper
+pts
+idw
+mlb
+guis
+cational
+ul
+wasn
+septer
+aird
+throm
+fe
+feated
+collo
+itary
+uni
+uple
+distory
+disa
+regist
+vere
+effor
+whican
+ober
+bettle
+anning
+cution
+speciate
+palign
+ai
+cit
+moview
+flagicon
+af
+covery
+govery
+lina
+reast
+creen
+texand
+exten
+vic
+
 
 % Paper ends with a bigram summary of itself.
 
