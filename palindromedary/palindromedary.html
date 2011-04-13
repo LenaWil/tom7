@@ -1,0 +1,284 @@
+<html>
+<head>
+<!-- Didn't check this in because it's pretty big.
+just declares var dict = []; which is a list of all
+legal words, lowercase. -->
+<script src="dict.js" type="text/javascript"></script>
+<style>
+ h1 {
+   font-size: 16px;
+ }
+ body {
+   font: 11px Verdana,Helvetica,sans-serif
+ }
+</style>
+</head>
+<body>
+<script lang="JavaScript">
+
+function makeElement(what, cssclass, elt) {
+  var e = document.createElement(what);
+  if (cssclass) e.setAttribute('class', cssclass);
+  if (elt) elt.appendChild(e);
+  return e;
+}
+function IMG(cssclass, elt) { return makeElement('IMG', cssclass, elt); }
+function DIV(cssclass, elt) { return makeElement('DIV', cssclass, elt); }
+function SPAN(cssclass, elt) { return makeElement('SPAN', cssclass, elt); }
+function BR(cssclass, elt) { return makeElement('BR', cssclass, elt); }
+function TEXT(contents, elt) {
+  var e = document.createTextNode(contents);
+  if (elt) elt.appendChild(e);
+  return e;
+}
+
+
+// A trie is an object with fields
+//  $ - true if the path to this node yields a word
+//  a .. z - subtries, or undefined
+
+// Forward and backward word tries.
+// Forward trie is used
+var fwd = {}, bck = {};
+function addstringfromchar(t, s, c) {
+  if (c == s.length) {
+    t.$ = true;
+  } else {
+    var tt = t[s[c]] || {};
+    t[s[c]] = tt;
+    addstringfromchar(tt, s, c + 1);
+  }
+}
+
+for (var i = 0; i < dict.length; i++) {
+  addstringfromchar(fwd, dict[i], 0);
+}
+
+function revstring(s) {
+  var ss = '';
+  for (var i = s.length - 1; i >= 0; i--) {
+    ss += s[i];
+  }
+  return ss;
+}
+
+for (var i = 0; i < dict.length; i++) {
+  addstringfromchar(bck, dict[i], 0);
+}
+
+// PERF: This is exponential, but can do this in linear time!
+// It's plenty fast for interactive use on small sentences.
+function solve(str, elt) {
+  // Trie.
+  function rec(t, pos) {
+    // var nexts = [];
+    // for (var o in t) nexts.push(o);
+    // document.body.appendChild(document.createTextNode('@' + pos + ': ' + nexts.join('')));
+    // document.body.appendChild(document.createElement('BR'));
+    if (pos == str.length) {
+      // document.body.appendChild(document.createTextNode('END #' + pos + ': ' + nexts.join('')));
+      // document.body.appendChild(document.createElement('BR'));
+      // alert('at end, trie: ' + t);
+      // Must end exactly on a word.
+      if (t.$) {
+        // alert('ret root');
+        return [pos];
+      } else {
+        // alert('ret null');
+        return null;
+      }
+    } else {
+
+      // Consider starting a new word.
+      if (t.$) {
+        // alert('try with word up to ' + str.substr(0, pos));
+        var tl = rec(fwd, pos);
+        if (tl != null) {
+          // Add this "word".
+          tl.push(pos);
+          return tl;
+        }
+      }
+
+      // for (var o in t) alert(o);
+      var tt = t[str[pos]];
+      // Consider continuing current word.
+      // alert('trie: ' + tt);
+      if (tt) {
+        var tl = rec(tt, pos + 1);
+        if (tl != null)
+          return tl;
+      }
+
+      
+      // Neither thing worked.
+      return null;
+    }
+  }
+
+  // Allow non-local exits.
+  // try {
+  var split = rec(fwd, 0);
+  // split!
+  elt.innerHTML = '';
+  if (split) {
+    // elt.innerHTML = str + ': split: ' + split.join(', ');
+    // BR('', elt);
+    var start = 0;
+    // They're returned in reverse order.
+    for (var i = split.length - 1; i >= 0; i--) {
+      TEXT(str.substr(start, split[i] - start), elt);
+      TEXT(' ', elt);
+      start = split[i];
+    }
+    elt.style.color = '#7A7';
+    elt.style.textDecoration = 'none';
+  } else {
+    // Could maybe show partial splits?
+    TEXT(str, elt);
+    elt.style.color = '#AAA';
+    elt.style.textDecoration = 'line-through';
+  }
+  // } catch(e) {
+  // if (e != 'done')
+  // throw e;
+  // elt.innerHTML = str + ': no split found SORY';
+  // }
+}
+
+// var ddd = document.createElement('div');
+// document.body.appendChild(ddd);
+// solve('zoonystagmus', ddd);
+
+var left = '';
+
+function rerender() {
+  // Even version:
+  var inp = document.getElementById('einput');
+  var elt = document.getElementById('esplit');
+  inp.innerHTML = '';
+  var l = SPAN('', inp);
+  l.innerHTML = left;
+  l.style.fontWeight = 'bold';
+  var r = SPAN('', inp);
+  r.innerHTML = revstring(left);
+  r.style.color = '#888';
+
+  elt.innerHTML = '';
+  solve(left + revstring(left), elt);
+
+
+  // Odd version:
+  var inp = document.getElementById('oinput');
+  var elt = document.getElementById('osplit');
+  inp.innerHTML = '';
+  elt.innerHTML = '';
+  if (left != '') {
+    var right = revstring(left.substr(0, left.length - 1));
+
+    var l = SPAN('', inp);
+    l.innerHTML = left;
+    l.style.fontWeight = 'bold';
+    var r = SPAN('', inp);
+    r.innerHTML = right;
+    r.style.color = '#888';
+
+    solve(left + right, elt);
+  }
+}
+
+function advance(c) {
+  // document.body.appendChild(document.createTextNode(c));
+  left += c;
+  rerender();
+}
+
+function backspace() {
+  //  document.body.appendChild(document.createTextNode("<BS>"));
+  if (left.length > 0) {
+    left = left.substr(0, left.length - 1);
+    rerender();
+  }
+}
+
+function escape() {
+  left = '';
+  rerender();
+}
+
+function space() {
+  // document.body.appendChild(document.createTextNode("<SP>"));
+}
+
+// return false to prevent default actions.
+function kdown(event) {
+  event = event || window.event;
+  // backspace is special.
+  if (event.which == 8) {
+    backspace();
+    return false;
+  } else if (event.which == 27) {
+    escape();
+    return false;
+  }
+  return true;
+}
+
+function kpress(event) {
+  event = event || window.event;
+  var char;
+  if (event.which == null)
+    char = String.fromCharCode(event.keyCode);
+  else if (event.which != 0 && event.charCode != 0)
+    char = String.fromCharCode(event.which);
+  else {
+    // default action.
+    return true;
+  }
+
+  if (char >= 'a' && char <= 'z') {
+    advance(char);
+    return false;
+  } else if (char == ' ') {
+    space();
+    return false;
+  }
+
+  return true;
+}
+
+function kup(event) {
+  event = event || window.event;
+  // return false;
+}
+
+document.onkeydown = kdown;
+document.onkeypress = kpress;
+document.onkeyup = kup;
+
+// document.body.appendChild(document.createTextNode('<READY>'));
+
+</script>
+<h1>Palindromedary</h1>
+
+Type letters to create palindromes. The input is segmented automatically so spaces are ignored. 
+&lt;ESC&gt; clears all.
+
+<p><p><p><p>
+<div style="height:120px"><center>
+Even symmetry:<br>
+<div style="font: 20px Verdana,Helvetica,sans-serif" id="einput">&nbsp;</div>
+<div style="font: 20px Verdana,Helvetica,sans-serif" id="esplit">&nbsp;</div>
+</div>
+
+<div style="height:120px"><center>
+Odd symmetry:<br>
+<div style="font: 20px Verdana,Helvetica,sans-serif" id="oinput">&nbsp;</div>
+<div style="font: 20px Verdana,Helvetica,sans-serif" id="osplit">&nbsp;</div>
+</center>
+</div>
+
+</center>
+
+</body>
+</html>
