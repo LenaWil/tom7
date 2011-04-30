@@ -32,3 +32,17 @@ var TITLESTARTY2 = 288;
 
 var TITLELASERW = 25;
 var TITLELASERH = 25;
+
+// XXX maybe should be in Cat.as or whatever.
+
+// Standard head, right-facing body. Everything
+// in native pixels.
+var HEADW = 15;
+var HEADH = 14;
+
+// This is the offset from the head's top-left
+// corner to the "center of the neck" on the
+// body.
+var HEADATTACHX = 6;
+var HEADATTACHY = 9;
+
