@@ -13,7 +13,7 @@ legal words, lowercase. -->
  }
 </style>
 </head>
-<body onload="rerender()">
+<body>
 <script lang="JavaScript">
 
 function makeElement(what, cssclass, elt) {
@@ -62,51 +62,8 @@ function revstring(s) {
   return ss;
 }
 
-// XXX rather than keep these both in memory,
-// why not just create the reverse of the input
-// string before doing the expensive processing?
 for (var i = 0; i < dict.length; i++) {
   addstringfromchar(bck, dict[i], 0);
-}
-
-// Returns the length of the longest prefix of the 
-// string that is not a dead end. In practice this 
-// is always at least 1 for nonempty strings, since 
-// there is a word that starts with every letter.
-function legalprefix(str) {
-  // To run the trie nondeterministically, just keep
-  // the set of states that we could be in. The code
-  // is much simpler if we just keep a list, which
-  // is still correct but might duplicate states.
-  // (It's exponential in the worst case either way.)
-  
-  // At the start we can only be at the start of a
-  // word.
-  var states = [fwd];
-  for (var i = 0; i < str.length; i++) {
-    var c = str[i];
-    // Many states might be legal words now. Only
-    // push the start state once.
-    var startnew = false;
-
-    var newstates = [];
-    for (var j = 0; j < states.length; j++) {
-      var t = states[j][c];
-      if (t) {
-        newstates.push(t);
-        if (t.$) startnew = true;
-      }
-    }
-    if (startnew) newstates.push(fwd);
-    // If we can't continue, then this is currently the longest
-    // possible prefix.
-    if (newstates.length == 0) {
-      // XXX should return possible next chars from states.
-      return i;
-    }
-    states = newstates;
-  }
-  return str.length;
 }
 
 // PERF: This is exponential, but can do this in linear time!
@@ -193,69 +150,40 @@ function solve(str, elt) {
 // document.body.appendChild(ddd);
 // solve('zoonystagmus', ddd);
 
-// Left and right of cursor.
-var left = '', right = '';
-
-function showdata(str, elt, cnt) {
-  elt.innerHTML = '';
-  solve(str, elt);
-  var n = legalprefix(str);
-  var ok = SPAN('', cnt);
-  ok.style.color = '#464';
-  TEXT(str.substr(0, n), ok);
-  if (n != str.length) {
-    var bad = SPAN('', cnt);
-    bad.style.color = '#933';
-    TEXT(str.substr(n, str.length - n), bad);
-  }
-}
+var left = '';
 
 function rerender() {
   // Even version:
   var inp = document.getElementById('einput');
   var elt = document.getElementById('esplit');
-  var cnt = document.getElementById('econt');
   inp.innerHTML = '';
   var l = SPAN('', inp);
   l.innerHTML = left;
   l.style.fontWeight = 'bold';
-  var c = SPAN('cursor', inp);
-  c.innerHTML = '|';
-  c.style.fontWeight = 'bold';
-  c.style.color = '#33A';
   var r = SPAN('', inp);
-  r.innerHTML = right;
-  r.style.fontWeight = 'bold';
-
-  var str = left + right;
-
-  var mirrored = SPAN('', inp);
-  mirrored.innerHTML = revstring(str);
-  mirrored.style.color = '#888';
+  r.innerHTML = revstring(left);
+  r.style.color = '#888';
 
   elt.innerHTML = '';
-  cnt.innerHTML = '';
-  showdata(str + revstring(str), elt, cnt);
+  solve(left + revstring(left), elt);
 
 
   // Odd version:
   var inp = document.getElementById('oinput');
   var elt = document.getElementById('osplit');
-  var cnt = document.getElementById('ocont');
   inp.innerHTML = '';
   elt.innerHTML = '';
-  cnt.innerHTML = '';
-  if (str != '') {
-    var mirrored = revstring(str.substr(0, str.length - 1));
+  if (left != '') {
+    var right = revstring(left.substr(0, left.length - 1));
 
     var l = SPAN('', inp);
-    l.innerHTML = str;
+    l.innerHTML = left;
     l.style.fontWeight = 'bold';
     var r = SPAN('', inp);
-    r.innerHTML = mirrored;
+    r.innerHTML = right;
     r.style.color = '#888';
 
-    showdata(str + mirrored, elt, cnt);
+    solve(left + right, elt);
   }
 }
 
@@ -275,32 +203,12 @@ function backspace() {
 
 function escape() {
   left = '';
-  right = '';
   rerender();
 }
 
-// TODO: Insert a forced space or hint to segmentation.
 function space() {
   // document.body.appendChild(document.createTextNode("<SP>"));
 }
-
-function leftarrow() {
-  if (left.length > 0) {
-    right = left.charAt(left.length - 1) + right;
-    left = left.substr(0, left.length - 1);
-    rerender();
-  }
-  // document.body.appendChild(document.createTextNode("<L>"));
-}
-
-function rightarrow() {
-  if (right.length > 0) {
-    left = left + right.charAt(0);
-    right = right.substr(1, right.length - 1);
-    rerender();
-  }
-}
-
 
 // return false to prevent default actions.
 function kdown(event) {
@@ -311,12 +219,6 @@ function kdown(event) {
     return false;
   } else if (event.which == 27) {
     escape();
-    return false;
-  } else if (event.which == 37) {
-    leftarrow();
-    return false;
-  } else if (event.which == 39) {
-    rightarrow();
     return false;
   }
   return true;
@@ -360,21 +262,19 @@ document.onkeyup = kup;
 <h1>Palindromedary</h1>
 
 Type letters to create palindromes. The input is segmented automatically so spaces are ignored. 
-&lt;ESC&gt; clears all. Now you can move the cursor with the arrow keys, too.
+&lt;ESC&gt; clears all.
 
 <p><p><p><p>
 <div style="height:120px"><center>
 Even symmetry:<br>
 <div style="font: 20px Verdana,Helvetica,sans-serif" id="einput">&nbsp;</div>
 <div style="font: 20px Verdana,Helvetica,sans-serif" id="esplit">&nbsp;</div>
-<div style="font: 20px Verdana,Helvetica,sans-serif" id="econt">&nbsp;</div>
 </div>
 
 <div style="height:120px"><center>
 Odd symmetry:<br>
 <div style="font: 20px Verdana,Helvetica,sans-serif" id="oinput">&nbsp;</div>
 <div style="font: 20px Verdana,Helvetica,sans-serif" id="osplit">&nbsp;</div>
-<div style="font: 20px Verdana,Helvetica,sans-serif" id="ocont">&nbsp;</div>
 </center>
 </div>
 
