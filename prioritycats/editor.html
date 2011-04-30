@@ -1,0 +1,530 @@
+<html>
+<head>
+<title>Disco? Very! Level editor</title>
+<script src="constants.js"></script>
+<script src="tiles.js"></script>
+<script src="map.js"></script>
+<style>
+img.tile {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  image-rendering: -moz-crisp-edges; 
+  -ms-interpolation-mode: nearest-neighbor;
+}
+
+span.saveload {
+  cursor: pointer;
+  color: #9aF;
+  text-decoration: underline;
+}
+
+span.icon {
+  font-size: 25px;
+  margin-right: 2px;
+  position: relative;
+  top: 4px;
+}
+
+span.roomname {
+  cursor: pointer;
+  font-size: 10px;
+}
+
+div.selectable {
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  padding: 1px;
+  margin: 1px;
+  border: 1px solid #EEEEEE;
+  float: left;
+}
+
+div.selected {
+  float: left;
+  width: 36px;
+  height: 36px;
+  padding: 1px;
+  margin: 0px;
+  border: 2px solid #FF00FF;
+}
+
+div.clickme {
+  position: absolute;
+  width: 800px;
+  height: 576px;
+  z-index: 9999;
+  cursor: pointer;
+}
+
+br.clear {
+  clear: both;
+}
+
+</style>
+<script>
+
+// Map from tile ID to tile.
+var tilemap = [];
+
+// Current frame number, updated by periodic timer.
+var framenum = 0;
+
+function makeElement(what, cssclass, elt) {
+  var e = document.createElement(what);
+  if (cssclass) e.setAttribute('class', cssclass);
+  if (elt) elt.appendChild(e);
+  return e;
+}
+function IMG(cssclass, elt) { return makeElement('IMG', cssclass, elt); }
+function DIV(cssclass, elt) { return makeElement('DIV', cssclass, elt); }
+function SPAN(cssclass, elt) { return makeElement('SPAN', cssclass, elt); }
+function TABLE(cssclass, elt) { return makeElement('TABLE', cssclass, elt); }
+function TR(cssclass, elt) { return makeElement('TR', cssclass, elt); }
+function TD(cssclass, elt) { return makeElement('TD', cssclass, elt); }
+function BR(cssclass, elt) { return makeElement('BR', cssclass, elt); }
+function TEXT(contents, elt) {
+  var e = document.createTextNode(contents);
+  if (elt) elt.appendChild(e);
+  return e;
+}
+
+function tilesrc(gfx) {
+  return 'tiles/' + gfx + '.png';
+}
+
+function anyimage(tile) {
+  return tilesrc(tile.frames[0].img);
+}
+
+function hasimage(tile) {
+  return tile.frames.length > 0;
+}
+
+// Current room.
+var cur = room_start;
+var cur_name = 'start';
+
+var FRAMESMS = 50;
+function onenterframe() {
+  framenum++;
+
+  // See if any images need to be modified.
+  // We just check every image on the whole
+  // page because most of them are tiles, anyway.
+  // The .frames property set by us is what
+  // lets us know this should be animated.
+  for (o in document.images) {
+    var frames = document.images[o].frames;
+    // Only do it for animated 
+    if (frames && frames.length > 1) {
+      /* What frame are we on? */
+      var period = 0;
+      // PERF this never changes and could
+      // be cached.
+      for (var i = 0; i < frames.length; i++)
+        period += frames[i].delay;
+      var localframe = framenum % period;
+      var newsrc;
+      for (var i = 0; i < frames.length; i++) {
+        if (localframe < frames[i].delay) {
+          newsrc = tilesrc(frames[i].img);
+          break;
+        } else {
+          localframe -= frames[i].delay;
+        }
+      }
+      if (newsrc && document.images[o].src != newsrc) {
+        // alert(newsrc);
+        document.images[o].src = newsrc;
+      }
+    }
+  }
+
+  // Better to have jitter than overflow.
+  if (framenum > 100000000) {
+    framenum = 0;
+  }
+  setTimeout(onenterframe, FRAMESMS);
+}
+
+/* Load tile images, make default map. */
+function init() {
+  for (var i = 0; i < tiles.length; i++) {
+    // Populate map by id.
+    tilemap[tiles[i].id] = tiles[i];
+    var oframes = tiles[i].frames;
+    tiles[i].frames = [];
+    for (var j = 0; j < oframes.length; j += 2) {
+      tiles[i].frames.push({img: oframes[j], 
+                            delay: oframes[j + 1]});
+      // preload it!
+      if (tiles[i].frames)
+        (new Image()).src = tilesrc(tiles[i]);
+    }
+  }
+
+  redraw();
+  onenterframe();
+}
+
+function defaultroom() {
+  var foreground = [], background = [];
+  for (var i = 0; i < TILESW * TILESH; i++)
+    background.push(2);
+
+  for (var i = 0; i < TILESW; i++)
+    foreground.push(1);
+  
+  for (var i = 0; i < TILESH - 2; i++) {
+    foreground.push(1);
+    for (var j = 0; j < TILESW - 2; j++)
+      foreground.push(0);
+    foreground.push(1);
+  }
+
+  for (var i = 0; i < TILESW; i++)
+    foreground.push(1);
+
+  return { bg: background, fg: foreground };
+}
+
+function roombgat(room, x, y) {
+  return room.bg[y * TILESW + x];
+}
+
+function roomfgat(room, x, y) {
+  return room.fg[y * TILESW + x];
+}
+
+function fgat(x, y) {
+  return cur.fg[y * TILESW + x];
+}
+function setfgat(x, y, t) {
+  cur.fg[y * TILESW + x] = t;
+}
+
+function bgat(x, y) {
+  return cur.bg[y * TILESW + x];
+}
+function setbgat(x, y, t) {
+  cur.bg[y * TILESW + x] = t;
+}
+
+function screentopos(x, y) {
+  return { x: Math.floor(x / WIDTH),
+           y: Math.floor(y / HEIGHT) };
+}
+
+function clickmeClickHandler() {
+  return function(event) {
+    var pos = screentopos(event.pageX, event.pageY);
+    if (cur_foreground) {
+      setfgat(pos.x, pos.y, cur_tile);
+    } else {
+      setbgat(pos.x, pos.y, cur_tile);
+    }
+    redrawmap();
+  }
+}
+
+var mouse_down = false;
+function clickmeMouseMoveHandler() {
+  return function(event) {
+    if (mouse_down) {
+      var pos = screentopos(event.pageX, event.pageY);
+      if (cur_foreground) {
+        setfgat(pos.x, pos.y, cur_tile);
+      } else {
+        setbgat(pos.x, pos.y, cur_tile);
+      }
+      redrawmap();
+    }
+  }
+}
+
+function redrawmap() {
+  var elt = document.getElementById('map');
+  elt.innerHTML = '';
+  for (var y = 0; y < TILESH; y++) {
+    for (var x = 0; x < TILESW; x++) {
+      var tile = tilemap[bgat(x, y)];
+      if (hasimage(tile)) {
+        var img = IMG('tile', elt);
+        img.src = anyimage(tile);
+        img.frames = tile.frames;
+        img.style.top = y * HEIGHT;
+        img.style.left = x * WIDTH;
+      }
+    }
+  }
+
+  for (var y = 0; y < TILESH; y++) {
+    for (var x = 0; x < TILESW; x++) {
+      var tile = tilemap[fgat(x, y)];
+      if (hasimage(tile)) {
+        var img = IMG('tile', elt);
+        img.src = anyimage(tile);
+        img.frames = tile.frames;
+        img.style.top = y * HEIGHT;
+        img.style.left = x * WIDTH;
+        if (!cur_foreground) {
+          img.style.opacity = '0.7';
+        }
+      }
+    }
+  }
+  var clickme = DIV('clickme', elt);
+  clickme.onmousedown = function() {
+    mouse_down = true;
+  };
+  clickme.onmouseup = function() {
+    mouse_down = false;
+  }
+  clickme.onclick = clickmeClickHandler();
+  clickme.onmousemove = clickmeMouseMoveHandler();
+}
+
+
+var cur_foreground = true;
+var cur_tile = 1;
+
+function redrawstatus() {
+  var elt = document.getElementById('status');
+  elt.innerHTML = '';
+  if (cur_foreground) {
+    TEXT('Editing FOREGROUND. ', elt);
+  } else {
+    TEXT('Editing BACKGROUND. ', elt);
+  }
+  TEXT('Currently selected: ', elt);
+  var img = IMG(null, elt);
+  var tile = tilemap[cur_tile];
+  if (hasimage(tilemap[cur_tile])) {
+    img.src = anyimage(tilemap[cur_tile]);
+  } else {
+    img.src = 'no.png';
+  }
+  img.frames = tilemap[cur_tile].frames;
+  TEXT(' Tile #' + cur_tile + ': ' + (hasimage(tile) ? anyimage(tile) : '(empty)'), elt);
+}
+
+function selectHandler(idx) {
+  return function() {
+    cur_tile = idx;
+    // By default, use the tile's natural fg/bg setting
+    cur_foreground = !tiles[idx].isbg;
+    redrawstatus();
+    redrawtiles();
+    // because changing cur_foreground changes alpha of fg layer
+    redrawmap();
+  };
+}
+
+// XXX draw background and foreground tiles separately
+function redrawtiles() {
+  var elt = document.getElementById('tiles');
+  elt.innerHTML = '';
+  for (var i = 0; i < tiles.length; i++) {
+    var d = DIV((i == cur_tile) ? 'selected' : 'selectable', elt);
+    d.onclick = selectHandler(i);
+    if (hasimage(tiles[i])) {
+      var img = IMG(null, d);
+      img.src = anyimage(tiles[i]);
+      img.frames = tiles[i].frames;
+      img.style.width = 32;
+      img.style.height = 32;
+    } else {
+      TEXT('no', d);
+    }
+  }
+  BR('clear', elt);
+}
+
+function mapmapClickHandler(name) {
+  return function() {
+    cur_name = name;
+    var r = 'room_' + name;
+    window[r] = window[r] || defaultroom();
+    cur = window[r];
+    redraw();
+  };
+}
+
+function redrawmapmap() {
+  var elt = document.getElementById('mapmap');
+  elt.innerHTML = '';
+  var t = TABLE('', elt);
+
+  for (var y = 0; y < map.length; y++) {
+    var r = TR('', t);
+    for (var x = 0; x < map[y].length; x++) {
+      var d = TD('', r);
+      var s = SPAN('roomname', d);
+      if (map[y][x] == cur_name) {
+        s.style.fontWeight = 'bold';
+        s.style.color = '#000099';
+      }
+      TEXT(map[y][x], s);
+      s.onclick = mapmapClickHandler(map[y][x]);
+    }
+  }
+
+}
+
+function redraw() {
+  redrawmap();
+  redrawstatus();
+  redrawtiles();
+  redrawmapmap();
+}
+
+function dec(h) {
+  return parseInt(h, 16);
+}
+
+function roomtostring(room) {
+  var out = '';
+  out += '{ bg: [\n';
+  for (var y = 0; y < TILESH; y++) {
+    if (y > 0) out += ',\n';
+    var line = [];
+    for (var x = 0; x < TILESW; x++) {
+      line.push(roombgat(room, x, y));
+    }
+    out += '  ' + line.join(',');
+  }
+  out += '],\n  fg: [\n';
+
+  for (var y = 0; y < TILESH; y++) {
+    if (y > 0) out += ',\n';
+    var line = [];
+    for (var x = 0; x < TILESW; x++) {
+      line.push(roomfgat(room, x, y));
+    }
+    out += '  ' + line.join(',');
+  }
+  out += '] }';
+  return out;
+}
+
+function save() {
+  var elt = document.getElementById('mapdata');
+  
+  var out = 'var map = [\n';
+  // Print mapmap
+  for (var y = 0; y < map.length; y++) {
+    if (y > 0) out += ',\n ';
+    out += '[';
+    var line = [];
+    for (var x = 0; x < map[y].length; x++) {
+      // XXX escaping
+      line.push("'" + map[y][x] + "'");
+    }
+    out += line.join(', ');
+    out += ']';
+  }
+  out += '\n ];\n\n';
+
+  // Now all rooms.
+  for (var y = 0; y < map.length; y++) {
+    for (var x = 0; x < map[y].length; x++) {
+      var roomname = 'room_' + map[y][x];
+      var roomdata = window[roomname] || defaultroom();
+
+      out += 'var ' + roomname + ' =\n';
+      out += roomtostring(roomdata);
+      out += ';\n\n';
+    }
+  }
+
+  elt.value = out;
+}
+
+function rename() {
+  var newname = prompt('New room name? (js symbol)', cur_name);
+  for (var y = 0; y < map.length; y ++) {
+    for (var x = 0; x < map[y].length; x++) {
+      if (map[y][x] == cur_name) {
+        map[y][x] = newname;
+      }
+    }
+  }
+
+  window['room_' + cur_name] = undefined;
+  window['room_' + newname] = cur;
+  cur_name = newname;
+  redraw();
+}
+
+function fill() {
+  save();
+  for (var y = 0; y < TILESH; y++) {
+    for (var x = 0; x < TILESW; x++) {
+      if (cur_foreground) {
+        setfgat(x, y, cur_tile);
+      } else {
+        setbgat(x, y, cur_tile);
+      }
+    }
+  }  
+  redraw();
+}
+
+/*
+function load() {
+  var elt = document.getElementById('mapdata');
+  var newforeground = [];
+  var lines = elt.value.split("\n");
+  if (lines.length < TILESH) {
+    alert("Not enough lines!");
+    return;
+  }
+  for (var y = 0; y < TILESH; y++) {
+    var parts = lines[y].split(" ");
+    if (parts.length != TILESW) {
+      alert("Line " + y + " has " + parts.size +
+            " parts, not " + TILESW + "!");
+      return;
+    }
+    for (var x = 0; x < TILESW; x++) {
+      var t = dec(parts[x]);
+      if (t < 0 || t >= tiles.length) {
+        alert("Sorry this contains tile #" +
+              t + " and that is bullshit");
+        return;
+      }
+      newforeground.push(dec(parts[x]));
+    }
+  }
+  foreground = newforeground;
+  redraw();
+}
+*/
+
+
+
+</script>
+</head>
+<body style="font: 12px Verdana,Helvetica,sans-serif" onload="init();">
+<div id="map" style="position:absolute; top:0; left:0; width: 800px; height: 576px; background:#000000">
+</div>
+<div id="status" style="margin-left: 810px; border: 1px solid #CCCCCC; height: 40px">
+</div>
+<div id="tiles" style="margin-left: 810px; border: 1px solid #CCCCCC">
+</div>
+<br>
+<div id="mapmap" style="margin-left: 810px">
+</div>
+<div style="margin-left: 810px">
+[<span class="icon">&hearts;</span><span class="saveload" onclick="save()">save to textarea</span>]&nbsp;
+[<span class="icon">&#x270e;</span><span class="saveload" onclick="rename()">rename</span>]
+[<span class="icon">&#x2614;</span><span class="saveload" onclick="fill()">fill</span>]
+  <br><textarea id="mapdata" style="border: 2px solid #CCAAAAA; padding: 3px; width: 100%; height:200px; margin-top: 0.7em; font-size:8px">
+</textarea>
+<br clear="left">
+
+</div>
+</body>
+</html>

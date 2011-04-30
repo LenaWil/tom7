@@ -1,0 +1,15 @@
+
+
+80 - background music
+
+400 - 850: bg tiles
+
+3000 - danceoff indicator
+
+4050 - dance pickup
+4500 - boss shadows
+4900 - boss
+5000 - you
+5010 - status
+
+6000 - 6450: fg tiles
