@@ -1,73 +1,29 @@
 import flash.display.*;
-class You extends PhysicsObject {
+/* Used to be 'you', but now the game loop is
+   done by LaserPointer since there are two
+   cats. This just takes care of the animation
+   and stuff. */
+class Cat extends PhysicsObject {
 
   #include "constants.js"
+  #include "frames.js"
 
   var dx = 0;
   var dy = 0;
 
-  var holdingUp = false;
-  var holdingLeft = false;
-  var holdingRight = false;
-  var holdingDown = false;
-  var holdingEsc = false;
-  // Block escape until a key is released.
-  // This keeps the user from continuously
-  // resetting, which is usually undesirable.
-  var blockEsc = false;
-  var escKey = 'esc';
-
-  // Number of frames during which I'm not allowed
-  // to use keys.
-  var nokeys = 0;
-
   // Size of graphic
-  var width = 128;
-  var height = 128;
+  var width = 50;
+  var height = 25;
 
   // Subtracted from clip region.
   // Player's top-left corner is at x+left, y+top.
-  var top = 14 * 2;
-  var left = 23 * 2;
-  var right = 20 * 2;
-  var bottom = 3 * 2;
+  var top = 0;
+  var left = 0;
+  var right = 0;
+  var bottom = 0;
 
   var FPS = 25;
 
-  var framedata = {
-  robowalk : { l: ['robowalkl1', 'robowalkl2'],
-               r: ['robowalkr1', 'robowalkr2'],
-               div: 8 },
-  breakdance : { l : ['breakdancel', 'breakdancef',
-                      'breakdancer', 'breakdanceb'],
-                 // Might not be noticeable, but you
-                 // rotate in the opposite direction.
-                 r : ['breakdancer', 'breakdancef',
-                      'breakdancel', 'breakdanceb'],
-                 div: 4 },
-  jump : { l: ['jumpl'],
-           r: ['jumpr'],
-           div: 1},
-  breakjump : { l : ['breakdancel'],
-                r : ['breakdancer'],
-                div: 1},
-  hyperstand : { l : ['hyperjumpl', 'hyperjumpl2'],
-                 r : ['hyperjumpr', 'hyperjumpr2'],
-                 div : 6 },
-  hyperjump : { l : ['hyperjumpl'],
-                r : ['hyperjumpr'],
-                div: 1 },
-  // XXX should have blink anim.
-  hurt : { l : ['hurtl'],
-           r : ['hurtr'],
-           div: 1 },
-  punchstand : { l: ['punchl', 'punchr'],
-                 r: ['punchr', 'punchl'],
-                 div: 6 },
-  punchjump : { l: ['windmilll'],
-                r: ['windmillr'],
-                div: 1 }
-  };
 
   var frames = {};
 
