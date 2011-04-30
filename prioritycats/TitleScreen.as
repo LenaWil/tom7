@@ -16,6 +16,7 @@ class TitleScreen extends MovieClip {
   // XXX laserpointer!
 
   var bg: MovieClip = null;
+  var titlelaser;
   public function onLoad() {
     // Key.addListener(this);
 
@@ -32,6 +33,8 @@ class TitleScreen extends MovieClip {
     // titlemusic.start(0, 99999);
 
     this.swapDepths(BGIMAGEDEPTH);
+
+    titlelaser = _root.attachMovie('titlelaser', 'titlelaser', 2, {_x:50, _y:350})
   }
 
   public function setframe(which) {
@@ -91,9 +94,10 @@ class TitleScreen extends MovieClip {
     // better to fade out...
     // XXX this.titlemusic.stop();
 
-    // Don't need title screen any more.
+    // Don't need title screen any more, obviously
     this.removeMovieClip();
-    // XXX Also title laser pointer.
+    // Also title laser pointer.
+    titlelaser.removeMovieClip();
 
     // Whole game takes place on this blank frame
     // in the root timeline.
@@ -109,15 +113,18 @@ class TitleScreen extends MovieClip {
     if (true) {
       // Normal
       // How to attach multiple cats?
+      _root.laser = _root.attachMovie('orange', 'orange', 1, {_x:50, _y:350});
+      _root.laser = _root.attachMovie('orange', 'orange', 1, {_x:50, _y:350});
+
       // I think the laser pointer will be the actual controlling
       // object.
-      _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:350});
-      _root.you.init();
+      _root.laser = _root.attachMovie('laser', 'laser', 2, {_x:50, _y:350});
+      _root.laser.init();
       _root.world.gotoRoom('start');
     } else {
-      _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:100});
-      _root.you.init();
-      _root.world.gotoRoom('vipcorneru');
+      // _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:100});
+      // _root.you.init();
+      // _root.world.gotoRoom('vipcorneru');
     }
   }
 

@@ -4,7 +4,7 @@ import flash.display.*;
    for the game, driving all activity including
    the movement of the cats. */
 
-class LaserPointer extends MovieClip {
+class Laser extends MovieClip {
 
   #include "constants.js"
   #include "frames.js"
