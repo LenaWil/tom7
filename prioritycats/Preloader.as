@@ -15,8 +15,6 @@ class Preloader extends MovieClip {
 
     frames++;
 
-    // Maybe should have some lower bound on this so you
-    // get to see the fun loading screen?!@?
     if (now < total) {
       // this._alpha = 80.0 * Math.sin(frames / 9) + 20.0;
     } else {
@@ -30,9 +28,6 @@ class Preloader extends MovieClip {
 
       _root.attachMovie("message", "message", 29999, 
                         {_x:64, _y:14});
-
-      _root.attachMovie("resetmessage", "resetmessage", 49999, 
-                        {_x:550 / 2, _y:400 / 2});
       */
 
       /*
