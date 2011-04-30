@@ -14,11 +14,6 @@ class PhysicsObject extends Depthable {
   var right = 0;
   var bottom = 0;
 
-  // Hack. Touching gives a dance?
-  public function givesDance() {
-    return '';
-  }
-
   // Only affected by floor, not other physics objects.
   public function ignoresquares() {
     return false;
@@ -233,7 +228,6 @@ class PhysicsObject extends Depthable {
 
   // Is the point x, y in any block?
   public function pointblocked(x, y) {
-
     // These count as 'touching'.
     if (!ignoresquares()) {
       for (var o in _root.squares) {

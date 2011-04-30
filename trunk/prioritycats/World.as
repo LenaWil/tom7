@@ -166,71 +166,13 @@ class World {
         backgroundmusic.setVolume(roomvolume);
       }
 
-      if (_root.boss) {
-        _root.boss.kill();
-        _root.boss = null;
-      }
-
-      if (_root.pickup) {
-        _root.pickup();
-      }
-
-      // Kill any special stuff.
-      for (var o in deleteme) {
-        deleteme[o].removeMovieClip();
-      }
-
       rerender();
 
       _root.squares = [];
 
-      if (currentroom == 'vip') {
-        been_in_vip = true;
-      }
+      // This is where I attach place pickups, etc.
 
-      if (currentroom == 'xpickup') {
-        trace('XPICKUP.');
-        _root.pickup = _root.attachMovie('dancepickup',
-                                         'dancepickup',
-                                         4050,
-                                         // XXXXXXXXXXXX
-                                         {_x: 400, _y: 200});
-        deleteme.push(_root.pickup);
-      } else if (currentroom == 'cpickup') {
-        _root.pickup = _root.attachMovie('dancepickup',
-                                         'dancepickup',
-                                         4050,
-                                         // XXXXXXXXXXXX
-                                         {_x: 400, _y: 200});
-        deleteme.push(_root.pickup);
-      } else if (currentroom == 'vpickup') {
-        _root.pickup = _root.attachMovie('dancepickup',
-                                         'dancepickup',
-                                         4050,
-                                         // XXXXXXXXXXXX
-                                         {_x: 420, _y: 150});
-        deleteme.push(_root.pickup);
-      }
-
-      // Special room?
-      if (currentroom == 'boss') {
-        _root.boss = _root.attachMovie('boss', 'boss', 4900, {_x:400, _y:200});
-        _root.boss.init();
-
-        _root.indicator = _root.attachMovie('danceoffindicator',
-                                            'danceoffindicator',
-                                            3000,
-                                            {_x: 5 * 32, _y: 3 * 32});
-        _root.indicator.init();
-
-        // No need to interact with boss physically.
-        // _root.squares.push(_root.boss);
-        deleteme.push(_root.boss);
-        deleteme.push(_root.indicator);
-      } else {
-        _root.boss = null;
-        _root.indicator = null;
-      }
+      // This is where I attach special objects.
       
     } else {
       trace('no room ' + s);
