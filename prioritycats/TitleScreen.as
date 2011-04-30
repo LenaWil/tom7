@@ -1,19 +1,39 @@
-class DiscoballTitle extends MovieClip {
+import flash.display.*;
+class TitleScreen extends MovieClip {
 
   #include "constants.js"
 
   var titlemusic : Sound;
 
+  // Count of frames that have passed
   var frames : Number = 0;
   
+  // Regular cat graphic, then pressing start button.
+  var bg1, bg2;
+
+  // XXX laserpointer!
+
+  var bg: MovieClip = null;
+
   public function onLoad() {
     Key.addListener(this);
-    titlemusic = new Sound(this);
+
+    bg1 = BitmapData.loadBitmap('title.png');
+    // XXX draw this
+    bg2 = BitmapData.loadBitmap('title.png');
+    this.createEmptyMovieClip('bg',
+                              this.getNextHighestDepth());    
+    bg._y = 0;
+    bg._x = 0;
+    bg._xscale = 200;
+    bg._yscale = 200;
+    bg.attachBitmap(bg1, bg.getNextHightestDepth());
 
     // XXX TODO: title music!
-    titlemusic.attachSound('start.mp3');
-    titlemusic.setVolume(0);
-    titlemusic.start(0, 99999);
+    // titlemusic = new Sound(this);
+    // titlemusic.attachSound('start.mp3');
+    // titlemusic.setVolume(0);
+    // titlemusic.start(0, 99999);
 
     this.swapDepths(1000);
   }
@@ -22,7 +42,7 @@ class DiscoballTitle extends MovieClip {
     // Fade in...
     frames++;
     if (frames < 100) {
-      titlemusic.setVolume(frames);
+      // XXX titlemusic.setVolume(frames);
     }
 
     var alpha = 100;
@@ -40,7 +60,7 @@ class DiscoballTitle extends MovieClip {
       Key.removeListener(this);
 
       // better to fade out...
-      this.titlemusic.stop();
+      // XXX this.titlemusic.stop();
       this.removeMovieClip();
 
       _root.gotoAndStop('game');
