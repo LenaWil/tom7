@@ -26,11 +26,12 @@ class Cat extends PhysicsObject {
   var FPS = 25;
 
 
-  var frames = {}, heads = {};
+  var frames, heads;
 
   public function init(pfx) {
     // initialize frame data, by loading the bitmaps and
     // doing the flippin.
+    frames = {};
     for (var o in framedata) {
       // Copy frames into L and R.
       frames[o] = { l: [],
@@ -56,6 +57,7 @@ class Cat extends PhysicsObject {
       }
     }
 
+    heads = {};
     // Same for heads. Code reuse!
     for (var o in headdata) {
       // Copy frames into L and R.
@@ -262,10 +264,10 @@ class Cat extends PhysicsObject {
 
     // Figure out which head, based on the angle to the laser.
     // XXX implement no-laser!
-    var cx = fs[f].hx + this._x;
-    var cy = fs[f].hy + this._y;
+    var cx = (fs[f].hx * 2) + this._x;
+    var cy = (fs[f].hy * 2) + this._y;
     var dx = lx - cx;
-    var dy = lx - ly;
+    var dy = ly - cy;
 
     if (dx == 0 && dy == 0) {
       // Also should be this in the no-head case.
@@ -274,6 +276,12 @@ class Cat extends PhysicsObject {
     } else {
       var rads = Math.atan2(dy, dx);
       var degs = (360 + rads * 57.2957795) % 360;
+
+      // Made this table with the wrong handedness.
+      degs = 360 - degs;
+
+      // _root.message.text = '' + int(degs) + ' ' + dx + ' ' + dy;
+      // _root.message.swapDepths(99999);
 
       if (degs >= 330 || degs < 30) {
         whathead = 'heade';
