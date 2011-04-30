@@ -27,28 +27,8 @@ class Cat extends PhysicsObject {
 
   var frames = {};
 
-  // Maybe should fail if the new shape is clipped.
-  public function setdimensions(d) {
-    switch(d) {
-      // Breakdance and punch make you shorter.
-    case 'v':
-    case 'x':
-      top = 37 * 2;
-      left = 23 * 2;
-      right = 20 * 2;
-      bottom = 3 * 2;
-      break;
-    case 'z':
-    case 'c':
-    default:
-      top = 12 * 2;
-      left = 23 * 2;
-      right = 20 * 2;
-      bottom = 3 * 2;
-    }
-  }
-
   public function init() {
+    /*
     for (var o in framedata) {
       frames[o] = { l: [], r: [], div: framedata[o].div || 8 };
       var l = framedata[o].l;
@@ -61,6 +41,7 @@ class Cat extends PhysicsObject {
         frames[o].r.push({ src : r[i],
               bm: BitmapData.loadBitmap(r[i] + '.png') });
     }
+    */
   }
 
   // Keep track of what dudes I touched, since
@@ -79,118 +60,31 @@ class Cat extends PhysicsObject {
     Key.addListener(this);
     this._xscale = 200.0;
     this._yscale = 200.0;
-    this.setdepth(5000);
+    // Doesn't really matter which one is on top. Try both.
+    this.setdepth(CATDEPTH + 1);
+    this.setdepth(CATDEPTH);
     this.stop();
-  }
-
-  public function onKeyDown() {
-    var k = Key.getCode();
-    // _root.message.say(k);
-
-    switch(k) {
-    case 192: // ~
-      escKey = '~';
-      if (!blockEsc) holdingEsc = true;
-      break;
-    case 82: // r
-      escKey = 'r';
-      if (!blockEsc) holdingEsc = true;
-      break;
-    case 27: // esc
-      escKey = 'esc';
-      if (!blockEsc) holdingEsc = true;
-      break;
-      // XXXXXXXXXXXX cheats
-
-      /*
-    case 66:
-      _root.status.learnDance('x');
-      _root.status.learnDance('c');
-      _root.status.learnDance('v');
-      _root.status.showGotDance();
-      break;
-      */
-
-    case 32: // space
-    case 38: // up
-      holdingUp = true;
-      break;
-    case 37: // left
-      holdingLeft = true;
-      break;
-    case 39: // right
-      holdingRight = true;
-      break;
-    case 40: // down
-      holdingDown = true;
-      break;
-    default:
-      _root.status.selectDance(k);
-      break;
-    }
-  }
-
-  public function onKeyUp() {
-    var k = Key.getCode();
-    switch(k) {
-    case 192: // ~
-    case 82: // r
-    case 27: // esc
-      holdingEsc = false;
-      blockEsc = false;
-      break;
-
-    case 32:
-    case 38:
-      // XXX ok if player is pressing both and
-      // releases one??
-      // XXX also, this should really be impulse
-      // so that the player doesn't keep jumping
-      // when holding it down.
-      holdingUp = false;
-      break;
-    case 37:
-      holdingLeft = false;
-      break;
-    case 39:
-      holdingRight = false;
-      break;
-    case 40:
-      holdingDown = false;
-      break;
-    }
   }
 
   public function getConstants() {
     var C = defaultconstants();
-    switch(_root.status.getCurrentDance()) {
-    case 'c':
-      C.jump_impulse = 28.0;
-      C.gravity = 0.4;
-      break;
-    case 'v':
-      C.accel = 2.1;
-      break;
-    default:;
-
-    }
     return C;
   }
 
   public function wishjump() {
-    return nokeys == 0 && holdingUp;
+    return false;
   }
 
   public function wishleft() {
-    return nokeys == 0 && holdingLeft;
+    return false;
   }
 
   public function wishright() {
-    return nokeys == 0 && holdingRight;
+    return false;
   }
 
   public function wishdive() {
-    return nokeys == 0 && holdingDown;
+    return false;
   }
 
   var framemod : Number = 0;
@@ -203,53 +97,27 @@ class Cat extends PhysicsObject {
 
     touchset = [];
 
-    // Before physics, allow breaking blocks. 
-    switch(_root.status.getCurrentDance()) {
-    case 'v':
-      // Is it glass?
-      var xx = (this.x1() + this.x2()) * 0.5;
-      var yy = this.y2() + 2;
-      if (_root.world.foregroundTileAt(xx, yy) == 84) {
-        _root.world.deleteForegroundTileAt(xx, yy);
-        _root.world.rerender();
-        this.dy -= 5.0;
-      }
-    default:;
-    }
-
     movePhysics();
-
-    if (nokeys > 0)
-      nokeys--;
 
     // Now, if we touched someone, give it some
     // love.
     for (var o in touchset) {
       var other = touchset[o];
 
-      var gd = other.givesDance();
-      if (gd != '') {
-        _root.status.learnDance(gd);
-        // Should give a better indication, but
-        // switching is pretty obvious.
-        _root.status.switchDance(gd);
-        _root.status.showGotDance();
-        other.take();
-        
-      } else {
-        var diffx = other._x - this._x;
-        var diffy = other._y - this._y;
-    
-        var normx = diffx / width;
-        var normy = diffy / height;
+      // This is where I activate touchable things.
 
-        // Don't push from side to side when like
-        // standing on a dude but not centered.
-        if (Math.abs(normx) > Math.abs(normy)) {
-          other.dx += normx;
-        } else {
-          other.dy += normy;
-        }
+      var diffx = other._x - this._x;
+      var diffy = other._y - this._y;
+
+      var normx = diffx / width;
+      var normy = diffy / height;
+
+      // Don't push from side to side when like
+      // standing on a dude but not centered.
+      if (Math.abs(normx) > Math.abs(normy)) {
+        other.dx += normx;
+      } else {
+        other.dy += normy;
       }
     }
 
@@ -262,76 +130,35 @@ class Cat extends PhysicsObject {
     }
     */
 
-    // What dance am I doing?
-    var what_stand = 'robowalk', what_jump = 'jump';
+    var what_stand = 'buttup', what_jump = 'buttup';
     var what_animate = false;
-    switch(_root.status.getCurrentDance()) {
-    default:
-    case 'z':
-      what_stand = 'robowalk';
-      what_jump = 'jump';
-      break;
-    case 'x':
-      what_stand = 'breakdance';
-      what_jump = 'breakjump';
-      break;
-    case 'c':
-      what_stand = 'hyperstand';
-      what_jump = 'hyperjump';
-      break;
-    case 'v':
-      what_stand = 'punchstand';
-      what_jump = 'punchjump';
-      what_animate = true;
-      break;
+
+    var otg = ontheground();
+    if (otg) {
+      if (dx > 1) {
+        facingright = true;
+        setframe(what_stand, facingright, framemod);
+      } else if (dx > 0) {
+        facingright = true;
+        setframe(what_stand, facingright, what_animate ? framemod : 0);
+      } else if (dx < -1) {
+        facingright = false;
+        setframe(what_stand, facingright, framemod);
+      } else if (dx < 0) {
+        setframe(what_stand, facingright, what_animate ? framemod : 0);
+      } else {
+        // standing still on ground.
+        setframe(what_stand, facingright, what_animate ? framemod : 0);
+      }
+      // ...
+    } else {
+      // In the air.
+      setframe(what_jump, facingright, framemod);
     }
 
-    if (_root.boss && _root.boss.youOnDanceFloor())
-      what_animate = true;
-
-    // Set animation frames.
-    if (nokeys > 0) {
-      // Assume nokeys = hurting.
-
-      // When we're struck, we are pushed away from
-      // the harm, so remain facing it.
-      if (dx > 0) {
-        facingright = false;
-      } else if (dx < 0) {
-        facingright = true;
-      }
-      
-      // Irrespective of dance.
-      setframe('hurt', facingright, framemod);
-    } else {
-
-      // XXX if on dance floor, then animate the dance
-      // even when standing still.
-
-      var otg = ontheground();
-      if (otg) {
-        if (dx > 1) {
-          facingright = true;
-          setframe(what_stand, facingright, framemod);
-        } else if (dx > 0) {
-          facingright = true;
-          setframe(what_stand, facingright, what_animate ? framemod : 0);
-        } else if (dx < -1) {
-          facingright = false;
-          setframe(what_stand, facingright, framemod);
-        } else if (dx < 0) {
-          setframe(what_stand, facingright, what_animate ? framemod : 0);
-        } else {
-          // standing still on ground.
-          setframe(what_stand, facingright, what_animate ? framemod : 0);
-        }
-        // ...
-      } else {
-        // In the air.
-        setframe(what_jump, facingright, framemod);
-      }
-    }    
-
+    // Probably don't want any of this. Laser pointer
+    // should control transitions?
+    /*
     // Check room transitions. nb.: This exits early
     // when we warp, so it should happen last.
     var centerx = (x2() + x1()) * 0.5;
@@ -355,38 +182,31 @@ class Cat extends PhysicsObject {
       return;
     } 
 
-    // Wow I am dumb. Did you catch that bug in the
-    // screencaps faster than I did? Probably.
     if (centery >= GAMESCREENHEIGHT && dy > 0) {
       _root.world.gotoRoom(_root.world.downRoom());
       this._y -= GAMESCREENHEIGHT;
       return;
     }
+    */
   }
 
-  var anim: MovieClip = null;
+  var body: MovieClip = null;
   public function setframe(what, fright, frmod) {
     // PERF don't need to do this if we're already on the
     // right frame, which is the common case.
-    if (anim) anim.removeMovieClip();
-    anim = this.createEmptyMovieClip('anim',
+    if (body) body.removeMovieClip();
+    body = this.createEmptyMovieClip('body',
                                      this.getNextHighestDepth());
-    anim._y = 0;
-    anim._x = 0;
+    body._y = 0;
+    body._x = 0;
 
     var fs = (fright ? frames[what].r : frames[what].l);
     // XXX pingpong
     var f = int(frmod / frames[what].div) % fs.length;
     // trace(what + ' ' + frmod + f);
-    anim.attachBitmap(fs[f].bm, anim.getNextHighestDepth());
-  }
+    body.attachBitmap(fs[f].bm, body.getNextHighestDepth());
 
-  public function thrusted(frames) {
-    // XXX damage anim.
-    this.dx = -20;
-    if (this.nokeys < frames) {
-      this.nokeys = frames;
-    }
+    
   }
 
 }
