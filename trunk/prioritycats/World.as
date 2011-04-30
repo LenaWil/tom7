@@ -1,4 +1,5 @@
 import flash.display.*;
+import flash.text.*;
 
 class World {
 
@@ -285,6 +286,58 @@ class World {
     // if (true || show)
     // trace('tile@ ' + tilex + "," + tiley + ": " + tile + ' =  ' + tilemap[tile].id);
     return tilemap[tile].id != 0;
+  }
+
+
+  var ccount = 1;
+  var circs = [];
+  public function clearDebug() {
+    for (var o in circs) {
+      circs[o].removeMovieClip();
+    }
+    circs = [];
+  }
+
+  // Returns true if every pixel(ish) between the two screen pixels
+  // is unblocked.
+  public function lineOfSight(x1, y1, x2, y2) {
+    // We may stop before we get to the final point. Test that first.
+    if (solidTileAt(x2, y2)) return false;
+
+    var dx = x2 - x1;
+    var dy = y2 - y1;
+    // Make unit vector.
+    var d = Math.sqrt(dx * dx + dy * dy);
+    dx = dx / d;
+    dy = dy / d;
+    // Make quantum vector. To avoid tunnelling, we just
+    // need the width of the test to be no longer than the
+    // width of the minimum object. We don't care much about
+    // going through corners (just make them solid; after
+    // all, cats can see out of their butts!) so the minimum
+    // width is just the tile width or height, which are the same.
+    var step = (WIDTH / 2);
+    dx = dx * step;
+    dy = dy * step;
+
+    // _root.message.text = '' + dx + ' ' + dy + ' ' + ' ' + d + ' ' + step;
+    
+    // just prevent looping when some bullshit creeps in there
+    var maxiters = 100; 
+    for (var i = 0; i * step < d; i++) {
+      var tx = x1 + i * dx, ty = y1 + i * dy;
+      var c = _root.attachMovie('circle', 'circle' + ccount, 20000 + ccount, {_x: tx, _y: ty});
+      c._alpha = 15;
+      circs.push(c);
+      ccount++;
+
+      if (solidTileAt(tx, ty)) {
+        return false;
+      }
+    }
+
+    // Not blocked.
+    return true;
   }
 
 }

@@ -134,11 +134,17 @@ class Cat extends PhysicsObject {
   public function wishdive() {
     return false;
   }
-
+  
+  var looking = false;
   var lookx = 0, looky = 0;
   public function lookat(x, y) {
+    looking = true;
     lookx = x;
     looky = y;
+  }
+
+  public function nolook() {
+    looking = false;
   }
 
   var framemod : Number = 0;
@@ -213,7 +219,12 @@ class Cat extends PhysicsObject {
     }
     */
 
-    setframe(what_stand, facingright, lookx, looky, framemod);
+    // If I can't see the laser, and I'm on the ground, then I'm sleeping.
+    if (!looking) {
+      what_stand = 'rest';
+    }
+
+    setframe(what_stand, facingright, framemod);
 
     // Probably don't want any of this. Laser pointer
     // should control transitions?
@@ -250,7 +261,7 @@ class Cat extends PhysicsObject {
   }
 
   var body: MovieClip = null, head: MovieClip = null;
-  public function setframe(what, whathead, lx, ly, fright, frmod) {
+  public function setframe(what, fright, frmod) {
 
     // PERF don't need to do this if we're already on the
     // right frame, which is the common case.
@@ -269,49 +280,56 @@ class Cat extends PhysicsObject {
     body.attachBitmap(fs[f].bm, body.getNextHighestDepth());
 
     // Figure out which head, based on the angle to the laser.
-    // XXX implement no-laser!
-    var cx = (fs[f].hx * 2) + this._x;
-    var cy = (fs[f].hy * 2) + this._y;
-    var dx = lx - cx;
-    var dy = ly - cy;
+    // We calculate it here because we know where the head
+    // is actually attached, so we can get the most accurate
+    // reading.
+    var whathead;
+    if (looking) {
+      var cx = (fs[f].hx * 2) + this._x;
+      var cy = (fs[f].hy * 2) + this._y;
+      var dx = lookx - cx;
+      var dy = looky - cy;
 
-    if (dx == 0 && dy == 0) {
-      // Also should be this in the no-head case.
-      // Also should be headw if facing left?
-      whathead = 'heade';
-    } else {
-      var rads = Math.atan2(dy, dx);
-      var degs = (360 + rads * 57.2957795) % 360;
-
-      // Made this table with the wrong handedness.
-      degs = 360 - degs;
-
-      // _root.message.text = '' + int(degs) + ' ' + dx + ' ' + dy;
-      // _root.message.swapDepths(99999);
-
-      if (degs >= 330 || degs < 30) {
+      if (dx == 0 && dy == 0) {
+        // Also should be this in the no-head case?
+        // Also should be headw if facing left?
         whathead = 'heade';
-      } else if (degs <= 60) {
-        whathead = 'headne';
-      } else if (degs <= 90) {
-        whathead = 'headnne';
-      } else if (degs >= 300) {
-        whathead = 'headse';
-      } else if (degs >= 270) {
-        whathead = 'headsse';
-      } else if (degs >= 240) {
-        whathead = 'headssw';
-      } else if (degs >= 210) {
-        whathead = 'headsw';
-      } else if (degs <= 120) {
-        whathead = 'headnnw';
-      } else if (degs <= 150) {
-        whathead = 'headnw';
       } else {
-        whathead = 'headw';
-      }
+        var rads = Math.atan2(dy, dx);
+        var degs = (360 + rads * 57.2957795) % 360;
 
-      // trace(degs);
+        // Made this table with the wrong handedness.
+        degs = 360 - degs;
+
+        // _root.message.text = '' + int(degs) + ' ' + dx + ' ' + dy;
+        // _root.message.swapDepths(99999);
+
+        if (degs >= 330 || degs < 30) {
+          whathead = 'heade';
+        } else if (degs <= 60) {
+          whathead = 'headne';
+        } else if (degs <= 90) {
+          whathead = 'headnne';
+        } else if (degs >= 300) {
+          whathead = 'headse';
+        } else if (degs >= 270) {
+          whathead = 'headsse';
+        } else if (degs >= 240) {
+          whathead = 'headssw';
+        } else if (degs >= 210) {
+          whathead = 'headsw';
+        } else if (degs <= 120) {
+          whathead = 'headnnw';
+        } else if (degs <= 150) {
+          whathead = 'headnw';
+        } else {
+          whathead = 'headw';
+        }
+
+        // trace(degs);
+      }
+    } else {
+      whathead = 'headrest';
     }
 
     if (head) head.removeMovieClip();
