@@ -43,9 +43,24 @@ class Laser extends MovieClip {
     fr = (fr + 1) % frames.length;
     anim.attachBitmap(frames[fr], anim.getNextHighestDepth());
 
-    if (orange) orange.lookat(this.x, this.y);
-    if (grey) grey.lookat(this.x, this.y);
+    // Do visibility test.
+    _root.world.clearDebug();
+    if (orange) {
+      lookTest(orange, this.x, this.y);
+    }
+    if (grey) {
+      lookTest(grey, this.x, this.y);
+    }
 
+  }
+
+  public function lookTest(cat : Cat, lx, ly) {
+    if (_root.world.lineOfSight(cat.x1(), cat.y1() + cat.clipheight() / 2, lx, ly) ||
+        _root.world.lineOfSight(cat.x2(), cat.y1() + cat.clipheight() / 2, lx, ly)) {
+      cat.lookat(lx, ly);
+    } else {
+      cat.nolook();
+    }
   }
 
   var started = false;

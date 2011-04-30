@@ -7,7 +7,8 @@
 // and the pixel location (native) of the neck, in the East
 // orientation.
 var framedata = {
-    buttup: {f: [{ p: 'buttup', hx: 30, hy: 15 }], div: 8}
+    buttup: {f: [{ p: 'buttup', hx: 30, hy: 15 }], div: 8},
+    rest: {f: [{ p: 'rest', hx: 30, hy: 17 }], div: 8}
 };
 
 var headdata = {
@@ -20,6 +21,7 @@ var headdata = {
     headsw: {f: ['headsw'], div: 8},
     headw: {f: ['headw'], div: 8},
     headnw: {f: ['headnw'], div: 8},
-    headnnw: {f: ['headnnw'], div: 8}
+    headnnw: {f: ['headnnw'], div: 8},
+    headrest: {f: ['headrest'], div: 8}
 };
 
