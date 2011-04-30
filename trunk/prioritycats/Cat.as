@@ -119,16 +119,19 @@ class Cat extends PhysicsObject {
     return C;
   }
 
+  var wanna_jump = false;
+  var wanna_left = false;
+  var wanna_right = false;
   public function wishjump() {
-    return false;
+    return wanna_jump;
   }
 
   public function wishleft() {
-    return false;
+    return wanna_left;
   }
 
   public function wishright() {
-    return false;
+    return wanna_right;
   }
 
   public function wishdive() {
@@ -141,10 +144,32 @@ class Cat extends PhysicsObject {
     looking = true;
     lookx = x;
     looky = y;
+    
+    // XXX this should be based on some
+    // kind of timing, and should probably
+    // be cat-specific so that they can be
+    // separated.
+
+    // ?
+    var cx = this._x + width / 2;
+    var cy = this._y + height / 2;
+    
+    var rads = Math.atan2(y - cy, x - cx);
+    var degs = (360 + rads * 57.2957795) % 360;
+    // Made this table with the wrong handedness.
+    degs = 360 - degs;
+
+    wanna_right = (degs <= 60 || degs >= 300);
+    wanna_left = (degs >= 120 && degs <= 240);
+    // Must it be mutually exclusive?
+    wanna_jump = (degs >= 60 && degs <= 120);
   }
 
   public function nolook() {
     looking = false;
+    wanna_left = false;
+    wanna_right = false;
+    wanna_jump = false;
   }
 
   var framemod : Number = 0;
