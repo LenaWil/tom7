@@ -58,7 +58,8 @@ class Cat extends PhysicsObject {
         var fbm = new BitmapData(bm.width, bm.height, true, 0);
         fbm.draw(bm, fliphoriz);
         // off-by-one in head x calc?
-        frames[o].l.push({ bm: fbm, hx : width - f[i].hx, hy: f[i].hy });
+        trace('hx: ' + ((width / 2) - f[i].hx));
+        frames[o].l.push({ bm: fbm, hx : (width / 2) - f[i].hx, hy: f[i].hy });
       }
     }
 
@@ -122,16 +123,18 @@ class Cat extends PhysicsObject {
   var wanna_jump = false;
   var wanna_left = false;
   var wanna_right = false;
+
+  var paralyzed = false;  // XXX
   public function wishjump() {
-    return wanna_jump;
+    return !paralyzed && wanna_jump;
   }
 
   public function wishleft() {
-    return wanna_left;
+    return !paralyzed && wanna_left;
   }
 
   public function wishright() {
-    return wanna_right;
+    return !paralyzed && wanna_right;
   }
 
   public function wishdive() {
@@ -216,12 +219,20 @@ class Cat extends PhysicsObject {
     */
 
     var what_stand = 'buttup', what_jump = 'buttup';
+    
+    if (!looking)
+      what_stand = 'rest';
+
+    // true means force animation, even if still
     var what_animate = false;
 
     facingright = true; // XXX
-    /*
+
     var otg = ontheground();
     if (otg) {
+
+      // If I can't see the laser, and I'm on the ground, 
+      // then I'm resting.
       if (dx > 1) {
         facingright = true;
         setframe(what_stand, facingright, framemod);
@@ -242,14 +253,6 @@ class Cat extends PhysicsObject {
       // In the air.
       setframe(what_jump, facingright, framemod);
     }
-    */
-
-    // If I can't see the laser, and I'm on the ground, then I'm sleeping.
-    if (!looking) {
-      what_stand = 'rest';
-    }
-
-    setframe(what_stand, facingright, framemod);
 
     // Probably don't want any of this. Laser pointer
     // should control transitions?
@@ -295,6 +298,9 @@ class Cat extends PhysicsObject {
                                      this.getNextHighestDepth());
     body._x = 0;
     body._y = 0;
+
+    // XXX forced.
+    // fright = false;
 
     // Facing left or right?
     var fs = (fright ? frames[what].r : frames[what].l);
@@ -356,6 +362,9 @@ class Cat extends PhysicsObject {
     } else {
       whathead = 'headrest';
     }
+
+    // reverse head if reversed.
+    if (!fright) whathead = reverseHead(whathead);
 
     if (head) head.removeMovieClip();
     // has to be on top of body
