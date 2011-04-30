@@ -4,7 +4,7 @@ import flash.display.*;
    for the game, driving all activity including
    the movement of the cats. */
 
-class Laser extends MovieClip {
+class LaserPointer extends MovieClip {
 
   #include "constants.js"
   #include "frames.js"
@@ -81,6 +81,10 @@ class Laser extends MovieClip {
     for (var i = 0; i < 4; i++) {
       frames.push(BitmapData.loadBitmap('lp' + (i + 1) + '.png'));
     }
+
+    // Create cats.
+    _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:350});
+    _root.you.init();
 
     Mouse.addListener(this);
     // Don't show system mouse cursor.

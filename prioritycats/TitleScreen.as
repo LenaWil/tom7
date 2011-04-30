@@ -13,6 +13,13 @@ class TitleScreen extends MovieClip {
   // Regular cat graphic, then pressing start button.
   var bg1, bg2;
 
+  // var FADEFRAMES = 50;
+  // var ALPHAMULT = 2;
+
+  // fastmode!
+  var FADEFRAMES = 10;
+  var ALPHAMULT = 10;
+
   // XXX laserpointer!
 
   var bg: MovieClip = null;
@@ -51,22 +58,22 @@ class TitleScreen extends MovieClip {
   public function onEnterFrame() {
     // Fade in...
     frames++;
-    if (frames < 50) {
+    if (frames < FADEFRAMES) {
       // XXX titlemusic.setVolume(frames);
     }
 
     var alpha = 100;
-    if (frames < 50) {
-      alpha = frames * 2;
+    if (frames < FADEFRAMES) {
+      alpha = frames * ALPHAMULT;
     }
 
     // Shouldn't add laser pointer until we're faded in?
     // (Or at least shouldn't start starting countdown
     // in laserpointer.)
-    if (frames > 50) {
+    if (frames > FADEFRAMES) {
       if (starting > 0) {
         starting--;
-        alpha = starting * 2;
+        alpha = starting * ALPHAMULT;
         if (!starting) {
           reallyStart();
         }
@@ -84,7 +91,7 @@ class TitleScreen extends MovieClip {
     setframe(bg2);
 
     // need to wait a while, fading out.
-    starting = 50;
+    starting = FADEFRAMES;
   }
 
 
@@ -113,13 +120,17 @@ class TitleScreen extends MovieClip {
     if (true) {
       // Normal
       // How to attach multiple cats?
-      _root.laser = _root.attachMovie('orange', 'orange', 1, {_x:50, _y:350});
-      _root.laser = _root.attachMovie('orange', 'orange', 1, {_x:50, _y:350});
+      _root.orange = _root.attachMovie('orange', 'orange', 1, {_x:90, _y:90});
+      // no prefix for orange.
+      _root.orange.init(''); 
+      // _root.grey = _root.attachMovie('grey', 'grey', 2, {_x:50, _y:350});
+      // _root.grey.init('g');
 
-      // I think the laser pointer will be the actual controlling
-      // object.
-      _root.laser = _root.attachMovie('laser', 'laser', 2, {_x:50, _y:350});
+      // The laser pointer will be the actual controlling object.
+      _root.laser = _root.attachMovie('laser', 'laser', 3, {_x:50, _y:350});
       _root.laser.init();
+
+
       _root.world.gotoRoom('start');
     } else {
       // _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:100});

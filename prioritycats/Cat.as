@@ -1,4 +1,5 @@
 import flash.display.*;
+import flash.geom.Matrix;
 /* Used to be 'you', but now the game loop is
    done by LaserPointer since there are two
    cats. This just takes care of the animation
@@ -25,23 +26,62 @@ class Cat extends PhysicsObject {
   var FPS = 25;
 
 
-  var frames = {};
+  var frames = {}, heads = {};
 
-  public function init() {
-    /*
+  public function init(pfx) {
+    // initialize frame data, by loading the bitmaps and
+    // doing the flippin.
     for (var o in framedata) {
-      frames[o] = { l: [], r: [], div: framedata[o].div || 8 };
-      var l = framedata[o].l;
-      var r = framedata[o].r || l;
-      
-      for (var i = 0; i < l.length; i++)
-        frames[o].l.push({ src : l[i],
-              bm: BitmapData.loadBitmap(l[i] + '.png') });
-      for (var i = 0; i < r.length; i++)
-        frames[o].r.push({ src : r[i],
-              bm: BitmapData.loadBitmap(r[i] + '.png') });
+      // Copy frames into L and R.
+      frames[o] = { l: [],
+                    r: [],
+                    div: framedata[o].div || 8 };
+      var f = framedata[o].f;
+      for (var i = 0; i < f.length; i++) {
+        var bm = BitmapData.loadBitmap(pfx + f[i].p + '.png');
+        if (!bm) {
+          trace('could not load bitmap ' + f[i].p +
+                '. add it to the library and set linkage!');
+        }
+        frames[o].r.push({ bm: bm, hx : f[i].hx, hy: f[i].hy });
+
+        var fliphoriz = new Matrix();
+        fliphoriz.scale(-1,1);
+        fliphoriz.translate(bm.width, 0);
+
+        var fbm = new BitmapData(bm.width, bm.height, true, 0);
+        fbm.draw(bm, fliphoriz);
+        // off-by-one in head x calc?
+        frames[o].l.push({ bm: fbm, hx : width - f[i].hx, hy: f[i].hy });
+      }
     }
-    */
+
+    // Same for heads. Code reuse!
+    for (var o in headdata) {
+      // Copy frames into L and R.
+      heads[o] = { l: [],
+                   r: [],
+                   div: headdata[o].div || 8 };
+      var f = headdata[o].f;
+      for (var i = 0; i < f.length; i++) {
+        var bm = BitmapData.loadBitmap(pfx + f[i] + '.png');
+        if (!bm) {
+          trace('could not load bitmap ' + f[i] +
+                '. add it to the library and set linkage!');
+        }
+        heads[o].r.push({ bm: bm });
+
+        var fliphoriz = new Matrix();
+        fliphoriz.scale(-1,1);
+        fliphoriz.translate(bm.width, 0);
+
+        var fbm = new BitmapData(bm.width, bm.height, true, 0);
+        fbm.draw(bm, fliphoriz);
+        // off-by-one in head x calc?
+        heads[o].l.push({ bm: fbm });
+      }
+    }
+
   }
 
   // Keep track of what dudes I touched, since
@@ -131,8 +171,11 @@ class Cat extends PhysicsObject {
     */
 
     var what_stand = 'buttup', what_jump = 'buttup';
+    var what_head = 'heade';
     var what_animate = false;
 
+    facingright = true; // XXX
+    /*
     var otg = ontheground();
     if (otg) {
       if (dx > 1) {
@@ -155,6 +198,9 @@ class Cat extends PhysicsObject {
       // In the air.
       setframe(what_jump, facingright, framemod);
     }
+    */
+
+    setframe(what_stand, what_head, facingright, framemod);
 
     // Probably don't want any of this. Laser pointer
     // should control transitions?
@@ -190,23 +236,36 @@ class Cat extends PhysicsObject {
     */
   }
 
-  var body: MovieClip = null;
-  public function setframe(what, fright, frmod) {
+  var body: MovieClip = null, head: MovieClip = null;
+  public function setframe(what, whathead, fright, frmod) {
+
     // PERF don't need to do this if we're already on the
     // right frame, which is the common case.
     if (body) body.removeMovieClip();
     body = this.createEmptyMovieClip('body',
                                      this.getNextHighestDepth());
-    body._y = 0;
     body._x = 0;
+    body._y = 0;
 
+    // Facing left or right?
     var fs = (fright ? frames[what].r : frames[what].l);
     // XXX pingpong
     var f = int(frmod / frames[what].div) % fs.length;
     // trace(what + ' ' + frmod + f);
+    // trace('' + fs[f].bm + ' ?');
     body.attachBitmap(fs[f].bm, body.getNextHighestDepth());
 
-    
+    if (head) head.removeMovieClip();
+    // has to be on top of body
+    head = this.createEmptyMovieClip('head',
+                                     this.getNextHighestDepth());
+    head._x = fs[f].hx - HEADATTACHX;
+    head._y = fs[f].hy - HEADATTACHY;
+
+    var fs = (fright ? heads[whathead].r : heads[whathead].l);
+    var f = int(frmod / heads[whathead].div) % fs.length;
+    // trace(whathead + ' ' + fs + ' ' + f);
+    head.attachBitmap(fs[f].bm, body.getNextHighestDepth());
   }
 
 }
