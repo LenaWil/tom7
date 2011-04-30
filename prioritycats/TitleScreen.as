@@ -125,10 +125,11 @@ class TitleScreen extends MovieClip {
       _root.orange.init(''); 
       // _root.grey = _root.attachMovie('grey', 'grey', 2, {_x:50, _y:350});
       // _root.grey.init('g');
+      _root.grey = null;
 
       // The laser pointer will be the actual controlling object.
       _root.laser = _root.attachMovie('laser', 'laser', 3, {_x:50, _y:350});
-      _root.laser.init();
+      _root.laser.init(_root.orange, _root.grey);
 
 
       _root.world.gotoRoom('start');
