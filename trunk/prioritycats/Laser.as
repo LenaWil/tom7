@@ -42,6 +42,10 @@ class Laser extends MovieClip {
 
     fr = (fr + 1) % frames.length;
     anim.attachBitmap(frames[fr], anim.getNextHighestDepth());
+
+    if (orange) orange.lookat(this.x, this.y);
+    if (grey) grey.lookat(this.x, this.y);
+
   }
 
   var started = false;
@@ -72,6 +76,11 @@ class Laser extends MovieClip {
     // to wait until cat cuteification happens
     mc._x = int(cx + Math.cos(rads) * 10);
     mc._y = int(-4 + cy + Math.sin(rads) * 3.5);
+  }
+
+  public function init(oo, gg) {
+    orange = oo;
+    grey = gg;
   }
 
   public function onLoad() {

@@ -127,6 +127,12 @@ class Cat extends PhysicsObject {
     return false;
   }
 
+  var lookx = 0, looky = 0;
+  public function lookat(x, y) {
+    lookx = x;
+    looky = y;
+  }
+
   var framemod : Number = 0;
   var facingright = true;
   public function onEnterFrame() {
@@ -171,7 +177,6 @@ class Cat extends PhysicsObject {
     */
 
     var what_stand = 'buttup', what_jump = 'buttup';
-    var what_head = 'heade';
     var what_animate = false;
 
     facingright = true; // XXX
@@ -200,7 +205,7 @@ class Cat extends PhysicsObject {
     }
     */
 
-    setframe(what_stand, what_head, facingright, framemod);
+    setframe(what_stand, facingright, lookx, looky, framemod);
 
     // Probably don't want any of this. Laser pointer
     // should control transitions?
@@ -237,7 +242,7 @@ class Cat extends PhysicsObject {
   }
 
   var body: MovieClip = null, head: MovieClip = null;
-  public function setframe(what, whathead, fright, frmod) {
+  public function setframe(what, whathead, lx, ly, fright, frmod) {
 
     // PERF don't need to do this if we're already on the
     // right frame, which is the common case.
@@ -254,6 +259,39 @@ class Cat extends PhysicsObject {
     // trace(what + ' ' + frmod + f);
     // trace('' + fs[f].bm + ' ?');
     body.attachBitmap(fs[f].bm, body.getNextHighestDepth());
+
+    // Figure out which head, based on the angle to the laser.
+    // XXX implement no-laser!
+    var cx = fs[f].hx + this._x;
+    var cy = fs[f].hy + this._y;
+    var dx = lx - cx;
+    var dy = lx - ly;
+
+    if (dx == 0 && dy == 0) {
+      // Also should be this in the no-head case.
+      // Also should be headw if facing left?
+      whathead = 'heade';
+    } else {
+      var rads = Math.atan2(dy, dx);
+      var degs = (360 + rads * 57.2957795) % 360;
+
+      if (degs >= 330 || degs < 30) {
+        whathead = 'heade';
+      } else if (degs <= 60) {
+        whathead = 'headne';
+      } else if (degs <= 90) {
+        whathead = 'headnne';
+      } else if (degs >= 300) {
+        whathead = 'headse';
+      } else if (degs >= 270) {
+        whathead = 'headsse';
+      } else {
+        // XXX need west heads
+        whathead = 'heade';
+      }
+
+      trace(degs);
+    }
 
     if (head) head.removeMovieClip();
     // has to be on top of body
