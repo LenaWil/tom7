@@ -14,7 +14,6 @@ class TitleScreen extends MovieClip {
   // XXX laserpointer!
 
   var bg: MovieClip = null;
-
   public function onLoad() {
     Key.addListener(this);
 
@@ -35,7 +34,7 @@ class TitleScreen extends MovieClip {
     // titlemusic.setVolume(0);
     // titlemusic.start(0, 99999);
 
-    this.swapDepths(1000);
+    this.swapDepths(BGIMAGEDEPTH);
   }
 
   public function onEnterFrame() {
