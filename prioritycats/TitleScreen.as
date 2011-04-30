@@ -33,15 +33,16 @@ class TitleScreen extends MovieClip {
 
     setframe(bg1);
 
-    // XXX TODO: title music!
-    // titlemusic = new Sound(this);
-    // titlemusic.attachSound('start.mp3');
-    // titlemusic.setVolume(0);
-    // titlemusic.start(0, 99999);
+    // title music!
+    titlemusic = new Sound(this);
+    titlemusic.attachSound('dangerous.mp3');
+    titlemusic.setVolume(100);
+    titlemusic.start(0, 99999);
 
     this.swapDepths(BGIMAGEDEPTH);
 
-    titlelaser = _root.attachMovie('titlelaser', 'titlelaser', 2, {_x:50, _y:350})
+    titlelaser = _root.attachMovie('titlelaser', 'titlelaser', 2, 
+                                   {_x:50, _y:350});
   }
 
   public function setframe(which) {
@@ -72,6 +73,7 @@ class TitleScreen extends MovieClip {
     // in laserpointer.)
     if (frames > FADEFRAMES) {
       if (starting > 0) {
+        titlemusic.setVolume(starting * ALPHAMULT);
         starting--;
         alpha = starting * ALPHAMULT;
         if (!starting) {
@@ -98,8 +100,8 @@ class TitleScreen extends MovieClip {
   public function reallyStart() {
     // Key.removeListener(this);
     trace('reallystart!');
-    // better to fade out...
-    // XXX this.titlemusic.stop();
+    // Stop music!
+    this.titlemusic.stop();
 
     // Don't need title screen any more, obviously
     this.removeMovieClip();

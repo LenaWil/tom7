@@ -50,7 +50,7 @@ class TitleLaser extends MovieClip {
     setPupil(o1, 109, 150, lx, ly);
     setPupil(o2, 150, 150, lx, ly);
     setPupil(g1, 266, 157, lx, ly);
-    setPupil(g2, 304, 157, lx, ly);
+    setPupil(g2, 307, 157, lx, ly);
   }
 
   var started = false;
