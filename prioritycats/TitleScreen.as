@@ -48,43 +48,46 @@ class TitleScreen extends MovieClip {
   public function onEnterFrame() {
     // Fade in...
     frames++;
-    if (frames < 100) {
+    if (frames < 50) {
       // XXX titlemusic.setVolume(frames);
     }
 
     var alpha = 100;
-    if (frames < 100) {
-      alpha = frames;
+    if (frames < 50) {
+      alpha = frames * 2;
     }
 
     // Shouldn't add laser pointer until we're faded in?
     // (Or at least shouldn't start starting countdown
     // in laserpointer.)
-    if (frames > 100) {
+    if (frames > 50) {
       if (starting > 0) {
         starting--;
-        this._alpha = starting;
+        alpha = starting * 2;
         if (!starting) {
           reallyStart();
         }
       }
     }
+
+    this._alpha = alpha;
   }
 
   // Called from TitleLaser when it's been on the
   // start button long enough.
   public function triggerStart() {
+    trace('did it');
     // swap background.
     setframe(bg2);
 
     // need to wait a while, fading out.
-    starting = 100;
+    starting = 50;
   }
 
 
   public function reallyStart() {
     // Key.removeListener(this);
-
+    trace('reallystart!');
     // better to fade out...
     // XXX this.titlemusic.stop();
 
@@ -100,6 +103,8 @@ class TitleScreen extends MovieClip {
     // _root.status = _root.attachMovie('status', 'status', 15010,
     // {_x: 0, _y: 576});
     // _root.status.init();
+
+    trace('start game 4 realz');
 
     if (true) {
       // Normal

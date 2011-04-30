@@ -1,14 +1,14 @@
 <html>
 <head>
-<title>Disco? Very! Level editor</title>
+<title>Priority Cats: level editor</title>
 <script src="constants.js"></script>
 <script src="tiles.js"></script>
 <script src="map.js"></script>
 <style>
 img.tile {
   position: absolute;
-  width: 32px;
-  height: 32px;
+  width: 50px;
+  height: 50px;
   image-rendering: -moz-crisp-edges; 
   -ms-interpolation-mode: nearest-neighbor;
 }
@@ -103,7 +103,7 @@ function hasimage(tile) {
 }
 
 // Current room.
-var cur = room_start;
+var cur = this['room_start'] || defaultroom();
 var cur_name = 'start';
 
 var FRAMESMS = 50;
@@ -171,21 +171,31 @@ function init() {
 
 function defaultroom() {
   var foreground = [], background = [];
-  for (var i = 0; i < TILESW * TILESH; i++)
-    background.push(2);
 
-  for (var i = 0; i < TILESW; i++)
-    foreground.push(1);
+
+  // Night sky for whole background, empty foreground
+  for (var i = 0; i < TILESW * TILESH; i++) {
+    background.push(2);
+    foreground.push(0);
+  }
   
-  for (var i = 0; i < TILESH - 2; i++) {
-    foreground.push(1);
-    for (var j = 0; j < TILESW - 2; j++)
-      foreground.push(0);
-    foreground.push(1);
+  // Fade night sky.
+  for (var i = 0; i < TILESW; i++) {
+    foreground[TILESW * 0 + i] = 5;
+    foreground[TILESW * 1 + i] = 5;
+    foreground[TILESW * 2 + i] = 4;
+    foreground[TILESW * 3 + i] = 4;
+    foreground[TILESW * 4 + i] = 3;
+    foreground[TILESW * 5 + i] = 3;
+
   }
 
-  for (var i = 0; i < TILESW; i++)
-    foreground.push(1);
+
+  // Floor on bottom two rows
+  for (var i = 0; i < TILESW; i++) {
+    foreground[TILESW * (TILESH - 1) + i] = 1;
+    foreground[TILESW * (TILESH - 2) + i] = 1;
+  }
 
   return { bg: background, fg: foreground };
 }
