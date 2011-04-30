@@ -12,21 +12,26 @@ class Cat extends PhysicsObject {
   var dx = 0;
   var dy = 0;
 
-  // Size of graphic
-  var width = 50;
-  var height = 25;
+  // Size of graphic, in world pixels.
+  var width = 100;
+  var height = 50;
 
   // Subtracted from clip region.
   // Player's top-left corner is at x+left, y+top.
   var top = 0;
   var left = 0;
   var right = 0;
-  var bottom = 0;
+  var bottom = 6;
 
   var FPS = 25;
 
 
   var frames, heads;
+
+  // XXX shouldn't be squares, but...
+  public function ignoresquares() {
+    return true;
+  }
 
   public function init(pfx) {
     // initialize frame data, by loading the bitmaps and
@@ -89,7 +94,7 @@ class Cat extends PhysicsObject {
   // Keep track of what dudes I touched, since
   // I don't want triple point tests or iterated
   // adjacency to make lots of little pushes.
-  var touchset = [];
+  var touchset;
   public function touch(other : PhysicsObject) {
     for (var o in touchset) {
       if (touchset[o] == other)
@@ -99,6 +104,7 @@ class Cat extends PhysicsObject {
   }
 
   public function onLoad() {
+    touchset = [];
     Key.addListener(this);
     this._xscale = 200.0;
     this._yscale = 200.0;
