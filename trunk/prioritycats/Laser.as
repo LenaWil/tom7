@@ -43,7 +43,11 @@ class Laser extends MovieClip {
     fr = (fr + 1) % frames.length;
     anim.attachBitmap(frames[fr], anim.getNextHighestDepth());
 
-    // Do visibility test.
+  }
+
+  public function onEnterFrame() {
+    // Do visibility test. We do this not just when the mouse
+    // moves, since a cat might move past it.
     _root.world.clearDebug();
     if (orange) {
       lookTest(orange, this.x, this.y);
@@ -51,46 +55,17 @@ class Laser extends MovieClip {
     if (grey) {
       lookTest(grey, this.x, this.y);
     }
-
   }
 
   public function lookTest(cat : Cat, lx, ly) {
-    if (_root.world.lineOfSight(cat.x1(), cat.y1() + cat.clipheight() / 2, lx, ly) ||
-        _root.world.lineOfSight(cat.x2(), cat.y1() + cat.clipheight() / 2, lx, ly)) {
+    if (_root.world.lineOfSight(cat.x1(), cat.y1() + cat.clipheight() / 2, 
+                                lx, ly) ||
+        _root.world.lineOfSight(cat.x2(), cat.y1() + cat.clipheight() / 2, 
+                                lx, ly)) {
       cat.lookat(lx, ly);
     } else {
       cat.nolook();
     }
-  }
-
-  var started = false;
-  var framesonstart = 0;
-  public function onEnterFrame() {
-
-  }
-
-  // Set the pupil (whose normal center is cx,cy)
-  // to point at the laser pointer at (lx, ly)
-  public function setPupil(mc, cx, cy, lx, ly) {
-    cx *= 2;
-    cy *= 2;
-    var dx = lx - cx;
-    var dy = ly - cy;
-    if (dx == 0 && dy == 0) {
-      mc._x = cx;
-      mc._y = cy;
-      return;
-    }
-    var rads = Math.atan2(dy, dx);
-    var degs = (360 + rads * 57.2957795) % 360;
-    // if ('_level0.o1' == '' + mc) trace(mc + ' ' + dx + ' ' + dy +
-    // ' @' + degs);
-
-    // XXX these values can be improved, plus main axis of
-    // ellipse should not actually be 0 degrees. might want
-    // to wait until cat cuteification happens
-    mc._x = int(cx + Math.cos(rads) * 10);
-    mc._y = int(-4 + cy + Math.sin(rads) * 3.5);
   }
 
   public function init(oo, gg) {

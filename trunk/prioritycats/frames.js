@@ -25,3 +25,16 @@ var headdata = {
     headrest: {f: ['headrest'], div: 8}
 };
 
+function reverseHead(wh) {
+    if (wh == 'headnne') return 'headnnw';
+    else if (wh == 'headne') return 'headnw';
+    else if (wh == 'heade') return 'headw';
+    else if (wh == 'headse') return 'headsw';
+    else if (wh == 'headsse') return 'headssw';
+    else if (wh == 'headssw') return 'headsse';
+    else if (wh == 'headsw') return 'headsw';
+    else if (wh == 'headw') return 'heade';
+    else if (wh == 'headnw') return 'headne';
+    else if (wh == 'headnnw') return 'headnne';
+    else return wh;
+}
