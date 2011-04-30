@@ -285,12 +285,19 @@ class Cat extends PhysicsObject {
         whathead = 'headse';
       } else if (degs >= 270) {
         whathead = 'headsse';
+      } else if (degs >= 240) {
+        whathead = 'headssw';
+      } else if (degs >= 210) {
+        whathead = 'headsw';
+      } else if (degs <= 120) {
+        whathead = 'headnnw';
+      } else if (degs <= 150) {
+        whathead = 'headnw';
       } else {
-        // XXX need west heads
-        whathead = 'heade';
+        whathead = 'headw';
       }
 
-      trace(degs);
+      // trace(degs);
     }
 
     if (head) head.removeMovieClip();
