@@ -92,7 +92,7 @@ class Laser extends MovieClip {
 
     if (centery >= (HEIGHT * TILESH) && cat.dy > 0) {
       _root.world.gotoRoom(_root.world.downRoom());
-      catsTo(cat._x, cat._y + (HEIGHT * TILESH));
+      catsTo(cat._x, cat._y - (HEIGHT * TILESH));
       return true;
     }
   }
