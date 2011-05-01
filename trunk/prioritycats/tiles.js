@@ -691,8 +691,184 @@ var tiles =
  { id: 337, isbg: true, frames: ['leaveswest28', 1] },
  { id: 338, isbg: true, frames: ['leaveswest29', 1] },
  { id: 339, isbg: true, frames: ['leaveswest30', 1] },
- { id: 340, isbg: true, frames: ['leaveswest31', 1] }
+ { id: 340, isbg: true, frames: ['leaveswest31', 1] },
  // duplicate: 375,250: b1d85efcc8 = 32
+ { id: 341, isbg: false, frames: ['lasercave1', 1] },
+ { id: 342, isbg: false, frames: ['lasercave2', 1] },
+ { id: 343, isbg: false, frames: ['lasercave3', 1] },
+ { id: 344, isbg: false, frames: ['lasercave4', 1] },
+ { id: 345, isbg: false, frames: ['lasercave5', 1] },
+ { id: 346, isbg: false, frames: ['lasercave6', 1] },
+ { id: 347, isbg: false, frames: ['lasercave7', 1] },
+ // duplicate: 175,0: fa483892e8 = 342
+ // duplicate: 200,0: 4bd8e4590c = 343
+ // duplicate: 225,0: 581a4ef438 = 344
+ // duplicate: 250,0: 3228386c08 = 345
+ // duplicate: 275,0: 4608484238 = 346
+ // duplicate: 300,0: 9d6a6ac39c = 347
+ // duplicate: 325,0: fa483892e8 = 342
+ // duplicate: 350,0: 4bd8e4590c = 343
+ { id: 348, isbg: false, frames: ['lasercave8', 1] },
+ { id: 349, isbg: false, frames: ['lasercave9', 1] },
+ { id: 350, isbg: true, frames: ['lasercave10', 1] },
+ // duplicate: 50,25: 7bbc61259c = 350
+ // duplicate: 75,25: 7bbc61259c = 350
+ // duplicate: 100,25: 7bbc61259c = 350
+ // duplicate: 125,25: 7bbc61259c = 350
+ // duplicate: 150,25: 7bbc61259c = 350
+ // duplicate: 175,25: 7bbc61259c = 350
+ // duplicate: 200,25: 7bbc61259c = 350
+ // duplicate: 225,25: 7bbc61259c = 350
+ // duplicate: 250,25: 7bbc61259c = 350
+ // duplicate: 275,25: 7bbc61259c = 350
+ // duplicate: 300,25: 7bbc61259c = 350
+ // duplicate: 325,25: 7bbc61259c = 350
+ // duplicate: 350,25: 7bbc61259c = 350
+ { id: 351, isbg: false, frames: ['lasercave11', 1] },
+ { id: 352, isbg: false, frames: ['lasercave12', 1] },
+ { id: 353, isbg: true, frames: ['lasercave13', 1] },
+ { id: 354, isbg: true, frames: ['lasercave14', 1] },
+ { id: 355, isbg: true, frames: ['lasercave15', 1] },
+ // duplicate: 100,50: 7bbc61259c = 350
+ // duplicate: 125,50: 7bbc61259c = 350
+ // duplicate: 150,50: 7bbc61259c = 350
+ // duplicate: 175,50: 7bbc61259c = 350
+ // duplicate: 200,50: 7bbc61259c = 350
+ // duplicate: 225,50: 7bbc61259c = 350
+ // duplicate: 250,50: 7bbc61259c = 350
+ // duplicate: 275,50: 7bbc61259c = 350
+ // duplicate: 300,50: 7bbc61259c = 350
+ // duplicate: 325,50: 7bbc61259c = 350
+ // duplicate: 350,50: 7bbc61259c = 350
+ { id: 356, isbg: false, frames: ['lasercave16', 1] },
+ { id: 357, isbg: false, frames: ['lasercave17', 1] },
+ { id: 358, isbg: true, frames: ['lasercave18', 1] },
+ { id: 359, isbg: true, frames: ['lasercave19', 1] },
+ { id: 360, isbg: true, frames: ['lasercave20', 1] },
+ // duplicate: 100,75: 7bbc61259c = 350
+ // duplicate: 125,75: 7bbc61259c = 350
+ // duplicate: 150,75: 7bbc61259c = 350
+ // duplicate: 175,75: 7bbc61259c = 350
+ // duplicate: 200,75: 7bbc61259c = 350
+ // duplicate: 225,75: 7bbc61259c = 350
+ // duplicate: 250,75: 7bbc61259c = 350
+ // duplicate: 275,75: 7bbc61259c = 350
+ // duplicate: 300,75: 7bbc61259c = 350
+ // duplicate: 325,75: 7bbc61259c = 350
+ // duplicate: 350,75: 7bbc61259c = 350
+ { id: 361, isbg: false, frames: ['lasercave21', 1] },
+ { id: 362, isbg: false, frames: ['lasercave22', 1] },
+ { id: 363, isbg: true, frames: ['lasercave23', 1] },
+ { id: 364, isbg: true, frames: ['lasercave24', 1] },
+ { id: 365, isbg: true, frames: ['lasercave25', 1] },
+ { id: 366, isbg: true, frames: ['lasercave26', 1] },
+ // duplicate: 125,100: 7bbc61259c = 350
+ // duplicate: 150,100: 7bbc61259c = 350
+ // duplicate: 175,100: 7bbc61259c = 350
+ // duplicate: 200,100: 7bbc61259c = 350
+ // duplicate: 225,100: 7bbc61259c = 350
+ // duplicate: 250,100: 7bbc61259c = 350
+ // duplicate: 275,100: 7bbc61259c = 350
+ { id: 367, isbg: true, frames: ['lasercave27', 1] },
+ { id: 368, isbg: true, frames: ['lasercave28', 1] },
+ { id: 369, isbg: true, frames: ['lasercave29', 1] },
+ // duplicate: 375,100: 7bbc61259c = 350
+ { id: 370, isbg: false, frames: ['lasercave30', 1] },
+ // duplicate: 25,125: f2f6989f78 = 366
+ { id: 371, isbg: true, frames: ['lasercave31', 1] },
+ // duplicate: 75,125: f2f6989f78 = 366
+ // duplicate: 100,125: 7bbc61259c = 350
+ // duplicate: 125,125: 7bbc61259c = 350
+ // duplicate: 150,125: 7bbc61259c = 350
+ // duplicate: 175,125: 7bbc61259c = 350
+ // duplicate: 200,125: 7bbc61259c = 350
+ // duplicate: 225,125: 7bbc61259c = 350
+ // duplicate: 250,125: 7bbc61259c = 350
+ // duplicate: 275,125: 7bbc61259c = 350
+ { id: 372, isbg: true, frames: ['lasercave32', 1] },
+ { id: 373, isbg: true, frames: ['lasercave33', 1] },
+ { id: 374, isbg: true, frames: ['lasercave34', 1] },
+ // duplicate: 375,125: 7bbc61259c = 350
+ { id: 375, isbg: false, frames: ['lasercave35', 1] },
+ // duplicate: 25,150: 7bbc61259c = 350
+ // duplicate: 50,150: 7bbc61259c = 350
+ // duplicate: 75,150: 7bbc61259c = 350
+ // duplicate: 100,150: 7bbc61259c = 350
+ // duplicate: 125,150: 7bbc61259c = 350
+ // duplicate: 150,150: 7bbc61259c = 350
+ // duplicate: 175,150: 7bbc61259c = 350
+ // duplicate: 200,150: 7bbc61259c = 350
+ // duplicate: 225,150: 7bbc61259c = 350
+ // duplicate: 250,150: 7bbc61259c = 350
+ // duplicate: 275,150: 7bbc61259c = 350
+ // duplicate: 300,150: 7bbc61259c = 350
+ // duplicate: 325,150: 7bbc61259c = 350
+ // duplicate: 350,150: 7bbc61259c = 350
+ // duplicate: 375,150: 7bbc61259c = 350
+ // duplicate: 0,175: 64629fc25c = 349
+ // duplicate: 25,175: 7bbc61259c = 350
+ // duplicate: 50,175: 7bbc61259c = 350
+ // duplicate: 75,175: 7bbc61259c = 350
+ // duplicate: 100,175: 7bbc61259c = 350
+ // duplicate: 125,175: 7bbc61259c = 350
+ // duplicate: 150,175: 7bbc61259c = 350
+ // duplicate: 175,175: 7bbc61259c = 350
+ // duplicate: 200,175: 7bbc61259c = 350
+ // duplicate: 225,175: 7bbc61259c = 350
+ // duplicate: 250,175: 7bbc61259c = 350
+ // duplicate: 275,175: 7bbc61259c = 350
+ // duplicate: 300,175: 7bbc61259c = 350
+ // duplicate: 325,175: 7bbc61259c = 350
+ // duplicate: 350,175: 7bbc61259c = 350
+ // duplicate: 375,175: 7bbc61259c = 350
+ // duplicate: 0,200: de9bbf4b94 = 352
+ // duplicate: 25,200: 7bbc61259c = 350
+ // duplicate: 50,200: 7bbc61259c = 350
+ // duplicate: 75,200: 7bbc61259c = 350
+ // duplicate: 100,200: 7bbc61259c = 350
+ // duplicate: 125,200: 7bbc61259c = 350
+ // duplicate: 150,200: 7bbc61259c = 350
+ // duplicate: 175,200: 7bbc61259c = 350
+ // duplicate: 200,200: 7bbc61259c = 350
+ // duplicate: 225,200: 7bbc61259c = 350
+ // duplicate: 250,200: 7bbc61259c = 350
+ // duplicate: 275,200: 7bbc61259c = 350
+ // duplicate: 300,200: 7bbc61259c = 350
+ // duplicate: 325,200: 7bbc61259c = 350
+ // duplicate: 350,200: 7bbc61259c = 350
+ // duplicate: 375,200: 7bbc61259c = 350
+ { id: 376, isbg: false, frames: ['lasercave36', 1] },
+ // duplicate: 25,225: 7bbc61259c = 350
+ // duplicate: 50,225: 7bbc61259c = 350
+ // duplicate: 75,225: 7bbc61259c = 350
+ // duplicate: 100,225: 7bbc61259c = 350
+ // duplicate: 125,225: 7bbc61259c = 350
+ // duplicate: 150,225: 7bbc61259c = 350
+ // duplicate: 175,225: 7bbc61259c = 350
+ // duplicate: 200,225: 7bbc61259c = 350
+ // duplicate: 225,225: 7bbc61259c = 350
+ // duplicate: 250,225: 7bbc61259c = 350
+ // duplicate: 275,225: 7bbc61259c = 350
+ // duplicate: 300,225: 7bbc61259c = 350
+ { id: 377, isbg: false, frames: ['lasercave37', 1] },
+ { id: 378, isbg: false, frames: ['lasercave38', 1] },
+ { id: 379, isbg: false, frames: ['lasercave39', 1] },
+ { id: 380, isbg: false, frames: ['lasercave40', 1] },
+ { id: 381, isbg: false, frames: ['lasercave41', 1] },
+ { id: 382, isbg: false, frames: ['lasercave42', 1] },
+ { id: 383, isbg: false, frames: ['lasercave43', 1] },
+ { id: 384, isbg: false, frames: ['lasercave44', 1] },
+ { id: 385, isbg: false, frames: ['lasercave45', 1] },
+ { id: 386, isbg: false, frames: ['lasercave46', 1] },
+ // duplicate: 175,250: 419588b268 = 381
+ // duplicate: 200,250: 28c8be5d00 = 382
+ // duplicate: 225,250: bed3858678 = 383
+ // duplicate: 250,250: c01da01208 = 384
+ // duplicate: 275,250: 49b25489c = 385
+ // duplicate: 300,250: 3f00df7698 = 386
+ { id: 387, isbg: false, frames: ['lasercave47', 1] },
+ { id: 388, isbg: false, frames: ['lasercave48', 1] },
+ { id: 389, isbg: false, frames: ['lasercave49', 1] }
  ];
 
 
@@ -706,5 +882,6 @@ var macros = {
     bigtree: { w: 7, h: 10, t: [32, 32, 32, 169, 170, 170, 171, 172, 42, 173, 174, 170, 170, 175, 176, 177, 178, 179, 170, 170, 180, 4, 4, 4, 181, 170, 170, 182, 3, 3, 3, 183, 170, 170, 184, 3, 3, 3, 185, 170, 170, 186, 2, 2, 2, 187, 170, 170, 188, 2, 2, 2, 189, 170, 170, 190, 2, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203 ]},
     log: { w: 4, h: 2, t: [204, 205, 206, 207, 208, 209, 210, 211 ]},
     leavesbg: { w: 16, h: 11, t: [212, 213, 212, 212, 214, 212, 212, 212, 212, 212, 212, 212, 212, 212, 212, 212, 215, 216, 217, 218, 219, 212, 220, 221, 222, 223, 224, 225, 226, 227, 212, 228, 32, 32, 32, 32, 229, 230, 32, 32, 32, 32, 231, 232, 233, 32, 234, 235, 32, 236, 32, 32, 237, 238, 32, 32, 32, 239, 240, 241, 242, 243, 244, 32, 245, 246, 247, 248, 249, 250, 251, 32, 32, 32, 32, 32, 32, 32, 32, 32, 252, 253, 254, 255, 256, 257, 258, 32, 32, 259, 260, 261, 262, 263, 264, 32, 32, 32, 32, 32, 32, 32, 32, 32, 265, 32, 32, 32, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 32, 281, 282, 283, 32, 284, 285, 286, 287, 288, 289, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 290, 32, 32, 291, 32, 292, 293, 294, 295, 296, 32, 32, 32, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 32, 32 ]},
-    leaveswest: { w: 16, h: 11, t: [5, 5, 5, 5, 310, 311, 312, 212, 212, 212, 212, 212, 212, 212, 212, 212, 5, 5, 5, 313, 314, 212, 220, 221, 222, 223, 224, 225, 226, 227, 212, 228, 4, 4, 315, 316, 229, 230, 32, 32, 32, 32, 231, 232, 233, 32, 234, 235, 4, 4, 317, 318, 237, 238, 32, 32, 32, 239, 240, 241, 242, 243, 244, 32, 3, 3, 3, 319, 320, 250, 251, 32, 32, 32, 32, 32, 32, 32, 32, 32, 3, 3, 3, 321, 322, 257, 258, 32, 32, 259, 260, 261, 262, 263, 264, 32, 2, 2, 2, 2, 323, 324, 325, 32, 265, 32, 32, 32, 266, 267, 268, 269, 2, 2, 2, 2, 2, 326, 327, 277, 278, 279, 280, 32, 281, 282, 283, 32, 2, 2, 2, 2, 2, 2, 328, 329, 330, 331, 32, 32, 32, 32, 32, 32, 2, 2, 2, 2, 2, 2, 2, 332, 333, 334, 293, 294, 295, 296, 32, 32, 2, 2, 2, 2, 2, 2, 2, 2, 2, 335, 336, 337, 338, 339, 340, 32 ]}
+    leaveswest: { w: 16, h: 11, t: [5, 5, 5, 5, 310, 311, 312, 212, 212, 212, 212, 212, 212, 212, 212, 212, 5, 5, 5, 313, 314, 212, 220, 221, 222, 223, 224, 225, 226, 227, 212, 228, 4, 4, 315, 316, 229, 230, 32, 32, 32, 32, 231, 232, 233, 32, 234, 235, 4, 4, 317, 318, 237, 238, 32, 32, 32, 239, 240, 241, 242, 243, 244, 32, 3, 3, 3, 319, 320, 250, 251, 32, 32, 32, 32, 32, 32, 32, 32, 32, 3, 3, 3, 321, 322, 257, 258, 32, 32, 259, 260, 261, 262, 263, 264, 32, 2, 2, 2, 2, 323, 324, 325, 32, 265, 32, 32, 32, 266, 267, 268, 269, 2, 2, 2, 2, 2, 326, 327, 277, 278, 279, 280, 32, 281, 282, 283, 32, 2, 2, 2, 2, 2, 2, 328, 329, 330, 331, 32, 32, 32, 32, 32, 32, 2, 2, 2, 2, 2, 2, 2, 332, 333, 334, 293, 294, 295, 296, 32, 32, 2, 2, 2, 2, 2, 2, 2, 2, 2, 335, 336, 337, 338, 339, 340, 32 ]},
+    lasercave: { w: 16, h: 11, t: [341, 342, 343, 344, 345, 346, 347, 342, 343, 344, 345, 346, 347, 342, 343, 348, 349, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 351, 352, 353, 354, 355, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 356, 357, 358, 359, 360, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 361, 362, 363, 364, 365, 366, 350, 350, 350, 350, 350, 350, 350, 367, 368, 369, 350, 370, 366, 371, 366, 350, 350, 350, 350, 350, 350, 350, 350, 372, 373, 374, 350, 375, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 349, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 352, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 376, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 350, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 381, 382, 383, 384, 385, 386, 387, 388, 389 ]}
 };

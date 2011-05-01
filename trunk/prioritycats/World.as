@@ -93,7 +93,17 @@ class World {
   public function musicForRoom(r) {
     switch(r) {
     case 'start':
+      // built-in histeresis
+    case 'mountain':
+    case 'treeuptop':
+    case 'forest2':
+      return 'forest.mp3';
+    case 'hole':
+    case 'caveout':
+    case 'glow':
       return 'worms.mp3';
+    case 'lasercave':
+      return 'lasercave.mp3';
     default:
       return null;
     }
@@ -226,6 +236,22 @@ class World {
       // This is where I attach place pickups, etc.
 
       // This is where I attach special objects.
+
+      // Always detach laserfiles.
+      _root.laserflies = _root.laserflies || [];
+      for (var o in _root.laserflies)
+        _root.laserflies[o].removeMovieClip();
+      _root.laserflies = [];
+
+      if (currentroom == 'lasercave') {
+        for (var i = 0; i < 30; i++) {
+          var x = 2 * (LASERROOMX1 + Math.random() * (LASERROOMX2 - LASERROOMX1));
+          var y = 2 * (LASERROOMY1 + Math.random() * (LASERROOMY2 - LASERROOMY1));
+          var lf = _root.attachMovie('laserfly', 'laserfly' + i, LASERSDEPTH + i, {_x:x, _y:y});
+          _root.laserflies.push(lf);
+          lf.init(); // ?
+        }
+      }
       
     } else {
       trace('no room ' + s);
