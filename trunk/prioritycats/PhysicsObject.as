@@ -30,13 +30,14 @@ class PhysicsObject extends Depthable {
   public function defaultconstants() {
     return { 
       accel: 3.6,
+      accel_air: 0.2,
       decel_ground: 0.95,
       decel_air: 0.05,
       jump_impulse: 16.8,
       gravity: 1.0,
       xgravity: 0.0,
-      terminal_velocity: 10,
-      maxspeed: 7.9,
+      terminal_velocity: 13,
+      maxspeed: 9.9,
       dive: 0.3 };
   }
 
@@ -185,10 +186,10 @@ class PhysicsObject extends Depthable {
     */
 
     if (wishright()) {
-      dx += C.accel;
+      dx += otg ? C.accel : C.accel_air;
       if (dx > C.maxspeed) dx = C.maxspeed;
     } else if (wishleft()) {
-      dx -= C.accel;
+      dx -= otg ? C.accel : C.accel_air;
       if (dx < -C.maxspeed) dx = -C.maxspeed;
     } else {
       // If not holding either direction,

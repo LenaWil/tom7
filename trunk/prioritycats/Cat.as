@@ -18,9 +18,9 @@ class Cat extends PhysicsObject {
 
   // Subtracted from clip region.
   // Player's top-left corner is at x+left, y+top.
-  var top = 0;
-  var left = 0;
-  var right = 0;
+  var top = 6;
+  var left = 6;
+  var right = 6;
   var bottom = 6;
 
   var FPS = 25;
@@ -218,15 +218,16 @@ class Cat extends PhysicsObject {
     }
     */
 
-    var what_stand = 'buttup', what_jump = 'buttup';
+    var what_stand = 'buttup', what_jump = 'jump';
+
+    if (Math.abs(dx) > 9)
+      what_stand = 'run';
     
     if (!looking)
       what_stand = 'rest';
 
     // true means force animation, even if still
     var what_animate = false;
-
-    facingright = true; // XXX
 
     var otg = ontheground();
     if (otg) {
