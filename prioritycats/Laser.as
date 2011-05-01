@@ -55,6 +55,46 @@ class Laser extends MovieClip {
     if (grey) {
       lookTest(grey, this.x, this.y);
     }
+
+    checkWarp(orange) || checkWarp(grey);
+  }
+
+  public function catsTo(cx, cy) {
+    orange._x = cx;
+    orange._y = cy;
+    grey._x = cx;
+    grey._y = cy;
+  }
+
+  // Check if the cat is oriented in such a way that we
+  // ought to be warping. Either cat can warp, and we
+  // just bring the cats together.
+  public function checkWarp(cat : Cat) {
+    var centerx = (cat.x2() + cat.x1()) * 0.5;
+    if (centerx < WIDTH && cat.dx < 0) {
+      // Walked off the screen to the left.
+      _root.world.gotoRoom(_root.world.leftRoom());
+      catsTo(cat._x + (WIDTH * TILESW), cat._y);
+      return true;
+    } 
+    if (centerx >= (WIDTH * TILESW) && cat.dx > 0) {
+      _root.world.gotoRoom(_root.world.rightRoom());
+      catsTo(cat._x - (WIDTH * TILESW), cat._y);
+      return true;
+    } 
+
+    var centery = cat.y2();
+    if (centery < HEIGHT && cat.dy < 0) {
+      _root.world.gotoRoom(_root.world.upRoom());
+      catsTo(cat._x, cat._y + (HEIGHT * TILESH));
+      return true;
+    } 
+
+    if (centery >= (HEIGHT * TILESH) && cat.dy > 0) {
+      _root.world.gotoRoom(_root.world.downRoom());
+      catsTo(cat._x, cat._y + (HEIGHT * TILESH));
+      return true;
+    }
   }
 
   public function lookTest(cat : Cat, lx, ly) {
