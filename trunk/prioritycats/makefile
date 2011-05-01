@@ -24,4 +24,3 @@ packpng.exe : util-console.o sdlutil-console.o packpng-console.o pngsave-console
 
 clean :
 	rm -f *.o packpng.exe
-ic

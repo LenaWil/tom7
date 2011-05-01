@@ -404,10 +404,13 @@ class World {
     var maxiters = 100; 
     for (var i = 0; i * step < d; i++) {
       var tx = x1 + i * dx, ty = y1 + i * dy;
+
+      /*
       var c = _root.attachMovie('circle', 'circle' + ccount, 20000 + ccount, {_x: tx, _y: ty});
       c._alpha = 15;
       circs.push(c);
       ccount++;
+      */
 
       if (solidTileAt(tx, ty)) {
         return false;

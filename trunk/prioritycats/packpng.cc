@@ -8,6 +8,7 @@ using namespace std;
 #include "pngsave.h"
 
 #include <set>
+#include <map>
 #include <iostream>
 #include <fstream>
 
@@ -17,8 +18,8 @@ string self;
 
 #define BACKCOLOR 0xAA338833
 
-#define WIDTH 16
-#define HEIGHT 16
+#define WIDTH 25
+#define HEIGHT 25
 
 typedef unsigned long long uint64;
 
@@ -51,9 +52,9 @@ int main (int argc, char ** argv) {
        be present. Also, the file may have
        been invoked in any CaSe. */
     self = util::lcase(util::fileof(argv[0]));
-		    self = util::ensureext(self, ".exe");
+    self = util::ensureext(self, ".exe");
 #   else
-		    self = util::fileof(argv[0]);
+    self = util::fileof(argv[0]);
 #   endif
 
   }
@@ -62,10 +63,11 @@ int main (int argc, char ** argv) {
     printf("\n"
 	   "Usage: splitpng startidx input\n");
     printf("Splits the file called input.png (do not supply an extension)\n"
-	   "into a bunch of 16x16 ones. Also writes on\n"
+	   "into a bunch of %dx%d ones. Also writes on\n"
 	   "stdout the necessary definitions for tiles.js, assuming that\n"
 	   "the first unused tile index is the first commandline parameter.\n"
-	   "Output files go into the tiles subdirectory.\n");
+	   "Output files go into the tiles subdirectory.\n",
+	   WIDTH, HEIGHT);
     return 1;
   }
 
@@ -97,10 +99,15 @@ int main (int argc, char ** argv) {
 
   if (!one) abort();
 
-  set<uint64> seen;
+  map<uint64, int> seen;
 
   printf("Input pic is %d by %d.\n", pic->w, pic->h);
 
+  
+  string macro = (string)"{ w: " + itos(pic->w / WIDTH) + 
+    (string)", h: " + itos(pic->h / HEIGHT) +
+    (string)", t: [";
+  
   int idx = 1;
   // Screen coords.
   for (int y = 0; y < pic->h; y += HEIGHT) {
@@ -113,6 +120,8 @@ int main (int argc, char ** argv) {
       wr.x = 0;
       wr.y = 0;
       SDL_BlitSurface(pic, &rd, one, &wr);
+
+      if (idx > 1) macro += ", ";
       uint64 h = HashSurface(one);
       if (seen.find(h) == seen.end()) {
 	char outname[512];
@@ -123,16 +132,22 @@ int main (int argc, char ** argv) {
 	  return -1;
 	}
 	
+	int thisidx = startidx + idx - 1;
 	printf(" { id: %d, isbg: true, frames: ['%s%d', 1] },\n", 
-	       startidx + idx - 1, 
+	       thisidx,
 	       basename.c_str(), idx);
-	seen.insert(h);
+	macro += itos(thisidx);
+	seen[h] = thisidx;
 	idx++;
       } else {
-	printf(" // duplicate: %d,%d: %llx\n", x, y, h);
+	printf(" // duplicate: %d,%d: %llx = %d\n", x, y, h, seen[h]);
+	macro += itos(seen[h]);
       }
     }
   }
+
+  macro += " ]}";
+  printf("\nMacro:\n%s\n", macro.c_str());
 
   fflush(stdout);
   SDL_FreeSurface(pic);
