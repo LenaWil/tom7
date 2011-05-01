@@ -182,7 +182,7 @@ class Cat extends PhysicsObject {
         if (Math.abs(lookx - lastlookx) < 2 &&
             Math.abs(looky - lastlooky) < 2) {
           stationary_count++;
-          trace('stationary for ' + stationary_count);
+          // trace('stationary for ' + stationary_count);
           if (stationary_count > ORANGE_STATIONARY_FRAMES) {
             moving = true;
           }
@@ -299,7 +299,10 @@ class Cat extends PhysicsObject {
       } else if (dx < 0) {
         setframe(what_stand, facingright, what_animate ? framemod : 0);
       } else {
-        // standing still on ground.
+        // standing still on ground. Animate the butt pose if
+        // we've been staring at a stationary dot for long enough.
+        what_animate = what_animate || stationary_count > 1;
+
         setframe(what_stand, facingright, what_animate ? framemod : 0);
       }
       // ...
