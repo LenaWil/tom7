@@ -238,10 +238,11 @@ function clickmeClickHandler() {
       var m = macros[cur_macro];
       for (var y = 0; y < m.h; y++) {
         for (var x = 0; x < m.w; x++) {
-          if (m.fg) {
-            setfgat(pos.x + x, pos.y + y, m.t[y * m.w + x]);
+          var t = m.t[y * m.w + x];
+          if (tiles[t].isbg) {
+            setbgat(pos.x + x, pos.y + y, t);
           } else {
-            setbgat(pos.x + x, pos.y + y, m.t[y * m.w + x]);
+            setfgat(pos.x + x, pos.y + y, t);
           }
         }
       }
