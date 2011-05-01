@@ -77,6 +77,39 @@ int main (int argc, char ** argv) {
     return 1;
   }
 
+  map<uint64, int> seen;
+
+  // First load everything in tiles.js, so that if we use a tile that
+  // already exists (like if we drew over a background) then we
+  // don't need to emit it at all. We don't actually parse the json,
+  // but recognize lines that start with " { id: "; they look like
+  // this:
+  //  { id: 23, isbg: false, frames: ['house18', 1] },
+  // If we miss this optimization, nothing bad happens; it's just
+  // wasteful. So I only recognize single-frame images.
+  string tilesjs = readfile("tiles.js");
+  while (!tilesjs.empty()) {
+    string line = util::getline(tilesjs);
+    if (util::startswith(line, " { id: ")) {
+      // in scope..
+      int id = atoi(line.substr(7, string::npos).c_str());
+      if (!id) continue;
+
+      // First frame:
+      size_t fr = line.find("frames: ['");
+      fr += sizeof("frames: ['") - 1;
+      if (fr == string::npos) continue;
+      size_t frend = line.find("', 1]", fr);
+      if (frend == string::npos) continue;
+      string frame = line.substr(fr, frend - fr);
+      SDL_Surface *pic = IMG_Load(((string)"tiles/" + frame + ".png").c_str());
+      if (!pic) continue;
+      uint64 h = HashSurface(pic);
+      fprintf(stderr, "Old: %d [%s] = %llx\n", id, frame.c_str(), h);
+      seen[h] = id;
+      SDL_FreeSurface(pic);
+    }
+  }
 
   string startidxs = argv[1];
   int startidx = atoi(startidxs.c_str());
@@ -99,15 +132,14 @@ int main (int argc, char ** argv) {
 
   if (!one) abort();
 
-  map<uint64, int> seen;
-
   printf("Input pic is %d by %d.\n", pic->w, pic->h);
 
   
   string macro = (string)"{ w: " + itos(pic->w / WIDTH) + 
     (string)", h: " + itos(pic->h / HEIGHT) +
     (string)", t: [";
-  
+
+  bool any = false;
   int idx = 1;
   // Screen coords.
   for (int y = 0; y < pic->h; y += HEIGHT) {
@@ -121,7 +153,7 @@ int main (int argc, char ** argv) {
       wr.y = 0;
       SDL_BlitSurface(pic, &rd, one, &wr);
 
-      if (idx > 1) macro += ", ";
+      if (any) macro += ", ";
       uint64 h = HashSurface(one);
       if (seen.find(h) == seen.end()) {
 	char outname[512];
@@ -139,9 +171,11 @@ int main (int argc, char ** argv) {
 	macro += itos(thisidx);
 	seen[h] = thisidx;
 	idx++;
+	any = true;
       } else {
 	printf(" // duplicate: %d,%d: %llx = %d\n", x, y, h, seen[h]);
 	macro += itos(seen[h]);
+	any = true;
       }
     }
   }
