@@ -20,6 +20,10 @@ class TitleScreen extends MovieClip {
   var FADEFRAMES = 10;
   var ALPHAMULT = 10;
 
+  var FADEOUTFRAMES = 20;
+  var ALPHAOUTMULT = 5;
+
+
   // XXX laserpointer!
 
   var bg: MovieClip = null;
@@ -74,9 +78,9 @@ class TitleScreen extends MovieClip {
     // in laserpointer.)
     if (frames > FADEFRAMES) {
       if (starting > 0) {
-        titlemusic.setVolume(starting * ALPHAMULT);
+        titlemusic.setVolume(starting * ALPHAOUTMULT);
         starting--;
-        alpha = starting * ALPHAMULT;
+        alpha = starting * ALPHAOUTMULT;
         if (!starting) {
           reallyStart();
         }
@@ -94,7 +98,7 @@ class TitleScreen extends MovieClip {
     setframe(bg2);
 
     // need to wait a while, fading out.
-    starting = FADEFRAMES;
+    starting = FADEOUTFRAMES;
   }
 
 
@@ -135,7 +139,9 @@ class TitleScreen extends MovieClip {
 
 
       // _root.world.gotoRoom('start');
-      _root.world.gotoRoom('glow');
+      // _root.world.gotoRoom('glow');
+      // _root.world.gotoRoom('forestlumpup');
+      _root.world.gotoRoom('poolleft');
     } else {
       // _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:100});
       // _root.you.init();
