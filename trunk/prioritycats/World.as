@@ -93,16 +93,7 @@ class World {
   public function musicForRoom(r) {
     switch(r) {
     case 'start':
-    case 'vipcorneru':
-    case 'hole2':
-    case 'boss':
-      return 'start.mp3';
-    case 'undervip':
-    case 'catacombs1':
-      return 'catacombs.mp3';
-    case 'vip':
-    case 'hole3':
-      return 'sewers.mp3';
+      return 'worms.mp3';
     default:
       return null;
     }
@@ -111,18 +102,9 @@ class World {
   public function volumeForRoom(r) {
     switch(r) {
     default:
-    case 'stairs':
+    case 'start':
       return 100;
-    case 'clubfront':
-      return 50;
-    case 'sky':
-    case 'outside':
-      return 25;
-    case 'skyu':
-    case 'sky2u':
-    case 'sky2':
-    case 'hole2':
-      return 8;
+      // 50 25 8
     }
   }
 

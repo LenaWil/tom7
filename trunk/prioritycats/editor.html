@@ -30,6 +30,7 @@ span.macro {
   cursor: pointer;
   font-weight: bold;
   color: #700;
+  margin-right: 2px;
 }
 
 span.roomname {
@@ -424,6 +425,7 @@ function redrawmacros() {
     var s = SPAN('macro', elt);
     TEXT(o, s);
     s.onclick = macroClickHandler(o);
+    TEXT(' ', elt);
   }
 }
 
