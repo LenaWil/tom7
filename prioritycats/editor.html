@@ -26,6 +26,12 @@ span.icon {
   top: 4px;
 }
 
+span.macro {
+  cursor: pointer;
+  font-weight: bold;
+  color: #700;
+}
+
 span.roomname {
   cursor: pointer;
   font-size: 10px;
@@ -227,10 +233,25 @@ function screentopos(x, y) {
 function clickmeClickHandler() {
   return function(event) {
     var pos = screentopos(event.pageX, event.pageY);
-    if (cur_foreground) {
-      setfgat(pos.x, pos.y, cur_tile);
+
+    if (cur_macro) {
+      var m = macros[cur_macro];
+      for (var y = 0; y < m.h; y++) {
+        for (var x = 0; x < m.w; x++) {
+          if (m.fg) {
+            setfgat(pos.x + x, pos.y + y, m.t[y * m.w + x]);
+          } else {
+            setbgat(pos.x + x, pos.y + y, m.t[y * m.w + x]);
+          }
+        }
+      }
+      cur_macro = null;
     } else {
-      setbgat(pos.x, pos.y, cur_tile);
+      if (cur_foreground) {
+        setfgat(pos.x, pos.y, cur_tile);
+      } else {
+        setbgat(pos.x, pos.y, cur_tile);
+      }
     }
     redrawmap();
   }
@@ -296,6 +317,8 @@ function redrawmap() {
 
 var cur_foreground = true;
 var cur_tile = 1;
+// Oneshot. overrides tiles.
+var cur_macro = null;
 
 function redrawstatus() {
   var elt = document.getElementById('status');
@@ -315,9 +338,14 @@ function redrawstatus() {
   }
   img.frames = tilemap[cur_tile].frames;
   TEXT(' Tile #' + cur_tile + ': ' + (hasimage(tile) ? anyimage(tile) : '(empty)'), elt);
+
+  if (cur_macro) {
+    TEXT(' +++MACRO ' + cur_macro + ' (' + macros[cur_macro].w + 'x' + 
+         macros[cur_macro].h + ')', elt);
+  }
 }
 
-function selectHandler(idx) {
+function selectTileHandler(idx) {
   return function() {
     cur_tile = idx;
     // By default, use the tile's natural fg/bg setting
@@ -330,12 +358,14 @@ function selectHandler(idx) {
 }
 
 // XXX draw background and foreground tiles separately
+// XXX could filter out any tile that participates in a macro, unless
+// a flag is set, or something.
 function redrawtiles() {
   var elt = document.getElementById('tiles');
   elt.innerHTML = '';
   for (var i = 0; i < tiles.length; i++) {
     var d = DIV((i == cur_tile) ? 'selected' : 'selectable', elt);
-    d.onclick = selectHandler(i);
+    d.onclick = selectTileHandler(i);
     if (hasimage(tiles[i])) {
       var img = IMG(null, d);
       img.src = anyimage(tiles[i]);
@@ -377,7 +407,23 @@ function redrawmapmap() {
       s.onclick = mapmapClickHandler(map[y][x]);
     }
   }
+}
 
+function macroClickHandler(m) {
+  return function() {
+    cur_macro = m;
+    redraw();
+  };
+}
+
+function redrawmacros() {
+  var elt = document.getElementById('macros');
+  elt.innerHTML = '';
+  for (var o in macros) {
+    var s = SPAN('macro', elt);
+    TEXT(o, s);
+    s.onclick = macroClickHandler(o);
+  }
 }
 
 function redraw() {
@@ -385,6 +431,7 @@ function redraw() {
   redrawstatus();
   redrawtiles();
   redrawmapmap();
+  redrawmacros();
 }
 
 function dec(h) {
@@ -479,38 +526,6 @@ function fill() {
   redraw();
 }
 
-/*
-function load() {
-  var elt = document.getElementById('mapdata');
-  var newforeground = [];
-  var lines = elt.value.split("\n");
-  if (lines.length < TILESH) {
-    alert("Not enough lines!");
-    return;
-  }
-  for (var y = 0; y < TILESH; y++) {
-    var parts = lines[y].split(" ");
-    if (parts.length != TILESW) {
-      alert("Line " + y + " has " + parts.size +
-            " parts, not " + TILESW + "!");
-      return;
-    }
-    for (var x = 0; x < TILESW; x++) {
-      var t = dec(parts[x]);
-      if (t < 0 || t >= tiles.length) {
-        alert("Sorry this contains tile #" +
-              t + " and that is bullshit");
-        return;
-      }
-      newforeground.push(dec(parts[x]));
-    }
-  }
-  foreground = newforeground;
-  redraw();
-}
-*/
-
-
 
 </script>
 </head>
@@ -520,6 +535,8 @@ function load() {
 <div id="status" style="margin-left: 810px; border: 1px solid #CCCCCC; height: 40px">
 </div>
 <div id="tiles" style="margin-left: 810px; border: 1px solid #CCCCCC">
+</div>
+<div id="macros" style="margin-left: 810px; border: 1px solid #CCCCCC">
 </div>
 <br>
 <div id="mapmap" style="margin-left: 810px">
