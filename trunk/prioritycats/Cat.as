@@ -122,6 +122,15 @@ class Cat extends PhysicsObject {
 
   public function getConstants() {
     var C = defaultconstants();
+    if (kind == KIND_ORANGE) {
+      // A little bit faster.
+      C.maxspeed = 11.1;
+      C.jump_impulse = 17.7;
+    } else if (kind == KIND_GREY) {
+      // A little bit slower and fatter.
+      C.accel = 3.3;
+      C.terminal_velocity = 14.4;
+    }
     return C;
   }
 
@@ -310,38 +319,8 @@ class Cat extends PhysicsObject {
       setframe(what_jump, facingright, framemod);
     }
 
-    // Probably don't want any of this. Laser pointer
-    // should control transitions?
-    /*
-    // Check room transitions. nb.: This exits early
-    // when we warp, so it should happen last.
-    var centerx = (x2() + x1()) * 0.5;
-    if (centerx < 0 && dx < 0) {
-      // Walked off the screen to the left.
-      _root.world.gotoRoom(_root.world.leftRoom());
-      this._x += GAMESCREENWIDTH;
-      return;
-    } 
-
-    if (centerx >= GAMESCREENWIDTH && dx > 0) {
-      _root.world.gotoRoom(_root.world.rightRoom());
-      this._x -= GAMESCREENWIDTH;
-      return;
-    } 
-
-    var centery = y2();
-    if (centery < 0 && dy < 0) {
-      _root.world.gotoRoom(_root.world.upRoom());
-      this._y += GAMESCREENHEIGHT;
-      return;
-    } 
-
-    if (centery >= GAMESCREENHEIGHT && dy > 0) {
-      _root.world.gotoRoom(_root.world.downRoom());
-      this._y -= GAMESCREENHEIGHT;
-      return;
-    }
-    */
+    // n.b. the laser controls room transitions, to make sure that
+    // both cats don't initiate one in the same frame!
   }
 
   var body: MovieClip = null, head: MovieClip = null;

@@ -172,7 +172,6 @@ function init() {
 function defaultroom() {
   var foreground = [], background = [];
 
-
   // Night sky for whole background, empty foreground
   for (var i = 0; i < TILESW * TILESH; i++) {
     background.push(2);
@@ -181,15 +180,13 @@ function defaultroom() {
   
   // Fade night sky.
   for (var i = 0; i < TILESW; i++) {
-    foreground[TILESW * 0 + i] = 5;
-    foreground[TILESW * 1 + i] = 5;
-    foreground[TILESW * 2 + i] = 4;
-    foreground[TILESW * 3 + i] = 4;
-    foreground[TILESW * 4 + i] = 3;
-    foreground[TILESW * 5 + i] = 3;
-
+    background[TILESW * 0 + i] = 5;
+    background[TILESW * 1 + i] = 5;
+    background[TILESW * 2 + i] = 4;
+    background[TILESW * 3 + i] = 4;
+    background[TILESW * 4 + i] = 3;
+    background[TILESW * 5 + i] = 3;
   }
-
 
   // Floor on bottom two rows
   for (var i = 0; i < TILESW; i++) {

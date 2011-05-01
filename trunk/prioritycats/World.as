@@ -11,16 +11,16 @@ class World {
   var roomsvisited = {};
   var nroomsvisited = 0;
 
-
+  // The movieclips holding the current graphics.
   var bgtiles = [];
   var fgtiles = [];
 
+  // These don't point to the real map data. When we switch
+  // rooms, we actually copy into these, adding one tile from
+  // each surrounding room.
+  var backgroundcache = [];
+  var foregroundcache = [];
 
-  var background = [];
-  var foreground = [];
-
-  var been_in_vip = false;
-  
   // Map from room name to its coordinates in the map.
   var coords = {};
 
@@ -126,23 +126,91 @@ class World {
     }
   }
 
+  // Get tiles relative to the top left of the current room, even
+  // allowing x and y out of bounds. If we go out of the map
+  // completely, return tile 1 which is expected to be solid.
+  // Returns {f,b} with foreground and background tile IDs.
+  public function getTileAnyway(tilex, tiley) {
+    var data = roomdata(currentroom);
+    if (tilex >= TILESW || tilex < 0 || tiley < 0 || tiley >= TILESH) {
+      var c = coords[currentroom];
+      var cx = c.x, cy = c.y;
+      if (tilex >= TILESW) {
+        // Out of world?
+        if (cx >= mapwidth) {
+          return { f: 1, b: 1 };
+        }
+        tilex -= TILESW;
+        cx++;
+      } else if (tilex < 0) {
+        if (cx == 0) {
+          return { f: 1, b: 1 };
+        }
+        tilex += TILESW;
+        cx--;
+      }
+
+      if (tiley >= TILESH) {
+        if (cy >= map.length) {
+          return { f: 1, b: 1 };
+        }
+        tiley -= TILESH;
+        cy++;
+      } else if (tiley < 0) {
+        if (cy == 0) {
+          return { f: 1, b: 1 };
+        }
+        tiley += TILESH;
+        cy--;
+      }
+
+      data = roomdata(map[cy][cx]);
+    }
+    
+    var idx = tiley * TILESW + tilex;
+    // trace('' + idx + ' from ' + data + ' ' + data.fg);
+    return { f : data.fg[idx], b : data.bg[idx] };
+  }
+
+  public function getForeground(tilex, tiley) {
+    return foregroundcache[(tiley + 1) * (TILESW + 2) +
+                           (tilex + 1)];
+  }
+
+  public function getBackground(tilex, tiley) {
+    return backgroundcache[(tiley + 1) * (TILESW + 2) +
+                           (tilex + 1)];
+  }
+
   // Transition to a new room.
   var currentroom : String;
   public function gotoRoom(s) {
     var symbol = 'room_' + s;
     if (this[symbol]) {
-      // Currently aliasing bg and fg, which
-      // may be desirable? (Modifications stay
-      // around when changing screens?)
-      background = this[symbol].bg;
-      foreground = this[symbol].fg;
-
       currentroom = s;
       if (!roomsvisited[s]) {
         nroomsvisited++;
         roomsvisited[s] = true;
       }
       trace('now in room ' + s);
+
+      // Copy foreground and background, and add border.
+      // You don't want to read from these directly.
+      // Call getForeground.
+      /*
+      backgroundcache = [];
+      foregroundcache = [];
+
+      for (var y = -1; y <= TILESH; y++) {
+        for (var x = -1; x <= TILESW; x++) {
+          var t = getTileAnyway(x, y);
+          backgroundcache[(y + 1) * (TILESW + 2) +
+                          (x + 1)] = t.b;
+          foregroundcache[(y + 1) * (TILESW + 2) +
+                          (x + 1)] = t.f;
+        }
+      }
+      */
 
       var roommusic = musicForRoom(currentroom);
       if (roommusic != null &&
@@ -181,19 +249,22 @@ class World {
     }
   }
 
-  private function makeClipAt(x, y, startdepth, ground, hitlist) {
-    var g = tilemap[ground[y * TILESW + x]];
+  private function makeClipAt(x, y, startdepth, t, hitlist) {
+    var g = tilemap[t];
     //    trace(g + ' ' + y + ' ' + x);
     if (g.frames.length > 0) {
-      var depth = startdepth + y * TILESW + x;
+      var depth = startdepth + (y + 1) * (TILESW + 2) + (x + 1);
       var mc : MovieClip = 
-        _root.createEmptyMovieClip('b' + y + '_' + x,
-                                   depth);
-        //_root.attachMovie("Star", "m" + depth, depth);
+        _root.createEmptyMovieClip('b' + (y + 1) + '_' + (x + 1), depth);
       mc._xscale = 200;
       mc._yscale = 200;
-      mc._y = y * HEIGHT;
-      mc._x = x * WIDTH;
+      mc._y = (y + 1) * HEIGHT;
+      mc._x = (x + 1) * WIDTH;
+      if (x == -1 || y == -1 || x == TILESW || y == TILESH) {
+        // Maybe fg alpha should be lower than bg alpha?
+        // Maybe we just want to draw transparent fading atop it?
+        mc._alpha = 50;
+      }
       // trace(g.frames[0].src);
       mc.attachBitmap(g.frames[0].bm, mc.getNextHighestDepth());
       hitlist.push(mc);
@@ -213,14 +284,16 @@ class World {
     fgtiles = [];
 
     // Make tiles.
-    for (var y = 0; y < TILESH; y++) {
-      for (var x = 0; x < TILESW; x++) {
-        makeClipAt(x, y, BGTILEDEPTH, background, bgtiles);
-        makeClipAt(x, y, FGTILEDEPTH, foreground, fgtiles);
+    for (var y = -1; y <= TILESH; y++) {
+      for (var x = -1; x <= TILESW; x++) {
+        var t = getTileAnyway(x, y);
+        makeClipAt(x, y, BGTILEDEPTH, t.b, bgtiles);
+        makeClipAt(x, y, FGTILEDEPTH, t.f, fgtiles);
       }
     }
   }
 
+  /*
   // Only works for tiles on the current screen.
   public function foregroundTileAt(screenx, screeny) {
     var tilex = int(screenx / WIDTH);
@@ -241,12 +314,14 @@ class World {
     
     foreground[tiley * TILESW + tilex] = 0;
   }
+  */
 
   public function solidTileAt(screenx, screeny) {
-    var tilex = int(screenx / WIDTH);
-    var tiley = int(screeny / HEIGHT);
+    var tilex = int(screenx / WIDTH) - 1;
+    var tiley = int(screeny / HEIGHT) - 1;
     //    trace('solidtileat ' +screenx + ',' + screeny + ' -> ' + tilex + ',' + tiley);
 
+    /*
     var show = false;
     // Look at adjacent rooms. Treat world edges as solid.
     var fgm = foreground;
@@ -278,11 +353,14 @@ class World {
       show = true;
       fgm = roomdata(map[cy][cx]).fg;
     }
+    */
+
+    var tile = getTileAnyway(tilex, tiley).f;
 
     // XXX should have tile prop.
     // trace(tilemap[foreground[tiley * TILESW + tilex]]);
     // XXX why not just fgm[..] ? Isn't that the ID?
-    var tile = fgm[tiley * TILESW + tilex];
+    // var tile = fgm[tiley * TILESW + tilex];
     // if (true || show)
     // trace('tile@ ' + tilex + "," + tiley + ": " + tile + ' =  ' + tilemap[tile].id);
     return tilemap[tile].id != 0;

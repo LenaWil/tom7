@@ -9,9 +9,15 @@
 var WIDTH = 50;
 var HEIGHT = 50;
 
-// Dimensions of a room in tiles.
+// Dimensions of a real room in tiles (like in the
+// map editor.)
 var TILESW = 16;
 var TILESH = 11;
+// Dimension of a room when shown on the screen,
+// including the one tile border.
+// var SCREENTILESW = 18;
+// var SCREENTILESH = 13;
+
 
 // z depths, just used in flash.
 var BGIMAGEDEPTH = 300;
@@ -23,15 +29,16 @@ var LASERDEPTH = 15000;
 // XXX should be between bg and fg.
 var CATDEPTH = 10000;
 
-// Height of game area (not counting status bar).
+// Height of game area (not counting status bar or border).
+// XXX used for doors only. redo for new regime.
 var GAMESCREENWIDTH = WIDTH * TILESW;
 var GAMESCREENHEIGHT = HEIGHT * TILESH;
 
 // Bounds of 'start' button on title, native
-var TITLESTARTX1 = 178;
-var TITLESTARTY1 = 272;
-var TITLESTARTX2 = 227;
-var TITLESTARTY2 = 288;
+var TITLESTARTX1 = 178 + 25;
+var TITLESTARTY1 = 272 + 25;
+var TITLESTARTX2 = 227 + 25;
+var TITLESTARTY2 = 288 + 25;
 
 var TITLELASERW = 25;
 var TITLELASERH = 25;
