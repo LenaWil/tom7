@@ -204,8 +204,7 @@ class Cat extends PhysicsObject {
 
     } else if (this.kind == KIND_GREY) {
       // XXX grey cat needs to have some special
-      // characteristics too.
-      moving;
+      // characteristics too. maybe?
 
       wanna_right = (degs <= 60 || degs >= 300);
       wanna_left = (degs >= 120 && degs <= 240);
