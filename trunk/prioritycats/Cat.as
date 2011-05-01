@@ -25,6 +25,9 @@ class Cat extends PhysicsObject {
 
   var FPS = 25;
 
+  static var KIND_ORANGE = 1;
+  static var KIND_GREY = 2;
+  var kind;
 
   var frames, heads;
 
@@ -33,7 +36,9 @@ class Cat extends PhysicsObject {
     return true;
   }
 
-  public function init(pfx) {
+  public function init(k) {
+    kind = k;
+    var pfx = (k == KIND_GREY) ? 'g' : '';
     // initialize frame data, by loading the bitmaps and
     // doing the flippin.
     frames = {};
@@ -58,7 +63,7 @@ class Cat extends PhysicsObject {
         var fbm = new BitmapData(bm.width, bm.height, true, 0);
         fbm.draw(bm, fliphoriz);
         // off-by-one in head x calc?
-        trace('hx: ' + ((width / 2) - f[i].hx));
+        // trace('hx: ' + ((width / 2) - f[i].hx));
         frames[o].l.push({ bm: fbm, hx : (width / 2) - f[i].hx, hy: f[i].hy });
       }
     }
@@ -143,36 +148,84 @@ class Cat extends PhysicsObject {
   
   var looking = false;
   var lookx = 0, looky = 0;
+  
+  // Used by orange cat to test that the
+  // dot hasn't moved too quickly.
+  var lastlookx = 1, lastlooky = 1;
+  var stationary_count = 0;
+  var moving = false;
+
   public function lookat(x, y) {
     looking = true;
     lookx = x;
     looky = y;
-    
-    // XXX this should be based on some
-    // kind of timing, and should probably
-    // be cat-specific so that they can be
-    // separated.
 
-    // ?
+    // Always compute this. Note we use
+    // the center of the cat to make physics
+    // invariant to the cat's current direction,
+    // though the head's rotation (merely presentational)
+    // is based on its display location.
     var cx = this._x + width / 2;
     var cy = this._y + height / 2;
-    
+
     var rads = Math.atan2(y - cy, x - cx);
     var degs = (360 + rads * 57.2957795) % 360;
     // Made this table with the wrong handedness.
     degs = 360 - degs;
 
-    wanna_right = (degs <= 60 || degs >= 300);
-    wanna_left = (degs >= 120 && degs <= 240);
-    // Must it be mutually exclusive?
-    wanna_jump = (degs >= 60 && degs <= 120);
+    if (this.kind == KIND_ORANGE) {
+      // Orange cat moves towards the laser,
+      // but when he's resting, he needs the
+      // laser to be stationary for ~750ms
+      // before he'll chase it.
+      if (!moving) {
+        if (Math.abs(lookx - lastlookx) < 2 &&
+            Math.abs(looky - lastlooky) < 2) {
+          stationary_count++;
+          trace('stationary for ' + stationary_count);
+          if (stationary_count > ORANGE_STATIONARY_FRAMES) {
+            moving = true;
+          }
+        } else {
+          stationary_count = 0;
+        }
+        lastlookx = lookx;
+        lastlooky = looky;
+      }
+
+      if (moving) {
+        wanna_right = (degs <= 60 || degs >= 300);
+        wanna_left = (degs >= 120 && degs <= 240);
+        // Must it be mutually exclusive?
+        // Not only in the correct angle, but not too
+        // close to the cat's head.
+        wanna_jump = (cy - y > 75) && (degs >= 60 && degs <= 120);
+      }
+
+    } else if (this.kind == KIND_GREY) {
+      // XXX grey cat needs to have some special
+      // characteristics too.
+      moving;
+
+      wanna_right = (degs <= 60 || degs >= 300);
+      wanna_left = (degs >= 120 && degs <= 240);
+      wanna_jump = (cy - y > 75) && (degs >= 60 && degs <= 120);
+    }
   }
 
+  // Both cats immediately go to sleep and become
+  // deadweight if they stop seeing the laser.
   public function nolook() {
     looking = false;
     wanna_left = false;
     wanna_right = false;
     wanna_jump = false;
+    // Can't see laser; this doesn't count as stationary.
+    lastlookx = -1;
+    lastlooky = -1;
+    stationary_count = 0;
+    // Orange cat instantly goes asleep.
+    moving = false;
   }
 
   var framemod : Number = 0;
@@ -300,9 +353,6 @@ class Cat extends PhysicsObject {
     body._x = 0;
     body._y = 0;
 
-    // XXX forced.
-    // fright = false;
-
     // Facing left or right?
     var fs = (fright ? frames[what].r : frames[what].l);
     // XXX pingpong
@@ -357,8 +407,6 @@ class Cat extends PhysicsObject {
         } else {
           whathead = 'headw';
         }
-
-        // trace(degs);
       }
     } else {
       whathead = 'headrest';

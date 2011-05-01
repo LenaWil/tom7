@@ -35,7 +35,8 @@ class TitleScreen extends MovieClip {
 
     // title music!
     titlemusic = new Sound(this);
-    titlemusic.attachSound('dangerous.mp3');
+    // XXX restore it! Got sick of this
+    // titlemusic.attachSound('dangerous.mp3');
     titlemusic.setVolume(100);
     titlemusic.start(0, 99999);
 
@@ -124,9 +125,9 @@ class TitleScreen extends MovieClip {
       // How to attach multiple cats?
       _root.orange = _root.attachMovie('orange', 'orange', 1, {_x:90, _y:90});
       // no prefix for orange.
-      _root.orange.init(''); 
+      _root.orange.init(Cat.KIND_ORANGE); 
       _root.grey = _root.attachMovie('grey', 'grey', 2, {_x:450, _y:130});
-      _root.grey.init('g');
+      _root.grey.init(Cat.KIND_GREY);
 
       // The laser pointer will be the actual controlling object.
       _root.laser = _root.attachMovie('laser', 'laser', 3, {_x:50, _y:350});
