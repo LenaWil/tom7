@@ -7,10 +7,14 @@
 // and the pixel location (native) of the neck, in the East
 // orientation.
 var framedata = {
-    buttup: {f: [{ p: 'buttup', hx: 30, hy: 15 }], div: 8},
+    buttup: {f: [{ p: 'buttup0', hx: 30, hy: 15 },
+                 { p: 'buttup1', hx: 30, hy: 15 },
+                 { p: 'buttup2', hx: 30, hy: 15 },
+                 { p: 'buttup1', hx: 30, hy: 15 }], div: 2},
     rest: {f: [{ p: 'rest', hx: 30, hy: 17 }], div: 8},
     jump: {f: [{ p: 'jump', hx: 33, hy: 3 }], div: 8},
     run: {f: [{ p: 'run1', hx: 36, hy: 6},
+	      // didn't like it. XXX ping pong?
 	      //            { p: 'run15', hx: 36, hy: 6},
               { p: 'run2', hx: 37, hy: 6}], div: 4}
 };
