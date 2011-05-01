@@ -123,10 +123,10 @@ class TitleScreen extends MovieClip {
     if (true) {
       // Normal
       // How to attach multiple cats?
-      _root.orange = _root.attachMovie('orange', 'orange', 1, {_x:140, _y:140});
+      _root.orange = _root.attachMovie('orange', 'orange', 1, {_x:210, _y:280});
       // no prefix for orange.
       _root.orange.init(Cat.KIND_ORANGE); 
-      _root.grey = _root.attachMovie('grey', 'grey', 2, {_x:500, _y:180});
+      _root.grey = _root.attachMovie('grey', 'grey', 2, {_x:315, _y:280});
       _root.grey.init(Cat.KIND_GREY);
 
       // The laser pointer will be the actual controlling object.
