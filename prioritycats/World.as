@@ -10,6 +10,8 @@ class World {
   // Rooms that the player has been in.
   var roomsvisited = {};
   var nroomsvisited = 0;
+  // Butterflies I've picked up.
+  var gotfly = {}
 
   // The movieclips holding the current graphics.
   var bgtiles = [];
@@ -235,6 +237,20 @@ class World {
 
       // This is where I attach place pickups, etc.
 
+      // Individual butterfly, not the laser room one.
+      if (_root.butterfly) _root.butterfly.removeMovieClip();
+      if (currentroom == 'start') {
+        attachButterfly('a', 717, 54);
+      } else if (currentroom == 'forestlump') {
+        attachButterfly('b', 383, 422);
+      } else if (currentroom == 'mountain') {
+        attachButterfly('c', 648, 279);
+      } else if (currentroom == 'deepcave') {
+        attachButterfly('d', 395, 309);
+      } else if (currentroom == 'waterfall') {
+        attachButterfly('e', 309, 342);
+      }
+
       // This is where I attach special objects.
 
       // Always detach laserfiles.
@@ -256,6 +272,28 @@ class World {
     } else {
       trace('no room ' + s);
       throw 'bad room';
+    }
+  }
+
+  public function gotButterfly() {
+    gotfly[_root.butterfly.which] = true;
+    // animation; removes itself.
+    _root.butterfly.got();
+    // prevent it from being gotten multiple times.
+    _root.butterfly = null;
+  }
+
+  public function attachButterfly(which, x, y) {
+    // because of border.
+    x += 50;
+    y += 50;
+    if (!gotfly[which]) {
+      trace('add fly ' + which);
+      var bf = _root.attachMovie('butterfly', 'butterfly', BUTTERFLYDEPTH, {_x:x, _y:y});
+      bf.init(which, x, y);
+      _root.butterfly = bf;
+    } else {
+      trace('already got butterfly ' + which);
     }
   }
 

@@ -26,6 +26,7 @@ var BGTILEDEPTH = 400;
 var FGTILEDEPTH = 6000;
 var LASERDEPTH = 15000;
 var LASERSDEPTH = 15500;
+var BUTTERFLYDEPTH = 9000;
 
 // XXX should be between bg and fg.
 var CATDEPTH = 10000;
@@ -43,6 +44,9 @@ var TITLESTARTY2 = 288 + 25;
 
 var TITLELASERW = 25;
 var TITLELASERH = 25;
+
+var BUTTERFLYW = 32;
+var BUTTERFLYH = 32;
 
 // XXX maybe should be in Cat.as or whatever.
 

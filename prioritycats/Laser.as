@@ -56,7 +56,21 @@ class Laser extends MovieClip {
       lookTest(grey, this.x, this.y);
     }
 
+    if (_root.butterfly) {
+      checkButterfly(orange) || checkButterfly(grey);
+    }
+
     checkWarp(orange) || checkWarp(grey);
+  }
+
+  public function checkButterfly(cat : Cat) {
+    var bx = _root.butterfly._x;
+    var by = _root.butterfly._y;
+    if (bx >= cat.x1() && bx <= cat.x2() &&
+        by >= cat.y1() && by <= cat.y2()) {
+      _root.world.gotButterfly();
+      return true;
+    }
   }
 
   public function catsTo(cx, cy) {
