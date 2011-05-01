@@ -126,6 +126,9 @@ class Cat extends PhysicsObject {
       // A little bit faster.
       C.maxspeed = 11.1;
       C.jump_impulse = 17.7;
+      // Can control himself in the air better.
+      C.accel_air = 0.3;
+      C.decel_air = 0.045;
     } else if (kind == KIND_GREY) {
       // A little bit slower and fatter.
       C.accel = 3.3;
@@ -207,8 +210,10 @@ class Cat extends PhysicsObject {
         wanna_left = (degs >= 120 && degs <= 240);
         // Must it be mutually exclusive?
         // Not only in the correct angle, but not too
-        // close to the cat's head.
-        wanna_jump = (cy - y > 75) && (degs >= 60 && degs <= 120);
+        // close to the cat's head. (But don't apply if
+        // the cursor is in the top row, since we want to
+        // make it easier to jump to the room above.)
+        wanna_jump = (y < 50 || (cy - y > 75)) && (degs >= 60 && degs <= 120);
       }
 
     } else if (this.kind == KIND_GREY) {
@@ -217,7 +222,7 @@ class Cat extends PhysicsObject {
 
       wanna_right = (degs <= 60 || degs >= 300);
       wanna_left = (degs >= 120 && degs <= 240);
-      wanna_jump = (cy - y > 75) && (degs >= 60 && degs <= 120);
+      wanna_jump = (y < 50 || (cy - y > 75)) && (degs >= 60 && degs <= 120);
     }
   }
 

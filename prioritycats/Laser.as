@@ -69,17 +69,32 @@ class Laser extends MovieClip {
   // Check if the cat is oriented in such a way that we
   // ought to be warping. Either cat can warp, and we
   // just bring the cats together.
+  //
+  // If the cats are traveling different directions at
+  // the edge of the screen, we can get into a very
+  // disturbing feedback loop. When we transition,
+  // force the velocity vectors of both cats to be
+  // as though they were thrown through the warp.
+  // This is particularly important when jumping
+  // upward, since one of the cats is usually standing
+  // still on the ground, so with dy of 0, it will
+  // get sufficient dy to move back downward after
+  // a single frame of gravity!
   public function checkWarp(cat : Cat) {
     var centerx = (cat.x2() + cat.x1()) * 0.5;
     if (centerx < WIDTH && cat.dx < 0) {
       // Walked off the screen to the left.
       _root.world.gotoRoom(_root.world.leftRoom());
       catsTo(cat._x + (WIDTH * TILESW), cat._y);
+      grey.dx = Math.min(grey.dx, -4);
+      orange.dx = Math.min(orange.dx, -4);
       return true;
     } 
     if (centerx >= (WIDTH * TILESW) && cat.dx > 0) {
       _root.world.gotoRoom(_root.world.rightRoom());
       catsTo(cat._x - (WIDTH * TILESW), cat._y);
+      grey.dx = Math.max(grey.dx, 4);
+      orange.dx = Math.max(orange.dx, 4);
       return true;
     } 
 
@@ -87,12 +102,26 @@ class Laser extends MovieClip {
     if (centery < HEIGHT && cat.dy < 0) {
       _root.world.gotoRoom(_root.world.upRoom());
       catsTo(cat._x, cat._y + (HEIGHT * TILESH));
+      var dy = Math.min(Math.min(grey.dy, orange.dy), -11.9);
+      // Not just that, but make them share the larger (magnitude)
+      // dx component, which helps jumping around corners. They
+      // have different terminal velocities so they should separate.
+      var dx = (Math.abs(grey.dx) > Math.abs(orange.dx)) ? grey.dx : orange.dx;
+      grey.dy = dy;
+      orange.dy = dy;
+      grey.dx = dx;
+      orange.dx = dx;
       return true;
     } 
 
     if (centery >= (HEIGHT * TILESH) && cat.dy > 0) {
       _root.world.gotoRoom(_root.world.downRoom());
       catsTo(cat._x, cat._y - (HEIGHT * TILESH));
+      // Don't need to throw here. Gravity takes
+      // care of downward tendency.
+      var dy = Math.max(orange.dy, grey.dy);
+      orange.dy = dy;
+      grey.dy = dy;
       return true;
     }
   }
