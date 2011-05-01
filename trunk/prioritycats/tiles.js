@@ -340,7 +340,359 @@ var tiles =
  { id: 208, isbg: false, frames: ['log5', 1] },
  { id: 209, isbg: false, frames: ['log6', 1] },
  { id: 210, isbg: false, frames: ['log7', 1] },
- { id: 211, isbg: false, frames: ['log8', 1] }
+ { id: 211, isbg: false, frames: ['log8', 1] },
+ { id: 212, isbg: true, frames: ['leavesbg1', 1] },
+ { id: 213, isbg: true, frames: ['leavesbg2', 1] },
+ // duplicate: 50,0: fd90251210 = 212
+ // duplicate: 75,0: fd90251210 = 212
+ { id: 214, isbg: true, frames: ['leavesbg3', 1] },
+ // duplicate: 125,0: fd90251210 = 212
+ // duplicate: 150,0: fd90251210 = 212
+ // duplicate: 175,0: fd90251210 = 212
+ // duplicate: 200,0: fd90251210 = 212
+ // duplicate: 225,0: fd90251210 = 212
+ // duplicate: 250,0: fd90251210 = 212
+ // duplicate: 275,0: fd90251210 = 212
+ // duplicate: 300,0: fd90251210 = 212
+ // duplicate: 325,0: fd90251210 = 212
+ // duplicate: 350,0: fd90251210 = 212
+ // duplicate: 375,0: fd90251210 = 212
+ { id: 215, isbg: true, frames: ['leavesbg4', 1] },
+ { id: 216, isbg: true, frames: ['leavesbg5', 1] },
+ { id: 217, isbg: true, frames: ['leavesbg6', 1] },
+ { id: 218, isbg: true, frames: ['leavesbg7', 1] },
+ { id: 219, isbg: true, frames: ['leavesbg8', 1] },
+ // duplicate: 125,25: fd90251210 = 212
+ { id: 220, isbg: true, frames: ['leavesbg9', 1] },
+ { id: 221, isbg: true, frames: ['leavesbg10', 1] },
+ { id: 222, isbg: true, frames: ['leavesbg11', 1] },
+ { id: 223, isbg: true, frames: ['leavesbg12', 1] },
+ { id: 224, isbg: true, frames: ['leavesbg13', 1] },
+ { id: 225, isbg: true, frames: ['leavesbg14', 1] },
+ { id: 226, isbg: true, frames: ['leavesbg15', 1] },
+ { id: 227, isbg: true, frames: ['leavesbg16', 1] },
+ // duplicate: 350,25: fd90251210 = 212
+ { id: 228, isbg: true, frames: ['leavesbg17', 1] },
+ // duplicate: 0,50: b1d85efcc8 = 32
+ // duplicate: 25,50: b1d85efcc8 = 32
+ // duplicate: 50,50: b1d85efcc8 = 32
+ // duplicate: 75,50: b1d85efcc8 = 32
+ { id: 229, isbg: true, frames: ['leavesbg18', 1] },
+ { id: 230, isbg: true, frames: ['leavesbg19', 1] },
+ // duplicate: 150,50: b1d85efcc8 = 32
+ // duplicate: 175,50: b1d85efcc8 = 32
+ // duplicate: 200,50: b1d85efcc8 = 32
+ // duplicate: 225,50: b1d85efcc8 = 32
+ { id: 231, isbg: true, frames: ['leavesbg20', 1] },
+ { id: 232, isbg: true, frames: ['leavesbg21', 1] },
+ { id: 233, isbg: true, frames: ['leavesbg22', 1] },
+ // duplicate: 325,50: b1d85efcc8 = 32
+ { id: 234, isbg: true, frames: ['leavesbg23', 1] },
+ { id: 235, isbg: true, frames: ['leavesbg24', 1] },
+ // duplicate: 0,75: b1d85efcc8 = 32
+ { id: 236, isbg: true, frames: ['leavesbg25', 1] },
+ // duplicate: 50,75: b1d85efcc8 = 32
+ // duplicate: 75,75: b1d85efcc8 = 32
+ { id: 237, isbg: true, frames: ['leavesbg26', 1] },
+ { id: 238, isbg: true, frames: ['leavesbg27', 1] },
+ // duplicate: 150,75: b1d85efcc8 = 32
+ // duplicate: 175,75: b1d85efcc8 = 32
+ // duplicate: 200,75: b1d85efcc8 = 32
+ { id: 239, isbg: true, frames: ['leavesbg28', 1] },
+ { id: 240, isbg: true, frames: ['leavesbg29', 1] },
+ { id: 241, isbg: true, frames: ['leavesbg30', 1] },
+ { id: 242, isbg: true, frames: ['leavesbg31', 1] },
+ { id: 243, isbg: true, frames: ['leavesbg32', 1] },
+ { id: 244, isbg: true, frames: ['leavesbg33', 1] },
+ // duplicate: 375,75: b1d85efcc8 = 32
+ { id: 245, isbg: true, frames: ['leavesbg34', 1] },
+ { id: 246, isbg: true, frames: ['leavesbg35', 1] },
+ { id: 247, isbg: true, frames: ['leavesbg36', 1] },
+ { id: 248, isbg: true, frames: ['leavesbg37', 1] },
+ { id: 249, isbg: true, frames: ['leavesbg38', 1] },
+ { id: 250, isbg: true, frames: ['leavesbg39', 1] },
+ { id: 251, isbg: true, frames: ['leavesbg40', 1] },
+ // duplicate: 175,100: b1d85efcc8 = 32
+ // duplicate: 200,100: b1d85efcc8 = 32
+ // duplicate: 225,100: b1d85efcc8 = 32
+ // duplicate: 250,100: b1d85efcc8 = 32
+ // duplicate: 275,100: b1d85efcc8 = 32
+ // duplicate: 300,100: b1d85efcc8 = 32
+ // duplicate: 325,100: b1d85efcc8 = 32
+ // duplicate: 350,100: b1d85efcc8 = 32
+ // duplicate: 375,100: b1d85efcc8 = 32
+ { id: 252, isbg: true, frames: ['leavesbg41', 1] },
+ { id: 253, isbg: true, frames: ['leavesbg42', 1] },
+ { id: 254, isbg: true, frames: ['leavesbg43', 1] },
+ { id: 255, isbg: true, frames: ['leavesbg44', 1] },
+ { id: 256, isbg: true, frames: ['leavesbg45', 1] },
+ { id: 257, isbg: true, frames: ['leavesbg46', 1] },
+ { id: 258, isbg: true, frames: ['leavesbg47', 1] },
+ // duplicate: 175,125: b1d85efcc8 = 32
+ // duplicate: 200,125: b1d85efcc8 = 32
+ { id: 259, isbg: true, frames: ['leavesbg48', 1] },
+ { id: 260, isbg: true, frames: ['leavesbg49', 1] },
+ { id: 261, isbg: true, frames: ['leavesbg50', 1] },
+ { id: 262, isbg: true, frames: ['leavesbg51', 1] },
+ { id: 263, isbg: true, frames: ['leavesbg52', 1] },
+ { id: 264, isbg: true, frames: ['leavesbg53', 1] },
+ // duplicate: 375,125: b1d85efcc8 = 32
+ // duplicate: 0,150: b1d85efcc8 = 32
+ // duplicate: 25,150: b1d85efcc8 = 32
+ // duplicate: 50,150: b1d85efcc8 = 32
+ // duplicate: 75,150: b1d85efcc8 = 32
+ // duplicate: 100,150: b1d85efcc8 = 32
+ // duplicate: 125,150: b1d85efcc8 = 32
+ // duplicate: 150,150: b1d85efcc8 = 32
+ // duplicate: 175,150: b1d85efcc8 = 32
+ { id: 265, isbg: true, frames: ['leavesbg54', 1] },
+ // duplicate: 225,150: b1d85efcc8 = 32
+ // duplicate: 250,150: b1d85efcc8 = 32
+ // duplicate: 275,150: b1d85efcc8 = 32
+ { id: 266, isbg: true, frames: ['leavesbg55', 1] },
+ { id: 267, isbg: true, frames: ['leavesbg56', 1] },
+ { id: 268, isbg: true, frames: ['leavesbg57', 1] },
+ { id: 269, isbg: true, frames: ['leavesbg58', 1] },
+ { id: 270, isbg: true, frames: ['leavesbg59', 1] },
+ { id: 271, isbg: true, frames: ['leavesbg60', 1] },
+ { id: 272, isbg: true, frames: ['leavesbg61', 1] },
+ { id: 273, isbg: true, frames: ['leavesbg62', 1] },
+ { id: 274, isbg: true, frames: ['leavesbg63', 1] },
+ { id: 275, isbg: true, frames: ['leavesbg64', 1] },
+ { id: 276, isbg: true, frames: ['leavesbg65', 1] },
+ { id: 277, isbg: true, frames: ['leavesbg66', 1] },
+ { id: 278, isbg: true, frames: ['leavesbg67', 1] },
+ { id: 279, isbg: true, frames: ['leavesbg68', 1] },
+ { id: 280, isbg: true, frames: ['leavesbg69', 1] },
+ // duplicate: 275,175: b1d85efcc8 = 32
+ { id: 281, isbg: true, frames: ['leavesbg70', 1] },
+ { id: 282, isbg: true, frames: ['leavesbg71', 1] },
+ { id: 283, isbg: true, frames: ['leavesbg72', 1] },
+ // duplicate: 375,175: b1d85efcc8 = 32
+ { id: 284, isbg: true, frames: ['leavesbg73', 1] },
+ { id: 285, isbg: true, frames: ['leavesbg74', 1] },
+ { id: 286, isbg: true, frames: ['leavesbg75', 1] },
+ { id: 287, isbg: true, frames: ['leavesbg76', 1] },
+ { id: 288, isbg: true, frames: ['leavesbg77', 1] },
+ { id: 289, isbg: true, frames: ['leavesbg78', 1] },
+ // duplicate: 150,200: b1d85efcc8 = 32
+ // duplicate: 175,200: b1d85efcc8 = 32
+ // duplicate: 200,200: b1d85efcc8 = 32
+ // duplicate: 225,200: b1d85efcc8 = 32
+ // duplicate: 250,200: b1d85efcc8 = 32
+ // duplicate: 275,200: b1d85efcc8 = 32
+ // duplicate: 300,200: b1d85efcc8 = 32
+ // duplicate: 325,200: b1d85efcc8 = 32
+ // duplicate: 350,200: b1d85efcc8 = 32
+ // duplicate: 375,200: b1d85efcc8 = 32
+ // duplicate: 0,225: b1d85efcc8 = 32
+ // duplicate: 25,225: b1d85efcc8 = 32
+ // duplicate: 50,225: b1d85efcc8 = 32
+ // duplicate: 75,225: b1d85efcc8 = 32
+ { id: 290, isbg: true, frames: ['leavesbg79', 1] },
+ // duplicate: 125,225: b1d85efcc8 = 32
+ // duplicate: 150,225: b1d85efcc8 = 32
+ { id: 291, isbg: true, frames: ['leavesbg80', 1] },
+ // duplicate: 200,225: b1d85efcc8 = 32
+ { id: 292, isbg: true, frames: ['leavesbg81', 1] },
+ { id: 293, isbg: true, frames: ['leavesbg82', 1] },
+ { id: 294, isbg: true, frames: ['leavesbg83', 1] },
+ { id: 295, isbg: true, frames: ['leavesbg84', 1] },
+ { id: 296, isbg: true, frames: ['leavesbg85', 1] },
+ // duplicate: 350,225: b1d85efcc8 = 32
+ // duplicate: 375,225: b1d85efcc8 = 32
+ // duplicate: 0,250: b1d85efcc8 = 32
+ { id: 297, isbg: true, frames: ['leavesbg86', 1] },
+ { id: 298, isbg: true, frames: ['leavesbg87', 1] },
+ { id: 299, isbg: true, frames: ['leavesbg88', 1] },
+ { id: 300, isbg: true, frames: ['leavesbg89', 1] },
+ { id: 301, isbg: true, frames: ['leavesbg90', 1] },
+ { id: 302, isbg: true, frames: ['leavesbg91', 1] },
+ { id: 303, isbg: true, frames: ['leavesbg92', 1] },
+ { id: 304, isbg: true, frames: ['leavesbg93', 1] },
+ { id: 305, isbg: true, frames: ['leavesbg94', 1] },
+ { id: 306, isbg: true, frames: ['leavesbg95', 1] },
+ { id: 307, isbg: true, frames: ['leavesbg96', 1] },
+ { id: 308, isbg: true, frames: ['leavesbg97', 1] },
+ { id: 309, isbg: true, frames: ['leavesbg98', 1] },
+ // duplicate: 350,250: b1d85efcc8 = 32
+ // duplicate: 375,250: b1d85efcc8 = 32
+ // duplicate: 0,0: 9bdd51fbf4 = 5
+ // duplicate: 25,0: 9bdd51fbf4 = 5
+ // duplicate: 50,0: 9bdd51fbf4 = 5
+ // duplicate: 75,0: 9bdd51fbf4 = 5
+ { id: 310, isbg: true, frames: ['leaveswest1', 1] },
+ { id: 311, isbg: true, frames: ['leaveswest2', 1] },
+ { id: 312, isbg: true, frames: ['leaveswest3', 1] },
+ // duplicate: 175,0: fd90251210 = 212
+ // duplicate: 200,0: fd90251210 = 212
+ // duplicate: 225,0: fd90251210 = 212
+ // duplicate: 250,0: fd90251210 = 212
+ // duplicate: 275,0: fd90251210 = 212
+ // duplicate: 300,0: fd90251210 = 212
+ // duplicate: 325,0: fd90251210 = 212
+ // duplicate: 350,0: fd90251210 = 212
+ // duplicate: 375,0: fd90251210 = 212
+ // duplicate: 0,25: 9bdd51fbf4 = 5
+ // duplicate: 25,25: 9bdd51fbf4 = 5
+ // duplicate: 50,25: 9bdd51fbf4 = 5
+ { id: 313, isbg: true, frames: ['leaveswest4', 1] },
+ { id: 314, isbg: true, frames: ['leaveswest5', 1] },
+ // duplicate: 125,25: fd90251210 = 212
+ // duplicate: 150,25: 1fa5309ca0 = 220
+ // duplicate: 175,25: c96f9ed4ac = 221
+ // duplicate: 200,25: d2ff95800 = 222
+ // duplicate: 225,25: d6d4112688 = 223
+ // duplicate: 250,25: 8eed5cd4b8 = 224
+ // duplicate: 275,25: 9aa74dda34 = 225
+ // duplicate: 300,25: cf297964b0 = 226
+ // duplicate: 325,25: 4e3bf5995c = 227
+ // duplicate: 350,25: fd90251210 = 212
+ // duplicate: 375,25: 8116b2221c = 228
+ // duplicate: 0,50: b0998e6d0c = 4
+ // duplicate: 25,50: b0998e6d0c = 4
+ { id: 315, isbg: true, frames: ['leaveswest6', 1] },
+ { id: 316, isbg: true, frames: ['leaveswest7', 1] },
+ // duplicate: 100,50: a1bf85810c = 229
+ // duplicate: 125,50: ea1b18bae8 = 230
+ // duplicate: 150,50: b1d85efcc8 = 32
+ // duplicate: 175,50: b1d85efcc8 = 32
+ // duplicate: 200,50: b1d85efcc8 = 32
+ // duplicate: 225,50: b1d85efcc8 = 32
+ // duplicate: 250,50: e993e19234 = 231
+ // duplicate: 275,50: 27cc01687c = 232
+ // duplicate: 300,50: fc3a7d8058 = 233
+ // duplicate: 325,50: b1d85efcc8 = 32
+ // duplicate: 350,50: 53df566a48 = 234
+ // duplicate: 375,50: 43ffb28c80 = 235
+ // duplicate: 0,75: b0998e6d0c = 4
+ // duplicate: 25,75: b0998e6d0c = 4
+ { id: 317, isbg: true, frames: ['leaveswest8', 1] },
+ { id: 318, isbg: true, frames: ['leaveswest9', 1] },
+ // duplicate: 100,75: be3c1c70c = 237
+ // duplicate: 125,75: af8fb311b0 = 238
+ // duplicate: 150,75: b1d85efcc8 = 32
+ // duplicate: 175,75: b1d85efcc8 = 32
+ // duplicate: 200,75: b1d85efcc8 = 32
+ // duplicate: 225,75: 6330a94ce0 = 239
+ // duplicate: 250,75: c2042804a8 = 240
+ // duplicate: 275,75: bcd1001bc8 = 241
+ // duplicate: 300,75: 1011ca2b88 = 242
+ // duplicate: 325,75: 731392b21c = 243
+ // duplicate: 350,75: 571129edc8 = 244
+ // duplicate: 375,75: b1d85efcc8 = 32
+ // duplicate: 0,100: fd8432aa8 = 3
+ // duplicate: 25,100: fd8432aa8 = 3
+ // duplicate: 50,100: fd8432aa8 = 3
+ { id: 319, isbg: true, frames: ['leaveswest10', 1] },
+ { id: 320, isbg: true, frames: ['leaveswest11', 1] },
+ // duplicate: 125,100: 928295eb08 = 250
+ // duplicate: 150,100: 82665d6634 = 251
+ // duplicate: 175,100: b1d85efcc8 = 32
+ // duplicate: 200,100: b1d85efcc8 = 32
+ // duplicate: 225,100: b1d85efcc8 = 32
+ // duplicate: 250,100: b1d85efcc8 = 32
+ // duplicate: 275,100: b1d85efcc8 = 32
+ // duplicate: 300,100: b1d85efcc8 = 32
+ // duplicate: 325,100: b1d85efcc8 = 32
+ // duplicate: 350,100: b1d85efcc8 = 32
+ // duplicate: 375,100: b1d85efcc8 = 32
+ // duplicate: 0,125: fd8432aa8 = 3
+ // duplicate: 25,125: fd8432aa8 = 3
+ // duplicate: 50,125: fd8432aa8 = 3
+ { id: 321, isbg: true, frames: ['leaveswest12', 1] },
+ { id: 322, isbg: true, frames: ['leaveswest13', 1] },
+ // duplicate: 125,125: cf61d12730 = 257
+ // duplicate: 150,125: da82d63d14 = 258
+ // duplicate: 175,125: b1d85efcc8 = 32
+ // duplicate: 200,125: b1d85efcc8 = 32
+ // duplicate: 225,125: 7ffe2af3e0 = 259
+ // duplicate: 250,125: 6db3a03c7c = 260
+ // duplicate: 275,125: dec2af89dc = 261
+ // duplicate: 300,125: 34db9128c4 = 262
+ // duplicate: 325,125: 6d9461c49c = 263
+ // duplicate: 350,125: 51f5a3c2b0 = 264
+ // duplicate: 375,125: b1d85efcc8 = 32
+ // duplicate: 0,150: a09a589d10 = 2
+ // duplicate: 25,150: a09a589d10 = 2
+ // duplicate: 50,150: a09a589d10 = 2
+ // duplicate: 75,150: a09a589d10 = 2
+ { id: 323, isbg: true, frames: ['leaveswest14', 1] },
+ { id: 324, isbg: true, frames: ['leaveswest15', 1] },
+ { id: 325, isbg: true, frames: ['leaveswest16', 1] },
+ // duplicate: 175,150: b1d85efcc8 = 32
+ // duplicate: 200,150: 924ded872c = 265
+ // duplicate: 225,150: b1d85efcc8 = 32
+ // duplicate: 250,150: b1d85efcc8 = 32
+ // duplicate: 275,150: b1d85efcc8 = 32
+ // duplicate: 300,150: 9afc7f5f78 = 266
+ // duplicate: 325,150: 8d6328594c = 267
+ // duplicate: 350,150: ad82ab110c = 268
+ // duplicate: 375,150: 876a28b57c = 269
+ // duplicate: 0,175: a09a589d10 = 2
+ // duplicate: 25,175: a09a589d10 = 2
+ // duplicate: 50,175: a09a589d10 = 2
+ // duplicate: 75,175: a09a589d10 = 2
+ // duplicate: 100,175: a09a589d10 = 2
+ { id: 326, isbg: true, frames: ['leaveswest17', 1] },
+ { id: 327, isbg: true, frames: ['leaveswest18', 1] },
+ // duplicate: 175,175: a79c73b8a4 = 277
+ // duplicate: 200,175: 5202102668 = 278
+ // duplicate: 225,175: feb9bf9324 = 279
+ // duplicate: 250,175: 6ebd0e3e74 = 280
+ // duplicate: 275,175: b1d85efcc8 = 32
+ // duplicate: 300,175: a0669311b8 = 281
+ // duplicate: 325,175: 80a1ea98dc = 282
+ // duplicate: 350,175: 207e443830 = 283
+ // duplicate: 375,175: b1d85efcc8 = 32
+ // duplicate: 0,200: a09a589d10 = 2
+ // duplicate: 25,200: a09a589d10 = 2
+ // duplicate: 50,200: a09a589d10 = 2
+ // duplicate: 75,200: a09a589d10 = 2
+ // duplicate: 100,200: a09a589d10 = 2
+ // duplicate: 125,200: a09a589d10 = 2
+ { id: 328, isbg: true, frames: ['leaveswest19', 1] },
+ { id: 329, isbg: true, frames: ['leaveswest20', 1] },
+ { id: 330, isbg: true, frames: ['leaveswest21', 1] },
+ { id: 331, isbg: true, frames: ['leaveswest22', 1] },
+ // duplicate: 250,200: b1d85efcc8 = 32
+ // duplicate: 275,200: b1d85efcc8 = 32
+ // duplicate: 300,200: b1d85efcc8 = 32
+ // duplicate: 325,200: b1d85efcc8 = 32
+ // duplicate: 350,200: b1d85efcc8 = 32
+ // duplicate: 375,200: b1d85efcc8 = 32
+ // duplicate: 0,225: a09a589d10 = 2
+ // duplicate: 25,225: a09a589d10 = 2
+ // duplicate: 50,225: a09a589d10 = 2
+ // duplicate: 75,225: a09a589d10 = 2
+ // duplicate: 100,225: a09a589d10 = 2
+ // duplicate: 125,225: a09a589d10 = 2
+ // duplicate: 150,225: a09a589d10 = 2
+ { id: 332, isbg: true, frames: ['leaveswest23', 1] },
+ { id: 333, isbg: true, frames: ['leaveswest24', 1] },
+ { id: 334, isbg: true, frames: ['leaveswest25', 1] },
+ // duplicate: 250,225: 8b8f586214 = 293
+ // duplicate: 275,225: a15bdd1a0 = 294
+ // duplicate: 300,225: 83759d4b30 = 295
+ // duplicate: 325,225: 139be30a88 = 296
+ // duplicate: 350,225: b1d85efcc8 = 32
+ // duplicate: 375,225: b1d85efcc8 = 32
+ // duplicate: 0,250: a09a589d10 = 2
+ // duplicate: 25,250: a09a589d10 = 2
+ // duplicate: 50,250: a09a589d10 = 2
+ // duplicate: 75,250: a09a589d10 = 2
+ // duplicate: 100,250: a09a589d10 = 2
+ // duplicate: 125,250: a09a589d10 = 2
+ // duplicate: 150,250: a09a589d10 = 2
+ // duplicate: 175,250: a09a589d10 = 2
+ // duplicate: 200,250: a09a589d10 = 2
+ { id: 335, isbg: true, frames: ['leaveswest26', 1] },
+ { id: 336, isbg: true, frames: ['leaveswest27', 1] },
+ { id: 337, isbg: true, frames: ['leaveswest28', 1] },
+ { id: 338, isbg: true, frames: ['leaveswest29', 1] },
+ { id: 339, isbg: true, frames: ['leaveswest30', 1] },
+ { id: 340, isbg: true, frames: ['leaveswest31', 1] }
+ // duplicate: 375,250: b1d85efcc8 = 32
  ];
 
 
@@ -352,5 +704,7 @@ var macros = {
     floatingleavesb: { w: 4, h: 1, t: [158, 152, 163, 161 ]},
     smalltree: { w: 2, h: 3, t: [164, 165, 166, 2, 167, 168 ]},
     bigtree: { w: 7, h: 10, t: [32, 32, 32, 169, 170, 170, 171, 172, 42, 173, 174, 170, 170, 175, 176, 177, 178, 179, 170, 170, 180, 4, 4, 4, 181, 170, 170, 182, 3, 3, 3, 183, 170, 170, 184, 3, 3, 3, 185, 170, 170, 186, 2, 2, 2, 187, 170, 170, 188, 2, 2, 2, 189, 170, 170, 190, 2, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203 ]},
-    log: { w: 4, h: 2, t: [204, 205, 206, 207, 208, 209, 210, 211 ]}
+    log: { w: 4, h: 2, t: [204, 205, 206, 207, 208, 209, 210, 211 ]},
+    leavesbg: { w: 16, h: 11, t: [212, 213, 212, 212, 214, 212, 212, 212, 212, 212, 212, 212, 212, 212, 212, 212, 215, 216, 217, 218, 219, 212, 220, 221, 222, 223, 224, 225, 226, 227, 212, 228, 32, 32, 32, 32, 229, 230, 32, 32, 32, 32, 231, 232, 233, 32, 234, 235, 32, 236, 32, 32, 237, 238, 32, 32, 32, 239, 240, 241, 242, 243, 244, 32, 245, 246, 247, 248, 249, 250, 251, 32, 32, 32, 32, 32, 32, 32, 32, 32, 252, 253, 254, 255, 256, 257, 258, 32, 32, 259, 260, 261, 262, 263, 264, 32, 32, 32, 32, 32, 32, 32, 32, 32, 265, 32, 32, 32, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 32, 281, 282, 283, 32, 284, 285, 286, 287, 288, 289, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 290, 32, 32, 291, 32, 292, 293, 294, 295, 296, 32, 32, 32, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 32, 32 ]},
+    leaveswest: { w: 16, h: 11, t: [5, 5, 5, 5, 310, 311, 312, 212, 212, 212, 212, 212, 212, 212, 212, 212, 5, 5, 5, 313, 314, 212, 220, 221, 222, 223, 224, 225, 226, 227, 212, 228, 4, 4, 315, 316, 229, 230, 32, 32, 32, 32, 231, 232, 233, 32, 234, 235, 4, 4, 317, 318, 237, 238, 32, 32, 32, 239, 240, 241, 242, 243, 244, 32, 3, 3, 3, 319, 320, 250, 251, 32, 32, 32, 32, 32, 32, 32, 32, 32, 3, 3, 3, 321, 322, 257, 258, 32, 32, 259, 260, 261, 262, 263, 264, 32, 2, 2, 2, 2, 323, 324, 325, 32, 265, 32, 32, 32, 266, 267, 268, 269, 2, 2, 2, 2, 2, 326, 327, 277, 278, 279, 280, 32, 281, 282, 283, 32, 2, 2, 2, 2, 2, 2, 328, 329, 330, 331, 32, 32, 32, 32, 32, 32, 2, 2, 2, 2, 2, 2, 2, 332, 333, 334, 293, 294, 295, 296, 32, 32, 2, 2, 2, 2, 2, 2, 2, 2, 2, 335, 336, 337, 338, 339, 340, 32 ]}
 };
