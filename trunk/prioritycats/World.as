@@ -100,6 +100,8 @@ class World {
   }
 
   public function volumeForRoom(r) {
+    // return 0; // NOMUSIC
+
     switch(r) {
     default:
     case 'start':
