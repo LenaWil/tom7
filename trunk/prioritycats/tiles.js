@@ -250,11 +250,107 @@ var tiles =
  // duplicate: 175,100: 2e2b107ff0 = 141
  // duplicate: 200,100: 2e2b107ff0 = 141
  // duplicate: 225,100: 2e2b107ff0 = 141
- { id: 157, isbg: false, frames: ['forestlump24', 1] }
+ { id: 157, isbg: false, frames: ['forestlump24', 1] },
+ { id: 158, isbg: false, frames: ['floatingleavesa1', 1] },
+ { id: 159, isbg: false, frames: ['floatingleavesa2', 1] },
+ { id: 160, isbg: false, frames: ['floatingleavesa3', 1] },
+ { id: 161, isbg: false, frames: ['floatingleavesa4', 1] },
+ { id: 162, isbg: false, frames: ['floatingleavesb1', 1] },
+ { id: 163, isbg: false, frames: ['floatingleavesb2', 1] },
+ { id: 164, isbg: true, frames: ['smalltree1', 1] },
+ { id: 165, isbg: true, frames: ['smalltree2', 1] },
+ { id: 166, isbg: true, frames: ['smalltree3', 1] },
+ // duplicate: 25,25: a09a589d10 = 2
+ { id: 167, isbg: true, frames: ['smalltree4', 1] },
+ { id: 168, isbg: true, frames: ['smalltree5', 1] },
+ // duplicate: 0,0: b1d85efcc8 = 32
+ // duplicate: 25,0: b1d85efcc8 = 32
+ // duplicate: 50,0: b1d85efcc8 = 32
+ { id: 169, isbg: true, frames: ['bigtree1', 1] },
+ { id: 170, isbg: true, frames: ['bigtree2', 1] },
+ // duplicate: 125,0: a361639248 = 170
+ { id: 171, isbg: true, frames: ['bigtree3', 1] },
+ { id: 172, isbg: true, frames: ['bigtree4', 1] },
+ // duplicate: 25,25: c245414cb8 = 42
+ { id: 173, isbg: true, frames: ['bigtree5', 1] },
+ { id: 174, isbg: true, frames: ['bigtree6', 1] },
+ // duplicate: 100,25: a361639248 = 170
+ // duplicate: 125,25: a361639248 = 170
+ { id: 175, isbg: true, frames: ['bigtree7', 1] },
+ { id: 176, isbg: true, frames: ['bigtree8', 1] },
+ { id: 177, isbg: true, frames: ['bigtree9', 1] },
+ { id: 178, isbg: true, frames: ['bigtree10', 1] },
+ { id: 179, isbg: true, frames: ['bigtree11', 1] },
+ // duplicate: 100,50: a361639248 = 170
+ // duplicate: 125,50: a361639248 = 170
+ { id: 180, isbg: true, frames: ['bigtree12', 1] },
+ // duplicate: 0,75: b0998e6d0c = 4
+ // duplicate: 25,75: b0998e6d0c = 4
+ // duplicate: 50,75: b0998e6d0c = 4
+ { id: 181, isbg: true, frames: ['bigtree13', 1] },
+ // duplicate: 100,75: a361639248 = 170
+ // duplicate: 125,75: a361639248 = 170
+ { id: 182, isbg: true, frames: ['bigtree14', 1] },
+ // duplicate: 0,100: fd8432aa8 = 3
+ // duplicate: 25,100: fd8432aa8 = 3
+ // duplicate: 50,100: fd8432aa8 = 3
+ { id: 183, isbg: true, frames: ['bigtree15', 1] },
+ // duplicate: 100,100: a361639248 = 170
+ // duplicate: 125,100: a361639248 = 170
+ { id: 184, isbg: true, frames: ['bigtree16', 1] },
+ // duplicate: 0,125: fd8432aa8 = 3
+ // duplicate: 25,125: fd8432aa8 = 3
+ // duplicate: 50,125: fd8432aa8 = 3
+ { id: 185, isbg: true, frames: ['bigtree17', 1] },
+ // duplicate: 100,125: a361639248 = 170
+ // duplicate: 125,125: a361639248 = 170
+ { id: 186, isbg: true, frames: ['bigtree18', 1] },
+ // duplicate: 0,150: a09a589d10 = 2
+ // duplicate: 25,150: a09a589d10 = 2
+ // duplicate: 50,150: a09a589d10 = 2
+ { id: 187, isbg: true, frames: ['bigtree19', 1] },
+ // duplicate: 100,150: a361639248 = 170
+ // duplicate: 125,150: a361639248 = 170
+ { id: 188, isbg: true, frames: ['bigtree20', 1] },
+ // duplicate: 0,175: a09a589d10 = 2
+ // duplicate: 25,175: a09a589d10 = 2
+ // duplicate: 50,175: a09a589d10 = 2
+ { id: 189, isbg: true, frames: ['bigtree21', 1] },
+ // duplicate: 100,175: a361639248 = 170
+ // duplicate: 125,175: a361639248 = 170
+ { id: 190, isbg: true, frames: ['bigtree22', 1] },
+ // duplicate: 0,200: a09a589d10 = 2
+ { id: 191, isbg: true, frames: ['bigtree23', 1] },
+ { id: 192, isbg: true, frames: ['bigtree24', 1] },
+ { id: 193, isbg: true, frames: ['bigtree25', 1] },
+ { id: 194, isbg: true, frames: ['bigtree26', 1] },
+ { id: 195, isbg: true, frames: ['bigtree27', 1] },
+ { id: 196, isbg: true, frames: ['bigtree28', 1] },
+ { id: 197, isbg: false, frames: ['bigtree29', 1] },
+ { id: 198, isbg: false, frames: ['bigtree30', 1] },
+ { id: 199, isbg: false, frames: ['bigtree31', 1] },
+ { id: 200, isbg: false, frames: ['bigtree32', 1] },
+ { id: 201, isbg: false, frames: ['bigtree33', 1] },
+ { id: 202, isbg: false, frames: ['bigtree34', 1] },
+ { id: 203, isbg: false, frames: ['bigtree35', 1] },
+ { id: 204, isbg: false, frames: ['log1', 1] },
+ { id: 205, isbg: false, frames: ['log2', 1] },
+ { id: 206, isbg: false, frames: ['log3', 1] },
+ { id: 207, isbg: false, frames: ['log4', 1] },
+ { id: 208, isbg: false, frames: ['log5', 1] },
+ { id: 209, isbg: false, frames: ['log6', 1] },
+ { id: 210, isbg: false, frames: ['log7', 1] },
+ { id: 211, isbg: false, frames: ['log8', 1] }
  ];
+
 
 var macros = {
     house: { w: 3, h: 9, fg: true, t: [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 18, 27, 20, 18, 28, 29 ]},
     forestbg: { w: 16, h: 10, t: [32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 33, 34, 35, 36, 37, 32, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 4, 4, 64, 65, 66, 4, 4, 4, 67, 68, 69, 70, 4, 4, 71, 72, 3, 3, 73, 74, 75, 3, 3, 3, 76, 77, 78, 3, 3, 3, 79, 80, 3, 3, 81, 82, 83, 3, 3, 3, 84, 85, 86, 3, 3, 3, 87, 88, 2, 2, 89, 90, 91, 2, 2, 2, 92, 93, 2, 2, 2, 2, 94, 95, 2, 2, 96, 97, 98, 2, 2, 2, 99, 100, 2, 2, 2, 2, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 109, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133 ]},
-    forestlump: { w: 11, h: 5, t: [81, 82, 134, 135, 136, 137, 138, 139, 86, 3, 3, 89, 90, 140, 141, 141, 141, 141, 142, 143, 144, 2, 145, 146, 147, 141, 141, 141, 141, 148, 149, 150, 151, 152, 153, 141, 141, 141, 141, 141, 141, 141, 154, 155, 156, 141, 141, 141, 141, 141, 141, 141, 141, 141, 157 ]}
+    forestlump: { w: 11, h: 5, t: [81, 82, 134, 135, 136, 137, 138, 139, 86, 3, 3, 89, 90, 140, 141, 141, 141, 141, 142, 143, 144, 2, 145, 146, 147, 141, 141, 141, 141, 148, 149, 150, 151, 152, 153, 141, 141, 141, 141, 141, 141, 141, 154, 155, 156, 141, 141, 141, 141, 141, 141, 141, 141, 141, 157 ]},
+    floatingleaves: { w: 4, h: 1, t: [158, 159, 160, 161 ]},
+    floatingleavesb: { w: 4, h: 1, t: [158, 152, 163, 161 ]},
+    smalltree: { w: 2, h: 3, t: [164, 165, 166, 2, 167, 168 ]},
+    bigtree: { w: 7, h: 10, t: [32, 32, 32, 169, 170, 170, 171, 172, 42, 173, 174, 170, 170, 175, 176, 177, 178, 179, 170, 170, 180, 4, 4, 4, 181, 170, 170, 182, 3, 3, 3, 183, 170, 170, 184, 3, 3, 3, 185, 170, 170, 186, 2, 2, 2, 187, 170, 170, 188, 2, 2, 2, 189, 170, 170, 190, 2, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203 ]},
+    log: { w: 4, h: 2, t: [204, 205, 206, 207, 208, 209, 210, 211 ]}
 };
