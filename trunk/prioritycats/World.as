@@ -12,7 +12,7 @@ class World {
   var nroomsvisited = 0;
   // Butterflies I've picked up.
   // XXX don't start with flies!
-  var gotfly = {a: true, b:true, c: true, d: true, e: true };
+  var gotfly = {}; // {a: true, b:true, c: true, d: true, e: true };
 
   // The movieclips holding the current graphics.
   var bgtiles = [];
@@ -319,17 +319,17 @@ class World {
     x += 50;
     y += 50;
     if (!gotfly[which]) {
-      trace('add fly ' + which);
+      // trace('add fly ' + which);
       var bf = _root.attachMovie('butterfly', 'butterfly', BUTTERFLYDEPTH, {_x:x, _y:y});
       bf.init(which, x, y);
       _root.butterfly = bf;
     } else {
-      trace('already got butterfly ' + which);
+      // trace('already got butterfly ' + which);
     }
   }
 
   public function attachInertFly(which, x, y, i) {
-    trace('add inert fly ' + which + ' @' + x + ' ' + y);
+    // trace('add inert fly ' + which + ' @' + x + ' ' + y);
     var bf = _root.attachMovie('inertbutterfly', 'inertbutterfly' + which, 
                                BUTTERFLYDEPTH + i, {_x:x, _y:y});
     bf.init(which, x, y);
@@ -340,21 +340,25 @@ class World {
     var g = tilemap[t];
     //    trace(g + ' ' + y + ' ' + x);
     if (g.frames.length > 0) {
-      var depth = startdepth + (y + 1) * (TILESW + 2) + (x + 1);
-      var mc : MovieClip = 
-        _root.createEmptyMovieClip('b' + (y + 1) + '_' + (x + 1), depth);
-      mc._xscale = 200;
-      mc._yscale = 200;
-      mc._y = (y + 1) * HEIGHT;
-      mc._x = (x + 1) * WIDTH;
       if (x == -1 || y == -1 || x == TILESW || y == TILESH) {
+        // XXX just not drawing edges now.
         // Maybe fg alpha should be lower than bg alpha?
         // Maybe we just want to draw transparent fading atop it?
-        mc._alpha = 50;
+        // mc._alpha = 50;
+      } else {
+
+        var depth = startdepth + (y + 1) * (TILESW + 2) + (x + 1);
+        var mc : MovieClip = 
+          _root.createEmptyMovieClip('b' + (y + 1) + '_' + (x + 1), depth);
+        mc._xscale = 200;
+        mc._yscale = 200;
+        mc._y = (y + 1) * HEIGHT;
+        mc._x = (x + 1) * WIDTH;
+
+        // trace(g.frames[0].src);
+        mc.attachBitmap(g.frames[0].bm, mc.getNextHighestDepth());
+        hitlist.push(mc);
       }
-      // trace(g.frames[0].src);
-      mc.attachBitmap(g.frames[0].bm, mc.getNextHighestDepth());
-      hitlist.push(mc);
     }
   }
 
