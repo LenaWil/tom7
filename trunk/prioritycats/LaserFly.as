@@ -15,6 +15,8 @@ class LaserFly extends MovieClip {
 
   var orange: Cat = null;
   var grey: Cat = null;
+
+  var synchronized = 0;
   
   // Logical location
   var dx = 0, dy = 0;
@@ -31,14 +33,23 @@ class LaserFly extends MovieClip {
     // var f = ((Math.abs(int(x)) * 31337) % 257 ^
     // (Math.abs(int(y)) * 111311) % 253) % frames.length;
 
-    dx += Math.random() - 0.5;
-    dy += Math.random() * 0.5 - 0.25;
+    if (synchronized > 0) {
+      dx = 3 * Math.sin(synchronized / 20);
+      dy = 3 * Math.cos(synchronized / 10);
+      dx += synchronized / 175;
+      dy += synchronized / 175;
+      synchronized++;
+    } else {
+      dx += Math.random() - 0.5;
+      dy += Math.random() * 0.5 - 0.25;
+    }
 
     // don't move too fast
     if (dx > 2) dx = 2;
     if (dx < -2) dx = -2;
     if (dy > 2) dy = 2;
     if (dy < -2) dy = -2;
+
     
     this._x += dx;
     this._y += dy;
@@ -50,6 +61,12 @@ class LaserFly extends MovieClip {
 
     fr = int(Math.random() * 9999) % frames.length;
     anim.attachBitmap(frames[fr], anim.getNextHighestDepth());
+  }
+
+  // Always dance the same way.
+  public function synchronize() {
+    // trace('synchronized ' + this);
+    synchronized = 1;
   }
 
   public function onLoad() {

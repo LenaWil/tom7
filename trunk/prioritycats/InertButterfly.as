@@ -3,7 +3,7 @@ import flash.display.*;
 /* This is a butterfly in the final room, which
    you can just look at. */
 
-class Butterfly extends MovieClip {
+class InertButterfly extends MovieClip {
 
   #include "constants.js"
   #include "frames.js"

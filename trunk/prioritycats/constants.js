@@ -27,6 +27,7 @@ var FGTILEDEPTH = 6000;
 var LASERDEPTH = 15000;
 var LASERSDEPTH = 15500;
 var BUTTERFLYDEPTH = 9000;
+var ALSODEPTH = 7500;
 
 // XXX should be between bg and fg.
 var CATDEPTH = 10000;
