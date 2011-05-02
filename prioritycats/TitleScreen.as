@@ -32,7 +32,6 @@ class TitleScreen extends MovieClip {
     // Key.addListener(this);
 
     bg1 = BitmapData.loadBitmap('title.png');
-    // XXX draw this for real
     bg2 = BitmapData.loadBitmap('titlestart.png');
 
     setframe(bg1);
@@ -116,36 +115,21 @@ class TitleScreen extends MovieClip {
     // in the root timeline.
     _root.gotoAndStop('game');
 
-    // trace(GAMESCREENHEIGHT); ?? why doesn't this work?
-    // _root.status = _root.attachMovie('status', 'status', 15010,
-    // {_x: 0, _y: 576});
-    // _root.status.init();
+    _root.orange = _root.attachMovie('orange', 'orange', 1, {_x:210, _y:280});
+    // no prefix for orange.
+    _root.orange.init(Cat.KIND_ORANGE); 
+    _root.grey = _root.attachMovie('grey', 'grey', 2, {_x:315, _y:280});
+    _root.grey.init(Cat.KIND_GREY);
 
-    trace('start game 4 realz');
-
-    if (true) {
-      // Normal
-      // How to attach multiple cats?
-      _root.orange = _root.attachMovie('orange', 'orange', 1, {_x:210, _y:280});
-      // no prefix for orange.
-      _root.orange.init(Cat.KIND_ORANGE); 
-      _root.grey = _root.attachMovie('grey', 'grey', 2, {_x:315, _y:280});
-      _root.grey.init(Cat.KIND_GREY);
-
-      // The laser pointer will be the actual controlling object.
-      _root.laser = _root.attachMovie('laser', 'laser', 3, {_x:50, _y:350});
-      _root.laser.init(_root.orange, _root.grey);
+    // The laser pointer will be the actual controlling object.
+    _root.laser = _root.attachMovie('laser', 'laser', 3, {_x:50, _y:350});
+    _root.laser.init(_root.orange, _root.grey);
 
 
-      // _root.world.gotoRoom('start');
-      _root.world.gotoRoom('glow');
-      // _root.world.gotoRoom('forestlumpup');
-      // _root.world.gotoRoom('poolleft');
-    } else {
-      // _root.you = _root.attachMovie('you', 'you', 1, {_x:50, _y:100});
-      // _root.you.init();
-      // _root.world.gotoRoom('vipcorneru');
-    }
+    _root.world.gotoRoom('start');
+    // _root.world.gotoRoom('glow');
+    // _root.world.gotoRoom('forestlumpup');
+    // _root.world.gotoRoom('poolleft');
   }
 
 };
