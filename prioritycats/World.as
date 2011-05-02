@@ -11,7 +11,8 @@ class World {
   var roomsvisited = {};
   var nroomsvisited = 0;
   // Butterflies I've picked up.
-  var gotfly = {a: true, c: true};
+  // XXX don't start with flies!
+  var gotfly = {a: true, b:true, c: true, d: true, e: true };
 
   // The movieclips holding the current graphics.
   var bgtiles = [];
@@ -264,26 +265,38 @@ class World {
         _root.inertflies[o].removeMovieClip();
       _root.inertflies = [];
 
+      if (_root.alsomoths) _root.alsomoths.removeMovieClip();
+
       if (currentroom == 'lasercave') {
+       
+        var flies = ['a', 'b', 'c', 'd', 'e'];
+        var nflies = 0;
+        for (var o in flies) {
+          if (gotfly[flies[o]]) {
+            _root.inertflies.push(attachInertFly(flies[o], 
+                                                 175 + (nflies % 3) * 150,
+                                                 175 + int(nflies / 3) * 150, nflies));
+            nflies++;
+          }
+        }
+
         for (var i = 0; i < 30; i++) {
           var x = 2 * (LASERROOMX1 + Math.random() * (LASERROOMX2 - LASERROOMX1));
           var y = 2 * (LASERROOMY1 + Math.random() * (LASERROOMY2 - LASERROOMY1));
           var lf = _root.attachMovie('laserfly', 'laserfly' + i, LASERSDEPTH + i, {_x:x, _y:y});
           _root.laserflies.push(lf);
           lf.init(); // ?
-        }
-        
-        var flies = ['a', 'b', 'c', 'd', 'e'];
-        var nflies = 0;
-        for (var o in flies) {
-          if (gotfly[flies[o]]) {
-            _root.inertflies.push(attachInertFly(flies[o], 
-                                                 150 + (nflies % 3) * 300,
-                                                 175 + int(nflies / 3) * 200));
-            nflies++;
-          }
 
-          // XXX Something special if we got all flies!
+          // Something special if we got all flies!
+          if (nflies == flies.length) {
+            lf.synchronize();
+          }
+        }
+
+        if (nflies == flies.length) {
+          _root.alsomoths = _root.attachMovie('alsomoths', 'alsomoths', ALSODEPTH, 
+                                              {_x:300 * 2 + 50, _y: 145 * 2 + 50});
+          _root.alsomoths.init();
         }
       }
       
@@ -315,10 +328,10 @@ class World {
     }
   }
 
-  public function attachInertFly(which, x, y) {
-    trace('add inert fly ' + which);
+  public function attachInertFly(which, x, y, i) {
+    trace('add inert fly ' + which + ' @' + x + ' ' + y);
     var bf = _root.attachMovie('inertbutterfly', 'inertbutterfly' + which, 
-                               BUTTERFLYDEPTH, {_x:x, _y:y});
+                               BUTTERFLYDEPTH + i, {_x:x, _y:y});
     bf.init(which, x, y);
     return bf;
   }

@@ -39,7 +39,6 @@ class TitleScreen extends MovieClip {
 
     // title music!
     titlemusic = new Sound(this);
-    // XXX restore it! Got sick of this
     titlemusic.attachSound('dangerous.mp3');
     titlemusic.setVolume(100);
     titlemusic.start(0, 99999);
