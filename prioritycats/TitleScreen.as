@@ -129,6 +129,7 @@ class TitleScreen extends MovieClip {
     _root.world.gotoRoom('start');
     // _root.world.gotoRoom('glow');
     // _root.world.gotoRoom('forestlumpup');
+    // _root.world.gotoRoom('mountain');
     // _root.world.gotoRoom('poolleft');
   }
 

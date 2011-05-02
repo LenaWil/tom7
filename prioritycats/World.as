@@ -243,7 +243,7 @@ class World {
       if (currentroom == 'start') {
         attachButterfly('a', 717, 54);
       } else if (currentroom == 'forestlump') {
-        attachButterfly('b', 383, 422);
+        attachButterfly('b', 383, 438);
       } else if (currentroom == 'mountain') {
         attachButterfly('c', 648, 279);
       } else if (currentroom == 'deepcave') {

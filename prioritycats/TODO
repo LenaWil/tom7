@@ -56,3 +56,19 @@ Win theme:
   do not stare
   
   directly into the beam
+
+
+Priority Cats in "It's dangerous to go alone. Take sis!"
+
+This is a short platformer written in Flash for the competition. I used (and modified) the same "physics engine" and tile library I used and modified for "Disco? Very!" and some other games.
+
+The chief innovation here is that the game is controlled entirely with mouse motion (no buttons). It's fairly intuitive, although it may be realistically frustrating. :) The ending should be pretty easy to find. If you collect everything then there's a little bit extra.
+
+Features:
+ - 4 original tunes, some with lyrics and everything! A new record!
+ - 25 accessible rooms, some more interesting than others. :)
+ - Biologically plausible seeking behavior!
+ - Single-input gameplay! Go ahead and use an eye-tracker!
+ - Surprise ending!
+
+I may polish up some of the jumps for a post-compo version, since some are fiddly. Hint: Line-of-sight matters and the cats have different behaviors.
