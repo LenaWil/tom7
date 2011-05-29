@@ -411,8 +411,10 @@ struct
   val () = print "\n*** Startup ***\n"
   val () = printworld world
 
+  val MAX_ITERS = 85
+
   fun loop () =
-      for 0 (* 14 *) 501
+      for 0 (* 14 *) MAX_ITERS
       (fn i =>
        let in
            print ("\n=== Step " ^ Int.toString i ^ " ===\n");

@@ -243,7 +243,8 @@ int main () {
   printf("\n*** Startup ***\n");
   printworld(&world);  
 
-  for (int i = 0; i <= 501 /* 14 */; i++) {
+  #define MAX_ITERS 85
+  for (int i = 0; i <= MAX_ITERS; i++) {
     printf("\n=== Step %d ===\n", i);
     world.Step (0.01, 10, 10);
     printworld(&world);

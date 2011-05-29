@@ -38,6 +38,15 @@ struct b2SeparationFunction
 		e_faceB
 	};
 
+  static const char *typtos(Type t) {
+    switch(t) {
+    default: return "??";
+    case e_points: return "points";
+    case e_faceA: return "facea";
+    case e_faceB: return "faceb";
+    }
+  }
+
 	// TODO_ERIN might not need to return the separation
 
 	float32 Initialize(const b2SimplexCache* cache,
@@ -193,6 +202,10 @@ struct b2SeparationFunction
 		m_sweepA.GetTransform(&xfA, t);
 		m_sweepB.GetTransform(&xfB, t);
 
+		printf("    ev: xfa %s xfb %s t %.4f typ %s\n", 
+		       xftos(xfA).c_str(), xftos(xfB).c_str(), t,
+		       typtos(m_type));
+
 		switch (m_type)
 		{
 		case e_points:
@@ -235,6 +248,8 @@ struct b2SeparationFunction
 				b2Vec2 pointA = b2Mul(xfA, localPointA);
 
 				float32 separation = b2Dot(pointA - pointB, normal);
+				printf("    pa %s pb %s n %s sep %.4f\n", vtos(pointA).c_str(), 
+				       vtos(pointB).c_str(), vtos(normal).c_str(), separation);
 				return separation;
 			}
 
@@ -251,6 +266,17 @@ struct b2SeparationFunction
 	b2Vec2 m_localPoint;
 	b2Vec2 m_axis;
 };
+
+static const char *toi_stos(b2TOIOutput::State s) {
+  switch(s) {
+  default:
+  case b2TOIOutput::e_unknown: return "unknown";
+  case b2TOIOutput::e_failed: return "failed";
+  case b2TOIOutput::e_overlapped: return "overlapped";
+  case b2TOIOutput::e_touching: return "touching";
+  case b2TOIOutput::e_separated: return "separated";
+  }
+}
 
 // CCD via the local separating axis method. This seeks progression
 // by computing the largest time at which separation is maintained.
@@ -300,6 +326,7 @@ void b2TimeOfImpact(b2TOIOutput* output, const b2TOIInput* input)
 	for(;;)
 	{
 		b2Transform xfA, xfB;
+		printf("outer loop #%d\n", iter);
 		printf("sa: %s time %s\n",
 		       sweeptos(sweepA).c_str(),
 		       rtos(t1).c_str());
@@ -315,7 +342,8 @@ void b2TimeOfImpact(b2TOIOutput* output, const b2TOIInput* input)
 		b2DistanceOutput distanceOutput;
 		b2Distance(&distanceOutput, &cache, &distanceInput);
 
-		printf("  toi distance: %s\n", rtos(distanceOutput.distance).c_str());
+		printf("  toi distance: %s targ %.4f tol %.4f\n", rtos(distanceOutput.distance).c_str(),
+		       target, tolerance);
 
 		// If the shapes are overlapped, we give up on continuous collision.
 		if (distanceOutput.distance <= 0.0f)
@@ -329,6 +357,7 @@ void b2TimeOfImpact(b2TOIOutput* output, const b2TOIInput* input)
 		if (distanceOutput.distance < target + tolerance)
 		{
 			// Victory!
+		  printf("  toi initial touching\n");
 			output->state = b2TOIOutput::e_touching;
 			output->t = t1;
 			break;
@@ -374,6 +403,9 @@ void b2TimeOfImpact(b2TOIOutput* output, const b2TOIInput* input)
 			int32 indexA, indexB;
 			float32 s2 = fcn.FindMinSeparation(&indexA, &indexB, t2);
 
+			printf("  inner_loop #%d: t2 %.4f s2 %.4f a %d b %d\n",
+			       pushBackIter, t2, s2, indexA, indexB);
+
 			// Is the final configuration separated?
 			if (s2 > target + tolerance)
 			{
@@ -394,6 +426,7 @@ void b2TimeOfImpact(b2TOIOutput* output, const b2TOIInput* input)
 
 			// Compute the initial separation of the witness points.
 			float32 s1 = fcn.Evaluate(indexA, indexB, t1);
+			printf("    evaluated: %.4f\n", s1);
 
 			// Check for initial overlap. This might happen if the root finder
 			// runs out of iterations.
@@ -433,6 +466,9 @@ void b2TimeOfImpact(b2TOIOutput* output, const b2TOIInput* input)
 					// Bisection to guarantee progress.
 					t = 0.5f * (a1 + a2);
 				}
+
+				printf("      rl #%d s1 %.4f s2 %.4f a1 %.4f a2 %.4f t %.4f\n",
+				       rootIterCount, s1, s2, a1, a2, t);
 
 				float32 s = fcn.Evaluate(indexA, indexB, t);
 
@@ -492,4 +528,6 @@ void b2TimeOfImpact(b2TOIOutput* output, const b2TOIInput* input)
 	}
 
 	b2_toiMaxIters = b2Max(b2_toiMaxIters, iter);
+
+	printf("  toi returns: %s: %.4f\n", toi_stos(output->state), output->t);
 }

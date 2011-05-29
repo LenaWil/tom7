@@ -64,7 +64,7 @@ void b2TOISolver::Initialize(b2Contact** contacts, int32 count, b2Body* toiBody)
 	m_toiBody = toiBody;
 
 	m_constraints = (b2TOIConstraint*) m_allocator->Allocate(m_count * sizeof(b2TOIConstraint));
-
+	printf("* toi initialize %d\n", count);
 	for (int32 i = 0; i < m_count; ++i)
 	{
 		b2Contact* contact = contacts[i];
@@ -160,6 +160,7 @@ struct b2TOISolverManifold
 // Push out the toi body to provide clearance for further simulation.
 bool b2TOISolver::Solve(float32 baumgarte)
 {
+  printf("* toi solve %d\n", m_count);
 	float32 minSeparation = 0.0f;
 
 	for (int32 i = 0; i < m_count; ++i)
@@ -185,6 +186,8 @@ bool b2TOISolver::Solve(float32 baumgarte)
 		float32 invIA = massA * bodyA->m_invI;
 		float32 invMassB = massB * bodyB->m_invMass;
 		float32 invIB = massB * bodyB->m_invI;
+
+		printf("  ma %.4f mb %.4f pc %d\n", massA, massB, c->pointCount);
 
 		// Solve normal constraints
 		for (int32 j = 0; j < c->pointCount; ++j)
