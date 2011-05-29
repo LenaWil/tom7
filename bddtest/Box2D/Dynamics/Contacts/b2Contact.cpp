@@ -157,6 +157,8 @@ void b2Contact::Update(b2ContactListener* listener)
 	const b2Transform& xfA = bodyA->GetTransform();
 	const b2Transform& xfB = bodyB->GetTransform();
 
+	printf("  xfa %s xfb %s\n", xftos(xfA).c_str(), xftos(xfB).c_str());
+
 	// Is this contact a sensor?
 	if (sensor)
 	{
@@ -224,4 +226,5 @@ void b2Contact::Update(b2ContactListener* listener)
 	{
 		listener->PreSolve(this, &oldManifold);
 	}
+	printf("<- done updating contact\n");
 }

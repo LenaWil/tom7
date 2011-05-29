@@ -5,7 +5,7 @@ struct
       (SOME ("-output", "Set output for PNG series.")) "output"
 
   val frames = Params.param "0"
-      (SOME ("-frames", "Write this many frames to PNG series, " ^
+      (SOME ("-frames", "Write this many iterations to PNG series, " ^
              "then stop.")) "frames"
 
   val downsample = Params.param "1"
@@ -47,10 +47,10 @@ struct
    val overlap = 1
    val dims = 3)
 
-  val WIDTH = 800
-  val HEIGHT = 600
-  val METERS_PER_PIXEL = 0.01
-  val PIXELS_PER_METER = 100
+  val WIDTH = 480
+  val HEIGHT = 300
+  val PIXELS_PER_METER = 50
+  val METERS_PER_PIXEL = 1.0 / real PIXELS_PER_METER
   val screen = makescreen (WIDTH, HEIGHT)
 
   (* val () = SDL.show_cursor false *)
@@ -186,20 +186,33 @@ struct
 *)
   val small_circle = BDDShape.Circle { radius = 0.3,
                                        p = vec2 (0.0, 0.0) }
+  
+  (* XXX made this shape with a fixed screen size.
+     this makes it indifferent to the screen size,
+     but maybe should just have coordinate literals? *)
+  local fun mapcoord (xp, yp) =
+      let
+          fun tom p = real p * 0.01
+          val xp = xp - (800 div 2)
+          val yp = yp - (600 div 2)
+      in
+          vec2 (tom xp, tom yp)
+      end
+  in
   val familiar_shape = BDDShape.Polygon 
       (BDDPolygon.polygon
-       (map screentovec (rev [(377, 268),
-                              (386, 321),
-                              (418, 329),
-                              (428, 305)])))
-
+       (map mapcoord (rev [(377, 268),
+                           (386, 321),
+                           (418, 329),
+                           (428, 305)])))
+  end
 
   val gravity = vec2 (0.0, 9.8)
   (* No sleep, for now XXX j/k *)
-  val world = World.world (gravity, true)
+  val world = World.world (gravity, false)
 
 
-  fun add_drop (s, x, y) =
+  fun add_drop (s, x, y, a) =
       let
           val drop = World.create_body 
               (world,
@@ -209,7 +222,7 @@ struct
                  position = (* vec2 (0.0, 1.12) *) vec2(x, y),
                  angle = 0.0,
                  linear_velocity = vec2 (0.1, 0.2),
-                 angular_velocity = 1.0,
+                 angular_velocity = a,
                  linear_damping = 0.0,
                  angular_damping = 0.0,
                  allow_sleep = true,
@@ -223,11 +236,14 @@ struct
           (* put a fixture on the drop *)
           val drop_fixture = 
               Body.create_fixture (drop, 
-                                   { shape = familiar_shape,
-                                     (* small_circle, *)
+                                   { shape = 
+                                     (if (Real.trunc x * 13 +
+                                          Real.trunc y * 11) mod 2 = 0
+                                      then familiar_shape
+                                      else small_circle),
                                      data = (),
                                      friction = 0.2,
-                                     restitution = 0.75,
+                                     restitution = 0.15,
                                      density = 1.0,
                                      is_sensor = false,
                                      filter = Fixture.default_filter })
@@ -236,12 +252,13 @@ struct
       end
 
   val () = 
-      Util.for ~1 1
+      Util.for ~5 1
       (fn y =>
-       Util.for ~2 2
+       Util.for ~5 5
        (fn x =>
         let in
-            add_drop (y = 1, real x * 1.25, real y * 0.75)
+            add_drop (y = 1, real x * 1.25, real y * 0.75,
+                      Real.realMod (real x + real y) * 6.28 - 3.14)
         end))
 
 (*
@@ -600,7 +617,7 @@ struct
                   iters := !iters + 1;
                   let val start_step = Time.now ()
                   in
-                      World.step (world, 0.005, 10, 10);
+                      World.step (world, 0.005, 1000, 1000);
                       total_step := !total_step + 
                         Time.toMicroseconds (Time.-(Time.now (), start_step))
                   end;

@@ -677,6 +677,7 @@ void b2World::SolveTOI(b2Body* body)
 		// body won't get pushed out of the world.
 		if (type == b2_dynamicBody)
 		{
+		  printf("* skipped -- dynamic\n");
 			continue;
 		}
 
@@ -684,6 +685,7 @@ void b2World::SolveTOI(b2Body* body)
 		b2Contact* contact = ce->contact;
 		if (contact->IsEnabled() == false)
 		{
+		  printf("* skipped -- disabled\n");
 			continue;
 		}
 
@@ -693,6 +695,7 @@ void b2World::SolveTOI(b2Body* body)
 		// Cull sensors.
 		if (fixtureA->IsSensor() || fixtureB->IsSensor())
 		{
+		  printf("* skipped -- sensors\n");
 			continue;
 		}
 
@@ -701,17 +704,21 @@ void b2World::SolveTOI(b2Body* body)
 		if (contact != toiContact)
 		{
 			contact->Update(m_contactManager.m_contactListener);
+		} else {
+		  printf("* (not update)\n");
 		}
 
 		// Did the user disable the contact?
 		if (contact->IsEnabled() == false)
 		{
 			// Skip this contact.
+		  printf("* skipped -- disabled during callback\n");
 			continue;
 		}
 
 		if (contact->IsTouching() == false)
 		{
+		  printf("* skipped -- not touching\n");
 			continue;
 		}
 
@@ -734,6 +741,8 @@ void b2World::SolveTOI(b2Body* body)
 			break;
 		}
 	}
+
+	printf("(done toi-solving)\n");
 
 	if (toiOther->GetType() != b2_staticBody)
 	{
