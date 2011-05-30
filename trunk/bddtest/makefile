@@ -30,6 +30,9 @@ bddtest-polygon-collisions.exe : sdlml.o bddtest-polygon-collisions.sml ${SMLS} 
 bdiff.exe : bdiff.sml bdiff.cm makefile ../sml-lib/util/*.sml
 	mlton @MLton max-heap 200m --  -cc-opt "-I/usr/local/include" -link-opt "-L/usr/local/lib -lmingw32 -mwindows" -output $@ bdiff.cm
 
+bddbench.exe : bddbench.sml bddbench.cm makefile ../sml-lib/bdd/*.sml
+	mlton @MLton max-heap 200m -- -profile time -output $@ bddbench.cm
+
 
 # C++ versions
 
