@@ -16,6 +16,9 @@ legal words, lowercase. -->
 <body onload="rerender()">
 <script lang="JavaScript">
 
+// XXX make this possible to do from the interface.
+dict.push('app');
+
 function makeElement(what, cssclass, elt) {
   var e = document.createElement(what);
   if (cssclass) e.setAttribute('class', cssclass);
@@ -109,6 +112,18 @@ function legalprefix(str) {
   return str.length;
 }
 
+function isword(str) {
+  function rec(t, pos) {
+    if (pos == str.length) {
+      return t.$;
+    } else {
+      var tt = t[str[pos]];
+      return tt && rec(tt, pos + 1);
+    }
+  }
+  return rec(fwd, 0);
+}
+
 // PERF: This is exponential, but can do this in linear time!
 // It's plenty fast for interactive use on small sentences.
 function solve(str, elt) {
@@ -199,6 +214,8 @@ var left = '', right = '';
 function showdata(str, elt, cnt) {
   elt.innerHTML = '';
   solve(str, elt);
+  // TODO: consider underlining or something
+  // rather than repeating it
   var n = legalprefix(str);
   var ok = SPAN('', cnt);
   ok.style.color = '#464';
@@ -219,6 +236,7 @@ function rerender() {
   var l = SPAN('', inp);
   l.innerHTML = left;
   l.style.fontWeight = 'bold';
+  // XXX draw cursor in each one
   var c = SPAN('cursor', inp);
   c.innerHTML = '|';
   c.style.fontWeight = 'bold';
@@ -236,7 +254,6 @@ function rerender() {
   elt.innerHTML = '';
   cnt.innerHTML = '';
   showdata(str + revstring(str), elt, cnt);
-
 
   // Odd version:
   var inp = document.getElementById('oinput');
@@ -256,6 +273,153 @@ function rerender() {
     r.style.color = '#888';
 
     showdata(str + mirrored, elt, cnt);
+  }
+
+  // Found version. A string like
+  //    racecarx
+  // is better expanded to
+  //    xracecarx
+  // than
+  //    racecarxracecar
+  // because it already contains a significant
+  // self-overlap. Find the maximal such overlap.
+  var inp = document.getElementById('finput');
+  var elt = document.getElementById('fsplit');
+  var cnt = document.getElementById('fcont');
+  inp.innerHTML = '';
+  elt.innerHTML = '';
+  cnt.innerHTML = '';
+  if (str != '') {
+    // Odd version.
+    // This is always legal since the string is non-empty.
+
+    /*
+    var obest_start = 0, obest_len = 1;
+    for (var c = 0; c < str.length; c++) {
+      for (var i = 1; i < min(c, str.length - c); i++) {
+        if (str[c + i] == str[c - i]) {
+          if (i > obest_i) {
+            obest_start = c - i;
+            obest_len = i * 2 + 1;
+          }
+        } else {
+          // Try next c.
+          break;
+        }
+      }
+    }
+    */
+
+    // Odd version. c is the cursor position between the pair of
+    // equal letters (offset of the first char). Sometimes there is no
+    // such pair.
+
+    /*
+    var ebest_c = 0, ebest_i = 0;
+    for (var c = 0; c < str.length; c++) {
+      for (var i = 0; i < min(c + 1, str.length - c); i++) {
+        if (str[c - i] == str[c + i + 1]) {
+          if (i > ebest_i) {
+            ebest_c = c;
+            ebest_i = i;
+          }
+        } else {
+          // Try next c.
+          break;
+        }
+      }
+    }
+    */
+
+    /*
+    var best_start = obest_start, best_len = obest_len;
+
+    var middle = str.substr(best_start, best_len);
+    var fore = str.substr
+    */
+
+    // That attempt was bogus -- there may be a large palindrome inside
+    // the string but we only want them when they start or end the string
+    // The even and odd cases can be treated the same way, fortunately.
+
+    var prefix_size = 1, suffix_size = 1;
+    for (var i = 2; i <= str.length; i++) {
+      // PERF don't actually need to copy to do this test.
+      var pfx = str.substr(0, i);
+      // TEXT(pfx, elt);
+      // BR('', elt);
+      if (pfx == revstring(pfx)) {
+        prefix_size = i;
+      }
+    }
+    for (var i = 2; i <= str.length; i++) {
+      var sfx = str.substr(str.length - i, i);
+      // TEXT('suffix [' + sfx + ']', elt);
+      // BR('', elt);
+      if (sfx == revstring(sfx)) {
+        suffix_size = i;
+      }
+    }
+
+    // TEXT(str + ' : ' + prefix_size + ' ' + suffix_size, elt);
+
+    // Now use the longer one.
+    if (suffix_size > prefix_size) {
+      var pfx = str.substr(0, str.length - suffix_size);
+      var sfx = str.substr(str.length - suffix_size, suffix_size);
+
+      var mirrored = revstring(pfx);
+      var l = SPAN('', inp);
+      l.innerHTML = pfx;
+      l.style.color = '#553';
+      l.style.fontWeight = 'bold';
+      var r = SPAN('', inp);
+      r.innerHTML = sfx;
+      r.style.fontWeight = 'bold';
+      var rr = SPAN('', inp);
+      rr.innerHTML = mirrored;
+      rr.style.color = '#888';
+
+      showdata(pfx + sfx + mirrored, elt, cnt);
+
+    } else {
+      var pfx = str.substr(0, prefix_size);
+      var sfx = str.substr(str.length - (str.length - prefix_size), 
+                           str.length - prefix_size);
+
+      var mirrored = revstring(sfx);
+      var ll = SPAN('', inp);
+      ll.innerHTML = mirrored;
+      ll.style.color = '#888';
+      var l = SPAN('', inp);
+      l.innerHTML = pfx;
+      l.style.fontWeight = 'bold';
+      var r = SPAN('', inp);
+      r.innerHTML = sfx;
+      r.style.color = '#553';
+      r.style.fontWeight = 'bold';
+
+      showdata(mirrored + pfx + sfx, elt, cnt);
+
+    }
+
+  }
+
+
+  // XXX Make this general.
+  // Show me words that I could add to complete the palindrome.
+  // In found mode (say for the prefix case), find words that start with
+  // the unused suffix, where the rest, when reversed, is a word.
+  if (false)
+  for (var i = 0; i < dict.length; i ++) {
+    if (dict[i][0] != 'a') 
+      break;
+    else {
+      var w = dict[i].substr(1);
+      if (isword(revstring(w))) {
+        TEXT(w + '/' + revstring(w) + ' ', document.body);
+      }
+    }
   }
 }
 
@@ -284,6 +448,11 @@ function space() {
   // document.body.appendChild(document.createTextNode("<SP>"));
 }
 
+// TODO: Force split point or something?
+function period() {
+  
+}
+
 function leftarrow() {
   if (left.length > 0) {
     right = left.charAt(left.length - 1) + right;
@@ -301,6 +470,17 @@ function rightarrow() {
   }
 }
 
+function homekey() {
+  right = left + right;
+  left = '';
+  rerender();
+}
+
+function endkey() {
+  left = left + right;
+  right = '';
+  rerender();
+}
 
 // return false to prevent default actions.
 function kdown(event) {
@@ -317,6 +497,12 @@ function kdown(event) {
     return false;
   } else if (event.which == 39) {
     rightarrow();
+    return false;
+  } else if (event.which == 35) {
+    endkey();
+    return false;
+  } else if (event.which == 36) {
+    homekey();
     return false;
   }
   return true;
@@ -340,6 +526,9 @@ function kpress(event) {
   } else if (char == ' ') {
     space();
     return false;
+  } else if (char == '.') {
+    period();
+    return false;
   }
 
   return true;
@@ -353,6 +542,8 @@ function kup(event) {
 document.onkeydown = kdown;
 document.onkeypress = kpress;
 document.onkeyup = kup;
+
+
 
 // document.body.appendChild(document.createTextNode('<READY>'));
 
@@ -375,6 +566,14 @@ Odd symmetry:<br>
 <div style="font: 20px Verdana,Helvetica,sans-serif" id="oinput">&nbsp;</div>
 <div style="font: 20px Verdana,Helvetica,sans-serif" id="osplit">&nbsp;</div>
 <div style="font: 20px Verdana,Helvetica,sans-serif" id="ocont">&nbsp;</div>
+</center>
+</div>
+
+<div style="height:120px"><center>
+Found symmetry:<br>
+<div style="font: 20px Verdana,Helvetica,sans-serif" id="finput">&nbsp;</div>
+<div style="font: 20px Verdana,Helvetica,sans-serif" id="fsplit">&nbsp;</div>
+<div style="font: 20px Verdana,Helvetica,sans-serif" id="fcont">&nbsp;</div>
 </center>
 </div>
 
