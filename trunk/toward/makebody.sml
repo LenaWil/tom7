@@ -1,25 +1,6 @@
 structure BDDTest =
 struct
 
-  val output = Params.param ""
-      (SOME ("-output", "Set output for PNG series.")) "output"
-
-  val frames = Params.param "0"
-      (SOME ("-frames", "Write this many iterations to PNG series, " ^
-             "then stop.")) "frames"
-
-  val downsample = Params.param "1"
-      (SOME ("-downsample", "Each output frame consists of this " ^
-             "many actual frames, blended together")) "downsample"
-
-  val title = Params.param "You just watch"
-      (SOME ("-title", "Use this title.")) "title"
-
-  val cropx = Params.param "0" (SOME ("-cropx", "x offset for crop")) "cropx"
-  val cropy = Params.param "0" (SOME ("-cropy", "y offset for crop")) "cropy"
-  val cropw = Params.param "0" (SOME ("-cropw", "width of crop")) "cropw"
-  val croph = Params.param "0" (SOME ("-croph", "height of crop")) "croph"
-
   open BDDMath
   open BDDOps
   infix 6 :+: :-: %-% %+% +++
@@ -47,8 +28,8 @@ struct
    val overlap = 1
    val dims = 3)
 
-  val WIDTH = 480
-  val HEIGHT = 300
+  val WIDTH = 1024
+  val HEIGHT = 768
   val PIXELS_PER_METER = 50
   val METERS_PER_PIXEL = 1.0 / real PIXELS_PER_METER
   val screen = makescreen (WIDTH, HEIGHT)
@@ -456,35 +437,9 @@ struct
 *)
              | _ => ()
 
-  fun drawinstructions () =
-      let
-          val (x, y) =
-              if Params.asint 0 frames > 0
-              then (Params.asint 0 cropx,
-                    Params.asint 0 cropy)
-              else (1, 1)
-      in
-          Font.draw 
-          (screen, x, y, 
-           if !title = ""
-           then "^3BoxDiaDia dynamics test^<: You just watch"
-           else !title);
-          (* only if not saving pngs *)
-          if Params.asint 0 frames > 0
-          then ()
-          else Font.draw (screen, x, Font.height + y,
-                          "^2" ^
-                          Int.toString (!mousex) ^ " " ^ 
-                          Int.toString (!mousey) ^ "^< " ^
-                          Int.toString (!iters))
-      end
-
   fun crop (width, height, a) =
       let
-          val (cx, cy, cw, ch) = (Params.asint 0 cropx,
-                                  Params.asint 0 cropy,
-                                  Params.asint 0 cropw,
-                                  Params.asint 0 croph)
+          val (cx, cy, cw, ch) = (0, 0, 0, 0)
       in
           if cw = 0 orelse ch = 0
           then (width, height, a)
@@ -547,64 +502,6 @@ struct
 
   val framenum = ref 0
   val thisframe = ref (nil : (int * int * Word8.word Array.array) list)
-  fun flush () =
-      case !thisframe of
-          nil => () 
-        | _ => 
-        let
-            val f = !output ^ "-" ^ 
-                StringUtil.padex #"0" ~4 (Int.toString (!framenum)) ^
-                ".png"
-
-            val (w, h, a) = blendframes (!thisframe)
-        in
-            if PNGsave.save (f, w, h, a)
-            then print ("Wrote " ^ f ^ "\n")
-            else raise Animate ("Couldn't write " ^ f);
-
-            framenum := !framenum + 1;
-            thisframe := nil
-        end
-
-    fun saveframe () =
-      let val (w, h, a) = SDL.pixels screen
-          val (w, h, a) = crop (w, h, a)
-      in 
-          thisframe := (w, h, a) :: !thisframe;
-          if length (!thisframe) >= Params.asint 1 downsample
-          then flush ()
-          else ()
-      end
-      
-
-  val total_step = ref (0 : IntInf.int)
-  val total_draw = ref (0 : IntInf.int)
-  fun drawtiming () =
-      let
-          val (x, y) =
-              if Params.asint 0 frames > 0
-              then (Params.asint 0 cropx,
-                    Params.asint 0 cropy)
-              else (1, 1)
-          val y = y + Font.height * 2
-              
-          val tot = Real.fromLargeInt (!total_step + !total_draw)
-          val pcts = (100.0 * Real.fromLargeInt (!total_step)) / tot
-          val pctd = (100.0 * Real.fromLargeInt (!total_draw)) / tot
-
-          fun ptos p =
-              if Real.isFinite p
-              then Int.toString (Real.round p)
-              else "?"
-      in
-          (* only if not saving pngs *)
-          if Params.asint 0 frames > 0
-          then ()
-          else Font.draw (screen, x, y,
-                          ptos pcts ^ "% step " ^
-                          ptos pctd ^ "% draw " ^
-                          "^4FPS TODO")
-      end
 
   fun loop () =
       let 
@@ -615,12 +512,7 @@ struct
                   key ();
                   delay 0;
                   iters := !iters + 1;
-                  let val start_step = Time.now ()
-                  in
-                      World.step (world, 0.005, 1000, 1000);
-                      total_step := !total_step + 
-                        Time.toMicroseconds (Time.-(Time.now (), start_step))
-                  end;
+                  World.step (world, 0.005, 1000, 1000);
                   loop ()
               end
 
@@ -630,42 +522,20 @@ struct
                   World.step (world, 0.0005, 10, 10);
                   loop ()
               end
-          val start_draw = Time.now ()
       in
           
           clearsurface (screen, color (0w255, 0w0, 0w0, 0w0));
 
           drawworld world;
-          drawinstructions ();
-          drawtiming ();
 
           flip screen;
 
-          total_draw := !total_draw + Time.toMicroseconds (Time.-(Time.now (), start_draw));
-
-          case (!output, Params.asint 0 frames) of
-              (_, 0) => interactive ()
-            | ("", _) => interactive ()
-            | (file, n) =>
-              if !iters < n
-              then (saveframe(); auto ())
-              else (flush(); print "Done.\n")
+          interactive ()
       end
 
 
   val () = print "*** Startup ***\n"
   val () = printworld world
-
-(*
-  fun loop () =
-      for 0 (* 14 *) 14
-      (fn i =>
-       let in
-           print ("\n=== Step " ^ Int.toString i ^ " ===\n");
-           World.step (world, 0.01, 10, 10);
-           printworld world
-       end)
-*)
 
   fun eprint s = TextIO.output (TextIO.stdErr, s)
 
