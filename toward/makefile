@@ -15,8 +15,9 @@ pngsave.o : ../sdlml/pngsave.c
 
 SMLS = prelude.sml images.sml real32.sml
 
-makebody.exe : sdlml.o pngsave.o makebody.sml ${SMLS} makebody.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml
-	mlton @MLton max-heap 200m -- -default-ann 'warnUnused true' -default-ann 'sequenceNonUnit warn' -cc-opt "-I/usr/local/include" -link-opt "`/usr/local/bin/sdl-config --libs` -lSDL_image -lSDL_mixer -ltiff -lpng -ljpeg -lz -lmad -lvorbisfile -lvorbis -logg" -output $@ -default-ann 'allowFFI true' makebody.cm sdlml.o sdlmix.o pngsave.o messagebox_fake.o
+# -const 'Exn.keepHistory true'
+makebody.exe : sdlml.o pngsave.o makebody.sml ${SMLS} makebody.cm messagebox_fake.o sdlmix.o makefile ../sdlml/*.sml ../sdlml/*.c ../sml-lib/bdd/*.sml ../sml-lib/data/*.sml ../sml-lib/util/*.sml
+	mlton @MLton max-heap 200m -- -const 'Exn.keepHistory true' -default-ann 'warnUnused true' -default-ann 'sequenceNonUnit warn' -cc-opt "-I/usr/local/include" -link-opt "`/usr/local/bin/sdl-config --libs` -lSDL_image -lSDL_mixer -ltiff -lpng -ljpeg -lz -lmad -lvorbisfile -lvorbis -logg" -output $@ -default-ann 'allowFFI true' makebody.cm sdlml.o sdlmix.o pngsave.o messagebox_fake.o
 
 clean :
 	rm -f *.o *.exe
