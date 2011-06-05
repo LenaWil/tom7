@@ -30,6 +30,9 @@ group is
   ../sml-lib/util/growarray-sig.sml
   ../sml-lib/util/growarray.sml
 
+  ../sml-lib/data/undostate-sig.sml
+  ../sml-lib/data/undostate.sml
+
   prelude.sml
 
   ../sml-lib/bdd/bdd.cm

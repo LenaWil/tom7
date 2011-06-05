@@ -44,6 +44,8 @@ struct
   val METERS_PER_PIXEL = 1.0 / real PIXELS_PER_METER
   val screen = makescreen (WIDTH, HEIGHT)
 
+  fun eprint s = TextIO.output (TextIO.stdErr, s)
+
   (* val () = SDL.show_cursor false *)
 
   fun tometers d = real d * METERS_PER_PIXEL
@@ -67,7 +69,36 @@ struct
       (* Add graphics, ... *)
       { polys: poly GA.growarray }
 
+  fun copyletter { polys } =
+      { polys = GA.fromlist (map GA.copy (GA.tolist polys)) }
+      handle Subscript => (eprint "copyletter"; raise Subscript)
 
+  (* Only if they are structurally equal (order of polygons and
+     vertices matters). Used to deduplicate undo state. *)
+  local exception NotEqual
+  in
+      fun lettereq ({ polys = ps }, { polys = pps }) =
+          let in
+              if GA.length ps <> GA.length pps
+              then raise NotEqual
+              else ();
+              Util.for 0 (GA.length ps - 1) 
+              (fn i =>
+               let val p = GA.sub ps i
+                   val pp = GA.sub pps i
+               in
+                   if GA.length p <> GA.length pp
+                   then raise NotEqual
+                   else ();
+                   Util.for 0 (GA.length p - 1)
+                   (fn j =>
+                    if not (vec2eq (GA.sub p j, GA.sub pp j))
+                    then raise NotEqual
+                    else ())
+               end);
+              true
+          end handle NotEqual => false
+  end
 
   (* 0xRRGGBB *)
   fun hexcolor c =
@@ -165,7 +196,24 @@ struct
                    vec2 (1.0, 0.0) :+: v,
                    vec2 (~0.5, ~0.5) :+: v]
 
+  val undostate = UndoState.undostate () : letter UndoState.undostate
+
   val letter = ref { polys = GA.fromlist [trivialpolygon (vec2 (0.0, 0.0))] }
+
+  (* Call before making a modification to the state. Keeps the buffer
+     length from exceeding MAX_UNDO. Doesn't duplicate the state if it
+     is already on the undo buffer. *)
+  val MAX_UNDO = 100
+  fun savestate () =
+      let in
+          (case UndoState.peek undostate of
+               NONE => UndoState.save undostate (copyletter (!letter))
+             | SOME prev =>
+                   if lettereq (prev, !letter)
+                   then ()
+                   else UndoState.save undostate (copyletter (!letter)));
+          UndoState.truncate undostate MAX_UNDO
+      end
 
   (* Return the indices of the vertices closest to the point. *)
   (* XXX don't allow selection of two points on the same poly!
@@ -194,11 +242,34 @@ struct
           !best_vs
       end
 
-  fun draw () = drawletter (!letter)
+  (* XXX *)
+  fun drawmenu () =
+      let
+          val pfx = "^3Toward body editor^<: "
+          val items = [("n", "new")]
+
+      in
+          Font.draw (screen, 0, 0, pfx);
+          Font.draw (screen, WIDTH - 100, 0,
+                     "^1" ^
+                     Int.toString (UndoState.history_length undostate) ^ 
+                     "^< undo ^1" ^
+                     Int.toString (UndoState.future_length undostate))
+      end
+
+  fun draw () =
+      let in
+          drawletter (!letter);
+          drawmenu ()
+      end
 
   (* XXX do snapping if enabled. *)
   fun setvertex (pi, vi) vnew =
-      GA.update (GA.sub (#polys (!letter)) pi) vi vnew
+      let in
+          (* Don't save undo every time, because then we have the whole history
+             of dragging, which is silly. *)
+          GA.update (GA.sub (#polys (!letter)) pi) vi vnew
+      end
 
   fun mousemotion (x, y) =
       let in 
@@ -212,24 +283,42 @@ struct
   fun leftmouse (x, y) =
       (* Currently, select the closest point. *)
       let in
+          savestate ();
           mousedown := true;
           (* XXX should put some (small) limit on the absolute screen
              distance we allow for selection. *)
-          selected := findclosestpoints (screentovec (x, y))
+          selected := findclosestpoints (screentovec (x, y));
+          (* Simulate mouse motion. *)
+          mousemotion (x, y)
       end
 
+  (* XXX require ctrl for undo/redo, etc. *)
+  fun keydown SDLK_ESCAPE = raise Done
+    | keydown SDLK_z =
+      (* XXX shouldn't allow undo when dragging? *)
+      (case UndoState.undo undostate of
+           NONE => ()
+         | SOME s => letter := copyletter s)
+    | keydown SDLK_y =
+      (case UndoState.redo undostate of
+           NONE => ()
+         | SOME s => letter := copyletter s)
+    | keydown _ = ()
 
-  fun key () =
+  fun events () =
       case pollevent () of
           NONE => ()
         | SOME evt =>
            case evt of
                E_Quit => raise Done
-             | E_KeyDown { sym = SDLK_ESCAPE } => raise Done
+             | E_KeyDown { sym } => keydown sym
              | E_MouseMotion { state : mousestate, x : int, y : int, ... } =>
                    mousemotion (x, y)
              | E_MouseDown { button = 1, x, y, ... } => leftmouse (x, y)
-             | E_MouseUp _ => mousedown := false
+             | E_MouseUp _ =>
+                   let in
+                       mousedown := false
+                   end
              | _ => ()
 
   fun loop () =
@@ -241,12 +330,10 @@ struct
 
           flip screen;
 
-          key ();
+          events ();
           delay 0;
           loop ()
       end
-
-  fun eprint s = TextIO.output (TextIO.stdErr, s)
 
   val () = Params.main0 "No arguments." loop
   handle e =>
