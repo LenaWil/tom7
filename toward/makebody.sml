@@ -223,14 +223,15 @@ struct
 
   exception Done
 
-  (* Yuck, can definitely do better than this. *)
+  (* Can do better than this... *)
   fun trivialpolygon v =
       GA.fromlist [vec2 (0.0, 1.0) :+: v,
                    vec2 (1.0, 0.0) :+: v,
                    vec2 (~0.5, ~0.5) :+: v]
 
+  (* XXX way to set snapping preference *)
+  val snapping = ref true
   val undostate = UndoState.undostate () : letter UndoState.undostate
-
   val letter = ref { polys = GA.fromlist [trivialpolygon (vec2 (0.0, 0.0))] }
 
   (* Call before making a modification to the state. Keeps the buffer
@@ -252,7 +253,7 @@ struct
   (* XXX don't allow selection of two points on the same poly!
      They would have to be coincident though, so maybe we can just
      maintain that as a representation invariant. *)
-  fun findclosestpoints v =
+  fun findclosestpointsnoton disallowed_polys v =
       (* PERF could use kd-tree but have to maintain it, which is expensive.
          Realistically there won't be more than a few hundred vertices. *)
       let
@@ -261,19 +262,23 @@ struct
           val best_vs = ref (nil : (int * int) list)
       in
           GA.appi (fn (i, poly)  =>
-                   GA.appi (fn (j, vertex) =>
-                            let val d = distance_squared (v, vertex)
-                            in
-                                if d < !best_dist
-                                then (best_dist := d;
-                                      best_vs := [(i, j)])
-                                else if Real.== (d, !best_dist)
-                                     then (best_vs := (i, j) :: !best_vs)
-                                     else ()
-                            end) poly
+                   if not (List.exists (fn p => i = p) disallowed_polys)
+                   then GA.appi (fn (j, vertex) =>
+                                 let val d = distance_squared (v, vertex)
+                                 in
+                                     if d < !best_dist
+                                     then (best_dist := d;
+                                           best_vs := [(i, j)])
+                                     else if Real.== (d, !best_dist)
+                                          then (best_vs := (i, j) :: !best_vs)
+                                          else ()
+                                 end) poly
+                   else ()
                    ) (#polys (!letter));
-          !best_vs
+          (Math.sqrt (!best_dist), !best_vs)
       end
+
+  val findclosestpoints = findclosestpointsnoton nil
 
   (* XXX *)
   fun drawmenu () =
@@ -296,12 +301,24 @@ struct
           drawmenu ()
       end
 
-  (* XXX do snapping if enabled. *)
-  fun setvertex (pi, vi) vnew =
-      let in
+  (* XXX should prevent the polygon from becoming concave or non-simple. *)
+  (* XXX should put the polygon in correct winding order. *)
+  fun setvertices idxs vnew =
+      let 
+          (* when snapping, only do it to vertices on OTHER polygons. *)
+          val dest =
+              case findclosestpointsnoton (map #1 idxs) vnew of
+                  (dist, (pi, vi) :: _) =>
+                      if !snapping andalso topixels dist < 5.0
+                      then GA.sub (GA.sub (#polys (!letter)) pi) vi
+                      else vnew
+                 | _ => vnew
+
+      in
           (* Don't save undo every time, because then we have the whole history
              of dragging, which is silly. *)
-          GA.update (GA.sub (#polys (!letter)) pi) vi vnew
+          app (fn (pi, vi) => 
+               GA.update (GA.sub (#polys (!letter)) pi) vi dest) idxs
       end
 
   fun mousemotion (x, y) =
@@ -309,7 +326,7 @@ struct
           mousex := x;
           mousey := y;
           if !mousedown
-          then List.app (fn (i, j) => setvertex (i, j) (screentovec (x, y))) (!selected)
+          then setvertices (!selected) (screentovec (x, y))
           else ()
       end
 
@@ -380,7 +397,7 @@ struct
      If not, but we're close to a line segment, then we add a point
      there, and select it.
 
-     TODO: dragging to draw a selction *)
+     TODO: dragging to draw a selction (should require shift) *)
   fun leftmouse (x, y) =
       (* Currently, select the closest point. *)
       let 
@@ -393,7 +410,10 @@ struct
                   (y - yy) * (y - yy) < 64
               end
 
-          val nearby = findclosestpoints (screentovec (x, y))
+          val mv = screentovec (x, y)
+
+          val (_, nearby) = findclosestpoints mv
+          val () = eprint ("There are " ^ Int.toString (length nearby) ^ " nearby.\n")
           val nearby = List.filter nearenough nearby
       in
           (* XXX won't need to save if dragging to select *)
@@ -405,7 +425,10 @@ struct
           (* If there were no points selected, then maybe another
              action. *)
           if List.null nearby andalso not (maybeinsert (x, y))
-          then () (* can do other things, like start a selection *)
+          then 
+              (* If we didn't create a new point, then we make
+                 a new polygon. *)
+              GA.append (#polys (!letter)) (trivialpolygon mv)
           else ();
           (* Simulate mouse motion. *)
           mousemotion (x, y)
