@@ -1,4 +1,14 @@
-structure BDDTest =
+(* This is a body editor for a new game, codename TOWARD.
+
+   It allows (or will, when it's workin'?) to build a collection of
+   bodies, each of which is a collection of fixtures (low-vertex
+   convex polygons) in fixed relative positions. It probably needs
+   to associate some kind of graphic with the body (which is just
+   for the physics simulation), but that will have to wait for
+   GL support.
+*)
+
+structure MakeBody =
 struct
 
   open BDDMath
@@ -11,7 +21,7 @@ struct
     type body_data = string
     type joint_data = unit)
   open BDD
-  exception Animate of string
+  exception MakeBody of string
 
   structure U = Util
   open SDL
@@ -50,6 +60,15 @@ struct
   val DRAW_RAYS = true
   val DRAW_COLLISIONS = true
 
+  structure GA = GrowArray
+
+  type poly = vec2 GA.growarray
+  type letter =
+      (* Add graphics, ... *)
+      { polys: poly GA.growarray }
+
+
+
   (* 0xRRGGBB *)
   fun hexcolor c =
       let
@@ -79,343 +98,77 @@ struct
   fun vectoscreen v = toscreen (vec2xy v)
   fun screentovec (x, y) = vec2 (toworld (x, y))
 
+  val PURPLE = hexcolor 0xFF00FF
+  val RED = hexcolor 0xFF0000
   val WHITE = hexcolor 0xFFFFFF
-  fun drawpolygon (xf, polygon) =
+  fun drawpoly (poly : poly) =
       let
-          val num = Array.length (#vertices polygon)
-
-          val { center, ... } = BDDPolygon.compute_mass (polygon, 1.0)
-          val (cx, cy) = vectoscreen (xf @*: center)
+          val num = GA.length poly
       in
           Util.for 0 (num - 1)
           (fn i =>
            let val i2 = if i = num - 1
                         then 0
                         else i + 1
-               val (x, y) = vectoscreen (xf @*: Array.sub(#vertices polygon, i))
-               val (xx, yy) = vectoscreen (xf @*: Array.sub(#vertices polygon, i2))
+               val (x, y) = vectoscreen (GA.sub poly i)
+               val (xx, yy) = vectoscreen (GA.sub poly i2)
            in
                SDL.drawline (screen, x, y, xx, yy, WHITE)
-           end);
-          SDL.drawcircle (screen, cx, cy, 2, WHITE)
+           end)
       end
 
-  fun drawcircle (xf, { radius, p }) =
+  (* Currently selected vertices. First index is the polygon,
+     second is the vertex on that polygon. Often nil. *)
+  val selected = ref nil : (int * int) list ref
+
+  fun drawpolyvertices (sel : int list, poly : poly) =
       let
-          val p = xf @*: p
-          (* drawcircle surf x y radius color
-             draws a circle (not filled)
-             *)
-          val (x, y) = toscreen (vec2xy p)
-          val r = Real.round (topixels radius)
+          val num = GA.length poly
       in
-          SDL.drawcircle (screen, x, y, r, WHITE)
-      end
-
-
-  fun drawshape (xf, BDDShape.Circle c) = drawcircle (xf, c)
-    | drawshape (xf, BDDShape.Polygon p) = drawpolygon (xf, p)
-
-
-  fun printpolygon (xf, polygon) =
-      let
-          val num = Array.length (#vertices polygon)
-
-          val { center, ... } = BDDPolygon.compute_mass (polygon, 1.0)
-          (* val (cx, cy) = vectoscreen (xf @*: center) *)
-      in
-          print "poly: ";
           Util.for 0 (num - 1)
           (fn i =>
-           let val i2 = if i = num - 1
-                        then 0
-                        else i + 1
-               val (x, y) = vectoscreen (xf @*: Array.sub(#vertices polygon, i))
-               (* val (xx, yy) = vectoscreen (xf @*: Array.sub(#vertices polygon, i2)) *)
+           let 
+               val (x, y) = vectoscreen (GA.sub poly i)
            in
-               print (Int.toString x ^ "," ^ Int.toString y ^ " -> ")
-           end);
-          print "\n"
+               if List.exists (fn x => x = i) sel
+               then SDL.drawcircle (screen, x, y, 3, RED)
+               else SDL.drawcircle (screen, x, y, 2, PURPLE)
+           end)
       end
 
-  fun printcircle (xf, { radius, p }) =
+  fun drawletter (letter as { polys, ... } : letter) =
       let
-          val p = xf @*: p
-          val (x, y) = toscreen (vec2xy p)
-          val r = Real.round (topixels radius)
+          val num = GA.length polys
       in
-          print ("circle at " ^ Int.toString x ^ "/" ^ Int.toString y ^ 
-                 " @" ^ Int.toString r ^ "\n")
-      end
+          Util.for 0 (num - 1)
+          (fn i => drawpoly (GA.sub polys i));
 
+          (* Draw vertices. *)
+          Util.for 0 (num - 1)
+          (fn i => drawpolyvertices (List.mapPartial 
+                                     (fn (p, v) => if p = i then SOME v
+                                                   else NONE) (!selected),
+                                     GA.sub polys i));
 
-  fun printshape (xf, BDDShape.Circle c) = printcircle (xf, c)
-    | printshape (xf, BDDShape.Polygon p) = printpolygon (xf, p)
-
-(*
-  val circle = { radius = 0.3,
-                 p = vec2 (1.0, 0.3) }
-
-  val polygon = BDDPolygon.polygon 
-      (map screentovec (rev [(225, 280),
-                             (295, 124),
-                             (185, 36),
-                             (136, 51),
-                             (116, 330)]))
-
-  (* roughly centered around screen origin *)
-*)
-  val small_circle = BDDShape.Circle { radius = 0.3,
-                                       p = vec2 (0.0, 0.0) }
-  
-  (* XXX made this shape with a fixed screen size.
-     this makes it indifferent to the screen size,
-     but maybe should just have coordinate literals? *)
-  local fun mapcoord (xp, yp) =
-      let
-          fun tom p = real p * 0.01
-          val xp = xp - (800 div 2)
-          val yp = yp - (600 div 2)
-      in
-          vec2 (tom xp, tom yp)
-      end
-  in
-  val familiar_shape = BDDShape.Polygon 
-      (BDDPolygon.polygon
-       (map mapcoord (rev [(377, 268),
-                           (386, 321),
-                           (418, 329),
-                           (428, 305)])))
-  end
-
-  val gravity = vec2 (0.0, 9.8)
-  (* No sleep, for now XXX j/k *)
-  val world = World.world (gravity, false)
-
-
-  fun add_drop (s, x, y, a) =
-      let
-          val drop = World.create_body 
-              (world,
-               { typ = (if s then Body.Static else Body.Dynamic),
-                 (* Start at origin. *)
-                 (* funny if they all start at 0, 1.12 *)
-                 position = (* vec2 (0.0, 1.12) *) vec2(x, y),
-                 angle = 0.0,
-                 linear_velocity = vec2 (0.1, 0.2),
-                 angular_velocity = a,
-                 linear_damping = 0.0,
-                 angular_damping = 0.0,
-                 allow_sleep = true,
-                 awake = true,
-                 fixed_rotation = false,
-                 bullet = false,
-                 active = true,
-                 data = "drop",
-                 inertia_scale = 1.0 })
-
-          (* put a fixture on the drop *)
-          val drop_fixture = 
-              Body.create_fixture (drop, 
-                                   { shape = 
-                                     (if (Real.trunc x * 13 +
-                                          Real.trunc y * 11) mod 2 = 0
-                                      then familiar_shape
-                                      else small_circle),
-                                     data = (),
-                                     friction = 0.2,
-                                     restitution = 0.15,
-                                     density = 1.0,
-                                     is_sensor = false,
-                                     filter = Fixture.default_filter })
-      in
           ()
       end
 
-  val () = 
-      Util.for ~5 1
-      (fn y =>
-       Util.for ~5 5
-       (fn x =>
-        let in
-            add_drop (y = 1, real x * 1.25, real y * 0.75,
-                      Real.realMod (real x + real y) * 6.28 - 3.14)
-        end))
-
-(*
-          val drop = World.create_body 
-              (world,
-               { typ = Body.Dynamic,
-                 position = vec2 (0.0, 1.12),
-                 angle = 0.0,
-                 linear_velocity = vec2 (0.1, 0.2),
-                 angular_velocity = 0.0,
-                 linear_damping = 0.0,
-                 angular_damping = 0.0,
-                 allow_sleep = false,
-                 awake = true,
-                 fixed_rotation = false,
-                 bullet = false,
-                 active = true,
-                 data = "drop",
-                 inertia_scale = 1.0 })
-
-          (* put a fixture on the drop *)
-          val drop_fixture = 
-              Body.create_fixture (drop, 
-                                   { shape = familiar_shape,
-                                     (* small_circle, *)
-                                     data = (),
-                                     friction = 0.2,
-                                     restitution = 0.75,
-                                     density = 1.0,
-                                     is_sensor = false,
-                                     filter = Fixture.default_filter })
-*)
-
-  (* PS if dynamic and linear velocity of 0,~2, then they have a non-touching
-     collision, which might be a good test case. *)
-  val ground = World.create_body
-      (world,
-       { typ = Body.Static,
-         position = vec2 (0.0, 1.75),
-         angle = 0.0,
-         linear_velocity = vec2 (0.0, 0.0),
-         angular_velocity = 0.0, 
-         linear_damping = 0.0,
-         angular_damping = 0.0,
-         allow_sleep = true,
-         awake = true,
-         fixed_rotation = false,
-         bullet = false,
-         active = true,
-         data = "ground",
-         inertia_scale = 1.0 })
-
-  val ground_floor =
-      Body.create_fixture_default (ground, 
-                                   BDDShape.Polygon
-                                   (BDDPolygon.box (6.0, 0.2)),
-                                   (), 1.0)
-
   exception Done
 
-  (* val () = SDL.show_cursor true *)
-  val rightmouse = ref false
   val mousex = ref 0
   val mousey = ref 0
+  val mousedown = ref false
 
+  (* Yuck, can definitely do better than this. *)
+  fun trivialpolygon v =
+      GA.fromlist [vec2 (0.0, 1.0) :+: v,
+                   vec2 (1.0, 0.0) :+: v,
+                   vec2 (~0.5, ~0.5) :+: v]
 
-  val PURPLE = hexcolor 0xFF00FF
-  val RED = hexcolor 0xFF0000
-  fun drawworld world =
-    let
-      fun onebody b =
-        let
-            val xf = Body.get_transform b
-            val fixtures = Body.get_fixtures b
-            fun onefixture f =
-                let val shape = Fixture.shape f
-                in drawshape (xf, shape)
-                end
-        in
-            oapp Fixture.get_next onefixture fixtures
-        end
+  val letter = ref { polys = GA.fromlist [trivialpolygon (vec2 (0.0, 0.0))] }
 
-      fun onecontact c =
-        let
-            val world_manifold = { normal = vec2 (~999.0, ~999.0),
-                                   points = Array.fromList
-                                   [ vec2 (~111.0, ~111.0),
-                                     vec2 (~222.0, ~222.0) ] }
-            val { point_count, ... } = Contact.get_manifold c
-            val () = Contact.get_world_manifold (world_manifold, c)
-            (* Where should the normal be drawn from? one of the points? *)
-            val (sx, sy) = vectoscreen (vec2 (0.0, 0.0))
-            val (dx, dy) = vectoscreen (#normal world_manifold)
-        in
-            if DRAW_NORMALS
-            then SDL.drawline (screen, sx, sy, dx, dy, RED)
-            else ();
+  fun draw () = drawletter (!letter)
 
-            for 0 (point_count - 1) 
-            (fn i =>
-             let val pt = Array.sub(#points world_manifold, i)
-                 val (x, y) = vectoscreen pt
-             in
-                 SDL.drawcircle (screen, x, y, 2, PURPLE)
-             end)
-        end
-   in
-      oapp Body.get_next onebody (World.get_body_list world);
-      oapp Contact.get_next onecontact (World.get_contact_list world)
-    end
-
-  val rtos = Real.fmt (StringCvt.FIX (SOME 2))
-
-  fun getfixturename (f : fixture) =
-    let val b = Fixture.get_body f
-    in Body.get_data b
-    end
-
-  fun printworld world =
-    let
-      fun onebody b =
-          (* Print only the drop. *)
-        if Body.get_data b = "drop"
-        then
-        let
-            val xf = Body.get_transform b
-                (*
-            val fixtures = Body.get_fixtures b
-            fun onefixture f =
-                let
-                    val shape = Fixture.shape f
-                in
-                    print "Fixture.\n";
-                    printshape (xf, shape)
-                end
-        in
-            print "Body.\n";
-            oapp Fixture.get_next onefixture fixtures *)
-            val pos = transformposition xf
-        in
-            print ("drop xf: " ^ xftos xf ^ "\n")
-        end
-        else ()
-
-      fun onecontact c =
-        let
-            val world_manifold = { normal = vec2 (~999.0, ~999.0),
-                                   points = Array.fromList
-                                   [ vec2 (~111.0, ~111.0),
-                                     vec2 (~222.0, ~222.0) ] }
-            val { point_count, ... } = Contact.get_manifold c
-            val () = Contact.get_world_manifold (world_manifold, c)
-            val name1 = getfixturename (Contact.get_fixture_a c)
-            val name2 = getfixturename (Contact.get_fixture_b c)
-        in
-            print (name1 ^ "-" ^ name2 ^ " Contact! ");
-            if Contact.is_touching c
-            then print "touching "
-            else ();
-            print (Int.toString point_count ^ " points: ");
-            for 0 (point_count - 1) 
-            (fn i =>
-             let val pt = Array.sub(#points world_manifold, i)
-                 (* val (x, y) = vectoscreen pt *)
-             in
-                 print (rtos (vec2x pt) ^ "," ^ rtos (vec2y pt) ^ " ")
-             end);
-
-            print "\n"
-        end
-    in
-      oapp Body.get_next onebody (World.get_body_list world);
-      oapp Contact.get_next onecontact (World.get_contact_list world)
-    end
-
-  val iters = ref 0
   fun key () =
       case pollevent () of
           NONE => ()
@@ -427,115 +180,29 @@ struct
                    let in 
                        mousex := x;
                        mousey := y
+                         (* XXX drag if mousedown *)
                    end
-(*
              | E_MouseDown { button = 1, x, y, ... } =>
+                (* Currently, select the closest point. *)
                    let in
-                       savex := x;
-                       savey := y
+                      mousedown := true
                    end
-*)
+             | E_MouseUp _ => mousedown := false
              | _ => ()
 
-  fun crop (width, height, a) =
-      let
-          val (cx, cy, cw, ch) = (0, 0, 0, 0)
-      in
-          if cw = 0 orelse ch = 0
-          then (width, height, a)
-          else
-           let
-               val cropped = Array.array (cw * ch * 4, 0w0 : Word8.word)
-           in
-               Util.for 0 (ch - 1)
-               (fn y =>
-                Util.for 0 (cw - 1)
-                (fn x =>
-                 Util.for 0 3
-                 (fn i =>
-                  let val ox = x + cx
-                      val oy = y + cy
-                  in
-                      Array.update(cropped, 
-                                   (y * cw + x) * 4 + i,
-                                   Array.sub(a, (oy * width + ox) * 4 + i))
-                  end)));
-               (cw, ch, cropped)
-           end
-      end
-
-  fun blendframes nil = raise Animate "Can't blend 0 frames"
-    | blendframes (l as ((w, h, _) :: _)) =
-      let
-          val frames = map #3 l
-          val aa = Array.array (w * h * 4, 0w0)
-          val num = length l
-
-          (* Get the color component, merged, from all the frames. *)
-          fun get (x, y, i) =
-              let val total = 
-                  foldr (fn (a, acc) => acc +
-                         real (Word8.toInt (Array.sub (a, (w * y + x) * 4 + i)))) 0.0 frames
-                  val avg = total / real num
-              in
-                  Word8.fromInt (Real.round avg)
-              end
-
-      in
-          Util.for 0 (h - 1)
-          (fn y =>
-           Util.for 0 (w - 1)
-           (fn x =>
-            let val r = get (x, y, 0)
-                val g = get (x, y, 1)
-                val b = get (x, y, 2)
-                val a = 0w255
-            in
-                Array.update(aa, (w * y + x) * 4 + 0, r);
-                Array.update(aa, (w * y + x) * 4 + 1, g);
-                Array.update(aa, (w * y + x) * 4 + 2, b);
-                Array.update(aa, (w * y + x) * 4 + 3, a)
-            end
-            ));
-          (w, h, aa)
-      end
-
-  val framenum = ref 0
-  val thisframe = ref (nil : (int * int * Word8.word Array.array) list)
-
   fun loop () =
-      let 
-          (* One of these tails is called, depending on whether we're
-             watching the animation or saving frames. *)
-          fun interactive () =
-              let in
-                  key ();
-                  delay 0;
-                  iters := !iters + 1;
-                  World.step (world, 0.005, 1000, 1000);
-                  loop ()
-              end
-
-          fun auto () = 
-              let in
-                  iters := !iters + 1;
-                  World.step (world, 0.0005, 10, 10);
-                  loop ()
-              end
-      in
-          
+      let in
+          (* XXX don't need to continuously be drawing. *)          
           clearsurface (screen, color (0w255, 0w0, 0w0, 0w0));
 
-          drawworld world;
+          draw ();
 
           flip screen;
 
-          interactive ()
+          key ();
+          delay 0;
+          loop ()
       end
-
-
-  val () = print "*** Startup ***\n"
-  val () = printworld world
 
   fun eprint s = TextIO.output (TextIO.stdErr, s)
 
@@ -550,7 +217,7 @@ struct
              | BDDDynamicTree.BDDDynamicTree s => eprint s
              | BDDContactSolver.BDDContactSolver s => eprint s
              | BDDMath.BDDMath s => eprint s
-             | Animate s => eprint s
+             | MakeBody s => eprint s
              | _ => eprint "unknown");
           eprint "\nhistory:\n";
           app (fn l => eprint ("  " ^ l ^ "\n")) (Port.exnhistory e);
