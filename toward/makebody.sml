@@ -45,6 +45,7 @@ struct
   val screen = makescreen (WIDTH, HEIGHT)
 
   fun eprint s = TextIO.output (TextIO.stdErr, s)
+  val rtos = Real.fmt (StringCvt.FIX (SOME 2))
 
   (* val () = SDL.show_cursor false *)
 
@@ -129,22 +130,58 @@ struct
   fun vectoscreen v = toscreen (vec2xy v)
   fun screentovec (x, y) = vec2 (toworld (x, y))
 
+  val mousex = ref 0
+  val mousey = ref 0
+  val mousedown = ref false
+
+  (* returns the point on the line segment between v1 and v2 that is
+     closest to the pt argument. If this is one of v1 or v2, NONE is
+     returned. *)
+  fun closest_point (pt : vec2, v1 : vec2, v2 : vec2) : vec2 option =
+    let
+        val (px, py) = vec2xy pt
+        val (v1x, v1y) = vec2xy v1
+        val (v2x, v2y) = vec2xy v2
+        val u = ((px - v1x) * (v2x - v1x) +
+                 (py - v1y) * (v2y - v1y)) / distance_squared (v1, v2)
+    in
+        (* PERF: could do negative test before dividing *)
+        if u < 0.0 orelse u > 1.0
+        then NONE
+        else SOME (vec2 (v1x + u * (v2x - v1x),
+                         v1y + u * (v2y - v1y)))
+    end
+
   val PURPLE = hexcolor 0xFF00FF
   val RED = hexcolor 0xFF0000
   val WHITE = hexcolor 0xFFFFFF
+  val GREY = hexcolor 0x888888
   fun drawpoly (poly : poly) =
       let
           val num = GA.length poly
+          val vm = screentovec (!mousex, !mousey)
       in
           Util.for 0 (num - 1)
           (fn i =>
            let val i2 = if i = num - 1
                         then 0
                         else i + 1
-               val (x, y) = vectoscreen (GA.sub poly i)
-               val (xx, yy) = vectoscreen (GA.sub poly i2)
+               val v1 = GA.sub poly i
+               val v2 = GA.sub poly i2
+
+               val (x, y) = vectoscreen v1
+               val (xx, yy) = vectoscreen v2
            in
-               SDL.drawline (screen, x, y, xx, yy, WHITE)
+               SDL.drawline (screen, x, y, xx, yy, WHITE);
+
+               (* For debugging? Would be kind of nice to show
+                  when/where we would insert a point, if clicking. *)
+               case closest_point (vm, v1, v2) of
+                   NONE => ()
+                 | SOME v =>
+                       let val (x, y) = vectoscreen v
+                       in SDL.drawcircle (screen, x, y, 2, GREY)
+                       end
            end)
       end
 
@@ -185,10 +222,6 @@ struct
       end
 
   exception Done
-
-  val mousex = ref 0
-  val mousey = ref 0
-  val mousedown = ref false
 
   (* Yuck, can definitely do better than this. *)
   fun trivialpolygon v =
@@ -280,14 +313,100 @@ struct
           else ()
       end
 
+  (* From a click at screen coordinates (x, y), maybe insert a
+     point if it is close enough to a line segment on an existing
+     polygon. *)
+  fun maybeinsert (x, y) =
+      let
+          val v = screentovec (x, y)
+          val closest_dist = ref 9999999.0
+
+          (* Can be multiple. This is for the common case that we
+             add a point on a coincident segment *)
+          val closest_idx = ref (nil : (int * int) list)
+
+          fun onepoly (j, poly) =
+            let val num = GA.length poly
+            in
+                Util.for 0 (num - 1)
+                (fn i =>
+                 let val i2 = if i = num - 1
+                              then 0
+                              else i + 1
+                 in
+                     case closest_point (v, GA.sub poly i, GA.sub poly i2) of
+                         NONE => ()
+                       | SOME v' =>
+                             let val d = distance (v', v)
+                             in 
+                                if d < !closest_dist
+                                then (closest_dist := d;
+                                      closest_idx := [(j, i)])
+                                else if Real.== (d, !closest_dist)
+                                     then closest_idx := (j, j) :: !closest_idx
+                                     else ()
+                             end
+                 end)
+            end
+
+          fun insert (pi, vi) =
+              let val p = GA.sub (#polys (!letter)) pi
+              in 
+                  eprint "insert.\n";
+                  GA.insertat p (vi + 1) v
+              end
+
+      in
+          (* XXX should dedupe so that we only add once per poly;
+             this would be quite difficult to make happen *)
+          GA.appi onepoly (#polys (!letter));
+          eprint ("Closest is " ^ rtos (topixels (!closest_dist)) ^ " away\n");
+          (* Is the closest one close enough? *)
+          if topixels (!closest_dist) <= 8.0
+          then (app insert (!closest_idx);
+                (* Select these. They're one after the index we recorded. *)
+                selected := map (fn (p, v) => (p, v + 1)) (!closest_idx);
+                true)
+          else false
+      end
+
+
+
+  (* Left click is where a lot of action is.
+
+     If we're close to a point, then we select that point and any that
+     are coincident with it.
+     
+     If not, but we're close to a line segment, then we add a point
+     there, and select it.
+
+     TODO: dragging to draw a selction *)
   fun leftmouse (x, y) =
       (* Currently, select the closest point. *)
-      let in
+      let 
+          fun nearenough (i, j) =
+              let val (xx, yy) = 
+                  vectoscreen
+                  (GA.sub (GA.sub (#polys (!letter)) i) j)
+              in
+                  (x - xx) * (x - xx) +
+                  (y - yy) * (y - yy) < 64
+              end
+
+          val nearby = findclosestpoints (screentovec (x, y))
+          val nearby = List.filter nearenough nearby
+      in
+          (* XXX won't need to save if dragging to select *)
           savestate ();
           mousedown := true;
-          (* XXX should put some (small) limit on the absolute screen
-             distance we allow for selection. *)
-          selected := findclosestpoints (screentovec (x, y));
+          (* Always set, maybe clearing the selection if there
+             were no nearby points. *)
+          selected := nearby;
+          (* If there were no points selected, then maybe another
+             action. *)
+          if List.null nearby andalso not (maybeinsert (x, y))
+          then () (* can do other things, like start a selection *)
+          else ();
           (* Simulate mouse motion. *)
           mousemotion (x, y)
       end
