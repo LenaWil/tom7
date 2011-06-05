@@ -27,6 +27,9 @@ group is
   ../sml-lib/util/fsutil-sig.sml
   ../sml-lib/util/fsutil.sml
 
+  ../sml-lib/util/growarray-sig.sml
+  ../sml-lib/util/growarray.sml
+
   prelude.sml
 
   ../sml-lib/bdd/bdd.cm
