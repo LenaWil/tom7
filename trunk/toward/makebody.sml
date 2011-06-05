@@ -167,7 +167,57 @@ struct
 
   val letter = ref { polys = GA.fromlist [trivialpolygon (vec2 (0.0, 0.0))] }
 
+  (* Return the indices of the vertices closest to the point. *)
+  (* XXX don't allow selection of two points on the same poly!
+     They would have to be coincident though, so maybe we can just
+     maintain that as a representation invariant. *)
+  fun findclosestpoints v =
+      (* PERF could use kd-tree but have to maintain it, which is expensive.
+         Realistically there won't be more than a few hundred vertices. *)
+      let
+          (* Every point that goes in here will be exactly coincident. *)
+          val best_dist = ref 999999999999.0
+          val best_vs = ref (nil : (int * int) list)
+      in
+          GA.appi (fn (i, poly)  =>
+                   GA.appi (fn (j, vertex) =>
+                            let val d = distance_squared (v, vertex)
+                            in
+                                if d < !best_dist
+                                then (best_dist := d;
+                                      best_vs := [(i, j)])
+                                else if Real.== (d, !best_dist)
+                                     then (best_vs := (i, j) :: !best_vs)
+                                     else ()
+                            end) poly
+                   ) (#polys (!letter));
+          !best_vs
+      end
+
   fun draw () = drawletter (!letter)
+
+  (* XXX do snapping if enabled. *)
+  fun setvertex (pi, vi) vnew =
+      GA.update (GA.sub (#polys (!letter)) pi) vi vnew
+
+  fun mousemotion (x, y) =
+      let in 
+          mousex := x;
+          mousey := y;
+          if !mousedown
+          then List.app (fn (i, j) => setvertex (i, j) (screentovec (x, y))) (!selected)
+          else ()
+      end
+
+  fun leftmouse (x, y) =
+      (* Currently, select the closest point. *)
+      let in
+          mousedown := true;
+          (* XXX should put some (small) limit on the absolute screen
+             distance we allow for selection. *)
+          selected := findclosestpoints (screentovec (x, y))
+      end
+
 
   fun key () =
       case pollevent () of
@@ -177,16 +227,8 @@ struct
                E_Quit => raise Done
              | E_KeyDown { sym = SDLK_ESCAPE } => raise Done
              | E_MouseMotion { state : mousestate, x : int, y : int, ... } =>
-                   let in 
-                       mousex := x;
-                       mousey := y
-                         (* XXX drag if mousedown *)
-                   end
-             | E_MouseDown { button = 1, x, y, ... } =>
-                (* Currently, select the closest point. *)
-                   let in
-                      mousedown := true
-                   end
+                   mousemotion (x, y)
+             | E_MouseDown { button = 1, x, y, ... } => leftmouse (x, y)
              | E_MouseUp _ => mousedown := false
              | _ => ()
 
