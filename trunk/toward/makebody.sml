@@ -46,6 +46,7 @@ struct
 
   fun eprint s = TextIO.output (TextIO.stdErr, s)
   val rtos = Real.fmt (StringCvt.FIX (SOME 2))
+  (* fun vtos v = rtos (vec2x v) ^ "," ^ rtos (vec2y v) *)
 
   (* val () = SDL.show_cursor false *)
 
@@ -163,6 +164,7 @@ struct
   val RED = hexcolor 0xFF0000
   val WHITE = hexcolor 0xFFFFFF
   val GREY = hexcolor 0x888888
+  val BROWN = hexcolor 0x999900
   fun drawpoly (poly : poly) =
       let
           val num = GA.length poly
@@ -211,6 +213,7 @@ struct
            end)
       end
 
+
   fun drawletter (letter as { polys, ... } : letter) =
       let
           val num = GA.length polys
@@ -224,8 +227,29 @@ struct
                                      (fn (p, v) => if p = i then SOME v
                                                    else NONE) (!selected),
                                      GA.sub polys i));
-
           ()
+      end
+
+  (* From the BSD-licensed code by Wm. Randolph Franklin.
+     See sml-lib/geom/polygon.sml, which is the same but uses
+     a different representation of polygons. *)
+  fun pointinside (p : poly) (v : vec2) =
+      let
+          (* val () = eprint ("pointinside " ^ vtos v ^ "?\n") *)
+          val (x, y) = vec2xy v
+          fun xcoord i = vec2x (GA.sub p i)
+          fun ycoord i = vec2y (GA.sub p i)
+          val nvert = GA.length p
+          fun loop odd idx jdx =
+              if idx = nvert
+              then odd
+              else loop (if ((ycoord idx > y) <> (ycoord jdx > y)) andalso
+                             (x < ((xcoord jdx - xcoord idx) * (y - ycoord idx) / 
+                                   (ycoord jdx - ycoord idx) + xcoord idx))
+                         then not odd
+                         else odd) (idx + 1) idx
+      in
+          loop false 0 (nvert - 1)
       end
 
   exception Done
@@ -325,9 +349,29 @@ struct
                      Int.toString (UndoState.future_length undostate))
       end
 
+  fun drawinterior () =
+      let
+          val DENSITY = 8
+      in
+          Util.for 0 (HEIGHT div DENSITY - 1)
+          (fn y =>
+           Util.for 0 (WIDTH div DENSITY - 1)
+           (fn x =>
+            (* Test against every polygon. *)
+            let
+                val v = screentovec (x * DENSITY, y * DENSITY)
+            in
+                if GA.exists (fn p => pointinside p v) (#polys (!letter))
+                then SDL.drawpixel (screen, x * DENSITY, y * DENSITY, BROWN)
+                else ()
+            end
+            ))
+      end
+
   fun draw () =
       let in
           drawletter (!letter);
+          drawinterior ();
           drawmenu ()
       end
 
