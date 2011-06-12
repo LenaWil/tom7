@@ -129,6 +129,13 @@ struct
 
   fun vectoscreen v = toscreen (vec2xy v)
   fun screentovec (x, y) = vec2 (toworld (x, y))
+  fun screendistance ((x, y), (xx, yy)) =
+      Math.sqrt (real ((x - xx) * (x - xx) +
+                       (y - yy) * (y - yy)))
+
+  fun screendistance_squared ((x, y), (xx, yy)) =
+      (x - xx) * (x - xx) +
+      (y - yy) * (y - yy)
 
   val mousex = ref 0
   val mousey = ref 0
@@ -249,8 +256,31 @@ struct
           UndoState.truncate undostate MAX_UNDO
       end
 
-  (* Return the indices of the vertices closest to the point. *)
-  (* XXX don't allow selection of two points on the same poly!
+  (* For the following, we could use kd-trees to make the lookup much
+     faster, but we have to maintain the tree, which is expensive and
+     tricky. Realistically there won't be more than a few hundred
+     vertices and the distance test is cheap. *)
+  (* Find points within the given distance from v. *)
+  fun pointswithinscreendistance dist v =
+      let
+          val dd = dist * dist
+          val vs = ref (nil : (int * int) list)
+      in
+          GA.appi (fn (i, poly)  =>
+                   GA.appi (fn (j, vertex) =>
+                            if screendistance_squared (v, 
+                                                       vectoscreen vertex) <= dd
+                            then vs := (i, j) :: !vs
+                            else ()) poly
+                   ) (#polys (!letter));
+          !vs
+      end
+
+
+  (* Return the indices of the vertices closest to the point.
+     Ignores points on polygons whose indices are in the disallowed_polys
+     list. *)
+  (* XXX also don't allow selection of two points on the same poly!
      They would have to be coincident though, so maybe we can just
      maintain that as a representation invariant. *)
   fun findclosestpointsnoton disallowed_polys v =
@@ -278,7 +308,7 @@ struct
           (Math.sqrt (!best_dist), !best_vs)
       end
 
-  val findclosestpoints = findclosestpointsnoton nil
+  (* val findclosestpoints = findclosestpointsnoton nil *)
 
   (* XXX *)
   fun drawmenu () =
@@ -360,7 +390,7 @@ struct
                                 then (closest_dist := d;
                                       closest_idx := [(j, i)])
                                 else if Real.== (d, !closest_dist)
-                                     then closest_idx := (j, j) :: !closest_idx
+                                     then closest_idx := (j, i) :: !closest_idx
                                      else ()
                              end
                  end)
@@ -407,14 +437,17 @@ struct
                   (GA.sub (GA.sub (#polys (!letter)) i) j)
               in
                   (x - xx) * (x - xx) +
-                  (y - yy) * (y - yy) < 64
+                  (y - yy) * (y - yy) < 8 * 8
               end
 
-          val mv = screentovec (x, y)
-
-          val (_, nearby) = findclosestpoints mv
+          val nearby = pointswithinscreendistance 8 (x, y)
           val () = eprint ("There are " ^ Int.toString (length nearby) ^ " nearby.\n")
+              (*
           val nearby = List.filter nearenough nearby
+          val () = eprint ("filt: " ^ Int.toString (length nearby) ^ " nearby.\n")
+          *)
+
+          val mv = screentovec (x, y)
       in
           (* XXX won't need to save if dragging to select *)
           savestate ();
