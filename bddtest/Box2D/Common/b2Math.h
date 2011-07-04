@@ -633,6 +633,7 @@ inline void b2Sweep::Normalize()
 {
         float32 twoPi = 2.0f * b2_pi;
         float32 d =  twoPi * floorf(a0 / twoPi);
+        /*
         printf("sweep_normalize: %s a0 / 2pi %s floor %d d %s res: %s %s\n",
                rtos(a0).c_str(), 
                rtos(a0 / twoPi).c_str(),
@@ -640,6 +641,7 @@ inline void b2Sweep::Normalize()
                rtos(d).c_str(),
                rtos(a0 - d).c_str(),
                rtos(a - d).c_str());
+        */
         a0 -= d;
         a -= d;
 }

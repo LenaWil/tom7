@@ -209,7 +209,7 @@ struct
 
   val gravity = vec2 (0.0, 9.8)
   (* No sleep, for now XXX j/k *)
-  val world = World.world (gravity, false)
+  val world = World.world (gravity, true) (* ALLOW *)
 
 
   fun add_drop (s, x, y, a) =
