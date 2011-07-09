@@ -27,6 +27,8 @@ struct
   open SDL
   structure Util = U
 
+  structure M = Maths
+
   structure Font = FontFn 
   (val surf = Images.requireimage "font.png"
    val charmap =
@@ -77,10 +79,10 @@ struct
 
   structure GA = GrowArray
 
-  type poly = vec2 GA.growarray
+  type poly = Maths.poly
   type letter =
       (* Add graphics, ... *)
-      { polys: poly GA.growarray }
+      { polys: Maths.poly GA.growarray }
 
   fun copyletter { polys } =
       { polys = GA.fromlist (map GA.copy (GA.tolist polys)) }
@@ -112,124 +114,6 @@ struct
               true
           end handle NotEqual => false
   end
-
-  fun vertex p i = GA.sub p i
-  fun previous_vertex p 0 = GA.sub p (GA.length p - 1)
-    | previous_vertex p i = GA.sub p (i - 1)
-  fun next_vertex p i = if i = GA.length p - 1
-                        then GA.sub p 0
-                        else GA.sub p (i + 1)
-
-  (* Tests if the polygon is convex and simple. To be convex
-     and simple, every interior angle must be < 180 degrees and
-     the sum of exterior angles should be 360 degrees. *)
-(*
-  fun issimple (p : poly) =
-      let
-          fun 
-      in
-              
-      end
-*)
-  (* Alternate, simpler method: Sign of dx and dy changes more
-     than twice, then it's convex or non-simple. 
-     XXX no need to be imperative; ported from C code.
-
-     FIXME doesn't seem to work?
-     *)
-  fun issimple_wrong (p : poly) =
-      let
-          val xch = ref 0
-          val ych = ref 0
-          val len = GA.length p
-          val prev = ref (GA.sub p (len - 1) :-: GA.sub p 0)
-          fun sign x = x < 0.0
-      in
-          Util.for 0 (len - 2)
-          (fn i =>
-           let val this = GA.sub p i :-: GA.sub p (i + 1)
-           in
-               if sign (vec2x (!prev)) <> sign (vec2x this)
-               then xch := !xch + 1
-               else ();
-               if sign (vec2y (!prev)) <> sign (vec2y this)
-               then ych := !ych + 1
-               else ();
-               prev := this
-           end);
-          !xch <= 2 andalso !ych <= 2
-      end
-
-  (* Real-valued (num mod den), always positive. *)
-  fun fmod (num, den) =
-      let val r = Real.rem (num, den)
-      in
-          if r < 0.0 then r + den
-          else r
-      end
-
-  (* Return the angle in degrees between v2->v1 and v2->v3,
-     which is 360 - angle(v3, v2, v1). *)
-  fun angle (v1, v2, v3) =
-      (* Treating v2 as the center, we have
-           p1
-          / 
-         / phi1
-         0--------x
-         | phi3
-         |
-         p3
-         *)      
-      let val p1 = v1 :-: v2
-          val p3 = v3 :-: v2
-          val phi1 = Math.atan2 (vec2y p1, vec2x p1)
-          val phi3 = Math.atan2 (vec2y p3, vec2x p3)
-                     
-          val degs = 57.2957795 * (phi1 - phi3)
-      in
-          fmod (degs, 360.0)
-      end
-
-  (* Test that every angle is less than 180 degrees using
-     one winding order. (XXX Maybe we should actually insist on
-     using a consistent winding order?) This does not need
-     any other checks. Weird non-convex polygons like a star
-     have "interior" angles that are all less than 180 degrees,
-     but we use a consistent notion of interior in this code,
-     so those angles appear to be large. *)
-  fun issimple (p : poly) =
-      let
-          (* A polygon that's simple has exactly one winding
-             order (clockwise or counter-clockwise) in which
-             each interior angle is less than 180 degrees.
-             Determine that winding order by choosing the
-             one that makes an arbitrary angle less than
-             180. *)
-          val (forward, back) =
-              if angle (previous_vertex p 0,
-                        vertex p 0,
-                        next_vertex p 0) < 180.0
-              then (previous_vertex, next_vertex)
-              else (next_vertex, previous_vertex)
-
-          fun anglesum (s, i) =
-              if i >= GA.length p
-              then SOME s
-              else
-                  let val a =
-                      angle (previous_vertex p i, 
-                             vertex p i, 
-                             next_vertex p i)
-                  in
-                      if a < 180.0
-                      then anglesum (s + a, i + 1)
-                      else NONE
-                  end
-      in
-          case anglesum (0.0, 0) of
-              NONE => false
-            | SOME sum => true (* XXX *)
-      end
 
   (* 0xRRGGBB *)
   fun hexcolor c =
@@ -271,27 +155,9 @@ struct
   val mousey = ref 0
   val mousedown = ref false
 
-  (* returns the point on the line segment between v1 and v2 that is
-     closest to the pt argument. If this is one of v1 or v2, NONE is
-     returned. *)
-  fun closest_point (pt : vec2, v1 : vec2, v2 : vec2) : vec2 option =
-    let
-        val (px, py) = vec2xy pt
-        val (v1x, v1y) = vec2xy v1
-        val (v2x, v2y) = vec2xy v2
-        val u = ((px - v1x) * (v2x - v1x) +
-                 (py - v1y) * (v2y - v1y)) / distance_squared (v1, v2)
-    in
-        (* PERF: could do negative test before dividing *)
-        if u < 0.0 orelse u > 1.0
-        then NONE
-        else SOME (vec2 (v1x + u * (v2x - v1x),
-                         v1y + u * (v2y - v1y)))
-    end
-
   fun drawangle (v1, v2, v3) =
       let
-          val a = angle (v1, v2, v3)
+          val a = M.angle (v1, v2, v3)
           val (x, y) = vectoscreen v2
       in
           Font.draw (screen, x, y, rtos a)
@@ -307,7 +173,7 @@ struct
           val num = GA.length poly
           val vm = screentovec (!mousex, !mousey)
 
-          val color = if issimple poly
+          val color = if M.issimple poly
                       then WHITE
                       else RED
       in
@@ -326,7 +192,7 @@ struct
 
                (* For debugging? Would be kind of nice to show
                   when/where we would insert a point, if clicking. *)
-               case closest_point (vm, v1, v2) of
+               case M.closest_point (vm, v1, v2) of
                    NONE => ()
                  | SOME v =>
                        let val (x, y) = vectoscreen v
@@ -357,9 +223,9 @@ struct
   fun drawpolyangles poly =
       Util.for 0 (GA.length poly - 1)
       (fn i =>
-       drawangle (previous_vertex poly i,
-                  vertex poly i,
-                  next_vertex poly i))
+       drawangle (M.previous_vertex poly i,
+                  M.vertex poly i,
+                  M.next_vertex poly i))
 
   fun drawletter (letter as { polys, ... } : letter) =
       let
@@ -379,28 +245,6 @@ struct
           (fn i => drawpolyangles (GA.sub polys i));
 
           ()
-      end
-
-  (* From the BSD-licensed code by Wm. Randolph Franklin.
-     See sml-lib/geom/polygon.sml, which is the same but uses
-     a different representation of polygons. *)
-  fun pointinside (p : poly) (v : vec2) =
-      let
-          (* val () = eprint ("pointinside " ^ vtos v ^ "?\n") *)
-          val (x, y) = vec2xy v
-          fun xcoord i = vec2x (GA.sub p i)
-          fun ycoord i = vec2y (GA.sub p i)
-          val nvert = GA.length p
-          fun loop odd idx jdx =
-              if idx = nvert
-              then odd
-              else loop (if ((ycoord idx > y) <> (ycoord jdx > y)) andalso
-                             (x < ((xcoord jdx - xcoord idx) * (y - ycoord idx) / 
-                                   (ycoord jdx - ycoord idx) + xcoord idx))
-                         then not odd
-                         else odd) (idx + 1) idx
-      in
-          loop false 0 (nvert - 1)
       end
 
   exception Done
@@ -512,7 +356,7 @@ struct
             let
                 val v = screentovec (x * DENSITY, y * DENSITY)
             in
-                if GA.exists (fn p => pointinside p v) (#polys (!letter))
+                if GA.exists (fn p => M.pointinside p v) (#polys (!letter))
                 then SDL.drawpixel (screen, x * DENSITY, y * DENSITY, BROWN)
                 else ()
             end
@@ -535,7 +379,7 @@ struct
                     val p = GA.copy (GA.sub (#polys (!letter)) pi)
                 in
                     GA.update p vi dest;
-                    issimple p
+                    M.issimple p
                 end) idxs
 
   (* XXX should put the polygon in correct winding order. *)
@@ -590,7 +434,7 @@ struct
                               then 0
                               else i + 1
                  in
-                     case closest_point (v, GA.sub poly i, GA.sub poly i2) of
+                     case M.closest_point (v, GA.sub poly i, GA.sub poly i2) of
                          NONE => ()
                        | SOME v' =>
                              let val d = distance (v', v)
