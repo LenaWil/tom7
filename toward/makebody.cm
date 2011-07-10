@@ -46,7 +46,10 @@ group is
   ../sdlml/pngsave-sig.sml
   ../sdlml/pngsave.sml
 
+  serialize.sml
+
   images.sml
 
   maths.sml
+  letter.sml
   makebody.sml

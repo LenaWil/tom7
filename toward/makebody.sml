@@ -29,6 +29,8 @@ struct
 
   structure M = Maths
 
+  val LETTERFILE = "letter.toward"
+
   structure Font = FontFn 
   (val surf = Images.requireimage "font.png"
    val charmap =
@@ -258,7 +260,11 @@ struct
   (* XXX way to set snapping preference *)
   val snapping = ref true
   val undostate = UndoState.undostate () : letter UndoState.undostate
-  val letter = ref { polys = GA.fromlist [trivialpolygon (vec2 (0.0, 0.0))] }
+  val letter : letter ref = 
+      ref { polys = GA.fromlist [trivialpolygon (vec2 (0.0, 0.0))] }
+
+  val () = (letter := Letter.fromstring (StringUtil.readfile LETTERFILE))
+      handle _ => ()
 
   (* Call before making a modification to the state. Keeps the buffer
      length from exceeding MAX_UNDO. Doesn't duplicate the state if it
@@ -520,6 +526,10 @@ struct
           mousemotion (x, y)
       end
 
+  fun savetodisk () =
+      (StringUtil.writefile LETTERFILE (Letter.tostring (!letter));
+       eprint "Saved.\n")
+
   (* XXX require ctrl for undo/redo, etc. *)
   fun keydown SDLK_ESCAPE = raise Done
     | keydown SDLK_z =
@@ -531,6 +541,7 @@ struct
       (case UndoState.redo undostate of
            NONE => ()
          | SOME s => letter := copyletter s)
+    | keydown SDLK_s = savetodisk()
     | keydown _ = ()
 
   fun events () =
@@ -562,6 +573,7 @@ struct
           delay 0;
           loop ()
       end
+    handle Done => savetodisk ()
 
   val () = Params.main0 "No arguments." loop
   handle e =>
@@ -575,6 +587,7 @@ struct
              | BDDContactSolver.BDDContactSolver s => eprint s
              | BDDMath.BDDMath s => eprint s
              | MakeBody s => eprint s
+             | Letter.Letter s => eprint s
              | _ => eprint "unknown");
           eprint "\nhistory:\n";
           app (fn l => eprint ("  " ^ l ^ "\n")) (Port.exnhistory e);

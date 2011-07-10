@@ -1,5 +1,11 @@
+(* Serialization utils. Generates and parses strings. 
 
-(* Serialization utils. Generates and parses strings. *)
+   From t7eshero.
+   XXX to sml-lib? This is okay for quick stuff but I
+   recall its design is prone to mistakes, plus it is
+   pretty slow because of all the concatenation and
+   list-making.
+*)
 structure Serialize (* XXX sig *) =
 struct
 
