@@ -1009,12 +1009,40 @@ struct
   fun mouse_wheelup state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELUP - 0w1)) <> 0w0
   fun mouse_wheeldown state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELDOWN - 0w1)) <> 0w0
 
+  type cursor = safe
+
   local val sc = _import "SDL_ShowCursor" : int -> int ;
   in
     fun show_cursor true = ignore (sc SDL_ENABLE)
       | show_cursor false = ignore (sc SDL_DISABLE)
   end
-      
+
+  local val fc = _import "SDL_FreeCursor" : ptr -> unit ;
+  in fun free_cursor c = (fc (!!c); c := null)
+  end
+
+  (* XXX maybe should implement this myself in order to avoid
+     aliasing. Unable to catch double-frees of aliases this way. *)
+  local val gc = _import "SDL_GetCursor" : unit -> ptr ;
+  in fun get_cursor () = ref (gc ())
+  end
+
+  local val sc = _import "SDL_SetCursor" : ptr -> unit ;
+  in fun set_cursor c = sc (!!c)
+  end
+
+  local val cc = _import "SDL_CreateCursor" : Word8.word vector *
+      Word8.word vector * int * int * int * int -> ptr ;
+  in
+      fun create_cursor { data, mask, w, h, hot_x, hot_y } =
+          let val p = cc (data, mask, w, h, hot_x, hot_y)
+          in
+              if p = null
+              then raise SDL "couldn't create cursor"
+              else ref p
+          end
+  end
+
   local val fl = _import "SDL_Flip" : ptr -> unit ;
   in
     fun flip p = fl (!!p)
@@ -1158,13 +1186,12 @@ struct
 
   local 
       val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
-      structure W = Word32
 
       fun pair_swap (x, y) = (y, x)
       fun pair_map f (x, y) = (f x, f y)
       fun pair_map2 f (x1, y1) (x2, y2) = (f (x1, x2), f (y1, y2))
 
-      fun build ((x0, y0), (x1, y1), (dx, dy), (stepx, stepy), post) =
+      fun build ((x0, y0), (x1, _), (dx, dy), (stepx, stepy), post) =
         let val frac0 = dy - Int.quot (dx, 2)
             fun step (x0, y0, frac) =
               if x0 = x1
@@ -1242,8 +1269,8 @@ struct
       
 
   (* PERF: similar *)
-  (* XXX no alpha.. *)
-  local val gp = _import "ml_getpixela" : ptr * int * int * Word8.word ref * Word8.word ref * Word8.word ref * Word8.word ref -> unit ;
+  local val gp = _import "ml_getpixela" : ptr * int * int * 
+                 Word8.word ref * Word8.word ref * Word8.word ref * Word8.word ref -> unit ;
   in
       fun getpixel (s, x, y) =
           let
@@ -1268,6 +1295,18 @@ struct
           end
   end
 
+  local val pixels_ = _import "ml_pixels" : ptr * Word8.word Array.array -> unit ;
+  in
+      fun pixels s =
+          let
+              val (w, h) = (surface_width s, surface_height s)
+              val a = Array.array (w * h * 4, 0w0 : Word8.word)
+          in
+              pixels_ (!!s, a);
+              (w, h, a)
+          end
+  end
+
   (* for w in [0, 255] we get w/255 of c, (255 - w)/255 of cc *)
   fun colormixfrac8 (c : color, cc : color, w : Word8.word) =
       let
@@ -1281,10 +1320,10 @@ struct
           val >> = Word32.>>
           infix >>
 
-          val rrr = (r * factor + rr * ofactor) >> 0w8;
-          val ggg = (g * factor + gg * ofactor) >> 0w8;
-          val bbb = (b * factor + bb * ofactor) >> 0w8;
-          val aaa = (a * factor + aa * ofactor) >> 0w8;
+          val rrr = (r * factor + rr * ofactor) >> 0w8
+          val ggg = (g * factor + gg * ofactor) >> 0w8
+          val bbb = (b * factor + bb * ofactor) >> 0w8
+          val aaa = (a * factor + aa * ofactor) >> 0w8
       in
           color32 (rrr, ggg, bbb, aaa)
       end
@@ -1302,7 +1341,8 @@ struct
           drawpixel (s, x, y, newc)
       end
 
-  local val fr = _import "ml_fillrecta" : ptr * int * int * int * int   * Word32.word * Word32.word * Word32.word * Word32.word -> unit ;
+  local val fr = _import "ml_fillrecta" : ptr * int * int * int * int *
+                 Word32.word * Word32.word * Word32.word * Word32.word -> unit ;
   in
     fun fillrect (s1, x, y, w, h, c) = 
         let 
@@ -1313,7 +1353,7 @@ struct
   end
 
   local val fs = _import "SDL_FreeSurface" : ptr -> unit ;
-  in fun freesurface s = fs (!!s)
+  in fun freesurface s = (fs (!!s); s := null)
   end
       
 
@@ -1486,7 +1526,7 @@ struct
             s
         end
 
-    fun makealpharectgrad { w, h, ctop, cbot, bias } =
+    fun makealpharectgrad { w, h, ctop, cbot, bias = _ } =
         let
             val s = makesurface (w, h)
             val rh = real h
@@ -1500,6 +1540,54 @@ struct
              end);
             s
         end
+
+    structure Cursor =
+    struct
+      datatype cursorpixel =
+          X  (* black *)
+        | O  (* white *)
+        | -  (* transparent *)
+        | +  (* inverted / black *)
+
+      fun make { w, hot_x, hot_y, pixels } =
+          let val p = Vector.fromList pixels
+              val h = Vector.length p div w
+          in
+              if Vector.length p <> w * h orelse (w mod 8 <> 0)
+              then raise SDL "pixels have to be length w*h"
+              else
+              let
+                  val d = Array.array ((w div 8) * h, 0w0)
+                  val m = Array.array ((w div 8) * h, 0w0)
+                  fun onepixel (x, y) =
+                    let val sh = (Int.-(7, x mod 8))
+                        val i = Int.+(y * (w div 8), x div 8)
+                        fun mask (b : Word8.word) = 
+                            Array.update(m, i, Word8.orb (Array.sub (m, i),
+                                                          Word8.<< (b, Word.fromInt sh)))
+                        fun data (b : Word8.word) = 
+                            Array.update(d, i, Word8.orb (Array.sub (d, i),
+                                                          Word8.<< (b, Word.fromInt sh)))
+                    in
+                        case Vector.sub (p, Int.+ (y * w, x)) of
+                            op O => (data 0w0; mask 0w1)
+                          | op X => (data 0w1; mask 0w1)
+                          | op - => (data 0w0; mask 0w0)
+                          | op + => (data 0w1; mask 0w0)
+                    end
+              in
+                  Util.for 0 (Int.- (h, 1))
+                  (fn y =>
+                   Util.for 0 (Int.- (w, 1))
+                   (fn x =>
+                    onepixel (x, y)
+                    ));
+                  create_cursor { data = Array.vector d, 
+                                  mask = Array.vector m, 
+                                  w = w, h = h, hot_x = hot_x, hot_y = hot_y }
+              end
+          end
+     end (* Cursor *)
 
   end (* Util *)
 end
