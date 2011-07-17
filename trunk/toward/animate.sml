@@ -1,29 +1,13 @@
-structure BDDTest =
+(* Animation test for Toward *)
+structure AnimateTest =
 struct
-
-  val output = Params.param ""
-      (SOME ("-output", "Set output for PNG series.")) "output"
-
-  val frames = Params.param "0"
-      (SOME ("-frames", "Write this many iterations to PNG series, " ^
-             "then stop.")) "frames"
-
-  val downsample = Params.param "1"
-      (SOME ("-downsample", "Each output frame consists of this " ^
-             "many actual frames, blended together")) "downsample"
-
-  val title = Params.param "You just watch"
-      (SOME ("-title", "Use this title.")) "title"
-
-  val cropx = Params.param "0" (SOME ("-cropx", "x offset for crop")) "cropx"
-  val cropy = Params.param "0" (SOME ("-cropy", "y offset for crop")) "cropy"
-  val cropw = Params.param "0" (SOME ("-cropw", "width of crop")) "cropw"
-  val croph = Params.param "0" (SOME ("-croph", "height of crop")) "croph"
 
   open BDDMath
   open BDDOps
   infix 6 :+: :-: %-% %+% +++
   infix 7 *: *% +*: +*+ #*% @*:
+  infixr 9 `
+  fun f ` x = f x
 
   structure BDD = BDDWorld(
     type fixture_data = unit
@@ -47,11 +31,15 @@ struct
    val overlap = 1
    val dims = 3)
 
-  val WIDTH = 480
-  val HEIGHT = 300
+  val WIDTH = 1024
+  val HEIGHT = 768
   val PIXELS_PER_METER = 50
   val METERS_PER_PIXEL = 1.0 / real PIXELS_PER_METER
   val screen = makescreen (WIDTH, HEIGHT)
+
+  structure M = Maths
+
+  val LETTERFILE = "letter.toward"
 
   (* val () = SDL.show_cursor false *)
 
@@ -171,58 +159,20 @@ struct
   fun printshape (xf, BDDShape.Circle c) = printcircle (xf, c)
     | printshape (xf, BDDShape.Polygon p) = printpolygon (xf, p)
 
-(*
-  val circle = { radius = 0.3,
-                 p = vec2 (1.0, 0.3) }
-
-  val polygon = BDDPolygon.polygon 
-      (map screentovec (rev [(225, 280),
-                             (295, 124),
-                             (185, 36),
-                             (136, 51),
-                             (116, 330)]))
-
-  (* roughly centered around screen origin *)
-*)
-  val small_circle = BDDShape.Circle { radius = 0.3,
-                                       p = vec2 (0.0, 0.0) }
-  
-  (* XXX made this shape with a fixed screen size.
-     this makes it indifferent to the screen size,
-     but maybe should just have coordinate literals? *)
-  local fun mapcoord (xp, yp) =
-      let
-          fun tom p = real p * 0.01
-          val xp = xp - (800 div 2)
-          val yp = yp - (600 div 2)
-      in
-          vec2 (tom xp, tom yp)
-      end
-  in
-  val familiar_shape = BDDShape.Polygon 
-      (BDDPolygon.polygon
-       (map mapcoord (rev [(377, 268),
-                           (386, 321),
-                           (418, 329),
-                           (428, 305)])))
-  end
-
   val gravity = vec2 (0.0, 9.8)
   (* No sleep, for now XXX j/k *)
   val world = World.world (gravity, true) (* ALLOW *)
 
-
-  fun add_drop (s, x, y, a) =
+  fun add_letter (x, y, letter) =
       let
-          val drop = World.create_body 
+          val origin = vec2 (x, y)
+          val body = World.create_body
               (world,
-               { typ = (if s then Body.Static else Body.Dynamic),
-                 (* Start at origin. *)
-                 (* funny if they all start at 0, 1.12 *)
-                 position = (* vec2 (0.0, 1.12) *) vec2(x, y),
+               { typ = Body.Dynamic,
+                 position = origin,
                  angle = 0.0,
-                 linear_velocity = vec2 (0.1, 0.2),
-                 angular_velocity = a,
+                 linear_velocity = vec2 (0.0, 0.0),
+                 angular_velocity = 0.0,
                  linear_damping = 0.0,
                  angular_damping = 0.0,
                  allow_sleep = true,
@@ -230,74 +180,32 @@ struct
                  fixed_rotation = false,
                  bullet = false,
                  active = true,
-                 data = "drop",
+                 data = "letter",
                  inertia_scale = 1.0 })
 
-          (* put a fixture on the drop *)
-          val drop_fixture = 
-              Body.create_fixture (drop, 
-                                   { shape = 
-                                     (if (Real.trunc x * 13 +
-                                          Real.trunc y * 11) mod 2 = 0
-                                      then familiar_shape
-                                      else small_circle),
-                                     data = (),
-                                     friction = 0.2,
-                                     restitution = 0.15,
-                                     density = 1.0,
-                                     is_sensor = false,
-                                     filter = Fixture.default_filter })
+          (* put each shape on it. *)
+          val shapes = Letter.shapes (origin, letter)
+          val () = app
+              (fn sh =>
+               ignore `
+               Body.create_fixture (body, 
+                                    { shape = sh,
+                                      data = (),
+                                      friction = 0.2,
+                                      restitution = 0.15,
+                                      density = 1.0,
+                                      is_sensor = false,
+                                      filter = Fixture.default_filter })) shapes
       in
           ()
       end
 
-  val () = 
-      Util.for ~5 1
-      (fn y =>
-       Util.for ~5 5
-       (fn x =>
-        let in
-            add_drop (y = 1, real x * 1.25, real y * 0.75,
-                      Real.realMod (real x + real y) * 6.28 - 3.14)
-        end))
+  val () = add_letter (0.0, ~3.0, Letter.fromstring (StringUtil.readfile LETTERFILE))
 
-(*
-          val drop = World.create_body 
-              (world,
-               { typ = Body.Dynamic,
-                 position = vec2 (0.0, 1.12),
-                 angle = 0.0,
-                 linear_velocity = vec2 (0.1, 0.2),
-                 angular_velocity = 0.0,
-                 linear_damping = 0.0,
-                 angular_damping = 0.0,
-                 allow_sleep = false,
-                 awake = true,
-                 fixed_rotation = false,
-                 bullet = false,
-                 active = true,
-                 data = "drop",
-                 inertia_scale = 1.0 })
-
-          (* put a fixture on the drop *)
-          val drop_fixture = 
-              Body.create_fixture (drop, 
-                                   { shape = familiar_shape,
-                                     (* small_circle, *)
-                                     data = (),
-                                     friction = 0.2,
-                                     restitution = 0.75,
-                                     density = 1.0,
-                                     is_sensor = false,
-                                     filter = Fixture.default_filter })
-*)
-
-  (* PS if dynamic and linear velocity of 0,~2, then they have a non-touching
-     collision, which might be a good test case. *)
   val ground = World.create_body
       (world,
        { typ = Body.Static,
-         position = vec2 (0.0, 1.75),
+         position = vec2 (0.0, 4.75),
          angle = 0.0,
          linear_velocity = vec2 (0.0, 0.0),
          angular_velocity = 0.0, 
@@ -457,135 +365,15 @@ struct
              | _ => ()
 
   fun drawinstructions () =
-      let
-          val (x, y) =
-              if Params.asint 0 frames > 0
-              then (Params.asint 0 cropx,
-                    Params.asint 0 cropy)
-              else (1, 1)
-      in
-          Font.draw 
-          (screen, x, y, 
-           if !title = ""
-           then "^3BoxDiaDia dynamics test^<: You just watch"
-           else !title);
-          (* only if not saving pngs *)
-          if Params.asint 0 frames > 0
-          then ()
-          else Font.draw (screen, x, Font.height + y,
-                          "^2" ^
-                          Int.toString (!mousex) ^ " " ^ 
-                          Int.toString (!mousey) ^ "^< " ^
-                          Int.toString (!iters))
+      let val (x, y) = (1, 1)
+      in Font.draw (screen, x, y, "^3TOWARD^< animate")
       end
-
-  fun crop (width, height, a) =
-      let
-          val (cx, cy, cw, ch) = (Params.asint 0 cropx,
-                                  Params.asint 0 cropy,
-                                  Params.asint 0 cropw,
-                                  Params.asint 0 croph)
-      in
-          if cw = 0 orelse ch = 0
-          then (width, height, a)
-          else
-           let
-               val cropped = Array.array (cw * ch * 4, 0w0 : Word8.word)
-           in
-               Util.for 0 (ch - 1)
-               (fn y =>
-                Util.for 0 (cw - 1)
-                (fn x =>
-                 Util.for 0 3
-                 (fn i =>
-                  let val ox = x + cx
-                      val oy = y + cy
-                  in
-                      Array.update(cropped, 
-                                   (y * cw + x) * 4 + i,
-                                   Array.sub(a, (oy * width + ox) * 4 + i))
-                  end)));
-               (cw, ch, cropped)
-           end
-      end
-
-  fun blendframes nil = raise Animate "Can't blend 0 frames"
-    | blendframes (l as ((w, h, _) :: _)) =
-      let
-          val frames = map #3 l
-          val aa = Array.array (w * h * 4, 0w0)
-          val num = length l
-
-          (* Get the color component, merged, from all the frames. *)
-          fun get (x, y, i) =
-              let val total = 
-                  foldr (fn (a, acc) => acc +
-                         real (Word8.toInt (Array.sub (a, (w * y + x) * 4 + i)))) 0.0 frames
-                  val avg = total / real num
-              in
-                  Word8.fromInt (Real.round avg)
-              end
-
-      in
-          Util.for 0 (h - 1)
-          (fn y =>
-           Util.for 0 (w - 1)
-           (fn x =>
-            let val r = get (x, y, 0)
-                val g = get (x, y, 1)
-                val b = get (x, y, 2)
-                val a = 0w255
-            in
-                Array.update(aa, (w * y + x) * 4 + 0, r);
-                Array.update(aa, (w * y + x) * 4 + 1, g);
-                Array.update(aa, (w * y + x) * 4 + 2, b);
-                Array.update(aa, (w * y + x) * 4 + 3, a)
-            end
-            ));
-          (w, h, aa)
-      end
-
-  val framenum = ref 0
-  val thisframe = ref (nil : (int * int * Word8.word Array.array) list)
-  fun flush () =
-      case !thisframe of
-          nil => () 
-        | _ => 
-        let
-            val f = !output ^ "-" ^ 
-                StringUtil.padex #"0" ~4 (Int.toString (!framenum)) ^
-                ".png"
-
-            val (w, h, a) = blendframes (!thisframe)
-        in
-            if PNGsave.save (f, w, h, a)
-            then print ("Wrote " ^ f ^ "\n")
-            else raise Animate ("Couldn't write " ^ f);
-
-            framenum := !framenum + 1;
-            thisframe := nil
-        end
-
-    fun saveframe () =
-      let val (w, h, a) = SDL.pixels screen
-          val (w, h, a) = crop (w, h, a)
-      in 
-          thisframe := (w, h, a) :: !thisframe;
-          if length (!thisframe) >= Params.asint 1 downsample
-          then flush ()
-          else ()
-      end
-      
 
   val total_step = ref (0 : IntInf.int)
   val total_draw = ref (0 : IntInf.int)
   fun drawtiming () =
       let
-          val (x, y) =
-              if Params.asint 0 frames > 0
-              then (Params.asint 0 cropx,
-                    Params.asint 0 cropy)
-              else (1, 1)
+          val (x, y) = (1, 1)
           val y = y + Font.height * 2
               
           val tot = Real.fromLargeInt (!total_step + !total_draw)
@@ -598,38 +386,14 @@ struct
               else "?"
       in
           (* only if not saving pngs *)
-          if Params.asint 0 frames > 0
-          then ()
-          else Font.draw (screen, x, y,
-                          ptos pcts ^ "% step " ^
-                          ptos pctd ^ "% draw " ^
-                          "^4FPS TODO")
+          Font.draw (screen, x, y,
+                     ptos pcts ^ "% step " ^
+                     ptos pctd ^ "% draw " ^
+                     "^4FPS TODO")
       end
 
   fun loop () =
       let 
-          (* One of these tails is called, depending on whether we're
-             watching the animation or saving frames. *)
-          fun interactive () =
-              let in
-                  key ();
-                  delay 0;
-                  iters := !iters + 1;
-                  let val start_step = Time.now ()
-                  in
-                      World.step (world, 0.005, 1000, 1000);
-                      total_step := !total_step + 
-                        Time.toMicroseconds (Time.-(Time.now (), start_step))
-                  end;
-                  loop ()
-              end
-
-          fun auto () = 
-              let in
-                  iters := !iters + 1;
-                  World.step (world, 0.0005, 10, 10);
-                  loop ()
-              end
           val start_draw = Time.now ()
       in
           
@@ -643,29 +407,21 @@ struct
 
           total_draw := !total_draw + Time.toMicroseconds (Time.-(Time.now (), start_draw));
 
-          case (!output, Params.asint 0 frames) of
-              (_, 0) => interactive ()
-            | ("", _) => interactive ()
-            | (file, n) =>
-              if !iters < n
-              then (saveframe(); auto ())
-              else (flush(); print "Done.\n")
+          key ();
+          delay 0;
+          iters := !iters + 1;
+          let val start_step = Time.now ()
+          in
+              World.step (world, 0.005, 1000, 1000);
+              total_step := !total_step + 
+              Time.toMicroseconds (Time.-(Time.now (), start_step))
+          end;
+          loop ()
       end
 
 
   val () = print "*** Startup ***\n"
   val () = printworld world
-
-(*
-  fun loop () =
-      for 0 (* 14 *) 14
-      (fn i =>
-       let in
-           print ("\n=== Step " ^ Int.toString i ^ " ===\n");
-           World.step (world, 0.01, 10, 10);
-           printworld world
-       end)
-*)
 
   fun eprint s = TextIO.output (TextIO.stdErr, s)
 
@@ -681,6 +437,7 @@ struct
              | BDDContactSolver.BDDContactSolver s => eprint s
              | BDDMath.BDDMath s => eprint s
              | Animate s => eprint s
+             | Letter.Letter s => eprint s
              | _ => eprint "unknown");
           eprint "\nhistory:\n";
           app (fn l => eprint ("  " ^ l ^ "\n")) (Port.exnhistory e);

@@ -78,5 +78,17 @@ struct
     in
         { polys = GA.fromlist ps }
     end
+
+  fun shapes (origin : vec2, { polys } : letter) : BDDShape.shape list =
+    let
+        val l = GA.tolist polys
+        fun polytoshape p =
+            let val p = GA.tolist p
+            in BDDShape.Polygon (BDDPolygon.polygon (map (fn v => v :+: origin) p))
+            end
+    in
+        map polytoshape l
+    end
+
 end
 

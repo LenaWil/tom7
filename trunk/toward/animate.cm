@@ -27,6 +27,9 @@ group is
   ../sml-lib/util/fsutil-sig.sml
   ../sml-lib/util/fsutil.sml
 
+  ../sml-lib/util/growarray-sig.sml
+  ../sml-lib/util/growarray.sml
+
   prelude.sml
 
   ../sml-lib/bdd/bdd.cm
@@ -40,6 +43,9 @@ group is
   ../sdlml/pngsave-sig.sml
   ../sdlml/pngsave.sml
 
-  images.sml
+  maths.sml
+  serialize.sml
+  letter.sml
 
-  bddanimate.sml
+  images.sml
+  animate.sml
