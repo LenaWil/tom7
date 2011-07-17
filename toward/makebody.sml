@@ -59,20 +59,41 @@ struct
   val METERS_PER_PIXEL = 1.0 / real PIXELS_PER_METER
   val screen = makescreen (WIDTH, HEIGHT)
 
+  val scrollx = ref (WIDTH div 2)
+  val scrolly = ref (HEIGHT div 2)
+
   fun eprint s = TextIO.output (TextIO.stdErr, s)
   val rtos = Real.fmt (StringCvt.FIX (SOME 2))
-  (* fun vtos v = rtos (vec2x v) ^ "," ^ rtos (vec2y v) *)
+  fun vtos v = rtos (vec2x v) ^ "," ^ rtos (vec2y v)
 
-  (* val () = SDL.show_cursor false *)
+
+  val () = SDL.set_cursor Images.pointercursor
 
   fun tometers d = real d * METERS_PER_PIXEL
   fun toworld (xp, yp) =
       let
-          val xp = xp - (WIDTH div 2)
-          val yp = yp - (HEIGHT div 2)
+          val xp = xp - !scrollx
+          val yp = yp - !scrolly
       in
           (tometers xp, tometers yp)
       end
+
+  (* Put the origin of the world at WIDTH / 2, HEIGHT / 2.
+     make the viewport show 8 meters by 6. *)
+  fun topixels d = d * real PIXELS_PER_METER
+  fun toscreenx xm = Real.round (topixels xm) + !scrollx
+  fun toscreeny ym = Real.round (topixels ym) + !scrolly
+  fun toscreen (xm, ym) = (toscreenx xm, toscreeny ym)
+
+  fun vectoscreen v = toscreen (vec2xy v)
+  fun screentovec (x, y) = vec2 (toworld (x, y))
+  fun screendistance ((x, y), (xx, yy)) =
+      Math.sqrt (real ((x - xx) * (x - xx) +
+                       (y - yy) * (y - yy)))
+
+  fun screendistance_squared ((x, y), (xx, yy)) =
+      (x - xx) * (x - xx) +
+      (y - yy) * (y - yy)
 
   val DRAW_NORMALS = false
   val DRAW_DISTANCES = true
@@ -129,29 +150,6 @@ struct
                      Word8.fromInt b,
                      0w255)
       end
-
-     
-  (* Put the origin of the world at WIDTH / 2, HEIGHT / 2.
-     make the viewport show 8 meters by 6. *)
-  fun topixels d = d * real PIXELS_PER_METER
-  fun toscreen (xm, ym) =
-      let
-          val xp = topixels xm
-          val yp = topixels ym
-      in
-          (Real.round xp + (WIDTH div 2),
-           Real.round yp + (HEIGHT div 2))
-      end
-
-  fun vectoscreen v = toscreen (vec2xy v)
-  fun screentovec (x, y) = vec2 (toworld (x, y))
-  fun screendistance ((x, y), (xx, yy)) =
-      Math.sqrt (real ((x - xx) * (x - xx) +
-                       (y - yy) * (y - yy)))
-
-  fun screendistance_squared ((x, y), (xx, yy)) =
-      (x - xx) * (x - xx) +
-      (y - yy) * (y - yy)
 
   val mousex = ref 0
   val mousey = ref 0
@@ -229,7 +227,7 @@ struct
                   M.vertex poly i,
                   M.next_vertex poly i))
 
-  fun drawletter (letter as { polys, ... } : letter) =
+  fun drawletter ({ polys, ... } : letter) =
       let
           val num = GA.length polys
       in
@@ -369,11 +367,61 @@ struct
             ))
       end
 
+  (* Draws 1m grid. 
+     XXX This only depends on the zoom (XXXX which can't change!) so
+     we should probably precompute it on a surface and just blit it. *)
+  val GRIDCOLOR = hexcolor 0x222222
+  val AXESCOLOR = hexcolor 0x444444
+  val ORIGINCOLOR = hexcolor 0x772222
+  fun drawgrid () =
+      let
+          (* Allow the window to be scrollable / zoomable. *)
+          val (LEFT_EDGE, TOP_EDGE) = toworld (0, 0)
+          val (RIGHT_EDGE, BOTTOM_EDGE) = toworld (WIDTH - 1, HEIGHT - 1)
+
+          (* Determine the meter marks between which we draw. *)
+
+          val (ox, oy) = toscreen (0.0, 0.0)
+      in
+(*
+          eprint ("Screen is from (" ^ rtos LEFT_EDGE ^ "," ^ rtos TOP_EDGE ^
+                  ") to (" ^ rtos RIGHT_EDGE ^ "," ^ rtos BOTTOM_EDGE ^ ")\n");
+*)
+
+          (* Grid lines every meter. *)
+          Util.for (Real.floor TOP_EDGE) (Real.ceil BOTTOM_EDGE)
+          (fn ym =>
+           let val yp = toscreeny (real ym)
+           in SDL.drawline (screen, 0, yp, WIDTH - 1, yp, GRIDCOLOR)
+           end);
+
+          Util.for (Real.floor LEFT_EDGE) (Real.ceil RIGHT_EDGE)
+          (fn xm =>
+           let val xp = toscreenx (real xm)
+           in SDL.drawline (screen, xp, 0, xp, HEIGHT - 1, GRIDCOLOR)
+           end);
+
+          (* Draw axes. *)
+          SDL.drawline (screen, 0, oy, WIDTH - 1, oy, AXESCOLOR);
+          SDL.drawline (screen, ox, 0, ox, HEIGHT - 1, AXESCOLOR);
+
+          (* Draw cross on origin. *)
+          SDL.drawline (screen, ox - 3, oy, ox + 3, oy, ORIGINCOLOR);
+          SDL.drawline (screen, ox, oy - 3, ox, oy + 3, ORIGINCOLOR)
+      end
+
   fun draw () =
       let in
+          (* XXX don't need to continuously be drawing. *)          
+          clearsurface (screen, color (0w255, 0w0, 0w0, 0w0));
+
+          drawgrid ();
+
           drawletter (!letter);
           drawinterior ();
-          drawmenu ()
+          drawmenu ();
+
+          flip screen
       end
 
   (* Prevent the polygon from becoming convex or non-simple.
@@ -410,7 +458,23 @@ struct
           else ()
       end
 
+  val dragging = ref false
+
+  fun pan (dx, dy) =
+      let in
+          scrollx := !scrollx + dx;
+          scrolly := !scrolly + dy
+      end
+
   fun mousemotion (x, y) =
+      if !dragging
+      then
+      let in
+          pan (x - !mousex, y - !mousey);
+          mousex := x;
+          mousey := y
+      end
+      else
       let in 
           mousex := x;
           mousey := y;
@@ -476,8 +540,6 @@ struct
           else false
       end
 
-
-
   (* Left click is where a lot of action is.
 
      If we're close to a point, then we select that point and any that
@@ -488,43 +550,34 @@ struct
 
      TODO: dragging to draw a selction (should require shift) *)
   fun leftmouse (x, y) =
-      (* Currently, select the closest point. *)
-      let 
-          fun nearenough (i, j) =
-              let val (xx, yy) = 
-                  vectoscreen
-                  (GA.sub (GA.sub (#polys (!letter)) i) j)
-              in
-                  (x - xx) * (x - xx) +
-                  (y - yy) * (y - yy) < 8 * 8
-              end
+      if !dragging
+      then ()
+      else
+        (* Currently, select the closest point. *)
+        let 
 
-          val nearby = pointswithinscreendistance 8 (x, y)
-          val () = eprint ("There are " ^ Int.toString (length nearby) ^ " nearby.\n")
-              (*
-          val nearby = List.filter nearenough nearby
-          val () = eprint ("filt: " ^ Int.toString (length nearby) ^ " nearby.\n")
-          *)
+            val nearby = pointswithinscreendistance 8 (x, y)
+            val () = eprint ("There are " ^ Int.toString (length nearby) ^ " nearby.\n")
 
-          val mv = screentovec (x, y)
-      in
-          (* XXX won't need to save if dragging to select *)
-          savestate ();
-          mousedown := true;
-          (* Always set, maybe clearing the selection if there
-             were no nearby points. *)
-          selected := nearby;
-          (* If there were no points selected, then maybe another
-             action. *)
-          if List.null nearby andalso not (maybeinsert (x, y))
-          then 
-              (* If we didn't create a new point, then we make
-                 a new polygon. *)
-              GA.append (#polys (!letter)) (trivialpolygon mv)
-          else ();
-          (* Simulate mouse motion. *)
-          mousemotion (x, y)
-      end
+            val mv = screentovec (x, y)
+        in
+            (* XXX won't need to save if dragging to select *)
+            savestate ();
+            mousedown := true;
+            (* Always set, maybe clearing the selection if there
+               were no nearby points. *)
+            selected := nearby;
+            (* If there were no points selected, then maybe another
+               action. *)
+            if List.null nearby andalso not (maybeinsert (x, y))
+            then 
+                (* If we didn't create a new point, then we make
+                   a new polygon. *)
+                GA.append (#polys (!letter)) (trivialpolygon mv)
+            else ();
+            (* Simulate mouse motion. *)
+            mousemotion (x, y)
+        end
 
   fun savetodisk () =
       (StringUtil.writefile LETTERFILE (Letter.tostring (!letter));
@@ -532,6 +585,9 @@ struct
 
   (* XXX require ctrl for undo/redo, etc. *)
   fun keydown SDLK_ESCAPE = raise Done
+    | keydown SDLK_SPACE = 
+      (dragging := true;
+       SDL.set_cursor Images.handcursor)
     | keydown SDLK_z =
       (* XXX shouldn't allow undo when dragging? *)
       (case UndoState.undo undostate of
@@ -542,7 +598,13 @@ struct
            NONE => ()
          | SOME s => letter := copyletter s)
     | keydown SDLK_s = savetodisk()
+
     | keydown _ = ()
+
+  fun keyup SDLK_SPACE = 
+      (dragging := false;
+       SDL.set_cursor Images.pointercursor)
+    | keyup _ = ()
 
   fun events () =
       case pollevent () of
@@ -551,6 +613,7 @@ struct
            case evt of
                E_Quit => raise Done
              | E_KeyDown { sym } => keydown sym
+             | E_KeyUp { sym } => keyup sym
              | E_MouseMotion { state : mousestate, x : int, y : int, ... } =>
                    mousemotion (x, y)
              | E_MouseDown { button = 1, x, y, ... } => leftmouse (x, y)
@@ -562,12 +625,7 @@ struct
 
   fun loop () =
       let in
-          (* XXX don't need to continuously be drawing. *)          
-          clearsurface (screen, color (0w255, 0w0, 0w0, 0w0));
-
           draw ();
-
-          flip screen;
 
           events ();
           delay 0;

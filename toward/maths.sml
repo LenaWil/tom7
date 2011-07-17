@@ -66,6 +66,7 @@ struct
              Determine that winding order by choosing the
              one that makes an arbitrary angle less than
              180. *)
+          (* XXX I guess I decided not to do it this way? *)
           val (forward, back) =
               if angle (previous_vertex p 0,
                         vertex p 0,
@@ -91,7 +92,7 @@ struct
               NONE => false
             | SOME sum => true 
       (* PERF actually, don't need
-	 the sum when using this method. *)
+         the sum when using this method. *)
       end
 
   (* returns the point on the line segment between v1 and v2 that is
