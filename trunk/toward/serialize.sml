@@ -14,9 +14,9 @@ struct
     fun QQ #"?" = true
       | QQ _ = false
 
-    fun uo f NONE = "-"
+    fun uo _ NONE = "-"
       | uo f (SOME x) = "+" ^ f x
-    fun uno f "-" = NONE
+    fun uno _ "-" = NONE
       | uno f s =
         if CharVector.sub(s, 0) = #"+"
         then SOME (f (String.substring(s, 1, size s - 1)))
