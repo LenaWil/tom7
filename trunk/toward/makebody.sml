@@ -59,8 +59,8 @@ struct
   val METERS_PER_PIXEL = 1.0 / real PIXELS_PER_METER
   val screen = makescreen (WIDTH, HEIGHT)
 
-  val scrollx = ref (WIDTH div 2)
-  val scrolly = ref (HEIGHT div 2)
+  val scrollx = ref 64  (* (WIDTH div 2) *)
+  val scrolly = ref (HEIGHT - 128) (* (HEIGHT div 2) *)
 
   fun eprint s = TextIO.output (TextIO.stdErr, s)
   val rtos = Real.fmt (StringCvt.FIX (SOME 2))
@@ -299,6 +299,29 @@ struct
           !vs
       end
 
+  fun pointswithinrectangle (a, b) =
+      let
+          val vs = ref (nil : (int * int) list)
+
+          (* Is there a better trick for this? *)
+          val (ax, ay) = vec2xy a
+          val (bx, by) = vec2xy b
+          fun inside v =
+           let val (vx, vy) = vec2xy v
+           in
+               vx >= ax andalso vy >= ay andalso
+               vx <= bx andalso vy <= by
+           end
+      in
+          GA.appi (fn (i, poly)  =>
+                   GA.appi (fn (j, vertex) =>
+                            if inside vertex
+                            then vs := (i, j) :: !vs
+                            else ()) poly
+                   ) (#polys (!letter));
+          !vs
+      end
+
 
   (* Return the indices of the vertices closest to the point.
      Ignores points on polygons whose indices are in the disallowed_polys
@@ -336,7 +359,8 @@ struct
   (* XXX *)
   fun drawmenu () =
       let
-          val pfx = "^3Toward body editor^<: "
+          val pfx = ("^3Toward body editor^<: " ^ Int.toString (!scrollx) ^
+                     ", " ^ Int.toString (!scrolly))
           val items = [("n", "new")]
 
       in
@@ -368,7 +392,7 @@ struct
       end
 
   (* Draws 1m grid. 
-     XXX This only depends on the zoom (XXXX which can't change!) so
+     PERF: This only depends on the zoom and pan so
      we should probably precompute it on a surface and just blit it. *)
   val GRIDCOLOR = hexcolor 0x222222
   val AXESCOLOR = hexcolor 0x444444
@@ -383,10 +407,6 @@ struct
 
           val (ox, oy) = toscreen (0.0, 0.0)
       in
-(*
-          eprint ("Screen is from (" ^ rtos LEFT_EDGE ^ "," ^ rtos TOP_EDGE ^
-                  ") to (" ^ rtos RIGHT_EDGE ^ "," ^ rtos BOTTOM_EDGE ^ ")\n");
-*)
 
           (* Grid lines every meter. *)
           Util.for (Real.floor TOP_EDGE) (Real.ceil BOTTOM_EDGE)
@@ -459,8 +479,9 @@ struct
 
   (* Prevent the polygon from becoming convex or non-simple.
      TODO: It would be better if we searched to find the closest legal
-     spot. It's kind of a bad feeling to have the point just stick. *)
-  fun okay_to_move idxs dest =
+     spot. It's kind of a bad feeling to have the point just stick as you 
+     drag. *)
+  fun okay_to_move_to idxs dest =
       List.all (fn (pi, vi) =>
                 let 
                     val p = GA.copy (GA.sub (#polys (!letter)) pi)
@@ -469,7 +490,27 @@ struct
                     M.issimple p
                 end) idxs
 
-  (* XXX should put the polygon in correct winding order. *)
+  (* Same, but with the same delta rather than absolute destination. *)
+  fun okay_to_move_by idxs delta =
+      let
+          (* Have to move the vertices at the same time to test if the
+             polygon is still simple. *)
+          val together = ListUtil.stratify Int.compare idxs
+      in
+          List.all (fn (pi, vis) =>
+                    let 
+                        val p = GA.copy (GA.sub (#polys (!letter)) pi)
+                    in
+                        app (fn vi => 
+                             let val old = GA.sub p vi
+                             in GA.update p vi (old :+: delta)
+                             end) vis;
+                        M.issimple p
+                    end) together
+      end
+
+  (* XXX should put the polygon in correct winding order.
+     (It currently seems impossible to turn them inside-out?) *)
   fun setvertices idxs vnew =
       let 
           (* when snapping, only do it to vertices on OTHER polygons. *)
@@ -482,12 +523,35 @@ struct
                  | _ => vnew
 
       in
-          if okay_to_move idxs dest
+          if okay_to_move_to idxs dest
           then
               (* Don't save undo every time, because then we have the whole history
                  of dragging, which is silly. *)
               app (fn (pi, vi) => 
                    GA.update (GA.sub (#polys (!letter)) pi) vi dest) idxs
+          else ()
+      end
+
+
+  (* XXX HERE.
+     This is nontrivial because moving the points might make polygons
+     non-simple. 
+     
+*)
+  fun nudge (dx, dy) =
+      let val v = vec2 (tometers dx, tometers dy)
+      in
+          if okay_to_move_by (!selected) v
+          then
+              let in
+                  (* maybe should only save at the end of a series of nudges? *)
+                  savestate ();
+                  app (fn (pi, vi) => 
+                       let val old = GA.sub (GA.sub (#polys (!letter)) pi) vi
+                       in
+                           GA.update (GA.sub (#polys (!letter)) pi) vi (old :+: v)
+                       end) (!selected)
+              end
           else ()
       end
 
@@ -518,7 +582,7 @@ struct
           if !mousedown
           then setvertices (!selected) (screentovec (x, y))
           else ()
-      end
+      end    
 
   (* From a click at screen coordinates (x, y), maybe insert a
      point if it is close enough to a line segment on an existing
@@ -631,7 +695,8 @@ struct
               SOME s =>
                   let val (a, b) = orienttobox (s, screentovec (x, y))
                   in
-                      (* XXX HERE *)
+                      (* Select every point within the box. *)
+                      selected := pointswithinrectangle (a, b);
                       selection := NONE
                   end
             | _ => ()
@@ -657,7 +722,7 @@ struct
       (dragging := true;
        updatecursor ())
     | keydown SDLK_z =
-      (* XXX shouldn't allow undo when dragging? *)
+      (* XXX shouldn't allow undo when dragging / selecting? *)
       (case UndoState.undo undostate of
            NONE => ()
          | SOME s => letter := copyletter s)
@@ -666,6 +731,11 @@ struct
            NONE => ()
          | SOME s => letter := copyletter s)
     | keydown SDLK_s = savetodisk()
+
+    | keydown SDLK_UP = nudge (0, if !selecting then ~10 else ~1)
+    | keydown SDLK_DOWN = nudge (0, if !selecting then 10 else 1)
+    | keydown SDLK_LEFT = nudge (if !selecting then ~10 else ~1, 0)
+    | keydown SDLK_RIGHT = nudge (if !selecting then 10 else 1, 0)
 
     | keydown _ = ()
 
