@@ -54,12 +54,12 @@ int ml_init() {
 #else
 
   if (SDL_Init(SDL_INIT_VIDEO | 
-	       SDL_INIT_TIMER | 
-	       SDL_INIT_JOYSTICK |
-	       SDL_INIT_AUDIO |
-	       /* for debugging */
-	       SDL_INIT_NOPARACHUTE |
-	       SDL_INIT_AUDIO) < 0) {
+               SDL_INIT_TIMER | 
+               SDL_INIT_JOYSTICK |
+               SDL_INIT_AUDIO |
+               /* for debugging */
+               SDL_INIT_NOPARACHUTE |
+               SDL_INIT_AUDIO) < 0) {
 
     printf("Unable to initialize SDL. (%s)\n", SDL_GetError());
     
@@ -124,17 +124,17 @@ SDL_Surface * ml_makesurface(int w, int h, int alpha) {
   SDL_Surface * ss = 0;
 #if 0
   SDL_CreateRGBSurface(SDL_HWSURFACE |
-		       (alpha?SDL_SRCALPHA:0),
-		       w, h, 32, 
-		       rmask, gmask, bmask,
-		       amask);
+                       (alpha?SDL_SRCALPHA:0),
+                       w, h, 32, 
+                       rmask, gmask, bmask,
+                       amask);
 #endif
 
   if (!ss) ss = SDL_CreateRGBSurface(SDL_SWSURFACE |
-				     (alpha?SDL_SRCALPHA:0),
-				     w, h, 32,
-				     rmask, gmask, bmask,
-				     amask);
+                                     (alpha?SDL_SRCALPHA:0),
+                                     w, h, 32,
+                                     rmask, gmask, bmask,
+                                     amask);
 
   if (ss && !alpha) SDL_SetAlpha(ss, 0, 255);
 
@@ -167,7 +167,7 @@ SDL_Surface * ml_makescreen(int w, int h) {
      -- Adam
   */
 
-  /* SDL_ANYFORMAT	
+  /* SDL_ANYFORMAT      
      "Normally, if a video surface of the requested bits-per-pixel (bpp) 
      is not available, SDL will emulate one with a shadow surface. 
      Passing SDL_ANYFORMAT prevents this and causes SDL to use the 
@@ -180,8 +180,8 @@ SDL_Surface * ml_makescreen(int w, int h) {
 
   /* SDL_DOUBLEBUF only valid with SDL_HWSURFACE! */
   SDL_Surface * ret = SDL_SetVideoMode(w, h, 32,
-				       SDL_SWSURFACE |
-				       SDL_RESIZABLE);
+                                       SDL_SWSURFACE |
+                                       SDL_RESIZABLE);
   return ret;
 }
 
@@ -198,7 +198,7 @@ SDL_Surface * ml_makefullscreen(int w, int h) {
      -- Adam
   */
 
-  /* SDL_ANYFORMAT	
+  /* SDL_ANYFORMAT      
      "Normally, if a video surface of the requested bits-per-pixel (bpp) 
      is not available, SDL will emulate one with a shadow surface. 
      Passing SDL_ANYFORMAT prevents this and causes SDL to use the 
@@ -211,9 +211,9 @@ SDL_Surface * ml_makefullscreen(int w, int h) {
 
   /* SDL_DOUBLEBUF only valid with SDL_HWSURFACE! */
   SDL_Surface * ret = SDL_SetVideoMode(w, h, 32,
-				       SDL_FULLSCREEN |
-				       SDL_DOUBLEBUF |
-				       SDL_HWSURFACE);
+                                       SDL_FULLSCREEN |
+                                       SDL_DOUBLEBUF |
+                                       SDL_HWSURFACE);
   return ret;
 }
 
@@ -225,7 +225,7 @@ void ml_blitall(SDL_Surface * src, SDL_Surface * dst, int x, int y) {
 }
 
 void ml_blit(SDL_Surface * src, int srcx, int srcy, int srcw, int srch, 
-	     SDL_Surface * dst, int dstx, int dsty) {
+             SDL_Surface * dst, int dstx, int dsty) {
   SDL_Rect sr;
   SDL_Rect dr;
   sr.x = srcx;
@@ -305,7 +305,7 @@ int ml_event_mbutton_button(SDL_MouseButtonEvent * e) { return e->button; }
 
 /* XXX should lock before calling (for certain modes)... */
 void ml_drawpixel(SDL_Surface *surf, int x, int y,
-		  int R, int G, int B) {
+                  int R, int G, int B) {
   // printf("RGB %d %d %d\n", R, G, B);
   Uint32 color = SDL_MapRGB(surf->format, R, G, B);
   switch (surf->format->BytesPerPixel) {
@@ -328,14 +328,14 @@ void ml_drawpixel(SDL_Surface *surf, int x, int y,
         Uint8 *bufp;
         bufp = (Uint8 *)surf->pixels + y*surf->pitch + x * 3;
         if(SDL_BYTEORDER == SDL_LIL_ENDIAN) {
-	    bufp[0] = color;
-	    bufp[1] = color >> 8;
-	    bufp[2] = color >> 16;
-	  } else {
-	    bufp[2] = color;
-	    bufp[1] = color >> 8;
-	    bufp[0] = color >> 16;
-	  }
+            bufp[0] = color;
+            bufp[1] = color >> 8;
+            bufp[2] = color >> 16;
+          } else {
+            bufp[2] = color;
+            bufp[1] = color >> 8;
+            bufp[0] = color >> 16;
+          }
       }
       break;
     case 4: // Probably 32-bpp
@@ -349,13 +349,13 @@ void ml_drawpixel(SDL_Surface *surf, int x, int y,
 }
 
 void ml_getpixel(SDL_Surface *surf, int x, int y,
-		 unsigned char * R, unsigned char * G, unsigned char * B) {
+                 unsigned char * R, unsigned char * G, unsigned char * B) {
   switch (surf->format->BytesPerPixel) {
     case 4: // Probably 32-bpp
       {
         Uint32 *bufp;
         bufp = (Uint32 *)surf->pixels + y*surf->pitch/4 + x;
-	SDL_GetRGB(*bufp, surf->format, R, G, B);
+        SDL_GetRGB(*bufp, surf->format, R, G, B);
       }
       break;
   default:
@@ -365,13 +365,39 @@ void ml_getpixel(SDL_Surface *surf, int x, int y,
 }
 
 void ml_getpixela(SDL_Surface *surf, int x, int y,
-		  unsigned char * R, unsigned char * G, unsigned char * B, unsigned char * A) {
+                  unsigned char * R, unsigned char * G, unsigned char * B, unsigned char * A) {
   switch (surf->format->BytesPerPixel) {
     case 4: // Probably 32-bpp
       {
         Uint32 *bufp;
         bufp = (Uint32 *)surf->pixels + y*surf->pitch/4 + x;
-	SDL_GetRGBA(*bufp, surf->format, R, G, B, A);
+        SDL_GetRGBA(*bufp, surf->format, R, G, B, A);
+      }
+      break;
+  default:
+    printf("want 32bpp\n");
+    abort();
+  }
+}
+
+void ml_pixels(SDL_Surface *surf, unsigned char * RGBA) {
+  int y, x, offset = 0;
+  switch (surf->format->BytesPerPixel) {
+    case 4: // Probably 32-bpp
+      for (y = 0; y < surf->h; y++) {
+        for (x = 0; x < surf->w; x++) {
+          /* PERF this can probably be a lot more efficient by
+             unrolling SDL_GetRGBA; we unpack from the word and
+             then effectively repack. */
+          Uint32 *bufp;
+          bufp = (Uint32 *)surf->pixels + y*surf->pitch/4 + x;
+          SDL_GetRGBA(*bufp, surf->format, 
+                      &RGBA[offset], 
+                      &RGBA[offset + 1], 
+                      &RGBA[offset + 2],
+                      &RGBA[offset + 3]);
+          offset += 4;
+        }
       }
       break;
   default:
@@ -421,10 +447,10 @@ SDL_Surface * ml_alphadim(SDL_Surface * src) {
       
       /* divide alpha channel by 2 */
       /* XXX this seems to be wrong on powerpc (dims some other channel
-	 instead). but if the masks are right, how could this go wrong? */
+         instead). but if the masks are right, how could this go wrong? */
       color =
-	(color & (rmask | gmask | bmask)) |
-	(((color & amask) >> 1) & amask);
+        (color & (rmask | gmask | bmask)) |
+        (((color & amask) >> 1) & amask);
   
       *((Uint32 *)ret->pixels + y*ret->pitch/4 + x) = color;
 

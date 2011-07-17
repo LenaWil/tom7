@@ -335,16 +335,39 @@ sig
   val mouse_wheelup : mousestate -> bool
   val mouse_wheeldown : mousestate -> bool
 
+  type cursor
   (* Enable or disable display of the mouse cursor. true displays it, which
      is the initial state. *)
   val show_cursor : bool -> unit
+  (* SDL is not clear on ownership of this, but I assume that the system
+     retains ownership. *)
+  val get_cursor : unit -> cursor
+  (* SDL is not clear on ownership of this, but I assume the caller
+     retains ownership. *)
+  val set_cursor : cursor -> unit
+  val free_cursor : cursor -> unit
+  (* Data and mask are bit vectors, so the width has to be a multiple of 8. 
+     See Util.Cursor for a convenient way to draw these in code without manipulating
+     bitmasks. *)
+  val create_cursor : { data : Word8.word vector,
+                        mask : Word8.word vector,
+                        w : int, h : int, hot_x : int, hot_y : int } -> cursor
 
   val clearsurface : surface * color -> unit
 
-  (* draw a pixel to the surface. XXX the alpha component is ignored. *)
+  (* draw a pixel to the surface. XXX the alpha component is ignored. 
+     These are currently pretty slow because of bounds checking and FFI
+     overhead.
+
+     For drawpixel and getpixel, the pixel must be within the surface's
+     bounds or an exception is raised. For clippixel, out-of-bounds
+     pixels are just ignored. *)
   val drawpixel : surface * int * int * color -> unit
   val clippixel : surface * int * int * color -> unit
   val getpixel  : surface * int * int -> color
+  (* Get a copy of the raw pixels from the surface. Returns width,
+     height, and then width * height * 4 RGBA bytes. *)
+  val pixels    : surface -> int * int * Word8.word array
 
   (* drawcircle (surf, x, y, radius, color)
      draws a circle (not filled)
@@ -407,6 +430,20 @@ sig
     val surf2x : surface -> surface
         
     val blit16x : surface * int * int * int * int  * surface * int * int -> unit
+
+    structure Cursor :
+    sig
+        (* nonfix - + *)
+        datatype cursorpixel =
+            X  (* black *)
+          | O  (* white *)
+          | -  (* transparent *)
+          | +  (* inverted / black *)
+
+        val make : { w : int, hot_x : int, hot_y : int,
+                     pixels : cursorpixel list } -> cursor
+    end
+    
   end
 
 end
