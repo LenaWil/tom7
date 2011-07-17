@@ -410,6 +410,37 @@ struct
           SDL.drawline (screen, ox, oy - 3, ox, oy + 3, ORIGINCOLOR)
       end
 
+
+  (* Holding space *)
+  val dragging = ref false
+  (* Holding shift *)
+  val selecting = ref false
+  (* If SOME, then this is the top-left of the selection. *)
+  val selection = ref NONE : vec2 option ref
+
+  (* Take two vectors that define a rectangle. Orient them so
+     that they are the top left and bottom right corners. *)
+  fun orienttobox (a, b) =
+    let
+        val (ax, ay) = vec2xy a
+        val (bx, by) = vec2xy b
+    in
+        (vec2 (Real.min (ax, bx), Real.min (ay, by)),
+         vec2 (Real.max (ax, bx), Real.max (ay, by)))
+    end
+
+  val SELCOLOR = hexcolor 0xAAAA33
+  fun drawselection () =
+      case !selection of
+          SOME s =>
+              let val (a, b) = orienttobox (s, screentovec (!mousex, !mousey))
+                  val (ax, ay) = vectoscreen a
+                  val (bx, by) = vectoscreen b
+              in
+                  SDL.drawbox (screen, ax, ay, bx, by, SELCOLOR)
+              end
+        | NONE => ()
+
   fun draw () =
       let in
           (* XXX don't need to continuously be drawing. *)          
@@ -419,6 +450,8 @@ struct
 
           drawletter (!letter);
           drawinterior ();
+          drawselection ();
+
           drawmenu ();
 
           flip screen
@@ -458,8 +491,6 @@ struct
           else ()
       end
 
-  val dragging = ref false
-
   fun pan (dx, dy) =
       let in
           scrollx := !scrollx + dx;
@@ -471,6 +502,12 @@ struct
       then
       let in
           pan (x - !mousex, y - !mousey);
+          mousex := x;
+          mousey := y
+      end
+      else if !selecting
+      then
+      let in
           mousex := x;
           mousey := y
       end
@@ -552,10 +589,17 @@ struct
   fun leftmouse (x, y) =
       if !dragging
       then ()
+      else if !selecting
+      (* If holding shift, then start a selection. *)
+      then
+        let
+        in selection := SOME (screentovec (x, y));
+           mousemotion (x, y)
+        end
       else
-        (* Currently, select the closest point. *)
+        (* Plain click means either select a close-by point, create a new
+           point if close to an edge, or otherwise make a new trivial poly. *)
         let 
-
             val nearby = pointswithinscreendistance 8 (x, y)
             val () = eprint ("There are " ^ Int.toString (length nearby) ^ " nearby.\n")
 
@@ -579,15 +623,39 @@ struct
             mousemotion (x, y)
         end
 
+  (* Upon releasing the mouse, apply the selection if we have one. *)
+  fun leftmouseup (x, y) =
+      if !selecting
+      then
+          case !selection of
+              SOME s =>
+                  let val (a, b) = orienttobox (s, screentovec (x, y))
+                  in
+                      (* XXX HERE *)
+                      selection := NONE
+                  end
+            | _ => ()
+      else ()
+
   fun savetodisk () =
       (StringUtil.writefile LETTERFILE (Letter.tostring (!letter));
        eprint "Saved.\n")
 
+  fun updatecursor () =
+      if !dragging
+      then SDL.set_cursor Images.handcursor
+      else if !selecting
+           then SDL.set_cursor Images.selcursor
+           else SDL.set_cursor Images.pointercursor
+
   (* XXX require ctrl for undo/redo, etc. *)
   fun keydown SDLK_ESCAPE = raise Done
+    | keydown SDLK_LSHIFT = 
+      (selecting := true;
+       updatecursor ())
     | keydown SDLK_SPACE = 
       (dragging := true;
-       SDL.set_cursor Images.handcursor)
+       updatecursor ())
     | keydown SDLK_z =
       (* XXX shouldn't allow undo when dragging? *)
       (case UndoState.undo undostate of
@@ -603,7 +671,11 @@ struct
 
   fun keyup SDLK_SPACE = 
       (dragging := false;
-       SDL.set_cursor Images.pointercursor)
+       updatecursor ())
+    | keyup SDLK_LSHIFT = 
+      (selecting := false;
+       selection := NONE;
+       updatecursor ())
     | keyup _ = ()
 
   fun events () =
@@ -617,9 +689,10 @@ struct
              | E_MouseMotion { state : mousestate, x : int, y : int, ... } =>
                    mousemotion (x, y)
              | E_MouseDown { button = 1, x, y, ... } => leftmouse (x, y)
-             | E_MouseUp _ =>
+             | E_MouseUp { button = 1, x, y, ... } =>
                    let in
-                       mousedown := false
+                       mousedown := false;
+                       leftmouseup (x, y)
                    end
              | _ => ()
 
