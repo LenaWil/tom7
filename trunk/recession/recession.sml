@@ -22,7 +22,7 @@ struct
          Allow database to mark some as disabled. *)
       val res = case MySQL.query mysql
           ("select id, url, lastpost, algorithm, logof from " ^
-           "rss.subscription") of
+           "rss.subscription where enabled='t'") of
           NONE => raise Recession ("Failed to get subscriptions: " ^ 
                                    getOpt (MySQL.error mysql, "??"))
         | SOME r => r
