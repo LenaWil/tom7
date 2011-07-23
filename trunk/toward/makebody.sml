@@ -204,19 +204,53 @@ struct
   (* Currently selected vertices. First index is the polygon,
      second is the vertex on that polygon. Often nil. *)
   val selected = ref nil : (int * int) list ref
+  (* Holding space *)
+  val dragging = ref false
+  (* Holding shift *)
+  val selecting = ref false
+  (* If SOME, then this is the top-left of the selection. *)
+  val selection = ref NONE : vec2 option ref
+  fun getselection () =
+      case !selection of
+          SOME s => SOME (Maths.orienttobox (s, screentovec (!mousex, !mousey)))
+        | NONE => NONE
 
   fun drawpolyvertices (sel : int list, poly : poly) =
       let
           val num = GA.length poly
+
+          (* Returns true if the point WOULD be selected if the user
+             released the mouse button. This is only the case when we
+             are in the midst of a selection. *)
+          val wouldselect =
+              (case getselection() of
+                   NONE => (fn _ => false)
+                 | SOME (a, b) =>
+                   let
+                       val (ax, ay) = vec2xy a
+                       val (bx, by) = vec2xy b
+                   in
+                       fn v =>
+                       let val (vx, vy) = vec2xy v
+                       in
+                           vx >= ax andalso vy >= ay andalso
+                           vx <= bx andalso vy <= by
+                       end
+                   end)
+
       in
           Util.for 0 (num - 1)
           (fn i =>
            let 
-               val (x, y) = vectoscreen (GA.sub poly i)
+               val v = GA.sub poly i
+               val (x, y) = vectoscreen v
            in
                if List.exists (fn x => x = i) sel
-               then SDL.drawcircle (screen, x, y, 3, RED)
-               else SDL.drawcircle (screen, x, y, 2, PURPLE)
+               then (SDL.drawcircle (screen, x, y, 3, RED);
+                     SDL.drawcircle (screen, x, y, 4, RED))
+               else if wouldselect v
+                    then SDL.drawcircle (screen, x, y, 3, RED)
+                    else SDL.drawcircle (screen, x, y, 2, PURPLE)
            end)
       end
 
@@ -431,30 +465,11 @@ struct
       end
 
 
-  (* Holding space *)
-  val dragging = ref false
-  (* Holding shift *)
-  val selecting = ref false
-  (* If SOME, then this is the top-left of the selection. *)
-  val selection = ref NONE : vec2 option ref
-
-  (* Take two vectors that define a rectangle. Orient them so
-     that they are the top left and bottom right corners. *)
-  fun orienttobox (a, b) =
-    let
-        val (ax, ay) = vec2xy a
-        val (bx, by) = vec2xy b
-    in
-        (vec2 (Real.min (ax, bx), Real.min (ay, by)),
-         vec2 (Real.max (ax, bx), Real.max (ay, by)))
-    end
-
   val SELCOLOR = hexcolor 0xAAAA33
   fun drawselection () =
-      case !selection of
-          SOME s =>
-              let val (a, b) = orienttobox (s, screentovec (!mousex, !mousey))
-                  val (ax, ay) = vectoscreen a
+      case getselection() of
+          SOME (a, b) =>
+              let val (ax, ay) = vectoscreen a
                   val (bx, by) = vectoscreen b
               in
                   SDL.drawbox (screen, ax, ay, bx, by, SELCOLOR)
@@ -689,18 +704,21 @@ struct
 
   (* Upon releasing the mouse, apply the selection if we have one. *)
   fun leftmouseup (x, y) =
-      if !selecting
-      then
-          case !selection of
-              SOME s =>
-                  let val (a, b) = orienttobox (s, screentovec (x, y))
-                  in
-                      (* Select every point within the box. *)
-                      selected := pointswithinrectangle (a, b);
-                      selection := NONE
-                  end
-            | _ => ()
-      else ()
+      let in
+          mousex := x;
+          mousey := y;
+          if !selecting
+          then
+              case getselection () of
+                  SOME (a, b) =>
+                      let in
+                          (* Select every point within the box. *)
+                          selected := pointswithinrectangle (a, b);
+                          selection := NONE
+                      end
+                | _ => ()
+          else ()
+      end
 
   fun savetodisk () =
       (StringUtil.writefile LETTERFILE (Letter.tostring (!letter));
@@ -763,6 +781,10 @@ struct
                    let in
                        mousedown := false;
                        leftmouseup (x, y)
+                   end
+             | E_MouseDown { button, ... } => 
+                   let in
+                       eprint ("md " ^ Int.toString button ^ "\n")
                    end
              | _ => ()
 

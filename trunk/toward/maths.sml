@@ -135,5 +135,16 @@ struct
           loop false 0 (nvert - 1)
       end
 
+  (* Take two vectors that define a rectangle. Orient them so
+     that they are the top left and bottom right corners. *)
+  fun orienttobox (a, b) =
+    let
+        val (ax, ay) = vec2xy a
+        val (bx, by) = vec2xy b
+    in
+        (vec2 (Real.min (ax, bx), Real.min (ay, by)),
+         vec2 (Real.max (ax, bx), Real.max (ay, by)))
+    end
+
 end
 
