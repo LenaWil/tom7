@@ -55,8 +55,8 @@ struct
 
   val WIDTH = 1024
   val HEIGHT = 768
-  val PIXELS_PER_METER = 50
-  val METERS_PER_PIXEL = 1.0 / real PIXELS_PER_METER
+  val PIXELS_PER_METER = ref 50.0
+  (* val METERS_PER_PIXEL = 1.0 / real PIXELS_PER_METER *)
   val screen = makescreen (WIDTH, HEIGHT)
 
   val scrollx = ref 64  (* (WIDTH div 2) *)
@@ -69,7 +69,9 @@ struct
 
   val () = SDL.set_cursor Images.pointercursor
 
-  fun tometers d = real d * METERS_PER_PIXEL
+  fun tometers d = (* real d * METERS_PER_PIXEL *)
+      real d / !PIXELS_PER_METER
+      
   fun toworld (xp, yp) =
       let
           val xp = xp - !scrollx
@@ -80,7 +82,7 @@ struct
 
   (* Put the origin of the world at WIDTH / 2, HEIGHT / 2.
      make the viewport show 8 meters by 6. *)
-  fun topixels d = d * real PIXELS_PER_METER
+  fun topixels d = d * !PIXELS_PER_METER
   fun toscreenx xm = Real.round (topixels xm) + !scrollx
   fun toscreeny ym = Real.round (topixels ym) + !scrolly
   fun toscreen (xm, ym) = (toscreenx xm, toscreeny ym)
@@ -782,9 +784,19 @@ struct
                        mousedown := false;
                        leftmouseup (x, y)
                    end
-             | E_MouseDown { button, ... } => 
+             | E_MouseDown { button = 4, ... } => 
                    let in
-                       eprint ("md " ^ Int.toString button ^ "\n")
+                       PIXELS_PER_METER := !PIXELS_PER_METER + 2.0;
+                       eprint ("scroll up\n")
+                   end
+
+             | E_MouseDown { button = 5, ... } => 
+                   let in
+                       PIXELS_PER_METER := !PIXELS_PER_METER - 2.0;
+                       if !PIXELS_PER_METER <= 2.0
+                       then PIXELS_PER_METER := 2.0
+                       else ();
+                       eprint ("scroll down\n")
                    end
              | _ => ()
 
