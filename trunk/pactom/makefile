@@ -54,8 +54,11 @@ radial.svg : radial pac.kml pac2.kml
 points.kml : makepoints neighborhoods.kml
 	${TIME} ./makepoints > $@
 
+# This is getting near the maximum memory for 32 bit machines! Probably can do some
+# kind of pre-thinning of the points, or maybe a more efficient kd-tree representation,
+# or merge at load time?
 shortest.kml shortest.svg : shortestpaths pac.kml pac2.kml
-	${TIME} ./shortestpaths -kmlout shortest.kml -svgout shortest.svg
+	${TIME} ./shortestpaths @MLton max-heap 999m -- -kmlout shortest.kml -svgout shortest.svg
 
 llt.svg : lltsvg pac.kml pac2.kml
 	${TIME} ./lltsvg > $@

@@ -27,7 +27,7 @@ struct
      *)
   (* XXX compute this dynamically, as slightly more than the longest
      run in there *)
-  val REVOLUTION_MILES = 32.0
+  val REVOLUTION_MILES = 38.0
   val GRAPHIC_SIZE = 800
 
   fun vector_tolist v = Vector.foldr op:: nil v
