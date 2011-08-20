@@ -1,0 +1,3 @@
+class Solid extends MovieClip {
+
+}
