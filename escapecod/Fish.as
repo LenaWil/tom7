@@ -1,14 +1,32 @@
 class Fish extends MovieClip {
 
+  /*
   public var borders = [];
   public var exits = [];
+  */
 
   var ctr = 0;
 
   // Hides its internal geometry, copying it into
   // state.
   public function onLoad() {
-    trace('hi');
+    trace('fish onload');
+
+    for (var o in this) {
+      // trace(o);
+      if (this[o] instanceof Solid ||
+          this[o] instanceof Exit) {
+        this[o]._visible = false;
+      }
+    }
+  }
+
+
+    /*
+    if (this.borders.length > 0) {
+      trace('onload (' + this + ', borders has shit in it already');
+    }
+
     this.borders.splice(0, this.borders.length);
     this.exits.clear(0, this.borders.length);
     // this._alpha = 50;
@@ -35,17 +53,16 @@ class Fish extends MovieClip {
         // XXX how come I can't actually remove it?
         mc._visible = false;
 
-        /*
           // XXX draw lines instead.
-        ctr++;
-        this.attachMovie("star", "star" + ctr, 8000 + ctr,
-                         {_x: x0, _y: y0});
+//        ctr++;
+//         this.attachMovie("star", "star" + ctr, 8000 + ctr,
+//                          {_x: x0, _y: y0});
+// 
+//         ctr++;
+// 
+//         this.attachMovie("star", "star" + ctr, 8000 + ctr,
+//                          {_x: x1, _y: y1});
 
-        ctr++;
-
-        this.attachMovie("star", "star" + ctr, 8000 + ctr,
-                         {_x: x1, _y: y1});
-        */
       } else if (this[o] instanceof Exit) {
         var mc = this[o];
         // Assuming these are axis aligned with the registration
@@ -56,5 +73,6 @@ class Fish extends MovieClip {
         mc._visible = false;
       }
     }
-  }
+*/
+  //   }
 }

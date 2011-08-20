@@ -49,10 +49,10 @@ class Game extends MovieClip {
 
   // All the border vectors. These are objects {x0, y0, x1, y1} where
   // a "floor" border has x0 < x1. Aliases the fish's property.
-  var borders;
+  var borders = null;
   // Same. Always axis aligned with x0,x1 at top left. Usually just
   // one. Aliases the fish's property.
-  var exits;
+  var exits = null;
 
   // normalized gravity vector
   var gravityddx, gravityddy;
@@ -125,6 +125,44 @@ class Game extends MovieClip {
     }
   }
 
+  // Read the fish's pieces. This doesn't hide the movieclips
+  // (that's done in the onLoad for the fish), but keeps the
+  // canonical copy. We only do it for the fish we're actually
+  // using, not like all the fish swimmin' around.
+  public function getFishPieces(f) {
+    this.borders = [];
+    this.exits = [];
+
+    for (var o in f) {
+      if (f[o] instanceof Solid) {
+        var mc = f[o];
+
+        // Because it's 100 units wide, and scale is
+        // in percentage.
+        var w = mc._xscale;
+        var rrad = (mc._rotation / 360.0) * 2.0 * Math.PI;
+        var x0 = mc._x;
+        var y0 = mc._y;
+        var x1 = x0 + Math.cos(rrad) * w;
+        var y1 = y0 + Math.sin(rrad) * w;
+
+        trace('found solid ' + o + ' ' + x0 + ' ' + y0);
+        this.borders.push({x0 : x0, y0 : y0, x1 : x1, y1 : y1,
+              w : w, rrad : rrad });
+
+      } else if (f[o] instanceof Exit) {
+        var mc = f[o];
+        trace('found exit ' + o + ' ' + mc._x + ' ' + mc._y);
+        // Assuming these are axis aligned with the registration
+        // in the top-left corner.
+        this.exits.push({x0: mc._x, y0: mc._y,
+              x1: mc._x + mc._xscale,
+              y1: mc._y + mc._yscale});
+      }
+    }
+  }
+
+
   // Make the game be the named fish. This puts the ball at the origin
   // in game coordinates and then gives control to the player.
   //
@@ -143,10 +181,8 @@ class Game extends MovieClip {
     ballx = 0;
     bally = 0;
 
-    // alias geometry from fish. game coords.
-    // note, these haven't been initialized yet!
-    this.borders = fish_mc.borders;
-    this.exits = fish_mc.exits;
+    this.borders = null;
+    this.exits = null;
 
     /*
     trace('fishmc:');
@@ -193,8 +229,8 @@ class Game extends MovieClip {
   // Place the movie clip on the screen at the desired
   // fish-centric coordinates. Doesn't set or do anything with
   // rotation, but takes care of any scaling.
-  var XOFFSET = 300;
-  var YOFFSET = 300;
+  var XOFFSET = 320;
+  var YOFFSET = 420;
   var SCALE = 25;
   public function fishToScreen(mc, x, y) {
     mc._x = XOFFSET + x;
@@ -282,8 +318,8 @@ class Game extends MovieClip {
                                           {_x: 300 + x, _y: 300 + y}));
     */
 
-    for (var i = 0; i < borders.length; i++) {
-      var b = borders[i];
+    for (var i = 0; i < this.borders.length; i++) {
+      var b = this.borders[i];
       var n = closestPoint(x, y, b.x0, b.y0, b.x1, b.y1);
       var dist = distance(x, y, n.x, n.y);
 
@@ -410,6 +446,14 @@ class Game extends MovieClip {
   }
 
   public function onEnterFrame() {
+
+    // Hack: Can't do this until the thing has actually loaded.
+    // But it will be loaded before we enter a frame, which is
+    // the first time we need it.
+    if (this.borders == null) {
+      getFishPieces(fish_mc);
+      trace('now there are ' + this.borders.length + ' borders');
+    }
 
     // Might be in several different modes.
     // 1. TODO: Zooming out and replacing the fish. No control.
