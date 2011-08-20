@@ -1,9 +1,13 @@
 class Game extends MovieClip {
 
+  var SCREENW = 900;
+  var SCREENH = 700;
+
   // The fishes I'm inside, not including the one that is
   // currently the game. Element 0 is the nearest enclosing fish.
   // Just fish names like 'purple'.
   var inside_fishes = ['red', 'purple'];
+  var current_background = 0;
   
   // The fish I'm currently in. I just use this to animate. We
   // keep game state locally.
@@ -41,6 +45,7 @@ class Game extends MovieClip {
   var FRICTION = 0.7;
 
   // TODO: radar
+  var radar_mc;
 
   // These are all in "game" coordinates (not screen), which
   // is centered around the fish's registration point (center)
@@ -66,8 +71,8 @@ class Game extends MovieClip {
   // you're not on the wall.
 
   var all_fishes = 
-    { red: { bg: '#581C1C' },
-      purple: { bg: '#421458' } };
+    { red: { bg: 0x581C1C },
+      purple: { bg: 0x421458 } };
   var fishnames = [];
 
   var PLAYING = 0;
@@ -254,7 +259,10 @@ class Game extends MovieClip {
     ball_mc = _root.attachMovie("pinball", "pinball", 5000,
                                 // note: won't be right; should
                                 // be set in first onEnterFrame though.
-                                {_x: 0, _y: 0})
+                                {_x: 0, _y: 0});
+    
+    radar_mc = _root.attachMovie("radar", "radar", 6000,
+                                 {_x: SCREENW - Radar.WIDTH, _y: 0});
 
     setFish('purple');
 
@@ -454,6 +462,24 @@ class Game extends MovieClip {
       getFishPieces(fish_mc);
       trace('now there are ' + this.borders.length + ' borders');
     }
+
+    // Set background for radar and game. Do this since we could
+    // get swallowed at any time, and we can't do it in initialization
+    // anyway since the radar won't have loaded yet.
+
+    // Sea color if not swallowed.
+    var bgcolor = 0x15235B;
+
+    if (inside_fishes.length > 0) {
+      bgcolor = all_fishes[inside_fishes[0]].bg;
+    }
+
+    if (current_background != bgcolor) {
+      trace('setting bgcolor to ' + bgcolor);
+      current_background = bgcolor;
+      this.radar_mc.setBackground(bgcolor);
+    }
+
 
     // Might be in several different modes.
     // 1. TODO: Zooming out and replacing the fish. No control.

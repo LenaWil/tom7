@@ -3,9 +3,14 @@ Depths:
  - other fish (big): 3900 - 3910
  - current fish: 4000
  - ball movieclip: 5000
+ - radar: 6000
+   - radar bg: 9000
+   - radar border: 10000
+   - radar mask: 99997
+ 
 
 TODO:
- - everything!
+ - almost everything!
  - start screen. Might even need instructions if the controls aren't arrows.
  - end screen (lighthouse?)
     - pearl in clam?
