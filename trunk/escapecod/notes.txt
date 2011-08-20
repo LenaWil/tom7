@@ -4,10 +4,20 @@ Depths:
  - current fish: 4000
  - ball movieclip: 5000
  - radar: 6000
-   - radar bg: 9000
+   - radar bg: 7000
+   - radar fish 8000-8010
+   - radar my fish 8100
    - radar border: 10000
    - radar mask: 99997
  
+Fish radar:
+  - facing right
+  - center registration
+  - named color_radar
+  Frames:
+   - 1: mouth closed
+   - 2: mouth open
+
 
 TODO:
  - almost everything!
