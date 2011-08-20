@@ -1,0 +1,34 @@
+
+Depths:
+ - current fish: 4000
+ - ball movieclip: 5000
+
+TODO:
+ - everything!
+ - start screen. Might even need instructions if the controls aren't arrows.
+ - end screen (lighthouse?)
+    - pearl in clam?
+
+
+Optionalish:
+ - Reference to other themes
+    - Escape  DONE
+    - Very large Vs Very Small  DONE
+    - Self-replication
+    - Adaptation
+    - Evolution
+    - Dreams
+    - Castles
+    - Immortality
+    - Night
+    - Ruins
+    - Apocalypse
+    - Connections
+    - Architecture
+    - Genetics
+    - Thieves
+    - Mechanisms
+    - Stealth
+    - Wormholes
+    - Resurrection
+    - Espionage
