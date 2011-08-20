@@ -8,6 +8,9 @@ class Game extends MovieClip {
   var ball_mc : MovieClip = null;
   // in pixels. constant since we never scale the ball.
   var RADIUS = 25;
+  var ELASTICITY = 0.7;
+
+  var FRICTION = 0.7;
 
   // TODO: radar
 
@@ -39,24 +42,17 @@ class Game extends MovieClip {
   var mode = PLAYING;
 
   var advance = false;
+  var holdingSpace = false, holdingEsc = false,
+    holdingUp = false, holdingLeft = false,
+    holdingRight = false, holdingDown = false;
   public function onKeyDown() {
     var k = Key.getCode();
 
     advance = true;
 
-    /*
     switch(k) {
-    case 192: // ~
-      escKey = '~';
-      if (!blockEsc) holdingEsc = true;
-      break;
-    case 82: // r
-      escKey = 'r';
-      if (!blockEsc) holdingEsc = true;
-      break;
     case 27: // esc
-      escKey = 'esc';
-      if (!blockEsc) holdingEsc = true;
+      holdingEsc = true;
       break;
     case 32: // space
     case 38: // up
@@ -72,9 +68,30 @@ class Game extends MovieClip {
       holdingDown = true;
       break;
     }
-    */
   }
 
+  public function onKeyUp() {
+    var k = Key.getCode();
+    switch(k) {
+    case 27: // esc
+      holdingEsc = false;
+      break;
+
+    case 32:
+    case 38:
+      holdingUp = false;
+      break;
+    case 37:
+      holdingLeft = false;
+      break;
+    case 39:
+      holdingRight = false;
+      break;
+    case 40:
+      holdingDown = false;
+      break;
+    }
+  }
 
   // Make the game be the named fish. This puts the ball at the origin
   // in game coordinates and then gives control to the player.
@@ -161,6 +178,89 @@ class Game extends MovieClip {
     }
   }
 
+  // Return the borders that I'd collide with if the ball were at
+  // x,y.
+  var last_collisions = [];
+  var BOUNCE_RADIUS = RADIUS * 1.01;
+  public function getCollisionsAt(x, y, r) {
+    var collisions = [];
+
+    /*
+    for (var i = 0; i < last_collisions.length; i++) {
+      last_collisions[i].removeMovieClip();
+    }
+
+    last_collisions.push(_root.attachMovie("star", "star" + ctr, 50000 + ctr,
+                                          {_x: 300 + x, _y: 300 + y}));
+    */
+
+    for (var i = 0; i < borders.length; i++) {
+      var b = borders[i];
+      var n = closestPoint(x, y, b.x0, b.y0, b.x1, b.y1);
+      var dist = distance(x, y, n.x, n.y);
+
+      /*
+      ctr++;
+      last_collisions.push (_root.attachMovie("star", "star" + ctr, 50000 + ctr,
+                                             {_x: 300 + n.x, _y: 300 + n.y}));
+      */
+      
+      if (dist < r) {
+        collisions.push({b : b, n : n, dist : dist});
+      }
+    }
+    return collisions;
+  }
+
+  // Move the ball from startx,starty as far along dx,dy
+  // while staying out of clipped regions. Returns the
+  // list of collisions.
+  public function moveStaySafe(startx, starty, dx, dy) {
+    /*
+    trace('moveStaySafe ' + startx + ' ' + starty + ' +' +
+          dx + ' ' + dy + ' against ' + borders.length);
+    */
+
+    if (getCollisionsAt(startx, starty, RADIUS).length > 0) {
+      trace('started stuck.');
+      return;
+    }
+
+    var newx = startx + dx;
+    var newy = starty + dy;
+    var cnew = getCollisionsAt(newx, newy, RADIUS);
+
+    if (cnew.length > 0) {
+      // trace('resolving collisions with ' + cnew.length);
+      // invariant: start is good, new is bad.
+      while (distance(startx, starty, newx, newy) > .05) {
+        var midx = (startx + newx) * 0.5;
+        var midy = (starty + newy) * 0.5;
+        // PERF: could be filtering down cnew.
+        cnew = getCollisionsAt(midx, midy, RADIUS);
+        if (cnew.length > 0) {
+          // bad.
+          newx = midx;
+          newy = midy;
+        } else {
+          // ok.
+          startx = midx;
+          starty = midy;
+        }
+      }
+      ballx = startx;
+      bally = starty;
+      return cnew;
+    } else {
+      // trace('no collisions at dest');
+      // No collision (common case).
+      ballx = newx;
+      bally = newy;
+      return [];
+    }
+  }
+  
+  // XXX docs out of date?
   // Resolve the motion of the ball, assuming we don't start
   // inside an obstacle. Without any obstacles,
   // this just sets ballx = startx + dx and bally = starty + dy.
@@ -171,70 +271,54 @@ class Game extends MovieClip {
   // on the original balldx and balldy, as well as the angle(s)
   // of whatever we're colliding with.
   public function resolveForce(startx, starty, dx, dy) {
-    trace('resolveforce ' + startx + ' ' + starty + ' +' +
-          dx + ' ' + dy + ' against' + borders.length);
-    var collisions = [];
-    var BOUNCE_RADIUS = RADIUS * 1.05;
 
-    // Get the list of all possible collisions, in collision
-    // space. XXX assumes the ball's motion vector has length
-    // no more than its radius times 2.
-    for (var i = 0; i < borders.length; i++) {
-      var b = borders[i];
-      // Transform the problem so that we are falling towards
-      // a floor like this:
+    // First, put the ball in a new location that's safe.
+    var col = moveStaySafe(startx, starty, dx, dy);
 
-      //      tbx,tby
-      //         \
-      //          > tdx,tdy
-      //
-      //   -----------------  ty0 = ty1 = 0
-      //   tx0 = 0        tx1
-
-      // We save the width.
-      var tx1 = b.w;
-      
-      // move ball so that its origin is wrt x0,y0
-      var mbx = startx - b.x0;
-      var mby = starty - b.y0;
-      // (because to rotate the border to angle 0,
-      // we'd rotate it the negative of its current angle)
-      var rotb = rotateVec(mbx, mby, -b.rrad);
-      var rotd = rotateVec(dx, dy, -b.rrad);
-
-      var tbx = rotb.dx;
-      var tby = rotb.dy;
-      var tdx = rotd.dx;
-      var tdy = rotd.dy;
-
-      // Okay, now solve the problem. Does the circle
-      // intersect the line segment? Find the closest
-      // point on the line segment.
-      // PERF: Could compute this before transforming,
-      // since it's trivial to test whether two points are
-      // within the radius. Then we can skip the transforms
-      // most of the time.
-      
-      var newx = tbx + tdx;
-      var newy = tby + tdy;
-
-      var n = closestPoint(newx, newy, 0, 0, tx1, 0);
-
-      var dist = distance(newx, newy, n.x, n.y);
-      trace('closest: ' + n.x + ' ' + n.y + ' (' + dist + ')');
-
+    if (col.length > 0) {
       /*
-      if (dist < BOUNCE_RADIUS) {
-        collisions.push({tbx: tbx, tby: tby,
-              tdx: tdy, 
-
-
-      }
+      trace('there are collisions with ' +
+            col.length + '. old vel: ' +
+            dx + ' ' + dy);
       */
-    }
+      var dxs = 0, dys = 0;
 
-    ballx = startx + dx;
-    bally = starty + dy;
+      // For each collision, compute the reflected force. Average
+      // all of those.
+      for (var i = 0; i < col.length; i++) {
+        var b = col[i].b;
+        // Transform the problem so that we are falling towards
+        // a floor like this:
+
+        //      tbx,tby
+        //         \
+        //          > tdx,tdy
+        //
+        //   -----------------  ty0 = ty1 = 0
+        //   tx0 = 0        tx1
+
+        // (because to rotate the border to angle 0,
+        // we'd rotate it the negative of its current angle)
+        var rotd = rotateVec(dx, dy, -b.rrad);
+
+        // Since the floor is flat, we always bounce by just
+        // reversing dy but keeping the same dx.
+        var refdx = rotd.dx;
+        var refdy = -ELASTICITY * rotd.dy;
+
+        // Now rotate back to game space.
+        var unrotd = rotateVec(refdx, refdy, b.rrad);
+        // Accumulate forces.
+        dxs += unrotd.dx;
+        dys += unrotd.dy;
+      }
+
+      // New dx,dy is the average of the forces applied.
+      balldx = dxs / col.length;
+      balldy = dys / col.length;
+
+      // trace('new vel: ' + balldx + ' ' + balldy);
+    }
   }
 
   public function onEnterFrame() {
@@ -248,14 +332,94 @@ class Game extends MovieClip {
       // XXX frame-by-frame mode
       if (!advance)
         return;
-      advance = false;
+      // advance = false;
 
       //  - Check keyboard/mouse to get ball's intention
 
       //  - Simulate physics, resolving against geometry
-      balldx += gravityddx;
-      balldy += gravityddy;
-      // XXX terminal velocity checks
+
+      // Apply acceleration. Don't use the bounce code to
+      // apply forces when on surfaces, as it produces jittery
+      // or sticky results at best. If we're near walls,
+      // apply rolling forces.
+      var ddx = gravityddx;
+      var ddy = gravityddy;
+
+      // XXX allows me to jump off walls too...
+      if (holdingUp) {
+        ddy -= 20;
+      }
+
+      if (holdingLeft) {
+        ddx -= 3;
+      } else if (holdingRight) {
+        ddx += 3;
+      }
+
+      var col = getCollisionsAt(ballx, bally, BOUNCE_RADIUS);
+      if (col.length > 0) {
+
+        // Apply gravity normal forces.
+        var ndx = 0, ndy = 0, denom = 0;
+        for (var i = 0; i < col.length; i++) {
+          // as in resolveForce
+          var b = col[i].b;
+          var rotd = rotateVec(ddx, ddy, -b.rrad);
+
+          if (rotd.dy > 0) {
+            var refdy = 0;
+            // dot product is just x component in this
+            // orientation.
+            var refdx = rotd.dx;
+            var unrotd = rotateVec(refdx, refdy, b.rrad);
+            // Accumulate forces.
+            denom++;
+            ndx += unrotd.dx;
+            ndy += unrotd.dy;
+          }
+        }
+
+        // If we had any downward collisions, accumulate
+        // the tangent forces.
+        if (denom > 0) {
+          balldx += ndx / denom;
+          balldy += ndy / denom;
+        } else {
+          // else equivalent to freefall, but
+          // attenuate because of friction
+          balldx += ddx;
+          balldy += ddy;
+        }
+        
+        balldx *= FRICTION;
+        balldy *= FRICTION;
+
+      } else {
+        // free-fall
+        balldx += ddx;
+        balldy += ddy;
+      }
+
+
+      // terminal velocity checks. Collision code assumes it's
+      // not moving faster than its diamter, currently.
+      var dlen = Math.sqrt((balldx * balldx) + (balldy * balldy));
+      if (dlen > RADIUS * 1.2) {
+        // Make normal.
+        balldx /= dlen;
+        balldy /= dlen;
+        balldx *= RADIUS * 1.2;
+        balldy *= RADIUS * 1.2;
+        // trace('set terminal: ' + balldx + ' ' + balldy);
+      } else if (dlen < 0.5 && col.length > 0) {
+        // If going very slowly and touching the wall,
+        // static friction stops us.
+        // trace('stop');
+        balldx = 0;
+        balldy = 0;
+      } else {
+        // trace('go');
+      }
 
       resolveForce(ballx, bally, balldx, balldy);
       

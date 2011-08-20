@@ -13,6 +13,7 @@ class Fish extends MovieClip {
   // state.
   public function onLoad() {
     trace('hi');
+    this._alpha = 50;
     // Do unnamed instances show up?
     for (var o in this) {
       // trace(o);
@@ -32,7 +33,7 @@ class Fish extends MovieClip {
         borders.push({x0 : x0, y0 : y0, x1 : x1, y1 : y1,
               w : w, rrad : rrad });
         // XXX how come I can't actually remove it?
-        mc._visible = false;
+        // mc._visible = false;
 
         /*
           // XXX draw lines instead.
