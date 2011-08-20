@@ -1,24 +1,24 @@
 class Fish extends MovieClip {
 
   public var borders = [];
+  public var exits = [];
 
   var ctr = 0;
-
-  public function getBorders() {
-    trace('getborders');
-    return borders;
-  }
 
   // Hides its internal geometry, copying it into
   // state.
   public function onLoad() {
     trace('hi');
-    this._alpha = 50;
+    this.borders.splice(0, this.borders.length);
+    this.exits.clear(0, this.borders.length);
+    // this._alpha = 50;
     // Do unnamed instances show up?
     for (var o in this) {
       // trace(o);
       if (this[o] instanceof Solid) {
         var mc = this[o];
+
+        // trace('found solid');
 
         // Because it's 100 units wide, and scale is
         // in percentage.
@@ -30,10 +30,10 @@ class Fish extends MovieClip {
         var y1 = y0 + Math.sin(rrad) * w;
 
         // trace(x0 + ' ' + y0 + ' ' + x1 + ' ' + y1);
-        borders.push({x0 : x0, y0 : y0, x1 : x1, y1 : y1,
+        this.borders.push({x0 : x0, y0 : y0, x1 : x1, y1 : y1,
               w : w, rrad : rrad });
         // XXX how come I can't actually remove it?
-        // mc._visible = false;
+        mc._visible = false;
 
         /*
           // XXX draw lines instead.
@@ -46,6 +46,14 @@ class Fish extends MovieClip {
         this.attachMovie("star", "star" + ctr, 8000 + ctr,
                          {_x: x1, _y: y1});
         */
+      } else if (this[o] instanceof Exit) {
+        var mc = this[o];
+        // Assuming these are axis aligned with the registration
+        // in the top-left corner.
+        this.exits.push({x0: mc._x, y0: mc._y,
+              x1: mc._x + mc._xscale,
+              y1: mc._y + mc._yscale});
+        mc._visible = false;
       }
     }
   }
