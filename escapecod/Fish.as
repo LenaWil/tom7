@@ -1,8 +1,13 @@
 class Fish extends MovieClip {
 
-  var borders = [];
+  public var borders = [];
 
   var ctr = 0;
+
+  public function getBorders() {
+    trace('getborders');
+    return borders;
+  }
 
   // Hides its internal geometry, copying it into
   // state.
@@ -10,7 +15,7 @@ class Fish extends MovieClip {
     trace('hi');
     // Do unnamed instances show up?
     for (var o in this) {
-      trace(o);
+      // trace(o);
       if (this[o] instanceof Solid) {
         var mc = this[o];
 
@@ -23,8 +28,9 @@ class Fish extends MovieClip {
         var x1 = x0 + Math.cos(rrad) * w;
         var y1 = y0 + Math.sin(rrad) * w;
 
-        trace(x0 + ' ' + y0 + ' ' + x1 + ' ' + y1);
-        borders.push({x0 : x0, y0 : y0, x1 : x1, y1 : y1 });
+        // trace(x0 + ' ' + y0 + ' ' + x1 + ' ' + y1);
+        borders.push({x0 : x0, y0 : y0, x1 : x1, y1 : y1,
+              w : w, rrad : rrad });
         // XXX how come I can't actually remove it?
         mc._visible = false;
 
