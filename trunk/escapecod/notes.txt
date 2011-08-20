@@ -1,5 +1,6 @@
 
 Depths:
+ - other fish (big): 3900 - 3910
  - current fish: 4000
  - ball movieclip: 5000
 

@@ -1,0 +1,3 @@
+class Exit extends MovieClip {
+
+}

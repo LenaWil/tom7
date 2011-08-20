@@ -1,7 +1,35 @@
 class Game extends MovieClip {
+
+  // The fishes I'm inside, not including the one that is
+  // currently the game. Element 0 is the nearest enclosing fish.
+  // Just fish names like 'purple'.
+  var inside_fishes = ['red', 'purple'];
   
-  // The fish I'm currently in. I just use this to animate.
+  // The fish I'm currently in. I just use this to animate. We
+  // keep game state locally.
   var fish_mc;
+
+  // Fish is always at 0,0.
+  var fishdx = 0, fishdy = 0;
+  // XXX randomize at start?
+  var fishdestx = 100, fishdesty = 20;
+  var fishboredom = 0;
+
+  // My current fish is always at world coordinates 0,0. There
+  // are other fish swiming with it though. Fields:
+  //  who: fish name
+  //  mc_big: the movieclip, attached to root. shown when we
+  //    are close to it. positioned in game's onEnterFrame.
+  //  mc_radar: the movieclip, attached to the radar. shown
+  //    more often.
+  //  x,y: authoritative world coordinates, relative to
+  //    the current fish.
+  //  dx,dy: velocity vector
+  //  destx,desty: destination when swimming aimlessly.
+  //  hungry: true if we're swimming straight towards the
+  //    target fish (at 0,0) with our mouth open, to try to
+  //    eat it.
+  var other_fish = [];
 
   // The movieclip of the ball. positioned manually on every frame.
   // Not scaled.
@@ -20,8 +48,11 @@ class Game extends MovieClip {
   // but then draw it rotated and scaled and whatever.
 
   // All the border vectors. These are objects {x0, y0, x1, y1} where
-  // a "floor" border has x0 < x1.
+  // a "floor" border has x0 < x1. Aliases the fish's property.
   var borders;
+  // Same. Always axis aligned with x0,x1 at top left. Usually just
+  // one. Aliases the fish's property.
+  var exits;
 
   // normalized gravity vector
   var gravityddx, gravityddy;
@@ -34,14 +65,15 @@ class Game extends MovieClip {
   // on the wall. Or actually, should be significantly dampened when
   // you're not on the wall.
 
-
-
-  var all_fishes = [ 'red' ];
+  var all_fishes = 
+    { red: { bg: '#581C1C' },
+      purple: { bg: '#421458' } };
+  var fishnames = [];
 
   var PLAYING = 0;
   var mode = PLAYING;
 
-  var advance = false;
+  var advance = true;
   var holdingSpace = false, holdingEsc = false,
     holdingUp = false, holdingLeft = false,
     holdingRight = false, holdingDown = false;
@@ -103,7 +135,7 @@ class Game extends MovieClip {
   public function setFish(name) {
     ctr++;
     fish_mc =
-      _root.attachMovie("red", "fish" + ctr, 4000,
+      _root.attachMovie(name, "fish" + ctr, 4000,
                         {_x: 300, _y: 300});
 
     // Caller should have established this or nearly so, so that
@@ -111,8 +143,11 @@ class Game extends MovieClip {
     ballx = 0;
     bally = 0;
 
-    // copy geometry from fish. game coords.
-    borders = fish_mc.borders;
+    // alias geometry from fish. game coords.
+    // note, these haven't been initialized yet!
+    this.borders = fish_mc.borders;
+    this.exits = fish_mc.exits;
+
     /*
     trace('fishmc:');
     for (var o in fish_mc) {
@@ -121,9 +156,59 @@ class Game extends MovieClip {
     */
   }
 
+  // Let's say 10 other fish.
+  var NUM_OTHER = 10;
+  // A fish is about 700x600. Make room
+  // for a hundred fish in each direction.
+  var WORLD_WIDTH = 70000;
+  var WORLD_HEIGHT = 60000;
+  public function initializeOthers() {
+    for (var i = 0; i < other_fish.length; i++) {
+      other_fish[i].mc.removeMovieClip();
+    }
+    other_fish = [];
+
+    for (var i = 0; i < NUM_OTHER; i++) {
+      var who = fishnames[int(Math.random() * 9999) % fishnames.length];
+
+      // The current fish is always at 0,0.
+      var x = Math.random() * WORLD_WIDTH - (WORLD_WIDTH / 2);
+      var y = Math.random() * WORLD_HEIGHT - (WORLD_HEIGHT / 2);
+
+      // Random destination.
+      var destx = Math.random() * WORLD_WIDTH - (WORLD_WIDTH / 2);
+      var desty = Math.random() * WORLD_HEIGHT - (WORLD_HEIGHT / 2);
+
+      // XXX avoid collisions with the current fish!
+
+      var mc_big = _root.attachMovie(who, 'other' + i, 3900 + i,
+                                     {_x: 0, _y: 0});
+      // XXX mc_radar.
+
+      other_fish.push({who: who, x: x, y: y, mc_big: mc_big,
+            dx: 0, dy: 0, hungry: false, destx: destx, desty: desty });
+    }
+  }
+
+  // Place the movie clip on the screen at the desired
+  // fish-centric coordinates. Doesn't set or do anything with
+  // rotation, but takes care of any scaling.
+  var XOFFSET = 300;
+  var YOFFSET = 300;
+  var SCALE = 25;
+  public function fishToScreen(mc, x, y) {
+    mc._x = XOFFSET + x;
+    mc._y = YOFFSET + y;
+    // mc._xscale = SCALE;
+    // mc._yscale = SCALE;
+  }
+
   // Initialize, the first time.
   public function onLoad() {
     Key.addListener(this);
+
+    for (var o in all_fishes)
+      fishnames.push(o);
 
     balldx = 0;
     balldy = 0;
@@ -131,11 +216,14 @@ class Game extends MovieClip {
     gravityddy = 4;
 
     ball_mc = _root.attachMovie("pinball", "pinball", 5000,
-                                // XXX won't be right; should
+                                // note: won't be right; should
                                 // be set in first onEnterFrame though.
                                 {_x: 0, _y: 0})
 
-    setFish('red');
+    setFish('purple');
+
+    // Need to populate the world.
+    initializeOthers();
 
     mode = PLAYING;
   }
@@ -181,7 +269,7 @@ class Game extends MovieClip {
   // Return the borders that I'd collide with if the ball were at
   // x,y.
   var last_collisions = [];
-  var BOUNCE_RADIUS = RADIUS * 1.01;
+  var BOUNCE_RADIUS = RADIUS * 1.05;
   public function getCollisionsAt(x, y, r) {
     var collisions = [];
 
@@ -345,7 +433,7 @@ class Game extends MovieClip {
       var ddx = gravityddx;
       var ddy = gravityddy;
 
-      // XXX allows me to jump off walls too...
+      // no air jumps!
       if (holdingUp) {
         ddy -= 20;
       }
@@ -411,7 +499,7 @@ class Game extends MovieClip {
         balldx *= RADIUS * 1.2;
         balldy *= RADIUS * 1.2;
         // trace('set terminal: ' + balldx + ' ' + balldy);
-      } else if (dlen < 0.5 && col.length > 0) {
+      } else if (dlen < 1 && col.length > 0) {
         // If going very slowly and touching the wall,
         // static friction stops us.
         // trace('stop');
@@ -423,22 +511,139 @@ class Game extends MovieClip {
 
       resolveForce(ballx, bally, balldx, balldy);
       
-      // Clip against all borders. The algorithm is not too bad:
-      //  1. Maintain the invariant that the circle never intersects
-      //     any line.
-      //  2. If the circle was in front of the line before, and is
-      //     atop it now, 
-      // ...
+      // XXX need gameToScreen.
+      // at 0,0.
+      fishToScreen(fish_mc, 0, 0);
 
+      // XXX this is wrong because game might be rotated around 0,0.
+      fishToScreen(ball_mc, ballx, bally);
 
+      // Check if we've made it into an exit area, transitioning
+      // states.
+      for (var i = 0; i < exits.length; i++) {
+        var e = exits[i];
+        if (ballx > e.x0 && ballx < e.x1 &&
+            bally > e.y0 && bally < e.y1) {
+          // Exited!
+          if (inside_fishes.length > 0) {
+            // XXXXXX need to make a nice transition!
+            _root.removeMovieClip(fish_mc);
+            var nextfish = inside_fishes[0];
+            inside_fishes = inside_fishes.slice(1);
+            setFish(nextfish);
+          } else {
+            // you win!!
+            trace('you win');
+          }
+        }
+      }
+
+      // Update world fish. I'll act first, since I need to adjust
+      // the coordinates of all the other fish according to my
+      // movement, so I stay at the center.
+      fishboredom++;
+      if (fishboredom > 1000) {
+        // Change my destination. Keep in mind that this is centered
+        // around me.
+        fishdestx = Math.random() * 10000 - 5000;
+        fishdesty = Math.random() * 5000 - 2500;
+      }
       
-      fish_mc._x = 300;
-      fish_mc._y = 300;
-      ball_mc._x = 300 + ballx;
-      ball_mc._y = 300 + bally;
+      // XXX. Is there another fish nearby? If so, swim away.
+      
+      // Where am I in relation to my destination? Swim towards it.
+      var destdist = distance(0, 0, fishdestx, fishdesty);
+      // Accelerate in the direction I want to go.
+      // This should probably be contingent on facing in
+      // that direction?
+      fishdx += (fishdestx / destdist) * 2;
+      fishdy += (fishdesty / destdist) * 2;
 
-      //  - Check if we've made it into the exit area, transitioning
-      //    states.
+      // Terminal velocity for fish.
+      var MAX_FISH_VELOCITY = 50;
+      var dlen = Math.sqrt((fishdx * fishdx) + (fishdy * fishdy));
+      if (dlen > MAX_FISH_VELOCITY) {
+        // Make normal.
+        fishdx /= dlen;
+        fishdy /= dlen;
+        fishdx *= MAX_FISH_VELOCITY;
+        fishdy *= MAX_FISH_VELOCITY;
+      }
+
+      // We don't actually modify the fish's coordinates because they
+      // are always 0,0; rather, we subtract this from every other
+      // fish's position.
+      fishdestx -= fishdx;
+      fishdesty -= fishdy;
+
+      // trace('fishd: ' + fishdx + ' ' + fishdy);
+      for (var i = 0; i < other_fish.length; i++) {
+        var f = other_fish[i];
+        // trace(i + ' ' + f.x + ' ' + f.y);
+
+        f.x -= fishdx;
+        f.y -= fishdy;
+
+        // This also needs to be in world coords, relative to the
+        // current fish.
+        f.destx -= fishdx;
+        f.desty -= fishdy;
+
+        // Opportunistically, get hungry and go after the current
+        // fish.
+        var dist_to_fish = distance(f.x, f.y, 0, 0);
+        if (true || dist_to_fish < 2500) {
+          // trace(i + ' is hungry!!');
+          f.hungry = true;
+        } else if (f.hungry && dist_to_fish > 10000) {
+          trace(i + ' isn\'t hungry any more');
+          f.hungry = false;
+        }
+
+        // XXX if it can eat the fish, do it!
+
+        // If it's close to its destination, pick another one.
+        if (distance(f.x, f.y, f.destx, f.desty) < 400) {
+          // Random destination.
+          f.destx = Math.random * WORLD_WIDTH - (WORLD_WIDTH / 2);
+          f.desty = Math.random * WORLD_HEIGHT - (WORLD_HEIGHT / 2);
+        }
+
+        // XXX animate hungry.
+
+        var tx = f.hungry ? -f.x : (f.destx - f.x);
+        var ty = f.hungry ? -f.y : (f.desty - f.y);
+
+        // Where am I in relation to my destination? Swim towards it.
+        var tdist = distance(0, 0, tx, ty);
+        // XXX, also should be contingent on facing that way.
+        // Should be a little faster than the current fish (it's
+        // got a pinball in it. :))
+        if (tdist > 0) {
+          f.dx += (tx / tdist) * 2.2;
+          f.dy += (ty / tdist) * 2.2;
+        }
+
+        // Terminal velocity for fish.
+        var dlen = Math.sqrt((f.dx * f.dx) + (f.dy * f.dy));
+        if (dlen > MAX_FISH_VELOCITY) {
+          // Make normal.
+          f.dx /= dlen;
+          f.dy /= dlen;
+          f.dx *= MAX_FISH_VELOCITY;
+          f.dy *= MAX_FISH_VELOCITY;
+        }
+
+        // Now actually move this fish.
+        f.x += f.dx;
+        f.y += f.dy;
+
+        // PERF this is usually off the screen. Dunno if
+        // flash is smart about that. There are only ten, though.
+        // Could set _visible = false if clearly off screen.
+        // trace(i + ' to ' + f.x + ' ' + f.y);
+        fishToScreen(f.mc_big, f.x, f.y);
+      }
 
       // Update world:
       //  - For each fish in the world, run their AI to go after
