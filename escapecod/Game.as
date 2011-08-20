@@ -12,6 +12,7 @@ class Game extends MovieClip {
   // The fish I'm currently in. I just use this to animate. We
   // keep game state locally.
   var fish_mc;
+  var fish_mc_radar;
 
   // Fish is always at 0,0.
   var fishdx = 0, fishdy = 0;
@@ -179,7 +180,13 @@ class Game extends MovieClip {
     ctr++;
     fish_mc =
       _root.attachMovie(name, "fish" + ctr, 4000,
-                        {_x: 300, _y: 300});
+                        {_x: 0, _y: 0});
+
+    fish_mc_radar =
+      this.radar_mc.attachMovie(name + '_radar', 'myfish', 8100,
+                                {_x: 0, _y: 0});
+    // never hungry
+    fish_mc_radar.gotoAndStop(1);
 
     // Caller should have established this or nearly so, so that
     // this doesn't jump.
@@ -224,9 +231,12 @@ class Game extends MovieClip {
 
       var mc_big = _root.attachMovie(who, 'other' + i, 3900 + i,
                                      {_x: 0, _y: 0});
-      // XXX mc_radar.
+
+      var mc_radar = this.radar_mc.attachMovie(who + '_radar', 'otherr' + i,
+                                               8000 + i, {_x: 0, _y: 0});
 
       other_fish.push({who: who, x: x, y: y, mc_big: mc_big,
+            mc_radar: mc_radar,
             dx: 0, dy: 0, hungry: false, destx: destx, desty: desty });
     }
   }
@@ -242,6 +252,16 @@ class Game extends MovieClip {
     mc._y = YOFFSET + y;
     // mc._xscale = SCALE;
     // mc._yscale = SCALE;
+  }
+
+  var RADAR_XOFFSET = Radar.WIDTH / 2;
+  var RADAR_YOFFSET = Radar.HEIGHT / 2;
+  var RADAR_SCALE = 4;
+  public function fishToRadar(mc, x, y) {
+    mc._x = RADAR_XOFFSET + x / RADAR_SCALE;
+    mc._y = RADAR_YOFFSET + y / RADAR_SCALE;
+    mc._xscale = 100 / RADAR_SCALE;
+    mc._yscale = 100 / RADAR_SCALE;
   }
 
   // Initialize, the first time.
@@ -601,6 +621,7 @@ class Game extends MovieClip {
             var nextfish = inside_fishes[0];
             inside_fishes = inside_fishes.slice(1);
             setFish(nextfish);
+            initializeOthers();
           } else {
             // you win!!
             trace('you win');
@@ -679,7 +700,12 @@ class Game extends MovieClip {
           f.desty = Math.random * WORLD_HEIGHT - (WORLD_HEIGHT / 2);
         }
 
-        // XXX animate hungry.
+        // XXX animate hungry for big too.
+        if (f.hungry) {
+          f.mc_radar.gotoAndStop(2);
+        } else {
+          f.mc_radar.gotoAndStop(1);
+        }
 
         var tx = f.hungry ? -f.x : (f.destx - f.x);
         var ty = f.hungry ? -f.y : (f.desty - f.y);
@@ -713,7 +739,11 @@ class Game extends MovieClip {
         // Could set _visible = false if clearly off screen.
         // trace(i + ' to ' + f.x + ' ' + f.y);
         fishToScreen(f.mc_big, f.x, f.y);
+        fishToRadar(f.mc_radar, f.x, f.y);
       }
+
+      // Draw main fish in radar.
+      fishToRadar(fish_mc_radar, 0, 0);
 
       // Update world:
       //  - For each fish in the world, run their AI to go after
