@@ -70,6 +70,10 @@ class Game extends MovieClip {
   //  - x,y  in parallax coordinates
   //  - dx,dy  in parallax coordinates
   var all_seadust = [];
+  var MAX_DUST_ALPHA = 50;
+  var MIN_DUST_ALPHA = 5;
+  var dustalphaframes = 0;
+  var DUSTALPHA_FRAMES = 40;
 
 
   /////////////////
@@ -85,6 +89,7 @@ class Game extends MovieClip {
   // XXX randomize at start?
   var fishdestx = 100, fishdesty = 20;
   var fishboredom = 0;
+  var MAX_FISH_VELOCITY = 40;
   
   // Not a pun. Percentage of full size that the fish should
   // render at. Usually 100, but when being swallowed, we zoom
@@ -173,18 +178,25 @@ class Game extends MovieClip {
 
     switch(k) {
     case 's':
-      for (var i = 0; i < all_seadust.length; i++) {
-        var d = all_seadust[i];
-        trace('seadust: ' + d.x + ' ' + d.y);
-      }
       break;
     case 27: // esc
     case 'r':
       holdingEsc = true;
       break;
-    case 32: // space
+
     case 38: // up
+      for (var i = 0; i < all_seadust.length; i++) {
+        var d = all_seadust[i];
+        trace('seadust: ' + d.x + ' ' + d.y);
+      }
+      trace('dust: ' + DUSTW + ' ' + DUSTH);
+      // fallthrough
+
+    case 32: // space
       holdingUp = true;
+      /*
+      */
+
       break;
     case 37: // left
       holdingLeft = true;
@@ -302,6 +314,14 @@ class Game extends MovieClip {
     // being swallowed?
     fishdr = 0;
     fishr = 0;
+    // random velocity.
+    fishdx = Math.random() * MAX_FISH_VELOCITY * 0.2 -
+      (MAX_FISH_VELOCITY / 0.4);
+    fishdy = Math.random() * MAX_FISH_VELOCITY * 0.2 -
+      (MAX_FISH_VELOCITY / 0.4);
+
+    // Make us pick a new destination right away.
+    fishboredom = 1000;
 
     /*
     // Caller should have established this or nearly so, so that
@@ -371,8 +391,8 @@ class Game extends MovieClip {
   // Defines the view frustum for debris, in world coordinates.
   // We draw some things off screen, because we need to have
   // the illusion of constant density even when we zoom out.
-  var DUSTW = (100 / MIN_SCALE) * SCREENW * 1.1;
-  var DUSTH = (100 / MIN_SCALE) * SCREENH * 1.1;
+  var DUSTW = 2 * (100 / MIN_SCALE) * SCREENW * 1.1;
+  var DUSTH = 2 * (100 / MIN_SCALE) * SCREENH * 1.1;
   var FRUSTUM = 2;
 
   // Try to put seadust at the relative correct Flash depth based
@@ -399,11 +419,13 @@ class Game extends MovieClip {
     }
     all_seadust = [];
 
+    dustalphaframes = 0;
+
     for (var i = 0; i < NUM_SEADUST; i++) {
       var depth = Math.random();
       var mult = FRUSTUM * depth;
-      var x = mult * (Math.random() * DUSTW - (DUSTW / 2));
-      var y = mult * (Math.random() * DUSTH - (DUSTH / 2));
+      var x = Math.random() * DUSTW - (DUSTW / 2);
+      var y = Math.random() * DUSTH - (DUSTH / 2);
 
       // Stuff should float a little. It can even move in dz?
       // but it should probably be based on some kind of
@@ -424,7 +446,7 @@ class Game extends MovieClip {
       // Might want to prefer vertical orientations?
       mc._rotation = Math.random() * 360.0;
 
-      mc._alpha = 50 - (depth * 45);
+      mc._alpha = 0; // 50 - (depth * 45);
       // Not setting scale. This is set in seadustToScreen.
       all_seadust.push({who: who,
             mc: mc, x: x, y: y, dx: dx, dy: dy,
@@ -894,6 +916,18 @@ class Game extends MovieClip {
             // Abort any swallowing.
             swallower = -1;
 
+            // XXX move in front of fish instead, then fade.
+            for (var i = 0; i < all_seadust.length; i++) {
+              var d = all_seadust[i];
+              d.mc._visible = false;
+              // seadustToScreen(d);
+            }
+
+            // Ditto...
+            for (var i = 0; i < other_fish.length; i++) {
+              other_fish[i].mc_big._visible = false;
+            }
+
             // Immediately start, because we don't
             // want to spend any time with the fish
             // at the wrong size.
@@ -936,7 +970,6 @@ class Game extends MovieClip {
       fishdy += (fishdesty / destdist) * 2;
 
       // Terminal velocity for fish.
-      var MAX_FISH_VELOCITY = 40;
       var dlen = Math.sqrt((fishdx * fishdx) + (fishdy * fishdy));
       if (dlen > MAX_FISH_VELOCITY) {
         // Make normal.
@@ -1118,7 +1151,7 @@ class Game extends MovieClip {
       }
       
       // XXX testing debris
-      fishscale = MIN_SCALE;
+      // fishscale = MIN_SCALE;
 
       // at 0,0.
       fish_mc._rotation = (fishr * 180) / Math.PI;
@@ -1162,8 +1195,15 @@ class Game extends MovieClip {
   }
 
   public function updateSeadust(fdx, fdy) {
-    var MDUSTW = 2 * FRUSTUM * DUSTW;
-    var MDUSTH = 2 * FRUSTUM * DUSTH;
+    // var MDUSTW = 4 * FRUSTUM * DUSTW;
+    // var MDUSTH = 4 * FRUSTUM * DUSTH;
+    // var MDUSTW = 200;
+    // var MDUSTH = 200;
+    var MDUSTW = DUSTW / 2;
+    var MDUSTH = DUSTH / 2;
+    if (dustalphaframes < DUSTALPHA_FRAMES) {
+      dustalphaframes++;
+    }
     for (var i = 0; i < all_seadust.length; i++) {
       var d = all_seadust[i];
       var mult = FRUSTUM * d.depth;
@@ -1172,15 +1212,20 @@ class Game extends MovieClip {
       d.y -= fdy;
 
       // Just do modular for now.
-      if (d.x > MDUSTW / 2)
-        d.x -= MDUSTW / 2;
-      else if (d.x < MDUSTW / -2)
-        d.x += MDUSTW / 2;
+      if (d.x > MDUSTW)
+        d.x -= DUSTW;
+      else if (d.x < -MDUSTW)
+        d.x += DUSTW;
 
-      if (d.y > MDUSTH / 2)
-        d.y -= MDUSTH / 2;
-      else if (d.y < MDUSTH / -2)
-        d.y += MDUSTH / 2;
+      if (d.y > MDUSTH)
+        d.y -= DUSTH;
+      else if (d.y < -MDUSTH)
+        d.y += DUSTH;
+
+      d.mc._alpha = 
+        (dustalphaframes / DUSTALPHA_FRAMES) *
+        (MAX_DUST_ALPHA - 
+         ((MAX_DUST_ALPHA - MIN_DUST_ALPHA) * d.depth));
 
       seadustToScreen(d);
     }
@@ -1226,6 +1271,17 @@ class Game extends MovieClip {
       ballToScreen(ball_mc, ballx, bally, 0);
       fishToScreen(old_fish_mc, old_fishx, old_fishy, ofs);
       fishToScreen(fish_mc, 0, 0, fs);
+
+      /*
+        // XXX can't do it unless we bring it in front of fish.
+      for (var i = 0; i < all_seadust.length; i++) {
+        var d = all_seadust[i];
+        d.x += dx;
+        d.y += dy;
+        d.mc._alpha *= .8;
+        seadustToScreen(d);
+      }
+      */
 
       // XXX radar too.
 
