@@ -6,12 +6,13 @@ class Game extends MovieClip {
   // The fishes I'm inside, not including the one that is
   // currently the game. Element 0 is the nearest enclosing fish.
   // Just fish names like 'purple'.
-  var inside_fishes = ['red', 'purple', 'purple',
-                       'red', 'purple', 'red', 'red',
-                       'red', 'purple', 'red', 'purple',
-                       'red', 'purple', 'red', 'purple',
-                       'red', 'purple', 'red', 'purple',
-                       'red', 'purple', 'red' ];
+  var inside_fishes = ['orange', 'green', 
+                       'purple', 'red', 'orange',
+                       'green', 'red', 'purple', 'red',
+                       'red', 'purple', 'orange', 'red', 'purple',
+                       'red', 'orange', 'purple', 'green', 'purple',
+                       'orange', 'orange', 'green', 'purple',
+                       'red', 'green', 'red' ];
   var current_background = 0;
   
   // The fish I'm currently in. I just use this to animate. We
@@ -97,7 +98,9 @@ class Game extends MovieClip {
 
   var all_fishes = 
     { red: { bg: 0x581C1C },
-      purple: { bg: 0x421458 } };
+      purple: { bg: 0x421458 },
+      orange: { bg: 0x794A11 },
+      green: { bg: 0x092A12 } };
   var fishnames = [];
 
   var PLAYING = 0;
@@ -194,13 +197,13 @@ class Game extends MovieClip {
         var x1 = x0 + Math.cos(rrad) * w;
         var y1 = y0 + Math.sin(rrad) * w;
 
-        trace('found solid ' + o + ' ' + x0 + ' ' + y0);
+        // trace('found solid ' + o + ' ' + x0 + ' ' + y0);
         this.borders.push({x0 : x0, y0 : y0, x1 : x1, y1 : y1,
               w : w, rrad : rrad });
 
       } else if (f[o] instanceof Exit) {
         var mc = f[o];
-        trace('found exit ' + o + ' ' + mc._x + ' ' + mc._y);
+        // trace('found exit ' + o + ' ' + mc._x + ' ' + mc._y);
         // Assuming these are axis aligned with the registration
         // in the top-left corner.
         this.exits.push({x0: mc._x, y0: mc._y,
@@ -555,7 +558,7 @@ class Game extends MovieClip {
     // the first time we need it.
     if (this.borders == null) {
       getFishPieces(fish_mc);
-      trace('now there are ' + this.borders.length + ' borders');
+      // trace('now there are ' + this.borders.length + ' borders');
     }
 
     // Set background for radar and game. Do this since we could
@@ -570,7 +573,7 @@ class Game extends MovieClip {
     }
 
     if (current_background != bgcolor) {
-      trace('setting bgcolor to ' + bgcolor);
+      // trace('setting bgcolor to ' + bgcolor);
       current_background = bgcolor;
       this.radar_mc.setBackground(bgcolor);
       this.setBackground(bgcolor);
@@ -861,8 +864,8 @@ class Game extends MovieClip {
         // flash is smart about that. There are only ten, though.
         // Could set _visible = false if clearly off screen.
         // trace(i + ' to ' + f.x + ' ' + f.y);
-        f.mc_big._rotation = (fishr * 180) / Math.PI;
-        f.mc_radar._rotation = (fishr * 180) / Math.PI;
+        f.mc_big._rotation = (f.r * 180) / Math.PI;
+        f.mc_radar._rotation = (f.r * 180) / Math.PI;
         fishToScreen(f.mc_big, f.x, f.y);
         fishToRadar(f.mc_radar, f.x, f.y);
       }
