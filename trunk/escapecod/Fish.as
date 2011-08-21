@@ -10,7 +10,7 @@ class Fish extends MovieClip {
   // Hides its internal geometry, copying it into
   // state.
   public function onLoad() {
-    trace('fish onload');
+    // trace('fish onload');
 
     for (var o in this) {
       // trace(o);
