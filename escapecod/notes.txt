@@ -3,6 +3,7 @@ Depths:
  - background: 1000
  - other fish (big): 3900 - 3910
  - current fish: 4000
+ - old fish when regurgitating: 4010
  - ball movieclip: 5000
  - radar: 6000
    - radar bg: 7000

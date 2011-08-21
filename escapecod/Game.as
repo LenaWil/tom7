@@ -6,13 +6,25 @@ class Game extends MovieClip {
   // The fishes I'm inside, not including the one that is
   // currently the game. Element 0 is the nearest enclosing fish.
   // Just fish names like 'purple'.
-  var inside_fishes = ['red', 'purple'];
+  var inside_fishes = ['red', 'purple', 'purple',
+                       'red', 'purple', 'red', 'red',
+                       'red', 'purple', 'red', 'purple',
+                       'red', 'purple', 'red', 'purple',
+                       'red', 'purple', 'red', 'purple',
+                       'red', 'purple', 'red' ];
   var current_background = 0;
   
   // The fish I'm currently in. I just use this to animate. We
   // keep game state locally.
   var fish_mc;
   var fish_mc_radar;
+
+  // Previous fish's movie clip. Only set when mode == REGURGITATE.
+  var old_fish_mc;
+  // when regurgitating, we offset the old fish by this amount.
+  var old_fishx;
+  var old_fishy;
+
 
   // Background movieclip. Replaced with an empty movie clip
   // and then filled whenever we need a new background color.
@@ -38,6 +50,7 @@ class Game extends MovieClip {
   //  x,y: authoritative world coordinates, relative to
   //    the current fish.
   //  dx,dy: velocity vector
+  //  r,dr: rotation and drotation in radians
   //  destx,desty: destination when swimming aimlessly.
   //  hungry: true if we're swimming straight towards the
   //    target fish (at 0,0) with our mouth open, to try to
@@ -88,6 +101,7 @@ class Game extends MovieClip {
   var fishnames = [];
 
   var PLAYING = 0;
+  var REGURGITATE = 1;
   var mode = PLAYING;
 
   var advance = true;
@@ -101,6 +115,7 @@ class Game extends MovieClip {
 
     switch(k) {
     case 27: // esc
+    case 'r':
       holdingEsc = true;
       break;
     case 32: // space
@@ -207,12 +222,13 @@ class Game extends MovieClip {
     ctr++;
     fish_mc =
       _root.attachMovie(name, "fish" + ctr, 4000,
-                        {_x: 0, _y: 0});
+                        {_x: -10000, _y: -10000});
 
     fish_mc_radar =
       this.radar_mc.attachMovie(name + '_radar', 'myfish', 8100,
-                                {_x: 0, _y: 0});
-    // never hungry
+                                {_x: -10000, _y: -10000});
+
+    // never hungry. already ate a pinball.
     fish_mc_radar.gotoAndStop(1);
 
     // should this be randomized? or remembered from when the
@@ -221,10 +237,12 @@ class Game extends MovieClip {
     fishdr = 0;
     fishr = 0;
 
+    /*
     // Caller should have established this or nearly so, so that
     // this doesn't jump.
     ballx = 0;
     bally = 0;
+    */
 
     this.borders = null;
     this.exits = null;
@@ -245,7 +263,8 @@ class Game extends MovieClip {
   var WORLD_HEIGHT = 60000;
   public function initializeOthers() {
     for (var i = 0; i < other_fish.length; i++) {
-      other_fish[i].mc.removeMovieClip();
+      other_fish[i].mc_big.removeMovieClip();
+      other_fish[i].mc_radar.removeMovieClip();
     }
     other_fish = [];
 
@@ -263,13 +282,20 @@ class Game extends MovieClip {
       // XXX avoid collisions with the current fish!
 
       var mc_big = _root.attachMovie(who, 'other' + i, 3900 + i,
-                                     {_x: 0, _y: 0});
+                                     {_x: -10000, _y: -10000});
 
       var mc_radar = this.radar_mc.attachMovie(who + '_radar', 'otherr' + i,
-                                               8000 + i, {_x: 0, _y: 0});
+                                               8000 + i, 
+                                               {_x: -10000, 
+                                                _y: -10000});
+
+      // Start at a random angle? Based on the way these fish swim
+      // it's realistic...
+      var r = Math.random() * 2 * Math.PI - Math.PI;
+      var dr = 0;
 
       other_fish.push({who: who, x: x, y: y, mc_big: mc_big,
-            mc_radar: mc_radar,
+            mc_radar: mc_radar, r: r, dr: dr,
             dx: 0, dy: 0, hungry: false, destx: destx, desty: desty });
     }
   }
@@ -301,13 +327,13 @@ class Game extends MovieClip {
 
   var RADAR_XOFFSET = Radar.WIDTH / 2;
   var RADAR_YOFFSET = Radar.HEIGHT / 2;
-  var RADAR_SCALE = 8;
-  var FISH_SCALE = 2;
+  var RADAR_SCALE = 32;
+  var FISH_SCALE = 4;
   public function fishToRadar(mc, x, y) {
     mc._x = RADAR_XOFFSET + x / RADAR_SCALE;
     mc._y = RADAR_YOFFSET + y / RADAR_SCALE;
-    mc._xscale = 100 / (RADAR_SCALE / FISH_SCALE);
-    mc._yscale = 100 / (RADAR_SCALE / FISH_SCALE);
+    mc._xscale = 100 / FISH_SCALE;
+    mc._yscale = 100 / FISH_SCALE;
   }
 
   // Initialize, the first time.
@@ -316,6 +342,9 @@ class Game extends MovieClip {
 
     for (var o in all_fishes)
       fishnames.push(o);
+
+    ballx = 0;
+    bally = 0;
 
     balldx = 0;
     balldy = 0;
@@ -456,7 +485,6 @@ class Game extends MovieClip {
     }
   }
   
-  // XXX docs out of date?
   // Resolve the motion of the ball, assuming we don't start
   // inside an obstacle. Without any obstacles,
   // this just sets ballx = startx + dx and bally = starty + dy.
@@ -516,6 +544,9 @@ class Game extends MovieClip {
       // trace('new vel: ' + balldx + ' ' + balldy);
     }
   }
+
+  var REGURGITATE_FRAMES = 24;
+  var framesleft = 0;
 
   public function onEnterFrame() {
 
@@ -669,13 +700,37 @@ class Game extends MovieClip {
             bally > e.y0 && bally < e.y1) {
           // Exited!
           if (inside_fishes.length > 0) {
-            // XXXXXX need to make a nice transition!
-            _root.removeMovieClip(fish_mc);
+            // Make a nice transition to the outer fish,
+            // by going into REGURGITATE mode.
+            old_fish_mc = fish_mc;
+            old_fish_mc.swapDepths(4010);
+            fish_mc = null;
+
+            // The new fish spawns with fishr = 0, so
+            // put the ball in the same screen position
+            // but as if fishr = 0.
+            var nball = rotateVec(ballx, bally, fishr);
+            // trace('oldball: ' + ballx + ' ' + bally + ' new: ' +
+            // nball.dx + ' ' + nball.dy);
+            ballx = nball.dx;
+            bally = nball.dy;
+
             var nextfish = inside_fishes[0];
             inside_fishes = inside_fishes.slice(1);
             setFish(nextfish);
-            initializeOthers();
+            mode = REGURGITATE;
+
+            old_fishx = 0;
+            old_fishy = 0;
+            framesleft = REGURGITATE_FRAMES;
+            // Immediately start, because we don't
+            // want to spend any time with the fish
+            // at the wrong size.
+            regurgitate();
+            // Don't do anything else on this frame,
+            return;
           } else {
+            // XXX need something to happen here...
             // you win!!
             trace('you win');
           }
@@ -695,7 +750,7 @@ class Game extends MovieClip {
         // Change my destination. Keep in mind that this is centered
         // around me.
         fishdestx = Math.random() * 20000 - 10000;
-        fishdesty = Math.random() * 10000 - 500;
+        fishdesty = Math.random() * 10000 - 5000;
         fishboredom = 0;
         trace('new target: ' + fishdestx + ' ' + fishdesty);
         destdist = distance(0, 0, fishdestx, fishdesty);
@@ -720,26 +775,9 @@ class Game extends MovieClip {
         fishdy *= MAX_FISH_VELOCITY;
       }
 
-      // Compute the direction we'd like to be heading.
-      var headingrad = Math.atan2(fishdy, fishdx);
-
-      var newfishdr = headingrad - fishr;
-      if (newfishdr < -Math.PI) newfishdr += Math.PI;
-      else if (newfishdr > Math.PI) newfishdr -= Math.PI;
-      fishdr += newfishdr * 0.1;
-
-      var TERMINAL_ROTATION = 0.05;
-      if (fishdr > TERMINAL_ROTATION) {
-        fishdr = TERMINAL_ROTATION;
-      } else if (fishdr < -TERMINAL_ROTATION) {
-        fishdr = -TERMINAL_ROTATION;
-      }
-
-      // Use it.
-      fishr += fishdr;
-      if (fishr > Math.PI * 2) {
-        fishr -= Math.PI * 2;
-      }
+      var heading = getFishHeading(fishdx, fishdy, fishr, fishdr);
+      fishr = heading.r;
+      fishdr = heading.dr;
 
       // We don't actually modify the fish's coordinates because they
       // are always 0,0; rather, we subtract this from every other
@@ -810,6 +848,11 @@ class Game extends MovieClip {
           f.dy *= MAX_FISH_VELOCITY;
         }
 
+        // Try to face in the direction we're moving.
+        var heading = getFishHeading(f.dx, f.dy, f.r, f.dr);
+        f.dr = heading.dr;
+        f.r = heading.r;
+
         // Now actually move this fish.
         f.x += f.dx;
         f.y += f.dy;
@@ -818,6 +861,8 @@ class Game extends MovieClip {
         // flash is smart about that. There are only ten, though.
         // Could set _visible = false if clearly off screen.
         // trace(i + ' to ' + f.x + ' ' + f.y);
+        f.mc_big._rotation = (fishr * 180) / Math.PI;
+        f.mc_radar._rotation = (fishr * 180) / Math.PI;
         fishToScreen(f.mc_big, f.x, f.y);
         fishToRadar(f.mc_radar, f.x, f.y);
       }
@@ -826,25 +871,106 @@ class Game extends MovieClip {
       fish_mc_radar._rotation = (fishr * 180) / Math.PI;
       fishToRadar(fish_mc_radar, 0, 0);
 
-      // Update world:
-      //  - For each fish in the world, run their AI to go after
-      //    me or bloop around or whatever.
-      //  - Same for my own fish. This affects the fish's acceleration
-      //    parameters above (and gravity), but it doesn't have to be
-      //    this frame since the fish's world location does not affect 
-      //    game coordinates.
-      //    (though world update could happen before physics resolution
-      //     if we want.)
+      // TODO:
       //  - My fish might be eaten. Animate that happening. On the radar,
       //    animate the larger fish drawing chomping on the smaller one.
       //    as it chomps, make its scale (and the scale of anything else
       //    on the marine radar) explode as they scale out. Repopulate
       //    the world with new fish, maybe by fading in, or maybe by
       //    starting them off-screen.
-      //  TODO: The marine radar requires clipping of movieclips within it.
-      //     nice. You can do this with flash "masks". I learned a new thing!
 
+    } else if (mode == REGURGITATE) {
+      regurgitate();
     }
   }
 
+  public function regurgitate() {
+
+    /*
+    if (!advance)
+      return;
+    advance = false;
+    */
+
+    // In this mode we are (quickly, since the user has lost
+    // control) tweening between being in the fish in
+    // old_fish_mc and the new fish in fish_mc.
+    var frac = framesleft / REGURGITATE_FRAMES;
+    framesleft--;
+
+    if (framesleft >= 0) {
+      // Eases into centering the ball at 0,0.
+      // We scroll the old fish away to make it
+      // look like the camera is just following
+      // the ball now, but that we haven't lost
+      // its velocity.
+      var newballx = ballx * 0.8;
+      var newbally = bally * 0.8;
+
+      var dx = newballx - ballx;
+      var dy = newbally - bally;
+
+      ballx = newballx;
+      bally = newbally;
+
+      old_fishx += dx;
+      old_fishy += dy;
+      // trace(dx + ' ' + dy + ' / ' + old_fishx + ' ' + old_fishy);
+
+      fish_mc._xscale = 100 + (300 * frac);
+      fish_mc._yscale = 100 + (300 * frac);
+      old_fish_mc._xscale = 100 - 75 * (1 - frac);
+      old_fish_mc._yscale = 100 - 75 * (1 - frac);
+      old_fish_mc._alpha = frac * 100;
+
+      ballToScreen(ball_mc, ballx, bally, 0);
+      fishToScreen(old_fish_mc, old_fishx, old_fishy);
+      fishToScreen(fish_mc, 0, 0);
+
+      // XXX radar too.
+
+    } else {
+      // because these are known safe coordinates.
+      // we should basically already be there anyway.
+      ballx = 0;
+      bally = 0;
+
+      old_fish_mc.removeMovieClip();
+      old_fish_mc = null;
+
+      fish_mc._xscale = 100;
+      fish_mc._yscale = 100;
+      fish_mc._alpha = 100;
+      mode = PLAYING;
+      initializeOthers();
+    }
+  }
+
+  // 
+  public function getFishHeading(dx, dy, r, dr) {
+    // Compute the direction we'd like to be heading.
+    var headingrad = Math.atan2(dy, dx);
+
+    var newdr = headingrad - r;
+    if (newdr < -Math.PI) newdr += Math.PI;
+    else if (newdr > Math.PI) newdr -= Math.PI;
+    dr += newdr * 0.1;
+
+    var TERMINAL_ROTATION = 0.05;
+    if (dr > TERMINAL_ROTATION) {
+      dr = TERMINAL_ROTATION;
+    } else if (dr < -TERMINAL_ROTATION) {
+      dr = -TERMINAL_ROTATION;
+    }
+
+    // Use it.
+    r += dr;
+    if (r > Math.PI * 2) {
+      r -= Math.PI * 2;
+    }
+
+    return { r: r, dr: dr };
+  }
+
 }
+
