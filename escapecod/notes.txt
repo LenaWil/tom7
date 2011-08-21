@@ -1,5 +1,6 @@
 
 Depths:
+ - background: 1000
  - other fish (big): 3900 - 3910
  - current fish: 4000
  - ball movieclip: 5000
@@ -21,6 +22,7 @@ Fish radar:
 
 TODO:
  - almost everything!
+ - MUSIC
  - start screen. Might even need instructions if the controls aren't arrows.
  - end screen (lighthouse?)
     - pearl in clam?

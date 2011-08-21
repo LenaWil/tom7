@@ -38,7 +38,7 @@ class Radar extends MovieClip {
     if (this.background) {
       this.background.removeMovieClip();
     }
-    this.background = this.createEmptyMovieClip('rm', 7000);
+    this.background = this.createEmptyMovieClip('rbg', 7000);
     this.background._x = 0;
     this.background._y = 0;
 

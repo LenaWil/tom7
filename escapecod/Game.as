@@ -14,8 +14,16 @@ class Game extends MovieClip {
   var fish_mc;
   var fish_mc_radar;
 
+  // Background movieclip. Replaced with an empty movie clip
+  // and then filled whenever we need a new background color.
+  var background_mc = null;
+
   // Fish is always at 0,0.
   var fishdx = 0, fishdy = 0;
+  // Heading in radians.
+  var fishr;
+  // Fish can only steer by changing dr, but it can change it pretty quickly.
+  var fishdr;
   // XXX randomize at start?
   var fishdestx = 100, fishdesty = 20;
   var fishboredom = 0;
@@ -61,7 +69,10 @@ class Game extends MovieClip {
   var exits = null;
 
   // normalized gravity vector
-  var gravityddx, gravityddy;
+  // var gravityddx, gravityddy;
+  var XGRAVITY = 0;
+  var YGRAVITY = 4;
+
   // position of center of ball. Constant size.
   var ballx, bally;
   // velocity of ball.
@@ -131,6 +142,22 @@ class Game extends MovieClip {
     }
   }
 
+  public function setBackground(hexcolor) {
+    if (this.background_mc) {
+      this.background_mc.removeMovieClip();
+    }
+    this.background_mc = _root.createEmptyMovieClip('bg', 1000);
+    this.background_mc._x = 0;
+    this.background_mc._y = 0;
+
+    this.background_mc.beginFill(hexcolor);
+    this.background_mc.moveTo(0, 0);
+    this.background_mc.lineTo(0, SCREENH);
+    this.background_mc.lineTo(SCREENW, SCREENH);
+    this.background_mc.lineTo(SCREENW, 0);
+    this.background_mc.endFill();
+  }
+
   // Read the fish's pieces. This doesn't hide the movieclips
   // (that's done in the onLoad for the fish), but keeps the
   // canonical copy. We only do it for the fish we're actually
@@ -187,6 +214,12 @@ class Game extends MovieClip {
                                 {_x: 0, _y: 0});
     // never hungry
     fish_mc_radar.gotoAndStop(1);
+
+    // should this be randomized? or remembered from when the
+    // fish swallowed us, for continuity if we escape just as
+    // being swallowed?
+    fishdr = 0;
+    fishr = 0;
 
     // Caller should have established this or nearly so, so that
     // this doesn't jump.
@@ -254,14 +287,27 @@ class Game extends MovieClip {
     // mc._yscale = SCALE;
   }
 
+  // Ignores scaling because we need a visual cheat so
+  // that the pinball doesn't keep getting smaller as more
+  // fishes swallow you. Takes care of rotation.
+  public function ballToScreen(mc, x, y, rrad) {
+    var sinr = Math.sin(rrad);
+    var cosr = Math.cos(rrad);
+    mc._x = XOFFSET + x * cosr - y * sinr;
+    mc._y = YOFFSET + x * sinr + y * cosr;
+    // mc._xscale = SCALE;
+    // mc._yscale = SCALE;
+  }
+
   var RADAR_XOFFSET = Radar.WIDTH / 2;
   var RADAR_YOFFSET = Radar.HEIGHT / 2;
-  var RADAR_SCALE = 4;
+  var RADAR_SCALE = 8;
+  var FISH_SCALE = 2;
   public function fishToRadar(mc, x, y) {
     mc._x = RADAR_XOFFSET + x / RADAR_SCALE;
     mc._y = RADAR_YOFFSET + y / RADAR_SCALE;
-    mc._xscale = 100 / RADAR_SCALE;
-    mc._yscale = 100 / RADAR_SCALE;
+    mc._xscale = 100 / (RADAR_SCALE / FISH_SCALE);
+    mc._yscale = 100 / (RADAR_SCALE / FISH_SCALE);
   }
 
   // Initialize, the first time.
@@ -273,8 +319,6 @@ class Game extends MovieClip {
 
     balldx = 0;
     balldy = 0;
-    gravityddx = 0;
-    gravityddy = 4;
 
     ball_mc = _root.attachMovie("pinball", "pinball", 5000,
                                 // note: won't be right; should
@@ -498,6 +542,7 @@ class Game extends MovieClip {
       trace('setting bgcolor to ' + bgcolor);
       current_background = bgcolor;
       this.radar_mc.setBackground(bgcolor);
+      this.setBackground(bgcolor);
     }
 
 
@@ -520,19 +565,26 @@ class Game extends MovieClip {
       // apply forces when on surfaces, as it produces jittery
       // or sticky results at best. If we're near walls,
       // apply rolling forces.
-      var ddx = gravityddx;
-      var ddy = gravityddy;
+
+      // Some acceleration is in screen orientation.
+      // gravity is always down; arrows don't rotate with
+      // the fish...
+      var sddx = XGRAVITY;
+      var sddy = YGRAVITY;
 
       // no air jumps!
       if (holdingUp) {
-        ddy -= 20;
+        sddy -= 20;
       }
 
       if (holdingLeft) {
-        ddx -= 3;
+        sddx -= 3;
       } else if (holdingRight) {
-        ddx += 3;
+        sddx += 3;
       }
+
+      var dd = rotateVec(sddx, sddy, -fishr);
+      
 
       var col = getCollisionsAt(ballx, bally, BOUNCE_RADIUS);
       if (col.length > 0) {
@@ -542,7 +594,7 @@ class Game extends MovieClip {
         for (var i = 0; i < col.length; i++) {
           // as in resolveForce
           var b = col[i].b;
-          var rotd = rotateVec(ddx, ddy, -b.rrad);
+          var rotd = rotateVec(dd.dx, dd.dy, -b.rrad);
 
           if (rotd.dy > 0) {
             var refdy = 0;
@@ -565,8 +617,8 @@ class Game extends MovieClip {
         } else {
           // else equivalent to freefall, but
           // attenuate because of friction
-          balldx += ddx;
-          balldy += ddy;
+          balldx += dd.dx;
+          balldy += dd.dy;
         }
         
         balldx *= FRICTION;
@@ -574,8 +626,8 @@ class Game extends MovieClip {
 
       } else {
         // free-fall
-        balldx += ddx;
-        balldy += ddy;
+        balldx += dd.dx;
+        balldy += dd.dy;
       }
 
 
@@ -603,10 +655,11 @@ class Game extends MovieClip {
       
       // XXX need gameToScreen.
       // at 0,0.
+      fish_mc._rotation = (fishr * 180) / Math.PI;
       fishToScreen(fish_mc, 0, 0);
 
       // XXX this is wrong because game might be rotated around 0,0.
-      fishToScreen(ball_mc, ballx, bally);
+      ballToScreen(ball_mc, ballx, bally, fishr);
 
       // Check if we've made it into an exit area, transitioning
       // states.
@@ -632,18 +685,24 @@ class Game extends MovieClip {
       // Update world fish. I'll act first, since I need to adjust
       // the coordinates of all the other fish according to my
       // movement, so I stay at the center.
-      fishboredom++;
-      if (fishboredom > 1000) {
-        // Change my destination. Keep in mind that this is centered
-        // around me.
-        fishdestx = Math.random() * 10000 - 5000;
-        fishdesty = Math.random() * 5000 - 2500;
-      }
-      
-      // XXX. Is there another fish nearby? If so, swim away.
-      
+
+
       // Where am I in relation to my destination? Swim towards it.
       var destdist = distance(0, 0, fishdestx, fishdesty);
+
+      fishboredom++;
+      if (destdist < 100 || fishboredom > 600) {
+        // Change my destination. Keep in mind that this is centered
+        // around me.
+        fishdestx = Math.random() * 20000 - 10000;
+        fishdesty = Math.random() * 10000 - 500;
+        fishboredom = 0;
+        trace('new target: ' + fishdestx + ' ' + fishdesty);
+        destdist = distance(0, 0, fishdestx, fishdesty);
+      }
+
+      // XXX. Is there another fish nearby? If so, swim away.
+      
       // Accelerate in the direction I want to go.
       // This should probably be contingent on facing in
       // that direction?
@@ -651,7 +710,7 @@ class Game extends MovieClip {
       fishdy += (fishdesty / destdist) * 2;
 
       // Terminal velocity for fish.
-      var MAX_FISH_VELOCITY = 50;
+      var MAX_FISH_VELOCITY = 40;
       var dlen = Math.sqrt((fishdx * fishdx) + (fishdy * fishdy));
       if (dlen > MAX_FISH_VELOCITY) {
         // Make normal.
@@ -659,6 +718,27 @@ class Game extends MovieClip {
         fishdy /= dlen;
         fishdx *= MAX_FISH_VELOCITY;
         fishdy *= MAX_FISH_VELOCITY;
+      }
+
+      // Compute the direction we'd like to be heading.
+      var headingrad = Math.atan2(fishdy, fishdx);
+
+      var newfishdr = headingrad - fishr;
+      if (newfishdr < -Math.PI) newfishdr += Math.PI;
+      else if (newfishdr > Math.PI) newfishdr -= Math.PI;
+      fishdr += newfishdr * 0.1;
+
+      var TERMINAL_ROTATION = 0.05;
+      if (fishdr > TERMINAL_ROTATION) {
+        fishdr = TERMINAL_ROTATION;
+      } else if (fishdr < -TERMINAL_ROTATION) {
+        fishdr = -TERMINAL_ROTATION;
+      }
+
+      // Use it.
+      fishr += fishdr;
+      if (fishr > Math.PI * 2) {
+        fishr -= Math.PI * 2;
       }
 
       // We don't actually modify the fish's coordinates because they
@@ -696,8 +776,8 @@ class Game extends MovieClip {
         // If it's close to its destination, pick another one.
         if (distance(f.x, f.y, f.destx, f.desty) < 400) {
           // Random destination.
-          f.destx = Math.random * WORLD_WIDTH - (WORLD_WIDTH / 2);
-          f.desty = Math.random * WORLD_HEIGHT - (WORLD_HEIGHT / 2);
+          f.destx = Math.random() * WORLD_WIDTH - (WORLD_WIDTH / 2);
+          f.desty = Math.random() * WORLD_HEIGHT - (WORLD_HEIGHT / 2);
         }
 
         // XXX animate hungry for big too.
@@ -743,6 +823,7 @@ class Game extends MovieClip {
       }
 
       // Draw main fish in radar.
+      fish_mc_radar._rotation = (fishr * 180) / Math.PI;
       fishToRadar(fish_mc_radar, 0, 0);
 
       // Update world:
