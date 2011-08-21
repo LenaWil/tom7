@@ -5,6 +5,7 @@ Depths:
  - current fish: 4000
  - old fish when regurgitating: 4010
  - ball movieclip: 5000
+ - fish tower: 5500-5600
  - radar: 6000
    - radar bg: 7000
    - radar fish 8000-8010
@@ -25,6 +26,8 @@ TODO:
  - MUSIC
  - fish acceleration should affect physics, especially when on a wall.
  - some kind of pinball game inside the fish.
+ - stuff in the background to indicate motion and give atmosphere
+ - improve fish ai to keep them from bunching up
  - improve physics
  - orange eating frame
  - tower of fishes on-screen
