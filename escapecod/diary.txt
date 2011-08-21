@@ -261,8 +261,14 @@ ok, it's sorta working!\par
  - "swallowing" support DONE\par
 \b  - beer or scotch DONE\b0\par
  - display the tower of fishes \par
-     on-screen. NEXT.\par
+     on-screen. DONE.\par
  - write one song.\par
 \par
+Music time!\par
+I'm pretty tired. Better get this done forthwith.\par
+\par
+Okay: This song is almost passable. Plan is go to bed and get up pretty early tomorrow, since deadlines really get my fingers pumpin'.\par
+\par
+BEDTIME.\par
 }
  

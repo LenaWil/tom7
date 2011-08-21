@@ -48,9 +48,33 @@ class Game extends MovieClip {
   var old_fishy;
 
 
+  /////////////////
+  // Environment
+  /////////////////
+
   // Background movieclip. Replaced with an empty movie clip
   // and then filled whenever we need a new background color.
   var background_mc = null;
+
+  // Seadust are small (~50x50) simple movieclips in pure white.
+  var small_seadust = ['seadust1',
+                       'seadust2',
+                       'seadust3',
+                       'seadust4',
+                       'seadust5'];
+  // Amount of seadust in the viewport at once.
+  var NUM_SEADUST = 400;
+  // Contains movieclips:
+  //  - mc
+  //  - depth in [0, 1] where 1 is deepest
+  //  - x,y  in parallax coordinates
+  //  - dx,dy  in parallax coordinates
+  var all_seadust = [];
+
+
+  /////////////////
+  // Phishics
+  /////////////////
 
   // Fish is always at 0,0.
   var fishdx = 0, fishdy = 0;
@@ -84,6 +108,10 @@ class Game extends MovieClip {
   //    target fish (at 0,0) with our mouth open, to try to
   //    eat it.
   var other_fish = [];
+
+  /////////////////
+  // Pinball
+  /////////////////
 
   // The movieclip of the ball. positioned manually on every frame.
   // Not scaled.
@@ -144,6 +172,12 @@ class Game extends MovieClip {
     advance = true;
 
     switch(k) {
+    case 's':
+      for (var i = 0; i < all_seadust.length; i++) {
+        var d = all_seadust[i];
+        trace('seadust: ' + d.x + ' ' + d.y);
+      }
+      break;
     case 27: // esc
     case 'r':
       holdingEsc = true;
@@ -334,6 +368,70 @@ class Game extends MovieClip {
     }
   }
 
+  // Defines the view frustum for debris, in world coordinates.
+  // We draw some things off screen, because we need to have
+  // the illusion of constant density even when we zoom out.
+  var DUSTW = (100 / MIN_SCALE) * SCREENW * 1.1;
+  var DUSTH = (100 / MIN_SCALE) * SCREENH * 1.1;
+  var FRUSTUM = 2;
+
+  // Try to put seadust at the relative correct Flash depth based
+  // on its world depth.
+  var MIN_DUST_DEPTH = 2000;
+  // This depth is 
+  var MAX_DUST_DEPTH = 3000;
+  public function setDustDepth(m : MovieClip, n : Number) {
+    if (n < MIN_DUST_DEPTH) {
+      trace('could not set dust depth correctly');
+      return;
+    }
+    var other : MovieClip = _root.getInstanceAtDepth(n);
+    if (other == n) return;
+    if (other != undefined) {
+      setDustDepth(other, n - 1);
+    }
+    m.swapDepths(n);
+  }
+
+  public function initializeDust() {
+    for (var i = 0; i < all_seadust.length; i++) {
+      all_seadust[i].mc.removeMovieClip();
+    }
+    all_seadust = [];
+
+    for (var i = 0; i < NUM_SEADUST; i++) {
+      var depth = Math.random();
+      var mult = FRUSTUM * depth;
+      var x = mult * (Math.random() * DUSTW - (DUSTW / 2));
+      var y = mult * (Math.random() * DUSTH - (DUSTH / 2));
+
+      // Stuff should float a little. It can even move in dz?
+      // but it should probably be based on some kind of
+      // interference of sine waves, because it's the motion
+      // of the liquid that causes it, which is shared.
+      // See how stationary looks:
+      var dx = 0;
+      var dy = 0;
+
+      var who = small_seadust[int(Math.random() * 9999) % 
+                              small_seadust.length];
+      var mc = _root.attachMovie(who, 'seadust' + i,
+                                 MAX_DUST_DEPTH + 1,
+                                 {_x: -10000, _y: -10000});
+      setDustDepth(mc, MIN_DUST_DEPTH + depth * (MAX_DUST_DEPTH -
+                                                 MIN_DUST_DEPTH));
+
+      // Might want to prefer vertical orientations?
+      mc._rotation = Math.random() * 360.0;
+
+      mc._alpha = 50 - (depth * 45);
+      // Not setting scale. This is set in seadustToScreen.
+      all_seadust.push({who: who,
+            mc: mc, x: x, y: y, dx: dx, dy: dy,
+            depth: depth });
+    }
+  }
+
   // Place the movie clip on the screen at the desired
   // fish-centric coordinates. Doesn't set or do anything with
   // rotation, but takes care of any scaling.
@@ -344,6 +442,21 @@ class Game extends MovieClip {
     mc._y = YOFFSET + y * (fishscale / 100);
     mc._xscale = scale * (fishscale / 100);
     mc._yscale = scale * (fishscale / 100);
+  }
+
+  // This should depend on the focal length.
+  // We should do "vertigo-ish" effect here when
+  // zooming...
+  public function seadustToScreen(d) {
+    var mult = FRUSTUM * d.depth;
+    var x = (d.x / mult);
+    var y = (d.y / mult);
+    d.mc._x = SCREENW / 2 + x * (fishscale / 100);
+    d.mc._y = SCREENH / 2 + y * (fishscale / 100);
+    // XXX dependent on scale?
+    var sc = 200 * (1.0 - d.depth);
+    d.mc._xscale = sc * (fishscale / 100);
+    d.mc._yscale = sc * (fishscale / 100);
   }
 
   // Ignores scaling because we need a visual cheat so
@@ -394,6 +507,7 @@ class Game extends MovieClip {
 
     // Need to populate the world.
     initializeOthers();
+    initializeDust();
 
     updateFishTower();
 
@@ -723,7 +837,7 @@ class Game extends MovieClip {
 
 
       // terminal velocity checks. Collision code assumes it's
-      // not moving faster than its diamter, currently.
+      // not moving faster than its diameter, currently.
       var dlen = Math.sqrt((balldx * balldx) + (balldy * balldy));
       if (dlen > RADIUS * 1.2) {
         // Make normal.
@@ -926,6 +1040,7 @@ class Game extends MovieClip {
             maybeSetBackground();
 
             initializeOthers();
+            initializeDust();
             swallower = -1;
 
             // All these fish are gone now. Don't do anything else.
@@ -985,6 +1100,8 @@ class Game extends MovieClip {
         }
       }
 
+      updateSeadust(fishdx, fishdy);
+
       // Now can do all the fish drawing, finally.
 
       // If a fish is close by (but not swallowing us), then we start
@@ -1000,6 +1117,9 @@ class Game extends MovieClip {
         fishscale = 100 - (100 - fishscale) * .95;
       }
       
+      // XXX testing debris
+      fishscale = MIN_SCALE;
+
       // at 0,0.
       fish_mc._rotation = (fishr * 180) / Math.PI;
       // always regular size
@@ -1038,6 +1158,31 @@ class Game extends MovieClip {
 
     } else if (mode == REGURGITATE) {
       regurgitate();
+    }
+  }
+
+  public function updateSeadust(fdx, fdy) {
+    var MDUSTW = 2 * FRUSTUM * DUSTW;
+    var MDUSTH = 2 * FRUSTUM * DUSTH;
+    for (var i = 0; i < all_seadust.length; i++) {
+      var d = all_seadust[i];
+      var mult = FRUSTUM * d.depth;
+
+      d.x -= fdx;
+      d.y -= fdy;
+
+      // Just do modular for now.
+      if (d.x > MDUSTW / 2)
+        d.x -= MDUSTW / 2;
+      else if (d.x < MDUSTW / -2)
+        d.x += MDUSTW / 2;
+
+      if (d.y > MDUSTH / 2)
+        d.y -= MDUSTH / 2;
+      else if (d.y < MDUSTH / -2)
+        d.y += MDUSTH / 2;
+
+      seadustToScreen(d);
     }
   }
 
@@ -1098,6 +1243,7 @@ class Game extends MovieClip {
       fish_mc._alpha = 100;
       mode = PLAYING;
       initializeOthers();
+      initializeDust();
     }
   }
 
