@@ -270,5 +270,37 @@ I'm pretty tired. Better get this done forthwith.\par
 Okay: This song is almost passable. Plan is go to bed and get up pretty early tomorrow, since deadlines really get my fingers pumpin'.\par
 \par
 BEDTIME.\par
+\par
+I did it! 736 am is almost 2 hours earlier than I'd wake up if I were going to work!\par
+\par
+but I'm definitely gonna need coffee...\par
+\par
+In my dream I had to write software that made coffee, for a dinner party. It ain't possible.\par
+\par
+About 14 hours left. Last time I continuously maintained a TODO list with time estimates for each one (in hour chunks) and prioritized it. I thought that worked well. I need to keep editing it so it'll be in notes.txt.\par
+\par
+Current todo is 10h long, which should be doable, then. I was dreaming about some seadust, so let me make that first.\par
+\par
+It's a little tricky to do right because of the zooming stuff I did last night.\par
+\par
+hmmmm\par
+close! some frustum math wrong I guess?\par
+\par
+Oh jezus, don't trace in the inner loop...\par
+\par
+Maybe this is a good occasion to get some breakfast, since maybe it will close by the time I get back!\par
+\par
+Fact: The more time you spend cooking, the worse your ludum dare comes out!\par
+\par
+ughhhhhh!\par
+\par
+oh, wrap around full modulus, not half...\par
+\par
+It's funny how using a new coordinate system makes some bugs impossible, and some things you know how to do, much less idiomatic?\par
+\par
+Ok. Debris is done for now!\par
+\par
+\par
+\par
 }
  
