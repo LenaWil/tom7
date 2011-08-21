@@ -1,6 +1,8 @@
 
 Depths:
  - background: 1000
+ - seadust: 2000-3000
+ -  seadust depth start: 3001
  - other fish (big): 3900 - 3910
  - current fish: 4000
  - old fish when regurgitating: 4010
@@ -21,19 +23,22 @@ Fish radar:
    - 1: mouth closed
    - 2: mouth open
 
-
-TODO:
- - MUSIC
- - fish acceleration should affect physics, especially when on a wall.
- - some kind of pinball game inside the fish.
- - stuff in the background to indicate motion and give atmosphere
- - improve fish ai to keep them from bunching up
- - improve physics
+TODO easy:
  - orange eating frame
- - tower of fishes on-screen
- - animate radar when swallowing/regurgitating
- - start screen. Might even need instructions if the controls aren't arrows.
- - end screen (lighthouse?)
+ - put swallower at highest depth
+
+TODO: 14 hours left
+ - some kind of pinball game inside the fish. [2h]
+ - fish acceleration should affect physics, especially when on a wall. [.5h]
+ - stuff in the background to indicate motion and give atmosphere [1h]
+ - improve fish ai to keep them from bunching up [.5h]
+ - improve physics [1h]
+ - improve fish tower ui [.5h]
+ - animate radar when swallowing/regurgitating [.5h]
+ - MUSIC [2h]
+ - start screen. Might even need instructions if the 
+   controls aren't arrows. [1h]
+ - end screen (lighthouse?) [1h]
     - pearl in clam?
 
 
