@@ -40,6 +40,12 @@ class Game extends MovieClip {
   // XXX randomize at start?
   var fishdestx = 100, fishdesty = 20;
   var fishboredom = 0;
+  
+  // Not a pun. Percentage of full size that the fish should
+  // render at. Usually 100, but when being swallowed, we zoom
+  // out by setting this to 30-ish.
+  var fishscale = 100;
+  var MIN_SCALE = 30;
 
   // My current fish is always at world coordinates 0,0. There
   // are other fish swiming with it though. Fields:
@@ -226,6 +232,8 @@ class Game extends MovieClip {
     fish_mc =
       _root.attachMovie(name, "fish" + ctr, 4000,
                         {_x: -10000, _y: -10000});
+    // start unhungry.
+    fish_mc.gotoAndStop(1);
 
     fish_mc_radar =
       this.radar_mc.attachMovie(name + '_radar', 'myfish', 8100,
@@ -286,11 +294,13 @@ class Game extends MovieClip {
 
       var mc_big = _root.attachMovie(who, 'other' + i, 3900 + i,
                                      {_x: -10000, _y: -10000});
+      mc_big.gotoAndStop(1);
 
       var mc_radar = this.radar_mc.attachMovie(who + '_radar', 'otherr' + i,
                                                8000 + i, 
                                                {_x: -10000, 
                                                 _y: -10000});
+      mc_radar.gotoAndStop(1);
 
       // Start at a random angle? Based on the way these fish swim
       // it's realistic...
@@ -308,12 +318,11 @@ class Game extends MovieClip {
   // rotation, but takes care of any scaling.
   var XOFFSET = 320;
   var YOFFSET = 420;
-  var SCALE = 25;
-  public function fishToScreen(mc, x, y) {
-    mc._x = XOFFSET + x;
-    mc._y = YOFFSET + y;
-    // mc._xscale = SCALE;
-    // mc._yscale = SCALE;
+  public function fishToScreen(mc, x, y, scale) {
+    mc._x = XOFFSET + x * (fishscale / 100);
+    mc._y = YOFFSET + y * (fishscale / 100);
+    mc._xscale = scale * (fishscale / 100);
+    mc._yscale = scale * (fishscale / 100);
   }
 
   // Ignores scaling because we need a visual cheat so
@@ -322,21 +331,21 @@ class Game extends MovieClip {
   public function ballToScreen(mc, x, y, rrad) {
     var sinr = Math.sin(rrad);
     var cosr = Math.cos(rrad);
-    mc._x = XOFFSET + x * cosr - y * sinr;
-    mc._y = YOFFSET + x * sinr + y * cosr;
-    // mc._xscale = SCALE;
-    // mc._yscale = SCALE;
+    mc._x = XOFFSET + (x * cosr - y * sinr) * (fishscale / 100);
+    mc._y = YOFFSET + (x * sinr + y * cosr) * (fishscale / 100);
+    mc._xscale = fishscale;
+    mc._yscale = fishscale;
   }
 
   var RADAR_XOFFSET = Radar.WIDTH / 2;
   var RADAR_YOFFSET = Radar.HEIGHT / 2;
-  var RADAR_SCALE = 32;
-  var FISH_SCALE = 4;
+  var RADAR_SCALE = 45;
+  var RADAR_FISH_SCALE = 4;
   public function fishToRadar(mc, x, y) {
     mc._x = RADAR_XOFFSET + x / RADAR_SCALE;
     mc._y = RADAR_YOFFSET + y / RADAR_SCALE;
-    mc._xscale = 100 / FISH_SCALE;
-    mc._yscale = 100 / FISH_SCALE;
+    mc._xscale = 100 / RADAR_FISH_SCALE;
+    mc._yscale = 100 / RADAR_FISH_SCALE;
   }
 
   // Initialize, the first time.
@@ -687,14 +696,6 @@ class Game extends MovieClip {
 
       resolveForce(ballx, bally, balldx, balldy);
       
-      // XXX need gameToScreen.
-      // at 0,0.
-      fish_mc._rotation = (fishr * 180) / Math.PI;
-      fishToScreen(fish_mc, 0, 0);
-
-      // XXX this is wrong because game might be rotated around 0,0.
-      ballToScreen(ball_mc, ballx, bally, fishr);
-
       // Check if we've made it into an exit area, transitioning
       // states.
       for (var i = 0; i < exits.length; i++) {
@@ -788,6 +789,8 @@ class Game extends MovieClip {
       fishdestx -= fishdx;
       fishdesty -= fishdy;
 
+
+      var closest_fish_dist = 99999;
       // trace('fishd: ' + fishdx + ' ' + fishdy);
       for (var i = 0; i < other_fish.length; i++) {
         var f = other_fish[i];
@@ -812,6 +815,9 @@ class Game extends MovieClip {
           f.hungry = false;
         }
 
+        if (dist_to_fish < closest_fish_dist)
+          closest_fish_dist = dist_to_fish;
+
         // XXX if it can eat the fish, do it!
 
         // If it's close to its destination, pick another one.
@@ -823,8 +829,10 @@ class Game extends MovieClip {
 
         // XXX animate hungry for big too.
         if (f.hungry) {
+          f.mc_big.gotoAndStop(2);
           f.mc_radar.gotoAndStop(2);
         } else {
+          f.mc_big.gotoAndStop(1);
           f.mc_radar.gotoAndStop(1);
         }
 
@@ -860,19 +868,40 @@ class Game extends MovieClip {
         f.x += f.dx;
         f.y += f.dy;
 
-        // PERF this is usually off the screen. Dunno if
-        // flash is smart about that. There are only ten, though.
-        // Could set _visible = false if clearly off screen.
-        // trace(i + ' to ' + f.x + ' ' + f.y);
-        f.mc_big._rotation = (f.r * 180) / Math.PI;
-        f.mc_radar._rotation = (f.r * 180) / Math.PI;
-        fishToScreen(f.mc_big, f.x, f.y);
-        fishToRadar(f.mc_radar, f.x, f.y);
       }
+
+
+      // Now can do all the fish drawing, finally.
+
+      // If a fish is close by, then we start zooming out.
+      if (fishscale > MIN_SCALE && closest_fish_dist < 2000) {
+        fishscale = MIN_SCALE + (fishscale - MIN_SCALE) * .95;
+      } else if (fishscale < 100 && closest_fish_dist >= 2000) {
+        // XXX target scale could depend on the fish, since
+        // some are bigger than others. Do it!
+        fishscale = 100 - (100 - fishscale) * .95;
+      }
+      
+      // at 0,0.
+      fish_mc._rotation = (fishr * 180) / Math.PI;
+      // always regular size
+      fishToScreen(fish_mc, 0, 0, 100);
+
+      // XXX this is wrong because game might be rotated around 0,0.
+      ballToScreen(ball_mc, ballx, bally, fishr);
 
       // Draw main fish in radar.
       fish_mc_radar._rotation = (fishr * 180) / Math.PI;
       fishToRadar(fish_mc_radar, 0, 0);
+
+      // other fish are triple-size
+      for (var i = 0; i < other_fish.length; i++) {
+        var f = other_fish[i];
+        f.mc_big._rotation = (f.r * 180) / Math.PI;
+        f.mc_radar._rotation = (f.r * 180) / Math.PI;
+        fishToScreen(f.mc_big, f.x, f.y, 300);
+        fishToRadar(f.mc_radar, f.x, f.y);
+      }
 
       // TODO:
       //  - My fish might be eaten. Animate that happening. On the radar,
@@ -920,15 +949,13 @@ class Game extends MovieClip {
       old_fishy += dy;
       // trace(dx + ' ' + dy + ' / ' + old_fishx + ' ' + old_fishy);
 
-      fish_mc._xscale = 100 + (300 * frac);
-      fish_mc._yscale = 100 + (300 * frac);
-      old_fish_mc._xscale = 100 - 75 * (1 - frac);
-      old_fish_mc._yscale = 100 - 75 * (1 - frac);
+      var fs = 100 + ((300 / (fishscale / 100)) * frac);
+      var ofs = 100 - 75 * (1 - frac);
       old_fish_mc._alpha = frac * 100;
 
       ballToScreen(ball_mc, ballx, bally, 0);
-      fishToScreen(old_fish_mc, old_fishx, old_fishy);
-      fishToScreen(fish_mc, 0, 0);
+      fishToScreen(old_fish_mc, old_fishx, old_fishy, ofs);
+      fishToScreen(fish_mc, 0, 0, fs);
 
       // XXX radar too.
 
@@ -941,8 +968,8 @@ class Game extends MovieClip {
       old_fish_mc.removeMovieClip();
       old_fish_mc = null;
 
-      fish_mc._xscale = 100;
-      fish_mc._yscale = 100;
+      // fish_mc._xscale = 100;
+      // fish_mc._yscale = 100;
       fish_mc._alpha = 100;
       mode = PLAYING;
       initializeOthers();
