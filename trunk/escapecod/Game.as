@@ -20,6 +20,27 @@ class Game extends MovieClip {
   var fish_mc;
   var fish_mc_radar;
 
+  // Used when an animation is in progress. Counts down.
+  // used for swallowing and regurgitating, which are
+  // mutually exclusive.
+  var framesleft = 0;
+
+  /////////////////
+  // Swallowing
+  /////////////////
+
+  // When a bigger fish can, it eats me. This is its index
+  // in the other_fish array, or -1 if no current swallower.
+  var SWALLOW_DISTANCE = 400;
+  var swallower = -1;
+  var SWALLOW_FRAMES = 24;
+
+
+  //////////////////
+  // Regurgitation
+  //////////////////
+  var REGURGITATE_FRAMES = 24;
+
   // Previous fish's movie clip. Only set when mode == REGURGITATE.
   var old_fish_mc;
   // when regurgitating, we offset the old fish by this amount.
@@ -103,10 +124,10 @@ class Game extends MovieClip {
   // you're not on the wall.
 
   var all_fishes = 
-    { red: { bg: 0x581C1C },
-      purple: { bg: 0x421458 },
-      orange: { bg: 0x794A11 },
-      green: { bg: 0x092A12 } };
+    { red: { bg: 0x581C1C, offset: 0 },
+      purple: { bg: 0x421458, offset: 0 },
+      orange: { bg: 0x794A11, offset: 2 },
+      green: { bg: 0x092A12, offset: 5 } };
   var fishnames = [];
 
   var PLAYING = 0;
@@ -374,6 +395,8 @@ class Game extends MovieClip {
     // Need to populate the world.
     initializeOthers();
 
+    updateFishTower();
+
     mode = PLAYING;
   }
 
@@ -557,8 +580,46 @@ class Game extends MovieClip {
     }
   }
 
-  var REGURGITATE_FRAMES = 24;
-  var framesleft = 0;
+  var fish_tower = [];
+  public function updateFishTower() {
+    for (var i = 0; i < fish_tower.length; i++) {
+      fish_tower[i].removeMovieClip();
+    }
+    fish_tower = [];
+
+    // XXX Stop early once we've had enough. append '...'.
+    var x = 20;
+    for (var i = 0; i < inside_fishes.length; i++) {
+      var f = inside_fishes[i];
+      // kerning, sorta
+      var offset = all_fishes[f].offset;
+      var mc = _root.attachMovie(f + '_radar', 'ft' + i,
+                                 5500 + i,
+                                 {_x: x + offset, _y: 20});
+      // XXX Cute to occasionally animate these.
+      mc.gotoAndStop(1);
+      mc._xscale = 25;
+      mc._yscale = 25;
+      x += mc._width + 5;
+      fish_tower.push(mc);
+    }
+  }
+
+  public function maybeSetBackground() {
+    // Sea color if not swallowed.
+    var bgcolor = 0x15235B;
+
+    if (inside_fishes.length > 0) {
+      bgcolor = all_fishes[inside_fishes[0]].bg;
+    }
+
+    if (current_background != bgcolor) {
+      // trace('setting bgcolor to ' + bgcolor);
+      current_background = bgcolor;
+      this.radar_mc.setBackground(bgcolor);
+      this.setBackground(bgcolor);
+    }
+  }
 
   public function onEnterFrame() {
 
@@ -573,20 +634,7 @@ class Game extends MovieClip {
     // Set background for radar and game. Do this since we could
     // get swallowed at any time, and we can't do it in initialization
     // anyway since the radar won't have loaded yet.
-
-    // Sea color if not swallowed.
-    var bgcolor = 0x15235B;
-
-    if (inside_fishes.length > 0) {
-      bgcolor = all_fishes[inside_fishes[0]].bg;
-    }
-
-    if (current_background != bgcolor) {
-      // trace('setting bgcolor to ' + bgcolor);
-      current_background = bgcolor;
-      this.radar_mc.setBackground(bgcolor);
-      this.setBackground(bgcolor);
-    }
+    maybeSetBackground();
 
 
     // Might be in several different modes.
@@ -721,12 +769,17 @@ class Game extends MovieClip {
 
             var nextfish = inside_fishes[0];
             inside_fishes = inside_fishes.slice(1);
+            updateFishTower();
             setFish(nextfish);
             mode = REGURGITATE;
 
             old_fishx = 0;
             old_fishy = 0;
             framesleft = REGURGITATE_FRAMES;
+
+            // Abort any swallowing.
+            swallower = -1;
+
             // Immediately start, because we don't
             // want to spend any time with the fish
             // at the wrong size.
@@ -815,68 +868,133 @@ class Game extends MovieClip {
           f.hungry = false;
         }
 
-        if (dist_to_fish < closest_fish_dist)
+        if (dist_to_fish < closest_fish_dist) {
           closest_fish_dist = dist_to_fish;
+        }
+        
+        // If I'm close enough to the fish, and facing the right
+        // way, then go into SWALLOW MODE. A swallow is always
+        // successful unless interrupted by a regurgitation, so
+        // if some other fish is already doing it, skip.
 
-        // XXX if it can eat the fish, do it!
-
-        // If it's close to its destination, pick another one.
-        if (distance(f.x, f.y, f.destx, f.desty) < 400) {
-          // Random destination.
-          f.destx = Math.random() * WORLD_WIDTH - (WORLD_WIDTH / 2);
-          f.desty = Math.random() * WORLD_HEIGHT - (WORLD_HEIGHT / 2);
+        // XXX and facing the right way.
+        if (dist_to_fish < SWALLOW_DISTANCE &&
+            swallower == -1) {
+          trace(i + ' is swallowing');
+          swallower = i;
+          framesleft = SWALLOW_FRAMES;
         }
 
-        // XXX animate hungry for big too.
-        if (f.hungry) {
-          f.mc_big.gotoAndStop(2);
-          f.mc_radar.gotoAndStop(2);
+        // If I'm the swallower, either newly or in progress,
+        // then skip all the normal AI and force the eater
+        // towards the prey.
+        if (swallower == i) {
+          // Set its heading to face exactly at the fish
+          // (which is at 0,0, so this is the negative of
+          // the swallower's)
+          // but ease in...
+          var newr = Math.atan2(-f.y, -f.x);
+          f.r = (f.r + newr) * 0.5;
+          
+          var frac = framesleft / SWALLOW_FRAMES;
+
+          f.x *= 0.8;
+          f.y *= 0.8;
+
+          // be on follow frames unless we're really close.
+          if (distance(0, 0, f.x, f.y) < 10) {
+            f.mc_big.gotoAndStop(1);
+            f.mc_big.gotoAndStop(2);
+            // XXX end swallow prematurely?
+            trace('chomp!');
+
+          } else {
+            f.mc_big.gotoAndStop(2);
+            f.mc_radar.gotoAndStop(2);
+          }
+
+          framesleft--;
+          if (framesleft == 0) {
+            trace('done swallowing by ' + f.who);
+            // Insert as the next fish.
+            inside_fishes.splice(0, 0, f.who);
+            updateFishTower();
+            // next onEnterFrame will set the background color.
+            // but this frame will render, and if we delete the
+            // fish then we get a flash of the wrong color.
+            // do it now.
+            maybeSetBackground();
+
+            initializeOthers();
+            swallower = -1;
+
+            // All these fish are gone now. Don't do anything else.
+            return;
+          }
+
         } else {
-          f.mc_big.gotoAndStop(1);
-          f.mc_radar.gotoAndStop(1);
+          // Normal AI/physics.
+          // If it's close to its destination, pick another one.
+          if (distance(f.x, f.y, f.destx, f.desty) < 400) {
+            // Random destination.
+            f.destx = Math.random() * WORLD_WIDTH - (WORLD_WIDTH / 2);
+            f.desty = Math.random() * WORLD_HEIGHT - (WORLD_HEIGHT / 2);
+          }
+
+          // XXX Consider actually animating so it's like the fish
+          // are chomping, except when in swallow mode?
+          if (f.hungry) {
+            f.mc_big.gotoAndStop(2);
+            f.mc_radar.gotoAndStop(2);
+          } else {
+            f.mc_big.gotoAndStop(1);
+            f.mc_radar.gotoAndStop(1);
+          }
+
+          var tx = f.hungry ? -f.x : (f.destx - f.x);
+          var ty = f.hungry ? -f.y : (f.desty - f.y);
+
+          // Where am I in relation to my destination? Swim towards it.
+          var tdist = distance(0, 0, tx, ty);
+          // XXX, also should be contingent on facing that way.
+          // Should be a little faster than the current fish (it's
+          // got a pinball in it. :))
+          if (tdist > 0) {
+            f.dx += (tx / tdist) * 2.2;
+            f.dy += (ty / tdist) * 2.2;
+          }
+
+          // Terminal velocity for fish.
+          var dlen = Math.sqrt((f.dx * f.dx) + (f.dy * f.dy));
+          if (dlen > MAX_FISH_VELOCITY) {
+            // Make normal.
+            f.dx /= dlen;
+            f.dy /= dlen;
+            f.dx *= MAX_FISH_VELOCITY;
+            f.dy *= MAX_FISH_VELOCITY;
+          }
+
+          // Try to face in the direction we're moving.
+          var heading = getFishHeading(f.dx, f.dy, f.r, f.dr);
+          f.dr = heading.dr;
+          f.r = heading.r;
+
+          // Now actually move this fish.
+          f.x += f.dx;
+          f.y += f.dy;
         }
-
-        var tx = f.hungry ? -f.x : (f.destx - f.x);
-        var ty = f.hungry ? -f.y : (f.desty - f.y);
-
-        // Where am I in relation to my destination? Swim towards it.
-        var tdist = distance(0, 0, tx, ty);
-        // XXX, also should be contingent on facing that way.
-        // Should be a little faster than the current fish (it's
-        // got a pinball in it. :))
-        if (tdist > 0) {
-          f.dx += (tx / tdist) * 2.2;
-          f.dy += (ty / tdist) * 2.2;
-        }
-
-        // Terminal velocity for fish.
-        var dlen = Math.sqrt((f.dx * f.dx) + (f.dy * f.dy));
-        if (dlen > MAX_FISH_VELOCITY) {
-          // Make normal.
-          f.dx /= dlen;
-          f.dy /= dlen;
-          f.dx *= MAX_FISH_VELOCITY;
-          f.dy *= MAX_FISH_VELOCITY;
-        }
-
-        // Try to face in the direction we're moving.
-        var heading = getFishHeading(f.dx, f.dy, f.r, f.dr);
-        f.dr = heading.dr;
-        f.r = heading.r;
-
-        // Now actually move this fish.
-        f.x += f.dx;
-        f.y += f.dy;
-
       }
-
 
       // Now can do all the fish drawing, finally.
 
-      // If a fish is close by, then we start zooming out.
-      if (fishscale > MIN_SCALE && closest_fish_dist < 2000) {
+      // If a fish is close by (but not swallowing us), then we start
+      // zooming out.
+      if (swallower == -1 &&
+          fishscale > MIN_SCALE && closest_fish_dist < 2000) {
         fishscale = MIN_SCALE + (fishscale - MIN_SCALE) * .95;
-      } else if (fishscale < 100 && closest_fish_dist >= 2000) {
+      } else if (fishscale < 100 && 
+                 (swallower != -1 ||
+                  closest_fish_dist >= 2000)) {
         // XXX target scale could depend on the fish, since
         // some are bigger than others. Do it!
         fishscale = 100 - (100 - fishscale) * .95;
@@ -895,8 +1013,15 @@ class Game extends MovieClip {
       fishToRadar(fish_mc_radar, 0, 0);
 
       // other fish are triple-size
+      // XXX: If there's a swallower, fade any fish
+      // that aren't him.
       for (var i = 0; i < other_fish.length; i++) {
         var f = other_fish[i];
+        if (swallower != -1 && 
+            swallower != i) {
+          var frac = 1.0 - (framesleft / SWALLOW_FRAMES);
+        }
+        f.mc_big._alpha = frac * 100;
         f.mc_big._rotation = (f.r * 180) / Math.PI;
         f.mc_radar._rotation = (f.r * 180) / Math.PI;
         fishToScreen(f.mc_big, f.x, f.y, 300);

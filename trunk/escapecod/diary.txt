@@ -249,7 +249,20 @@ Goals for tonight:\par
  - display the tower of fishes \par
      on-screen.\par
  - write one song.\par
- - beer or scotch\par
+\b  - beer or scotch\par
+\b0 cheers :)\par
+\par
+looks like I recorded two different webcam sizes-- this'll be fun to fix  ;)\par
+\par
+jesus, this program is pretty complicated.\par
+\par
+ok, it's sorta working!\par
+\par
+ - "swallowing" support DONE\par
+\b  - beer or scotch DONE\b0\par
+ - display the tower of fishes \par
+     on-screen. NEXT.\par
+ - write one song.\par
 \par
 }
  
