@@ -195,5 +195,47 @@ I'm trying to get the basics together of displaying the radar and the other fish
 getting a headache. better have some water. maybe some ibuprophen too.\par
 \par
 Ugh, my tablet froze up. Now it's in relative mode. I gotta reboot?\par
+\par
+Rebooting is boring! But at least I can do some laundry to make procrastination productive!\par
+\par
+Oh damn I am getting hungry...\par
+Chinese?? Seems wise...\par
+See you soon...\par
+\par
+I got chinese!\par
+now you have to watch me eat\par
+\par
+General Tso's soy protein!\par
+I don't think it's "heart attack-proof" though.\par
+\par
+Sorry, eating takes time!\par
+\par
+If you are watching my video on youtube, search for badlipreading and watch them instead. :)\par
+\par
+BACK TO WORK!\par
+\par
+The next task is to get the radar working. I made icons for the little fish. OK, that basically works.\par
+\par
+Now, fish rotation.\par
+I'm already resigned to the fish rotating so that he's upside-down when swimming left. There's no good solution to this since his stomach contains a puzzle, and it would be disconcerting for it to flip horizontally. I need to be careful mostly about how rotation affects the physics. This is kind of complicated since some things use screen coordinates (arrows, gravity).\par
+\par
+That was not so bad. Just one sign error. I want the fish to change his orientation in as he swims around, not just be a clock, duh...\par
+\par
+it is impossible to write computer software without calling atan2 at some point\par
+\par
+now online for all my adoring fans\par
+\par
+laundrum dare!\par
+\par
+Okay, let's get the fish exiting animation done now.\par
+\par
+That worked surprisingly well...\par
+\par
+This is coming together!\par
+Fish can't get eaten yet though.\par
+Also there is no game.\par
+But you know it's getting somewhere when I sit there playing it despite there being no "game" yet.\par
+\par
+Laundrytime!\par
 }
  
