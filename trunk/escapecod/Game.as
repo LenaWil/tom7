@@ -6,13 +6,15 @@ class Game extends MovieClip {
   // The fishes I'm inside, not including the one that is
   // currently the game. Element 0 is the nearest enclosing fish.
   // Just fish names like 'purple'.
-  var inside_fishes = ['orange', 'green', 
+  var inside_fishes = ['orange', 'green'];
+  /*
                        'purple', 'red', 'orange',
                        'green', 'red', 'purple', 'red',
                        'red', 'purple', 'orange', 'red', 'purple',
                        'red', 'orange', 'purple', 'green', 'purple',
                        'orange', 'orange', 'green', 'purple',
                        'red', 'green', 'red' ];
+  */
   var current_background = 0;
   
   // The fish I'm currently in. I just use this to animate. We
@@ -47,6 +49,12 @@ class Game extends MovieClip {
   var old_fishx;
   var old_fishy;
 
+
+  /////////////////
+  // Winning
+  /////////////////
+  var win_dy = 0;
+  var WINNING_FRAMES = 196;
 
   /////////////////
   // Environment
@@ -165,6 +173,7 @@ class Game extends MovieClip {
 
   var PLAYING = 0;
   var REGURGITATE = 1;
+  var WINNING = 2;
   var mode = PLAYING;
 
   var advance = true;
@@ -887,21 +896,34 @@ class Game extends MovieClip {
         if (ballx > e.x0 && ballx < e.x1 &&
             bally > e.y0 && bally < e.y1) {
           // Exited!
-          if (inside_fishes.length > 0) {
-            // Make a nice transition to the outer fish,
-            // by going into REGURGITATE mode.
-            old_fish_mc = fish_mc;
-            old_fish_mc.swapDepths(4010);
-            fish_mc = null;
+          // Make a nice transition to the outer fish,
+          // by going into REGURGITATE mode.
+          old_fish_mc = fish_mc;
+          old_fish_mc.swapDepths(4010);
+          fish_mc = null;
 
-            // The new fish spawns with fishr = 0, so
-            // put the ball in the same screen position
-            // but as if fishr = 0.
-            var nball = rotateVec(ballx, bally, fishr);
-            // trace('oldball: ' + ballx + ' ' + bally + ' new: ' +
-            // nball.dx + ' ' + nball.dy);
-            ballx = nball.dx;
-            bally = nball.dy;
+          // The new fish spawns with fishr = 0, so
+          // put the ball in the same screen position
+          // but as if fishr = 0.
+          var nball = rotateVec(ballx, bally, fishr);
+          // trace('oldball: ' + ballx + ' ' + bally + ' new: ' +
+          // nball.dx + ' ' + nball.dy);
+          ballx = nball.dx;
+          bally = nball.dy;
+
+          old_fishx = 0;
+          old_fishy = 0;
+
+          // Abort any swallowing.
+          swallower = -1;
+
+          // Should fade these in both cases.
+          for (var i = 0; i < other_fish.length; i++) {
+            other_fish[i].mc_big._visible = false;
+          }
+
+
+          if (inside_fishes.length > 0) {
 
             var nextfish = inside_fishes[0];
             inside_fishes = inside_fishes.slice(1);
@@ -909,23 +931,13 @@ class Game extends MovieClip {
             setFish(nextfish);
             mode = REGURGITATE;
 
-            old_fishx = 0;
-            old_fishy = 0;
             framesleft = REGURGITATE_FRAMES;
-
-            // Abort any swallowing.
-            swallower = -1;
 
             // XXX move in front of fish instead, then fade.
             for (var i = 0; i < all_seadust.length; i++) {
               var d = all_seadust[i];
               d.mc._visible = false;
               // seadustToScreen(d);
-            }
-
-            // Ditto...
-            for (var i = 0; i < other_fish.length; i++) {
-              other_fish[i].mc_big._visible = false;
             }
 
             // Immediately start, because we don't
@@ -935,9 +947,15 @@ class Game extends MovieClip {
             // Don't do anything else on this frame,
             return;
           } else {
-            // XXX need something to happen here...
             // you win!!
-            trace('you win');
+
+            // Keep seadust since there's no fish to
+            // occlude them, and it's how we know
+            // we're falling!
+
+            mode = WINNING;
+            framesleft = WINNING_FRAMES;
+            winning();
           }
         }
       }
@@ -1191,6 +1209,8 @@ class Game extends MovieClip {
 
     } else if (mode == REGURGITATE) {
       regurgitate();
+    } else if (mode == WINNING) {
+      winning();
     }
   }
 
@@ -1228,6 +1248,69 @@ class Game extends MovieClip {
          ((MAX_DUST_ALPHA - MIN_DUST_ALPHA) * d.depth));
 
       seadustToScreen(d);
+    }
+  }
+
+  public function winning() {
+    var frac = framesleft / WINNING_FRAMES;
+    framesleft--;
+
+    if (framesleft >= 0) {
+      // This is like the regurgitate frames,
+      // but we're also falling.
+      
+      var newballx = ballx * 0.8;
+      var newbally = bally * 0.8;
+
+      var dx = newballx - ballx;
+      var dy = newbally - bally;
+
+      ballx = newballx;
+      bally = newbally;
+
+      // Accelerate (debris and fish) through gravity.
+      win_dy += 2;
+      if (win_dy > 30)
+        win_dy = 30;
+
+      dy += win_dy;
+
+
+      old_fishx += dx;
+      old_fishy += dy;
+
+      var fs = 100 + ((300 / (fishscale / 100)) * frac);
+      var ofs = 100 - 75 * (1 - frac);
+      old_fish_mc._alpha = frac * 100;
+
+      ballToScreen(ball_mc, ballx, bally, 0);
+      fishToScreen(old_fish_mc, old_fishx, old_fishy, ofs);
+      // fishToScreen(fish_mc, 0, 0, fs);
+
+      updateSeadust(dx, dy);
+      for (var i = 0; i < all_seadust.length; i++) {
+        var d = all_seadust[i];
+        // d.mc._alpha *= .8;
+        seadustToScreen(d);
+      }
+
+      // XXX be fading out.
+
+    } else {
+
+      trace('reallyend!');
+      ball_mc.removeMovieClip();
+      old_fish_mc.removeMovieClip();
+      // should be no fish.
+      for (var i = 0; i < all_seadust.length; i++) {
+        all_seadust[i].mc.removeMovieClip();
+      }
+
+      this.background_mc.removeMovieClip();
+      this.radar_mc.removeMovieClip();
+
+      // XXX fade in.
+      _root.gotoAndStop('gameover');
     }
   }
 
