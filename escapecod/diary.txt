@@ -237,5 +237,19 @@ Also there is no game.\par
 But you know it's getting somewhere when I sit there playing it despite there being no "game" yet.\par
 \par
 Laundrytime!\par
+Folding@home!\par
+\par
+Okay, there's some polish I could put on zooming out, but it's pretty good now. Let's make a few more fish.\par
+\par
+Still can't stop playing. :)\par
+red, purple, green, orange. Only takes like 10 minutes to make more, so I will make more.\par
+\par
+Goals for tonight:\par
+ - "swallowing" support\par
+ - display the tower of fishes \par
+     on-screen.\par
+ - write one song.\par
+ - beer or scotch\par
+\par
 }
  
