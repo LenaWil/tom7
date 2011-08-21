@@ -23,23 +23,28 @@ Fish radar:
    - 1: mouth closed
    - 2: mouth open
 
-TODO easy:
+TODO polish:
  - orange eating frame
  - put swallower at highest depth
+ - improve debris (colors, sinus motion)
+ - EATEN! ESCAPED! animations
+ - Sound effects for those too
 
-TODO: 14 hours left
+TODO: 10 hours left
  - some kind of pinball game inside the fish. [2h]
  - fish acceleration should affect physics, especially when on a wall. [.5h]
- - stuff in the background to indicate motion and give atmosphere [1h]
  - improve fish ai to keep them from bunching up [.5h]
+ - improve fish ai to make it look more like swimmin [.5h]
  - improve physics [1h]
  - improve fish tower ui [.5h]
  - animate radar when swallowing/regurgitating [.5h]
  - MUSIC [2h]
  - start screen. Might even need instructions if the 
    controls aren't arrows. [1h]
+      - hard/easy modes
  - end screen (lighthouse?) [1h]
     - pearl in clam?
+
 
 
 Optionalish:
