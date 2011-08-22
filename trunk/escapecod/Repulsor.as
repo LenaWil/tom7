@@ -1,0 +1,3 @@
+class Repulsor extends MovieClip {
+
+}

@@ -1,7 +1,7 @@
 import flash.display.*;
 class GameOver extends MovieClip {
 
-  var titlemusic : Sound;
+  var endmusic : Sound;
 
   // Count of frames that have passed
   var frames : Number = 0;
@@ -18,20 +18,17 @@ class GameOver extends MovieClip {
   public function onLoad() {
     Key.addListener(this);
 
-    // title music!
-    /*
-    titlemusic = new Sound(this);
-    titlemusic.attachSound('dangerous.mp3');
-    titlemusic.setVolume(100);
-    titlemusic.start(0, 99999);
-    */
+    endmusic = new Sound(this);
+    endmusic.attachSound('freedom.mp3');
+    endmusic.setVolume(100);
+    endmusic.start(0, 99999);
   }
 
   public function onEnterFrame() {
     // Fade in...
     frames++;
     if (frames < FADEFRAMES) {
-      // XXX titlemusic.setVolume(frames);
+      // XXX endmusic.setVolume(frames);
     }
 
     var alpha = 100;
@@ -41,7 +38,7 @@ class GameOver extends MovieClip {
 
     if (frames > FADEFRAMES) {
       if (starting > 0) {
-        titlemusic.setVolume(starting * ALPHAOUTMULT);
+        endmusic.setVolume(starting * ALPHAOUTMULT);
         starting--;
         alpha = starting * ALPHAOUTMULT;
         if (!starting) {
@@ -56,8 +53,10 @@ class GameOver extends MovieClip {
   // Called from TitleLaser when it's been on the
   // start button long enough.
   public function triggerStart() {
-    // need to wait a while, fading out.
-    starting = FADEOUTFRAMES;
+    // Only if we've been on the screen for 1 second.
+    if (frames > 32) {
+      starting = FADEOUTFRAMES;
+    }
   }
 
   public function onKeyDown() {
@@ -77,7 +76,7 @@ class GameOver extends MovieClip {
     trace('reallystartover!');
     // Stop music!
 
-    // this.titlemusic.stop();
+    this.endmusic.stop();
 
     this.swapDepths(0);
     this.removeMovieClip();

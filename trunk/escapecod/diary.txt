@@ -300,7 +300,138 @@ It's funny how using a new coordinate system makes some bugs impossible, and som
 \par
 Ok. Debris is done for now!\par
 \par
+Might be time for some more coffee.\par
 \par
+Now we need to make a title screen...\par
 \par
+Haha!\par
+I knew there was an image I had in mind of Cape Cod, but I couldn't remember if it was from a t-shirt or  postcard my parents had or something. Turns out it was from this bag of potato chips. Those are pretty good. Should have got some at the store!\par
+\par
+time to say bye to my nice standin\par
+\par
+Next, an old trick: loads of low-alpha drawing objects to give it a "painted" style\par
+\par
+Argh!\par
+That is one downside of the paint approach ;) (Flash just crashed.)\par
+No sense in getting worked up about it. Just look forward to the opportunity to do a better job!\par
+The same thing happened to me when drawing the win screen for "Is Lands?" (LD17-ish?). I didn't save AT ALL and had to totally redraw the screen, like in the hour before the deadline!\par
+\par
+All my painter stuff is gone.\par
+Try again. Remember to save.\par
+\par
+music will cheer me up!\par
+\par
+not the oldest trick in the book, but an old trick in the book.\par
+\par
+happy little trees!\par
+\par
+OK, title screen is done and great!\par
+\par
+Webcam catches me pretty much dancing unironically to Bush's "Machine Head". It's part of my "wake up" playlist. I'm not makin' excuses.\par
+\par
+uploaded a screenshot\par
+\par
+end screen looks a little like a pearlescent pimple. I am gonna add some other seafloor stuff. Starfishes are cute...\par
+\par
+5-point symmetry is my favorite body plan!\par
+\par
+wow, my brother actually took this photo. I think it used to be hanging in my apartment?\par
+\par
+This will do.\par
+\par
+Doing the coding for the winning animation. Distinct failcess...\par
+\par
+OK. Now the game has a decent playable arc with beginning and end, but:\par
+ - no music or sound\par
+ - it's super easy\par
+ - fish physics are pretty dumb\par
+ - ball physics are a bit jittery\par
+\par
+I need to shower. It's kinda hot out.\par
+\par
+This is nice.\par
+\par
+Okay, I really need to make music or else I won't get it done in time. I'm kinda in the mood.\par
+\par
+I need three songs: One for the title, one for the game, and one for the end. The music I wrote so far doesn't seem to fit, except maybe for the game. It'd need to be much longer. The title and end screens are so serene!\par
+\par
+I'm thinking a guitar piece maybe with vocals for the title screen?\par
+\par
+OK, this will do.\par
+\par
+ok\par
+phew, I almost accidentally launched Resident Evil 5\par
+not necessary to launch that right now.\par
+\par
+I think this is a 2-capo song!\par
+I wish I had my other full one...\par
+\par
+It's just a little high for me\par
+\par
+48h is a long time huh?\par
+\par
+speaking of long time.... \par
+\par
+okay, at least I basically like this song\par
+\par
+no more lyrics and singing! it takes foreverrrr!!\par
+\par
+I need game music. I can probably live without finale music, or just render a wistful version of the title theme. Let's make some balls-out bumpin' game music then!\par
+\par
+I like this song much better with drums.\par
+\par
+OK, I might write one more part but I think it's livable for a main game tune.\par
+\par
+You know the game is getting somewhere when I just want to listen to the title theme and stare at the title graphic. :)\par
+\par
+does it seriously have to recompress the mp3 every time I run it??\par
+THE ANSWER IS YES.\par
+\par
+I need another snack!\par
+\par
+Why build one when you can build two at twice the price?\par
+\par
+Modifying jump physics to make the game nontrivial.\par
+\par
+That's definitely harder...\par
+\par
+Now let's put some pinball machinery in them.\par
+\par
+I started doing it but it wasn't working and I got sick of it!\par
+\par
+Lemme draw some more fish, because those fit into the game very cleanly.\par
+\par
+Some fish might need to be bigger, in order to make the game interesting at all...\par
+\par
+oy, my shoulder\par
+it was probably my terrible posture right there\par
+\par
+man <4 hours left...\par
+LOVE THIS THEME SONG!\par
+hit #1 single\par
+\par
+CRYPT MUSIC! \par
+this is also hit single!\par
+\par
+3 HOURS\par
+ugh\par
+1/20 times I record something with my sound card it's covered in weird hiss.. try again!\par
+\par
+All music is done now.\par
+Literally all the music in the world.\par
+\par
+About 2 hours left\par
+\par
+I'm jazzed about not implementing pinball at the last minute. ;)\par
+\par
+Observation: If the tapioca in bubble tea were made of tea, then ice water would be like bubble tea.\par
+\par
+Other observation: Running out of time! Currently trying to make the fish not bunch up.\par
+\par
+Can't tell if it worked but I haven't seen bunches of fish yet.\par
+\par
+I'm getting hungry again, maybe because I didn't really eat that much...\par
+\par
+I'm just gonna make one more fish, then turn in.\par
 }
  

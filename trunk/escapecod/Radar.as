@@ -34,7 +34,7 @@ class Radar extends MovieClip {
   }
 
   public function setBackground(hexcolor) {
-    trace('radar.setbackground ' + hexcolor);
+    // trace('radar.setbackground ' + hexcolor);
     if (this.background) {
       this.background.removeMovieClip();
     }
