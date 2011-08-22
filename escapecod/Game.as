@@ -1,20 +1,19 @@
 class Game extends MovieClip {
 
+  var gamemusic : Sound;
+
   var SCREENW = 900;
   var SCREENH = 700;
 
   // The fishes I'm inside, not including the one that is
   // currently the game. Element 0 is the nearest enclosing fish.
   // Just fish names like 'purple'.
-  var inside_fishes = ['orange', 'green'];
-  /*
-                       'purple', 'red', 'orange',
-                       'green', 'red', 'purple', 'red',
-                       'red', 'purple', 'orange', 'red', 'purple',
-                       'red', 'orange', 'purple', 'green', 'purple',
-                       'orange', 'orange', 'green', 'purple',
-                       'red', 'green', 'red' ];
-  */
+  var inside_fishes = ['green', 'red', 'purple', 'green',
+                       'red', 'orange', 'green', 'magenta', 'green',
+                       'cyan', 'yellow',
+                       'red', 'purple', 'yellow', 'orange',
+                       'cyan', 'purple', 'magenta',
+                       'yellow'];
   var current_background = 0;
   
   // The fish I'm currently in. I just use this to animate. We
@@ -33,9 +32,11 @@ class Game extends MovieClip {
 
   // When a bigger fish can, it eats me. This is its index
   // in the other_fish array, or -1 if no current swallower.
-  var SWALLOW_DISTANCE = 400;
+  var SWALLOW_DISTANCE = 500;
   var swallower = -1;
   var SWALLOW_FRAMES = 24;
+
+  var eaten_mc = null;
 
 
   //////////////////
@@ -48,6 +49,8 @@ class Game extends MovieClip {
   // when regurgitating, we offset the old fish by this amount.
   var old_fishx;
   var old_fishy;
+
+  var escaped_mc = null;
 
 
   /////////////////
@@ -98,12 +101,15 @@ class Game extends MovieClip {
   var fishdestx = 100, fishdesty = 20;
   var fishboredom = 0;
   var MAX_FISH_VELOCITY = 40;
+  var TOO_CLOSE_DIST = 1500;
+  var COMFORTABLE_DIST = 2000;
   
   // Not a pun. Percentage of full size that the fish should
   // render at. Usually 100, but when being swallowed, we zoom
   // out by setting this to 30-ish.
   var fishscale = 100;
   var MIN_SCALE = 30;
+  var targetscale = 100;
 
   // My current fish is always at world coordinates 0,0. There
   // are other fish swiming with it though. Fields:
@@ -135,7 +141,6 @@ class Game extends MovieClip {
 
   var FRICTION = 0.7;
 
-  // TODO: radar
   var radar_mc;
 
   // These are all in "game" coordinates (not screen), which
@@ -149,6 +154,9 @@ class Game extends MovieClip {
   // Same. Always axis aligned with x0,x1 at top left. Usually just
   // one. Aliases the fish's property.
   var exits = null;
+  // Repulses the ball if it gets close.
+  var repulsors = null;
+
 
   // normalized gravity vector
   // var gravityddx, gravityddy;
@@ -165,10 +173,13 @@ class Game extends MovieClip {
   // you're not on the wall.
 
   var all_fishes = 
-    { red: { bg: 0x581C1C, offset: 0 },
-      purple: { bg: 0x421458, offset: 0 },
-      orange: { bg: 0x794A11, offset: 2 },
-      green: { bg: 0x092A12, offset: 5 } };
+    { red: { bg: 0x581C1C, offset: 0, s: 100 },
+      purple: { bg: 0x421458, offset: 0, s: 100 },
+      magenta: { bg: 0x4B1251, offset: 0, s: 80 },
+      cyan: { bg: 0x064F51, offset: 0, s: 90 },
+      yellow: { bg: 0x5B520E, offset: 2, s: 90 },
+      orange: { bg: 0x794A11, offset: 2, s: 80 },
+      green: { bg: 0x092A12, offset: 5, s: 80 } };
   var fishnames = [];
 
   var PLAYING = 0;
@@ -194,18 +205,9 @@ class Game extends MovieClip {
       break;
 
     case 38: // up
-      for (var i = 0; i < all_seadust.length; i++) {
-        var d = all_seadust[i];
-        trace('seadust: ' + d.x + ' ' + d.y);
-      }
-      trace('dust: ' + DUSTW + ' ' + DUSTH);
-      // fallthrough
-
     case 32: // space
+      jumpframes = 0;
       holdingUp = true;
-      /*
-      */
-
       break;
     case 37: // left
       holdingLeft = true;
@@ -265,6 +267,7 @@ class Game extends MovieClip {
   public function getFishPieces(f) {
     this.borders = [];
     this.exits = [];
+    this.repulsors = [];
 
     for (var o in f) {
       if (f[o] instanceof Solid) {
@@ -291,6 +294,10 @@ class Game extends MovieClip {
         this.exits.push({x0: mc._x, y0: mc._y,
               x1: mc._x + mc._xscale,
               y1: mc._y + mc._yscale});
+      } else if (f[o] instanceof Repulsor) {
+        var mc = f[o];
+        this.repulsors.push({x: mc._x, y: mc._y,
+              mc: mc, r: mc._width / 92});
       }
     }
   }
@@ -318,11 +325,14 @@ class Game extends MovieClip {
     // never hungry. already ate a pinball.
     fish_mc_radar.gotoAndStop(1);
 
-    // should this be randomized? or remembered from when the
-    // fish swallowed us, for continuity if we escape just as
-    // being swallowed?
+    // Randomize this since otherwise it's too easy to set up
+    // a combo where you just keep jumping right out their
+    // mouths
+    // but face rightward in general...
+    fishr = Math.random() * Math.PI - (Math.PI / 2);
     fishdr = 0;
-    fishr = 0;
+    targetscale = all_fishes[name].s;
+
     // random velocity.
     fishdx = Math.random() * MAX_FISH_VELOCITY * 0.2 -
       (MAX_FISH_VELOCITY / 0.4);
@@ -367,12 +377,12 @@ class Game extends MovieClip {
       var who = fishnames[int(Math.random() * 9999) % fishnames.length];
 
       // The current fish is always at 0,0.
-      var x = Math.random() * WORLD_WIDTH - (WORLD_WIDTH / 2);
-      var y = Math.random() * WORLD_HEIGHT - (WORLD_HEIGHT / 2);
+      var x = Math.random() * WORLD_WIDTH - (WORLD_WIDTH / 3);
+      var y = Math.random() * WORLD_HEIGHT - (WORLD_HEIGHT / 3);
 
-      // Random destination.
-      var destx = Math.random() * WORLD_WIDTH - (WORLD_WIDTH / 2);
-      var desty = Math.random() * WORLD_HEIGHT - (WORLD_HEIGHT / 2);
+      // Random destination, but go towards the main fish.
+      var destx = Math.random() * WORLD_WIDTH - (WORLD_WIDTH / 6);
+      var desty = Math.random() * WORLD_HEIGHT - (WORLD_HEIGHT / 6);
 
       // XXX avoid collisions with the current fish!
 
@@ -411,7 +421,7 @@ class Game extends MovieClip {
   var MAX_DUST_DEPTH = 3000;
   public function setDustDepth(m : MovieClip, n : Number) {
     if (n < MIN_DUST_DEPTH) {
-      trace('could not set dust depth correctly');
+      // trace('could not set dust depth correctly');
       return;
     }
     var other : MovieClip = _root.getInstanceAtDepth(n);
@@ -520,6 +530,13 @@ class Game extends MovieClip {
     for (var o in all_fishes)
       fishnames.push(o);
 
+    // game music!
+    gamemusic = new Sound(this);
+    gamemusic.attachSound('blenny.mp3');
+    // gamemusic.attachSound('title.mp3');
+    gamemusic.setVolume(100);
+    gamemusic.start(0, 99999);
+
     ballx = 0;
     bally = 0;
 
@@ -533,6 +550,15 @@ class Game extends MovieClip {
     
     radar_mc = _root.attachMovie("radar", "radar", 6000,
                                  {_x: SCREENW - Radar.WIDTH, _y: 0});
+
+    escaped_mc = _root.attachMovie("escaped", "escaped", 7000,
+                                   {_x: 0, _y: 0});
+    escaped_mc._visible = false;
+
+    eaten_mc = _root.attachMovie("eaten", "eaten", 7001,
+                                 {_x: 0, _y: 0});
+    eaten_mc._visible = false;
+    
 
     setFish('purple');
 
@@ -627,7 +653,7 @@ class Game extends MovieClip {
     */
 
     if (getCollisionsAt(startx, starty, RADIUS).length > 0) {
-      trace('started stuck.');
+      // trace('started stuck.');
       return;
     }
 
@@ -732,9 +758,8 @@ class Game extends MovieClip {
     }
     fish_tower = [];
 
-    // XXX Stop early once we've had enough. append '...'.
     var x = 20;
-    for (var i = 0; i < inside_fishes.length; i++) {
+    for (var i = 0; i < inside_fishes.length && i < 25; i++) {
       var f = inside_fishes[i];
       // kerning, sorta
       var offset = all_fishes[f].offset;
@@ -766,6 +791,13 @@ class Game extends MovieClip {
     }
   }
 
+
+  // If jumpframes is positive, we're allowed to "long jump"
+  // in this vector for that many more frames, if we're
+  // still holding up.
+  var jumpx = 0, jumpy = 0;
+  var jumpframes = 0;
+
   public function onEnterFrame() {
 
     // Hack: Can't do this until the thing has actually loaded.
@@ -781,17 +813,17 @@ class Game extends MovieClip {
     // anyway since the radar won't have loaded yet.
     maybeSetBackground();
 
-
     // Might be in several different modes.
     // 1. TODO: Zooming out and replacing the fish. No control.
     // 2. TODO: Zooming out and winning the game. No control.
     // 3. Normal play:
     if (mode == PLAYING) {
 
-      // XXX frame-by-frame mode
-      if (!advance)
-        return;
-      // advance = false;
+      // Enemies get to go faster if we're almost outside.
+      var MAX_OTHER_FISH_VELOCITY = MAX_FISH_VELOCITY;
+      if (inside_fishes.length < 5) {
+        MAX_OTHER_FISH_VELOCITY += 5 * (5 - inside_fishes.length);
+      }
 
       //  - Check keyboard/mouse to get ball's intention
 
@@ -808,25 +840,41 @@ class Game extends MovieClip {
       var sddx = XGRAVITY;
       var sddy = YGRAVITY;
 
-      // no air jumps!
-      if (holdingUp) {
-        sddy -= 20;
-      }
-
       if (holdingLeft) {
         sddx -= 3;
       } else if (holdingRight) {
         sddx += 3;
       }
 
-      var dd = rotateVec(sddx, sddy, -fishr);
-      
+      // Replusors just affect gravity. Easy.
+      for (var i = 0; i < this.repulsors; i++) {
+        var r = this.repulsors[i];
+        // trace('repulsor!');
+        // Hack. Fish's onLoad turns them off.
+        // XXX could use this as a way to fade them
+        // in?
+        r.mc._visible = true;
 
+        var vx = ballx - r.x;
+        var vy = bally - r.y;
+        var dist = Math.sqrt (vx * vx + vy * vy);
+
+        if (dist < 120) {
+          var power = 1 / (dist / 120);
+          balldx += power * vx;
+          balldy += power * vy;
+        }
+      }
+
+
+      var dd = rotateVec(sddx, sddy, -fishr);
       var col = getCollisionsAt(ballx, bally, BOUNCE_RADIUS);
       if (col.length > 0) {
 
-        // Apply gravity normal forces.
+        // Apply gravity normal forces, and compute
+        // tangent for jumps
         var ndx = 0, ndy = 0, denom = 0;
+        var tanx = 0, tany = 0;
         for (var i = 0; i < col.length; i++) {
           // as in resolveForce
           var b = col[i].b;
@@ -843,7 +891,22 @@ class Game extends MovieClip {
             ndx += unrotd.dx;
             ndy += unrotd.dy;
           }
+
+          // No need to rotate to compute this vector.
+          var tx = ballx - col[i].n.x;
+          var ty = bally - col[i].n.y;
+          var tlen = Math.sqrt(tx * tx + ty * ty);
+          if (tlen > 0) {
+            tx = tx / tlen;
+            ty = ty / tlen;
+          } else {
+            ty -= 1;
+          }
+
+          tanx += tx;
+          tany += ty;
         }
+
 
         // If we had any downward collisions, accumulate
         // the tangent forces.
@@ -857,8 +920,21 @@ class Game extends MovieClip {
           balldy += dd.dy;
         }
         
-        balldx *= FRICTION;
-        balldy *= FRICTION;
+        // Jump tangent to walls, if holding up.
+        if (holdingUp) {
+          jumpx = tx;
+          jumpy = ty;
+          jumpframes = 3;
+        } else {
+          // Otherwise you get fricted.
+          balldx *= FRICTION;
+          balldy *= FRICTION;
+        }
+
+        // no air jumps!
+        // if (holdingUp) {
+        // sddy -= 20;
+        // }
 
       } else {
         // free-fall
@@ -866,6 +942,13 @@ class Game extends MovieClip {
         balldy += dd.dy;
       }
 
+      if (jumpframes > 0) {
+        if (holdingUp) {
+          balldx += 20 * jumpx;
+          balldy += 20 * jumpy;
+        }
+        jumpframes--;
+      }
 
       // terminal velocity checks. Collision code assumes it's
       // not moving faster than its diameter, currently.
@@ -916,6 +999,7 @@ class Game extends MovieClip {
 
           // Abort any swallowing.
           swallower = -1;
+          eaten_mc._visible = false;
 
           // Should fade these in both cases.
           for (var i = 0; i < other_fish.length; i++) {
@@ -975,7 +1059,7 @@ class Game extends MovieClip {
         fishdestx = Math.random() * 20000 - 10000;
         fishdesty = Math.random() * 10000 - 5000;
         fishboredom = 0;
-        trace('new target: ' + fishdestx + ' ' + fishdesty);
+        // trace('new target: ' + fishdestx + ' ' + fishdesty);
         destdist = distance(0, 0, fishdestx, fishdesty);
       }
 
@@ -1008,6 +1092,24 @@ class Game extends MovieClip {
       fishdesty -= fishdy;
 
 
+
+      // compute fish that are too close to one another.
+      for (var i = 0; i < other_fish.length; i++)
+        other_fish[i].close = [];
+      for (var i = 0; i < other_fish.length; i++) {
+        for (var j = i + 1; j < other_fish.length; j++) {
+          var dist = distance(other_fish[i].x,
+                              other_fish[i].y,
+                              other_fish[j].x,
+                              other_fish[j].y);
+          if (dist < TOO_CLOSE_DIST) {
+            other_fish[i].close.push(j);
+            other_fish[j].close.push(i);
+            // trace('too close: ' + i + ' ' + j);
+          }
+        }
+      }
+
       var closest_fish_dist = 99999;
       // trace('fishd: ' + fishdx + ' ' + fishdy);
       for (var i = 0; i < other_fish.length; i++) {
@@ -1022,14 +1124,20 @@ class Game extends MovieClip {
         f.destx -= fishdx;
         f.desty -= fishdy;
 
+        var NUM_RAVENOUS = 10 - inside_fishes.length;
+        if (NUM_RAVENOUS < 3) 
+          NUM_RAVENOUS = 3;
+
         // Opportunistically, get hungry and go after the current
-        // fish.
+        // fish. Not allowed to get hungry if there are any fish
+        // too close.
         var dist_to_fish = distance(f.x, f.y, 0, 0);
-        if (true || dist_to_fish < 2500) {
+        if (f.close.length == 0 &&
+            (i < NUM_RAVENOUS || dist_to_fish < 3500)) {
           // trace(i + ' is hungry!!');
           f.hungry = true;
         } else if (f.hungry && dist_to_fish > 10000) {
-          trace(i + ' isn\'t hungry any more');
+          // trace(i + ' isn\'t hungry any more');
           f.hungry = false;
         }
 
@@ -1045,7 +1153,11 @@ class Game extends MovieClip {
         // XXX and facing the right way.
         if (dist_to_fish < SWALLOW_DISTANCE &&
             swallower == -1) {
-          trace(i + ' is swallowing');
+          // trace(i + ' is swallowing');
+          // reserved for swallower.
+          // Make sure it's in front since needs to fade into
+          // the background color.
+          f.mc_big.swapDepths(3950);
           swallower = i;
           framesleft = SWALLOW_FRAMES;
         }
@@ -1071,16 +1183,28 @@ class Game extends MovieClip {
             f.mc_big.gotoAndStop(1);
             f.mc_big.gotoAndStop(2);
             // XXX end swallow prematurely?
-            trace('chomp!');
+            // trace('chomp!');
 
           } else {
             f.mc_big.gotoAndStop(2);
             f.mc_radar.gotoAndStop(2);
           }
 
+          if (framesleft > SWALLOW_FRAMES / 2) {
+            var fastfrac = frac * 2 - 0.5;
+            eaten_mc._visible = true;
+            eaten_mc._x = SCREENW / 2;
+            eaten_mc._y = 
+              SCREENH - 
+              eaten_mc._height * (1.0 - fastfrac);
+            eaten_mc._alpha = 100 * fastfrac;
+          } else {
+            eaten_mc._visible = false;
+          }
+
           framesleft--;
           if (framesleft == 0) {
-            trace('done swallowing by ' + f.who);
+            // trace('done swallowing by ' + f.who);
             // Insert as the next fish.
             inside_fishes.splice(0, 0, f.who);
             updateFishTower();
@@ -1094,6 +1218,8 @@ class Game extends MovieClip {
             initializeDust();
             swallower = -1;
 
+            eaten_mc._visible = false;
+
             // All these fish are gone now. Don't do anything else.
             return;
           }
@@ -1101,7 +1227,21 @@ class Game extends MovieClip {
         } else {
           // Normal AI/physics.
           // If it's close to its destination, pick another one.
-          if (distance(f.x, f.y, f.destx, f.desty) < 400) {
+          if (f.close.length > 0) {
+            // If we're too close to another fish, then
+            // move away from one of those fish.
+            var ox = other_fish[f.close[0]].x;
+            var oy = other_fish[f.close[0]].y;
+            // vector away from the other fish
+            var odx = ox - f.x;
+            var ody = oy - f.y;
+            var olen = Math.sqrt(odx * odx + ody * ody);
+            f.destx = f.x + (odx / olen * COMFORTABLE_DIST);
+            f.desty = f.y + (ody / olen * COMFORTABLE_DIST);
+            // trace('set destination to get away from fish: ' +
+            // f.destx + ' ' + f.desty);
+
+          } else if (distance(f.x, f.y, f.destx, f.desty) < 400) {
             // Random destination.
             f.destx = Math.random() * WORLD_WIDTH - (WORLD_WIDTH / 2);
             f.desty = Math.random() * WORLD_HEIGHT - (WORLD_HEIGHT / 2);
@@ -1132,12 +1272,12 @@ class Game extends MovieClip {
 
           // Terminal velocity for fish.
           var dlen = Math.sqrt((f.dx * f.dx) + (f.dy * f.dy));
-          if (dlen > MAX_FISH_VELOCITY) {
+          if (dlen > MAX_OTHER_FISH_VELOCITY) {
             // Make normal.
             f.dx /= dlen;
             f.dy /= dlen;
-            f.dx *= MAX_FISH_VELOCITY;
-            f.dy *= MAX_FISH_VELOCITY;
+            f.dx *= MAX_OTHER_FISH_VELOCITY;
+            f.dy *= MAX_OTHER_FISH_VELOCITY;
           }
 
           // Try to face in the direction we're moving.
@@ -1160,12 +1300,14 @@ class Game extends MovieClip {
       if (swallower == -1 &&
           fishscale > MIN_SCALE && closest_fish_dist < 2000) {
         fishscale = MIN_SCALE + (fishscale - MIN_SCALE) * .95;
-      } else if (fishscale < 100 && 
+      } else if (fishscale < targetscale && 
                  (swallower != -1 ||
                   closest_fish_dist >= 2000)) {
         // XXX target scale could depend on the fish, since
         // some are bigger than others. Do it!
-        fishscale = 100 - (100 - fishscale) * .95;
+        fishscale = targetscale - (targetscale - fishscale) * .95;
+      } else if (fishscale >= targetscale) {
+        fishscale = fishscale * 0.9 + targetscale * 0.1;
       }
       
       // XXX testing debris
@@ -1256,6 +1398,9 @@ class Game extends MovieClip {
     framesleft--;
 
     if (framesleft >= 0) {
+
+      this.gamemusic.setVolume(frac * 100);
+
       // This is like the regurgitate frames,
       // but we're also falling.
       
@@ -1277,7 +1422,7 @@ class Game extends MovieClip {
 
 
       old_fishx += dx;
-      old_fishy += dy;
+      old_fishy -= dy;
 
       var fs = 100 + ((300 / (fishscale / 100)) * frac);
       var ofs = 100 - 75 * (1 - frac);
@@ -1298,9 +1443,12 @@ class Game extends MovieClip {
 
     } else {
 
-      trace('reallyend!');
+      // trace('reallyend!');
+      this.gamemusic.stop();
       ball_mc.removeMovieClip();
       old_fish_mc.removeMovieClip();
+      eaten_mc.removeMovieClip();
+      escaped_mc.removeMovieClip();
       // should be no fish.
       for (var i = 0; i < all_seadust.length; i++) {
         all_seadust[i].mc.removeMovieClip();
@@ -1353,7 +1501,18 @@ class Game extends MovieClip {
 
       ballToScreen(ball_mc, ballx, bally, 0);
       fishToScreen(old_fish_mc, old_fishx, old_fishy, ofs);
+
+      // Fish has a random rotation.
+      fish_mc._rotation = (fishr * 180) / Math.PI;
       fishToScreen(fish_mc, 0, 0, fs);
+
+      eaten_mc._visible = false;
+      escaped_mc._visible = true;
+      escaped_mc._x = SCREENW / 2;
+      escaped_mc._y = 
+        SCREENH - 
+        escaped_mc._height * (1.0 - frac);
+      escaped_mc._alpha = 100 * frac;
 
       /*
         // XXX can't do it unless we bring it in front of fish.
@@ -1376,6 +1535,7 @@ class Game extends MovieClip {
 
       old_fish_mc.removeMovieClip();
       old_fish_mc = null;
+      escaped_mc._visible = false;
 
       // fish_mc._xscale = 100;
       // fish_mc._yscale = 100;

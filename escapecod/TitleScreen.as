@@ -19,19 +19,17 @@ class TitleScreen extends MovieClip {
     Key.addListener(this);
 
     // title music!
-    /*
     titlemusic = new Sound(this);
-    titlemusic.attachSound('dangerous.mp3');
+    titlemusic.attachSound('title.mp3');
     titlemusic.setVolume(100);
     titlemusic.start(0, 99999);
-    */
   }
 
   public function onEnterFrame() {
     // Fade in...
     frames++;
     if (frames < FADEFRAMES) {
-      // XXX titlemusic.setVolume(frames);
+      // titlemusic.setVolume(frames);
     }
 
     var alpha = 100;
@@ -79,7 +77,7 @@ class TitleScreen extends MovieClip {
     trace('reallystart!');
     // Stop music!
 
-    // this.titlemusic.stop();
+    this.titlemusic.stop();
 
     this.swapDepths(0);
     this.removeMovieClip();

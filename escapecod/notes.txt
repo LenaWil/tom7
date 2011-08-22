@@ -4,6 +4,7 @@ Depths:
  - seadust: 2000-3000
  -  seadust depth start: 3001
  - other fish (big): 3900 - 3910
+ - other fish (swallowing one): 3950
  - current fish: 4000
  - old fish when regurgitating: 4010
  - ball movieclip: 5000
@@ -14,6 +15,8 @@ Depths:
    - radar my fish 8100
    - radar border: 10000
    - radar mask: 99997
+ - eaten: 7000
+ - escaped: 7001
  
 Fish radar:
   - facing right
@@ -24,28 +27,23 @@ Fish radar:
    - 2: mouth open
 
 TODO polish:
- - orange eating frame
+ - orange, cyan, etc. eating frame
  - put swallower at highest depth
  - improve debris (colors, sinus motion)
- - EATEN! ESCAPED! animations
- - Sound effects for those too
+ - Sound effects for swallowing, escaping
+ - fade out during end anim (falling)
+ - fade out / hide other fish during swallowing
+ - scale out for big fish
 
-TODO: 10 hours left
+TODO: 2 hours left
+ - more fish!
+
+Probably not:
+ - improve physics [1h]
  - some kind of pinball game inside the fish. [2h]
  - fish acceleration should affect physics, especially when on a wall. [.5h]
- - improve fish ai to keep them from bunching up [.5h]
  - improve fish ai to make it look more like swimmin [.5h]
- - improve physics [1h]
  - improve fish tower ui [.5h]
- - animate radar when swallowing/regurgitating [.5h]
- - MUSIC [2h]
- - start screen. Might even need instructions if the 
-   controls aren't arrows. [1h]
-      - hard/easy modes
- - end screen (lighthouse?) [1h]
-    - pearl in clam?
-
-
 
 Optionalish:
  - Reference to other themes
@@ -69,3 +67,25 @@ Optionalish:
     - Wormholes
     - Resurrection
     - Espionage
+
+Entry:
+
+Game made from scratch in 48h for Ludum Dare 21. All legit. 
+
+This was a weird theme for me since I've been working on a game (of and on) for about 13 years called "Escape". You can play it at http://escape.spacebar.org/ but that is NOT the Ludum Dare entry. I wish. This game is called "Escape Cod" and it's kind of like recursive fish pinball. Play with the arrow keys and spacebar (you may need to click in the window first).
+
+http://escapecod.spacebar.org/compo.shtml
+
+Enjoy:
+ - Pleasant pastel title screen
+ - Frantic pun-based gameplay
+ - Sleeping with the starfishes
+ - Three ultra-new tunes, one eponymous, with lyrics
+ - Almost believable physics using real-style maths
+
+Win screen unspoilered by screenshots.
+
+Soundtrack: http://escapecod.spacebar.org/escape-cod.zip
+
+Timelapse with webcam coming soon.
+
