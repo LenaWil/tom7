@@ -267,6 +267,14 @@
 (setq inhibit-startup-echo-area-message "Asterisk")
 (setq inhibit-startup-message t)
 
+(require 'protobuf-mode)
+(defconst my-protobuf-style
+  '((c-basic-offset . 2)
+    (indent-tabs-mode . nil)))
+
+(add-hook 'protobuf-mode-hook
+  (lambda () (c-add-style "my-style" my-protobuf-style t)))
+
 (autoload 'ange-ftp-set-user "ange-ftp" "ange-ftp stuff" t)
 (autoload 'aphasia-mode "aphasia" "Major mode for editing aphasia source code." t)
 (autoload 'sml-mode "sml-mode" "Major mode for editing ML programs." t)
@@ -290,6 +298,7 @@
 		("\\.mst$" . homework-mode)
 		("\\.wrd$" . homework-mode)
 		("\\.pop$" . c-mode)
+		("\\.proto$" . protobuf-mode)
 		("\\.sig$" . sml-mode)) auto-mode-alist))
 
 (defun delete-whitespace-right ()
@@ -354,13 +363,23 @@
     (add-hook 'local-write-file-hooks 'untabify-before-save)
     nil))
 
+(defun save-without-trailing-whitespace ()
+  (progn
+    (add-hook 'local-write-file-hooks 'delete-trailing-whitespace)
+    nil))
+
 ; (setq sml-mode-hook nil)
 (add-hook 'sml-mode-hook 'save-without-tabs)
+(add-hook 'sml-mode-hook 'save-without-trailing-whitespace)
+
 ;; XXX move to aphasia mode
 (add-hook 'aphasia-mode-hook 'turn-on-font-lock)
+(add-hook 'aphasia-mode-hook 'save-without-trailing-whitespace)
 
 (add-hook 'c-mode-hook 'save-without-tabs)
+(add-hook 'c-mode-hook 'save-without-trailing-whitespace)
 (add-hook 'cc-mode-hook 'save-without-tabs)
+(add-hook 'cc-mode-hook 'save-without-trailing-whitespace)
 
 (put 'downcase-region 'disabled nil)
 
