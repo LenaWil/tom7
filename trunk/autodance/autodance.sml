@@ -28,6 +28,7 @@ struct
 
   fun padname s n = s ^ (StringUtil.padex #"0" ~4 (Int.toString n)) ^ ".png"
 
+(*
   fun loop () =
       let
           val START = 158
@@ -57,11 +58,52 @@ struct
               in
                   FU.saveframe (padname "out" n, WIDTH, HEIGHT, frame)
               end
+
       in
           Util.for 0 (FPS * SECONDS) makeframe
       end
+*)
 
-  (* XXX HERE *)
+  fun loop () =
+      let
+          val START = 158
+          val END = 846
+          val NUM = END - START
+          val cache = FrameCache.create_pattern
+              { max = 20,
+                prefix =
+                "z:\\temp\\test-dance\\dancey",
+                padto = 4,
+                first = START,
+                suffix = ".jpeg" }
+
+          val WIDTH = FrameCache.width cache
+          val HEIGHT = FrameCache.height cache
+
+          val FPS = 24
+          val SECONDS = 6
+
+          val TPF = 1.0 / real (FPS * SECONDS)
+
+          val RATE = 80.0
+          fun func t = (t * RATE + Math.sin(t * RATE)) / RATE
+
+          fun makeframe n =
+              let
+                  (* linear. *)
+                  val t = real n / real (FPS * SECONDS)
+
+                  val t0 = func (real n * TPF)
+                  val t1 = func (real (n + 1) * TPF)
+
+                  val frame = FU.sampleinterval (cache, NUM, t0, t1)
+              in
+                  FU.saveframe (padname "out" n, WIDTH, HEIGHT, frame)
+              end
+
+      in
+          Util.for 0 (FPS * SECONDS) makeframe
+      end
 
   fun eprint s = TextIO.output (TextIO.stdErr, s)
 
