@@ -879,7 +879,7 @@ struct
               r
           end
 
-    (* not fast; linear search *)
+    (* not fast; linear search. Make inverse map! *)
     fun keysdl k =
         case Vector.findi (fn (_, x) => x = k) sdlk of
             NONE => raise SDL "bad key??"
@@ -887,6 +887,13 @@ struct
 
     fun sdlktostring k = Int.toString (keysdl k)
     fun sdlkfromstring s = Option.map sdlkey (Int.fromString s) handle Overflow => NONE
+
+    fun sdlkchar k =
+        let val c = keysdl k
+        in if c >= 0 andalso c < 256
+           then SOME (chr c)
+           else NONE
+        end
   end
 
   (* PERF can use mlton pointer structure to do this stuff,
