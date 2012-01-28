@@ -321,6 +321,9 @@ sig
   val surface_width : surface -> int
   val surface_height : surface -> int
 
+  (* Return the corresponding character for the key, if any. *)
+  val sdlkchar : sdlk -> char option
+
   val sdlktos : sdlk -> string
 
   val flip : surface -> unit
