@@ -1,0 +1,28 @@
+div.message {
+  display:none;
+  border: 7px outset red;
+  background: #CCCC88;
+  padding: 1em;
+  z-index: 9999;
+}
+
+img.pants {
+  width:89px;
+  height:128px;
+}
+
+div#game {
+  width:1000px;
+  height:1000px;
+}
+
+div.next {
+  float:right;
+  background: #FFFFFF;
+  cursor:pointer;
+  width:86;
+  height:18;
+  border-bottom: 1px solid black;
+  border-left: 1px solid black;
+  padding:2px;
+}
