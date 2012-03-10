@@ -1,5 +1,6 @@
 <html>
 <head>
+<link rel=stylesheet type="text/css" href="pants.css" title="pants">
 <script>
 function DomMaker(ty) {
   return function(cl, par) { 
@@ -184,34 +185,124 @@ var NAMES = [
 'Gretchen',
 ];
 
+var MESSAGE_HEIGHT = 80;
+var MESSAGE_WIDTH = 250;
+var PANTS_HEIGHT = 128;
+var PANTS_WIDTH = 89;
+
+function distance(x1, y1, x2, y2) {
+  return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+}
+
 function pantsname(i) {
   return NAMES[i % NAMES.length];
 }
 
-function handler(i) {
-  return function() {
-    alert('this is not my pants. this is ' + pantsname(i) + '\'s pants.');
+function clickhandler(i, x, y) {
+  return function(event) {
+    event = event || window.event;
+    clickx = event.x;
+    clicky = event.y;
+    setmessage('this is not my pants. this is ' + pantsname(i) + '\'s pants.');
   };
 }
 
-var NUM_PANTS = 100;
-function init() {
+var message = null;
+function setmessage(s) {
+  avoidmouse(mousex, mousey);
+  message.style.opacity = 1.0;
+  message.style.display = 'block';
+  message.innerHTML = '';
+  TEXT(s, SPAN('messagetext', message));
+  message.style.position = 'absolute';
+  fade = -1;
+}
+
+var MAX_FADE = 20;
+var fade = -1;
+function fademessage() {
+  if (fade == 0) {
+    message.style.display = 'none';
+  } else if (fade > 0) {
+    message.style.opacity = fade/MAX_FADE;
+    fade--;
+    setTimeout(fademessage, 5);
+  }
+}
+
+function hideMessage() {
+  if (fade == -1) {
+    fade = MAX_FADE;
+    fademessage();
+  }
+}
+
+function avoidmouse(x, y) {
+  var tx, ty;
+  if (x < 500) {
+    tx = x + 50;
+  } else {
+    tx = x - MESSAGE_WIDTH - 50;
+  }
+
+  if (y < 500) {
+    ty = y + 50;
+  } else {
+    ty = y - MESSAGE_HEIGHT - 50;
+  }
+
+  message.style.left = tx;
+  message.style.top = ty;
+}
+
+var clickx = 0, clicky = 0, mousex = 0, mousey = 0;
+function moveMessage(event) {
+  event = event || window.event;
+  mousex = event.x;
+  mousey = event.y;
+  var d = distance(event.x, event.y, clickx, clicky);
+  //  TEXT(d + ' ', document.body);
+  if (d > 20) {
+    hideMessage();
+  }
+}
+
+var worlds = ['underwater.png', 'beach.png'];
+
+function init(n) {
   var elt = document.getElementById('game');
+  elt.innerHTML = '';
+  document.body.onmousemove = moveMessage;
+
+  var next = DIV('next', elt);
+  next.innerHTML = 'Next world &raquo;';
+  next.onclick = function() {
+    init((n + 1) % worlds.length);
+  };
+
+  elt.style.background = 'url(' + worlds[n] + ')';
+
+
+  message = DIV('message', elt);
+  message.style.display = 'none';
+
   for (var i = 0; i < NUM_PANTS; i++) {
     var pe = IMG('pants', elt);
     pe.src = 'pants.png';
     pe.style.position = 'absolute';
-    pe.style.top = Math.random() * 1000;
-    pe.style.left = Math.random() * 1000;
+    var x = Math.random() * (1000 - PANTS_WIDTH);
+    var y = Math.random() * (1000 - PANTS_HEIGHT);
+    pe.style.left = x;
+    pe.style.top = y;
     pe.style.cursor = 'pointer';
     pe.style.border = 0;
-    pe.onclick = handler(i);
+    pe.onclick = clickhandler(i, x, y);
   }
 }
 
 </script>
 </head>
-<body onload="init()">
+<body onload="init(0)">
 <div id="game">&nbsp;</div>
 </body>
 </html>
