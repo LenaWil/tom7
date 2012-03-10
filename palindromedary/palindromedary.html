@@ -124,6 +124,14 @@ function isword(str) {
   return rec(fwd, 0);
 }
 
+for (var i = 0; i < dict.length; i++) {
+  var w = dict[i];
+  if (isword (w + 'z')) {
+    document.write("<BR>");
+    document.write(w);
+  }
+}
+
 // PERF: This is exponential, but can do this in linear time!
 // It's plenty fast for interactive use on small sentences.
 function solve(str, elt) {
