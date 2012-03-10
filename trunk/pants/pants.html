@@ -277,16 +277,17 @@ function init(n) {
   var next = DIV('next', elt);
   next.innerHTML = 'Next world &raquo;';
   next.onclick = function() {
-    init((n + 1) % worlds.length);
+    init(n + 1);
   };
 
-  elt.style.background = 'url(' + worlds[n] + ')';
-
+  elt.style.background = 'url(' + worlds[n % worlds.length] + ')';
+  document.title = 'world ' + n;
+  var num_pants = 25 * (n/worlds.length + 1);
 
   message = DIV('message', elt);
   message.style.display = 'none';
 
-  for (var i = 0; i < NUM_PANTS; i++) {
+  for (var i = 0; i < num_pants; i++) {
     var pe = IMG('pants', elt);
     pe.src = 'pants.png';
     pe.style.position = 'absolute';
@@ -296,7 +297,7 @@ function init(n) {
     pe.style.top = y;
     pe.style.cursor = 'pointer';
     pe.style.border = 0;
-    pe.onclick = clickhandler(i, x, y);
+    pe.onclick = clickhandler(n * 50 + i, x, y);
   }
 }
 
