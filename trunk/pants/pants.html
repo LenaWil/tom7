@@ -1,0 +1,217 @@
+<html>
+<head>
+<script>
+function DomMaker(ty) {
+  return function(cl, par) { 
+    var elt = document.createElement(ty);
+    if (cl) {
+      elt.setAttribute('class', cl);
+      elt.setAttribute('className', cl);
+    }
+    par && par.appendChild(elt);
+    return elt;
+  };
+}
+var DIV = DomMaker('DIV');
+var SPAN = DomMaker('SPAN');
+var A = DomMaker('A');
+var INPUT = DomMaker('INPUT');
+var TABLE = DomMaker('TABLE');
+var TBODY = DomMaker('TBODY');
+var TR = DomMaker('TR');
+var TD = DomMaker('TD');
+var TH = DomMaker('TH');
+var BR = DomMaker('BR');
+var IMG = DomMaker('IMG');
+var SCRIPT = DomMaker('SCRIPT');
+
+function TEXT(s, par) {
+  var elt = document.createTextNode(s);
+  par && par.appendChild(elt);
+  return elt;
+}
+
+var NAMES = [
+'Annabel',
+'Asher',
+'Atticus',
+'August',
+'Butch',
+'Clementine',
+'Daisy',
+'Dashiell',
+'Delilah',
+'Dexter',
+'Dixie',
+'Duke',
+'Edie',
+'Ella',
+'Elvis',
+'Flora',
+'Frances',
+'Frank',
+'Georgia',
+'Gus',
+'Harper',
+'Hazel',
+'Homer',
+'Hopper',
+'Hudson',
+'Hugo',
+'Ike',
+'India',
+'Ione',
+'Iris',
+'Isla',
+'Ivy',
+'June',
+'Kai',
+'Kingston',
+'Lennon',
+'Leonora',
+'Leopold',
+'Levi',
+'Lila',
+'Lionel',
+'Lola',
+'Luca',
+'Lulu',
+'Magnus',
+'Mamie',
+'Matilda',
+'Millie',
+'Milo',
+'Minnie',
+'Moses',
+'Olive',
+'Orson',
+'Oscar',
+'Otis',
+'Pearl',
+'Piper',
+'Poppy',
+'Ray',
+'Roman',
+'Romy',
+'Roscoe',
+'Ruby',
+'Rufus',
+'Sadie',
+'Scarlett',
+'Sebastian',
+'Silas',
+'Stella',
+'Stellan',
+'Sullivan',
+'Talullah',
+'Theo',
+'Violet',
+'A. J.',
+'Aaron',
+'Alex',
+'Andrew',
+'Anthony',
+'B. J.',
+'Brad',
+'Brandian',
+'Brandon',
+'Brett',
+'Bryan',
+'C. J.',
+'Chad',
+'Charles',
+'Charlie',
+'Chris',
+'Clay',
+'D. J.',
+'Davon',
+'Derek',
+'Desmond',
+'Diondre',
+'Donald',
+'Erik',
+'Evan',
+'Frank',
+'Graham',
+'Greg',
+'Herb',
+'Howard',
+'Jamari',
+'James',
+'Jarius',
+'Jarrett',
+'Jermichael',
+'John',
+'Johnny',
+'Jon',
+'Jordy',
+'Josh',
+'Lawrence',
+'M. D.',
+'Marshall',
+'Mason',
+'Matt',
+'Mike',
+'Morgan',
+'Nick',
+'Pat',
+'Randall',
+'Ray',
+'Robert',
+'Ryan',
+'Sam',
+'Sampson',
+'Scott',
+'Shaky',
+'T. J.',
+'Tim',
+'Tom',
+'Tori',
+'Tramon',
+'Vic',
+'Abbie',
+'Jessica',
+'Reed',
+'Lindsay',
+'Erika',
+'Nels',
+'Verity',
+'Gabe',
+'Barack',
+'Linus',
+'Maya',
+'Monk',
+'Gretchen',
+];
+
+function pantsname(i) {
+  return NAMES[i % NAMES.length];
+}
+
+function handler(i) {
+  return function() {
+    alert('this is not my pants. this is ' + pantsname(i) + '\'s pants.');
+  };
+}
+
+var NUM_PANTS = 100;
+function init() {
+  var elt = document.getElementById('game');
+  for (var i = 0; i < NUM_PANTS; i++) {
+    var pe = IMG('pants', elt);
+    pe.src = 'pants.png';
+    pe.style.position = 'absolute';
+    pe.style.top = Math.random() * 1000;
+    pe.style.left = Math.random() * 1000;
+    pe.style.cursor = 'pointer';
+    pe.style.border = 0;
+    pe.onclick = handler(i);
+  }
+}
+
+</script>
+</head>
+<body onload="init()">
+<div id="game">&nbsp;</div>
+</body>
+</html>
