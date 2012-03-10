@@ -9,6 +9,8 @@ div.message {
 img.pants {
   width:89px;
   height:128px;
+  z-index: 100;
+  opacity: 0.9;
 }
 
 div#game {
@@ -17,6 +19,7 @@ div#game {
 }
 
 div.next {
+  z-index: 19998;
   float:right;
   background: #FFFFFF;
   cursor:pointer;
