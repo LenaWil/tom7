@@ -267,7 +267,7 @@ function moveMessage(event) {
   }
 }
 
-var worlds = ['underwater.png', 'beach.png'];
+var worlds = ['underwater.png', 'beach.png', 'wisconsin.png'];
 
 function init(n) {
   var elt = document.getElementById('game');
@@ -292,7 +292,7 @@ function init(n) {
     pe.src = 'pants.png';
     pe.style.position = 'absolute';
     var x = Math.random() * (1000 - PANTS_WIDTH);
-    var y = Math.random() * (1000 - PANTS_HEIGHT);
+    var y = 20 + Math.random() * (980 - PANTS_HEIGHT);
     pe.style.left = x;
     pe.style.top = y;
     pe.style.cursor = 'pointer';
