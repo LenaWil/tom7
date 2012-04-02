@@ -21,17 +21,11 @@ struct
 
   (* The starting state for the player, and the three actions that can
      be specified. Note that in the None case, the only legal action
-     is to not drink and not pass, so this is not represented.
-
-     Actions are options so that we can generate classes of players
-     that are underspecified, for efficiency. The machine is illegal
-     if during simulation we need to use an action that is not present,
-     but we don't generate such machines when exploring the possibilities.
-     *)
+     is to not drink and not pass, so this is not represented. *)
   datatype player = P of { start : cup option,
-                           up : action option,
-                           down : action option,
-                           filled : action option }
+                           up : action,
+                           down : action,
+                           filled : action }
 
   type machine = player list
 
@@ -50,7 +44,6 @@ struct
         drinks = Array.fromList (map (fn _ => 0) m),
         round = ref 0 }
 
-  exception Bug of string
   exception Illegal of string
   fun step (S { cups, players, drinks, round }) =
       let
@@ -61,12 +54,10 @@ struct
                 | SOME now =>
                   let
                       val { drink, place as (dest, next) } =
-                          case (case now of
-                                    Up => up
-                                  | Down => down
-                                  | Filled => filled) of
-                              NONE => raise Bug "!!"
-                            | SOME a => a
+                          case now of
+                              Up => up
+                            | Down => down
+                            | Filled => filled
                   in
                       (if drink
                        then Array.update (drinks, i,
@@ -111,9 +102,9 @@ struct
     end
 
    val r = exec [P { start = SOME Up,
-                     up = SOME { drink = true, place = (0, Up) },
-                     down = NONE,
-                     filled = NONE }]
+                     up = { drink = true, place = (0, Up) },
+                     down = { drink = true, place = (0, Up) },
+                     filled = { drink = true, place = (0, Up) } }]
 
    fun combine l k = List.concat (map k l)
 
@@ -131,7 +122,7 @@ struct
                combine [true, false]
                (fn d =>
                 combine placements
-                (fn p => [SOME { drink = d, place = p }]))
+                (fn p => [{ drink = d, place = p }]))
 
            val players =
                combine (NONE :: map SOME cups)
@@ -196,15 +187,12 @@ struct
        (if drink then "*" else "") ^
        "@" ^ Int.toString w
 
-   fun aotos NONE = "?"
-     | aotos (SOME a) = atos a
-
    fun playertostring (P { start, up, down, filled }) =
        "(start " ^
        (case start of
             NONE => "_"
           | SOME c => ctos c) ^ ", " ^
-       StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ aotos a)
+       StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ atos a)
                                [(Up, up), (Down, down), (Filled, filled)]) ^
        ")"
 
