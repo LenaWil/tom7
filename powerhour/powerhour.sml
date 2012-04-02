@@ -68,6 +68,7 @@ struct
                         | SOME _ =>
                               raise (Illegal ("2+ cups at pos " ^
                                               Int.toString dest)))
+                           handle Subscript => raise Illegal ("out of bounds")
                   end
 
       in
@@ -99,5 +100,124 @@ struct
     in
         oneround sim
     end
+
+   val r = exec [P { start = SOME Up,
+                     up = { drink = true, place = (0, Up) },
+                     down = { drink = true, place = (0, Up) },
+                     filled = { drink = true, place = (0, Up) } }]
+
+   fun combine l k = List.concat (map k l)
+
+   (* Returns a list of all the possible games with that
+      many players *)
+   fun allgames radix =
+       let
+           val cups = [Up, Down, Filled]
+           val indices = List.tabulate (radix, fn i => i)
+           val placements =
+               combine indices (fn i =>
+                                combine cups (fn c =>
+                                              [(i, c)]))
+           val plans =
+               combine [true, false]
+               (fn d =>
+                combine placements
+                (fn p => [{ drink = d, place = p }]))
+
+           val players =
+               combine (NONE :: map SOME cups)
+               (fn start =>
+                combine plans
+                (fn u =>
+                 combine plans
+                 (fn d =>
+                  combine plans
+                  (fn f =>
+                   [P { start = start, up = u, down = d, filled = f}]
+                   ))))
+           val () = print ("There are " ^
+                           Int.toString (length players) ^
+                           " different players.\n")
+           (* Get all combinations of n players *)
+           fun get 0 = [nil]
+             | get n =
+                 let val rest = get (n - 1)
+                 in
+                     combine players
+                     (fn player =>
+                      map (fn l => player :: l) rest)
+                 end
+
+           val res = get radix
+           val () = print ("There are " ^
+                           Int.toString (length res) ^
+                           " different games.\n")
+       in
+           res
+       end
+
+   fun result_cmp (Finished _, Error _) = LESS
+     | result_cmp (Error _, Finished _) = GREATER
+     | result_cmp (Finished { drinks, waste },
+                   Finished { drinks = dd, waste = ww }) =
+       (case Int.compare (waste, ww) of
+            EQUAL => Util.lex_array_order Int.compare (drinks, dd)
+          | ord => ord)
+     | result_cmp (Error { rounds, msg },
+                   Error { rounds = rr, msg = mm }) =
+       (case Int.compare (rounds, rr) of
+            EQUAL => String.compare (msg, mm)
+          | ord => ord)
+
+   fun collate l =
+       let
+           val l = ListUtil.mapto exec l
+           val l = map (fn (a, b) => (b, a)) l
+           val l = ListUtil.stratify result_cmp l
+       in
+           l
+       end
+
+   fun ctos Up = "U"
+     | ctos Down = "D"
+     | ctos Filled = "F"
+
+   fun atos { drink, place = (w,a) } =
+       ctos a ^
+       (if drink then "*" else "") ^
+       "@" ^ Int.toString w
+
+   fun playertostring (P { start, up, down, filled }) =
+       "(start " ^
+       (case start of
+            NONE => "_"
+          | SOME c => ctos c) ^ ", " ^
+       StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ atos a)
+                               [(Up, up), (Down, down), (Filled, filled)]) ^
+       ")"
+
+   fun gametostring g =
+       "[" ^ StringUtil.delimit "," (map playertostring g) ^ "]"
+
+   fun restostring (Finished { drinks, waste }) =
+       "[" ^
+       StringUtil.delimit "," (map Int.toString
+                               (Array.foldr op:: nil drinks)) ^
+       "] wasting " ^
+       Int.toString waste
+     | restostring (Error { rounds, msg }) =
+       "In " ^ Int.toString rounds ^ " round(s): " ^ msg
+
+   fun show l =
+       let
+           fun showone (res, g) =
+               print (restostring res ^ ": " ^
+                      Int.toString (length g) ^ " game(s) like " ^
+                      gametostring (hd g) ^ "\n")
+       in
+           app showone l
+       end
+
+   val () = show (collate (allgames 2))
 
 end
