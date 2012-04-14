@@ -11,7 +11,7 @@ struct
   structure Key = K
   open SplayTree
 
-  datatype 'a map = 
+  datatype 'a map =
       EMPTY
     | MAP of {
       root: (K.ord_key * 'a) splay ref,
@@ -29,14 +29,14 @@ struct
         MAP{nobj=1, root=ref(SplayObj{value=(key, v), left=SplayNil, right=SplayNil})}
     | insert (MAP{root,nobj}, key, v) =
         case splay (cmpf key, !root) of
-          (EQUAL, SplayObj{value, left, right}) => 
+          (EQUAL, SplayObj{value = _, left, right}) =>
             MAP{nobj=nobj, root=ref(SplayObj{value=(key, v), left=left, right=right})}
-        | (LESS, SplayObj{value, left, right}) => 
+        | (LESS, SplayObj{value, left, right}) =>
             MAP{
               nobj=nobj+1,
               root=ref(SplayObj{value=(key, v), left=SplayObj{value=value, left=left, right=SplayNil}, right=right})
             }
-        | (GREATER, SplayObj{value, left, right}) => 
+        | (GREATER, SplayObj{value, left, right}) =>
             MAP{
               nobj=nobj+1,
               root=ref(SplayObj{
@@ -50,7 +50,7 @@ struct
 
   (* Look for an item, return NONE if the item doesn't exist *)
   fun find (EMPTY, _) = NONE
-    | find (MAP{root,nobj}, key) = (case splay (cmpf key, !root)
+    | find (MAP{root, nobj = _}, key) = (case splay (cmpf key, !root)
          of (EQUAL, r as SplayObj{value, ...}) => (root := r; SOME(#2 value))
           | (_, r) => (root := r; NONE))
   fun lookup x = valOf(find x)
@@ -60,7 +60,7 @@ struct
    *)
   fun remove (EMPTY, _) = raise LibBase.NotFound
     | remove (MAP{root,nobj}, key) = (case (splay (cmpf key, !root))
-       of (EQUAL, SplayObj{value, left, right}) => 
+       of (EQUAL, SplayObj{value, left, right}) =>
             if nobj = 1
               then (EMPTY, #2 value)
               else (MAP{root=ref(join(left, right)),nobj=nobj-1}, #2 value)
@@ -95,9 +95,9 @@ struct
     and left (SplayNil, rest) = rest
       | left (t as SplayObj{left=l, ...}, rest) = left(l, t :: rest)
   in
-  fun collate cmpRng (EMPTY, EMPTY) = EQUAL
-    | collate cmpRng (EMPTY, _) = LESS
-    | collate cmpRng (_, EMPTY) = GREATER
+  fun collate _ (EMPTY, EMPTY) = EQUAL
+    | collate _ (EMPTY, _) = LESS
+    | collate _ (_, EMPTY) = GREATER
     | collate cmpRng (MAP{root=s1, ...}, MAP{root=s2, ...}) = let
         fun cmp (t1, t2) = (case (next t1, next t2)
                of ((SplayNil, _), (SplayNil, _)) => EQUAL
@@ -119,20 +119,20 @@ struct
         end
   end (* local *)
 
-      (* Apply a function to the entries of the dictionary *)
-  fun appi af EMPTY = ()
+  (* Apply a function to the entries of the dictionary *)
+  fun appi _ EMPTY = ()
     | appi af (MAP{root, ...}) =
         let fun apply SplayNil = ()
-              | apply (SplayObj{value, left, right}) = 
+              | apply (SplayObj{value, left, right}) =
                   (apply left; ignore (af value); apply right)
       in
         apply (!root)
       end
 
-  fun app af EMPTY = ()
+  fun app _ EMPTY = ()
     | app af (MAP{root, ...}) =
         let fun apply SplayNil = ()
-              | apply (SplayObj{value=(_, value), left, right}) = 
+              | apply (SplayObj{value=(_, value), left, right}) =
                   (apply left; ignore (af value); apply right)
       in
         apply (!root)
@@ -140,7 +140,7 @@ struct
 (*
   fun revapp af (MAP{root, ...}) =
         let fun apply SplayNil = ()
-              | apply (SplayObj{value, left, right}) = 
+              | apply (SplayObj{value, left, right}) =
                   (apply right; af value; apply left)
       in
         apply (!root)
@@ -148,7 +148,7 @@ struct
 *)
 
   (* Fold function *)
-  fun foldri (abf: K.ord_key * 'a * 'b -> 'b) b EMPTY = b
+  fun foldri (_  : K.ord_key * 'a * 'b -> 'b) b EMPTY = b
     | foldri (abf: K.ord_key * 'a * 'b -> 'b) b (MAP{root, ...}) =
         let fun apply (SplayNil: (K.ord_key * 'a) splay, b) = b
               | apply (SplayObj{value, left, right}, b) =
@@ -157,7 +157,7 @@ struct
         apply (!root, b)
       end
 
-  fun foldr (abf: 'a * 'b -> 'b) b EMPTY = b
+  fun foldr (_  : 'a * 'b -> 'b) b EMPTY = b
     | foldr (abf: 'a * 'b -> 'b) b (MAP{root, ...}) =
         let fun apply (SplayNil: (K.ord_key * 'a) splay, b) = b
               | apply (SplayObj{value=(_, value), left, right}, b) =
@@ -166,7 +166,7 @@ struct
         apply (!root, b)
       end
 
-  fun foldli (abf: K.ord_key * 'a * 'b -> 'b) b EMPTY = b
+  fun foldli (_  : K.ord_key * 'a * 'b -> 'b) b EMPTY = b
     | foldli (abf: K.ord_key * 'a * 'b -> 'b) b (MAP{root, ...}) =
         let fun apply (SplayNil: (K.ord_key * 'a) splay, b) = b
               | apply (SplayObj{value, left, right}, b) =
@@ -175,7 +175,7 @@ struct
         apply (!root, b)
       end
 
-  fun foldl (abf: 'a * 'b -> 'b) b EMPTY = b
+  fun foldl (_  : 'a * 'b -> 'b) b EMPTY = b
     | foldl (abf: 'a * 'b -> 'b) b (MAP{root, ...}) =
         let fun apply (SplayNil: (K.ord_key * 'a) splay, b) = b
               | apply (SplayObj{value=(_, value), left, right}, b) =
@@ -185,7 +185,7 @@ struct
       end
 
   (* Map a table to a new table that has the same keys*)
-  fun mapi (af: K.ord_key * 'a -> 'b) EMPTY = EMPTY
+  fun mapi (_: K.ord_key * 'a -> 'b) EMPTY = EMPTY
     | mapi (af: K.ord_key * 'a -> 'b) (MAP{root,nobj}) =
         let fun ap (SplayNil: (K.ord_key * 'a) splay) = SplayNil
               | ap (SplayObj{value, left, right}) = let
@@ -198,7 +198,7 @@ struct
         MAP{root = ref(ap (!root)), nobj = nobj}
       end
 
-  fun map (af: 'a -> 'b) EMPTY = EMPTY
+  fun map (_: 'a -> 'b) EMPTY = EMPTY
     | map (af: 'a -> 'b) (MAP{root,nobj}) =
         let fun ap (SplayNil: (K.ord_key * 'a) splay) = SplayNil
               | ap (SplayObj{value, left, right}) = let
