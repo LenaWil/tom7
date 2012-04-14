@@ -28,8 +28,15 @@ struct
           foldl folder IM.empty ps
       end
 
+  fun renderpoints ps =
+      let
+          val l = IM.foldri (fn (i, (), l) => i :: l) nil ps
+      in
+          StringUtil.delimit " " (map Int.toString l)
+      end
+
   fun loadfile f =
-      let val { alist, lookup } = Script.alistfromfile f
+      let val { alist = _, lookup } = Script.alistfromfile f
           fun lookupint s = Option.join (Option.map Int.fromString (lookup s))
 
           val () =
@@ -53,6 +60,19 @@ struct
             | _ => raise Waypoints ("Missing required fields in " ^ f)
       end
 
+  fun savefile (WP { prefix, suffix, padto, start, num, points }) f =
+      let
+      in
+          StringUtil.writefile f
+          ("type frames\n" ^
+           "prefix " ^ prefix ^ "\n" ^
+           "suffix " ^ suffix ^ "\n" ^
+           "padto " ^ Int.toString padto ^ "\n" ^
+           "start " ^ Int.toString (!start) ^ "\n" ^
+           "num " ^ Int.toString (!num) ^ "\n" ^
+           "points " ^ renderpoints (!points) ^ "\n")
+      end
+
   fun setwaypoint (WP { points, ... }) i =
       points := IM.insert (!points, i, ())
 
@@ -69,6 +89,6 @@ struct
   fun padto (WP { padto, ... }) = padto
   fun start (WP { start, ... }) = !start
   fun num (WP { num, ... }) = !num
-  fun points (WP { points, ... }) = IM.foldr op:: nil (!points)
+  fun points (WP { points, ... }) = IM.foldri (fn (i, (), l) => i :: l) nil (!points)
 
 end
