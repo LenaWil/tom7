@@ -1,0 +1,6 @@
+type frames
+prefix z:\video\tomshow s01e02\dance-src\dinosaur\dinosaur_
+suffix .png
+padto 6
+start 0
+num 769
