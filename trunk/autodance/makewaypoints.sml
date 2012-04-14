@@ -107,6 +107,18 @@ struct
 	      redraw()
 	  end
 
+      fun prevway () =
+	  let in
+	      cur := WP.prevwaypoint waypoints (!cur);
+	      redraw ()
+	  end
+
+      fun nextway () =
+	  let in
+	      cur := WP.nextwaypoint waypoints (!cur);
+	      redraw ()
+	  end
+
       fun loop () =
 	  let
 	      (* XXX *)
@@ -124,6 +136,8 @@ struct
 			 | E_KeyDown { sym = SDLK_SPACE } => space ()
 			 | E_KeyDown { sym = SDLK_HOME } => nav (0 - NUM)
 			 | E_KeyDown { sym = SDLK_END } => nav NUM
+			 | E_KeyDown { sym = SDLK_PERIOD } => nextway ()
+			 | E_KeyDown { sym = SDLK_COMMA } => prevway ()
 			 | _ => ());
 	      SDL.delay 1;
 	      loop ()
