@@ -10,12 +10,11 @@ struct
 
   exception MIDI of string
 
+  (*
   fun padreader (r : Reader.reader) s =
     Reader.fromvec (#seek r 0; #vec r (#size r) ^ s)
-
   val padding = "\000\000\000\000"
-
-  fun pad r = padreader r padding
+  fun pad r = padreader r padding *)
 
   fun pad r = r
 
@@ -136,7 +135,7 @@ struct
                         | mini (a, v, i, ((dt, _) :: _) :: rest) =
                           if v <= dt then mini (a, v, i + 1, rest)
                           else mini (i, dt, i + 1, rest)
-                        | mini (_, _, _, nil :: rest) = raise MIDI "merge:impossible"
+                        | mini (_, _, _, nil :: _) = raise MIDI "merge:impossible"
 
                       val (next, v) =
                           mini (~1,
@@ -159,10 +158,10 @@ struct
                          nb. one of these must be zero-time.
                          nb. this won't get multiple events from the same track. *)
                       val nowevts = List.mapPartial
-                                      (fn ((0, e) :: t) => SOME e | _ => NONE) trl
+                                      (fn ((0, e) :: _) => SOME e | _ => NONE) trl
 
                       (* and take those off of the track list *)
-                      val trl = map (fn ((0, e) :: t) => t | x => x) trl
+                      val trl = map (fn ((0, _) :: t) => t | x => x) trl
                   in
                       (* the first nowevent triggers with the min, delta time
                          the other nowevents are 0 delta from that event.
@@ -188,6 +187,7 @@ struct
           merge trl
       end
 
+(*
   fun etos evt =
     (case evt of
         NOTEON (ch, n, vel) => "NOTEON " ^ itos ch ^ " " ^ itos n ^
@@ -195,10 +195,11 @@ struct
       | NOTEOFF (ch, n, vel) => "NOTEOFF " ^ itos ch ^ " " ^ itos n ^
                                 " " ^ itos vel
       | _ =>  "unimp")
+*)
 
   fun filter f l =
       let
-          fun filt plus nil = nil
+          fun filt _ nil = nil
             | filt plus ((d, e) :: t) =
               if f e
               then (plus + d, e) :: filt 0 t
@@ -364,7 +365,7 @@ struct
       val chunks = getchunks r
 
       (* from listutil *)
-      fun find eq nil key = NONE
+      fun find _ nil _ = NONE
         | find eq ((a,b)::t) key =
           if eq (a, key) then SOME b
           else find eq t key

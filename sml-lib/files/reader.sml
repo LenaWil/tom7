@@ -39,16 +39,16 @@ struct
             fun guard f x = (if !cl then raise Reader "reader is closed"
                              else f x)
 
-            (* we allow a seek one character beyond the end of the file, 
+            (* we allow a seek one character beyond the end of the file,
                because pos can return this value *)
 
-            fun seek n = if n < 0 orelse n > CharVector.length s 
-                         then raise Bounds 
+            fun seek n = if n < 0 orelse n > CharVector.length s
+                         then raise Bounds
                          else loc := n
             fun pos () = !loc
-            fun char i = CharVector.sub(s, !loc) before ++ loc 
-                         handle _ => raise Bounds
-            fun vec b = String.substring(s, !loc, b) before (loc += b) 
+            fun char () = CharVector.sub(s, !loc) before ++ loc
+                          handle _ => raise Bounds
+            fun vec b = String.substring(s, !loc, b) before (loc += b)
                         handle _ => raise Bounds
             fun close () = cl := true
         in
@@ -59,7 +59,7 @@ struct
               vec   = guard vec,
               close = guard close }
         end
-        
+
     (* XXX need to rewrite using Posix structure;
        this is missing the point entirely! *)
 (* XXX broken on windows, loses newline chars
@@ -70,12 +70,12 @@ struct
         in
             TextIO.closeIn f;
             fromvec v
-        end 
+        end
 *)
-    (* workaround 3 year-old reported bug in BinIO.inputAll SML/NJ on 
+    (* workaround 3 year-old reported bug in BinIO.inputAll SML/NJ on
        windows. Ugh. *)
     fun inputall inf =
-      let 
+      let
           fun rd vs =
               let val v = BinIO.input inf
                in case Word8Vector.length v
@@ -88,7 +88,7 @@ struct
 
     fun fromfile name =
       let
-        val f = (BinIO.openIn name) 
+        val f = (BinIO.openIn name)
             handle _ => raise Reader ("can't open file " ^ name)
         val v = inputall f
       in
@@ -112,7 +112,7 @@ struct
           end
       end
 
-    fun fromreader r s = 
+    fun fromreader r s =
       saveexcursion (fn ({vec,...} : reader) => fromvec (vec s)) r
 
     fun makeint nil = 0
@@ -152,7 +152,7 @@ struct
     fun vecat ({vec,seek,pos,...} : reader) beg len =
         let val p = pos ()
             (*
-            val _ = print ("vecat (...) " ^ Int.toString beg ^ 
+            val _ = print ("vecat (...) " ^ Int.toString beg ^
                            " " ^ Int.toString len ^ "\n")
             *)
         in  let in seek beg;
@@ -162,7 +162,7 @@ struct
             end handle e => (seek p; raise e)
         end
 
-    fun strzat (f as {vec,seek,pos,...} : reader) beg =
+    fun strzat (f as {vec = _, seek, pos, ...} : reader) beg =
         let val p = pos ()
         in  let in seek beg;
             strz f
@@ -173,7 +173,7 @@ struct
 
 
     fun line reader =
-        if eof reader 
+        if eof reader
         then NONE
         else SOME (let
                        (* find newline or EOF. *)
@@ -217,15 +217,15 @@ struct
                         else munch (#pos reader () - 1)
                      end
             and munch start =
-                if eof reader 
-                then SOME (vecat reader start 
+                if eof reader
+                then SOME (vecat reader start
                            (#pos reader () - start))
                 else
                     let val c = #char reader ()
                     in
                         if ws c
                         then let val p = #pos reader () - 1
-                                 val v = vecat reader start 
+                                 val v = vecat reader start
                                          (p - start)
                              in
                                  #seek reader p;
