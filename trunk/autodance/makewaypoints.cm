@@ -45,6 +45,8 @@ group is
   ../sdlml/pngsave-sig.sml
   ../sdlml/pngsave.sml
 
+  images.sml
+
   framecache-sig.sml
   framecache.sml
 

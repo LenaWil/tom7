@@ -23,7 +23,6 @@ struct
   structure FU = FrameUtil
   structure WP = Waypoints
 
-(*
   structure Font = FontFn
   (val surf = Images.requireimage "font.png"
    val charmap =
@@ -34,7 +33,6 @@ struct
    val styles = 6
    val overlap = 1
    val dims = 3)
-*)
 
   exception Done
 
@@ -42,31 +40,72 @@ struct
 
   fun eprint s = TextIO.output (TextIO.stdErr, s)
 
+  val RED = SDL.color (0w255, 0w0, 0w0, 0w255)
+  fun outline (surface, w, h, thickness, color) =
+      let in
+	  SDL.fillrect (surface, 0, 0, w, thickness, color);
+	  SDL.fillrect (surface, 0, 0, thickness, h, color);
+	  SDL.fillrect (surface, 0, h - thickness, w, thickness, color);
+	  SDL.fillrect (surface, w - thickness, 0, thickness, h, color);
+	  (* XXX *)
+	  ()
+      end
+
   fun start f =
     let 
       val waypoints = WP.loadfile f
       val cache = FrameCache.create_pattern
-	  { max = WP.num waypoints,
+	  { max = 20,
 	    prefix = WP.prefix waypoints,
 	    padto = WP.padto waypoints,
 	    first = WP.start waypoints,
 	    suffix = WP.suffix waypoints }
       val WIDTH = FrameCache.width cache
       val HEIGHT = FrameCache.height cache
+      val NUM = WP.num waypoints
       val screen = makescreen (WIDTH, HEIGHT)
 
       val cur = ref 0
-      fun show () =
+      fun redraw () =
 	  let val f = FrameCache.get cache (!cur)
 	      val s = SDL.unpixels (WIDTH, HEIGHT, f)
 	  in
 	      SDL.blitall (s, screen, 0, 0);
+	      SDL.freesurface s;
+
+	      if WP.iswaypoint waypoints (!cur)
+	      then outline (screen, WIDTH, HEIGHT, 8, RED)
+	      else ();
+
+	      Font.draw 
+	      (screen, 10, 10,
+	       "^3makewaypoints^<. left/right arrows to change frame.");
+	      Font.draw 
+	      (screen, 10, 10 + Font.height,
+	       Int.toString (!cur) ^ " ^2/^< " ^ Int.toString (WP.num waypoints));
+
 	      SDL.flip screen;
-	      SDL.freesurface s
+	      ()
 	  end
 
-      val () = show ()
+      fun nav n =
+	  let in
+	      cur := Int.max (0, Int.min (!cur + n, NUM - 1));
+	      redraw()
+	  end
 
+      fun pgdn () = nav 10
+      fun pgup () = nav ~10
+      fun prev () = nav ~1
+      fun next () = nav 1
+
+      fun space () =
+	  let in
+	      if WP.iswaypoint waypoints (!cur)
+	      then WP.clearwaypoint waypoints (!cur)
+	      else WP.setwaypoint waypoints (!cur);
+	      redraw()
+	  end
 
       fun loop () =
 	  let
@@ -77,6 +116,12 @@ struct
 		 | SOME evt =>
 		       case evt of
 			   E_KeyDown { sym = SDLK_ESCAPE } => raise Done
+			 | E_Quit => raise Done
+			 | E_KeyDown { sym = SDLK_RIGHT } => next ()
+			 | E_KeyDown { sym = SDLK_LEFT } => prev ()
+			 | E_KeyDown { sym = SDLK_PAGEUP } => pgup ()
+			 | E_KeyDown { sym = SDLK_PAGEDOWN } => pgdn ()
+			 | E_KeyDown { sym = SDLK_SPACE } => space ()
 			 | _ => ());
 	      SDL.delay 1;
 	      loop ()
@@ -84,6 +129,7 @@ struct
 
     in
       eprint ("Loaded waypoints from " ^ f ^ "\n");
+      redraw ();
       loop ()
     end
 
