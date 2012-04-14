@@ -84,6 +84,30 @@ struct
           NONE => false
         | SOME () => true
 
+  fun prevwaypoint (wp as WP { num = ref num, ... }) i =
+      let
+          fun pw i =
+              if i - 1 >= 0
+              then if iswaypoint wp (i - 1)
+                   then i - 1
+                   else pw (i - 1)
+              else i
+      in
+          pw i
+      end
+
+  fun nextwaypoint (wp as WP { num = ref num, ... }) i =
+      let
+          fun nw i =
+              if i + 1 < num
+              then if iswaypoint wp (i + 1)
+                   then i + 1
+                   else nw (i + 1)
+              else i
+      in
+          nw i
+      end
+
   fun prefix (WP { prefix, ... }) = prefix
   fun suffix (WP { suffix, ... }) = suffix
   fun padto (WP { padto, ... }) = padto
