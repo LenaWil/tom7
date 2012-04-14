@@ -50,10 +50,10 @@ struct
 
   (* PERF: These also check the region we know is empty,
      in exchange for using the (fast?) built-ins. *)
-  fun all f (ref (l, a)) =
+  fun all f (ref (_, a)) =
       Array.all (fn NONE => true
                   | SOME x => f x) a
-  fun exists f (ref (l, a)) =
+  fun exists f (ref (_, a)) =
       Array.exists (fn NONE => false
                      | SOME x => f x) a
 
