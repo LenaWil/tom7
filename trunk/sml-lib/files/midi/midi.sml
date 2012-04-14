@@ -9,7 +9,7 @@ struct
   open Reader
 
   exception MIDI of string
-                            
+
   fun padreader (r : Reader.reader) s =
     Reader.fromvec (#seek r 0; #vec r (#size r) ^ s)
 
@@ -32,14 +32,14 @@ struct
 
           if eof r
           then nil
-          else 
+          else
             let
               val title = #vec r 4
               val _ = dprint (title ^ "...\n");
               val len = rb32 r
               val _ = dprint ("make subreader of size " ^
                               Int.toString len ^ "\n")
-              val nr = pad (fromreader r len) 
+              val nr = pad (fromreader r len)
             in
               dprint "skip...\n";
               skip r len;
@@ -54,9 +54,9 @@ struct
 
   (* read a variable length quantity from r,
      return the 32 bit word it represents. *)
-  fun gvarw (r : reader) = 
+  fun gvarw (r : reader) =
     let fun loop result =
-      let 
+      let
         val b = Word8.fromInt (ord (#char r ()))
         val more = Word8.> (Word8.andb(b, 0wx80), 0w0)
         val rest = Word8.toInt (Word8.andb(b, 0wx7F))
@@ -97,7 +97,7 @@ struct
 
     (* sharps/flats maj/minor *)
     | KEY of int * bool
-      
+
     (* proprietary data, like sysex *)
     | PROP of string
     (* unknown *)
@@ -115,7 +115,7 @@ struct
     | PITCH of int * int * int
     (* sysex data *)
     | SYSEX of CharVector.vector
-      
+
     | META of meta
 
   val itos = Int.toString
@@ -128,24 +128,24 @@ struct
       in
           case trl of
               nil => nil
-            | _ => 
+            | _ =>
                   let
                       (* find the next event. It's the one
                          with the nearest delta time. *)
                       fun mini (a, v, _, nil) = (a, v)
-                        | mini (a, v, i, ((dt, _) :: _) :: rest) = 
+                        | mini (a, v, i, ((dt, _) :: _) :: rest) =
                           if v <= dt then mini (a, v, i + 1, rest)
                           else mini (i, dt, i + 1, rest)
                         | mini (_, _, _, nil :: rest) = raise MIDI "merge:impossible"
-                              
-                      val (next, v) = 
+
+                      val (next, v) =
                           mini (~1,
                                 (* sum of all delta times + 1; must be larger
                                    if midi is well-formed *)
                                 foldr (op+) 1 (map (#1 o hd) trl),
-                                0, 
+                                0,
                                 trl)
-                      val () = if next < 0 
+                      val () = if next < 0
                                then raise MIDI "merge:illegal delta time"
                                else ()
 
@@ -156,9 +156,9 @@ struct
                                      | _ => raise MIDI "merge:impossible2") trl
 
                       (* get all events at the head, in order, that have zero delta-time.
-                         nb. one of these must be zero-time. 
+                         nb. one of these must be zero-time.
                          nb. this won't get multiple events from the same track. *)
-                      val nowevts = List.mapPartial 
+                      val nowevts = List.mapPartial
                                       (fn ((0, e) :: t) => SOME e | _ => NONE) trl
 
                       (* and take those off of the track list *)
@@ -172,8 +172,8 @@ struct
                   end
       end
 
-  fun mergei trl = 
-      let 
+  fun mergei trl =
+      let
           fun number _ nil = nil
             | number x (h :: t) = map (fn (a, b) => (a, (x, b))) h :: number (x + 1) t
           val trnl = number 0 trl
@@ -190,9 +190,9 @@ struct
 
   fun etos evt =
     (case evt of
-        NOTEON (ch, n, vel) => "NOTEON " ^ itos ch ^ " " ^ itos n ^ 
+        NOTEON (ch, n, vel) => "NOTEON " ^ itos ch ^ " " ^ itos n ^
                                " " ^ itos vel
-      | NOTEOFF (ch, n, vel) => "NOTEOFF " ^ itos ch ^ " " ^ itos n ^ 
+      | NOTEOFF (ch, n, vel) => "NOTEOFF " ^ itos ch ^ " " ^ itos n ^
                                 " " ^ itos vel
       | _ =>  "unimp")
 
@@ -222,7 +222,7 @@ struct
         val _ = dprint (" Delta: " ^ Int.toString delta ^ "\n")
 *)
         val (evt, rest) =
-       let 
+       let
          val c = Word8.fromInt (ord (#char r ()))
          val status =
            (case (Word8.andb(0wx80, c), stat) of
@@ -237,36 +237,37 @@ struct
          (* (hi, lo) *)
          case (Word8.andb(0wx0f, Word8.>>(status,0w4)),
                Word8.andb(0wx0f, status)) of
-           (0wx9, ch) => 
-             NOTEON(Word8.toInt ch, 
+           (0wx9, ch) =>
+             NOTEON(Word8.toInt ch,
                     ord (#char r ()),
                     ord (#char r ()))
-         | (0wx8, ch) => 
-             NOTEOFF(Word8.toInt ch, 
+         | (0wx8, ch) =>
+             NOTEOFF(Word8.toInt ch,
                      ord (#char r ()),
                      ord (#char r ()))
-         | (0wxC, ch) => 
-             PCHANGE(Word8.toInt ch, 
+         | (0wxC, ch) =>
+             PCHANGE(Word8.toInt ch,
                      ord (#char r ()))
-         | (0wxB, ch) => 
+         | (0wxB, ch) =>
              CONTROL(Word8.toInt ch,
                      ord (#char r ()),
                      ord (#char r ()))
-         | (0wxE, ch) => 
+         | (0wxE, ch) =>
              PITCH(Word8.toInt ch,
                    ord (#char r ()),
                    ord (#char r ()))
-         | (0wxF, 0wx0) => 
+         | (0wxF, 0wx0) =>
              (* SYSEX *)
              let val num = Word32.toInt (gvarw r)
                  val dat = #vec r num
-             in 
+             in
 (*               dprint "sysex...\n"; *)
                (* some stupid MIDI devices want large SYSEX events
                   split into many packets with delay. We don't support
                   these, because they complicate parsing quite a bit. *)
-               CharVector.sub(dat, CharVector.length dat - 1) = (chr 0xF7)
-                  orelse raise MIDI "split SYSEX not supported";
+               if CharVector.sub(dat, CharVector.length dat - 1) = (chr 0xF7)
+               then ()
+               else raise MIDI "split SYSEX not supported";
                SYSEX dat
              end
          | (0wxF, 0wxF) =>
@@ -283,7 +284,7 @@ struct
                 | 3 => META (NAME (#vec r len))
                 | 4 => META (INST (#vec r len))
                 | 5 => META (LYRIC(#vec r len))
-                | 6 => 
+                | 6 =>
                     let val s = #vec r len
                     in dprint ("mark: " ^ s ^ "\n");
                        META (MARK s)
@@ -299,7 +300,7 @@ struct
                     if len = 3
                     then META (TEMPO ((ord (#char r ())) * 65536 + rb16 r))
                     else raise MIDI "got meta tempo but len <> 3"
-                | 0x54 => 
+                | 0x54 =>
                     if len = 5
                     then META (SMPTE (ord (#char r ()),
                                       ord (#char r ()),
@@ -307,7 +308,7 @@ struct
                                       ord (#char r ()),
                                       ord (#char r ())))
                     else raise MIDI "got meta smpte but len <> 5"
-                | 0x58 => 
+                | 0x58 =>
                       if len = 4
                       then META (TIME (ord (#char r ()),
                                        ord (#char r ()),
@@ -336,7 +337,7 @@ struct
       end handle LastEvent d => [(d, META END)]
   end
 
-  fun readtrack (r : reader) = 
+  fun readtrack (r : reader) =
     let in
 (*
       dprint "Track...\n";
@@ -351,7 +352,7 @@ struct
       val r = pad r
 
 (*
-      val _ = 
+      val _ =
         let in
 
           dprint "File...\n";
@@ -376,14 +377,18 @@ struct
              val ntrk = rb16 rdr
              val division = rb16 rdr
 
-             val ts = List.mapPartial 
+             val ts = List.mapPartial
                         (fn ("MTrk", r) => SOME r | _ => NONE) chunks
            in
-             eof rdr orelse raise MIDI "bad header length";
-             length ts = ntrk 
-               orelse raise MIDI "wrong number of tracks according to header";
-             (ty <> 0 orelse ntrk = 1)
-               orelse raise MIDI "type 0 must have 1 track";
+             if eof rdr
+             then ()
+             else raise MIDI "bad header length";
+             if length ts = ntrk
+             then ()
+             else raise MIDI "wrong number of tracks according to header";
+             if (ty <> 0 orelse ntrk = 1)
+             then ()
+             else raise MIDI "type 0 must have 1 track";
              (ty, division, map readtrack ts)
            end
        | NONE => raise MIDI "no header")
@@ -395,8 +400,8 @@ struct
 
   fun wr f s =
     BinIO.output (f,
-                  Word8Vector.tabulate 
-                    (size s, fn x => 
+                  Word8Vector.tabulate
+                    (size s, fn x =>
                      Word8.fromInt (ord (CharVector.sub(s, x)))))
 
   fun wb32 n =
@@ -432,8 +437,8 @@ struct
       fun wstatus status e =
         let val (ns, mandatory) =
           (* Sonar 7 doesn't like omitted status bytes
-             for META events. This is non-standard. 
-             But we should omit them for other events, 
+             for META events. This is non-standard.
+             But we should omit them for other events,
              like notes... *)
           (case e of
              CONTROL (ch, _, _) => (twob 0wxB ch, false)
@@ -444,10 +449,10 @@ struct
            | SYSEX _ => (0wxF0, true)
            | META _  => (0wxFF, true))
         in
-          (ns, 
+          (ns,
            case status of
              SOME os => if os = ns andalso not mandatory
-                        then "" 
+                        then ""
                         else implode [chr (Word8.toInt ns)]
            | NONE => implode [chr (Word8.toInt ns)])
         end
@@ -458,9 +463,9 @@ struct
            | NOTEOFF (_, a, b) => wb8 a ^ wb8 b
            | NOTEON  (_, a, b) => wb8 a ^ wb8 b
            | PCHANGE (_, a)    => wb8 a
-           | PITCH   (_, a, b) => wb8 a ^ wb8 b 
+           | PITCH   (_, a, b) => wb8 a ^ wb8 b
            | SYSEX v => wvar (size v) ^ v
-           | META me => 
+           | META me =>
                let
                  fun raw n v = wb8 n ^ wvar (size v) ^ v
                in
@@ -477,7 +482,7 @@ struct
                  | PROG v => raw 8 v
                  | DEV v => raw 9 v
                  | TEMPO n => wb8 0x51 ^ wb8 3 ^ wb24 n
-                 | SMPTE (a, b, c, d, e) => 
+                 | SMPTE (a, b, c, d, e) =>
                      wb8 0x54 ^ wb8 5 ^
                      concat (map wb8 [a, b, c, d, e])
                  | TIME (a, b, c, d) =>
@@ -512,16 +517,16 @@ struct
       val ts = map mktrack trks
       val ntrk = length ts
 
-      val _ = 
+      val _ =
         (ty <> 0 orelse ntrk = 1)
         orelse raise MIDI "type 0 must have 1 track"
 
-      val hdr = mkchunk "MThd" (concat[wb16 ty, 
+      val hdr = mkchunk "MThd" (concat[wb16 ty,
                                        wb16 ntrk,
                                        wb16 di])
 
       val f = BinIO.openOut fname
-        
+
     in
       wr f hdr;
       app (wr f) ts;
