@@ -8,9 +8,9 @@ signature SCRIPT =
 sig
     exception Script of string
 
-    (* Read all the lines from a named file into a list. 
+    (* Read all the lines from a named file into a list.
        Works with any standard line ending. Skips blank lines.
-       Strips whitespace from fore and aft of each line. 
+       Strips whitespace from fore and aft of each line.
 
        In line-by-line applications where the file may be very
        large, consider SimpleStream. *)
@@ -19,9 +19,9 @@ sig
     (* Read an association list from a file. Blank lines
        are ignored. The file format is
        <optional whitespace>key-without-whitespace<optional whitespace>value<optional whitespace>\n
-       A line with only token on it is treated as a key with an empty string value.
+       A line with only a token on it is treated as a key with an empty string value.
        If a key is duplicated, raises Script. *)
-    val alistfromfile : string -> { alist : (string * string) list, 
+    val alistfromfile : string -> { alist : (string * string) list,
                                     lookup : string -> string option }
 
     (* Creates a word list from a file, assuming that each

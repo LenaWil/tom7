@@ -22,8 +22,7 @@ struct
             history = ref nil,
             future = ref nil }
 
-    fun truncate (U { history_size, future_size,
-                      history, future }) n =
+    fun truncate (U { history_size, history, ... }) n =
         if n < !history_size
         then (history_size := n;
               history := List.take (!history, n))
