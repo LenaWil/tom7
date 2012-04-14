@@ -28,6 +28,42 @@ struct
 
   fun padname s n = s ^ (StringUtil.padex #"0" ~4 (Int.toString n)) ^ ".png"
 
+(*
+  fun loop () =
+      let
+          val START = 158
+          val END = 846
+          val NUM = END - START
+          val cache = FrameCache.create_pattern
+              { max = 20,
+                prefix =
+                "z:\\temp\\test-dance\\dancey",
+                padto = 4,
+                first = START,
+                suffix = ".jpeg" }
+
+          val WIDTH = FrameCache.width cache
+          val HEIGHT = FrameCache.height cache
+
+          val FPS = 24
+          val SECONDS = 3
+
+          val TPF = 1.0 / real (FPS * SECONDS)
+          fun makeframe n =
+              let
+                  (* linear. *)
+                  val t = real n / real (FPS * SECONDS)
+
+                  val frame = FU.sampleinterval (cache, NUM, t, t + TPF)
+              in
+                  FU.saveframe (padname "out" n, WIDTH, HEIGHT, frame)
+              end
+
+      in
+          Util.for 0 (FPS * SECONDS) makeframe
+      end
+*)
+
   fun loop () =
       let
           val START = 158
