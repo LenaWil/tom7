@@ -122,6 +122,8 @@ struct
 			 | E_KeyDown { sym = SDLK_PAGEUP } => pgup ()
 			 | E_KeyDown { sym = SDLK_PAGEDOWN } => pgdn ()
 			 | E_KeyDown { sym = SDLK_SPACE } => space ()
+			 | E_KeyDown { sym = SDLK_HOME } => nav (0 - NUM)
+			 | E_KeyDown { sym = SDLK_END } => nav NUM
 			 | _ => ());
 	      SDL.delay 1;
 	      loop ()
@@ -130,7 +132,7 @@ struct
     in
       eprint ("Loaded waypoints from " ^ f ^ "\n");
       redraw ();
-      loop ()
+      loop () handle Done => WP.savefile waypoints f
     end
 
   val () = Params.main1 "Give waypoint file to edit." start
