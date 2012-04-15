@@ -119,4 +119,63 @@ struct
           (map (fn (wt, time) => (wt, sampletime (cache, num, time))) interpolated)
       end
 
+  fun sampleframetime (cache, t : real) : frame =
+      (* naive, bilinear. We can do much better... *)
+      let
+          val base = Real.trunc t
+          val blend = t - real base
+      in
+          blendweightedframes (FC.width cache, FC.height cache)
+                               [(1.0 - blend, FC.get cache base),
+                                (blend, FC.get cache (base + 1))]
+      end
+
+  (* Same, but without the 'num' business. t0 and t1 are frame numbers,
+     possibly fractional *)
+  fun sampleframerange (cache, t0 : real, t1 : real) : frame =
+      let
+          val tcenter = (t0 + t1) / 2.0
+
+          (* The number of actual frames on each side of the
+             center that we must consider, not including the center
+             itself. Might be zero. *)
+          local
+              val f0 = t0
+              val f1 = t1
+          in
+              val nhalf = Real.floor ((f1 - f0) / 2.0)
+              val () = print ("nhalf: " ^ Int.toString nhalf ^ "\n")
+          end
+
+          (* Amount of time that one frame takes up. *)
+          val span = 1.0
+
+          (* First do pairwise linear interpolation to sample
+             moments: *)
+          val interpolated =
+              (1.0, tcenter) ::
+              List.concat
+              (List.tabulate (nhalf,
+                              fn i =>
+                              let
+                                  (* how far are we on this side? *)
+                                  val frac = real i / real nhalf
+                                  (* starts at 1.0 for frac=0.0,
+                                     smoothly drops to 0.0 for frac=1.0 *)
+                                  val weight = 0.5 * (1.0 + Math.cos (frac * Math.pi))
+
+                                  (* Sample time, from center. Is this right? *)
+                                  val offset = span * real (i + 1)
+                              in
+                                  [(weight, tcenter + offset),
+                                   (weight, tcenter - offset)]
+                              end))
+      in
+          (* PERF: Could sample in one pass. *)
+          (* PERF: Frames appear multiple times in the list with
+             different weights; could just sum them *)
+          blendweightedframes (FC.width cache, FC.height cache)
+          (map (fn (wt, time) => (wt, sampleframetime (cache, time))) interpolated)
+      end
+
 end
