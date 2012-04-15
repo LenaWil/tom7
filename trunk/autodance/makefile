@@ -1,7 +1,8 @@
 
 # for mingw.
 
-default :  makewaypoints.exe
+default : mididance.exe
+#  makewaypoints.exe
 # autodance.exe
 
 sdlml.o : ../sdlml/sdlml.c
@@ -19,5 +20,11 @@ autodance.exe : sdlml.o pngsave.o autodance.sml ${SMLS} autodance.cm makefile ..
 makewaypoints.exe : sdlml.o pngsave.o makewaypoints.sml ${SMLS} makewaypoints.cm makefile ../sdlml/*.sml ../sdlml/*.c
 	mlton @MLton max-heap 200m -- -default-ann 'warnUnused true' -default-ann 'sequenceNonUnit warn' -cc-opt "-I/usr/local/include" -link-opt "`/usr/local/bin/sdl-config --libs` -lSDL_image -ltiff -lpng -ljpeg -lz -lmad" -output $@ -default-ann 'allowFFI true' makewaypoints.cm sdlml.o pngsave.o
 
+mididance.exe : sdlml.o pngsave.o mididance.sml ${SMLS} mididance.cm makefile ../sdlml/*.sml ../sdlml/*.c
+	mlton @MLton max-heap 200m -- -default-ann 'warnUnused true' -default-ann 'sequenceNonUnit warn' -cc-opt "-I/usr/local/include" -link-opt "`/usr/local/bin/sdl-config --libs` -lSDL_image -ltiff -lpng -ljpeg -lz -lmad" -output $@ -default-ann 'allowFFI true' mididance.cm sdlml.o pngsave.o
+
 clean :
 	rm -f *.o *.exe ${OFILES}
+
+
+# mogrify -format jpg midi*.png

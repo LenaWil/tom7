@@ -1,4 +1,4 @@
-structure BDDTest =
+structure Autodance =
 struct
 
   val output = Params.param ""

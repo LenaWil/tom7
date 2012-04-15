@@ -108,6 +108,11 @@ struct
           nw i
       end
 
+  fun firstwaypoint wp =
+      if iswaypoint wp 0
+      then 0
+      else nextwaypoint wp 0
+
   fun prefix (WP { prefix, ... }) = prefix
   fun suffix (WP { suffix, ... }) = suffix
   fun padto (WP { padto, ... }) = padto
