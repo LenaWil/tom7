@@ -136,6 +136,9 @@ struct
 		      StringUtil.delimit " " (map (Real.fmt (StringCvt.FIX (SOME 3))) track) ^
 		      "\n")
 
+      val totalframes = List.foldl op+ 0.0 track
+      val () = print ("total frames: " ^ Real.toString totalframes ^ "\n")
+
       local 
 	  val n = ref 0
 	  fun padname s n = s ^ (StringUtil.padex #"0" ~4 (Int.toString n)) ^ ".png"
@@ -149,7 +152,8 @@ struct
 		  SDL.blitall (s, screen, 0, 0);
 		  SDL.freesurface s;
 		  Font.draw (screen, 0, 0, msg);
-		  Font.draw (screen, 0, Font.height, "^3" ^ filename);
+		  Font.draw (screen, 0, Font.height, "^3" ^ filename ^
+			     "^< of ~^4" ^ Real.toString totalframes);
 		  SDL.flip screen;
 
 		  FU.saveframe (filename, WIDTH, HEIGHT, f);
@@ -258,8 +262,9 @@ struct
 		       that we should see. *)
 		    fun interpolate (t : real) =
 			let val tp = t * Math.pi * 2.0
+			    val v = (tp + Math.sin(tp - Math.pi)) / (2.0 * Math.pi)
 			in
-			    (tp + Math.sin(tp - Math.pi)) / (2.0 * Math.pi)
+			    v * v * v * v
 			end
 
 		    (* 0-based *)
