@@ -140,7 +140,7 @@ struct
 	  val n = ref 0
 	  fun padname s n = s ^ (StringUtil.padex #"0" ~4 (Int.toString n)) ^ ".png"
       in
-	  fun outputframe f msg =
+	  fun writeframe f msg =
 	      let
 		  val s = SDL.unpixels (WIDTH, HEIGHT, f)
 		  val filename = padname "midi" (!n)
@@ -152,7 +152,7 @@ struct
 		  Font.draw (screen, 0, Font.height, "^3" ^ filename);
 		  SDL.flip screen;
 
-		  (* FU.saveframe (filename, WIDTH, HEIGHT, f); *)
+		  FU.saveframe (filename, WIDTH, HEIGHT, f);
 		  n := !n + 1
 	      end
       end
@@ -224,11 +224,7 @@ struct
                     (* Our job is to output delta frames. We can only
 		       output an integer number of frames, so anything
 		       left over goes into extra. Check out the diagram
-		       above.
-
-		       Currently we just output the keyframe this many
-		       times. *)
-		    val f = FrameCache.get cache curframe
+		       above. *)
 
 		    val (wholeframes, next_extra) =
 			let
@@ -266,17 +262,45 @@ struct
 			    (tp + Math.sin(tp - Math.pi)) / (2.0 * Math.pi)
 			end
 
-		    val () = Util.for 0 (wholeframes - 1)
-			(fn i => outputframe f
-			 ("waypoints ^2" ^ Int.toString curframe ^ "-" ^
-			  Int.toString nextframe ^ "^< extra ^2" ^
-			  Real.fmt (StringCvt.FIX (SOME 3)) extra ^ 
-			  "^< delta ^2" ^ 
-			  Real.fmt (StringCvt.FIX (SOME 3)) delta ^ 
-			  "^< frame ^2" ^ Int.toString (i + 1) ^
-			  "^< of ^2" ^ Int.toString wholeframes))
-		in
+		    (* 0-based *)
+		    fun outputframe (n : int) =
+			let
+			    (* the interal comprising wholeframes frames
+			       maps to the [0,1] interval for interpolation. *)
+			    val framewidth = 1.0 / real wholeframes
+			    val t0 = real n * framewidth
+			    val t1 = real (n + 1) * framewidth
+			    val t0' = interpolate t0
+			    val t1' = interpolate t1
+			    val frames_in_region = real (nextframe - curframe)
+			    val start_frame = real curframe + t0' * frames_in_region
+			    val end_frame = real curframe + t1' * frames_in_region
+			    val f = FU.sampleframerange (cache, start_frame, end_frame)
+			in
+			    writeframe f
+			    ("waypoints ^2" ^ Int.toString curframe ^ "-" ^
+			     Int.toString nextframe ^ "^< extra ^2" ^
+			     Real.fmt (StringCvt.FIX (SOME 2)) extra ^ 
+			     "^< delta ^2" ^ 
+			     Real.fmt (StringCvt.FIX (SOME 2)) delta ^ 
+			     "^< frame ^2" ^ Int.toString (n + 1) ^
+			     "^< of ^2" ^ Int.toString wholeframes ^
+			     "^< t0-t1: ^1" ^ 
+			     Real.fmt (StringCvt.FIX (SOME 3)) t0 ^ 
+			     "^<-^1" ^
+			     Real.fmt (StringCvt.FIX (SOME 3)) t1 ^
+			     "^< t0'-t1': ^4" ^
+			     Real.fmt (StringCvt.FIX (SOME 3)) t0' ^ 
+			     "^<-^4" ^
+			     Real.fmt (StringCvt.FIX (SOME 3)) t1' ^
+			     "^< frames ^3" ^
+			     Real.fmt (StringCvt.FIX (SOME 3)) start_frame ^
+			     "^<-^3" ^
+			     Real.fmt (StringCvt.FIX (SOME 3)) end_frame)
+			end
 
+		    val () = Util.for 0 (wholeframes - 1) outputframe
+		in
 		    loop next_extra rest nextframe
 		end
     in
