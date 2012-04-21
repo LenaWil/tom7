@@ -111,7 +111,6 @@ class World extends MovieClip {
     }
 
     loadLevel(LEVEL);
-    //LOADLEVEL(l);
 
     mc = _root.createEmptyMovieClip('worldmc', 999);
     bitmap = new BitmapData(WIDTH, HEIGHT, false, 0xFFCCFFCC);
@@ -144,7 +143,6 @@ class World extends MovieClip {
     data = [];
     for (var y = 0; y < TILESH; y++) {
       for (var x = 0; x < TILESW; x++) {
-        // data.push("ABCDEFGHIJKLMNOPQRSTUVWXYZ".charCodeAt((x + y * TILESW) % 26));
         var c : Number = l.charCodeAt(x + y * TILESW);
         if (c == ascii('T')) {
           tx = x;
@@ -185,10 +183,12 @@ class World extends MovieClip {
       ty += dy;
 
 
+      /*
       holdingLeft = false;
       holdingRight = false;
       holdingUp = false;
       holdingDown = false;
+      */
 
       doRules();
       redraw();
@@ -196,61 +196,18 @@ class World extends MovieClip {
 
   }
 
-  // Takes the position of the character after
-  // the question mark.
-  /*
-  public function readRule(x, y) {
-    var SCH = 0, SCMD = 1;
-    var PM = 0, PR = 1;
-    var state = SCH, part = PM;
-
-    var rule = { match: [], res: [] };
-    for (var i = 0; i < TILESW; i++) {
-      var c = data[y * TILESW + x + i];
-      rule.match.push(c);
-      if (state == SCH) {
-        // Character. Can be anything.
-        if (i == 0) {
-          // Rules indexed by the first char.
-          rule.ch = c;
-        }
-        state = SCH;
-      } else if (state = SCMD)
-        // Command...
-        switch (c) {
-        case ascii('/'):
-        case ascii('\\'):
-        case ascii('>'):
-        case ascii('<'):
-          // Directional chars, fine;
-          break;
-        case ascii('='):
-          if (part == PM) {
-
-          } else {
-
-          }
-        }
-      }
-    }
-
-    // Got off the end of the screen? No rule.
-    return null;
-  }
-  */
-
   public function ruleToString(rule) : String {
     var s = 'ch: ' + rule.ch;
 
     if (rule.match) {
-      s += 'match: ';
+      s += ' match: ';
       for (var i = 0; i < rule.match.length; i++) {
         s += rule.match[i] + ',';
       }
     }
 
     if (rule.res) {
-      s += 'res: ';
+      s += ' res: ';
       for (var i = 0; i < rule.res.length; i++) {
         s += rule.res[i] + ',';
       }
@@ -262,7 +219,7 @@ class World extends MovieClip {
     // Repeatedly read a command and then some
     // number of characters.
     var i = y * TILESW + x;
-    trace('readrule ' + x + ',' + y);
+    // trace('readrule ' + x + ',' + y);
 
     var PM = 0, PR = 1;
     var part = PM;
@@ -273,8 +230,8 @@ class World extends MovieClip {
       case ascii('?'):
         rule.ch = data[i++];
         break;
-      case ascii('/'):
-      case ascii('\\'):
+      case ascii('v'):
+      case ascii('^'):
       case ascii('>'):
       case ascii('<'):
         if (part == PM) {
@@ -317,10 +274,10 @@ class World extends MovieClip {
     for (var i = 0; i < rule.match.length; i++) {
       // Path command
       switch (rule.match[i]) {
-      case ascii('/'):
+      case ascii('v'):
         yy++;
         break;
-      case ascii('\\'):
+      case ascii('^'):
         yy--;
         break;
       case ascii('<'):
@@ -340,8 +297,8 @@ class World extends MovieClip {
         return;
       }
       i++;
-      if (i >= rule.match[i]) {
-        throw 'bug, bad rule';
+      if (i >= rule.match.length) {
+        throw ('bug, bad rule (match) ' + i);
         return;
       }
 
@@ -352,7 +309,49 @@ class World extends MovieClip {
     }
 
     // XXX
-    newdata[y * TILESW + x] = ascii('!');
+    // newdata[y * TILESW + x] = ascii('!');
+    xx = x;
+    yy = y;
+    for (var i = 0; i < rule.res.length; i++) {
+
+      // Write, if inside the level.
+      if (xx < TILESW && xx >= 0 &&
+          yy < TILESH && yy >= 0) {
+        newdata[yy * TILESW + xx] = rule.res[i];
+      }
+      i++;
+
+      // But keep going either way. We might come
+      // back into the level.
+
+      if (i >= rule.res.length) {
+        // Normal exit condition.
+        return;
+      }
+
+      switch (rule.res[i]) {
+      case ascii('v'):
+        yy++;
+        break;
+      case ascii('^'):
+        yy--;
+        break;
+      case ascii('<'):
+        xx--;
+        break;
+      case ascii('>'):
+        xx++;
+        break;
+      default:
+        throw 'bad res path command ' + rule.res[i];
+        return;
+      }
+
+      if (i >= rule.res.length) {
+        throw ('bug, bad rule (res)');
+        return;
+      }
+    }
   }
 
   // Process the level in place.
@@ -366,7 +365,7 @@ class World extends MovieClip {
     var oldt = data[ty * TILESW + tx];
     data[ty * TILESW + tx] = ascii('T');
 
-    trace('dorules.');
+    // trace('dorules.');
     // First, get rules.
     for (var y = 0; y < TILESH; y++) {
       for (var x = 0; x < TILESW; x++) {
@@ -382,7 +381,7 @@ class World extends MovieClip {
 
 
     for (var i = 0; i < rules.length; i++) {
-      trace(ruleToString(rules[i]));
+      // trace(ruleToString(rules[i]));
     }
 
     var newdata = data.slice(0);
