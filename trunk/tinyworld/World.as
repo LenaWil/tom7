@@ -106,7 +106,7 @@ class World extends MovieClip {
   }
 
   public function init(k) {
-    fontbitmap = BitmapData.loadBitmap('fontbig.png');
+    fontbitmap = BitmapData.loadBitmap('font.png');
     tbitmap = BitmapData.loadBitmap('t.png');
     var chars = " ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
       "abcdefghijklmnopqrstuvwxyz" +
@@ -117,7 +117,8 @@ class World extends MovieClip {
       // Just shift the whole graphic so that only
       // the desired character shows.
       var crop = new Matrix();
-      crop.translate((0 - FONTW) * i, 0);
+      crop.translate((0 - (FONTW/2)) * i, 0);
+      crop.scale(2,2);
 
       // Blit to a single-character bitmap using
       // the translation matrix above, and only
