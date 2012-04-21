@@ -1,0 +1,33 @@
+(* This is the server backend code for T in Y World, my Ludum Dare #23
+   entry. There's not really any user-facing web stuff here. It is
+   basically just a simple blob storage so that the game's levels can
+   be edited from the flash app.
+
+   This software is written in Aphasia 2, which is a type-safe functional
+   web scripting language I made. You probably don't want to try to
+   install this, but maybe the code is understandable. It's a bit like
+   Standard ML with built-in databases. *)
+
+database tinyworld {
+
+  table level {
+    key id.
+
+    /* Up to 16 characters, a-z0-9 only. */
+    string name.
+
+    /* Text string of 1000 ascii characters 32-127. */
+    blob contents.
+
+    int createdate.
+    int modifydate.
+    blob modifyip.
+
+    /* XXX do something about locking. People should
+       probably not be able to edit the tutorial at least. */
+    bool locked.
+  }
+}
+
+import "std.aah"
+import "cgi.aah"
