@@ -28,9 +28,6 @@ class World extends MovieClip {
   var MPLAY = 0, MEDIT = 1;
   var mode = MPLAY;
 
-
-  var levelidx = 0;
-
   var font = [], smallfont = [];
 
   var data = [];
@@ -44,10 +41,52 @@ class World extends MovieClip {
 
   // Globally unique name of the current level.
   // Contains only a-z0-9, max 16 characters.
-  var levelname : String;
+  var levelname : String = 'tutorial0';
+
+  var levelcache = {
+    tutorial1 : LEVEL1,
+    tutorial2 : LEVEL2,
+    tutorial3 : LEVEL3,
+    tutorial4 : LEVEL4,
+    tutorial5 : LEVEL5
+  };
+
+  public function nextLevel(s) {
+    var base = '', num = 0;
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i);
+      if (c >= ascii('a') && c <= ascii('z')) {
+        base += s.charAt(i);
+      } else {
+        num = 1 * s.substr(i);
+      }
+    }
+
+    return base + '' + (num + 1);
+  }
+
+  public function gotoNextLevel() {
+    levelname = nextLevel(levelname);
+    trace('next level: ' + levelname);
+    loadLevelCalled(levelname);
+  }
 
   public function ascii(c : String) : Number {
     return 1 * c.charCodeAt(0);
+  }
+
+  public function makeLevelString(d) : String {
+    var s : String = '';
+    for (var y = 0; y < TILESH; y++) {
+      for (var x = 0; x < TILESW; x++) {
+        var c = data[y * TILESW + x];
+        if (c < 32 || c > 127) {
+          c = 32;
+        }
+        s += String.fromCharCode(c);
+      }
+    }
+    return s;
   }
 
   var holdingframes = 0;
@@ -98,7 +137,8 @@ class World extends MovieClip {
         if (Key.isDown(Key.CONTROL)) {
           switch(ch) {
           case ascii('s'):
-            say('saving not implemented :-(');
+            say('saving to server not implemented :-(');
+            levelcache[levelname] = makeLevelString(data);
             break;
           default:
             say('unknown ctrl key');
@@ -113,13 +153,12 @@ class World extends MovieClip {
       switch(k) {
       case Key.PGDN:
         // XXX cheat
-        levelidx++;
-        loadLevel(LEVELS[levelidx]);
+        gotoNextLevel();
         redraw();
         break;
 
       case Key.ESCAPE:
-        loadLevel(LEVELS[levelidx]);
+        reloadLevel();
         redraw();
         break;
 
@@ -168,7 +207,7 @@ class World extends MovieClip {
     pressright = 0;
     pressdown = 0;
 
-    loadLevel(LEVELS[levelidx]);
+    reloadLevel();
 
     redraw();
   }
@@ -231,8 +270,7 @@ class World extends MovieClip {
       smallfont[chars.charCodeAt(i)] = fs;
     }
 
-    levelidx = 0;
-    loadLevel(LEVELS[levelidx]);
+    loadLevelCalled('tutorial1');
 
     mc = _root.createEmptyMovieClip('worldmc', 999);
     bitmap = new BitmapData(WIDTH, HEIGHT, false, 0xFFCCFFCC);
@@ -253,8 +291,19 @@ class World extends MovieClip {
   var tx : Number = 0;
   var ty : Number = 0;
 
+  // Should already have this in the cache.
+  public function reloadLevel() {
+    loadLevelCalled(levelname);
+  }
+
+  // XXX this needs to possibly fetch from the server.
+  public function loadLevelCalled(s) {
+    levelname = s;
+    loadLevelData(levelcache[levelname]);
+  }
+
   /* l is a string 40x25 in size. */
-  public function loadLevel(l) {
+  public function loadLevelData(l) {
     data = [];
     for (var y = 0; y < TILESH; y++) {
       for (var x = 0; x < TILESW; x++) {
@@ -307,11 +356,10 @@ class World extends MovieClip {
     var c = data[ty * TILESW + tx];
     if (c == ascii('Y')) {
       // XXX sound effect, animation
-      levelidx++;
-      loadLevel(LEVELS[levelidx]);
+      gotoNextLevel();
     } else if (killsYou(c)) {
       // XXX sound effect, animation
-      loadLevel(LEVELS[levelidx]);
+      reloadLevel();
     }
   }
 
