@@ -22,6 +22,8 @@ class World extends MovieClip {
   var HEIGHT = TILESH * FONTH;
 
 
+  var levelidx = 0;
+
   var font = [];
 
   var data = [];
@@ -45,9 +47,15 @@ class World extends MovieClip {
     var k = Key.getCode();
 
     switch(k) {
+    case ',':
+    case 27: // esc
+
+      levelidx++;
+      loadLevel(LEVELS[levelidx]);
+      break;
     case 's':
       break;
-    case 27: // esc
+      // case 27: // esc
     case 'r':
       holdingEsc = true;
       break;
@@ -120,7 +128,8 @@ class World extends MovieClip {
       font[chars.charCodeAt(i)] = f;
     }
 
-    loadLevel(LEVEL);
+    levelidx = 0;
+    loadLevel(LEVELS[levelidx]);
 
     mc = _root.createEmptyMovieClip('worldmc', 999);
     bitmap = new BitmapData(WIDTH, HEIGHT, false, 0xFFCCFFCC);
@@ -157,12 +166,56 @@ class World extends MovieClip {
         if (c == ascii('T')) {
           tx = x;
           ty = y;
-          // XXX could be some background character from nearby?
-          c = ascii(' ');
         }
 
         data.push(c);
       }
+    }
+    redraw();
+  }
+
+  // How about symbols?
+  public function canStepOn(c) {
+    switch(c) {
+    case ascii('A'):
+    case ascii('E'):
+    case ascii('I'):
+    case ascii('O'):
+    case ascii('U'):
+    case ascii('Y'):
+      return true;
+
+    case ascii(' '):
+      return true;
+
+    default:
+      if (c >= ascii('P') &&
+          c <= ascii('Z')) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  public function killsYou(c) {
+    if (c >= ascii('P') &&
+        c <= ascii('Z')) {
+      return true;
+    }
+
+    return false;
+  }
+
+  public function doSpecial() {
+    var c = data[ty * TILESW + tx];
+    if (c == ascii('Y')) {
+      // XXX sound effect, animation
+      levelidx++;
+      loadLevel(LEVELS[levelidx]);
+    } else if (killsYou(c)) {
+      // XXX sound effect, animation
+      loadLevel(LEVELS[levelidx]);
     }
   }
 
@@ -192,9 +245,17 @@ class World extends MovieClip {
     // Implement key repeat.
     if (dx != 0 || dy != 0) {
       // Move the T.
-      tx += dx;
-      ty += dy;
+      var ntx = tx + dx;
+      var nty = ty + dy;
 
+      if (canStepOn(data[nty * TILESW + ntx])) {
+        tx = ntx;
+        ty = nty;
+      } else {
+        // Play sound effect, animate.
+      }
+
+      // Allow rules whether we were stuck or not!
 
       /*
       holdingLeft = false;
@@ -207,6 +268,7 @@ class World extends MovieClip {
       redraw();
     }
 
+    doSpecial();
   }
 
   public function ruleToString(rule) : String {
@@ -396,11 +458,6 @@ class World extends MovieClip {
     }
 
     trace('num rules: ' + rules.length);
-    /*
-    for (var i = 0; i < rules.length; i++) {
-      // trace(ruleToString(rules[i]));
-    }
-    */
 
     var newdata = data.slice(0);
 
