@@ -38,6 +38,8 @@ class World extends MovieClip {
   var holdingSpace = false, holdingEsc = false,
     holdingUp = false, holdingLeft = false,
     holdingRight = false, holdingDown = false;
+  var pressup = 0, pressleft = 0,
+    pressright = 0, pressdown = 0;
   public function onKeyDown() {
     var k = Key.getCode();
 
@@ -52,21 +54,27 @@ class World extends MovieClip {
     case 38: // up
     case 32: // space
       holdingUp = true;
+      pressup++;
       break;
     case 37: // left
       holdingLeft = true;
+      pressleft++;
       break;
     case 39: // right
       holdingRight = true;
+      pressright++;
       break;
     case 40: // down
       holdingDown = true;
+      pressdown++;
       break;
     }
   }
 
   public function onKeyUp() {
     var k = Key.getCode();
+
+    holdingframes = 0;
     switch(k) {
     case 27: // esc
       holdingEsc = false;
@@ -165,18 +173,21 @@ class World extends MovieClip {
       framemod = 0;
 
     var dx = 0, dy = 0;
-    if (holdingUp) {
+    if (pressup) {
       dy = -1;
-    } else if (holdingDown) {
+      pressup--;
+    } else if (pressdown) {
       dy = 1;
-    }
-
-    if (holdingLeft) {
+      pressdown--;
+    } else if (pressleft) {
       dx = -1;
-    } else if (holdingRight) {
+      pressleft--;
+    } else if (pressright) {
       dx = 1;
+      pressright--;
     }
 
+    // Implement key repeat.
     if (dx != 0 || dy != 0) {
       // Move the T.
       tx += dx;
@@ -379,10 +390,12 @@ class World extends MovieClip {
       }
     }
 
-
+    trace('num rules: ' + rules.length);
+    /*
     for (var i = 0; i < rules.length; i++) {
       // trace(ruleToString(rules[i]));
     }
+    */
 
     var newdata = data.slice(0);
 
