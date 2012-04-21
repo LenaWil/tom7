@@ -51,6 +51,29 @@ class World extends MovieClip {
     tutorial5 : LEVEL5
   };
 
+  public function saveLevel(name : String, s : String) {
+    var my_xml:XML = new XML();
+    var that = this;
+    my_xml.onLoad = function() {
+      that.say('done saving to server: (status ' +
+               my_xml.status + '): ' + my_xml.toString());
+    };
+
+    my_xml.onHTTPStatus = function(status:Number) {
+      that.say('http status ' + status);
+    };
+
+    my_xml.onData = function(src:String) {
+      that.say('got data: ' + src);
+    };
+
+    my_xml.load("http://spacebar.org/f/a/tinyworld/save/" +
+                name + "?s=" +
+                escape(s));
+
+    say('saving to server...');
+  }
+
   public function nextLevel(s) {
     var base = '', num = 0;
     for (var i = 0; i < s.length; i++) {
@@ -137,8 +160,9 @@ class World extends MovieClip {
         if (Key.isDown(Key.CONTROL)) {
           switch(ch) {
           case ascii('s'):
-            say('saving to server not implemented :-(');
-            levelcache[levelname] = makeLevelString(data);
+            var ls = makeLevelString(data);
+            levelcache[levelname] = ls;
+            saveLevel(levelname, ls);
             break;
           default:
             say('unknown ctrl key');
