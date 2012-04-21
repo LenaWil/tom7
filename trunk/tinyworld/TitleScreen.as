@@ -20,6 +20,10 @@ class TitleScreen extends MovieClip {
 
     System.security.loadPolicyFile('http://spacebar.org/policy.xml');
 
+    // To make this work I needed to make a policy (above) that allowed
+    // everything (probably can be much more lenient). I also had to
+    // change the publish settings to allow network access from local
+    // disk, as opposed to file access.
     _root['message'].text = 'get xml...';
     var my_xml:XML = new XML();
     my_xml.onLoad = function() {

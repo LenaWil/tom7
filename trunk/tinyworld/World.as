@@ -14,6 +14,9 @@ class World extends MovieClip {
   var FONTW = 18;
   var FONTH = 32;
 
+  var SFONTW = 9;
+  var SFONTH = 16;
+
   // XXX should be lots more?
   var TILESW = 40;
   var TILESH = 25;
@@ -22,9 +25,13 @@ class World extends MovieClip {
   var HEIGHT = TILESH * FONTH;
 
 
+  var MPLAY = 0, MEDIT = 1;
+  var mode = MPLAY;
+
+
   var levelidx = 0;
 
-  var font = [];
+  var font = [], smallfont = [];
 
   var data = [];
 
@@ -49,11 +56,12 @@ class World extends MovieClip {
     switch(k) {
     case ',':
     case 27: // esc
-
-      levelidx++;
-      loadLevel(LEVELS[levelidx]);
-      break;
-    case 's':
+      //levelidx++;
+      //loadLevel(LEVELS[levelidx]);
+      // break;
+      // case 'E':
+      mode = MEDIT;
+      redraw();
       break;
       // case 27: // esc
     case 'r':
@@ -116,17 +124,24 @@ class World extends MovieClip {
 
       // Just shift the whole graphic so that only
       // the desired character shows.
-      var crop = new Matrix();
-      crop.translate((0 - (FONTW/2)) * i, 0);
-      crop.scale(2,2);
+      var cropbig = new Matrix();
+      cropbig.translate((0 - SFONTW) * i, 0);
+      cropbig.scale(2,2);
+
+      var cropsmall = new Matrix();
+      cropsmall.translate((0 - SFONTW) * i, 0);
 
       // Blit to a single-character bitmap using
       // the translation matrix above, and only
       // enough room for that one character.
       var f = new BitmapData(FONTW, FONTH, true, 0xFF222222);
-      f.draw(fontbitmap, crop);
-      // trace(chars.charCodeAt(i));
+      f.draw(fontbitmap, cropbig);
       font[chars.charCodeAt(i)] = f;
+
+      var fs = new BitmapData(SFONTW, SFONTH, true, 0xFF222222);
+      fs.draw(fontbitmap, cropsmall);
+      // trace(chars.charCodeAt(i));
+      smallfont[chars.charCodeAt(i)] = fs;
     }
 
     levelidx = 0;
@@ -135,7 +150,6 @@ class World extends MovieClip {
     mc = _root.createEmptyMovieClip('worldmc', 999);
     bitmap = new BitmapData(WIDTH, HEIGHT, false, 0xFFCCFFCC);
     mc.attachBitmap(bitmap, 1000);
-    // mc.attachBitmap(font[i], 1100);
   }
 
   public function onLoad() {
@@ -143,12 +157,6 @@ class World extends MovieClip {
     trace('hi');
     init();
 
-    // Scale 2:1 pixels? Probably.
-    // But we should just do this in the font -- the math
-    // is typically easier.
-    // this._xscale = 200.0;
-    // this._yscale = 200.0;
-    // Doesn't really matter which one is on top. Try both.
     _root.stop();
     this.stop();
 
@@ -483,21 +491,38 @@ class World extends MovieClip {
   }
 
   private function redraw() {
-    // XXX clear bitmap
-    var r = new Rectangle(0, 0, FONTW, FONTH);
-    for (var y = 0; y < TILESH; y++) {
-      for (var x = 0; x < TILESW; x++) {
-        var ch = data[y * TILESW + x];
-        // var ch = data[(framemod + y * TILESW + x) % (TILESW * TILESH)]
-        bitmap.copyPixels(font[ch],
-                          r,
-                          new Point(x * FONTW, y * FONTH));
-      }
-    }
 
-    // draw T
-    bitmap.copyPixels(tbitmap, r,
-                      new Point(tx * FONTW, ty * FONTH));
+    if (mode == MPLAY) {
+
+      var r = new Rectangle(0, 0, FONTW, FONTH);
+      for (var y = 0; y < TILESH; y++) {
+        for (var x = 0; x < TILESW; x++) {
+          var ch = data[y * TILESW + x];
+          // var ch = data[(framemod + y * TILESW + x) % (TILESW * TILESH)]
+          bitmap.copyPixels(font[ch],
+                            r,
+                            new Point(x * FONTW, y * FONTH));
+        }
+      }
+
+      // draw T
+      bitmap.copyPixels(tbitmap, r,
+                        new Point(tx * FONTW, ty * FONTH));
+    } else {
+
+      var MAPX = 100, MAPY = 100;
+
+      var r = new Rectangle(0, 0, SFONTW, SFONTH);
+      for (var y = 0; y < TILESH; y++) {
+        for (var x = 0; x < TILESW; x++) {
+          var ch = data[y * TILESW + x];
+          bitmap.copyPixels(smallfont[ch],
+                            r,
+                            new Point(MAPX + x * SFONTW, MAPY + y * SFONTH));
+        }
+      }
+
+    }
   }
 
 
