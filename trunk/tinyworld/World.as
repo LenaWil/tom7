@@ -39,6 +39,12 @@ class World extends MovieClip {
   var fontbitmap : BitmapData;
   var bitmap : BitmapData;
   var tbitmap : BitmapData;
+  var cursorbitmap : BitmapData;
+  var editorbitmap : BitmapData;
+
+  // Globally unique name of the current level.
+  // Contains only a-z0-9, max 16 characters.
+  var levelname : String;
 
   public function ascii(c : String) : Number {
     return 1 * c.charCodeAt(0);
@@ -53,39 +59,118 @@ class World extends MovieClip {
   public function onKeyDown() {
     var k = Key.getCode();
 
-    switch(k) {
-    case ',':
-    case 27: // esc
-      //levelidx++;
-      //loadLevel(LEVELS[levelidx]);
-      // break;
-      // case 'E':
-      mode = MEDIT;
-      redraw();
-      break;
-      // case 27: // esc
-    case 'r':
-      holdingEsc = true;
-      break;
+    if (mode == MEDIT) {
+      switch (k) {
+      case Key.TAB:
+      case Key.ESCAPE:
+        switchMode(MPLAY);
+        break;
+      case 38: // up
+        holdingUp = true;
+        pressup++;
+        break;
+      case 37: // left
+        holdingLeft = true;
+        pressleft++;
+        break;
+      case 39: // right
+        holdingRight = true;
+        pressright++;
+        break;
+      case 40: // down
+        holdingDown = true;
+        pressdown++;
+        break;
+      case Key.DELETEKEY:
+        data[ty * TILESW + tx] = ascii(' ');
+        redraw();
+        break;
+      case Key.BACKSPACE:
+        if (tx > 0) {
+          tx--;
+        }
+        data[ty * TILESW + tx] = ascii(' ');
+        redraw();
+        break;
+      default:
+        var ch = Key.getAscii();
 
-    case 38: // up
-    case 32: // space
-      holdingUp = true;
-      pressup++;
-      break;
-    case 37: // left
-      holdingLeft = true;
-      pressleft++;
-      break;
-    case 39: // right
-      holdingRight = true;
-      pressright++;
-      break;
-    case 40: // down
-      holdingDown = true;
-      pressdown++;
-      break;
+        if (Key.isDown(Key.CONTROL)) {
+          switch(ch) {
+          case ascii('s'):
+            say('saving not implemented :-(');
+            break;
+          default:
+            say('unknown ctrl key');
+            break;
+          }
+        } else {
+          editorType(ch);
+        }
+      }
+
+    } else if (mode == MPLAY) {
+      switch(k) {
+      case Key.PGDN:
+        // XXX cheat
+        levelidx++;
+        loadLevel(LEVELS[levelidx]);
+        redraw();
+        break;
+
+      case Key.ESCAPE:
+        loadLevel(LEVELS[levelidx]);
+        redraw();
+        break;
+
+      case Key.TAB:
+        switchMode(MEDIT);
+        break;
+
+      case 38: // up
+        holdingUp = true;
+        pressup++;
+        break;
+      case 37: // left
+        holdingLeft = true;
+        pressleft++;
+        break;
+      case 39: // right
+        holdingRight = true;
+        pressright++;
+        break;
+      case 40: // down
+        holdingDown = true;
+        pressdown++;
+        break;
+      }
     }
+  }
+
+  public function okayAscii(c) {
+    return c >= 32 && c <= 126;
+  }
+
+  public function editorType(c) {
+    if (okayAscii(c)) {
+      data[ty * TILESW + tx] = c;
+      if (tx < (TILESW - 1)) {
+        tx++;
+      }
+      redraw();
+    }
+  }
+
+  public function switchMode(m) {
+    mode = m;
+    pressup = 0;
+    pressleft = 0;
+    pressright = 0;
+    pressdown = 0;
+
+    loadLevel(LEVELS[levelidx]);
+
+    redraw();
   }
 
   public function onKeyUp() {
@@ -116,6 +201,8 @@ class World extends MovieClip {
   public function init(k) {
     fontbitmap = BitmapData.loadBitmap('font.png');
     tbitmap = BitmapData.loadBitmap('t.png');
+    cursorbitmap = BitmapData.loadBitmap('cursor.png');
+    editorbitmap = BitmapData.loadBitmap('editor.png');
     var chars = " ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
       "abcdefghijklmnopqrstuvwxyz" +
       "0123456789`-=[]\\;',./~!@#" +
@@ -229,7 +316,6 @@ class World extends MovieClip {
   }
 
   var framemod : Number = 0;
-  var facingright = true;
   public function onEnterFrame() {
     // Avoid overflow at the expense of jitter.
     framemod++;
@@ -253,11 +339,15 @@ class World extends MovieClip {
 
     // Implement key repeat.
     if (dx != 0 || dy != 0) {
-      // Move the T.
+      // Move the T or cursor.
       var ntx = tx + dx;
       var nty = ty + dy;
 
-      if (canStepOn(data[nty * TILESW + ntx])) {
+      if (ntx >= 0 && nty >= 0 &&
+          ntx < TILESW && nty < TILESH &&
+          // Cursor can go anywhere, but T is limited.
+          (mode == MEDIT ||
+           canStepOn(data[nty * TILESW + ntx]))) {
         tx = ntx;
         ty = nty;
       } else {
@@ -266,18 +356,16 @@ class World extends MovieClip {
 
       // Allow rules whether we were stuck or not!
 
-      /*
-      holdingLeft = false;
-      holdingRight = false;
-      holdingUp = false;
-      holdingDown = false;
-      */
+      if (mode == MPLAY) {
+        doRules();
+      }
 
-      doRules();
       redraw();
     }
 
-    doSpecial();
+    if (mode == MPLAY) {
+      doSpecial();
+    }
   }
 
   public function ruleToString(rule) : String {
@@ -490,6 +578,20 @@ class World extends MovieClip {
     data = newdata;
   }
 
+  var message : String;
+  public function say(s) {
+    message = s;
+    redraw();
+  }
+
+  public function writeString(x, y, s) {
+    var r = new Rectangle(0, 0, SFONTW, SFONTH);
+    for (var i = 0; i < s.length; i++) {
+      bitmap.copyPixels(smallfont[s.charCodeAt(i)], r,
+                        new Point(x + i * SFONTW, y));
+    }
+  }
+
   private function redraw() {
 
     if (mode == MPLAY) {
@@ -510,7 +612,15 @@ class World extends MovieClip {
                         new Point(tx * FONTW, ty * FONTH));
     } else {
 
+      // Background.
+      bitmap.copyPixels(editorbitmap,
+                        new Rectangle(0, 0, WIDTH, HEIGHT),
+                        new Point(0, 0));
+
       var MAPX = 100, MAPY = 100;
+
+      writeString(0, 0, message);
+      writeString(0, SFONTH, 'level name: ' + levelname);
 
       var r = new Rectangle(0, 0, SFONTW, SFONTH);
       for (var y = 0; y < TILESH; y++) {
@@ -522,6 +632,9 @@ class World extends MovieClip {
         }
       }
 
+      // Draw cursor.
+      bitmap.copyPixels(cursorbitmap, r,
+                        new Point(MAPX + tx * SFONTW, MAPY + ty * SFONTH));
     }
   }
 
