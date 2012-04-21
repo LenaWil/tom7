@@ -29,7 +29,7 @@ class TitleScreen extends MovieClip {
     my_xml.onLoad = function() {
       _root['message'].text = 'Done: ' + my_xml.toString();
     };
-    my_xml.load("http://spacebar.org/test.xml");
+    my_xml.load("http://spacebar.org/f/a/tinyworld/save/heyyy?s=x");
 
     // title music!
     titlemusic = new Sound(this);
