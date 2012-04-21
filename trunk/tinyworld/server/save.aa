@@ -1,0 +1,51 @@
+
+let
+
+  import "tinyworld.aah"
+
+
+  val url = limit(?/, cgiurl ())
+  val name = tr("a-z0-9", "/cd/", head url)
+
+  (* XXX filter out illegal characters. *)
+  val data = requires [s]
+
+
+  val now = time ()
+in
+  (* XXX ignoring payload! *)
+  contenttype [text/xml];
+
+  if size name = 0 orelse size name > 16
+  then die [illegal name]
+  else ();
+
+  if size data = 1000
+  then ()
+  else die [wrong content length];
+
+  case select (id, locked)
+       from tinyworld : level
+       where name = {name} limit {1} of
+     (id, locked) :: _ =>
+         if locked
+         then die [can't save; level is locked]
+         else
+             let in
+                 set tinyworld : level ( id ) : (contents,
+                                                 modifydate,
+                                                 modifyip) =
+                 (data, now, cgihost ());
+                 print [<response>OK overwritten</response>\n]
+             end
+   | nil =>
+         let in
+             insert (name, data, now, now, cgihost (), false)
+             into tinyworld : level : (name, contents, createdate,
+                                       modifydate, modifyip, locked);
+             print [<response>OK new</response>\n]
+         end
+                 
+
+
+end
