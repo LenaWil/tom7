@@ -29,6 +29,7 @@ class World extends MovieClip {
   var mc : MovieClip;
   var fontbitmap : BitmapData;
   var bitmap : BitmapData;
+  var tbitmap : BitmapData;
 
   public function ascii(c : String) : Number {
     return 1 * c.charCodeAt(0);
@@ -98,6 +99,7 @@ class World extends MovieClip {
 
   public function init(k) {
     fontbitmap = BitmapData.loadBitmap('fontbig.png');
+    tbitmap = BitmapData.loadBitmap('t.png');
     var chars = " ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
       "abcdefghijklmnopqrstuvwxyz" +
       "0123456789`-=[]\\;',./~!@#" +
@@ -271,6 +273,9 @@ class World extends MovieClip {
           trace('. command outside res part.');
           return null;
         }
+      default:
+        trace('unknown command char ' + command);
+        return null;
       }
     }
     // Off end of array.
@@ -433,7 +438,7 @@ class World extends MovieClip {
     }
 
     // draw T
-    bitmap.copyPixels(font[ascii('T')], r,
+    bitmap.copyPixels(tbitmap, r,
                       new Point(tx * FONTW, ty * FONTH));
   }
 
