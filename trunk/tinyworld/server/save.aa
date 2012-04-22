@@ -44,7 +44,5 @@ in
                                        modifydate, modifyip, locked);
              print [<response>OK new</response>\n]
          end
-                 
-
 
 end
