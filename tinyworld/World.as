@@ -239,6 +239,7 @@ class World extends MovieClip {
         redraw();
         break;
 
+      case ascii('E'):
       case Key.TAB:
         switchMode(MEDIT);
         break;
@@ -580,6 +581,8 @@ class World extends MovieClip {
       case ascii('^'):
       case ascii('>'):
       case ascii('<'):
+      case ascii('('):
+      case ascii(')'):
         if (part == PM) {
           if (!rule.match) rule.match = [];
           rule.match.push(command);
@@ -649,8 +652,28 @@ class World extends MovieClip {
       ch >= ascii('0') && ch <= ascii('9');
   }
 
+  public function Sign(n : Number) : Number {
+    if (n > 0)
+      return 1;
+    else if (n < 0)
+      return -1;
+    else
+      return 0;
+  }
+
   // Apply the rule r, knowing that
   public function applyRule(x, y, rule, newdata, affected) : Boolean {
+    // The direction towards the T is computed once based on the
+    // starting position.
+    var tdx = x - tx;
+    var tdy = y - ty;
+    var towardx = 0, towardy = 0;
+    if (Math.abs(tdx) >= Math.abs(tdy)) {
+      towardx = Sign(tdx);
+    } else {
+      towardy = Sign(tdy);
+    }
+
     // Only type of rule so far is match rule.
     var xx = x, yy = y;
     for (var i = 0; i < rule.match.length; i++) {
@@ -667,6 +690,14 @@ class World extends MovieClip {
         break;
       case ascii('>'):
         xx++;
+        break;
+      case ascii(')'):
+        xx += towardx;
+        yy += towardy;
+        break;
+      case ascii('('):
+        xx -= towardx;
+        yy -= towardy;
         break;
       default:
         throw 'bad path command ' + rule.match[i];
@@ -738,6 +769,14 @@ class World extends MovieClip {
           break;
         case ascii('>'):
           xx++;
+          break;
+        case ascii(')'):
+          xx += towardx;
+          yy += towardy;
+          break;
+        case ascii('('):
+          xx -= towardx;
+          yy -= towardy;
           break;
         default:
           throw 'bad res path command ' + rule.res[i];
