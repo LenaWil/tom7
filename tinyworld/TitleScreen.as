@@ -1,4 +1,6 @@
 import flash.display.*;
+import flash.geom.Matrix;
+
 class TitleScreen extends MovieClip {
 
   var titlemusic : Sound;
@@ -15,6 +17,12 @@ class TitleScreen extends MovieClip {
   var FADEOUTFRAMES = 20;
   var ALPHAOUTMULT = 5;
 
+  public function ascii(c : String) : Number {
+    return 1 * c.charCodeAt(0);
+  }
+
+  var titlemc;
+
   public function onLoad() {
     Key.addListener(this);
 
@@ -25,6 +33,7 @@ class TitleScreen extends MovieClip {
     // change the publish settings to allow network access from local
     // disk, as opposed to file access.
 
+    /*
     _root['message'].text = 'get xml...';
     var my_xml:XML = new XML();
     my_xml.onLoad = function() {
@@ -32,10 +41,23 @@ class TitleScreen extends MovieClip {
     };
     // my_xml.load("http://spacebar.org/test.xml");
     my_xml.load("http://spacebar.org/f/a/tinyworld/get/tutorial3");
+    */
+
+
+    var bm = BitmapData.loadBitmap('title.png');
+    var titlebitmap : BitmapData = 
+      new BitmapData(720, 800, false, 0x000000);
+    var grow = new Matrix();
+    grow.scale(10,10);
+    titlebitmap.draw(bm, grow);
+    
+    titlemc = _root.createEmptyMovieClip('titlemc', 999);
+    titlemc.attachBitmap(titlebitmap, 1000);
+
 
     // title music!
     titlemusic = new Sound(this);
-    titlemusic.attachSound('title.mp3');
+    titlemusic.attachSound('theme.mp3');
     titlemusic.setVolume(100);
     titlemusic.start(0, 99999);
   }
@@ -54,7 +76,9 @@ class TitleScreen extends MovieClip {
 
     if (frames > FADEFRAMES) {
       if (starting > 0) {
-        titlemusic.setVolume(starting * ALPHAOUTMULT);
+	if (_root['backgroundmusic']) {
+	  titlemusic.setVolume(starting * ALPHAOUTMULT);
+	}
         starting--;
         alpha = starting * ALPHAOUTMULT;
         if (!starting) {
@@ -73,6 +97,20 @@ class TitleScreen extends MovieClip {
 
   public function onKeyDown() {
     var k = Key.getCode();
+
+    if (Key.isDown(Key.CONTROL) &&
+        Key.getAscii() == ascii('m')) {
+      _root['musicenabled'] = !_root['musicenabled'];
+      // say('music ' + (_root['musicenabled'] ? 'enabled' : 'disabled'));
+
+      if (_root['musicenabled']) {
+        titlemusic.setVolume(100);
+      } else {
+        titlemusic.setVolume(0);
+      }
+
+      return;
+    }
 
     switch(k) {
     case 89: // Y
