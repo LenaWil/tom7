@@ -25,8 +25,11 @@ class World extends MovieClip {
   var HEIGHT = TILESH * FONTH;
 
 
-  var MPLAY = 0, MEDIT = 1;
+  var MPLAY = 0, MEDIT = 1, MGETTEXT = 2;
   var mode = MPLAY;
+  var gettext_cont = function (){
+    trace('bare gettext cont?');
+  };
 
   var font = [], smallfont = [];
 
@@ -121,6 +124,7 @@ class World extends MovieClip {
 
   var cutrow = [];
 
+  var gottext = '';
   var holdingframes = 0;
   var holdingSpace = false, holdingEsc = false,
     holdingUp = false, holdingLeft = false,
@@ -148,10 +152,33 @@ class World extends MovieClip {
     if (LOCKOUT)
       return;
 
-    if (mode == MEDIT) {
+    if (mode == MGETTEXT) {
+      if (k == Key.ENTER) {
+        gettext_cont();
+      } else if (k == Key.ESCAPE) {
+        gottext = '';
+        gettext_cont();
+      } else if (k == Key.BACKSPACE) {
+        if (gottext.length > 0) {
+          gottext = gottext.substr(0, gottext.length - 1);
+          redraw();
+        }
+      } else {
+        var c = Key.getAscii();
+        if (legalDestinationCode(c) && gottext.length < 16) {
+          gottext += String.fromCharCode(c);
+          redraw();
+        }
+      }
+
+    } else if (mode == MEDIT) {
       switch (k) {
       case Key.TAB:
       case Key.ESCAPE:
+        // Writes the data, but doesn't save to
+        // server.
+        var ls = makeLevelString(data);
+        levelcache[levelname] = ls;
         switchMode(MPLAY);
         break;
       case 38: // up
@@ -245,6 +272,20 @@ class World extends MovieClip {
             redraw();
             break;
 
+          case ascii('g'):
+            mode = MGETTEXT;
+            gottext = levelname;
+            var that = this;
+            gettext_cont = function() {
+              that.mode = MEDIT;
+              that.redraw();
+              if (that.gottext != '') {
+                that.loadLevelCalled(that.gottext);
+                break;
+              }
+            };
+            redraw();
+            break;
           case ascii('s'):
             var ls = makeLevelString(data);
             levelcache[levelname] = ls;
@@ -400,8 +441,8 @@ class World extends MovieClip {
     init();
 
     // XXX caller should be able to adjust this.
-    switchMusic('transit');
-    loadLevelCalled('tutorial1');
+    switchMusic(_root['firstmusic']);
+    loadLevelCalled(_root['firstlevel']);
   }
 
   var tx : Number = 0;
@@ -823,6 +864,7 @@ class World extends MovieClip {
     // newdata[y * TILESW + x] = ascii('!');
     if (rule.music) {
       switchMusic(rule.music);
+      return true;
     } else if (rule.dest) {
       trace('warp rule with dest ' + rule.dest);
       loadLevelCalled(rule.dest);
@@ -975,12 +1017,30 @@ class World extends MovieClip {
     var c = 0;
     for (var i = 0; i < s.length; i++) {
       c++;
+      /*
       if (x + c > TILESW) {
         c = 0;
         y += SFONTH;
       }
+      */
       bitmap.copyPixels(smallfont[s.charCodeAt(i)], r,
                         new Point(x + c * SFONTW, y));
+    }
+  }
+
+  public function writeStringBig(x, y, s) {
+    var r = new Rectangle(0, 0, FONTW, FONTH);
+    var c = 0;
+    for (var i = 0; i < s.length; i++) {
+      c++;
+      /*
+      if (x + c > TILESW) {
+        c = 0;
+        y += FONTH;
+      }
+      */
+      bitmap.copyPixels(font[s.charCodeAt(i)], r,
+                        new Point(x + c * FONTW, y));
     }
   }
 
@@ -1011,7 +1071,7 @@ class World extends MovieClip {
       // draw T
       bitmap.copyPixels(tbitmap, r,
                         new Point(tx * FONTW, ty * FONTH));
-    } else {
+    } else if (mode == MEDIT) {
 
       // Background.
       bitmap.copyPixels(editorbitmap,
@@ -1043,6 +1103,28 @@ class World extends MovieClip {
       // Draw cursor.
       bitmap.copyPixels(cursorbitmap, r,
                         new Point(MAPX + tx * SFONTW, MAPY + ty * SFONTH));
+
+      var INSY = 530;
+      writeString(100, INSY,
+                  'arrow keys to move cursor. type characters to insert.');
+      writeString(100, INSY + SFONTH * 1,
+                  'ctrl-s to save to server. ctrl-g to warp.');
+      writeString(100, INSY + SFONTH * 2,
+                  'ctrl-k cuts a line, ctrl-y pastes it.');
+      writeString(100, INSY + SFONTH * 3,
+                  'ctrl-a goes to line start, ctrl-e to end, like emacs.');
+      writeString(100, INSY + SFONTH * 4,
+                  'ctrl-home goes to the top, ctrl-end to the bottom.');
+
+    } else if (mode == MGETTEXT) {
+
+      bitmap.copyPixels(editorbitmap,
+                        new Rectangle(0, 0, WIDTH, HEIGHT),
+                        new Point(0, 0));
+
+      writeStringBig(100, 100, 'Load which level? (a-z 0-9 only)');
+      writeStringBig(100, 100 + FONTH, gottext + '_');
+
     }
   }
 

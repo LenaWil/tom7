@@ -113,13 +113,21 @@ class TitleScreen extends MovieClip {
     }
 
     switch(k) {
-    case 89: // Y
-    case 50: // 2
-      // XXX also Enter
-    case 32: // space
-    case 38: // up
+    case Key.ENTER:
+      _root['firstmusic'] = 'ballad';
+      _root['firstlevel'] = 'tutorial8';
       triggerStart();
       break;
+    case 89: // Y
+    case 50: // 2
+    case 32: // space
+    case 38: // up
+      _root['firstmusic'] = 'transit';
+      _root['firstlevel'] = 'tutorial1';
+      triggerStart();
+      break;
+
+      // XXX 'n'
     }
   }
 
