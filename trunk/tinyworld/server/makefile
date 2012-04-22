@@ -1,7 +1,7 @@
 AAPH = aaph
 STDLIB = /usr/src/aphasia2/stdlib
 
-default : save.aph
+default : save.aph get.aph
 
 %.aph : %.aa tinyworld.aah ${STDLIB}/cgi.aah
 	$(AAPH) -I ../ $<

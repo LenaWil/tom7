@@ -31,3 +31,10 @@ database tinyworld {
 
 import "std.aah"
 import "cgi.aah"
+
+
+(* Approximate :) *)
+fun xml-escape s =
+    replace ([>], [&gt;],
+             replace ([<], [&lt;],
+                      replace ([&], [&amp;], s)))

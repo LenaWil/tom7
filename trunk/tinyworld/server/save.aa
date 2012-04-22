@@ -13,7 +13,6 @@ let
 
   val now = time ()
 in
-  (* XXX ignoring payload! *)
   contenttype [text/xml];
 
   if size name = 0 orelse size name > 16

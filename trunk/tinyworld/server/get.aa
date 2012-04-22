@@ -1,0 +1,45 @@
+let
+  import "tinyworld.aah"
+
+  val url = limit(?/, cgiurl ())
+  val name = tr("a-z0-9", "/cd/", head url)
+in
+  contenttype [text/xml];
+
+  if size name = 0 orelse size name > 16
+  then die [illegal name]
+  else ();
+
+  case select contents
+       from tinyworld : level
+       where name = {name} limit {1} of
+     contents :: _ => print contents
+   | nil =>
+print
+[########################################\
+ # 404 NOT FOUND             #?T<H@home.#\
+ ########################################\
+ #                                      #\
+ #                                      #\
+ #                                      #\
+ #                                      #\
+ #                                      #\
+ # this level does not exist yet        #\
+ #                                      #\
+ # you can create it by pressing tab    #\
+ # to enter the editor and save with    #\
+ # ctrl s                               #\
+ #                                      #\
+ #                                      #\
+ #                                      #\
+ #                                      #\
+ #                                      #\
+ #                                      #\
+ #                                      #\
+ ########                               #\
+ #     ##  or go home...                #\
+ # T   H#                               #\
+ #     ##                               #\
+ ########################################]
+
+end
