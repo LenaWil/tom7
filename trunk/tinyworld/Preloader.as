@@ -23,6 +23,8 @@ class Preloader extends MovieClip {
       fscommand("showmenu", "false");
       Stage.showMenu = false;
 
+      _root['musicenabled'] = true;
+
       _root.gotoAndStop('title');
 
       this.swapDepths(0);

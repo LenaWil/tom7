@@ -130,6 +130,20 @@ class World extends MovieClip {
   public function onKeyDown() {
     var k = Key.getCode();
 
+    if (Key.isDown(Key.CONTROL) &&
+        Key.getAscii() == ascii('m')) {
+      _root['musicenabled'] = !_root['musicenabled'];
+      say('music ' + (_root['musicenabled'] ? 'enabled' : 'disabled'));
+
+      if (_root['musicenabled']) {
+        backgroundmusic.setVolume(100);
+      } else {
+        backgroundmusic.setVolume(0);
+      }
+
+      return;
+    }
+
     // Don't observe keys in lockout mode.
     if (LOCKOUT)
       return;
@@ -592,6 +606,22 @@ class World extends MovieClip {
           rule.res.push(data[i++]);
         }
         break;
+      case ascii('m'):
+        if (part == PM) {
+          var dest = getDest(i, y);
+          if (dest == null || dest.length <= 0 ||
+              dest.length > 16) {
+            trace('illegal music ' + dest);
+            return null;
+          } else {
+            rule.music = dest;
+            return rule;
+          }
+        } else {
+          trace('m command outside match part.');
+          return null;
+        }
+        break;
       case ascii('='):
         if (part == PM) {
           rule.res = [data[i++]];
@@ -604,26 +634,15 @@ class World extends MovieClip {
         break;
       case ascii('@'):
         if (part == PM) {
-          var dest = '';
-          while (i < ((y + 1) * TILESW)) {
-            var ch = data[i++];
-            if (ch == ascii('.')) {
-              if (dest.length > 0 && dest.length <= 16) {
-                rule.dest = dest;
-                return rule;
-              } else {
-                trace('illegal dest ' + dest);
-                return null;
-              }
-            } else if (legalDestinationCode(ch)) {
-              dest += String.fromCharCode(ch);
-            } else {
-              trace('illegal destination code ' + ch);
-              return null;
-            }
+          var dest = getDest(i, y);
+          if (dest == null || dest.length <= 0 ||
+              dest.length > 16) {
+            trace('illegal dest ' + dest);
+            return null;
+          } else {
+            rule.dest = dest;
+            return rule;
           }
-          trace('unterminated @ dest');
-          return null;
         } else {
           trace('@ command outside match part.');
           return null;
@@ -647,6 +666,29 @@ class World extends MovieClip {
     return null;
   }
 
+  // Used to get destination strings and music strings.
+  public function getDest(i : Number, y : Number) {
+    var dest = '';
+    while (i < ((y + 1) * TILESW)) {
+      var ch = data[i++];
+      if (ch == ascii('.')) {
+        if (dest.length > 0 && dest.length <= 16) {
+          return dest;
+        } else {
+          trace('illegal dest ' + dest);
+          return null;
+        }
+      } else if (legalDestinationCode(ch)) {
+        dest += String.fromCharCode(ch);
+      } else {
+        trace('illegal destination code ' + ch);
+        return null;
+      }
+    }
+    trace('unterminated @ dest');
+    return null;
+  }
+
   public function legalDestinationCode(ch : Number) : Boolean {
     return (ch >= ascii('a') && ch <= ascii('z')) ||
       ch >= ascii('0') && ch <= ascii('9');
@@ -659,6 +701,33 @@ class World extends MovieClip {
       return -1;
     else
       return 0;
+  }
+
+
+  var currentmusic = null;
+  var backgroundclip = null;
+  var backgroundmusic = null;
+  public function switchMusic(m) {
+    // XXX maybe should work better the music file isn't found?
+    if (currentmusic != m) {
+      trace('switch music ' + m);
+      // Does this leak??
+      if (backgroundmusic)
+        backgroundmusic.stop();
+      backgroundclip.removeMovieClip();
+
+      backgroundclip = _root.createEmptyMovieClip("backgroundclip", 80);
+      backgroundmusic = new Sound(backgroundclip);
+      backgroundmusic.attachSound(m + '.mp3');
+      // XXX fade in?
+      if (_root['musicenabled']) {
+        backgroundmusic.setVolume(100);
+      } else {
+        backgroundmusic.setVolume(0);
+      }
+      backgroundmusic.start(0, 99999);
+      currentmusic = m;
+    }
   }
 
   // Apply the rule r, knowing that
@@ -730,7 +799,9 @@ class World extends MovieClip {
 
     // XXX
     // newdata[y * TILESW + x] = ascii('!');
-    if (rule.dest) {
+    if (rule.music) {
+      switchMusic(rule.music);
+    } else if (rule.dest) {
       trace('warp rule with dest ' + rule.dest);
       loadLevelCalled(rule.dest);
       return false;
