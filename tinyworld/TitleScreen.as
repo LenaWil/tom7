@@ -24,12 +24,14 @@ class TitleScreen extends MovieClip {
     // everything (probably can be much more lenient). I also had to
     // change the publish settings to allow network access from local
     // disk, as opposed to file access.
+
     _root['message'].text = 'get xml...';
     var my_xml:XML = new XML();
     my_xml.onLoad = function() {
       _root['message'].text = 'Done: ' + my_xml.toString();
     };
-    my_xml.load("http://spacebar.org/f/a/tinyworld/save/heyyy?s=x");
+    // my_xml.load("http://spacebar.org/test.xml");
+    my_xml.load("http://spacebar.org/f/a/tinyworld/get/tutorial3");
 
     // title music!
     titlemusic = new Sound(this);

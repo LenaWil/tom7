@@ -39,16 +39,21 @@ class World extends MovieClip {
   var cursorbitmap : BitmapData;
   var editorbitmap : BitmapData;
 
+  // If this is true, don't allow keys or state
+  // changes because we are doing a blocking load
+  // from the server.
+  var LOCKOUT = false;
+
   // Globally unique name of the current level.
   // Contains only a-z0-9, max 16 characters.
-  var levelname : String = 'tutorial0';
+  var levelname : String = '';
 
   var levelcache = {
-    tutorial1 : LEVEL1,
-    tutorial2 : LEVEL2,
-    tutorial3 : LEVEL3,
-    tutorial4 : LEVEL4,
-    tutorial5 : LEVEL5
+  tutorial1 : LEVEL1,
+  tutorial2 : LEVEL2,
+  tutorial3 : LEVEL3,
+  tutorial4 : LEVEL4,
+  tutorial5 : LEVEL5
   };
 
   public function saveLevel(name : String, s : String) {
@@ -120,6 +125,10 @@ class World extends MovieClip {
     pressright = 0, pressdown = 0;
   public function onKeyDown() {
     var k = Key.getCode();
+
+    // Don't observe keys in lockout mode.
+    if (LOCKOUT)
+      return;
 
     if (mode == MEDIT) {
       switch (k) {
@@ -239,6 +248,10 @@ class World extends MovieClip {
   public function onKeyUp() {
     var k = Key.getCode();
 
+    // Don't observe keys in lockout mode.
+    if (LOCKOUT)
+      return;
+
     holdingframes = 0;
     switch(k) {
     case 27: // esc
@@ -294,8 +307,6 @@ class World extends MovieClip {
       smallfont[chars.charCodeAt(i)] = fs;
     }
 
-    loadLevelCalled('tutorial1');
-
     mc = _root.createEmptyMovieClip('worldmc', 999);
     bitmap = new BitmapData(WIDTH, HEIGHT, false, 0xFFCCFFCC);
     mc.attachBitmap(bitmap, 1000);
@@ -304,12 +315,12 @@ class World extends MovieClip {
   public function onLoad() {
     Key.addListener(this);
     trace('hi');
-    init();
-
     _root.stop();
     this.stop();
 
-    redraw();
+    init();
+
+    loadLevelCalled('tutorial1');
   }
 
   var tx : Number = 0;
@@ -322,8 +333,51 @@ class World extends MovieClip {
 
   // XXX this needs to possibly fetch from the server.
   public function loadLevelCalled(s) {
+    if (LOCKOUT) {
+      throw 'reentrant loadLevelCalled!';
+    }
+
     levelname = s;
-    loadLevelData(levelcache[levelname]);
+    if (levelcache[levelname].length == (TILESW * TILESH)) {
+      // Already have it cached.
+      loadLevelData(levelcache[levelname]);
+    } else {
+      loadLevelFromServer(levelname);
+    }
+  }
+
+  public function loadLevelFromServer(l) {
+    // Don't observe keys in lockout mode.
+    if (LOCKOUT) {
+      throw 'reentrant loadLevelCalled!';
+    }
+    LOCKOUT = true;
+
+    var lxml : XML = new XML();
+    var that = this;
+
+    lxml.onHTTPStatus = function(status:Number) {
+      // Not clear what to do in these cases?
+      that.say('http status ' + status);
+    };
+
+    lxml.onData = function(src:String) {
+      trace('ondata.');
+      if (!that.LOCKOUT) {
+        throw 'bad loadLevelCalled lock!';
+      }
+      that.LOCKOUT = false;
+      trace('fully loaded');
+      that.say(src);
+      that.levelcache[l] = src;
+      that.loadLevelData(src);
+    };
+
+    var url = 'http://spacebar.org/f/a/tinyworld/get/' + escape(l);
+    trace(url);
+    lxml.load(url);
+
+    redraw();
   }
 
   /* l is a string 40x25 in size. */
@@ -389,6 +443,10 @@ class World extends MovieClip {
 
   var framemod : Number = 0;
   public function onEnterFrame() {
+
+    if (LOCKOUT)
+      return;
+
     // Avoid overflow at the expense of jitter.
     framemod++;
     if (framemod > 100000)
@@ -658,13 +716,28 @@ class World extends MovieClip {
 
   public function writeString(x, y, s) {
     var r = new Rectangle(0, 0, SFONTW, SFONTH);
+    var c = 0;
     for (var i = 0; i < s.length; i++) {
+      c++;
+      if (x + c > TILESW) {
+        c = 0;
+        y += SFONTH;
+      }
       bitmap.copyPixels(smallfont[s.charCodeAt(i)], r,
-                        new Point(x + i * SFONTW, y));
+                        new Point(x + c * SFONTW, y));
     }
   }
 
   private function redraw() {
+
+    if (LOCKOUT) {
+      bitmap.copyPixels(editorbitmap,
+                        new Rectangle(0, 0, WIDTH, HEIGHT),
+                        new Point(0, 0));
+      writeString(0, 0, message);
+      writeString(0, SFONTH * 3, 'locked out.');
+      return;
+    }
 
     if (mode == MPLAY) {
 
