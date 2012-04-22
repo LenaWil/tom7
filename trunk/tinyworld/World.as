@@ -49,11 +49,13 @@ class World extends MovieClip {
   var levelname : String = '';
 
   var levelcache = {
+    /*
   tutorial1 : LEVEL1,
   tutorial2 : LEVEL2,
   tutorial3 : LEVEL3,
   tutorial4 : LEVEL4,
   tutorial5 : LEVEL5
+    */
   };
 
   public function saveLevel(name : String, s : String) {
@@ -117,6 +119,8 @@ class World extends MovieClip {
     return s;
   }
 
+  var cutrow = [];
+
   var holdingframes = 0;
   var holdingSpace = false, holdingEsc = false,
     holdingUp = false, holdingLeft = false,
@@ -152,8 +156,17 @@ class World extends MovieClip {
         holdingDown = true;
         pressdown++;
         break;
-      case Key.DELETEKEY:
+      case Key.INSERT:
+        for (var i = TILESW - 1; i >= tx + 1; i--) {
+          data[ty * TILESW + i] = data[ty * TILESW + i - 1];
+        }
         data[ty * TILESW + tx] = ascii(' ');
+        redraw();
+        break;
+      case Key.DELETEKEY:
+        for (var i = tx; i < TILESW - 1; i++) {
+          data[ty * TILESW + i] = data[ty * TILESW + i + 1];
+        }
         redraw();
         break;
       case Key.BACKSPACE:
@@ -168,6 +181,36 @@ class World extends MovieClip {
 
         if (Key.isDown(Key.CONTROL)) {
           switch(ch) {
+          case ascii('k'):
+            cutrow = [];
+            for (var x = 0; x < TILESW; x++) {
+              cutrow.push(data[ty * TILESW + x]);
+            }
+
+            for (var y = ty; y < TILESH - 1; y++) {
+              for (var x = 0; x < TILESW; x++) {
+                data[y * TILESW + x] =
+                  data[(y + 1) * TILESW + x];
+              }
+            }
+            redraw();
+            break;
+
+          case ascii('y'):
+            for (var y = TILESH - 1; y > ty; y--) {
+              for (var x = 0; x < TILESW; x++) {
+                data[y * TILESW + x] =
+                  data[(y - 1) * TILESW + x];
+              }
+            }
+
+            for (var x = 0; x < TILESW; x++) {
+              data[ty * TILESW + x] =
+                (x < cutrow.length) ? cutrow[x] : ascii(' ');
+            }
+            redraw();
+            break;
+
           case ascii('s'):
             var ls = makeLevelString(data);
             levelcache[levelname] = ls;
@@ -184,6 +227,7 @@ class World extends MovieClip {
 
     } else if (mode == MPLAY) {
       switch(k) {
+      case Key.SPACE:
       case Key.PGDN:
         // XXX cheat
         gotoNextLevel();
@@ -362,14 +406,14 @@ class World extends MovieClip {
     };
 
     lxml.onData = function(src:String) {
-      trace('ondata.');
+      // trace('ondata.');
       if (!that.LOCKOUT) {
         throw 'bad loadLevelCalled lock!';
       }
       that.LOCKOUT = false;
-      trace('fully loaded');
-      that.say(src);
+      that.say('loaded ' + l + ' from server');
       that.levelcache[l] = src;
+      levelname = l;
       that.loadLevelData(src);
     };
 
@@ -554,6 +598,34 @@ class World extends MovieClip {
           trace('= command outside match part.');
           return null;
         }
+        break;
+      case ascii('@'):
+        if (part == PM) {
+          var dest = '';
+          while (i < ((y + 1) * TILESW)) {
+            var ch = data[i++];
+            if (ch == ascii('.')) {
+              if (dest.length > 0 && dest.length <= 16) {
+                rule.dest = dest;
+                return rule;
+              } else {
+                trace('illegal dest ' + dest);
+                return null;
+              }
+            } else if (legalDestinationCode(ch)) {
+              dest += String.fromCharCode(ch);
+            } else {
+              trace('illegal destination code ' + ch);
+              return null;
+            }
+          }
+          trace('unterminated @ dest');
+          return null;
+        } else {
+          trace('@ command outside match part.');
+          return null;
+        }
+        break;
       case ascii('.'):
         if (part == PR) {
           // Done!
@@ -572,8 +644,13 @@ class World extends MovieClip {
     return null;
   }
 
+  public function legalDestinationCode(ch : Number) : Boolean {
+    return (ch >= ascii('a') && ch <= ascii('z')) ||
+      ch >= ascii('0') && ch <= ascii('9');
+  }
+
   // Apply the rule r, knowing that
-  public function applyRule(x, y, rule, newdata) {
+  public function applyRule(x, y, rule, newdata, affected) : Boolean {
     // Only type of rule so far is match rule.
     var xx = x, yy = y;
     for (var i = 0; i < rule.match.length; i++) {
@@ -599,64 +676,82 @@ class World extends MovieClip {
       if (xx >= TILESW || xx < 0 ||
           yy >= TILESH || yy < 0) {
         trace('outside level');
-        return;
+        return true;
       }
       i++;
       if (i >= rule.match.length) {
         throw ('bug, bad rule (match) ' + i);
-        return;
+        return false;
+      }
+
+      if (affected[yy * TILESW + xx] != undefined) {
+        trace('already affected at ' + xx + ',' + yy);
+        return true;
       }
 
       if (data[yy * TILESW + xx] != rule.match[i]) {
         trace('didn\'t match ' + rule.match[i]);
-        return;
+        return true;
       }
     }
+
+    // XXX replay match to set affected?
 
     // XXX
     // newdata[y * TILESW + x] = ascii('!');
-    xx = x;
-    yy = y;
-    for (var i = 0; i < rule.res.length; i++) {
+    if (rule.dest) {
+      trace('warp rule with dest ' + rule.dest);
+      loadLevelCalled(rule.dest);
+      return false;
+    } else {
 
-      // Write, if inside the level.
-      if (xx < TILESW && xx >= 0 &&
-          yy < TILESH && yy >= 0) {
-        newdata[yy * TILESW + xx] = rule.res[i];
-      }
-      i++;
+      xx = x;
+      yy = y;
+      for (var i = 0; i < rule.res.length; i++) {
 
-      // But keep going either way. We might come
-      // back into the level.
+        // Write, if inside the level.
+        if (xx < TILESW && xx >= 0 &&
+            yy < TILESH && yy >= 0) {
+          newdata[yy * TILESW + xx] = rule.res[i];
+          // data[yy * TILESW + xx] = rule.res[i];
+          affected[yy * TILESW + xx] = true;
+        }
+        i++;
 
-      if (i >= rule.res.length) {
-        // Normal exit condition.
-        return;
-      }
+        // But keep going either way. We might come
+        // back into the level.
 
-      switch (rule.res[i]) {
-      case ascii('v'):
-        yy++;
-        break;
-      case ascii('^'):
-        yy--;
-        break;
-      case ascii('<'):
-        xx--;
-        break;
-      case ascii('>'):
-        xx++;
-        break;
-      default:
-        throw 'bad res path command ' + rule.res[i];
-        return;
-      }
+        if (i >= rule.res.length) {
+          // Normal exit condition.
+          return true;
+        }
 
-      if (i >= rule.res.length) {
-        throw ('bug, bad rule (res)');
-        return;
+        switch (rule.res[i]) {
+        case ascii('v'):
+          yy++;
+          break;
+        case ascii('^'):
+          yy--;
+          break;
+        case ascii('<'):
+          xx--;
+          break;
+        case ascii('>'):
+          xx++;
+          break;
+        default:
+          throw 'bad res path command ' + rule.res[i];
+          return false;
+        }
+
+        if (i >= rule.res.length) {
+          throw ('bug, bad rule (res)');
+          return false;
+        }
       }
     }
+
+    return false;
   }
 
   // Process the level in place.
@@ -667,8 +762,9 @@ class World extends MovieClip {
     // Character where T was. Put T there
     // for the sake of making and matching
     // rules.
-    var oldt = data[ty * TILESW + tx];
-    data[ty * TILESW + tx] = ascii('T');
+    var ttx = tx, tty = ty;
+    var oldt = data[tty * TILESW + ttx];
+    data[tty * TILESW + ttx] = ascii('T');
 
     // trace('dorules.');
     // First, get rules.
@@ -687,25 +783,53 @@ class World extends MovieClip {
     trace('num rules: ' + rules.length);
 
     var newdata = data.slice(0);
+    // starts all false.
+    var affected = new Array(TILESW * TILESH);
 
     // Now, apply rules.
+    /*
     for (var y = 0; y < TILESH; y++) {
       for (var x = 0; x < TILESW; x++) {
         var i = y * TILESW + x;
-        // PERF can index by character.
-        for (var r = 0; r < rules.length; r++) {
-          if (data[i] == rules[r].ch) {
-            trace('rule matches @' + x + ',' + y +
-                  ': ' + ruleToString(rules[r]));
-            applyRule(x, y, rules[r], newdata);
+        if (affected[i] == undefined) {
+          // PERF can index by character.
+          for (var r = 0; r < rules.length; r++) {
+            if (data[i] == rules[r].ch) {
+              trace('rule matches @' + x + ',' + y +
+                    ': ' + ruleToString(rules[r]));
+              applyRule(x, y, rules[r], newdata, affected);
+            }
+          }
+        }
+      }
+    }
+    */
+
+    // To be more efficient, we could index the whole data
+    // array by character. But the index for ' ' is gonna
+    // be pretty big...
+    for (var r = 0; r < rules.length; r++) {
+      for (var y = 0; y < TILESH; y++) {
+        for (var x = 0; x < TILESW; x++) {
+          var i = y * TILESW + x;
+          if (affected[i] == undefined &&
+              data[i] == rules[r].ch) {
+            // trace('rule matches @' + x + ',' + y +
+            // ': ' + ruleToString(rules[r]));
+            if (!applyRule(x, y, rules[r], newdata, affected)) {
+              // Avoid swapping back if we applied a warp rule.
+              data[tty * TILESW + ttx] = oldt;
+              return;
+            }
           }
         }
       }
     }
 
     // ?
-    newdata[ty * TILESW + tx] = oldt;
+    newdata[tty * TILESW + ttx] = oldt;
     data = newdata;
+    // data[ty * TILESW + tx] = oldt;
   }
 
   var message : String;
@@ -766,6 +890,13 @@ class World extends MovieClip {
 
       writeString(0, 0, message);
       writeString(0, SFONTH, 'level name: ' + levelname);
+      if (cutrow) {
+        var s = '';
+        for (var i = 0; i < cutrow.length; i++)
+          s += String.fromCharCode(cutrow[i]);
+        writeString(0, SFONTH * 2, 'cut row: ' + s);
+      }
+
 
       var r = new Rectangle(0, 0, SFONTW, SFONTH);
       for (var y = 0; y < TILESH; y++) {
