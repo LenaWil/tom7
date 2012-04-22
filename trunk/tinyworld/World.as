@@ -225,6 +225,26 @@ class World extends MovieClip {
             redraw();
             break;
 
+          case Key.HOME:
+            ty = 0;
+            redraw();
+            break;
+
+          case Key.END:
+            ty = TILESH - 1;
+            redraw();
+            break;
+
+          case ascii('a'):
+            tx = 0;
+            redraw();
+            break;
+
+          case ascii('e'):
+            tx = TILESW - 1;
+            redraw();
+            break;
+
           case ascii('s'):
             var ls = makeLevelString(data);
             levelcache[levelname] = ls;
@@ -379,6 +399,8 @@ class World extends MovieClip {
 
     init();
 
+    // XXX caller should be able to adjust this.
+    switchMusic('transit');
     loadLevelCalled('tutorial1');
   }
 
