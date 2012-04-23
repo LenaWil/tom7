@@ -9,7 +9,7 @@ import flash.geom.Point;
 class World extends MovieClip {
 
   // XXX
-  #include "level.h"
+  // #include "level.h"
 
   var FONTW = 18;
   var FONTH = 32;
@@ -46,56 +46,58 @@ class World extends MovieClip {
   // changes because we are doing a blocking load
   // from the server.
   var LOCKOUT = false;
+  // Number of frames before drawing Loading message.
+  var MAXLOCKOUTFRAMES = 12;
+  var lockoutframes = 0;
 
   // Globally unique name of the current level.
   // Contains only a-z0-9, max 16 characters.
   var levelname : String = '';
 
+  var lockedcache = {
+
+  };
   var levelcache = {
-    /*
-  tutorial1 : LEVEL1,
-  tutorial2 : LEVEL2,
-  tutorial3 : LEVEL3,
-  tutorial4 : LEVEL4,
-  tutorial5 : LEVEL5
-    */
+
   };
 
   public function saveLevel(name : String, s : String) {
-    var my_xml:XML = new XML();
+    var sxml : XML = new XML();
     var that = this;
-    my_xml.onLoad = function() {
+    sxml.onLoad = function() {
       that.say('done saving to server: (status ' +
-               my_xml.status + '): ' + my_xml.toString());
+               sxml.status + '): ' + sxml.toString());
     };
 
-    my_xml.onHTTPStatus = function(status:Number) {
+    sxml.onHTTPStatus = function(status:Number) {
       that.say('http status ' + status);
     };
 
-    my_xml.onData = function(src:String) {
+    sxml.onData = function(src:String) {
       that.say('got data: ' + src);
     };
 
-    my_xml.load("http://spacebar.org/f/a/tinyworld/save/" +
-                name + "?s=" +
-                escape(s));
+    sxml.load("http://spacebar.org/f/a/tinyworld/save/" +
+              name + "?s=" +
+              escape(s));
 
     say('saving to server...');
   }
 
   public function nextLevel(s) {
-    var base = '', num = 0;
+    var base = '', num : Number = 0;
     for (var i = 0; i < s.length; i++) {
       var c = s.charCodeAt(i);
       if (c >= ascii('a') && c <= ascii('z')) {
         base += s.charAt(i);
       } else {
-        num = 1 * s.substr(i);
+        num = int(1 * s.substr(i));
+        break;
       }
     }
+    num++;
 
-    return base + '' + (num + 1);
+    return base + num;
   }
 
   public function gotoNextLevel() {
@@ -287,9 +289,13 @@ class World extends MovieClip {
             redraw();
             break;
           case ascii('s'):
-            var ls = makeLevelString(data);
-            levelcache[levelname] = ls;
-            saveLevel(levelname, ls);
+            if (lockedcache[levelname]) {
+              say('can\'t save -- locked!');
+            } else {
+              var ls = makeLevelString(data);
+              levelcache[levelname] = ls;
+              saveLevel(levelname, ls);
+            }
             break;
           default:
             say('unknown ctrl key');
@@ -474,6 +480,7 @@ class World extends MovieClip {
       throw 'reentrant loadLevelCalled!';
     }
     LOCKOUT = true;
+    lockoutframes = MAXLOCKOUTFRAMES;
 
     var lxml : XML = new XML();
     var that = this;
@@ -490,9 +497,14 @@ class World extends MovieClip {
       }
       that.LOCKOUT = false;
       that.say('loaded ' + l + ' from server');
-      that.levelcache[l] = src;
+
+      var leveldata = src.substr(0, 1000);
+      var islocked = (src.charCodeAt(1000) == ascii('Y'));
+
+      that.lockedcache[l] = islocked;
+      that.levelcache[l] = leveldata;
       levelname = l;
-      that.loadLevelData(src);
+      that.loadLevelData(leveldata);
     };
 
     var url = 'http://spacebar.org/f/a/tinyworld/get/' + escape(l);
@@ -1046,14 +1058,15 @@ class World extends MovieClip {
 
   private function redraw() {
 
-    if (LOCKOUT) {
+    if (LOCKOUT && lockoutframes == 0) {
       bitmap.copyPixels(editorbitmap,
                         new Rectangle(0, 0, WIDTH, HEIGHT),
                         new Point(0, 0));
       writeString(0, 0, message);
-      writeString(0, SFONTH * 3, 'locked out.');
+      writeStringBig(100, 400, 'loading from server...');
       return;
     }
+    lockoutframes--;
 
     if (mode == MPLAY) {
 
@@ -1104,6 +1117,11 @@ class World extends MovieClip {
       bitmap.copyPixels(cursorbitmap, r,
                         new Point(MAPX + tx * SFONTW, MAPY + ty * SFONTH));
 
+      if (lockedcache[levelname]) {
+        writeStringBig(100, 5 * SFONTH,
+                       'THIS LEVEL IS LOCKED - NO SAVING.');
+      }
+
       var INSY = 530;
       writeString(100, INSY,
                   'arrow keys to move cursor. type characters to insert.');
@@ -1115,6 +1133,27 @@ class World extends MovieClip {
                   'ctrl-a goes to line start, ctrl-e to end, like emacs.');
       writeString(100, INSY + SFONTH * 4,
                   'ctrl-home goes to the top, ctrl-end to the bottom.');
+      writeString(100, INSY + SFONTH * 5,
+                  'esc or tab goes back to game.');
+
+      writeString(100, INSY + SFONTH * 7,
+                  'use ctrl-s to save for everybody. PLZ BE SMART AND FUN :)');
+
+      var KEY = INSY + SFONTH * 9;
+      writeString(100, KEY,
+                  '? starts a rule. the first character must match something');
+      writeString(100, KEY + SFONTH * 1,
+                  'in the level. commands < ^ > v continue the match in that');
+      writeString(100, KEY + SFONTH * 2,
+                  'direction. ( ) mean towards and away from the T. after the');
+      writeString(100, KEY + SFONTH * 3,
+                  'match must be an action. the = action writes a replacement');
+      writeString(100, KEY + SFONTH * 4,
+                  'path (can use <^>v()). the @ action warps to the given dest.');
+      writeString(100, KEY + SFONTH * 5,
+                  'the m command changes the music. then every rule ends with period.');
+      writeString(100, KEY + SFONTH * 6,
+                  'rules can match themselves and others. anything in the level!.');
 
     } else if (mode == MGETTEXT) {
 
