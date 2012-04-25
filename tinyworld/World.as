@@ -11,18 +11,18 @@ class World extends MovieClip {
   // XXX
   // #include "level.h"
 
-  var FONTW = 18;
-  var FONTH = 32;
+  private static var FONTW : Number = 18;
+  private static var FONTH : Number = 32;
 
-  var SFONTW = 9;
-  var SFONTH = 16;
+  private static var SFONTW : Number = 9;
+  private static var SFONTH : Number = 16;
 
   // XXX should be lots more?
-  var TILESW = 40;
-  var TILESH = 25;
+  private static var TILESW : Number = 40;
+  private static var TILESH : Number = 25;
 
-  var WIDTH = TILESW * FONTW;
-  var HEIGHT = TILESH * FONTH;
+  private static var WIDTH : Number = TILESW * FONTW;
+  private static var HEIGHT : Number = TILESH * FONTH;
 
 
   var MPLAY = 0, MEDIT = 1, MGETTEXT = 2;
@@ -33,7 +33,7 @@ class World extends MovieClip {
 
   var font = [], smallfont = [];
 
-  var data = [];
+  var data : Array= [];
 
   var mc : MovieClip;
   var fontbitmap : BitmapData;
@@ -805,13 +805,15 @@ class World extends MovieClip {
     }
   }
 
-  // Apply the rule r, knowing that
-  public function applyRule(x, y, rule, newdata, affected) : Boolean {
+  // Apply the rule r, knowing that it matches the character at x, y
+  public function applyRule(x : Number, y : Number,
+                            rule,
+                            newdata : Array, affected : Array) : Boolean {
     // The direction towards the T is computed once based on the
     // starting position.
-    var tdx = x - tx;
-    var tdy = y - ty;
-    var towardx = 0, towardy = 0;
+    var tdx : Number = x - tx;
+    var tdy : Number = y - ty;
+    var towardx : Number = 0, towardy : Number = 0;
     if (Math.abs(tdx) >= Math.abs(tdy)) {
       towardx = Sign(tdx);
     } else {
@@ -820,26 +822,27 @@ class World extends MovieClip {
 
     // Only type of rule so far is match rule.
     var xx = x, yy = y;
-    for (var i = 0; i < rule.match.length; i++) {
+    var rml : Number = rule.match.length;
+    for (var i = 0; i < rml; i++) {
       // Path command
       switch (rule.match[i]) {
-      case ascii('v'):
+      case 118: // ascii('v'):
         yy++;
         break;
-      case ascii('^'):
+      case 94: // ascii('^'):
         yy--;
         break;
-      case ascii('<'):
+      case 60: // ascii('<'):
         xx--;
         break;
-      case ascii('>'):
+      case 62: // ascii('>'):
         xx++;
         break;
-      case ascii(')'):
+      case 41: // ascii(')'):
         xx += towardx;
         yy += towardy;
         break;
-      case ascii('('):
+      case 40: // ascii('('):
         xx -= towardx;
         yy -= towardy;
         break;
@@ -854,17 +857,18 @@ class World extends MovieClip {
         return true;
       }
       i++;
-      if (i >= rule.match.length) {
+      if (i >= rml) {
         throw ('bug, bad rule (match) ' + i);
         return false;
       }
 
-      if (affected[yy * TILESW + xx] != undefined) {
+      var idx = yy * TILESW + xx;
+      if (affected[idx] != undefined) {
         trace('already affected at ' + xx + ',' + yy);
         return true;
       }
 
-      if (data[yy * TILESW + xx] != rule.match[i]) {
+      if (data[idx] != rule.match[i]) {
         trace('didn\'t match ' + rule.match[i]);
         return true;
       }
@@ -905,23 +909,23 @@ class World extends MovieClip {
         }
 
         switch (rule.res[i]) {
-        case ascii('v'):
+        case 118: // ascii('v'):
           yy++;
           break;
-        case ascii('^'):
+        case 94: // ascii('^'):
           yy--;
           break;
-        case ascii('<'):
+        case 60: // ascii('<'):
           xx--;
           break;
-        case ascii('>'):
+        case 62: // ascii('>'):
           xx++;
           break;
-        case ascii(')'):
+        case 41: // ascii(')'):
           xx += towardx;
           yy += towardy;
           break;
-        case ascii('('):
+        case 40: // ascii('('):
           xx -= towardx;
           yy -= towardy;
           break;
@@ -940,10 +944,14 @@ class World extends MovieClip {
     return false;
   }
 
+  // var dorules_time : Number = 0;
   // Process the level in place.
   public function doRules() {
+    // var timer_start = new Date();
     // Rules could change any frame.
-    var rules = [];
+    var rules : Array = [];
+
+    var SIZE : Number = TILESH * TILESW;
 
     // Character where T was. Put T there
     // for the sake of making and matching
@@ -954,55 +962,33 @@ class World extends MovieClip {
 
     // trace('dorules.');
     // First, get rules.
-    for (var y = 0; y < TILESH; y++) {
-      for (var x = 0; x < TILESW; x++) {
-        var i = y * TILESW + x;
-        if (data[i] == ascii('?')) {
-          var rule = readRule(x, y);
-          if (rule) {
-            rules.push(rule);
-          }
+    for (var i = 0; i < SIZE; i++) {
+      if (data[i] == 63 /* ascii ? */) {
+        var rule = readRule(i % TILESW, Math.floor(i / TILESW));
+        if (rule) {
+          rules.push(rule);
         }
       }
     }
 
     trace('num rules: ' + rules.length);
 
-    var newdata = data.slice(0);
-    // starts all false.
-    var affected = new Array(TILESW * TILESH);
-
-    // Now, apply rules.
-    /*
-    for (var y = 0; y < TILESH; y++) {
-      for (var x = 0; x < TILESW; x++) {
-        var i = y * TILESW + x;
-        if (affected[i] == undefined) {
-          // PERF can index by character.
-          for (var r = 0; r < rules.length; r++) {
-            if (data[i] == rules[r].ch) {
-              trace('rule matches @' + x + ',' + y +
-                    ': ' + ruleToString(rules[r]));
-              applyRule(x, y, rules[r], newdata, affected);
-            }
-          }
-        }
-      }
-    }
-    */
+    var ndata : Array = data.slice(0);
+    // Was the character affected in this turn? starts all false.
+    var af : Array = new Array(SIZE);
 
     // To be more efficient, we could index the whole data
     // array by character. But the index for ' ' is gonna
     // be pretty big...
-    for (var r = 0; r < rules.length; r++) {
-      for (var y = 0; y < TILESH; y++) {
-        for (var x = 0; x < TILESW; x++) {
-          var i = y * TILESW + x;
-          if (affected[i] == undefined &&
-              data[i] == rules[r].ch) {
-            // trace('rule matches @' + x + ',' + y +
-            // ': ' + ruleToString(rules[r]));
-            if (!applyRule(x, y, rules[r], newdata, affected)) {
+    var rl = rules.length;
+    for (var r : Number = 0; r < rl; r++) {
+      var rr = rules[r];
+      var c = rr.ch;
+      for (var i : Number = 0; i < SIZE; i++) {
+        if (!af[i]) {
+          if (data[i] == c) {
+            if (!applyRule(i % TILESW, Math.floor(i / TILESW),
+                           rr, ndata, af)) {
               // Avoid swapping back if we applied a warp rule.
               data[tty * TILESW + ttx] = oldt;
               return;
@@ -1013,9 +999,12 @@ class World extends MovieClip {
     }
 
     // ?
-    newdata[tty * TILESW + ttx] = oldt;
-    data = newdata;
+    ndata[tty * TILESW + ttx] = oldt;
+    data = ndata;
     // data[ty * TILESW + tx] = oldt;
+
+    // var timer_end = new Date();
+    // dorules_time = timer_end - timer_start;
   }
 
   var message : String;
@@ -1057,6 +1046,7 @@ class World extends MovieClip {
   }
 
   private function redraw() {
+    // var timer_start = new Date();
 
     if (LOCKOUT && lockoutframes == 0) {
       bitmap.copyPixels(editorbitmap,
@@ -1165,7 +1155,12 @@ class World extends MovieClip {
       writeStringBig(100, 100 + FONTH, gottext + '_');
 
     }
-  }
 
+    // var timer_end = new Date();
+    // var time = timer_end - timer_start;
+    // writeString(0, 0, 'rules: ' + dorules_time +
+    // 'ms render: ' + time + 'ms');
+
+  }
 
 }
