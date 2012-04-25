@@ -3,6 +3,11 @@ let
 
   val url = limit(?/, cgiurl ())
   val name = tr("a-z0-9", "/cd/", head url)
+
+  fun padto16 s =
+      if size s >= 16
+      then s
+      else padto16 [[s] ]
 in
   contenttype [text/xml];
 
@@ -10,19 +15,27 @@ in
   then die [illegal name]
   else ();
 
-  case select contents
+  case select (contents, locked)
        from tinyworld : level
        where name = {name} limit {1} of
-     contents :: _ => print contents
+    (contents, locked) :: _ => 
+         let in
+             print contents;
+             (if locked
+              then print [Y]
+              else print [N])
+         end
    | nil =>
 print
+(* XXX put the level name inside the
+   default contents *)
 [########################################\
- # 404 NOT FOUND             #?T>H@home.#\
+ # [padto16 name  ]     #?T>H@tutorial8.#\
  ########################################\
  #                                      #\
  #                                      #\
  #                                      #\
- #                                      #\
+ # 404 NOT FOUND                        #\
  #                                      #\
  # this level does not exist yet        #\
  #                                      #\
@@ -30,16 +43,17 @@ print
  # to enter the editor and save with    #\
  # ctrl s                               #\
  #                                      #\
- #                                      #\
+ # then everyone can enjoy it           #\
  #                                      #\
  #                                      #\
  #                                      #\
  #                                      #\
  #                                      #\
  ########                               #\
- #     ##  or go home...                #\
- # T   H#                               #\
- #     ##                               #\
- ########################################]
+ #    ###                               #\
+ # T   H#  or go to the menu...         #\
+ #    ###                               #\
+ ########################################\
+ N] (* locked *)
 
 end

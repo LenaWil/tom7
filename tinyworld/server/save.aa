@@ -28,7 +28,7 @@ in
        where name = {name} limit {1} of
      (id, locked) :: _ =>
          if locked
-         then die [can't save; level is locked]
+         then print [<response>sorry, can't save; level is locked</response>]
          else
              let in
                  set tinyworld : level ( id ) : (contents,
