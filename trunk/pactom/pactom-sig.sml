@@ -6,8 +6,8 @@ sig
     (* Pactom data *)
     type pactom
     val paths : pactom -> (LatLon.pos * real) Vector.vector Vector.vector
-    val overlays : pactom -> { href : string, 
-                               rotation : real, 
+    val overlays : pactom -> { href : string,
+                               rotation : real,
                                alpha : Word8.word,
                                north : real, south : real,
                                east : real, west : real } Vector.vector
@@ -35,6 +35,22 @@ sig
                        { borders : (string * (real * real) Vector.vector) Vector.vector,
                          bounds : Bounds.bounds }
 
+    (* GPS trails are not usually efficient drawing paths, in that they
+       record points even when traveling in a straight line. Removes from
+       points from paths when doing so introduces no more than the given
+       number of square meters of error (approximate; assumes flat earth).
+       Ignores elevations.
+                                 *
+                      .*.       /
+                   .-`   `.    /
+                .-`  error `. /
+               *-------------*
+              /
+             /
+            *
+       *)
+    val simplify_paths : real -> pactom -> pactom
+
     (* Distances are accurate great-circle distances, ignoring elevation. *)
     structure G : UNDIRECTEDGRAPH where type weight = real
 
@@ -56,7 +72,7 @@ sig
        Currently, nearly equivalent edges are merged, preserving
        connectedness. XXX: This should add points at intersections,
        then also merge edges that are nearly overlapping and colinear.
-       
+
        Because this changes the set of points, the  XXX
 
     val simplified_graph : pactom -> { graph : waypoint G.graph,
@@ -67,7 +83,7 @@ sig
     (* A minimal spanning tree, rooted at the node closest to the given
        position.
        For each node, it has its distance back to the root (or NONE, if
-       unreachable), and if it is reachable, then the parent node to 
+       unreachable), and if it is reachable, then the parent node to
        take to get there (except for the root, which is NONE). *)
     val spanning_graph : pactom -> LatLon.pos ->
                            { graph : waypoint G.span G.graph,
@@ -90,11 +106,11 @@ sig
       | Other of string
 
     type osm = { points : LatLon.pos IntMap.map,
-                 streets : { pts : int Vector.vector, 
-                             typ : highway, 
+                 streets : { pts : int Vector.vector,
+                             typ : highway,
                              name : string option } Vector.vector }
 
-    (* Load OSM data from the named file. Raises PacTom on some sorts of errors; 
+    (* Load OSM data from the named file. Raises PacTom on some sorts of errors;
        ignores others. *)
     val loadosm : string -> osm
     (* Load multiple files at once, merging their contents. *)
