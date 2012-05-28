@@ -1,6 +1,6 @@
 (* Utilities for PacTom activities. *)
-structure PacTom :> PACTOM = 
-struct 
+structure PacTom :> PACTOM =
+struct
 
   fun msg s = TextIO.output(TextIO.stdErr, s ^ "\n")
 
@@ -11,8 +11,8 @@ struct
 
   (* XXX add some stuff. *)
   type pactom = { xmls : tree list,
-                  overlays : { href : string, 
-                               rotation : real, 
+                  overlays : { href : string,
+                               rotation : real,
                                alpha : Word8.word,
                                north : real, south : real,
                                east : real, west : real } Vector.vector,
@@ -27,7 +27,7 @@ struct
 
   val seed = MersenneTwister.init32 0wxDEADBEEF
   fun rand () = MersenneTwister.rand32 seed
-  fun randf () = 
+  fun randf () =
       real (Word32.toInt (Word32.andb(0wx7FFFFFFE, MersenneTwister.rand32 seed))) /
       real 0x7FFFFFFE
 
@@ -40,7 +40,7 @@ struct
 
       fun process (Elem(("coordinates", nil), [Text coordtext])) =
         let val coords = String.tokens (StringUtil.charspec " \t\r\n") coordtext
-            val coords = 
+            val coords =
                 map (fn t =>
                      case map Real.fromString
                          (String.fields (Util.is #",") t) of
@@ -51,7 +51,7 @@ struct
         in
             paths := coords :: !paths
         end
-      | process (Elem(("coordinates", _), _)) = 
+      | process (Elem(("coordinates", _), _)) =
         raise PacTom "coordinates with subtags or attrs?"
       | process (t as Elem(("GroundOverlay", _), _)) =
         let
@@ -62,13 +62,13 @@ struct
                  digits. If it's not specified, assume FFFFFF.
                href is the location of the graphic file.
                viewBoundScale is always 0.75?
-               north, south, east, west specify the bounding box 
+               north, south, east, west specify the bounding box
                  parallels and meridians.
                rotation specifies the degrees of rotation -180 to 180,
                  where 0 is north and 90 is west. *)
             val leaves = XML.getleaves t
 
-            fun findoneopt tag = 
+            fun findoneopt tag =
                 case ListUtil.Alist.find op= leaves tag of
                     (* XXX are there any sensible defaults, like 0 for rotation? *)
                     NONE => NONE
@@ -81,11 +81,11 @@ struct
                     NONE => raise PacTom ("GroundOverlay didn't specify " ^ tag)
                   | SOME v => v
 
-            fun findoner tag = 
+            fun findoner tag =
                 let val v = findone tag
                 in
                     case Real.fromString v of
-                        NONE => raise PacTom ("Non-numeric " ^ tag ^ 
+                        NONE => raise PacTom ("Non-numeric " ^ tag ^
                                               " in GroundOverlay: " ^ v)
                       | SOME r => r
                 end
@@ -95,15 +95,15 @@ struct
             val south = findoner "south"
             val east = findoner "east"
             val west = findoner "west"
-            val rotation = 
+            val rotation =
                 case findoneopt "rotation" of
                     NONE => 0.0
-                  | SOME s => 
+                  | SOME s =>
                         case Real.fromString s of
-                            NONE => raise PacTom 
+                            NONE => raise PacTom
                                 ("Non-numeric rotation in GroundOverlay: " ^ s)
                           | SOME r => r
-            val color = 
+            val color =
                 case findoneopt "color" of
                     NONE => "ffffffff"
                   | SOME c => c
@@ -113,7 +113,7 @@ struct
                   | SOME w => w
 (*
           <name>Lincoln place - Mifflin Rd Park</name>
-          <description>dirt lot with Jersey barriers. 
+          <description>dirt lot with Jersey barriers.
             Looks like it might have formerly been a parking lot?</description>
           <color>cfffffff</color>
           <Icon>
@@ -129,9 +129,9 @@ struct
           </LatLonBox>
 *)
         in
-            overlays := { href = href, 
-                          north = north, south = south, 
-                          east = east, west = west, 
+            overlays := { href = href,
+                          north = north, south = south,
+                          east = east, west = west,
                           alpha = alpha,
                           rotation = rotation } :: !overlays
         end
@@ -139,16 +139,16 @@ struct
       | process (Elem(t, tl)) = app process tl
 
       val xs = map (fn f =>
-                    let val x = XML.parsefile f 
-                        handle XML.XML s => 
+                    let val x = XML.parsefile f
+                        handle XML.XML s =>
                             raise PacTom ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
                     in
                         process x;
                         x
                     end) fs
     in
-        { xmls = xs, 
-          overlays = Vector.fromList (rev (!overlays)), 
+        { xmls = xs,
+          overlays = Vector.fromList (rev (!overlays)),
           paths = Vector.map Vector.fromList (Vector.fromList (rev (!paths))) }
     end
 
@@ -240,8 +240,8 @@ struct
 
       fun onefile f =
         let
-          val x = XML.parsefile f 
-              handle XML.XML s => 
+          val x = XML.parsefile f
+              handle XML.XML s =>
                   raise PacTom ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
 
           fun isway (Elem(("nd", _), _) :: l) = true
@@ -249,7 +249,7 @@ struct
             | isway nil = false
 
           fun getattr attrs k = ListUtil.Alist.find op= attrs k
-              
+
           fun gettag k nil = NONE
             | gettag k (Elem(("tag", attrs), _) :: l) =
               (case getattr attrs "k" of
@@ -270,9 +270,9 @@ struct
                        (case (Int.fromString id, Real.fromString lat, Real.fromString lon) of
                             (SOME id, SOME lat, SOME lon) =>
                                 (case IntMap.find(!points, id) of
-                                     NONE => 
+                                     NONE =>
                                          (++num_points;
-                                          points := IntMap.insert(!points, id, 
+                                          points := IntMap.insert(!points, id,
                                                                   LatLon.fromdegs { lat = lat,
                                                                                     lon = lon }))
                                    | SOME _ => ++overlap_points)
@@ -282,7 +282,7 @@ struct
                    if isway body
                    then (case gettag "highway" body of
                              NONE => ++not_highway
-                           | SOME tys => 
+                           | SOME tys =>
                                  let
                                      val pts = ref nil
                                      fun proc (Elem(("nd", [("ref", s)]), _)) =
@@ -324,7 +324,7 @@ struct
     end
 
   fun loadosm f = loadosms [f]
-      
+
   fun fromkmlfile f = fromkmlfiles [f]
 
   fun neighborhoodsfromkml f =
@@ -335,10 +335,10 @@ struct
         fun eachplacemark (Elem(("Placemark", nil), tl)) =
             let
                 val name = ref NONE
-                fun findname (Elem(("name", nil), [Text n])) = 
+                fun findname (Elem(("name", nil), [Text n])) =
                     (case !name of
                          NONE => name := SOME n
-                       | SOME nn => 
+                       | SOME nn =>
                              raise PacTom ("multiple names for placemark: " ^
                                            nn ^ " and " ^ n))
                   | findname (Elem(("name", _), _)) =
@@ -347,9 +347,9 @@ struct
                   | findname (Text _) = ()
 
                 fun findcoords (Elem(("coordinates", nil), [Text coordtext])) =
-                    let 
+                    let
                         val coords = String.tokens (Util.is #" ") coordtext
-                        val coords = 
+                        val coords =
                             map (fn t =>
                                  case map Real.fromString (String.fields (Util.is #",") t) of
                                      [SOME lon, SOME lat, SOME _] => LatLon.fromdegs {lon = lon, lat = lat}
@@ -359,7 +359,7 @@ struct
                             NONE => raise PacTom "no name preceding coordinates!"
                           | SOME name => polys := (name, coords) :: !polys
                     end
-                  | findcoords (Elem(("coordinates", _), _)) = 
+                  | findcoords (Elem(("coordinates", _), _)) =
                     raise PacTom "coordinates with subtags or attrs?"
                   | findcoords (Text _) = ()
                   | findcoords (Elem(_, tl)) = app findcoords tl
@@ -373,8 +373,8 @@ struct
           | eachplacemark (Text _) = ()
           | eachplacemark (Elem(_, tl)) = app eachplacemark tl
 
-        val x = XML.parsefile f 
-            handle XML.XML s => 
+        val x = XML.parsefile f
+            handle XML.XML s =>
                 raise PacTom ("Couldn't parse " ^ f ^ "'s xml: " ^ s)
         val () = eachplacemark x
 
@@ -384,9 +384,9 @@ struct
         (* XXX snap distance needs to be tuned. *)
         val polys = SnapLatLon.snap 5.0 (!polys)
     in
-        TextIO.output (TextIO.stdErr, 
-                       " ... Done in " ^ 
-                       LargeInt.toString (Time.toSeconds (Time.-(Time.now(), start))) ^ 
+        TextIO.output (TextIO.stdErr,
+                       " ... Done in " ^
+                       LargeInt.toString (Time.toSeconds (Time.-(Time.now(), start))) ^
                        " sec\n");
         Vector.fromList (ListUtil.mapsecond Vector.fromList polys)
     end
@@ -396,13 +396,13 @@ struct
         bounds : Bounds.bounds } =
       let
           val bounds = Bounds.nobounds ()
-          val hoods = 
+          val hoods =
               Vector.map (fn (name, poly) => (name, Vector.map projection poly)) hoods
 
 (*
       val f = TextIO.openOut "neighborhoods-locator-test.svg"
           (* XXX needs massive scaling! Also, conversion to x/y. *)
-      val () = PointLocation.tosvg (PointLocation.locator scaled) 
+      val () = PointLocation.tosvg (PointLocation.locator scaled)
                                    (fn s => TextIO.output (f, s))
       val () = TextIO.closeOut f
 *)
@@ -413,32 +413,32 @@ struct
     end
 
   (* always alpha 1.0 *)
-  fun randomanycolor () = 
+  fun randomanycolor () =
       StringUtil.padex #"0" ~6 (Word32.toString (rand()))
 
   (* Same value and saturation, different hue. *)
   fun randombrightcolor () =
-      Color.tohexstring (Color.hsvtorgb 
-                         (Word8.fromInt 
+      Color.tohexstring (Color.hsvtorgb
+                         (Word8.fromInt
                           (Word32.toInt (Word32.andb(Word32.>>(rand (), 0w7), 0wxFF))),
                           0wxFF,
                           0wxFF))
 
   fun randompalecolor () =
-      Color.tohexstring (Color.hsvtorgb 
-                         (Word8.fromInt 
+      Color.tohexstring (Color.hsvtorgb
+                         (Word8.fromInt
                           (Word32.toInt (Word32.andb(Word32.>>(rand (), 0w7), 0wxFF))),
                           0wx33,
                           0wxAA))
 
   (* No exponential notation *)
-  fun ertos r = if (r > ~0.000001 andalso r < 0.000001) 
-                then "0.0" 
+  fun ertos r = if (r > ~0.000001 andalso r < 0.000001)
+                then "0.0"
                     (* XXX using 8 for kml, was 4 for svg *)
                 else (Real.fmt (StringCvt.FIX (SOME 8)) r)
 
   (* Don't use SML's dumb ~ *)
-  fun rtos r = if r < 0.0 
+  fun rtos r = if r < 0.0
                then "-" ^ ertos (0.0 - r)
                else ertos r
 
@@ -447,7 +447,7 @@ struct
       let
           val paths = paths pt
           val b = Bounds.nobounds ()
-              
+
           val paths = Vector.map (Vector.map (fn (p, z) =>
                                               let val (x, y) = proj p
                                               in boundpoint b (x, y);
@@ -456,6 +456,78 @@ struct
       in
           { paths = paths, bounds = b }
       end
+
+  fun simplify_paths (max_error : real) ({ xmls, overlays, paths } : pactom) =
+    let
+      (* Return the area of the triangle (in square meters) denoted
+         given by the three latlon positions. Assumes flat earth, so
+         result is approximate! *)
+      fun triangle_area (a, b, c) =
+        let
+            (* Heron's formula. *)
+            val ab = LatLon.dist_meters (a, b)
+            val bc = LatLon.dist_meters (b, c)
+            val ca = LatLon.dist_meters (c, a)
+            val s = (ab + bc + ca) * 0.5
+
+            val ab2 = ab * ab
+            val bc2 = bc * bc
+            val ca2 = ca * ca
+
+            val term1 = ab2 + bc2 + ca2
+            val term12 = term1 * term1
+        in
+            0.25 * Math.sqrt (term12 - 2.0 * (ab2 * ab2 +
+                                              bc2 * bc2 +
+                                              ca2 * ca2))
+        end
+
+      (* Loops over consecutive points in the path. a and b are the
+         previous two points seen; error is the accumulated error in
+         case we just elided a point. Returns the simplified list. *)
+      fun oneloop error a b nil = [a, b]
+        | oneloop error a b (c :: rest) =
+          let
+              val area = triangle_area (#1 a, #1 b, #1 c)
+              val new_error = error + area
+          in
+              (* XXX this can chop off points from a perfectly straight trip up a
+                 dead end with a turn-around, because that turn-around
+                 has zero area. Should be some kind of max angle or
+                 extremity check for B too. *)
+
+              (* Keep the point b if this causes too much error.
+                 If we discard it, then we try again from the
+                 same position, but retain the error to make sure
+                 we can't drop arbitrarily many consecutive points. *)
+              if new_error <= max_error
+              then oneloop new_error a c rest
+              else a :: oneloop 0.0 b c rest
+          end
+
+      fun onepath p =
+          case Vector.foldr op:: nil p of
+              a :: b :: rest => Vector.fromList (oneloop 0.0 a b rest)
+            | _ => p
+
+      val total = ref 0
+      val discarded = ref 0
+      fun onepath_account p =
+          let val pp = onepath p
+          in
+              total := !total + Vector.length p;
+              discarded := !discarded + (Vector.length p - Vector.length pp);
+              pp
+          end
+
+      val paths = Vector.map onepath_account paths
+    in
+      msg ("Discarded " ^ Int.toString (!discarded) ^
+           " of " ^ Int.toString (!total) ^
+           " points");
+      { xmls = xmls, overlays = overlays,
+        paths = paths }
+    end
 
   type waypoint = { path : int, pt : int }
 
@@ -481,8 +553,8 @@ struct
           val all_a = Array.fromList (!all)
       in
           MersenneTwister.shuffle seed all_a;
-          Array.foldl (fn ((way, pos), t) => LatLonTree.insert t way pos) 
-                      LatLonTree.empty 
+          Array.foldl (fn ((way, pos), t) => LatLonTree.insert t way pos)
+                      LatLonTree.empty
                       all_a
       end
 
@@ -520,7 +592,7 @@ struct
                   LatLon.dist_meters (pos1, pos2)
               end
 
-          fun addnewedge (w1, w2) = 
+          fun addnewedge (w1, w2) =
               if w1 = w2
               then false
               else
@@ -529,7 +601,7 @@ struct
                     val n2 = waynode w2
                 in
                     case G.hasedge n1 n2 of
-                        NONE => 
+                        NONE =>
                             let
                                 val d = waypoint_distance (w1, w2)
                             in
@@ -560,14 +632,14 @@ struct
                    else
                        msg ("Consecutive waypoint distance exceeds maximum: " ^
                             wtos w1 ^ " -> " ^ wtos w2 ^ ": " ^
-                            Real.fmt (StringCvt.FIX (SOME 3)) 
+                            Real.fmt (StringCvt.FIX (SOME 3))
                             (waypoint_distance (w1, w2)))
                end)
           val () = Vector.appi addpath paths
 
           (* Now, add adjacencies. *)
           val t = latlontree pactom
-              
+
           (* XXX this should actually work by looking at line segments and
              intersecting them. What we do here "cuts corners", literally. *)
           val nlinked = ref 0
@@ -592,7 +664,7 @@ struct
                      But this count won't do it... *)
                   nlinked := !nlinked + !theselinked
               end
-              
+
           val () = Vector.appi addclosepath paths
           val () = msg ("Added " ^ Int.toString (!nlinked) ^ " merged edges")
       in
@@ -601,7 +673,7 @@ struct
 
 (*
   fun simplified_graph (pactom : pactom) =
-*)      
+*)
 
   fun spanning_graph (pactom : pactom) (rootnear : LatLon.pos) :
       { graph : waypoint G.span G.graph,
@@ -611,14 +683,14 @@ struct
              compute the shortest path graph using the node (which is
              associated with this graph) closest to home. *)
           val { graph = _, latlontree, promote = ur_p } = graph pactom
-          val (way_root, root_dist) = 
+          val (way_root, root_dist) =
               case LatLonTree.closestpoint latlontree rootnear of
                   NONE => raise PacTom "There are no points! Can't continue."
                 | SOME p => p
-          val () = msg ("The closest point to the root is " ^ 
+          val () = msg ("The closest point to the root is " ^
                         Real.fmt (StringCvt.FIX (SOME 3)) root_dist ^ "m away")
           val root_node = ur_p way_root
-          val { graph = shortest_g, promote = shortest_p } = G.shortestpaths root_node 
+          val { graph = shortest_g, promote = shortest_p } = G.shortestpaths root_node
           (* XXX with this graph, could make a histogram of road-distance from home *)
           val { graph = span_g, promote = span_p } = G.spanningtree shortest_g
       in
