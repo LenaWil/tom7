@@ -1,13 +1,30 @@
 let
   import "tinyworld.aah"
+  import "list.aah"
+  import "string.aah"
+
+  val PERPAGE = 18
 
   val url = limit(?/, cgiurl ())
   val name = tr("a-z0-9", "/cd/", head url)
 
-  fun padto16 s =
-      if size s >= 16
-      then s
-      else padto16 [[s] ]
+  fun padto n s =
+      let fun f s =
+          if size s >= n
+          then s
+          else f [[s] ]
+      in
+          f s
+      end
+
+  val padto16 = padto 16
+
+  (* Puts a . on it, then pads to 17 chars *)
+  fun padlev s = padto 17 [[s].]
+
+  fun rep 0 s = []
+    | rep n s = [[s][rep (n - 1) s]]
+
 in
   contenttype [text/xml];
 
@@ -15,6 +32,49 @@ in
   then die [illegal name]
   else ();
 
+  if match (re "all[0-9]+", name)
+  then 
+     let
+         val n = stoi (substr (name, 3, size name - 3))
+         val ns = itos n
+
+         val levs = 
+             select (name, modifydate, modifyip)
+             from tinyworld : level
+             order by modifydate desc
+             limit {n * PERPAGE}, {PERPAGE}
+         val nlevs = list-length levs
+
+         val up =
+             if n = 0
+             then [#  T                                   #]
+             else [#  T  ? ?@[padlev [all[(itos (n - 1))]]]        up! #]
+
+         fun onelev (s, d, i) =
+             [#     ? ?@[padlev s]            #]
+
+         val down =
+             if list-length levs < PERPAGE
+             then [#                                      #]
+             else [#     ? ?@[padlev [all[(itos (n + 1))]]]        dn! #]
+
+         val lstr = string-concat (list-map onelev levs)
+         val nstr = rep (PERPAGE - nlevs) [#       NOTHING TO SEE HERE            #]
+     in
+print    
+[########################################\
+ # RECENT LEVELS, PAGE [padto16 ns    ] #\
+ #                    .? (?(T=?( .      #\
+ ########################################\
+ [up]\
+ [lstr]\
+ [nstr]\
+ [down]\
+ ########################################\
+ Y] (* locked *)
+
+     end
+  else
   case select (contents, locked)
        from tinyworld : level
        where name = {name} limit {1} of
