@@ -51,8 +51,12 @@ sig
   val lex_list_order : ('a * 'b -> order) -> ('a list * 'b list -> order)
 
   (* Generalization of 'a orderer -> 'a Vector.vector orderer *)
-  val lex_vector_order : ('a * 'b -> order) -> 
+  val lex_vector_order : ('a * 'b -> order) ->
                          ('a Vector.vector * 'b Vector.vector) -> order
+
+  (* Generalization of 'a orderer -> 'a Array.array orderer *)
+  val lex_array_order : ('a * 'b -> order) ->
+                         ('a Array.array * 'b Array.array) -> order
 
   (* For example, on a record { b : bool, l : int list },
      lexicographic [order_field #b bool_compare,
