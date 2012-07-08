@@ -86,6 +86,21 @@ struct
               end
         | neq => neq
 
+  fun lex_array_order oi (v, vv) =
+      case Int.compare (Array.length v, Array.length vv) of
+          EQUAL =>
+              let
+                  fun go n = if n >= Array.length v
+                             then EQUAL
+                             else case oi (Array.sub(v, n),
+                                           Array.sub(vv, n)) of
+                                     EQUAL => go (n + 1)
+                                   | neq => neq
+              in
+                  go 0
+              end
+        | neq => neq
+
   fun lexicographic nil _ = EQUAL
     | lexicographic (f :: rest) (a, b) =
       case f (a, b) of
@@ -157,7 +172,7 @@ struct
   fun is a b = a = b
 
   fun protect f (cleanup : unit -> unit) a =
-    let 
+    let
       val ret = f a
         handle e => (cleanup (); raise e)
     in

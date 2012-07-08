@@ -1,3 +1,7 @@
+(* TODO improvements:
+   - don't directly enumerate games that can
+     be separated into non-interacting components.
+*)
 
 structure PH =
 struct
@@ -50,7 +54,7 @@ struct
         drinks = Array.fromList (map (fn _ => 0) m),
         round = ref 0 }
 
-  exception Bug of string
+  exception Unspecified of int * cup
   exception Illegal of string
   fun step (S { cups, players, drinks, round }) =
       let
@@ -65,7 +69,7 @@ struct
                                     Up => up
                                   | Down => down
                                   | Filled => filled) of
-                              NONE => raise Bug "!!"
+                              NONE => raise Unspecified (i, now)
                             | SOME a => a
                   in
                       (if drink
@@ -75,8 +79,8 @@ struct
                       (case Array.sub (newcups, dest) of
                           NONE => Array.update (newcups, dest, SOME next)
                         | SOME _ =>
-                              raise (Illegal ("2+ cups at pos " ^
-                                              Int.toString dest)))
+                              raise (Illegal ("2+ cups"
+                                              (* ^ " at pos " ^ Int.toString dest *))))
                            handle Subscript => raise Illegal ("out of bounds")
                   end
 
@@ -116,6 +120,163 @@ struct
                      filled = NONE }]
 
    fun combine l k = List.concat (map k l)
+
+   (* Returns a list of all the possible games with that
+      many players *)
+   fun allgames radix =
+       let
+           val cups = [Up, Down, Filled]
+           val startplayers =
+               combine (NONE :: map SOME cups)
+               (fn start =>
+                [P { start = start, up = NONE, down = NONE, filled = NONE }])
+
+           val startgames =
+               let
+                   fun gg 0 = [nil]
+                     | gg n =
+                       let val rest = gg (n - 1)
+                       in
+                           combine startplayers
+                           (fn p =>
+                            map (fn l => p :: l) rest)
+                       end
+               in
+                   gg radix
+               end
+       in
+           startgames
+       end
+
+  fun result_cmp (Finished _, Error _) = LESS
+    | result_cmp (Error _, Finished _) = GREATER
+    | result_cmp (Finished { drinks, waste },
+                  Finished { drinks = dd, waste = ww }) =
+      (case Int.compare (waste, ww) of
+           EQUAL => Util.lex_array_order Int.compare (drinks, dd)
+         | ord => ord)
+    | result_cmp (Error { rounds, msg },
+                  Error { rounds = rr, msg = mm }) =
+      (case Int.compare (rounds, rr) of
+           EQUAL => String.compare (msg, mm)
+         | ord => ord)
+
+  structure RM = SplayMapFn(type ord_key = result
+                            val compare = result_cmp)
+
+  fun execexpand games =
+    let
+        (* These are used for expanding underspecified players. *)
+        local
+            val radix = (case games of
+                             h :: _ => length h
+                           | nil => 0)
+            val cups = [Up, Down, Filled]
+            val indices = List.tabulate (radix, fn i => i)
+            val placements =
+                combine indices (fn i =>
+                                 combine cups (fn c =>
+                                               [(i, c)]))
+        in
+            val upplans =
+                combine [true, false]
+                (fn d =>
+                 combine placements
+                 (fn p => [SOME { drink = d, place = p }]))
+            val downplans = upplans
+            val filledplans =
+                combine placements
+                (fn p => [SOME { drink = true, place = p}]) @
+                combine indices
+                (fn i =>
+                 [SOME { drink = false, place = (i, Filled) }])
+        end
+
+        (* These are games that need to be explored. *)
+        val queue = ref games
+
+        val done = ref (RM.empty : machine list RM.map)
+        val did = ref (0 : IntInf.int)
+        fun add_result m r =
+           case RM.find (!done, r) of
+              NONE => (done := RM.insert (!done, r, nil); add_result m r)
+            | SOME l => (did := !did + 1;
+                         if !did mod 100000 = 0
+                         then TextIO.output (TextIO.stdErr, "Did " ^ IntInf.toString (!did) ^
+                                             " currently " ^ Int.toString (length (!queue)) ^
+                                             "\n")
+                         else ();
+                         (* XXX only keeping the newest... *)
+                         done := RM.insert (!done, r, [m] (* :: l *)))
+
+        exception Bug
+        fun process () =
+          case !queue of
+              nil => !done
+            | m :: t =>
+            let
+                (*
+                val () = print (Int.toString (length (!queue)) ^
+                                " left in queue\n")
+                *)
+                val () = queue := t
+                fun simulate (s as S { round = ref 60, drinks, cups, ... }) =
+                  let
+                      (* Glasses filled at the end are waste. *)
+                      val waste = Array.foldl (fn (SOME Filled, b) => 1 + b
+                                                | (_, b) => b) 0 (!cups)
+                  in
+                     add_result m (Finished { drinks = drinks, waste = waste })
+                  end
+                  | simulate (s as S { round = ref round, ... }) =
+                     let in
+                         (* print (Int.toString round ^ "\n"); *)
+                         step s;
+                         simulate s
+                     end
+                       handle Illegal str =>
+                         add_result m (Error { rounds = round, msg = str })
+                      | Unspecified (i, c) =>
+                         (* If we hit an unspecified thing,
+                            expand it with all the things
+                            that could be there. *)
+                         queue :=
+                         combine (case c of
+                                      Up => upplans
+                                    | Down => downplans
+                                    | Filled => filledplans)
+                         (fn plan =>
+                          [ListUtil.mapi
+                           (fn (player as P { start,
+                                              up, down,
+                                              filled }, idx) =>
+                            let
+                                fun replaceif cup field =
+                                    if cup = c
+                                    then if Option.isSome field
+                                         then raise Bug
+                                         else plan
+                                    else field
+                            in
+                                if idx = i
+                                then P {start = start,
+                                        up = replaceif Up up,
+                                        down = replaceif Down down,
+                                        filled = replaceif Filled filled }
+                                else player
+                            end)
+                           m
+                           ]) @ !queue
+            in
+               simulate (makesim m);
+               process()
+            end
+
+    in
+        process()
+    end
+
+(*
 
    (* Returns a list of all the possible games with that
       many players *)
@@ -164,19 +325,7 @@ struct
        in
            res
        end
-
-   fun result_cmp (Finished _, Error _) = LESS
-     | result_cmp (Error _, Finished _) = GREATER
-     | result_cmp (Finished { drinks, waste },
-                   Finished { drinks = dd, waste = ww }) =
-       (case Int.compare (waste, ww) of
-            EQUAL => Util.lex_array_order Int.compare (drinks, dd)
-          | ord => ord)
-     | result_cmp (Error { rounds, msg },
-                   Error { rounds = rr, msg = mm }) =
-       (case Int.compare (rounds, rr) of
-            EQUAL => String.compare (msg, mm)
-          | ord => ord)
+*)
 
    fun collate l =
        let
@@ -230,6 +379,11 @@ struct
            app showone l
        end
 
-   val () = show (collate (allgames 2))
+ (*   val () = show (collate (allgames 2)) *)
+
+   val g = allgames 3
+   val () = print ("There are " ^ Int.toString (length g) ^
+                   " games before splitting.\n")
+   val () = show (RM.listItemsi (execexpand g))
 
 end
