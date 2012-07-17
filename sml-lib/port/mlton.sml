@@ -13,4 +13,8 @@ struct
   val defaultTopLevelHandler = MLton.Exn.defaultTopLevelHandler
   val setTopLevelHandler = MLton.Exn.setTopLevelHandler
 
+  val shareAll = MLton.shareAll
+
+  val memorySize = MLton.size
+
 end

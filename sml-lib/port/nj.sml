@@ -18,4 +18,9 @@ struct
   (* XXX any hope here? *)
   fun setTopLevelHandler _ = ()
 
+  fun shareAll () = ()
+
+  (* ! *)
+  fun memorySize () = 100
+
 end
