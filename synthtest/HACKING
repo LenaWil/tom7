@@ -1,0 +1,13 @@
+
+You need Visual Studio 2010, SDL and SDL_image to build this.
+Visual studio can be installed anywhere. Then you need to run
+
+vcvarsall amd64
+
+to configure the compiler for 64 bits.
+
+SDL and SDL_image go in subdirectories of this one. You just need the
+include/ and lib/ files from the "devel" editions (for "VC",
+definitely not mingw). Then put the x64 windows libraries (DLLs) in
+this current directory (these are currently checked in).
+
