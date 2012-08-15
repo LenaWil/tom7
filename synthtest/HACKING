@@ -4,7 +4,7 @@ Visual studio can be installed anywhere. Then you need to run
 
 vcvarsall amd64
 
-to configure the compiler for 64 bits.
+to configure the compiler for 64 bits. Mine is in d:\visualstudio\vc\.
 
 SDL and SDL_image go in subdirectories of this one. You just need the
 include/ and lib/ files from the "devel" editions (for "VC",

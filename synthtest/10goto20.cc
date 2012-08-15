@@ -26,6 +26,21 @@ stream[i] = hi ? 6000 : -6000;
 
 }
 
+int waste(void *unused) {
+  int x = 0;
+  for(;;) {
+    x *= 0xBEEF;
+    x ^= 0xDEAD;
+    if (x & 1) {
+      x <<= 1;
+    } else {
+      x >>= 1;
+    }
+  }
+  
+  return -1;
+}
+
 int main (int argc, char **argv) {
 
   if (SDL_Init (SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
@@ -51,6 +66,13 @@ int main (int argc, char **argv) {
   fprintf(stderr, "hey. %d %d\n", obtained.freq, obtained.samples);
 
   SDL_PauseAudio(0);
+
+  SDL_Thread *t1 = SDL_CreateThread(waste, 0);
+  SDL_Thread *t2 = SDL_CreateThread(waste, 0);
+  SDL_Thread *t3 = SDL_CreateThread(waste, 0);
+  SDL_Thread *t4 = SDL_CreateThread(waste, 0);
+  SDL_Thread *t5 = SDL_CreateThread(waste, 0);
+  SDL_Thread *t6 = SDL_CreateThread(waste, 0);
 
   while(1) {
     SDL_Delay(0);
