@@ -1,5 +1,5 @@
 
-default : sdltest.exe
+default : 10goto20.exe
 
 DEBUGFLAGS = /Od /GZ /MDd /FD /D "_DEBUG"
 FASTFLAGS = /MD /Ox /Oi /Oy /Ob2 /GL
@@ -24,7 +24,9 @@ BASICLIBS=shell32.lib
 # libcpmt.lib msvcrt.lib msvcprt.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib
 #  /nodefaultlib
 
-LINK=link /LTCG oldnames.lib "SDL\lib\${SDLARCH}\SDLmain.lib" "SDL\lib\${SDLARCH}\SDL.lib" "SDL_image\lib\${SDLARCH}\SDL_image.lib" ${BASICLIBS} /nologo /subsystem:windows /debug /machine:X64 /libpath:"SDL\lib\${SDLARCH}" /libpath:"SDL_image\lib\${SDLARCH}"
+GLLIBS=opengl32.lib glu32.lib
+
+LINK=link /LTCG oldnames.lib "SDL\lib\${SDLARCH}\SDLmain.lib" "SDL\lib\${SDLARCH}\SDL.lib" "SDL_image\lib\${SDLARCH}\SDL_image.lib" ${BASICLIBS} ${GLLIBS} /nologo /subsystem:windows /debug /machine:X64 /libpath:"SDL\lib\${SDLARCH}" /libpath:"SDL_image\lib\${SDLARCH}"
 
 %.obj : ../cc-lib/%.cc
 	${COMPILE} $<
@@ -35,7 +37,11 @@ LINK=link /LTCG oldnames.lib "SDL\lib\${SDLARCH}\SDLmain.lib" "SDL\lib\${SDLARCH
 %.obj : %.cc
 	${COMPILE} $<
 
-sdltest.exe : sdltest.obj sdlutil.obj util.obj
+10goto20.exe : 10goto20.obj sdlutil.obj util.obj
+	${LINK} /out:$@ $^
+	rm -f *.manifest *.pdb
+
+example.exe : example.obj sdlutil.obj util.obj
 	${LINK} /out:$@ $^
 	rm -f *.manifest *.pdb
 
