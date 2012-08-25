@@ -38,6 +38,8 @@ class You extends PhysicsObject {
   var FPS = 25;
 
 
+  var dialog : Dialog = null;
+
   var frames;
 
   // XXX shouldn't be squares, but...
@@ -49,6 +51,9 @@ class You extends PhysicsObject {
     // initialize frame data, by loading the bitmaps and
     // doing the flippin.
     frames = {};
+
+    dialog = new Dialog();
+    dialog.init();
 
     // Everything scaled 2x.
     var grow = new Matrix();
@@ -87,6 +92,8 @@ class You extends PhysicsObject {
     x = STARTX;
     y = STARTY;
 
+    // XXX
+    dialog.setMessage('I\'m just testing\n');
   }
 
   // Keep track of what dudes I touched, since
@@ -143,23 +150,11 @@ class You extends PhysicsObject {
 
     touchset = [];
 
-    // XXXXXXXXXXXXX
+    // XXX should check if this is pausing us from
+    // making progress?
+    dialog.doFrame();
+
     movePhysics();
-
-    /*
-    if (wishjump()) {
-      this.y -= 10;
-    } else if (wishdive()) {
-      this.y += 10;
-    }
-
-    if (wishleft()) {
-      this.x -= 10;
-    } else if (wishright()) {
-      this.x += 10;
-    }
-    */
-
 
     // Now, if we touched someone, give it some
     // love.
