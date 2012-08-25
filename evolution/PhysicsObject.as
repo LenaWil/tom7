@@ -1,6 +1,15 @@
 // Rectangular "physics" object. Anything that
 // can move uses this.
+//
+// Note, this is not the same as the ones in other copies
+// of this library. I stopped using _x and _y directly, instead
+// updating the .x and .y properties.
+
 class PhysicsObject extends Depthable {
+  // Position in world pixels.
+  var x = 0;
+  var y = 0;
+
   // Velocity x/y
   var dx = 0;
   var dy = 0;
@@ -28,7 +37,7 @@ class PhysicsObject extends Depthable {
   // by the subclass, though things like gravity
   // probably should be true constants.
   public function defaultconstants() {
-    return { 
+    return {
       accel: 3.6,
       accel_air: 0.2,
       decel_ground: 0.95,
@@ -79,10 +88,10 @@ class PhysicsObject extends Depthable {
   public function move1DClip(pos, dpos, f) {
     var newpos = pos + dpos;
 
-    // XXX probably should check invariant since it can probably 
+    // XXX probably should check invariant since it can probably
     // be violated in rare cases (fp issues).
     if (f.apply(this, [newpos])) {
-      
+
       // invariant: pos is good, newpos is bad
       // XXX EPSILON?
       while (Math.abs(newpos - pos) > .01) {
@@ -125,40 +134,40 @@ class PhysicsObject extends Depthable {
   }
 
   public function getOutVert(safey) {
-    if (safey > this._y) {
+    if (safey > this.y) {
       // get out of ceiling
-      this._y = getOut1D(this._y, safey, blockedup);
+      this.y = getOut1D(this.y, safey, blockedup);
     } else {
       // get out of floor
-      this._y = getOut1D(this._y, safey, blockeddown);
+      this.y = getOut1D(this.y, safey, blockeddown);
     }
   }
 
   public function getOutHoriz(safex) {
-    if (safex > this._x) {
+    if (safex > this.x) {
       // get out of left wall
-      this._x = getOut1D(this._x, safex, blockedleft);
+      this.x = getOut1D(this.x, safex, blockedleft);
     } else {
       // get out of right wall
-      this._x = getOut1D(this._x, safex, blockedright);
+      this.x = getOut1D(this.x, safex, blockedright);
     }
   }
 
   /* Resolves physics:
-     - Use DX and DY to modify the position, subject to 
+     - Use DX and DY to modify the position, subject to
      ...
    */
   public function movePhysics() {
     // By invariant, when we enter the frame, we're not inside
     // any blocks. First, resolve y:
 
-    var oy = move1DClip(this._y, dy, (dy < 0) ? blockedup : blockeddown);
-    this._y = oy.pos;
+    var oy = move1DClip(this.y, dy, (dy < 0) ? blockedup : blockeddown);
+    this.y = oy.pos;
     dy = oy.dpos;
 
     // Now x:
-    var ox = move1DClip(this._x, dx, (dx < 0) ? blockedleft : blockedright);
-    this._x = ox.pos;
+    var ox = move1DClip(this.x, dx, (dx < 0) ? blockedleft : blockedright);
+    this.x = ox.pos;
     dx = ox.dpos;
 
     // Check physics areas to get the physics constants, which we use
@@ -218,45 +227,39 @@ class PhysicsObject extends Depthable {
 
   }
 
-  /*   XXX needs clip region
-  public function centerin(mc) {
-    var cx = this._x + this.width * .5;
-    var cy = this._y + this.height * .5;
-    return cx >= mc.x1() && cx <= mc.x2() &&
-      cy >= mc.y1() && cy <= mc.y2();
-  }
-  */
-
   // Is the point x, y in any block?
-  public function pointblocked(x, y) {
+  public function pointblocked(xx, yy) {
     // These count as 'touching'.
+
+    /*
     if (!ignoresquares()) {
       for (var o in _root.squares) {
         var b = _root.squares[o];
-        /* no self-collisions! */
+        // no self-collisions!
         if (b != this) {
-          if (x >= b.x1() && x <= b.x2() &&
-              y >= b.y1() && y <= b.y2()) {
+          if (xx >= b.x1() && xx <= b.x2() &&
+              yy >= b.y1() && yy <= b.y2()) {
             this.touch(b);
             return true;
           }
         }
       }
     }
+    */
 
     // Can of course also be blocked by the map.
     // These don't count as 'touching'.
-    return _root.world.solidTileAt(x, y);
+    return _root.world.solidAt(xx, yy);
   }
 
-  public function widthblocked(x, y, w) {
-    return pointblocked(x, y) || pointblocked(x + w, y) ||
-      pointblocked(x + (w / 2), y);
+  public function widthblocked(xx, yy, w) {
+    return pointblocked(xx, yy) || pointblocked(xx + w, yy) ||
+      pointblocked(xx + (w / 2), yy);
   }
 
-  public function heightblocked(x, y, h) {
-    return pointblocked(x, y) || pointblocked(x, y + h) ||
-      pointblocked(x, y + (h / 2));
+  public function heightblocked(xx, yy, h) {
+    return pointblocked(xx, yy) || pointblocked(xx, yy + h) ||
+      pointblocked(xx, yy + (h / 2));
   }
 
   var GROUND_SLOP = 2.0; // ???
@@ -268,30 +271,30 @@ class PhysicsObject extends Depthable {
 
   /*
   public function leftfootonground() {
-    return pointblocked(this._x + this.width * .1, 
+    return pointblocked(this._x + this.width * .1,
                         this._y + this.height + GROUND_SLOP);
   }
 
   public function rightfootonground() {
-    return pointblocked(this._x + this.width * .8, 
+    return pointblocked(this._x + this.width * .8,
                         this._y + this.height + GROUND_SLOP);
   }
   */
-  
+
   public function x1() {
-    return this._x + this.left;
+    return this.x + this.left;
   }
 
   public function x2() {
-    return this._x + this.width - this.right;
+    return this.x + this.width - this.right;
   }
 
   public function y1() {
-    return this._y + this.top;
+    return this.y + this.top;
   }
 
   public function y2() {
-    return this._y + this.height - this.bottom;
+    return this.y + this.height - this.bottom;
   }
 
   public function clipheight() {
@@ -325,5 +328,5 @@ class PhysicsObject extends Depthable {
     collision_down = collision_down || yes;
     return yes;
   }
-  
+
 }

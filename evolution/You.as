@@ -144,7 +144,9 @@ class You extends PhysicsObject {
     touchset = [];
 
     // XXXXXXXXXXXXX
-    // movePhysics();
+    movePhysics();
+
+    /*
     if (wishjump()) {
       this.y -= 10;
     } else if (wishdive()) {
@@ -156,6 +158,7 @@ class You extends PhysicsObject {
     } else if (wishright()) {
       this.x += 10;
     }
+    */
 
 
     // Now, if we touched someone, give it some

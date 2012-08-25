@@ -11,6 +11,8 @@ class World {
   var currentmusic = null;
   var backgroundmusic = null;
 
+  var mask : BitmapData = null;
+
   var tlbg : MovieClip = null;
   var trbg : MovieClip = null;
   var blbg : MovieClip = null;
@@ -19,6 +21,9 @@ class World {
   var mapwidth = 0;
   var tilemap = {};
   public function init() {
+
+    mask = BitmapData.loadBitmap("mask.png");
+
     tlbg = _root.createEmptyMovieClip("tlbg", WORLDDEPTH + 1);
     trbg = _root.createEmptyMovieClip("trbg", WORLDDEPTH + 2);
     blbg = _root.createEmptyMovieClip("blbg", WORLDDEPTH + 3);
@@ -42,6 +47,25 @@ class World {
     mc.attachBitmap(bm2x,
                     // depth: always the same
                     10);
+  }
+
+  // Takes world pixel coordinates.
+  public function solidAt(x, y) {
+    var tilex = int(x / TILEWIDTH);
+    var tiley = int(y / TILEHEIGHT);
+
+    // Pretend the whole world is surrounded by solids.
+    if (tilex < 0 || tiley < 0 ||
+        tilex >= WORLDTILESW ||
+        tiley >= WORLDTILESH) return true;
+
+    var pix : Number = mask.getPixel32(tilex, tiley);
+    var aa = pix >> 24 & 0xFF;
+
+    // Treat as solid if more than 50% alpha.
+    // XXX Should allow for more kinds of information here, based
+    // on the color?
+    return aa > 0x70;
   }
 
   var scrollx : Number = 0;
