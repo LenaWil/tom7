@@ -7,12 +7,15 @@ class You extends PhysicsObject {
   #include "constants.js"
   #include "frames.js"
 
+  var x = STARTX;
+  var y = STARTY;
+
   var dx = 0;
   var dy = 0;
 
   // Size of graphic, in world pixels.
-  var width = 48;
-  var height = 64;
+  var width = YOUWIDTH;
+  var height = YOUHEIGHT;
 
   var holdingUp = false;
   var holdingLeft = false;
@@ -81,6 +84,9 @@ class You extends PhysicsObject {
     }
 
     trace('initialized you.');
+    x = STARTX;
+    y = STARTY;
+
   }
 
   // Keep track of what dudes I touched, since
@@ -137,7 +143,20 @@ class You extends PhysicsObject {
 
     touchset = [];
 
-    movePhysics();
+    // XXXXXXXXXXXXX
+    // movePhysics();
+    if (wishjump()) {
+      this.y -= 10;
+    } else if (wishdive()) {
+      this.y += 10;
+    }
+
+    if (wishleft()) {
+      this.x -= 10;
+    } else if (wishright()) {
+      this.x += 10;
+    }
+
 
     // Now, if we touched someone, give it some
     // love.
@@ -204,7 +223,7 @@ class You extends PhysicsObject {
       setframe(what_jump, facingright, framemod);
     }
 
-    // XXX someone needs to scroll the world here?
+    _root.world.scrollToShow(x, y);
 
   }
 
