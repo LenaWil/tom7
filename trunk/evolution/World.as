@@ -165,6 +165,12 @@ class World {
         }
 
         switch(o) {
+        case 'treestart':
+          //                        ------------------------------
+          _root.you.dialogInterlude('Hello little cell.\n' +
+                                    '\n' +
+                                    'Today is your 16th birthday.\n');
+          break;
         case 'lifeguard':
           //                        ------------------------------
           _root.you.dialogInterlude('It\'s some kind of hut. I\n' +
