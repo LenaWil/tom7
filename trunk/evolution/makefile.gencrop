@@ -1,7 +1,0 @@
-default : screens/makefile 
-
-gencrop.exe : gencrop.cc
-	gcc gencrop.cc -o gencrop.exe -O
-
-screens/makefile : gencrop.exe
-	./gencrop.exe > screens/makefile
