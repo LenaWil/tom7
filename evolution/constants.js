@@ -33,6 +33,16 @@ var YMARGIN = TILEHEIGHT;
 var XMARGINR = TILEWIDTH + YOUWIDTH;
 var YMARGINB = TILEHEIGHT + YOUHEIGHT;
 
+var DIALOGW = 265;
+var DIALOGH = 150;
+var DIALOGMARGINX = 16;
+var DIALOGMARGINY = 16;
+
+var FONTW = 9;
+var FONTH = 16;
+var FONTOVERLAP = 1;
+var FONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?";
+
 /////////
 // Depths
 
@@ -44,6 +54,8 @@ var BGIMAGEDEPTH = 290;
 var WORLDDEPTH = 300; // - 304
 
 var YOUDEPTH = 1000;
+
+var DIALOGDEPTH = 2000;
 
 ////////////
 // Landmarks
