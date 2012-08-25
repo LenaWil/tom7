@@ -39,6 +39,12 @@ class You extends PhysicsObject {
 
 
   var dialog : Dialog = null;
+  // When true, a dialog has been triggered and we should
+  // not accept keys or run physics.
+  var dialog_wait = false;
+  // When a dialog is up, scroll here.
+  var scrollprefx : Number = 0;
+  var scrollprefy : Number = 0;
 
   var frames;
 
@@ -92,8 +98,6 @@ class You extends PhysicsObject {
     x = STARTX;
     y = STARTY;
 
-    // XXX
-    dialog.setMessage('I\'m just testing\n');
   }
 
   // Keep track of what dudes I touched, since
@@ -150,82 +154,89 @@ class You extends PhysicsObject {
 
     touchset = [];
 
-    // XXX should check if this is pausing us from
-    // making progress?
-    dialog.doFrame();
+    if (dialog_wait) {
 
-    movePhysics();
+      if (holdingUp && dialog.done()) {
+        dialog_wait = false;
+        dialog.hide();
+        clearKeys();
 
-    // Now, if we touched someone, give it some
-    // love.
-    for (var o in touchset) {
-      var other = touchset[o];
-
-      // This is where I activate touchable things.
-
-      var diffx = other._x - this._x;
-      var diffy = other._y - this._y;
-
-      var normx = diffx / width;
-      var normy = diffy / height;
-
-      // Don't push from side to side when like
-      // standing on a dude but not centered.
-      if (Math.abs(normx) > Math.abs(normy)) {
-        other.dx += normx;
       } else {
-        other.dy += normy;
+        // XXX can pass whether we're holding down something
+        // here which makes it go faster. but be careful that
+        // it doesn't also count as dismissing the box.
+        dialog.doFrame();
       }
-    }
 
-    // Make sure we're not interfering with the message.
-    /*
-    if (this._y < 130) {
-      _root.message._y = (290 + _root.message._y) / 2;
+      _root.world.scrollTowards(scrollprefx, scrollprefy);
+
     } else {
-      _root.message._y = (14 + _root.message._y) / 2;
-    }
-    */
+      movePhysics();
 
-    // XXX
-    var what_stand = 'stopped', what_jump = 'moving';
+      // Now, if we touched someone, give it some
+      // love.
+      for (var o in touchset) {
+        var other = touchset[o];
 
-    if (Math.abs(dx) > 9)
-      what_stand = 'moving';
+        // This is where I activate touchable things.
 
-    // true means force animation, even if still
-    // XXX unused...
-    var what_animate = false;
+        var diffx = other._x - this._x;
+        var diffy = other._y - this._y;
 
-    var otg = ontheground();
-    if (otg) {
+        var normx = diffx / width;
+        var normy = diffy / height;
 
-      if (dx > 1) {
-        facingright = true;
-        setframe(what_stand, facingright, framemod);
-      } else if (dx > 0) {
-        facingright = true;
-        setframe(what_stand, facingright, what_animate ? framemod : 0);
-      } else if (dx < -1) {
-        facingright = false;
-        setframe(what_stand, facingright, framemod);
-      } else if (dx < 0) {
-        setframe(what_stand, facingright, what_animate ? framemod : 0);
+        // Don't push from side to side when like
+        // standing on a dude but not centered.
+        if (Math.abs(normx) > Math.abs(normy)) {
+          other.dx += normx;
+        } else {
+          other.dy += normy;
+        }
+      }
+
+      // XXX
+      var what_stand = 'stopped', what_jump = 'moving';
+
+      if (Math.abs(dx) > 9)
+        what_stand = 'moving';
+
+      // true means force animation, even if still
+      // XXX unused...
+      var what_animate = false;
+
+      var otg = ontheground();
+      if (otg) {
+
+        if (dx > 1) {
+          facingright = true;
+          setframe(what_stand, facingright, framemod);
+        } else if (dx > 0) {
+          facingright = true;
+          setframe(what_stand, facingright, what_animate ? framemod : 0);
+        } else if (dx < -1) {
+          facingright = false;
+          setframe(what_stand, facingright, framemod);
+        } else if (dx < 0) {
+          setframe(what_stand, facingright, what_animate ? framemod : 0);
+        } else {
+
+          setframe(what_stand, facingright, what_animate ? framemod : 0);
+        }
+        // ...
       } else {
-
-        setframe(what_stand, facingright, what_animate ? framemod : 0);
+        // In the air.
+        setframe(what_jump, facingright, framemod);
       }
-      // ...
-    } else {
-      // In the air.
-      setframe(what_jump, facingright, framemod);
+
+      _root.world.doEvents(x, y);
+      _root.world.scrollToShow(x, y);
     }
 
-    _root.world.scrollToShow(x, y);
-
+    _root.world.drawPlayerAt(x, y);
   }
 
-  var body: MovieClip = null, head: MovieClip = null;
+  var body : MovieClip = null;
   public function setframe(what, fright, frmod) {
 
     // PERF don't need to do this if we're already on the
@@ -247,14 +258,30 @@ class You extends PhysicsObject {
     // XXX attachments.
   }
 
+  public function dialogInterlude(msg, scx, scy) {
+    dialog.setMessage(msg);
+    dialog.show();
+    dialog_wait = true;
+    scrollprefx = scx;
+    scrollprefy = scy;
+    clearKeys();
+  }
+
+  public function clearKeys() {
+    holdingEsc = holdingUp = holdingLeft = holdingRight = holdingDown = false;
+  }
+
   public function onKeyDown() {
     var k = Key.getCode();
     // _root.message.say(k);
 
+    // XXXX way to fast-forward dialogs!
+    // XXXX way to exit dialogs!
+
     switch(k) {
     case 192: // ~
-      escKey = '~';
-      if (!blockEsc) holdingEsc = true;
+    escKey = '~';
+    if (!blockEsc) holdingEsc = true;
       break;
     case 82: // r
       escKey = 'r';
@@ -264,16 +291,6 @@ class You extends PhysicsObject {
       escKey = 'esc';
       if (!blockEsc) holdingEsc = true;
       break;
-      // XXXXXXXXXXXX cheats
-
-      /*
-    case 66:
-      _root.status.learnDance('x');
-      _root.status.learnDance('c');
-      _root.status.learnDance('v');
-      _root.status.showGotDance();
-      break;
-      */
 
     case 32: // space
     case 38: // up

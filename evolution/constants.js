@@ -27,11 +27,11 @@ var WORLDPIXELSH = WORLDTILESW * TILEHEIGHT;
 var YOUWIDTH = 48;
 var YOUHEIGHT = 64;
 
-// actually creates two tiles of margin
-var XMARGIN = TILEWIDTH;
-var YMARGIN = TILEHEIGHT;
-var XMARGINR = TILEWIDTH + YOUWIDTH;
-var YMARGINB = TILEHEIGHT + YOUHEIGHT;
+// actually creates four tiles of margin
+var XMARGIN = TILEWIDTH * 2;
+var YMARGIN = TILEHEIGHT * 2;
+var XMARGINR = TILEWIDTH * 2 + YOUWIDTH;
+var YMARGINB = TILEHEIGHT * 2 + YOUHEIGHT;
 
 var DIALOGW = 265;
 var DIALOGH = 150;
@@ -61,7 +61,7 @@ var DIALOGDEPTH = 2000;
 // Landmarks
 
 // These landmarks are always in world pixels.
-var STARTX = 6145;
-var STARTY = 3933;
+var STARTX = 5954;
+var STARTY = 3887;
 
 
