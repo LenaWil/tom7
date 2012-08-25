@@ -1,7 +1,7 @@
 /* Preloader for Disco? Very!. */
 class Preloader extends MovieClip {
 
-  var frames : Number = 0; 
+  var frames : Number = 0;
 
   public function onLoad() {
     _root.stop();
@@ -26,7 +26,7 @@ class Preloader extends MovieClip {
       /*
       _root.memory = new Memory();
 
-      _root.attachMovie("message", "message", 29999, 
+      _root.attachMovie("message", "message", 29999,
                         {_x:64, _y:14});
       */
 
@@ -36,7 +36,8 @@ class Preloader extends MovieClip {
       */
 
       // _root.viewport = new Viewport();
-      _root.world = new World();
+      // _root.world = new World();
+
       _root.world.init();
       // _root.music = new Music();
       // XXX what is this for? Needed??

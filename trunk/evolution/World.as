@@ -4,9 +4,7 @@ import flash.text.*;
 class World {
 
   #include "constants.js"
-  #include "tiles.js"
-  #include "map.js"
-  
+
   // Rooms that the player has been in.
   var roomsvisited = {};
   var nroomsvisited = 0;
@@ -59,7 +57,7 @@ class World {
 
     backgroundclip = _root.createEmptyMovieClip("backgroundclip", 80);
   }
-  
+
 
   public function getCurrentRoom() {
     return currentroom;
@@ -163,7 +161,7 @@ class World {
 
       data = roomdata(map[cy][cx]);
     }
-    
+
     var idx = tiley * TILESW + tilex;
     // trace('' + idx + ' from ' + data + ' ' + data.fg);
     return { f : data.fg[idx], b : data.bg[idx] };
@@ -268,12 +266,12 @@ class World {
       if (_root.alsomoths) _root.alsomoths.removeMovieClip();
 
       if (currentroom == 'lasercave') {
-       
+
         var flies = ['a', 'b', 'c', 'd', 'e'];
         var nflies = 0;
         for (var o in flies) {
           if (gotfly[flies[o]]) {
-            _root.inertflies.push(attachInertFly(flies[o], 
+            _root.inertflies.push(attachInertFly(flies[o],
                                                  175 + (nflies % 3) * 150,
                                                  175 + int(nflies / 3) * 150, nflies));
             nflies++;
@@ -294,12 +292,12 @@ class World {
         }
 
         if (nflies == flies.length) {
-          _root.alsomoths = _root.attachMovie('alsomoths', 'alsomoths', ALSODEPTH, 
+          _root.alsomoths = _root.attachMovie('alsomoths', 'alsomoths', ALSODEPTH,
                                               {_x:300 * 2 + 50, _y: 145 * 2 + 50});
           _root.alsomoths.init();
         }
       }
-      
+
     } else {
       trace('no room ' + s);
       throw 'bad room';
@@ -330,7 +328,7 @@ class World {
 
   public function attachInertFly(which, x, y, i) {
     // trace('add inert fly ' + which + ' @' + x + ' ' + y);
-    var bf = _root.attachMovie('inertbutterfly', 'inertbutterfly' + which, 
+    var bf = _root.attachMovie('inertbutterfly', 'inertbutterfly' + which,
                                BUTTERFLYDEPTH + i, {_x:x, _y:y});
     bf.init(which, x, y);
     return bf;
@@ -348,7 +346,7 @@ class World {
       } else {
 
         var depth = startdepth + (y + 1) * (TILESW + 2) + (x + 1);
-        var mc : MovieClip = 
+        var mc : MovieClip =
           _root.createEmptyMovieClip('b' + (y + 1) + '_' + (x + 1), depth);
         mc._xscale = 200;
         mc._yscale = 200;
@@ -392,7 +390,7 @@ class World {
 
     if (tilex >= TILESW || tilex < 0 || tiley < 0 || tiley >= TILESH)
       return 0;
-    
+
     return foreground[tiley * TILESW + tilex];
   }
 
@@ -402,7 +400,7 @@ class World {
 
     if (tilex >= TILESW || tilex < 0 || tiley < 0 || tiley >= TILESH)
       return;
-    
+
     foreground[tiley * TILESW + tilex] = 0;
   }
   */
@@ -490,9 +488,9 @@ class World {
     dy = dy * step;
 
     // _root.message.text = '' + dx + ' ' + dy + ' ' + ' ' + d + ' ' + step;
-    
+
     // just prevent looping when some bullshit creeps in there
-    var maxiters = 100; 
+    var maxiters = 100;
     for (var i = 0; i * step < d; i++) {
       var tx = x1 + i * dx, ty = y1 + i * dy;
 

@@ -1,4 +1,6 @@
 import flash.display.*;
+import flash.geom.Matrix;
+
 class TitleScreen extends MovieClip {
 
   #include "constants.js"
@@ -10,8 +12,7 @@ class TitleScreen extends MovieClip {
   // If >= 0, then we're starting the game, but fading out
   var starting : Number = -1;
 
-  // Regular cat graphic, then pressing start button.
-  var bg1, bg2;
+  var titlebitmap;
 
   // var FADEFRAMES = 50;
   // var ALPHAMULT = 2;
@@ -26,37 +27,33 @@ class TitleScreen extends MovieClip {
 
   // XXX laserpointer!
 
-  var bg: MovieClip = null;
   var titlelaser;
   public function onLoad() {
-    // Key.addListener(this);
+    Key.addListener(this);
 
-    bg1 = BitmapData.loadBitmap('title.png');
-    bg2 = BitmapData.loadBitmap('titlestart.png');
+    var bm = BitmapData.loadBitmap('titlescreen.png');
+    var titlebitmap : BitmapData =
+      new BitmapData(SCREENWIDTH, SCREENHEIGHT, false, 0x000000);
+    var grow = new Matrix();
+    grow.scale(2, 2);
+    titlebitmap.draw(bm, grow);
 
-    setframe(bg1);
+    setframe(titlebitmap);
 
     // title music!
-    titlemusic = new Sound(this);
-    titlemusic.attachSound('dangerous.mp3');
-    titlemusic.setVolume(100);
-    titlemusic.start(0, 99999);
+    // titlemusic = new Sound(this);
+    // titlemusic.attachSound('dangerous.mp3');
+    // titlemusic.setVolume(100);
+    // titlemusic.start(0, 99999);
 
     this.swapDepths(BGIMAGEDEPTH);
-
-    titlelaser = _root.attachMovie('titlelaser', 'titlelaser', 2, 
-                                   {_x:50, _y:350});
   }
 
   public function setframe(which) {
-    if (bg) bg.removeMovieClip();
-    this.createEmptyMovieClip('bg',
-                              this.getNextHighestDepth());    
-    bg._y = 0;
-    bg._x = 0;
-    bg._xscale = 200;
-    bg._yscale = 200;
-    bg.attachBitmap(which, bg.getNextHightestDepth());
+    if (_root.titlemc) _root.titlemc.removeMovieClip();
+
+    _root.titlemc = _root.createEmptyMovieClip('titlemc', BGIMAGEDEPTH);
+    _root.titlemc.attachBitmap(which, BGIMAGEDEPTH);
   }
 
   public function onEnterFrame() {
@@ -85,26 +82,26 @@ class TitleScreen extends MovieClip {
       }
     }
 
-    this._alpha = alpha;
+    _root.titlemc._alpha = alpha;
   }
 
   // Called from TitleLaser when it's been on the
   // start button long enough.
   public function triggerStart() {
     trace('did it');
-    // swap background.
-    setframe(bg2);
 
     // need to wait a while, fading out.
     starting = FADEOUTFRAMES;
   }
 
-
   public function reallyStart() {
-    // Key.removeListener(this);
+    Key.removeListener(this);
     trace('reallystart!');
     // Stop music!
     this.titlemusic.stop();
+
+    _root.titlemc.removeMovieClip();
+    _root.titlemc = undefined;
 
     // Don't need title screen any more, obviously
     this.removeMovieClip();
@@ -115,22 +112,48 @@ class TitleScreen extends MovieClip {
     // in the root timeline.
     _root.gotoAndStop('game');
 
-    _root.orange = _root.attachMovie('orange', 'orange', 1, {_x:210, _y:280});
+    // _root.orange = _root.attachMovie('orange', 'orange', 1, {_x:210, _y:280});
     // no prefix for orange.
-    _root.orange.init(Cat.KIND_ORANGE); 
-    _root.grey = _root.attachMovie('grey', 'grey', 2, {_x:315, _y:280});
-    _root.grey.init(Cat.KIND_GREY);
+    // _root.orange.init(Cat.KIND_ORANGE);
+    // _root.grey = _root.attachMovie('grey', 'grey', 2, {_x:315, _y:280});
+    // _root.grey.init(Cat.KIND_GREY);
 
     // The laser pointer will be the actual controlling object.
-    _root.laser = _root.attachMovie('laser', 'laser', 3, {_x:50, _y:350});
-    _root.laser.init(_root.orange, _root.grey);
+    // _root.laser = _root.attachMovie('laser', 'laser', 3, {_x:50, _y:350});
+    // _root.laser.init(_root.orange, _root.grey);
 
 
-    _root.world.gotoRoom('start');
+    // _root.world.gotoRoom('start');
     // _root.world.gotoRoom('glow');
     // _root.world.gotoRoom('forestlumpup');
     // _root.world.gotoRoom('mountain');
     // _root.world.gotoRoom('poolleft');
+  }
+
+  public function onKeyDown() {
+    var k = Key.getCode();
+
+    /*
+    if (Key.isDown(Key.CONTROL) &&
+        Key.getAscii() == ascii('m')) {
+      _root['musicenabled'] = !_root['musicenabled'];
+
+      if (_root['musicenabled']) {
+        titlemusic.setVolume(100);
+      } else {
+        titlemusic.setVolume(0);
+      }
+
+      return;
+    }
+    */
+
+    switch(k) {
+    case Key.SPACE:
+    case Key.ENTER:
+      triggerStart();
+      break;
+    }
   }
 
 };
