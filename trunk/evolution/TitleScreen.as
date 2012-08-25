@@ -98,36 +98,28 @@ class TitleScreen extends MovieClip {
     Key.removeListener(this);
     trace('reallystart!');
     // Stop music!
-    this.titlemusic.stop();
+    // this.titlemusic.stop();
 
     _root.titlemc.removeMovieClip();
     _root.titlemc = undefined;
 
     // Don't need title screen any more, obviously
     this.removeMovieClip();
-    // Also title laser pointer.
-    titlelaser.removeMovieClip();
 
     // Whole game takes place on this blank frame
     // in the root timeline.
     _root.gotoAndStop('game');
 
-    // _root.orange = _root.attachMovie('orange', 'orange', 1, {_x:210, _y:280});
-    // no prefix for orange.
-    // _root.orange.init(Cat.KIND_ORANGE);
-    // _root.grey = _root.attachMovie('grey', 'grey', 2, {_x:315, _y:280});
-    // _root.grey.init(Cat.KIND_GREY);
+    _root.you = _root.attachMovie('you', 'you', YOUDEPTH,
+                                  { _x:SCREENWIDTH/2,
+                                    _y:SCREENHEIGHT/2 });
+    _root.you.init();
 
-    // The laser pointer will be the actual controlling object.
-    // _root.laser = _root.attachMovie('laser', 'laser', 3, {_x:50, _y:350});
-    // _root.laser.init(_root.orange, _root.grey);
-
-
-    // _root.world.gotoRoom('start');
-    // _root.world.gotoRoom('glow');
-    // _root.world.gotoRoom('forestlumpup');
-    // _root.world.gotoRoom('mountain');
-    // _root.world.gotoRoom('poolleft');
+    /*
+    _root.world = _root.attachMovie('world', 'world', WORLDDEPTH,
+                                    { _x: 0, _y: 0 });
+    _root.world.init();
+    */
   }
 
   public function onKeyDown() {

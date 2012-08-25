@@ -1,10 +1,8 @@
 import flash.display.*;
 import flash.geom.Matrix;
-/* Used to be 'you', but now the game loop is
-   done by LaserPointer since there are two
-   cats. This just takes care of the animation
-   and stuff. */
-class Cat extends PhysicsObject {
+/* This is the cell that you control. */
+
+class You extends PhysicsObject {
 
   #include "constants.js"
   #include "frames.js"
@@ -13,35 +11,46 @@ class Cat extends PhysicsObject {
   var dy = 0;
 
   // Size of graphic, in world pixels.
-  var width = 100;
-  var height = 50;
+  var width = 48;
+  var height = 64;
+
+  var holdingUp = false;
+  var holdingLeft = false;
+  var holdingRight = false;
+  var holdingDown = false;
+  var holdingEsc = false;
+  // Block escape until a key is released.
+  // This keeps the user from continuously
+  // resetting, which is usually undesirable.
+  var blockEsc = false;
+  var escKey = 'esc';
 
   // Subtracted from clip region.
   // Player's top-left corner is at x+left, y+top.
-  var top = 6;
-  var left = 6;
-  var right = 6;
-  var bottom = 6;
+  var top = 21;
+  var left = 10;
+  var right = 10;
+  var bottom = 3;
 
   var FPS = 25;
 
-  static var KIND_ORANGE = 1;
-  static var KIND_GREY = 2;
-  var kind;
 
-  var frames, heads;
+  var frames;
 
   // XXX shouldn't be squares, but...
   public function ignoresquares() {
     return true;
   }
 
-  public function init(k) {
-    kind = k;
-    var pfx = (k == KIND_GREY) ? 'g' : '';
+  public function init() {
     // initialize frame data, by loading the bitmaps and
     // doing the flippin.
     frames = {};
+
+    // Everything scaled 2x.
+    var grow = new Matrix();
+    grow.scale(2, 2);
+
     for (var o in framedata) {
       // Copy frames into L and R.
       frames[o] = { l: [],
@@ -49,52 +58,29 @@ class Cat extends PhysicsObject {
                     div: framedata[o].div || 8 };
       var f = framedata[o].f;
       for (var i = 0; i < f.length; i++) {
-        var bm = BitmapData.loadBitmap(pfx + f[i].p + '.png');
+        var bm = BitmapData.loadBitmap(f[i].p + '.png');
         if (!bm) {
           trace('could not load bitmap ' + f[i].p +
                 '. add it to the library and set linkage!');
         }
-        frames[o].r.push({ bm: bm, hx : f[i].hx, hy: f[i].hy });
+
+        var bm2x : BitmapData =
+          new BitmapData(bm.width * 2, bm.height * 2, true, 0);
+        bm2x.draw(bm, grow);
+
+        frames[o].r.push({ bm: bm2x });
 
         var fliphoriz = new Matrix();
         fliphoriz.scale(-1,1);
-        fliphoriz.translate(bm.width, 0);
+        fliphoriz.translate(bm2x.width, 0);
 
-        var fbm = new BitmapData(bm.width, bm.height, true, 0);
-        fbm.draw(bm, fliphoriz);
-        // off-by-one in head x calc?
-        // trace('hx: ' + ((width / 2) - f[i].hx));
-        frames[o].l.push({ bm: fbm, hx : (width / 2) - f[i].hx, hy: f[i].hy });
+        var fbm = new BitmapData(bm2x.width, bm2x.height, true, 0);
+        fbm.draw(bm2x, fliphoriz);
+        frames[o].l.push({ bm: fbm });
       }
     }
 
-    heads = {};
-    // Same for heads. Code reuse!
-    for (var o in headdata) {
-      // Copy frames into L and R.
-      heads[o] = { l: [],
-                   r: [],
-                   div: headdata[o].div || 8 };
-      var f = headdata[o].f;
-      for (var i = 0; i < f.length; i++) {
-        var bm = BitmapData.loadBitmap(pfx + f[i] + '.png');
-        if (!bm) {
-          trace('could not load bitmap ' + f[i] +
-                '. add it to the library and set linkage!');
-        }
-        heads[o].r.push({ bm: bm });
-
-        var fliphoriz = new Matrix();
-        fliphoriz.scale(-1,1);
-        fliphoriz.translate(bm.width, 0);
-
-        var fbm = new BitmapData(bm.width, bm.height, true, 0);
-        fbm.draw(bm, fliphoriz);
-        // off-by-one in head x calc?
-        heads[o].l.push({ bm: fbm });
-      }
-    }
-
+    trace('initialized you.');
   }
 
   // Keep track of what dudes I touched, since
@@ -111,134 +97,34 @@ class Cat extends PhysicsObject {
 
   public function onLoad() {
     touchset = [];
+    // You drive the input.
     Key.addListener(this);
-    this._xscale = 200.0;
-    this._yscale = 200.0;
-    // Doesn't really matter which one is on top. Try both.
-    this.setdepth(CATDEPTH + 1);
-    this.setdepth(CATDEPTH);
+
+    this.setdepth(YOUDEPTH);
     this.stop();
+
+    trace('onload you');
   }
 
   public function getConstants() {
     var C = defaultconstants();
-    if (kind == KIND_ORANGE) {
-      // A little bit faster.
-      C.maxspeed = 11.1;
-      C.jump_impulse = 17.7;
-      // Can control himself in the air better.
-      C.accel_air = 0.3;
-      C.decel_air = 0.045;
-    } else if (kind == KIND_GREY) {
-      // A little bit slower and fatter.
-      C.accel = 3.3;
-      C.terminal_velocity = 14.4;
-    }
     return C;
   }
 
-  var wanna_jump = false;
-  var wanna_left = false;
-  var wanna_right = false;
-
-  var paralyzed = false;  // XXX
   public function wishjump() {
-    return !paralyzed && wanna_jump;
+    return holdingUp;
   }
 
   public function wishleft() {
-    return !paralyzed && wanna_left;
+    return holdingLeft;
   }
 
   public function wishright() {
-    return !paralyzed && wanna_right;
+    return holdingRight;
   }
 
   public function wishdive() {
-    return false;
-  }
-  
-  var looking = false;
-  var lookx = 0, looky = 0;
-  
-  // Used by orange cat to test that the
-  // dot hasn't moved too quickly.
-  var lastlookx = 1, lastlooky = 1;
-  var stationary_count = 0;
-  var moving = false;
-
-  public function lookat(x, y) {
-    looking = true;
-    lookx = x;
-    looky = y;
-
-    // Always compute this. Note we use
-    // the center of the cat to make physics
-    // invariant to the cat's current direction,
-    // though the head's rotation (merely presentational)
-    // is based on its display location.
-    var cx = this._x + width / 2;
-    var cy = this._y + height / 2;
-
-    var rads = Math.atan2(y - cy, x - cx);
-    var degs = (360 + rads * 57.2957795) % 360;
-    // Made this table with the wrong handedness.
-    degs = 360 - degs;
-
-    if (this.kind == KIND_ORANGE) {
-      // Orange cat moves towards the laser,
-      // but when he's resting, he needs the
-      // laser to be stationary for ~750ms
-      // before he'll chase it.
-      if (!moving) {
-        if (Math.abs(lookx - lastlookx) < 2 &&
-            Math.abs(looky - lastlooky) < 2) {
-          stationary_count++;
-          // trace('stationary for ' + stationary_count);
-          if (stationary_count > ORANGE_STATIONARY_FRAMES) {
-            moving = true;
-          }
-        } else {
-          stationary_count = 0;
-        }
-        lastlookx = lookx;
-        lastlooky = looky;
-      }
-
-      if (moving) {
-        wanna_right = (degs <= 60 || degs >= 300);
-        wanna_left = (degs >= 120 && degs <= 240);
-        // Must it be mutually exclusive?
-        // Not only in the correct angle, but not too
-        // close to the cat's head. (But don't apply if
-        // the cursor is in the top row, since we want to
-        // make it easier to jump to the room above.)
-        wanna_jump = (y < 50 || (cy - y > 75)) && (degs >= 60 && degs <= 120);
-      }
-
-    } else if (this.kind == KIND_GREY) {
-      // XXX grey cat needs to have some special
-      // characteristics too. maybe?
-
-      wanna_right = (degs <= 60 || degs >= 300);
-      wanna_left = (degs >= 120 && degs <= 240);
-      wanna_jump = (y < 50 || (cy - y > 75)) && (degs >= 60 && degs <= 120);
-    }
-  }
-
-  // Both cats immediately go to sleep and become
-  // deadweight if they stop seeing the laser.
-  public function nolook() {
-    looking = false;
-    wanna_left = false;
-    wanna_right = false;
-    wanna_jump = false;
-    // Can't see laser; this doesn't count as stationary.
-    lastlookx = -1;
-    lastlooky = -1;
-    stationary_count = 0;
-    // Orange cat instantly goes asleep.
-    moving = false;
+    return holdingDown;
   }
 
   var framemod : Number = 0;
@@ -284,22 +170,19 @@ class Cat extends PhysicsObject {
     }
     */
 
-    var what_stand = 'buttup', what_jump = 'jump';
+    // XXX
+    var what_stand = 'stopped', what_jump = 'moving';
 
     if (Math.abs(dx) > 9)
-      what_stand = 'run';
-    
-    if (!looking)
-      what_stand = 'rest';
+      what_stand = 'moving';
 
     // true means force animation, even if still
+    // XXX unused...
     var what_animate = false;
 
     var otg = ontheground();
     if (otg) {
 
-      // If I can't see the laser, and I'm on the ground, 
-      // then I'm resting.
       if (dx > 1) {
         facingright = true;
         setframe(what_stand, facingright, framemod);
@@ -312,9 +195,6 @@ class Cat extends PhysicsObject {
       } else if (dx < 0) {
         setframe(what_stand, facingright, what_animate ? framemod : 0);
       } else {
-        // standing still on ground. Animate the butt pose if
-        // we've been staring at a stationary dot for long enough.
-        what_animate = what_animate || stationary_count > 1;
 
         setframe(what_stand, facingright, what_animate ? framemod : 0);
       }
@@ -324,8 +204,8 @@ class Cat extends PhysicsObject {
       setframe(what_jump, facingright, framemod);
     }
 
-    // n.b. the laser controls room transitions, to make sure that
-    // both cats don't initiate one in the same frame!
+    // XXX someone needs to scroll the world here?
+
   }
 
   var body: MovieClip = null, head: MovieClip = null;
@@ -347,71 +227,85 @@ class Cat extends PhysicsObject {
     // trace('' + fs[f].bm + ' ?');
     body.attachBitmap(fs[f].bm, body.getNextHighestDepth());
 
-    // Figure out which head, based on the angle to the laser.
-    // We calculate it here because we know where the head
-    // is actually attached, so we can get the most accurate
-    // reading.
-    var whathead;
-    if (looking) {
-      var cx = (fs[f].hx * 2) + this._x;
-      var cy = (fs[f].hy * 2) + this._y;
-      var dx = lookx - cx;
-      var dy = looky - cy;
-
-      if (dx == 0 && dy == 0) {
-        // Also should be this in the no-head case?
-        // Also should be headw if facing left?
-        whathead = 'heade';
-      } else {
-        var rads = Math.atan2(dy, dx);
-        var degs = (360 + rads * 57.2957795) % 360;
-
-        // Made this table with the wrong handedness.
-        degs = 360 - degs;
-
-        // _root.message.text = '' + int(degs) + ' ' + dx + ' ' + dy;
-        // _root.message.swapDepths(99999);
-
-        if (degs >= 330 || degs < 30) {
-          whathead = 'heade';
-        } else if (degs <= 60) {
-          whathead = 'headne';
-        } else if (degs <= 90) {
-          whathead = 'headnne';
-        } else if (degs >= 300) {
-          whathead = 'headse';
-        } else if (degs >= 270) {
-          whathead = 'headsse';
-        } else if (degs >= 240) {
-          whathead = 'headssw';
-        } else if (degs >= 210) {
-          whathead = 'headsw';
-        } else if (degs <= 120) {
-          whathead = 'headnnw';
-        } else if (degs <= 150) {
-          whathead = 'headnw';
-        } else {
-          whathead = 'headw';
-        }
-      }
-    } else {
-      whathead = 'headrest';
-    }
-
-    // reverse head if reversed.
-    if (!fright) whathead = reverseHead(whathead);
-
-    if (head) head.removeMovieClip();
-    // has to be on top of body
-    head = this.createEmptyMovieClip('head',
-                                     this.getNextHighestDepth());
-    head._x = fs[f].hx - HEADATTACHX;
-    head._y = fs[f].hy - HEADATTACHY;
-
-    var fs = (fright ? heads[whathead].r : heads[whathead].l);
-    var f = int(frmod / heads[whathead].div) % fs.length;
-    // trace(whathead + ' ' + fs + ' ' + f);
-    head.attachBitmap(fs[f].bm, body.getNextHighestDepth());
+    // XXX attachments.
   }
+
+  public function onKeyDown() {
+    var k = Key.getCode();
+    // _root.message.say(k);
+
+    switch(k) {
+    case 192: // ~
+      escKey = '~';
+      if (!blockEsc) holdingEsc = true;
+      break;
+    case 82: // r
+      escKey = 'r';
+      if (!blockEsc) holdingEsc = true;
+      break;
+    case 27: // esc
+      escKey = 'esc';
+      if (!blockEsc) holdingEsc = true;
+      break;
+      // XXXXXXXXXXXX cheats
+
+      /*
+    case 66:
+      _root.status.learnDance('x');
+      _root.status.learnDance('c');
+      _root.status.learnDance('v');
+      _root.status.showGotDance();
+      break;
+      */
+
+    case 32: // space
+    case 38: // up
+      holdingUp = true;
+      break;
+    case 37: // left
+      holdingLeft = true;
+      break;
+    case 39: // right
+      holdingRight = true;
+      break;
+    case 40: // down
+      holdingDown = true;
+      break;
+    default:
+      break;
+    }
+  }
+
+  public function onKeyUp() {
+    var k = Key.getCode();
+    switch(k) {
+    case 192: // ~
+    case 82: // r
+    case 27: // esc
+      holdingEsc = false;
+      blockEsc = false;
+      break;
+
+    case 32:
+    case 38:
+      // XXX ok if player is pressing both and
+      // releases one??
+      // XXX also, this should really be impulse
+      // so that the player doesn't keep jumping
+      // when holding it down.
+      holdingUp = false;
+      break;
+    case 37:
+      holdingLeft = false;
+      break;
+    case 39:
+      holdingRight = false;
+      break;
+    case 40:
+      holdingDown = false;
+      break;
+    }
+  }
+
 
 }
