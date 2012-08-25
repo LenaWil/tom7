@@ -23,8 +23,9 @@ int main () {
 
   for (int screeny = 0; screeny < (WORLDTILES / TILESH); screeny++) {
     for (int screenx = 0; screenx < (WORLDTILES / TILESW); screenx++) {
-      printf("screen_%d_%d.png : ../wholemap.gif\n"
-	     "\t/bin/convert ../wholemap.gif -crop %dx%d+%d+%d\\! $@\n\n",
+      printf("screen_%d_%d.png : ../wholemap.bmp\n"
+	     "\t/bin/convert ../wholemap.bmp -crop %dx%d+%d+%d\\! "
+	     "-layers merge $@\n\n",
 	     screenx, screeny,
 	     SCREENWIDTH, SCREENHEIGHT,
 	     SCREENWIDTH * screenx, SCREENHEIGHT * screeny);

@@ -61,7 +61,7 @@ var DIALOGDEPTH = 2000;
 // Landmarks
 
 // These landmarks are always in world pixels.
-var STARTX = 5954;
-var STARTY = 3887;
+var STARTX = 3919;
+var STARTY = 3459;
 
 
