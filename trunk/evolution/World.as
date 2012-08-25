@@ -5,6 +5,7 @@ import flash.geom.Matrix;
 class World {
 
   #include "constants.js"
+  #include "events.js"
 
   // The movieclips holding the current graphics.
 
@@ -20,6 +21,7 @@ class World {
 
   var mapwidth = 0;
   var tilemap = {};
+
   public function init() {
 
     mask = BitmapData.loadBitmap("mask.png");
@@ -71,21 +73,41 @@ class World {
   var scrollx : Number = 0;
   var scrolly : Number = 0;
 
-  public function scrollToShow(x, y) {
-    // Scrollx and scrolly are world coordinates too.
-
-    // Scroll as little as possible.
-    if (x - scrollx < XMARGIN) scrollx = x - XMARGIN;
-    if (y - scrolly < YMARGIN) scrolly = y - YMARGIN;
-    if (scrollx + WIDTH - x < XMARGINR) scrollx = x + XMARGINR - WIDTH;
-    if (scrolly + HEIGHT - y < YMARGINB) scrolly = y + YMARGINB - HEIGHT;
+  public function scrollTo(scx, scy) {
+    scrollx = scx;
+    scrolly = scy;
 
     // Now, hard bounds on scrolling.
     if (scrollx < 0) scrollx = 0;
     if (scrolly < 0) scrolly = 0;
     if (scrollx > WORLDPIXELSW - WIDTH) scrollx = WORLDPIXELSW - WIDTH;
     if (scrolly > WORLDPIXELSH - HEIGHT) scrolly = WORLDPIXELSH - HEIGHT;
+  }
 
+  // Eases in.
+  public function scrollTowards(scx, scy) {
+    scx = int((scx + scrollx * 3) / 4);
+    scy = int((scy + scrolly * 3) / 4);
+
+    scrollTo(scx, scy);
+  }
+
+  // Only move the scroll window if we need to keep x,y in bounds.
+  public function scrollToShow(x, y) {
+    // Scrollx and scrolly are world coordinates too.
+    var scx = scrollx;
+    var scy = scrolly;
+
+    // Scroll as little as possible.
+    if (x - scx < XMARGIN) scx = x - XMARGIN;
+    if (y - scy < YMARGIN) scy = y - YMARGIN;
+    if (scx + WIDTH - x < XMARGINR) scx = x + XMARGINR - WIDTH;
+    if (scy + HEIGHT - y < YMARGINB) scy = y + YMARGINB - HEIGHT;
+
+    scrollTo(scx, scy);
+  }
+
+  public function drawPlayerAt(x, y) {
     // This is the screen number of the top-left screen.
     var screenx = int(scrollx / WIDTH);
     var screeny = int(scrolly / HEIGHT);
@@ -114,9 +136,50 @@ class World {
     brbg._x = -2 * left + 2 * WIDTH;
     brbg._y = -2 * top + 2 * HEIGHT;
 
-    // XXX place You based on scroll window.
+    // Place you based on scroll window.
     _root.you._x = youx * 2;
     _root.you._y = youy * 2;
+  }
+
+  public function doEvents(x, y) {
+    // XXX some histeresis. Shouldn't keep triggering the event
+    // if it's permanent!
+    for (var o in events) {
+      var evt = events[o];
+      // XXX use center of dude?
+      if (!evt.used &&
+          x >= evt.x1 && x <= evt.x2 &&
+          y >= evt.y1 && y <= evt.y2) {
+        if (!evt.permanent) {
+          evt.used = true;
+        }
+
+        var scx, scy;
+        if (evt.scx && evt.scy) {
+          scx = evt.scx;
+          scy = evt.scy;
+        } else {
+          // Center player near bottom of screen.
+          scx = x - WIDTH;
+          scy = y - int(0.75 * HEIGHT);
+        }
+
+        switch(o) {
+        case 'lifeguard':
+          //                        ------------------------------
+          _root.you.dialogInterlude('It\'s some kind of hut. I\n' +
+                                    'think it\'s where they sell\n' +
+                                    'snacks.\n',
+                                    scx, scy);
+          break;
+        default:
+          _root.you.dialogInterlude('You found a secret!\n' +
+                                    'It\'s an unimplemented event!\n',
+                                    scx, scy);
+          break;
+        }
+      }
+    }
   }
 
 }

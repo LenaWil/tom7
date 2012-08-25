@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\deff0\deflang1033{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\rtf1\ansi\ansicpg1252\deff0\deflang1033{\fonttbl{\f0\fnil\fcharset0 Calibri;}{\f1\fnil\fcharset0 Fixedsys;}}
 {\*\generator Msftedit 5.41.21.2510;}\viewkind4\uc1\pard\sl240\slmult1\lang9\f0\fs72 Where is theme?!\par
 \par
 BECAUSE IT IS 9pm\par
@@ -209,5 +209,73 @@ humm, my sound is all choppy wtf\par
 guess I might as well reboot while eating\par
 \par
 \b\par
+\par
+oh, it is the webcam causing the sound problems.\b0  I sort of remember this from last time. Sorry, we're going to have to sacrifice it, at least the image size...\par
+\par
+ok, that's better\par
+sorry about that.\par
+\par
+still gotta watch me eat :)\par
+\par
+For the background scrolling,  have to lazily load and unload those bitmaps. I assume it stores a loaded one in RGBA format, which is like a gigabyte+ for my map\par
+\par
+The general case is that I'm looking at the corner between 4 screens. I think I only need 4 loaded. \par
+\par
++-----+-----+\par
+|       |       |\par
++-----+-----+\par
+|       |       |\par
++-----+-----+\b\par
+\par
+\b0 when I'm exactly screen-aligned there's some ambiguity, but I probably don't even need to think about that for the code.\par
+\par
+possibly even simpler would be to have a cache of 4 < n < 10 screens, then just draw as though I have them all always present.\par
+\par
+yes, this is wise\par
+\par
+thanks sushis!\par
+\par
+let's do this\par
+\par
+oh actually, I am not "drawing" on each frame but attaching. It is really cheap to move bitmaps, but expensive to attach movieclips. So really I should do the four mc approach and swap them around.\par
+\par
+that was easier than I thought to make it work! And it is taking care of disposing the bitmaps. I can make this more efficient, but, later...\par
+\par
+wow, .bmp is by far the most stable file format for this. once the graphic got complicated, .gif started failing too. BMP is a breeze so far..\par
+\par
+testing some worst cases by making sure there's a bunch of complexity in the images. Probably I will not be using gradients, though; it's not really the style.\par
+\par
+Cool. Collisions with the mask are working!\par
+\par
+All right, now time for some TODOs.\par
+\par
+\f1\fs44  - wall jumping\par
+ - double jumping\par
+ - event system\par
+ - animations:\par
+   - jumping\par
+ - map artwork:\par
+   - treehouses\par
+   - beach house\par
+   - caves\par
+   - underwater\par
+   - space elevator\par
+   - mines\par
+   - lhc\par
+   - city\par
+   - moon\par
+   - mars\par
+ - misc artwork:\par
+   - title screen\par
+ - come up with title\par
+ - title theme song\par
+ - in-game music\par
+   - 1\par
+   - 2\par
+   - 3\par
+ - win music\par
+\b\par
+polish\par
+ \b0 - dialog 'next' and keys to ffwd\b\par
 }
  

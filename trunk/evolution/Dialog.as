@@ -33,9 +33,6 @@ class Dialog {
     background = new BitmapData(bg.width * 2, bg.height * 2, true, 0);
     background.draw(bg, grow);
 
-    message = "";
-    reload();
-
     for (var i = 0; i < FONTCHARS.length; i++) {
       // Just shift the whole graphic so that only
       // the desired character shows.
@@ -50,6 +47,18 @@ class Dialog {
       f.draw(fontbm, cropbig);
       font[FONTCHARS.charCodeAt(i)] = f;
     }
+
+    message = "";
+    reload();
+    hide();
+  }
+
+  public function hide() {
+    mc._visible = false;
+  }
+
+  public function show() {
+    mc._visible = true;
   }
 
   public function reload() {
@@ -65,7 +74,6 @@ class Dialog {
     var s = "";
     for (var i = 0; i < m.length; i++) {
       if (m.charAt(i) == "\n") {
-        trace(s);
         message.push(s);
         s = '';
       } else {
@@ -74,6 +82,10 @@ class Dialog {
     }
     message.push(s);
     reload();
+  }
+
+  public function done() {
+    return cy >= message.length;
   }
 
   // Make progress on the display.

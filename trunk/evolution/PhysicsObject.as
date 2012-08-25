@@ -39,11 +39,11 @@ class PhysicsObject extends Depthable {
   public function defaultconstants() {
     return {
       accel: 3.6,
-      accel_air: 0.2,
+      accel_air: 1.4,
       decel_ground: 0.95,
       decel_air: 0.05,
-      jump_impulse: 16.8,
-      gravity: 1.0,
+      jump_impulse: 17.8,
+      gravity: 1.2,
       xgravity: 0.0,
       terminal_velocity: 13,
       maxspeed: 9.9,
