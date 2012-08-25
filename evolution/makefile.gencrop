@@ -5,4 +5,3 @@ gencrop.exe : gencrop.cc
 
 screens/makefile : gencrop.exe
 	./gencrop.exe > screens/makefile
-	cp wholemap.gif screens/

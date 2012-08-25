@@ -18,5 +18,10 @@ var BGIMAGEDEPTH = 290;
 
 // There are four world panels loaded at any given time,
 // which occupy these depths.
-var WORLDDEPTHS = 300; // - 304
+var WORLDDEPTH = 300; // - 304
 
+var YOUDEPTH = 1000;
+
+// These landmarks are always in world pixels.
+var STARTX = 6145;
+var STARTY = 3933;
