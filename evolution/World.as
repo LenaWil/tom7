@@ -63,11 +63,12 @@ class World {
 
     var pix : Number = mask.getPixel32(tilex, tiley);
     var aa = pix >> 24 & 0xFF;
+    var gg = pix >> 8  & 0xFF;
 
     // Treat as solid if more than 50% alpha.
     // XXX Should allow for more kinds of information here, based
     // on the color?
-    return aa > 0x70;
+    return gg < 0x70 && aa > 0x70;
   }
 
   var scrollx : Number = 0;
@@ -169,7 +170,8 @@ class World {
           //                        ------------------------------
           _root.you.dialogInterlude('Hello little cell.\n' +
                                     '\n' +
-                                    'Today is your 16th birthday.\n');
+                                    'Today is your 16th birthday.\n',
+                                    scx, scy);
           break;
         case 'lifeguard':
           //                        ------------------------------

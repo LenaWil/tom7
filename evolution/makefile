@@ -7,7 +7,7 @@ screens/makefile : gencrop.exe
 	./gencrop.exe > screens/makefile
 
 mask.png : mask.bmp
-	 /bin/convert $^ -sample 384x384\! $@
+	 /bin/convert $^ -sample 384x384\! -layers merge $@
 	 # ??
-	 rm -f mask-1.png
-	 mv mask-0.png mask.png
+#	 rm -f mask-1.png
+#	 mv mask-0.png mask.png
