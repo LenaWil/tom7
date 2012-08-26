@@ -43,6 +43,8 @@ var FONTH = 16;
 var FONTOVERLAP = 1;
 var FONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?";
 
+var FRAMES_TO_HYPER = 20;
+
 /////////
 // Depths
 
@@ -52,6 +54,8 @@ var BGIMAGEDEPTH = 290;
 // There are four world panels loaded at any given time,
 // which occupy these depths.
 var WORLDDEPTH = 300; // - 304
+
+var STUFFDEPTH = 350;
 
 var YOUDEPTH = 1000;
 

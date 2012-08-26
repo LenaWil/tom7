@@ -23,6 +23,12 @@ class PhysicsObject extends Depthable {
   var right = 0;
   var bottom = 0;
 
+  // Number of frames we've been running at max speed
+  // without interruption.
+  var runframes = 0;
+  // True if we're in hyper-mode
+  var hypermode = false;
+
   // Only affected by floor, not other physics objects.
   public function ignoresquares() {
     return false;
@@ -46,8 +52,12 @@ class PhysicsObject extends Depthable {
       gravity: 1.2,
       xgravity: 0.0,
       terminal_velocity: 13,
+      terminal_wall_velocity: 5,
       maxspeed: 9.9,
-      dive: 0.3 };
+      dive: 0.3,
+      walljump_yimpulse: 17.8,
+      walljump_ximpulse: 8.0
+        };
   }
 
   public function getConstants() {
@@ -70,6 +80,12 @@ class PhysicsObject extends Depthable {
 
   public function wishdive() {
     return false;
+  }
+
+  // When a jump is successfully performed, this is
+  // called, to implement the impulse.
+  public function clearjump() {
+    return;
   }
 
   // These are latched: They physics code sets them
@@ -174,6 +190,7 @@ class PhysicsObject extends Depthable {
     // for the rest of the updates.
     var C = getConstants();
 
+
     setVelocity(C);
   }
 
@@ -181,9 +198,27 @@ class PhysicsObject extends Depthable {
      controls (and physics) */
   public function setVelocity(C) {
     var otg = ontheground();
+    var otwl = onthewallleft();
+    var otwr = onthewallright();
+
+    if (otg && Math.abs(dx) >= C.maxspeed) {
+      runframes++;
+    } else {
+      runframes = 0;
+    }
 
     if (otg && wishjump()) {
+      clearjump();
       dy = -C.jump_impulse;
+    } else if (otwl && wishjump()) {
+      clearjump();
+      // NOT additive.
+      dy = -C.walljump_yimpulse;
+      dx += C.walljump_ximpulse;
+    } else if (otwr && wishjump()) {
+      clearjump();
+      dy = -C.walljump_yimpulse;
+      dx -= C.walljump_ximpulse;
     }
 
     /*
@@ -194,6 +229,7 @@ class PhysicsObject extends Depthable {
     }
     */
 
+    // dx
     if (wishright()) {
       dx += otg ? C.accel : C.accel_air;
       if (dx > C.maxspeed) dx = C.maxspeed;
@@ -216,13 +252,25 @@ class PhysicsObject extends Depthable {
       }
     }
 
+    // dy
+    // Compute the player's acceleration.
     if (otg) {
       dx += C.xgravity;
       if (dx < -C.terminal_velocity) dx = -C.terminal_velocity;
       else if (dx > C.terminal_velocity) dx = C.terminal_velocity;
     } else {
-      dy += C.gravity;
-      if (dy > C.terminal_velocity) dy = C.terminal_velocity;
+
+      var tv = (otwl || otwr) ? C.terminal_wall_velocity : C.terminal_velocity;
+
+      if (!otg && beinglifted()) {
+        // XXX Could make this configurable.
+        dy -= C.gravity;
+        if (dy < -tv) dy = -tv;
+      } else {
+        dy += C.gravity;
+        if (dy > tv) dy = tv;
+      }
+
     }
 
   }
@@ -267,6 +315,31 @@ class PhysicsObject extends Depthable {
     return widthblocked(x1(),
                         y2() + GROUND_SLOP,
                         (this.width - this.left - this.right));
+  }
+
+  public function onthewall() {
+    return onthewallright() || onthewallleft();
+  }
+
+  var WALL_SLOP = 2.0;
+  public function onthewallright() {
+    return wishright() &&
+      // Math.abs(dx) < 0.2 &&
+      heightblocked(x2() + WALL_SLOP, y1(),
+                    (this.height - this.top - this.bottom));
+  }
+
+  public function onthewallleft() {
+    return wishleft() &&
+      // Math.abs(dx) < 0.2 &&
+      heightblocked(x1() - WALL_SLOP, y1(),
+                    (this.height - this.top - this.bottom));
+  }
+
+  // Is the center in a mask that lifts the player?
+  public function beinglifted() {
+    return _root.world.liftingAt(int(x1() + this.width / 2),
+                                 int(y1() + this.height / 2));
   }
 
   /*

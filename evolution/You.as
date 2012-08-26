@@ -17,6 +17,7 @@ class You extends PhysicsObject {
   var width = YOUWIDTH;
   var height = YOUHEIGHT;
 
+  var allowUp = true;
   var holdingUp = false;
   var holdingLeft = false;
   var holdingRight = false;
@@ -125,11 +126,21 @@ class You extends PhysicsObject {
 
   public function getConstants() {
     var C = defaultconstants();
+    if (hypermode) {
+      C.gravity = 0.5;
+      C.maxspeed = 20.0;
+      C.accel = 6.0;
+    }
     return C;
   }
 
   public function wishjump() {
     return holdingUp;
+  }
+
+  public function clearjump() {
+    holdingUp = false;
+    allowUp = false;
   }
 
   public function wishleft() {
@@ -173,39 +184,43 @@ class You extends PhysicsObject {
     } else {
       movePhysics();
 
-      // Now, if we touched someone, give it some
-      // love.
-      for (var o in touchset) {
-        var other = touchset[o];
-
-        // This is where I activate touchable things.
-
-        var diffx = other._x - this._x;
-        var diffy = other._y - this._y;
-
-        var normx = diffx / width;
-        var normy = diffy / height;
-
-        // Don't push from side to side when like
-        // standing on a dude but not centered.
-        if (Math.abs(normx) > Math.abs(normy)) {
-          other.dx += normx;
-        } else {
-          other.dy += normy;
+      // Enter and exit hyper mode.
+      if (hypermode) {
+        if (dx > 0 && (collision_right || !holdingRight)) {
+          hypermode = false;
+          runframes = 0;
+        } else if (dx < 0 && (collision_left || !holdingLeft)) {
+          hypermode = false;
+          runframes = 0;
         }
+        // Check if we got slow some other way??
+      } else if (runframes > FRAMES_TO_HYPER) {
+        hypermode = true;
       }
 
-      // XXX
-      var what_stand = 'stopped', what_jump = 'moving';
+      // since they are latched. Not even bothering with the other
+      // ones, since we don't use them.
+      collision_left = false;
+      collision_right = false;
 
-      if (Math.abs(dx) > 9)
+      // XXX
+      var what_stand = 'stopped', what_jump = 'jumpingup', what_lift = 'lifted';
+
+      var otw = onthewall();
+      var otg = ontheground();
+
+      if (hypermode) {
+        what_jump = 'hyperjumping';
+        what_stand = 'hypermoving';
+      } else if (Math.abs(dx) > 9) {
+        what_jump = 'jumping';
         what_stand = 'moving';
+      }
 
       // true means force animation, even if still
       // XXX unused...
       var what_animate = false;
 
-      var otg = ontheground();
       if (otg) {
 
         if (dx > 1) {
@@ -224,16 +239,27 @@ class You extends PhysicsObject {
           setframe(what_stand, facingright, what_animate ? framemod : 0);
         }
         // ...
+      } else if (otw) {
+
+        facingright = onthewallright();
+        setframe('wallhug', facingright, framemod);
+
       } else {
-        // In the air.
-        setframe(what_jump, facingright, framemod);
+        var lifted = beinglifted();
+
+        // In the air. Of our own volition?
+        if (lifted) {
+          setframe(what_lift, facingright, framemod);
+        } else {
+          setframe(what_jump, facingright, framemod);
+        }
       }
 
       _root.world.doEvents(x, y);
       _root.world.scrollToShow(x, y);
     }
 
-    _root.world.drawPlayerAt(x, y);
+    _root.world.drawPlayerAt(framemod, x, y);
   }
 
   var body : MovieClip = null;
@@ -294,7 +320,9 @@ class You extends PhysicsObject {
 
     case 32: // space
     case 38: // up
-      holdingUp = true;
+      if (allowUp) {
+        holdingUp = true;
+      }
       break;
     case 37: // left
       holdingLeft = true;
@@ -328,6 +356,7 @@ class You extends PhysicsObject {
       // so that the player doesn't keep jumping
       // when holding it down.
       holdingUp = false;
+      allowUp = true;
       break;
     case 37:
       holdingLeft = false;

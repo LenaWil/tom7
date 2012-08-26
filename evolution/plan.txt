@@ -1,0 +1,12 @@
+
+
+Mines: get wall jump
+
+Save miners: ?
+
+Underwater: get ?
+
+LHC: get run+dash
+
+Mars: need run+dash, get ?
+
