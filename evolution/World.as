@@ -245,6 +245,9 @@ class World {
     // if it's permanent!
     for (var o in events) {
       var evt = events[o];
+      // trace('try ' + o + ' ' + x + ' ' + y + ' in ' +
+      // ' ' + evt.x1 + ' ' + evt.y1 +
+      // ' ' + evt.x2 + ' ' + evt.y2);
       // XXX use center of dude?
       if (!evt.used &&
           x >= evt.x1 && x <= evt.x2 &&
@@ -262,6 +265,8 @@ class World {
           scx = x - WIDTH;
           scy = y - int(0.75 * HEIGHT);
         }
+
+        // trace('trigger ' + o + '?');
 
         switch(o) {
         case 'treestart':
@@ -325,6 +330,35 @@ class World {
                   '\n'),
                   scx: scx, scy: scy}]);
           _root.you.havesnorkel = true;
+          break;
+
+        case 'bird':
+          _root.you.dialogInterlude([
+          //     ------------------------------
+              {m:('Ho there good sir! And\n' +
+                  'might I mention, a hearty\n' +
+                  'happy birthday.\n'),
+               s: stuff['bird'],
+                  scx: scx, scy: scy},
+              {m:('I\'m a time-traveling bird\n' +
+                  'from the future, sent here\n' +
+                  'to prevent the Large Hadron\n' +
+                  'Collider from discovering\n' +
+                  'mind-control lasers.\n'),
+               s: stuff['bird'],
+                  scx: scx + 100, scy: scy},
+              {m:('Would you mind helping me\n' +
+                  'by going down in there\n' +
+                  'and causing a catastrophic\n' +
+                  'magnet quench?\n'),
+               s: stuff['bird'],
+                  scx: 2553, scy: 3842},
+              {m:('I mean, you don\'t want your\n' +
+                  'mind controlled by lasers,\n' +
+                  'do you?\n'),
+               s: stuff['bird'],
+                  scx: scx, scy: scy}]);
+          _root.you.lhcopen = true;
           break;
 
         case 'charlie':
@@ -431,6 +465,18 @@ class World {
                s: stuff['tminer1'],
                   scx: scx, scy: scy}]);
           _root.you.havecoordinates = true;
+          break;
+
+        case 'mines':
+          _root.you.dialogInterlude([{
+          //     ------------------------------
+              m:('This is a public mine run\n'
+                 'by the the United Reticulum\n'
+                 'Spelunking Association.\n'
+                 'Their motto is:\n'
+                 '\n'
+                 '"What\'s mines is yours."\n'),
+                  scx: scx, scy: scy}]);
           break;
 
         default:
