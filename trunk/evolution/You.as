@@ -38,7 +38,7 @@ class You extends PhysicsObject {
 
   var FPS = 25;
 
-
+  var dialogqueue = [];
   var dialog : Dialog = null;
   // When true, a dialog has been triggered and we should
   // not accept keys or run physics.
@@ -48,6 +48,8 @@ class You extends PhysicsObject {
   var scrollprefy : Number = 0;
 
   var frames;
+
+  var lookingforminers = false;
 
   // XXX shouldn't be squares, but...
   public function ignoresquares() {
@@ -168,14 +170,13 @@ class You extends PhysicsObject {
     if (dialog_wait) {
 
       if (holdingUp && dialog.done()) {
-        dialog_wait = false;
-        dialog.hide();
-        clearKeys();
+        doDialogQueue();
 
       } else {
         // XXX can pass whether we're holding down something
         // here which makes it go faster. but be careful that
         // it doesn't also count as dismissing the box.
+        // Also be careful about key repeats.
         dialog.doFrame();
       }
 
@@ -284,13 +285,27 @@ class You extends PhysicsObject {
     // XXX attachments.
   }
 
-  public function dialogInterlude(msg, scx, scy) {
-    dialog.setMessage(msg);
-    dialog.show();
-    dialog_wait = true;
-    scrollprefx = scx;
-    scrollprefy = scy;
-    clearKeys();
+  public function dialogInterlude(queue) {
+    // reverse queue so we can pop.
+    for (var i = queue.length - 1; i >= 0; i--)
+      dialogqueue.push(queue[i]);
+
+    doDialogQueue();
+  }
+
+  public function doDialogQueue() {
+    if (dialogqueue.length > 0) {
+      var t = dialogqueue.pop();
+      dialog.setMessage(t.m, t.s);
+      dialog.show();
+      dialog_wait = true;
+      scrollprefx = t.scx || 0;
+      scrollprefy = t.scy || 0;
+      clearKeys();
+    } else {
+      dialog.hide();
+      dialog_wait = false;
+    }
   }
 
   public function clearKeys() {
