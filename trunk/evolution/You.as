@@ -49,6 +49,7 @@ class You extends PhysicsObject {
 
   var frames;
 
+  var lhcopen = false;
   var lookingforminers = false;
 
   // XXX shouldn't be squares, but...
