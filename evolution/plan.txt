@@ -10,3 +10,19 @@ LHC: get run+dash
 
 Mars: need run+dash, get ?
 
+
+
+1. Go to sea to get snorkel. (High jump under water.)
+
+2. Go to mines. Need high jump to get in.
+   a. find trapped miners
+   b. get wall jump.
+
+3. -- get hyperjump from wall jump --
+? lhc?
+
+
+Boat: need hyperjump
+Mars: need hyperjump
+
+Moon: need double jump?

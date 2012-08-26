@@ -23,6 +23,9 @@ class PhysicsObject extends Depthable {
   var right = 0;
   var bottom = 0;
 
+  var havewalljump = false;
+  var havesnorkel = false;
+
   // Number of frames we've been running at max speed
   // without interruption.
   var runframes = 0;
@@ -49,12 +52,14 @@ class PhysicsObject extends Depthable {
       decel_ground: 0.95,
       decel_air: 0.05,
       jump_impulse: 17.8,
+      underwater_jump_impulse: 10.0,
       gravity: 1.2,
+      underwater_gravity: 0.5,
       xgravity: 0.0,
       terminal_velocity: 13,
       terminal_wall_velocity: 5,
       maxspeed: 9.9,
-      dive: 0.3,
+      dive: 0.5,
       walljump_yimpulse: 17.8,
       walljump_ximpulse: 8.0
         };
@@ -200,6 +205,7 @@ class PhysicsObject extends Depthable {
     var otg = ontheground();
     var otwl = onthewallleft();
     var otwr = onthewallright();
+    var unw = this.havesnorkel && underwater();
 
     if (otg && Math.abs(dx) >= C.maxspeed) {
       runframes++;
@@ -219,15 +225,16 @@ class PhysicsObject extends Depthable {
       clearjump();
       dy = -C.walljump_yimpulse;
       dx -= C.walljump_ximpulse;
+    } else if (unw && wishjump()) {
+      clearjump();
+      dy -= C.underwater_jump_impulse;
     }
 
-    /*
     if (wishdive()) {
-      if (!otg) {
+      if (!otg && unw) {
         dy += C.dive;
       }
     }
-    */
 
     // dx
     if (wishright()) {
@@ -260,14 +267,23 @@ class PhysicsObject extends Depthable {
       else if (dx > C.terminal_velocity) dx = C.terminal_velocity;
     } else {
 
-      var tv = (otwl || otwr) ? C.terminal_wall_velocity : C.terminal_velocity;
+      var tv = (otwl || otwr || (!wishdive() && unw)) ?
+        C.terminal_wall_velocity : C.terminal_velocity;
 
       if (!otg && beinglifted()) {
         // XXX Could make this configurable.
         dy -= C.gravity;
         if (dy < -tv) dy = -tv;
       } else {
-        dy += C.gravity;
+
+        if (unw) {
+          dy += C.underwater_gravity;
+          // Hack: Since you can jump in air, don't let velocity
+          // get arbitrarily high.
+          if (dy < -C.terminal_velocity) dy = -C.terminal_velocity;
+        } else {
+          dy += C.gravity;
+        }
         if (dy > tv) dy = tv;
       }
 
@@ -340,6 +356,11 @@ class PhysicsObject extends Depthable {
   public function beinglifted() {
     return _root.world.liftingAt(int(x1() + this.width / 2),
                                  int(y1() + this.height / 2));
+  }
+
+  public function underwater() {
+    return _root.world.waterAt(int(x1() + this.width / 2),
+                               int(y1() + this.height / 2));
   }
 
   /*

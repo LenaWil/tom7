@@ -65,7 +65,19 @@ var DIALOGDEPTH = 2000;
 // Landmarks
 
 // These landmarks are always in world pixels.
+// treehouse
 var STARTX = 3919;
 var STARTY = 3459;
 
+// shell
+// var STARTX = 8807;
+// var STARTY = 7245;
 
+// miners
+// var STARTX = 7562;
+// var STARTY = 6577;
+
+
+// enter mines
+// var STARTX = 4184;
+// var STARTY = 5164;

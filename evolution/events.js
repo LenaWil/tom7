@@ -2,10 +2,24 @@
 var events = {
     treestart: { x1: 3994, y1: 3463,
 		 x2: 4198, y2: 3589,
-		 scx: 3926, scy: 3280 },
+		 scx: 3900, scy: 3280 },
     lifeguard: { x1: 6266, y1: 3977, 
 		 x2: 6402, y2: 4055,
-		 scx: 6187, scy: 3790 }
+		 scx: 6187, scy: 3750 },
+    shell: { x1: 9323, y1: 7540,
+	     x2: 9541, y2: 7696,
+	     scx: 9203, scy: 7400 },
+    miners: { x1: 8008, y1: 6812,
+	      x2: 8242, y1: 6993,
+	      scx: 8164, scy: 6900 },
+    foreman: { x1: 3899, y1: 6474,
+	       x2: 4108, y2: 6612,
+	       scx: 3847, scy: 6295,
+	       // self-regulated
+	       permanent: true },
+    charlie: { x1: 8138, y1: 3820,
+	       x2: 8293, y2: 3896,
+	       scx: 7975, scy: 3645 }
 };
 
 var stuff = {
@@ -13,9 +27,12 @@ var stuff = {
     // the list of loaded frames from p, scaled 2x.
     // also a field mc to store a movie clip,
     // and a unique index idx
-    // x -= 100
 
-    mom: { x: 4050, y: 3533, p: ['mom', 'dad'] },
-    dad: { x: 4134, y: 3532, p: ['mom'] },
-    shell: { x: 9362, y: 7566, p: ['mom'] }
+    mom: { x: 4050, y: 3533, p: ['mom'] },
+    dad: { x: 4134, y: 3532, p: ['dad'] },
+    shell: { x: 9363, y: 7551, p: ['shell1'] },
+    tminer1: { x: 8362, y: 7087, p: ['miner'] },
+    tminer2: { x: 8499, y: 7080, p: ['miner'] },
+    foreman: { x: 4004, y: 6548, p: ['miner'] },
+    charlie: { x: 8217, y: 3855, p: ['charlie'] }
 };

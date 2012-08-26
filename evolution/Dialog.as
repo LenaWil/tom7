@@ -15,6 +15,7 @@ class Dialog {
   var textbm : BitmapData = null;
 
   var message = [];
+  var speaker = null;
   var cx : Number = 0;
   var cy : Number = 0;
 
@@ -69,8 +70,9 @@ class Dialog {
     cy = 0;
   }
 
-  public function setMessage(m) {
+  public function setMessage(m, sp) {
     message = [];
+    speaker = sp;
     var s = "";
     for (var i = 0; i < m.length; i++) {
       if (m.charAt(i) == "\n") {
@@ -107,6 +109,7 @@ class Dialog {
                         2 * DIALOGMARGINY + 2 * cy * FONTH);
         textbm.draw(font[s.charCodeAt(cx)], place);
         mc.attachBitmap(textbm, 2);
+        if (!(cx % 2) && speaker) speaker.jiggle = !speaker.jiggle;
         cx++;
       }
     }
