@@ -23,7 +23,6 @@ class World {
   var tilemap = {};
 
   public function init() {
-
     mask = BitmapData.loadBitmap("mask.png");
 
     tlbg = _root.createEmptyMovieClip("tlbg", WORLDDEPTH + 1);
@@ -31,11 +30,38 @@ class World {
     blbg = _root.createEmptyMovieClip("blbg", WORLDDEPTH + 3);
     brbg = _root.createEmptyMovieClip("brbg", WORLDDEPTH + 4);
     trace('init world');
+
+
+    var grow = new Matrix();
+    grow.scale(2, 2);
+
+    var idx = 0;
+    for (var o in stuff) {
+      var s = stuff[o];
+      s.idx = idx;
+      s.bm = [];
+      for (var i = 0; i < s.p.length; i++) {
+
+        var bm = BitmapData.loadBitmap(s.p[i] + '.png');
+        if (!bm) {
+          trace('could not load bitmap ' + s.p[i] +
+                '. add it to the library and set linkage!');
+        }
+
+        var bm2x : BitmapData =
+          new BitmapData(bm.width * 2, bm.height * 2, true, 0);
+        bm2x.draw(bm, grow);
+        s.bm.push(bm2x);
+      }
+      s.mc = null;
+      idx++;
+    }
   }
 
   // Give the screen x and y coordinates; load the corresponding
   // bitmap into the movie clip.
   public function loadBits(mc, sx, sy) {
+    // PERF! Cache it!
     var png = "screen_" + sx + "_" + sy + ".png";
     var bm : BitmapData = BitmapData.loadBitmap(png);
     var bm2x : BitmapData =
@@ -49,6 +75,27 @@ class World {
     mc.attachBitmap(bm2x,
                     // depth: always the same
                     10);
+  }
+
+  public function liftingAt(x, y) {
+    var tilex = int(x / TILEWIDTH);
+    var tiley = int(y / TILEHEIGHT);
+
+    // Pretend the whole world is surrounded by solids
+    // that don't lift.
+    if (tilex < 0 || tiley < 0 ||
+        tilex >= WORLDTILESW ||
+        tiley >= WORLDTILESH) return false;
+
+    var pix : Number = mask.getPixel32(tilex, tiley);
+    var aa = pix >> 24 & 0xFF;
+    var rr = pix >> 16 & 0xFF;
+    var gg = pix >> 8  & 0xFF;
+    var bb = pix       & 0xFF;
+
+    // Should be green.
+    // XXX could support multiple color channels...?
+    return bb < 0x70 && rr < 0x70 && gg > 0x70 && aa > 0x70;
   }
 
   // Takes world pixel coordinates.
@@ -108,7 +155,7 @@ class World {
     scrollTo(scx, scy);
   }
 
-  public function drawPlayerAt(x, y) {
+  public function drawPlayerAt(framemod, x, y) {
     // This is the screen number of the top-left screen.
     var screenx = int(scrollx / WIDTH);
     var screeny = int(scrolly / HEIGHT);
@@ -136,6 +183,34 @@ class World {
     loadBits(brbg, screenx + 1, screeny + 1);
     brbg._x = -2 * left + 2 * WIDTH;
     brbg._y = -2 * top + 2 * HEIGHT;
+
+    // Loop over every object in the world (!) and position it,
+    // if it's on-screen.
+    var visx1 = screenx * WIDTH;
+    var visy1 = screeny * HEIGHT;
+    var visx2 = (screenx + 2) * WIDTH;
+    var visy2 = (screeny + 2) * HEIGHT;
+    for (var o in stuff) {
+      var s = stuff[o];
+      if (s.x >= visx1 && s.x < visx2 &&
+          s.y >= visy1 && s.y < visy2) {
+        // Set the right frame..
+        // PERF not necessary if already on the right frame.
+        if (s.mc) {
+          s.removeMovieClip();
+        }
+        s.mc = _root.createEmptyMovieClip('stuff_' + o, STUFFDEPTH + s.idx);
+        var f = int(framemod / (s.div || 1)) % s.bm.length;
+        s.mc.attachBitmap(s.bm[f], 1);
+
+        s.mc._x = 2 * (s.x - scrollx);
+        s.mc._y = 2 * (s.y - scrolly);
+      } else {
+        if (s.mc) {
+          s.removeMovieClip();
+        }
+      }
+    }
 
     // Place you based on scroll window.
     _root.you._x = youx * 2;
