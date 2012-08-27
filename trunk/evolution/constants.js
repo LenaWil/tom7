@@ -77,12 +77,20 @@ var SCIENCEY2 = 4323;
 
 
 // treehouse
-// var STARTX = 3919;
-// var STARTY = 3459;
+var STARTX = 3919;
+var STARTY = 3459;
 
 // hyper engineer
-var STARTX = 5570;
-var STARTY = 8604;
+// var STARTX = 5570;
+// var STARTY = 8604;
+
+// mars
+// var STARTX = 7589;
+// var STARTY = 1208;
+
+// moonwalk
+// var STARTX = 4208;
+// var STARTY = 464;
 
 // lhc
 // var STARTX = SCIENCEX1;

@@ -23,8 +23,8 @@ class PhysicsObject extends Depthable {
   var right = 0;
   var bottom = 0;
 
-  var havehypermode = true; // XXX false;
-  var havewalljump = false;
+  var havehypermode = false; // XXX false;
+  var havewalljump = false; // false;
   var havesnorkel = false;
 
   // Number of frames we've been running at max speed

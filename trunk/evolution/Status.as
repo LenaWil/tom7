@@ -11,7 +11,8 @@ class Status {
     walljump: { p: "walljump" },
     labcoat: { p: "labcoat" },
     cactus: { p: "cactus" },
-    mitochondria: { p: "mitochondria" }
+    mitochondria: { p: "mitochondria" },
+    birthdayhat: { p: "birthdayhat" }
   };
 
   var mc : MovieClip = null;
@@ -60,7 +61,7 @@ class Status {
       var icon = icons[o];
       if (icon.have) {
         var place = new Matrix();
-        place.translate(16 + 32 * icon.idx, 11);
+        place.translate(16 + 64 * icon.idx, 11);
 	cur.draw(icon.bm, place);
       }
     }
