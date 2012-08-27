@@ -23,6 +23,7 @@ class PhysicsObject extends Depthable {
   var right = 0;
   var bottom = 0;
 
+  var havehypermode = true; // XXX false;
   var havewalljump = false;
   var havesnorkel = false;
 
@@ -339,14 +340,14 @@ class PhysicsObject extends Depthable {
 
   var WALL_SLOP = 2.0;
   public function onthewallright() {
-    return wishright() &&
+    return havewalljump && wishright() &&
       // Math.abs(dx) < 0.2 &&
       heightblocked(x2() + WALL_SLOP, y1(),
                     (this.height - this.top - this.bottom));
   }
 
   public function onthewallleft() {
-    return wishleft() &&
+    return havewalljump && wishleft() &&
       // Math.abs(dx) < 0.2 &&
       heightblocked(x1() - WALL_SLOP, y1(),
                     (this.height - this.top - this.bottom));
