@@ -7,8 +7,8 @@ class You extends PhysicsObject {
   #include "constants.js"
   #include "frames.js"
 
-  var x = STARTX;
-  var y = STARTY;
+  var x = 0;
+  var y = 0;
 
   var dx = 0;
   var dy = 0;
@@ -47,9 +47,13 @@ class You extends PhysicsObject {
   var scrollprefx : Number = 0;
   var scrollprefy : Number = 0;
 
+  var frames_in_hyper : Number = 0;
+
+  var status : Status = null;
+
   var frames;
 
-  var lhcopen = false;
+  var havelabcoat = false;
   var lookingforminers = false;
 
   // XXX shouldn't be squares, but...
@@ -64,6 +68,9 @@ class You extends PhysicsObject {
 
     dialog = new Dialog();
     dialog.init();
+
+    status = new Status();
+    status.init();
 
     // Everything scaled 2x.
     var grow = new Matrix();
@@ -196,8 +203,9 @@ class You extends PhysicsObject {
           runframes = 0;
         }
         // Check if we got slow some other way??
-      } else if (runframes > FRAMES_TO_HYPER) {
+      } else if (havehypermode && runframes > FRAMES_TO_HYPER) {
         hypermode = true;
+        frames_in_hyper = 0;
       }
 
       // since they are latched. Not even bothering with the other
@@ -258,7 +266,17 @@ class You extends PhysicsObject {
       }
 
       _root.world.doEvents(x, y);
-      _root.world.scrollToShow(x, y);
+
+      if (hypermode) {
+        frames_in_hyper++;
+        var amount = frames_in_hyper / 15;
+        if (amount > 1) amount = 1;
+        var dir = (dx > 0) ? amount : -amount;
+        _root.world.scrollToShow(int(x + dir * 0.66 * WIDTH), y);
+      } else {
+        frames_in_hyper = 0;
+        _root.world.scrollToShow(x, y);
+      }
     }
 
     _root.world.drawPlayerAt(framemod, x, y);

@@ -4,6 +4,8 @@ var SCREENHEIGHT = 700;
 var SCREENGAMEWIDTH = SCREENWIDTH;
 var SCREENGAMEHEIGHT = 624;
 
+var STATUSHEIGHT = SCREENGAMEHEIGHT - SCREENHEIGHT;
+
 // Game area (one screen) width and height in world pixels.
 var WIDTH = 416;
 var HEIGHT = 312;
@@ -28,10 +30,10 @@ var YOUWIDTH = 48;
 var YOUHEIGHT = 64;
 
 // actually creates four tiles of margin
-var XMARGIN = TILEWIDTH * 2;
-var YMARGIN = TILEHEIGHT * 2;
-var XMARGINR = TILEWIDTH * 2 + YOUWIDTH;
-var YMARGINB = TILEHEIGHT * 2 + YOUHEIGHT;
+var XMARGIN = TILEWIDTH * 3;
+var YMARGIN = TILEHEIGHT * 3;
+var XMARGINR = TILEWIDTH * 3 + YOUWIDTH;
+var YMARGINB = TILEHEIGHT * 3 + YOUHEIGHT;
 
 var DIALOGW = 265;
 var DIALOGH = 150;
@@ -61,13 +63,30 @@ var YOUDEPTH = 1000;
 
 var DIALOGDEPTH = 2000;
 
+var STATUSDEPTH = 3000;
+
 ////////////
 // Landmarks
 
 // These landmarks are always in world pixels.
+
+var SCIENCEX1 = 2622;
+var SCIENCEY1 = 4121;
+var SCIENCEX2 = 2805;
+var SCIENCEY2 = 4323;
+
+
 // treehouse
-var STARTX = 3919;
-var STARTY = 3459;
+// var STARTX = 3919;
+// var STARTY = 3459;
+
+// hyper engineer
+var STARTX = 5570;
+var STARTY = 8604;
+
+// lhc
+// var STARTX = SCIENCEX1;
+// var STARTY = 4121 - 200;
 
 // shell
 // var STARTX = 8807;

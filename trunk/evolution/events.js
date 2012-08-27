@@ -26,6 +26,14 @@ var events = {
     mines: { x1: 4200, y1: 4000,
 	     x2: 4318, y2: 4111,
 	     scx: 3938, scy: 3830 },
+    cactus: { x1: 7947, y1: 5499,
+	      x2: 8112, y2: 5585,
+	      scx: 7897, scy: 5254,
+	      m: 'The misplaced cactus.',
+	      item: 'cactus' },
+    hypereng: { x1: 4974, y1: 8627,
+		x2: 5292, y2: 8804,
+		scx: 4807, scy: 8513 }
 };
 
 var stuff = {
@@ -42,5 +50,7 @@ var stuff = {
     foreman: { x: 4004, y: 6548, p: ['miner'] },
     // exact!
     bird: { x: 2997, y: 3523, p: ['bird'] },
-    charlie: { x: 8217, y: 3855, p: ['charlie'] }
+    charlie: { x: 8217, y: 3855, p: ['charlie'] },
+    hypereng: { x: 4975, y: 8735, p: ['scientist'] },
+    cactus: { x: 7985, y: 5543, p: ['cactus'] }
 };

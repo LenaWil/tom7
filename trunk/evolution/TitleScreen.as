@@ -41,10 +41,10 @@ class TitleScreen extends MovieClip {
     setframe(titlebitmap);
 
     // title music!
-    // titlemusic = new Sound(this);
-    // titlemusic.attachSound('dangerous.mp3');
-    // titlemusic.setVolume(100);
-    // titlemusic.start(0, 99999);
+    titlemusic = new Sound(this);
+    titlemusic.attachSound('themesong.mp3');
+    titlemusic.setVolume(100);
+    titlemusic.start(0, 99999);
 
     this.swapDepths(BGIMAGEDEPTH);
   }
@@ -60,7 +60,7 @@ class TitleScreen extends MovieClip {
     // Fade in...
     frames++;
     if (frames < FADEFRAMES) {
-      // XXX titlemusic.setVolume(frames);
+      titlemusic.setVolume(frames * 10);
     }
 
     var alpha = 100;
@@ -98,7 +98,7 @@ class TitleScreen extends MovieClip {
     Key.removeListener(this);
     trace('reallystart!');
     // Stop music!
-    // this.titlemusic.stop();
+    this.titlemusic.stop();
 
     _root.titlemc.removeMovieClip();
     _root.titlemc = undefined;

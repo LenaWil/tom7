@@ -118,7 +118,10 @@ class World {
     // Treat as solid if more than 50% alpha.
     // XXX Should allow for more kinds of information here, based
     // on the color?
-    return bb > 0x70 && rr > 0x70 && gg < 0x70 && aa > 0x70;
+    // trace('labcoat? ' + _root.you.havelabcoat);
+    return (bb > 0x70 && rr > 0x70 && gg < 0x70 && aa > 0x70) ||
+      !_root.you.havelabcoat && (x >= SCIENCEX1 && x <= SCIENCEX2 &&
+                                 y >= SCIENCEY1 && y <= SCIENCEY2);
   }
 
   public function waterAt(x, y) {
@@ -145,8 +148,14 @@ class World {
   var scrolly : Number = 0;
 
   public function scrollTo(scx, scy) {
-    scrollx = scx;
-    scrolly = scy;
+    // Smooth into it if we can.
+    if (scrollx > 0) {
+      scrollx = int(scx + scrollx) / 2;
+      scrolly = int(scy + scrolly) / 2;
+    } else {
+      scrollx = scx;
+      scrolly = scy;
+    }
 
     // Now, hard bounds on scrolling.
     if (scrollx < 0) scrollx = 0;
@@ -268,224 +277,291 @@ class World {
 
         // trace('trigger ' + o + '?');
 
-        switch(o) {
-        case 'treestart':
-
+        if (evt.item) {
           _root.you.dialogInterlude([
           //     ------------------------------
-             {m:('Hello little cell.\n' +
+             {m:('You found treasure!\n' +
                  '\n' +
-                 'Today is your 16th birthday.\n'),
-              s: stuff['mom'],
-                  scx: scx, scy: scy},
+                 evt.m),
+              s: stuff[o],
+              scx: scx, scy: scy},
 
-             {m:('Where are your presents?\n' +
-                 'Well...\n' +
-                 '\n' +
-                 'Since this is such a special\n' +
-                 'birthday, we got you\n' +
-                 'something really special.\n'),
-              s: stuff['dad'],
-              scx: scx + 75, scy: scy},
+             {m:('It doesn\'t do anything.\n'),
+              s: stuff[o],
+                 scx: scx, scy: scy}]);
 
-             {m:('Yes, the present is a\n' +
-                 'surprise! A surprise party!\n'),
-              s: stuff['mom'],
-              scx: scx, scy: scy },
+          _root.you.status.get(evt.item);
 
-             {m:('A surprise adventure party!\n' +
-                 '\n' +
-                 '\n' +
-                 'Go find the adventure party!\n'),
-              s: stuff['dad'],
-                 scx: scx + 75, scy: scy }]);
-          break;
-        case 'lifeguard':
-          _root.you.dialogInterlude([{
-          //     ------------------------------
-              m:('It\'s some kind of hut. I\n' +
-                 'think it\'s where they sell\n' +
-                 'snacks.\n'),
-                  scx: scx, scy: scy}]);
-          break;
-        case 'shell':
-          _root.you.dialogInterlude([
-          //     ------------------------------
-              {m:('Hi. I\'m the shellfish,\n' +
-                 'Gene. I\'m doing Jazzercize\n' +
-                 'to work on my body.\n'),
-                  s: stuff['shell'],
-                  scx: scx, scy: scy},
-              {m:('Since I can breathe\n' +
-                  'underwater, you should have\n' +
-                  'this snorkel. It\'s an\n' +
-                  'organelle that lets you\n' +
-                  '"swim" better. Swim up\n' +
-                  'and down! Swimming is a\n' +
-                  'lot like slow jumping.\n'),
-                  s: stuff['shell'],
-                  scx: scx, scy: scy},
-              {m:('\n\n' +
-                  '         EVOLVED     \n' +
-                  '\n'),
-                  scx: scx, scy: scy}]);
-          _root.you.havesnorkel = true;
-          break;
+        } else {
+          switch(o) {
+          case 'treestart':
 
-        case 'bird':
-          _root.you.dialogInterlude([
-          //     ------------------------------
-              {m:('Ho there good sir! And\n' +
-                  'might I mention, a hearty\n' +
-                  'happy birthday.\n'),
-               s: stuff['bird'],
-                  scx: scx, scy: scy},
-              {m:('I\'m a time-traveling bird\n' +
-                  'from the future, sent here\n' +
-                  'to prevent the Large Hadron\n' +
-                  'Collider from discovering\n' +
-                  'mind-control lasers.\n'),
-               s: stuff['bird'],
-                  scx: scx + 100, scy: scy},
-              {m:('Would you mind helping me\n' +
-                  'by going down in there\n' +
-                  'and causing a catastrophic\n' +
-                  'magnet quench?\n'),
-               s: stuff['bird'],
-                  scx: 2553, scy: 3842},
-              {m:('I mean, you don\'t want your\n' +
-                  'mind controlled by lasers,\n' +
-                  'do you?\n'),
-               s: stuff['bird'],
-                  scx: scx, scy: scy}]);
-          _root.you.lhcopen = true;
-          break;
+            _root.you.dialogInterlude([
+            //     ------------------------------
+               {m:('Hello little cell.\n' +
+                   '\n' +
+                   'Today is your 16th birthday.\n'),
+                s: stuff['mom'],
+                    scx: scx, scy: scy},
 
-        case 'charlie':
-          _root.you.dialogInterlude([
-          //     ------------------------------
-              {m:('Hi! I\'m Charlie Darwin and\n',
-                  'this is my boat! I\'m a\n' +
-                  'boat driver AND a science\n' +
-                  'chef!\n'),
-               s: stuff['charlie'],
-                  scx: scx, scy: scy},
-              {m:('Sailing is easy! Boats\n' +
-                  'just float like ducks!\n' +
-                  'Charlie Darkwin Duck! hehe\n'),
-               s: stuff['charlie'],
-                  scx: scx, scy: scy}]);
-          // XXX some power-up?
-          break;
+               {m:('Where are your presents?\n' +
+                   'Well...\n' +
+                   '\n' +
+                   'Since this is such a special\n' +
+                   'birthday, we got you\n' +
+                   'something really special.\n'),
+                s: stuff['dad'],
+                scx: scx + 75, scy: scy},
 
-        case 'foreman':
-          if (_root.you.havewalljump) {
-            // nothing.
-          } else if (_root.you.havecoordinates) {
-          _root.you.dialogInterlude([
-          //     ------------------------------
-              {m:('What? You found trapped\n' +
-                  'U.R.S.A. miners?\n' +
-                  '\n' +
-                  '...\n' +
-                  'I guess if I dig them\n' +
-                  'out, I won\'t need to teach\n' +
-                  'you how to use dynamite.\n'),
-               s: stuff['foreman'],
-                  scx: scx, scy: scy},
-              {m:('Instead I\'ll teach you how\n' +
-                  'to climb walls so you can\n' +
-                  'GET OUT OF MY MINE.\n'),
-               s: stuff['foreman'],
-                  scx: scx, scy: scy},
-              {m:('This is a wall. Since cells\n' +
-                  'are very sticky, you can\n' +
-                  'cling to the wall, and even\n' +
-                  'jump off it!'),
-               s: stuff['foreman'],
-                  scx: scx - 4 * 26, scy: scy - 26},
-              {m:('\n\n' +
-                  '         EVOLVED     \n' +
-                  '\n'),
-                  scx: scx, scy: scy}]);
+               {m:('Yes, the present is a\n' +
+                   'surprise! A surprise party!\n'),
+                s: stuff['mom'],
+                scx: scx, scy: scy },
 
-          _root.you.havewalljump = true;
+               {m:('A surprise adventure party!\n' +
+                   '\n' +
+                   '\n' +
+                   'Go find the adventure party!\n'),
+                s: stuff['dad'],
+                   scx: scx + 75, scy: scy }]);
+            break;
+          case 'lifeguard':
+            _root.you.dialogInterlude([{
+            //     ------------------------------
+                m:('It\'s some kind of hut. I\n' +
+                   'think it\'s where they sell\n' +
+                   'snacks.\n'),
+                    scx: scx, scy: scy}]);
+            break;
+          case 'shell':
+            _root.you.dialogInterlude([
+            //     ------------------------------
+                {m:('Hi. I\'m the shellfish,\n' +
+                   'Gene. I\'m doing Jazzercize\n' +
+                   'to work on my body.\n'),
+                    s: stuff['shell'],
+                    scx: scx, scy: scy},
+                {m:('Since I can breathe\n' +
+                    'underwater, you should have\n' +
+                    'this snorkel. It\'s an\n' +
+                    'organelle that lets you\n' +
+                    '"swim" better. Swim up\n' +
+                    'and down! Swimming is a\n' +
+                    'lot like slow jumping.\n'),
+                    s: stuff['shell'],
+                    scx: scx, scy: scy},
+                {m:('\n\n' +
+                    '         EVOLVED     \n' +
+                    '\n'),
+                    scx: scx, scy: scy}]);
 
-          } else if (!_root.you.lookingforminers) {
-          _root.you.dialogInterlude([
-          //     ------------------------------
-              {m:('Happy birthday!\n' +
-                  '\n' +
-                  'Welcome to the United\n' +
-                  'Reticulum Spelunking Assoc.\n' +
-                  'public mine museum &\n' +
-                  'adventure camp.'),
-               s: stuff['foreman'],
-                  scx: scx, scy: scy},
-              {m:('The downside is that you\'re\n' +
-                  'pretty much stuck here\n' +
-                  'forever. Maybe you can find\n' +
-                  'a new friend or job down\n' +
-                  'here?\n'),
-               s: stuff['foreman'],
-                  scx: scx, scy: scy}]);
-          _root.you.lookingforminers = true;
-          } else {
-            // do nothing
+            _root.you.status.get('snorkel');
+            _root.you.havesnorkel = true;
+            break;
+
+          case 'hypereng':
+            _root.you.dialogInterlude([
+            //     ------------------------------
+                {m:('This is the Large Hadron\n' +
+                    'Collider, where we make\n' +
+                    'mind-control lasers. I\'m\n' +
+                    'Eve. One of my earlier\n' +
+                    'inventions was the\n' +
+                    'mitochondria.\n'),
+                    s: stuff['hypereng'],
+                    scx: scx, scy: scy},
+                {m:('The mitochondria is the\n' +
+                    'horse-power of the cell!\n' +
+                    '\n' +
+                    'Here, take one. I have like\n' +
+                    'a million of these.\n'),
+                    s: stuff['hypereng'],
+                    scx: scx, scy: scy},
+                {m:('If you run on a flat surface\n' +
+                    'for a while, you can power-\n' +
+                    'horse up! You know it\'s\n' +
+                    'working because you start\n' +
+                    'glowing like at a rave.\n'),
+                    s: stuff['hypereng'],
+                    scx: scx, scy: scy},
+                {m:('Keep holding down the button!\n' +
+                    'Then you can jump extra far.\n' +
+                    '\n' +
+                    'OR IS THAT JUST MY MIND\n' +
+                    'CONTROL LASER MAKING YOU\n' +
+                    'THINK THAT!?'),
+                    s: stuff['hypereng'],
+                    scx: scx, scy: scy},
+                {m:('\n\n' +
+                    '         EVOLVED     \n' +
+                    '\n'),
+                    scx: scx, scy: scy}]);
+
+            _root.you.status.get('mitochondria');
+            _root.you.havehypermode = true;
+            break;
+
+          case 'bird':
+            _root.you.dialogInterlude([
+            //     ------------------------------
+                {m:('Ho there good sir! And\n' +
+                    'might I mention, a hearty\n' +
+                    'happy birthday.\n'),
+                 s: stuff['bird'],
+                    scx: scx, scy: scy},
+                {m:('I\'m a time-traveling bird\n' +
+                    'from the future, sent here\n' +
+                    'to prevent the Large Hadron\n' +
+                    'Collider from discovering\n' +
+                    'mind-control lasers.\n'),
+                 s: stuff['bird'],
+                    scx: scx + 100, scy: scy},
+                {m:('Would you mind helping me\n' +
+                    'by going down in there\n' +
+                    'and causing a catastrophic\n' +
+                    'magnet quench?\n'),
+                 s: stuff['bird'],
+                    scx: 2553, scy: 3842},
+                {m:('This lab-coat will let you\n' +
+                    'get in.\n'),
+                 s: stuff['bird'],
+                    scx: scx, scy: scy},
+                {m:('I mean, you don\'t want your\n' +
+                    'mind controlled by lasers,\n' +
+                    'do you?\n'),
+                 s: stuff['bird'],
+                    scx: scx, scy: scy}]);
+            _root.you.status.get('labcoat');
+            _root.you.havelabcoat = true;
+            break;
+
+          case 'charlie':
+            _root.you.dialogInterlude([
+            //     ------------------------------
+                {m:('Hi! I\'m Charlie Darwin and\n',
+                    'this is my boat! I\'m a\n' +
+                    'boat driver AND a science\n' +
+                    'chef!\n'),
+                 s: stuff['charlie'],
+                    scx: scx, scy: scy},
+                {m:('Sailing is easy! Boats\n' +
+                    'just float like ducks!\n' +
+                    'Charlie Darkwin Duck! hehe\n'),
+                 s: stuff['charlie'],
+                    scx: scx, scy: scy}]);
+            // XXX some power-up?
+            break;
+
+          case 'foreman':
+            if (_root.you.havewalljump) {
+              // nothing.
+            } else if (_root.you.havecoordinates) {
+            _root.you.dialogInterlude([
+            //     ------------------------------
+                {m:('What? You found trapped\n' +
+                    'U.R.S.A. miners?\n' +
+                    '\n' +
+                    '...\n' +
+                    'I guess if I dig them\n' +
+                    'out, I won\'t need to teach\n' +
+                    'you how to use dynamite.\n'),
+                 s: stuff['foreman'],
+                    scx: scx, scy: scy},
+                {m:('Instead I\'ll teach you how\n' +
+                    'to climb walls so you can\n' +
+                    'GET OUT OF MY MINE.\n'),
+                 s: stuff['foreman'],
+                    scx: scx, scy: scy},
+                {m:('This is a wall. Since cells\n' +
+                    'are very sticky, you can\n' +
+                    'cling to the wall, and even\n' +
+                    'jump off it!'),
+                 s: stuff['foreman'],
+                    scx: scx - 4 * 26, scy: scy - 26},
+                {m:('\n\n' +
+                    '         EVOLVED     \n' +
+                    '\n'),
+                    scx: scx, scy: scy}]);
+
+            _root.you.status.get('walljump');
+            _root.you.havewalljump = true;
+
+            } else if (!_root.you.lookingforminers) {
+            _root.you.dialogInterlude([
+            //     ------------------------------
+                {m:('Happy birthday!\n' +
+                    '\n' +
+                    'Welcome to the United\n' +
+                    'Reticulum Spelunking Assoc.\n' +
+                    'public mine museum &\n' +
+                    'adventure camp.'),
+                 s: stuff['foreman'],
+                    scx: scx, scy: scy},
+                {m:('The downside is that you\'re\n' +
+                    'pretty much stuck here\n' +
+                    'forever. Maybe you can find\n' +
+                    'a new friend or job down\n' +
+                    'here?\n'),
+                 s: stuff['foreman'],
+                    scx: scx, scy: scy}]);
+            _root.you.lookingforminers = true;
+            } else {
+              // do nothing
+            }
+
+            break;
+          case 'miners':
+            _root.you.dialogInterlude([
+            //     ------------------------------
+                {m:('BLESS MY TEXAS! You found\n' +
+                    'us! The trapped U.R.S.A.\n' +
+                    'miners!'),
+                 s: stuff['tminer1'],
+                    scx: scx, scy: scy},
+                {m:('Can you tell the foreman\n' +
+                    'where we are? The air is\n' +
+                    'getting thin, and we\'re\n' +
+                    'aerobic!\n'),
+                 s: stuff['tminer2'],
+                    scx: scx + 75, scy: scy},
+                {m:('Just give him our GPS\n' +
+                    'coordinates... I think this\n' +
+                    'thing should work okay down\n' +
+                    'here?'),
+                 s: stuff['tminer1'],
+                    scx: scx, scy: scy},
+                {m:('...\n'),
+                 s: stuff['tminer2'],
+                    scx: scx + 75, scy: scy},
+                {m:('81.37\' 64.331" N\n' +
+                    '-41.03\' 22.101" E\n' +
+                    '\n' +
+                    ' ... got that?\n'),
+                 s: stuff['tminer1'],
+                    scx: scx, scy: scy}]);
+            _root.you.havecoordinates = true;
+            break;
+
+          case 'mines':
+            _root.you.dialogInterlude([{
+            //     ------------------------------
+                m:('This is a public mine run\n' +
+                   'by the the United Reticulum\n' +
+                   'Spelunking Association.\n' +
+                   'Their motto is:\n' +
+                   '\n' +
+                   '"What\'s mines is yours."\n'),
+                    scx: scx, scy: scy}]);
+            break;
+
+          default:
+            _root.you.dialogInterlude([{
+            //     ------------------------------
+                m:('You found a "secret"!\n' +
+                   'It\'s an unimplemented event!\n'),
+                    scx: scx, scy: scy}]);
+            break;
           }
-
-          break;
-        case 'miners':
-          _root.you.dialogInterlude([
-          //     ------------------------------
-              {m:('BLESS MY TEXAS! You found\n' +
-                  'us! The trapped U.R.S.A.\n' +
-                  'miners!'),
-               s: stuff['tminer1'],
-                  scx: scx, scy: scy},
-              {m:('Can you tell the foreman\n' +
-                  'where we are? The air is\n' +
-                  'getting thin, and we\'re\n' +
-                  'aerobic!\n'),
-               s: stuff['tminer2'],
-                  scx: scx + 75, scy: scy},
-              {m:('Just give him our GPS\n' +
-                  'coordinates... I think this\n' +
-                  'thing should work okay down\n' +
-                  'here?'),
-               s: stuff['tminer1'],
-                  scx: scx, scy: scy},
-              {m:('...\n'),
-               s: stuff['tminer2'],
-                  scx: scx + 75, scy: scy},
-              {m:('81.37\' 64.331" N\n' +
-                  '-41.03\' 22.101" E\n' +
-                  '\n' +
-                  ' ... got that?\n'),
-               s: stuff['tminer1'],
-                  scx: scx, scy: scy}]);
-          _root.you.havecoordinates = true;
-          break;
-
-        case 'mines':
-          _root.you.dialogInterlude([{
-          //     ------------------------------
-              m:('This is a public mine run\n'
-                 'by the the United Reticulum\n'
-                 'Spelunking Association.\n'
-                 'Their motto is:\n'
-                 '\n'
-                 '"What\'s mines is yours."\n'),
-                  scx: scx, scy: scy}]);
-          break;
-
-        default:
-          _root.you.dialogInterlude([{
-          //     ------------------------------
-              m:('You found a "secret"!\n' +
-                 'It\'s an unimplemented event!\n'),
-                  scx: scx, scy: scy}]);
-          break;
         }
       }
     }
