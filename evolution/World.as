@@ -554,6 +554,32 @@ class World {
                     scx: scx, scy: scy}]);
             break;
 
+          case 'birthdayhat':
+            _root.you.dialogInterlude([
+            //     ------------------------------
+                {m:('Happy birthday to you\n' +
+                    'happy birthday to you.\n' +
+                    'Happy birthday,\n' +
+                    '   dear cell-face.\n' +
+                    '\n' +
+                    'Happy birthday to you.\n'),
+                 s: stuff['birthdayhat'],
+                    scx: scx, scy: scy},
+                {m:('Love,\n' +
+                    '\n' +
+                    '      Mars.\n'),
+                 s: stuff['birthdayhat'],
+                    scx: scx, scy: scy},
+                {m:('\n' +
+                    '\n' +
+                    '   That is pretty much \n' +
+                    '   "the end."\n'),
+                 s: stuff['birthdayhat'],
+                    scx: scx, scy: scy}]);
+
+            _root.you.status.get('birthdayhat');
+
+            break;
           default:
             _root.you.dialogInterlude([{
             //     ------------------------------
