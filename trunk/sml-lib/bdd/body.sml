@@ -3,7 +3,7 @@
 (* Implementation of rigid bodies.
 
    Corresponding to parts of dynamics/b2body.cpp. *)
-functor BDDBody(Arg : 
+functor BDDBody(Arg :
                 sig
                   type fixture_data
                   type body_data
@@ -19,7 +19,7 @@ struct
   infix 7 *: *% +*: +*+ #*% @*:
 
   exception BDDBody of string
-  
+
   fun !! (SOME r) = r
     | !! NONE = raise BDDBody
       ("Expected non-NONE reference; corresponds to an unchecked NULL " ^
@@ -86,23 +86,23 @@ struct
   fun set_active (b, flag) =
       if flag = get_flag (b, FLAG_ACTIVE)
       then ()
-      else 
+      else
           if flag
           then
-              let 
+              let
                   val bp = D.W.get_broad_phase (get_world b)
                   val xf = D.B.get_xf b
               in
                   set_flag (b, FLAG_ACTIVE);
                   (* Create all proxies *)
-                  oapp D.F.get_next 
+                  oapp D.F.get_next
                   (fn fixture =>
-                   D.F.create_proxy(fixture, bp, xf)) 
+                   D.F.create_proxy(fixture, bp, xf))
                   (D.B.get_fixture_list b)
                   (* Contacts are created the next time step. *)
               end
           else
-              let 
+              let
                   val w = get_world b
                   val bp = D.W.get_broad_phase w
               in
@@ -135,9 +135,9 @@ struct
              D.B.get_typ b = BDDDynamicsTypes.Kinematic
           then
              let in
-                 sweep_set_c0 (D.B.get_sweep b, 
+                 sweep_set_c0 (D.B.get_sweep b,
                                transformposition (D.B.get_xf b));
-                 sweep_set_c (D.B.get_sweep b, 
+                 sweep_set_c (D.B.get_sweep b,
                               transformposition (D.B.get_xf b))
              end
           else
@@ -206,9 +206,9 @@ struct
                  sweep_set_c0 (D.B.get_sweep b, c);
                  sweep_set_c (D.B.get_sweep b, c);
                  (* Update center of mass velocity. *)
-                 D.B.set_linear_velocity 
+                 D.B.set_linear_velocity
                  (b,
-                  D.B.get_linear_velocity b :+: 
+                  D.B.get_linear_velocity b :+:
                   cross2sv(D.B.get_angular_velocity b,
                            c :-: old_center))
              end
@@ -232,7 +232,7 @@ struct
 
   fun apply_force (b, force : vec2, point : vec2) : unit =
       case get_type b of
-          Dynamic => 
+          Dynamic =>
               (if get_awake b
                then ()
                else set_awake (b, true);
@@ -242,7 +242,7 @@ struct
 
   fun apply_torque (b, torque : real) : unit =
       case get_type b of
-          Dynamic => 
+          Dynamic =>
               (if get_awake b
                then ()
                else set_awake (b, true);
@@ -251,7 +251,7 @@ struct
 
   fun apply_linear_impulse (b, impulse : vec2, point : vec2) : unit =
       case get_type b of
-          Dynamic => 
+          Dynamic =>
               (if get_awake b
                then ()
                else set_awake (b, true);
@@ -265,7 +265,7 @@ struct
 
   fun apply_angular_impulse (b, impulse : real) : unit =
       case get_type b of
-          Dynamic => 
+          Dynamic =>
               (if get_awake b
                then ()
                else set_awake (b, true);
@@ -299,10 +299,10 @@ struct
         then reset_mass_data body
         else ();
 
-        (* Let the world know we have a new fixture. This will cause 
-           new contacts to be created at the beginning of the next 
+        (* Let the world know we have a new fixture. This will cause
+           new contacts to be created at the beginning of the next
            time step. *)
-        D.W.set_flags (world, D.W.FLAG_NEW_FIXTURE);
+        D.W.set_flag (world, D.W.FLAG_NEW_FIXTURE);
 
         f
     end
@@ -406,7 +406,7 @@ struct
                     (* Port note: Assignment to inv_mass here is dead *)
                     val () = D.B.set_i (b, 0.0)
                     val () = D.B.set_inv_i (b, 0.0)
-                        
+
                     val mass = if #mass mass_data <= 0.0
                                then 1.0
                                else #mass mass_data
@@ -439,9 +439,9 @@ struct
                     sweep_set_c0 (D.B.get_sweep b, c);
                     sweep_set_c (D.B.get_sweep b, c);
                     (* Update center of mass velocity. *)
-                    D.B.set_linear_velocity 
+                    D.B.set_linear_velocity
                     (b,
-                     D.B.get_linear_velocity b :+: 
+                     D.B.get_linear_velocity b :+:
                      cross2sv(D.B.get_angular_velocity b,
                               c :-: old_center))
                 end
@@ -487,7 +487,7 @@ struct
                 set_awake (b, true);
                 D.B.set_force (b, vec2 (0.0, 0.0));
                 D.B.set_torque (b, 0.0);
-                (* Since the body type changed, we need to flag 
+                (* Since the body type changed, we need to flag
                    contacts for filtering. *)
                 oapp D.E.get_next (D.C.flag_for_filtering o !! o
                                    D.E.get_contact)
@@ -495,7 +495,7 @@ struct
             end
 
 (* Advance, synchronizetransform are in dynamics *)
-(* ShouldCollide is in D.B 
+(* ShouldCollide is in D.B
     and synchronizefixtures *)
 
 end
