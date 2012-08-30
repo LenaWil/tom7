@@ -62,20 +62,24 @@ class World {
   // Give the screen x and y coordinates; load the corresponding
   // bitmap into the movie clip.
   public function loadBits(mc, sx, sy) {
-    // PERF! Cache it!
-    var png = "screen_" + sx + "_" + sy + ".png";
-    var bm : BitmapData = BitmapData.loadBitmap(png);
-    var bm2x : BitmapData =
-      new BitmapData(WIDTH * 2,
-                     HEIGHT * 2,
-                     // No transparency.
-                     false, 0);
-    var grow = new Matrix();
-    grow.scale(2, 2);
-    bm2x.draw(bm, grow);
-    mc.attachBitmap(bm2x,
-                    // depth: always the same
-                    10);
+    if (mc.cur && mc.cur.sx == sx && mc.cur.sy == sy) {
+      // trace('cached.');
+    } else {
+      var png = "screen_" + sx + "_" + sy + ".png";
+      var bm : BitmapData = BitmapData.loadBitmap(png);
+      var bm2x : BitmapData =
+        new BitmapData(WIDTH * 2,
+                       HEIGHT * 2,
+                       // No transparency.
+                       false, 0);
+      var grow = new Matrix();
+      grow.scale(2, 2);
+      bm2x.draw(bm, grow);
+      mc.attachBitmap(bm2x,
+                      // depth: always the same
+                      10);
+      mc.cur = { sx: sx, sy: sy };
+    }
   }
 
   public function liftingAt(x, y) {
@@ -438,7 +442,7 @@ class World {
           case 'charlie':
             _root.you.dialogInterlude([
             //     ------------------------------
-                {m:('Hi! I\'m Charlie Darwin and\n',
+                {m:('Hi! I\'m Charlie Darwin and\n' +
                     'this is my boat! I\'m a\n' +
                     'boat driver AND a science\n' +
                     'chef!\n'),

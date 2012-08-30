@@ -66,6 +66,7 @@ class Dialog {
     // Always at depth 1.
     mc.attachBitmap(background, 1);
     textbm = new BitmapData(background.width, background.height, true, 0);
+    mc.attachBitmap(textbm, 2);
     cx = 0;
     cy = 0;
   }
@@ -91,28 +92,35 @@ class Dialog {
   }
 
   // Make progress on the display.
-  public function doFrame() {
-    if (cy >= message.length) {
-      // blink cursor or something.
-      return;
-    } else {
-      var s = message[cy];
-      if (cx >= s.length) {
-        // Easy to just have this count as a keypress,
-        // might be natural anyway.
-        cx = 0;
-        cy++;
+  // If the argument is true, then go faster.
+  public function doFrame(holdingKey) {
+
+    var n = holdingKey ? 4 : 1;
+    for (var i = 0; i < n; i++) {
+      if (cy >= message.length) {
+        // blink cursor or something.
         return;
       } else {
-        var place = new Matrix();
-        place.translate(2 * DIALOGMARGINX + 2 * cx * (FONTW - FONTOVERLAP),
-                        2 * DIALOGMARGINY + 2 * cy * FONTH);
-        textbm.draw(font[s.charCodeAt(cx)], place);
-        mc.attachBitmap(textbm, 2);
-        if (!(cx % 2) && speaker) speaker.jiggle = !speaker.jiggle;
-        cx++;
+        var s = message[cy];
+
+        if (cx >= s.length) {
+          // Easy to just have this count as a keypress,
+          // might be natural anyway.
+          cx = 0;
+          cy++;
+        } else {
+          var place = new Matrix();
+          place.translate(2 * DIALOGMARGINX + 2 * cx * (FONTW - FONTOVERLAP),
+                          2 * DIALOGMARGINY + 2 * cy * FONTH);
+          textbm.draw(font[s.charCodeAt(cx)], place);
+          mc.attachBitmap(textbm, 2);
+          if (!(cx % 2) && speaker) speaker.jiggle = !speaker.jiggle;
+          cx++;
+        }
+
       }
     }
+
   }
 
 }

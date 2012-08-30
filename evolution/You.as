@@ -177,15 +177,25 @@ class You extends PhysicsObject {
 
     if (dialog_wait) {
 
-      if (holdingUp && dialog.done()) {
-        doDialogQueue();
-
+      // Dialog is up. Do the delicate dance that
+      // lets us hold space to speed up dialog
+      // printing, but also use space to dismiss
+      // the dialog, but require a new press for
+      // each page.
+      if (dialog.done()) {
+        if (holdingUp) {
+          // trace('ddq');
+          doDialogQueue();
+          holdingUp = false;
+        }
       } else {
-        // XXX can pass whether we're holding down something
-        // here which makes it go faster. but be careful that
-        // it doesn't also count as dismissing the box.
-        // Also be careful about key repeats.
-        dialog.doFrame();
+
+        dialog.doFrame(holdingUp);
+        if (holdingUp && dialog.done()) {
+          // clear keys, once.
+          holdingUp = false;
+          allowUp = false;
+        }
       }
 
       _root.world.scrollTowards(scrollprefx, scrollprefy);
