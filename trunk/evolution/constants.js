@@ -108,3 +108,12 @@ var STARTY = 3459;
 // enter mines
 // var STARTX = 4184;
 // var STARTY = 5164;
+
+// clouds
+// var STARTX = 8081;
+// var STARTY = 1781;
+
+var STARTHYPER = false;
+var STARTLABCOAT = false;
+var STARTSNORKEL = false;
+var STARTWALLJUMP = false;

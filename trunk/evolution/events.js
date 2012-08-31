@@ -36,7 +36,12 @@ var events = {
 		scx: 4807, scy: 8513 },
     birthdayhat: { x1: 7859, y1: 1309,
 		   x2: 8040, y2: 1465,
-		   scx: 7787, scy: 1200 }
+		   scx: 7787, scy: 1200 },
+    authenticity: { x1: 9778, y1: 311,
+		    x2: 9932, y2: 422,
+		    scx: 9724, scy: 221,
+		  m: 'The certificate of\nauthenticity.',
+		  item: 'authenticity' }
 };
 
 var stuff = {
@@ -56,5 +61,6 @@ var stuff = {
     charlie: { x: 8217, y: 3855, p: ['charlie'] },
     hypereng: { x: 4975, y: 8735, p: ['scientist'] },
     cactus: { x: 7985, y: 5543, p: ['cactus'] },
-    birthdayhat: { x: 7930, y: 1388, p: ['birthdayhat'] }
+    birthdayhat: { x: 7930, y: 1388, p: ['birthdayhat'] },
+    authenticity: { x: 9827, y: 390, p: ['authenticity'] }
 };

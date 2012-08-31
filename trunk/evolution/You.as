@@ -53,7 +53,7 @@ class You extends PhysicsObject {
 
   var frames;
 
-  var havelabcoat = false;
+  var havelabcoat = STARTLABCOAT;
   var lookingforminers = false;
 
   // XXX shouldn't be squares, but...
