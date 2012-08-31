@@ -12,7 +12,8 @@ class Status {
     labcoat: { p: "labcoat" },
     cactus: { p: "cactus" },
     mitochondria: { p: "mitochondria" },
-    birthdayhat: { p: "birthdayhat" }
+    birthdayhat: { p: "birthdayhat" },
+    authenticity: { p: "authenticity" }
   };
 
   var mc : MovieClip = null;

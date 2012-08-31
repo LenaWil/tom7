@@ -6,6 +6,8 @@
 // updating the .x and .y properties.
 
 class PhysicsObject extends Depthable {
+  #include "constants.js"
+
   // Position in world pixels.
   var x = 0;
   var y = 0;
@@ -23,9 +25,9 @@ class PhysicsObject extends Depthable {
   var right = 0;
   var bottom = 0;
 
-  var havehypermode = false; // XXX false;
-  var havewalljump = false; // false;
-  var havesnorkel = false;
+  var havehypermode = STARTHYPER;
+  var havewalljump = STARTWALLJUMP;
+  var havesnorkel = STARTSNORKEL;
 
   // Number of frames we've been running at max speed
   // without interruption.
