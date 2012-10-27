@@ -16,7 +16,8 @@ SDLARCH=x64
 
 #  /I "SDL_net-${SDLNETVERSION}\include" /I "SDL_mixer-${SDLMIXERVERSION}\include"
 
-COMPILE=cl /nologo ${WHICHFLAGS} /EHsc /W3 /I "..\cc-lib" /I "SDL\include" /I "SDL_image\include" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /c
+# /J is unsigned chars
+COMPILE=cl /nologo ${WHICHFLAGS} /EHsc /W3 /I "..\cc-lib" /I "SDL\include" /I "SDL_image\include" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "COMPILER_MSVC" /J /c
 
 # add these next: "SDL_net-${SDLNETVERSION}\lib\SDL_net.lib" "SDL_mixer-${SDLMIXERVERSION}\lib\SDL_mixer.lib"
 
@@ -37,7 +38,7 @@ LINK=link /LTCG oldnames.lib "SDL\lib\${SDLARCH}\SDLmain.lib" "SDL\lib\${SDLARCH
 %.obj : %.cc
 	${COMPILE} $<
 
-10goto20.exe : 10goto20.obj sdlutil.obj util.obj
+10goto20.exe : 10goto20.obj sdlutil.obj util.obj audio-engine.obj bleep-bloop-sample-layer.obj
 	${LINK} /out:$@ $^
 	rm -f *.manifest *.pdb
 
