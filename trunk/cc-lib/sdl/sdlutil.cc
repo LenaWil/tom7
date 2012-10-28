@@ -1,6 +1,6 @@
 
-#include "SDL/SDL.h"
-#include "SDL/SDL_image.h"
+#include "SDL.h"
+#include "SDL_image.h"
 #include "sdlutil.h"
 #include <string>
 #include "util.h"
@@ -350,7 +350,7 @@ SDL_Surface * sdlutil::makealpharectgrad(int w, int h,
   /* draws each line as a separate rectangle. */
   for(int i = 0; i < h; i ++) {
     /* no bias yet */
-    float frac = 1.0 - ((float)i / (float)h);
+    float frac = 1.0f - ((float)i / (float)h);
     int r = (int) ((r1 * frac) + (r2 * (1.0 - frac)));
     int g = (int) ((g1 * frac) + (g2 * (1.0 - frac)));
     int b = (int) ((b1 * frac) + (b2 * (1.0 - frac)));
