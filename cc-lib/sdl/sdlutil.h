@@ -2,7 +2,7 @@
 #ifndef __SDLUTIL_H
 #define __SDLUTIL_H
 
-#include "SDL/SDL.h"
+#include "SDL.h"
 
 struct sdlutil {
   static SDL_Surface * makescreen(int w, int h);
