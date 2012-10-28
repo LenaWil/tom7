@@ -3,7 +3,7 @@
 
 #define NOTES_PER_SECOND 10
 static const int SAMPLES_PER_NOTE = SAMPLINGRATE / NOTES_PER_SECOND;
-#define AMPLITUDE 0.4
+#define AMPLITUDE 0.15
 
 static int64 Randy(int64 i) {
   i = i * 31337LL;
@@ -22,7 +22,7 @@ static double RandomFreq(int64 i) {
 
 static double Sinewave(double freq, int64 samplet) {
   // XXX ?
-  return 0.4 * sin(TWOPI * freq * (samplet / (double)SAMPLINGRATE));
+  return AMPLITUDE * sin(TWOPI * freq * (samplet / (double)SAMPLINGRATE));
 }
 
 Sample BleepBloopSampleLayer::SampleAt(int64 t) {
