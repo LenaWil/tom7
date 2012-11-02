@@ -58,7 +58,7 @@ LINK=link /LTCG oldnames.lib ${LIBMAIN} "SDL\lib\${SDLARCH}\SDL.lib" "SDL_image\
 %.obj : %.cc
 	${COMPILE} $<
 
-10goto20.exe : 10goto20.obj sdlutil.obj util.obj audio-engine.obj bleep-bloop-sample-layer.obj ${JDKSMIDI} ${OBJMAIN}
+10goto20.exe : 10goto20.obj sdlutil.obj util.obj audio-engine.obj bleep-bloop-sample-layer.obj controllers.obj ${JDKSMIDI} ${OBJMAIN}
 	${LINK} /out:$@ $^
 	rm -f *.manifest *.pdb
 
