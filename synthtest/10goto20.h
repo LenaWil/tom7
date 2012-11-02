@@ -42,6 +42,11 @@ struct hash< unsigned long long > {
     abort();                                                \
   }
 
+#define NOT_COPYABLE(classname) \
+  private: \
+  classname(const classname &); \
+  classname &operator =(const classname &)
+
 using namespace std;
 
 #ifdef COMPILER_MSVC
