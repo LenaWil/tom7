@@ -1,16 +1,16 @@
  TASBOT                                     Tom 7         11 Nov 2012
 
  Experimental automated search for optimal solutions to NES games.
- Currently, all that exists is a fork of FCE Ultra (GPL Version) that
- compiles cleanly on mingw for x64 windows. This is important because
- the search algorithm I have in mind will use LOTS of RAM; far more
- than the 2-3gb allowed on win32.
+ Currently, all that exists is a fork of the NES emulator FCEUX (GPL)
+ that compiles cleanly on mingw for x64 windows. This is important
+ because the search algorithm I have in mind will use LOTS of RAM; far
+ more than the 2-3gb allowed on win32.
 
  The intended platform is 64-bit windows 7. There's no windows-specific
  stuff here, but compiling in this era is a nightmare and so I don't
  expect it to work straightforwardly on other platforms.
 
- The fceu subdirectory is the fork of FCE Ultra. I deleted a bunch of
+ The fceu subdirectory is the fork of FCEUX. I deleted a bunch of
  stuff from it. It is licensed under the GPL (see fceu/COPYING),
  including my modifications.
 
