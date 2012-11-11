@@ -13,27 +13,31 @@
 #include <limits.h>
 #include <math.h>
 
-#include "main.h"
+#include "fceu/driver.h"
+#include "fceu/drivers/common/config.h"
+#include "fceu/drivers/common/args.h"
+
+// #include "main.h"
 // #include "throttle.h"
 // #include "config.h"
 
-#include "../common/cheat.h"
-#include "../../fceu.h"
-#include "../../movie.h"
-#include "../../version.h"
+#include "fceu/drivers/common/cheat.h"
+#include "fceu/fceu.h"
+#include "fceu/movie.h"
+#include "fceu/version.h"
 
 // #include "input.h"
 // #include "dface.h"
 
-#include "dummy.h"
+// #include "dummy.h"
 
 // #include "sdl.h"
 // #include "sdl-video.h"
 // #include "unix-netplay.h"
 
-#include "../common/configSys.h"
-#include "../../oldmovie.h"
-#include "../../types.h"
+#include "fceu/drivers/common/configSys.h"
+#include "fceu/oldmovie.h"
+#include "fceu/types.h"
 
 extern double g_fpsScale;
 

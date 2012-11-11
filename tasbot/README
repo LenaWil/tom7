@@ -15,7 +15,7 @@
  including my modifications.
 
  This is currently a headless compile; no graphics or sound or input.
- It compiles for me with the makefile I built, after isntalling the
+ It compiles for me with the makefile I built, after installing the
  cygwin packages like x86_64-w64-mingw32-g++ (don't get the i686 ones;
  I hear they are a trap!). Make sure you get libz since it's required
  by this. Follow the instructions on http://mingw-w64.sourceforge.net/
