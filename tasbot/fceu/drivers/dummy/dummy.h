@@ -3,8 +3,8 @@
 
 // #include <DUMMY.h>
 #include "main.h"
-#include "dface.h"
-#include "input.h"
+// #include "dface.h"
+// #include "input.h"
 
 static void DoFun(int frameskip);
 static int isloaded = 0;
