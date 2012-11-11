@@ -41,79 +41,9 @@ static int DriverInitialize(FCEUGI *gi);
 
 static int noconfig;
 
-// -Video Modes Tag- : See --special
-char *DriverUsage="\
-Option         Value   Description\n\
---pal          {0|1}   Use PAL timing.\n\
---newppu       {0|1}   Enable the new PPU core. (WARNING: May break savestates)\n\
---inputcfg     d       Configures input device d on startup.\n\
---input(1,2)   d       Set which input device to emulate for input 1 or 2.\n\
-                         Devices:  gamepad zapper powerpad.0 powerpad.1 arkanoid\n\
---input(3,4)   d       Set the famicom expansion device to emulate for input(3, 4)\n\
-                         Devices: quizking hypershot mahjong toprider ftrainer\n\
-                         familykeyboard oekakids arkanoid shadow bworld 4player\n\
---gamegenie    {0|1}   Enable emulated Game Genie.\n\
---frameskip    x       Set # of frames to skip per emulated frame.\n\
---xres         x       Set horizontal resolution for full screen mode.\n\
---yres         x       Set vertical resolution for full screen mode.\n\
---autoscale    {0|1}   Enable autoscaling in fullscreen. \n\
---keepratio    {0|1}   Keep native NES aspect ratio when autoscaling. \n\
---(x/y)scale   x       Multiply width/height by x. \n\
-                         (Real numbers >0 with OpenGL, otherwise integers >0).\n\
---(x/y)stretch {0|1}   Stretch to fill surface on x/y axis (OpenGL only).\n\
---bpp       {8|16|32}  Set bits per pixel.\n\
---opengl       {0|1}   Enable OpenGL support.\n\
---fullscreen   {0|1}   Enable full screen mode.\n\
---noframe      {0|1}   Hide title bar and window decorations.\n\
---special      {1-4}   Use special video scaling filters\n\
-                         (1 = hq2x 2 = Scale2x 3 = NTSC 2x 4 = hq3x 5 = Scale3x)\n\
---palette      f       Load custom global palette from file f.\n\
---sound        {0|1}   Enable sound.\n\
---soundrate    x       Set sound playback rate to x Hz.\n\
---soundq      {0|1|2}  Set sound quality. (0 = Low 1 = High 2 = Very High)\n\
---soundbufsize x       Set sound buffer size to x ms.\n\
---volume      {0-256}  Set volume to x.\n\
---soundrecord  f       Record sound to file f.\n\
---playmov      f       Play back a recorded FCM/FM2/FM3 movie from filename f.\n\
---pauseframe   x       Pause movie playback at frame x.\n\
---ripsubs      f       Convert movie's subtitles to srt\n\
---subtitles    {0,1}   Enable subtitle display\n\
---fourscore    {0,1}   Enable fourscore emulation\n\
---no-config    {0,1}   Use default config file and do not save\n\
---net          s       Connect to server 's' for TCP/IP network play.\n\
---port         x       Use TCP/IP port x for network play.\n\
---user         x       Set the nickname to use in network play.\n\
---pass         x       Set password to use for connecting to the server.\n\
---netkey       s       Use string 's' to create a unique session for the game loaded.\n\
---players      x       Set the number of local players.\n\
---rp2mic       {0,1}   Replace Port 2 Start with microphone (Famicom).\n\
---nogui                Don't load the GTK GUI";
-
-
-// these should be moved to the man file
-//--nospritelim  {0|1}   Disables the 8 sprites per scanline limitation.\n
-//--trianglevol {0-256}  Sets Triangle volume.\n
-//--square1vol  {0-256}  Sets Square 1 volume.\n
-//--square2vol  {0-256}  Sets Square 2 volume.\n
-//--noisevol	{0-256}  Sets Noise volume.\n
-//--pcmvol	  {0-256}  Sets PCM volume.\n
-//--lowpass	  {0|1}   Enables low-pass filter if x is nonzero.\n
-//--doublebuf	{0|1}   Enables SDL double-buffering if x is nonzero.\n
-//--slend	  {0-239}   Sets the last drawn emulated scanline.\n
-//--ntsccolor	{0|1}   Emulates an NTSC TV's colors.\n
-//--hue		   x	  Sets hue for NTSC color emulation.\n
-//--tint		  x	  Sets tint for NTSC color emulation.\n
-//--slstart	{0-239}   Sets the first drawn emulated scanline.\n
-//--clipsides	{0|1}   Clips left and rightmost 8 columns of pixels.\n
-
-static void ShowUsage(char *prog) {
-  printf("\nUsage is as follows:\n%s <options> filename\n\n",prog);
-  puts(DriverUsage);
-  puts("");
-  //	printf("Compiled with SDL version %d.%d.%d\n", SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL );
-  //		const SDL_version* v = SDL_Linked_Version();
-  //	printf("Linked with SDL version %d.%d.%d\n", v->major, v->minor, v->patch);
-}
+// Joystick data. I think used for both controller 0 and 1. Part of
+// the "API".
+static uint32 joydata = 0;
 
 /**
  * Loads a game, given a full path/filename.  The driver code must be
@@ -122,13 +52,16 @@ static void ShowUsage(char *prog) {
  * render, what virtual input devices to use, etc.).
  */
 int LoadGame(const char *path) {
-#if 0
   CloseGame();
   if(!FCEUI_LoadGame(path, 1)) {
     return 0;
   }
-  ParseGIInput(GameInfo);
-  RefreshThrottleFPS();
+
+  // Here we used to do ParseGIInput, which allows the gameinfo
+  // to override our input config, or something like that. No
+  // weird stuff. Skip it.
+
+  // RefreshThrottleFPS();
 
   if(!DriverInitialize(GameInfo)) {
     return(0);
@@ -137,30 +70,17 @@ int LoadGame(const char *path) {
   // Set NTSC (1 = pal)
   FCEUI_SetVidSystem(0);
 
-  isloaded = 1;
-
   return 1;
-#endif
 }
 
 /**
  * Closes a game.  Frees memory, and deinitializes the drivers.
  */
 int CloseGame() {
-#if 0
-  std::string filename;
-
-  if(!isloaded) {
-    return(0);
-  }
   FCEUI_CloseGame();
   DriverKill();
-  isloaded = 0;
   GameInfo = 0;
-
-  InputUserActiveFix();
-  return(1);
-#endif
+  return 1;
 }
 
 void FCEUD_Update(uint8 *XBuf, int32 *Buffer, int Count);
@@ -195,25 +115,22 @@ static void DoFun(int frameskip) {
  * Initialize all of the subsystem drivers: video, audio, and joystick.
  */
 static int DriverInitialize(FCEUGI *gi) {
-#if 0
-  if(InitVideo(gi) < 0) return 0;
-  inited|=4;
+  // Used to init video. I think it's safe to skip.
 
-  if(InitSound())
-    inited|=1;
+  // Here we initialized sound. Assuming it's safe to skip,
+  // because of an early return if config turned it off.
 
-  if(InitJoysticks())
-    inited|=2;
+  // Used to init joysticks. Don't care about that.
 
-  int fourscore=0;
-  g_config->getOption("SDL.FourScore", &fourscore);
-  eoptions &= ~EO_FOURSCORE;
-  if(fourscore)
-    eoptions |= EO_FOURSCORE;
+  // No fourscore support.
+  // eoptions &= ~EO_FOURSCORE;
 
-  InitInputInterface();
+  // Why do both point to the same joydata? -tom
+  FCEUI_SetInput (0, SI_GAMEPAD, &joydata, 0);
+  FCEUI_SetInput (1, SI_GAMEPAD, &joydata, 0);
+
+  FCEUI_SetInputFourscore (false);
   return 1;
-#endif
 }
 
 /**
@@ -352,12 +269,12 @@ int main(int argc, char *argv[]) {
   // initialize the infrastructure
   error = FCEUI_Initialize();
   if (error != 1) {
-    ShowUsage(argv[0]);
+    fprintf(stderr, "Error initializing.\n");
     return -1;
   }
 
   if (argc != 2) {
-    fprintf(stderr, "Need a ROM on the command line, and nothing else.");
+    fprintf(stderr, "Need a ROM on the command line, and nothing else.\n");
     return -1;
   }
   
