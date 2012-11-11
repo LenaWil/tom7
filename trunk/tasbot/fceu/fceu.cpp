@@ -79,7 +79,14 @@ extern bool TaseditorIsRecording();
 
 // tom7
 #elif defined(DUMMY_UI)
-#include "drivers/dummy/dummy.h"
+
+// driver provided via abstract interface.
+#if 0
+// #include "drivers/dummy/dummy.h"
+#endif
+
+#include "driver.h"
+
 #else
 #include "drivers/sdl/sdl.h"
 #endif
@@ -1081,7 +1088,7 @@ bool FCEU_IsValidUI(EFCEUI ui)
 #ifdef WIN32
 #ifndef NOWINSTUFF
 		if(FCEUMOV_Mode(MOVIEMODE_TASEDITOR) && TaseditorIsRecording()) return true;
-#endif NOWINSTUFF
+#endif
 #endif
 		if(!FCEUMOV_Mode(MOVIEMODE_INACTIVE)) return false;
 		break;
