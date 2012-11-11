@@ -202,26 +202,30 @@ void FCEUI_CheatSearchShowExcluded(void);
 void FCEUI_CheatSearchSetCurrentAsOriginal(void);
 
 //.rom
-#define FCEUIOD_ROMS    0	//Roms
-#define FCEUIOD_NV      1	//NV = nonvolatile. save data.
-#define FCEUIOD_STATES  2	//savestates
-#define FCEUIOD_FDSROM  3	//disksys.rom
-#define FCEUIOD_SNAPS   4	//screenshots
-#define FCEUIOD_CHEATS  5	//cheats
-#define FCEUIOD_MOVIES  6	//.fm2 files
-#define FCEUIOD_MEMW    7	//memory watch fiels
-#define FCEUIOD_BBOT    8	//basicbot, obsolete
-#define FCEUIOD_MACRO   9	//macro files - old TASEdit v0.1 paradigm, not implemented, probably obsolete
-#define FCEUIOD_INPUT   10	//input presets
-#define FCEUIOD_LUA     11	//lua scripts
-#define FCEUIOD_AVI		12	//default file for avi output
-#define FCEUIOD__COUNT  13	//base directory override?
+#define FCEUIOD_ROMS    0       //Roms
+#define FCEUIOD_NV      1       //NV = nonvolatile. save data.
+#define FCEUIOD_STATES  2       //savestates
+#define FCEUIOD_FDSROM  3       //disksys.rom
+#define FCEUIOD_SNAPS   4       //screenshots
+#define FCEUIOD_CHEATS  5       //cheats
+#define FCEUIOD_MOVIES  6       //.fm2 files
+#define FCEUIOD_MEMW    7       //memory watch fiels
+#define FCEUIOD_BBOT    8       //basicbot, obsolete
+#define FCEUIOD_MACRO   9       //macro files - old TASEdit v0.1 paradigm, not implemented, probably obsolete
+#define FCEUIOD_INPUT   10      //input presets
+#define FCEUIOD_LUA     11      //lua scripts
+#define FCEUIOD_AVI             12      //default file for avi output
+#define FCEUIOD__COUNT  13      //base directory override?
 
 void FCEUI_SetDirOverride(int which, char *n);
 
 void FCEUI_MemDump(uint16 a, int32 len, void (*callb)(uint16 a, uint8 v));
+
+// Missing --tom
 uint8 FCEUI_MemSafePeek(uint16 A);
+// Also missing --tom
 void FCEUI_MemPoke(uint16 a, uint8 v, int hl);
+
 void FCEUI_NMI(void);
 void FCEUI_IRQ(void);
 uint16 FCEUI_Disassemble(void *XA, uint16 a, char *stringo);
@@ -291,11 +295,11 @@ void FCEUI_HandleEmuCommands(TestCommandState* testfn);
 //Emulation speed
 enum EMUSPEED_SET
 {
-	EMUSPEED_SLOWEST=0,
-	EMUSPEED_SLOWER,
-	EMUSPEED_NORMAL,
-	EMUSPEED_FASTER,
-	EMUSPEED_FASTEST
+        EMUSPEED_SLOWEST=0,
+        EMUSPEED_SLOWER,
+        EMUSPEED_NORMAL,
+        EMUSPEED_FASTER,
+        EMUSPEED_FASTEST
 };
 void FCEUD_SetEmulationSpeed(int cmd);
 void FCEUD_TurboOn(void);
@@ -331,12 +335,12 @@ void FCEUD_VideoChanged();
 
 enum EFCEUI
 {
-	FCEUI_STOPAVI, FCEUI_QUICKSAVE, FCEUI_QUICKLOAD, FCEUI_SAVESTATE, FCEUI_LOADSTATE,
-	FCEUI_NEXTSAVESTATE,FCEUI_PREVIOUSSAVESTATE,FCEUI_VIEWSLOTS,
-	FCEUI_STOPMOVIE, FCEUI_RECORDMOVIE, FCEUI_PLAYMOVIE,
-	FCEUI_OPENGAME, FCEUI_CLOSEGAME,
-	FCEUI_TASEDITOR,
-	FCEUI_RESET, FCEUI_POWER, FCEUI_PLAYFROMBEGINNING, FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
+        FCEUI_STOPAVI, FCEUI_QUICKSAVE, FCEUI_QUICKLOAD, FCEUI_SAVESTATE, FCEUI_LOADSTATE,
+        FCEUI_NEXTSAVESTATE,FCEUI_PREVIOUSSAVESTATE,FCEUI_VIEWSLOTS,
+        FCEUI_STOPMOVIE, FCEUI_RECORDMOVIE, FCEUI_PLAYMOVIE,
+        FCEUI_OPENGAME, FCEUI_CLOSEGAME,
+        FCEUI_TASEDITOR,
+        FCEUI_RESET, FCEUI_POWER, FCEUI_PLAYFROMBEGINNING, FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
 };
 
 //checks whether an EFCEUI is valid right now
