@@ -68,7 +68,7 @@ int LoadGame(const char *path) {
   }
 	
   // Set NTSC (1 = pal)
-  FCEUI_SetVidSystem(0);
+  FCEUI_SetVidSystem(GIV_NTSC);
 
   return 1;
 }
@@ -86,7 +86,6 @@ int CloseGame() {
 void FCEUD_Update(uint8 *XBuf, int32 *Buffer, int Count);
 
 static void DoFun(int frameskip) {
-#if 0
   uint8 *gfx;
   int32 *sound;
   int32 ssize;
@@ -97,17 +96,21 @@ static void DoFun(int frameskip) {
   fskipc = (fskipc + 1) % (frameskip + 1);
 #endif
 
-  if(NoWaiting) {
-    gfx = 0;
-  }
+  gfx = 0;
   FCEUI_Emulate(&gfx, &sound, &ssize, fskipc);
   FCEUD_Update(gfx, sound, ssize);
 
-  if(opause!=FCEUI_EmulationPaused()) {
-    opause=FCEUI_EmulationPaused();
-    SilenceSound(opause);
-  }
-#endif
+  uint8 v = RAM[0x0009];
+  uint8 s = RAM[0x000B];  // Should be 77.
+  fprintf(stderr, "%02x %02x\n", v, s);
+
+  // uint8 FCEUI_MemSafePeek(uint16 A);
+  // void FCEUI_MemPoke(uint16 a, uint8 v, int hl);
+
+//  if(opause!=FCEUI_EmulationPaused()) {
+//    opause=FCEUI_EmulationPaused();
+//    SilenceSound(opause);
+//  }
 }
 
 
@@ -306,7 +309,7 @@ int main(int argc, char *argv[]) {
   FCEUI_SetNTSCTH(ntsccol, ntsctint, ntschue);
 
   // Set NTSC (1 = pal)
-  FCEUI_SetVidSystem(0);
+  FCEUI_SetVidSystem(GIV_NTSC);
 
   FCEUI_SetGameGenie(0);
 
