@@ -25,7 +25,7 @@ BOARDSOBJECTS=boards/01-222.o boards/32.o boards/gs-2013.o boards/103.o boards/3
 
 INPUTOBJECTS=input/arkanoid.o input/ftrainer.o input/oekakids.o input/suborkb.o input/bworld.o input/hypershot.o input/powerpad.o input/toprider.o input/cursor.o input/mahjong.o input/quiz.o input/zapper.o input/fkb.o input/mouse.o input/shadow.o
 
-FCEUOBJECTS=asm.o cart.o cheat.o conddebug.o config.o debug.o drawing.o emufile.o fceu.o fds.o file.o filter.o ines.o input.o lua-engine.o movie.o netplay.o nsf.o oldmovie.o palette.o ppu.o sound.o state.o unif.o video.o vsuni.o wave.o x6502.o
+FCEUOBJECTS=asm.o cart.o cheat.o conddebug.o config.o debug.o drawing.o emufile.o fceu.o fds.o file.o filter.o ines.o input.o movie.o netplay.o nsf.o oldmovie.o palette.o ppu.o sound.o state.o unif.o video.o vsuni.o wave.o x6502.o
 
 DRIVERS_COMMON_OBJECTS=drivers/common/args.o drivers/common/nes_ntsc.o drivers/common/cheat.o drivers/common/scale2x.o drivers/common/config.o drivers/common/scale3x.o drivers/common/configSys.o drivers/common/scalebit.o drivers/common/hq2x.o drivers/common/vidblit.o drivers/common/hq3x.o
 

@@ -14,16 +14,16 @@
 #include <math.h>
 
 #include "main.h"
-#include "throttle.h"
-#include "config.h"
+// #include "throttle.h"
+// #include "config.h"
 
 #include "../common/cheat.h"
 #include "../../fceu.h"
 #include "../../movie.h"
 #include "../../version.h"
 
-#include "input.h"
-#include "dface.h"
+// #include "input.h"
+// #include "dface.h"
 
 #include "dummy.h"
 
