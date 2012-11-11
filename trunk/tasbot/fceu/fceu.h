@@ -18,6 +18,7 @@ int AllocGenieRW(void);
 void FlushGenieRW(void);
 
 void FCEU_ResetVidSys(void);
+bool FCEUI_Initialize();
 
 void ResetMapping(void);
 void ResetNES(void);
@@ -55,10 +56,10 @@ extern readfunc ARead[0x10000];
 extern writefunc BWrite[0x10000];
 
 enum GI {
-	GI_RESETM2	=1,
-	GI_POWER =2,
-	GI_CLOSE =3,
-	GI_RESETSAVE = 4
+        GI_RESETM2      =1,
+        GI_POWER =2,
+        GI_CLOSE =3,
+        GI_RESETSAVE = 4
 };
 
 extern void (*GameInterface)(GI h);
@@ -74,33 +75,33 @@ extern uint8 PAL;
 //#include "driver.h"
 
 typedef struct {
-	int PAL;
-	int NetworkPlay;
-	int SoundVolume;		//Master volume
-	int TriangleVolume;
-	int Square1Volume;
-	int Square2Volume;
-	int NoiseVolume;
-	int PCMVolume;
-	bool GameGenie;
+        int PAL;
+        int NetworkPlay;
+        int SoundVolume;                //Master volume
+        int TriangleVolume;
+        int Square1Volume;
+        int Square2Volume;
+        int NoiseVolume;
+        int PCMVolume;
+        bool GameGenie;
 
-	//the currently selected first and last rendered scanlines.
-	int FirstSLine;
-	int LastSLine;
+        //the currently selected first and last rendered scanlines.
+        int FirstSLine;
+        int LastSLine;
 
-	//the number of scanlines in the currently selected configuration
-	int TotalScanlines() { return LastSLine - FirstSLine + 1; }
+        //the number of scanlines in the currently selected configuration
+        int TotalScanlines() { return LastSLine - FirstSLine + 1; }
 
-	//Driver-supplied user-selected first and last rendered scanlines.
-	//Usr*SLine[0] is for NTSC, Usr*SLine[1] is for PAL.
-	int UsrFirstSLine[2];
-	int UsrLastSLine[2];
+        //Driver-supplied user-selected first and last rendered scanlines.
+        //Usr*SLine[0] is for NTSC, Usr*SLine[1] is for PAL.
+        int UsrFirstSLine[2];
+        int UsrLastSLine[2];
 
-	//this variable isn't used at all, snap is always name-based
-	//bool SnapName;
-	uint32 SndRate;
-	int soundq;
-	int lowpass;
+        //this variable isn't used at all, snap is always name-based
+        //bool SnapName;
+        uint32 SndRate;
+        int soundq;
+        int lowpass;
 } FCEUS;
 
 int FCEU_TextScanlineOffset(int y);
@@ -108,7 +109,7 @@ int FCEU_TextScanlineOffsetFromBottom(int y);
 
 extern FCEUS FSettings;
 
-bool CheckFileExists(const char* filename);	//Receives a filename (fullpath) and checks to see if that file exists
+bool CheckFileExists(const char* filename);     //Receives a filename (fullpath) and checks to see if that file exists
 
 void FCEU_PrintError(char *format, ...);
 void FCEU_printf(char *format, ...);
@@ -140,4 +141,3 @@ extern uint8 vsdip;
 #endif
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
-

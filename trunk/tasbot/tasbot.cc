@@ -13,8 +13,10 @@
 #include <limits.h>
 #include <math.h>
 
+#include "config.h"
+
 #include "fceu/driver.h"
-#include "fceu/drivers/common/config.h"
+// #include "fceu/drivers/common/config.h"
 #include "fceu/drivers/common/args.h"
 
 #include "fceu/drivers/common/cheat.h"
@@ -22,7 +24,7 @@
 #include "fceu/movie.h"
 #include "fceu/version.h"
 
-#include "fceu/drivers/common/configSys.h"
+// #include "fceu/drivers/common/configSys.h"
 #include "fceu/oldmovie.h"
 #include "fceu/types.h"
 
@@ -34,13 +36,8 @@ static int inited = 0;
 
 int eoptions=0;
 
-// external dependencies
-bool turbo = false;
-int closeFinishedMovie = 0;
-
 static void DriverKill(void);
 static int DriverInitialize(FCEUGI *gi);
-int gametype = 0;
 
 static int noconfig;
 
@@ -79,7 +76,6 @@ Option         Value   Description\n\
 --soundrecord  f       Record sound to file f.\n\
 --playmov      f       Play back a recorded FCM/FM2/FM3 movie from filename f.\n\
 --pauseframe   x       Pause movie playback at frame x.\n\
---fcmconvert   f       Convert fcm movie file f to fm2.\n\
 --ripsubs      f       Convert movie's subtitles to srt\n\
 --subtitles    {0,1}   Enable subtitle display\n\
 --fourscore    {0,1}   Enable fourscore emulation\n\
@@ -110,9 +106,6 @@ Option         Value   Description\n\
 //--slstart	{0-239}   Sets the first drawn emulated scanline.\n
 //--clipsides	{0|1}   Clips left and rightmost 8 columns of pixels.\n
 
-// global configuration object
-Config *g_config;
-
 static void ShowUsage(char *prog) {
   printf("\nUsage is as follows:\n%s <options> filename\n\n",prog);
   puts(DriverUsage);
@@ -120,21 +113,6 @@ static void ShowUsage(char *prog) {
   //	printf("Compiled with SDL version %d.%d.%d\n", SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL );
   //		const SDL_version* v = SDL_Linked_Version();
   //	printf("Linked with SDL version %d.%d.%d\n", v->major, v->minor, v->patch);
-}
-
-/**
- * Prints an error string to STDOUT.
- */
-void
-FCEUD_PrintError(char *s) {
-  puts(s);
-}
-
-/**
- * Prints the given string to STDOUT.
- */
-void FCEUD_Message(char *s) {
-  fputs(s, stdout);
 }
 
 /**
@@ -156,24 +134,11 @@ int LoadGame(const char *path) {
     return(0);
   }
 	
-  // set pal/ntsc
-  int id;
-  g_config->getOption("SDL.PAL", &id);
-  if(id)
-    FCEUI_SetVidSystem(1);
-  else
-    FCEUI_SetVidSystem(0);
-	
-  std::string filename;
-  g_config->getOption("SDL.Sound.RecordFile", &filename);
-  if(filename.size()) {
-    if(!FCEUI_BeginWaveRecord(filename.c_str())) {
-      g_config->setOption("SDL.Sound.RecordFile", "");
-    }
-  }
+  // Set NTSC (1 = pal)
+  FCEUI_SetVidSystem(0);
+
   isloaded = 1;
 
-  FCEUD_NetworkConnect();
   return 1;
 #endif
 }
@@ -192,11 +157,6 @@ int CloseGame() {
   DriverKill();
   isloaded = 0;
   GameInfo = 0;
-
-  g_config->getOption("SDL.Sound.RecordFile", &filename);
-  if(filename.size()) {
-    FCEUI_EndWaveRecord();
-  }
 
   InputUserActiveFix();
   return(1);
@@ -374,290 +334,106 @@ EMUFILE_FILE* FCEUD_UTF8_fstream(const char *fn, const char *m)
 }
 
 /**
- * Opens a file, C++ style, to be read a byte at a time.
- */
-FILE *FCEUD_UTF8fopen(const char *fn, const char *mode) {
-  return fopen(fn,mode);
-}
-
-/**
- * Returns the compiler string.
- */
-const char *FCEUD_GetCompilerString() {
-  return "g++ " __VERSION__;
-}
-
-void FCEUD_DebugBreakpoint() {}
-void FCEUD_TraceInstruction() {}
-
-
-#define NOGUI 1
-
-
-/**
  * The main loop for the SDL.
  */
-int main(int argc, char *argv[])
-{
-#if 0
-  // this is a hackish check for the --help arguemnts
-  // these are normally processed by the config parser, but SDL_Init
-  // must be run before the config parser: so if even SDL_Init fails,
-  // these six lines will still print the help output
-  if(argc > 1)
-    {
-      if(!strcmp(argv[1], "--help") || !strcmp(argv[1],"-h"))
-	{
-	  ShowUsage(argv[0]);
-	  return 0;
-	}
-    }
-
+int main(int argc, char *argv[]) {
   int error, frameskip;
 
-  FCEUD_Message("Starting "FCEU_NAME_AND_VERSION"...\n");
+  fprintf(stderr, "Starting " FCEU_NAME_AND_VERSION "...\n");
 
-  /* SDL_INIT_VIDEO Needed for (joystick config) event processing? */
-  if(SDL_Init(SDL_INIT_VIDEO)) {
-    printf("Could not initialize SDL: %s.\n", SDL_GetError());
-    return(-1);
-  }
+  // (Here's where SDL was initialized.)
 
   // Initialize the configuration system
-  g_config = InitConfig();
-		
-  if(!g_config) {
-    SDL_Quit();
+  InitConfig();
+  if (!global_config) {
     return -1;
   }
 
   // initialize the infrastructure
   error = FCEUI_Initialize();
-  if(error != 1) {
+  if (error != 1) {
     ShowUsage(argv[0]);
-    SDL_Quit();
     return -1;
   }
-	
-  // check for --help or -h and display usage; also check for --nogui
-  for(int i=0; i<argc;i++) {
-    if(strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0)
-      {
-	ShowUsage(argv[0]);
-	SDL_Quit();
-	return 0;
-      }
-  }
-  int romIndex = g_config->parse(argc, argv);
 
-  // This is here so that a default fceux.cfg will be created on first
-  // run, even without a valid ROM to play.
-  // Unless, of course, there's actually --no-config given
-  // mbg 8/23/2008 - this is also here so that the inputcfg routines can have a chance to dump the new inputcfg to the fceux.cfg
-  // in case you didnt specify a rom filename
-  g_config->getOption("SDL.NoConfig", &noconfig);
-  if (!noconfig)
-    g_config->save();
-	
+  if (argc != 2) {
+    fprintf(stderr, "Need a ROM on the command line, and nothing else.");
+    return -1;
+  }
+  
+  const char *romfile = argv[1];
+
   std::string s;
 
-  g_config->getOption("SDL.InputCfg", &s);
-  if(s.size() != 0) {
-    InitVideo(GameInfo);
-    InputCfg(s);
-  }
-  // set the FAMICOM PAD 2 Mic thing 
-  {
-    int t;
-    g_config->getOption("SDL.Input.FamicomPad2.EnableMic", &t);
-    if(t)
-      replaceP2StartWithMicrophone = t;
-  }
+  // (init video was here.)
+  // I don't think it's necessary -- just sets up the SDL window and so on.
 
-  // update the input devices
-  UpdateInput(g_config);
+  // (input config was here.) InputCfg(string value of --inputcfg)
 
-  // check for a .fcm file to convert to .fm2
-  g_config->getOption ("SDL.FCMConvert", &s);
-  g_config->setOption ("SDL.FCMConvert", "");
-  if (!s.empty()) {
-    int okcount = 0;
-    std::string infname = s.c_str();
-    // produce output filename
-    std::string outname;
-    size_t dot = infname.find_last_of (".");
-    if (dot == std::string::npos)
-      outname = infname + ".fm2";
-    else
-      outname = infname.substr(0,dot) + ".fm2";
-	  
-    MovieData md;
-    EFCM_CONVERTRESULT result = convert_fcm (md, infname);
-
-    if (result == FCM_CONVERTRESULT_SUCCESS) {
-      okcount++;
-      // *outf = new EMUFILE;
-      EMUFILE_FILE* outf = FCEUD_UTF8_fstream (outname, "wb");
-      md.dump (outf,false);
-      delete outf;
-      FCEUD_Message ("Your file has been converted to FM2.\n");
-    }
-    else {
-      FCEUD_Message ("Something went wrong while converting your file...\n");
-    }
-	  
-    DriverKill();
-    SDL_Quit();
-    return 0;
-  }
+  // UpdateInput(g_config) was here.
+  // This is just a bunch of fancy stuff to choose which controllers we have
+  // and what they're mapped to.
+  // I think the important functions are FCEUD_UpdateInput()
+  // and FCEUD_SetInput
+  // Calling FCEUI_SetInputFC ((ESIFC) CurInputType[2], InputDPtr, attrib);
+  //   and FCEUI_SetInputFourscore ((eoptions & EO_FOURSCORE) != 0);
 	
-  // check to see if recording HUD to AVI is enabled
-  int rh;
-  g_config->getOption("SDL.RecordHUD", &rh);
-  if( rh == 0)
-    FCEUI_SetAviEnableHUDrecording(true);
-  else
-    FCEUI_SetAviEnableHUDrecording(false);
+  // No HUD recording to AVI.
+  FCEUI_SetAviEnableHUDrecording(false);
 
-  // check to see if movie messages are disabled
-  int mm;
-  g_config->getOption("SDL.MovieMsg", &mm);
-  if( mm == 0)
-    FCEUI_SetAviDisableMovieMessages(true);
-  else
-    FCEUI_SetAviDisableMovieMessages(false);
-	
-	
-  // check for a .fm2 file to rip the subtitles
-  g_config->getOption("SDL.RipSubs", &s);
-  g_config->setOption("SDL.RipSubs", "");
-  if (!s.empty()) {
-    MovieData md;
-    std::string infname;
-    infname = s.c_str();
-    FCEUFILE *fp = FCEU_fopen(s.c_str(), 0, "rb", 0);
-		
-    // load the movie and and subtitles
-    extern bool LoadFM2(MovieData&, EMUFILE*, int, bool);
-    LoadFM2(md, fp->stream, INT_MAX, false);
-    LoadSubtitles(md); // fill subtitleFrames and subtitleMessages
-    delete fp;
-		
-    // produce .srt file's name and open it for writing
-    std::string outname;
-    size_t dot = infname.find_last_of (".");
-    if (dot == std::string::npos)
-      outname = infname + ".srt";
-    else
-      outname = infname.substr(0,dot) + ".srt";
-    FILE *srtfile;
-    srtfile = fopen(outname.c_str(), "w");
-		
-    if (srtfile != NULL) {
-      extern std::vector<int> subtitleFrames;
-      extern std::vector<std::string> subtitleMessages;
-      float fps = (md.palFlag == 0 ? 60.0988 : 50.0069); // NTSC vs PAL
-      float subduration = 3; // seconds for the subtitles to be displayed
-      for (int i = 0; i < subtitleFrames.size(); i++) {
-	fprintf(srtfile, "%i\n", i+1); // starts with 1, not 0
-	double seconds, ms, endseconds, endms;
-	seconds = subtitleFrames[i]/fps;
-	if (i+1 < subtitleFrames.size()) { // there's another subtitle coming after this one
-	  if (subtitleFrames[i+1]-subtitleFrames[i] < subduration*fps) { // avoid two subtitles at the same time
-	    endseconds = (subtitleFrames[i+1]-1)/fps; // frame x: subtitle1; frame x+1 subtitle2
-	  } else {
-	    endseconds = seconds+subduration;
-	  }
-	} else {
-	  endseconds = seconds+subduration;
-	}
-	ms = modf(seconds, &seconds);
-	endms = modf(endseconds, &endseconds);
-	// this is just beyond ugly, don't show it to your kids
-	fprintf(srtfile,
-		"%02.0f:%02d:%02d,%03d --> %02.0f:%02d:%02d,%03d\n", // hh:mm:ss,ms --> hh:mm:ss,ms
-		floor(seconds/3600),	(int)floor(seconds/60   ) % 60, (int)floor(seconds)	% 60, (int)(ms*1000),
-		floor(endseconds/3600), (int)floor(endseconds/60) % 60, (int)floor(endseconds) % 60, (int)(endms*1000));
-	fprintf(srtfile, "%s\n\n", subtitleMessages[i].c_str()); // new line for every subtitle
-      }
-      fclose(srtfile);
-      printf("%d subtitles have been ripped.\n", (int)subtitleFrames.size());
-    } else {
-      FCEUD_Message("Couldn't create output srt file...\n");
-    }
-	  
-    DriverKill();
-    SDL_Quit();
-    return 0;
-  }
-   
+  // No Movie messages.
+  FCEUI_SetAviDisableMovieMessages(false);
 
-  // if we're not compiling w/ the gui, exit if a rom isn't specified
-#ifndef _GTK
-  if(romIndex <= 0) {
-		
-    ShowUsage(argv[0]);
-    FCEUD_Message("\nError parsing command line arguments\n");
-    SDL_Quit();
-    return -1;
+  // defaults
+  const int ntsccol = 0, ntsctint = 56, ntschue = 72;
+  FCEUI_SetNTSCTH(ntsccol, ntsctint, ntschue);
+
+  // Set NTSC (1 = pal)
+  FCEUI_SetVidSystem(0);
+
+  FCEUI_SetGameGenie(0);
+
+  // Default. Sound thing.
+  FCEUI_SetLowPass(0);
+
+  // Default.
+  FCEUI_DisableSpriteLimitation(1);
+
+  // Defaults.
+  const int scanlinestart = 0, scanlineend = 239;
+
+  // What is this? -tom7
+#if DOING_SCANLINE_CHECKS
+  for(int i = 0; i < 2; x++) {
+    if(srendlinev[x]<0 || srendlinev[x]>239) srendlinev[x]=0;
+    if(erendlinev[x]<srendlinev[x] || erendlinev[x]>239) erendlinev[x]=239;
   }
 #endif
-	
 
-  // update the emu core
-  UpdateEMUCore(g_config);
+  FCEUI_SetRenderedLines(scanlinestart + 8, scanlineend - 8, 
+			 scanlinestart, scanlineend);
+
 
   {
-    int id;
-    g_config->getOption("SDL.InputDisplay", &id);
-    extern int input_display;
-    input_display = id;
-    // not exactly an id as an true/false switch; still better than creating another int for that
-    g_config->getOption("SDL.SubtitleDisplay", &id); 
+    extern int input_display, movieSubtitles;
+    input_display = 0;
     extern int movieSubtitles;
-    movieSubtitles = id;
-  }
-	
-  // load the hotkeys from the config life
-  setHotKeys();
-
-
-  if(romIndex >= 0) {
-    // load the specified game
-    error = LoadGame(argv[romIndex]);
-    if(error != 1) {
-      DriverKill();
-      SDL_Quit();
-      return -1;
-    }
-    g_config->setOption("SDL.LastOpenFile", argv[romIndex]);
-    g_config->save();
-
-  }
-	
-  // movie playback
-  g_config->getOption("SDL.Movie", &s);
-  g_config->setOption("SDL.Movie", "");
-  if (s != "") {
-    if(s.find(".fm2") != std::string::npos || s.find(".fm3") != std::string::npos) {
-      static int pauseframe;
-      g_config->getOption("SDL.PauseFrame", &pauseframe);
-      g_config->setOption("SDL.PauseFrame", 0);
-      FCEUI_printf("Playing back movie located at %s\n", s.c_str());
-      FCEUI_LoadMovie(s.c_str(), false, pauseframe ? pauseframe : false);
-    } else {
-      FCEUI_printf("Sorry, I don't know how to play back %s\n", s.c_str());
-    }
+    movieSubtitles = 0;
   }
 
-  {
-    int id;
-    g_config->getOption("SDL.NewPPU", &id);
-    if (id)
-      newppu = 1;
+  // Load the game.
+  if (1 != LoadGame(romfile)) {
+    DriverKill();
+    return -1;
   }
 
-  g_config->getOption("SDL.Frameskip", &frameskip);
+
+  // Default.
+  newppu = 0;
+
+  // Default.
+  frameskip = 0;
+
   // loop playing the game
 
   while(GameInfo)
@@ -667,8 +443,6 @@ int main(int argc, char *argv[])
 
   // exit the infrastructure
   FCEUI_Kill();
-  SDL_Quit();
-#endif
   return 0;
 }
 
@@ -688,111 +462,3 @@ uint64 FCEUD_GetTimeFreq(void) {
   // SDL_GetTicks() is in milliseconds
   return 1000;
 }
-
-// Prints a textual message without adding a newline at the end.
-void FCEUD_Message(const char *text) {
-  fputs(text, stdout);
-}
-
-// Print error to stderr.
-void FCEUD_PrintError(const char *errormsg) {
-  fprintf(stderr, "%s\n", errormsg);
-}
-
-
-// dummy functions
-
-#define DUMMY(__f) void __f(void) {printf("%s\n", #__f); FCEU_DispMessage("Not implemented.",0);}
-DUMMY(FCEUD_HideMenuToggle)
-DUMMY(FCEUD_MovieReplayFrom)
-DUMMY(FCEUD_ToggleStatusIcon)
-DUMMY(FCEUD_AviRecordTo)
-DUMMY(FCEUD_AviStop)
-void FCEUI_AviVideoUpdate(const unsigned char* buffer) { }
-int FCEUD_ShowStatusIcon(void) {return 0;}
-bool FCEUI_AviIsRecording(void) {return false;}
-void FCEUI_UseInputPreset(int preset) { }
-bool FCEUD_PauseAfterPlayback() { return false; }
-FCEUFILE* FCEUD_OpenArchiveIndex(ArchiveScanRecord& asr, std::string &fname, int innerIndex) { return 0; }
-FCEUFILE* FCEUD_OpenArchive(ArchiveScanRecord& asr, std::string& fname, std::string* innerFilename) { return 0; }
-ArchiveScanRecord FCEUD_ScanArchive(std::string fname) { return ArchiveScanRecord(); }
-
-// tom7 dummy
-void FCEUD_VideoChanged() {}
-void FCEUD_SetEmulationSpeed(int) {}
-void FCEUD_SoundVolumeAdjust(int) {}
-
-void FCEUD_SaveStateAs() {
-  FCEUI_SaveState("FAKE");
-}
-void FCEUD_LoadStateFrom() {
-  FCEUI_LoadState("FAKE");
-}
-
-void FCEUD_MovieRecordTo() {
-  abort();
-  FCEUI_SaveMovie ("FAKEMOVIE", MOVIE_FLAG_FROM_POWERON, NULL);
-}
-
-void FCEUD_SoundToggle() {}
-
-// for movie playback?
-void FCEUD_SetInput (bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC fcexp) {
-}
-
-int FCEUDnetplay=0;
-
-int FCEUD_NetworkConnect(void) {
-  abort();
-}
-
-int FCEUD_SendData(void *data, uint32 len) {
-  abort();
-}
-
-int FCEUD_RecvData(void *data, uint32 len) {
-  abort();
-  return 0;
-}
-
-void FCEUD_NetworkClose(void) {}
-
-void FCEUD_NetplayText(uint8 *text) {}
-
-
-void
-FCEUD_SetPalette(uint8 index,
-                 uint8 r,
-                 uint8 g,
-                 uint8 b) {
-}
-
-/**
- * Gets the color for a particular index in the palette.
- */
-void
-FCEUD_GetPalette(uint8 index,
-		 uint8 *r,
-		 uint8 *g,
-		 uint8 *b) {
-}
-
-bool FCEUI_AviEnableHUDrecording() {}
-void FCEUI_SetAviEnableHUDrecording(bool enable) {}
-
-bool FCEUI_AviDisableMovieMessages() {}
-void FCEUI_SetAviDisableMovieMessages(bool disable) {}
-
-bool FCEUD_ShouldDrawInputAids() { return false; }
-
-// morally FCEUD_
-unsigned int *GetKeyboard() {
-  abort();
-}
-
-void FCEUD_TurboOn() {  }
-void FCEUD_TurboOff() { }
-void FCEUD_TurboToggle() { }
-
-void FCEUD_DebugBreakpoint(int bp_num) {}
-void FCEUD_TraceInstruction(unsigned char*, int) {}

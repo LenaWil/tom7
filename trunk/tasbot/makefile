@@ -1,6 +1,6 @@
 
 # Makefile made by tom7.
-default: main.exe
+default: tasbot.exe
 
 # GPP=
 
@@ -27,19 +27,20 @@ INPUTOBJECTS=fceu/input/arkanoid.o fceu/input/ftrainer.o fceu/input/oekakids.o f
 
 FCEUOBJECTS=fceu/asm.o fceu/cart.o fceu/cheat.o fceu/conddebug.o fceu/config.o fceu/debug.o fceu/drawing.o fceu/emufile.o fceu/fceu.o fceu/fds.o fceu/file.o fceu/filter.o fceu/ines.o fceu/input.o fceu/movie.o fceu/netplay.o fceu/nsf.o fceu/oldmovie.o fceu/palette.o fceu/ppu.o fceu/sound.o fceu/state.o fceu/unif.o fceu/video.o fceu/vsuni.o fceu/wave.o fceu/x6502.o
 
-DRIVERS_COMMON_OBJECTS=fceu/drivers/common/args.o fceu/drivers/common/nes_ntsc.o fceu/drivers/common/cheat.o fceu/drivers/common/scale2x.o fceu/drivers/common/config.o fceu/drivers/common/scale3x.o fceu/drivers/common/configSys.o fceu/drivers/common/scalebit.o fceu/drivers/common/hq2x.o fceu/drivers/common/vidblit.o fceu/drivers/common/hq3x.o
+# fceu/drivers/common/config.o fceu/drivers/common/configSys.o
+DRIVERS_COMMON_OBJECTS=fceu/drivers/common/args.o fceu/drivers/common/nes_ntsc.o fceu/drivers/common/cheat.o fceu/drivers/common/scale2x.o  fceu/drivers/common/scale3x.o fceu/drivers/common/scalebit.o fceu/drivers/common/hq2x.o fceu/drivers/common/vidblit.o fceu/drivers/common/hq3x.o
 
 # DRIVERS_DUMMY_OBJECTS=fceu/drivers/dummy/dummy.o
 
-TASBOT_OBJECTS=tasbot.o
+TASBOT_OBJECTS=tasbot.o headless-driver.o config.o
 
 OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(DRIVERS_COMMON_OBJECTS) $(TASBOT_OBJECTS)
 
 LFLAGS = -m64 -lz
 
 # without static, can't find lz or lstdcxx maybe?
-main.exe : $(OBJECTS)
+tasbot.exe : $(OBJECTS)
 	${CXX} $^ -o $@ ${LFLAGS} -static
 
 clean :
-	rm -f main.exe $(OBJECTS)
+	rm -f tasbot.exe $(OBJECTS)
