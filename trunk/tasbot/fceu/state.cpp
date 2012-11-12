@@ -47,18 +47,6 @@
 #include "input.h"
 #include "zlib.h"
 #include "driver.h"
-#ifdef _S9XLUA_H
-#include "fceulua.h"
-#endif
-
-//TODO - we really need some kind of global platform-specific options api
-#ifdef WIN32
-#ifndef NOWINSTUFF
-#include "drivers/win/main.h"
-#include "drivers/win/ram_search.h"
-#include "drivers/win/ramwatch.h"
-#endif
-#endif
 
 using namespace std;
 
@@ -400,6 +388,7 @@ bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel)
 		}
 	}
 	// save back buffer
+	// TODO(twm): Don't save this!
 	{
 		extern uint8 *XBackBuf;
 		uint32 size = 256 * 256 + 8;

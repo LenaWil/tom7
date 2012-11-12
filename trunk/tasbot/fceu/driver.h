@@ -221,11 +221,6 @@ void FCEUI_SetDirOverride(int which, char *n);
 
 void FCEUI_MemDump(uint16 a, int32 len, void (*callb)(uint16 a, uint8 v));
 
-// Missing --tom
-uint8 FCEUI_MemSafePeek(uint16 A);
-// Also missing --tom
-void FCEUI_MemPoke(uint16 a, uint8 v, int hl);
-
 void FCEUI_NMI(void);
 void FCEUI_IRQ(void);
 uint16 FCEUI_Disassemble(void *XA, uint16 a, char *stringo);

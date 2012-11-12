@@ -13,11 +13,17 @@
 #include <limits.h>
 #include <math.h>
 
+#include <zlib.h>
+
+#include "fceu/utils/md5.h"
+
 #include "config.h"
 
 #include "fceu/driver.h"
 // #include "fceu/drivers/common/config.h"
 #include "fceu/drivers/common/args.h"
+
+#include "fceu/state.h"
 
 #include "fceu/drivers/common/cheat.h"
 #include "fceu/fceu.h"
@@ -83,26 +89,44 @@ int CloseGame() {
   return 1;
 }
 
-void FCEUD_Update(uint8 *XBuf, int32 *Buffer, int Count);
-
 static void DoFun(int frameskip) {
   uint8 *gfx;
   int32 *sound;
   int32 ssize;
-  static int fskipc = 0;
   static int opause = 0;
 
-#ifdef FRAMESKIP
-  fskipc = (fskipc + 1) % (frameskip + 1);
-#endif
+  // fprintf(stderr, "In DoFun..\n");
 
-  gfx = 0;
-  FCEUI_Emulate(&gfx, &sound, &ssize, fskipc);
-  FCEUD_Update(gfx, sound, ssize);
+  // Limited ability to skip video and sound.
+  #define SKIP_VIDEO_AND_SOUND 2
+
+  // Emulate a single frame.
+  FCEUI_Emulate(NULL, &sound, &ssize, SKIP_VIDEO_AND_SOUND);
+
+  // This was the only useful thing from Update. It's called multiple
+  // times; I don't know why.
+  // --- update input! --
 
   uint8 v = RAM[0x0009];
   uint8 s = RAM[0x000B];  // Should be 77.
-  fprintf(stderr, "%02x %02x\n", v, s);
+  // fprintf(stderr, "%02x %02x\n", v, s);
+
+  std::vector<uint8> savestate;
+  EMUFILE_MEMORY ms(&savestate);
+  // Compression yields 2x slowdown, but states go from ~80kb to 1.4kb
+  // Without screenshot, ~1.3kb and only 40% slowdown
+  FCEUSS_SaveMS(&ms, Z_DEFAULT_COMPRESSION /* Z_NO_COMPRESSION */);
+  // TODO
+  // Saving is not as efficient as we'd like for a pure in-memory operation
+  //  - uses tags to tell you what's next, even though we could already know
+  //  - takes care for endianness; no point
+  //  - saves the backing buffer (write-only, used for display)
+  //  - might save some other write-only data (sound?)
+  //  - compresses the output using zlib, which may be good for space
+  //    but not good for time!
+
+  ms.trim();
+  fprintf(stderr, "SS: %lld\n", savestate.size());
 
   // uint8 FCEUI_MemSafePeek(uint16 A);
   // void FCEUI_MemPoke(uint16 a, uint8 v, int hl);
@@ -112,7 +136,6 @@ static void DoFun(int frameskip) {
 //    SilenceSound(opause);
 //  }
 }
-
 
 /**
  * Initialize all of the subsystem drivers: video, audio, and joystick.
@@ -159,76 +182,6 @@ static void DriverKill() {
  * video (XBuf) and audio (Buffer) information.
  */
 void FCEUD_Update(uint8 *XBuf, int32 *Buffer, int Count) {
-#if 0
-  extern int FCEUDnetplay;
-
-  int ocount = Count;
-  // apply frame scaling to Count
-  Count = (int)(Count / g_fpsScale);
-  if(Count) {
-    int32 can=GetWriteSound();
-    static int uflow=0;
-    int32 tmpcan;
-
-    // don't underflow when scaling fps
-    if(can >= GetMaxSound() && g_fpsScale==1.0) uflow=1;	/* Go into massive underflow mode. */
-
-    if(can > Count) can=Count;
-    else uflow=0;
-
-    WriteSound(Buffer,can);
-
-    //if(uflow) puts("Underflow");
-    tmpcan = GetWriteSound();
-    // don't underflow when scaling fps
-    if(g_fpsScale>1.0 || ((tmpcan < Count*0.90) && !uflow)) {
-      if(XBuf && (inited&4) && !(NoWaiting & 2))
-	BlitScreen(XBuf);
-      Buffer+=can;
-      Count-=can;
-      if(Count) {
-	if(NoWaiting) {
-	  can=GetWriteSound();
-	  if(Count>can) Count=can;
-	  WriteSound(Buffer,Count);
-	} else {
-	  while(Count>0) {
-	    WriteSound(Buffer,(Count<ocount) ? Count : ocount);
-	    Count -= ocount;
-	  }
-	}
-      }
-    } //else puts("Skipped");
-    else if(!NoWaiting && FCEUDnetplay && (uflow || tmpcan >= (Count * 1.8))) {
-      if(Count > tmpcan) Count=tmpcan;
-      while(tmpcan > 0) {
-	//	printf("Overwrite: %d\n", (Count <= tmpcan)?Count : tmpcan);
-	WriteSound(Buffer, (Count <= tmpcan)?Count : tmpcan);
-	tmpcan -= Count;
-      }
-    }
-
-  } else {
-    if(!NoWaiting && (!(eoptions&EO_NOTHROTTLE) || FCEUI_EmulationPaused()))
-      while (SpeedThrottle())
-	{
-	  FCEUD_UpdateInput();
-	}
-    if(XBuf && (inited&4)) {
-      BlitScreen(XBuf);
-    }
-  }
-  FCEUD_UpdateInput();
-  //if(!Count && !NoWaiting && !(eoptions&EO_NOTHROTTLE))
-  // SpeedThrottle();
-  //if(XBuf && (inited&4))
-  //{
-  // BlitScreen(XBuf);
-  //}
-  //if(Count)
-  // WriteSound(Buffer,Count,NoWaiting);
-  //FCEUD_UpdateInput();
-#endif
 }
 
 /**
@@ -251,6 +204,23 @@ EMUFILE_FILE* FCEUD_UTF8_fstream(const char *fn, const char *m)
     mode |= std::ios_base::in | std::ios_base::out | std::ios_base::app;
   return new EMUFILE_FILE(fn, m);
   //return new std::fstream(fn,mode);
+}
+
+static int64 DumpMem() {
+  for (int i = 0; i < 0x800; i++) {
+    fprintf(stderr, "%02x", (uint8)RAM[i]);
+    // if (i % 40 == 0) fprintf(stderr, "\n");
+  }
+  md5_context ctx;
+  md5_starts(&ctx);
+  md5_update(&ctx, RAM, 0x800);
+  uint8 digest[16];
+  md5_finish(&ctx, digest);
+  fprintf(stderr, "  MD5: ");
+  for (int i = 0; i < 16; i++)
+    fprintf(stderr, "%02x", digest[i]);
+  fprintf(stderr, "\n");
+  return *(int64*)digest;
 }
 
 /**
@@ -356,8 +326,28 @@ int main(int argc, char *argv[]) {
 
   // loop playing the game
 
+#define BENCHMARK 1
+
+#ifdef BENCHMARK
+  for (int i = 0; i < 20000; i++) {
+    if (!GameInfo) {
+      fprintf(stderr, "Gameinfo became null?\n");
+      return -1;
+    }
+    DoFun(frameskip);
+  }
+
+  if (0x3f55c3584d2c71ecLL != DumpMem()) {
+    fprintf(stderr, "WRONG CHECKSUM\n");
+    return -1;
+  } else {
+    fprintf(stderr, "OK.\n");
+  }
+
+#else
   while(GameInfo)
     DoFun(frameskip);
+#endif
 
   CloseGame();
 

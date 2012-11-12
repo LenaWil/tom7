@@ -2021,6 +2021,8 @@ int FCEUPPU_Loop(int skip)
 		}
 		if(GameInfo->type==GIT_NSF)
 			X6502_Run((256+85)*240);
+
+		// n.b. FRAMESKIP results in different behavior in memory, so don't do it.
 #ifdef FRAMESKIP
 		else if(skip)
 		{
