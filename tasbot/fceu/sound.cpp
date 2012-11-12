@@ -1035,6 +1035,10 @@ void SetNESSoundMap(void)
 static int32 inbuf=0;
 int FlushEmulateSound(void)
 {
+  // not expecting to get here --tom7
+  fprintf(stderr, "How did I get to FlushEmulateSound?\n");
+  abort();
+
   int x;
   int32 end,left;
 

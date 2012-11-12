@@ -165,6 +165,11 @@ static void ReallySnap(void)
 
 void FCEU_PutImage(void)
 {
+  // tom7
+  #ifdef DUMMY_UI
+  return;
+  #endif
+
 	if(dosnapsave==2)	//Save screenshot as, currently only flagged & run by the Win32 build. //TODO SDL: implement this?
 	{
 		char nameo[512];

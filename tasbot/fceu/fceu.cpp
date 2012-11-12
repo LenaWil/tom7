@@ -636,114 +636,94 @@ void AutoFire(void)
 	}
 }
 
-void UpdateAutosave(void);
-
 ///Emulates a single frame.
 
 ///Skip may be passed in, if FRAMESKIP is #defined, to cause this to emulate more than one frame
 void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int skip)
 {
-	//skip initiates frame skip if 1, or frame skip and sound skip if 2
-	int r,ssize;
+  //skip initiates frame skip if 1, or frame skip and sound skip if 2
+  int r,ssize;
 
-	JustFrameAdvanced = false;
+  JustFrameAdvanced = false;
 
-	if (frameAdvanceRequested)
-	{
-		if (frameAdvanceDelay==0 || frameAdvanceDelay>=10)
-			EmulationPaused = 3;
-		if (frameAdvanceDelay==0 || frameAdvanceDelay < 10)
-			frameAdvanceDelay++;
-	}
+  if (frameAdvanceRequested) {
+    if (frameAdvanceDelay==0 || frameAdvanceDelay>=10)
+      EmulationPaused = 3;
+    if (frameAdvanceDelay==0 || frameAdvanceDelay < 10)
+      frameAdvanceDelay++;
+  }
 
-	if(EmulationPaused&2)
-		EmulationPaused &= ~1;        // clear paused flag temporarily (frame advance)
-	else if((EmulationPaused&1))
-	{
-		memcpy(XBuf, XBackBuf, 256*256);
-		FCEU_PutImage();
-		*pXBuf=XBuf;
-		*SoundBuf=WaveFinal;
-		*SoundBufSize=0;
+  if(EmulationPaused&2)
+    EmulationPaused &= ~1;        // clear paused flag temporarily (frame advance)
+  else if((EmulationPaused&1)) {
+    if (pXBuf != NULL) {
+      memcpy(XBuf, XBackBuf, 256*256);
 
-		return;
-	}
+      #ifndef DUMMY_UI
+      abort();
+      FCEU_PutImage();
+      #endif
 
-	AutoFire();
-	UpdateAutosave();
+      *pXBuf=XBuf;
+    }
+    *SoundBuf=WaveFinal;
+    *SoundBufSize=0;
 
-#ifdef _S9XLUA_H
-	FCEU_LuaFrameBoundary();
-#endif
+    return;
+  }
 
-	FCEU_UpdateInput();
-	lagFlag = 1;
+  AutoFire();
+  // Used to autosave here.
 
-#ifdef _S9XLUA_H
-	CallRegisteredLuaFunctions(LUACALL_BEFOREEMULATION);
-#endif
+  FCEU_UpdateInput();
+  lagFlag = 1;
 
-	if(geniestage!=1) FCEU_ApplyPeriodicCheats();
-	r = FCEUPPU_Loop(skip);
+  // if(geniestage!=1) FCEU_ApplyPeriodicCheats();
 
-	if (skip != 2) ssize=FlushEmulateSound(); //If skip = 2 we are skipping sound processing
+  // fprintf(stderr, "ppu loop..\n");
 
-#ifdef _S9XLUA_H
-	CallRegisteredLuaFunctions(LUACALL_AFTEREMULATION);
-#endif
+  r = FCEUPPU_Loop(skip);
 
-#ifdef WIN32
-#ifndef NOWINSTUFF
-	//These Windows only dialogs need to be updated only once per frame so they are included here
-	UpdateCheatList(); // CaH4e3: can't see why, this is only cause problems with selection - adelikat: selection is only a problem when not paused, it shoudl be paused to select, we want to see the values update
-	UpdateTextHooker();
-	Update_RAM_Search(); // Update_RAM_Watch() is also called.
-	RamChange();
-	//FCEUI_AviVideoUpdate(XBuf);
-	extern int KillFCEUXonFrame;
-	if (KillFCEUXonFrame && (FCEUMOV_GetFrame() >= KillFCEUXonFrame))
-		DoFCEUExit();
-#endif
-#endif
+  // fprintf(stderr, "sound thing loop skip=%d..\n", skip);
 
-	timestampbase += timestamp;
-	timestamp = 0;
+  if (skip != 2) ssize=FlushEmulateSound(); //If skip = 2 we are skipping sound processing
 
-	*pXBuf=skip?0:XBuf;
-	if (skip == 2) //If skip = 2, then bypass sound
-	{
-		*SoundBuf=0;
-		*SoundBufSize=0;
-	}
-	else
-	{
-		*SoundBuf=WaveFinal;
-		*SoundBufSize=ssize;
-	}
 
-	if (EmulationPaused&2 && ( !frameAdvanceLagSkip || !lagFlag) )
-	//Lots of conditions here.  EmulationPaused&2 must be true.  In addition frameAdvanceLagSkip or lagFlag must be false
-	{
-		EmulationPaused = 1;		   // restore paused flag
-		JustFrameAdvanced = true;
-		#ifdef WIN32
-		#ifndef NOWINSTUFF
-			if(soundoptions&SO_MUTEFA) //mute the frame advance if the user requested it
-				*SoundBufSize=0;       //keep sound muted
-                #endif
-		#endif
+  // This is where cheat list stuff happened.
 
-	}
+  timestampbase += timestamp;
+  timestamp = 0;
 
-	if (lagFlag)
-	{
-		lagCounter++;
-		justLagged = true;
-	}
-	else justLagged = false;
+  if (pXBuf != NULL) {
+    *pXBuf=skip?0:XBuf;
+  }
 
-	if (movieSubtitles)
-		ProcessSubtitles();
+  if (skip == 2) //If skip = 2, then bypass sound
+    {
+      *SoundBuf=0;
+      *SoundBufSize=0;
+    }
+  else
+    {
+      *SoundBuf=WaveFinal;
+      *SoundBufSize=ssize;
+    }
+
+  if (EmulationPaused&2 && ( !frameAdvanceLagSkip || !lagFlag) )
+    //Lots of conditions here.  EmulationPaused&2 must be true.  In addition frameAdvanceLagSkip or lagFlag must be false
+    {
+      EmulationPaused = 1;		   // restore paused flag
+      JustFrameAdvanced = true;
+    }
+
+  if (lagFlag)
+    {
+      lagCounter++;
+      justLagged = true;
+    }
+  else justLagged = false;
+
+  // fprintf(stderr, "ppu end..\n");
 }
 
 void FCEUI_CloseGame(void)
@@ -782,73 +762,57 @@ void FCEU_MemoryRand(uint8 *ptr, uint32 size)
 	}
 }
 
-void hand(X6502 *X, int type, unsigned int A)
-{
-
-}
-
 //int suppressAddPowerCommand=0; // hack... yeah, I know...
 void PowerNES(void)
 {
-	//void MapperInit();
-	//MapperInit();
+  //void MapperInit();
+  //MapperInit();
 
-	//if(!suppressAddPowerCommand)
-		FCEUMOV_AddCommand(FCEUNPCMD_POWER);
+  //if(!suppressAddPowerCommand)
+  FCEUMOV_AddCommand(FCEUNPCMD_POWER);
 
-	if(!GameInfo) return;
+  if(!GameInfo) return;
 
-	FCEU_CheatResetRAM();
-	FCEU_CheatAddRAM(2,0,RAM);
+  FCEU_CheatResetRAM();
+  FCEU_CheatAddRAM(2,0,RAM);
 
-	GeniePower();
+  GeniePower();
 
-	FCEU_MemoryRand(RAM,0x800);
-	//memset(RAM,0xFF,0x800);
+  FCEU_MemoryRand(RAM,0x800);
+  //memset(RAM,0xFF,0x800);
 
-	SetReadHandler(0x0000,0xFFFF,ANull);
-	SetWriteHandler(0x0000,0xFFFF,BNull);
+  SetReadHandler(0x0000,0xFFFF,ANull);
+  SetWriteHandler(0x0000,0xFFFF,BNull);
 
-	SetReadHandler(0,0x7FF,ARAML);
-	SetWriteHandler(0,0x7FF,BRAML);
+  SetReadHandler(0,0x7FF,ARAML);
+  SetWriteHandler(0,0x7FF,BRAML);
 
-	SetReadHandler(0x800,0x1FFF,ARAMH); // Part of a little
-	SetWriteHandler(0x800,0x1FFF,BRAMH); //hack for a small speed boost.
+  SetReadHandler(0x800,0x1FFF,ARAMH); // Part of a little
+  SetWriteHandler(0x800,0x1FFF,BRAMH); //hack for a small speed boost.
 
-	InitializeInput();
-	FCEUSND_Power();
-	FCEUPPU_Power();
+  InitializeInput();
+  FCEUSND_Power();
+  FCEUPPU_Power();
 
-	//Have the external game hardware "powered" after the internal NES stuff.  Needed for the NSF code and VS System code.
-	GameInterface(GI_POWER);
-	if(GameInfo->type==GIT_VSUNI)
-		FCEU_VSUniPower();
+  //Have the external game hardware "powered" after the internal NES stuff.  Needed for the NSF code and VS System code.
+  GameInterface(GI_POWER);
+  if(GameInfo->type==GIT_VSUNI)
+    FCEU_VSUniPower();
 
-	//if we are in a movie, then reset the saveram
-	extern int disableBatteryLoading;
-	if(disableBatteryLoading)
-		GameInterface(GI_RESETSAVE);
+  //if we are in a movie, then reset the saveram
+  extern int disableBatteryLoading;
+  if(disableBatteryLoading)
+    GameInterface(GI_RESETSAVE);
 
-	timestampbase = 0;
-	X6502_Power();
-#ifdef WIN32
-#ifndef NOWINSTUFF
-	ResetDebugStatisticsCounters();
-#endif
-#endif
-	FCEU_PowerCheats();
-	LagCounterReset();
-	// clear back baffer
-	extern uint8 *XBackBuf;
-	memset(XBackBuf,0,256*256);
+  timestampbase = 0;
+  X6502_Power();
+  FCEU_PowerCheats();
+  LagCounterReset();
+  // clear back baffer
+  extern uint8 *XBackBuf;
+  memset(XBackBuf,0,256*256);
 
-#ifdef WIN32
-#ifndef NOWINSTUFF
-	Update_RAM_Search(); // Update_RAM_Watch() is also called.
-#endif
-#endif
-
-	FCEU_DispMessage("Power on", 0);
+  FCEU_DispMessage("Power on", 0);
 }
 
 void FCEU_ResetVidSys(void)
@@ -1035,6 +999,7 @@ void FCEUI_Autosave(void)
 		AutosaveCounter = 0;
 	}
 }
+
 
 int FCEU_TextScanlineOffset(int y)
 {
