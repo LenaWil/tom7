@@ -1,0 +1,65 @@
+group is
+
+#if (defined(SMLNJ_VERSION))
+ $/basis.cm
+ ../sml-lib/port/nj.sml
+#else
+ (* assume we are using mlton then *)
+ ../sml-lib/port/mlton.sml
+#endif
+
+  ../sml-lib/njlib/lib-base-sig.sml
+  ../sml-lib/njlib/lib-base.sml
+  ../sml-lib/njlib/ord-key-sig.sml
+  ../sml-lib/njlib/ord-map-sig.sml
+  ../sml-lib/njlib/ord-set-sig.sml
+  ../sml-lib/njlib/splaytree-sig.sml
+  ../sml-lib/njlib/splaytree.sml
+  ../sml-lib/njlib/splay-map-fn.sml
+  ../sml-lib/njlib/splay-set-fn.sml
+
+(*
+  ../sml-lib/util/growarray-sig.sml
+  ../sml-lib/util/growarray.sml
+
+  ../sml-lib/algo/heap-sig.sml
+  ../sml-lib/algo/heap.sml
+
+  ../sml-lib/util/simplestream-sig.sml
+  ../sml-lib/util/simplestream.sml
+
+  ../sml-lib/util/stream-sig.sml
+  ../sml-lib/util/stream.sml
+  ../sml-lib/util/streamutil-sig.sml
+  ../sml-lib/util/streamutil.sml
+
+  ../sml-lib/data/nmarkov-sig.sml
+  ../sml-lib/data/nmarkov.sml
+*)
+
+  ../sml-lib/util/stringutil-sig.sml
+  ../sml-lib/util/stringutil.sml
+  ../sml-lib/util/listutil-sig.sml
+  ../sml-lib/util/listutil.sml
+  ../sml-lib/util/fsutil-sig.sml
+  ../sml-lib/util/fsutil.sml
+
+  ../sml-lib/util/util-sig.sml
+  ../sml-lib/util/util.sml
+
+  ../sml-lib/util/script-sig.sml
+  ../sml-lib/util/script.sml
+
+  ../sml-lib/misc/params-sig.sml
+  ../sml-lib/misc/params.sml
+
+  ../sml-lib/misc/color-sig.sml
+  ../sml-lib/misc/color.sml
+
+  ../sml-lib/files/xml/fxlib.cm
+  ../sml-lib/files/xml/xml-sig.sml
+  ../sml-lib/files/xml/xml.sml
+  ../sml-lib/files/svg/textsvg-sig.sml
+  ../sml-lib/files/svg/textsvg.sml
+
+  grid.sml
