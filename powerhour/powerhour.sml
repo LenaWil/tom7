@@ -1,6 +1,8 @@
 (* TODO improvements:
    - don't directly enumerate games that can
      be separated into non-interacting components.
+
+   - Pow Pow Power Hour Machines
 *)
 
 structure PH =
@@ -94,6 +96,30 @@ struct
       Finished of { drinks: int Array.array,
                     waste: int }
     | Error of { rounds : int, msg : string }
+
+   fun ctos Up = "U"
+     | ctos Down = "D"
+     | ctos Filled = "F"
+
+   fun atos { drink, place = (w,a) } =
+       ctos a ^
+       (if drink then "*" else "") ^
+       "@" ^ Int.toString w
+
+   fun aotos NONE = "?"
+     | aotos (SOME a) = atos a
+
+   fun playertostring (P { start, up, down, filled }) =
+       "(start " ^
+       (case start of
+            NONE => "_"
+          | SOME c => ctos c) ^ ", " ^
+       StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ aotos a)
+                               [(Up, up), (Down, down), (Filled, filled)]) ^
+       ")"
+
+   fun gametostring g =
+       "[" ^ StringUtil.delimit "," (map playertostring g) ^ "]"
 
   fun exec (m : machine) =
     let
@@ -195,19 +221,30 @@ struct
         (* These are games that need to be explored. *)
         val queue = ref games
 
-        val done = ref (RM.empty : machine list RM.map)
+        val done = ref (RM.empty : (machine * int) RM.map)
         val did = ref (0 : IntInf.int)
+        val minq = ref (length (!queue))
+
+        (* Note: only keeping the newest, and counting how many we had. *)
         fun add_result m r =
-           case RM.find (!done, r) of
-              NONE => (done := RM.insert (!done, r, nil); add_result m r)
-            | SOME l => (did := !did + 1;
-                         if !did mod 100000 = 0
-                         then TextIO.output (TextIO.stdErr, "Did " ^ IntInf.toString (!did) ^
-                                             " currently " ^ Int.toString (length (!queue)) ^
-                                             "\n")
-                         else ();
-                         (* XXX only keeping the newest... *)
-                         done := RM.insert (!done, r, [m] (* :: l *)))
+           let in
+               did := !did + 1;
+               if !did mod 100000 = 0
+               then
+                   let val lq = length (!queue)
+                   in
+                       minq := Int.min(!minq, lq);
+                       TextIO.output (TextIO.stdErr, "#" ^ IntInf.toString (!did) ^
+                                      " queue " ^ Int.toString lq ^
+                                      " min " ^ Int.toString (!minq) ^
+                                      " " ^ (* gametostring m ^ *)
+                                      "\n")
+                   end
+               else ();
+               case RM.find (!done, r) of
+                   NONE => done := RM.insert (!done, r, (m, 1))
+                 | SOME (old, n) => done := RM.insert (!done, r, (old, n + 1))
+           end
 
         exception Bug
         fun process () =
@@ -336,30 +373,6 @@ struct
            l
        end
 
-   fun ctos Up = "U"
-     | ctos Down = "D"
-     | ctos Filled = "F"
-
-   fun atos { drink, place = (w,a) } =
-       ctos a ^
-       (if drink then "*" else "") ^
-       "@" ^ Int.toString w
-
-   fun aotos NONE = "?"
-     | aotos (SOME a) = atos a
-
-   fun playertostring (P { start, up, down, filled }) =
-       "(start " ^
-       (case start of
-            NONE => "_"
-          | SOME c => ctos c) ^ ", " ^
-       StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ aotos a)
-                               [(Up, up), (Down, down), (Filled, filled)]) ^
-       ")"
-
-   fun gametostring g =
-       "[" ^ StringUtil.delimit "," (map playertostring g) ^ "]"
-
    fun restostring (Finished { drinks, waste }) =
        "[" ^
        StringUtil.delimit "," (map Int.toString
@@ -371,17 +384,17 @@ struct
 
    fun show l =
        let
-           fun showone (res, g) =
+           fun showone (res, (g, n)) =
                print (restostring res ^ ": " ^
-                      Int.toString (length g) ^ " game(s) like " ^
-                      gametostring (hd g) ^ "\n")
+                      Int.toString n ^ " game(s) like " ^
+                      gametostring g ^ "\n")
        in
            app showone l
        end
 
  (*   val () = show (collate (allgames 2)) *)
 
-   val g = allgames 3
+   val g = allgames 2
    val () = print ("There are " ^ Int.toString (length g) ^
                    " games before splitting.\n")
    val () = show (RM.listItemsi (execexpand g))
