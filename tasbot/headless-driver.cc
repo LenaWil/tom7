@@ -62,6 +62,28 @@ FILE *FCEUD_UTF8fopen(const char *fn, const char *mode) {
 }
 
 /**
+ * Opens a file to be read a byte at a time.
+ */
+EMUFILE_FILE* FCEUD_UTF8_fstream(const char *fn, const char *m)
+{
+  std::ios_base::openmode mode = std::ios_base::binary;
+  if(!strcmp(m,"r") || !strcmp(m,"rb"))
+    mode |= std::ios_base::in;
+  else if(!strcmp(m,"w") || !strcmp(m,"wb"))
+    mode |= std::ios_base::out | std::ios_base::trunc;
+  else if(!strcmp(m,"a") || !strcmp(m,"ab"))
+    mode |= std::ios_base::out | std::ios_base::app;
+  else if(!strcmp(m,"r+") || !strcmp(m,"r+b"))
+    mode |= std::ios_base::in | std::ios_base::out;
+  else if(!strcmp(m,"w+") || !strcmp(m,"w+b"))
+    mode |= std::ios_base::in | std::ios_base::out | std::ios_base::trunc;
+  else if(!strcmp(m,"a+") || !strcmp(m,"a+b"))
+    mode |= std::ios_base::in | std::ios_base::out | std::ios_base::app;
+  return new EMUFILE_FILE(fn, m);
+  //return new std::fstream(fn,mode);
+}
+
+/**
  * Returns the compiler string.
  */
 const char *FCEUD_GetCompilerString() {
@@ -168,3 +190,25 @@ void FCEUD_TurboToggle() { }
 
 void FCEUD_DebugBreakpoint(int bp_num) {}
 void FCEUD_TraceInstruction(unsigned char*, int) {}
+
+/**
+ * Get the time in ticks.
+ */
+uint64 FCEUD_GetTime() {
+  //	return SDL_GetTicks();
+  fprintf(stderr, "(FCEUD_GetTime) In headless mode, nothing should "
+	  "try to do timing.\n");
+  abort();
+  return 0;
+}
+
+/**
+ * Get the tick frequency in Hz.
+ */
+uint64 FCEUD_GetTimeFreq(void) {
+  // SDL_GetTicks() is in milliseconds
+  fprintf(stderr, "(FCEUD_GetTimeFreq) In headless mode, nothing should "
+	  "try to do timing.\n");
+  abort();
+  return 1000;
+}
