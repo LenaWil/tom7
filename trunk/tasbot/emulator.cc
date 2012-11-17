@@ -198,7 +198,7 @@ void Emulator::Save(vector<uint8> *out) {
   EMUFILE_MEMORY ms(out);
   // Compression yields 2x slowdown, but states go from ~80kb to 1.4kb
   // Without screenshot, ~1.3kb and only 40% slowdown
-  FCEUSS_SaveMS(&ms, Z_DEFAULT_COMPRESSION /* Z_NO_COMPRESSION */);
+  FCEUSS_SaveMS(&ms, /* Z_DEFAULT_COMPRESSION */ Z_NO_COMPRESSION, NULL);
   // TODO
   // Saving is not as efficient as we'd like for a pure in-memory operation
   //  - uses tags to tell you what's next, even though we could already know
@@ -211,10 +211,16 @@ void Emulator::Save(vector<uint8> *out) {
   ms.trim();
 }
 
+void Emulator::GetBasis(vector<uint8> *out) {
+  EMUFILE_MEMORY ms(out);
+  FCEUSS_SaveMS(&ms, Z_NO_COMPRESSION, NULL);
+  ms.trim();
+}
+
 void Emulator::Load(vector<uint8> *state) {
   // XXX Wish we had EMUFILE_READONLY_MEMORY...
   EMUFILE_MEMORY ms(state);
-  if (!FCEUSS_LoadFP(&ms, SSLOADPARAM_NOBACKUP)) {
+  if (!FCEUSS_LoadFP(&ms, SSLOADPARAM_NOBACKUP, NULL)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }

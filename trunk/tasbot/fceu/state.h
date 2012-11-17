@@ -18,6 +18,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#ifndef __STATE_H
+#define __STATE_H
+
+#include <vector>
+#include "types.h"
+
 enum ENUM_SSLOADPARAMS
 {
   // PERF no need for backups!
@@ -29,9 +35,9 @@ void FCEUSS_Save(const char *);
 bool FCEUSS_Load(const char *);
 
  //zlib values: 0 (none) through 9 (max) or -1 (default)
-bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel);
+bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel, std::vector<uint8> *basis);
 
-bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params);
+bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params, std::vector<uint8> *basis);
 
 extern int CurrentState;
 void FCEUSS_CheckStates(void);
@@ -78,3 +84,5 @@ extern bool backupSavestates;            //Whether or not to make backups, true 
 bool CheckBackupSaveStateExist();        //Checks if backupsavestate exists
 
 extern bool compressSavestates;         //Whether or not to compress non-movie savestates (by default, yes)
+
+#endif

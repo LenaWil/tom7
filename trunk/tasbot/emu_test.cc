@@ -94,6 +94,14 @@ static int64 DumpMem() {
   return *(int64*)digest;
 }
 
+static void PrintSavestate(const vector<uint8> &ss) {
+  printf("Savestate:\n");
+  for (int i = 0; i < ss.size(); i++) {
+    printf("%02x", ss[i]);
+  }
+  printf("\n");
+}
+
 static void CheckLoc(int frame, uint32 expected) {
   fprintf(stderr, "Frame %d expect %u\n", frame, expected);
   uint32 loc = (RAM[0x0080] << 24) |
@@ -169,6 +177,19 @@ int main(int argc, char *argv[]) {
     // The FCEUX UI indexes frames starting at 1.
     CheckCheckpoints(i + 1);
   }
+
+  /*
+  PrintSavestate(savestates[0]);
+  PrintSavestate(savestates[4935]);
+  PrintSavestate(savestates[8123]);
+  */
+
+  vector<uint8> diff;
+  for (int i = 0; i < savestates[4935].size(); i++) {
+    diff.push_back(savestates[8123][i] - savestates[4935][i]);
+  }
+
+  PrintSavestate(diff);
 
   if (0x46e75713b56aea30 == Emulator::RamChecksum()) {
     fprintf(stderr, "Memory OK.\n");

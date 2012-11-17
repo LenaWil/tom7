@@ -344,7 +344,7 @@ int CurrentState=0;
 extern int geniestage;
 
 
-bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel)
+bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel, std::vector<uint8> *basis)
 {
   // PERF really use global file and copy? Why not into outstream?
 
@@ -481,36 +481,10 @@ void FCEUSS_Save(const char *fname) {
       return;
     }
 
-#ifdef _S9XLUA_H
-  if (!internalSaveLoad)
-    {
-      LuaSaveData saveData;
-      CallRegisteredLuaSaveFunctions(CurrentState, saveData);
-
-      char luaSaveFilename [512];
-      strncpy(luaSaveFilename, fn, 512);
-      luaSaveFilename[512-(1+7/*strlen(".luasav")*/)] = '\0';
-      strcat(luaSaveFilename, ".luasav");
-      if(saveData.recordList)
-	{
-	  FILE* luaSaveFile = fopen(luaSaveFilename, "wb");
-	  if(luaSaveFile)
-	    {
-	      saveData.ExportRecords(luaSaveFile);
-	      fclose(luaSaveFile);
-	    }
-	}
-      else
-	{
-	  unlink(luaSaveFilename);
-	}
-    }
-#endif
-
   if(FCEUMOV_Mode(MOVIEMODE_INACTIVE))
-    FCEUSS_SaveMS(st,-1);
+    FCEUSS_SaveMS(st,-1, NULL);
   else
-    FCEUSS_SaveMS(st,0);
+    FCEUSS_SaveMS(st,0, NULL);
 
   delete st;
 
@@ -522,8 +496,7 @@ void FCEUSS_Save(const char *fname) {
   redoSS = false;					//we have a new savestate so redo is not possible
 }
 
-bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
-{
+bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params, std::vector<uint8> *basis) {
   if(!is) return false;
 
   // PERF don't do this
@@ -531,7 +504,7 @@ bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
   bool backup = (params == SSLOADPARAM_BACKUP);
   EMUFILE_MEMORY msBackupSavestate;
   if(backup) {
-    FCEUSS_SaveMS(&msBackupSavestate,Z_NO_COMPRESSION);
+    FCEUSS_SaveMS(&msBackupSavestate,Z_NO_COMPRESSION, NULL);
   }
 
   uint8 header[8];
@@ -561,6 +534,17 @@ bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
     int error = uncompress(memory_savestate.buf(), &uncomprlen, &compressed_buf[0], comprlen);
     if(error != Z_OK || uncomprlen != totalsize)
       return false;	// we dont need to restore the backup here because we havent messed with the emulator state yet
+
+#if 0 // TODO
+    // If we have a basis, use it to decode.
+    if (basis != NULL) {
+      int len = min(basis->size(), totalsize);
+      for (int i = 0; i < len; i++) {
+	
+      }
+    }
+#endif
+
   } else {
     // the savestate is not compressed: just read from is to memory_savestate.vec
     is->fread(memory_savestate.buf(), totalsize);
@@ -583,8 +567,9 @@ bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params)
     FCEUSND_LoadState(stateversion);
     x=FCEUMOV_PostLoad();
   } else if (backup) {
+    // PERF get rid of this
     msBackupSavestate.fseek(0,SEEK_SET);
-    FCEUSS_LoadFP(&msBackupSavestate,SSLOADPARAM_NOBACKUP);
+    FCEUSS_LoadFP(&msBackupSavestate,SSLOADPARAM_NOBACKUP, NULL);
   }
 
   return x;
@@ -631,8 +616,9 @@ bool FCEUSS_Load(const char *fname)
 	//If in bot mode, don't do a backup when loading.
 	//Otherwise you eat at the hard disk, since so many
 	//states are being loaded.
-	if(FCEUSS_LoadFP(st, backupSavestates ? SSLOADPARAM_BACKUP : SSLOADPARAM_NOBACKUP))
-	{
+	if(FCEUSS_LoadFP(st, 
+			 backupSavestates ? SSLOADPARAM_BACKUP : SSLOADPARAM_NOBACKUP, 
+			 NULL)) {
 		if(fname)
 		{
 			char szFilename[260]={0};
@@ -647,26 +633,6 @@ bool FCEUSS_Load(const char *fname)
 			SaveStateStatus[CurrentState]=1;
 		}
 		delete st;
-
-		#ifdef _S9XLUA_H
-		if (!internalSaveLoad)
-		{
-			LuaSaveData saveData;
-
-			char luaSaveFilename [512];
-			strncpy(luaSaveFilename, fn, 512);
-			luaSaveFilename[512-(1+7/*strlen(".luasav")*/)] = '\0';
-			strcat(luaSaveFilename, ".luasav");
-			FILE* luaSaveFile = fopen(luaSaveFilename, "rb");
-			if(luaSaveFile)
-			{
-				saveData.ImportRecords(luaSaveFile);
-				fclose(luaSaveFile);
-			}
-
-			CallRegisteredLuaLoadFunctions(CurrentState, saveData);
-		}
-		#endif
 
 #ifdef WIN32
 #ifndef NOWINSTUFF
