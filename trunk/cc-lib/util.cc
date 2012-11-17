@@ -172,6 +172,24 @@ string Util::ReadFile(const string &s) {
   return ret;
 }
 
+vector<string> Util::ReadFileToLines(const string &f) {
+  string s = ReadFile(f);
+  vector<string> v;
+  string line;
+  // PERF don't need to do so much copying.
+  for (size_t i = 0; i < s.size(); i++) {
+    if (s[i] == '\r')
+      continue;
+    else if (s[i] == '\n') {
+      v.push_back(line);
+      line.clear();
+    } else {
+      line += s[i];
+    }
+  }
+  return v;
+}
+
 static bool hasmagicf(FILE * f, const string & mag) {
   char * hdr = (char*)malloc(mag.length());
   if (!hdr) return false;
@@ -888,8 +906,8 @@ bool Util::launchurl(const string & url) {
 #endif
 
 #if WIN32
-  return ((int)ShellExecute(NULL, "open", url.c_str(), 
-			    NULL, NULL, SW_SHOWNORMAL)) > 32;
+  return ((size_t)ShellExecute(NULL, "open", url.c_str(), 
+			       NULL, NULL, SW_SHOWNORMAL)) > 32;
 #endif
 
   /* otherwise.. */

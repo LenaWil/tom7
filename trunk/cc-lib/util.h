@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -28,6 +29,10 @@ struct Util {
 
   static string ReadFile(const string &f);
   static bool WriteFile(const string &f, const string &s);
+
+  // Reads the lines in the file to the vector. Ignores all
+  // carriage returns, including ones not followed by newline.
+  static vector<string> ReadFileToLines(const string &f);
 
   // XXX terrible names
   static int shout(int, string, unsigned int &);
