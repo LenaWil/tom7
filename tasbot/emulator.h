@@ -44,8 +44,9 @@ struct Emulator {
   // Save and load with a basis vector. The vector can contain anything, and
   // doesn't even have to be the same length as an uncompressed save state,
   // but a state needs to be loaded with the same basis as it was saved.
-  static void SaveEx(vector<uint8> *out, const vector<uint8> &basis);
-  static void LoadEx(vector<uint8> *in, const vector<uint8> &basis);
+  // basis can be NULL, and then these behave the same as Save/Load.
+  static void SaveEx(vector<uint8> *out, const vector<uint8> *basis);
+  static void LoadEx(vector<uint8> *in, const vector<uint8> *basis);
 };
 
 

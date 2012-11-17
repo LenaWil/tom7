@@ -195,33 +195,116 @@ void Emulator::Step(uint8 inputs) {
 }
 
 void Emulator::Save(vector<uint8> *out) {
-  EMUFILE_MEMORY ms(out);
-  // Compression yields 2x slowdown, but states go from ~80kb to 1.4kb
-  // Without screenshot, ~1.3kb and only 40% slowdown
-  FCEUSS_SaveMS(&ms, /* Z_DEFAULT_COMPRESSION */ Z_NO_COMPRESSION, NULL);
+  SaveEx(out, NULL);
+}
+
+void Emulator::GetBasis(vector<uint8> *out) {
+  FCEUSS_SaveRAW(out);
+}
+
+void Emulator::Load(vector<uint8> *state) {
+  LoadEx(state, NULL);
+}
+
+// Compression yields 2x slowdown, but states go from ~80kb to 1.4kb
+// Without screenshot, ~1.3kb and only 40% slowdown
+#define USE_COMPRESSION 1
+
+#if USE_COMPRESSION
+
+void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
   // TODO
   // Saving is not as efficient as we'd like for a pure in-memory operation
   //  - uses tags to tell you what's next, even though we could already know
   //  - takes care for endianness; no point
-  //  - saves the backing buffer (write-only, used for display)
   //  - might save some other write-only data (sound?)
-  //  - compresses the output using zlib, which may be good for space
-  //    but not good for time!
 
-  ms.trim();
+  vector<uint8> raw;
+  FCEUSS_SaveRAW(&raw);
+
+  // Encode.
+  int blen = (basis == NULL) ? 0 : (min(basis->size(), raw.size()));
+  for (int i = 0; i < blen; i++) {
+    raw[i] -= (*basis)[i];
+  }
+
+  // Compress.
+  int error = Z_OK;
+  uint8* cbuf = &raw[0];
+  int len = raw.size();
+  // worst case compression: zlib says "0.1% larger than sourceLen plus 12 bytes"
+  uLongf comprlen = (len >> 9) + 12 + len;
+
+  // Make sure there is contiguous space. Need room for header too.
+  state->resize(4 + comprlen);
+
+  if (Z_OK != compress2(&(*state)[4], &comprlen, &raw[0], len, Z_DEFAULT_COMPRESSION)) {
+    fprintf(stderr, "Couldn't compress.\n");
+    abort();
+  }
+
+  *(uint32*)&(*state)[0] = len;
+  // fprintf(stderr, "comprlen: %d\n", comprlen);
+
+  // Trim to what we actually needed.
+  // PERF: This almost certainly does not actually free the memory. Might need to copy.
+  state->resize(4 + comprlen);
 }
 
-void Emulator::GetBasis(vector<uint8> *out) {
-  EMUFILE_MEMORY ms(out);
-  FCEUSS_SaveMS(&ms, Z_NO_COMPRESSION, NULL);
-  ms.trim();
-}
+void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
+  // Decompress. First word tells us the decompressed size.
+  int uncomprlen = *(uint32*)&(*state)[0];
+  vector<uint8> uncompressed;
+  uncompressed.resize(uncomprlen);
+  // fprintf(stderr, "uncompressed length: %d\n", uncomprlen);
+ 
+  switch (uncompress(&uncompressed[0], (uLongf*)&uncomprlen,
+		     &(*state)[4], state->size() - 4)) {
+  case Z_OK: break;
+  case Z_BUF_ERROR:
+    fprintf(stderr, "Not enough room in output\n");
+    abort();
+    break;
+  case Z_MEM_ERROR:
+    fprintf(stderr, "Not enough memory\n");
+    abort();
+    break;
+  default:
+    fprintf(stderr, "Unknown decompression error\n");
+    abort();
+    break;
+  }
+  // fprintf(stderr, "After uncompression: %d\n", uncomprlen);
+  
+  // Why doesn't this equal the result from before?
+  uncompressed.resize(uncomprlen);
 
-void Emulator::Load(vector<uint8> *state) {
-  // XXX Wish we had EMUFILE_READONLY_MEMORY...
-  EMUFILE_MEMORY ms(state);
-  if (!FCEUSS_LoadFP(&ms, SSLOADPARAM_NOBACKUP, NULL)) {
+  // Decode.
+  int blen = (basis == NULL) ? 0 : (min(basis->size(), uncompressed.size()));
+  for (int i = 0; i < blen; i++) {
+    uncompressed[i] += (*basis)[i];
+  }
+
+  if (!FCEUSS_LoadRAW(&uncompressed)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }
 }
+
+#else
+
+// When compression is disabled, we ignore the basis (no point) and
+// don't store any size header. These functions become very simple.
+void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
+  FCEUSS_SaveRAW(out);
+}
+
+void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
+  if (!FCEUSS_LoadRAW(state)) {
+    fprintf(stderr, "Couldn't restore from state\n");
+    abort();
+  }
+}
+
+
+#endif

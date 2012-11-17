@@ -343,7 +343,69 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize)
 int CurrentState=0;
 extern int geniestage;
 
+// Simplified save that does not compress.
+bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
+  EMUFILE_MEMORY os(out);
 
+  uint32 totalsize = 0;
+
+  FCEUPPU_SaveState();
+  FCEUSND_SaveState();
+  totalsize = WriteStateChunk(&os,1,SFCPU);
+  totalsize += WriteStateChunk(&os,2,SFCPUC);
+  totalsize += WriteStateChunk(&os,3,FCEUPPU_STATEINFO);
+  // PERF: Do we need to save both old and new ppu infos?
+  totalsize += WriteStateChunk(&os,31,FCEU_NEWPPU_STATEINFO);
+  totalsize += WriteStateChunk(&os,4,FCEUCTRL_STATEINFO);
+  totalsize += WriteStateChunk(&os,5,FCEUSND_STATEINFO);
+
+  if(SPreSave) SPreSave();
+  // This allows other parts of the system to hook into things to be
+  // saved. It is indeed used for "WRAM", "LATC", "BUSC". -tom7
+  totalsize+=WriteStateChunk(&os,0x10,SFMDATA);
+  if(SPreSave) SPostSave();
+
+  // save the length of the file
+  int len = os.size();
+
+  // PERF trim?
+  
+  // sanity check: len and totalsize should be the same
+  if (len != totalsize) {
+    FCEUD_PrintError("sanity violation: len != totalsize");
+    return false;
+  }
+
+  return true;
+}
+
+bool FCEUSS_LoadRAW(std::vector<uint8> *in) {
+  EMUFILE_MEMORY is(in);
+
+  int totalsize = is.size();
+  // Assume current version; memory only.
+  int stateversion = FCEU_VERSION_NUMERIC;
+
+  // is->fread(memory_savestate.buf(), totalsize);
+
+  FCEUMOV_PreLoad();
+
+  bool success = (ReadStateChunks(&is, totalsize) != 0);
+
+  if(GameStateRestore) {
+    GameStateRestore(stateversion);
+  }
+
+  if (success) {
+    FCEUPPU_LoadState(stateversion);
+    FCEUSND_LoadState(stateversion);
+    return FCEUMOV_PostLoad();
+  } else {
+    return false;
+  }
+}
+
+// XXX ger rid of this? -tom7
 bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel, std::vector<uint8> *basis)
 {
   // PERF really use global file and copy? Why not into outstream?

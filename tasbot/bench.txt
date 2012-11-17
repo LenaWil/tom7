@@ -1,0 +1,83 @@
+20000 frames of karate.nes, first try:
+
+real    0m7.674s
+user    0m0.000s
+sys     0m0.000s
+
+
+0000000000000036  MD5: ec712c4d58c3553f4b431285268cc93e
+
+real    0m7.650s
+user    0m0.000s
+sys     0m0.015s
+
+
+
+--- new emu_test ---
+
+Savestates are ok.
+Total for 11347 savestates: 24.53mb (avg 2266.99 bytes)
+
+real    0m23.592s
+user    0m0.015s
+sys     0m0.015s
+
+
+Don't save back buffer:
+
+Savestates are ok.
+Total for 11347 savestates: 22.58mb (avg 2086.42 bytes)
+
+real    0m15.136s
+user    0m0.000s
+sys     0m0.015s
+
+
+Don't save any movie info (seems there was none):
+
+Total for 11347 savestates: 22.58mb (avg 2086.42 bytes)
+
+real    0m15.040s
+user    0m0.000s
+sys     0m0.000s
+
+
+No need for headers that are constant:
+
+Savestates are ok.
+Total for 11347 savestates: 22.49mb (avg 2078.42 bytes)
+
+real    0m15.077s
+user    0m0.000s
+sys     0m0.000s
+
+
+Using SaveRAW and manual compression.
+
+Savestates are ok.
+Total for 11347 savestates: 22.45mb (avg 2074.42 bytes)
+
+real    0m15.176s
+user    0m0.000s
+sys     0m0.031s
+
+
+Compute and pass basis, but don't use it.
+
+Savestates are ok.
+Total for 11347 savestates: 22.45mb (avg 2074.42 bytes)
+
+real    0m15.271s
+user    0m0.000s
+sys     0m0.000s
+
+
+Using basis from frame 4935:
+
+Savestates are ok.
+Total for 11347 savestates: 20.24mb (avg 1870.41 bytes)
+
+real    0m15.227s
+user    0m0.000s
+sys     0m0.031s
+

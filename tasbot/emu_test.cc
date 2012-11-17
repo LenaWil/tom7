@@ -146,6 +146,34 @@ static bool CompareByHash(int a, int b) {
   return CrapHash(a) < CrapHash(b);
 }
 
+static vector<uint8> LoadOrComputeBasis(const vector<uint8> &inputs,
+					int frame,
+					const string &basisfile) {
+  if (Util::ExistsFile(basisfile)) {
+    fprintf(stderr, "Loading basis file %s.\n", basisfile.c_str());
+    return Util::ReadFileBytes(basisfile);
+  }
+
+  fprintf(stderr, "Computing basis file %s.\n", basisfile.c_str());
+  vector<uint8> start;
+  Emulator::Save(&start);
+  for (int i = 0; i < frame; i++) {
+    Emulator::Step(inputs[i]);
+  }
+  vector<uint8> basis;
+  Emulator::GetBasis(&basis);
+  if (!Util::WriteFileBytes(basisfile, basis)) {
+    fprintf(stderr, "Couldn't write to %s\n", basisfile.c_str());
+    abort();
+  }
+  fprintf(stderr, "Written.\n");
+  
+  // Rewind.
+  Emulator::Load(&start);
+
+  return basis;
+}
+
 /**
  * The main loop for the SDL.
  */
@@ -153,13 +181,18 @@ int main(int argc, char *argv[]) {
   Emulator::Initialize("karate.nes");
   // loop playing the game
   vector<uint8> inputs = SimpleFM2::ReadInputs("karate.fm2");
-  fprintf(stderr, "Running %d steps...\n", inputs.size());
+
+  vector<uint8> basis = LoadOrComputeBasis(inputs, 4935, "karate.basis");
 
   // The nth savestate is from before issuing the nth input.
   vector< vector<uint8> > savestates;
 
   int64 ss_total = 0;
 
+  // XXXXXX
+  // inputs.resize(10);
+
+  fprintf(stderr, "Running %d steps...\n", inputs.size());
   for (int i = 0; i < inputs.size(); i++) {
     // XXX don't think this should ever happen.
     if (!GameInfo) {
@@ -168,7 +201,7 @@ int main(int argc, char *argv[]) {
     }
 
     vector<uint8> v;
-    Emulator::Save(&v);
+    Emulator::SaveEx(&v, &basis);
     ss_total += v.size();
     savestates.push_back(v);
 
@@ -178,18 +211,22 @@ int main(int argc, char *argv[]) {
     CheckCheckpoints(i + 1);
   }
 
+#if 0
   /*
   PrintSavestate(savestates[0]);
   PrintSavestate(savestates[4935]);
   PrintSavestate(savestates[8123]);
   */
 
-  vector<uint8> diff;
-  for (int i = 0; i < savestates[4935].size(); i++) {
-    diff.push_back(savestates[8123][i] - savestates[4935][i]);
-  }
+  if (savestates.size() > 9000) {
+    vector<uint8> diff;
+    for (int i = 0; i < savestates[4935].size(); i++) {
+      diff.push_back(savestates[8123][i] - savestates[4935][i]);
+    }
 
-  PrintSavestate(diff);
+    PrintSavestate(diff);
+  }
+#endif
 
   if (0x46e75713b56aea30 == Emulator::RamChecksum()) {
     fprintf(stderr, "Memory OK.\n");
@@ -208,10 +245,10 @@ int main(int argc, char *argv[]) {
   std::sort(order.begin(), order.end(), CompareByHash);
   for (int i = 0; i < order.size(); i++) {
     int frame = order[i];
-    Emulator::Load(&savestates[frame]);
+    Emulator::LoadEx(&savestates[frame], &basis);
     Emulator::Step(inputs[frame]);
     vector<uint8> res;
-    Emulator::Save(&res);
+    Emulator::SaveEx(&res, &basis);
     CheckCheckpoints(frame + 1);
     if (frame + 1 < savestates.size()) {
       const vector<uint8> &expected = savestates[frame + 1];
