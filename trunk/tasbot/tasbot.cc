@@ -34,7 +34,7 @@
 #include "fceu/oldmovie.h"
 #include "fceu/types.h"
 
-extern double g_fpsScale;
+#include "../cc-lib/util.h"
 
 int CloseGame(void);
 
@@ -109,8 +109,13 @@ static void DoFun(int frameskip) {
 
   uint8 v = RAM[0x0009];
   uint8 s = RAM[0x000B];  // Should be 77.
+  uint32 loc = (RAM[0x0080] << 24) |
+    (RAM[0x0081] << 16) |
+    (RAM[0x0082] << 8) |
+    (RAM[0x0083]);
   // fprintf(stderr, "%02x %02x\n", v, s);
 
+#if 0
   std::vector<uint8> savestate;
   EMUFILE_MEMORY ms(&savestate);
   // Compression yields 2x slowdown, but states go from ~80kb to 1.4kb
@@ -127,6 +132,7 @@ static void DoFun(int frameskip) {
 
   ms.trim();
   fprintf(stderr, "SS: %lld\n", savestate.size());
+#endif
 
   // uint8 FCEUI_MemSafePeek(uint16 A);
   // void FCEUI_MemPoke(uint16 a, uint8 v, int hl);
@@ -184,28 +190,6 @@ static void DriverKill() {
 void FCEUD_Update(uint8 *XBuf, int32 *Buffer, int Count) {
 }
 
-/**
- * Opens a file to be read a byte at a time.
- */
-EMUFILE_FILE* FCEUD_UTF8_fstream(const char *fn, const char *m)
-{
-  std::ios_base::openmode mode = std::ios_base::binary;
-  if(!strcmp(m,"r") || !strcmp(m,"rb"))
-    mode |= std::ios_base::in;
-  else if(!strcmp(m,"w") || !strcmp(m,"wb"))
-    mode |= std::ios_base::out | std::ios_base::trunc;
-  else if(!strcmp(m,"a") || !strcmp(m,"ab"))
-    mode |= std::ios_base::out | std::ios_base::app;
-  else if(!strcmp(m,"r+") || !strcmp(m,"r+b"))
-    mode |= std::ios_base::in | std::ios_base::out;
-  else if(!strcmp(m,"w+") || !strcmp(m,"w+b"))
-    mode |= std::ios_base::in | std::ios_base::out | std::ios_base::trunc;
-  else if(!strcmp(m,"a+") || !strcmp(m,"a+b"))
-    mode |= std::ios_base::in | std::ios_base::out | std::ios_base::app;
-  return new EMUFILE_FILE(fn, m);
-  //return new std::fstream(fn,mode);
-}
-
 static int64 DumpMem() {
   for (int i = 0; i < 0x800; i++) {
     fprintf(stderr, "%02x", (uint8)RAM[i]);
@@ -253,8 +237,6 @@ int main(int argc, char *argv[]) {
   
   const char *romfile = argv[1];
 
-  std::string s;
-
   // (init video was here.)
   // I don't think it's necessary -- just sets up the SDL window and so on.
 
@@ -291,14 +273,6 @@ int main(int argc, char *argv[]) {
 
   // Defaults.
   const int scanlinestart = 0, scanlineend = 239;
-
-  // What is this? -tom7
-#if DOING_SCANLINE_CHECKS
-  for(int i = 0; i < 2; x++) {
-    if(srendlinev[x]<0 || srendlinev[x]>239) srendlinev[x]=0;
-    if(erendlinev[x]<srendlinev[x] || erendlinev[x]>239) erendlinev[x]=239;
-  }
-#endif
 
   FCEUI_SetRenderedLines(scanlinestart + 8, scanlineend - 8, 
 			 scanlinestart, scanlineend);
@@ -354,21 +328,4 @@ int main(int argc, char *argv[]) {
   // exit the infrastructure
   FCEUI_Kill();
   return 0;
-}
-
-/**
- * Get the time in ticks.
- */
-uint64 FCEUD_GetTime() {
-  //	return SDL_GetTicks();
-  abort();
-  return 0;
-}
-
-/**
- * Get the tick frequency in Hz.
- */
-uint64 FCEUD_GetTimeFreq(void) {
-  // SDL_GetTicks() is in milliseconds
-  return 1000;
 }

@@ -1,6 +1,6 @@
 
 # Makefile made by tom7.
-default: tasbot.exe
+default: emu_test.exe
 
 # GPP=
 
@@ -15,6 +15,8 @@ PROFILE=
 
 #  -DNOUNZIP
 CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF ${PROFILE}
+
+CCLIBOBJECTS=../cc-lib/util.o
 
 MAPPEROBJECTS=fceu/mappers/24and26.o fceu/mappers/51.o fceu/mappers/69.o fceu/mappers/77.o fceu/mappers/40.o fceu/mappers/6.o fceu/mappers/71.o fceu/mappers/79.o fceu/mappers/41.o fceu/mappers/61.o fceu/mappers/72.o fceu/mappers/80.o fceu/mappers/42.o fceu/mappers/62.o fceu/mappers/73.o fceu/mappers/85.o fceu/mappers/46.o fceu/mappers/65.o fceu/mappers/75.o fceu/mappers/emu2413.o fceu/mappers/50.o fceu/mappers/67.o fceu/mappers/76.o fceu/mappers/mmc2and4.o
 
@@ -35,15 +37,18 @@ DRIVERS_COMMON_OBJECTS=fceu/drivers/common/args.o fceu/drivers/common/nes_ntsc.o
 
 # DRIVERS_DUMMY_OBJECTS=fceu/drivers/dummy/dummy.o
 
-TASBOT_OBJECTS=tasbot.o headless-driver.o config.o
+TASBOT_OBJECTS=headless-driver.o config.o simplefm2.o emulator.o
 
-OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(DRIVERS_COMMON_OBJECTS) $(TASBOT_OBJECTS)
+OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(DRIVERS_COMMON_OBJECTS) $(CCLIBOBJECTS) $(TASBOT_OBJECTS)
 
 LFLAGS = -m64 -lz
 
 # without static, can't find lz or lstdcxx maybe?
-tasbot.exe : $(OBJECTS)
+tasbot.exe : $(OBJECTS) tasbot.o
+	${CXX} $^ -o $@ ${LFLAGS} -static ${PROFILE}
+
+emu_test.exe : $(OBJECTS) emu_test.o
 	${CXX} $^ -o $@ ${LFLAGS} -static ${PROFILE}
 
 clean :
-	rm -f tasbot.exe $(OBJECTS) gmon.out
+	rm -f tasbot.exe emu_test.exe $(OBJECTS) gmon.out

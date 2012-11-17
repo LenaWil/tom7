@@ -103,6 +103,14 @@ extern uint8 coinon;
 //set to true if the fourscore is attached
 static bool FSAttached = false;
 
+// Joyports are where the emulator looks to find input during simulation.
+// They're set by FCEUI_SetInput. Each joyport knows its index (w), type,
+// and pointer to data. I think the data pointer for two gamepads is usually
+// the same. -tom7
+//
+// Ultimately these get copied into joy[4]. I don't know which is which
+// (see the confusing UpdateGP below) but it seems joy[0] is the least significant
+// byte of the pointer. -tom7
 JOYPORT joyports[2] = { JOYPORT(0), JOYPORT(1) };
 FCPORT portFC;
 
