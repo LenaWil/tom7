@@ -805,15 +805,15 @@ bool FCEUMOV_FromPoweron()
 }
 bool MovieData::loadSavestateFrom(std::vector<uint8>* buf)
 {
-	EMUFILE_MEMORY ms(buf);
-	return FCEUSS_LoadFP(&ms,SSLOADPARAM_BACKUP);
+  EMUFILE_MEMORY ms(buf);
+  return FCEUSS_LoadFP(&ms,SSLOADPARAM_BACKUP, NULL);
 }
 
 void MovieData::dumpSavestateTo(std::vector<uint8>* buf, int compressionLevel)
 {
-	EMUFILE_MEMORY ms(buf);
-	FCEUSS_SaveMS(&ms,compressionLevel);
-	ms.trim();
+  EMUFILE_MEMORY ms(buf);
+  FCEUSS_SaveMS(&ms, compressionLevel, NULL);
+  ms.trim();
 }
 
 //begin playing an existing movie
