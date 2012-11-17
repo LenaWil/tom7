@@ -190,6 +190,18 @@ vector<string> Util::ReadFileToLines(const string &f) {
   return v;
 }
 
+// PERF memcpy
+vector<unsigned char> Util::ReadFileBytes(const string &f) {
+  string s = ReadFile(f);
+  vector<unsigned char> bytes;
+  bytes.reserve(s.size());
+  for (int i = 0; i < s.size(); i++) {
+    bytes.push_back((unsigned char)s[i]);
+  }
+  return bytes;
+}
+
+
 static bool hasmagicf(FILE * f, const string & mag) {
   char * hdr = (char*)malloc(mag.length());
   if (!hdr) return false;
@@ -264,6 +276,18 @@ bool Util::WriteFile(const string &fn, const string &s) {
 
   /* XXX check failure */
   fwrite(s.c_str(), 1, s.length(), f);
+
+  fclose(f);
+  
+  return true;
+}
+
+bool Util::WriteFileBytes(const string &fn, const vector<unsigned char> &bytes) {
+  FILE * f = fopen(fn.c_str(), "wb");
+  if (!f) return false;
+
+  /* XXX check failure */
+  fwrite(&bytes[0], 1, bytes.size(), f);
 
   fclose(f);
   
