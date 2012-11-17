@@ -34,6 +34,9 @@ struct Util {
   // carriage returns, including ones not followed by newline.
   static vector<string> ReadFileToLines(const string &f);
 
+  static vector<unsigned char> ReadFileBytes(const string &f);
+  static bool WriteFileBytes(const string &f, const vector<unsigned char> &b);
+
   // XXX terrible names
   static int shout(int, string, unsigned int &);
   static string shint(int b, int i);
