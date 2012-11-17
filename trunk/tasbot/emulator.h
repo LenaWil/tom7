@@ -23,7 +23,8 @@ struct Emulator {
   static void Shutdown();
 
   static void Save(vector<uint8> *out);
-  static void Load(const vector<uint8> &in);
+  // Doesn't modify its argument.
+  static void Load(vector<uint8> *in);
 
   // Make one emulator step with the given input.
   // Bits from MSB to LSB are
