@@ -8,6 +8,9 @@
 structure PH =
 struct
 
+  (* XXX should be 60 *)
+  val MINUTES = 1440
+
   (* Types that define Power Hour Machines, which
      completely describe a power hour algorithm. *)
   datatype cup = Up | Down | Filled
@@ -124,15 +127,17 @@ struct
   fun exec (m : machine) =
     let
         val sim = makesim m
-        fun oneround (s as S { round = ref 60, drinks, cups, ... }) =
-            let
-                (* Glasses filled at the end are waste. *)
-                val waste = Array.foldl (fn (SOME Filled, b) => 1 + b
-                                          | (_, b) => b) 0 (!cups)
-            in
-                Finished { drinks = drinks, waste = waste }
-            end
-          | oneround (s as S { round = ref round, ... }) =
+        fun oneround (s as S { round = ref round, drinks, cups, ... }) =
+            if round = MINUTES
+            then
+                let
+                    (* Glasses filled at the end are waste. *)
+                    val waste = Array.foldl (fn (SOME Filled, b) => 1 + b
+                                              | (_, b) => b) 0 (!cups)
+                in
+                    Finished { drinks = drinks, waste = waste }
+                end
+            else
             (step s; oneround s)
                  handle Illegal str => Error { rounds = round,
                                                msg = str }
@@ -221,7 +226,7 @@ struct
         (* These are games that need to be explored. *)
         val queue = ref games
 
-        val done = ref (RM.empty : (machine * int) RM.map)
+        val done = ref (RM.empty : (machine * IntInf.int) RM.map)
         val did = ref (0 : IntInf.int)
         val minq = ref (length (!queue))
 
@@ -257,15 +262,17 @@ struct
                                 " left in queue\n")
                 *)
                 val () = queue := t
-                fun simulate (s as S { round = ref 60, drinks, cups, ... }) =
-                  let
-                      (* Glasses filled at the end are waste. *)
-                      val waste = Array.foldl (fn (SOME Filled, b) => 1 + b
-                                                | (_, b) => b) 0 (!cups)
-                  in
-                     add_result m (Finished { drinks = drinks, waste = waste })
-                  end
-                  | simulate (s as S { round = ref round, ... }) =
+                fun simulate (s as S { round = ref round, drinks, cups, ... }) =
+                  if round = MINUTES
+                  then
+                      let
+                          (* Glasses filled at the end are waste. *)
+                          val waste = Array.foldl (fn (SOME Filled, b) => 1 + b
+                                                    | (_, b) => b) 0 (!cups)
+                      in
+                         add_result m (Finished { drinks = drinks, waste = waste })
+                      end
+                  else
                      let in
                          (* print (Int.toString round ^ "\n"); *)
                          step s;
@@ -394,7 +401,7 @@ struct
 
  (*   val () = show (collate (allgames 2)) *)
 
-   val g = allgames 2
+   val g = allgames 3
    val () = print ("There are " ^ Int.toString (length g) ^
                    " games before splitting.\n")
    val () = show (RM.listItemsi (execexpand g))
