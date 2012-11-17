@@ -20,8 +20,9 @@
 
 enum ENUM_SSLOADPARAMS
 {
-	SSLOADPARAM_NOBACKUP,
-	SSLOADPARAM_BACKUP,
+  // PERF no need for backups!
+        SSLOADPARAM_NOBACKUP,
+        SSLOADPARAM_BACKUP,
 };
 
 void FCEUSS_Save(const char *);
@@ -37,14 +38,14 @@ void FCEUSS_CheckStates(void);
 
 struct SFORMAT
 {
-	//a void* to the data or a void** to the data
-	void *v;
+        //a void* to the data or a void** to the data
+        void *v;
 
-	//size, plus flags
-	uint32 s;
+        //size, plus flags
+        uint32 s;
 
-	//a string description of the element
-	char *desc;
+        //a string description of the element
+        char *desc;
 };
 
 void ResetExState(void (*PreSave)(void),void (*PostSave)(void));
@@ -62,18 +63,18 @@ void AddExState(void *v, uint32 s, int type, char *desc);
 void FCEU_DrawSaveStates(uint8 *XBuf);
 
 void CreateBackupSaveState(const char *fname); //backsup a savestate before overwriting it with a new one
-void BackupLoadState();				 //Makes a backup savestate before any loadstate
-void LoadBackup();					 //Loads the backupsavestate
-void RedoLoadState();				 //reloads a loadstate if backupsavestate was run
-void SwapSaveState();				 //Swaps a savestate with its backup state
+void BackupLoadState();                          //Makes a backup savestate before any loadstate
+void LoadBackup();                                       //Loads the backupsavestate
+void RedoLoadState();                            //reloads a loadstate if backupsavestate was run
+void SwapSaveState();                            //Swaps a savestate with its backup state
 
 extern char lastSavestateMade[2048]; //Filename of last savestate used
-extern bool undoSS;					 //undo savestate flag
-extern bool redoSS;					 //redo savestate flag
+extern bool undoSS;                                      //undo savestate flag
+extern bool redoSS;                                      //redo savestate flag
 extern char lastLoadstateMade[2048]; //Filename of last state loaded
-extern bool undoLS;					 //undo loadstate flag
-extern bool redoLS;					 //redo savestate flag
-extern bool backupSavestates;		 //Whether or not to make backups, true by default
-bool CheckBackupSaveStateExist();	 //Checks if backupsavestate exists
+extern bool undoLS;                                      //undo loadstate flag
+extern bool redoLS;                                      //redo savestate flag
+extern bool backupSavestates;            //Whether or not to make backups, true by default
+bool CheckBackupSaveStateExist();        //Checks if backupsavestate exists
 
-extern bool compressSavestates;		//Whether or not to compress non-movie savestates (by default, yes)
+extern bool compressSavestates;         //Whether or not to compress non-movie savestates (by default, yes)
