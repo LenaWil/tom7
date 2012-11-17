@@ -211,7 +211,11 @@ void Emulator::Save(vector<uint8> *out) {
   ms.trim();
 }
 
-void Emulator::Load(const vector<uint8> &state) {
-  fprintf(stderr, "unimplemented: Load\n");
-  abort();
+void Emulator::Load(vector<uint8> *state) {
+  // XXX Wish we had EMUFILE_READONLY_MEMORY...
+  EMUFILE_MEMORY ms(state);
+  if (!FCEUSS_LoadFP(&ms, SSLOADPARAM_NOBACKUP)) {
+    fprintf(stderr, "Couldn't restore from state\n");
+    abort();
+  }
 }
