@@ -1208,15 +1208,8 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
 	MovieData tempMovieData = MovieData();
 	std::ios::pos_type curr = is->ftell();
 	if(!LoadFM2(tempMovieData, is, size, false)) {
-		is->fseek((uint32)curr+size,SEEK_SET);
-		extern bool FCEU_state_loading_old_format;
-		if(FCEU_state_loading_old_format) {
-			if(movieMode == MOVIEMODE_PLAY || movieMode == MOVIEMODE_RECORD || movieMode == MOVIEMODE_FINISHED) {
-				//FCEUI_StopMovie();  //No reason to stop the movie, nothing destructive has happened yet.
-				FCEU_PrintError("You have tried to use an old savestate while playing a movie. This is unsupported (since the old savestate has old-format movie data in it which can't be converted on the fly)");
-			}
-		}
-		return false;
+	  is->fseek((uint32)curr+size,SEEK_SET);
+	  return false;
 	}
 
 	//----------------

@@ -177,10 +177,6 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  fprintf(stderr, "Total for %d savestates: %.2fmb (avg %.0f bytes)\n",
-          savestates.size(), ss_total / (1024.0 * 1024.0),
-	  ss_total / (double)savestates.size());
-
   fprintf(stderr, "\nTest random replay of savestates:\n");
   // Now run through each state in random order. Load it, then execute a step,
   // then check that we get to the same state as before.
@@ -206,6 +202,10 @@ int main(int argc, char *argv[]) {
     }
   }
   fprintf(stderr, "Savestates are ok.\n");
+
+  fprintf(stderr, "Total for %d savestates: %.2fmb (avg %.2f bytes)\n",
+          savestates.size(), ss_total / (1024.0 * 1024.0),
+	  ss_total / (double)savestates.size());
 
   Emulator::Shutdown();
 
