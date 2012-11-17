@@ -54,6 +54,10 @@ struct SFORMAT
         char *desc;
 };
 
+// Tom 7's simplified versions. These should only be used for in-memory saves!
+bool FCEUSS_SaveRAW(std::vector<uint8> *out);
+bool FCEUSS_LoadRAW(std::vector<uint8> *in);
+
 void ResetExState(void (*PreSave)(void),void (*PostSave)(void));
 void AddExState(void *v, uint32 s, int type, char *desc);
 
