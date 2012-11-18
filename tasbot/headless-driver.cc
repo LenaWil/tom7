@@ -30,14 +30,10 @@ extern double g_fpsScale;
 
 int CloseGame(void);
 
-static int inited = 0;
-
 // external dependencies
 bool turbo = false;
 int closeFinishedMovie = 0;
 
-static void DriverKill(void);
-static int DriverInitialize(FCEUGI *gi);
 int gametype = 0;
 
 /**
@@ -171,10 +167,11 @@ void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b) {}
 // Gets the color for a particular index in the palette.
 void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b) {}
 
-bool FCEUI_AviEnableHUDrecording() {}
+bool FCEUI_AviEnableHUDrecording() { return false; }
 void FCEUI_SetAviEnableHUDrecording(bool enable) {}
 
-bool FCEUI_AviDisableMovieMessages() {}
+// ?
+bool FCEUI_AviDisableMovieMessages() { return false; }
 void FCEUI_SetAviDisableMovieMessages(bool disable) {}
 
 bool FCEUD_ShouldDrawInputAids() { return false; }
