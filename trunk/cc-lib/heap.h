@@ -112,7 +112,7 @@ class Heap {
        is an increase or decrease, and then percolate_up or
        percolate_down! */
     Delete(v);
-    Insert(v, p);
+    Insert(p, v);
   }
 
   int Size() const {
