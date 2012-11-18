@@ -85,33 +85,6 @@ struct Node : public Heapable {
   uint32 heuristic;
 };
 
-static void DoFun(int frameskip) {
-  uint8 *gfx;
-  int32 *sound;
-  int32 ssize;
-  static int opause = 0;
-
-  // fprintf(stderr, "In DoFun..\n");
-
-  // Limited ability to skip video and sound.
-  #define SKIP_VIDEO_AND_SOUND 2
-
-  // Emulate a single frame.
-  FCEUI_Emulate(NULL, &sound, &ssize, SKIP_VIDEO_AND_SOUND);
-
-  // This was the only useful thing from Update. It's called multiple
-  // times; I don't know why.
-  // --- update input! --
-
-  uint8 v = RAM[0x0009];
-  uint8 s = RAM[0x000B];  // Should be 77.
-  uint32 loc = (RAM[0x0080] << 24) |
-    (RAM[0x0081] << 16) |
-    (RAM[0x0082] << 8) |
-    (RAM[0x0083]);
-  // fprintf(stderr, "%02x %02x\n", v, s);
-}
-
 // Get the hashcode for the current state. This is based just on RAM.
 // XXX should include registers too, right?
 static uint64 GetHashCode() {
@@ -168,6 +141,8 @@ static bool IsBad() {
       return true;
     }
   }
+
+  return false;
 }
 
 // Return true if we've won.
@@ -237,33 +212,183 @@ static Node *MakeNode(Node *prev, uint8 input) {
   Emulator::SaveEx(n->savestate, basis);
 
   n->heuristic = GetHeuristic();
+  return n;
+}
+
+static uint64 Priority(const Node *n) {
+  return n->distance + (0xFFFFFFFF - n->heuristic);
+  // return ((uint64)n->distance << 32) | (0xFFFFFFFF - n->heuristic);
+}
+
+typedef Heap<uint64, Node> GameHeap;
+typedef hash_map<uint64, Node *> GameHash;
+
+// Load the emulator state for this node.
+static void LoadNode(const Node *n) {
+  if (n == NULL) {
+    fprintf(stderr, "Invariant violation in LoadNode\n");
+    abort();
+  }
+
+  if (n->savestate == NULL) {
+    // Recurse and replay inputs on the way back.
+    LoadNode(n->prev);
+    Emulator::Step(n->input);
+  } else {
+    Emulator::LoadEx(n->savestate, basis);
+  }
+}
+
+static void WriteMovie(const string &moviename,
+                       const vector<uint8> &start_inputs, Node *winstate) {
+  // Copy base inputs.
+  vector<uint8> inputs = start_inputs;
+
+  vector<uint8> rev;
+  while (winstate->prev != NULL) {
+    rev.push_back(winstate->input);
+    winstate = winstate->prev;
+  }
+
+  // Now reverse them onto the output.
+  for (int i = rev.size() - 1; i >= 0; i--)
+    inputs.push_back(rev[i]);
+
+  SimpleFM2::WriteInputs(moviename + ".fm2", "karate.nes",
+                         "base64:6xX0UBv8pLORyg1PCzbWcA==",
+                         inputs);
+  fprintf(stderr, "Wrote movie!\n");
 }
 
 /**
  * The main loop for the SDL.
  */
 int main(int argc, char *argv[]) {
-  fprintf(stderr, "Nodes are %d bytes\n", sizeof(Node));
+  fprintf(stderr, "Nodes are %lld bytes\n", sizeof(Node));
 
   Emulator::Initialize("karate.nes");
 
-  vector<uint8> inputs = SimpleFM2::ReadInputs("karate.fm2");
+  vector<uint8> start_inputs = SimpleFM2::ReadInputs("karate.fm2");
   basis = new vector<uint8>;
-  *basis = BasisUtil::LoadOrComputeBasis(inputs, 4935, "karate.basis");
+  *basis = BasisUtil::LoadOrComputeBasis(start_inputs, 140, "karate.basis");
 
   // Fast-forward to gameplay.
   // There are 98 frames before the initial battle begins.
-  for (int i = 0; i < 98; i++) {
-    Emulator::Step(inputs[i]);
+  // But the opening whistle goes until about 130.
+  start_inputs.resize(129);
+  for (int i = 0; i < start_inputs.size(); i++) {
+    Emulator::Step(start_inputs[i]);
   }
 
-  hash_map<uint64, Node *> nodes;
+  fprintf(stderr, "Starting...\n");
+
+  GameHash nodes;
 
   Node *start = MakeNode(NULL, 0x0);
   nodes[GetHashCode()] = start;
 
-  Heap<uint64, Node> queue;
+  fprintf(stderr, "Insert..\n");
 
+  GameHeap queue;
+  fprintf(stderr, "Created heap\n");
+  uint64 p = Priority(start);
+  fprintf(stderr, "priority %llx\n", p);
+  queue.Insert(p, start);
+
+  uint64 bad_nodes = 0;
+
+  uint32 deepest = 0;
+
+  uint64 processed = 0;
+  uint64 rediscovered = 0, rediscovered_obsolete = 0,
+    rediscovered_same_or_worse = 0;
+
+  fprintf(stderr, "Start queue.\n");
+  while (!queue.Empty()) {
+    Node *explore = queue.PopMinimumValue();
+    CHECK(explore->location == -1);
+
+    processed++;
+    if (processed % 1000 == 0) {
+      // XXX report deepest?
+      fprintf(stderr, "%llu bad %llu queue %llu dist %d (re %llu ob %llu sow %llu)\n",
+              processed, bad_nodes, queue.Size(), explore->distance,
+              rediscovered, rediscovered_obsolete,
+              rediscovered_same_or_worse);
+    }
+
+
+    if (processed % 5000 == 0) {
+      char name[512];
+      sprintf(name, "prog%llu-%d", processed, explore->distance);
+      WriteMovie(name, start_inputs, explore);
+    }
+
+    if (explore->distance > deepest) {
+      deepest = explore->distance;
+      fprintf(stderr, "New deepest: %d heu %x\n", deepest, explore->heuristic);
+      if (deepest > 12) {
+        WriteMovie("deepest", start_inputs, explore);
+      }
+    }
+
+    // Not the power set of button combinations. Holding left and right or
+    // up and down at the same time in this game is useless (XXX check?).
+    // Select does nothing (right?). Pausing could conceivably help for
+    // luck manipulation, but we're not trying that here.
+    static const uint8 buttons[] = { 0, INPUT_A, INPUT_B, INPUT_A | INPUT_B };
+    static const uint8 dirs[] = { 0, INPUT_R, INPUT_L, INPUT_U, INPUT_D,
+                                  INPUT_R | INPUT_U, INPUT_L | INPUT_U,
+                                  INPUT_R | INPUT_D, INPUT_L | INPUT_D };
+
+    for (int b = 0; b < sizeof(buttons); b++) {
+      for (int d = 0; d < sizeof(dirs); d++) {
+        uint8 input = buttons[b] | dirs[d];
+        // Only way to try a new input is to load the explore node
+        // and make a step.
+        // PERF: Should probably have LoadNode return the save state
+        // so that we don't have to keep replaying.
+        LoadNode(explore);
+        Emulator::Step(input);
+
+        // Did we win?
+        if (IsWon()) {
+          Node *now = MakeNode(explore, input);
+          WriteMovie("winning", start_inputs, now);
+          return 0;
+        } else if (IsBad()) {
+          bad_nodes++;
+        } else {
+          uint64 h = GetHashCode();
+          GameHash::const_iterator it = nodes.find(h);
+
+          if (it == nodes.end()) {
+            Node *now = MakeNode(explore, input);
+            nodes[GetHashCode()] = now;
+            queue.Insert(Priority(now), now);
+
+          } else {
+            uint16 distance = 1 + explore->distance;
+            // Already found.
+            rediscovered++;
+            Node *now = it->second;
+            if (now->location == -1) {
+              rediscovered_obsolete++;
+            } else if (now->distance < distance) {
+              rediscovered_same_or_worse++;
+            } else {
+              now->distance = distance;
+              now->prev = explore;
+              now->input = input;
+              queue.AdjustPriority(now, Priority(now));
+            }
+          }
+
+        }
+      }
+    }
+
+  }
 
   Emulator::Shutdown();
 

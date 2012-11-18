@@ -32,7 +32,7 @@ struct hash< unsigned long long > {
 // TODO: Use good logging package.
 #define CHECK(condition) \
   while (!(condition)) {                                    \
-    fprintf(stderr, "%s:%d. Check failed: "                 \
+    fprintf(stderr, "%s:%d. Check failed: %s\n",            \
             __FILE__, __LINE__, #condition                  \
             );                                              \
     abort();                                                \

@@ -174,6 +174,7 @@ bool Emulator::Initialize(const string &romfile) {
   newppu = 0;
 
   initialized = true;
+  return true;
 }
 
 // Make one emulator step with the given input.
@@ -229,8 +230,6 @@ void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
   }
 
   // Compress.
-  int error = Z_OK;
-  uint8* cbuf = &raw[0];
   int len = raw.size();
   // worst case compression: zlib says "0.1% larger than sourceLen plus 12 bytes"
   uLongf comprlen = (len >> 9) + 12 + len;
