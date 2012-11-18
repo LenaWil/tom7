@@ -191,6 +191,13 @@ void FCEUD_TurboToggle() { }
 void FCEUD_DebugBreakpoint(int bp_num) {}
 void FCEUD_TraceInstruction(unsigned char*, int) {}
 
+
+/**
+ * Update the video, audio, and input subsystems with the provided
+ * video (XBuf) and audio (Buffer) information.
+ */
+void FCEUD_Update(uint8 *XBuf, int32 *Buffer, int Count) {}
+
 /**
  * Get the time in ticks.
  */

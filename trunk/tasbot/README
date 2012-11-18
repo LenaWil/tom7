@@ -23,3 +23,9 @@
  confusing), but I installed via cygwin and that worked and so that was
  +1 for cygwin.
 
+ TODO:
+
+   Try to learn a heuristic by taking a movie of someone playing, and
+   learning a lexicographic ordering of values of memory locations that
+   describe what "progress" is in the game.
+

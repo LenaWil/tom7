@@ -6,20 +6,10 @@
 
 #include <unistd.h>
 #include <sys/types.h>
-#include <signal.h>
-#include <sys/time.h>
-#include <sys/stat.h>
 #include <string.h>
-#include <strings.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <iostream>
-#include <fstream>
-#include <limits.h>
-#include <math.h>
-
-#include <zlib.h>
 
 #include "fceu/utils/md5.h"
 
@@ -30,52 +20,14 @@
 
 #include "fceu/state.h"
 
-#include "fceu/drivers/common/cheat.h"
 #include "fceu/fceu.h"
-#include "fceu/movie.h"
-#include "fceu/version.h"
-
-#include "fceu/oldmovie.h"
 #include "fceu/types.h"
 
 #include "../cc-lib/util.h"
 
 #include "simplefm2.h"
 #include "emulator.h"
-
-static void DoFun(int frameskip) {
-  uint8 *gfx;
-  int32 *sound;
-  int32 ssize;
-  static int opause = 0;
-
-  // fprintf(stderr, "In DoFun..\n");
-
-  // Limited ability to skip video and sound.
-  #define SKIP_VIDEO_AND_SOUND 2
-
-  // Emulate a single frame.
-  FCEUI_Emulate(NULL, &sound, &ssize, SKIP_VIDEO_AND_SOUND);
-
-  // This was the only useful thing from Update. It's called multiple
-  // times; I don't know why.
-  // --- update input! --
-
-  uint8 v = RAM[0x0009];
-  uint8 s = RAM[0x000B];  // Should be 77.
-  uint32 loc = (RAM[0x0080] << 24) |
-    (RAM[0x0081] << 16) |
-    (RAM[0x0082] << 8) |
-    (RAM[0x0083]);
-  // fprintf(stderr, "%02x %02x\n", v, s);
-}
-
-/**
- * Update the video, audio, and input subsystems with the provided
- * video (XBuf) and audio (Buffer) information.
- */
-void FCEUD_Update(uint8 *XBuf, int32 *Buffer, int Count) {
-}
+#include "basis-util.h"
 
 static int64 DumpMem() {
   for (int i = 0; i < 0x800; i++) {
@@ -146,34 +98,6 @@ static bool CompareByHash(int a, int b) {
   return CrapHash(a) < CrapHash(b);
 }
 
-static vector<uint8> LoadOrComputeBasis(const vector<uint8> &inputs,
-					int frame,
-					const string &basisfile) {
-  if (Util::ExistsFile(basisfile)) {
-    fprintf(stderr, "Loading basis file %s.\n", basisfile.c_str());
-    return Util::ReadFileBytes(basisfile);
-  }
-
-  fprintf(stderr, "Computing basis file %s.\n", basisfile.c_str());
-  vector<uint8> start;
-  Emulator::Save(&start);
-  for (int i = 0; i < frame; i++) {
-    Emulator::Step(inputs[i]);
-  }
-  vector<uint8> basis;
-  Emulator::GetBasis(&basis);
-  if (!Util::WriteFileBytes(basisfile, basis)) {
-    fprintf(stderr, "Couldn't write to %s\n", basisfile.c_str());
-    abort();
-  }
-  fprintf(stderr, "Written.\n");
-  
-  // Rewind.
-  Emulator::Load(&start);
-
-  return basis;
-}
-
 /**
  * The main loop for the SDL.
  */
@@ -182,7 +106,7 @@ int main(int argc, char *argv[]) {
   // loop playing the game
   vector<uint8> inputs = SimpleFM2::ReadInputs("karate.fm2");
 
-  vector<uint8> basis = LoadOrComputeBasis(inputs, 4935, "karate.basis");
+  vector<uint8> basis = BasisUtil::LoadOrComputeBasis(inputs, 4935, "karate.basis");
 
   // The nth savestate is from before issuing the nth input.
   vector< vector<uint8> > savestates;
