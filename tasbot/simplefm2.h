@@ -23,6 +23,11 @@ using namespace std;
 
 struct SimpleFM2 {
   static vector<uint8> ReadInputs(const string &filename);
+
+  static void WriteInputs(const string &outputfile,
+                          const string &romfilename,
+                          const string &romchecksum,
+                          const vector<uint8> &inputs);
 };
 
 #endif
