@@ -51,5 +51,8 @@ tasbot.exe : $(OBJECTS) tasbot.o
 emu_test.exe : $(OBJECTS) emu_test.o
 	${CXX} $^ -o $@ ${LFLAGS} -static ${PROFILE}
 
+test : emu_test.exe
+	time ./emu_test.exe
+
 clean :
 	rm -f tasbot.exe emu_test.exe $(OBJECTS) gmon.out
