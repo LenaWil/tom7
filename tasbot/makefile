@@ -1,6 +1,7 @@
 
 # Makefile made by tom7.
-default: emu_test.exe
+default: tasbot.exe
+# emu_test.exe
 
 # GPP=
 
@@ -37,7 +38,7 @@ DRIVERS_COMMON_OBJECTS=fceu/drivers/common/args.o fceu/drivers/common/nes_ntsc.o
 
 # DRIVERS_DUMMY_OBJECTS=fceu/drivers/dummy/dummy.o
 
-TASBOT_OBJECTS=headless-driver.o config.o simplefm2.o emulator.o
+TASBOT_OBJECTS=headless-driver.o config.o simplefm2.o emulator.o basis-util.o
 
 OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(DRIVERS_COMMON_OBJECTS) $(CCLIBOBJECTS) $(TASBOT_OBJECTS)
 
