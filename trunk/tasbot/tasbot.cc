@@ -88,6 +88,7 @@ struct Node : public Heapable {
 // Get the hashcode for the current state. This is based just on RAM.
 // XXX should include registers too, right?
 static uint64 GetHashCode() {
+#if 0
   uint64 a = 0xDEADBEEFCAFEBABEULL,
     b = 0xDULL,
     c = 0xFFFF000073731919ULL;
@@ -107,6 +108,28 @@ static uint64 GetHashCode() {
     }
   }
   return a + b + c;
+#endif
+
+#if 0
+  md5_context md;
+  md5_starts(&md);
+  md5_update(&md, RAM, 0x036E);
+  md5_update(&md, RAM + 0x036F, 0x800 - 0x36F);
+  uint8 digest[16];
+  md5_finish(&md, digest);
+
+  return *(uint64*)&digest;
+#endif
+
+  vector<uint8> ss;
+  Emulator::GetBasis(&ss);
+  md5_context md;
+  md5_starts(&md);
+  md5_update(&md, &ss[0], ss.size());
+  uint8 digest[16];
+  md5_finish(&md, digest);
+
+  return *(uint64*)&digest;
 }
 
 // Magic "game location" address.
@@ -116,6 +139,11 @@ static uint32 GetLoc() {
     (RAM[0x0081] << 16) |
     (RAM[0x0082] << 8) |
     (RAM[0x0083]);
+}
+
+// Next byte up is used after you hit a guy, sometimes?
+inline static bool KarateBattle(uint32 loc) {
+  return (loc & 0xFFFFFF) == 0x10000;
 }
 
 // Determine if this state should be avoided
@@ -134,7 +162,7 @@ static bool IsBad() {
 
   uint32 loc = GetLoc();
 
-  if (loc == 65536) {
+  if (KarateBattle(loc)) {
     // Don't allow taking damage during
     // tournament.
     if (RAM[0x0085] < 0xF) {
@@ -152,7 +180,7 @@ static bool IsWon() {
   // Magic "game location" address.
   uint32 loc = GetLoc();
 
-  if (loc == 65536) {
+  if (KarateBattle(loc)) {
     return RAM[0x008B] == 0;
   }
 
@@ -172,7 +200,7 @@ static uint32 GetHeuristic() {
   // (battle 1-3, level 3-9, etc.), remainder
   // is some scaled value for that phase.
 
-  if (loc == 65536) {
+  if (KarateBattle(loc)) {
     // XXX need something to tell us which battle
     // number this is.
 
@@ -180,13 +208,16 @@ static uint32 GetHeuristic() {
 
     // More damage is better.
     uint8 damage = 0xFF - (uint8)RAM[0x008B];
-    return (damage << 16) |
-      // x coordinate
-      (uint8)RAM[0x0502];
+    // XXX need to fix this when facing left.
+    uint8 xcoord = (uint8)RAM[0x0502];
     // XXX y coordinate?
+    // fprintf(stderr, "damage %u xcoord %u\n", damage, xcoord);
+    return (damage << 16) | xcoord;
   } else {
     fprintf(stderr, "Exited karate battle? %u\n", loc);
     abort();
+    // return 0xFFFFFFFF;
+    // abort();
   }
 
   return 0;
@@ -216,7 +247,8 @@ static Node *MakeNode(Node *prev, uint8 input) {
 }
 
 static uint64 Priority(const Node *n) {
-  return n->distance + (0xFFFFFFFF - n->heuristic);
+  return (uint64)0xFFFFFFFFULL - (uint64)n->heuristic;
+  // return n->distance + (0xFFFFFFFF - n->heuristic);
   // return ((uint64)n->distance << 32) | (0xFFFFFFFF - n->heuristic);
 }
 
@@ -260,6 +292,24 @@ static void WriteMovie(const string &moviename,
   fprintf(stderr, "Wrote movie!\n");
 }
 
+template<class T>
+static void Shuffle(vector<T> *v) {
+  static uint64 h = 0xCAFEBABEDEADBEEFULL;
+  for (int i = 0; i < v->size(); i++) {
+    h *= 31337;
+    h ^= 0xFEEDFACE;
+    h = (h >> 17) | (h << (64 - 17));
+    h -= 911911911911;
+    h *= 65537;
+    h ^= 0x3141592653589ULL;
+
+    int j = h % v->size();
+    if (i != j) {
+      swap((*v)[i], (*v)[j]);
+    }
+  }
+}
+
 /**
  * The main loop for the SDL.
  */
@@ -275,7 +325,7 @@ int main(int argc, char *argv[]) {
   // Fast-forward to gameplay.
   // There are 98 frames before the initial battle begins.
   // But the opening whistle goes until about 130.
-  start_inputs.resize(129);
+  start_inputs.resize(130);
   for (int i = 0; i < start_inputs.size(); i++) {
     Emulator::Step(start_inputs[i]);
   }
@@ -298,6 +348,10 @@ int main(int argc, char *argv[]) {
   uint64 bad_nodes = 0;
 
   uint32 deepest = 0;
+  uint64 wrotelastdeepest = 0;
+
+  uint32 heuristicest = 0;
+  uint64 wrotelastheuristic = 0;
 
   uint64 processed = 0;
   uint64 rediscovered = 0, rediscovered_obsolete = 0,
@@ -318,7 +372,7 @@ int main(int argc, char *argv[]) {
     }
 
 
-    if (processed % 5000 == 0) {
+    if (processed % 50000 == 0) {
       char name[512];
       sprintf(name, "prog%llu-%d", processed, explore->distance);
       WriteMovie(name, start_inputs, explore);
@@ -327,8 +381,20 @@ int main(int argc, char *argv[]) {
     if (explore->distance > deepest) {
       deepest = explore->distance;
       fprintf(stderr, "New deepest: %d heu %x\n", deepest, explore->heuristic);
-      if (deepest > 12) {
+      if (deepest > 12 && (processed - wrotelastdeepest) < 100) {
         WriteMovie("deepest", start_inputs, explore);
+        wrotelastdeepest = processed;
+      }
+    }
+
+    if (explore->heuristic > heuristicest) {
+      heuristicest = explore->heuristic;
+      fprintf(stderr, "New best heuristic: %d steps heu %x\n",
+              explore->distance,
+              explore->heuristic);
+      if (heuristicest > 0xfa007d /* && (processed - wrotelastheuristic) < 100 */) {
+        WriteMovie("heuristicest", start_inputs, explore);
+        wrotelastheuristic = processed;
       }
     }
 
@@ -337,53 +403,58 @@ int main(int argc, char *argv[]) {
     // Select does nothing (right?). Pausing could conceivably help for
     // luck manipulation, but we're not trying that here.
     static const uint8 buttons[] = { 0, INPUT_A, INPUT_B, INPUT_A | INPUT_B };
-    static const uint8 dirs[] = { 0, INPUT_R, INPUT_L, INPUT_U, INPUT_D,
+    static const uint8 dirs[] = { 0, INPUT_R, INPUT_U, INPUT_L, INPUT_D,
                                   INPUT_R | INPUT_U, INPUT_L | INPUT_U,
                                   INPUT_R | INPUT_D, INPUT_L | INPUT_D };
-
+    vector<uint8> next;
     for (int b = 0; b < sizeof(buttons); b++) {
       for (int d = 0; d < sizeof(dirs); d++) {
-        uint8 input = buttons[b] | dirs[d];
-        // Only way to try a new input is to load the explore node
-        // and make a step.
-        // PERF: Should probably have LoadNode return the save state
-        // so that we don't have to keep replaying.
-        LoadNode(explore);
-        Emulator::Step(input);
+        next.push_back(buttons[b] | dirs[d]);
+      }
+    }
 
-        // Did we win?
-        if (IsWon()) {
+    Shuffle(&next);
+
+    for (int n = 0; n < next.size(); n++) {
+      uint8 input = next[n];
+      // Only way to try a new input is to load the explore node
+      // and make a step.
+      // PERF: Should probably have LoadNode return the save state
+      // so that we don't have to keep replaying.
+      LoadNode(explore);
+      Emulator::Step(input);
+
+      // Did we win?
+      if (IsWon()) {
+        Node *now = MakeNode(explore, input);
+        WriteMovie("winning", start_inputs, now);
+        return 0;
+      } else if (IsBad()) {
+        bad_nodes++;
+      } else {
+        uint64 h = GetHashCode();
+        GameHash::const_iterator it = nodes.find(h);
+
+        if (it == nodes.end()) {
           Node *now = MakeNode(explore, input);
-          WriteMovie("winning", start_inputs, now);
-          return 0;
-        } else if (IsBad()) {
-          bad_nodes++;
+          nodes[h] = now;
+          queue.Insert(Priority(now), now);
+
         } else {
-          uint64 h = GetHashCode();
-          GameHash::const_iterator it = nodes.find(h);
-
-          if (it == nodes.end()) {
-            Node *now = MakeNode(explore, input);
-            nodes[GetHashCode()] = now;
-            queue.Insert(Priority(now), now);
-
+          uint16 distance = 1 + explore->distance;
+          // Already found.
+          rediscovered++;
+          Node *now = it->second;
+          if (now->location == -1) {
+            rediscovered_obsolete++;
+          } else if (now->distance < distance) {
+            rediscovered_same_or_worse++;
           } else {
-            uint16 distance = 1 + explore->distance;
-            // Already found.
-            rediscovered++;
-            Node *now = it->second;
-            if (now->location == -1) {
-              rediscovered_obsolete++;
-            } else if (now->distance < distance) {
-              rediscovered_same_or_worse++;
-            } else {
-              now->distance = distance;
-              now->prev = explore;
-              now->input = input;
-              queue.AdjustPriority(now, Priority(now));
-            }
+            now->distance = distance;
+            now->prev = explore;
+            now->input = input;
+            queue.AdjustPriority(now, Priority(now));
           }
-
         }
       }
     }

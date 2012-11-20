@@ -8,7 +8,7 @@ default: tasbot.exe
 # mlton executes this:
 # x86_64-w64-mingw32-gcc -std=gnu99 -c -Ic:\program files (x86)\mlton\lib\mlton\targets\x86_64-w64-mingw32\include -IC:/Program Files (x86)/MLton/lib/mlton/include -O1 -fno-common -fno-strict-aliasing -fomit-frame-pointer -w -m64 -o C:\Users\Tom\AppData\Local\Temp\file17jU3c.o x6502.c
 
-CXXFLAGS=-Wall
+CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare
 CXX=x86_64-w64-mingw32-g++
 CC=x86_64-w64-mingw32-g++
 
@@ -56,4 +56,7 @@ test : emu_test.exe
 	time ./emu_test.exe
 
 clean :
-	rm -f tasbot.exe emu_test.exe $(OBJECTS) gmon.out
+	rm -f tasbot.exe emu_test.exe $(OBJECTS) gmon.out prog*.fm2 deepest.fm2 heuristicest.fm2
+
+cleantas :
+	rm -f prog*.fm2 deepest.fm2 heuristicest.fm2
