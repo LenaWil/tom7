@@ -46,3 +46,4 @@ struct hash< unsigned long long > {
 using namespace std;
 
 #endif
+
