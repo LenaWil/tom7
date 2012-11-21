@@ -60,3 +60,4 @@ clean :
 
 cleantas :
 	rm -f prog*.fm2 deepest.fm2 heuristicest.fm2
+
