@@ -9,14 +9,17 @@ default: tasbot.exe
 # x86_64-w64-mingw32-gcc -std=gnu99 -c -Ic:\program files (x86)\mlton\lib\mlton\targets\x86_64-w64-mingw32\include -IC:/Program Files (x86)/MLton/lib/mlton/include -O1 -fno-common -fno-strict-aliasing -fomit-frame-pointer -w -m64 -o C:\Users\Tom\AppData\Local\Temp\file17jU3c.o x6502.c
 
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare
-CXX=x86_64-w64-mingw32-g++
-CC=x86_64-w64-mingw32-g++
+
+# for 64 bits on windows
+# CXX=x86_64-w64-mingw32-g++
+# CC=x86_64-w64-mingw32-g++
 
 # PROFILE=-p
 PROFILE=
 
 #  -DNOUNZIP
-CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF ${PROFILE}
+# CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF ${PROFILE}
+CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -DHAVE_ALLOCA -DNOWINSTUFF ${PROFILE}
 
 CCLIBOBJECTS=../cc-lib/util.o
 
