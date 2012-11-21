@@ -1,6 +1,7 @@
 
 # Makefile made by tom7.
-default: tasbot.exe
+default: learnfun.exe
+# tasbot.exe
 # emu_test.exe
 
 # GPP=
@@ -48,12 +49,15 @@ OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOA
 
 LFLAGS = -m64 -lz
 
+learnfun.exe : $(OBJECTS) learnfun.o
+	$(CXX) $^ -o $@ $(LFLAGS) -static $(PROFILE)
+
 # without static, can't find lz or lstdcxx maybe?
 tasbot.exe : $(OBJECTS) tasbot.o
-	${CXX} $^ -o $@ ${LFLAGS} -static ${PROFILE}
+	$(CXX) $^ -o $@ $(LFLAGS) -static $(PROFILE)
 
 emu_test.exe : $(OBJECTS) emu_test.o
-	${CXX} $^ -o $@ ${LFLAGS} -static ${PROFILE}
+	$(CXX) $^ -o $@ $(LFLAGS) -static $(PROFILE)
 
 test : emu_test.exe
 	time ./emu_test.exe
