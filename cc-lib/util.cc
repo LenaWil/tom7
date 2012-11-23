@@ -355,7 +355,7 @@ string Util::ucase(string in) {
 }
 
 string Util::fileof(string s) {
-  for(size_t i = s.length() - 1; i >= 0; i --) {
+  for(long long int i = s.length() - 1; i >= 0; i --) {
     if (s[i] == DIRSEPC) {
       return s.substr(i + 1, s.length () - (i + 1));
     }
@@ -365,7 +365,7 @@ string Util::fileof(string s) {
 
 string Util::pathof(string s) {
   if (s == "") return ".";
-  for(size_t i = s.length () - 1; i >= 0; i --) {
+  for(long long int i = s.length () - 1; i >= 0; i --) {
     if (s[i] == DIRSEPC) {
       return s.substr(0, i);
     }
@@ -813,7 +813,7 @@ FILE * Util::fopenp(string f, string m) {
 }
 
 string Util::replace(string src, string findme, string rep) {
-  size_t idx = src.length() - 1;
+  long long int idx = src.length() - 1;
 
   if (findme.length () < 1) return src;
 
