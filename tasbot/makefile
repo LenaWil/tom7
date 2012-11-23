@@ -20,7 +20,7 @@ PROFILE=
 
 #  -DNOUNZIP
 # CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF ${PROFILE}
-CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -DHAVE_ALLOCA -DNOWINSTUFF ${PROFILE}
+CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -DHAVE_ALLOCA -DNOWINSTUFF ${PROFILE} -g
 
 CCLIBOBJECTS=../cc-lib/util.o
 
@@ -43,21 +43,25 @@ DRIVERS_COMMON_OBJECTS=fceu/drivers/common/args.o fceu/drivers/common/nes_ntsc.o
 
 # DRIVERS_DUMMY_OBJECTS=fceu/drivers/dummy/dummy.o
 
-TASBOT_OBJECTS=headless-driver.o config.o simplefm2.o emulator.o basis-util.o
+TASBOT_OBJECTS=headless-driver.o config.o simplefm2.o emulator.o basis-util.o objective.o
 
 OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(DRIVERS_COMMON_OBJECTS) $(CCLIBOBJECTS) $(TASBOT_OBJECTS)
 
 LFLAGS = -m64 -lz
+# -static
 
 learnfun.exe : $(OBJECTS) learnfun.o
-	$(CXX) $^ -o $@ $(LFLAGS) -static $(PROFILE)
+	$(CXX) $^ -o $@ $(LFLAGS)  $(PROFILE)
 
 # without static, can't find lz or lstdcxx maybe?
 tasbot.exe : $(OBJECTS) tasbot.o
-	$(CXX) $^ -o $@ $(LFLAGS) -static $(PROFILE)
+	$(CXX) $^ -o $@ $(LFLAGS)  $(PROFILE)
 
 emu_test.exe : $(OBJECTS) emu_test.o
-	$(CXX) $^ -o $@ $(LFLAGS) -static $(PROFILE)
+	$(CXX) $^ -o $@ $(LFLAGS)  $(PROFILE)
+
+objective_test.exe : $(CCLIBOBJECTS) objective.o objective_test.o
+	$(CXX) $^ -o $@ $(LFLAGS)  $(PROFILE)
 
 test : emu_test.exe
 	time ./emu_test.exe
