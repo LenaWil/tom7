@@ -98,9 +98,6 @@ static bool CompareByHash(int a, int b) {
   return CrapHash(a) < CrapHash(b);
 }
 
-/**
- * The main loop for the SDL.
- */
 int main(int argc, char *argv[]) {
   Emulator::Initialize("karate.nes");
   // loop playing the game
