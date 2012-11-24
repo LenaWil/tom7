@@ -20,6 +20,18 @@ static bool EqualOnPrefix(vector<uint8> mem1, vector<uint8> mem2,
   return true;
 }
 
+static bool LessEqual(vector<uint8> mem1, vector<uint8> mem2,
+		      const vector<int> &order) {
+  for (int i = 0; i < order.size(); i++) {
+    int p = order[i];
+    if (mem1[p] > mem2[p])
+      return false;
+    if (mem1[p] < mem2[p])
+      return true;
+  }
+  return true;
+}
+
 void Objective::EnumeratePartial(const vector<int> &look,
 				 vector<int> *prefix,
 				 const vector<int> &left,
@@ -83,6 +95,30 @@ void Objective::EnumeratePartial(const vector<int> &look,
   }
 }
 
+static void CheckOrdering(const vector<int> &look,
+			  const vector< vector<uint8> > &memories,
+			  const vector<int> &ordering) {
+  for (int lo = 0; lo < look.size() - 1; lo++) {
+    int i = look[lo], j = look[lo + 1];
+    const vector<uint8> &mem1 = memories[i], &mem2 = memories[j];
+    if (!LessEqual(mem1, mem2, ordering)) {
+      printf("Illegal ordering: [");
+      for (int i = 0; i < ordering.size(); i++) {
+	printf("%d ", ordering[i]);
+      }
+      printf("] at memories #%d and #%d:\n", i, j);
+
+      for (int i = 0; i < ordering.size(); i++) {
+	int p = ordering[i];
+	printf ("%d is %d vs %d\n", p, mem1[p], mem2[p]);
+      }
+
+      abort();
+    }
+  }
+  
+}
+
 void Objective::EnumeratePartialRec(const vector<int> &look,
 				    vector<int> *prefix,
 				    const vector<int> &left,
@@ -103,6 +139,9 @@ void Objective::EnumeratePartialRec(const vector<int> &look,
   EnumeratePartial(look, prefix, left, &remain, &candidates);
   // If this is a maximal prefix, output it. Otherwise, extend.
   if (candidates.empty()) {
+#   ifdef DEBUG
+    CheckOrdering(look, memories, *prefix);
+#   endif
     (*f)(*prefix);
   } else {
     prefix->resize(prefix->size() + 1);
@@ -126,6 +165,11 @@ void Objective::EnumerateFull(const vector<int> &look,
 void Objective::EnumerateFullAll(void (*f)(const vector<int> &ordering)) {
   vector<int> look;
   for (int i = 0; i < memories.size(); i++) {
+    if (i > 0 && memories[i] == memories[i - 1]) {
+      printf("Duplicate memory at %d-%d\n", i - 1, i);
+    } else {
+      look.push_back(i);
+    }
     look.push_back(i);
   }
   EnumerateFull(look, f);
