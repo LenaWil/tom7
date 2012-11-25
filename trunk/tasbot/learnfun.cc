@@ -45,7 +45,8 @@ struct MemSpan {
 	       const vector<int> &ordering) {
     vector<uint8> thisrow;
     for (int i = 0; i < ordering.size(); i++) {
-      thisrow.push_back(memories[idx][ordering[i]]);
+      int p = ordering[i];
+      thisrow.push_back(memories[idx][p]);
     }
 
     if (low == -1) {
@@ -92,14 +93,16 @@ int main(int argc, char *argv[]) {
   // So skip until there's a button press in the movie.
   size_t start = 0;
 
-  if (argc == 1) {
+  if (true || argc == 1) {
     printf("Skipping frames without argument.\n");
-    while (movie[start] == 0 && start < movie.size())
+    while (movie[start] == 0 && start < movie.size()) {
+      Emulator::Step(movie[start]);
       start++;
+    }
   }
 
-  fprintf(stderr, "Skipped %ld frames until first keypress.\n"
-	  "Playing %ld frames...\n", start, movie.size() - start);
+  printf("Skipped %ld frames until first keypress.\n"
+	 "Playing %ld frames...\n", start, movie.size() - start);
 
   SaveMemory(&memories);
 
@@ -130,8 +133,9 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < memories.size(); i++) {
       m.Observe(i, memories, ordering);
     }
+    m.Flush();
   }
-
+  
 
   Emulator::Shutdown();
 
