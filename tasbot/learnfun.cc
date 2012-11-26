@@ -34,6 +34,11 @@ static void SaveMemory(vector< vector<uint8> > *memories) {
 }
 
 static void pr(const vector<int> &ordering) {
+  static int visited = 0;
+  if (visited++ == 3) {
+    printf("Enough!\n");
+    exit(0);
+  }
   for (int i = 0; i < ordering.size(); i++) {
     printf("%d ", ordering[i]);
   }
@@ -110,6 +115,7 @@ int main(int argc, char *argv[]) {
     if (i % 1000 == 0) {
       printf("  [% 3.1f%%] %d/%ld\n", 
 	     ((100.0 * i) / movie.size()), i, movie.size());
+      // exit(0);
     }
     Emulator::Step(movie[i]);
     SaveMemory(&memories);

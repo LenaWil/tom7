@@ -152,16 +152,6 @@ static void VRC5IRQ(int a)
   }
 }
 
-static void Mapper190_PPU(uint32 A)
-{
-  if(A>=0x2000)
-  {
-     setchr4r(0x10,0x0000,QTAINTRAM[A&0x1FFF]&1);
-     setchr4r(0x10,0x1000,QTAINTRAM[A&0x1FFF]&1);
-  }
-//  else
-//     chrSync();
-}
 
 static DECLFW(M1902007Wrap)
 {
