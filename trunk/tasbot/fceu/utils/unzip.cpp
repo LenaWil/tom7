@@ -969,13 +969,13 @@ extern int ZEXPORT unzReadCurrentFile  (unzFile file, voidp buf, unsigned len)
 	s=(unz_s*)file;
     pfile_in_zip_read_info=s->pfile_in_zip_read;
 
-	if (pfile_in_zip_read_info==NULL)
+	if (pfile_in_zip_read_info == NULL)
 		return UNZ_PARAMERROR;
 
 
-	if ((pfile_in_zip_read_info->read_buffer == NULL))
+	if (pfile_in_zip_read_info->read_buffer == NULL)
 		return UNZ_END_OF_LIST_OF_FILE;
-	if (len==0)
+	if (len == 0)
 		return 0;
 
 	pfile_in_zip_read_info->stream.next_out = (Bytef*)buf;

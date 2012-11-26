@@ -15,7 +15,7 @@ CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare
 # CXX=x86_64-w64-mingw32-g++
 # CC=x86_64-w64-mingw32-g++
 
-# PROFILE=-p
+# PROFILE=-pg
 PROFILE=
 
 #  -DNOUNZIP
@@ -47,21 +47,21 @@ TASBOT_OBJECTS=headless-driver.o config.o simplefm2.o emulator.o basis-util.o ob
 
 OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(DRIVERS_COMMON_OBJECTS) $(CCLIBOBJECTS) $(TASBOT_OBJECTS)
 
-LFLAGS = -m64 -lz
+LFLAGS = -m64 -lz $(PROFILE)
 # -static
 
 learnfun.exe : $(OBJECTS) learnfun.o
-	$(CXX) $^ -o $@ $(LFLAGS)  $(PROFILE)
+	$(CXX) $^ -o $@ $(LFLAGS)  
 
 # without static, can't find lz or lstdcxx maybe?
 tasbot.exe : $(OBJECTS) tasbot.o
-	$(CXX) $^ -o $@ $(LFLAGS)  $(PROFILE)
+	$(CXX) $^ -o $@ $(LFLAGS)  
 
 emu_test.exe : $(OBJECTS) emu_test.o
-	$(CXX) $^ -o $@ $(LFLAGS)  $(PROFILE)
+	$(CXX) $^ -o $@ $(LFLAGS)  
 
 objective_test.exe : $(CCLIBOBJECTS) objective.o objective_test.o
-	$(CXX) $^ -o $@ $(LFLAGS)  $(PROFILE)
+	$(CXX) $^ -o $@ $(LFLAGS)  
 
 test : emu_test.exe
 	time ./emu_test.exe

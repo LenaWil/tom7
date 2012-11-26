@@ -633,7 +633,6 @@ const char* FCEUI_CommandTypeNames[]=
 	"TAS Editor",
 };
 
-static void CommandUnImpl(void);
 static void CommandToggleDip(void);
 static void CommandStateLoad(void);
 static void CommandStateSave(void);
@@ -833,11 +832,6 @@ void FCEUI_HandleEmuCommands(TestCommandState* testfn)
 		}
 		FCEUI_CommandTable[i].state = new_state;
 	}
-}
-
-static void CommandUnImpl(void)
-{
-	FCEU_DispMessage("command '%s' unimplemented.",0, FCEUI_CommandTable[i].name);
 }
 
 static void CommandToggleDip(void)
