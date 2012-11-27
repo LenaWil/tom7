@@ -59,7 +59,7 @@ in
              else [#     ? ?@[padlev [all[(itos (n + 1))]]]        dn! #]
 
          val lstr = string-concat (list-map onelev levs)
-         val nstr = rep (PERPAGE - nlevs) [#       NOTHING TO SEE HERE            #]
+         val nstr = rep (PERPAGE - nlevs) [#       NO LEVEL HERE SORRY :-(        #]
      in
 print    
 [########################################\
