@@ -18,6 +18,20 @@ Objective::Objective(const vector< vector<uint8> > &mm) :
 static bool EqualOnPrefix(const vector<uint8> &mem1, 
 			  const vector<uint8> &mem2,
 			  const vector<int> &prefix) {
+#if 0
+  // Go in reverse, because we extend to the right, so new
+  // failures happen towards the end.
+  // (this is actually slower)
+  for (int i = prefix.size() - 1; i >= 0; i--) {
+    int p = prefix[i];
+    // printf("  eop %d: %d vs %d\n", p, mem1[i], mem2[i]);
+    if (mem1[p] != mem2[p]) {
+      VPRINTF("Disequal at %d\n", p);
+      return false;
+    }
+  }
+  return true;
+#else
   for (int i = 0; i < prefix.size(); i++) {
     int p = prefix[i];
     // printf("  eop %d: %d vs %d\n", p, mem1[i], mem2[i]);
@@ -27,6 +41,7 @@ static bool EqualOnPrefix(const vector<uint8> &mem1,
     }
   }
   return true;
+#endif
 }
 
 static bool LessEqual(const vector<uint8> &mem1, 
@@ -61,6 +76,18 @@ void Objective::EnumeratePartial(const vector<int> &look,
   // counterexample means that there is an adjacent
   // counterexample somewhere in between.
 
+  // Cache this.
+  // indices lo in look where look[lo] and look[lo + 1]
+  // are equal on the prefix
+  vector<int> lequal;
+  lequal.reserve(look.size() - 1);
+  for (int lo = 0; lo < look.size() - 1; lo++) {
+    int i = look[lo], j = look[lo + 1];
+    if (EqualOnPrefix(memories[i], memories[j], *prefix)) {
+      lequal.push_back(lo);
+    }
+  }
+
   for (int le = 0; le < left.size(); le++) {
     int c = left[le];
     bool less = false;
@@ -78,24 +105,18 @@ void Objective::EnumeratePartial(const vector<int> &look,
       }
     }
 
-    for (int lo = 0; lo < look.size() - 1; lo++) {
+    for (int lo = 0; lo < lequal.size(); lo++) {
       int i = look[lo], j = look[lo + 1];
       // printf("  at lo %d. i=%d, j=%d\n", lo, i, j);
-      if (EqualOnPrefix(memories[i], memories[j], *prefix)) {
-	// printf("  (%d) equal on prefix #%d #%d\n", c, i, j);
-	// We need to find at least one example where it is
-	// strictly less, and none where it is greater.
-
-	if (memories[i][c] > memories[j][c]) {
-	  // It may be legal later, but not a candidate.
-	  remain->push_back(c);
-	  // printf("  skip %d because memories #%d and #%d have %d->%d\n",
-	  // c, i, j, memories[i][c], memories[j][c]);
-	  goto skip;
-	}
-
-	less = less || memories[i][c] < memories[j][c];
+      if (memories[i][c] > memories[j][c]) {
+	// It may be legal later, but not a candidate.
+	remain->push_back(c);
+	// printf("  skip %d because memories #%d and #%d have %d->%d\n",
+	// c, i, j, memories[i][c], memories[j][c]);
+	goto skip;
       }
+
+      less = less || memories[i][c] < memories[j][c];
     }
 
     if (less) {
