@@ -7,6 +7,7 @@
 #include "tasbot.h"
 #include "fceu/types.h"
 #include "../cc-lib/util.h"
+#include "../cc-lib/arcfour.h"
 #include "objective.h"
 
 // Expected lex order is 0, 4, 1.
@@ -69,6 +70,28 @@ static void pr(const vector<int> &ordering) {
   printf("\n");
 }
 
+static void ignore(const vector<int> &ordering) {}
+
+static void FindCounterExample() {
+  ArcFour rc("hello");
+  for (int nmem = 1; nmem < 20; nmem++) {
+    for (int size = 1; size < 20; size++) {
+      for (int t = 0; t < 1000; t++) {
+	vector< vector<uint8> > memories;
+	for (int i = 0; i < nmem; i++) {
+	  vector<uint8> mem;
+	  for (int j = 0; j < size; j++) {
+	    mem.push_back(rc.Byte());
+	  }
+	  memories.push_back(mem);
+	}
+	Objective obj(memories);
+	obj.EnumerateFullAll(ignore, 1);
+      }
+    }
+  }
+}
+
 int main(int argc, char *argv[]) {
 
   {
@@ -76,26 +99,28 @@ int main(int argc, char *argv[]) {
     printf("Create.\n");
     Objective obj(memories);
     printf("Enumerate.\n");
-    obj.EnumerateFullAll(pr);
+    obj.EnumerateFullAll(pr, -1);
   }
 
   {
     vector< vector<uint8> > memories = MakeMem(kMem1);
     Objective obj(memories);
-    obj.EnumerateFullAll(pr);
+    obj.EnumerateFullAll(pr, -1);
   }
 
   {
     vector< vector<uint8> > memories = MakeMem(kMem2);
     Objective obj(memories);
-    obj.EnumerateFullAll(pr);
+    obj.EnumerateFullAll(pr, -1);
   }
 
   {
     vector< vector<uint8> > memories = MakeMem(kMem3);
     Objective obj(memories);
-    obj.EnumerateFullAll(pr);
+    obj.EnumerateFullAll(pr, -1);
   }
+
+  FindCounterExample();
 
   return 0;
 }

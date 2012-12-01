@@ -33,18 +33,6 @@ static void SaveMemory(vector< vector<uint8> > *memories) {
   }
 }
 
-static void pr(const vector<int> &ordering) {
-  static int visited = 0;
-  if (visited++ == 3) {
-    printf("Enough!\n");
-    exit(0);
-  }
-  for (int i = 0; i < ordering.size(); i++) {
-    printf("%d ", ordering[i]);
-  }
-  printf("\n");
-}
-
 struct MemSpan {
   void Observe(int idx, const vector< vector<uint8> > &memories,
 	       const vector<int> &ordering) {
@@ -86,6 +74,42 @@ struct MemSpan {
   vector<uint8> values;
 };
 
+static vector< vector<int> > *objectives = NULL;
+static void pr(const vector<int> &ordering) {
+  for (int i = 0; i < ordering.size(); i++) {
+    printf("%d ", ordering[i]);
+  }
+  printf("\n");
+  CHECK(objectives);
+  objectives->push_back(ordering);
+}
+
+static void MakeObjectives(const vector< vector<uint8> > &memories) {
+  printf("Now generating objectives.\n");
+  objectives = new vector< vector<int> >;
+  Objective obj(memories);
+
+  // Going to generate a bunch of objective functions.
+  // Some things will never violate the objective, like
+  // [world number, stage number] or [score]. So generate
+  // a handful of whole-game objectives.
+  obj.EnumerateFullAll(pr, 10);
+
+  // Next, generate objectives for each tenth of the game.
+  const int onetenth = memories.size() / 10;
+  for (int slicenum = 0; slicenum < 10; slicenum++) {
+    vector<int> look;
+    int low = slicenum * onetenth;
+    for (int i = 0; i < onetenth; i++) {
+      look.push_back(low + i);
+    }
+    printf("For slice %ld-%ld:\n", low, low + onetenth - 1);
+    obj.EnumerateFull(look, pr, 10);
+  }
+
+  // obj.EnumerateFullAll(pr);
+}
+
 int main(int argc, char *argv[]) {
   Emulator::Initialize("mario.nes");
   vector<uint8> movie = SimpleFM2::ReadInputs("mario.fm2");
@@ -124,8 +148,7 @@ int main(int argc, char *argv[]) {
   printf("Recorded %ld memories.\n", memories.size());
 
   if (argc == 1) {
-    Objective obj(memories);
-    obj.EnumerateFullAll(pr);
+    MakeObjectives(memories);
   } else {
     vector<int> ordering;
     printf("      " "     " "     ");

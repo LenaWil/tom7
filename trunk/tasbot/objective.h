@@ -68,11 +68,23 @@ struct Objective {
   // Matrix of memories must be non-empty and rectangular.
   explicit Objective(const vector< vector<uint8> > &memories);
 
-  // Run the callback on every lex ordering.
-  void EnumerateFull(const vector<int> &look,
-                     void (*f)(const vector<int> &ordering));
+  // TODO: Make it possible to enumerate 10 lex orderings
+  // that aren't necessarily the FIRST 10. Just shuffle
+  // after EnumerateFull? Maintain a queue?
 
-  void EnumerateFullAll(void (*f)(const vector<int> &ordering));
+  // TODO: Fitness of a lex ordering. Does it increment a
+  // lot of times? Is it long? Are few permutations of the
+  // indices also lex orderings? Are there consecutive runs
+  // of indices?
+
+  // Run the callback on up to limit number of lex orderings.
+  // -1 means no limit.
+  void EnumerateFull(const vector<int> &look,
+                     void (*f)(const vector<int> &ordering),
+                     int limit);
+
+  void EnumerateFullAll(void (*f)(const vector<int> &ordering),
+                        int limit);
 
 private:
 
@@ -94,7 +106,8 @@ private:
   void EnumeratePartialRec(const vector<int> &look,
                            vector<int> *prefix,
                            const vector<int> &left,
-                           void (*f)(const vector<int> &ordering));
+                           void (*f)(const vector<int> &ordering),
+                           int *limit);
 
   const vector< vector<uint8> > &memories;
 };

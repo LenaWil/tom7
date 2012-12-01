@@ -12,17 +12,17 @@ default: learnfun.exe
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare
 
 # for 64 bits on windows
-# CXX=x86_64-w64-mingw32-g++
-# CC=x86_64-w64-mingw32-g++
+CXX=x86_64-w64-mingw32-g++
+CC=x86_64-w64-mingw32-g++
 
 # PROFILE=-pg
 PROFILE=
 
 #  -DNOUNZIP
-# CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF ${PROFILE}
-CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -DHAVE_ALLOCA -DNOWINSTUFF ${PROFILE} -g
+CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF ${PROFILE}
+#  CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -DHAVE_ALLOCA -DNOWINSTUFF ${PROFILE} -g
 
-CCLIBOBJECTS=../cc-lib/util.o
+CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o
 
 MAPPEROBJECTS=fceu/mappers/24and26.o fceu/mappers/51.o fceu/mappers/69.o fceu/mappers/77.o fceu/mappers/40.o fceu/mappers/6.o fceu/mappers/71.o fceu/mappers/79.o fceu/mappers/41.o fceu/mappers/61.o fceu/mappers/72.o fceu/mappers/80.o fceu/mappers/42.o fceu/mappers/62.o fceu/mappers/73.o fceu/mappers/85.o fceu/mappers/46.o fceu/mappers/65.o fceu/mappers/75.o fceu/mappers/emu2413.o fceu/mappers/50.o fceu/mappers/67.o fceu/mappers/76.o fceu/mappers/mmc2and4.o
 
@@ -47,7 +47,7 @@ TASBOT_OBJECTS=headless-driver.o config.o simplefm2.o emulator.o basis-util.o ob
 
 OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(DRIVERS_COMMON_OBJECTS) $(CCLIBOBJECTS) $(TASBOT_OBJECTS)
 
-LFLAGS = -m64 -lz $(PROFILE)
+LFLAGS = -m64 -lz $(PROFILE) -static
 # -static
 
 learnfun.exe : $(OBJECTS) learnfun.o
