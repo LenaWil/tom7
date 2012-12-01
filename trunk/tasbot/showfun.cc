@@ -35,6 +35,47 @@ static void SaveMemory(vector< vector<uint8> > *memories) {
   }
 }
 
+struct MemSpan {
+  void Observe(int idx, const vector< vector<uint8> > &memories,
+	       const vector<int> &ordering) {
+    vector<uint8> thisrow;
+    for (int i = 0; i < ordering.size(); i++) {
+      int p = ordering[i];
+      thisrow.push_back(memories[idx][p]);
+    }
+
+    if (low == -1) {
+      low = high = idx;
+      values = thisrow;
+    } else if (thisrow != values || idx != high + 1) {
+      Flush();
+      low = high = idx;
+      values = thisrow;
+    } else {
+      high++;
+    }
+  }
+  void Flush() {
+    if (low == high) {
+      printf("        %6d: ", low);
+    } else {
+      printf("%6d -""%6d: ", low, high); 
+    }
+
+    for (int i = 0; i < values.size(); i++) {
+      printf(" %3d ", values[i]);
+    }
+    printf("\n");
+
+    low = high = -1;
+    values.clear();
+  }
+
+  MemSpan() : low(-1), high(-1) {}
+  int low, high;
+  vector<uint8> values;
+};
+
 static vector< vector<int> > *objectives = NULL;
 static void PrintAndSave(const vector<int> &ordering) {
   for (int i = 0; i < ordering.size(); i++) {
@@ -110,7 +151,6 @@ static void MakeObjectives(const vector< vector<uint8> > &memories) {
 
   weighted.SaveToFile("mario.objectives");
 
-  weighted.SaveSVG(memories, "mario.svg");
 }
 
 int main(int argc, char *argv[]) {
@@ -125,10 +165,12 @@ int main(int argc, char *argv[]) {
   // So skip until there's a button press in the movie.
   size_t start = 0;
 
-  printf("Skipping frames without argument.\n");
-  while (movie[start] == 0 && start < movie.size()) {
-    Emulator::Step(movie[start]);
-    start++;
+  if (true || argc == 1) {
+    printf("Skipping frames without argument.\n");
+    while (movie[start] == 0 && start < movie.size()) {
+      Emulator::Step(movie[start]);
+      start++;
+    }
   }
 
   printf("Skipped %ld frames until first keypress.\n"
@@ -148,7 +190,24 @@ int main(int argc, char *argv[]) {
 
   printf("Recorded %ld memories.\n", memories.size());
 
-  MakeObjectives(memories);
+  if (argc == 1) {
+    MakeObjectives(memories);
+  } else {
+    vector<int> ordering;
+    printf("      " "     " "     ");
+    for (int c = 1; c < argc; c++) {
+      int loc = atoi(argv[c]);
+      ordering.push_back(loc);
+      printf("%04x ", loc);
+    }
+    printf("\n");
+    MemSpan m;
+    for (int i = 0; i < memories.size(); i++) {
+      m.Observe(i, memories, ordering);
+    }
+    m.Flush();
+  }
+  
 
   Emulator::Shutdown();
 

@@ -18,13 +18,16 @@ Objective::Objective(const vector< vector<uint8> > &mm) :
 struct CompareByHash {
   uint64 CrapHash(int a) {
     uint64 ret = ~a;
-    ret *= 31337;
-    ret += seed;
-    ret ^= 0xDEADBEEF;
-    ret = (ret >> 17) | (ret << (64 - 17));
-    ret -= 911911911911;
-    ret *= 65537;
-    ret ^= 0xCAFEBABE;
+    for (int i = 0; i < (a & 3) + 1; i++) {
+      ret = (ret >> i) | (ret << (64 - i));
+      ret *= 31337;
+      ret += (seed << 7) | (seed >> (64 - 7));
+      ret ^= 0xDEADBEEF;
+      ret = (ret >> 17) | (ret << (64 - 17));
+      ret -= 911911911911;
+      ret *= 65537;
+      ret ^= 0xCAFEBABE;
+    }
     return ret;
   }
 
@@ -33,7 +36,7 @@ struct CompareByHash {
   }
 
   CompareByHash(int seed) : seed(seed) {}
-  int seed;
+  uint64 seed;
 };
 
 static void Shuffle(vector<int> *v, int seed) {
@@ -206,7 +209,7 @@ void Objective::EnumeratePartialRec(const vector<int> &look,
 				    vector<int> *prefix,
 				    const vector<int> &left,
 				    void (*f)(const vector<int> &ordering),
-				    int *limit) {
+				    int *limit, int seed) {
 #if VERBOSE_OBJECTIVE
   VPRINTF("EPR: [");
   for (int i = 0; i < prefix->size(); i++) {
@@ -219,23 +222,34 @@ void Objective::EnumeratePartialRec(const vector<int> &look,
   VPRINTF("]\n");
 #endif
 
+#if 0
   int seed = *limit + prefix->size();
   if (!look.empty()) {
     seed += (look[0] << 3);
+    // seed ^= (look[look.size() - 1] << 1);
   }
   seed ^= look.size();
-  // if (prefix->size() < 2) VPRINTF("%ld\n", seed);
+  if (prefix->size() < 2) VPRINTF("seed %ld\n", seed);
+#endif
 
   vector<int> candidates, remain;
   EnumeratePartial(look, prefix, left, &remain, &candidates);
-  // XXX
-  //  Shuffle(&candidates, seed);
+
+  if (seed != 0) {
+    seed += *limit + prefix->size();
+    if (!look.empty()) seed += (look[0] << 3);
+    seed ^= look.size();
+    // if (prefix->size() < 2) printf("seed %ld\n", seed);
+    Shuffle(&candidates, seed);
+  }
 
 #if VERBOSE_OBJECTIVE
-  VPRINTF("Candidates: ");
-  for (int i = 0; i < candidates.size(); i++)
-    VPRINTF("%d ", candidates[i]);
-  VPRINTF("\n");
+  if (true || prefix->size() < 2) {
+    VPRINTF("Candidates: ");
+    for (int i = 0; i < candidates.size(); i++)
+      VPRINTF("%d ", candidates[i]);
+    VPRINTF("\n");
+  }
 #endif
 
   // If this is a maximal prefix, output it. Otherwise, extend.
@@ -250,7 +264,7 @@ void Objective::EnumeratePartialRec(const vector<int> &look,
     prefix->resize(prefix->size() + 1);
     for (int i = 0; i < candidates.size(); i++) {
       (*prefix)[prefix->size() - 1] = candidates[i];
-      EnumeratePartialRec(look, prefix, remain, f, limit);
+      EnumeratePartialRec(look, prefix, remain, f, limit, seed);
       if (*limit == 0) {
 	prefix->resize(prefix->size() - 1);
 	return;
@@ -262,16 +276,16 @@ void Objective::EnumeratePartialRec(const vector<int> &look,
 
 void Objective::EnumerateFull(const vector<int> &look,
 			      void (*f)(const vector<int> &ordering),
-			      int limit) {
+			      int limit, int seed) {
   vector<int> prefix, left;
   for (int i = 0; i < memories[0].size(); i++) {
     left.push_back(i);
   }
-  EnumeratePartialRec(look, &prefix, left, f, &limit);
+  EnumeratePartialRec(look, &prefix, left, f, &limit, seed);
 }
 
 void Objective::EnumerateFullAll(void (*f)(const vector<int> &ordering),
-				 int limit) {
+				 int limit, int seed) {
   vector<int> look;
   for (int i = 0; i < memories.size(); i++) {
     if (i > 0 && memories[i] == memories[i - 1]) {
@@ -282,5 +296,5 @@ void Objective::EnumerateFullAll(void (*f)(const vector<int> &ordering),
       look.push_back(i);
     }
   }
-  EnumerateFull(look, f, limit);
+  EnumerateFull(look, f, limit, seed);
 }

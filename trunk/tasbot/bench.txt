@@ -1,3 +1,18 @@
+
+--------------------------------------------------
+benchmarking learnfun.exe
+
+-O, normal
+real    0m34.015s
+user    0m0.000s
+sys     0m0.015s
+
+-O2, flto
+real    0m33.075s
+user    0m0.000s
+sys     0m0.031s
+
+
 20000 frames of karate.nes, first try:
 
 real    0m7.674s
