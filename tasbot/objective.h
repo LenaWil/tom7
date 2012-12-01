@@ -81,10 +81,10 @@ struct Objective {
   // -1 means no limit.
   void EnumerateFull(const vector<int> &look,
                      void (*f)(const vector<int> &ordering),
-                     int limit);
+                     int limit, int seed);
 
   void EnumerateFullAll(void (*f)(const vector<int> &ordering),
-                        int limit);
+                        int limit, int seed);
 
 private:
 
@@ -107,7 +107,7 @@ private:
                            vector<int> *prefix,
                            const vector<int> &left,
                            void (*f)(const vector<int> &ordering),
-                           int *limit);
+                           int *limit, int seed);
 
   const vector< vector<uint8> > &memories;
 };

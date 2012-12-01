@@ -24,7 +24,12 @@ uint64 Emulator::RamChecksum() {
   md5_update(&ctx, RAM, 0x800);
   uint8 digest[16];
   md5_finish(&ctx, digest);
-  return *(uint64*)digest;
+  uint64 res = 0;
+  for (int i = 0; i < 8; i++) {
+    res <<= 8;
+    res |= 255 & digest[i];
+  }
+  return res;
 }
 /**
  * Initialize all of the subsystem drivers: video, audio, and joystick.
