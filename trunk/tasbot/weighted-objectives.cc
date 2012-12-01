@@ -102,16 +102,20 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
     " x=\"0px\" y=\"0px\" width=\"1024px\" height=\"1024px\""
     " xml:space=\"preserve\">\n";
 
+  ArcFour rc("make colors");
+
+  int howmany = 10;
   for (Weighted::const_iterator it = weighted.begin();
-       it != weighted.end(); ++it) {
+       --howmany && it != weighted.end(); ++it) {
     const vector<int> &obj = it->first;
     // All the distinct values this objective takes on, in order.
     vector< vector<uint8> > values = GetUniqueValues(memories, obj);
     printf("%d distinct values for %s\n", values.size(),
 	   ObjectiveToString(obj).c_str());
 
-    out += "<polyline fill=\"none\" opacity=\"0.5\" stroke=\"#123456\""
-      " stroke-width=\"1\" points=\"";
+    string color = StringPrintf("#%2x%2x%2x", rc.Byte(), rc.Byte(), rc.Byte());
+    out += StringPrintf("<polyline fill=\"none\" opacity=\"0.5\" stroke=\"%s\""
+			" stroke-width=\"1\" points=\"", color.c_str());
 
     // Fill in points as space separated x,y coords
     for (int i = 0; i < memories.size(); i++) {
@@ -120,7 +124,7 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
       // Fraction in [0, 1]
       double yf = (double)valueindex / (double)values.size();
       double xf = (double)i / (double)memories.size();
-      out += StringPrintf("%.2f,%.2f ", 1024.0 * xf, 1024.0 * yf);
+      out += StringPrintf("%.3f,%.3f ", 1024.0 * xf, 1024.0 * (1.0 - yf));
     }
     out += "\" />\n";
   }
