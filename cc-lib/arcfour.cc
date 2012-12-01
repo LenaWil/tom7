@@ -12,7 +12,7 @@ typedef unsigned char uint8;
 enum { char_must_be_one_byte = 1 / !(uint8)256 };
 
 static void Initialize(const uint8 (&kk)[256],
-			 uint8 (&ss)[256]) {
+		       uint8 (&ss)[256]) {
   uint8 i = 0, j = 0;
   for (int n = 256; n--;) {
     j += ss[i] + kk[i];
@@ -27,7 +27,7 @@ ArcFour::ArcFour(const vector<uint8> &v) : ii(0), jj(0) {
   uint8 kk[256];
   for (int i = 0; i < 256; i++) {
     ss[i] = i;
-    ss[i] = v[i % v.size()];
+    kk[i] = v[i % v.size()];
   }
   Initialize(kk, ss);
 }
@@ -36,7 +36,7 @@ ArcFour::ArcFour(const string &s) : ii(0), jj(0) {
   uint8 kk[256];
   for (int i = 0; i < 256; i++) {
     ss[i] = i;
-    ss[i] = (uint8)s[i % s.size()];
+    kk[i] = (uint8)s[i % s.size()];
   }
   Initialize(kk, ss);
 }
