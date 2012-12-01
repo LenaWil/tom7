@@ -74,6 +74,10 @@ static void ignore(const vector<int> &ordering) {}
 
 static void FindCounterExample() {
   ArcFour rc("hello");
+  for (int i = 0; i < 8000; i++) {
+    printf("%2x", rc.Byte());
+  }
+
   for (int nmem = 1; nmem < 20; nmem++) {
     for (int size = 1; size < 20; size++) {
       for (int t = 0; t < 1000; t++) {
@@ -81,7 +85,7 @@ static void FindCounterExample() {
 	for (int i = 0; i < nmem; i++) {
 	  vector<uint8> mem;
 	  for (int j = 0; j < size; j++) {
-	    mem.push_back(rc.Byte());
+	    mem.push_back(0 /* rc.Byte() */);
 	  }
 	  memories.push_back(mem);
 	}
