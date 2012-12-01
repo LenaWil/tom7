@@ -4,9 +4,9 @@
 
 // Self-check output.
 #define DEBUG_OBJECTIVE 1
-#define VERBOSE_OBJECTIVE 1
+#define VERBOSE_OBJECTIVE 0
 
-#define VPRINTF if (0) printf
+#define VPRINTF if (VERBOSE_OBJECTIVE) printf
 
 Objective::Objective(const vector< vector<uint8> > &mm) :
   memories(mm) {
@@ -48,7 +48,7 @@ static bool EqualOnPrefix(const vector<uint8> &mem1,
     int p = prefix[i];
     // printf("  eop %d: %d vs %d\n", p, mem1[i], mem2[i]);
     if (mem1[p] != mem2[p]) {
-      VPRINTF("Disequal at %d\n", p);
+      VPRINTF("Disequal at %d so not equal on prefix\n", p);
       return false;
     }
   }
@@ -92,12 +92,15 @@ void Objective::EnumeratePartial(const vector<int> &look,
   // are equal on the prefix
   vector<int> lequal;
   lequal.reserve(look.size() - 1);
+  VPRINTF("Equal on prefix:");
   for (int lo = 0; lo < look.size() - 1; lo++) {
     int i = look[lo], j = look[lo + 1];
     if (EqualOnPrefix(memories[i], memories[j], *prefix)) {
       lequal.push_back(lo);
+      VPRINTF(" %d-%d", i, j);
     }
   }
+  VPRINTF("\n");
 
   for (int le = 0; le < left.size(); le++) {
     int c = left[le];
@@ -111,19 +114,20 @@ void Objective::EnumeratePartial(const vector<int> &look,
     // prefix.)
     for (int i = 0; i < prefix->size(); i++) {
       if ((*prefix)[i] == c) {
-	// printf("  skip %d in prefix\n", c);
+	VPRINTF("  skip %d in prefix\n", c);
 	goto skip;
       }
     }
 
-    for (int lo = 0; lo < lequal.size(); lo++) {
+    for (int li = 0; li < lequal.size(); li++) {
+      int lo = lequal[li];
       int i = look[lo], j = look[lo + 1];
-      // printf("  at lo %d. i=%d, j=%d\n", lo, i, j);
+      VPRINTF("  at lo %d. i=%d, j=%d\n", lo, i, j);
       if (memories[i][c] > memories[j][c]) {
 	// It may be legal later, but not a candidate.
 	remain->push_back(c);
-	// printf("  skip %d because memories #%d and #%d have %d->%d\n",
-	// c, i, j, memories[i][c], memories[j][c]);
+	VPRINTF("  skip %d because memories #%d and #%d have %d->%d\n",
+		c, i, j, memories[i][c], memories[j][c]);
 	goto skip;
       }
 
@@ -136,7 +140,7 @@ void Objective::EnumeratePartial(const vector<int> &look,
     } else {
       // Always equal. Filtered out and can never become
       // interesting.
-      // printf("  %d is always equal; filtered.\n", c);
+      VPRINTF("  %d is always equal; filtered.\n", c);
     }
 
     skip:;
@@ -203,7 +207,7 @@ void Objective::EnumeratePartialRec(const vector<int> &look,
 				    const vector<int> &left,
 				    void (*f)(const vector<int> &ordering),
 				    int *limit) {
-#if 0
+#if VERBOSE_OBJECTIVE
   VPRINTF("EPR: [");
   for (int i = 0; i < prefix->size(); i++) {
     VPRINTF("%d ", (*prefix)[i]);
@@ -220,12 +224,19 @@ void Objective::EnumeratePartialRec(const vector<int> &look,
     seed += (look[0] << 3);
   }
   seed ^= look.size();
-  if (prefix->size() < 2) VPRINTF("%ld\n", seed);
+  // if (prefix->size() < 2) VPRINTF("%ld\n", seed);
 
   vector<int> candidates, remain;
   EnumeratePartial(look, prefix, left, &remain, &candidates);
   // XXX
-  Shuffle(&candidates, seed);
+  //  Shuffle(&candidates, seed);
+
+#if VERBOSE_OBJECTIVE
+  VPRINTF("Candidates: ");
+  for (int i = 0; i < candidates.size(); i++)
+    VPRINTF("%d ", candidates[i]);
+  VPRINTF("\n");
+#endif
 
   // If this is a maximal prefix, output it. Otherwise, extend.
   if (candidates.empty()) {
