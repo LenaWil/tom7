@@ -38,7 +38,7 @@ class Heap {
     c.value = v;
     // a la SetElem.
     cells.push_back(c);
-    c.value->location = cells.size() - 1;
+    v->location = cells.size() - 1;
 
     // No children, so invariant violations are always upward.
     PercolateUp(cells.size() - 1);
