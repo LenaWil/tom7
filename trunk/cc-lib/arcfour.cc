@@ -48,7 +48,8 @@ uint8 ArcFour::Byte() {
   uint8 tj = ss[jj];
   ss[ii] = tj;
   ss[jj] = ti;
-  return ss[ti + tj];
+
+  return ss[(ti + tj) & 255];
 }
 
 void ArcFour::Discard(int n) {
