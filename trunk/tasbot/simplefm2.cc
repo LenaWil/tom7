@@ -82,3 +82,12 @@ void SimpleFM2::WriteInputs(const string &outputfile,
   }
   fclose(f);
 }
+
+string SimpleFM2::InputToString(uint8 input) {
+  char f[9] = {0};
+  static const char gamepad[] = "RLDUTSBA";
+  for (int j = 0; j < 8; j++) {
+    f[j] = (input & (1 << (7 - j))) ? gamepad[j] : '.';
+  }
+  return (string)f;
+}

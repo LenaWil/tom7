@@ -118,7 +118,12 @@ static uint64 GetHashCode() {
   uint8 digest[16];
   md5_finish(&md, digest);
 
-  return *(uint64*)&digest;
+  uint64 res = 0;
+  for (int i = 0; i < 8; i++) {
+    res <<= 8;
+    res |= 255 & digest[i];
+  }
+  return res;
 #endif
 
   vector<uint8> ss;
@@ -129,7 +134,12 @@ static uint64 GetHashCode() {
   uint8 digest[16];
   md5_finish(&md, digest);
 
-  return *(uint64*)&digest;
+  uint64 res = 0;
+  for (int i = 0; i < 8; i++) {
+    res <<= 8;
+    res |= 255 & digest[i];
+  }
+  return res;
 }
 
 // Magic "game location" address.

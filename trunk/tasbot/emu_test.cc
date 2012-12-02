@@ -43,7 +43,12 @@ static int64 DumpMem() {
   for (int i = 0; i < 16; i++)
     fprintf(stderr, "%02x", digest[i]);
   fprintf(stderr, "\n");
-  return *(int64*)digest;
+  uint64 res = 0;
+  for (int i = 0; i < 8; i++) {
+    res <<= 8;
+    res |= 255 & digest[i];
+  }
+  return res;
 }
 
 static void PrintSavestate(const vector<uint8> &ss) {

@@ -4,11 +4,15 @@
 #include <algorithm>
 #include <set>
 #include <string>
+#include <iostream>
+#include <sstream>
 
 #include "tasbot.h"
 #include "../cc-lib/arcfour.h"
 
 using namespace std;
+
+WeightedObjectives::WeightedObjectives() {}
 
 WeightedObjectives::WeightedObjectives(const vector< vector<int> > &objs) {
   for (int i = 0; i < objs.size(); i++) {
@@ -16,10 +20,6 @@ WeightedObjectives::WeightedObjectives(const vector< vector<int> > &objs) {
   }
 }
 
-WeightedObjectives *
-WeightedObjectives::LoadFromFile(const string &filename) {
-  abort();
-}
 
 static string ObjectiveToString(const vector<int> &obj) {
   string s;
@@ -29,6 +29,28 @@ static string ObjectiveToString(const vector<int> &obj) {
     s += d;
   }
   return s;
+}
+
+WeightedObjectives *
+WeightedObjectives::LoadFromFile(const string &filename) {
+  WeightedObjectives *wo = new WeightedObjectives;
+  vector<string> lines = Util::ReadFileToLines(filename);
+  for (int i = 0; i < lines.size(); i++) {
+    stringstream ss(lines[i], stringstream::in);
+    double d;
+    ss >> d;
+    vector<int> locs;
+    while (!ss.eof()) {
+      int i;
+      ss >> i;
+      locs.push_back(i);
+    }
+
+    printf("GOT: %f | %s\n", d, ObjectiveToString(locs).c_str());
+    wo->weighted.insert(make_pair(locs, d));  
+  }
+
+  return wo;
 }
   
 void WeightedObjectives::SaveToFile(const string &filename) const {
@@ -49,6 +71,36 @@ void WeightedObjectives::SaveToFile(const string &filename) const {
 size_t WeightedObjectives::Size() const {
   return weighted.size();
 }
+
+static bool LessObjective(const vector<uint8> &mem1, 
+			  const vector<uint8> &mem2,
+			  const vector<int> &order) {
+  for (int i = 0; i < order.size(); i++) {
+    int p = order[i];
+    if (mem1[p] > mem2[p])
+      return false;
+    if (mem1[p] < mem2[p])
+      return true;
+  }
+
+  // Equal.
+  return false;
+}
+
+
+double WeightedObjectives::GetNumLess(const vector<uint8> &mem1,
+				      const vector<uint8> &mem2) const {
+  double score = 0.0;
+  for (Weighted::const_iterator it = weighted.begin();
+       it != weighted.end(); ++it) {
+    const vector<int> &objective = it->first;
+    const double weight = it->second;
+    if (LessObjective(mem1, mem2, objective))
+      score += weight;
+  }
+  return score;
+}
+
 
 static vector<uint8> GetValues(const vector<uint8> &mem,
 			       const vector<int> &objective) {

@@ -31,6 +31,7 @@ uint64 Emulator::RamChecksum() {
   }
   return res;
 }
+
 /**
  * Initialize all of the subsystem drivers: video, audio, and joystick.
  */
