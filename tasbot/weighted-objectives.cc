@@ -6,6 +6,7 @@
 #include <string>
 
 #include "tasbot.h"
+#include "../cc-lib/arcfour.h"
 
 using namespace std;
 
@@ -88,7 +89,11 @@ int GetValueIndex(const vector< vector<uint8> > &values,
 
 void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
 				 const string &filename) const {
+  static const int WIDTH = 2048;
+  static const int HEIGHT = 1204;
+
   string out =
+    StringPrintf(
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
     "<!-- Generator: weighted-objectives.cc -->\n"
     "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" "
@@ -99,24 +104,31 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
     " xmlns=\"http://www.w3.org/2000/svg\""
     " xmlns:xlink=\"http://www.w3.org/1999/xlink\""
     " xmlns:a=\"http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/\""
-    " x=\"0px\" y=\"0px\" width=\"1024px\" height=\"1024px\""
-    " xml:space=\"preserve\">\n";
+    " x=\"0px\" y=\"0px\" width=\"%dpx\" height=\"%dpx\""
+    " xml:space=\"preserve\">\n", WIDTH, HEIGHT);
 
-  ArcFour rc("make colors");
+  ArcFour rc("Zmake colors");
 
-  int howmany = 10;
+  int howmany = 50;
   for (Weighted::const_iterator it = weighted.begin();
-       --howmany && it != weighted.end(); ++it) {
+       howmany-- && it != weighted.end(); ++it) {
     const vector<int> &obj = it->first;
     // All the distinct values this objective takes on, in order.
     vector< vector<uint8> > values = GetUniqueValues(memories, obj);
     printf("%d distinct values for %s\n", values.size(),
 	   ObjectiveToString(obj).c_str());
 
-    string color = StringPrintf("#%2x%2x%2x", rc.Byte(), rc.Byte(), rc.Byte());
-    out += StringPrintf("<polyline fill=\"none\" opacity=\"0.5\" stroke=\"%s\""
-			" stroke-width=\"1\" points=\"", color.c_str());
+    string color = StringPrintf("#%02x%02x%02x",
+				rc.Byte(), rc.Byte(), rc.Byte());
+    const string startpolyline =
+      StringPrintf("  <polyline fill=\"none\" opacity=\"0.5\" stroke=\"%s\""
+		   " stroke-width=\"1\" points=\"", color.c_str());
+    const string endpolyline = "\" />\n";
+    out += "<g>\n";
+    out += startpolyline;
 
+    static const int MAXLEN = 256;
+    int numleft = MAXLEN;
     // Fill in points as space separated x,y coords
     for (int i = 0; i < memories.size(); i++) {
       vector<uint8> now = GetValues(memories[i], obj);
@@ -124,12 +136,18 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
       // Fraction in [0, 1]
       double yf = (double)valueindex / (double)values.size();
       double xf = (double)i / (double)memories.size();
-      out += StringPrintf("%.3f,%.3f ", 1024.0 * xf, 1024.0 * (1.0 - yf));
+      out += StringPrintf("%.3f,%.3f ", WIDTH * xf, HEIGHT * (1.0 - yf));
+      if (numleft-- == 0) {
+	out += endpolyline;
+	out += startpolyline;
+	numleft = MAXLEN;
+      }
     }
-    out += "\" />\n";
+
+    out += endpolyline;
+    out += "</g>\n";
   }
 
   out += "\n</svg>\n";
   Util::WriteFile(filename, out);
 }
-

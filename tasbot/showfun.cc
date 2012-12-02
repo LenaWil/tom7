@@ -76,83 +76,6 @@ struct MemSpan {
   vector<uint8> values;
 };
 
-static vector< vector<int> > *objectives = NULL;
-static void PrintAndSave(const vector<int> &ordering) {
-  for (int i = 0; i < ordering.size(); i++) {
-    printf("%d ", ordering[i]);
-  }
-  printf("\n");
-  CHECK(objectives);
-  objectives->push_back(ordering);
-}
-
-// With e.g. an divisor of 3, generate slices covering
-// the first third, middle third, and last third.
-static void GenerateNthSlices(int divisor, int num, 
-			      const vector< vector<uint8> > &memories,
-			      Objective *obj) {
-  const int onenth = memories.size() / divisor;
-  for (int slicenum = 0; slicenum < divisor; slicenum++) {
-    vector<int> look;
-    int low = slicenum * onenth;
-    for (int i = 0; i < onenth; i++) {
-      look.push_back(low + i);
-    }
-    printf("For slice %ld-%ld:\n", low, low + onenth - 1);
-    for (int i = 0; i < num; i++) {
-      obj->EnumerateFull(look, PrintAndSave, 1, slicenum * 0xBEAD + i);
-    }
-  }
-}
-
-static void GenerateOccasional(int stride, int offsets, int num,
-			       const vector< vector<uint8> > &memories,
-			       Objective *obj) {
-  for (int off = 0; off < offsets; off++) {
-    vector<int> look;
-    // Consider starting at various places throughout the first stide?
-    for (int start = off; start < memories.size(); start += stride) {
-      look.push_back(start);
-    }
-    printf("For occasional @%d (every %d):\n", off, stride);
-    for (int i = 0; i < num; i++) {
-      obj->EnumerateFull(look, PrintAndSave, 1, off * 0xF00D + i);
-    }
-  }
-}
-
-static void MakeObjectives(const vector< vector<uint8> > &memories) {
-  printf("Now generating objectives.\n");
-  objectives = new vector< vector<int> >;
-  Objective obj(memories);
-
-  // Going to generate a bunch of objective functions.
-  // Some things will never violate the objective, like
-  // [world number, stage number] or [score]. So generate
-  // a handful of whole-game objectives.
-  for (int i = 0; i < 10; i++) {
-    obj.EnumerateFullAll(PrintAndSave, 1, i);
-  }
-
-  // Next, generate objectives for each tenth of the game.
-  GenerateNthSlices(10, 10, memories, &obj);
-  // And for each 1/100th.
-  GenerateNthSlices(100, 1, memories, &obj);
-
-  // Now, for individual frames spread throughout the
-  // whole movie.
-  GenerateOccasional(100, 5, 2, memories, &obj);
-  GenerateOccasional(1000, 10, 1, memories, &obj);
-
-  // Weight them. Currently this is just removing duplicates.
-  printf("There are %d objectives\n", objectives->size());
-  WeightedObjectives weighted(*objectives);
-  printf("And %d unique objectives\n", weighted.Size());
-
-  weighted.SaveToFile("mario.objectives");
-
-}
-
 int main(int argc, char *argv[]) {
   Emulator::Initialize("mario.nes");
   vector<uint8> movie = SimpleFM2::ReadInputs("mario.fm2");
@@ -165,6 +88,7 @@ int main(int argc, char *argv[]) {
   // So skip until there's a button press in the movie.
   size_t start = 0;
 
+  #if 0
   if (true || argc == 1) {
     printf("Skipping frames without argument.\n");
     while (movie[start] == 0 && start < movie.size()) {
@@ -175,6 +99,7 @@ int main(int argc, char *argv[]) {
 
   printf("Skipped %ld frames until first keypress.\n"
 	 "Playing %ld frames...\n", start, movie.size() - start);
+  #endif
 
   SaveMemory(&memories);
 
@@ -190,7 +115,11 @@ int main(int argc, char *argv[]) {
 
   printf("Recorded %ld memories.\n", memories.size());
 
-  if (argc == 1) {
+
+  WeightedObjectives *objectives = LoadFromFile("mario.objectives");
+  CHECK(objectives);
+
+#if 0
     MakeObjectives(memories);
   } else {
     vector<int> ordering;
@@ -207,7 +136,7 @@ int main(int argc, char *argv[]) {
     }
     m.Flush();
   }
-  
+#endif  
 
   Emulator::Shutdown();
 
