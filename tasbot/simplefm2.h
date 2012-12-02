@@ -28,6 +28,8 @@ struct SimpleFM2 {
                           const string &romfilename,
                           const string &romchecksum,
                           const vector<uint8> &inputs);
+
+  static string InputToString(uint8 input);
 };
 
 #endif

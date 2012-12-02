@@ -19,6 +19,9 @@ struct WeightedObjectives {
 	       const string &filename) const;
 
   size_t Size() const;
+
+  double GetNumLess(const vector<uint8> &mem1,
+		    const vector<uint8> &mem2) const;
  
  private:
   WeightedObjectives();

@@ -26,6 +26,7 @@
 #include "simplefm2.h"
 #include "objective.h"
 #include "weighted-objectives.h"
+#include "motifs.h"
 
 static void SaveMemory(vector< vector<uint8> > *memories) {
   memories->resize(memories->size() + 1);
@@ -107,7 +108,8 @@ static void MakeObjectives(const vector< vector<uint8> > &memories) {
   // Now, for individual frames spread throughout the
   // whole movie.
   // This one looks great.
-  GenerateOccasional(100, 5, 2, memories, &obj);
+  GenerateOccasional(100, 10, 10, memories, &obj);
+  // was 5,2
 
   // This one looks okay; noisy at times.
   GenerateOccasional(1000, 10, 1, memories, &obj);
@@ -128,6 +130,7 @@ int main(int argc, char *argv[]) {
 
   vector< vector<uint8> > memories;
   memories.reserve(movie.size() + 1);
+  vector<uint8> inputs;
 
   // The very beginning of the game starts with RAM initialization,
   // which we really should ignore for building an objective function.
@@ -152,12 +155,16 @@ int main(int argc, char *argv[]) {
       // exit(0);
     }
     Emulator::Step(movie[i]);
+    inputs.push_back(movie[i]);
     SaveMemory(&memories);
   }
 
   printf("Recorded %ld memories.\n", memories.size());
 
   MakeObjectives(memories);
+  Motifs motifs;
+  motifs.AddInputs(inputs);
+  motifs.SaveToFile("mario.motifs");
 
   Emulator::Shutdown();
 
