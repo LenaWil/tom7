@@ -53,24 +53,28 @@ TASBOT_OBJECTS=headless-driver.o config.o simplefm2.o emulator.o basis-util.o ob
 
 OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(DRIVERS_COMMON_OBJECTS) $(CCLIBOBJECTS) $(TASBOT_OBJECTS)
 
+# without static, can't find lz or lstdcxx maybe?
 LFLAGS = -m64 -lz  $(OPT) $(FLTO) $(PROFILE) -static -fwhole-program
 # -static
 
 learnfun.exe : $(OBJECTS) learnfun.o
-	$(CXX) $^ -o $@ $(LFLAGS)  
+	$(CXX) $^ -o $@ $(LFLAGS)
 
+# XXX never implemented this.
 showfun.exe : $(OBJECTS) showfun.o
-	$(CXX) $^ -o $@ $(LFLAGS)  
+	$(CXX) $^ -o $@ $(LFLAGS)
 
-# without static, can't find lz or lstdcxx maybe?
 tasbot.exe : $(OBJECTS) tasbot.o
-	$(CXX) $^ -o $@ $(LFLAGS)  
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+playfun.exe : $(OBJECTS) playfun.o
+	$(CXX) $^ -o $@ $(LFLAGS)
 
 emu_test.exe : $(OBJECTS) emu_test.o
-	$(CXX) $^ -o $@ $(LFLAGS)  
+	$(CXX) $^ -o $@ $(LFLAGS)
 
 objective_test.exe : $(CCLIBOBJECTS) objective.o objective_test.o
-	$(CXX) $^ -o $@ $(LFLAGS)  
+	$(CXX) $^ -o $@ $(LFLAGS)
 
 test : emu_test.exe
 	time ./emu_test.exe
