@@ -89,18 +89,27 @@ static void MakeObjectives(const vector< vector<uint8> > &memories) {
   // Some things will never violate the objective, like
   // [world number, stage number] or [score]. So generate
   // a handful of whole-game objectives.
+
   for (int i = 0; i < 10; i++) {
     obj.EnumerateFullAll(PrintAndSave, 1, i);
   }
 
+  // XXX Not sure how I feel about these, based on the
+  // graphics. They are VERY noisy.
+#if 0
   // Next, generate objectives for each tenth of the game.
   GenerateNthSlices(10, 10, memories, &obj);
+
   // And for each 1/100th.
   GenerateNthSlices(100, 1, memories, &obj);
+#endif
 
   // Now, for individual frames spread throughout the
   // whole movie.
+  // This one looks great.
   GenerateOccasional(100, 5, 2, memories, &obj);
+
+  // This one looks okay; noisy at times.
   GenerateOccasional(1000, 10, 1, memories, &obj);
 
   // Weight them. Currently this is just removing duplicates.
