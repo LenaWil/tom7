@@ -47,9 +47,7 @@ void Motifs::SaveToFile(const string &filename) const {
   for (Weighted::const_iterator it = motifs.begin(); 
        it != motifs.end(); ++it) {
     const vector<uint8> &inputs = it->first;
-    char w[128] = {0};
-    sprintf(w, "%f", it->second);
-    string s = w;
+    string s = StringPrintf("%f ", it->second);
     s += InputsToString(inputs);
     out += s + "\n";
   }
@@ -66,6 +64,7 @@ void Motifs::AddInputs(const vector<uint8> &inputs) {
     current.push_back(inputs[i]);
     if (current.size() == CHUNK_SIZE) {
       motifs[current] += 1.0;
+      current.clear();
     }
   }
 

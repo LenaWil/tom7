@@ -21,6 +21,9 @@
 #include "simplefm2.h"
 #include "weighted-objectives.h"
 #include "motifs.h"
+#include "../cc-lib/arcfour.h"
+
+#define GAME "punchout"
 
 // Get the hashcode for the current state. This is based just on RAM.
 // XXX should include registers too, right?
@@ -113,95 +116,185 @@ static void GetMemory(vector<uint8> *mem) {
   }
 }
 
+struct PlayFun {
+  PlayFun() : rc("playfun") {
+    Emulator::Initialize(GAME ".nes");
+    objectives = WeightedObjectives::LoadFromFile(GAME ".objectives");
+    CHECK(objectives);
+    fprintf(stderr, "Loaded %d objective functions\n", objectives->Size());
+
+    motifs = Motifs::LoadFromFile(GAME ".motifs");
+    CHECK(motifs);
+
+    for (Motifs::Weighted::const_iterator it = motifs->motifs.begin();
+	 it != motifs->motifs.end(); ++it) {
+      motifvec.push_back(it->first);
+    }
+
+    // PERF basis?
+
+    solution = SimpleFM2::ReadInputs("punchouttom.fm2");
+
+    size_t start = 0;
+    while (start < solution.size()) {
+      Emulator::Step(solution[start]);
+      movie.push_back(solution[start]);
+      if (solution[start] != 0) break;
+      start++;
+    }
+
+    printf("Skipped %ld frames until first keypress.\n", start);
+  }
+
+  const vector<uint8> &RandomMotif() {
+    uint32 b = 0;
+    b = (b << 8) | rc.Byte();
+    b = (b << 8) | rc.Byte();
+    b = (b << 8) | rc.Byte();
+
+    return motifvec[b % motifvec.size()];
+  }
+
+  // Look fairly deep into the future playing randomly. 
+  // DESTROYS THE STATE.
+  double ScoreByRandomFuture(const vector<uint8> &base_memory) {
+    static const int DEPTH = 10;
+    static const int NUM = 2;
+    vector<uint8> base_state;
+    Emulator::Save(&base_state);
+
+    double total = 0.0;
+    for (int i = 0; i < NUM; i++) {
+      if (i) Emulator::Load(&base_state);
+      for (int d = 0; d < DEPTH; d++) {
+	const vector<uint8> &m = RandomMotif();
+	for (int x = 0; x < m.size(); x++) {
+	  Emulator::Step(m[x]);
+	}
+      }
+
+      vector<uint8> future_memory;
+      GetMemory(&future_memory);
+      total += objectives->GetNumLess(base_memory, future_memory);
+    }
+
+    // We're allowed to destroy the current state, so don't
+    // restore.
+    return total;
+  }
+
+#if 0
+  // Search all different sequences of motifs of length 'depth'.
+  // Choose the one with the highest score.
+  void ExhaustiveMotifSearch(int depth) {
+    vector<uint8> current_state, current_memory;
+    Emulator::Save(&current_state);
+    GetMemory(&current_memory);
+
+  }
+#endif
+
+  void Greedy() {
+    // Let's just try a greedy version for the lols.
+    // At every state we just try the input that increases the
+    // most objective functions.
+
+    vector<uint8> current_state;
+    vector<uint8> current_memory;
+
+    vector< vector<uint8> > nexts;
+    for (Motifs::Weighted::const_iterator it = motifs->motifs.begin();
+	 it != motifs->motifs.end(); ++it) {
+      // XXX ignores weights
+      nexts.push_back(it->first);
+    }
+
+    // 10,000 is about enough to run out the clock, fyi
+    // XXX not frames, #motifs
+    static const int NUMFRAMES = 10000;
+    for (int framenum = 0; framenum < NUMFRAMES; framenum++) {
+
+      // Save our current state so we can try many different branches.
+      Emulator::Save(&current_state);    
+      GetMemory(&current_memory);
+
+      // To break ties.
+      Shuffle(&nexts);
+
+      double best_score = -999999999.0;
+      double best_future, best_immediate;
+      vector<uint8> *best_input = &nexts[0];
+      for (int i = 0; i < nexts.size(); i++) {
+	// (Don't restore for first one; it's already there)
+	if (i != 0) Emulator::Load(&current_state);
+	for (int j = 0; j < nexts[i].size(); j++)
+	  Emulator::Step(nexts[i][j]);
+
+	vector<uint8> new_memory;
+	GetMemory(&new_memory);
+	double immediate_score =
+	  objectives->GetNumLess(current_memory, new_memory);
+	double future_score = ScoreByRandomFuture(new_memory);
+
+	double score = immediate_score + future_score;
+
+	if (score > best_score) {
+	  best_score = score;
+	  best_immediate = immediate_score;
+	  best_future = future_score;
+	  best_input = &nexts[i];
+	}
+      }
+
+      printf("%8d best score %.2f (%.2f + %.2f future):\n", 
+	     movie.size(),
+	     best_score, best_immediate, best_future);
+      // SimpleFM2::InputToString(best_input).c_str());
+
+      // PERF maybe could save best state?
+      Emulator::Load(&current_state);
+      for (int j = 0; j < best_input->size(); j++) {
+	Emulator::Step((*best_input)[j]);
+	movie.push_back((*best_input)[j]);
+      }
+
+      if (framenum % 10 == 0) {
+	SimpleFM2::WriteInputs(GAME "-playfun-motif-progress.fm2", GAME ".nes",
+			       // XXX
+			       "base64:Ww5XFVjIx5aTe5avRpVhxg==",
+			       // "base64:jjYwGG411HcjG/j9UOVM3Q==",
+			       movie);
+	printf("                     (wrote)\n");
+      }
+    }
+
+    SimpleFM2::WriteInputs(GAME "-playfun-motif-final.fm2", GAME ".nes",
+			   // XXX
+			   "base64:Ww5XFVjIx5aTe5avRpVhxg==",
+			   // "base64:jjYwGG411HcjG/j9UOVM3Q==",
+			   movie);
+  }
+
+  // Used to ffwd to gameplay.
+  vector<uint8> solution;
+  // Contains the movie we record.
+  vector<uint8> movie;
+
+  ArcFour rc;
+  WeightedObjectives *objectives;
+  Motifs *motifs;
+  vector< vector<uint8> > motifvec;
+};
+
 /**
  * The main loop for the SDL.
  */
 int main(int argc, char *argv[]) {
-  Emulator::Initialize("mario.nes");
-
-  vector<uint8> solution = SimpleFM2::ReadInputs("mario.fm2");
-  vector<uint8> movie;
-
-  size_t start = 0;
-  while (start < solution.size()) {
-    Emulator::Step(solution[start]);
-    movie.push_back(solution[start]);
-    if (solution[start] != 0) break;
-    start++;
-  }
-
-  printf("Skipped %ld frames until first keypress.\n", start);
-
-  WeightedObjectives *objectives =
-    WeightedObjectives::LoadFromFile("mario.objectives");
-  CHECK(objectives);
-  fprintf(stderr, "Loaded %d objective functions\n", objectives->Size());
-
-  // PERF basis?
+  PlayFun pf;
 
   fprintf(stderr, "Starting...\n");
 
-  // Let's just try a greedy version for the lols.
-  // At every state we just try the input that increases the
-  // most objective functions.
-
-  vector<uint8> current_state;
-  vector<uint8> current_memory;
-
-  // 10,000 is about enough to run out the clock, fyi
-  static const int NUMFRAMES = 22000;
-  for (int framenum = 0; framenum < NUMFRAMES; framenum++) {
-
-    // Save our current state so we can try many different branches.
-    Emulator::Save(&current_state);    
-    GetMemory(&current_memory);
-
-    static const uint8 buttons[] = { 0, INPUT_A, INPUT_B, INPUT_A | INPUT_B };
-    static const uint8 dirs[] = { 0, INPUT_R, INPUT_U, INPUT_L, INPUT_D,
-				  INPUT_R | INPUT_U, INPUT_L | INPUT_U,
-				  INPUT_R | INPUT_D, INPUT_L | INPUT_D };
-
-    vector<uint8> inputs;
-    for (int b = 0; b < sizeof(buttons); b++) {
-      for (int d = 0; d < sizeof(dirs); d++) {
-	uint8 input = buttons[b] | dirs[d];
-	inputs.push_back(input);
-      }
-    }
-    
-    // To break ties.
-    Shuffle(&inputs);
-
-    double best_score = -1;
-    uint8 best_input = 0;
-    for (int i = 0; i < inputs.size(); i++) {
-      // (Don't restore for first one; it's already there)
-      if (i != 0) Emulator::Load(&current_state);
-      Emulator::Step(inputs[i]);
-
-      vector<uint8> new_memory;
-      GetMemory(&new_memory);
-      double score = objectives->GetNumLess(current_memory, new_memory);
-      if (score > best_score) {
-	best_score = score;
-	best_input = inputs[i];
-      }
-    }
-
-    printf("Best was %f: %s\n", 
-	   best_score,
-	   SimpleFM2::InputToString(best_input).c_str());
-
-    // PERF maybe could save best state?
-    Emulator::Load(&current_state);
-    Emulator::Step(best_input);
-    movie.push_back(best_input);
-  }
-
-  SimpleFM2::WriteInputs("mario-playfun.fm2", "mario.nes",
-			 // XXX
-			 "base64:jjYwGG411HcjG/j9UOVM3Q==",
-                         movie);
+  pf.Greedy();
 
   Emulator::Shutdown();
 

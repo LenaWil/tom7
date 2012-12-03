@@ -28,6 +28,8 @@
 #include "weighted-objectives.h"
 #include "motifs.h"
 
+#define GAME "punchout"
+
 static void SaveMemory(vector< vector<uint8> > *memories) {
   memories->resize(memories->size() + 1);
   vector<uint8> *v = &memories->back();
@@ -90,20 +92,18 @@ static void MakeObjectives(const vector< vector<uint8> > &memories) {
   // Some things will never violate the objective, like
   // [world number, stage number] or [score]. So generate
   // a handful of whole-game objectives.
-
-  for (int i = 0; i < 10; i++) {
+  
+  for (int i = 0; i < 10; i++)
     obj.EnumerateFullAll(PrintAndSave, 1, i);
-  }
 
   // XXX Not sure how I feel about these, based on the
   // graphics. They are VERY noisy.
-#if 0
+
   // Next, generate objectives for each tenth of the game.
-  GenerateNthSlices(10, 10, memories, &obj);
+  GenerateNthSlices(10, 1, memories, &obj);
 
   // And for each 1/100th.
   GenerateNthSlices(100, 1, memories, &obj);
-#endif
 
   // Now, for individual frames spread throughout the
   // whole movie.
@@ -119,14 +119,14 @@ static void MakeObjectives(const vector< vector<uint8> > &memories) {
   WeightedObjectives weighted(*objectives);
   printf("And %d unique objectives\n", weighted.Size());
 
-  weighted.SaveToFile("mario.objectives");
+  weighted.SaveToFile(GAME ".objectives");
 
-  weighted.SaveSVG(memories, "mario.svg");
+  weighted.SaveSVG(memories, GAME ".svg");
 }
 
 int main(int argc, char *argv[]) {
-  Emulator::Initialize("mario.nes");
-  vector<uint8> movie = SimpleFM2::ReadInputs("mario.fm2");
+  Emulator::Initialize(GAME ".nes");
+  vector<uint8> movie = SimpleFM2::ReadInputs("punchouttom.fm2");
 
   vector< vector<uint8> > memories;
   memories.reserve(movie.size() + 1);
@@ -164,7 +164,7 @@ int main(int argc, char *argv[]) {
   MakeObjectives(memories);
   Motifs motifs;
   motifs.AddInputs(inputs);
-  motifs.SaveToFile("mario.motifs");
+  motifs.SaveToFile(GAME ".motifs");
 
   Emulator::Shutdown();
 
