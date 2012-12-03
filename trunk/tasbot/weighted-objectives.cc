@@ -58,11 +58,8 @@ void WeightedObjectives::SaveToFile(const string &filename) const {
   for (Weighted::const_iterator it = weighted.begin(); 
        it != weighted.end(); ++it) {
     const vector<int> &obj = it->first;
-    char w[128] = {0};
-    sprintf(w, "%f", it->second);
-    string s = w;
-    s += ObjectiveToString(obj);
-    out += s + "\n";
+    out += StringPrintf("%f %s\n", it->second,
+			ObjectiveToString(obj).c_str());
   }
   printf("%s\n", out.c_str());
   Util::WriteFile(filename, out);

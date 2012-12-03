@@ -14,10 +14,11 @@ struct Motifs {
 
   void AddInputs(const vector<uint8> &inputs);
 
- private:
+  // XXX accessors or something?
   typedef map<vector<uint8>, double> Weighted;
   Weighted motifs;
 
+private:
   NOT_COPYABLE(Motifs);
 };
 
