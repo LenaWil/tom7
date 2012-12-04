@@ -28,7 +28,8 @@
 #include "weighted-objectives.h"
 #include "motifs.h"
 
-#define GAME "punchout"
+#define GAME "mario"
+#define MOVIE "mario-cleantom.fm2"
 
 static void SaveMemory(vector< vector<uint8> > *memories) {
   memories->resize(memories->size() + 1);
@@ -93,23 +94,25 @@ static void MakeObjectives(const vector< vector<uint8> > &memories) {
   // [world number, stage number] or [score]. So generate
   // a handful of whole-game objectives.
   
-  for (int i = 0; i < 10; i++)
+  for (int i = 0; i < 50; i++) // was 10
     obj.EnumerateFullAll(PrintAndSave, 1, i);
 
   // XXX Not sure how I feel about these, based on the
   // graphics. They are VERY noisy.
 
   // Next, generate objectives for each tenth of the game.
-  GenerateNthSlices(10, 1, memories, &obj);
+  GenerateNthSlices(10, 3, memories, &obj);
 
   // And for each 1/100th.
-  GenerateNthSlices(100, 1, memories, &obj);
+  // GenerateNthSlices(100, 1, memories, &obj);
 
   // Now, for individual frames spread throughout the
   // whole movie.
   // This one looks great.
   GenerateOccasional(100, 10, 10, memories, &obj);
   // was 5,2
+
+  GenerateOccasional(250, 10, 10, memories, &obj);
 
   // This one looks okay; noisy at times.
   GenerateOccasional(1000, 10, 1, memories, &obj);
@@ -126,7 +129,8 @@ static void MakeObjectives(const vector< vector<uint8> > &memories) {
 
 int main(int argc, char *argv[]) {
   Emulator::Initialize(GAME ".nes");
-  vector<uint8> movie = SimpleFM2::ReadInputs("punchouttom.fm2");
+  vector<uint8> movie = SimpleFM2::ReadInputs(MOVIE);
+  CHECK(!movie.empty());
 
   vector< vector<uint8> > memories;
   memories.reserve(movie.size() + 1);

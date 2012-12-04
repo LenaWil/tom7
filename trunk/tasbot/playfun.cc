@@ -23,44 +23,12 @@
 #include "motifs.h"
 #include "../cc-lib/arcfour.h"
 
-#define GAME "punchout"
+#define GAME "mario"
+#define MOVIE "mario-cleantom.fm2"
 
 // Get the hashcode for the current state. This is based just on RAM.
 // XXX should include registers too, right?
 static uint64 GetHashCode() {
-#if 0
-  uint64 a = 0xDEADBEEFCAFEBABEULL,
-    b = 0xDULL,
-    c = 0xFFFF000073731919ULL;
-  for (int i = 0; i < 0x800; i++) {
-    do { uint64 t = a; a = b; b = c; c = t; } while(0);
-    switch (i) {
-    // Bytes that are ignored...
-    case 0x036E: // Contains the input byte for that frame. Ignore.
-
-      break;
-    default:
-      a += (RAM[i] * 31337);
-      b ^= 0xB00BFACEFULL;
-      c *= 0x1234567ULL;
-      c = (c >> 17) | (c << (64 - 17));
-      a ^= c;
-    }
-  }
-  return a + b + c;
-#endif
-
-#if 0
-  md5_context md;
-  md5_starts(&md);
-  md5_update(&md, RAM, 0x036E);
-  md5_update(&md, RAM + 0x036F, 0x800 - 0x36F);
-  uint8 digest[16];
-  md5_finish(&md, digest);
-
-  return *(uint64*)&digest;
-#endif
-
   vector<uint8> ss;
   Emulator::GetBasis(&ss);
   md5_context md;
@@ -69,22 +37,12 @@ static uint64 GetHashCode() {
   uint8 digest[16];
   md5_finish(&md, digest);
 
-
   uint64 res = 0;
   for (int i = 0; i < 8; i++) {
     res <<= 8;
     res |= 255 & digest[i];
   }
   return res;
-}
-
-// Magic "game location" address.
-// See addresses.txt
-static uint32 GetLoc() {
-  return (RAM[0x0080] << 24) |
-    (RAM[0x0081] << 16) |
-    (RAM[0x0082] << 8) |
-    (RAM[0x0083]);
 }
 
 // Initialized at startup.
@@ -133,7 +91,7 @@ struct PlayFun {
 
     // PERF basis?
 
-    solution = SimpleFM2::ReadInputs("punchouttom.fm2");
+    solution = SimpleFM2::ReadInputs(MOVIE);
 
     size_t start = 0;
     while (start < solution.size()) {
@@ -158,15 +116,18 @@ struct PlayFun {
   // Look fairly deep into the future playing randomly. 
   // DESTROYS THE STATE.
   double ScoreByRandomFuture(const vector<uint8> &base_memory) {
-    static const int DEPTH = 10;
-    static const int NUM = 2;
+    // XXX should be based on motif size
+    // XXX should learn it somehow? this is tuned by hand
+    // for mario.
+    static const int DEPTHS[] = { 10, 50 };
+    // static const int NUM = 2;
     vector<uint8> base_state;
     Emulator::Save(&base_state);
 
     double total = 0.0;
-    for (int i = 0; i < NUM; i++) {
+    for (int i = 0; i < (sizeof (DEPTHS) / sizeof (int)); i++) {
       if (i) Emulator::Load(&base_state);
-      for (int d = 0; d < DEPTH; d++) {
+      for (int d = 0; d < DEPTHS[i]; d++) {
 	const vector<uint8> &m = RandomMotif();
 	for (int x = 0; x < m.size(); x++) {
 	  Emulator::Step(m[x]);
@@ -175,6 +136,7 @@ struct PlayFun {
 
       vector<uint8> future_memory;
       GetMemory(&future_memory);
+      // XXX max?
       total += objectives->GetNumLess(base_memory, future_memory);
     }
 
@@ -199,6 +161,10 @@ struct PlayFun {
     // At every state we just try the input that increases the
     // most objective functions.
 
+    // PERF
+    // For drawing SVG.
+    vector< vector<uint8> > memories;
+
     vector<uint8> current_state;
     vector<uint8> current_memory;
 
@@ -217,6 +183,7 @@ struct PlayFun {
       // Save our current state so we can try many different branches.
       Emulator::Save(&current_state);    
       GetMemory(&current_memory);
+      memories.push_back(current_memory);
 
       // To break ties.
       Shuffle(&nexts);
@@ -264,6 +231,7 @@ struct PlayFun {
 			       "base64:Ww5XFVjIx5aTe5avRpVhxg==",
 			       // "base64:jjYwGG411HcjG/j9UOVM3Q==",
 			       movie);
+	objectives->SaveSVG(memories, GAME "-playfun.svg");
 	printf("                     (wrote)\n");
       }
     }

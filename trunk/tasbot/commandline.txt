@@ -1,4 +1,4 @@
-// -Video Modes Tag- : See --special
+ti// -Video Modes Tag- : See --special
 char *DriverUsage="\
 Option         Value   Description\n\
 --pal          {0|1}   Use PAL timing.\n\

@@ -197,6 +197,22 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
     out += "</g>\n";
   }
 
+  // Show ticks.
+  const int SPAN = 128;
+  const double TICKHEIGHT = 20.0;
+  const double TICKFONT = 12.0;
+  for (int x = 0; x < WIDTH; x += SPAN) {
+    double xf = x / (double)memories.size();
+    out += StringPrintf("  <polyline fill=\"none\" opacity=\"0.5\" stroke=\"#000000\""
+			" stroke-width=\"1\" points=\"%f,0 %f,%f\" />\n",
+			WIDTH * xf, WIDTH * xf, TICKHEIGHT);
+    // TEXT
+    out += StringPrintf("<text x=\"%f\" y=\"%f\" font-size=\"%f\">" ^
+			"<tspan fill=\"#000000\">%d</tspan>"
+			"</text>\n",
+			WIDTH * xf, TICKHEIGHT + 2.0, TICKFONT, x);
+  }
+
   out += "\n</svg>\n";
   Util::WriteFile(filename, out);
 }
