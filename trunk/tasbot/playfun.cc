@@ -137,7 +137,7 @@ struct PlayFun {
       vector<uint8> future_memory;
       GetMemory(&future_memory);
       // XXX max?
-      total += objectives->GetNumLess(base_memory, future_memory);
+      total += objectives->Evaluate(base_memory, future_memory);
     }
 
     // We're allowed to destroy the current state, so don't
@@ -189,7 +189,7 @@ struct PlayFun {
       Shuffle(&nexts);
 
       double best_score = -999999999.0;
-      double best_future, best_immediate;
+      double best_future = 0.0, best_immediate = 0.0;
       vector<uint8> *best_input = &nexts[0];
       for (int i = 0; i < nexts.size(); i++) {
 	// (Don't restore for first one; it's already there)
@@ -200,7 +200,7 @@ struct PlayFun {
 	vector<uint8> new_memory;
 	GetMemory(&new_memory);
 	double immediate_score =
-	  objectives->GetNumLess(current_memory, new_memory);
+	  objectives->Evaluate(current_memory, new_memory);
 	double future_score = ScoreByRandomFuture(new_memory);
 
 	double score = immediate_score + future_score;
