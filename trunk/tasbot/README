@@ -23,9 +23,18 @@
  confusing), but I installed via cygwin and that worked and so that was
  +1 for cygwin.
 
- TODO:
 
-   Try to learn a heuristic by taking a movie of someone playing, and
-   learning a lexicographic ordering of values of memory locations that
-   describe what "progress" is in the game.
+ For most of these programs you need to make modifications to the
+ source code to set some constants, like what game and what movie
+ you want to learn:
+
+ tasbot   - A*-ish search for solutions to games. Needs a hand-written
+            objective function. Very slow.
+
+ learnfun - learns a lexicographic ordering of RAM values, as well as
+            capturing input motifs, that can be used to automatically
+            try to play the game (with playfun)
+
+ playfun  - plays the game given the output of learnfun. More or less
+            works for "easy" games like Super Mario Bros.
 

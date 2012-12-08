@@ -150,12 +150,6 @@ GetUniqueValues(const vector< vector<uint8 > > &memories,
   }
     
   vector< vector<uint8> > uvalues;
-#if 0
-  for (set< vector<uint8> >::const_iterator it = values.begin();
-       it != values.end(); ++it) {
-    uvalues.push_back(*it);
-  }
-#endif
   uvalues.insert(uvalues.begin(), values.begin(), values.end());
   return uvalues;
 }
