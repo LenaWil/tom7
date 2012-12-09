@@ -324,7 +324,7 @@ static void Shuffle(vector<T> *v) {
  * The main loop for the SDL.
  */
 int main(int argc, char *argv[]) {
-  fprintf(stderr, "Nodes are %lld bytes\n", sizeof(Node));
+  fprintf(stderr, "Nodes are %ld bytes\n", sizeof(Node));
 
   Emulator::Initialize("karate.nes");
 
@@ -352,7 +352,7 @@ int main(int argc, char *argv[]) {
   GameHeap queue;
   fprintf(stderr, "Created heap\n");
   uint64 p = Priority(start);
-  fprintf(stderr, "priority %llx\n", p);
+  fprintf(stderr, "priority %lx\n", p);
   queue.Insert(p, start);
 
   uint64 bad_nodes = 0;
@@ -375,7 +375,7 @@ int main(int argc, char *argv[]) {
     processed++;
     if (processed % 1000 == 0) {
       // XXX report deepest?
-      fprintf(stderr, "%llu bad %llu queue %llu dist %d (re %llu ob %llu sow %llu)\n",
+      fprintf(stderr, "%lu bad %lu queue %lu dist %d (re %lu ob %lu sow %lu)\n",
               processed, bad_nodes, queue.Size(), explore->distance,
               rediscovered, rediscovered_obsolete,
               rediscovered_same_or_worse);
@@ -384,7 +384,7 @@ int main(int argc, char *argv[]) {
 
     if (processed % 50000 == 0) {
       char name[512];
-      sprintf(name, "prog%llu-%d", processed, explore->distance);
+      sprintf(name, "prog%lu-%d", processed, explore->distance);
       WriteMovie(name, start_inputs, explore);
     }
 
