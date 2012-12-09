@@ -26,38 +26,15 @@
 #define GAME "mario"
 #define MOVIE "mario-cleantom.fm2"
 
-// Get the hashcode for the current state. This is based just on RAM.
-// XXX should include registers too, right?
-static uint64 GetHashCode() {
-  vector<uint8> ss;
-  Emulator::GetBasis(&ss);
-  md5_context md;
-  md5_starts(&md);
-  md5_update(&md, &ss[0], ss.size());
-  uint8 digest[16];
-  md5_finish(&md, digest);
-
-  uint64 res = 0;
-  for (int i = 0; i < 8; i++) {
-    res <<= 8;
-    res |= 255 & digest[i];
-  }
-  return res;
-}
-
-// Initialized at startup.
-static vector<uint8> *basis = NULL;
-
 template<class T>
 static void Shuffle(vector<T> *v) {
-  static uint64 h = 0xCAFEBABEDEADBEEFULL;
+  static ArcFour rc("shuffler");
   for (int i = 0; i < v->size(); i++) {
-    h *= 31337;
-    h ^= 0xFEEDFACE;
-    h = (h >> 17) | (h << (64 - 17));
-    h -= 911911911911;
-    h *= 65537;
-    h ^= 0x3141592653589ULL;
+    uint32 h = 0;
+    h = (h << 8) | rc.Byte();
+    h = (h << 8) | rc.Byte();
+    h = (h << 8) | rc.Byte();
+    h = (h << 8) | rc.Byte();
 
     int j = h % v->size();
     if (i != j) {
@@ -66,12 +43,9 @@ static void Shuffle(vector<T> *v) {
   }
 }
 
-static void GetMemory(vector<uint8> *mem) {
-  // PERF!
-  mem->clear();
-  for (int i = 0; i < 0x800; i++) {
-    mem->push_back((uint8)RAM[i]);
-  }
+static inline void GetMemory(vector<uint8> *mem) {
+  mem->resize(0x800);
+  memcpy(&mem[0], RAM, 0x800);
 }
 
 struct PlayFun {
@@ -84,10 +58,7 @@ struct PlayFun {
     motifs = Motifs::LoadFromFile(GAME ".motifs");
     CHECK(motifs);
 
-    for (Motifs::Weighted::const_iterator it = motifs->motifs.begin();
-	 it != motifs->motifs.end(); ++it) {
-      motifvec.push_back(it->first);
-    }
+    motifvec = motifs->AllMotifs();
 
     // PERF basis?
 
@@ -102,15 +73,6 @@ struct PlayFun {
     }
 
     printf("Skipped %ld frames until first keypress.\n", start);
-  }
-
-  const vector<uint8> &RandomMotif() {
-    uint32 b = 0;
-    b = (b << 8) | rc.Byte();
-    b = (b << 8) | rc.Byte();
-    b = (b << 8) | rc.Byte();
-
-    return motifvec[b % motifvec.size()];
   }
 
   // Look fairly deep into the future playing randomly. 
@@ -128,7 +90,7 @@ struct PlayFun {
     for (int i = 0; i < (sizeof (DEPTHS) / sizeof (int)); i++) {
       if (i) Emulator::Load(&base_state);
       for (int d = 0; d < DEPTHS[i]; d++) {
-	const vector<uint8> &m = RandomMotif();
+	const vector<uint8> &m = motifs->RandomMotif();
 	for (int x = 0; x < m.size(); x++) {
 	  Emulator::Step(m[x]);
 	}
@@ -168,12 +130,7 @@ struct PlayFun {
     vector<uint8> current_state;
     vector<uint8> current_memory;
 
-    vector< vector<uint8> > nexts;
-    for (Motifs::Weighted::const_iterator it = motifs->motifs.begin();
-	 it != motifs->motifs.end(); ++it) {
-      // XXX ignores weights
-      nexts.push_back(it->first);
-    }
+    vector< vector<uint8> > nexts = motifvec;
 
     // 10,000 is about enough to run out the clock, fyi
     // XXX not frames, #motifs
