@@ -35,11 +35,33 @@ struct Emulator {
   // of RAM (only). Note there are other important bits of state.
   static uint64 RamChecksum();
 
-  // Fancy stuff. States often only differ by a small amount, so a way
-  // to reduce their entropy is to diff them against a representative
-  // savestate. This gets an uncompressed basis for the current state,
-  // which can be used in the SaveEx and LoadEx routines.
+  // Fancy stuff.
+
+  // Reset the state cache. Set the maximum number of states that can
+  // be stored. (A state is a starting state, an input, and the output
+  // state that results.) The number of actual states stored can
+  // exceed numstates by a constant amount called slop. Clears the cache.
+  static void ResetCache(uint64 numstates, uint64 slop = 10000ULL);
+
+  // Equivalent to Step. Does some extra work to consult the cache and
+  // save the result, which may make it much faster. However, when
+  // iterating steps, checking the cache and saving results are pure
+  // overhead.
+  static void CachingStep(uint8 input);
+
+  static void PrintCacheStats();
+
+  // States often only differ by a small amount, so a way to reduce
+  // their entropy is to diff them against a representative savestate.
+  // This gets an uncompressed basis for the current state, which can
+  // be used in the SaveEx and LoadEx routines.
   static void GetBasis(vector<uint8> *out);
+
+  // Save and load uncompressed. The memory will always be the same
+  // size (Save and SaveEx may compress, which makes their output
+  // significantly smaller), but this is the fastest in terms of CPU.
+  static void SaveUncompressed(vector<uint8> *out);
+  static void LoadUncompressed(vector<uint8> *in);
 
   // Save and load with a basis vector. The vector can contain anything, and
   // doesn't even have to be the same length as an uncompressed save state,

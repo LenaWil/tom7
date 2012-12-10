@@ -24,40 +24,12 @@
 #include "fceu/types.h"
 
 #include "../cc-lib/util.h"
+#include "../cc-lib/timer.h"
 
 #include "simplefm2.h"
 #include "emulator.h"
 #include "basis-util.h"
-
-static int64 DumpMem() {
-  for (int i = 0; i < 0x800; i++) {
-    fprintf(stderr, "%02x", (uint8)RAM[i]);
-    // if (i % 40 == 0) fprintf(stderr, "\n");
-  }
-  md5_context ctx;
-  md5_starts(&ctx);
-  md5_update(&ctx, RAM, 0x800);
-  uint8 digest[16];
-  md5_finish(&ctx, digest);
-  fprintf(stderr, "  MD5: ");
-  for (int i = 0; i < 16; i++)
-    fprintf(stderr, "%02x", digest[i]);
-  fprintf(stderr, "\n");
-  uint64 res = 0;
-  for (int i = 0; i < 8; i++) {
-    res <<= 8;
-    res |= 255 & digest[i];
-  }
-  return res;
-}
-
-static void PrintSavestate(const vector<uint8> &ss) {
-  printf("Savestate:\n");
-  for (int i = 0; i < ss.size(); i++) {
-    printf("%02x", ss[i]);
-  }
-  printf("\n");
-}
+#include "tasbot.h"
 
 static void CheckLoc(int frame, uint32 expected) {
   fprintf(stderr, "Frame %d expect %u\n", frame, expected);
@@ -113,6 +85,9 @@ int main(int argc, char *argv[]) {
   // The nth savestate is from before issuing the nth input.
   vector< vector<uint8> > savestates;
 
+  vector<uint8> beginning;
+  Emulator::Save(&beginning);
+
   int64 ss_total = 0;
 
   // XXXXXX
@@ -154,10 +129,11 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-  if (0x46e75713b56aea30 == Emulator::RamChecksum()) {
+  if (0x30ea6ab51357e746 == Emulator::RamChecksum()) {
     fprintf(stderr, "Memory OK.\n");
   } else {
-    fprintf(stderr, "WRONG CHECKSUM\n");
+    fprintf(stderr, "WRONG CHECKSUM %x\n",
+	    Emulator::RamChecksum());
     return -1;
   }
 
@@ -191,9 +167,167 @@ int main(int argc, char *argv[]) {
           savestates.size(), ss_total / (1024.0 * 1024.0),
 	  ss_total / (double)savestates.size());
 
+  // Again with caching.
+  Emulator::ResetCache(100, 10);
+
+  for (int i = 0; i < order.size(); i++) {
+    int idx = i;
+    int frame = order[idx];
+    Emulator::LoadEx(&savestates[frame], &basis);
+    Emulator::CachingStep(inputs[frame]);
+    vector<uint8> res;
+    Emulator::SaveEx(&res, &basis);
+    CheckCheckpoints(frame + 1);
+    if (frame + 1 < savestates.size()) {
+      const vector<uint8> &expected = savestates[frame + 1];
+      if (res != expected) {
+	fprintf(stderr, "Got a different savestate from "
+		"frame %d to %d. (caching version)\n",
+		frame, frame + 1);
+	abort();
+      }
+    }
+  }
+
+  CHECK(order.size() > 150);
+  for (int i = 0; i < order.size(); i++) {
+    int idx = i % 150;
+    int frame = order[idx];
+    Emulator::LoadEx(&savestates[frame], &basis);
+    Emulator::CachingStep(inputs[frame]);
+    vector<uint8> res;
+    Emulator::SaveEx(&res, &basis);
+    CheckCheckpoints(frame + 1);
+    if (frame + 1 < savestates.size()) {
+      const vector<uint8> &expected = savestates[frame + 1];
+      if (res != expected) {
+	fprintf(stderr, "Got a different savestate from "
+		"frame %d to %d. (caching version #2)\n",
+		frame, frame + 1);
+	abort();
+      }
+    }
+  }
+
+  fprintf(stderr, "\nTiming tests.\n");
+
+  Emulator::Load(&beginning);
+  {
+    uint64 cxsum = 0x0;
+    Timer steps;
+    static int kNumSteps = 20000;
+    for (int i = 0; i < kNumSteps; i++) {
+      Emulator::Step(i & 255);
+      cxsum += RAM[i % 0x800];
+    }
+    steps.Stop();
+    fprintf(stderr, "%.8f seconds per step %d\n", 
+	    (double)steps.Seconds() / (double)kNumSteps,
+	    cxsum);
+  }
+
+  Emulator::Load(&beginning);
+  Emulator::ResetCache(50000, 10);
+  {
+    uint64 cxsum = 0x0;
+    Timer steps;
+    static int kNumSteps = 20000;
+    for (int i = 0; i < kNumSteps; i++) {
+      Emulator::CachingStep(i & 255);
+      cxsum += RAM[i % 0x800];
+    }
+    steps.Stop();
+    fprintf(stderr, "%.8f seconds per caching step (miss)%d\n", 
+	    (double)steps.Seconds() / (double)kNumSteps,
+	    cxsum);
+  }
+
+  Emulator::Load(&beginning);
+  {
+    uint64 cxsum = 0x0;
+    Timer steps;
+    static int kNumSteps = 20000;
+    for (int i = 0; i < kNumSteps; i++) {
+      Emulator::CachingStep(i & 255);
+      cxsum += RAM[i % 0x800];
+    }
+    steps.Stop();
+    fprintf(stderr, "%.8f seconds per caching step (hit)%d\n", 
+	    (double)steps.Seconds() / (double)kNumSteps,
+	    cxsum);
+  }
+
+  Emulator::Load(&beginning);
+  {
+    uint64 cxsum = 0x0;
+    Timer loads;
+    static int kNumLoads = 20000;
+    for (int i = 0; i < kNumLoads; i++) {
+      Emulator::Load(&beginning);
+      cxsum += RAM[i % 0x800];
+    }
+    loads.Stop();
+    fprintf(stderr, "%.8f seconds per Load (regular) %d\n", 
+	    (double)loads.Seconds() / (double)kNumLoads,
+	    cxsum);
+  }
+
+  Emulator::Load(&beginning);
+  {
+    uint64 cxsum = 0x0;
+    vector<uint8> saveme;
+    Timer saves;
+    static int kNumSaves = 20000;
+    for (int i = 0; i < kNumSaves; i++) {
+      Emulator::Save(&saveme);
+      cxsum += RAM[i % 0x800];
+      cxsum += saveme[i % saveme.size()];
+    }
+    saves.Stop();
+    fprintf(stderr, "%.8f seconds per Save (regular) %d\n", 
+	    (double)saves.Seconds() / (double)kNumSaves,
+	    cxsum);
+  }
+
+  Emulator::Load(&beginning);
+  vector<uint8> uncompressed;
+  Emulator::SaveUncompressed(&uncompressed);
+  {
+    uint64 cxsum = 0x0;
+    Timer loads;
+    static int kNumLoads = 20000;
+    for (int i = 0; i < kNumLoads; i++) {
+      Emulator::LoadUncompressed(&uncompressed);
+      cxsum += RAM[i % 0x800];
+    }
+    loads.Stop();
+    fprintf(stderr, "%.8f seconds per Load (uncompressed) %d\n", 
+	    (double)loads.Seconds() / (double)kNumLoads,
+	    cxsum);
+  }
+
+  Emulator::Load(&beginning);
+  {
+    uint64 cxsum = 0x0;
+    vector<uint8> saveme;
+    Timer saves;
+    static int kNumSaves = 20000;
+    for (int i = 0; i < kNumSaves; i++) {
+      Emulator::SaveUncompressed(&saveme);
+      cxsum += RAM[i % 0x800];
+      cxsum += saveme[i % saveme.size()];
+    }
+    saves.Stop();
+    fprintf(stderr, "%.8f seconds per Save (uncompressed) %d\n", 
+	    (double)saves.Seconds() / (double)kNumSaves,
+	    cxsum);
+  }
+
   Emulator::Shutdown();
 
   // exit the infrastructure
   FCEUI_Kill();
+
+  fprintf(stderr, "SUCCESS.\n");
   return 0;
 }

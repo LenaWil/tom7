@@ -1,9 +1,11 @@
 
 #include "emulator.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <zlib.h>
+#include <unordered_map>
 
 #include "config.h"
 #include "fceu/driver.h"
@@ -13,10 +15,156 @@
 #include "fceu/version.h"
 #include "fceu/state.h"
 
+#include "tasbot.h"
+#include "../cc-lib/city/city.h"
+
 // Joystick data. I think used for both controller 0 and 1. Part of
 // the "API".
 static uint32 joydata = 0;
 static bool initialized = false;
+
+struct StateCache {
+  // These vectors are allocated with new.
+  // Input and starting state (uncompresed).
+  typedef pair<uint8, const vector<uint8> *> Key;
+  // Sequence number and output state (uncompressed).
+  typedef pair<uint64, vector<uint8> *> Value;
+
+  struct HashFunction {
+    size_t operator ()(const Key &k) const {
+      CHECK(k.second);
+      return CityHash64WithSeed((const char *)&(k.second->at(0)),
+				k.second->size(),
+				k.first);
+    }
+  };
+
+  // Use value equality on the vectors, not pointer equality
+  // (which would be the default for ==).
+  struct KeyEquals {
+    size_t operator ()(const Key &l, const Key &r) const {
+      return l.first == r.first &&
+	*l.second == *r.second;
+    }
+  };
+
+  typedef unordered_map<Key, Value, HashFunction, KeyEquals> Hash;
+
+  StateCache() : limit(0ULL), count(0ULL), next_sequence(0ULL), 
+		 slop(10000ULL), hits(0ULL), misses(0ULL) {
+  }
+
+  void Resize(uint64 ll, uint64 ss) {
+    printf("Resize %d %d\n", ll, ss);
+    // Recover memory.
+    for (Hash::iterator it = hashtable.begin(); 
+	 it != hashtable.end(); /* in loop */) {
+      Hash::iterator next(it);
+      ++next;
+      delete it->first.second;
+      delete it->second.second;
+      hashtable.erase(it);
+      it = next;
+    }
+    CHECK(hashtable.size() == 0);
+
+    limit = ll;
+    slop = ss;
+    CHECK(limit >= 0);
+    CHECK(slop >= 0);
+    next_sequence = count = 0ULL;
+    printf("OK.\n");
+  }
+
+  // Assumes it's not present. If it is, then you'll leak.
+  void Remember(uint8 input, const vector<uint8> &start,
+		const vector<uint8> &result) {
+    vector<uint8> *startcopy = new vector<uint8>(start),
+                  *resultcopy = new vector<uint8>(result);
+    pair<Hash::iterator, bool> it =
+      hashtable.insert(make_pair(make_pair(input, startcopy), 
+				 make_pair(next_sequence++, resultcopy)));
+    CHECK(it.second);
+    CHECK(NULL != GetKnownResult(input, *startcopy));
+    CHECK(NULL != GetKnownResult(input, start));
+    count++;
+    MaybeResize();
+  }
+
+  // Return a pointer to the result state (and update its LRU
+  // sequence) or NULL if it is not known.
+  vector<uint8> *GetKnownResult(uint8 input, const vector<uint8> &start) {
+    Hash::iterator it = hashtable.find(make_pair(input, &start));
+    if (it == hashtable.end()) {
+      misses++;
+      return NULL;
+    }
+
+    hits++;
+    it->second.first = next_sequence++;
+    return it->second.second;
+  }
+
+  void MaybeResize() {
+    // Don't always do this, since it is linear time.
+    if (count > limit + slop) {
+      const int num_to_remove = count - limit;
+      // printf("Resizing (currently %d) to remove %d\n", count, num_to_remove);
+
+      // PERF: This can be done much more efficiently using a flat
+      // heap.
+      vector<uint64> all_sequences;
+      all_sequences.reserve(count);
+
+      // First pass, get the num_to_remove oldest (lowest) sequences.
+      for (Hash::const_iterator it = hashtable.begin(); 
+	   it != hashtable.end(); ++it) {
+	all_sequences.push_back(it->second.first);
+      }
+      std::sort(all_sequences.begin(), all_sequences.end());
+      
+      CHECK(num_to_remove < all_sequences.size());
+      const uint64 minseq = all_sequences[num_to_remove];
+
+      // printf("Removing everything below %d\n", minseq);
+
+      for (Hash::iterator it = hashtable.begin(); it != hashtable.end(); 
+	   /* in loop */) {
+	if (it->second.first < minseq) {
+	  Hash::iterator next(it);
+	  ++next;
+	  // delete it->first.second;
+	  // delete it->second.second;
+	  // Note g++ does not return the "next" iterator.
+	  hashtable.erase(it);
+	  count--;
+	  it = next;
+	} else {
+	  ++it;
+	}
+      }
+      // printf("Size is now %d (internally %d)\n", count, hashtable.size());
+    }
+  }
+
+  void PrintStats() {
+    printf("Current size: %ld / %ld. next_seq %ld\n"
+	   "%ld hits and %ld misses\n", 
+	   count, limit, next_sequence,
+	   hits, misses);
+  }
+
+  Hash hashtable;
+  uint64 limit;
+  uint64 count;
+  uint64 next_sequence;
+  // Number of states I'm allowed to be over my limit before
+  // forcing a GC.
+  uint64 slop;
+
+  uint64 hits, misses;
+};
+static StateCache *cache = NULL;
 
 uint64 Emulator::RamChecksum() {
   md5_context ctx;
@@ -101,6 +249,8 @@ bool Emulator::Initialize(const string &romfile) {
     abort();
     return false;
   }
+
+  cache = new StateCache;
 
   int error;
 
@@ -195,7 +345,7 @@ void Emulator::Step(uint8 inputs) {
   joydata = (uint32) inputs;
 
   // Limited ability to skip video and sound.
-  #define SKIP_VIDEO_AND_SOUND 2
+  const int SKIP_VIDEO_AND_SOUND = 2;
 
   // Emulate a single frame.
   FCEUI_Emulate(NULL, &sound, &ssize, SKIP_VIDEO_AND_SOUND);
@@ -209,12 +359,25 @@ void Emulator::GetBasis(vector<uint8> *out) {
   FCEUSS_SaveRAW(out);
 }
 
+void Emulator::SaveUncompressed(vector<uint8> *out) {
+  FCEUSS_SaveRAW(out);
+}
+
+void Emulator::LoadUncompressed(vector<uint8> *in) {
+  if (!FCEUSS_LoadRAW(in)) {
+    fprintf(stderr, "Couldn't restore from state\n");
+    abort();
+  }
+}
+
 void Emulator::Load(vector<uint8> *state) {
   LoadEx(state, NULL);
 }
 
 // Compression yields 2x slowdown, but states go from ~80kb to 1.4kb
 // Without screenshot, ~1.3kb and only 40% slowdown
+// XXX External interface now allows client to specify, so maybe just
+// make this a guarantee.
 #define USE_COMPRESSION 1
 
 #if USE_COMPRESSION
@@ -237,22 +400,24 @@ void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
 
   // Compress.
   int len = raw.size();
-  // worst case compression: zlib says "0.1% larger than sourceLen plus 12 bytes"
+  // worst case compression:
+  // zlib says "0.1% larger than sourceLen plus 12 bytes"
   uLongf comprlen = (len >> 9) + 12 + len;
 
   // Make sure there is contiguous space. Need room for header too.
   state->resize(4 + comprlen);
 
-  if (Z_OK != compress2(&(*state)[4], &comprlen, &raw[0], len, Z_DEFAULT_COMPRESSION)) {
+  if (Z_OK != compress2(&(*state)[4], &comprlen, &raw[0], len, 
+			Z_DEFAULT_COMPRESSION)) {
     fprintf(stderr, "Couldn't compress.\n");
     abort();
   }
 
   *(uint32*)&(*state)[0] = len;
-  // fprintf(stderr, "comprlen: %d\n", comprlen);
 
   // Trim to what we actually needed.
-  // PERF: This almost certainly does not actually free the memory. Might need to copy.
+  // PERF: This almost certainly does not actually free the memory. 
+  // Might need to copy.
   state->resize(4 + comprlen);
 }
 
@@ -261,7 +426,6 @@ void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
   int uncomprlen = *(uint32*)&(*state)[0];
   vector<uint8> uncompressed;
   uncompressed.resize(uncomprlen);
-  // fprintf(stderr, "uncompressed length: %d\n", uncomprlen);
  
   switch (uncompress(&uncompressed[0], (uLongf*)&uncomprlen,
 		     &(*state)[4], state->size() - 4)) {
@@ -313,3 +477,33 @@ void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
 
 
 #endif
+
+// Cache stuff.
+
+// static
+void Emulator::ResetCache(uint64 numstates, uint64 slop) {
+  CHECK(cache != NULL);
+  cache->Resize(numstates, slop);
+}
+
+// static
+void Emulator::CachingStep(uint8 input) {
+  vector<uint8> start;
+  SaveUncompressed(&start);
+  if (vector<uint8> *cached = cache->GetKnownResult(input, start)) {
+    LoadUncompressed(cached);
+  } else {
+    Step(input);
+    vector<uint8> result;
+    SaveUncompressed(&result);
+    cache->Remember(input, start, result);
+
+    // PERF
+    CHECK(NULL != cache->GetKnownResult(input, start));
+  }
+}
+
+void Emulator::PrintCacheStats() {
+  CHECK(cache != NULL);
+  cache->PrintStats();
+}
