@@ -117,7 +117,10 @@
   #define bswap_64(x) OSSwapInt64(x)
 
 #else
+  // not available on mingw? --tom7
+  #ifndef __MINGW32__
   #include <byteswap.h>
+  #endif
 #endif
 
 
