@@ -1,4 +1,83 @@
 
+benchmarking playfun caching
+
+      77 best score 1077945.75 (382655.87 + 695289.88 future):
+      87 best score 784217.34 (114716.74 + 669500.60 future):
+      97 best score 768700.42 (76130.15 + 692570.27 future):
+Done.
+
+real    1m13.876s
+user    0m0.015s
+sys     0m0.015s
+
+
+With caching:
+
+                     (wrote)
+      77 best score 1077945.75 (382655.87 + 695289.88 future):
+      87 best score 784217.34 (114716.74 + 669500.60 future):
+      97 best score 768700.42 (76130.15 + 692570.27 future):
+Done.
+
+real    1m40.262s
+
+... argh! Too much time hashing, maybe?
+
+Using cityhash:
+
+                     (wrote)
+      77 best score 1077945.75 (382655.87 + 695289.88 future):
+      87 best score 784217.34 (114716.74 + 669500.60 future):
+      97 best score 768700.42 (76130.15 + 692570.27 future):
+Done.
+
+real    1m27.246s
+user    0m0.000s
+sys     0m0.015s
+
+... probably it's from copying byte vectors?
+
+malloc the keys/values, use unordered_map, don't clear cache
+like a bug:
+
+                     (wrote)
+      77 best score 1077945.75 (382655.87 + 695289.88 future):
+      87 best score 784217.34 (114716.74 + 669500.60 future):
+      97 best score 768700.42 (76130.15 + 692570.27 future):
+Done.
+
+real    1m23.005s
+user    0m0.000s
+sys     0m0.000s
+
+... yet the same :(
+
+MAYBE BECAUSE THERE ARE NO CACHE HITS...?
+
+                     (wrote)
+      77 best score 1077945.75 (382655.87 + 695289.88 future):
+      87 best score 784217.34 (114716.74 + 669500.60 future):
+      97 best score 768700.42 (76130.15 + 692570.27 future):
+Done.
+Current size: 226840 / 500000. next_seq 226840
+0 hits and 226840 misses
+
+real    1m22.033s
+user    0m0.000s
+sys     0m0.015s
+
+Fixed bug (using ptr equality instead of value equality on keys):
+
+                     (wrote)
+      77 best score 1077945.75 (382655.87 + 695289.88 future):
+      87 best score 784217.34 (114716.74 + 669500.60 future):
+      97 best score 768700.42 (76130.15 + 692570.27 future):
+Done.
+Current size: 129200 / 500000. next_seq 614440
+485240 hits and 129200 misses
+
+
+
 --------------------------------------------------
 benchmarking learnfun.exe
 

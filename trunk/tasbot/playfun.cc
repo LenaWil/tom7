@@ -45,7 +45,7 @@ static void Shuffle(vector<T> *v) {
 
 static inline void GetMemory(vector<uint8> *mem) {
   mem->resize(0x800);
-  memcpy(&mem[0], RAM, 0x800);
+  memcpy(&((*mem)[0]), RAM, 0x800);
 }
 
 struct PlayFun {
@@ -57,6 +57,8 @@ struct PlayFun {
 
     motifs = Motifs::LoadFromFile(GAME ".motifs");
     CHECK(motifs);
+
+    Emulator::ResetCache(500000, 50000);
 
     motifvec = motifs->AllMotifs();
 
@@ -84,15 +86,15 @@ struct PlayFun {
     static const int DEPTHS[] = { 10, 50 };
     // static const int NUM = 2;
     vector<uint8> base_state;
-    Emulator::Save(&base_state);
+    Emulator::SaveUncompressed(&base_state);
 
     double total = 0.0;
     for (int i = 0; i < (sizeof (DEPTHS) / sizeof (int)); i++) {
-      if (i) Emulator::Load(&base_state);
+      if (i) Emulator::LoadUncompressed(&base_state);
       for (int d = 0; d < DEPTHS[i]; d++) {
-	const vector<uint8> &m = motifs->RandomMotif();
+	const vector<uint8> &m = motifs->RandomWeightedMotif();
 	for (int x = 0; x < m.size(); x++) {
-	  Emulator::Step(m[x]);
+	  Emulator::CachingStep(m[x]);
 	}
       }
 
@@ -137,8 +139,14 @@ struct PlayFun {
     static const int NUMFRAMES = 10000;
     for (int framenum = 0; framenum < NUMFRAMES; framenum++) {
 
+      if (movie.size() > 100) {
+	printf("Done.\n");
+	Emulator::PrintCacheStats();
+	exit(0);
+      }
+
       // Save our current state so we can try many different branches.
-      Emulator::Save(&current_state);    
+      Emulator::SaveUncompressed(&current_state);    
       GetMemory(&current_memory);
       memories.push_back(current_memory);
 
@@ -150,9 +158,9 @@ struct PlayFun {
       vector<uint8> *best_input = &nexts[0];
       for (int i = 0; i < nexts.size(); i++) {
 	// (Don't restore for first one; it's already there)
-	if (i != 0) Emulator::Load(&current_state);
+	if (i != 0) Emulator::LoadUncompressed(&current_state);
 	for (int j = 0; j < nexts[i].size(); j++)
-	  Emulator::Step(nexts[i][j]);
+	  Emulator::CachingStep(nexts[i][j]);
 
 	vector<uint8> new_memory;
 	GetMemory(&new_memory);
@@ -175,10 +183,10 @@ struct PlayFun {
 	     best_score, best_immediate, best_future);
       // SimpleFM2::InputToString(best_input).c_str());
 
-      // PERF maybe could save best state?
-      Emulator::Load(&current_state);
+      // This is very likely to be cached now.
+      Emulator::LoadUncompressed(&current_state);
       for (int j = 0; j < best_input->size(); j++) {
-	Emulator::Step((*best_input)[j]);
+	Emulator::CachingStep((*best_input)[j]);
 	movie.push_back((*best_input)[j]);
       }
 
