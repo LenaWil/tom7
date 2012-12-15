@@ -4,6 +4,7 @@ import flash.geom.Matrix;
 class TitleScreen extends MovieClip {
 
   #include "constants.js"
+  #include "util.js"
 
   var titlemusic : Sound;
 
@@ -13,40 +14,43 @@ class TitleScreen extends MovieClip {
   var starting : Number = -1;
 
   var titlebitmap;
-
-  // var FADEFRAMES = 50;
-  // var ALPHAMULT = 2;
+  var selectedbitmap;
 
   // fastmode!
   var FADEFRAMES = 10;
-  var ALPHAMULT = 10;
+  var FADEOUTFRAMES = 10;
 
-  var FADEOUTFRAMES = 20;
-  var ALPHAOUTMULT = 5;
+  var selection = 0;
 
-
-  // XXX laserpointer!
-
-  var titlelaser;
   public function onLoad() {
     Key.addListener(this);
 
-    var bm = BitmapData.loadBitmap('titlescreen.png');
-    var titlebitmap : BitmapData =
-      new BitmapData(SCREENWIDTH, SCREENHEIGHT, false, 0x000000);
-    var grow = new Matrix();
-    grow.scale(2, 2);
-    titlebitmap.draw(bm, grow);
+    trace('title onload');
+
+    titlebitmap = loadBitmap3x('title.png');
+    selectedbitmap = loadBitmap3x('selected.png');
+
+    trace('hi');
 
     setframe(titlebitmap);
-
+    moveSelection();
     // title music!
-    titlemusic = new Sound(this);
-    titlemusic.attachSound('themesong.mp3');
-    titlemusic.setVolume(100);
-    titlemusic.start(0, 99999);
+    //  titlemusic = new Sound(this);
+    //  titlemusic.attachSound('themesong.mp3');
+    //  titlemusic.setVolume(100);
+    //  titlemusic.start(0, 99999);
 
-    this.swapDepths(BGIMAGEDEPTH);
+    // this.swapDepths(BGIMAGEDEPTH);
+  }
+
+  public function moveSelection() {
+    if (_root.selmc) _root.selmc.removeMovieClip();
+
+    _root.selmc = _root.createEmptyMovieClip('selmc', TITLESELDEPTH);
+    _root.selmc.attachBitmap(selectedbitmap, TITLESELDEPTH);
+
+    _root.selmc._x = TITLESELX;
+    _root.selmc._y = TITLESELY + TITLESELHEIGHT * selection;
   }
 
   public function setframe(which) {
@@ -57,32 +61,26 @@ class TitleScreen extends MovieClip {
   }
 
   public function onEnterFrame() {
+    // This game is going for 8 bit realism, so
+    // the "fade in" is just blank.
+
     // Fade in...
     frames++;
     if (frames < FADEFRAMES) {
-      titlemusic.setVolume(frames * 10);
-    }
+      _root.titlemc._alpha = 0;
 
-    var alpha = 100;
-    if (frames < FADEFRAMES) {
-      alpha = frames * ALPHAMULT;
-    }
-
-    // Shouldn't add laser pointer until we're faded in?
-    // (Or at least shouldn't start starting countdown
-    // in laserpointer.)
-    if (frames > FADEFRAMES) {
+    } else {
       if (starting > 0) {
-        titlemusic.setVolume(starting * ALPHAOUTMULT);
         starting--;
-        alpha = starting * ALPHAOUTMULT;
+
         if (!starting) {
           reallyStart();
         }
+        _root.titlemc._alpha = 0;
+      } else {
+        _root.titlemc._alpha = 100;
       }
     }
-
-    _root.titlemc._alpha = alpha;
   }
 
   // Called from TitleLaser when it's been on the
@@ -94,33 +92,6 @@ class TitleScreen extends MovieClip {
     starting = FADEOUTFRAMES;
   }
 
-  public function reallyStart() {
-    Key.removeListener(this);
-    trace('reallystart!');
-    // Stop music!
-    this.titlemusic.stop();
-
-    _root.titlemc.removeMovieClip();
-    _root.titlemc = undefined;
-
-    // Don't need title screen any more, obviously
-    this.removeMovieClip();
-
-    // Whole game takes place on this blank frame
-    // in the root timeline.
-    _root.gotoAndStop('game');
-
-    _root.you = _root.attachMovie('you', 'you', YOUDEPTH,
-                                  { _x:SCREENWIDTH/2,
-                                    _y:SCREENHEIGHT/2 });
-    _root.you.init();
-
-    /*
-    _root.world = _root.attachMovie('world', 'world', WORLDDEPTH,
-                                    { _x: 0, _y: 0 });
-    _root.world.init();
-    */
-  }
 
   public function onKeyDown() {
     var k = Key.getCode();
@@ -141,11 +112,48 @@ class TitleScreen extends MovieClip {
     */
 
     switch(k) {
+    case 38: // up
+      selection--;
+      if (selection < 0) selection = 2;
+      moveSelection();
+      break;
+
+    case 40: // down
+      selection = (selection + 1) % 3;
+      moveSelection();
+      break;
+
     case Key.SPACE:
     case Key.ENTER:
       triggerStart();
       break;
     }
+  }
+
+  public function reallyStart() {
+    Key.removeListener(this);
+    trace('reallystart!');
+    // Stop music!
+    this.titlemusic.stop();
+
+    _root.titlemc.removeMovieClip();
+    _root.titlemc = undefined;
+
+    _root.selmc.removeMovieClip();
+    _root.selmc = undefined;
+
+    // _root.world = new World();
+    // _root.world.init();
+
+    // Don't need title screen any more, obviously
+    this.removeMovieClip();
+
+    _root.hockey = new Hockey();
+    _root.hockey.init();
+
+    // Whole game takes place on this blank frame
+    // in the root timeline.
+    _root.gotoAndStop('game');
   }
 
 };
