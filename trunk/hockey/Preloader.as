@@ -1,4 +1,4 @@
-/* Preloader for Disco? Very!. */
+/* Preloader for all Tom games. Doesn't work very well. */
 class Preloader extends MovieClip {
 
   var frames : Number = 0;
@@ -23,28 +23,11 @@ class Preloader extends MovieClip {
       fscommand("showmenu", "false");
       Stage.showMenu = false;
 
-      /*
-      _root.memory = new Memory();
-
-      _root.attachMovie("message", "message", 29999,
-                        {_x:64, _y:14});
-      */
-
-      /*
-      _root.attachMovie("messagestripe", "messagestripe", 49999,
-                        {_x: -6, _y: 105});
-      */
-
-      // _root.viewport = new Viewport();
-
-      _root.world = new World();
-      _root.world.init();
-
       // _root.music = new Music();
       // XXX what is this for? Needed??
-      _root.attachMovie("music", "music", 5);
+      // _root.attachMovie("music", "music", 5);
 
-      _root.gotoAndStop('menu');
+      _root.gotoAndStop('title');
 
       this.swapDepths(0);
       this.removeMovieClip();
