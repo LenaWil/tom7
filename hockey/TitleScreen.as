@@ -142,8 +142,7 @@ class TitleScreen extends MovieClip {
     _root.selmc.removeMovieClip();
     _root.selmc = undefined;
 
-    // _root.world = new World();
-    // _root.world.init();
+    _root['menuselection'] = selection;
 
     // Don't need title screen any more, obviously
     this.removeMovieClip();

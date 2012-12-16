@@ -81,9 +81,9 @@ var RINKDEPTH = 200;
 var HALODEPTH = 210;
 
 // Need to be sorted by y index, so
-// we reserve 1000 indices just for stuff
+// we reserve 2000 indices just for stuff
 // on the ice.
-var ICESTUFFDEPTH = 1000;  // - 2000
+var ICESTUFFDEPTH = 1000;  // - 3000
 
 
 // Within a player movieclip
