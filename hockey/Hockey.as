@@ -219,6 +219,7 @@ class Hockey extends MovieClip {
     }
 
     var puckcoord = getPuckCoordinates();
+    var refcoord = getRefCoordinates();
 
     // Advance waiting states.
     for (var i = 0; i < players.length; i++) {
@@ -286,26 +287,74 @@ class Hockey extends MovieClip {
 
         // TODO: handle AI for non-user players
         if (player.stance == UPRIGHT &&
-            animframe > 100 &&
-            (i == 3 || i == 7)) {
+            animframe > 50 ==
+            player.team != REF) {
+
+          // XXX goalie sticks?
+          var destx = player.x;
+          var desty = player.y;
 
           // XXX find stick if I don't have one.
+          if (!player.stick) {
+            var bestdist = 9999999;
 
-          if (player.x < puckcoord.x) {
+            // If I can't figure out what to do, attack the ref, since
+            // he must be up to some tomfoolery and there is always one.
+            // XXX what if I'm the ref?
+            destx = refcoord.x;
+            desty = refcoord.y;
+
+            for (var j = 0; j < junks.length; j++) {
+              if (junks[j].type == STICK) {
+                var xd = junks[j].x - player.x;
+                var yd = junks[j].y - player.y;
+                var distsq = xd * xd + yd * yd;
+                if (distsq < bestdist) {
+                  bestdist = distsq;
+                  destx = junks[j].x;
+                  desty = junks[j].y;
+                }
+              }
+            }
+
+          } else if (player.goalie) {
+            destx = (player.team == USA) ? USAGOALIEX : CANGOALIEX;
+            desty = puckcoord.y;
+
+            if (desty < GOALIEY) desty = GOALIEY;
+            if (desty > GOALIEY + GOALH) desty = GOALIEY + GOALH;
+
+            // XXX if in crease, set facing correctly.
+
+            // XXX goalie should pass/shoot
+
+            // XXX center indices; wrong
+          } else if ((i == 3 || i == 7)) {
+            destx = puckcoord.x;
+            desty = puckcoord.y;
+          }
+
+          // XXX Can be smarter about skating towards dest.
+          if (player.x < destx) {
             player.dx += PLAYERACCEL;
-          } else if (player.x > puckcoord.x) {
+          } else if (player.x > destx) {
             player.dx -= PLAYERACCEL;
           }
 
-          if (player.y < puckcoord.y) {
+          if (player.y < desty) {
             player.dy += PLAYERACCEL;
-          } else if (player.y > puckcoord.y) {
+          } else if (player.y > desty) {
             player.dy -= PLAYERACCEL;
           }
+
         }
+
       }
 
       // TODO: Pick up stick if near it.
+      if (!player.stick && player.stance == UPRIGHT) {
+        maybeGetStick(player);
+      }
 
       // Pick up puck if near it.
       // TODO: consider timer after followthrough..
@@ -343,8 +392,8 @@ class Hockey extends MovieClip {
           // XXX should have real priority system, based on
           // velocity, stance, having puck, hp, anger, running
           // start, etc.
-          var prior1 = (i == user) ? 1000 : i;
-          var prior2 = (j == user) ? 1000 : j;
+          var prior1 = (i == user) ? 1000 : (player1.goalie ? 2000 : i);
+          var prior2 = (j == user) ? 1000 : (player2.goalie ? 2000 : j);
 
           // Put them in priority order.
           if (prior1 < prior2) {
@@ -411,6 +460,30 @@ class Hockey extends MovieClip {
     }
 
     redraw();
+  }
+
+  public function maybeGetStick(player) {
+    var ty = player.y;
+    var tx = player.x + ((player.facing == RIGHT) ?
+                         PLAYERTOPUCK : -PLAYERTOPUCK);
+
+    for (var j = 0; j < junks.length; j++) {
+      var junk = junks[j];
+      if (junk.type == STICK) {
+        // XXX limits on dy?
+        if (Math.abs(junk.x - tx) < PICKUPSTICKDIST &&
+            Math.abs(junk.y - ty) < PICKUPSTICKDIST) {
+          trace('pick up stick');
+          removeJunk(j);
+          // Get stick.
+          player.stick = true;
+          player.stance = GETTINGUP;
+          player.counter = int(GETUPTIME/2);
+          return;
+        }
+      }
+
+    }
   }
 
   // Move an object on the ice; used for both players
@@ -627,6 +700,16 @@ class Hockey extends MovieClip {
     }
   }
 
+  public function getRefCoordinates() {
+    for (var i = 0; i < players.length; i++) {
+      if (players[i].team == REF) {
+        return { x: players[i].x, y: players[i].y };
+      }
+    }
+
+    return { x: 0, y: 0 };
+  }
+
   public function scrollToShow(x, y) {
     var SLOP = 45 * 3;
     // XXX smooth transition!
@@ -732,7 +815,11 @@ class Hockey extends MovieClip {
     return ajunk;
   }
 
-  // XXX removeJunk
+  public function removeJunk(idx) {
+    var junk = junks[idx];
+    junk.mc.removeMovieClip();
+    junks.splice(idx, 1);
+  }
 
   public function placeJunk(idx, thing) {
     // The movieclip is expected to already contain
