@@ -21,6 +21,8 @@ class Hockey extends MovieClip {
   var holdingDown = false;
   var holdingEsc = false;
 
+  var menuteam = USA;
+
   // This is the scroll offset, the coordinates of the
   // top-left corner of the screen in terms of the rink
   // graphic.
@@ -142,7 +144,9 @@ class Hockey extends MovieClip {
   }
 
   public function init() {
-    trace('init hockey');
+    menuteam = _root['menuselection'];
+
+    trace('init hockey ' + menuteam);
     halobm = loadBitmap3x('halo.png');
     _root.halomc = createGlobalMC('halo', halobm, HALODEPTH);
 
@@ -159,13 +163,17 @@ class Hockey extends MovieClip {
 	// Facing right
 	var bm = loadBitmap3x(frame.f);
 	var bmc = convertToCanadian(bm);
+	var bmr = convertToReferee(bm);
 	// Facing left
 	var bml = flipHoriz(bm);
 	var bmlc = flipHoriz(bmc);
+	var bmlr = flipHoriz(bmr);
 	frame.bm = bm;
 	frame.bmc = bmc;
+	frame.bmr = bmr;
 	frame.bml = bml;
 	frame.bmlc = bmlc;
+	frame.bmlr = bmlr;
 	num++;
       }
     }
@@ -189,8 +197,14 @@ class Hockey extends MovieClip {
 	  mc: createMovieAtDepth('pref', ICESTUFFDEPTH + 500) });
 
     // XXX from menu.
-    user = 1;
-    
+    switch (menuteam) {
+    default:
+    case USA: user = 1; break;
+    case CAN: user = 7; break;
+    case REF: user = players.length - 1; break;
+    }
+    trace('user: ' + user);
+
     trace('loaded ' + num + ' frames.');
 
     faceOff(2);
@@ -273,7 +287,7 @@ class Hockey extends MovieClip {
 	  player.x = x + obj.x;
 	  player.y = y + obj.y;
 
-	  trace('at ' + player.x + ',' + player.y);
+	  // trace('at ' + player.x + ',' + player.y);
 	}
       }
     }
@@ -300,6 +314,10 @@ class Hockey extends MovieClip {
       scrollx = x + SLOP - SCREENW;
     if (y + SLOP >= scrolly + SCREENH)
       scrolly = y + SLOP - SCREENH;
+  }
+
+  public function iceDepth(ycoord) {
+    return int(ycoord * 20);
   }
 
   public function placePlayer(idx, player) {
@@ -329,16 +347,17 @@ class Hockey extends MovieClip {
     var frame;
     if (player.team == USA) {
       frame = (player.facing == LEFT) ? cell.bml : cell.bm;
-    } else {
-      // XXX ref
+    } else if (player.team == CAN) {
       frame = (player.facing == LEFT) ? cell.bmlc : cell.bmc;
+    } else {
+      frame = (player.facing == LEFT) ? cell.bmlr : cell.bmr;
     }
 
     // PERF remove it every time, really?
     if (player.mc) player.mc.removeMovieClip();
 
     player.mc = createMovieAtDepth('p' + idx, ICESTUFFDEPTH + 
-				   int(player.y));
+				   iceDepth(player.y) + 1 + idx);
     // Halo behind the player, if this is the user.
     if (idx == user) {
       _root.halomc._x = player.x - halobm.width/2 - scrollx;
@@ -373,6 +392,7 @@ class Hockey extends MovieClip {
     // Place puck
     _root.puckmc._x = puckcoord.x - scrollx;
     _root.puckmc._y = puckcoord.y - scrolly;
+    setDepthOf(_root.puckmc, iceDepth(puckcoord.y));
     // XXX need to set depth of puck too.
     
 
