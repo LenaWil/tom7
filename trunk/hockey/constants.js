@@ -1,6 +1,6 @@
 
 // Config
-var FASTMODE = true;
+var FASTMODE = false;
 
 var MUSIC = !FASTMODE;
 
@@ -82,6 +82,11 @@ var CAN = 1;
 var REF = 2;
 
 ///////////////
+// Sounds.
+var NHURT = 4;
+var NBOUNCE = 3;
+
+///////////////
 // Physics.
 
 var MAXVELOCITYX = 8;
@@ -129,6 +134,8 @@ var HALODEPTH = 210;
 // on the ice.
 var ICESTUFFDEPTH = 1000;  // - 10000
 
+var PUCKSOUNDDEPTH = 299;
+var PLAYERSOUNDDEPTH = 300;  // - 350
 
 // Within a player movieclip
 var PPLAYERDEPTH = 10;

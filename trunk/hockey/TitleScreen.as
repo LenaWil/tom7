@@ -33,18 +33,20 @@ class TitleScreen extends MovieClip {
     trace('hi');
 
     setframe(titlebitmap);
-    moveSelection();
+    moveSelection(false);
     // title music!
-    titlemusic = new Sound(this);
-    titlemusic.attachSound('unlucky.wav');
-    titlemusic.setVolume(MUSIC ? 100 : 0);
-    titlemusic.start(0, 99999);
-    trace('started title music');
+    if (MUSIC) {
+      titlemusic = new Sound(this);
+      titlemusic.attachSound('unlucky.wav');
+      titlemusic.setVolume(100);
+      titlemusic.start(0, 99999);
+      trace('started title music');
+    }
 
     // this.swapDepths(BGIMAGEDEPTH);
   }
 
-  public function moveSelection() {
+  public function moveSelection(playsound) {
     if (_root.selmc) _root.selmc.removeMovieClip();
 
     _root.selmc = _root.createEmptyMovieClip('selmc', TITLESELDEPTH);
@@ -52,6 +54,13 @@ class TitleScreen extends MovieClip {
 
     _root.selmc._x = TITLESELX;
     _root.selmc._y = TITLESELY + TITLESELHEIGHT * selection;
+
+    if (playsound) {
+      var sound = new Sound(this);
+      sound.attachSound('menuchange.wav');
+      sound.setVolume(60);
+      sound.start(0, 1);
+    }
   }
 
   public function setframe(which) {
@@ -91,6 +100,11 @@ class TitleScreen extends MovieClip {
 
     // need to wait a while, fading out.
     starting = FADEOUTFRAMES;
+
+    var sound = new Sound(this);
+    sound.attachSound('menuchoose.wav');
+    sound.setVolume(60);
+    sound.start(0, 1);
   }
 
 
@@ -116,12 +130,12 @@ class TitleScreen extends MovieClip {
     case 38: // up
       selection--;
       if (selection < 0) selection = 2;
-      moveSelection();
+      moveSelection(true);
       break;
 
     case 40: // down
       selection = (selection + 1) % 3;
-      moveSelection();
+      moveSelection(true);
       break;
 
     case Key.SPACE:
