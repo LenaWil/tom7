@@ -132,8 +132,8 @@ class Hockey extends MovieClip {
       player.y += player.dy;
 
       // ice deceleration
-      player.dx *= 0.9;
-      player.dy *= 0.9;
+      player.dx *= ICEFRICTION;
+      player.dy *= ICEFRICTION;
 
       // XXX player clipping.
     }
@@ -321,6 +321,7 @@ class Hockey extends MovieClip {
 	cell = frames[i];
 	break;
       }
+      offset -= frames[i].d;
     }
 
     // Cell is the animation cell to use. Now choose
