@@ -10,7 +10,7 @@ var ARENAH = 320 * 3;
 
 var ICEMINX = 35 * 3;
 var ICEMAXX = 540 * 3;
-var ICEMAXY = 263 * 3;
+var ICEMAXY = 270 * 3;
 var ICEMINY = 72 * 3;
 
 var USAX = 249 * 3;
@@ -37,12 +37,17 @@ var USAGOALIEX = 103 * 3;
 var CANGOALIEX = 471 * 3;
 var GOALIEY = 145 * 3;
 
+// Location of bottom boards overlay.
+var BOTTOMBOARDSX = 32 * 3;
+var BOTTOMBOARDSY = 212 * 3;
+
 // Nominal player width. The actual sprites
 // are larger than this.
 var PLAYERW = 14 * 3;
 var PLAYERC = PLAYERW / 2;
 // Height of the graphic.
 var PLAYERH = 25 * 3;
+var PLAYERCLIPHEIGHT = 6 * 3;
 
 // Distance from the center of the player to
 // the center of where the player carries the
@@ -81,10 +86,12 @@ var RINKDEPTH = 200;
 var HALODEPTH = 210;
 
 // Need to be sorted by y index, so
-// we reserve 2000 indices just for stuff
+// we reserve 9000 indices just for stuff
 // on the ice.
-var ICESTUFFDEPTH = 1000;  // - 3000
+var ICESTUFFDEPTH = 1000;  // - 10000
 
 
 // Within a player movieclip
 var PPLAYERDEPTH = 10;
+
+var BOTTOMBOARDSDEPTH = 50000;
