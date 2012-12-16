@@ -1,0 +1,9 @@
+
+age of umpires
+h e double hockey sticks
+
+528 px wide - 33 blocks
+
+
+game size should be 280x200 = 840x600
+with 3x pixels
