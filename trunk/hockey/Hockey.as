@@ -13,6 +13,7 @@ class Hockey extends MovieClip {
   var rinkbm : BitmapData = null;
   var halobm : BitmapData = null;
   var puckbm : BitmapData = null;
+  var bottomboardsbm : BitmapData = null;
 
   var holdingSpace = false;
   var holdingUp = false;
@@ -130,8 +131,14 @@ class Hockey extends MovieClip {
       if (player.dy < -MAXVELOCITYY)
 	player.dy = -MAXVELOCITYY;
 
-      player.x += player.dx;
-      player.y += player.dy;
+      var res = tryMove(player.x, player.y,
+			PLAYERC, PLAYERCLIPHEIGHT,
+			player.dx, player.dy)
+      player.x = res.x;
+      player.y = res.y;
+
+      player.dx = res.dx;
+      player.dy = res.dy;
 
       // ice deceleration
       player.dx *= ICEFRICTION;
@@ -143,6 +150,33 @@ class Hockey extends MovieClip {
     redraw();
   }
 
+  // Move an object on the ice; used for both players
+  // and the puck and maybe junk. The object returned
+  // x, y, dx, and dy fields. Width and height are
+  // half heights.
+  public function tryMove(x, y, w, h, dx, dy) {
+    // XXX damping param
+    var nx = x + dx;
+    var ny = y + dy;
+    if (nx - w < ICEMINX) {
+      dx = -dx;
+      nx = ICEMINX + w;
+    } else if (nx + w > ICEMAXX) {
+      dx = -dx;
+      nx = ICEMAXX - w;
+    }
+
+    if (ny - h < ICEMINY) {
+      dy = -dy;
+      ny = ICEMINY + h;
+    } else if (ny + h> ICEMAXY) {
+      dy = -dy;
+      ny = ICEMAXY - h;
+    }
+
+    return { x: nx, y: ny, dx: dx, dy: dy };
+  }
+
   public function init() {
     menuteam = _root['menuselection'];
 
@@ -152,6 +186,11 @@ class Hockey extends MovieClip {
 
     rinkbm = loadBitmap3x('rink.png');
     _root.rinkmc = createGlobalMC('rink', rinkbm, RINKDEPTH);
+    bottomboardsbm = loadBitmap3x('bottomboards.png');
+    _root.bottomboardsmc = createGlobalMC('bottomboards', 
+					  bottomboardsbm,
+					  BOTTOMBOARDSDEPTH);
+
     puckbm = loadBitmap3x('puck.png');
     _root.puckmc = createGlobalMC('puck', puckbm, ICESTUFFDEPTH + 500);
 
@@ -388,6 +427,10 @@ class Hockey extends MovieClip {
     // Place rink.
     _root.rinkmc._x = -scrollx;
     _root.rinkmc._y = -scrolly;
+
+    // Place bottom boards.
+    _root.bottomboardsmc._x = BOTTOMBOARDSX - scrollx;
+    _root.bottomboardsmc._y = BOTTOMBOARDSY - scrolly;
 
     // Place puck
     _root.puckmc._x = puckcoord.x - scrollx;
