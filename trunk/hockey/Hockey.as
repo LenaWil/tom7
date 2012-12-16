@@ -291,15 +291,15 @@ class Hockey extends MovieClip {
   }
 
   public function scrollToShow(x, y) {
-    var SLOP = 15 * 3;
+    var SLOP = 45 * 3;
     // XXX smooth transition!
     if (x - SLOP < scrollx) scrollx = x - SLOP;
     if (y - SLOP < scrolly) scrolly = y - SLOP;
 
     if (x + SLOP >= scrollx + SCREENW)
-      scrollx = x - SLOP - SCREENW;
+      scrollx = x + SLOP - SCREENW;
     if (y + SLOP >= scrolly + SCREENH)
-      scrolly = y - SLOP - SCREENH;
+      scrolly = y + SLOP - SCREENH;
   }
 
   public function placePlayer(idx, player) {
@@ -326,7 +326,7 @@ class Hockey extends MovieClip {
     // Cell is the animation cell to use. Now choose
     // left/right and team.
     var frame;
-    if (false && player.team == USA) {
+    if (player.team == USA) {
       frame = (player.facing == LEFT) ? cell.bml : cell.bm;
     } else {
       // XXX ref
