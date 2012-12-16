@@ -1,6 +1,6 @@
 
 // Config
-var FASTMODE = false;
+var FASTMODE = true;
 
 var MUSIC = !FASTMODE;
 
@@ -93,6 +93,9 @@ var LEFT = 1;
 var USA = 0;
 var CAN = 1;
 var REF = 2;
+
+
+var REFDIST = 175;
 
 ///////////////
 // Sounds.
