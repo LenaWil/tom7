@@ -59,8 +59,9 @@ var REF = 2;
 ///////////////
 // Physics.
 
-var MAXVELOCITYX = 5;
-var MAXVELOCITYY = 3;
+var MAXVELOCITYX = 7;
+var MAXVELOCITYY = 4;
+var ICEFRICTION = 0.96;
 
 //////////////
 // Title stuff
