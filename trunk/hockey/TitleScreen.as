@@ -148,12 +148,12 @@ class TitleScreen extends MovieClip {
     // Don't need title screen any more, obviously
     this.removeMovieClip();
 
-    _root.hockey = new Hockey();
-    _root.hockey.init();
-
     // Whole game takes place on this blank frame
     // in the root timeline.
     _root.gotoAndStop('game');
+
+    _root.hockey = _root.attachMovie('hockey', 'hockey', 0);
+    _root.hockey.init();
   }
 
 };
