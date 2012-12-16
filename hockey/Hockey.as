@@ -7,13 +7,12 @@ class Hockey extends MovieClip {
   #include "constants.js"
   #include "util.js"
 
-  var currentmusic = null;
-  var backgroundmusic = null;
-
   var rinkbm : BitmapData = null;
   var halobm : BitmapData = null;
   var puckbm : BitmapData = null;
   var bottomboardsbm : BitmapData = null;
+
+  var info : Info = null;
 
   var holdingSpace = false;
   var holdingZ = false;
@@ -40,19 +39,26 @@ class Hockey extends MovieClip {
 
   // Each state is a list of frames for the USA team facing right.
   var playerframes = {
-  splat : [
-    {f:'splat.png', d:1}],
-  stand : [
-    {f:'skate2.png', d:1}],
+  splat : {
+    y: 13 * 3,
+    l:
+    [{f:'splat.png', d:1}]
+  },
+  stand : {
+    l:
+    [{f:'skate2.png', d:1}]
+  },
   // With stick
-  skate : [
-    {f:'skate1.png', d:5}, 
-    {f:'skate2.png', d:9},
-    {f:'skate3.png', d:5},
-    {f:'skate2.png', d:9}] /*,
+  skate : {
+    l:
+    [{f:'skate1.png', d:5},
+     {f:'skate2.png', d:9},
+     {f:'skate3.png', d:5},
+     {f:'skate2.png', d:9}]
+  }/*,
   // Without stick
   skatewo : [
-    {f:'skatewo1.png', d:2}, 
+    {f:'skatewo1.png', d:2},
     {f:'skatewo2.png', d:3},
     {f:'skatewo3.png', d:2},
     {f:'skatewo2.png', d:3}] */
@@ -81,6 +87,32 @@ class Hockey extends MovieClip {
   // this is always a player that's not been ejected.
   var user = 0;
 
+  var currentmusic = null;
+  var backgroundclip = null;
+  var backgroundmusic = null;
+  public function switchMusic(m) {
+    // XXX maybe should work better the music file isn't found?
+    if (currentmusic != m) {
+      trace('switch music ' + m);
+      // Does this leak??
+      if (backgroundmusic)
+        backgroundmusic.stop();
+      backgroundclip.removeMovieClip();
+
+      backgroundclip = _root.createEmptyMovieClip("backgroundclip",
+                                                  MUSICDEPTH);
+      backgroundmusic = new Sound(backgroundclip);
+      backgroundmusic.attachSound(m);
+      if (true || _root['musicenabled']) {
+        backgroundmusic.setVolume(100);
+      } else {
+        backgroundmusic.setVolume(0);
+      }
+      backgroundmusic.start(0, 99999);
+      currentmusic = m;
+    }
+  }
+
   public function onLoad() {
     Key.addListener(this);
   }
@@ -88,7 +120,7 @@ class Hockey extends MovieClip {
   public function createGlobalMC(name, bitmap, depth) {
     var mc = createMovieAtDepth(name, depth);
     // var mc = _root.createEmptyMovieClip(name, depth);
-    mc.attachBitmap(bitmap, 'b', 1);    
+    mc.attachBitmap(bitmap, 'b', 1);
     return mc;
   }
 
@@ -98,14 +130,15 @@ class Hockey extends MovieClip {
 
     // trace('oef');
 
-    // TODO: handle physics for each player
-    // TODO: handle physics for puck (if not in possession)
     // TODO: handle physics for objects on the ice (sticks, etc.)
 
+    // TODO: Goals!
+
+    // Physics for the puck, if not in possession.
     if (puck.p == undefined) {
       var res = tryMove(puck.x, puck.y,
-			PUCKCLIPW, PUCKCLIPH,
-			puck.dx, puck.dy)
+                        PUCKCLIPW, PUCKCLIPH,
+                        puck.dx, puck.dy)
       puck.x = res.x;
       puck.y = res.y;
 
@@ -119,58 +152,58 @@ class Hockey extends MovieClip {
     // TODO: handle input for user player
     for (var i = 0; i < players.length; i++) {
       var player = players[i];
-      
+
       if (i == user) {
 
-	if (player.stance != SPLAT) {
-	  // XXX constants.
-	  if (holdingLeft) {
-	    player.dx -= 2;
-	    if (player.dx < 0) player.facing = LEFT;
-	  } else if (holdingRight) {
-	    player.dx += 2;
-	    if (player.dx > 0) player.facing = RIGHT;
-	  }
+        if (player.stance != SPLAT) {
+          // XXX constants.
+          if (holdingLeft) {
+            player.dx -= PLAYERACCEL;
+            if (player.dx < 0) player.facing = LEFT;
+          } else if (holdingRight) {
+            player.dx += PLAYERACCEL;
+            if (player.dx > 0) player.facing = RIGHT;
+          }
 
-	  if (holdingUp) {
-	    player.dy -= 2;
-	  } else if (holdingDown) {
-	    player.dy += 2;
-	  }
-	}
+          if (holdingUp) {
+            player.dy -= PLAYERACCEL;
+          } else if (holdingDown) {
+            player.dy += PLAYERACCEL;
+          }
+        }
 
       } else {
 
-	// TODO: handle AI for non-user players
-	if (player.stance != SPLAT &&
-	    animframe > 100 &&
-	    (i == 3 || i == 7)) {
-	  if (player.x < puckcoord.x) {
-	    player.dx += 2;
-	  } else if (player.x > puckcoord.x) {
-	    player.dx -= 2;
-	  }
+        // TODO: handle AI for non-user players
+        if (player.stance != SPLAT &&
+            animframe > 100 &&
+            (i == 3 || i == 7)) {
+          if (player.x < puckcoord.x) {
+            player.dx += PLAYERACCEL;
+          } else if (player.x > puckcoord.x) {
+            player.dx -= PLAYERACCEL;
+          }
 
-	  if (player.y < puckcoord.y) {
-	    player.dy += 2;
-	  } else if (player.y > puckcoord.y) {
-	    player.dy -= 2;
-	  }
-	}
+          if (player.y < puckcoord.y) {
+            player.dy += PLAYERACCEL;
+          } else if (player.y > puckcoord.y) {
+            player.dy -= PLAYERACCEL;
+          }
+        }
       }
 
       // Pick up puck if near it.
       if (player.stick && puck.p == undefined) {
-	var ty = player.y;
-	var tx = player.x + ((player.facing == RIGHT) ?
-			     PLAYERTOPUCK : -PLAYERTOPUCK);
-	
-	// XXX limits on dy?
-	if (Math.abs(puck.x - tx) < PICKUPDIST &&
-	    Math.abs(puck.y - ty) < PICKUPDIST) {
-	  player.puck = true;
-	  puck = { p: i };
-	}
+        var ty = player.y;
+        var tx = player.x + ((player.facing == RIGHT) ?
+                             PLAYERTOPUCK : -PLAYERTOPUCK);
+
+        // XXX limits on dy?
+        if (Math.abs(puck.x - tx) < PICKUPDIST &&
+            Math.abs(puck.y - ty) < PICKUPDIST) {
+          player.puck = true;
+          puck = { p: i };
+        }
 
       }
     }
@@ -181,64 +214,64 @@ class Hockey extends MovieClip {
       if (player1.stance == SPLAT) continue;
 
       for (var j = i + 1; j < players.length; j++) {
-	var player2 = players[j];
-	if (player2.stance == SPLAT) continue;
+        var player2 = players[j];
+        if (player2.stance == SPLAT) continue;
 
-	if (Math.abs(player1.x - player2.x) < COLLIDEDIST &&
-	    Math.abs(player1.y - player2.y) < COLLIDEDIST) {
-	  
-	  // trace(Math.abs(player1.x - player2.x) + ' ' +
-	  // Math.abs(player1.y - player2.y));
+        if (Math.abs(player1.x - player2.x) < COLLIDEDIST &&
+            Math.abs(player1.y - player2.y) < COLLIDEDIST) {
 
-	  // XXX should have real priority system, based on
-	  // velocity, stance, having puck, hp, anger, running
-	  // start, etc.
-	  var prior1 = (i == user) ? 1000 : i;
-	  var prior2 = (j == user) ? 1000 : j;
+          // trace(Math.abs(player1.x - player2.x) + ' ' +
+          // Math.abs(player1.y - player2.y));
 
-	  // Put them in priority order.
-	  if (prior1 < prior2) {
-	    var t = player1;
-	    player1 = player2;
-	    player2 = t;
-	  }
+          // XXX should have real priority system, based on
+          // velocity, stance, having puck, hp, anger, running
+          // start, etc.
+          var prior1 = (i == user) ? 1000 : i;
+          var prior2 = (j == user) ? 1000 : j;
 
-	  // Player 1 wins...
+          // Put them in priority order.
+          if (prior1 < prior2) {
+            var t = player1;
+            player1 = player2;
+            player2 = t;
+          }
 
-	  if (player2.puck) {
-	    puck = { x: player2.x + ((player2.facing == RIGHT) ?
-				     PLAYERTOPUCK : -PLAYERTOPUCK),
-		     y: player2.y,
-		     dx: 2 * (player2.dx + player1.dx),
-		     dy: 2 * (player2.dy + player1.dy) };
-	    player2.puck = false;
-	  }
-	  
-	  player2.dx = player2.dx + player1.dx;
-	  player2.dy = player2.dy + player1.dy;
-	  player2.stance = SPLAT;
-	}
+          // Player 1 wins...
+
+          if (player2.puck) {
+            puck = { x: player2.x + ((player2.facing == RIGHT) ?
+                                     PLAYERTOPUCK : -PLAYERTOPUCK),
+                     y: player2.y,
+                     dx: 2 * (player2.dx + player1.dx),
+                     dy: 2 * (player2.dy + player1.dy) };
+            player2.puck = false;
+          }
+
+          player2.dx = player2.dx + player1.dx;
+          player2.dy = player2.dy + player1.dy;
+          player2.stance = SPLAT;
+        }
       }
     }
 
     for (var i = 0; i < players.length; i++) {
       var player = players[i];
-      
+
       if (player.dx > MAXVELOCITYX)
-	player.dx = MAXVELOCITYX;
+        player.dx = MAXVELOCITYX;
 
       if (player.dx < -MAXVELOCITYX)
-	player.dx = -MAXVELOCITYX;
+        player.dx = -MAXVELOCITYX;
 
       if (player.dy > MAXVELOCITYY)
-	player.dy = MAXVELOCITYY;
+        player.dy = MAXVELOCITYY;
 
       if (player.dy < -MAXVELOCITYY)
-	player.dy = -MAXVELOCITYY;
+        player.dy = -MAXVELOCITYY;
 
       var res = tryMove(player.x, player.y,
-			PLAYERC, PLAYERCLIPHEIGHT,
-			player.dx, player.dy)
+                        PLAYERC, PLAYERCLIPHEIGHT,
+                        player.dx, player.dy)
       player.x = res.x;
       player.y = res.y;
 
@@ -290,54 +323,56 @@ class Hockey extends MovieClip {
     rinkbm = loadBitmap3x('rink.png');
     _root.rinkmc = createGlobalMC('rink', rinkbm, RINKDEPTH);
     bottomboardsbm = loadBitmap3x('bottomboards.png');
-    _root.bottomboardsmc = createGlobalMC('bottomboards', 
-					  bottomboardsbm,
-					  BOTTOMBOARDSDEPTH);
+    _root.bottomboardsmc = createGlobalMC('bottomboards',
+                                          bottomboardsbm,
+                                          BOTTOMBOARDSDEPTH);
 
     puckbm = loadBitmap3x('puck.png');
     _root.puckmc = createGlobalMC('puck', puckbm, ICESTUFFDEPTH + 500);
 
     var num = 0;
     for (var sym in playerframes) {
-      var framelist = playerframes[sym];
+      var framelist = playerframes[sym].l;
       for (var i = 0; i < framelist.length; i++) {
-	var frame = framelist[i];
-	// Facing right
-	var bm = loadBitmap3x(frame.f);
-	var bmc = convertToCanadian(bm);
-	var bmr = convertToReferee(bm);
-	// Facing left
-	var bml = flipHoriz(bm);
-	var bmlc = flipHoriz(bmc);
-	var bmlr = flipHoriz(bmr);
-	frame.bm = bm;
-	frame.bmc = bmc;
-	frame.bmr = bmr;
-	frame.bml = bml;
-	frame.bmlc = bmlc;
-	frame.bmlr = bmlr;
-	num++;
+        var frame = framelist[i];
+        // Facing right
+        var bm = loadBitmap3x(frame.f);
+        var bmc = convertToCanadian(bm);
+        var bmr = convertToReferee(bm);
+        // Facing left
+        var bml = flipHoriz(bm);
+        var bmlc = flipHoriz(bmc);
+        var bmlr = flipHoriz(bmr);
+        frame.bm = bm;
+        frame.bmc = bmc;
+        frame.bmr = bmr;
+        frame.bml = bml;
+        frame.bmlc = bmlc;
+        frame.bmlr = bmlr;
+        num++;
       }
     }
+
+    switchMusic('circus.wav');
 
     this.players = [];
     for (var team = 0; team < 2; team++) {
       for (var p = 0; p < 5; p++) {
 
-	// Depths will be reset dynamically, so just don't duplicate
-	// for now.
-	var mc = createMovieAtDepth('p_' + team + '_' + p,
-				    ICESTUFFDEPTH + team * 20 + p);
-	var player = { goalie: (p == 0), x: 0, y: 0, dx: 0, dy: 0,
-		       stance: UPRIGHT,
-		       team: team, 
-		       mc: mc };
-	this.players.push(player);
+        // Depths will be reset dynamically, so just don't duplicate
+        // for now.
+        var mc = createMovieAtDepth('p_' + team + '_' + p,
+                                    ICESTUFFDEPTH + team * 20 + p);
+        var player = { goalie: (p == 0), x: 0, y: 0, dx: 0, dy: 0,
+                       stance: UPRIGHT,
+                       team: team,
+                       mc: mc };
+        this.players.push(player);
       }
     }
-    this.players.push({ goalie: false, team: REF, 
-	  x: 0, y: 0, dx: 0, dy: 0, stance: UPRIGHT,
-	  mc: createMovieAtDepth('pref', ICESTUFFDEPTH + 500) });
+    this.players.push({ goalie: false, team: REF,
+          x: 0, y: 0, dx: 0, dy: 0, stance: UPRIGHT,
+          mc: createMovieAtDepth('pref', ICESTUFFDEPTH + 500) });
 
     // XXX from menu.
     switch (menuteam) {
@@ -349,6 +384,9 @@ class Hockey extends MovieClip {
     trace('user: ' + user);
 
     trace('loaded ' + num + ' frames.');
+
+    info = new Info();
+    info.init()
 
     faceOff(2);
     redraw();
@@ -383,9 +421,9 @@ class Hockey extends MovieClip {
     // Priority on positions so that if the center is
     // ejected, someone takes his place.
     var usaoffsets = [{x: -25*3, y: 0}, {x: -44*3, y: -50*3},
-		      {x: -44*3, y: 50*3}, {x: -62*3, y: 0}];
+                      {x: -44*3, y: 50*3}, {x: -62*3, y: 0}];
     var canoffsets = [{x: 25*3, y: 0}, {x: 44*3, y: -50*3},
-		      {x: 44*3, y: 50*3}, {x: 62*3, y: 0}];
+                      {x: 44*3, y: 50*3}, {x: 62*3, y: 0}];
 
     // Initializes x,y and facing for each player.
     // Everyone gets a stick except the ref.
@@ -399,48 +437,48 @@ class Hockey extends MovieClip {
       player.puck = false;
       player.stance = UPRIGHT;
       if (player.team == REF) {
-	// Ref goes right above the puck.
-	player.facing = RIGHT;
-	player.x = x;
-	player.y = y - PLAYERH/2;
-	player.stick = false;
+        // Ref goes right above the puck.
+        player.facing = RIGHT;
+        player.x = x;
+        player.y = y - PLAYERH/2;
+        player.stick = false;
       } else {
-	player.stick = true;
-	if (player.goalie) {
-	  player.y = GOALIEY;
-	  if (player.team == USA) {
-	    player.x = USAGOALIEX;
-	    player.facing = RIGHT;
-	  } else {
-	    player.x = CANGOALIEX;
-	    player.facing = LEFT;
-	  }
-	} else {
-	  // Regular player...
-	  var obj;
-	  if (player.team == USA) {
-	    player.facing = RIGHT;
-	    obj = usaoffsets.shift();
-	  } else {
-	    player.facing = LEFT;
-	    obj = canoffsets.shift();
-	  }
-	  if (!obj) obj = {x: 0, y: 0}; // ??
+        player.stick = true;
+        if (player.goalie) {
+          player.y = GOALIEY;
+          if (player.team == USA) {
+            player.x = USAGOALIEX;
+            player.facing = RIGHT;
+          } else {
+            player.x = CANGOALIEX;
+            player.facing = LEFT;
+          }
+        } else {
+          // Regular player...
+          var obj;
+          if (player.team == USA) {
+            player.facing = RIGHT;
+            obj = usaoffsets.shift();
+          } else {
+            player.facing = LEFT;
+            obj = canoffsets.shift();
+          }
+          if (!obj) obj = {x: 0, y: 0}; // ??
 
-	  player.x = x + obj.x;
-	  player.y = y + obj.y;
+          player.x = x + obj.x;
+          player.y = y + obj.y;
 
-	  // trace('at ' + player.x + ',' + player.y);
-	}
+          // trace('at ' + player.x + ',' + player.y);
+        }
       }
     }
   }
-  
+
   public function getPuckCoordinates() {
     if (puck.p != undefined) {
       var plr = players[puck.p];
-      var offset = (plr.facing == RIGHT) ? 
-	PLAYERTOPUCK : -PLAYERTOPUCK;
+      var offset = (plr.facing == RIGHT) ?
+        PLAYERTOPUCK : -PLAYERTOPUCK;
       return { x: plr.x + offset, y : plr.y };
     } else {
       return { x: puck.x, y: puck.y };
@@ -470,11 +508,12 @@ class Hockey extends MovieClip {
     if (player.stance == SPLAT) {
       whichframes = 'splat';
     } else if (Math.abs(player.dx) < 1 &&
-	       Math.abs(player.dy) < 1) {
+               Math.abs(player.dy) < 1) {
       whichframes = 'stand';
     }
 
-    var frames = playerframes[whichframes];
+    var yoffset = playerframes[whichframes].y || 0;
+    var frames = playerframes[whichframes].l;
 
     // PERF could cache this.
     var tot = 0;
@@ -486,8 +525,8 @@ class Hockey extends MovieClip {
     var cell = frames[0];
     for (var i = 0; i < frames.length; i++) {
       if (offset < frames[i].d) {
-	cell = frames[i];
-	break;
+        cell = frames[i];
+        break;
       }
       offset -= frames[i].d;
     }
@@ -506,8 +545,8 @@ class Hockey extends MovieClip {
     // PERF remove it every time, really?
     if (player.mc) player.mc.removeMovieClip();
 
-    player.mc = createMovieAtDepth('p' + idx, ICESTUFFDEPTH + 
-				   iceDepth(player.y) + 1 + idx);
+    player.mc = createMovieAtDepth('p' + idx, ICESTUFFDEPTH +
+                                   iceDepth(player.y) + 1 + idx);
     // Halo behind the player, if this is the user.
     if (idx == user) {
       _root.halomc._x = player.x - halobm.width/2 - scrollx;
@@ -520,7 +559,7 @@ class Hockey extends MovieClip {
     } else {
       player.mc._x = player.x - (frame.width - PLAYERC) - scrollx;
     }
-    player.mc._y = player.y - PLAYERH - scrolly;
+    player.mc._y = player.y + yoffset - PLAYERH - scrolly;
 
   }
 

@@ -35,10 +35,11 @@ class TitleScreen extends MovieClip {
     setframe(titlebitmap);
     moveSelection();
     // title music!
-    //  titlemusic = new Sound(this);
-    //  titlemusic.attachSound('themesong.mp3');
-    //  titlemusic.setVolume(100);
-    //  titlemusic.start(0, 99999);
+    titlemusic = new Sound(this);
+    titlemusic.attachSound('unlucky.wav');
+    titlemusic.setVolume(100);
+    titlemusic.start(0, 99999);
+    trace('started title music');
 
     // this.swapDepths(BGIMAGEDEPTH);
   }
