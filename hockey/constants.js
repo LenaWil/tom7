@@ -66,13 +66,15 @@ var COLLIDEDIST = 6 * 3;
 // the center of where the player carries the
 // puck.
 var PLAYERTOPUCK = 11 * 3;
-var PICKUPDIST = 6 * 3;
+var PICKUPDIST = 11 * 3;
 
-var PICKUPSTICKDIST = 8 * 3;
+var PICKUPSTICKDIST = 13 * 3;
 
 var SPLATTIME = 24;
 var GETUPTIME = 12;
 var FOLLOWTHROUGHTIME = 6;
+
+var FULLSTRENGTHTIME = 24;
 
 var RIGHT = 0;
 var LEFT = 1;
