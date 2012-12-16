@@ -16,6 +16,8 @@ class Hockey extends MovieClip {
   var bottomboardsbm : BitmapData = null;
 
   var holdingSpace = false;
+  var holdingZ = false;
+  var holdingX = false;
   var holdingUp = false;
   var holdingLeft = false;
   var holdingRight = false;
@@ -30,8 +32,18 @@ class Hockey extends MovieClip {
   var scrollx = 0;
   var scrolly = 0;
 
+  // Player stances.
+  // Normal.
+  var UPRIGHT = 0;
+  // Fell.
+  var SPLAT = 1;
+
   // Each state is a list of frames for the USA team facing right.
   var playerframes = {
+  splat : [
+    {f:'splat.png', d:1}],
+  stand : [
+    {f:'skate2.png', d:1}],
   // With stick
   skate : [
     {f:'skate1.png', d:5}, 
@@ -57,6 +69,7 @@ class Hockey extends MovieClip {
   // goalie: true or false
   // stick: true or false
   // puck: true or false
+  // stance: UPRIGHT, SPLAT, etc.
   // ...
   var players = [];
 
@@ -89,33 +102,125 @@ class Hockey extends MovieClip {
     // TODO: handle physics for puck (if not in possession)
     // TODO: handle physics for objects on the ice (sticks, etc.)
 
+    if (puck.p == undefined) {
+      var res = tryMove(puck.x, puck.y,
+			PUCKCLIPW, PUCKCLIPH,
+			puck.dx, puck.dy)
+      puck.x = res.x;
+      puck.y = res.y;
+
+      puck.dx = res.dx;
+      puck.dy = res.dy;
+    }
+
+    var puckcoord = getPuckCoordinates();
+
+
     // TODO: handle input for user player
     for (var i = 0; i < players.length; i++) {
       var player = players[i];
       
       if (i == user) {
 
-	// XXX constants.
-	if (holdingLeft) {
-	  player.dx -= 2;
-	  if (player.dx < 0) player.facing = LEFT;
-	} else if (holdingRight) {
-	  player.dx += 2;
-	  if (player.dx > 0) player.facing = RIGHT;
-	}
+	if (player.stance != SPLAT) {
+	  // XXX constants.
+	  if (holdingLeft) {
+	    player.dx -= 2;
+	    if (player.dx < 0) player.facing = LEFT;
+	  } else if (holdingRight) {
+	    player.dx += 2;
+	    if (player.dx > 0) player.facing = RIGHT;
+	  }
 
-	if (holdingUp) {
-	  player.dy -= 2;
-	} else if (holdingDown) {
-	  player.dy += 2;
+	  if (holdingUp) {
+	    player.dy -= 2;
+	  } else if (holdingDown) {
+	    player.dy += 2;
+	  }
 	}
 
       } else {
+
 	// TODO: handle AI for non-user players
+	if (player.stance != SPLAT &&
+	    animframe > 100 &&
+	    (i == 3 || i == 7)) {
+	  if (player.x < puckcoord.x) {
+	    player.dx += 2;
+	  } else if (player.x > puckcoord.x) {
+	    player.dx -= 2;
+	  }
+
+	  if (player.y < puckcoord.y) {
+	    player.dy += 2;
+	  } else if (player.y > puckcoord.y) {
+	    player.dy -= 2;
+	  }
+	}
+      }
+
+      // Pick up puck if near it.
+      if (player.stick && puck.p == undefined) {
+	var ty = player.y;
+	var tx = player.x + ((player.facing == RIGHT) ?
+			     PLAYERTOPUCK : -PLAYERTOPUCK);
+	
+	// XXX limits on dy?
+	if (Math.abs(puck.x - tx) < PICKUPDIST &&
+	    Math.abs(puck.y - ty) < PICKUPDIST) {
+	  player.puck = true;
+	  puck = { p: i };
+	}
+
       }
     }
 
-    // XXX physics happen before player's turn?
+    // Collisions between players.
+    for (var i = 0; i < players.length; i++) {
+      var player1 = players[i];
+      if (player1.stance == SPLAT) continue;
+
+      for (var j = i + 1; j < players.length; j++) {
+	var player2 = players[j];
+	if (player2.stance == SPLAT) continue;
+
+	if (Math.abs(player1.x - player2.x) < COLLIDEDIST &&
+	    Math.abs(player1.y - player2.y) < COLLIDEDIST) {
+	  
+	  // trace(Math.abs(player1.x - player2.x) + ' ' +
+	  // Math.abs(player1.y - player2.y));
+
+	  // XXX should have real priority system, based on
+	  // velocity, stance, having puck, hp, anger, running
+	  // start, etc.
+	  var prior1 = (i == user) ? 1000 : i;
+	  var prior2 = (j == user) ? 1000 : j;
+
+	  // Put them in priority order.
+	  if (prior1 < prior2) {
+	    var t = player1;
+	    player1 = player2;
+	    player2 = t;
+	  }
+
+	  // Player 1 wins...
+
+	  if (player2.puck) {
+	    puck = { x: player2.x + ((player2.facing == RIGHT) ?
+				     PLAYERTOPUCK : -PLAYERTOPUCK),
+		     y: player2.y,
+		     dx: 2 * (player2.dx + player1.dx),
+		     dy: 2 * (player2.dy + player1.dy) };
+	    player2.puck = false;
+	  }
+	  
+	  player2.dx = player2.dx + player1.dx;
+	  player2.dy = player2.dy + player1.dy;
+	  player2.stance = SPLAT;
+	}
+      }
+    }
+
     for (var i = 0; i < players.length; i++) {
       var player = players[i];
       
@@ -139,12 +244,6 @@ class Hockey extends MovieClip {
 
       player.dx = res.dx;
       player.dy = res.dy;
-
-      // ice deceleration
-      player.dx *= ICEFRICTION;
-      player.dy *= ICEFRICTION;
-
-      // XXX player clipping.
     }
 
     redraw();
@@ -173,6 +272,10 @@ class Hockey extends MovieClip {
       dy = -dy;
       ny = ICEMAXY - h;
     }
+
+    // ice deceleration
+    dx *= ICEFRICTION;
+    dy *= ICEFRICTION;
 
     return { x: nx, y: ny, dx: dx, dy: dy };
   }
@@ -226,13 +329,14 @@ class Hockey extends MovieClip {
 	var mc = createMovieAtDepth('p_' + team + '_' + p,
 				    ICESTUFFDEPTH + team * 20 + p);
 	var player = { goalie: (p == 0), x: 0, y: 0, dx: 0, dy: 0,
+		       stance: UPRIGHT,
 		       team: team, 
 		       mc: mc };
 	this.players.push(player);
       }
     }
     this.players.push({ goalie: false, team: REF, 
-	  x: 0, y: 0, dx: 0, dy: 0,
+	  x: 0, y: 0, dx: 0, dy: 0, stance: UPRIGHT,
 	  mc: createMovieAtDepth('pref', ICESTUFFDEPTH + 500) });
 
     // XXX from menu.
@@ -292,16 +396,16 @@ class Hockey extends MovieClip {
 
       player.dx = 0;
       player.dy = 0;
+      player.puck = false;
+      player.stance = UPRIGHT;
       if (player.team == REF) {
 	// Ref goes right above the puck.
 	player.facing = RIGHT;
 	player.x = x;
 	player.y = y - PLAYERH/2;
 	player.stick = false;
-	player.puck = false;
       } else {
 	player.stick = true;
-	player.puck = false;
 	if (player.goalie) {
 	  player.y = GOALIEY;
 	  if (player.team == USA) {
@@ -332,9 +436,9 @@ class Hockey extends MovieClip {
     }
   }
   
-  public function getPuckCoordinates () {
+  public function getPuckCoordinates() {
     if (puck.p != undefined) {
-      var plr = players[puck.p].x;
+      var plr = players[puck.p];
       var offset = (plr.facing == RIGHT) ? 
 	PLAYERTOPUCK : -PLAYERTOPUCK;
       return { x: plr.x + offset, y : plr.y };
@@ -362,6 +466,13 @@ class Hockey extends MovieClip {
   public function placePlayer(idx, player) {
     // TODO: select frames based on state, etc.
     var whichframes = 'skate';
+
+    if (player.stance == SPLAT) {
+      whichframes = 'splat';
+    } else if (Math.abs(player.dx) < 1 &&
+	       Math.abs(player.dy) < 1) {
+      whichframes = 'stand';
+    }
 
     var frames = playerframes[whichframes];
 
@@ -434,10 +545,8 @@ class Hockey extends MovieClip {
 
     // Place puck
     _root.puckmc._x = puckcoord.x - scrollx;
-    _root.puckmc._y = puckcoord.y - scrolly;
+    _root.puckmc._y = puckcoord.y - PUCKH/2 - scrolly;
     setDepthOf(_root.puckmc, iceDepth(puckcoord.y));
-    // XXX need to set depth of puck too.
-    
 
     // Player player MCs.
     for (var p = 0; p < players.length; p++) {
@@ -456,6 +565,12 @@ class Hockey extends MovieClip {
     case 192: // ~
     case 27: // esc
       holdingEsc = true;
+      break;
+    case 90: // z
+      holdingZ = true;
+      break;
+    case 88: // x
+      holdingX = true;
       break;
     case 32:
       holdingSpace = true;
@@ -481,6 +596,12 @@ class Hockey extends MovieClip {
     case 192: // ~
     case 27: // esc
       holdingEsc = false;
+      break;
+    case 90: // z
+      holdingZ = false;
+      break;
+    case 88: // x
+      holdingX = false;
       break;
     case 32:
       holdingSpace = false;

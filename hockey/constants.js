@@ -26,8 +26,8 @@ var FACEOFF0X = 151 * 3;
 var FACEOFF0Y = 112 * 3;
 var FACEOFF1X = 423 * 3;
 var FACEOFF1Y = FACEOFF0Y;
-var FACEOFF2X = 287 * 3;
-var FACEOFF2Y = 167 * 3;
+var FACEOFF2X = 286 * 3;
+var FACEOFF2Y = 166 * 3;
 var FACEOFF3X = FACEOFF0X;
 var FACEOFF3Y = 224 * 3;
 var FACEOFF4X = FACEOFF1X;
@@ -41,6 +41,11 @@ var GOALIEY = 145 * 3;
 var BOTTOMBOARDSX = 32 * 3;
 var BOTTOMBOARDSY = 212 * 3;
 
+var PUCKH = 4 * 3;
+
+var PUCKCLIPW = 4 * 3;
+var PUCKCLIPH = 3 * 3;
+
 // Nominal player width. The actual sprites
 // are larger than this.
 var PLAYERW = 14 * 3;
@@ -49,10 +54,13 @@ var PLAYERC = PLAYERW / 2;
 var PLAYERH = 25 * 3;
 var PLAYERCLIPHEIGHT = 6 * 3;
 
+var COLLIDEDIST = 6 * 3;
+
 // Distance from the center of the player to
 // the center of where the player carries the
 // puck.
 var PLAYERTOPUCK = 11 * 3;
+var PICKUPDIST = 6 * 3;
 
 var RIGHT = 0;
 var LEFT = 1;
