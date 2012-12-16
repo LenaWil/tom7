@@ -18,6 +18,7 @@ class Hockey extends MovieClip {
 
   var holdingSpace = false;
   var holdingZ = false;
+  var allowX = true;
   var holdingX = false;
   var holdingUp = false;
   var holdingLeft = false;
@@ -239,7 +240,7 @@ class Hockey extends MovieClip {
       // trace('pdx: ' + puck.dx + ' ' + puck.dy);
       var res = tryMove(puck.x, puck.y,
                         PUCKCLIPW, PUCKCLIPH,
-                        puck.dx, puck.dy)
+                        puck.dx, puck.dy, PUCKFRICTION)
       puck.x = res.x;
       puck.y = res.y;
 
@@ -249,6 +250,19 @@ class Hockey extends MovieClip {
       if (res.hit) {
         playPuckBounce(puck.x, puck.y);
       }
+    }
+
+    for (var i = 0; i < junks.length; i++) {
+      var junk = junks[i];
+      var res = tryMove(junk.x, junk.y,
+                        PUCKCLIPW, PUCKCLIPH,
+                        junk.dx, junk.dy, JUNKFRICTION);
+
+      junk.x = res.x;
+      junk.y = res.y;
+
+      junk.dx = res.dx;
+      junk.dy = res.dy;
     }
 
     var puckcoord = getPuckCoordinates();
@@ -283,6 +297,84 @@ class Hockey extends MovieClip {
       var player = players[i];
 
       if (i == user) {
+
+        if (holdingX && player.team != REF) {
+
+          // impulse
+          allowX = false;
+          holdingX = false;
+
+          // If we have the puck, pass. Otherwise,
+          // change the active player.
+          if (player.puck) {
+
+            // Find a player on my team..
+            var bestp = pp;
+            // Number of directions satisfied.
+            var bestscore = -10;
+            for (var pp = 0; pp < players.length; pp++) {
+              var other = players[pp];
+              if (other.team == player.team && pp != user) {
+                var otherscore = 0;
+                if (holdingLeft) {
+                  if (other.x < player.x) {
+                    otherscore++;
+                  } else {
+                    otherscore--;
+                  }
+                }
+
+                if (holdingRight) {
+                  if (other.x > player.x) {
+                    otherscore++;
+                  } else {
+                    otherscore--;
+                  }
+                }
+
+                if (holdingDown) {
+                  if (other.y > player.y) {
+                    otherscore++;
+                  } else {
+                    otherscore--;
+                  }
+                }
+
+                if (holdingUp) {
+                  if (other.y < player.y) {
+                    otherscore++;
+                  } else {
+                    otherscore--;
+                  }
+                }
+
+                if (otherscore > bestscore) {
+                  bestscore = otherscore;
+                  bestp = pp;
+                }
+              }
+            }
+
+            var other = players[bestp];
+            // Note, might not be any other players!
+            playerShoots(player,
+                         other.x - player.x,
+                         other.y - player.y, 0.66);
+
+            // Can switch away from current player if not
+            // holding puck, and on a team.
+          } else {
+
+            // XXX skip over SPLATted players?
+            for (var pp = 0; pp < players.length; pp++) {
+              var other = (user + pp + 1) % players.length;
+              if (players[other].team == player.team) {
+                user = other;
+                break;
+              }
+            }
+          }
+        }
 
         if (player.stance == SHOOTING) {
           player.counter++;
@@ -408,8 +500,10 @@ class Hockey extends MovieClip {
           if (player.stance == UPRIGHT) {
             if (player.x < destx) {
               player.dx += PLAYERACCEL;
+              if (player.dx > 0) player.facing = RIGHT;
             } else if (player.x > destx) {
               player.dx -= PLAYERACCEL;
+              if (player.dx < 0) player.facing = LEFT;
             }
 
             if (player.y < desty) {
@@ -491,8 +585,8 @@ class Hockey extends MovieClip {
 
           // Lose stick.
           if (player2.stick) {
-            var sdx = rdx + Math.random() - 0.5;
-            var sdy = rdy + Math.random() - 0.5;
+            var sdx = 0.6 * (rdx + Math.random() - 0.5);
+            var sdy = 0.6 * (rdy + Math.random() - 0.5);
             // XXX randomize stick graphic.
             addJunk(player2.x, player2.y, sdx, sdy, STICK, stick1bm);
             player2.stick = false;
@@ -530,7 +624,7 @@ class Hockey extends MovieClip {
 
       var res = tryMove(player.x, player.y,
                         PLAYERC, PLAYERCLIPHEIGHT,
-                        player.dx, player.dy)
+                        player.dx, player.dy, PLAYERFRICTION)
       player.x = res.x;
       player.y = res.y;
 
@@ -616,7 +710,7 @@ class Hockey extends MovieClip {
   // and the puck and maybe junk. The object returned
   // x, y, dx, and dy fields. Width and height are
   // half heights.
-  public function tryMove(x, y, w, h, dx, dy) {
+  public function tryMove(x, y, w, h, dx, dy, friction) {
     var hit = false;
 
     // XXX damping param
@@ -643,8 +737,8 @@ class Hockey extends MovieClip {
     }
 
     // ice deceleration
-    dx *= ICEFRICTION;
-    dy *= ICEFRICTION;
+    dx *= friction;
+    dy *= friction;
 
     return { x: nx, y: ny, dx: dx, dy: dy, hit: hit };
   }
@@ -850,14 +944,21 @@ class Hockey extends MovieClip {
 
   public function scrollToShow(x, y) {
     var SLOP = 45 * 3;
+
+    var wantx = scrollx;
+    var wanty = scrolly;
+
     // XXX smooth transition!
-    if (x - SLOP < scrollx) scrollx = x - SLOP;
-    if (y - SLOP < scrolly) scrolly = y - SLOP;
+    if (x - SLOP < scrollx) wantx = x - SLOP;
+    if (y - SLOP < scrolly) wanty = y - SLOP;
 
     if (x + SLOP >= scrollx + SCREENW)
-      scrollx = x + SLOP - SCREENW;
+      wantx = x + SLOP - SCREENW;
     if (y + SLOP >= scrolly + (SCREENH - INFOHEIGHT))
-      scrolly = y + SLOP - (SCREENH - INFOHEIGHT);
+      wanty = y + SLOP - (SCREENH - INFOHEIGHT);
+
+    scrollx = scrollx * .75 + wantx * .25;
+    scrolly = scrolly * .75 + wanty * .25;
   }
 
   public function iceDepth(ycoord) {
@@ -1004,6 +1105,8 @@ class Hockey extends MovieClip {
   }
 
   public function clearKeys() {
+    allowX = true;
+    holdingZ = holdingX =
     holdingEsc = holdingUp = holdingLeft = holdingRight = holdingDown = false;
   }
 
@@ -1018,7 +1121,9 @@ class Hockey extends MovieClip {
       holdingZ = true;
       break;
     case 88: // x
-      holdingX = true;
+      if (allowX) {
+        holdingX = true;
+      }
       break;
     case 32:
       holdingSpace = true;
@@ -1050,6 +1155,7 @@ class Hockey extends MovieClip {
       break;
     case 88: // x
       holdingX = false;
+      allowX = true;
       break;
     case 32:
       holdingSpace = false;

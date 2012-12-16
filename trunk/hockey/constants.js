@@ -1,6 +1,6 @@
 
 // Config
-var FASTMODE = false;
+var FASTMODE = true;
 
 var MUSIC = !FASTMODE;
 
@@ -93,8 +93,10 @@ var NBOUNCE = 3;
 
 var MAXVELOCITYX = 8;
 var MAXVELOCITYY = 5.6;
-var ICEFRICTION = 0.96;
-var SHOTSTRENGTH = 25;
+var PUCKFRICTION = 0.99;
+var PLAYERFRICTION = 0.95;
+var JUNKFRICTION = 0.98;
+var SHOTSTRENGTH = 30;
 
 var PLAYERACCEL = 2.0;
 
