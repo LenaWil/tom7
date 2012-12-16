@@ -48,7 +48,7 @@ class Info {
     }
 
     message = [];
-    setMessage("HOCKEY GAME PLAY\n        TACKLE AN SKATER\n");
+    setMessage("HOCKEY GAME PLAY\n      Z - SHOOT\n");
     reload();
     show();
   }

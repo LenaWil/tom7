@@ -1,6 +1,6 @@
 
 // Config
-var FASTMODE = false;
+var FASTMODE = true;
 
 var MUSIC = !FASTMODE;
 
@@ -41,6 +41,7 @@ var FACEOFF4Y = FACEOFF3Y;
 var USAGOALIEX = 103 * 3;
 var CANGOALIEX = 471 * 3;
 var GOALIEY = 145 * 3;
+var GOALH = 48 * 3;
 
 // Location of bottom boards overlay.
 var BOTTOMBOARDSX = 32 * 3;
@@ -67,6 +68,8 @@ var COLLIDEDIST = 6 * 3;
 var PLAYERTOPUCK = 11 * 3;
 var PICKUPDIST = 6 * 3;
 
+var PICKUPSTICKDIST = 8 * 3;
+
 var SPLATTIME = 24;
 var GETUPTIME = 12;
 var FOLLOWTHROUGHTIME = 6;
@@ -84,7 +87,7 @@ var REF = 2;
 var MAXVELOCITYX = 8;
 var MAXVELOCITYY = 5.6;
 var ICEFRICTION = 0.96;
-var SHOTSTRENGTH = 15;
+var SHOTSTRENGTH = 25;
 
 var PLAYERACCEL = 2.0;
 
