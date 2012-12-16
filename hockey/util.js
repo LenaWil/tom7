@@ -18,15 +18,22 @@ private function loadBitmap3x(name) {
 }
 
 private function convertToCanadian(bm) {
-    return bm;
     var bmcad = new BitmapData(bm.width, bm.height, true, 0x000000);
 
     // PERF?
-    var MINT = 0xFF85e59c;
+    var MINTR = 0x85;
+    var MINTG = 0xe6;
+    var MINTB = 0x9c;
     for (var y = 0; y < bm.height; y++) {
-	for (var x = 0; x < bm.height; x++) {
+	for (var x = 0; x < bm.width; x++) {
 	    var c = bm.getPixel32(x, y);
-	    if ((c >> 24) > 128 || c == MINT) {
+	    var r = (c >> 16) & 255;
+	    var g = (c >> 8) & 255;
+	    var b = c & 255;
+
+	    if (Math.abs(r - MINTR) < 3 &&
+		Math.abs(g - MINTG) < 3 &&
+		Math.abs(b - MINTB) < 3) {
 		c = 0xffffb525;
 	    }
 	    bmcad.setPixel32(x, y, c);
