@@ -69,6 +69,7 @@ var PICKUPDIST = 6 * 3;
 
 var SPLATTIME = 24;
 var GETUPTIME = 12;
+var FOLLOWTHROUGHTIME = 6;
 
 var RIGHT = 0;
 var LEFT = 1;
@@ -83,6 +84,7 @@ var REF = 2;
 var MAXVELOCITYX = 8;
 var MAXVELOCITYY = 5.6;
 var ICEFRICTION = 0.96;
+var SHOTSTRENGTH = 15;
 
 var PLAYERACCEL = 2.0;
 

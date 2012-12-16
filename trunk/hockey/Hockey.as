@@ -41,9 +41,22 @@ class Hockey extends MovieClip {
   // Getting up from falling, or picking something
   // up off the ground.
   var GETTINGUP = 2;
+  // Holding key to shoot (counter holds time held)
+  var SHOOTING = 3;
+  // Just released puck
+  var FOLLOWTHROUGH = 4;
 
   // Each state is a list of frames for the USA team facing right.
   var playerframes = {
+  shooting : {
+    x: -6,
+    l:[{f:'slapshot1.png', d:1}]
+  },
+  followthrough : {
+    x: -6,
+    l:[{f:'slapshot2.png', d:1}]
+  },
+
   splat : {
     y: 13 * 3,
     l:
@@ -149,6 +162,39 @@ class Hockey extends MovieClip {
     return mc;
   }
 
+  // Make the player shoot. Should have been in stance
+  // SHOOTING, should have puck, should have stick.
+  // XXX take vector for direction?
+  public function playerShoots(player) {
+    var dx = (player.facing == RIGHT) ? 1 : -1;
+    var dy = 0.2 * (Math.random() - 0.5);
+    var len = Math.sqrt(dx * dx + dy * dy);
+    if (len > 0) {
+      dx /= len;
+      dy /= len;
+    }
+    // dx contained normalized vector now.
+
+    var pdx = dx * SHOTSTRENGTH;
+    var pdy = dy * SHOTSTRENGTH;
+
+    trace('pd: ' + pdx + ' ' + pdy);
+
+    player.puck = false;
+    // Might want to ensure puck is in rink?
+    puck = { x: player.x + ((player.facing == RIGHT) ?
+                            PLAYERTOPUCK : -PLAYERTOPUCK),
+             y: player.y,
+             dx: pdx,
+             dy: pdy };
+    if (puck.p != undefined) {
+      trace('???');
+    }
+
+    player.stance = FOLLOWTHROUGH;
+    player.counter = 0;
+  }
+
   public function onEnterFrame() {
     animframe++;
     if (animframe > 1000000) animframe = 0;
@@ -161,6 +207,7 @@ class Hockey extends MovieClip {
 
     // Physics for the puck, if not in possession.
     if (puck.p == undefined) {
+      // trace('pdx: ' + puck.dx + ' ' + puck.dy);
       var res = tryMove(puck.x, puck.y,
                         PUCKCLIPW, PUCKCLIPH,
                         puck.dx, puck.dy)
@@ -188,6 +235,12 @@ class Hockey extends MovieClip {
           player.stance = UPRIGHT;
           player.counter = 0;
         }
+      } else if (player.stance == FOLLOWTHROUGH) {
+        player.counter++;
+        if (player.counter > FOLLOWTHROUGHTIME) {
+          player.stance = UPRIGHT;
+          player.counter = 0;
+        }
       }
     }
 
@@ -197,20 +250,35 @@ class Hockey extends MovieClip {
 
       if (i == user) {
 
-        if (player.stance == UPRIGHT) {
-          // XXX constants.
-          if (holdingLeft) {
-            player.dx -= PLAYERACCEL;
-            if (player.dx < 0) player.facing = LEFT;
-          } else if (holdingRight) {
-            player.dx += PLAYERACCEL;
-            if (player.dx > 0) player.facing = RIGHT;
+        if (player.stance == SHOOTING) {
+          if (!holdingZ) {
+            trace('shoots!');
+            playerShoots(player);
           }
 
-          if (holdingUp) {
-            player.dy -= PLAYERACCEL;
-          } else if (holdingDown) {
-            player.dy += PLAYERACCEL;
+        } if (player.stance == UPRIGHT) {
+
+          if (holdingZ) {
+            trace('shooting...');
+            player.stance = SHOOTING;
+            player.counter = 0;
+
+          } else {
+
+            // XXX constants.
+            if (holdingLeft) {
+              player.dx -= PLAYERACCEL;
+              if (player.dx < 0) player.facing = LEFT;
+            } else if (holdingRight) {
+              player.dx += PLAYERACCEL;
+              if (player.dx > 0) player.facing = RIGHT;
+            }
+
+            if (holdingUp) {
+              player.dy -= PLAYERACCEL;
+            } else if (holdingDown) {
+              player.dy += PLAYERACCEL;
+            }
           }
         }
 
@@ -240,7 +308,9 @@ class Hockey extends MovieClip {
       // TODO: Pick up stick if near it.
 
       // Pick up puck if near it.
-      if (player.stick && puck.p == undefined) {
+      // TODO: consider timer after followthrough..
+      if (player.stick && player.stance == UPRIGHT &&
+          puck.p == undefined) {
         var ty = player.y;
         var tx = player.x + ((player.facing == RIGHT) ?
                              PLAYERTOPUCK : -PLAYERTOPUCK);
@@ -579,6 +649,10 @@ class Hockey extends MovieClip {
 
     if (player.stance == SPLAT) {
       whichframes = 'splat';
+    } else if (player.stance == SHOOTING) {
+      whichframes = 'shooting';
+    } else if (player.stance == FOLLOWTHROUGH) {
+      whichframes = 'followthrough';
     } else if (player.stance == GETTINGUP) {
       whichframes = 'gettingup';
     } else if (Math.abs(player.dx) < 1 &&
@@ -596,6 +670,7 @@ class Hockey extends MovieClip {
       }
     }
 
+    var xoffset = playerframes[whichframes].x || 0;
     var yoffset = playerframes[whichframes].y || 0;
     var frames = playerframes[whichframes].l;
 
@@ -639,9 +714,9 @@ class Hockey extends MovieClip {
     player.mc.attachBitmap(frame, PPLAYERDEPTH);
 
     if (player.facing == RIGHT) {
-      player.mc._x = player.x - PLAYERC - scrollx;
+      player.mc._x = player.x + xoffset - PLAYERC - scrollx;
     } else {
-      player.mc._x = player.x - (frame.width - PLAYERC) - scrollx;
+      player.mc._x = player.x + xoffset - (frame.width - PLAYERC) - scrollx;
     }
     player.mc._y = player.y + yoffset - PLAYERH - scrolly;
 
