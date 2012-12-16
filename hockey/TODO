@@ -4,22 +4,19 @@
 
 TODO:
 
- GAME DOESN'T MAKE SENSE WITHOUT THESE
- - Enemy AI - bunch up less.
- - Game score
-
-
  INTEGRATION OF CONTENT
  - Player ejection
  - Commissioner call
 
-
  OBVIOUS SLOPPINESS
  - Corner physics
  - Title screen
- - Game timer
  - Shooting from behind goal, in goal, etc.
+ - Game timer 
+ - Enemy AI - bunch up less.
 
+ POLISH
+ - Game timer / score on board
 
  FUN
  - Losing helmet
