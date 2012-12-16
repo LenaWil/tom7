@@ -1,5 +1,5 @@
 
-6 hours left.
+4 hours left.
 
 
 TODO:
@@ -8,6 +8,7 @@ TODO:
  - Shooting puck
  - Enemy AI
  - Game score
+ - Scoring!
 
  INTEGRATION OF CONTENT
  - Player ejection
@@ -15,7 +16,6 @@ TODO:
 
  OBVIOUS SLOPPINESS
  - Corner physics
- - Goal physics
  - On-screen key help
  - Title screen
  - Game timer

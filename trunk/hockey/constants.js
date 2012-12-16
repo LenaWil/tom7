@@ -1,6 +1,6 @@
 
 // Config
-var FASTMODE = true;
+var FASTMODE = false;
 
 var MUSIC = !FASTMODE;
 
@@ -42,6 +42,17 @@ var USAGOALIEX = 103 * 3;
 var CANGOALIEX = 471 * 3;
 var GOALIEY = 145 * 3;
 var GOALH = 48 * 3;
+var REDLINEX = 288 * 3;
+
+var USAGOALX1 = 73 * 3;
+var USAGOALY1 = 150 * 3;
+var USAGOALX2 = 87 * 3;
+var USAGOALY2 = 186 * 3;
+
+var CANGOALX1 = 486 * 3;
+var CANGOALY1 = 150 * 3;
+var CANGOALX2 = 500 * 3;
+var CANGOALY2 = 186 * 3;
 
 // Location of bottom boards overlay.
 var BOTTOMBOARDSX = 32 * 3;
@@ -138,6 +149,7 @@ var HALODEPTH = 210;
 // on the ice.
 var ICESTUFFDEPTH = 1000;  // - 10000
 
+var CUTSOUNDDEPTH = 298;
 var PUCKSOUNDDEPTH = 299;
 var PLAYERSOUNDDEPTH = 300;  // - 350
 
@@ -148,3 +160,4 @@ var BOTTOMBOARDSDEPTH = 50000;
 
 var INFODEPTH = 60000;
 
+var CUTSCENEDEPTH = 80000;

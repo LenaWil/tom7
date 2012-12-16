@@ -6,11 +6,18 @@ class Hockey extends MovieClip {
 
   #include "constants.js"
   #include "util.js"
+  #include "bars.js"
 
   var rinkbm : BitmapData = null;
   var halobm : BitmapData = null;
   var puckbm : BitmapData = null;
   var bottomboardsbm : BitmapData = null;
+
+  // cutscenes
+  var goalscoredbg : BitmapData = null;
+  var goalscoredcan : BitmapData = null;
+  var goalscoredusa : BitmapData = null;
+  var goalscoredref : BitmapData = null;
 
   var stick1bm : BitmapData = null;
 
@@ -27,6 +34,14 @@ class Hockey extends MovieClip {
   var holdingEsc = false;
 
   var menuteam = USA;
+
+  // Cutscene.
+  var NOCUT = 0;
+  var GOALSCORED = 1;
+  var cutscene = NOCUT;
+  var cutteam = USA;
+  var cutx = 0;
+  var cutcounter = 0;
 
   // This is the scroll offset, the coordinates of the
   // top-left corner of the screen in terms of the rink
@@ -129,6 +144,10 @@ class Hockey extends MovieClip {
   // this is always a player that's not been ejected.
   var user = 0;
 
+  // XXX TIMER
+  var usascore = 0;
+  var canscore = 0;
+
   var currentmusic = null;
   var backgroundclip = null;
   var backgroundmusic = null;
@@ -136,14 +155,6 @@ class Hockey extends MovieClip {
     if (currentmusic != m) {
       trace('switch music ' + m);
       // Does this leak??
-      /*
-      if (backgroundmusic)
-        backgroundmusic.stop();
-      backgroundclip.removeMovieClip();
-
-      backgroundclip = _root.createEmptyMovieClip("backgroundclip",
-                                                  MUSICDEPTH);
-*/
       if (MUSIC) {
         backgroundmusic = new Sound();
         backgroundmusic.attachSound(m);
@@ -161,7 +172,6 @@ class Hockey extends MovieClip {
 
   public function createGlobalMC(name, bitmap, depth) {
     var mc = createMovieAtDepth(name, depth);
-    // var mc = _root.createEmptyMovieClip(name, depth);
     mc.attachBitmap(bitmap, 'b', 1);
     return mc;
   }
@@ -201,7 +211,7 @@ class Hockey extends MovieClip {
     if (isNaN(dx)) dx = 0;
     if (isNaN(dy)) dy = 0;
 
-    trace('norm shoot vec: ' + dx + ' ' + dy + ' ' + strengthfrac);
+    // trace('norm shoot vec: ' + dx + ' ' + dy + ' ' + strengthfrac);
 
     var pdx = dx * SHOTSTRENGTH * strengthfrac;
     var pdy = dy * SHOTSTRENGTH * strengthfrac;
@@ -215,14 +225,44 @@ class Hockey extends MovieClip {
              y: player.y,
              dx: pdx,
              dy: pdy };
-    if (puck.p != undefined) {
-      trace('???');
-    }
 
     // XXX sound
 
     player.stance = FOLLOWTHROUGH;
     player.counter = 0;
+  }
+
+  public function makeCutsceneMC() {
+    if (_root.cutscenemc) _root.cutscenemc.removeMovieClip();
+    _root.cutscenemc = createMovieAtDepth('cut', CUTSCENEDEPTH);
+    _root.cutscenemc._visible = true;
+    _root.cutscenemc._x = 0;
+    _root.cutscenemc._y = 0;
+  }
+
+  public function playCutsceneSound(wav) {
+    var oof = new Sound(_root.cutscenesmc);
+    trace(wav);
+    oof.attachSound(wav);
+    oof.setVolume(100);
+    oof.start(0, 1);
+  }
+
+  public function newCutScene(scene) {
+    cutx = SCREENW + 3;
+    cutcounter = 0;
+    cutscene = scene;
+
+    if (scene == GOALSCORED) {
+      playCutsceneSound('crowd.wav');
+    }
+  }
+
+  public function resetCutScene() {
+    animframe = 0;
+    cutscene = NOCUT;
+    _root.cutscenemc._visible = false;
+    faceOff(2);
   }
 
   public function onEnterFrame() {
@@ -234,13 +274,38 @@ class Hockey extends MovieClip {
     // TODO: handle physics for objects on the ice (sticks, etc.)
 
     // TODO: Goals!
+    if (cutscene == GOALSCORED) {
+      cutcounter++;
+      makeCutsceneMC();
+      _root.cutscenemc.attachBitmap(goalscoredbg, 0);
+
+      var mc = _root.cutscenemc.createEmptyMovieClip('team', 1);
+      mc._y = 9 * 3;
+      cutx = (41 * 3) * 0.33 + 0.66 * cutx;
+      mc._x = cutx;
+      if (cutteam == USA) {
+        mc.attachBitmap(goalscoredusa, 4);
+      } else if (cutteam == CAN) {
+        mc.attachBitmap(goalscoredcan, 4);
+      } else if (cutteam == REF) {
+        mc.attachBitmap(goalscoredref, 4);
+      }
+
+      if (cutcounter > 75) {
+        resetCutScene();
+      }
+
+      return;
+    }
+
 
     // Physics for the puck, if not in possession.
     if (puck.p == undefined) {
       // trace('pdx: ' + puck.dx + ' ' + puck.dy);
       var res = tryMove(puck.x, puck.y,
                         PUCKCLIPW, PUCKCLIPH,
-                        puck.dx, puck.dy, PUCKFRICTION)
+                        puck.dx, puck.dy, PUCKFRICTION,
+                        true)
       puck.x = res.x;
       puck.y = res.y;
 
@@ -256,7 +321,8 @@ class Hockey extends MovieClip {
       var junk = junks[i];
       var res = tryMove(junk.x, junk.y,
                         PUCKCLIPW, PUCKCLIPH,
-                        junk.dx, junk.dy, JUNKFRICTION);
+                        junk.dx, junk.dy, JUNKFRICTION,
+                        false);
 
       junk.x = res.x;
       junk.y = res.y;
@@ -290,6 +356,32 @@ class Hockey extends MovieClip {
           player.counter = 0;
         }
       }
+    }
+
+    var usaoffense = [{ x: 389 * 3, y: 167 * 3 },
+                      { x: 424 * 3, y: 112 * 3 },
+                      { x: 424 * 3, y: 224 * 3 },
+                      { x: 385 * 3, y: 127 * 3 },
+                      { x: 383 * 3, y: 203 * 3 }];
+    var canoffense = [];
+    for (var i = 0; i < usaoffense.length; i++) {
+      var xx = usaoffense[i].x;
+      var yy = usaoffense[i].y;
+      canoffense.push({ x: REDLINEX - (xx - REDLINEX),
+            y: yy });
+    }
+
+    var usadefense = [{ x: 122 * 3, y: 134 * 3 },
+                      { x: 122 * 3, y: 198 * 3 },
+                      { x: 150 * 3, y: 166 * 3 },
+                      { x: 207 * 3, y: 168 * 3 },
+                      { x: 240 * 3, y: 127 * 3 }];
+    var candefense = [];
+    for (var i = 0; i < usadefense.length; i++) {
+      var xx = usadefense[i].x;
+      var yy = usadefense[i].y;
+      candefense.push({ x: REDLINEX - (xx - REDLINEX),
+            y: yy });
     }
 
     // TODO: handle input for user player
@@ -455,11 +547,11 @@ class Hockey extends MovieClip {
 
           } else if (player.puck) {
 
-            trace('player ' + i + ' with puck ' + player.stance);
+            // trace('player ' + i + ' with puck ' + player.stance);
             if (player.stance == SHOOTING) {
               player.counter++;
 
-              trace('shooting ' + player.counter);
+              // trace('shooting ' + player.counter);
               if (Math.random() < 0.1 || player.counter > FULLSTRENGTHTIME) {
                 var strength = player.counter / FULLSTRENGTHTIME;
                 if (strength > 1) strength = 1;
@@ -473,7 +565,7 @@ class Hockey extends MovieClip {
               player.stance = SHOOTING;
               player.counter = 0;
               trace('shooting...');
-              trace(' have puck? ' + player.puck);
+              // trace(' have puck? ' + player.puck);
             }
 
           } else if (player.goalie) {
@@ -488,29 +580,92 @@ class Hockey extends MovieClip {
             // XXX goalie should pass/shoot
 
             // XXX center indices; wrong
-          } else if ((i == 3 || i == 7)) {
+          } else {
 
-            // XXX as the player flips, not necessarily convergent
-            destx = puckcoord.x;
-            desty = puckcoord.y;
+            // Figure out what I do?
+            var closestdist = 99999;
+            var closestidx = i;
+
+            var teammatehaspuck = false;
+            var enemyhaspuck = false;
+
+            for (var p = 0; p < players.length; p++) {
+              var other = players[p];
+              if (p != i && other.puck) {
+                if (other.team == player.team) {
+                  teammatehaspuck = true;
+                } else {
+                  enemyhaspuck = true;
+                }
+              }
+
+              if (other.team == player.team &&
+                  !other.goalie) {
+                var px = other.x - puckcoord.x;
+                var py = other.y - puckcoord.y;
+                var dist = px * px + py * py;
+                if (dist < closestdist) {
+                  closestdist = dist;
+                  closestidx = p;
+                }
+              }
+            }
+
+            // If I'm the closest to the puck, go there.
+            if (i == closestidx) {
+              // XXX as the player flips, not necessarily convergent
+              destx = puckcoord.x;
+              desty = puckcoord.y;
+            } else if (enemyhaspuck) {
+
+              var dest = (player.team == USA) ? usadefense.shift() :
+                candefense.shift();
+              destx = dest.x;
+              desty = dest.y;
+            }
+
+            // Otherwise, if a teammate has the puck, go
+            // to offense.
+            if (teammatehaspuck) {
+              var dest = (player.team == USA) ? usaoffense.shift() :
+                canoffense.shift();
+              destx = dest.x;
+              desty = dest.y;
+            }
+
+            // Otherwise what, stay still?
+
           }
 
           // XXX Can be smarter about skating towards dest.
           // Can only skate if upright.
           if (player.stance == UPRIGHT) {
+
+            var distx = player.x - destx;
+            var disty = player.y - desty;
+            var dist = Math.sqrt(distx * distx +
+                                 disty * disty);
+
+            // If close, slow down.
+            var accel = PLAYERACCEL;
+            if (dist < 12) {
+              accel *= (dist / 12);
+            }
+
             if (player.x < destx) {
-              player.dx += PLAYERACCEL;
+              player.dx += accel;
               if (player.dx > 0) player.facing = RIGHT;
             } else if (player.x > destx) {
-              player.dx -= PLAYERACCEL;
+              player.dx -= accel;
               if (player.dx < 0) player.facing = LEFT;
             }
 
             if (player.y < desty) {
-              player.dy += PLAYERACCEL;
+              player.dy += accel;
             } else if (player.y > desty) {
-              player.dy -= PLAYERACCEL;
+              player.dy -= accel;
             }
+
           }
 
         }
@@ -624,12 +779,35 @@ class Hockey extends MovieClip {
 
       var res = tryMove(player.x, player.y,
                         PLAYERC, PLAYERCLIPHEIGHT,
-                        player.dx, player.dy, PLAYERFRICTION)
+                        player.dx, player.dy, PLAYERFRICTION,
+                        false)
       player.x = res.x;
       player.y = res.y;
 
       player.dx = res.dx;
       player.dy = res.dy;
+    }
+
+
+    // Goal scored?
+    if (puck.p == undefined) {
+
+      // XXX detect when ref scored the goal
+      if (puck.x >= CANGOALX1 && puck.x <= CANGOALX2 &&
+          puck.y >= CANGOALY1 && puck.y <= CANGOALY2) {
+
+        newCutScene(GOALSCORED);
+        cutteam = USA;
+        usascore++;
+
+      } else if (puck.x >= USAGOALX1 && puck.x <= USAGOALX2 &&
+                 puck.y >= USAGOALY1 && puck.y <= USAGOALY2) {
+
+        newCutScene(GOALSCORED);
+        cutteam = CAN;
+        canscore++;
+      }
+
     }
 
     redraw();
@@ -710,7 +888,8 @@ class Hockey extends MovieClip {
   // and the puck and maybe junk. The object returned
   // x, y, dx, and dy fields. Width and height are
   // half heights.
-  public function tryMove(x, y, w, h, dx, dy, friction) {
+  public function tryMove(x, y, w, h, dx, dy, friction,
+                          ispuck) {
     var hit = false;
 
     // XXX damping param
@@ -736,6 +915,39 @@ class Hockey extends MovieClip {
       ny = ICEMAXY - h;
     }
 
+    // Bars.
+    for (var i = 0; i < hbars.length; i++) {
+      var hbar = hbars[i];
+      if (ispuck && hbar.puckok) continue;
+      if (y >= hbar.y1 && y <= hbar.y2) {
+        if (x <= hbar.x1 && nx > hbar.x1) {
+          nx = hbar.x1;
+          dx = -dx;
+          hit = true;
+        } else if (x >= hbar.x2 && nx < hbar.x2) {
+          nx = hbar.x2;
+          dx = -dx;
+          hit = true;
+        }
+      }
+    }
+
+    for (var i = 0; i < vbars.length; i++) {
+      var vbar = vbars[i];
+      if (ispuck && vbar.puckok) continue;
+      if (x >= vbar.x1 && x <= vbar.x2) {
+        if (y <= vbar.y1 && ny > vbar.y1) {
+          ny = vbar.y1;
+          dy = -dy;
+          hit = true;
+        } else if (y >= vbar.y2 && ny < vbar.y2) {
+          ny = vbar.y2;
+          dy = -dy;
+          hit = true;
+        }
+      }
+    }
+
     // ice deceleration
     dx *= friction;
     dy *= friction;
@@ -746,6 +958,11 @@ class Hockey extends MovieClip {
   public function init() {
     menuteam = _root['menuselection'];
     trace('init hockey ' + menuteam);
+
+    goalscoredbg  = loadBitmap3x('goalscoredbg.png');
+    goalscoredcan = loadBitmap3x('goalscoredcan.png');
+    goalscoredusa = loadBitmap3x('goalscoredusa.png');
+    goalscoredref = loadBitmap3x('goalscoredref.png');
 
     stick1bm = loadBitmap3x('stick1.png');
 
@@ -762,6 +979,8 @@ class Hockey extends MovieClip {
     puckbm = loadBitmap3x('puck.png');
     _root.puckmc = createGlobalMC('puck', puckbm, ICESTUFFDEPTH + 500);
     _root.pucksmc = createMovieAtDepth('ps', PUCKSOUNDDEPTH);
+
+    _root.cutscenesmc = createMovieAtDepth('cuts', CUTSOUNDDEPTH);
 
     var num = 0;
     for (var sym in playerframes) {
