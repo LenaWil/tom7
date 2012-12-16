@@ -1,4 +1,9 @@
 
+// Config
+var FASTMODE = false;
+
+var MUSIC = !FASTMODE;
+
 // In screen pixels.
 var SCREENW = 840;
 var SCREENH = 600;
@@ -62,6 +67,9 @@ var COLLIDEDIST = 6 * 3;
 var PLAYERTOPUCK = 11 * 3;
 var PICKUPDIST = 6 * 3;
 
+var SPLATTIME = 24;
+var GETUPTIME = 12;
+
 var RIGHT = 0;
 var LEFT = 1;
 
@@ -72,8 +80,8 @@ var REF = 2;
 ///////////////
 // Physics.
 
-var MAXVELOCITYX = 7;
-var MAXVELOCITYY = 4;
+var MAXVELOCITYX = 8;
+var MAXVELOCITYY = 5.6;
 var ICEFRICTION = 0.96;
 
 var PLAYERACCEL = 2.0;
@@ -94,7 +102,8 @@ var FONTH = 16;
 var FONTOVERLAP = 1;
 var FONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?";
 
-var INFOHEIGHT = 4 * FONTH * 3;
+var INFOLINES = 2;
+var INFOHEIGHT = INFOLINES * FONTH * 3;
 var INFOMARGINX = 0 * 3;
 var INFOMARGINY = 0 * 3;
 

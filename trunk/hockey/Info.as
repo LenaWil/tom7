@@ -5,6 +5,7 @@ import flash.geom.Matrix;
 class Info {
 
   #include "constants.js"
+  #include "util.js"
 
   var mc : MovieClip = null;
   // never changes
@@ -25,15 +26,11 @@ class Info {
   public function init() {
     mc = _root.createEmptyMovieClip('info', INFODEPTH);
     mc._x = 0;
-    mc._y = SCREENHEIGHT - INFOHEIGHT;
+    mc._y = SCREENH - INFOHEIGHT;
 
     fontbm = BitmapData.loadBitmap('font.png');
 
-    var bg = BitmapData.loadBitmap('info.png');
-    var grow = new Matrix();
-    grow.scale(SCALE, SCALE);
-    background = new BitmapData(bg.width * SCALE, bg.height * SCALE, true, 0);
-    background.draw(bg, grow);
+    background = loadBitmap3x('info.png');
 
     for (var i = 0; i < FONTCHARS.length; i++) {
       // Just shift the whole graphic so that only
@@ -51,7 +48,7 @@ class Info {
     }
 
     message = [];
-    setMessage("HOCKEY GAME PLAY\n        TACKLE A PLAYERS\n");
+    setMessage("HOCKEY GAME PLAY\n        TACKLE AN SKATER\n");
     reload();
     show();
   }
@@ -69,9 +66,10 @@ class Info {
     mc.attachBitmap(background, 1);
     textbm = new BitmapData(background.width, background.height, true, 0);
     mc.attachBitmap(textbm, 2);
+    redraw();
   }
 
-  public function setMessage(m, sp) {
+  public function setMessage(m) {
     message = [];
     var s = "";
     for (var i = 0; i < m.length; i++) {
@@ -88,14 +86,14 @@ class Info {
 
   // Make progress on the display.
   // If the argument is true, then go faster.
-  public function doFrame() {
+  public function redraw() {
     for (var y = 0; y < INFOLINES; y++) {
       var s = message[y];
       for (var x = 0; x < s.length; x++) {
         var place = new Matrix();
         place.translate(INFOMARGINX + x * 3 * (FONTW - FONTOVERLAP),
                         INFOMARGINY + y * 3 * FONTH);
-        textbm.draw(font[s.charCodeAt(cx)], place);
+        textbm.draw(font[s.charCodeAt(x)], place);
         mc.attachBitmap(textbm, 2);
       }
     }

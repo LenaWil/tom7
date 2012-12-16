@@ -17,8 +17,8 @@ class TitleScreen extends MovieClip {
   var selectedbitmap;
 
   // fastmode!
-  var FADEFRAMES = 10;
-  var FADEOUTFRAMES = 10;
+  var FADEFRAMES = FASTMODE ? 1 : 10;
+  var FADEOUTFRAMES = FASTMODE ? 1 : 10;
 
   var selection = 0;
 
@@ -37,7 +37,7 @@ class TitleScreen extends MovieClip {
     // title music!
     titlemusic = new Sound(this);
     titlemusic.attachSound('unlucky.wav');
-    titlemusic.setVolume(100);
+    titlemusic.setVolume(MUSIC ? 100 : 0);
     titlemusic.start(0, 99999);
     trace('started title music');
 
