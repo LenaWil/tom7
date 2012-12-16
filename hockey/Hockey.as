@@ -42,6 +42,7 @@ class Hockey extends MovieClip {
   var cutteam = USA;
   var cutx = 0;
   var cutcounter = 0;
+  var reftouchedlast = false;
 
   // This is the scroll offset, the coordinates of the
   // top-left corner of the screen in terms of the rink
@@ -510,17 +511,30 @@ class Hockey extends MovieClip {
 
       } else {
 
+        // XXX goalie sticks?
+        var destx = player.x;
+        var desty = player.y;
+
         // TODO: handle AI for non-user players
         if (player.team == REF) {
+          var distx = puckcoord.x - player.x;
+          var disty = puckcoord.y - player.y;
+
+          var dist = Math.sqrt(distx * distx +
+                               disty * disty);
+          if (dist > REFDIST) {
+            destx = puckcoord.x;
+            desty = puckcoord.y;
+          } else {
+            // ?
+            destx = FACEOFF2X;
+            desty = FACEOFF2Y - 100;
+          }
 
           // XXX ref behavior -- get near puck?, but not
           // too close
 
         } else if (animframe > 10) {
-
-          // XXX goalie sticks?
-          var destx = player.x;
-          var desty = player.y;
 
           // XXX find stick if I don't have one.
           if (!player.stick) {
@@ -637,43 +651,45 @@ class Hockey extends MovieClip {
 
           }
 
-          // XXX Can be smarter about skating towards dest.
-          // Can only skate if upright.
-          if (player.stance == UPRIGHT) {
+        }
 
-            var distx = player.x - destx;
-            var disty = player.y - desty;
-            var dist = Math.sqrt(distx * distx +
-                                 disty * disty);
+        // XXX Can be smarter about skating towards dest.
+        // Can only skate if upright.
+        if (player.stance == UPRIGHT) {
 
-            // If close, slow down.
-            var accel = PLAYERACCEL;
-            if (dist < 12) {
-              accel *= (dist / 12);
-            }
+          var distx = player.x - destx;
+          var disty = player.y - desty;
+          var dist = Math.sqrt(distx * distx +
+                               disty * disty);
 
-            if (player.x < destx) {
-              player.dx += accel;
-              if (player.dx > 0) player.facing = RIGHT;
-            } else if (player.x > destx) {
-              player.dx -= accel;
-              if (player.dx < 0) player.facing = LEFT;
-            }
+          // If close, slow down.
+          var accel = PLAYERACCEL;
+          if (dist < 12) {
+            accel *= (dist / 12);
+          }
 
-            if (player.y < desty) {
-              player.dy += accel;
-            } else if (player.y > desty) {
-              player.dy -= accel;
-            }
+          if (player.x < destx) {
+            player.dx += accel;
+            if (player.dx > 0) player.facing = RIGHT;
+          } else if (player.x > destx) {
+            player.dx -= accel;
+            if (player.dx < 0) player.facing = LEFT;
+          }
 
+          if (player.y < desty) {
+            player.dy += accel;
+          } else if (player.y > desty) {
+            player.dy -= accel;
           }
 
         }
 
+
       }
 
       // TODO: Pick up stick if near it.
-      if (!player.stick && player.stance == UPRIGHT) {
+      if (!player.stick && player.stance == UPRIGHT &&
+          (i == user || player.team != REF)) {
         maybeGetStick(player);
       }
 
@@ -689,6 +705,7 @@ class Hockey extends MovieClip {
         if (Math.abs(puck.x - tx) < PICKUPDIST &&
             Math.abs(puck.y - ty) < PICKUPDIST) {
           player.puck = true;
+          reftouchedlast = (player.team == REF);
           puck = { p: i };
         }
 
@@ -747,6 +764,13 @@ class Hockey extends MovieClip {
             player2.stick = false;
           }
 
+          // Prevent player 1 from getting the stick immediately
+          // if he doesn't have one.
+          if (!player1.stick) {
+            player1.stance = GETTINGUP;
+            player1.counter = 0;
+          }
+
           // And fall.
           player2.dx = 0.3 * rdx;
           player2.dy = 0.3 * rdy;
@@ -792,20 +816,34 @@ class Hockey extends MovieClip {
     // Goal scored?
     if (puck.p == undefined) {
 
-      // XXX detect when ref scored the goal
       if (puck.x >= CANGOALX1 && puck.x <= CANGOALX2 &&
           puck.y >= CANGOALY1 && puck.y <= CANGOALY2) {
 
         newCutScene(GOALSCORED);
-        cutteam = USA;
+
+        if (menuteam == REF && reftouchedlast) {
+          cutteam = REF;
+          // XXX can get mad
+        } else {
+          cutteam = USA;
+        }
         usascore++;
+        showScore();
 
       } else if (puck.x >= USAGOALX1 && puck.x <= USAGOALX2 &&
                  puck.y >= USAGOALY1 && puck.y <= USAGOALY2) {
 
         newCutScene(GOALSCORED);
-        cutteam = CAN;
+
+        if (menuteam == REF && reftouchedlast) {
+          cutteam = REF;
+          // XXX usa get mad
+        } else {
+          cutteam = CAN;
+        }
+
         canscore++;
+        showScore();
       }
 
     }
@@ -1045,10 +1083,21 @@ class Hockey extends MovieClip {
     trace('loaded ' + num + ' frames.');
 
     info = new Info();
-    info.init()
+    info.init(menuteam)
 
     faceOff(2);
     redraw();
+  }
+
+  public function showScore() {
+    if (menuteam == REF) {
+      info.setMessage("   YOU ARE THE STAR REFEREE\n" +
+                      "Z - SHOOT     X - EJECT");
+    } else {
+      info.setMessage("       USA: " + usascore + "      " +
+                      "CAN: " + canscore + "\n" +
+                      "   Z - SHOOT     X - PASS/SWITCH");
+    }
   }
 
   // Sets up the players for a faceoff.

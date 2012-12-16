@@ -20,7 +20,7 @@ class TitleScreen extends MovieClip {
   var FADEFRAMES = FASTMODE ? 1 : 10;
   var FADEOUTFRAMES = FASTMODE ? 1 : 10;
 
-  var selection = 0;
+  var selection = FASTMODE ? 2 : 0;
 
   public function onLoad() {
     Key.addListener(this);

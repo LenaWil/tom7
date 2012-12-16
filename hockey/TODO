@@ -5,20 +5,21 @@
 TODO:
 
  GAME DOESN'T MAKE SENSE WITHOUT THESE
- - Shooting puck
- - Enemy AI
+ - Enemy AI - bunch up less.
  - Game score
- - Scoring!
+
 
  INTEGRATION OF CONTENT
  - Player ejection
  - Commissioner call
 
+
  OBVIOUS SLOPPINESS
  - Corner physics
- - On-screen key help
  - Title screen
  - Game timer
+ - Shooting from behind goal, in goal, etc.
+
 
  FUN
  - Losing helmet
