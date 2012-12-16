@@ -21,6 +21,10 @@ class Hockey extends MovieClip {
 
   var stick1bm : BitmapData = null;
 
+  var anger1bm : BitmapData = null;
+  var anger2bm : BitmapData = null;
+  var anger3bm : BitmapData = null;
+
   var info : Info = null;
 
   var holdingSpace = false;
@@ -125,6 +129,7 @@ class Hockey extends MovieClip {
   // stance: UPRIGHT, SPLAT, etc.
   // counter: general purpose frame counter
   //   for stances.
+  // anger: [0, 1], 1 is maximum angriness
   // ...
   var players = [];
 
@@ -233,6 +238,16 @@ class Hockey extends MovieClip {
     player.counter = 0;
   }
 
+  public function angerTeam(team, amt) {
+    for (var i = 0; i < players.length; i++) {
+      if (players[i].team == team) {
+        players[i].anger += amt;
+        if (players[i].anger > 1) players[i].anger = 1;
+        if (players[i].anger < 0) players[i].anger = 0;
+      }
+    }
+  }
+
   public function makeCutsceneMC() {
     if (_root.cutscenemc) _root.cutscenemc.removeMovieClip();
     _root.cutscenemc = createMovieAtDepth('cut', CUTSCENEDEPTH);
@@ -264,6 +279,12 @@ class Hockey extends MovieClip {
     cutscene = NOCUT;
     _root.cutscenemc._visible = false;
     faceOff(2);
+  }
+
+  public function addAnger(player, amt) {
+    player.anger += amt;
+    if (player.anger > 1) player.anger = 1;
+    if (player.anger < 0) player.anger = 0;
   }
 
   public function onEnterFrame() {
@@ -746,6 +767,10 @@ class Hockey extends MovieClip {
           var rdx = player2.dx + player1.dx;
           var rdy = player2.dy + player1.dy;
 
+          var baseanger =
+            (player1.team == REF) ? 0.3 :
+            ((player1.team == player2.team) ? 0.05 : 0.1);
+
           if (player2.puck) {
             puck = { x: player2.x + ((player2.facing == RIGHT) ?
                                      PLAYERTOPUCK : -PLAYERTOPUCK),
@@ -753,6 +778,8 @@ class Hockey extends MovieClip {
                      dx: 2 * rdx,
                      dy: 2 * rdy };
             player2.puck = false;
+            addAnger(player2, baseanger);
+            addAnger(player1, -baseanger);
           }
 
           // Lose stick.
@@ -762,6 +789,8 @@ class Hockey extends MovieClip {
             // XXX randomize stick graphic.
             addJunk(player2.x, player2.y, sdx, sdy, STICK, stick1bm);
             player2.stick = false;
+            addAnger(player2, 0.1);
+            addAnger(player1, -0.1);
           }
 
           // Prevent player 1 from getting the stick immediately
@@ -823,9 +852,11 @@ class Hockey extends MovieClip {
 
         if (menuteam == REF && reftouchedlast) {
           cutteam = REF;
-          // XXX can get mad
+          angerTeam(USA, 0.5);
         } else {
           cutteam = USA;
+          angerTeam(CAN, 0.2);
+          angerTeam(USA, -0.5);
         }
         usascore++;
         showScore();
@@ -837,9 +868,11 @@ class Hockey extends MovieClip {
 
         if (menuteam == REF && reftouchedlast) {
           cutteam = REF;
-          // XXX usa get mad
+          angerTeam(USA, 0.5);
         } else {
           cutteam = CAN;
+          angerTeam(USA, 0.2);
+          angerTeam(CAN, -0.5);
         }
 
         canscore++;
@@ -1002,6 +1035,10 @@ class Hockey extends MovieClip {
     goalscoredusa = loadBitmap3x('goalscoredusa.png');
     goalscoredref = loadBitmap3x('goalscoredref.png');
 
+    anger1bm = loadBitmap3x('anger1.png');
+    anger2bm = loadBitmap3x('anger2.png');
+    anger3bm = loadBitmap3x('anger3.png');
+
     stick1bm = loadBitmap3x('stick1.png');
 
     halobm = loadBitmap3x('halo.png');
@@ -1058,6 +1095,7 @@ class Hockey extends MovieClip {
         var player = { goalie: (p == 0), x: 0, y: 0, dx: 0, dy: 0,
                        stance: UPRIGHT,
                        team: team,
+                       anger: 0,
                        smc: createMovieAtDepth('s' + players.length,
                                                PLAYERSOUNDDEPTH +
                                                players.length),
@@ -1067,6 +1105,7 @@ class Hockey extends MovieClip {
     }
     this.players.push({ goalie: false, team: REF,
           x: 0, y: 0, dx: 0, dy: 0, stance: UPRIGHT,
+          anger: 0,
           smc : createMovieAtDepth('sref',
                                    PLAYERSOUNDDEPTH + players.length),
           mc: createMovieAtDepth('pref', ICESTUFFDEPTH + 500) });
@@ -1310,6 +1349,16 @@ class Hockey extends MovieClip {
     }
     player.mc._y = player.y + yoffset - PLAYERH - scrolly;
 
+    var amc = player.mc.createEmptyMovieClip('a', 3);
+    amc._x = ((12*3) / 2) - 6;
+    amc._y = -40;
+    if (player.anger > 0.8) {
+      amc.attachBitmap(anger3bm, 4);
+    } else if (player.anger > 0.5) {
+      amc.attachBitmap(anger2bm, 4);
+    } else if (player.anger > 0.2) {
+      amc.attachBitmap(anger1bm, 4);
+    }
   }
 
   var junkctr = 0;
