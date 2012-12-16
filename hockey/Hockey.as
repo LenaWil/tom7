@@ -103,6 +103,8 @@ class Hockey extends MovieClip {
   // goalie: true or false
   // stick: true or false
   // puck: true or false
+  // mc: movieclip for graphics, reset each frame
+  // smc: movieclip for sound
   // stance: UPRIGHT, SPLAT, etc.
   // counter: general purpose frame counter
   //   for stances.
@@ -133,20 +135,21 @@ class Hockey extends MovieClip {
     if (currentmusic != m) {
       trace('switch music ' + m);
       // Does this leak??
+      /*
       if (backgroundmusic)
         backgroundmusic.stop();
       backgroundclip.removeMovieClip();
 
       backgroundclip = _root.createEmptyMovieClip("backgroundclip",
                                                   MUSICDEPTH);
-      backgroundmusic = new Sound(backgroundclip);
-      backgroundmusic.attachSound(m);
-      if (true || _root['musicenabled']) {
-        backgroundmusic.setVolume(MUSIC ? 100 : 0);
-      } else {
-        backgroundmusic.setVolume(0);
+*/
+      if (MUSIC) {
+        backgroundmusic = new Sound();
+        backgroundmusic.attachSound(m);
+        backgroundmusic.setVolume(100);
+        backgroundmusic.start(0, 99999);
       }
-      backgroundmusic.start(0, 99999);
+
       currentmusic = m;
     }
   }
@@ -178,7 +181,7 @@ class Hockey extends MovieClip {
     var pdx = dx * SHOTSTRENGTH;
     var pdy = dy * SHOTSTRENGTH;
 
-    trace('pd: ' + pdx + ' ' + pdy);
+    // trace('pd: ' + pdx + ' ' + pdy);
 
     player.puck = false;
     // Might want to ensure puck is in rink?
@@ -216,6 +219,10 @@ class Hockey extends MovieClip {
 
       puck.dx = res.dx;
       puck.dy = res.dy;
+
+      if (res.hit) {
+        playPuckBounce(puck.x, puck.y);
+      }
     }
 
     var puckcoord = getPuckCoordinates();
@@ -430,6 +437,9 @@ class Hockey extends MovieClip {
           player2.dy = 0.3 * rdy;
           player2.stance = SPLAT;
           player2.counter = 0;
+
+          var damage = 1.0;
+          playHurtSound(player2, damage);
         }
       }
     }
@@ -462,6 +472,53 @@ class Hockey extends MovieClip {
     redraw();
   }
 
+  public function playPuckBounce(x, y) {
+    var oof = new Sound(_root.pucksmc);
+    var idx = (int(Math.random() * 1000)) % NBOUNCE;
+    oof.attachSound('bounce' + (idx + 1) + '.wav');
+    setSoundVolume(x, y, oof, 100);
+    oof.start(0, 1);
+  }
+
+  public function playHurtSound(player, damage) {
+    // XXX replace clip?
+    // trace(player.smc);
+    var oof = new Sound(player.smc);
+    var idx = (int(Math.random() * 1000)) % NHURT;
+    oof.attachSound('hurt' + (idx + 1) + '.wav');
+    // oof.attachSound('hurt1.wav');
+    setSoundVolume(player.x, player.y, oof, 75);
+    oof.start(0, 1);
+  }
+
+  public function setSoundVolume(x, y, sound, maxvol) {
+    // As distance from center of screen
+    // Maybe should base this on the player cursor?
+    var cx = (scrollx + SCREENW/2) - x;
+    var cy = (scrolly + SCREENH/2) - y;
+
+    // in pixels
+    var dx = Math.sqrt(cx * cx + cy * cy);
+
+    // fraction between 0 and 1, 0 loudest
+    var fade = dx / SCREENW*1.3;
+    if (fade < 0.05) fade = 0.05;
+    if (fade > 0.95) fade = 0.95;
+
+    fade = 1.0 - fade;
+
+    // trace('fade ' + fade + ' = ' + (80 * fade));
+    sound.setVolume(maxvol * fade);
+
+    // in [-1, 1]
+    var p = -cx / (SCREENW/2);
+    if (p > 0.90) p = 0.90;
+    if (p < -0.90) p = -0.90;
+
+    // Very hard to follow the sounds if panning too much.
+    sound.setPan(p * 10);
+  }
+
   public function maybeGetStick(player) {
     var ty = player.y;
     var tx = player.x + ((player.facing == RIGHT) ?
@@ -491,22 +548,28 @@ class Hockey extends MovieClip {
   // x, y, dx, and dy fields. Width and height are
   // half heights.
   public function tryMove(x, y, w, h, dx, dy) {
+    var hit = false;
+
     // XXX damping param
     var nx = x + dx;
     var ny = y + dy;
     if (nx - w < ICEMINX) {
       dx = -dx;
+      hit = true;
       nx = ICEMINX + w;
     } else if (nx + w > ICEMAXX) {
       dx = -dx;
+      hit = true;
       nx = ICEMAXX - w;
     }
 
     if (ny - h < ICEMINY) {
       dy = -dy;
+      hit = true;
       ny = ICEMINY + h;
     } else if (ny + h> ICEMAXY) {
       dy = -dy;
+      hit = true;
       ny = ICEMAXY - h;
     }
 
@@ -514,7 +577,7 @@ class Hockey extends MovieClip {
     dx *= ICEFRICTION;
     dy *= ICEFRICTION;
 
-    return { x: nx, y: ny, dx: dx, dy: dy };
+    return { x: nx, y: ny, dx: dx, dy: dy, hit: hit };
   }
 
   public function init() {
@@ -535,6 +598,7 @@ class Hockey extends MovieClip {
                                           BOTTOMBOARDSDEPTH);
     puckbm = loadBitmap3x('puck.png');
     _root.puckmc = createGlobalMC('puck', puckbm, ICESTUFFDEPTH + 500);
+    _root.pucksmc = createMovieAtDepth('ps', PUCKSOUNDDEPTH);
 
     var num = 0;
     for (var sym in playerframes) {
@@ -574,12 +638,17 @@ class Hockey extends MovieClip {
         var player = { goalie: (p == 0), x: 0, y: 0, dx: 0, dy: 0,
                        stance: UPRIGHT,
                        team: team,
+                       smc: createMovieAtDepth('s' + players.length,
+                                               PLAYERSOUNDDEPTH +
+                                               players.length),
                        mc: mc };
         this.players.push(player);
       }
     }
     this.players.push({ goalie: false, team: REF,
           x: 0, y: 0, dx: 0, dy: 0, stance: UPRIGHT,
+          smc : createMovieAtDepth('sref',
+                                   PLAYERSOUNDDEPTH + players.length),
           mc: createMovieAtDepth('pref', ICESTUFFDEPTH + 500) });
 
     // XXX from menu.
