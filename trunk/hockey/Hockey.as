@@ -165,23 +165,47 @@ class Hockey extends MovieClip {
     return mc;
   }
 
+  // Get the default shot direction for the player.
+  public function getPlayerShot(player) {
+    var goalx;
+    var goaly = GOALIEY + GOALH/2;
+    if (player.facing == RIGHT) {
+      // Maybe don't shoot towards own goal?
+      goalx = CANGOALIEX + 15;
+    } else {
+      goalx = USAGOALIEX - 15;
+    }
+
+    // XXX from puck position?
+    var dx = goalx - player.x;
+    var dy = goaly - player.y;
+
+    dy += 0.2 * (Math.random() - 0.5);
+
+    return { dx: dx, dy: dy };
+  }
+
   // Make the player shoot. Should have been in stance
   // SHOOTING, should have puck, should have stick.
-  // XXX take vector for direction?
-  public function playerShoots(player) {
-    var dx = (player.facing == RIGHT) ? 1 : -1;
-    var dy = 0.2 * (Math.random() - 0.5);
+  // dx/dy is a possibly unnormalized vector. strengthfrac
+  // is the power from 0-1.
+  public function playerShoots(player, dx, dy, strengthfrac) {
+    // Norm dx/dy
     var len = Math.sqrt(dx * dx + dy * dy);
     if (len > 0) {
       dx /= len;
       dy /= len;
     }
-    // dx contained normalized vector now.
 
-    var pdx = dx * SHOTSTRENGTH;
-    var pdy = dy * SHOTSTRENGTH;
+    if (isNaN(dx)) dx = 0;
+    if (isNaN(dy)) dy = 0;
 
-    // trace('pd: ' + pdx + ' ' + pdy);
+    trace('norm shoot vec: ' + dx + ' ' + dy + ' ' + strengthfrac);
+
+    var pdx = dx * SHOTSTRENGTH * strengthfrac;
+    var pdy = dy * SHOTSTRENGTH * strengthfrac;
+
+    trace('shoot vec: ' + pdx + ' ' + pdy);
 
     player.puck = false;
     // Might want to ensure puck is in rink?
@@ -193,6 +217,8 @@ class Hockey extends MovieClip {
     if (puck.p != undefined) {
       trace('???');
     }
+
+    // XXX sound
 
     player.stance = FOLLOWTHROUGH;
     player.counter = 0;
@@ -259,14 +285,22 @@ class Hockey extends MovieClip {
       if (i == user) {
 
         if (player.stance == SHOOTING) {
+          player.counter++;
+
           if (!holdingZ) {
             trace('shoots!');
-            playerShoots(player);
+
+            var dir = getPlayerShot(player);
+            // XXX adjust if holding up/down.
+
+            var strength = player.counter / FULLSTRENGTHTIME;
+            if (strength > 1) strength = 1;
+            playerShoots(player, dir.dx, dir.dy, strength);
           }
 
         } if (player.stance == UPRIGHT) {
 
-          if (holdingZ) {
+          if (holdingZ && player.puck && player.stick) {
             trace('shooting...');
             player.stance = SHOOTING;
             player.counter = 0;
@@ -293,9 +327,12 @@ class Hockey extends MovieClip {
       } else {
 
         // TODO: handle AI for non-user players
-        if (player.stance == UPRIGHT &&
-            animframe > 50 ==
-            player.team != REF) {
+        if (player.team == REF) {
+
+          // XXX ref behavior -- get near puck?, but not
+          // too close
+
+        } else if (animframe > 10) {
 
           // XXX goalie sticks?
           var destx = player.x;
@@ -324,6 +361,29 @@ class Hockey extends MovieClip {
               }
             }
 
+          } else if (player.puck) {
+
+            trace('player ' + i + ' with puck ' + player.stance);
+            if (player.stance == SHOOTING) {
+              player.counter++;
+
+              trace('shooting ' + player.counter);
+              if (Math.random() < 0.1 || player.counter > FULLSTRENGTHTIME) {
+                var strength = player.counter / FULLSTRENGTHTIME;
+                if (strength > 1) strength = 1;
+                var dir = getPlayerShot(player);
+                playerShoots(player, dir.dx, dir.dy, strength);
+              }
+            } else {
+
+              // XXX should skate to offense before shooting.
+              // XXX should sometimes pass, obviously
+              player.stance = SHOOTING;
+              player.counter = 0;
+              trace('shooting...');
+              trace(' have puck? ' + player.puck);
+            }
+
           } else if (player.goalie) {
             destx = (player.team == USA) ? USAGOALIEX : CANGOALIEX;
             desty = puckcoord.y;
@@ -337,21 +397,26 @@ class Hockey extends MovieClip {
 
             // XXX center indices; wrong
           } else if ((i == 3 || i == 7)) {
+
+            // XXX as the player flips, not necessarily convergent
             destx = puckcoord.x;
             desty = puckcoord.y;
           }
 
           // XXX Can be smarter about skating towards dest.
-          if (player.x < destx) {
-            player.dx += PLAYERACCEL;
-          } else if (player.x > destx) {
-            player.dx -= PLAYERACCEL;
-          }
+          // Can only skate if upright.
+          if (player.stance == UPRIGHT) {
+            if (player.x < destx) {
+              player.dx += PLAYERACCEL;
+            } else if (player.x > destx) {
+              player.dx -= PLAYERACCEL;
+            }
 
-          if (player.y < desty) {
-            player.dy += PLAYERACCEL;
-          } else if (player.y > desty) {
-            player.dy -= PLAYERACCEL;
+            if (player.y < desty) {
+              player.dy += PLAYERACCEL;
+            } else if (player.y > desty) {
+              player.dy -= PLAYERACCEL;
+            }
           }
 
         }
@@ -368,8 +433,8 @@ class Hockey extends MovieClip {
       if (player.stick && player.stance == UPRIGHT &&
           puck.p == undefined) {
         var ty = player.y;
-        var tx = player.x + ((player.facing == RIGHT) ?
-                             PLAYERTOPUCK : -PLAYERTOPUCK);
+        var tx = player.x; /* + ((player.facing == RIGHT) ?
+                             PLAYERTOPUCK : -PLAYERTOPUCK); */
 
         // XXX limits on dy?
         if (Math.abs(puck.x - tx) < PICKUPDIST &&
@@ -379,6 +444,7 @@ class Hockey extends MovieClip {
         }
 
       }
+
     }
 
     // Collisions between players.
@@ -447,17 +513,20 @@ class Hockey extends MovieClip {
     for (var i = 0; i < players.length; i++) {
       var player = players[i];
 
-      if (player.dx > MAXVELOCITYX)
-        player.dx = MAXVELOCITYX;
+      var mvx = player.puck ? (MAXVELOCITYX * 1.1) : MAXVELOCITYX;
+      var mvy = player.puck ? (MAXVELOCITYY * 1.1) : MAXVELOCITYY;
 
-      if (player.dx < -MAXVELOCITYX)
-        player.dx = -MAXVELOCITYX;
+      if (player.dx > mvx)
+        player.dx = mvx;
 
-      if (player.dy > MAXVELOCITYY)
-        player.dy = MAXVELOCITYY;
+      if (player.dx < -mvx)
+        player.dx = -mvx;
 
-      if (player.dy < -MAXVELOCITYY)
-        player.dy = -MAXVELOCITYY;
+      if (player.dy > mvy)
+        player.dy = mvy;
+
+      if (player.dy < -mvy)
+        player.dy = -mvy;
 
       var res = tryMove(player.x, player.y,
                         PLAYERC, PLAYERCLIPHEIGHT,
@@ -521,8 +590,8 @@ class Hockey extends MovieClip {
 
   public function maybeGetStick(player) {
     var ty = player.y;
-    var tx = player.x + ((player.facing == RIGHT) ?
-                         PLAYERTOPUCK : -PLAYERTOPUCK);
+    var tx = player.x; /* + ((player.facing == RIGHT) ?
+                         PLAYERTOPUCK : -PLAYERTOPUCK); */
 
     for (var j = 0; j < junks.length; j++) {
       var junk = junks[j];
