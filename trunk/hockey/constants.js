@@ -76,6 +76,8 @@ var MAXVELOCITYX = 7;
 var MAXVELOCITYY = 4;
 var ICEFRICTION = 0.96;
 
+var PLAYERACCEL = 2.0;
+
 //////////////
 // Title stuff
 
@@ -83,12 +85,27 @@ var TITLESELX = 74 * 3;
 var TITLESELY = 95 * 3;
 var TITLESELHEIGHT = 20 * 3;
 
+/////////////
+// Info stuff
+
+// These unusually are in png pixels, not screen pixels.
+var FONTW = 9;
+var FONTH = 16;
+var FONTOVERLAP = 1;
+var FONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?";
+
+var INFOHEIGHT = 4 * FONTH * 3;
+var INFOMARGINX = 0 * 3;
+var INFOMARGINY = 0 * 3;
+
 /////////
 // Depths.
 
 // Title stuff
 var BGIMAGEDEPTH = 290;
 var TITLESELDEPTH = 295;
+
+var MUSICDEPTH = 80;
 
 var RINKDEPTH = 200;
 var HALODEPTH = 210;
@@ -103,3 +120,6 @@ var ICESTUFFDEPTH = 1000;  // - 10000
 var PPLAYERDEPTH = 10;
 
 var BOTTOMBOARDSDEPTH = 50000;
+
+var INFODEPTH = 60000;
+
