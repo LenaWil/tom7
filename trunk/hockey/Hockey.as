@@ -19,6 +19,14 @@ class Hockey extends MovieClip {
   var goalscoredusa : BitmapData = null;
   var goalscoredref : BitmapData = null;
 
+  var ejectionbg : BitmapData = null;
+  var ejectionusa : BitmapData = null;
+  var ejectioncan : BitmapData = null;
+  var ejectionref : BitmapData = null;
+
+  var telephonebg : BitmapData = null;
+  var telephoneref : BitmapData = null;
+
   var stick1bm : BitmapData = null;
 
   var anger1bm : BitmapData = null;
@@ -42,11 +50,15 @@ class Hockey extends MovieClip {
   // Cutscene.
   var NOCUT = 0;
   var GOALSCORED = 1;
+  var EJECTION = 2;
+  var TELEPHONE = 3;
   var cutscene = NOCUT;
   var cutteam = USA;
   var cutx = 0;
   var cutcounter = 0;
   var reftouchedlast = false;
+
+  var suspicion = 0;
 
   // This is the scroll offset, the coordinates of the
   // top-left corner of the screen in terms of the rink
@@ -154,21 +166,18 @@ class Hockey extends MovieClip {
   var usascore = 0;
   var canscore = 0;
 
-  var currentmusic = null;
   var backgroundclip = null;
   var backgroundmusic = null;
-  public function switchMusic(m) {
-    if (currentmusic != m) {
-      trace('switch music ' + m);
-      // Does this leak??
-      if (MUSIC) {
-        backgroundmusic = new Sound();
-        backgroundmusic.attachSound(m);
-        backgroundmusic.setVolume(100);
-        backgroundmusic.start(0, 99999);
-      }
+  public function setMusic(m) {
 
-      currentmusic = m;
+    trace('switch music ' + m);
+    // Does this leak??
+    backgroundclip = createMovieAtDepth('bgm', BGMUSICDEPTH);
+    backgroundmusic = new Sound(backgroundclip);
+    if (MUSIC) {
+      backgroundmusic.attachSound(m);
+      backgroundmusic.setVolume(100);
+      backgroundmusic.start(0, 99999);
     }
   }
 
@@ -256,12 +265,12 @@ class Hockey extends MovieClip {
     _root.cutscenemc._y = 0;
   }
 
-  public function playCutsceneSound(wav) {
+  public function playCutsceneSound(wav, times) {
     var oof = new Sound(_root.cutscenesmc);
     trace(wav);
     oof.attachSound(wav);
     oof.setVolume(100);
-    oof.start(0, 1);
+    oof.start(0, times);
   }
 
   public function newCutScene(scene) {
@@ -270,7 +279,16 @@ class Hockey extends MovieClip {
     cutscene = scene;
 
     if (scene == GOALSCORED) {
-      playCutsceneSound('crowd.wav');
+      playCutsceneSound('crowd.wav', 1);
+    }
+
+    // XXX booing
+    if (scene == EJECTION) {
+      playCutsceneSound('crowd.wav', 1);
+    }
+
+    if (scene == TELEPHONE) {
+      playCutsceneSound('telephone.wav', 2);
     }
   }
 
@@ -290,6 +308,13 @@ class Hockey extends MovieClip {
   public function onEnterFrame() {
     animframe++;
     if (animframe > 1000000) animframe = 0;
+
+
+    if (suspicion > 1.0 && cutscene == NOCUT) {
+
+      newCutScene(TELEPHONE);
+      cutteam = REF;
+    }
 
     // trace('oef');
 
@@ -315,6 +340,68 @@ class Hockey extends MovieClip {
 
       if (cutcounter > 75) {
         resetCutScene();
+      }
+
+      return;
+    } else if (cutscene == EJECTION) {
+      cutcounter++;
+      makeCutsceneMC();
+      _root.cutscenemc.attachBitmap(ejectionbg, 0);
+
+      var mc = _root.cutscenemc.createEmptyMovieClip('team', 1);
+      mc._y = 53 * 3;
+      cutx = (161 * 3) * 0.33 + 0.66 * cutx;
+      mc._x = cutx;
+
+      if (cutteam == USA) {
+        mc.attachBitmap(ejectionusa, 4);
+      } else if (cutteam == CAN) {
+        mc.attachBitmap(ejectioncan, 4);
+      }
+
+      var mcref = _root.cutscenemc.createEmptyMovieClip('r', 5);
+      mcref._y = 31 * 3;
+      mcref._x = -cutx*1.5 + SCREENW;
+
+      mcref.attachBitmap(ejectionref, 10);
+
+      if (cutcounter > 75) {
+        resetCutScene();
+      }
+
+      return;
+    } else if (cutscene == TELEPHONE) {
+
+      cutcounter++;
+      makeCutsceneMC();
+      _root.cutscenemc.attachBitmap(telephonebg, 0);
+
+      var mcref = _root.cutscenemc.createEmptyMovieClip('r', 5);
+      mcref._y = 37 * 3;
+      cutx = (169 * 3) * 0.33 + 0.66 * cutx;
+      mcref._x = cutx;
+
+      mcref.attachBitmap(telephoneref, 10);
+
+      if (cutcounter > 100) {
+        if (backgroundclip != null) {
+          backgroundclip.removeMovieClip();
+          backgroundclip == null;
+        }
+      } else {
+        backgroundmusic.setVolume (100 - cutcounter);
+      }
+
+      if (cutcounter > 200) {
+        // XXX delete everything...
+
+        // XXX?!
+        this.removeMovieClip();
+        for (var o in _root) {
+          _root[o].removeMovieClip();
+        }
+        _root.gotoAndStop('title');
+        return;
       }
 
       return;
@@ -412,79 +499,117 @@ class Hockey extends MovieClip {
 
       if (i == user) {
 
-        if (holdingX && player.team != REF) {
-
+        if (holdingX) {
           // impulse
           allowX = false;
           holdingX = false;
 
-          // If we have the puck, pass. Otherwise,
-          // change the active player.
-          if (player.puck) {
+          if (player.team == REF) {
 
-            // Find a player on my team..
-            var bestp = pp;
-            // Number of directions satisfied.
-            var bestscore = -10;
-            for (var pp = 0; pp < players.length; pp++) {
-              var other = players[pp];
-              if (other.team == player.team && pp != user) {
-                var otherscore = 0;
-                if (holdingLeft) {
-                  if (other.x < player.x) {
-                    otherscore++;
-                  } else {
-                    otherscore--;
-                  }
-                }
+            // Eject the closest player.
+            var bestdist = 999999;
+            var bestidx = i;
+            for (var p = 0; p < players.length; p++) {
+              var other = players[p];
+              if (other.team != REF) {
+                var distx = other.x - player.x;
+                var disty = other.y - player.y;
+                var dist = distx * distx + disty * disty;
 
-                if (holdingRight) {
-                  if (other.x > player.x) {
-                    otherscore++;
-                  } else {
-                    otherscore--;
-                  }
-                }
-
-                if (holdingDown) {
-                  if (other.y > player.y) {
-                    otherscore++;
-                  } else {
-                    otherscore--;
-                  }
-                }
-
-                if (holdingUp) {
-                  if (other.y < player.y) {
-                    otherscore++;
-                  } else {
-                    otherscore--;
-                  }
-                }
-
-                if (otherscore > bestscore) {
-                  bestscore = otherscore;
-                  bestp = pp;
+                if (dist < bestdist) {
+                  bestdist = dist;
+                  bestidx = p;
                 }
               }
             }
 
-            var other = players[bestp];
-            // Note, might not be any other players!
-            playerShoots(player,
-                         other.x - player.x,
-                         other.y - player.y, 0.66);
+            if (bestidx != i) {
+              var other = players[bestidx];
+              newCutScene(EJECTION);
+              cutteam = other.team;
 
-            // Can switch away from current player if not
-            // holding puck, and on a team.
+              // XXX get from player
+              var guilt = 0.1;
+              // xxx if guilt > 0.8 guilt = 1
+
+              var anger = (1.0 - guilt) / 2;
+
+              suspicion += (1.0 - guilt) * 0.75;
+
+              angerTeam(other.team, anger);
+              showScore();
+            }
+
           } else {
 
-            // XXX skip over SPLATted players?
-            for (var pp = 0; pp < players.length; pp++) {
-              var other = (user + pp + 1) % players.length;
-              if (players[other].team == player.team) {
-                user = other;
-                break;
+            // If we have the puck, pass. Otherwise,
+            // change the active player.
+            if (player.puck) {
+
+              // Find a player on my team..
+              var bestp = pp;
+              // Number of directions satisfied.
+              var bestscore = -10;
+              for (var pp = 0; pp < players.length; pp++) {
+                var other = players[pp];
+                if (other.team == player.team && pp != user) {
+                  var otherscore = 0;
+                  if (holdingLeft) {
+                    if (other.x < player.x) {
+                      otherscore++;
+                    } else {
+                      otherscore--;
+                    }
+                  }
+
+                  if (holdingRight) {
+                    if (other.x > player.x) {
+                      otherscore++;
+                    } else {
+                      otherscore--;
+                    }
+                  }
+
+                  if (holdingDown) {
+                    if (other.y > player.y) {
+                      otherscore++;
+                    } else {
+                      otherscore--;
+                    }
+                  }
+
+                  if (holdingUp) {
+                    if (other.y < player.y) {
+                      otherscore++;
+                    } else {
+                      otherscore--;
+                    }
+                  }
+
+                  if (otherscore > bestscore) {
+                    bestscore = otherscore;
+                    bestp = pp;
+                  }
+                }
+              }
+
+              var other = players[bestp];
+              // Note, might not be any other players!
+              playerShoots(player,
+                           other.x - player.x,
+                           other.y - player.y, 0.66);
+
+              // Can switch away from current player if not
+              // holding puck, and on a team.
+            } else {
+
+              // XXX skip over SPLATted players?
+              for (var pp = 0; pp < players.length; pp++) {
+                var other = (user + pp + 1) % players.length;
+                if (players[other].team == player.team) {
+                  user = other;
+                  break;
+                }
               }
             }
           }
@@ -1035,6 +1160,14 @@ class Hockey extends MovieClip {
     goalscoredusa = loadBitmap3x('goalscoredusa.png');
     goalscoredref = loadBitmap3x('goalscoredref.png');
 
+    ejectionbg  = loadBitmap3x('ejectionbg.png');
+    ejectioncan = loadBitmap3x('ejectioncan.png');
+    ejectionusa = loadBitmap3x('ejectionusa.png');
+    ejectionref = loadBitmap3x('ejectionref.png');
+
+    telephonebg = loadBitmap3x('telephonebg.png');
+    telephoneref = loadBitmap3x('telephoneref.png');
+
     anger1bm = loadBitmap3x('anger1.png');
     anger2bm = loadBitmap3x('anger2.png');
     anger3bm = loadBitmap3x('anger3.png');
@@ -1080,7 +1213,7 @@ class Hockey extends MovieClip {
       }
     }
 
-    switchMusic('circus.wav');
+    setMusic('circus.wav');
 
     this.junks = [];
 
@@ -1122,7 +1255,8 @@ class Hockey extends MovieClip {
     trace('loaded ' + num + ' frames.');
 
     info = new Info();
-    info.init(menuteam)
+    info.init();
+    showScore();
 
     faceOff(2);
     redraw();
@@ -1130,7 +1264,11 @@ class Hockey extends MovieClip {
 
   public function showScore() {
     if (menuteam == REF) {
-      info.setMessage("   YOU ARE THE STAR REFEREE\n" +
+      var line1 = "   YOU ARE THE STAR REFEREE";
+      if (suspicion > 0) {
+        line1 = "  SUSPICION: " + int(100 * suspicion) + "%";
+      }
+      info.setMessage(line1 + "\n" +
                       "Z - SHOOT     X - EJECT");
     } else {
       info.setMessage("       USA: " + usascore + "      " +

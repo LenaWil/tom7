@@ -1,6 +1,6 @@
 
 // Config
-var FASTMODE = true;
+var FASTMODE = false;
 
 var MUSIC = !FASTMODE;
 
@@ -152,6 +152,7 @@ var HALODEPTH = 210;
 // on the ice.
 var ICESTUFFDEPTH = 1000;  // - 10000
 
+var BGMUSICDEPTH = 297;
 var CUTSOUNDDEPTH = 298;
 var PUCKSOUNDDEPTH = 299;
 var PLAYERSOUNDDEPTH = 300;  // - 350
