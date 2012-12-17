@@ -24,6 +24,8 @@ class Hockey extends MovieClip {
   var ejectioncan : BitmapData = null;
   var ejectionref : BitmapData = null;
 
+  var gameoverbg : BitmapData = null;
+
   var telephonebg : BitmapData = null;
   var telephoneref : BitmapData = null;
 
@@ -52,6 +54,7 @@ class Hockey extends MovieClip {
   var GOALSCORED = 1;
   var EJECTION = 2;
   var TELEPHONE = 3;
+  var GAMEOVER = 4;
   var cutscene = NOCUT;
   var cutteam = USA;
   var cutx = 0;
@@ -59,6 +62,9 @@ class Hockey extends MovieClip {
   var reftouchedlast = false;
 
   var suspicion = 0;
+
+  // Three minutes.
+  var gametimeframes = FASTMODE ? 30 : (4 * 60 * 24);
 
   // This is the scroll offset, the coordinates of the
   // top-left corner of the screen in terms of the rink
@@ -278,13 +284,13 @@ class Hockey extends MovieClip {
     cutcounter = 0;
     cutscene = scene;
 
-    if (scene == GOALSCORED) {
+    if (scene == GOALSCORED || scene == GAMEOVER) {
       playCutsceneSound('crowd.wav', 1);
     }
 
     // XXX booing
     if (scene == EJECTION) {
-      playCutsceneSound('crowd.wav', 1);
+      playCutsceneSound('boo.wav', 1);
     }
 
     if (scene == TELEPHONE) {
@@ -308,7 +314,6 @@ class Hockey extends MovieClip {
   public function onEnterFrame() {
     animframe++;
     if (animframe > 1000000) animframe = 0;
-
 
     if (suspicion > 1.0 && cutscene == NOCUT) {
 
@@ -385,14 +390,55 @@ class Hockey extends MovieClip {
 
       if (cutcounter > 100) {
         if (backgroundclip != null) {
+          backgroundmusic.setVolume(0);
+          backgroundmusic.stop();
           backgroundclip.removeMovieClip();
-          backgroundclip == null;
+          backgroundclip = null;
         }
       } else {
-        backgroundmusic.setVolume (100 - cutcounter);
+        backgroundmusic.setVolume(100 - cutcounter);
       }
 
-      if (cutcounter > 200) {
+      if (cutcounter > 180) {
+        // XXX delete everything...
+
+        // XXX?!
+        this.removeMovieClip();
+        for (var o in _root) {
+          _root[o].removeMovieClip();
+        }
+        _root.gotoAndStop('title');
+        return;
+      }
+
+      return;
+    } else if (cutscene == GAMEOVER) {
+      cutcounter++;
+      makeCutsceneMC();
+      _root.cutscenemc.attachBitmap(gameoverbg, 0);
+
+      var mc = _root.cutscenemc.createEmptyMovieClip('team', 1);
+      mc._y = 9 * 3;
+      cutx = (41 * 3) * 0.33 + 0.66 * cutx;
+      mc._x = cutx;
+      if (cutteam == USA) {
+        mc.attachBitmap(goalscoredusa, 4);
+      } else if (cutteam == CAN) {
+        mc.attachBitmap(goalscoredcan, 4);
+      }
+
+      if (cutcounter > 100) {
+        if (backgroundclip != null) {
+          backgroundmusic.setVolume(0);
+          backgroundmusic.stop();
+          backgroundclip.removeMovieClip();
+          backgroundclip = null;
+        }
+      } else {
+        backgroundmusic.setVolume(100 - cutcounter);
+      }
+
+      if (cutcounter > 180) {
         // XXX delete everything...
 
         // XXX?!
@@ -407,6 +453,12 @@ class Hockey extends MovieClip {
       return;
     }
 
+    gametimeframes--;
+    showScore(); // PERF always?
+    if (gametimeframes < 0 && usascore != canscore) {
+      newCutScene(GAMEOVER);
+      cutteam = (usascore > canscore) ? USA : CAN;
+    }
 
     // Physics for the puck, if not in possession.
     if (puck.p == undefined) {
@@ -1165,6 +1217,8 @@ class Hockey extends MovieClip {
     ejectionusa = loadBitmap3x('ejectionusa.png');
     ejectionref = loadBitmap3x('ejectionref.png');
 
+    gameoverbg = loadBitmap3x('gameoverbg.png');
+
     telephonebg = loadBitmap3x('telephonebg.png');
     telephoneref = loadBitmap3x('telephoneref.png');
 
@@ -1263,16 +1317,30 @@ class Hockey extends MovieClip {
   }
 
   public function showScore() {
+    var minutes = int(gametimeframes / (60 * 24));
+    var leftover = gametimeframes - (minutes * 60 * 24);
+    var seconds = int(leftover / 24);
+
+    var sstr = '' + seconds;
+    if (seconds == 0) sstr = '00';
+    else if (seconds < 10) sstr = '0' + seconds;
+    var timestr = '' + minutes + ":" + sstr;
+
     if (menuteam == REF) {
-      var line1 = "   YOU ARE THE STAR REFEREE";
+      var line1 = " YOU ARE THE REF ";
       if (suspicion > 0) {
-        line1 = "  SUSPICION: " + int(100 * suspicion) + "%";
+        line1 = "  SUSPICION: " + int(100 * suspicion) + "% ";
       }
+
+      line1 += " TIME: " + timestr;
+
       info.setMessage(line1 + "\n" +
                       "Z - SHOOT     X - EJECT");
     } else {
-      info.setMessage("       USA: " + usascore + "      " +
-                      "CAN: " + canscore + "\n" +
+      info.setMessage(" USA: " + usascore + "  " +
+                      "CAN: " + canscore +
+                      "  TIME: " + timestr +
+                      "\n" +
                       "   Z - SHOOT     X - PASS/SWITCH");
     }
   }
