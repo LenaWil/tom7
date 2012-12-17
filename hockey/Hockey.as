@@ -38,6 +38,7 @@ class Hockey extends MovieClip {
 
   var guilt1bm : BitmapData = null;
   var guilt2bm : BitmapData = null;
+  var innocentbm : BitmapData = null;
 
   var info : Info = null;
 
@@ -61,6 +62,7 @@ class Hockey extends MovieClip {
   var GAMEOVER = 4;
   var cutscene = NOCUT;
   var cutteam = USA;
+  var cutguilt = 0;
   var cutx = 0;
   var cutcounter = 0;
   var reftouchedlast = false;
@@ -288,9 +290,9 @@ class Hockey extends MovieClip {
 
     if (scene == GAMEOVER) {
       if (cutteam == REF) {
-        playCutsceneSound('crowd.wav', 1);
-      } else {
         playCutsceneSound('boo.wav', 1);
+      } else {
+        playCutsceneSound('crowd.wav', 1);
       }
     } else if (scene == GOALSCORED) {
       playCutsceneSound('crowd.wav', 1);
@@ -372,6 +374,20 @@ class Hockey extends MovieClip {
       } else if (cutteam == CAN) {
         mc.attachBitmap(ejectioncan, 4);
       }
+
+      var mcverdict = _root.cutscenemc.createEmptyMovieClip('v', 6);
+      var bm;
+      if (cutguilt > 0.8) {
+        bm = guilt2bm;
+      } else if (cutguilt > 0.5) {
+        bm = guilt1bm;
+        mcverdict.attachBitmap(guilt1bm, 12);
+      } else {
+        bm = innocentbm;
+      }
+      mcverdict.attachBitmap(bm, 12);
+      mcverdict._x = cutx + 32 * 3 - bm.width/2;
+      mcverdict._y = 48 * 3 - bm.height;
 
       var mcref = _root.cutscenemc.createEmptyMovieClip('r', 5);
       mcref._y = 31 * 3;
@@ -659,6 +675,7 @@ class Hockey extends MovieClip {
 
                 var guilt = other.guilt;
                 if (guilt > 0.8) guilt = 1;
+                cutguilt = guilt;
 
                 var anger = (1.0 - guilt) / 2;
 
@@ -667,7 +684,12 @@ class Hockey extends MovieClip {
                 // remove player from game.
                 removePlayer(bestidx);
 
-                angerTeam(other.team, anger);
+                // Everybody shapes up.
+                for (var p = 0; p < players.length; p++) {
+                  players[p].guilt /= 2;
+                }
+
+                angerTeam(cutteam, anger);
                 showScore();
                 return;
               }
@@ -871,6 +893,7 @@ class Hockey extends MovieClip {
             }
 
           } else if (player.goalie) {
+
             destx = (player.team == USA) ? USAGOALIEX : CANGOALIEX;
             desty = puckcoord.y;
 
@@ -1019,8 +1042,10 @@ class Hockey extends MovieClip {
           // XXX should have real priority system, based on
           // velocity, stance, having puck, hp, anger, running
           // start, etc.
-          var prior1 = (i == user) ? 1000 : (player1.goalie ? 2000 : i);
-          var prior2 = (j == user) ? 1000 : (player2.goalie ? 2000 : j);
+          var prior1 = (i == user && !player1.puck) ?
+            1000 : (player1.goalie ? 2000 : i);
+          var prior2 = (j == user && !player2.puck) ?
+            1000 : (player2.goalie ? 2000 : j);
 
           if (menuteam == REF) {
             prior1 += player1.anger * 1500;
@@ -1028,10 +1053,13 @@ class Hockey extends MovieClip {
           }
 
           // Put them in priority order.
+          var p1idx = i;
           if (prior1 < prior2) {
             var t = player1;
             player1 = player2;
             player2 = t;
+
+            p1idx = j;
           }
 
           // Player 1 wins...
@@ -1049,11 +1077,18 @@ class Hockey extends MovieClip {
           }
 
           if (player2.puck) {
-            puck = { x: player2.x + ((player2.facing == RIGHT) ?
-                                     PLAYERTOPUCK : -PLAYERTOPUCK),
-                     y: player2.y,
-                     dx: 2 * rdx,
-                     dy: 2 * rdy };
+            if (player1.goalie) {
+              reftouchedlast = false;
+              puck = { p: p1idx };
+              player1.puck = true;
+
+            } else {
+              puck = { x: player2.x + ((player2.facing == RIGHT) ?
+                                       PLAYERTOPUCK : -PLAYERTOPUCK),
+                       y: player2.y,
+                       dx: 2 * rdx,
+                       dy: 2 * rdy };
+            }
             player2.puck = false;
             addAnger(player2, baseanger);
             addAnger(player1, -baseanger);
@@ -1340,6 +1375,7 @@ class Hockey extends MovieClip {
 
     guilt1bm = loadBitmap3x('guilt1.png');
     guilt2bm = loadBitmap3x('guilt2.png');
+    innocentbm = loadBitmap3x('innocent.png');
 
     stick1bm = loadBitmap3x('stick1.png');
 
