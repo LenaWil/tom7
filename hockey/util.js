@@ -105,3 +105,7 @@ private function createMovieAtDepth(name, depth) {
     mc.swapDepths(depth);
     return mc;
 }
+
+private function toDecimal(number, factor) {
+  return Math.round(number * factor) / factor;
+}

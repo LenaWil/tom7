@@ -58,7 +58,7 @@ class TitleScreen extends MovieClip {
     if (playsound) {
       var sound = new Sound(this);
       sound.attachSound('menuchange.wav');
-      sound.setVolume(60);
+      sound.setVolume(100);
       sound.start(0, 1);
     }
   }
