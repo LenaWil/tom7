@@ -35,6 +35,9 @@ class Hockey extends MovieClip {
   var anger2bm : BitmapData = null;
   var anger3bm : BitmapData = null;
 
+  var guilt1bm : BitmapData = null;
+  var guilt2bm : BitmapData = null;
+
   var info : Info = null;
 
   var holdingSpace = false;
@@ -148,6 +151,7 @@ class Hockey extends MovieClip {
   // counter: general purpose frame counter
   //   for stances.
   // anger: [0, 1], 1 is maximum angriness
+  // guilt: [0, 1] from infractions
   // ...
   var players = [];
 
@@ -309,6 +313,12 @@ class Hockey extends MovieClip {
     player.anger += amt;
     if (player.anger > 1) player.anger = 1;
     if (player.anger < 0) player.anger = 0;
+  }
+
+  public function addGuilt(player, amt) {
+    player.guilt += amt;
+    if (player.guilt > 1) player.guilt = 1;
+    if (player.guilt < 0) player.guilt = 0;
   }
 
   public function onEnterFrame() {
@@ -580,9 +590,8 @@ class Hockey extends MovieClip {
               newCutScene(EJECTION);
               cutteam = other.team;
 
-              // XXX get from player
-              var guilt = 0.1;
-              // xxx if guilt > 0.8 guilt = 1
+              var guilt = player.guilt;
+              if (guilt > 0.8) guilt = 1;
 
               var anger = (1.0 - guilt) / 2;
 
@@ -948,6 +957,11 @@ class Hockey extends MovieClip {
             (player1.team == REF) ? 0.3 :
             ((player1.team == player2.team) ? 0.05 : 0.1);
 
+          // No hitting ref ever, even if he has the puck.
+          if (player2.team == REF) {
+            addGuilt(player1, 0.3);
+          }
+
           if (player2.puck) {
             puck = { x: player2.x + ((player2.facing == RIGHT) ?
                                      PLAYERTOPUCK : -PLAYERTOPUCK),
@@ -957,6 +971,9 @@ class Hockey extends MovieClip {
             player2.puck = false;
             addAnger(player2, baseanger);
             addAnger(player1, -baseanger);
+          } else {
+            // No hitting players without puck.
+            addGuilt(player1, 0.2);
           }
 
           // Lose stick.
@@ -968,6 +985,11 @@ class Hockey extends MovieClip {
             player2.stick = false;
             addAnger(player2, 0.1);
             addAnger(player1, -0.1);
+          } else {
+            // Defenseless player?
+            if (player1.stick) {
+              addGuilt(player1, 0.1);
+            }
           }
 
           // Prevent player 1 from getting the stick immediately
@@ -1226,6 +1248,9 @@ class Hockey extends MovieClip {
     anger2bm = loadBitmap3x('anger2.png');
     anger3bm = loadBitmap3x('anger3.png');
 
+    guilt1bm = loadBitmap3x('guilt1.png');
+    guilt2bm = loadBitmap3x('guilt2.png');
+
     stick1bm = loadBitmap3x('stick1.png');
 
     halobm = loadBitmap3x('halo.png');
@@ -1282,7 +1307,7 @@ class Hockey extends MovieClip {
         var player = { goalie: (p == 0), x: 0, y: 0, dx: 0, dy: 0,
                        stance: UPRIGHT,
                        team: team,
-                       anger: 0,
+                       anger: 0, guilt: 0,
                        smc: createMovieAtDepth('s' + players.length,
                                                PLAYERSOUNDDEPTH +
                                                players.length),
@@ -1292,7 +1317,7 @@ class Hockey extends MovieClip {
     }
     this.players.push({ goalie: false, team: REF,
           x: 0, y: 0, dx: 0, dy: 0, stance: UPRIGHT,
-          anger: 0,
+          anger: 0, guilt: 0,
           smc : createMovieAtDepth('sref',
                                    PLAYERSOUNDDEPTH + players.length),
           mc: createMovieAtDepth('pref', ICESTUFFDEPTH + 500) });
@@ -1335,7 +1360,7 @@ class Hockey extends MovieClip {
       line1 += " TIME: " + timestr;
 
       info.setMessage(line1 + "\n" +
-                      "Z - SHOOT     X - EJECT");
+                      "Z - SHOOT     X - EJECT CLOSEST");
     } else {
       info.setMessage(" USA: " + usascore + "  " +
                       "CAN: " + canscore +
@@ -1558,7 +1583,12 @@ class Hockey extends MovieClip {
     var amc = player.mc.createEmptyMovieClip('a', 3);
     amc._x = ((12*3) / 2) - 6;
     amc._y = -40;
-    if (player.anger > 0.8) {
+
+    if (player.guilt > 0.8) {
+      amc.attachBitmap(guilt2bm, 4);
+    } else if (player.guilt > 0.5) {
+      amc.attachBitmap(guilt1bm, 4);
+    } else if (player.anger > 0.8) {
       amc.attachBitmap(anger3bm, 4);
     } else if (player.anger > 0.5) {
       amc.attachBitmap(anger2bm, 4);
