@@ -25,6 +25,7 @@ class Hockey extends MovieClip {
   var ejectionref : BitmapData = null;
 
   var gameoverbg : BitmapData = null;
+  var flamesbg : BitmapData = null;
 
   var telephonebg : BitmapData = null;
   var telephoneref : BitmapData = null;
@@ -241,7 +242,7 @@ class Hockey extends MovieClip {
     var pdx = dx * SHOTSTRENGTH * strengthfrac;
     var pdy = dy * SHOTSTRENGTH * strengthfrac;
 
-    trace('shoot vec: ' + pdx + ' ' + pdy);
+    // trace('shoot vec: ' + pdx + ' ' + pdy);
 
     player.puck = false;
     // Might want to ensure puck is in rink?
@@ -288,16 +289,17 @@ class Hockey extends MovieClip {
     cutcounter = 0;
     cutscene = scene;
 
-    if (scene == GOALSCORED || scene == GAMEOVER) {
+    if (scene == GAMEOVER) {
+      if (cutteam == REF) {
+        playCutsceneSound('crowd.wav', 1);
+      } else {
+        playCutsceneSound('boo.wav', 1);
+      }
+    } else if (scene == GOALSCORED) {
       playCutsceneSound('crowd.wav', 1);
-    }
-
-    // XXX booing
-    if (scene == EJECTION) {
+    } else if (scene == EJECTION) {
       playCutsceneSound('boo.wav', 1);
-    }
-
-    if (scene == TELEPHONE) {
+    } else if (scene == TELEPHONE) {
       playCutsceneSound('telephone.wav', 2);
     }
   }
@@ -324,6 +326,8 @@ class Hockey extends MovieClip {
   public function onEnterFrame() {
     animframe++;
     if (animframe > 1000000) animframe = 0;
+
+    // suspicion = 0.1; // XXXXX HERE FIXME
 
     if (suspicion > 1.0 && cutscene == NOCUT) {
 
@@ -380,6 +384,8 @@ class Hockey extends MovieClip {
 
       mcref.attachBitmap(ejectionref, 10);
 
+      // TODO "display GUILTY"
+
       if (cutcounter > 75) {
         resetCutScene();
       }
@@ -422,10 +428,16 @@ class Hockey extends MovieClip {
       }
 
       return;
+
     } else if (cutscene == GAMEOVER) {
       cutcounter++;
+
       makeCutsceneMC();
-      _root.cutscenemc.attachBitmap(gameoverbg, 0);
+      if (cutteam == REF) {
+        _root.cutscenemc.attachBitmap(flamesbg, 0);
+      } else {
+        _root.cutscenemc.attachBitmap(gameoverbg, 0);
+      }
 
       var mc = _root.cutscenemc.createEmptyMovieClip('team', 1);
       mc._y = 9 * 3;
@@ -435,6 +447,8 @@ class Hockey extends MovieClip {
         mc.attachBitmap(goalscoredusa, 4);
       } else if (cutteam == CAN) {
         mc.attachBitmap(goalscoredcan, 4);
+      } else if (cutteam == REF) {
+        mc.attachBitmap(goalscoredref, 4);
       }
 
       if (cutcounter > 100) {
@@ -445,7 +459,7 @@ class Hockey extends MovieClip {
           backgroundclip = null;
         }
       } else {
-        backgroundmusic.setVolume(100 - cutcounter);
+        backgroundmusic.setVolume(100, cutcounter);
       }
 
       if (cutcounter > 180) {
@@ -465,9 +479,20 @@ class Hockey extends MovieClip {
 
     gametimeframes--;
     showScore(); // PERF always?
-    if (gametimeframes < 0 && usascore != canscore) {
+    if (gametimeframes < 0 &&
+        (usascore != canscore || players.length == 1)) {
+      if (players.length == 1) {
+        cutteam = REF;
+      } else {
+        cutteam = (usascore > canscore) ? USA : CAN;
+      }
       newCutScene(GAMEOVER);
-      cutteam = (usascore > canscore) ? USA : CAN;
+    }
+
+    // Rapid expire if no players.
+    if (players.length == 1 && cutscene == NOCUT &&
+        gametimeframes > 5 * 24) {
+      gametimeframes = 5 * 24;
     }
 
     // Physics for the puck, if not in possession.
@@ -529,6 +554,33 @@ class Hockey extends MovieClip {
       }
     }
 
+    // Decay guilt and anger.
+    for (var i = 0; i < players.length; i++) {
+      var player = players[i];
+      if (player.team == REF) {
+        // Ref makes the rules.
+        player.guilt = 0;
+
+        if (player.puck) {
+          suspicion += 0.0001;
+        } else if (player.stick) {
+          suspicion += 0.00001;
+        } else {
+          suspicion -= 0.00001;
+        }
+
+      } else if (player.team != REF && guilt > 0.1) {
+        var rdx = player.x - refcoord.x;
+        var rdy = player.y - refcoord.y;
+        var dist = Math.sqrt(rdx * rdx + rdy * rdy);
+
+        if (dist > 320) {
+          player.guilt *= .99;
+        }
+      }
+    }
+
+
     var usaoffense = [{ x: 389 * 3, y: 167 * 3 },
                       { x: 424 * 3, y: 112 * 3 },
                       { x: 424 * 3, y: 224 * 3 },
@@ -555,7 +607,7 @@ class Hockey extends MovieClip {
             y: yy });
     }
 
-    // TODO: handle input for user player
+    // Handle input for user player
     for (var i = 0; i < players.length; i++) {
       var player = players[i];
 
@@ -568,37 +620,63 @@ class Hockey extends MovieClip {
 
           if (player.team == REF) {
 
-            // Eject the closest player.
-            var bestdist = 999999;
-            var bestidx = i;
-            for (var p = 0; p < players.length; p++) {
-              var other = players[p];
-              if (other.team != REF) {
-                var distx = other.x - player.x;
-                var disty = other.y - player.y;
-                var dist = distx * distx + disty * disty;
+            if (player.stick) {
 
-                if (dist < bestdist) {
-                  bestdist = dist;
-                  bestidx = p;
+              if (player.puck) {
+                puck = { x: player.x + ((player.facing == RIGHT) ?
+                                        PLAYERTOPUCK : -PLAYERTOPUCK),
+                         y: player.y,
+                         dx: 1.3 * player.dx,
+                         dy: 1.3 * player.dy };
+                player.puck = false;
+              }
+
+              player.stick = false;
+              var sdx = 1.8 * (player.dx + Math.random() - 0.5);
+              var sdy = 1.8 * (player.dy + Math.random() - 0.5);
+              addJunk(player.x, player.y, sdx, sdy, STICK, stick1bm);
+              player.stance = GETTINGUP;
+              player.counter = 0;
+
+            } else {
+
+              // Eject the closest player.
+              var bestdist = 999999;
+              var bestidx = i;
+              for (var p = 0; p < players.length; p++) {
+                var other = players[p];
+                if (other.team != REF) {
+                  var distx = other.x - player.x;
+                  var disty = other.y - player.y;
+                  var dist = distx * distx + disty * disty;
+
+                  if (dist < bestdist) {
+                    bestdist = dist;
+                    bestidx = p;
+                  }
                 }
               }
-            }
 
-            if (bestidx != i) {
-              var other = players[bestidx];
-              newCutScene(EJECTION);
-              cutteam = other.team;
+              if (bestidx != i) {
+                var other = players[bestidx];
+                newCutScene(EJECTION);
+                cutteam = other.team;
 
-              var guilt = player.guilt;
-              if (guilt > 0.8) guilt = 1;
+                var guilt = other.guilt;
+                if (guilt > 0.8) guilt = 1;
 
-              var anger = (1.0 - guilt) / 2;
+                var anger = (1.0 - guilt) / 2;
 
-              suspicion += (1.0 - guilt) * 0.75;
+                suspicion += (1.0 - guilt) * 0.55 - 0.10;
 
-              angerTeam(other.team, anger);
-              showScore();
+                // remove player from game.
+                removePlayer(bestidx);
+
+                angerTeam(other.team, anger);
+                showScore();
+                return;
+              }
+
             }
 
           } else {
@@ -721,6 +799,14 @@ class Hockey extends MovieClip {
         // XXX goalie sticks?
         var destx = player.x;
         var desty = player.y;
+
+        // Attack ref if angry.
+        if (player.anger > 0.8 &&
+            player.team != REF &&
+            menuteam == REF) {
+          destx = refcoord.x;
+          desty = refcoord.y;
+        }
 
         // TODO: handle AI for non-user players
         if (player.team == REF) {
@@ -941,6 +1027,11 @@ class Hockey extends MovieClip {
           var prior1 = (i == user) ? 1000 : (player1.goalie ? 2000 : i);
           var prior2 = (j == user) ? 1000 : (player2.goalie ? 2000 : j);
 
+          if (menuteam == REF) {
+            prior1 += player1.anger * 1500;
+            prior2 += player2.anger * 1500;
+          }
+
           // Put them in priority order.
           if (prior1 < prior2) {
             var t = player1;
@@ -1010,6 +1101,7 @@ class Hockey extends MovieClip {
         }
       }
     }
+
 
     for (var i = 0; i < players.length; i++) {
       var player = players[i];
@@ -1240,6 +1332,7 @@ class Hockey extends MovieClip {
     ejectionref = loadBitmap3x('ejectionref.png');
 
     gameoverbg = loadBitmap3x('gameoverbg.png');
+    flamesbg = loadBitmap3x('flamesbg.png');
 
     telephonebg = loadBitmap3x('telephonebg.png');
     telephoneref = loadBitmap3x('telephoneref.png');
@@ -1354,13 +1447,19 @@ class Hockey extends MovieClip {
     if (menuteam == REF) {
       var line1 = " YOU ARE THE REF ";
       if (suspicion > 0) {
-        line1 = "  SUSPICION: " + int(100 * suspicion) + "% ";
+        // trace(suspicion);
+        line1 = "  SUSPICION: " + toDecimal(100 * suspicion, 100) + "% ";
       }
 
       line1 += " TIME: " + timestr;
 
+      var action = "EJECT CLOSEST";
+      if (players[user].stick) {
+        action = "DROP STICK";
+      }
+
       info.setMessage(line1 + "\n" +
-                      "Z - SHOOT     X - EJECT CLOSEST");
+                      "Z - SHOOT     X - " + action);
     } else {
       info.setMessage(" USA: " + usascore + "  " +
                       "CAN: " + canscore +
@@ -1611,6 +1710,23 @@ class Hockey extends MovieClip {
     var junk = junks[idx];
     junk.mc.removeMovieClip();
     junks.splice(idx, 1);
+  }
+
+  public function removePlayer(idx) {
+    if (user == idx) {
+      // eject self??
+      return;
+    }
+
+    var player = players[idx];
+    player.mc.removeMovieClip();
+    player.smc.removeMovieClip();
+
+    players.splice(idx, 1);
+
+    for (var i = 0; i < players.length; i++) {
+      if (players[i].team == REF) user = i;
+    }
   }
 
   public function placeJunk(idx, thing) {
