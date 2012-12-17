@@ -245,16 +245,26 @@ class Hockey extends MovieClip {
 
     // trace('shoot vec: ' + pdx + ' ' + pdy);
 
-    player.puck = false;
-    // Might want to ensure puck is in rink?
-    puck = { x: player.x + ((player.facing == RIGHT) ?
-                            PLAYERTOPUCK : -PLAYERTOPUCK),
-             y: player.y,
-             dx: pdx,
-             dy: pdy };
+    releasePuck(player);
+    puck.dx = pdx;
+    puck.dy = pdy;
 
     player.stance = FOLLOWTHROUGH;
     player.counter = 0;
+  }
+
+  // Don't warp to the stick; it can tunnel through
+  // objects since the player is clipped to his center.
+  public function releasePuck(player) {
+    var res = tryMove(player.x, player.y,
+                      PUCKCLIPW, PUCKCLIPH,
+                      ((player.facing == RIGHT) ?
+                       PLAYERTOPUCK : -PLAYERTOPUCK),
+                      0, PUCKFRICTION,
+                      // Don't allow direct placement in goal.
+                      false);
+    player.puck = false;
+    puck = { x: res.x, y: res.y, dx: player.dx, dy: player.dy };
   }
 
   public function angerTeam(team, amt) {
@@ -326,6 +336,7 @@ class Hockey extends MovieClip {
     animframe++;
     if (animframe > 1000000) animframe = 0;
 
+    if (suspicion < 0) suspicion = 0;
     if (suspicion > 1.0 && cutscene == NOCUT) {
 
       newCutScene(TELEPHONE);
@@ -573,9 +584,9 @@ class Hockey extends MovieClip {
         player.guilt = 0;
 
         if (player.puck) {
-          suspicion += 0.0001;
+          suspicion += 0.0002;
         } else if (player.stick) {
-          suspicion += 0.00001;
+          suspicion += 0.00002;
         } else {
           suspicion -= 0.00001;
         }
@@ -634,12 +645,9 @@ class Hockey extends MovieClip {
             if (player.stick) {
 
               if (player.puck) {
-                puck = { x: player.x + ((player.facing == RIGHT) ?
-                                        PLAYERTOPUCK : -PLAYERTOPUCK),
-                         y: player.y,
-                         dx: 1.3 * player.dx,
-                         dy: 1.3 * player.dy };
-                player.puck = false;
+                releasePuck(player);
+                puck.dx = 1.3 * player.dx;
+                puck.dy = 1.3 * player.dy;
               }
 
               player.stick = false;
@@ -780,7 +788,9 @@ class Hockey extends MovieClip {
             var dir = getPlayerShot(player);
             // XXX adjust if holding up/down.
 
-            var strength = player.counter / FULLSTRENGTHTIME;
+            var strength =
+              Math.sqrt(player.counter / FULLSTRENGTHTIME);
+            if (strength < MINSTRENGTH) strength = MINSTRENGTH;
             if (strength > 1) strength = 1;
             playerShoots(player, dir.dx, dir.dy, strength);
           }
@@ -877,19 +887,34 @@ class Hockey extends MovieClip {
 
               // trace('shooting ' + player.counter);
               if (Math.random() < 0.1 || player.counter > FULLSTRENGTHTIME) {
-                var strength = player.counter / FULLSTRENGTHTIME;
+                var strength =
+                  Math.sqrt(player.counter / FULLSTRENGTHTIME);
+                if (strength < MINSTRENGTH) strength = MINSTRENGTH;
                 if (strength > 1) strength = 1;
                 var dir = getPlayerShot(player);
                 playerShoots(player, dir.dx, dir.dy, strength);
               }
             } else {
 
-              // XXX should skate to offense before shooting.
-              // XXX should sometimes pass, obviously
-              player.stance = SHOOTING;
-              player.counter = 0;
-              trace('shooting...');
-              // trace(' have puck? ' + player.puck);
+              if ((player.team == CAN && player.facing == LEFT) ||
+                  (player.team == USA && player.facing == RIGHT)) {
+
+                // Consider shooting, passing.
+
+                // XXX should skate to offense before shooting.
+                // XXX should sometimes pass, obviously
+                player.stance = SHOOTING;
+                player.counter = 0;
+                // trace('shooting...');
+                // trace(' have puck? ' + player.puck);
+
+              } else {
+
+                destx = (player.team == CAN) ? USAGOALIEX + 100 :
+                  CANGOALIEX - 100;
+                desty = player.desty;
+
+              }
             }
 
           } else if (player.goalie) {
@@ -1078,17 +1103,17 @@ class Hockey extends MovieClip {
 
           if (player2.puck) {
             if (player1.goalie) {
+              // Transferred directly to goalie.
               reftouchedlast = false;
               puck = { p: p1idx };
               player1.puck = true;
 
             } else {
-              puck = { x: player2.x + ((player2.facing == RIGHT) ?
-                                       PLAYERTOPUCK : -PLAYERTOPUCK),
-                       y: player2.y,
-                       dx: 2 * rdx,
-                       dy: 2 * rdy };
+              releasePuck(player2);
+              puck.dx = 2 * rdx;
+              puck.dy = 2 * rdy;
             }
+
             player2.puck = false;
             addAnger(player2, baseanger);
             addAnger(player1, -baseanger);
