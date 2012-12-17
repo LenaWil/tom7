@@ -173,7 +173,6 @@ class Hockey extends MovieClip {
   // this is always a player that's not been ejected.
   var user = 0;
 
-  // XXX TIMER
   var usascore = 0;
   var canscore = 0;
 
@@ -252,8 +251,6 @@ class Hockey extends MovieClip {
              dx: pdx,
              dy: pdy };
 
-    // XXX sound
-
     player.stance = FOLLOWTHROUGH;
     player.counter = 0;
   }
@@ -326,8 +323,6 @@ class Hockey extends MovieClip {
   public function onEnterFrame() {
     animframe++;
     if (animframe > 1000000) animframe = 0;
-
-    // suspicion = 0.1; // XXXXX HERE FIXME
 
     if (suspicion > 1.0 && cutscene == NOCUT) {
 
@@ -829,7 +824,7 @@ class Hockey extends MovieClip {
 
         } else if (animframe > 10) {
 
-          // XXX find stick if I don't have one.
+          // Find stick if I don't have one.
           if (!player.stick) {
             var bestdist = 9999999;
 
@@ -1144,6 +1139,7 @@ class Hockey extends MovieClip {
         if (menuteam == REF && reftouchedlast) {
           cutteam = REF;
           angerTeam(USA, 0.5);
+          suspicion += 0.15;
         } else {
           cutteam = USA;
           angerTeam(CAN, 0.2);
@@ -1160,6 +1156,7 @@ class Hockey extends MovieClip {
         if (menuteam == REF && reftouchedlast) {
           cutteam = REF;
           angerTeam(USA, 0.5);
+          suspicion += 0.15;
         } else {
           cutteam = CAN;
           angerTeam(USA, 0.2);
@@ -1446,9 +1443,12 @@ class Hockey extends MovieClip {
 
     if (menuteam == REF) {
       var line1 = " YOU ARE THE REF ";
+
       if (suspicion > 0) {
+        var sstr = '' + toDecimal(100 * suspicion, 100);
+        while (sstr.length < 5) sstr += '0';
         // trace(suspicion);
-        line1 = "  SUSPICION: " + toDecimal(100 * suspicion, 100) + "% ";
+        line1 = "  SUSPICION: " + sstr + "% ";
       }
 
       line1 += " TIME: " + timestr;
@@ -1459,7 +1459,7 @@ class Hockey extends MovieClip {
       }
 
       info.setMessage(line1 + "\n" +
-                      "Z - SHOOT     X - " + action);
+                      " Z - SHOOT     X - " + action);
     } else {
       info.setMessage(" USA: " + usascore + "  " +
                       "CAN: " + canscore +
@@ -1683,9 +1683,10 @@ class Hockey extends MovieClip {
     amc._x = ((12*3) / 2) - 6;
     amc._y = -40;
 
-    if (player.guilt > 0.8) {
+    var showguilt = menuteam == REF;
+    if (showguilt && player.guilt > 0.8) {
       amc.attachBitmap(guilt2bm, 4);
-    } else if (player.guilt > 0.5) {
+    } else if (showguilt && player.guilt > 0.5) {
       amc.attachBitmap(guilt1bm, 4);
     } else if (player.anger > 0.8) {
       amc.attachBitmap(anger3bm, 4);

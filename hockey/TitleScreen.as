@@ -111,6 +111,8 @@ class TitleScreen extends MovieClip {
   public function onKeyDown() {
     var k = Key.getCode();
 
+    if (starting >= 0) return;
+
     /*
     if (Key.isDown(Key.CONTROL) &&
         Key.getAscii() == ascii('m')) {
