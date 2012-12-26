@@ -5,7 +5,7 @@
 
 #include "util.h"
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__MINGW32__)
    /* chdir */
 #  include <direct.h>
    /* getpid */
@@ -17,7 +17,10 @@
    /* setclipboard */
 #  include <windows.h>
 
-#pragma warning(disable: 4996)
+// Visual studio only.
+#ifdef WIN32
+# pragma warning(disable: 4996)
+#endif
 
 #else /* posix */
    /* chdir, unlink */
@@ -137,7 +140,7 @@ bool Util::existsdir(string d) {
 
 /* XXX what mode? */
 bool Util::makedir(string d) {
-# ifdef WIN32
+# if defined(WIN32) || defined(__MINGW32__)
   return !mkdir(d.c_str());
 # else /* posix */
   return !mkdir(d.c_str(), 0755);
@@ -729,7 +732,7 @@ bool Util::remove(string f) {
 }
 
 bool Util::move(string src, string dst) {
-# ifdef WIN32
+# if defined(WIN32) || defined(__MINGW32__)
   if (0 == rename(src.c_str(), dst.c_str()))
     return true;
   else return false;
@@ -951,7 +954,7 @@ float Util::randfrac() {
    actually do. 
 */
 int Util::random () {
-# ifdef WIN32
+# if defined(WIN32) || defined(__MINGW32__)
   return ::rand();
 # else
   return ::random();
@@ -962,8 +965,8 @@ namespace {
 /* ensure that random is seeded */
 struct RandomSeed {
   RandomSeed() {
-# ifdef WIN32
-    srand((int)time(0) ^ getpid());
+# if defined(WIN32) || defined(__MINGW32__)
+    srand((int)time(NULL) ^ getpid());
 # else
     srandom(time(0) ^ getpid());
 # endif
