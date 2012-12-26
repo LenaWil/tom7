@@ -18,6 +18,9 @@
 #include "tasbot.h"
 #include "../cc-lib/city/city.h"
 
+// XXX move to header, enable _debug mode.
+#define DCHECK(x) do {} while(0)
+
 // Joystick data. I think used for both controller 0 and 1. Part of
 // the "API".
 static uint32 joydata = 0;
@@ -85,8 +88,8 @@ struct StateCache {
       hashtable.insert(make_pair(make_pair(input, startcopy), 
 				 make_pair(next_sequence++, resultcopy)));
     CHECK(it.second);
-    CHECK(NULL != GetKnownResult(input, *startcopy));
-    CHECK(NULL != GetKnownResult(input, start));
+    DCHECK(NULL != GetKnownResult(input, *startcopy));
+    DCHECK(NULL != GetKnownResult(input, start));
     count++;
     MaybeResize();
   }
@@ -133,8 +136,8 @@ struct StateCache {
 	if (it->second.first < minseq) {
 	  Hash::iterator next(it);
 	  ++next;
-	  // delete it->first.second;
-	  // delete it->second.second;
+	  delete it->first.second;
+	  delete it->second.second;
 	  // Note g++ does not return the "next" iterator.
 	  hashtable.erase(it);
 	  count--;

@@ -58,7 +58,7 @@ struct PlayFun {
     motifs = Motifs::LoadFromFile(GAME ".motifs");
     CHECK(motifs);
 
-    Emulator::ResetCache(500000, 50000);
+    Emulator::ResetCache(100000, 10000);
 
     motifvec = motifs->AllMotifs();
 
@@ -77,37 +77,93 @@ struct PlayFun {
     printf("Skipped %ld frames until first keypress.\n", start);
   }
 
+  // XXX should probably have AvoidLosing and TryWinning.
+  // This looks for the min over random play in the future,
+  // so tries to avoid getting us screwed.
+  //
   // Look fairly deep into the future playing randomly. 
   // DESTROYS THE STATE.
-  double ScoreByRandomFuture(const vector<uint8> &base_memory) {
+  double AvoidBadFutures(const vector<uint8> &base_memory) {
     // XXX should be based on motif size
     // XXX should learn it somehow? this is tuned by hand
     // for mario.
-    static const int DEPTHS[] = { 10, 50 };
+    // was 10, 50
+    static const int DEPTHS[] = { 20, 75 };
     // static const int NUM = 2;
     vector<uint8> base_state;
     Emulator::SaveUncompressed(&base_state);
 
-    double total = 0.0;
+    double total = 1.0;
     for (int i = 0; i < (sizeof (DEPTHS) / sizeof (int)); i++) {
       if (i) Emulator::LoadUncompressed(&base_state);
       for (int d = 0; d < DEPTHS[i]; d++) {
 	const vector<uint8> &m = motifs->RandomWeightedMotif();
 	for (int x = 0; x < m.size(); x++) {
 	  Emulator::CachingStep(m[x]);
+
+	  // PERF inside the loop -- scary!
+	  vector<uint8> future_memory;
+	  GetMemory(&future_memory);
+	  // XXX min? max?
+	  if (i || d || x) {
+	    total = min(total, 
+			objectives->Evaluate(base_memory, future_memory));
+	  } else {
+	    total = objectives->Evaluate(base_memory, future_memory);
+	  }
+
 	}
       }
 
-      vector<uint8> future_memory;
-      GetMemory(&future_memory);
-      // XXX max?
-      total += objectives->Evaluate(base_memory, future_memory);
+      // total += objectives->Evaluate(base_memory, future_memory);
     }
 
     // We're allowed to destroy the current state, so don't
     // restore.
     return total;
   }
+
+  // DESTROYS THE STATE
+  double SeekGoodFutures(const vector<uint8> &base_memory) {
+    // XXX should be based on motif size
+    // XXX should learn it somehow? this is tuned by hand
+    // for mario.
+    // was 10, 50
+    static const int DEPTHS[] = { 30, 30, 50 };
+    // static const int NUM = 2;
+    vector<uint8> base_state;
+    Emulator::SaveUncompressed(&base_state);
+
+    double total = 1.0;
+    for (int i = 0; i < (sizeof (DEPTHS) / sizeof (int)); i++) {
+      if (i) Emulator::LoadUncompressed(&base_state);
+      for (int d = 0; d < DEPTHS[i]; d++) {
+	const vector<uint8> &m = motifs->RandomWeightedMotif();
+	for (int x = 0; x < m.size(); x++) {
+	  Emulator::CachingStep(m[x]);
+
+	}
+      }
+
+      // PERF inside the loop -- scary!
+      vector<uint8> future_memory;
+      GetMemory(&future_memory);
+
+      if (i) {
+	total = max(total, 
+		    objectives->Evaluate(base_memory, future_memory));
+      } else {
+	total = objectives->Evaluate(base_memory, future_memory);
+      }
+
+      // total += objectives->Evaluate(base_memory, future_memory);
+    }
+
+    // We're allowed to destroy the current state, so don't
+    // restore.
+    return total;
+  }
+
 
 #if 0
   // Search all different sequences of motifs of length 'depth'.
@@ -139,11 +195,13 @@ struct PlayFun {
     static const int NUMFRAMES = 10000;
     for (int framenum = 0; framenum < NUMFRAMES; framenum++) {
 
+      #if 0
       if (movie.size() > 100) {
 	printf("Done.\n");
 	Emulator::PrintCacheStats();
 	exit(0);
       }
+      #endif
 
       // Save our current state so we can try many different branches.
       Emulator::SaveUncompressed(&current_state);    
@@ -166,7 +224,8 @@ struct PlayFun {
 	GetMemory(&new_memory);
 	double immediate_score =
 	  objectives->Evaluate(current_memory, new_memory);
-	double future_score = ScoreByRandomFuture(new_memory);
+	double future_score = AvoidBadFutures(new_memory) +
+	  SeekGoodFutures(new_memory);
 
 	double score = immediate_score + future_score;
 
@@ -197,6 +256,7 @@ struct PlayFun {
 			       // "base64:jjYwGG411HcjG/j9UOVM3Q==",
 			       movie);
 	objectives->SaveSVG(memories, GAME "-playfun.svg");
+	Emulator::PrintCacheStats();
 	printf("                     (wrote)\n");
       }
     }
