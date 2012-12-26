@@ -60,8 +60,8 @@ void WeightedObjectives::SaveToFile(const string &filename) const {
     out += StringPrintf("%f %s\n", it->second,
 			ObjectiveToString(obj).c_str());
   }
-  printf("%s\n", out.c_str());
   Util::WriteFile(filename, out);
+  printf("Saved weighted objectives to %s\n", out.c_str());
 }
 
 size_t WeightedObjectives::Size() const {
@@ -253,8 +253,8 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
     const vector<int> &obj = it->first;
     // All the distinct values this objective takes on, in order.
     vector< vector<uint8> > values = GetUniqueValues(memories, obj);
-    printf("%lld distinct values for %s\n", values.size(),
-	   ObjectiveToString(obj).c_str());
+    // printf("%lld distinct values for %s\n", values.size(),
+    // ObjectiveToString(obj).c_str());
 
     const string color = RandomColor(&rc);
     const string startpolyline =
@@ -324,11 +324,6 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
 
     longone = !longone;
   }
-
-  printf("%s %s %s %s\n", Coord(2.0).c_str(),
-	 Coord(1.234567).c_str(), 
-	 Coord(0.0).c_str(),
-	 Coord(1.200).c_str());
 
   out += "\n</svg>\n";
   Util::WriteFile(filename, out);
