@@ -229,10 +229,10 @@ std::string BytesToString(const void* data, int len)
 				input[n] = *src++;
 			unsigned char output[4] =
 			{
-				Base64Table[ input[0] >> 2 ],
-				Base64Table[ ((input[0] & 0x03) << 4) | (input[1] >> 4) ],
-				n<2 ? '=' : Base64Table[ ((input[1] & 0x0F) << 2) | (input[2] >> 6) ],
-				n<3 ? '=' : Base64Table[ input[2] & 0x3F ]
+			  (unsigned char) Base64Table[ input[0] >> 2 ],
+			  (unsigned char) Base64Table[ ((input[0] & 0x03) << 4) | (input[1] >> 4) ],
+			  (unsigned char) (n<2 ? '=' : Base64Table[ ((input[1] & 0x0F) << 2) | (input[2] >> 6) ]),
+			  (unsigned char) (n<3 ? '=' : Base64Table[ input[2] & 0x3F ]),
 			};
 			ret.append(output, output+4);
 		}
@@ -296,9 +296,9 @@ bool StringToBytes(const std::string& str, void* data, int len)
 			}
 			unsigned char outpacket[3] =
 			{
-				(converted[0] << 2) | (converted[1] >> 4),
-				(converted[1] << 4) | (converted[2] >> 2),
-				(converted[2] << 6) | (converted[3])
+			  (unsigned char)((converted[0] << 2) | (converted[1] >> 4)),
+			  (unsigned char)((converted[1] << 4) | (converted[2] >> 2)),
+			  (unsigned char)((converted[2] << 6) | (converted[3])),
 			};
 			int outlen = (input[2] == '=') ? 1 : (input[3] == '=' ? 2 : 3);
 			if(outlen > len) outlen = len;

@@ -4,6 +4,8 @@ default: playfun.exe
 # tasbot.exe
 # emu_test.exe
 
+all: playfun.exe tasbot.exe emu_test.exe objective_test.exe learnfun.exe
+
 # GPP=
 
 # mlton executes this:
@@ -78,8 +80,9 @@ emu_test.exe : $(OBJECTS) emu_test.o
 objective_test.exe : $(CCLIBOBJECTS) objective.o objective_test.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-test : emu_test.exe
+test : emu_test.exe objective_test.exe
 	time ./emu_test.exe
+	time ./objective_test.exe
 
 clean :
 	rm -f tasbot.exe emu_test.exe $(OBJECTS) gmon.out prog*.fm2 deepest.fm2 heuristicest.fm2
