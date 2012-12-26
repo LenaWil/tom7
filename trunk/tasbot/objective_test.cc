@@ -92,7 +92,7 @@ static void FindCounterExample() {
 	  memories.push_back(mem);
 	}
 	Objective obj(memories);
-	obj.EnumerateFullAll(ignore, 1);
+	obj.EnumerateFullAll(ignore, 1, 0);
       }
     }
   }
@@ -105,31 +105,31 @@ int main(int argc, char *argv[]) {
     printf("Create.\n");
     Objective obj(memories);
     printf("Enumerate.\n");
-    obj.EnumerateFullAll(pr, -1);
+    obj.EnumerateFullAll(pr, -1, 0);
   }
 
   {
     vector< vector<uint8> > memories = MakeMem(kMem1);
     Objective obj(memories);
-    obj.EnumerateFullAll(pr, -1);
+    obj.EnumerateFullAll(pr, -1, 0);
   }
 
   {
     vector< vector<uint8> > memories = MakeMem(kMem2);
     Objective obj(memories);
-    obj.EnumerateFullAll(pr, -1);
+    obj.EnumerateFullAll(pr, -1, 0);
   }
 
   {
     vector< vector<uint8> > memories = MakeMem(kMem3);
     Objective obj(memories);
-    obj.EnumerateFullAll(pr, -1);
+    obj.EnumerateFullAll(pr, -1, 0);
   }
 
   {
     vector< vector<uint8> > memories = MakeMem(kMem4);
     Objective obj(memories);
-    obj.EnumerateFullAll(pr, -1);
+    obj.EnumerateFullAll(pr, -1, 0);
   }
   
   FindCounterExample();
