@@ -4,7 +4,7 @@ default: playfun.exe
 # tasbot.exe
 # emu_test.exe
 
-all: playfun.exe tasbot.exe emu_test.exe objective_test.exe learnfun.exe
+all: playfun.exe tasbot.exe emu_test.exe objective_test.exe learnfun.exe weighted-objectives_test.exe
 
 # GPP=
 
@@ -32,7 +32,7 @@ INCLUDES=-I "../cc-lib" -I "../cc-lib/city"
 CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++0x
 #  CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -DHAVE_ALLOCA -DNOWINSTUFF $(PROFILE) -g
 
-CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o
+CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o
 
 MAPPEROBJECTS=fceu/mappers/24and26.o fceu/mappers/51.o fceu/mappers/69.o fceu/mappers/77.o fceu/mappers/40.o fceu/mappers/6.o fceu/mappers/71.o fceu/mappers/79.o fceu/mappers/41.o fceu/mappers/61.o fceu/mappers/72.o fceu/mappers/80.o fceu/mappers/42.o fceu/mappers/62.o fceu/mappers/73.o fceu/mappers/85.o fceu/mappers/46.o fceu/mappers/65.o fceu/mappers/75.o fceu/mappers/emu2413.o fceu/mappers/50.o fceu/mappers/67.o fceu/mappers/76.o fceu/mappers/mmc2and4.o
 
@@ -53,7 +53,7 @@ DRIVERS_COMMON_OBJECTS=fceu/drivers/common/args.o fceu/drivers/common/nes_ntsc.o
 
 # DRIVERS_DUMMY_OBJECTS=fceu/drivers/dummy/dummy.o
 
-TASBOT_OBJECTS=headless-driver.o config.o simplefm2.o emulator.o basis-util.o objective.o weighted-objectives.o motifs.o
+TASBOT_OBJECTS=headless-driver.o config.o simplefm2.o emulator.o basis-util.o objective.o weighted-objectives.o motifs.o util.o
 
 OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(DRIVERS_COMMON_OBJECTS) $(CCLIBOBJECTS) $(TASBOT_OBJECTS)
 
@@ -80,9 +80,13 @@ emu_test.exe : $(OBJECTS) emu_test.o
 objective_test.exe : $(CCLIBOBJECTS) objective.o objective_test.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-test : emu_test.exe objective_test.exe
+weighted-objectives_test.exe : $(CCLIBOBJECTS) weighted-objectives.o weighted-objectives_test.o
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+test : emu_test.exe objective_test.exe weighted-objectives_test.exe
 	time ./emu_test.exe
 	time ./objective_test.exe
+	time ./weighted-objectives_test.exe
 
 clean :
 	rm -f tasbot.exe emu_test.exe $(OBJECTS) gmon.out prog*.fm2 deepest.fm2 heuristicest.fm2

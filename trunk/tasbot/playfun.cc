@@ -1,4 +1,18 @@
-/* Searches for solutions to Karate Kid. */
+/* Tries playing a game (deliberately not customized to any particular
+   ROM) using an objective function learned by learnfun. 
+
+   This is the second iteration. It attempts to fix a problem with the
+   first (playfun-nobacktrack) which is that although the objective
+   functions all obviously tank when the player dies, the algorithm
+   can't see far enough ahead (or something ..?) to avoid taking a
+   path with such an awful score. Here we explicitly keep checkpoints
+   so that we can backtrack a significant amount if things seem
+   hopeless.
+
+   We also keep track of a range of values for the objective functions
+   so that we have some sense of their absolute values, not just their
+   relative ones.
+*/
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -22,34 +36,106 @@
 #include "weighted-objectives.h"
 #include "motifs.h"
 #include "../cc-lib/arcfour.h"
+#include "util.h"
+#include "../cc-lib/textsvg.h"
 
 #define GAME "mario"
 #define MOVIE "mario-cleantom.fm2"
+#define FASTFORWARD 256  // XXX cheats! -- should be 0
 
-template<class T>
-static void Shuffle(vector<T> *v) {
-  static ArcFour rc("shuffler");
-  for (int i = 0; i < v->size(); i++) {
-    uint32 h = 0;
-    h = (h << 8) | rc.Byte();
-    h = (h << 8) | rc.Byte();
-    h = (h << 8) | rc.Byte();
-    h = (h << 8) | rc.Byte();
+static const double WIDTH = 1024.0;
+static const double HEIGHT = 1024.0;
 
-    int j = h % v->size();
-    if (i != j) {
-      swap((*v)[i], (*v)[j]);
+struct Scoredist {
+  Scoredist() : startframe(0), chosen_idx() {}
+  explicit Scoredist(int startframe) : startframe(startframe),
+				       chosen_idx(0) {}
+  int startframe;
+  vector<double> immediates;
+  vector<double> positives;
+  vector<double> negatives;
+  vector<double> norms;
+  int chosen_idx;
+};
+
+// XXX needs a style to distinguish imm/pos/neg/norm
+static string DrawDots(const string &color, double xf,
+		       const vector<double> &values, double maxval, 
+		       int chosen_idx) {
+  // CHECK(colors.size() == values.size());
+  vector<double> sorted = values;
+  std::sort(sorted.begin(), sorted.end());
+  string out;
+  for (int i = 0; i < values.size(); i++) {
+    int size = values.size();
+    int sorted_idx = 
+      lower_bound(sorted.begin(), sorted.end(), values[i]) - sorted.begin();
+    double opacity = 1.0;
+    if (sorted_idx < 0.1 * size || sorted_idx > 0.9 * size) {
+      opacity = 0.2;
+    } else if (sorted_idx < 0.2 * size || sorted_idx > 0.8 * size) {
+      opacity = 0.4;
+    } else if (sorted_idx < 0.3 * size || sorted_idx > 0.7 * size) {
+      opacity = 0.8;
+    } else if (sorted_idx == size / 2) {
+      opacity = 1.0;
     }
+    out += StringPrintf("<circle cx=\"%s\" cy=\"%s\" r=\"%d\" "
+			"opacity=\"%.1f\" "
+			"fill=\"%s\" />",
+			Coord(xf * WIDTH).c_str(), 
+			Coord(HEIGHT * (1.0 - (values[i] / maxval))).c_str(),
+			(i == chosen_idx) ? 10 : 4,
+			opacity,
+			color.c_str());
+    // colors[i].c_str());
   }
+  return out += "\n";
 }
 
-static inline void GetMemory(vector<uint8> *mem) {
-  mem->resize(0x800);
-  memcpy(&((*mem)[0]), RAM, 0x800);
+static void SaveDistributionSVG(const vector<Scoredist> &dists,
+				const string &filename) {
+  string out = TextSVG::Header(WIDTH + 12 /* slop for radii */,
+			       HEIGHT);
+  
+  // immediates, positives, negatives all are in same value space
+  double maxval = 0.0;
+  for (int i = 0; i < dists.size(); i++) {
+    const Scoredist &dist = dists[i];
+    maxval =
+      VectorMax(VectorMax(VectorMax(maxval, dist.negatives),
+			  dist.positives),
+		dist.immediates);
+  }
+  
+  int totalframes = dists.back().startframe;
+  
+#if 0
+  ArcFour rc("Umake colors");
+  vector<string> colors;
+  for (int i = 0; i < dists.back().immediates.size(); i++) {
+    colors.push_back(RandomColor(&rc));
+  }
+#endif
+
+  for (int i = 0; i < dists.size(); i++) {
+    const Scoredist &dist = dists[i];
+    double xf = dist.startframe / (double)totalframes;
+    out += DrawDots("#33A", xf, dist.immediates, maxval, dist.chosen_idx);
+    out += DrawDots("#090", xf, dist.positives, maxval, dist.chosen_idx);
+    out += DrawDots("#A33", xf, dist.negatives, maxval, dist.chosen_idx);
+    out += DrawDots("#000", xf, dist.norms, 1.0, dist.chosen_idx);
+  }
+
+  // XXX args?
+  out += SVGTickmarks(WIDTH, totalframes, 50.0, 20.0, 12.0);
+
+  out += TextSVG::Footer();
+  Util::WriteFile(filename, out);
 }
 
 struct PlayFun {
-  PlayFun() : rc("playfun") {
+  PlayFun() : watermark(0), rc("playfun") {
     Emulator::Initialize(GAME ".nes");
     objectives = WeightedObjectives::LoadFromFile(GAME ".objectives");
     CHECK(objectives);
@@ -67,15 +153,49 @@ struct PlayFun {
     solution = SimpleFM2::ReadInputs(MOVIE);
 
     size_t start = 0;
+    bool saw_input = false;
     while (start < solution.size()) {
-      Emulator::Step(solution[start]);
-      movie.push_back(solution[start]);
-      if (solution[start] != 0) break;
+      Commit(solution[start]);
+      watermark++;
+      saw_input = saw_input || solution[start] != 0;
+      if (start > FASTFORWARD && saw_input) break;
       start++;
     }
 
-    printf("Skipped %ld frames until first keypress.\n", start);
+    CHECK(start > 0 && "Currently, there needs to be at least "
+	  "one observation to score.");
+
+    printf("Skipped %ld frames until first keypress/ffwd.\n", start);
   }
+
+  void Commit(uint8 input) {
+    Emulator::CachingStep(input);
+    movie.push_back(input);
+    // PERF
+    vector<uint8> mem;
+    Emulator::GetMemory(&mem);
+    memories.push_back(mem);
+    objectives->Observe(mem);
+  }
+
+  
+  // Fairly unprincipled attempt.
+
+  // All of these are the same size:
+
+  // PERF. Shouldn't really save every memory, but
+  // we're using it for drawing SVG for now...
+  // The nth element contains the memory after playing
+  // the nth input in the movie. The initial memory
+  // is not stored.
+  vector< vector<uint8> > memories;
+  // Contains the movie we record.
+  vector<uint8> movie;
+
+  // Index below which we should not backtrack (because it
+  // contains pre-game menu stuff, for example).
+  int watermark;
+
 
   // XXX should probably have AvoidLosing and TryWinning.
   // This looks for the min over random play in the future,
@@ -103,7 +223,7 @@ struct PlayFun {
 
 	  // PERF inside the loop -- scary!
 	  vector<uint8> future_memory;
-	  GetMemory(&future_memory);
+	  Emulator::GetMemory(&future_memory);
 	  // XXX min? max?
 	  if (i || d || x) {
 	    total = min(total, 
@@ -147,7 +267,7 @@ struct PlayFun {
 
       // PERF inside the loop -- scary!
       vector<uint8> future_memory;
-      GetMemory(&future_memory);
+      Emulator::GetMemory(&future_memory);
 
       if (i) {
 	total = max(total, 
@@ -164,114 +284,101 @@ struct PlayFun {
     return total;
   }
 
-
-#if 0
-  // Search all different sequences of motifs of length 'depth'.
-  // Choose the one with the highest score.
-  void ExhaustiveMotifSearch(int depth) {
-    vector<uint8> current_state, current_memory;
-    Emulator::Save(&current_state);
-    GetMemory(&current_memory);
-
-  }
-#endif
-
-  void Greedy() {
-    // Let's just try a greedy version for the lols.
-    // At every state we just try the input that increases the
-    // most objective functions.
-
-    // PERF
-    // For drawing SVG.
-    vector< vector<uint8> > memories;
+  void Go() {
 
     vector<uint8> current_state;
     vector<uint8> current_memory;
 
     vector< vector<uint8> > nexts = motifvec;
 
-    // 10,000 is about enough to run out the clock, fyi
-    // XXX not frames, #motifs
-    static const int NUMFRAMES = 10000;
-    for (int framenum = 0; framenum < NUMFRAMES; framenum++) {
-
-      #if 0
-      if (movie.size() > 100) {
-	printf("Done.\n");
-	Emulator::PrintCacheStats();
-	exit(0);
-      }
-      #endif
+    int64 iters = 0;
+    for (;; iters++) {
 
       // Save our current state so we can try many different branches.
       Emulator::SaveUncompressed(&current_state);    
-      GetMemory(&current_memory);
-      memories.push_back(current_memory);
+      Emulator::GetMemory(&current_memory);
 
-      // To break ties.
+      // XXX should be a weighted shuffle.
       Shuffle(&nexts);
 
-      double best_score = -999999999.0;
+      double best_score = 0.0;
       double best_future = 0.0, best_immediate = 0.0;
-      vector<uint8> *best_input = &nexts[0];
+      int best_idx = 0;
+      Scoredist distribution(movie.size());
       for (int i = 0; i < nexts.size(); i++) {
-	// (Don't restore for first one; it's already there)
-	if (i != 0) Emulator::LoadUncompressed(&current_state);
+	if (i != 0) Emulator::LoadUncompressed(&current_state);	
+
+	// Take steps.
 	for (int j = 0; j < nexts[i].size(); j++)
 	  Emulator::CachingStep(nexts[i][j]);
 
 	vector<uint8> new_memory;
-	GetMemory(&new_memory);
-	double immediate_score =
-	  objectives->Evaluate(current_memory, new_memory);
-	double future_score = AvoidBadFutures(new_memory) +
-	  SeekGoodFutures(new_memory);
+	Emulator::GetMemory(&new_memory);
 
+	vector<uint8> new_state;
+	Emulator::SaveUncompressed(&new_state);
+
+	double immediate_score =
+	  // objectives->GetNormalizedValue(new_memory);
+	  objectives->Evaluate(current_memory, new_memory);
+
+	// PERF unused except for drawing
+	double norm_score = objectives->GetNormalizedValue(new_memory);
+
+	double negative_score = AvoidBadFutures(new_memory);
+
+	Emulator::LoadUncompressed(&new_state);
+	double positive_score = SeekGoodFutures(new_memory);
+
+	double future_score = negative_score + positive_score;
 	double score = immediate_score + future_score;
+
+	distribution.immediates.push_back(immediate_score);
+	distribution.positives.push_back(positive_score);	
+	distribution.negatives.push_back(negative_score);
+	distribution.norms.push_back(norm_score);
 
 	if (score > best_score) {
 	  best_score = score;
 	  best_immediate = immediate_score;
 	  best_future = future_score;
-	  best_input = &nexts[i];
+	  best_idx = i;
 	}
+	
       }
+      distribution.chosen_idx = best_idx;
+      distributions.push_back(distribution);
 
-      printf("%8d best score %.2f (%.2f + %.2f future):\n", 
+      printf("%8d best score %.4f (%.4f + %.4f future):\n", 
 	     movie.size(),
 	     best_score, best_immediate, best_future);
-      // SimpleFM2::InputToString(best_input).c_str());
 
       // This is very likely to be cached now.
       Emulator::LoadUncompressed(&current_state);
-      for (int j = 0; j < best_input->size(); j++) {
-	Emulator::CachingStep((*best_input)[j]);
-	movie.push_back((*best_input)[j]);
+      for (int j = 0; j < nexts[best_idx].size(); j++) {
+	Commit(nexts[best_idx][j]);
       }
 
-      if (framenum % 10 == 0) {
-	SimpleFM2::WriteInputs(GAME "-playfun-motif-progress.fm2", GAME ".nes",
+      if (iters % 10 == 0) {
+	SimpleFM2::WriteInputs(GAME "-playfun-backtrack-progress.fm2",
+			       GAME ".nes",
 			       // XXX
 			       "base64:Ww5XFVjIx5aTe5avRpVhxg==",
 			       // "base64:jjYwGG411HcjG/j9UOVM3Q==",
 			       movie);
-	objectives->SaveSVG(memories, GAME "-playfun.svg");
+	SaveDistributionSVG(distributions, GAME "-playfun-scores.svg");
+	objectives->SaveSVG(memories, GAME "-playfun-backtrack.svg");
 	Emulator::PrintCacheStats();
 	printf("                     (wrote)\n");
       }
     }
-
-    SimpleFM2::WriteInputs(GAME "-playfun-motif-final.fm2", GAME ".nes",
-			   // XXX
-			   "base64:Ww5XFVjIx5aTe5avRpVhxg==",
-			   // "base64:jjYwGG411HcjG/j9UOVM3Q==",
-			   movie);
   }
+
+  // For making SVG.
+  vector<Scoredist> distributions;
 
   // Used to ffwd to gameplay.
   vector<uint8> solution;
-  // Contains the movie we record.
-  vector<uint8> movie;
 
   ArcFour rc;
   WeightedObjectives *objectives;
@@ -287,7 +394,7 @@ int main(int argc, char *argv[]) {
 
   fprintf(stderr, "Starting...\n");
 
-  pf.Greedy();
+  pf.Go();
 
   Emulator::Shutdown();
 

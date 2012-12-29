@@ -169,6 +169,11 @@ struct StateCache {
 };
 static StateCache *cache = NULL;
 
+void Emulator::GetMemory(vector<uint8> *mem) {
+  mem->resize(0x800);
+  memcpy(&((*mem)[0]), RAM, 0x800);
+}
+
 uint64 Emulator::RamChecksum() {
   md5_context ctx;
   md5_starts(&ctx);

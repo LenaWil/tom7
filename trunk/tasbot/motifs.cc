@@ -9,6 +9,7 @@
 
 #include "tasbot.h"
 #include "../cc-lib/arcfour.h"
+#include "util.h"
 
 Motifs::Motifs() : rc("motifs") {}
 
@@ -73,19 +74,6 @@ void Motifs::AddInputs(const vector<uint8> &inputs) {
   if (!current.empty()) {
     motifs[current] += 1.0;
   }
-}
-
-static uint32 RandomInt32(ArcFour *rc) {
-  uint32 b = rc->Byte();
-  b = (b << 8) | rc->Byte();
-  b = (b << 8) | rc->Byte();
-  b = (b << 8) | rc->Byte();
-  return b;
-}
-
-// Random double in [0,1]. Note precision issues.
-static double RandomDouble(ArcFour *rc) {
-  return (double)RandomInt32(rc) / (double)(uint32)0xFFFFFFFF;
 }
 
 vector< vector<uint8> > Motifs::AllMotifs() const {
