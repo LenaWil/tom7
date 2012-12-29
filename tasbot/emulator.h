@@ -31,6 +31,9 @@ struct Emulator {
   //    RLDUTSBA (Right, Left, Down, Up, sTart, Select, B, A)
   static void Step(uint8 inputs);
 
+  // Copy the 0x800 bytes of RAM.
+  static void GetMemory(vector<uint8> *mem);
+
   // Returns 64-bit checksum (based on MD5, endianness-dependent)
   // of RAM (only). Note there are other important bits of state.
   static uint64 RamChecksum();

@@ -9,14 +9,24 @@
 
 #include "tasbot.h"
 #include "../cc-lib/arcfour.h"
+#include "../cc-lib/textsvg.h"
+#include "util.h"
 
 using namespace std;
+
+struct WeightedObjectives::Info {
+  explicit Info(double w) : weight(w) {}
+  double weight;
+
+  // Sorted, ascending.
+  vector< vector<uint8> > observations;
+};
 
 WeightedObjectives::WeightedObjectives() {}
 
 WeightedObjectives::WeightedObjectives(const vector< vector<int> > &objs) {
   for (int i = 0; i < objs.size(); i++) {
-    weighted[objs[i]] = 1.0;
+    weighted[objs[i]] = new Info(1.0);
   }
 }
 
@@ -46,7 +56,7 @@ WeightedObjectives::LoadFromFile(const string &filename) {
     }
 
     printf("GOT: %f | %s\n", d, ObjectiveToString(locs).c_str());
-    wo->weighted.insert(make_pair(locs, d));  
+    wo->weighted.insert(make_pair(locs, new Info(d)));
   }
 
   return wo;
@@ -66,6 +76,35 @@ void WeightedObjectives::SaveToFile(const string &filename) const {
 
 size_t WeightedObjectives::Size() const {
   return weighted.size();
+}
+
+void WeightedObjectives::Observe(const vector<uint8> &memory) {
+  // PERF Currently, we just keep a sorted vector for each objective's
+  // value at each observation. This is not very efficient. Worse, it
+  // may have the undesirable effect that a particular state's value
+  // can change (arbitrarily) with future observations, even just by
+  // observing states we've already seen again (changes mass
+  // distribution).
+  for (Weighted::iterator it = weighted.begin();
+       it != weighted.end(); ++it) {
+    const vector<int> &obj = it->first;
+    Info *info = it->second;
+    info->observations.resize(info->observations.size() + 1);
+    vector<uint8> *cur = &info->observations.back();
+    cur->reserve(obj.size());
+
+    for (int i = 0; i < obj.size(); i++) {
+      cur->push_back(memory[obj[i]]);
+    }
+
+    // PERF sorted insert is O(n/2); dunno how std::sort
+    // behaves on nearly-sorted vectors.
+    std::sort(info->observations.begin(), info->observations.end());
+
+    // Maybe should just keep the unique values? Otherwise
+    // lower_bound is doing something kind of funny when there
+    // are lots of the same value...
+  }
 }
 
 static bool LessObjective(const vector<uint8> &mem1, 
@@ -105,7 +144,7 @@ double WeightedObjectives::GetNumLess(const vector<uint8> &mem1,
   for (Weighted::const_iterator it = weighted.begin();
        it != weighted.end(); ++it) {
     const vector<int> &objective = it->first;
-    const double weight = it->second;
+    const double weight = it->second->weight;
     if (LessObjective(mem1, mem2, objective))
       score += weight;
   }
@@ -118,7 +157,7 @@ double WeightedObjectives::Evaluate(const vector<uint8> &mem1,
   for (Weighted::const_iterator it = weighted.begin();
        it != weighted.end(); ++it) {
     const vector<int> &objective = it->first;
-    const double weight = it->second;
+    const double weight = it->second->weight;
     switch (Order(mem1, mem2, objective)) {
       case -1: score -= weight;
       case 1: score += weight;
@@ -156,12 +195,43 @@ GetUniqueValues(const vector< vector<uint8 > > &memories,
 
 // Find the index of the vector now within the values
 // array, which is sorted and unique.
-static int GetValueIndex(const vector< vector<uint8> > &values,
-			 const vector<uint8> &now) {
+static inline int GetValueIndex(const vector< vector<uint8> > &values,
+				const vector<uint8> &now) {
   return lower_bound(values.begin(), values.end(), now) - values.begin();
 }
 
-void WeightedObjectives::WeightByExamples(const vector< vector<uint8> > &memories) {
+static inline double GetValueFrac(const vector< vector<uint8> > &values,
+				  const vector<uint8> &now) {
+  int idx = GetValueIndex(values, now);
+  // -1, since it can never be the size itself?
+  // and what should the value be if values is empty or singleton?
+  return (double)idx / values.size();
+}
+
+double WeightedObjectives::GetNormalizedValue(const vector<uint8> &mem) 
+  const {
+  double sum = 0.0;
+
+  for (Weighted::const_iterator it = weighted.begin();
+       it != weighted.end(); ++it) {
+    const vector<int> &obj = it->first;
+    const Info &info = *it->second;
+    
+    vector<uint8> cur;
+    cur.reserve(obj.size());
+    for (int i = 0; i < obj.size(); i++) {
+      cur.push_back(mem[obj[i]]);
+    }
+
+    sum += GetValueFrac(info.observations, cur);
+  }
+
+  sum /= (double)weighted.size();
+  return sum;
+}
+
+void WeightedObjectives::WeightByExamples(const vector< vector<uint8> >
+					  &memories) {
   for (Weighted::iterator it = weighted.begin();
        it != weighted.end(); ++it) {
     double score = 0.0;
@@ -173,8 +243,7 @@ void WeightedObjectives::WeightByExamples(const vector< vector<uint8> > &memorie
     int lastvaluefrac = 0.0;
     for (int i = 0; i < memories.size(); i++) {
       vector<uint8> now = GetValues(memories[i], obj);
-      int valueindex = GetValueIndex(values, now);
-      double valuefrac = (double)valueindex / values.size();
+      double valuefrac = GetValueFrac(values, now);
       score += (valuefrac - lastvaluefrac);
       lastvaluefrac = valuefrac;
     }
@@ -182,46 +251,11 @@ void WeightedObjectives::WeightByExamples(const vector< vector<uint8> > &memorie
     if (score <= 0.0) {
       printf("Bad objective lost more than gained: %f / %s\n",
 	     score, ObjectiveToString(obj).c_str());
-      it->second = 0.0;
+      it->second->weight = 0.0;
     } else {
-      it->second = score;
+      it->second->weight = score;
     }
   }
-}
-
-// Truncate unnecessary trailing zeroes to save space.
-static string Coord(double f) {
-  char s[24];
-  int n = sprintf(s, "%.3f", f) - 1;
-  while (n >= 0 && s[n] == '0') {
-    s[n] = '\0';
-    n--;
-  }
-  if (n <= 0) return "0";
-  else if (s[n] == '.') s[n] = '\0';
-
-  return (string)s;
-}
-
-static string Coords(double x, double y) {
-  return Coord(x) + "," + Coord(y);
-}
-
-static string RandomColor(ArcFour *rc) {
-  // For a white background there must be at least one color channel that
-  // is half off. Mask off one of the three top bits at random:
-  uint8 rr = 0x7F, gg = 0xFF, bb = 0xFF;
-  for (int i = 0; i < 30; i++) {
-    if (rc->Byte() & 1) {
-      uint8 tt = rr;
-      rr = gg;
-      gg = bb;
-      bb = tt;
-    }
-  }
-
-  return StringPrintf("#%02x%02x%02x",
-		      rr & rc->Byte(), gg & rc->Byte(), bb & rc->Byte());
 }
 
 void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
@@ -229,20 +263,7 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
   static const int WIDTH = 2048;
   static const int HEIGHT = 1204;
 
-  string out =
-    StringPrintf(
-    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
-    "<!-- Generator: weighted-objectives.cc -->\n"
-    "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" "
-    "\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\" [\n"
-    "<!ENTITY ns_flows \"http://ns.adobe.com/Flows/1.0/\">\n"
-    "]>\n"
-    "<svg version=\"1.1\"\n"
-    " xmlns=\"http://www.w3.org/2000/svg\""
-    " xmlns:xlink=\"http://www.w3.org/1999/xlink\""
-    " xmlns:a=\"http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/\""
-    " x=\"0px\" y=\"0px\" width=\"%dpx\" height=\"%dpx\""
-    " xml:space=\"preserve\">\n", WIDTH, HEIGHT);
+  string out = TextSVG::Header(WIDTH, HEIGHT);
 
   ArcFour rc("Zmake colors");
 
@@ -305,26 +326,8 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
   printf("Wrote %lld objectives, skipping %lld points!\n", 
 	 weighted.size(), skipped);
 
-  // Show ticks.
-  const int SPAN = 50;
-  const double TICKHEIGHT = 20.0;
-  const double TICKFONT = 12.0;
-  bool longone = true;
-  for (int x = 0; x < memories.size(); x += SPAN) {
-    double xf = x / (double)memories.size();
-    out += StringPrintf("  <polyline fill=\"none\" opacity=\"0.5\" stroke=\"#000000\""
-			" stroke-width=\"1\" points=\"%f,0 %f,%f\" />\n",
-			WIDTH * xf, WIDTH * xf, 
-			longone ? TICKHEIGHT * 2 : TICKHEIGHT);
-    if (longone)
-      out += StringPrintf("<text x=\"%f\" y=\"%f\" font-size=\"%f\">"
-			  "<tspan fill=\"#000000\">%d</tspan>"
-			  "</text>\n",
-			  WIDTH * xf + 3.0, 2.0 * TICKHEIGHT + 2.0, TICKFONT, x);
+  out += SVGTickmarks(WIDTH, memories.size(), 50.0, 20.0, 12.0);
 
-    longone = !longone;
-  }
-
-  out += "\n</svg>\n";
+  out += TextSVG::Footer();
   Util::WriteFile(filename, out);
 }
