@@ -95,8 +95,8 @@ static string DrawDots(const string &color, double xf,
 
 static void SaveDistributionSVG(const vector<Scoredist> &dists,
 				const string &filename) {
-  string out = TextSVG::Header(WIDTH + 12 /* slop for radii */,
-			       HEIGHT);
+  // Add slop for radii.
+  string out = TextSVG::Header(WIDTH + 12, HEIGHT + 12);
   
   // immediates, positives, negatives all are in same value space
   double maxval = 0.0;
@@ -360,6 +360,7 @@ struct PlayFun {
       }
 
       if (iters % 10 == 0) {
+	printf("                     - writing -\n");
 	SimpleFM2::WriteInputs(GAME "-playfun-backtrack-progress.fm2",
 			       GAME ".nes",
 			       // XXX
