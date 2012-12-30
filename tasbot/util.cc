@@ -17,7 +17,7 @@ string SVGTickmarks(double width, double maxx, double span,
 			  "<tspan fill=\"#000000\">%d</tspan>"
 			  "</text>\n",
 			  width * xf + 3.0, 2.0 * tickheight + 2.0,
-			  tickfont, x);
+			  tickfont, (int)x);
 
     longone = !longone;
   }
