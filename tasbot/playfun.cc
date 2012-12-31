@@ -110,14 +110,6 @@ static void SaveDistributionSVG(const vector<Scoredist> &dists,
   
   int totalframes = dists.back().startframe;
   
-#if 0
-  ArcFour rc("Umake colors");
-  vector<string> colors;
-  for (int i = 0; i < dists.back().immediates.size(); i++) {
-    colors.push_back(RandomColor(&rc));
-  }
-#endif
-
   for (int i = 0; i < dists.size(); i++) {
     const Scoredist &dist = dists[i];
     double xf = dist.startframe / (double)totalframes;
@@ -132,6 +124,7 @@ static void SaveDistributionSVG(const vector<Scoredist> &dists,
 
   out += TextSVG::Footer();
   Util::WriteFile(filename, out);
+  printf("Wrote distributions to %s.\n", filename.c_str());
 }
 
 struct PlayFun {
@@ -449,20 +442,35 @@ struct PlayFun {
       }
 
       if (iters % 10 == 0) {
-	printf("                     - writing -\n");
-	SimpleFM2::WriteInputs(GAME "-playfun-backtrack-progress.fm2",
-			       GAME ".nes",
-			       // XXX
-			       "base64:Ww5XFVjIx5aTe5avRpVhxg==",
-			       // "base64:jjYwGG411HcjG/j9UOVM3Q==",
-			       movie);
-	SaveDistributionSVG(distributions, GAME "-playfun-scores.svg");
-	objectives->SaveSVG(memories, GAME "-playfun-backtrack.svg");
-	motifs->SaveHTML(GAME "-playfun-motifs.html");
-	Emulator::PrintCacheStats();
-	printf("                     (wrote)\n");
+	SaveDiagnostics(futures);
       }
     }
+  }
+
+  void SaveDiagnostics(const vector<Future> &futures) {
+    printf("                     - writing -\n");
+    SimpleFM2::WriteInputs(GAME "-playfun-backtrack-progress.fm2",
+			   GAME ".nes",
+			   "base64:jjYwGG411HcjG/j9UOVM3Q==",
+			   movie);
+    for (int i = 0; i < futures.size(); i++) {
+      vector<uint8> fmovie = movie;
+      for (int j = 0; j < futures[i].inputs.size(); j++) {
+	fmovie.push_back(futures[i].inputs[j]);
+	SimpleFM2::WriteInputs(StringPrintf(GAME "-playfun-future-%d.fm2",
+					    i),
+			       GAME ".nes",
+			       "base64:jjYwGG411HcjG/j9UOVM3Q==",
+			       fmovie);
+      }
+    }
+    printf("Wrote %d movie(s).\n", futures.size() + 1);
+
+    SaveDistributionSVG(distributions, GAME "-playfun-scores.svg");
+    objectives->SaveSVG(memories, GAME "-playfun-backtrack.svg");
+    motifs->SaveHTML(GAME "-playfun-motifs.html");
+    Emulator::PrintCacheStats();
+    printf("                     (wrote)\n");
   }
 
   // For making SVG.

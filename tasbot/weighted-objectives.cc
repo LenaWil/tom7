@@ -323,11 +323,11 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
     out += "</g>\n";
   }
 
-  printf("Wrote %lld objectives, skipping %lld points!\n", 
-	 weighted.size(), skipped);
-
   out += SVGTickmarks(WIDTH, memories.size(), 50.0, 20.0, 12.0);
 
   out += TextSVG::Footer();
   Util::WriteFile(filename, out);
+
+  printf("Wrote %lld objectives, skipping %lld points, to %s\n", 
+	 weighted.size(), skipped, filename.c_str());
 }

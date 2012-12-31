@@ -58,7 +58,7 @@ struct StateCache {
   }
 
   void Resize(uint64 ll, uint64 ss) {
-    printf("Resize %d %d\n", ll, ss);
+    printf("Resize cache %d %d\n", ll, ss);
     // Recover memory.
     for (Hash::iterator it = hashtable.begin(); 
 	 it != hashtable.end(); /* in loop */) {
@@ -151,7 +151,7 @@ struct StateCache {
   }
 
   void PrintStats() {
-    printf("Current size: %ld / %ld. next_seq %ld\n"
+    printf("Current cache size: %ld / %ld. next_seq %ld\n"
 	   "%ld hits and %ld misses\n", 
 	   count, limit, next_sequence,
 	   hits, misses);

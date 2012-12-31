@@ -42,7 +42,6 @@ void Motifs::Checkpoint(int framenum) {
        it != motifs.end(); ++it) {
     it->second.history.push_back(make_pair(framenum, it->second.weight));
   }
-  printf("Checkpoint at %d\n", framenum);
 }
 
 Motifs *Motifs::LoadFromFile(const string &filename) {
@@ -59,7 +58,7 @@ Motifs *Motifs::LoadFromFile(const string &filename) {
       inputs.push_back((uint8)i);
     }
 
-    printf("MOTIF: %f | %s\n", d, InputsToString(inputs).c_str());
+    // printf("MOTIF: %f | %s\n", d, InputsToString(inputs).c_str());
     mm->motifs.insert(make_pair(inputs, Info(d)));
   }
 
@@ -221,5 +220,5 @@ void Motifs::SaveHTML(const string &filename) const {
   }
 
   Util::WriteFile(filename, out);
-  printf("Saved weighted objectives to %s\n", filename.c_str());
+  printf("Wrote weighted motifs to %s\n", filename.c_str());
 }
