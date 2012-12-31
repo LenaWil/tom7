@@ -2,6 +2,7 @@
 #include "simplefm2.h"
 
 #include "../cc-lib/util.h"
+#include "tasbot.h"
 
 using namespace std;
 
@@ -90,4 +91,35 @@ string SimpleFM2::InputToString(uint8 input) {
     f[j] = (input & (1 << (7 - j))) ? gamepad[j] : '.';
   }
   return (string)f;
+}
+
+
+string SimpleFM2::InputToColorString(uint8 input) {
+  string color = "";
+  string out;
+  static const char DOTCOLOR[] = "#999";
+  static const char gamepad[] = "RLDUTSBA";
+  static const char *colors[] = {
+    "#000",
+    "#000",
+    "#000",
+    "#000",
+    "#009",
+    "#009",
+    "#900",
+    "#900",
+  };
+  for (int j = 0; j < 8; j++) {
+    bool button_down = input & (1 << (7 - j));
+    string this_color = button_down ? colors[j] : DOTCOLOR;
+    char c = button_down ? gamepad[j] : '.';
+    if (color != this_color) {
+      if (color != "") out += "</span>";
+      out += "<span style=\"color:" + this_color + "\">";
+      color = this_color;
+    }
+    out += StringPrintf("%c", c);
+  }
+  if (color != "") out += "</span>";
+  return out;
 }

@@ -30,6 +30,7 @@ struct SimpleFM2 {
                           const vector<uint8> &inputs);
 
   static string InputToString(uint8 input);
+  static string InputToColorString(uint8 input);
 };
 
 #endif
