@@ -284,6 +284,24 @@ struct PlayFun {
     return total;
   }
 
+  struct Future {
+    vector<uint8> inputs;
+  };
+
+  // DESTROYS THE STATE
+  double ScoreByFuture(const Future &future,
+		       const vector<uint8> &base_memory,
+		       const vector<uint8> &base_state) {
+    for (int i = 0; i < future.inputs.size(); i++) {
+      Emulator::CachingStep(future.inputs[i]);
+    }
+
+    vector<uint8> future_memory;
+    Emulator::GetMemory(&future_memory);
+
+    return objectives->Evaluate(base_memory, future_memory);
+  }
+
   void Go() {
 
     vector<uint8> current_state;
@@ -291,15 +309,48 @@ struct PlayFun {
 
     vector< vector<uint8> > nexts = motifvec;
 
+    // This version of the algorithm looks like this. At some point in
+    // time, we have the set of motifs we might play next. We'll
+    // evaluate all of those. We also have a series of possible
+    // futures that we're considering. At each step we play our
+    // candidate motif (ignoring that many steps as in the future --
+    // but note that for each future, there should be some motif that
+    // matches its head). Then we play all the futures. The motif with the
+    // best overall score is chosen; we chop the head off each future,
+    // and add a random motif to its end.
+    //
+    // XXX recycling futures...
+    static const int NFUTURES = 6;
+    static const int FUTURELENGTH = 300;
+    vector<Future> futures;
+
     int64 iters = 0;
     for (;; iters++) {
+
+      motifs->Checkpoint(movie.size());
+
+      if (futures.size() < NFUTURES)
+	futures.resize(NFUTURES);
+      // Make sure we have enough futures with enough data in.
+      for (int i = 0; i < NFUTURES; i++) {
+	while (futures[i].inputs.size() < FUTURELENGTH) {
+	  const vector<uint8> &m = motifs->RandomWeightedMotif();
+	  for (int x = 0; x < m.size(); x++) {
+	    futures[i].inputs.push_back(m[x]);
+	  }
+	}
+      }
 
       // Save our current state so we can try many different branches.
       Emulator::SaveUncompressed(&current_state);    
       Emulator::GetMemory(&current_memory);
 
       // XXX should be a weighted shuffle.
+      // XXX does it even matter that they're shuffled any more?
       Shuffle(&nexts);
+
+      // Total score across all motifs for each future.
+      vector<double> futuretotals(NFUTURES, 0.0);
 
       double best_score = 0.0;
       double best_future = 0.0, best_immediate = 0.0;
@@ -325,33 +376,71 @@ struct PlayFun {
 	// PERF unused except for drawing
 	double norm_score = objectives->GetNormalizedValue(new_memory);
 
-	double negative_score = AvoidBadFutures(new_memory);
+	double best_future_score = -9999999.0;
+	double worst_future_score = 9999999.0;
 
-	Emulator::LoadUncompressed(&new_state);
-	double positive_score = SeekGoodFutures(new_memory);
+	double futures_score = 0.0;
+	for (int f = 0; f < futures.size(); f++) {
+	  if (f != 0) Emulator::LoadUncompressed(&new_state);
+	  double future_score = ScoreByFuture(futures[f], 
+					      new_memory, new_state);
+	  futuretotals[f] += future_score;
+	  futures_score += future_score;
+	  if (future_score > best_future_score) 
+	    best_future_score = future_score;
+	  if (future_score < worst_future_score)
+	    worst_future_score = future_score;
+	}
 
-	double future_score = negative_score + positive_score;
-	double score = immediate_score + future_score;
+	double score = immediate_score + futures_score;
 
 	distribution.immediates.push_back(immediate_score);
-	distribution.positives.push_back(positive_score);	
-	distribution.negatives.push_back(negative_score);
+	distribution.positives.push_back(futures_score);	
+	distribution.negatives.push_back(worst_future_score);
 	distribution.norms.push_back(norm_score);
 
 	if (score > best_score) {
 	  best_score = score;
 	  best_immediate = immediate_score;
-	  best_future = future_score;
+	  best_future = futures_score;
 	  best_idx = i;
 	}
-	
       }
       distribution.chosen_idx = best_idx;
       distributions.push_back(distribution);
 
-      printf("%8d best score %.4f (%.4f + %.4f future):\n", 
+      // Chop the head off each future.
+      const int choplength = nexts[best_idx].size();
+      for (int i = 0; i < futures.size(); i++) {
+	vector<uint8> newf;
+	for (int j = choplength; j < futures[i].inputs.size(); j++) {
+	  newf.push_back(futures[i].inputs[j]);
+	}
+	futures[i].inputs.swap(newf);
+      }
+
+      // Discard the future with the worst total.
+      double worst_total = futuretotals[0];
+      int worst_idx = 0;
+      for (int i = 1; i < futuretotals.size(); i++) {
+	if (worst_total < futuretotals[i]) {
+	  worst_total = futuretotals[i];
+	  worst_idx = i;
+	}
+      }
+
+      // Delete it by swapping.
+      if (worst_idx != futures.size() - 1) {
+	futures[worst_idx] = futures[futures.size() - 1];
+      }
+      futures.resize(futures.size() - 1);
+
+      // It'll be replaced the next time around the loop.
+
+      printf("%8d best score %.4f (%.4f + %.4f future) worst %d\n", 
 	     movie.size(),
-	     best_score, best_immediate, best_future);
+	     best_score, best_immediate, best_future,
+	     worst_idx);
 
       // This is very likely to be cached now.
       Emulator::LoadUncompressed(&current_state);
@@ -369,6 +458,7 @@ struct PlayFun {
 			       movie);
 	SaveDistributionSVG(distributions, GAME "-playfun-scores.svg");
 	objectives->SaveSVG(memories, GAME "-playfun-backtrack.svg");
+	motifs->SaveHTML(GAME "-playfun-motifs.html");
 	Emulator::PrintCacheStats();
 	printf("                     (wrote)\n");
       }

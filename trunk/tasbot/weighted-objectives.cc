@@ -71,7 +71,7 @@ void WeightedObjectives::SaveToFile(const string &filename) const {
 			ObjectiveToString(obj).c_str());
   }
   Util::WriteFile(filename, out);
-  printf("Saved weighted objectives to %s\n", out.c_str());
+  printf("Saved weighted objectives to %s\n", filename.c_str());
 }
 
 size_t WeightedObjectives::Size() const {
