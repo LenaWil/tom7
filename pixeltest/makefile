@@ -6,6 +6,10 @@ SDLIMAGEVERSION=1.2.12
 SDLNETVERSION=1.2.7
 SDLMIXERVERSION=1.2.11
 
+# Note the DLLs in the current directory are 32 bit, so if you change
+# the architecture (I couldn't get it to work anyway), then you need to
+# change the DLLs too. If the DLLs are the wrong architecture, it will
+# immediately exit with no feedback.
 # SDLARCH=x64
 SDLARCH=x86
 
