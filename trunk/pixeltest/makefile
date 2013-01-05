@@ -1,5 +1,5 @@
 
-default : pixeltest.exe
+default : maintest.exe sdl_win32_main.o smlversion.o
 
 DEBUGFLAGS = /Od /GZ /MDd /FD /D "_DEBUG"
 FASTFLAGS = /MD /Ox /Oi /Oy /Ob2 /GL
@@ -40,6 +40,9 @@ LIBMAIN=
 OBJMAIN=sdl_win32_main.obj
 SUBSYSTEM=/subsystem:console
 
+# MLTON='c:\Program Files (x86)\MLton\bin\mlton' -target x86_64-w64-mingw32 -codegen amd64
+MLTON='/c/Program Files (x86)/MLton/bin/mlton' -target x86_64-w64-mingw32 -codegen amd64
+
 LINK=link /LTCG oldnames.lib ${LIBMAIN} "SDL\lib\${SDLARCH}\SDL.lib" "SDL_image\lib\${SDLARCH}\SDL_image.lib" ${BASICLIBS} /nologo ${SUBSYSTEM} /debug /machine:X64 /libpath:"SDL\lib\${SDLARCH}" /libpath:"SDL_image\lib\${SDLARCH}"
 
 %.obj : ../cc-lib/%.cc
@@ -51,9 +54,39 @@ LINK=link /LTCG oldnames.lib ${LIBMAIN} "SDL\lib\${SDLARCH}\SDL.lib" "SDL_image\
 %.obj : %.cc
 	${COMPILE} $<
 
+%.obj : %.c
+	${COMPILE} $<
+
+
+# MINGWGCC=x86_64-w64-mingw32-gcc -std=c99 -m64 -O -I SDL/include -I SDL_image/include
+
+
+#  %.o : ../cc-lib/%.cc
+#  	${MINGWGCC} -c $< -o $@
+#  
+#  %.o : ../cc-lib/sdl/%.cc
+#  	${MINGWGCC} -c $< -o $@
+
+%.o : %.c
+	${MINGWGCC} -c $< -o $@
+
+sdl_win32_main.o : sdl_win32_main.c
+	${MINGWGCC} -D_GNU_SOURCE=1 -c $< -o $@
+
 pixeltest.exe : pixeltest.obj sdlutil.obj util.obj ${OBJMAIN}
 	${LINK} /out:$@ $^
 	rm -f *.manifest *.pdb
 
+#  -cc-opt "-I/usr/local/include"
+# XXX see "fixed"(er) version in compile.bat
+smlversion.exe : sdl_win32_main.o smlversion.o
+	${MLTON} @MLton max-heap 512m -- -cc-opt "-g -Dmain=SDL_main" -link-opt "--enable-stdcall-fixup" -link-opt "--enable-stdcall-fixup" -link-opt "-LSDL\lib\{$SDLARCH} -LSDL_image\lib\${SDLARCH} -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz -lSDL_net -lkernel32" -output $@ -default-ann 'allowFFI true' smlversion.cm $^
+
+maintest.o : maintest.c
+	${MINGWGCC} -c -Dmain=SDL_main $< -o $@
+
+maintest.exe: sdl_win32_main.o smlversion.o maintest.o
+	${MINGWGCC} -o maintest.exe --enable-stdcall-fixup -LSDL/lib/x64 -LSDL_image/lib/x64 -advapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc -lmoldname -lmingwex -lmsvcrt -lSDL -lSDLmain  -m64 -lSDL_image sdl_win32_main.o smlversion.o maintest.o
+
 clean :
-	rm -f *.obj *.exe *.manifest *.ilk *.pdb
+	rm -f *.obj *.exe *.manifest *.ilk *.pdb *.o
