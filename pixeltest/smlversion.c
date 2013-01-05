@@ -41,6 +41,10 @@ static void ClearSurface(SDL_Surface *s, Uint32 color) {
   SDL_FillRect(s, 0, color);
 }
 
+typedef unsigned char uint8;
+static uint8 ii = 0, jj = 0;
+static uint8 ss[256];
+
 void InitGame() {
   if (SDL_Init (SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
     fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
@@ -50,6 +54,30 @@ void InitGame() {
   screen = MakeScreen(WIDTH * PIXELSIZE, HEIGHT * PIXELSIZE);
   ClearSurface(screen, 1234567);
   SDL_Flip(screen);
+
+  static const uint8 kk[256] = "--------------------a-3--------------------e-------------------------------e-e----------------------------------f----------------------------------------------z-----------------------------------------------------------------------------------------000----";
+  for (int i = 0; i < 256; i++) {
+    ss[i] = i;
+  }
+  uint8 i = 0, j = 0;
+  for (int n = 256; n--;) {
+    j += ss[i] + kk[i];
+    uint8 t = ss[i];
+    ss[i] = ss[j];
+    ss[j] = t;
+    i++;
+  }
+}
+
+static uint8 Byte() {
+  ii++;
+  jj += ss[ii];
+  uint8 ti = ss[ii];
+  uint8 tj = ss[jj];
+  ss[ii] = tj;
+  ss[jj] = ti;
+
+  return ss[(ti + tj) & 255];
 }
 
 // XXX locking?
@@ -61,6 +89,7 @@ void FillScreen2x() {
 
   for (int y = 0; y < HEIGHT; y++) {
     for (int x = 0; x < WIDTH; x++) {
+#if 0
       f = (f * 67) & 0xFFFFFFFF;
       f = f * 156;
       f += x;
@@ -73,6 +102,8 @@ void FillScreen2x() {
       b *= 31337;
       b += f;
       f = r ^ g;
+#endif
+      uint8 r = Byte(), g = Byte(), b = Byte();
 
       // PERF?
       Uint32 color = SDL_MapRGB(surf->format, r, g, b);

@@ -278,9 +278,6 @@ int console_main(int argc, char *argv[])
         char *bufp, *appname;
         int status;
 
-        printf("Consolemain.\n");
-        FILE *f = fopen("consolemainok", "w");
-
         /* Get the class name from argv[0] */
         appname = argv[0];
         if ( (bufp=SDL_strrchr(argv[0], '\\')) != NULL ) {
@@ -346,10 +343,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
         char *bufp;
         size_t nLen;
 #endif
-
-        printf("Winmain.\n");
-        FILE *f = fopen("winmainok", "w");
-
 
         /* Start up DDHELP.EXE before opening any files, so DDHELP doesn't
            keep them open.  This is a hack.. hopefully it will be fixed

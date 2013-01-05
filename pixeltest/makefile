@@ -23,11 +23,14 @@ SDLARCH=x86
 MLTON=/c/mlton/bin/mlton.bat
 # -target x86_64-w64-mingw32 -codegen amd64
 
-MINGWGCC=/c/mlton/bin/gcc -std=c99 -O1 -I SDL/include -I SDL_image/include -I/c/mlton/lib/mlton/include
+MINGWGCC=/c/mlton/bin/gcc -std=c99 -O1 -fomit-frame-pointer -fno-strict-aliasing -w -fschedule-insns -fschedule-insns2 -malign-functions=5 -malign-jumps=2 -I SDL/include -I SDL_image/include -I/c/mlton/lib/mlton/include
 # x86_64-w64-mingw32-gcc -m64
 
 %.o : %.c makefile
 	${MINGWGCC} -c $< -o $@
+
+%.o : ../sdlml/%.c makefile
+	${MINGWGCC} -c -D WIN32 $< -o $@
 
 sdl_win32_main.o : sdl_win32_main.c makefile
 	${MINGWGCC} -D_GNU_SOURCE=1 -c $< -o $@
@@ -37,12 +40,8 @@ sdl_win32_main.o : sdl_win32_main.c makefile
 
 #  -mwindows works, disables console?
 #  -Dmain=SDL_main
-smlversion.exe : sdl_win32_main.o smlversion.o decoymain.o smlversion.cm smlversion.sml makefile
-	${MLTON} @MLton max-heap 512m -- -keep g -keep o -verbose 1 -cc-opt " -I SDL/include " -link-opt "-Wl,--subsystem,console -LSDL/lib/${SDLARCH} -LSDL_image/lib/${SDLARCH} -lSDL -lSDL_image -lkernel32 -lmingw32" -output $@ -default-ann 'allowFFI true' smlversion.cm sdl_win32_main.o smlversion.o decoymain.o empty.o
-
-anything.exe : smlversion.o empty.o smlversion.cm smlversion.sml makefile
-	${MLTON} @MLton max-heap 512m -- -keep g -keep o -verbose 1 -link-opt " -LSDL/lib/${SDLARCH} -LSDL_image/lib/${SDLARCH} -lSDL -lSDL_image -lkernel32 -lmingw32" -output $@ -default-ann 'allowFFI true' smlversion.cm empty.o smlversion.o
-
+smlversion.exe : sdl_win32_main.o smlversion.o sdlml.o smlversion.cm smlversion.sml makefile
+	${MLTON} @MLton max-heap 512m -- -keep g -keep o -verbose 1 -cc-opt " -I SDL/include -Dmain=SDL_main " -link-opt "-Wl,--subsystem,console -LSDL/lib/${SDLARCH} -LSDL_image/lib/${SDLARCH} -lSDL -lSDL_image -lkernel32 -lmingw32" -output $@ -default-ann 'allowFFI true' smlversion.cm sdl_win32_main.o smlversion.o sdlml.o
 
 clean :
 	rm -f *.obj *.exe *.manifest *.ilk *.pdb *.o

@@ -1,11 +1,5 @@
 
-val f = TextIO.openOut("thisisfile")
-val () = TextIO.closeOut f
-
 val () = print "Hello.\n";
-
-val decoy = _import "DecoyFunction" private : unit -> int ;
-val () = print (Int.toString (decoy ()) ^ "\n")
 
 local
     (* If you get link errors about __imp, it's probably because you
