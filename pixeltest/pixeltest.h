@@ -8,6 +8,7 @@
 #include "SDL_thread.h"
 #include "sdl/sdlutil.h"
 #include "math.h"
+#include <time.h>
 
 #ifdef __GNUC__
 #include <ext/hash_map>
