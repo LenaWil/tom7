@@ -30,7 +30,7 @@ MLTON=/c/mlton/bin/mlton.bat
 MINGWGCC=/c/mlton/bin/gcc -std=c99 -O1 -fomit-frame-pointer -fno-strict-aliasing -w -fschedule-insns -fschedule-insns2 -malign-functions=5 -malign-jumps=2 -I SDL/include -I SDL_image/include -I/c/mlton/lib/mlton/include
 # x86_64-w64-mingw32-gcc -m64
 
-%.o : %.c makefile
+%.o : %.c makefile *.h
 	${MINGWGCC} -c $< -o $@
 
 %.o : ../sdlml/%.c makefile
