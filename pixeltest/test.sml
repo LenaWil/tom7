@@ -1,0 +1,2 @@
+
+val () = print "hi"
