@@ -5,7 +5,7 @@ int counter = 0;
 
 SDL_Surface *screen;
 
-SDL_Surface *MakeScreen(int w, int h) {
+static SDL_Surface *MakeScreen(int w, int h) {
 
   /* Can't use HWSURFACE here, because not handling this SDL_BlitSurface
      case mentioned in the documentation:
@@ -37,11 +37,11 @@ SDL_Surface *MakeScreen(int w, int h) {
   return ret;
 }
 
-void ClearSurface(SDL_Surface *s, Uint32 color) {
+static void ClearSurface(SDL_Surface *s, Uint32 color) {
   SDL_FillRect(s, 0, color);
 }
 
-void __stdcall InitGame() {
+void InitGame() {
   if (SDL_Init (SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
     fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
     abort();
@@ -55,7 +55,7 @@ void __stdcall InitGame() {
 // XXX locking?
 void FillScreen2x() {
   SDL_Surface *surf = screen;
-  static int r = 0x50, g = 0x80, b = 0xFE, a = 0xFF, f = 0xFFFFFF;
+  static Sint64 r = 0x50, g = 0x80, b = 0xFE, a = 0xFF, f = 0xFFFFFF;
   // printf("RGB %d %d %d\n", R, G, B);
   CHECK(surf->format->BytesPerPixel == 4);
 
@@ -111,4 +111,6 @@ void FillScreen2x() {
       #endif
     }
   }
+
+  SDL_Flip(screen);
 }
