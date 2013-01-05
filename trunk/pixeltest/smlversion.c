@@ -46,11 +46,6 @@ static uint8 ii = 0, jj = 0;
 static uint8 ss[256];
 
 void InitGame() {
-  if (SDL_Init (SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
-    fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
-    abort();
-  }
-  SDL_EnableUNICODE(1);
   screen = MakeScreen(WIDTH * PIXELSIZE, HEIGHT * PIXELSIZE);
   ClearSurface(screen, 1234567);
   SDL_Flip(screen);

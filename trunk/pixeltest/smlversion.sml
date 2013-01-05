@@ -1,6 +1,8 @@
 
 val () = print "Hello.\n";
 
+exception Quit
+
 local
     (* If you get link errors about __imp, it's probably because you
        didn't import with "private" (or "public") visibility. It seems
@@ -12,8 +14,16 @@ local
 in
     val _ = init ()
     val start = Time.now()
+    fun keypress () =
+        case SDL.pollevent () of
+            NONE => ()
+          | SOME SDL.E_Quit => raise Quit
+          | SOME (SDL.E_KeyDown { sym = SDL.SDLK_ESCAPE }) => raise Quit
+          | _ => ()
+
     fun loop () =
         let
+            val () = keypress ()
             val () = fs ()
             val () = ctr := !ctr + 1
         in
