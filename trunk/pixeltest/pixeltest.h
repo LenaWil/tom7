@@ -57,22 +57,11 @@ using namespace std;
 #endif
 
 // Local utilities
-#include "sample.h"
+
+// (includes go here)
 
 typedef Sint64 int64;
 typedef Uint64 uint64;
-
-
-// Using 96khz for this prototype. It would be nice to make the
-// rendering sample-rate agnostic, but let's get something working
-// first.
-#define SAMPLINGRATE 96000
-// 64 gigs of ram gets us:
-// 68719476736 bytes
-// 8589934592  doubles
-// 89478 seconds of audio at 96khz
-// 24 hours mono
-// 12 hours stereo
 
 // XXX more digits?
 #define PI 3.141592653589
