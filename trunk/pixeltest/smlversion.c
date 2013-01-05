@@ -41,7 +41,7 @@ void ClearSurface(SDL_Surface *s, Uint32 color) {
   SDL_FillRect(s, 0, color);
 }
 
-void initgame() {
+void __stdcall InitGame() {
   if (SDL_Init (SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
     fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
     abort();
