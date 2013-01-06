@@ -1,10 +1,4 @@
-
 default : otolith.exe
-
-SDLVERSION=1.2.15
-SDLIMAGEVERSION=1.2.12
-SDLNETVERSION=1.2.7
-SDLMIXERVERSION=1.2.11
 
 # Note the DLLs in the current directory are 32 bit, so if you change
 # the architecture (I couldn't get it to work anyway), then you need to
@@ -13,17 +7,12 @@ SDLMIXERVERSION=1.2.11
 # SDLARCH=x64
 SDLARCH=x86
 
-# Showing console output. The most important thing is setting the
+# Showing console output: The most important thing is setting the
 # subsystem to "console", otherwise, no amount of redirection or
 # defines or environment variables will work (I don't think this
 # has anything to do with SDL in fact). 
 
-# to use precompiled main function, no console
-# LIBMAIN="SDL\lib\${SDLARCH}\SDLmain.lib"
-# OBJMAIN=
-# SUBSYSTEM=/subsystem:windows
-
-# MLTON='c:\Program Files (x86)\MLton\bin\mlton' -target x86_64-w64-mingw32 -codegen amd64
+# MLTON=/c/mlton/bin/mlton.bat -target x86_64-w64-mingw32 -codegen amd64
 MLTON=/c/mlton/bin/mlton.bat
 # -target x86_64-w64-mingw32 -codegen amd64
 
@@ -42,10 +31,8 @@ sdl_win32_main.o : sdl_win32_main.c makefile
 OBJECTS=blit.o sdlml.o
 
 #  -ltiff -lpng -ljpeg -lz -lSDL_net
-#  -link-opt "--enable-stdcall-fixup" -link-opt "--enable-stdcall-fixup" 
 
 #  -mwindows works, disables console?
-#  -Dmain=SDL_main
 otolith.exe : sdl_win32_main.o ${OBJECTS} otolith.cm otolith.sml makefile
 	${MLTON} @MLton max-heap 512m -- -cc-opt " -I SDL/include -Dmain=SDL_main " -link-opt "-Wl,--subsystem,console -LSDL/lib/${SDLARCH} -LSDL_image/lib/${SDLARCH} -lSDL -lSDL_image -lkernel32 -lmingw32" -output $@ -default-ann 'allowFFI true' otolith.cm sdl_win32_main.o ${OBJECTS}
 
