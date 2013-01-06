@@ -20,7 +20,7 @@ struct
   open SDL
   structure Util = U
 
-  structure Font = FontFn 
+  structure Font = FontFn
   (val surf = Images.requireimage "font.png"
    val charmap =
        " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
@@ -40,6 +40,7 @@ struct
   structure M = Maths
 
   val LETTERFILE = "letter.toward"
+  val ALPHABETFILE = "alphabet.toward"
 
   (* val () = SDL.show_cursor false *)
 
@@ -64,13 +65,13 @@ struct
           val g = (c div 256) mod 256
           val r = ((c div 256) div 256) mod 256
       in
-          SDL.color (Word8.fromInt r, 
+          SDL.color (Word8.fromInt r,
                      Word8.fromInt g,
                      Word8.fromInt b,
                      0w255)
       end
 
-     
+
   (* Put the origin of the world at WIDTH / 2, HEIGHT / 2.
      make the viewport show 8 meters by 6. *)
   fun topixels d = d * real PIXELS_PER_METER
@@ -151,7 +152,7 @@ struct
           val (x, y) = toscreen (vec2xy p)
           val r = Real.round (topixels radius)
       in
-          print ("circle at " ^ Int.toString x ^ "/" ^ Int.toString y ^ 
+          print ("circle at " ^ Int.toString x ^ "/" ^ Int.toString y ^
                  " @" ^ Int.toString r ^ "\n")
       end
 
@@ -188,7 +189,7 @@ struct
           val () = app
               (fn sh =>
                ignore `
-               Body.create_fixture (body, 
+               Body.create_fixture (body,
                                     { shape = sh,
                                       data = (),
                                       friction = 0.2,
@@ -200,7 +201,7 @@ struct
           ()
       end
 
-  val () = add_letter (0.0, ~3.0, Letter.fromstring (StringUtil.readfile LETTERFILE))
+  val alphabet = Letter.alphabetfromstring (StringUtil.readfile ALPHABETFILE)
 
   val ground = World.create_body
       (world,
@@ -208,7 +209,7 @@ struct
          position = vec2 (0.0, 4.75),
          angle = 0.0,
          linear_velocity = vec2 (0.0, 0.0),
-         angular_velocity = 0.0, 
+         angular_velocity = 0.0,
          linear_damping = 0.0,
          angular_damping = 0.0,
          allow_sleep = true,
@@ -220,7 +221,7 @@ struct
          inertia_scale = 1.0 })
 
   val ground_floor =
-      Body.create_fixture_default (ground, 
+      Body.create_fixture_default (ground,
                                    BDDShape.Polygon
                                    (BDDPolygon.box (6.0, 0.2)),
                                    (), 1.0)
@@ -265,7 +266,7 @@ struct
             then SDL.drawline (screen, sx, sy, dx, dy, RED)
             else ();
 
-            for 0 (point_count - 1) 
+            for 0 (point_count - 1)
             (fn i =>
              let val pt = Array.sub(#points world_manifold, i)
                  val (x, y) = vectoscreen pt
@@ -327,7 +328,7 @@ struct
             then print "touching "
             else ();
             print (Int.toString point_count ^ " points: ");
-            for 0 (point_count - 1) 
+            for 0 (point_count - 1)
             (fn i =>
              let val pt = Array.sub(#points world_manifold, i)
                  (* val (x, y) = vectoscreen pt *)
@@ -342,6 +343,8 @@ struct
       oapp Contact.get_next onecontact (World.get_contact_list world)
     end
 
+
+  val ctr = ref 0
   val iters = ref 0
   fun key () =
       case pollevent () of
@@ -351,17 +354,23 @@ struct
                E_Quit => raise Done
              | E_KeyDown { sym = SDLK_ESCAPE } => raise Done
              | E_MouseMotion { state : mousestate, x : int, y : int, ... } =>
-                   let in 
+                   let in
                        mousex := x;
                        mousey := y
                    end
-(*
              | E_MouseDown { button = 1, x, y, ... } =>
-                   let in
-                       savex := x;
-                       savey := y
+                   let
+                       val v = screentovec (x, y)
+                       val (xx, yy) = vec2xy v
+
+                       val l = Letter.CM.listItems alphabet
+                       val ln = List.length l
+                       val ltr = List.nth (l, !ctr mod ln)
+                   in
+                       ctr := !ctr + 1;
+                       add_letter (0.0, ~3.0, ltr)
                    end
-*)
+
              | _ => ()
 
   fun drawinstructions () =
@@ -375,7 +384,7 @@ struct
       let
           val (x, y) = (1, 1)
           val y = y + Font.height * 2
-              
+
           val tot = Real.fromLargeInt (!total_step + !total_draw)
           val pcts = (100.0 * Real.fromLargeInt (!total_step)) / tot
           val pctd = (100.0 * Real.fromLargeInt (!total_draw)) / tot
@@ -393,10 +402,10 @@ struct
       end
 
   fun loop () =
-      let 
+      let
           val start_draw = Time.now ()
       in
-          
+
           clearsurface (screen, color (0w255, 0w0, 0w0, 0w0));
 
           drawworld world;
@@ -413,7 +422,7 @@ struct
           let val start_step = Time.now ()
           in
               World.step (world, 0.005, 1000, 1000);
-              total_step := !total_step + 
+              total_step := !total_step +
               Time.toMicroseconds (Time.-(Time.now (), start_step))
           end;
           loop ()
@@ -443,6 +452,5 @@ struct
           app (fn l => eprint ("  " ^ l ^ "\n")) (Port.exnhistory e);
           eprint "\n"
       end
-                   
-end
 
+end

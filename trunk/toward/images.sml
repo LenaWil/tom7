@@ -1,4 +1,4 @@
-structure Images = 
+structure Images =
 struct
 
   exception NoSuchImage
@@ -12,12 +12,12 @@ struct
             | SOME p => p
       end
 
-  local 
+  local
       open SDL.Util.Cursor
       nonfix + -
   in
       val pointercursor =
-        make 
+        make
         { w = 16, hot_x = 0, hot_y = 0,
           pixels =
           [X, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
@@ -61,7 +61,7 @@ struct
            -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -] }
 
       val selcursor =
-        make 
+        make
         { w = 16, hot_x = 0, hot_y = 0,
           pixels =
           [X, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
@@ -106,7 +106,7 @@ struct
 
 
       val handcursor =
-        make 
+        make
         { w = 16, hot_x = 8, hot_y = 8,
           pixels =
           [-, -, -, -, X, X, -, X, X, -, X, X, -, -, -, -,

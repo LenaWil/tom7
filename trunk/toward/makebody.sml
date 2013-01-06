@@ -28,10 +28,12 @@ struct
   structure Util = U
 
   structure M = Maths
+  structure E = Editing
 
   val LETTERFILE = "letter.toward"
+  val ALPHABETFILE = "alphabet.toward"
 
-  structure Font = FontFn 
+  structure Font = FontFn
   (val surf = Images.requireimage "font.png"
    val charmap =
        " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
@@ -42,7 +44,7 @@ struct
    val overlap = 1
    val dims = 3)
 
-  structure FontSmall = FontFn 
+  structure FontSmall = FontFn
   (val surf = Images.requireimage "fontsmalloutlined.png"
    val charmap =
        " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
@@ -66,12 +68,13 @@ struct
   val rtos = Real.fmt (StringCvt.FIX (SOME 2))
   fun vtos v = rtos (vec2x v) ^ "," ^ rtos (vec2y v)
 
+  type letter = Letter.letter
 
   val () = SDL.set_cursor Images.pointercursor
 
   fun tometers d = (* real d * METERS_PER_PIXEL *)
       real d / !PIXELS_PER_METER
-      
+
   fun toworld (xp, yp) =
       let
           val xp = xp - !scrollx
@@ -105,40 +108,6 @@ struct
   structure GA = GrowArray
 
   type poly = Maths.poly
-  type letter =
-      (* Add graphics, ... *)
-      { polys: Maths.poly GA.growarray }
-
-  fun copyletter { polys } =
-      { polys = GA.fromlist (map GA.copy (GA.tolist polys)) }
-      handle Subscript => (eprint "copyletter"; raise Subscript)
-
-  (* Only if they are structurally equal (order of polygons and
-     vertices matters). Used to deduplicate undo state. *)
-  local exception NotEqual
-  in
-      fun lettereq ({ polys = ps }, { polys = pps }) =
-          let in
-              if GA.length ps <> GA.length pps
-              then raise NotEqual
-              else ();
-              Util.for 0 (GA.length ps - 1) 
-              (fn i =>
-               let val p = GA.sub ps i
-                   val pp = GA.sub pps i
-               in
-                   if GA.length p <> GA.length pp
-                   then raise NotEqual
-                   else ();
-                   Util.for 0 (GA.length p - 1)
-                   (fn j =>
-                    if not (vec2eq (GA.sub p j, GA.sub pp j))
-                    then raise NotEqual
-                    else ())
-               end);
-              true
-          end handle NotEqual => false
-  end
 
   (* 0xRRGGBB *)
   fun hexcolor c =
@@ -147,7 +116,7 @@ struct
           val g = (c div 256) mod 256
           val r = ((c div 256) div 256) mod 256
       in
-          SDL.color (Word8.fromInt r, 
+          SDL.color (Word8.fromInt r,
                      Word8.fromInt g,
                      Word8.fromInt b,
                      0w255)
@@ -203,9 +172,11 @@ struct
            end)
       end
 
-  (* Currently selected vertices. First index is the polygon,
-     second is the vertex on that polygon. Often nil. *)
-  val selected = ref nil : (int * int) list ref
+  (* Workspace state is maintained in Editing structure. *)
+  val () = Editing.loadfromfile ALPHABETFILE
+
+  (* These are not maintained in the workspace; so you lose them
+     if you switch between letters. *)
   (* Holding space *)
   val dragging = ref false
   (* Holding shift *)
@@ -216,6 +187,8 @@ struct
       case !selection of
           SOME s => SOME (Maths.orienttobox (s, screentovec (!mousex, !mousey)))
         | NONE => NONE
+  (* XXX way to set snapping preference *)
+  val snapping = ref true
 
   fun drawpolyvertices (sel : int list, poly : poly) =
       let
@@ -243,7 +216,7 @@ struct
       in
           Util.for 0 (num - 1)
           (fn i =>
-           let 
+           let
                val v = GA.sub poly i
                val (x, y) = vectoscreen v
            in
@@ -272,9 +245,9 @@ struct
 
           (* Draw vertices. *)
           Util.for 0 (num - 1)
-          (fn i => drawpolyvertices (List.mapPartial 
+          (fn i => drawpolyvertices (List.mapPartial
                                      (fn (p, v) => if p = i then SOME v
-                                                   else NONE) (!selected),
+                                                   else NONE) (E.selected()),
                                      GA.sub polys i));
 
           Util.for 0 (num - 1)
@@ -283,37 +256,11 @@ struct
           ()
       end
 
-  exception Done
-
   (* Can do better than this... *)
   fun trivialpolygon v =
       GA.fromlist [vec2 (~0.5, ~0.5) :+: v,
                    vec2 (1.0, 0.0) :+: v,
                    vec2 (0.0, 1.0) :+: v]
-
-  (* XXX way to set snapping preference *)
-  val snapping = ref true
-  val undostate = UndoState.undostate () : letter UndoState.undostate
-  val letter : letter ref = 
-      ref { polys = GA.fromlist [trivialpolygon (vec2 (0.0, 0.0))] }
-
-  val () = (letter := Letter.fromstring (StringUtil.readfile LETTERFILE))
-      handle _ => ()
-
-  (* Call before making a modification to the state. Keeps the buffer
-     length from exceeding MAX_UNDO. Doesn't duplicate the state if it
-     is already on the undo buffer. *)
-  val MAX_UNDO = 100
-  fun savestate () =
-      let in
-          (case UndoState.peek undostate of
-               NONE => UndoState.save undostate (copyletter (!letter))
-             | SOME prev =>
-                   if lettereq (prev, !letter)
-                   then ()
-                   else UndoState.save undostate (copyletter (!letter)));
-          UndoState.truncate undostate MAX_UNDO
-      end
 
   (* For the following, we could use kd-trees to make the lookup much
      faster, but we have to maintain the tree, which is expensive and
@@ -327,11 +274,11 @@ struct
       in
           GA.appi (fn (i, poly)  =>
                    GA.appi (fn (j, vertex) =>
-                            if screendistance_squared (v, 
+                            if screendistance_squared (v,
                                                        vectoscreen vertex) <= dd
                             then vs := (i, j) :: !vs
                             else ()) poly
-                   ) (#polys (!letter));
+                   ) (#polys (E.letter()));
           !vs
       end
 
@@ -354,7 +301,7 @@ struct
                             if inside vertex
                             then vs := (i, j) :: !vs
                             else ()) poly
-                   ) (#polys (!letter));
+                   ) (#polys (E.letter()));
           !vs
       end
 
@@ -386,7 +333,7 @@ struct
                                           else ()
                                  end) poly
                    else ()
-                   ) (#polys (!letter));
+                   ) (#polys (E.letter()));
           (Math.sqrt (!best_dist), !best_vs)
       end
 
@@ -403,9 +350,9 @@ struct
           Font.draw (screen, 0, 0, pfx);
           Font.draw (screen, WIDTH - 100, 0,
                      "^1" ^
-                     Int.toString (UndoState.history_length undostate) ^ 
+                     Int.toString (UndoState.history_length (E.undostate ())) ^
                      "^< undo ^1" ^
-                     Int.toString (UndoState.future_length undostate))
+                     Int.toString (UndoState.future_length (E.undostate ())))
       end
 
   fun drawinterior () =
@@ -420,14 +367,14 @@ struct
             let
                 val v = screentovec (x * DENSITY, y * DENSITY)
             in
-                if GA.exists (fn p => M.pointinside p v) (#polys (!letter))
+                if GA.exists (fn p => M.pointinside p v) (#polys (E.letter()))
                 then SDL.drawpixel (screen, x * DENSITY, y * DENSITY, BROWN)
                 else ()
             end
             ))
       end
 
-  (* Draws 1m grid. 
+  (* Draws 1m grid.
      PERF: This only depends on the zoom and pan so
      we should probably precompute it on a surface and just blit it. *)
   val GRIDCOLOR = hexcolor 0x222222
@@ -480,12 +427,12 @@ struct
 
   fun draw () =
       let in
-          (* XXX don't need to continuously be drawing. *)          
+          (* XXX don't need to continuously be drawing. *)
           clearsurface (screen, color (0w255, 0w0, 0w0, 0w0));
 
           drawgrid ();
 
-          drawletter (!letter);
+          drawletter (E.letter());
           drawinterior ();
           drawselection ();
 
@@ -496,12 +443,12 @@ struct
 
   (* Prevent the polygon from becoming convex or non-simple.
      TODO: It would be better if we searched to find the closest legal
-     spot. It's kind of a bad feeling to have the point just stick as you 
+     spot. It's kind of a bad feeling to have the point just stick as you
      drag. *)
   fun okay_to_move_to idxs dest =
       List.all (fn (pi, vi) =>
-                let 
-                    val p = GA.copy (GA.sub (#polys (!letter)) pi)
+                let
+                    val p = GA.copy (GA.sub (#polys (E.letter())) pi)
                 in
                     GA.update p vi dest;
                     M.issimple p
@@ -515,10 +462,10 @@ struct
           val together = ListUtil.stratify Int.compare idxs
       in
           List.all (fn (pi, vis) =>
-                    let 
-                        val p = GA.copy (GA.sub (#polys (!letter)) pi)
+                    let
+                        val p = GA.copy (GA.sub (#polys (E.letter())) pi)
                     in
-                        app (fn vi => 
+                        app (fn vi =>
                              let val old = GA.sub p vi
                              in GA.update p vi (old :+: delta)
                              end) vis;
@@ -529,48 +476,47 @@ struct
   (* XXX should put the polygon in correct winding order.
      (It currently seems impossible to turn them inside-out?) *)
   fun setvertices idxs vnew =
-      let 
+      let
           (* when snapping, only do it to vertices on OTHER polygons. *)
           val dest =
               case findclosestpointsnoton (map #1 idxs) vnew of
                   (dist, (pi, vi) :: _) =>
                       if !snapping andalso topixels dist < 5.0
-                      then GA.sub (GA.sub (#polys (!letter)) pi) vi
+                      then GA.sub (GA.sub (#polys (E.letter())) pi) vi
                       else vnew
                  | _ => vnew
 
       in
           if okay_to_move_to idxs dest
           then
-              (* Don't save undo every time, because then we have the whole history
-                 of dragging, which is silly. *)
-              app (fn (pi, vi) => 
-                   GA.update (GA.sub (#polys (!letter)) pi) vi dest) idxs
+              (* Don't save undo every time, because then we have the
+                 whole history of dragging, which is silly. *)
+              app (fn (pi, vi) =>
+                   GA.update (GA.sub (#polys (E.letter())) pi) vi dest) idxs
           else ()
       end
 
 
   (* XXX HERE.
      This is nontrivial because moving the points might make polygons
-     non-simple. 
-     
-*)
+     non-simple. *)
   fun nudge (dx, dy) =
-      let val v = vec2 (tometers dx, tometers dy)
-      in
-          if okay_to_move_by (!selected) v
-          then
-              let in
-                  (* maybe should only save at the end of a series of nudges? *)
-                  savestate ();
-                  app (fn (pi, vi) => 
-                       let val old = GA.sub (GA.sub (#polys (!letter)) pi) vi
-                       in
-                           GA.update (GA.sub (#polys (!letter)) pi) vi (old :+: v)
-                       end) (!selected)
-              end
-          else ()
-      end
+    let val v = vec2 (tometers dx, tometers dy)
+    in
+        if okay_to_move_by (E.selected()) v
+        then
+          let in
+              (* maybe should only save at the end of a series of nudges? *)
+              E.savestate ();
+              app
+              (fn (pi, vi) =>
+               let val old = GA.sub (GA.sub (#polys (E.letter())) pi) vi
+               in
+                   GA.update (GA.sub (#polys (E.letter())) pi) vi (old :+: v)
+               end) (E.selected())
+          end
+        else ()
+    end
 
   fun pan (dx, dy) =
       let in
@@ -593,13 +539,13 @@ struct
           mousey := y
       end
       else
-      let in 
+      let in
           mousex := x;
           mousey := y;
           if !mousedown
-          then setvertices (!selected) (screentovec (x, y))
+          then setvertices (E.selected()) (screentovec (x, y))
           else ()
-      end    
+      end
 
   (* From a click at screen coordinates (x, y), maybe insert a
      point if it is close enough to a line segment on an existing
@@ -626,7 +572,7 @@ struct
                          NONE => ()
                        | SOME v' =>
                              let val d = distance (v', v)
-                             in 
+                             in
                                 if d < !closest_dist
                                 then (closest_dist := d;
                                       closest_idx := [(j, i)])
@@ -638,8 +584,8 @@ struct
             end
 
           fun insert (pi, vi) =
-              let val p = GA.sub (#polys (!letter)) pi
-              in 
+              let val p = GA.sub (#polys (E.letter())) pi
+              in
                   eprint "insert.\n";
                   GA.insertat p (vi + 1) v
               end
@@ -647,13 +593,13 @@ struct
       in
           (* XXX should dedupe so that we only add once per poly;
              this would be quite difficult to make happen *)
-          GA.appi onepoly (#polys (!letter));
+          GA.appi onepoly (#polys (E.letter()));
           eprint ("Closest is " ^ rtos (topixels (!closest_dist)) ^ " away\n");
           (* Is the closest one close enough? *)
           if topixels (!closest_dist) <= 8.0
           then (app insert (!closest_idx);
                 (* Select these. They're one after the index we recorded. *)
-                selected := map (fn (p, v) => (p, v + 1)) (!closest_idx);
+                E.set_selected (map (fn (p, v) => (p, v + 1)) (!closest_idx));
                 true)
           else false
       end
@@ -662,7 +608,7 @@ struct
 
      If we're close to a point, then we select that point and any that
      are coincident with it.
-     
+
      If not, but we're close to a line segment, then we add a point
      there, and select it.
 
@@ -680,25 +626,25 @@ struct
       else
         (* Plain click means either select a close-by point, create a new
            point if close to an edge, or otherwise make a new trivial poly. *)
-        let 
+        let
             val nearby = pointswithinscreendistance 8 (x, y)
             val () = eprint ("There are " ^ Int.toString (length nearby) ^ " nearby.\n")
 
             val mv = screentovec (x, y)
         in
             (* XXX won't need to save if dragging to select *)
-            savestate ();
+            E.savestate ();
             mousedown := true;
             (* Always set, maybe clearing the selection if there
                were no nearby points. *)
-            selected := nearby;
+            E.set_selected nearby;
             (* If there were no points selected, then maybe another
                action. *)
             if List.null nearby andalso not (maybeinsert (x, y))
-            then 
+            then
                 (* If we didn't create a new point, then we make
                    a new polygon. *)
-                GA.append (#polys (!letter)) (trivialpolygon mv)
+                GA.append (#polys (E.letter())) (trivialpolygon mv)
             else ();
             (* Simulate mouse motion. *)
             mousemotion (x, y)
@@ -715,7 +661,7 @@ struct
                   SOME (a, b) =>
                       let in
                           (* Select every point within the box. *)
-                          selected := pointswithinrectangle (a, b);
+                          E.set_selected (pointswithinrectangle (a, b));
                           selection := NONE
                       end
                 | _ => ()
@@ -723,7 +669,7 @@ struct
       end
 
   fun savetodisk () =
-      (StringUtil.writefile LETTERFILE (Letter.tostring (!letter));
+      (Editing.savetofile ALPHABETFILE;
        eprint "Saved.\n")
 
   fun updatecursor () =
@@ -733,24 +679,48 @@ struct
            then SDL.set_cursor Images.selcursor
            else SDL.set_cursor Images.pointercursor
 
+  exception Done
+
+  fun switchto c =
+      let in
+          E.set_current (ord c);
+          selection := NONE;
+          selecting := false;
+          updatecursor ();
+          (* XXX force redraw? *)
+          dragging := false;
+          mousedown := false
+      end
+
+  (* XXX show menu!
+
+     XXX Not possible to go to capital letters.
+     *)
+  fun get_goto () =
+      case pollevent () of
+          SOME E_Quit => raise Done
+        | SOME (E_KeyDown { sym = SDLK_ESCAPE }) => ()
+        | SOME (E_KeyDown { sym }) =>
+           (case SDL.sdlkchar sym of
+                NONE => get_goto ()
+              | SOME c => switchto c)
+        | _ => (delay 0; get_goto ())
+
+
   (* XXX require ctrl for undo/redo, etc. *)
   fun keydown SDLK_ESCAPE = raise Done
-    | keydown SDLK_LSHIFT = 
+    | keydown SDLK_LSHIFT =
       (selecting := true;
        updatecursor ())
-    | keydown SDLK_SPACE = 
+    | keydown SDLK_SPACE =
       (dragging := true;
        updatecursor ())
-    | keydown SDLK_z =
-      (* XXX shouldn't allow undo when dragging / selecting? *)
-      (case UndoState.undo undostate of
-           NONE => ()
-         | SOME s => letter := copyletter s)
-    | keydown SDLK_y =
-      (case UndoState.redo undostate of
-           NONE => ()
-         | SOME s => letter := copyletter s)
+      (* XXX shouldn't allow undo when dragging / selecting. *)
+    | keydown SDLK_z = E.undo ()
+    | keydown SDLK_y = E.redo ()
     | keydown SDLK_s = savetodisk()
+
+    | keydown SDLK_g = get_goto ()
 
     | keydown SDLK_UP = nudge (0, if !selecting then ~10 else ~1)
     | keydown SDLK_DOWN = nudge (0, if !selecting then 10 else 1)
@@ -759,10 +729,10 @@ struct
 
     | keydown _ = ()
 
-  fun keyup SDLK_SPACE = 
+  fun keyup SDLK_SPACE =
       (dragging := false;
        updatecursor ())
-    | keyup SDLK_LSHIFT = 
+    | keyup SDLK_LSHIFT =
       (selecting := false;
        selection := NONE;
        updatecursor ())
@@ -784,13 +754,13 @@ struct
                        mousedown := false;
                        leftmouseup (x, y)
                    end
-             | E_MouseDown { button = 4, ... } => 
+             | E_MouseDown { button = 4, ... } =>
                    let in
                        PIXELS_PER_METER := !PIXELS_PER_METER + 2.0;
                        eprint ("scroll up\n")
                    end
 
-             | E_MouseDown { button = 5, ... } => 
+             | E_MouseDown { button = 5, ... } =>
                    let in
                        PIXELS_PER_METER := !PIXELS_PER_METER - 2.0;
                        if !PIXELS_PER_METER <= 2.0
@@ -822,12 +792,12 @@ struct
              | BDDContactSolver.BDDContactSolver s => eprint s
              | BDDMath.BDDMath s => eprint s
              | MakeBody s => eprint s
+             | Editing.Editing s => eprint s
              | Letter.Letter s => eprint s
              | _ => eprint "unknown");
           eprint "\nhistory:\n";
           app (fn l => eprint ("  " ^ l ^ "\n")) (Port.exnhistory e);
           eprint "\n"
       end
-                   
-end
 
+end
