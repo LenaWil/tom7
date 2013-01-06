@@ -1,0 +1,19 @@
+
+This wants mlton installed in c:\mlton. I couldn't get it to work
+via make if there was a space in the path.
+
+SDL and SDL_image go in subdirectories of this one. You just need the
+include/ and lib/ files from the "devel" editions (for "VC",
+definitely not mingw). Then put the x86 windows libraries (DLLs) in
+this current directory (these are currently checked in).
+
+
+
+Problems I had:
+
+ - __imp prefixes linker errors. This was because mlton was generating
+   dependencies on a DLL with _import. You need to say "public" or
+   "private" to get a regular linktime thing.
+
+ - The program ran and immediately exited. This was because I had the 64-bit
+   DLLs in the current directory but was compiling for 32 bit.

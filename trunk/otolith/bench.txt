@@ -1,0 +1,6 @@
+
+sml calling C routine that uses RC4 to do 4x pixels at 320x200 game pixels:  ~450 fps
+sml calling C routine that blits 4x pixels from a constant array: ~1100 fps!
+sml calling C routine that blits 4x pixels from RC4: ~620 fps! (faster than c??)
+
+64 bit C version was higher, around ~100 fps (but that was without RC4, and the code no longer exists)
