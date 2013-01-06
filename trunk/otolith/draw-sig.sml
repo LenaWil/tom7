@@ -7,6 +7,9 @@ sig
   (* drawline (pixels, x0, y0, x1, y1, color) *)
   val drawline : Word32.word Array.array * int * int * int * int * Word32.word -> unit
 
+  (* drawcircle (pixels, x0, y0, radius, color) *)
+  val drawcircle : Word32.word Array.array * int * int * int * Word32.word -> unit
+
   (* Draws low-level noise background *)
   val randomize : Word32.word Array.array -> unit
 
