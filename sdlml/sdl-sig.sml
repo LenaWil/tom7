@@ -349,7 +349,7 @@ sig
      retains ownership. *)
   val set_cursor : cursor -> unit
   val free_cursor : cursor -> unit
-  (* Data and mask are bit vectors, so the width has to be a multiple of 8. 
+  (* Data and mask are bit vectors, so the width has to be a multiple of 8.
      See Util.Cursor for a convenient way to draw these in code without manipulating
      bitmasks. *)
   val create_cursor : { data : Word8.word vector,
@@ -358,7 +358,7 @@ sig
 
   val clearsurface : surface * color -> unit
 
-  (* draw a pixel to the surface. XXX the alpha component is ignored. 
+  (* draw a pixel to the surface. XXX the alpha component is ignored.
      These are currently pretty slow because of bounds checking and FFI
      overhead.
 
@@ -371,6 +371,8 @@ sig
   (* Get a copy of the raw pixels from the surface. Returns width,
      height, and then width * height * 4 RGBA bytes. *)
   val pixels    : surface -> int * int * Word8.word array
+  (* Does the opposite. Allocates a new surface. *)
+  val unpixels  : int * int * Word8.word array -> surface
 
   (* drawcircle (surf, x, y, radius, color)
      draws a circle (not filled)
@@ -378,7 +380,7 @@ sig
   val drawcircle : surface * int * int * int * color -> unit
   (* drawline (surf, x0, y0, x1, y1, color) *)
   val drawline : surface * int * int * int * int * color -> unit
-  (* drawrect (surf, x0, y0, x1, y1, color) 
+  (* drawrect (surf, x0, y0, x1, y1, color)
      Axis aligned hollow rectangle. Includes corners. *)
   val drawbox : surface * int * int * int * int * color -> unit
 
@@ -421,8 +423,8 @@ sig
     (* make an alpha rectangle with a vertical gradient between the two
        specified colors. bias should be between 0 and 1; a higher bias
        means the gradient will have more of the bottom color. *)
-    val makealpharectgrad : { w : int, h : int, 
-                              ctop : color, cbot : color, 
+    val makealpharectgrad : { w : int, h : int,
+                              ctop : color, cbot : color,
                               bias : real } -> surface
 
     (* create a version of the surface that's 50% transparent *)
@@ -431,7 +433,7 @@ sig
     (* make a surface twice as wide and twice as tall, doing nearest-neighbor
        interpolation. *)
     val surf2x : surface -> surface
-        
+
     val blit16x : surface * int * int * int * int  * surface * int * int -> unit
 
     structure Cursor :
@@ -446,7 +448,7 @@ sig
         val make : { w : int, hot_x : int, hot_y : int,
                      pixels : cursorpixel list } -> cursor
     end
-    
+
   end
 
 end

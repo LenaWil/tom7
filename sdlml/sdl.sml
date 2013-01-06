@@ -5,7 +5,7 @@ struct
      it is imperatively freed, so that we can
      then later block operations on it *)
   type safe = MLton.Pointer.t ref
-  type ptr = MLton.Pointer.t 
+  type ptr = MLton.Pointer.t
 
   (* XXX as RGBA, though it's not clear we use
      this consistently *)
@@ -25,7 +25,7 @@ struct
   fun !! (ref p) = if p = null then raise Invalid else p
 
   fun readcstring r =
-      let val len = 
+      let val len =
           (case Array.findi (fn (_, #"\000") => true | _ => false) r of
                NONE => Array.length r
              | SOME (i, _) => i)
@@ -34,7 +34,7 @@ struct
       end
 
   (* XXX endianness...?! *)
-  fun color (r, g, b, a) = 
+  fun color (r, g, b, a) =
     Word32.orb
     (Word32.<< (Word32.fromInt (Word8.toInt r), 0w24),
      Word32.orb
@@ -44,7 +44,7 @@ struct
        Word32.fromInt (Word8.toInt a))))
 
   (* 32-bit words, but must be 0w0-0w255. *)
-  fun color32 (r : Word32.word, g, b, a) = 
+  fun color32 (r : Word32.word, g, b, a) =
     Word32.orb
     (Word32.<< (r, 0w24),
      Word32.orb
@@ -310,12 +310,12 @@ struct
     | SDLK_UNDO
 
   datatype platform = WIN32 | LINUX | OSX
-      
+
   datatype event =
     E_Active
   | E_KeyDown of { sym : sdlk }
   | E_KeyUp of { sym : sdlk }
-  | E_MouseMotion of { which : int, state : mousestate, 
+  | E_MouseMotion of { which : int, state : mousestate,
                        x : int, y : int, xrel : int, yrel : int }
   | E_MouseDown of { button : int, x : int, y : int }
   | E_MouseUp of { button : int, x : int, y : int }
@@ -872,7 +872,7 @@ struct
     fun sdlkey n =
       if n < 0 orelse n > Vector.length sdlk
       then SDLK_UNKNOWN
-      else 
+      else
           let val r = Vector.sub(sdlk, n)
           in
               (* print ("key @ " ^ Int.toString n ^ " is " ^ sdlktos r ^ "\n"); *)
@@ -899,35 +899,35 @@ struct
   (* PERF can use mlton pointer structure to do this stuff,
      which will improve performance a lot, but at the cost
      of requiring binary compatibility with whatever version of SDL *)
-  val surface_width_ = _import "ml_surfacewidth" : ptr -> int ;
-  val surface_height_ = _import "ml_surfaceheight" : ptr -> int ;
-  val clearsurface_ = _import "ml_clearsurface" : ptr * Word32.word -> unit ;
-  val newevent_ = _import "ml_newevent" : unit -> ptr ;
-  val free_ = _import "free" : ptr -> unit ;
-  val eventtag_ = _import "ml_eventtag" : ptr -> int ;
-  val event_keyboard_sym_ = _import "ml_event_keyboard_sym" : ptr -> int ;
+  val surface_width_ = _import "ml_surfacewidth" private : ptr -> int ;
+  val surface_height_ = _import "ml_surfaceheight" private : ptr -> int ;
+  val clearsurface_ = _import "ml_clearsurface" private : ptr * Word32.word -> unit ;
+  val newevent_ = _import "ml_newevent" private : unit -> ptr ;
+  val free_ = _import "free" private : ptr -> unit ;
+  val eventtag_ = _import "ml_eventtag" private : ptr -> int ;
+  val event_keyboard_sym_ = _import "ml_event_keyboard_sym" private : ptr -> int ;
 
-  val event8_2nd_ = _import "ml_event8_2nd" : ptr -> int ;
-  val event8_3rd_ = _import "ml_event8_3rd" : ptr -> int ;
-  val event8_4th_ = _import "ml_event8_4th" : ptr -> int ;
+  val event8_2nd_ = _import "ml_event8_2nd" private : ptr -> int ;
+  val event8_3rd_ = _import "ml_event8_3rd" private : ptr -> int ;
+  val event8_4th_ = _import "ml_event8_4th" private : ptr -> int ;
 
-  val event_mmotion_x_ = _import "ml_event_mmotion_x" : ptr -> int ;
-  val event_mmotion_y_ = _import "ml_event_mmotion_y" : ptr -> int ;
-  val event_mmotion_xrel_ = _import "ml_event_mmotion_xrel" : ptr -> int ;
-  val event_mmotion_yrel_ = _import "ml_event_mmotion_yrel" : ptr -> int ;
+  val event_mmotion_x_ = _import "ml_event_mmotion_x" private : ptr -> int ;
+  val event_mmotion_y_ = _import "ml_event_mmotion_y" private : ptr -> int ;
+  val event_mmotion_xrel_ = _import "ml_event_mmotion_xrel" private : ptr -> int ;
+  val event_mmotion_yrel_ = _import "ml_event_mmotion_yrel" private : ptr -> int ;
 
-  val event_mbutton_x_ = _import "ml_event_mbutton_x" : ptr -> int ;
-  val event_mbutton_y_ = _import "ml_event_mbutton_y" : ptr -> int ;
-  val event_mbutton_button_ = _import "ml_event_mbutton_button" : ptr -> int ;
+  val event_mbutton_x_ = _import "ml_event_mbutton_x" private : ptr -> int ;
+  val event_mbutton_y_ = _import "ml_event_mbutton_y" private : ptr -> int ;
+  val event_mbutton_button_ = _import "ml_event_mbutton_button" private : ptr -> int ;
 
-  val event_joyaxis_value_ = _import "ml_event_joyaxis_value" : ptr -> int ;
+  val event_joyaxis_value_ = _import "ml_event_joyaxis_value" private : ptr -> int ;
 
   fun clearsurface (s, w) = clearsurface_ (!! s, w)
 
   fun surface_width s = surface_width_ (!!s)
   fun surface_height s = surface_height_ (!!s)
 
-  val version_ = _import "ml_version_packed" : unit -> Word32.word ;
+  val version_ = _import "ml_version_packed" private : unit -> Word32.word ;
   fun version () =
       let
           val p = version_ ()
@@ -946,7 +946,7 @@ struct
      | 2 => E_KeyDown { sym = sdlkey (event_keyboard_sym_ e) }
      | 3 => E_KeyUp { sym = sdlkey (event_keyboard_sym_ e) }
      | 4 => E_MouseMotion
-         { which = event8_2nd_ e, 
+         { which = event8_2nd_ e,
            state = Word8.fromInt (event8_3rd_ e),
            x = event_mmotion_x_ e,
            y = event_mmotion_y_ e,
@@ -966,15 +966,15 @@ struct
                        hat = event8_3rd_ e,
                        state = Word8.fromInt (event8_4th_ e) }
      | 10 => E_JoyDown
-         { which = event8_2nd_ e, 
+         { which = event8_2nd_ e,
            button = event8_3rd_ e }
      | 11 => E_JoyUp
-         { which = event8_2nd_ e, 
+         { which = event8_2nd_ e,
            button = event8_3rd_ e }
      | 12 => E_Quit
      | 13 => E_SysWM
      (* reserved..
-     | 14 => 
+     | 14 =>
      | 15 =>
         *)
      | 16 => E_Resize
@@ -984,18 +984,18 @@ struct
 
   fun pollevent () =
     let
-      val p = _import "SDL_PollEvent" : ptr -> int ;
+      val p = _import "SDL_PollEvent" private : ptr -> int ;
       val e = newevent_ ()
     in
       case p e of
-        0 => 
+        0 =>
           let in
           (* no event *)
             free_ e;
             NONE
           end
       | _ =>
-          let 
+          let
             val ret = convertevent_ e
           in
             free_ e;
@@ -1016,29 +1016,45 @@ struct
   fun mouse_wheelup state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELUP - 0w1)) <> 0w0
   fun mouse_wheeldown state = Word8.andb(state, Word8.<<(0w1, SDL_BUTTON_WHEELDOWN - 0w1)) <> 0w0
 
+  local val fs = _import "SDL_FreeSurface" private : ptr -> unit ;
+  in fun freesurface s = (fs (!!s); s := null)
+  end
+
+
+  local val ms = _import "ml_makesurface" private : int * int * int -> ptr ;
+  in
+      fun makesurface (w, h) =
+          let val s = ms (w, h, 1)
+          in
+              if s = null
+              then raise SDL "couldn't create surface"
+              else ref s
+          end
+  end
+
   type cursor = safe
 
-  local val sc = _import "SDL_ShowCursor" : int -> int ;
+  local val sc = _import "SDL_ShowCursor" private : int -> int ;
   in
     fun show_cursor true = ignore (sc SDL_ENABLE)
       | show_cursor false = ignore (sc SDL_DISABLE)
   end
 
-  local val fc = _import "SDL_FreeCursor" : ptr -> unit ;
+  local val fc = _import "SDL_FreeCursor" private : ptr -> unit ;
   in fun free_cursor c = (fc (!!c); c := null)
   end
 
   (* XXX maybe should implement this myself in order to avoid
      aliasing. Unable to catch double-frees of aliases this way. *)
-  local val gc = _import "SDL_GetCursor" : unit -> ptr ;
+  local val gc = _import "SDL_GetCursor" private : unit -> ptr ;
   in fun get_cursor () = ref (gc ())
   end
 
-  local val sc = _import "SDL_SetCursor" : ptr -> unit ;
+  local val sc = _import "SDL_SetCursor" private : ptr -> unit ;
   in fun set_cursor c = sc (!!c)
   end
 
-  local val cc = _import "SDL_CreateCursor" : Word8.word vector *
+  local val cc = _import "SDL_CreateCursor" private : Word8.word vector *
       Word8.word vector * int * int * int * int -> ptr ;
   in
       fun create_cursor { data, mask, w, h, hot_x, hot_y } =
@@ -1050,13 +1066,13 @@ struct
           end
   end
 
-  local val fl = _import "SDL_Flip" : ptr -> unit ;
+  local val fl = _import "SDL_Flip" private : ptr -> unit ;
   in
     fun flip p = fl (!!p)
   end
 
-  local 
-    val mkfscreen = _import "ml_makefullscreen" : int * int -> ptr ;
+  local
+    val mkfscreen = _import "ml_makefullscreen" private : int * int -> ptr ;
   in
     fun makefullscreen (w, h) =
       let
@@ -1068,8 +1084,8 @@ struct
       end
   end
 
-  local 
-    val mkscreen = _import "ml_makescreen" : int * int -> ptr ;
+  local
+    val mkscreen = _import "ml_makescreen" private : int * int -> ptr ;
   in
     fun makescreen (w, h) =
       let
@@ -1082,21 +1098,21 @@ struct
   end
 
 
-  local val ba = _import "ml_blitall" : ptr * ptr * int * int -> unit ;
-        val b  = _import "ml_blit" : ptr * int * int * int * int * ptr * int * int -> unit ;
+  local val ba = _import "ml_blitall" private : ptr * ptr * int * int -> unit ;
+        val b  = _import "ml_blit" private : ptr * int * int * int * int * ptr * int * int -> unit ;
   in
-    fun blitall (s1, s2, x, y) = 
+    fun blitall (s1, s2, x, y) =
         let in
             (* print ("blitall to " ^ Int.toString x ^ "," ^ Int.toString y ^ "!\n"); *)
             ba (!!s1, !!s2, x, y)
         end
     fun blit (s, sx, sy, sw, sh, d, dx, dy) = b (!!s, sx, sy, sw, sh, !!d, dx, dy)
   end
-   
+
   (* PERF: Probably porting the C code to unsafe ML code would result in significantly
      improved performance. The C call overhead is big and the compiler can't optimize
      over the call boundary. *)
-  local val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
+  local val dp = _import "ml_drawpixel" private : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
   in
       fun drawpixel (s, x, y, c) =
           let
@@ -1113,7 +1129,7 @@ struct
           end
   end
 
-  local val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
+  local val dp = _import "ml_drawpixel" private : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
   in
       fun clippixel (s, x, y, c) =
           let
@@ -1127,7 +1143,7 @@ struct
           end
   end
 
-  local val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
+  local val dp = _import "ml_drawpixel" private : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
   in
       fun drawcircle (ss, x0, y0, radius, c) =
           let
@@ -1157,7 +1173,7 @@ struct
 
               fun loop (x, y, f, ddF_x, ddF_y) =
                   if x < y
-                  then 
+                  then
                       let
                           (*
                           val () =
@@ -1191,8 +1207,8 @@ struct
           end
   end
 
-  local 
-      val dp = _import "ml_drawpixel" : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
+  local
+      val dp = _import "ml_drawpixel" private : ptr * int * int * Word32.word * Word32.word * Word32.word -> unit ;
 
       fun pair_swap (x, y) = (y, x)
       fun pair_map f (x, y) = (f x, f y)
@@ -1204,14 +1220,14 @@ struct
               if x0 = x1
               then NONE
               else
-                  let val (y0, frac) = if frac >= 0 
-                                       then (y0 + stepy, frac - dx) 
+                  let val (y0, frac) = if frac >= 0
+                                       then (y0 + stepy, frac - dx)
                                        else (y0, frac)
                       val x0 = x0 + stepx
                       val frac = frac + dy
-                  in SOME ((x0, y0, frac), post (x0, y0)) 
+                  in SOME ((x0, y0, frac), post (x0, y0))
                   end
-        in ({step = step, seed = (x0, y0, frac0)}, post (x0, y0)) 
+        in ({step = step, seed = (x0, y0, frac0)}, post (x0, y0))
         end
 
       fun line p0 p1 =
@@ -1248,13 +1264,13 @@ struct
                   else dp (s, x, y, r, g, b)
 
               fun app (f : int * int -> unit) p0 p1 =
-                  let 
+                  let
                       val ({step, seed}, v) = line p0 p1
                       fun loop seed =
                           case step seed of
                               NONE => ()
                             | SOME (seed', v) => (f v; loop seed')
-                  in 
+                  in
                       f v;
                       loop seed
                   end
@@ -1273,10 +1289,10 @@ struct
           drawline (surf, x0, y1, x1, y1, c);
           drawline (surf, x0, y0, x0, y1, c)
       end
-      
+
 
   (* PERF: similar *)
-  local val gp = _import "ml_getpixela" : ptr * int * int * 
+  local val gp = _import "ml_getpixela" private : ptr * int * int *
                  Word8.word ref * Word8.word ref * Word8.word ref * Word8.word ref -> unit ;
   in
       fun getpixel (s, x, y) =
@@ -1289,7 +1305,7 @@ struct
                   raise SDL ("getpixel out of bounds: " ^ Int.toString x ^ "," ^ Int.toString y ^
                               " with surface size: " ^ Int.toString (surface_width s) ^ "x" ^
                               Int.toString (surface_height s))
-              else 
+              else
                 let
                   val r = ref 0w0
                   val g = ref 0w0
@@ -1302,7 +1318,7 @@ struct
           end
   end
 
-  local val pixels_ = _import "ml_pixels" : ptr * Word8.word Array.array -> unit ;
+  local val pixels_ = _import "ml_pixels" private : ptr * Word8.word Array.array -> unit ;
   in
       fun pixels s =
           let
@@ -1311,6 +1327,23 @@ struct
           in
               pixels_ (!!s, a);
               (w, h, a)
+          end
+  end
+
+  local val unpixels_ = _import "ml_unpixels" private : ptr * Word8.word Array.array -> unit ;
+  in
+      fun unpixels (w, h, a) =
+          let
+              val () = if w * h * 4 = Array.length a
+                       then ()
+                       else raise SDL ("width/height do not agree with pixel data: " ^
+                                       Int.toString w ^ "/" ^ Int.toString h ^
+                                       " but have " ^ Int.toString (Array.length a) ^
+                                       " byte(s).")
+              val surf = makesurface (w, h)
+          in
+              unpixels_ (!!surf, a);
+              surf
           end
   end
 
@@ -1348,41 +1381,25 @@ struct
           drawpixel (s, x, y, newc)
       end
 
-  local val fr = _import "ml_fillrecta" : ptr * int * int * int * int *
+  local val fr = _import "ml_fillrecta" private : ptr * int * int * int * int *
                  Word32.word * Word32.word * Word32.word * Word32.word -> unit ;
   in
-    fun fillrect (s1, x, y, w, h, c) = 
-        let 
+    fun fillrect (s1, x, y, w, h, c) =
+        let
           val (r, g, b, a) = components32 c
         in
           fr (!!s1, x, y, w, h, r, g, b, a)
         end
   end
 
-  local val fs = _import "SDL_FreeSurface" : ptr -> unit ;
-  in fun freesurface s = (fs (!!s); s := null)
-  end
-      
-
-  local val ms = _import "ml_makesurface" : int * int * int -> ptr ;
-  in
-      fun makesurface (w, h) =
-          let val s = ms (w, h, 1)
-          in
-              if s = null
-              then raise SDL "couldn't create surface"
-              else ref s
-          end
-  end
-
   (* **** initialization **** *)
-  local 
-      val init = _import "ml_init" : unit -> int ;
-      val plat = _import "ml_platform" : unit -> int ;
-      val cmode = _import "ml_consolemode" : unit -> int ;
+  local
+      val init = _import "ml_init" private : unit -> int ;
+      val plat = _import "ml_platform" private : unit -> int ;
+      val cmode = _import "ml_consolemode" private : unit -> int ;
   in
 
-    val () = 
+    val () =
       case init () of
         0 => raise SDL "could not initialize"
       | _ => ()
@@ -1399,25 +1416,25 @@ struct
 
   end
 
-  val getticks = _import "SDL_GetTicks" : unit -> Word32.word ;
-  val delay = _import "SDL_Delay" : int -> unit ;
+  val getticks = _import "SDL_GetTicks" private : unit -> Word32.word ;
+  val delay = _import "SDL_Delay" private : int -> unit ;
 
   structure Joystick =
   struct
       datatype event_state = ENABLE | IGNORE
       type hatstate = joyhatstate
-      
-      val number = _import "SDL_NumJoysticks" : unit -> int ;
-          
-      val oj_  = _import "SDL_JoystickOpen" : int -> MLton.Pointer.t ;
-      val cj_  = _import "SDL_JoystickClose" : MLton.Pointer.t -> unit ;
-      val nj_  = _import "ml_joystickname" : int * char array -> unit ;
-      val jes_ = _import "ml_setjoystate" : int -> unit ;
 
-      val na_ = _import "SDL_JoystickNumAxes" : MLton.Pointer.t -> int ;
-      val nb_ = _import "SDL_JoystickNumBalls" : MLton.Pointer.t -> int ;
-      val nh_ = _import "SDL_JoystickNumHats" : MLton.Pointer.t -> int ;
-      val nu_ = _import "SDL_JoystickNumButtons" : MLton.Pointer.t -> int ;
+      val number = _import "SDL_NumJoysticks" private : unit -> int ;
+
+      val oj_  = _import "SDL_JoystickOpen" private : int -> MLton.Pointer.t ;
+      val cj_  = _import "SDL_JoystickClose" private : MLton.Pointer.t -> unit ;
+      val nj_  = _import "ml_joystickname" private : int * char array -> unit ;
+      val jes_ = _import "ml_setjoystate" private : int -> unit ;
+
+      val na_ = _import "SDL_JoystickNumAxes" private : MLton.Pointer.t -> int ;
+      val nb_ = _import "SDL_JoystickNumBalls" private : MLton.Pointer.t -> int ;
+      val nh_ = _import "SDL_JoystickNumHats" private : MLton.Pointer.t -> int ;
+      val nu_ = _import "SDL_JoystickNumButtons" private : MLton.Pointer.t -> int ;
 
       fun check n = if n >= 0 andalso n < number ()
                     then n
@@ -1425,7 +1442,7 @@ struct
 
       fun setstate es =
           jes_ (case es of ENABLE => 1 | IGNORE => 0)
-                  
+
       fun name n =
           let val n = check n
               val MAX_NAME = 512
@@ -1460,8 +1477,8 @@ struct
   structure Image =
   struct
       fun load s =
-      let 
-          val lp = _import "IMG_Load" : string -> ptr ;
+      let
+          val lp = _import "IMG_Load" private : string -> ptr ;
           val p = lp (s ^ "\000")
       in
           if (MLton.Pointer.null = p)
@@ -1474,8 +1491,8 @@ struct
   struct
 
     fun surf2x src =
-        let 
-            val dst = makesurface(2 * surface_width src, 
+        let
+            val dst = makesurface(2 * surface_width src,
                                   2 * surface_height src)
         in
             Util.for 0 (surface_height src - 1)
@@ -1488,9 +1505,9 @@ struct
             dst
         end
 
-    local val ad = _import "ml_alphadim" : ptr -> ptr ;
+    local val ad = _import "ml_alphadim" private : ptr -> ptr ;
     in
-      fun alphadim s = 
+      fun alphadim s =
         let val p = ad(!!s)
         in
           if p = null
@@ -1507,7 +1524,7 @@ struct
        (fn xx =>
         let val color = getpixel(src, xx, yy)
         in
-          fillrect(dst, 
+          fillrect(dst,
                    dx + ((xx - sx) * 16),
                    dy + ((yy - sy) * 16),
                    16, 16, color)
@@ -1515,7 +1532,7 @@ struct
 
     (* PERF: reduce overlaps in corners *)
     fun outline (surf, n, c) =
-        let 
+        let
             val w = surface_width surf
             val h = surface_height surf
         in
@@ -1569,10 +1586,10 @@ struct
                   fun onepixel (x, y) =
                     let val sh = (Int.-(7, x mod 8))
                         val i = Int.+(y * (w div 8), x div 8)
-                        fun mask (b : Word8.word) = 
+                        fun mask (b : Word8.word) =
                             Array.update(m, i, Word8.orb (Array.sub (m, i),
                                                           Word8.<< (b, Word.fromInt sh)))
-                        fun data (b : Word8.word) = 
+                        fun data (b : Word8.word) =
                             Array.update(d, i, Word8.orb (Array.sub (d, i),
                                                           Word8.<< (b, Word.fromInt sh)))
                     in
@@ -1589,8 +1606,8 @@ struct
                    (fn x =>
                     onepixel (x, y)
                     ));
-                  create_cursor { data = Array.vector d, 
-                                  mask = Array.vector m, 
+                  create_cursor { data = Array.vector d,
+                                  mask = Array.vector m,
                                   w = w, h = h, hot_x = hot_x, hot_y = hot_y }
               end
           end
@@ -1598,4 +1615,3 @@ struct
 
   end (* Util *)
 end
-
