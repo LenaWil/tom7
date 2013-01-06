@@ -380,6 +380,43 @@ void ml_getpixela(SDL_Surface *surf, int x, int y,
   }
 }
 
+void ml_unpixels(SDL_Surface *surf, unsigned char * RGBA) {
+  int y, x, offset = 0;
+  switch (surf->format->BytesPerPixel) {
+    case 4: // Probably 32-bpp
+      for (y = 0; y < surf->h; y++) {
+        for (x = 0; x < surf->w; x++) {
+          /* PERF this can probably be a lot more efficient by
+             unrolling SDL_MapRGBA; we unpack from the word and
+             then effectively repack. */
+          Uint32 *bufp = (Uint32 *)surf->pixels + y*surf->pitch/4 + x;
+          Uint32 color = SDL_MapRGBA(surf->format,
+                                     RGBA[offset],
+                                     RGBA[offset + 1],
+                                     RGBA[offset + 2],
+                                     RGBA[offset + 3]);
+          *bufp = color;
+          offset += 4;
+        }
+      }
+      break;
+    case 3: // Slow 24-bpp mode, usually not used
+      for (y = 0; y < surf->h; y++) {
+        for (x = 0; x < surf->w; x++) {
+          Uint8 *bufp = (Uint8 *)surf->pixels + y*surf->pitch + x * 3;
+          bufp[0] = RGBA[offset];
+          bufp[1] = RGBA[offset + 1];
+          bufp[2] = RGBA[offset + 2];
+          offset += 4;
+        }
+      }
+      break;
+  default:
+    printf("unsupported pixel format in ml_unpixels (want 24 or 32 bpp)\n");
+    abort();
+  }
+}
+
 void ml_pixels(SDL_Surface *surf, unsigned char * RGBA) {
   int y, x, offset = 0;
   switch (surf->format->BytesPerPixel) {
