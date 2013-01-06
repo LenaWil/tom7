@@ -32,8 +32,10 @@ OBJECTS=blit.o sdlml.o
 
 #  -ltiff -lpng -ljpeg -lz -lSDL_net
 
+SMLS=otolith.sml prelude.sml screen-sig.sml screen.sml tesselation-sig.sml tesselation.sml
+
 #  -mwindows works, disables console?
-otolith.exe : sdl_win32_main.o ${OBJECTS} otolith.cm otolith.sml makefile
+otolith.exe : sdl_win32_main.o ${OBJECTS} otolith.cm ${SMLS} makefile
 	${MLTON} @MLton max-heap 512m -- -cc-opt " -I SDL/include -Dmain=SDL_main " -link-opt "-Wl,--subsystem,console -LSDL/lib/${SDLARCH} -LSDL_image/lib/${SDLARCH} -lSDL -lSDL_image -lkernel32 -lmingw32" -output $@ -default-ann 'allowFFI true' otolith.cm sdl_win32_main.o ${OBJECTS}
 
 clean :
