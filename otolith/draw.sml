@@ -87,6 +87,57 @@ struct
           end
   end
 
+  fun drawcircle (pixels, x0, y0, radius, c) =
+      let
+          (* PERF bounds check. *)
+          (* Should allow alpha blending? *)
+          fun dp (x, y) = Array.update (pixels, y * WIDTH + x, c)
+
+          fun clippixel (x, y) =
+              if x < 0 orelse y < 0
+                 orelse x >= WIDTH
+                 orelse y >= HEIGHT
+              then ()
+              else dp (x, y)
+
+          val f = 1 - radius
+          val ddF_x = 1
+          val ddF_y = ~2 * radius
+          val x = 0
+          val y = radius
+
+          val () = clippixel(x0, y0 + radius)
+          val () = clippixel(x0, y0 - radius)
+          val () = clippixel(x0 + radius, y0)
+          val () = clippixel(x0 - radius, y0)
+
+          fun loop (x, y, f, ddF_x, ddF_y) =
+              if x < y
+              then
+                  let
+                      val (y, f, ddF_y) =
+                          if f >= 0
+                          then (y - 1, 2 + f + ddF_y, 2 + ddF_y)
+                          else (y, f, ddF_y)
+                      val x = x + 1
+                      val ddF_x = ddF_x + 2
+                      val f = ddF_x + f
+                  in
+                      clippixel(x0 + x, y0 + y);
+                      clippixel(x0 - x, y0 + y);
+                      clippixel(x0 + x, y0 - y);
+                      clippixel(x0 - x, y0 - y);
+                      clippixel(x0 + y, y0 + x);
+                      clippixel(x0 - y, y0 + x);
+                      clippixel(x0 + y, y0 - x);
+                      clippixel(x0 - y, y0 - x);
+                      loop (x, y, f, ddF_x, ddF_y)
+                  end
+              else ()
+      in
+          loop (x, y, f, ddF_x, ddF_y)
+      end
+
   fun randomize pixels =
       Util.for 0 (HEIGHT - 1)
       (fn y =>

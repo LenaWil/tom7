@@ -43,6 +43,7 @@ sig
   val splitedge : tesselation -> int * int -> node option
 
   val triangles : tesselation -> triangle list
+  val nodes : tesselation -> node list
 
   structure T :
   sig
