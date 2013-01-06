@@ -10,7 +10,7 @@ struct
   structure W8 = Word8
   structure W8A = Word8Array
   structure W8V = Word8Vector
-  
+
   type arcfour = { s : W8A.array,
                    i : W8.word ref,
                    j : W8.word ref }
@@ -33,7 +33,7 @@ struct
       (* print ("[2] ti : " ^ W8.toString ti ^ " tj : " ^ W8.toString tj ^ "\n"); *)
       set (!i) tj;
       set (!j) ti;
-      
+
       sub (ti + tj)
     end
 
@@ -60,4 +60,8 @@ struct
       loop 256 0w0 0w0
     end
 
+  fun initstring s =
+      let val v = Word8Vector.tabulate(size s, fn i => Word8.fromInt (ord (String.sub (s, i))))
+      in init v
+      end
 end

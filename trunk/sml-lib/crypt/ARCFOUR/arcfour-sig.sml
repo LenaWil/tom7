@@ -10,13 +10,15 @@ sig
   type arcfour
 
   val init : Word8Vector.vector -> arcfour
+  (* For convenience, assuming ASCII and 8-bit bytes. *)
+  val initstring : string -> arcfour
 
   (* Calling this function repeatedly generates
      a stream of pseudo-random bytes. These should
      be XORed with the plaintext/ciphertext to
      encrypt or decrypt. *)
   val byte : arcfour -> Word8.word
-    
+
   (* throw away n bytes. it is strongly
      recommended that new uses of arcfour
      discard at least 1024 bytes after
