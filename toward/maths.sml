@@ -34,18 +34,18 @@ struct
   fun angle (v1, v2, v3) =
       (* Treating v2 as the center, we have
            p1
-          / 
+          /
          / phi1
          0--------x
          | phi3
          |
          p3
-         *)      
+         *)
       let val p1 = v1 :-: v2
           val p3 = v3 :-: v2
           val phi1 = Math.atan2 (vec2y p1, vec2x p1)
           val phi3 = Math.atan2 (vec2y p3, vec2x p3)
-                     
+
           val degs = 57.2957795 * (phi1 - phi3)
       in
           fmod (degs, 360.0)
@@ -79,8 +79,8 @@ struct
               then SOME s
               else
                   let val a =
-                      angle (previous_vertex p i, 
-                             vertex p i, 
+                      angle (previous_vertex p i,
+                             vertex p i,
                              next_vertex p i)
                   in
                       if a < 180.0
@@ -90,7 +90,7 @@ struct
       in
           case anglesum (0.0, 0) of
               NONE => false
-            | SOME sum => true 
+            | SOME sum => true
       (* PERF actually, don't need
          the sum when using this method. *)
       end
@@ -127,7 +127,7 @@ struct
               if idx = nvert
               then odd
               else loop (if ((ycoord idx > y) <> (ycoord jdx > y)) andalso
-                             (x < ((xcoord jdx - xcoord idx) * (y - ycoord idx) / 
+                             (x < ((xcoord jdx - xcoord idx) * (y - ycoord idx) /
                                    (ycoord jdx - ycoord idx) + xcoord idx))
                          then not odd
                          else odd) (idx + 1) idx
@@ -147,4 +147,3 @@ struct
     end
 
 end
-

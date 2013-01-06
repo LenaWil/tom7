@@ -1,4 +1,4 @@
-(* Serialization utils. Generates and parses strings. 
+(* Serialization utils. Generates and parses strings.
 
    From t7eshero.
    XXX to sml-lib? This is okay for quick stuff but I
@@ -28,12 +28,12 @@ struct
              | SOME s => s)
 
     (* For readability of the serialized format, we can use different
-       delimiters for different nested levels of lists. 
-       
+       delimiters for different nested levels of lists.
+
        A list serializer is
          * a non-alphanumeric separator string ss and nil string sn
            (sn is not a substring of ss nor vice versa)
-         * a function f : string -> string and f' : string -> string 
+         * a function f : string -> string and f' : string -> string
            such that f(s) does not contain ss or sn for any s,
            and f'(f(s)) = s.
 
@@ -41,7 +41,7 @@ struct
        non-alphanumeric escaping character ce (not appearing in ss)
        The single-character string ce becomes sn. In the encoded
        message, the escaping character indicates that a two-character
-       hex sequence follows. 
+       hex sequence follows.
 
        The function filter is applied to the pieces before decoding
        (true means keep, like List.filter), if you want the format to
@@ -65,19 +65,19 @@ struct
                 (* also, avoid all one-character strings that are supposed to
                    be filtered out before decoding. (e.g., whitespace). *)
                 ListUtil.tabulatepartial (255,
-                                          fn i => 
+                                          fn i =>
                                           let val c = chr i
                                           in if filter c
                                              then NONE
                                              else SOME (implode [c])
                                           end)
 
-            (* Given the list of strings to avoid, build a function that 
+            (* Given the list of strings to avoid, build a function that
                encodes only such substrings. *)
             fun encoder (avoidme :: rest) s =
                 let val sl = map (encoder rest) (StringUtil.sfields avoidme s)
-                    val sep = String.concat (map (fn s => implode[ce] ^ s) 
-                                             (map (StringUtil.bytetohex o ord) 
+                    val sep = String.concat (map (fn s => implode[ce] ^ s)
+                                             (map (StringUtil.bytetohex o ord)
                                               (explode avoidme)))
                 in StringUtil.delimit sep sl
                 end
@@ -90,7 +90,7 @@ struct
                 case String.fields (fn c => c = ce) s of
                     nil => raise Serialize "impossible fields"
                   | first :: hexleads =>
-                        String.concat 
+                        String.concat
                         (first ::
                          map (fn hx =>
                               if size hx < 2
@@ -114,10 +114,10 @@ struct
     val list_serializer = list_serializerex (fn _ => true)
 
     val (ulist, unlist) = list_serializer "?" #"%"
-    val (ulistnewline, unlistnewline) = 
+    val (ulistnewline, unlistnewline) =
         list_serializerex (fn #"\r" => false | _ => true) "\n" #"\\"
 
-    fun expectopt err f s = 
+    fun expectopt err f s =
         case f s of
             SOME r => r
           | NONE => raise Serialize ("error parsing: " ^ err)
