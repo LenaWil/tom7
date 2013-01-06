@@ -1,5 +1,5 @@
 
-default : smlversion.exe
+default : otolith.exe
 
 SDLVERSION=1.2.15
 SDLIMAGEVERSION=1.2.12
@@ -39,22 +39,16 @@ MINGWGCC=/c/mlton/bin/gcc -std=c99 -O1 -fomit-frame-pointer -fno-strict-aliasing
 sdl_win32_main.o : sdl_win32_main.c makefile
 	${MINGWGCC} -D_GNU_SOURCE=1 -c $< -o $@
 
+OBJECTS=blit.o sdlml.o
+
 #  -ltiff -lpng -ljpeg -lz -lSDL_net
 #  -link-opt "--enable-stdcall-fixup" -link-opt "--enable-stdcall-fixup" 
 
 #  -mwindows works, disables console?
 #  -Dmain=SDL_main
-smlversion.exe : sdl_win32_main.o smlversion.o sdlml.o smlversion.cm smlversion.sml makefile
-	${MLTON} @MLton max-heap 512m -- -keep g -keep o -verbose 1 -cc-opt " -I SDL/include -Dmain=SDL_main " -link-opt "-Wl,--subsystem,console -LSDL/lib/${SDLARCH} -LSDL_image/lib/${SDLARCH} -lSDL -lSDL_image -lkernel32 -lmingw32" -output $@ -default-ann 'allowFFI true' smlversion.cm sdl_win32_main.o smlversion.o sdlml.o
+otolith.exe : sdl_win32_main.o ${OBJECTS} otolith.cm otolith.sml makefile
+	${MLTON} @MLton max-heap 512m -- -cc-opt " -I SDL/include -Dmain=SDL_main " -link-opt "-Wl,--subsystem,console -LSDL/lib/${SDLARCH} -LSDL_image/lib/${SDLARCH} -lSDL -lSDL_image -lkernel32 -lmingw32" -output $@ -default-ann 'allowFFI true' otolith.cm sdl_win32_main.o ${OBJECTS}
 
 clean :
 	rm -f *.obj *.exe *.manifest *.ilk *.pdb *.o
 
-
-# XXX delete
-
-maintest.o : maintest.c
-	${MINGWGCC} -c -Dmain=SDL_main $< -o $@
-
-maintest.exe : sdl_win32_main.o smlversion.o maintest.o
-	${MINGWGCC} -o $@ $^ -LSDL/lib/${SDLARCH} -LSDL_image/lib/${SDLARCH}  -lSDL -lSDL_image 
