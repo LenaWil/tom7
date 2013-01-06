@@ -9,4 +9,17 @@ group is
  ../sdlml/sdl-sig.sml
  ../sdlml/sdl.sml
 
+ prelude.sml
+
+ constants.sml
+
+ tesselation-sig.sml
+ tesselation.sml
+
+ screen-sig.sml
+ screen.sml
+
+ draw-sig.sml
+ draw.sml
+
  otolith.sml
