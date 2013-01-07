@@ -45,6 +45,10 @@ sig
   val triangles : tesselation -> triangle list
   val nodes : tesselation -> node list
 
+  (* getnodewithin s (x, y) radius
+     Get the closest node, as long as it is within the radius. *)
+  val getnodewithin : tesselation -> int * int -> int -> node option
+
   structure T :
   sig
     val nodes : triangle -> node * node * node
