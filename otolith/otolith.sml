@@ -55,21 +55,38 @@ struct
   val mousex = ref 0
   val mousey = ref 0
   val mousedown = ref false
+  val draggingnode = ref NONE : Tesselation.node option ref
 
   val MOUSECIRCLE = Draw.mixcolor (0wxFF, 0wxAA, 0wx33, 0wxFF)
   val CLOSESTCIRCLE = Draw.mixcolor (0wx44, 0wx44, 0wx44, 0wxFF)
+  val DRAGGING = Draw.mixcolor (0wxFF, 0wxFF, 0wx00, 0wxFF)
   fun drawindicators () =
       let
           val (n1, n2, x, y) = Tesselation.closestedge tesselation (!mousex, !mousey)
       in
           Draw.drawcircle (pixels, !mousex, !mousey, 5, MOUSECIRCLE);
           Draw.drawcircle (pixels, x, y, 3, CLOSESTCIRCLE);
+          (case !draggingnode of
+               NONE => ()
+             | SOME n =>
+                   let val (nx, ny) = Tesselation.N.coords n
+                   in
+                       Draw.drawcircle (pixels, nx, ny, 6, DRAGGING)
+                   end);
           ()
       end
 
-  fun mousemotion (x, y) = ()
-  fun leftmouse (x, y) = eprint (Int.toString x ^ "," ^ Int.toString y)
-  fun leftmouseup (x, y) = ()
+  fun mousemotion (x, y) =
+      case !draggingnode of
+          NONE => ()
+        | SOME n => ignore (Tesselation.N.trymove n (x, y))
+
+  fun leftmouse (x, y) =
+      case Tesselation.getnodewithin tesselation (x, y) 5 of
+          NONE => draggingnode := NONE
+        | SOME n => draggingnode := SOME n
+
+  fun leftmouseup (x, y) = draggingnode := NONE
 
   val start = Time.now()
 
@@ -129,7 +146,7 @@ struct
           val () = Draw.randomize pixels
           val () = drawtesselation ()
           val () = drawindicators ()
-          (* val () = Draw.scanline_postfilter pixels *)
+          val () = Draw.scanline_postfilter pixels
           val () = fillscreen pixels
           val () = ctr := !ctr + 1
       in

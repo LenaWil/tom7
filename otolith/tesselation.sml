@@ -13,11 +13,44 @@ struct
 
   type triangle = node * node * node
 
+  (* Must be no more than 180.0 *)
+  val MINANGLE = 170.0
+
   (* Enough? *)
   type tesselation = triangle list ref
 
   val ctr = ref (0 : IntInf.int)
   fun next () = (ctr := !ctr + 1; !ctr)
+
+  (* Real-valued (num mod den), always positive. *)
+  fun fmod (num, den) =
+      let val r = Real.rem (num, den)
+      in
+          if r < 0.0 then r + den
+          else r
+      end
+
+  (* Return the angle in degrees between v2->v1 and v2->v3,
+     which is 360 - angle(v3, v2, v1). *)
+  fun angle ((v1x, v1y), (v2x, v2y), (v3x, v3y)) =
+      (* Treating v2 as the center, we have
+           p1
+          /
+         / phi1
+         0--------x
+         | phi3
+         |
+         p3
+         *)
+      let val (p1x, p1y) = (v1x - v2x, v1y - v2y)
+          val (p3x, p3y) = (v3x - v2x, v3y - v2y)
+          val phi1 = Math.atan2 (real p1y, real p1x)
+          val phi3 = Math.atan2 (real p3y, real p3x)
+
+          val degs = 57.2957795 * (phi1 - phi3)
+      in
+          fmod (degs, 360.0)
+      end
 
   structure T =
   struct
@@ -33,7 +66,32 @@ struct
     fun compare (N (ref {id, ...}), N (ref {id = idd, ...})) =
         IntInf.compare (id, idd)
 
-    fun trymove n (x, y) = raise Tesselation "unimplemented"
+    fun trymove (N (r as ref { x, y, triangles, id })) (newx, newy) =
+        let
+            fun checktriangle (a, b) =
+              (* It is not allowed to make the triangle degenerate
+                 (angle = 180) or inside-out (angle > 180). *)
+                let
+                    val a = coords a
+                    val b = coords b
+                    (* Get interior angle, regardless of winding *)
+                    val (a, b) =
+                        if angle (a, (x, y), b) < 180.0
+                        then (a, b)
+                        else (b, a)
+
+                    val newangle = angle (a, (newx, newy), b)
+                in
+                    newangle < MINANGLE
+                end
+        in
+            (* XXX: Could do binary search to find a closer point
+               that's okay. *)
+            if List.all checktriangle triangles
+            then (r := { x = newx, y = newy, triangles = triangles, id = id };
+                  (newx, newy))
+            else (x, y)
+        end
   end
 
   fun triangles (s : tesselation) : triangle list = !s
@@ -157,6 +215,38 @@ struct
               NONE => raise Tesselation "impossible: must be at least one triangle"
             | SOME r => r
       end
+
+  fun getnodewithin (s : tesselation) (x, y) radius : node option =
+      let
+          val radius_squared = radius * radius
+          (* keep track of the best distance seen so far *)
+          val best_squared = ref NONE : int option ref
+          val best_result = ref NONE : node option ref
+
+          fun maybeupdate (d, r) =
+              if d > radius_squared
+              then ()
+              else
+              case !best_squared of
+                  NONE => (best_squared := SOME d; best_result := SOME r)
+                | SOME old => if d < old
+                              then (best_squared := SOME d;
+                                    best_result := SOME r)
+                              else ()
+
+          fun trynode n =
+              let
+                  val (nx, ny) = N.coords n
+                  val dist = distance_squared ((x, y), (nx, ny))
+              in
+                  maybeupdate (dist, n)
+              end
+
+      in
+          app trynode (nodes s);
+          !best_result
+      end
+
 
   fun gettriangle (s : tesselation) (x, y) : triangle option =
       raise Tesselation "unimplemented"
