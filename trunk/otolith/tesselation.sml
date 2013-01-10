@@ -65,6 +65,7 @@ struct
         map (fn (a, b) => (v, a, b)) triangles
     fun compare (N (ref {id, ...}), N (ref {id = idd, ...})) =
         IntInf.compare (id, idd)
+    fun eq (a : node, b : node) = a = b
 
     fun trymove (N (r as ref { x, y, triangles, id })) (newx, newy) =
         let
@@ -174,6 +175,30 @@ struct
               else (v2x, v2y)
           end
 
+  fun tostring (s : tesselation) =
+      let
+          fun id (N (ref { id = i, ... })) = IntInf.toString i
+          fun others (v1, v2) =
+              id v1 ^ "-" ^ id v2
+          fun node (N (ref { id, x, y, triangles })) =
+              "{" ^ IntInf.toString id ^ " @" ^ Int.toString x ^ "," ^
+              Int.toString y ^
+              " [" ^ StringUtil.delimit "," (map others triangles) ^
+              "]}"
+          fun triangle (t : triangle) =
+              let val (a, b, c) = T.nodes t
+              in
+                  " <" ^ node a ^ "\n" ^
+                  "  " ^ node b ^ "\n" ^
+                  "  " ^ node c ^ ">\n"
+              end
+
+          val tris : triangle list = triangles s
+      in
+          "tesselation:\n" ^
+          String.concat (map triangle tris)
+      end
+
   fun closestedge (s : tesselation) (x, y) : node * node * int * int =
       let
           (* keep track of the best distance seen so far *)
@@ -216,6 +241,125 @@ struct
             | SOME r => r
       end
 
+  (* PERF if we had some kind of invariants on winding ordering we
+     could probably reduce the number of comparisons here and below.
+     But I think it's quite a pain to get right. *)
+  fun same_edge ((n1 : node, n2 : node), (n3 : node, n4 : node)) =
+      (N.eq (n1, n3) andalso N.eq (n2, n4)) orelse
+      (N.eq (n1, n4) andalso N.eq (n2, n3))
+
+  (* Returns a list, which should be at most two triangles.
+     The triangle is represented as the node that is not n1 nor n2. *)
+  fun triangles_with_edge (s : tesselation) (n1 : node, n2 : node) =
+      let
+          fun match (a, b, c) =
+              if same_edge ((a, b), (n1, n2)) then SOME c
+              else if same_edge ((b, c), (n1, n2)) then SOME a
+                   else if same_edge ((c, a), (n1, n2)) then SOME b
+                        else NONE
+      in
+          (* Could check that there are at most 2 *)
+          List.mapPartial match (triangles s)
+      end
+
+  (* PERF: Could generate the comparisons for sort/eq, which would
+     be faster than this AND/OR mess. *)
+  fun same_triangle ((a, b, c), (d, e, f)) =
+      (* If they are the same triangle, then a must be equal to
+         one of the other nodes. Then the remaining edges must
+         be equal, too. *)
+      (N.eq (a, d) andalso same_edge ((b, c), (e, f))) orelse
+      (N.eq (a, e) andalso same_edge ((b, c), (d, f))) orelse
+      (N.eq (a, f) andalso same_edge ((b, c), (d, e)))
+
+  structure S =
+  struct
+      fun addtriangle (s : tesselation) (a, b, c) =
+          s := (a, b, c) :: !s
+
+      (* Internal. *)
+      fun removetriangle (s : tesselation) (a, b, c) =
+          s := List.filter (fn t => not (same_triangle (t, (a, b, c)))) (!s)
+  end
+
+
+  fun splitedge (s : tesselation) (x, y) : node option =
+      let
+          val MIN_SPLIT_DISTANCE = 3 * 3
+          val (n1, n2, xx, yy) = closestedge s (x, y)
+          val (n1x, n1y) = N.coords n1
+          val (n2x, n2y) = N.coords n2
+      in
+          if distance_squared ((n1x, n1y), (xx, yy)) < MIN_SPLIT_DISTANCE orelse
+             distance_squared ((n2x, n2y), (xx, yy)) < MIN_SPLIT_DISTANCE
+          then NONE
+          else
+          let
+              fun settriangles (N (r as ref { id, x, y, ... }), t) =
+                  r := { id = id, x = x, y = y, triangles = t }
+
+              fun node_addtriangle (N (r as ref { id, x, y, triangles }), t) =
+                  r := { id = id, x = x, y = y, triangles = t :: triangles }
+
+              fun node_removetriangle (N (r as ref { id, x, y, triangles }),
+                                       (a, b)) =
+                  r := { id = id, x = x, y = y,
+                         triangles = List.filter (fn (c, d) =>
+                                                  not (same_edge ((a, b),
+                                                                  (c, d))))
+                                     triangles }
+
+              val newnode =
+                  N (ref { id = next (), x = xx, y = yy, triangles = nil })
+
+              (* The edge may be in 1 or 2 triangles. The triangle is defined
+                 by the single third node. *)
+              fun addedge othernode =
+                  let
+                      val N (ref { triangles = oldtriangles, ... }) = newnode
+                  in
+                      (* update triangles in othernode *)
+                      node_removetriangle (othernode, (n1, n2));
+                      node_addtriangle (othernode, (n1, newnode));
+                      node_addtriangle (othernode, (newnode, n2));
+
+                      (* update triangles in n1 *)
+                      node_removetriangle (n1, (othernode, n2));
+                      node_addtriangle (n1, (othernode, newnode));
+
+                      (* update triangles in n2 *)
+                      node_removetriangle (n2, (n1, othernode));
+                      node_addtriangle (n2, (othernode, newnode));
+
+                      (* Add to newnode's triangles *)
+                      node_addtriangle (newnode, (n1, othernode));
+                      node_addtriangle (newnode, (othernode, n2));
+
+                      (* Update global triangle list. *)
+                      S.removetriangle s (othernode, n1, n2);
+                      S.addtriangle s (newnode, n1, othernode);
+                      S.addtriangle s (newnode, othernode, n2)
+                  end
+
+              val affected_triangles : node list =
+                  triangles_with_edge s (n1, n2)
+          in
+              (*
+              print ("BEFORE:\n");
+              print (tostring s ^ "\n"); (* XX *)
+              *)
+
+              app addedge affected_triangles;
+
+              (*
+              print ("AFTER:\n");
+              print (tostring s ^ "\n"); (* XX *)
+              *)
+
+              SOME newnode
+          end
+      end
+
   fun getnodewithin (s : tesselation) (x, y) radius : node option =
       let
           val radius_squared = radius * radius
@@ -247,11 +391,7 @@ struct
           !best_result
       end
 
-
   fun gettriangle (s : tesselation) (x, y) : triangle option =
-      raise Tesselation "unimplemented"
-
-  fun splitedge (s : tesselation) (x, y) : node option =
       raise Tesselation "unimplemented"
 
 end
