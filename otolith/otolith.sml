@@ -54,6 +54,8 @@ struct
      calling any of these functions. *)
   val mousex = ref 0
   val mousey = ref 0
+  val holdingshift = ref false
+
   val mousedown = ref false
   val draggingnode = ref NONE : Tesselation.node option ref
 
@@ -82,18 +84,34 @@ struct
         | SOME n => ignore (Tesselation.N.trymove n (x, y))
 
   fun leftmouse (x, y) =
-      case Tesselation.getnodewithin tesselation (x, y) 5 of
-          NONE => draggingnode := NONE
-        | SOME n => draggingnode := SOME n
+      if !holdingshift
+      then
+          case Tesselation.splitedge tesselation (x, y) of
+              NONE => ()
+            | SOME n => (draggingnode := SOME n;
+                         ignore (Tesselation.N.trymove n (x, y)))
+      else
+          case Tesselation.getnodewithin tesselation (x, y) 5 of
+              NONE => draggingnode := NONE
+            | SOME n => draggingnode := SOME n
 
   fun leftmouseup (x, y) = draggingnode := NONE
+
+  (* XXX TODO *)
+  fun updatecursor () = ()
 
   val start = Time.now()
 
   fun keydown SDL.SDLK_ESCAPE = raise Quit
+    | keydown SDL.SDLK_LSHIFT =
+      (holdingshift := true;
+       updatecursor ())
     | keydown _ = ()
 
-  fun keyup _ = ()
+  fun keyup SDL.SDLK_LSHIFT =
+      (holdingshift := false;
+       updatecursor ())
+    | keyup _ = ()
 
   fun events () =
       case SDL.pollevent () of
