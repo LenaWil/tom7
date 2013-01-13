@@ -156,6 +156,24 @@ struct
         end
         ))
 
+  fun randomize_loud pixels =
+      Util.for 0 (HEIGHT - 1)
+      (fn y =>
+       Util.for 0 (WIDTH - 1)
+       (fn x =>
+        let
+            fun byte () = Word32.fromInt (Word8.toInt (ARCFOUR.byte rc))
+            (* Very low level color noise *)
+            val r = Word32.andb (byte (), 0w31)
+            val g = Word32.andb (byte (), 0w31)
+            val b = Word32.andb (byte (), 0w63)
+            val a = 0wxFF : Word32.word
+            val color = mixcolor (r, g, b, a)
+        in
+            Array.update(pixels, y * WIDTH + x, color)
+        end
+        ))
+
   fun scanline_postfilter pixels =
     let val ro = ref 0
         val go = ref 0

@@ -13,6 +13,9 @@ sig
   (* Draws low-level noise background *)
   val randomize : Word32.word Array.array -> unit
 
+  (* Draws louder noise background *)
+  val randomize_loud : Word32.word Array.array -> unit
+
   (* XXX Configurable? *)
   val scanline_postfilter : Word32.word Array.array -> unit
 
