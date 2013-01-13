@@ -1,0 +1,35 @@
+
+    textformat                Tom 7           12 Jan 2013
+
+textformat is a metautility for generating human-readable and editable
+text files that can be transformed to and from SML data structures. It
+includes a compiler, tfcompiler, that turns description files (.tfdesc) into
+standalone SML that contains a predictable API based on that description,
+including ways to read and write the textfile format.
+
+Comparison:
+
+ - Google Protocol Buffers are nice, but the binary format is completely
+   uneditable and the text format is way too verbose. They also are more
+   suitable for curly-style languages. Someone should make a protocol
+   buffer implemetation for SML though, maybe me.
+
+ - It is not XML because XML is awful in so many ways. You can use the
+   XML parser in ../files/xml. Good luck.
+
+Design considerations:
+
+ - This is not a general serialization format; you will often need to
+   do additional processing to transform to your own internal SML
+   representation.
+
+ - Backwards and forwards compatibility are supported, like in protocol
+   buffers, by having the description include the names of the tags.
+   Unlike protocol buffers, we don't support round-trip compatibility.
+   If you parse it, you discard the fields that you don't understand.
+
+ - The text format is designed to support efficient diffs and feasible
+   merges in revision control systems, yay.
+
+ - When possible I favor simplicity of usage over stuff like complexity
+   of the internal code or performance.
