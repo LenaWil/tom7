@@ -161,7 +161,7 @@ struct
       let
           val () = events ()
 
-          val () = Draw.randomize pixels
+          val () = Draw.randomize_loud pixels
           val () = drawtesselation ()
           val () = drawindicators ()
           val () = Draw.scanline_postfilter pixels
