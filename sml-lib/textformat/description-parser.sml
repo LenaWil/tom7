@@ -35,6 +35,7 @@ struct
                                   ("int", INT),
                                   ("string", STRING),
                                   ("option", OPTION)]
+          val t = ST.setsep t (Char.contains "()=*:")
           val t = ST.setother t SYMBOL
           val t = ST.setcomment t [ST.CSBracketed ("(*", "*)")]
       in
@@ -78,20 +79,24 @@ struct
 
     val symbol = maybe (fn (SYMBOL s) => SOME s | _ => NONE)
 
-    fun typ () =
+    fun innertyp () =
         alt [`INT return Int,
              `STRING return String,
-             `LPAREN && `RPAREN return Tuple nil,
              symbol wth Message,
-             (* Avoid exponential parse (I think?) with left recursion *)
-             $typ --
-             (fn t =>
-              alt
-              [repeat1 (`ASTERISK >> $typ) wth (fn l => Tuple (t :: l)),
-               `LIST return List t,
-               `OPTION return Option t])]
+             `LPAREN && `RPAREN return Tuple nil,
+             `LPAREN >> $typ << `RPAREN]
 
-    val field = `FIELD >>
+    and typ () =
+        (* Avoid exponential parse (I think?) with left recursion *)
+        $innertyp --
+        (fn t =>
+         alt
+         [repeat1 (`ASTERISK >> $typ) wth (fn l => Tuple (t :: l)),
+          `LIST return List t,
+          `OPTION return Option t,
+          succeed t])
+
+    fun field () = `FIELD >>
         symbol &&
         opt (`LPAREN >> symbol << `RPAREN) &&
         (`COLON >>
@@ -107,7 +112,7 @@ struct
         symbol &&
         opt (`LPAREN >> symbol << `RPAREN) &&
         (`EQUALS >>
-         repeat field) wth
+         repeat ($field)) wth
         (fn (token, (name, fields)) =>
          let val name = case name of NONE => token | SOME n => n
          in M { token = token, name = name, fields = fields }
@@ -125,7 +130,9 @@ struct
   (* Check that there are no duplicates (message or field tokens).
      Check that any Message type refers to a message defined in this bundle.
      TODO: Support retired fields, check that too. *)
-  fun check (ms : message list) =
+  fun check nil = raise DescriptionParser ("Currently there must be at least " ^
+                                           "one message.")
+    | check (ms : message list) =
     let
         val messagenames : unit SM.map ref = ref SM.empty
         fun insertunique what (m, s) =
@@ -171,6 +178,15 @@ struct
         app (fn M { name, ... } =>
              insertunique "message name" (messagenames, name)) ms;
         app onemessage ms
+    end
+
+  fun tokenize (s : string) =
+    let
+        val s = ST.stringstream s
+        val s = Pos.markstream s
+        val s = Parsing.transform tokenizer s
+    in
+        Stream.tolist s
     end
 
   fun parse (s : string) =

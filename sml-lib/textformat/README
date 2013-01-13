@@ -33,3 +33,94 @@ Design considerations:
 
  - When possible I favor simplicity of usage over stuff like complexity
    of the internal code or performance.
+
+ - Things are assumed to fit in memory and there's no support for
+   recovering from corruption.
+ 
+
+API reference:
+
+   Each message has a structure whose name is the token for that message
+   (typically this is a single capital letter). It looks like this:
+
+	 structure V : sig
+     (* To facilitate functorization or other generated code. *)
+	   type t = vertex
+     (* Serialize to the string representation. *)
+	   val tostring : t -> string
+     (* Deserialize, or raise Parse *)
+	   val fromstring : string -> t
+     (* Deserialize or return NONE *)
+	   val maybefromstring : string -> t option
+
+     (* Write the serialized data over the named file. *)
+	   val tofile : string -> t -> unit
+     (* Read from the file, raising Parse or IO exceptions on failure *)
+	   val fromfile : string -> t
+     (* Read from the file, returning NONE if the contents can't be
+        parsed. Still returns regular IO exceptions on file issues. *)
+	   val maybefromfile : string -> t option
+
+     (* The default instance of this message; see below. *)
+     val default : t
+	 end
+
+Format reference:
+
+   A message is not delimited (though when it is contained in a parent
+   message, it is); it is just its series of fields. Every field and
+   message in a description has a unique token; by convention the
+   messages are a single capital letter and the fields a single
+   lowercase letter (but it can be anything).
+
+   A field is encoded by its token followed by the data it contains.
+   Because we need to skip fields we don't understand, the data is
+   in a format that is self-delimiting.
+
+   Ints are encoded as decimal numbers. Negative numbers have a leading -.
+   Strings are encoded as "quoted data" which may include escaped bytes,
+   always written \NN where NN is two hexadecimal digits.
+   Lists are enclosed in square brackets and separated by commas. (XXX?)
+   Tuples are encoded the same way as lists.
+   An optional type is written the same way, with the expectation that
+   there is just zero or one element. If there is more than one element,
+   parsing succeeds and ignores all but the first. 
+   A sub-message is written as a curly brace {, then the token representing
+   that message, then the message as here, then the closing brace.
+
+   When the text file format is output, fields with the following values
+   are not encoded as anything (the field simply doesn't appear):
+     List []
+     Tuple ()
+     Option NONE
+
+   Note that this is not hereditary: A list of 5 NONEs is still written
+   as [[], [], [], [], []].
+
+   At parse time, there may be missing fields. This happens if the
+   description does not match the version used to generate the textfile
+   data, or in the cases above. Each type has a default value which
+   is assumed if the field isn't found.
+
+     int         0
+     string      ""
+     list        []
+     option      NONE
+   
+   For tuples, each element is given its default value, inductively.
+   For messages, the default instance of the message. In this, each
+   field has its default value given inductively. This default instance
+   is also accessible in the API.
+
+   It is illegal (a parse error) for a field to appear multiple times
+   in the same message.
+
+   Whitespace basically never matters, except inside of strings and
+   when separating tokens from integers, since a token may end
+   with digits.
+
+   TODO: 
+     - Human-readable debug output (though we should strive to make the
+       text format itself pretty readable...)
+     - Could make the parsed description available at runtime,
+       maybe some limited reflection is possible.
