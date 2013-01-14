@@ -88,8 +88,9 @@ Format reference:
    A sub-message is written as a curly brace {, then the token representing
    that message, then the message as here, then the closing brace.
 
+   (This is not yet implemented:)
    When the text file format is output, fields with the following values
-   are not encoded as anything (the field simply doesn't appear):
+   may not be encoded as anything (the field simply doesn't appear):
      List []
      Tuple ()
      Option NONE
@@ -112,6 +113,9 @@ Format reference:
    field has its default value given inductively. This default instance
    is also accessible in the API.
 
+   Since any field may be missing, the empty string parses as the
+   default instance of every message.
+
    It is illegal (a parse error) for a field to appear multiple times
    in the same message.
 
@@ -124,3 +128,6 @@ Format reference:
        text format itself pretty readable...)
      - Could make the parsed description available at runtime,
        maybe some limited reflection is possible.
+     - Hints to the tostring function that tells it what to lay out on
+       lines, or more compactly.
+

@@ -3,6 +3,8 @@ message N (node) =
   field id : int
   field x : int
   field y : int
+  field n (name) : (int * int) option
+  field p (parent) : tesselation option
   (* These are the IDs of the other nodes. *)
   field t (triangles) : (int * int) list
 
