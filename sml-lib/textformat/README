@@ -80,7 +80,7 @@ Format reference:
    Ints are encoded as decimal numbers. Negative numbers have a leading -.
    Strings are encoded as "quoted data" which may include escaped bytes,
    always written \NN where NN is two hexadecimal digits.
-   Lists are enclosed in square brackets and separated by commas. (XXX?)
+   Lists are enclosed in square brackets and separated by commas. (XXX - no?)
    Tuples are encoded the same way as lists.
    An optional type is written the same way, with the expectation that
    there is just zero or one element. If there is more than one element,

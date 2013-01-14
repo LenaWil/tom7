@@ -24,6 +24,9 @@ group is
  ../util/stringutil-sig.sml
  ../util/stringutil.sml
 
+ ../util/listutil-sig.sml
+ ../util/listutil.sml
+
  ../parse/pos-sig.sml
  ../parse/pos.sml
 
