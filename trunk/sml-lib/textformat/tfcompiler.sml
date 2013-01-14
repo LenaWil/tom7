@@ -24,12 +24,12 @@ struct
   fun gentypes l =
     let
         fun onefield (D.F { name, token, typ }) =
-            "      " ^ name ^ " : " ^ typetos typ
+            "    " ^ name ^ " : " ^ typetos typ
 
         fun one connective (D.M { name, token, fields } :: rest) =
             connective ^ " " ^ name ^ " = " ^ token ^ " of {\n" ^
             StringUtil.delimit ",\n" (map onefield fields) ^
-            "\n    }\n\n" ^ one "  and" rest
+            "\n  }\n\n" ^ one "  and" rest
           | one connective nil = ""
     in
         one "  datatype" l
@@ -60,7 +60,7 @@ struct
       "  exception Parse of string\n\n"
 
   fun geninternal () =
-      "  (* Internal utilities. *)\n" ^
+      (* Internal utilities. *)
       "  fun readfile f =\n" ^
       "    let val l = TextIO.openIn f\n" ^
       "        val s = TextIO.inputAll l\n" ^
@@ -80,6 +80,43 @@ struct
       "    (SOME (fs (readfile f))) handle Parse _ => NONE\n" ^
       "  fun tofilewith ts f t = writefile f (ts t)\n" ^
       "\n" ^
+
+      (* When generating strings we use doubly-linked lists (DLL, not
+         dynamically linked library :)) to concatenate strings instead
+         of eagerly rebuilding the strings with ^. *)
+      (* XXX not really "dll" any more, just an imperative list. *)
+      "  datatype dllcell' =\n" ^
+      "    D' of string * dllcell' option ref\n" ^
+      (* Head of the string with the ref cell at its tail.
+         the ref cell will usually be NONE unless traversing
+         the internals of a dll. *)
+      "  type dll' = dllcell' * dllcell' option ref\n" ^
+      "  fun ^^ ((head, t as ref NONE),\n" ^
+      "          (h, tail)) =\n" ^
+      "    let in\n" ^
+      "      t := SOME h;\n" ^
+      "      (head, tail)\n" ^
+      "    end\n" ^
+      "   | ^^ _ =\n" ^
+      "     raise Parse \"^^ bug\"\n" ^
+      "  infix 2 ^^\n" ^
+      "  fun $s : dll' = let val r = ref NONE in (D'(s, r), r) end\n" ^
+
+      (* PERF this sort of misses the point. *)
+      "  fun dlltostring (head, _) =\n" ^
+      "    let fun dts (D' (s, r)) =\n" ^
+      "          case !r of\n" ^
+      "             NONE => s\n" ^
+      "           | SOME d => s ^ dts d\n" ^
+      "    in dts head\n" ^
+      "    end\n" ^
+
+      (* Like String.concat. *)
+      "  fun dllconcat' nil = $\"\"\n" ^
+      "    | dllconcat' (h :: t) = h ^^ dllconcat' t\n" ^
+
+      "  fun itos' i = if i < 0 then \"-\" ^ Int.toString i else Int.toString i\n" ^
+      "  fun stos' s = raise Parse \"unimplemented string to string\"\n" ^
 
       (* Since we always have to be able to skip fields we don't
          know, basic parsing doesn't depend on the description.
@@ -221,6 +258,7 @@ struct
 
   fun fromfieldsname name = name ^ "_fromfields'"
   fun defaultvaluename name = name ^ "_default'"
+  fun todllname name = name ^ "_todll'"
 
   (* Returns the ML expression (in a string) that represents the
      default value for the type. *)
@@ -256,6 +294,75 @@ struct
       if n mod 2 = 0
       then let val s = indent (n div 2) in s ^ s end
       else " " ^ indent (n - 1)
+
+  fun gentodlls ms =
+    let
+      fun onemessage _ nil = "\n"
+        | onemessage connective (D.M { name, token, fields } :: rest) =
+          let
+              (* XXX this could shadow something we use inside tostring.
+                 maybe should rename them? *)
+              val pattern = "(" ^ token ^ " { " ^
+                  StringUtil.delimit ", "
+                     (map (fn (D.F {name, ...}) => name) fields)
+                  ^ " })"
+
+              fun furl i exp typ =
+                case typ of
+                  D.Int => "$(itos' " ^ exp ^ ")"
+                | D.String => "$(stos' " ^ exp ^ ")"
+                | D.Tuple ts =>
+                      let val fields = ListUtil.mapi
+                          (fn (t, idx) =>
+                           let val f = "f" ^ Int.toString idx ^ "'"
+                           in (f, furl (i + 5) f t)
+                           end) ts
+                      in
+                          "let val (" ^
+                            StringUtil.delimit ", " (map #1 fields) ^
+                          ") = " ^ exp ^ "\n" ^
+                          indent i ^
+                          "in\n" ^
+                          indent (i + 2) ^
+                          "$\"[\" ^^ " ^ StringUtil.delimit " ^^ $\" \" ^^ "
+                               (map #2 fields) ^
+                          " ^^ $\"]\"\n" ^
+                          indent i ^
+                          "end"
+                      end
+                | D.List t =>
+                      "($\"[\" ^^\n" ^
+                      indent (i + 3) ^
+                      "dllconcat' (List.map\n" ^
+                      indent (i + 3) ^
+                      "(fn v => " ^ furl (i + 8) "v" t ^ ") " ^ exp ^ "\n" ^
+                      indent i ^
+                      ") ^^ $\"]\")"
+                | D.Option t =>
+                      "(case " ^ exp ^ " of\n" ^
+                      indent (i + 2) ^
+                      "  SOME v => ($\"[\" ^^ " ^
+                                        furl (i + 8) "v" t ^
+                                        " ^^ $\"]\")\n" ^
+                      indent (i + 2) ^
+                      "| NONE => $\"[]\")"
+                | D.Message m => "(raise Parse \"unimplemented message furl\")"
+
+              (* XXX PERF: Don't encode stuff like NONE and nil. *)
+              fun onefield (D.F { name, token, typ }) =
+                "    $\"" ^ token ^ " \" ^^ " ^ furl 12 name typ
+          in
+              connective ^
+              " " ^ todllname name ^
+              " (" ^ pattern ^ " : " ^ name ^ ") : dll' =\n" ^
+              (* PERF could build space delimeter into token above *)
+              StringUtil.delimit " ^^ $\" \" ^^\n"
+              (map onefield fields) ^ "\n\n" ^
+              onemessage "  and" rest
+          end
+    in
+        onemessage "  fun" ms
+    end
 
   (* Needs to be a big mutually-recursive thing to support nested
      messages. The structs just pull out their own parser. *)
@@ -385,21 +492,14 @@ struct
     let
        fun onestruct (D.M { name, token, fields }) =
          let
-           (* Matches an instance of t, binds all its
-              fields *)
-           (* XXX this could shadow something we use inside tostring.
-              maybe should rename them? *)
-           val pattern = "(" ^ token ^ " { " ^
-               StringUtil.delimit ", " (map (fn (D.F {name, ...}) => name) fields)
-               ^ " })"
 
          in
            "\n" ^
            "  structure " ^ token ^ " =\n" ^
            "  struct\n" ^
            "    type t = " ^ name ^ "\n" ^
-           "    fun tostring (" ^ pattern ^ " : t) : string =\n" ^
-           "      raise Parse \"unimplemented\"\n" ^
+           "    fun tostring (m : t) : string =\n" ^
+           "      dlltostring (" ^ todllname name ^ " m)\n" ^
 
            "\n" ^
            "    fun fromstring s =\n" ^
@@ -433,6 +533,7 @@ struct
       geninternal () ^
       gendefaults ms ^
       genfromstrings ms ^
+      gentodlls ms ^
       genstructstructs ms
 
   fun splitext s =
@@ -466,7 +567,7 @@ struct
 
         val s =
         "(* Generated from " ^ file ^ " by tfcompiler. Do not edit! *)\n\n" ^
-        "structure " ^ strname ^ " :>\n" ^
+        "structure " ^ strname ^ "TF :>\n" ^
         "sig\n" ^
         gensig messages ^
         "\nend =\n" ^
