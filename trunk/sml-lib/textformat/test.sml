@@ -25,7 +25,7 @@ struct
 *)
 
       val n1 = N { id = 5, x = 10, y = 20, name = NONE,
-                   parent = NONE,
+                   parent = NONE, awesome = true,
                    triangles = [(1, 2), (3, 4)] }
 
       val n1s = N.tostring n1
@@ -34,13 +34,16 @@ struct
 
       val () = case n1n of
           N { id = 5, x = 10, y = 20, name = NONE,
-              parent = NONE,
+              parent = NONE, awesome = true,
               triangles = [(1, 2), (3, 4)] } => ()
             | _ => raise Failure "didn't get back the same thing"
 
       val n2 = N { id = 6, x = 2, y = ~123, name = SOME (0, 0),
-                   parent = NONE,
+                   parent = NONE, awesome = false,
                    triangles = [(9, 90)] }
+      val () = if N.fromstring (N.tostring n2) = n2
+               then ()
+               else raise Failure "n2 roundtrip"
 
       val s1 = S { nodes = [n1, n2] }
       val s1s = S.tostring s1

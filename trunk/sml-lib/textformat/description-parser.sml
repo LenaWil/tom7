@@ -21,6 +21,7 @@ struct
     | OPTION
     | INT
     | STRING
+    | BOOL
 
   val tokenizer =
       let val t = ST.empty () : token ST.tokenizer
@@ -33,6 +34,7 @@ struct
                                   ("*", ASTERISK),
                                   ("list", LIST),
                                   ("int", INT),
+                                  ("bool", BOOL),
                                   ("string", STRING),
                                   ("option", OPTION)]
           val t = ST.setsep t (Char.contains "()=*:")
@@ -45,6 +47,7 @@ struct
   datatype typ =
       Int
     | String
+    | Bool
     | List of typ
     | Tuple of typ list
     | Option of typ
@@ -83,6 +86,7 @@ struct
     fun innertyp () =
         alt [`INT return Int,
              `STRING return String,
+             `BOOL return Bool,
              symbol wth Message,
              `LPAREN && `RPAREN return Tuple nil,
              `LPAREN >> $typ << `RPAREN]
@@ -149,6 +153,7 @@ struct
 
         fun checktype Int = ()
           | checktype String = ()
+          | checktype Bool = ()
           | checktype (Tuple ts) = app checktype ts
           | checktype (Option t) = checktype t
           | checktype (List t) = checktype t

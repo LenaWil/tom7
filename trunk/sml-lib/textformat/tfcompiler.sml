@@ -11,6 +11,7 @@ struct
 
   fun typetos D.Int = "int"
     | typetos D.String = "string"
+    | typetos D.Bool = "bool"
       (* XXX can often leave out parens. *)
     | typetos (D.List t) = "(" ^ typetos t ^ ") list"
     | typetos (D.Option t) = "(" ^ typetos t ^ ") option"
@@ -280,6 +281,7 @@ struct
   fun default_value (t : D.typ) : string =
       case t of
           D.Int => "0"
+        | D.Bool => "false"
         | D.String => "\"\""
         | D.List _ => "nil"
         | D.Tuple ts => "(" ^ StringUtil.delimit "," (map default_value ts) ^ ")"
@@ -336,6 +338,7 @@ struct
                 case typ of
                   D.Int => "$(itos' " ^ exp ^ ")"
                 | D.String => "$(stos' " ^ exp ^ ")"
+                | D.Bool => "(if " ^ exp ^ " then $\"1\" else $\"0\")"
                 | D.Tuple ts =>
                       let val fields = ListUtil.mapi
                           (fn (t, idx) =>
@@ -423,6 +426,10 @@ struct
                     "(case " ^ v ^ " of Int' i => i\n" ^
                     indent i ^
                     "  | _ => raise Parse \"expected int\")"
+              | D.Bool =>
+                    "(case " ^ v ^ " of Int' i => i <> 0\n" ^
+                    indent i ^
+                    "  | _ => raise Parse \"expected int for bool\")"
               | D.String =>
                     "(case " ^ v ^ " of String' s => s\n" ^
                     indent i ^
