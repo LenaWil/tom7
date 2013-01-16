@@ -115,7 +115,9 @@ struct
       "  fun dllconcat' nil = $\"\"\n" ^
       "    | dllconcat' (h :: t) = h ^^ dllconcat' t\n" ^
 
-      "  fun itos' i = if i < 0 then \"-\" ^ Int.toString i else Int.toString i\n" ^
+      "  fun itos' i = if i < 0\n" ^
+      "                then \"-\" ^ Int.toString (~i)\n" ^
+      "                else Int.toString i\n" ^
       "  fun stos' s = raise Parse \"unimplemented string to string\"\n" ^
 
       (* Since we always have to be able to skip fields we don't
@@ -190,7 +192,7 @@ struct
       "                | #\"{\" => (LBRACE', S.triml 1 s)\n" ^
       "                | #\"]\" => (RBRACK', S.triml 1 s)\n" ^
       "                | #\"[\" => (LBRACK', S.triml 1 s)\n" ^
-      "                | #\",\" => (COMMA', S.triml 1 s)\n" ^
+      "                | #\",\" => (COMMA',  S.triml 1 s)\n" ^
       "                | #\"\\\\\" => readstring s\n" ^
       "                | c => if isletter c\n" ^
       "                       then readsym s\n" ^
@@ -221,7 +223,16 @@ struct
       "                  SOME (RBRACK', s) => SOME (List' l, s)\n" ^
       "                | _ => raise Parse \"expected closing bracket\"\n" ^
       "           end\n" ^
-      "         | SOME (LBRACE', s) => raise Parse \"unimplemented submessage\"\n" ^
+      "         | SOME (LBRACE', s) =>\n" ^
+      "           (case get_token s of\n" ^
+      "              SOME (SYMBOL' m, s) =>\n" ^
+      "                let val (fs, s) = readfields s\n" ^
+      "                in case get_token s of\n" ^
+      "                     SOME (RBRACE', s) =>\n" ^
+      "                         SOME (Message' (S.string m, fs), s)\n" ^
+      "                   | _ => raise Parse \"expected rbrace after message\"\n" ^
+      "                end\n" ^
+      "            | _ => raise Parse \"expected symbol after lbrace\")\n" ^
       "         | SOME _ => NONE\n" ^
 
       (* Get field data and expect it to be present. *)
@@ -237,7 +248,11 @@ struct
       "          | SOME (SYMBOL' tok, s) => let val (d, s) = get_data s\n" ^
       "                                     in SOME ((S.string tok, d), s)\n" ^
       "                                     end\n" ^
-      "          | SOME _ => raise Parse \"expected symbol\"\n" ^
+      (* Only other token that can come instead of a field is the closing
+         brace of a nested message. Note this is reparsed, but this is very
+         cheap. *)
+      "          | SOME (RBRACE', _) => NONE\n" ^
+      "          | SOME _ => raise Parse (\"unexpected token: \" ^ S.string s)\n" ^
 
       "    in\n" ^
 
@@ -297,6 +312,16 @@ struct
 
   fun gentodlls ms =
     let
+      fun getmessagetoken n =
+          let fun gmt (D.M { name, token, ... } :: rest) =
+                     if name = n then token
+                     else gmt rest
+                | gmt nil =
+                     raise TFCompiler ("bug? no token for message " ^ n)
+          in
+              gmt ms
+          end
+
       fun onemessage _ nil = "\n"
         | onemessage connective (D.M { name, token, fields } :: rest) =
           let
@@ -346,7 +371,9 @@ struct
                                         " ^^ $\"]\")\n" ^
                       indent (i + 2) ^
                       "| NONE => $\"[]\")"
-                | D.Message m => "(raise Parse \"unimplemented message furl\")"
+                | D.Message m =>
+                      "($\"{" ^ getmessagetoken m ^
+                            " \" ^^ " ^ todllname m ^ " " ^ exp ^ " ^^ $\"}\")"
 
               (* XXX PERF: Don't encode stuff like NONE and nil. *)
               fun onefield (D.F { name, token, typ }) =
@@ -437,15 +464,6 @@ struct
                           fromfieldsname s ^ " fs\n" ^
                     indent i ^
                     "  | _ => raise Parse \"expected submessage " ^ s ^ "\")"
-
-
-(*
-  datatype typ =
-    | Message of string
-
-      "  datatype fielddata' =\n" ^
-      "    | Message' of string * (string * fielddata') list\n" ^
-*)
 
         (* This is where all the magic happens, basically. After doing
            the light parsing, we loop over every field we saw in the
