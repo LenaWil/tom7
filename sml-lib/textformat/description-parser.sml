@@ -55,6 +55,7 @@ struct
 
   and message =
       (* TODO: explicitly retired fields *)
+      (* TODO: layout hints *)
       M of { token : string, name : string, fields : field list }
 
   and field =
@@ -129,6 +130,8 @@ struct
 
   (* Check that there are no duplicates (message or field tokens).
      Check that any Message type refers to a message defined in this bundle.
+     TODO: This can be relaxed. Field names only need to be unique within
+     a message.
      TODO: Support retired fields, check that too. *)
   fun check nil = raise DescriptionParser ("Currently there must be at least " ^
                                            "one message.")
