@@ -3,12 +3,13 @@ message N (node) =
   field id : int
   field x : int
   field y : int
+  field n (name) : string
   field awesome : bool
-  field n (name) : (int * int) option
+  field r (root) : (int * int) option
   field p (parent) : tesselation option
   (* These are the IDs of the other nodes. *)
   field t (triangles) : (int * int) list
 
 message S (tesselation) =
   field ns (nodes) : node list
-
+  field c (conclusion) : string
