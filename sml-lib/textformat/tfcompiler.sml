@@ -62,6 +62,8 @@ struct
 
   fun geninternal () =
       (* Internal utilities. *)
+      "structure S = Substring\n" ^
+      "\n" ^
       "  fun readfile f =\n" ^
       "    let val l = TextIO.openIn f\n" ^
       "        val s = TextIO.inputAll l\n" ^
@@ -119,14 +121,37 @@ struct
       "  fun itos' i = if i < 0\n" ^
       "                then \"-\" ^ Int.toString (~i)\n" ^
       "                else Int.toString i\n" ^
-      "  fun stos' s = raise Parse \"unimplemented string to string\"\n" ^
+      (* PERF Can probably be faster about this. It's pretty
+         bad when the input contains lots of characters that
+         need to be escaped. *)
+      "  fun stos' str =\n" ^
+      "    let\n" ^
+      "      val digits = \"0123456789ABCDEF\"\n" ^
+      "      fun hexdig i = implode [#\"\\\\\",\n" ^
+      "                              CharVector.sub (digits, i div 16),\n" ^
+      "                              CharVector.sub (digits, i mod 16)]\n" ^
+      (* Only the double quotes and backslash truly need escaping. *)
+      (* All these commented-out double quotes are to fix syntax highlighting
+         both in the meta and object-level code. *)
+      "      fun noescape #\"\\\"\" = false (* \" *)\n" ^ (* " *)
+      "        | noescape #\"\\\\\" = false\n" ^
+      "        | noescape c = ord c >= 32 andalso ord c <= 126\n" ^
+      "      fun ss (s : S.substring) =\n" ^
+      "        let val (clean, dirty) = S.splitl noescape s\n" ^
+      "        in case S.getc dirty of\n" ^
+      "              NONE => [clean, S.full \"\\\"\"] (* \" *)\n" ^ (* " *)
+      "            | SOME (c, rest) =>\n" ^
+      "                clean :: S.full (hexdig (ord c)) :: ss rest\n" ^
+      "        end\n" ^
+      "    in\n" ^
+      "      S.concat (S.full \"\\\"\" :: ss (S.full str)) (* \" *)\n" ^ (* " *)
+      "    end\n" ^
 
       (* Since we always have to be able to skip fields we don't
          know, basic parsing doesn't depend on the description.
          Start by turning it into this internal representation,
          then use the description to massage it into the concrete
          type. *)
-      "  structure S = Substring\n" ^
       "  datatype fielddata' =\n" ^
       "      Int' of int\n" ^
       "    | String' of string\n" ^
@@ -179,9 +204,47 @@ struct
       "        end\n" ^
 
       (* Read a string, assuming s starts with double quote *)
-      "      fun readstring (s : S.substring) : token' * S.substring =\n" ^
-      "        raise Parse \"unimplemented strings\"\n" ^
-
+      "      fun readstring (str : S.substring) : token' * S.substring =\n" ^
+      "        let val str = S.triml 1 str\n" ^
+      "            fun stop #\"\\\"\" = false (* \" *)\n" ^ (* " *)
+      "              | stop #\"\\\\\" = false\n" ^
+      "              | stop c = true\n" ^
+      "            fun hexvalue c =\n" ^
+      "              let val oc = ord c\n" ^
+      "              in  if oc >= ord #\"a\" andalso oc <= ord #\"f\"\n" ^
+      "                  then 10 + (oc - ord #\"a\")\n" ^
+      "                  else if oc >= ord #\"A\" andalso oc <= ord #\"F\"\n" ^
+      "                  then 10 + (oc - ord #\"A\")\n" ^
+      "                  else if oc >= ord #\"0\" andalso oc <= ord #\"9\"\n" ^
+      "                  then (oc - ord #\"0\")\n" ^
+      "                  else raise Parse \"bad escaped hex digit\"\n" ^
+      "              end\n" ^
+      "            fun getescape (s : S.substring) : char * S.substring =\n" ^
+      "              if S.size s < 2\n" ^
+      "              then raise Parse \"expected escape sequence\"\n" ^
+      "              else let val c1 = S.sub (s, 0)\n" ^
+      "                       val c2 = S.sub (s, 1)\n" ^
+      "                       val s = S.triml 2 s\n" ^
+      "                   in (chr (hexvalue c1 * 16 + hexvalue c2), s)\n" ^
+      "                   end\n" ^
+      "            fun de (s : S.substring) =\n" ^
+      "              let val (clean, dirty) = S.splitl stop s\n" ^
+      "                  val (l, rest) =\n" ^
+      "                 (case S.getc dirty of\n" ^
+      "                    NONE => raise Parse \"unterminated string\"\n" ^
+      "                  | SOME (#\"\\\"\", rest) => (nil, rest) (* \" *)\n" ^ (* " *)
+      "                  | SOME (#\"\\\\\", rest) =>\n" ^
+      "                    let val (c, rest) = getescape rest\n" ^
+      "                        val (ll, rest) = de rest\n" ^
+      "                    in (S.full (String.implode [c]) :: ll, rest)\n" ^
+      "                    end\n" ^
+      "                  | _ => raise Parse \"bug: impossible dirty char\")\n" ^
+      "              in (clean :: l, rest)\n" ^
+      "              end\n" ^
+      "          val (l, rest) = de str\n" ^
+      "        in\n" ^
+      "          (STRING' (Substring.concat l), rest)\n" ^
+      "        end\n" ^
       (* Get the token at the head of the substring, or return NONE.
          Raises parse if a parse error is evident (like unclosed string). *)
       "      fun get_token (s : S.substring) :\n" ^
@@ -194,7 +257,7 @@ struct
       "                | #\"]\" => (RBRACK', S.triml 1 s)\n" ^
       "                | #\"[\" => (LBRACK', S.triml 1 s)\n" ^
       "                | #\",\" => (COMMA',  S.triml 1 s)\n" ^
-      "                | #\"\\\\\" => readstring s\n" ^
+      "                | #\"\\\"\" => readstring s\n" ^
       "                | c => if isletter c\n" ^
       "                       then readsym s\n" ^
       "                       else if numeric c\n" ^
