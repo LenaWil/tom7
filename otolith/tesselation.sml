@@ -19,6 +19,10 @@ struct
   (* Enough? *)
   type tesselation = triangle list ref
 
+  (* XXX This is sort of error prone and should probably be
+     part of the tesselation itself. In particular, when we
+     load any tesselation we need to make sure this counter
+     is larger than any id it uses. *)
   val ctr = ref (0 : IntInf.int)
   fun next () = (ctr := !ctr + 1; !ctr)
 
@@ -66,6 +70,8 @@ struct
     fun compare (N (ref {id, ...}), N (ref {id = idd, ...})) =
         IntInf.compare (id, idd)
     fun eq (a : node, b : node) = a = b
+
+    fun id (N ref ({ id = i, ... })) = i
 
     fun trymove (N (r as ref { x, y, triangles, id })) (newx, newy) =
         let
