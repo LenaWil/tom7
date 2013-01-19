@@ -666,9 +666,7 @@ struct
     let
         val (base, ext) = splitext file
         val s = StringUtil.readfile file
-        val () = eprint ("Parsing " ^ s ^ "\n")
         val (D.D messages) = D.parse s
-        val () = eprint ("Parsed ok\n")
 
         val strname = capitalize base
 
@@ -685,8 +683,6 @@ struct
         genstruct messages ^
         "\nend\n"
     in
-        (* XXX *)
-        print s;
         StringUtil.writefile (base ^ "-tf.sml") s
     end
 
