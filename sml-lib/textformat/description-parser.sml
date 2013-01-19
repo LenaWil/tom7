@@ -12,6 +12,8 @@ struct
       SYMBOL of string
     | MESSAGE
     | FIELD
+    | HINT
+    | VERTICAL
     | LPAREN
     | RPAREN
     | COLON
@@ -27,6 +29,8 @@ struct
       let val t = ST.empty () : token ST.tokenizer
           val t = ST.settokens t [("message", MESSAGE),
                                   ("field", FIELD),
+                                  ("hint", HINT),
+                                  ("vertical", VERTICAL),
                                   ("(", LPAREN),
                                   (")", RPAREN),
                                   (":", COLON),
@@ -53,6 +57,9 @@ struct
     | Option of typ
     | Message of string
 
+  datatype hint =
+      Vertical
+
   datatype description =
       D of message list
 
@@ -62,7 +69,7 @@ struct
       M of { token : string, name : string, fields : field list }
 
   and field =
-      F of { token : string, name : string, typ : typ }
+      F of { token : string, name : string, typ : typ, hints: hint list }
 
   local
     open Parsing
@@ -101,14 +108,18 @@ struct
           `OPTION return Option t,
           succeed t])
 
+    fun hint () =
+        `HINT && `VERTICAL return Vertical
+
     fun field () = `FIELD >>
         symbol &&
         opt (`LPAREN >> symbol << `RPAREN) &&
         (`COLON >>
-         $typ) wth
-        (fn (token, (name, typ)) =>
+         $typ) &&
+        repeat ($hint) wth
+        (fn (token, (name, (typ, hints))) =>
          let val name = case name of NONE => token | SOME n => n
-         in F { token = token, name = name, typ = typ }
+         in F { token = token, name = name, typ = typ, hints = hints }
          end)
         || (`FIELD --
             punt "expected symbol [LPAREN symbol RPAREN] COLON typ after FIELD")
@@ -164,7 +175,7 @@ struct
                     ("Unknown message name " ^ m ^
                      " in type (must be defined in this description).")
 
-        fun onefield (F { name, token, typ }) =
+        fun onefield (F { name, token, typ, hints }) =
             let
                 val tokens : unit SM.map ref = ref SM.empty
                 val names  : unit SM.map ref = ref SM.empty
