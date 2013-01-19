@@ -14,3 +14,12 @@ message S (tesselation) =
   field ns (nodes) : node list
     hint vertical
   field c (conclusion) : string
+
+message T (test) =
+  field a : (int list * int)
+  field b : int list * int option
+  field t : (int * int) list list option list
+  field self : (test list * int * (int * test option) * (test list list))
+
+message Z (zzz) =
+  field f : int
