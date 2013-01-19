@@ -14,8 +14,11 @@ struct
   val pixels = Array.array(WIDTH * HEIGHT, 0wxFFAAAAAA : Word32.word)
   val rc = ARCFOUR.initstring "anything"
 
-  val tesselation = Tesselation.tesselation { x0 = 20, y0 = 20,
-                                              x1 = WIDTH - 20, y1 = HEIGHT - 20 }
+  (* Tesselation itself is mutable, but sometimes we want to swap the
+     entire tesselation out, like in undo or save/load. *)
+  val tesselation =
+      ref (Tesselation.tesselation { x0 = 20, y0 = 20,
+                                     x1 = WIDTH - 20, y1 = HEIGHT - 20 })
 
   val TESSELATIONLINES = Draw.mixcolor (0wxAA, 0wxAA, 0wx99, 0wxFF)
   val TESSELATIONNODES = Draw.mixcolor (0wx33, 0wxAA, 0wxFF, 0wxFF)
@@ -23,8 +26,8 @@ struct
   (* PERF: draws edges twice *)
   fun drawtesselation () =
       let
-          val triangles = Tesselation.triangles tesselation
-          val nodes = Tesselation.nodes tesselation
+          val triangles = Tesselation.triangles (!tesselation)
+          val nodes = Tesselation.nodes (!tesselation)
 
           fun drawnode n =
               let val (x, y) = Tesselation.N.coords n
@@ -64,7 +67,8 @@ struct
   val DRAGGING = Draw.mixcolor (0wxFF, 0wxFF, 0wx00, 0wxFF)
   fun drawindicators () =
       let
-          val (n1, n2, x, y) = Tesselation.closestedge tesselation (!mousex, !mousey)
+          val (n1, n2, x, y) =
+              Tesselation.closestedge (!tesselation) (!mousex, !mousey)
       in
           Draw.drawcircle (pixels, !mousex, !mousey, 5, MOUSECIRCLE);
           Draw.drawcircle (pixels, x, y, 3, CLOSESTCIRCLE);
@@ -78,6 +82,18 @@ struct
           ()
       end
 
+  val WORLDFILE = "world.tf"
+
+  fun savetodisk () =
+      WorldTF.S.tofile WORLDFILE (Tesselation.toworld (!tesselation))
+
+  fun loadfromdisk () =
+      tesselation := Tesselation.fromworld (WorldTF.S.fromfile WORLDFILE)
+      handle _ =>
+          let in
+              eprint ("Error loading from " ^ WORLDFILE ^ "\n")
+          end
+
   fun mousemotion (x, y) =
       case !draggingnode of
           NONE => ()
@@ -86,12 +102,12 @@ struct
   fun leftmouse (x, y) =
       if !holdingshift
       then
-          case Tesselation.splitedge tesselation (x, y) of
+          case Tesselation.splitedge (!tesselation) (x, y) of
               NONE => ()
             | SOME n => (draggingnode := SOME n;
                          ignore (Tesselation.N.trymove n (x, y)))
       else
-          case Tesselation.getnodewithin tesselation (x, y) 5 of
+          case Tesselation.getnodewithin (!tesselation) (x, y) 5 of
               NONE => draggingnode := NONE
             | SOME n => draggingnode := SOME n
 
@@ -102,7 +118,13 @@ struct
 
   val start = Time.now()
 
-  fun keydown SDL.SDLK_ESCAPE = raise Quit
+  fun keydown SDL.SDLK_ESCAPE =
+      let in
+          (* For now, always save. XXX reconsider this
+             once the world becomes valuable... *)
+          savetodisk();
+          raise Quit
+      end
     | keydown SDL.SDLK_LSHIFT =
       (holdingshift := true;
        updatecursor ())
@@ -165,7 +187,7 @@ struct
           val () = drawtesselation ()
           val () = drawindicators ()
           (* val () = Draw.scanline_postfilter pixels *)
-          val () = Draw.mixpixel_postfilter 0.5 0.4 pixels
+          val () = Draw.mixpixel_postfilter 0.25 0.8 pixels
           val () = fillscreen pixels
           val () = ctr := !ctr + 1
       in
@@ -183,6 +205,7 @@ struct
           loop()
       end
 
+  val () = loadfromdisk ()
   val () = loop ()
 
 end

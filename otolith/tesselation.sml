@@ -175,7 +175,7 @@ struct
               else (v2x, v2y)
           end
 
-  fun tostring (s : tesselation) =
+  fun todebugstring (s : tesselation) =
       let
           fun id (N (ref { id = i, ... })) = IntInf.toString i
           fun others (v1, v2) =
@@ -393,5 +393,87 @@ struct
 
   fun gettriangle (s : tesselation) (x, y) : triangle option =
       raise Tesselation "unimplemented"
+
+  structure IIM = SplayMapFn(type ord_key = IntInf.int
+                             val compare = IntInf.compare)
+  structure IM = SplayMapFn(type ord_key = int
+                            val compare = Int.compare)
+
+  local
+    structure W = WorldTF
+  in
+    fun toworld (s : tesselation) : W.tesselation =
+      let val nodes = nodes s
+          val next = ref 0
+          val idmap : int IIM.map ref = ref IIM.empty
+          fun get i =
+             case IIM.find (!idmap, i) of
+                NONE => (idmap := IIM.insert (!idmap, i, !next);
+                         next := !next + 1;
+                         get i)
+              | SOME x => x
+
+          fun oneid (N (ref { id, ... })) = get id
+          fun onetriangle (a, b) = (oneid a, oneid b)
+          fun onenode (N (ref { id : IntInf.int,
+                                x : int, y : int,
+                                triangles : (node * node) list })) =
+              W.N { id = get id,
+                    x = x, y = y,
+                    triangles = map onetriangle triangles }
+          val nodes = map onenode nodes
+      in
+          print ("Serialize:\n" ^ todebugstring s ^ "\n");
+          W.S { nodes = nodes }
+      end
+
+    fun fromworld (W.S { nodes } : W.tesselation) : tesselation =
+      let
+        val nodemap : node IM.map ref = ref IM.empty
+
+        fun makenode (W.N { id, x, y, triangles = _ }) =
+            case IM.find (!nodemap, id) of
+               SOME _ => raise Tesselation "duplicate IDs in input"
+             | NONE => nodemap :=
+                   (* Triangles filled in during the next pass. *)
+                   IM.insert (!nodemap, id,
+                              N (ref { id = IntInf.fromInt id,
+                                       x = x,
+                                       y = y,
+                                       triangles = [] }))
+
+        val alltriangles : triangle list ref = ref nil
+
+        fun settriangles (W.N { id, x = _, y = _, triangles }) =
+            case IM.find (!nodemap, id) of
+               NONE => raise Tesselation "bug"
+             | SOME (node as N (r as ref { id = idi, x, y, triangles = _ })) =>
+                let fun oneid i =
+                        case IM.find (!nodemap, i) of
+                          NONE => raise Tesselation "unknown id in input"
+                        | SOME n => n
+                    fun onet (a, b) =
+                        let val an = oneid a
+                            val bn = oneid b
+                        in
+                            (* Only add once. Do it when the current id
+                               is the least of the three. *)
+                            if IntInf.< (idi, IntInf.fromInt a) andalso
+                               IntInf.< (idi, IntInf.fromInt b)
+                            then alltriangles := (an, node, bn) :: !alltriangles
+                            else ();
+                            (an, bn)
+                        end
+                in
+                    r := { id = idi, x = x, y = y,
+                           triangles = map onet triangles }
+                end
+
+        val () = app makenode nodes
+        val () = app settriangles nodes
+      in
+        alltriangles
+      end
+  end
 
 end

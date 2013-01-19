@@ -49,6 +49,9 @@ sig
      Get the closest node, as long as it is within the radius. *)
   val getnodewithin : tesselation -> int * int -> int -> node option
 
+  val toworld : tesselation -> WorldTF.tesselation
+  val fromworld : WorldTF.tesselation -> tesselation
+
   structure T :
   sig
     val nodes : triangle -> node * node * node
