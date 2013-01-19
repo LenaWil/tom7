@@ -272,8 +272,9 @@ struct
                     | 0w2 => (x - 1, y)
                     | _ => (x, y - 1)
 
+              (* PERF: This was MUCH faster when just swapping the channels;
+                 still looked cool. *)
               fun mixchannel (shift, mask, thispixel, thatpixel) =
-                  (* XXX just swapping *)
                   let
                       val || = Word32.orb
                       val && = Word32.andb
