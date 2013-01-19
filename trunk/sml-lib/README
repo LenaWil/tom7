@@ -41,7 +41,6 @@ The subdirectories are as follows:
  textformat - Metautilities for serializing and deserializing data
               structures to a compact human-readable text format.
               Similar to Google's open source "protocol buffers".
-              (In progress.)
 
 There have been several contributors, some unwitting:
 
