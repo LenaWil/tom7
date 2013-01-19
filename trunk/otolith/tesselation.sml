@@ -50,7 +50,7 @@ struct
           val degs = 57.2957795 * (phi1 - phi3)
       in
           fmod (degs, 360.0)
-      end
+      end handle Domain => raise Tesselation "bad angle"
 
   structure T =
   struct
@@ -102,7 +102,7 @@ struct
       let val m = ref NM.empty
           fun tolist m =
               NM.foldri (fn (k, (), b) => k :: b) nil m
-          fun visit (v as N (ref { id, triangles, ... })) =
+          fun visit (v as N (ref { triangles, ... })) =
               case NM.find (!m, v) of
                   SOME () => ()
                 | NONE =>
@@ -151,9 +151,12 @@ struct
      returned. *)
   fun closest_point ((px, py), (v1x, v1y), (v2x, v2y)) : (int * int) option =
     let
+        val ds = distance_squared ((v1x, v1y), (v2x, v2y))
+        val () = if ds = 0 then raise Tesselation "degenerate triangle"
+                 else ()
         val u = real ((px - v1x) * (v2x - v1x) +
                       (py - v1y) * (v2y - v1y)) /
-            real (distance_squared ((v1x, v1y), (v2x, v2y)))
+            real ds
     in
         (* PERF: could do negative test before dividing *)
         if u < 0.0 orelse u > 1.0
@@ -194,9 +197,12 @@ struct
               end
 
           val tris : triangle list = triangles s
+          val nos : node list = nodes s
       in
-          "tesselation:\n" ^
-          String.concat (map triangle tris)
+          "triangles:\n" ^
+          String.concat (map triangle tris) ^
+          "nodes:\n"^
+          String.concat (map (fn n => node n ^ "\n") nos)
       end
 
   fun closestedge (s : tesselation) (x, y) : node * node * int * int =
@@ -277,9 +283,22 @@ struct
       fun addtriangle (s : tesselation) (a, b, c) =
           s := (a, b, c) :: !s
 
-      (* Internal. *)
+      (* Internal. Expects the triangle to exist exactly once. *)
       fun removetriangle (s : tesselation) (a, b, c) =
-          s := List.filter (fn t => not (same_triangle (t, (a, b, c)))) (!s)
+          let val found = ref false
+          in s := List.filter
+              (fn t => if same_triangle (t, (a, b, c))
+                       then (if !found
+                             then raise Tesselation
+                                 ("Duplicate triangle in removetriangle")
+                             else ();
+                             found := true;
+                             false)
+                       else true) (!s);
+             if !found
+             then ()
+             else raise Tesselation ("triangle not removed in removetriangle")
+          end
   end
 
 
@@ -403,7 +422,7 @@ struct
     structure W = WorldTF
   in
     fun toworld (s : tesselation) : W.tesselation =
-      let val nodes = nodes s
+      let
           val next = ref 0
           val idmap : int IIM.map ref = ref IIM.empty
           fun get i =
@@ -421,9 +440,8 @@ struct
               W.N { id = get id,
                     x = x, y = y,
                     triangles = map onetriangle triangles }
-          val nodes = map onenode nodes
+          val nodes = map onenode (nodes s)
       in
-          print ("Serialize:\n" ^ todebugstring s ^ "\n");
           W.S { nodes = nodes }
       end
 
@@ -434,13 +452,20 @@ struct
         fun makenode (W.N { id, x, y, triangles = _ }) =
             case IM.find (!nodemap, id) of
                SOME _ => raise Tesselation "duplicate IDs in input"
-             | NONE => nodemap :=
-                   (* Triangles filled in during the next pass. *)
-                   IM.insert (!nodemap, id,
-                              N (ref { id = IntInf.fromInt id,
-                                       x = x,
-                                       y = y,
-                                       triangles = [] }))
+             | NONE =>
+                   let val ii = IntInf.fromInt id
+                   in
+                     if ii >= !ctr
+                     then ctr := ii + 1
+                     else ();
+                     nodemap :=
+                     (* Triangles filled in during the next pass. *)
+                     IM.insert (!nodemap, id,
+                                N (ref { id = IntInf.fromInt id,
+                                         x = x,
+                                         y = y,
+                                         triangles = [] }))
+                   end
 
         val alltriangles : triangle list ref = ref nil
 
@@ -455,11 +480,19 @@ struct
                     fun onet (a, b) =
                         let val an = oneid a
                             val bn = oneid b
+
+                            val ai = IntInf.fromInt a
+                            val bi = IntInf.fromInt b
                         in
+                            if idi = ai orelse idi = bi orelse ai = bi
+                            then raise Tesselation ("node " ^ IntInf.toString idi ^
+                                                    " is in a degenerate triangle")
+                            else ();
+
                             (* Only add once. Do it when the current id
                                is the least of the three. *)
-                            if IntInf.< (idi, IntInf.fromInt a) andalso
-                               IntInf.< (idi, IntInf.fromInt b)
+                            if IntInf.< (idi, ai) andalso
+                               IntInf.< (idi, bi)
                             then alltriangles := (an, node, bn) :: !alltriangles
                             else ();
                             (an, bn)
@@ -475,5 +508,68 @@ struct
         alltriangles
       end
   end
+
+  fun check s =
+    let
+        fun checktesselation s =
+            let
+                (* First we make a pass checking for duplicate IDs and
+                   initializing the list of nodes in the tesselation.
+                   Then we make another pass to make sure every node
+                   in the triangles is found in the node list and
+                   vice versa. The bool ref is used to mark the ones
+                   we found the second pass to see if any are missing. *)
+                val seen : (node * bool ref) IIM.map ref = ref IIM.empty
+
+                fun onenode (node as
+                             N (ref { id : IntInf.int,
+                                      x : int, y : int,
+                                      triangles : (node * node) list })) =
+                    let
+                        fun onetri (a, b) =
+                            if a = b orelse node = a orelse node = b
+                            then raise Tesselation "degenerate triangle"
+                            else ()
+                    in
+                        (case IIM.find (!seen, id) of
+                             NONE => seen := IIM.insert (!seen, id, (node, ref false))
+                           | SOME (nnn, _) =>
+                               if nnn <> node
+                               then raise Tesselation "Duplicate IDs"
+                               else ());
+                        app onetri triangles
+                    end
+
+                fun onetriangle (a, b, c) =
+                    let fun looky (node as (N (ref { id, ... }))) =
+                        case IIM.find (!seen, id) of
+                          NONE => raise Tesselation ("Didn't find " ^
+                                                     IntInf.toString id ^
+                                                     " in node list")
+                        | SOME (nnn, saw) =>
+                            if nnn <> node
+                            then raise Tesselation ("Node in triangle not " ^
+                                                    "the same as in node list")
+                            else saw := true
+                    in
+                        looky a;
+                        looky b;
+                        looky c
+                    end
+
+                fun checkmissing (i, (_, ref false)) =
+                    raise Tesselation ("Didn't find " ^ IntInf.toString i ^
+                                       " in triangles.")
+                  | checkmissing _ = ()
+            in
+                app onenode (nodes s);
+                app onetriangle (triangles s);
+                IIM.appi checkmissing (!seen)
+            end
+    in
+        print ("Check: " ^ todebugstring s ^ "\n");
+        checktesselation s;
+        ignore (fromworld (toworld s))
+    end
 
 end
