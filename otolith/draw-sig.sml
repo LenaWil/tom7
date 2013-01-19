@@ -19,4 +19,12 @@ sig
   (* XXX Configurable? *)
   val scanline_postfilter : Word32.word Array.array -> unit
 
+  (* mixpixel_postfilter pctfrac mixfrac pixels
+     pctfrac in [0, 1] tells us how often to mix color channels with
+     adjacent pixels.
+     mixfrac in [0, 1] tells us the strength of mixing. (Currently
+     always behaves as though it's 1.0).
+     *)
+  val mixpixel_postfilter : real -> real -> Word32.word Array.array -> unit
+
 end

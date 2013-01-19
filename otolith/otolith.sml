@@ -164,7 +164,8 @@ struct
           val () = Draw.randomize_loud pixels
           val () = drawtesselation ()
           val () = drawindicators ()
-          val () = Draw.scanline_postfilter pixels
+          (* val () = Draw.scanline_postfilter pixels *)
+          val () = Draw.mixpixel_postfilter 0.5 0.4 pixels
           val () = fillscreen pixels
           val () = ctr := !ctr + 1
       in
