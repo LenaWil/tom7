@@ -12,4 +12,5 @@ message N (node) =
 
 message S (tesselation) =
   field ns (nodes) : node list
+    hint vertical
   field c (conclusion) : string

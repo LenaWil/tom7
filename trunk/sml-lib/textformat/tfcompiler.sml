@@ -9,6 +9,7 @@ struct
      have been checked for duplicates, dangling types, etc. *)
   structure D = DescriptionParser
 
+  (* TODO: Improve the way user-visible code looks. *)
   fun typetos D.Int = "int"
     | typetos D.String = "string"
     | typetos D.Bool = "bool"
@@ -24,7 +25,7 @@ struct
      appear in both the signature and structure. *)
   fun gentypes l =
     let
-        fun onefield (D.F { name, token, typ }) =
+        fun onefield (D.F { name, token, typ, hints }) =
             "    " ^ name ^ " : " ^ typetos typ
 
         fun one connective (D.M { name, token, fields } :: rest) =
@@ -115,8 +116,15 @@ struct
       "    end\n" ^
 
       (* Like String.concat. *)
+      (*
       "  fun dllconcat' nil = $\"\"\n" ^
       "    | dllconcat' (h :: t) = h ^^ dllconcat' t\n" ^
+      *)
+
+      (* Like String.concatwith *)
+      "  fun dllconcatwith' s nil = $\"\"\n" ^
+      "    | dllconcatwith' s [e] = e\n" ^
+      "    | dllconcatwith' s (h :: t) = h ^^ $s ^^ dllconcatwith' s t\n" ^
 
       "  fun itos' i = if i < 0\n" ^
       "                then \"-\" ^ Int.toString (~i)\n" ^
@@ -257,7 +265,7 @@ struct
       "                | #\"]\" => (RBRACK', S.triml 1 s)\n" ^
       "                | #\"[\" => (LBRACK', S.triml 1 s)\n" ^
       "                | #\",\" => (COMMA',  S.triml 1 s)\n" ^
-      "                | #\"\\\"\" => readstring s\n" ^
+      "                | #\"\\\"\" => readstring s (* \" *)\n" ^ (* " *)
       "                | c => if isletter c\n" ^
       "                       then readsym s\n" ^
       "                       else if numeric c\n" ^
@@ -397,53 +405,64 @@ struct
                      (map (fn (D.F {name, ...}) => name) fields)
                   ^ " })"
 
-              fun furl i exp typ =
-                case typ of
-                  D.Int => "$(itos' " ^ exp ^ ")"
-                | D.String => "$(stos' " ^ exp ^ ")"
-                | D.Bool => "(if " ^ exp ^ " then $\"1\" else $\"0\")"
-                | D.Tuple ts =>
-                      let val fields = ListUtil.mapi
-                          (fn (t, idx) =>
-                           let val f = "f" ^ Int.toString idx ^ "'"
-                           in (f, furl (i + 5) f t)
-                           end) ts
-                      in
-                          "let val (" ^
-                            StringUtil.delimit ", " (map #1 fields) ^
-                          ") = " ^ exp ^ "\n" ^
-                          indent i ^
-                          "in\n" ^
-                          indent (i + 2) ^
-                          "$\"[\" ^^ " ^ StringUtil.delimit " ^^ $\" \" ^^ "
-                               (map #2 fields) ^
-                          " ^^ $\"]\"\n" ^
-                          indent i ^
-                          "end"
-                      end
-                | D.List t =>
-                      "($\"[\" ^^\n" ^
-                      indent (i + 3) ^
-                      "dllconcat' (List.map\n" ^
-                      indent (i + 3) ^
-                      "(fn v => " ^ furl (i + 8) "v" t ^ ") " ^ exp ^ "\n" ^
-                      indent i ^
-                      ") ^^ $\"]\")"
-                | D.Option t =>
-                      "(case " ^ exp ^ " of\n" ^
-                      indent (i + 2) ^
-                      "  SOME v => ($\"[\" ^^ " ^
-                                        furl (i + 8) "v" t ^
-                                        " ^^ $\"]\")\n" ^
-                      indent (i + 2) ^
-                      "| NONE => $\"[]\")"
-                | D.Message m =>
-                      "($\"{" ^ getmessagetoken m ^
-                            " \" ^^ " ^ todllname m ^ " " ^ exp ^ " ^^ $\"}\")"
-
               (* XXX PERF: Don't encode stuff like NONE and nil. *)
-              fun onefield (D.F { name, token, typ }) =
-                "    $\"" ^ token ^ " \" ^^ " ^ furl 12 name typ
+              fun onefield (D.F { name, token, typ, hints }) =
+                let
+                  val isvertical = List.exists (fn D.Vertical => true) hints
+
+                  fun furl i exp typ =
+                    case typ of
+                      D.Int => "$(itos' " ^ exp ^ ")"
+                    | D.String => "$(stos' " ^ exp ^ ")"
+                    | D.Bool => "(if " ^ exp ^ " then $\"1\" else $\"0\")"
+
+                    | D.Tuple ts =>
+                          let val fields = ListUtil.mapi
+                              (fn (t, idx) =>
+                               let val f = "f" ^ Int.toString idx ^ "'"
+                               in (f, furl (i + 5) f t)
+                               end) ts
+                          in
+                              "let val (" ^
+                                StringUtil.delimit ", " (map #1 fields) ^
+                              ") = " ^ exp ^ "\n" ^
+                              indent i ^
+                              "in\n" ^
+                              indent (i + 2) ^
+                              "$\"[\" ^^ " ^ StringUtil.delimit " ^^ $\" \" ^^ "
+                                   (map #2 fields) ^
+                              " ^^ $\"]\"\n" ^
+                              indent i ^
+                              "end"
+                          end
+
+                    | D.List t =>
+                          "($\"[\" ^^\n" ^
+                          indent (i + 3) ^
+                          "dllconcatwith' " ^ (if isvertical then "\"\\n\""
+                                               else "\" \"") ^
+                          " (List.map\n" ^
+                          indent (i + 3) ^
+                          "(fn v => " ^ furl (i + 8) "v" t ^ ") " ^ exp ^ "\n" ^
+                          indent i ^
+                          ") ^^ $\"]\")"
+
+                    | D.Option t =>
+                          "(case " ^ exp ^ " of\n" ^
+                          indent (i + 2) ^
+                          "  SOME v => ($\"[\" ^^ " ^
+                                            furl (i + 8) "v" t ^
+                                            " ^^ $\"]\")\n" ^
+                          indent (i + 2) ^
+                          "| NONE => $\"[]\")"
+
+                    | D.Message m =>
+                          "($\"{" ^ getmessagetoken m ^
+                                " \" ^^ " ^ todllname m ^ " " ^ exp ^ " ^^ $\"}\")"
+                in
+                   "    $\"" ^ token ^ " \" ^^ " ^ furl 12 name typ
+                end
+
           in
               connective ^
               " " ^ todllname name ^
@@ -545,7 +564,7 @@ struct
                TODO: Could collect these for round-trip compatibility
                in some future version? *)
             connective ^ "_ => ()\n"
-          | makeread connective (D.F { token, name, typ } :: rest) =
+          | makeread connective (D.F { token, name, typ, hints = _ } :: rest) =
             connective ^
             "(\"" ^ token ^ "\", d') =>\n" ^
                 (* XXX check dupes. *)

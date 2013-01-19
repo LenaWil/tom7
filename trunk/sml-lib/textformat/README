@@ -1,11 +1,26 @@
 
-    textformat                Tom 7           12 Jan 2013
+    textformat                Tom 7           18 Jan 2013
 
 textformat is a metautility for generating human-readable and editable
 text files that can be transformed to and from SML data structures. It
 includes a compiler, tfcompiler, that turns description files (.tfdesc) into
 standalone SML that contains a predictable API based on that description,
 including ways to read and write the textfile format.
+
+Basically you use it like this:
+
+ - Write a file like data.tfdesc that describes your data.
+
+ - Run tfcompiler (in this directory) on data.tfdesc to generate a
+   single standalone SML file called data-tf.sml. This code only
+   requires the SML Basis so you can just include it in any project.
+   You'd usually build this step into a makefile rule that depends on
+   tfcompiler.exe; this directory contains an example.
+
+ - Convert your own internal data structures to the types defined in
+   data-tf.sml, or just use them directly if they are suitable. Each
+   of the types can be turned into a string and written to a file and
+   vice versa and so on. See the API reference below.
 
 Comparison:
 
@@ -16,6 +31,61 @@ Comparison:
 
  - It is not XML because XML is awful in so many ways. You can use the
    XML parser in ../files/xml. Good luck.
+
+Description language reference:
+
+   A description file contains a series of messages. Each message contains
+   a series of fields. Here's an example:
+
+   message V (vertex) =
+     field name : string
+     field c (coords) : int * int
+     field g (neighbors) : int list
+
+   (* Graphs are made up of vertices. *)
+   message G (graph) =
+     field vs (vertices) : vertex list
+       hint vertical
+     field name : string option
+     field f (finished) : bool
+
+   SML-style comments are allowed anywhere.
+
+   The first message is compiled to a type called vertex in SML. The
+   character V is used to name a structure with utilities for the type,
+   the constructor in the type (which is always a datatype with a single
+   arm containing a record of the fields) and in the serialized format.
+   The type name in parentheses doesn't affect the serialization format.
+   
+   Each field in a message corresponds to a field in the record of that
+   datatype. The vertex type becomes
+
+      datatype vertex = V of {
+        name : string,
+        coords : int * int,
+        neighbors: int list
+      }
+
+   Again, the names in parentheses only affect the generated code's API,
+   not the serialization format. You can safely change the name of a field
+   at any time. The tags "name", "c", and "g" are used in the serialization
+   format to identify that field. If a parenthesized name isn't used, the
+   tag becomes the name as well. Tags have to be unique, of course, as
+   well as names.
+
+   The hint keyword is intended to provide hints to the compiler or API
+   without affecting the semantics. Currently the only supported hint is
+   on a field: vertical. If you write "hint vertical" after a field, then
+   any list in that message will be output with newlines instead of spaces
+   separating the elements. This is useful on a toplevel message that
+   contains a long list of submessages. The intention is that the compiler
+   be somewhat heuristic about this in the future, without sacrificing
+   performance. It should also indent nested lists properly.
+
+   Not all SML types are supported. Currently allowed are int, string,
+   bool, tuples, lists, and options. It makes sense to add some more base
+   types like char and real. It is not the intention to support all SML
+   types.
 
 Design considerations:
 
@@ -34,9 +104,12 @@ Design considerations:
  - When possible I favor simplicity of usage over stuff like complexity
    of the internal code or performance.
 
+ - When possible I favor performance of the generated code over
+   simplicity of its internals.
+
  - Things are assumed to fit in memory and there's no support for
    recovering from corruption.
- 
+
 
 API reference:
 
@@ -80,13 +153,13 @@ Format reference:
    Ints are encoded as decimal numbers. Negative numbers have a leading -.
    Strings are encoded as "quoted data" which may include escaped bytes,
    always written \NN where NN is two hexadecimal digits.
-   Lists are enclosed in square brackets and separated by commas. (XXX - no?)
+   Lists are enclosed in square brackets and separated by whitespace.
    Tuples are encoded the same way as lists.
    An optional type is written the same way, with the expectation that
    there is just zero or one element. If there is more than one element,
    parsing succeeds and ignores all but the first. 
    A sub-message is written as a curly brace {, then the token representing
-   that message, then the message as here, then the closing brace.
+   that message, then the message as here, then the closing brace }.
 
    (This is not yet implemented:)
    When the text file format is output, fields with the following values
@@ -124,10 +197,15 @@ Format reference:
    with digits.
 
    TODO: 
+     - Reject programs at tfcompiler time that contain impossible cyclic
+       references. These currently produce SML code that doesn't compile.
+     - Implement the representation optimization where we don't output
+       a field with certain default values at all.
      - Human-readable debug output (though we should strive to make the
        text format itself pretty readable...)
-     - Could make the parsed description available at runtime,
+     - Could make the parsed description available at runtime;
        maybe some limited reflection is possible.
-     - Hints to the tostring function that tells it what to lay out on
-       lines, or more compactly.
+     - Improve the quality of layout, especially with hints. List fields
+       should be indented, etc.
+     - More base types like char and real.
 
