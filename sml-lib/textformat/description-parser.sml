@@ -4,6 +4,10 @@
 structure DescriptionParser (* XXX sig *) =
 struct
 
+  val verbose = Params.flag false
+      (SOME ("-verboseparse", "Turn on verbose parsing information, for debugging."))
+      "verboseparse"
+
   exception DescriptionParser of string
 
   structure ST = SimpleTok
@@ -24,6 +28,24 @@ struct
     | INT
     | STRING
     | BOOL
+
+  fun toktos t =
+      case t of
+          SYMBOL s => "(SYM " ^ s ^ ")"
+        | MESSAGE => "MESSAGE"
+        | FIELD => "FIELD"
+        | HINT => "HINT"
+        | VERTICAL => "VERTICAL"
+        | LPAREN => "LPAREN"
+        | RPAREN => "RPAREN"
+        | COLON => "COLON"
+        | EQUALS => "EQUALS"
+        | ASTERISK => "ASTERISK"
+        | LIST => "LIST"
+        | OPTION => "OPTION"
+        | INT => "INT"
+        | STRING => "STRING"
+        | BOOL => "BOOL"
 
   val tokenizer =
       let val t = ST.empty () : token ST.tokenizer
@@ -65,7 +87,7 @@ struct
 
   and message =
       (* TODO: explicitly retired fields *)
-      (* TODO: layout hints *)
+      (* TODO: toplevel layout hints *)
       M of { token : string, name : string, fields : field list }
 
   and field =
@@ -90,23 +112,33 @@ struct
 
     val symbol = maybe (fn (SYMBOL s) => SOME s | _ => NONE)
 
+    (* Returns the function that applies the tycon *)
+    fun tycon () = alt [`LIST return List,
+                        `OPTION return Option]
+
     fun innertyp () =
         alt [`INT return Int,
              `STRING return String,
              `BOOL return Bool,
              symbol wth Message,
+             (* XXX really? This is not SML syntax. *)
              `LPAREN && `RPAREN return Tuple nil,
-             `LPAREN >> $typ << `RPAREN]
+             `LPAREN >> $tupletyp << `RPAREN]
 
-    and typ () =
-        (* Avoid exponential parse (I think?) with left recursion *)
+    and postfixtyp () =
         $innertyp --
         (fn t =>
-         alt
-         [repeat1 (`ASTERISK >> $typ) wth (fn l => Tuple (t :: l)),
-          `LIST return List t,
-          `OPTION return Option t,
-          succeed t])
+         repeat1 ($tycon) wth (fn l => foldl (fn (tyc, t) => tyc t) t l) ||
+         succeed t)
+
+    and tupletyp () =
+        (* Avoid exponential parse (I think?) with left recursion *)
+        $postfixtyp --
+        (fn t =>
+         repeat1 (`ASTERISK >> $postfixtyp) wth (fn l => Tuple (t :: l)) ||
+         succeed t)
+
+    val typ = $tupletyp
 
     fun hint () =
         `HINT && `VERTICAL return Vertical
@@ -114,15 +146,15 @@ struct
     fun field () = `FIELD >>
         symbol &&
         opt (`LPAREN >> symbol << `RPAREN) &&
-        (`COLON >>
-         $typ) &&
+        (`COLON >> typ) &&
         repeat ($hint) wth
         (fn (token, (name, (typ, hints))) =>
          let val name = case name of NONE => token | SOME n => n
          in F { token = token, name = name, typ = typ, hints = hints }
          end)
         || (`FIELD --
-            punt "expected symbol [LPAREN symbol RPAREN] COLON typ after FIELD")
+            punt ("expected symbol [LPAREN symbol RPAREN] " ^
+                  "COLON typ [HINTS] after FIELD"))
 
     val message = `MESSAGE >>
         symbol &&
@@ -137,7 +169,7 @@ struct
           punt "expected symbol [LPAREN symbol RPAREN] EQUALS fields after MESSAGE")
 
   in
-    val parser = message
+    val parser = repeat1 message -- (fn t => done t)
   end
 
   structure SM = SplayMapFn(type ord_key = string
@@ -212,11 +244,23 @@ struct
     let
         val s = ST.stringstream s
         val s = Pos.markstream s
+        (* XXX allows and ignores untokenizable junk at end. *)
         val s = Parsing.transform tokenizer s
+
+        val () = if !verbose
+                 then let val toks = Stream.tolist s
+                      in print "(verbose) Tokens:\n";
+                         app (fn t => print (toktos t ^ " ")) toks
+                      end
+                 else ()
+
         (* XXX should report original file positions! *)
         val s = Pos.markany s
-        val s : message Stream.stream = Parsing.transform parser s
-        val messages = Stream.tolist s
+        val messages : message list =
+            case Parsing.parse parser s of
+                NONE =>
+                    raise DescriptionParser "Couldn't parse a series of messages."
+              | SOME ms => ms
     in
         check messages;
         D messages

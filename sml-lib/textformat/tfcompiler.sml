@@ -13,13 +13,21 @@ struct
   fun typetos D.Int = "int"
     | typetos D.String = "string"
     | typetos D.Bool = "bool"
-      (* XXX can often leave out parens. *)
-    | typetos (D.List t) = "(" ^ typetos t ^ ") list"
-    | typetos (D.Option t) = "(" ^ typetos t ^ ") option"
+    | typetos (D.List t) = postfixtypetos t ^ " list"
+    | typetos (D.Option t) = postfixtypetos t ^ " option"
     | typetos (D.Tuple nil) = "unit"
     | typetos (D.Tuple ts) =
-      StringUtil.delimit " * " (map typetos ts)
+      (* n.b. "postfix" is not really correct here, but it works
+         with this set of types. *)
+      StringUtil.delimit " * " (map postfixtypetos ts)
     | typetos (D.Message m) = m
+
+  (* Generate a string for the type, assuming it is in a postfixed
+     position, like the argument to an option type. Also used for
+     components of tuple types. *)
+  and postfixtypetos (D.Tuple ts) =
+      "(" ^ StringUtil.delimit " * " (map postfixtypetos ts) ^ ")"
+    | postfixtypetos t = typetos t
 
   (* Generates the datatype declarations for the messages, which
      appear in both the signature and structure. *)
