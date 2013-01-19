@@ -1,11 +1,11 @@
 
-(* An object is a tesselation where each vertex has an ordered
-   list of coordinates, rather than just one. This allows the
+(* An object is a tesselation where each vertex has multiple
+   coordinates, keyed by some functor argument. This allows the
    object's shape/location to be parameterized.
 
    The code is basically a copy of Tesselation with the idea
    that once it's working, it can also be used to implement
-   tesselation where the list of coordinates is length 1.
+   tesselation where the coordinate key is unit.
 *)
 signature OBJECT =
 sig
@@ -32,6 +32,10 @@ sig
 
      *)
   val object : { x0 : int, y0 : int, x1 : int, y1 : int } -> object
+
+  val radix : object -> int
+
+  val
 
   (* Get the triangle this point is within *)
   val gettriangle : object -> int * int -> triangle option
