@@ -70,7 +70,7 @@ sig
     val triangles : node -> triangle list
 
     (* Get the unique ID of the node. *)
-    (* val id : node -> IntInf.int *)
+    val id : node -> IntInf.int
 
     (* Try moving the node. This moves the node in each attached
        triangle. The point may not move to the desired spot, since

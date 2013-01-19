@@ -14,14 +14,16 @@ struct
   val pixels = Array.array(WIDTH * HEIGHT, 0wxFFAAAAAA : Word32.word)
   val rc = ARCFOUR.initstring "anything"
 
+  (* TODO: This needs to become some kind of screen or world type. *)
   (* Tesselation itself is mutable, but sometimes we want to swap the
      entire tesselation out, like in undo or save/load. *)
   val tesselation =
-      ref (Tesselation.tesselation { x0 = 20, y0 = 20,
-                                     x1 = WIDTH - 20, y1 = HEIGHT - 20 })
+      ref (Tesselation.tesselation { x0 = 0, y0 = 0,
+                                     x1 = WIDTH - 1, y1 = HEIGHT - 1 })
+  val objects : Object.object list ref = ref nil
 
-  val TESSELATIONLINES = Draw.mixcolor (0wxAA, 0wxAA, 0wx99, 0wxFF)
-  val TESSELATIONNODES = Draw.mixcolor (0wx33, 0wxAA, 0wxFF, 0wxFF)
+  val TESSELATIONLINES = Draw.mixcolor (0wx44, 0wx44, 0wx55, 0wxFF)
+  val TESSELATIONNODES = Draw.mixcolor (0wx66, 0wx66, 0wx77, 0wxFF)
 
   (* PERF: draws edges twice *)
   fun drawtesselation () =
@@ -53,18 +55,23 @@ struct
           app drawnode nodes
       end
 
+  fun drawobject (obj : tesselation) =
+
   (* Always in game pixels. The event loop scales down x,y before
      calling any of these functions. *)
   val mousex = ref 0
   val mousey = ref 0
   val holdingshift = ref false
+  val holdingcontrol = ref false
 
   val mousedown = ref false
   val draggingnode = ref NONE : Tesselation.node option ref
+  val frozennode = ref NONE : Tesselation.node option ref
 
   val MOUSECIRCLE = Draw.mixcolor (0wxFF, 0wxAA, 0wx33, 0wxFF)
   val CLOSESTCIRCLE = Draw.mixcolor (0wx44, 0wx44, 0wx44, 0wxFF)
   val DRAGGING = Draw.mixcolor (0wxFF, 0wxFF, 0wx00, 0wxFF)
+  val FROZEN = Draw.mixcolor (0wxFF, 0wxFF, 0wxFF, 0wxFF)
   fun drawindicators () =
       let
           val (n1, n2, x, y) =
@@ -78,6 +85,15 @@ struct
                    let val (nx, ny) = Tesselation.N.coords n
                    in
                        Draw.drawcircle (pixels, nx, ny, 6, DRAGGING)
+                   end);
+
+          (case !frozennode of
+               NONE => ()
+             | SOME n =>
+                   let val (nx, ny) = Tesselation.N.coords n
+                   in
+                       (* XXX don't always use circle *)
+                       Draw.drawcircle (pixels, nx, ny, 7, FROZEN)
                    end);
           ()
       end
@@ -105,17 +121,18 @@ struct
         | SOME n => ignore (Tesselation.N.trymove n (x, y))
 
   fun leftmouse (x, y) =
-      if !holdingshift
+      if !holdingcontrol
+      then frozennode := Tesselation.getnodewithin (!tesselation) (x, y) 5
+
+      else if !holdingshift
       then
           case Tesselation.splitedge (!tesselation) (x, y) of
               NONE => ()
             | SOME n => (Tesselation.check (!tesselation);
                          draggingnode := SOME n;
                          ignore (Tesselation.N.trymove n (x, y)))
-      else
-          case Tesselation.getnodewithin (!tesselation) (x, y) 5 of
-              NONE => draggingnode := NONE
-            | SOME n => draggingnode := SOME n
+
+      else draggingnode := Tesselation.getnodewithin (!tesselation) (x, y) 5
 
   fun leftmouseup (x, y) = draggingnode := NONE
 
@@ -134,11 +151,21 @@ struct
     | keydown SDL.SDLK_LSHIFT =
       (holdingshift := true;
        updatecursor ())
+
+    | keydown SDL.SDLK_LCTRL =
+      (holdingcontrol := true;
+       updatecursor ())
+
     | keydown _ = ()
 
   fun keyup SDL.SDLK_LSHIFT =
       (holdingshift := false;
        updatecursor ())
+
+    | keyup SDL.SDLK_LCTRL =
+      (holdingcontrol := false;
+       updatecursor ())
+
     | keyup _ = ()
 
   fun events () =
