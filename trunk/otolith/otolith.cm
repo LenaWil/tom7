@@ -23,6 +23,8 @@ group is
  ../sdlml/sdl-sig.sml
  ../sdlml/sdl.sml
 
+ world-tf.sml
+
  prelude.sml
 
  constants.sml

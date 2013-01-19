@@ -1,5 +1,5 @@
 (* Description for the textformat metautil. See ../sml-lib/textformat
-   for more information. Generates world-tf.sml and so on. *)
+   for more information. Generates world-tf.sml. *)
 
 message N (node) =
   field id : int

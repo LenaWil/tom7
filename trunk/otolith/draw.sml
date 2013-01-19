@@ -5,6 +5,7 @@ struct
   open Constants
 
   val rc = ARCFOUR.initstring "draw"
+  fun byte () = ARCFOUR.byte rc
 
   local
       val orb = Word32.orb
@@ -144,11 +145,11 @@ struct
        Util.for 0 (WIDTH - 1)
        (fn x =>
         let
-            fun byte () = Word32.fromInt (Word8.toInt (ARCFOUR.byte rc))
+            fun byte32 () = Word32.fromInt (Word8.toInt (byte ()))
             (* Very low level color noise *)
-            val r = Word32.andb (byte (), 0w15)
-            val g = Word32.andb (byte (), 0w15)
-            val b = Word32.andb (byte (), 0w31)
+            val r = Word32.andb (byte32 (), 0w15)
+            val g = Word32.andb (byte32 (), 0w15)
+            val b = Word32.andb (byte32 (), 0w31)
             val a = 0wxFF : Word32.word
             val color = mixcolor (r, g, b, a)
         in
@@ -162,11 +163,11 @@ struct
        Util.for 0 (WIDTH - 1)
        (fn x =>
         let
-            fun byte () = Word32.fromInt (Word8.toInt (ARCFOUR.byte rc))
+            fun byte32 () = Word32.fromInt (Word8.toInt (byte ()))
             (* Very low level color noise *)
-            val r = Word32.andb (byte (), 0w31)
-            val g = Word32.andb (byte (), 0w31)
-            val b = Word32.andb (byte (), 0w63)
+            val r = Word32.andb (byte32 (), 0w31)
+            val g = Word32.andb (byte32 (), 0w31)
+            val b = Word32.andb (byte32 (), 0w63)
             val a = 0wxFF : Word32.word
             val color = mixcolor (r, g, b, a)
         in
@@ -179,7 +180,6 @@ struct
         val go = ref 0
         val bo = ref 0
 
-        fun byte () = ARCFOUR.byte rc
         fun modify p =
             case Word8.andb (byte (), 0wxFF) of
                 0w0 => if !p < 3
@@ -220,6 +220,109 @@ struct
                   end)
              else ()
          end)
+    end
+
+  fun mixpixel_postfilter pctfrac mixfrac (pixels : Word32.word Array.array) =
+    let
+        (* Test if a random byte is less than this to decide whether
+           we perform the operation. *)
+        val pctbyte = Word8.fromInt (Real.trunc (pctfrac * 255.0))
+        fun doit () = byte () < pctbyte
+
+        val ommixfrac = 1.0 - mixfrac
+
+        fun modify p =
+            case Word8.andb (byte (), 0wxFF) of
+                0w0 => if !p < 3
+                       then p := !p + 1
+                       else ()
+              | 0w1 => if !p > 0
+                       then p := !p - 1
+                       else ()
+              | 0w2 => if !p > 0
+                       then p := !p - 1
+                       else ()
+              | _ => ()
+    in
+        Util.for 0 (HEIGHT - 1)
+        (fn y =>
+         Util.for 0 (WIDTH - 1)
+         (fn x =>
+          let
+              val thispixel = Array.sub(pixels, y * WIDTH + x)
+              fun getpixel (xx, yy) =
+                  if xx < 0 orelse xx >= WIDTH orelse
+                     yy < 0 orelse yy >= HEIGHT
+                  then 0w0
+                  (* PERF bounds *)
+                  else Array.sub(pixels, yy * WIDTH + xx)
+
+              fun setpixel (xx, yy, p) =
+                  if xx < 0 orelse xx >= WIDTH orelse
+                     yy < 0 orelse yy >= HEIGHT
+                  then ()
+                  (* PERF bounds *)
+                  else Array.update(pixels, yy * WIDTH + xx, p)
+
+              (* Return one of the four neighboring pixels at random. *)
+              fun getdir () =
+                  case Word8.andb (byte (), 0w3) of
+                      0w0 => (x + 1, y)
+                    | 0w1 => (x, y + 1)
+                    | 0w2 => (x - 1, y)
+                    | _ => (x, y - 1)
+
+              fun mixchannel (shift, mask, thispixel, thatpixel) =
+                  (* XXX just swapping *)
+                  let
+                      val || = Word32.orb
+                      val && = Word32.andb
+                      val ~~ = Word32.notb
+                      val >> = Word32.>>
+                      val << = Word32.<<
+                      infix || && << >>
+
+                      val bthis = (thispixel && mask) >> shift
+                      val bthat = (thatpixel && mask) >> shift
+
+                      (* now mix this and that bytes. *)
+                      (* PERF: do this without floating point! *)
+                      (* real in [0, 255] *)
+                      val fthis = real (Word32.toInt bthis)
+                      val fthat = real (Word32.toInt bthat)
+
+                      val mixedthis = fthat * mixfrac + fthis * ommixfrac
+                      val mixedthat = fthis * mixfrac + fthat * ommixfrac
+
+                      val bthis = Word32.fromInt (Real.trunc mixedthis)
+                      val bthat = Word32.fromInt (Real.trunc mixedthat)
+
+                      (* new full pixels *)
+                      val nthis = (thispixel && ~~mask) || (bthis << shift)
+                      val nthat = (thatpixel && ~~mask) || (bthat << shift)
+                  in
+                      (nthis, nthat)
+                  end
+
+              fun onechannel (shift, mask, thispixel) =
+                if doit ()
+                then
+                  let val (xx, yy) = getdir ()
+                      val thatpixel = getpixel (xx, yy)
+                      val (thispixel, thatpixel) =
+                          mixchannel (shift, mask, thispixel, thatpixel)
+                  in
+                      setpixel (xx, yy, thatpixel);
+                      thispixel
+                  end
+                else thispixel
+
+              val thispixel = onechannel (0w0, 0wxFF, thispixel)
+              val thispixel = onechannel (0w8, 0wxFF00, thispixel)
+              val thispixel = onechannel (0w16, 0wxFF0000, thispixel)
+          in
+              Array.update (pixels, y * WIDTH + x, thispixel)
+          end))
     end
 
 end

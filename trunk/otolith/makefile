@@ -32,10 +32,10 @@ OBJECTS=blit.o sdlml.o
 
 #  -ltiff -lpng -ljpeg -lz -lSDL_net
 
-SMLS=otolith.sml prelude.sml screen-sig.sml screen.sml tesselation-sig.sml tesselation.sml
-
 world-tf.sml : world.tfdesc tfcompiler.exe
 	./tfcompiler.exe world.tfdesc
+
+SMLS=otolith.sml prelude.sml screen-sig.sml screen.sml tesselation-sig.sml tesselation.sml world-tf.sml draw.sml
 
 #  -mwindows works, disables console?
 otolith.exe : sdl_win32_main.o ${OBJECTS} otolith.cm ${SMLS} makefile
