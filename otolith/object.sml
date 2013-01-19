@@ -1,7 +1,7 @@
-structure Tesselation :> TESSELATION =
+structure Object :> OBJECT =
 struct
 
-  exception Tesselation of string
+  exception Object of string
 
   datatype node = N of { id : IntInf.int,
                          x : int, y : int,
@@ -17,11 +17,11 @@ struct
   val MINANGLE = 170.0
 
   (* Enough? *)
-  type tesselation = triangle list ref
+  type object = triangle list ref
 
   (* XXX This is sort of error prone and should probably be
-     part of the tesselation itself. In particular, when we
-     load any tesselation we need to make sure this counter
+     part of the object itself. In particular, when we
+     load any object we need to make sure this counter
      is larger than any id it uses. *)
   val ctr = ref (0 : IntInf.int)
   fun next () = (ctr := !ctr + 1; !ctr)
@@ -54,7 +54,7 @@ struct
           val degs = 57.2957795 * (phi1 - phi3)
       in
           fmod (degs, 360.0)
-      end handle Domain => raise Tesselation "bad angle"
+      end handle Domain => raise Object "bad angle"
 
   structure T =
   struct
@@ -101,9 +101,9 @@ struct
         end
   end
 
-  fun triangles (s : tesselation) : triangle list = !s
+  fun triangles (s : object) : triangle list = !s
 
-  (* PERF, probably this should be maintained with the tesselation? *)
+  (* PERF, probably this should be maintained with the object? *)
   fun nodes (ref t) =
       let val m = ref NM.empty
           fun tolist m =
@@ -122,7 +122,7 @@ struct
           tolist (!m)
       end
 
-  fun tesselation { x0 : int, y0 : int, x1 : int, y1 : int } : tesselation =
+  fun object { x0 : int, y0 : int, x1 : int, y1 : int } : object =
       let
           fun settriangles (N (r as ref { id, x, y, ... }), t) =
               r := { id = id, x = x, y = y, triangles = t }
@@ -158,7 +158,7 @@ struct
   fun closest_point ((px, py), (v1x, v1y), (v2x, v2y)) : (int * int) option =
     let
         val ds = distance_squared ((v1x, v1y), (v2x, v2y))
-        val () = if ds = 0 then raise Tesselation "degenerate triangle"
+        val () = if ds = 0 then raise Object "degenerate triangle"
                  else ()
         val u = real ((px - v1x) * (v2x - v1x) +
                       (py - v1y) * (v2y - v1y)) /
@@ -184,7 +184,7 @@ struct
               else (v2x, v2y)
           end
 
-  fun todebugstring (s : tesselation) =
+  fun todebugstring (s : object) =
       let
           fun id (N (ref { id = i, ... })) = IntInf.toString i
           fun others (v1, v2) =
@@ -211,7 +211,7 @@ struct
           String.concat (map (fn n => node n ^ "\n") nos)
       end
 
-  fun closestedge (s : tesselation) (x, y) : node * node * int * int =
+  fun closestedge (s : object) (x, y) : node * node * int * int =
       let
           (* keep track of the best distance seen so far *)
           val best_squared = ref NONE : int option ref
@@ -249,7 +249,7 @@ struct
           app tryangle (triangles s);
 
           case !best_result of
-              NONE => raise Tesselation "impossible: must be at least one triangle"
+              NONE => raise Object "impossible: must be at least one triangle"
             | SOME r => r
       end
 
@@ -262,7 +262,7 @@ struct
 
   (* Returns a list, which should be at most two triangles.
      The triangle is represented as the node that is not n1 nor n2. *)
-  fun triangles_with_edge (s : tesselation) (n1 : node, n2 : node) =
+  fun triangles_with_edge (s : object) (n1 : node, n2 : node) =
       let
           fun match (a, b, c) =
               if same_edge ((a, b), (n1, n2)) then SOME c
@@ -286,16 +286,16 @@ struct
 
   structure S =
   struct
-      fun addtriangle (s : tesselation) (a, b, c) =
+      fun addtriangle (s : object) (a, b, c) =
           s := (a, b, c) :: !s
 
       (* Internal. Expects the triangle to exist exactly once. *)
-      fun removetriangle (s : tesselation) (a, b, c) =
+      fun removetriangle (s : object) (a, b, c) =
           let val found = ref false
           in s := List.filter
               (fn t => if same_triangle (t, (a, b, c))
                        then (if !found
-                             then raise Tesselation
+                             then raise Object
                                  ("Duplicate triangle in removetriangle")
                              else ();
                              found := true;
@@ -303,12 +303,12 @@ struct
                        else true) (!s);
              if !found
              then ()
-             else raise Tesselation ("triangle not removed in removetriangle")
+             else raise Object ("triangle not removed in removetriangle")
           end
   end
 
 
-  fun splitedge (s : tesselation) (x, y) : node option =
+  fun splitedge (s : object) (x, y) : node option =
       let
           val MIN_SPLIT_DISTANCE = 3 * 3
           val (n1, n2, xx, yy) = closestedge s (x, y)
@@ -385,7 +385,7 @@ struct
           end
       end
 
-  fun getnodewithin (s : tesselation) (x, y) radius : node option =
+  fun getnodewithin (s : object) (x, y) radius : node option =
       let
           val radius_squared = radius * radius
           (* keep track of the best distance seen so far *)
@@ -416,18 +416,19 @@ struct
           !best_result
       end
 
-  fun gettriangle (s : tesselation) (x, y) : triangle option =
-      raise Tesselation "unimplemented"
+  fun gettriangle (s : object) (x, y) : triangle option =
+      raise Object "unimplemented"
 
   structure IIM = SplayMapFn(type ord_key = IntInf.int
                              val compare = IntInf.compare)
   structure IM = SplayMapFn(type ord_key = int
                             val compare = Int.compare)
 
+(*
   local
     structure W = WorldTF
   in
-    fun toworld (s : tesselation) : W.tesselation =
+    fun toworld (s : object) : W.object =
       let
           val next = ref 0
           val idmap : int IIM.map ref = ref IIM.empty
@@ -451,13 +452,13 @@ struct
           W.S { nodes = nodes }
       end
 
-    fun fromworld (W.S { nodes } : W.tesselation) : tesselation =
+    fun fromworld (W.S { nodes } : W.object) : object =
       let
         val nodemap : node IM.map ref = ref IM.empty
 
         fun makenode (W.N { id, x, y, triangles = _ }) =
             case IM.find (!nodemap, id) of
-               SOME _ => raise Tesselation "duplicate IDs in input"
+               SOME _ => raise Object "duplicate IDs in input"
              | NONE =>
                    let val ii = IntInf.fromInt id
                    in
@@ -477,11 +478,11 @@ struct
 
         fun settriangles (W.N { id, x = _, y = _, triangles }) =
             case IM.find (!nodemap, id) of
-               NONE => raise Tesselation "bug"
+               NONE => raise Object "bug"
              | SOME (node as N (r as ref { id = idi, x, y, triangles = _ })) =>
                 let fun oneid i =
                         case IM.find (!nodemap, i) of
-                          NONE => raise Tesselation "unknown id in input"
+                          NONE => raise Object "unknown id in input"
                         | SOME n => n
                     fun onet (a, b) =
                         let val an = oneid a
@@ -491,7 +492,7 @@ struct
                             val bi = IntInf.fromInt b
                         in
                             if idi = ai orelse idi = bi orelse ai = bi
-                            then raise Tesselation ("node " ^ IntInf.toString idi ^
+                            then raise Object ("node " ^ IntInf.toString idi ^
                                                     " is in a degenerate triangle")
                             else ();
 
@@ -517,10 +518,10 @@ struct
 
   fun check s =
     let
-        fun checktesselation s =
+        fun checkobject s =
             let
                 (* First we make a pass checking for duplicate IDs and
-                   initializing the list of nodes in the tesselation.
+                   initializing the list of nodes in the object.
                    Then we make another pass to make sure every node
                    in the triangles is found in the node list and
                    vice versa. The bool ref is used to mark the ones
@@ -534,14 +535,14 @@ struct
                     let
                         fun onetri (a, b) =
                             if a = b orelse node = a orelse node = b
-                            then raise Tesselation "degenerate triangle"
+                            then raise Object "degenerate triangle"
                             else ()
                     in
                         (case IIM.find (!seen, id) of
                              NONE => seen := IIM.insert (!seen, id, (node, ref false))
                            | SOME (nnn, _) =>
                                if nnn <> node
-                               then raise Tesselation "Duplicate IDs"
+                               then raise Object "Duplicate IDs"
                                else ());
                         app onetri triangles
                     end
@@ -549,12 +550,12 @@ struct
                 fun onetriangle (a, b, c) =
                     let fun looky (node as (N (ref { id, ... }))) =
                         case IIM.find (!seen, id) of
-                          NONE => raise Tesselation ("Didn't find " ^
+                          NONE => raise Object ("Didn't find " ^
                                                      IntInf.toString id ^
                                                      " in node list")
                         | SOME (nnn, saw) =>
                             if nnn <> node
-                            then raise Tesselation ("Node in triangle not " ^
+                            then raise Object ("Node in triangle not " ^
                                                     "the same as in node list")
                             else saw := true
                     in
@@ -564,7 +565,7 @@ struct
                     end
 
                 fun checkmissing (i, (_, ref false)) =
-                    raise Tesselation ("Didn't find " ^ IntInf.toString i ^
+                    raise Object ("Didn't find " ^ IntInf.toString i ^
                                        " in triangles.")
                   | checkmissing _ = ()
             in
@@ -574,8 +575,9 @@ struct
             end
     in
         print ("Check: " ^ todebugstring s ^ "\n");
-        checktesselation s;
+        checkobject s;
         ignore (fromworld (toworld s))
     end
+*)
 
 end

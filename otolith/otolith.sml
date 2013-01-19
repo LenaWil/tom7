@@ -55,8 +55,6 @@ struct
           app drawnode nodes
       end
 
-  fun drawobject (obj : tesselation) =
-
   (* Always in game pixels. The event loop scales down x,y before
      calling any of these functions. *)
   val mousex = ref 0
