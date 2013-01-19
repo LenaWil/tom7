@@ -52,6 +52,10 @@ sig
   val toworld : tesselation -> WorldTF.tesselation
   val fromworld : WorldTF.tesselation -> tesselation
 
+  (* Checks the structure of the tesselation. This should never be
+     necessary, but is useful if you suspect a bug. *)
+  val check : tesselation -> unit
+
   structure T :
   sig
     val nodes : triangle -> node * node * node
@@ -64,6 +68,9 @@ sig
     val coords : node -> int * int
     (* A node is usually part of multiple triangles. *)
     val triangles : node -> triangle list
+
+    (* Get the unique ID of the node. *)
+    (* val id : node -> IntInf.int *)
 
     (* Try moving the node. This moves the node in each attached
        triangle. The point may not move to the desired spot, since

@@ -88,11 +88,16 @@ struct
       WorldTF.S.tofile WORLDFILE (Tesselation.toworld (!tesselation))
 
   fun loadfromdisk () =
-      tesselation := Tesselation.fromworld (WorldTF.S.fromfile WORLDFILE)
-      handle _ =>
-          let in
-              eprint ("Error loading from " ^ WORLDFILE ^ "\n")
-          end
+      let in
+          tesselation := Tesselation.fromworld (WorldTF.S.fromfile WORLDFILE);
+          eprint ("Loaded world from " ^ WORLDFILE ^ "\n")
+      end
+      handle Tesselation.Tesselation s =>
+              eprint ("Error loading from " ^ WORLDFILE ^ ": " ^
+                      s ^ "\n")
+           | WorldTF.Parse s =>
+              eprint ("Error parsing " ^ WORLDFILE ^ ": " ^ s ^ "\n")
+           | IO.Io _ => ()
 
   fun mousemotion (x, y) =
       case !draggingnode of
@@ -104,7 +109,8 @@ struct
       then
           case Tesselation.splitedge (!tesselation) (x, y) of
               NONE => ()
-            | SOME n => (draggingnode := SOME n;
+            | SOME n => (Tesselation.check (!tesselation);
+                         draggingnode := SOME n;
                          ignore (Tesselation.N.trymove n (x, y)))
       else
           case Tesselation.getnodewithin (!tesselation) (x, y) 5 of
@@ -207,5 +213,13 @@ struct
 
   val () = loadfromdisk ()
   val () = loop ()
+      handle Quit => ()
+           | e =>
+          let in
+              (case e of
+                   Tesselation.Tesselation s => eprint ("Tesselation: " ^ s)
+                 | _ => ());
 
+              app eprint (MLton.Exn.history e)
+          end
 end
