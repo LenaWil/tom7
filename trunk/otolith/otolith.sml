@@ -15,6 +15,8 @@ struct
   val rc = ARCFOUR.initstring "anything"
 
   (* TODO: This needs to become some kind of screen or world type. *)
+  (* XXX: Does there only need to be one screen tesselation? Why not
+     just give every object its own tesselation? *)
   (* Tesselation itself is mutable, but sometimes we want to swap the
      entire tesselation out, like in undo or save/load. *)
   val tesselation =
