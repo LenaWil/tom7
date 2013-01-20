@@ -16,6 +16,12 @@ sig
   (* Three vertices. Never degenerate. *)
   type triangle
 
+  (* Edge maps. (a, b) is considered equal to (b, a).
+     There is no requirement that the nodes actually be connected
+     in the tesselation, though all nodes in a map must be from
+     the same tesselation. Order is arbitrary but consistent. *)
+  structure EM : ORD_MAP where type Key.ord_key = node * node
+
   (* Creates a tesselation of the given rectangle, which looks like this
 
      .---.

@@ -293,12 +293,37 @@ struct
             | SOME r => r
       end
 
+  (* Put the smaller node first. *)
+  fun normalize_edge (n1 : node, n2 : node) =
+      case compare_node (n1, n2) of
+          GREATER => (n2, n1)
+        | _ => (n1, n2)
+
+  fun compare_edge ((n1 : node, n2 : node), (n3 : node, n4 : node)) =
+       let val (n1, n2) = normalize_edge (n1, n2)
+           val (n3, n4) = normalize_edge (n3, n4)
+       in
+           case compare_node (n1, n3) of
+              LESS => LESS
+            | GREATER => GREATER
+            | EQUAL => compare_node (n2, n4)
+       end
+
   (* PERF if we had some kind of invariants on winding ordering we
      could probably reduce the number of comparisons here and below.
      But I think it's quite a pain to get right. *)
+  (* Same as compare_edge = EQUAL but should be faster. *)
   fun same_edge ((n1 : node, n2 : node), (n3 : node, n4 : node)) =
       (N.eq (n1, n3) andalso N.eq (n2, n4)) orelse
       (N.eq (n1, n4) andalso N.eq (n2, n3))
+
+  (* PERF: Keys could be kept in a normalized order (smaller
+     node first), which makes comparisons much cheaper. But
+     this would require wrapping the splaymap operations.
+     Maybe it makes sense to have a KeyNormalizedSplayMapFn
+     that does that in generality? *)
+  structure EM = SplayMapFn(type ord_key = node * node
+                            val compare = compare_edge)
 
   (* Returns a list, which should be at most two triangles.
      The triangle is represented as the node that is not n1 nor n2. *)

@@ -7,6 +7,15 @@ sig
   (* drawline (pixels, x0, y0, x1, y1, color) *)
   val drawline : Word32.word Array.array * int * int * int * int * Word32.word -> unit
 
+  (* drawline (pixels, x0, y0, x1, y1, segment)
+     Same, but give a non-empty segment to be repeated over and over.
+     As a special case, if the value of the segment is 0, no pixel is drawn.
+     Otherwise, its full RGBA value is written with no alpha blending.
+     [0wxFFFFFFFF, 0wx00000000] gives a dotted line, for example. *)
+  val drawlinewith : Word32.word Array.array *
+                     int * int * int * int *
+                     Word32.word Vector.vector -> unit
+
   (* drawcircle (pixels, x0, y0, radius, color) *)
   val drawcircle : Word32.word Array.array * int * int * int * Word32.word -> unit
 
