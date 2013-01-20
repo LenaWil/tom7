@@ -35,7 +35,7 @@ OBJECTS=blit.o sdlml.o
 world-tf.sml : world.tfdesc tfcompiler.exe
 	./tfcompiler.exe world.tfdesc
 
-SMLS=otolith.sml prelude.sml screen-sig.sml screen.sml tesselation-sig.sml tesselation.sml world-tf.sml draw.sml keyed-tesselation.sml keyed-tesselation-sig.sml
+SMLS=otolith.sml prelude.sml screen-sig.sml screen.sml tesselation-sig.sml tesselation.sml world-tf.sml draw.sml draw-sig.sml keyed-tesselation.sml keyed-tesselation-sig.sml
 
 EXNHISTORY=-const 'Exn.keepHistory true' 
 #  -mwindows works, disables console?
@@ -44,10 +44,6 @@ otolith.exe : sdl_win32_main.o ${OBJECTS} otolith.cm ${SMLS} makefile
 
 tfcompiler.exe : ../sml-lib/textformat/*
 	${MLTON} @MLton max-heap 512m -- -output $@ ../sml-lib/textformat/tfcompiler.cm
-
-# XXX
-tftest.exe : world-tf.sml
-	${MLTON} -output tftest.exe world-tf.sml 
 
 clean :
 	rm -f *.obj *.exe *.manifest *.ilk *.pdb *.o

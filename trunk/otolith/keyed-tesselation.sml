@@ -521,8 +521,12 @@ struct
   local
     structure W = WorldTF
   in
-    fun toworld (s : keyedtesselation) : W.keyedtesselation =
+    fun toworld ktos (s : keyedtesselation) : W.keyedtesselation =
       let
+          (*
+             XXX no longer renumbering, since we use these IDs
+             as keys for other tesselations, so their identity
+             mus be preserved.
           val next = ref 0
           val idmap : int IIM.map ref = ref IIM.empty
           fun get i =
@@ -531,10 +535,16 @@ struct
                          next := !next + 1;
                          get i)
               | SOME x => x
+          *)
+          (* XXX probably don't need to be using IntInf. Now that
+             counters are local to the tesselation, it's pretty implausible
+             that these numbers would get high. And currently there is no
+             way to delete anyway. *)
+          fun get i = IntInf.toInt i
 
           fun oneid (N (ref { id, ... })) = get id
           fun onetriangle (a, b) = (oneid a, oneid b)
-          fun onecoord (k, (x, y)) = (Key.tostring k, x, y)
+          fun onecoord (k, (x, y)) = (ktos k, x, y)
           fun onenode (N (ref { id : IntInf.int,
                                 coords,
                                 triangles : (node * node) list })) =
@@ -547,7 +557,7 @@ struct
           W.S { nodes = nodes }
       end
 
-    fun fromworld (W.S { nodes } : W.keyedtesselation) : keyedtesselation =
+    fun fromworld stok (W.S { nodes } : W.keyedtesselation) : keyedtesselation =
       let
         val ctr = ref 0
         val nodemap : node IM.map ref = ref IM.empty
@@ -561,7 +571,7 @@ struct
                    let
                      val coords =
                          foldl (fn ((s, x, y), m) =>
-                                case Key.fromstring s of
+                                case stok s of
                                     NONE => raise KeyedTesselation "unparseable key"
                                   | SOME k => KM.insert (m, k, (x, y)))
                                 KM.empty

@@ -6,8 +6,6 @@ struct
     type key = unit
     fun compare _ = EQUAL
     fun tostring () = ""
-    fun fromstring "" = SOME ()
-      | fromstring _ = NONE
   end
 
   structure KT = KeyedTesselation(TArg)
@@ -33,5 +31,10 @@ struct
 
   (* XXX *)
   fun check _ = ()
+
+  fun toworld s = KT.toworld (fn () => "") s
+  fun stok "" = SOME ()
+    | stok _ = NONE
+  fun fromworld w = KT.fromworld stok w
 
 end
