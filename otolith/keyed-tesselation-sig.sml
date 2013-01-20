@@ -11,9 +11,9 @@ signature KEYARG =
 sig
   type key
   val compare : key * key -> order
-  (* For serialization. *)
+  (* For debugging. Serialization takes these as arguments,
+     since they may depend on some context. *)
   val tostring : key -> string
-  val fromstring : string -> key option
 end
 
 (* functor KeyedTesselation(KEYARG) :> *)
@@ -85,8 +85,15 @@ sig
   val getnodewithin : keyedtesselation -> key -> int * int -> int ->
                       node option
 
-  val toworld : keyedtesselation -> WorldTF.keyedtesselation
-  val fromworld : WorldTF.keyedtesselation -> keyedtesselation
+  (* Convert to the serialization format. These are somewhat fancy
+     because the key may be nontrivial. For example, when deserializing
+     an object keyed by some other tesselation's nodes, the string to
+     key function looks up the node ID in a map of already-deserialized
+     nodes to find it. *)
+  val toworld : (key -> string) -> keyedtesselation ->
+                WorldTF.keyedtesselation
+  val fromworld : (string -> key option) -> WorldTF.keyedtesselation ->
+                  keyedtesselation
 
   (* Checks the structure of the keyedtesselation. This should never be
      necessary, but is useful if you suspect a bug. *)
