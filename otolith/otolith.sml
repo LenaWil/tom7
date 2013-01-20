@@ -22,7 +22,7 @@ struct
   val tesselation =
       ref (Tesselation.tesselation { x0 = 0, y0 = 0,
                                      x1 = WIDTH - 1, y1 = HEIGHT - 1 })
-  val objects : Object.object list ref = ref nil
+  (* val objects : Object.object list ref = ref nil *)
 
   val TESSELATIONLINES = Draw.mixcolor (0wx44, 0wx44, 0wx55, 0wxFF)
   val TESSELATIONNODES = Draw.mixcolor (0wx66, 0wx66, 0wx77, 0wxFF)

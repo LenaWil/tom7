@@ -29,8 +29,8 @@ group is
 
  constants.sml
 
- object-sig.sml
- object.sml
+ keyed-tesselation-sig.sml
+ keyed-tesselation.sml
 
  tesselation-sig.sml
  tesselation.sml
