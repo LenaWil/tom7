@@ -14,14 +14,15 @@ struct
   val pixels = Array.array(WIDTH * HEIGHT, 0wxFFAAAAAA : Word32.word)
   val rc = ARCFOUR.initstring "anything"
 
+  structure Areas = Screen.Areas
+  structure Obj = Screen.Obj
+
   (* TODO: This needs to become some kind of screen or world type. *)
   (* XXX: Does there only need to be one screen tesselation? Why not
      just give every object its own tesselation? *)
   (* Tesselation itself is mutable, but sometimes we want to swap the
      entire tesselation out, like in undo or save/load. *)
-  val tesselation =
-      ref (Tesselation.tesselation { x0 = 0, y0 = 0,
-                                     x1 = WIDTH - 1, y1 = HEIGHT - 1 })
+  val screen : Screen.screen ref = ref (Screen.starter ())
   (* val objects : Object.object list ref = ref nil *)
 
   val TESSELATIONLINES = Draw.mixcolor (0wx44, 0wx44, 0wx55, 0wxFF)
@@ -30,33 +31,34 @@ struct
   val TESSELATIONSEGMENT = Vector.fromList [TESSELATIONLINES,
                                             0w0]
 
-  structure EM = Tesselation.EM
-  fun drawtesselation () =
+  structure AEM = Areas.EM
+  fun drawareas () =
       let
-          val triangles = Tesselation.triangles (!tesselation)
-          val nodes = Tesselation.nodes (!tesselation)
+          val s = Screen.areas (!screen)
+          val triangles = Areas.triangles s
+          val nodes = Areas.nodes s
 
           (* Edges can appear in two triangles. Don't draw them twice. *)
-          val drawn : unit EM.map ref = ref EM.empty
+          val drawn : unit AEM.map ref = ref AEM.empty
 
           fun drawnode n =
-              let val (x, y) = Tesselation.N.coords n
+              let val (x, y) = Areas.N.coords n ()
               in Draw.drawcircle (pixels, x, y, 2, TESSELATIONNODES)
               end
 
           fun drawline (a, b) =
-              case EM.find (!drawn, (a, b)) of
+              case AEM.find (!drawn, (a, b)) of
                   SOME () => ()
                 | NONE =>
-              let val (x0, y0) = Tesselation.N.coords a
-                  val (x1, y1) = Tesselation.N.coords b
+              let val (x0, y0) = Areas.N.coords a ()
+                  val (x1, y1) = Areas.N.coords b ()
               in
                   Draw.drawlinewith (pixels, x0, y0, x1, y1, TESSELATIONSEGMENT);
-                  drawn := EM.insert (!drawn, (a, b), ())
+                  drawn := AEM.insert (!drawn, (a, b), ())
               end
 
           fun drawtriangle t =
-              let val (a, b, c) = Tesselation.T.nodes t
+              let val (a, b, c) = Areas.T.nodes t
               in
                   drawline (a, b);
                   drawline (b, c);
@@ -75,24 +77,26 @@ struct
   val holdingcontrol = ref false
 
   val mousedown = ref false
-  val draggingnode = ref NONE : Tesselation.node option ref
-  val frozennode = ref NONE : Tesselation.node option ref
+  val draggingnode = ref NONE : Areas.node option ref
+  val frozennode = ref NONE : Areas.node option ref
 
   val MOUSECIRCLE = Draw.mixcolor (0wxFF, 0wxAA, 0wx33, 0wxFF)
   val CLOSESTCIRCLE = Draw.mixcolor (0wx44, 0wx44, 0wx44, 0wxFF)
   val DRAGGING = Draw.mixcolor (0wxFF, 0wxFF, 0wx00, 0wxFF)
   val FROZEN = Draw.mixcolor (0wxFF, 0wxFF, 0wxFF, 0wxFF)
-  fun drawindicators () =
+
+  fun drawareaindicators () =
       let
+          val s = Screen.areas (!screen)
           val (n1, n2, x, y) =
-              Tesselation.closestedge (!tesselation) (!mousex, !mousey)
+              Areas.closestedge s () (!mousex, !mousey)
       in
           Draw.drawcircle (pixels, !mousex, !mousey, 5, MOUSECIRCLE);
           Draw.drawcircle (pixels, x, y, 3, CLOSESTCIRCLE);
           (case !draggingnode of
                NONE => ()
              | SOME n =>
-                   let val (nx, ny) = Tesselation.N.coords n
+                   let val (nx, ny) = Areas.N.coords n ()
                    in
                        Draw.drawcircle (pixels, nx, ny, 6, DRAGGING)
                    end);
@@ -100,7 +104,7 @@ struct
           (case !frozennode of
                NONE => ()
              | SOME n =>
-                   let val (nx, ny) = Tesselation.N.coords n
+                   let val (nx, ny) = Areas.N.coords n ()
                    in
                        (* XXX don't always use circle *)
                        Draw.drawcircle (pixels, nx, ny, 7, FROZEN)
@@ -112,38 +116,37 @@ struct
 
   (* XXX into Screen stuff *)
   fun savetodisk () =
-      WorldTF.KT.tofile WORLDFILE (#1 (Tesselation.toworld (!tesselation)))
+      WorldTF.S.tofile WORLDFILE (Screen.toworld (!screen))
 
   fun loadfromdisk () =
-      let in
-          tesselation := #1 (Tesselation.fromworld (WorldTF.KT.fromfile WORLDFILE));
-          eprint ("Loaded world from " ^ WORLDFILE ^ "\n")
-      end
-      handle Tesselation.Tesselation s =>
-              eprint ("Error loading from " ^ WORLDFILE ^ ": " ^
-                      s ^ "\n")
+      screen := Screen.fromworld (WorldTF.S.fromfile WORLDFILE)
+      handle Screen.Screen s =>
+              eprint ("Error loading " ^ WORLDFILE ^ ": " ^ s ^ "\n")
            | WorldTF.Parse s =>
               eprint ("Error parsing " ^ WORLDFILE ^ ": " ^ s ^ "\n")
            | IO.Io _ => ()
 
   fun mousemotion (x, y) =
+      (* XXX should case on what kinda node it is..? *)
       case !draggingnode of
           NONE => ()
-        | SOME n => ignore (Tesselation.N.trymove n (x, y))
+        | SOME n => ignore (Areas.N.trymove n () (x, y))
 
   fun leftmouse (x, y) =
+      (* Only areas nodes. *)
       if !holdingcontrol
-      then frozennode := Tesselation.getnodewithin (!tesselation) (x, y) 5
+      then frozennode := Areas.getnodewithin (Screen.areas (!screen)) () (x, y) 5
 
+      (* XXX allow splitting and dragging objects *)
       else if !holdingshift
       then
-          case Tesselation.splitedge (!tesselation) (x, y) of
+          case Areas.splitedge (Screen.areas (!screen)) () (x, y) of
               NONE => ()
-            | SOME n => (Tesselation.check (!tesselation);
+            | SOME n => ((* Tesselation.check (!tesselation); *)
                          draggingnode := SOME n;
-                         ignore (Tesselation.N.trymove n (x, y)))
+                         ignore (Areas.N.trymove n () (x, y)))
 
-      else draggingnode := Tesselation.getnodewithin (!tesselation) (x, y) 5
+      else draggingnode := Areas.getnodewithin (Screen.areas (!screen)) () (x, y) 5
 
   fun leftmouseup (x, y) = draggingnode := NONE
 
@@ -228,8 +231,8 @@ struct
           val () = events ()
 
           val () = Draw.randomize_loud pixels
-          val () = drawtesselation ()
-          val () = drawindicators ()
+          val () = drawareas ()
+          val () = drawareaindicators ()
           (* val () = Draw.scanline_postfilter pixels *)
           val () = Draw.mixpixel_postfilter 0.25 0.8 pixels
           val () = fillscreen pixels
@@ -255,9 +258,7 @@ struct
            | e =>
           let in
               (case e of
-                   Tesselation.Tesselation s => eprint ("Tesselation: " ^ s)
-                 | Tesselation.KeyedTesselation s =>
-                       eprint ("KeyedTesselation: " ^ s)
+                   Screen.Screen s => eprint ("Screen: " ^ s)
                  | _ => ());
 
               app eprint (MLton.Exn.history e)
