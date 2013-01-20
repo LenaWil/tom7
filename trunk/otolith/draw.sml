@@ -86,6 +86,50 @@ struct
               (* PERF could pre-clip, or stop as soon as we get off screen? *)
               app ((x0, y0), (x1, y1))
           end
+
+      fun drawlinewith (pixels, x0, y0, x1, y1, segment : Word32.word vector) =
+          let
+
+              (* PERF bounds check. *)
+              (* Should allow alpha blending? *)
+              fun dp (x, y, c) = Array.update (pixels, y * WIDTH + x, c)
+
+              fun clippixel (x, y, i) =
+                  (* PERF bounds check *)
+                  case Vector.sub(segment, i) of
+                      0w0 => ()
+                    | c =>
+                        if x < 0 orelse y < 0
+                           orelse x >= WIDTH
+                           orelse y >= HEIGHT
+                        then ()
+                        else dp (x, y, c)
+
+              fun app (p0, p1) =
+                  let
+                      val ({step, seed}, (xstart, ystart)) = line p0 p1
+                      fun loop (i, seed) =
+                          case step seed of
+                              NONE => ()
+                            | SOME (seed', (x, y)) =>
+                               let
+                                   val i = i + 1
+                                   val i = if i >= Vector.length segment
+                                           then i - Vector.length segment
+                                           else i
+                               in
+                                   clippixel (x, y, i);
+                                   loop (i, seed')
+                               end
+                  in
+                      clippixel (xstart, ystart, 0);
+                      loop (0, seed)
+                  end
+          in
+              (* PERF could pre-clip, or stop as soon as we get off screen? *)
+              app ((x0, y0), (x1, y1))
+          end
+
   end
 
   fun drawcircle (pixels, x0, y0, radius, c) =

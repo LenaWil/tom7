@@ -27,11 +27,18 @@ struct
   val TESSELATIONLINES = Draw.mixcolor (0wx44, 0wx44, 0wx55, 0wxFF)
   val TESSELATIONNODES = Draw.mixcolor (0wx66, 0wx66, 0wx77, 0wxFF)
 
+  val TESSELATIONSEGMENT = Vector.fromList [TESSELATIONLINES,
+                                            0w0]
+
   (* PERF: draws edges twice *)
+  structure EM = Tesselation.EM
   fun drawtesselation () =
       let
           val triangles = Tesselation.triangles (!tesselation)
           val nodes = Tesselation.nodes (!tesselation)
+
+          (* Edges can appear in two triangles. Don't draw them twice. *)
+          val drawn : unit EM.map ref = ref EM.empty
 
           fun drawnode n =
               let val (x, y) = Tesselation.N.coords n
@@ -39,10 +46,14 @@ struct
               end
 
           fun drawline (a, b) =
+              case EM.find (!drawn, (a, b)) of
+                  SOME () => ()
+                | NONE =>
               let val (x0, y0) = Tesselation.N.coords a
                   val (x1, y1) = Tesselation.N.coords b
               in
-                  Draw.drawline (pixels, x0, y0, x1, y1, TESSELATIONLINES)
+                  Draw.drawlinewith (pixels, x0, y0, x1, y1, TESSELATIONSEGMENT);
+                  drawn := EM.insert (!drawn, (a, b), ())
               end
 
           fun drawtriangle t =
