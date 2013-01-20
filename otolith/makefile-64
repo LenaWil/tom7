@@ -1,4 +1,10 @@
 
+# This was my attempt to get this working with 64 bits. It was a nightmare.
+# I recommend starting with the checked in makefile and just changing
+# architectures and paths to match this, because as I recall there was
+# some fundamental issue that actually caused this thing to not work
+# (like spaces in the mlton path and the wrong version of dlls in here).
+
 default : maintest.exe sdl_win32_main.o smlversion.o
 
 DEBUGFLAGS = /Od /GZ /MDd /FD /D "_DEBUG"

@@ -12,7 +12,13 @@ message N (node) =
   (* These are the IDs of the other nodes. *)
   field t (triangles) : (int * int) list
 
-message S (keyedtesselation) =
+message KT (keyedtesselation) =
   field ns (nodes) : node list
     hint vertical
 
+message S (screen) =
+  (* Keyed by "" *)
+  field areas : keyedtesselation
+  (* Keyed by IDs of nodes in the areas. *)
+  field objs : keyedtesselation list
+    hint vertical
