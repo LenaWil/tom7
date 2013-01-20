@@ -1,15 +1,21 @@
-structure Object :> OBJECT =
+functor KeyedTesselation(Key : KEYARG) :> KEYEDTESSELATION
+                                          where type key = Key.key =
 struct
 
-  exception Object of string
+  type key = Key.key
+  structure KM = SplayMapFn(type ord_key = key
+                            val compare = Key.compare)
+
+  exception KeyedTesselation of string
 
   datatype node = N of { id : IntInf.int,
-                         x : int, y : int,
+                         coords : (int * int) KM.map,
                          triangles : (node * node) list } ref
+
+  fun compare_node (N (ref {id, ...}), N (ref {id = idd, ...})) =
+      IntInf.compare (id, idd)
   structure NM = SplayMapFn(type ord_key = node
-                            fun compare (N (ref {id, ...}),
-                                         N (ref {id = idd, ...})) =
-                                IntInf.compare (id, idd))
+                            val compare = compare_node)
 
   type triangle = node * node * node
 
@@ -17,21 +23,19 @@ struct
   val MINANGLE = 170.0
 
   (* Enough? *)
-  type object = triangle list ref
+  datatype keyedtesselation =
+      K of { triangles : triangle list ref,
+             nodes : node list ref,
+             ctr : IntInf.int ref }
 
-  (* XXX This is sort of error prone and should probably be
-     part of the object itself. In particular, when we
-     load any object we need to make sure this counter
-     is larger than any id it uses. *)
-  val ctr = ref (0 : IntInf.int)
-  fun next () = (ctr := !ctr + 1; !ctr)
+  fun next (K { ctr, ... }) = (ctr := !ctr + 1; !ctr)
 
   (* Real-valued (num mod den), always positive. *)
   fun fmod (num, den) =
       let val r = Real.rem (num, den)
-      in
-          if r < 0.0 then r + den
-          else r
+      in if r < 0.0
+         then r + den
+         else r
       end
 
   (* Return the angle in degrees between v2->v1 and v2->v3,
@@ -54,7 +58,7 @@ struct
           val degs = 57.2957795 * (phi1 - phi3)
       in
           fmod (degs, 360.0)
-      end handle Domain => raise Object "bad angle"
+      end handle Domain => raise KeyedTesselation "bad angle"
 
   structure T =
   struct
@@ -64,23 +68,32 @@ struct
 
   structure N =
   struct
-    fun coords (N (ref {x, y, ...})) = (x, y)
+    fun coordsmaybe (N (ref {coords, ...})) key = KM.find (coords, key)
+    fun coords n key =
+        case coordsmaybe n key of
+            NONE => raise KeyedTesselation "No coordinates for key"
+          | SOME v => v
+
     fun triangles (v as N (ref {triangles, ...})) =
         map (fn (a, b) => (v, a, b)) triangles
-    fun compare (N (ref {id, ...}), N (ref {id = idd, ...})) =
-        IntInf.compare (id, idd)
+
+    val compare = compare_node
+
     fun eq (a : node, b : node) = a = b
 
-    fun id (N (ref ({ id = i, ... }))) = i
+    fun id (N (ref { id = i, ... })) = i
 
-    fun trymove (N (r as ref { x, y, triangles, id })) (newx, newy) =
+    fun trymove (node as N (r as ref { coords = c, triangles, id, ... }))
+                key (newx, newy) =
         let
+            val (x, y) = coords node key
+
             fun checktriangle (a, b) =
               (* It is not allowed to make the triangle degenerate
                  (angle = 180) or inside-out (angle > 180). *)
                 let
-                    val a = coords a
-                    val b = coords b
+                    val a = coords a key
+                    val b = coords b key
                     (* Get interior angle, regardless of winding *)
                     val (a, b) =
                         if angle (a, (x, y), b) < 180.0
@@ -95,16 +108,18 @@ struct
             (* XXX: Could do binary search to find a closer point
                that's okay. *)
             if List.all checktriangle triangles
-            then (r := { x = newx, y = newy, triangles = triangles, id = id };
+            then (r := { coords = KM.insert (c, key, (newx, newy)),
+                         triangles = triangles, id = id };
                   (newx, newy))
             else (x, y)
         end
   end
 
-  fun triangles (s : object) : triangle list = !s
+  fun triangles (K { triangles, ... }) : triangle list = !triangles
+  fun nodes (K { nodes, ... }) : node list = !nodes
 
-  (* PERF, probably this should be maintained with the object? *)
-  fun nodes (ref t) =
+  (* PERF, probably this should be maintained with the keyedtesselation? *)
+  fun compute_nodes (t : triangle list) =
       let val m = ref NM.empty
           fun tolist m =
               NM.foldri (fn (k, (), b) => k :: b) nil m
@@ -122,26 +137,38 @@ struct
           tolist (!m)
       end
 
-  fun object { x0 : int, y0 : int, x1 : int, y1 : int } : object =
+  fun rectangle key { x0 : int, y0 : int, x1 : int, y1 : int }
+      : keyedtesselation =
       let
-          fun settriangles (N (r as ref { id, x, y, ... }), t) =
-              r := { id = id, x = x, y = y, triangles = t }
+          fun settriangles (N (r as ref { id, coords, ... }), t) =
+              r := { id = id, coords = coords, triangles = t }
+
+          fun mc (x, y) = KM.insert (KM.empty, key, (x, y))
+
+          val ctr : IntInf.int ref = ref 0
+          val nodes : node list ref = ref nil
+          val triangles : triangle list ref = ref nil
+          val kt = K { ctr = ctr, nodes = nodes, triangles = triangles }
 
           (*    n1 --- n2
                 |  \    |  t2
              t1 |    \  |
                 n3 --- n4 *)
-          val n1 = N (ref { id = next (), x = x0, y = y0, triangles = nil })
-          val n2 = N (ref { id = next (), x = x1, y = y0, triangles = nil })
-          val n3 = N (ref { id = next (), x = x0, y = y1, triangles = nil })
-          val n4 = N (ref { id = next (), x = x1, y = y1, triangles = nil })
+          val n1 = N (ref { id = next kt, coords = mc (x0, y0), triangles = nil })
+          val n2 = N (ref { id = next kt, coords = mc (x1, y0), triangles = nil })
+          val n3 = N (ref { id = next kt, coords = mc (x0, y1), triangles = nil })
+          val n4 = N (ref { id = next kt, coords = mc (x1, y1), triangles = nil })
       in
           (* These are all clockwise. Should that be a representation invariant? *)
           settriangles (n1, [(n4, n3), (n2, n4)]);
           settriangles (n2, [(n4, n1)]);
           settriangles (n3, [(n1, n4)]);
           settriangles (n4, [(n3, n1), (n1, n2)]);
-          ref [(n1, n4, n3), (n4, n1, n2)]
+
+          nodes := [n1, n2, n3, n4];
+          triangles := [(n1, n4, n3), (n4, n1, n2)];
+
+          kt
       end
 
   fun distance_squared ((x0 : int, y0 : int), (x1, y1)) =
@@ -158,7 +185,7 @@ struct
   fun closest_point ((px, py), (v1x, v1y), (v2x, v2y)) : (int * int) option =
     let
         val ds = distance_squared ((v1x, v1y), (v2x, v2y))
-        val () = if ds = 0 then raise Object "degenerate triangle"
+        val () = if ds = 0 then raise KeyedTesselation "degenerate triangle"
                  else ()
         val u = real ((px - v1x) * (v2x - v1x) +
                       (py - v1y) * (v2y - v1y)) /
@@ -184,14 +211,24 @@ struct
               else (v2x, v2y)
           end
 
-  fun todebugstring (s : object) =
+  fun todebugstring (s : keyedtesselation) =
       let
           fun id (N (ref { id = i, ... })) = IntInf.toString i
           fun others (v1, v2) =
               id v1 ^ "-" ^ id v2
-          fun node (N (ref { id, x, y, triangles })) =
-              "{" ^ IntInf.toString id ^ " @" ^ Int.toString x ^ "," ^
-              Int.toString y ^
+          fun coordmap cs =
+              let val l = KM.listItemsi cs
+              in
+                  StringUtil.delimit ", "
+                  (map (fn (k, (x, y)) => "TODO ktos=>" ^
+                        Int.toString x ^ "," ^
+                        Int.toString y) l)
+              end
+
+
+          fun node (N (ref { id, coords, triangles })) =
+              "{" ^ IntInf.toString id ^ " @" ^
+              coordmap coords ^
               " [" ^ StringUtil.delimit "," (map others triangles) ^
               "]}"
           fun triangle (t : triangle) =
@@ -211,7 +248,8 @@ struct
           String.concat (map (fn n => node n ^ "\n") nos)
       end
 
-  fun closestedge (s : object) (x, y) : node * node * int * int =
+  fun closestedge (s : keyedtesselation) key (x, y)
+      : node * node * int * int =
       let
           (* keep track of the best distance seen so far *)
           val best_squared = ref NONE : int option ref
@@ -227,8 +265,8 @@ struct
 
           fun tryedge (n1, n2) =
               let
-                  val (n1x, n1y) = N.coords n1
-                  val (n2x, n2y) = N.coords n2
+                  val (n1x, n1y) = N.coords n1 key
+                  val (n2x, n2y) = N.coords n2 key
                   val (xx, yy) = closest_point_or_node ((x, y),
                                                         (n1x, n1y), (n2x, n2y))
                   val dist = distance_squared ((x, y), (xx, yy))
@@ -245,11 +283,11 @@ struct
                   tryedge (c, a)
               end
       in
-          (* print ("--- to " ^ Int.toString x ^ "," ^ Int.toString y ^ "\n"); *)
           app tryangle (triangles s);
 
           case !best_result of
-              NONE => raise Object "impossible: must be at least one triangle"
+              NONE => raise KeyedTesselation
+                  "impossible: must be at least one triangle"
             | SOME r => r
       end
 
@@ -262,7 +300,7 @@ struct
 
   (* Returns a list, which should be at most two triangles.
      The triangle is represented as the node that is not n1 nor n2. *)
-  fun triangles_with_edge (s : object) (n1 : node, n2 : node) =
+  fun triangles_with_edge (s : keyedtesselation) (n1 : node, n2 : node) =
       let
           fun match (a, b, c) =
               if same_edge ((a, b), (n1, n2)) then SOME c
@@ -284,58 +322,95 @@ struct
       (N.eq (a, e) andalso same_edge ((b, c), (d, f))) orelse
       (N.eq (a, f) andalso same_edge ((b, c), (d, e)))
 
+  (* Internal! *)
   structure S =
   struct
-      fun addtriangle (s : object) (a, b, c) =
-          s := (a, b, c) :: !s
+      (* Adds the triangle. The nodes are not updated! *)
+      fun addtriangle (K { triangles, ... }) (a, b, c) =
+          triangles := (a, b, c) :: !triangles
 
-      (* Internal. Expects the triangle to exist exactly once. *)
-      fun removetriangle (s : object) (a, b, c) =
+      (* Add the node. Nothing else is updated. *)
+      fun addnode (K { nodes, ... }) n =
+          nodes := n :: !nodes
+
+      (* Internal. Expects the triangle to exist exactly once.
+         The nodes are not updated! *)
+      fun removetriangle (K { triangles, ... }) (a, b, c) =
           let val found = ref false
-          in s := List.filter
-              (fn t => if same_triangle (t, (a, b, c))
-                       then (if !found
-                             then raise Object
-                                 ("Duplicate triangle in removetriangle")
-                             else ();
-                             found := true;
-                             false)
-                       else true) (!s);
+          in triangles :=
+              List.filter
+                 (fn t => if same_triangle (t, (a, b, c))
+                          then (if !found
+                                then raise KeyedTesselation
+                                    "Duplicate triangle in removetriangle"
+                                else ();
+                                found := true;
+                                false)
+                          else true) (!triangles);
              if !found
              then ()
-             else raise Object ("triangle not removed in removetriangle")
+             else raise KeyedTesselation "triangle not found in removetriangle"
           end
   end
 
 
-  fun splitedge (s : object) (x, y) : node option =
+  fun splitedge (s : keyedtesselation) key (x, y) : node option =
       let
-          val MIN_SPLIT_DISTANCE = 3 * 3
-          val (n1, n2, xx, yy) = closestedge s (x, y)
-          val (n1x, n1y) = N.coords n1
-          val (n2x, n2y) = N.coords n2
+          val MIN_SPLIT_DISTANCE_SQ = 3 * 3
+          val (n1, n2, xx, yy) = closestedge s key (x, y)
+          val (n1x, n1y) = N.coords n1 key
+          val (n2x, n2y) = N.coords n2 key
+
+          val n1dsq = distance_squared ((n1x, n1y), (xx, yy))
+          val n2dsq = distance_squared ((n2x, n2y), (xx, yy))
       in
-          if distance_squared ((n1x, n1y), (xx, yy)) < MIN_SPLIT_DISTANCE orelse
-             distance_squared ((n2x, n2y), (xx, yy)) < MIN_SPLIT_DISTANCE
+          if n1dsq < MIN_SPLIT_DISTANCE_SQ orelse
+             n2dsq < MIN_SPLIT_DISTANCE_SQ
           then NONE
           else
           let
-              fun settriangles (N (r as ref { id, x, y, ... }), t) =
-                  r := { id = id, x = x, y = y, triangles = t }
+              val n1d = Math.sqrt (real n1dsq)
+              val n2d = Math.sqrt (real n2dsq)
 
-              fun node_addtriangle (N (r as ref { id, x, y, triangles }), t) =
-                  r := { id = id, x = x, y = y, triangles = t :: triangles }
+              (* Distance between n1 and n2. This is needed to place the
+                 node in the same relative place in the other configurations. *)
+              val frac : real = n1d / (n1d + n2d)
 
-              fun node_removetriangle (N (r as ref { id, x, y, triangles }),
+              fun settriangles (N (r as ref { id, coords, triangles = _ }), t) =
+                  r := { id = id, coords = coords, triangles = t }
+
+              fun node_addtriangle (N (r as ref { id, coords, triangles }), t) =
+                  r := { id = id, coords = coords, triangles = t :: triangles }
+
+              fun node_removetriangle (N (r as ref { id, coords, triangles }),
                                        (a, b)) =
-                  r := { id = id, x = x, y = y,
+                  r := { id = id, coords = coords,
                          triangles = List.filter (fn (c, d) =>
                                                   not (same_edge ((a, b),
                                                                   (c, d))))
                                      triangles }
 
+              val (N (ref { coords = coords1, ... })) = n1
+              val (N (ref { coords = coords2, ... })) = n2
+
+              val newcoords =
+                  KM.intersectWithi
+                  (fn (k, (x1, y1), (x2, y2)) =>
+                   if Key.compare (k, key) = EQUAL
+                   then (xx, yy)
+                   else
+                    let
+                        (* Vector from pt1 -> pt2 *)
+                        val dx = x2 - x1
+                        val dy = y2 - y1
+                    in
+                        (* then 'frac' of the way from pt1 to pt2. *)
+                        (x1 + Real.round (frac * real dx),
+                         y1 + Real.round (frac * real dy))
+                    end) (coords1, coords2)
+
               val newnode =
-                  N (ref { id = next (), x = xx, y = yy, triangles = nil })
+                  N (ref { id = next s, coords = newcoords, triangles = nil })
 
               (* The edge may be in 1 or 2 triangles. The triangle is defined
                  by the single third node. *)
@@ -363,32 +438,23 @@ struct
                       (* Update global triangle list. *)
                       S.removetriangle s (othernode, n1, n2);
                       S.addtriangle s (newnode, n1, othernode);
-                      S.addtriangle s (newnode, othernode, n2)
+                      S.addtriangle s (newnode, othernode, n2);
+                      S.addnode s newnode
                   end
 
               val affected_triangles : node list =
                   triangles_with_edge s (n1, n2)
           in
-              (*
-              print ("BEFORE:\n");
-              print (tostring s ^ "\n"); (* XX *)
-              *)
-
               app addedge affected_triangles;
-
-              (*
-              print ("AFTER:\n");
-              print (tostring s ^ "\n"); (* XX *)
-              *)
-
               SOME newnode
           end
       end
 
-  fun getnodewithin (s : object) (x, y) radius : node option =
+  fun getnodewithin (s : keyedtesselation) key (x, y) radius : node option =
       let
           val radius_squared = radius * radius
-          (* keep track of the best distance seen so far *)
+          (* keep track of the best distance (actually squared distance
+             to avoid doing sqrt) seen so far *)
           val best_squared = ref NONE : int option ref
           val best_result = ref NONE : node option ref
 
@@ -405,19 +471,18 @@ struct
 
           fun trynode n =
               let
-                  val (nx, ny) = N.coords n
+                  val (nx, ny) = N.coords n key
                   val dist = distance_squared ((x, y), (nx, ny))
               in
                   maybeupdate (dist, n)
               end
-
       in
           app trynode (nodes s);
           !best_result
       end
 
-  fun gettriangle (s : object) (x, y) : triangle option =
-      raise Object "unimplemented"
+  fun gettriangle (s : keyedtesselation) (x, y) : triangle option =
+      raise KeyedTesselation "unimplemented"
 
   structure IIM = SplayMapFn(type ord_key = IntInf.int
                              val compare = IntInf.compare)
@@ -458,7 +523,7 @@ struct
 
         fun makenode (W.N { id, x, y, triangles = _ }) =
             case IM.find (!nodemap, id) of
-               SOME _ => raise Object "duplicate IDs in input"
+               SOME _ => raise KeyedTesselation "duplicate IDs in input"
              | NONE =>
                    let val ii = IntInf.fromInt id
                    in
@@ -478,11 +543,11 @@ struct
 
         fun settriangles (W.N { id, x = _, y = _, triangles }) =
             case IM.find (!nodemap, id) of
-               NONE => raise Object "bug"
+               NONE => raise KeyedTesselation "bug"
              | SOME (node as N (r as ref { id = idi, x, y, triangles = _ })) =>
                 let fun oneid i =
                         case IM.find (!nodemap, i) of
-                          NONE => raise Object "unknown id in input"
+                          NONE => raise KeyedTesselation "unknown id in input"
                         | SOME n => n
                     fun onet (a, b) =
                         let val an = oneid a
@@ -492,7 +557,7 @@ struct
                             val bi = IntInf.fromInt b
                         in
                             if idi = ai orelse idi = bi orelse ai = bi
-                            then raise Object ("node " ^ IntInf.toString idi ^
+                            then raise KeyedTesselation ("node " ^ IntInf.toString idi ^
                                                     " is in a degenerate triangle")
                             else ();
 
@@ -535,14 +600,14 @@ struct
                     let
                         fun onetri (a, b) =
                             if a = b orelse node = a orelse node = b
-                            then raise Object "degenerate triangle"
+                            then raise KeyedTesselation "degenerate triangle"
                             else ()
                     in
                         (case IIM.find (!seen, id) of
                              NONE => seen := IIM.insert (!seen, id, (node, ref false))
                            | SOME (nnn, _) =>
                                if nnn <> node
-                               then raise Object "Duplicate IDs"
+                               then raise KeyedTesselation "Duplicate IDs"
                                else ());
                         app onetri triangles
                     end
@@ -550,12 +615,12 @@ struct
                 fun onetriangle (a, b, c) =
                     let fun looky (node as (N (ref { id, ... }))) =
                         case IIM.find (!seen, id) of
-                          NONE => raise Object ("Didn't find " ^
+                          NONE => raise KeyedTesselation ("Didn't find " ^
                                                      IntInf.toString id ^
                                                      " in node list")
                         | SOME (nnn, saw) =>
                             if nnn <> node
-                            then raise Object ("Node in triangle not " ^
+                            then raise KeyedTesselation ("Node in triangle not " ^
                                                     "the same as in node list")
                             else saw := true
                     in
@@ -565,7 +630,7 @@ struct
                     end
 
                 fun checkmissing (i, (_, ref false)) =
-                    raise Object ("Didn't find " ^ IntInf.toString i ^
+                    raise KeyedTesselation ("Didn't find " ^ IntInf.toString i ^
                                        " in triangles.")
                   | checkmissing _ = ()
             in
