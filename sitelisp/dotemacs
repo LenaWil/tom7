@@ -28,7 +28,16 @@
     (cond
      ((eq window-system 'w32)
       (set-default-font 
-       "-*-FixedSys-*-r-*-*-13-*-*-*-c-*-fontset-standard"))
+       ;; windows vista?
+       ; "-*-FixedSys-*-r-*-*-13-*-*-*-c-*-fontset-standard"
+       ;; windows 7
+       "-raster-Fixedsys-normal-normal-normal-mono-15-*-*-*-c-*-iso8859-1"
+       )
+       (set-face-attribute 'default nil :font "DejaVu Sans Mono Bold")
+       ; (set-face-attribute 'default nil :font "DejaVu Sans Mono")
+       ;; trying this on windows 7 to get unicode support.
+       ; (set-face-attribute 'default nil :font "Fixedsys Excelsior 3.01")
+       )
      ((eq window-system 'x)
       (set-default-font 
        "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"))
@@ -293,12 +302,14 @@
 		("\\.aah?$" . aaph-mode)
 		("\\.hml$" . sml-mode) ;; XXX some day make hemlock-mode
 		("README$" . english-mode)
+		("HACKING$" . english-mode)
 		("\\.txt$" . english-mode)
 		("\\.mli?$" . sml-mode) ;; XXX need caml-mode
 		("\\.mst$" . homework-mode)
 		("\\.wrd$" . homework-mode)
 		("\\.pop$" . c-mode)
 		("\\.proto$" . protobuf-mode)
+		("\\.tfdesc$" . textformat-mode)
 		("\\.sig$" . sml-mode)) auto-mode-alist))
 
 (defun delete-whitespace-right ()
@@ -441,6 +452,79 @@
 ))
 
 ;;; english-mode ends here
+
+
+;;; textformat-mode
+
+(defcustom textformat-mode-hook nil
+  "Normal hook run when entering Textformat mode"
+  :type 'hook
+  :group 'data)
+
+(defun textformat-mode ()
+  "Tom's mode for writing textformat text."
+  (interactive)
+  (kill-all-local-variables)
+  (set-syntax-table textformat-mode-syntax-table)
+  (setq mode-name "Textformat")
+  (setq major-mode 'textformat-mode)
+  (turn-on-font-lock)
+  (run-hooks 'textformat-mode-hook))
+
+;; XXX This is copied from aaph-mode, so probably contains some
+;; silly stuff. But it's better than fundamental mode's.
+(defvar textformat-mode-syntax-table nil "The syntax table used in textformat-mode.")
+(if textformat-mode-syntax-table
+    ()
+  (setq textformat-mode-syntax-table (make-syntax-table))
+  ;; Set everything to be "." (punctuation) except for [A-Za-z0-9],
+  ;; which will default to "w" (word-constituent).
+  (let ((i 0))
+    (while (< i ?0)
+      (modify-syntax-entry i "." textformat-mode-syntax-table)
+      (setq i (1+ i)))
+    (setq i (1+ ?9))
+    (while (< i ?A)
+      (modify-syntax-entry i "." textformat-mode-syntax-table)
+      (setq i (1+ i)))
+    (setq i (1+ ?Z))
+    (while (< i ?a)
+      (modify-syntax-entry i "." textformat-mode-syntax-table)
+      (setq i (1+ i)))
+    (setq i (1+ ?z))
+    (while (< i 128)
+      (modify-syntax-entry i "." textformat-mode-syntax-table)
+      (setq i (1+ i))))
+
+  ;; Now we change the characters that are meaningful to us.
+  (modify-syntax-entry ?\(      "()1"   textformat-mode-syntax-table)
+  (modify-syntax-entry ?\)      ")(4"   textformat-mode-syntax-table)
+  (modify-syntax-entry ?\[      "(]"    textformat-mode-syntax-table)
+  (modify-syntax-entry ?\]      ")["    textformat-mode-syntax-table)
+  (modify-syntax-entry ?{       "(}"    textformat-mode-syntax-table)
+  (modify-syntax-entry ?}       "){"    textformat-mode-syntax-table)
+  (modify-syntax-entry ?\*      ". 23"  textformat-mode-syntax-table)
+  (modify-syntax-entry ?\"      "\""    textformat-mode-syntax-table)
+  (modify-syntax-entry ?-       "w"     textformat-mode-syntax-table)
+  (modify-syntax-entry ?        " "     textformat-mode-syntax-table)
+  (modify-syntax-entry ?\t      " "     textformat-mode-syntax-table)
+  (modify-syntax-entry ?\n      " "     textformat-mode-syntax-table)
+  (modify-syntax-entry ?\f      " "     textformat-mode-syntax-table)
+  (modify-syntax-entry ?\'      "w"     textformat-mode-syntax-table)
+  (modify-syntax-entry ?\_      "w"     textformat-mode-syntax-table))
+
+;; TODO: color field and message names.
+
+(font-lock-add-keywords 'textformat-mode '(
+("\\<\\(message\\|field\\|hint\\)\\>" . font-lock-keyword-face)
+("( *\\([A-Za-z][A-Za-z0-9]+\\) *) *[=:]" 1 font-lock-variable-name-face)
+("\\(message\\|field\\) *\\([A-Za-z][A-Za-z0-9]+\\) *[=:]" 2 font-lock-variable-name-face)
+("\\<\\(vertical\\)\\>" . font-lock-constant-face)
+("\\<\\(list\\|int\\|bool\\|string\\|option\\)\\>" . font-lock-type-face)
+))
+
+
+;;; textformat-mode ends here
 
 
 ;;; homework-mode
