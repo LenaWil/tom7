@@ -195,7 +195,6 @@ struct
       fun ignore p = p return ()
 
 
-      (* FIXME there is no support for floats! *)
       (* integers and floats *)
       local
         val decdigits = repeat1 (satisfy Char.isDigit)
