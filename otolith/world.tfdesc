@@ -3,12 +3,16 @@
 
 message N (node) =
   field id : int
-  field x : int
-  field y : int
+
+  (* Keyed coordinates. The string is the key, since
+     that is a functor argument. (A use for polymorphic
+     messages..?) *)
+  field c (coords) : (string * int * int) list
+
   (* These are the IDs of the other nodes. *)
   field t (triangles) : (int * int) list
 
-message S (tesselation) =
+message S (keyedtesselation) =
   field ns (nodes) : node list
     hint vertical
 
