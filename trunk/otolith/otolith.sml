@@ -245,6 +245,8 @@ struct
           let in
               (case e of
                    Tesselation.Tesselation s => eprint ("Tesselation: " ^ s)
+                 | Tesselation.KeyedTesselation s =>
+                       eprint ("KeyedTesselation: " ^ s)
                  | _ => ());
 
               app eprint (MLton.Exn.history e)

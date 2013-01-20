@@ -118,7 +118,8 @@ struct
   fun triangles (K { triangles, ... }) : triangle list = !triangles
   fun nodes (K { nodes, ... }) : node list = !nodes
 
-  (* PERF, probably this should be maintained with the keyedtesselation? *)
+  (* Still necessary? Maybe only at load time? *)
+(*
   fun compute_nodes (t : triangle list) =
       let val m = ref NM.empty
           fun tolist m =
@@ -136,6 +137,7 @@ struct
           app (fn (a, _, _) => visit a) t;
           tolist (!m)
       end
+*)
 
   fun rectangle key { x0 : int, y0 : int, x1 : int, y1 : int }
       : keyedtesselation =
@@ -220,7 +222,7 @@ struct
               let val l = KM.listItemsi cs
               in
                   StringUtil.delimit ", "
-                  (map (fn (k, (x, y)) => "TODO ktos=>" ^
+                  (map (fn (k, (x, y)) => Key.tostring k ^ "=>" ^
                         Int.toString x ^ "," ^
                         Int.toString y) l)
               end
@@ -409,8 +411,10 @@ struct
                          y1 + Real.round (frac * real dy))
                     end) (coords1, coords2)
 
+              val id = next s
+              val () = print ("Splitedge next id is " ^ IntInf.toString id ^ "\n")
               val newnode =
-                  N (ref { id = next s, coords = newcoords, triangles = nil })
+                  N (ref { id = id, coords = newcoords, triangles = nil })
 
               (* The edge may be in 1 or 2 triangles. The triangle is defined
                  by the single third node. *)
@@ -438,13 +442,13 @@ struct
                       (* Update global triangle list. *)
                       S.removetriangle s (othernode, n1, n2);
                       S.addtriangle s (newnode, n1, othernode);
-                      S.addtriangle s (newnode, othernode, n2);
-                      S.addnode s newnode
+                      S.addtriangle s (newnode, othernode, n2)
                   end
 
               val affected_triangles : node list =
                   triangles_with_edge s (n1, n2)
           in
+              S.addnode s newnode;
               app addedge affected_triangles;
               SOME newnode
           end
@@ -489,11 +493,10 @@ struct
   structure IM = SplayMapFn(type ord_key = int
                             val compare = Int.compare)
 
-(*
   local
     structure W = WorldTF
   in
-    fun toworld (s : object) : W.object =
+    fun toworld (s : keyedtesselation) : W.keyedtesselation =
       let
           val next = ref 0
           val idmap : int IIM.map ref = ref IIM.empty
@@ -506,81 +509,100 @@ struct
 
           fun oneid (N (ref { id, ... })) = get id
           fun onetriangle (a, b) = (oneid a, oneid b)
+          fun onecoord (k, (x, y)) = (Key.tostring k, x, y)
           fun onenode (N (ref { id : IntInf.int,
-                                x : int, y : int,
+                                coords,
                                 triangles : (node * node) list })) =
               W.N { id = get id,
-                    x = x, y = y,
+                    coords = map onecoord (KM.listItemsi coords),
                     triangles = map onetriangle triangles }
           val nodes = map onenode (nodes s)
       in
+          print (todebugstring s ^ "\n");
           W.S { nodes = nodes }
       end
 
-    fun fromworld (W.S { nodes } : W.object) : object =
+    fun fromworld (W.S { nodes } : W.keyedtesselation) : keyedtesselation =
       let
+        val ctr = ref 0
         val nodemap : node IM.map ref = ref IM.empty
 
-        fun makenode (W.N { id, x, y, triangles = _ }) =
+        val allnodes : node list ref = ref nil
+
+        fun makenode (W.N { id, coords, triangles = _ }) =
             case IM.find (!nodemap, id) of
                SOME _ => raise KeyedTesselation "duplicate IDs in input"
              | NONE =>
-                   let val ii = IntInf.fromInt id
+                   let
+                     val coords =
+                         foldl (fn ((s, x, y), m) =>
+                                case Key.fromstring s of
+                                    NONE => raise KeyedTesselation "unparseable key"
+                                  | SOME k => KM.insert (m, k, (x, y)))
+                                KM.empty
+                                coords
+
+                     val ii = IntInf.fromInt id
+
+                     val newnode = N (ref { id = IntInf.fromInt id,
+                                            coords = coords,
+                                            triangles = [] })
                    in
                      if ii >= !ctr
                      then ctr := ii + 1
                      else ();
                      nodemap :=
                      (* Triangles filled in during the next pass. *)
-                     IM.insert (!nodemap, id,
-                                N (ref { id = IntInf.fromInt id,
-                                         x = x,
-                                         y = y,
-                                         triangles = [] }))
+                     IM.insert (!nodemap, id, newnode);
+                     allnodes := newnode :: !allnodes
                    end
 
         val alltriangles : triangle list ref = ref nil
 
-        fun settriangles (W.N { id, x = _, y = _, triangles }) =
+        fun settriangles (W.N { id, coords = _, triangles }) =
             case IM.find (!nodemap, id) of
                NONE => raise KeyedTesselation "bug"
-             | SOME (node as N (r as ref { id = idi, x, y, triangles = _ })) =>
+             | SOME (node as N (r as ref { id = idi, coords, triangles = _ })) =>
                 let fun oneid i =
-                        case IM.find (!nodemap, i) of
-                          NONE => raise KeyedTesselation "unknown id in input"
-                        | SOME n => n
+                      case IM.find (!nodemap, i) of
+                        NONE => raise KeyedTesselation "unknown id in input"
+                      | SOME n => n
+
                     fun onet (a, b) =
-                        let val an = oneid a
-                            val bn = oneid b
+                      let
+                        val an = oneid a
+                        val bn = oneid b
 
-                            val ai = IntInf.fromInt a
-                            val bi = IntInf.fromInt b
-                        in
-                            if idi = ai orelse idi = bi orelse ai = bi
-                            then raise KeyedTesselation ("node " ^ IntInf.toString idi ^
-                                                    " is in a degenerate triangle")
-                            else ();
+                        val ai = IntInf.fromInt a
+                        val bi = IntInf.fromInt b
+                      in
+                        if idi = ai orelse idi = bi orelse ai = bi
+                        then raise KeyedTesselation ("node " ^ IntInf.toString idi ^
+                                                " is in a degenerate triangle")
+                        else ();
 
-                            (* Only add once. Do it when the current id
-                               is the least of the three. *)
-                            if IntInf.< (idi, ai) andalso
-                               IntInf.< (idi, bi)
-                            then alltriangles := (an, node, bn) :: !alltriangles
-                            else ();
-                            (an, bn)
-                        end
+                        (* Only add once. Do it when the current id
+                           is the least of the three. *)
+                        if IntInf.< (idi, ai) andalso
+                           IntInf.< (idi, bi)
+                        then alltriangles := (an, node, bn) :: !alltriangles
+                        else ();
+                        (an, bn)
+                      end
                 in
-                    r := { id = idi, x = x, y = y,
+                    r := { id = idi, coords = coords,
                            triangles = map onet triangles }
                 end
 
         val () = app makenode nodes
         val () = app settriangles nodes
       in
-        alltriangles
+        print ("On load, ctr is " ^ IntInf.toString (!ctr) ^ "\n");
+        K { ctr = ctr, nodes = allnodes, triangles = alltriangles }
       end
   end
 
+(*
   fun check s =
     let
         fun checkobject s =

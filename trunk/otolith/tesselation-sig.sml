@@ -1,7 +1,9 @@
+(* XXX Really repeat this sig separate from KEYEDTESSELATION? *)
 signature TESSELATION =
 sig
 
   exception Tesselation of string
+  exception KeyedTesselation of string
 
   (* Mutable, nonempty.
 
@@ -49,8 +51,8 @@ sig
      Get the closest node, as long as it is within the radius. *)
   val getnodewithin : tesselation -> int * int -> int -> node option
 
-  val toworld : tesselation -> WorldTF.tesselation
-  val fromworld : WorldTF.tesselation -> tesselation
+  val toworld : tesselation -> WorldTF.keyedtesselation
+  val fromworld : WorldTF.keyedtesselation -> tesselation
 
   (* Checks the structure of the tesselation. This should never be
      necessary, but is useful if you suspect a bug. *)
