@@ -1,4 +1,6 @@
 
+As usual, you need ../ to contain sml-lib. It also needs to contain sdlml.
+
 This wants mlton installed in c:\mlton. I couldn't get it to work
 via make if there was a space in the path.
 

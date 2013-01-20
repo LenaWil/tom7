@@ -22,7 +22,10 @@ struct
   (* Must be no more than 180.0 *)
   val MINANGLE = 170.0
 
-  (* Enough? *)
+  (* PERF probably don't need to be using IntInf. Now that
+     counters are local to the tesselation, it's pretty implausible
+     that these numbers would get high. And currently there is no
+     way to delete anyway. *)
   datatype keyedtesselation =
       K of { triangles : triangle list ref,
              nodes : node list ref,
@@ -521,43 +524,39 @@ struct
   local
     structure W = WorldTF
   in
-    fun toworld ktos (s : keyedtesselation) : W.keyedtesselation =
+    fun toworld ktos (s : keyedtesselation)
+        : W.keyedtesselation * (node -> int) =
       let
-          (*
-             XXX no longer renumbering, since we use these IDs
-             as keys for other tesselations, so their identity
-             mus be preserved.
           val next = ref 0
-          val idmap : int IIM.map ref = ref IIM.empty
-          fun get i =
-             case IIM.find (!idmap, i) of
-                NONE => (idmap := IIM.insert (!idmap, i, !next);
+          val idmap : int NM.map ref = ref NM.empty
+          fun getid n =
+             case NM.find (!idmap, n) of
+                NONE => (idmap := NM.insert (!idmap, n, !next);
                          next := !next + 1;
-                         get i)
+                         getid n)
               | SOME x => x
-          *)
-          (* XXX probably don't need to be using IntInf. Now that
-             counters are local to the tesselation, it's pretty implausible
-             that these numbers would get high. And currently there is no
-             way to delete anyway. *)
-          fun get i = IntInf.toInt i
 
-          fun oneid (N (ref { id, ... })) = get id
-          fun onetriangle (a, b) = (oneid a, oneid b)
+          fun onetriangle (a, b) = (getid a, getid b)
           fun onecoord (k, (x, y)) = (ktos k, x, y)
-          fun onenode (N (ref { id : IntInf.int,
-                                coords,
-                                triangles : (node * node) list })) =
-              W.N { id = get id,
+          fun onenode (node as (N (ref { id : IntInf.int,
+                                         coords,
+                                         triangles : (node * node) list }))) =
+              W.N { id = getid node,
                     coords = map onecoord (KM.listItemsi coords),
                     triangles = map onetriangle triangles }
           val nodes = map onenode (nodes s)
       in
           print (todebugstring s ^ "\n");
-          W.S { nodes = nodes }
+          (W.KT { nodes = nodes },
+           (fn n =>
+            case NM.find (!idmap, n) of
+                NONE => raise KeyedTesselation ("Node not found -- wrong " ^
+                                                "tesselation?")
+              | SOME id => id))
       end
 
-    fun fromworld stok (W.S { nodes } : W.keyedtesselation) : keyedtesselation =
+    fun fromworld stok (W.KT { nodes } : W.keyedtesselation) :
+        keyedtesselation * (int -> node) =
       let
         val ctr = ref 0
         val nodemap : node IM.map ref = ref IM.empty
@@ -612,8 +611,9 @@ struct
                         val bi = IntInf.fromInt b
                       in
                         if idi = ai orelse idi = bi orelse ai = bi
-                        then raise KeyedTesselation ("node " ^ IntInf.toString idi ^
-                                                " is in a degenerate triangle")
+                        then raise KeyedTesselation
+                            ("node " ^ IntInf.toString idi ^
+                             " is in a degenerate triangle")
                         else ();
 
                         (* Only add once. Do it when the current id
@@ -633,7 +633,12 @@ struct
         val () = app settriangles nodes
       in
         print ("On load, ctr is " ^ IntInf.toString (!ctr) ^ "\n");
-        K { ctr = ctr, nodes = allnodes, triangles = alltriangles }
+        (K { ctr = ctr, nodes = allnodes, triangles = alltriangles },
+         (fn i =>
+          case IM.find (!nodemap, i) of
+              NONE => raise KeyedTesselation ("node " ^ Int.toString i ^
+                                              " not found -- wrong tesselation?")
+            | SOME node => node))
       end
   end
 

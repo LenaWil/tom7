@@ -89,11 +89,14 @@ sig
      because the key may be nontrivial. For example, when deserializing
      an object keyed by some other tesselation's nodes, the string to
      key function looks up the node ID in a map of already-deserialized
-     nodes to find it. *)
+     nodes to find it.
+
+     Since toworld is allowed to renumber nodes, it returns a mapping
+     from node to the key used in this serialization. *)
   val toworld : (key -> string) -> keyedtesselation ->
-                WorldTF.keyedtesselation
+                WorldTF.keyedtesselation * (node -> int)
   val fromworld : (string -> key option) -> WorldTF.keyedtesselation ->
-                  keyedtesselation
+                  keyedtesselation * (int -> node)
 
   (* Checks the structure of the keyedtesselation. This should never be
      necessary, but is useful if you suspect a bug. *)
@@ -115,8 +118,9 @@ sig
     (* A node is usually part of multiple triangles. *)
     val triangles : node -> triangle list
 
-    (* Get the unique ID of the node. *)
-    val id : node -> IntInf.int
+    (* Get the unique ID of the node. -- XXX trying not to
+       leak this abstraction. *)
+    (* val id : node -> IntInf.int *)
 
     (* Try moving the node in the configuration given by the key.
        This moves the node in each attached triangle. The point may

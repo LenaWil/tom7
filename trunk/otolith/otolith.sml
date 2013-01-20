@@ -30,7 +30,6 @@ struct
   val TESSELATIONSEGMENT = Vector.fromList [TESSELATIONLINES,
                                             0w0]
 
-  (* PERF: draws edges twice *)
   structure EM = Tesselation.EM
   fun drawtesselation () =
       let
@@ -111,12 +110,13 @@ struct
 
   val WORLDFILE = "world.tf"
 
+  (* XXX into Screen stuff *)
   fun savetodisk () =
-      WorldTF.S.tofile WORLDFILE (Tesselation.toworld (!tesselation))
+      WorldTF.KT.tofile WORLDFILE (#1 (Tesselation.toworld (!tesselation)))
 
   fun loadfromdisk () =
       let in
-          tesselation := Tesselation.fromworld (WorldTF.S.fromfile WORLDFILE);
+          tesselation := #1 (Tesselation.fromworld (WorldTF.KT.fromfile WORLDFILE));
           eprint ("Loaded world from " ^ WORLDFILE ^ "\n")
       end
       handle Tesselation.Tesselation s =>

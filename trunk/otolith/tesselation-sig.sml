@@ -57,8 +57,8 @@ sig
      Get the closest node, as long as it is within the radius. *)
   val getnodewithin : tesselation -> int * int -> int -> node option
 
-  val toworld : tesselation -> WorldTF.keyedtesselation
-  val fromworld : WorldTF.keyedtesselation -> tesselation
+  val toworld : tesselation -> WorldTF.keyedtesselation * (node -> int)
+  val fromworld : WorldTF.keyedtesselation -> tesselation * (int -> node)
 
   (* Checks the structure of the tesselation. This should never be
      necessary, but is useful if you suspect a bug. *)
@@ -78,7 +78,7 @@ sig
     val triangles : node -> triangle list
 
     (* Get the unique ID of the node. *)
-    val id : node -> IntInf.int
+    (* val id : node -> IntInf.int *)
 
     (* Try moving the node. This moves the node in each attached
        triangle. The point may not move to the desired spot, since
