@@ -2,6 +2,8 @@
 structure Screen (* XXX SIG *) =
 struct
 
+  open Constants
+
   exception Screen of string
 
   (* State of a single screen in the game.
@@ -20,6 +22,7 @@ struct
     type key = unit
     fun compare _ = EQUAL
     fun tostring () = ""
+    fun exn s = Screen ("areas: " ^ s)
   end
 
   structure Areas = KeyedTesselation(AreaArg)
@@ -31,6 +34,7 @@ struct
     val compare = Areas.N.compare
     (* Perhaps could allow debugging output of nodes? *)
     fun tostring n = "(NODE)"
+    fun exn s = Screen ("obj: " ^ s)
   end
 
   structure Obj = KeyedTesselation(ObjArg)
@@ -38,6 +42,15 @@ struct
 
   type screen = { areas : areas,
                   objs : obj list }
+
+  fun areas ({ areas, objs } : screen) = areas
+  fun objs ({ areas, objs } : screen) = objs
+
+  fun starter () : screen = { areas =
+                              Areas.rectangle ()
+                                { x0 = 0, y0 = 0,
+                                  x1 = WIDTH - 1, y1 = HEIGHT - 1 },
+                              objs = nil }
 
   (* Most of the work is done by KeyedTesselation itself.
      But we need to set up a mapping between area nodes and

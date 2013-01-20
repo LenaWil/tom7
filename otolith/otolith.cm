@@ -32,9 +32,6 @@ group is
  keyed-tesselation-sig.sml
  keyed-tesselation.sml
 
- tesselation-sig.sml
- tesselation.sml
-
  screen-sig.sml
  screen.sml
 

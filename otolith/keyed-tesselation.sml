@@ -6,8 +6,6 @@ struct
   structure KM = SplayMapFn(type ord_key = key
                             val compare = Key.compare)
 
-  exception KeyedTesselation of string
-
   datatype node = N of { id : IntInf.int,
                          coords : (int * int) KM.map,
                          triangles : (node * node) list } ref
@@ -61,7 +59,7 @@ struct
           val degs = 57.2957795 * (phi1 - phi3)
       in
           fmod (degs, 360.0)
-      end handle Domain => raise KeyedTesselation "bad angle"
+      end handle Domain => raise Key.exn "bad angle"
 
   structure T =
   struct
@@ -74,7 +72,7 @@ struct
     fun coordsmaybe (N (ref {coords, ...})) key = KM.find (coords, key)
     fun coords n key =
         case coordsmaybe n key of
-            NONE => raise KeyedTesselation "No coordinates for key"
+            NONE => raise Key.exn "No coordinates for key"
           | SOME v => v
 
     fun triangles (v as N (ref {triangles, ...})) =
@@ -190,7 +188,7 @@ struct
   fun closest_point ((px, py), (v1x, v1y), (v2x, v2y)) : (int * int) option =
     let
         val ds = distance_squared ((v1x, v1y), (v2x, v2y))
-        val () = if ds = 0 then raise KeyedTesselation "degenerate triangle"
+        val () = if ds = 0 then raise Key.exn "degenerate triangle"
                  else ()
         val u = real ((px - v1x) * (v2x - v1x) +
                       (py - v1y) * (v2y - v1y)) /
@@ -291,8 +289,7 @@ struct
           app tryangle (triangles s);
 
           case !best_result of
-              NONE => raise KeyedTesselation
-                  "impossible: must be at least one triangle"
+              NONE => raise Key.exn "impossible: must be at least one triangle"
             | SOME r => r
       end
 
@@ -371,7 +368,7 @@ struct
               List.filter
                  (fn t => if same_triangle (t, (a, b, c))
                           then (if !found
-                                then raise KeyedTesselation
+                                then raise Key.exn
                                     "Duplicate triangle in removetriangle"
                                 else ();
                                 found := true;
@@ -379,7 +376,7 @@ struct
                           else true) (!triangles);
              if !found
              then ()
-             else raise KeyedTesselation "triangle not found in removetriangle"
+             else raise Key.exn "triangle not found in removetriangle"
           end
   end
 
@@ -514,7 +511,7 @@ struct
       end
 
   fun gettriangle (s : keyedtesselation) (x, y) : triangle option =
-      raise KeyedTesselation "unimplemented"
+      raise Key.exn "unimplemented"
 
   structure IIM = SplayMapFn(type ord_key = IntInf.int
                              val compare = IntInf.compare)
@@ -550,8 +547,7 @@ struct
           (W.KT { nodes = nodes },
            (fn n =>
             case NM.find (!idmap, n) of
-                NONE => raise KeyedTesselation ("Node not found -- wrong " ^
-                                                "tesselation?")
+                NONE => raise Key.exn "Node not found -- wrong tesselation?"
               | SOME id => id))
       end
 
@@ -565,13 +561,13 @@ struct
 
         fun makenode (W.N { id, coords, triangles = _ }) =
             case IM.find (!nodemap, id) of
-               SOME _ => raise KeyedTesselation "duplicate IDs in input"
+               SOME _ => raise Key.exn "duplicate IDs in input"
              | NONE =>
                    let
                      val coords =
                          foldl (fn ((s, x, y), m) =>
                                 case stok s of
-                                    NONE => raise KeyedTesselation "unparseable key"
+                                    NONE => raise Key.exn "unparseable key"
                                   | SOME k => KM.insert (m, k, (x, y)))
                                 KM.empty
                                 coords
@@ -595,11 +591,11 @@ struct
 
         fun settriangles (W.N { id, coords = _, triangles }) =
             case IM.find (!nodemap, id) of
-               NONE => raise KeyedTesselation "bug"
+               NONE => raise Key.exn "bug"
              | SOME (node as N (r as ref { id = idi, coords, triangles = _ })) =>
                 let fun oneid i =
                       case IM.find (!nodemap, i) of
-                        NONE => raise KeyedTesselation "unknown id in input"
+                        NONE => raise Key.exn "unknown id in input"
                       | SOME n => n
 
                     fun onet (a, b) =
@@ -611,7 +607,7 @@ struct
                         val bi = IntInf.fromInt b
                       in
                         if idi = ai orelse idi = bi orelse ai = bi
-                        then raise KeyedTesselation
+                        then raise Key.exn
                             ("node " ^ IntInf.toString idi ^
                              " is in a degenerate triangle")
                         else ();
@@ -636,8 +632,8 @@ struct
         (K { ctr = ctr, nodes = allnodes, triangles = alltriangles },
          (fn i =>
           case IM.find (!nodemap, i) of
-              NONE => raise KeyedTesselation ("node " ^ Int.toString i ^
-                                              " not found -- wrong tesselation?")
+              NONE => raise Key.exn ("node " ^ Int.toString i ^
+                                     " not found -- wrong tesselation?")
             | SOME node => node))
       end
   end
@@ -662,14 +658,14 @@ struct
                     let
                         fun onetri (a, b) =
                             if a = b orelse node = a orelse node = b
-                            then raise KeyedTesselation "degenerate triangle"
+                            then raise Key.exn "degenerate triangle"
                             else ()
                     in
                         (case IIM.find (!seen, id) of
                              NONE => seen := IIM.insert (!seen, id, (node, ref false))
                            | SOME (nnn, _) =>
                                if nnn <> node
-                               then raise KeyedTesselation "Duplicate IDs"
+                               then raise Key.exn "Duplicate IDs"
                                else ());
                         app onetri triangles
                     end
@@ -677,13 +673,13 @@ struct
                 fun onetriangle (a, b, c) =
                     let fun looky (node as (N (ref { id, ... }))) =
                         case IIM.find (!seen, id) of
-                          NONE => raise KeyedTesselation ("Didn't find " ^
-                                                     IntInf.toString id ^
-                                                     " in node list")
+                          NONE => raise Key.exn ("Didn't find " ^
+                                                 IntInf.toString id ^
+                                                 " in node list")
                         | SOME (nnn, saw) =>
                             if nnn <> node
-                            then raise KeyedTesselation ("Node in triangle not " ^
-                                                    "the same as in node list")
+                            then raise Key.exn ("Node in triangle not " ^
+                                                "the same as in node list")
                             else saw := true
                     in
                         looky a;
@@ -692,8 +688,8 @@ struct
                     end
 
                 fun checkmissing (i, (_, ref false)) =
-                    raise KeyedTesselation ("Didn't find " ^ IntInf.toString i ^
-                                       " in triangles.")
+                    raise Key.exn ("Didn't find " ^ IntInf.toString i ^
+                                   " in triangles.")
                   | checkmissing _ = ()
             in
                 app onenode (nodes s);

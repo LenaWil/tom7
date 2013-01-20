@@ -14,6 +14,8 @@ sig
   (* For debugging. Serialization takes these as arguments,
      since they may depend on some context. *)
   val tostring : key -> string
+  (* Exception raised by internal functions. *)
+  val exn : string -> exn
 end
 
 (* functor KeyedTesselation(KEYARG) :> *)
@@ -22,8 +24,6 @@ sig
 
   (* From argument *)
   type key
-
-  exception KeyedTesselation of string
 
   (* Mutable, nonempty.
 
