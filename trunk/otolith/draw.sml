@@ -435,5 +435,24 @@ struct
        end)
     end
 
+  fun drawtext (pixels, { width, height, image, table, ... } : Font.font,
+                x, y, s) =
+    let
+
+    in
+      Util.for 0 (size s - 1)
+      (fn i =>
+       let
+         val c = ord (String.sub (s, i))
+         val srcx = width * Array.sub (table, c)
+         val src = SOME { x = srcx, y = 0, width = width, height = height }
+       in
+         blit { dest = (WIDTH, HEIGHT, pixels),
+                src = image,
+                dstx = x + width * i,
+                dsty = y,
+                srcrect = src }
+       end)
+    end
 
 end

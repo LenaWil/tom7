@@ -25,6 +25,8 @@ sig
                dstx : int,
                dsty : int } -> unit
 
+  val drawtext : Word32.word Array.array * Font.font * int * int * string -> unit
+
   (* Draws low-level noise background *)
   val randomize : Word32.word Array.array -> unit
 

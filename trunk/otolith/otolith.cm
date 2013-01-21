@@ -30,6 +30,7 @@ group is
  constants.sml
 
  images.sml
+ font.sml
 
  keyed-tesselation-sig.sml
  keyed-tesselation.sml
