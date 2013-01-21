@@ -370,18 +370,11 @@ struct
           end))
     end
 
-  fun blit { dest = (dwidth, dheight, dpixels),
-             src = (iwidth, iheight, ipixels),
-             srcrect : { x: int, y: int, width: int, height: int } option,
-             dstx : int,
-             dsty : int } : unit =
+  fun cliprect { dwidth, dheight,
+                 srcx, srcy, swidth, sheight,
+                 dstx : int,
+                 dsty : int } =
     let
-      val { x = srcx, y = srcy, width = swidth, height = sheight } =
-        case srcrect of
-          NONE => { x = 0, y = 0, width = iwidth, height = iheight }
-        (* XXX could clip src rectangle *)
-        | SOME r => r
-
       (* if dstx,dsty puts any of the image outside the
          destination pixels, clip the source rectangle. *)
 
@@ -413,6 +406,30 @@ struct
         end
 
     in
+      { dstx = dstx, dsty = dsty,
+        srcx = srcx, srcy = srcy,
+        swidth = swidth,
+        sheight = sheight }
+    end
+
+
+  fun blit { dest = (dwidth, dheight, dpixels),
+             src = (iwidth, iheight, ipixels),
+             srcrect : { x: int, y: int, width: int, height: int } option,
+             dstx : int,
+             dsty : int } : unit =
+    let
+      val { x = srcx, y = srcy, width = swidth, height = sheight } =
+        case srcrect of
+          NONE => { x = 0, y = 0, width = iwidth, height = iheight }
+        (* XXX srcrect may not be valid *)
+        | SOME r => r
+
+      val { dstx, dsty, srcx, srcy, swidth, sheight } =
+        cliprect { dwidth = dwidth, dheight = dheight,
+                   swidth = swidth, sheight = sheight,
+                   srcx = srcx, srcy = srcy, dstx = dstx, dsty = dsty }
+    in
       if swidth <= 0 orelse sheight <= 0
       then () (* Completely clipped out. *)
       else
@@ -435,24 +452,79 @@ struct
        end)
     end
 
-  fun drawtext (pixels, { width, height, image, table, ... } : Font.font,
-                x, y, s) =
+  fun blitmask { dest = (dwidth, dheight, dpixels),
+                 src = (iwidth, iheight, ipixels),
+                 srcrect : { x: int, y: int, width: int, height: int } option,
+                 dstx : int,
+                 dsty : int,
+                 color : Word32.word } : unit =
     let
+      val { x = srcx, y = srcy, width = swidth, height = sheight } =
+        case srcrect of
+          NONE => { x = 0, y = 0, width = iwidth, height = iheight }
+        (* XXX srcrect may not be valid *)
+        | SOME r => r
 
+      val { dstx, dsty, srcx, srcy, swidth, sheight } =
+        cliprect { dwidth = dwidth, dheight = dheight,
+                   swidth = swidth, sheight = sheight,
+                   srcx = srcx, srcy = srcy, dstx = dstx, dsty = dsty }
     in
-      Util.for 0 (size s - 1)
-      (fn i =>
-       let
-         val c = ord (String.sub (s, i))
-         val srcx = width * Array.sub (table, c)
-         val src = SOME { x = srcx, y = 0, width = width, height = height }
+      if swidth <= 0 orelse sheight <= 0
+      then () (* Completely clipped out. *)
+      else
+      Util.for 0 (sheight - 1)
+      (fn y =>
+       let val sy = srcy + y
+           val dy = dsty + y
        in
-         blit { dest = (WIDTH, HEIGHT, pixels),
-                src = image,
-                dstx = x + width * i,
-                dsty = y,
-                srcrect = src }
+         Util.for 0 (swidth - 1)
+         (fn x =>
+          let
+            val sx = srcx + x
+            val dx = dstx + x
+            val c = Array.sub (ipixels, sy * iwidth + sx)
+          in
+            if Word32.andb (0wxFF000000, c) = 0w0
+            then () (* completely transparent -- don't draw *)
+            else Array.update (dpixels, dy * dwidth + dx, color)
+          end)
        end)
     end
+
+
+  fun drawtext (pixels, { width, height, image, table, ... } : Font.font,
+                x, y, s) =
+    Util.for 0 (size s - 1)
+    (fn i =>
+     let
+       val c = ord (String.sub (s, i))
+       val srcx = width * Array.sub (table, c)
+       val src = SOME { x = srcx, y = 0, width = width, height = height }
+     in
+       blit { dest = (WIDTH, HEIGHT, pixels),
+              src = image,
+              dstx = x + width * i,
+              dsty = y,
+              srcrect = src }
+     end)
+
+  fun drawtextcolor (pixels, { width, height, image, table, ... } : Font.font,
+                     color : Word32.word, x, y, s) =
+    Util.for 0 (size s - 1)
+    (fn i =>
+     let
+       val c = ord (String.sub (s, i))
+       val srcx = width * Array.sub (table, c)
+       val src = SOME { x = srcx, y = 0, width = width, height = height }
+     in
+       blitmask { dest = (WIDTH, HEIGHT, pixels),
+                  src = image,
+                  dstx = x + width * i,
+                  dsty = y,
+                  srcrect = src,
+                  color = color }
+     end)
+
 
 end

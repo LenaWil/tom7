@@ -25,7 +25,18 @@ sig
                dstx : int,
                dsty : int } -> unit
 
+  (* Same, but blit all nontransparent pixels as the color. *)
+  val blitmask : { dest : int * int * Word32.word Array.array,
+                   src : Images.image,
+                   srcrect : { x: int, y: int, width: int, height: int } option,
+                   dstx : int,
+                   dsty : int,
+                   color : Word32.word } -> unit
+
+
   val drawtext : Word32.word Array.array * Font.font * int * int * string -> unit
+  val drawtextcolor : Word32.word Array.array * Font.font *
+                      Word32.word * int * int * string -> unit
 
   (* Draws low-level noise background *)
   val randomize : Word32.word Array.array -> unit
