@@ -49,39 +49,110 @@ struct
       screen := Screen.addrectangle (!screen) node (x0, y0, x1, y1)
     end
 
+  val DRAG_DISTANCE = 5
+  val SPLIT_DISTANCE = 5
+  val LINK_DISTANCE = 10
+
+  (* Link an object to the frozen node. Adds this node as a key,
+     setting the positions "smartly" (right now they are just copied
+     from the first key). *)
+  fun linkobject (node : Areas.node) =
+    case Screen.objectwithin (Screen.objs (!screen))
+                             (!mousex, !mousey)
+                             LINK_DISTANCE of
+      NONE => eprint "press when mouse is near an object to link."
+    | SOME (obj : Screen.obj) =>
+        if Obj.iskey obj node
+        then eprint "already linked to this object"
+        else
+          let val anykey = hd (Obj.keys obj)
+            fun newcoords (onode : Obj.node) =
+              let val (x, y) = Obj.N.coords onode anykey
+              in (x, y)
+              end
+          in
+            Obj.addkey obj newcoords (node : Obj.key)
+          end
+
   val MOUSECIRCLE = Draw.mixcolor (0wxFF, 0wxAA, 0wx33, 0wxFF)
   val CLOSESTCIRCLE = Draw.mixcolor (0wx44, 0wx44, 0wx44, 0wxFF)
   val DRAGGING = Draw.mixcolor (0wxFF, 0wxFF, 0wx00, 0wxFF)
   val FROZEN = Draw.mixcolor (0wxFF, 0wxFF, 0wxFF, 0wxFF)
 
-  fun drawareaindicators () =
-      let
-          val s = Screen.areas (!screen)
-          val (n1, n2, x, y) =
-              Areas.closestedge s () (!mousex, !mousey)
-      in
-          Draw.drawcircle (pixels, !mousex, !mousey, 5, MOUSECIRCLE);
-          Draw.drawcircle (pixels, x, y, 3, CLOSESTCIRCLE);
-          Draw.drawtextcolor (pixels, Font.pxfont, CLOSESTCIRCLE,
-                              x - 13, y - 11, "+shift");
-          (case !draggingnode of
-               NONE => ()
-             | SOME n =>
-                   let val (nx, ny) = Areas.N.coords n ()
-                   in
-                       Draw.drawcircle (pixels, nx, ny, 6, DRAGGING)
-                   end);
+  val ACTIONTEXT = Draw.mixcolor (0wx44, 0wx66, 0wx22, 0wxFF)
+  val ACTIONTEXTHI = Draw.mixcolor (0wx55, 0wxAA, 0wx22, 0wxFF)
 
-          (case !frozennode of
-               NONE => ()
-             | SOME n =>
-                   let val (nx, ny) = Areas.N.coords n ()
-                   in
-                       (* XXX don't always use circle *)
-                       Draw.drawcircle (pixels, nx, ny, 7, FROZEN)
-                   end);
-          ()
-      end
+  fun closestedgewithin n =
+    let
+      val nsq = n * n
+      val (n1, n2, x, y) =
+        Areas.closestedge (Screen.areas (!screen)) () (!mousex, !mousey)
+    in
+      if IntMaths.distance_squared ((!mousex, !mousey), (x, y)) <= nsq
+      then SOME (n1, n2, x, y)
+      else NONE
+    end
+
+  fun drawsplitpoint () =
+    (* Only if there is no draggable node, and an edge close enough. *)
+    case (Areas.getnodewithin (Screen.areas (!screen)) ()
+              (!mousex, !mousey) DRAG_DISTANCE,
+          closestedgewithin SPLIT_DISTANCE) of
+      (NONE, SOME (_, _, x, y)) =>
+        let in
+          Draw.drawcircle (pixels, x, y, 3, CLOSESTCIRCLE);
+          Draw.drawtextcolor (pixels, Font.pxfont,
+                              if !holdingshift
+                              then ACTIONTEXTHI
+                              else CLOSESTCIRCLE,
+                              x - 13, y - 11, "+shift")
+        end
+    | _ => ()
+
+  fun drawnearbynode () =
+    case Areas.getnodewithin (Screen.areas (!screen)) () (!mousex, !mousey) 5 of
+      NONE => ()
+    | SOME node =>
+        let val (nx, ny) = Areas.N.coords node ()
+        in
+          if !holdingcontrol andalso not (Option.isSome (!draggingnode))
+          then Draw.drawtextcolor (pixels, Font.pxfont, ACTIONTEXTHI,
+                                   nx - 18, ny - 11, "freeze")
+          else Draw.drawtextcolor (pixels, Font.pxfont, ACTIONTEXT,
+                                   nx - 13, ny - 11, "drag")
+        end
+
+  fun drawareaindicators () =
+    let
+
+    in
+      if Option.isSome (!draggingnode)
+      then Draw.drawcircle (pixels, !mousex, !mousey, 5, MOUSECIRCLE)
+      else ();
+
+      drawsplitpoint ();
+      drawnearbynode ();
+
+      (*
+      (case !draggingnode of
+           NONE => ()
+         | SOME n =>
+               let val (nx, ny) = Areas.N.coords n ()
+               in
+                   Draw.drawcircle (pixels, nx, ny, 6, DRAGGING)
+               end);
+      *)
+
+      (case !frozennode of
+           NONE => ()
+         | SOME n =>
+               let val (nx, ny) = Areas.N.coords n ()
+               in
+                   (* XXX don't always use circle *)
+                   Draw.drawcircle (pixels, nx, ny, 7, FROZEN)
+               end);
+      ()
+    end
 
   val WORLDFILE = "world.tf"
 
@@ -111,11 +182,13 @@ struct
       (* XXX allow splitting and dragging objects *)
       else if !holdingshift
       then
-          case Areas.splitedge (Screen.areas (!screen)) () (x, y) of
-              NONE => ()
-            | SOME n => ((* Tesselation.check (!tesselation); *)
-                         draggingnode := SOME n;
-                         ignore (Areas.N.trymove n () (x, y)))
+        (if Option.isSome (closestedgewithin SPLIT_DISTANCE)
+         then (case Areas.splitedge (Screen.areas (!screen)) () (x, y) of
+                 NONE => ()
+               | SOME n => ((* Tesselation.check (!tesselation); *)
+                            draggingnode := SOME n;
+                            ignore (Areas.N.trymove n () (x, y))))
+         else ())
 
       else draggingnode := Areas.getnodewithin (Screen.areas (!screen)) () (x, y) 5
 
@@ -146,6 +219,11 @@ struct
       (case !frozennode of
          NONE => eprint "Freeze a node with ctrl-click first."
        | SOME node => addobject node)
+
+    | keydown SDL.SDLK_l =
+      (case !frozennode of
+         NONE => eprint "Freeze a node with ctrl-click first."
+       | SOME node => linkobject node)
 
     | keydown _ = ()
 
@@ -208,6 +286,7 @@ struct
           val () = events ()
 
           val () = Draw.randomize_loud pixels
+          val () = Render.drawareacolors (pixels, Screen.areas (!screen))
           val () = Render.drawareas (pixels, Screen.areas (!screen))
           val () = Render.drawobjects (pixels, !screen)
           val () = drawareaindicators ()
@@ -239,6 +318,7 @@ struct
       end
 
   val () = loadfromdisk ()
+  val () = SDL.show_cursor false
   val () = loop ()
       handle Quit => ()
            | e =>

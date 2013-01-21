@@ -52,6 +52,11 @@ struct
                                   x1 = WIDTH - 1, y1 = HEIGHT - 1 },
                               objs = nil }
 
+  fun objectwithin (objs : obj list) (x, y) dist =
+    (* XXX *)
+    raise Screen "unimplemented"
+
+
   (* XXX it is weird that this has to return a new screen...
      maybe screen should just be mutable at toplevel? *)
   fun addrectangle { areas, objs } node (x0, y0, x1, y1) : screen =
