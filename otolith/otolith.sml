@@ -51,23 +51,21 @@ struct
 
   val DRAG_DISTANCE = 5
   val SPLIT_DISTANCE = 5
-  val LINK_DISTANCE = 10
 
   (* Link an object to the frozen node. Adds this node as a key,
      setting the positions "smartly" (right now they are just copied
      from the first key). *)
   fun linkobject (node : Areas.node) =
-    case Screen.objectwithin (Screen.objs (!screen))
-                             (!mousex, !mousey)
-                             LINK_DISTANCE of
-      NONE => eprint "press when mouse is near an object to link."
-    | SOME (obj : Screen.obj) =>
+    case Screen.objectswithin (Screen.objs (!screen))
+                              (!mousex, !mousey) of
+      nil => eprint "press when mouse is near an object to link."
+    | (obj : Screen.obj, key) :: _ =>
         if Obj.iskey obj node
         then eprint "already linked to this object"
         else
-          let val anykey = hd (Obj.keys obj)
+          let
             fun newcoords (onode : Obj.node) =
-              let val (x, y) = Obj.N.coords onode anykey
+              let val (x, y) = Obj.N.coords onode key
               in (x, y)
               end
           in

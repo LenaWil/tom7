@@ -52,10 +52,15 @@ struct
                                   x1 = WIDTH - 1, y1 = HEIGHT - 1 },
                               objs = nil }
 
-  fun objectwithin (objs : obj list) (x, y) dist =
-    (* XXX *)
-    raise Screen "unimplemented"
-
+  (* Find all the objects that this point is within.
+     Gives a key for each that causes the point to be inside it. *)
+  fun objectswithin (objs : obj list) (x, y) =
+    List.mapPartial
+    (fn obj =>
+     case Obj.gettriangle obj (x, y) of
+       NONE => NONE
+     | SOME (k, _) => SOME (obj, k))
+    objs
 
   (* XXX it is weird that this has to return a new screen...
      maybe screen should just be mutable at toplevel? *)

@@ -53,7 +53,7 @@ sig
   val rectangle : key -> { x0 : int, y0 : int, x1 : int, y1 : int } -> keyedtesselation
 
   (* Get the triangle this point is within *)
-  val gettriangle : keyedtesselation -> int * int -> triangle option
+  val gettriangle : keyedtesselation -> int * int -> (key * triangle) option
 
   (* When using the given key, return the closest edge to the given
      point, and the point on that edge that's closest to the input
