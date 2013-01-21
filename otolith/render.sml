@@ -84,7 +84,6 @@ struct
       app drawtriangle (Areas.triangles s)
     end
 
-
   (* XXX it makes sense to have a large set of colors for different
      configurations, especially *)
   val OBJECTLINES = Draw.mixcolor (0wx44, 0wx44, 0wx55, 0wxFF)

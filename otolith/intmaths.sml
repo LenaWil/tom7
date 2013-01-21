@@ -81,44 +81,45 @@ struct
 
   (* Adapted from the BSD-licensed code by Wm. Randolph Franklin, but it's
      nearly unrecognizable now. See sml-lib/geom/polygon.sml.
-     This code is specialized to triangles with integer coordinates. *)
-  fun pointinside (a, b, c) (x : int, y : int) =
+     This code is specialized to triangles with integer coordinates.
+
+     PERF There may be more ways to simplify this, but probably should just
+     switch to the barycentric version if it can be done with ints. *)
+  fun pointinside ((ax, ay), (bx, by), (cx, cy)) (x : int, y : int) =
       let
-        (* XXX use int math! *)
-        val (ax, ay) = realpt a
-        val (bx, by) = realpt b
-        val (cx, cy) = realpt c
-        val (x, y) = realpt (x, y)
+        val odd =
+          ((ay > y) <> (cy > y)) andalso
+          let val numer = (cx - ax) * (y - ay)
+              val denom = (cy - ay)
+          in
+            if denom > 0
+            then (x - ax) * denom < numer
+            else (x - ax) * denom > numer
+          end
 
-        fun xcoord 0 = ax
-          | xcoord 1 = bx
-          | xcoord _ = cx
-        fun ycoord 0 = ay
-          | ycoord 1 = by
-          | ycoord _ = cy
+        val negate =
+          ((by > y) <> (ay > y)) andalso
+          let val numer = (ax - bx) * (y - by)
+              val denom = (ay - by)
+          in
+            if denom > 0
+            then (x - bx) * denom < numer
+            else (x - bx) * denom > numer
+          end
 
-        val nvert = 3
+        val odd = (if negate then not odd else odd)
 
-        fun loop odd idx jdx =
-            if idx = nvert
-            then odd
-            else
-              let
-                val negate =
-                  ((ycoord idx > y) <> (ycoord jdx > y)) andalso
-                  let val numer = (xcoord jdx - xcoord idx) * (y - ycoord idx)
-                      val denom = (ycoord jdx - ycoord idx)
-                      val frac = numer / denom
-                  in
-                    x - (xcoord idx) < frac
-                  end
-              in
-                loop (if negate
-                      then not odd
-                      else odd) (idx + 1) idx
-              end
+        val negate =
+          ((cy > y) <> (by > y)) andalso
+          let val numer = (bx - cx) * (y - cy)
+              val denom = (by - cy)
+          in
+            if denom > 0
+            then (x - cx) * denom < numer
+            else (x - cx) * denom > numer
+          end
       in
-        loop false 0 (nvert - 1)
+        if negate then not odd else odd
       end
 
   (* PERF might be some redundant comparisons. *)

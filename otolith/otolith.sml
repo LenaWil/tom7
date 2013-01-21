@@ -286,7 +286,7 @@ struct
           val () = events ()
 
           val () = Draw.randomize_loud pixels
-          val () = Render.drawareacolors (pixels, Screen.areas (!screen))
+          (* val () = Render.drawareacolors (pixels, Screen.areas (!screen)) *)
           val () = Render.drawareas (pixels, Screen.areas (!screen))
           val () = Render.drawobjects (pixels, !screen)
           val () = drawareaindicators ()
