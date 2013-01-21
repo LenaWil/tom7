@@ -88,6 +88,15 @@ sig
   (* Get all of the keys. *)
   val keys : keyedtesselation -> key list
 
+  val iskey : keyedtesselation -> key -> bool
+
+  (* addkey kt newcoords k
+     Add a key to the configuration of every node.
+     The function newcoords is used to generate the (x, y) coordinates
+     for each node.
+     Raises an exception if the key is already present. *)
+  val addkey : keyedtesselation -> (node -> int * int) -> key -> unit
+
   (* Convert to the serialization format. These are somewhat fancy
      because the key may be nontrivial. For example, when deserializing
      an object keyed by some other tesselation's nodes, the string to

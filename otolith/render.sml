@@ -7,6 +7,10 @@ struct
   val TESSELATIONNODES = Draw.mixcolor (0wx66, 0wx66, 0wx77, 0wxFF)
   val TESSELATIONSEGMENT = Vector.fromList [TESSELATIONLINES, 0w0]
 
+  val rc = ARCFOUR.initstring "render"
+  fun byte () = ARCFOUR.byte rc
+  fun byte32 () = Word32.fromInt (Word8.toInt (byte ()))
+
   structure Areas = Screen.Areas
   structure Obj = Screen.Obj
 
@@ -45,6 +49,39 @@ struct
     in
       app drawtriangle triangles;
       app drawnode nodes
+    end
+
+  fun filltriangle (pixels, (a, b, c), color) =
+    let val { x0, y0, x1, y1 } = IntMaths.trianglebounds (a, b, c)
+      (* XXX bound to screen. *)
+    in
+      (* PERF. There are obviously much faster ways to do this
+         known to mankind since 0 AD. *)
+      Util.for y0 y1
+      (fn y =>
+       Util.for x0 x1
+       (fn x =>
+        if IntMaths.pointinside (a, b, c) (x, y)
+        then Array.update (pixels, y * WIDTH + x, color)
+        else ()))
+    end
+
+  fun drawareacolors (pixels, s : Screen.areas) =
+    let
+      fun drawtriangle t =
+          let
+            val (a, b, c) = Areas.T.nodes t
+            val a = Areas.N.coords a ()
+            val b = Areas.N.coords b ()
+            val c = Areas.N.coords c ()
+          in
+            filltriangle (pixels,
+                          (a, b, c),
+                          Draw.mixcolor (byte32 (), byte32 (), byte32 (),
+                                         0wxFF))
+          end
+    in
+      app drawtriangle (Areas.triangles s)
     end
 
 

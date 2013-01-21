@@ -35,7 +35,7 @@ OBJECTS=blit.o sdlml.o
 world-tf.sml : world.tfdesc tfcompiler.exe
 	./tfcompiler.exe world.tfdesc
 
-SMLS=otolith.sml prelude.sml screen-sig.sml screen.sml world-tf.sml draw.sml draw-sig.sml keyed-tesselation.sml keyed-tesselation-sig.sml render-sig.sml render.sml images.sml
+SMLS=otolith.sml prelude.sml screen-sig.sml screen.sml world-tf.sml draw.sml draw-sig.sml keyed-tesselation.sml keyed-tesselation-sig.sml render-sig.sml render.sml images.sml intmaths-sig.sml intmaths.sml
 
 #EXNHISTORY=-const 'Exn.keepHistory true' 
 #  -mwindows works, disables console?

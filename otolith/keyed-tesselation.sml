@@ -36,37 +36,27 @@ struct
       KM.foldri (fn (k, _, l) => k :: l) nil coords
     | keys _ = raise Key.exn "empty keyedtesselation in keys?"
 
-  fun next (K { ctr, ... }) = (ctr := !ctr + 1; !ctr)
+  fun iskey (K { nodes = ref (N (ref { coords, ... }) :: _), ... }) n =
+    Option.isSome (KM.find (coords, n))
+    | iskey _ _ = raise Key.exn "empty keyedtesselation in iskey?"
 
-  (* Real-valued (num mod den), always positive. *)
-  fun fmod (num, den) =
-      let val r = Real.rem (num, den)
-      in if r < 0.0
-         then r + den
-         else r
+  fun addkey (kt as K { nodes, ... }) newcoords key =
+    if iskey kt key
+    then raise Key.exn "key already exists in addkey"
+    else
+      let
+        fun setcoords (N (r as ref { id, coords = _, triangles })) coords =
+          r := { id = id, coords = coords, triangles = triangles }
+
+        fun onenode (n as N (ref { coords, ... })) =
+          let val nc = newcoords n
+          in setcoords n (KM.insert (coords, key, nc))
+          end
+      in
+        List.app onenode (!nodes)
       end
 
-  (* Return the angle in degrees between v2->v1 and v2->v3,
-     which is 360 - angle(v3, v2, v1). *)
-  fun angle ((v1x, v1y), (v2x, v2y), (v3x, v3y)) =
-      (* Treating v2 as the center, we have
-           p1
-          /
-         / phi1
-         0--------x
-         | phi3
-         |
-         p3
-         *)
-      let val (p1x, p1y) = (v1x - v2x, v1y - v2y)
-          val (p3x, p3y) = (v3x - v2x, v3y - v2y)
-          val phi1 = Math.atan2 (real p1y, real p1x)
-          val phi3 = Math.atan2 (real p3y, real p3x)
-
-          val degs = 57.2957795 * (phi1 - phi3)
-      in
-          fmod (degs, 360.0)
-      end handle Domain => raise Key.exn "bad angle"
+  fun next (K { ctr, ... }) = (ctr := !ctr + 1; !ctr)
 
   structure T =
   struct
@@ -104,11 +94,11 @@ struct
                     val b = coords b key
                     (* Get interior angle, regardless of winding *)
                     val (a, b) =
-                        if angle (a, (x, y), b) < 180.0
+                        if IntMaths.angle (a, (x, y), b) < 180.0
                         then (a, b)
                         else (b, a)
 
-                    val newangle = angle (a, (newx, newy), b)
+                    val newangle = IntMaths.angle (a, (newx, newy), b)
                 in
                     newangle < MINANGLE
                 end
@@ -125,27 +115,6 @@ struct
 
   fun triangles (K { triangles, ... }) : triangle list = !triangles
   fun nodes (K { nodes, ... }) : node list = !nodes
-
-  (* Still necessary? Maybe only at load time? *)
-(*
-  fun compute_nodes (t : triangle list) =
-      let val m = ref NM.empty
-          fun tolist m =
-              NM.foldri (fn (k, (), b) => k :: b) nil m
-          fun visit (v as N (ref { triangles, ... })) =
-              case NM.find (!m, v) of
-                  SOME () => ()
-                | NONE =>
-                   let in
-                       m := NM.insert (!m, v, ());
-                       List.app (fn (a, b) => (visit a; visit b)) triangles
-                   end
-      in
-          (* Only visit one vertex because it knows about its neighbors *)
-          app (fn (a, _, _) => visit a) t;
-          tolist (!m)
-      end
-*)
 
   fun rectangle key { x0 : int, y0 : int, x1 : int, y1 : int }
       : keyedtesselation =
@@ -180,46 +149,6 @@ struct
 
           kt
       end
-
-  fun distance_squared ((x0 : int, y0 : int), (x1, y1)) =
-      let
-          val xd = x0 - x1
-          val yd = y0 - y1
-      in
-          xd * xd + yd * yd
-      end
-
-  (* returns the point on the line segment between v1 and v2 that is
-     closest to the pt argument. If this is one of v1 or v2, NONE is
-     returned. *)
-  fun closest_point ((px, py), (v1x, v1y), (v2x, v2y)) : (int * int) option =
-    let
-        val ds = distance_squared ((v1x, v1y), (v2x, v2y))
-        val () = if ds = 0 then raise Key.exn "degenerate triangle"
-                 else ()
-        val u = real ((px - v1x) * (v2x - v1x) +
-                      (py - v1y) * (v2y - v1y)) /
-            real ds
-    in
-        (* PERF: could do negative test before dividing *)
-        if u < 0.0 orelse u > 1.0
-        then NONE
-        else SOME (Real.round (real v1x + u * real (v2x - v1x)),
-                   Real.round (real v1y + u * real (v2y - v1y)))
-    end
-
-  fun closest_point_or_node ((px, py), (v1x, v1y), (v2x, v2y)) : int * int =
-      case closest_point ((px, py), (v1x, v1y), (v2x, v2y)) of
-          SOME p => p
-        | NONE =>
-            (* One of the two must be closest then. *)
-          let val d1 = distance_squared ((px, py), (v1x, v1y))
-              val d2 = distance_squared ((px, py), (v2x, v2y))
-          in
-              if (d1 < d2)
-              then (v1x, v1y)
-              else (v2x, v2y)
-          end
 
   fun todebugstring (s : keyedtesselation) =
       let
@@ -277,9 +206,10 @@ struct
               let
                   val (n1x, n1y) = N.coords n1 key
                   val (n2x, n2y) = N.coords n2 key
-                  val (xx, yy) = closest_point_or_node ((x, y),
-                                                        (n1x, n1y), (n2x, n2y))
-                  val dist = distance_squared ((x, y), (xx, yy))
+                  val (xx, yy) =
+                    IntMaths.closest_point_or_vertex ((x, y),
+                                                      (n1x, n1y), (n2x, n2y))
+                  val dist = IntMaths.distance_squared ((x, y), (xx, yy))
               in
                   (* print ("SDistance to " ^ Int.toString xx ^ "," ^
                          Int.toString yy ^ " is " ^ Int.toString dist ^ "\n"); *)
@@ -395,8 +325,8 @@ struct
           val (n1x, n1y) = N.coords n1 key
           val (n2x, n2y) = N.coords n2 key
 
-          val n1dsq = distance_squared ((n1x, n1y), (xx, yy))
-          val n2dsq = distance_squared ((n2x, n2y), (xx, yy))
+          val n1dsq = IntMaths.distance_squared ((n1x, n1y), (xx, yy))
+          val n2dsq = IntMaths.distance_squared ((n2x, n2y), (xx, yy))
       in
           if n1dsq < MIN_SPLIT_DISTANCE_SQ orelse
              n2dsq < MIN_SPLIT_DISTANCE_SQ
@@ -508,7 +438,7 @@ struct
           fun trynode n =
               let
                   val (nx, ny) = N.coords n key
-                  val dist = distance_squared ((x, y), (nx, ny))
+                  val dist = IntMaths.distance_squared ((x, y), (nx, ny))
               in
                   maybeupdate (dist, n)
               end
