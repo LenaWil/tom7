@@ -24,10 +24,17 @@ struct
      counters are local to the tesselation, it's pretty implausible
      that these numbers would get high. And currently there is no
      way to delete anyway. *)
+
+  (* Representation invariant: All nodes have the set of keys. *)
   datatype keyedtesselation =
       K of { triangles : triangle list ref,
              nodes : node list ref,
              ctr : IntInf.int ref }
+
+  (* Any node will do; they must all have the same set. *)
+  fun keys (K { nodes = ref (N (ref { coords, ... }) :: _), ... }) =
+      KM.foldri (fn (k, _, l) => k :: l) nil coords
+    | keys _ = raise Key.exn "empty keyedtesselation in keys?"
 
   fun next (K { ctr, ... }) = (ctr := !ctr + 1; !ctr)
 

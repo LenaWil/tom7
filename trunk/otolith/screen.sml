@@ -52,6 +52,16 @@ struct
                                   x1 = WIDTH - 1, y1 = HEIGHT - 1 },
                               objs = nil }
 
+  (* XXX it is weird that this has to return a new screen...
+     maybe screen should just be mutable at toplevel? *)
+  fun addrectangle { areas, objs } node (x0, y0, x1, y1) : screen =
+    let
+      val obj = Obj.rectangle node { x0 = x0, y0 = y0, x1 = x1, y1 = y1 }
+    in
+      (* Attach to other nodes? *)
+      { areas = areas, objs = obj :: objs }
+    end
+
   (* Most of the work is done by KeyedTesselation itself.
      But we need to set up a mapping between area nodes and
      stringified integers, since those are used as keys for
