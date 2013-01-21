@@ -447,8 +447,31 @@ struct
           !best_result
       end
 
-  fun gettriangle (s : keyedtesselation) (x, y) : triangle option =
-      raise Key.exn "unimplemented"
+  (* PERF With some kind of spatial data structure this could be
+     much faster. *)
+  fun gettriangle (s : keyedtesselation) (x, y) : (key * triangle) option =
+    let
+      fun findany nil = NONE
+        | findany ((tri as (N (ref { coords = coordsa, ... }),
+                            N (ref { coords = coordsb, ... }),
+                            N (ref { coords = coordsc, ... }))) :: rest) =
+        let
+          val joined = KM.intersectWith (fn (a, b) => (a, b)) (coordsa, coordsb)
+          val joined = KM.intersectWith (fn ((a, b), c) => (a, b, c))
+                                        (joined, coordsc)
+          (* PERF don't need to create the whole list.. *)
+          val l = KM.listItemsi joined
+          fun findkey nil = findany rest
+            | findkey ((k, (a, b, c)) :: more) =
+              if IntMaths.pointinside (a, b, c) (x, y)
+              then SOME (k, tri)
+              else findkey more
+        in
+          findkey l
+        end
+    in
+      findany (triangles s)
+    end
 
   structure IIM = SplayMapFn(type ord_key = IntInf.int
                              val compare = IntInf.compare)
