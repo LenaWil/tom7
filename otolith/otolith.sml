@@ -25,50 +25,6 @@ struct
   val screen : Screen.screen ref = ref (Screen.starter ())
   (* val objects : Object.object list ref = ref nil *)
 
-  val TESSELATIONLINES = Draw.mixcolor (0wx44, 0wx44, 0wx55, 0wxFF)
-  val TESSELATIONNODES = Draw.mixcolor (0wx66, 0wx66, 0wx77, 0wxFF)
-
-  val TESSELATIONSEGMENT = Vector.fromList [TESSELATIONLINES,
-                                            0w0]
-
-  structure AEM = Areas.EM
-  fun drawareas () =
-      let
-          val s = Screen.areas (!screen)
-          val triangles = Areas.triangles s
-          val nodes = Areas.nodes s
-
-          (* Edges can appear in two triangles. Don't draw them twice. *)
-          val drawn : unit AEM.map ref = ref AEM.empty
-
-          fun drawnode n =
-              let val (x, y) = Areas.N.coords n ()
-              in Draw.drawcircle (pixels, x, y, 2, TESSELATIONNODES)
-              end
-
-          fun drawline (a, b) =
-              case AEM.find (!drawn, (a, b)) of
-                  SOME () => ()
-                | NONE =>
-              let val (x0, y0) = Areas.N.coords a ()
-                  val (x1, y1) = Areas.N.coords b ()
-              in
-                  Draw.drawlinewith (pixels, x0, y0, x1, y1, TESSELATIONSEGMENT);
-                  drawn := AEM.insert (!drawn, (a, b), ())
-              end
-
-          fun drawtriangle t =
-              let val (a, b, c) = Areas.T.nodes t
-              in
-                  drawline (a, b);
-                  drawline (b, c);
-                  drawline (c, a)
-              end
-      in
-          app drawtriangle triangles;
-          app drawnode nodes
-      end
-
   (* Always in game pixels. The event loop scales down x,y before
      calling any of these functions. *)
   val mousex = ref 0
@@ -79,6 +35,19 @@ struct
   val mousedown = ref false
   val draggingnode = ref NONE : Areas.node option ref
   val frozennode = ref NONE : Areas.node option ref
+
+  (* XXX should probably make it more configurable than this,
+     like allow dragging a box or entering some kind of triangle
+     strip clicking thing... *)
+  fun addobject node =
+    let
+      val (x0, y0) = (Int.min(!mousex, WIDTH - 25),
+                      Int.min(!mousey, WIDTH - 25))
+      val (x1, y1) = (x0 + 20, y0 + 20)
+    in
+      eprint "Add object..";
+      screen := Screen.addrectangle (!screen) node (x0, y0, x1, y1)
+    end
 
   val MOUSECIRCLE = Draw.mixcolor (0wxFF, 0wxAA, 0wx33, 0wxFF)
   val CLOSESTCIRCLE = Draw.mixcolor (0wx44, 0wx44, 0wx44, 0wxFF)
@@ -170,6 +139,12 @@ struct
       (holdingcontrol := true;
        updatecursor ())
 
+    (* Need much better keys... *)
+    | keydown SDL.SDLK_o =
+      (case !frozennode of
+         NONE => eprint "Freeze a node with ctrl-click first."
+       | SOME node => addobject node)
+
     | keydown _ = ()
 
   fun keyup SDL.SDLK_LSHIFT =
@@ -231,7 +206,8 @@ struct
           val () = events ()
 
           val () = Draw.randomize_loud pixels
-          val () = drawareas ()
+          val () = Render.drawareas (pixels, Screen.areas (!screen))
+          val () = Render.drawobjects (pixels, !screen)
           val () = drawareaindicators ()
           (* val () = Draw.scanline_postfilter pixels *)
           val () = Draw.mixpixel_postfilter 0.25 0.8 pixels

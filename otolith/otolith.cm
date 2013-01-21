@@ -38,4 +38,7 @@ group is
  draw-sig.sml
  draw.sml
 
+ render-sig.sml
+ render.sml
+
  otolith.sml

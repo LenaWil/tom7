@@ -85,6 +85,9 @@ sig
   val getnodewithin : keyedtesselation -> key -> int * int -> int ->
                       node option
 
+  (* Get all of the keys. *)
+  val keys : keyedtesselation -> key list
+
   (* Convert to the serialization format. These are somewhat fancy
      because the key may be nontrivial. For example, when deserializing
      an object keyed by some other tesselation's nodes, the string to
