@@ -19,6 +19,12 @@ sig
   (* drawcircle (pixels, x0, y0, radius, color) *)
   val drawcircle : Word32.word Array.array * int * int * int * Word32.word -> unit
 
+  val blit : { dest : int * int * Word32.word Array.array,
+               src : Images.image,
+               srcrect : { x: int, y: int, width: int, height: int } option,
+               dstx : int,
+               dsty : int } -> unit
+
   (* Draws low-level noise background *)
   val randomize : Word32.word Array.array -> unit
 

@@ -209,7 +209,15 @@ struct
           val () = Render.drawareas (pixels, Screen.areas (!screen))
           val () = Render.drawobjects (pixels, !screen)
           val () = drawareaindicators ()
-          (* val () = Draw.scanline_postfilter pixels *)
+
+          (* test... *)
+          val () = Draw.blit { dest = (WIDTH, HEIGHT, pixels),
+                               src = Images.testcursor,
+                               srcrect = NONE,
+                               dstx = !mousex,
+                               dsty = !mousey }
+
+          val () = Draw.scanline_postfilter pixels
           val () = Draw.mixpixel_postfilter 0.25 0.8 pixels
           val () = fillscreen pixels
           val () = ctr := !ctr + 1

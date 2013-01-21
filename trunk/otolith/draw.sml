@@ -370,4 +370,70 @@ struct
           end))
     end
 
+  fun blit { dest = (dwidth, dheight, dpixels),
+             src = (iwidth, iheight, ipixels),
+             srcrect : { x: int, y: int, width: int, height: int } option,
+             dstx : int,
+             dsty : int } : unit =
+    let
+      val { x = srcx, y = srcy, width = swidth, height = sheight } =
+        case srcrect of
+          NONE => { x = 0, y = 0, width = iwidth, height = iheight }
+        (* XXX could clip src rectangle *)
+        | SOME r => r
+
+      (* if dstx,dsty puts any of the image outside the
+         destination pixels, clip the source rectangle. *)
+
+      (* If destination is off left or top, increase source (note dst
+         is then negative, so subtract) and reduce size *)
+      val (dstx, srcx, swidth) =
+        if dstx < 0
+        then (0, srcx - dstx, swidth + dstx)
+        else (dstx, srcx, swidth)
+      val (dsty, srcy, sheight) =
+        if dsty < 0
+        then (0, srcy - dsty, sheight + dsty)
+        else (dsty, srcy, sheight)
+
+      val swidth =
+        let val overx = dwidth - (dstx + swidth)
+        in
+            if overx < 0
+            then swidth + overx
+            else swidth
+        end
+
+      val sheight =
+        let val overy = dheight - (dsty + sheight)
+        in
+            if overy < 0
+            then sheight + overy
+            else sheight
+        end
+
+    in
+      if swidth <= 0 orelse sheight <= 0
+      then () (* Completely clipped out. *)
+      else
+      Util.for 0 (sheight - 1)
+      (fn y =>
+       let val sy = srcy + y
+           val dy = dsty + y
+       in
+         Util.for 0 (swidth - 1)
+         (fn x =>
+          let
+            val sx = srcx + x
+            val dx = dstx + x
+            val c = Array.sub (ipixels, sy * iwidth + sx)
+          in
+            if Word32.andb (0wxFF000000, c) = 0w0
+            then () (* completely transparent -- don't draw *)
+            else Array.update (dpixels, dy * dwidth + dx, c)
+          end)
+       end)
+    end
+
+
 end

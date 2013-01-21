@@ -29,6 +29,8 @@ group is
 
  constants.sml
 
+ images.sml
+
  keyed-tesselation-sig.sml
  keyed-tesselation.sml
 
