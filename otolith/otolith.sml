@@ -62,8 +62,8 @@ struct
       in
           Draw.drawcircle (pixels, !mousex, !mousey, 5, MOUSECIRCLE);
           Draw.drawcircle (pixels, x, y, 3, CLOSESTCIRCLE);
-          Draw.drawtext (pixels, Font.pxfont, x - 13, y - 11,
-                         "+shift");
+          Draw.drawtextcolor (pixels, Font.pxfont, CLOSESTCIRCLE,
+                              x - 13, y - 11, "+shift");
           (case !draggingnode of
                NONE => ()
              | SOME n =>
