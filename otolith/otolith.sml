@@ -33,7 +33,12 @@ struct
   val holdingcontrol = ref false
 
   val mousedown = ref false
-  val draggingnode = ref NONE : Areas.node option ref
+
+  datatype anynode =
+      AreasNode of Areas.node
+    | ObjNode of Screen.obj * Obj.node
+
+  val draggingnode = ref NONE : anynode option ref
   val frozennode = ref NONE : Areas.node option ref
 
   (* XXX should probably make it more configurable than this,
@@ -154,7 +159,7 @@ struct
                        NONE => ()
                      | SOME n =>
                          let in
-                           draggingnode := SOME n;
+                           draggingnode := SOME (AreasNode n);
                            ignore (Areas.N.trymove n () (x, y))
                          end
                    else ())
@@ -168,14 +173,22 @@ struct
       else
         (* No modifiers. *)
 
+        (* We drag object nodes if an areas node is frozen. Otherwise we
+           drag areas nodes. *)
         case !frozennode of
-          (* XXX TODO: drag object nodes if frozen. *)
-          SOME key => ([], ignore)
+          SOME key =>
+            (case Screen.objectclosestnodewithin
+                  (Screen.objs (!screen)) key (x, y) 5 of
+               NONE => ([], ignore)
+             | SOME (obj, node) =>
+                 ([Text (ACTIONTEXTHI, x - 13, y - 11, "drag")],
+                  fn () => draggingnode := SOME (ObjNode (obj, node))))
+
         | NONE =>
             (case Areas.getnodewithin (Screen.areas (!screen)) () (x, y) 5 of
                NONE => ([], ignore)
              | SOME node => ([Text (ACTIONTEXTHI, x - 13, y - 11, "drag")],
-                              fn () => draggingnode := SOME node))
+                              fn () => draggingnode := SOME (AreasNode node)))
 
   (* XXX wrong name / organization *)
   fun drawareaindicators () =
@@ -191,16 +204,6 @@ struct
       else let val (decorations, _) = get_lmb_actions (!mousex, !mousey)
            in app drawdecoration decorations
            end;
-
-      (*
-      (case !draggingnode of
-           NONE => ()
-         | SOME n =>
-               let val (nx, ny) = Areas.N.coords n ()
-               in
-                   Draw.drawcircle (pixels, nx, ny, 6, DRAGGING)
-               end);
-      *)
 
       (case !frozennode of
            NONE => ()
@@ -228,10 +231,14 @@ struct
            | IO.Io _ => ()
 
   fun mousemotion (x, y) =
-      (* XXX should case on what kinda node it is..? *)
-      case !draggingnode of
-          NONE => ()
-        | SOME n => ignore (Areas.N.trymove n () (x, y))
+    (* XXX should case on what kinda node it is..? *)
+    case !draggingnode of
+      NONE => ()
+    | SOME (AreasNode n) => ignore (Areas.N.trymove n () (x, y))
+    | SOME (ObjNode (obj, n)) =>
+        (case !frozennode of
+           NONE => eprint "Can't move object node without frozen node"
+         | SOME key => ignore (Obj.N.trymove n key (x, y)))
 
   (* The work is done by get_lmb_actions so that the indicators
      and actions are in sync. Here we just apply the action function. *)
