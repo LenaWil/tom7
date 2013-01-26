@@ -138,4 +138,16 @@ struct
       bounds
     end
 
+  fun barycentric ((x1, y1), (x2, y2), (x3, y3), (x, y)) =
+    let
+      (* PERF: Note that this can be precomputed, as it doesn't depend
+         on x,y. *)
+      val determinant = real ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3))
+      val lambda1 = real ((y2 - y3) * (x - x3) + (x3 - x2) * (y - y3)) / determinant
+      val lambda2 = real ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / determinant
+      val lambda3 = 1.0 - lambda1 - lambda2
+    in
+      (lambda1, lambda2, lambda3)
+    end
+
 end

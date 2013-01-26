@@ -27,4 +27,10 @@ sig
   val trianglebounds : point * point * point ->
                        { x0 : int, y0 : int, x1 : int, y1 : int }
 
+  (* barycentric (a, b, c, pt)
+     Returns the barycentric coordinates of pt using the
+     triangle abc. *)
+  val barycentric : point * point * point * point ->
+                    real * real * real
+
 end
