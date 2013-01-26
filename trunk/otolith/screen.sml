@@ -62,6 +62,38 @@ struct
      | SOME (k, _) => SOME (obj, k))
     objs
 
+  (* Return the closest node (and object) within the given distance from
+     (x, y), using the configuration key. In the case of ties, the first
+     object in the list is returned; the order among nodes that are the
+     same distance is arbitrary, however. *)
+  fun objectclosestnodewithin (objs : obj list) (key : Obj.key) (x, y) dist =
+    let
+      val closest = ref NONE
+      fun closer d =
+        case !closest of
+          NONE => true
+        | SOME (dd, _, _) => d < dd
+
+      fun oneobject obj =
+        if Obj.iskey obj key
+        then
+          case Obj.getnodewithin obj key (x, y) dist of
+            NONE => ()
+          | SOME n =>
+              let
+                val (xx, yy) = Obj.N.coords n key
+                val d = IntMaths.distance_squared ((x, y), (xx, yy))
+              in
+                if closer d
+                then closest := SOME (d, obj, n)
+                else ()
+              end
+        else ()
+    in
+      app oneobject objs;
+      Option.map (fn (_, b, c) => (b, c)) (!closest)
+    end
+
   (* XXX it is weird that this has to return a new screen...
      maybe screen should just be mutable at toplevel? *)
   fun addrectangle { areas, objs } node (x0, y0, x1, y1) : screen =
