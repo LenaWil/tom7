@@ -25,6 +25,7 @@ struct
 
   val pxfont = loadimage "pxfont.png"
 
-  val testcursor = loadimage "testcursor.png"
+  (* val testcursor = loadimage "testcursor.png" *)
+  val tinymouse = loadimage "tinymouse.png"
 
 end

@@ -141,6 +141,7 @@ sig
     val trymove : node -> key -> int * int -> int * int
 
     val compare : node * node -> order
+    val eq : node * node -> bool
   end
 
 end
