@@ -84,13 +84,8 @@ struct
       app drawtriangle (Areas.triangles s)
     end
 
-  (* XXX it makes sense to have a large set of colors for different
-     configurations, especially *)
-  val OBJECTLINES = Draw.mixcolor (0wx44, 0wx44, 0wx55, 0wxFF)
-  val ACTIVEOBJECTLINES = Draw.mixcolor (0wxAA, 0wxAA, 0wxAA, 0wxFF)
 
   val OBJECTNODES = Draw.mixcolor (0wx66, 0wx66, 0wx77, 0wxFF)
-
 
   val LINKLINES = Draw.mixcolor (0wx44, 0wx11, 0wx11, 0wxFF)
   val LINKSEGMENT = Vector.fromList [LINKLINES, 0w0, 0w0]
@@ -104,8 +99,12 @@ struct
      the node that is associated with that configuration. *)
   structure OEM = Obj.EM
   fun drawobjectall (pixels, screen : Screen.screen,
-                     frozen : Areas.node option, obj : Screen.obj) : unit =
+                     frozen : Areas.node option, obj : Screen.obj,
+                     color) : unit =
     let
+      (* Mix 50% with black to darken. *)
+      val darkcolor = Draw.blendtwocolors (Draw.hexcolor 0w0, color)
+
       val triangles = Obj.triangles obj
       val nodes = Obj.nodes obj
       val keys = Obj.keys obj
@@ -147,8 +146,8 @@ struct
                         val (x1, y1) = Obj.N.coords b k
                         val objectlines =
                           if isfrozen k
-                          then ACTIVEOBJECTLINES
-                          else OBJECTLINES
+                          then color
+                          else darkcolor
                     in
                         Draw.drawline (pixels, x0, y0, x1, y1, objectlines)
                     end) keys)
@@ -168,11 +167,22 @@ struct
     end
 
   (* XXX allow one to be the focus. Draw in different colors, etc. *)
+  val objectcolors = Vector.fromList
+    [Draw.hexcolor 0wx5191fb,
+     Draw.hexcolor 0wx51fbe6,
+     Draw.hexcolor 0wx51fb5d,
+     Draw.hexcolor 0wxfbf951,
+     Draw.hexcolor 0wxfba151,
+     Draw.hexcolor 0wxfb5151,
+     Draw.hexcolor 0wxfb51b1]
+
   fun drawobjects (pixels, screen as { areas, objs }, frozen) =
     let
-      fun oneobject obj = drawobjectall (pixels, screen, frozen, obj)
+      fun oneobject (obj, i) =
+        drawobjectall (pixels, screen, frozen, obj,
+                       Vector.sub (objectcolors, i mod Vector.length objectcolors))
     in
-      app oneobject objs
+      ListUtil.appi oneobject objs
     end
 
 end

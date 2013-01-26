@@ -9,13 +9,37 @@ struct
 
   local
       val orb = Word32.orb
-      infix orb
+      val >> = Word32.>>
+      val & = Word32.andb
+      infix orb & >>
   in
       fun mixcolor (r, g, b, a) =
           Word32.<< (a, 0w24) orb
           Word32.<< (r, 0w16) orb
           Word32.<< (g, 0w8) orb
           b
+
+      fun hexcolor w = mixcolor ((w >> 0w16) & 0wxFF,
+                                 (w >> 0w8) & 0wxFF,
+                                 w & 0wxFF,
+                                 0wxFF)
+
+      fun unmixcolor w =
+        ((w >> 0w16) & 0wxFF,
+         (w >> 0w8) & 0wxFF,
+         w & 0wxFF,
+         (w >> 0w24) & 0wxFF)
+
+      fun blendtwocolors (w, ww) =
+        let
+          val (r, g, b, _) = unmixcolor w
+          val (rr, gg, bb, _) = unmixcolor ww
+        in
+          mixcolor ((r >> 0w1) + (rr >> 0w1),
+                    (g >> 0w1) + (gg >> 0w1),
+                    (b >> 0w1) + (bb >> 0w1),
+                    0wxFF)
+        end
   end
 
   local
