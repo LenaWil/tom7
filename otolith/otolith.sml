@@ -91,35 +91,93 @@ struct
       else NONE
     end
 
-  fun drawsplitpoint () =
-    (* Only if there is no draggable node, and an edge close enough. *)
-    case (Areas.getnodewithin (Screen.areas (!screen)) ()
-              (!mousex, !mousey) DRAG_DISTANCE,
-          closestedgewithin SPLIT_DISTANCE) of
-      (NONE, SOME (_, _, x, y)) =>
-        let in
-          Draw.drawcircle (pixels, x, y, 3, CLOSESTCIRCLE);
-          Draw.drawtextcolor (pixels, Font.pxfont,
-                              if !holdingshift
-                              then ACTIONTEXTHI
-                              else CLOSESTCIRCLE,
-                              x - 13, y - 11, "+shift")
-        end
-    | _ => ()
+  datatype decoration =
+    (* x, y, radius, color *)
+      Circle of int * int * int * Word32.word
+    (* color, x, y, text *)
+    | Text of Word32.word * int * int * string
 
-  fun drawnearbynode () =
-    case Areas.getnodewithin (Screen.areas (!screen)) () (!mousex, !mousey) 5 of
-      NONE => ()
-    | SOME node =>
-        let val (nx, ny) = Areas.N.coords node ()
+  fun drawdecoration (Circle (x, y, r, c)) =
+    Draw.drawcircle (pixels, x, y, r, c)
+    | drawdecoration (Text (c, x, y, s)) =
+    Draw.drawtextcolor (pixels, Font.pxfont, c, x, y, s)
+
+  (* Returns the actions that are possible based on the current
+     mouse position and state. The actions can either be taken (by
+     running the function) or drawn (by interpreting the data structure). *)
+  fun get_lmb_actions (x, y) =
+    (* If we're holding control, then the only thing we can do is
+       freeze/unfreeze areas nodes. *)
+    if !holdingcontrol
+    then
+        let
+          fun disequal (old, new) =
+            let
+              val ot = case old of
+                SOME n => let val (x, y) = Areas.N.coords n ()
+                          in [Text (ACTIONTEXTHI, x - 18, y - 14, "Unfreeze")]
+                          end
+              | NONE => []
+              val nt = case new of
+                SOME n => let val (x, y) = Areas.N.coords n ()
+                          in [Text (ACTIONTEXTHI, x - 18, y - 11, "Freeze")]
+                          end
+              | NONE => []
+            in
+              (ot @ nt, (fn () => frozennode := new))
+            end
         in
-          if !holdingcontrol andalso not (Option.isSome (!draggingnode))
-          then Draw.drawtextcolor (pixels, Font.pxfont, ACTIONTEXTHI,
-                                   nx - 18, ny - 11, "freeze")
-          else Draw.drawtextcolor (pixels, Font.pxfont, ACTIONTEXT,
-                                   nx - 13, ny - 11, "drag")
+          case (!frozennode,
+                Areas.getnodewithin
+                (Screen.areas (!screen)) () (x, y) 5) of
+              (SOME n, SOME nn) => if EQUAL = Areas.N.compare (n, nn)
+                                   then ([], ignore)
+                                   else disequal (SOME n, SOME nn)
+            | (NONE, NONE) => ([], ignore)
+            | (old, new) => disequal (old, new)
         end
 
+      else if !holdingshift
+      then
+        case !frozennode of
+          SOME key => ([], ignore) (* XXX allow splitting and dragging objects too. *)
+        | NONE =>
+          case (Areas.getnodewithin (Screen.areas (!screen)) ()
+                (!mousex, !mousey) DRAG_DISTANCE,
+                closestedgewithin SPLIT_DISTANCE) of
+            (NONE, SOME (_, _, x, y)) =>
+              let
+                fun split () =
+                  (if Option.isSome (closestedgewithin SPLIT_DISTANCE)
+                   then
+                     case Areas.splitedge (Screen.areas (!screen)) () (x, y) of
+                       NONE => ()
+                     | SOME n =>
+                         let in
+                           draggingnode := SOME n;
+                           ignore (Areas.N.trymove n () (x, y))
+                         end
+                   else ())
+              in
+                ([Circle (x, y, 3, CLOSESTCIRCLE),
+                  Text (ACTIONTEXTHI, x - 13, y - 11, "add")],
+                 split)
+              end
+          | _ => ([], ignore)
+
+      else
+        (* No modifiers. *)
+
+        case !frozennode of
+          (* XXX TODO: drag object nodes if frozen. *)
+          SOME key => ([], ignore)
+        | NONE =>
+            (case Areas.getnodewithin (Screen.areas (!screen)) () (x, y) 5 of
+               NONE => ([], ignore)
+             | SOME node => ([Text (ACTIONTEXTHI, x - 13, y - 11, "drag")],
+                              fn () => draggingnode := SOME node))
+
+  (* XXX wrong name / organization *)
   fun drawareaindicators () =
     let
 
@@ -128,8 +186,11 @@ struct
       then Draw.drawcircle (pixels, !mousex, !mousey, 5, MOUSECIRCLE)
       else ();
 
-      drawsplitpoint ();
-      drawnearbynode ();
+      if !mousedown
+      then ()
+      else let val (decorations, _) = get_lmb_actions (!mousex, !mousey)
+           in app drawdecoration decorations
+           end;
 
       (*
       (case !draggingnode of
@@ -172,23 +233,12 @@ struct
           NONE => ()
         | SOME n => ignore (Areas.N.trymove n () (x, y))
 
+  (* The work is done by get_lmb_actions so that the indicators
+     and actions are in sync. Here we just apply the action function. *)
   fun leftmouse (x, y) =
-      (* Only areas nodes. *)
-      if !holdingcontrol
-      then frozennode := Areas.getnodewithin (Screen.areas (!screen)) () (x, y) 5
-
-      (* XXX allow splitting and dragging objects *)
-      else if !holdingshift
-      then
-        (if Option.isSome (closestedgewithin SPLIT_DISTANCE)
-         then (case Areas.splitedge (Screen.areas (!screen)) () (x, y) of
-                 NONE => ()
-               | SOME n => ((* Tesselation.check (!tesselation); *)
-                            draggingnode := SOME n;
-                            ignore (Areas.N.trymove n () (x, y))))
-         else ())
-
-      else draggingnode := Areas.getnodewithin (Screen.areas (!screen)) () (x, y) 5
+    let val (_, action) = get_lmb_actions (x, y)
+    in action ()
+    end
 
   fun leftmouseup (x, y) = draggingnode := NONE
 
@@ -286,12 +336,12 @@ struct
           val () = Draw.randomize_loud pixels
           (* val () = Render.drawareacolors (pixels, Screen.areas (!screen)) *)
           val () = Render.drawareas (pixels, Screen.areas (!screen))
-          val () = Render.drawobjects (pixels, !screen)
+          val () = Render.drawobjects (pixels, !screen, !frozennode)
           val () = drawareaindicators ()
 
           (* test... *)
           val () = Draw.blit { dest = (WIDTH, HEIGHT, pixels),
-                               src = Images.testcursor,
+                               src = Images.tinymouse,
                                srcrect = NONE,
                                dstx = !mousex,
                                dsty = !mousey }

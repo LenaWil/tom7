@@ -87,21 +87,33 @@ struct
   (* XXX it makes sense to have a large set of colors for different
      configurations, especially *)
   val OBJECTLINES = Draw.mixcolor (0wx44, 0wx44, 0wx55, 0wxFF)
+  val ACTIVEOBJECTLINES = Draw.mixcolor (0wxAA, 0wxAA, 0wxAA, 0wxFF)
+
   val OBJECTNODES = Draw.mixcolor (0wx66, 0wx66, 0wx77, 0wxFF)
-  (* val OBJECTSEGMENT = Vector.fromList [OBJECTLINES, 0w0] *)
-  val CONFIGLINES = Draw.mixcolor (0wx66, 0wx22, 0wx22, 0wxFF)
-  val CONFIGSEGMENT = Vector.fromList [CONFIGLINES, 0w0, 0w0]
+
+
+  val LINKLINES = Draw.mixcolor (0wx44, 0wx11, 0wx11, 0wxFF)
+  val LINKSEGMENT = Vector.fromList [LINKLINES, 0w0, 0w0]
+
+  val ACTIVELINKLINES = Draw.mixcolor (0wx88, 0wx22, 0wx22, 0wxFF)
+  val ACTIVELINKSEGMENT = Vector.fromList [ACTIVELINKLINES, LINKLINES, 0w0]
 
   (* Draw an object in all its configurations.
 
      We draw a tenuous line from each configured node of the object to
      the node that is associated with that configuration. *)
   structure OEM = Obj.EM
-  fun drawobjectall (pixels, screen : Screen.screen, obj : Screen.obj) =
+  fun drawobjectall (pixels, screen : Screen.screen,
+                     frozen : Areas.node option, obj : Screen.obj) : unit =
     let
       val triangles = Obj.triangles obj
       val nodes = Obj.nodes obj
       val keys = Obj.keys obj
+
+      fun isfrozen k =
+        case frozen of
+          NONE => false
+        | SOME kk => EQUAL = Areas.N.compare (k, kk)
 
       (* Edges can appear in two triangles. Don't draw them twice. *)
       val drawn : unit OEM.map ref = ref OEM.empty
@@ -112,11 +124,18 @@ struct
                  (* So that we can draw a line to the configuring node
                     in the areas *)
                  val (cx, cy) = Areas.N.coords k ()
+
+                 val linksegment =
+                   if isfrozen k
+                   then ACTIVELINKSEGMENT
+                   else LINKSEGMENT
              in
-                 Draw.drawlinewith (pixels, cx, cy, x, y, CONFIGSEGMENT);
+                 Draw.drawlinewith (pixels, cx, cy, x, y, linksegment);
                  Draw.drawcircle (pixels, x, y, 2, OBJECTNODES)
              end) keys
 
+      (* XXX should draw frozen key last, because otherwise we may
+         draw dim lines over it. *)
       fun drawline (a, b) =
         case OEM.find (!drawn, (a, b)) of
             SOME () => ()
@@ -126,8 +145,12 @@ struct
               (app (fn k =>
                     let val (x0, y0) = Obj.N.coords a k
                         val (x1, y1) = Obj.N.coords b k
+                        val objectlines =
+                          if isfrozen k
+                          then ACTIVEOBJECTLINES
+                          else OBJECTLINES
                     in
-                        Draw.drawline (pixels, x0, y0, x1, y1, OBJECTLINES)
+                        Draw.drawline (pixels, x0, y0, x1, y1, objectlines)
                     end) keys)
             end
 
@@ -145,9 +168,9 @@ struct
     end
 
   (* XXX allow one to be the focus. Draw in different colors, etc. *)
-  fun drawobjects (pixels, screen as { areas, objs }) =
+  fun drawobjects (pixels, screen as { areas, objs }, frozen) =
     let
-      fun oneobject obj = drawobjectall (pixels, screen, obj)
+      fun oneobject obj = drawobjectall (pixels, screen, frozen, obj)
     in
       app oneobject objs
     end
