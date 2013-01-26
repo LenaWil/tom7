@@ -4,6 +4,16 @@ sig
   (* mixcolor (r, g, b, a) *)
   val mixcolor : Word32.word * Word32.word * Word32.word * Word32.word -> Word32.word
 
+  (* returns (r, g, b, a) *)
+  val unmixcolor : Word32.word ->
+                   Word32.word * Word32.word * Word32.word * Word32.word
+
+  (* as 0xRRGGBB, assuming 100% alpha *)
+  val hexcolor : Word32.word -> Word32.word
+
+  (* 50% blend, assumes 100% alpha. *)
+  val blendtwocolors : Word32.word * Word32.word -> Word32.word
+
   (* drawline (pixels, x0, y0, x1, y1, color) *)
   val drawline : Word32.word Array.array * int * int * int * int * Word32.word -> unit
 
