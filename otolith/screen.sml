@@ -135,13 +135,13 @@ struct
      But we need to set up a mapping between area nodes and
      stringified integers, since those are used as keys for
      coordinates in the objs. *)
-  fun toworld { areas, objs } : WorldTF.screen =
+  fun totf { areas, objs } : WorldTF.screen =
     let
-      val (areas, getid) = Areas.toworld (fn () => "") areas
+      val (areas, getid) = Areas.totf (fn () => "") areas
       fun serializekey n = Int.toString (getid n)
 
       fun oneobj obj =
-          let val (kt, _) = Obj.toworld serializekey obj
+          let val (kt, _) = Obj.totf serializekey obj
           in kt
           end
     in
@@ -149,17 +149,17 @@ struct
                   objs = map oneobj objs }
     end
 
-  fun fromworld (WorldTF.S { areas, objs }) : screen =
+  fun fromtf (WorldTF.S { areas, objs }) : screen =
     let
       fun checkkey "" = SOME ()
         | checkkey _ = NONE
-      val (areas, getnode) = Areas.fromworld checkkey areas
+      val (areas, getnode) = Areas.fromtf checkkey areas
 
       fun deserializekey s =
           Option.map getnode (Int.fromString s)
 
       fun oneobj obj =
-        let val (kt, _) = Obj.fromworld deserializekey obj
+        let val (kt, _) = Obj.fromtf deserializekey obj
         in kt
         end
     in

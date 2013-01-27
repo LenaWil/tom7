@@ -69,17 +69,17 @@ struct
   fun drawareacolors (pixels, s : Screen.areas) =
     let
       fun drawtriangle t =
-          let
-            val (a, b, c) = Areas.T.nodes t
-            val a = Areas.N.coords a ()
-            val b = Areas.N.coords b ()
-            val c = Areas.N.coords c ()
-          in
-            filltriangle (pixels,
-                          (a, b, c),
-                          Draw.mixcolor (byte32 (), byte32 (), byte32 (),
-                                         0wxFF))
-          end
+        let
+          val (a, b, c) = Areas.T.nodes t
+          val a = Areas.N.coords a ()
+          val b = Areas.N.coords b ()
+          val c = Areas.N.coords c ()
+        in
+          filltriangle (pixels,
+                        (a, b, c),
+                        Draw.mixcolor (byte32 (), byte32 (), byte32 (),
+                                       0wxFF))
+        end
     in
       app drawtriangle (Areas.triangles s)
     end
@@ -119,18 +119,19 @@ struct
 
       fun drawnode n =
         app (fn k =>
-             let val (x, y) = Obj.N.coords n k
-                 (* So that we can draw a line to the configuring node
-                    in the areas *)
-                 val (cx, cy) = Areas.N.coords k ()
+             let
+               val (x, y) = Obj.N.coords n k
+               (* So that we can draw a line to the configuring node
+                  in the areas *)
+               val (cx, cy) = Areas.N.coords k ()
 
-                 val linksegment =
-                   if isfrozen k
-                   then ACTIVELINKSEGMENT
-                   else LINKSEGMENT
+               val linksegment =
+                 if isfrozen k
+                 then ACTIVELINKSEGMENT
+                 else LINKSEGMENT
              in
-                 Draw.drawlinewith (pixels, cx, cy, x, y, linksegment);
-                 Draw.drawcircle (pixels, x, y, 2, OBJECTNODES)
+               Draw.drawlinewith (pixels, cx, cy, x, y, linksegment);
+               Draw.drawcircle (pixels, x, y, 2, OBJECTNODES)
              end) keys
 
       (* XXX should draw frozen key last, because otherwise we may
@@ -142,28 +143,29 @@ struct
             let in
               drawn := OEM.insert (!drawn, (a, b), ());
               (app (fn k =>
-                    let val (x0, y0) = Obj.N.coords a k
-                        val (x1, y1) = Obj.N.coords b k
-                        val objectlines =
-                          if isfrozen k
-                          then color
-                          else darkcolor
+                    let
+                      val (x0, y0) = Obj.N.coords a k
+                      val (x1, y1) = Obj.N.coords b k
+                      val objectlines =
+                        if isfrozen k
+                        then color
+                        else darkcolor
                     in
-                        Draw.drawline (pixels, x0, y0, x1, y1, objectlines)
+                      Draw.drawline (pixels, x0, y0, x1, y1, objectlines)
                     end) keys)
             end
 
       fun drawtriangle t =
         let val (a, b, c) = Obj.T.nodes t
         in
-            drawline (a, b);
-            drawline (b, c);
-            drawline (c, a)
+          drawline (a, b);
+          drawline (b, c);
+          drawline (c, a)
         end
 
     in
-        app drawtriangle triangles;
-        app drawnode nodes
+      app drawtriangle triangles;
+      app drawnode nodes
     end
 
   (* XXX allow one to be the focus. Draw in different colors, etc. *)
