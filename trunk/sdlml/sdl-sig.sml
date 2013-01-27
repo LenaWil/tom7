@@ -371,6 +371,7 @@ sig
   (* Get a copy of the raw pixels from the surface. Returns width,
      height, and then width * height * 4 RGBA bytes. *)
   val pixels    : surface -> int * int * Word8.word array
+  val pixels32  : surface -> int * int * Word32.word array
   (* Does the opposite. Allocates a new surface. *)
   val unpixels  : int * int * Word8.word array -> surface
 
