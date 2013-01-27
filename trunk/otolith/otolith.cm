@@ -41,6 +41,9 @@ group is
  screen-sig.sml
  screen.sml
 
+ world-sig.sml
+ world.sml
+
  draw-sig.sml
  draw.sml
 

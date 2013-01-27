@@ -339,10 +339,10 @@ struct
 
   (* XXX into Screen stuff *)
   fun savetodisk () =
-    WorldTF.S.tofile WORLDFILE (Screen.toworld (!screen))
+    WorldTF.S.tofile WORLDFILE (Screen.totf (!screen))
 
   fun loadfromdisk () =
-    screen := Screen.fromworld (WorldTF.S.fromfile WORLDFILE)
+    screen := Screen.fromtf (WorldTF.S.fromfile WORLDFILE)
     handle Screen.Screen s =>
              eprint ("Error loading " ^ WORLDFILE ^ ": " ^ s ^ "\n")
            | WorldTF.Parse s =>
@@ -497,10 +497,12 @@ struct
       handle Quit => ()
            | e =>
           let in
-              (case e of
-                   Screen.Screen s => eprint ("Screen: " ^ s)
-                 | _ => ());
+            (case e of
+               Screen.Screen s => eprint ("Screen: " ^ s)
+             | World.World s => eprint ("World: " ^ s)
+             | Constants.Impossible s => eprint ("Impossible: " ^ s)
+             | _ => ());
 
-              app eprint (MLton.Exn.history e)
+            app eprint (MLton.Exn.history e)
           end
 end

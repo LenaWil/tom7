@@ -22,3 +22,8 @@ message S (screen) =
   (* Keyed by IDs of nodes in the areas. *)
   field objs : keyedtesselation list
     hint vertical
+
+message W (world) =
+  (* x,y, data. No screen may appear more than once.
+     The matrix may be sparse. *)
+  field screens : (int * int * screen) list
