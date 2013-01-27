@@ -96,6 +96,14 @@ struct
       else NONE
     end
 
+  fun closestobjectedgewithin (x, y) key dist =
+    case Screen.closestobjectedge (Screen.objs (!screen)) key (x, y) of
+      NONE => NONE
+    | SOME (obj, n1, n2, nx, ny) =>
+      if IntMaths.distance_squared ((x, y), (nx, ny)) <= (dist * dist)
+      then SOME (obj, n1, n2, nx, ny)
+      else NONE
+
   datatype decoration =
     (* x, y, radius, color *)
       Circle of int * int * int * Word32.word
@@ -144,8 +152,31 @@ struct
 
       else if !holdingshift
       then
+        (* XXX do we really need this prohibition against shift-clickin'
+           when there's a drag node nearby? maybe it should just suppress
+           the message? *)
         case !frozennode of
-          SOME key => ([], ignore) (* XXX allow splitting and dragging objects too. *)
+          SOME key =>
+            (case (Screen.objectclosestnodewithin
+                   (Screen.objs (!screen)) key (x, y) 5,
+                   closestobjectedgewithin (x, y) key SPLIT_DISTANCE) of
+               (NONE, SOME (obj, _, _, x, y)) =>
+                 let
+                   fun split () =
+                     case Obj.splitedge obj key (x, y) of
+                       NONE => ()
+                     | SOME n =>
+                         let in
+                           draggingnode := SOME (ObjNode (obj, n));
+                           ignore (Obj.N.trymove n key (x, y))
+                         end
+                 in
+                   ([Circle (x, y, 3, CLOSESTCIRCLE),
+                     Text (ACTIONTEXTHI, x - 13, y - 11, "add")],
+                    split)
+                 end
+             | _ => ([], ignore))
+
         | NONE =>
           case (Areas.getnodewithin (Screen.areas (!screen)) ()
                 (!mousex, !mousey) DRAG_DISTANCE,
@@ -153,16 +184,13 @@ struct
             (NONE, SOME (_, _, x, y)) =>
               let
                 fun split () =
-                  (if Option.isSome (closestedgewithin SPLIT_DISTANCE)
-                   then
-                     case Areas.splitedge (Screen.areas (!screen)) () (x, y) of
-                       NONE => ()
-                     | SOME n =>
-                         let in
-                           draggingnode := SOME (AreasNode n);
-                           ignore (Areas.N.trymove n () (x, y))
-                         end
-                   else ())
+                  case Areas.splitedge (Screen.areas (!screen)) () (x, y) of
+                    NONE => ()
+                  | SOME n =>
+                      let in
+                        draggingnode := SOME (AreasNode n);
+                        ignore (Areas.N.trymove n () (x, y))
+                      end
               in
                 ([Circle (x, y, 3, CLOSESTCIRCLE),
                   Text (ACTIONTEXTHI, x - 13, y - 11, "add")],

@@ -94,6 +94,33 @@ struct
       Option.map (fn (_, b, c) => (b, c)) (!closest)
     end
 
+  fun closestobjectedge (objs : obj list) key (x, y) =
+    let
+      (* I need to do this kind of thing a lot -- can probably be a
+         nice little utility *)
+      val closest = ref NONE
+      fun closer d =
+        case !closest of
+          NONE => true
+        | SOME (dd, _, _, _, _, _) => d < dd
+
+      fun oneobject obj =
+        if Obj.iskey obj key
+        then
+          let
+            val (n1, n2, xx, yy) = Obj.closestedge obj key (x, y)
+            val dsq = IntMaths.distance_squared ((x, y), (xx, yy))
+          in
+            if closer dsq
+            then closest := SOME (dsq, obj, n1, n2, xx, yy)
+            else ()
+          end
+        else ()
+    in
+      app oneobject objs;
+      Option.map (fn (_, obj, n1, n2, xx, yy) => (obj, n1, n2, xx, yy)) (!closest)
+    end
+
   (* XXX it is weird that this has to return a new screen...
      maybe screen should just be mutable at toplevel? *)
   fun addrectangle { areas, objs } node (x0, y0, x1, y1) : screen =
