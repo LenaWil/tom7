@@ -1330,6 +1330,19 @@ struct
           end
   end
 
+  (* n.b. imports the same function, just at a different type *)
+  local val pixels_ = _import "ml_pixels" private : ptr * Word32.word Array.array -> unit ;
+  in
+      fun pixels32 s =
+          let
+              val (w, h) = (surface_width s, surface_height s)
+              val a = Array.array (w * h, 0w0 : Word32.word)
+          in
+              pixels_ (!!s, a);
+              (w, h, a)
+          end
+  end
+
   local val unpixels_ = _import "ml_unpixels" private : ptr * Word8.word Array.array -> unit ;
   in
       fun unpixels (w, h, a) =

@@ -417,6 +417,9 @@ void ml_unpixels(SDL_Surface *surf, unsigned char * RGBA) {
   }
 }
 
+// NOTE: This function is called from ML with both
+// unsigned char *RGBA and word32 *RGBA.
+// There may be byte order issues.
 void ml_pixels(SDL_Surface *surf, unsigned char * RGBA) {
   int y, x, offset = 0;
   switch (surf->format->BytesPerPixel) {
