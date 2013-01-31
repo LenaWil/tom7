@@ -1,5 +1,13 @@
 
 local
+
+  (* Has to happen before initgame. *)
+  val () =
+    case SDL.loadbmp "icon.bmp" of
+      NONE => print "Failed to load icon...\n"
+    | SOME surf => SDL.seticon surf
+
+
   (* If you get link errors about __imp, it's probably because you
      didn't import with "private" (or "public") visibility. It seems
      the default is now to expect a DLL to provide the symbol, which
