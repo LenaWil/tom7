@@ -40,6 +40,8 @@ struct
   structure Obj = KeyedTesselation(ObjArg)
   type obj = Obj.keyedtesselation
 
+  (* XXX: Does there only need to be one screen tesselation? Why not
+     just give every object its own tesselation? *)
   type screen = { areas : areas,
                   objs : obj list }
 
@@ -166,5 +168,6 @@ struct
       { areas = areas,
         objs = map oneobj objs }
     end
+
 
 end

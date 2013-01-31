@@ -10,11 +10,11 @@ struct
                                  EQUAL => Int.compare (x, xx)
                                | ord => ord)
 
-  type world = Screen.screen IIM.map ref
+  type world = Screen.screen IIM.map
   (* val screens : Screen.screen ref IIM.map ref = ref IIM.empty *)
 
 
-  fun fromtf (WorldTF.W { screens }) =
+  fun fromtf (WorldTF.W { screens }) : world =
     let
       val w = ref IIM.empty
 
@@ -25,19 +25,47 @@ struct
                                  Int.toString x ^ ", " ^ Int.toString y)
     in
       app addscreen screens;
-      w
+      !w
     end
 
-  fun totf (ref (w : Screen.screen IIM.map)) : WorldTF.world =
+  fun totf (w : Screen.screen IIM.map) : WorldTF.world =
     WorldTF.W { screens =
                 map (fn ((x, y), s) =>
                      (x, y, Screen.totf s)) (IIM.listItemsi w) }
 
 
+  val WORLDFILE = "world.tf"
   val WORLD_WIDTH = Constants.WORLD_WIDTH
   val WORLD_HEIGHT = Constants.WORLD_HEIGHT
 
+  val world : world ref = ref IIM.empty
 
-  (* val world = *)
+  fun eprint s = TextIO.output(TextIO.stdErr, s ^ "\n")
+  fun load () =
+    world := fromtf (WorldTF.W.fromfile WORLDFILE)
+    handle Screen.Screen s =>
+             eprint ("Error loading " ^ WORLDFILE ^ ": " ^ s ^ "\n")
+           | World s =>
+             eprint ("Error loading " ^ WORLDFILE ^ ": " ^ s ^ "\n")
+           | WorldTF.Parse s =>
+             eprint ("Error parsing " ^ WORLDFILE ^ ": " ^ s ^ "\n")
+           | IO.Io _ => ()
+
+  fun save () =
+    WorldTF.W.tofile WORLDFILE (totf (!world))
+
+  fun getorcreate (x, y) =
+    case IIM.find (!world, (x, y)) of
+      NONE => (world := IIM.insert (!world, (x, y), Screen.starter ());
+               getorcreate (x, y))
+    | SOME s => s
+
+  (* Sets the screen at x,y to the argument. Returns the screen
+     since otolith keeps a copy too. *)
+  fun setscreen (x, y, s) =
+    let in
+      world := IIM.insert (!world, (x, y), s);
+      s
+    end
 
 end

@@ -109,7 +109,7 @@ struct
 
   exception Parse of string
 
-structure S = Substring
+  structure S = Substring
 
   fun readfile f =
     let val l = TextIO.openIn f
@@ -148,9 +148,12 @@ structure S = Substring
            | SOME d => s ^ dts d
     in dts head
     end
+  fun dllconcat' nil = $""
+    | dllconcat' (h :: t) = h ^^ dllconcat' t
   fun dllconcatwith' s nil = $""
     | dllconcatwith' s [e] = e
     | dllconcatwith' s (h :: t) = h ^^ $s ^^ dllconcatwith' s t
+  fun nspaces' n = CharVector.tabulate (n, fn _ => #" ")
   fun itos' i = if i < 0
                 then "-" ^ Int.toString (~i)
                 else Int.toString i
@@ -458,7 +461,7 @@ structure S = Substring
         }
     end
 
-  fun node_todll' ((N { id, coords, triangles }) : node) : dll' =
+  fun node_todll' (depth' : int, (N { id, coords, triangles }) : node) : dll' =
     $"id " ^^ $(itos' id) ^^ $" " ^^
     $"c " ^^ ($"[" ^^
                dllconcatwith' " " (List.map
@@ -475,25 +478,25 @@ structure S = Substring
                     end) triangles
             ) ^^ $"]")
 
-  and keyedtesselation_todll' ((KT { nodes }) : keyedtesselation) : dll' =
-    $"ns " ^^ ($"[" ^^
-               dllconcatwith' "\n" (List.map
-               (fn v => ($"{N " ^^ node_todll' v ^^ $"}")) nodes
+  and keyedtesselation_todll' (depth' : int, (KT { nodes }) : keyedtesselation) : dll' =
+    $"ns " ^^ ($"[\n" ^^
+               dllconcat' (List.map
+               (fn v => $(nspaces' depth') ^^ ($"{N " ^^ node_todll'(depth' + 2, v) ^^ $"}") ^^ $"\n") nodes
             ) ^^ $"]")
 
-  and screen_todll' ((S { areas, objs }) : screen) : dll' =
-    $"areas " ^^ ($"{KT " ^^ keyedtesselation_todll' areas ^^ $"}") ^^ $" " ^^
-    $"objs " ^^ ($"[" ^^
-               dllconcatwith' "\n" (List.map
-               (fn v => ($"{KT " ^^ keyedtesselation_todll' v ^^ $"}")) objs
+  and screen_todll' (depth' : int, (S { areas, objs }) : screen) : dll' =
+    $"areas " ^^ ($"{KT " ^^ keyedtesselation_todll'(depth' + 2, areas) ^^ $"}") ^^ $" " ^^
+    $"objs " ^^ ($"[\n" ^^
+               dllconcat' (List.map
+               (fn v => $(nspaces' depth') ^^ ($"{KT " ^^ keyedtesselation_todll'(depth' + 2, v) ^^ $"}") ^^ $"\n") objs
             ) ^^ $"]")
 
-  and world_todll' ((W { screens }) : world) : dll' =
+  and world_todll' (depth' : int, (W { screens }) : world) : dll' =
     $"screens " ^^ ($"[" ^^
                dllconcatwith' " " (List.map
                (fn v => let val (f0', f1', f2') = v
                     in
-                      $"[" ^^ $(itos' f0') ^^ $" " ^^ $(itos' f1') ^^ $" " ^^ ($"{S " ^^ screen_todll' f2' ^^ $"}") ^^ $"]"
+                      $"[" ^^ $(itos' f0') ^^ $" " ^^ $(itos' f1') ^^ $" " ^^ ($"{S " ^^ screen_todll'(depth' + 2, f2') ^^ $"}") ^^ $"]"
                     end) screens
             ) ^^ $"]")
 
@@ -503,7 +506,7 @@ structure S = Substring
   struct
     type t = node
     fun tostring (m : t) : string =
-      dlltostring (node_todll' m)
+      dlltostring (node_todll' (0, m))
 
     fun fromstring s =
       let val fs = readallfields s
@@ -523,7 +526,7 @@ structure S = Substring
   struct
     type t = keyedtesselation
     fun tostring (m : t) : string =
-      dlltostring (keyedtesselation_todll' m)
+      dlltostring (keyedtesselation_todll' (0, m))
 
     fun fromstring s =
       let val fs = readallfields s
@@ -543,7 +546,7 @@ structure S = Substring
   struct
     type t = screen
     fun tostring (m : t) : string =
-      dlltostring (screen_todll' m)
+      dlltostring (screen_todll' (0, m))
 
     fun fromstring s =
       let val fs = readallfields s
@@ -563,7 +566,7 @@ structure S = Substring
   struct
     type t = world
     fun tostring (m : t) : string =
-      dlltostring (world_todll' m)
+      dlltostring (world_todll' (0, m))
 
     fun fromstring s =
       let val fs = readallfields s
