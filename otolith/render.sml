@@ -3,9 +3,7 @@ struct
 
   open Constants
 
-  val TESSELATIONLINES = Draw.mixcolor (0wx44, 0wx44, 0wx55, 0wxFF)
   val TESSELATIONNODES = Draw.mixcolor (0wx66, 0wx66, 0wx77, 0wxFF)
-  val TESSELATIONSEGMENT = Vector.fromList [TESSELATIONLINES, 0w0]
 
   val rc = ARCFOUR.initstring "render"
   fun byte () = ARCFOUR.byte rc
@@ -15,7 +13,7 @@ struct
   structure Obj = Screen.Obj
 
   structure AEM = Areas.EM
-  fun drawareas (pixels, s : Screen.areas) =
+  fun drawareas (pixels, s : Screen.areas, segment) =
     let
       val triangles = Areas.triangles s
       val nodes = Areas.nodes s
@@ -35,7 +33,7 @@ struct
           let val (x0, y0) = Areas.N.coords a ()
               val (x1, y1) = Areas.N.coords b ()
           in
-              Draw.drawlinewith (pixels, x0, y0, x1, y1, TESSELATIONSEGMENT);
+              Draw.drawlinewith (pixels, x0, y0, x1, y1, segment);
               drawn := AEM.insert (!drawn, (a, b), ())
           end
 
@@ -119,13 +117,16 @@ struct
         case frozen of
           NONE => keys
         | SOME k =>
-            List.filter (fn kk => EQUAL <> Areas.N.compare (k, kk)) keys @
-            [k]
+            (if Obj.iskey obj k
+             then
+               List.filter (fn kk => not (Areas.N.eq (k, kk))) keys @
+               [k]
+             else keys)
 
       fun isfrozen k =
         case frozen of
           NONE => false
-        | SOME kk => EQUAL = Areas.N.compare (k, kk)
+        | SOME kk => Areas.N.eq (k, kk)
 
       (* Edges can appear in two triangles. Don't draw them twice. *)
       val drawn : unit OEM.map ref = ref OEM.empty

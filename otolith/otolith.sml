@@ -36,9 +36,11 @@ struct
      calling any of these functions. *)
   val mousex = ref 0
   val mousey = ref 0
+  (* XXX: Should probably be a mask on all keys. *)
   val holdingshift = ref false
   val holdingcontrol = ref false
   val holdingspace = ref false
+  val holdingbackslash = ref false
 
   val mousedown = ref false
 
@@ -93,6 +95,8 @@ struct
 
   val ACTIONTEXT = Draw.mixcolor (0wx44, 0wx66, 0wx22, 0wxFF)
   val ACTIONTEXTHI = Draw.mixcolor (0wx55, 0wxAA, 0wx22, 0wxFF)
+  val FLIPOLDLINE = Draw.mixcolor (0wx11, 0wx22, 0wx77, 0wxFF)
+  val FLIPNEWLINE = Draw.mixcolor (0wx22, 0wx55, 0wxAA, 0wxFF)
 
   fun closestedgewithin n =
     let
@@ -118,11 +122,14 @@ struct
       Circle of int * int * int * Word32.word
     (* color, x, y, text *)
     | Text of Word32.word * int * int * string
+    | Line of Word32.word * (int * int) * (int * int)
 
   fun drawdecoration (Circle (x, y, r, c)) =
     Draw.drawcircle (pixels, x, y, r, c)
     | drawdecoration (Text (c, x, y, s)) =
     Draw.drawtextcolor (pixels, Font.pxfont, c, x, y, s)
+    | drawdecoration (Line (c, (x0, y0), (x1, y1))) =
+    Draw.drawline (pixels, x0, y0, x1, y1, c)
 
   (* Returns the actions that are possible based on the current
      mouse position and state. The actions can either be taken (by
@@ -152,7 +159,7 @@ struct
           case (!frozennode,
                 Areas.getnodewithin
                 (Screen.areas (!screen)) () (x, y) 5) of
-              (SOME n, SOME nn) => if EQUAL = Areas.N.compare (n, nn)
+              (SOME n, SOME nn) => if Areas.N.eq (n, nn)
                                    then ([], ignore)
                                    else disequal (SOME n, SOME nn)
             | (NONE, NONE) => ([], ignore)
@@ -206,6 +213,28 @@ struct
                  split)
               end
           | _ => ([], ignore)
+
+      else if !holdingbackslash
+      then
+        (* Allows flipping a tesselation edge. *)
+        case !frozennode of
+          SOME key => (eprint "Flipping object edges unimplemented"; ([], ignore))
+        | NONE =>
+            (case Areas.closestflipedge (Screen.areas (!screen)) () (x, y) of
+               NONE => ([], ignore)
+             | SOME ((n1, n2), (cx, cy), (n3, n4)) =>
+               let
+                 val (x1, y1) = Areas.N.coords n1 ()
+                 val (x2, y2) = Areas.N.coords n2 ()
+                 val (x3, y3) = Areas.N.coords n3 ()
+                 val (x4, y4) = Areas.N.coords n4 ()
+               in
+                 ([Text (ACTIONTEXTHI, x - 13, y - 11, "flip"),
+                   Line (FLIPOLDLINE, (x1, y1), (x2, y2)),
+                   Line (FLIPNEWLINE, (x3, y3), (x4, y4))],
+                  (* XXX *)
+                  ignore)
+               end)
 
       else
         (* No modifiers. *)
@@ -398,6 +427,10 @@ struct
       (holdingcontrol := true;
        updatecursor ())
 
+    | keydown SDL.SDLK_BACKSLASH =
+      (holdingbackslash := true;
+       updatecursor ())
+
     (* Need much better keys... *)
     | keydown SDL.SDLK_o =
       (case !frozennode of
@@ -421,6 +454,10 @@ struct
 
     | keyup SDL.SDLK_SPACE =
       (holdingspace := false;
+       updatecursor ())
+
+    | keyup SDL.SDLK_BACKSLASH =
+      (holdingbackslash := false;
        updatecursor ())
 
     | keyup _ = ()
@@ -469,17 +506,44 @@ struct
                end
            | _ => ()
 
+  val TESSELATIONLINES = Draw.mixcolor (0wx44, 0wx44, 0wx55, 0wxFF)
+  val TESSELATIONSEGMENT = Vector.fromList [TESSELATIONLINES, 0w0]
+
+  val TESSELATIONLINESLOW = Draw.mixcolor (0wx2A, 0wx2A, 0wx3B, 0wxFF)
+  val TESSELATIONSEGMENTLOW = Vector.fromList [TESSELATIONLINESLOW, 0w0, 0w0]
+
   fun loop () =
     let
       val () = events ()
 
       val () = Draw.randomize_loud pixels
       (* val () = Render.drawareacolors (pixels, Screen.areas (!screen)) *)
-      val () = Render.drawareas (pixels, Screen.areas (!screen))
+
+      (* val () = eprint "areas" *)
+      val () = Render.drawareas (pixels, Screen.areas (!screen),
+                                 case !frozennode of
+                                   NONE => TESSELATIONSEGMENT
+                                 | SOME _ => TESSELATIONSEGMENTLOW)
+
+      val drawobjects = true
+      (* Don't draw objects if we're drawing the interpolated ones. *)
+      val drawobjects = if !holdingspace
+                        then false
+                        else drawobjects
+
+      (* Don't draw objects if we're flipping edges in the areas tesselation. *)
+      val drawobjects = if !holdingbackslash andalso
+                           not (Option.isSome (!frozennode))
+                        then false
+                        else drawobjects
+
+      (* val () = eprint "objects" *)
       val () =
-        if !holdingspace
-        then ()
-        else Render.drawobjects (pixels, !screen, !frozennode)
+        if drawobjects
+        then Render.drawobjects (pixels, !screen, !frozennode)
+        else ()
+
+      (* val () = eprint "indicators" *)
       val () = drawareaindicators ()
 
       (* test... *)
