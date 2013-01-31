@@ -104,34 +104,39 @@ void sulock(SDL_Surface *surf) {
 }
 
 /* out has room for 512 chars */
-void ml_joystickname (int i, char * out) {
-  const char * p = SDL_JoystickName(i);
+void ml_joystickname (int i, char *out) {
+  const char *p = SDL_JoystickName(i);
   if (p) {
     strncpy(out, p, 512);
   }
 }
 
 void ml_setjoystate(int i) {
-  SDL_JoystickEventState(i?SDL_ENABLE:SDL_IGNORE);
+  SDL_JoystickEventState(i ? SDL_ENABLE : SDL_IGNORE);
+}
+
+// This is a macro, so eta-expand for linking.
+SDL_Surface *ml_loadbmp(const char *s) {
+  return SDL_LoadBMP(s);
 }
 
 /* try to make a hardware surface, and, failing that,
    make a software surface */
-SDL_Surface * ml_makesurface(int w, int h, int alpha) {
+SDL_Surface *ml_makesurface(int w, int h, int alpha) {
 
   /* PERF need to investigate relative performance
      of sw/hw surfaces */
-  SDL_Surface * ss = 0;
+  SDL_Surface *ss = 0;
 #if 0
   SDL_CreateRGBSurface(SDL_HWSURFACE |
-                       (alpha?SDL_SRCALPHA:0),
+                       (alpha ? SDL_SRCALPHA : 0),
                        w, h, 32,
                        rmask, gmask, bmask,
                        amask);
 #endif
 
   if (!ss) ss = SDL_CreateRGBSurface(SDL_SWSURFACE |
-                                     (alpha?SDL_SRCALPHA:0),
+                                     (alpha ? SDL_SRCALPHA : 0),
                                      w, h, 32,
                                      rmask, gmask, bmask,
                                      amask);
@@ -141,7 +146,7 @@ SDL_Surface * ml_makesurface(int w, int h, int alpha) {
   /* then convert to the display format. */
 # if USE_DISPLAY_FORMAT
   if (ss) {
-    SDL_Surface * rr;
+    SDL_Surface *rr;
     if (alpha) rr = SDL_DisplayFormatAlpha(ss);
     else rr = SDL_DisplayFormat(ss);
     SDL_FreeSurface(ss);
@@ -152,9 +157,7 @@ SDL_Surface * ml_makesurface(int w, int h, int alpha) {
 # endif
 }
 
-
-
-SDL_Surface * ml_makescreen(int w, int h) {
+SDL_Surface *ml_makescreen(int w, int h) {
   /* Can't use HWSURFACE here, because not handling this SDL_BlitSurface
      case mentioned in the documentation:
 
@@ -179,13 +182,13 @@ SDL_Surface * ml_makescreen(int w, int h) {
   */
 
   /* SDL_DOUBLEBUF only valid with SDL_HWSURFACE! */
-  SDL_Surface * ret = SDL_SetVideoMode(w, h, 32,
-                                       SDL_SWSURFACE |
-                                       SDL_RESIZABLE);
+  SDL_Surface *ret = SDL_SetVideoMode(w, h, 32,
+                                      SDL_SWSURFACE |
+                                      SDL_RESIZABLE);
   return ret;
 }
 
-SDL_Surface * ml_makefullscreen(int w, int h) {
+SDL_Surface *ml_makefullscreen(int w, int h) {
   /* Can't use HWSURFACE here, because not handling this SDL_BlitSurface
      case mentioned in the documentation:
 
@@ -210,22 +213,22 @@ SDL_Surface * ml_makefullscreen(int w, int h) {
   */
 
   /* SDL_DOUBLEBUF only valid with SDL_HWSURFACE! */
-  SDL_Surface * ret = SDL_SetVideoMode(w, h, 32,
-                                       SDL_FULLSCREEN |
-                                       SDL_DOUBLEBUF |
-                                       SDL_HWSURFACE);
+  SDL_Surface *ret = SDL_SetVideoMode(w, h, 32,
+                                      SDL_FULLSCREEN |
+                                      SDL_DOUBLEBUF |
+                                      SDL_HWSURFACE);
   return ret;
 }
 
-void ml_blitall(SDL_Surface * src, SDL_Surface * dst, int x, int y) {
+void ml_blitall(SDL_Surface *src, SDL_Surface *dst, int x, int y) {
   SDL_Rect r;
   r.x = x;
   r.y = y;
   SDL_BlitSurface(src, 0, dst, &r);
 }
 
-void ml_blit(SDL_Surface * src, int srcx, int srcy, int srcw, int srch,
-             SDL_Surface * dst, int dstx, int dsty) {
+void ml_blit(SDL_Surface *src, int srcx, int srcy, int srcw, int srch,
+             SDL_Surface *dst, int dstx, int dsty) {
   SDL_Rect sr;
   SDL_Rect dr;
   sr.x = srcx;
@@ -237,35 +240,35 @@ void ml_blit(SDL_Surface * src, int srcx, int srcy, int srcw, int srch,
   SDL_BlitSurface(src, &sr, dst, &dr);
 }
 
-int ml_surfacewidth(SDL_Surface * src) {
+int ml_surfacewidth(SDL_Surface *src) {
   return src->w;
 }
 
-int ml_surfaceheight(SDL_Surface * src) {
+int ml_surfaceheight(SDL_Surface *src) {
   return src->h;
 }
 
-void ml_clearsurface(SDL_Surface * s, Uint32 color) {
+void ml_clearsurface(SDL_Surface *s, Uint32 color) {
   SDL_FillRect(s, 0, color);
 }
 
-SDL_Event * ml_newevent() {
+SDL_Event *ml_newevent() {
   return (SDL_Event*) malloc (sizeof (SDL_Event));
 }
 
-int ml_eventtag(SDL_Event * e) {
+int ml_eventtag(SDL_Event *e) {
   return e->type;
 }
 
-int ml_event8_2nd(SDL_Event * e) {
+int ml_event8_2nd(SDL_Event *e) {
   return (((SDL_KeyboardEvent*)e)->which);
 }
 
-int ml_event8_3rd(SDL_Event * e) {
+int ml_event8_3rd(SDL_Event *e) {
   return (((SDL_KeyboardEvent*)e)->state);
 }
 
-int ml_event8_4th(SDL_Event * e) {
+int ml_event8_4th(SDL_Event *e) {
   return (((SDL_JoyHatEvent*)e)->value);
 }
 
@@ -291,16 +294,16 @@ int ml_event_mmotion_x(SDL_MouseMotionEvent* e) {
 int ml_event_mmotion_y(SDL_MouseMotionEvent* e) {
   return e->y;
 }
-int ml_event_mmotion_xrel(SDL_MouseMotionEvent* e) {
+int ml_event_mmotion_xrel(SDL_MouseMotionEvent *e) {
   return e->xrel;
 }
-int ml_event_mmotion_yrel(SDL_MouseMotionEvent* e) {
+int ml_event_mmotion_yrel(SDL_MouseMotionEvent *e) {
   return e->yrel;
 }
 
-int ml_event_mbutton_x(SDL_MouseButtonEvent * e) { return e->x; }
-int ml_event_mbutton_y(SDL_MouseButtonEvent * e) { return e->y; }
-int ml_event_mbutton_button(SDL_MouseButtonEvent * e) { return e->button; }
+int ml_event_mbutton_x(SDL_MouseButtonEvent *e) { return e->x; }
+int ml_event_mbutton_y(SDL_MouseButtonEvent *e) { return e->y; }
+int ml_event_mbutton_button(SDL_MouseButtonEvent *e) { return e->button; }
 
 
 /* XXX should lock before calling (for certain modes)... */
@@ -349,7 +352,7 @@ void ml_drawpixel(SDL_Surface *surf, int x, int y,
 }
 
 void ml_getpixel(SDL_Surface *surf, int x, int y,
-                 unsigned char * R, unsigned char * G, unsigned char * B) {
+                 unsigned char *R, unsigned char *G, unsigned char *B) {
   switch (surf->format->BytesPerPixel) {
     case 4: // Probably 32-bpp
       {
@@ -365,7 +368,7 @@ void ml_getpixel(SDL_Surface *surf, int x, int y,
 }
 
 void ml_getpixela(SDL_Surface *surf, int x, int y,
-                  unsigned char * R, unsigned char * G, unsigned char * B, unsigned char * A) {
+                  unsigned char *R, unsigned char *G, unsigned char *B, unsigned char *A) {
   switch (surf->format->BytesPerPixel) {
     case 4: // Probably 32-bpp
       {
@@ -380,7 +383,7 @@ void ml_getpixela(SDL_Surface *surf, int x, int y,
   }
 }
 
-void ml_unpixels(SDL_Surface *surf, unsigned char * RGBA) {
+void ml_unpixels(SDL_Surface *surf, unsigned char *RGBA) {
   int y, x, offset = 0;
   switch (surf->format->BytesPerPixel) {
     case 4: // Probably 32-bpp
@@ -420,7 +423,7 @@ void ml_unpixels(SDL_Surface *surf, unsigned char * RGBA) {
 // NOTE: This function is called from ML with both
 // unsigned char *RGBA and word32 *RGBA.
 // There may be byte order issues.
-void ml_pixels(SDL_Surface *surf, unsigned char * RGBA) {
+void ml_pixels(SDL_Surface *surf, unsigned char *RGBA) {
   int y, x, offset = 0;
   switch (surf->format->BytesPerPixel) {
     case 4: // Probably 32-bpp
@@ -481,13 +484,13 @@ void ml_fillrecta(SDL_Surface *dst, int x, int y, int w, int h, int r, int g, in
   SDL_FillRect(dst, &rect, c);
 }
 
-SDL_Surface * ml_alphadim(SDL_Surface * src) {
+SDL_Surface *ml_alphadim(SDL_Surface *src) {
   /* must be 32 bpp */
   if (src->format->BytesPerPixel != 4) return 0;
 
   int ww = src->w, hh = src->h;
 
-  SDL_Surface * ret = ml_makesurface(ww, hh, 1);
+  SDL_Surface *ret = ml_makesurface(ww, hh, 1);
 
   if (!ret) return 0;
 
@@ -519,7 +522,7 @@ SDL_Surface * ml_alphadim(SDL_Surface * src) {
 }
 
 int ml_version_packed() {
-  const SDL_version * v = SDL_Linked_Version();
+  const SDL_version *v = SDL_Linked_Version();
   fprintf(stderr, "Version: %u.%u.%u\n", v->major, v->minor, v->patch);
   return (v->major << 16) | (v->minor << 8) | v->patch;
 }

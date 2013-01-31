@@ -401,6 +401,14 @@ sig
 
   val version : unit -> { major : int, minor : int, patch : int }
 
+  (* Does not require SDL_Image. Can be used before setting the video mode,
+     (makescreen) typically to set the application's icon. *)
+  val loadbmp : string -> surface option
+
+  (* For win32, must be a 32x32 image. Must happen before calling makescreen
+     or makefullscreen. *)
+  val seticon : surface -> unit
+
   (* These are not separate structures because they rely on access to the
      implementations of surface, color, etc. *)
   structure Image :
