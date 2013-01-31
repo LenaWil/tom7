@@ -17,12 +17,19 @@ struct
   structure Areas = Screen.Areas
   structure Obj = Screen.Obj
 
-  (* TODO: This needs to become some kind of screen or world type. *)
-  (* XXX: Does there only need to be one screen tesselation? Why not
-     just give every object its own tesselation? *)
-  (* Tesselation itself is mutable, but sometimes we want to swap the
-     entire tesselation out, like in undo or save/load. *)
-  val screen : Screen.screen ref = ref (Screen.starter ())
+
+  val worldx = ref 4
+  val worldy = ref 4
+
+  (* If this fails, we start with an empty everything. *)
+  val () = World.load ()
+
+  (* Current screen at worldx,worldy. *)
+  (* This ref is just for the benefit of the editor; modify the screen
+     itself to make changes to the world. *)
+  val screen : Screen.screen ref =
+    ref (World.getorcreate (!worldx, !worldy))
+
   (* val objects : Object.object list ref = ref nil *)
 
   (* Always in game pixels. The event loop scales down x,y before
@@ -31,6 +38,7 @@ struct
   val mousey = ref 0
   val holdingshift = ref false
   val holdingcontrol = ref false
+  val holdingspace = ref false
 
   val mousedown = ref false
 
@@ -51,7 +59,8 @@ struct
       val (x1, y1) = (x0 + 20, y0 + 20)
     in
       eprint "Add object..";
-      screen := Screen.addrectangle (!screen) node (x0, y0, x1, y1)
+      screen := World.setscreen
+      (!worldx, !worldy, Screen.addrectangle (!screen) node (x0, y0, x1, y1))
     end
 
   val DRAG_DISTANCE = 5
@@ -322,7 +331,9 @@ struct
            end;
 
       (* XXX probably only when holding some key *)
-      drawinterpolatedobjects (!mousex, !mousey);
+      if !holdingspace
+      then drawinterpolatedobjects (!mousex, !mousey)
+      else ();
 
       (case !frozennode of
          NONE => ()
@@ -335,19 +346,13 @@ struct
       ()
     end
 
-  val WORLDFILE = "world.tf"
-
-  (* XXX into Screen stuff *)
-  fun savetodisk () =
-    WorldTF.S.tofile WORLDFILE (Screen.totf (!screen))
+  fun savetodisk () = World.save ()
 
   fun loadfromdisk () =
-    screen := Screen.fromtf (WorldTF.S.fromfile WORLDFILE)
-    handle Screen.Screen s =>
-             eprint ("Error loading " ^ WORLDFILE ^ ": " ^ s ^ "\n")
-           | WorldTF.Parse s =>
-             eprint ("Error parsing " ^ WORLDFILE ^ ": " ^ s ^ "\n")
-           | IO.Io _ => ()
+    let in
+      World.load ();
+      screen := World.getorcreate (!worldx, !worldy)
+    end
 
   fun mousemotion (x, y) =
     (* XXX should case on what kinda node it is..? *)
@@ -380,24 +385,29 @@ struct
       savetodisk();
       raise Quit
     end
+
+    | keydown SDL.SDLK_SPACE =
+      (holdingspace := true;
+       updatecursor ())
+
     | keydown SDL.SDLK_LSHIFT =
-    (holdingshift := true;
-     updatecursor ())
+      (holdingshift := true;
+       updatecursor ())
 
     | keydown SDL.SDLK_LCTRL =
-    (holdingcontrol := true;
-     updatecursor ())
+      (holdingcontrol := true;
+       updatecursor ())
 
     (* Need much better keys... *)
     | keydown SDL.SDLK_o =
-       (case !frozennode of
-          NONE => eprint "Freeze a node with ctrl-click first."
-        | SOME node => addobject node)
+      (case !frozennode of
+         NONE => eprint "Freeze a node with ctrl-click first."
+       | SOME node => addobject node)
 
     | keydown SDL.SDLK_l =
-       (case !frozennode of
-          NONE => eprint "Freeze a node with ctrl-click first."
-        | SOME node => linkobject node)
+      (case !frozennode of
+         NONE => eprint "Freeze a node with ctrl-click first."
+       | SOME node => linkobject node)
 
     | keydown _ = ()
 
@@ -407,6 +417,10 @@ struct
 
     | keyup SDL.SDLK_LCTRL =
       (holdingcontrol := false;
+       updatecursor ())
+
+    | keyup SDL.SDLK_SPACE =
+      (holdingspace := false;
        updatecursor ())
 
     | keyup _ = ()
@@ -462,7 +476,10 @@ struct
       val () = Draw.randomize_loud pixels
       (* val () = Render.drawareacolors (pixels, Screen.areas (!screen)) *)
       val () = Render.drawareas (pixels, Screen.areas (!screen))
-      val () = Render.drawobjects (pixels, !screen, !frozennode)
+      val () =
+        if !holdingspace
+        then ()
+        else Render.drawobjects (pixels, !screen, !frozennode)
       val () = drawareaindicators ()
 
       (* test... *)
@@ -491,7 +508,6 @@ struct
         loop()
     end
 
-  val () = loadfromdisk ()
   val () = SDL.show_cursor false
   val () = loop ()
       handle Quit => ()

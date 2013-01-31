@@ -104,10 +104,23 @@ struct
     let
       (* Mix 50% with black to darken. *)
       val darkcolor = Draw.blendtwocolors (Draw.hexcolor 0w0, color)
+      (* If something is frozen, then increase contrast even more. *)
+      val darkcolor =
+        case frozen of
+          NONE => darkcolor
+        | SOME _ => Draw.blendtwocolors (Draw.hexcolor 0w0, darkcolor)
 
       val triangles = Obj.triangles obj
       val nodes = Obj.nodes obj
       val keys = Obj.keys obj
+
+      (* Put frozen key last (if any) so bright lines draw on top *)
+      val keys =
+        case frozen of
+          NONE => keys
+        | SOME k =>
+            List.filter (fn kk => EQUAL <> Areas.N.compare (k, kk)) keys @
+            [k]
 
       fun isfrozen k =
         case frozen of
@@ -134,26 +147,25 @@ struct
                Draw.drawcircle (pixels, x, y, 2, OBJECTNODES)
              end) keys
 
-      (* XXX should draw frozen key last, because otherwise we may
-         draw dim lines over it. *)
       fun drawline (a, b) =
         case OEM.find (!drawn, (a, b)) of
-            SOME () => ()
-          | NONE =>
-            let in
-              drawn := OEM.insert (!drawn, (a, b), ());
-              (app (fn k =>
-                    let
-                      val (x0, y0) = Obj.N.coords a k
-                      val (x1, y1) = Obj.N.coords b k
-                      val objectlines =
-                        if isfrozen k
-                        then color
-                        else darkcolor
-                    in
-                      Draw.drawline (pixels, x0, y0, x1, y1, objectlines)
-                    end) keys)
-            end
+          SOME () => ()
+        | NONE =>
+          let in
+            drawn := OEM.insert (!drawn, (a, b), ());
+
+            app (fn k =>
+                  let
+                    val (x0, y0) = Obj.N.coords a k
+                    val (x1, y1) = Obj.N.coords b k
+                    val objectlines =
+                      if isfrozen k
+                      then color
+                      else darkcolor
+                  in
+                    Draw.drawline (pixels, x0, y0, x1, y1, objectlines)
+                  end) keys
+          end
 
       fun drawtriangle t =
         let val (a, b, c) = Obj.T.nodes t
