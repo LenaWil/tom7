@@ -71,7 +71,7 @@ struct
 
   fun geninternal () =
       (* Internal utilities. *)
-      "structure S = Substring\n" ^
+      "  structure S = Substring\n" ^
       "\n" ^
       "  fun readfile f =\n" ^
       "    let val l = TextIO.openIn f\n" ^
@@ -124,15 +124,16 @@ struct
       "    end\n" ^
 
       (* Like String.concat. *)
-      (*
       "  fun dllconcat' nil = $\"\"\n" ^
       "    | dllconcat' (h :: t) = h ^^ dllconcat' t\n" ^
-      *)
 
       (* Like String.concatwith *)
       "  fun dllconcatwith' s nil = $\"\"\n" ^
       "    | dllconcatwith' s [e] = e\n" ^
       "    | dllconcatwith' s (h :: t) = h ^^ $s ^^ dllconcatwith' s t\n" ^
+
+      (* generate a string with n spaces *)
+      "  fun nspaces' n = CharVector.tabulate (n, fn _ => #\" \")\n" ^
 
       "  fun itos' i = if i < 0\n" ^
       "                then \"-\" ^ Int.toString (~i)\n" ^
@@ -425,30 +426,42 @@ struct
                     | D.Bool => "(if " ^ exp ^ " then $\"1\" else $\"0\")"
 
                     | D.Tuple ts =>
-                          let val fields = ListUtil.mapi
-                              (fn (t, idx) =>
-                               let val f = "f" ^ Int.toString idx ^ "'"
-                               in (f, furl (i + 5) f t)
-                               end) ts
-                          in
-                              "let val (" ^
-                                StringUtil.delimit ", " (map #1 fields) ^
-                              ") = " ^ exp ^ "\n" ^
-                              indent i ^
-                              "in\n" ^
-                              indent (i + 2) ^
-                              "$\"[\" ^^ " ^ StringUtil.delimit " ^^ $\" \" ^^ "
-                                   (map #2 fields) ^
-                              " ^^ $\"]\"\n" ^
-                              indent i ^
-                              "end"
-                          end
+                        let val fields = ListUtil.mapi
+                            (fn (t, idx) =>
+                             let val f = "f" ^ Int.toString idx ^ "'"
+                             in (f, furl (i + 5) f t)
+                             end) ts
+                        in
+                            "let val (" ^
+                              StringUtil.delimit ", " (map #1 fields) ^
+                            ") = " ^ exp ^ "\n" ^
+                            indent i ^
+                            "in\n" ^
+                            indent (i + 2) ^
+                            "$\"[\" ^^ " ^ StringUtil.delimit " ^^ $\" \" ^^ "
+                                 (map #2 fields) ^
+                            " ^^ $\"]\"\n" ^
+                            indent i ^
+                            "end"
+                        end
 
                     | D.List t =>
+                        if isvertical
+                        then
+                          "($\"[\\n\" ^^\n" ^
+                          indent (i + 3) ^
+                          "dllconcat' " ^
+                          "(List.map\n" ^
+                          indent (i + 3) ^
+                          "(fn v => " ^
+                                "$(nspaces' depth') ^^ " ^
+                                furl (i + 8) "v" t ^ " ^^ $\"\\n\") " ^ exp ^ "\n" ^
+                          indent i ^
+                          ") ^^ $\"]\")"
+                        else
                           "($\"[\" ^^\n" ^
                           indent (i + 3) ^
-                          "dllconcatwith' " ^ (if isvertical then "\"\\n\""
-                                               else "\" \"") ^
+                          "dllconcatwith' " ^ "\" \"" ^
                           " (List.map\n" ^
                           indent (i + 3) ^
                           "(fn v => " ^ furl (i + 8) "v" t ^ ") " ^ exp ^ "\n" ^
@@ -456,17 +469,18 @@ struct
                           ") ^^ $\"]\")"
 
                     | D.Option t =>
-                          "(case " ^ exp ^ " of\n" ^
-                          indent (i + 2) ^
-                          "  SOME v => ($\"[\" ^^ " ^
-                                            furl (i + 8) "v" t ^
-                                            " ^^ $\"]\")\n" ^
-                          indent (i + 2) ^
-                          "| NONE => $\"[]\")"
+                        "(case " ^ exp ^ " of\n" ^
+                        indent (i + 2) ^
+                        "  SOME v => ($\"[\" ^^ " ^
+                                          furl (i + 8) "v" t ^
+                                          " ^^ $\"]\")\n" ^
+                        indent (i + 2) ^
+                        "| NONE => $\"[]\")"
 
                     | D.Message m =>
-                          "($\"{" ^ getmessagetoken m ^
-                                " \" ^^ " ^ todllname m ^ " " ^ exp ^ " ^^ $\"}\")"
+                        "($\"{" ^ getmessagetoken m ^
+                              " \" ^^ " ^ todllname m ^
+                              "(depth' + 2, " ^ exp ^ ") ^^ $\"}\")"
                 in
                    "    $\"" ^ token ^ " \" ^^ " ^ furl 12 name typ
                 end
@@ -474,7 +488,7 @@ struct
           in
               connective ^
               " " ^ todllname name ^
-              " (" ^ pattern ^ " : " ^ name ^ ") : dll' =\n" ^
+              " (depth' : int, " ^ pattern ^ " : " ^ name ^ ") : dll' =\n" ^
               (* PERF could build space delimeter into token above *)
               StringUtil.delimit " ^^ $\" \" ^^\n"
               (map onefield fields) ^ "\n\n" ^
@@ -614,7 +628,7 @@ struct
            "  struct\n" ^
            "    type t = " ^ name ^ "\n" ^
            "    fun tostring (m : t) : string =\n" ^
-           "      dlltostring (" ^ todllname name ^ " m)\n" ^
+           "      dlltostring (" ^ todllname name ^ " (0, m))\n" ^
 
            "\n" ^
            "    fun fromstring s =\n" ^
