@@ -33,4 +33,12 @@ sig
   val barycentric : point * point * point * point ->
                     real * real * real
 
+  datatype side =
+    LEFT | COLINEAR | RIGHT
+  (* point (a, b, pt)
+     Tests which side of the line a->b the point is on.
+     If the line is horizontal with a to the left of b,
+     then above the line is called "left". *)
+  val pointside : point * point * point -> side
+
 end

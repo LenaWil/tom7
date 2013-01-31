@@ -151,4 +151,14 @@ struct
       (lambda1, lambda2, lambda3)
     end
 
+  datatype side =
+    LEFT | COLINEAR | RIGHT
+  fun pointside ((x0, y0), (x1, y1), (x, y)) =
+    let val m = (x1 - x0) * (y - y0) - (y1 - y0) * (x - x0)
+    in
+      if m > 0 then LEFT
+      else if m < 0 then RIGHT
+           else COLINEAR
+    end
+
 end

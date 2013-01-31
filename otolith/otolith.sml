@@ -233,7 +233,10 @@ struct
                    Line (FLIPOLDLINE, (x1, y1), (x2, y2)),
                    Line (FLIPNEWLINE, (x3, y3), (x4, y4))],
                   (* XXX *)
-                  ignore)
+                  (fn () =>
+                   if Areas.flipedge (Screen.areas (!screen)) () (x, y)
+                   then ()
+                   else eprint "Failed to flip"))
                end)
 
       else
