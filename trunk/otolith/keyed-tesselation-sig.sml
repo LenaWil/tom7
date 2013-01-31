@@ -76,6 +76,51 @@ sig
      before creating others. *)
   val splitedge : keyedtesselation -> key -> int * int -> node option
 
+  (* When using the given key, find the closest internal edge to the
+     given point which can be flipped. Flipping is possible only for
+     internal edges, which are shared by two triangles. Flipping
+     changes the edge to be between the unconnected nodes as shown,
+     resulting in two different triangles. This is allowed:
+
+          n1                           n1
+           .---. n3                     .---. n3
+           |\  |                        |  /|
+           | \ |          --->          | / |
+        n4 |__\|                     n4 |/__|
+               n2                           n2
+
+     But for example not this one:
+
+                    n3
+                   .
+                 ,`/
+               ,` /
+             ,`  /
+           ,`   /
+      n1  `----+ n2
+          \    |
+           \   |
+            \  |
+             \ |
+              \|
+              n4
+
+     since a new edge from n4 to n4 would leave us with two overlapping
+     triangles (or if n3 and n4 are colinear, a degenerate triangle).
+
+     When it can succeed, returned are the original edge, the point on
+     it that's closest to the input point, and the potential new edge.
+     No changes are made. This is the same edge used by flipedge
+     below, when it can succeed. *)
+  val closestflipedge : keyedtesselation -> key -> int * int ->
+                        ((node * node) * (int * int) * (node * node)) option
+
+  (* Actually flip the edge. Returns true if successful.
+     This only fails in cases where there is no closest interior edge (like
+     for a single triangle) or flipping the edge would result in a disallowed
+     triangle (because it is degenerate or too small). *)
+  val flipedge : keyedtesselation -> key -> int * int -> bool
+
   val triangles : keyedtesselation -> triangle list
   val nodes : keyedtesselation -> node list
 

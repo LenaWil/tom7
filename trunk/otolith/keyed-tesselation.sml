@@ -186,8 +186,12 @@ struct
       String.concat (map (fn n => node n ^ "\n") nos)
     end
 
-  fun closestedge (s : keyedtesselation) key (x, y)
-      : node * node * int * int =
+  (* Return the closest edge (ties broken arbitrarily) that satisfies
+     the predicate. The predicate is only tested in a single node
+     order (also arbitrary) so it should be symmetric. *)
+  fun closestedgesatisfying (pred : node * node -> bool)
+                            (s : keyedtesselation) key (x, y)
+      : (node * node * int * int) option =
     let
       (* keep track of the best distance seen so far *)
       val best_squared = ref NONE : int option ref
@@ -202,18 +206,21 @@ struct
                       else ()
 
       fun tryedge (n1, n2) =
-        let
-          val (n1x, n1y) = N.coords n1 key
-          val (n2x, n2y) = N.coords n2 key
-          val (xx, yy) =
-            IntMaths.closest_point_or_vertex ((x, y),
-                                              (n1x, n1y), (n2x, n2y))
-          val dist = IntMaths.distance_squared ((x, y), (xx, yy))
-        in
-          (* print ("SDistance to " ^ Int.toString xx ^ "," ^
-             Int.toString yy ^ " is " ^ Int.toString dist ^ "\n"); *)
-          maybeupdate (dist, (n1, n2, xx, yy))
-        end
+        if pred (n1, n2)
+        then
+          let
+            val (n1x, n1y) = N.coords n1 key
+            val (n2x, n2y) = N.coords n2 key
+            val (xx, yy) =
+              IntMaths.closest_point_or_vertex ((x, y),
+                                                (n1x, n1y), (n2x, n2y))
+            val dist = IntMaths.distance_squared ((x, y), (xx, yy))
+          in
+            (* print ("SDistance to " ^ Int.toString xx ^ "," ^
+               Int.toString yy ^ " is " ^ Int.toString dist ^ "\n"); *)
+            maybeupdate (dist, (n1, n2, xx, yy))
+          end
+        else ()
 
       fun tryangle (a, b, c) =
         let in
@@ -223,11 +230,86 @@ struct
         end
     in
       app tryangle (triangles s);
-
-      case !best_result of
-        NONE => raise Key.exn "impossible: must be at least one triangle"
-      | SOME r => r
+      !best_result
     end
+
+  fun closestedge s key xy =
+    case closestedgesatisfying (fn _ => true) s key xy of
+      NONE => raise Key.exn "impossible: must be at least one triangle"
+    | SOME r => r
+
+  (* Assumes n1 and n2 is a valid edge in a single tesselation. *)
+  fun getinternaledge (n1 as N (ref { triangles = t1, ... }),
+                       n2 as N (ref { triangles = t2, ... })) =
+    (* The edge n1->n2 is internal if there exist nodes
+       A and B where (A, n2) is in the triangles of n1
+       and (B, n1) is in the triangles of n2 and A <> B. *)
+    let
+      (* For the triangles in t, find nodes that appear in
+         a triangle with nn. *)
+      fun getcands (t, nn) =
+        List.mapPartial (fn (a, b) =>
+                         (* Assumes a <> b, by representation
+                            invariant. *)
+                         if b = nn then SOME a
+                         else if a = nn then SOME b
+                              else NONE) t
+
+      (* XXX actually, can't we just check cand_a with itself? *)
+      val cand_a = getcands (t1, n2)
+      val cand_b = getcands (t2, n1)
+
+      (* Both cand_a and cand_b have maximum length of 2,
+         so no fancy algorithms needed here... *)
+
+      val () = if List.length cand_a > 2
+               then raise Key.exn "Bug A: can't be more than 2 triangles on an edge"
+               else ()
+
+      val () = if List.length cand_b > 2
+               then raise Key.exn "Bug B: can't be more than 2 triangles on an edge"
+               else ()
+
+      fun find_disequal (nil, _) = NONE
+        | find_disequal (a :: rest, bl) =
+        case List.find (fn b => not (N.eq (a, b))) bl of
+          NONE => find_disequal (rest, bl)
+        | SOME b => SOME (a, b)
+    in
+      find_disequal (cand_a, cand_b)
+    end
+
+  fun isinternaledge (n1, n2) = Option.isSome (getinternaledge (n1, n2))
+
+  (*
+          n1                           n1
+           .---. n3                     .---. n3
+           |\  |                        |  /|
+           | \ |          --->          | / |
+        n4 |__\|                     n4 |/__|
+               n2                           n2
+               *)
+  fun closestflipedge (s : keyedtesselation) key (x, y) :
+    ((node * node) * (int * int) * (node * node)) option =
+    case closestedgesatisfying isinternaledge s key (x, y) of
+      NONE => NONE
+    | SOME (n1, n2, cx, cy) =>
+      (* Could maybe have closestedgepartial to avoid two passes *)
+      (case getinternaledge (n1, n2) of
+         NONE => raise Key.exn ("bug: can't get internal edge " ^
+                                "after isinternaledge succeeds?")
+       | SOME (n4, n3) =>
+         let
+           (* FIXME
+              Check that the new triangles are not degenerate. They
+              are (n1, n4, n3) and (n2, n4, n3). *)
+         in
+           SOME ((n1, n2), (cx, cy), (n3, n4))
+         end)
+
+  fun flipedge (s : keyedtesselation) (key : key) (x : int, y : int)
+    : bool =
+    raise Key.exn "unimplemented"
 
   (* Put the smaller node first. *)
   fun normalize_edge (n1 : node, n2 : node) =
