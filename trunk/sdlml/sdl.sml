@@ -868,7 +868,6 @@ struct
      SDLK_UNDO                (* = 322 *)
         ])
   in
-    (* XXX should also provide the inverse of this function *)
     fun sdlkey n =
       if n < 0 orelse n > Vector.length sdlk
       then SDLK_UNKNOWN
@@ -1487,6 +1486,24 @@ struct
       fun hatstatefromstring s = Word8.fromString s handle Overflow => NONE
   end
 
+  fun loadbmp s =
+    let
+      val lp = _import "ml_loadbmp" private : string -> ptr ;
+      val p = lp (s ^ "\000")
+    in
+      if MLton.Pointer.null = p
+      then NONE
+      else SOME (ref p)
+    end
+
+  fun seticon surf =
+    let
+      val si = _import "SDL_WM_SetIcon" private : ptr * ptr -> unit ;
+    in
+      (* TODO: Support masks. *)
+      si (!!surf, MLton.Pointer.null)
+    end
+
   structure Image =
   struct
       fun load s =
@@ -1494,7 +1511,7 @@ struct
           val lp = _import "IMG_Load" private : string -> ptr ;
           val p = lp (s ^ "\000")
       in
-          if (MLton.Pointer.null = p)
+          if MLton.Pointer.null = p
           then NONE
           else SOME (ref p)
       end
