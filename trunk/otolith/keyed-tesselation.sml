@@ -281,36 +281,6 @@ struct
 
   fun isinternaledge (n1, n2) = Option.isSome (getinternaledge (n1, n2))
 
-  (*
-          n1                           n1
-           .---. n3                     .---. n3
-           |\  |                        |  /|
-           | \ |          --->          | / |
-        n4 |__\|                     n4 |/__|
-               n2                           n2
-               *)
-  fun closestflipedge (s : keyedtesselation) key (x, y) :
-    ((node * node) * (int * int) * (node * node)) option =
-    case closestedgesatisfying isinternaledge s key (x, y) of
-      NONE => NONE
-    | SOME (n1, n2, cx, cy) =>
-      (* Could maybe have closestedgepartial to avoid two passes *)
-      (case getinternaledge (n1, n2) of
-         NONE => raise Key.exn ("bug: can't get internal edge " ^
-                                "after isinternaledge succeeds?")
-       | SOME (n4, n3) =>
-         let
-           (* FIXME
-              Check that the new triangles are not degenerate. They
-              are (n1, n4, n3) and (n2, n4, n3). *)
-         in
-           SOME ((n1, n2), (cx, cy), (n3, n4))
-         end)
-
-  fun flipedge (s : keyedtesselation) (key : key) (x : int, y : int)
-    : bool =
-    raise Key.exn "unimplemented"
-
   (* Put the smaller node first. *)
   fun normalize_edge (n1 : node, n2 : node) =
     case compare_node (n1, n2) of
@@ -327,7 +297,7 @@ struct
       | EQUAL => compare_node (n2, n4)
     end
 
-  (* PERF if we had some kind of invariants on winding ordering we
+  (* PERF if we had some kind of invariants on winding order we
      could probably reduce the number of comparisons here and below.
      But I think it's quite a pain to get right. *)
   (* Same as compare_edge = EQUAL but should be faster. *)
@@ -495,6 +465,104 @@ struct
         SOME newnode
       end
     end
+
+  (*
+          n1                           n1
+           .---. n3                     .---. n3
+           |\  |                        |  /|
+           | \ |          --->          | / |
+        n4 |__\|                     n4 |/__|
+               n2                           n2
+               *)
+  fun closestflipedge (s : keyedtesselation) key (x, y) :
+    ((node * node) * (int * int) * (node * node)) option =
+    case closestedgesatisfying isinternaledge s key (x, y) of
+      NONE => NONE
+    | SOME (n1, n2, cx, cy) =>
+      (* Could maybe have closestedgepartial to avoid two passes *)
+      (case getinternaledge (n1, n2) of
+         NONE => raise Key.exn ("bug: can't get internal edge " ^
+                                "after isinternaledge succeeds?")
+       | SOME (n4, n3) =>
+         let
+           (* XXXXXXX have to do this for every key, not just the current
+              one. *)
+           val n1c = N.coords n1 key
+           val n2c = N.coords n2 key
+           val n3c = N.coords n3 key
+           val n4c = N.coords n4 key
+
+           (* n1 and n2 cannot be on the same side of the new edge.
+              Don't allow colinear either. *)
+           val ok =
+             case (IntMaths.pointside (n3c, n4c, n1c),
+                   IntMaths.pointside (n3c, n4c, n2c)) of
+               (IntMaths.LEFT, IntMaths.RIGHT) => true
+             | (IntMaths.RIGHT, IntMaths.LEFT) => true
+             | _ => false
+         in
+           (* XXX check angles in new triangles. *)
+           if ok
+           then SOME ((n1, n2), (cx, cy), (n3, n4))
+           else NONE
+         end)
+
+  fun flipedge (s : keyedtesselation) (key : key) (x : int, y : int)
+    : bool =
+    case closestflipedge s key (x, y) of
+      NONE => false
+    | SOME ((n1, n2), _, (n3, n4)) =>
+        let
+          fun node_addtriangle (N (r as ref { id, coords, triangles }), t) =
+            r := { id = id, coords = coords, triangles = t :: triangles }
+
+          fun node_removetriangle (N (r as ref { id, coords, triangles }),
+                                   (a, b)) =
+            r := { id = id, coords = coords,
+                   triangles = List.filter (fn (c, d) =>
+                                            not (same_edge ((a, b),
+                                                            (c, d))))
+                                           triangles }
+
+          (* All that we need to do is remove the old triangles
+             (from each node, as well as the tesselation itself)
+             and add the new ones (to each node, and the tesslation). *)
+
+          (*
+                  n1                           n1
+                   .---. n3                     .---. n3
+                   |\  |                        |  /|
+                   | \ |          --->          | / |
+                n4 |__\|                     n4 |/__|
+                       n2                           n2
+          *)
+        in
+          node_removetriangle (n1, (n4, n2));
+          node_removetriangle (n1, (n2, n3));
+
+          node_removetriangle (n2, (n4, n1));
+          node_removetriangle (n2, (n1, n3));
+
+          node_removetriangle (n3, (n1, n2));
+          node_removetriangle (n4, (n2, n1));
+
+          node_addtriangle (n1, (n3, n4));
+          node_addtriangle (n2, (n4, n3));
+
+          node_addtriangle (n3, (n4, n1));
+          node_addtriangle (n3, (n2, n4));
+
+          node_addtriangle (n4, (n1, n3));
+          node_addtriangle (n4, (n3, n2));
+
+          S.removetriangle s (n1, n2, n4);
+          S.removetriangle s (n1, n3, n2);
+
+          S.addtriangle s (n1, n3, n4);
+          S.addtriangle s (n2, n4, n3);
+
+          true
+        end
 
   fun getnodewithin (s : keyedtesselation) key (x, y) radius : node option =
     let
