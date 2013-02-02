@@ -142,6 +142,13 @@ sig
      Raises an exception if the key is already present. *)
   val addkey : keyedtesselation -> (node -> int * int) -> key -> unit
 
+
+  (* Try moving the node in the configuration given by the key.
+     This moves the node in each attached triangle. The point may
+     not move to the desired spot, since the triangles are not
+     allowed to be degenerate. *)
+  val trymovenode : keyedtesselation -> node -> key -> int * int -> int * int
+
   (* Convert to the serialization format. These are somewhat fancy
      because the key may be nontrivial. For example, when deserializing
      an object keyed by some other tesselation's nodes, the string to
@@ -178,12 +185,6 @@ sig
     (* Get the unique ID of the node. -- XXX trying not to
        leak this abstraction. *)
     (* val id : node -> IntInf.int *)
-
-    (* Try moving the node in the configuration given by the key.
-       This moves the node in each attached triangle. The point may
-       not move to the desired spot, since the triangles are not
-       allowed to be degenerate. *)
-    val trymove : node -> key -> int * int -> int * int
 
     val compare : node * node -> order
     val eq : node * node -> bool

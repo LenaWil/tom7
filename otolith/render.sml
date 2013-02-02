@@ -64,8 +64,18 @@ struct
         else ()))
     end
 
+  val areacolors = Vector.fromList
+    [Draw.hexcolor 0wx21917b,
+     Draw.hexcolor 0wx217be6,
+     Draw.hexcolor 0wx217b2d,
+     Draw.hexcolor 0wx7b7921,
+     Draw.hexcolor 0wx7ba121,
+     Draw.hexcolor 0wx7b2121,
+     Draw.hexcolor 0wx7b21b1]
+
   fun drawareacolors (pixels, s : Screen.areas) =
     let
+      val r = ref 0
       fun drawtriangle t =
         let
           val (a, b, c) = Areas.T.nodes t
@@ -75,8 +85,8 @@ struct
         in
           filltriangle (pixels,
                         (a, b, c),
-                        Draw.mixcolor (byte32 (), byte32 (), byte32 (),
-                                       0wxFF))
+                        Vector.sub (areacolors, !r));
+          r := (!r + 1) mod Vector.length areacolors
         end
     in
       app drawtriangle (Areas.triangles s)

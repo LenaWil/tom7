@@ -20,6 +20,18 @@ struct
   (* Must be no more than 180.0 *)
   val MINANGLE = 170.0
 
+  (* TODO: Representation issues.
+
+     - The angle check doesn't work correctly if the line is
+       completely vertical? (maybe something like 360 should be 0?)
+       So it's possible to turn a triangle inside out.
+     - Edge flips don't respect triangle size
+     - Irrespective of triangle size, it's possible to make
+       overlapping triangles with a triangle strip that loops
+       over itself.
+     - Should be possible (or automatic) to snap two nodes at
+       the same x,y. *)
+
   (* PERF probably don't need to be using IntInf. Now that
      counters are local to the tesselation, it's pretty implausible
      that these numbers would get high. And currently there is no
@@ -81,40 +93,105 @@ struct
 
     fun id (N (ref { id = i, ... })) = i
 
-    fun trymove (node as N (r as ref { coords = c, triangles, id, ... }))
-                key (newx, newy) =
-      let
-        val (x, y) = coords node key
-
-        fun checktriangle (a, b) =
-          (* It is not allowed to make the triangle degenerate
-             (angle = 180) or inside-out (angle > 180). *)
-          let
-            val a = coords a key
-            val b = coords b key
-            (* Get interior angle, regardless of winding *)
-            val (a, b) =
-              if IntMaths.angle (a, (x, y), b) < 180.0
-              then (a, b)
-              else (b, a)
-
-            val newangle = IntMaths.angle (a, (newx, newy), b)
-          in
-            newangle < MINANGLE
-          end
-      in
-        (* XXX: Could do binary search to find a closer point
-           that's okay. *)
-        if List.all checktriangle triangles
-        then (r := { coords = KM.insert (c, key, (newx, newy)),
-                     triangles = triangles, id = id };
-              (newx, newy))
-        else (x, y)
-      end
   end
+
+  (* PERF if we had some kind of invariants on winding order we
+     could probably reduce the number of comparisons here and below.
+     But I think it's quite a pain to get right. *)
+  (* Same as compare_edge = EQUAL but should be faster. *)
+  fun same_edge ((n1 : node, n2 : node), (n3 : node, n4 : node)) =
+    (N.eq (n1, n3) andalso N.eq (n2, n4)) orelse
+    (N.eq (n1, n4) andalso N.eq (n2, n3))
+
+
+  (* PERF: Could generate the comparisons for sort/eq, which would
+     be faster than this AND/OR mess. *)
+  fun same_triangle ((a, b, c), (d, e, f)) =
+    (* If they are the same triangle, then a must be equal to
+       one of the other nodes. Then the remaining edges must
+       be equal, too. *)
+    (N.eq (a, d) andalso same_edge ((b, c), (e, f))) orelse
+    (N.eq (a, e) andalso same_edge ((b, c), (d, f))) orelse
+    (N.eq (a, f) andalso same_edge ((b, c), (d, e)))
 
   fun triangles (K { triangles, ... }) : triangle list = !triangles
   fun nodes (K { nodes, ... }) : node list = !nodes
+
+  fun trymovenode (s : keyedtesselation)
+                  (node as N (r as ref { coords = c,
+                                         triangles = nodetriangles,
+                                         id, ... }))
+                  key (newx, newy) =
+    let
+      val alltriangles = triangles s
+
+      val (x, y) = N.coords node key
+
+      fun checkadjacentangle (a, b) =
+        (* It is not allowed to make the triangle degenerate
+           (angle = 180) or inside-out (angle > 180). *)
+        let
+          val a = N.coords a key
+          val b = N.coords b key
+          (* Get interior angle, regardless of winding *)
+          val (a, b) =
+            if IntMaths.angle (a, (x, y), b) < 180.0
+            then (a, b)
+            else (b, a)
+
+          val newangle = IntMaths.angle (a, (newx, newy), b)
+        in
+          newangle < MINANGLE
+        end
+
+      (* No new overlaps are allowed. Check this triangle
+         against all other ones. Returns true if everything
+         is okay. We only move with the selected key, so only
+         this key can violate representation invariants. *)
+      fun checkoverlaps (a, b) =
+        let
+          val whichtri = (a, node, b)
+          val a = N.coords a key
+          val b = N.coords b key
+          val me = (a, (newx, newy), b)
+
+          (* We may encounter the node being moved in other triangles;
+             make sure that they respect its new position (otherwise
+             you almost always get an apparent overlap since the
+             node will have moved into a triangle it used to define). *)
+          fun newcoords n =
+            if n = node
+            then (newx, newy)
+            else N.coords n key
+        in
+          List.all (fn (d, e, f) =>
+                    (* don't do self-overlap test. *)
+                    same_triangle (whichtri, (d, e, f)) orelse
+                    let
+                      val d = newcoords d
+                      val e = newcoords e
+                      val f = newcoords f
+                      fun ctos (x, y) = Int.toString x ^ "," ^ Int.toString y
+                      fun ttos (a, b, c) = ctos a ^ ";" ^ ctos b ^ ";" ^ ctos c
+                    in
+                      if IntMaths.triangleoverlap me (d, e, f)
+                      then (print ("Overlap: " ^ ttos me ^ " and " ^ ttos (d, e, f) ^ "\n");
+                            false)
+                      else true
+                    (* not (IntMaths.triangleoverlap me (d, e, f)) *)
+                    end) alltriangles
+        end
+
+    in
+      (* XXX: Could do binary search to find a closer point
+         that's okay. *)
+      if List.all checkadjacentangle nodetriangles andalso
+         List.all checkoverlaps nodetriangles
+      then (r := { coords = KM.insert (c, key, (newx, newy)),
+                   triangles = nodetriangles, id = id };
+            (newx, newy))
+      else (x, y)
+    end
 
   fun rectangle key { x0 : int, y0 : int, x1 : int, y1 : int }
       : keyedtesselation =
@@ -297,14 +374,6 @@ struct
       | EQUAL => compare_node (n2, n4)
     end
 
-  (* PERF if we had some kind of invariants on winding order we
-     could probably reduce the number of comparisons here and below.
-     But I think it's quite a pain to get right. *)
-  (* Same as compare_edge = EQUAL but should be faster. *)
-  fun same_edge ((n1 : node, n2 : node), (n3 : node, n4 : node)) =
-    (N.eq (n1, n3) andalso N.eq (n2, n4)) orelse
-    (N.eq (n1, n4) andalso N.eq (n2, n3))
-
   (* PERF: Keys could be kept in a normalized order (smaller
      node first), which makes comparisons much cheaper. But
      this would require wrapping the splaymap operations.
@@ -326,16 +395,6 @@ struct
       (* Could check that there are at most 2 *)
       List.mapPartial match (triangles s)
     end
-
-  (* PERF: Could generate the comparisons for sort/eq, which would
-     be faster than this AND/OR mess. *)
-  fun same_triangle ((a, b, c), (d, e, f)) =
-    (* If they are the same triangle, then a must be equal to
-       one of the other nodes. Then the remaining edges must
-       be equal, too. *)
-    (N.eq (a, d) andalso same_edge ((b, c), (e, f))) orelse
-    (N.eq (a, e) andalso same_edge ((b, c), (d, f))) orelse
-    (N.eq (a, f) andalso same_edge ((b, c), (d, e)))
 
   (* Internal! *)
   structure S =

@@ -184,7 +184,7 @@ struct
                      | SOME n =>
                          let in
                            draggingnode := SOME (ObjNode (obj, n));
-                           ignore (Obj.N.trymove n key (x, y))
+                           ignore (Obj.trymovenode obj n key (x, y))
                          end
                  in
                    ([Circle (x, y, 3, CLOSESTCIRCLE),
@@ -205,7 +205,7 @@ struct
                   | SOME n =>
                       let in
                         draggingnode := SOME (AreasNode n);
-                        ignore (Areas.N.trymove n () (x, y))
+                        ignore (Areas.trymovenode (Screen.areas (!screen)) n () (x, y))
                       end
               in
                 ([Circle (x, y, 3, CLOSESTCIRCLE),
@@ -390,11 +390,12 @@ struct
     (* XXX should case on what kinda node it is..? *)
     case !draggingnode of
       NONE => ()
-    | SOME (AreasNode n) => ignore (Areas.N.trymove n () (x, y))
+    | SOME (AreasNode n) =>
+        ignore (Areas.trymovenode (Screen.areas (!screen)) n () (x, y))
     | SOME (ObjNode (obj, n)) =>
         (case !frozennode of
            NONE => eprint "Can't move object node without frozen node"
-         | SOME key => ignore (Obj.N.trymove n key (x, y)))
+         | SOME key => ignore (Obj.trymovenode obj n key (x, y)))
 
   (* The work is done by get_lmb_actions so that the indicators
      and actions are in sync. Here we just apply the action function. *)
@@ -520,7 +521,7 @@ struct
       val () = events ()
 
       val () = Draw.randomize_loud pixels
-      (* val () = Render.drawareacolors (pixels, Screen.areas (!screen)) *)
+      val () = Render.drawareacolors (pixels, Screen.areas (!screen))
 
       (* val () = eprint "areas" *)
       val () = Render.drawareas (pixels, Screen.areas (!screen),

@@ -33,6 +33,32 @@ sig
   val barycentric : point * point * point * point ->
                     real * real * real
 
+  (* Checks for illegal triangle overlap.
+
+     Returns true if the pair of triangles overlap.
+     This includes the case where any vertex is inside
+     the other triangle. It allows the two triangles
+     to share a vertex or edge. It allows a vertex to
+     be exactly upon an edge of another triangle, but
+     only on one side (consistent with the pointinside
+     test). Usually you don't want this anyway. (XXX
+     consider disallowing this case -- in a tesselation,
+     every point should be in at most one triangle,
+     right?)
+
+     XXX This does not yet handle the case where
+     two triangles intersect but neither has a point
+     inside the other, like in the Star of David. I
+     think that's sufficient for tesselation checks
+     because there's no way to construct the Star of
+     David without violating this function momentarily.
+
+     The function should be fixed and callers should
+     be ready for that. *)
+  val triangleoverlap : (point * point * point) ->
+                        (point * point * point) ->
+                        bool
+
   datatype side =
     LEFT | COLINEAR | RIGHT
   (* point (a, b, pt)
