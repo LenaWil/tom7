@@ -2,7 +2,8 @@ signature DRAW =
 sig
 
   (* mixcolor (r, g, b, a) *)
-  val mixcolor : Word32.word * Word32.word * Word32.word * Word32.word -> Word32.word
+  val mixcolor : Word32.word * Word32.word * Word32.word * Word32.word ->
+                 Word32.word
 
   (* returns (r, g, b, a) *)
   val unmixcolor : Word32.word ->
@@ -15,7 +16,8 @@ sig
   val blendtwocolors : Word32.word * Word32.word -> Word32.word
 
   (* drawline (pixels, x0, y0, x1, y1, color) *)
-  val drawline : Word32.word Array.array * int * int * int * int * Word32.word -> unit
+  val drawline : Word32.word Array.array *
+                 int * int * int * int * Word32.word -> unit
 
   (* drawline (pixels, x0, y0, x1, y1, segment)
      Same, but give a non-empty segment to be repeated over and over.
@@ -28,6 +30,14 @@ sig
 
   (* drawcircle (pixels, x0, y0, radius, color) *)
   val drawcircle : Word32.word Array.array * int * int * int * Word32.word -> unit
+
+  (* drawrect (pixels, x0, y0, x1, y1, color)
+     Note this includes the points (x0, y1), (x1, y1) etc.,
+     which differs from the behavior of some other rectangle
+     drawing routines. *)
+  val drawrect : Word32.word Array.array *
+                 int * int * int * int *
+                 Word32.word -> unit
 
   val blit : { dest : int * int * Word32.word Array.array,
                src : Images.image,
@@ -64,5 +74,9 @@ sig
      always behaves as though it's 1.0).
      *)
   val mixpixel_postfilter : real -> real -> Word32.word Array.array -> unit
+
+  val noise_postfilter : Word32.word Array.array -> unit
+
+  val darken : Word32.word Array.array -> unit
 
 end

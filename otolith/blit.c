@@ -23,17 +23,25 @@ void InitGame() {
   SDL_Flip(screen);
 }
 
+// Ignores alpha channel.
 void FillScreenFrom(Uint32 *inpixels) {
   SDL_Surface *surf = screen;
   // printf("RGB %d %d %d\n", R, G, B);
   CHECK(surf->format->BytesPerPixel == 4);
   // CHECK(inpixels[0] == 0xFFAAAAAA);
 
+  Uint32 *pixels = (Uint32 *)surf->pixels;
+
   // PERF Worth experimenting with different ways of pipelining this.
   for (int y = 0; y < HEIGHT; y++) {
     for (int x = 0; x < WIDTH; x++) {
-      Uint32 color = inpixels[y * WIDTH + x];
-      Uint32 *pixels = (Uint32 *)surf->pixels;
+      // PERF move endiannness check out
+
+      Uint32 rgba = inpixels[y * WIDTH + x];
+      Uint8 r = 255 & (rgba >> 24);
+      Uint8 g = 255 & (rgba >> 16);
+      Uint8 b = 255 & (rgba >> 8);
+      Uint32 color = SDL_MapRGB(surf->format, r, g, b);
 
       // pixel offset of top-left corner of megapixel
       int o = (y * PIXELSIZE * (WIDTH * PIXELSIZE) + x * PIXELSIZE);

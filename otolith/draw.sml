@@ -14,10 +14,10 @@ struct
     infix orb & >>
   in
     fun mixcolor (r, g, b, a) =
-      Word32.<< (a, 0w24) orb
-      Word32.<< (r, 0w16) orb
-      Word32.<< (g, 0w8) orb
-      b
+      Word32.<< (r, 0w24) orb
+      Word32.<< (g, 0w16) orb
+      Word32.<< (b, 0w8) orb
+      a
 
     fun hexcolor w = mixcolor ((w >> 0w16) & 0wxFF,
                                (w >> 0w8) & 0wxFF,
@@ -25,10 +25,10 @@ struct
                                0wxFF)
 
     fun unmixcolor w =
-      ((w >> 0w16) & 0wxFF,
+      ((w >> 0w24) & 0wxFF,
+       (w >> 0w16) & 0wxFF,
        (w >> 0w8) & 0wxFF,
-       w & 0wxFF,
-       (w >> 0w24) & 0wxFF)
+       w & 0wxFF)
 
     fun blendtwocolors (w, ww) =
       let
@@ -205,6 +205,14 @@ struct
         else ()
     in
       loop (x, y, f, ddF_x, ddF_y)
+    end
+
+  fun drawrect (pixels, x0, y0, x1, y1, c) =
+    let in
+      drawline (pixels, x0, y0, x1 - 1, y0, c);
+      drawline (pixels, x0, y0, x0, y1 - 1, c);
+      drawline (pixels, x1, y0, x1, y1 - 1, c);
+      drawline (pixels, x0, y1, x1, y1, c)
     end
 
   fun randomize pixels =
@@ -468,7 +476,7 @@ struct
             val dx = dstx + x
             val c = Array.sub (ipixels, sy * iwidth + sx)
           in
-            if Word32.andb (0wxFF000000, c) = 0w0
+            if Word32.andb (0wxFF, c) = 0w0
             then () (* completely transparent -- don't draw *)
             else Array.update (dpixels, dy * dwidth + dx, c)
           end)
@@ -508,13 +516,12 @@ struct
             val dx = dstx + x
             val c = Array.sub (ipixels, sy * iwidth + sx)
           in
-            if Word32.andb (0wxFF000000, c) = 0w0
+            if Word32.andb (0wxFF, c) = 0w0
             then () (* completely transparent -- don't draw *)
             else Array.update (dpixels, dy * dwidth + dx, color)
           end)
        end)
     end
-
 
   fun drawtext (pixels, { width, height, image, table, ... } : Font.font,
                 x, y, s) =
@@ -549,5 +556,53 @@ struct
                   color = color }
      end)
 
+  fun old_noise_postfilter (pixels) =
+    Util.for 0 (Array.length pixels - 1)
+    (fn i =>
+     let
+       fun byte32 () = Word32.fromInt (Word8.toInt (byte ()))
+       val c = Array.sub (pixels, i)
+       val c2 = mixcolor (byte32 (), byte32 (), byte32 (), 0wx255)
+       val c3 = blendtwocolors (c, c2)
+       val c4 = blendtwocolors (c, c3)
+       val c5 = blendtwocolors (c, c3)
+     in
+       Array.update (pixels, i, c5)
+     end)
+
+  fun noise_postfilter (pixels) =
+    Util.for 0 (Array.length pixels - 1)
+    (fn i =>
+     let
+       fun byte32 () = Word32.fromInt (Word8.toInt (byte ()))
+       val rand = byte32 ()
+       val c = Array.sub (pixels, i)
+       val (r, g, b, a) = unmixcolor c
+       val ^^ = Word32.xorb
+       val && = Word32.andb
+       val >> = Word32.>>
+       infix ^^ && >>
+       val c2 = mixcolor (r ^^ (rand && 0w7),
+                          g ^^ ((rand >> 0w3) && 0w7),
+                          b ^^ ((rand >> 0w6) && 0w7), 0wxFF)
+     in
+       Array.update (pixels, i, c2)
+     end)
+
+  fun darken pixels =
+    Util.for 0 (Array.length pixels - 1)
+    (fn i =>
+     let
+       val c = Array.sub (pixels, i)
+       val (r, g, b, a) = unmixcolor c
+       val >> = Word32.>>
+       infix >>
+       val c2 = mixcolor (r >> 0w2,
+                          g >> 0w2,
+                          b >> 0w2,
+                          0wxFF)
+     in
+       Array.update (pixels, i, c2)
+     end)
 
 end

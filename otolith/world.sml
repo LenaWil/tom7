@@ -60,6 +60,9 @@ struct
                getorcreate (x, y))
     | SOME s => s
 
+  fun getmaybe (x, y) =
+    IIM.find (!world, (x, y))
+
   (* Sets the screen at x,y to the argument. Returns the screen
      since otolith keeps a copy too. *)
   fun setscreen (x, y, s) =
