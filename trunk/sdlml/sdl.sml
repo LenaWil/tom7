@@ -1329,8 +1329,7 @@ struct
           end
   end
 
-  (* n.b. imports the same function, just at a different type *)
-  local val pixels_ = _import "ml_pixels" private : ptr * Word32.word Array.array -> unit ;
+  local val pixels_ = _import "ml_pixels32" private : ptr * Word32.word Array.array -> unit ;
   in
       fun pixels32 s =
           let

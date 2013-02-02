@@ -1,7 +1,7 @@
 /* Hooks and glue for using SDL through SML. Portable to win32, linux, osx.
    This is incomplete and a little messy. But we try to make it better.
 
-    - Tom                   23 May 2010
+    - Tom                   Last update: 2 Feb 2013
 */
 #include <SDL.h>
 
@@ -352,7 +352,7 @@ void ml_drawpixel(SDL_Surface *surf, int x, int y,
 }
 
 void ml_getpixel(SDL_Surface *surf, int x, int y,
-                 unsigned char *R, unsigned char *G, unsigned char *B) {
+                 Uint8 *R, Uint8 *G, Uint8 *B) {
   switch (surf->format->BytesPerPixel) {
     case 4: // Probably 32-bpp
       {
@@ -368,7 +368,7 @@ void ml_getpixel(SDL_Surface *surf, int x, int y,
 }
 
 void ml_getpixela(SDL_Surface *surf, int x, int y,
-                  unsigned char *R, unsigned char *G, unsigned char *B, unsigned char *A) {
+                  Uint8 *R, Uint8 *G, Uint8 *B, Uint8 *A) {
   switch (surf->format->BytesPerPixel) {
     case 4: // Probably 32-bpp
       {
@@ -420,9 +420,7 @@ void ml_unpixels(SDL_Surface *surf, unsigned char *RGBA) {
   }
 }
 
-// NOTE: This function is called from ML with both
-// unsigned char *RGBA and word32 *RGBA.
-// There may be byte order issues.
+// There may be byte order issues in the 24bpp case?
 void ml_pixels(SDL_Surface *surf, unsigned char *RGBA) {
   int y, x, offset = 0;
   switch (surf->format->BytesPerPixel) {
@@ -430,8 +428,8 @@ void ml_pixels(SDL_Surface *surf, unsigned char *RGBA) {
       for (y = 0; y < surf->h; y++) {
         for (x = 0; x < surf->w; x++) {
           /* PERF this can probably be a lot more efficient by
-             unrolling SDL_GetRGBA; we unpack from the word and
-             then effectively repack. */
+             unrolling SDL_GetRGBA based on endianness; we unpack from
+             the word and then effectively repack. */
           Uint32 *bufp;
           bufp = (Uint32 *)surf->pixels + y*surf->pitch/4 + x;
           SDL_GetRGBA(*bufp, surf->format,
@@ -464,7 +462,52 @@ void ml_pixels(SDL_Surface *surf, unsigned char *RGBA) {
   }
 }
 
-void ml_fillrect(SDL_Surface *dst, int x, int y, int w, int h, int r, int g, int b) {
+// Note that this always packs words as 0xRRGGBBAA, regardless
+// of native byte order.
+void ml_pixels32(SDL_Surface *surf, Uint32 *RGBA) {
+  int y, x, offset = 0;
+  switch (surf->format->BytesPerPixel) {
+    case 4: // Probably 32-bpp
+      for (y = 0; y < surf->h; y++) {
+        for (x = 0; x < surf->w; x++) {
+          /* PERF this can probably be a lot more efficient by
+             unrolling SDL_GetRGBA based on endianness; we unpack from
+             the word and then effectively repack. */
+          Uint32 *bufp;
+          bufp = (Uint32 *)surf->pixels + y*surf->pitch/4 + x;
+          Uint8 r, g, b, a;
+          SDL_GetRGBA(*bufp, surf->format,
+                      &r, &g, &b, &a);
+          RGBA[offset] = (r << 24) | (g << 16) | (b << 8) | a;
+          offset++;
+        }
+      }
+      break;
+    case 3: // Slow 24-bpp mode, usually not used
+      for (y = 0; y < surf->h; y++) {
+        for (x = 0; x < surf->w; x++) {
+          Uint8 *bufp;
+          bufp = (Uint8 *)surf->pixels + y*surf->pitch + x * 3;
+          // assume (SDL_BYTEORDER == SDL_LIL_ENDIAN) ?
+          Uint8 r = bufp[0];
+          Uint8 g = bufp[1];
+          Uint8 b = bufp[2];
+          // Assume 100% alpha.
+          Uint8 a = 0xFF;
+          RGBA[offset] = (r << 24) | (g << 16) | (b << 8) | a;
+
+          offset++;
+        }
+      }
+      break;
+  default:
+    printf("unsupported pixel format in ml_pixels32 (want 24 or 32 bpp)\n");
+    abort();
+  }
+}
+
+void ml_fillrect(SDL_Surface *dst, int x, int y, int w, int h,
+                 int r, int g, int b) {
   Uint32 c = SDL_MapRGB(dst->format, r, g, b);
   SDL_Rect rect;
   rect.x = x;
@@ -474,7 +517,8 @@ void ml_fillrect(SDL_Surface *dst, int x, int y, int w, int h, int r, int g, int
   SDL_FillRect(dst, &rect, c);
 }
 
-void ml_fillrecta(SDL_Surface *dst, int x, int y, int w, int h, int r, int g, int b, int a) {
+void ml_fillrecta(SDL_Surface *dst, int x, int y, int w, int h,
+                  int r, int g, int b, int a) {
   Uint32 c = SDL_MapRGBA(dst->format, r, g, b, a);
   SDL_Rect rect;
   rect.x = x;
