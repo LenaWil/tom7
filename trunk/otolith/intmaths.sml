@@ -161,4 +161,39 @@ struct
            else COLINEAR
     end
 
+  fun ctos (x, y) = Int.toString x ^ "," ^ Int.toString y
+  fun ttos (a, b, c) = ctos a ^ ";" ^ ctos b ^ ";" ^ ctos c
+
+  (* PERF surely there are faster tests. *)
+  fun triangleoverlap (abc as (a, b, c)) (def as (d, e, f)) : bool =
+    let
+      (* The point is okay if it is equal to one of the other
+         vertices, or if it is outside the triangle. *)
+      fun pointok (pt, tri as (g, h, i)) =
+        if pointinside tri pt
+        then if pt = g orelse pt = h orelse pt =i
+             then true
+               (* PERF *)
+             else (print (ctos pt ^ " is inside " ^ ttos tri ^ " and neq\n");
+                   false)
+        else true
+
+(*
+        not (pointinside tri pt) orelse
+        pt = g orelse
+        pt = h orelse
+        pt = i
+*)
+    in
+      (* Might be appropriate to use an integer barycentric-based
+         test, since you can precompute the determinant for all
+         three tests. *)
+      not (pointok (d, abc) andalso
+           pointok (e, abc) andalso
+           pointok (f, abc) andalso
+           pointok (a, def) andalso
+           pointok (b, def) andalso
+           pointok (c, def))
+    end
+
 end
