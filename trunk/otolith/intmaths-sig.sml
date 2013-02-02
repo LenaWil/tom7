@@ -66,10 +66,10 @@ sig
 
   (* Find the nature of the intersection between the
      vectors (x1, y1) to (x2, y2)  and   (x3, y3) to (x4, y4). *)
-  val vectorintersection : point * point * point * point -> intersection
+  val vectorintersection : (point * point) * (point * point) -> intersection
   (* Cheaper; doesn't compute the point of intersection. If the
      vectors are colinear, this counts as intersection. *)
-  val vectorsintersect : point * point * point * point -> bool
+  val vectorsintersect : (point * point) * (point * point) -> bool
 
   datatype side =
     LEFT | ATOP | RIGHT

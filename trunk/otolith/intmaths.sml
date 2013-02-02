@@ -172,7 +172,7 @@ struct
      is permitted in any program, product, or library, non-commercial
      or commercial. Giving credit is not required, though is a nice
      gesture." *)
-  fun vectorintersection ((x1, y1), (x2, y2), (x3, y3), (x4, y4))
+  fun vectorintersection (((x1, y1), (x2, y2)), ((x3, y3), (x4, y4)))
     : intersection =
     let
       (* Compute a1, b1, c1, where line joining points 1 and 2
@@ -235,8 +235,12 @@ struct
         end
     end
 
+  fun ctos (x, y) = Int.toString x ^ "," ^ Int.toString y
+  fun vtos (p1, p2) = ctos p1 ^ "->" ^ ctos p2
+  fun ttos (a, b, c) = ctos a ^ ";" ^ ctos b ^ ";" ^ ctos c
+
   (* Just a simplified version of the above. *)
-  fun vectorsintersect ((x1, y1), (x2, y2), (x3, y3), (x4, y4))
+  fun vectorsintersect (((x1, y1), (x2, y2)), ((x3, y3), (x4, y4)))
     : bool =
     let
       (* Compute a1, b1, c1, where line joining points 1 and 2
@@ -268,39 +272,48 @@ struct
         end
     end
 
-  fun ctos (x, y) = Int.toString x ^ "," ^ Int.toString y
-  fun ttos (a, b, c) = ctos a ^ ";" ^ ctos b ^ ";" ^ ctos c
-
   (* PERF surely there are faster tests. *)
   fun triangleoverlap (abc as (a, b, c)) (def as (d, e, f)) : bool =
     let
       (* The point is okay if it is equal to one of the other
          vertices, or if it is outside the triangle. *)
-      fun pointok (pt, tri as (g, h, i)) =
-        if pointinside tri pt
-        then if pt = g orelse pt = h orelse pt =i
-             then true
-               (* PERF *)
-             else (print (ctos pt ^ " is inside " ^ ttos tri ^ " and neq\n");
-                   false)
-        else true
+      fun badpoint (pt, tri as (g, h, i)) =
+        pointinside tri pt andalso
+        not (pt = g orelse
+             pt = h orelse
+             pt = i)
 
-(*
-        not (pointinside tri pt) orelse
-        pt = g orelse
-        pt = h orelse
-        pt = i
-*)
+      (* Like vectorsintersect, but ignored if the vectors
+         share an endpoint in common. Note that this allows
+         colinear vectors in that case. *)
+      fun edgesintersect (e as (p, q),
+                          ee as (pp, qq)) =
+        p <> pp andalso p <> qq andalso q <> pp andalso q <> qq
+        andalso vectorsintersect (e, ee)
+
+      fun badedge (edge, (g, h, i)) =
+        edgesintersect (edge, (g, h)) orelse
+        edgesintersect (edge, (h, i)) orelse
+        edgesintersect (edge, (i, g))
+
     in
-      (* Might be appropriate to use an integer barycentric-based
-         test, since you can precompute the determinant for all
-         three tests. *)
-      not (pointok (d, abc) andalso
-           pointok (e, abc) andalso
-           pointok (f, abc) andalso
-           pointok (a, def) andalso
-           pointok (b, def) andalso
-           pointok (c, def))
+      (* "Most" triangle intersections also have edge intersections,
+         so try those first. The test is symmetric, so we only need
+         to test one triangle. *)
+       badedge ((a, b), def) orelse
+       badedge ((b, c), def) orelse
+       badedge ((c, a), def) orelse
+
+       (* Might be appropriate to use an integer barycentric-based
+          test, since you can precompute the determinant for all
+          three tests. *)
+       badpoint (d, abc) orelse
+       badpoint (e, abc) orelse
+       badpoint (f, abc) orelse
+
+       badpoint (a, def) orelse
+       badpoint (b, def) orelse
+       badpoint (c, def)
     end
 
 end
