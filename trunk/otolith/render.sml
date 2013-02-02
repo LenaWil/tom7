@@ -205,9 +205,54 @@ struct
     let
       fun oneobject (obj, i) =
         drawobjectall (pixels, screen, frozen, obj,
-                       Vector.sub (objectcolors, i mod Vector.length objectcolors))
+                       Vector.sub (objectcolors,
+                                   i mod Vector.length objectcolors))
     in
       ListUtil.appi oneobject objs
+    end
+
+
+  val CURRENTCELLCOLOR = Draw.hexcolor 0wxff0000
+  (* unimplemented *)
+  (* XXX take world as argument? *)
+  fun drawmap (pixels, worldx, worldy) =
+    let
+      (* to constants? *)
+      val MAPCELLWIDTH = 12
+      val MAPCELLHEIGHT = 8
+
+      val startx = (WIDTH - WORLD_WIDTH * MAPCELLWIDTH) div 2
+      val starty = (HEIGHT - WORLD_HEIGHT * MAPCELLHEIGHT) div 2
+    in
+      Util.for 0 (WORLD_HEIGHT - 1)
+      (fn y =>
+       Util.for 0 (WORLD_WIDTH - 1)
+       (fn x =>
+        let
+
+          val scr = World.getmaybe (x, y)
+          val bm = case scr of
+            NONE => Images.mapcellnone
+          | SOME _ => Images.mapcell
+
+          val () = Draw.blit { dest = (WIDTH,
+                                       HEIGHT,
+                                       pixels),
+                               src = bm,
+                               srcrect = NONE,
+                               dstx = startx + MAPCELLWIDTH * x,
+                               dsty = starty + MAPCELLHEIGHT * y }
+        in
+          ()
+        end));
+
+      (* Highlight the selected one. *)
+      Draw.drawrect (pixels,
+                     startx + MAPCELLWIDTH * worldx,
+                     starty + MAPCELLHEIGHT * worldy,
+                     startx + MAPCELLWIDTH * (worldx + 1) - 1,
+                     starty + MAPCELLHEIGHT * (worldy + 1) - 1,
+                     CURRENTCELLCOLOR)
     end
 
 end

@@ -30,6 +30,13 @@ struct
   val screen : Screen.screen ref =
     ref (World.getorcreate (!worldx, !worldy))
 
+  fun warptoscreen (x, y) =
+    let in
+      worldx := x;
+      worldy := y;
+      screen := World.getorcreate (x, y)
+    end
+
   (* val objects : Object.object list ref = ref nil *)
 
   (* Always in game pixels. The event loop scales down x,y before
@@ -41,6 +48,7 @@ struct
   val holdingcontrol = ref false
   val holdingspace = ref false
   val holdingbackslash = ref false
+  val holdingtab = ref false
 
   val mousedown = ref false
 
@@ -411,6 +419,20 @@ struct
 
   val start = Time.now()
 
+  fun dirkey (dx, dy) =
+    if !holdingtab
+    then
+      let
+        val nx = !worldx + dx
+        val ny = !worldy + dy
+      in
+        if nx >= 0 andalso ny >= 0 andalso
+           nx < WORLD_WIDTH andalso ny < WORLD_HEIGHT
+        then warptoscreen (nx, ny)
+        else eprint "can't go outside the map"
+      end
+    else ()
+
   fun keydown SDL.SDLK_ESCAPE =
     let in
       (* For now, always save. XXX reconsider this
@@ -434,6 +456,15 @@ struct
     | keydown SDL.SDLK_BACKSLASH =
       (holdingbackslash := true;
        updatecursor ())
+
+    | keydown SDL.SDLK_TAB =
+      (holdingtab := true;
+       updatecursor())
+
+    | keydown SDL.SDLK_UP = dirkey (0, ~1)
+    | keydown SDL.SDLK_DOWN = dirkey (0, 1)
+    | keydown SDL.SDLK_LEFT = dirkey (~1, 0)
+    | keydown SDL.SDLK_RIGHT = dirkey (1, 0)
 
     (* Need much better keys... *)
     | keydown SDL.SDLK_o =
@@ -463,6 +494,10 @@ struct
     | keyup SDL.SDLK_BACKSLASH =
       (holdingbackslash := false;
        updatecursor ())
+
+    | keyup SDL.SDLK_TAB =
+      (holdingtab := false;
+       updatecursor())
 
     | keyup _ = ()
 
@@ -550,6 +585,16 @@ struct
       (* val () = eprint "indicators" *)
       val () = drawareaindicators ()
 
+      (* Show map? *)
+      val () =
+        if !holdingtab
+        then
+          let in
+            Draw.darken pixels;
+            Render.drawmap (pixels, !worldx, !worldy)
+          end
+        else ()
+
       (* test... *)
       val () = Draw.blit { dest = (WIDTH, HEIGHT, pixels),
                            src = Images.tinymouse,
@@ -557,8 +602,9 @@ struct
                            dstx = !mousex,
                            dsty = !mousey }
 
+      val () = Draw.noise_postfilter pixels
       (* val () = Draw.scanline_postfilter pixels *)
-      val () = Draw.mixpixel_postfilter 0.25 0.8 pixels
+      (* val () = Draw.mixpixel_postfilter 0.25 0.8 pixels *)
       val () = fillscreen pixels
       val () = ctr := !ctr + 1
     in

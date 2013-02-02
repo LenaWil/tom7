@@ -28,4 +28,7 @@ struct
   (* val testcursor = loadimage "testcursor.png" *)
   val tinymouse = loadimage "tinymouse.png"
 
+  val mapcell = loadimage "mapcell.png"
+  val mapcellnone = loadimage "mapcellnone.png"
+
 end

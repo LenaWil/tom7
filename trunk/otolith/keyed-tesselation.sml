@@ -171,14 +171,8 @@ struct
                       val d = newcoords d
                       val e = newcoords e
                       val f = newcoords f
-                      fun ctos (x, y) = Int.toString x ^ "," ^ Int.toString y
-                      fun ttos (a, b, c) = ctos a ^ ";" ^ ctos b ^ ";" ^ ctos c
                     in
-                      if IntMaths.triangleoverlap me (d, e, f)
-                      then (print ("Overlap: " ^ ttos me ^ " and " ^ ttos (d, e, f) ^ "\n");
-                            false)
-                      else true
-                    (* not (IntMaths.triangleoverlap me (d, e, f)) *)
+                      not (IntMaths.triangleoverlap me (d, e, f))
                     end) alltriangles
         end
 
@@ -710,7 +704,7 @@ struct
                 triangles = map onetriangle triangles }
         val nodes = map onenode (nodes s)
       in
-        print (todebugstring s ^ "\n");
+        (* print (todebugstring s ^ "\n"); *)
         (W.KT { nodes = nodes },
          (fn n =>
           case NM.find (!idmap, n) of
