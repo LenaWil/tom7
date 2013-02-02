@@ -59,8 +59,20 @@ sig
                         (point * point * point) ->
                         bool
 
+  datatype intersection =
+      NoIntersection
+    | Intersection of int * int
+    | Colinear
+
+  (* Find the nature of the intersection between the
+     vectors (x1, y1) to (x2, y2)  and   (x3, y3) to (x4, y4). *)
+  val vectorintersection : point * point * point * point -> intersection
+  (* Cheaper; doesn't compute the point of intersection. If the
+     vectors are colinear, this counts as intersection. *)
+  val vectorsintersect : point * point * point * point -> bool
+
   datatype side =
-    LEFT | COLINEAR | RIGHT
+    LEFT | ATOP | RIGHT
   (* point (a, b, pt)
      Tests which side of the line a->b the point is on.
      If the line is horizontal with a to the left of b,
