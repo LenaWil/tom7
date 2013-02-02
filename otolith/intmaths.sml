@@ -152,13 +152,120 @@ struct
     end
 
   datatype side =
-    LEFT | COLINEAR | RIGHT
+    LEFT | ATOP | RIGHT
   fun pointside ((x0, y0), (x1, y1), (x, y)) =
     let val m = (x1 - x0) * (y - y0) - (y1 - y0) * (x - x0)
     in
       if m > 0 then LEFT
       else if m < 0 then RIGHT
-           else COLINEAR
+           else ATOP
+    end
+
+  datatype intersection =
+      NoIntersection
+    | Intersection of int * int
+    | Colinear
+
+  (* This is a straightforward port of Mukesh Prasad's lines_intersect
+     from Graphics Gems II. Graphics Gems are published with the
+     requirement that the source contain attribution. "Using the code
+     is permitted in any program, product, or library, non-commercial
+     or commercial. Giving credit is not required, though is a nice
+     gesture." *)
+  fun vectorintersection ((x1, y1), (x2, y2), (x3, y3), (x4, y4))
+    : intersection =
+    let
+      (* Compute a1, b1, c1, where line joining points 1 and 2
+         is "a1 x  +  b1 y  +  c1  =  0". *)
+      val a1 = y2 - y1
+      val b1 = x1 - x2
+      val c1 = x2 * y1 - x1 * y2
+
+      val r3 = a1 * x3 + b1 * y3 + c1
+      val r4 = a1 * x4 + b1 * y4 + c1
+    in
+      (* If both point 3 and point 4 lie on same side of line 1, the line
+         segments do not intersect. *)
+      if r3 <> 0 andalso r4 <> 0 andalso
+         Int.sameSign (r3, r4)
+      then NoIntersection
+      else
+        let
+          val a2 = y4 - y3
+          val b2 = x3 - x4
+          val c2 = x4 * y3 - x3 * y4
+
+          val r1 = a2 * x1 + b2 * y1 + c2
+          val r2 = a2 * x2 + b2 * y2 + c2
+        in
+          (* If both point 1 and point 2 lie on same side of second line
+             segment, the line segments do not intersect. *)
+          if r1 <> 0 andalso r2 <> 0 andalso
+             Int.sameSign (r1, r2)
+          then NoIntersection
+          else
+            (* They intersect -- where? *)
+            let
+              val denom = a1 * b2 - a2 * b1
+            in
+              if denom = 0
+              then Colinear
+              else
+                let
+                  (* To get rounding instead of truncating.
+                     It's added or subtracted to the numerator,
+                     depending on the sign. XXX I seem to recall
+                     a difference in rounding behavior between
+                     C and SML? *)
+                  val offset = if denom < 0
+                               then denom div ~2
+                               else denom div 2
+
+                  val numx = b1 * c2 - b2 * c1
+                  val numy = a2 * c1 - a1 * c2
+                in
+                  Intersection ((if numx < 0
+                                 then numx - offset
+                                 else numx + offset) div denom,
+                                (if numy < 0
+                                 then numy - offset
+                                 else numy + offset) div denom)
+                end
+            end
+        end
+    end
+
+  (* Just a simplified version of the above. *)
+  fun vectorsintersect ((x1, y1), (x2, y2), (x3, y3), (x4, y4))
+    : bool =
+    let
+      (* Compute a1, b1, c1, where line joining points 1 and 2
+         is "a1 x  +  b1 y  +  c1  =  0". *)
+      val a1 = y2 - y1
+      val b1 = x1 - x2
+      val c1 = x2 * y1 - x1 * y2
+
+      val r3 = a1 * x3 + b1 * y3 + c1
+      val r4 = a1 * x4 + b1 * y4 + c1
+    in
+      (* If both point 3 and point 4 lie on same side of line 1, the line
+         segments do not intersect. *)
+      if r3 <> 0 andalso r4 <> 0 andalso
+         Int.sameSign (r3, r4)
+      then false
+      else
+        let
+          val a2 = y4 - y3
+          val b2 = x3 - x4
+          val c2 = x4 * y3 - x3 * y4
+
+          val r1 = a2 * x1 + b2 * y1 + c2
+          val r2 = a2 * x2 + b2 * y2 + c2
+        in
+          (* If both point 1 and point 2 lie on same side of second line
+             segment, the line segments do not intersect. *)
+          not (r1 <> 0 andalso r2 <> 0 andalso Int.sameSign (r1, r2))
+        end
     end
 
   fun ctos (x, y) = Int.toString x ^ "," ^ Int.toString y
