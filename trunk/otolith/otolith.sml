@@ -49,6 +49,7 @@ struct
   val holdingspace = ref false
   val holdingbackslash = ref false
   val holdingtab = ref false
+  val holdingm = ref false
 
   val mousedown = ref false
 
@@ -357,6 +358,77 @@ struct
         app oneobj (Screen.objs (!screen))
       end
 
+
+  val MASKCOLOR = Draw.hexcolor 0wxAA7777
+  (* Draw the points in configuration space ... *)
+  fun drawmask (pixels, screen) =
+    Util.for 0 (HEIGHT - 1)
+    (fn y =>
+     Util.for 0 (WIDTH - 1)
+     (fn x =>
+
+      (* XXX lots of duplicated code between here and above *)
+    case Areas.gettriangle (Screen.areas screen) (x, y) of
+      NONE => ()
+    | SOME ((), triangle) =>
+      let
+        val (a, b, c) = Areas.T.nodes triangle
+
+        (* Convert to barycentric coordinates. This basically gives a weight
+           for each vertex of the triangle. Since we're inside the triangle,
+           these will all be in [0.0, 1.0] and sum to 1.0. *)
+        val (la, lb, lc) =
+          IntMaths.barycentric (Areas.N.coords a (),
+                                Areas.N.coords b (),
+                                Areas.N.coords c (),
+                                (x, y))
+
+        fun objecthit obj =
+          if Obj.iskey obj a andalso
+             Obj.iskey obj b andalso
+             Obj.iskey obj c
+          then
+            let
+
+              (* Get the coordinates for the node by interpolating
+                 between the three keys. *)
+              fun transform n =
+                let
+                  (* These shouldn't fail because we checked that the
+                     key is a key of the object above. *)
+                  val (ax, ay) = Obj.N.coords n a
+                  val (bx, by) = Obj.N.coords n b
+                  val (cx, cy) = Obj.N.coords n c
+
+                  val nx = Real.round (real ax * la + real bx * lb + real cx * lc)
+                  val ny = Real.round (real ay * la + real by * lb + real cy * lc)
+                in
+                  (nx, ny)
+                end
+
+              fun trianglehit t =
+                let
+                  val (d, e, f) = Obj.T.nodes t
+                  val dpt = transform d
+                  val ept = transform e
+                  val fpt = transform f
+                in
+                  IntMaths.pointinside (dpt, ept, fpt) (x, y)
+                end
+
+            in
+              List.exists trianglehit (Obj.triangles obj)
+            end
+          else false
+
+      in
+        if List.exists objecthit (Screen.objs screen)
+        then Array.update (pixels, y * WIDTH + x, MASKCOLOR)
+        else ()
+      end
+
+      ))
+
   (* XXX wrong name / organization *)
   fun drawareaindicators () =
     let in
@@ -370,7 +442,6 @@ struct
            in app drawdecoration decorations
            end;
 
-      (* XXX probably only when holding some key *)
       if !holdingspace
       then drawinterpolatedobjects (!mousex, !mousey)
       else ();
@@ -445,11 +516,23 @@ struct
       (holdingspace := true;
        updatecursor ())
 
+    | keydown SDL.SDLK_m =
+      (holdingm := true;
+       updatecursor ())
+
     | keydown SDL.SDLK_LSHIFT =
       (holdingshift := true;
        updatecursor ())
 
+    | keydown SDL.SDLK_RSHIFT =
+      (holdingshift := true;
+       updatecursor ())
+
     | keydown SDL.SDLK_LCTRL =
+      (holdingcontrol := true;
+       updatecursor ())
+
+    | keydown SDL.SDLK_RCTRL =
       (holdingcontrol := true;
        updatecursor ())
 
@@ -483,12 +566,24 @@ struct
       (holdingshift := false;
        updatecursor ())
 
+    | keyup SDL.SDLK_RSHIFT =
+      (holdingshift := false;
+       updatecursor ())
+
     | keyup SDL.SDLK_LCTRL =
+      (holdingcontrol := false;
+       updatecursor ())
+
+    | keyup SDL.SDLK_RCTRL =
       (holdingcontrol := false;
        updatecursor ())
 
     | keyup SDL.SDLK_SPACE =
       (holdingspace := false;
+       updatecursor ())
+
+    | keyup SDL.SDLK_m =
+      (holdingm := false;
        updatecursor ())
 
     | keyup SDL.SDLK_BACKSLASH =
@@ -570,6 +665,11 @@ struct
                         then false
                         else drawobjects
 
+      (* Don't draw objects if we're drawing the mask. *)
+      val drawobjects = if !holdingm
+                        then false
+                        else drawobjects
+
       (* Don't draw objects if we're flipping edges in the areas tesselation. *)
       val drawobjects = if !holdingbackslash andalso
                            not (Option.isSome (!frozennode))
@@ -585,6 +685,11 @@ struct
       (* val () = eprint "indicators" *)
       val () = drawareaindicators ()
 
+      val () =
+        if !holdingm
+        then drawmask (pixels, !screen)
+        else ()
+
       (* Show map? *)
       val () =
         if !holdingtab
@@ -595,12 +700,23 @@ struct
           end
         else ()
 
-      (* test... *)
+      (* draw mouse. Should probably take mode into account *)
       val () = Draw.blit { dest = (WIDTH, HEIGHT, pixels),
                            src = Images.tinymouse,
                            srcrect = NONE,
                            dstx = !mousex,
                            dsty = !mousey }
+
+      (* XXX *)
+      val gframenum = (!ctr div 10) mod Images.numframes Images.runleft
+      val gframe = Images.getframe (Images.runleft, gframenum)
+      val () = Draw.blitmask
+        { dest = (WIDTH, HEIGHT, pixels),
+          src = gframe,
+          srcrect = NONE,
+          dstx = !mousex + 20,
+          dsty = !mousey + 20,
+          color = Draw.hexcolor 0wxFFFF77 }
 
       val () = Draw.noise_postfilter pixels
       (* val () = Draw.scanline_postfilter pixels *)

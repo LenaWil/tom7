@@ -29,7 +29,8 @@ sig
                      Word32.word Vector.vector -> unit
 
   (* drawcircle (pixels, x0, y0, radius, color) *)
-  val drawcircle : Word32.word Array.array * int * int * int * Word32.word -> unit
+  val drawcircle : Word32.word Array.array * int * int * int * Word32.word ->
+                   unit
 
   (* drawrect (pixels, x0, y0, x1, y1, color)
      Note this includes the points (x0, y1), (x1, y1) etc.,
@@ -54,7 +55,8 @@ sig
                    color : Word32.word } -> unit
 
 
-  val drawtext : Word32.word Array.array * Font.font * int * int * string -> unit
+  val drawtext : Word32.word Array.array * Font.font * int * int * string ->
+                 unit
   val drawtextcolor : Word32.word Array.array * Font.font *
                       Word32.word * int * int * string -> unit
 

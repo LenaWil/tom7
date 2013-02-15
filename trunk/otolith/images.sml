@@ -4,6 +4,9 @@ struct
   exception Images
 
   type image = int * int * Word32.word Array.array
+  (* XXX should have different animation modes,
+     wait on frame, etc. *)
+  type anim = image Vector.vector
 
   fun loadimage f =
     case SDL.Image.load f of
@@ -23,6 +26,12 @@ struct
           (width, height, pixels)
         end
 
+  fun loadanim (base, ext, lo, hi) : anim =
+     Vector.tabulate (hi - lo + 1,
+                    fn i => loadimage (base ^
+                                       Int.toString (lo + i) ^
+                                       ext))
+
   val pxfont = loadimage "pxfont.png"
 
   (* val testcursor = loadimage "testcursor.png" *)
@@ -30,5 +39,10 @@ struct
 
   val mapcell = loadimage "mapcell.png"
   val mapcellnone = loadimage "mapcellnone.png"
+
+  val runleft = loadanim ("run", ".png", 1, 10)
+
+  fun numframes (v : anim) : int = Vector.length v
+  fun getframe (v : anim, i) : image = Vector.sub (v, i)
 
 end
