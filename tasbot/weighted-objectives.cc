@@ -55,7 +55,7 @@ WeightedObjectives::LoadFromFile(const string &filename) {
       locs.push_back(i);
     }
 
-    printf("GOT: %f | %s\n", d, ObjectiveToString(locs).c_str());
+    // printf("GOT: %f | %s\n", d, ObjectiveToString(locs).c_str());
     wo->weighted.insert(make_pair(locs, new Info(d)));
   }
 

@@ -26,6 +26,14 @@ struct Motifs {
 
   vector< vector<uint8> > AllMotifs() const;
 
+  // Increment a counter (just used for diagnostics) that says
+  // how many times this motif was picked.
+  void Pick(const vector<uint8> &inputs);
+
+  // Returns a modifiable double for the input,
+  // or NULL if it has been added with AddInputs (etc.).
+  double *GetWeightPtr(const vector<uint8> &inputs);
+
   // Save the current weights at the frame number (assumed
   // to be monotonically increasing), so that they can be
   // drawn with DrawSVG.

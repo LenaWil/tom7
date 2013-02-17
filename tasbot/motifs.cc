@@ -17,9 +17,10 @@
 Motifs::Motifs() : rc("motifs") {}
 
 struct Motifs::Info {
-  Info() : weight(0.0) {}
-  Info(double w) : weight(w) {}
+  Info() : weight(0.0), picked(0) {}
+  Info(double w) : weight(w), picked(0) {}
   double weight;
+  int picked;
   // Optional, for diagnostics.
   vector< pair<int, double> > history;
 };
@@ -32,6 +33,12 @@ static string InputsToString(const vector<uint8> &inputs) {
     s += d;
   }
   return s;
+}
+
+void Motifs::Pick(const vector<uint8> &inputs) {
+  Weighted::iterator it = motifs.find(inputs);
+  if (it == motifs.end()) return;
+  else it->second.picked++;
 }
 
 void Motifs::Checkpoint(int framenum) {
@@ -123,6 +130,12 @@ const vector<uint8> &Motifs::RandomMotif() {
   return *res;
 }
 
+double *Motifs::GetWeightPtr(const vector<uint8> &inputs) {
+  Weighted::iterator it = motifs.find(inputs);
+  if (it == motifs.end()) return NULL;
+  else return &it->second.weight;
+}
+
 // Note there are several fancy ways to do this, but I
 // have seen them have numerical stability problems in
 // practice. I'm favoring correctness and simplicity
@@ -156,9 +169,13 @@ static string ShowRange(int lastframe, double val,
 			int thisframe) {
   int finframe = thisframe - 1;
   if (lastframe == finframe) {
-    return StringPrintf("%d: %.3f", lastframe, val);
+    return StringPrintf("<span class=\"range\">%d:&nbsp;"
+			"<span class=\"value\">%.2f</span></span>", 
+			lastframe, val);
   } else {
-    return StringPrintf("%d-%d: %.3f", lastframe, finframe, val);
+    return StringPrintf("<span class=\"range\">%d&ndash;%d:&nbsp;"
+			"<span class=\"value\">%.2f</span></span>",
+			lastframe, finframe, val);
   }
 }
 
@@ -190,13 +207,22 @@ void Motifs::SaveHTML(const string &filename) const {
     
     out += "<div class=\"motif\">\n"
       "<div class=\"inputs\">";
+    string last = "";
     for (int i = 0; i < inputs.size(); i++) {
       out += "<span class=\"input\">";
-      out += SimpleFM2::InputToColorString(inputs[i]);
+      string s = SimpleFM2::InputToColorString(inputs[i]);
+      if (s == last) {
+	out += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+      } else {
+	out += s;
+      }
+      last = s;
       out += "</span> ";
     }
     out += "</div>\n";
     out += "<div class=\"values\">\n";
+    out += StringPrintf("<span class=\"picked\">%d</span>",
+			info.picked);
     // XXX this is really garbage code. Probably not even correct.
     if (!info.history.empty()) {
       int lastframe = info.history[0].first;

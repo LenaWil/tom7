@@ -43,6 +43,13 @@
 #define MOVIE "mario-cleantom.fm2"
 #define FASTFORWARD 256  // XXX cheats! -- should be 0
 
+// This is the factor that determines how quickly a motif changes
+// weight. When a motif is chosen because it yields the best future,
+// we check its immediate effect on the state (normalized); if an
+// increase, then we divide its weight by alpha. If a decrease, then
+// we multiply. Should be a value in (0, 1] but usually around 0.8.
+#define ALPHA 0.8
+
 static const double WIDTH = 1024.0;
 static const double HEIGHT = 1024.0;
 
@@ -281,11 +288,14 @@ struct PlayFun {
     vector<uint8> inputs;
   };
 
+  static const int NFUTURES = 10;
+  static const int FUTURELENGTH = 300;
+
   // DESTROYS THE STATE
   double ScoreByFuture(const Future &future,
 		       const vector<uint8> &base_memory,
 		       const vector<uint8> &base_state) {
-    for (int i = 0; i < future.inputs.size(); i++) {
+    for (int i = 0; i < future.inputs.size() && i < FUTURELENGTH; i++) {
       Emulator::CachingStep(future.inputs[i]);
     }
 
@@ -313,8 +323,6 @@ struct PlayFun {
     // and add a random motif to its end.
     //
     // XXX recycling futures...
-    static const int NFUTURES = 6;
-    static const int FUTURELENGTH = 300;
     vector<Future> futures;
 
     int64 iters = 0;
@@ -372,6 +380,16 @@ struct PlayFun {
 	double best_future_score = -9999999.0;
 	double worst_future_score = 9999999.0;
 
+	static const int NUM_FAKE_FUTURES = 1;
+	// Synthetic future where we keep holding the last
+	// button pressed.
+	Future fakefuture_hold;
+	for (int z = 0; z < FUTURELENGTH; z++) {
+	  fakefuture_hold.inputs.push_back(nexts[i].back());
+	}
+
+	futures.push_back(fakefuture_hold);
+
 	double futures_score = 0.0;
 	for (int f = 0; f < futures.size(); f++) {
 	  if (f != 0) Emulator::LoadUncompressed(&new_state);
@@ -384,6 +402,7 @@ struct PlayFun {
 	  if (future_score < worst_future_score)
 	    worst_future_score = future_score;
 	}
+	futures.resize(futures.size() - NUM_FAKE_FUTURES);
 
 	double score = immediate_score + futures_score;
 
@@ -440,6 +459,29 @@ struct PlayFun {
       for (int j = 0; j < nexts[best_idx].size(); j++) {
 	Commit(nexts[best_idx][j]);
       }
+
+      // Now, if the motif we used was a local improvement
+      // to the score, reweight it.
+      {
+	motifs->Pick(nexts[best_idx]);
+	vector<uint8> new_memory;
+	Emulator::GetMemory(&new_memory);
+	double oldval = objectives->GetNormalizedValue(current_memory);
+	double newval = objectives->GetNormalizedValue(new_memory);
+	double *weight = motifs->GetWeightPtr(nexts[best_idx]);
+	if (weight == NULL) {
+	  printf(" * ERROR * Used a motif that doesn't exist?\n");
+	} else {
+	  if (newval > oldval) {
+	    // Increases its weight.
+	    *weight /= ALPHA;
+	  } else {
+	    // Decreases its weight.
+	    *weight *= ALPHA;
+	  }
+	}
+      }
+
 
       if (iters % 10 == 0) {
 	SaveDiagnostics(futures);
