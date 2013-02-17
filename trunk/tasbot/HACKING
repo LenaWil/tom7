@@ -1,0 +1,21 @@
+
+To compile with SDL it's quite an ordeal.
+In 64-bit mode, you can't use binary libraries; you have to compile from source.
+Get source for SDL-1.2.15 (or whatever) and SDL_net-1.2.8 (or whatever) and put
+it in SDL and SDL_net subdirectories.
+
+I didn't need to do anything for SDL_net; just compile the .c files
+using the makefile in this dir. To build SDL I had to use SDL/configure.
+
+cd SDL
+CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ CFLAGS=-m64 CXXFLAGS=-m64 ./configure
+make -j
+
+I modified some of the SDL source to get it to compile
+(straightforward). However, the library doesn't actually link -- it
+seems to be generating a 32 bit version.o for some reason. Still,
+linking against all the .o files in build/ seems to work, which is
+what the makefile does.
+
+Sorry, I did not invent SDL or mingw or shared libraries! :)
+

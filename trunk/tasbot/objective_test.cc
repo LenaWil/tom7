@@ -10,6 +10,10 @@
 #include "../cc-lib/arcfour.h"
 #include "objective.h"
 
+#ifdef MARIONET
+#include "SDL.h" 
+#endif
+
 // Expected lex order is 0, 4, 1.
 // 3 is ruled out because it's non-monotonic and 2 never increases.
 static const char *kMem0[] = {
@@ -99,6 +103,7 @@ static void FindCounterExample() {
 }
 
 int main(int argc, char *argv[]) {
+  fprintf(stderr, "Testing objectives.\n");
 
   {
     vector< vector<uint8> > memories = MakeMem(kMem0);

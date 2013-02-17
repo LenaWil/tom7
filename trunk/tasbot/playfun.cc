@@ -39,6 +39,11 @@
 #include "util.h"
 #include "../cc-lib/textsvg.h"
 
+#if MARIONET
+#include "SDL.h"
+#include "SDL_net.h"
+#endif
+
 #define GAME "mario"
 #define MOVIE "mario-cleantom.fm2"
 #define FASTFORWARD 256  // XXX cheats! -- should be 0
@@ -305,7 +310,49 @@ struct PlayFun {
     return objectives->Evaluate(base_memory, future_memory);
   }
 
-  void Go() {
+  #if MARIONET
+
+  string IPString(const IPaddress &ip) {
+    return StringPrintf("%d.%d.%d.%d:%d",
+			255 & ip.host,
+			255 & (ip.host >> 8),
+			255 & (ip.host >> 16),
+			255 & (ip.host >> 24),
+			ip.port);
+  }
+
+  void Helper(int port) {
+    IPaddress ip;
+    TCPsocket server;
+    if (SDLNet_ResolveHost(&ip, NULL, port) == -1) {
+      printf("SDLNet_ResolveHost: %s\n", SDLNet_GetError());
+      abort();
+    }
+
+    server = SDLNet_TCP_Open(&ip);
+    if (!server) {
+      printf("SDLNet_TCP_Open: %s\n", SDLNet_GetError());
+      abort();
+    }
+
+    TCPsocket peer;
+    for (;;) {
+      if ((peer = SDLNet_TCP_Accept(server))) {
+	IPaddress *peer_ip = SDLNet_TCP_GetPeerAddress(peer);
+	if (peer_ip == NULL) {
+	  printf("SDLNet_TCP_GetPeerAddress: %s\n", SDLNet_GetError());
+	  abort();
+	}
+	fprintf(stderr, "[%d] Got connection from %s.\n",
+		port, IPString(*peer_ip).c_str());
+
+      } 
+    }
+  }
+  #endif
+
+  // Main loop for the master, or when compiled without MARIONET support.
+  void Master() {
 
     vector<uint8> current_state;
     vector<uint8> current_memory;
@@ -531,15 +578,41 @@ struct PlayFun {
  * The main loop for the SDL.
  */
 int main(int argc, char *argv[]) {
+  #if MARIONET
+  fprintf(stderr, "Init SDL\n");
+
+  /* Initialize SDL and network, if we're using it. */
+  CHECK(SDL_Init(0) >= 0);
+  CHECK(SDLNet_Init() >= 0);
+  fprintf(stderr, "SDL initialized OK.\n");
+  #endif
+
   PlayFun pf;
 
-  fprintf(stderr, "Starting...\n");
-
-  pf.Go();
+  #if MARIONET
+  if (argc >= 3 && 0 == strcmp(argv[1], "--helper")) {
+    int port = atoi(argv[2]);
+    if (!port) {
+      fprintf(stderr, "Expected port number after --helper.\n");
+      abort();
+    }
+    fprintf(stderr, "Starting helper on port %d...\n", port);
+    pf.Helper(port);
+  } else {
+    pf.Master();
+  }
+  #else
+  pf.Master();
+  #endif
 
   Emulator::Shutdown();
 
   // exit the infrastructure
   FCEUI_Kill();
+
+  #if MARIONET
+  SDLNet_Quit();
+  SDL_Quit();
+  #endif
   return 0;
 }
