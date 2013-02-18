@@ -42,6 +42,7 @@
 #if MARIONET
 #include "SDL.h"
 #include "SDL_net.h"
+#include "marionet.pb.h"
 #endif
 
 #define GAME "mario"
@@ -586,6 +587,10 @@ int main(int argc, char *argv[]) {
   CHECK(SDLNet_Init() >= 0);
   fprintf(stderr, "SDL initialized OK.\n");
   #endif
+
+  HelperRequest r;
+  r.set_hello("wazzuippp");
+  fprintf(stderr, "OK: %s\n", r.DebugString().c_str());
 
   PlayFun pf;
 

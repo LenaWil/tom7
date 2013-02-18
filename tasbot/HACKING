@@ -19,3 +19,13 @@ what the makefile does.
 
 Sorry, I did not invent SDL or mingw or shared libraries! :)
 
+
+I had similar issues with protobuf. Configure like this:
+CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ CFLAGS=-m64 CXXFLAGS=-m64 ./configure
+make -j
+
+and then I'm just linking against the .o files (and probably a
+superset of what we need since that directory also includes the proto
+compiler). The generated protoc.exe doesn't work (just is like a nop),
+but a 32-bit version of it does; I already had that installed in my
+path so in the makefile I just call "protoc".
