@@ -1,0 +1,5 @@
+
+message HelperRequest {
+  required bytes startstate = 1;
+  required string hello = 2;
+}
