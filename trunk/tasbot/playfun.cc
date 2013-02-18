@@ -43,6 +43,7 @@
 #include "SDL.h"
 #include "SDL_net.h"
 #include "marionet.pb.h"
+#include "netutil.h"
 #endif
 
 #define GAME "mario"
@@ -313,41 +314,19 @@ struct PlayFun {
 
   #if MARIONET
 
-  string IPString(const IPaddress &ip) {
-    return StringPrintf("%d.%d.%d.%d:%d",
-			255 & ip.host,
-			255 & (ip.host >> 8),
-			255 & (ip.host >> 16),
-			255 & (ip.host >> 24),
-			ip.port);
-  }
-
   void Helper(int port) {
-    IPaddress ip;
-    TCPsocket server;
-    if (SDLNet_ResolveHost(&ip, NULL, port) == -1) {
-      printf("SDLNet_ResolveHost: %s\n", SDLNet_GetError());
-      abort();
-    }
+    SingleServer server(port);
 
-    server = SDLNet_TCP_Open(&ip);
-    if (!server) {
-      printf("SDLNet_TCP_Open: %s\n", SDLNet_GetError());
-      abort();
-    }
-
-    TCPsocket peer;
     for (;;) {
-      if ((peer = SDLNet_TCP_Accept(server))) {
-	IPaddress *peer_ip = SDLNet_TCP_GetPeerAddress(peer);
-	if (peer_ip == NULL) {
-	  printf("SDLNet_TCP_GetPeerAddress: %s\n", SDLNet_GetError());
-	  abort();
-	}
-	fprintf(stderr, "[%d] Got connection from %s.\n",
-		port, IPString(*peer_ip).c_str());
+      server.Listen();
 
-      } 
+      fprintf(stderr, "Connection from %s\n", server.PeerString().c_str());
+      
+      HelperRequest r;
+      r.set_hello("wazzuippp");
+
+      CHECK(server.WriteProto(r));
+      server.Hangup();
     }
   }
   #endif
@@ -588,10 +567,6 @@ int main(int argc, char *argv[]) {
   fprintf(stderr, "SDL initialized OK.\n");
   #endif
 
-  HelperRequest r;
-  r.set_hello("wazzuippp");
-  fprintf(stderr, "OK: %s\n", r.DebugString().c_str());
-
   PlayFun pf;
 
   #if MARIONET
@@ -603,6 +578,7 @@ int main(int argc, char *argv[]) {
     }
     fprintf(stderr, "Starting helper on port %d...\n", port);
     pf.Helper(port);
+    fprintf(stderr, "helper returned?\n");
   } else {
     pf.Master();
   }
