@@ -1,4 +1,84 @@
 
+with actual network, just one helper:
+
+GOT ANSWERS.
+Parallel step took 89 seconds.
+
+three helpers:
+
+LOOP. queued 93 done 93 of 93
+GOT ANSWERS.
+Parallel step took 32 seconds.
+
+ :)
+
+
+benchmarking marionet with playfun caching:
+
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 90 seconds.
+                     - writing -
+Wrote 10 movie(s).
+Wrote distributions to mario-playfun-scores.svg.
+Wrote 290 objectives, skipping 44381 points, to mario
+Wrote weighted motifs to mario-playfun-motifs.html
+Current cache size: 102197 / 100000. next_seq 540305
+308095 hits and 232210 misses
+                     (wrote)
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 66 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 53 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 57 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 56 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 42 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 33 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 61 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 66 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 41 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 48 seconds.
+
+
+after refactor:
+
+Skipped 257 frames until first keypress/ffwd.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 89 seconds.
+                     - writing -
+Wrote 10 movie(s).
+Wrote distributions to mario-playfun-scores.svg.
+Wrote 290 objectives, skipping 44381 points, to mario-playfun-backtrack.svg
+Wrote weighted motifs to mario-playfun-motifs.html
+Current cache size: 102197 / 100000. next_seq 540305
+308095 hits and 232210 misses
+                     (wrote)
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 65 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 52 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 56 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 55 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 42 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 34 seconds.
+Parallel step with 93 nexts, 10 futures.
+Parallel step took 61 seconds.
+Parallel step with 93 nexts, 10 futures.
+
+.. basically the same.
+
+
 benchmarking playfun caching
 
       77 best score 1077945.75 (382655.87 + 695289.88 future):

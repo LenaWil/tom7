@@ -1,5 +1,19 @@
 
-message HelperRequest {
-  optional bytes startstate = 1;
-  optional string hello = 2;
+message FutureProto {
+  optional bytes inputs = 4;
+}
+
+message PlayFunRequest {
+  optional bytes current_state = 1;
+
+  optional bytes next = 2;
+  repeated FutureProto futures = 3;
+}
+
+message PlayFunResponse {
+  optional double immediate_score = 1;
+  optional double best_future_score = 2;
+  optional double worst_future_score = 3;
+  optional double futures_score = 4;
+  repeated double futurescores = 5;
 }

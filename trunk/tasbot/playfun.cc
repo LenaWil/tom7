@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "tasbot.h"
 
@@ -313,6 +314,12 @@ struct PlayFun {
   }
 
   #if MARIONET
+  static void ReadBytesFromProto(const string &pf, vector<uint8> *bytes) {
+    // PERF iterators.
+    for (int i = 0; i < pf.size(); i++) {
+      bytes->push_back(pf[i]);
+    }
+  }
 
   void Helper(int port) {
     SingleServer server(port);
@@ -321,18 +328,206 @@ struct PlayFun {
       server.Listen();
 
       fprintf(stderr, "Connection from %s\n", server.PeerString().c_str());
-      
-      HelperRequest r;
-      r.set_hello("wazzuippp");
 
-      CHECK(server.WriteProto(r));
+      PlayFunRequest req;
+      CHECK(server.ReadProto(&req));
+
+      // fprintf(stderr, "Request: %s\n", req.DebugString().c_str());
+      // abort(); // XXX
+
+      vector<uint8> next, current_state;
+      ReadBytesFromProto(req.current_state(), &current_state);
+      ReadBytesFromProto(req.next(), &next);
+      vector<Future> futures;
+      for (int i = 0; i < req.futures_size(); i++) {
+	Future f;
+	ReadBytesFromProto(req.futures(i).inputs(), &f.inputs);
+	futures.push_back(f);
+      }
+
+      double immediate_score, best_future_score, worst_future_score,
+	futures_score;
+      vector<double> futurescores(futures.size(), 0.0);
+
+      // Do the work.
+      InnerLoop(next, futures, &current_state,
+		&immediate_score, &best_future_score,
+		&worst_future_score, &futures_score,
+		&futurescores);
+
+      PlayFunResponse res;
+      res.set_immediate_score(immediate_score);
+      res.set_best_future_score(best_future_score);
+      res.set_worst_future_score(worst_future_score);
+      res.set_futures_score(futures_score);
+      for (int i = 0; i < futurescores.size(); i++) {
+	res.add_futurescores(futurescores[i]);
+      }
+
+      // fprintf(stderr, "Result: %s\n", res.DebugString().c_str());
+
+      CHECK(server.WriteProto(res));
       server.Hangup();
     }
   }
   #endif
 
+  void InnerLoop(const vector<uint8> &next,
+		 const vector<Future> &futures_orig, 
+		 vector<uint8> *current_state, 
+		 double *immediate_score,
+		 double *best_future_score,
+		 double *worst_future_score,
+		 double *futures_score,
+		 vector<double> *futurescores) {
+
+    // Make copy so we can make fake futures.
+    vector<Future> futures = futures_orig;
+
+    Emulator::LoadUncompressed(current_state);
+
+    vector<uint8> current_memory;
+    Emulator::GetMemory(&current_memory);
+
+    // Take steps.
+    for (int j = 0; j < next.size(); j++)
+      Emulator::CachingStep(next[j]);
+
+    vector<uint8> new_memory;
+    Emulator::GetMemory(&new_memory);
+
+    vector<uint8> new_state;
+    Emulator::SaveUncompressed(&new_state);
+
+    *immediate_score = objectives->Evaluate(current_memory, new_memory);
+
+    // PERF unused except for drawing
+    // XXX probably shouldn't do this since it depends on local
+    // storage.
+    // double norm_score = objectives->GetNormalizedValue(new_memory);
+
+    *best_future_score = -9999999.0;
+    *worst_future_score = 9999999.0;
+
+    // static const int NUM_FAKE_FUTURES = 1;
+    // Synthetic future where we keep holding the last
+    // button pressed.
+    Future fakefuture_hold;
+    for (int z = 0; z < FUTURELENGTH; z++) {
+      fakefuture_hold.inputs.push_back(next.back());
+    }
+    futures.push_back(fakefuture_hold);
+
+    *futures_score = 0.0;
+    for (int f = 0; f < futures.size(); f++) {
+      if (f != 0) Emulator::LoadUncompressed(&new_state);
+      const double future_score =
+	ScoreByFuture(futures[f], new_memory, new_state);
+      // Only count real futures.
+      if (f < futures_orig.size()) {
+	(*futurescores)[f] += future_score;
+      }
+      *futures_score += future_score;
+      if (future_score > *best_future_score)
+	*best_future_score = future_score;
+      if (future_score < *worst_future_score)
+	*worst_future_score = future_score;
+    }
+    
+    // Discards the copy.
+    // futures.resize(futures.size() - NUM_FAKE_FUTURES);
+  }
+
+  // The parallel step. We either run it in serial locally
+  // (without MARIONET) or as jobs on helpers, via TCP.
+  void ParallelStep(const vector< vector<uint8> > &nexts,
+		    const vector<Future> &futures,
+		    // morally const
+		    vector<uint8> *current_state,
+		    const vector<uint8> &current_memory,
+		    vector<double> *futuretotals,
+		    int *best_next_idx) {
+    uint64 start = time(NULL);
+    fprintf(stderr, "Parallel step with %d nexts, %d futures.\n",
+	    nexts.size(), futures.size());
+
+    double best_score = 0.0;
+    Scoredist distribution(movie.size());
+
+#if MARIONET
+    // One piece of work per request.
+    vector<PlayFunRequest> requests;
+    requests.resize(nexts.size());
+    for (int i = 0; i < nexts.size(); i++) {
+      PlayFunRequest *req = &requests[i];
+      req->set_current_state(&((*current_state)[0]), current_state->size());
+      req->set_next(&nexts[i][0], nexts[i].size());
+      for (int f = 0; f < futures.size(); f++) {
+	FutureProto *fp = req->add_futures();
+	fp->set_inputs(&futures[f].inputs[0],
+		       futures[f].inputs.size());
+      }
+      // if (!i) fprintf(stderr, "REQ: %s\n", req->DebugString().c_str());
+    }
+    
+    GetAnswers<PlayFunRequest, PlayFunResponse> getanswers(ports_, requests);
+    getanswers.Loop();
+
+    fprintf(stderr, "GOT ANSWERS.\n");
+
+    (void)best_score;
+    *best_next_idx = 0;
+
+#else
+    // Local version.
+    for (int i = 0; i < nexts.size(); i++) {
+      double immediate_score, best_future_score, worst_future_score, 
+	futures_score;
+      vector<double> futurescores(NFUTURES, 0.0);
+      InnerLoop(nexts[i],
+		futures, 
+		current_state,
+		&immediate_score,
+		&best_future_score,
+		&worst_future_score,
+		&futures_score,
+		&futurescores);
+
+      for (int f = 0; f < futurescores.size(); f++) {
+	(*futuretotals)[f] += futurescores[f];
+      }
+
+      double score = immediate_score + futures_score;
+
+      distribution.immediates.push_back(immediate_score);
+      distribution.positives.push_back(futures_score);	
+      distribution.negatives.push_back(worst_future_score);
+      // XXX norm score is disabled because it can't be
+      // computed in a distributed fashion.
+      distribution.norms.push_back(0);
+
+      if (score > best_score) {
+	best_score = score;
+	*best_next_idx = i;
+      }
+    }
+#endif
+    distribution.chosen_idx = *best_next_idx;
+    distributions.push_back(distribution);
+
+    uint64 end = time(NULL);
+    fprintf(stderr, "Parallel step took %d seconds.\n", (int)(end - start));
+  }
+
+  // XXX
+  vector<int> ports_;
+
   // Main loop for the master, or when compiled without MARIONET support.
-  void Master() {
+  // Helpers is an array of helper ports, which is ignored unless MARIONET
+  // is active.
+  void Master(const vector<int> &helpers) {
+    // XXX
+    ports_ = helpers;
 
     vector<uint8> current_state;
     vector<uint8> current_memory;
@@ -380,76 +575,15 @@ struct PlayFun {
       // Total score across all motifs for each future.
       vector<double> futuretotals(NFUTURES, 0.0);
 
-      double best_score = 0.0;
-      double best_future = 0.0, best_immediate = 0.0;
-      int best_idx = 0;
-      Scoredist distribution(movie.size());
-      for (int i = 0; i < nexts.size(); i++) {
-	if (i != 0) Emulator::LoadUncompressed(&current_state);	
-
-	// Take steps.
-	for (int j = 0; j < nexts[i].size(); j++)
-	  Emulator::CachingStep(nexts[i][j]);
-
-	vector<uint8> new_memory;
-	Emulator::GetMemory(&new_memory);
-
-	vector<uint8> new_state;
-	Emulator::SaveUncompressed(&new_state);
-
-	double immediate_score =
-	  // objectives->GetNormalizedValue(new_memory);
-	  objectives->Evaluate(current_memory, new_memory);
-
-	// PERF unused except for drawing
-	double norm_score = objectives->GetNormalizedValue(new_memory);
-
-	double best_future_score = -9999999.0;
-	double worst_future_score = 9999999.0;
-
-	static const int NUM_FAKE_FUTURES = 1;
-	// Synthetic future where we keep holding the last
-	// button pressed.
-	Future fakefuture_hold;
-	for (int z = 0; z < FUTURELENGTH; z++) {
-	  fakefuture_hold.inputs.push_back(nexts[i].back());
-	}
-
-	futures.push_back(fakefuture_hold);
-
-	double futures_score = 0.0;
-	for (int f = 0; f < futures.size(); f++) {
-	  if (f != 0) Emulator::LoadUncompressed(&new_state);
-	  double future_score = ScoreByFuture(futures[f], 
-					      new_memory, new_state);
-	  futuretotals[f] += future_score;
-	  futures_score += future_score;
-	  if (future_score > best_future_score) 
-	    best_future_score = future_score;
-	  if (future_score < worst_future_score)
-	    worst_future_score = future_score;
-	}
-	futures.resize(futures.size() - NUM_FAKE_FUTURES);
-
-	double score = immediate_score + futures_score;
-
-	distribution.immediates.push_back(immediate_score);
-	distribution.positives.push_back(futures_score);	
-	distribution.negatives.push_back(worst_future_score);
-	distribution.norms.push_back(norm_score);
-
-	if (score > best_score) {
-	  best_score = score;
-	  best_immediate = immediate_score;
-	  best_future = futures_score;
-	  best_idx = i;
-	}
-      }
-      distribution.chosen_idx = best_idx;
-      distributions.push_back(distribution);
+      // Most of the computation happens here.
+      int best_next_idx;
+      ParallelStep(nexts, futures,
+		   &current_state, current_memory,
+		   &futuretotals,
+		   &best_next_idx);
 
       // Chop the head off each future.
-      const int choplength = nexts[best_idx].size();
+      const int choplength = nexts[best_next_idx].size();
       for (int i = 0; i < futures.size(); i++) {
 	vector<uint8> newf;
 	for (int j = choplength; j < futures[i].inputs.size(); j++) {
@@ -476,26 +610,21 @@ struct PlayFun {
 
       // It'll be replaced the next time around the loop.
 
-      printf("%8d best score %.4f (%.4f + %.4f future) worst %d\n", 
-	     movie.size(),
-	     best_score, best_immediate, best_future,
-	     worst_idx);
-
       // This is very likely to be cached now.
       Emulator::LoadUncompressed(&current_state);
-      for (int j = 0; j < nexts[best_idx].size(); j++) {
-	Commit(nexts[best_idx][j]);
+      for (int j = 0; j < nexts[best_next_idx].size(); j++) {
+	Commit(nexts[best_next_idx][j]);
       }
 
       // Now, if the motif we used was a local improvement
       // to the score, reweight it.
       {
-	motifs->Pick(nexts[best_idx]);
+	motifs->Pick(nexts[best_next_idx]);
 	vector<uint8> new_memory;
 	Emulator::GetMemory(&new_memory);
 	double oldval = objectives->GetNormalizedValue(current_memory);
 	double newval = objectives->GetNormalizedValue(new_memory);
-	double *weight = motifs->GetWeightPtr(nexts[best_idx]);
+	double *weight = motifs->GetWeightPtr(nexts[best_next_idx]);
 	if (weight == NULL) {
 	  printf(" * ERROR * Used a motif that doesn't exist?\n");
 	} else {
@@ -570,20 +699,37 @@ int main(int argc, char *argv[]) {
   PlayFun pf;
 
   #if MARIONET
-  if (argc >= 3 && 0 == strcmp(argv[1], "--helper")) {
-    int port = atoi(argv[2]);
-    if (!port) {
-      fprintf(stderr, "Expected port number after --helper.\n");
-      abort();
+  if (argc >= 2) {
+    if (0 == strcmp(argv[1], "--helper")) {
+      if (argc < 3) {
+	fprintf(stderr, "Need one port number after --helper.\n");
+	abort();
+      }
+      int port = atoi(argv[2]);
+      fprintf(stderr, "Starting helper on port %d...\n", port);
+      pf.Helper(port);
+      fprintf(stderr, "helper returned?\n");
+    } else if (0 == strcmp(argv[1], "--master")) {
+      vector<int> helpers;
+      for (int i = 2; i < argc; i++) {
+	int hp = atoi(argv[i]);
+	if (!hp) {
+	  fprintf(stderr, 
+		  "Expected a series of helper ports after --master.\n");
+	  abort();
+	}
+	helpers.push_back(hp);
+      }
+      pf.Master(helpers);
+      fprintf(stderr, "master returned?\n");
     }
-    fprintf(stderr, "Starting helper on port %d...\n", port);
-    pf.Helper(port);
-    fprintf(stderr, "helper returned?\n");
   } else {
-    pf.Master();
+    vector<int> empty;
+    pf.Master(empty);
   }
   #else
-  pf.Master();
+  vector<int> nobody;
+  pf.Master(nobody);
   #endif
 
   Emulator::Shutdown();

@@ -8,12 +8,34 @@
 using namespace std;
 
 string IPString(const IPaddress &ip) {
+  // XXX assumes little-endian
+  int port = ((ip.port & 255) << 8) | (255 & (ip.port >> 8));
   return StringPrintf("%d.%d.%d.%d:%d",
                       255 & ip.host,
                       255 & (ip.host >> 8),
                       255 & (ip.host >> 16),
                       255 & (ip.host >> 24),
-                      ip.port);
+                      port);
+}
+
+TCPsocket ConnectLocal(int port) {
+  IPaddress ip;
+  TCPsocket tcpsock;
+
+  if (SDLNet_ResolveHost(&ip, "localhost", port) == -1) {
+    fprintf(stderr, "SDLNet_ResolveHost: %s\n", SDLNet_GetError());
+    abort();
+  }
+
+  tcpsock = SDLNet_TCP_Open(&ip);
+  if (!tcpsock) {
+    fprintf(stderr, "SDLNet_TCP_Open(%s): %s\n", 
+	    IPString(ip).c_str(),
+	    SDLNet_GetError());
+    abort();
+  }
+
+  return tcpsock;
 }
 
 void BlockOnSocket(TCPsocket sock) {
