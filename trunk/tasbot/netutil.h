@@ -33,9 +33,11 @@ extern void BlockOnSocket(TCPsocket sock);
 extern TCPsocket ConnectLocal(int port);
 
 // Blocks until the entire proto can be read.
+// If this returns false, you probably want to close the socket.
 template <class T>
 bool ReadProto(TCPsocket sock, T *t);
 
+// If this returns false, you probably want to close the socket.
 template <class T>
 bool WriteProto(TCPsocket sock, const T &t);
 
@@ -104,8 +106,45 @@ struct GetAnswers {
 
   void Loop() {
     for (;;) {
-      fprintf(stderr, "LOOP. queued %d done %d of %d\n",
-              workqueued_, workdone_, work_.size());
+      static const int MAXCOLS = 77;
+
+      // If we have more tasks than fit on a line,
+      // only show the left or right end.
+      int low = 0, high = work_.size();
+      int overflow = (high - low) - MAXCOLS;
+      if (overflow > 0) {
+        low = min(overflow, workdone_);
+        overflow -= low;
+        if (overflow > 0) {
+          // Still more...
+          high -= overflow;
+        }
+      }
+      CHECK(low < high);
+
+      fprintf(stderr, "%c", (low == 0) ? '[' : '<');
+      for (int i = low; i < high; i++) {
+        if (done_[i]) {
+          fprintf(stderr, "#");
+        } else if (i < workqueued_) {
+          int helper = -1;
+          // PERF...
+          for (int h = 0; h < helpers_.size(); h++) {
+            if (helpers_[h].workidx == i) {
+              CHECK(helper == -1);
+              helper = h;
+            }
+          }
+          // Everything queued must be assigned to a helper.
+          CHECK(helper != -1);
+          const char c = (helper < 36) ?
+            "0123456789abcdefghijklmnopqrstuvwxyz"[helper] : '+';
+          fprintf(stderr, "%c", c);
+        } else {
+          fprintf(stderr, ".");
+        }
+      }
+      fprintf(stderr, "%c\n", (high == work_.size()) ? ']' : '>');
 
       // Are we done?
       if (workdone_ == work_.size()) {
@@ -150,24 +189,42 @@ struct GetAnswers {
       }
 
       for (int i = 0; i < helpers_.size(); i++) {
-        if (helpers_[i].state == WORKING) {
-          // Then it was in the socket set.
-          if (SDLNet_SocketReady(helpers_[i].sock)) {
-            // PERF: Does ready definitely mean that we
-            // can read bytes?
+        Helper *helper = &helpers_[i];
 
-            int workidx = helpers_[i].workidx;
-            CHECK(ReadProto(helpers_[i].sock,
-                            &work_[workidx].res));
+        // If working, then it's in the socket set and
+        // safe to call SocketReady on.
+        if (helper->state == WORKING &&
+            SDLNet_SocketReady(helper->sock)) {
+          // PERF: Does ready definitely mean that we
+          // can read bytes?
+          // This often fails right at the beginning. I think
+          // maybe it's reporting SocketReady because of
+          // the connection / write finishing, rather than
+          // because there's data to read. Maybe should stream
+          // data into the helper; it's not too hard.
+          int workidx = helper->workidx;
+          if (ReadProto(helper->sock,
+                        &work_[workidx].res)) {
             CHECK(done_[workidx] == false);
-            fprintf(stderr, "Got result from port %d for work #%d\n",
-                    helpers_[i].port,
-                    workidx);
+            // fprintf(stderr, "Got result from port %d for work #%d\n",
+            // helper->port,
+            // workidx);
             done_[workidx] = true;
-            SDLNet_TCP_Close(helpers_[i].sock);
-            helpers_[i].sock = NULL;
-            helpers_[i].state = DISCONNECTED;
-            helpers_[i].workidx = -1;
+            SDLNet_TCP_Close(helper->sock);
+            helper->sock = NULL;
+            helper->state = DISCONNECTED;
+            helper->workidx = -1;
+          } else {
+            // If we failed to read, reenqueue it in the same
+            // helper, which preserves any invariants.
+            SDLNet_TCP_Close(helper->sock);
+            helper->sock = NULL;
+            helper->state = DISCONNECTED;
+            fprintf(stderr, "Error reading result from port %d "
+                    "for work #%d!\n",
+                    helper->port,
+                    workidx);
+            FetchWork(helper, workidx);
           }
         }
       }
@@ -211,24 +268,27 @@ struct GetAnswers {
     TCPsocket sock;
   };
 
+  // Work must already be assigned (marked as queued).
+  void FetchWork(Helper *helper, int workidx) {
+    CHECK(workidx < workqueued_);
+    CHECK(helper->state == DISCONNECTED);
+    helper->state = WORKING;
+    helper->workidx = workidx;
+    helper->sock = ConnectLocal(helper->port);
+    CHECK(helper->sock);
+    // PERF -- could parallelize this with other writes,
+    // by waiting until the socket is actually ready.
+    WriteProto(helper->sock, *work_[workidx].req);
+    // fprintf(stderr, "Doing work #%d on port %d.\n",
+    // workidx,
+    // helper->port);
+  }
+
   void DoNextWork(int helperidx) {
     CHECK(workqueued_ < work_.size());
     int workidx = workqueued_;
     workqueued_++;
-    Helper *helper = &helpers_[helperidx];
-    CHECK(helper->state == DISCONNECTED);
-    helper->state = WORKING;
-    helper->workidx = workidx;
-
-    helper->sock = ConnectLocal(helper->port);
-    CHECK(helper->sock);
-
-    // PERF -- could parallelize this with other writes,
-    // by waiting until the socket is actually ready.
-    WriteProto(helper->sock, *work_[workidx].req);
-    fprintf(stderr, "Doing work #%d on port %d.\n",
-            workidx,
-            helper->port);
+    FetchWork(&helpers_[helperidx], workidx);
   }
 
   // Get the index of an idle helper, or -1 if none.
@@ -316,6 +376,7 @@ bool SingleServer::WriteProto(const T &t) {
   CHECK(state_ == ACTIVE);
   bool r = ::WriteProto(peer_, t);
   if (!r) {
+    fprintf(stderr, "SingleServer failed writeproto.\n");
     Hangup();
   }
   return r;
@@ -326,6 +387,7 @@ bool SingleServer::ReadProto(T *t) {
   CHECK(state_ == ACTIVE);
   bool r = ::ReadProto(peer_, t);
   if (!r) {
+    fprintf(stderr, "SingleServer failed readproto.\n");
     Hangup();
   }
   return r;

@@ -12,6 +12,9 @@ Parallel step took 32 seconds.
 
  :)
 
+six helpers: 18 seconds!
+
+seven helpers: 18 seconds...
 
 benchmarking marionet with playfun caching:
 

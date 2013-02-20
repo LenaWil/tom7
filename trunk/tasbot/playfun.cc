@@ -131,7 +131,7 @@ static void SaveDistributionSVG(const vector<Scoredist> &dists,
     out += DrawDots("#33A", xf, dist.immediates, maxval, dist.chosen_idx);
     out += DrawDots("#090", xf, dist.positives, maxval, dist.chosen_idx);
     out += DrawDots("#A33", xf, dist.negatives, maxval, dist.chosen_idx);
-    out += DrawDots("#000", xf, dist.norms, 1.0, dist.chosen_idx);
+    // out += DrawDots("#000", xf, dist.norms, 1.0, dist.chosen_idx);
   }
 
   // XXX args?
@@ -140,6 +140,33 @@ static void SaveDistributionSVG(const vector<Scoredist> &dists,
   out += TextSVG::Footer();
   Util::WriteFile(filename, out);
   printf("Wrote distributions to %s.\n", filename.c_str());
+}
+
+namespace {
+struct Future {
+  vector<uint8> inputs;
+  int desired_length;
+  // TODO
+  int rounds_survived;
+  Future() : desired_length(0), rounds_survived(0) {}
+  explicit Future(int d) : desired_length(d), rounds_survived(0) {}
+};
+}
+
+static void SaveFuturesHTML(const vector<Future> &futures,
+			    const string &filename) {
+  string out;
+  for (int i = 0; i < futures.size(); i++) {
+    out += StringPrintf("<div>%d. len %d/%d.\n", i, 
+			futures[i].inputs.size(),
+			futures[i].desired_length);
+    for (int j = 0; j < futures[i].inputs.size(); j++) {
+      out += SimpleFM2::InputToColorString(futures[i].inputs[j]);
+    }
+    out += "</div>\n";
+  }
+  Util::WriteFile(filename, out);
+  printf("Wrote futures to %s\n", filename.c_str());
 }
 
 struct PlayFun {
@@ -292,18 +319,19 @@ struct PlayFun {
     return total;
   }
 
-  struct Future {
-    vector<uint8> inputs;
-  };
-
-  static const int NFUTURES = 10;
-  static const int FUTURELENGTH = 300;
+  // Number of real futures to push forward.
+  static const int NFUTURES = 16;
+  // Drop this many of the worst futures.
+  static const int DROPFUTURES = 4;
+  // Number of inputs in each future.
+  static const int MINFUTURELENGTH = 50;
+  static const int MAXFUTURELENGTH = 600;
 
   // DESTROYS THE STATE
   double ScoreByFuture(const Future &future,
 		       const vector<uint8> &base_memory,
 		       const vector<uint8> &base_state) {
-    for (int i = 0; i < future.inputs.size() && i < FUTURELENGTH; i++) {
+    for (int i = 0; i < future.inputs.size(); i++) {
       Emulator::CachingStep(future.inputs[i]);
     }
 
@@ -327,46 +355,54 @@ struct PlayFun {
     for (;;) {
       server.Listen();
 
-      fprintf(stderr, "Connection from %s\n", server.PeerString().c_str());
+      fprintf(stderr, "[%d] Connection from %s\n", 
+	      port,
+	      server.PeerString().c_str());
 
       PlayFunRequest req;
-      CHECK(server.ReadProto(&req));
+      if (server.ReadProto(&req)) {
 
-      // fprintf(stderr, "Request: %s\n", req.DebugString().c_str());
-      // abort(); // XXX
+	// fprintf(stderr, "Request: %s\n", req.DebugString().c_str());
+	// abort(); // XXX
 
-      vector<uint8> next, current_state;
-      ReadBytesFromProto(req.current_state(), &current_state);
-      ReadBytesFromProto(req.next(), &next);
-      vector<Future> futures;
-      for (int i = 0; i < req.futures_size(); i++) {
-	Future f;
-	ReadBytesFromProto(req.futures(i).inputs(), &f.inputs);
-	futures.push_back(f);
+	vector<uint8> next, current_state;
+	ReadBytesFromProto(req.current_state(), &current_state);
+	ReadBytesFromProto(req.next(), &next);
+	vector<Future> futures;
+	for (int i = 0; i < req.futures_size(); i++) {
+	  Future f;
+	  ReadBytesFromProto(req.futures(i).inputs(), &f.inputs);
+	  futures.push_back(f);
+	}
+
+	double immediate_score, best_future_score, worst_future_score,
+	  futures_score;
+	vector<double> futurescores(futures.size(), 0.0);
+
+	// Do the work.
+	InnerLoop(next, futures, &current_state,
+		  &immediate_score, &best_future_score,
+		  &worst_future_score, &futures_score,
+		  &futurescores);
+
+	PlayFunResponse res;
+	res.set_immediate_score(immediate_score);
+	res.set_best_future_score(best_future_score);
+	res.set_worst_future_score(worst_future_score);
+	res.set_futures_score(futures_score);
+	for (int i = 0; i < futurescores.size(); i++) {
+	  res.add_futurescores(futurescores[i]);
+	}
+
+	// fprintf(stderr, "Result: %s\n", res.DebugString().c_str());
+
+	if (!server.WriteProto(res)) {
+	  fprintf(stderr, "Failed to send result...\n");
+	  // But just keep going.
+	}
+      } else {
+	fprintf(stderr, "Failed to read request...\n");
       }
-
-      double immediate_score, best_future_score, worst_future_score,
-	futures_score;
-      vector<double> futurescores(futures.size(), 0.0);
-
-      // Do the work.
-      InnerLoop(next, futures, &current_state,
-		&immediate_score, &best_future_score,
-		&worst_future_score, &futures_score,
-		&futurescores);
-
-      PlayFunResponse res;
-      res.set_immediate_score(immediate_score);
-      res.set_best_future_score(best_future_score);
-      res.set_worst_future_score(worst_future_score);
-      res.set_futures_score(futures_score);
-      for (int i = 0; i < futurescores.size(); i++) {
-	res.add_futurescores(futurescores[i]);
-      }
-
-      // fprintf(stderr, "Result: %s\n", res.DebugString().c_str());
-
-      CHECK(server.WriteProto(res));
       server.Hangup();
     }
   }
@@ -409,11 +445,18 @@ struct PlayFun {
     *best_future_score = -9999999.0;
     *worst_future_score = 9999999.0;
 
-    // static const int NUM_FAKE_FUTURES = 1;
     // Synthetic future where we keep holding the last
     // button pressed.
+    // static const int NUM_FAKE_FUTURES = 1;
+    int total_future_length = 0;
+    for (int i = 0; i < futures.size(); i++) {
+      total_future_length += futures[i].inputs.size();
+    }
+    int average_future_length = (int)((double)total_future_length /
+				      (double)futures.size());
+
     Future fakefuture_hold;
-    for (int z = 0; z < FUTURELENGTH; z++) {
+    for (int z = 0; z < average_future_length; z++) {
       fakefuture_hold.inputs.push_back(next.back());
     }
     futures.push_back(fakefuture_hold);
@@ -474,10 +517,31 @@ struct PlayFun {
     getanswers.Loop();
 
     fprintf(stderr, "GOT ANSWERS.\n");
+    const vector<GetAnswers<PlayFunRequest, PlayFunResponse>::Work> &work =
+      getanswers.GetWork();
 
-    (void)best_score;
-    *best_next_idx = 0;
+    for (int i = 0; i < work.size(); i++) {
+      const PlayFunResponse &res = work[i].res;
+      for (int f = 0; f < res.futurescores_size(); f++) {
+	CHECK(f <= futuretotals->size());
+	(*futuretotals)[f] += res.futurescores(f);
+      }
 
+      const double score = res.immediate_score() + res.futures_score();
+
+      distribution.immediates.push_back(res.immediate_score());
+      distribution.positives.push_back(res.futures_score());	
+      distribution.negatives.push_back(res.worst_future_score());
+      // XXX norm score is disabled because it can't be
+      // computed in a distributed fashion.
+      distribution.norms.push_back(0);
+
+      if (score > best_score) {
+	best_score = score;
+	*best_next_idx = i;
+      }
+    }
+    
 #else
     // Local version.
     for (int i = 0; i < nexts.size(); i++) {
@@ -552,14 +616,27 @@ struct PlayFun {
 
       motifs->Checkpoint(movie.size());
 
-      if (futures.size() < NFUTURES)
-	futures.resize(NFUTURES);
+      while (futures.size() < NFUTURES) {
+	// Keep the desired length around so that we only
+	// resize the future if we drop it. Randomize between
+	// MIN and MAX future lengths.
+	int flength = MINFUTURELENGTH +
+	  (int)
+	  ((double)(MAXFUTURELENGTH - MINFUTURELENGTH) *
+	   RandomDouble(&rc));
+	futures.push_back(Future(flength));
+      }
       // Make sure we have enough futures with enough data in.
       for (int i = 0; i < NFUTURES; i++) {
-	while (futures[i].inputs.size() < FUTURELENGTH) {
+	while (futures[i].inputs.size() <
+	       futures[i].desired_length) {
 	  const vector<uint8> &m = motifs->RandomWeightedMotif();
 	  for (int x = 0; x < m.size(); x++) {
 	    futures[i].inputs.push_back(m[x]);
+	    if (futures[i].inputs.size() ==
+		futures[i].desired_length) {
+	      break;
+	    }
 	  }
 	}
       }
@@ -592,23 +669,28 @@ struct PlayFun {
 	futures[i].inputs.swap(newf);
       }
 
-      // Discard the future with the worst total.
-      double worst_total = futuretotals[0];
-      int worst_idx = 0;
-      for (int i = 1; i < futuretotals.size(); i++) {
-	if (worst_total < futuretotals[i]) {
-	  worst_total = futuretotals[i];
-	  worst_idx = i;
+      // Discard the futures with the worst total.
+      // They'll be replaced the next time around the loop.
+      // PERF don't really need to make DROPFUTURES passes,
+      // but there are not many futures and not many dropfutures.
+      for (int t = 0; t < DROPFUTURES; t++) {
+	CHECK(!futures.empty());
+	CHECK(futures.size() <= futuretotals.size());
+	double worst_total = futuretotals[0];
+	int worst_idx = 0;
+	for (int i = 1; i < futures.size(); i++) {
+	  if (worst_total < futuretotals[i]) {
+	    worst_total = futuretotals[i];
+	    worst_idx = i;
+	  }
 	}
-      }
 
-      // Delete it by swapping.
-      if (worst_idx != futures.size() - 1) {
-	futures[worst_idx] = futures[futures.size() - 1];
+	// Delete it by swapping.
+	if (worst_idx != futures.size() - 1) {
+	  futures[worst_idx] = futures[futures.size() - 1];
+	}
+	futures.resize(futures.size() - 1);
       }
-      futures.resize(futures.size() - 1);
-
-      // It'll be replaced the next time around the loop.
 
       // This is very likely to be cached now.
       Emulator::LoadUncompressed(&current_state);
@@ -616,8 +698,8 @@ struct PlayFun {
 	Commit(nexts[best_next_idx][j]);
       }
 
-      // Now, if the motif we used was a local improvement
-      // to the score, reweight it.
+      // Now, if the motif we used was a local improvement to the
+      // score, reweight it.
       {
 	motifs->Pick(nexts[best_next_idx]);
 	vector<uint8> new_memory;
@@ -640,17 +722,28 @@ struct PlayFun {
 
 
       if (iters % 10 == 0) {
-	SaveDiagnostics(futures);
+	SaveMovie();
+	if (iters % 50 == 0) {
+	  SaveDiagnostics(futures);
+	}
       }
     }
   }
 
-  void SaveDiagnostics(const vector<Future> &futures) {
-    printf("                     - writing -\n");
+  void SaveMovie() {
+    printf("                     - writing movie -\n");
     SimpleFM2::WriteInputs(GAME "-playfun-backtrack-progress.fm2",
 			   GAME ".nes",
 			   "base64:jjYwGG411HcjG/j9UOVM3Q==",
 			   movie);
+    Emulator::PrintCacheStats();
+  }
+
+  void SaveDiagnostics(const vector<Future> &futures) {
+    printf("                     - and diagnostics -\n");
+    // This is now too expensive because the futures aren't cached
+    // in this process.
+    #if 0
     for (int i = 0; i < futures.size(); i++) {
       vector<uint8> fmovie = movie;
       for (int j = 0; j < futures[i].inputs.size(); j++) {
@@ -663,11 +756,11 @@ struct PlayFun {
       }
     }
     printf("Wrote %d movie(s).\n", futures.size() + 1);
-
+    #endif
+    SaveFuturesHTML(futures, GAME "-playfun-futures.html");
     SaveDistributionSVG(distributions, GAME "-playfun-scores.svg");
     objectives->SaveSVG(memories, GAME "-playfun-backtrack.svg");
     motifs->SaveHTML(GAME "-playfun-motifs.html");
-    Emulator::PrintCacheStats();
     printf("                     (wrote)\n");
   }
 

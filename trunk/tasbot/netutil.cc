@@ -84,7 +84,6 @@ void SingleServer::Listen() {
   CHECK(state_ == LISTENING);
 
   for (;;) {
-    fprintf(stderr, "Listen...\n");
     BlockOnSocket(server_);
     if ((peer_ = SDLNet_TCP_Accept(server_))) {
       IPaddress *peer_ip_ptr = SDLNet_TCP_GetPeerAddress(peer_);
@@ -110,10 +109,10 @@ string SingleServer::PeerString() {
 }
 
 void SingleServer::Hangup() {
-  CHECK(state_ == ACTIVE);
-  
-  SDLNet_TCP_Close(peer_);
-  peer_ = NULL;
+  if (state_ == ACTIVE) {
+    SDLNet_TCP_Close(peer_);
+    peer_ = NULL;
+  }
 
   state_ = LISTENING;
 }
