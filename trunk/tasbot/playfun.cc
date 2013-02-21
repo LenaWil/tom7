@@ -5,9 +5,11 @@
    first (playfun-nobacktrack) which is that although the objective
    functions all obviously tank when the player dies, the algorithm
    can't see far enough ahead (or something ..?) to avoid taking a
-   path with such an awful score. Here we explicitly keep checkpoints
-   so that we can backtrack a significant amount if things seem
-   hopeless.
+   path with such an awful score. This one works by keeping a set of
+   possible futures and scoring an immediate step based on how it does
+   in that set of futures. It is also the first version that supports
+   MARIONET, for utilizing an arbitrary number of CPUs. This version
+   still does not backtrack.
 
    We also keep track of a range of values for the objective functions
    so that we have some sense of their absolute values, not just their
@@ -70,41 +72,6 @@ struct Scoredist {
   int chosen_idx;
 };
 
-// XXX needs a style to distinguish imm/pos/neg/norm
-static string DrawDots(const string &color, double xf,
-		       const vector<double> &values, double maxval, 
-		       int chosen_idx) {
-  // CHECK(colors.size() == values.size());
-  vector<double> sorted = values;
-  std::sort(sorted.begin(), sorted.end());
-  string out;
-  for (int i = 0; i < values.size(); i++) {
-    int size = values.size();
-    int sorted_idx = 
-      lower_bound(sorted.begin(), sorted.end(), values[i]) - sorted.begin();
-    double opacity = 1.0;
-    if (sorted_idx < 0.1 * size || sorted_idx > 0.9 * size) {
-      opacity = 0.2;
-    } else if (sorted_idx < 0.2 * size || sorted_idx > 0.8 * size) {
-      opacity = 0.4;
-    } else if (sorted_idx < 0.3 * size || sorted_idx > 0.7 * size) {
-      opacity = 0.8;
-    } else if (sorted_idx == size / 2) {
-      opacity = 1.0;
-    }
-    out += StringPrintf("<circle cx=\"%s\" cy=\"%s\" r=\"%d\" "
-			"opacity=\"%.1f\" "
-			"fill=\"%s\" />",
-			Coord(xf * WIDTH).c_str(), 
-			Coord(HEIGHT * (1.0 - (values[i] / maxval))).c_str(),
-			(i == chosen_idx) ? 10 : 4,
-			opacity,
-			color.c_str());
-    // colors[i].c_str());
-  }
-  return out += "\n";
-}
-
 static void SaveDistributionSVG(const vector<Scoredist> &dists,
 				const string &filename) {
   // Add slop for radii.
@@ -125,9 +92,12 @@ static void SaveDistributionSVG(const vector<Scoredist> &dists,
   for (int i = 0; i < dists.size(); i++) {
     const Scoredist &dist = dists[i];
     double xf = dist.startframe / (double)totalframes;
-    out += DrawDots("#33A", xf, dist.immediates, maxval, dist.chosen_idx);
-    out += DrawDots("#090", xf, dist.positives, maxval, dist.chosen_idx);
-    out += DrawDots("#A33", xf, dist.negatives, maxval, dist.chosen_idx);
+    out += DrawDots(WIDTH, HEIGHT,
+		    "#33A", xf, dist.immediates, maxval, dist.chosen_idx);
+    out += DrawDots(WIDTH, HEIGHT,
+		    "#090", xf, dist.positives, maxval, dist.chosen_idx);
+    out += DrawDots(WIDTH, HEIGHT,
+		    "#A33", xf, dist.negatives, maxval, dist.chosen_idx);
     // out += DrawDots("#000", xf, dist.norms, 1.0, dist.chosen_idx);
   }
 
@@ -694,7 +664,7 @@ struct PlayFun {
 
   void SaveMovie() {
     printf("                     - writing movie -\n");
-    SimpleFM2::WriteInputs(GAME "-playfun-backtrack-progress.fm2",
+    SimpleFM2::WriteInputs(GAME "-playfun-futures-progress.fm2",
 			   GAME ".nes",
 			   "base64:jjYwGG411HcjG/j9UOVM3Q==",
 			   movie);
@@ -725,7 +695,7 @@ struct PlayFun {
     printf("Wrote %d movie(s).\n", futures.size() + 1);
     #endif
     SaveDistributionSVG(distributions, GAME "-playfun-scores.svg");
-    objectives->SaveSVG(memories, GAME "-playfun-backtrack.svg");
+    objectives->SaveSVG(memories, GAME "-playfun-futures.svg");
     motifs->SaveHTML(GAME "-playfun-motifs.html");
     printf("                     (wrote)\n");
   }

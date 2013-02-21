@@ -90,4 +90,15 @@ inline string Coords(double x, double y) {
 string SVGTickmarks(double width, double maxx, double span,
                     double tickheight, double tickfont);
 
+// Draw a column of dots (as an SVG string), given a vector of values.
+// xf is the fraction of the screen width that this column should be
+// centered on. maxval is the value considered to be the top of the
+// drawing; values above this or below zero are drawn outside the box.
+// If chosen_idx is in [0, values.size()) then draw that one bigger.
+// Color is an svg color string like "#f00".
+string DrawDots(int width, int height,
+                const string &color, double xf,
+                const vector<double> &values, double maxval,
+                int chosen_idx);
+
 #endif
