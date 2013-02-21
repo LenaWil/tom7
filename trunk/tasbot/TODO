@@ -1,6 +1,9 @@
 
 Things to do or try:
 
+Don't bother trying every next. Pick the best half, and some random
+subset of the rest. Use the time instead to explore more futures.
+
 At search time, weight changes in objective functions by the magnitude
 of the change, not just the number that went up or down.
 
@@ -15,8 +18,6 @@ randomize.
 Instead of motifs of fixed length, try sequences of random varying length.
 
 Consider making a simple markov model of inputs rather than fixed motifs.
-
-Reweight motifs as you play.
 
 Allow lex ordering to include -byte in addition to +byte, for things
 that decrease.

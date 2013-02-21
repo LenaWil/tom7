@@ -1,6 +1,6 @@
 /* This program attempts to learn an objective function for a
    particular game by watching movies of people playing it. The
-   objective function can then be used by (NONEXISTENT PROGRAM)
+   objective function can then be used by playfun.exe
    to try to play the game.
  */
 
@@ -27,9 +27,12 @@
 #include "objective.h"
 #include "weighted-objectives.h"
 #include "motifs.h"
+#include "game.h"
 
-#define GAME "mario"
-#define MOVIE "mario-cleantom.fm2"
+#ifdef MARIONET
+#include "SDL.h"
+#endif
+
 
 static void SaveMemory(vector< vector<uint8> > *memories) {
   memories->resize(memories->size() + 1);
@@ -137,18 +140,23 @@ int main(int argc, char *argv[]) {
   memories.reserve(movie.size() + 1);
   vector<uint8> inputs;
 
-  // The very beginning of the game starts with RAM initialization,
+  // The very beginning of most games start with RAM initialization,
   // which we really should ignore for building an objective function.
   // So skip until there's a button press in the movie.
   size_t start = 0;
 
   printf("Skipping frames without argument.\n");
-  while (movie[start] == 0 && start < movie.size()) {
+  bool saw_input = false;
+  while ((start < FASTFORWARD && !saw_input) && 
+	 start < movie.size()) {
+    if (movie[start] != 0) saw_input = true;
     Emulator::Step(movie[start]);
     start++;
   }
 
-  printf("Skipped %ld frames until first keypress.\n"
+  CHECK(start != movie.size());
+
+  printf("Skipped %ld frames until first keypress/ffwd.\n"
 	 "Playing %ld frames...\n", start, movie.size() - start);
 
   SaveMemory(&memories);

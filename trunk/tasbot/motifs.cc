@@ -16,15 +16,6 @@
 
 Motifs::Motifs() : rc("motifs") {}
 
-struct Motifs::Info {
-  Info() : weight(0.0), picked(0) {}
-  Info(double w) : weight(w), picked(0) {}
-  double weight;
-  int picked;
-  // Optional, for diagnostics.
-  vector< pair<int, double> > history;
-};
-
 static string InputsToString(const vector<uint8> &inputs) {
   string s;
   for (int i = 0; i < inputs.size(); i++) {

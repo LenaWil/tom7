@@ -2,6 +2,9 @@
 #ifndef __MOTIFS_H
 #define __MOTIFS_H
 
+#include <vector>
+#include <map>
+
 #include "tasbot.h"
 #include "../cc-lib/arcfour.h"
 
@@ -42,7 +45,15 @@ struct Motifs {
   void SaveHTML(const string &filename) const;
 
 private:
-  struct Info;
+  struct Info {
+  Info() : weight(0.0), picked(0) {}
+  Info(double w) : weight(w), picked(0) {}
+    double weight;
+    int picked;
+    // Optional, for diagnostics.
+    vector< pair<int, double> > history;
+  };
+
   struct Resorted;
   static bool WeightDescending(const Resorted &a, const Resorted &b);
 

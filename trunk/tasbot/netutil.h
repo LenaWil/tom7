@@ -322,6 +322,7 @@ bool ReadProto(TCPsocket sock, T *t) {
 
   char header[4];
   if (4 != SDLNet_TCP_Recv(sock, (void *)&header, 4)) {
+    fprintf(stderr, "ReadProto: Failed to read length.\n");
     return false;
   }
 
@@ -334,6 +335,7 @@ bool ReadProto(TCPsocket sock, T *t) {
   CHECK(buffer != NULL);
 
   if (len != SDLNet_TCP_Recv(sock, (void *)buffer, len)) {
+    fprintf(stderr, "ReadProto: Failed to read %d bytes.\n", len);
     free(buffer);
     return false;
   }
@@ -342,6 +344,7 @@ bool ReadProto(TCPsocket sock, T *t) {
     free(buffer);
     return true;
   } else {
+    fprintf(stderr, "ReadProto: Failed parse proto.\n");
     free(buffer);
     return false;
   }
