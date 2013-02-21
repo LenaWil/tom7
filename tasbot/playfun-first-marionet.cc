@@ -142,14 +142,11 @@ static void SaveDistributionSVG(const vector<Scoredist> &dists,
 namespace {
 struct Future {
   vector<uint8> inputs;
-  bool weighted;
   int desired_length;
   // TODO
   int rounds_survived;
-  Future() : weighted(true), desired_length(0), rounds_survived(0) {}
-  Future(bool w, int d) : weighted(w), 
-			  desired_length(d), 
-			  rounds_survived(0) {}
+  Future() : desired_length(0), rounds_survived(0) {}
+  explicit Future(int d) : desired_length(d), rounds_survived(0) {}
 };
 }
 
@@ -157,10 +154,9 @@ static void SaveFuturesHTML(const vector<Future> &futures,
 			    const string &filename) {
   string out;
   for (int i = 0; i < futures.size(); i++) {
-    out += StringPrintf("<div>%d. len %d/%d. %s\n", i, 
+    out += StringPrintf("<div>%d. len %d/%d.\n", i, 
 			futures[i].inputs.size(),
-			futures[i].desired_length,
-			futures[i].weighted ? "weighted" : "random");
+			futures[i].desired_length);
     for (int j = 0; j < futures[i].inputs.size(); j++) {
       out += SimpleFM2::InputToColorString(futures[i].inputs[j]);
     }
@@ -232,18 +228,98 @@ struct PlayFun {
   // contains pre-game menu stuff, for example).
   int watermark;
 
+
+  // XXX should probably have AvoidLosing and TryWinning.
+  // This looks for the min over random play in the future,
+  // so tries to avoid getting us screwed.
+  //
+  // Look fairly deep into the future playing randomly. 
+  // DESTROYS THE STATE.
+  double AvoidBadFutures(const vector<uint8> &base_memory) {
+    // XXX should be based on motif size
+    // XXX should learn it somehow? this is tuned by hand
+    // for mario.
+    // was 10, 50
+    static const int DEPTHS[] = { 20, 75 };
+    // static const int NUM = 2;
+    vector<uint8> base_state;
+    Emulator::SaveUncompressed(&base_state);
+
+    double total = 1.0;
+    for (int i = 0; i < (sizeof (DEPTHS) / sizeof (int)); i++) {
+      if (i) Emulator::LoadUncompressed(&base_state);
+      for (int d = 0; d < DEPTHS[i]; d++) {
+	const vector<uint8> &m = motifs->RandomWeightedMotif();
+	for (int x = 0; x < m.size(); x++) {
+	  Emulator::CachingStep(m[x]);
+
+	  // PERF inside the loop -- scary!
+	  vector<uint8> future_memory;
+	  Emulator::GetMemory(&future_memory);
+	  // XXX min? max?
+	  if (i || d || x) {
+	    total = min(total, 
+			objectives->Evaluate(base_memory, future_memory));
+	  } else {
+	    total = objectives->Evaluate(base_memory, future_memory);
+	  }
+
+	}
+      }
+
+      // total += objectives->Evaluate(base_memory, future_memory);
+    }
+
+    // We're allowed to destroy the current state, so don't
+    // restore.
+    return total;
+  }
+
+  // DESTROYS THE STATE
+  double SeekGoodFutures(const vector<uint8> &base_memory) {
+    // XXX should be based on motif size
+    // XXX should learn it somehow? this is tuned by hand
+    // for mario.
+    // was 10, 50
+    static const int DEPTHS[] = { 30, 30, 50 };
+    // static const int NUM = 2;
+    vector<uint8> base_state;
+    Emulator::SaveUncompressed(&base_state);
+
+    double total = 1.0;
+    for (int i = 0; i < (sizeof (DEPTHS) / sizeof (int)); i++) {
+      if (i) Emulator::LoadUncompressed(&base_state);
+      for (int d = 0; d < DEPTHS[i]; d++) {
+	const vector<uint8> &m = motifs->RandomWeightedMotif();
+	for (int x = 0; x < m.size(); x++) {
+	  Emulator::CachingStep(m[x]);
+
+	}
+      }
+
+      // PERF inside the loop -- scary!
+      vector<uint8> future_memory;
+      Emulator::GetMemory(&future_memory);
+
+      if (i) {
+	total = max(total, 
+		    objectives->Evaluate(base_memory, future_memory));
+      } else {
+	total = objectives->Evaluate(base_memory, future_memory);
+      }
+
+      // total += objectives->Evaluate(base_memory, future_memory);
+    }
+
+    // We're allowed to destroy the current state, so don't
+    // restore.
+    return total;
+  }
+
   // Number of real futures to push forward.
-  static const int NFUTURES = 24;
-
-  // Number of futures that should be generated from weighted
-  // motifs as opposed to totally random.
-  static const int NWEIGHTEDFUTURES = 28;
-
+  static const int NFUTURES = 16;
   // Drop this many of the worst futures.
   static const int DROPFUTURES = 4;
-  // TODO: copy some of the best futures over bad futures,
-  // randomizing the tails.
-
   // Number of inputs in each future.
   static const int MINFUTURELENGTH = 50;
   static const int MAXFUTURELENGTH = 600;
@@ -537,18 +613,6 @@ struct PlayFun {
 
       motifs->Checkpoint(movie.size());
 
-      int num_currently_weighted = 0;
-      for (int i = 0; i < futures.size(); i++) {
-	if (futures[i].weighted) {
-	  num_currently_weighted++;
-	}
-      }
-      
-      int num_to_weight = max(NWEIGHTEDFUTURES - num_currently_weighted, 0);
-      #ifdef DEBUGFUTURES
-      fprintf(stderr, "there are %d futures, %d cur weighted, %d need\n",
-	      futures.size(), num_currently_weighted, num_to_weight);
-      #endif
       while (futures.size() < NFUTURES) {
 	// Keep the desired length around so that we only
 	// resize the future if we drop it. Randomize between
@@ -557,24 +621,13 @@ struct PlayFun {
 	  (int)
 	  ((double)(MAXFUTURELENGTH - MINFUTURELENGTH) *
 	   RandomDouble(&rc));
-
-	if (num_to_weight > 0) {
-	  futures.push_back(Future(true, flength));
-	  num_to_weight--;
-	} else {
-	  futures.push_back(Future(false, flength));
-	}
+	futures.push_back(Future(flength));
       }
-
       // Make sure we have enough futures with enough data in.
-      // PERF: Should avoid creating exact duplicate futures.
       for (int i = 0; i < NFUTURES; i++) {
 	while (futures[i].inputs.size() <
 	       futures[i].desired_length) {
-	  const vector<uint8> &m = 
-	    futures[i].weighted ? 
-	    motifs->RandomWeightedMotif() :
-	    motifs->RandomMotif();
+	  const vector<uint8> &m = motifs->RandomWeightedMotif();
 	  for (int x = 0; x < m.size(); x++) {
 	    futures[i].inputs.push_back(m[x]);
 	    if (futures[i].inputs.size() ==
@@ -584,15 +637,6 @@ struct PlayFun {
 	  }
 	}
       }
-
-      #ifdef DEBUGFUTURES
-      for (int f = 0; f < futures.size(); f++) {
-	fprintf(stderr, "%d. %s %d/%d: ...\n",
-		f, futures[f].weighted ? "weighted" : "random",
-		futures[f].inputs.size(),
-		futures[f].desired_length);
-      }
-      #endif
 
       // Save our current state so we can try many different branches.
       Emulator::SaveUncompressed(&current_state);    
@@ -632,14 +676,6 @@ struct PlayFun {
 	double worst_total = futuretotals[0];
 	int worst_idx = 0;
 	for (int i = 1; i < futures.size(); i++) {
-	  #ifdef DEBUGFUTURES
-	  fprintf(stderr, "%d. %s %d/%d: %f\n",
-		  i, futures[i].weighted ? "weighted" : "random",
-		  futures[i].inputs.size(),
-		  futures[i].desired_length,
-		  futuretotals[i]);
-	  #endif
-
 	  if (worst_total < futuretotals[i]) {
 	    worst_total = futuretotals[i];
 	    worst_idx = i;
@@ -647,7 +683,7 @@ struct PlayFun {
 	}
 
 	// Delete it by swapping.
-	if (worst_idx != futures.size() - 1) {  
+	if (worst_idx != futures.size() - 1) {
 	  futures[worst_idx] = futures[futures.size() - 1];
 	}
 	futures.resize(futures.size() - 1);
@@ -684,7 +720,6 @@ struct PlayFun {
 
       if (iters % 10 == 0) {
 	SaveMovie();
-	SaveQuickDiagnostics(futures);
 	if (iters % 50 == 0) {
 	  SaveDiagnostics(futures);
 	}
@@ -701,13 +736,8 @@ struct PlayFun {
     Emulator::PrintCacheStats();
   }
 
-  void SaveQuickDiagnostics(const vector<Future> &futures) {
-    printf("                     - quick diagnostics -\n");
-    SaveFuturesHTML(futures, GAME "-playfun-futures.html");
-  }
-
   void SaveDiagnostics(const vector<Future> &futures) {
-    printf("                     - slow diagnostics -\n");
+    printf("                     - and diagnostics -\n");
     // This is now too expensive because the futures aren't cached
     // in this process.
     #if 0
@@ -724,6 +754,7 @@ struct PlayFun {
     }
     printf("Wrote %d movie(s).\n", futures.size() + 1);
     #endif
+    SaveFuturesHTML(futures, GAME "-playfun-futures.html");
     SaveDistributionSVG(distributions, GAME "-playfun-scores.svg");
     objectives->SaveSVG(memories, GAME "-playfun-backtrack.svg");
     motifs->SaveHTML(GAME "-playfun-motifs.html");
