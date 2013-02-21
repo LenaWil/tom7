@@ -23,3 +23,37 @@ string SVGTickmarks(double width, double maxx, double span,
   }
   return out;
 }
+
+string DrawDots(int WIDTH, int HEIGHT,
+		const string &color, double xf,
+		const vector<double> &values, double maxval, 
+		int chosen_idx) {
+  // CHECK(colors.size() == values.size());
+  vector<double> sorted = values;
+  std::sort(sorted.begin(), sorted.end());
+  string out;
+  for (int i = 0; i < values.size(); i++) {
+    int size = values.size();
+    int sorted_idx = 
+      lower_bound(sorted.begin(), sorted.end(), values[i]) - sorted.begin();
+    double opacity = 1.0;
+    if (sorted_idx < 0.1 * size || sorted_idx > 0.9 * size) {
+      opacity = 0.2;
+    } else if (sorted_idx < 0.2 * size || sorted_idx > 0.8 * size) {
+      opacity = 0.4;
+    } else if (sorted_idx < 0.3 * size || sorted_idx > 0.7 * size) {
+      opacity = 0.8;
+    } else if (sorted_idx == size / 2) {
+      opacity = 1.0;
+    }
+    out += StringPrintf("<circle cx=\"%s\" cy=\"%s\" r=\"%d\" "
+			"opacity=\"%.1f\" "
+			"fill=\"%s\" />",
+			Coord(xf * WIDTH).c_str(), 
+			Coord(HEIGHT * (1.0 - (values[i] / maxval))).c_str(),
+			(i == chosen_idx) ? 10 : 4,
+			opacity,
+			color.c_str());
+  }
+  return out += "\n";
+}
