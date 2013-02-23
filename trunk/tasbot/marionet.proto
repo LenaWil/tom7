@@ -17,3 +17,27 @@ message PlayFunResponse {
   optional double futures_score = 4;
   repeated double futurescores = 5;
 }
+
+// Given some state and a candidate path, try to find a better path.
+message TryImproveRequest {
+  optional bytes start_state = 1;
+  optional bytes improveme = 2;
+  optional bytes end_state = 3;
+
+  // How to do it?
+  enum Approach {
+    RANDOM = 0;
+  }
+
+  optional Approach approach = 4;
+  optional string seed = 5;
+  optional int32 iters = 6;
+}
+
+// The single best candidate. Scores should be comparable across
+// different approaches. These fields should be missing if we
+// didn't find anything better.
+message TryImproveResponse {
+  optional bytes inputs = 1;
+  optional double score = 2;
+}
