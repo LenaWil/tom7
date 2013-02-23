@@ -1,19 +1,9 @@
 /* Tries playing a game (deliberately not customized to any particular
    ROM) using an objective function learned by learnfun. 
 
-   This is the second iteration. It attempts to fix a problem with the
-   first (playfun-nobacktrack) which is that although the objective
-   functions all obviously tank when the player dies, the algorithm
-   can't see far enough ahead (or something ..?) to avoid taking a
-   path with such an awful score. This one works by keeping a set of
-   possible futures and scoring an immediate step based on how it does
-   in that set of futures. It is also the first version that supports
-   MARIONET, for utilizing an arbitrary number of CPUs. This version
-   still does not backtrack.
-
-   We also keep track of a range of values for the objective functions
-   so that we have some sense of their absolute values, not just their
-   relative ones.
+   This is the third iteration. It attempts to fix a problem where
+   playfun-futures would get stuck in local maxima, like the overhang
+   in Mario's world 1-2.
 */
 
 #include <unistd.h>
@@ -121,6 +111,13 @@ struct Future {
 			  desired_length(d), 
 			  rounds_survived(0) {}
 };
+
+// For backtracking.
+struct Replacement {
+  vector<uint8> inputs;
+  double score;
+  string method;
+};
 }
 
 static void SaveFuturesHTML(const vector<Future> &futures,
@@ -174,29 +171,27 @@ struct PlayFun {
     printf("Skipped %ld frames until first keypress/ffwd.\n", start);
   }
 
-  void Commit(uint8 input) {
-    Emulator::CachingStep(input);
-    movie.push_back(input);
-    // PERF
-    vector<uint8> mem;
-    Emulator::GetMemory(&mem);
-    memories.push_back(mem);
-    objectives->Observe(mem);
-  }
-
-  
-  // Fairly unprincipled attempt.
-
-  // All of these are the same size:
-
   // PERF. Shouldn't really save every memory, but
-  // we're using it for drawing SVG for now...
+  // we're using it for drawing SVG for now.
   // The nth element contains the memory after playing
   // the nth input in the movie. The initial memory
   // is not stored.
   vector< vector<uint8> > memories;
   // Contains the movie we record.
   vector<uint8> movie;
+
+  // Keeps savestates.
+  struct Checkpoint {
+    vector<uint8> save;
+    // such that truncating movie to length movenum
+    // produces the savestate.
+    int movenum;
+    Checkpoint(const vector<uint8> save, int movenum)
+      : save(save), movenum(movenum) {}
+    // For putting in containers.
+    Checkpoint() : movenum(0) {}
+  };
+  vector<Checkpoint> checkpoints;
 
   // Index below which we should not backtrack (because it
   // contains pre-game menu stuff, for example).
@@ -217,6 +212,42 @@ struct PlayFun {
   // Number of inputs in each future.
   static const int MINFUTURELENGTH = 50;
   static const int MAXFUTURELENGTH = 600;
+
+  // Make a checkpoint this often (number of inputs).
+  static const int CHECKPOINT_EVERY = 500;
+  // In rounds, not inputs.
+  static const int TRY_BACKTRACK_EVERY = 20;
+  // In inputs.
+  static const int MIN_BACKTRACK_DISTANCE = CHECKPOINT_EVERY - 1;
+
+  void Commit(uint8 input) {
+    Emulator::CachingStep(input);
+    movie.push_back(input);
+    if (movie.size() % CHECKPOINT_EVERY == 0) {
+      vector<uint8> savestate;
+      Emulator::SaveUncompressed(&savestate);
+      checkpoints.push_back(Checkpoint(savestate, movie.size()));
+    }
+
+    // PERF
+    vector<uint8> mem;
+    Emulator::GetMemory(&mem);
+    memories.push_back(mem);
+    objectives->Observe(mem);
+  }
+
+  void Rewind(int movenum) {
+    // Is it possible / meaningful to rewind stuff like objectives
+    // observations?
+    CHECK(movenum >= 0);
+    CHECK(movenum < movie.size());
+    movie.resize(movenum);
+    // Pop any checkpoints since movenum.
+    while (!checkpoints.empty() &&
+	   checkpoints.back().movenum > movenum) {
+      checkpoints.resize(checkpoints.size() - 1);
+    }
+  }
 
   // DESTROYS THE STATE
   double ScoreByFuture(const Future &future,
@@ -252,9 +283,6 @@ struct PlayFun {
 
       PlayFunRequest req;
       if (server.ReadProto(&req)) {
-
-	// fprintf(stderr, "Request: %s\n", req.DebugString().c_str());
-	// abort(); // XXX
 
 	vector<uint8> next, current_state;
 	ReadBytesFromProto(req.current_state(), &current_state);
@@ -381,7 +409,7 @@ struct PlayFun {
 		    const vector<uint8> &current_memory,
 		    vector<double> *futuretotals,
 		    int *best_next_idx) {
-    uint64 start = time(NULL);
+    uint64 start_time = time(NULL);
     fprintf(stderr, "Parallel step with %d nexts, %d futures.\n",
 	    nexts.size(), futures.size());
 
@@ -455,7 +483,7 @@ struct PlayFun {
       double score = immediate_score + futures_score;
 
       distribution.immediates.push_back(immediate_score);
-      distribution.positives.push_back(futures_score);	
+      distribution.positives.push_back(futures_score);
       distribution.negatives.push_back(worst_future_score);
       // XXX norm score is disabled because it can't be
       // computed in a distributed fashion.
@@ -470,8 +498,9 @@ struct PlayFun {
     distribution.chosen_idx = *best_next_idx;
     distributions.push_back(distribution);
 
-    uint64 end = time(NULL);
-    fprintf(stderr, "Parallel step took %d seconds.\n", (int)(end - start));
+    uint64 end_time = time(NULL);
+    fprintf(stderr, "Parallel step took %d seconds.\n",
+	    (int)(end_time - start_time));
   }
 
   // XXX
@@ -502,6 +531,7 @@ struct PlayFun {
     // XXX recycling futures...
     vector<Future> futures;
 
+    int rounds_until_backtrack = TRY_BACKTRACK_EVERY;
     int64 iters = 0;
     for (;; iters++) {
 
@@ -565,7 +595,7 @@ struct PlayFun {
       #endif
 
       // Save our current state so we can try many different branches.
-      Emulator::SaveUncompressed(&current_state);    
+      Emulator::SaveUncompressed(&current_state);
       Emulator::GetMemory(&current_memory);
 
       // XXX should be a weighted shuffle.
@@ -651,6 +681,7 @@ struct PlayFun {
 	}
       }
 
+      MaybeBacktrack(iters, &rounds_until_backtrack, &futures);
 
       if (iters % 10 == 0) {
 	SaveMovie();
@@ -662,11 +693,190 @@ struct PlayFun {
     }
   }
 
+  void TryImprove(const Checkpoint &start,
+		  const vector<uint8> &improveme, 
+		  const vector<uint8> &current_state,
+		  vector<Replacement> *replacements) {
+
+    uint64 start_time = time(NULL);
+    fprintf(stderr, "TryImprove step on %d inputs.\n",
+	    improveme.size());
+    CHECK(replacements);
+    replacements->clear();
+
+    static const int NUM_IMPROVE_RANDOM = 10;
+    static const int NUM_RANDOM_ITERS = 1000;
+
+    #ifdef MARIONET
+
+    // One piece of work per request.
+    vector<TryImproveRequest> requests;
+
+    // Every request shares this stuff.
+    TryImproveRequest base_req;
+    base_req.set_start_state(&start.save[0], start.save.size());
+    base_req.set_improveme(&improveme[0], improveme.size());
+    base_req.set_end_state(&current_state[0], current_state.size());
+
+    for (int i = 0; i < NUM_IMPROVE_RANDOM; i++) {
+      TryImproveRequest req = base_req;
+      req.set_iters(NUM_RANDOM_ITERS);
+      req.set_seed(StringPrintf("seed%d.%d", start.movenum, i));
+      req.set_approach(TryImproveRequest::RANDOM);
+      requests.push_back(req);
+    }
+    
+    GetAnswers<TryImproveRequest, TryImproveResponse>
+      getanswers(ports_, requests);
+    getanswers.Loop();
+
+    fprintf(stderr, "GOT ANSWERS.\n");
+    const vector<GetAnswers<TryImproveRequest, 
+			    TryImproveResponse>::Work> &work =
+      getanswers.GetWork();
+
+    for (int i = 0; i < work.size(); i++) {
+      const TryImproveRequest &req = *work[i].req;
+      const TryImproveResponse &res = work[i].res;
+      if (res.has_score() && res.has_inputs()) {
+	Replacement r;
+	switch (req.approach()) {
+	case TryImproveRequest::RANDOM:
+	  r.method = StringPrintf("random-%d-%s",
+				  req.iters(),
+				  req.seed().c_str());
+	}
+	ReadBytesFromProto(res.inputs(), &r.inputs);
+	replacements->push_back(r);
+      }
+    }
+
+    #else
+    // This is optional, so if there's no MARIONET, skip for now.
+    fprintf(stderr, "TryImprove requires MARIONET...\n");
+    #endif
+
+    uint64 end_time = time(NULL);
+    fprintf(stderr, "TryImprove took %d seconds.\n",
+	    (int)(end_time - start_time));
+  }
+
+  // Get a checkpoint that is at least MIN_BACKTRACK_DISTANCE inputs
+  // in the past, or return NULL.
+  Checkpoint *GetRecentCheckpoint() {
+    for (int i = checkpoints.size() - 1; i >= 0; i--) {
+      if (movie.size() - checkpoints[i].movenum > MIN_BACKTRACK_DISTANCE) {
+	return &checkpoints[i];
+      }
+    }
+    return NULL;
+  }
+
+
+  void MaybeBacktrack(int iters, 
+		      int *rounds_until_backtrack,
+		      vector<Future> *futures) {
+    // Now consider backtracking.
+    // TODO: We could trigger a backtrack step whenever we feel
+    // like we aren't making significant progress, like when
+    // there's very little difference between the futures we're
+    // looking at, or when we haven't made much progress since
+    // the checkpoint, or whatever. That would probably help
+    // since part of the difficulty here is going to be deciding
+    // whether the current state or some backtracked-to state is
+    // actually better, and if we know the current state is bad,
+    // then we have less opportunity to get it wrong.
+    --*rounds_until_backtrack;
+    fprintf(stderr, "%d rounds. %d until backtrack attempt.\n",
+	    iters, *rounds_until_backtrack);
+    if (*rounds_until_backtrack == 0) {
+      *rounds_until_backtrack = TRY_BACKTRACK_EVERY;
+      fprintf(stderr, " ** backtrack time. **\n");
+
+      // Backtracking is like this. Call the last checkpoint "start"
+      // (technically it could be any checkpoint, so think about
+      // principled ways of finding a good starting point.) and
+      // the current point "now". There are N inputs between
+      // start and now.
+      //
+      // The goal is, given what we know, to see if we can find a
+      // different N inputs that yield a better outcome than what
+      // we have now. The purpose is twofold:
+      //  - We may have just gotten ourselves into a local maximum
+      //    by bad luck. If the checkpoint is before that bad
+      //    choice, we have some chance of not making it (but
+      //    that's basically random).
+      //  - We now know more about what's possible, which should
+      //    help us choose better. For examples, we can try
+      //    variations on the sequence of N moves between start
+      //    and now.
+
+      // Morally const, but need to load state from it.
+      Checkpoint *start = GetRecentCheckpoint();
+      if (start == NULL) {
+	fprintf(stderr, "No checkpoint to try backtracking.\n");
+	return;
+      }
+
+      const int nmoves = movie.size() - start->movenum;
+      CHECK(nmoves > 0);
+
+      // Inputs to be improved.
+      vector<uint8> improveme;
+      for (int i = start->movenum; i < movie.size(); i++) {
+	improveme.push_back(movie[i]);
+      }
+
+      vector<uint8> current_state;
+      Emulator::SaveUncompressed(&current_state);
+      vector<Replacement> replacements;
+      TryImprove(*start, improveme, current_state,
+		 &replacements);
+      if (replacements.empty()) {
+	fprintf(stderr, "There were no superior replacements.\n");
+	return;
+      }
+
+      int best_replacement_idx = 0;
+      double best_replacement_score = replacements[0].score;
+      for (int i = 0; i < replacements.size(); i++) {
+	if (replacements[i].score > best_replacement_score) {
+	  best_replacement_score = replacements[i].score;
+	  best_replacement_idx = i;
+	}
+      }
+
+      const Replacement &replacement = replacements[best_replacement_idx];
+
+      // Could check that the replacement is better by our
+      // standard here. Right now we trust that helpers would
+      // make the same decision.
+      fprintf(stderr, "Found replacement for last %d moves via %s\n",
+	      nmoves, replacement.method.c_str());
+      SimpleFM2::WriteInputs(GAME "-playfun-backtrack-replaced.fm2",
+			     GAME ".nes",
+			     BASE64,
+			     movie);
+      Rewind(start->movenum);
+      Emulator::LoadUncompressed(&start->save);
+
+      // PERF maybe helper could send back the end state and
+      // we could skip the replay here, but then we have to
+      // be concerned with other data produced during Commit...
+      for (int i = 0; i < replacement.inputs.size(); i++) {
+	Commit(replacement.inputs[i]);
+      }
+
+      // What to do about futures? This is simplest, I guess...
+      futures->clear();
+    }
+  }
+
   void SaveMovie() {
     printf("                     - writing movie -\n");
     SimpleFM2::WriteInputs(GAME "-playfun-futures-progress.fm2",
 			   GAME ".nes",
-			   "base64:jjYwGG411HcjG/j9UOVM3Q==",
+			   BASE64,
 			   movie);
     Emulator::PrintCacheStats();
   }
@@ -688,7 +898,7 @@ struct PlayFun {
 	SimpleFM2::WriteInputs(StringPrintf(GAME "-playfun-future-%d.fm2",
 					    i),
 			       GAME ".nes",
-			       "base64:jjYwGG411HcjG/j9UOVM3Q==",
+			       BASE64,
 			       fmovie);
       }
     }
