@@ -308,10 +308,11 @@ struct PlayFun {
       if (server.ReadProto(&hreq)) {
 
 	if (const Message *res = cache.Lookup(hreq)) {
-	  term.Advance();
 	  line += ", cached!";
-	  fprintf(stderr, "%s\n", line.c_str());
+	  term.Output(line + "\n");
+	  term.Advance();
 	  if (!server.WriteProto(*res)) {
+	    term.Advance();
 	    fprintf(stderr, "Failed to send cached result...\n");
 	    // keep going...
 	  }
@@ -410,14 +411,12 @@ struct PlayFun {
     Emulator::LoadUncompressed(&start_state);
     Emulator::GetMemory(&start_memory);
 
-    int nimproved = 0;
-
     InPlaceTerminal term(1);
 
     vector< pair< double, vector<uint8> > > repls;
 
+    ArcFour rc(req.seed());
     if (req.approach() == TryImproveRequest::RANDOM) {
-      ArcFour rc(req.seed());
       for (int i = 0; i < req.iters(); i++) {
 	// Get a random sequence of inputs.
 	vector<uint8> inputs = GetRandomInputs(&rc, improveme.size());
@@ -430,12 +429,71 @@ struct PlayFun {
 			  inputs,
 			  end_memory, &score)) {
 	  term.Advance();
-	  nimproved++;
 	  fprintf(stderr, "Improved! %f\n", score);
 	  repls.push_back(make_pair(score, inputs));
 	}
       }
+    } else if (req.approach() == TryImproveRequest::OPPOSITES) {
+      vector<uint8> inputs = improveme;
+      
+      TryDualizeAndReverse(&term, 0,
+			   &start_state, start_memory,
+			   &inputs, 0, inputs.size(),
+			   end_memory, &repls,
+			   false);
+
+      TryDualizeAndReverse(&term, 0,
+			   &start_state, start_memory,
+			   &inputs, 0, inputs.size() / 2,
+			   end_memory, &repls,
+			   false);
+
+      for (int i = 0; i < req.iters(); i++) {
+	int start = RandomDouble(&rc) * inputs.size();
+	if (start < 0) start = 0;
+	if (start >= inputs.size()) start = inputs.size() - 1;
+	int maxlen = inputs.size() - start;
+	int len = RandomDouble(&rc) * maxlen;
+	if (len < 0) len = 0;
+	if (len >= maxlen) len = maxlen;
+	bool keepreversed = rc.Byte() & 1;
+	TryDualizeAndReverse(&term, (double)i / req.iters(),
+			     &start_state, start_memory,
+			     &inputs, start, len,
+			     end_memory, &repls,
+			     keepreversed);
+      }
+
+    } else if (req.approach() == TryImproveRequest::ABLATION) {
+      for (int i = 0; i < req.iters(); i++) {
+	vector<uint8> inputs = improveme;
+	uint8 mask;
+	// No sense in getting a mask that keeps everything.
+	do { mask = rc.Byte(); } while (mask == 255);
+	uint32 cutoff = RandomInt32(&rc);
+	for (int j = 0; j < inputs.size(); j++) {
+	  if (RandomInt32(&rc) < cutoff) {
+	    inputs[j] &= mask;
+	  }
+	}
+
+	// Might have chosen a mask on e.g. SELECT, which is
+	// never in the input.
+	double score = 0.0;
+	if (inputs != improveme &&
+	    IsImprovement(&term, (double)i / req.iters(),
+			  &start_state,
+			  start_memory,
+			  inputs,
+			  end_memory, &score)) {
+	  term.Advance();
+	  fprintf(stderr, "Improved (abl %d)! %f\n", mask, score);
+	  repls.push_back(make_pair(score, inputs));
+	}
+      }
     }
+
+    const int nimproved = repls.size();
 
     if (repls.size() > req.maxbest()) {
       std::sort(repls.begin(), repls.end(), 
@@ -449,8 +507,85 @@ struct PlayFun {
     }
 
     term.Advance();
-    fprintf(stderr, "In %d iters, %d were improvements (%.1f%%)\n",
-	    req.iters(), nimproved, (100.0 * nimproved) / req.iters());
+    fprintf(stderr, "In %d iters (%s), %d were improvements (%.1f%%)\n",
+	    req.iters(), 
+	    TryImproveRequest::Approach_Name(req.approach()).c_str(),
+	    nimproved, (100.0 * nimproved) / req.iters());
+  }
+
+  void TryDualizeAndReverse(InPlaceTerminal *term, double frac,
+			    vector<uint8> *start_state, 
+			    const vector<uint8> &start_memory,
+			    vector<uint8> *inputs, int startidx, int len,
+			    const vector<uint8> &end_memory,
+			    vector< pair< double, vector<uint8> > > *repls,
+			    bool keepreversed) {
+    
+    Dualize(inputs, startidx, len);
+    double score = 0.0;
+    if (IsImprovement(term, frac,
+		      start_state,
+		      start_memory,
+		      *inputs,
+		      end_memory, &score)) {
+      term->Advance();
+      fprintf(stderr, "Improved! %f\n", score);
+      repls->push_back(make_pair(score, *inputs));
+    }
+
+    ReverseRange(inputs, startidx, len);
+
+    if (IsImprovement(term, frac,
+		      start_state,
+		      start_memory,
+		      *inputs,
+		      end_memory, &score)) {
+      term->Advance();
+      fprintf(stderr, "Improved (rev)! %f\n", score);
+      repls->push_back(make_pair(score, *inputs));
+    }
+
+    if (!keepreversed) {
+      ReverseRange(inputs, startidx, len);
+    }
+  }
+
+  static void ReverseRange(vector<uint8> *v, int start, int len) {
+    CHECK(start >= 0);
+    CHECK((start + len) <= v->size());
+    vector<uint8> vnew = *v;
+    for (int i = 0; i < len; i++) {
+      vnew[i] = (*v)[(start + len - 1) - i];
+    }
+    v->swap(vnew);
+  }
+  
+  static void Dualize(vector<uint8> *v, int start, int len) {
+    CHECK(start >= 0);
+    CHECK((start + len) <= v->size());
+    for (int i = 0; i < len; i++) {
+      uint8 input = (*v)[start + i];
+      uint8 r = !!(input & INPUT_R);
+      uint8 l = !!(input & INPUT_L);
+      uint8 d = !!(input & INPUT_D);
+      uint8 u = !!(input & INPUT_U);
+      uint8 t = !!(input & INPUT_T);
+      uint8 s = !!(input & INPUT_S);
+      uint8 b = !!(input & INPUT_B);
+      uint8 a = !!(input & INPUT_A);
+
+      uint8 newinput = 0;
+      if (r) newinput |= INPUT_L;
+      if (l) newinput |= INPUT_R;
+      if (d) newinput |= INPUT_U;
+      if (u) newinput |= INPUT_D;
+      if (t) newinput |= INPUT_S;
+      if (s) newinput |= INPUT_T;
+      if (b) newinput |= INPUT_A;
+      if (a) newinput |= INPUT_B;
+
+      (*v)[start + i] = newinput;
+    }
   }
 
   bool IsImprovement(InPlaceTerminal *term, double frac,
@@ -935,11 +1070,23 @@ struct PlayFun {
     CHECK(replacements);
     replacements->clear();
 
+    static const int MAXBEST = 10;
+
     // For random, we could compute the right number of
     // tasks based on the number of helpers...
-    static const int NUM_IMPROVE_RANDOM = 50;
-    static const int NUM_RANDOM_ITERS = 200;
-    static const int MAXBEST = 10;
+    static const int NUM_IMPROVE_RANDOM = 40;
+    static const int RANDOM_ITERS = 200;
+
+    static const int NUM_ABLATION = 10;
+    static const int ABLATION_ITERS = 200;
+
+    // Note that some of these have a fixed number
+    // of iterations that are tried, independent of
+    // the iters field. So try_opposites = true and
+    // opposites_ites = 0 does make sense.
+    static const bool TRY_OPPOSITES = true;
+    static const int OPPOSITES_ITERS = 200;
+
 
     #ifdef MARIONET
 
@@ -955,9 +1102,31 @@ struct PlayFun {
 
     for (int i = 0; i < NUM_IMPROVE_RANDOM; i++) {
       TryImproveRequest req = base_req;
-      req.set_iters(NUM_RANDOM_ITERS);
+      req.set_iters(RANDOM_ITERS);
       req.set_seed(StringPrintf("seed%d.%d", start.movenum, i));
       req.set_approach(TryImproveRequest::RANDOM);
+
+      HelperRequest hreq;
+      hreq.mutable_tryimprove()->MergeFrom(req);
+      requests.push_back(hreq);
+    }
+
+    for (int i = 0; i < NUM_ABLATION; i++) {
+      TryImproveRequest req = base_req;
+      req.set_iters(ABLATION_ITERS);
+      req.set_seed(StringPrintf("abl%d.%d", start.movenum, i));
+      req.set_approach(TryImproveRequest::ABLATION);
+
+      HelperRequest hreq;
+      hreq.mutable_tryimprove()->MergeFrom(req);
+      requests.push_back(hreq);
+    }
+
+    if (TRY_OPPOSITES) {
+      TryImproveRequest req = base_req;
+      req.set_approach(TryImproveRequest::OPPOSITES);
+      req.set_iters(OPPOSITES_ITERS);
+      req.set_seed(StringPrintf("opp%d", start.movenum));
 
       HelperRequest hreq;
       hreq.mutable_tryimprove()->MergeFrom(req);
@@ -968,7 +1137,6 @@ struct PlayFun {
       getanswers(ports_, requests);
     getanswers.Loop();
 
-    fprintf(stderr, "GOT ANSWERS.\n");
     const vector<GetAnswers<HelperRequest, 
 			    TryImproveResponse>::Work> &work =
       getanswers.GetWork();
@@ -984,6 +1152,17 @@ struct PlayFun {
 	  r.method = StringPrintf("random-%d-%s",
 				  req.iters(),
 				  req.seed().c_str());
+	  break;
+	case TryImproveRequest::OPPOSITES:
+	  r.method = StringPrintf("opp-%d-%s",
+				  req.iters(),
+				  req.seed().c_str());
+	  break;
+	case TryImproveRequest::ABLATION:
+	  r.method = StringPrintf("abl-%d-%s",
+				  req.iters(),
+				  req.seed().c_str());
+	  break;
 	}
 	ReadBytesFromProto(res.inputs(j), &r.inputs);
 	r.score = res.score(j);
