@@ -341,7 +341,52 @@ struct GetAnswers {
   // IPaddress localhost_;
 };
 
+// Small exact cache of protos.
+struct RequestCache {
+  explicit RequestCache(int size);
+  typedef ::google::protobuf::Message Message;
+
+  template<class Req, class Res>
+  void Save(const Req &request, const Res &response);
+
+  template<class Req>
+  const Message *Lookup(const Req &req) const;
+
+ private:
+  int size, num;
+  // Pointers owned.
+  deque< pair<string, Message*> > recent;
+};
+
 // Template implementations follow.
+
+template<class Req, class Res>
+void RequestCache::Save(const Req &request, const Res &response) {
+  while (num >= size) {
+    delete recent.back().second;
+    recent.pop_back();
+    num--;
+  }
+
+  recent.push_front(make_pair(request.SerializeAsString(),
+                              new Res(response)));
+  num++;
+}
+
+
+template<class Req>
+const RequestCache::Message *RequestCache::Lookup(const Req &req) const {
+  string s = req.SerializeAsString();
+  for (typename deque< pair<string, Message*> >::const_iterator
+         it = recent.begin();
+       it != recent.end(); ++it) {
+    if (it->first == s) {
+      return it->second;
+    }
+  }
+  return NULL;
+}
+
 
 template <class T>
 bool ReadProto(TCPsocket sock, T *t) {
