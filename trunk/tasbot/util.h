@@ -84,6 +84,28 @@ inline string Coords(double x, double y) {
   return Coord(x) + "," + Coord(y);
 }
 
+// This is for when a process is doing something where it'd
+// like to report progress by overwriting something like a
+// percentage or graph or something on a fixed number of lines,
+// but also wants to be able to log exceptional events without
+// overwriting them.
+struct InPlaceTerminal {
+  explicit InPlaceTerminal(int lines);
+
+  // Output should contain one newline per line.
+  void Output(const string &s);
+
+  // Call this before any output not done with Output, which
+  // will advance the cursor past the in-place stuff and
+  // ensure that the next call to Output doesn't overwrite
+  // what the other call wrote.
+  void Advance();
+
+ private:
+  int lines;
+  bool last_was_output;
+};
+
 // Width of graphic in pixels, max value of x axis, width of span
 // between tickmarks in terms of the units of the x axis,
 // the tick height in pixels, the tick font height.

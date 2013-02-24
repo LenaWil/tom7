@@ -159,7 +159,26 @@ double WeightedObjectives::Evaluate(const vector<uint8> &mem1,
     const vector<int> &objective = it->first;
     const double weight = it->second->weight;
     switch (Order(mem1, mem2, objective)) {
-      case -1: score -= weight;
+    case -1: score -= weight; break;
+    case 1: score += weight; break;
+    case 0:
+    default:;
+    }
+  }
+  return score;
+}
+
+// XXX can probably simplify this, but should probably just remove it.
+double WeightedObjectives::BuggyEvaluate(const vector<uint8> &mem1,
+					 const vector<uint8> &mem2) const {
+  double score = 0.0;
+  for (Weighted::const_iterator it = weighted.begin();
+       it != weighted.end(); ++it) {
+    const vector<int> &objective = it->first;
+    const double weight = it->second->weight;
+    switch (Order(mem1, mem2, objective)) {
+      // XXX bug!!
+    case -1: score -= weight; // FALLTHROUGH
       case 1: score += weight;
       case 0:
       default:;

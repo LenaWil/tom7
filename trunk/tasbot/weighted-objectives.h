@@ -28,6 +28,7 @@ struct WeightedObjectives {
 
   // Scoring function which is just the count of the number
   // of objectives where mem1 < mem2.
+  // XXX note this is actually weighted.
   double GetNumLess(const vector<uint8> &mem1,
                     const vector<uint8> &mem2) const;
 
@@ -35,6 +36,11 @@ struct WeightedObjectives {
   // that where mem1 < mem2 minus the number where mem1 > mem2.
   double Evaluate(const vector<uint8> &mem1,
                   const vector<uint8> &mem2) const;
+
+
+  // Old buggy version. Same as GetNumLess I think?
+  double BuggyEvaluate(const vector<uint8> &mem1,
+                       const vector<uint8> &mem2) const;
 
   // Observe a game state. This informs us about the values that
   // the objective functions can take on, which lets us score the

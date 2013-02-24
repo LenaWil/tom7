@@ -116,3 +116,8 @@ void SingleServer::Hangup() {
 
   state_ = LISTENING;
 }
+
+bool RecvErrorRetry() {
+  // XXX consult SDLNet_GetLastError()
+  return false;
+}

@@ -57,3 +57,31 @@ string DrawDots(int WIDTH, int HEIGHT,
   }
   return out += "\n";
 }
+
+InPlaceTerminal::InPlaceTerminal(int lines) 
+  : lines(lines), last_was_output(false) {
+  CHECK(lines > 0);
+}
+
+void InPlaceTerminal::Output(const string &s) {
+  if (last_was_output) {
+    for (int i = 0; i < lines; i++) {
+      fprintf(stdout,
+	      // Cursor to beginning of previous line
+	      "\x1B[F"
+	      // Clear line
+	      "\x1B[2K"
+	      );
+    }
+  }
+
+  // Maybe cleaner to pad this to the length of the line
+  // with spaces than to clear above.
+  fprintf(stderr, "%s", s.c_str());
+
+  last_was_output = true;
+}
+
+void InPlaceTerminal::Advance() {
+  last_was_output = false;
+}

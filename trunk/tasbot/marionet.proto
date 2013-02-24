@@ -34,10 +34,14 @@ message TryImproveRequest {
   optional int32 iters = 6;
 }
 
-// The single best candidate. Scores should be comparable across
-// different approaches. These fields should be missing if we
-// didn't find anything better.
+// Any candidate with a "good enough" score.
 message TryImproveResponse {
-  optional bytes inputs = 1;
-  optional double score = 2;
+  // Parallel arrays.
+  repeated bytes inputs = 1;
+  repeated double score = 2;
+}
+
+message HelperRequest {
+  optional PlayFunRequest playfun = 1;
+  optional TryImproveRequest tryimprove = 2;
 }
