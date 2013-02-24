@@ -48,6 +48,22 @@ bool ReadProto(TCPsocket sock, T *t);
 template <class T>
 bool WriteProto(TCPsocket sock, const T &t);
 
+#if 0 // TODO
+// A wrapped sock that buffers reads, since even though the docs
+// indicate that reads block until they are complete, this appears
+// to not really be true.
+struct WrappedSock {
+  TCPsocket sock;
+  vector<uint8> buffer;
+  enum RecvStatus {
+    ERROR,
+    INCOMPLETE,
+    SUCCESS,
+  };
+  RecvStatus Recv(int len);
+};
+#endif
+
 // Listens on a single port for a single connection at a time,
 // blocking.
 struct SingleServer {

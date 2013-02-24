@@ -199,14 +199,14 @@ struct PlayFun {
 
   // Number of real futures to push forward.
   // XXX the more the merrier! Made this small to test backtracking.
-  static const int NFUTURES = 12;
+  static const int NFUTURES = 24;
 
   // Number of futures that should be generated from weighted
   // motifs as opposed to totally random.
-  static const int NWEIGHTEDFUTURES = 8;
+  static const int NWEIGHTEDFUTURES = 19;
 
   // Drop this many of the worst futures.
-  static const int DROPFUTURES = 3;
+  static const int DROPFUTURES = 5;
   // TODO: copy some of the best futures over bad futures,
   // randomizing the tails.
 
@@ -215,9 +215,9 @@ struct PlayFun {
   static const int MAXFUTURELENGTH = 600;
 
   // Make a checkpoint this often (number of inputs).
-  static const int CHECKPOINT_EVERY = 50;
+  static const int CHECKPOINT_EVERY = 100;
   // In rounds, not inputs.
-  static const int TRY_BACKTRACK_EVERY = 10;
+  static const int TRY_BACKTRACK_EVERY = 18;
   // In inputs.
   static const int MIN_BACKTRACK_DISTANCE = 300;
 
@@ -286,18 +286,24 @@ struct PlayFun {
   void Helper(int port) {
     SingleServer server(port);
 
+    InPlaceTerminal term(1);
+    int connections = 0;
     for (;;) {
       server.Listen();
 
-      fprintf(stderr, "[%d] Connection from %s ", 
-	      port,
-	      server.PeerString().c_str());
+      connections++;
+      string line = StringPrintf("[%d] Connection #%d from %s", 
+				 port,
+				 connections,
+				 server.PeerString().c_str());
+      term.Output(line + "\n");
 
       HelperRequest hreq;
       if (server.ReadProto(&hreq)) {
 
 	if (hreq.has_playfun()) {
-	  fprintf(stderr, ", playfun\n");
+	  line += ", playfun";
+	  term.Output(line + "\n");
 	  const PlayFunRequest &req = hreq.playfun();
 	  vector<uint8> next, current_state;
 	  ReadBytesFromProto(req.current_state(), &current_state);
@@ -331,30 +337,45 @@ struct PlayFun {
 	  // fprintf(stderr, "Result: %s\n", res.DebugString().c_str());
 
 	  if (!server.WriteProto(res)) {
+	    term.Advance();
 	    fprintf(stderr, "Failed to send playfun result...\n");
 	    // But just keep going.
 	  }
 	} else if (hreq.has_tryimprove()) {
 	  const TryImproveRequest &req = hreq.tryimprove();
-	  fprintf(stderr, ", tryimprove %s\n",
-		  TryImproveRequest::Approach_Name(req.approach()).c_str());
-	  
+	  line += ", tryimprove " +
+	    TryImproveRequest::Approach_Name(req.approach());
+	  term.Output(line + "\n");
+
+	  // This thing prints.
+	  term.Advance();	  
 	  TryImproveResponse res;
 	  DoTryImprove(req, &res);
 
 	  if (!server.WriteProto(res)) {
+	    term.Advance();
 	    fprintf(stderr, "Failed to send tryimprove result...\n");
 	    // Keep going...
 	  }
 	} else {
-	  fprintf(stderr, ", unknown??\n");
+	  term.Advance();
+	  fprintf(stderr, ".. unknown request??\n");
 	}
       } else {
+	term.Advance();
 	fprintf(stderr, "\nFailed to read request...\n");
       }
       server.Hangup();
     }
   }
+  
+  template<class F, class S>
+  struct CompareByFirstDesc {
+    bool operator ()(const pair<F, S> &a,
+		     const pair<F, S> &b) {
+      return b.first < a.first;
+    }
+  };
 
   void DoTryImprove(const TryImproveRequest &req,
 		    TryImproveResponse *res) {
@@ -377,15 +398,16 @@ struct PlayFun {
 
     InPlaceTerminal term(1);
 
+    vector< pair< double, vector<uint8> > > repls;
+
     if (req.approach() == TryImproveRequest::RANDOM) {
       ArcFour rc(req.seed());
-      double best_score = -1.0;
       for (int i = 0; i < req.iters(); i++) {
 	// Get a random sequence of inputs.
 	vector<uint8> inputs = GetRandomInputs(&rc, improveme.size());
 
 	// Now execute it.
-	double score;
+	double score = 0.0;
 	if (IsImprovement(&term, (double)i / req.iters(),
 			  &start_state,
 			  start_memory,
@@ -394,10 +416,20 @@ struct PlayFun {
 	  term.Advance();
 	  nimproved++;
 	  fprintf(stderr, "Improved! %f\n", score);
-	  res->add_inputs(&inputs[0], inputs.size());
-	  res->add_score(score);
+	  repls.push_back(make_pair(score, inputs));
 	}
       }
+    }
+
+    if (repls.size() > req.maxbest()) {
+      std::sort(repls.begin(), repls.end(), 
+		CompareByFirstDesc< double, vector<uint8> >());
+      repls.resize(req.maxbest());
+    }
+    
+    for (int i = 0; i < repls.size(); i++) {
+      res->add_inputs(&repls[i].second[0], repls[i].second.size());
+      res->add_score(repls[i].first);
     }
 
     term.Advance();
@@ -652,9 +684,6 @@ struct PlayFun {
 	    (int)(end_time - start_time));
   }
 
-  // XXX
-  vector<int> ports_;
-
   void PopulateFutures(vector<Future> *futures) {
     int num_currently_weighted = 0;
     for (int i = 0; i < futures->size(); i++) {
@@ -719,32 +748,43 @@ struct PlayFun {
   // those futures. Remove the futures that didn't perform well
   // overall, and replace them. Reweight motifs according
   void TakeBestAmong(const vector< vector<uint8> > &nexts,
-		     vector<Future> *futures) {
+		     vector<Future> *futures,
+		     bool chopfutures) {
     vector<uint8> current_state;
     vector<uint8> current_memory;
+
+    if (futures->size() != NFUTURES) {
+      fprintf(stderr, "?? Expected futures to have size %d but "
+	      "it has %d.\n", NFUTURES, futures->size());
+    }
 
     // Save our current state so we can try many different branches.
     Emulator::SaveUncompressed(&current_state);
     Emulator::GetMemory(&current_memory);
 
     // Total score across all motifs for each future.
-    vector<double> futuretotals(NFUTURES, 0.0);
+    vector<double> futuretotals(futures->size(), 0.0);
 
     // Most of the computation happens here.
-    int best_next_idx;
+    int best_next_idx = -1;
     ParallelStep(nexts, *futures,
 		 &current_state, current_memory,
 		 &futuretotals,
 		 &best_next_idx);
+    CHECK(best_next_idx >= 0);
+    CHECK(best_next_idx < nexts.size());
 
-    // Chop the head off each future.
-    const int choplength = nexts[best_next_idx].size();
-    for (int i = 0; i < futures->size(); i++) {
-      vector<uint8> newf;
-      for (int j = choplength; j < (*futures)[i].inputs.size(); j++) {
-	newf.push_back((*futures)[i].inputs[j]);
+    if (chopfutures) {
+      // fprintf(stderr, "Chop futures.\n");
+      // Chop the head off each future.
+      const int choplength = nexts[best_next_idx].size();
+      for (int i = 0; i < futures->size(); i++) {
+	vector<uint8> newf;
+	for (int j = choplength; j < (*futures)[i].inputs.size(); j++) {
+	  newf.push_back((*futures)[i].inputs[j]);
+	}
+	(*futures)[i].inputs.swap(newf);
       }
-      (*futures)[i].inputs.swap(newf);
     }
 
     // Discard the futures with the worst total.
@@ -752,6 +792,7 @@ struct PlayFun {
     // PERF don't really need to make DROPFUTURES passes,
     // but there are not many futures and not many dropfutures.
     for (int t = 0; t < DROPFUTURES; t++) {
+      // fprintf(stderr, "Drop futures (%d/%d).\n", t, DROPFUTURES);
       CHECK(!futures->empty());
       CHECK(futures->size() <= futuretotals.size());
       double worst_total = futuretotals[0];
@@ -778,7 +819,9 @@ struct PlayFun {
       futures->resize(futures->size() - 1);
     }
 
-    // This is very likely to be cached now.
+    // If in single mode, this is probably cached, but with
+    // MARIONET this is usually a full replay.
+    // fprintf(stderr, "Replay %d moves\n", nexts[best_next_idx].size());
     Emulator::LoadUncompressed(&current_state);
     for (int j = 0; j < nexts[best_next_idx].size(); j++) {
       Commit(nexts[best_next_idx][j]);
@@ -841,7 +884,7 @@ struct PlayFun {
       // XXX TODO this probably gets confused by backtracking.
       motifs->Checkpoint(movie.size());
 
-      TakeBestAmong(nexts, &futures);
+      TakeBestAmong(nexts, &futures, true);
 
       fprintf(stderr, "%d rounds, %d inputs. %d until backtrack. "
 	      "Cxpoints at ",
@@ -876,8 +919,11 @@ struct PlayFun {
     CHECK(replacements);
     replacements->clear();
 
-    static const int NUM_IMPROVE_RANDOM = 10;
-    static const int NUM_RANDOM_ITERS = 1000;
+    // For random, we could compute the right number of
+    // tasks based on the number of helpers...
+    static const int NUM_IMPROVE_RANDOM = 50;
+    static const int NUM_RANDOM_ITERS = 200;
+    static const int MAXBEST = 10;
 
     #ifdef MARIONET
 
@@ -889,6 +935,7 @@ struct PlayFun {
     base_req.set_start_state(&start.save[0], start.save.size());
     base_req.set_improveme(&improveme[0], improveme.size());
     base_req.set_end_state(&current_state[0], current_state.size());
+    base_req.set_maxbest(MAXBEST);
 
     for (int i = 0; i < NUM_IMPROVE_RANDOM; i++) {
       TryImproveRequest req = base_req;
@@ -923,7 +970,7 @@ struct PlayFun {
 				  req.seed().c_str());
 	}
 	ReadBytesFromProto(res.inputs(j), &r.inputs);
-	r.score = res.score(j)
+	r.score = res.score(j);
 	replacements->push_back(r);
       }
     }
@@ -968,6 +1015,7 @@ struct PlayFun {
     if (*rounds_until_backtrack == 0) {
       *rounds_until_backtrack = TRY_BACKTRACK_EVERY;
       fprintf(stderr, " ** backtrack time. **\n");
+      uint64 start_time = time(NULL);
 
       // Backtracking is like this. Call the last checkpoint "start"
       // (technically it could be any checkpoint, so think about
@@ -988,25 +1036,28 @@ struct PlayFun {
       //    and now.
 
       // Morally const, but need to load state from it.
-      Checkpoint *start = GetRecentCheckpoint();
-      if (start == NULL) {
+      Checkpoint *start_ptr = GetRecentCheckpoint();
+      if (start_ptr == NULL) {
 	fprintf(stderr, "No checkpoint to try backtracking.\n");
 	return;
       }
+      // Copy, because stuff we do in here can resize the
+      // checkpoints array and cause disappointment.
+      Checkpoint start = *start_ptr;
 
-      const int nmoves = movie.size() - start->movenum;
+      const int nmoves = movie.size() - start.movenum;
       CHECK(nmoves > 0);
 
       // Inputs to be improved.
       vector<uint8> improveme;
-      for (int i = start->movenum; i < movie.size(); i++) {
+      for (int i = start.movenum; i < movie.size(); i++) {
 	improveme.push_back(movie[i]);
       }
 
       vector<uint8> current_state;
       Emulator::SaveUncompressed(&current_state);
       vector<Replacement> replacements;
-      TryImprove(*start, improveme, current_state,
+      TryImprove(start, improveme, current_state,
 		 &replacements);
       if (replacements.empty()) {
 	fprintf(stderr, "There were no superior replacements.\n");
@@ -1017,48 +1068,49 @@ struct PlayFun {
       // be hovering above a pit about to die), use the standard
       // TakeBestAmong to score all the potential improvements, as
       // well as the current best.
+      fprintf(stderr, 
+	      "There are %d possible replacements for last %d moves...\n",
+	      replacements.size(),
+	      nmoves);
 
-      int best_replacement_idx = 0;
-      double best_replacement_score = replacements[0].score;
+      SimpleFM2::WriteInputs(
+	  StringPrintf(GAME "-playfun-backtrack-%d-replaced.fm2", iters),
+	  GAME ".nes",
+	  BASE64,
+	  movie);
+      Rewind(start.movenum);
+      Emulator::LoadUncompressed(&start.save);
+
+      vector< vector<uint8> > tryme;
+      // Allow the existing sequence to be chosen if it's
+      // still better despite seeing these alternatives.
+      tryme.push_back(improveme);
       for (int i = 0; i < replacements.size(); i++) {
-	if (replacements[i].score > best_replacement_score) {
-	  best_replacement_score = replacements[i].score;
-	  best_replacement_idx = i;
-	}
+	// Currently ignores scores and methods. Make TakeBestAmong
+	// take annotated nexts so it can tell you which one it
+	// preferred. (Consider weights too..?)
+	tryme.push_back(replacements[i].inputs);
       }
 
-      const Replacement &replacement = replacements[best_replacement_idx];
+      // PERF could be passing along the end state for these, to
+      // avoid the initial replay. If they happen to go back to the
+      // same helper that computed it in the first place, it'd be
+      // cached, at least.
+      TakeBestAmong(tryme, futures, false);
 
-      // Could check that the replacement is better by our
-      // standard here. Right now we trust that helpers would
-      // make the same decision.
-      fprintf(stderr, "Found replacement for last %d moves via %s\n",
-	      nmoves, replacement.method.c_str());
-      SimpleFM2::WriteInputs(GAME "-playfun-backtrack-replaced.fm2",
-			     GAME ".nes",
-			     BASE64,
-			     movie);
-      Rewind(start->movenum);
-      Emulator::LoadUncompressed(&start->save);
-
-      // PERF maybe helper could send back the end state and
-      // we could skip the replay here, but then we have to
-      // be concerned with other data produced during Commit...
-      fprintf(stderr, "Playback %d moves...\n", replacement.inputs.size());
-      for (int i = 0; i < replacement.inputs.size(); i++) {
-	Commit(replacement.inputs[i]);
-      }
-
-      SimpleFM2::WriteInputs(GAME "-playfun-backtrack-replacement.fm2",
-			     GAME ".nes",
-			     BASE64,
-			     movie);
-
-      exit(0);
+      fprintf(stderr, "Write replacement movie.\n");
+      SimpleFM2::WriteInputs(
+	  StringPrintf(GAME "-playfun-backtrack-%d-replacement.fm2", iters),
+	  GAME ".nes",
+	  BASE64,
+	  movie);
 
       // What to do about futures? This is simplest, I guess...
-      futures->clear();
-      fprintf(stderr, "Back to normal search.\n");
+      uint64 end_time = time(NULL);
+      fprintf(stderr,
+	      "Backtracking took %d seconds in total. "
+	      "Back to normal search...\n",
+	      end_time - start_time);
     }
   }
 
@@ -1099,6 +1151,9 @@ struct PlayFun {
     motifs->SaveHTML(GAME "-playfun-motifs.html");
     printf("                     (wrote)\n");
   }
+
+  // Ports for the helpers.
+  vector<int> ports_;
 
   // For making SVG.
   vector<Scoredist> distributions;
