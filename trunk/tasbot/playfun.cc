@@ -6,6 +6,10 @@
    in Mario's world 1-2.
 */
 
+#include <vector>
+#include <string>
+#include <set>
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <string.h>
@@ -449,14 +453,12 @@ struct PlayFun {
 			   false);
 
       for (int i = 0; i < req.iters(); i++) {
-	int start = RandomDouble(&rc) * inputs.size();
-	if (start < 0) start = 0;
-	if (start >= inputs.size()) start = inputs.size() - 1;
-	int maxlen = inputs.size() - start;
-	int len = RandomDouble(&rc) * maxlen;
-	if (len < 0) len = 0;
-	if (len >= maxlen) len = maxlen;
+	int start, len;
+	GetRandomSpan(inputs, 1.0, &rc, &start, &len);
+	if (len == 0 && start != inputs.size()) len = 1;
 	bool keepreversed = rc.Byte() & 1;
+
+	// XXX Note, does nothing when len = 0.
 	TryDualizeAndReverse(&term, (double)i / req.iters(),
 			     &start_state, start_memory,
 			     &inputs, start, len,
@@ -491,6 +493,48 @@ struct PlayFun {
 	  repls.push_back(make_pair(score, inputs));
 	}
       }
+    } else if (req.approach() == TryImproveRequest::CHOP) {
+      set< vector<uint8> > tried;
+
+      for (int i = 0; i < req.iters(); i++) {
+	vector<uint8> inputs = improveme;
+
+	// We allow using iterations to chop more from the thing
+	// we just chopped, if it was an improvement.
+	int depth = 0;
+	for (; i < req.iters(); i++, depth++) {
+	  int start, len;
+	  // Use exponent of 2 (prefer smaller spans) because
+	  // otherwise chopping is quite blunt.
+	  GetRandomSpan(inputs, 2.0, &rc, &start, &len);
+	  if (len == 0 && start != inputs.size()) len = 1;
+
+	  ChopOut(&inputs, start, len);
+	  double score = 0.0;
+	  if (inputs != improveme &&
+	      IsImprovement(&term, (double) i / req.iters(),
+			    &start_state, start_memory,
+			    inputs, 
+			    end_memory, &score)) {
+	    term.Advance();
+	    fprintf(stderr, "Improved (chop %d for %d depth %d)! %f\n",
+		    start, len, depth, score);
+	    repls.push_back(make_pair(score, inputs));
+
+	    // If we already tried this one, don't do it again.
+	    if (tried.find(inputs) == tried.end()) {
+	      tried.insert(inputs);
+	    } else {
+	      // Don't keep chopping.
+	      break;
+	    }
+	  } else {
+	    tried.insert(inputs);
+	    // Don't keep chopping.
+	    break;
+	  }
+        }
+      }
     }
 
     const int nimproved = repls.size();
@@ -511,6 +555,24 @@ struct PlayFun {
 	    req.iters(), 
 	    TryImproveRequest::Approach_Name(req.approach()).c_str(),
 	    nimproved, (100.0 * nimproved) / req.iters());
+  }
+
+  // Exponent controls the length of the span. Large exponents
+  // yield smaller spans. Note that this will return empty spans.
+  void GetRandomSpan(const vector<uint8> &inputs, double exponent,
+		     ArcFour *rc, int *start, int *len) {
+    *start = RandomDouble(rc) * inputs.size();
+    if (*start < 0) *start = 0;
+    if (*start >= inputs.size()) *start = inputs.size() - 1;
+    int maxlen = inputs.size() - *start;
+    double d = pow(RandomDouble(rc), exponent);
+    *len = d * maxlen;
+    if (*len < 0) *len = 0;
+    if (*len >= maxlen) *len = maxlen;
+  }
+
+  void ChopOut(vector<uint8> *inputs, int start, int len) {
+    inputs->erase(inputs->begin() + start, inputs->begin() + start + len);
   }
 
   void TryDualizeAndReverse(InPlaceTerminal *term, double frac,
@@ -1074,11 +1136,14 @@ struct PlayFun {
 
     // For random, we could compute the right number of
     // tasks based on the number of helpers...
-    static const int NUM_IMPROVE_RANDOM = 40;
+    static const int NUM_IMPROVE_RANDOM = 30;
     static const int RANDOM_ITERS = 200;
 
     static const int NUM_ABLATION = 10;
     static const int ABLATION_ITERS = 200;
+
+    static const int NUM_CHOP = 10;
+    static const int CHOP_ITERS = 200;
 
     // Note that some of these have a fixed number
     // of iterations that are tried, independent of
@@ -1122,6 +1187,17 @@ struct PlayFun {
       requests.push_back(hreq);
     }
 
+    for (int i = 0; i < NUM_CHOP; i++) {
+      TryImproveRequest req = base_req;
+      req.set_iters(CHOP_ITERS);
+      req.set_seed(StringPrintf("chop%d.%d", start.movenum, i));
+      req.set_approach(TryImproveRequest::CHOP);
+
+      HelperRequest hreq;
+      hreq.mutable_tryimprove()->MergeFrom(req);
+      requests.push_back(hreq);
+    }
+
     if (TRY_OPPOSITES) {
       TryImproveRequest req = base_req;
       req.set_approach(TryImproveRequest::OPPOSITES);
@@ -1147,6 +1223,7 @@ struct PlayFun {
       CHECK(res.score_size() == res.inputs_size());
       for (int j = 0; j < res.inputs_size(); j++) {
 	Replacement r;
+	// XXX can just use TryImproveRequest_Name?
 	switch (req.approach()) {
 	case TryImproveRequest::RANDOM:
 	  r.method = StringPrintf("random-%d-%s",
@@ -1160,6 +1237,11 @@ struct PlayFun {
 	  break;
 	case TryImproveRequest::ABLATION:
 	  r.method = StringPrintf("abl-%d-%s",
+				  req.iters(),
+				  req.seed().c_str());
+	  break;
+	case TryImproveRequest::CHOP:
+	  r.method = StringPrintf("chop-%d-%s",
 				  req.iters(),
 				  req.seed().c_str());
 	  break;
@@ -1276,22 +1358,30 @@ struct PlayFun {
       Rewind(start.movenum);
       Emulator::LoadUncompressed(&start.save);
 
-      vector< vector<uint8> > tryme;
+      set< vector<uint8> > tryme;
       // Allow the existing sequence to be chosen if it's
       // still better despite seeing these alternatives.
-      tryme.push_back(improveme);
+      tryme.insert(improveme);
       for (int i = 0; i < replacements.size(); i++) {
 	// Currently ignores scores and methods. Make TakeBestAmong
 	// take annotated nexts so it can tell you which one it
 	// preferred. (Consider weights too..?)
-	tryme.push_back(replacements[i].inputs);
+	if (tryme.find(replacements[i].inputs) != tryme.end()) {
+	  tryme.insert(replacements[i].inputs);
+	}
+      }
+
+      vector< vector<uint8> > tryvec(tryme.begin(), tryme.end());
+      if (tryvec.size() != replacements.size() + 1) {
+	fprintf(stderr, "... but there were %d duplicates (removed).\n",
+		(replacements.size() + 1) - tryvec.size());
       }
 
       // PERF could be passing along the end state for these, to
       // avoid the initial replay. If they happen to go back to the
       // same helper that computed it in the first place, it'd be
       // cached, at least.
-      TakeBestAmong(tryme, futures, false);
+      TakeBestAmong(tryvec, futures, false);
 
       fprintf(stderr, "Write replacement movie.\n");
       SimpleFM2::WriteInputs(
