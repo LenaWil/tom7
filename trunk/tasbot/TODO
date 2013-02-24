@@ -24,3 +24,5 @@ that decrease.
 
 Allow lex orderings that treat their bytes as signed?
 
+
+The way we treat futures is kind of messed up; futures are not necessarily 

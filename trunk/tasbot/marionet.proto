@@ -32,6 +32,7 @@ message TryImproveRequest {
   optional Approach approach = 4;
   optional string seed = 5;
   optional int32 iters = 6;
+  optional int32 maxbest = 7;
 }
 
 // Any candidate with a "good enough" score.
