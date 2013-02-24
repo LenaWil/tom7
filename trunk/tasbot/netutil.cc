@@ -121,3 +121,5 @@ bool RecvErrorRetry() {
   // XXX consult SDLNet_GetLastError()
   return false;
 }
+
+RequestCache::RequestCache(int size) : size(size), num(0) {}

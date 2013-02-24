@@ -3,6 +3,8 @@
 #ifndef __TASBOT_UTIL_H
 #define __TASBOT_UTIL_H
 
+#include <algorithm>
+#include <deque>
 #include <vector>
 #include <string>
 
@@ -122,5 +124,6 @@ string DrawDots(int width, int height,
                 const string &color, double xf,
                 const vector<double> &values, double maxval,
                 int chosen_idx);
+
 
 #endif

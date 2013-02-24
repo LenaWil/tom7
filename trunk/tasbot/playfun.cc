@@ -38,6 +38,7 @@
 #include "SDL_net.h"
 #include "marionet.pb.h"
 #include "netutil.h"
+using ::google::protobuf::Message;
 #endif
 
 // This is the factor that determines how quickly a motif changes
@@ -286,6 +287,11 @@ struct PlayFun {
   void Helper(int port) {
     SingleServer server(port);
 
+    // Cache the last few request/responses, so that we don't
+    // recompute if there are connection problems. The master
+    // prefers to ask the same helper again on failure.
+    RequestCache cache(8);
+
     InPlaceTerminal term(1);
     int connections = 0;
     for (;;) {
@@ -301,7 +307,16 @@ struct PlayFun {
       HelperRequest hreq;
       if (server.ReadProto(&hreq)) {
 
-	if (hreq.has_playfun()) {
+	if (const Message *res = cache.Lookup(hreq)) {
+	  term.Advance();
+	  line += ", cached!";
+	  fprintf(stderr, "%s\n", line.c_str());
+	  if (!server.WriteProto(*res)) {
+	    fprintf(stderr, "Failed to send cached result...\n");
+	    // keep going...
+	  }
+
+	} else if (hreq.has_playfun()) {
 	  line += ", playfun";
 	  term.Output(line + "\n");
 	  const PlayFunRequest &req = hreq.playfun();
@@ -335,7 +350,7 @@ struct PlayFun {
 	  }
 
 	  // fprintf(stderr, "Result: %s\n", res.DebugString().c_str());
-
+	  cache.Save(hreq, res);
 	  if (!server.WriteProto(res)) {
 	    term.Advance();
 	    fprintf(stderr, "Failed to send playfun result...\n");
@@ -352,6 +367,7 @@ struct PlayFun {
 	  TryImproveResponse res;
 	  DoTryImprove(req, &res);
 
+	  cache.Save(hreq, res);
 	  if (!server.WriteProto(res)) {
 	    term.Advance();
 	    fprintf(stderr, "Failed to send tryimprove result...\n");
