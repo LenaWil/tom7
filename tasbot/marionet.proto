@@ -36,7 +36,9 @@ message TryImproveRequest {
     OPPOSITES = 1;
     // Try removing button presses from the input.
     ABLATION = 2;
-    // deletion, expansion, hill climbing ...
+    // Chop out sections of the input.
+    CHOP = 3;
+    // expansion, hill climbing ...
   }
 
   optional Approach approach = 4;
