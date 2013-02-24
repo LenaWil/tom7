@@ -27,7 +27,12 @@ struct Motifs {
   // Linear time.
   const vector<uint8> &RandomWeightedMotif();
 
+  const vector<uint8> &RandomMotifWith(ArcFour *rc);
+  const vector<uint8> &RandomWeightedMotifWith(ArcFour *rc);
+
   vector< vector<uint8> > AllMotifs() const;
+
+  bool IsMotif(const vector<uint8> &inputs);
 
   // Increment a counter (just used for diagnostics) that says
   // how many times this motif was picked.

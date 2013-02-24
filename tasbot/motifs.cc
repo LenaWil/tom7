@@ -32,6 +32,10 @@ void Motifs::Pick(const vector<uint8> &inputs) {
   else it->second.picked++;
 }
 
+bool Motifs::IsMotif(const vector<uint8> &inputs) {
+  return motifs.find(inputs) != motifs.end();
+}
+
 void Motifs::Checkpoint(int framenum) {
   // PERF could maybe just remove spans here, which makes
   // printing much simpler and this data structure more
@@ -104,14 +108,14 @@ vector< vector<uint8> > Motifs::AllMotifs() const {
   return motifvec;
 }
 
-const vector<uint8> &Motifs::RandomMotif() {
+const vector<uint8> &Motifs::RandomMotifWith(ArcFour *rrc) {
   const vector<uint8> *res = NULL;
   uint32 best = ~0;
 
   CHECK(!motifs.empty());
   for (Weighted::const_iterator it = motifs.begin();
        it != motifs.end(); ++it) {
-    uint32 thisone = RandomInt32(&rc);
+    uint32 thisone = RandomInt32(rrc);
     if (res == NULL || thisone < best) {
       best = thisone;
       res = &it->first;
@@ -119,6 +123,10 @@ const vector<uint8> &Motifs::RandomMotif() {
   }
 
   return *res;
+}
+
+const vector<uint8> &Motifs::RandomMotif() {
+  return RandomMotifWith(&rc);
 }
 
 double *Motifs::GetWeightPtr(const vector<uint8> &inputs) {
@@ -131,7 +139,7 @@ double *Motifs::GetWeightPtr(const vector<uint8> &inputs) {
 // have seen them have numerical stability problems in
 // practice. I'm favoring correctness and simplicity
 // here.
-const vector<uint8> &Motifs::RandomWeightedMotif() {
+const vector<uint8> &Motifs::RandomWeightedMotifWith(ArcFour *rrc) {
   double totalweight = 0;
   // PERF: Could cache this.
   for (Weighted::const_iterator it = motifs.begin();
@@ -140,7 +148,7 @@ const vector<uint8> &Motifs::RandomWeightedMotif() {
   }
 
   // "index" into the continuous bins
-  double sample = RandomDouble(&rc) * totalweight;
+  double sample = RandomDouble(rrc) * totalweight;
   
   for (Weighted::const_iterator it = motifs.begin();
        it != motifs.end(); ++it) {
@@ -154,6 +162,10 @@ const vector<uint8> &Motifs::RandomWeightedMotif() {
   printf("roundoff error of %f in RandomWeightedMotif\n", sample);
   CHECK(!motifs.empty());
   return motifs.begin()->first;
+}
+
+const vector<uint8> &Motifs::RandomWeightedMotif() {
+  return RandomWeightedMotifWith(&rc);
 }
 
 static string ShowRange(int lastframe, double val,

@@ -172,12 +172,12 @@ struct PlayFun {
   }
 
   // PERF. Shouldn't really save every memory, but
-  // we're using it for drawing SVG for now.
-  // The nth element contains the memory after playing
-  // the nth input in the movie. The initial memory
-  // is not stored.
+  // we're using it for drawing SVG for now. This saves one
+  // in OBSERVE_EVERY memories, and isn't truncated when we
+  // backtrack.
   vector< vector<uint8> > memories;
-  // Contains the movie we record.
+
+  // Contains the movie we record (partial solution).
   vector<uint8> movie;
 
   // Keeps savestates.
@@ -198,14 +198,15 @@ struct PlayFun {
   int watermark;
 
   // Number of real futures to push forward.
-  static const int NFUTURES = 24;
+  // XXX the more the merrier! Made this small to test backtracking.
+  static const int NFUTURES = 12;
 
   // Number of futures that should be generated from weighted
   // motifs as opposed to totally random.
-  static const int NWEIGHTEDFUTURES = 28;
+  static const int NWEIGHTEDFUTURES = 8;
 
   // Drop this many of the worst futures.
-  static const int DROPFUTURES = 4;
+  static const int DROPFUTURES = 3;
   // TODO: copy some of the best futures over bad futures,
   // randomizing the tails.
 
@@ -214,11 +215,16 @@ struct PlayFun {
   static const int MAXFUTURELENGTH = 600;
 
   // Make a checkpoint this often (number of inputs).
-  static const int CHECKPOINT_EVERY = 500;
+  static const int CHECKPOINT_EVERY = 50;
   // In rounds, not inputs.
-  static const int TRY_BACKTRACK_EVERY = 20;
+  static const int TRY_BACKTRACK_EVERY = 10;
   // In inputs.
-  static const int MIN_BACKTRACK_DISTANCE = CHECKPOINT_EVERY - 1;
+  static const int MIN_BACKTRACK_DISTANCE = 300;
+
+  // Observe the memory (for calibrating objectives and drawing
+  // SVG) this often (number of inputs).
+  static const int OBSERVE_EVERY = 10;
+
 
   void Commit(uint8 input) {
     Emulator::CachingStep(input);
@@ -229,11 +235,13 @@ struct PlayFun {
       checkpoints.push_back(Checkpoint(savestate, movie.size()));
     }
 
-    // PERF
-    vector<uint8> mem;
-    Emulator::GetMemory(&mem);
-    memories.push_back(mem);
-    objectives->Observe(mem);
+    // PERF: This is very slow...
+    if (movie.size() % OBSERVE_EVERY == 0) {
+      vector<uint8> mem;
+      Emulator::GetMemory(&mem);
+      memories.push_back(mem);
+      objectives->Observe(mem);
+    }
   }
 
   void Rewind(int movenum) {
@@ -260,6 +268,10 @@ struct PlayFun {
     vector<uint8> future_memory;
     Emulator::GetMemory(&future_memory);
 
+    // n.b. this was mostly developed with what is now
+    // called BuggyEvaluate. There may be some reason that
+    // BuggyEvaluate is actually better here, but it seems
+    // wrong to me.
     return objectives->Evaluate(base_memory, future_memory);
   }
 
@@ -277,55 +289,190 @@ struct PlayFun {
     for (;;) {
       server.Listen();
 
-      fprintf(stderr, "[%d] Connection from %s\n", 
+      fprintf(stderr, "[%d] Connection from %s ", 
 	      port,
 	      server.PeerString().c_str());
 
-      PlayFunRequest req;
-      if (server.ReadProto(&req)) {
+      HelperRequest hreq;
+      if (server.ReadProto(&hreq)) {
 
-	vector<uint8> next, current_state;
-	ReadBytesFromProto(req.current_state(), &current_state);
-	ReadBytesFromProto(req.next(), &next);
-	vector<Future> futures;
-	for (int i = 0; i < req.futures_size(); i++) {
-	  Future f;
-	  ReadBytesFromProto(req.futures(i).inputs(), &f.inputs);
-	  futures.push_back(f);
-	}
+	if (hreq.has_playfun()) {
+	  fprintf(stderr, ", playfun\n");
+	  const PlayFunRequest &req = hreq.playfun();
+	  vector<uint8> next, current_state;
+	  ReadBytesFromProto(req.current_state(), &current_state);
+	  ReadBytesFromProto(req.next(), &next);
+	  vector<Future> futures;
+	  for (int i = 0; i < req.futures_size(); i++) {
+	    Future f;
+	    ReadBytesFromProto(req.futures(i).inputs(), &f.inputs);
+	    futures.push_back(f);
+	  }
 
-	double immediate_score, best_future_score, worst_future_score,
-	  futures_score;
-	vector<double> futurescores(futures.size(), 0.0);
+	  double immediate_score, best_future_score, worst_future_score,
+	    futures_score;
+	  vector<double> futurescores(futures.size(), 0.0);
 
-	// Do the work.
-	InnerLoop(next, futures, &current_state,
-		  &immediate_score, &best_future_score,
-		  &worst_future_score, &futures_score,
-		  &futurescores);
+	  // Do the work.
+	  InnerLoop(next, futures, &current_state,
+		    &immediate_score, &best_future_score,
+		    &worst_future_score, &futures_score,
+		    &futurescores);
 
-	PlayFunResponse res;
-	res.set_immediate_score(immediate_score);
-	res.set_best_future_score(best_future_score);
-	res.set_worst_future_score(worst_future_score);
-	res.set_futures_score(futures_score);
-	for (int i = 0; i < futurescores.size(); i++) {
-	  res.add_futurescores(futurescores[i]);
-	}
+	  PlayFunResponse res;
+	  res.set_immediate_score(immediate_score);
+	  res.set_best_future_score(best_future_score);
+	  res.set_worst_future_score(worst_future_score);
+	  res.set_futures_score(futures_score);
+	  for (int i = 0; i < futurescores.size(); i++) {
+	    res.add_futurescores(futurescores[i]);
+	  }
 
-	// fprintf(stderr, "Result: %s\n", res.DebugString().c_str());
+	  // fprintf(stderr, "Result: %s\n", res.DebugString().c_str());
 
-	if (!server.WriteProto(res)) {
-	  fprintf(stderr, "Failed to send result...\n");
-	  // But just keep going.
+	  if (!server.WriteProto(res)) {
+	    fprintf(stderr, "Failed to send playfun result...\n");
+	    // But just keep going.
+	  }
+	} else if (hreq.has_tryimprove()) {
+	  const TryImproveRequest &req = hreq.tryimprove();
+	  fprintf(stderr, ", tryimprove %s\n",
+		  TryImproveRequest::Approach_Name(req.approach()).c_str());
+	  
+	  TryImproveResponse res;
+	  DoTryImprove(req, &res);
+
+	  if (!server.WriteProto(res)) {
+	    fprintf(stderr, "Failed to send tryimprove result...\n");
+	    // Keep going...
+	  }
+	} else {
+	  fprintf(stderr, ", unknown??\n");
 	}
       } else {
-	fprintf(stderr, "Failed to read request...\n");
+	fprintf(stderr, "\nFailed to read request...\n");
       }
       server.Hangup();
     }
   }
+
+  void DoTryImprove(const TryImproveRequest &req,
+		    TryImproveResponse *res) {
+    vector<uint8> start_state, end_state;
+    ReadBytesFromProto(req.start_state(), &start_state);
+    ReadBytesFromProto(req.end_state(), &end_state);
+
+    vector<uint8> improveme;
+    ReadBytesFromProto(req.improveme(), &improveme);
+
+    // Get the memories so that we can score.
+    vector<uint8> start_memory, end_memory;  
+    Emulator::LoadUncompressed(&end_state);
+    Emulator::GetMemory(&end_memory);
+
+    Emulator::LoadUncompressed(&start_state);
+    Emulator::GetMemory(&start_memory);
+
+    int nimproved = 0;
+
+    InPlaceTerminal term(1);
+
+    if (req.approach() == TryImproveRequest::RANDOM) {
+      ArcFour rc(req.seed());
+      double best_score = -1.0;
+      for (int i = 0; i < req.iters(); i++) {
+	// Get a random sequence of inputs.
+	vector<uint8> inputs = GetRandomInputs(&rc, improveme.size());
+
+	// Now execute it.
+	double score;
+	if (IsImprovement(&term, (double)i / req.iters(),
+			  &start_state,
+			  start_memory,
+			  inputs,
+			  end_memory, &score)) {
+	  term.Advance();
+	  nimproved++;
+	  fprintf(stderr, "Improved! %f\n", score);
+	  res->add_inputs(&inputs[0], inputs.size());
+	  res->add_score(score);
+	}
+      }
+    }
+
+    term.Advance();
+    fprintf(stderr, "In %d iters, %d were improvements (%.1f%%)\n",
+	    req.iters(), nimproved, (100.0 * nimproved) / req.iters());
+  }
+
+  bool IsImprovement(InPlaceTerminal *term, double frac,
+		     vector<uint8> *start_state,
+		     const vector<uint8> &start_memory,
+		     const vector<uint8> &inputs,
+		     const vector<uint8> &end_memory,
+		     double *score) {
+    Emulator::LoadUncompressed(start_state);
+    for (int i = 0; i < inputs.size(); i++) {
+      Emulator::CachingStep(inputs[i]);
+    }
+    
+    vector<uint8> new_memory;
+    Emulator::GetMemory(&new_memory);
+
+    //               e_minus_s
+    //                     ....----> end
+    //         ....----````           |
+    //    start                       |  n_minus_e
+    //         ````----....           v
+    //                     ````----> new
+    //                n_minus_s
+    //
+    // Success if the new memory is an improvement over the
+    // start state, an improvement over the end state, and
+    // a bigger improvement over the start state than the end
+    // state is.
+    double e_minus_s = objectives->Evaluate(start_memory, end_memory);
+    double n_minus_s = objectives->Evaluate(start_memory, new_memory);
+    double n_minus_e = objectives->Evaluate(end_memory, new_memory);
+
+    if (term != NULL) {
+      string msg = 
+	StringPrintf("%2.f%%  e-s %f  n-s %f  n-e %f\n",
+		     100.0 * frac,
+		     e_minus_s, n_minus_s, n_minus_e);
+      term->Output(msg);
+    }
+
+    // Old way was better improvement than new way.
+    if (e_minus_s >= n_minus_s) return false;
+    // Not actually an improvement over start (note that
+    // end was even worse, though...)
+    if (n_minus_s <= 0) return false;
+    // End is a better state from our perspective.
+    if (n_minus_e <= 0) return false;
+
+    // All scores have the same e_minus_s component, so ignore that.
+    *score = n_minus_e + n_minus_s;
+    return true;
+  }
+
+  vector<uint8> GetRandomInputs(ArcFour *rc, int len) {
+    vector<uint8> inputs;
+    while(inputs.size() < len) {
+      const vector<uint8> &m = 
+	motifs->RandomWeightedMotifWith(rc);
+
+      for (int x = 0; x < m.size(); x++) {
+	inputs.push_back(m[x]);
+	if (inputs.size() == len) {
+	  break;
+	}
+      }
+    }
+    return inputs;
+  }
   #endif
+
 
   void InnerLoop(const vector<uint8> &next,
 		 const vector<Future> &futures_orig, 
@@ -412,16 +559,18 @@ struct PlayFun {
     uint64 start_time = time(NULL);
     fprintf(stderr, "Parallel step with %d nexts, %d futures.\n",
 	    nexts.size(), futures.size());
+    CHECK(nexts.size() > 0);
+    *best_next_idx = 0;
 
     double best_score = 0.0;
     Scoredist distribution(movie.size());
 
 #if MARIONET
     // One piece of work per request.
-    vector<PlayFunRequest> requests;
+    vector<HelperRequest> requests;
     requests.resize(nexts.size());
     for (int i = 0; i < nexts.size(); i++) {
-      PlayFunRequest *req = &requests[i];
+      PlayFunRequest *req = requests[i].mutable_playfun();
       req->set_current_state(&((*current_state)[0]), current_state->size());
       req->set_next(&nexts[i][0], nexts[i].size());
       for (int f = 0; f < futures.size(); f++) {
@@ -432,11 +581,11 @@ struct PlayFun {
       // if (!i) fprintf(stderr, "REQ: %s\n", req->DebugString().c_str());
     }
     
-    GetAnswers<PlayFunRequest, PlayFunResponse> getanswers(ports_, requests);
+    GetAnswers<HelperRequest, PlayFunResponse> getanswers(ports_, requests);
     getanswers.Loop();
 
     fprintf(stderr, "GOT ANSWERS.\n");
-    const vector<GetAnswers<PlayFunRequest, PlayFunResponse>::Work> &work =
+    const vector<GetAnswers<HelperRequest, PlayFunResponse>::Work> &work =
       getanswers.GetWork();
 
     for (int i = 0; i < work.size(); i++) {
@@ -506,15 +655,167 @@ struct PlayFun {
   // XXX
   vector<int> ports_;
 
+  void PopulateFutures(vector<Future> *futures) {
+    int num_currently_weighted = 0;
+    for (int i = 0; i < futures->size(); i++) {
+      if ((*futures)[i].weighted) {
+	num_currently_weighted++;
+      }
+    }
+      
+    int num_to_weight = max(NWEIGHTEDFUTURES - num_currently_weighted, 0);
+    #ifdef DEBUGFUTURES
+    fprintf(stderr, "there are %d futures, %d cur weighted, %d need\n",
+	    futures->size(), num_currently_weighted, num_to_weight);
+    #endif
+    while (futures->size() < NFUTURES) {
+      // Keep the desired length around so that we only
+      // resize the future if we drop it. Randomize between
+      // MIN and MAX future lengths.
+      int flength = MINFUTURELENGTH +
+	(int)
+	((double)(MAXFUTURELENGTH - MINFUTURELENGTH) *
+	 RandomDouble(&rc));
+
+      if (num_to_weight > 0) {
+	futures->push_back(Future(true, flength));
+	num_to_weight--;
+      } else {
+	futures->push_back(Future(false, flength));
+      }
+    }
+
+    // Make sure we have enough futures with enough data in.
+    // PERF: Should avoid creating exact duplicate futures.
+    for (int i = 0; i < NFUTURES; i++) {
+      while ((*futures)[i].inputs.size() <
+	     (*futures)[i].desired_length) {
+	const vector<uint8> &m = 
+	  (*futures)[i].weighted ? 
+	  motifs->RandomWeightedMotif() :
+	  motifs->RandomMotif();
+	for (int x = 0; x < m.size(); x++) {
+	  (*futures)[i].inputs.push_back(m[x]);
+	  if ((*futures)[i].inputs.size() ==
+	      (*futures)[i].desired_length) {
+	    break;
+	  }
+	}
+      }
+    }
+
+    #ifdef DEBUGFUTURES
+    for (int f = 0; f < futures->size(); f++) {
+      fprintf(stderr, "%d. %s %d/%d: ...\n",
+	      f, (*futures)[f].weighted ? "weighted" : "random",
+	      (*futures)[f].inputs.size(),
+	      (*futures)[f].desired_length);
+    }
+    #endif
+  }
+
+  // Consider every possible next step along with every possible
+  // future. Commit to the step that has the best score among
+  // those futures. Remove the futures that didn't perform well
+  // overall, and replace them. Reweight motifs according
+  void TakeBestAmong(const vector< vector<uint8> > &nexts,
+		     vector<Future> *futures) {
+    vector<uint8> current_state;
+    vector<uint8> current_memory;
+
+    // Save our current state so we can try many different branches.
+    Emulator::SaveUncompressed(&current_state);
+    Emulator::GetMemory(&current_memory);
+
+    // Total score across all motifs for each future.
+    vector<double> futuretotals(NFUTURES, 0.0);
+
+    // Most of the computation happens here.
+    int best_next_idx;
+    ParallelStep(nexts, *futures,
+		 &current_state, current_memory,
+		 &futuretotals,
+		 &best_next_idx);
+
+    // Chop the head off each future.
+    const int choplength = nexts[best_next_idx].size();
+    for (int i = 0; i < futures->size(); i++) {
+      vector<uint8> newf;
+      for (int j = choplength; j < (*futures)[i].inputs.size(); j++) {
+	newf.push_back((*futures)[i].inputs[j]);
+      }
+      (*futures)[i].inputs.swap(newf);
+    }
+
+    // Discard the futures with the worst total.
+    // They'll be replaced the next time around the loop.
+    // PERF don't really need to make DROPFUTURES passes,
+    // but there are not many futures and not many dropfutures.
+    for (int t = 0; t < DROPFUTURES; t++) {
+      CHECK(!futures->empty());
+      CHECK(futures->size() <= futuretotals.size());
+      double worst_total = futuretotals[0];
+      int worst_idx = 0;
+      for (int i = 1; i < futures->size(); i++) {
+	#ifdef DEBUGFUTURES
+	fprintf(stderr, "%d. %s %d/%d: %f\n",
+		i, (*futures)[i].weighted ? "weighted" : "random",
+		(*futures)[i].inputs.size(),
+		(*futures)[i].desired_length,
+		futuretotals[i]);
+	#endif
+
+	if (worst_total < futuretotals[i]) {
+	  worst_total = futuretotals[i];
+	  worst_idx = i;
+	}
+      }
+
+      // Delete it by swapping.
+      if (worst_idx != futures->size() - 1) {  
+	(*futures)[worst_idx] = (*futures)[futures->size() - 1];
+      }
+      futures->resize(futures->size() - 1);
+    }
+
+    // This is very likely to be cached now.
+    Emulator::LoadUncompressed(&current_state);
+    for (int j = 0; j < nexts[best_next_idx].size(); j++) {
+      Commit(nexts[best_next_idx][j]);
+    }
+
+    // Now, if the motif we used was a local improvement to the
+    // score, reweight it.
+    // This should be a motif in the normal case where we're trying
+    // each motif, but when we use this to implement the best
+    // backtrack plan, it usually won't be.
+    if (motifs->IsMotif(nexts[best_next_idx])) {
+      motifs->Pick(nexts[best_next_idx]);
+      vector<uint8> new_memory;
+      Emulator::GetMemory(&new_memory);
+      double oldval = objectives->GetNormalizedValue(current_memory);
+      double newval = objectives->GetNormalizedValue(new_memory);
+      double *weight = motifs->GetWeightPtr(nexts[best_next_idx]);
+      // Already checked it's a motif.
+      CHECK(weight != NULL);
+      if (newval > oldval) {
+	// Increases its weight.
+	*weight /= ALPHA;
+      } else {
+	// Decreases its weight.
+	*weight *= ALPHA;
+      }
+    }
+
+    PopulateFutures(futures);
+  }
+
   // Main loop for the master, or when compiled without MARIONET support.
   // Helpers is an array of helper ports, which is ignored unless MARIONET
   // is active.
   void Master(const vector<int> &helpers) {
     // XXX
     ports_ = helpers;
-
-    vector<uint8> current_state;
-    vector<uint8> current_memory;
 
     vector< vector<uint8> > nexts = motifvec;
 
@@ -533,153 +834,24 @@ struct PlayFun {
 
     int rounds_until_backtrack = TRY_BACKTRACK_EVERY;
     int64 iters = 0;
+
+    PopulateFutures(&futures);
     for (;; iters++) {
 
+      // XXX TODO this probably gets confused by backtracking.
       motifs->Checkpoint(movie.size());
 
-      int num_currently_weighted = 0;
-      for (int i = 0; i < futures.size(); i++) {
-	if (futures[i].weighted) {
-	  num_currently_weighted++;
-	}
+      TakeBestAmong(nexts, &futures);
+
+      fprintf(stderr, "%d rounds, %d inputs. %d until backtrack. "
+	      "Cxpoints at ",
+	      iters, movie.size(), rounds_until_backtrack);
+
+      for (int i = 0, j = checkpoints.size() - 1; i < 4 && j >= 0; i++) {
+	fprintf(stderr, "%d, ", checkpoints[j].movenum);
+	j--;
       }
-      
-      int num_to_weight = max(NWEIGHTEDFUTURES - num_currently_weighted, 0);
-      #ifdef DEBUGFUTURES
-      fprintf(stderr, "there are %d futures, %d cur weighted, %d need\n",
-	      futures.size(), num_currently_weighted, num_to_weight);
-      #endif
-      while (futures.size() < NFUTURES) {
-	// Keep the desired length around so that we only
-	// resize the future if we drop it. Randomize between
-	// MIN and MAX future lengths.
-	int flength = MINFUTURELENGTH +
-	  (int)
-	  ((double)(MAXFUTURELENGTH - MINFUTURELENGTH) *
-	   RandomDouble(&rc));
-
-	if (num_to_weight > 0) {
-	  futures.push_back(Future(true, flength));
-	  num_to_weight--;
-	} else {
-	  futures.push_back(Future(false, flength));
-	}
-      }
-
-      // Make sure we have enough futures with enough data in.
-      // PERF: Should avoid creating exact duplicate futures.
-      for (int i = 0; i < NFUTURES; i++) {
-	while (futures[i].inputs.size() <
-	       futures[i].desired_length) {
-	  const vector<uint8> &m = 
-	    futures[i].weighted ? 
-	    motifs->RandomWeightedMotif() :
-	    motifs->RandomMotif();
-	  for (int x = 0; x < m.size(); x++) {
-	    futures[i].inputs.push_back(m[x]);
-	    if (futures[i].inputs.size() ==
-		futures[i].desired_length) {
-	      break;
-	    }
-	  }
-	}
-      }
-
-      #ifdef DEBUGFUTURES
-      for (int f = 0; f < futures.size(); f++) {
-	fprintf(stderr, "%d. %s %d/%d: ...\n",
-		f, futures[f].weighted ? "weighted" : "random",
-		futures[f].inputs.size(),
-		futures[f].desired_length);
-      }
-      #endif
-
-      // Save our current state so we can try many different branches.
-      Emulator::SaveUncompressed(&current_state);
-      Emulator::GetMemory(&current_memory);
-
-      // XXX should be a weighted shuffle.
-      // XXX does it even matter that they're shuffled any more?
-      Shuffle(&nexts);
-
-      // Total score across all motifs for each future.
-      vector<double> futuretotals(NFUTURES, 0.0);
-
-      // Most of the computation happens here.
-      int best_next_idx;
-      ParallelStep(nexts, futures,
-		   &current_state, current_memory,
-		   &futuretotals,
-		   &best_next_idx);
-
-      // Chop the head off each future.
-      const int choplength = nexts[best_next_idx].size();
-      for (int i = 0; i < futures.size(); i++) {
-	vector<uint8> newf;
-	for (int j = choplength; j < futures[i].inputs.size(); j++) {
-	  newf.push_back(futures[i].inputs[j]);
-	}
-	futures[i].inputs.swap(newf);
-      }
-
-      // Discard the futures with the worst total.
-      // They'll be replaced the next time around the loop.
-      // PERF don't really need to make DROPFUTURES passes,
-      // but there are not many futures and not many dropfutures.
-      for (int t = 0; t < DROPFUTURES; t++) {
-	CHECK(!futures.empty());
-	CHECK(futures.size() <= futuretotals.size());
-	double worst_total = futuretotals[0];
-	int worst_idx = 0;
-	for (int i = 1; i < futures.size(); i++) {
-	  #ifdef DEBUGFUTURES
-	  fprintf(stderr, "%d. %s %d/%d: %f\n",
-		  i, futures[i].weighted ? "weighted" : "random",
-		  futures[i].inputs.size(),
-		  futures[i].desired_length,
-		  futuretotals[i]);
-	  #endif
-
-	  if (worst_total < futuretotals[i]) {
-	    worst_total = futuretotals[i];
-	    worst_idx = i;
-	  }
-	}
-
-	// Delete it by swapping.
-	if (worst_idx != futures.size() - 1) {  
-	  futures[worst_idx] = futures[futures.size() - 1];
-	}
-	futures.resize(futures.size() - 1);
-      }
-
-      // This is very likely to be cached now.
-      Emulator::LoadUncompressed(&current_state);
-      for (int j = 0; j < nexts[best_next_idx].size(); j++) {
-	Commit(nexts[best_next_idx][j]);
-      }
-
-      // Now, if the motif we used was a local improvement to the
-      // score, reweight it.
-      {
-	motifs->Pick(nexts[best_next_idx]);
-	vector<uint8> new_memory;
-	Emulator::GetMemory(&new_memory);
-	double oldval = objectives->GetNormalizedValue(current_memory);
-	double newval = objectives->GetNormalizedValue(new_memory);
-	double *weight = motifs->GetWeightPtr(nexts[best_next_idx]);
-	if (weight == NULL) {
-	  printf(" * ERROR * Used a motif that doesn't exist?\n");
-	} else {
-	  if (newval > oldval) {
-	    // Increases its weight.
-	    *weight /= ALPHA;
-	  } else {
-	    // Decreases its weight.
-	    *weight *= ALPHA;
-	  }
-	}
-      }
+      fprintf(stderr, "...\n");
 
       MaybeBacktrack(iters, &rounds_until_backtrack, &futures);
 
@@ -710,7 +882,7 @@ struct PlayFun {
     #ifdef MARIONET
 
     // One piece of work per request.
-    vector<TryImproveRequest> requests;
+    vector<HelperRequest> requests;
 
     // Every request shares this stuff.
     TryImproveRequest base_req;
@@ -723,22 +895,26 @@ struct PlayFun {
       req.set_iters(NUM_RANDOM_ITERS);
       req.set_seed(StringPrintf("seed%d.%d", start.movenum, i));
       req.set_approach(TryImproveRequest::RANDOM);
-      requests.push_back(req);
+
+      HelperRequest hreq;
+      hreq.mutable_tryimprove()->MergeFrom(req);
+      requests.push_back(hreq);
     }
     
-    GetAnswers<TryImproveRequest, TryImproveResponse>
+    GetAnswers<HelperRequest, TryImproveResponse>
       getanswers(ports_, requests);
     getanswers.Loop();
 
     fprintf(stderr, "GOT ANSWERS.\n");
-    const vector<GetAnswers<TryImproveRequest, 
+    const vector<GetAnswers<HelperRequest, 
 			    TryImproveResponse>::Work> &work =
       getanswers.GetWork();
 
     for (int i = 0; i < work.size(); i++) {
-      const TryImproveRequest &req = *work[i].req;
+      const TryImproveRequest &req = work[i].req->tryimprove();
       const TryImproveResponse &res = work[i].res;
-      if (res.has_score() && res.has_inputs()) {
+      CHECK(res.score_size() == res.inputs_size());
+      for (int j = 0; j < res.inputs_size(); j++) {
 	Replacement r;
 	switch (req.approach()) {
 	case TryImproveRequest::RANDOM:
@@ -746,7 +922,8 @@ struct PlayFun {
 				  req.iters(),
 				  req.seed().c_str());
 	}
-	ReadBytesFromProto(res.inputs(), &r.inputs);
+	ReadBytesFromProto(res.inputs(j), &r.inputs);
+	r.score = res.score(j)
 	replacements->push_back(r);
       }
     }
@@ -765,7 +942,8 @@ struct PlayFun {
   // in the past, or return NULL.
   Checkpoint *GetRecentCheckpoint() {
     for (int i = checkpoints.size() - 1; i >= 0; i--) {
-      if (movie.size() - checkpoints[i].movenum > MIN_BACKTRACK_DISTANCE) {
+      if ((movie.size() - checkpoints[i].movenum) > MIN_BACKTRACK_DISTANCE &&
+	  checkpoints[i].movenum > watermark) {
 	return &checkpoints[i];
       }
     }
@@ -787,8 +965,6 @@ struct PlayFun {
     // actually better, and if we know the current state is bad,
     // then we have less opportunity to get it wrong.
     --*rounds_until_backtrack;
-    fprintf(stderr, "%d rounds. %d until backtrack attempt.\n",
-	    iters, *rounds_until_backtrack);
     if (*rounds_until_backtrack == 0) {
       *rounds_until_backtrack = TRY_BACKTRACK_EVERY;
       fprintf(stderr, " ** backtrack time. **\n");
@@ -837,6 +1013,11 @@ struct PlayFun {
 	return;
       }
 
+      // Rather than trying to find the best immediate one (we might
+      // be hovering above a pit about to die), use the standard
+      // TakeBestAmong to score all the potential improvements, as
+      // well as the current best.
+
       int best_replacement_idx = 0;
       double best_replacement_score = replacements[0].score;
       for (int i = 0; i < replacements.size(); i++) {
@@ -863,12 +1044,21 @@ struct PlayFun {
       // PERF maybe helper could send back the end state and
       // we could skip the replay here, but then we have to
       // be concerned with other data produced during Commit...
+      fprintf(stderr, "Playback %d moves...\n", replacement.inputs.size());
       for (int i = 0; i < replacement.inputs.size(); i++) {
 	Commit(replacement.inputs[i]);
       }
 
+      SimpleFM2::WriteInputs(GAME "-playfun-backtrack-replacement.fm2",
+			     GAME ".nes",
+			     BASE64,
+			     movie);
+
+      exit(0);
+
       // What to do about futures? This is simplest, I guess...
       futures->clear();
+      fprintf(stderr, "Back to normal search.\n");
     }
   }
 

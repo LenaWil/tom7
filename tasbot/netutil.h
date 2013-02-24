@@ -8,8 +8,11 @@
 #include "tasbot.h"
 
 #include "SDL_net.h"
+// for getlasterror, etc.
+#include "SDL_net/SDLnetsys.h"
 #include "marionet.pb.h"
 #include "util.h"
+#include "errno.h"
 
 // You can change this, but it must be less than 2^32 since
 // we only send 4 bytes.
@@ -31,6 +34,10 @@ extern void BlockOnSocket(TCPsocket sock);
 // Connect to localhost at the given port. Blocks. Returns null on
 // failure.
 extern TCPsocket ConnectLocal(int port);
+
+// Checks whether the error from the last recv is one we should retry
+// on (socket has not actually closed).
+extern bool RecvErrorRetry();
 
 // Blocks until the entire proto can be read.
 // If this returns false, you probably want to close the socket.
@@ -105,6 +112,7 @@ struct GetAnswers {
   }
 
   void Loop() {
+    InPlaceTerminal term(1);
     for (;;) {
       static const int MAXCOLS = 77;
 
@@ -122,10 +130,11 @@ struct GetAnswers {
       }
       CHECK(low < high);
 
-      fprintf(stderr, "%c", (low == 0) ? '[' : '<');
+      string meter =
+        StringPrintf("%c", (low == 0) ? '[' : '<');
       for (int i = low; i < high; i++) {
         if (done_[i]) {
-          fprintf(stderr, "#");
+          meter += "#";
         } else if (i < workqueued_) {
           int helper = -1;
           // PERF...
@@ -139,12 +148,13 @@ struct GetAnswers {
           CHECK(helper != -1);
           const char c = (helper < 36) ?
             "0123456789abcdefghijklmnopqrstuvwxyz"[helper] : '+';
-          fprintf(stderr, "%c", c);
+          meter += StringPrintf("%c", c);
         } else {
-          fprintf(stderr, ".");
+          meter += ".";
         }
       }
-      fprintf(stderr, "%c\n", (high == work_.size()) ? ']' : '>');
+      meter += StringPrintf("%c\n", (high == work_.size()) ? ']' : '>');
+      term.Output(meter);
 
       // Are we done?
       if (workdone_ == work_.size()) {
@@ -180,6 +190,7 @@ struct GetAnswers {
       for (;;) {
         int numready = SDLNet_CheckSockets(ss, 10000);
         if (numready == -1) {
+          term.Advance();
           fprintf(stderr, "SDLNet_CheckSockets: %s\n", SDLNet_GetError());
           perror("SDLNet_CheckSockets");
           abort();
@@ -214,12 +225,14 @@ struct GetAnswers {
             helper->sock = NULL;
             helper->state = DISCONNECTED;
             helper->workidx = -1;
+
           } else {
             // If we failed to read, reenqueue it in the same
             // helper, which preserves any invariants.
             SDLNet_TCP_Close(helper->sock);
             helper->sock = NULL;
             helper->state = DISCONNECTED;
+            term.Advance();
             fprintf(stderr, "Error reading result from port %d "
                     "for work #%d!\n",
                     helper->port,
@@ -321,8 +334,10 @@ bool ReadProto(TCPsocket sock, T *t) {
   CHECK(t != NULL);
 
   char header[4];
-  if (4 != SDLNet_TCP_Recv(sock, (void *)&header, 4)) {
-    fprintf(stderr, "ReadProto: Failed to read length.\n");
+  int bytes = SDLNet_TCP_Recv(sock, (void *)&header, 4);
+  if (4 != bytes) {
+    fprintf(stderr, "ReadProto: Failed to read length (got %d), err %d.\n",
+            bytes, SDLNet_GetLastError());
     return false;
   }
 
@@ -334,8 +349,10 @@ bool ReadProto(TCPsocket sock, T *t) {
   char *buffer = (char *)malloc(len);
   CHECK(buffer != NULL);
 
-  if (len != SDLNet_TCP_Recv(sock, (void *)buffer, len)) {
-    fprintf(stderr, "ReadProto: Failed to read %d bytes.\n", len);
+  int ret = SDLNet_TCP_Recv(sock, (void *)buffer, len);
+  if (len != ret) {
+    fprintf(stderr, "ReadProto: Failed to read %d bytes (got %d), err %d\n",
+            len, ret, SDLNet_GetLastError());
     free(buffer);
     return false;
   }
@@ -363,7 +380,10 @@ bool WriteProto(TCPsocket sock, const T &t) {
 
   char header[4];
   SDLNet_Write32(len, (void*)header);
-  if (4 != SDLNet_TCP_Send(sock, (const void *)header, 4)) {
+  int ret = SDLNet_TCP_Send(sock, (const void *)header, 4);
+  if (4 != ret) {
+    fprintf(stderr, "Failed to send length (got %d) err %d.\n",
+            ret, SDLNet_GetLastError());
     return false;
   }
 
