@@ -26,7 +26,17 @@ message TryImproveRequest {
 
   // How to do it?
   enum Approach {
+    // Just generate a bunch of random alternatives
+    // of the same length.
     RANDOM = 0;
+    // Try doing the opposite of what's in improveme,
+    // like pressing LEFT when it says RIGHT. Fixed
+    // number of iterations up front; remainder of
+    // iterations apply the strategy to subsequences.
+    OPPOSITES = 1;
+    // Try removing button presses from the input.
+    ABLATION = 2;
+    // deletion, expansion, hill climbing ...
   }
 
   optional Approach approach = 4;
