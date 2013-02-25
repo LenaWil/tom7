@@ -30,6 +30,11 @@ struct Motifs {
   const vector<uint8> &RandomMotifWith(ArcFour *rc);
   const vector<uint8> &RandomWeightedMotifWith(ArcFour *rc);
 
+  // Return the total weight, which allows a single weight to
+  // be interpreted as a fraction of the total (for example
+  // for capping weights.)
+  double GetTotalWeight() const;
+
   vector< vector<uint8> > AllMotifs() const;
 
   bool IsMotif(const vector<uint8> &inputs);

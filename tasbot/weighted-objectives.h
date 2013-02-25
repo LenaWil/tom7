@@ -37,7 +37,6 @@ struct WeightedObjectives {
   double Evaluate(const vector<uint8> &mem1,
                   const vector<uint8> &mem2) const;
 
-
   // Old buggy version. Same as GetNumLess I think?
   double BuggyEvaluate(const vector<uint8> &mem1,
                        const vector<uint8> &mem2) const;
