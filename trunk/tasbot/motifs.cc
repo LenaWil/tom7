@@ -135,17 +135,21 @@ double *Motifs::GetWeightPtr(const vector<uint8> &inputs) {
   else return &it->second.weight;
 }
 
+double Motifs::GetTotalWeight() const {
+  double totalweight = 0.0;
+  for (Weighted::const_iterator it = motifs.begin();
+       it != motifs.end(); ++it) {
+    totalweight += it->second.weight;
+  }
+  return totalweight;
+}
+
 // Note there are several fancy ways to do this, but I
 // have seen them have numerical stability problems in
 // practice. I'm favoring correctness and simplicity
 // here.
 const vector<uint8> &Motifs::RandomWeightedMotifWith(ArcFour *rrc) {
-  double totalweight = 0;
-  // PERF: Could cache this.
-  for (Weighted::const_iterator it = motifs.begin();
-       it != motifs.end(); ++it) {
-    totalweight += it->second.weight;
-  }
+  double totalweight = GetTotalWeight();
 
   // "index" into the continuous bins
   double sample = RandomDouble(rrc) * totalweight;

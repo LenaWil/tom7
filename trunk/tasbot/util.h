@@ -7,11 +7,24 @@
 #include <deque>
 #include <vector>
 #include <string>
+#include "time.h"
 
 #include "tasbot.h"
 #include "../cc-lib/arcfour.h"
 
 using namespace std;
+
+inline string TimeString(time_t t) {
+  char str[256];
+  strftime(str, 255, "%H:%M:%S", localtime(&t));
+  return str;
+}
+
+inline string DateString(time_t t) {
+  char str[256];
+  strftime(str, 255, "%d %b %Y", localtime(&t));
+  return str;
+}
 
 template<class T>
 static void Shuffle(vector<T> *v) {

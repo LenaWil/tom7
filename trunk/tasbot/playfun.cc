@@ -50,10 +50,16 @@ using ::google::protobuf::Message;
 // we check its immediate effect on the state (normalized); if an
 // increase, then we divide its weight by alpha. If a decrease, then
 // we multiply. Should be a value in (0, 1] but usually around 0.8.
-#define ALPHA 0.8
-
-static const double WIDTH = 1024.0;
-static const double HEIGHT = 1024.0;
+#define MOTIF_ALPHA 0.8
+// Largest fraction of the total weight that any motif is allowed to
+// have when being reweighted up. We don't reweight down to the cap,
+// but prevent it from going over. Also, this can be violated if one
+// motif is at the max and another has its weight reduced, but still
+// keeps motifs from getting weighted out of control.
+#define MOTIF_MAX_FRAC 0.1
+// Minimum fraction allowed when reweighting down. We don't decrease
+// below this, but don't increase to meet the fraction, either.
+#define MOTIF_MIN_FRAC 0.00001
 
 struct Scoredist {
   Scoredist() : startframe(0), chosen_idx() {}
@@ -69,6 +75,9 @@ struct Scoredist {
 
 static void SaveDistributionSVG(const vector<Scoredist> &dists,
 				const string &filename) {
+  static const double WIDTH = 1024.0;
+  static const double HEIGHT = 1024.0;
+
   // Add slop for radii.
   string out = TextSVG::Header(WIDTH + 12, HEIGHT + 12);
   
@@ -123,7 +132,7 @@ struct Replacement {
   double score;
   string method;
 };
-}
+}  // namespace
 
 static void SaveFuturesHTML(const vector<Future> &futures,
 			    const string &filename) {
@@ -143,7 +152,7 @@ static void SaveFuturesHTML(const vector<Future> &futures,
 }
 
 struct PlayFun {
-  PlayFun() : watermark(0), rc("playfun") {
+  PlayFun() : watermark(0), log(NULL), rc("playfun") {
     Emulator::Initialize(GAME ".nes");
     objectives = WeightedObjectives::LoadFromFile(GAME ".objectives");
     CHECK(objectives);
@@ -1046,6 +1055,7 @@ struct PlayFun {
     // each motif, but when we use this to implement the best
     // backtrack plan, it usually won't be.
     if (motifs->IsMotif(nexts[best_next_idx])) {
+      double total = motifs->GetTotalWeight();
       motifs->Pick(nexts[best_next_idx]);
       vector<uint8> new_memory;
       Emulator::GetMemory(&new_memory);
@@ -1056,10 +1066,20 @@ struct PlayFun {
       CHECK(weight != NULL);
       if (newval > oldval) {
 	// Increases its weight.
-	*weight /= ALPHA;
+	double d = *weight / MOTIF_ALPHA;
+	if (d / total < MOTIF_MAX_FRAC) {
+	  *weight = d;
+	} else {
+	  fprintf(stderr, "motif is already at max frac: %.2f\n", d);
+	}
       } else {
 	// Decreases its weight.
-	*weight *= ALPHA;
+	double d = *weight * MOTIF_ALPHA;
+	if (d / total > MOTIF_MIN_FRAC) {
+	  *weight = d;
+	} else {
+	  fprintf(stderr, "motif is already at min frac: %f\n", d);
+	}
       }
     }
 
@@ -1072,6 +1092,16 @@ struct PlayFun {
   void Master(const vector<int> &helpers) {
     // XXX
     ports_ = helpers;
+
+    log = fopen(GAME "-log.html", "w");
+    CHECK(log != NULL);
+    fprintf(log, 
+	    "<!DOCTYPE html>\n"
+	    "<link rel=\"stylesheet\" href=\"log.css\" />\n"
+	    "<h1>" GAME " started at %s %s.</h1>\n",
+	    DateString(time(NULL)).c_str(),
+	    TimeString(time(NULL)).c_str());
+    fflush(log);
 
     vector< vector<uint8> > nexts = motifvec;
 
@@ -1294,6 +1324,12 @@ struct PlayFun {
       fprintf(stderr, " ** backtrack time. **\n");
       uint64 start_time = time(NULL);
 
+      fprintf(log, 
+	      "<h2>Backtrack at iter %d, %s.</h2>\n",
+	      iters,
+	      TimeString(start_time).c_str());
+      fflush(log);
+
       // Backtracking is like this. Call the last checkpoint "start"
       // (technically it could be any checkpoint, so think about
       // principled ways of finding a good starting point.) and
@@ -1346,9 +1382,18 @@ struct PlayFun {
       // TakeBestAmong to score all the potential improvements, as
       // well as the current best.
       fprintf(stderr, 
-	      "There are %d possible replacements for last %d moves...\n",
+	      "There are %d+1 possible replacements for last %d moves...\n",
 	      replacements.size(),
 	      nmoves);
+
+      for (int i = 0; i < replacements.size(); i++) {
+	fprintf(log, 
+		"<li>%d inputs via %s, %.2f</li>\n",
+		replacements[i].inputs.size(),
+		replacements[i].method.c_str(),
+		replacements[i].score);
+      }
+      fflush(log);
 
       SimpleFM2::WriteInputs(
 	  StringPrintf(GAME "-playfun-backtrack-%d-replaced.fm2", iters),
@@ -1366,7 +1411,7 @@ struct PlayFun {
 	// Currently ignores scores and methods. Make TakeBestAmong
 	// take annotated nexts so it can tell you which one it
 	// preferred. (Consider weights too..?)
-	if (tryme.find(replacements[i].inputs) != tryme.end()) {
+	if (tryme.find(replacements[i].inputs) == tryme.end()) {
 	  tryme.insert(replacements[i].inputs);
 	}
       }
@@ -1375,6 +1420,11 @@ struct PlayFun {
       if (tryvec.size() != replacements.size() + 1) {
 	fprintf(stderr, "... but there were %d duplicates (removed).\n",
 		(replacements.size() + 1) - tryvec.size());
+	fprintf(log, "<li><b>%d total but there were %d duplicates (removed)."
+		"</b></li>\n",
+		replacements.size() + 1,
+		(replacements.size() + 1) - tryvec.size());
+	fflush(log);
       }
 
       // PERF could be passing along the end state for these, to
@@ -1396,6 +1446,10 @@ struct PlayFun {
 	      "Backtracking took %d seconds in total. "
 	      "Back to normal search...\n",
 	      end_time - start_time);
+      fprintf(log,
+	      "<li>Backtracking took %d seconds in total.</li>\n",
+	      end_time - start_time);
+      fflush(log);
     }
   }
 
@@ -1446,6 +1500,7 @@ struct PlayFun {
   // Used to ffwd to gameplay.
   vector<uint8> solution;
 
+  FILE *log;
   ArcFour rc;
   WeightedObjectives *objectives;
   Motifs *motifs;
