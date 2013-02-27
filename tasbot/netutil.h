@@ -39,6 +39,11 @@ extern TCPsocket ConnectLocal(int port);
 // on (socket has not actually closed).
 extern bool RecvErrorRetry();
 
+// Same interface as SDLNet_TCP_Recv but if we get a partial packet,
+// immediately retry. This works around what appears to be a bug in
+// SDL_Net, at least on win32.
+extern int sdlnet_recvall(TCPsocket sock, void *buffer, int len);
+
 // Blocks until the entire proto can be read.
 // If this returns false, you probably want to close the socket.
 template <class T>
@@ -410,7 +415,8 @@ bool ReadProto(TCPsocket sock, T *t) {
   char *buffer = (char *)malloc(len);
   CHECK(buffer != NULL);
 
-  int ret = SDLNet_TCP_Recv(sock, (void *)buffer, len);
+  // SDLNet_TCP_Recv
+  int ret = sdlnet_recvall(sock, (void *)buffer, len);
   if (len != ret) {
     fprintf(stderr, "ReadProto: Failed to read %d bytes (got %d), err %d\n",
             len, ret, SDLNet_GetLastError());

@@ -123,3 +123,26 @@ bool RecvErrorRetry() {
 }
 
 RequestCache::RequestCache(int size) : size(size), num(0) {}
+
+extern int sdlnet_recvall(TCPsocket sock, void *buffer, int len) {
+  int alreadyread = 0;
+  while (len > 0) {
+    int ret = SDLNet_TCP_Recv(sock, (void *)buffer, len);
+    if (ret <= 0) return ret;
+    // ?
+    else if (ret > len) return -1;
+    else if (ret == len) return alreadyread + ret;
+    else if (errno != 0) return alreadyread + ret;
+    else {
+      fprintf(stderr, "Partial read of %d; %d left.\n",
+	      ret, len - ret);
+      // Probably not an error, but a partial read.
+      alreadyread += ret;
+      len -= ret;
+      CHECK(len >= 0);
+      // Buffer now points to the remaining area.
+      buffer = (void*) (((char*)buffer) + ret);
+    }
+  }
+  return alreadyread;
+}
