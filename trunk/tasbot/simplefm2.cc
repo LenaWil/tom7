@@ -49,6 +49,17 @@ void SimpleFM2::WriteInputs(const string &outputfile,
 			    const string &romfilename,
 			    const string &romchecksum,
 			    const vector<uint8> &inputs) {
+  vector<string> empty;
+  WriteInputsWithSubtitles(outputfile, romfilename, romchecksum,
+			   inputs, empty);
+}
+
+
+void SimpleFM2::WriteInputsWithSubtitles(const string &outputfile,
+					 const string &romfilename,
+					 const string &romchecksum,
+					 const vector<uint8> &inputs,
+					 const vector<string> &subtitles) {
   // XXX Create one of these by hashing inputs.
   string fakeguid = "FDAEE33C-B32D-B38C-765C-FADEFACE0000";
   FILE *f = fopen(outputfile.c_str(), "wb");
@@ -72,6 +83,15 @@ void SimpleFM2::WriteInputs(const string &outputfile,
 	  romfilename.c_str(),
 	  romchecksum.c_str(),
 	  fakeguid.c_str());
+
+  const string *last = NULL;
+  for (int i = 0; i < subtitles.size(); i++) {
+    if (last == NULL || *last != subtitles[i]) {
+      fprintf(f, "subtitle %d %s\n", i, subtitles[i].c_str());
+    }
+    last = &subtitles[i];
+  }
+
   for (int i = 0; i < inputs.size(); i++) {
     fprintf(f, "|%c|", (i == 0) ? '2' : '0');
     static const char gamepad[] = "RLDUTSBA";

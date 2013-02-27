@@ -29,6 +29,12 @@ struct SimpleFM2 {
                           const string &romchecksum,
                           const vector<uint8> &inputs);
 
+  static void WriteInputsWithSubtitles(const string &outputfile,
+                                       const string &romfilename,
+                                       const string &romchecksum,
+                                       const vector<uint8> &inputs,
+                                       const vector<string> &subtitles);
+
   static string InputToString(uint8 input);
   static string InputToColorString(uint8 input);
 };

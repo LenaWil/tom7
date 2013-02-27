@@ -61,6 +61,9 @@ using ::google::protobuf::Message;
 // below this, but don't increase to meet the fraction, either.
 #define MOTIF_MIN_FRAC 0.00001
 
+// XXX cheats -- should be 0xFF
+#define INPUTMASK (~(INPUT_T | INPUT_S))
+
 struct Scoredist {
   Scoredist() : startframe(0), chosen_idx() {}
   explicit Scoredist(int startframe) : startframe(startframe),
@@ -172,7 +175,7 @@ struct PlayFun {
     size_t start = 0;
     bool saw_input = false;
     while (start < solution.size()) {
-      Commit(solution[start]);
+      Commit(solution[start], "warmup");
       watermark++;
       saw_input = saw_input || solution[start] != 0;
       if (start > FASTFORWARD && saw_input) break;
@@ -213,20 +216,20 @@ struct PlayFun {
 
   // Number of real futures to push forward.
   // XXX the more the merrier! Made this small to test backtracking.
-  static const int NFUTURES = 24;
+  static const int NFUTURES = 34;
 
   // Number of futures that should be generated from weighted
   // motifs as opposed to totally random.
-  static const int NWEIGHTEDFUTURES = 19;
+  static const int NWEIGHTEDFUTURES = 30;
 
   // Drop this many of the worst futures.
-  static const int DROPFUTURES = 5;
+  static const int DROPFUTURES = 7;
   // TODO: copy some of the best futures over bad futures,
   // randomizing the tails.
 
   // Number of inputs in each future.
   static const int MINFUTURELENGTH = 50;
-  static const int MAXFUTURELENGTH = 600;
+  static const int MAXFUTURELENGTH = 800;
 
   // Make a checkpoint this often (number of inputs).
   static const int CHECKPOINT_EVERY = 100;
@@ -239,10 +242,13 @@ struct PlayFun {
   // SVG) this often (number of inputs).
   static const int OBSERVE_EVERY = 10;
 
+  // Should always be the same length as movie.
+  vector<string> subtitles;
 
-  void Commit(uint8 input) {
+  void Commit(uint8 input, const string &message) {
     Emulator::CachingStep(input);
     movie.push_back(input);
+    subtitles.push_back(message);
     if (movie.size() % CHECKPOINT_EVERY == 0) {
       vector<uint8> savestate;
       Emulator::SaveUncompressed(&savestate);
@@ -263,7 +269,9 @@ struct PlayFun {
     // observations?
     CHECK(movenum >= 0);
     CHECK(movenum < movie.size());
+    CHECK(movie.size() == subtitles.size());
     movie.resize(movenum);
+    subtitles.resize(movenum);
     // Pop any checkpoints since movenum.
     while (!checkpoints.empty() &&
 	   checkpoints.back().movenum > movenum) {
@@ -838,7 +846,6 @@ struct PlayFun {
     GetAnswers<HelperRequest, PlayFunResponse> getanswers(ports_, requests);
     getanswers.Loop();
 
-    fprintf(stderr, "GOT ANSWERS.\n");
     const vector<GetAnswers<HelperRequest, PlayFunResponse>::Work> &work =
       getanswers.GetWork();
 
@@ -968,8 +975,9 @@ struct PlayFun {
   // Consider every possible next step along with every possible
   // future. Commit to the step that has the best score among
   // those futures. Remove the futures that didn't perform well
-  // overall, and replace them. Reweight motifs according
+  // overall, and replace them. Reweight motifs according... XXX
   void TakeBestAmong(const vector< vector<uint8> > &nexts,
+		     const vector<string> &nextsplanations,
 		     vector<Future> *futures,
 		     bool chopfutures) {
     vector<uint8> current_state;
@@ -1046,7 +1054,7 @@ struct PlayFun {
     // fprintf(stderr, "Replay %d moves\n", nexts[best_next_idx].size());
     Emulator::LoadUncompressed(&current_state);
     for (int j = 0; j < nexts[best_next_idx].size(); j++) {
-      Commit(nexts[best_next_idx][j]);
+      Commit(nexts[best_next_idx][j], nextsplanations[best_next_idx]);
     }
 
     // Now, if the motif we used was a local improvement to the
@@ -1104,6 +1112,17 @@ struct PlayFun {
     fflush(log);
 
     vector< vector<uint8> > nexts = motifvec;
+    vector<string> nextsplanations;
+    for (int i = 0; i < nexts.size(); i++) {
+      nextsplanations.push_back(StringPrintf("motif %d:%d",
+					     i, nexts[i].size()));
+    }
+    // XXX...
+    for (int i = 0; i < nexts.size(); i++) {
+      for (int j = 0; j < nexts[i].size(); j++) {
+	nexts[i][j] &= INPUTMASK;
+      }
+    }
 
     // This version of the algorithm looks like this. At some point in
     // time, we have the set of motifs we might play next. We'll
@@ -1127,7 +1146,7 @@ struct PlayFun {
       // XXX TODO this probably gets confused by backtracking.
       motifs->Checkpoint(movie.size());
 
-      TakeBestAmong(nexts, &futures, true);
+      TakeBestAmong(nexts, nextsplanations, &futures, true);
 
       fprintf(stderr, "%d rounds, %d inputs. %d until backtrack. "
 	      "Cxpoints at ",
@@ -1166,13 +1185,13 @@ struct PlayFun {
 
     // For random, we could compute the right number of
     // tasks based on the number of helpers...
-    static const int NUM_IMPROVE_RANDOM = 30;
+    static const int NUM_IMPROVE_RANDOM = 2;
     static const int RANDOM_ITERS = 200;
 
-    static const int NUM_ABLATION = 10;
+    static const int NUM_ABLATION = 2;
     static const int ABLATION_ITERS = 200;
 
-    static const int NUM_CHOP = 10;
+    static const int NUM_CHOP = 2;
     static const int CHOP_ITERS = 200;
 
     // Note that some of these have a fixed number
@@ -1195,11 +1214,11 @@ struct PlayFun {
     base_req.set_end_state(&current_state[0], current_state.size());
     base_req.set_maxbest(MAXBEST);
 
-    for (int i = 0; i < NUM_IMPROVE_RANDOM; i++) {
+    if (TRY_OPPOSITES) {
       TryImproveRequest req = base_req;
-      req.set_iters(RANDOM_ITERS);
-      req.set_seed(StringPrintf("seed%d.%d", start.movenum, i));
-      req.set_approach(TryImproveRequest::RANDOM);
+      req.set_approach(TryImproveRequest::OPPOSITES);
+      req.set_iters(OPPOSITES_ITERS);
+      req.set_seed(StringPrintf("opp%d", start.movenum));
 
       HelperRequest hreq;
       hreq.mutable_tryimprove()->MergeFrom(req);
@@ -1228,11 +1247,11 @@ struct PlayFun {
       requests.push_back(hreq);
     }
 
-    if (TRY_OPPOSITES) {
+    for (int i = 0; i < NUM_IMPROVE_RANDOM; i++) {
       TryImproveRequest req = base_req;
-      req.set_approach(TryImproveRequest::OPPOSITES);
-      req.set_iters(OPPOSITES_ITERS);
-      req.set_seed(StringPrintf("opp%d", start.movenum));
+      req.set_iters(RANDOM_ITERS);
+      req.set_seed(StringPrintf("seed%d.%d", start.movenum, i));
+      req.set_approach(TryImproveRequest::RANDOM);
 
       HelperRequest hreq;
       hreq.mutable_tryimprove()->MergeFrom(req);
@@ -1253,29 +1272,11 @@ struct PlayFun {
       CHECK(res.score_size() == res.inputs_size());
       for (int j = 0; j < res.inputs_size(); j++) {
 	Replacement r;
-	// XXX can just use TryImproveRequest_Name?
-	switch (req.approach()) {
-	case TryImproveRequest::RANDOM:
-	  r.method = StringPrintf("random-%d-%s",
-				  req.iters(),
-				  req.seed().c_str());
-	  break;
-	case TryImproveRequest::OPPOSITES:
-	  r.method = StringPrintf("opp-%d-%s",
-				  req.iters(),
-				  req.seed().c_str());
-	  break;
-	case TryImproveRequest::ABLATION:
-	  r.method = StringPrintf("abl-%d-%s",
-				  req.iters(),
-				  req.seed().c_str());
-	  break;
-	case TryImproveRequest::CHOP:
-	  r.method = StringPrintf("chop-%d-%s",
-				  req.iters(),
-				  req.seed().c_str());
-	  break;
-	}
+	r.method =
+	  StringPrintf("%s-%d-%s",
+		       TryImproveRequest::Approach_Name(req.approach()).c_str(),
+		       req.iters(),
+		       req.seed().c_str());
 	ReadBytesFromProto(res.inputs(j), &r.inputs);
 	r.score = res.score(j);
 	replacements->push_back(r);
@@ -1325,8 +1326,9 @@ struct PlayFun {
       uint64 start_time = time(NULL);
 
       fprintf(log, 
-	      "<h2>Backtrack at iter %d, %s.</h2>\n",
+	      "<h2>Backtrack at iter %d, end frame %d, %s.</h2>\n",
 	      iters,
+	      movie.size(),
 	      TimeString(start_time).c_str());
       fflush(log);
 
@@ -1395,28 +1397,37 @@ struct PlayFun {
       }
       fflush(log);
 
-      SimpleFM2::WriteInputs(
+      SimpleFM2::WriteInputsWithSubtitles(
 	  StringPrintf(GAME "-playfun-backtrack-%d-replaced.fm2", iters),
 	  GAME ".nes",
 	  BASE64,
-	  movie);
+	  movie,
+	  subtitles);
       Rewind(start.movenum);
       Emulator::LoadUncompressed(&start.save);
 
       set< vector<uint8> > tryme;
+      vector< vector<uint8> > tryvec;
+      vector<string> trysplanations;
       // Allow the existing sequence to be chosen if it's
       // still better despite seeing these alternatives.
       tryme.insert(improveme);
+      tryvec.push_back(improveme);
+      // XXX better to keep whatever annotations were already there!
+      trysplanations.push_back("original");
+
       for (int i = 0; i < replacements.size(); i++) {
 	// Currently ignores scores and methods. Make TakeBestAmong
 	// take annotated nexts so it can tell you which one it
 	// preferred. (Consider weights too..?)
 	if (tryme.find(replacements[i].inputs) == tryme.end()) {
 	  tryme.insert(replacements[i].inputs);
+	  tryvec.push_back(replacements[i].inputs);
+	  trysplanations.push_back(replacements[i].method);
 	}
       }
 
-      vector< vector<uint8> > tryvec(tryme.begin(), tryme.end());
+      // vector< vector<uint8> > tryvec(tryme.begin(), tryme.end());
       if (tryvec.size() != replacements.size() + 1) {
 	fprintf(stderr, "... but there were %d duplicates (removed).\n",
 		(replacements.size() + 1) - tryvec.size());
@@ -1431,14 +1442,15 @@ struct PlayFun {
       // avoid the initial replay. If they happen to go back to the
       // same helper that computed it in the first place, it'd be
       // cached, at least.
-      TakeBestAmong(tryvec, futures, false);
+      TakeBestAmong(tryvec, trysplanations, futures, false);
 
       fprintf(stderr, "Write replacement movie.\n");
-      SimpleFM2::WriteInputs(
+      SimpleFM2::WriteInputsWithSubtitles(
 	  StringPrintf(GAME "-playfun-backtrack-%d-replacement.fm2", iters),
 	  GAME ".nes",
 	  BASE64,
-	  movie);
+	  movie,
+	  subtitles);
 
       // What to do about futures? This is simplest, I guess...
       uint64 end_time = time(NULL);
@@ -1455,10 +1467,11 @@ struct PlayFun {
 
   void SaveMovie() {
     printf("                     - writing movie -\n");
-    SimpleFM2::WriteInputs(GAME "-playfun-futures-progress.fm2",
-			   GAME ".nes",
-			   BASE64,
-			   movie);
+    SimpleFM2::WriteInputsWithSubtitles(GAME "-playfun-futures-progress.fm2",
+					GAME ".nes",
+					BASE64,
+					movie,
+					subtitles);
     Emulator::PrintCacheStats();
   }
 
