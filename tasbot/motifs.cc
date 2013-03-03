@@ -172,6 +172,7 @@ const vector<uint8> &Motifs::RandomWeightedMotif() {
   return RandomWeightedMotifWith(&rc);
 }
 
+
 static string ShowRange(int lastframe, double val,
 			int thisframe) {
   int finframe = thisframe - 1;

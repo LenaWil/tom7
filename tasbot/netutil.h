@@ -53,22 +53,6 @@ bool ReadProto(TCPsocket sock, T *t);
 template <class T>
 bool WriteProto(TCPsocket sock, const T &t);
 
-#if 0 // TODO
-// A wrapped sock that buffers reads, since even though the docs
-// indicate that reads block until they are complete, this appears
-// to not really be true.
-struct WrappedSock {
-  TCPsocket sock;
-  vector<uint8> buffer;
-  enum RecvStatus {
-    ERROR,
-    INCOMPLETE,
-    SUCCESS,
-  };
-  RecvStatus Recv(int len);
-};
-#endif
-
 // Listens on a single port for a single connection at a time,
 // blocking.
 struct SingleServer {
@@ -155,7 +139,11 @@ struct GetAnswers {
         StringPrintf("%c", (low == 0) ? '[' : '<');
       for (int i = low; i < high; i++) {
         if (done_[i]) {
-          meter += "#";
+          if (i < workdone_) {
+            meter += ANSI_GREY "#" ANSI_RESET;
+          } else {
+            meter += "#";
+          }
         } else if (i < workqueued_) {
           int helper = -1;
           // PERF...
@@ -169,7 +157,7 @@ struct GetAnswers {
           CHECK(helper != -1);
           const char c = (helper < 36) ?
             "0123456789abcdefghijklmnopqrstuvwxyz"[helper] : '+';
-          meter += StringPrintf("%c", c);
+          meter += StringPrintf(ANSI_CYAN "%c" ANSI_RESET, c);
         } else {
           meter += ".";
         }
@@ -409,13 +397,13 @@ bool ReadProto(TCPsocket sock, T *t) {
 
   Uint32 len = SDLNet_Read32((void *)&header);
   if (len > MAX_MESSAGE) {
-    fprintf(stderr, "Peer sent header with len too big.");
+    fprintf(stderr, "Peer sent header with len too big.\n");
     return false;
   }
   char *buffer = (char *)malloc(len);
   CHECK(buffer != NULL);
 
-  // SDLNet_TCP_Recv
+  // Drop-in replacement for SDLNet_TCP_Recv.
   int ret = sdlnet_recvall(sock, (void *)buffer, len);
   if (len != ret) {
     fprintf(stderr, "ReadProto: Failed to read %d bytes (got %d), err %d\n",

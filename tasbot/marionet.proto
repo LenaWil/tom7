@@ -1,4 +1,9 @@
 
+message MarkovInput {
+  // TODO
+}
+
+
 message FutureProto {
   optional bytes inputs = 4;
 }
@@ -23,6 +28,7 @@ message TryImproveRequest {
   optional bytes start_state = 1;
   optional bytes improveme = 2;
   optional bytes end_state = 3;
+  optional double end_integral = 4;
 
   // How to do it?
   enum Approach {
@@ -41,17 +47,23 @@ message TryImproveRequest {
     // expansion, hill climbing ...
   }
 
-  optional Approach approach = 4;
-  optional string seed = 5;
-  optional int32 iters = 6;
-  optional int32 maxbest = 7;
+  optional Approach approach = 5;
+  optional string seed = 6;
+  optional int32 iters = 7;
+  optional int32 maxbest = 8;
 }
 
-// Any candidate with a "good enough" score.
 message TryImproveResponse {
-  // Parallel arrays.
+  // Top candidates with a "good enough" score. Limited
+  // to maxbest entries.
   repeated bytes inputs = 1;
+  // Scores of the inputs (parallel array).
   repeated double score = 2;
+
+  // Total number of new sequences tried.
+  optional int32 iters_tried = 3;
+  // Total number that were better than the original.
+  optional int32 iters_better = 4;
 }
 
 message HelperRequest {
