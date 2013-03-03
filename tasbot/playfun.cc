@@ -1619,14 +1619,14 @@ struct PlayFun {
 	return;
       } else if (improvability < 0.05) {
 	fprintf(stderr,
-		"Improvability only " ANSI_GREEN "%.2f :)" ANSI_RESET "\n",
+		"Improvability only " ANSI_GREEN "%.2f%% :)" ANSI_RESET "\n",
 		100.0 * improvability);
       } else if (improvability > 0.30) {
 	fprintf(stderr,
-		"Improvability high at " ANSI_RED "%.2f :(" ANSI_RESET "\n",
+		"Improvability high at " ANSI_RED "%.2f%% :(" ANSI_RESET "\n",
 		100.0 * improvability);
       } else {
-	fprintf(stderr, "Improvability is " ANSI_CYAN "%.2f" ANSI_RESET "\n",
+	fprintf(stderr, "Improvability is " ANSI_CYAN "%.2f%%" ANSI_RESET "\n",
 		100.0 * improvability);
       }
 
