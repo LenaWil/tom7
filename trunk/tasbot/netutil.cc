@@ -134,8 +134,8 @@ extern int sdlnet_recvall(TCPsocket sock, void *buffer, int len) {
     else if (ret == len) return alreadyread + ret;
     else if (errno != 0) return alreadyread + ret;
     else {
-      fprintf(stderr, "Partial read of %d; %d left.\n",
-	      ret, len - ret);
+      // fprintf(stderr, "Partial read of %d; %d left.\n",
+      // ret, len - ret);
       // Probably not an error, but a partial read.
       alreadyread += ret;
       len -= ret;

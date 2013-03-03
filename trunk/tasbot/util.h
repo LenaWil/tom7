@@ -12,6 +12,16 @@
 #include "tasbot.h"
 #include "../cc-lib/arcfour.h"
 
+#define ANSI_RED "\x1B[1;31;40m"
+#define ANSI_GREY "\x1B[1;30;40m"
+#define ANSI_BLUE "\x1B[1;34;40m"
+#define ANSI_CYAN "\x1B[1;36;40m"
+#define ANSI_YELLOW "\x1B[1;33;40m"
+#define ANSI_GREEN "\x1B[1;32;40m"
+#define ANSI_WHITE "\x1B[1;37;40m"
+#define ANSI_PURPLE "\x1B[1;35;40m"
+#define ANSI_RESET "\x1B[m"
+
 using namespace std;
 
 inline string TimeString(time_t t) {

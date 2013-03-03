@@ -138,8 +138,8 @@ static int Order(const vector<uint8> &mem1,
 }
 
 
-double WeightedObjectives::GetNumLess(const vector<uint8> &mem1,
-				      const vector<uint8> &mem2) const {
+double WeightedObjectives::WeightedLess(const vector<uint8> &mem1,
+					const vector<uint8> &mem2) const {
   double score = 0.0;
   for (Weighted::const_iterator it = weighted.begin();
        it != weighted.end(); ++it) {
@@ -148,6 +148,7 @@ double WeightedObjectives::GetNumLess(const vector<uint8> &mem1,
     if (LessObjective(mem1, mem2, objective))
       score += weight;
   }
+  CHECK(score >= 0);
   return score;
 }
 
@@ -168,6 +169,7 @@ double WeightedObjectives::Evaluate(const vector<uint8> &mem1,
   return score;
 }
 
+#if 0
 // XXX can probably simplify this, but should probably just remove it.
 double WeightedObjectives::BuggyEvaluate(const vector<uint8> &mem1,
 					 const vector<uint8> &mem2) const {
@@ -186,7 +188,7 @@ double WeightedObjectives::BuggyEvaluate(const vector<uint8> &mem1,
   }
   return score;
 }
-
+#endif
 
 static vector<uint8> GetValues(const vector<uint8> &mem,
 			       const vector<int> &objective) {

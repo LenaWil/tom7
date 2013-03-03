@@ -7,6 +7,7 @@
 
 #include "tasbot.h"
 #include "../cc-lib/arcfour.h"
+#include "util.h"
 
 struct Motifs {
   // Create empty.
@@ -29,6 +30,10 @@ struct Motifs {
 
   const vector<uint8> &RandomMotifWith(ArcFour *rc);
   const vector<uint8> &RandomWeightedMotifWith(ArcFour *rc);
+
+  // Returns NULL if none can be found.
+  template<class Container>
+  const vector<uint8> *RandomWeightedMotifNotIn(const Container &c);
 
   // Return the total weight, which allows a single weight to
   // be interpreted as a fraction of the total (for example
@@ -74,5 +79,36 @@ private:
 
   NOT_COPYABLE(Motifs);
 };
+
+
+// Template implementations follow.
+
+// See the related methods in the .cc file for commentary.
+template<class Container>
+const vector<uint8> *Motifs::RandomWeightedMotifNotIn(const Container &c) {
+  double totalweight = 0.0;
+  for (Weighted::const_iterator it = motifs.begin();
+       it != motifs.end(); ++it) {
+    if (c.find(it->first) == c.end()) {
+      totalweight += it->second.weight;
+    }
+  }
+
+  // "index" into the continuous bins
+  double sample = RandomDouble(&rc) * totalweight;
+
+  for (Weighted::const_iterator it = motifs.begin();
+       it != motifs.end(); ++it) {
+    if (c.find(it->first) == c.end()) {
+      if (sample <= it->second.weight) {
+        return &it->first;
+      }
+      sample -= it->second.weight;
+    }
+  }
+
+  return NULL;
+}
+
 
 #endif

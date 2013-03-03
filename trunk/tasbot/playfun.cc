@@ -1,5 +1,5 @@
 /* Tries playing a game (deliberately not customized to any particular
-   ROM) using an objective function learned by learnfun. 
+   ROM) using an objective function learned by learnfun.
 
    This is the third iteration. It attempts to fix a problem where
    playfun-futures would get stuck in local maxima, like the overhang
@@ -62,7 +62,8 @@ using ::google::protobuf::Message;
 #define MOTIF_MIN_FRAC 0.00001
 
 // XXX cheats -- should be 0xFF
-#define INPUTMASK (~(INPUT_T | INPUT_S))
+// no support any more
+// #define INPUTMASK (~(INPUT_T | INPUT_S))
 
 struct Scoredist {
   Scoredist() : startframe(0), chosen_idx() {}
@@ -83,7 +84,7 @@ static void SaveDistributionSVG(const vector<Scoredist> &dists,
 
   // Add slop for radii.
   string out = TextSVG::Header(WIDTH + 12, HEIGHT + 12);
-  
+
   // immediates, positives, negatives all are in same value space
   double maxval = 0.0;
   for (int i = 0; i < dists.size(); i++) {
@@ -93,9 +94,9 @@ static void SaveDistributionSVG(const vector<Scoredist> &dists,
 			  dist.positives),
 		dist.immediates);
   }
-  
+
   int totalframes = dists.back().startframe;
-  
+
   for (int i = 0; i < dists.size(); i++) {
     const Scoredist &dist = dists[i];
     double xf = dist.startframe / (double)totalframes;
@@ -123,10 +124,13 @@ struct Future {
   int desired_length;
   // TODO
   int rounds_survived;
-  Future() : weighted(true), desired_length(0), rounds_survived(0) {}
-  Future(bool w, int d) : weighted(w), 
-			  desired_length(d), 
-			  rounds_survived(0) {}
+  bool is_mutant;
+  Future() : weighted(true), desired_length(0), rounds_survived(0),
+	     is_mutant(false) {}
+  Future(bool w, int d) : weighted(w),
+			  desired_length(d),
+			  rounds_survived(0),
+			  is_mutant(false) {}
 };
 
 // For backtracking.
@@ -141,9 +145,10 @@ static void SaveFuturesHTML(const vector<Future> &futures,
 			    const string &filename) {
   string out;
   for (int i = 0; i < futures.size(); i++) {
-    out += StringPrintf("<div>%d. len %d/%d. %s\n", i, 
+    out += StringPrintf("<div>%d. len %d/%d. %s %s\n", i,
 			futures[i].inputs.size(),
 			futures[i].desired_length,
+			futures[i].is_mutant ? "mutant" : "fresh",
 			futures[i].weighted ? "weighted" : "random");
     for (int j = 0; j < futures[i].inputs.size(); j++) {
       out += SimpleFM2::InputToColorString(futures[i].inputs[j]);
@@ -216,21 +221,24 @@ struct PlayFun {
 
   // Number of real futures to push forward.
   // XXX the more the merrier! Made this small to test backtracking.
-  static const int NFUTURES = 34;
+  static const int NFUTURES = 50;
 
   // Number of futures that should be generated from weighted
   // motifs as opposed to totally random.
-  static const int NWEIGHTEDFUTURES = 30;
+  static const int NWEIGHTEDFUTURES = 45;
 
-  // Drop this many of the worst futures.
-  static const int DROPFUTURES = 7;
-  // TODO: copy some of the best futures over bad futures,
-  // randomizing the tails.
+  // Drop this many of the worst futures and replace them with
+  // totally new futures.
+  static const int DROPFUTURES = 5;
+  // Drop this many of the worst futures and replace them with
+  // variants on the best future.
+  static const int MUTATEFUTURES = 10;
 
   // Number of inputs in each future.
   static const int MINFUTURELENGTH = 50;
   static const int MAXFUTURELENGTH = 800;
 
+  static const bool TRY_BACKTRACK = true;
   // Make a checkpoint this often (number of inputs).
   static const int CHECKPOINT_EVERY = 100;
   // In rounds, not inputs.
@@ -280,21 +288,19 @@ struct PlayFun {
   }
 
   // DESTROYS THE STATE
-  double ScoreByFuture(const Future &future,
-		       const vector<uint8> &base_memory,
-		       const vector<uint8> &base_state) {
-    for (int i = 0; i < future.inputs.size(); i++) {
-      Emulator::CachingStep(future.inputs[i]);
-    }
-
+  void ScoreByFuture(const Future &future,
+		     const vector<uint8> &base_memory,
+		     vector<uint8> *base_state,
+		     double *positive_scores,
+		     double *negative_scores,
+		     double *integral_score) {
     vector<uint8> future_memory;
-    Emulator::GetMemory(&future_memory);
+    double integral = ScoreIntegral(base_state, future.inputs, &future_memory);
 
-    // n.b. this was mostly developed with what is now
-    // called BuggyEvaluate. There may be some reason that
-    // BuggyEvaluate is actually better here, but it seems
-    // wrong to me.
-    return objectives->Evaluate(base_memory, future_memory);
+    *integral_score = integral / future.inputs.size();
+    *positive_scores = objectives->WeightedLess(base_memory, future_memory);
+    // Note negation; WeightedLess always returns non-negative score.
+    *negative_scores = -objectives->WeightedLess(future_memory, base_memory);
   }
 
   #if MARIONET
@@ -308,6 +314,9 @@ struct PlayFun {
   void Helper(int port) {
     SingleServer server(port);
 
+    fprintf(stderr, "[%d] " ANSI_CYAN " Ready." ANSI_RESET "\n",
+	    port);
+
     // Cache the last few request/responses, so that we don't
     // recompute if there are connection problems. The master
     // prefers to ask the same helper again on failure.
@@ -319,7 +328,7 @@ struct PlayFun {
       server.Listen();
 
       connections++;
-      string line = StringPrintf("[%d] Connection #%d from %s", 
+      string line = StringPrintf("[%d] Connection #%d from %s",
 				 port,
 				 connections,
 				 server.PeerString().c_str());
@@ -329,9 +338,8 @@ struct PlayFun {
       if (server.ReadProto(&hreq)) {
 
 	if (const Message *res = cache.Lookup(hreq)) {
-	  line += ", cached!";
+	  line += ", " ANSI_GREEN "cached!" ANSI_RESET;
 	  term.Output(line + "\n");
-	  term.Advance();
 	  if (!server.WriteProto(*res)) {
 	    term.Advance();
 	    fprintf(stderr, "Failed to send cached result...\n");
@@ -339,7 +347,7 @@ struct PlayFun {
 	  }
 
 	} else if (hreq.has_playfun()) {
-	  line += ", playfun";
+	  line += ", " ANSI_YELLOW "playfun" ANSI_RESET;
 	  term.Output(line + "\n");
 	  const PlayFunRequest &req = hreq.playfun();
 	  vector<uint8> next, current_state;
@@ -380,12 +388,13 @@ struct PlayFun {
 	  }
 	} else if (hreq.has_tryimprove()) {
 	  const TryImproveRequest &req = hreq.tryimprove();
-	  line += ", tryimprove " +
-	    TryImproveRequest::Approach_Name(req.approach());
+	  line += ", " ANSI_PURPLE "tryimprove " +
+	    TryImproveRequest::Approach_Name(req.approach()) +
+	    ANSI_RESET;
 	  term.Output(line + "\n");
 
 	  // This thing prints.
-	  term.Advance();	  
+	  term.Advance();	
 	  TryImproveResponse res;
 	  DoTryImprove(req, &res);
 
@@ -406,7 +415,7 @@ struct PlayFun {
       server.Hangup();
     }
   }
-  
+
   template<class F, class S>
   struct CompareByFirstDesc {
     bool operator ()(const pair<F, S> &a,
@@ -420,12 +429,13 @@ struct PlayFun {
     vector<uint8> start_state, end_state;
     ReadBytesFromProto(req.start_state(), &start_state);
     ReadBytesFromProto(req.end_state(), &end_state);
+    const double end_integral = req.end_integral();
 
     vector<uint8> improveme;
     ReadBytesFromProto(req.improveme(), &improveme);
 
     // Get the memories so that we can score.
-    vector<uint8> start_memory, end_memory;  
+    vector<uint8> start_memory, end_memory;
     Emulator::LoadUncompressed(&end_state);
     Emulator::GetMemory(&end_memory);
 
@@ -448,7 +458,7 @@ struct PlayFun {
 			  &start_state,
 			  start_memory,
 			  inputs,
-			  end_memory, &score)) {
+			  end_memory, end_integral, &score)) {
 	  term.Advance();
 	  fprintf(stderr, "Improved! %f\n", score);
 	  repls.push_back(make_pair(score, inputs));
@@ -456,17 +466,17 @@ struct PlayFun {
       }
     } else if (req.approach() == TryImproveRequest::OPPOSITES) {
       vector<uint8> inputs = improveme;
-      
+
       TryDualizeAndReverse(&term, 0,
 			   &start_state, start_memory,
 			   &inputs, 0, inputs.size(),
-			   end_memory, &repls,
+			   end_memory, end_integral, &repls,
 			   false);
 
       TryDualizeAndReverse(&term, 0,
 			   &start_state, start_memory,
 			   &inputs, 0, inputs.size() / 2,
-			   end_memory, &repls,
+			   end_memory, end_integral, &repls,
 			   false);
 
       for (int i = 0; i < req.iters(); i++) {
@@ -479,7 +489,7 @@ struct PlayFun {
 	TryDualizeAndReverse(&term, (double)i / req.iters(),
 			     &start_state, start_memory,
 			     &inputs, start, len,
-			     end_memory, &repls,
+			     end_memory, end_integral, &repls,
 			     keepreversed);
       }
 
@@ -504,7 +514,7 @@ struct PlayFun {
 			  &start_state,
 			  start_memory,
 			  inputs,
-			  end_memory, &score)) {
+			  end_memory, end_integral, &score)) {
 	  term.Advance();
 	  fprintf(stderr, "Improved (abl %d)! %f\n", mask, score);
 	  repls.push_back(make_pair(score, inputs));
@@ -531,8 +541,9 @@ struct PlayFun {
 	  if (inputs != improveme &&
 	      IsImprovement(&term, (double) i / req.iters(),
 			    &start_state, start_memory,
-			    inputs, 
-			    end_memory, &score)) {
+			    inputs,
+			    end_memory, end_integral,
+			    &score)) {
 	    term.Advance();
 	    fprintf(stderr, "Improved (chop %d for %d depth %d)! %f\n",
 		    start, len, depth, score);
@@ -557,19 +568,24 @@ struct PlayFun {
     const int nimproved = repls.size();
 
     if (repls.size() > req.maxbest()) {
-      std::sort(repls.begin(), repls.end(), 
+      std::sort(repls.begin(), repls.end(),
 		CompareByFirstDesc< double, vector<uint8> >());
       repls.resize(req.maxbest());
     }
-    
+
     for (int i = 0; i < repls.size(); i++) {
       res->add_inputs(&repls[i].second[0], repls[i].second.size());
       res->add_score(repls[i].first);
     }
 
+    // XXX I think that some can produce more than iters outputs,
+    // so better could be greater than 100%. 
+    res->set_iters_tried(req.iters());
+    res->set_iters_better(nimproved);
+
     term.Advance();
     fprintf(stderr, "In %d iters (%s), %d were improvements (%.1f%%)\n",
-	    req.iters(), 
+	    req.iters(),
 	    TryImproveRequest::Approach_Name(req.approach()).c_str(),
 	    nimproved, (100.0 * nimproved) / req.iters());
   }
@@ -593,20 +609,22 @@ struct PlayFun {
   }
 
   void TryDualizeAndReverse(InPlaceTerminal *term, double frac,
-			    vector<uint8> *start_state, 
+			    vector<uint8> *start_state,
 			    const vector<uint8> &start_memory,
 			    vector<uint8> *inputs, int startidx, int len,
 			    const vector<uint8> &end_memory,
+			    double end_integral,
 			    vector< pair< double, vector<uint8> > > *repls,
 			    bool keepreversed) {
-    
+
     Dualize(inputs, startidx, len);
     double score = 0.0;
     if (IsImprovement(term, frac,
 		      start_state,
 		      start_memory,
 		      *inputs,
-		      end_memory, &score)) {
+		      end_memory, end_integral,
+		      &score)) {
       term->Advance();
       fprintf(stderr, "Improved! %f\n", score);
       repls->push_back(make_pair(score, *inputs));
@@ -618,7 +636,8 @@ struct PlayFun {
 		      start_state,
 		      start_memory,
 		      *inputs,
-		      end_memory, &score)) {
+		      end_memory, end_integral,
+		      &score)) {
       term->Advance();
       fprintf(stderr, "Improved (rev)! %f\n", score);
       repls->push_back(make_pair(score, *inputs));
@@ -638,7 +657,7 @@ struct PlayFun {
     }
     v->swap(vnew);
   }
-  
+
   static void Dualize(vector<uint8> *v, int start, int len) {
     CHECK(start >= 0);
     CHECK((start + len) <= v->size());
@@ -667,17 +686,97 @@ struct PlayFun {
     }
   }
 
+  // Computes the score as the sum of the scores of each step over the
+  // input. You might want to normalize the score by the input length,
+  // if comparing inputs of different length. Also swaps in the
+  // final memory if non-NULL.
+  double ScoreIntegral(vector<uint8> *start_state,
+		       const vector<uint8> &inputs,
+		       vector<uint8> *final_memory) {
+    Emulator::LoadUncompressed(start_state);
+    vector<uint8> previous_memory;
+    Emulator::GetMemory(&previous_memory);
+    double sum = 0.0;
+    for (int i = 0; i < inputs.size(); i++) {
+      Emulator::CachingStep(inputs[i]);
+      vector<uint8> new_memory;
+      Emulator::GetMemory(&new_memory);
+      sum += objectives->Evaluate(previous_memory, new_memory);
+      previous_memory.swap(new_memory);
+    }
+    if (final_memory != NULL) {
+      final_memory->swap(previous_memory);
+    }
+    return sum;
+  }
+
+  // Note that this does NOT normalize the integral scores by their
+  // length, with the idea that we only make the input shorter, so
+  // they tend to be disadvantaged (unless the paths are net negative,
+  // in which case a trend towards shorter is desirable). If we had
+  // an approach that increased the length of sequences, we would need
+  // to be careful with this function.
   bool IsImprovement(InPlaceTerminal *term, double frac,
 		     vector<uint8> *start_state,
 		     const vector<uint8> &start_memory,
 		     const vector<uint8> &inputs,
 		     const vector<uint8> &end_memory,
+		     double end_integral,
 		     double *score) {
+    vector<uint8> new_memory;
+    double new_integral = ScoreIntegral(start_state, inputs, &new_memory);
+
+    //           end_integral
+    //                     ....----> end
+    //         ....----````           |
+    //    start                       |  n_minus_e
+    //         ````----....           v
+    //                     ````----> new
+    //           new_integral
+    //
+    // The _integral scores are comparing the path integrals from start
+    // to end or new. We have intermediate states for these so we can
+    // compute integrals with the thought that those are more accurate.
+    // n_minus_e is comparing end and new directly; we don't know a path
+    // between those memories so this is the only option.
+
+    double n_minus_e = objectives->Evaluate(end_memory, new_memory);
+
+    if (term != NULL) {
+      string msg =
+	StringPrintf("%2.f%%  Send %f  Snew %f  n-e %f\n",
+		     100.0 * frac,
+		     end_integral, new_integral, n_minus_e);
+      term->Output(msg);
+    }
+
+    // Path integral is worse.
+    if (end_integral > new_integral) return false;
+
+    // Not actually an improvement over start (note that
+    // end was even worse, though. maybe should consider
+    // taking this anyway).
+    if (new_integral <= 0) return false;
+
+    // End is a better state from our perspective.
+    if (n_minus_e <= 0) return false;
+
+    *score = (new_integral - end_integral) + n_minus_e;
+    return true;
+  }
+
+  // Old version, no integration.
+  bool IsImprovementTriangle(InPlaceTerminal *term, double frac,
+			     vector<uint8> *start_state,
+			     const vector<uint8> &start_memory,
+			     const vector<uint8> &inputs,
+			     const vector<uint8> &end_memory,
+			     double *score) {
     Emulator::LoadUncompressed(start_state);
     for (int i = 0; i < inputs.size(); i++) {
       Emulator::CachingStep(inputs[i]);
     }
-    
+
     vector<uint8> new_memory;
     Emulator::GetMemory(&new_memory);
 
@@ -698,7 +797,7 @@ struct PlayFun {
     double n_minus_e = objectives->Evaluate(end_memory, new_memory);
 
     if (term != NULL) {
-      string msg = 
+      string msg =
 	StringPrintf("%2.f%%  e-s %f  n-s %f  n-e %f\n",
 		     100.0 * frac,
 		     e_minus_s, n_minus_s, n_minus_e);
@@ -721,7 +820,7 @@ struct PlayFun {
   vector<uint8> GetRandomInputs(ArcFour *rc, int len) {
     vector<uint8> inputs;
     while(inputs.size() < len) {
-      const vector<uint8> &m = 
+      const vector<uint8> &m =
 	motifs->RandomWeightedMotifWith(rc);
 
       for (int x = 0; x < m.size(); x++) {
@@ -737,8 +836,8 @@ struct PlayFun {
 
 
   void InnerLoop(const vector<uint8> &next,
-		 const vector<Future> &futures_orig, 
-		 vector<uint8> *current_state, 
+		 const vector<Future> &futures_orig,
+		 vector<uint8> *current_state,
 		 double *immediate_score,
 		 double *best_future_score,
 		 double *worst_future_score,
@@ -763,6 +862,7 @@ struct PlayFun {
     vector<uint8> new_state;
     Emulator::SaveUncompressed(&new_state);
 
+    // Used to be BuggyEvaluate = WeightedLess? XXX
     *immediate_score = objectives->Evaluate(current_memory, new_memory);
 
     // PERF unused except for drawing
@@ -770,41 +870,68 @@ struct PlayFun {
     // storage.
     // double norm_score = objectives->GetNormalizedValue(new_memory);
 
-    *best_future_score = -9999999.0;
-    *worst_future_score = 9999999.0;
+    *best_future_score = -1e80;
+    *worst_future_score = 1e80;
 
-    // Synthetic future where we keep holding the last
-    // button pressed.
-    // static const int NUM_FAKE_FUTURES = 1;
-    int total_future_length = 0;
-    for (int i = 0; i < futures.size(); i++) {
-      total_future_length += futures[i].inputs.size();
-    }
-    int average_future_length = (int)((double)total_future_length /
-				      (double)futures.size());
 
-    Future fakefuture_hold;
-    for (int z = 0; z < average_future_length; z++) {
-      fakefuture_hold.inputs.push_back(next.back());
+    // XXX reconsider whether this is really useful
+    {
+      // Synthetic future where we keep holding the last
+      // button pressed.
+      // static const int NUM_FAKE_FUTURES = 1;
+      int total_future_length = 0;
+      for (int i = 0; i < futures.size(); i++) {
+	total_future_length += futures[i].inputs.size();
+      }
+
+      const int average_future_length = (int)((double)total_future_length /
+					      (double)futures.size());
+      
+      Future fakefuture_hold;
+      for (int z = 0; z < average_future_length; z++) {
+	fakefuture_hold.inputs.push_back(next.back());
+      }
+      futures.push_back(fakefuture_hold);
     }
-    futures.push_back(fakefuture_hold);
 
     *futures_score = 0.0;
     for (int f = 0; f < futures.size(); f++) {
       if (f != 0) Emulator::LoadUncompressed(&new_state);
-      const double future_score =
-	ScoreByFuture(futures[f], new_memory, new_state);
-      // Only count real futures.
+      double positive_scores, negative_scores, integral_score;
+      ScoreByFuture(futures[f], new_memory, &new_state,
+		    &positive_scores, &negative_scores,
+		    &integral_score);
+      CHECK(positive_scores >= 0);
+      CHECK(negative_scores <= 0);
+
+      // For scoring the futures themselves (pruning and duplicating),
+      // we want to disprefer futures that kill the player or get
+      // stuck or whatever. So count both the positive and negative
+      // components, plus the normalized integral.
       if (f < futures_orig.size()) {
-	(*futurescores)[f] += future_score;
+	(*futurescores)[f] += integral_score +
+	  positive_scores + negative_scores;
       }
+
+      // Based on the idea that BuggyEvaluate only used the
+      // positive_scores component. This 'next' doesn't have
+      // to take the future if it has low score, so don't penalize
+      // it when some futures are bad.
+      double future_score = positive_scores;
+      // Probably the most useful thing is the score of the longest
+      // prefix with positive integral? Because we can start doing
+      // the future until that point. This assumes we take the whole
+      // future if it's good.
+      if (integral_score > 0) future_score += integral_score;
+
       *futures_score += future_score;
+
       if (future_score > *best_future_score)
 	*best_future_score = future_score;
       if (future_score < *worst_future_score)
 	*worst_future_score = future_score;
     }
-    
+
     // Discards the copy.
     // futures.resize(futures.size() - NUM_FAKE_FUTURES);
   }
@@ -842,7 +969,7 @@ struct PlayFun {
       }
       // if (!i) fprintf(stderr, "REQ: %s\n", req->DebugString().c_str());
     }
-    
+
     GetAnswers<HelperRequest, PlayFunResponse> getanswers(ports_, requests);
     getanswers.Loop();
 
@@ -859,7 +986,7 @@ struct PlayFun {
       const double score = res.immediate_score() + res.futures_score();
 
       distribution.immediates.push_back(res.immediate_score());
-      distribution.positives.push_back(res.futures_score());	
+      distribution.positives.push_back(res.futures_score());
       distribution.negatives.push_back(res.worst_future_score());
       // XXX norm score is disabled because it can't be
       // computed in a distributed fashion.
@@ -870,15 +997,15 @@ struct PlayFun {
 	*best_next_idx = i;
       }
     }
-    
+
 #else
     // Local version.
     for (int i = 0; i < nexts.size(); i++) {
-      double immediate_score, best_future_score, worst_future_score, 
+      double immediate_score, best_future_score, worst_future_score,
 	futures_score;
       vector<double> futurescores(NFUTURES, 0.0);
       InnerLoop(nexts[i],
-		futures, 
+		futures,
 		current_state,
 		&immediate_score,
 		&best_future_score,
@@ -920,7 +1047,7 @@ struct PlayFun {
 	num_currently_weighted++;
       }
     }
-      
+
     int num_to_weight = max(NWEIGHTEDFUTURES - num_currently_weighted, 0);
     #ifdef DEBUGFUTURES
     fprintf(stderr, "there are %d futures, %d cur weighted, %d need\n",
@@ -948,8 +1075,8 @@ struct PlayFun {
     for (int i = 0; i < NFUTURES; i++) {
       while ((*futures)[i].inputs.size() <
 	     (*futures)[i].desired_length) {
-	const vector<uint8> &m = 
-	  (*futures)[i].weighted ? 
+	const vector<uint8> &m =
+	  (*futures)[i].weighted ?
 	  motifs->RandomWeightedMotif() :
 	  motifs->RandomMotif();
 	for (int x = 0; x < m.size(); x++) {
@@ -972,12 +1099,33 @@ struct PlayFun {
     #endif
   }
 
+  Future MutateFuture(const Future &input) {
+    Future out;
+    out.is_mutant = true;
+    out.weighted = input.weighted;
+    if ((rc.Byte() & 7) == 0) out.weighted = !out.weighted;
+    out.inputs = input.inputs;
+
+    out.desired_length = input.desired_length;
+
+    // Replace tail with something random.
+    out.inputs.resize(max(MINFUTURELENGTH, input.desired_length / 2));
+
+    // Occasionally, try something very different.
+    if ((rc.Byte() & 7) == 0) {
+      Dualize(&out.inputs, 0, out.inputs.size());
+    }
+    // TODO: More interesting mutations here (chop, ablate, reverse..)
+
+    return out;
+  }
+
   // Consider every possible next step along with every possible
   // future. Commit to the step that has the best score among
   // those futures. Remove the futures that didn't perform well
   // overall, and replace them. Reweight motifs according... XXX
   void TakeBestAmong(const vector< vector<uint8> > &nexts,
-		     const vector<string> &nextsplanations,
+		     const vector<string> &nextplanations,
 		     vector<Future> *futures,
 		     bool chopfutures) {
     vector<uint8> current_state;
@@ -1021,21 +1169,14 @@ struct PlayFun {
     // They'll be replaced the next time around the loop.
     // PERF don't really need to make DROPFUTURES passes,
     // but there are not many futures and not many dropfutures.
-    for (int t = 0; t < DROPFUTURES; t++) {
+    static const int TOTAL_TO_DROP = DROPFUTURES + MUTATEFUTURES;
+    for (int t = 0; t < TOTAL_TO_DROP; t++) {
       // fprintf(stderr, "Drop futures (%d/%d).\n", t, DROPFUTURES);
       CHECK(!futures->empty());
       CHECK(futures->size() <= futuretotals.size());
       double worst_total = futuretotals[0];
       int worst_idx = 0;
       for (int i = 1; i < futures->size(); i++) {
-	#ifdef DEBUGFUTURES
-	fprintf(stderr, "%d. %s %d/%d: %f\n",
-		i, (*futures)[i].weighted ? "weighted" : "random",
-		(*futures)[i].inputs.size(),
-		(*futures)[i].desired_length,
-		futuretotals[i]);
-	#endif
-
 	if (worst_total < futuretotals[i]) {
 	  worst_total = futuretotals[i];
 	  worst_idx = i;
@@ -1043,10 +1184,30 @@ struct PlayFun {
       }
 
       // Delete it by swapping.
-      if (worst_idx != futures->size() - 1) {  
+      if (worst_idx != futures->size() - 1) {
 	(*futures)[worst_idx] = (*futures)[futures->size() - 1];
+	// Also swap in the futuretotals so the scores match.
+	// This was a bug before -- it always dropped the lowest
+	// scoring one and then the tail of the array (because this
+	// slot would still have the lowest score).
+	futuretotals[worst_idx] = futuretotals[futures->size() - 1];
       }
       futures->resize(futures->size() - 1);
+    }
+
+    // Now get the future with the best score.
+    CHECK(!futures->empty());
+    int best_future_idx = 0;
+    double best_future_score = futuretotals[0];
+    for (int i = 1; i < futures->size(); i++) {
+      if (futuretotals[i] > best_future_score) {
+	best_future_score = futuretotals[i];
+	best_future_idx = i;
+      }
+    }
+
+    for (int t = 0; t < MUTATEFUTURES; t++) {
+      futures->push_back(MutateFuture((*futures)[best_future_idx]));
     }
 
     // If in single mode, this is probably cached, but with
@@ -1054,7 +1215,7 @@ struct PlayFun {
     // fprintf(stderr, "Replay %d moves\n", nexts[best_next_idx].size());
     Emulator::LoadUncompressed(&current_state);
     for (int j = 0; j < nexts[best_next_idx].size(); j++) {
-      Commit(nexts[best_next_idx][j], nextsplanations[best_next_idx]);
+      Commit(nexts[best_next_idx][j], nextplanations[best_next_idx]);
     }
 
     // Now, if the motif we used was a local improvement to the
@@ -1103,7 +1264,7 @@ struct PlayFun {
 
     log = fopen(GAME "-log.html", "w");
     CHECK(log != NULL);
-    fprintf(log, 
+    fprintf(log,
 	    "<!DOCTYPE html>\n"
 	    "<link rel=\"stylesheet\" href=\"log.css\" />\n"
 	    "<h1>" GAME " started at %s %s.</h1>\n",
@@ -1111,10 +1272,11 @@ struct PlayFun {
 	    TimeString(time(NULL)).c_str());
     fflush(log);
 
+#if 0
     vector< vector<uint8> > nexts = motifvec;
-    vector<string> nextsplanations;
+    vector<string> nextplanations;
     for (int i = 0; i < nexts.size(); i++) {
-      nextsplanations.push_back(StringPrintf("motif %d:%d",
+      nextplanations.push_back(StringPrintf("motif %d:%d",
 					     i, nexts[i].size()));
     }
     // XXX...
@@ -1123,6 +1285,10 @@ struct PlayFun {
 	nexts[i][j] &= INPUTMASK;
       }
     }
+#endif
+
+    fprintf(stderr, "[MASTER] Beginning " 
+	    ANSI_YELLOW GAME ANSI_RESET ".\n");
 
     // This version of the algorithm looks like this. At some point in
     // time, we have the set of motifs we might play next. We'll
@@ -1133,7 +1299,7 @@ struct PlayFun {
     // matches its head). Then we play all the futures. The motif with the
     // best overall score is chosen; we chop the head off each future,
     // and add a random motif to its end.
-    //
+    // (XXX docs are inaccurate now)
     // XXX recycling futures...
     vector<Future> futures;
 
@@ -1146,13 +1312,18 @@ struct PlayFun {
       // XXX TODO this probably gets confused by backtracking.
       motifs->Checkpoint(movie.size());
 
-      TakeBestAmong(nexts, nextsplanations, &futures, true);
+      vector< vector<uint8> > nexts;
+      vector<string> nextplanations;
+      MakeNexts(futures, &nexts, &nextplanations);
 
-      fprintf(stderr, "%d rounds, %d inputs. %d until backtrack. "
+      TakeBestAmong(nexts, nextplanations, &futures, true);
+
+      fprintf(stderr, "%d rounds, "
+	      ANSI_WHITE "%d inputs" ANSI_RESET ". backtrack in %d. "
 	      "Cxpoints at ",
 	      iters, movie.size(), rounds_until_backtrack);
 
-      for (int i = 0, j = checkpoints.size() - 1; i < 4 && j >= 0; i++) {
+      for (int i = 0, j = checkpoints.size() - 1; i < 3 && j >= 0; i++) {
 	fprintf(stderr, "%d, ", checkpoints[j].movenum);
 	j--;
       }
@@ -1170,10 +1341,52 @@ struct PlayFun {
     }
   }
 
-  void TryImprove(const Checkpoint &start,
-		  const vector<uint8> &improveme, 
+  // Make the nexts that we should try for this round.
+  void MakeNexts(const vector<Future> &futures,
+		 vector< vector<uint8> > *nexts,
+		 vector<string> *nextplanations) {
+
+    // Note that backfill motifs are not necessarily this length.
+    static const int INPUTS_PER_NEXT = 10;
+
+    map< vector<uint8>, string > todo;
+    for (int i = 0; i < futures.size(); i++) {
+      if (futures[i].inputs.size() >= INPUTS_PER_NEXT) {
+	vector<uint8> nf(futures[i].inputs.begin(),
+			 futures[i].inputs.begin() + INPUTS_PER_NEXT);
+	if (todo.find(nf) == todo.end()) {
+	  todo.insert(make_pair(nf, StringPrintf("ftr-%d", i)));
+	}
+      }
+    }
+
+    // There may be duplicates (typical, in fact). Insert motifs
+    // as long as we can.
+    while (todo.size() < NFUTURES) {
+      const vector<uint8> *motif = motifs->RandomWeightedMotifNotIn(todo);
+      if (motif == NULL) {
+	fprintf(stderr, "No more motifs (have %d todo).\n", todo.size());
+	break;
+      }
+	
+      todo.insert(make_pair(*motif, "backfill"));
+    }
+
+    // Now populate nexts and explanations.
+    nexts->clear();
+    nextplanations->clear();
+    for (map< vector<uint8>, string >::const_iterator it = todo.begin();
+	 it != todo.end(); ++it) {
+      nexts->push_back(it->first);
+      nextplanations->push_back(it->second);
+    }
+  }
+
+  void TryImprove(Checkpoint *start,
+		  const vector<uint8> &improveme,
 		  const vector<uint8> &current_state,
-		  vector<Replacement> *replacements) {
+		  vector<Replacement> *replacements,
+		  double *improvability) {
 
     uint64 start_time = time(NULL);
     fprintf(stderr, "TryImprove step on %d inputs.\n",
@@ -1181,17 +1394,23 @@ struct PlayFun {
     CHECK(replacements);
     replacements->clear();
 
+    const double current_integral =
+      ScoreIntegral(&start->save, improveme, NULL);
+
+    fprintf(log, "<li>Trying to improve frames %d&ndash;%d, %f</li>\n",
+	    &start->movenum, movie.size(), current_integral);
+
     static const int MAXBEST = 10;
 
     // For random, we could compute the right number of
     // tasks based on the number of helpers...
-    static const int NUM_IMPROVE_RANDOM = 2;
+    static const int NUM_IMPROVE_RANDOM = 10;
     static const int RANDOM_ITERS = 200;
 
-    static const int NUM_ABLATION = 2;
+    static const int NUM_ABLATION = 10;
     static const int ABLATION_ITERS = 200;
 
-    static const int NUM_CHOP = 2;
+    static const int NUM_CHOP = 10;
     static const int CHOP_ITERS = 200;
 
     // Note that some of these have a fixed number
@@ -1209,16 +1428,17 @@ struct PlayFun {
 
     // Every request shares this stuff.
     TryImproveRequest base_req;
-    base_req.set_start_state(&start.save[0], start.save.size());
+    base_req.set_start_state(&start->save[0], start->save.size());
     base_req.set_improveme(&improveme[0], improveme.size());
     base_req.set_end_state(&current_state[0], current_state.size());
+    base_req.set_end_integral(current_integral);
     base_req.set_maxbest(MAXBEST);
 
     if (TRY_OPPOSITES) {
       TryImproveRequest req = base_req;
       req.set_approach(TryImproveRequest::OPPOSITES);
       req.set_iters(OPPOSITES_ITERS);
-      req.set_seed(StringPrintf("opp%d", start.movenum));
+      req.set_seed(StringPrintf("opp%d", start->movenum));
 
       HelperRequest hreq;
       hreq.mutable_tryimprove()->MergeFrom(req);
@@ -1228,7 +1448,7 @@ struct PlayFun {
     for (int i = 0; i < NUM_ABLATION; i++) {
       TryImproveRequest req = base_req;
       req.set_iters(ABLATION_ITERS);
-      req.set_seed(StringPrintf("abl%d.%d", start.movenum, i));
+      req.set_seed(StringPrintf("abl%d.%d", start->movenum, i));
       req.set_approach(TryImproveRequest::ABLATION);
 
       HelperRequest hreq;
@@ -1239,7 +1459,7 @@ struct PlayFun {
     for (int i = 0; i < NUM_CHOP; i++) {
       TryImproveRequest req = base_req;
       req.set_iters(CHOP_ITERS);
-      req.set_seed(StringPrintf("chop%d.%d", start.movenum, i));
+      req.set_seed(StringPrintf("chop%d.%d", start->movenum, i));
       req.set_approach(TryImproveRequest::CHOP);
 
       HelperRequest hreq;
@@ -1250,22 +1470,24 @@ struct PlayFun {
     for (int i = 0; i < NUM_IMPROVE_RANDOM; i++) {
       TryImproveRequest req = base_req;
       req.set_iters(RANDOM_ITERS);
-      req.set_seed(StringPrintf("seed%d.%d", start.movenum, i));
+      req.set_seed(StringPrintf("seed%d.%d", start->movenum, i));
       req.set_approach(TryImproveRequest::RANDOM);
 
       HelperRequest hreq;
       hreq.mutable_tryimprove()->MergeFrom(req);
       requests.push_back(hreq);
     }
-    
+
     GetAnswers<HelperRequest, TryImproveResponse>
       getanswers(ports_, requests);
     getanswers.Loop();
 
-    const vector<GetAnswers<HelperRequest, 
+    const vector<GetAnswers<HelperRequest,
 			    TryImproveResponse>::Work> &work =
       getanswers.GetWork();
 
+    fprintf(log, "<li>Attempts at improving:\n<ul>");
+    int numer = 0, denom = 0;
     for (int i = 0; i < work.size(); i++) {
       const TryImproveRequest &req = work[i].req->tryimprove();
       const TryImproveResponse &res = work[i].res;
@@ -1281,7 +1503,18 @@ struct PlayFun {
 	r.score = res.score(j);
 	replacements->push_back(r);
       }
+      
+      fprintf(log, "<li>%s: %d/%d</li>\n",
+	      TryImproveRequest::Approach_Name(req.approach()).c_str(),
+	      res.iters_better(),
+	      res.iters_tried());
+
+      numer += res.iters_better();
+      denom += res.iters_tried();
     }
+    fprintf(log, "</ul></li><li> ... (total %d/%d = %.1f%%)</li>\n",
+	    numer, denom, (100.0 * numer) / denom);
+    *improvability = (double)numer / denom;
 
     #else
     // This is optional, so if there's no MARIONET, skip for now.
@@ -1306,9 +1539,12 @@ struct PlayFun {
   }
 
 
-  void MaybeBacktrack(int iters, 
+  void MaybeBacktrack(int iters,
 		      int *rounds_until_backtrack,
 		      vector<Future> *futures) {
+    if (!TRY_BACKTRACK)
+      return;
+
     // Now consider backtracking.
     // TODO: We could trigger a backtrack step whenever we feel
     // like we aren't making significant progress, like when
@@ -1325,9 +1561,10 @@ struct PlayFun {
       fprintf(stderr, " ** backtrack time. **\n");
       uint64 start_time = time(NULL);
 
-      fprintf(log, 
+      fprintf(log,
 	      "<h2>Backtrack at iter %d, end frame %d, %s.</h2>\n",
 	      iters,
+	      
 	      movie.size(),
 	      TimeString(start_time).c_str());
       fflush(log);
@@ -1372,24 +1609,38 @@ struct PlayFun {
       vector<uint8> current_state;
       Emulator::SaveUncompressed(&current_state);
       vector<Replacement> replacements;
-      TryImprove(start, improveme, current_state,
-		 &replacements);
+      double improvability = 0.0;
+      TryImprove(&start, improveme, current_state,
+		 &replacements, &improvability);
       if (replacements.empty()) {
-	fprintf(stderr, "There were no superior replacements.\n");
+	fprintf(stderr,
+		ANSI_GREEN "There were no superior replacements."
+		ANSI_RESET "\n");
 	return;
+      } else if (improvability < 0.05) {
+	fprintf(stderr,
+		"Improvability only " ANSI_GREEN "%.2f :)" ANSI_RESET "\n",
+		100.0 * improvability);
+      } else if (improvability > 0.30) {
+	fprintf(stderr,
+		"Improvability high at " ANSI_RED "%.2f :(" ANSI_RESET "\n",
+		100.0 * improvability);
+      } else {
+	fprintf(stderr, "Improvability is " ANSI_CYAN "%.2f" ANSI_RESET "\n",
+		100.0 * improvability);
       }
 
       // Rather than trying to find the best immediate one (we might
-      // be hovering above a pit about to die), use the standard
-      // TakeBestAmong to score all the potential improvements, as
-      // well as the current best.
-      fprintf(stderr, 
+      // be hovering above a pit about to die, so we do need to look
+      // into the future), use the standard TakeBestAmong to score all
+      // the potential improvements, as well as the current best.
+      fprintf(stderr,
 	      "There are %d+1 possible replacements for last %d moves...\n",
 	      replacements.size(),
 	      nmoves);
 
       for (int i = 0; i < replacements.size(); i++) {
-	fprintf(log, 
+	fprintf(log,
 		"<li>%d inputs via %s, %.2f</li>\n",
 		replacements[i].inputs.size(),
 		replacements[i].method.c_str(),
@@ -1551,7 +1802,7 @@ int main(int argc, char *argv[]) {
       for (int i = 2; i < argc; i++) {
 	int hp = atoi(argv[i]);
 	if (!hp) {
-	  fprintf(stderr, 
+	  fprintf(stderr,
 		  "Expected a series of helper ports after --master.\n");
 	  abort();
 	}

@@ -36,3 +36,11 @@ necessarily achievable. I think it should work like this:
   one of the nexts. After TakeBestAmong we can grow the futures however
   we like.
 
+
+
+when futures are bad in general, shorten them and have more of them.
+When they are good, lengthen them and have fewer.
+
+
+can use number of successful (better) backtracks as a way of gauging how
+globally good my state is.
