@@ -1,0 +1,84 @@
+\documentclass[twocolumn]{article}
+\usepackage[top=1.1in, left=0.85in, right=0.85in]{geometry}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{code}
+\usepackage{graphicx}
+
+\pagestyle{empty}
+
+% XXX superscript
+\newcommand\th{th}
+
+% \usepackage{ulem}
+% go back to italics for emphasis, though
+% \normalem
+
+\begin{document} 
+
+\title{The First Level of Super Mario Bros.~is Easy with Lexicographic Orderings and Time Travel
+       {\normalsize \ldots after that it gets a little tricky.}}
+\author{Dr.~Tom~Murphy~VII~Ph.D.\thanks{
+Copyright \copyright\ 2013 the Regents of the Wikiplia
+Foundation. Appears in SIGBOVIK 2013 with the reluctant sigh of the
+Association for Computational Heresy; {\em IEEEEEE!} press,
+Verlag-Verlag volume no.~0x40-2A.
+CHF 0.00}
+}
+
+
+\renewcommand\>{$>$}
+\newcommand\<{$<$}
+
+\date{1 April 2013}
+
+\maketitle
+
+\begin{abstract}
+This is where the Abstract goes.
+\end{abstract}
+
+\vspace{1em}
+{\noindent \small {\bf Keywords}:
+  computational super mario brothers, memory inspection, lexicographic induction, networked entertainment systems, pit-jumping, ...
+
+}
+
+\section*{Introduction}
+The Nintendo Entertainment System is probably the best video game console, citation {\it not} needed. Like many, I have spent thousands of hours of my life playing NES games, including several complete playthroughs of classics like Super Mario Bros., Bionic Commando, Bubble Bobble, and other favorites. By the year 2013, home computers have become many orders of magnitude faster and more capacious than the NES hardware. This suggested to me that it may be time to automate the playing of NES games, in order to save time.\footnote{Rather, to replace it with time spent programming.} In this paper I present a generic technique for automating the playing of NES games. The approach is practical on a single computer, and succeeds on some games, such as Super Mario Bros.. The approach is amusingly elegant and surprisingly effective, requires no detailed knowledge of the game being played, and is capable of novel and impressive gameplay (for example, bug exploitation). {\bf Disclaimer for SIGBOVIK audience: This work is 100\% real.}
+
+A short video version of this paper is available for those that hate reading, at \verb+http://tom7.org/mario+. This page also contains audiovisual material that makes this work more entertaining (for example, its output) and source code.
+
+The basic idea is to deduce an objective function from a short recording of a player's inputs to the game. The objective function is then used to guide search over possible inputs, using an emulator. This allows the player's notion of progress to be generalized in order to produce novel gameplay. A design goal is that the objective function be amusingly elegant (not at all smart, fancy, or customized to the game) in order to demonstrate that the game is reducible to such a simple objective. The search needs to be game-agnostic and practical, but since the space is exponential ($256^{n}$), we need to be smart here.
+
+The objective function, the algorithm to deduce it, the search strategy, and its implementation are all interesting and will be discussed in that order. To set the stage, I begin with a description of the NES hardware and emulation of it.
+
+\subsection{The NES hardware and emulation}
+The NES is based around an 8-bit processor running at 1.79~MHz, the Ricoh 2A03. 8 bits is really small. You can see them all right here: 00001111. It's no coincidence that each controller also has 8 buttons: Up, Down, Left, Right, Select, Start, B and A. It has only 2048 bytes of general purpose RAM. (There is also some special purpose RAM for graphics, which we ignore in this work.) 2048 bytes is really small. You can see them all in Figure~\ref{fig:bytes2048}. As a result, NES programs are written to use memory efficiently and straightforwardly; usually there are fixed memory locations used for all the critical game facts like the player's health, number of lives, coordinates on the screen, and so on. For example, in Super Mario Bros., the single byte at location \verb+0x757+ contains the number of lives the player has. The location \verb+0x75F+ contains the current world, and \verb+0x760+ the current level.
+
+% (32kB of ROM is addressable at a time, and most games used bank switching to access hundreds of kilobytes of game included in the cartridge.) 
+
+There are a number of emulators for NES. These work by simulating the NES hardware, for example with a 2048-byte array for its memory, and simulating the steps of its 2A03 processor on some ROM, and hooking a keyboard or joystick into the 8 bits of input. (There are of course many details to work out! But in essence emulation is jut that.) This process is completely deterministic, so it is possible to record the sequence of inputs (the inputs can only be read once per video frame, so this sequence is 60 \comment{ XXX CHECK } bytes per second) and play them back and get the same result. This also means that an input sequence can be computed in non-real time, either much slower or much faster than a NES would normally run. In this work we use the FCEUX emulator, which is popular for its accuracy and advanced tools.
+
+\begin{figure}
+\begin{center}
+% XXX make image
+% \includegraphics[width=0.75 \linewidth]{bytes2048}
+\end{center}\vspace{-0.1in}
+\caption{2048 bytes, a 64x32 image.}
+\label{fig:bytes2048}
+\end{figure}
+
+\section{Objective function}
+
+Bytes in memory (and sometimes 16- and 32-bit words) can contain interesting game facts like the player's position in the level or score. The central idea of this paper is to use the value of memory locations to deduce when the player is ``winning''. The things that a human player perceives, like the video screen and sound effects, are completely ignored. As an additional simplification, we assume that winning always consists of a value {\it going up}---either the position in the level getting larger, the score getting larger, the number of lives, the world or level number getting bigger, etc.
+
+This is actually a little bit too naive; for example, Mario's overall progress through the game is represented by a pair. You start in World 1-1 and the underground level that comes next is World 1-2 (we'll call this $w=1$ and $\ell=2$). But after you discover the princess is in another castle in World 1-4, the next level is 2-1.\footnote{In case you never realized this, the legendary ``Minus World'' of \verb+ -1+ is not actually a negative world, but World 36-1 being incorrectly rendered because there is no glyph for the 36\th\ digit. The trick used to get to the Minus World just happens to leave the value 36 in that slot rather than initializing it to a useful value. The ROM does not contain data for world 36 so it just interprets garbage data as a description of the world.} This can't be represented as a single byte going up (sometimes the second part $\ell$ goes down when we get to a new first part $w$), but it can be represented as a lexicographic order on the pair $\langle w, \ell \rangle$; that is, $\langle w_1, \ell_1 \rangle < \langle \w_2, \ell_2$ if $\w_1 = \w_2$ and $\ell_1 < \ell_2$, or if $\w_1 < \w_2$ no matter the values of $\ell_1$ and $\ell_2$. This matches our intuitive idea and is also mathematically nice. It also generalizes multi-byte encodings of things like your score (which can be larger than 8 bits and so is often stored in 16 or 32), including both big-endian and little-endian representations.\footnote{A possible additional simplification would be to just take lexicographic orderings over bits, which then generalizes to 8-bit bytes. This is probably too crazy, but just right now I am sort of feeling like maybe I should try it, though it may be the beer.}
+
+More importantly, it allows the combination of semantically unrelated bytes, like: $\langle$ world, level, screen inside the world, $x$ position on the screen $\rangle$ or $\langle$ world, lives, low byte of score $\rangle$. Many orderings may describe gameplay. These orderings may be temporarily violated in normal play: Although the score always goes up, Mario's $x$ position may temporarily decrease if he needs to navigate around some obstacle.\footnote{Note to self: Maybe we should give a much higher score to globally preserved objectives than to locally preserved ones. But that may presuppose that the input represents a whole playthrough?} So, to ``faithfully'' represent gameplay, we will generate a set of lexicographic orderings on memory locations, with the idea that they ``generally go up'' but not necessarily at every step. These orderings will also have weights. The next section describes how we take a sequence of player inputs and deduce the orderings.
+
+\subsection{Deriving the objective function}
+
+
+\end{document}
