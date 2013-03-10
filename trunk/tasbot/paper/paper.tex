@@ -72,13 +72,69 @@ There are a number of emulators for NES. These work by simulating the NES hardwa
 
 \section{Objective function}
 
-Bytes in memory (and sometimes 16- and 32-bit words) can contain interesting game facts like the player's position in the level or score. The central idea of this paper is to use the value of memory locations to deduce when the player is ``winning''. The things that a human player perceives, like the video screen and sound effects, are completely ignored. As an additional simplification, we assume that winning always consists of a value {\it going up}---either the position in the level getting larger, the score getting larger, the number of lives, the world or level number getting bigger, etc.
+Bytes in memory (and sometimes 16- and 32-bit words) can contain interesting game facts like the player's position in the level or score. The central idea of this paper is to use (only) the value of memory locations to deduce when the player is ``winning''. The things that a human player perceives, like the video screen and sound effects, are completely ignored. As an additional simplification, we assume that winning always consists of a value {\it going up}---either the position in the level getting larger, the score getting larger, the number of lives, the world or level number getting bigger, etc.
 
-This is actually a little bit too naive; for example, Mario's overall progress through the game is represented by a pair. You start in World 1-1 and the underground level that comes next is World 1-2 (we'll call this $w=1$ and $\ell=2$). But after you discover the princess is in another castle in World 1-4, the next level is 2-1.\footnote{In case you never realized this, the legendary ``Minus World'' of \verb+ -1+ is not actually a negative world, but World 36-1 being incorrectly rendered because there is no glyph for the 36\th\ digit. The trick used to get to the Minus World just happens to leave the value 36 in that slot rather than initializing it to a useful value. The ROM does not contain data for world 36 so it just interprets garbage data as a description of the world.} This can't be represented as a single byte going up (sometimes the second part $\ell$ goes down when we get to a new first part $w$), but it can be represented as a lexicographic order on the pair $\langle w, \ell \rangle$; that is, $\langle w_1, \ell_1 \rangle < \langle \w_2, \ell_2$ if $\w_1 = \w_2$ and $\ell_1 < \ell_2$, or if $\w_1 < \w_2$ no matter the values of $\ell_1$ and $\ell_2$. This matches our intuitive idea and is also mathematically nice. It also generalizes multi-byte encodings of things like your score (which can be larger than 8 bits and so is often stored in 16 or 32), including both big-endian and little-endian representations.\footnote{A possible additional simplification would be to just take lexicographic orderings over bits, which then generalizes to 8-bit bytes. This is probably too crazy, but just right now I am sort of feeling like maybe I should try it, though it may be the beer.}
+This is actually a little bit too naive; for example, Mario's overall progress through the game is represented by a pair. You start in World 1-1 and the underground level that comes next is World 1-2 (we'll call this $w=1$ and $\ell=2$). But after you discover the princess is in another castle in World 1-4, the next level is 2-1.\footnote{In case you never realized this, it is time to learn that the legendary ``Minus World'' of \verb+ -1+ is not actually a negative world, but World 36-1 being incorrectly rendered because there is no glyph for the 36\th\ digit. The trick used to get to the Minus World just happens to leave the value 36 in that memory location rather than initializing it to a useful value. The ROM does not contain data for world 36 so it just interprets garbage data as a description of the world.} This can't be represented as a single byte going up (sometimes the second part $\ell$ goes down when we get to a new first part $w$), but it can be represented as a lexicographic order on the pair $\langle w, \ell \rangle$; that is, $\langle w_1, \ell_1 \rangle < \langle \w_2, \ell_2$ if $\w_1 = \w_2$ and $\ell_1 < \ell_2$, or if $\w_1 < \w_2$ no matter the values of $\ell_1$ and $\ell_2$. This matches our intuitive idea and is also mathematically nice. It also generalizes multi-byte encodings of things like your score (which can be larger than 8 bits and so is often stored in 16 or 32), including both big-endian and little-endian representations.\footnote{A possible additional simplification would be to just take lexicographic orderings over bits, which then generalizes to 8-bit bytes. This is probably too crazy, but just right now I am sort of feeling like maybe I should try it, though it may be the beer.}
 
 More importantly, it allows the combination of semantically unrelated bytes, like: $\langle$ world, level, screen inside the world, $x$ position on the screen $\rangle$ or $\langle$ world, lives, low byte of score $\rangle$. Many orderings may describe gameplay. These orderings may be temporarily violated in normal play: Although the score always goes up, Mario's $x$ position may temporarily decrease if he needs to navigate around some obstacle.\footnote{Note to self: Maybe we should give a much higher score to globally preserved objectives than to locally preserved ones. But that may presuppose that the input represents a whole playthrough?} So, to ``faithfully'' represent gameplay, we will generate a set of lexicographic orderings on memory locations, with the idea that they ``generally go up'' but not necessarily at every step. These orderings will also have weights. The next section describes how we take a sequence of player inputs and deduce the orderings.
 
 \subsection{Deriving the objective function}
 
+In order to derive an objective function, we'll start with an abstract
+subroutine that finds a single lexicographic ordering
+nondeterministically. This function takes in an ordered list of $n$
+memories $M_1\ldots M_n$ which all have size $m$ bytes. For example,
+$m = 2048$ and $n = 100$, for the memories at each of the first $100$
+frames of someone playing Super Mario Bros.. It produces an ordered
+list of unique memory locations $L_1 \ldots L_k$ (where $0 \leq L_i <
+m$, that is, each is some spot in the 2048 bytes of RAM) that is a
+{\em maximal} {\em valid} lexicographic ordering of $M$. Let's start
+by defining those terms just to be careful.
+
+Given some list of memory locations $L_1 \ldots L_k$ and a pair of
+memories $M_a$ and $M_b$, we say that $M_a =_L M_b$ iff $M_a[L_1] =
+M_b[L_1]$ and $M_a[L_2] = M_b[L_2]$ and so on for every $L_i$; that
+is, the bytes must be equal at each of the locations. Easy. We say
+that $M_a <_L M_b$ iff there exists some $p \leq k$ where $M_a[L_1] =
+M_b[L_1] \ldots M_a[L_{p-1}] = M_b[L_{p-1}]$ and $M_a[L_p] <
+M_b[L_p]$. Put simply, if the two memories are not equal according to
+$L$ (have the same byte at every memory location) then there is a
+unique first location ($L_p$) where they have a different byte, and
+that byte determines the order. $M_a >_L M_b$ is just defined as $M_b <_L
+M_a$; $M_a \leq_L M_b$ is just $M_a <_L M_b$ or $M_a =_L M_b$, and similarly
+for $\geq_L$, and they mean what you think so don't worry.
+
+Every $L$ defines a lexicographic ordering ($<$ and $=$ operators).
+$L$ is a {\em valid} lexicographic ordering of $M$ if $M_i \leq_L M_{i + 1}$
+for $1 \leq i \leq n$; each memory is less than or equal to the next
+memory in the sequence. It follows that $M_i \leq_L M_j$ whenever $i < j$.
+
+Every prefix of a valid $L$ (including the empty prefix) is a valid
+lexicographic ordering as well. On a scale from useless to useful, the
+empty prefix is a 1 (it equates all memories), which suggests that
+some orderings are better than other. To give a primitive notion of
+``good'' lexicographic orderings, we define a {\em maximal} valid
+lexicographic ordering to be $L$ such that there are no extensions of
+$L$ that are valid. An extension of $L_1 \ldots L_k$ is just $L_1
+\ldots L_k, L_{k+1}$ (where $L_{k+1} \neq L_i$ for $1 \leq i \leq k$):
+Some new memory location that we put at the end of the order (in the
+least important position). We do not consider extending in the middle
+of the order or beginning, although that would make sense.
+
+On a scale from simple to fancy, this algorithm is a 3. Given those
+definitions, the idea is to start with the empty prefix, which is
+always a valid lexicographic ordering but usually not maximal. We then
+pick an extension that is valid; if none exists then we are done and
+have a maximal valid ordering. Now we have a new valid ordering, and
+we repeat.
+
+This works but has the bummer downside that it produces 
+
+The function works like this:
+% XXX learnfun ... 
+
+\subsection{Playfun}
+
+On a scale from ...
 
 \end{document}
