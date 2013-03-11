@@ -88,8 +88,8 @@ $m = 2048$ and $n = 100$, for the memories at each of the first $100$
 frames of someone playing Super Mario Bros.. It produces an ordered
 list of unique memory locations $L_1 \ldots L_k$ (where $0 \leq L_i <
 m$, that is, each is some spot in the 2048 bytes of RAM) that is a
-{\em maximal} {\em valid} lexicographic ordering of $M$. Let's start
-by defining those terms just to be careful.
+{\em maximal} {\em tight} {\em valid} lexicographic ordering of $M$.
+Let's start by defining those terms just to be careful.
 
 Given some list of memory locations $L_1 \ldots L_k$ and a pair of
 memories $M_a$ and $M_b$, we say that $M_a =_L M_b$ iff $M_a[L_1] =
@@ -121,14 +121,22 @@ Some new memory location that we put at the end of the order (in the
 least important position). We do not consider extending in the middle
 of the order or beginning, although that would make sense.
 
+Maximal valid orderings are good and it is straightforward to produce
+them (a less constrained version of the algorithm below), but they
+have the bummer downside that memory locations that never change value
+for any $M$ can be included at any position of the ordering, and all
+such choices are equivalent. And in fact all locations {\em must} be
+included to make the ordering {\em maximal}. This is bad because when
+$M$ contains many locations with fixed values, we have boatloads of
+equivalent orderings, and they're also longer than necessary. An {\em
+  tight} valid ordering is one where each $L_i$ .. XXX HERE.
+
 On a scale from simple to fancy, this algorithm is a 3. Given those
 definitions, the idea is to start with the empty prefix, which is
 always a valid lexicographic ordering but usually not maximal. We then
 pick an extension that is valid; if none exists then we are done and
 have a maximal valid ordering. Now we have a new valid ordering, and
 we repeat.
-
-This works but has the bummer downside that it produces 
 
 The function works like this:
 % XXX learnfun ... 
