@@ -66,9 +66,12 @@ void WeightedObjectives::SaveToFile(const string &filename) const {
   string out;
   for (Weighted::const_iterator it = weighted.begin(); 
        it != weighted.end(); ++it) {
-    const vector<int> &obj = it->first;
-    out += StringPrintf("%f %s\n", it->second,
-			ObjectiveToString(obj).c_str());
+    if (it->second->weight > 0) {
+      const vector<int> &obj = it->first;
+      const Info &info = *it->second;
+      out += StringPrintf("%f %s\n", info.weight,
+			  ObjectiveToString(obj).c_str());
+    }
   }
   Util::WriteFile(filename, out);
   printf("Saved weighted objectives to %s\n", filename.c_str());
@@ -255,26 +258,40 @@ void WeightedObjectives::WeightByExamples(const vector< vector<uint8> >
 					  &memories) {
   for (Weighted::iterator it = weighted.begin();
        it != weighted.end(); ++it) {
-    double score = 0.0;
-
     const vector<int> &obj = it->first;
+    Info *info = it->second;
     // All the distinct values this objective takes on, in order.
     vector< vector<uint8> > values = GetUniqueValues(memories, obj);
 
+
+    // Sum of deltas is just very last - very first.
+    CHECK(memories.size() > 0);
+    double score_end =
+      GetValueFrac(values, GetValues(memories[memories.size() - 1], obj));
+    double score_begin = 
+      GetValueFrac(values, GetValues(memories[0], obj));
+    CHECK(score_end >= 0 && score_end <= 1);
+    CHECK(score_begin >= 0 && score_begin <= 1);
+    double score = score_end - score_begin;
+
+    /*
     int lastvaluefrac = 0.0;
     for (int i = 0; i < memories.size(); i++) {
       vector<uint8> now = GetValues(memories[i], obj);
       double valuefrac = GetValueFrac(values, now);
+      CHECK(valuefrac >= 0);
+      CHECK(valuefrac <= 1);
       score += (valuefrac - lastvaluefrac);
       lastvaluefrac = valuefrac;
     }
+    */
 
     if (score <= 0.0) {
       printf("Bad objective lost more than gained: %f / %s\n",
 	     score, ObjectiveToString(obj).c_str());
-      it->second->weight = 0.0;
+      info->weight = 0.0;
     } else {
-      it->second->weight = score;
+      info->weight = score;
     }
   }
 }
@@ -293,6 +310,7 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
   for (Weighted::const_iterator it = weighted.begin();
        howmany-- && it != weighted.end(); ++it) {
     const vector<int> &obj = it->first;
+    const Info &info = *it->second;
     // All the distinct values this objective takes on, in order.
     vector< vector<uint8> > values = GetUniqueValues(memories, obj);
     // printf("%lld distinct values for %s\n", values.size(),
@@ -301,7 +319,12 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
     const string color = RandomColor(&rc);
     const string startpolyline =
       StringPrintf("  <polyline fill=\"none\" opacity=\"0.5\" stroke=\"%s\""
-		   " stroke-width=\"1\" points=\"", color.c_str());
+		   " stroke-width=\"%d\" points=\"", 
+		   (info.weight <= 0) ? "#f00" : "#0f0",
+		   // color.c_str(),
+		   1
+		   // (info.weight <= 0) ? 3 : 1
+		   );
     const string endpolyline = "\" />\n";
     out += "<g>\n";
     out += startpolyline;

@@ -36,12 +36,6 @@ struct WeightedObjectives {
   double Evaluate(const vector<uint8> &mem1,
                   const vector<uint8> &mem2) const;
 
-  // Old buggy version. Same as GetNumLess I think?
-#if 0
-  double BuggyEvaluate(const vector<uint8> &mem1,
-                       const vector<uint8> &mem2) const;
-#endif
-
   // Observe a game state. This informs us about the values that
   // the objective functions can take on, which lets us score the
   // magnitude of their changes. Not necessary for GetNumLess() or
