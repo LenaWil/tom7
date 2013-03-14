@@ -123,6 +123,7 @@ static void MakeObjectives(const vector< vector<uint8> > &memories) {
   // Weight them. Currently this is just removing duplicates.
   printf("There are %d objectives\n", objectives->size());
   WeightedObjectives weighted(*objectives);
+  printf("And %d example memories\n", memories.size());
   weighted.WeightByExamples(memories);
   printf("And %d unique objectives\n", weighted.Size());
 

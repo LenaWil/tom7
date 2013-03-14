@@ -221,18 +221,18 @@ struct PlayFun {
 
   // Number of real futures to push forward.
   // XXX the more the merrier! Made this small to test backtracking.
-  static const int NFUTURES = 50;
+  static const int NFUTURES = 40;
 
   // Number of futures that should be generated from weighted
   // motifs as opposed to totally random.
-  static const int NWEIGHTEDFUTURES = 45;
+  static const int NWEIGHTEDFUTURES = 35;
 
   // Drop this many of the worst futures and replace them with
   // totally new futures.
   static const int DROPFUTURES = 5;
   // Drop this many of the worst futures and replace them with
   // variants on the best future.
-  static const int MUTATEFUTURES = 10;
+  static const int MUTATEFUTURES = 7;
 
   // Number of inputs in each future.
   static const int MINFUTURELENGTH = 50;

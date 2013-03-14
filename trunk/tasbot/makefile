@@ -122,7 +122,7 @@ test : emu_test.exe objective_test.exe weighted-objectives_test.exe
 	time ./weighted-objectives_test.exe
 
 clean :
-	rm -f *.exe *.o $(EMUOBJECTS) $(CCLIBOBJECTS) gmon.out
+	rm -f learnfun.exe playfun.exe showfun.exe *_test.exe *.o $(EMUOBJECTS) $(CCLIBOBJECTS) gmon.out
 
 veryclean : clean cleantas
 
