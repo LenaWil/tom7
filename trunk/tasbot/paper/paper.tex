@@ -5,17 +5,25 @@
 \usepackage{amssymb}
 \usepackage{code}
 \usepackage{graphicx}
+\usepackage{fancyvrb}
 
 \pagestyle{empty}
 
-\newcommand[1]{comment}{}
-\newcommand[1]{parameteralert}{
+\newcommand\comment[1]{}
+\newcommand\parameteralert[1]{
   % XXX this can get cooler.
   {\bf Parameter Alert!}\,\, #1
 }
 
-% XXX superscript
-\newcommand\th{th}
+\newcommand\st{$^{\mathrm{st}}$}
+\newcommand\nd{$^{\mathrm{nd}}$}
+\newcommand\rd{$^{\mathrm{rd}}$}
+\renewcommand\th{$^{\mathrm{th}}$}
+\newcommand\tm{$^{\mbox{\tiny \textsc{tm}}}$}
+
+% nice fractions
+\newcommand\sfrac[2]{{}\,$^{#1}$\!/{}\!$_{#2}$}
+
 
 % \usepackage{ulem}
 % go back to italics for emphasis, though
@@ -68,10 +76,10 @@ The NES is based around an 8-bit processor running at 1.79~MHz, the Ricoh 2A03. 
 
 There are a number of emulators for NES. These work by simulating the NES hardware, for example with a 2048-byte array for its memory, and simulating the steps of its 2A03 processor on some ROM, and hooking a keyboard or joystick into the 8 bits of input. (There are of course many details to work out! But in essence emulation is jut that.) This process is completely deterministic, so it is possible to record the sequence of inputs (the inputs can only be read once per video frame, so this sequence is 60 \comment{ XXX CHECK } bytes per second) and play them back and get the same result. This also means that an input sequence can be computed in non-real time, either much slower or much faster than a NES would normally run. In this work we use the FCEUX emulator, which is popular for its accuracy and advanced tools.
 
-\begin{figure}
+\begin{figure}[ht]
 \begin{center}
-% XXX make image
-% \includegraphics[width=0.75 \linewidth]{bytes2048}
+% TODO: better if actual ram!
+\includegraphics[width=0.75 \linewidth]{bytes2048}
 \end{center}\vspace{-0.1in}
 \caption{2048 bytes, a 64x32 image.}
 \label{fig:bytes2048}
@@ -81,7 +89,7 @@ There are a number of emulators for NES. These work by simulating the NES hardwa
 
 Bytes in memory (and sometimes 16- and 32-bit words) can contain interesting game facts like the player's position in the level or score. The central idea of this paper is to use (only) the value of memory locations to deduce when the player is ``winning''. The things that a human player perceives, like the video screen and sound effects, are completely ignored. As an additional simplification, we assume that winning always consists of a value {\it going up}---either the position in the level getting larger, the score getting larger, the number of lives, the world or level number getting bigger, etc.
 
-This is actually a little bit too naive; for example, Mario's overall progress through the game is represented by a pair. You start in World 1-1 and the underground level that comes next is World 1-2 (we'll call this $w=1$ and $\ell=2$). But after you discover the princess is in another castle in World 1-4, the next level is 2-1.\footnote{In case you never realized this, it is time to learn that the legendary ``Minus World'' of \verb+ -1+ is not actually a negative world, but World 36-1 being incorrectly rendered because there is no glyph for the 36\th\ digit. The trick used to get to the Minus World just happens to leave the value 36 in that memory location rather than initializing it to a useful value. The ROM does not contain data for world 36 so it just interprets garbage data as a description of the world.} This can't be represented as a single byte going up (sometimes the second part $\ell$ goes down when we get to a new first part $w$), but it can be represented as a lexicographic order on the pair $\langle w, \ell \rangle$; that is, $\langle w_1, \ell_1 \rangle < \langle \w_2, \ell_2$ if $\w_1 = \w_2$ and $\ell_1 < \ell_2$, or if $\w_1 < \w_2$ no matter the values of $\ell_1$ and $\ell_2$. This matches our intuitive idea and is also mathematically nice. It also generalizes multi-byte encodings of things like your score (which can be larger than 8 bits and so is often stored in 16 or 32), including both big-endian and little-endian representations.\footnote{A possible additional simplification would be to just take lexicographic orderings over bits, which then generalizes to 8-bit bytes. This is probably too crazy, but just right now I am sort of feeling like maybe I should try it, though it may be the beer.}
+This is actually a little bit too naive; for example, Mario's overall progress through the game is represented by a pair. You start in World 1-1 and the underground level that comes next is World 1-2 (we'll call this $w=1$ and $\ell=2$). But after you discover the princess is in another castle in World 1-4, the next level is 2-1.\footnote{In case you never realized this, it is time to learn that the legendary ``Minus World'' of {\tt\, -1} is not actually a negative world, but World 36-1 being incorrectly rendered because there is no glyph for the 36\th\ digit. The trick used to get to the Minus World just happens to leave the value 36 in that memory location rather than initializing it to a useful value. The ROM does not contain data for world 36 so it just interprets garbage data as a description of the world.} This can't be represented as a single byte going up (sometimes the second part $\ell$ goes down when we get to a new first part $w$), but it can be represented as a lexicographic order on the pair $\langle w, \ell \rangle$; that is, $\langle w_1, \ell_1 \rangle < \langle w_2, \ell_2$ if $w_1 = w_2$ and $\ell_1 < \ell_2$, or if $w_1 < w_2$ no matter the values of $\ell_1$ and $\ell_2$. This matches our intuitive idea and is also mathematically nice. It also generalizes multi-byte encodings of things like your score (which can be larger than 8 bits and so is often stored in 16 or 32), including both big-endian and little-endian representations.\footnote{A possible additional simplification would be to just take lexicographic orderings over bits, which then generalizes to 8-bit bytes. This is probably too crazy, but just right now I am sort of feeling like maybe I should try it, though it may be the beer.}
 
 More importantly, it allows the combination of semantically unrelated bytes, like: $\langle$ world, level, screen inside the world, $x$ position on the screen $\rangle$ or $\langle$ world, lives, low byte of score $\rangle$. Many orderings may describe gameplay. These orderings may be temporarily violated in normal play: Although the score always goes up, Mario's $x$ position may temporarily decrease if he needs to navigate around some obstacle.\footnote{Note to self: Maybe we should give a much higher score to globally preserved objectives than to locally preserved ones. But that may presuppose that the input represents a whole playthrough?} So, to ``faithfully'' represent gameplay, we will generate a set of lexicographic orderings on memory locations, with the idea that they ``generally go up'' but not necessarily at every step. These orderings will also have weights. The next section describes how we take a sequence of player inputs and deduce the orderings.
 
@@ -156,7 +164,7 @@ more pseudodetailed. The C++ implementation is in \verb+objective.*+.
 C++ is not a good language for this kind of program but we use it
 because the NES emulator is written in C++.
 
-\begin{figure}[htp]
+\begin{figure*}[htp]
   \begin{code}
     (* Prefix is the prefix so far (int list)
        and remain is the list of memory locations
@@ -212,7 +220,7 @@ because the NES emulator is written in C++.
     one pair of memories where the location has a value that is
     strictly less.}
   \label{fig:ordering}
-\end{figure}
+\end{figure*}
 
 \subsection{The objective function, in practice}
 
@@ -303,11 +311,11 @@ objectives on an absolute scale.\footnote{This is certainly not the
   ignoring the magnitude of change. But it is very simple.} Weighting
 an objective is now simple:
 %
-$$ \Sigma_{i=1}^{n-1}  {\tt VF}($M_{i+1}$) - {\tt VF}($M_{i}$) $$
+$$ \Sigma_{i=1}^{n-1}  {\tt VF}(M_{i+1}) - {\tt VF}(M_{i}) $$
 %
 We sum the differences in value functions for each consecutive pair of
-memories. In the case of the ideal function this is \Sigma_{i=1}^{n-1}
-$1/n$, which approaches $1$.\footnote{The code implements a different
+memories. In the case of the ideal function this is $\Sigma_{i=1}^{n-1}
+1/n$, which approaches $1$.\footnote{The code implements a different
   weighting scheme, which sums from $i=0$ and keeps track of the last
   value fraction at each step, thus treating the value fraction of the
   nonexistent memory $M_0$ as 0. This is wrong, because the first
@@ -416,20 +424,20 @@ possible inputs at each step, and pick the best one. The inner
 loop looks pseudolike this:
 
 \begin{code}
-  for (;;) {
+  for (;;) \{
     vector<uint8> before = GetMemory();
     vector<uint8> state = GetState();
     // Try every bitmask of the 8 inputs.
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < 256; i++) \{
       RestoreState(state);
       Step((uint8)i);
       vector<uint8> after = GetMemory();
       double score = Score(before, after);
       // Save the best-scoring i...
-    }
+    \}
     RestoreState(state);
     Step(bestinput);
-  }
+  \}
 \end{code}
 
 {\tt Score} computes a score of two memories using the objective
@@ -449,13 +457,13 @@ motifs. This drastically reduces the search space and makes each
 step more significant; the inner loop can now be:
 
 \begin{code}
-for (const Motif &m : motifs) {
+for (const Motif &m : motifs) \{
   RestoreState(state);
   for (uint8 i : m.inputs()) Step(i);
   vector<uint8> after = GetMemory();
   double score = Score(before, after);
   // Save the best-scoring motif...
-}
+\}
 \end{code}
 
 This works much better (anything would), though not much better than
