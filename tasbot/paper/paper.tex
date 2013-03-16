@@ -70,11 +70,11 @@ The basic idea is to deduce an objective function from a short recording of a pl
 The objective function, the algorithm to deduce it, the search strategy, and its implementation are all interesting and will be discussed in that order. To set the stage, I begin with a description of the NES hardware and emulation of it.
 
 \subsection{The NES hardware and emulation}
-The NES is based around an 8-bit processor running at 1.79~MHz, the Ricoh 2A03. 8 bits is really small. You can see them all right here: 00001111. It's no coincidence that each controller also has 8 buttons: Up, Down, Left, Right, Select, Start, B and A. It has only 2048 bytes of general purpose RAM. (There is also some special purpose RAM for graphics, which we ignore in this work.) 2048 bytes is really small. You can see them all in Figure~\ref{fig:bytes2048}. As a result, NES programs are written to use memory efficiently and straightforwardly; usually there are fixed memory locations used for all the critical game facts like the player's health, number of lives, coordinates on the screen, and so on. For example, in Super Mario Bros., the single byte at location \verb+0x757+ contains the number of lives the player has. The location \verb+0x75F+ contains the current world, and \verb+0x760+ the current level.
+The NES is based around an 8-bit processor running at 1.79~MHz, the Ricoh 2A03. 8 bits is really small. You can see them all right here: 00001111. It's no coincidence that each controller also has 8 buttons: Up, Down, Left, Right, Select, Start, B and A. It has only 2048 bytes of general purpose RAM. (There is also some special purpose RAM for graphics, which we ignore in this work.) 2048 bytes is really small. You can see them all in Figure~\ref{fig:bytes2048}. As a result, NES programs are written to use memory efficiently and straightforwardly; usually there are fixed memory locations used for all the critical game facts like the player's health, number of lives, coordinates on the screen, and so on. For example, in Super Mario Bros., the single byte at location \verb+0x757+ contains the number of lives the player has. The location \verb+0x75F+ contains the current world, and \verb+0x760+ the current level. The NES outputs 60.0988 frames per second, which we will just call 60 in this paper.
 
 % (32kB of ROM is addressable at a time, and most games used bank switching to access hundreds of kilobytes of game included in the cartridge.) 
 
-There are a number of emulators for NES. These work by simulating the NES hardware, for example with a 2048-byte array for its memory, and simulating the steps of its 2A03 processor on some ROM, and hooking a keyboard or joystick into the 8 bits of input. (There are of course many details to work out! But in essence emulation is jut that.) This process is completely deterministic, so it is possible to record the sequence of inputs (the inputs can only be read once per video frame, so this sequence is 60 \comment{ XXX CHECK } bytes per second) and play them back and get the same result. This also means that an input sequence can be computed in non-real time, either much slower or much faster than a NES would normally run. In this work we use the FCEUX emulator, which is popular for its accuracy and advanced tools.
+There are a number of emulators for NES. These work by simulating the NES hardware, for example with a 2048-byte array for its memory, and simulating the steps of its 2A03 processor on some ROM, and hooking a keyboard or joystick into the 8 bits of input. (There are of course many details to work out! But in essence emulation is jut that.) This process is completely deterministic, so it is possible to record the sequence of inputs (the inputs can only be read once per video frame, so this sequence is 60 bytes per second) and play them back and get the same result. This also means that an input sequence can be computed in non-real time, either much slower or much faster than a NES would normally run. In this work we use the FCEUX emulator, which is popular for its accuracy and advanced tools.
 
 \begin{figure}[ht]
 \begin{center}
@@ -582,7 +582,7 @@ opinion.
 
 \begin{figure}[ht]
 \begin{center}
-\includegraphics[width=0.75 \linewidth]{adventureisland}
+\includegraphics[width=0.95 \linewidth]{adventureisland}
 \end{center}\vspace{-0.1in}
 \caption{Master Higgins putting safety first.}
 \label{fig:adventureisland}
@@ -602,18 +602,19 @@ doesn't have much trouble avoiding ghosts except when they trap him.
 Play is pretty strange: He doesn't necessarily grab nearby dots (hard
 to explain) and often switches direction in the middle of a corridor,
 unlike human play which is usually efficient sweeps of the dots when
-ghosts aren't near. However, automating has a huge advantage over human
-players with respect to ghosts, and Pac-Man is alarmingly fearless. He
-chases ghosts down corridors, turns straight into them, knowing that
-they will change direction in time to not run into him (this makes
-the time travel advantage quite stark). Figure~\ref{fig:pacman} shows
-gratuitous daredeviling as he ducks into a tiny sliver of space between
-two ghosts, then again, and survives.
+ghosts aren't near. However, automating has a huge advantage over
+human players with respect to ghosts, and Pac-Man is alarmingly
+fearless. He chases ghosts down corridors, turns straight into them,
+knowing that they will change direction in time to not run into him
+(this makes the time travel advantage quite stark).
+Figure~\ref{fig:pacman} shows gratuitous daredeviling as he ducks in
+and out of a tiny sliver of space between two ghosts, then does it
+again, and survives.
 
 \begin{figure}[ht]
 \begin{center}
-\includegraphics[width=0.75 \linewidth]{pacman1}
-\includegraphics[width=0.75 \linewidth]{pacman2}
+\includegraphics[width=0.75 \linewidth]{pacman1} \\[0.3em]
+\includegraphics[width=0.75 \linewidth]{pacman2} \\[0.3em]
 \includegraphics[width=0.75 \linewidth]{pacman3}
 \end{center}\vspace{-0.1in}
 \caption{Pac-Man showing utter disregard for the ghosts's personal
