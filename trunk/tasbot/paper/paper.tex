@@ -549,4 +549,79 @@ HERE
 
 \subsection{Caching of emulation}
 
+
+% good parts!
+% pacman @6800
+
+\section{Results}
+
+These games were all played with the same settings developed and tuned
+for Super Mario Bros.; that is, this was the result of just running
+the program the first time on a recording of me playing the game briefly.
+
+\subsection{Hudson's Adventure Island}
+
+This is a very difficult game featuring a skateboarding cherubic
+island guy called Master Higgins, whose girlfriend has been kidnapped
+by King Quiller. He basically runs to the right and can throw or ride
+stuff that he finds in eggs. The controls are pretty soft and danger
+is everywhere. The objective functions that work are probably pretty
+similar to Super Mario Bros., but there are fewer obstacles to
+navigate---the difficulty for humans mostly comes from the speed and
+reaction time. Master Higgins doesn't care about bumping into rocks
+and dropping his health almost to nothing (but then is careful about
+health), and once he gets a weapon his aim anticipates off-screen
+enemies and he looks pretty savvy (Figure~\ref{fig:adventureisland}).
+His weakness regards holes in the ground, which he sometimes jumps
+into, probably for the same reason that Mario sometimes does. His
+``pot bonus'' was 16720. Master Higgins beats several levels and makes
+it into the cave before losing his last life by jumping straight into
+a vibrating skull with swirling fireballs around it, which on a scale
+of Darwin Award to dignified death is approximately a 6, in my
+opinion.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.75 \linewidth]{adventureisland}
+\end{center}\vspace{-0.1in}
+\caption{Master Higgins putting safety first.}
+\label{fig:adventureisland}
+\end{figure}
+
+\subsection{Pac-Man}
+
+One of the smallest NES games at a mere 24kb, Pac-Man is a classic
+that I won't belabor. It has a fairly straightforward objective---your
+score---and there is no timer or anything to worry about but the
+ghosts. A good planner could probably solve Pac-Man with just score as
+an objective (keep in mind that with RAM inspection and because of
+ghost movement, this is not just a simple matter of using A$^{*}$ or
+something to plan a path through the Euclidean grid---states aren't
+repeated hardly ever). Automating this game works pretty well; Pac-Man
+doesn't have much trouble avoiding ghosts except when they trap him.
+Play is pretty strange: He doesn't necessarily grab nearby dots (hard
+to explain) and often switches direction in the middle of a corridor,
+unlike human play which is usually efficient sweeps of the dots when
+ghosts aren't near. However, automating has a huge advantage over human
+players with respect to ghosts, and Pac-Man is alarmingly fearless. He
+chases ghosts down corridors, turns straight into them, knowing that
+they will change direction in time to not run into him (this makes
+the time travel advantage quite stark). Figure~\ref{fig:pacman} shows
+gratuitous daredeviling as he ducks into a tiny sliver of space between
+two ghosts, then again, and survives.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.75 \linewidth]{pacman1}
+\includegraphics[width=0.75 \linewidth]{pacman2}
+\includegraphics[width=0.75 \linewidth]{pacman3}
+\end{center}\vspace{-0.1in}
+\caption{Pac-Man showing utter disregard for the ghosts's personal
+  space. This occurs around frame 6700 of the output movie. Pac-Man
+  slips into the space between Blinky and Inky to touch the wall,
+  comes out unharmed, then momentarily teases Clyde before escaping
+  to vibrate some more in empty corridors.}
+\label{fig:pacman}
+\end{figure}
+
 \end{document}
