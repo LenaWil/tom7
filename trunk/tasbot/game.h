@@ -11,17 +11,20 @@
 #define BASE64 "base64:jjYwGG411HcjG/j9UOVM3Q=="
 */
 
+/*
 #define GAME "adventureisland"
 #define MOVIE "adventureisland-tom.fm2"
 #define BASE64 "base64:JIuhrL/tKL5OaDmoWKXGCg=="
 #define FASTFORWARD 0
+*/
 
 // #define GAME "karate"
 // #define MOVIE "karate-tom.fm2"
 // #define BASE64 "base64:6xX0UBv8pLORyg1PCzbWcA=="
 
-// #define GAME "pacman"
-// #define MOVIE "pacman-tom.fm2"
-// #define FASTFORWARD 600
+#define GAME "pacman"
+#define MOVIE "pacman-tom.fm2"
+#define FASTFORWARD 600
+#define BASE64 "base64:ymBr2Kh1o5bVJzXDu4T6Zw=="
 
 #endif
