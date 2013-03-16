@@ -7,6 +7,7 @@
 \usepackage{graphicx}
 \usepackage{fancyvrb}
 \usepackage{url}
+\usepackage{textcomp}
 % \usepackage{inlinebib}
 
 \pagestyle{empty}
@@ -62,7 +63,7 @@ This is where the Abstract goes.
 
 }
 
-\section*{Introduction}
+\section{Introduction}
 The Nintendo Entertainment System is probably the best video game console, citation {\it not} needed. Like many, I have spent thousands of hours of my life playing NES games, including several complete playthroughs of classics like Super Mario Bros., Bionic Commando, Bubble Bobble, and other favorites. By the year 2013, home computers have become many orders of magnitude faster and more capacious than the NES hardware. This suggested to me that it may be time to automate the playing of NES games, in order to save time.\footnote{Rather, to replace it with time spent programming.} In this paper I present a generic technique for automating the playing of NES games. The approach is practical on a single computer, and succeeds on several games, such as Super Mario Bros.. The approach is amusingly elegant and surprisingly effective, requires no detailed knowledge of the game being played, and is capable of novel and impressive gameplay (for example, bug exploitation). {\bf Disclaimer for SIGBOVIK audience: This work is 100\% real.}
 
 On a scale from ``the title starts with Toward'' to ``Donald Knuth has finally finished the 8\th\ volume on the subject,'' this work is a 3. The purpose of this paper is mainly as a careful record of the current status for repeatability and further development on this important research subject. A short video version of this paper is available for those that hate reading, at \verb+http://tom7.org/mario+, and is the more fun way to consume the results. This page also contains audiovisual material that makes this work more entertaining (for example, its output) and source code.
@@ -80,7 +81,18 @@ The NES is based around an 8-bit processor running at 1.79~MHz, the Ricoh 2A03. 
 
 % (32kB of ROM is addressable at a time, and most games used bank switching to access hundreds of kilobytes of game included in the cartridge.) 
 
-There are a number of emulators for NES. These work by simulating the NES hardware, for example with a 2048-byte array for its memory, and simulating the steps of its 2A03 processor on some ROM, and hooking a keyboard or joystick into the 8 bits of input. (There are of course many details to work out! But in essence emulation is jut that.) This process is completely deterministic, so it is possible to record the sequence of inputs (the inputs can only be read once per video frame, so this sequence is 60 bytes per second) and play them back and get the same result. This also means that an input sequence can be computed in non-real time, either much slower or much faster than a NES would normally run. In this work we use the FCEUX emulator, which is popular for its accuracy and advanced tools.
+There are a number of emulators for NES. These work by simulating the
+NES hardware, for example with a 2048-byte array for its memory, and
+simulating the steps of its 2A03 processor on some ROM, and hooking a
+keyboard or joystick into the 8 bits of input. (There are of course
+many details to work out! But in essence emulation is just that.) This
+process is completely deterministic, so it is possible to record the
+sequence of inputs (the inputs can only be read once per video frame,
+so this sequence is 60 bytes per second) and play them back and get
+the same result. This also means that an input sequence can be
+computed in non-real time, either much slower or much faster than a
+NES would normally run. In this work we use the FCEUX\cite{FCEUX}
+emulator, which is popular for its accuracy and advanced tools.
 
 \begin{figure}[ht]
 \begin{center}
@@ -93,13 +105,122 @@ There are a number of emulators for NES. These work by simulating the NES hardwa
 
 \section{Objective function}
 
-Bytes in memory (and sometimes 16- and 32-bit words) can contain interesting game facts like the player's position in the level or score. The central idea of this paper is to use (only) the value of memory locations to deduce when the player is ``winning''. The things that a human player perceives, like the video screen and sound effects, are completely ignored. As an additional simplification, we assume that winning always consists of a value {\it going up}---either the position in the level getting larger, the score getting larger, the number of lives, the world or level number getting bigger, etc.
+Bytes in memory (and sometimes 16- and 32-bit words) can contain
+interesting game facts like the player's position in the level or
+score. The central idea of this paper is to use (only) the value of
+memory locations to deduce when the player is ``winning''. The things
+that a human player perceives, like the video screen and sound
+effects, are completely ignored. As an additional simplification, we
+assume that winning always consists of a value {\it going up}---either
+the position in the level getting larger, the score getting larger,
+the number of lives, the world or level number getting bigger, and so
+on.
 
-This is actually a little bit too naive; for example, Mario's overall progress through the game is represented by a pair. You start in World 1-1 and the underground level that comes next is World 1-2 (we'll call this $w=1$ and $\ell=2$). But after you discover the princess is in another castle in World 1-4, the next level is 2-1.\footnote{In case you never realized this, it is time to learn that the legendary ``Minus World'' of {\tt\, -1} is not actually a negative world, but World 36-1 being incorrectly rendered because there is no glyph for the 36\th\ digit. The trick used to get to the Minus World just happens to leave the value 36 in that memory location rather than initializing it to a useful value. The ROM does not contain data for world 36 so it just interprets garbage data as a description of the world.} This can't be represented as a single byte going up (sometimes the second part $\ell$ goes down when we get to a new first part $w$), but it can be represented as a lexicographic order on the pair $\langle w, \ell \rangle$; that is, $\langle w_1, \ell_1 \rangle < \langle w_2, \ell_2$ if $w_1 = w_2$ and $\ell_1 < \ell_2$, or if $w_1 < w_2$ no matter the values of $\ell_1$ and $\ell_2$. This matches our intuitive idea and is also mathematically nice. It also generalizes multi-byte encodings of things like your score (which can be larger than 8 bits and so is often stored in 16 or 32), including both big-endian and little-endian representations.\footnote{A possible additional simplification would be to just take lexicographic orderings over bits, which then generalizes to 8-bit bytes. This is probably too crazy, but just right now I am sort of feeling like maybe I should try it, though it may be the beer.}
+This is actually a little bit too naive; for example, Mario's overall
+progress through the game is represented by a pair. You start in World
+{\tt 1-1} and the underground level that comes next is World {\tt 1-2}
+(we'll call this $w=1$ and $\ell=2$). But after you discover the
+princess is in another castle in World {\tt 1-4}, the next level is
+{\tt 2-1}.\footnote{In case you never realized this, it is time to learn
+  that the legendary ``Minus World'' of {\tt\, -1} is not actually a
+  negative world, but World {\tt 36-1} being incorrectly rendered because
+  there is no glyph for the 36\th\ digit. The trick used to get to the
+  Minus World just happens to leave the value 36 in that memory
+  location rather than initializing it to a useful value. The ROM does
+  not contain data for world 36 so it just interprets garbage data as
+  a description of the world.} This can't be represented as a single
+byte going up (sometimes the second part $\ell$ goes down when we get
+to a new first part $w$), but it can be represented as a lexicographic
+order on the pair $\langle w, \ell \rangle$; that is, $\langle w_1,
+\ell_1 \rangle < \langle w_2, \ell_2 \rangle$ if $w_1 = w_2$ and $\ell_1 <
+\ell_2$, or if $w_1 < w_2$ no matter the values of $\ell_1$ and
+$\ell_2$. This matches our intuitive idea and is also mathematically
+nice. It also generalizes multi-byte encodings of things like your
+score (which can be larger than 8 bits and so is often stored in 16 or
+32), including both big-endian and little-endian
+representations.\footnote{A possible additional simplification would
+  be to just take lexicographic orderings over bits, which then
+  generalizes to 8-bit bytes. This is probably too crazy, but just
+  right now I am sort of feeling like maybe I should try it, though it
+  may be the beer.}
 
-More importantly, it allows the combination of semantically unrelated bytes, like: $\langle$ world, level, screen inside the world, $x$ position on the screen $\rangle$ or $\langle$ world, lives, low byte of score $\rangle$. Many orderings may describe gameplay. These orderings may be temporarily violated in normal play: Although the score always goes up, Mario's $x$ position may temporarily decrease if he needs to navigate around some obstacle.\footnote{Note to self: Maybe we should give a much higher score to globally preserved objectives than to locally preserved ones. But that may presuppose that the input represents a whole playthrough?} So, to ``faithfully'' represent gameplay, we will generate a set of lexicographic orderings on memory locations, with the idea that they ``generally go up'' but not necessarily at every step. These orderings will also have weights. The next section describes how we take a sequence of player inputs and deduce the orderings.
+More importantly, it allows the combination of semantically unrelated
+bytes, like: $\langle$\!\!\!\! world, level, screen inside the world,
+$x$ position on the screen \!\!$\rangle$ or $\langle$\!\!\!\! world,
+lives, low byte of score \!\!$\rangle$. Many orderings may describe
+gameplay. These orderings may be temporarily violated in normal play:
+Although the score always goes up, Mario's $x$ position may
+temporarily decrease if he needs to navigate around some
+obstacle.\footnote{Note to self: Maybe we should give a much higher
+  score to globally preserved objectives than to locally preserved
+  ones. But that may presuppose that the input represents a whole
+  playthrough?} So, to ``faithfully'' represent gameplay, we will
+generate a set of lexicographic orderings on memory locations, with
+the idea that they ``generally go up'' but not necessarily at every
+step. These orderings will also have weights. The next section
+describes how we take a sequence of player inputs and deduce the
+orderings.
 
 \subsection{Deriving the objective function} \label{sec:deriving}
+
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{mario-global}
+\end{center}\vspace{-0.1in}
+\caption[lof not used]{
+  A single maximal tight valid lexicographic ordering for my
+  4,000-frame input training data to Super Mario Bros.. This function
+  is globally nondecreasing, and is the decimal memory locations
+  $\langle$\!~232, 57, 73, 74, 75, 115, 130, 155, 32, 184, 280,
+  491, 506, 1280, 1281, 1282, 1283, 1288, 1290, 1337, 1338, 1339,
+  1384, 1488, 1490, 1496, 1497, 1498, 1499, 1514, 1873, 1882, 1888,
+  1904, 1872, 1906, 112, 113, 114, 2009, 2010, 2011, 1539~\!$\rangle$.
+
+  This is not a great objective function; there are long spans where
+  all the memories are equal according to it, and the nice smooth slopes
+  are happening during level transitions where the game is ignoring
+  inputs (they are probably timers counting up each frame, which is
+  why they are so smooth). Other slicing produces better objectives.  
+
+  For reasons unknown---I just discovered this while generating the
+  figure---{\em all} of the objective functions learned with this
+  method, regardless of the nondeterministic choices, appear to have
+  this same curve, despite using different memory locations. It may be
+  that they are different permutations of bytes that all change
+  simultaneously, only on the frames where there are jumps in this
+  picture, and there are no other orderings that are tight, valid, and
+  maximal. This is still surprising and warrants investigation. }
+\label{fig:global}
+\end{figure}
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{mario-tenths}
+\end{center}\vspace{-0.1in}
+\caption{Ten objective functions trained on different tenths of the
+  4,000 inputs for Super Mario Bros.. These functions are normalized
+  against the range of all values they take on during the movie; you
+  can see that most are increasing locally most of the time, but many
+  drop back to zero around the 3100\th\ frame, when Mario reaches
+  world {\tt 1-2}. Within its 400-frame window, each objective is
+  guaranteed to be nondecreasing.}
+\label{fig:tenths}
+\end{figure}
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{mario-strides}
+\end{center}\vspace{-0.1in}
+\caption{Ten objective functions trained on every 100\th\ memory,
+  starting at frame 0, frame 1, and so on up to frame 10. Normalized
+  as usual. These objectives exhibit excellent global progress, but
+  are locally very noisy. Among the methods I used to generate
+  objectives, this one produces the best results (based on my
+  intuition about what a good objective function looks like).
+}
+\label{fig:strides}
+\end{figure}
 
 In order to derive an objective function, we'll start with an abstract
 subroutine that finds a single lexicographic ordering
@@ -126,9 +247,10 @@ M_a$; $M_a \leq_L M_b$ is just $M_a <_L M_b$ or $M_a =_L M_b$, and similarly
 for $\geq_L$, and they mean what you think so don't worry.
 
 Every $L$ defines a lexicographic ordering ($<$ and $=$ operators).
-$L$ is a {\em valid} lexicographic ordering of $M$ if $M_i \leq_L M_{i + 1}$
-for $1 \leq i \leq n$; each memory is less than or equal to the next
-memory in the sequence. It follows that $M_i \leq_L M_j$ whenever $i < j$.
+$L$ is a {\em valid} lexicographic ordering of $M$ if $M_i \leq_L M_{i
+  + 1}$ for $1 \leq i \leq n$; each memory is less than or equal to
+the next memory in the sequence. It follows that $M_i \leq_L M_j$
+whenever $i < j$.
 
 Every prefix of a valid $L$ (including the empty prefix) is a valid
 lexicographic ordering as well. On a scale from useless to useful, the
@@ -158,12 +280,12 @@ to participate in the ordering at least once. The notion of {\em
   extension} is one that produces a tight valid ordering, and a {\em
   maximal tight valid ordering} permits no tight extensions.
 
-On a scale from simple to fancy, this algorithm is a 3. Given those
-definitions, the idea is to start with the empty prefix, which is
-always a tight valid lexicographic ordering but usually not maximal.
-We then pick a tight extension that is valid; if none exists then we are
-done and have a maximal tight valid ordering. Now we have a new tight valid
-ordering, and we repeat.
+On a scale from simple to fancy, the algorithm to generate $L$ from
+$M$ is a 3. Given those definitions, the idea is to start with the
+empty prefix, which is always a tight valid lexicographic ordering but
+usually not maximal. We then pick a tight extension that is valid; if
+none exists then we are done and have a maximal tight valid ordering.
+Otherwise we have a new tight valid ordering, and we repeat.
 
 The pseudocode gives a pseudoimplementation of the algorithm that is
 more pseudodetailed. The C++ implementation is in \verb+objective.*+.
@@ -172,27 +294,26 @@ because the NES emulator is written in C++.
 
 \begin{figure*}[htp]
   \begin{code}
-    (* Prefix is the prefix so far (int list)
-       and remain is the list of memory locations
-       that we can still consider. Invt is that
-       prefix is a tight valid ordering on M. Returns
-       the memory locations from remain that are
-       a tight extension of the prefix. *)
+    (* Prefix is the prefix so far (int list) and remain is the list of memory
+       locations that we can still consider. Invariant is that prefix is a
+       tight valid ordering on $M$. Returns the memory locations from remain 
+       that are a tight extension of the prefix. *)
     fun candidates (prefix, remain) =
       let lequal = (* list of indices $i$ where
-                      $M_i =_{\tt prefix} M_{i+1}$ *)
+                      $M_i =_{\tt\! prefix} M_{i+1}$ *)
       let notgreater = (* members $x$ of remain where
-                          $M_i[x] > M_{i + 1}[x]$ is
+                          $M_i[x] > M_{i+1}[x]$ is
                           not true for any $i$ in
-                          {\tt lequal} *)
+                         {\tt lequal} *)
       let tight = (* members $y$ of notgreater where
-                     $M_i[x] < M_{i + 1}[x]$ is true
-                     for some $i$ in {\tt lequal} *)
+                     $M_i[x] < M_{i+1}[x]$ is true
+                     for some $i$ in{\tt lequal} *)
       in tight
-                          
-    (* Returns a maximal tight valid ordering, given
-       a tight valid prefix and list of memory locations
-       we are permitted to consider. *)
+
+    \
+
+    (* Returns a maximal tight valid ordering, given a tight valid prefix and 
+       list of memory locations we are permitted to consider. *)
     fun ordering (prefix, remain) =
       case candidates (prefix, remain) of
         (* No extensions means it's maximal. *)
@@ -258,35 +379,38 @@ by how representative we think they are.
   does not work to have a single ordering or to use only orderings
   that apply to the whole memory.}
 
-{\bf Skipping.}\,\, To avoid being confused by RAM initialization and
+\paragraph{Skipping.} To avoid being confused by RAM initialization and
 menu, I ignore all memories up until the first input by the player.
 Including these would be especially suspicious because the RAM's
 contents are not even well-defined until the program writes something
 to them.\footnote{Emulators tend to fix them to a specific pattern so
   that emulation is completely deterministic, but in real hardware
   they are truly uninitialized, or retain the values from the last
-  reset or game inserted. Some semi-famous tricks involve removing
-  and inserting game cartridges while the system is running in order
-  to take advantage of this.}
+  reset or game inserted. Some semi-famous tricks involve removing and
+  inserting game cartridges while the system is running in order to
+  take advantage of this.}
 
-% XXXX good place for some graphs.
-{\bf Slicing.}\,\, I generate 50 orderings for $M_1 \ldots M_n$; the
-whole recording starting from the first keypress. During gameplay some
-values really are completely nondecreasing, like the player's score
-and world/level pair. I also generate 3 orderings for each tenth of
-the memory sequence, e.g. $M_1 \ldots M_{n/10}$ and $M_{n/10+1} \ldots
-M_{2n/10}$, etc. The intention is to capture orderings that are rarely
-violated, or sections of the game with unusual objectives (e.g. a
-minigame or swimming level). Orderings generated this way look pretty
-random, and on a scale from solid to suspicious, I can't vouch for
-them. Then I generate objectives from non-consecutive memories that
-are evenly spread out through the observations: Ten objectives
-chosen from every 100\th\ memory, starting from the 0\th\ frame,
-1\st\ frame, 2\nd\ frame, and so on up to the 9\th{}. Similarly
-for every 250\th\ frame, and a single objective for memory sliced
-to every 1000\th\ frame, with start positions of 0--9.
+\paragraph{Slicing.} I generate 50 orderings for $M_1 \ldots M_n$; the
+whole recording starting immediately after the first keypress. During
+gameplay some values really are completely nondecreasing, like the
+player's score and world/level pair. Figure~\ref{fig:global} shows
+what a global ordering looks like. I also generate 3 orderings for
+each tenth of the memory sequence, e.g. $M_1 \ldots M_{n/10}$ and
+$M_{n/10+1} \ldots M_{2n/10}$, etc. The intention is to capture
+orderings that are rarely violated, or sections of the game with
+unusual objectives (e.g. a minigame or swimming level). Orderings
+generated this way look pretty random, and on a scale from solid to
+suspicious, I can't vouch for them. Then I generate objectives from
+non-consecutive memories that are evenly spread out through the
+observations: Ten objectives chosen from every 100\th\ memory,
+starting from the 0\th\ frame, 1\st\ frame, 2\nd\ frame, and so on up
+to the 9\th{}. Similarly for every 250\th\ frame, and a single
+objective for memory sliced to every 1000\th\ frame, with start
+positions of 0--9. The intention is to capture objectives that grow
+slowly over the course of a playthrough, without getting distracted by
+local noise.
 
-{\bf Weighting.},\, To reduce the importance of randomness in the
+\paragraph{Weighting.} To reduce the importance of randomness in the
 learning process, and the arbitrariness of the slicing, each objective
 function is also assigned a weight. An ideal objective function takes
 on its minimal value on the first frame and maximal on the last
@@ -308,9 +432,9 @@ and find the lowest index $i$ in $V$ where the vector is less than or
 equal to $V_i$. The value fraction {\tt VF} is $i/|V|$, which is the
 normalized value of ``how big'' $M$ is, according to $L$, compared to
 all the values we ever saw for it. The value fraction is defined and
-in $[0, 1]$ for all memories in the observed set.\footnote{It is not
+in $[0, 1)$ for all memories in the observed set.\footnote{It is not
   defined when the memory is greater than all observed memories, which
-  we will encounter later. The code returns $(i+1)/|V|$ in that case,
+  we will encounter later. The code returns $|V|/|V| = 1$ in that case,
   which is as good as anything.} This gives us the ability to compare
 objectives on an absolute scale.\footnote{This is certainly not the
   only way to do it, and it has some questionable properties like
@@ -321,23 +445,44 @@ $$ \Sigma_{i=1}^{n-1}  {\tt VF}(M_{i+1}) - {\tt VF}(M_{i}) $$
 %
 We sum the differences in value functions for each consecutive pair of
 memories. In the case of the ideal function this is $\Sigma_{i=1}^{n-1}
-1/n$, which approaches $1$.\footnote{The code implements a different
-  weighting scheme, which sums from $i=0$ and keeps track of the last
-  value fraction at each step, thus treating the value fraction of the
-  nonexistent memory $M_0$ as 0. This is wrong, because the first
-  value fraction may be very high, which credits the objective with a
-  positive value (e.g. 1) for that first part of the sum. Objectives
-  that start high on the first frame are not ideal; in fact, the worst
-  objectives start high on the first frame and steadily {\em
-    decrease}. I plan to correct this bug and study if it has any
-  noticeable consequences.} Objectives are constrained to have
-non-negative weights (I set the value to 0 if negative, which
-effectively disables it).
+1/n$, which approaches $1$. Of course, when you think about it,
+this is actually the same as
+%
+\[
+\begin{array}{c}
+({\tt VF}(M_1) - {\tt VF}(M_0)) + ({\tt VF}(M_2) - {\tt VF}(M_1)) \,+ \\
+\vdots \\
+({\tt VF}(M_{m-1}) - {\tt VF}(M_{m-2})) + ({\tt VF}(M_{m}) - {\tt VF}(M_{m}))
+\end{array}
+\]
+%
+and all but $-{\tt VF}(M_0)$ and ${\tt VF}(M_m)$ cancel out. This
+means that the weight we use is just the final value minus the initial
+value, regardless of what happens in-between.\footnote{I think this
+  can be improved, for example by taking the deviation from the ideal
+  linear objective.} The mean value theorem or something is probably
+relevant here. {\bf Lesson about being careful:} I only realized that
+this code was kind of fishy when I started writing it up for SIGBOVIK.
+Not only did it loop over all the deltas as in the $\Sigma$ expression
+above, but it also summed from $i=0$ and kept track of the last value
+fraction at each step, thus treating the value fraction of the
+nonexistent memory $M_0$ as 0. This is wrong, because the first value
+fraction may be very high, which credits the objective with a positive
+value (e.g. 1) for that first part of the sum. Objectives that start
+high on the first frame are not ideal; in fact, the worst objectives
+start high on the first frame and steadily {\em decrease}. After
+writing this up I corrected it to the simple expression ${\tt VF}(M_m)
+- {\tt VF}(M_0)$ and the result was a huge breakthrough in the
+performance of the algorithm! I had spent much time tuning the {\tt
+  playfun} search procedure (Section~\ref{sec:playfun}) and not
+investigated whether the objectives were being weighted properly. More
+on this later, but the lesson is: Bugs matter, and thinking about your
+code and explaining it is a good way to find bugs.
 
-% XXX good place to give some weights for some objectives.
-
-We save the objectives and their weights to a file and then we are
-done with the easy part.
+Objectives are constrained to have non-negative weights (I set the
+value to 0 if negative, which effectively disables it). We save the
+objectives and their weights to a file and then we are done with the
+easy part.
 
 \subsection{Motifs} \label{sec:motifs}
 
@@ -379,7 +524,7 @@ concludes the learning we do from the example input; everything else
 is a matter of using the objective functions and motifs to play the
 game.
 
-\section{Now you're playing with power}
+\section{Now you're playing with power} \label{sec:playfun}
 
 In this section I'll describe how the objective functions are used to
 play the game. On a scale from canonical to Star Wars Christmas
@@ -418,9 +563,10 @@ it uses global variables galore. I made several enhancements to the
 emulator interface, which are discussed later. 
 
 It's important to know that almost all the CPU time in all the
-algorithms discussed in this paper is spent emulating NES frames;
-it takes about XXX ms to process a single step. Lots of engineering
-effort goes into reducing the number of frames the algorithms emulate.
+algorithms discussed in this paper is spent emulating NES frames; it
+takes about 500\textmu s to process a single step. Lots of
+engineering effort goes into reducing the number of frames the
+algorithms emulate.
 
 \subsection{Naive attempts}
 
