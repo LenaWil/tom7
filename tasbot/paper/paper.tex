@@ -15,7 +15,9 @@
 \newcommand\comment[1]{}
 \newcommand\parameteralert[1]{
   % XXX this can get cooler.
+  \begin{quotation}
   {\bf Parameter Alert!}\,\, #1
+  \end{quotation}
 }
 
 \newcommand\st{$^{\mathrm{st}}$}
@@ -54,7 +56,9 @@ CHF 0.00}
 \maketitle
 
 \begin{abstract}
-This is where the Abstract goes.
+% XXX better abstract
+This paper presents a simple, generic method for automating the play
+of Nintendo Entertainment System games.
 \end{abstract}
 
 \vspace{1em}
@@ -64,11 +68,43 @@ This is where the Abstract goes.
 }
 
 \section{Introduction}
-The Nintendo Entertainment System is probably the best video game console, citation {\it not} needed. Like many, I have spent thousands of hours of my life playing NES games, including several complete playthroughs of classics like Super Mario Bros., Bionic Commando, Bubble Bobble, and other favorites. By the year 2013, home computers have become many orders of magnitude faster and more capacious than the NES hardware. This suggested to me that it may be time to automate the playing of NES games, in order to save time.\footnote{Rather, to replace it with time spent programming.} In this paper I present a generic technique for automating the playing of NES games. The approach is practical on a single computer, and succeeds on several games, such as Super Mario Bros.. The approach is amusingly elegant and surprisingly effective, requires no detailed knowledge of the game being played, and is capable of novel and impressive gameplay (for example, bug exploitation). {\bf Disclaimer for SIGBOVIK audience: This work is 100\% real.}
+The Nintendo Entertainment System is probably the best video game
+console, citation {\it not} needed. Like many, I have spent thousands
+of hours of my life playing NES games, including several complete
+playthroughs of classics like Super Mario Bros., Bionic Commando,
+Bubble Bobble, and other favorites. By the year 2013, home computers
+have become many orders of magnitude faster and more capacious than
+the NES hardware. This suggested to me that it may be time to automate
+the playing of NES games, in order to save time.\footnote{Rather, to
+  replace it with time spent programming.} In this paper I present a
+generic technique for automating the playing of NES games. The
+approach is practical on a single computer, and succeeds on several
+games, such as Super Mario Bros.. The approach is amusingly elegant
+and surprisingly effective, requires no detailed knowledge of the game
+being played, and is capable of novel and impressive gameplay (for
+example, bug exploitation). {\bf Disclaimer for SIGBOVIK audience:
+  This work is 100\% real.}
 
-On a scale from ``the title starts with Toward'' to ``Donald Knuth has finally finished the 8\th\ volume on the subject,'' this work is a 3. The purpose of this paper is mainly as a careful record of the current status for repeatability and further development on this important research subject. A short video version of this paper is available for those that hate reading, at \verb+http://tom7.org/mario+, and is the more fun way to consume the results. This page also contains audiovisual material that makes this work more entertaining (for example, its output) and source code.
+On a scale from ``the title starts with Toward'' to ``Donald Knuth has
+finally finished the 8\th\ volume on the subject,'' this work is a 3.
+The purpose of this paper is mainly as a careful record of the current
+status for repeatability and further development on this important
+research subject. A short video version of this paper is available for
+those that hate reading, at \verb+http://tom7.org/mario+, and is the
+more fun way to consume the results. This page also contains
+audiovisual material that makes this work more entertaining (for
+example, its output) and source code.
 
-The basic idea is to deduce an objective function from a short recording of a player's inputs to the game. The objective function is then used to guide search over possible inputs, using an emulator. This allows the player's notion of progress to be generalized in order to produce novel gameplay. A design goal is that the objective function be amusingly elegant (not at all smart, fancy, or customized to the game) in order to demonstrate that the game is reducible to such a simple objective. The search needs to be game-agnostic and practical, but since the space is exponential ($256^{n}$), we need to be smart here.
+The basic idea is to deduce an objective function from a short
+recording of a player's inputs to the game. The objective function is
+then used to guide search over possible inputs, using an emulator.
+This allows the player's notion of progress to be generalized in order
+to produce novel gameplay. A design goal is that the objective
+function be amusingly elegant (not at all smart, fancy, or customized
+to the game) in order to demonstrate that the game is reducible to
+such a simple objective. The search needs to be game-agnostic and
+practical, but since the space is exponential ($256^{n}$), we need to
+be smart here.
 
 The objective function, the algorithm to deduce it, the search
 strategy, and its implementation are all interesting and will be
@@ -77,9 +113,25 @@ approach to automate several NES games. To set the stage, I begin with
 a description of the NES hardware and emulation of it.
 
 \subsection{The NES hardware and emulation}
-The NES is based around an 8-bit processor running at 1.79~MHz, the Ricoh 2A03. 8 bits is really small. You can see them all right here: 00001111. It's no coincidence that each controller also has 8 buttons: Up, Down, Left, Right, Select, Start, B and A. It has only 2048 bytes of general purpose RAM. (There is also some special purpose RAM for graphics, which we ignore in this work.) 2048 bytes is really small. You can see them all in Figure~\ref{fig:bytes2048}. As a result, NES programs are written to use memory efficiently and straightforwardly; usually there are fixed memory locations used for all the critical game facts like the player's health, number of lives, coordinates on the screen, and so on. For example, in Super Mario Bros., the single byte at location \verb+0x757+ contains the number of lives the player has. The location \verb+0x75F+ contains the current world, and \verb+0x760+ the current level. The NES outputs 60.0988 frames per second, which we will just call 60 in this paper.
+The NES is based around an 8-bit processor running at 1.79~MHz, the
+Ricoh 2A03. 8 bits is really small. You can see them all right here:
+00001111. It's no coincidence that each controller also has 8 buttons:
+Up, Down, Left, Right, Select, Start, B and A. It has only 2048 bytes
+of general purpose RAM. (There is also some special purpose RAM for
+graphics, which we ignore in this work.) 2048 bytes is really small.
+You can see them all in Figure~\ref{fig:bytes2048}. As a result, NES
+programs are written to use memory efficiently and straightforwardly;
+usually there are fixed memory locations used for all the critical
+game facts like the player's health, number of lives, coordinates on
+the screen, and so on. For example, in Super Mario Bros., the single
+byte at location \verb+0x757+ contains the number of lives the player
+has. The location \verb+0x75F+ contains the current world, and
+\verb+0x760+ the current level. The NES outputs 60.0988 frames per
+second, which we will just call 60 in this paper.
 
-% (32kB of ROM is addressable at a time, and most games used bank switching to access hundreds of kilobytes of game included in the cartridge.) 
+% (32kB of ROM is addressable at a time, and most games used bank
+% switching to access hundreds of kilobytes of game included in the
+% cartridge.)
 
 There are a number of emulators for NES. These work by simulating the
 NES hardware, for example with a 2048-byte array for its memory, and
@@ -164,7 +216,7 @@ orderings.
 \subsection{Deriving the objective function} \label{sec:deriving}
 
 
-\begin{figure}[htb]
+\begin{figure}[h!tb]
 \begin{center}
 \includegraphics[width=0.95 \linewidth]{mario-global}
 \end{center}\vspace{-0.1in}
@@ -410,7 +462,8 @@ positions of 0--9. The intention is to capture objectives that grow
 slowly over the course of a playthrough, without getting distracted by
 local noise.
 
-\paragraph{Weighting.} To reduce the importance of randomness in the
+\paragraph{Weighting.} \label{sec:objectiveweighting} 
+To reduce the importance of randomness in the
 learning process, and the arbitrariness of the slicing, each objective
 function is also assigned a weight. An ideal objective function takes
 on its minimal value on the first frame and maximal on the last
@@ -433,13 +486,13 @@ equal to $V_i$. The value fraction {\tt VF} is $i/|V|$, which is the
 normalized value of ``how big'' $M$ is, according to $L$, compared to
 all the values we ever saw for it. The value fraction is defined and
 in $[0, 1)$ for all memories in the observed set.\footnote{It is not
-  defined when the memory is greater than all observed memories, which
-  we will encounter later. The code returns $|V|/|V| = 1$ in that case,
-  which is as good as anything.} This gives us the ability to compare
-objectives on an absolute scale.\footnote{This is certainly not the
-  only way to do it, and it has some questionable properties like
-  ignoring the magnitude of change. But it is very simple.} Weighting
-an objective is now simple:
+    defined when the memory is greater than all observed memories,
+    which we will encounter later. The code returns $|V|/|V| = 1$ in
+    that case, which is as good as anything.} This gives us the
+  ability to compare objectives on an absolute scale.\footnote{This is
+    certainly not the only way to do it, and it has some questionable
+    properties like ignoring the magnitude of change. But it is very
+    simple.} Weighting an objective is now simple:
 %
 $$ \Sigma_{i=1}^{n-1}  {\tt VF}(M_{i+1}) - {\tt VF}(M_{i}) $$
 %
@@ -723,24 +776,33 @@ motifs. The inner pseudoloop then looks like this:
 for (;;) \{
   vector<uint8> before = GetMemory();
   vector<uint8> state = GetState();
-\
+
+ \ 
+
   set<vector<uint8>> nexts;
   for (Future f : futures) \{
    nexts.insert(f.First10Frames());
    f.ChopOffFirst10Frames();
   \}
-\ 
+
+ \ 
+
   while (nexts.size() < NFUTURES)
-   nexts.push\_back(/* random motif */);
-\ 
+    nexts.push\_back(/* random motif */);
+
+ \ 
+
   for (vector<uint8> &next : nexts) \{
     RestoreState(state);
     for (uint8 i : next) Step(i);
-    double score = ScoreByFutures(before, futures);
+    double score =
+      ScoreByFutures(before, futures);
     // Save the best-scoring next...
-    // 
   \}
-\
+
+ \ 
+
+  ReweightMotifs(best\_next, motifs);
   ReplaceBadFutures(futures);
   ExtendFuturesToDesiredLengths(futures);
 \}
@@ -761,22 +823,175 @@ use average random futures to assess how good a state will be.
 
 The function {\tt ScoreByFutures} saves the state, then runs each
 of the {\tt NFUTURES} futures to get a final state and memory. We
-score each final memory relative to the start memory. Scoring is
-a matter of 
+score each final memory relative to the start memory. The particulars
+of scoring are not as interesting as the general idea, which is:
+\begin{itemize}
+\item The potential 10-frame {\tt next} sequence that we're
+evaluating gets an {\em optimistic} score. This is based on the futures
+for which the objectives {\em go up}. This is always non-negative.
+\item Each future is also given a score, which is the sum of scores
+from all the different {\tt next} sequences, regardless of their sign.
+\end{itemize}
+
+The purpose of the first is to identify a good {\tt next} sequence. We
+take the sequence with the highest optimistic score. The idea is that
+this is the sequence that gives us the best outcome if we continue
+to control what we do in the future.
+
+The purpose of the second is to identify which futures are good. A
+good future tends to bring good outcomes regardless of the immediate
+next step. Random futures that make is walk left when the good stuff
+is to the right, or jump when there are spikes nearby above our head,
+will receive negative scores for many or all of the {\tt next}
+sequences.
+
+{\tt ReweightMotifs} changes the weight of motifs that match the best
+{\tt next} sequence that we just committed to, if we think that we
+made progress on this step. The idea is to learn which sequences tend
+to work well for us; this might be different from what the human
+player did. For example, in run-to-the-right-and-jump kinds of games,
+human players tend to hesitate more before obstacles and enemies than
+a computer does.\footnote{That said, this part was an early idea and
+  is probably not necessary. It's suspicious because these 10-frame
+  sequences are not necessarily motifs (10 is the same as the normal
+  motif length, and futures are generated by motifs, but they can
+  become desynchronized because of the final incomplete motif, future
+  mutation, and other things). So sometimes the chosen sequence
+  doesn't affect weights. I think this would be better if we kept a
+  Markov model } Knowing whether we made progress is kind of
+difficult, since we can almost always find some move that increases
+the objectives locally. For this I use the same approach of {\em value
+  fraction} from Section~\ref{sec:objectiveweighting} based on a
+sample of memories that we've seen so far. If we appear to be
+progressing then the motif is weighted up; if we're regressing then it
+is weighted down.
+
+{\tt ReplaceBadFutures} kicks out the the futures with the worst total
+scores, so that over time the random futures become good futures. Of
+course, we always have to keep randomly adding to the end of each
+future, and who knows what crap we'll find? A late addition to the
+algorithm replaces some proportion of these with mutated versions of
+the best scoring future. This helps us from messing up a good future
+by appending crap to it, since we have multiple copies of it. It also
+makes search more efficient, since futures that share common prefixes
+can often benefit from caching (Section~\ref{sec:caching}). Currently
+mutating a future involves chopping off its second half (it will get
+extended to the desired length in the next step), and a \sfrac{1}{7}
+chance of {\em dualizing} the entire sequence. Dualization swaps
+the left and right buttons, the up and down buttons, B and A, and 
+select and start. The idea of this is to occasionally introduce
+very different futures to help us get out of stuck situations where
+we should really be turning around or something like that.
+
+During the development and tuning of the algorithm, I sometimes
+observed {\tt ReweightMotifs} and {\tt ReplaceBadFutures} conspiring
+to create a total monoculture of futures, where the weight of a single
+motif (specifically ``press no buttons'') went out of control and all
+futures just consisted of waiting. Waiting is usually a local
+improvement to some objectives because of internal frame counters and
+the cursor used to control music playback. To guard against this,
+motifs have a maximum (and minimum) possible weight in {\tt
+  ReweightMotifs}, and {\tt ReplaceBadFutures} always ensure that
+some fraction of the futures are completely random (ignoring motif
+weights).
+
+\parameteralert{
+  This is really the worst part in terms of parameters. They are: 
+  {\tt NFUTURES}, the number of futures to maintain (40);
+  {\tt NWEIGHTEDFUTURES}, the number of futures that are weighted,
+  as opposed to totally random (35);
+  {\tt DROPFUTURES}, the number of the worst-scoring futures we
+  completely drop (5);
+  {\tt MUTATEFUTURES}, the number of worst-scoring futures that
+  we replace with mutants of the best future (7);
+  {\tt MINFUTURELENGTH} and {\tt MAXFUTURELENGTH}, which put bounds
+  on the sizes of futures (50 and 800);
+  {\tt OBSERVE\_EVERY}, the frequency with which we sample memory
+  for computing the value fraction for motif weighting (10);
+  {\tt ALPHA}, the multiplicative factor for up- or down-weighting
+  motifs (0.8);
+  {\tt MOTIF\_MIN\_FRAC} and {\tt MOTIF\_MAX\_FRAC}, the bounds
+  on motif weights (0.1 and 0.00001).
+  
+  Each is a scarlet letter of personal shame and future work is to
+  eliminate them. In my opinion the least excusable are the bounds on
+  future length, since these are related to what portion of time is
+  ``interesting'' from a game perspective---for example, the max
+  future length must exceed the number of frames that transpire after
+  Mario dies but before he respawns, or the algorithm cannot properly
+  avoid death. In my opinion this requires too much knowledge of the
+  game. I don't have a good idea about how to compute this, at least
+  without a human providing an input movie of dying (which would
+  help for lots of other reasons)---but that would complicate the
+  output of the learning process, which violates a primary design goal.
+  
+  {\tt NFUTURES} is another bothersome one, but there is more hope here.
+  Basically it trades off computation time for quality of play, and
+  more seems to always be better. We do have runtime metrics that could
+  be used to dynamically change NFUTURES. For example, we could use
+  the notion of improvability from Section~\ref{sec:backtracking}, or
+  the value fraction, the gauge the marginal value of searching an
+  additional future. Or something like that. This might actually help
+  performance because we do the same amount of work (modulo caching)
+  even during periods that the inputs are being ignored, like between
+  worlds in Super Mario Bros., as we do when the going gets rough,
+  and searching for the exact right delicate sequence of inputs would
+  benefit from more options. The appearance of pausing in the output
+  for Bubble Bobble (Section~\ref{sec:bubblebobble}) suggests that it
+  knows all the futures are bad and needs to search different ones,
+  and corroborates this idea.}
+
+\subsection{Backtracking} \label{sec:backtracking}
+
+The algorithm above always makes progress at the same rate of 10
+frames per iteration. Sometimes it can get stuck in local maxima.
+Super Mario Bros., my tuning game for this work, seems almost to have
+been designed to thwart {\tt playfun}. The first level is pretty easy
+once you have a decent algorithm, and early versions beat it without
+any trouble. It's mainly about avoiding Goombas and planning far
+enough ahead to make high jumps over pipes and pits (see the
+accompanying videos for amusing struggles with these). World {\tt 1-2}
+provides a challenge you may recognize from your youth, immediately
+followed by something that computers find much harder
+(Figure~\ref{fig:mario12}).
+
+I literally spent about six weekends on this problem. First, the
+overhang is set up so that enemies emerge from it just as you arrive.
+This means that loose play (imperfect enemy avoidance) tends to get
+you killed right here. Mario has found a number of different solutions
+to this problem, from waiting, to kicking turtles from the left to
+clear out the enemies, to timing his jump perfectly (it is possible)
+to stomp the turtle after bouncing his head off the ceiling.
 
 
-\subsection{Caching of emulation}
+\begin{figure}[h!tb]
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{mario12}
+\end{center}\vspace{-0.1in}
+\caption{This is where it starts to get hard, even with lexicographic
+ordering and time travel. This overhang is very tight in terms of the
+inputs that can get you through it; random play tends to kill you because
+of the advancing enemies that can't easily be jumped over. Greedy
+algorithms can't resist the ledge with the coins, but then need to
+turn around.}
+\label{fig:mario12}
+\end{figure}
+
+
+\subsection{Caching of emulation} \label{sec:caching}
 
 \subsection{MARIONET}
 
-\subsection{Backtracking}
-
-
-\section{Results}
+\section{Results} \label{sec:results}
 
 These games were all played with the same settings developed and tuned
 for Super Mario Bros.; that is, this was the result of just running
-the program the first time on a recording of me playing the game briefly.
+the program the first time on a recording of me playing the game
+briefly.
+
+\subsection{Super Mario Bros.}
+
+
 
 \subsection{Hudson's Adventure Island}
 
@@ -830,7 +1045,10 @@ Figure~\ref{fig:pacman} shows gratuitous daredeviling as he ducks in
 and out of a tiny sliver of space between two ghosts, then does it
 again, and survives.
 
-% ends with 13 dots remaining
+Eventually, Pac-Man gets far enough away from the remaining dots that
+none of his futures bring him near, and without any other objective
+to seek out, runs into ghosts. He dies on the first level with 13 dots
+left.
 
 \begin{figure}[ht]
 \begin{center}
@@ -846,7 +1064,7 @@ again, and survives.
 \label{fig:pacman}
 \end{figure}
 
-\subsection{Bubble Bobble}
+\subsection{Bubble Bobble} \label{sec:bubblebobble}
 
 Let's take a journey to the cave of monsters! This lovely game
 features two stout dinosaurs called Bub and Bob, who jump around in a
@@ -866,16 +1084,19 @@ simultaneously, even doing so while facing away from them, which I
 didn't know was possible. At the beginning of the movie he prefers to
 hide in the bottom-left corner, but soon starts jumping all around the
 level, bouncing on his own bubbles and so on, almost like a real
-player would. He beats XXX levels, more than I would have guessed.
-Since it takes two start button presses to enter the game, the second
-START is part of the input motifs. Amusingly, Bub uses this to his
-advantage to change the synchronization of his futures, and when the
-situation gets really tight, he'll pause the game until a good
-future comes around (Figure~\ref{fig:bubblebobble}). Paused states
-probably look like modest progress since memory locations like the
-music cursor are still advancing.
+player would. He beats more levels than my input movie did! Since it
+takes two start button presses to enter the game, the second START is
+part of the input motifs. Amusingly, Bub uses this to his advantage to
+change the synchronization of his futures, and when the situation gets
+really tight, he'll pause the game until a good future comes around
+(Figure~\ref{fig:bubblebobble}). Paused states probably look like
+modest progress since memory locations like the music cursor are still
+advancing.
 
-XXX what finally happens?
+After a harrowing escape from the ghost thing on level 4, Bub makes it
+to level 5 (my input movie quits at the beginning of level 4!), at
+which point I stopped the search because it was getting pretty pausey
+and I wanted to see some other games before the SIGBOVIK deadline.
 
 \begin{figure}[ht]
 \begin{center}
@@ -888,6 +1109,23 @@ XXX what finally happens?
   He then unpauses and executes that good future, killing three of
   these monsters in short order.}
 \label{fig:bubblebobble}
+\end{figure}
+
+\subsection{Tetris}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{tetris}
+\end{center}\vspace{-0.1in}
+\caption{The joyful noise of objective functions learned for Tetris.
+  The first fifth of the movie is navigating menus and looks very
+  different from the remainder. There appear to be some frame counters
+  identified, which make perfect smooth progress throughout the entire
+  movie. I believe discontinuities correspond to placing of pieces;
+  some objectives monotonically increase at these points (and are noisy
+  in-between), suggesting that they incorporate the score.
+}
+\label{fig:tetris-objectives}
 \end{figure}
 
 \section{Future Work}
