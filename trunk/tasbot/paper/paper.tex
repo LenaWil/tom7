@@ -473,7 +473,7 @@ high on the first frame are not ideal; in fact, the worst objectives
 start high on the first frame and steadily {\em decrease}. After
 writing this up I corrected it to the simple expression ${\tt VF}(M_m)
 - {\tt VF}(M_0)$ and the result was a huge breakthrough in the
-performance of the algorithm! I had spent much time tuning the {\tt
+quality of the output! I had spent much time tuning the {\tt
   playfun} search procedure (Section~\ref{sec:playfun}) and not
 investigated whether the objectives were being weighted properly. More
 on this later, but the lesson is: Bugs matter, and thinking about your
@@ -511,7 +511,7 @@ There may be a single motif at the end that's fewer than 10 inputs.
   motifs was one of the biggest immediate improvements in the history
   of this code, so I went with it. A natural thing to try is a Markov
   model, although this has a free parameter too (the number of states
-  of history). It is likely possible to do some kid of abstract
+  of history). It is likely possible to do some kind of abstract
   interpretation where multiple different input sequences with
   equivalent outcomes are explored simultaneously, which might obviate
   the need for computing an input model from the observed play. The
@@ -533,7 +533,8 @@ particulars of some of the heuristics, I'll try to give a story of the
 different things I tried, what motivated the ideas in the current
 version, and my intuitions about what is working well (or not) and
 why. This algorithm is called {\tt playfun} and it can be found
-implemented in C++ in {\tt playfun.cc}.
+implemented in C++ in {\tt playfun.cc}; some historic versions are
+in {\tt playfun-*.cc}.
 
 \subsection{Basic software architecture}
 
@@ -544,52 +545,59 @@ interactive GUI application, contains support for multiple different
 platforms, and the code is, on a scale from a pile of horse shit to
 not horse shit, approximately a 2.\footnote{It is, however, an
   excellent emulator to use, has fancy tools for recording and editing
-  movies, and is popular in the speedrun community; just don't read
-  the code.} With a medium amount of suffering I got the emulator
-compiling under mingw in 64-bit mode, and working behind a streamlined
-interface ({\tt emulator.h}). Once a game is initialized, it is always
-at an input frame---you can give it an 8-bit input (for the
-1\st\ player) to step a single frame, or read the 2048 bytes of
-memory. You can also save the complete state of the emulator into a
-vector of bytes, which allows you to restore the state to exactly that
-same point.\footnote{This contains the RAM, but also stuff we didn't
-  consider, like the Picture Processing Unit's state, and internal
-  emulator stuff.} These save-states are portable across sessions as
-long as the code was compiled and the game initialized the right
-way.\footnote{The original FCEUX supports portable save-states, but I
-  removed that guarantee in order to get the smallest possible byte
-  vectors. More on that below.} FCEUX must be single-threaded because
-it uses global variables galore. I made several enhancements to the
-emulator interface, which are discussed later. 
+  movies, and is popular in the speedrun community. I highly recommend
+  it; just don't read the code.} With a medium amount of suffering I
+got the emulator compiling under mingw in 64-bit mode, and working
+behind a streamlined interface ({\tt emulator.h}). Once a game is
+initialized, it is always at an input frame---you can give it an 8-bit
+input (for the 1\st\ player) to step a single frame, or read the 2048
+bytes of memory. You can also save the complete state of the emulator
+into a vector of bytes, which allows you to restore the state to
+exactly that same point.\footnote{This contains the RAM, but also
+  stuff we didn't consider, like registers, the Picture Processing
+  Unit's state, and internal emulator stuff.} These save-states are
+portable across sessions as long as the code was compiled and the game
+initialized the right way.\footnote{The original FCEUX supports
+  portable save-states, but I removed that guarantee in order to get
+  the smallest possible byte vectors. More on that below.} FCEUX must
+be single-threaded because it uses global variables galore. I made
+several enhancements to the emulator interface, which are discussed
+later.
 
 It's important to know that almost all the CPU time in all the
 algorithms discussed in this paper is spent emulating NES frames; it
-takes about 500\textmu s to process a single step. Lots of
-engineering effort goes into reducing the number of frames the
-algorithms emulate.
+takes about 500\textmu s to process a single step. Lots of engineering
+effort goes into reducing the number of frames the algorithms emulate.
+The {\tt playfun} program takes a ROM file, the learned objectives and
+motifs, and runs on the console for arbitrarily long, outputting a
+movie file consisting of the input sequence it think is best. The
+current {\tt playfun} algorithm is much too slow to run real-time, but
+it would be possible to have video output as it played. I disabled
+most of the video code, however, in an effort to make the emulation
+loop run as fast as possible.
 
-\subsection{Naive attempts}
+\subsection{Naive attempts} \label{sec:naive}
 
 The very first thing I tried, as mentioned in
 Section~\ref{sec:motifs}, was to just look at all $2^8$ different
-possible inputs at each step, and pick the best one. The inner
-loop looks pseudolike this:
+possible inputs at each step, and pick the best one. The inner loop
+looks pseudolike this:
 
 \begin{code}
-  for (;;) \{
-    vector<uint8> before = GetMemory();
-    vector<uint8> state = GetState();
-    // Try every bitmask of the 8 inputs.
-    for (int i = 0; i < 256; i++) \{
-      RestoreState(state);
-      Step((uint8)i);
-      vector<uint8> after = GetMemory();
-      double score = Score(before, after);
-      // Save the best-scoring i...
-    \}
+for (;;) \{
+  vector<uint8> before = GetMemory();
+  vector<uint8> state = GetState();
+  // Try every bitmask of the 8 inputs.
+  for (int i = 0; i < 256; i++) \{
     RestoreState(state);
-    Step(bestinput);
+    Step((uint8)i);
+    vector<uint8> after = GetMemory();
+    double score = Score(before, after);
+    // Save the best-scoring i...
   \}
+  RestoreState(state);
+  Step(bestinput);
+\}
 \end{code}
 
 {\tt Score} computes a score of two memories using the objective
@@ -598,15 +606,15 @@ canonical-seeming ways to implement this; the simplest is to
 count the (weighted) number of objective functions $o$ where
 ${\tt before} <_o {\tt after}$. We'll get to more later.
 
-I wish this worked, because that would be truly laughable, but
-on a scale from doesn't to does it's a 1. At best, Mario twitches
-in place. The inputs that it plays are insane. There are lots of
-reasons, but a clear one is that a single input rarely affects
-your progress in the game on the very next frame. I didn't really
-expect this approach to work and I already knew that the state
-space is too big to search exhaustively, which is why I implemented
-motifs. This drastically reduces the search space and makes each
-step more significant; the inner loop can now be:
+I wish this worked, because that would be truly laughable (and is fast
+enough to run real-time), but on a scale from doesn't to does it's a
+1. At best, Mario twitches in place. The inputs that it plays are
+insane. There are lots of reasons, but a clear one is that a single
+input rarely affects your progress in the game on the very next frame.
+I didn't really expect this approach to work and I already knew that
+the state space is too big to search exhaustively, which is why I
+implemented motifs. This drastically reduces the search space and
+makes each step more significant; the inner loop can now be:
 
 \begin{code}
 for (const Motif &m : motifs) \{
@@ -682,7 +690,7 @@ max; so basically I had the min of some random states plus the max of
 some other states. But why generate a bunch of futures and take the
 min of some and the max of some others? On a scale of Thank You Mario
 Your Quest Is Over We Present You A New Quest Push Button B to I'm
-Sorry, but the Princess is in Another Similarly-Shaped but Not Exactly
+Sorry, but Our Princess is in Another Similarly-Shaped but Not Exactly
 that Samesuch Castle, this is an 8.
 
 \subsection{Stable futures}
@@ -692,18 +700,77 @@ believe our objective function), because nothing other than our own
 bad memory can force us to take a series of steps if we know a
 different better series of steps. Taking the max is possibly foolish
 if we don't know how to reconstruct a rare good state that caused the
-maximum score to be high. Both lead us to the idea: Keep around
-a set of candidate futures that we use for evaluation and search,
-rather than just randomly generating futures when we want to evaluate
-a state. This turns out to work really well and be more efficient.
+maximum score to be high. Both lead us to the idea: Keep around a set
+of candidate futures that we use for evaluation and search, rather
+than just randomly generating futures when we want to evaluate a state
+and then discarding them. This turns out to work really well and be
+more efficient.
 
-HERE
+The basic version of the {\tt playfun} algorithm looks like this.
+Maintain {\tt NFUTURES} futures (this is 40 for the results presented
+in Section~\ref{sec:results}), originally just seeded with weighted
+random motifs. We aren't likely to execute any of these futures
+verbatim, but they are intended to give us high watermarks of what
+we're capable of, plus allow us to judge future danger. As we execute
+search, futures will be partly consumed and extended, and some discarded
+and replaced.
+
+Each future stores a desired length from 50--800 frames, and whenever
+it is shorter than that, we extend it (at its end) with random weighted
+motifs. The inner pseudoloop then looks like this:
+
+\begin{code}
+for (;;) \{
+  vector<uint8> before = GetMemory();
+  vector<uint8> state = GetState();
+\
+  set<vector<uint8>> nexts;
+  for (Future f : futures) \{
+   nexts.insert(f.First10Frames());
+   f.ChopOffFirst10Frames();
+  \}
+\ 
+  while (nexts.size() < NFUTURES)
+   nexts.push\_back(/* random motif */);
+\ 
+  for (vector<uint8> &next : nexts) \{
+    RestoreState(state);
+    for (uint8 i : next) Step(i);
+    double score = ScoreByFutures(before, futures);
+    // Save the best-scoring next...
+    // 
+  \}
+\
+  ReplaceBadFutures(futures);
+  ExtendFuturesToDesiredLengths(futures);
+\}
+\end{code}
+
+At each iteration of the loop we will find the best next 10-frame
+sequence to commit to. Rather than search over all motifs, we search
+over the first 10 frames of each future. This has several important
+consequences. First, since futures are generated by weighted motifs,
+it makes it more likely that we spend CPU time evaluating motifs that
+are common; the code from Section~\ref{sec:naive} always explores
+every motif, even rare ones. Second, it guarantees that if we pick
+some 10 frames on the basis of a single good future, we don't have to
+worry about recreating that future; it will still be among our futures
+for the next round. This is key: It allows us to use the determinism
+of the game to replay a really good future if we find one, not just
+use average random futures to assess how good a state will be.
+
+The function {\tt ScoreByFutures} saves the state, then runs each
+of the {\tt NFUTURES} futures to get a final state and memory. We
+score each final memory relative to the start memory. Scoring is
+a matter of 
+
 
 \subsection{Caching of emulation}
 
+\subsection{MARIONET}
 
-% good parts!
-% pacman @6800
+\subsection{Backtracking}
+
 
 \section{Results}
 
