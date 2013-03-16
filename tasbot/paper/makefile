@@ -1,9 +1,11 @@
 
 default: paper.pdf
 
-paper.pdf : paper.tex
-	pdflatex paper.tex
-	pdflatex paper.tex
+paper.pdf : paper.tex paper.bib *.png
+	pdflatex paper
+	pdflatex paper
+	bibtex paper
+	pdflatex paper
 
 clean :
-	rm paper.pdf *.log *.aux
+	rm -f paper.pdf *.log *.aux *.bbl *.blg *.out

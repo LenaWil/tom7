@@ -6,6 +6,8 @@
 \usepackage{code}
 \usepackage{graphicx}
 \usepackage{fancyvrb}
+\usepackage{url}
+% \usepackage{inlinebib}
 
 \pagestyle{empty}
 
@@ -24,6 +26,7 @@
 % nice fractions
 \newcommand\sfrac[2]{{}\,$^{#1}$\!/{}\!$_{#2}$}
 
+\newcommand\citef[1]{\addtocounter{footnote}{1}\footnotetext{\cite{#1}}\ensuremath{^{\mbox{\footnotesize [\thefootnote]}}}}
 
 % \usepackage{ulem}
 % go back to italics for emphasis, though
@@ -41,7 +44,6 @@ Association for Computational Heresy; {\em IEEEEEE!} press,
 Verlag-Verlag volume no.~0x40-2A.
 CHF 0.00}
 }
-
 
 \renewcommand\>{$>$}
 \newcommand\<{$<$}
@@ -61,13 +63,17 @@ This is where the Abstract goes.
 }
 
 \section*{Introduction}
-The Nintendo Entertainment System is probably the best video game console, citation {\it not} needed. Like many, I have spent thousands of hours of my life playing NES games, including several complete playthroughs of classics like Super Mario Bros., Bionic Commando, Bubble Bobble, and other favorites. By the year 2013, home computers have become many orders of magnitude faster and more capacious than the NES hardware. This suggested to me that it may be time to automate the playing of NES games, in order to save time.\footnote{Rather, to replace it with time spent programming.} In this paper I present a generic technique for automating the playing of NES games. The approach is practical on a single computer, and succeeds on some games, such as Super Mario Bros.. The approach is amusingly elegant and surprisingly effective, requires no detailed knowledge of the game being played, and is capable of novel and impressive gameplay (for example, bug exploitation). {\bf Disclaimer for SIGBOVIK audience: This work is 100\% real.}
+The Nintendo Entertainment System is probably the best video game console, citation {\it not} needed. Like many, I have spent thousands of hours of my life playing NES games, including several complete playthroughs of classics like Super Mario Bros., Bionic Commando, Bubble Bobble, and other favorites. By the year 2013, home computers have become many orders of magnitude faster and more capacious than the NES hardware. This suggested to me that it may be time to automate the playing of NES games, in order to save time.\footnote{Rather, to replace it with time spent programming.} In this paper I present a generic technique for automating the playing of NES games. The approach is practical on a single computer, and succeeds on several games, such as Super Mario Bros.. The approach is amusingly elegant and surprisingly effective, requires no detailed knowledge of the game being played, and is capable of novel and impressive gameplay (for example, bug exploitation). {\bf Disclaimer for SIGBOVIK audience: This work is 100\% real.}
 
-On a scale from ``the title starts with Toward'' to ``Donald Knuth has finally finished the 8\th\ volume on the subject'', this work is a 3. The purpose of this paper is mainly as a careful record of the current status for repeatability and further development on this important research subject. A short video version of this paper is available for those that hate reading, at \verb+http://tom7.org/mario+, and is the more fun way to consume the results. This page also contains audiovisual material that makes this work more entertaining (for example, its output) and source code.
+On a scale from ``the title starts with Toward'' to ``Donald Knuth has finally finished the 8\th\ volume on the subject,'' this work is a 3. The purpose of this paper is mainly as a careful record of the current status for repeatability and further development on this important research subject. A short video version of this paper is available for those that hate reading, at \verb+http://tom7.org/mario+, and is the more fun way to consume the results. This page also contains audiovisual material that makes this work more entertaining (for example, its output) and source code.
 
 The basic idea is to deduce an objective function from a short recording of a player's inputs to the game. The objective function is then used to guide search over possible inputs, using an emulator. This allows the player's notion of progress to be generalized in order to produce novel gameplay. A design goal is that the objective function be amusingly elegant (not at all smart, fancy, or customized to the game) in order to demonstrate that the game is reducible to such a simple objective. The search needs to be game-agnostic and practical, but since the space is exponential ($256^{n}$), we need to be smart here.
 
-The objective function, the algorithm to deduce it, the search strategy, and its implementation are all interesting and will be discussed in that order. To set the stage, I begin with a description of the NES hardware and emulation of it.
+The objective function, the algorithm to deduce it, the search
+strategy, and its implementation are all interesting and will be
+discussed in that order. I then discuss the results of using the
+approach to automate several NES games. To set the stage, I begin with
+a description of the NES hardware and emulation of it.
 
 \subsection{The NES hardware and emulation}
 The NES is based around an 8-bit processor running at 1.79~MHz, the Ricoh 2A03. 8 bits is really small. You can see them all right here: 00001111. It's no coincidence that each controller also has 8 buttons: Up, Down, Left, Right, Select, Start, B and A. It has only 2048 bytes of general purpose RAM. (There is also some special purpose RAM for graphics, which we ignore in this work.) 2048 bytes is really small. You can see them all in Figure~\ref{fig:bytes2048}. As a result, NES programs are written to use memory efficiently and straightforwardly; usually there are fixed memory locations used for all the critical game facts like the player's health, number of lives, coordinates on the screen, and so on. For example, in Super Mario Bros., the single byte at location \verb+0x757+ contains the number of lives the player has. The location \verb+0x75F+ contains the current world, and \verb+0x760+ the current level. The NES outputs 60.0988 frames per second, which we will just call 60 in this paper.
@@ -611,6 +617,8 @@ Figure~\ref{fig:pacman} shows gratuitous daredeviling as he ducks in
 and out of a tiny sliver of space between two ghosts, then does it
 again, and survives.
 
+% ends with 13 dots remaining
+
 \begin{figure}[ht]
 \begin{center}
 \includegraphics[width=0.75 \linewidth]{pacman1} \\[0.3em]
@@ -624,5 +632,93 @@ again, and survives.
   to vibrate some more in empty corridors.}
 \label{fig:pacman}
 \end{figure}
+
+\subsection{Bubble Bobble}
+
+Let's take a journey to the cave of monsters! This lovely game
+features two stout dinosaurs called Bub and Bob, who jump around in a
+series of single-screen caves. You can shoot bubbles to encase
+monsters and then pop the bubble to turn them into fruit or other
+treasure; clearing all the monsters takes you to the next stage.
+Bubbles are also necessary for navigating around, since you can bounce
+on your own bubbles when holding the jump button.
+
+I was surprised that automating this game works at all, since there is
+no obvious spatial gradient like in Super Mario Bros., and few local
+greedy rewards like in Pac-Man. Bub initially wastes his lives (a
+common theme in games where the respawn interval is low---it just
+looks like a fast way of warping to the corner). When he's near
+monsters he shows good tactics in shooting and popping them
+simultaneously, even doing so while facing away from them, which I
+didn't know was possible. At the beginning of the movie he prefers to
+hide in the bottom-left corner, but soon starts jumping all around the
+level, bouncing on his own bubbles and so on, almost like a real
+player would. He beats XXX levels, more than I would have guessed.
+Since it takes two start button presses to enter the game, the second
+START is part of the input motifs. Amusingly, Bub uses this to his
+advantage to change the synchronization of his futures, and when the
+situation gets really tight, he'll pause the game until a good
+future comes around (Figure~\ref{fig:bubblebobble}). Paused states
+probably look like modest progress since memory locations like the
+music cursor are still advancing.
+
+XXX what finally happens?
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{bubblebobble}
+\end{center}\vspace{-0.1in}
+\caption{Bub navigates this game surprisingly well. Once he's on his
+  last life, he becomes careful and pauses the game when things are
+  looking grim---here pausing for about a thousand frames, burning
+  through the futures until one randomly comes along that looks good.
+  He then unpauses and executes that good future, killing three of
+  these monsters in short order.}
+\label{fig:bubblebobble}
+\end{figure}
+
+\section{Future Work}
+
+It is famous last words, but I actually intend to keep working on this
+project. Because of SIGBOVIK crunch pressure (and discovering some
+bugs as I was writing the paper) the approach got much better very
+recently and I'm mostly limited by CPU hours until conference. It's
+today in a state where whenever I run it on a new game I see something
+delightful. Even just running it on more of the NES classics is
+worthwhile. However, I have lots of ideas about how to extend the
+technique, either to make it more beautiful or to make it work better:
+
+\paragraph{Parameter reduction.} I've already pointed out the places
+where there are mysterious constants in the code. Although the fact
+that the same constants work on many different games without tuning
+is some solace, it would really be nicer to remove these. One of the
+hardest to remove is the length of the futures explored. XXX thoughts
+on how to improve this?
+
+\paragraph{Multiple players, multiple games.} Other than the particulars
+of the way it's built (\verb+vector<uint8>+ everywhere), there's no
+reason why the technique is limited to a single player's input. In a
+game like Bubble Bobble or Contra the two players can collaborate in
+interesting ways, and planning both simultaneously would probably lead
+to occasional awesome results. For example, in Contra, it might be
+that one player is shooting enemies for the other player, the bullets
+arriving from across the screen just in time to save him as he
+blithely jumps into danger. Another clever feat from the Tool Assisted
+Speedrun community is a sequence of inputs that beats multiple
+different {\em games} simultaneously. For example, human geniuses used
+tools to beat Mega Man (Mega Men?) 3, 4, 5, and 6 all at the same time
+using the exact same input sequence sent to all four
+games.\cite{BaxterTAS} I think the algorithms in this paper apply
+directly---it's just a matter of multiplexing the inputs to each of
+the games, and then taking the appropriate operation (min, max, sum) of
+their objective functions to produce a final objective function. The
+main obstacle is the architecture of the underlying emulator, which
+can only load one game into its global variables at once.
+
+
+
+\bibliographystyle{plain}
+% \bibliographycomment{} % nothing
+\bibliography{paper}
 
 \end{document}
