@@ -16,7 +16,7 @@
 \newcommand\parameteralert[1]{
   % XXX this can get cooler.
   \begin{quotation}
-  \noindent {\bf Parameter Alert!}\, #1
+  \noindent {\bf Parameter Alert!} #1
   \end{quotation}
 }
 
@@ -1093,8 +1093,8 @@ here). If they all do, then the score for the improvement is $\int_s^n
 - \int_s^o + (n - o)$, which is guaranteed to be positive.
 
 Even if we have many possible replacements, we try only the ones with
-the best scores; due to the particulars of the implementation there
-is not a simple constant describing this maximum, but it's around 220
+the best scores; due to the particulars of the implementation there is
+not a simple constant describing this maximum, but it's around 220
 with the parameter settings used in this paper.
 
 \parameteralert{
@@ -1105,6 +1105,16 @@ with the parameter settings used in this paper.
   below), so I don't want to spend too much energy speculating about
   how to reduce the parameter space here; I'd rather replace the
   method wholesale.}
+
+The {\em improvability} of a state is the fraction of these potential
+improvements that are legal improvements, as above. Based on my
+analysis, states that are highly improvable ($> 30\%$) tend to be
+``worse'' (more stuck, closer to death, or whatever) than those that
+are not very improvable ($< 5\%$). This isn't being used for anything
+currently, but getting an absolute picture of how good a state is (as
+opposed to simply comparing it to an adjacent state) is one of the
+difficulties with this approach, so this may be a useful notion for
+future directions.
 
 \paragraph{Takes of woe, tales of joy.} 
 Backtracking was initially added in order to fix the mario coin ledge
@@ -1117,18 +1127,18 @@ writing up this paper, on an airplane, I discovered the bug in the
 weighting of objective functions described in
 Section~\ref{sec:objectiveweighting}. On my trip I had let {\tt
   playfun} run with particularly high constants ({\tt NFUTURES} = 50,
-lots of backtracking candidates, etc.) and it had spent thousands of
-CPU hours playing to this point, grabbing the coins, and then dying of
-timeout, then losing all its lives, starting over, and getting to this
-point again! After fixing the bug, I tried again, and it was a huge
-breakthrough: Mario jumped up to get all the coins, and then almost
-immediately jumped back down to continue the level! On his first try
-he beat {\tt 1-2} and then immediately jumped in the pit at the
-beginning of {\tt 1-3} just as I was starting to feel suuuuuper smart
-(Figure~\ref{fig:mario13}). On a scale of OMFG to WTFLOL I was like
-{\em whaaaaaaat}?
+lots of backtracking candidates, etc.) and it had spent about a
+thousand CPU hours playing to this point, grabbing the coins, and then
+dying of timeout, then losing all its lives, starting over, and
+getting to this point again! After fixing the bug, I tried again, and
+it was a huge breakthrough: Mario jumped up to get all the coins, and
+then almost immediately jumped back down to continue the level! On his
+first try he beat {\tt 1-2} and then immediately jumped in the pit at
+the beginning of {\tt 1-3} just as I was starting to feel suuuuuper
+smart (Figure~\ref{fig:mario13}). On a scale of OMFG to WTFLOL I was
+like {\em whaaaaaaat}?
 
-\begin{figure}[ht]
+\begin{figure}[hb]
 \begin{center}
 \includegraphics[width=0.95 \linewidth]{mario13}
 \end{center}\vspace{-0.1in}
@@ -1232,7 +1242,7 @@ low-level tweaks to avoid copying, etc., to reduce the overhead from
 because of a bug (I was inadvertantly using pointer equality on keys
 instead of value equality, so keys were never found). Check basic
 things about your code's correctness before going on an optimization
-soiree!
+sortie!
 
 \subsection{Space optimizations}
 
@@ -1253,7 +1263,7 @@ I removed the backing buffer, which is only used for drawing graphics,
 movie info, header bytes that are constant or already known (savestate
 size), which shrunk the compressed size to an average of 2047.42 bytes.
 That meant I could fit about 32 million savestates in RAM at once, which
-is kind of amazing.
+would be kind of amazing if I could tell my 8 year-old self that.
 
 Compression algoritms work well when there is lots of redundancy in
 their input. Comparing memories between two frames in some game,
@@ -1262,22 +1272,22 @@ stuff that's essentially read-only, even. To improve the
 compressibility of savestates, I introduce the idea of a {\em basis}
 state. This is any non-empty sequence of bytes which is an additional
 argument to the {\tt LoadState} and {\tt SaveState} functions. It's
-subtracted from the savestate prior to compression (if it's longer or
-shorter, it's treated as an infinite repetition of those bytes). If
-the basis is the same as the savestate, then the result is all zeroes,
-which compresses nicely (of course, now you need to have the basis in
-order to load the state, which is the same as the savestate, so that
-didn't save you much!). But memories during gameplay often don't
-differ much, so I save a state from any arbitrary frame in the game
-and then use that as the basis. This factors out any common parts
-and makes the states much more compressible: The average size drops
-to 1870.41 bytes.
+subtracted from the savestate prior to compression (it doesn't have to
+be the same size; it's treated as an infinite repetition of those
+bytes). If the basis is the same as the savestate, then the result is
+all zeroes, which compresses nicely (of course, now you need to have
+the basis in order to load the state, which is the same as the
+savestate, so that didn't save you much!). But memories during
+gameplay often don't differ much, so I save a state from any arbitrary
+frame in the game and then use that as the basis for everything else.
+This factors out any common parts and makes the states much more
+compressible: The average size drops to 1870.41 bytes.
 
 Using a better compression algorithm like the Burrows--Wheeler
 transform\cite{Burrows}\footnote{This is really one of the all-time
   great algorithms. If you don't know it and you like this kind of
   thing, you should check it out. It's so surprising and elegant.}
-would probably help too; zlip implements LZW which is only mediocre.
+would probably help too; zlib implements LZW which is only mediocre.
 However, on a scale of throwing my computer out the window to wanting
 to reimplement all software in my own private SML library, I just
 can't stand getting 3\rd-party libraries to compile and link into my
@@ -1309,8 +1319,72 @@ obvious. This is a mode whereby {\tt playfun} can be started in
 (connects to a list of ports to run work on), in order to run
 many emulators in different processes.
 
+The processes communicate over TCP/IP. I only run it on my local
+computer, but it would be reasonable to run it on a cluster or
+possibly even the Internet. I used SDL's SDL\_Net as a portable
+network interface in the hopes of keeping it platform-agnostic (FCEUX
+is basically portable so it would be a shame to make this
+Windows-specific, though I am not eager to try to get this thing to
+compile on other platforms, I gotta be honest). SDL is a nightmare to
+get working with mingw in a 64-bit compile, as usual, and SDL\_Net
+contained some bugs\footnote{In particular, the {\tt
+    SDLNet\_TCP\_Recv} call is supposed to block until it has received
+  the entire requested length, but it occasionally returns early.}
+that I had to spend some time working around. Anyway, I'm just
+complaining. For serializing requests and responses to bytes, I used
+Google's Protocol Buffer library\cite{ProtoBuf}, which is designed for
+this kind of thing.
 
-% better to run on n-1 cpus?
+Helpers all start up with the same ROM and motif and objectives
+loaded, so that they can simulate whatever the master would
+compute.\footnote{Only the master reweights motifs, since it needs a
+  single sample of memories that we've observed. That means that in
+  cases where a helper generates random motifs, it does so with
+  respect to the original human weighting. There are some other small
+  things I simply avoided doing because they would require too much
+  coordination between processes or make the RPCs too large; MARIONET
+  was part of the system for much of its development.} They just wait
+on a port for the master to send a request, which can be either ``try
+this set of {\tt nexts} with these futures and send me the results'' or
+``try to find $n$ improvements of these inputs {\tt improveme} using
+so-and-so approach.'' In either case we send the base state as a
+serialized savestate.
+
+The master does the outer loop of the algorithm and all the writing to
+disk and so on. When it needs to do an expensive step like the inner
+loop, it prepares a set of jobs and sends them to workers using a little
+fork-join library ({\tt netutil.*}). The library keeps track of the
+outstanding jobs and which helpers are working, and feeds them work
+when they are idle, until all the jobs are complete. It's even got a
+color ANSI progress bar and stuff like that.
+
+Utilization is very good (Figure~\ref{fig:utilization}), and we get
+almost a linear speedup with the number of processes, up to the number
+of hardware threads the system supports (12). Actually, in addition
+to the computer remaining usable for other stuff, $n-1$ helpers seems
+to work a bit better than $n$, because each of the helpers is then able
+to avoid preemption. Since the driver loop is synchronous, having one
+laggard process slows the whole darn thing down.
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.75 \linewidth]{utilization}
+\end{center}\vspace{-0.1in}
+\caption{Utilization with 12 helpers and one master on a 6-core (12
+  hyperthreads) processor. Looks good. Keeps the bedroom warm.}
+\label{fig:utilization}
+\end{figure}
+
+MARIONET is a huge improvement and was what enabled using 40+ futures
+in a reasonable amount of time, which is key to high-quality output. It's
+obviously the way you want to run the software, if you can get it to
+compile. There is one downside, though, which is that it reduces our
+ability to get lucky cache hits across {\tt nexts} that are similar (or
+have the same effect), and when replaying the winner as we commit to it.
+It's worth it, but smartly deciding which helper gets which tasks (because
+they share prefixes, for example) would save time. Running it all in one
+process with a shared memory cache would be the best, as long as the
+lock contention could be kept under control.
 
 \section{Results} \label{sec:results}
 
@@ -1475,6 +1549,39 @@ and I wanted to see some other games before the SIGBOVIK deadline.
 }
 \label{fig:tetris-objectives}
 \end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{tetris-tower}
+\end{center}\vspace{-0.1in}
+\caption{Would you hire this construction company? Death is imminent,
+so {\tt playfun} pauses the game shortly after this and then doesn't
+unpause it.}
+\label{fig:tetris-tower}
+\end{figure}
+
+Tetris is a block dropping game, also known to the ancients. The
+Nintendo implementation is known for being inferior to the unlicensed
+Tengen version, which Nintendo tried to sue out of existence. Here I
+try to automate the Nintendo version as a tribute to litigation.
+Unsurprisingly, {\tt playfun} is awful at this game. Tetris has
+several screens of menus, where the player can select between
+different modes and theme musics and stuff like that. As an amusing
+prelude to this disaster in tetromino planning, {\tt playfun} keeps
+entering the menu and exiting back to the title screen rapidly, taking
+several seconds to even start the game. (Like in Bubble Bobble, this
+means that the start button is among the motifs.) Although the piece
+dropping looks more or less natural (but it's hard to not be, as the
+game drops the pieces for you), the placement is idiotic. This may be
+because placing a piece gives you a small amount of points, which
+probably looks like progress (Figure~\ref{fig:tetris-objectives}). As
+the screen fills, there's a tiny amount of tetris-like gameplay,
+probably as the end of the game becomes visible in some of the
+futures. The end result is awful and {\tt playfun} makes zero lines
+and certainly no Tetrises (Figure~\ref{fig:tetris-tower}). The only
+cleverness is pausing the game right before the next piece causes the
+game to be over, and leaving it paused. Truly, the only winning move
+is not to play.
 
 \section{Future Work}
 
