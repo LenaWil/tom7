@@ -913,6 +913,13 @@ struct PlayFun {
 	  positive_scores + negative_scores;
       }
 
+      // TODO: I think maybe a better idea is to use the max over
+      // all futures? It's appropriate to be optimistic, but we
+      // shouldn't ignore components of the objective that go down,
+      // because we have to take them together. But integral_score
+      // probably dominates, here, so maybe positive_scores is a
+      // good tie-breaker?
+
       // Based on the idea that BuggyEvaluate only used the
       // positive_scores component. This 'next' doesn't have
       // to take the future if it has low score, so don't penalize
@@ -926,6 +933,7 @@ struct PlayFun {
 
       *futures_score += future_score;
 
+      // Unused except for diagnostics.
       if (future_score > *best_future_score)
 	*best_future_score = future_score;
       if (future_score < *worst_future_score)
@@ -1164,6 +1172,12 @@ struct PlayFun {
 	(*futures)[i].inputs.swap(newf);
       }
     }
+
+    // XXX: Don't drop the future if it was the one we got the
+    // max() score for. Right? It might have had very poor scores
+    // otherwise, but we might be relying on it existing.
+    // TODO: Consider duplicating the future that we got the max()
+    // score from.
 
     // Discard the futures with the worst total.
     // They'll be replaced the next time around the loop.

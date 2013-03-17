@@ -35,10 +35,6 @@ necessarily achievable. I think it should work like this:
   one of the nexts. After TakeBestAmong we can grow the futures however
   we like.
 
-WeightByObjectives contains a bug where if the first value fraction is
-high, you get points for it since lastvaluefrac is 0.0. This should 
-not be the case.
-
 We should consider explicitly taking into account the tree of inputs,
 since caching makes some kinds of exploration much cheaper than others.
 
@@ -49,3 +45,9 @@ When they are good, lengthen them and have fewer.
 
 can use number of successful (better) backtracks as a way of gauging how
 globally good my state is.
+
+
+games:
+  tetris!
+  karate kid!
+  contra!

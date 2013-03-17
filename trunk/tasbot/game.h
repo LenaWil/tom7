@@ -4,12 +4,17 @@
 
 /*
 #define GAME "mario"
-// #define MOVIE "mario-cleantom.fm2"
-#define MOVIE "mario-newtom2.fm2"
+#define MOVIE "mario-cleantom.fm2"
+// #define MOVIE "mario-newtom2.fm2"
 // #define FASTFORWARD 256  // XXX cheats! -- should be 0
 #define FASTFORWARD 0
 #define BASE64 "base64:jjYwGG411HcjG/j9UOVM3Q=="
 */
+
+#define GAME "tetris"
+#define MOVIE "tetristom2.fm2"
+#define FASTFORWARD 0
+#define BASE64 "base64:Ww5XFVjIx5aTe5avRpVhxg=="
 
 /*
 #define GAME "adventureisland"
@@ -22,9 +27,21 @@
 // #define MOVIE "karate-tom.fm2"
 // #define BASE64 "base64:6xX0UBv8pLORyg1PCzbWcA=="
 
-#define GAME "pacman"
-#define MOVIE "pacman-tom.fm2"
-#define FASTFORWARD 600
-#define BASE64 "base64:ymBr2Kh1o5bVJzXDu4T6Zw=="
+// #define GAME "pacman"
+// #define MOVIE "pacman-tom.fm2"
+// #define FASTFORWARD 600
+// #define BASE64 "base64:ymBr2Kh1o5bVJzXDu4T6Zw=="
+
+/*
+#define GAME "tetris"
+#define MOVIE "tetris-tom.fm2"
+*/
+
+/*
+#define GAME "bubblebobble"
+#define MOVIE "bubblebobble-tom.fm2"
+#define BASE64 "base64:Yp/O7FR2zdP6o3GJGQXqAg=="
+#define FASTFORWARD 0
+*/
 
 #endif

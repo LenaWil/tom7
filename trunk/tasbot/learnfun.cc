@@ -96,7 +96,10 @@ static void MakeObjectives(const vector< vector<uint8> > &memories) {
   // Some things will never violate the objective, like
   // [world number, stage number] or [score]. So generate
   // a handful of whole-game objectives.
-  
+
+  // TODO: In Mario, all 50 appear to be effectively the same
+  // when graphed. Are they all equivalent, and should we be
+  // accounting for that e.g. in weighting or deduplication?
   for (int i = 0; i < 50; i++) // was 10
     obj.EnumerateFullAll(PrintAndSave, 1, i);
 
@@ -162,6 +165,7 @@ int main(int argc, char *argv[]) {
 
   SaveMemory(&memories);
 
+  uint64 time_start = time(NULL);
   for (int i = start; i < movie.size(); i++) {
     if (i % 1000 == 0) {
       printf("  [% 3.1f%%] %d/%ld\n", 
@@ -172,8 +176,11 @@ int main(int argc, char *argv[]) {
     inputs.push_back(movie[i]);
     SaveMemory(&memories);
   }
+  uint64 time_end = time(NULL);
 
-  printf("Recorded %ld memories.\n", memories.size());
+  printf("Recorded %ld memories in %ld sec.\n", 
+         memories.size(),
+         time_end - time_start);
 
   MakeObjectives(memories);
   Motifs motifs;

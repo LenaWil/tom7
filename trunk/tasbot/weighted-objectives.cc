@@ -318,10 +318,12 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
 
     const string color = RandomColor(&rc);
     const string startpolyline =
-      StringPrintf("  <polyline fill=\"none\" opacity=\"0.5\" stroke=\"%s\""
+      StringPrintf("  <polyline fill=\"none\" "
+		   // opacity=\"0.5\" "
+		   "stroke=\"%s\""
 		   " stroke-width=\"%d\" points=\"", 
-		   (info.weight <= 0) ? "#f00" : "#0f0",
-		   // color.c_str(),
+		   // (info.weight <= 0) ? "#f00" : "#0f0",
+		   color.c_str(),
 		   1
 		   // (info.weight <= 0) ? 3 : 1
 		   );
