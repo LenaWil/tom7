@@ -955,14 +955,16 @@ provides a challenge you may recognize from your youth, immediately
 followed by something that computers find much harder
 (Figure~\ref{fig:mario12}).
 
-I literally spent about six weekends on this problem. First, the
-overhang is set up so that enemies emerge from it just as you arrive.
-This means that loose play (imperfect enemy avoidance) tends to get
-you killed right here. Mario has found a number of different solutions
-to this problem, from waiting, to kicking turtles from the left to
-clear out the enemies, to timing his jump perfectly (it is possible)
-to stomp the turtle after bouncing his head off the ceiling.
-
+I literally spent about six weekends and thousands of hours of CPU on
+this problem. First, the overhang is set up so that enemies emerge
+from it just as you arrive. This means that loose play (imperfect
+enemy avoidance) tends to get you killed right here. Mario has found a
+number of different solutions to this problem, from waiting, to
+kicking turtles from the left to clear out the enemies, to timing his
+jump perfectly (it is possible!) to stomp the turtle after bouncing his
+head off the ceiling. It's fun to see the different approaches and is
+a good benchmark for whether the search algorithm is actually doing a
+good job at tactics.
 
 \begin{figure}[h!tb]
 \begin{center}
@@ -977,10 +979,184 @@ turn around.}
 \label{fig:mario12}
 \end{figure}
 
+Immediately after this is an important test of longer-term planning.
+Most of my early solutions would jump up on this ledge with 4 coins,
+since the score is a component of many lexicographic
+orderings\footnote{Maybe even all of them, since it should be globally
+  obeyed; it's therefore a valid extension to any ordering that
+  doesn't already include it. It's not necessarily a tight extension,
+  however, so it may be excluded for that reason, or because during
+  initialization it is not actually zero and so not globally obeyed. I
+  never checked this stuff because I wanted to avoid any temptation to
+  overfit the learning algorithm to the particulars of any game.} and
+coins give you points. Down below is undesirable in the short term
+because of the enemies. Then Mario would feel stuck and just hump up
+against the wall jumping in this tiny dead end until time ran out. The
+game contains some bugs (you have probably seen them) that allow the
+screen to be scrolled without Mario actually progressing; these little
+mini scrolls, plus the givens like the frame counter and music cursor,
+prevent Mario from getting out of the local maximum. This is extremely
+frustrating. I decided to add some longer-term planning into the
+search procedure in order to try to help in these kinds of situations,
+as well as the occasional deaths I would see.
+
+Every {\tt CHECKPOINT\_EVERY} frames we save the state, and then every
+{\tt TRY\_BACKTRACK\_EVERY} rounds, we do a backtracking phase if we
+can. We just need to find a checkpoint at least {\tt
+  MIN\_BACKTRACK\_DISTANCE} frames in the past. Call that point
+{\tt start} and the current point {\tt now}. The backtracking
+routine looks like this:
+
+\begin{itemize}
+  \item Let {\tt improveme} be the inputs between {\tt start} and {\tt now}.
+  \item Get {\tt replacements}, a set of input sequences we might use
+    instead. These are usually based on {\tt improveme}.
+  \item Add {\tt improveme} to the set of replacements.
+  \item Truncate the movie to {\tt start}.
+  \item Now, do the normal playfun loop as though the (truncated) futures
+    are whatever our current futures are, and the set of {\tt next}
+    sequences are the {\tt replacements} array.
+  \item Whatever the best one among those is, keep it. Don't update motifs
+    or futures, however.
+\end{itemize}
+
+The idea is that we take a large sequence from our recent past, and the
+same futures we're already using, and see if that sequence can be improved,
+according to our objective functions, and using our same futures. Since
+the existing sequence is always one of those, if it is the best one,
+then the backtracking phase is a no-op. If we find something better, we
+slot it in and continue. So the only risk here is if our objective functions
+aren't good (we take as given that they are) and the only cost is time.
+
+Generating the candidate set of replacements uses a bunch of different
+techniques. They are:
+
+\paragraph{Random.} We generate a random sequence of the same length as
+the {\tt improveme} sequence.
+
+\paragraph{Opposites.} We dualize (swap left with right, up with down, start 
+with select, and B with A) and/or reverse random spans of the {\tt
+  improveme} sequence. The idea is to try to introduce some variety in
+cases where we're really getting stuck. This was specifically in hopes
+that Mario would walk off the coin ledge in {\tt 1-2} and then find that the
+course was clear below. I felt okay about this since this seems to be a
+generic notion (the buttons do have semantics that are common to most NES
+games where left and right are opposites), but that may just have been
+rationalization since I was getting desperate. It didn't work; see below.
+
+\paragraph{Ablation.} Randomly blanks out buttons from the input. For
+example, if we don't need to jump and jumping is slowing us down or
+something, this can remove that and make a small improvement to the
+sequence.
+
+\paragraph{Chop.} Removes random spans from the input. This iteratively
+removes spans as long as the previous span was an improvement (see
+below). This can cause the movie to get shorter by removing parts that
+weren't contributing anything.\footnote{However, in games where an
+  objective function includes something like a frame counter or the
+  music cursor, shorter sequences always score lower than
+  otherwise equivalent longer sequences.}
+
+We use the following formula to score a potential improvement:
+
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{isimprovement}
+\end{center}
+
+The {\tt start} state is as discussed, {\tt old\_end} is the state at
+{\tt now}, and {\tt new\_end} is the state after the potential
+improvement sequence. $\int_s^o$ is the integral of score changes
+along the {\tt improveme} path and $\int_s^n$ along the candidate
+improvement. The integral is the weighted sum of the objectives
+increased minus the weighted sum of the objectives that decreased, at
+each step, all summed up. This works better than just computing the
+weighted score from e.g. {\tt start} to {\tt old\_end} when they are
+separated by many frames (typical backtrack distances are several
+hundred frames). The expression $n-o$\footnote{This is not numerical
+  minus but minus according to the set of objective functions. Just
+  roll with it.} is just the weighted sum of objectives that increased
+minus the weighted sum of objectives that decreased between the old
+end state and new end state; we have no option of computing the
+integral here because we don't have an input sequence that goes from
+the old end to the new end (and there almost certainly isn't one). We
+require that three conditions hold:
+\begin{enumerate}
+\item $\int_s^n \geq \int_s^o$,
+\item $\int_s^n > 0$
+\item $n - o > 0$
+\end{enumerate}
+
+If they all do, then the score for the improvement is 
+$\int_s^n - \int_s^o + (n - o)$, which is guaranteed to be positive.
+
+Even if we have many possible replacements, we try only the ones with
+the best scores; due to the particulars of the implementation there
+is not a simple constant describing this maximum, but it's around 220
+with the parameter settings used in this paper.
+
+\parameteralert{
+  Again! The humiliating appearance of constants! There are many here,
+  having to do with the number of potential replacements we use of
+  each type, the maximum number we keep, how often we bactrack, and
+  how far. I am not totally satisfied with how backtracking works (see
+  below), so I don't want to spend too much energy speculating about
+  how to reduce the parameter space here; I'd rather replace the
+  method wholesale.}
+
+\paragraph{Takes of woe, tales of joy.} 
+Backtracking was initially added in order to fix the mario coin ledge
+problem in {\tt 1-2}. It did not help with this. Older versions of the
+code would have Mario get past this spot, probably by luck, but in
+these he would get stuck in an embarrassing way on a small pit later,
+or jump straight into an enemy. Most of the approaches that actually
+looked solidly good elsewhere were failing badly here. As I started
+writing up this paper, on an airplane, I discovered the bug in the
+weighting of objective functions described in
+Section~\label{sec:objectiveweighting}. On my trip I had let {\tt
+  playfun} run with particularly high constants ({\tt NFUTURES} = 50,
+lots of backtracking candidates, etc.) and it had spent thousands of
+CPU hours playing to this point, grabbing the coins, and then dying of
+timeout, then losing all its lives, starting over, and getting to this
+point again! After fixing the bug, I tried again, and it was a huge
+breakthrough: Mario jumped up to get all the coins, and then almost
+immediately jumped back down to continue the level! On his first try
+he beat {\tt 1-2} and then immediately jumped in the pit at the
+beginning of {\tt 1-3} just as I was starting to feel suuuuuper smart
+(Figure~\ref{fig:mario13}). On a scale of OMFG to WTFLOL I was like
+{\em whaaaaaaat}?
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{adventureisland}
+\end{center}\vspace{-0.1in}
+\caption{After making me feel so successful by finally cleanly
+  finishing world {\tt 1-2}, Mario immediately jumps into the first
+  trivial pit in {\tt 1-3}. I believe what's going on here is that
+  this is actually the best future, because resetting back a single
+  screen isn't a large loss, and probably the rest of the futures were
+  struggling to make progress. This level is very jumpy and probably
+  needs more futures to navigate its obstacles. In any case, Mario,
+  Touch\'e.}
+\label{fig:mario13}
+\end{figure}
+
+Seeing this huge improvement changed my idea about what part of the
+code needed work (I now believe that simpler search strategies might
+work and better lexicographic order generation and weighting is called
+for). But, this was already in the midst of writing up the paper, so
+instead I spent the CPU time running the current version on a bunch of
+games. Those results are described in Section~\ref{sec:results} and
+videos are available on \url{http://tom7.org/mario/}. In the next
+section I describe some of the performance improvements I made, and
+other modifications to the emulator interface.
+
+\section{Performance} \label{sec:performance}
 
 \subsection{Caching of emulation} \label{sec:caching}
 
 \subsection{MARIONET}
+
+% better to run on n-1 cpus?
 
 \section{Results} \label{sec:results}
 

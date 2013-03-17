@@ -1,6 +1,6 @@
 
 # Makefile made by tom7.
-default: playfun.exe
+default: playfun.exe learnfun.exe
 # tasbot.exe
 # emu_test.exe
 
