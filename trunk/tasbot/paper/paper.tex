@@ -857,13 +857,13 @@ a computer does.\footnote{That said, this part was an early idea and
   become desynchronized because of the final incomplete motif, future
   mutation, and other things). So sometimes the chosen sequence
   doesn't affect weights. I think this would be better if we kept a
-  Markov model } Knowing whether we made progress is kind of
-difficult, since we can almost always find some move that increases
-the objectives locally. For this I use the same approach of {\em value
-  fraction} from Section~\ref{sec:objectiveweighting} based on a
-sample of memories that we've seen so far. If we appear to be
-progressing then the motif is weighted up; if we're regressing then it
-is weighted down.
+  Markov model and updated it no matter what sequences we generated.}
+Knowing whether we made progress is kind of difficult, since we can
+almost always find some move that increases the objectives locally.
+For this I use the same approach of {\em value fraction} from
+Section~\ref{sec:objectiveweighting} based on a sample of memories
+that we've seen so far. If we appear to be progressing then the motif
+is weighted up; if we're regressing then it is weighted down.
 
 {\tt ReplaceBadFutures} kicks out the the futures with the worst total
 scores, so that over time the random futures become good futures. Of
@@ -1668,54 +1668,96 @@ delightful. Even just running it on more of the NES classics is
 worthwhile. However, I have lots of ideas about how to extend the
 technique, either to make it more beautiful or to make it work better:
 
-\paragraph{Parameter reduction.} I've already pointed out the places
-where there are mysterious constants in the code. Although the fact
-that the same constants work on many different games without tuning
-is some solace, it would really be nicer to remove these. One of the
-hardest to remove is the length of the futures explored. And I like
-a challenge! 
+\paragraph{Parameter reduction.}
+I've already pointed out the places where there are mysterious
+constants in the code. Although the fact that the same constants work
+on many different games without tuning is some solace, it would really
+be nicer to remove these. One of the hardest to remove is the length
+of the futures explored. And I like a challenge!
 
-\paragraph{Generalized orderings.} Right now, lexicographic orderings
-are limited to vectors of unsigned bytes that get larger. Many games
-treat bytes as signed (I believe this is true of Mario's velocity, for
-example). For other bytes, like one representing your enemy's health
-(c.f. Karate Kid), winning means making the byte {\em go down}, not
-up. It is possible to generalize the lexicographic orderings we
-generate to a vector of ($L_i$, $<_i$) pairs, where $<_i$ tells us
-how to compare the bytes at that location. Things to try would be
-two's-complement signed comparison, or unsigned greater-than. I think
-this is a great avenue; the dangers are overfitting (now most short
-sequences can be explained in one way or another) and being too fancy.
+\paragraph{Generalized orderings.}
+Right now, lexicographic orderings are limited to vectors of unsigned
+bytes that get larger. Many games treat bytes as signed (I believe
+this is true of Mario's velocity, for example). For other bytes, like
+one representing your enemy's health (c.f. Karate Kid), winning means
+making the byte {\em go down}, not up. It is possible to generalize
+the lexicographic orderings we generate to a vector of ($L_i$, $<_i$)
+pairs, where $<_i$ tells us how to compare the bytes at that location.
+Things to try would be two's-complement signed comparison, or unsigned
+greater-than. I think this is a great avenue; the dangers are
+overfitting (now most short sequences can be explained in one way or
+another) and being too fancy.
 
 \paragraph{Input models.}
+I'm unsatisfied with the motif approach. As mentioned earlier, the
+obvious thing to try instead is a Markov model, which would probably
+be simpler and would allow re-weighting from inputs regardless of what
+we concocted while playing (the current version can only reweight the
+human motifs, not learn new sequences discovered while running). I
+would also like some solution to the start button problem---if it is
+among the motifs, it often shows up in gameplay in annoying ways. I
+don't feel good about simply blacklisting it, however. In Bubble
+Bobble, start appears to be used to burn away futures when all of them
+are bad. Maybe a simple improvement would be to allow the inner loop
+of {\tt playfun} to skip the turn (empty {\tt next} sequence) in
+order to simulate this.
 
 \paragraph{Better backtracking.}
-XXX Keep backtracking until improvability is below a certain limit.
-XXX backtrack farther in some conditions.
+Backtracking is a powerful idea, and there's lots more to do here. The
+fixed-size backtracking window is disappointing since it's a
+parameter, and doesn't even seem right for most games. It would make
+sense to do something like lengthen the window until the {\em
+  improvability} starts dropping; basically, find the amount of recent
+past that's comparable to random play, and try improving that.
+Moreover, it should be possible to re-backtrack, since some parts of
+the game are harder than others. Ideally, when Mario has so few
+options that he contemplates suicide, he should be backtracking over
+and over and farther and farther until he finds a future that's good.
+This is the power of time travel. Use it, man.
 
-\paragraph{Multiple players, multiple games.} Other than the particulars
-of the way it's built (\verb+vector<uint8>+ everywhere), there's no
-reason why the technique is limited to a single player's input. In a
-game like Bubble Bobble or Contra the two players can collaborate in
-interesting ways, and planning both simultaneously would probably lead
-to occasional awesome results. For example, in Contra, it might be
-that one player is shooting enemies for the other player, the bullets
-arriving from across the screen just in time to save him as he
-blithely jumps into danger. Another clever feat from the Tool Assisted
-Speedrun community is a sequence of inputs that beats multiple
-different {\em games} simultaneously. For example, human geniuses used
-tools to beat Mega Man (Mega Men?) 3, 4, 5, and 6 all at the same time
-using the exact same input sequence sent to all four
-games.\cite{BaxterTAS} I think the algorithms in this paper apply
+\paragraph{Efficiency in search}
+Quality is directly related to the number of states searched. Some
+sequences are easier to search than others, because they share a prefix
+with something we've already done and can be cached. It would be worth
+looking into algorithms that explicitly take into account the cost of
+branching, so that we explore some tree (of futures, for example) rather
+than disjoint linear futures. The effective number of futures explored
+could be much higher for the same CPU.
+
+\paragraph{Multiple players, multiple games.}
+Other than the particulars of the way it's built (\verb+vector<uint8>+
+everywhere), there's no reason why the technique is limited to a
+single player's input. In a game like Bubble Bobble or Contra the two
+players can collaborate in interesting ways, and planning both
+simultaneously would probably lead to occasional awesome results. For
+example, in Contra, it might be that one player is shooting enemies
+for the other player, the bullets arriving from across the screen just
+in time to save him as he blithely jumps into danger. Another clever
+feat from the Tool Assisted Speedrun community is a sequence of inputs
+that beats multiple different {\em games} simultaneously. For example,
+human geniuses used tools to beat Mega Man (Mega Men?) 3, 4, 5, and 6
+all at the same time using the exact same input sequence sent to all
+four games.\cite{BaxterTAS} I think the algorithms in this paper apply
 directly---it's just a matter of multiplexing the inputs to each of
-the games, and then taking the appropriate operation (min, max, sum) of
-their objective functions to produce a final objective function. The
-main obstacle is the architecture of the underlying emulator, which
-can only load one game into its global variables at once.
+the games, and then taking the appropriate operation (min, max, sum)
+of their objective functions to produce a final objective function.
+The main obstacle is the architecture of the underlying emulator,
+which can only load one game into its global variables at once.
 
 \section{Conclusion}
 
-XXX
+In this paper I showed how lexicographic orderings and time travel can
+be used to automate classic video games. The approach uses an
+amusingly simple and mathematically elegant model to learn what
+constitutes ``winning'' according to a human player's inputs. It then
+uses hundreds of CPU hours to search different input sequences that
+seem to ``win'', inspecting only the RAM of the simulated game,
+ignoring any of the human outputs like video and sound. The technique
+works great on some games, getting farther into the game than the
+human's inputs did, and produces novel gameplay (for example, bug
+exploitation and super-human daredevil timing). On other games, it is
+garbage, but on a scale of recycling symbol 1 to recycling symbol 7,
+it is at least hilarious garbage.
 
 \bibliographystyle{plain}
 % \bibliographycomment{} % nothing
