@@ -16,7 +16,7 @@
 \newcommand\parameteralert[1]{
   % XXX this can get cooler.
   \begin{quotation}
-  {\bf Parameter Alert!}\,\, #1
+  \noindent {\bf Parameter Alert!}\, #1
   \end{quotation}
 }
 
@@ -781,8 +781,8 @@ for (;;) \{
 
   set<vector<uint8>> nexts;
   for (Future f : futures) \{
-   nexts.insert(f.First10Frames());
-   f.ChopOffFirst10Frames();
+    nexts.insert(f.First10Frames());
+    f.ChopOffFirst10Frames();
   \}
 
  \ 
@@ -974,7 +974,7 @@ good job at tactics.
 ordering and time travel. This overhang is very tight in terms of the
 inputs that can get you through it; random play tends to kill you because
 of the advancing enemies that can't easily be jumped over. Greedy
-algorithms can't resist the ledge with the coins, but then need to
+algorithms can't resist the ledge with the coins, but then would need to
 turn around.}
 \label{fig:mario12}
 \end{figure}
@@ -1086,8 +1086,11 @@ require that three conditions hold:
 \item $n - o > 0$
 \end{enumerate}
 
-If they all do, then the score for the improvement is 
-$\int_s^n - \int_s^o + (n - o)$, which is guaranteed to be positive.
+The integral has to be at least as good as before, the new integral
+has to be positive, and the new end state needs to look better than
+the old end state (the triangle inequality does not necessarily hold
+here). If they all do, then the score for the improvement is $\int_s^n
+- \int_s^o + (n - o)$, which is guaranteed to be positive.
 
 Even if we have many possible replacements, we try only the ones with
 the best scores; due to the particulars of the implementation there
@@ -1112,7 +1115,7 @@ or jump straight into an enemy. Most of the approaches that actually
 looked solidly good elsewhere were failing badly here. As I started
 writing up this paper, on an airplane, I discovered the bug in the
 weighting of objective functions described in
-Section~\label{sec:objectiveweighting}. On my trip I had let {\tt
+Section~\ref{sec:objectiveweighting}. On my trip I had let {\tt
   playfun} run with particularly high constants ({\tt NFUTURES} = 50,
 lots of backtracking candidates, etc.) and it had spent thousands of
 CPU hours playing to this point, grabbing the coins, and then dying of
@@ -1127,16 +1130,16 @@ beginning of {\tt 1-3} just as I was starting to feel suuuuuper smart
 
 \begin{figure}[ht]
 \begin{center}
-\includegraphics[width=0.95 \linewidth]{adventureisland}
+\includegraphics[width=0.95 \linewidth]{mario13}
 \end{center}\vspace{-0.1in}
 \caption{After making me feel so successful by finally cleanly
   finishing world {\tt 1-2}, Mario immediately jumps into the first
   trivial pit in {\tt 1-3}. I believe what's going on here is that
   this is actually the best future, because resetting back a single
-  screen isn't a large loss, and probably the rest of the futures were
-  struggling to make progress. This level is very jumpy and probably
-  needs more futures to navigate its obstacles. In any case, Mario,
-  Touch\'e.}
+  screen isn't a large loss, lives aren't included in the objective
+  function, and probably the rest of the futures were struggling to
+  make progress. This level is very jumpy and probably needs more
+  futures to navigate its obstacles. In any case, Mario, Touch\'e.}
 \label{fig:mario13}
 \end{figure}
 
@@ -1146,15 +1149,166 @@ work and better lexicographic order generation and weighting is called
 for). But, this was already in the midst of writing up the paper, so
 instead I spent the CPU time running the current version on a bunch of
 games. Those results are described in Section~\ref{sec:results} and
-videos are available on \url{http://tom7.org/mario/}. In the next
+videos are available at \url{http://tom7.org/mario/}. In the next
 section I describe some of the performance improvements I made, and
 other modifications to the emulator interface.
 
 \section{Performance} \label{sec:performance}
 
+Performance is really important, both because the quality of the
+output is CPU-bound and because I am impatient. In its current state,
+running {\tt playfun} is an overnight affair; it takes about an hour
+of real time to produce 1000 output frames (16 seconds of gameplay) on
+a high-end desktop machine. Other than a trick that I didn't end up
+using, these performance ideas are not at all new, but they are
+documented here for completeness. I certainly spent lots of time on 'em!
+
 \subsection{Caching of emulation} \label{sec:caching}
 
+The most expensive part, by far, is running a step of emulation. It
+takes about 500\textmu s to emulate a single frame, though this can
+vary depending on what instructions are actually executed (recall that
+each frame corresponds to many many 2A03 instructions; there are
+approximately 16,000 clock cycles per frame!). Hardware like the
+Picture Processing Unit and sound chip are emulated as well, which may
+actually be less efficient than the actual hardware (for example, the
+sound hardware can implement filtering with passive physical
+components like capacitors, but FCEUX contains a finite impulse
+response filter running on IEEE floating point numbers). We want to
+avoid executing a step more than once, if at all possible.
+
+Caching is so canonical that some have called it (pejoratively) the
+only idea in Systems research. And it is what we do here. The emulator
+adds a call
+%
+\begin{code}
+void CachingStep(uint8 input);
+\end{code}
+%
+with exactly the same semantics as {\tt Step}. However, it first
+checks to see if this exact input has been executed on this exact
+start state before. If so, it just restores the cached result
+state instead of executing the step.
+
+I use the excellent CityHash function\cite{CityHash} as the hash code,
+and use a least-recently-used approach to clean out the hash table
+when it has more than a fixed {\em slop} amount more than the target
+size. States are large because they contain both the savestate of the
+before and after state. I have plenty of RAM, so I allow each process
+to store up to 100,000 states with 10,000 states of slop, which takes
+about 3 gigabytes per process.
+
+Caching adds a little bit of overhead (a single step is about 13\%
+slower, amortized), from saving the state, computing the hash code,
+copying the state into the table, and cleaning the hash table
+periodically. A cache hit is a zillion times faster than actually
+executing the step, however, so as long as the hit rate is more than
+13\%, it's worth doing. I use caching step in most places inside {\tt
+  playfun}, except when I know that the state can't have been computed
+yet. The {\tt playfun algorithm} is particularly suitable to caching:
+The set of potential next input sequences {\tt nexts} usually share
+several input prefixes, and we keep around futures for some time, so
+we can often end up evaluating the same one under the same conditions
+many times. Moreover, mutant futures usually share their first half,
+making them half price. A really important property of caching is that
+it's based on the state of memory but doesn't care about the actual
+sequence used to get there. This means that in cases where the input
+is ignored (Mario ignores the jump button most of the time while in
+the air, for example, and ignores all inputs between levels) we reach
+equivalent states and can use the cache if the next input is exactly
+the same. The ideal approach here would be to follow how the bits of
+the input are actually read by the code, and insert a more generic key
+into the hash table. For example, if we see that the code never even
+read the bit of the input corresponding to the up direction, then we
+can reuse the step for an input that matches all bits but the up bit!
+This of course requires a lot of mucking around in the internals,
+which on a scale of within the scope to beyond the scope of this
+article is a 9.9.
+
+{\bf Software engineering lesson:} Initial results from caching were
+disappointing and I thought the overhead was to blame. I made several
+low-level tweaks to avoid copying, etc., to reduce the overhead from
+36\% to 13\%. Then I discovered that there were 0 cache hits ever,
+because of a bug (I was inadvertantly using pointer equality on keys
+instead of value equality, so keys were never found). Check basic
+things about your code's correctness before going on an optimization
+soiree!
+
+\subsection{Space optimizations}
+
+Before I had the idea that is the actual subject of this paper, I was
+playing around with other emulator search ideas that involved storing
+very very large numbers of states. This necessitated minimal
+representations of savestates. FCEUX uses zlib internally to compress
+states, which works well; they shrink from something like 13,776
+bytes\footnote{I don't completely understand the NES architecture and
+  emulation strategy, but I believe some games include expansion chips
+  that require more space for save states. All this work is based on
+  the 2048 bytes of main NES RAM, as you already know. Perhaps clever
+  video game authors from the past can protect against this paper's
+  approach by storing important game facts inside expansion chips
+  in the cartridge.} to an average of 2266. I made some modifications
+to the save/load routines to make this as small as I could manage.
+I removed the backing buffer, which is only used for drawing graphics,
+movie info, header bytes that are constant or already known (savestate
+size), which shrunk the compressed size to an average of 2047.42 bytes.
+That meant I could fit about 32 million savestates in RAM at once, which
+is kind of amazing.
+
+Compression algoritms work well when there is lots of redundancy in
+their input. Comparing memories between two frames in some game,
+you'll often see only a few differences. Some of the memory contains
+stuff that's essentially read-only, even. To improve the
+compressibility of savestates, I introduce the idea of a {\em basis}
+state. This is any non-empty sequence of bytes which is an additional
+argument to the {\tt LoadState} and {\tt SaveState} functions. It's
+subtracted from the savestate prior to compression (if it's longer or
+shorter, it's treated as an infinite repetition of those bytes). If
+the basis is the same as the savestate, then the result is all zeroes,
+which compresses nicely (of course, now you need to have the basis in
+order to load the state, which is the same as the savestate, so that
+didn't save you much!). But memories during gameplay often don't
+differ much, so I save a state from any arbitrary frame in the game
+and then use that as the basis. This factors out any common parts
+and makes the states much more compressible: The average size drops
+to 1870.41 bytes.
+
+Using a better compression algorithm like the Burrows--Wheeler
+transform\cite{Burrows}\footnote{This is really one of the all-time
+  great algorithms. If you don't know it and you like this kind of
+  thing, you should check it out. It's so surprising and elegant.}
+would probably help too; zlip implements LZW which is only mediocre.
+However, on a scale of throwing my computer out the window to wanting
+to reimplement all software in my own private SML library, I just
+can't stand getting 3\rd-party libraries to compile and link into my
+applications, so I didn't even try. In any case, I abandoned this
+direction, which was not working well even with lean savestates.
+
+For {\tt playfun}, RAM is not a bottleneck at all. I disable
+compression completely on savestates, including the builtin zlib stuff
+(which is actually rather slow) and just use raw savestates. The
+removal of unnecessary headers and stuff is still there, and saves a
+few bytes and CPU cycles, but there was no reason to actually do it
+for this particular work. {\em But sometimes I do unnecessary things.}
+
 \subsection{MARIONET}
+
+The {\tt playfun} algorithm involves running 40 or so different
+10-sequence {\tt next} steps and then scoring them against {\tt
+  NFUTURES} different futures. Each {\tt next} and each future is
+completely independent and dominated by the cost of evaluating
+emulator steps. The ideal thing would be to use threads and shared
+memory to run these steps in parallel. As I mentioned earlier,
+FCEUX is hopelessly single-threaded.
+
+Eventually I realized I needed to search more states than I could in a
+single thread, and so I created MARIONET. It's a play on words, a
+double entendre of ``Mario network'' and ``Marionette'', which is
+obvious. This is a mode whereby {\tt playfun} can be started in
+``helper'' mode (listens on a port for work to do) or ``master'' mode
+(connects to a list of ports to run work on), in order to run
+many emulators in different processes.
+
 
 % better to run on n-1 cpus?
 
@@ -1167,6 +1321,24 @@ briefly.
 
 \subsection{Super Mario Bros.}
 
+bug exploitation (Figure~\ref{fig:mario13bug1}).
+
+\begin{figure}[h!tb]
+\begin{center}
+\includegraphics[width=0.75 \linewidth]{mario13bug1a} \\[0.3em]
+\includegraphics[width=0.75 \linewidth]{mario13bug1b}
+\end{center}\vspace{-0.1in}
+\caption{Mario bounces off one Goomba up into the feet of another. Not
+  only doesn't he have enough velocity to reach the platform, but he's
+  about to hit that Goomba from below. Believe it or not, this ends
+  well: {\tt playfun} is happy to exploit bugs in the game; in this case,
+  that whenever Mario is moving downward (his jump crests just before the
+  Goomba hits him) this counts as ``stomping'' on an enemy, even if that
+  enemy is above him. The additional bounce from this Goomba also allows
+  him to make it up to the platform, which he wouldn't have otherwise!
+}
+\label{fig:mario13bug1}
+\end{figure}
 
 
 \subsection{Hudson's Adventure Island}
