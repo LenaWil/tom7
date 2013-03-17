@@ -14,7 +14,6 @@
 
 \newcommand\comment[1]{}
 \newcommand\parameteralert[1]{
-  % XXX this can get cooler.
   \begin{quotation}
   \noindent {\bf Parameter Alert!} #1
   \end{quotation}
@@ -103,8 +102,8 @@ to produce novel gameplay. A design goal is that the objective
 function be amusingly elegant (not at all smart, fancy, or customized
 to the game) in order to demonstrate that the game is reducible to
 such a simple objective. The search needs to be game-agnostic and
-practical, but since the space is exponential ($256^{n}$), we need to
-be smart here.
+practical, but since the space is exponential
+($256^{n}$)\cite{GeneralizedSuper}, we need to be smart here.
 
 The objective function, the algorithm to deduce it, the search
 strategy, and its implementation are all interesting and will be
@@ -1321,13 +1320,13 @@ many emulators in different processes.
 
 The processes communicate over TCP/IP. I only run it on my local
 computer, but it would be reasonable to run it on a cluster or
-possibly even the Internet. I used SDL's SDL\_Net as a portable
-network interface in the hopes of keeping it platform-agnostic (FCEUX
-is basically portable so it would be a shame to make this
-Windows-specific, though I am not eager to try to get this thing to
-compile on other platforms, I gotta be honest). SDL is a nightmare to
-get working with mingw in a 64-bit compile, as usual, and SDL\_Net
-contained some bugs\footnote{In particular, the {\tt
+possibly even the Internet. I used SDL's SDL\_Net\cite{SDLNet} as a
+portable network interface in the hopes of keeping it
+platform-agnostic (FCEUX is basically portable so it would be a shame
+to make this Windows-specific, though I am not eager to try to get
+this thing to compile on other platforms, I gotta be honest). SDL is a
+nightmare to get working with mingw in a 64-bit compile, as usual, and
+SDL\_Net contained some bugs\footnote{In particular, the {\tt
     SDLNet\_TCP\_Recv} call is supposed to block until it has received
   the entire requested length, but it occasionally returns early.}
 that I had to spend some time working around. Anyway, I'm just
@@ -1352,19 +1351,20 @@ serialized savestate.
 
 The master does the outer loop of the algorithm and all the writing to
 disk and so on. When it needs to do an expensive step like the inner
-loop, it prepares a set of jobs and sends them to workers using a little
-fork-join library ({\tt netutil.*}). The library keeps track of the
-outstanding jobs and which helpers are working, and feeds them work
-when they are idle, until all the jobs are complete. It's even got a
-color ANSI progress bar and stuff like that.
+loop, it prepares a set of jobs and sends them to workers using a
+little fork-join library ({\tt netutil.*}). The library keeps track of
+the outstanding jobs and which helpers are working, and feeds them
+work when they are idle, until all the jobs are complete. It's even
+got a color ANSI progress bar and stuff like that.
 
 Utilization is very good (Figure~\ref{fig:utilization}), and we get
 almost a linear speedup with the number of processes, up to the number
-of hardware threads the system supports (12). Actually, in addition
-to the computer remaining usable for other stuff, $n-1$ helpers seems
-to work a bit better than $n$, because each of the helpers is then able
-to avoid preemption. Since the driver loop is synchronous, having one
-laggard process slows the whole darn thing down.
+of hardware threads the system supports (twelve). Actually, in
+addition to the computer remaining usable for other stuff, $n-1$
+helpers may work a bit better than $n$, because each of the
+helpers is then able to avoid preemption. Since the driver loop is
+synchronous, having one laggard process slows the whole darn thing
+down while everything waits for it to finish.
 
 \begin{figure}[htb]
 \begin{center}
@@ -1388,14 +1388,43 @@ lock contention could be kept under control.
 
 \section{Results} \label{sec:results}
 
-These games were all played with the same settings developed and tuned
-for Super Mario Bros.; that is, this was the result of just running
-the program the first time on a recording of me playing the game
-briefly.
+In this section I describe the results of running {\tt learnfun} and
+{\tt playfun} on several NES games. These games were all played with
+the same settings developed and tuned for Super Mario Bros.; that is,
+this was the result of just running the program the first time on a
+recording of me playing the game briefly. Every game I tried is
+documented here; lack of CPU time before conference is the main reason
+your favorite is not included. The website \url{http://tom7.org/mario/}
+contains video versions of some of these, which may be more fun. Let's
+begin with the {\em ur} game, Super Mario Bros..
 
 \subsection{Super Mario Bros.}
 
-bug exploitation (Figure~\ref{fig:mario13bug1}).
+This game is an obvious benchmark and the one I used during the
+development of {\tt learnfun} and {\tt playfun}. Some parts of the
+algorithm (see e.g. Section~\ref{sec:backtracking}) were developed
+specifically to get around problems in the ability to play this game,
+though I believe simpler methods would also work on this game, now
+that some important bugs are fixed.
+
+Automated Mario is fun to watch, and definitely my favorite. The
+familiarity of the game, the combination of human-like maneuvers and
+completely bizarre stuff, daredevil play, and bug exploitation
+(Figure~\ref{fig:mario13bug1}) are all a delight. It's even funny when
+it fails, watching Mario struggling with obstacles like tiny pits, or
+making a heroic move followed by a trivial mistake. I recommend
+watching the videos.
+
+This algorithm works well on Super Mario Bros., and I think that with
+some improvements it could play quite far into the game. It probably
+can't beat the game; Worlds {\tt 7-4} and {\tt 8-4} require some weird
+puzzling that we all needed {\em Nintendo Power Magazine}'s help to
+solve as kids, and are not just a matter of running to the right and
+avoiding obstacles. In the current incarnation, Mario breezes through
+World {\tt 1-1} every time, consistently beats {\tt 1-2} (I've only
+tried about three times with the newest version of the code, but each
+time he's succeeded) and has limited success on {\tt 1-3} but
+eventually suicides too many times. I'll keep trying.
 
 \begin{figure}[h!tb]
 \begin{center}
@@ -1414,27 +1443,32 @@ bug exploitation (Figure~\ref{fig:mario13bug1}).
 \label{fig:mario13bug1}
 \end{figure}
 
+The Mortal Kombat-style {\em Finish Him!} to any machine learning
+algorithm is overfitting, however. Does the technique work on other
+games, without endless tweaking as I did with Super Mario Bros.? On a
+scale of no to yes, this is both a 1 and a 10; some games work even
+better than Mario and some are a disaster.
 
 \subsection{Hudson's Adventure Island}
 
-This is a very difficult game featuring a skateboarding cherubic
-island guy called Master Higgins, whose girlfriend has been kidnapped
-by King Quiller. He basically runs to the right and can throw or ride
-stuff that he finds in eggs. The controls are pretty soft and danger
-is everywhere. The objective functions that work are probably pretty
-similar to Super Mario Bros., but there are fewer obstacles to
-navigate---the difficulty for humans mostly comes from the speed and
-reaction time. Master Higgins doesn't care about bumping into rocks
-and dropping his health almost to nothing (but then is careful about
-health), and once he gets a weapon his aim anticipates off-screen
-enemies and he looks pretty savvy (Figure~\ref{fig:adventureisland}).
-His weakness regards holes in the ground, which he sometimes jumps
-into, probably for the same reason that Mario sometimes does. His
-``pot bonus'' was 16720. Master Higgins beats several levels and makes
-it into the cave before losing his last life by jumping straight into
-a vibrating skull with swirling fireballs around it, which on a scale
-of Darwin Award to dignified death is approximately a 6, in my
-opinion.
+This is a bad, difficult, but likable game featuring a skateboarding
+cherubic island guy called Master Higgins, whose girlfriend has been
+kidnapped by King Quiller. He basically runs to the right and can
+throw or ride stuff that he finds in eggs. The controls are pretty
+soft and danger is everywhere. The objective functions that work are
+probably pretty similar to Super Mario Bros., but there are fewer
+obstacles to navigate---the difficulty for humans mostly comes from
+the speed and reaction time. Master Higgins doesn't care about bumping
+into rocks and dropping his health almost to nothing (but then is
+careful about health), and once he gets a weapon his aim anticipates
+off-screen enemies and he looks pretty savvy
+(Figure~\ref{fig:adventureisland}). His weakness regards holes in the
+ground, which he sometimes jumps into, probably for the same reason
+that Mario sometimes does. His ``pot bonus'' was 16720. Master Higgins
+beats several levels and makes it into the cave before losing his last
+life by jumping straight into a vibrating skull with swirling
+fireballs around it, which on a scale of Darwin Award to dignified
+demise is approximately a 6, in my opinion.
 
 \begin{figure}[ht]
 \begin{center}
@@ -1485,6 +1519,45 @@ left.
   to vibrate some more in empty corridors.}
 \label{fig:pacman}
 \end{figure}
+
+\subsection{Karate Kid, The} \label{sec:karate}
+
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{karate}
+\end{center}\vspace{-0.1in}
+\caption{
+  Daniel-San blowing his last Crane Kick on a karate noob like there's
+  no tomorrow, which there won't be if he uses up all his power moves
+  like that. Note that the {\bf Chop} approach to backtracking was
+  used to generate this movie frame, appropriately.}
+\label{fig:karate}
+\end{figure}
+
+Karate Kid, The, is the typical trainwreck that follows when a beloved
+movie is turned into a video game. The game has awful controls and
+integer-only physics with massive throw-back upon collision, strange
+mini-games with no explanation, annoying debris flying through the
+sky, and luck-based fighting. It was probably only ever finished by
+kids with extreme discipline and self-loathing, or kids with only one
+video game available to them. It begins with a karate tournament which
+is even less fun than the main game, which is sort of a platformer
+with very few platforms.
+
+In this game I played 1,644 frames, just the first two of four
+opponents in the karate tournament. Automated by {\tt playfun}
+Daniel-San is able to punch and kick the low-level karate noobs,
+preferring to spend all his super-strong Crane Kick power moves right
+away. His style doesn't make much sense, sometimes facing away from
+the opponent, or throwing punches and kicks when the opponent isn't
+near. He doesn't worry much about taking damage. He gets to the final
+round and makes a valiant effort, at one point taking himself and the
+karate boss to 0 health simultaneously. But in this game, tie goes to
+the computer-controlled player without feelings, so it's back to the
+title screen for Daniel-San. The result is not impressive at all; the
+main goal here is to reduce the opponent's health, but our objective
+function can only track bytes that go {\em up}. Still, the automated
+version gets farther than my input did.
 
 \subsection{Bubble Bobble} \label{sec:bubblebobble}
 
@@ -1567,21 +1640,22 @@ try to automate the Nintendo version as a tribute to litigation.
 Unsurprisingly, {\tt playfun} is awful at this game. Tetris has
 several screens of menus, where the player can select between
 different modes and theme musics and stuff like that. As an amusing
-prelude to this disaster in tetromino planning, {\tt playfun} keeps
+prelude to this disaster in tetromino stacking, {\tt playfun} keeps
 entering the menu and exiting back to the title screen rapidly, taking
 several seconds to even start the game. (Like in Bubble Bobble, this
 means that the start button is among the motifs.) Although the piece
 dropping looks more or less natural (but it's hard to not be, as the
-game drops the pieces for you), the placement is idiotic. This may be
-because placing a piece gives you a small amount of points, which
-probably looks like progress (Figure~\ref{fig:tetris-objectives}). As
-the screen fills, there's a tiny amount of tetris-like gameplay,
-probably as the end of the game becomes visible in some of the
-futures. The end result is awful and {\tt playfun} makes zero lines
-and certainly no Tetrises (Figure~\ref{fig:tetris-tower}). The only
-cleverness is pausing the game right before the next piece causes the
-game to be over, and leaving it paused. Truly, the only winning move
-is not to play.
+game drops the pieces for you), the placement is idiotic---worse than
+random. This may be because placing a piece gives you a small amount
+of points, which probably looks like progress
+(Figure~\ref{fig:tetris-objectives}), so there is incentive to stack
+the pieces as soon as possible rather than pack them in. As the screen
+fills, there's a tiny amount of tetris-like gameplay, probably as the
+end of the game becomes visible in some of the futures. The end result
+is awful and {\tt playfun} makes zero lines and certainly no Tetrises
+(Figure~\ref{fig:tetris-tower}). The only cleverness is pausing the
+game right before the next piece causes the game to be over, and
+leaving it paused. Truly, the only winning move is not to play.
 
 \section{Future Work}
 
@@ -1598,8 +1672,26 @@ technique, either to make it more beautiful or to make it work better:
 where there are mysterious constants in the code. Although the fact
 that the same constants work on many different games without tuning
 is some solace, it would really be nicer to remove these. One of the
-hardest to remove is the length of the futures explored. XXX thoughts
-on how to improve this?
+hardest to remove is the length of the futures explored. And I like
+a challenge! 
+
+\paragraph{Generalized orderings.} Right now, lexicographic orderings
+are limited to vectors of unsigned bytes that get larger. Many games
+treat bytes as signed (I believe this is true of Mario's velocity, for
+example). For other bytes, like one representing your enemy's health
+(c.f. Karate Kid), winning means making the byte {\em go down}, not
+up. It is possible to generalize the lexicographic orderings we
+generate to a vector of ($L_i$, $<_i$) pairs, where $<_i$ tells us
+how to compare the bytes at that location. Things to try would be
+two's-complement signed comparison, or unsigned greater-than. I think
+this is a great avenue; the dangers are overfitting (now most short
+sequences can be explained in one way or another) and being too fancy.
+
+\paragraph{Input models.}
+
+\paragraph{Better backtracking.}
+XXX Keep backtracking until improvability is below a certain limit.
+XXX backtrack farther in some conditions.
 
 \paragraph{Multiple players, multiple games.} Other than the particulars
 of the way it's built (\verb+vector<uint8>+ everywhere), there's no
@@ -1621,7 +1713,9 @@ their objective functions to produce a final objective function. The
 main obstacle is the architecture of the underlying emulator, which
 can only load one game into its global variables at once.
 
+\section{Conclusion}
 
+XXX
 
 \bibliographystyle{plain}
 % \bibliographycomment{} % nothing
