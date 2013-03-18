@@ -23,18 +23,6 @@ that decrease.
 
 Allow lex orderings that treat their bytes as signed?
 
-
-The way we treat futures is kind of messed up because futures are not
-necessarily achievable. I think it should work like this:
-
-  Right before entering TakeBestAmong, we compute nexts as the heads
-  (using some fixed length) of each existing future, deduping. We
-  can increase this whatever other stuff we want, if we want.
-  Then, we chop those off the head of each future. Now we've guaranteed
-  that every full future is achievable because its head is definitely
-  one of the nexts. After TakeBestAmong we can grow the futures however
-  we like.
-
 We should consider explicitly taking into account the tree of inputs,
 since caching makes some kinds of exploration much cheaper than others.
 
@@ -48,6 +36,6 @@ globally good my state is.
 
 
 games:
-  tetris!
-  karate kid!
+%  tetris!
+%  karate kid!
   contra!

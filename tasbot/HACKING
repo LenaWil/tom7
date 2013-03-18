@@ -29,3 +29,8 @@ superset of what we need since that directory also includes the proto
 compiler). The generated protoc.exe doesn't work (just is like a nop),
 but a 32-bit version of it does; I already had that installed in my
 path so in the makefile I just call "protoc".
+
+
+Note that MARIONET is totally insecure, and almost certainly
+vulnerable to remote exploitation (it loads savestates, assuming
+they're valid). Don't run it on open networks.

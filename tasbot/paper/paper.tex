@@ -725,7 +725,9 @@ states would have low scores. Later we'll find that this isn't the
 right way to think about it, but it gives us a big improvement in the
 quality of play---Mario cleanly jumps over Goombas. He also gets very
 nervous and all like analysis-paralysis when faced with pits of medium
-size, which is related to the next section. % XXX video of this?
+size\footnote{The companion website contains videos of this, which are
+  funny. \url{http://tom7.org/mario/}}, which is related to the next
+section.
 
 \subsection{Seeking good futures}
 
@@ -954,17 +956,6 @@ provides a challenge you may recognize from your youth, immediately
 followed by something that computers find much harder
 (Figure~\ref{fig:mario12}).
 
-I literally spent about six weekends and thousands of hours of CPU on
-this problem. First, the overhang is set up so that enemies emerge
-from it just as you arrive. This means that loose play (imperfect
-enemy avoidance) tends to get you killed right here. Mario has found a
-number of different solutions to this problem, from waiting, to
-kicking turtles from the left to clear out the enemies, to timing his
-jump perfectly (it is possible!) to stomp the turtle after bouncing his
-head off the ceiling. It's fun to see the different approaches and is
-a good benchmark for whether the search algorithm is actually doing a
-good job at tactics.
-
 \begin{figure}[h!tb]
 \begin{center}
 \includegraphics[width=0.95 \linewidth]{mario12}
@@ -977,6 +968,17 @@ algorithms can't resist the ledge with the coins, but then would need to
 turn around.}
 \label{fig:mario12}
 \end{figure}
+
+I literally spent about six weekends and thousands of hours of CPU on
+this problem. First, the overhang is set up so that enemies emerge
+from it just as you arrive. This means that loose play (imperfect
+enemy avoidance) tends to get you killed right here. Mario has found a
+number of different solutions to this problem, from waiting, to
+kicking turtles from the left to clear out the enemies, to timing his
+jump perfectly (it is possible!) to stomp the turtle after bouncing his
+head off the ceiling. It's fun to see the different approaches and is
+a good benchmark for whether the search algorithm is actually doing a
+good job at tactics.
 
 Immediately after this is an important test of longer-term planning.
 Most of my early solutions would jump up on this ledge with 4 coins,
@@ -1116,6 +1118,21 @@ difficulties with this approach, so this may be a useful notion for
 future directions.
 
 \paragraph{Takes of woe, tales of joy.} 
+\begin{figure}[h!t!b]
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{mario13}
+\end{center}\vspace{-0.1in}
+\caption{After making me feel so successful by finally cleanly
+  finishing world {\tt 1-2}, Mario immediately jumps into the first
+  trivial pit in {\tt 1-3}. I believe what's going on here is that
+  this is actually the best future, because resetting back a single
+  screen isn't a large loss, lives aren't included in the objective
+  function, and probably the rest of the futures were struggling to
+  make progress. This level is very jumpy and probably needs more
+  futures to navigate its obstacles. In any case, Mario, Touch\'e.}
+\label{fig:mario13}
+\end{figure}
+
 Backtracking was initially added in order to fix the mario coin ledge
 problem in {\tt 1-2}. It did not help with this. Older versions of the
 code would have Mario get past this spot, probably by luck, but in
@@ -1136,21 +1153,6 @@ first try he beat {\tt 1-2} and then immediately jumped in the pit at
 the beginning of {\tt 1-3} just as I was starting to feel suuuuuper
 smart (Figure~\ref{fig:mario13}). On a scale of OMFG to WTFLOL I was
 like {\em whaaaaaaat}?
-
-\begin{figure}[hb]
-\begin{center}
-\includegraphics[width=0.95 \linewidth]{mario13}
-\end{center}\vspace{-0.1in}
-\caption{After making me feel so successful by finally cleanly
-  finishing world {\tt 1-2}, Mario immediately jumps into the first
-  trivial pit in {\tt 1-3}. I believe what's going on here is that
-  this is actually the best future, because resetting back a single
-  screen isn't a large loss, lives aren't included in the objective
-  function, and probably the rest of the futures were struggling to
-  make progress. This level is very jumpy and probably needs more
-  futures to navigate its obstacles. In any case, Mario, Touch\'e.}
-\label{fig:mario13}
-\end{figure}
 
 Seeing this huge improvement changed my idea about what part of the
 code needed work (I now believe that simpler search strategies might
@@ -1386,6 +1388,23 @@ they share prefixes, for example) would save time. Running it all in one
 process with a shared memory cache would be the best, as long as the
 lock contention could be kept under control.
 
+\begin{figure}[ht!b]
+\begin{center}
+\includegraphics[width=0.75 \linewidth]{mario13bug1a} \\[0.3em]
+\includegraphics[width=0.75 \linewidth]{mario13bug1b}
+\end{center}\vspace{-0.1in}
+\caption{Mario bounces off one Goomba up into the feet of another. Not
+  only doesn't he have enough velocity to reach the platform, but he's
+  about to hit that Goomba from below. Believe it or not, this ends
+  well: {\tt playfun} is happy to exploit bugs in the game; in this case,
+  that whenever Mario is moving downward (his jump crests just before the
+  Goomba hits him) this counts as ``stomping'' on an enemy, even if that
+  enemy is above him. The additional bounce from this Goomba also allows
+  him to make it up to the platform, which he wouldn't have otherwise!
+}
+\label{fig:mario13bug1}
+\end{figure}
+
 \section{Results} \label{sec:results}
 
 In this section I describe the results of running {\tt learnfun} and
@@ -1425,23 +1444,6 @@ World {\tt 1-1} every time, consistently beats {\tt 1-2} (I've only
 tried about three times with the newest version of the code, but each
 time he's succeeded) and has limited success on {\tt 1-3} but
 eventually suicides too many times. I'll keep trying.
-
-\begin{figure}[h!tb]
-\begin{center}
-\includegraphics[width=0.75 \linewidth]{mario13bug1a} \\[0.3em]
-\includegraphics[width=0.75 \linewidth]{mario13bug1b}
-\end{center}\vspace{-0.1in}
-\caption{Mario bounces off one Goomba up into the feet of another. Not
-  only doesn't he have enough velocity to reach the platform, but he's
-  about to hit that Goomba from below. Believe it or not, this ends
-  well: {\tt playfun} is happy to exploit bugs in the game; in this case,
-  that whenever Mario is moving downward (his jump crests just before the
-  Goomba hits him) this counts as ``stomping'' on an enemy, even if that
-  enemy is above him. The additional bounce from this Goomba also allows
-  him to make it up to the platform, which he wouldn't have otherwise!
-}
-\label{fig:mario13bug1}
-\end{figure}
 
 The Mortal Kombat-style {\em Finish Him!} to any machine learning
 algorithm is overfitting, however. Does the technique work on other
@@ -1506,7 +1508,7 @@ none of his futures bring him near, and without any other objective
 to seek out, runs into ghosts. He dies on the first level with 13 dots
 left.
 
-\begin{figure}[ht]
+\begin{figure}[h!t!]
 \begin{center}
 \includegraphics[width=0.75 \linewidth]{pacman1} \\[0.3em]
 \includegraphics[width=0.75 \linewidth]{pacman2} \\[0.3em]
@@ -1606,6 +1608,28 @@ and I wanted to see some other games before the SIGBOVIK deadline.
 \label{fig:bubblebobble}
 \end{figure}
 
+\subsection{Color a Dinosaur}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.95 \linewidth]{dinosaur}
+\end{center}\vspace{-0.1in}
+\caption{The second dinosaur colored by the {\tt playfun} algorithm.
+  There's no way to go wrong in this game; any possible coloring is
+  {\em oh so right}.}
+\label{fig:dinosaur}
+\end{figure}
+
+This is a strange NES ``game'' where you do the eponymous action,
+probably intended for kids. It's not very fun to watch the weird slow
+floodfill algorithm color in parts of a dinosaur, and there's no
+objective to be found. Predictably, the approach of this paper doesn't
+simulate human play very well. There doesn't even seem to be an
+objective for humans to suss out, except for the open-world sandbox of
+two-color dinosaur coloring. The automated pencil manages to ``color''
+two different dinosaurs (Figure~\ref{fig:dinosaur}), though the play
+looks pretty spastic and random.
+
 \subsection{Tetris}
 
 \begin{figure}[ht]
@@ -1634,20 +1658,20 @@ unpause it.}
 \end{figure}
 
 Tetris is a block dropping game, also known to the ancients. The
-Nintendo implementation is known for being inferior to the unlicensed
-Tengen version, which Nintendo tried to sue out of existence. Here I
-try to automate the Nintendo version as a tribute to litigation.
-Unsurprisingly, {\tt playfun} is awful at this game. Tetris has
-several screens of menus, where the player can select between
-different modes and theme musics and stuff like that. As an amusing
-prelude to this disaster in tetromino stacking, {\tt playfun} keeps
-entering the menu and exiting back to the title screen rapidly, taking
-several seconds to even start the game. (Like in Bubble Bobble, this
-means that the start button is among the motifs.) Although the piece
-dropping looks more or less natural (but it's hard to not be, as the
-game drops the pieces for you), the placement is idiotic---worse than
-random. This may be because placing a piece gives you a small amount
-of points, which probably looks like progress
+Nintendo implementation is infamous for being inferior to the
+unlicensed Tengen version, which Nintendo tried to sue out of
+existence. Here I try to automate the Nintendo version as a tribute to
+litigation. Unsurprisingly, {\tt playfun} is awful at this game.
+Tetris has several screens of menus, where the player can select
+between different modes and theme musics and stuff like that. As an
+amusing prelude to this disaster in tetromino stacking, {\tt playfun}
+keeps entering the menu and exiting back to the title screen rapidly,
+taking several seconds to even start the game. (Like in Bubble Bobble,
+this means that the start button is among the motifs.) Although the
+piece dropping looks more or less natural (but it's hard to not be, as
+the game drops the pieces for you), the placement is idiotic---worse
+than random. This may be because placing a piece gives you a small
+amount of points, which probably looks like progress
 (Figure~\ref{fig:tetris-objectives}), so there is incentive to stack
 the pieces as soon as possible rather than pack them in. As the screen
 fills, there's a tiny amount of tetris-like gameplay, probably as the
@@ -1674,6 +1698,14 @@ constants in the code. Although the fact that the same constants work
 on many different games without tuning is some solace, it would really
 be nicer to remove these. One of the hardest to remove is the length
 of the futures explored. And I like a challenge!
+
+\paragraph{Unsupervised learning.}
+Speaking of challenge, it might be possible for {\tt playfun} to teach
+itself, by starting with no objective functions and playing randomly
+to see what bytes it {\em can} make go up, then fitting lexicographic
+orderings to the memories and repeating. The beginnings of games
+(which include RAM intialization, title screens, and menus) continue
+to vex this kind of work, unfortunately.
 
 \paragraph{Generalized orderings.}
 Right now, lexicographic orderings are limited to vectors of unsigned
