@@ -11,10 +11,12 @@
 #define BASE64 "base64:jjYwGG411HcjG/j9UOVM3Q=="
 */
 
+/*
 #define GAME "tetris"
 #define MOVIE "tetristom2.fm2"
 #define FASTFORWARD 0
 #define BASE64 "base64:Ww5XFVjIx5aTe5avRpVhxg=="
+*/
 
 /*
 #define GAME "adventureisland"
@@ -23,9 +25,24 @@
 #define FASTFORWARD 0
 */
 
-// #define GAME "karate"
-// #define MOVIE "karate-tom.fm2"
-// #define BASE64 "base64:6xX0UBv8pLORyg1PCzbWcA=="
+/*
+#define GAME "karate"
+#define MOVIE "karate-tom.fm2"
+#define BASE64 "base64:6xX0UBv8pLORyg1PCzbWcA=="
+#define FASTFORWARD 0
+*/
+
+/*
+#define GAME "dinosaur"
+#define MOVIE "dinosaur-tom.fm2"
+#define BASE64 "base64:md0dI6RuaLcWPbxbtpuZKQ=="
+#define FASTFORWARD 0
+*/
+
+#define GAME "contra"
+#define MOVIE "contra-tom.fm2"
+#define BASE64 "base64:WlwvTxyvsfVajcDVrUVQ5Q=="
+#define FASTFORWARD 0
 
 // #define GAME "pacman"
 // #define MOVIE "pacman-tom.fm2"

@@ -165,6 +165,12 @@ int main(int argc, char *argv[]) {
 
   SaveMemory(&memories);
 
+  {
+    vector<uint8> save;
+    Emulator::SaveUncompressed(&save);
+    printf("Save states are %ld bytes.\n", save.size());
+  }
+
   uint64 time_start = time(NULL);
   for (int i = start; i < movie.size(); i++) {
     if (i % 1000 == 0) {
