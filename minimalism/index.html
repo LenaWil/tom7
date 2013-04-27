@@ -3,6 +3,42 @@
 <script type="text/javascript" src="constants.js"></script>
 
 <script>
+// TODO: Make mouse cursor invisible when it is outside the OS.
+
+
+var mousex = 320, mousey = 200;
+var os = null;
+var mouse = null;
+var deb = null;
+
+function osmousemove(e) {
+  var obj = getmouseposwithin(e, os);
+  mousex = obj.x;
+  mousey = obj.y;
+  redrawmouse();
+}
+
+function redrawmouse() {
+  mouse.style.top = px(mousey);
+  mouse.style.left = px(mousex);
+  // XXX set cursor style.
+
+/*  
+  deb.innerHTML = '';
+  TEXT(mousex + ' ' + mousey + ' / ' +
+       os.offsetTop, deb);
+*/
+}
+
+function initos(elt) {
+  os = elt;
+
+  os.onmousemove = osmousemove;
+
+  mouse = IMG('mouse', os);
+  mouse.src = 'mouse.png';
+  redrawmouse();
+}
 
 function Win(x, y, w, h) {
   this.x = x;
@@ -33,6 +69,8 @@ Win.prototype.redraw = function() {
   this.title.style.left = 0;
   this.title.style.background = "url('title.png')";
   this.title.style.backgroundRepeat = 'repeat-x';
+
+  TEXT('Program Manager', this.title);
 
   // Add borders and corners.
 
@@ -103,8 +141,6 @@ Win.prototype.redraw = function() {
 </script>
 
 
-
-
 <style>
 body {
   background: #300;
@@ -119,11 +155,18 @@ div#os {
   height: 480px;
   background: #003;
   overflow: hidden;
-  zzcursor: none;
+  cursor: none;
   position: relative;
   margin-left: auto;
   margin-right: auto;
   margin-top: 6em;
+
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 div.win {
@@ -138,21 +181,41 @@ img.abs {
 
 div.title {
   position: absolute;
+  text-align: center;
+  font: bold 13px sans-serif;
+  color: #fff;
+}
+
+img.mouse {
+  z-index: 9999;
+  position: absolute;
+}
+
+div#deb {
+  font-family: monospace;
+  font-size: 14px;
+  color: #CFF;
 }
 
 </style>
 
-
-<div id="os"></div>
-
-
-
 <script>
- // Globals.
- var os = document.getElementById('os');
+function init() {
+ // Don't allow dragging anything at the browser level.
+ window.ondragstart = function() { return false; };
+ deb = document.getElementById('deb');
+ if (!deb) throw 'huh';
+
+ initos(document.getElementById('os'));
 
  var win = new Win(10, 10, 320, 200);
  var win2 = new Win(80, 80, 400, 180);
 
  // XXX  do stuff...
+}
 </script>
+
+<body onload="init()">
+  <div id="os"></div>
+  <div id="deb">This is the debugging area.</div>
+</body>
