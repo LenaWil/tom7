@@ -7,6 +7,7 @@ var CORNER = 23;
 var BORDER = 4;
 var TITLE = 19;
 var TOOL = 20;
+var MENU = 20;
 
 var MINWIDTH = 64;
 var MINHEIGHT = 64;
@@ -19,5 +20,5 @@ var BLUE = '#00a';
 
 var FONTW = 9;
 var FONTH = 16;
-var FONTOVERLAP = 1;
+var FONTOVERLAP = 2;
 var FONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?";

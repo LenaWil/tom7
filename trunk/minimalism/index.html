@@ -63,8 +63,23 @@ img.mouse {
 div#deb {
   zzdisplay: none;
   font-family: monospace;
-  font-size: 14px;
+  font-size: 24px;
   color: #CFF;
+}
+
+div.menu {
+  background: #fff;
+  border-bottom: 1px solid black;
+  position: absolute;
+  overflow: hidden;
+  padding-left: 6px;
+}
+
+div.menuitem {
+  padding: 2px 6px;
+  margin-left: 4px;
+  margin-right: 4px;
+  float: left;
 }
 
 </style>
@@ -75,10 +90,19 @@ function init() {
  window.ondragstart = function() { return false; };
  deb = document.getElementById('deb');
  if (!deb) throw 'huh';
+ if (('' + window.location).indexOf('spacebar.org') != -1) {
+   deb.style.display = 'none';
+ }
 
  initos(document.getElementById('os'));
 
  var win = new Win(10, 10, 320, 200, 'Accessories');
+ win.menu = [
+   { text: 'File' },
+   { text: 'Options', selected: true },
+   { text: 'Help' },
+ ];
+
  var win2 = new Win(80, 80, 400, 180, 'Program Manager');
 
  // XXX  do stuff...
@@ -89,5 +113,5 @@ function init() {
 
 <body onload="init()">
   <div id="os"></div>
-  <div id="deb">This is the debugging area.</div>
+  <div id="deb">This is the development copy!</div>
 </body>
