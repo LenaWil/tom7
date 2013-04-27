@@ -43,15 +43,25 @@ function osmousemove(e) {
   // Do actions if captured. This is also responsible for
   // setting the mouse state (cursor shape) in that case.
   if (capture) {
+    var ins = capture.inside;
     switch (capture.what) {
+      case 'press':
+        var onit = mousex >= ins.x && mousey > ins.y &&
+	  mousex < ins.x + ins.w && mousey < ins.y + ins.h;
+        if (ins.down) {
+          var newsrc = onit ? ins.down : ins.up;
+          if (ins.elt.src != newsrc) {
+	    ins.elt.src = newsrc;
+	    deb.innerHTML = 'set src to ' + newsrc;
+	  }
+	}
+        break;
       case 'move':
-        var ins = capture.inside;
         // This can only be title, currently.
         ins.win.moveto(mousex - ins.gripx, mousey - ins.gripy);
         ins.win.redraw();
         break;
       case 'resize':
-        var ins = capture.inside;
 	switch (ins.which) {
 	  case 'se':
 	    mousestate = 'mouse-resize-backslash.png';
@@ -101,6 +111,8 @@ function osmousemove(e) {
 	  }
 	  break;
 	default:
+	case 'title':
+	case 'button':
 	case 'win':
 	  mousestate = 'mouse.png';
       }
@@ -118,6 +130,10 @@ function osmousedown(e) {
   var inside = getPointed();
   if (inside) {
     switch (inside.what) {
+      case 'button':
+        capture = { what: 'press', inside: inside };
+        osmousemove(e);
+        break;
       case 'corner':
         capture = { what: 'resize', inside: inside };
         break;
@@ -141,7 +157,25 @@ function osmousedown(e) {
 
 function osmouseup(e) {
   e = e || window.event;
-  // XXX some captures may need to process this event?
+
+  if (capture) {
+    var ins = capture.inside;
+    switch (capture.what) {
+    case 'press':
+      if (ins.up) {
+	ins.elt.src = ins.up;
+	deb.innerHTML = ('src up: ' + ins.up);
+      }
+      var onit = mousex >= ins.x && mousey > ins.y &&
+	  mousex < ins.x + ins.w && mousey < ins.y + ins.h;
+      if (onit) {
+	// Do the action.
+	//	alert('pressed');
+      }
+      break;
+    }
+  }
+
   capture = null;
 }
 
@@ -182,11 +216,12 @@ function redrawos() {
   }
 }
 
-function Win(x, y, w, h) {
+function Win(x, y, w, h, title) {
   this.x = x;
   this.y = y;
   this.w = w;
   this.h = h;
+  this.title = title || '';
 
   // TODO: "modal"
 
@@ -194,6 +229,14 @@ function Win(x, y, w, h) {
   windows.push(this);
 
   this.redraw();
+}
+
+Win.prototype.maximizetoolx = function() {
+  return this.w - TOOL - BORDER + 1;
+}
+
+Win.prototype.minimizetoolx = function() {
+  return this.w - (TOOL * 2) - BORDER + 1 + 1;
 }
 
 Win.prototype.inside = function(x, y) {
@@ -204,6 +247,29 @@ Win.prototype.inside = function(x, y) {
   // We know we're inside.
 
   // XXX check buttons BEFORE corners.
+  if (x > this.x + this.maximizetoolx() &&
+      x < (this.x + this.maximizetoolx() + TOOL) &&
+      y < (this.y + BORDER + TOOL)) {
+    return { what: 'button', which: 'maximize', win: this,
+	     elt: this.maximize,
+	     down: 'maximize-down.png',
+	     up: 'maximize.png',
+	     x: this.x + this.maximizetoolx(),
+	     y: this.y + BORDER,
+	     w: TOOL, h: TOOL };
+  }
+
+  if (x > this.x + this.minimizetoolx() &&
+      x < (this.x + this.minimizetoolx() + TOOL) &&
+      y < (this.y + BORDER + TOOL)) {
+    return { what: 'button', which: 'minimize', win: this,
+	     elt: this.minimize,
+	     down: 'minimize-down.png',
+	     up: 'minimize.png',
+	     x: this.x + this.minimizetoolx(),
+	     y: this.y + BORDER,
+	     w: TOOL, h: TOOL };
+  }
 
   // Corner objects include the name of the corner
   // plus the grip offset, so that we can behave as
@@ -312,19 +378,19 @@ Win.prototype.redraw = function() {
   d.style.height = this.h + 'px';
 
   // Add menu bar.
-  this.title = DIV('title', this.div);
-  this.title.style.width = px(this.w);
-  this.title.style.height = px(TITLE);
-  this.title.style.top = px(BORDER);
-  this.title.style.left = 0;
+  this.titleelt = DIV('title', this.div);
+  this.titleelt.style.width = px(this.w);
+  this.titleelt.style.height = px(TITLE);
+  this.titleelt.style.top = px(BORDER);
+  this.titleelt.style.left = 0;
   if (active) {
-    this.title.style.background = "url('title.png')";
+    this.titleelt.style.background = "url('title.png')";
   } else {
-    this.title.style.background = "url('title-inactive.png')";
+    this.titleelt.style.background = "url('title-inactive.png')";
   }
-  this.title.style.backgroundRepeat = 'repeat-x';
+  this.titleelt.style.backgroundRepeat = 'repeat-x';
 
-  TEXT('Program Manager', this.title);
+  TEXT(this.title, this.titleelt);
 
   // Add borders and corners.
 
@@ -382,12 +448,12 @@ Win.prototype.redraw = function() {
 
   this.maximize = IMG('abs', this.div);
   this.maximize.src = 'maximize.png';
-  this.maximize.style.left = px(this.w - TOOL - BORDER + 1);
+  this.maximize.style.left = px(this.maximizetoolx());
   this.maximize.style.top = px(BORDER - 1);
 
   this.minimize = IMG('abs', this.div);
   this.minimize.src = 'minimize.png';
-  this.minimize.style.left = px(this.w - (TOOL * 2) - BORDER + 1 + 1);
+  this.minimize.style.left = px(this.minimizetoolx());
   this.minimize.style.top = px(BORDER - 1);
 
 };
