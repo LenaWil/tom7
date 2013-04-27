@@ -140,30 +140,32 @@ function osmousedown(e) {
   var inside = getPointed();
   if (inside) {
     switch (inside.what) {
-      case 'menu':
-        inside.win.movetofront();
-        deb.innerHTML = inside.which.text;
-        inside.menu.selected = inside.which;
-        redrawos();
-        break;
-      case 'button':
-        capture = { what: 'press', inside: inside };
-        osmousemove(e);
-        break;
-      case 'corner':
-        capture = { what: 'resize', inside: inside };
-        break;
-      case 'title':
-        capture = { what: 'move', inside: inside };
-        inside.win.movetofront();
-        redrawos();
-        break;
-      case 'win':
-        // XXX make active.
-        inside.win.movetofront();
-        redrawos();
-        break;
-      default:;
+    case 'menu':
+      inside.win.movetofront();
+      deb.innerHTML = inside.which.text;
+      inside.menu.selected = inside.which;
+      capture = { what: 'clickmenu', inside: inside };
+      redrawos();
+      break;
+    case 'button':
+      capture = { what: 'press', inside: inside };
+      // inside.win.movetofront();
+      osmousemove(e);
+      break;
+    case 'corner':
+      capture = { what: 'resize', inside: inside };
+      break;
+    case 'title':
+      capture = { what: 'move', inside: inside };
+      inside.win.movetofront();
+      redrawos();
+      break;
+    case 'win':
+      // XXX make active.
+      inside.win.movetofront();
+      redrawos();
+      break;
+    default:;
     }
   } else {
     // Clicks on background -- nothing?
@@ -500,6 +502,21 @@ Win.prototype.redraw = function() {
 	// Make menuitem selected color.
 	menuitem.style.background = BLUE;
 	rendertext(this.menu[i].text, menuitem, 'fontwhite');
+
+	// And draw the child menu.
+	var itemr = menuitem.getBoundingClientRect();
+	var winr = this.div.getBoundingClientRect();
+	var childbox = DIV('childmenu', this.div);
+        childbox.style.top = px(itemr.top - winr.top + MENU);
+	childbox.style.left = px(itemr.left - winr.left);
+	childbox.style.height = MENU * this.menu[i].children.length;
+	for (var j = 0; j < this.menu[i].children.length; j++) {
+	  if (j > 0) BR('', childbox);
+	    
+	  var child = this.menu[i].children[j];
+	  var childoption = DIV('childoption', childbox);
+	  rendertext(child.text, childoption, 'fontblack');
+	}
       } else {
 	rendertext(this.menu[i].text, menuitem, 'fontblack');
       }
