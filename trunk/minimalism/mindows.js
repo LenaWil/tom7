@@ -44,6 +44,12 @@ function osmousemove(e) {
   // setting the mouse state (cursor shape) in that case.
   if (capture) {
     switch (capture.what) {
+      case 'move':
+        var ins = capture.inside;
+        // This can only be title, currently.
+        ins.win.moveto(mousex - ins.gripx, mousey - ins.gripy);
+        ins.win.redraw();
+        break;
       case 'resize':
         var ins = capture.inside;
 	switch (ins.which) {
@@ -115,6 +121,11 @@ function osmousedown(e) {
       case 'corner':
         capture = { what: 'resize', inside: inside };
         break;
+      case 'title':
+        capture = { what: 'move', inside: inside };
+        inside.win.movetofront();
+        redrawos();
+        break;
       case 'win':
         // XXX make active.
         inside.win.movetofront();
@@ -180,9 +191,9 @@ function Win(x, y, w, h) {
   // TODO: "modal"
 
   this.div = DIV('win', os);
-  this.redraw();
-
   windows.push(this);
+
+  this.redraw();
 }
 
 Win.prototype.inside = function(x, y) {
@@ -222,7 +233,11 @@ Win.prototype.inside = function(x, y) {
   }
 
   // XXX check title AFTER corners
-
+  if (y < this.y + TITLE) {
+    return { what: 'title', win: this,
+	     gripx: x - this.x,
+	     gripy: y - this.y };
+  }
 
   return { what: 'win', win: this };
 }
@@ -277,10 +292,18 @@ Win.prototype.resizedown = function(h) {
   this.h = h;
 };
 
+Win.prototype.moveto = function(x, y) {
+  this.x = x;
+  this.y = y;
+}
+
 // Assuming the metrics are set (x,y,w,h),
 // places the window in the DOM and
 // draws its borders.
 Win.prototype.redraw = function() {
+  var active = windows.length > 0 && 
+      this == windows[windows.length - 1];
+
   var d = this.div;
   d.innerHTML = '';
   d.style.left = this.x + 'px';
@@ -294,7 +317,11 @@ Win.prototype.redraw = function() {
   this.title.style.height = px(TITLE);
   this.title.style.top = px(BORDER);
   this.title.style.left = 0;
-  this.title.style.background = "url('title.png')";
+  if (active) {
+    this.title.style.background = "url('title.png')";
+  } else {
+    this.title.style.background = "url('title-inactive.png')";
+  }
   this.title.style.backgroundRepeat = 'repeat-x';
 
   TEXT('Program Manager', this.title);
