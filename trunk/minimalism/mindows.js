@@ -38,6 +38,23 @@ function getPointed() {
   return null;
 }
 
+function cascadeall() {
+  for (var i = 0; i < windows.length; i++) {
+    windows[i].blur();
+    windows[i].x = (i * 40) % 480;
+    windows[i].y = (i * 40) % 300;
+    windows[i].w = 400;
+    windows[i].h = 280;
+  }
+  redrawos();
+}
+
+function tileall() {
+  alert('unimplemented');
+  osblur();
+  redrawos();
+}
+
 function osblur() {
   for (var i = 0; i < windows.length; i++) {
     windows[i].blur();
@@ -112,18 +129,25 @@ function osmousemove(e) {
     var inside = getPointed();
     if (inside) {
       switch (inside.what) {
-	case 'corner':
-	  if (inside.which == 'se' || inside.which == 'nw') {
-	    mousestate = 'mouse-resize-backslash.png';
-	  } else {
-	    mousestate = 'mouse-resize-slash.png';
-	  }
-	  break;
-	default:
-	case 'title':
-	case 'button':
-	case 'win':
-	  mousestate = 'mouse.png';
+      case 'childmenu':
+	var menu = inside.menu;
+	var child = inside.child;
+	menu.selected = child;
+	// alert( 'mousemove over child');
+	redrawos(); // PERF Just menu?
+	break;
+      case 'corner':
+	if (inside.which == 'se' || inside.which == 'nw') {
+	  mousestate = 'mouse-resize-backslash.png';
+	} else {
+	  mousestate = 'mouse-resize-slash.png';
+	}
+	break;
+      default:
+      case 'title':
+      case 'button':
+      case 'win':
+	mousestate = 'mouse.png';
       }
     } else {
       mousestate = 'mouse.png';
@@ -144,8 +168,14 @@ function osmousedown(e) {
       inside.win.movetofront();
       deb.innerHTML = inside.which.text;
       inside.menu.selected = inside.which;
-      capture = { what: 'clickmenu', inside: inside };
+      // capture = { what: 'clickmenu', inside: inside };
       redrawos();
+      break;
+    case 'childmenu':
+      // Note, not the same type as above, so make sure we
+      // only depend on shared fields?
+      // capture = { what: 'clickmenu', inside: inside };
+      osmousemove(e);
       break;
     case 'button':
       capture = { what: 'press', inside: inside };
@@ -381,6 +411,25 @@ Win.prototype.inside = function(x, y) {
 		 which: this.menu[i] };
       }
     }
+
+    if (this.menu.selected) {
+      var sel = this.menu.selected;
+      for (var i = 0; i < sel.children.length; i++) {
+	var child = sel.children[i];
+	var met = child.metrics;
+	// deb.innerHTML = objstring(child);
+	if (x >= met.x &&
+	    y >= met.y &&
+	    x < (met.x + met.w) &&
+	    y < (met.y + met.h)) {
+	  deb.innerHTML = 'over child ' + child.text;
+	  return { what: 'childmenu', 
+		   win: this,
+		   menu: sel,
+		   child: child };
+	}
+      }
+    }
   }
 
   return { what: 'win', win: this };
@@ -487,7 +536,6 @@ Win.prototype.redraw = function() {
 
   // Add menu bar.
   if (this.menu) {
-    deb.innerHTML = 'there\'s a menu.';
     this.menuelt = DIV('menu', this.div);
     this.menuelt.style.width = px(this.w);
     this.menuelt.style.height = px(MENU);
@@ -510,15 +558,45 @@ Win.prototype.redraw = function() {
         childbox.style.top = px(itemr.top - winr.top + MENU);
 	childbox.style.left = px(itemr.left - winr.left);
 	childbox.style.height = MENU * this.menu[i].children.length;
+
+	var maxwidth = 0;
 	for (var j = 0; j < this.menu[i].children.length; j++) {
 	  if (j > 0) BR('', childbox);
 	    
 	  var child = this.menu[i].children[j];
-	  var childoption = DIV('childoption', childbox);
-	  rendertext(child.text, childoption, 'fontblack');
+	  var childelt = DIV('childoption', childbox);
+	  childelt.style.height = MENU;
+	  childelt.style.cssFloat = 'left';
+	  child.elt = childelt;
+	  // if (this.menu[i].selected) alert('SEL');
+	  if (child == this.menu[i].selected) {
+	    childelt.style.background = BLUE;
+	    rendertext(child.text, childelt, 'fontwhite');
+	  } else {
+	    rendertext(child.text, childelt, 'fontblack');
+	  }
+
+	  var metrics = getosmetrics(childelt);
+	  child.metrics = metrics;
+	  maxwidth = Math.max(metrics.w, maxwidth);
+	  // TEXT(objstring(metrics), child.elt);
 	}
+
+	// Set every child's width to the width of the bounding
+	// box, which is the max.
+
+	// Sloppy.
+	maxwidth -= CHILDPADDING;
+
+	for (var j = 0; j < this.menu[i].children.length; j++) {
+	  var child = this.menu[i].children[j];
+	  child.elt.style.width = px(maxwidth);
+	  child.metrics.w = maxwidth;
+	}
+
       } else {
 	rendertext(this.menu[i].text, menuitem, 'fontblack');
+	this.menu[i].selected = null;
       }
 
       // Has to happen after the item has been completely placed.
@@ -599,11 +677,18 @@ Win.prototype.redraw = function() {
 
 function setupgame() {
  var win = new Win(10, 10, 320, 200, 'Accessories');
- win.menu = [
+ var win2 = new Win(80, 80, 400, 180, 'Program Manager');
+ win2.menu = [
    { text: 'File',
      children: [ { text: 'New...' },
 		 { text: 'Open...' },
 		 { text: 'Exit Mindows' }]
+   },
+   { text: 'Window',
+     children: [ { text: 'Cascade',
+		   fn: cascadeall },
+		 { text: 'Tile',
+		   fn: tileall }]
    },
    { text: 'Help',
      children: [ { text: 'Contents' },
@@ -611,5 +696,4 @@ function setupgame() {
    }
  ];
 
- var win2 = new Win(80, 80, 400, 180, 'Program Manager');
 }
