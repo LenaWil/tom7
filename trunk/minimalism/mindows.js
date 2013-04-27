@@ -41,8 +41,8 @@ function getPointed() {
 function cascadeall() {
   for (var i = 0; i < windows.length; i++) {
     windows[i].blur();
-    windows[i].x = (i * 40) % 480;
-    windows[i].y = (i * 40) % 300;
+    windows[i].x = ((i + 1) * 32) % 480;
+    windows[i].y = ((i + 1) * 32) % 300;
     windows[i].w = 400;
     windows[i].h = 280;
   }
@@ -160,38 +160,41 @@ function osmousemove(e) {
 
 function osmousedown(e) {
   e = e || window.event;
-  osblur();
   var inside = getPointed();
   if (inside) {
+    deb.innerHTML = inside.what;
     switch (inside.what) {
     case 'menu':
       inside.win.movetofront();
-      deb.innerHTML = inside.which.text;
       inside.menu.selected = inside.which;
       // capture = { what: 'clickmenu', inside: inside };
       redrawos();
       break;
     case 'childmenu':
+      deb.innerHTML = 'mousedown on child';
       // Note, not the same type as above, so make sure we
       // only depend on shared fields?
       // capture = { what: 'clickmenu', inside: inside };
       osmousemove(e);
       break;
     case 'button':
+      osblur();
       capture = { what: 'press', inside: inside };
       // inside.win.movetofront();
       osmousemove(e);
       break;
     case 'corner':
+      osblur();
       capture = { what: 'resize', inside: inside };
       break;
     case 'title':
+      osblur();
       capture = { what: 'move', inside: inside };
       inside.win.movetofront();
       redrawos();
       break;
     case 'win':
-      // XXX make active.
+      osblur();
       inside.win.movetofront();
       redrawos();
       break;
@@ -199,8 +202,8 @@ function osmousedown(e) {
     }
   } else {
     // Clicks on background -- nothing?
+    osblur();
   }
-
 }
 
 function osmouseup(e) {
@@ -221,6 +224,17 @@ function osmouseup(e) {
 	ins.action(ins);
       }
       break;
+    }
+  }
+
+  var inside = getPointed();
+  if (inside) {
+    switch (inside.what) {
+    case 'childmenu':
+      osblur();
+      if (inside.child.fn) inside.child.fn();
+      redrawos();
+    default:
     }
   }
 
@@ -422,7 +436,7 @@ Win.prototype.inside = function(x, y) {
 	    y >= met.y &&
 	    x < (met.x + met.w) &&
 	    y < (met.y + met.h)) {
-	  deb.innerHTML = 'over child ' + child.text;
+	  // deb.innerHTML = 'over child ' + child.text;
 	  return { what: 'childmenu', 
 		   win: this,
 		   menu: sel,
