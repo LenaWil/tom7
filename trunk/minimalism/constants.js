@@ -1,4 +1,8 @@
 
+// Must agree with DOM.
+var OSWIDTH = 640;
+var OSHEIGHT = 480;
+
 var CORNER = 23;
 var BORDER = 4;
 var TITLE = 19;

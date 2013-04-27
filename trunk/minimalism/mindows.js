@@ -1,5 +1,8 @@
 // TODO: Make mouse cursor invisible when it is outside the OS.
 // TODO: Cursor doesn't work on mobile safari, but probably could.
+// TODO: Minimize
+// TODO: Maximize button switches to "restore" when maximized.
+// TODO: Menus?
 
 // Mouse position within the OS.
 var mousex = 320, mousey = 200;
@@ -168,9 +171,9 @@ function osmouseup(e) {
       }
       var onit = mousex >= ins.x && mousey > ins.y &&
 	  mousex < ins.x + ins.w && mousey < ins.y + ins.h;
-      if (onit) {
+      if (onit && ins.action) {
 	// Do the action.
-	//	alert('pressed');
+	ins.action(ins);
       }
       break;
     }
@@ -239,6 +242,15 @@ Win.prototype.minimizetoolx = function() {
   return this.w - (TOOL * 2) - BORDER + 1 + 1;
 }
 
+Win.prototype.domaximize = function() {
+  this.x = 0;
+  this.y = 0;
+  this.w = OSWIDTH;
+  this.h = OSHEIGHT;
+  this.movetofront();
+  redrawos();
+}
+
 Win.prototype.inside = function(x, y) {
   var ins = x >= this.x && y >= this.y &&
     x < (this.x + this.w) && y < (this.y + this.h);
@@ -256,7 +268,10 @@ Win.prototype.inside = function(x, y) {
 	     up: 'maximize.png',
 	     x: this.x + this.maximizetoolx(),
 	     y: this.y + BORDER,
-	     w: TOOL, h: TOOL };
+	     w: TOOL, h: TOOL,
+	     action: function(ins) {
+	       ins.win.domaximize();
+	     } };
   }
 
   if (x > this.x + this.minimizetoolx() &&
