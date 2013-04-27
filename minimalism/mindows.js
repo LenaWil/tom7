@@ -229,7 +229,7 @@ var CHARS = [];
   }
 })();
 
-function rendertext(text, elt) {
+function rendertext(text, elt, font) {
   for (var i = 0; i < text.length; i++) {
     var c = text.charCodeAt(i);
     if (c >= 0 && c < 128) {
@@ -238,7 +238,7 @@ function rendertext(text, elt) {
       d.style.width = px(FONTW);
       d.style.height = px(FONTH);
       d.style.marginLeft = '-' + FONTOVERLAP + 'px';
-      d.style.backgroundImage = 'url(fontwhite.png)';
+      d.style.backgroundImage = 'url(' + font + '.png)';
       d.style.backgroundPosition = (CHARS[c] * -FONTW) + 'px 0px';
     }
   }
@@ -417,7 +417,7 @@ Win.prototype.redraw = function() {
   d.style.width = this.w + 'px';
   d.style.height = this.h + 'px';
 
-  // Add menu bar.
+  // Add title bar.
   this.titleelt = DIV('title', this.div);
   this.titleelt.style.width = px(this.w);
   this.titleelt.style.height = px(TITLE);
@@ -432,7 +432,30 @@ Win.prototype.redraw = function() {
 
   //TEXT(this.title, this.titleelt);
   this.titletext = DIV('titletext', this.titleelt);
-  rendertext(this.title, this.titletext);
+  rendertext(this.title, this.titletext, 'fontwhite');
+
+  // Add menu bar.
+  if (this.menu) {
+    deb.innerHTML = 'there\'s a menu.';
+    this.menuelt = DIV('menu', this.div);
+    this.menuelt.style.width = px(this.w);
+    this.menuelt.style.height = px(MENU);
+    this.menuelt.style.left = 0;
+    this.menuelt.style.top = px(TITLE + BORDER);
+
+    // Top-level menu items.
+    for (var i = 0; i < this.menu.length; i++) {
+      var menuitem = DIV('menuitem', this.menuelt);
+      // XXX if selected...
+      if (this.menu[i].selected) {
+	// Make menuitem selected color.
+	menuitem.style.background = BLUE;
+	rendertext(this.menu[i].text, menuitem, 'fontwhite');
+      } else {
+	rendertext(this.menu[i].text, menuitem, 'fontblack');
+      }
+    }
+  }
 
   // Add borders and corners.
 
