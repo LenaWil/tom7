@@ -20,8 +20,14 @@ var TR = DomMaker('TR');
 var TD = DomMaker('TD');
 var TH = DomMaker('TH');
 var BR = DomMaker('BR');
-var IMG = DomMaker('IMG');
+// var IMG = DomMaker('IMG');
 var SCRIPT = DomMaker('SCRIPT');
+
+function IMG(cl, par) {
+  var img = DomMaker('IMG')(cl, par);
+  img.draggable = false;
+  return img;
+}
 
 function TEXT(s, par) {
   var elt = document.createTextNode(s);
@@ -32,4 +38,15 @@ function TEXT(s, par) {
 
 function px(i) {
   return '' + i + 'px';
+}
+
+
+function getmouseposwithin(e, elt) {
+  e = e || window.event;
+
+  // XXX assumes parent is document.body; wrong
+  var origx = elt.offsetLeft, origy = elt.offsetTop;
+
+  return { x: e.clientX - origx,
+	   y: e.clientY - origy };
 }
