@@ -262,6 +262,9 @@ function redrawmouse() {
 function initos(elt) {
   os = elt;
 
+  // Always placed at 0,0.
+  mainicons = new IconHolder(OSWIDTH, OSHEIGHT, os);
+
   os.onmousemove = osmousemove;
   os.onmousedown = osmousedown;
   os.onmouseup = osmouseup;
@@ -274,6 +277,7 @@ function initos(elt) {
 
 // XXX to OS object?
 function redrawos() {
+  mainicons.redraw(os);
   for (var i = 0; i < windows.length; i++) {
     windows[i].div.style.zIndex = WINDOWZ + i;
     windows[i].redraw();
@@ -311,6 +315,7 @@ function Win(x, y, w, h, title) {
   this.w = w;
   this.h = h;
   this.title = title || '';
+  this.icon = 'genericicon.png';
 
   // TODO: "modal"
 
@@ -342,6 +347,66 @@ Win.prototype.domaximize = function() {
   this.h = OSHEIGHT;
   this.movetofront();
   redrawos();
+}
+
+function removefromwindows(win) {
+  // Remove window from list.
+  var nwin = [];
+  for (var i = 0; i < windows.length; i++) {
+    if (windows[i] != win) {
+      nwin.push(windows[i]);
+    }
+  }
+  windows = nwin;
+}
+
+Win.prototype.dominimize = function() {
+  removefromwindows(this);
+
+  this.blur();
+  this.detach();
+  var that = this;
+  var icon = new Icon(this.icon,
+		      this.title,
+		      function() {
+			windows.push(that);
+			return that;
+		      });
+  mainicons.place(icon);
+  redrawos();
+};
+
+function Icon(graphic, title, launcher) {
+  this.title = title;
+  this.launcher = launcher;
+  this.graphic = graphic;
+  // XXX here...?
+}
+
+// Space that can hold icons, of size w,h. It can
+// be resized. Uses relative coordinate system.
+function IconHolder(w, h, parent) {
+  this.div = DIV('', parent); // ?
+  this.w = w;
+  this.h = h;
+  this.icons = [];
+  // XXX here...?
+}
+
+IconHolder.prototype.redraw = function(elt, x, y) {
+  for (var i = 0; i < this.icons.length; i++) {
+    
+  }
+}
+
+IconHolder.prototype.place = function(icon) {
+  // XXX use more than one row!
+  this.icons.push({x: this.icons.length * 40, y: this.height - 40,
+		   icon: icon });
+}
+
+Win.prototype.detach = function() {
+  this.div.parentNode.removeChild(this.div);
 }
 
 Win.prototype.inside = function(x, y) {
@@ -376,7 +441,10 @@ Win.prototype.inside = function(x, y) {
 	     up: 'minimize.png',
 	     x: this.x + this.minimizetoolx(),
 	     y: this.y + BORDER,
-	     w: TOOL, h: TOOL };
+	     w: TOOL, h: TOOL,
+	     action: function(ins) {
+	       ins.win.dominimize();
+	     } };
   }
 
   // Corner objects include the name of the corner
@@ -465,14 +533,8 @@ function getosmetrics(elt) {
 }
 
 Win.prototype.movetofront = function() {
-  var nwins = [];
-  for (var i = 0; i < windows.length; i++) {
-    if (windows[i] != this) {
-      nwins.push(windows[i]);
-    }
-  }
-  nwins.push(this);
-  windows = nwins;
+  removefromwindows(this);
+  windows.push(this);
 };
 
 // Resize from the top edge without moving the bottom.
