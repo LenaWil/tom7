@@ -219,6 +219,31 @@ function redrawos() {
   }
 }
 
+var CHARS = [];
+(function() {
+  for (var i = 0; i < FONTCHARS.length; i++) {
+    var c = FONTCHARS.charCodeAt(i);
+    if (c >= 0 && c < 128) {
+      CHARS[c] = i;
+    }
+  }
+})();
+
+function rendertext(text, elt) {
+  for (var i = 0; i < text.length; i++) {
+    var c = text.charCodeAt(i);
+    if (c >= 0 && c < 128) {
+      var d = DIV('ch', elt);
+      d.style.cssFloat = 'left';
+      d.style.width = px(FONTW);
+      d.style.height = px(FONTH);
+      d.style.marginLeft = '-' + FONTOVERLAP + 'px';
+      d.style.backgroundImage = 'url(fontwhite.png)';
+      d.style.backgroundPosition = (CHARS[c] * -FONTW) + 'px 0px';
+    }
+  }
+}
+
 function Win(x, y, w, h, title) {
   this.x = x;
   this.y = y;
@@ -405,7 +430,9 @@ Win.prototype.redraw = function() {
   }
   this.titleelt.style.backgroundRepeat = 'repeat-x';
 
-  TEXT(this.title, this.titleelt);
+  //TEXT(this.title, this.titleelt);
+  this.titletext = DIV('titletext', this.titleelt);
+  rendertext(this.title, this.titletext);
 
   // Add borders and corners.
 

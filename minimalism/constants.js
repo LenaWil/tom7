@@ -17,3 +17,7 @@ var WINDOWZ = 1000;
 var GREY = '#c3c7cb'; // ???
 var BLUE = '#00a';
 
+var FONTW = 9;
+var FONTH = 16;
+var FONTOVERLAP = 1;
+var FONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?";
