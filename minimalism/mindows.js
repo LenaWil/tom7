@@ -49,10 +49,29 @@ function osmousemove(e) {
 	switch (ins.which) {
 	  case 'se':
 	    mousestate = 'mouse-resize-backslash.png';
-	    ins.win.setwidth(mousex - ins.win.x - ins.gripx);
-	    ins.win.setheight(mousey - ins.win.y - ins.gripy);
+	    ins.win.resizeright(mousex - ins.win.x - ins.gripx);
+	    ins.win.resizedown(mousey - ins.win.y - ins.gripy);
 	    ins.win.redraw();
             break;
+	  case 'sw':
+	    mousestate = 'mouse-resize-slash.png';
+	    ins.win.resizeleft(mousex - ins.gripx);
+	    ins.win.resizedown(mousey - ins.win.y - ins.gripy);
+	    ins.win.redraw();
+            break;
+	  case 'nw':
+	    mousestate = 'mouse-resize-backslash.png';
+	    ins.win.resizeleft(mousex - ins.gripx);
+	    ins.win.resizeup(mousey - ins.gripy);
+	    ins.win.redraw();
+            break;
+	  case 'ne':
+	    mousestate = 'mouse-resize-slash.png';
+	    ins.win.resizeright(mousex - ins.win.x - ins.gripx);
+	    ins.win.resizeup(mousey - ins.gripy);
+	    ins.win.redraw();
+            break;
+
 	  // XXX others!
 	  default:;
 	}
@@ -219,12 +238,41 @@ Win.prototype.movetofront = function() {
   windows = nwins;
 };
 
-Win.prototype.setwidth = function(w) {
+// Resize from the top edge without moving the bottom.
+Win.prototype.resizeup = function(y) {
+  // How much the window "increases" (could be negative increase)
+  // in height.
+  var growth = this.y - y;
+  var newheight = this.h + growth;
+  if (newheight < MINHEIGHT) {
+    growth += (MINHEIGHT - newheight);
+    newheight = MINHEIGHT;
+  }
+  this.y -= growth;
+  this.h += growth;
+};
+
+// Resize from the left edge without moving the right.
+Win.prototype.resizeleft = function(x) {
+  // How much the window "increases" (could be negative increase)
+  // in width.
+  var growth = this.x - x;
+  var newwidth = this.w + growth;
+  deb.innerHTML = 'growth: ' + growth + ' nw: ' + newwidth;
+  if (newwidth < MINWIDTH) {
+    growth += (MINWIDTH - newwidth);
+    newwidth = MINWIDTH;
+  }
+  this.x -= growth;
+  this.w += growth;
+};
+
+Win.prototype.resizeright = function(w) {
   w = Math.max(w, MINWIDTH);
   this.w = w;
 };
 
-Win.prototype.setheight = function(h) {
+Win.prototype.resizedown = function(h) {
   h = Math.max(h, MINHEIGHT);
   this.h = h;
 };
