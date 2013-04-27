@@ -38,6 +38,12 @@ function getPointed() {
   return null;
 }
 
+function osblur() {
+  for (var i = 0; i < windows.length; i++) {
+    windows[i].blur();
+  }
+}
+
 function osmousemove(e) {
   var obj = getmouseposwithin(e, os);
   mousex = obj.x;
@@ -130,9 +136,16 @@ function osmousemove(e) {
 
 function osmousedown(e) {
   e = e || window.event;
+  osblur();
   var inside = getPointed();
   if (inside) {
     switch (inside.what) {
+      case 'menu':
+        inside.win.movetofront();
+        deb.innerHTML = inside.which.text;
+        inside.menu.selected = inside.which;
+        redrawos();
+        break;
       case 'button':
         capture = { what: 'press', inside: inside };
         osmousemove(e);
@@ -259,6 +272,13 @@ function Win(x, y, w, h, title) {
   this.redraw();
 }
 
+Win.prototype.blur = function() {
+  if (this.menu) {
+    this.menu.selected = null;
+    // TODO: Undo popouts too.
+  }
+}
+
 Win.prototype.maximizetoolx = function() {
   return this.w - TOOL - BORDER + 1;
 }
@@ -283,7 +303,7 @@ Win.prototype.inside = function(x, y) {
 
   // We know we're inside.
 
-  // XXX check buttons BEFORE corners.
+  // Check buttons BEFORE corners.
   if (x > this.x + this.maximizetoolx() &&
       x < (this.x + this.maximizetoolx() + TOOL) &&
       y < (this.y + BORDER + TOOL)) {
@@ -338,14 +358,43 @@ Win.prototype.inside = function(x, y) {
 	     gripy: y - this.y };
   }
 
-  // XXX check title AFTER corners
+  // Check title AFTER corners
   if (y < this.y + TITLE) {
     return { what: 'title', win: this,
 	     gripx: x - this.x,
 	     gripy: y - this.y };
   }
 
+  // Check menu.
+  if (this.menu) {
+    for (var i = 0; i < this.menu.length; i++) {
+      var met = this.menu[i].metrics;
+      if (x >= met.x &&
+	  y >= met.y &&
+	  x < (met.x + met.w) &&
+	  y < (met.y + met.h)) {
+	deb.innerHTML = 'over menu';
+	return { what: 'menu', win: this,
+		 menu: this.menu,
+		 which: this.menu[i] };
+      }
+    }
+  }
+
   return { what: 'win', win: this };
+}
+
+// Returns {x, y, w, h} for an Element, where
+// 0,0 is the top-left of the OS.
+function getosmetrics(elt) {
+  var eltr = elt.getBoundingClientRect();
+  var osr = os.getBoundingClientRect();
+  var x = eltr.left - osr.left;
+  var y = eltr.top - osr.top;
+  return { x: x,
+	   y: y,
+	   w: (eltr.right - eltr.left),
+	   h: (eltr.bottom - eltr.top) };
 }
 
 Win.prototype.movetofront = function() {
@@ -446,14 +495,22 @@ Win.prototype.redraw = function() {
     // Top-level menu items.
     for (var i = 0; i < this.menu.length; i++) {
       var menuitem = DIV('menuitem', this.menuelt);
-      // XXX if selected...
-      if (this.menu[i].selected) {
+      this.menu[i].elt = menuitem;
+      if (this.menu[i] == this.menu.selected) {
 	// Make menuitem selected color.
 	menuitem.style.background = BLUE;
 	rendertext(this.menu[i].text, menuitem, 'fontwhite');
       } else {
 	rendertext(this.menu[i].text, menuitem, 'fontblack');
       }
+
+      // Has to happen after the item has been completely placed.
+      var metrics = getosmetrics(menuitem);
+      this.menu[i].metrics = metrics;
+      /*
+      deb.innerHTML = 'x: ' + metrics.x + ' y: ' + metrics.y +
+	  ' w: ' + metrics.w + ' h: ' + metrics.h;
+      */
     }
   }
 
@@ -520,5 +577,22 @@ Win.prototype.redraw = function() {
   this.minimize.src = 'minimize.png';
   this.minimize.style.left = px(this.minimizetoolx());
   this.minimize.style.top = px(BORDER - 1);
-
 };
+
+
+function setupgame() {
+ var win = new Win(10, 10, 320, 200, 'Accessories');
+ win.menu = [
+   { text: 'File',
+     children: [ { text: 'New...' },
+		 { text: 'Open...' },
+		 { text: 'Exit Mindows' }]
+   },
+   { text: 'Help',
+     children: [ { text: 'Contents' },
+	         { text: 'About Mindows' }]
+   }
+ ];
+
+ var win2 = new Win(80, 80, 400, 180, 'Program Manager');
+}
