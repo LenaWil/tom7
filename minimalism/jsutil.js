@@ -50,3 +50,7 @@ function getmouseposwithin(e, elt) {
   return { x: e.clientX - origx,
 	   y: e.clientY - origy };
 }
+
+function objstring(obj) {
+  return JSON.stringify(obj);
+}

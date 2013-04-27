@@ -8,6 +8,7 @@ var BORDER = 4;
 var TITLE = 19;
 var TOOL = 20;
 var MENU = 20;
+var CHILDPADDING = 12;
 
 var MINWIDTH = 64;
 var MINHEIGHT = 64;
