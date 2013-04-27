@@ -202,7 +202,9 @@ function osmousedown(e) {
     }
   } else {
     // Clicks on background -- nothing?
+    deb.innerHTML = 'background click';
     osblur();
+    redrawos();
   }
 }
 
@@ -531,6 +533,11 @@ Win.prototype.redraw = function() {
   d.style.width = this.w + 'px';
   d.style.height = this.h + 'px';
 
+  // Do this first so that it doesn't go above decorations.
+  if (this.drawcontents) {
+    this.drawcontents();
+  }
+
   // Add title bar.
   this.titleelt = DIV('title', this.div);
   this.titleelt.style.width = px(this.w);
@@ -686,8 +693,31 @@ Win.prototype.redraw = function() {
   this.minimize.src = 'minimize.png';
   this.minimize.style.left = px(this.minimizetoolx());
   this.minimize.style.top = px(BORDER - 1);
+
 };
 
+function centeredmodalwindow(title, cw, ch) {
+  var totalw = cw + BORDER * 2;
+  // XXX ok button!
+  var totalh = ch + BORDER * 2 + TITLE + OKBUTTON;
+  var win = new Win(Math.floor((OSWIDTH - totalw) / 2),
+		    Math.floor((OSHEIGHT - totalh) / 2),
+		    totalw, totalh,
+		    title);
+  win.modal = true;
+  return win;
+}
+
+function aboutmindows() {
+  var win = centeredmodalwindow('About Mindows', 300, 308);
+  win.drawcontents = function() {
+    var d = win.div;
+    var i = IMG('abs', d);
+    i.src = 'about-mindows.png';
+    i.style.top = px(BORDER + TITLE);
+    i.style.left = px(BORDER);
+  };
+}
 
 function setupgame() {
  var win = new Win(10, 10, 320, 200, 'Accessories');
@@ -706,7 +736,8 @@ function setupgame() {
    },
    { text: 'Help',
      children: [ { text: 'Contents' },
-	         { text: 'About Mindows' }]
+	         { text: 'About Mindows',
+		   fn: aboutmindows }]
    }
  ];
 
