@@ -69,12 +69,15 @@ function getPointed() {
 function oscarddrop(cards) {
   for (var i = windows.length - 1; i >= 0; i--) {
     var win = windows[i];
-    if (win.dropcards) {
-      // May be null.
-      return win.dropcards(cards, mousex, mousey);
+    if (win.inbounds(mousex, mousey)) {
+      if (win.dropcards) {
+	// May be null.
+	return win.dropcards(cards, mousex, mousey);
+      }
+      return null;
     }
-    return null;
   }
+  return null;
 }
 
 function cascadeall() {
@@ -1411,9 +1414,11 @@ function dragondrop() {
       revealed.push([drawpile.pop()]);
 
       // XXX NO! FIXME DO NOT SUBMIT
+      /*
       var l = workpiles.length - 1;
       if (workpiles[l].length > 0)
 	revealed[l].push(workpiles[l].pop());
+	*/
     }
   }
 
@@ -1625,11 +1630,32 @@ function dragondrop() {
 	  };
 	}
 
+	function emptydrophandler(x, y, rev) {
+	  return function(cards, rx, ry) {
+	    if (rx >= x && ry >= y &&
+		rx < x + CARDW && ry < y + CARDH) {
+	      if (rev.length != 0) return null;
+
+	      if (cardrank(cards[0]) != NRANKS - 1) return null;
+	      // OK!
+	      return function() {
+		for (var i = 0; i < cards.length; i++) {
+		  rev.push(cards[i]);
+		}
+	      };
+	    }
+	    return null;
+	  };
+	}
+
 	if (rev.length > 0) {
 	  drops.push(revealeddrophandler(x, y, rev));
 	} else {
-	  // XXX if workpile is also empty, allow drop of
+	  // if workpile is also empty, allow drop of
 	  // max rank.
+	  if (workpile.length == 0) {
+	    drops.push(emptydrophandler(x, y, rev));
+	  }
 	}
 
 	function flipcardhandler(x, y, workpile, rev) {
@@ -1701,6 +1727,14 @@ function dragondrop() {
     })();
 
     win.dropcards = function(cards, x, y) {
+      // Only capture drops if they actually overlap the
+      // window (even if we have something good in that
+      // logical spot).
+      if (x < this.x || y < this.y ||
+	  x >= this.x + this.w || y > this.y + this.h) {
+	return null;
+      }
+      
       // Relative to window.
       var rx = x - this.x;
       var ry = y - this.y;
