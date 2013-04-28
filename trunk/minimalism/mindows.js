@@ -1373,6 +1373,9 @@ function dragondrop() {
   win.drawcontents = function() {
     var d = win.div;
 
+    // Clickable action areas.
+    var actions = [];
+
     // Always draw card holders.
     // XXX if they have cards on, then can skip this
     // XXX draw these as skull/heart holders.
@@ -1398,6 +1401,22 @@ function dragondrop() {
       reload.style.top = px(DRAWPILEY);
     }
 
+    // You can always click on the draw pile or recycle symbol.
+    actions.push(function(rx, ry) {
+      // Draw pile.
+      if (rx >= DRAWPILEX &&
+	  ry >= DRAWPILEY &&
+	  rx < DRAWPILEX + CARDW &&
+	  ry < DRAWPILEY + CARDH) {
+	return { what: 'click',
+		 action: function(ins) {
+		   dodraw();
+		   osredraw();
+		 } };
+      }
+      return null;
+    });
+
     (function() {
       for (var p = 0; p < NPILES; p++) {
 	var x = DRAWPILEX + (p * (CARDW + CARDSPACE));
@@ -1415,6 +1434,27 @@ function dragondrop() {
 	for (var i = 0; i < rev.length; i++) {
 	  cardfront(x, y, rev[i]);
 	  y += SHOWY;
+	}
+
+	function flipcardhandler(x, y, workpile, rev) {
+	  return function(rx, ry) {
+	    if (rx >= x && ry >= y &&
+		rx < x + CARDW && ry < y + CARDH) {
+	      return { what: 'click',
+		       action: function() {
+			 if (workpile.length == 0)
+			   throw 'precondition';
+			 rev.push(workpile.pop());
+			 osredraw();
+		       } };
+	    }
+	    return null;
+	  };
+	}
+
+	// Action to click workpiles to flip top card.
+	if (rev.length == 0 && workpile.length > 0) {
+	  actions.push(flipcardhandler(x, y, workpile, rev));
 	}
       }
     })();
@@ -1436,18 +1476,10 @@ function dragondrop() {
       var rx = x - this.x;
       var ry = y - this.y;
 
-      // Draw pile.
-      if (rx >= DRAWPILEX &&
-	  ry >= DRAWPILEY &&
-	  rx < DRAWPILEX + CARDW &&
-	  ry < DRAWPILEY + CARDH) {
-	return { what: 'click',
-		 action: function(ins) {
-		   dodraw();
-		   osredraw();
-		 } };
+      for (var i = 0; i < actions.length; i++) {
+	var ins = actions[i](rx, ry);
+	if (ins) return ins;
       }
-
 
       return null;
     };
