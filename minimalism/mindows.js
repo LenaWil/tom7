@@ -1,8 +1,6 @@
 // TODO: Make mouse cursor invisible when it is outside the OS.
 // TODO: Cursor doesn't work on mobile safari, but probably could.
-// TODO: Minimize
 // TODO: Maximize button switches to "restore" when maximized.
-// TODO: Menus?
 
 // Mouse position within the OS.
 var mousex = 320, mousey = 200;
@@ -276,13 +274,6 @@ function redrawmouse() {
 
   mouse.style.top = px(mousey);
   mouse.style.left = px(mousex);
-  // XXX set cursor style.
-
-/*  
-  deb.innerHTML = '';
-  TEXT(mousex + ' ' + mousey + ' / ' +
-       os.offsetTop, deb);
-*/
 }
 
 function initos(elt) {
@@ -298,8 +289,8 @@ function initos(elt) {
 
   mouse = IMG('mouse', os);
   mouse.src = 'mouse.png';
-
   redrawmouse();
+
   osredraw();
 }
 
@@ -417,8 +408,7 @@ function Icon(graphic, title, launcher) {
 
 // Space that can hold icons, of size w,h. It can
 // be resized. Uses relative coordinate system.
-function IconHolder(w, h, parent) {
-  this.div = DIV('iconholder', parent); // ?
+function IconHolder(w, h) {
   this.w = w;
   this.h = h;
   this.icons = [];
@@ -444,7 +434,8 @@ IconHolder.prototype.activate = function(entry) {
   osredraw();
 }
 
-IconHolder.prototype.redraw = function(x, y) {
+IconHolder.prototype.redraw = function(parent, x, y) {
+  this.div = DIV('iconholder', parent); // ?
   this.div.innerHTML = '';
   this.div.style.top = px(y);
   this.div.style.left = px(x);
@@ -699,6 +690,11 @@ Win.prototype.redraw = function() {
     this.drawcontents();
   }
 
+  if (this.icons) {
+    // XXX might not have menu
+    this.icons.redraw(BORDER, BORDER + TITLE + MENU);
+  }
+
   // Add title bar.
   this.titleelt = DIV('title', this.div);
   this.titleelt.style.width = px(this.w);
@@ -881,7 +877,6 @@ function aboutmindows() {
 }
 
 function exitmindows() {
-  // XXX prompt?
   for (var i = 0; i < windows.length; i++) {
     windows[i].detach();
   }
@@ -920,6 +915,14 @@ function exitmindows() {
 
 function setupwindows() {
   var win = new Win(10, 10, 320, 200, 'Accessories');
+  win.icons = new IconHolder(300, 180, win.div);
+  var about = new Icon('genericicon.png',
+		       'About',
+		       function() {
+			 aboutmindows();
+		       });
+  win.icons.place(about);
+
   var win2 = new Win(80, 80, 400, 180, 'Program Manager');
   win2.menu = [
     { text: 'File',
