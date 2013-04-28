@@ -38,6 +38,10 @@ var PLACEY = 50;
 
 var DRAWPILEX = 24;
 var DRAWPILEY = PLACEY;
+// ?
+var WORKY = PLACEY + CARDH + CARDSPACE + CARDSPACE;
+var BLINDY = 8;
+var SHOWY = 20;
 
 var GREY = '#c3c7cb'; // ???
 var BLUE = '#00a';
@@ -45,7 +49,10 @@ var BLUE = '#00a';
 var FONTW = 9;
 var FONTH = 16;
 var FONTOVERLAP = 1;
-var FONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?";
+var FONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?\x05\x06\x07";
+var CHECK = "\x05";
+var SKULL = "\x06";
+var HEART = "\x07";
 
 var SMALLFONTW = 6;
 var SMALLFONTH = 16;
