@@ -41,9 +41,12 @@ var DRAWPILEY = PLACEY;
 // ?
 var WORKY = PLACEY + CARDH + CARDSPACE + CARDSPACE;
 var BLINDY = 8;
-var SHOWY = 20;
+var SHOWY = 16;
 var BLINDX = 8;
 var SHOWX = 20;
+
+var NSUITS = 2;
+var NRANKS = 8;
 
 var WASTEX = DRAWPILEX + CARDW + CARDSPACE;
 var WASTEY = PLACEY;
