@@ -28,6 +28,17 @@ var WINICONSY = BORDER + TITLE + MENU;
 // Reserved 1000-2000.
 var WINDOWZ = 1000;
 
+// Dragon drop.
+var CARDW = 71;
+var CARDH = 96;
+var CARDSPACE = 20;
+var PLACEHEARTX = 260;
+var PLACESKULLX = PLACEHEARTX + CARDW + CARDSPACE;
+var PLACEY = 50;
+
+var DRAWPILEX = 24;
+var DRAWPILEY = PLACEY;
+
 var GREY = '#c3c7cb'; // ???
 var BLUE = '#00a';
 
