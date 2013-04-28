@@ -354,6 +354,26 @@ function osmouseup(e) {
   if (capture) {
     var ins = capture.inside;
     switch (capture.what) {
+    case 'movestack':
+      var grab = ins.grab;
+
+      // XXX allow legal drops, of course!
+
+      grab.undo();
+      
+      // Need to do this before redraw because of
+      // exceptional behavior.
+      capture = null;
+
+      osredraw();
+      /*
+      deb.innerHTML = ('GRABBED ' + grab.cards.join('-'));
+      capture = { what: 'movestack',
+		  cards: grab.cards,
+		  inside: inside };
+      */
+      break;
+
     case 'drag':
 
       // Only have something to do if there's a drop and
