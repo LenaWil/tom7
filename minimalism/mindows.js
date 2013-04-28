@@ -65,6 +65,18 @@ function getPointed() {
   return mainicons.inside(0, 0, mousex, mousey);
 }
 
+
+function oscarddrop(cards) {
+  for (var i = windows.length - 1; i >= 0; i--) {
+    var win = windows[i];
+    if (win.dropcards) {
+      // May be null.
+      return win.dropcards(cards, mousex, mousey);
+    }
+    return null;
+  }
+}
+
 function cascadeall() {
   for (var i = 0; i < windows.length; i++) {
     windows[i].blur();
@@ -269,6 +281,15 @@ function osmousemove(e) {
 function osmousedown(e) {
   if (oslockout) return;
   e = e || window.event;
+
+  // Something is weird (like user left surface and came
+  // back) if we get a mousedown event while we are in
+  // capture. So simulate a mouseup before the mousedown.
+  if (capture != null) {
+    osmouseout(e);
+    capture = null;
+  }
+
   var inside = getPointed();
   if (inside) {
     deb.innerHTML = inside.what;
@@ -358,9 +379,12 @@ function osmouseup(e) {
       var grab = ins.grab;
 
       // XXX allow legal drops, of course!
-
-      grab.undo();
-      
+      var drop = oscarddrop(grab.cards);
+      if (drop) {
+	drop();
+      } else {
+	grab.undo();
+      }
       // Need to do this before redraw because of
       // exceptional behavior.
       capture = null;
@@ -1350,10 +1374,10 @@ function dragondrop() {
     allcards.push(i);
   }
 
-  // Two "places" (one for each suit)... we just need
-  // to know the top card here, or null for none.
-  var placeheart = null;
-  var placeskull = null;
+  // Two "places" (one for each suit)... a list of the
+  // cards, where the end is the top.
+  var placeheart = [];
+  var placeskull = [];
 
   // A single "draw" pile. This is a list, with the
   // end being the next cards to show.
@@ -1371,12 +1395,13 @@ function dragondrop() {
   }
 
   function redeal() {
-    placeheart = null;
-    placeskull = null;
+    placeheart = [];
+    placeskull = []
     drawpile = allcards.slice(0);
     shuffle(drawpile);
     workpiles = [];
     revealed = [];
+    wastepile = [];
     for (var i = 0; i < NPILES; i++) {
       var a = [];
       for (var c = 0; c < i; c++) {
@@ -1442,18 +1467,62 @@ function dragondrop() {
     // a record of a bunch of things about the grab.
     var stacks = [];
 
+    // Places where dropping is possible.
+    var drops = [];
+
     // Always draw card holders.
     // XXX if they have cards on, then can skip this
     // XXX draw these as skull/heart holders.
-    var phelt = IMG('abs', d);
-    phelt.src = 'placeace.png';
-    phelt.style.left = px(PLACEHEARTX);
-    phelt.style.top = px(PLACEY);
 
-    var pselt = IMG('abs', d);
-    pselt.src = 'placeace.png';
-    pselt.style.left = px(PLACESKULLX);
-    pselt.style.top = px(PLACEY);
+    if (placeheart.length == 0) {
+      var phelt = IMG('abs', d);
+      phelt.src = 'placeace.png';
+      phelt.style.left = px(PLACEHEARTX);
+      phelt.style.top = px(PLACEY);
+    } else {
+      cardfront(PLACEHEARTX, PLACEY, 
+		placeheart[placeheart.length - 1]);
+    }
+
+    if (placeskull.length == 0) {
+      var pselt = IMG('abs', d);
+      pselt.src = 'placeace.png';
+      pselt.style.left = px(PLACESKULLX);
+      pselt.style.top = px(PLACEY);
+    } else {
+      cardfront(PLACESKULLX, PLACEY, 
+		placeskull[placeskull.length - 1]);
+    }
+
+    function holderdrophandler(x, y, holder) {
+      return function(cards, rx, ry) {
+	if (rx >= x && ry >= y &&
+	    rx < x + CARDW && ry < y + CARDH) {
+	  // Only drop a single card at a time.
+	  if (cards.length != 1) return null;
+	  // On an empty holder, only an ace.
+	  if (holder.length == 0) {
+	    if (cardrank(cards[0]) != 0) return null;
+	    return function() {
+	      holder.push(cards[0]);
+	    };
+	  } else {
+	    var topcard = holder[holder.length - 1];
+	    // Only same suit.
+	    if (cardsuit(topcard) != cardsuit(cards[0])) return null;
+	    if (cardrank(topcard) != cardrank(cards[0]) - 1) return null;
+	    // OK!
+	    return function() {
+	      holder.push(cards[0]);
+	    };
+	  }
+	}
+	return null;
+      };
+    }
+      
+    drops.push(holderdrophandler(PLACEHEARTX, PLACEY, placeheart));
+    drops.push(holderdrophandler(PLACESKULLX, PLACEY, placeskull));
 
     // deb.innerHTML = objstring(workpiles) + '/' + objstring(revealed);
 
@@ -1536,6 +1605,33 @@ function dragondrop() {
 	  y += SHOWY;
 	}
 
+	function revealeddrophandler(x, y, rev) {
+	  return function(cards, rx, ry) {
+	    if (rx >= x && ry >= y &&
+		rx < x + CARDW && ry < y + CARDH) {
+	      if (rev.length == 0) return null;
+	      var topcard = rev[rev.length - 1];
+	      // Only DIFFERENT suit.
+	      if (cardsuit(topcard) == cardsuit(cards[0])) return null;
+	      if (cardrank(topcard) != cardrank(cards[0]) + 1) return null;
+	      // OK!
+	      return function() {
+		for (var i = 0; i < cards.length; i++) {
+		  rev.push(cards[i]);
+		}
+	      };
+	    }
+	    return null;
+	  };
+	}
+
+	if (rev.length > 0) {
+	  drops.push(revealeddrophandler(x, y, rev));
+	} else {
+	  // XXX if workpile is also empty, allow drop of
+	  // max rank.
+	}
+
 	function flipcardhandler(x, y, workpile, rev) {
 	  return function(rx, ry) {
 	    if (rx >= x && ry >= y &&
@@ -1546,7 +1642,8 @@ function dragondrop() {
 			   throw 'precondition';
 			 rev.push(workpile.pop());
 			 osredraw();
-		       } };
+		       } 
+		     };
 	    }
 	    return null;
 	  };
@@ -1565,11 +1662,55 @@ function dragondrop() {
       var wstart = Math.max(0, wastepile.length - 3);
       var x = WASTEX;
       var y = WASTEY;
+
+      var wastegrabhandler = function(x, y) {
+	return function(rx, ry) {
+	  if (rx >= x && ry >= y &&
+	      rx < x + CARDW && ry < y + CARDH) {
+	    // Clicked in the area. Need to know how
+	    var oldwaste = wastepile.slice(0);
+	    return {
+	      // offset within the card that we clicked.
+	      gripx: rx - x,
+	      gripy: ry - y,
+	      // Grabbing removes these cards.
+	      take: function() {
+		wastepile.pop();
+	      },
+	      // It is understood that undoing drops the
+	      // cards being held; they just need to be
+	      // put back.
+	      undo: function() {
+		replacecontents(wastepile, oldwaste);
+	      },
+	      // The cards to take.
+	      cards: [wastepile[wastepile.length -1]],
+	    };
+	  }
+	  return null;
+	};
+      };
+
       for (var i = wstart; i < wastepile.length; i++) {
 	cardfront(x, y, wastepile[i]);
+	if (i == wastepile.length - 1) {
+	  stacks.push(wastegrabhandler(x, y));
+	}
 	x += SHOWX;
       }
     })();
+
+    win.dropcards = function(cards, x, y) {
+      // Relative to window.
+      var rx = x - this.x;
+      var ry = y - this.y;
+
+      for (var i = 0; i < drops.length; i++) {
+	var drop = drops[i](cards, rx, ry);
+	if (drop) return drop;
+      }
+      return null;
+    };
 
     win.insidecontents = function(x, y) {
       // Relative to window.
