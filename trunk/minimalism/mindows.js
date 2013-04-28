@@ -446,6 +446,8 @@ function makeRender(FONTCHARS, FONTW, FONTH, FONTOVERLAP) {
 }
 
 var rendertext = makeRender(FONTCHARS, FONTW, FONTH, FONTOVERLAP);
+var rendersmalltext = makeRender(FONTCHARS, SMALLFONTW, SMALLFONTH,
+				 SMALLFONTOVERLAP);
 // TODO: small text
 
 function Win(x, y, w, h, title) {
@@ -584,12 +586,12 @@ IconHolder.prototype.redraw = function(parent, x, y) {
     var caption = DIV('iconcaption', item);
     if (entry == this.selected) {
       caption.style.backgroundColor = BLUE;
-      rendertext(entry.icon.title, caption, 'fontwhite');
+      rendersmalltext(entry.icon.title, caption, 'smallfontwhite');
     } else {
       if (this.main) {
-	rendertext(entry.icon.title, caption, 'fontwhite');
+	rendersmalltext(entry.icon.title, caption, 'smallfontwhite');
       } else {
-	rendertext(entry.icon.title, caption, 'fontblack');
+	rendersmalltext(entry.icon.title, caption, 'smallfontblack');
       }
     }
   }
@@ -1236,13 +1238,13 @@ function setupwindows() {
   var accessories = new Win(10, 10, 320, 200, 'Accessories');
   accessories.icons = new IconHolder(300, 180, false);
   var about = new Icon('genericicon.png',
-		       '  About',
+		       '    About',
 		       function() {
 			 aboutmindows();
 		       },
 		       true);
   var legalpad = new Icon('legalpad.png',
-			  'Legal Pad',
+			  '   Legal Pad',
 			  function() {
 			    legalpadapp();
 			  },
@@ -1276,6 +1278,15 @@ function setupwindows() {
 
   var games = new Win(120, 220, 420, 130, 'Games');
   games.icons = new IconHolder(300, 180, false);
+
+  var dragondrop = new Icon('cardicon.png',
+			    '  Dragon Drop',
+			    function() {
+			      dragondrop();
+			    },
+			    true);
+
+  games.icons.place(dragondrop);
 
   // XXX after adding menu, must redraw. Maybe should have
   // setmenu call.
