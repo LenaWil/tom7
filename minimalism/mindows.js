@@ -1318,6 +1318,30 @@ function dragondrop() {
     return card;
   }
 
+  function cardfront(x, y, n) {
+    var card = DIV('card', win.div);
+    card.style.top = px(y);
+    card.style.left = px(x);
+    var cimg = IMG('abs', card);
+    cimg.src = 'card.png';
+    var s = suit(n);
+    var r = rank(n);
+    
+    var ctext = DIV('', card);
+    ctext.style.position = 'absolute';
+    ctext.style.zindex = 1;
+    ctext.style.left = px(3);
+    ctext.style.top = px(2);
+    
+    if (s == 0) {
+      rendertext('' + r + SKULL, ctext, 'fontblack');
+    } else {
+      rendertext('' + r + HEART, ctext, 'fontred');
+    }
+
+    return card;
+  }
+
   win.drawcontents = function() {
     var d = win.div;
 
@@ -1338,7 +1362,28 @@ function dragondrop() {
     // Draw drawpile.
     if (drawpile.length > 0) {
       var dpelt = cardback(DRAWPILEX, DRAWPILEY);
+    } else {
+      // XXX draw "recycle" symbol
     }
+
+    for (var p = 0; p < NPILES; p++) {
+      var x = DRAWPILEX + (p * (CARDW + CARDSPACE));
+      var y = WORKY;
+      // Draw the workpile, literally as face-down cards.
+      var workpile = workpiles[p];
+      var rev = revealed[p];
+      for (var i = 0; i < workpile.length; i++) {
+	cardback(x, y);
+	y += BLINDY;
+      }
+
+      for (var i = 0; i < rev.length; i++) {
+	cardfront(x, y, rev[i]);
+	y += SHOWY;
+      }
+
+    }
+
 
 /*
     var prev = IMG('abs', d);
