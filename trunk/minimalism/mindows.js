@@ -35,7 +35,8 @@ function getPointed() {
     }
   }
 
-  return null;
+  return mainicons.inside(mousex, mousey);
+//  return null;
 }
 
 function cascadeall() {
@@ -46,19 +47,20 @@ function cascadeall() {
     windows[i].w = 400;
     windows[i].h = 280;
   }
-  redrawos();
+  osredraw();
 }
 
 function tileall() {
   alert('unimplemented');
   osblur();
-  redrawos();
+  osredraw();
 }
 
 function osblur() {
   for (var i = 0; i < windows.length; i++) {
     windows[i].blur();
   }
+  // TODO XXX Blur icon holder
 }
 
 function osmousemove(e) {
@@ -71,54 +73,61 @@ function osmousemove(e) {
   if (capture) {
     var ins = capture.inside;
     switch (capture.what) {
-      case 'press':
-        var onit = mousex >= ins.x && mousey > ins.y &&
+    case 'drag':
+      ins.entry.x = mousex - ins.gripx;
+      ins.entry.y = mousey - ins.gripy;
+      // XXX would need to know coords.
+      // ins.holder.redraw();
+      osredraw(); // PERF
+      break;
+    case 'press':
+      var onit = mousex >= ins.x && mousey > ins.y &&
 	  mousex < ins.x + ins.w && mousey < ins.y + ins.h;
-        if (ins.down) {
-          var newsrc = onit ? ins.down : ins.up;
-          if (ins.elt.src != newsrc) {
-	    ins.elt.src = newsrc;
-	    deb.innerHTML = 'set src to ' + newsrc;
-	  }
+      if (ins.down) {
+        var newsrc = onit ? ins.down : ins.up;
+        if (ins.elt.src != newsrc) {
+	  ins.elt.src = newsrc;
+	  deb.innerHTML = 'set src to ' + newsrc;
 	}
-        break;
-      case 'move':
-        // This can only be title, currently.
-        ins.win.moveto(mousex - ins.gripx, mousey - ins.gripy);
-        ins.win.redraw();
-        break;
-      case 'resize':
-	switch (ins.which) {
-	  case 'se':
-	    mousestate = 'mouse-resize-backslash.png';
-	    ins.win.resizeright(mousex - ins.win.x - ins.gripx);
-	    ins.win.resizedown(mousey - ins.win.y - ins.gripy);
-	    ins.win.redraw();
-            break;
-	  case 'sw':
-	    mousestate = 'mouse-resize-slash.png';
-	    ins.win.resizeleft(mousex - ins.gripx);
-	    ins.win.resizedown(mousey - ins.win.y - ins.gripy);
-	    ins.win.redraw();
-            break;
-	  case 'nw':
-	    mousestate = 'mouse-resize-backslash.png';
-	    ins.win.resizeleft(mousex - ins.gripx);
-	    ins.win.resizeup(mousey - ins.gripy);
-	    ins.win.redraw();
-            break;
-	  case 'ne':
-	    mousestate = 'mouse-resize-slash.png';
-	    ins.win.resizeright(mousex - ins.win.x - ins.gripx);
-	    ins.win.resizeup(mousey - ins.gripy);
-	    ins.win.redraw();
-            break;
+      }
+      break;
+    case 'move':
+      // This can only be title, currently.
+      ins.win.moveto(mousex - ins.gripx, mousey - ins.gripy);
+      ins.win.redraw();
+      break;
+    case 'resize':
+      switch (ins.which) {
+      case 'se':
+	mousestate = 'mouse-resize-backslash.png';
+	ins.win.resizeright(mousex - ins.win.x - ins.gripx);
+	ins.win.resizedown(mousey - ins.win.y - ins.gripy);
+	ins.win.redraw();
+	break;
+      case 'sw':
+	mousestate = 'mouse-resize-slash.png';
+	ins.win.resizeleft(mousex - ins.gripx);
+	ins.win.resizedown(mousey - ins.win.y - ins.gripy);
+	ins.win.redraw();
+	break;
+      case 'nw':
+	mousestate = 'mouse-resize-backslash.png';
+	ins.win.resizeleft(mousex - ins.gripx);
+	ins.win.resizeup(mousey - ins.gripy);
+	ins.win.redraw();
+	break;
+      case 'ne':
+	mousestate = 'mouse-resize-slash.png';
+	ins.win.resizeright(mousex - ins.win.x - ins.gripx);
+	ins.win.resizeup(mousey - ins.gripy);
+	ins.win.redraw();
+	break;
 
-	  // XXX others!
-	  default:;
-	}
-        break;
+	// XXX others!
       default:;
+      }
+      break;
+    default:;
     }
 
   } else {
@@ -134,7 +143,7 @@ function osmousemove(e) {
 	var child = inside.child;
 	menu.selected = child;
 	// alert( 'mousemove over child');
-	redrawos(); // PERF Just menu?
+	osredraw(); // PERF Just menu?
 	break;
       case 'corner':
 	if (inside.which == 'se' || inside.which == 'nw') {
@@ -164,11 +173,24 @@ function osmousedown(e) {
   if (inside) {
     deb.innerHTML = inside.what;
     switch (inside.what) {
+    case 'icon':
+      osblur();
+      inside.holder.selected = inside.entry;
+      var now = getMillis();
+      if (inside.entry.lastclick && 
+	  (now - inside.entry.lastclick) < DOUBLECLICKMS) {
+	inside.holder.activate(inside.entry);
+      } else {
+	inside.entry.lastclick = now;
+	capture = { what: 'drag', inside: inside };
+	osmousemove(e);
+      }
+      break;
     case 'menu':
       inside.win.movetofront();
       inside.menu.selected = inside.which;
       // capture = { what: 'clickmenu', inside: inside };
-      redrawos();
+      osredraw();
       break;
     case 'childmenu':
       deb.innerHTML = 'mousedown on child';
@@ -191,12 +213,12 @@ function osmousedown(e) {
       osblur();
       capture = { what: 'move', inside: inside };
       inside.win.movetofront();
-      redrawos();
+      osredraw();
       break;
     case 'win':
       osblur();
       inside.win.movetofront();
-      redrawos();
+      osredraw();
       break;
     default:;
     }
@@ -204,7 +226,7 @@ function osmousedown(e) {
     // Clicks on background -- nothing?
     deb.innerHTML = 'background click';
     osblur();
-    redrawos();
+    osredraw();
   }
 }
 
@@ -235,7 +257,7 @@ function osmouseup(e) {
     case 'childmenu':
       osblur();
       if (inside.child.fn) inside.child.fn();
-      redrawos();
+      osredraw();
     default:
     }
   }
@@ -272,42 +294,45 @@ function initos(elt) {
   mouse = IMG('mouse', os);
   mouse.src = 'mouse.png';
   redrawmouse();
-  redrawos();
+  osredraw();
 }
 
 // XXX to OS object?
-function redrawos() {
-  mainicons.redraw(os);
+function osredraw() {
+  mainicons.redraw(0, 0);
   for (var i = 0; i < windows.length; i++) {
     windows[i].div.style.zIndex = WINDOWZ + i;
     windows[i].redraw();
   }
 }
 
-var CHARS = [];
-(function() {
+function makeRender(FONTCHARS, FONTW, FONTH, FONTOVERLAP) {
+  var CHARS = [];
   for (var i = 0; i < FONTCHARS.length; i++) {
     var c = FONTCHARS.charCodeAt(i);
     if (c >= 0 && c < 128) {
       CHARS[c] = i;
     }
   }
-})();
 
-function rendertext(text, elt, font) {
-  for (var i = 0; i < text.length; i++) {
-    var c = text.charCodeAt(i);
-    if (c >= 0 && c < 128) {
-      var d = DIV('ch', elt);
-      d.style.cssFloat = 'left';
-      d.style.width = px(FONTW);
-      d.style.height = px(FONTH);
-      d.style.marginLeft = '-' + FONTOVERLAP + 'px';
-      d.style.backgroundImage = 'url(' + font + '.png)';
-      d.style.backgroundPosition = (CHARS[c] * -FONTW) + 'px 0px';
+  return function(text, elt, font) {
+    for (var i = 0; i < text.length; i++) {
+      var c = text.charCodeAt(i);
+      if (c >= 0 && c < 128) {
+	var d = DIV('ch', elt);
+	d.style.cssFloat = 'left';
+	d.style.width = px(FONTW);
+	d.style.height = px(FONTH);
+	d.style.marginLeft = '-' + FONTOVERLAP + 'px';
+	d.style.backgroundImage = 'url(' + font + '.png)';
+	d.style.backgroundPosition = (CHARS[c] * - FONTW) + 'px 0px';
+      }
     }
-  }
+  };
 }
+
+var rendertext = makeRender(FONTCHARS, FONTW, FONTH, FONTOVERLAP);
+// TODO: small text
 
 function Win(x, y, w, h, title) {
   this.x = x;
@@ -346,7 +371,7 @@ Win.prototype.domaximize = function() {
   this.w = OSWIDTH;
   this.h = OSHEIGHT;
   this.movetofront();
-  redrawos();
+  osredraw();
 }
 
 function removefromwindows(win) {
@@ -369,11 +394,12 @@ Win.prototype.dominimize = function() {
   var icon = new Icon(this.icon,
 		      this.title,
 		      function() {
+			that.reattach();
 			windows.push(that);
 			return that;
 		      });
   mainicons.place(icon);
-  redrawos();
+  osredraw();
 };
 
 function Icon(graphic, title, launcher) {
@@ -386,28 +412,90 @@ function Icon(graphic, title, launcher) {
 // Space that can hold icons, of size w,h. It can
 // be resized. Uses relative coordinate system.
 function IconHolder(w, h, parent) {
-  this.div = DIV('', parent); // ?
+  this.div = DIV('iconholder', parent); // ?
   this.w = w;
   this.h = h;
   this.icons = [];
   // XXX here...?
 }
 
-IconHolder.prototype.redraw = function(elt, x, y) {
+IconHolder.prototype.activate = function(entry) {
+  // Filter it out of the list.
+  var nicons = [];
   for (var i = 0; i < this.icons.length; i++) {
-    
+    if (this.icons[i] != entry) {
+      nicons.push(this.icons[i]);
+    }
   }
+  this.icons = nicons;
+  
+  entry.icon.launcher();
+  osredraw();
 }
+
+IconHolder.prototype.redraw = function(x, y) {
+  this.div.innerHTML = '';
+  this.div.style.top = px(y);
+  this.div.style.left = px(x);
+  this.div.style.width = px(this.w);
+  this.div.style.height = px(this.h);
+  for (var i = 0; i < this.icons.length; i++) {
+    var entry = this.icons[i];
+    var item = DIV('icon', this.div);
+    item.style.left = px(entry.x);
+    item.style.top = px(entry.y);
+    var img = IMG('icon', item);
+    img.src = entry.icon.graphic;
+    img.style.marginLeft = px(Math.floor((ICONW - 32) / 2));
+    
+    // If selected, use other font.
+    // If selected, make background.
+    var caption = DIV('iconcaption', item);
+    if (entry == this.selected) {
+      caption.style.backgroundColor = BLUE;
+      rendertext(entry.icon.title, caption, 'fontwhite');
+    } else {
+      rendertext(entry.icon.title, caption, 'fontwhite');
+    }
+  }
+};
 
 IconHolder.prototype.place = function(icon) {
   // XXX use more than one row!
-  this.icons.push({x: this.icons.length * 40, y: this.height - 40,
+  this.icons.push({x: this.icons.length * 90, 
+		   y: this.h - 90,
 		   icon: icon });
-}
+};
+
+// Arguments need to be relative to the iconholder, which always
+// believes it is at 0, 0.
+IconHolder.prototype.inside = function(x, y) {
+  var ins = x >= 0 && y >= 0 && x < this.w && y < this.h;
+  if (!ins) return null;
+
+  for (var i = 0; i < this.icons.length; i++) {
+    var entry = this.icons[i];
+    // deb.innerHTML = 'ex ' + entry.x + ' ey ' + entry.y +
+    // ' tx ' + x + ' ty ' + y;
+    if (x >= entry.x && y >= entry.y &&
+	x < (entry.x + ICONW) && y < (entry.y + ICONH)) {
+      // deb.innerHTML = ' IN IT.';
+      return { what: 'icon', holder: this,
+	       entry: entry, 
+	       gripx: x - entry.x, gripy: y - entry.y };
+    }
+  }
+
+  return null;
+};
 
 Win.prototype.detach = function() {
   this.div.parentNode.removeChild(this.div);
-}
+};
+
+Win.prototype.reattach = function() {
+  os.appendChild(this.div);
+};
 
 Win.prototype.inside = function(x, y) {
   var ins = x >= this.x && y >= this.y &&
