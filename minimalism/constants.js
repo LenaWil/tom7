@@ -36,9 +36,8 @@ var FONTH = 16;
 var FONTOVERLAP = 1;
 var FONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?";
 
-/*
-var SMALLFONTW = 9;
+var SMALLFONTW = 6;
 var SMALLFONTH = 16;
 var SMALLFONTOVERLAP = 1;
 var SMALLFONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?";
-*/
+
