@@ -12,11 +12,10 @@ div.border {
   position: absolute;
 }
 
-div#os {
+div#oscont {
   width: 640px;
   height: 480px;
   background: #003;
-  overflow: hidden;
   cursor: none;
   position: relative;
   margin-left: auto;
@@ -31,6 +30,22 @@ div#os {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+img#spaceball {
+  position: absolute;
+  width: 640px;
+  height: 480px;
+  z-index: 99999;
+}
+
+div#os {
+  width: 640px;
+  height: 480px;
+  background: #003;
+  overflow: hidden;
+  cursor: none;
+  position: relative;
 }
 
 div.win {
@@ -144,6 +159,13 @@ function init() {
 </script>
 
 <body onload="init()">
-  <div id="os"></div>
+  <div id="oscont">
+    <!-- catches mouse events to make sure we don't get
+         cursor funkyness from adding and deleting dom
+         elements while e.g. dragging -->
+    <img id="spaceball" draggable="false" src="spaceball.gif"></img>
+    <!-- Everything happens in here. -->
+    <div id="os"></div>
+  </div>
   <div id="deb">This is the development copy!</div>
 </body>

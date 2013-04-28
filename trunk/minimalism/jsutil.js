@@ -40,17 +40,6 @@ function px(i) {
   return '' + i + 'px';
 }
 
-
-function getmouseposwithin(e, elt) {
-  e = e || window.event;
-
-  // XXX assumes parent is document.body; wrong
-  var origx = elt.offsetLeft, origy = elt.offsetTop;
-
-  return { x: e.clientX - origx,
-	   y: e.clientY - origy };
-}
-
 function objstring(obj) {
   return JSON.stringify(obj);
 }

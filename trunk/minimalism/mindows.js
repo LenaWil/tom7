@@ -64,9 +64,15 @@ function osblur() {
 
 function osmousemove(e) {
   if (oslockout) return;
-  var obj = getmouseposwithin(e, os);
-  mousex = obj.x;
-  mousey = obj.y;
+
+  e = e || window.event;
+
+  // XXX assumes parent is document.body; wrong
+  var elt = document.getElementById('oscont');
+  var origx = elt.offsetLeft, origy = elt.offsetTop;
+  
+  mousex = e.clientX - origx;
+  mousey = e.clientY - origy;
 
   // Do actions if captured. This is also responsible for
   // setting the mouse state (cursor shape) in that case.
@@ -94,7 +100,8 @@ function osmousemove(e) {
     case 'move':
       // This can only be title, currently.
       ins.win.moveto(mousex - ins.gripx, mousey - ins.gripy);
-      ins.win.redraw();
+      // ins.win.redraw(os);
+      osredraw();
       break;
     case 'resize':
       switch (ins.which) {
@@ -102,25 +109,29 @@ function osmousemove(e) {
 	mousestate = 'mouse-resize-backslash.png';
 	ins.win.resizeright(mousex - ins.win.x - ins.gripx);
 	ins.win.resizedown(mousey - ins.win.y - ins.gripy);
-	ins.win.redraw();
+	// ins.win.redraw(os);
+	osredraw();
 	break;
       case 'sw':
 	mousestate = 'mouse-resize-slash.png';
 	ins.win.resizeleft(mousex - ins.gripx);
 	ins.win.resizedown(mousey - ins.win.y - ins.gripy);
-	ins.win.redraw();
+	// ins.win.redraw(os);
+	osredraw();
 	break;
       case 'nw':
 	mousestate = 'mouse-resize-backslash.png';
 	ins.win.resizeleft(mousex - ins.gripx);
 	ins.win.resizeup(mousey - ins.gripy);
-	ins.win.redraw();
+	// ins.win.redraw(os);
+	osredraw();
 	break;
       case 'ne':
 	mousestate = 'mouse-resize-slash.png';
 	ins.win.resizeright(mousex - ins.win.x - ins.gripx);
 	ins.win.resizeup(mousey - ins.gripy);
-	ins.win.redraw();
+	// ins.win.redraw(os);
+	osredraw();
 	break;
 
 	// XXX others!
@@ -280,27 +291,33 @@ function initos(elt) {
   os = elt;
 
   // Always placed at 0,0.
-  mainicons = new IconHolder(OSWIDTH, OSHEIGHT, os);
+  mainicons = new IconHolder(OSWIDTH, OSHEIGHT);
 
-  os.onmousemove = osmousemove;
-  os.onmousedown = osmousedown;
-  os.onmouseup = osmouseup;
+  var sp = document.getElementById('spaceball');
+
+  sp.onmousemove = osmousemove;
+  sp.onmousedown = osmousedown;
+  sp.onmouseup = osmouseup;
   oslockout = false;
-
-  mouse = IMG('mouse', os);
-  mouse.src = 'mouse.png';
-  redrawmouse();
 
   osredraw();
 }
 
 // XXX to OS object?
 function osredraw() {
-  mainicons.redraw(0, 0);
+  os.innerHTML = '';
+//  alert('ok redraw');
+
+  mouse = IMG('mouse', os);
+  mouse.src = 'mouse.png';
+  redrawmouse();
+
+  mainicons.redraw(os, 0, 0);
   for (var i = 0; i < windows.length; i++) {
+    windows[i].redraw(os);
     windows[i].div.style.zIndex = WINDOWZ + i;
-    windows[i].redraw();
   }
+//  alert('osredraw return');
 }
 
 function makeRender(FONTCHARS, FONTW, FONTH, FONTOVERLAP) {
@@ -341,10 +358,9 @@ function Win(x, y, w, h, title) {
 
   // TODO: "modal"
 
-  this.div = DIV('win', os);
   windows.push(this);
 
-  this.redraw();
+  this.redraw(os);
 }
 
 Win.prototype.blur = function() {
@@ -391,7 +407,8 @@ Win.prototype.dominimize = function() {
   var icon = new Icon(this.icon,
 		      this.title,
 		      function() {
-			that.reattach();
+			// that.reattach();
+			// XXX
 			windows.push(that);
 			return that;
 		      });
@@ -418,6 +435,7 @@ function IconHolder(w, h) {
 // Currently no way to replace it.
 IconHolder.prototype.detach = function() {
   this.div.parentElement.removeChild(this.div);
+  this.icons = [];
 };
 
 IconHolder.prototype.activate = function(entry) {
@@ -495,6 +513,7 @@ Win.prototype.detach = function() {
   this.div.parentNode.removeChild(this.div);
 };
 
+// shouldn't be necessary any more?
 Win.prototype.reattach = function() {
   os.appendChild(this.div);
 };
@@ -674,11 +693,12 @@ Win.prototype.moveto = function(x, y) {
 // Assuming the metrics are set (x,y,w,h),
 // places the window in the DOM and
 // draws its borders.
-Win.prototype.redraw = function() {
+Win.prototype.redraw = function(parent) {
   var active = windows.length > 0 && 
       this == windows[windows.length - 1];
 
-  var d = this.div;
+  var d = DIV('win', parent);
+  this.div = d;
   d.innerHTML = '';
   d.style.left = this.x + 'px';
   d.style.top = this.y + 'px';
@@ -692,7 +712,7 @@ Win.prototype.redraw = function() {
 
   if (this.icons) {
     // XXX might not have menu
-    this.icons.redraw(BORDER, BORDER + TITLE + MENU);
+    this.icons.redraw(d, BORDER, BORDER + TITLE + MENU);
   }
 
   // Add title bar.
@@ -885,6 +905,7 @@ function exitmindows() {
   mainicons.detach();
   mouse.parentElement.removeChild(mouse);
   mouse = null;
+  os.innerHTML = '';
 
   oslockout = true;
 
