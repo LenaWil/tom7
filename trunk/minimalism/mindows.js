@@ -17,6 +17,9 @@
 //       of apps and where they minimize to; could cover:
 // TODO: Visually distinguish a "launcher" and a minimized app.
 //       (e.g. parens when minimized?)
+// TODO: Don't allow dragging of maximized window. It looks like
+//       dragon drop itself is maybe just a window in the web page,
+//       which could encourage dragging.
 
 // Icing.
 // TODO: Tile
@@ -1240,6 +1243,42 @@ function exitmindows() {
     });
 }
 
+function dragondrop() {
+  var win = new Win(40, 40, 560, 400, "Dragon Drop");
+
+  win.backgroundimage = 'darkgreen.png';
+
+  var deck = 0;
+  var NDECKS = 2;
+  var decks = ['dragon.png', 'tartanic.png']
+
+  win.menu = [
+    { text: 'File',
+      children: [ 
+	{ text: 'Restart',
+	  fn: function() {
+	    redeal();
+	  } },
+	{ text: 'Change Cards',
+	  fn: function() {
+	    deck++;
+	    deck %= NDECKS;
+	    osredraw();
+	  } }
+	// Don't allow exiting, because it makes the
+	// first "puzzle" too obvious.
+/*
+         ,{ text: 'Exit Dragon Drop',
+	  fn: function() {
+	    removefromwindows(win);
+	    osredraw();
+	  } }
+*/
+      ]
+    }
+  ];
+}
+
 function setupwindows() {
   var accessories = new Win(10, 10, 320, 200, 'Accessories');
   accessories.icons = new IconHolder(300, 180, false);
@@ -1285,14 +1324,14 @@ function setupwindows() {
   var games = new Win(120, 220, 420, 130, 'Games');
   games.icons = new IconHolder(300, 180, false);
 
-  var dragondrop = new Icon('cardicon.png',
+  var dragicon = new Icon('cardicon.png',
 			    '  Dragon Drop',
 			    function() {
 			      dragondrop();
 			    },
 			    true);
 
-  games.icons.place(dragondrop);
+  games.icons.place(dragicon);
 
   // XXX after adding menu, must redraw. Maybe should have
   // setmenu call.
