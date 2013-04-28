@@ -51,6 +51,10 @@ var NRANKS = 8;
 var WASTEX = DRAWPILEX + CARDW + CARDSPACE;
 var WASTEY = PLACEY;
 
+var GRIDX = 4;
+var GRIDY = 44;
+var CELL = 20;
+
 var GREY = '#c3c7cb'; // ???
 var BLUE = '#00a';
 

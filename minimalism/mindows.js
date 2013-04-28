@@ -20,6 +20,8 @@
 // TODO: Don't allow dragging of maximized window. It looks like
 //       dragon drop itself is maybe just a window in the web page,
 //       which could encourage dragging.
+// TODO: Remark when winning solitaire. Remark bonus when
+//       winning after cheating.
 
 // Icing.
 // TODO: Tile
@@ -190,13 +192,15 @@ function osmousemove(e) {
       osredraw();
       break;
     case 'press':
+      // deb.innerHTML = 
+      // '' + mousex + ' ' + ins.x + ' ' + mousey +  ' ' + ins.y;
       var onit = mousex >= ins.x && mousey > ins.y &&
 	  mousex < ins.x + ins.w && mousey < ins.y + ins.h;
       if (ins.down) {
         var newsrc = onit ? ins.down : ins.up;
         if (ins.elt.src != newsrc) {
 	  ins.elt.src = newsrc;
-	  deb.innerHTML = 'set src to ' + newsrc;
+	  // deb.innerHTML = '' + onit + ' set src to ' + newsrc;
 	}
       }
       break;
@@ -289,7 +293,7 @@ function osmousedown(e) {
   // back) if we get a mousedown event while we are in
   // capture. So simulate a mouseup before the mousedown.
   if (capture != null) {
-    osmouseout(e);
+    osmouseup(e);
     capture = null;
   }
 
@@ -1441,7 +1445,7 @@ function dragondrop() {
 
   // Cycle cards into the waste, or redeal.
   function dodraw() {
-    deb.innerHTML = objstring(drawpile) + '/' + objstring(wastepile);
+    // deb.innerHTML = objstring(drawpile) + '/' + objstring(wastepile);
 
     if (drawpile.length == 0) {
       while (wastepile.length > 0) {
@@ -1759,7 +1763,7 @@ function dragondrop() {
       for (var i = 0; i < stacks.length; i++) {
 	var obj = stacks[i](rx, ry);
 	if (obj) {
-	  deb.innerHTML = objstring(obj.cards);
+	  // deb.innerHTML = objstring(obj.cards);
 	  return { what: 'stack',
 		   win: win,
 		   grab: obj };
@@ -1792,6 +1796,204 @@ function dragondrop() {
 	    osredraw();
 	  } }
 */
+      ]
+    }
+  ];
+}
+
+function randzerotounder(n) {
+  var x = Math.floor(Math.random() * n);
+  if (x >= n) return 0;
+  return x;
+}
+
+function minsweeper() {
+  var win = new Win(75, 40, 408, 368, "Minsweeper");
+
+  var WIDTH = 20;
+  var HEIGHT = 16;
+
+  var cells = {};
+
+  var HIDDEN = 0;
+  var HIDDENBOMB = 1;
+  var EMPTY = 2;
+  var NEARBY = 3;
+  var BOMB = 4;
+  var NBOMBS = 14;
+
+
+  function restart() {
+    for (var y = 0; y < HEIGHT; y++) {
+      for (var x = 0; x < WIDTH; x++) {
+	cells[[x, y]] = HIDDEN;
+      }
+    }
+
+    for (var i = 0; i < NBOMBS; i++) {
+      var y = randzerotounder(HEIGHT);
+      var x = randzerotounder(WIDTH);
+      // deb.innerHTML = x + ' - ' + y;
+      cells[[x, y]] = HIDDENBOMB;
+    }
+  }
+
+  restart();
+
+  function getgraphic(c, nhidden, bombrevealed) {
+    switch(c) {
+    case HIDDENBOMB:
+      if (nhidden == 0 || bombrevealed) {
+	return 'minecell-bombhere.png';
+      } else {
+	return 'minecell.png';
+      }
+      // FALLTHROUGH.
+    case HIDDEN:
+      return 'minecell.png';
+      break;
+    case EMPTY:
+      return 'minecell-empty.png';
+      break;
+    case NEARBY:
+      return 'minecell-nearby.png';
+      break;
+    default:
+    case BOMB:
+      return 'minecell-bomb.png';
+    }
+  }
+
+  win.drawcontents = function() {
+    var d = win.div;
+
+    var elts = {};
+
+    var bombrevealed = false;
+    var nhidden = 0;
+    for (var y = 0; y < HEIGHT; y++) {
+      for (var x = 0; x < WIDTH; x++) {
+	var c = cells[[x, y]];
+	if (c == HIDDEN) nhidden++;
+	if (c == BOMB) bombrevealed = true;
+      }
+    }
+
+    for (var y = 0; y < HEIGHT; y++) {
+      for (var x = 0; x < WIDTH; x++) {
+	var c = cells[[x, y]];
+	var cimg = IMG('abs', d);
+	elts[[x,y]] = cimg;
+	cimg.style.left = px(x * CELL + GRIDX);
+	cimg.style.top = px(y * CELL + GRIDY);
+	cimg.src = getgraphic(c, nhidden, bombrevealed);
+      }
+    }
+
+    function floodfill(startx, starty) {
+      var todo = [{x: startx, y: starty}];
+
+      while (todo.length > 0) {
+	var now = todo.pop();
+	var x = now.x, y = now.y;
+	if (cells[[x, y]] != HIDDEN) continue;
+
+	// See if there are any bombs around us.
+	var hasbomb = false;
+	var qq = [];
+	for (var dy = -1; dy <= 1; dy++) {
+	  for (var dx = -1; dx <= 1; dx++) {
+	    var tx = x + dx, ty = y + dy;
+	    if (tx >= 0 && ty >= 0 &&
+		tx < WIDTH && ty <= HEIGHT) {
+	      var c = cells[[tx, ty]];
+	      if (c == HIDDEN) qq.push({x: tx, y: ty});
+	      hasbomb = hasbomb ||
+		  cells[[tx, ty]] == HIDDENBOMB ||
+		  cells[[tx, ty]] == BOMB;
+	    }
+	  }
+	}
+
+	if (hasbomb) {
+	  cells[[x, y]] = NEARBY;
+	} else {
+	  cells[[x, y]] = EMPTY;
+	  for (var i = 0; i < qq.length; i++) {
+	    todo.push(qq[i]);
+	  }
+	}
+      }
+    }
+
+    function click(x, y) {
+      if (x < 0 || y < 0 || x >= WIDTH || y >= HEIGHT)
+	throw 'precondition';
+
+      var c = cells[[x, y]];
+      if (c == HIDDENBOMB) {
+	cells[[x, y]] = BOMB;
+      } else if (c == HIDDEN) {
+	floodfill(x, y);
+      }
+      // alert('click ' + c);
+    }
+
+    win.insidecontents = function(x, y) {
+      var rx = x - (this.x + GRIDX);
+      var ry = y - (this.y + GRIDY);
+
+      // Dead!
+      if (bombrevealed)
+	return null;
+      
+      if (rx < 0 || ry < 0 || 
+	  rx >= (WIDTH * CELL) ||
+	  ry >= (HEIGHT * CELL))
+	return null;
+
+      var cx = Math.floor(rx / CELL);
+      var cy = Math.floor(ry / CELL);
+
+      var c = cells[[cx, cy]];
+      var elt = elts[[cx, cy]];
+      var up = getgraphic(c, nhidden, bombrevealed);
+
+      var down = (c == HIDDEN ||
+		  c == HIDDENBOMB) ? 'minecell-down.png' : up;
+
+      // would be bug
+      if (!elt) return null;
+
+      // deb.innerHTML = '' + cx + ' ' + cy;
+      return { what: 'button', which: 'ms',
+	       win: win,
+	       elt: elt,
+	       down: down,
+	       up: up,
+	       x: this.x + cx * CELL + GRIDX,
+	       y: this.y + cy * CELL + GRIDY,
+	       w: CELL, h: CELL,
+	       action: function(ins) {
+		 click(cx, cy);
+		 osredraw();
+	       }
+	     };
+    };
+  };
+
+  win.menu = [
+    { text: 'File',
+      children: [ 
+	{ text: 'Restart',
+	  fn: function() {
+	    restart();
+	  } },
+        { text: 'Exit Minsweeper',
+	  fn: function() {
+	    removefromwindows(win);
+	    osredraw();
+	  } }
       ]
     }
   ];
@@ -1849,7 +2051,15 @@ function setupwindows() {
 			    },
 			    true);
 
+  var mineicon = new Icon('mineicon.png',
+			  '   Minsweeper',
+			    function() {
+			      minsweeper();
+			    },
+			    true);
+
   games.icons.place(dragicon);
+  games.icons.place(mineicon);
 
   // XXX after adding menu, must redraw. Maybe should have
   // setmenu call.
