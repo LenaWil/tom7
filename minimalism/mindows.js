@@ -8,6 +8,7 @@
 var mousex = 320, mousey = 200;
 
 // Element containing the OS instance.
+var oslockout = true;
 var os = null;
 
 // Element used for the mouse cursor.
@@ -64,6 +65,7 @@ function osblur() {
 }
 
 function osmousemove(e) {
+  if (oslockout) return;
   var obj = getmouseposwithin(e, os);
   mousex = obj.x;
   mousey = obj.y;
@@ -168,6 +170,7 @@ function osmousemove(e) {
 }
 
 function osmousedown(e) {
+  if (oslockout) return;
   e = e || window.event;
   var inside = getPointed();
   if (inside) {
@@ -231,6 +234,7 @@ function osmousedown(e) {
 }
 
 function osmouseup(e) {
+  if (oslockout) return;
   e = e || window.event;
 
   if (capture) {
@@ -290,9 +294,11 @@ function initos(elt) {
   os.onmousemove = osmousemove;
   os.onmousedown = osmousedown;
   os.onmouseup = osmouseup;
+  oslockout = false;
 
   mouse = IMG('mouse', os);
   mouse.src = 'mouse.png';
+
   redrawmouse();
   osredraw();
 }
@@ -418,6 +424,11 @@ function IconHolder(w, h, parent) {
   this.icons = [];
   // XXX here...?
 }
+
+// Currently no way to replace it.
+IconHolder.prototype.detach = function() {
+  this.div.parentElement.removeChild(this.div);
+};
 
 IconHolder.prototype.activate = function(entry) {
   // Filter it out of the list.
@@ -869,26 +880,71 @@ function aboutmindows() {
   };
 }
 
-function setupgame() {
- var win = new Win(10, 10, 320, 200, 'Accessories');
- var win2 = new Win(80, 80, 400, 180, 'Program Manager');
- win2.menu = [
-   { text: 'File',
-     children: [ { text: 'New...' },
-		 { text: 'Open...' },
-		 { text: 'Exit Mindows' }]
-   },
-   { text: 'Window',
-     children: [ { text: 'Cascade',
-		   fn: cascadeall },
-		 { text: 'Tile',
-		   fn: tileall }]
-   },
-   { text: 'Help',
-     children: [ { text: 'Contents' },
-	         { text: 'About Mindows',
-		   fn: aboutmindows }]
-   }
- ];
+function exitmindows() {
+  // XXX prompt?
+  for (var i = 0; i < windows.length; i++) {
+    windows[i].detach();
+  }
+  windows = [];
 
+  mainicons.detach();
+  mouse.parentElement.removeChild(mouse);
+  mouse = null;
+
+  oslockout = true;
+
+  // Now do the restart animation.
+  settimeoutk(
+    100, function() {
+      var dos = IMG('abs', os);
+      dos.src = 'dosprompt.gif';
+      dos.style.left = 0;
+      dos.style.top = 0;
+      settimeoutk(
+	2000, function() {
+	  dos.parentElement.removeChild(dos);
+	  
+	  // XXX first, splash screen.
+
+	  // XXX then, mouse.
+	  settimeoutk(
+	    600, function() {
+	      initos(document.getElementById('os'));
+	      setupwindows();
+	      // Must redraw after setupwindows!
+	      osredraw();
+	    });
+	});
+    });
+}
+
+function setupwindows() {
+  var win = new Win(10, 10, 320, 200, 'Accessories');
+  var win2 = new Win(80, 80, 400, 180, 'Program Manager');
+  win2.menu = [
+    { text: 'File',
+      children: [ { text: 'New...' },
+		  { text: 'Open...' },
+		  { text: 'Exit Mindows',
+		    fn: exitmindows }]
+    },
+    { text: 'Window',
+      children: [ { text: 'Cascade',
+		    fn: cascadeall },
+		  { text: 'Tile',
+		    fn: tileall }]
+    },
+    { text: 'Help',
+      children: [ { text: 'Contents' },
+		  { text: 'About Mindows',
+		    fn: aboutmindows }]
+    }
+  ];
+  // XXX after adding menu, must redraw. Maybe should have
+  // setmenu call.
+}
+
+function setupgame() {
+  setupwindows();
+  // XXX also solitaire in front.
 }
