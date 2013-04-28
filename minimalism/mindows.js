@@ -440,14 +440,17 @@ IconHolder.prototype.detach = function() {
 };
 
 IconHolder.prototype.activate = function(entry) {
-  // Filter it out of the list.
-  var nicons = [];
-  for (var i = 0; i < this.icons.length; i++) {
-    if (this.icons[i] != entry) {
-      nicons.push(this.icons[i]);
+  // Filter it out of the list, if this is the main
+  // iconholder. The main one is minimized programs.
+  if (this.main) {
+    var nicons = [];
+    for (var i = 0; i < this.icons.length; i++) {
+      if (this.icons[i] != entry) {
+	nicons.push(this.icons[i]);
+      }
     }
+    this.icons = nicons;
   }
-  this.icons = nicons;
   
   entry.icon.launcher();
   osredraw();
@@ -535,6 +538,11 @@ Win.prototype.inside = function(x, y) {
   if (!ins) return null;
 
   // We know we're inside.
+
+  if (this.insidecontents) {
+    var ins = this.insidecontents(x, y);
+    if (ins) return ins;
+  }
 
   // Check buttons BEFORE corners.
   if (x > this.x + this.maximizetoolx() &&
@@ -915,6 +923,140 @@ function aboutmindows() {
   };
 }
 
+function legalpadapp() {
+  var win = new Win(50, 10, 300, 400, "Legal Pad");
+  win.menu = [
+    { text: 'File',
+      children: [ { text: 'New',
+		    fn: function() {
+		      win.legalese = [];
+		      win.line = 0;
+		      win.cursor = 0;
+		    } },
+		  { text: 'Open...' },
+		  { text: 'Exit Legal Pad',
+		    fn: function() {
+		      removefromwindows(win);
+		      osredraw();
+		    } }]
+    }
+  ];
+
+  win.legalese = ['This is my attempt to make',
+		  'a sort of notepad in min7.',
+		  'The idea is to avoid all the tricky',
+		  'stuff by foisting it on the user!'];
+  // On the nth line.
+  win.line = 0;
+  // After the nth character.
+  win.cursor = 0;
+  win.drawcontents = function() {
+    var d = win.div;
+    var cont = DIV('legalese', d);
+    for (var i = 0; i < win.legalese.length; i++) {
+      BR('', d);
+      // XXX consider using helpline
+      var line = DIV('legalline', cont);
+      rendertext(win.legalese[i], line, 'fontblack');
+    }
+  };
+  win.key = function(e) {
+    // XXX
+    // TODO: editing. Or kill legalpad.
+  };
+}
+
+function helpviewer() {
+  var win = new Win(50, 10, 300, 400, "Help");
+  win.menu = [
+    { text: 'File',
+      children: [ { text: 'Exit Help',
+		    fn: function() {
+		      removefromwindows(win);
+		      osredraw();
+		    } }]
+    }
+  ];
+
+  win.pages = [
+    ['Welcome to Mindows 7!',
+     '',
+     'Use the arrow buttons at the top',
+     'of this window to navigate the',
+     'help pages.',
+     ''],
+    ['This is another page. Help is good.'],
+    ['Just one more.'],
+  ];
+
+  var prevx = BORDER + 2;
+  var prevy = BORDER * 2 + TITLE + MENU;
+
+  var nextx = BORDER + 2 + NEXTPREVW - 1;
+  var nexty = BORDER * 2 + TITLE + MENU;
+
+  // On the nth page
+  win.page = 0;
+  win.drawcontents = function() {
+    if (win.page < 0) win.page = 0;
+    if (win.page >= win.pages.length) win.page = win.pages.length - 1;
+    var d = win.div;
+
+    var prev = IMG('abs', d);
+    prev.src = 'prev.png';
+    prev.style.left = px(prevx);
+    prev.style.top = px(prevy);
+
+    var next = IMG('abs', d);
+    next.src = 'next.png';
+    next.style.left = px(nextx);
+    next.style.top = px(nexty);
+    
+    var cont = DIV('pagedhelp', d);
+    for (var i = 0; i < win.pages[win.page].length; i++) {
+      BR('clear', d);
+      var text = win.pages[win.page][i];
+      var line = DIV('helpline', cont);
+      rendertext(text, line, 'fontblack');
+    }
+
+    win.insidecontents = function(x, y) {
+      if (x >= this.x + prevx && y >= this.y + prevy &&
+	  x <= this.x + prevx + NEXTPREVW &&
+	  y <= this.y + prevy + NEXTPREVH) {
+	return { what: 'button', which: 'prev',
+		 win: win,
+		 elt: prev,
+		 down: 'prev-down.png',
+		 up: 'prev.png',
+		 x: this.x + prevx,
+		 y: this.y + prevy,
+		 w: NEXTPREVW, h: NEXTPREVH,
+		 action: function(ins) {
+		   win.page--;
+		   osredraw();
+		 } };
+      } else if (x >= this.x + nextx && y >= this.y + nexty &&
+		 x <= this.x + nextx + NEXTPREVW &&
+		 y <= this.y + nexty + NEXTPREVH) {
+	return { what: 'button', which: 'next',
+		 win: win,
+		 elt: next,
+		 down: 'next-down.png',
+		 up: 'next.png',
+		 x: this.x + nextx,
+		 y: this.y + nexty,
+		 w: NEXTPREVW, h: NEXTPREVH,
+		 action: function(ins) {
+		   win.page++;
+		   osredraw();
+		 } };
+      }
+    };
+  };
+
+}
+
 function exitmindows() {
   for (var i = 0; i < windows.length; i++) {
     windows[i].detach();
@@ -961,7 +1103,13 @@ function setupwindows() {
 		       function() {
 			 aboutmindows();
 		       });
+  var legalpad = new Icon('legalpad.png',
+			  'Legal Pad',
+			  function() {
+			    legalpadapp();
+			  });
   win.icons.place(about);
+  win.icons.place(legalpad);
 
   var win2 = new Win(80, 80, 400, 180, 'Program Manager');
   win2.menu = [
@@ -978,7 +1126,8 @@ function setupwindows() {
 		    fn: tileall }]
     },
     { text: 'Help',
-      children: [ { text: 'Contents' },
+      children: [ { text: 'Contents',
+		    fn: helpviewer },
 		  { text: 'About Mindows',
 		    fn: aboutmindows }]
     }

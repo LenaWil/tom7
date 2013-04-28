@@ -16,6 +16,9 @@ var DOUBLECLICKMS = 500;
 var MINWIDTH = 64;
 var MINHEIGHT = 64;
 
+var NEXTPREVW = 40;
+var NEXTPREVH = 20;
+
 var ICONH = 80;
 var ICONW = 80;
 
