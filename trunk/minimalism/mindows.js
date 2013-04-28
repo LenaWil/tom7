@@ -136,6 +136,10 @@ function osmousemove(e) {
   if (capture) {
     var ins = capture.inside;
     switch (capture.what) {
+    case 'movestack':
+      // nothing to do.
+      osredraw();
+      break;
     case 'drag':
       var drop = getDrop(mousex, mousey);
       mousestate = 'mouse.png';
@@ -152,8 +156,6 @@ function osmousemove(e) {
 	  // Only if we drop in it?
 	  mousestate = 'mouse-drop.png';
 	  // TODO: Would be nice to highlight the drop target
-
-
 	}
 
       } else {
@@ -271,6 +273,19 @@ function osmousedown(e) {
   if (inside) {
     deb.innerHTML = inside.what;
     switch (inside.what) {
+    case 'stack':
+      osblur();
+      var grab = inside.grab;
+      // Do the action.
+      grab.take();
+
+      deb.innerHTML = ('GRABBED ' + grab.cards.join('-'));
+      capture = { what: 'movestack',
+		  cards: grab.cards,
+		  inside: inside };
+
+      osmousemove(e);
+      break;
     case 'click':
       osblur();
       inside.action();
@@ -413,7 +428,6 @@ function initos(elt) {
 // XXX to OS object?
 function osredraw() {
   os.innerHTML = '';
-//  alert('ok redraw');
 
   mouse = IMG('mouse', os);
   mouse.src = 'mouse.png';
@@ -424,7 +438,23 @@ function osredraw() {
     windows[i].redraw(os);
     windows[i].div.style.zIndex = WINDOWZ + i;
   }
-//  alert('osredraw return');
+
+  // Exceptional rendering.
+  //
+  // SPOILER ALERT!
+  //
+  // Allows cards to be dragged from one window to another.
+  if (capture && capture.what == 'movestack') {
+    var grab = capture.inside.grab;
+    // HERE
+    var x = mousex - grab.gripx;
+    var y = mousey - grab.gripy;
+    for (var i = 0; i < grab.cards.length; i++) {
+      var c = rendercardfront(x, y, grab.cards[i], os);
+      c.style.zIndex = 7000;
+      y += SHOWY;
+    }
+  }
 }
 
 function makeRender(FONTCHARS, FONTW, FONTH, FONTOVERLAP) {
@@ -1247,6 +1277,43 @@ function exitmindows() {
     });
 }
 
+// Cards are just represented as numbers.
+function cardsuit(n) {
+  return n % NSUITS;
+}
+function cardrank(n) {
+  return Math.floor(n / NSUITS);
+}
+
+function rendercardfront(x, y, n, elt) {
+  var card = DIV('card', elt);
+  card.style.top = px(y);
+  card.style.left = px(x);
+  var cimg = IMG('abs', card);
+  cimg.src = 'card.png';
+  var s = cardsuit(n);
+  var r = cardrank(n);
+
+  // XXX bottom right too
+  var ctext = DIV('', card);
+  ctext.style.position = 'absolute';
+  ctext.style.zindex = 1;
+  ctext.style.left = px(3);
+  ctext.style.top = px(2);
+
+  if (s == 0) {
+    rendertext('' + r + SKULL, ctext, 'fontblack');
+  } else {
+    rendertext('' + r + HEART, ctext, 'fontred');
+  }
+
+  // XXX symbol in center, or many symbols
+  // in center.
+
+  return card;
+}
+
+
 function dragondrop() {
   var win = new Win(40, 40, 560, 400, "Dragon Drop");
 
@@ -1256,16 +1323,6 @@ function dragondrop() {
   var back = 0;
   var NBACKS = 2;
   var backs = ['dragon.png', 'tartanic.png']
-
-  // Cards are just represented as numbers.
-  var NSUITS = 2;
-  var NRANKS = 8;
-  function suit(n) {
-    return n % NSUITS;
-  }
-  function rank(n) {
-    return Math.floor(n / NSUITS);
-  }
 
   // Don't modify.
   var allcards = [];
@@ -1307,6 +1364,11 @@ function dragondrop() {
       }
       workpiles.push(a);
       revealed.push([drawpile.pop()]);
+
+      // XXX NO! FIXME DO NOT SUBMIT
+      var l = workpiles.length - 1;
+      if (workpiles[l].length > 0)
+	revealed[l].push(workpiles[l].pop());
     }
   }
 
@@ -1323,32 +1385,8 @@ function dragondrop() {
     return card;
   }
 
-  function cardfront(x, y, n) {
-    var card = DIV('card', win.div);
-    card.style.top = px(y);
-    card.style.left = px(x);
-    var cimg = IMG('abs', card);
-    cimg.src = 'card.png';
-    var s = suit(n);
-    var r = rank(n);
-
-    // XXX bottom right too
-    var ctext = DIV('', card);
-    ctext.style.position = 'absolute';
-    ctext.style.zindex = 1;
-    ctext.style.left = px(3);
-    ctext.style.top = px(2);
-    
-    if (s == 0) {
-      rendertext('' + r + SKULL, ctext, 'fontblack');
-    } else {
-      rendertext('' + r + HEART, ctext, 'fontred');
-    }
-
-    // XXX symbol in center, or many symbols
-    // in center.
-
-    return card;
+  var cardfront = function(x, y, n) {
+    return rendercardfront(x, y, n, win.div);
   }
 
   // Cycle cards into the waste, or redeal.
@@ -1375,6 +1413,14 @@ function dragondrop() {
 
     // Clickable action areas.
     var actions = [];
+    // A grabbable stack. This includes
+    // cards in the waste (and could include the
+    // holders, though not yet), which are always
+    // single-card stacks.
+    // Contains a list of functions that tell you
+    // whether the grab succeeded, by returning
+    // a record of a bunch of things about the grab.
+    var stacks = [];
 
     // Always draw card holders.
     // XXX if they have cards on, then can skip this
@@ -1431,7 +1477,41 @@ function dragondrop() {
 	  y += BLINDY;
 	}
 
+	var grabhandler = function(x, y, height, width, rev, idx) {
+	  return function(rx, ry) {
+	    if (rx >= x && ry >= y &&
+		rx < x + width && ry < y + height) {
+	      // Clicked in the area. Need to know how
+	      var oldrev = rev.slice(0);
+	      return { 
+		// offset within the card that we clicked.
+		gripx: rx - x,
+		gripy: ry - y,
+		// Grabbing removes these cards.
+		take: function() {
+		  rev.splice(idx);
+		},
+		// It is understood that undoing drops the
+		// cards being held; they just need to be
+		// put back.
+		undo: function() {
+		  replacecontents(rev, oldrev);
+		},
+		// The cards to take.
+		cards: rev.slice(idx),
+	      };
+	    }
+	    return null;
+	  };
+	};
+
 	for (var i = 0; i < rev.length; i++) {
+	  // Height of grabbable area.
+	  var height = (i == rev.length - 1) ? CARDH : SHOWY;
+	  var width = CARDW;
+
+	  stacks.push(grabhandler(x, y, height, width, rev, i));
+
 	  cardfront(x, y, rev[i]);
 	  y += SHOWY;
 	}
@@ -1479,6 +1559,16 @@ function dragondrop() {
       for (var i = 0; i < actions.length; i++) {
 	var ins = actions[i](rx, ry);
 	if (ins) return ins;
+      }
+
+      for (var i = 0; i < stacks.length; i++) {
+	var obj = stacks[i](rx, ry);
+	if (obj) {
+	  deb.innerHTML = objstring(obj.cards);
+	  return { what: 'stack',
+		   win: win,
+		   grab: obj };
+	}
       }
 
       return null;

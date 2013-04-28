@@ -63,3 +63,12 @@ function shuffle(a) {
     }
   }
 }
+
+// Replace the contents of the dst array without
+// upsetting any aliases.
+function replacecontents(dst, src) {
+  while (dst.length > 0) dst.pop();
+  for (var i = 0; i < src.length; i++) {
+    dst.push(src[i]);
+  }
+}
