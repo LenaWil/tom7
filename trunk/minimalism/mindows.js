@@ -475,7 +475,7 @@ IconHolder.prototype.redraw = function(parent, x, y) {
       caption.style.backgroundColor = BLUE;
       rendertext(entry.icon.title, caption, 'fontwhite');
     } else {
-      rendertext(entry.icon.title, caption, 'fontwhite');
+      rendertext(entry.icon.title, caption, 'fontblack');
     }
   }
 };
@@ -490,13 +490,14 @@ IconHolder.prototype.place = function(icon) {
 // Arguments need to be relative to the iconholder, which always
 // believes it is at 0, 0.
 IconHolder.prototype.inside = function(x, y) {
+
   var ins = x >= 0 && y >= 0 && x < this.w && y < this.h;
   if (!ins) return null;
 
   for (var i = 0; i < this.icons.length; i++) {
     var entry = this.icons[i];
-    // deb.innerHTML = 'ex ' + entry.x + ' ey ' + entry.y +
-    // ' tx ' + x + ' ty ' + y;
+    deb.innerHTML = 'ex ' + entry.x + ' ey ' + entry.y +
+     ' tx ' + x + ' ty ' + y;
     if (x >= entry.x && y >= entry.y &&
 	x < (entry.x + ICONW) && y < (entry.y + ICONH)) {
       // deb.innerHTML = ' IN IT.';
@@ -625,6 +626,12 @@ Win.prototype.inside = function(x, y) {
     }
   }
 
+  if (this.icons) {
+    var ins = this.icons.inside(x /* - WINICONSX */ - this.x, 
+				y /* - WINICONSY */ - this.y);
+    if (ins) return ins;
+  }
+
   return { what: 'win', win: this };
 }
 
@@ -712,7 +719,7 @@ Win.prototype.redraw = function(parent) {
 
   if (this.icons) {
     // XXX might not have menu
-    this.icons.redraw(d, BORDER, BORDER + TITLE + MENU);
+    this.icons.redraw(d, WINICONSX, WINICONSY);
   }
 
   // Add title bar.
@@ -938,7 +945,7 @@ function setupwindows() {
   var win = new Win(10, 10, 320, 200, 'Accessories');
   win.icons = new IconHolder(300, 180, win.div);
   var about = new Icon('genericicon.png',
-		       'About',
+		       '  About',
 		       function() {
 			 aboutmindows();
 		       });

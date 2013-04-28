@@ -19,6 +19,9 @@ var MINHEIGHT = 64;
 var ICONH = 80;
 var ICONW = 80;
 
+var WINICONSX = BORDER;
+var WINICONSY = BORDER + TITLE + MENU;
+
 // Reserved 1000-2000.
 var WINDOWZ = 1000;
 
