@@ -20,7 +20,7 @@
 
 // Icing.
 // TODO: Tile
-// TODO: Small font for icon text.
+// TODO: All characters is small font -- even necessary?
 // TODO: Make mouse cursor invisible when it is outside the OS.
 // TODO: Cursor doesn't work on mobile safari, but probably could.
 // TODO: Viewport etc. for mobile safari
@@ -568,8 +568,8 @@ IconHolder.prototype.blur = function() {
 IconHolder.prototype.redraw = function(parent, x, y) {
   this.div = DIV('iconholder', parent); // ?
   this.div.innerHTML = '';
-  this.div.style.top = px(y);
   this.div.style.left = px(x);
+  this.div.style.top = px(y);
   this.div.style.width = px(this.w);
   this.div.style.height = px(this.h);
   for (var i = 0; i < this.icons.length; i++) {
@@ -623,9 +623,15 @@ IconHolder.prototype.place = function(icon) {
   }
 
   // XXX use more than one row!
-  this.icons.push({ x: this.icons.length * 90, 
-		    y: this.h - 90,
-		    icon: icon });
+  if (this.main) {
+    this.icons.push({ x: this.icons.length * 90, 
+		      y: this.h - 90,
+		      icon: icon });
+  } else {
+    this.icons.push({ x: this.icons.length * 90,
+		      y: 10,
+		      icon: icon });
+  }
 };
 
 // Arguments need to be relative to the iconholder, which always
@@ -774,10 +780,10 @@ Win.prototype.inside = function(x, y) {
   }
 
   if (this.icons) {
-    var ins = this.icons.inside(this.x,
-				this.y,
-				x /* - WINICONSX */ - this.x, 
-				y /* - WINICONSY */ - this.y);
+    var ins = this.icons.inside(this.x + WINICONSX,
+				this.y + WINICONSY,
+				x - WINICONSX - this.x, 
+				y - WINICONSY - this.y);
     if (ins) return ins;
   }
 
