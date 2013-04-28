@@ -1,5 +1,5 @@
 // MUST DO.
-// TODO: Ability to drag a minimized window into another.
+// TODO: Minimization targets for windows.
 // TODO: Solitaire.
 // TODO: Recognize when all windows are minimized.
 // TODO: Help text and Hint (manifesto) text, somewhere.
@@ -17,6 +17,7 @@
 // TODO: Tile
 // TODO: Small font for icon text.
 // TODO: Visually distinguish a "launcher" and a minimized app.
+//       (e.g. parens when minimized?)
 // TODO: Make mouse cursor invisible when it is outside the OS.
 // TODO: Cursor doesn't work on mobile safari, but probably could.
 // TODO: Viewport etc. for mobile safari
@@ -503,8 +504,6 @@ function removefromwindows(win) {
 Win.prototype.dominimize = function() {
   removefromwindows(this);
 
-  // TODO HERE: Minimize to its minimization target,
-  // which may not be the main window.
   this.blur();
   this.detach();
   var that = this;
@@ -516,9 +515,10 @@ Win.prototype.dominimize = function() {
 		      },
 		      // Not an app.
 		      false);
-
-  // XXX
-  mainicons.place(icon);
+  icon.win = this;
+  
+  var target = this.minimizationtarget || mainicons;
+  target.place(icon);
   osredraw();
 };
 
@@ -528,6 +528,7 @@ function Icon(graphic, title, launcher, app) {
   this.graphic = graphic;
   this.title = title;
   this.launcher = launcher;
+  this.win = null;
   this.app = app;
 }
 
@@ -605,6 +606,19 @@ IconHolder.prototype.removeentry = function(entry) {
 }
 
 IconHolder.prototype.place = function(icon) {
+  // If we're placing a minimized window, then
+  // the window gets its minimization target
+  // set to this holder. Then, if it's minimized
+  // again, it goes back to here.
+  //
+  // SPOILER ALERT!
+  //
+  // This can create a cycles, which is a "bug"
+  // but the "point" of this "game".
+  if (icon.win) {
+    icon.win.minimizationtarget = this;
+  }
+
   // XXX use more than one row!
   this.icons.push({ x: this.icons.length * 90, 
 		    y: this.h - 90,
@@ -1228,7 +1242,7 @@ function setupwindows() {
 			    legalpadapp();
 			  },
 			  true);
-//  win.icons.place(about);
+  win.icons.place(about);
   win.icons.place(legalpad);
 
   var win2 = new Win(80, 80, 400, 180, 'Program Manager');
