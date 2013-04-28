@@ -58,3 +58,7 @@ function objstring(obj) {
 function getMillis() {
   return (new Date()).getTime();
 }
+
+function settimeoutk(ms, k) {
+  window.setTimeout(k, ms);
+}
