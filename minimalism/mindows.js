@@ -1,6 +1,25 @@
+// MUST DO.
+// TODO: Ability to drag a minimized window into another.
+// TODO: Solitaire.
+// TODO: Recognize when all windows are minimized.
+// TODO: Help text and Hint (manifesto) text, somewhere.
+
+// Apps.
+// TODO: Minsweeper
+// TODO: Paintbrush
+// TODO: Media Player with MIDIs.
+// TODO: Editing in legal pad.
+// TODO: Control panel with mouse trails.
+
+// Icing.
+// TODO: Small font for icon text.
+// TODO: Visually distinguish a "launcher" and a minimized app.
 // TODO: Make mouse cursor invisible when it is outside the OS.
 // TODO: Cursor doesn't work on mobile safari, but probably could.
+// TODO: Viewport etc. for mobile safari
 // TODO: Maximize button switches to "restore" when maximized.
+
+
 
 // Mouse position within the OS.
 var mousex = 320, mousey = 200;
@@ -539,11 +558,6 @@ Win.prototype.inside = function(x, y) {
 
   // We know we're inside.
 
-  if (this.insidecontents) {
-    var ins = this.insidecontents(x, y);
-    if (ins) return ins;
-  }
-
   // Check buttons BEFORE corners.
   if (x > this.x + this.maximizetoolx() &&
       x < (this.x + this.maximizetoolx() + TOOL) &&
@@ -649,6 +663,12 @@ Win.prototype.inside = function(x, y) {
 				this.y,
 				x /* - WINICONSX */ - this.x, 
 				y /* - WINICONSY */ - this.y);
+    if (ins) return ins;
+  }
+
+  // Check last, since e.g. menus overlap contents.
+  if (this.insidecontents) {
+    var ins = this.insidecontents(x, y);
     if (ins) return ins;
   }
 
