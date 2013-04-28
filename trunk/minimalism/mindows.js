@@ -1248,9 +1248,123 @@ function dragondrop() {
 
   win.backgroundimage = 'darkgreen.png';
 
-  var deck = 0;
-  var NDECKS = 2;
-  var decks = ['dragon.png', 'tartanic.png']
+  // Game state.
+  var back = 0;
+  var NBACKS = 2;
+  var backs = ['dragon.png', 'tartanic.png']
+
+  // Cards are just represented as numbers.
+  var NSUITS = 2;
+  var NRANKS = 8;
+  function suit(n) {
+    return n % NSUITS;
+  }
+  function rank(n) {
+    return Math.floor(n / NSUITS);
+  }
+
+  // Don't modify.
+  var allcards = [];
+  for (var i = 0; i < NSUITS * NRANKS; i++) {
+    allcards.push(i);
+  }
+
+  // Two "places" (one for each suit)... we just need
+  // to know the top card here, or null for none.
+  var placeheart = null;
+  var placeskull = null;
+
+  // A single "draw" pile. This is a list, with the
+  // end being the next cards to show.
+  var drawpile = [];
+
+  // Exactly 4 work piles.
+  var NPILES = 4;
+  var workpiles = [];
+  var revealed = [];
+  // Necessary?
+  for (var i = 0; i < NPILES; i++) {
+    workpiles.push([]);
+    revealed.push([]);
+  }
+
+  function redeal() {
+    placeheart = null;
+    placeskull = null;
+    drawpile = allcards.slice(0);
+    shuffle(drawpile);
+    workpiles = [];
+    revealed = [];
+    for (var i = 0; i < NPILES; i++) {
+      var a = [];
+      for (var c = 0; c < i; c++) {
+	a.push(drawpile.pop());
+      }
+      workpiles.push(a);
+      revealed.push([drawpile.pop()]);
+    }
+  }
+
+  redeal();
+  
+  // Makes and returns an element at x,y
+  // that shows a face-down card.
+  function cardback(x, y) {
+    var card = DIV('card', win.div);
+    card.style.top = px(y);
+    card.style.left = px(x);
+    IMG('abs', card).src = 'card.png';
+    IMG('abs', card).src = backs[back];
+    return card;
+  }
+
+  win.drawcontents = function() {
+    var d = win.div;
+
+    // Always draw card holders.
+    // XXX if they have cards on, then can skip this
+    var phelt = IMG('abs', d);
+    phelt.src = 'placeace.png';
+    phelt.style.left = px(PLACEHEARTX);
+    phelt.style.top = px(PLACEY);
+
+    var pselt = IMG('abs', d);
+    pselt.src = 'placeace.png';
+    pselt.style.left = px(PLACESKULLX);
+    pselt.style.top = px(PLACEY);
+
+    deb.innerHTML = objstring(workpiles) + '/' + objstring(revealed);
+
+    // Draw drawpile.
+    if (drawpile.length > 0) {
+      var dpelt = cardback(DRAWPILEX, DRAWPILEY);
+    }
+
+/*
+    var prev = IMG('abs', d);
+    prev.src = 'prev.png';
+    prev.style.left = px(prevx);
+    prev.style.top = px(prevy);
+
+    var next = IMG('abs', d);
+    next.src = 'next.png';
+    next.style.left = px(nextx);
+    next.style.top = px(nexty);
+    
+    var cont = DIV('pagedhelp', d);
+    for (var i = 0; i < win.pages[win.page].length; i++) {
+      BR('clear', d);
+      var text = win.pages[win.page][i];
+      var line = DIV('helpline', cont);
+      rendertext(text, line, 'fontblack');
+    }
+*/
+
+    win.insidecontents = function(x, y) {
+      // ...
+      return null;
+    };
+  };
 
   win.menu = [
     { text: 'File',
@@ -1261,8 +1375,8 @@ function dragondrop() {
 	  } },
 	{ text: 'Change Cards',
 	  fn: function() {
-	    deck++;
-	    deck %= NDECKS;
+	    back++;
+	    back %= NBACKS;
 	    osredraw();
 	  } }
 	// Don't allow exiting, because it makes the

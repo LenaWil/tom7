@@ -51,3 +51,15 @@ function getMillis() {
 function settimeoutk(ms, k) {
   window.setTimeout(k, ms);
 }
+
+// XXX maybe better for game if deterministic?
+function shuffle(a) {
+  for (var i = 0; i < a.length; i++) {
+    var j = Math.floor(Math.random() * a.length);
+    if (i != j) {
+      var t = a[i];
+      a[i] = a[j];
+      a[j] = t;
+    }
+  }
+}
