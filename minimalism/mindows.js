@@ -3,6 +3,8 @@
 // TODO: Solitaire.
 // TODO: Recognize when all windows are minimized.
 // TODO: Help text and Hint (manifesto) text, somewhere.
+// TODO: Don't let icons minimize off-screen (confusing path
+//       to unintended "solution")
 
 // Apps.
 // TODO: Minsweeper
@@ -12,6 +14,7 @@
 // TODO: Control panel with mouse trails.
 
 // Icing.
+// TODO: Tile
 // TODO: Small font for icon text.
 // TODO: Visually distinguish a "launcher" and a minimized app.
 // TODO: Make mouse cursor invisible when it is outside the OS.
@@ -81,13 +84,43 @@ function osblur() {
   mainicons.blur();
 }
 
+// Traverse screen space to find an iconholder that
+// we can drop into. This can be either a window with
+// an iconholder, or the toplevel iconholder. It will
+// be null if the mouse is currently over an area that
+// can't accept icons (though it is always safe to drop
+// on that spot on the desktop, it's just under a
+// window.)
+function getDrop(x, y) {
+  // Don't use the 'inside' call; we don't care about
+  // whether we're pointing at a menu or another icon
+  // or whatever. Just see if we're in bounds and
+  // the window has a holder.
+  for (var i = windows.length - 1; i >= 0; i--) {
+    var win = windows[i];
+    if (!win) throw ('win ' + i);
+    // var inbounds = win.inbounds(mousex, mousey);
+    // XXX also want the coordinates within the holder,
+    // I think.
+    if (win.inbounds(mousex, mousey)) {
+      return win.icons || null;
+    }
+  }
+
+  // Always can put in the main holder.
+  return mainicons;
+}
+
 function osmousemove(e) {
   if (oslockout) return;
 
   e = e || window.event;
 
-  // XXX assumes parent is document.body; wrong
+  // XXX doesn't work on mobile safari if zoomed, maybe
+  // this is not the right way.
+  // XXX doesn't work on regular browsers if scrolled!
   var elt = document.getElementById('oscont');
+  // XXX use clientrectangle?
   var origx = elt.offsetLeft, origy = elt.offsetTop;
   
   mousex = e.clientX - origx;
@@ -99,11 +132,38 @@ function osmousemove(e) {
     var ins = capture.inside;
     switch (capture.what) {
     case 'drag':
-      ins.entry.x = (mousex - ins.basex) - ins.gripx;
-      ins.entry.y = (mousey - ins.basey) - ins.gripy;
-      // XXX would need to know coords.
-      // ins.holder.redraw();
-      osredraw(); // PERF
+      var drop = getDrop(mousex, mousey);
+      mousestate = 'mouse.png';
+      if (drop) {
+	deb.innerHTML = 'drop target';
+
+	if (drop == ins.holder) {
+	  // Normal behavior -- dragging from a holder to
+	  // itself.
+	  ins.entry.x = (mousex - ins.basex) - ins.gripx;
+	  ins.entry.y = (mousey - ins.basey) - ins.gripy;
+	} else {
+	  // TODO: Bring the drop target to the front?
+	  // Only if we drop in it?
+	  mousestate = 'mouse-drop.png';
+	  // TODO: Would be nice to highlight the drop target
+
+
+	}
+
+      } else {
+	// XXX set NO cursor; can't drag into this window
+	// (ok to drag to desktop under it)
+	mousestate = 'mouse-no.png';
+	deb.innerHTML = 'no drop target';
+
+	// Assume we stay inside the same iconholder.
+	// XXX 
+	ins.entry.x = (mousex - ins.basex) - ins.gripx;
+	ins.entry.y = (mousey - ins.basey) - ins.gripy;
+      }
+
+      osredraw();
       break;
     case 'press':
       var onit = mousex >= ins.x && mousey > ins.y &&
@@ -424,6 +484,8 @@ function removefromwindows(win) {
 Win.prototype.dominimize = function() {
   removefromwindows(this);
 
+  // TODO HERE: Minimize to its minimization target,
+  // which may not be the main window.
   this.blur();
   this.detach();
   var that = this;
@@ -432,15 +494,22 @@ Win.prototype.dominimize = function() {
 		      function() {
 			windows.push(that);
 			return that;
-		      });
+		      },
+		      // Not an app.
+		      false);
+
+  // XXX
   mainicons.place(icon);
   osredraw();
 };
 
-function Icon(graphic, title, launcher) {
+// If app is true, the icon is not removed when
+// the app is launched.
+function Icon(graphic, title, launcher, app) {
+  this.graphic = graphic;
   this.title = title;
   this.launcher = launcher;
-  this.graphic = graphic;
+  this.app = app;
 }
 
 // Space that can hold icons, of size w,h. It can
@@ -461,7 +530,7 @@ IconHolder.prototype.detach = function() {
 IconHolder.prototype.activate = function(entry) {
   // Filter it out of the list, if this is the main
   // iconholder. The main one is minimized programs.
-  if (this.main) {
+  if (!entry.icon.app) {
     var nicons = [];
     for (var i = 0; i < this.icons.length; i++) {
       if (this.icons[i] != entry) {
@@ -513,25 +582,27 @@ IconHolder.prototype.redraw = function(parent, x, y) {
 
 IconHolder.prototype.place = function(icon) {
   // XXX use more than one row!
-  this.icons.push({x: this.icons.length * 90, 
-		   y: this.h - 90,
-		   icon: icon });
+  this.icons.push({ x: this.icons.length * 90, 
+		    y: this.h - 90,
+		    icon: icon });
 };
 
 // Arguments need to be relative to the iconholder, which always
 // believes it is at 0, 0.
 IconHolder.prototype.inside = function(basex, basey, x, y) {
-
-  var ins = x >= 0 && y >= 0 && x < this.w && y < this.h;
-  if (!ins) return null;
+  // XXX Icon holders should just fill the whole window. There's
+  // no point in this width/height stuff.
+  // var ins = x >= 0 && y >= 0 && x < this.w && y < this.h;
+  // if (!ins) return null;
 
   for (var i = 0; i < this.icons.length; i++) {
     var entry = this.icons[i];
     deb.innerHTML = 'ex ' + entry.x + ' ey ' + entry.y +
-     ' tx ' + x + ' ty ' + y;
+	' tx ' + x + ' ty ' + y;
     if (x >= entry.x && y >= entry.y &&
 	x < (entry.x + ICONW) && y < (entry.y + ICONH)) {
       // deb.innerHTML = ' IN IT.';
+      // TODO base and grip could be merged, I think.
       return { what: 'icon', holder: this,
 	       entry: entry, 
 	       basex: basex, basey: basey,
@@ -551,10 +622,13 @@ Win.prototype.reattach = function() {
   os.appendChild(this.div);
 };
 
-Win.prototype.inside = function(x, y) {
-  var ins = x >= this.x && y >= this.y &&
+Win.prototype.inbounds = function(x, y) {
+  return x >= this.x && y >= this.y &&
     x < (this.x + this.w) && y < (this.y + this.h);
-  if (!ins) return null;
+};
+
+Win.prototype.inside = function(x, y) {
+  if (!this.inbounds(x, y)) return null;
 
   // We know we're inside.
 
@@ -1122,13 +1196,15 @@ function setupwindows() {
 		       '  About',
 		       function() {
 			 aboutmindows();
-		       });
+		       },
+		       true);
   var legalpad = new Icon('legalpad.png',
 			  'Legal Pad',
 			  function() {
 			    legalpadapp();
-			  });
-  win.icons.place(about);
+			  },
+			  true);
+//  win.icons.place(about);
   win.icons.place(legalpad);
 
   var win2 = new Win(80, 80, 400, 180, 'Program Manager');
