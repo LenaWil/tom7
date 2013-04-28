@@ -1,5 +1,4 @@
 // MUST DO.
-// TODO: Minimization targets for windows.
 // TODO: Solitaire.
 // TODO: Recognize when all windows are minimized.
 // TODO: Help text and Hint (manifesto) text, somewhere.
@@ -13,16 +12,19 @@
 // TODO: Editing in legal pad.
 // TODO: Control panel with mouse trails.
 
+// Improvements to core idea.
+// TODO: "Program Manager" -> "Task Manager"; shows the hierarchy
+//       of apps and where they minimize to; could cover:
+// TODO: Visually distinguish a "launcher" and a minimized app.
+//       (e.g. parens when minimized?)
+
 // Icing.
 // TODO: Tile
 // TODO: Small font for icon text.
-// TODO: Visually distinguish a "launcher" and a minimized app.
-//       (e.g. parens when minimized?)
 // TODO: Make mouse cursor invisible when it is outside the OS.
 // TODO: Cursor doesn't work on mobile safari, but probably could.
 // TODO: Viewport etc. for mobile safari
 // TODO: Maximize button switches to "restore" when maximized.
-
 
 
 // Mouse position within the OS.
@@ -58,7 +60,6 @@ function getPointed() {
   }
 
   return mainicons.inside(0, 0, mousex, mousey);
-//  return null;
 }
 
 function cascadeall() {
@@ -864,6 +865,10 @@ Win.prototype.redraw = function(parent) {
   d.style.width = this.w + 'px';
   d.style.height = this.h + 'px';
 
+  if (this.backgroundimage) {
+    d.style.backgroundImage = 'url(' + this.backgroundimage + ')';
+  }
+
   // Do this first so that it doesn't go above decorations.
   if (this.drawcontents) {
     this.drawcontents();
@@ -1228,8 +1233,8 @@ function exitmindows() {
 }
 
 function setupwindows() {
-  var win = new Win(10, 10, 320, 200, 'Accessories');
-  win.icons = new IconHolder(300, 180, false);
+  var accessories = new Win(10, 10, 320, 200, 'Accessories');
+  accessories.icons = new IconHolder(300, 180, false);
   var about = new Icon('genericicon.png',
 		       '  About',
 		       function() {
@@ -1242,11 +1247,13 @@ function setupwindows() {
 			    legalpadapp();
 			  },
 			  true);
-  win.icons.place(about);
-  win.icons.place(legalpad);
+  accessories.icons.place(about);
+  accessories.icons.place(legalpad);
 
-  var win2 = new Win(80, 80, 400, 180, 'Program Manager');
-  win2.menu = [
+  // XXX what is "in" the program manager? Task list?
+  var pgm = new Win(80, 80, 400, 180, 'Program Manager');
+  pgm.backgroundimage = 'litegrey.png';
+  pgm.menu = [
     { text: 'File',
       children: [ { text: 'New...' },
 		  { text: 'Open...' },
@@ -1266,6 +1273,10 @@ function setupwindows() {
 		    fn: aboutmindows }]
     }
   ];
+
+  var games = new Win(120, 220, 420, 130, 'Games');
+  games.icons = new IconHolder(300, 180, false);
+
   // XXX after adding menu, must redraw. Maybe should have
   // setmenu call.
 }
