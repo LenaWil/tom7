@@ -34,7 +34,7 @@ function getPointed() {
     }
   }
 
-  return mainicons.inside(mousex, mousey);
+  return mainicons.inside(0, 0, mousex, mousey);
 //  return null;
 }
 
@@ -59,7 +59,7 @@ function osblur() {
   for (var i = 0; i < windows.length; i++) {
     windows[i].blur();
   }
-  // TODO XXX Blur icon holder
+  mainicons.blur();
 }
 
 function osmousemove(e) {
@@ -80,8 +80,8 @@ function osmousemove(e) {
     var ins = capture.inside;
     switch (capture.what) {
     case 'drag':
-      ins.entry.x = mousex - ins.gripx;
-      ins.entry.y = mousey - ins.gripy;
+      ins.entry.x = (mousex - ins.basex) - ins.gripx;
+      ins.entry.y = (mousey - ins.basey) - ins.gripy;
       // XXX would need to know coords.
       // ins.holder.redraw();
       osredraw(); // PERF
@@ -291,7 +291,7 @@ function initos(elt) {
   os = elt;
 
   // Always placed at 0,0.
-  mainicons = new IconHolder(OSWIDTH, OSHEIGHT);
+  mainicons = new IconHolder(OSWIDTH, OSHEIGHT, true);
 
   var sp = document.getElementById('spaceball');
 
@@ -368,6 +368,10 @@ Win.prototype.blur = function() {
     this.menu.selected = null;
     // TODO: Undo popouts too.
   }
+
+  if (this.icons) {
+    this.icons.selected = null;
+  }
 }
 
 Win.prototype.maximizetoolx = function() {
@@ -407,8 +411,6 @@ Win.prototype.dominimize = function() {
   var icon = new Icon(this.icon,
 		      this.title,
 		      function() {
-			// that.reattach();
-			// XXX
 			windows.push(that);
 			return that;
 		      });
@@ -420,16 +422,15 @@ function Icon(graphic, title, launcher) {
   this.title = title;
   this.launcher = launcher;
   this.graphic = graphic;
-  // XXX here...?
 }
 
 // Space that can hold icons, of size w,h. It can
 // be resized. Uses relative coordinate system.
-function IconHolder(w, h) {
+function IconHolder(w, h, main) {
   this.w = w;
   this.h = h;
   this.icons = [];
-  // XXX here...?
+  this.main = main;
 }
 
 // Currently no way to replace it.
@@ -450,6 +451,10 @@ IconHolder.prototype.activate = function(entry) {
   
   entry.icon.launcher();
   osredraw();
+}
+
+IconHolder.prototype.blur = function() {
+  this.selected = null;
 }
 
 IconHolder.prototype.redraw = function(parent, x, y) {
@@ -475,7 +480,11 @@ IconHolder.prototype.redraw = function(parent, x, y) {
       caption.style.backgroundColor = BLUE;
       rendertext(entry.icon.title, caption, 'fontwhite');
     } else {
-      rendertext(entry.icon.title, caption, 'fontblack');
+      if (this.main) {
+	rendertext(entry.icon.title, caption, 'fontwhite');
+      } else {
+	rendertext(entry.icon.title, caption, 'fontblack');
+      }
     }
   }
 };
@@ -489,7 +498,7 @@ IconHolder.prototype.place = function(icon) {
 
 // Arguments need to be relative to the iconholder, which always
 // believes it is at 0, 0.
-IconHolder.prototype.inside = function(x, y) {
+IconHolder.prototype.inside = function(basex, basey, x, y) {
 
   var ins = x >= 0 && y >= 0 && x < this.w && y < this.h;
   if (!ins) return null;
@@ -503,6 +512,7 @@ IconHolder.prototype.inside = function(x, y) {
       // deb.innerHTML = ' IN IT.';
       return { what: 'icon', holder: this,
 	       entry: entry, 
+	       basex: basex, basey: basey,
 	       gripx: x - entry.x, gripy: y - entry.y };
     }
   }
@@ -627,7 +637,9 @@ Win.prototype.inside = function(x, y) {
   }
 
   if (this.icons) {
-    var ins = this.icons.inside(x /* - WINICONSX */ - this.x, 
+    var ins = this.icons.inside(this.x,
+				this.y,
+				x /* - WINICONSX */ - this.x, 
 				y /* - WINICONSY */ - this.y);
     if (ins) return ins;
   }
@@ -943,7 +955,7 @@ function exitmindows() {
 
 function setupwindows() {
   var win = new Win(10, 10, 320, 200, 'Accessories');
-  win.icons = new IconHolder(300, 180, win.div);
+  win.icons = new IconHolder(300, 180, false);
   var about = new Icon('genericicon.png',
 		       '  About',
 		       function() {
