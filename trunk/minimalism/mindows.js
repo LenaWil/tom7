@@ -803,26 +803,28 @@ Win.prototype.inside = function(x, y) {
   // though the mouse is pointing EXACTLY at the corner
   // during resizing, even though the grabbable area is
   // more than one pixel.
-  if (x > (this.x + this.w - CORNER) &&
-      y > (this.y + this.h - CORNER)) {
-    return { what: 'corner', which: 'se', win: this,
-	     gripx: x - (this.x + this.w),
-	     gripy: y - (this.y + this.h) };
-  } else if (x < (this.x + CORNER) &&
-             y > (this.y + this.h - CORNER)) {
-    return { what: 'corner', which: 'sw', win: this,
-	     gripx: x - this.x,
-	     gripy: y - (this.y + this.h) };
-  } else if (x < (this.x + CORNER) &&
-             y < (this.y + CORNER)) {
-    return { what: 'corner', which: 'nw', win: this,
-	     gripx: x - this.x,
-	     gripy: y - this.y };
-  } else if (x > (this.x + this.w - CORNER) &&
-             y < (this.y + CORNER)) {
-    return { what: 'corner', which: 'ne', win: this,
-	     gripx: x - (this.x + this.w),
-	     gripy: y - this.y };
+  if (!this.fixed) {
+    if (x > (this.x + this.w - CORNER) &&
+	y > (this.y + this.h - CORNER)) {
+      return { what: 'corner', which: 'se', win: this,
+	       gripx: x - (this.x + this.w),
+	       gripy: y - (this.y + this.h) };
+    } else if (x < (this.x + CORNER) &&
+	       y > (this.y + this.h - CORNER)) {
+      return { what: 'corner', which: 'sw', win: this,
+	       gripx: x - this.x,
+	       gripy: y - (this.y + this.h) };
+    } else if (x < (this.x + CORNER) &&
+	       y < (this.y + CORNER)) {
+      return { what: 'corner', which: 'nw', win: this,
+	       gripx: x - this.x,
+	       gripy: y - this.y };
+    } else if (x > (this.x + this.w - CORNER) &&
+	       y < (this.y + CORNER)) {
+      return { what: 'corner', which: 'ne', win: this,
+	       gripx: x - (this.x + this.w),
+	       gripy: y - this.y };
+    }
   }
 
   // Check title AFTER corners
@@ -878,7 +880,10 @@ Win.prototype.inside = function(x, y) {
   // Check last, since e.g. menus overlap contents.
   if (this.insidecontents) {
     var ins = this.insidecontents(x, y);
-    if (ins) return ins;
+    if (ins) {
+      this.movetofront();
+      return ins;
+    }
   }
 
   return { what: 'win', win: this };
@@ -1449,7 +1454,7 @@ function dragondrop() {
 
     if (drawpile.length == 0) {
       while (wastepile.length > 0) {
-	drawpile.unshift(wastepile.pop());
+	drawpile.push(wastepile.pop());
       }
       return;
     }
@@ -1566,10 +1571,19 @@ function dragondrop() {
 	var x = DRAWPILEX + (p * (CARDW + CARDSPACE));
 	var y = WORKY;
 	// Draw the workpile, literally as face-down cards.
-	// TODO: If workpile and revealed are both empty,
-	// draw an 8-holder.
+	// If workpile and revealed are both empty,
+	// draw a 7-holder.
+
 	var workpile = workpiles[p];
 	var rev = revealed[p];
+
+	if (workpile.length == 0 && rev.length == 0) {
+	  var k = IMG('abs', win.div);
+	  k.src = 'placeseven.png';
+	  k.style.left = px(x);
+	  k.style.top = px(y);
+	}
+
 	for (var i = 0; i < workpile.length; i++) {
 	  cardback(x, y);
 	  y += BLINDY;
@@ -1808,10 +1822,11 @@ function randzerotounder(n) {
 }
 
 function minsweeper() {
-  var win = new Win(75, 40, 408, 368, "Minsweeper");
+  var win = new Win(75, 40, 368, 368 - 80, "Minsweeper");
+  win.fixed = true;
 
-  var WIDTH = 20;
-  var HEIGHT = 16;
+  var WIDTH = 18;
+  var HEIGHT = 12;
 
   var cells = {};
 
@@ -1820,8 +1835,7 @@ function minsweeper() {
   var EMPTY = 2;
   var NEARBY = 3;
   var BOMB = 4;
-  var NBOMBS = 14;
-
+  var NBOMBS = 12;
 
   function restart() {
     for (var y = 0; y < HEIGHT; y++) {
@@ -1878,6 +1892,8 @@ function minsweeper() {
 	if (c == BOMB) bombrevealed = true;
       }
     }
+
+    deb.innerHTML = '' + nhidden;
 
     for (var y = 0; y < HEIGHT; y++) {
       for (var x = 0; x < WIDTH; x++) {
