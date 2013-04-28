@@ -157,10 +157,12 @@ function osmousemove(e) {
 	mousestate = 'mouse-no.png';
 	deb.innerHTML = 'no drop target';
 
-	// Assume we stay inside the same iconholder.
-	// XXX 
-	ins.entry.x = (mousex - ins.basex) - ins.gripx;
-	ins.entry.y = (mousey - ins.basey) - ins.gripy;
+	// It would be okay to move it (within the same
+	// iconholder, but this makes it very easy to
+	// drag icons into places outside the visible
+	// part of the window.)
+	// ins.entry.x = (mousex - ins.basex) - ins.gripx;
+	// ins.entry.y = (mousey - ins.basey) - ins.gripy;
       }
 
       osredraw();
@@ -328,6 +330,23 @@ function osmouseup(e) {
   if (capture) {
     var ins = capture.inside;
     switch (capture.what) {
+    case 'drag':
+
+      // Only have something to do if there's a drop and
+      // it's different from the current container.
+      var drop = getDrop(mousex, mousey);
+      if (drop && drop != ins.holder) {
+	deb.innerHTML = 'drag & drop';
+	
+	// TODO
+	ins.holder.removeentry(ins.entry);
+	// Might be nice to give placement hint.
+	drop.place(ins.entry.icon);
+      }
+
+      osredraw();
+      break;
+
     case 'press':
       if (ins.up) {
 	ins.elt.src = ins.up;
@@ -531,13 +550,7 @@ IconHolder.prototype.activate = function(entry) {
   // Filter it out of the list, if this is the main
   // iconholder. The main one is minimized programs.
   if (!entry.icon.app) {
-    var nicons = [];
-    for (var i = 0; i < this.icons.length; i++) {
-      if (this.icons[i] != entry) {
-	nicons.push(this.icons[i]);
-      }
-    }
-    this.icons = nicons;
+    this.removeentry(entry);
   }
   
   entry.icon.launcher();
@@ -579,6 +592,17 @@ IconHolder.prototype.redraw = function(parent, x, y) {
     }
   }
 };
+
+IconHolder.prototype.removeentry = function(entry) {
+  if (this.selected == entry) this.selected = null;
+  var nicons = [];
+  for (var i = 0; i < this.icons.length; i++) {
+    if (this.icons[i] != entry) {
+      nicons.push(this.icons[i]);
+    }
+  }
+  this.icons = nicons;
+}
 
 IconHolder.prototype.place = function(icon) {
   // XXX use more than one row!
