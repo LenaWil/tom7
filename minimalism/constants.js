@@ -42,6 +42,11 @@ var DRAWPILEY = PLACEY;
 var WORKY = PLACEY + CARDH + CARDSPACE + CARDSPACE;
 var BLINDY = 8;
 var SHOWY = 20;
+var BLINDX = 8;
+var SHOWX = 20;
+
+var WASTEX = DRAWPILEX + CARDW + CARDSPACE;
+var WASTEY = PLACEY;
 
 var GREY = '#c3c7cb'; // ???
 var BLUE = '#00a';

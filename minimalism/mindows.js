@@ -271,6 +271,10 @@ function osmousedown(e) {
   if (inside) {
     deb.innerHTML = inside.what;
     switch (inside.what) {
+    case 'click':
+      osblur();
+      inside.action();
+      break;
     case 'icon':
       osblur();
       inside.holder.selected = inside.entry;
@@ -647,8 +651,8 @@ IconHolder.prototype.inside = function(basex, basey, x, y) {
 
   for (var i = 0; i < this.icons.length; i++) {
     var entry = this.icons[i];
-    deb.innerHTML = 'ex ' + entry.x + ' ey ' + entry.y +
-	' tx ' + x + ' ty ' + y;
+    // deb.innerHTML = 'ex ' + entry.x + ' ey ' + entry.y +
+    // ' tx ' + x + ' ty ' + y;
     if (x >= entry.x && y >= entry.y &&
 	x < (entry.x + ICONW) && y < (entry.y + ICONH)) {
       // deb.innerHTML = ' IN IT.';
@@ -1277,6 +1281,7 @@ function dragondrop() {
   // A single "draw" pile. This is a list, with the
   // end being the next cards to show.
   var drawpile = [];
+  var wastepile = [];
 
   // Exactly 4 work piles.
   var NPILES = 4;
@@ -1326,7 +1331,8 @@ function dragondrop() {
     cimg.src = 'card.png';
     var s = suit(n);
     var r = rank(n);
-    
+
+    // XXX bottom right too
     var ctext = DIV('', card);
     ctext.style.position = 'absolute';
     ctext.style.zindex = 1;
@@ -1339,7 +1345,29 @@ function dragondrop() {
       rendertext('' + r + HEART, ctext, 'fontred');
     }
 
+    // XXX symbol in center, or many symbols
+    // in center.
+
     return card;
+  }
+
+  // Cycle cards into the waste, or redeal.
+  function dodraw() {
+    deb.innerHTML = objstring(drawpile) + '/' + objstring(wastepile);
+
+    if (drawpile.length == 0) {
+      while (wastepile.length > 0) {
+	drawpile.unshift(wastepile.pop());
+      }
+      return;
+    }
+    
+    // Note, might even be empty (then nothing
+    // happens).
+    var num = Math.min(3, drawpile.length);
+    for (var i = 0; i < num; i++) {
+      wastepile.push(drawpile.pop());
+    }
   }
 
   win.drawcontents = function() {
@@ -1347,6 +1375,7 @@ function dragondrop() {
 
     // Always draw card holders.
     // XXX if they have cards on, then can skip this
+    // XXX draw these as skull/heart holders.
     var phelt = IMG('abs', d);
     phelt.src = 'placeace.png';
     phelt.style.left = px(PLACEHEARTX);
@@ -1357,56 +1386,69 @@ function dragondrop() {
     pselt.style.left = px(PLACESKULLX);
     pselt.style.top = px(PLACEY);
 
-    deb.innerHTML = objstring(workpiles) + '/' + objstring(revealed);
+    // deb.innerHTML = objstring(workpiles) + '/' + objstring(revealed);
 
     // Draw drawpile.
     if (drawpile.length > 0) {
       var dpelt = cardback(DRAWPILEX, DRAWPILEY);
     } else {
-      // XXX draw "recycle" symbol
+      var reload = IMG('abs', win.div);
+      reload.src = 'reload.png';
+      reload.style.left = px(DRAWPILEX);
+      reload.style.top = px(DRAWPILEY);
     }
 
-    for (var p = 0; p < NPILES; p++) {
-      var x = DRAWPILEX + (p * (CARDW + CARDSPACE));
-      var y = WORKY;
-      // Draw the workpile, literally as face-down cards.
-      var workpile = workpiles[p];
-      var rev = revealed[p];
-      for (var i = 0; i < workpile.length; i++) {
-	cardback(x, y);
-	y += BLINDY;
+    (function() {
+      for (var p = 0; p < NPILES; p++) {
+	var x = DRAWPILEX + (p * (CARDW + CARDSPACE));
+	var y = WORKY;
+	// Draw the workpile, literally as face-down cards.
+	// TODO: If workpile and revealed are both empty,
+	// draw an 8-holder.
+	var workpile = workpiles[p];
+	var rev = revealed[p];
+	for (var i = 0; i < workpile.length; i++) {
+	  cardback(x, y);
+	  y += BLINDY;
+	}
+
+	for (var i = 0; i < rev.length; i++) {
+	  cardfront(x, y, rev[i]);
+	  y += SHOWY;
+	}
       }
+    })();
 
-      for (var i = 0; i < rev.length; i++) {
-	cardfront(x, y, rev[i]);
-	y += SHOWY;
+    // Now, the waste. We only show the last three cards,
+    // if any.
+    (function() {
+      var wstart = Math.max(0, wastepile.length - 3);
+      var x = WASTEX;
+      var y = WASTEY;
+      for (var i = wstart; i < wastepile.length; i++) {
+	cardfront(x, y, wastepile[i]);
+	x += SHOWX;
       }
-
-    }
-
-
-/*
-    var prev = IMG('abs', d);
-    prev.src = 'prev.png';
-    prev.style.left = px(prevx);
-    prev.style.top = px(prevy);
-
-    var next = IMG('abs', d);
-    next.src = 'next.png';
-    next.style.left = px(nextx);
-    next.style.top = px(nexty);
-    
-    var cont = DIV('pagedhelp', d);
-    for (var i = 0; i < win.pages[win.page].length; i++) {
-      BR('clear', d);
-      var text = win.pages[win.page][i];
-      var line = DIV('helpline', cont);
-      rendertext(text, line, 'fontblack');
-    }
-*/
+    })();
 
     win.insidecontents = function(x, y) {
-      // ...
+      // Relative to window.
+      var rx = x - this.x;
+      var ry = y - this.y;
+
+      // Draw pile.
+      if (rx >= DRAWPILEX &&
+	  ry >= DRAWPILEY &&
+	  rx < DRAWPILEX + CARDW &&
+	  ry < DRAWPILEY + CARDH) {
+	return { what: 'click',
+		 action: function(ins) {
+		   dodraw();
+		   osredraw();
+		 } };
+      }
+
+
       return null;
     };
   };
