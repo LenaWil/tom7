@@ -54,3 +54,7 @@ function getmouseposwithin(e, elt) {
 function objstring(obj) {
   return JSON.stringify(obj);
 }
+
+function getMillis() {
+  return (new Date()).getTime();
+}
