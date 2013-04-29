@@ -76,4 +76,4 @@ var HEART = "\x07";
 var SMALLFONTW = 6;
 var SMALLFONTH = 16;
 var SMALLFONTOVERLAP = 1;
-
+var SMALLFONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.";

@@ -568,7 +568,7 @@ function makeRender(FONTCHARS, FONTW, FONTH, FONTOVERLAP) {
 }
 
 var rendertext = makeRender(FONTCHARS, FONTW, FONTH, FONTOVERLAP);
-var rendersmalltext = makeRender(FONTCHARS, SMALLFONTW, SMALLFONTH,
+var rendersmalltext = makeRender(SMALLFONTCHARS, SMALLFONTW, SMALLFONTH,
 				 SMALLFONTOVERLAP);
 // TODO: small text
 
@@ -706,14 +706,21 @@ IconHolder.prototype.redraw = function(parent, x, y) {
     // If selected, use other font.
     // If selected, make background.
     var caption = DIV('iconcaption', item);
+    var text = entry.icon.title;
+    // XXX totally faked
+    if (text.length < 14) {
+      var growth = 2 + (14 - text.length) * 3
+      caption.style.paddingLeft = px(growth);
+      caption.style.width = px(80 - growth);
+    }
     if (entry == this.selected) {
       caption.style.backgroundColor = BLUE;
-      rendersmalltext(entry.icon.title, caption, 'smallfontwhite');
+      rendersmalltext(text, caption, 'smallfontwhite');
     } else {
       if (this.main) {
-	rendersmalltext(entry.icon.title, caption, 'smallfontwhite');
+	rendersmalltext(text, caption, 'smallfontwhite');
       } else {
-	rendersmalltext(entry.icon.title, caption, 'smallfontblack');
+	rendersmalltext(text, caption, 'smallfontblack');
       }
     }
   }
@@ -1235,7 +1242,7 @@ function aboutmindows() {
 }
 
 function legalpadapp() {
-  var win = new Win(50, 10, 300, 400, "Legal Pad");
+  var win = new Win(50, 10, 380, 420, "Legal Pad");
   win.menu = [
     { text: 'File',
       children: [ { text: 'New',
@@ -1244,7 +1251,7 @@ function legalpadapp() {
 		      win.line = 0;
 		      win.cursor = 0;
 		    } },
-		  { text: 'Open...' },
+		  // { text: 'Open...' },
 		  { text: 'Exit Legal Pad',
 		    fn: function() {
 		      removefromwindows(win);
@@ -1253,10 +1260,25 @@ function legalpadapp() {
     }
   ];
 
-  win.legalese = ['This is my attempt to make',
-		  'a sort of notepad in min7.',
-		  'The idea is to avoid all the tricky',
-		  'stuff by foisting it on the user!'];
+  win.legalese = ['',
+		  ' ' + SKULL + ' ' + SKULL + ' ' + SKULL + 
+		  '  M A N I F E S T O  ' + 
+		  SKULL + ' ' + SKULL + ' ' + SKULL,
+		  '',
+		  'Life today is SO COMPLICATED. Just look ',
+		  'at this computer. It literally has FIVE ',
+		  'applications, with OVER A DOZEN different ',
+		  'colors clamoring for my attention.',
+		  '',
+		  'Sometimes to reduce stress I arrange my ',
+		  'windows geometrically, or even just minimize ',
+		  'them all. But it isn\'t long before games ',
+		  'and e-business interrupt, and I\'m compelled ',
+		  'to open them up again.',
+		  '',
+		  'But... what if there were a way to get a ',
+		  'TRULY CLEAN DESKTOP?'
+		  ];
   // On the nth line.
   win.line = 0;
   // After the nth character.
@@ -1265,15 +1287,11 @@ function legalpadapp() {
     var d = win.div;
     var cont = DIV('legalese', d);
     for (var i = 0; i < win.legalese.length; i++) {
-      BR('', d);
-      // XXX consider using helpline
-      var line = DIV('legalline', cont);
-      rendertext(win.legalese[i], line, 'fontblack');
+      BR('clear', d);
+      var text = win.legalese[i];
+      var line = DIV('helpline', cont);
+      rendertext(text, line, 'fontblack');
     }
-  };
-  win.key = function(e) {
-    // XXX
-    // TODO: editing. Or kill legalpad.
   };
 }
 
@@ -2127,30 +2145,31 @@ function minsweeper() {
 }
 
 function setupwindows() {
-  var accessories = new Win(10, 10, 320, 200, 'Accessories');
-  accessories.icons = new IconHolder(300, 180, false);
+  var docs = new Win(10, 10, 320, 200, 'Documents');
+  docs.icons = new IconHolder(300, 180, false);
   var about = new Icon('genericicon.png',
-		       '    About',
+		       'About',
 		       function() {
 			 aboutmindows();
 		       },
 		       true);
   var legalpad = new Icon('legalpad.png',
-			  '   Legal Pad',
+			  'manifesto.txt',
 			  function() {
 			    legalpadapp();
 			  },
 			  true);
-  accessories.icons.place(about);
-  accessories.icons.place(legalpad);
+
+  docs.icons.place(about);
+  docs.icons.place(legalpad);
 
   // XXX what is "in" the program manager? Task list?
   var pgm = new Win(80, 80, 400, 180, 'Program Manager');
   pgm.backgroundimage = 'litegrey.png';
   pgm.menu = [
     { text: 'File',
-      children: [ { text: 'New...' },
-		  { text: 'Open...' },
+      children: [ /* { text: 'New...' },
+		     { text: 'Open...' }, */
 		  { text: 'Exit Mindows',
 		    fn: exitmindows }]
     },
