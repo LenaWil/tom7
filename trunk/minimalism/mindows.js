@@ -51,6 +51,9 @@ var deb = null;
 // List of windows from back to front.
 var windows = [];
 
+// Once "win" condition is met, fade to black.
+var winning = false;
+
 // Traverse windows from front to back to find
 // out what the mouse is pointing at, if anything.
 function getPointed() {
@@ -570,7 +573,6 @@ function makeRender(FONTCHARS, FONTW, FONTH, FONTOVERLAP) {
 var rendertext = makeRender(FONTCHARS, FONTW, FONTH, FONTOVERLAP);
 var rendersmalltext = makeRender(SMALLFONTCHARS, SMALLFONTW, SMALLFONTH,
 				 SMALLFONTOVERLAP);
-// TODO: small text
 
 function Win(x, y, w, h, title) {
   this.x = x;
@@ -579,8 +581,6 @@ function Win(x, y, w, h, title) {
   this.h = h;
   this.title = title || '';
   this.icon = 'genericicon.png';
-
-  // TODO: "modal"
 
   windows.push(this);
 
@@ -645,7 +645,25 @@ Win.prototype.dominimize = function() {
   var target = this.minimizationtarget || mainicons;
   target.place(icon);
   osredraw();
+
+  // SPOILER ALERT!
+  if (windows.length == 0 && mainicons.icons.length == 0) {
+    oslockout = true;
+    winning = true;
+    window.setTimeout(fadeout, 1000);
+  }
 };
+
+var fadelevel = 1.0;
+function fadeout() {
+  if (fadelevel >= 0.0) {
+    fadelevel -= 0.01;
+    mouse.style.opacity = '' + fadelevel.toFixed(2);
+    os.style.backgroundColor = 
+	'rgb(0, 0, ' + Math.floor(fadelevel * 0x33) + ')';
+    window.setTimeout(fadeout, 50);
+  }
+}
 
 // If app is true, the icon is not removed when
 // the app is launched.
@@ -1182,6 +1200,65 @@ Win.prototype.redraw = function(parent) {
   }
 };
 
+function makemodalmessagebox(title, lines) {
+  var width = 200;
+  var height = 24 + lines.length * FONTH;
+
+  var win = centeredmodalwindow(title, width, height);
+
+  var OKX = 64;
+  var OKY = lines.length * FONTH + 42;
+  
+  win.drawcontents = function() {
+    var d = win.div;
+
+    // Draw lines.
+    var cont = DIV('messagecont', d);
+    for (var i = 0; i < lines.length; i++) {
+      BR('clear', d);
+      var text = lines[i];
+      var line = DIV('helpline', cont);
+      rendertext(text, line, 'fontblack');
+    }
+
+    var ok = IMG('abs', d);
+    ok.src = 'ok.png';
+    ok.style.left = px(OKX);
+    ok.style.top = px(OKY);
+
+    win.insidecontents = function(x, y) {
+      var rx = x - win.x;
+      var ry = y - win.y;
+      // Can't click button if you can't see it.
+      if (!win.inbounds(x, y)) {
+	return null;
+      }
+      
+      if (rx >= OKX && ry >= OKY &&
+	  rx < OKX + OKBUTTONW &&
+	  ry < OKY + OKBUTTONH) {
+	return { what: 'button', which: 'ok',
+		 win: win,
+		 elt: ok,
+		 down: 'ok-down.png',
+		 up: 'ok.png',
+		 x: this.x + OKX,
+		 y: this.y + OKY,
+		 w: OKBUTTONW, h: OKBUTTONH,
+		 action: function(ins) {
+		   removefromwindows(win);
+		   osredraw();
+		 } };
+      }
+
+      return null;
+    };
+  };
+
+  windows.push(win);
+  return win;
+}
+
 function centeredmodalwindow(title, cw, ch) {
   var totalw = cw + BORDER * 2;
   // XXX ok button!
@@ -1250,6 +1327,10 @@ function legalpadapp() {
 		      win.legalese = [];
 		      win.line = 0;
 		      win.cursor = 0;
+		      makemodalmessagebox('Notice',
+					  ['Note: No keyboard',
+					   'connected.']);
+		      osredraw();
 		    } },
 		  // { text: 'Open...' },
 		  { text: 'Exit Legal Pad',
@@ -1261,7 +1342,7 @@ function legalpadapp() {
   ];
 
   win.legalese = ['',
-		  ' ' + SKULL + ' ' + SKULL + ' ' + SKULL + 
+		  '   ' + SKULL + ' ' + SKULL + ' ' + SKULL + 
 		  '  M A N I F E S T O  ' + 
 		  SKULL + ' ' + SKULL + ' ' + SKULL,
 		  '',
@@ -1500,7 +1581,7 @@ function rendercardfront(x, y, n, elt) {
 
 
 function dragondrop() {
-  var win = new Win(40, 40, 560, 400, "Dragon Drop");
+  var win = new Win(40, 40, 490, 360, "Dragon Drop");
 
   win.backgroundimage = 'darkgreen.png';
 
@@ -1932,16 +2013,11 @@ function dragondrop() {
 	  } }
 	// Don't allow exiting, because it makes the
 	// first "puzzle" too obvious.
-/*
-         ,{ text: 'Exit Dragon Drop',
-	  fn: function() {
-	    removefromwindows(win);
-	    osredraw();
-	  } }
-*/
       ]
     }
   ];
+
+  return win;
 }
 
 function randzerotounder(n) {
@@ -2213,5 +2289,6 @@ function setupwindows() {
 
 function setupgame() {
   setupwindows();
-  // XXX also solitaire in front.
+  var dd = dragondrop();
+  dd.domaximize();
 }
