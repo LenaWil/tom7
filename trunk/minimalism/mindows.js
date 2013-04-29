@@ -1,9 +1,4 @@
-// MUST DO.
-// TODO: Don't let icons minimize off-screen (confusing path
-//       to unintended "solution")
-
 // Apps.
-// TODO: Minsweeper
 // TODO: Paintbrush
 // TODO: Media Player with MIDIs.
 // TODO: Editing in legal pad.
@@ -107,8 +102,8 @@ function tileall() {
   var nhigh = Math.ceil(n / nacross);
   var width = Math.floor(OSWIDTH / nacross);
   var height = Math.floor(OSHEIGHT / nhigh);
-  deb.innerHTML = objstring([nacross, nhigh,
-			     width, height]);
+  // deb.innerHTML = objstring([nacross, nhigh,
+  // width, height]);
   var xpos = 0, ypos = 0;
   for (var i = 0; i < windows.length; i++) {
     windows[i].x = xpos * width;
@@ -153,8 +148,6 @@ function getDrop(x, y) {
     var win = windows[i];
     if (!win) throw ('win ' + i);
     // var inbounds = win.inbounds(mousex, mousey);
-    // XXX also want the coordinates within the holder,
-    // I think.
     if (win.inbounds(mousex, mousey)) {
       return win.icons || null;
     }
@@ -195,7 +188,7 @@ function osmousemove(e) {
       var drop = getDrop(mousex, mousey);
       mousestate = 'mouse.png';
       if (drop) {
-	deb.innerHTML = 'drop target';
+	// deb.innerHTML = 'drop target';
 
 	if (drop == ins.holder) {
 	  // Normal behavior -- dragging from a holder to
@@ -210,10 +203,10 @@ function osmousemove(e) {
 	}
 
       } else {
-	// XXX set NO cursor; can't drag into this window
+	// set NO cursor; can't drag into this window
 	// (ok to drag to desktop under it)
 	mousestate = 'mouse-no.png';
-	deb.innerHTML = 'no drop target';
+	// deb.innerHTML = 'no drop target';
 
 	// It would be okay to move it (within the same
 	// iconholder, but this makes it very easy to
@@ -275,7 +268,6 @@ function osmousemove(e) {
 	osredraw();
 	break;
 
-	// XXX others!
       default:;
       }
       break;
@@ -333,7 +325,7 @@ function osmousedown(e) {
 
   var inside = getPointed();
   if (inside) {
-    deb.innerHTML = inside.what;
+    // deb.innerHTML = inside.what;
     switch (inside.what) {
     case 'stack':
       osblur();
@@ -341,7 +333,7 @@ function osmousedown(e) {
       // Do the action.
       grab.take();
 
-      deb.innerHTML = ('GRABBED ' + grab.cards.join('-'));
+      // deb.innerHTML = ('GRABBED ' + grab.cards.join('-'));
       capture = { what: 'movestack',
 		  cards: grab.cards,
 		  inside: inside };
@@ -372,7 +364,7 @@ function osmousedown(e) {
       osredraw();
       break;
     case 'childmenu':
-      deb.innerHTML = 'mousedown on child';
+      // deb.innerHTML = 'mousedown on child';
       // Note, not the same type as above, so make sure we
       // only depend on shared fields?
       // capture = { what: 'clickmenu', inside: inside };
@@ -403,7 +395,7 @@ function osmousedown(e) {
     }
   } else {
     // Clicks on background -- nothing?
-    deb.innerHTML = 'background click';
+    // deb.innerHTML = 'background click';
     osblur();
     osredraw();
   }
@@ -419,7 +411,6 @@ function osmouseup(e) {
     case 'movestack':
       var grab = ins.grab;
 
-      // XXX allow legal drops, of course!
       var drop = oscarddrop(grab.cards);
       if (drop) {
 	drop();
@@ -431,12 +422,6 @@ function osmouseup(e) {
       capture = null;
 
       osredraw();
-      /*
-      deb.innerHTML = ('GRABBED ' + grab.cards.join('-'));
-      capture = { what: 'movestack',
-		  cards: grab.cards,
-		  inside: inside };
-      */
       break;
 
     case 'drag':
@@ -445,7 +430,7 @@ function osmouseup(e) {
       // it's different from the current container.
       var drop = getDrop(mousex, mousey);
       if (drop && drop != ins.holder) {
-	deb.innerHTML = 'drag & drop';
+	// deb.innerHTML = 'drag & drop';
 	
 	// TODO
 	ins.holder.removeentry(ins.entry);
@@ -459,7 +444,7 @@ function osmouseup(e) {
     case 'press':
       if (ins.up) {
 	ins.elt.src = ins.up;
-	deb.innerHTML = ('src up: ' + ins.up);
+	// deb.innerHTML = ('src up: ' + ins.up);
       }
       var onit = mousex >= ins.x && mousey > ins.y &&
 	  mousex < ins.x + ins.w && mousey < ins.y + ins.h;
@@ -510,7 +495,6 @@ function initos(elt) {
   osredraw();
 }
 
-// XXX to OS object?
 function osredraw() {
   os.innerHTML = '';
 
@@ -772,7 +756,7 @@ IconHolder.prototype.place = function(icon) {
     icon.win.minimizationtarget = this;
   }
 
-  // XXX use more than one row!
+  // XXX This could be muuuuch smarter.
   var num = this.icons.length;
   if (this.main) {
     var ypos = Math.floor(num / 7);
@@ -785,6 +769,7 @@ IconHolder.prototype.place = function(icon) {
 		      y: this.h - (ypos + 1) * 90,
 		      icon: icon });
   } else {
+    // XXX use more than one row!
     this.icons.push({ x: this.icons.length * 90,
 		      y: 10,
 		      icon: icon });
@@ -913,7 +898,7 @@ Win.prototype.inside = function(x, y) {
 	  y >= met.y &&
 	  x < (met.x + met.w) &&
 	  y < (met.y + met.h)) {
-	deb.innerHTML = 'over menu';
+	// deb.innerHTML = 'over menu';
 	return { what: 'menu', win: this,
 		 menu: this.menu,
 		 which: this.menu[i] };
@@ -998,7 +983,7 @@ Win.prototype.resizeleft = function(x) {
   // in width.
   var growth = this.x - x;
   var newwidth = this.w + growth;
-  deb.innerHTML = 'growth: ' + growth + ' nw: ' + newwidth;
+  // deb.innerHTML = 'growth: ' + growth + ' nw: ' + newwidth;
   if (newwidth < MINWIDTH) {
     growth += (MINWIDTH - newwidth);
     newwidth = MINWIDTH;
@@ -1271,7 +1256,6 @@ function makemodalmessagebox(title, lines) {
 
 function centeredmodalwindow(title, cw, ch) {
   var totalw = cw + BORDER * 2;
-  // XXX ok button!
   var totalh = ch + BORDER * 2 + TITLE + OKBUTTON;
   var win = new Win(Math.floor((OSWIDTH - totalw) / 2),
 		    Math.floor((OSHEIGHT - totalh) / 2),
@@ -1304,8 +1288,8 @@ function aboutmindows() {
 	return null;
       }
       
-      deb.innerHTML = rx + ' ' + ry + ' ' +
-	  OKBUTTONX + ' ' + OKBUTTONY;
+      // deb.innerHTML = rx + ' ' + ry + ' ' +
+      // OKBUTTONX + ' ' + OKBUTTONY;
       if (rx >= OKBUTTONX && ry >= OKBUTTONY &&
 	  rx < OKBUTTONX + OKBUTTONW &&
 	  ry < OKBUTTONY + OKBUTTONH) {
@@ -1570,17 +1554,25 @@ function rendercardfront(x, y, n, elt) {
   var s = cardsuit(n);
   var r = cardrank(n);
 
-  // XXX bottom right too
   var ctext = DIV('', card);
   ctext.style.position = 'absolute';
   ctext.style.zindex = 1;
-  ctext.style.left = px(3);
+  ctext.style.left = px(4);
   ctext.style.top = px(2);
+
+  // bottom right too
+  var ctext2 = DIV('', card);
+  ctext2.style.position = 'absolute';
+  ctext2.style.zindex = 1;
+  ctext2.style.left = px(CARDW - 21);
+  ctext2.style.top = px(CARDH - 18);
 
   if (s == 0) {
     rendertext('' + r + SKULL, ctext, 'fontblack');
+    rendertext('' + r + SKULL, ctext2, 'fontblack');
   } else {
     rendertext('' + r + HEART, ctext, 'fontred');
+    rendertext('' + r + HEART, ctext2, 'fontred');
   }
 
   // XXX symbol in center, or many symbols
@@ -1641,13 +1633,6 @@ function dragondrop() {
       }
       workpiles.push(a);
       revealed.push([drawpile.pop()]);
-
-      // XXX NO! FIXME DO NOT SUBMIT
-      /*
-      var l = workpiles.length - 1;
-      if (workpiles[l].length > 0)
-	revealed[l].push(workpiles[l].pop());
-	*/
     }
   }
 
@@ -1705,9 +1690,6 @@ function dragondrop() {
     var drops = [];
 
     // Always draw card holders.
-    // XXX if they have cards on, then can skip this
-    // XXX draw these as skull/heart holders.
-
     if (placeheart.length == 0) {
       var phelt = IMG('abs', d);
       phelt.src = 'placeace.png';
@@ -2108,7 +2090,7 @@ function minsweeper() {
       }
     }
 
-    deb.innerHTML = '' + nhidden;
+    // deb.innerHTML = '' + nhidden;
 
     for (var y = 0; y < HEIGHT; y++) {
       for (var x = 0; x < WIDTH; x++) {
