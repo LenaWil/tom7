@@ -1,4 +1,10 @@
 <!doctype html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="description" content="Play Dragon Drop online for free. I'm not tellin' you how!" />
+<meta name="keywords" content="dragon drop, solitaire, minesweeper, minsweeper, mindows 7, minimalism, minimization, windows 3.1 game, windows simulator, ludum dare 26, windows 3.1, windows 3.11, tom 7">
+<link rel="image_src" href="cover.png" />
+
 <script type="text/javascript" src="jsutil.js"></script>
 <script type="text/javascript" src="constants.js"></script>
 <script type="text/javascript" src="mindows.js"></script>
@@ -101,7 +107,6 @@ div.menuitem {
 div.childmenu {
   padding: 2px 0;
   position: absolute;
-  zzwidth: 100px;
   border: 1px solid #000;
   background: #fff;
   /* XXX */
@@ -109,11 +114,8 @@ div.childmenu {
 }
 
 div.childoption {
-  zzbackground: #F00
   float: left;
   padding: 2px 6px;
-  zzpadding-left: 6px;
-  zzpadding-right: 6px;
 }
 
 div.iconcaption {
@@ -130,7 +132,6 @@ img.icon {
 
 div.iconholder {
   position: absolute;
-  zzborder: 1px solid red;
 }
 
 div.icon {
@@ -198,13 +199,10 @@ function init() {
  initos(document.getElementById('os'));
 
  setupgame();
-
- // XXX  do stuff...
-
  osredraw();
 }
 </script>
-
+</head>
 <body onload="init()">
   <div id="oscont">
     <!-- catches mouse events to make sure we don't get
@@ -220,4 +218,6 @@ function init() {
     for Ludum Dare #26, 28 Apr 2013.
     <br>Theme: <b>Minimalism</b>. This game only uses the mouse.
   </div>
+
+<img src="cover.png" style="position:fixed;top:-1000px;left:-10000px" alt="screenshot for thumbnails" />
 </body>
