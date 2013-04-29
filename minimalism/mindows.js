@@ -1,7 +1,4 @@
 // MUST DO.
-// TODO: Solitaire.
-// TODO: Recognize when all windows are minimized.
-// TODO: Hint (manifesto) text, somewhere.
 // TODO: Don't let icons minimize off-screen (confusing path
 //       to unintended "solution")
 
@@ -658,7 +655,13 @@ var fadelevel = 1.0;
 function fadeout() {
   if (fadelevel >= 0.0) {
     fadelevel -= 0.01;
-    mouse.style.opacity = '' + fadelevel.toFixed(2);
+    if (mouse) {
+      mouse.style.opacity = '' + fadelevel.toFixed(2);
+    }
+    var ins = document.getElementById('instructions');
+    if (ins) {
+      ins.style.opacity = '' + fadelevel.toFixed(2);
+    }
     os.style.backgroundColor = 
 	'rgb(0, 0, ' + Math.floor(fadelevel * 0x33) + ')';
     window.setTimeout(fadeout, 50);
@@ -770,9 +773,16 @@ IconHolder.prototype.place = function(icon) {
   }
 
   // XXX use more than one row!
+  var num = this.icons.length;
   if (this.main) {
-    this.icons.push({ x: this.icons.length * 90, 
-		      y: this.h - 90,
+    var ypos = Math.floor(num / 7);
+    var xpos = num % 7;
+
+    // Stay on screen no matter what!
+    ypos = ypos % 5;
+
+    this.icons.push({ x: xpos * 90, 
+		      y: this.h - (ypos + 1) * 90,
 		      icon: icon });
   } else {
     this.icons.push({ x: this.icons.length * 90,
@@ -2282,9 +2292,6 @@ function setupwindows() {
 
   games.icons.place(dragicon);
   games.icons.place(mineicon);
-
-  // XXX after adding menu, must redraw. Maybe should have
-  // setmenu call.
 }
 
 function setupgame() {
