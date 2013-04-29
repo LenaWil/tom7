@@ -62,6 +62,9 @@ function getPointed() {
     if (inside) {
       return inside;
     }
+
+    if (win.modal)
+      return null;
   }
 
   return mainicons.inside(0, 0, mousex, mousey);
@@ -78,6 +81,9 @@ function oscarddrop(cards) {
       }
       return null;
     }
+
+    if (win.modal)
+      return null;
   }
   return null;
 }
@@ -127,6 +133,9 @@ function getDrop(x, y) {
     if (win.inbounds(mousex, mousey)) {
       return win.icons || null;
     }
+
+    if (win.modal)
+      return null;
   }
 
   // Always can put in the main holder.
@@ -783,19 +792,21 @@ Win.prototype.inside = function(x, y) {
 	     } };
   }
 
-  if (x > this.x + this.minimizetoolx() &&
-      x < (this.x + this.minimizetoolx() + TOOL) &&
-      y < (this.y + BORDER + TOOL)) {
-    return { what: 'button', which: 'minimize', win: this,
-	     elt: this.minimize,
-	     down: 'minimize-down.png',
-	     up: 'minimize.png',
-	     x: this.x + this.minimizetoolx(),
-	     y: this.y + BORDER,
-	     w: TOOL, h: TOOL,
-	     action: function(ins) {
-	       ins.win.dominimize();
-	     } };
+  if (!this.modal) {
+    if (x > this.x + this.minimizetoolx() &&
+	x < (this.x + this.minimizetoolx() + TOOL) &&
+	y < (this.y + BORDER + TOOL)) {
+      return { what: 'button', which: 'minimize', win: this,
+	       elt: this.minimize,
+	       down: 'minimize-down.png',
+	       up: 'minimize.png',
+	       x: this.x + this.minimizetoolx(),
+	       y: this.y + BORDER,
+	       w: TOOL, h: TOOL,
+	       action: function(ins) {
+		 ins.win.dominimize();
+	       } };
+    }
   }
 
   // Corner objects include the name of the corner
@@ -1131,11 +1142,12 @@ Win.prototype.redraw = function(parent) {
   this.maximize.style.left = px(this.maximizetoolx());
   this.maximize.style.top = px(BORDER - 1);
 
-  this.minimize = IMG('abs', this.div);
-  this.minimize.src = 'minimize.png';
-  this.minimize.style.left = px(this.minimizetoolx());
-  this.minimize.style.top = px(BORDER - 1);
-
+  if (!this.modal) {
+    this.minimize = IMG('abs', this.div);
+    this.minimize.src = 'minimize.png';
+    this.minimize.style.left = px(this.minimizetoolx());
+    this.minimize.style.top = px(BORDER - 1);
+  }
 };
 
 function centeredmodalwindow(title, cw, ch) {
@@ -1146,6 +1158,7 @@ function centeredmodalwindow(title, cw, ch) {
 		    Math.floor((OSHEIGHT - totalh) / 2),
 		    totalw, totalh,
 		    title);
+  win.fixed = true;
   win.modal = true;
   return win;
 }
