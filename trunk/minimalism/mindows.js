@@ -24,7 +24,6 @@
 //       winning after cheating.
 
 // Icing.
-// TODO: Tile
 // TODO: All characters is small font -- even necessary?
 // TODO: Make mouse cursor invisible when it is outside the OS.
 // TODO: Cursor doesn't work on mobile safari, but probably could.
@@ -93,14 +92,40 @@ function cascadeall() {
     windows[i].blur();
     windows[i].x = ((i + 1) * 32) % 480;
     windows[i].y = ((i + 1) * 32) % 300;
-    windows[i].w = 400;
-    windows[i].h = 280;
+    if (!windows[i].fixed) {
+      windows[i].w = 400;
+      windows[i].h = 280;
+    }
   }
+  osblur();
   osredraw();
 }
 
 function tileall() {
-  alert('unimplemented');
+  var n = windows.length;
+  var nacross = Math.floor(Math.sqrt(n));
+  var nhigh = Math.ceil(n / nacross);
+  var width = Math.floor(OSWIDTH / nacross);
+  var height = Math.floor(OSHEIGHT / nhigh);
+  deb.innerHTML = objstring([nacross, nhigh,
+			     width, height]);
+  var xpos = 0, ypos = 0;
+  for (var i = 0; i < windows.length; i++) {
+    windows[i].x = xpos * width;
+    windows[i].y = ypos * height;
+    if (!windows[i].fixed) {
+      windows[i].w = Math.max(MINWIDTH, width);
+      windows[i].h = Math.max(MINHEIGHT, height);
+    }
+    windows[i].xpos = xpos;
+    windows[i].ypos = ypos;
+
+    xpos++;
+    if (xpos >= nacross) {
+      xpos = 0;
+      ypos++;
+    }
+  }
   osblur();
   osredraw();
 }
