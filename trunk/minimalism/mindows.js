@@ -1,7 +1,7 @@
 // MUST DO.
 // TODO: Solitaire.
 // TODO: Recognize when all windows are minimized.
-// TODO: Help text and Hint (manifesto) text, somewhere.
+// TODO: Hint (manifesto) text, somewhere.
 // TODO: Don't let icons minimize off-screen (confusing path
 //       to unintended "solution")
 
@@ -1158,6 +1158,41 @@ function aboutmindows() {
     i.src = 'about-mindows.png';
     i.style.top = px(BORDER + TITLE);
     i.style.left = px(BORDER);
+
+    var ok = IMG('abs', d);
+    ok.src = 'ok.png';
+    ok.style.left = px(OKBUTTONX);
+    ok.style.top = px(OKBUTTONY);
+
+    win.insidecontents = function(x, y) {
+      var rx = x - win.x;
+      var ry = y - win.y;
+      // Can't click button if you can't see it.
+      if (!win.inbounds(x, y)) {
+	return null;
+      }
+      
+      deb.innerHTML = rx + ' ' + ry + ' ' +
+	  OKBUTTONX + ' ' + OKBUTTONY;
+      if (rx >= OKBUTTONX && ry >= OKBUTTONY &&
+	  rx < OKBUTTONX + OKBUTTONW &&
+	  ry < OKBUTTONY + OKBUTTONH) {
+	return { what: 'button', which: 'ok',
+		 win: win,
+		 elt: ok,
+		 down: 'ok-down.png',
+		 up: 'ok.png',
+		 x: this.x + OKBUTTONX,
+		 y: this.y + OKBUTTONY,
+		 w: OKBUTTONW, h: OKBUTTONH,
+		 action: function(ins) {
+		   removefromwindows(win);
+		   osredraw();
+		 } };
+      }
+
+      return null;
+    };
   };
 }
 
@@ -1205,7 +1240,7 @@ function legalpadapp() {
 }
 
 function helpviewer() {
-  var win = new Win(50, 10, 300, 400, "Help");
+  var win = new Win(50, 10, 360, 400, "Help");
   win.menu = [
     { text: 'File',
       children: [ { text: 'Exit Help',
@@ -1223,8 +1258,46 @@ function helpviewer() {
      'of this window to navigate the',
      'help pages.',
      ''],
-    ['This is another page. Help is good.'],
-    ['Just one more.'],
+
+    ['What\'s new in Mindows 7?',
+     '',
+     'ENHANCED MINIMIZATION.',
+     '',
+     'As you know, Mindows has supported ',
+     'minimization since version 1. However, ',
+     'in Mindows 7, minimization has never ',
+     'been so powerful. Now you can drag ',
+     'a minimized window into another window, ',
+     'to keep things tidy. It even remembers ',
+     'where you put it, so that every time ',
+     'you minimize again, it goes back into ',
+     'that same window--even if it\'s minimized ',
+     'too!'],
+
+    ['',
+     'POWERFUL ENTERPRISE FEATURES.',
+     '',
+     'Your company will be back on top ',
+     'with these powerful capabilities ',
+     'for business. Take minutes on the go ',
+     'with Legal Pad, share a compute with ',
+     'your workgroup, or send the ',
+     'accounting department packing after ',
+     'you see what Excess Spreadsheets ',
+     'can do!*',
+     '',
+     '',
+     '* Sold separately.'],
+
+    ['',
+     'SPOTLIGHT ON PERFORMANCE.',
+     '',
+     'Mindows 7 has been fine-tuned for ',
+     'lightning-fast performance and memory ',
+     'usage. With a high-end computer it is ',
+     'even possible to run more than one game ',
+     'at once--even multiple copies of the ',
+     'same game!'],
   ];
 
   var prevx = BORDER + 2;
@@ -2050,7 +2123,7 @@ function setupwindows() {
 		    fn: tileall }]
     },
     { text: 'Help',
-      children: [ { text: 'Contents',
+      children: [ { text: 'Release Notes',
 		    fn: helpviewer },
 		  { text: 'About Mindows',
 		    fn: aboutmindows }]
