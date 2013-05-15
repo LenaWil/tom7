@@ -24,6 +24,9 @@ struct WeightedObjectives {
   void SaveSVG(const vector< vector<uint8> > &memories,
                const string &filename) const;
 
+  // More diagnostics. Only show the n highest-scoring objectives.
+  void SaveLua(int n, const std::string &filename) const;
+
   size_t Size() const;
 
   // Scoring function which is just the sum of the weights of

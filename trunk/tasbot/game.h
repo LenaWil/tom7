@@ -53,10 +53,79 @@
 #define FASTFORWARD 0
 */
 
+/*
 #define GAME "gradius"
 #define MOVIE "gradius-tom.fm2"
 #define BASE64 "base64:ScD/vW/KaS58VntNcq4IRw=="
 #define FASTFORWARD 0
+*/
+
+/*
+#define GAME "zelda"
+#define MOVIE "zelda-tom.fm2"
+#define BASE64 "base64:0/RTkxFG6VsEoxZH3oD9qw=="
+#define FASTFORWARD 0
+*/
+
+/*
+#define GAME "pinball"
+#define MOVIE "pinball-tom.fm2"
+#define BASE64 "base64:rYCTI/6S0OCDv3fM7K5GLg=="
+#define FASTFORWARD 0
+*/
+
+/*
+#define GAME "hockey"
+#define MOVIE "hockey-tom.fm2"
+#define BASE64 "base64:Ub48DbaF9x9KacVzNFMQog=="
+#define FASTFORWARD 0
+*/
+
+/*
+#define GAME "wallstreet"
+#define MOVIE "wallstreet-tomclean.fm2"
+#define BASE64 "base64:nIKrQIt3wpwqJGmHnGOEtw=="
+#define FASTFORWARD 0
+*/
+
+/*
+#define GAME "punchout"
+#define MOVIE "punchout-tom.fm2"
+#define BASE64 "base64:b6l7cJWhQm0I4LYMTGn76w=="
+#define FASTFORWARD 0
+*/
+
+/*
+#define GAME "arkanoid"
+#define BASE64 "base64:DMwaL+UhQ1TD/XWmyBVQzA=="
+*/
+
+/*
+#define GAME "doubledare"
+#define BASE64 "base64:bz+PE+VW6Y3WQb3v/mUklw=="
+*/
+
+/*
+#define GAME "drmario"
+#define BASE64 "base64:nZYaJvIQTkYWZ8ahzFerIQ=="
+*/
+
+/*
+#define GAME "rushnattack"
+#define BASE64 "base64:C0I784cgAJhxdCOIuUFIeA=="
+*/
+
+/*
+#define GAME "prowrestling"
+#define BASE64 "base64:FpZiI3DcVDmeVche+GBSQQ=="
+*/
+
+// #define MOVIE GAME "-tom.fm2"
+#define FASTFORWARD 0
+
+#define GAME "mario"
+#define MOVIE "mario-cleantom.fm2"
+#define BASE64 "base64:jjYwGG411HcjG/j9UOVM3Q=="
 
 // #define GAME "pacman"
 // #define MOVIE "pacman-tom.fm2"
