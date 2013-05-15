@@ -34,6 +34,10 @@ struct Util {
   // carriage returns, including ones not followed by newline.
   static vector<string> ReadFileToLines(const string &f);
 
+  // As above, but treat the first token on each line as a map
+  // key. Ignores empty lines.
+  static map<string, string> ReadFileToMap(const string &f);
+
   static vector<unsigned char> ReadFileBytes(const string &f);
   static bool WriteFileBytes(const string &f, const vector<unsigned char> &b);
 
