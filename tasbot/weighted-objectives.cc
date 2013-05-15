@@ -310,7 +310,7 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
   for (Weighted::const_iterator it = weighted.begin();
        howmany-- && it != weighted.end(); ++it) {
     const vector<int> &obj = it->first;
-    const Info &info = *it->second;
+    // const Info &info = *it->second;
     // All the distinct values this objective takes on, in order.
     vector< vector<uint8> > values = GetUniqueValues(memories, obj);
     // printf("%lld distinct values for %s\n", values.size(),
@@ -319,7 +319,7 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
     const string color = RandomColor(&rc);
     const string startpolyline =
       StringPrintf("  <polyline fill=\"none\" "
-		   // opacity=\"0.5\" "
+		   "opacity=\"0.5\" "
 		   "stroke=\"%s\""
 		   " stroke-width=\"%d\" points=\"", 
 		   // (info.weight <= 0) ? "#f00" : "#0f0",
@@ -376,4 +376,70 @@ void WeightedObjectives::SaveSVG(const vector< vector<uint8> > &memories,
 
   printf("Wrote %lld objectives, skipping %lld points, to %s\n", 
 	 weighted.size(), skipped, filename.c_str());
+}
+
+// My apologies. I don't know lua and it's the night before a demo!
+void WeightedObjectives::SaveLua(int n, const string &filename) const {
+  static const char *colors[] = {
+    "#ff4444",
+    "#44ff44",
+    "#4444ff",
+    "#ffff44",
+    "#ff44ff",
+    "#44ffff",
+  };
+  static const int num_colors = sizeof(colors) / sizeof(char *);
+
+  string out =
+    "-- generated file! do not edit.\n\n"
+    "while (true) do\n"
+    "  local YSTART = 0;\n"
+    "  local XSTART = 2;\n"
+    "  ypos = YSTART;\n"
+    "  xpos = XSTART;\n"
+    "  color = \"#FFFFFF\"\n"
+    "    local function wb(loc)\n"
+    "      local byte = memory.readbyte(loc);\n"
+    "      local hex = string.format(\"%2x\", byte);\n"
+    "      gui.text(xpos, ypos, hex, color);\n"
+    "      xpos = xpos + 12;\n"
+    "      if xpos > 250 then\n"
+    "        xpos = XSTART;\n"
+    "        ypos = ypos + 8;\n"
+    "      end;\n"
+    "    end;\n"
+    "\n";
+
+  // Get them all.
+  map<double, const vector<int> *> sorted;
+  for (Weighted::const_iterator it = weighted.begin();
+       it != weighted.end(); ++it) {
+    sorted.insert(make_pair(it->second->weight, &it->first));
+  }
+
+  int actual = 0;
+  {
+    int i = 0;
+    for (map<double, const vector<int> *>::const_iterator it = sorted.begin();
+	 i < n && it != sorted.end(); ++it, i++) {
+      out += StringPrintf("\n"
+			  "  -- score %f\n", it->first);
+      out +=
+	"  xpos = XSTART;\n"
+	"  ypos = ypos + 10;\n"
+	"  color = \"" + (string)colors[i % num_colors] + "\"\n";
+      const vector<int> &v = *it->second;
+      for(int j = 0; j < v.size(); j++) {
+	out += StringPrintf("  wb(%d);\n", v[j]);
+      }
+      actual++;
+    }
+  }
+
+  out += "  FCEU.frameadvance();\n";
+  out += "end;\n";
+  Util::WriteFile(filename, out);
+
+  printf("Wrote %d objectives to %s\n", 
+	 actual, filename.c_str());
 }

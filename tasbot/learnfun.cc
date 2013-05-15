@@ -133,6 +133,7 @@ static void MakeObjectives(const vector< vector<uint8> > &memories) {
   weighted.SaveToFile(GAME ".objectives");
 
   weighted.SaveSVG(memories, GAME ".svg");
+  weighted.SaveLua(6, GAME ".lua");
 }
 
 int main(int argc, char *argv[]) {
