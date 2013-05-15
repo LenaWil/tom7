@@ -35,7 +35,6 @@
 #include "../cc-lib/arcfour.h"
 #include "util.h"
 #include "../cc-lib/textsvg.h"
-#include "game.h"
 
 #if MARIONET
 #include "SDL.h"
@@ -44,6 +43,12 @@
 #include "netutil.h"
 using ::google::protobuf::Message;
 #endif
+
+// deprecated
+#define FASTFORWARD 0
+
+// XXX learnfun should write this to a file called game.base64.
+#define BASE64 "base64:jjYwGG411HcjG/j9UOVM3Q=="
 
 // This is the factor that determines how quickly a motif changes
 // weight. When a motif is chosen because it yields the best future,
@@ -161,21 +166,31 @@ static void SaveFuturesHTML(const vector<Future> &futures,
 
 struct PlayFun {
   PlayFun() : watermark(0), log(NULL), rc("playfun") {
-    Emulator::Initialize(GAME ".nes");
-    objectives = WeightedObjectives::LoadFromFile(GAME ".objectives");
+    map<string, string> config = Util::ReadFileToMap("config.txt");
+    game = config["game"];
+    const string moviename = config["movie"];
+    CHECK(!game.empty());
+    CHECK(!moviename.empty());
+
+    Emulator::Initialize(game + ".nes");
+    objectives = WeightedObjectives::LoadFromFile(game + ".objectives");
     CHECK(objectives);
     fprintf(stderr, "Loaded %d objective functions\n", objectives->Size());
 
-    motifs = Motifs::LoadFromFile(GAME ".motifs");
+    motifs = Motifs::LoadFromFile(game + ".motifs");
     CHECK(motifs);
 
-    Emulator::ResetCache(100000, 10000);
+    // XXX configure this via config.txt
+    // For 64-bit machines with loads of ram
+    // Emulator::ResetCache(100000, 10000);
+    // For modest systems
+    Emulator::ResetCache(10000, 1000);
 
     motifvec = motifs->AllMotifs();
 
     // PERF basis?
 
-    solution = SimpleFM2::ReadInputs(MOVIE);
+    solution = SimpleFM2::ReadInputs(moviename);
 
     size_t start = 0;
     bool saw_input = false;
@@ -1276,12 +1291,14 @@ struct PlayFun {
     // XXX
     ports_ = helpers;
 
-    log = fopen(GAME "-log.html", "w");
+    string logname = StringPrintf("%s-log.html", game.c_str());
+    log = fopen(logname.c_str(), "w");
     CHECK(log != NULL);
     fprintf(log,
 	    "<!DOCTYPE html>\n"
 	    "<link rel=\"stylesheet\" href=\"log.css\" />\n"
-	    "<h1>" GAME " started at %s %s.</h1>\n",
+	    "<h1>%s started at %s %s.</h1>\n",
+	    game.c_str(),
 	    DateString(time(NULL)).c_str(),
 	    TimeString(time(NULL)).c_str());
     fflush(log);
@@ -1302,7 +1319,7 @@ struct PlayFun {
 #endif
 
     fprintf(stderr, "[MASTER] Beginning " 
-	    ANSI_YELLOW GAME ANSI_RESET ".\n");
+	    ANSI_YELLOW "%s" ANSI_RESET ".\n", game.c_str());
 
     // This version of the algorithm looks like this. At some point in
     // time, we have the set of motifs we might play next. We'll
@@ -1663,8 +1680,9 @@ struct PlayFun {
       fflush(log);
 
       SimpleFM2::WriteInputsWithSubtitles(
-	  StringPrintf(GAME "-playfun-backtrack-%d-replaced.fm2", iters),
-	  GAME ".nes",
+	  StringPrintf("%s-playfun-backtrack-%d-replaced.fm2", 
+		       game.c_str(), iters),
+	  game + ".nes",
 	  BASE64,
 	  movie,
 	  subtitles);
@@ -1711,8 +1729,9 @@ struct PlayFun {
 
       fprintf(stderr, "Write replacement movie.\n");
       SimpleFM2::WriteInputsWithSubtitles(
-	  StringPrintf(GAME "-playfun-backtrack-%d-replacement.fm2", iters),
-	  GAME ".nes",
+	  StringPrintf("%s-playfun-backtrack-%d-replacement.fm2", 
+		       game.c_str(), iters),
+	  game + ".nes",
 	  BASE64,
 	  movie,
 	  subtitles);
@@ -1732,17 +1751,18 @@ struct PlayFun {
 
   void SaveMovie() {
     printf("                     - writing movie -\n");
-    SimpleFM2::WriteInputsWithSubtitles(GAME "-playfun-futures-progress.fm2",
-					GAME ".nes",
-					BASE64,
-					movie,
-					subtitles);
+    SimpleFM2::WriteInputsWithSubtitles(
+        game + "-playfun-futures-progress.fm2",
+	game + ".nes",
+	BASE64,
+	movie,
+	subtitles);
     Emulator::PrintCacheStats();
   }
 
   void SaveQuickDiagnostics(const vector<Future> &futures) {
     printf("                     - quick diagnostics -\n");
-    SaveFuturesHTML(futures, GAME "-playfun-futures.html");
+    SaveFuturesHTML(futures, game + "-playfun-futures.html");
   }
 
   void SaveDiagnostics(const vector<Future> &futures) {
@@ -1754,18 +1774,19 @@ struct PlayFun {
       vector<uint8> fmovie = movie;
       for (int j = 0; j < futures[i].inputs.size(); j++) {
 	fmovie.push_back(futures[i].inputs[j]);
-	SimpleFM2::WriteInputs(StringPrintf(GAME "-playfun-future-%d.fm2",
+	SimpleFM2::WriteInputs(StringPrintf("%s-playfun-future-%d.fm2",
+					    game.c_str(),
 					    i),
-			       GAME ".nes",
+			       game + ".nes",
 			       BASE64,
 			       fmovie);
       }
     }
     printf("Wrote %d movie(s).\n", futures.size() + 1);
     #endif
-    SaveDistributionSVG(distributions, GAME "-playfun-scores.svg");
-    objectives->SaveSVG(memories, GAME "-playfun-futures.svg");
-    motifs->SaveHTML(GAME "-playfun-motifs.html");
+    SaveDistributionSVG(distributions, game + "-playfun-scores.svg");
+    objectives->SaveSVG(memories, game + "-playfun-futures.svg");
+    motifs->SaveHTML(game + "-playfun-motifs.html");
     printf("                     (wrote)\n");
   }
 
@@ -1783,6 +1804,7 @@ struct PlayFun {
   WeightedObjectives *objectives;
   Motifs *motifs;
   vector< vector<uint8> > motifvec;
+  string game;
 };
 
 /**

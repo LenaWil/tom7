@@ -27,12 +27,13 @@
 #include "objective.h"
 #include "weighted-objectives.h"
 #include "motifs.h"
-#include "game.h"
 
 #ifdef MARIONET
 #include "SDL.h"
 #endif
 
+// deprecated
+#define FASTFORWARD 0
 
 static void SaveMemory(vector< vector<uint8> > *memories) {
   memories->resize(memories->size() + 1);
@@ -87,7 +88,8 @@ static void GenerateOccasional(int stride, int offsets, int num,
   }
 }
 
-static void MakeObjectives(const vector< vector<uint8> > &memories) {
+static void MakeObjectives(const string &game,
+			   const vector< vector<uint8> > &memories) {
   printf("Now generating objectives.\n");
   objectives = new vector< vector<int> >;
   Objective obj(memories);
@@ -130,15 +132,22 @@ static void MakeObjectives(const vector< vector<uint8> > &memories) {
   weighted.WeightByExamples(memories);
   printf("And %d unique objectives\n", weighted.Size());
 
-  weighted.SaveToFile(GAME ".objectives");
+  weighted.SaveToFile(game + ".objectives");
 
-  weighted.SaveSVG(memories, GAME ".svg");
-  weighted.SaveLua(6, GAME ".lua");
+  weighted.SaveSVG(memories, game + ".svg");
+  weighted.SaveLua(6, game + ".lua");
 }
 
 int main(int argc, char *argv[]) {
-  Emulator::Initialize(GAME ".nes");
-  vector<uint8> movie = SimpleFM2::ReadInputs(MOVIE);
+  map<string, string> config = Util::ReadFileToMap("config.txt");
+  const string game = config["game"];
+  const string moviename = config["movie"];
+
+  CHECK(!game.empty());
+  CHECK(!moviename.empty());
+
+  Emulator::Initialize(game + ".nes");
+  vector<uint8> movie = SimpleFM2::ReadInputs(moviename);
   CHECK(!movie.empty());
 
   vector< vector<uint8> > memories;
@@ -189,10 +198,10 @@ int main(int argc, char *argv[]) {
          memories.size(),
          time_end - time_start);
 
-  MakeObjectives(memories);
+  MakeObjectives(game, memories);
   Motifs motifs;
   motifs.AddInputs(inputs);
-  motifs.SaveToFile(GAME ".motifs");
+  motifs.SaveToFile(game + ".motifs");
 
   Emulator::Shutdown();
 
