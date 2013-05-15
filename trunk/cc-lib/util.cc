@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <cstring>
 #include <string.h>
+#include <algorithm>
 
 #include "util.h"
 
@@ -191,6 +192,18 @@ vector<string> Util::ReadFileToLines(const string &f) {
     }
   }
   return v;
+}
+
+map<string, string> Util::ReadFileToMap(const string &f) {
+  map<string, string> m;
+  vector<string> lines = ReadFileToLines(f);
+  for (int i = 0; i < lines.size(); i++) {
+    string rest = lines[i];
+    string tok = chop(rest);
+    rest = losewhitel(rest);
+    m.insert(make_pair(tok, rest));
+  }
+  return m;
 }
 
 // PERF memcpy
