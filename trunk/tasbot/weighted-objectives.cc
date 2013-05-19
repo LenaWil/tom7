@@ -6,6 +6,8 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <utility>
+#include <vector>
 
 #include "tasbot.h"
 #include "../cc-lib/arcfour.h"
@@ -60,6 +62,15 @@ WeightedObjectives::LoadFromFile(const string &filename) {
   }
 
   return wo;
+}
+
+vector< pair<const vector<int> *, double> > WeightedObjectives::GetAll() const {
+  vector< pair<const vector<int> *, double> > v;
+  for (Weighted::const_iterator it = weighted.begin(); 
+       it != weighted.end(); ++it) {
+    v.push_back(make_pair(&it->first, it->second->weight));
+  }
+  return v;
 }
   
 void WeightedObjectives::SaveToFile(const string &filename) const {
@@ -125,6 +136,9 @@ static bool LessObjective(const vector<uint8> &mem1,
   return false;
 }
 
+// Order 1 means mem1 < mem2, -1 means mem1 > mem2, 0 means equal.
+// (note this is backwards from strcmp. Think of if like a multiplier
+// for the weight.)
 static int Order(const vector<uint8> &mem1, 
 		 const vector<uint8> &mem2,
 		 const vector<int> &order) {
@@ -139,7 +153,6 @@ static int Order(const vector<uint8> &mem1,
   // Equal.
   return 0;
 }
-
 
 double WeightedObjectives::WeightedLess(const vector<uint8> &mem1,
 					const vector<uint8> &mem2) const {

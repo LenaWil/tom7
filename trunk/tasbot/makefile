@@ -1,6 +1,6 @@
 
 # Makefile made by tom7.
-default: playfun.exe learnfun.exe
+default: playfun.exe learnfun.exe scopefun.exe
 # tasbot.exe
 # emu_test.exe
 
@@ -78,7 +78,16 @@ EMUOBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(
 #included in all tests, etc.
 BASEOBJECTS=$(CCLIBOBJECTS) $(NETWORKINGOBJECTS) $(PROTOBUFOBJECTS)
 
-TASBOT_OBJECTS=headless-driver.o config.o simplefm2.o emulator.o basis-util.o objective.o weighted-objectives.o motifs.o util.o
+TASBOT_OBJECTS=headless-driver.o simplefm2.o emulator.o basis-util.o objective.o weighted-objectives.o motifs.o util.o
+
+# note you need to build libpng first, in the subdirectory libpng.
+# This makefile does not build the .o files for you.
+PNG_OBJECTS=libpng/png.o libpng/pngerror.o libpng/pngget.o libpng/pngmem.o libpng/pngpread.o libpng/pngread.o libpng/pngrio.o libpng/pngrtran.o libpng/pngrutil.o libpng/pngset.o libpng/pngtrans.o libpng/pngwio.o libpng/pngwrite.o libpng/pngwtran.o libpng/pngwutil.o
+
+pngsave.o: pngsave.cc pngsave.h
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) -Ilibpng -c pngsave.cc -o $@
+
+PNGSAVE_OBJECTS=pngsave.o $(PNG_OBJECTS)
 
 OBJECTS=$(BASEOBJECTS) $(EMUOBJECTS) $(TASBOT_OBJECTS)
 
@@ -89,10 +98,12 @@ OBJECTS=$(BASEOBJECTS) $(EMUOBJECTS) $(TASBOT_OBJECTS)
 	$(PROTOC) $< --cpp_out=.
 
 # without static, can't find lz or lstdcxx maybe?
-LFLAGS =  -m64 -Wl,--subsystem,console $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE) -static
+LFLAGS=  -m64 -Wl,--subsystem,console $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE) -static
 # -Wl,--subsystem,console
 # -static -fwhole-program
 # -static
+
+# LPNGFLAGS = -Llibpng -m64 -Wl,--subsystem,console $(LINKNETWORKING) -lpng16 -lz $(OPT) $(FLTO) $(PROFILE) -static
 
 learnfun.exe : $(OBJECTS) learnfun.o
 	$(CXX) $^ -o $@ $(LFLAGS)
@@ -105,6 +116,9 @@ tasbot.exe : $(OBJECTS) tasbot.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 playfun.exe : $(OBJECTS) playfun.o
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+scopefun.exe : $(OBJECTS) $(PNGSAVE_OBJECTS) scopefun.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 emu_test.exe : $(OBJECTS) emu_test.o
