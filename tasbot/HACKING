@@ -34,3 +34,13 @@ path so in the makefile I just call "protoc".
 Note that MARIONET is totally insecure, and almost certainly
 vulnerable to remote exploitation (it loads savestates, assuming
 they're valid). Don't run it on open networks.
+
+
+You shouldn't need libpng for learnfun or playfun; it is only used by
+experimental (off-line) visualization code. I built it with this same kinda
+command-line, after putting libpng 1.6.2 in a subdirectory called libpng. Don't
+get the zip version of the file, as it does not contain a configure script (?):
+
+CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ CFLAGS=-m64 CXXFLAGS=-m64 ./configure
+make -j
+

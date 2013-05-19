@@ -36,6 +36,9 @@ inline string DateString(time_t t) {
   return str;
 }
 
+void HSV(double h, double s, double v,
+         unsigned char *r, unsigned char *g, unsigned char *b);
+
 template<class T>
 static void Shuffle(vector<T> *v) {
   static ArcFour rc("shuffler");

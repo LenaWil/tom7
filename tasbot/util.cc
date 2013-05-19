@@ -58,6 +58,43 @@ string DrawDots(int WIDTH, int HEIGHT,
   return out += "\n";
 }
 
+// TODO: to cc-lib.
+void HSV(double h, double s, double v,
+	 unsigned char *r, unsigned char *g, unsigned char *b) {
+
+  if (s == 0.0f) {
+    *r = (unsigned char)(v * 255);
+    *g = (unsigned char)(v * 255);
+    *b = (unsigned char)(v * 255);
+  } else {
+    // float chroma = v * s;
+    // float hprime = h / 60.0;
+    // int ihprime = hprime;
+    // float x = c * (1.0 - 
+
+    float hue = h / 60.0f;
+    int fh = (int)hue;
+    float var_1 = v * (1 - s);
+    float var_2 = v * (1 - s * (hue - fh));
+    float var_3 = v * (1 - s * (1 - (hue - fh)));
+
+    float red, green, blue;
+
+    switch ((int)hue) {
+    case 0:  red = v     ; green = var_3 ; blue = var_1; break;
+    case 1:  red = var_2 ; green = v     ; blue = var_1; break;
+    case 2:  red = var_1 ; green = v     ; blue = var_3; break;
+    case 3:  red = var_1 ; green = var_2 ; blue = v    ; break;
+    case 4:  red = var_3 ; green = var_1 ; blue = v    ; break;
+    default: red = v     ; green = var_1 ; blue = var_2; break;
+    }
+
+    *r = (unsigned char)(red * 255);
+    *g = (unsigned char)(green * 255);
+    *b = (unsigned char)(blue * 255);
+  }
+}
+
 InPlaceTerminal::InPlaceTerminal(int lines) 
   : lines(lines), last_was_output(false) {
   CHECK(lines > 0);

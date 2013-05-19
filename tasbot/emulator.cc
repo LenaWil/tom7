@@ -266,12 +266,6 @@ bool Emulator::Initialize(const string &romfile) {
 
   // (Here's where SDL was initialized.)
 
-  // Initialize the configuration system
-  InitConfig();
-  if (!global_config) {
-    return -1;
-  }
-
   // initialize the infrastructure
   error = FCEUI_Initialize();
   if (error != 1) {

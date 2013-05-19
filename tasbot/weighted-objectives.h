@@ -7,6 +7,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <utility>
 
 #include "tasbot.h"
 #include "fceu/types.h"
@@ -60,6 +61,7 @@ struct WeightedObjectives {
   double GetNormalizedValue(const vector<uint8> &memory) const;
 
   // XXX weighted version, unnormalized version?
+  std::vector< std::pair<const std::vector<int> *, double> > GetAll() const;
 
  private:
   WeightedObjectives();
