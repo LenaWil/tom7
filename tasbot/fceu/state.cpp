@@ -355,6 +355,8 @@ bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
   totalsize += WriteStateChunk(&os,2,SFCPUC);
   totalsize += WriteStateChunk(&os,3,FCEUPPU_STATEINFO);
   // PERF: Do we need to save both old and new ppu infos?
+  // PERF: I think not. PPU data is large; should definitely try
+  // removing this (or even removing code support for new ppu)
   totalsize += WriteStateChunk(&os,31,FCEU_NEWPPU_STATEINFO);
   totalsize += WriteStateChunk(&os,4,FCEUCTRL_STATEINFO);
   totalsize += WriteStateChunk(&os,5,FCEUSND_STATEINFO);

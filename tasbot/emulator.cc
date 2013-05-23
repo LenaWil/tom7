@@ -7,7 +7,6 @@
 #include <zlib.h>
 #include <unordered_map>
 
-#include "config.h"
 #include "fceu/driver.h"
 #include "fceu/fceu.h"
 #include "fceu/types.h"
@@ -25,6 +24,9 @@
 // the "API".
 static uint32 joydata = 0;
 static bool initialized = false;
+
+// The current contents of the screen; part of the "API".
+extern uint8 *XBuf, *XBackBuf;
 
 struct StateCache {
   // These vectors are allocated with new.
@@ -307,6 +309,10 @@ bool Emulator::Initialize(const string &romfile) {
   // Default.
   FCEUI_DisableSpriteLimitation(1);
 
+
+  // int srendlinev[2]={8,0};
+  // int erendlinev[2]={231,239};
+
   // Defaults.
   const int scanlinestart = 0, scanlineend = 239;
 
@@ -351,6 +357,37 @@ void Emulator::Step(uint8 inputs) {
 
   // Emulate a single frame.
   FCEUI_Emulate(NULL, &sound, &ssize, SKIP_VIDEO_AND_SOUND);
+}
+
+void Emulator::StepFull(uint8 inputs) {
+  int32 *sound;
+  int32 ssize;
+  joydata = (uint32) inputs;
+
+  // Run the video and sound as well.
+  const int DO_VIDEO_AND_SOUND = 0;
+
+  // Emulate a single frame.
+  FCEUI_Emulate(NULL, &sound, &ssize, DO_VIDEO_AND_SOUND);
+}
+
+void Emulator::GetImage(vector<uint8> *rgba) {
+  rgba->clear();
+  rgba->resize(256 * 256 * 4);
+
+  for (int y = 0; y < 256; y++) {
+    for (int x = 0; x < 256; x++) {
+      uint8 r, g, b;
+
+      // XBackBuf? or XBuf?
+      FCEUD_GetPalette(XBuf[(y * 256) + x], &r, &g, &b);
+
+      (*rgba)[y * 256 * 4 + x * 4 + 0] = r;
+      (*rgba)[y * 256 * 4 + x * 4 + 1] = g; // XBackBuf[(y * 256) + x] << 4;
+      (*rgba)[y * 256 * 4 + x * 4 + 2] = b; // XBuf[(y * 256) + x] << 4;
+      (*rgba)[y * 256 * 4 + x * 4 + 3] = 0xFF;
+    }
+  }
 }
 
 void Emulator::Save(vector<uint8> *out) {

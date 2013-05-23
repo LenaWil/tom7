@@ -19,6 +19,10 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+// Tom's notes. See this page for an ok explanation:
+// http://wiki.nesdev.com/w/index.php/PPU_OAM
+// Note sprites are drawn from the end of the array to the beginning.
+
 #include  <string.h>
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -41,6 +45,7 @@
 #include  "driver.h"
 #include  "debug.h"
 
+#define DEBUGF if (0) fprintf
 
 #define VBlankON  (PPU[0]&0x80)   //Generate VBlank NMI
 #define Sprite16  (PPU[0]&0x20)   //Sprites 8x16/8x8
@@ -66,11 +71,31 @@ static void RefreshSprites(void);
 static void CopySprites(uint8 *target);
 
 static void Fixit1(void);
+
+// PPU lookup table? I think? These are constant arrays
+// that do some kind of bit transformations. ppulut2 is
+// the same as ppulut1, but with the bits shifted up one.
 static uint32 ppulut1[256];
 static uint32 ppulut2[256];
 static uint32 ppulut3[128];
 
 int test = 0;
+
+static const char *bits8(uint8 b) {
+  static char buf[9] = {0};
+  for (int i = 0; i < 8; i ++) {
+    buf[7 - i] = (b & (1 << i))? '1' : '0';
+  }
+  return buf;
+}
+
+static const char *attrbits(uint8 b) {
+  static char buf[9] = {0};
+  for (int i = 0; i < 8; i ++) {
+    buf[7 - i] = (b & (1 << i))? "VHB???11"[7 - i] : "__F___00"[7 - i];
+  }
+  return buf;
+}
 
 template<typename T, int BITS>
 struct BITREVLUT {
@@ -1453,6 +1478,10 @@ static void DoLine(void)
 	if(SpriteON)
 		CopySprites(target);
 
+
+	// What is this?? ORs every byte in the buffer with 0x30 if PPU[1] has its lowest
+	// bit set.
+
 	if(ScreenON || SpriteON)  // Yes, very el-cheapo.
 	{
 		if(PPU[1]&0x01)
@@ -1516,52 +1545,68 @@ static void DoLine(void)
 #define SP_BACK 0x20
 
 typedef struct {
+  // no is just a tile number, but 
 	uint8 y,no,atr,x;
 } SPR;
 
 typedef struct {
+  // I think ca is the actual character data, but separated into
+  // two planes. They together make the 2-bit color information,
+  // which is done through the lookup tables ppulut1 and 2.
+  // They have to be the actual data (not addresses) because
+  // ppulut is a fixed transformation.
 	uint8 ca[2],atr,x;
 } SPRB;
+
+#define STATIC_ASSERT( condition, name ) \
+    typedef char assert_failed_ ## name [ (condition) ? 1 : -1 ];
+
+STATIC_ASSERT( sizeof (SPR) == 4, spr_size );
+STATIC_ASSERT( sizeof (SPRB) == 4, sprb_size );
+STATIC_ASSERT( sizeof (uint32) == 4, uint32_size );
 
 void FCEUI_DisableSpriteLimitation(int a)
 {
 	maxsprites=a?64:8;
 }
 
+// I believe this corresponds to the "internal operation" section of
+// http://wiki.nesdev.com/w/index.php/PPU_OAM
+// where the PPU is looking for sprites for the NEXT scanline.
 static uint8 numsprites,SpriteBlurp;
 static void FetchSpriteData(void)
 {
-	uint8 ns,sb;
-	SPR *spr;
-	uint8 H;
 	int n;
 	int vofs;
 	uint8 P0=PPU[0];
 
-	spr=(SPR *)SPRAM;
-	H=8;
+	SPR *spr=(SPR *)SPRAM;
+	uint8 H=8;
 
-	ns=sb=0;
+	uint8 ns = 0, sb = 0;
 
 	vofs=(unsigned int)(P0&0x8&(((P0&0x20)^0x20)>>2))<<9;
 	H+=(P0&0x20)>>2;
 
+	DEBUGF(stderr, "FetchSprites @%d\n", scanline);
 	if(!PPU_hook)
 		for(n=63;n>=0;n--,spr++)
 		{
-			if((unsigned int)(scanline-spr->y)>=H) continue;
+			if((unsigned int)(scanline - spr->y) >= H) continue;
 			//printf("%d, %u\n",scanline,(unsigned int)(scanline-spr->y));
 			if(ns<maxsprites)
 			{
+			  DEBUGF(stderr, "   sp %2d: %d,%d #%d attr %s\n",
+				  n, spr->x, spr->y, spr->no, attrbits(spr->atr));
+
 				if(n==63) sb=1;
 
 				{
 					SPRB dst;
 					uint8 *C;
-					int t;
-					unsigned int vadr;
-
-					t = (int)scanline-(spr->y);
+					int t = (int)scanline-(spr->y);
+					// made uint32 from uint -tom7
+					uint32 vadr;
 
 					if(Sprite16)
 						vadr = ((spr->no&1)<<12) + ((spr->no&0xFE)<<4);
@@ -1686,22 +1731,41 @@ static void RefreshSprites(void)
 	spork=0;
 	if(!numsprites) return;
 
+	// Initialize the line buffer to 0x80, meaning "no pixel here."
 	FCEU_dwmemset(sprlinebuf,0x80808080,256);
 	numsprites--;
 	spr = (SPRB*)SPRBUF+numsprites;
 
+	DEBUGF(stderr, "RefreshSprites @%d with numsprites = %d\n", 
+		scanline, numsprites);
 	for(n=numsprites;n>=0;n--,spr--)
 	{
-		uint32 pixdata;
-		uint8 J,atr;
-
 		int x=spr->x;
 		uint8 *C;
 		uint8 *VB;
 
-		pixdata=ppulut1[spr->ca[0]]|ppulut2[spr->ca[1]];
-		J=spr->ca[0]|spr->ca[1];
-		atr=spr->atr;
+		// I think the lookup table basically gets the 4 bytes
+		// of sprite data for this scanline. Since ppulut2 is
+		// ppulut1 shifted up a bit, I think we're getting
+		// 2-bit color data from the two planes ca[0] and
+		// ca[1], and that's why this is an OR. I don't
+		// understand why ca[0] and ca[1] are (can be)
+		// different though. 32 bits is 16 pixels, as expected.
+		
+		uint32 pixdata = ppulut1[spr->ca[0]] | ppulut2[spr->ca[1]];
+		// treat all sprites as checkerboard!
+		// uint32 pixdata = (scanline & 1) ? 0xCCCC : 0x3333;
+		// uint32 pixdata = 0xFFFF;
+
+		// So then J is like the 1-bit mask of non-zero pixels.
+		uint8 J = spr->ca[0] | spr->ca[1];
+		// uint8 J = (scanline & 1) ? 0xAA : 0x55;
+		// uint8 J = 0xFF;
+
+		uint8 atr = spr->atr;
+
+		DEBUGF(stderr, "   sp %2d: x=%d ca[%d,%d] attr %s\n",
+			n, spr->x, spr->ca[0], spr->ca[1], attrbits(spr->atr));
 
 		if(J)
 		{
@@ -1709,6 +1773,7 @@ static void RefreshSprites(void)
 			{
 				sphitx=x;
 				sphitdata=J;
+				// reverses the mask
 				if(atr&H_FLIP)
 					sphitdata=    ((J<<7)&0x80) |
 					((J<<5)&0x40) |
@@ -1720,12 +1785,25 @@ static void RefreshSprites(void)
 					((J>>7)&0x01);
 			}
 
+			// C is destination for the 8 pixels we'll write
+			// on this scanline.
+			// C is an array of bytes, each corresponding to
+			// a pixel. The bit 0x40 is set if the pixel should
+			// show behind the background. The rest of the pixels
+			// come from VB (probably just the lowest two?)
 			C = sprlinebuf+x;
+			// pixdata is abstract color values 0,1,2,3.
+			// VB gives us an index into the palette data
+			// based on the palette selector in this sprite's
+			// attributes.
 			VB = (PALRAM+0x10)+((atr&3)<<2);
 
+			// In back or in front of background?
 			if(atr&SP_BACK)
 			{
-				if(atr&H_FLIP)
+			  // back...
+
+			  if(atr&H_FLIP)
 				{
 					if(J&0x80) C[7]=VB[pixdata&3]|0x40;
 					pixdata>>=4;
@@ -1760,7 +1838,7 @@ static void RefreshSprites(void)
 					if(J&0x01) C[7]=VB[pixdata]|0x40;
 				}
 			} else {
-				if(atr&H_FLIP)
+			  if(atr&H_FLIP)
 				{
 					if(J&0x80) C[7]=VB[pixdata&3];
 					pixdata>>=4;
@@ -1801,84 +1879,127 @@ static void RefreshSprites(void)
 	spork=1;
 }
 
+// Actually writes sprites to the pixel buffer for a particular scanline.
+// target is the beginning of the scanline.
 static void CopySprites(uint8 *target)
 {
-	uint8 n=((PPU[1]&4)^4)<<1;
-	uint8 *P=target;
+  // ends up either 8 or zero. But why?
+  uint8 n=((PPU[1]&4)^4)<<1;
+  uint8 *P=target;
 
-	if(!spork) return;
-	spork=0;
+  if(!spork) return;
+  spork=0;
 
-	if(!rendersprites) return;  //User asked to not display sprites.
+  if(!rendersprites) return;  //User asked to not display sprites.
 
-loopskie:
-	{
-		uint32 t=*(uint32 *)(sprlinebuf+n);
+#if 0
+  fprintf(stderr, "CS (n=%d) @%d:\n", n, scanline);
 
-		if(t!=0x80808080)
-		{
-#ifdef LSB_FIRST
-			if(!(t&0x80))
-			{
-				if(!(t&0x40) || (P[n]&0x40))       // Normal sprite || behind bg sprite
-					P[n]=sprlinebuf[n];
-			}
-
-			if(!(t&0x8000))
-			{
-				if(!(t&0x4000) || (P[n+1]&0x40))       // Normal sprite || behind bg sprite
-					P[n+1]=(sprlinebuf+1)[n];
-			}
-
-			if(!(t&0x800000))
-			{
-				if(!(t&0x400000) || (P[n+2]&0x40))       // Normal sprite || behind bg sprite
-					P[n+2]=(sprlinebuf+2)[n];
-			}
-
-			if(!(t&0x80000000))
-			{
-				if(!(t&0x40000000) || (P[n+3]&0x40))       // Normal sprite || behind bg sprite
-					P[n+3]=(sprlinebuf+3)[n];
-			}
-#else
-			/* TODO:  Simplify */
-			if(!(t&0x80000000))
-			{
-				if(!(t&0x40000000))       // Normal sprite
-					P[n]=sprlinebuf[n];
-				else if(P[n]&64)  // behind bg sprite
-					P[n]=sprlinebuf[n];
-			}
-
-			if(!(t&0x800000))
-			{
-				if(!(t&0x400000))       // Normal sprite
-					P[n+1]=(sprlinebuf+1)[n];
-				else if(P[n+1]&64)  // behind bg sprite
-					P[n+1]=(sprlinebuf+1)[n];
-			}
-
-			if(!(t&0x8000))
-			{
-				if(!(t&0x4000))       // Normal sprite
-					P[n+2]=(sprlinebuf+2)[n];
-				else if(P[n+2]&64)  // behind bg sprite
-					P[n+2]=(sprlinebuf+2)[n];
-			}
-
-			if(!(t&0x80))
-			{
-				if(!(t&0x40))       // Normal sprite
-					P[n+3]=(sprlinebuf+3)[n];
-				else if(P[n+3]&64)  // behind bg sprite
-					P[n+3]=(sprlinebuf+3)[n];
-			}
+  for (int i = n; i < 256; i++) {
+    if (sprlinebuf[i] & 0x80) {
+      fprintf(stderr, "_");
+    } else {
+      fprintf(stderr, "%c", "01234567890ABCDEF"[sprlinebuf[i] & 0xF]);
+    }
+  }
+  fprintf(stderr, "\n");
 #endif
-		}
-	}
-	n+=4;
-	if(n) goto loopskie;
+
+#if 0   // tom's simple version
+        // surprisingly, this differs from the below. Why? unaligned reads?
+  for (int i = n; i < 256; i++) {
+    uint8 b = sprlinebuf[i];
+    if (!(b & 0x80)) {
+      if (!(b & 0x40) || P[i]&0x40) {
+	P[i] = b;
+      }
+    }
+  }
+  return;
+#endif
+  // looping until n overflows to 0. This is the whole scanline, I think,
+  // 4 pixels at a time.
+ loopskie:
+  {
+    uint32 t=*(uint32 *)(sprlinebuf+n);
+
+    // I think we're testing to see if the pixel should not be drawn
+    // because because there's already a sprite drawn there. (bit 0x80).
+    // But how does that bit get set?
+    // Might come from the VB array above. If there is one there, then
+    // we don't copy. If there isn't one, then we look to see if
+    // there's a transparent background pixel (has bit 0x40 set)
+    if(t!=0x80808080)
+      {
+
+	// t is 4 bytes of pixel data; we do the same thing
+	// for each of them.
+
+#if 1 // was ifdef LSB_FIRST! 
+
+	if(!(t&0x80))
+	  {
+	    if(!(t&0x40) || (P[n]&0x40))       // Normal sprite || behind bg sprite
+	      P[n]=sprlinebuf[n];
+	  }
+
+	if(!(t&0x8000))
+	  {
+	    if(!(t&0x4000) || (P[n+1]&0x40))       // Normal sprite || behind bg sprite
+	      P[n+1]=(sprlinebuf+1)[n];
+	  }
+
+	if(!(t&0x800000))
+	  {
+	    if(!(t&0x400000) || (P[n+2]&0x40))       // Normal sprite || behind bg sprite
+	      P[n+2]=(sprlinebuf+2)[n];
+	  }
+
+	if(!(t&0x80000000))
+	  {
+	    if(!(t&0x40000000) || (P[n+3]&0x40))       // Normal sprite || behind bg sprite
+	      P[n+3]=(sprlinebuf+3)[n];
+	  }
+#else
+# error LSB_FIRST is assumed, because endianness detection is wrong in this compile, sorry
+
+	/* TODO:  Simplify */
+	if(!(t&0x80000000))
+	  {
+	    if(!(t&0x40000000))       // Normal sprite
+	      P[n]=sprlinebuf[n];
+	    else if(P[n]&64)  // behind bg sprite
+	      P[n]=sprlinebuf[n];
+	  }
+
+	if(!(t&0x800000))
+	  {
+	    if(!(t&0x400000))       // Normal sprite
+	      P[n+1]=(sprlinebuf+1)[n];
+	    else if(P[n+1]&64)  // behind bg sprite
+	      P[n+1]=(sprlinebuf+1)[n];
+	  }
+
+	if(!(t&0x8000))
+	  {
+	    if(!(t&0x4000))       // Normal sprite
+	      P[n+2]=(sprlinebuf+2)[n];
+	    else if(P[n+2]&64)  // behind bg sprite
+	      P[n+2]=(sprlinebuf+2)[n];
+	  }
+
+	if(!(t&0x80))
+	  {
+	    if(!(t&0x40))       // Normal sprite
+	      P[n+3]=(sprlinebuf+3)[n];
+	    else if(P[n+3]&64)  // behind bg sprite
+	      P[n+3]=(sprlinebuf+3)[n];
+	  }
+#endif
+      }
+  }
+  n+=4;
+  if(n) goto loopskie;
 }
 
 void FCEUPPU_SetVideoSystem(int w)
@@ -2125,6 +2246,7 @@ SFORMAT FCEUPPU_STATEINFO[]={
 	{ 0 }
 };
 
+// TODO: PERF: Can avoid saving new ppu state! -tom7
 SFORMAT FCEU_NEWPPU_STATEINFO[] = {
 	{ &idleSynch, 1, "IDLS" },
 	{ &spr_read.num, 4|FCEUSTATE_RLSB, "SR_0" },
@@ -2238,6 +2360,9 @@ static inline int PaletteAdjustPixel(int pixel)
 
 int framectr=0;
 int FCEUX_PPU_Loop(int skip) {
+  fprintf(stderr, "Not expecting to use new PPU.\n");
+  abort();
+
 	//262 scanlines
     if (ppudead)
     {
