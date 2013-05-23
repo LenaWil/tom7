@@ -29,16 +29,29 @@ struct Emulator {
   // Make one emulator step with the given input.
   // Bits from MSB to LSB are
   //    RLDUTSBA (Right, Left, Down, Up, sTart, Select, B, A)
+  //
+  // Consider StepFull if you want video or CachingStep if you
+  // are doing search and might execute this same step again.
   static void Step(uint8 inputs);
 
   // Copy the 0x800 bytes of RAM.
   static void GetMemory(vector<uint8> *mem);
 
+  // Fancy stuff.
+
+  // Same, but run the video and sound code as well. This is slower,
+  // but allows calling GetImage. (XXX and soon, GetSound)
+  static void StepFull(uint8 inputs);
+
+  // Get image. StepFull must have been called to produce this frame,
+  // or else who knows what's in there?
+  static void GetImage(vector<uint8> *rgba);
+
+  // TODO: GetSound
+
   // Returns 64-bit checksum (based on MD5, endianness-dependent)
   // of RAM (only). Note there are other important bits of state.
   static uint64 RamChecksum();
-
-  // Fancy stuff.
 
   // Reset the state cache. Set the maximum number of states that can
   // be stored. (A state is a starting state, an input, and the output
