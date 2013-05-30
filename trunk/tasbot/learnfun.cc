@@ -15,7 +15,6 @@
 #include "tasbot.h"
 
 #include "fceu/utils/md5.h"
-#include "config.h"
 #include "fceu/driver.h"
 #include "fceu/drivers/common/args.h"
 #include "fceu/state.h"
