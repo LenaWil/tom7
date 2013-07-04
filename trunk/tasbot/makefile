@@ -118,7 +118,7 @@ tasbot.exe : $(OBJECTS) tasbot.o
 playfun.exe : $(OBJECTS) playfun.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-scopefun.exe : $(OBJECTS) $(PNGSAVE_OBJECTS) scopefun.o
+scopefun.exe : $(OBJECTS) $(PNGSAVE_OBJECTS) scopefun.o wave.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 emu_test.exe : $(OBJECTS) emu_test.o

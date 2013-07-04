@@ -15,6 +15,8 @@
 #include <hash_set>
 #endif
 
+#define TASBOT_SAMPLE_RATE 44100
+
 #ifdef __GNUC__
 namespace std {
 using namespace __gnu_cxx;
