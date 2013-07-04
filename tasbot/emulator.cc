@@ -205,6 +205,10 @@ static int DriverInitialize(FCEUGI *gi) {
   // No fourscore support.
   // eoptions &= ~EO_FOURSCORE;
 
+  // PERF: Consider the implications of using a high/low sample rate.
+  // This must be set for StepFull and GetSound to function.
+  FCEUI_Sound(TASBOT_SAMPLE_RATE);
+
   // Why do both point to the same joydata? -tom
   FCEUI_SetInput (0, SI_GAMEPAD, &joydata, 0);
   FCEUI_SetInput (1, SI_GAMEPAD, &joydata, 0);
