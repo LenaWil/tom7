@@ -1,8 +1,5 @@
-/* This program attempts to learn an objective function for a
-   particular game by watching movies of people playing it. The
-   objective function can then be used by (NONEXISTENT PROGRAM)
-   to try to play the game.
- */
+/* I think this is dead code ... */
+
 
 #include <unistd.h>
 #include <sys/types.h>

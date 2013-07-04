@@ -47,7 +47,9 @@ struct Emulator {
   // or else who knows what's in there?
   static void GetImage(vector<uint8> *rgba);
 
-  // TODO: GetSound
+  // Get sound. StepFull must have been called to produce this wave.
+  // The result is a vector of signed 16-bit samples, mono.
+  static void GetSound(vector<int16> *wav);
 
   // Returns 64-bit checksum (based on MD5, endianness-dependent)
   // of RAM (only). Note there are other important bits of state.
