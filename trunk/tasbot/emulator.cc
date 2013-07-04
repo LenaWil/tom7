@@ -13,6 +13,7 @@
 #include "fceu/utils/md5.h"
 #include "fceu/version.h"
 #include "fceu/state.h"
+#include "fceu/sound.h"
 
 #include "tasbot.h"
 #include "../cc-lib/city/city.h"
@@ -387,6 +388,18 @@ void Emulator::GetImage(vector<uint8> *rgba) {
       (*rgba)[y * 256 * 4 + x * 4 + 2] = b; // XBuf[(y * 256) + x] << 4;
       (*rgba)[y * 256 * 4 + x * 4 + 3] = 0xFF;
     }
+  }
+}
+
+void Emulator::GetSound(vector<int16> *wav) {
+  wav->clear();
+  int32 *buffer = NULL;
+  int samples = GetSoundBuffer(&buffer);
+  CHECK(buffer != NULL);
+
+  wav->resize(samples);
+  for (int i = 0; i < samples; i++) {
+    (*wav)[i] = (int16)buffer[i];
   }
 }
 
