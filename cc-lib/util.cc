@@ -140,7 +140,7 @@ bool Util::existsdir(string d) {
 }
 
 /* XXX what mode? */
-bool Util::makedir(string d) {
+bool Util::makedir(const string &d) {
 # if defined(WIN32) || defined(__MINGW32__)
   return !mkdir(d.c_str());
 # else /* posix */
