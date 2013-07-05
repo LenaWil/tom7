@@ -170,7 +170,7 @@ struct Color {
 static Color s_psdl[256];
 
 void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b) {
-  fprintf(stderr, "SetPalette %d = %2x,%2x,%2x\n", index, r, g, b);
+  // fprintf(stderr, "SetPalette %d = %2x,%2x,%2x\n", index, r, g, b);
   s_psdl[index].r = r;
   s_psdl[index].g = g;
   s_psdl[index].b = b;

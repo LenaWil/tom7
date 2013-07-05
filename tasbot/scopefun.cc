@@ -30,6 +30,7 @@
 #include "../cc-lib/textsvg.h"
 #include "pngsave.h"
 #include "wave.h"
+#include "../cc-lib/stb_image.h"
 
 #if MARIONET
 #include "SDL.h"
@@ -39,9 +40,30 @@
 using ::google::protobuf::Message;
 #endif
 
+struct Graphic {
+  // From a PNG file.
+  explicit Graphic(const string &filename) {
+    int bpp;
+    uint8 *stb_rgba = stbi_load(filename.c_str(), 
+				&width, &height, &bpp, 4);
+    CHECK(stb_rgba);
+    for (int i = 0; i < width * height * bpp; i++) {
+      rgba.push_back(stb_rgba[i]);
+    }
+    stbi_image_free(stb_rgba);
+    fprintf(stderr, "%s is %dx%d @%dbpp.\n", filename.c_str(), width, height, bpp);
+  }
+
+  int width, height;
+  vector<uint8> rgba;
+};
+
 struct ScopeFun {
   ScopeFun(const string &game,
-	   const string &moviename) : game(game) {
+	   const string &moviename) : 
+    controller("controller.png"),
+    controllerdown("controllerdown.png"),
+    game(game) {
 
     Emulator::Initialize(game + ".nes");
     objectives = WeightedObjectives::LoadFromFile(game + ".objectives");
@@ -146,16 +168,31 @@ struct ScopeFun {
 
   inline void WritePixel(int x, int y,
 			 uint8 r, uint8 g, uint8 b, uint8 a) {
-    /*
     CHECK(x >= 0);
     CHECK(y >= 0);
     CHECK(x < width);
     CHECK(y < height);
-    */
+
     rgba[y * width * 4 + x * 4 + 0] = r;
     rgba[y * width * 4 + x * 4 + 1] = g;
     rgba[y * width * 4 + x * 4 + 2] = b;
     rgba[y * width * 4 + x * 4 + 3] = 0xFF;
+  }
+
+  void BlitGraphicRect(const Graphic &graphic,
+		       int rectx, int recty,
+		       int rectw, int recth,
+		       int dstx, int dsty) {
+    Blit(graphic.width, graphic.height, rectx, recty,
+	 rectw, recth, dstx, dsty,
+	 graphic.rgba);
+  }
+
+  void BlitGraphic(const Graphic &graphic,
+		   int dstx, int dsty) {
+    Blit(graphic.width, graphic.height, 0, 0,
+	 graphic.width, graphic.height, dstx, dsty,
+	 graphic.rgba);
   }
 
   // Blit(256, 256, 0, 0, 256, 200, 0, 50, screens[i]);
@@ -317,6 +354,40 @@ struct ScopeFun {
     free(rgba4x);
   }
 
+  void DrawController(int x, int y, uint8 input) {
+    // Draw the regular controller first.
+    BlitGraphic(controller, x, y);
+
+    // Then the one with buttons pressed, in the region for each
+    // button.
+    if (input & INPUT_R) {
+      BlitGraphicRect(controllerdown, 9, 8, 5, 6, x + 9, y + 8);
+    }
+    if (input & INPUT_L) {
+      BlitGraphicRect(controllerdown, 2, 8, 5, 6, x + 2, y + 8);
+    }
+    if (input & INPUT_D) {
+      BlitGraphicRect(controllerdown, 5, 12, 6, 5, x + 5, y + 12);
+    }
+    if (input & INPUT_U) {
+      BlitGraphicRect(controllerdown, 5, 5, 6, 5, x + 5, y + 5);
+    }
+
+    if (input & INPUT_T) {
+      BlitGraphicRect(controllerdown, 23, 12, 7, 4, x + 23, y + 12);
+    }
+    if (input & INPUT_S) {
+      BlitGraphicRect(controllerdown, 16, 12, 7, 4, x + 16, y + 12);
+    }
+
+    if (input & INPUT_B) {
+      BlitGraphicRect(controllerdown, 32, 10, 7, 7, x + 32, y + 10);
+    }
+    if (input & INPUT_A) {
+      BlitGraphicRect(controllerdown, 40, 10, 7, 7, x + 40, y + 10);
+    }
+  }
+
   void SaveAV(const string &dir) {
     // Represents the memory BEFORE each frame. Will be one
     // larger than the movie size.
@@ -327,10 +398,15 @@ struct ScopeFun {
     static const int STARTFRAMES = 900;
     static const int MAXFRAMES = 1000;
     */
-    static const int STARTFRAMES = 280;
-    static const int MAXFRAMES = 6000;
+    // static const int STARTFRAMES = 280;
+    // static const int MAXFRAMES = 6000;
+    const int STARTFRAMES = 0;
+    const int MAXFRAMES = movie.size();
 
-    const string wavename = StringPrintf("test%d-%d.wav", STARTFRAMES, MAXFRAMES);
+    const string wavename = StringPrintf("%s/%s%d-%d.wav",
+					 dir.c_str(),
+					 game.c_str(),
+					 STARTFRAMES, MAXFRAMES);
     WaveFile wavefile(wavename);
 
     for (int i = 0; i < movie.size() && i < MAXFRAMES + 2; i++) {
@@ -364,6 +440,9 @@ struct ScopeFun {
 
       // Blit(256, 256, 0, 0, 128, 64, 0, 128, screens[i]);
       Blit(256, 256, 0, 0, 256, 256, 0, 0, screens[i]);
+
+      // Controller.
+      DrawController(16, height - controller.height, movie[i]);
 
       // Previous frame.
       {
@@ -400,9 +479,13 @@ struct ScopeFun {
 	WriteScoreTo(257 + 65, 66, objfacts);
       }
 
-      const string filename = StringPrintf("test%d.png", i);
+      const string filename = StringPrintf("%s/%s%d.png",
+					   dir.c_str(), game.c_str(), i);
       Save4x(filename);
-      fprintf(stderr, "Wrote %s.\n", filename.c_str());
+      int totalframes = min((int)movie.size(), MAXFRAMES) - STARTFRAMES;
+      fprintf(stderr, "Wrote %s (%.1f%%).\n",
+	      filename.c_str(),
+	      (100.0 * (i - STARTFRAMES)) / totalframes);
     }
 
     fprintf(stderr, "Done.\n");
@@ -413,6 +496,8 @@ struct ScopeFun {
   static const int width = 480;
   static const int height = 270;
   uint8 rgba[width * height * 4];
+
+  Graphic controller, controllerdown;
 
   WeightedObjectives *objectives;
   string game;
@@ -451,7 +536,7 @@ int main(int argc, char *argv[]) {
 
   ScopeFun pf(game, moviename);
   // XXX in some dir
-  string dir = "pngs";
+  string dir = game + "-movie";
   Util::makedir(dir);
   pf.SaveAV(dir);
 
