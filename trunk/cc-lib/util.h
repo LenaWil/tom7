@@ -147,7 +147,7 @@ struct Util {
   /* same as isdir */
   static bool existsdir(string);
 
-  static bool makedir(string);
+  static bool makedir(const string &s);
 
   /* try to launch the url with the default browser;
      doesn't work on all platforms. true on success */
