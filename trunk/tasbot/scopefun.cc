@@ -51,7 +51,8 @@ struct Graphic {
       rgba.push_back(stb_rgba[i]);
     }
     stbi_image_free(stb_rgba);
-    fprintf(stderr, "%s is %dx%d @%dbpp.\n", filename.c_str(), width, height, bpp);
+    fprintf(stderr, "%s is %dx%d @%dbpp.\n",
+	    filename.c_str(), width, height, bpp);
   }
 
   int width, height;
@@ -68,7 +69,7 @@ struct ScopeFun {
     Emulator::Initialize(game + ".nes");
     objectives = WeightedObjectives::LoadFromFile(game + ".objectives");
     CHECK(objectives);
-    fprintf(stderr, "Loaded %d objective functions\n", objectives->Size());
+    fprintf(stderr, "Loaded %d objective functions\n", (int)objectives->Size());
 
     // No reason to use caching since we make a single pass.
 
@@ -218,11 +219,16 @@ struct ScopeFun {
     }
   }
 
-  void WriteScoreTo(int xstart, int ystart,
-		    const vector<ObjFact> &objfacts) {
+  struct Score {
     static const int SCOREH = 32;
-    static const int SCOREW = 6;
+    Score(int green, int red, int blue) 
+      : green(green), red(red), blue(blue) {}
+    int green;
+    int red;
+    int blue;
+  };
 
+  Score GetScore(const vector<ObjFact> &objfacts) {
     double total = 0.0;
     double gtotal = 0.0, rtotal = 0.0;
     for (int i = 0; i < objfacts.size(); i++) {
@@ -234,23 +240,27 @@ struct ScopeFun {
       }
     }
 
-    int green = floor((gtotal / total) * SCOREH);
-    int red = floor((rtotal / total) * SCOREH);
-    int blue = SCOREH - red - green;
+    int green = floor((gtotal / total) * Score::SCOREH);
+    int red = floor((rtotal / total) * Score::SCOREH);
+    int blue = Score::SCOREH - red - green;
+    return Score(green, red, blue);
+  }
 
-    for (int y = 0; y < SCOREH; y++) {
+  void WriteScoreTo(int xstart, int ystart,
+		    Score score, int width) {
+    for (int y = 0; y < Score::SCOREH; y++) {
       uint8 r, g, b;
-      if (y < blue) {
+      if (y < score.blue) {
 	r = g = 0;
 	b = 0x7F;
-      } else if (y < blue + red) {
+      } else if (y < score.blue + score.red) {
 	b = g = 0;
 	r = 0xCC;
       } else {
 	r = b = 0;
 	g = 0xCC;
       }
-      for (int x = 0; x < SCOREW; x++) {
+      for (int x = 0; x < width; x++) {
 	WritePixel(x + xstart, y + ystart, r, g, b, 0xFF);
       }
     }
@@ -307,6 +317,36 @@ struct ScopeFun {
 	HSV(hue, saturation, value, &r, &g, &b);
 
 	WritePixel(x + xstart, y + ystart, r, g, b, 0xFF);
+      }
+    }
+  }
+
+  void WriteNormalizedTo(int x, int y, 
+			 const vector< vector<uint8> > &memories,
+			 const vector<uint32> &colors,
+			 // Index of most recent memory to look at.
+			 int now,
+			 int width, int height) {
+    // consider using non-linear window into past
+    for (int col = 0; col <= width; col++) {
+      // Which memory?
+      int idx = now - col;
+      if (idx < 0) break;
+      const vector<uint8> &mem = memories[idx];
+      vector<double> vfs = objectives->GetNormalizedValues(mem);
+      CHECK(vfs.size() == colors.size());
+      for (int i = 0; i < vfs.size(); i++) {
+	CHECK(0.0 <= vfs[i]);
+	CHECK(vfs[i] <= 1.0);
+
+	const uint32 color = colors[i];
+	uint8 r = 255 & (color >> 24);
+	uint8 g = 255 & (color >> 16);
+	uint8 b = 255 & (color >> 8);
+	uint8 a = 255 & (color >> 0);
+	// consider anti-aliasing
+	double yoff = height * (1.0 - vfs[i]);
+	WritePixel(x + col, y + floor(yoff), r, g, b, a);
       }
     }
   }
@@ -388,6 +428,21 @@ struct ScopeFun {
     }
   }
 
+  void WriteScoreAndHistoryTo(int x, int y, const vector<ObjFact> &objfacts,
+			      vector<Score> *history,
+			      int width) {
+    Score score = GetScore(objfacts);
+    WriteScoreTo(x, y, score, 6);
+    width -= 7;
+    for (int i = 0; i < width; i++) {
+      if (i >= history->size()) break;
+      
+      const int fromback = (history->size() - 1) - i;
+      WriteScoreTo(x + 7 + i, y, history->at(fromback), 1);
+    }
+    history->push_back(score);
+  }
+
   void SaveAV(const string &dir) {
     // Represents the memory BEFORE each frame. Will be one
     // larger than the movie size.
@@ -403,18 +458,34 @@ struct ScopeFun {
     const int STARTFRAMES = 0;
     const int MAXFRAMES = movie.size();
 
-    const string wavename = StringPrintf("%s/%s%d-%d.wav",
+    const string wavename = StringPrintf("%s/%s-%d-%d.wav",
 					 dir.c_str(),
 					 game.c_str(),
 					 STARTFRAMES, MAXFRAMES);
     WaveFile wavefile(wavename);
 
+    // Come up with colors.
+    vector<uint32> colors;
+    ArcFour rc("scopefun");
+    for (int i = 0; i < objectives->Size(); i++) {
+      colors.push_back(RandomBrightColor(&rc));
+    }
+
+    // True once an input has been nonempty.
+    bool started = false;
+
     for (int i = 0; i < movie.size() && i < MAXFRAMES + 2; i++) {
       vector<uint8> mem, screen;
       Emulator::GetMemory(&mem);
       memories.push_back(mem);
+
+      // Values.
+      if (started) objectives->Observe(mem);
+
       if (i % 100 == 0) fprintf(stderr, "%d.\n", i);
       Emulator::StepFull(movie[i]);
+      // Once we've pressed a button, we've started.
+      if (movie[i]) started = true;
 
       // Image.
       Emulator::GetImage(&screen);
@@ -430,15 +501,19 @@ struct ScopeFun {
       vector<uint8> mem_last;
       Emulator::GetMemory(&mem_last);
       memories.push_back(mem_last);
+      if (started) objectives->Observe(mem_last);
     }
 
     wavefile.Close();
     fprintf(stderr, "Wrote sound.\n");
 
+    vector<Score> comp_one, comp_ten, comp_hundred;
     for (int i = STARTFRAMES; i < movie.size() && i < MAXFRAMES; i++) {
       ClearBuffer();
 
       // Blit(256, 256, 0, 0, 128, 64, 0, 128, screens[i]);
+      // XXX Note, the real height of the video is less than 256.
+      // Might want to crop.
       Blit(256, 256, 0, 0, 256, 256, 0, 0, screens[i]);
 
       // Controller.
@@ -452,7 +527,8 @@ struct ScopeFun {
 	MakeMemFacts(memories[i], memories[i + 1],
 		     &facts, &objfacts, &total_weight);
 	WriteRAMTo(257, 0, memories[i + 1], facts, total_weight);
-	WriteScoreTo(257 + 65, 0, objfacts);
+
+	WriteScoreAndHistoryTo(257 + 65, 0, objfacts, &comp_one, 156);
       }
       
       // Ten frames.
@@ -464,7 +540,7 @@ struct ScopeFun {
 	MakeMemFacts(memories[i - 9], memories[i + 1],
 		     &facts, &objfacts, &total_weight);
 	WriteRAMTo(257, 33, memories[i + 1], facts, total_weight);
-	WriteScoreTo(257 + 65, 33, objfacts);
+	WriteScoreAndHistoryTo(257 + 65, 33, objfacts, &comp_ten, 156);
       }
 
       // One hundred frames.
@@ -476,10 +552,13 @@ struct ScopeFun {
 	MakeMemFacts(memories[i - 99], memories[i + 1], 
 		     &facts, &objfacts, &total_weight);
 	WriteRAMTo(257, 66, memories[i + 1], facts, total_weight);
-	WriteScoreTo(257 + 65, 66, objfacts);
+	Score score = GetScore(objfacts);
+	WriteScoreAndHistoryTo(257 + 65, 66, objfacts, &comp_hundred, 156);
       }
 
-      const string filename = StringPrintf("%s/%s%d.png",
+      WriteNormalizedTo(257, 99, memories, colors, i, 222, 156);
+
+      const string filename = StringPrintf("%s/%s-%d.png",
 					   dir.c_str(), game.c_str(), i);
       Save4x(filename);
       int totalframes = min((int)movie.size(), MAXFRAMES) - STARTFRAMES;
@@ -535,7 +614,6 @@ int main(int argc, char *argv[]) {
   CHECK(!moviename.empty());
 
   ScopeFun pf(game, moviename);
-  // XXX in some dir
   string dir = game + "-movie";
   Util::makedir(dir);
   pf.SaveAV(dir);

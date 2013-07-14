@@ -17,11 +17,21 @@
 using namespace std;
 
 struct WeightedObjectives::Info {
-  explicit Info(double w) : weight(w) {}
+  explicit Info(double w) : weight(w), is_sorted(true) {}
   double weight;
 
   // Sorted, ascending.
+  double is_sorted;  
   vector< vector<uint8> > observations;
+
+  const vector< vector<uint8> > &GetObservations() {
+    if (!is_sorted) {
+      std::sort(observations.begin(), observations.end());
+      is_sorted = true;
+    }
+
+    return observations;
+  }
 };
 
 WeightedObjectives::WeightedObjectives() {}
@@ -111,9 +121,7 @@ void WeightedObjectives::Observe(const vector<uint8> &memory) {
       cur->push_back(memory[obj[i]]);
     }
 
-    // PERF sorted insert is O(n/2); dunno how std::sort
-    // behaves on nearly-sorted vectors.
-    std::sort(info->observations.begin(), info->observations.end());
+    info->is_sorted = false;
 
     // Maybe should just keep the unique values? Otherwise
     // lower_bound is doing something kind of funny when there
@@ -245,14 +253,12 @@ static inline double GetValueFrac(const vector< vector<uint8> > &values,
   return (double)idx / values.size();
 }
 
-double WeightedObjectives::GetNormalizedValue(const vector<uint8> &mem) 
-  const {
+double WeightedObjectives::GetNormalizedValue(const vector<uint8> &mem) {
   double sum = 0.0;
 
-  for (Weighted::const_iterator it = weighted.begin();
-       it != weighted.end(); ++it) {
+  for (Weighted::iterator it = weighted.begin(); it != weighted.end(); ++it) {
     const vector<int> &obj = it->first;
-    const Info &info = *it->second;
+    Info *info = &*it->second;
     
     vector<uint8> cur;
     cur.reserve(obj.size());
@@ -260,11 +266,30 @@ double WeightedObjectives::GetNormalizedValue(const vector<uint8> &mem)
       cur.push_back(mem[obj[i]]);
     }
 
-    sum += GetValueFrac(info.observations, cur);
+    sum += GetValueFrac(info->GetObservations(), cur);
   }
 
   sum /= (double)weighted.size();
   return sum;
+}
+
+vector<double> WeightedObjectives::
+GetNormalizedValues(const vector<uint8> &mem) {
+  vector<double> out;
+  for (Weighted::iterator it = weighted.begin(); it != weighted.end(); ++it) {
+    const vector<int> &obj = it->first;
+    Info *info = &*it->second;
+    
+    vector<uint8> cur;
+    cur.reserve(obj.size());
+    for (int i = 0; i < obj.size(); i++) {
+      cur.push_back(mem[obj[i]]);
+    }
+
+    out.push_back(GetValueFrac(info->GetObservations(), cur));
+  }
+
+  return out;
 }
 
 void WeightedObjectives::WeightByExamples(const vector< vector<uint8> >

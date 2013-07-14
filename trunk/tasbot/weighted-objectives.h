@@ -47,10 +47,10 @@ struct WeightedObjectives {
   //
   // Currently, calling this reserves (forever) memory proportional to
   // the total size (number of positions) of the objective functions.
-  // It's also quadratic time (in the number of calls), in order to
-  // make scoring the objectives logarithmic and to try to preserve
-  // memory. It should be called for "big" state transitions during
-  // exploration, not each step of speculative search.
+  // It postpones a sort of the entire array; the next call to
+  // GetNormalizedValue will incur this cost. It should be called for
+  // "big" state transitions during exploration, not each step of
+  // speculative search.
   void Observe(const vector<uint8> &memory);
 
   // Get the (current) value of the memory in terms of observations.
@@ -58,7 +58,13 @@ struct WeightedObjectives {
   // function relative to the values we've seen before for it; 1 means
   // that this is the higest value we've ever seen for that objective.
   // Does not observe the memory.
-  double GetNormalizedValue(const vector<uint8> &memory) const;
+  // Morally const, but lazily sorts the observations if needed.
+  double GetNormalizedValue(const vector<uint8> &memory);
+
+  // As above, but rather than producing a single value for all objectives,
+  // returns one value fraction per objective, in a consistent order.
+  // Weights are ignored.
+  vector<double> GetNormalizedValues(const vector<uint8> &memory);
 
   // XXX weighted version, unnormalized version?
   std::vector< std::pair<const std::vector<int> *, double> > GetAll() const;

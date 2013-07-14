@@ -81,6 +81,28 @@ inline string RandomColor(ArcFour *rc) {
                       rr & rc->Byte(), gg & rc->Byte(), bb & rc->Byte());
 }
 
+// As RGBA, for black backgrounds.
+inline uint32 RandomBrightColor(ArcFour *rc) {
+  // For a black background there must be at least one color channel that
+  // is half on. One of the three color channels gets a mask that turns
+  // its top bit on.
+  uint8 rr = 128, gg = 0, bb = 0;
+  for (int i = 0; i < 30; i++) {
+    if (rc->Byte() & 1) {
+      uint8 tt = rr;
+      rr = gg;
+      gg = bb;
+      bb = tt;
+    }
+  }
+
+  return ((rr | rc->Byte()) << 24) |
+    ((gg | rc->Byte()) << 16) |
+    ((bb | rc->Byte()) << 8) |
+    255;
+}
+
+
 // Random double in [0,1]. Note precision issues.
 inline double RandomDouble(ArcFour *rc) {
   return (double)RandomInt32(rc) / (double)(uint32)0xFFFFFFFF;
