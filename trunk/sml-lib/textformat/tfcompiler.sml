@@ -114,13 +114,25 @@ struct
       "  infix 2 ^^\n" ^
       "  fun $s : dll' = let val r = ref NONE in (D'(s, r), r) end\n" ^
 
-      (* PERF this sort of misses the point. *)
+      (* TODO Check that this CharArray stuff is portable and
+         the fastest way. *)
       "  fun dlltostring (head, _) =\n" ^
-      "    let fun dts (D' (s, r)) =\n" ^
-      "          case !r of\n" ^
-      "             NONE => s\n" ^
-      "           | SOME d => s ^ dts d\n" ^
-      "    in dts head\n" ^
+      "    let\n" ^
+      "      fun getsize (D' (s, r)) =\n" ^
+      "        case !r of\n" ^
+      "          NONE => size s\n" ^
+      "        | SOME d => size s + getsize d\n" ^
+      "      val a = CharArray.array(getsize head, chr 0)\n" ^
+      "      fun dts (D' (s, r), idx) =\n" ^
+      "        let in\n" ^
+      "          CharArray.copyVec { src = s, dst = a, di = idx };\n" ^
+      "          (case !r of\n" ^
+      "             NONE => ()\n" ^
+      "           | SOME d => dts (d, idx + size s))\n" ^
+      "        end\n" ^
+      "    in\n" ^
+      "      dts (head, 0);\n" ^
+      "      CharArray.vector a\n" ^
       "    end\n" ^
 
       (* Like String.concat. *)
@@ -727,3 +739,4 @@ struct
       end
 
 end
+
