@@ -1,10 +1,10 @@
 
 # Makefile made by tom7.
-default: playfun.exe learnfun.exe scopefun.exe
+default: playfun.exe learnfun.exe scopefun.exe pinviz.exe
 # tasbot.exe
 # emu_test.exe
 
-all: playfun.exe tasbot.exe emu_test.exe objective_test.exe learnfun.exe weighted-objectives_test.exe
+all: playfun.exe tasbot.exe emu_test.exe objective_test.exe learnfun.exe weighted-objectives_test.exe pinviz.exe
 
 # GPP=
 
@@ -119,6 +119,9 @@ playfun.exe : $(OBJECTS) playfun.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 scopefun.exe : $(OBJECTS) $(PNGSAVE_OBJECTS) scopefun.o wave.o
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+pinviz.exe : $(OBJECTS) $(PNGSAVE_OBJECTS) pinviz.o wave.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 emu_test.exe : $(OBJECTS) emu_test.o
