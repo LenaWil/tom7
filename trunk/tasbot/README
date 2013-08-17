@@ -1,4 +1,4 @@
- TASBOT                                     Tom 7         10 Apr 2013
+ Learnfun & Playfun                          Tom 7       17 August 2013
 
  Experimental code for automating the play of NES games.
  This directory contains some false starts and the playfun and learnfun
@@ -25,15 +25,12 @@
  the instructions on http://mingw-w64.sourceforge.net/ to make sure
  that it's running the right binary (this is all so very confusing),
  but I installed via cygwin and that worked and so that was +1 for
- cygwin.
+ cygwin. This part is super annoying and I'm not good at it either.
 
-
- For most of these programs you need to make modifications to the
- source code (e.g. game.h) to set some constants, like what game and
- what movie you want to learn:
-
- tasbot   - A*-ish search for solutions to games. Needs a hand-written
-            objective function. Very slow.
+ It's now possible to use learnfun and playfun as executables if you
+ have a 64-bit windows computer. For anything serious you'll want to
+ be able to compile, since many constants are just embedded in the
+ source code.
 
  learnfun - learns a lexicographic ordering of RAM values, as well as
             capturing input motifs, that can be used to automatically
@@ -42,6 +39,8 @@
  playfun  - plays the game given the output of learnfun. More or less
             works for "easy" games like Super Mario Bros.
 
+ You should read the paper at tom7.org/mario, or at least watch the
+ video, to understand the basics.
 
  Learnfun and Playfun work well enough to play "easy" games without
  any customization. The steps are:
@@ -61,25 +60,27 @@
    doing, anyway. You might consider editing the training data to
    be cheating. Up to you.
 
- - Modify game.h to set the name of your movie. You can also define
-   FASTFORWARD to skip any number of frames (copying them from your
-   movie), like if you want to skip menus. This is obviously cheating.
-   The BASE64 doesn't really matter, but it makes the FM2 files that
-   playfun generates be valid, which avoids warnings in the emulator
-   later.
+ - Modify config.txt to contain e.g.
 
- - Rebuild learnfun and playfun (see HACKING). They compile in the
-   constants in game.h.
+   game zelda
+   movie me-playing-zelda.fm2
+
+   and make sure you have a file called "zelda.nes" in the current
+   directory as well as the FM2 file you made, called
+   "me-playing-zelda.fm2".
 
  - Run ./learnfun.exe to produce an .objectives and .motifs file
    based on your inputs. It also makes some SVGs that are optional.
+   The outputs are all based on the game name from the config file.
+   This is usually pretty fast.
 
- - I recommend running Playfun in MARIONET mode. I don't even think
-   single-cpu mode really works any more and it's very slow (you would
-   at least need to turn down the constants like NFUTURES). This means
-   first starting a helper for each logical CPU (this is probably 2x
-   the number of cores, since you probably have a hyperthreaded CPU),
-   then a single master:
+ - Now you want to run Playfun to automate playing the game. It uses
+   the same config file. I strongly recommend running Playfun in
+   MARIONET mode. I don't even think single-cpu mode really works any
+   more and it's very slow (you would at least need to turn down the
+   constants like NFUTURES). This means first starting a helper for
+   each logical CPU (this is probably 2x the number of cores, since
+   you probably have a hyperthreaded CPU), then a single master.
 
    ./playfun.exe --helper 8000
    ./playfun.exe --helper 8001
@@ -87,6 +88,8 @@
    ./playfun.exe --helper 8003
    ./playfun.exe --helper 8004
    ./playfun.exe --helper 8005
+
+   (wait until each helper says Ready.)
  
    ./playfun.exe --master 8000 8001 8002 8003 8004 8005
 
@@ -103,3 +106,20 @@
    very slow; on a 6-core Intel Extreme whatever, I often run it
    for many days to produce a few minutes of gameplay.
 
+ - You can load up the fm2 files it outputs in an emulator to
+   watch them play the original ROM. You should probably use FCEUX,
+   since many emulators have subtle differences.
+
+ Other stuff in here:
+
+ scopefun - Generates a series of PNGs and a WAV file containing the
+            frames and sound from a .fm2 movie and learnfun's objectives.
+            I used this to make my second playfun video, which will
+            be up at tom7.org/mario soon.
+
+ tasbot   - A*-ish search for solutions to games. Needs a hand-written
+            objective function. Very slow.
+
+ pinviz   - Creates a graphic showing the distribution of the ball
+            in the three screens from the NES game Pinball. This was
+            a write and run once kind of thing.

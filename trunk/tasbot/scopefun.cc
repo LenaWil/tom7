@@ -61,10 +61,12 @@ struct Graphic {
 
 struct ScopeFun {
   ScopeFun(const string &game,
-	   const string &moviename) : 
+	   const string &moviename,
+	   int sf, int mf, bool so) : 
     controller("controller.png"),
     controllerdown("controllerdown.png"),
-    game(game) {
+    game(game),
+    soundonly(so) {
 
     Emulator::Initialize(game + ".nes");
     objectives = WeightedObjectives::LoadFromFile(game + ".objectives");
@@ -74,8 +76,20 @@ struct ScopeFun {
     // No reason to use caching since we make a single pass.
 
     movie = SimpleFM2::ReadInputs(moviename);
+    
+    if (sf < 0) sf = 0;
+    if (!mf) mf = movie.size();
+    startframe = sf;
+    maxframe = mf;
+
+    rgba4x = (uint8 *) malloc(sizeof (uint8) * (width * 4) * (height * 4) * 4);
+    CHECK(rgba4x);
 
     ClearBuffer();
+
+    if (soundonly) {
+      fprintf(stderr, "sound-only mode.\n");
+    }
   }
 
   // Make opaque black.
@@ -178,6 +192,21 @@ struct ScopeFun {
     rgba[y * width * 4 + x * 4 + 1] = g;
     rgba[y * width * 4 + x * 4 + 2] = b;
     rgba[y * width * 4 + x * 4 + 3] = 0xFF;
+  }
+
+  inline void WritePixelTo(int x, int y,
+			   uint8 r, uint8 g, uint8 b, uint8 a,
+			   uint8 *vec,
+			   int ww, int hh) {
+    CHECK(x >= 0);
+    CHECK(y >= 0);
+    CHECK(x < ww);
+    CHECK(y < hh);
+    
+    vec[y * ww * 4 + x * 4 + 0] = r;
+    vec[y * ww * 4 + x * 4 + 1] = g;
+    vec[y * ww * 4 + x * 4 + 2] = b;
+    vec[y * ww * 4 + x * 4 + 3] = 0xFF;
   }
 
   void BlitGraphicRect(const Graphic &graphic,
@@ -326,7 +355,9 @@ struct ScopeFun {
 			 const vector<uint32> &colors,
 			 // Index of most recent memory to look at.
 			 int now,
-			 int width, int height) {
+			 int width, int height,
+			 int surfw, int surfh,
+			 uint8 *surf) {
     // consider using non-linear window into past
     for (int col = 0; col <= width; col++) {
       // Which memory?
@@ -346,17 +377,16 @@ struct ScopeFun {
 	uint8 a = 255 & (color >> 0);
 	// consider anti-aliasing
 	double yoff = height * (1.0 - vfs[i]);
-	WritePixel(x + col, y + floor(yoff), r, g, b, a);
+	WritePixelTo(x + col, y + floor(yoff), r, g, b, a, surf, surfw, surfh);
       }
     }
   }
 
-  void Save4x(const string &filename) {
+  void CopyTo4x() {
     const int PXSIZE = 4;
     const int BPP = 4;
     const int width4x = width * PXSIZE;
-    const int height4x = height * PXSIZE;
-    uint8 *rgba4x = (uint8 *)malloc(sizeof (uint8) * width4x * height4x * BPP);
+    // const int height4x = height * PXSIZE;
     // gives offset of start of rgba in the regular size pixel array for
     // the small pixel coordinate (x, y)
 #   define SMALLPX(x, y) ((y) * width * BPP + (x) * BPP)
@@ -390,8 +420,14 @@ struct ScopeFun {
 #   undef PXOFFSET
 #   undef BIGPX
 #   undef SMALLPX
+  }
+
+
+  void Save4x(const string &filename) {
+    static const int PXSIZE = 4;
+    const int width4x = width * PXSIZE;
+    const int height4x = height * PXSIZE;
     CHECK(PngSave::SaveAlpha(filename, width4x, height4x, rgba4x));
-    free(rgba4x);
   }
 
   void DrawController(int x, int y, uint8 input) {
@@ -449,14 +485,10 @@ struct ScopeFun {
     vector< vector<uint8> > memories;
     // Screen AFTER each frame.
     vector< vector<uint8> > screens;
-    /*
-    static const int STARTFRAMES = 900;
-    static const int MAXFRAMES = 1000;
-    */
-    // static const int STARTFRAMES = 280;
-    // static const int MAXFRAMES = 6000;
-    const int STARTFRAMES = 0;
-    const int MAXFRAMES = movie.size();
+
+    // XXX inline, rename
+    const int STARTFRAMES = startframe;
+    const int MAXFRAMES = maxframe;
 
     const string wavename = StringPrintf("%s/%s-%d-%d.wav",
 					 dir.c_str(),
@@ -507,6 +539,8 @@ struct ScopeFun {
     wavefile.Close();
     fprintf(stderr, "Wrote sound.\n");
 
+    if (soundonly) return;
+
     vector<Score> comp_one, comp_ten, comp_hundred;
     for (int i = STARTFRAMES; i < movie.size() && i < MAXFRAMES; i++) {
       ClearBuffer();
@@ -517,7 +551,7 @@ struct ScopeFun {
       Blit(256, 256, 0, 0, 256, 256, 0, 0, screens[i]);
 
       // Controller.
-      DrawController(16, height - controller.height, movie[i]);
+      DrawController(16, height - (controller.height + 1), movie[i]);
 
       // Previous frame.
       {
@@ -556,10 +590,15 @@ struct ScopeFun {
 	WriteScoreAndHistoryTo(257 + 65, 66, objfacts, &comp_hundred, 156);
       }
 
-      WriteNormalizedTo(257, 99, memories, colors, i, 222, 156);
+      CopyTo4x();
+
+      // WriteNormalizedTo(257, 99, memories, colors, i, 222, 156);
+      WriteNormalizedTo(257 * 4, 99 * 4, memories, colors, i, 222 * 4, 156 * 4,
+			width * 4, height * 4, rgba4x);
 
       const string filename = StringPrintf("%s/%s-%d.png",
 					   dir.c_str(), game.c_str(), i);
+
       Save4x(filename);
       int totalframes = min((int)movie.size(), MAXFRAMES) - STARTFRAMES;
       fprintf(stderr, "Wrote %s (%.1f%%).\n",
@@ -570,17 +609,21 @@ struct ScopeFun {
     fprintf(stderr, "Done.\n");
   }
 
+  int startframe, maxframe;
+
   // Was 220x240.
   // 1/4 HD = 480x270
   static const int width = 480;
   static const int height = 270;
   uint8 rgba[width * height * 4];
+  uint8 *rgba4x;
 
   Graphic controller, controllerdown;
 
   WeightedObjectives *objectives;
   string game;
   vector<uint8> movie;
+  const bool soundonly;
 };
 
 /**
@@ -612,8 +655,12 @@ int main(int argc, char *argv[]) {
   }
   CHECK(!game.empty());
   CHECK(!moviename.empty());
+  
+  int startframe = atoi(config["startframe"].c_str());
+  int maxframe = atoi(config["maxframe"].c_str());
+  bool soundonly = !config["soundonly"].empty();
 
-  ScopeFun pf(game, moviename);
+  ScopeFun pf(game, moviename, startframe, maxframe, soundonly);
   string dir = game + "-movie";
   Util::makedir(dir);
   pf.SaveAV(dir);
