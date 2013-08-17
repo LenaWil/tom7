@@ -25,7 +25,9 @@
  the instructions on http://mingw-w64.sourceforge.net/ to make sure
  that it's running the right binary (this is all so very confusing),
  but I installed via cygwin and that worked and so that was +1 for
- cygwin. This part is super annoying and I'm not good at it either.
+ cygwin. You will also need Google's protocol buffers to compile the
+ network stuff. This part is super annoying and I'm not good at it
+ either.
 
  It's now possible to use learnfun and playfun as executables if you
  have a 64-bit windows computer. For anything serious you'll want to
