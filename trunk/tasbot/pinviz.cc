@@ -330,7 +330,7 @@ struct PinViz {
 	// Fake luminance...
 	double lum = max(r, max(g, b));
 
-	if (!black && maxv < 0.20) {
+	if (!black /* && maxv < 0.20 */) {
 	  darkest = min(darkest, lum);
 	  lightest = max(lightest, lum);
 	}
