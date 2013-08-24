@@ -20,13 +20,16 @@ class Game extends MovieClip {
   var playerbml : BitmapData = null;
 
   var gamebm : BitmapData = null;
+  var timerbm : BitmapData = null;
+  var barbm : BitmapData = null;
 
   // Bitmap data for each block.
   var blockbms = [];
-  // Smooth horizontally
-  var hsmoothbms = [];
-  // Smooth vertically
-  var vsmoothbms = [];
+
+  var NORMAL = 0;
+  var VSMOOTH = 1;
+  var HSMOOTH = 2;
+  var ICONS = 1;
 
   var info : Info = null;
 
@@ -49,6 +52,13 @@ class Game extends MovieClip {
   var grid = [];
   // All the blocks currently around.
   var blocks = [];
+
+  // The points coming up.
+  var points = [];
+  // The current point.
+  var currentpoint = 0;
+  // Frames left in this point.
+  var framesinpoint = 0;
 
   // Directions.
   var VERT = -1;
@@ -175,7 +185,6 @@ class Game extends MovieClip {
 	  }
 	}
 	
-	// XXX right too.
       } else if (blocks[i].dir == VERT) {
 
 	// Try extending up
@@ -239,9 +248,22 @@ class Game extends MovieClip {
     animframe++;
     if (animframe > 1000000) animframe = 0;
 
+    // XXX off by one?
+    if (framesinpoint == 0) {
+      nextpoint();
+    } else {
+      framesinpoint--;
+    }
+
     playerPhysics();
 
     redraw();
+  }
+
+  public function nextpoint() {
+    var p = points.shift();
+    currentpoint = p;
+    framesinpoint = 10 * FPS;
   }
 
   // This is for testing pixel-level physics like the player
@@ -540,30 +562,37 @@ class Game extends MovieClip {
 
     blocksbm = loadBitmap2x('blocks.png');    
     playerbm = loadBitmap2x('player.png');
+    barbm = loadBitmap2x('bar.png');
     playerbml = flipHoriz(playerbm);
 
     // Cut it up into the bitmaps.
-    var tofill = [blockbms, vsmoothbms, hsmoothbms];
+    var NVARIATIONS = 3;
     for (var i = 0; i < NBLOCKS; i++) {
-      for (var a = 0; a < tofill.length; a++) {
+      blockbms.push([]);
+      for (var a = 0; a < NVARIATIONS; a++) {
 	// Just shift the whole graphic so that only
 	// the desired block shows.
 	var cropbig = new Matrix();
 	cropbig.translate(-BLOCKW * SCALE * i, -BLOCKH * SCALE * a);
 	var b = new BitmapData(BLOCKW * SCALE, BLOCKH * SCALE, true, 0);
 	b.draw(blocksbm, cropbig);
-	tofill[a][i] = b;
+	blockbms[i].push(b);
       }
     }
 
     gamebm = new BitmapData(BLOCKW * SCALE * TILESW,
 			    BLOCKW * SCALE * TILESH,
-			    true,
-			    0);
-
+			    true, 0);
     _root.gamemc = createGlobalMC('game', gamebm, GAMEDEPTH);
     _root.gamemc._x = BOARDX * SCALE;
     _root.gamemc._y = BOARDY * SCALE;
+
+    timerbm = new BitmapData(BLOCKW * SCALE * TILESW,
+			     BLOCKW * SCALE * TILESH,
+			     true, 0);
+    _root.timermc = createGlobalMC('timer', timerbm, TIMERDEPTH);
+    _root.timermc._x = TIMERX * SCALE;
+    _root.timermc._y = TIMERY * SCALE;
 
     backgroundbm = loadBitmap2x('background.png');
     _root.backgroundmc = createGlobalMC('bg', backgroundbm, BGIMAGEDEPTH);
@@ -596,7 +625,7 @@ class Game extends MovieClip {
     capm.translate(xx, yy);
     var capc = new Rectangle(xx, yy, 
 			     CAPW * SCALE, BLOCKH * SCALE);
-    gamebm.draw(blockbms[b.what], capm, null, null, capc);
+    gamebm.draw(blockbms[b.what][NORMAL], capm, null, null, capc);
   }
 
   public function hendcap(b, bx) {
@@ -609,7 +638,7 @@ class Game extends MovieClip {
     capm.translate(capxx - (BLOCKW - CAPW) * SCALE, capyy);
     var capc = new Rectangle(capxx, capyy,
 			     CAPW * SCALE, BLOCKH * SCALE);
-    gamebm.draw(blockbms[b.what], capm, null, null, capc);
+    gamebm.draw(blockbms[b.what][NORMAL], capm, null, null, capc);
   }
 
   public function vstartcap(b, by) {
@@ -619,7 +648,7 @@ class Game extends MovieClip {
     capm.translate(xx, yy);
     var capc = new Rectangle(xx, yy, 
 			     BLOCKW * SCALE, CAPW * SCALE);
-    gamebm.draw(blockbms[b.what], capm, null, null, capc);
+    gamebm.draw(blockbms[b.what][NORMAL], capm, null, null, capc);
   }
 
   public function vendcap(b, by) {
@@ -632,7 +661,25 @@ class Game extends MovieClip {
     capm.translate(capxx, capyy - (BLOCKH - CAPW) * SCALE);
     var capc = new Rectangle(capxx, capyy,
 			     BLOCKW * SCALE, CAPW * SCALE);
-    gamebm.draw(blockbms[b.what], capm, null, null, capc);
+    gamebm.draw(blockbms[b.what][NORMAL], capm, null, null, capc);
+  }
+
+  public function drawtimer() {
+    clearBitmap(timerbm);
+    var frac = framesinpoint / (10 * FPS);
+    var skipfrac = 1.0 - frac;
+    var skippixels = int(skipfrac * TIMERW);
+    var keeppixels = TIMERW - skippixels;
+
+    var m = new Matrix();
+    m.translate(0, 0);
+    var c = new Rectangle(skippixels * SCALE, 0,
+			  keeppixels * SCALE, TIMERH * SCALE);
+    timerbm.draw(barbm, m, null, null, c);
+  }
+
+  public function drawpoints() {
+    // TODO
   }
 
   public function redraw() {
@@ -648,6 +695,9 @@ class Game extends MovieClip {
 		    ' dy: ' + toDecimal(playerdy, 1000) +
 		    ' fx: ' + toDecimal(playerfx, 1000) +
 		    ' fy: ' + toDecimal(playerfy, 1000));
+
+    drawtimer();
+    drawpoints();    
 
     // XXX when player is wrapping around screen, need
     // to draw up to 4 playermcs...
@@ -679,7 +729,7 @@ class Game extends MovieClip {
 	place.translate(b.x * BLOCKW * SCALE,
 			b.y * BLOCKW * SCALE);
 
-	gamebm.draw(blockbms[b.what], place);
+	gamebm.draw(blockbms[b.what][NORMAL], place);
 
       } else if (b.dir == HORIZ) {
 
@@ -690,7 +740,7 @@ class Game extends MovieClip {
 	  place.translate(sx * BLOCKW * SCALE,
 			  b.y * BLOCKW * SCALE);
 	  
-	  gamebm.draw(hsmoothbms[b.what], place);
+	  gamebm.draw(blockbms[b.what][HSMOOTH], place);
 	}
 
 	// And gap...
@@ -703,7 +753,7 @@ class Game extends MovieClip {
 	gapm.translate(xx, yy);
 	var gapc = new Rectangle(xx, yy, (BLOCKW - xdone) * SCALE,
 				 BLOCKH * SCALE);
-	gamebm.draw(hsmoothbms[b.what], gapm, null, null, gapc);
+	gamebm.draw(blockbms[b.what][HSMOOTH], gapm, null, null, gapc);
 
 	// And end cap...
 	// Position of last block.
@@ -719,7 +769,7 @@ class Game extends MovieClip {
 	  var gapc = new Rectangle(xx, yy, 
 				   xneed * SCALE,
 				   BLOCKH * SCALE);
-	  gamebm.draw(hsmoothbms[b.what], gapm, null, null, gapc);
+	  gamebm.draw(blockbms[b.what][HSMOOTH], gapm, null, null, gapc);
 	}
 
 	// Caps last, since for short segments, gaps could overlap
@@ -738,7 +788,6 @@ class Game extends MovieClip {
 	
       } else if (b.dir == VERT) {
 
-
 	// Draw midsection using smoothie.
 	for (var y = 1; y < b.len - 1; y++) {
 	  var place = new Matrix();
@@ -746,7 +795,7 @@ class Game extends MovieClip {
 	  place.translate(b.x * BLOCKW * SCALE,
 			  sy * BLOCKH * SCALE);
 	  
-	  gamebm.draw(vsmoothbms[b.what], place);
+	  gamebm.draw(blockbms[b.what][VSMOOTH], place);
 	}
 
 	var blast = (b.y + b.len - 1) % TILESH;
@@ -763,7 +812,7 @@ class Game extends MovieClip {
 	var gapc = new Rectangle(xx, yy, 
 				 BLOCKW * SCALE,
 				 (BLOCKH - ydone) * SCALE);
-	gamebm.draw(vsmoothbms[b.what], gapm, null, null, gapc);
+	gamebm.draw(blockbms[b.what][VSMOOTH], gapm, null, null, gapc);
 
 	// And end cap...
 	// Position of last block.
@@ -776,7 +825,7 @@ class Game extends MovieClip {
 	  var gapc = new Rectangle(xx, yy, 
 				   BLOCKW * SCALE,
 				   yneed * SCALE);
-	  gamebm.draw(vsmoothbms[b.what], gapm, null, null, gapc);
+	  gamebm.draw(blockbms[b.what][VSMOOTH], gapm, null, null, gapc);
 	}
 
 	// Caps last, since for short segments, gaps could overlap

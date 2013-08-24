@@ -14,6 +14,11 @@ var SCALE = 2;
 var BOARDX = 16;
 var BOARDY = 48;
 
+var TIMERX = 17;
+var TIMERY = 2;
+var TIMERW = 270;
+var TIMERH = 9;
+
 var BLOCKW = 16;
 var BLOCKH = 16;
 
@@ -83,6 +88,7 @@ var INFOMARGINY = 8 * SCALE;
 var TITLEDEPTH = 289;
 var BGIMAGEDEPTH = 290;
 var GAMEDEPTH = 300;
+var TIMERDEPTH = 305;
 // var TITLESELDEPTH = 295;
 
 // Basically should be in front of all game stuff?
