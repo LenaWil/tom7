@@ -176,7 +176,31 @@ class Game extends MovieClip {
 	}
 	
 	// XXX right too.
+      } else if (blocks[i].dir == VERT) {
+
+	// Try extending up
+	var x = b.x;
+	// This always extends all the way left until
+	// it hits something...
+	while (grid[((b.y - 1 + TILESH) % TILESH) * TILESW + x] == null) {
+	  b.len++;
+	  b.y = ((b.y - 1 + TILESH) % TILESH);
+	  grid[b.y * TILESW + x] = b;
+	  trace('v-extended to ' + b.x + ',' + b.y +
+		' for ' + b.len);
+	  if (Math.random() < 0.2) {
+	    b.shrink1 = int(Math.random() * (BLOCKW - 1));
+	    if (b.len >= 3) {
+	      // b.shrink2 = int(Math.random() * (BLOCKH - 1));
+	      b.shrink2 = 12;
+	    }
+	    // trace('stop early with shrinks ' + b.shrink1);
+	    break;
+	  }
+	}
+
       }
+
     }
 
   }
@@ -236,7 +260,6 @@ class Game extends MovieClip {
     // Not sure if B* should count as solid for jumping?
     // Probably not..
 
-    // XXX this needs to be able to handle when .len
     // wraps around the screen .. shouldn't be too hard
     // Assume all blocks are solid for now.
     if (b.dir == HORIZ) {
@@ -587,18 +610,29 @@ class Game extends MovieClip {
     var capc = new Rectangle(capxx, capyy,
 			     CAPW * SCALE, BLOCKH * SCALE);
     gamebm.draw(blockbms[b.what], capm, null, null, capc);
+  }
 
-    // And end gap...!
-    /*
-    var gapm = new Matrix();
-    var xdone = b.shrink1 + CAPW;
-    var xx = (bx * BLOCKW + xdone) * SCALE;
-    var yy = b.y * BLOCKW * SCALE;
-    gapm.translate(xx, yy);
-    var gapc = new Rectangle(xx, yy, (BLOCKW - xdone) * SCALE,
-			     BLOCKH * SCALE);
-    gamebm.draw(hsmoothbms[b.what], gapm, null, null, gapc);
-    */
+  public function vstartcap(b, by) {
+    var capm = new Matrix();
+    var xx = b.x * BLOCKW * SCALE;
+    var yy = (by * BLOCKH + b.shrink1) * SCALE;
+    capm.translate(xx, yy);
+    var capc = new Rectangle(xx, yy, 
+			     BLOCKW * SCALE, CAPW * SCALE);
+    gamebm.draw(blockbms[b.what], capm, null, null, capc);
+  }
+
+  public function vendcap(b, by) {
+    var capm = new Matrix();
+    var solid = BLOCKH - b.shrink2;
+    // Where we want to draw the end cap.
+    var capxx = b.x * BLOCKW * SCALE;
+    var capyy = (by * BLOCKH + solid - CAPW) * SCALE;
+
+    capm.translate(capxx, capyy - (BLOCKH - CAPW) * SCALE);
+    var capc = new Rectangle(capxx, capyy,
+			     BLOCKW * SCALE, CAPW * SCALE);
+    gamebm.draw(blockbms[b.what], capm, null, null, capc);
   }
 
   public function redraw() {
@@ -648,6 +682,7 @@ class Game extends MovieClip {
 	gamebm.draw(blockbms[b.what], place);
 
       } else if (b.dir == HORIZ) {
+
 	// Draw midsection using smoothie.
 	for (var x = 1; x < b.len - 1; x++) {
 	  var place = new Matrix();
@@ -690,7 +725,6 @@ class Game extends MovieClip {
 	// Caps last, since for short segments, gaps could overlap
 	// overlapping caps.
 
-	// XXX technically, cap should wrap around screen too.
 	// Now draw start cap, clipped.
 	hstartcap(b, b.x);
 	if (b.x == TILESW - 1) {
@@ -704,14 +738,61 @@ class Game extends MovieClip {
 	
       } else if (b.dir == VERT) {
 
-	// XXX like above.
-	for (var y = 0; y < b.len; y++) {
+
+	// Draw midsection using smoothie.
+	for (var y = 1; y < b.len - 1; y++) {
 	  var place = new Matrix();
+	  var sy = (b.y + y) % TILESH;
 	  place.translate(b.x * BLOCKW * SCALE,
-			  (b.y + y) * BLOCKW * SCALE);
+			  sy * BLOCKH * SCALE);
 	  
-	  gamebm.draw(blockbms[b.what], place);
+	  gamebm.draw(vsmoothbms[b.what], place);
 	}
+
+	var blast = (b.y + b.len - 1) % TILESH;
+
+
+	// And gap...
+	// (this only needs to be drawn once, because in the case
+	// where the cap wraps, the gap is empty.)
+	var gapm = new Matrix();
+	var ydone = b.shrink1 + CAPW;
+	var xx = b.x * BLOCKW * SCALE;
+	var yy = (b.y * BLOCKH + ydone) * SCALE;
+	gapm.translate(xx, yy);
+	var gapc = new Rectangle(xx, yy, 
+				 BLOCKW * SCALE,
+				 (BLOCKH - ydone) * SCALE);
+	gamebm.draw(vsmoothbms[b.what], gapm, null, null, gapc);
+
+	// And end cap...
+	// Position of last block.
+	var gapm = new Matrix();
+	var yneed = (BLOCKH - b.shrink2) - CAPW;
+	if (yneed > 0) {
+	  var xx = b.x * BLOCKW * SCALE;
+	  var yy = (blast * BLOCKH) * SCALE;
+	  gapm.translate(xx, yy);
+	  var gapc = new Rectangle(xx, yy, 
+				   BLOCKW * SCALE,
+				   yneed * SCALE);
+	  gamebm.draw(vsmoothbms[b.what], gapm, null, null, gapc);
+	}
+
+	// Caps last, since for short segments, gaps could overlap
+	// overlapping caps.
+
+	// Now draw start cap, clipped.
+	vstartcap(b, b.y);
+	if (b.y == TILESH - 1) {
+	  vstartcap(b, -1);
+	}
+
+	vendcap(b, blast);
+	if (blast == 0) {
+	  vendcap(b, TILESH);
+	}
+
       }
 
     }
