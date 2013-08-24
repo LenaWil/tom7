@@ -44,6 +44,8 @@ var B9 = 15;
 var NREG = 3;
 var NBLOCKS = 16;
 
+var CAPW = 4;
+
 // How many pixels does the player extend up and to the left
 // of the origin?
 var PLAYERLAPX = 0;
