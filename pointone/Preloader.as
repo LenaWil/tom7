@@ -28,7 +28,8 @@ class Preloader extends MovieClip {
 
       _root['musicenabled'] = true;
 
-      _root.gotoAndStop('title');
+      // XXXXX title!
+      _root.gotoAndStop('game');
 
       this.swapDepths(0);
       this.removeMovieClip();

@@ -21,6 +21,9 @@ var BLOCKH = 16;
 var TILESW = 17;
 var TILESH = 17;
 
+var GAMEW = TILESW * BLOCKW;
+var GAMEH = TILESH * BLOCKH;
+
 var BREG1 = 0;
 var BREG2 = 1;
 var BREG3 = 2;
@@ -40,6 +43,23 @@ var B9 = 15;
 
 var NREG = 3;
 var NBLOCKS = 16;
+
+// How many pixels does the player extend up and to the left
+// of the origin?
+var PLAYERLAPX = 0;
+var PLAYERLAPY = 8;
+
+// How many pixels into the player do we test for the
+// left foot?
+var LEFTFOOT = 4;
+// XXX is it -1?
+var RIGHTFOOT = BLOCKW - 4 - 1;
+
+// Y offset from player x,y (not graphic) that should be considered
+// the player's head (for clipping).
+var HEAD = 4;
+// The last pixel in the block, not the one below.
+var FEET = BLOCKW - 1;
 
 /////////////
 // Info stuff
@@ -62,6 +82,9 @@ var TITLEDEPTH = 289;
 var BGIMAGEDEPTH = 290;
 var GAMEDEPTH = 300;
 // var TITLESELDEPTH = 295;
+
+// Basically should be in front of all game stuff?
+var PLAYERDEPTH = 1000;
 
 var INFODEPTH = 9000;
 
