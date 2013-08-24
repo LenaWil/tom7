@@ -19,7 +19,7 @@ class Preloader extends MovieClip {
     if (now < total) {
       // this._alpha = 80.0 * Math.sin(frames / 9) + 20.0;
     } else {
-      trace('preloader start');
+      // trace('preloader start');
 
       /* necessary if we want to trap escape key, etc. */
       fscommand("trapallkeys", "true");

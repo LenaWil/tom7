@@ -19,6 +19,9 @@ var TIMERY = 2;
 var TIMERW = 270;
 var TIMERH = 9;
 
+var POINTSX = BOARDX;
+var POINTSY = 15;
+
 var BLOCKW = 16;
 var BLOCKH = 16;
 
@@ -48,13 +51,19 @@ var B9 = 15;
 
 var NREG = 3;
 var NBLOCKS = 16;
+var NPOINTS = 10;
 
-var CAPW = 4;
+var CAPW = 6;
+
+
+var PGROWTH = 8;
 
 // How many pixels does the player extend up and to the left
 // of the origin?
 var PLAYERLAPX = 0;
 var PLAYERLAPY = 8;
+
+var POINTSOVERLAP = 3;
 
 // How many pixels into the player do we test for the
 // left foot?
@@ -89,6 +98,7 @@ var TITLEDEPTH = 289;
 var BGIMAGEDEPTH = 290;
 var GAMEDEPTH = 300;
 var TIMERDEPTH = 305;
+var POINTSDEPTH = 310;
 // var TITLESELDEPTH = 295;
 
 // Basically should be in front of all game stuff?

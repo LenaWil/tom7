@@ -22,6 +22,7 @@ class Game extends MovieClip {
   var gamebm : BitmapData = null;
   var timerbm : BitmapData = null;
   var barbm : BitmapData = null;
+  var pointsbm : BitmapData = null;
 
   // Bitmap data for each block.
   var blockbms = [];
@@ -30,6 +31,8 @@ class Game extends MovieClip {
   var VSMOOTH = 1;
   var HSMOOTH = 2;
   var ICONS = 1;
+  var DARK = 2;
+  var DARKICONS = 3;
 
   var info : Info = null;
 
@@ -53,10 +56,9 @@ class Game extends MovieClip {
   // All the blocks currently around.
   var blocks = [];
 
-  // The points coming up.
+  // The points coming up. The current one is first
+  // in the list, so this is nonempty during play.
   var points = [];
-  // The current point.
-  var currentpoint = 0;
   // Frames left in this point.
   var framesinpoint = 0;
 
@@ -127,6 +129,16 @@ class Game extends MovieClip {
   var playerfx = 0;
   var playerfy = 0;
 
+  public function initpoints() {
+    points = [1];
+    for (var i = 0; i < 20; i++) {
+      var p = Math.round(Math.random() * (NPOINTS - 1));
+      if (p == 1) p = 9;
+      points.unshift(p);
+    }
+    framesinpoint = 10 * FPS;
+  }
+
   public function initboard() {
     blocks = [];
     grid = [];
@@ -136,16 +148,22 @@ class Game extends MovieClip {
       for (var x = 0; x < TILESW; x++) {
 	if (Math.random() < 0.2) {
 	  var what = 0;
-	  if (Math.random() < 0.8) {
+	  if (Math.random() < 0.6) {
 	    what = int((Math.random() * 1000) % NREG);
 	  } else {
-	    what = Math.random() < 0.5 ? BVERT : BHORIZ;
-	      // what = int((Math.random() * 1000) % NBLOCKS);
+	    if (Math.random() < 0.5) {
+	      what = Math.random() < 0.5 ? BVERT : BHORIZ;
+	    } else {
+	      what = int((Math.random() * 1000) % NBLOCKS);
+	    }
 	  }
 	  
 	  var d = NONE;
 	  if (what == BVERT) d = VERT;
 	  else if (what == BHORIZ) d = HORIZ;
+	  else if (what == BSILVER) {
+	    d = (Math.random() < 0.5) ? VERT : HORIZ;
+	  }
 
 	  var block = { what: what,
 			x: x, y: y, len: 1,
@@ -161,6 +179,7 @@ class Game extends MovieClip {
     }
 
     // Randomly grow some vert/horiz ones.
+    /*
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
       if (blocks[i].dir == HORIZ) {
@@ -172,8 +191,8 @@ class Game extends MovieClip {
 	  b.len++;
 	  b.x = (b.x - 1 + TILESW) % TILESW;
 	  grid[y * TILESW + b.x] = b;
-	  trace('extended to ' + b.x + ',' + b.y +
-		' for ' + b.len);
+	  // trace('extended to ' + b.x + ',' + b.y +
+	  // ' for ' + b.len);
 	  if (Math.random() < 0.2) {
 	    b.shrink1 = int(Math.random() * (BLOCKW - 1));
 	    if (b.len >= 3) {
@@ -195,8 +214,8 @@ class Game extends MovieClip {
 	  b.len++;
 	  b.y = ((b.y - 1 + TILESH) % TILESH);
 	  grid[b.y * TILESW + x] = b;
-	  trace('v-extended to ' + b.x + ',' + b.y +
-		' for ' + b.len);
+	  // trace('v-extended to ' + b.x + ',' + b.y +
+	  // ' for ' + b.len);
 	  if (Math.random() < 0.2) {
 	    b.shrink1 = int(Math.random() * (BLOCKW - 1));
 	    if (b.len >= 3) {
@@ -211,6 +230,7 @@ class Game extends MovieClip {
       }
 
     }
+    */
 
   }
 
@@ -235,12 +255,63 @@ class Game extends MovieClip {
     init();
   }
 
+  /*
   public function playCutsceneSound(wav, times) {
     var oof = new Sound(_root.cutscenesmc);
     trace(wav);
     oof.attachSound(wav);
     oof.setVolume(100);
     oof.start(0, times);
+  }
+  */
+
+  public function blockPhysics() {
+    var parity = (framesinpoint % 2) == 0;
+
+    // Growth.
+    if (points[0] == PGROWTH) {
+
+      for (var i = 0; i < blocks.length; i++) {
+	var b = blocks[i];
+	if (b.dir == HORIZ) {
+
+	  if (parity) {
+	    // even parity. grow left
+	    if (b.shrink1 > 0) {
+	      b.shrink1--;
+	    } else {
+	      // If shrink is zero, try expanding to the left.
+	      var nbx = (b.x - 1 + TILESW) % TILESW;
+	      if (grid[b.y * TILESW + nbx] == null) {
+		// claim it!
+		b.len++;
+		b.x = nbx;
+		grid[b.y * TILESW + nbx] = b;
+		b.shrink1 = 15;
+	      }
+	    }
+	  } else {
+	    // odd parity. grow right...
+	    if (b.shrink2 > 0) {
+	      b.shrink2--;
+	    } else {
+	      // Try expanding length;
+	      var nblast = (b.x + b.len + TILESW) % TILESW;
+	      if (grid[b.y * TILESW + nblast] == null) {
+		b.len++;
+		grid[b.y * TILESW + nblast] = b;
+		b.shrink2 = 15;
+	      }
+	    }
+	  }
+
+	} else if (b.dir == VERT) {
+
+	  // XXX
+
+	}
+      }
+    }
   }
 
   public function onEnterFrame() {
@@ -256,13 +327,14 @@ class Game extends MovieClip {
     }
 
     playerPhysics();
+    
+    blockPhysics();
 
     redraw();
   }
 
   public function nextpoint() {
-    var p = points.shift();
-    currentpoint = p;
+    points.shift();
     framesinpoint = 10 * FPS;
   }
 
@@ -437,7 +509,7 @@ class Game extends MovieClip {
     playerdy *= YMU;
     */
 
-    // XXX terminal velocity...
+    // velocity caps...
     if (og) {
       if (playerdx > GTERMINALX) playerdx = GTERMINALX;
       if (playerdx < -GTERMINALX) playerdx = -GTERMINALX;
@@ -566,7 +638,7 @@ class Game extends MovieClip {
     playerbml = flipHoriz(playerbm);
 
     // Cut it up into the bitmaps.
-    var NVARIATIONS = 3;
+    var NVARIATIONS = 4;
     for (var i = 0; i < NBLOCKS; i++) {
       blockbms.push([]);
       for (var a = 0; a < NVARIATIONS; a++) {
@@ -578,6 +650,13 @@ class Game extends MovieClip {
 	b.draw(blocksbm, cropbig);
 	blockbms[i].push(b);
       }
+    }
+
+    for (var i = 0; i < NPOINTS; i++) {
+      blockbms[B0 + i][DARK] = 
+	darkenWhite(blockbms[B0 + i][NORMAL]);
+      blockbms[B0 + i][DARKICONS] = 
+	darkenWhite(blockbms[B0 + i][ICONS]);
     }
 
     gamebm = new BitmapData(BLOCKW * SCALE * TILESW,
@@ -594,6 +673,13 @@ class Game extends MovieClip {
     _root.timermc._x = TIMERX * SCALE;
     _root.timermc._y = TIMERY * SCALE;
 
+    pointsbm = new BitmapData(BLOCKW * SCALE * TILESW,
+			      BLOCKW * SCALE * TILESH,
+			      true, 0);
+    _root.pointsmc = createGlobalMC('points', pointsbm, POINTSDEPTH);
+    _root.pointsmc._x = POINTSX * SCALE;
+    _root.pointsmc._y = POINTSY * SCALE;
+
     backgroundbm = loadBitmap2x('background.png');
     _root.backgroundmc = createGlobalMC('bg', backgroundbm, BGIMAGEDEPTH);
     _root.backgroundmc._x = 0;
@@ -607,6 +693,7 @@ class Game extends MovieClip {
     info.setMessage("You are now playing.");
 
     initboard();
+    initpoints();
 
     // _root.pucksmc = createMovieAtDepth('ps', PUCKSOUNDDEPTH);
 
@@ -679,7 +766,23 @@ class Game extends MovieClip {
   }
 
   public function drawpoints() {
-    // TODO
+    // Remember, current point is at the head of the list.
+    var nshow = Math.min(points.length, TILESW - 2);
+    var starttx = TILESW - nshow;
+    clearBitmap(pointsbm);
+    for (var i = 0; i < nshow; i++) {
+      var top = (i == 0) ? NORMAL : DARK;
+      var bot = (i == 0) ? ICONS : DARKICONS;
+      var m = new Matrix();
+      var x2x = ((starttx + i) * BLOCKW) * SCALE;
+      m.translate(x2x, 0);
+      pointsbm.draw(blockbms[B0 + points[i]][top], m);
+      var mi = new Matrix();
+      mi.translate(x2x, (BLOCKH - POINTSOVERLAP) * SCALE);
+      pointsbm.draw(blockbms[B0 + points[i]][bot], mi);
+    }
+    // XXX show arrow?
+    // XXX show ellipses
   }
 
   public function redraw() {
@@ -697,7 +800,8 @@ class Game extends MovieClip {
 		    ' fy: ' + toDecimal(playerfy, 1000));
 
     drawtimer();
-    drawpoints();    
+    // PERF don't need to do this every frame!
+    drawpoints();
 
     // XXX when player is wrapping around screen, need
     // to draw up to 4 playermcs...
@@ -855,6 +959,7 @@ class Game extends MovieClip {
       holdingEsc = true;
       break;
     case 90: // z
+      initpoints();
       initboard();
       holdingZ = true;
       break;
