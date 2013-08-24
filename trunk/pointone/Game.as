@@ -14,6 +14,7 @@ class Game extends MovieClip {
   var backgroundbm : BitmapData = null;
   // All block sprites.
   var blocksbm : BitmapData = null;
+
   // All player sprites.
   var playerbm : BitmapData = null;
   var playerbml : BitmapData = null;
@@ -22,6 +23,10 @@ class Game extends MovieClip {
 
   // Bitmap data for each block.
   var blockbms = [];
+  // Smooth horizontally
+  var hsmoothbms = [];
+  // Smooth vertically
+  var vsmoothbms = [];
 
   var info : Info = null;
 
@@ -124,7 +129,8 @@ class Game extends MovieClip {
 	  if (Math.random() < 0.8) {
 	    what = int((Math.random() * 1000) % NREG);
 	  } else {
-	    what = int((Math.random() * 1000) % NBLOCKS);
+	    what = Math.random() < 0.5 ? BVERT : BHORIZ;
+	      // what = int((Math.random() * 1000) % NBLOCKS);
 	  }
 	  
 	  var d = NONE;
@@ -143,6 +149,36 @@ class Game extends MovieClip {
 	}
       }
     }
+
+    // Randomly grow some vert/horiz ones.
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      if (blocks[i].dir == HORIZ) {
+	// Try extending to left, right...
+	var y = b.y;
+	// This always extends all the way left until
+	// it hits something...
+	while (grid[y * TILESW + (b.x - 1 + TILESW) % TILESW] == null) {
+	  b.len++;
+	  b.x = (b.x - 1 + TILESW) % TILESW;
+	  grid[y * TILESW + b.x] = b;
+	  trace('extended to ' + b.x + ',' + b.y +
+		' for ' + b.len);
+	  if (Math.random() < 0.2) {
+	    b.shrink1 = int(Math.random() * (BLOCKW - 1));
+	    if (b.len >= 3) {
+	      // b.shrink2 = int(Math.random() * (BLOCKH - 1));
+	      b.shrink2 = 12;
+	    }
+	    // trace('stop early with shrinks ' + b.shrink1);
+	    break;
+	  }
+	}
+	
+	// XXX right too.
+      }
+    }
+
   }
 
 
@@ -199,15 +235,18 @@ class Game extends MovieClip {
     
     // Not sure if B* should count as solid for jumping?
     // Probably not..
-    
+
+    // XXX this needs to be able to handle when .len
+    // wraps around the screen .. shouldn't be too hard
     // Assume all blocks are solid for now.
     if (b.dir == HORIZ) {
       // Then if it's the first or last block, we need
       // to test the shrinkage.
       var xoff = px - tx * BLOCKW;
+      var blast = (b.x + b.len - 1) % TILESW;
       if (tx == b.x) {
 	return xoff >= b.shrink1;
-      } else if (tx == b.x + b.len) {
+      } else if (tx == blast) {
 	// Number of solid pixels.
 	var solid = BLOCKW - b.shrink2;
 	return xoff < solid;
@@ -216,9 +255,10 @@ class Game extends MovieClip {
       return true;
     } else if (b.dir == VERT) {
       var yoff = py - ty * BLOCKH;
+      var blast = (b.y + b.len - 1) % TILESH;
       if (ty == b.y) {
 	return yoff >= b.shrink1;
-      } else if (ty == b.y + b.len) {
+      } else if (ty == blast) {
 	var solid = BLOCKH - b.shrink2;
 	return yoff < solid;
       }
@@ -480,14 +520,17 @@ class Game extends MovieClip {
     playerbml = flipHoriz(playerbm);
 
     // Cut it up into the bitmaps.
+    var tofill = [blockbms, vsmoothbms, hsmoothbms];
     for (var i = 0; i < NBLOCKS; i++) {
-      // Just shift the whole graphic so that only
-      // the desired block shows.
-      var cropbig = new Matrix();
-      cropbig.translate(-BLOCKW * SCALE * i, 0);
-      var b = new BitmapData(BLOCKW * SCALE, BLOCKH * SCALE, true, 0);
-      b.draw(blocksbm, cropbig);
-      blockbms[i] = b
+      for (var a = 0; a < tofill.length; a++) {
+	// Just shift the whole graphic so that only
+	// the desired block shows.
+	var cropbig = new Matrix();
+	cropbig.translate(-BLOCKW * SCALE * i, -BLOCKH * SCALE * a);
+	var b = new BitmapData(BLOCKW * SCALE, BLOCKH * SCALE, true, 0);
+	b.draw(blocksbm, cropbig);
+	tofill[a][i] = b;
+      }
     }
 
     gamebm = new BitmapData(BLOCKW * SCALE * TILESW,
@@ -519,6 +562,43 @@ class Game extends MovieClip {
 
     // redraw();
     starttime = (new Date()).getTime();
+  }
+
+  // Called for both b[width - 1] and (logically) b[-1],
+  // since the cap has width.
+  public function hstartcap(b, bx) {
+    var capm = new Matrix();
+    var xx = (bx * BLOCKW + b.shrink1) * SCALE;
+    var yy = b.y * BLOCKW * SCALE;
+    capm.translate(xx, yy);
+    var capc = new Rectangle(xx, yy, 
+			     CAPW * SCALE, BLOCKH * SCALE);
+    gamebm.draw(blockbms[b.what], capm, null, null, capc);
+  }
+
+  public function hendcap(b, bx) {
+    var capm = new Matrix();
+    var solid = BLOCKW - b.shrink2;
+    // Where we want to draw the end cap.
+    var capxx = (bx * BLOCKW + solid - CAPW) * SCALE;
+    var capyy = b.y * BLOCKW * SCALE;
+
+    capm.translate(capxx - (BLOCKW - CAPW) * SCALE, capyy);
+    var capc = new Rectangle(capxx, capyy,
+			     CAPW * SCALE, BLOCKH * SCALE);
+    gamebm.draw(blockbms[b.what], capm, null, null, capc);
+
+    // And end gap...!
+    /*
+    var gapm = new Matrix();
+    var xdone = b.shrink1 + CAPW;
+    var xx = (bx * BLOCKW + xdone) * SCALE;
+    var yy = b.y * BLOCKW * SCALE;
+    gapm.translate(xx, yy);
+    var gapc = new Rectangle(xx, yy, (BLOCKW - xdone) * SCALE,
+			     BLOCKH * SCALE);
+    gamebm.draw(hsmoothbms[b.what], gapm, null, null, gapc);
+    */
   }
 
   public function redraw() {
@@ -559,18 +639,81 @@ class Game extends MovieClip {
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
       // trace(b.what);
-      var w = (b.dir == HORIZ) ? b.len : 1;
-      var h = (b.dir == VERT) ? b.len : 1;
-      for (var y = 0; y < h; y++) {
-	for (var x = 0; x < w; x++) {
+      if (b.dir == NONE || b.len == 1) {
+	// common, assumed 1x1. can't have shrinkage.
+	var place = new Matrix();
+	place.translate(b.x * BLOCKW * SCALE,
+			b.y * BLOCKW * SCALE);
 
+	gamebm.draw(blockbms[b.what], place);
+
+      } else if (b.dir == HORIZ) {
+	// Draw midsection using smoothie.
+	for (var x = 1; x < b.len - 1; x++) {
 	  var place = new Matrix();
-	  place.translate((b.x + x) * BLOCKW * SCALE,
-			  (b.y + y) * BLOCKW * SCALE);
+	  var sx = (b.x + x) % TILESW;
+	  place.translate(sx * BLOCKW * SCALE,
+			  b.y * BLOCKW * SCALE);
+	  
+	  gamebm.draw(hsmoothbms[b.what], place);
+	}
 
+	// And gap...
+	// (this only needs to be drawn once, because in the case
+	// where the cap wraps, the gap is empty.)
+	var gapm = new Matrix();
+	var xdone = b.shrink1 + CAPW;
+	var xx = (b.x * BLOCKW + xdone) * SCALE;
+	var yy = b.y * BLOCKW * SCALE;
+	gapm.translate(xx, yy);
+	var gapc = new Rectangle(xx, yy, (BLOCKW - xdone) * SCALE,
+				 BLOCKH * SCALE);
+	gamebm.draw(hsmoothbms[b.what], gapm, null, null, gapc);
+
+	// And end cap...
+	// Position of last block.
+	// var bx = (b.x + b.len - 1) % TILESW;
+	var blast = (b.x + b.len - 1) % TILESW;
+
+	var gapm = new Matrix();
+	var xneed = (BLOCKW - b.shrink2) - CAPW;
+	if (xneed > 0) {
+	  var xx = (blast * BLOCKW) * SCALE;
+	  var yy = b.y * BLOCKW * SCALE;
+	  gapm.translate(xx, yy);
+	  var gapc = new Rectangle(xx, yy, 
+				   xneed * SCALE,
+				   BLOCKH * SCALE);
+	  gamebm.draw(hsmoothbms[b.what], gapm, null, null, gapc);
+	}
+
+	// Caps last, since for short segments, gaps could overlap
+	// overlapping caps.
+
+	// XXX technically, cap should wrap around screen too.
+	// Now draw start cap, clipped.
+	hstartcap(b, b.x);
+	if (b.x == TILESW - 1) {
+	  hstartcap(b, -1);
+	}
+
+	hendcap(b, blast);
+	if (blast == 0) {
+	  hendcap(b, TILESW);
+	}
+	
+      } else if (b.dir == VERT) {
+
+	// XXX like above.
+	for (var y = 0; y < b.len; y++) {
+	  var place = new Matrix();
+	  place.translate(b.x * BLOCKW * SCALE,
+			  (b.y + y) * BLOCKW * SCALE);
+	  
 	  gamebm.draw(blockbms[b.what], place);
 	}
       }
+
     }
   }
 
@@ -582,6 +725,7 @@ class Game extends MovieClip {
       holdingEsc = true;
       break;
     case 90: // z
+      initboard();
       holdingZ = true;
       break;
     case 88: // x
