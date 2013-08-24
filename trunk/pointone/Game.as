@@ -12,7 +12,11 @@ class Game extends MovieClip {
   var FPS = 30;
 
   var backgroundbm : BitmapData = null;
+  // All block sprites.
   var blocksbm : BitmapData = null;
+  // All player sprites.
+  var playerbm : BitmapData = null;
+  var playerbml : BitmapData = null;
 
   var gamebm : BitmapData = null;
 
@@ -49,6 +53,8 @@ class Game extends MovieClip {
   // FPS computation.
   var framesdisplayed = 0;
   var starttime = 0;
+
+  // XXX playerframes...
 
   /*
     A block has these fields:
@@ -90,12 +96,21 @@ class Game extends MovieClip {
     and for computing the player's position, which is integral.
    */
 
-  // Top left corner of the player.
+  // Logical left corner of the player.
+  // Graphic is drawn at this spot -(PLAYERLAPX, PLAYERLAPY)
+  // Always integral!
   var playerx = 0;
   var playery = 0;
+
   // Used when the point has physics.
   var playerdx = 0;
   var playerdy = 0;
+
+  // Fractional pixels. Ignored for clipping, but
+  // makes smoother motion when in free space.
+  // Always in [-1, 1];
+  var playerfx = 0;
+  var playerfy = 0;
 
   public function initboard() {
     blocks = [];
@@ -164,7 +179,256 @@ class Game extends MovieClip {
     animframe++;
     if (animframe > 1000000) animframe = 0;
 
+    playerPhysics();
+
     redraw();
+  }
+
+  // This is for testing pixel-level physics like the player
+  // clipping and some effects (e.g. stars, if I do that).
+  public function pixelIsSolid(px, py) {
+    // Wrap around physics...
+    px = px % GAMEW;
+    py = (py + 1) % GAMEH;
+
+    var tx = Math.floor(px / BLOCKW);
+    var ty = Math.floor(py / BLOCKH);
+    
+    var b = grid[ty * TILESW + tx];
+    if (!b) return false;
+    
+    // Not sure if B* should count as solid for jumping?
+    // Probably not..
+    
+    // Assume all blocks are solid for now.
+    if (b.dir == HORIZ) {
+      // Then if it's the first or last block, we need
+      // to test the shrinkage.
+      var xoff = px - tx * BLOCKW;
+      if (tx == b.x) {
+	return xoff >= b.shrink1;
+      } else if (tx == b.x + b.len) {
+	// Number of solid pixels.
+	var solid = BLOCKW - b.shrink2;
+	return xoff < solid;
+      }
+
+      return true;
+    } else if (b.dir == VERT) {
+      var yoff = py - ty * BLOCKH;
+      if (ty == b.y) {
+	return yoff >= b.shrink1;
+      } else if (ty == b.y + b.len) {
+	var solid = BLOCKH - b.shrink2;
+	return yoff < solid;
+      }
+
+      return true;
+    } else {
+      // This always means 1x1 block.
+      return true;
+    }
+  }
+
+  // Takes pixel location of the foot.
+  public function footOnBlock(px, py) {
+    // Actual pixel to test is one beneath our foot.
+    return pixelIsSolid(px, py + 1);
+  }
+
+  public function onGround() {
+    // Test if the player is on the ground and
+    // can do ground stuff like jump.
+    
+    var feety = playery + BLOCKH;
+    
+    // Might test one or two tiles, but even if there
+    // is just one tile, we have to test twice because
+    // it might have nonzero horizontal shrinkage.
+    var px1 = playerx + LEFTFOOT;
+    var px2 = playerx + RIGHTFOOT;
+
+    // Only can be a collision if we're standing on a
+    // bounding box.
+    return footOnBlock(px1, feety) ||
+      footOnBlock(px2, feety);
+  }
+
+  // startx, y1, y2 always integers. endx is fractional.
+  // dx must be 1 or -1. we move startx to endx but clip
+  // against x + offset.
+  // there exists positive k such that startx + k * dx = endx.
+  // Precondition: Player is not stuck.
+  public function trymovinghoriz(offset,
+				 startx, endx, dx,
+				 y1, y2) {
+    var ix = Math.round(endx);
+    // Integer sweep, which gets us perfect physics.
+    // Velocities have to be low for this to be efficient, however.
+    // PERF less maths...
+    for (var x = startx; x != ix; x += dx) {
+      if (pixelIsSolid(x + dx + offset, y1) ||
+	  pixelIsSolid(x + dx + offset, y2)) {
+	// TODO: Should probably return block touched,
+	// for pushing etc.
+	return { x: x, hit: true, fx: 0 };
+      }
+    }
+    
+    return { x: ix, hit: false, fx: endx - ix };
+  }
+
+  // Symmetrically for y.
+  public function trymovingvert(offset,
+				starty, endy, dy,
+				x1, x2) {
+    var iy = Math.round(endy);
+    // PERF less maths...
+    for (var y = starty; y != iy; y += dy) {
+      if (pixelIsSolid(x1, y + dy + offset) ||
+	  pixelIsSolid(x2, y + dy + offset)) {
+	// TODO: Same about block touched.
+	return { y: y, hit: true, fy: 0 };
+      }
+    }
+    
+    return { y: iy, hit: false, fy: endy - iy };
+  }
+
+  public function playerPhysics() {
+    var YGRAV = 0.48;
+    var XGRAV = 0;
+    var XMU = 0.9;
+    var XGROUNDMU = 0.7;
+    var YMU = 0.9;
+
+    var TERMINALX = 6;
+    var TERMINALY = 7;
+
+    var GTERMINALX = 4.5;
+
+    var ddy = 0;
+    // XXX same on-ground treatment for xgrav?
+    var ddx = XGRAV;
+
+    var og = onGround();
+
+    // First, changes in acceleration.
+    if (og) {
+      if (holdingSpace) {
+	ddy -= 7;
+      }
+    } else {
+      ddy += YGRAV;
+    }
+
+    if (holdingRight) {
+      if (og) {
+	ddx += 0.7;
+      } else {
+	ddx += 0.4;
+      }
+    } else if (holdingLeft) {
+      if (og) {
+	ddx -= 0.7;
+      } else {
+	ddx -= 0.4;
+      }
+    } else if (og) {
+      playerdx *= XGROUNDMU;
+    }
+
+    // Now changes in velocity.
+    playerdx += ddx;
+    playerdy += ddy;
+
+    /*
+    if (og && ! ) {
+      playerdx *= XGROUNDMU;
+    } else {
+      playerdx *= XMU;
+    }
+
+    playerdy *= YMU;
+    */
+
+    // XXX terminal velocity...
+    if (og) {
+      if (playerdx > GTERMINALX) playerdx = GTERMINALX;
+      if (playerdx < -GTERMINALX) playerdx = -GTERMINALX;
+    } else {
+      if (playerdx > TERMINALX) playerdx = TERMINALX;
+      if (playerdx < -TERMINALX) playerdx = -TERMINALX;
+    }
+    if (playerdy > TERMINALY) playerdy = TERMINALY;
+    if (playerdy < -TERMINALY) playerdy = -TERMINALY;
+
+    // Now changes in position.
+    var rx = playerx + playerdx + playerfx;
+
+    var xobj = null;
+    if (rx - playerx > 0) {
+      xobj = trymovinghoriz(RIGHTFOOT,
+			    playerx,
+			    rx,
+			    1,
+			    playery + HEAD,
+			    playery + FEET);
+    } else if (rx - playerx < 0) {
+      xobj = trymovinghoriz(LEFTFOOT,
+			    playerx,
+			    rx,
+			    -1,
+			    playery + HEAD,
+			    playery + FEET);
+    }
+    if (xobj) {
+      playerx = xobj.x;
+      playerfx = xobj.fx;
+      // Or small bounce?
+      if (xobj.hit) playerdx = 0;
+    } else {
+      // playerx doesn't change.
+      // we keep fx as is, too, as it was not consumed
+      playerfx = 0;
+    }
+
+    var ry = playery + playerdy + playerfy;
+
+    var yobj = null;
+    if (ry - playery > 0) {
+      yobj = trymovingvert(FEET,
+			   playery,
+			   ry,
+			   1,
+			   playerx + LEFTFOOT,
+			   playerx + RIGHTFOOT);
+    } else if (ry - playery < 0) {
+      yobj = trymovingvert(HEAD,
+			   playery,
+			   ry,
+			   -1,
+			   // Like the feet on the top of your
+			   // head.
+			   playerx + LEFTFOOT,
+			   playerx + RIGHTFOOT);
+    }
+    if (yobj) {
+      playery = yobj.y;
+      playerfy = yobj.fy;
+      // Or small bounce if hitting head?
+      if (yobj.hit) playerdy = 0;
+    } else {
+      // as above.
+      playerfy = 0;
+    }
+
+    playerx = (playerx + GAMEW) % GAMEW;
+    playery = (playery + GAMEH) % GAMEH;
+
+    // same for fx?
+    if (Math.abs(playerdx) < 0.01) playerdx = 0;
+    if (Math.abs(playerdy) < 0.01) playerdy = 0;
   }
 
   /*
@@ -212,6 +476,8 @@ class Game extends MovieClip {
     trace('init game');
 
     blocksbm = loadBitmap2x('blocks.png');    
+    playerbm = loadBitmap2x('player.png');
+    playerbml = flipHoriz(playerbm);
 
     // Cut it up into the bitmaps.
     for (var i = 0; i < NBLOCKS; i++) {
@@ -238,6 +504,8 @@ class Game extends MovieClip {
     _root.backgroundmc._x = 0;
     _root.backgroundmc._y = 0;
 
+    _root.playermc = createMovieAtDepth('player', PLAYERDEPTH);
+
     info = new Info();
     info.init();
 
@@ -254,18 +522,32 @@ class Game extends MovieClip {
   }
 
   public function redraw() {
-    initboard();
+    // initboard();
 
     info.redraw();
 
     var total_ms = (new Date()).getTime() - starttime;
     var total_s = total_ms / 1000.0;
     var computed_fps = framesdisplayed / total_s;
-    info.setMessage('FPS ' + computed_fps);
+    // info.setMessage('FPS ' + computed_fps);
+    info.setMessage('dx: ' + toDecimal(playerdx, 1000) + 
+		    ' dy: ' + toDecimal(playerdy, 1000) +
+		    ' fx: ' + toDecimal(playerfx, 1000) +
+		    ' fy: ' + toDecimal(playerfy, 1000));
 
-    // XXX Place player...
-    // _root.rinkmc._x = -scrollx;
-    // _root.rinkmc._y = -scrolly;
+    // XXX when player is wrapping around screen, need
+    // to draw up to 4 playermcs...
+    // Consider placing on odd pixels?
+    _root.playermc._x = (BOARDX + playerx - PLAYERLAPX) * SCALE;
+    _root.playermc._y = (BOARDY + playery - PLAYERLAPY) * SCALE;
+    // XXX animate.
+    // XXX PERF this replaces the bitmap right?
+    if (playerdx > 0) {
+      _root.playermc.attachBitmap(playerbm, 'b', 1);
+    } else {
+      _root.playermc.attachBitmap(playerbml, 'b', 1);
+    }
+    // just leave at depth.
     // setDepthOf(_root.rinkmc, iceDepth(playery));
 
     // XXX debug mode showing mask
