@@ -1,7 +1,11 @@
 import flash.display.*;
 import flash.geom.Matrix;
+import flash.geom.Rectangle;
 
 class TitleScreen extends MovieClip {
+
+  #include "constants.js"
+  #include "util.js"
 
   var titlemusic : Sound;
 
@@ -27,15 +31,17 @@ class TitleScreen extends MovieClip {
     Key.addListener(this);
     this._visible = false;
 
-    var bm = BitmapData.loadBitmap('title.png');
-    var titlebitmap : BitmapData = 
+    var titlebitmap = loadBitmap2x('title.png');
+    /*
+    BitmapData.loadBitmap('title.png');
+    var titlebitmap : BitmapData =
       new BitmapData(600, 700, false, 0x000000);
     var grow = new Matrix();
     grow.scale(2, 2);
     titlebitmap.draw(bm, grow);
-    
-    titlemc = _root.createEmptyMovieClip('titlemc', 999);
-    titlemc.attachBitmap(titlebitmap, 1000);
+    */
+    titlemc = _root.createEmptyMovieClip('titlemc', TITLEDEPTH);
+    titlemc.attachBitmap(titlebitmap, 0);
     titlemc._alpha = 0;
 
     // title music!
@@ -54,24 +60,24 @@ class TitleScreen extends MovieClip {
       // titlemusic.setVolume(frames);
 
       if (frames < FADEFRAMES) {
-	titlemc._alpha = frames * ALPHAMULT;
+        titlemc._alpha = frames * ALPHAMULT;
       }
-     
+
     } else if (frames == FADEFRAMES) {
       titlemc._alpha = 100;
     } else {
       // Faded in. Might fade out...
 
       if (starting > 0) {
-	var alpha = 100;
-	if (_root['backgroundmusic']) {
-	  titlemusic.setVolume(starting * ALPHAOUTMULT);
-	}
-	starting--;
-	titlemc._alpha = starting * ALPHAOUTMULT;
-	if (!starting) {
-	  reallyStart();
-	}
+        var alpha = 100;
+        if (_root['backgroundmusic']) {
+          titlemusic.setVolume(starting * ALPHAOUTMULT);
+        }
+        starting--;
+        titlemc._alpha = starting * ALPHAOUTMULT;
+        if (!starting) {
+          reallyStart();
+        }
       }
 
     }
