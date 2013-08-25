@@ -71,6 +71,7 @@ var CAPW = 6;
 
 var PFALL = 7;
 var PGROWTH = 8;
+var PSOKO = 9;
 
 // How many pixels does the player extend up and to the left
 // of the origin?
