@@ -55,7 +55,7 @@ var NPOINTS = 10;
 
 var CAPW = 6;
 
-
+var PFALL = 7;
 var PGROWTH = 8;
 
 // How many pixels does the player extend up and to the left

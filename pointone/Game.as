@@ -265,53 +265,129 @@ class Game extends MovieClip {
   }
   */
 
-  public function blockPhysics() {
+  public function growBlocks() {
     var parity = (framesinpoint % 2) == 0;
 
-    // Growth.
-    if (points[0] == PGROWTH) {
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      if (b.dir == HORIZ) {
 
-      for (var i = 0; i < blocks.length; i++) {
-	var b = blocks[i];
-	if (b.dir == HORIZ) {
-
-	  if (parity) {
-	    // even parity. grow left
-	    if (b.shrink1 > 0) {
-	      b.shrink1--;
-	    } else {
-	      // If shrink is zero, try expanding to the left.
-	      var nbx = (b.x - 1 + TILESW) % TILESW;
-	      if (grid[b.y * TILESW + nbx] == null) {
-		// claim it!
-		b.len++;
-		b.x = nbx;
-		grid[b.y * TILESW + nbx] = b;
-		b.shrink1 = 15;
-	      }
-	    }
+	if (parity) {
+	  // even parity. grow left
+	  if (b.shrink1 > 0) {
+	    b.shrink1--;
 	  } else {
-	    // odd parity. grow right...
-	    if (b.shrink2 > 0) {
-	      b.shrink2--;
-	    } else {
-	      // Try expanding length;
-	      var nblast = (b.x + b.len + TILESW) % TILESW;
-	      if (grid[b.y * TILESW + nblast] == null) {
-		b.len++;
-		grid[b.y * TILESW + nblast] = b;
-		b.shrink2 = 15;
-	      }
+	    // If shrink is zero, try expanding to the left.
+	    var nbx = (b.x - 1 + TILESW) % TILESW;
+	    if (grid[b.y * TILESW + nbx] == null) {
+	      // claim it!
+	      b.len++;
+	      b.x = nbx;
+	      grid[b.y * TILESW + nbx] = b;
+	      b.shrink1 = 15;
 	    }
 	  }
+	} else {
+	  // odd parity. grow right...
+	  if (b.shrink2 > 0) {
+	    b.shrink2--;
+	  } else {
+	    // Try expanding length.
+	    var nblast = (b.x + b.len + TILESW) % TILESW;
+	    if (grid[b.y * TILESW + nblast] == null) {
+	      b.len++;
+	      grid[b.y * TILESW + nblast] = b;
+	      b.shrink2 = 15;
+	    }
+	  }
+	}
 
-	} else if (b.dir == VERT) {
+      } else if (b.dir == VERT) {
 
-	  // XXX
+	if (parity) {
+	  // even parity. grow top
+	  if (b.shrink1 > 0) {
+	    b.shrink1--;
+	  } else {
+	    // If shrink is zero, try expanding up.
+	    var nby = (b.y - 1 + TILESH) % TILESH;
+	    if (grid[nby * TILESW + b.x] == null) {
+	      // claim it!
+	      b.len++;
+	      b.y = nby;
+	      grid[nby * TILESW + b.x] = b;
+	      b.shrink1 = 15;
+	    }
+	  }
+	} else {
+	  // odd parity. grow down...
+	  if (b.shrink2 > 0) {
+	    b.shrink2--;
+	  } else {
+	    // Try expanding length;
+	    var nblast = (b.y + b.len + TILESH) % TILESH;
+	    if (grid[nblast * TILESW + b.x] == null) {
+	      b.len++;
+	      grid[nblast * TILESW + b.x] = b;
+	      b.shrink2 = 15;
+	    }
+	  }
+	}
 
+      }
+    }
+  }
+
+  public function fallBlocks() {
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+
+      // TODO: Also could turn NONE blocks into vert.
+      if (b.dir == VERT) {
+	  
+	var nblast = (b.y + b.len + TILESH) % TILESH;
+	// Can fall if below us is clear; it's always safe
+	// to shrink from the top if we're extending at the
+	//s ame time.
+	var canfall = b.shrink2 > 0 ||
+	  grid[nblast * TILESW + b.x] == null;
+
+	if (canfall) {
+	  // OK, grow down.
+	  if (b.shrink2 > 0) {
+	    b.shrink2--;
+	  } else {
+	    // We already know we have room.
+	    b.len++;
+	    grid[nblast * TILESW + b.x] = b;
+	    b.shrink2 = 15;
+	  }
+
+	  // And shrink up.
+	  if (b.shrink1 < 15) {
+	    b.shrink1++;
+	  } else {
+	    grid[b.y * TILESW + b.x] = null;
+	    b.y = (b.y + 1 + TILESH) % TILESH;
+	    b.len--;
+	    b.shrink1 = 0;
+	  }
 	}
       }
     }
+  }
+
+  public function blockPhysics() {
+
+    // Growth.
+    if (points[0] == PGROWTH) {
+      growBlocks();
+    }
+
+    if (points[0] == PFALL) {
+      fallBlocks();
+    }
+
   }
 
   public function onEnterFrame() {
