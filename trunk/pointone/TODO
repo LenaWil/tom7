@@ -5,6 +5,7 @@ GAME IS BROKEN WITHOUT:
  - win / lose conditions
  - behavior for each point
  - getting points off the grid
+ - air
 
 WOULD HELP A LOT:
  - break blocks in the middle usually
@@ -15,6 +16,7 @@ WOULD HELP A LOT:
  - pulse/timeout for making new blocks
 
 POLISH:
+ - outside corners of air
  - smooth falling on falling/shrinking block
  - timing between songs
  - 'extend' version of points
@@ -24,3 +26,4 @@ POLISH:
  - instructions screen
 
 points:
+ - "think" -- can move around grid, see how air works?
