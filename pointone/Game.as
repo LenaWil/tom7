@@ -113,6 +113,10 @@ class Game extends MovieClip {
     addition to growing (of course). Block-to-block calculations are
     always done on the bounding boxes. Shrinkage is only for drawing
     and for computing the player's position, which is integral.
+
+    frames: int
+    frame countdown timer for breaking bricks, maybe other purposes.
+    optional.
    */
 
   // Logical left corner of the player.
@@ -237,7 +241,6 @@ class Game extends MovieClip {
     */
 
   }
-
 
   // Current point.
   var backgroundmc = null;
@@ -366,6 +369,7 @@ class Game extends MovieClip {
       var b = blocks[i];
 
       // TODO: Also could turn NONE blocks into vert.
+      // but be careful of breaking ones.
       if (b.dir == VERT) {
 	  
 	var nblast = (b.y + b.len + TILESH) % TILESH;
@@ -400,7 +404,22 @@ class Game extends MovieClip {
     }
   }
 
+  public function breakingBlocks() {
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      if (b.what == BBREAK) {
+	b.frames--;
+	if (b.frames == 0) {
+	  deleteBlock(b);
+	}
+      }
+    }
+  }
+
   public function blockPhysics() {
+
+    // Maybe not if frozen?
+    breakingBlocks();
 
     // Growth.
     if (points[0] == PGROWTH) {
@@ -446,6 +465,7 @@ class Game extends MovieClip {
 
   // This is for testing pixel-level physics like the player
   // clipping and some effects (e.g. stars, if I do that).
+  // Consider treating breaking blocks as non-solid?
   public function pixelIsSolid(px, py) {
     // Wrap around physics...
     px = px % GAMEW;
@@ -558,6 +578,7 @@ class Game extends MovieClip {
     return { y: iy, hit: false, fy: endy - iy };
   }
 
+  var jumpframes = 0;
   public function playerPhysics() {
     var YGRAV = 0.48;
     var XGRAV = 0;
@@ -579,23 +600,36 @@ class Game extends MovieClip {
     // First, changes in acceleration.
     if (og) {
       if (holdingSpace) {
-	ddy -= 7;
-	holdingSpace = false;
+	jumpframes = 6;
+	ddy -= 2;
       }
     } else {
       ddy += YGRAV;
     }
 
+    // Bigger jump if holding space
+    if (holdingSpace) {
+      if (jumpframes > 0) {
+	jumpframes--;
+	ddy -= 1;
+      } else {
+	// Clear impulse
+	holdingSpace = false;
+      }
+    } else {
+      jumpframes = 0;
+    }
+
     if (holdingRight) {
+      facingleft = false;
       if (og) {
-	facingleft = false;
 	ddx += 0.7;
       } else {
 	ddx += 0.4;
       }
     } else if (holdingLeft) {
+      facingleft = true;
       if (og) {
-	facingleft = true;
 	ddx -= 0.7;
       } else {
 	ddx -= 0.4;
@@ -683,7 +717,13 @@ class Game extends MovieClip {
       playery = yobj.y;
       playerfy = yobj.fy;
       // Or small bounce if hitting head?
-      if (yobj.hit) playerdy = 0;
+      if (yobj.hit) {
+	playerdy = 0;
+	// Can't keep jetpacking up if we hit our
+	// head...
+	jumpframes = 0;
+	holdingSpace = false;
+      }
     } else {
       // as above.
       playerfy = 0;
@@ -701,30 +741,80 @@ class Game extends MovieClip {
     if (holdingZ) {
       // check if holding down?
       // probably no punching up though.
-      var ty = Math.floor((playery + HEAD) / BLOCKW);
-      ty = (ty + TILESH) % TILESH;
-      var tx;
-      if (facingleft) {
-	tx = Math.floor((playerx + LEFTFOOT - PUNCHW) / BLOCKW);
+
+      var ty, tx;
+      if (holdingDown) {
+	ty = Math.floor((playery + FEET + PUNCHD) / BLOCKW);
+	ty = (ty + TILESH) % TILESH;
+	tx = Math.floor((playerx + (facingleft ? LEFTFOOT : RIGHTFOOT)) /
+			BLOCKW);
 	tx = (tx + TILESW) % TILESW;
-	var b = grid[ty * TILESW + tx];
       } else {
-	tx = Math.floor((playerx + RIGHTFOOT + PUNCHW) / BLOCKW);
-	tx = (tx + TILESW) % TILESW;
+
+	ty = Math.floor((playery + HEAD) / BLOCKW);
+	ty = (ty + TILESH) % TILESH;
+	if (facingleft) {
+	  tx = Math.floor((playerx + LEFTFOOT - PUNCHW) / BLOCKW);
+	  tx = (tx + TILESW) % TILESW;
+	  var b = grid[ty * TILESW + tx];
+	} else {
+	  tx = Math.floor((playerx + RIGHTFOOT + PUNCHW) / BLOCKW);
+	  tx = (tx + TILESW) % TILESW;
+	}
       }
       
       var b = grid[ty * TILESW + tx];
       if (b != null) {
-	destroyBlock(tx, ty);
+	punchBlock(tx, ty);
       }
 
       holdingZ = false;
     }
   }
 
-  // XXX animate the block disappearing
-  public function destroyBlock(tx, ty) {
+  // turns the whole thing into broken.
+  // TODO: consider breaking a piece out of long ones.
+  public function punchBlock(tx, ty) {
     var b = grid[ty * TILESW + tx];
+
+    // Not allowed to reset break timer.
+    if (b.what == BBREAK)
+      return;
+
+    if (b.dir == NONE) {
+      b.what = BBREAK;
+      b.frames = BREAKFRAMES;
+    } else if (b.dir == HORIZ) {
+      deleteBlock(b);
+      for (var x = 0; x < b.len; x++) {
+	var xx = (b.x + x) % TILESW;
+	var newb = { x: xx, y: b.y,
+		     dir: NONE, len: 1, 
+		     what: BBREAK,
+		     frames: BREAKFRAMES,
+		     shrink1: 0, shrink2: 0 };
+	grid[b.y * TILESW + xx] = newb;
+	blocks.push(newb);
+      }
+    } else if (b.dir == VERT) {
+      deleteBlock(b);
+      for (var y = 0; y < b.len; y++) {
+	var yy = (b.y + y) % TILESH;
+	var newb = { x: b.x, y: yy,
+		     dir: NONE, len: 1, 
+		     what: BBREAK,
+		     frames: BREAKFRAMES,
+		     shrink1: 0, shrink2: 0 };
+	grid[yy * TILESW + b.x] = newb;
+	blocks.push(newb);
+      }
+    }
+  }
+
+  // remove block at tx, ty from array. Doesn't
+  // mess up b itself, though it will be disconnected
+  // unless you keep ahold of it
+  public function deleteBlock(b) {
     // First, swap to end of blocks array so we can
     // easily delete it.
     var last = blocks.length - 1;
@@ -822,6 +912,7 @@ class Game extends MovieClip {
       }
     }
 
+    // Create faded version of points and icons.
     for (var i = 0; i < NPOINTS; i++) {
       blockbms[B0 + i][DARK] = 
 	darkenWhite(blockbms[B0 + i][NORMAL]);
@@ -979,16 +1070,55 @@ class Game extends MovieClip {
     // in the right place so that 0,0 is actually the start
     // of the game area.
     clearBitmap(gamebm);
+    drawBlocks();
+
+    // Now draw player.
+    // When player is wrapping around screen, need
+    // to draw up to 4 playermcs...
+    // TODO: Consider placing on odd screen pixels?
+    // _root.playermc._x = (BOARDX + playerx - PLAYERLAPX) * SCALE;
+    // _root.playermc._y = (BOARDY + playery - PLAYERLAPY) * SCALE;
+    // XXX animate.
+    // XXX PERF this replaces the bitmap right?
+
+    // assumes 0 <= playerx < width etc.
+    var pbm = facingleft ? playerbml : playerbm;
+    var xx = playerx - PLAYERLAPX;
+    var yy = playery - PLAYERLAPY;
+    
+    // PERF could compute that some of these are impossible,
+    // but native clipping code is perhaps faster than any
+    // logic we could do
+    drawAt(gamebm, pbm, xx, yy);
+    drawAt(gamebm, pbm, xx - GAMEW, yy);
+    drawAt(gamebm, pbm, xx, yy - GAMEH);
+    drawAt(gamebm, pbm, xx - GAMEW, yy - GAMEH);
+
+    // just leave at depth.
+    // setDepthOf(_root.rinkmc, iceDepth(playery));
+
+  }
+
+  public function drawBlocks() {
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
       // trace(b.what);
+
+      // XXX don't use for 1x1 that's falling. It blinks
+      // into a different appearance, which looks bad.
       if (b.dir == NONE || b.len == 1) {
 	// common, assumed 1x1. can't have shrinkage.
 	var place = new Matrix();
 	place.translate(b.x * BLOCKW * SCALE,
 			b.y * BLOCKW * SCALE);
 
-	gamebm.draw(blockbms[b.what][NORMAL], place);
+	if (b.what == BBREAK) {
+	  var frac = (BREAKFRAMES - b.frames) / BREAKFRAMES;
+	  var fm = Math.round(frac * (NBREAKANIM - 1));
+	  gamebm.draw(blockbms[BBREAK][fm], place);
+	} else {
+	  gamebm.draw(blockbms[b.what][NORMAL], place);
+	}
 
       } else if (b.dir == HORIZ) {
 
@@ -1104,33 +1234,6 @@ class Game extends MovieClip {
       }
 
     }
-
-
-    // Now draw player.
-    // When player is wrapping around screen, need
-    // to draw up to 4 playermcs...
-    // TODO: Consider placing on odd screen pixels?
-    // _root.playermc._x = (BOARDX + playerx - PLAYERLAPX) * SCALE;
-    // _root.playermc._y = (BOARDY + playery - PLAYERLAPY) * SCALE;
-    // XXX animate.
-    // XXX PERF this replaces the bitmap right?
-
-    // assumes 0 <= playerx < width etc.
-    var pbm = facingleft ? playerbml : playerbm;
-    var xx = playerx - PLAYERLAPX;
-    var yy = playery - PLAYERLAPY;
-    
-    // PERF could compute that some of these are impossible,
-    // but native clipping code is perhaps faster than any
-    // logic we could do
-    drawAt(gamebm, pbm, xx, yy);
-    drawAt(gamebm, pbm, xx - GAMEW, yy);
-    drawAt(gamebm, pbm, xx, yy - GAMEH);
-    drawAt(gamebm, pbm, xx - GAMEW, yy - GAMEH);
-
-    // just leave at depth.
-    // setDepthOf(_root.rinkmc, iceDepth(playery));
-
   }
 
   // Takes game pixels x,y
