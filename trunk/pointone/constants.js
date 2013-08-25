@@ -93,10 +93,12 @@ var LEFTFOOT = 4;
 var RIGHTFOOT = BLOCKW - 4 - 1;
 
 // Y offset from player x,y (not graphic) that should be considered
-// the player's head (for clipping).
+// the player's head (for clipping, acting, air).
 var HEAD = 4;
 // The last pixel in the block, not the one below.
 var FEET = BLOCKW - 1;
+
+var CENTER = BLOCKW / 2;
 
 
 // Game tuning...

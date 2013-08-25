@@ -450,12 +450,53 @@ class Game extends MovieClip {
     // Growth.
     if (points[0] == PGROWTH) {
       growBlocks();
-    }
-
-    if (points[0] == PFALL) {
+    } else if (points[0] == PFALL) {
       fallBlocks();
+    } else {
+      normalizeBlocks();
     }
+  }
 
+  // We try to keep the blocks at normal sizes (full blocks),
+  // since air can't pass through slivers and there are some
+  // unintuitive choking hazards.
+  public function normalizeBlocks() {
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      if (b.dir == HORIZ) {
+	if (b.shrink1 > 0)
+	  growLeft(b);
+
+	if (b.shrink2 > 0)
+	  growRight(b);
+
+      } else if (b.dir == VERT) {
+
+	if (b.shrink1 > 0)
+	  growUp(b);
+
+	if (b.shrink2 > 0)
+	  growDown(b);
+
+      }
+    }
+  }
+
+  public function growUp(b) {
+    // even parity. grow top
+    if (b.shrink1 > 0) {
+      b.shrink1--;
+    } else {
+      // If shrink is zero, try expanding up.
+      var nby = (b.y - 1 + TILESH) % TILESH;
+      if (grid[nby * TILESW + b.x] == null) {
+	// claim it!
+	b.len++;
+	b.y = nby;
+	grid[nby * TILESW + b.x] = b;
+	b.shrink1 = 15;
+      }
+    }
   }
 
   public function thinkPhysics() {
@@ -750,6 +791,7 @@ class Game extends MovieClip {
     // First, changes in acceleration.
     if (!TOPDOWN && og && jumpframes == 0) {
       if (holdingSpace) {
+	playJumpSound();
 	jumpframes = 6;
 	ddy -= 2;
       }
@@ -930,7 +972,7 @@ class Game extends MovieClip {
       d = VERT;
     } else {
 
-      ty = Math.floor((playery + HEAD) / BLOCKW);
+      ty = Math.floor((playery + CENTER) / BLOCKW);
       ty = (ty + TILESH) % TILESH;
       if (facingleft) {
 	tx = Math.floor((playerx + LEFTFOOT - width) / BLOCKW);
@@ -1057,6 +1099,15 @@ class Game extends MovieClip {
 
     // Get rid of it now.
     blocks.pop();
+  }
+
+  public function playJumpSound() {
+    var NJUMP = 4;
+    var j = new Sound(sfxmc);
+    var idx = (int(Math.random() * 1000)) % NJUMP;
+    j.attachSound('jump' + (idx + 1) + '.wav');
+    j.setVolume(30);
+    j.start(0, 1);
   }
 
   public function playCrySound() {
@@ -1327,9 +1378,9 @@ class Game extends MovieClip {
   public function computeAir() {
     air = [];
     // player's head
-    var ty = Math.floor((playery + HEAD) / BLOCKW);
+    var ty = Math.floor((playery + CENTER) / BLOCKW);
     ty = (ty + TILESH) % TILESH;
-    var tx = Math.floor((playerx + BLOCKW / 2) / BLOCKW);
+    var tx = Math.floor((playerx + CENTER) / BLOCKW);
     tx = (tx + TILESW) % TILESW;
 
     airea = 0;
