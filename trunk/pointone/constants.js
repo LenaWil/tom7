@@ -102,7 +102,10 @@ var FEET = BLOCKW - 1;
 // Game tuning...
 // Nominal FPS. Must match timeline setting.
 var FPS = 30;
-var FRAMESPERAIR = 4;
+var FRAMESPERAIR = 5;
+
+// When suffocating, breathe every this many frames.
+var BREATHEEVERY = FPS * 2;
 
 /////////////
 // Info stuff
@@ -135,3 +138,4 @@ var INFODEPTH = 9000;
 
 var BGMUSICDEPTH = 80;
 var BGMUSICDEPTH2 = 81;
+var SFXDEPTH = 85;

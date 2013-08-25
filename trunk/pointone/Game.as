@@ -11,6 +11,7 @@ class Game extends MovieClip {
   var backgroundbm : BitmapData = null;
   // All block sprites.
   var blocksbm : BitmapData = null;
+  var sfxmc : MovieClip = null;
 
   // All player sprites.
   var playerbmr = {};
@@ -56,6 +57,10 @@ class Game extends MovieClip {
   var orientation = LEFT;
   var UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3;
   var screamframes = 0;
+  // Number of frames until next suffocate sound,
+  // if suffocating.
+  var suffocating = true;
+  var suffocateframes = 0;
 
   // Size TILESW * TILESH.
   // Each cell points to a block or null.
@@ -532,14 +537,31 @@ class Game extends MovieClip {
     if (framesenclosed > 10) {
       var breath = framesenclosed / FRAMESPERAIR;
       if (breath > airea) {
+	suffocating = false;
 	scream();
+      } else if (breath > (airea * 0.30)) {
+	suffocating = true;
+
+	if (suffocateframes == 0) {
+	  playBreatheSound();
+	  suffocateframes = BREATHEEVERY;
+	}
       }
+    } else {
+      suffocating = false;
+      suffocateframes = 0;
     }
   }
 
   public function scream() {
+    // Scream already in progress. We need to wait
+    // for the blocks to dissolve, for example.
+    if (screamframes > 0)
+      return;
+
     screamframes = 12;
-    
+    playCrySound();
+
     // Could be cooler...
 
     var ty = Math.floor((playery + HEAD) / BLOCKW);
@@ -1035,49 +1057,26 @@ class Game extends MovieClip {
     blocks.pop();
   }
 
-  /*
-  public function playHurtSound(player, damage) {
+  public function playCrySound() {
     // XXX replace clip?
     // trace(player.smc);
-    var oof = new Sound(player.smc);
-    var idx = (int(Math.random() * 1000)) % NHURT;
-    oof.attachSound('hurt' + (idx + 1) + '.wav');
-    // oof.attachSound('hurt1.wav');
-    setSoundVolume(player.x, player.y, oof, 75);
-    oof.start(0, 1);
+    var cry = new Sound(sfxmc);
+    cry.attachSound('cry2.wav');
+    cry.setVolume(75);
+    cry.start(0, 1);
   }
 
-  public function setSoundVolume(x, y, sound, maxvol) {
-    // As distance from center of screen
-    // Maybe should base this on the player cursor?
-    var cx = (scrollx + SCREENW/2) - x;
-    var cy = (scrolly + SCREENH/2) - y;
-
-    // in pixels
-    var dx = Math.sqrt(cx * cx + cy * cy);
-
-    // fraction between 0 and 1, 0 loudest
-    var fade = dx / SCREENW*1.3;
-    if (fade < 0.05) fade = 0.05;
-    if (fade > 0.95) fade = 0.95;
-
-    fade = 1.0 - fade;
-
-    // trace('fade ' + fade + ' = ' + (80 * fade));
-    sound.setVolume(maxvol * fade);
-
-    // in [-1, 1]
-    var p = -cx / (SCREENW/2);
-    if (p > 0.90) p = 0.90;
-    if (p < -0.90) p = -0.90;
-
-    // Very hard to follow the sounds if panning too much.
-    sound.setPan(p * 10);
+  public function playBreatheSound() {
+    var cry = new Sound(sfxmc);
+    cry.attachSound('breathing.wav');
+    cry.setVolume(60);
+    cry.start(0, 1);
   }
-  */
 
   public function init() {
     trace('init game');
+
+    sfxmc = createMovieAtDepth('sfx', SFXDEPTH);
 
     blocksbm = loadBitmap2x('blocks.png');
     barbm = loadBitmap2x('bar.png');
