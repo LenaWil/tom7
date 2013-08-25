@@ -49,6 +49,8 @@ class Game extends MovieClip {
   var holdingDown = false;
   var holdingEsc = false;
 
+  var dead = false;
+
   // Global animation offset. Resets to stay integral
   // and reasonably small.
   var animframe = 0;
@@ -61,7 +63,7 @@ class Game extends MovieClip {
   var screamframes = 0;
   // Number of frames until next suffocate sound,
   // if suffocating.
-  var suffocating = true;
+  var suffocating = false;
   var suffocateframes = 0;
 
   // Size TILESW * TILESH.
@@ -539,6 +541,8 @@ class Game extends MovieClip {
 
       playerx += dx * BLOCKW;
       playery += dy * BLOCKH;
+      playerx = (playerx + GAMEW) % GAMEW;
+      playery = (playery + GAMEH) % GAMEH;
 
       // Invalid now, just want to make failures obvious..
       air = [];
@@ -635,7 +639,7 @@ class Game extends MovieClip {
   }
 
   public function spikePhysics() {
-    var parity = (animframe % 2) == 0;
+    var parity = (animframe % 10) == 0;
 
     if (!parity) return;
 
@@ -652,6 +656,10 @@ class Game extends MovieClip {
 	}
       }
     }
+
+    // Delay so that new spikes don't immediately spawn
+    // more...
+    var tomake = [];
 
     for (var y = 0; y < TILESH; y++) {
       for (var x = 0; x < TILESW; x++) {
@@ -671,7 +679,7 @@ class Game extends MovieClip {
 	    if (b2.what == BSPIKE &&
 		b2.dir != z.d) {
 	      // Make spike!
-	      makeSpike(x, y, z.d);
+	      tomake.push({x:x, y:y, d:z.d});
 	      break;
 	    }
 	  }
@@ -679,12 +687,65 @@ class Game extends MovieClip {
       }
     }
 
+    for (var i = 0; i < tomake.length; i++) {
+      makeSpike(tomake[i].x, tomake[i].y, tomake[i].d);
+    }
+
+  }
+
+  var gameoverframes = 0;
+  public function gameover(win) {
+    // XXX remove any movie clips that might be on top
+    // of the picture.
+
+    if (_root.gameovermc) {
+      if (gameoverframes > 0) {
+	gameoverframes--;
+	trace(gameoverframes);
+      } else {
+	_root.gameovermc.removeMovieClip();
+	_root.gamemc.removeMovieClip();
+	_root.timermc.removeMovieClip();
+	_root.pointsmc.removeMovieClip();
+	_root.backgroundmc.removeMovieClip();
+	info.destroy();
+	airfo.destroy();
+	// HERE
+
+	_root.gotoAndStop('title');
+	this.swapDepths(0);
+	this.removeMovieClip();
+	return;
+      }
+    } else {
+      gameoverframes = 3 * FPS;
+      var gameoverbm = loadBitmap2x(win ? 'youwin.png' : 'youlost.png');
+      _root.gameovermc = createGlobalMC('go', gameoverbm, GAMEOVERDEPTH);
+      _root.gameovermc._x = 0;
+      _root.gameovermc._y = 0;
+    }
   }
 
   public function onEnterFrame() {
     framesdisplayed++;
     animframe++;
     if (animframe > 1000000) animframe = 0;
+
+    if (dead) {
+      if (screamframes == 0) {
+	gameover(false);
+
+	return;
+      }
+
+      // so that it's drawn accurately
+      computeAir();
+      // they're relentless
+      spikePhysics();
+      blockPhysics();
+      redraw();
+      return;
+    }
 
     // XXX off by one?
     if (framesinpoint == 0) {
@@ -695,6 +756,7 @@ class Game extends MovieClip {
 
     if (points[0] == PHURT) {
       spikePhysics();
+      checkSpikes();
     }
 
     if (points[0] == PTHINK) {
@@ -715,6 +777,7 @@ class Game extends MovieClip {
   }
 
   public function breathe() {
+
     // Slop so that user sees it coming...
     if (framesenclosed > 10) {
       var breath = framesenclosed / FRAMESPERAIR;
@@ -1175,8 +1238,9 @@ class Game extends MovieClip {
   public function punchBlock(tx, ty) {
     var b = grid[ty * TILESW + tx];
 
-    // Not allowed to reset break timer.
-    if (b.what == BBREAK)
+    // Not allowed to reset break timer, or smash
+    // spikes.
+    if (b.what == BBREAK || b.what == BSPIKE)
       return;
 
     if (b.dir == NONE) {
@@ -1274,6 +1338,24 @@ class Game extends MovieClip {
   public function init() {
     trace('init game');
 
+    var animframe = 0;
+    var facingleft = true;
+    var inair = false;
+    var orientation = LEFT;
+    var screamframes = 0;
+    var suffocating = false;
+    var suffocateframes = 0;
+    air = [];
+    airea = 0;
+    framesenclosed = 0;
+    points = [];
+    framesinpoint = 0;
+    framesdisplayed = 0;
+    playerdx = 0;
+    playerdy = 0;
+    playerfx = 0;
+    playerfy = 0;
+
     sfxmc = createMovieAtDepth('sfx', SFXDEPTH);
 
     blocksbm = loadBitmap2x('blocks.png');
@@ -1287,6 +1369,8 @@ class Game extends MovieClip {
 	run3: loadBitmap2x('playerrun3.png') };
 
     playerbml = flipAllHoriz(playerbmr);
+
+    blockbms = [];
 
     // Cut it up into the bitmaps.
     var NVARIATIONS = 4;
@@ -1342,7 +1426,7 @@ class Game extends MovieClip {
     info = new Info();
     info.init();
 
-    info.setMessage("You are now playing.");
+    // info.setMessage("You are now playing.");
 
     airfo = new Airfo();
     airfo.init();
@@ -1354,6 +1438,8 @@ class Game extends MovieClip {
     // XXX find safe spot for player
     playerx = Math.floor(GAMEW / 2);
     playery = Math.floor(GAMEH / 2);
+
+    dead = false;
 
     // _root.pucksmc = createMovieAtDepth('ps', PUCKSOUNDDEPTH);
 
@@ -1520,6 +1606,21 @@ class Game extends MovieClip {
 
   }
   
+  public function checkSpikes() {
+    // player's head
+    var ty = Math.floor((playery + CENTER) / BLOCKW);
+    ty = (ty + TILESH) % TILESH;
+    var tx = Math.floor((playerx + CENTER) / BLOCKW);
+    tx = (tx + TILESW) % TILESW;
+
+    var b = grid[ty * TILESW + tx];
+    if (b != null && b.what == BSPIKE) {
+      playCrySound();
+      dead = true;
+      screamframes = 45;
+    }
+  }
+
   public function computeAir() {
     air = [];
     // player's head
@@ -1595,11 +1696,16 @@ class Game extends MovieClip {
       if (f < 0) f = 0;
       if (f > 1) f = 1;
       var pct = Math.round(f * 10);
-      airfo.setMessage('air: ' + pct + '0%');
-      // XXX I think it would look better along the
-      // air boundary?
-      airfo.position(playerx - 6, playery - 16);
-      airfo.show();
+      // Can be NaN! XXX
+      if (!isNaN(pct)) {
+	airfo.setMessage('air: ' + pct + '0%');
+	// XXX I think it would look better along the
+	// air boundary?
+	airfo.position(playerx - 6, playery - 16);
+	airfo.show();
+      } else {
+	airfo.hide();
+      }
     } else {
       airfo.hide();
     }

@@ -20,6 +20,10 @@ class Info {
   var message = "";
   var font = [];
 
+  public function destroy() {
+    mc.removeMovieClip();
+  }
+
   public function init() {
     mc = _root.createEmptyMovieClip('info', INFODEPTH);
     mc._x = INFOMARGINX;

@@ -20,6 +20,10 @@ class Airfo {
   var message = "";
   var font = [];
 
+  public function destroy() {
+    mc.removeMovieClip();
+  }
+
   public function position(x, y) {
     mc._x = (x + BOARDX) * SCALE;
     mc._y = (y + BOARDY) * SCALE;
