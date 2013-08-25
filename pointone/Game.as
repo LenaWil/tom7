@@ -36,6 +36,8 @@ class Game extends MovieClip {
   var DARKICONS = 3;
 
   var info : Info = null;
+  var airfo : Airfo = null;
+  var airframes = 0;
 
   var holdingSpace = false;
   var holdingZ = false;
@@ -1069,7 +1071,7 @@ class Game extends MovieClip {
   public function playBreatheSound() {
     var cry = new Sound(sfxmc);
     cry.attachSound('breathing.wav');
-    cry.setVolume(60);
+    cry.setVolume(45);
     cry.start(0, 1);
   }
 
@@ -1145,6 +1147,10 @@ class Game extends MovieClip {
     info.init();
 
     info.setMessage("You are now playing.");
+
+    airfo = new Airfo();
+    airfo.init();
+    airfo.hide();
 
     initboard();
     initpoints();
@@ -1336,6 +1342,9 @@ class Game extends MovieClip {
 	air = [];
 	airea = -1;
 	framesenclosed = 0;
+	if (suffocating) {
+	  airframes = 20;
+	}
 	return;
       }
       var idx = n.y * TILESW + n.x;
@@ -1369,8 +1378,35 @@ class Game extends MovieClip {
   };
 
   public function drawAir() {
+    // Air info.
+    if (airea == -1) {
+      if (airframes > 0) {
+	airfo.setMessage('air: @#');
+	airfo.show();
+	airfo.position(playerx - 6, playery - 16);
+	airframes--;
+      } else {
+	airfo.hide();
+      }
+    }
+
     if (airea == -1)
       return;
+
+    if (suffocating) {
+      var breath = framesenclosed / FRAMESPERAIR;
+      var f = 1.0 - (breath / airea);
+      if (f < 0) f = 0;
+      if (f > 1) f = 1;
+      var pct = Math.round(f * 10);
+      airfo.setMessage('air: ' + pct + '0%');
+      // XXX I think it would look better along the
+      // air boundary?
+      airfo.position(playerx - 6, playery - 16);
+      airfo.show();
+    } else {
+      airfo.hide();
+    }
 
     var airbms = blockbms[BAIRBORDER];
     for (var y = 0; y < TILESH; y++) {
