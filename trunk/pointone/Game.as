@@ -267,6 +267,11 @@ class Game extends MovieClip {
     }
   }
 
+  public function stopmusic() {
+    backgroundmusic.stop();
+    oldbackgroundmusic.stop();
+  }
+
   public function onLoad() {
     Key.addListener(this);
     init();
@@ -421,6 +426,8 @@ class Game extends MovieClip {
     }
 
     playerPhysics();
+
+    playerActions();
     
     blockPhysics();
 
@@ -573,6 +580,7 @@ class Game extends MovieClip {
     if (og) {
       if (holdingSpace) {
 	ddy -= 7;
+	holdingSpace = false;
       }
     } else {
       ddy += YGRAV;
@@ -687,6 +695,67 @@ class Game extends MovieClip {
     // same for fx?
     if (Math.abs(playerdx) < 0.01) playerdx = 0;
     if (Math.abs(playerdy) < 0.01) playerdy = 0;
+  }
+
+  public function playerActions() {
+    if (holdingZ) {
+      // check if holding down?
+      // probably no punching up though.
+      var ty = Math.floor((playery + HEAD) / BLOCKW);
+      ty = (ty + TILESH) % TILESH;
+      var tx;
+      if (facingleft) {
+	tx = Math.floor((playerx + LEFTFOOT - PUNCHW) / BLOCKW);
+	tx = (tx + TILESW) % TILESW;
+	var b = grid[ty * TILESW + tx];
+      } else {
+	tx = Math.floor((playerx + RIGHTFOOT + PUNCHW) / BLOCKW);
+	tx = (tx + TILESW) % TILESW;
+      }
+      
+      var b = grid[ty * TILESW + tx];
+      if (b != null) {
+	destroyBlock(tx, ty);
+      }
+
+      holdingZ = false;
+    }
+  }
+
+  // XXX animate the block disappearing
+  public function destroyBlock(tx, ty) {
+    var b = grid[ty * TILESW + tx];
+    // First, swap to end of blocks array so we can
+    // easily delete it.
+    var last = blocks.length - 1;
+    // Don't go all the way to last, in case it's already there
+    for (var i = 0; i < last; i++) {
+      if (blocks[i] == b) {
+	blocks[i] = blocks[last];
+	blocks[last] = b;
+	break;
+      }
+    }
+
+    // Now we can assume it's at the last index (#last) in the
+    // array.
+    
+    if (b.dir == NONE) {
+      grid[b.y * TILESW + b.x] = null;
+    } else if (b.dir == HORIZ) {
+      for (var x = 0; x < b.len; x++) {
+	var xx = (b.x + x) % TILESW;
+	grid[b.y * TILESW + xx] = null;
+      }
+    } else if (b.dir == VERT) {
+      for (var y = 0; y < b.len; y++) {
+	var yy = (b.y + y) % TILESH;
+	grid[yy * TILESW + b.x] = null;
+      }
+    }
+
+    // Get rid of it now.
+    blocks.pop();
   }
 
   /*
@@ -893,11 +962,13 @@ class Game extends MovieClip {
     var total_s = total_ms / 1000.0;
     var computed_fps = framesdisplayed / total_s;
     // info.setMessage('FPS ' + computed_fps);
+    /*
     info.setMessage('dx: ' + toDecimal(playerdx, 1000) + 
 		    ' dy: ' + toDecimal(playerdy, 1000) +
 		    ' fx: ' + toDecimal(playerfx, 1000) +
 		    ' fy: ' + toDecimal(playerfy, 1000));
-
+    */
+    info.setMessage('arrow keys, space, z');
     drawtimer();
     // PERF don't need to do this every frame!
     drawpoints();
@@ -1072,17 +1143,27 @@ class Game extends MovieClip {
   public function onKeyDown() {
     var k = Key.getCode();
     switch(k) {
+    case 49:
+      if (CHEATS) {
+	stopmusic();
+	initpoints();
+	initboard();
+      }
+      break;
+    case 50:
+      if (CHEATS) {
+	stopmusic();
+	framesinpoint = 10;
+      }
+      break;
     case 192: // ~
     case 27: // esc
       holdingEsc = true;
       break;
     case 90: // z
-      initpoints();
-      initboard();
       holdingZ = true;
       break;
     case 88: // x
-      framesinpoint = 10;
       if (allowX) {
         holdingX = true;
       }

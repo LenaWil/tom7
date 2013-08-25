@@ -3,6 +3,7 @@
 var FASTMODE = false;
 
 var MUSIC = !FASTMODE;
+var CHEATS = true;
 
 // In screen (real) pixels.
 var SCREENW = 600;
@@ -52,6 +53,8 @@ var B9 = 15;
 var NREG = 3;
 var NBLOCKS = 16;
 var NPOINTS = 10;
+
+var PUNCHW = 4;
 
 var CAPW = 6;
 
