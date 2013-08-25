@@ -55,11 +55,14 @@ var BBLUE = 17;
 var BRED = 18;
 var BAIR = 19;
 var BAIRBORDER = 20;
+var BSPIKE = 21;
 
 var NREG = 3;
 var NPICK = 16;
-var NBLOCKS = 21;
+var NBLOCKS = 22;
 var NPOINTS = 10;
+
+var INITIALPOINTS = 3;
 
 var BREAKFRAMES = 10;
 var NBREAKANIM = 4;
