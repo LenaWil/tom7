@@ -2,7 +2,8 @@
 // Config
 var FASTMODE = false;
 
-var MUSIC = !FASTMODE;
+// var MUSIC = !FASTMODE;
+var MUSIC = false;
 var CHEATS = true;
 
 // In screen (real) pixels.
@@ -52,9 +53,11 @@ var B9 = 15;
 var BBREAK = 16;
 var BBLUE = 17;
 var BRED = 18;
+var BAIR = 19;
 
 var NREG = 3;
-var NBLOCKS = 19;
+var NPICK = 16;
+var NBLOCKS = 20;
 var NPOINTS = 10;
 
 var BREAKFRAMES = 10;
@@ -76,7 +79,7 @@ var PSOKO = 9;
 // How many pixels does the player extend up and to the left
 // of the origin?
 var PLAYERLAPX = 0;
-var PLAYERLAPY = 8;
+var PLAYERLAPY = 10;
 
 var POINTSOVERLAP = 3;
 

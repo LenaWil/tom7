@@ -26,6 +26,14 @@ private function flipHoriz(bm) {
   return fbm;
 }
 
+private function flipAllHoriz(obj) {
+  var ret = {};
+  for (var o in obj) {
+    ret[o] = flipHoriz(obj[o]);
+  }
+  return ret;
+}
+
 public function setDepthOf(m : MovieClip, n : Number) {
   var other : MovieClip = _root.getInstanceAtDepth(n);
   if (other == m) {

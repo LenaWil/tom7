@@ -16,8 +16,11 @@ class Game extends MovieClip {
   var blocksbm : BitmapData = null;
 
   // All player sprites.
-  var playerbm : BitmapData = null;
-  var playerbml : BitmapData = null;
+  var playerbmr = {};
+  // Rotated.
+  var playerbml = {};
+  var playerbmu = {};
+  var playerbmd = {};
 
   var gamebm : BitmapData = null;
   var timerbm : BitmapData = null;
@@ -51,6 +54,7 @@ class Game extends MovieClip {
   var animframe = 0;
   // Which way is the player facing?
   var facingleft = true;
+  var inair = false;
   // Use this in TOPDOWN mode.
   var orientation = LEFT;
   var UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3;
@@ -60,6 +64,13 @@ class Game extends MovieClip {
   var grid = [];
   // All the blocks currently around.
   var blocks = [];
+
+  // Most recent air computation.
+  var air = [];
+  // -1 if connected to outside
+  var airea = 0;
+  // Number of frames we've spent enclosed.
+  var framesenclosed = 0;
 
   // The points coming up. The current one is first
   // in the list, so this is nonempty during play.
@@ -103,7 +114,7 @@ class Game extends MovieClip {
 
     Every grid cell inside the bounding box points to this
     block.
-    
+
     shrink1, shrink2: int
 
     ... shrinkage for the beginning and end point on the long
@@ -165,10 +176,12 @@ class Game extends MovieClip {
 	    if (Math.random() < 0.5) {
 	      what = Math.random() < 0.5 ? BVERT : BHORIZ;
 	    } else {
-	      what = int((Math.random() * 1000) % NBLOCKS);
+	      // XXX avoid picking special blocks!
+	      what = int((Math.random() * 1000) % NPICK);
 	    }
 	  }
-	  
+	
+
 	  var d = NONE;
 	  if (what == BVERT) d = VERT;
 	  else if (what == BHORIZ) d = HORIZ;
@@ -342,7 +355,7 @@ class Game extends MovieClip {
       // TODO: Also could turn NONE blocks into vert.
       // but be careful of breaking ones.
       if (b.dir == VERT) {
-	  
+	
 	var nblast = (b.y + b.len + TILESH) % TILESH;
 	// Can fall if below us is clear; it's always safe
 	// to shrink from the top if we're extending at the
@@ -455,8 +468,10 @@ class Game extends MovieClip {
     playerPhysics();
 
     playerActions();
-    
+
     blockPhysics();
+
+    computeAir();
 
     redraw();
   }
@@ -481,10 +496,10 @@ class Game extends MovieClip {
 
     var tx = Math.floor(px / BLOCKW);
     var ty = Math.floor(py / BLOCKH);
-    
+
     var b = grid[ty * TILESW + tx];
     if (!b) return false;
-    
+
     // Not sure if B* should count as solid for jumping?
     // Probably not..
 
@@ -530,9 +545,9 @@ class Game extends MovieClip {
   public function onGround() {
     // Test if the player is on the ground and
     // can do ground stuff like jump.
-    
+
     var feety = playery + BLOCKH;
-    
+
     // Might test one or two tiles, but even if there
     // is just one tile, we have to test twice because
     // it might have nonzero horizontal shrinkage.
@@ -565,7 +580,7 @@ class Game extends MovieClip {
 	return { x: x, hit: true, fx: 0 };
       }
     }
-    
+
     return { x: ix, hit: false, fx: endx - ix };
   }
 
@@ -582,7 +597,7 @@ class Game extends MovieClip {
 	return { y: y, hit: true, fy: 0 };
       }
     }
-    
+
     return { y: iy, hit: false, fy: endy - iy };
   }
 
@@ -658,23 +673,27 @@ class Game extends MovieClip {
       }
     }
 
-    if (TOPDOWN && holdingUp) {
-      orientation = VERT;
-      if (og) {
-	ddy -= 0.7;
-      } else {
-	ddy -= 0.4;
+    if (TOPDOWN) {
+      if (holdingUp) {
+	orientation = VERT;
+	if (og) {
+	  ddy -= 0.7;
+	} else {
+	  ddy -= 0.4;
+	}
+      } else if (holdingDown) {
+	orientation = VERT;
+	if (og) {
+	  ddy += 0.7;
+	} else {
+	  ddy += 0.4;
+	}
       }
-    } else if (TOPDOWN && holdingDown) {
-      orientation = VERT;
-      if (og) {
-	ddy += 0.7;
-      } else {
-	ddy += 0.4;
-      }
-    } 
+    }
 
-    // Apply friction if not holding any useful key
+    inair = !TOPDOWN && !og;
+
+    // Apply friction if not holding any useful key.
     if (!holdingRight && !holdingLeft &&
 	(!TOPDOWN || (!holdingUp && !holdingDown))) {
       if (og) {
@@ -866,7 +885,7 @@ class Game extends MovieClip {
       for (var x = 0; x < b.len; x++) {
 	var xx = (b.x + x) % TILESW;
 	var newb = { x: xx, y: b.y,
-		     dir: NONE, len: 1, 
+		     dir: NONE, len: 1,
 		     what: BBREAK,
 		     frames: BREAKFRAMES,
 		     shrink1: 0, shrink2: 0 };
@@ -878,7 +897,7 @@ class Game extends MovieClip {
       for (var y = 0; y < b.len; y++) {
 	var yy = (b.y + y) % TILESH;
 	var newb = { x: b.x, y: yy,
-		     dir: NONE, len: 1, 
+		     dir: NONE, len: 1,
 		     what: BBREAK,
 		     frames: BREAKFRAMES,
 		     shrink1: 0, shrink2: 0 };
@@ -906,7 +925,7 @@ class Game extends MovieClip {
 
     // Now we can assume it's at the last index (#last) in the
     // array.
-    
+
     if (b.dir == NONE) {
       grid[b.y * TILESW + b.x] = null;
     } else if (b.dir == HORIZ) {
@@ -969,10 +988,16 @@ class Game extends MovieClip {
   public function init() {
     trace('init game');
 
-    blocksbm = loadBitmap2x('blocks.png');    
-    playerbm = loadBitmap2x('player.png');
+    blocksbm = loadBitmap2x('blocks.png');
     barbm = loadBitmap2x('bar.png');
-    playerbml = flipHoriz(playerbm);
+    playerbmr =
+      { stand: loadBitmap2x('player.png'),
+	jump: loadBitmap2x('playerjump.png'),
+	run1: loadBitmap2x('playerrun1.png'),
+	run2: loadBitmap2x('playerrun2.png'),
+	run3: loadBitmap2x('playerrun3.png') };
+
+    playerbml = flipAllHoriz(playerbmr);
 
     // Cut it up into the bitmaps.
     var NVARIATIONS = 4;
@@ -991,9 +1016,9 @@ class Game extends MovieClip {
 
     // Create faded version of points and icons.
     for (var i = 0; i < NPOINTS; i++) {
-      blockbms[B0 + i][DARK] = 
+      blockbms[B0 + i][DARK] =
 	darkenWhite(blockbms[B0 + i][NORMAL]);
-      blockbms[B0 + i][DARKICONS] = 
+      blockbms[B0 + i][DARKICONS] =
 	darkenWhite(blockbms[B0 + i][ICONS]);
     }
 
@@ -1046,7 +1071,7 @@ class Game extends MovieClip {
     var xx = (bx * BLOCKW + b.shrink1) * SCALE;
     var yy = b.y * BLOCKW * SCALE;
     capm.translate(xx, yy);
-    var capc = new Rectangle(xx, yy, 
+    var capc = new Rectangle(xx, yy,
 			     CAPW * SCALE, BLOCKH * SCALE);
     gamebm.draw(blockbms[b.what][NORMAL], capm, null, null, capc);
   }
@@ -1069,7 +1094,7 @@ class Game extends MovieClip {
     var xx = b.x * BLOCKW * SCALE;
     var yy = (by * BLOCKH + b.shrink1) * SCALE;
     capm.translate(xx, yy);
-    var capc = new Rectangle(xx, yy, 
+    var capc = new Rectangle(xx, yy,
 			     BLOCKW * SCALE, CAPW * SCALE);
     gamebm.draw(blockbms[b.what][NORMAL], capm, null, null, capc);
   }
@@ -1130,13 +1155,16 @@ class Game extends MovieClip {
     var total_s = total_ms / 1000.0;
     var computed_fps = framesdisplayed / total_s;
     // info.setMessage('FPS ' + computed_fps);
+
     /*
-    info.setMessage('dx: ' + toDecimal(playerdx, 1000) + 
+    info.setMessage('dx: ' + toDecimal(playerdx, 1000) +
 		    ' dy: ' + toDecimal(playerdy, 1000) +
 		    ' fx: ' + toDecimal(playerfx, 1000) +
 		    ' fy: ' + toDecimal(playerfy, 1000));
     */
-    info.setMessage('arrow keys, space, z, x');
+    info.setMessage(// 'arrow keys, space, z, x. airea: ' +
+		    'FPS ' + toDecimal(computed_fps, 100) 
+		    + ' ' + airea);
     drawtimer();
     // PERF don't need to do this every frame!
     drawpoints();
@@ -1148,6 +1176,7 @@ class Game extends MovieClip {
     // of the game area.
     clearBitmap(gamebm);
     drawBlocks();
+    drawAir();
 
     // Now draw player.
     // When player is wrapping around screen, need
@@ -1159,10 +1188,18 @@ class Game extends MovieClip {
     // XXX PERF this replaces the bitmap right?
 
     // assumes 0 <= playerx < width etc.
-    var pbm = facingleft ? playerbml : playerbm;
+    var pobj = facingleft ? playerbml : playerbmr;
     var xx = playerx - PLAYERLAPX;
     var yy = playery - PLAYERLAPY;
-    
+
+    var pbm = pobj.stand;
+    if (inair) {
+      pbm = pobj.jump;
+    } else if (Math.abs(playerdx) >= 1) {
+      pbm = pobj[['run1', 'run2', 
+		  'run3', 'run2'][Math.round(animframe / 2) % 4]];
+    }
+
     // PERF could compute that some of these are impossible,
     // but native clipping code is perhaps faster than any
     // logic we could do
@@ -1174,6 +1211,62 @@ class Game extends MovieClip {
     // just leave at depth.
     // setDepthOf(_root.rinkmc, iceDepth(playery));
 
+  }
+
+  public function computeAir() {
+    air = [];
+    // player's head
+    var ty = Math.floor((playery + HEAD) / BLOCKW);
+    ty = (ty + TILESH) % TILESH;
+    var tx = Math.floor((playerx + BLOCKW / 2) / BLOCKW);
+    tx = (tx + TILESW) % TILESW;
+
+    airea = 0;
+    var todo = [{x:tx, y:ty}];
+    while (todo.length > 0) {
+      var n = todo.pop();
+      if (n.x < 0 || n.y < 0 ||
+	  n.x >= TILESW || n.y >= TILESH) {
+	// Connected to outdoors. Done.
+	air = [];
+	airea = -1;
+	framesenclosed = 0;
+	return;
+      }
+      var idx = n.y * TILESW + n.x;
+      if (air[idx] == undefined) {
+	if (grid[idx] == null) {
+	  // open spot
+	  todo.push({x: n.x + 1, y: n.y});
+	  todo.push({x: n.x - 1, y: n.y});
+	  todo.push({x: n.x, y: n.y + 1});
+	  todo.push({x: n.x, y: n.y - 1});
+	  airea++;
+	  air[idx] = 1;
+	} else {
+	  air[idx] = 2;
+	}
+      }
+      // (otherwise we've already done it.)
+    }
+  }
+
+  public function drawAir() {
+    if (airea == -1)
+      return;
+
+    for (var y = 0; y < TILESH; y++) {
+      for (var x = 0; x < TILESW; x++) {
+	var idx = y * TILESW + x;
+	if (air[idx] == 1) {
+	  drawAt(gamebm, blockbms[BAIR][NORMAL],
+		 x * BLOCKW, y * BLOCKW);
+	} else if (air[idx] == 2) {
+	  drawAt(gamebm, blockbms[BAIR][1],
+		 x * BLOCKW, y * BLOCKW);
+	}
+      }
+    }
   }
 
   public function drawBlocks() {
@@ -1205,7 +1298,7 @@ class Game extends MovieClip {
 	  var sx = (b.x + x) % TILESW;
 	  place.translate(sx * BLOCKW * SCALE,
 			  b.y * BLOCKW * SCALE);
-	  
+	
 	  gamebm.draw(blockbms[b.what][HSMOOTH], place);
 	}
 
@@ -1232,7 +1325,7 @@ class Game extends MovieClip {
 	  var xx = (blast * BLOCKW) * SCALE;
 	  var yy = b.y * BLOCKW * SCALE;
 	  gapm.translate(xx, yy);
-	  var gapc = new Rectangle(xx, yy, 
+	  var gapc = new Rectangle(xx, yy,
 				   xneed * SCALE,
 				   BLOCKH * SCALE);
 	  gamebm.draw(blockbms[b.what][HSMOOTH], gapm, null, null, gapc);
@@ -1260,7 +1353,7 @@ class Game extends MovieClip {
 	  var sy = (b.y + y) % TILESH;
 	  place.translate(b.x * BLOCKW * SCALE,
 			  sy * BLOCKH * SCALE);
-	  
+	
 	  gamebm.draw(blockbms[b.what][VSMOOTH], place);
 	}
 
@@ -1275,7 +1368,7 @@ class Game extends MovieClip {
 	var xx = b.x * BLOCKW * SCALE;
 	var yy = (b.y * BLOCKH + ydone) * SCALE;
 	gapm.translate(xx, yy);
-	var gapc = new Rectangle(xx, yy, 
+	var gapc = new Rectangle(xx, yy,
 				 BLOCKW * SCALE,
 				 (BLOCKH - ydone) * SCALE);
 	gamebm.draw(blockbms[b.what][VSMOOTH], gapm, null, null, gapc);
@@ -1288,7 +1381,7 @@ class Game extends MovieClip {
 	  var xx = b.x * BLOCKW * SCALE;
 	  var yy = (blast * BLOCKH) * SCALE;
 	  gapm.translate(xx, yy);
-	  var gapc = new Rectangle(xx, yy, 
+	  var gapc = new Rectangle(xx, yy,
 				   BLOCKW * SCALE,
 				   yneed * SCALE);
 	  gamebm.draw(blockbms[b.what][VSMOOTH], gapm, null, null, gapc);
