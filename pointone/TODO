@@ -5,18 +5,18 @@ GAME IS BROKEN WITHOUT:
  - win / lose conditions
  - behavior for each point
  - getting points off the grid
- - shout when air runs out
+ - head inside block for air
 
 WOULD HELP A LOT:
  - break blocks in the middle usually
- - basic player animations
- - basic sounds
+ - player animation top-down
  - background changes by point
  - pushing certain bricks
  - pulse/timeout for making new blocks
  - in "think" mode, can also rearrange points
 
 POLISH:
+ - more sounds
  - outside corners of air
  - smooth falling on falling/shrinking block
  - timing between songs
