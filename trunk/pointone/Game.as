@@ -156,7 +156,7 @@ class Game extends MovieClip {
 
   public function initpoints() {
     points = [1];
-    for (var i = 0; i < 20; i++) {
+    for (var i = 0; i < INITIALPOINTS; i++) {
       var p = Math.round(Math.random() * (NPOINTS - 1));
       if (p == 1) p = 9;
       points.unshift(p);
@@ -545,6 +545,142 @@ class Game extends MovieClip {
     }
   }
 
+  public function addHoriz(b) {
+    blocks.push(b);
+    for (var x = 0; x < b.len; x++) {
+      grid[b.y * TILESW + ((b.x + x + TILESW) % TILESW)] = b;
+    }
+  }
+
+  // Clear the cell at x,y, which may involve splitting up
+  // a long brick. tx,ty already modded
+  public function clearCell(tx, ty) {
+    var idx = ty * TILESW + tx;
+    var b = grid[idx];
+
+    if (b == null)
+      return;
+
+    // Delete it no matter what.
+    deleteBlock(b);
+
+    // And this cell is now empty.
+    grid[idx] = null;
+
+    // Nothing to do if NONE, but otherwise, we
+    // might create segments.
+    if (b.dir == HORIZ) {
+
+      /*
+      var txx = (tx >= b.x) ? tx : (tx + TILESW);
+      if (b.x != txx) {
+	// Left segment.
+	var newb = { x: b.x, y: b.y,
+		     dir: HORIZ, len: txx - b.x,
+		     what: b.what,
+		     shrink1: 0, shrink2: 0 };
+	addHoriz(newb);
+      }
+      */
+
+      // XXX also right segment.
+
+    } else if (b.dir == VERT) {
+
+      // XXX fix verts
+      /*
+      for (var y = 0; y < b.len; y++) {
+	var yy = (b.y + y) % TILESH;
+	var newb = { x: b.x, y: yy,
+		     dir: NONE, len: 1,
+		     what: BBREAK,
+		     frames: BREAKFRAMES,
+		     shrink1: 0, shrink2: 0 };
+	grid[yy * TILESW + b.x] = newb;
+	blocks.push(newb);
+      }
+      */
+
+    }
+
+  }
+
+  public function makeSpike(tx, ty, d) {
+    var idx = ty * TILESW + tx;
+    var b = { what: BSPIKE,
+	      dir: d,
+	      len: 1,
+	      x: tx,
+	      y: ty,
+	      shrink1: 0, shrink2: 0 }
+    grid[idx] = b;
+    blocks.push(b);
+  }
+
+  public function beginSpikes() {
+    // Ensure that the whole border is spikes.
+    for (var y = 0; y < TILESH; y++) {
+      clearCell(0, y);
+      makeSpike(0, y, HORIZ);
+      clearCell(TILESW - 1, y);
+      makeSpike(TILESW - 1, y, HORIZ);
+    }
+
+    for (var x = 0; x < TILESW; x++) {
+      clearCell(x, 0);
+      makeSpike(x, 0, VERT);
+      clearCell(x, TILESH - 1);
+      makeSpike(x, TILESH - 1, VERT);
+    }
+  }
+
+  public function spikePhysics() {
+    var parity = (animframe % 2) == 0;
+
+    if (!parity) return;
+
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      if (b.what == BSPIKE) {
+	if (b.dir == HORIZ) {
+	  growLeft(b);
+	  growRight(b);
+
+	} else if (b.dir == VERT) {
+	  growUp(b);
+	  growDown(b);
+	}
+      }
+    }
+
+    for (var y = 0; y < TILESH; y++) {
+      for (var x = 0; x < TILESW; x++) {
+	var b = grid[y * TILESW + x];
+	if (b == null) {
+	  // Check for adjacent perpendicular spike, and spawn if we
+	  // find one.
+	  var a = [{dx: 1, dy: 0, d:HORIZ},
+		   {dx: -1, dy: 0, d:HORIZ},
+		   {dy: 1, dx: 0, d:VERT},
+		   {dy: -1, dx: 0, d:VERT}];
+	  for (var i = 0; i < a.length; i++) {
+	    var z = a[i];
+	    var tx = (x + z.dx + TILESW) % TILESW;
+	    var ty = (y + z.dy + TILESH) % TILESH;
+	    var b2 = grid[ty * TILESW + tx];
+	    if (b2.what == BSPIKE &&
+		b2.dir != z.d) {
+	      // Make spike!
+	      makeSpike(x, y, z.d);
+	      break;
+	    }
+	  }
+	}
+      }
+    }
+
+  }
+
   public function onEnterFrame() {
     framesdisplayed++;
     animframe++;
@@ -557,6 +693,9 @@ class Game extends MovieClip {
       framesinpoint--;
     }
 
+    if (points[0] == PHURT) {
+      spikePhysics();
+    }
 
     if (points[0] == PTHINK) {
       thinkPhysics();
@@ -637,8 +776,14 @@ class Game extends MovieClip {
     framesinpoint = 10 * FPS;
 
     // because not implemented end of game
-    if (points.length > 0) {
-      switchMusic(points[0]);
+    if (points.length == 0)
+      return;
+
+    switchMusic(points[0]);
+
+    // Initialization...
+    if (points[0] == PHURT) {
+      beginSpikes();
     }
   }
 
