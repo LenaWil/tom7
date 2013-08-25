@@ -299,32 +299,10 @@ class Game extends MovieClip {
 
 	if (parity) {
 	  // even parity. grow left
-	  if (b.shrink1 > 0) {
-	    b.shrink1--;
-	  } else {
-	    // If shrink is zero, try expanding to the left.
-	    var nbx = (b.x - 1 + TILESW) % TILESW;
-	    if (grid[b.y * TILESW + nbx] == null) {
-	      // claim it!
-	      b.len++;
-	      b.x = nbx;
-	      grid[b.y * TILESW + nbx] = b;
-	      b.shrink1 = 15;
-	    }
-	  }
+	  growLeft(b);
 	} else {
 	  // odd parity. grow right...
-	  if (b.shrink2 > 0) {
-	    b.shrink2--;
-	  } else {
-	    // Try expanding length.
-	    var nblast = (b.x + b.len + TILESW) % TILESW;
-	    if (grid[b.y * TILESW + nblast] == null) {
-	      b.len++;
-	      grid[b.y * TILESW + nblast] = b;
-	      b.shrink2 = 15;
-	    }
-	  }
+	  growRight(b);
 	}
 
       } else if (b.dir == VERT) {
@@ -346,17 +324,7 @@ class Game extends MovieClip {
 	  }
 	} else {
 	  // odd parity. grow down...
-	  if (b.shrink2 > 0) {
-	    b.shrink2--;
-	  } else {
-	    // Try expanding length;
-	    var nblast = (b.y + b.len + TILESH) % TILESH;
-	    if (grid[nblast * TILESW + b.x] == null) {
-	      b.len++;
-	      grid[nblast * TILESW + b.x] = b;
-	      b.shrink2 = 15;
-	    }
-	  }
+	  growDown(b);
 	}
 
       }
@@ -381,14 +349,8 @@ class Game extends MovieClip {
 
 	if (canfall) {
 	  // OK, grow down.
-	  if (b.shrink2 > 0) {
-	    b.shrink2--;
-	  } else {
-	    // We already know we have room.
-	    b.len++;
-	    grid[nblast * TILESW + b.x] = b;
-	    b.shrink2 = 15;
-	  }
+	  // (PERF: Don't need to repeat checks)
+	  growDown(b);
 
 	  // And shrink up.
 	  if (b.shrink1 < 15) {
@@ -401,6 +363,49 @@ class Game extends MovieClip {
 	  }
 	}
       }
+    }
+  }
+
+  public function growLeft(b) {
+    if (b.shrink1 > 0) {
+      b.shrink1--;
+    } else {
+      // If shrink is zero, try expanding to the left.
+      var nbx = (b.x - 1 + TILESW) % TILESW;
+      if (grid[b.y * TILESW + nbx] == null) {
+	// claim it!
+	b.len++;
+	b.x = nbx;
+	grid[b.y * TILESW + nbx] = b;
+	b.shrink1 = 15;
+      }
+    }
+  }
+
+  // Assumes is HORIZ.
+  public function growRight(b) {
+    if (b.shrink2 > 0) {
+      b.shrink2--;
+    } else {
+      // Try expanding length.
+      var nblast = (b.x + b.len + TILESW) % TILESW;
+      if (grid[b.y * TILESW + nblast] == null) {
+	b.len++;
+	grid[b.y * TILESW + nblast] = b;
+	b.shrink2 = 15;
+      }
+    }
+  }
+
+  // Assumes is VERT.
+  public function growDown(b) {
+    var nblast = (b.y + b.len + TILESH) % TILESH;
+    if (b.shrink2 > 0) {
+      b.shrink2--;
+    } else if (grid[nblast * TILESW + b.x] == null) {
+      b.len++;
+      grid[nblast * TILESW + b.x] = b;
+      b.shrink2 = 15;
     }
   }
 
@@ -598,7 +603,7 @@ class Game extends MovieClip {
     var og = onGround();
 
     // First, changes in acceleration.
-    if (og) {
+    if (og && jumpframes == 0) {
       if (holdingSpace) {
 	jumpframes = 6;
 	ddy -= 2;
@@ -737,39 +742,71 @@ class Game extends MovieClip {
     if (Math.abs(playerdy) < 0.01) playerdy = 0;
   }
 
+  public function getPlayerActionBlock(width, depth) {
+    // Get action brick first...
+    var ty, tx;
+    // probably no punching up though.
+    var d = NONE;
+    if (holdingDown) {
+      ty = Math.floor((playery + FEET + depth) / BLOCKW);
+      ty = (ty + TILESH) % TILESH;
+      tx = Math.floor((playerx + (facingleft ? LEFTFOOT : RIGHTFOOT)) /
+		      BLOCKW);
+      tx = (tx + TILESW) % TILESW;
+      d = VERT;
+    } else {
+
+      ty = Math.floor((playery + HEAD) / BLOCKW);
+      ty = (ty + TILESH) % TILESH;
+      if (facingleft) {
+	tx = Math.floor((playerx + LEFTFOOT - width) / BLOCKW);
+	tx = (tx + TILESW) % TILESW;
+	var b = grid[ty * TILESW + tx];
+      } else {
+	tx = Math.floor((playerx + RIGHTFOOT + width) / BLOCKW);
+	tx = (tx + TILESW) % TILESW;
+      }
+      d = HORIZ;
+    }
+    return { x: tx, y: ty, d: d };
+  }
+
   public function playerActions() {
     if (holdingZ) {
-      // check if holding down?
-      // probably no punching up though.
+      var t = getPlayerActionBlock(PUNCHW, PUNCHD);
+      var b = grid[t.y * TILESW + t.x];
 
-      var ty, tx;
-      if (holdingDown) {
-	ty = Math.floor((playery + FEET + PUNCHD) / BLOCKW);
-	ty = (ty + TILESH) % TILESH;
-	tx = Math.floor((playerx + (facingleft ? LEFTFOOT : RIGHTFOOT)) /
-			BLOCKW);
-	tx = (tx + TILESW) % TILESW;
+      if (b != null) {
+	punchBlock(t.x, t.y);
+      }
+      holdingZ = false;
+    } else if (holdingX) {
+      var t = getPlayerActionBlock(CREATEW, CREATED);
+      var b = grid[t.y * TILESW + t.x];
+
+      if (b == null) {
+	// Create block here.
+	var newb = { what: (t.d == VERT) ? BBLUE : BRED,
+		     dir: t.d, len: 1,
+		     shrink1: 0, shrink2: 0,
+		     x: t.x, y: t.y };
+	grid[t.y * TILESW + t.x] = newb;
+	blocks.push(newb);
       } else {
-
-	ty = Math.floor((playery + HEAD) / BLOCKW);
-	ty = (ty + TILESH) % TILESH;
-	if (facingleft) {
-	  tx = Math.floor((playerx + LEFTFOOT - PUNCHW) / BLOCKW);
-	  tx = (tx + TILESW) % TILESW;
-	  var b = grid[ty * TILESW + tx];
-	} else {
-	  tx = Math.floor((playerx + RIGHTFOOT + PUNCHW) / BLOCKW);
-	  tx = (tx + TILESW) % TILESW;
+	// Block grows.
+	if (b.dir == VERT) {
+	  // only down
+	  growDown(b);
+	} else if (b.dir == HORIZ) {
+	  if (facingleft) {
+	    growLeft(b);
+	  } else {
+	    growRight(b);
+	  }
 	}
       }
-      
-      var b = grid[ty * TILESW + tx];
-      if (b != null) {
-	punchBlock(tx, ty);
-      }
-
-      holdingZ = false;
     }
+
   }
 
   // turns the whole thing into broken.
@@ -1059,7 +1096,7 @@ class Game extends MovieClip {
 		    ' fx: ' + toDecimal(playerfx, 1000) +
 		    ' fy: ' + toDecimal(playerfy, 1000));
     */
-    info.setMessage('arrow keys, space, z');
+    info.setMessage('arrow keys, space, z, x');
     drawtimer();
     // PERF don't need to do this every frame!
     drawpoints();
