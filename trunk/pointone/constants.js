@@ -49,12 +49,18 @@ var B6 = 12;
 var B7 = 13;
 var B8 = 14;
 var B9 = 15;
+var BBREAK = 16;
 
 var NREG = 3;
-var NBLOCKS = 16;
+var NBLOCKS = 17;
 var NPOINTS = 10;
 
+var BREAKFRAMES = 10;
+var NBREAKANIM = 4;
+
+// punch width and depth
 var PUNCHW = 4;
+var PUNCHD = 2;
 
 var CAPW = 6;
 
