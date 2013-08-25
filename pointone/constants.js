@@ -98,6 +98,12 @@ var HEAD = 4;
 // The last pixel in the block, not the one below.
 var FEET = BLOCKW - 1;
 
+
+// Game tuning...
+// Nominal FPS. Must match timeline setting.
+var FPS = 30;
+var FRAMESPERAIR = 4;
+
 /////////////
 // Info stuff
 
