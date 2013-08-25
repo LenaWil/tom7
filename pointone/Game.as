@@ -453,6 +453,52 @@ class Game extends MovieClip {
 
   }
 
+  public function thinkPhysics() {
+    var dx = 0, dy = 0;
+    if (holdingDown) {
+      dy++;
+      holdingDown = false;
+    } else if (holdingUp) {
+      dy--;
+      holdingUp = false;
+    }
+
+    if (holdingLeft) {
+      dx--;
+      holdingLeft = false;
+    } else if (holdingRight) {
+      dx++;
+      holdingRight = false;
+    }
+
+    // Move screen then...
+    if (dx != 0 || dy != 0) {
+      var newg = [];
+      for (var y = 0; y < TILESH; y++) {
+	for(var x = 0; x < TILESW; x++) {
+	  var ox = (x - dx + TILESW) % TILESW;
+	  var oy = (y - dy + TILESH) % TILESH;
+	  newg[y * TILESW + x] = grid[oy * TILESW + ox];
+	}
+      }
+      grid = newg;
+
+      for (var i = 0; i < blocks.length; i++) {
+	var b = blocks[i];
+	if (b != null) {
+	  b.x = (b.x + dx + TILESW) % TILESW;
+	  b.y = (b.y + dy + TILESH) % TILESH;
+	}
+      }
+
+      playerx += dx * BLOCKW;
+      playery += dy * BLOCKH;
+
+      // Invalid now, just want to make failures obvious..
+      air = [];
+    }
+  }
+
   public function onEnterFrame() {
     framesdisplayed++;
     animframe++;
@@ -465,12 +511,16 @@ class Game extends MovieClip {
       framesinpoint--;
     }
 
-    playerPhysics();
 
-    playerActions();
+    if (points[0] == PTHINK) {
+      thinkPhysics();
+    } else {
+      playerPhysics();
+      playerActions();
+      blockPhysics();
+    }
 
-    blockPhysics();
-
+    // must happen after thinkphysics...
     computeAir();
 
     redraw();
@@ -1169,26 +1219,27 @@ class Game extends MovieClip {
     // PERF don't need to do this every frame!
     drawpoints();
 
-    // XXX debug mode showing mask
+    // debug mode showing mask?
 
     // redraw the tile bitmap. This is already positioned
     // in the right place so that 0,0 is actually the start
     // of the game area.
     clearBitmap(gamebm);
     drawBlocks();
-    drawAir();
+
+    // Also show if almost out?
+    if (points[0] == PTHINK ||
+	points[0] == PHURT) {
+      drawAir();
+    }
 
     // Now draw player.
     // When player is wrapping around screen, need
     // to draw up to 4 playermcs...
     // TODO: Consider placing on odd screen pixels?
-    // _root.playermc._x = (BOARDX + playerx - PLAYERLAPX) * SCALE;
-    // _root.playermc._y = (BOARDY + playery - PLAYERLAPY) * SCALE;
-    // XXX animate.
-    // XXX PERF this replaces the bitmap right?
+    var pobj = facingleft ? playerbml : playerbmr;
 
     // assumes 0 <= playerx < width etc.
-    var pobj = facingleft ? playerbml : playerbmr;
     var xx = playerx - PLAYERLAPX;
     var yy = playery - PLAYERLAPY;
 
@@ -1251,22 +1302,66 @@ class Game extends MovieClip {
     }
   }
 
+  private function bAir(x, y) {
+    var yy = (y + TILESH) % TILESH;
+    var xx = (x + TILESW) % TILESW;
+    // trace('wa ' + xx + '/' + yy);
+    return grid[yy * TILESW + xx] != null;
+  };
+
   public function drawAir() {
     if (airea == -1)
       return;
 
+    var airbms = blockbms[BAIRBORDER];
     for (var y = 0; y < TILESH; y++) {
       for (var x = 0; x < TILESW; x++) {
 	var idx = y * TILESW + x;
 	if (air[idx] == 1) {
-	  drawAt(gamebm, blockbms[BAIR][NORMAL],
-		 x * BLOCKW, y * BLOCKW);
-	} else if (air[idx] == 2) {
-	  drawAt(gamebm, blockbms[BAIR][1],
-		 x * BLOCKW, y * BLOCKW);
+	  var px = x * BLOCKW;
+	  var py = y * BLOCKH;
+
+	  if (bAir(x + 1, y)) {
+	    drawAtClip(gamebm, airbms[VSMOOTH],
+		       BLOCKW - 3, 0, 
+		       px + BLOCKW - 3, py,
+		       3, BLOCKH);
+	  }
+
+	  if (bAir(x - 1, y)) {
+	    drawAtClip(gamebm, airbms[VSMOOTH],
+		       0, 0, px, py, 2, BLOCKH);
+	  }
+
+	  if (bAir(x, y - 1)) {
+	    drawAtClip(gamebm, airbms[HSMOOTH],
+		       0, 0, px, py,
+		       BLOCKW, 2);
+	  }
+
+	  if (bAir(x, y + 1)) {
+	    drawAtClip(gamebm, airbms[HSMOOTH],
+		       0, BLOCKH - 3,
+		       px, py + BLOCKH - 3,
+		       BLOCKW, 3);
+	  }
+
+	  // TODO outside corners, easy
 	}
       }
     }
+  }
+
+  public function drawAtClip(dest, bm,
+			     srcx, srcy,
+			     dstx, dsty,
+			     w, h) {
+    var m = new Matrix();
+    m.translate((dstx - srcx) * SCALE, 
+		(dsty - srcy) * SCALE);
+    var c = new Rectangle(dstx * SCALE, dsty * SCALE,
+			  w * SCALE, h * SCALE);
+    dest.draw(bm, m, null, null, c);
   }
 
   public function drawBlocks() {
