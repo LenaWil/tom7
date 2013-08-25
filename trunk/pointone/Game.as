@@ -8,9 +8,6 @@ class Game extends MovieClip {
   #include "constants.js"
   #include "util.js"
 
-  // Nominal FPS. Must match timeline setting.
-  var FPS = 30;
-
   var backgroundbm : BitmapData = null;
   // All block sprites.
   var blocksbm : BitmapData = null;
@@ -58,6 +55,7 @@ class Game extends MovieClip {
   // Use this in TOPDOWN mode.
   var orientation = LEFT;
   var UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3;
+  var screamframes = 0;
 
   // Size TILESW * TILESH.
   // Each cell points to a block or null.
@@ -522,8 +520,51 @@ class Game extends MovieClip {
 
     // must happen after thinkphysics...
     computeAir();
+    if (points[0] != PTHINK) {
+      breathe();
+    }
 
     redraw();
+  }
+
+  public function breathe() {
+    // Slop so that user sees it coming...
+    if (framesenclosed > 10) {
+      var breath = framesenclosed / FRAMESPERAIR;
+      if (breath > airea) {
+	scream();
+      }
+    }
+  }
+
+  public function scream() {
+    screamframes = 12;
+    
+    // Could be cooler...
+
+    var ty = Math.floor((playery + HEAD) / BLOCKW);
+    ty = (ty + TILESH) % TILESH;
+    var tx = Math.floor((playerx + BLOCKW / 2) / BLOCKW);
+    tx = (tx + TILESW) % TILESW;
+
+    // Up.
+    for (var y = 0; ty - y >= 0; y++)
+      punchBlock(tx, ty - y);
+
+    // Down
+    for (var y = 1; ty + y < TILESH; y++)
+      punchBlock(tx, ty + y);
+
+
+    // Left
+    for (var x = 0; tx - x >= 0; x++)
+      punchBlock(tx - x, ty);
+
+    // Right
+    for (var x = 1; tx + x < TILESW; x++)
+      punchBlock(tx + x, ty);
+
+    computeAir();
   }
 
   public function nextpoint() {
@@ -1043,6 +1084,7 @@ class Game extends MovieClip {
     playerbmr =
       { stand: loadBitmap2x('player.png'),
 	jump: loadBitmap2x('playerjump.png'),
+	cry1: loadBitmap2x('playercry1.png'),
 	run1: loadBitmap2x('playerrun1.png'),
 	run2: loadBitmap2x('playerrun2.png'),
 	run3: loadBitmap2x('playerrun3.png') };
@@ -1107,6 +1149,10 @@ class Game extends MovieClip {
 
     initboard();
     initpoints();
+
+    // XXX find safe spot for player
+    playerx = Math.floor(GAMEW / 2);
+    playery = Math.floor(GAMEH / 2);
 
     // _root.pucksmc = createMovieAtDepth('ps', PUCKSOUNDDEPTH);
 
@@ -1212,9 +1258,13 @@ class Game extends MovieClip {
 		    ' fx: ' + toDecimal(playerfx, 1000) +
 		    ' fy: ' + toDecimal(playerfy, 1000));
     */
+
+    var breath = framesenclosed / FRAMESPERAIR; 
+
     info.setMessage(// 'arrow keys, space, z, x. airea: ' +
 		    'FPS ' + toDecimal(computed_fps, 100) 
-		    + ' ' + airea);
+		    + ' ' + toDecimal(breath, 10) + '/' +
+		    airea);
     drawtimer();
     // PERF don't need to do this every frame!
     drawpoints();
@@ -1228,7 +1278,8 @@ class Game extends MovieClip {
     drawBlocks();
 
     // Also show if almost out?
-    if (points[0] == PTHINK ||
+    if (CHEATS ||
+	points[0] == PTHINK ||
 	points[0] == PHURT) {
       drawAir();
     }
@@ -1244,7 +1295,11 @@ class Game extends MovieClip {
     var yy = playery - PLAYERLAPY;
 
     var pbm = pobj.stand;
-    if (inair) {
+    if (screamframes > 0) {
+      screamframes--;
+      // XXX animate
+      pbm = pobj.cry1;
+    } else if (inair) {
       pbm = pobj.jump;
     } else if (Math.abs(playerdx) >= 1) {
       pbm = pobj[['run1', 'run2', 
@@ -1263,7 +1318,7 @@ class Game extends MovieClip {
     // setDepthOf(_root.rinkmc, iceDepth(playery));
 
   }
-
+  
   public function computeAir() {
     air = [];
     // player's head
@@ -1299,6 +1354,11 @@ class Game extends MovieClip {
 	}
       }
       // (otherwise we've already done it.)
+    }
+
+    // Didn't escape..
+    if (points[0] != PTHINK) {
+      framesenclosed++;
     }
   }
 
