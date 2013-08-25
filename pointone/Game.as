@@ -51,6 +51,9 @@ class Game extends MovieClip {
   var animframe = 0;
   // Which way is the player facing?
   var facingleft = true;
+  // Use this in TOPDOWN mode.
+  var orientation = LEFT;
+  var UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3;
 
   // Size TILESW * TILESH.
   // Each cell points to a block or null.
@@ -590,20 +593,32 @@ class Game extends MovieClip {
     var XMU = 0.9;
     var XGROUNDMU = 0.7;
     var YMU = 0.9;
+    // Basically only used in topdown mode.
+    var YGROUNDMU = 0.7;
 
     var TERMINALX = 6;
     var TERMINALY = 7;
 
     var GTERMINALX = 4.5;
 
+    var TOPDOWN = false;
+
+    if (points[0] == PSOKO) {
+      YGRAV = 0;
+      XGRAV = 0;
+      TOPDOWN = true;
+      TERMINALY = TERMINALX = GTERMINALX;
+      YGROUNDMU = XGROUNDMU = 0.5;
+    }
+
     var ddy = 0;
     // XXX same on-ground treatment for xgrav?
     var ddx = XGRAV;
 
-    var og = onGround();
+    var og = TOPDOWN || onGround();
 
     // First, changes in acceleration.
-    if (og && jumpframes == 0) {
+    if (!TOPDOWN && og && jumpframes == 0) {
       if (holdingSpace) {
 	jumpframes = 6;
 	ddy -= 2;
@@ -613,7 +628,7 @@ class Game extends MovieClip {
     }
 
     // Bigger jump if holding space
-    if (holdingSpace) {
+    if (!TOPDOWN && holdingSpace) {
       if (jumpframes > 0) {
 	jumpframes--;
 	ddy -= 1;
@@ -626,6 +641,7 @@ class Game extends MovieClip {
     }
 
     if (holdingRight) {
+      orientation = HORIZ;
       facingleft = false;
       if (og) {
 	ddx += 0.7;
@@ -633,14 +649,38 @@ class Game extends MovieClip {
 	ddx += 0.4;
       }
     } else if (holdingLeft) {
+      orientation = HORIZ;
       facingleft = true;
       if (og) {
 	ddx -= 0.7;
       } else {
 	ddx -= 0.4;
       }
-    } else if (og) {
-      playerdx *= XGROUNDMU;
+    }
+
+    if (TOPDOWN && holdingUp) {
+      orientation = VERT;
+      if (og) {
+	ddy -= 0.7;
+      } else {
+	ddy -= 0.4;
+      }
+    } else if (TOPDOWN && holdingDown) {
+      orientation = VERT;
+      if (og) {
+	ddy += 0.7;
+      } else {
+	ddy += 0.4;
+      }
+    } 
+
+    // Apply friction if not holding any useful key
+    if (!holdingRight && !holdingLeft &&
+	(!TOPDOWN || (!holdingUp && !holdingDown))) {
+      if (og) {
+	playerdx *= XGROUNDMU;
+	playerdy *= YGROUNDMU;
+      }
     }
 
     // Now changes in velocity.
