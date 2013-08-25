@@ -49,6 +49,8 @@ class Game extends MovieClip {
   // Global animation offset. Resets to stay integral
   // and reasonably small.
   var animframe = 0;
+  // Which way is the player facing?
+  var facingleft = true;
 
   // Size TILESW * TILESH.
   // Each cell points to a block or null.
@@ -137,6 +139,7 @@ class Game extends MovieClip {
       points.unshift(p);
     }
     framesinpoint = 10 * FPS;
+    switchMusic(points[0]);
   }
 
   public function initboard() {
@@ -149,7 +152,8 @@ class Game extends MovieClip {
 	if (Math.random() < 0.2) {
 	  var what = 0;
 	  if (Math.random() < 0.6) {
-	    what = int((Math.random() * 1000) % NREG);
+	    // what = int((Math.random() * 1000) % NREG);
+	    what = BSILVER;
 	  } else {
 	    if (Math.random() < 0.5) {
 	      what = Math.random() < 0.5 ? BVERT : BHORIZ;
@@ -235,18 +239,31 @@ class Game extends MovieClip {
   }
 
 
-  var backgroundclip = null;
-  var backgroundmusic = null;
-  public function setMusic(m) {
+  // Current point.
+  var backgroundmc = null;
+  // Previous point can overlap a little.
+  var oldbackgroundmc = null;
 
-    trace('switch music ' + m);
+  var backgroundmusic = null;
+  var oldbackgroundmusic = null;
+  var musicparity = false;
+  public function switchMusic(p) {
+
     // Does this leak??
-    backgroundclip = createMovieAtDepth('bgm', BGMUSICDEPTH);
-    backgroundmusic = new Sound(backgroundclip);
+    if (oldbackgroundmusic) oldbackgroundmusic.stop();
+    if (oldbackgroundmc) oldbackgroundmc.removeMovieClip();
+    oldbackgroundmc = backgroundmc;
+    oldbackgroundmusic = backgroundmusic;
+    // XXX fade out old?
+
+    var d = musicparity ? BGMUSICDEPTH : BGMUSICDEPTH2;
+    musicparity = !musicparity;
+    backgroundmc = createMovieAtDepth('bgm' + d, d);
+    backgroundmusic = new Sound(backgroundmc);
     if (MUSIC) {
-      backgroundmusic.attachSound(m);
+      backgroundmusic.attachSound('' + p + '.wav');
       backgroundmusic.setVolume(100);
-      backgroundmusic.start(0, 99999);
+      backgroundmusic.start(0, 1);
     }
   }
 
@@ -338,6 +355,7 @@ class Game extends MovieClip {
     }
   }
 
+  // TODO: Fall faster; accelerate!
   public function fallBlocks() {
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
@@ -412,6 +430,11 @@ class Game extends MovieClip {
   public function nextpoint() {
     points.shift();
     framesinpoint = 10 * FPS;
+
+    // because not implemented end of game
+    if (points.length > 0) {
+      switchMusic(points[0]);
+    }
   }
 
   // This is for testing pixel-level physics like the player
@@ -557,12 +580,14 @@ class Game extends MovieClip {
 
     if (holdingRight) {
       if (og) {
+	facingleft = false;
 	ddx += 0.7;
       } else {
 	ddx += 0.4;
       }
     } else if (holdingLeft) {
       if (og) {
+	facingleft = true;
 	ddx -= 0.7;
       } else {
 	ddx -= 0.4;
@@ -761,7 +786,7 @@ class Game extends MovieClip {
     _root.backgroundmc._x = 0;
     _root.backgroundmc._y = 0;
 
-    _root.playermc = createMovieAtDepth('player', PLAYERDEPTH);
+    // _root.playermc = createMovieAtDepth('player', PLAYERDEPTH);
 
     info = new Info();
     info.init();
@@ -772,8 +797,6 @@ class Game extends MovieClip {
     initpoints();
 
     // _root.pucksmc = createMovieAtDepth('ps', PUCKSOUNDDEPTH);
-
-    // setMusic('circus.wav');
 
     // redraw();
     starttime = (new Date()).getTime();
@@ -878,21 +901,6 @@ class Game extends MovieClip {
     drawtimer();
     // PERF don't need to do this every frame!
     drawpoints();
-
-    // XXX when player is wrapping around screen, need
-    // to draw up to 4 playermcs...
-    // Consider placing on odd pixels?
-    _root.playermc._x = (BOARDX + playerx - PLAYERLAPX) * SCALE;
-    _root.playermc._y = (BOARDY + playery - PLAYERLAPY) * SCALE;
-    // XXX animate.
-    // XXX PERF this replaces the bitmap right?
-    if (playerdx > 0) {
-      _root.playermc.attachBitmap(playerbm, 'b', 1);
-    } else {
-      _root.playermc.attachBitmap(playerbml, 'b', 1);
-    }
-    // just leave at depth.
-    // setDepthOf(_root.rinkmc, iceDepth(playery));
 
     // XXX debug mode showing mask
 
@@ -1025,6 +1033,40 @@ class Game extends MovieClip {
       }
 
     }
+
+
+    // Now draw player.
+    // When player is wrapping around screen, need
+    // to draw up to 4 playermcs...
+    // TODO: Consider placing on odd screen pixels?
+    // _root.playermc._x = (BOARDX + playerx - PLAYERLAPX) * SCALE;
+    // _root.playermc._y = (BOARDY + playery - PLAYERLAPY) * SCALE;
+    // XXX animate.
+    // XXX PERF this replaces the bitmap right?
+
+    // assumes 0 <= playerx < width etc.
+    var pbm = facingleft ? playerbml : playerbm;
+    var xx = playerx - PLAYERLAPX;
+    var yy = playery - PLAYERLAPY;
+    
+    // PERF could compute that some of these are impossible,
+    // but native clipping code is perhaps faster than any
+    // logic we could do
+    drawAt(gamebm, pbm, xx, yy);
+    drawAt(gamebm, pbm, xx - GAMEW, yy);
+    drawAt(gamebm, pbm, xx, yy - GAMEH);
+    drawAt(gamebm, pbm, xx - GAMEW, yy - GAMEH);
+
+    // just leave at depth.
+    // setDepthOf(_root.rinkmc, iceDepth(playery));
+
+  }
+
+  // Takes game pixels x,y
+  public function drawAt(dest, bm, x, y) {
+    var m = new Matrix();
+    m.translate(x * SCALE, y * SCALE);
+    dest.draw(bm, m);
   }
 
   public function onKeyDown() {
@@ -1040,6 +1082,7 @@ class Game extends MovieClip {
       holdingZ = true;
       break;
     case 88: // x
+      framesinpoint = 10;
       if (allowX) {
         holdingX = true;
       }
