@@ -157,12 +157,18 @@ class Game extends MovieClip {
   var playerfy = 0;
 
   public function initpoints() {
-    points = [1];
+    points = [2, 1, 0];
     for (var i = 0; i < INITIALPOINTS; i++) {
       var p = Math.round(Math.random() * (NPOINTS - 1));
-      if (p == 1) p = 9;
+      if (p == PHURT) p = PSOKO;
+      if (p == PKING) p = PFALL;
       points.unshift(p);
     }
+
+    // Always start with a plain one.
+    points.unshift(3);
+    updatemessage();
+
     framesinpoint = 10 * FPS;
     switchMusic(points[0]);
   }
@@ -174,38 +180,42 @@ class Game extends MovieClip {
     // XXX Terrible unfun level generator!
     for (var y = 0; y < TILESH; y++) {
       for (var x = 0; x < TILESW; x++) {
-	if (Math.random() < 0.2) {
-	  var what = 0;
-	  if (Math.random() < 0.6) {
-	    // what = int((Math.random() * 1000) % NREG);
-	    what = BSILVER;
-	  } else {
-	    if (Math.random() < 0.5) {
-	      what = Math.random() < 0.5 ? BVERT : BHORIZ;
-	    } else {
-	      // XXX avoid picking special blocks!
-	      what = int((Math.random() * 1000) % NPICK);
-	    }
-	  }
-	
+        if (Math.random() < 0.2) {
+          var what = 0;
+          if (Math.random() < 0.6) {
+            // what = int((Math.random() * 1000) % NREG);
+            what = BSILVER;
+          } else {
+            if (Math.random() < 0.5) {
+              what = Math.random() < 0.5 ? BVERT : BHORIZ;
+            } else {
+              // XXX avoid picking special blocks!
+              what = int((Math.random() * 1000) % NPICK);
+              if (what == B0) {
+                what = B2;
+              } else if (what == B1) {
+                what = B3;
+              }
+            }
+          }
 
-	  var d = NONE;
-	  if (what == BVERT) d = VERT;
-	  else if (what == BHORIZ) d = HORIZ;
-	  else if (what == BSILVER) {
-	    d = (Math.random() < 0.5) ? VERT : HORIZ;
-	  }
+          var d = NONE;
+          if (what == BVERT) d = VERT;
+          else if (what == BHORIZ) d = HORIZ;
+          else if (what == BSILVER) {
+            d = (Math.random() < 0.5) ? VERT : HORIZ;
+          }
 
-	  var block = { what: what,
-			x: x, y: y, len: 1,
-			dir: d,
-			shrink1: 0,
-			shrink2: 0 };
-	  blocks.push(block);
-	  grid.push(block);
-	} else {
-	  grid.push(null);
-	}
+          var block = { what: what,
+                        x: x, y: y, len: 1,
+                        dir: d,
+                        shrink1: 0,
+                        shrink2: 0 };
+          blocks.push(block);
+          grid.push(block);
+        } else {
+          grid.push(null);
+        }
       }
     }
 
@@ -214,49 +224,49 @@ class Game extends MovieClip {
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
       if (blocks[i].dir == HORIZ) {
-	// Try extending to left, right...
-	var y = b.y;
-	// This always extends all the way left until
-	// it hits something...
-	while (grid[y * TILESW + (b.x - 1 + TILESW) % TILESW] == null) {
-	  b.len++;
-	  b.x = (b.x - 1 + TILESW) % TILESW;
-	  grid[y * TILESW + b.x] = b;
-	  // trace('extended to ' + b.x + ',' + b.y +
-	  // ' for ' + b.len);
-	  if (Math.random() < 0.2) {
-	    b.shrink1 = int(Math.random() * (BLOCKW - 1));
-	    if (b.len >= 3) {
-	      // b.shrink2 = int(Math.random() * (BLOCKH - 1));
-	      b.shrink2 = 12;
-	    }
-	    // trace('stop early with shrinks ' + b.shrink1);
-	    break;
-	  }
-	}
-	
+        // Try extending to left, right...
+        var y = b.y;
+        // This always extends all the way left until
+        // it hits something...
+        while (grid[y * TILESW + (b.x - 1 + TILESW) % TILESW] == null) {
+          b.len++;
+          b.x = (b.x - 1 + TILESW) % TILESW;
+          grid[y * TILESW + b.x] = b;
+          // trace('extended to ' + b.x + ',' + b.y +
+          // ' for ' + b.len);
+          if (Math.random() < 0.2) {
+            b.shrink1 = int(Math.random() * (BLOCKW - 1));
+            if (b.len >= 3) {
+              // b.shrink2 = int(Math.random() * (BLOCKH - 1));
+              b.shrink2 = 12;
+            }
+            // trace('stop early with shrinks ' + b.shrink1);
+            break;
+          }
+        }
+
       } else if (blocks[i].dir == VERT) {
 
-	// Try extending up
-	var x = b.x;
-	// This always extends all the way left until
-	// it hits something...
-	while (grid[((b.y - 1 + TILESH) % TILESH) * TILESW + x] == null) {
-	  b.len++;
-	  b.y = ((b.y - 1 + TILESH) % TILESH);
-	  grid[b.y * TILESW + x] = b;
-	  // trace('v-extended to ' + b.x + ',' + b.y +
-	  // ' for ' + b.len);
-	  if (Math.random() < 0.2) {
-	    b.shrink1 = int(Math.random() * (BLOCKW - 1));
-	    if (b.len >= 3) {
-	      // b.shrink2 = int(Math.random() * (BLOCKH - 1));
-	      b.shrink2 = 12;
-	    }
-	    // trace('stop early with shrinks ' + b.shrink1);
-	    break;
-	  }
-	}
+        // Try extending up
+        var x = b.x;
+        // This always extends all the way left until
+        // it hits something...
+        while (grid[((b.y - 1 + TILESH) % TILESH) * TILESW + x] == null) {
+          b.len++;
+          b.y = ((b.y - 1 + TILESH) % TILESH);
+          grid[b.y * TILESW + x] = b;
+          // trace('v-extended to ' + b.x + ',' + b.y +
+          // ' for ' + b.len);
+          if (Math.random() < 0.2) {
+            b.shrink1 = int(Math.random() * (BLOCKW - 1));
+            if (b.len >= 3) {
+              // b.shrink2 = int(Math.random() * (BLOCKH - 1));
+              b.shrink2 = 12;
+            }
+            // trace('stop early with shrinks ' + b.shrink1);
+            break;
+          }
+        }
 
       }
 
@@ -303,53 +313,89 @@ class Game extends MovieClip {
     init();
   }
 
-  /*
-  public function playCutsceneSound(wav, times) {
-    var oof = new Sound(_root.cutscenesmc);
-    trace(wav);
-    oof.attachSound(wav);
-    oof.setVolume(100);
-    oof.start(0, times);
+  public function splitBlocks() {
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      if (b != null) {
+        if (b.dir == HORIZ) {
+
+          if (b.len > 1) {
+            deleteBlock(b);
+            for (var x = 0; x < b.len; x++) {
+              var xx = (b.x + x + TILESW) % TILESW;
+              var newb = { what: b.what,
+                           dir: NONE,
+                           len: 1,
+                           shrink1: 0,
+                           shrink2: 0,
+                           x: xx, y: b.y };
+              grid[b.y * TILESW + xx] = newb;
+              blocks.push(newb);
+            }
+          }
+
+        } else if (b.dir == VERT) {
+
+          if (b.len > 1) {
+            deleteBlock(b);
+            for (var y = 0; y < b.len; y++) {
+              var yy = (b.y + y + TILESH) % TILESH;
+              var newb = { what: b.what,
+                           dir: NONE,
+                           len: 1,
+                           shrink1: 0,
+                           shrink2: 0,
+                           x: b.x, y: yy };
+              grid[yy * TILESW + b.x] = newb;
+              blocks.push(newb);
+            }
+          }
+
+        }
+      }
+    }
+
   }
-  */
 
   public function growBlocks() {
     var parity = (framesinpoint % 2) == 0;
 
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
-      if (b.dir == HORIZ) {
+      if (b != null) {
+        if (b.dir == HORIZ) {
 
-	if (parity) {
-	  // even parity. grow left
-	  growLeft(b);
-	} else {
-	  // odd parity. grow right...
-	  growRight(b);
-	}
+          if (parity) {
+            // even parity. grow left
+            growLeft(b);
+          } else {
+            // odd parity. grow right...
+            growRight(b);
+          }
 
-      } else if (b.dir == VERT) {
+        } else if (b.dir == VERT) {
 
-	if (parity) {
-	  // even parity. grow top
-	  if (b.shrink1 > 0) {
-	    b.shrink1--;
-	  } else {
-	    // If shrink is zero, try expanding up.
-	    var nby = (b.y - 1 + TILESH) % TILESH;
-	    if (grid[nby * TILESW + b.x] == null) {
-	      // claim it!
-	      b.len++;
-	      b.y = nby;
-	      grid[nby * TILESW + b.x] = b;
-	      b.shrink1 = 15;
-	    }
-	  }
-	} else {
-	  // odd parity. grow down...
-	  growDown(b);
-	}
+          if (parity) {
+            // even parity. grow top
+            if (b.shrink1 > 0) {
+              b.shrink1--;
+            } else {
+              // If shrink is zero, try expanding up.
+              var nby = (b.y - 1 + TILESH) % TILESH;
+              if (grid[nby * TILESW + b.x] == null) {
+                // claim it!
+                b.len++;
+                b.y = nby;
+                grid[nby * TILESW + b.x] = b;
+                b.shrink1 = 15;
+              }
+            }
+          } else {
+            // odd parity. grow down...
+            growDown(b);
+          }
 
+        }
       }
     }
   }
@@ -362,29 +408,29 @@ class Game extends MovieClip {
       // TODO: Also could turn NONE blocks into vert.
       // but be careful of breaking ones.
       if (b.dir == VERT) {
-	
-	var nblast = (b.y + b.len + TILESH) % TILESH;
-	// Can fall if below us is clear; it's always safe
-	// to shrink from the top if we're extending at the
-	//s ame time.
-	var canfall = b.shrink2 > 0 ||
-	  grid[nblast * TILESW + b.x] == null;
 
-	if (canfall) {
-	  // OK, grow down.
-	  // (PERF: Don't need to repeat checks)
-	  growDown(b);
+        var nblast = (b.y + b.len + TILESH) % TILESH;
+        // Can fall if below us is clear; it's always safe
+        // to shrink from the top if we're extending at the
+        //s ame time.
+        var canfall = b.shrink2 > 0 ||
+          grid[nblast * TILESW + b.x] == null;
 
-	  // And shrink up.
-	  if (b.shrink1 < 15) {
-	    b.shrink1++;
-	  } else {
-	    grid[b.y * TILESW + b.x] = null;
-	    b.y = (b.y + 1 + TILESH) % TILESH;
-	    b.len--;
-	    b.shrink1 = 0;
-	  }
-	}
+        if (canfall) {
+          // OK, grow down.
+          // (PERF: Don't need to repeat checks)
+          growDown(b);
+
+          // And shrink up.
+          if (b.shrink1 < 15) {
+            b.shrink1++;
+          } else {
+            grid[b.y * TILESW + b.x] = null;
+            b.y = (b.y + 1 + TILESH) % TILESH;
+            b.len--;
+            b.shrink1 = 0;
+          }
+        }
       }
     }
   }
@@ -396,11 +442,11 @@ class Game extends MovieClip {
       // If shrink is zero, try expanding to the left.
       var nbx = (b.x - 1 + TILESW) % TILESW;
       if (grid[b.y * TILESW + nbx] == null) {
-	// claim it!
-	b.len++;
-	b.x = nbx;
-	grid[b.y * TILESW + nbx] = b;
-	b.shrink1 = 15;
+        // claim it!
+        b.len++;
+        b.x = nbx;
+        grid[b.y * TILESW + nbx] = b;
+        b.shrink1 = 15;
       }
     }
   }
@@ -413,9 +459,9 @@ class Game extends MovieClip {
       // Try expanding length.
       var nblast = (b.x + b.len + TILESW) % TILESW;
       if (grid[b.y * TILESW + nblast] == null) {
-	b.len++;
-	grid[b.y * TILESW + nblast] = b;
-	b.shrink2 = 15;
+        b.len++;
+        grid[b.y * TILESW + nblast] = b;
+        b.shrink2 = 15;
       }
     }
   }
@@ -436,10 +482,54 @@ class Game extends MovieClip {
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
       if (b.what == BBREAK) {
-	b.frames--;
-	if (b.frames == 0) {
-	  deleteBlock(b);
-	}
+        b.frames--;
+        if (b.frames == 0) {
+          deleteBlock(b);
+        }
+      }
+    }
+  }
+
+  // XXX not real; just used below; fix
+  public function blockPixels(b) {
+    if (b.len == 1) return BLOCKW;
+    else if (b.len > 2) return 3 * BLOCKW;
+    else if (b.len == 1)
+      return (16 - b.shrink1) +
+        (16 - b.shrink2);
+  }
+
+  public function shrinkBlocks() {
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      if (b.dir == HORIZ) {
+
+        // Just shrink from right edge.
+        if (b.len > 1 && blockPixels(b) > BLOCKW + 1) {
+          if (b.shrink2 == 15) {
+            b.shrink2 = 0;
+            var blast = (b.x + b.len - 1 + TILESW) % TILESW;
+            grid[b.y * TILESW + blast] = null;
+            b.len--;
+          } else {
+            b.shrink2++;
+          }
+        }
+
+      } else if (b.dir == VERT) {
+
+        // Just shrink from bottom edge.
+        if (b.len > 1 && blockPixels(b) > BLOCKH + 1) {
+          if (b.shrink2 == 15) {
+            b.shrink2 = 0;
+            var blast = (b.y + b.len - 1 + TILESH) % TILESH;
+            grid[blast * TILESW + b.x] = null;
+            b.len--;
+          } else {
+            b.shrink2++;
+          }
+        }
+
       }
     }
   }
@@ -452,6 +542,10 @@ class Game extends MovieClip {
     // Growth.
     if (points[0] == PGROWTH) {
       growBlocks();
+    } else if (points[0] == PSPLIT) {
+      splitBlocks();
+    } else if (points[0] == PSHRINK) {
+      shrinkBlocks();
     } else if (points[0] == PFALL) {
       fallBlocks();
     } else {
@@ -466,19 +560,19 @@ class Game extends MovieClip {
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
       if (b.dir == HORIZ) {
-	if (b.shrink1 > 0)
-	  growLeft(b);
+        if (b.shrink1 > 0)
+          growLeft(b);
 
-	if (b.shrink2 > 0)
-	  growRight(b);
+        if (b.shrink2 > 0)
+          growRight(b);
 
       } else if (b.dir == VERT) {
 
-	if (b.shrink1 > 0)
-	  growUp(b);
+        if (b.shrink1 > 0)
+          growUp(b);
 
-	if (b.shrink2 > 0)
-	  growDown(b);
+        if (b.shrink2 > 0)
+          growDown(b);
 
       }
     }
@@ -492,11 +586,11 @@ class Game extends MovieClip {
       // If shrink is zero, try expanding up.
       var nby = (b.y - 1 + TILESH) % TILESH;
       if (grid[nby * TILESW + b.x] == null) {
-	// claim it!
-	b.len++;
-	b.y = nby;
-	grid[nby * TILESW + b.x] = b;
-	b.shrink1 = 15;
+        // claim it!
+        b.len++;
+        b.y = nby;
+        grid[nby * TILESW + b.x] = b;
+        b.shrink1 = 15;
       }
     }
   }
@@ -523,20 +617,20 @@ class Game extends MovieClip {
     if (dx != 0 || dy != 0) {
       var newg = [];
       for (var y = 0; y < TILESH; y++) {
-	for(var x = 0; x < TILESW; x++) {
-	  var ox = (x - dx + TILESW) % TILESW;
-	  var oy = (y - dy + TILESH) % TILESH;
-	  newg[y * TILESW + x] = grid[oy * TILESW + ox];
-	}
+        for(var x = 0; x < TILESW; x++) {
+          var ox = (x - dx + TILESW) % TILESW;
+          var oy = (y - dy + TILESH) % TILESH;
+          newg[y * TILESW + x] = grid[oy * TILESW + ox];
+        }
       }
       grid = newg;
 
       for (var i = 0; i < blocks.length; i++) {
-	var b = blocks[i];
-	if (b != null) {
-	  b.x = (b.x + dx + TILESW) % TILESW;
-	  b.y = (b.y + dy + TILESH) % TILESH;
-	}
+        var b = blocks[i];
+        if (b != null) {
+          b.x = (b.x + dx + TILESW) % TILESW;
+          b.y = (b.y + dy + TILESH) % TILESH;
+        }
       }
 
       playerx += dx * BLOCKW;
@@ -578,12 +672,12 @@ class Game extends MovieClip {
       /*
       var txx = (tx >= b.x) ? tx : (tx + TILESW);
       if (b.x != txx) {
-	// Left segment.
-	var newb = { x: b.x, y: b.y,
-		     dir: HORIZ, len: txx - b.x,
-		     what: b.what,
-		     shrink1: 0, shrink2: 0 };
-	addHoriz(newb);
+        // Left segment.
+        var newb = { x: b.x, y: b.y,
+                     dir: HORIZ, len: txx - b.x,
+                     what: b.what,
+                     shrink1: 0, shrink2: 0 };
+        addHoriz(newb);
       }
       */
 
@@ -594,14 +688,14 @@ class Game extends MovieClip {
       // XXX fix verts
       /*
       for (var y = 0; y < b.len; y++) {
-	var yy = (b.y + y) % TILESH;
-	var newb = { x: b.x, y: yy,
-		     dir: NONE, len: 1,
-		     what: BBREAK,
-		     frames: BREAKFRAMES,
-		     shrink1: 0, shrink2: 0 };
-	grid[yy * TILESW + b.x] = newb;
-	blocks.push(newb);
+        var yy = (b.y + y) % TILESH;
+        var newb = { x: b.x, y: yy,
+                     dir: NONE, len: 1,
+                     what: BBREAK,
+                     frames: BREAKFRAMES,
+                     shrink1: 0, shrink2: 0 };
+        grid[yy * TILESW + b.x] = newb;
+        blocks.push(newb);
       }
       */
 
@@ -612,11 +706,11 @@ class Game extends MovieClip {
   public function makeSpike(tx, ty, d) {
     var idx = ty * TILESW + tx;
     var b = { what: BSPIKE,
-	      dir: d,
-	      len: 1,
-	      x: tx,
-	      y: ty,
-	      shrink1: 0, shrink2: 0 }
+              dir: d,
+              len: 1,
+              x: tx,
+              y: ty,
+              shrink1: 0, shrink2: 0 }
     grid[idx] = b;
     blocks.push(b);
   }
@@ -646,14 +740,14 @@ class Game extends MovieClip {
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
       if (b.what == BSPIKE) {
-	if (b.dir == HORIZ) {
-	  growLeft(b);
-	  growRight(b);
+        if (b.dir == HORIZ) {
+          growLeft(b);
+          growRight(b);
 
-	} else if (b.dir == VERT) {
-	  growUp(b);
-	  growDown(b);
-	}
+        } else if (b.dir == VERT) {
+          growUp(b);
+          growDown(b);
+        }
       }
     }
 
@@ -663,27 +757,27 @@ class Game extends MovieClip {
 
     for (var y = 0; y < TILESH; y++) {
       for (var x = 0; x < TILESW; x++) {
-	var b = grid[y * TILESW + x];
-	if (b == null) {
-	  // Check for adjacent perpendicular spike, and spawn if we
-	  // find one.
-	  var a = [{dx: 1, dy: 0, d:HORIZ},
-		   {dx: -1, dy: 0, d:HORIZ},
-		   {dy: 1, dx: 0, d:VERT},
-		   {dy: -1, dx: 0, d:VERT}];
-	  for (var i = 0; i < a.length; i++) {
-	    var z = a[i];
-	    var tx = (x + z.dx + TILESW) % TILESW;
-	    var ty = (y + z.dy + TILESH) % TILESH;
-	    var b2 = grid[ty * TILESW + tx];
-	    if (b2.what == BSPIKE &&
-		b2.dir != z.d) {
-	      // Make spike!
-	      tomake.push({x:x, y:y, d:z.d});
-	      break;
-	    }
-	  }
-	}
+        var b = grid[y * TILESW + x];
+        if (b == null) {
+          // Check for adjacent perpendicular spike, and spawn if we
+          // find one.
+          var a = [{dx: 1, dy: 0, d:HORIZ},
+                   {dx: -1, dy: 0, d:HORIZ},
+                   {dy: 1, dx: 0, d:VERT},
+                   {dy: -1, dx: 0, d:VERT}];
+          for (var i = 0; i < a.length; i++) {
+            var z = a[i];
+            var tx = (x + z.dx + TILESW) % TILESW;
+            var ty = (y + z.dy + TILESH) % TILESH;
+            var b2 = grid[ty * TILESW + tx];
+            if (b2.what == BSPIKE &&
+                b2.dir != z.d) {
+              // Make spike!
+              tomake.push({x:x, y:y, d:z.d});
+              break;
+            }
+          }
+        }
       }
     }
 
@@ -695,34 +789,44 @@ class Game extends MovieClip {
 
   var gameoverframes = 0;
   public function gameover(win) {
-    // XXX remove any movie clips that might be on top
-    // of the picture.
+
+    // XXX end music!
 
     if (_root.gameovermc) {
       if (gameoverframes > 0) {
-	gameoverframes--;
-	trace(gameoverframes);
+        gameoverframes--;
       } else {
-	_root.gameovermc.removeMovieClip();
-	_root.gamemc.removeMovieClip();
-	_root.timermc.removeMovieClip();
-	_root.pointsmc.removeMovieClip();
-	_root.backgroundmc.removeMovieClip();
-	info.destroy();
-	airfo.destroy();
-	// HERE
+        stopmusic();
+        _root.gameovermc.removeMovieClip();
+        _root.gameovermc = undefined;
+        _root.gamemc.removeMovieClip();
+        _root.timermc.removeMovieClip();
+        _root.pointsmc.removeMovieClip();
+        _root.backgroundmc.removeMovieClip();
+        info.destroy();
+        airfo.destroy();
+        // HERE
 
-	_root.gotoAndStop('title');
-	this.swapDepths(0);
-	this.removeMovieClip();
-	return;
+        _root.gotoAndStop('title');
+        this.swapDepths(0);
+        this.removeMovieClip();
+        return;
       }
     } else {
-      gameoverframes = 3 * FPS;
+      gameoverframes = win ? (10 * FPS) : (3 * FPS);
       var gameoverbm = loadBitmap2x(win ? 'youwin.png' : 'youlost.png');
       _root.gameovermc = createGlobalMC('go', gameoverbm, GAMEOVERDEPTH);
       _root.gameovermc._x = 0;
       _root.gameovermc._y = 0;
+
+      // Because it can be mid-level..
+      stopmusic();
+
+      if (win) {
+        switchMusic(9);
+      } else {
+        switchMusic(4);
+      }
     }
   }
 
@@ -733,9 +837,9 @@ class Game extends MovieClip {
 
     if (dead) {
       if (screamframes == 0) {
-	gameover(false);
+        gameover(false);
 
-	return;
+        return;
       }
 
       // so that it's drawn accurately
@@ -764,6 +868,7 @@ class Game extends MovieClip {
     } else {
       playerPhysics();
       playerActions();
+      checkPickup();
       blockPhysics();
     }
 
@@ -782,15 +887,15 @@ class Game extends MovieClip {
     if (framesenclosed > 10) {
       var breath = framesenclosed / FRAMESPERAIR;
       if (breath > airea) {
-	suffocating = false;
-	scream();
+        suffocating = false;
+        scream();
       } else if (breath > (airea * 0.30)) {
-	suffocating = true;
+        suffocating = true;
 
-	if (suffocateframes == 0) {
-	  playBreatheSound();
-	  suffocateframes = BREATHEEVERY;
-	}
+        if (suffocateframes == 0) {
+          playBreatheSound();
+          suffocateframes = BREATHEEVERY;
+        }
       }
     } else {
       suffocating = false;
@@ -834,14 +939,55 @@ class Game extends MovieClip {
     computeAir();
   }
 
+  public function updatemessage() {
+    if (points.length == 0) {
+      info.setMessage('- no more points -');
+      return;
+    }
+    switch (points[0]) {
+    case PKING:
+      info.setMessage('Point Zero Rules!');
+      break;
+    case PHURT:
+      info.setMessage('Point One Hurts.');
+      break;
+    case PSPLIT:
+      info.setMessage('Point Two Splits.');
+      break;
+    case PSWAP: // XXX
+    case PNORM:
+      info.setMessage('Use arrow keys, space, z and x.');
+      break;
+    case PSHRINK:
+      info.setMessage('Point Four Shrinks.');
+      break;
+    case PTHINK:
+      info.setMessage('Point Five Thinks.');
+      break;
+    case PFALL:
+      info.setMessage('Point Seven Falls.');
+      break;
+    case PGROWTH:
+      info.setMessage('Point Eight Grows.');
+      break;
+    case PSOKO:
+      info.setMessage('Point Nine Flies.');
+      break;
+    }
+  }
+
   public function nextpoint() {
     points.shift();
-    framesinpoint = 10 * FPS;
+    updatemessage();
 
-    // because not implemented end of game
-    if (points.length == 0)
+    if (points.length == 0) {
+      // but in heaven
+      dead = true;
+      gameover(true);
       return;
+    }
 
+    framesinpoint = 10 * FPS;
     switchMusic(points[0]);
 
     // Initialization...
@@ -864,8 +1010,9 @@ class Game extends MovieClip {
     var b = grid[ty * TILESW + tx];
     if (!b) return false;
 
-    // Not sure if B* should count as solid for jumping?
-    // Probably not..
+    // Pickups are not solid.
+    if (b.what >= B0 && b.what <= B9)
+      return false;
 
     // wraps around the screen .. shouldn't be too hard
     // Assume all blocks are solid for now.
@@ -875,11 +1022,11 @@ class Game extends MovieClip {
       var xoff = px - tx * BLOCKW;
       var blast = (b.x + b.len - 1) % TILESW;
       if (tx == b.x) {
-	return xoff >= b.shrink1;
+        return xoff >= b.shrink1;
       } else if (tx == blast) {
-	// Number of solid pixels.
-	var solid = BLOCKW - b.shrink2;
-	return xoff < solid;
+        // Number of solid pixels.
+        var solid = BLOCKW - b.shrink2;
+        return xoff < solid;
       }
 
       return true;
@@ -887,10 +1034,10 @@ class Game extends MovieClip {
       var yoff = py - ty * BLOCKH;
       var blast = (b.y + b.len - 1) % TILESH;
       if (ty == b.y) {
-	return yoff >= b.shrink1;
+        return yoff >= b.shrink1;
       } else if (ty == blast) {
-	var solid = BLOCKH - b.shrink2;
-	return yoff < solid;
+        var solid = BLOCKH - b.shrink2;
+        return yoff < solid;
       }
 
       return true;
@@ -930,18 +1077,18 @@ class Game extends MovieClip {
   // there exists positive k such that startx + k * dx = endx.
   // Precondition: Player is not stuck.
   public function trymovinghoriz(offset,
-				 startx, endx, dx,
-				 y1, y2) {
+                                 startx, endx, dx,
+                                 y1, y2) {
     var ix = Math.round(endx);
     // Integer sweep, which gets us perfect physics.
     // Velocities have to be low for this to be efficient, however.
     // PERF less maths...
     for (var x = startx; x != ix; x += dx) {
       if (pixelIsSolid(x + dx + offset, y1) ||
-	  pixelIsSolid(x + dx + offset, y2)) {
-	// TODO: Should probably return block touched,
-	// for pushing etc.
-	return { x: x, hit: true, fx: 0 };
+          pixelIsSolid(x + dx + offset, y2)) {
+        // TODO: Should probably return block touched,
+        // for pushing etc.
+        return { x: x, hit: true, fx: 0 };
       }
     }
 
@@ -950,15 +1097,15 @@ class Game extends MovieClip {
 
   // Symmetrically for y.
   public function trymovingvert(offset,
-				starty, endy, dy,
-				x1, x2) {
+                                starty, endy, dy,
+                                x1, x2) {
     var iy = Math.round(endy);
     // PERF less maths...
     for (var y = starty; y != iy; y += dy) {
       if (pixelIsSolid(x1, y + dy + offset) ||
-	  pixelIsSolid(x2, y + dy + offset)) {
-	// TODO: Same about block touched.
-	return { y: y, hit: true, fy: 0 };
+          pixelIsSolid(x2, y + dy + offset)) {
+        // TODO: Same about block touched.
+        return { y: y, hit: true, fy: 0 };
       }
     }
 
@@ -999,9 +1146,9 @@ class Game extends MovieClip {
     // First, changes in acceleration.
     if (!TOPDOWN && og && jumpframes == 0) {
       if (holdingSpace) {
-	playJumpSound();
-	jumpframes = 6;
-	ddy -= 2;
+        playJumpSound();
+        jumpframes = 6;
+        ddy -= 2;
       }
     } else {
       ddy += YGRAV;
@@ -1010,11 +1157,11 @@ class Game extends MovieClip {
     // Bigger jump if holding space
     if (!TOPDOWN && holdingSpace) {
       if (jumpframes > 0) {
-	jumpframes--;
-	ddy -= 1;
+        jumpframes--;
+        ddy -= 1;
       } else {
-	// Clear impulse
-	holdingSpace = false;
+        // Clear impulse
+        holdingSpace = false;
       }
     } else {
       jumpframes = 0;
@@ -1024,35 +1171,35 @@ class Game extends MovieClip {
       orientation = HORIZ;
       facingleft = false;
       if (og) {
-	ddx += 0.7;
+        ddx += 0.7;
       } else {
-	ddx += 0.4;
+        ddx += 0.4;
       }
     } else if (holdingLeft) {
       orientation = HORIZ;
       facingleft = true;
       if (og) {
-	ddx -= 0.7;
+        ddx -= 0.7;
       } else {
-	ddx -= 0.4;
+        ddx -= 0.4;
       }
     }
 
     if (TOPDOWN) {
       if (holdingUp) {
-	orientation = VERT;
-	if (og) {
-	  ddy -= 0.7;
-	} else {
-	  ddy -= 0.4;
-	}
+        orientation = VERT;
+        if (og) {
+          ddy -= 0.7;
+        } else {
+          ddy -= 0.4;
+        }
       } else if (holdingDown) {
-	orientation = VERT;
-	if (og) {
-	  ddy += 0.7;
-	} else {
-	  ddy += 0.4;
-	}
+        orientation = VERT;
+        if (og) {
+          ddy += 0.7;
+        } else {
+          ddy += 0.4;
+        }
       }
     }
 
@@ -1060,10 +1207,10 @@ class Game extends MovieClip {
 
     // Apply friction if not holding any useful key.
     if (!holdingRight && !holdingLeft &&
-	(!TOPDOWN || (!holdingUp && !holdingDown))) {
+        (!TOPDOWN || (!holdingUp && !holdingDown))) {
       if (og) {
-	playerdx *= XGROUNDMU;
-	playerdy *= YGROUNDMU;
+        playerdx *= XGROUNDMU;
+        playerdy *= YGROUNDMU;
       }
     }
 
@@ -1098,18 +1245,18 @@ class Game extends MovieClip {
     var xobj = null;
     if (rx - playerx > 0) {
       xobj = trymovinghoriz(RIGHTFOOT,
-			    playerx,
-			    rx,
-			    1,
-			    playery + HEAD,
-			    playery + FEET);
+                            playerx,
+                            rx,
+                            1,
+                            playery + HEAD,
+                            playery + FEET);
     } else if (rx - playerx < 0) {
       xobj = trymovinghoriz(LEFTFOOT,
-			    playerx,
-			    rx,
-			    -1,
-			    playery + HEAD,
-			    playery + FEET);
+                            playerx,
+                            rx,
+                            -1,
+                            playery + HEAD,
+                            playery + FEET);
     }
     if (xobj) {
       playerx = xobj.x;
@@ -1127,31 +1274,31 @@ class Game extends MovieClip {
     var yobj = null;
     if (ry - playery > 0) {
       yobj = trymovingvert(FEET,
-			   playery,
-			   ry,
-			   1,
-			   playerx + LEFTFOOT,
-			   playerx + RIGHTFOOT);
+                           playery,
+                           ry,
+                           1,
+                           playerx + LEFTFOOT,
+                           playerx + RIGHTFOOT);
     } else if (ry - playery < 0) {
       yobj = trymovingvert(HEAD,
-			   playery,
-			   ry,
-			   -1,
-			   // Like the feet on the top of your
-			   // head.
-			   playerx + LEFTFOOT,
-			   playerx + RIGHTFOOT);
+                           playery,
+                           ry,
+                           -1,
+                           // Like the feet on the top of your
+                           // head.
+                           playerx + LEFTFOOT,
+                           playerx + RIGHTFOOT);
     }
     if (yobj) {
       playery = yobj.y;
       playerfy = yobj.fy;
       // Or small bounce if hitting head?
       if (yobj.hit) {
-	playerdy = 0;
-	// Can't keep jetpacking up if we hit our
-	// head...
-	jumpframes = 0;
-	holdingSpace = false;
+        playerdy = 0;
+        // Can't keep jetpacking up if we hit our
+        // head...
+        jumpframes = 0;
+        holdingSpace = false;
       }
     } else {
       // as above.
@@ -1175,7 +1322,7 @@ class Game extends MovieClip {
       ty = Math.floor((playery + FEET + depth) / BLOCKW);
       ty = (ty + TILESH) % TILESH;
       tx = Math.floor((playerx + (facingleft ? LEFTFOOT : RIGHTFOOT)) /
-		      BLOCKW);
+                      BLOCKW);
       tx = (tx + TILESW) % TILESW;
       d = VERT;
     } else {
@@ -1183,12 +1330,12 @@ class Game extends MovieClip {
       ty = Math.floor((playery + CENTER) / BLOCKW);
       ty = (ty + TILESH) % TILESH;
       if (facingleft) {
-	tx = Math.floor((playerx + LEFTFOOT - width) / BLOCKW);
-	tx = (tx + TILESW) % TILESW;
-	var b = grid[ty * TILESW + tx];
+        tx = Math.floor((playerx + LEFTFOOT - width) / BLOCKW);
+        tx = (tx + TILESW) % TILESW;
+        var b = grid[ty * TILESW + tx];
       } else {
-	tx = Math.floor((playerx + RIGHTFOOT + width) / BLOCKW);
-	tx = (tx + TILESW) % TILESW;
+        tx = Math.floor((playerx + RIGHTFOOT + width) / BLOCKW);
+        tx = (tx + TILESW) % TILESW;
       }
       d = HORIZ;
     }
@@ -1201,7 +1348,7 @@ class Game extends MovieClip {
       var b = grid[t.y * TILESW + t.x];
 
       if (b != null) {
-	punchBlock(t.x, t.y);
+        punchBlock(t.x, t.y);
       }
       holdingZ = false;
     } else if (holdingX) {
@@ -1209,25 +1356,25 @@ class Game extends MovieClip {
       var b = grid[t.y * TILESW + t.x];
 
       if (b == null) {
-	// Create block here.
-	var newb = { what: (t.d == VERT) ? BBLUE : BRED,
-		     dir: t.d, len: 1,
-		     shrink1: 0, shrink2: 0,
-		     x: t.x, y: t.y };
-	grid[t.y * TILESW + t.x] = newb;
-	blocks.push(newb);
+        // Create block here.
+        var newb = { what: (t.d == VERT) ? BBLUE : BRED,
+                     dir: t.d, len: 1,
+                     shrink1: 0, shrink2: 0,
+                     x: t.x, y: t.y };
+        grid[t.y * TILESW + t.x] = newb;
+        blocks.push(newb);
       } else {
-	// Block grows.
-	if (b.dir == VERT) {
-	  // only down
-	  growDown(b);
-	} else if (b.dir == HORIZ) {
-	  if (facingleft) {
-	    growLeft(b);
-	  } else {
-	    growRight(b);
-	  }
-	}
+        // Block grows.
+        if (b.dir == VERT) {
+          // only down
+          growDown(b);
+        } else if (b.dir == HORIZ) {
+          if (facingleft) {
+            growLeft(b);
+          } else {
+            growRight(b);
+          }
+        }
       }
     }
 
@@ -1249,26 +1396,26 @@ class Game extends MovieClip {
     } else if (b.dir == HORIZ) {
       deleteBlock(b);
       for (var x = 0; x < b.len; x++) {
-	var xx = (b.x + x) % TILESW;
-	var newb = { x: xx, y: b.y,
-		     dir: NONE, len: 1,
-		     what: BBREAK,
-		     frames: BREAKFRAMES,
-		     shrink1: 0, shrink2: 0 };
-	grid[b.y * TILESW + xx] = newb;
-	blocks.push(newb);
+        var xx = (b.x + x) % TILESW;
+        var newb = { x: xx, y: b.y,
+                     dir: NONE, len: 1,
+                     what: BBREAK,
+                     frames: BREAKFRAMES,
+                     shrink1: 0, shrink2: 0 };
+        grid[b.y * TILESW + xx] = newb;
+        blocks.push(newb);
       }
     } else if (b.dir == VERT) {
       deleteBlock(b);
       for (var y = 0; y < b.len; y++) {
-	var yy = (b.y + y) % TILESH;
-	var newb = { x: b.x, y: yy,
-		     dir: NONE, len: 1,
-		     what: BBREAK,
-		     frames: BREAKFRAMES,
-		     shrink1: 0, shrink2: 0 };
-	grid[yy * TILESW + b.x] = newb;
-	blocks.push(newb);
+        var yy = (b.y + y) % TILESH;
+        var newb = { x: b.x, y: yy,
+                     dir: NONE, len: 1,
+                     what: BBREAK,
+                     frames: BREAKFRAMES,
+                     shrink1: 0, shrink2: 0 };
+        grid[yy * TILESW + b.x] = newb;
+        blocks.push(newb);
       }
     }
   }
@@ -1283,9 +1430,9 @@ class Game extends MovieClip {
     // Don't go all the way to last, in case it's already there
     for (var i = 0; i < last; i++) {
       if (blocks[i] == b) {
-	blocks[i] = blocks[last];
-	blocks[last] = b;
-	break;
+        blocks[i] = blocks[last];
+        blocks[last] = b;
+        break;
       }
     }
 
@@ -1296,13 +1443,13 @@ class Game extends MovieClip {
       grid[b.y * TILESW + b.x] = null;
     } else if (b.dir == HORIZ) {
       for (var x = 0; x < b.len; x++) {
-	var xx = (b.x + x) % TILESW;
-	grid[b.y * TILESW + xx] = null;
+        var xx = (b.x + x) % TILESW;
+        grid[b.y * TILESW + xx] = null;
       }
     } else if (b.dir == VERT) {
       for (var y = 0; y < b.len; y++) {
-	var yy = (b.y + y) % TILESH;
-	grid[yy * TILESW + b.x] = null;
+        var yy = (b.y + y) % TILESH;
+        grid[yy * TILESW + b.x] = null;
       }
     }
 
@@ -1320,12 +1467,17 @@ class Game extends MovieClip {
   }
 
   public function playCrySound() {
-    // XXX replace clip?
-    // trace(player.smc);
     var cry = new Sound(sfxmc);
     cry.attachSound('cry2.wav');
     cry.setVolume(75);
     cry.start(0, 1);
+  }
+
+  public function playGetSound() {
+    var got = new Sound(sfxmc);
+    got.attachSound('get.wav');
+    got.setVolume(75);
+    got.start(0, 1);
   }
 
   public function playBreatheSound() {
@@ -1362,11 +1514,11 @@ class Game extends MovieClip {
     barbm = loadBitmap2x('bar.png');
     playerbmr =
       { stand: loadBitmap2x('player.png'),
-	jump: loadBitmap2x('playerjump.png'),
-	cry1: loadBitmap2x('playercry1.png'),
-	run1: loadBitmap2x('playerrun1.png'),
-	run2: loadBitmap2x('playerrun2.png'),
-	run3: loadBitmap2x('playerrun3.png') };
+        jump: loadBitmap2x('playerjump.png'),
+        cry1: loadBitmap2x('playercry1.png'),
+        run1: loadBitmap2x('playerrun1.png'),
+        run2: loadBitmap2x('playerrun2.png'),
+        run3: loadBitmap2x('playerrun3.png') };
 
     playerbml = flipAllHoriz(playerbmr);
 
@@ -1377,41 +1529,41 @@ class Game extends MovieClip {
     for (var i = 0; i < NBLOCKS; i++) {
       blockbms.push([]);
       for (var a = 0; a < NVARIATIONS; a++) {
-	// Just shift the whole graphic so that only
-	// the desired block shows.
-	var cropbig = new Matrix();
-	cropbig.translate(-BLOCKW * SCALE * i, -BLOCKH * SCALE * a);
-	var b = new BitmapData(BLOCKW * SCALE, BLOCKH * SCALE, true, 0);
-	b.draw(blocksbm, cropbig);
-	blockbms[i].push(b);
+        // Just shift the whole graphic so that only
+        // the desired block shows.
+        var cropbig = new Matrix();
+        cropbig.translate(-BLOCKW * SCALE * i, -BLOCKH * SCALE * a);
+        var b = new BitmapData(BLOCKW * SCALE, BLOCKH * SCALE, true, 0);
+        b.draw(blocksbm, cropbig);
+        blockbms[i].push(b);
       }
     }
 
     // Create faded version of points and icons.
     for (var i = 0; i < NPOINTS; i++) {
       blockbms[B0 + i][DARK] =
-	darkenWhite(blockbms[B0 + i][NORMAL]);
+        darkenWhite(blockbms[B0 + i][NORMAL]);
       blockbms[B0 + i][DARKICONS] =
-	darkenWhite(blockbms[B0 + i][ICONS]);
+        darkenWhite(blockbms[B0 + i][ICONS]);
     }
 
     gamebm = new BitmapData(BLOCKW * SCALE * TILESW,
-			    BLOCKW * SCALE * TILESH,
-			    true, 0);
+                            BLOCKW * SCALE * TILESH,
+                            true, 0);
     _root.gamemc = createGlobalMC('game', gamebm, GAMEDEPTH);
     _root.gamemc._x = BOARDX * SCALE;
     _root.gamemc._y = BOARDY * SCALE;
 
     timerbm = new BitmapData(BLOCKW * SCALE * TILESW,
-			     BLOCKW * SCALE * TILESH,
-			     true, 0);
+                             BLOCKW * SCALE * TILESH,
+                             true, 0);
     _root.timermc = createGlobalMC('timer', timerbm, TIMERDEPTH);
     _root.timermc._x = TIMERX * SCALE;
     _root.timermc._y = TIMERY * SCALE;
 
     pointsbm = new BitmapData(BLOCKW * SCALE * TILESW,
-			      BLOCKW * SCALE * TILESH,
-			      true, 0);
+                              BLOCKW * SCALE * TILESH,
+                              true, 0);
     _root.pointsmc = createGlobalMC('points', pointsbm, POINTSDEPTH);
     _root.pointsmc._x = POINTSX * SCALE;
     _root.pointsmc._y = POINTSY * SCALE;
@@ -1455,7 +1607,7 @@ class Game extends MovieClip {
     var yy = b.y * BLOCKW * SCALE;
     capm.translate(xx, yy);
     var capc = new Rectangle(xx, yy,
-			     CAPW * SCALE, BLOCKH * SCALE);
+                             CAPW * SCALE, BLOCKH * SCALE);
     gamebm.draw(blockbms[b.what][NORMAL], capm, null, null, capc);
   }
 
@@ -1468,7 +1620,7 @@ class Game extends MovieClip {
 
     capm.translate(capxx - (BLOCKW - CAPW) * SCALE, capyy);
     var capc = new Rectangle(capxx, capyy,
-			     CAPW * SCALE, BLOCKH * SCALE);
+                             CAPW * SCALE, BLOCKH * SCALE);
     gamebm.draw(blockbms[b.what][NORMAL], capm, null, null, capc);
   }
 
@@ -1478,7 +1630,7 @@ class Game extends MovieClip {
     var yy = (by * BLOCKH + b.shrink1) * SCALE;
     capm.translate(xx, yy);
     var capc = new Rectangle(xx, yy,
-			     BLOCKW * SCALE, CAPW * SCALE);
+                             BLOCKW * SCALE, CAPW * SCALE);
     gamebm.draw(blockbms[b.what][NORMAL], capm, null, null, capc);
   }
 
@@ -1491,7 +1643,7 @@ class Game extends MovieClip {
 
     capm.translate(capxx, capyy - (BLOCKH - CAPW) * SCALE);
     var capc = new Rectangle(capxx, capyy,
-			     BLOCKW * SCALE, CAPW * SCALE);
+                             BLOCKW * SCALE, CAPW * SCALE);
     gamebm.draw(blockbms[b.what][NORMAL], capm, null, null, capc);
   }
 
@@ -1505,7 +1657,7 @@ class Game extends MovieClip {
     var m = new Matrix();
     m.translate(0, 0);
     var c = new Rectangle(skippixels * SCALE, 0,
-			  keeppixels * SCALE, TIMERH * SCALE);
+                          keeppixels * SCALE, TIMERH * SCALE);
     timerbm.draw(barbm, m, null, null, c);
   }
 
@@ -1541,17 +1693,20 @@ class Game extends MovieClip {
 
     /*
     info.setMessage('dx: ' + toDecimal(playerdx, 1000) +
-		    ' dy: ' + toDecimal(playerdy, 1000) +
-		    ' fx: ' + toDecimal(playerfx, 1000) +
-		    ' fy: ' + toDecimal(playerfy, 1000));
+                    ' dy: ' + toDecimal(playerdy, 1000) +
+                    ' fx: ' + toDecimal(playerfx, 1000) +
+                    ' fy: ' + toDecimal(playerfy, 1000));
     */
 
-    var breath = framesenclosed / FRAMESPERAIR; 
+    /*
+    var breath = framesenclosed / FRAMESPERAIR;
 
     info.setMessage(// 'arrow keys, space, z, x. airea: ' +
-		    'FPS ' + toDecimal(computed_fps, 100) 
-		    + ' ' + toDecimal(breath, 10) + '/' +
-		    airea);
+                    'FPS ' + toDecimal(computed_fps, 100)
+                    + ' ' + toDecimal(breath, 10) + '/' +
+                    airea);
+    */
+
     drawtimer();
     // PERF don't need to do this every frame!
     drawpoints();
@@ -1565,9 +1720,9 @@ class Game extends MovieClip {
     drawBlocks();
 
     // Also show if almost out?
-    if (CHEATS ||
-	points[0] == PTHINK ||
-	points[0] == PHURT) {
+    if (true || /* CHEATS || */
+        points[0] == PTHINK ||
+        points[0] == PHURT) {
       drawAir();
     }
 
@@ -1589,8 +1744,8 @@ class Game extends MovieClip {
     } else if (inair) {
       pbm = pobj.jump;
     } else if (Math.abs(playerdx) >= 1) {
-      pbm = pobj[['run1', 'run2', 
-		  'run3', 'run2'][Math.round(animframe / 2) % 4]];
+      pbm = pobj[['run1', 'run2',
+                  'run3', 'run2'][Math.round(animframe / 2) % 4]];
     }
 
     // PERF could compute that some of these are impossible,
@@ -1605,7 +1760,7 @@ class Game extends MovieClip {
     // setDepthOf(_root.rinkmc, iceDepth(playery));
 
   }
-  
+
   public function checkSpikes() {
     // player's head
     var ty = Math.floor((playery + CENTER) / BLOCKW);
@@ -1618,6 +1773,26 @@ class Game extends MovieClip {
       playCrySound();
       dead = true;
       screamframes = 45;
+    }
+  }
+
+  public function checkPickup() {
+    // player's head
+    var ty = Math.floor((playery + CENTER) / BLOCKW);
+    ty = (ty + TILESH) % TILESH;
+    var tx = Math.floor((playerx + CENTER) / BLOCKW);
+    tx = (tx + TILESW) % TILESW;
+
+    var idx = ty * TILESW + tx;
+    var b = grid[idx];
+    if (b != null && b.what >= B0 && b.what <= B9) {
+      playGetSound();
+      // Goes next.
+      var p = b.what - B0;
+      var cur = points.shift();
+      points.unshift(p);
+      points.unshift(cur);
+      deleteBlock(b);
     }
   }
 
@@ -1634,29 +1809,29 @@ class Game extends MovieClip {
     while (todo.length > 0) {
       var n = todo.pop();
       if (n.x < 0 || n.y < 0 ||
-	  n.x >= TILESW || n.y >= TILESH) {
-	// Connected to outdoors. Done.
-	air = [];
-	airea = -1;
-	framesenclosed = 0;
-	if (suffocating) {
-	  airframes = 20;
-	}
-	return;
+          n.x >= TILESW || n.y >= TILESH) {
+        // Connected to outdoors. Done.
+        air = [];
+        airea = -1;
+        framesenclosed = 0;
+        if (suffocating) {
+          airframes = 20;
+        }
+        return;
       }
       var idx = n.y * TILESW + n.x;
       if (air[idx] == undefined) {
-	if (grid[idx] == null) {
-	  // open spot
-	  todo.push({x: n.x + 1, y: n.y});
-	  todo.push({x: n.x - 1, y: n.y});
-	  todo.push({x: n.x, y: n.y + 1});
-	  todo.push({x: n.x, y: n.y - 1});
-	  airea++;
-	  air[idx] = 1;
-	} else {
-	  air[idx] = 2;
-	}
+        if (grid[idx] == null) {
+          // open spot
+          todo.push({x: n.x + 1, y: n.y});
+          todo.push({x: n.x - 1, y: n.y});
+          todo.push({x: n.x, y: n.y + 1});
+          todo.push({x: n.x, y: n.y - 1});
+          airea++;
+          air[idx] = 1;
+        } else {
+          air[idx] = 2;
+        }
       }
       // (otherwise we've already done it.)
     }
@@ -1678,12 +1853,12 @@ class Game extends MovieClip {
     // Air info.
     if (airea == -1) {
       if (airframes > 0) {
-	airfo.setMessage('air: @#');
-	airfo.show();
-	airfo.position(playerx - 6, playery - 16);
-	airframes--;
+        airfo.setMessage('air: @#');
+        airfo.show();
+        airfo.position(playerx - 6, playery - 16);
+        airframes--;
       } else {
-	airfo.hide();
+        airfo.hide();
       }
     }
 
@@ -1698,13 +1873,13 @@ class Game extends MovieClip {
       var pct = Math.round(f * 10);
       // Can be NaN! XXX
       if (!isNaN(pct)) {
-	airfo.setMessage('air: ' + pct + '0%');
-	// XXX I think it would look better along the
-	// air boundary?
-	airfo.position(playerx - 6, playery - 16);
-	airfo.show();
+        airfo.setMessage('air: ' + pct + '0%');
+        // XXX I think it would look better along the
+        // air boundary?
+        airfo.position(playerx - 6, playery - 16);
+        airfo.show();
       } else {
-	airfo.hide();
+        airfo.hide();
       }
     } else {
       airfo.hide();
@@ -1713,51 +1888,51 @@ class Game extends MovieClip {
     var airbms = blockbms[BAIRBORDER];
     for (var y = 0; y < TILESH; y++) {
       for (var x = 0; x < TILESW; x++) {
-	var idx = y * TILESW + x;
-	if (air[idx] == 1) {
-	  var px = x * BLOCKW;
-	  var py = y * BLOCKH;
+        var idx = y * TILESW + x;
+        if (air[idx] == 1) {
+          var px = x * BLOCKW;
+          var py = y * BLOCKH;
 
-	  if (bAir(x + 1, y)) {
-	    drawAtClip(gamebm, airbms[VSMOOTH],
-		       BLOCKW - 3, 0, 
-		       px + BLOCKW - 3, py,
-		       3, BLOCKH);
-	  }
+          if (bAir(x + 1, y)) {
+            drawAtClip(gamebm, airbms[VSMOOTH],
+                       BLOCKW - 3, 0,
+                       px + BLOCKW - 3, py,
+                       3, BLOCKH);
+          }
 
-	  if (bAir(x - 1, y)) {
-	    drawAtClip(gamebm, airbms[VSMOOTH],
-		       0, 0, px, py, 2, BLOCKH);
-	  }
+          if (bAir(x - 1, y)) {
+            drawAtClip(gamebm, airbms[VSMOOTH],
+                       0, 0, px, py, 2, BLOCKH);
+          }
 
-	  if (bAir(x, y - 1)) {
-	    drawAtClip(gamebm, airbms[HSMOOTH],
-		       0, 0, px, py,
-		       BLOCKW, 2);
-	  }
+          if (bAir(x, y - 1)) {
+            drawAtClip(gamebm, airbms[HSMOOTH],
+                       0, 0, px, py,
+                       BLOCKW, 2);
+          }
 
-	  if (bAir(x, y + 1)) {
-	    drawAtClip(gamebm, airbms[HSMOOTH],
-		       0, BLOCKH - 3,
-		       px, py + BLOCKH - 3,
-		       BLOCKW, 3);
-	  }
+          if (bAir(x, y + 1)) {
+            drawAtClip(gamebm, airbms[HSMOOTH],
+                       0, BLOCKH - 3,
+                       px, py + BLOCKH - 3,
+                       BLOCKW, 3);
+          }
 
-	  // TODO outside corners, easy
-	}
+          // TODO outside corners, easy
+        }
       }
     }
   }
 
   public function drawAtClip(dest, bm,
-			     srcx, srcy,
-			     dstx, dsty,
-			     w, h) {
+                             srcx, srcy,
+                             dstx, dsty,
+                             w, h) {
     var m = new Matrix();
-    m.translate((dstx - srcx) * SCALE, 
-		(dsty - srcy) * SCALE);
+    m.translate((dstx - srcx) * SCALE,
+                (dsty - srcy) * SCALE);
     var c = new Rectangle(dstx * SCALE, dsty * SCALE,
-			  w * SCALE, h * SCALE);
+                          w * SCALE, h * SCALE);
     dest.draw(bm, m, null, null, c);
   }
 
@@ -1769,129 +1944,129 @@ class Game extends MovieClip {
       // XXX don't use for 1x1 that's falling. It blinks
       // into a different appearance, which looks bad.
       if (b.dir == NONE || b.len == 1) {
-	// common, assumed 1x1. can't have shrinkage.
-	var place = new Matrix();
-	place.translate(b.x * BLOCKW * SCALE,
-			b.y * BLOCKW * SCALE);
+        // common, assumed 1x1. can't have shrinkage.
+        var place = new Matrix();
+        place.translate(b.x * BLOCKW * SCALE,
+                        b.y * BLOCKW * SCALE);
 
-	if (b.what == BBREAK) {
-	  var frac = (BREAKFRAMES - b.frames) / BREAKFRAMES;
-	  var fm = Math.round(frac * (NBREAKANIM - 1));
-	  gamebm.draw(blockbms[BBREAK][fm], place);
-	} else {
-	  gamebm.draw(blockbms[b.what][NORMAL], place);
-	}
+        if (b.what == BBREAK) {
+          var frac = (BREAKFRAMES - b.frames) / BREAKFRAMES;
+          var fm = Math.round(frac * (NBREAKANIM - 1));
+          gamebm.draw(blockbms[BBREAK][fm], place);
+        } else {
+          gamebm.draw(blockbms[b.what][NORMAL], place);
+        }
 
       } else if (b.dir == HORIZ) {
 
-	// Draw midsection using smoothie.
-	for (var x = 1; x < b.len - 1; x++) {
-	  var place = new Matrix();
-	  var sx = (b.x + x) % TILESW;
-	  place.translate(sx * BLOCKW * SCALE,
-			  b.y * BLOCKW * SCALE);
-	
-	  gamebm.draw(blockbms[b.what][HSMOOTH], place);
-	}
+        // Draw midsection using smoothie.
+        for (var x = 1; x < b.len - 1; x++) {
+          var place = new Matrix();
+          var sx = (b.x + x) % TILESW;
+          place.translate(sx * BLOCKW * SCALE,
+                          b.y * BLOCKW * SCALE);
 
-	// And gap...
-	// (this only needs to be drawn once, because in the case
-	// where the cap wraps, the gap is empty.)
-	var gapm = new Matrix();
-	var xdone = b.shrink1 + CAPW;
-	var xx = (b.x * BLOCKW + xdone) * SCALE;
-	var yy = b.y * BLOCKW * SCALE;
-	gapm.translate(xx, yy);
-	var gapc = new Rectangle(xx, yy, (BLOCKW - xdone) * SCALE,
-				 BLOCKH * SCALE);
-	gamebm.draw(blockbms[b.what][HSMOOTH], gapm, null, null, gapc);
+          gamebm.draw(blockbms[b.what][HSMOOTH], place);
+        }
 
-	// And end cap...
-	// Position of last block.
-	// var bx = (b.x + b.len - 1) % TILESW;
-	var blast = (b.x + b.len - 1) % TILESW;
+        // And gap...
+        // (this only needs to be drawn once, because in the case
+        // where the cap wraps, the gap is empty.)
+        var gapm = new Matrix();
+        var xdone = b.shrink1 + CAPW;
+        var xx = (b.x * BLOCKW + xdone) * SCALE;
+        var yy = b.y * BLOCKW * SCALE;
+        gapm.translate(xx, yy);
+        var gapc = new Rectangle(xx, yy, (BLOCKW - xdone) * SCALE,
+                                 BLOCKH * SCALE);
+        gamebm.draw(blockbms[b.what][HSMOOTH], gapm, null, null, gapc);
 
-	var gapm = new Matrix();
-	var xneed = (BLOCKW - b.shrink2) - CAPW;
-	if (xneed > 0) {
-	  var xx = (blast * BLOCKW) * SCALE;
-	  var yy = b.y * BLOCKW * SCALE;
-	  gapm.translate(xx, yy);
-	  var gapc = new Rectangle(xx, yy,
-				   xneed * SCALE,
-				   BLOCKH * SCALE);
-	  gamebm.draw(blockbms[b.what][HSMOOTH], gapm, null, null, gapc);
-	}
+        // And end cap...
+        // Position of last block.
+        // var bx = (b.x + b.len - 1) % TILESW;
+        var blast = (b.x + b.len - 1) % TILESW;
 
-	// Caps last, since for short segments, gaps could overlap
-	// overlapping caps.
+        var gapm = new Matrix();
+        var xneed = (BLOCKW - b.shrink2) - CAPW;
+        if (xneed > 0) {
+          var xx = (blast * BLOCKW) * SCALE;
+          var yy = b.y * BLOCKW * SCALE;
+          gapm.translate(xx, yy);
+          var gapc = new Rectangle(xx, yy,
+                                   xneed * SCALE,
+                                   BLOCKH * SCALE);
+          gamebm.draw(blockbms[b.what][HSMOOTH], gapm, null, null, gapc);
+        }
 
-	// Now draw start cap, clipped.
-	hstartcap(b, b.x);
-	if (b.x == TILESW - 1) {
-	  hstartcap(b, -1);
-	}
+        // Caps last, since for short segments, gaps could overlap
+        // overlapping caps.
 
-	hendcap(b, blast);
-	if (blast == 0) {
-	  hendcap(b, TILESW);
-	}
-	
+        // Now draw start cap, clipped.
+        hstartcap(b, b.x);
+        if (b.x == TILESW - 1) {
+          hstartcap(b, -1);
+        }
+
+        hendcap(b, blast);
+        if (blast == 0) {
+          hendcap(b, TILESW);
+        }
+
       } else if (b.dir == VERT) {
 
-	// Draw midsection using smoothie.
-	for (var y = 1; y < b.len - 1; y++) {
-	  var place = new Matrix();
-	  var sy = (b.y + y) % TILESH;
-	  place.translate(b.x * BLOCKW * SCALE,
-			  sy * BLOCKH * SCALE);
-	
-	  gamebm.draw(blockbms[b.what][VSMOOTH], place);
-	}
+        // Draw midsection using smoothie.
+        for (var y = 1; y < b.len - 1; y++) {
+          var place = new Matrix();
+          var sy = (b.y + y) % TILESH;
+          place.translate(b.x * BLOCKW * SCALE,
+                          sy * BLOCKH * SCALE);
 
-	var blast = (b.y + b.len - 1) % TILESH;
+          gamebm.draw(blockbms[b.what][VSMOOTH], place);
+        }
+
+        var blast = (b.y + b.len - 1) % TILESH;
 
 
-	// And gap...
-	// (this only needs to be drawn once, because in the case
-	// where the cap wraps, the gap is empty.)
-	var gapm = new Matrix();
-	var ydone = b.shrink1 + CAPW;
-	var xx = b.x * BLOCKW * SCALE;
-	var yy = (b.y * BLOCKH + ydone) * SCALE;
-	gapm.translate(xx, yy);
-	var gapc = new Rectangle(xx, yy,
-				 BLOCKW * SCALE,
-				 (BLOCKH - ydone) * SCALE);
-	gamebm.draw(blockbms[b.what][VSMOOTH], gapm, null, null, gapc);
+        // And gap...
+        // (this only needs to be drawn once, because in the case
+        // where the cap wraps, the gap is empty.)
+        var gapm = new Matrix();
+        var ydone = b.shrink1 + CAPW;
+        var xx = b.x * BLOCKW * SCALE;
+        var yy = (b.y * BLOCKH + ydone) * SCALE;
+        gapm.translate(xx, yy);
+        var gapc = new Rectangle(xx, yy,
+                                 BLOCKW * SCALE,
+                                 (BLOCKH - ydone) * SCALE);
+        gamebm.draw(blockbms[b.what][VSMOOTH], gapm, null, null, gapc);
 
-	// And end cap...
-	// Position of last block.
-	var gapm = new Matrix();
-	var yneed = (BLOCKH - b.shrink2) - CAPW;
-	if (yneed > 0) {
-	  var xx = b.x * BLOCKW * SCALE;
-	  var yy = (blast * BLOCKH) * SCALE;
-	  gapm.translate(xx, yy);
-	  var gapc = new Rectangle(xx, yy,
-				   BLOCKW * SCALE,
-				   yneed * SCALE);
-	  gamebm.draw(blockbms[b.what][VSMOOTH], gapm, null, null, gapc);
-	}
+        // And end cap...
+        // Position of last block.
+        var gapm = new Matrix();
+        var yneed = (BLOCKH - b.shrink2) - CAPW;
+        if (yneed > 0) {
+          var xx = b.x * BLOCKW * SCALE;
+          var yy = (blast * BLOCKH) * SCALE;
+          gapm.translate(xx, yy);
+          var gapc = new Rectangle(xx, yy,
+                                   BLOCKW * SCALE,
+                                   yneed * SCALE);
+          gamebm.draw(blockbms[b.what][VSMOOTH], gapm, null, null, gapc);
+        }
 
-	// Caps last, since for short segments, gaps could overlap
-	// overlapping caps.
+        // Caps last, since for short segments, gaps could overlap
+        // overlapping caps.
 
-	// Now draw start cap, clipped.
-	vstartcap(b, b.y);
-	if (b.y == TILESH - 1) {
-	  vstartcap(b, -1);
-	}
+        // Now draw start cap, clipped.
+        vstartcap(b, b.y);
+        if (b.y == TILESH - 1) {
+          vstartcap(b, -1);
+        }
 
-	vendcap(b, blast);
-	if (blast == 0) {
-	  vendcap(b, TILESH);
-	}
+        vendcap(b, blast);
+        if (blast == 0) {
+          vendcap(b, TILESH);
+        }
 
       }
 
@@ -1910,15 +2085,15 @@ class Game extends MovieClip {
     switch(k) {
     case 49:
       if (CHEATS) {
-	stopmusic();
-	initpoints();
-	initboard();
+        stopmusic();
+        initpoints();
+        initboard();
       }
       break;
     case 50:
       if (CHEATS) {
-	stopmusic();
-	framesinpoint = 10;
+        stopmusic();
+        framesinpoint = 10;
       }
       break;
     case 192: // ~
