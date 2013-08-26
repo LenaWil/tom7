@@ -4,7 +4,7 @@ var FASTMODE = false;
 
 // var MUSIC = !FASTMODE;
 var MUSIC = true;
-var CHEATS = true;
+var CHEATS = false;
 
 // In screen (real) pixels.
 var SCREENW = 600;
@@ -76,11 +76,16 @@ var CREATED = 12;
 
 var CAPW = 6;
 
+var PKING = 0;
+var PHURT = 1;
+var PSPLIT = 2;
+var PNORM = 3;
+var PSHRINK = 4;
+var PTHINK = 5;
+var PSWAP = 6;
 var PFALL = 7;
 var PGROWTH = 8;
 var PSOKO = 9;
-var PTHINK = 5;
-var PHURT = 1;
 
 // How many pixels does the player extend up and to the left
 // of the origin?
