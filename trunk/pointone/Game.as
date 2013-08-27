@@ -167,6 +167,7 @@ class Game extends MovieClip {
 
     // Always start with a plain one.
     points.unshift(3);
+    // points.unshift(8);
     updatemessage();
 
     framesinpoint = 10 * FPS;
@@ -324,7 +325,7 @@ class Game extends MovieClip {
             for (var x = 0; x < b.len; x++) {
               var xx = (b.x + x + TILESW) % TILESW;
               var newb = { what: b.what,
-                           dir: NONE,
+                           dir: b.dir,
                            len: 1,
                            shrink1: 0,
                            shrink2: 0,
@@ -341,7 +342,7 @@ class Game extends MovieClip {
             for (var y = 0; y < b.len; y++) {
               var yy = (b.y + y + TILESH) % TILESH;
               var newb = { what: b.what,
-                           dir: NONE,
+                           dir: b.dir,
                            len: 1,
                            shrink1: 0,
                            shrink2: 0,
@@ -549,7 +550,12 @@ class Game extends MovieClip {
     } else if (points[0] == PFALL) {
       fallBlocks();
     } else {
-      normalizeBlocks();
+
+      // Grow spikes more slowly...
+      if (points[0] != PHURT ||
+          animframe % 2 == 0) {
+        normalizeBlocks();
+      }
     }
   }
 
@@ -557,6 +563,7 @@ class Game extends MovieClip {
   // since air can't pass through slivers and there are some
   // unintuitive choking hazards.
   public function normalizeBlocks() {
+
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
       if (b.dir == HORIZ) {
@@ -790,8 +797,6 @@ class Game extends MovieClip {
   var gameoverframes = 0;
   public function gameover(win) {
 
-    // XXX end music!
-
     if (_root.gameovermc) {
       if (gameoverframes > 0) {
         gameoverframes--;
@@ -805,7 +810,6 @@ class Game extends MovieClip {
         _root.backgroundmc.removeMovieClip();
         info.destroy();
         airfo.destroy();
-        // HERE
 
         _root.gotoAndStop('title');
         this.swapDepths(0);
@@ -828,6 +832,75 @@ class Game extends MovieClip {
         switchMusic(4);
       }
     }
+  }
+
+  public function deconf() {
+    // Is the player inside any brick from it growing
+    // into him? If so and we can deconflict, do so.
+
+    // trace('-- deconf --');
+
+    playerx +=
+      deconfhoriz(playerx + RIGHTFOOT,
+                  1,
+                  playery + HEAD,
+                  playery + FEET);
+
+    playerx +=
+      deconfhoriz(playerx + LEFTFOOT,
+                  -1,
+                  playery + HEAD,
+                  playery + FEET);
+
+    playery +=
+      deconfvert(playery + FEET, 1,
+                 playerx + LEFTFOOT,
+                 playerx + RIGHTFOOT);
+
+    playery +=
+      deconfvert(playery + HEAD, -1,
+                 playerx + LEFTFOOT,
+                 playerx + RIGHTFOOT);
+  }
+
+  public function deconfhoriz(px, dx, y1, y2) {
+    for (var count = 0; count < BLOCKW / 2; count++) {
+      var xx = px - (count * dx);
+
+      // Once both are clear, stop. (Usually we hit this
+      // on the first iteration.)
+      if (!pixelIsSolid(xx, y1) &&
+          !pixelIsSolid(xx, y2)) {
+        if (count > 0) {
+          // trace('deconf to ' + count + ' * ' + -dx);
+          playerfx = 0;
+        }
+        return count * -dx;
+      }
+    }
+
+    // If we didn't get clear, don't move at all.
+    return 0;
+  }
+
+  public function deconfvert(py, dy, x1, x2) {
+    for (var count = 0; count < BLOCKW / 2; count++) {
+      var yy = py - (count * dy);
+
+      // Once both are clear, stop. (Usually we hit this
+      // on the first iteration.)
+      if (!pixelIsSolid(x1, yy) &&
+          !pixelIsSolid(x1, yy)) {
+        if (count > 0) {
+          // trace('ydeconf to ' + count + ' * ' + -dy);
+          playerfy = 0;
+        }
+        return count * -dy;
+      }
+    }
+
+    // If we didn't get clear, don't move at all.
+    return 0;
   }
 
   public function onEnterFrame() {
@@ -853,6 +926,7 @@ class Game extends MovieClip {
 
     // XXX off by one?
     if (framesinpoint == 0) {
+      framesinpoint = 10 * FPS;
       nextpoint();
     } else {
       framesinpoint--;
@@ -870,6 +944,7 @@ class Game extends MovieClip {
       playerActions();
       checkPickup();
       blockPhysics();
+      deconf();
     }
 
     // must happen after thinkphysics...
@@ -1002,7 +1077,7 @@ class Game extends MovieClip {
   public function pixelIsSolid(px, py) {
     // Wrap around physics...
     px = px % GAMEW;
-    py = (py + 1) % GAMEH;
+    py = py % GAMEH; // (py + 1) % GAMEH;
 
     var tx = Math.floor(px / BLOCKW);
     var ty = Math.floor(py / BLOCKH);
@@ -1012,6 +1087,10 @@ class Game extends MovieClip {
 
     // Pickups are not solid.
     if (b.what >= B0 && b.what <= B9)
+      return false;
+
+    // Don't allow standing on spikes.
+    if (b.what == BSPIKE)
       return false;
 
     // wraps around the screen .. shouldn't be too hard
@@ -1796,13 +1875,66 @@ class Game extends MovieClip {
     }
   }
 
+  public function oneBreatheHole(tx, ty) {
+    var b = grid[ty * TILESW + tx];
+    if (b == null) {
+      return {x: tx, y: ty};
+    } else if (b.dir == HORIZ) {
+      if (b.shrink1 > 0 && b.x == tx) {
+        var txx = (tx - 1 + TILESW) % TILESW;
+        if (grid[ty * TILESW + txx] == null) return {x: txx, y: ty};
+      } else if (b.shrink2 > 0) {
+        var blast = (b.x + b.len - 1 + TILESW) % TILESW;
+        if (blast == tx) {
+          var txx = (tx + 1 + TILESW) % TILESW;
+          if (grid[ty * TILESW + txx] == null) return {x: txx, y: ty};
+        }
+      }
+    } else if (b.dir == VERT) {
+      if (b.shrink1 > 0 && b.y == ty) {
+        var tyy = (ty - 1 + TILESH) % TILESH;
+        if (grid[tyy * TILESW + tx] == null) return {x: tx, y: tyy};
+      } else if (b.shrink2 > 0) {
+        var blast = (b.y + b.len - 1 + TILESH) % TILESH;
+        if (blast == ty) {
+          var tyy = (ty + 1 + TILESH) % TILESH;
+          if (grid[tyy * TILESW + tx] == null) return {x: tx, y: tyy};
+        }
+      }
+    }
+    return null;
+  }
+
+  // Pick a breathing hole that is advantageous to the player.
+  // That way, being momentarily stuck in a shrunk block doesn't
+  // kill you if you have air right next to that.
+  public function getBreatheHole() {
+    // player's head
+
+    var tx, ty;
+    var a = [{x: playerx + LEFTFOOT + 1, y: playery + HEAD},
+             {x: playerx + LEFTFOOT + 1, y: playery + FEET - 1},
+             {x: playerx + RIGHTFOOT - 1, y: playery + HEAD},
+             {x: playerx + RIGHTFOOT - 1, y: playery + FEET - 1}]
+    for (var i = 0; i < a.length; i++) {
+      ty = Math.floor(a[i].y / BLOCKH);
+      ty = (ty + TILESH) % TILESH;
+      tx = Math.floor(a[i].x / BLOCKW);
+      tx = (tx + TILESW) % TILESW;
+      var ob = oneBreatheHole(tx, ty);
+      if (ob) return ob;
+    }
+
+    // Then anything, and we're gonna be toast...
+    return {x: tx, y: ty};
+  }
+
   public function computeAir() {
     air = [];
-    // player's head
-    var ty = Math.floor((playery + CENTER) / BLOCKW);
-    ty = (ty + TILESH) % TILESH;
-    var tx = Math.floor((playerx + CENTER) / BLOCKW);
-    tx = (tx + TILESW) % TILESW;
+
+    var ob = getBreatheHole();
+    var tx = ob.x;
+    var ty = ob.y;
 
     airea = 0;
     var todo = [{x:tx, y:ty}];
@@ -1871,7 +2003,6 @@ class Game extends MovieClip {
       if (f < 0) f = 0;
       if (f > 1) f = 1;
       var pct = Math.round(f * 10);
-      // Can be NaN! XXX
       if (!isNaN(pct)) {
         airfo.setMessage('air: ' + pct + '0%');
         // XXX I think it would look better along the
