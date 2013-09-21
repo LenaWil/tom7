@@ -195,6 +195,7 @@ struct
       (* Any whitespace. *)
       "  fun whitespace #\" \" = true\n" ^
       "    | whitespace #\"\\n\" = true\n" ^
+      "    | whitespace #\"\\r\" = true\n" ^
       "    | whitespace #\"\\t\" = true\n" ^
       "    | whitespace _ = false\n" ^
 
