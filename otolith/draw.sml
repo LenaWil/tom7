@@ -251,6 +251,7 @@ struct
 
   fun scanline_postfilter pixels =
     let
+      (* Offset, in [0, 3] *)
       val ro = ref 0
       val go = ref 0
       val bo = ref 0
@@ -275,21 +276,24 @@ struct
          modify go;
          modify bo;
 
+         (* If we have an offset for any channel, process the scanline *)
          if !ro <> 0 orelse !go <> 0 orelse !bo <> 0
          then
            Util.for 0 (WIDTH - 1)
            (fn x =>
-            let val x = (WIDTH - 1) - x
+            let
+              (* From right to left *)
+              val x = (WIDTH - 1) - x
               fun getpixel p =
                 if p < 0 then 0w0
                 else Array.sub(pixels, y * WIDTH + p)
 
-              val r = Word32.andb(getpixel (x - !ro), 0wxFF0000)
-              val g = Word32.andb(getpixel (x - !go), 0wxFF00)
-              val b = Word32.andb(getpixel (x - !bo), 0wxFF)
+              val r = Word32.andb(getpixel (x - !ro), 0wxFF000000)
+              val g = Word32.andb(getpixel (x - !go), 0wxFF0000)
+              val b = Word32.andb(getpixel (x - !bo), 0wxFF00)
             in
               Array.update(pixels, y * WIDTH + x,
-                           Word32.orb(0wxFF000000,
+                           Word32.orb(0wx000000FF,
                                       Word32.orb(r,
                                                  Word32.orb(g, b))))
             end)

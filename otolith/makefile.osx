@@ -1,0 +1,59 @@
+#                              -*- makefile -*-
+
+# To run on OSX, you unfortunately need to install a driver:
+# http://tattiebogle.net/index.php/ProjectRoot/Xbox360Controller/OsxDriver
+
+default : otolith.exe
+
+VERSION_TARGET=10.2
+FRAMEWORKS=OSX_build/Frameworks
+# -arch ppc won't work with mlton, sorry
+CPPFLAGS = -std=c99 -funsigned-char -arch i386 -I/usr/local/include -I${FRAMEWORKS}/SDL.framework/Versions/Current/Headers -I${FRAMEWORKS}/SDL_net.framework/Versions/Current/Headers -I${FRAMEWORKS}/SDL_mixer.framework/Versions/Current/Headers -I${FRAMEWORKS}/SDL_image.framework/Versions/Current/Headers -D_THREAD_SAFE -DOSX
+LIBS=-L/usr/lib
+# also once was /usr/local/lib on PPC?
+
+tfcompiler.exe : ../sml-lib/textformat/*
+	mlton -output $@ ../sml-lib/textformat/tfcompiler.cm
+
+world-tf.sml : world.tfdesc tfcompiler.exe
+	./tfcompiler.exe world.tfdesc
+
+%.o : ../sdlml/%.c makefile
+	gcc -O $(CPPFLAGS) -c $< -o $@
+
+%.o : %.c
+	gcc -O $(CPPFLAGS) -c $< -o $@
+
+#  -arch ppc linkopt won't work, sorry
+#  -verbose 1
+otolith.exe : blit.o sdlml.o sdlmain.o otolith.cm *.sml ../sdlml/*.sml world-tf.sml
+	export MACOSX_DEPLOYMENT_TARGET=${VERSION_TARGET}
+	mlton -cc-opt "-g -Dmain=SDL_main" -link-opt "-arch i386 -F${FRAMEWORKS} -framework SDL_net -framework SDL_image ${LIBS} -framework SDL -framework OpenGL -framework AGL -framework IOKit -framework Carbon -framework Cocoa -framework SDL_mixer" -default-ann 'allowFFI true' -output $@ otolith.cm blit.o sdlml.o sdlmain.o
+
+
+RELEASEFILES=otolith.exe world.tf *.png
+
+app : otolith.exe
+	rm -rf /tmp/Otolith.app
+	mkdir /tmp/Otolith.app
+	mkdir /tmp/Otolith.app/Contents
+	mkdir /tmp/Otolith.app/Contents/MacOS
+	cp -R OSX_build/* /tmp/Otolith.app/Contents/
+	cp ${RELEASEFILES} /tmp/Otolith.app/Contents/MacOS/
+	mkdir /tmp/Otolith.app/Contents/MacOS/OSX_build
+	mkdir /tmp/Otolith.app/Contents/MacOS/OSX_build/Frameworks
+	rm -f /tmp/Otolith.app/Contents/Frameworks/SDL.framework/Headers/*.h
+	rm -f /tmp/Otolith.app/Contents/Frameworks/SDL_image.framework/Headers/*.h
+	rm -f /tmp/Otolith.app/Contents/Frameworks/SDL_net.framework/Headers/*.h
+# XXX should probably delete whole OSX_Build dir.
+	rm -rf `find /tmp/Otolith.app -name CVS`
+	rm -rf `find /tmp/Otolith.app -name .DS_Store`
+	rm -rf `find /tmp/Otolith.app -name .svn`
+
+desktop : app
+	rm -rf ~/Desktop/Otolith.app.old
+	rm -rf ~/Desktop/Otolith.app
+	cp -R /tmp/Otolith.app ~/Desktop/
+
+clean :
+	rm -f core.* *~ *.exe *.o

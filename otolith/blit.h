@@ -15,8 +15,8 @@
 // TODO: Use good logging package.
 #define CHECK(condition) \
   while (!(condition)) {                                    \
-    printf(stderr, "check failed\n"); \
-    fprintf(stderr, "%s:%d. Check failed: "                 \
+    fprintf(stderr, "check failed\n");                      \
+    fprintf(stderr, "%d. Check failed: %s\n"                \
             __FILE__, __LINE__, #condition                  \
             );                                              \
     abort();                                                \

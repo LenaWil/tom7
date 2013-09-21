@@ -188,6 +188,7 @@ struct
   type field' = string * fielddata'
   fun whitespace #" " = true
     | whitespace #"\n" = true
+    | whitespace #"\r" = true
     | whitespace #"\t" = true
     | whitespace _ = false
   fun readfields (str : S.substring) : field' list * S.substring =
