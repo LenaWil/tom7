@@ -15,6 +15,9 @@ useful and I know them well. They have been released multiple times
 underopen-source licenses; particularly the Apache 2.0 license, which
 is in APACHE20.
 
+Sean Barrett's excellently simple stb_* libraries are in the public
+domain; see the notices at the tops of those files.
+
 Currently, everything else is licensed under the GPL, which can be
 found in COPYING.
 

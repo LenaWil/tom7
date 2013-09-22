@@ -45,6 +45,7 @@ string dtos(double d) {
   return (string)s;
 }
 
+namespace {
 struct linereal : public line {
   int x0, y0, x1, y1;
   int dx, dy;
@@ -52,26 +53,26 @@ struct linereal : public line {
   int frac;
 
   virtual ~linereal() {}
-  
-  linereal(int x0_, int y0_, int x1_, int y1_) : 
+
+  linereal(int x0_, int y0_, int x1_, int y1_) :
     x0(x0_), y0(y0_), x1(x1_), y1(y1_) {
-    
+
 
     dy = y1 - y0;
     dx = x1 - x0;
 
-    if (dy < 0) { 
+    if (dy < 0) {
       dy = -dy;
-      stepy = -1; 
+      stepy = -1;
     } else {
-      stepy = 1; 
+      stepy = 1;
     }
 
     if (dx < 0) {
       dx = -dx;
       stepx = -1;
-    } else { 
-      stepx = 1; 
+    } else {
+      stepx = 1;
     }
 
     dy <<= 1;
@@ -113,7 +114,7 @@ struct linereal : public line {
       }
     }
   }
-  
+
   virtual void destroy() {
     delete this;
   }
@@ -123,6 +124,7 @@ struct linereal : public line {
 line * line::create(int a, int b, int c, int d) {
   return new linereal(a, b, c, d);
 }
+}  // namespace
 
 bool Util::isdir(string f) {
   struct stat st;
@@ -159,7 +161,6 @@ string Util::ReadFile(const string &s) {
   if (s == "") return "";
 
   FILE * f = fopen(s.c_str(), "rb");
-
   if (!f) return "";
   fseek(f, 0, SEEK_END);
   int size = ftell(f);
@@ -234,7 +235,7 @@ static bool hasmagicf(FILE * f, const string & mag) {
       return false;
     }
   }
-  
+
   free(hdr);
   return true;
 }
@@ -244,7 +245,7 @@ bool Util::hasmagic(string s, const string &mag) {
   if (!f) return false;
 
   bool hm = hasmagicf(f, mag);
-  
+
   fclose(f);
   return hm;
 }
@@ -294,11 +295,12 @@ bool Util::WriteFile(const string &fn, const string &s) {
   fwrite(s.c_str(), 1, s.length(), f);
 
   fclose(f);
-  
+
   return true;
 }
 
-bool Util::WriteFileBytes(const string &fn, const vector<unsigned char> &bytes) {
+bool Util::WriteFileBytes(const string &fn,
+			  const vector<unsigned char> &bytes) {
   FILE * f = fopen(fn.c_str(), "wb");
   if (!f) return false;
 
@@ -306,7 +308,7 @@ bool Util::WriteFileBytes(const string &fn, const vector<unsigned char> &bytes) 
   fwrite(&bytes[0], 1, bytes.size(), f);
 
   fclose(f);
-  
+
   return true;
 }
 
@@ -321,7 +323,7 @@ string Util::sizes(int i) {
 
 /* XXX these have terrible names */
 
-/* represent int i (as i mod (2^(b/8))) 
+/* represent int i (as i mod (2^(b/8)))
    using only b bytes */
 string Util::shint(int b, int i) {
   return sizes(i).substr(4-b, b);
@@ -353,7 +355,7 @@ string Util::lcase(string in) {
   for(unsigned int i = 0; i < in.length(); i++) {
     if (in[i] >= 'A' &&
 	in[i] <= 'Z') out += in[i]|32;
-    
+
     else out += in[i];
   }
   return out;
@@ -364,7 +366,7 @@ string Util::ucase(string in) {
   for(unsigned int i = 0; i < in.length(); i++) {
     if (in[i] >= 'a' &&
 	in[i] <= 'z') out += (in[i] & (~ 32));
-    
+
     else out += in[i];
   }
   return out;
@@ -526,8 +528,8 @@ string Util::tempfile(string suffix) {
   char * fname = new char[suffix.length() + 128];
 
   do {
-    sprintf(fname, 
-	    "%d_%d_%d%s", 
+    sprintf(fname,
+	    "%d_%d_%d%s",
 	    tries, getpid(), random(),
 	    suffix.c_str());
     tries++;
@@ -542,7 +544,7 @@ string Util::tempfile(string suffix) {
    a single character (non-numeral) or a sequence of
    numerals that are interpreted as a number. We then
    do lexicographic comparison on this stream of tokens.
-   assumes ascii. 
+   assumes ascii.
 
    l < r     -1
    l = r      0
@@ -553,27 +555,27 @@ string Util::tempfile(string suffix) {
    abc 0123 def
    abc 123 def
 
-   as equal strings. perhaps don't allow 0 to start a 
+   as equal strings. perhaps don't allow 0 to start a
    number?
-   
+
    n.b. it is easy to overflow here, so perhaps comparing
    as we go is better
 */
 int Util::natural_compare(const string & l, const string & r) {
 
   for(int caseless = 0; caseless < 2; caseless ++) {
-    
+
     unsigned int il = 0;
     unsigned int ir = 0;
-    
+
     while(il < l.length() || ir < r.length()) {
       /* if out of tokens in either string, it comes first. */
       if (il >= l.length()) return -1;
       if (ir >= r.length()) return 1;
-      
+
       int lc = (unsigned char)l[il];
       int rc = (unsigned char)r[ir];
-      
+
       if (lc >= '0' && lc <= '9') {
 	if (rc >= '0' && rc <= '9') {
 	  /* compare ints */
@@ -595,7 +597,7 @@ int Util::natural_compare(const string & l, const string & r) {
 	  if (ll < rr) return -1;
 	  if (ll > rr) return 1;
 	  /* otherwise continue... */
-	
+
 	  il ++;
 	  ir ++;
 	} else {
@@ -610,7 +612,7 @@ int Util::natural_compare(const string & l, const string & r) {
 	  if ((rc|32) >= 'a' && (rc|32) <= 'z' &&
 	      (lc|32) >= 'a' && (rc|32) <= 'z' &&
 	      !caseless) {
-	  
+
 	    /* letters are case-insensitive */
 	    if ((lc|32) < (rc|32)) return -1;
 	    if ((lc|32) > (rc|32)) return 1;
@@ -618,14 +620,14 @@ int Util::natural_compare(const string & l, const string & r) {
 	    if (lc < rc) return -1;
 	    if (lc > rc) return 1;
 	  }
-	
+
 	  /* same so far. continue... */
-	
+
 	  il ++;
 	  ir ++;
 	}
       }
-    
+
     }
     /* strings look equal when compared
        as case-insensitive. so try again
@@ -675,7 +677,7 @@ int Util::library_compare(const string & l, const string & r) {
 /* XXX impossible to specify a spec for just ^ */
 bool Util::matchspec(string spec, char c) {
   if (!spec.length()) return false;
-  else if (spec[0] == '^') 
+  else if (spec[0] == '^')
   return !matchspec(spec.substr(1, spec.length() - 1), c);
 
   /* now loop looking for c in string, or ranges */
@@ -702,7 +704,7 @@ bool Util::library_matches(char k, const string & s) {
   /* skip symbolic */
   unsigned int idx = 0;
   while (idx < s.length() && (!isalnum(s[idx]))) idx++;
-  
+
   /* skip 'the' */
   if (s.length() >= (idx + 5) &&
       (s[idx]|32) == 't' &&
@@ -724,7 +726,7 @@ bool Util::remove(string f) {
        rename tmp  delme1234.exe
        exec(delme1234.exe "-replace" "escape.exe")
           (now, the program has to have a flag -replace
-	   that instructs it to replace escape.exe 
+	   that instructs it to replace escape.exe
 	   with itself, then exit)
        .. hopefully exec will unlock the original
        process's executable!! */
@@ -739,7 +741,7 @@ bool Util::remove(string f) {
 # else /* posix */
     if (0 == unlink(f.c_str())) return true;
 # endif
-  } 
+  }
   return false;
 
 }
@@ -903,7 +905,8 @@ void bitbuffer::writebits(int n, unsigned int b) {
     /* allocate more */
     if (bytes_needed > size) {
       int nsize = (size + 1) * 2;
-      unsigned char * tmp = (unsigned char *) malloc(nsize * sizeof (unsigned char));
+      unsigned char * tmp =
+	(unsigned char *) malloc(nsize * sizeof (unsigned char));
       if (!tmp) abort ();
       memset(tmp, 0, nsize);
       memcpy(tmp, data, size);
@@ -932,9 +935,9 @@ bool Util::launchurl(const string & url) {
   /* XXX ??? */
 #if 0
 #ifdef OSX
-  CFURLRef urlcfurl = CFURLCreateWithBytes(kCFAllocatorDefault, 
-					   (const UInt8*)url.c_str(), 
-					   (CFIndex)strlen(urlstring), 
+  CFURLRef urlcfurl = CFURLCreateWithBytes(kCFAllocatorDefault,
+					   (const UInt8*)url.c_str(),
+					   (CFIndex)strlen(urlstring),
 					   kCFStringEncodingASCII, NULL);
   if (urlcfurl) {
       OSStatus status = LSOpenCFURLRef(urlcfurl, NULL);
@@ -946,7 +949,7 @@ bool Util::launchurl(const string & url) {
 #endif
 
 #if WIN32
-  return ((size_t)ShellExecute(NULL, "open", url.c_str(), 
+  return ((size_t)ShellExecute(NULL, "open", url.c_str(),
 			       NULL, NULL, SW_SHOWNORMAL)) > 32;
 #endif
 
@@ -964,7 +967,7 @@ float Util::randfrac() {
    real need for cryptographic randomness.
 
    web sequence numbers are chosen randomly, now, so we
-   actually do. 
+   actually do.
 */
 int Util::random () {
 # if defined(WIN32) || defined(__MINGW32__)
@@ -991,4 +994,3 @@ struct RandomSeed {
 
 RandomSeed randomseed__unused;
 }  // namespace
-
