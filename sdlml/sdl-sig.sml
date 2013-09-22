@@ -1,7 +1,6 @@
 signature SDL =
 sig
 
-
   exception Invalid
   exception SDL of string
   type surface
@@ -250,41 +249,42 @@ sig
 
   structure Joystick :
   sig
-      (* if the joystick is enabled, then events will
-         be returned for it. Otherwise they must be
-         checked manually. *)
-      datatype event_state = ENABLE | IGNORE
-      eqtype hatstate
+    (* if the joystick is enabled, then events will
+       be returned for it. Otherwise they must be
+       checked manually. *)
+    datatype event_state = ENABLE | IGNORE
+    eqtype hatstate
 
-      val number : unit -> int
-      val name : int -> string
+    val number : unit -> int
+    val name : int -> string
 
-      val openjoy : int -> joy
-      val closejoy : joy -> unit
+    val openjoy : int -> joy
+    val closejoy : joy -> unit
 
-      val numaxes : joy -> int
-      val numballs : joy -> int
-      val numhats : joy -> int
-      val numbuttons : joy -> int
+    val numaxes : joy -> int
+    val numballs : joy -> int
+    val numhats : joy -> int
+    val numbuttons : joy -> int
 
-      val setstate : event_state -> unit
+    val setstate : event_state -> unit
 
-      val hat_centered : hatstate -> bool
-      val hat_up : hatstate -> bool
-      val hat_right : hatstate -> bool
-      val hat_left : hatstate -> bool
-      val hat_down : hatstate -> bool
+    val hat_centered : hatstate -> bool
+    val hat_up : hatstate -> bool
+    val hat_right : hatstate -> bool
+    val hat_left : hatstate -> bool
+    val hat_down : hatstate -> bool
 
-      (* For serialization of joystick configuration. *)
-      val hatstatetostring : hatstate -> string
-      val hatstatefromstring : string -> hatstate option
+    (* For serialization of joystick configuration. *)
+    val hatstatetostring : hatstate -> string
+    val hatstatefromstring : string -> hatstate option
   end
 
   datatype event =
       E_Active
     | E_KeyDown of { sym : sdlk }
     | E_KeyUp of { sym : sdlk }
-    | E_MouseMotion of { which : int, state : mousestate, x : int, y : int, xrel : int, yrel : int }
+    | E_MouseMotion of { which : int, state : mousestate,
+                         x : int, y : int, xrel : int, yrel : int }
     | E_MouseDown of { button : int, x : int, y : int }
     | E_MouseUp of { button : int, x : int, y : int }
     | E_JoyAxis of { which : int, axis : int, v : int }
@@ -350,8 +350,8 @@ sig
   val set_cursor : cursor -> unit
   val free_cursor : cursor -> unit
   (* Data and mask are bit vectors, so the width has to be a multiple of 8.
-     See Util.Cursor for a convenient way to draw these in code without manipulating
-     bitmasks. *)
+     See Util.Cursor for a convenient way to draw these in code without
+     manipulating bitmasks. *)
   val create_cursor : { data : Word8.word vector,
                         mask : Word8.word vector,
                         w : int, h : int, hot_x : int, hot_y : int } -> cursor
@@ -396,7 +396,8 @@ sig
   (* x, y, width, height *)
   val fillrect  : surface * int * int * int * int * color -> unit
 
-  (* make a surface with the given width and height. it will be uninitialized. *)
+  (* make a surface with the given width and height.
+     it will be uninitialized. *)
   val makesurface : int * int -> surface
   (* invalidates the surface *)
   val freesurface : surface -> unit
