@@ -60,3 +60,4 @@ There have been several contributors, some unwitting:
   Chris Okasaki and Robert Harper and Frank Pfenning (parser combinators)
   Henry Cejtin and Matthew Fluet and Suresh Jagannathan and Stephen Weeks (layout lib)
   Nathan Crawford (C# PEC embroidery file code)
+  Chris Veness (JS Vincenty inverse solution to LatLon.dist*)
