@@ -165,6 +165,12 @@ static void SaveFuturesHTML(const vector<Future> &futures,
 struct PlayFun {
   PlayFun() : watermark(0), log(NULL), rc("playfun") {
     map<string, string> config = Util::ReadFileToMap("config.txt");
+    if (config.empty()) {
+      fprintf(stderr, "You need a file called config.txt; please "
+	      "take a look at the README.\n");
+      abort();
+    }
+
     game = config["game"];
     const string moviename = config["movie"];
     CHECK(!game.empty());

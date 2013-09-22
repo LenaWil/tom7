@@ -139,6 +139,12 @@ static void MakeObjectives(const string &game,
 
 int main(int argc, char *argv[]) {
   map<string, string> config = Util::ReadFileToMap("config.txt");
+  if (config.empty()) {
+    fprintf(stderr, "You need a file called config.txt; please "
+	    "take a look at the README.\n");
+    abort();
+  }
+
   const string game = config["game"];
   const string moviename = config["movie"];
 
