@@ -379,6 +379,10 @@
     (add-hook 'local-write-file-hooks 'untabify-before-save)
     nil))
 
+;; delete-trailing lines also removes the newline on the last line,
+;; which I don't want
+(setq delete-trailing-lines nil)
+
 (defun save-without-trailing-whitespace ()
   (progn
     (add-hook 'local-write-file-hooks 'delete-trailing-whitespace)
@@ -387,6 +391,13 @@
 ; (setq sml-mode-hook nil)
 (add-hook 'sml-mode-hook 'save-without-tabs)
 (add-hook 'sml-mode-hook 'save-without-trailing-whitespace)
+(add-hook 'sml-mode-hook 'sml-set-tabs)
+
+(defun sml-set-tabs ()
+  "Set up tab preferences for SML."
+  (setq sml-indent-level 2)
+  ;; don't use tab characters to indent
+  (setq indent-tabs-mode nil))
 
 ;; XXX move to aphasia mode
 (add-hook 'aphasia-mode-hook 'turn-on-font-lock)
