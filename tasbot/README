@@ -69,7 +69,8 @@
 
    and make sure you have a file called "zelda.nes" in the current
    directory as well as the FM2 file you made, called
-   "me-playing-zelda.fm2".
+   "me-playing-zelda.fm2". Make sure there's a newline after every
+   line.
 
  - Run ./learnfun.exe to produce an .objectives and .motifs file
    based on your inputs. It also makes some SVGs that are optional.

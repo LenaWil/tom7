@@ -62,11 +62,12 @@ struct Graphic {
 struct ScopeFun {
   ScopeFun(const string &game,
 	   const string &moviename,
-	   int sf, int mf, bool so) : 
+	   int sf, int mf, bool so, bool fo) : 
     controller("controller.png"),
     controllerdown("controllerdown.png"),
     game(game),
-    soundonly(so) {
+    soundonly(so),
+    fatobjectivelines(fo) {
 
     Emulator::Initialize(game + ".nes");
     objectives = WeightedObjectives::LoadFromFile(game + ".objectives");
@@ -181,12 +182,14 @@ struct ScopeFun {
     }
   }
 
+  // XXX This function is used inconsistently; either remove
+  // the alpha param or use it...
   inline void WritePixel(int x, int y,
 			 uint8 r, uint8 g, uint8 b, uint8 a) {
-    CHECK(x >= 0);
-    CHECK(y >= 0);
-    CHECK(x < width);
-    CHECK(y < height);
+    DCHECK(x >= 0);
+    DCHECK(y >= 0);
+    DCHECK(x < width);
+    DCHECK(y < height);
 
     rgba[y * width * 4 + x * 4 + 0] = r;
     rgba[y * width * 4 + x * 4 + 1] = g;
@@ -194,14 +197,27 @@ struct ScopeFun {
     rgba[y * width * 4 + x * 4 + 3] = 0xFF;
   }
 
-  inline void WritePixelTo(int x, int y,
-			   uint8 r, uint8 g, uint8 b, uint8 a,
-			   uint8 *vec,
-			   int ww, int hh) {
-    CHECK(x >= 0);
-    CHECK(y >= 0);
-    CHECK(x < ww);
-    CHECK(y < hh);
+  inline uint32 GetPixel(int x, int y) {
+    DCHECK(x >= 0);
+    DCHECK(y >= 0);
+    DCHECK(x < width);
+    DCHECK(y < height);
+
+    uint32 r = rgba[y * width * 4 + x * 4 + 0];
+    uint32 g = rgba[y * width * 4 + x * 4 + 1];
+    uint32 b = rgba[y * width * 4 + x * 4 + 2];
+    uint32 a = rgba[y * width * 4 + x * 4 + 3];
+    return (r << 24) | (g << 16) | (b << 8) | a;
+  }
+
+  static inline void WritePixelTo(int x, int y,
+				  uint8 r, uint8 g, uint8 b,
+				  uint8 *vec,
+				  int ww, int hh) {
+    DCHECK(x >= 0);
+    DCHECK(y >= 0);
+    DCHECK(x < ww);
+    DCHECK(y < hh);
     
     vec[y * ww * 4 + x * 4 + 0] = r;
     vec[y * ww * 4 + x * 4 + 1] = g;
@@ -209,23 +225,59 @@ struct ScopeFun {
     vec[y * ww * 4 + x * 4 + 3] = 0xFF;
   }
 
+  // Blends alpha, assuming dest alpha is 0xFF.
+  static inline void WritePixelAlphaTo(int x, int y,
+				       uint8 r, uint8 g, uint8 b, uint8 a,
+				       uint8 *vec,
+				       int ww, int hh) {
+    DCHECK(x >= 0);
+    DCHECK(y >= 0);
+    DCHECK(x < ww);
+    DCHECK(y < hh);
+
+    uint32 oldr = vec[y * ww * 4 + x * 4 + 0];
+    uint32 oldg = vec[y * ww * 4 + x * 4 + 1];
+    uint32 oldb = vec[y * ww * 4 + x * 4 + 2];
+    uint32 oma = 0xFF - a;
+
+    // Each value was multiplied by 256 (max alpha),
+    // so divide to put in range again. Since we are
+    // blending with (1-a) and all integer, there's 
+    // no possibility of overflow.
+    uint32 mixr = ((uint32)r * a + oldr * oma) >> 8;
+    uint32 mixg = ((uint32)g * a + oldg * oma) >> 8;
+    uint32 mixb = ((uint32)b * a + oldb * oma) >> 8;
+    CHECK(mixr >= 0);
+    CHECK(mixg >= 0);
+    CHECK(mixb >= 0);
+    CHECK(mixr <= 255);
+    CHECK(mixg <= 255);
+    CHECK(mixb <= 255);
+
+    vec[y * ww * 4 + x * 4 + 0] = mixr;
+    vec[y * ww * 4 + x * 4 + 1] = mixg;
+    vec[y * ww * 4 + x * 4 + 2] = mixb;
+    vec[y * ww * 4 + x * 4 + 3] = 0xFF;
+  }
+
   void BlitGraphicRect(const Graphic &graphic,
 		       int rectx, int recty,
 		       int rectw, int recth,
 		       int dstx, int dsty) {
-    Blit(graphic.width, graphic.height, rectx, recty,
-	 rectw, recth, dstx, dsty,
-	 graphic.rgba);
+    BlitAlpha(graphic.width, graphic.height, rectx, recty,
+	      rectw, recth, dstx, dsty,
+	      graphic.rgba);
   }
 
   void BlitGraphic(const Graphic &graphic,
 		   int dstx, int dsty) {
-    Blit(graphic.width, graphic.height, 0, 0,
-	 graphic.width, graphic.height, dstx, dsty,
-	 graphic.rgba);
+    BlitAlpha(graphic.width, graphic.height, 0, 0,
+	      graphic.width, graphic.height, dstx, dsty,
+	      graphic.rgba);
   }
 
   // Blit(256, 256, 0, 0, 256, 200, 0, 50, screens[i]);
+  // Copies alpha component from src.
   void Blit(int srcwidth, int srcheight,
 	    int rectx, int recty,
 	    int rectw, int recth,
@@ -233,7 +285,6 @@ struct ScopeFun {
 	    const vector<uint8> &srcrgba) {
     for (int y = 0; y < recth; y++) {
       for (int x = 0; x < rectw; x++) {
-	// XXX blend alpha!
 	uint8 r, g, b, a;
 	
 	r = srcrgba[(y + recty) * srcwidth * 4 + (x + rectx) * 4 + 0];
@@ -244,6 +295,44 @@ struct ScopeFun {
 	// if ((x & 1) != (y & 1)) r ^= 0xFF;
 
 	WritePixel(dstx + x, dsty + y, r, g, b, a);
+      }
+    }
+  }
+
+  // Blends using source alpha, assuming dst alpha is 1.
+  void BlitAlpha(int srcwidth, int srcheight,
+		 int rectx, int recty,
+		 int rectw, int recth,
+		 int dstx, int dsty,
+		 const vector<uint8> &srcrgba) {
+    for (int y = 0; y < recth; y++) {
+      for (int x = 0; x < rectw; x++) {
+	uint32 r, g, b, a;
+
+	r = srcrgba[(y + recty) * srcwidth * 4 + (x + rectx) * 4 + 0];
+	g = srcrgba[(y + recty) * srcwidth * 4 + (x + rectx) * 4 + 1];
+	b = srcrgba[(y + recty) * srcwidth * 4 + (x + rectx) * 4 + 2];
+	a = srcrgba[(y + recty) * srcwidth * 4 + (x + rectx) * 4 + 3];
+
+	if (a != 0xFF) {
+	  uint32 old = GetPixel(dstx + x, dsty + y);
+	  uint32 oldr = 0xFF & (old >> 24);
+	  uint32 oldg = 0xFF & (old >> 16);
+	  uint32 oldb = 0xFF & (old >>  8);
+	  uint32 oma = 0xFF - a;
+	  
+	  // Each value was multiplied by 256 (max alpha),
+	  // so divide to put in range again. Since we are
+	  // blending with (1-a) and all integer, there's 
+	  // no possibility of overflow.
+	  uint32 mixr = (r * a + oldr * oma) >> 8;
+	  uint32 mixg = (g * a + oldg * oma) >> 8;
+	  uint32 mixb = (b * a + oldb * oma) >> 8;
+
+	  WritePixel(dstx + x, dsty + y, mixr, mixg, mixb, 0xFF);
+	} else {
+	  WritePixel(dstx + x, dsty + y, r, g, b, 0xFF);
+	}
       }
     }
   }
@@ -374,10 +463,49 @@ struct ScopeFun {
 	uint8 r = 255 & (color >> 24);
 	uint8 g = 255 & (color >> 16);
 	uint8 b = 255 & (color >> 8);
-	uint8 a = 255 & (color >> 0);
-	// consider anti-aliasing
-	double yoff = height * (1.0 - vfs[i]);
-	WritePixelTo(x + col, y + floor(yoff), r, g, b, a, surf, surfw, surfh);
+
+	if (fatobjectivelines) {
+	  double omv = 1.0 - vfs[i];
+	  double point = height * omv;
+	  // Number of pixels between edge pixels.
+	  // Nominal width is NP + 1.
+	  static const int NP = 3;
+	  int start = floor(point);
+	  double leftover = point - start;
+	  CHECK(leftover >= 0.0);
+	  CHECK(leftover <= 1.0);
+	  uint8 endalpha = leftover * 255;
+	  uint8 startalpha = 255 - endalpha;
+	  CHECK(((uint32)endalpha + (uint32)startalpha) == 255);
+
+	  #if 0
+	  printf("col %d  point %f  start %d   alpha %d - %d\n",
+		 col,
+		 point, start, startalpha, endalpha);
+	  #endif
+
+	  // Always draw faint startpixel, but after
+	  // that we may need to clip.
+	  WritePixelAlphaTo(x + col, y + start,
+			    r, g, b, startalpha,
+			    surf, surfw, surfh);
+	  for (int p = 1; p <= NP; p++) {
+	    if (start + p >= height) break;
+	    WritePixelTo(x + col, y + start + p,
+			 r, g, b,
+			 surf, surfw, surfh);
+	  }
+	  if (start + NP + 1 < height) {
+	    WritePixelAlphaTo(x + col, y + start + NP + 1,
+			      r, g, b, endalpha,
+			      surf, surfw, surfh);
+	  }
+
+	} else {
+	  double yoff = height * (1.0 - vfs[i]);
+	  WritePixelTo(x + col, y + floor(yoff), 
+		       r, g, b, surf, surfw, surfh);
+	}
       }
     }
   }
@@ -541,17 +669,21 @@ struct ScopeFun {
 
     if (soundonly) return;
 
+    uint64 starttime = time(NULL);
+
     vector<Score> comp_one, comp_ten, comp_hundred;
     for (int i = STARTFRAMES; i < movie.size() && i < MAXFRAMES; i++) {
       ClearBuffer();
 
       // Blit(256, 256, 0, 0, 128, 64, 0, 128, screens[i]);
-      // XXX Note, the real height of the video is less than 256.
-      // Might want to crop.
-      Blit(256, 256, 0, 0, 256, 256, 0, 0, screens[i]);
+      // n.b. real height of output video is only 240 pixels.
+      // After that isn't even interesting overscan, just a
+      // constant pattern.
+      static const int NESHEIGHT = 240;
+      Blit(256, 256, 0, 0, 256, NESHEIGHT, 0, 0, screens[i]);
 
       // Controller.
-      DrawController(16, height - (controller.height + 1), movie[i]);
+      DrawController(16, height - (controller.height + 9), movie[i]);
 
       // Previous frame.
       {
@@ -596,14 +728,19 @@ struct ScopeFun {
       WriteNormalizedTo(257 * 4, 99 * 4, memories, colors, i, 222 * 4, 156 * 4,
 			width * 4, height * 4, rgba4x);
 
+     
       const string filename = StringPrintf("%s/%s-%d.png",
 					   dir.c_str(), game.c_str(), i);
 
       Save4x(filename);
       int totalframes = min((int)movie.size(), MAXFRAMES) - STARTFRAMES;
-      fprintf(stderr, "Wrote %s (%.1f%%).\n",
+      double seconds_elapsed = time(NULL) - starttime;
+      double fps = (i - STARTFRAMES) / seconds_elapsed;
+      double seconds_left = (totalframes - i) / fps;
+      fprintf(stderr, "Wrote %s (%.1f%% / %.1fm left).\n",
 	      filename.c_str(),
-	      (100.0 * (i - STARTFRAMES)) / totalframes);
+	      (100.0 * (i - STARTFRAMES)) / totalframes,
+	      seconds_left / 60.0);
     }
 
     fprintf(stderr, "Done.\n");
@@ -611,7 +748,6 @@ struct ScopeFun {
 
   int startframe, maxframe;
 
-  // Was 220x240.
   // 1/4 HD = 480x270
   static const int width = 480;
   static const int height = 270;
@@ -624,6 +760,7 @@ struct ScopeFun {
   string game;
   vector<uint8> movie;
   const bool soundonly;
+  const bool fatobjectivelines;
 };
 
 /**
@@ -659,8 +796,10 @@ int main(int argc, char *argv[]) {
   int startframe = atoi(config["startframe"].c_str());
   int maxframe = atoi(config["maxframe"].c_str());
   bool soundonly = !config["soundonly"].empty();
+  bool fatobjectivelines = !config["fatobjectivelines"].empty();
 
-  ScopeFun pf(game, moviename, startframe, maxframe, soundonly);
+  ScopeFun pf(game, moviename, startframe, maxframe, soundonly,
+	      fatobjectivelines);
   string dir = game + "-movie";
   Util::makedir(dir);
   pf.SaveAV(dir);

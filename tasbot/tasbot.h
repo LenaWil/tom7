@@ -17,6 +17,8 @@
 
 #define TASBOT_SAMPLE_RATE 44100
 
+#define DEBUGGING 0
+
 #ifdef __GNUC__
 namespace std {
 using namespace __gnu_cxx;
@@ -37,6 +39,14 @@ struct hash< unsigned long long > {
 #define CHECK(condition) \
   while (!(condition)) {                                    \
     fprintf(stderr, "%s:%d. Check failed: %s\n",            \
+            __FILE__, __LINE__, #condition                  \
+            );                                              \
+    abort();                                                \
+  }
+
+#define DCHECK(condition) \
+  while (DEBUGGING && !(condition)) {                       \
+    fprintf(stderr, "%s:%d. DCheck failed: %s\n",           \
             __FILE__, __LINE__, #condition                  \
             );                                              \
     abort();                                                \

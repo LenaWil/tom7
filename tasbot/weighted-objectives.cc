@@ -57,18 +57,20 @@ WeightedObjectives::LoadFromFile(const string &filename) {
   WeightedObjectives *wo = new WeightedObjectives;
   vector<string> lines = Util::ReadFileToLines(filename);
   for (int i = 0; i < lines.size(); i++) {
-    stringstream ss(lines[i], stringstream::in);
-    double d;
-    ss >> d;
-    vector<int> locs;
-    while (!ss.eof()) {
-      int i;
-      ss >> i;
-      locs.push_back(i);
+    string line = lines[i];
+    Util::losewhitel(line);
+    if (!line.empty() && !Util::startswith(line, "#")) {
+      stringstream ss(line, stringstream::in);
+      double d;
+      ss >> d;
+      vector<int> locs;
+      while (!ss.eof()) {
+	int i;
+	ss >> i;
+	locs.push_back(i);
+      }
+      wo->weighted.insert(make_pair(locs, new Info(d)));
     }
-
-    // printf("GOT: %f | %s\n", d, ObjectiveToString(locs).c_str());
-    wo->weighted.insert(make_pair(locs, new Info(d)));
   }
 
   return wo;
