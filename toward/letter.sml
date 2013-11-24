@@ -67,6 +67,7 @@ struct
           [SOME x, SOME y] => vec2 (x, y)
         | _ => raise Letter ("bad vector: " ^ s)
 
+  (* XXX get rid of this poo and use sml-lib/textformat. *)
   val (letter_ulist, letter_unlist) =
       Serialize.list_serializerex non_cr "\n" #"$"
 
