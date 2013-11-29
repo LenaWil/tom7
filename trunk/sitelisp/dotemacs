@@ -292,6 +292,7 @@
 (autoload 'aphasia-mode "aphasia" "Major mode for editing aphasia source code." t)
 (autoload 'sml-mode "sml-mode" "Major mode for editing ML programs." t)
 (autoload 'aaph-mode "aaph" "Major mode for editing aphasia 2 source." t)
+(autoload 'glsl-mode "glsl-mode" nil t)
 (require 'protobuf-mode)
 
 (setq auto-mode-alist
@@ -299,6 +300,8 @@
 		("\\.db$" . aphasia-mode)
 		("\\.ah$" . aphasia-mode)
 		("\\.as$" . c-mode) ;; close enough...
+		("\\.fsh$" . glsl-mode)
+		("\\.vsh$" . glsl-mode)
 		("\\.sml$" . sml-mode)
 		("\\.sig$" . sml-mode)
                 ("\\.fun$" . sml-mode)
