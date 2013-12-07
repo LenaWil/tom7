@@ -310,6 +310,35 @@ struct PinViz {
     return (uint8) b;
   }
 
+  struct RGBL {
+    RGBL(double r, double g, double b) : r(r), g(g), b(b) {
+      // Fake luminance. Maybe could just use sum?
+      lum = max(r, max(g, b));
+    }
+    double r;
+    double g;
+    double b;
+    double lum;
+  };
+
+  static bool CompareRGBL(const RGBL &a, const RGBL &b) {
+    return a.lum < b.lum;
+  }
+
+  static bool RGBLEq(const RGBL &a, const RGBL &b) {
+    return a.lum == b.lum;
+  }
+
+  static int GetIndex(const vector<RGBL> &vec, RGBL rgbl) {
+    return std::distance(vec.begin(),
+			 std::lower_bound(vec.begin(), vec.end(), rgbl,
+					  CompareRGBL));
+  }
+
+  static double GetFrac(const vector<RGBL> &vec, RGBL rgbl) {
+    return GetIndex(vec, rgbl) / (double)vec.size();
+  }
+
   void MapAndWrite(const string &filename, 
 		   const vector<double> &mixed,
 		   int num) {
@@ -317,11 +346,14 @@ struct PinViz {
     CHECK(width * height * 3 == mixed.size());
 
     double darkest = 1.0, lightest = 0.0;
+    vector<RGBL> all_colors;
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
 	double r = mixed[(y * width + x) * 3 + 0];
 	double g = mixed[(y * width + x) * 3 + 1];
 	double b = mixed[(y * width + x) * 3 + 2];
+
+	all_colors.push_back(RGBL(r, g, b));
 
 	bool black = (r < (1 / 256.0)) &&
 	  (g < (1 / 256.0)) &&
@@ -336,6 +368,9 @@ struct PinViz {
 	}
       }
     }
+    
+    std::sort(all_colors.begin(), all_colors.end(), &CompareRGBL);
+    std::unique(all_colors.begin(), all_colors.end(), &RGBLEq);
 
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
@@ -352,9 +387,28 @@ struct PinViz {
 	if (black) {
 	  rr = gg = bb = 0;
 	} else {
+	  double ord = GetFrac(all_colors, RGBL(r, g, b));
+	  // color vector length
+	  double len = sqrt(r * r + g * g + b * b);
+	  // Normalize
+	  double norm_r = r / len;
+	  double norm_g = g / len;
+	  double norm_b = b / len;
+	  // Scale by rank in all colors seen
+	  double scale_r = norm_r * ord;
+	  double scale_g = norm_g * ord;
+	  double scale_b = norm_b * ord;
+
+	  // Now put in 8-bit gamut
+	  rr = scale_r * 255.0;
+	  gg = scale_g * 255.0;
+	  bb = scale_b * 255.0;
+
+	  /*
 	  rr = MapFrac(r, num, darkest, lightest);
 	  gg = MapFrac(g, num, darkest, lightest);
 	  bb = MapFrac(b, num, darkest, lightest);
+	  */
 	}
 	/*
 	uint8 rr = (r / num) * 255.0;
