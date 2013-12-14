@@ -1,4 +1,21 @@
 
+// New unattached canvas.
+function NewCanvas(w, h) {
+  var c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  return c;
+}
+
+// Not cheap! Has to draw it to a canvas...
+function Buf32FromImage(img) {
+  var c = NewCanvas(img.width, img.height);
+  var cc = c.getContext('2d');
+  cc.drawImage(img, 0, 0);
+
+  return new Uint32Array(cc.getImageData(0, 0, img.width, img.height).data.buffer);
+}
+
 // Loads all the images in the list, creating a hash from
 // filename to the loaded Image object.
 var Images = function(l, k) {
