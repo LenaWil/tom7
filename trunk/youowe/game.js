@@ -8,7 +8,7 @@ var frames = 0;
 var PHASE_TITLE = 0, PHASE_PLAYING = 1;
 var phase = PHASE_TITLE;
 
-var mex = 0, mey = 0;
+var scrollx = 0;
 
 var images = new Images(
   ['eye.png', // XXX
@@ -149,7 +149,9 @@ function EzFrames(l) {
 }
 
 // Returns a canvas of the same size with the pixels flipped horizontally
-function FlipHoriz(img) {
+function EzFlipHoriz(img) {
+  if (typeof img == 'string') img = images.Get(img + '.png');
+
   var i32 = Buf32FromImage(img);
   var c = NewCanvas(img.width, img.height);
   var ctx = c.getContext('2d');
@@ -172,18 +174,51 @@ function FlipHoriz(img) {
   return c;
 }
 
-function EzFlip(f) {
-  if (typeof f == 'string') f = images.Get(f + '.png');
-  return FlipHoriz(f);
+function EzColor(img, shirt, pants) {
+  if (typeof img == 'string') img = images.Get(img + '.png');
+
+  var i32 = Buf32FromImage(img);
+  var c = NewCanvas(img.width, img.height);
+  var ctx = c.getContext('2d');
+  var id = ctx.createImageData(img.width, img.height);
+  var buf = new ArrayBuffer(id.data.length);
+  // Make two aliases of the data, the second allowing us
+  // to write 32-bit pixels.
+  var buf8 = new Uint8ClampedArray(buf);
+  var buf32 = new Uint32Array(buf);
+
+  for (var y = 0; y < img.height; y++) {
+    for (var x = 0; x < img.width; x++) {
+      var p = i32[y * img.width + x];
+      if (p == 0xFFFF00EA) {
+	p = shirt;
+      } else if (p == 0xFFF0FF00) {
+	p = pants;
+      }
+      buf32[y * img.width + x] = p;
+    }
+  }
+  
+  id.data.set(buf8);
+  ctx.putImageData(id, 0, 0);
+  return c;
 }
 
 function PersonGraphics(shirt, pants) {
+  var walk1 = EzColor('walk1', shirt, pants);
+  var walk2 = EzColor('walk2', shirt, pants);
+  var walk3 = EzColor('walk3', shirt, pants);
+  var blink = EzColor('blink', shirt, pants);
+
   return {
-    run_right: EzFrames(['walk1', 3, 'walk2', 2, 'walk3', 3,
-			 'walk2', 2]),
-    right: EzFrames(['walk2', 4 * 30, 'blink', 2]),
-    left: EzFrames([EzFlip('walk2'), 4 * 30, 
-		    EzFlip('blink'), 2])
+    run_right: EzFrames([walk1, 3, walk2, 2, walk3, 3, walk2, 2]),
+    run_left: EzFrames([EzFlipHoriz(walk1), 3, 
+			EzFlipHoriz(walk2), 2, 
+			EzFlipHoriz(walk3), 3, 
+			EzFlipHoriz(walk2), 2]),
+    right: EzFrames([walk2, 4 * 30, blink, 2]),
+    left: EzFrames([EzFlipHoriz(walk2), 4 * 30, 
+		    EzFlipHoriz(blink), 2])
   };
 }
 
@@ -192,16 +227,17 @@ function Init() {
     classroom: new Room(Static('classroom.png'))
   };
 
-  // XXX need to face left, right, recolor
-  window.me_gfx = PersonGraphics(0xFFFFFFFF, 0xFFEC7000);
-
+  window.me = new Human(PersonGraphics(0xFF7FFFFF, 0xFFEC7000));
 }
 
 // Sets up the context 
 function WarpTo(roomname, x, y) {
   currentroom = roomname;
-  mex = x;
-  mey = y;
+  me.x = x;
+  me.y = y;
+  // Keep velocity?
+  me.dx = 0;
+  me.dy = 0;
 }
 
 function TitleStep(time) {
@@ -214,12 +250,96 @@ function TitleStep(time) {
 
 // XXX crop rectangle version?
 function DrawFrame(frame, x, y) {
-  ctx.drawImage(frame.GetFrame(), x, y);
+  ctx.drawImage(frame.GetFrame(), Math.round(x), Math.round(y));
+}
+
+function Human(gfx) {
+  this.gfx = gfx;
+  this.x = WIDTH / 2;
+  this.y = GAMEHEIGHT / 2;
+  this.dx = 0;
+  this.dy = 0;
+  this.facingright = true;
+
+  this.Draw = function(scrollx) {
+    var fr = this.gfx.right;
+
+    var isrun = Math.abs(this.dx) > 1 || Math.abs(this.dy) > 0.25;
+
+    // Turn the player around.
+    // XXX Also should happen when standing still and first
+    // tapping, right? Maybe useful to be able to back up.
+    if (isrun) {
+      // Maybe shouldn't be updating this state in drawing...
+      if (this.dx > 1) {
+	this.facingright = true;
+      } else if (this.dx < -1) {
+	this.facingright = false;
+      }
+    }
+
+    // XXX jumping, punching, & so on
+    if (this.facingright) {
+      fr = isrun ? this.gfx.run_right : this.gfx.right;
+    } else {
+      fr = isrun ? this.gfx.run_left : this.gfx.left;
+    }
+
+    DrawFrame(fr, this.x - scrollx, this.y + TOP - fr.height);
+  };
+
+  // XXX objects should also have physics, using same methods
+  this.UpdatePhysics = function() {
+    // Player physics.
+    if (this.holdingRight) {
+      this.dx += ACCEL_X;
+    } else if (this.holdingLeft) {
+      this.dx -= ACCEL_X;
+    } else {
+      this.dx *= 0.8;
+      if (Math.abs(this.dx) < 0.01) this.dx = 0;
+    }
+
+    if (this.holdingDown) {
+      this.dy += ACCEL_Y;
+    } else if (holdingUp) {
+      this.dy -= ACCEL_Y;
+    } else {
+      this.dy *= 0.6;
+      if (Math.abs(this.dy) < 0.01) this.dy = 0;
+    }
+
+    if (this.dx > TERMINAL_X) this.dx = TERMINAL_X;
+    else if (this.dx < -TERMINAL_X) this.dx = -TERMINAL_X;
+
+    if (this.dy > TERMINAL_Y) this.dy = TERMINAL_Y;
+    else if (this.dy < -TERMINAL_Y) this.dy = -TERMINAL_Y;
+
+    // XXX collisions.
+
+    this.x += this.dx;
+    this.y += this.dy;
+  };
 }
 
 function PlayingStep(time) {
-  // XXX Compute scrollx...
-  scrollx = 0;
+  // Get 
+  if (me.x < scrollx + 75) scrollx = me.x - 75;
+  else if (me.x > scrollx + WIDTH - 125)
+    scrollx = me.x - WIDTH + 125;
+
+  // Snap scrollx to background extent
+  // XXX if room width is smaller than screen, center.
+  if (scrollx + WIDTH > rooms[currentroom].width)
+    scrollx = rooms[currentroom].width - WIDTH;
+  if (scrollx < 0) scrollx = 0;
+
+  me.holdingRight = holdingRight;
+  me.holdingLeft = holdingLeft;
+  me.holdingUp = holdingUp;
+  me.holdingDown = holdingDown;
+
+  me.UpdatePhysics();
 
   // Redraw everything every frame (!)
   ctx.fillStyle = "#000";
@@ -230,7 +350,7 @@ function PlayingStep(time) {
   // XXX Draw me (x, y + TOP)
 
   // DrawFrame(me_gfx.run_right, mex - scrollx, mey + TOP - run_right.height);
-  DrawFrame(me_gfx.left, mex - scrollx, mey + TOP - ME_HEIGHT);
+  me.Draw(scrollx);
 }
 
 last = 0;
