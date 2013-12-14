@@ -272,6 +272,8 @@ function WarpTo(roomname, x, y) {
   me.dx = 0;
   me.dy = 0;
 
+  // Room needs to define a spawn spot or something.
+  gang = new Gang(4, 0xFF123456, 0xFF987654);
 }
 
 function TitleStep(time) {
@@ -304,6 +306,10 @@ function Human(gfx) {
 
   // frame counter.
   this.fc = 0;
+
+  this.Depth = function() {
+    return this.y;
+  }
 
   this.Draw = function(scrollx) {
     var fr = this.gfx.right;
@@ -362,10 +368,13 @@ function Human(gfx) {
   this.UpdatePhysics = function() {
     var onground = this.z == 0;
 
+    // Kicking makes you stop.
+    var canrun = this.kicking == 0 || !onground;
+
     // Player physics.
-    if (this.holdingRight) {
+    if (canrun && this.holdingRight) {
       this.dx += onground ? ACCEL_X : AIR_ACCEL_X;
-    } else if (this.holdingLeft) {
+    } else if (canrun && this.holdingLeft) {
       this.dx -= onground ? ACCEL_X : AIR_ACCEL_X;
     } else {
       if (onground) this.dx *= 0.8;
@@ -383,9 +392,9 @@ function Human(gfx) {
     }
 
     if (onground) {
-      if (holdingSpace) {
+      if (this.holdingSpace) {
 	// XXX this won't work, it's an alias.
-	holdingSpace = false;
+	// this.holdingSpace = false;
 	this.dz += JUMP_IMPULSE;
       }
     } else {
@@ -456,6 +465,109 @@ function Human(gfx) {
   };
 }
 
+// TODO: fighting style, and so on.
+function Gang(n, shirt, pants) {
+  var NATTACKERS = 2;
+
+  // Or get stuff, etc.
+  var S_ATTACK = 0, S_CONFRONT = 1; // , S_AVOID = 2;
+
+  this.humans = [];
+  var gfx = PersonGraphics(shirt, pants);
+  for (var i = 0; i < n; i++) {
+    var h = new Human(gfx);
+    h.strategy = S_CONFRONT;
+    this.humans.push(h);
+  }
+  
+  this.AddObjects = function(l) {
+    for (var i = 0; i < this.humans.length; i++) {
+      l.push(this.humans[i]);
+    }
+  };
+  
+  this.UpdateStrategies = function() {
+    // Are enough people attacking?
+    var na = 0;
+    for (var i = 0; i < this.humans.length; i++) {
+      if (this.humans[i].strategy == S_ATTACK) {
+	na++;
+      }
+    }
+
+    if (na < NATTACKERS) {
+      // Someone becomes an attacker (possibly someone
+      // who already was..)
+      var i = Math.round(Math.random() * (this.humans.length - 1));
+      console.log(na + ' so making #' + i + ' an attacker');
+      this.humans[i].strategy = S_ATTACK;
+    }
+
+    for (var i = 0; i < this.humans.length; i++) {
+      var human = this.humans[i];
+      // Figure out our destination.
+      var destx = 0, desty = 0;
+      switch (human.strategy) {
+	case S_ATTACK:
+	destx = me.x;
+	desty = me.y;
+	break;
+	case S_CONFRONT:
+	if (!human.confront_vec) {
+	  // Pick a random normalized vector.
+	  // (It doesn't matter, but maybe this is not uniform)
+	  var xx = Math.random() - 0.5, yy = Math.random() - 0.5;
+	  var d = Math.sqrt(xx * xx + yy * yy);
+	  xx /= d; yy /= d;
+	  human.confront_vec = {x: xx, y: yy};
+	}
+	
+	// XXX: This should change based on how the fight is going,
+	// I think.
+	var confront_dist_x = 100;
+	var confront_dist_y = 24;
+	var cv = human.confront_vec;
+	destx = Math.round(me.x + cv.x * confront_dist_x);
+	desty = Math.round(me.x + cv.y * confront_dist_y);
+
+	break;
+      }
+      
+      // XXX snap destx, desty to be within level?
+      // physics will do this for us, but it's maybe
+      // just smarter AI to only try to get to sensible
+      // places?
+
+      human.holdingRight = (human.x < destx);
+      human.holdingLeft = (human.x > destx);
+
+      human.holdingDown = (human.y < desty);
+      human.holdingUp = (human.y > desty);
+
+      // When to jump?
+      human.holdingSpace = (Math.random() < 0.025);
+
+      // XXX update fighting strategy here?
+    }
+  };
+
+  this.UpdateFighting = function() {
+    for (var i = 0; i < this.humans.length; i++) {
+      // XXX based on strategy. Don't be so crazy active
+      // when confronting
+      this.humans[i].UpdateFighting(Math.random() < 0.05,
+				    Math.random() < 0.05);
+    }
+  };
+
+  this.UpdatePhysics = function() {
+    for (var i = 0; i < this.humans.length; i++) {
+      // not the best strategy
+      this.humans[i].UpdatePhysics();
+    }
+  };
+}
+
 function PlayingStep(time) {
   // XXX once we start scrolling, scroll ahead of
   // where the player's going
@@ -479,6 +591,12 @@ function PlayingStep(time) {
 
   me.UpdatePhysics();
 
+  if (gang) {
+    gang.UpdateStrategies();
+    gang.UpdateFighting();
+    gang.UpdatePhysics();
+  }
+
   // Redraw everything every frame (!)
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -487,8 +605,17 @@ function PlayingStep(time) {
 
   // XXX Draw me (x, y + TOP)
 
+  var objects = [];
+  if (gang) gang.AddObjects(objects);
+  objects.push(me);
+
+  objects.sort(function (a, b) { return b.Depth () < a.Depth(); });
+  for (var i = 0; i < objects.length; i++) {
+    objects[i].Draw(scrollx);
+  }
+
   // DrawFrame(me_gfx.run_right, mex - scrollx, mey + TOP - run_right.height);
-  me.Draw(scrollx);
+  // me.Draw(scrollx);
 
   // debug.innerHTML = font.chars[42];
   font.Draw(ctx, 10, TOP + GAMEHEIGHT,
@@ -498,16 +625,17 @@ function PlayingStep(time) {
 
 last = 0;
 function Step(time) {
-  // XXX here, throttle to 30 fps or something we
+  // Throttle to 30 fps or something we
   // should be able to hit on most platforms.
-  
   // Word has it that 'time' may not be supported on Safari, so
   // compute our own.
   var now = (new Date()).getTime();
   var diff = now - last;
   // debug.innerHTML = diff;
   // Don't do more than 30fps.
-  if (diff < (33.34)) {
+  // XXX This results in a frame rate of 21 on RIVERCITY, though
+  // I can easil get 60, so what gives?
+  if (diff < MINFRAMEMS) {
     skipped++;
     window.requestAnimationFrame(Step);
     return;
@@ -522,22 +650,6 @@ function Step(time) {
     TitleStep();
   } else if (phase == PHASE_PLAYING) {
     PlayingStep();
-    
-
-    /*
-    // Put pixels
-    id.data.set(buf8);
-    ctx.putImageData(id, 0, 0);
-    */
-    /*
-    for (var i = 0; i < 1000; i++) {
-      var x = 0 | ((f * i) % WIDTH);
-      var y = 0 | ((f * 31337 + i) % HEIGHT);
-      ctx.drawImage(eye, x - 16, y - 16);
-    }
-    */
-    
-    // ...
   }
 
   // XXX process music
