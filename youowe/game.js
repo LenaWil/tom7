@@ -15,6 +15,7 @@ var images = new Images(
    'walk1.png',
    'walk2.png',
    'walk3.png',
+   'jump.png',
    'blink.png',
    'title.png',
    'classroom.png']);
@@ -209,6 +210,7 @@ function PersonGraphics(shirt, pants) {
   var walk2 = EzColor('walk2', shirt, pants);
   var walk3 = EzColor('walk3', shirt, pants);
   var blink = EzColor('blink', shirt, pants);
+  var jump = EzColor('jump', shirt, pants);
 
   return {
     run_right: EzFrames([walk1, 3, walk2, 2, walk3, 3, walk2, 2]),
@@ -218,7 +220,9 @@ function PersonGraphics(shirt, pants) {
 			EzFlipHoriz(walk2), 2]),
     right: EzFrames([walk2, 4 * 30, blink, 2]),
     left: EzFrames([EzFlipHoriz(walk2), 4 * 30, 
-		    EzFlipHoriz(blink), 2])
+		    EzFlipHoriz(blink), 2]),
+    jump_right: EzFrames([jump, 1]),
+    jump_left: EzFrames([EzFlipHoriz(jump), 1]),
   };
 }
 
@@ -257,19 +261,24 @@ function Human(gfx) {
   this.gfx = gfx;
   this.x = WIDTH / 2;
   this.y = GAMEHEIGHT / 2;
+  // 0 is floor
+  this.z = 0;
   this.dx = 0;
   this.dy = 0;
+  this.dz = 0;
   this.facingright = true;
 
   this.Draw = function(scrollx) {
     var fr = this.gfx.right;
+
+    var isjump = this.z > 0.01;
 
     var isrun = Math.abs(this.dx) > 1 || Math.abs(this.dy) > 0.25;
 
     // Turn the player around.
     // XXX Also should happen when standing still and first
     // tapping, right? Maybe useful to be able to back up.
-    if (isrun) {
+    if (!isjump && isrun) {
       // Maybe shouldn't be updating this state in drawing...
       if (this.dx > 1) {
 	this.facingright = true;
@@ -278,36 +287,57 @@ function Human(gfx) {
       }
     }
 
-    // XXX jumping, punching, & so on
+    // XXX punching, & so on
     if (this.facingright) {
-      fr = isrun ? this.gfx.run_right : this.gfx.right;
+      if (isjump) {
+	fr = this.gfx.jump_right;
+      } else {
+	fr = isrun ? this.gfx.run_right : this.gfx.right;
+      }
     } else {
-      fr = isrun ? this.gfx.run_left : this.gfx.left;
+      if (isjump) {
+	fr = this.gfx.jump_left;
+      } else {
+	fr = isrun ? this.gfx.run_left : this.gfx.left;
+      }
     }
 
-    DrawFrame(fr, this.x - scrollx, this.y + TOP - fr.height);
+    DrawFrame(fr, this.x - scrollx, this.y - this.z + TOP - fr.height);
   };
 
   // XXX objects should also have physics, using same methods
   this.UpdatePhysics = function() {
+    var onground = this.z == 0;
+
     // Player physics.
     if (this.holdingRight) {
-      this.dx += ACCEL_X;
+      this.dx += onground ? ACCEL_X : AIR_ACCEL_X;
     } else if (this.holdingLeft) {
-      this.dx -= ACCEL_X;
+      this.dx -= onground ? ACCEL_X : AIR_ACCEL_X;
     } else {
-      this.dx *= 0.8;
-      if (Math.abs(this.dx) < 0.01) this.dx = 0;
+      if (onground) this.dx *= 0.8;
+      if (Math.abs(this.dx) < 0.5) this.dx = 0;
     }
 
     if (this.holdingDown) {
-      this.dy += ACCEL_Y;
+      this.dy += onground ? ACCEL_Y : 0;
     } else if (holdingUp) {
-      this.dy -= ACCEL_Y;
+      this.dy -= onground ? ACCEL_Y : 0;
     } else {
+      // Always decelerate y, even in air
       this.dy *= 0.6;
-      if (Math.abs(this.dy) < 0.01) this.dy = 0;
+      if (Math.abs(this.dy) < 0.5) this.dy = 0;
     }
+
+    if (onground) {
+      if (holdingSpace) {
+	holdingSpace = false;
+	this.dz += JUMP_IMPULSE;
+      }
+    } else {
+      this.dz -= GRAVITY;
+    }
+    if (Math.abs(this.dz) < 0.01) this.dz = 0;
 
     if (this.dx > TERMINAL_X) this.dx = TERMINAL_X;
     else if (this.dx < -TERMINAL_X) this.dx = -TERMINAL_X;
@@ -315,15 +345,42 @@ function Human(gfx) {
     if (this.dy > TERMINAL_Y) this.dy = TERMINAL_Y;
     else if (this.dy < -TERMINAL_Y) this.dy = -TERMINAL_Y;
 
-    // XXX collisions.
+    if (this.dz > TERMINAL_Z) this.dz = TERMINAL_Z;
+    else if (this.dz < -TERMINAL_Z) this.dz = -TERMINAL_Z;
 
+    // XXX collisions.
     this.x += this.dx;
     this.y += this.dy;
+    this.z += this.dz;
+
+    if (this.x < 0) {
+      // XXX warp left if we can
+      this.x = 0;
+      this.dx = 0;
+    }
+    
+    if (this.y > GAMEHEIGHT - 1) {
+      this.y = GAMEHEIGHT;
+      this.dy = 0;
+    } else if (this.y < WALLHEIGHT) {
+      // XXX should be possible to stand on that stuff maybe?
+      this.y = WALLHEIGHT;
+      this.dy = 0;
+    }
+
+
+    debug.innerHTML = this.dx + ' ' + this.dy + ' ' + this.dz;
+
+    if (this.z < 0) {
+      this.z = 0;
+      this.dz = 0;
+    }
   };
 }
 
 function PlayingStep(time) {
-  // Get 
+  // XXX once we start scrolling, scroll ahead of
+  // where the player's going
   if (me.x < scrollx + 75) scrollx = me.x - 75;
   else if (me.x > scrollx + WIDTH - 125)
     scrollx = me.x - WIDTH + 125;
@@ -338,6 +395,7 @@ function PlayingStep(time) {
   me.holdingLeft = holdingLeft;
   me.holdingUp = holdingUp;
   me.holdingDown = holdingDown;
+  me.holdingSpace = holdingSpace;
 
   me.UpdatePhysics();
 
@@ -362,7 +420,7 @@ function Step(time) {
   // compute our own.
   var now = (new Date()).getTime();
   var diff = now - last;
-  debug.innerHTML = diff;
+  // debug.innerHTML = diff;
   // Don't do more than 30fps.
   if (diff < (33.34)) {
     skipped++;
