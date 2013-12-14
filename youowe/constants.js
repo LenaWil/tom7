@@ -25,3 +25,8 @@ var AIR_ACCEL_X = 0.25;
 var TERMINAL_X = 4;
 var TERMINAL_Y = 2;
 var TERMINAL_Z = 8;
+
+
+// Fighting
+var PUNCHFRAMES = 5;
+var KICKFRAMES = 9;

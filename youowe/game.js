@@ -17,6 +17,10 @@ var images = new Images(
    'walk3.png',
    'jump.png',
    'blink.png',
+   'punch.png',
+   'punch2.png',
+   'kick.png',
+   'kick2.png',
    'title.png',
    'classroom.png']);
 
@@ -29,7 +33,8 @@ function SetPhase(p) {
 
 var holdingLeft = false, holdingRight = false,
   holdingUp = false, holdingDown = false,
-  holdingSpace = false, holdingEnter = false;
+  holdingSpace = false, holdingEnter = false,
+  holdingX = false, holdingZ = false;
 
 document.onkeydown = function(e) {
   e = e || window.event;
@@ -54,7 +59,12 @@ document.onkeydown = function(e) {
     case 13: // ENTER
     holdingEnter = true;
     break;
-    // TODO z, x, enter
+    case 90: // Z
+    holdingZ = true;
+    break;
+    case 88: // X
+    holdingX = true;
+    break;
   } 
   var elt = document.getElementById('key');
   elt && (elt.innerHTML = 'key: ' + e.keyCode);
@@ -84,6 +94,12 @@ document.onkeyup = function(e) {
     case 13: // ENTER
     holdingEnter = false;
     break;
+    case 90: // Z
+    holdingZ = false;
+    break;
+    case 88: // X
+    holdingX = false;
+    break;
   }
   return false;
 }
@@ -105,8 +121,8 @@ function Frames(arg) {
   }
   this.numframes = ct;
 
-  this.GetFrame = function() {
-    var f = frames % this.numframes;
+  this.GetFrame = function(idx) {
+    var f = idx % this.numframes;
     for (var i = 0; i < this.frames.length; i++) {
       if (f < this.frames[i].d) {
 	return this.frames[i].f;
@@ -211,6 +227,10 @@ function PersonGraphics(shirt, pants) {
   var walk3 = EzColor('walk3', shirt, pants);
   var blink = EzColor('blink', shirt, pants);
   var jump = EzColor('jump', shirt, pants);
+  var punch = EzColor('punch', shirt, pants);
+  var punch2 = EzColor('punch2', shirt, pants);
+  var kick = EzColor('kick', shirt, pants);
+  var kick2 = EzColor('kick2', shirt, pants);
 
   return {
     run_right: EzFrames([walk1, 3, walk2, 2, walk3, 3, walk2, 2]),
@@ -223,6 +243,12 @@ function PersonGraphics(shirt, pants) {
 		    EzFlipHoriz(blink), 2]),
     jump_right: EzFrames([jump, 1]),
     jump_left: EzFrames([EzFlipHoriz(jump), 1]),
+    punch_right: EzFrames([punch, 2, punch2, 30]),
+    punch_left: EzFrames([EzFlipHoriz(punch), 2, 
+			 EzFlipHoriz(punch2), 30]),
+    kick_right: EzFrames([kick, 2, kick2, 30]),
+    kick_left: EzFrames([EzFlipHoriz(kick), 2, 
+			 EzFlipHoriz(kick2), 30]),
   };
 }
 
@@ -242,6 +268,7 @@ function WarpTo(roomname, x, y) {
   // Keep velocity?
   me.dx = 0;
   me.dy = 0;
+
 }
 
 function TitleStep(time) {
@@ -253,8 +280,9 @@ function TitleStep(time) {
 }
 
 // XXX crop rectangle version?
-function DrawFrame(frame, x, y) {
-  ctx.drawImage(frame.GetFrame(), Math.round(x), Math.round(y));
+function DrawFrame(frame, x, y, opt_fc) {
+  ctx.drawImage(frame.GetFrame(arguments.length > 3 ? opt_fc : frames), 
+		Math.round(x), Math.round(y));
 }
 
 function Human(gfx) {
@@ -267,6 +295,12 @@ function Human(gfx) {
   this.dy = 0;
   this.dz = 0;
   this.facingright = true;
+
+  this.punching = 0;
+  this.kicking = 0;
+
+  // frame counter.
+  this.fc = 0;
 
   this.Draw = function(scrollx) {
     var fr = this.gfx.right;
@@ -287,25 +321,41 @@ function Human(gfx) {
       }
     }
 
-    // XXX punching, & so on
+    // XXX kicking, air attacks
     if (this.facingright) {
       if (isjump) {
+	// XXX air attacks
 	fr = this.gfx.jump_right;
       } else {
-	fr = isrun ? this.gfx.run_right : this.gfx.right;
+	if (this.punching > 0) {
+	  fr = this.gfx.punch_right;
+	} else if (this.kicking > 0) {
+	  fr = this.gfx.kick_right;
+	} else {
+	  fr = isrun ? this.gfx.run_right : this.gfx.right;
+	}
       }
     } else {
       if (isjump) {
+	// XXX air attacks
 	fr = this.gfx.jump_left;
       } else {
-	fr = isrun ? this.gfx.run_left : this.gfx.left;
+	if (this.punching > 0) {
+	  fr = this.gfx.punch_left;
+	} else if (this.kicking > 0) {
+	  fr = this.gfx.kick_left;
+	} else {
+	  fr = isrun ? this.gfx.run_left : this.gfx.left;
+	}
       }
     }
 
-    DrawFrame(fr, this.x - scrollx, this.y - this.z + TOP - fr.height);
+    DrawFrame(fr, this.x - scrollx, this.y - this.z + TOP - fr.height,
+	      this.fc);
+    this.fc++;
   };
 
-  // XXX objects should also have physics, using same methods
+  // XXX objects should also have physics, using some of the same methods
   this.UpdatePhysics = function() {
     var onground = this.z == 0;
 
@@ -331,6 +381,7 @@ function Human(gfx) {
 
     if (onground) {
       if (holdingSpace) {
+	// XXX this won't work, it's an alias.
 	holdingSpace = false;
 	this.dz += JUMP_IMPULSE;
       }
@@ -359,7 +410,7 @@ function Human(gfx) {
       this.dx = 0;
     }
     
-    if (this.y > GAMEHEIGHT - 1) {
+    if (this.y > GAMEHEIGHT) {
       this.y = GAMEHEIGHT;
       this.dy = 0;
     } else if (this.y < WALLHEIGHT) {
@@ -368,12 +419,36 @@ function Human(gfx) {
       this.dy = 0;
     }
 
-
-    debug.innerHTML = this.dx + ' ' + this.dy + ' ' + this.dz;
+    debug.innerHTML = this.dx + ' ' + this.dy + ' ' + this.dz +
+	' @ ' + this.x + ' ' + this.y + ' ' + this.z +
+	(this.punching > 0 ? (' punching ' + this.punching) : '') +
+	(this.facingright ? ' >' : ' <');
 
     if (this.z < 0) {
       this.z = 0;
       this.dz = 0;
+    }
+  };
+
+  this.UpdateFighting = function(zz, xx) {
+    // Can't attack while something's in progress.
+    if (this.punching == 0 &&
+	this.kicking == 0) {
+      if (xx) {
+	// Depending on air/floor?
+	this.punching = PUNCHFRAMES;
+	// Need to reset animation offset when starting a
+	// non-looping pose like this.
+	this.fc = 0;
+      } else if (zz) {
+	this.kicking = KICKFRAMES;
+	this.fc = 0;
+      }
+    } else if (this.punching > 0) {
+      this.punching--;
+
+    } else if (this.kicking > 0) {
+      this.kicking--;
     }
   };
 }
@@ -396,6 +471,8 @@ function PlayingStep(time) {
   me.holdingUp = holdingUp;
   me.holdingDown = holdingDown;
   me.holdingSpace = holdingSpace;
+
+  me.UpdateFighting(holdingZ, holdingX);
 
   me.UpdatePhysics();
 
