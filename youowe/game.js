@@ -22,7 +22,10 @@ var images = new Images(
    'punch2.png',
    'kick.png',
    'kick2.png',
+   'ouch.png',
+   'stunned.png',
    'title.png',
+   'dead.png',
    'classroom.png']);
 
 function SetPhase(p) {
@@ -232,6 +235,7 @@ function PersonGraphics(shirt, pants) {
   var punch2 = EzColor('punch2', shirt, pants);
   var kick = EzColor('kick', shirt, pants);
   var kick2 = EzColor('kick2', shirt, pants);
+  var dead = EzColor('dead', shirt, pants);
 
   return {
     run_right: EzFrames([walk1, 3, walk2, 2, walk3, 3, walk2, 2]),
@@ -250,6 +254,9 @@ function PersonGraphics(shirt, pants) {
     kick_right: EzFrames([kick, 2, kick2, 30]),
     kick_left: EzFrames([EzFlipHoriz(kick), 2, 
 			 EzFlipHoriz(kick2), 30]),
+    // For actually dying, can flicker
+    ko_right: EzFrames([dead, 1]),
+    ko_left: EzFrames([EzFlipHoriz(dead), 1])
   };
 }
 
@@ -301,8 +308,11 @@ function Human(gfx) {
   this.dz = 0;
   this.facingright = true;
 
+  this.hp = 20;
+
   this.punching = 0;
   this.kicking = 0;
+  this.ko = 0;
 
   // frame counter.
   this.fc = 0;
@@ -318,58 +328,78 @@ function Human(gfx) {
 
     var isrun = Math.abs(this.dx) > 1 || Math.abs(this.dy) > 0.25;
 
-    // Turn the player around.
-    // XXX Also should happen when standing still and first
-    // tapping, right? Maybe useful to be able to back up.
-    if (!isjump && isrun) {
-      // Maybe shouldn't be updating this state in drawing...
-      if (this.dx > 1) {
-	this.facingright = true;
-      } else if (this.dx < -1) {
-	this.facingright = false;
-      }
-    }
-
-    // XXX kicking, air attacks
-    if (this.facingright) {
-      if (isjump) {
-	// XXX air attacks
-	fr = this.gfx.jump_right;
-      } else {
-	if (this.punching > 0) {
-	  fr = this.gfx.punch_right;
-	} else if (this.kicking > 0) {
-	  fr = this.gfx.kick_right;
-	} else {
-	  fr = isrun ? this.gfx.run_right : this.gfx.right;
-	}
-      }
+    if (this.ko > 0) {
+      // XXX check if really dying
+      fr = this.facingright ? this.gfx.ko_right : this.gfx.ko_left;
     } else {
-      if (isjump) {
-	// XXX air attacks
-	fr = this.gfx.jump_left;
-      } else {
-	if (this.punching > 0) {
-	  fr = this.gfx.punch_left;
-	} else if (this.kicking > 0) {
-	  fr = this.gfx.kick_left;
+      // Turn the player around.
+      // XXX Also should happen when standing still and first
+      // tapping, right? Maybe useful to be able to back up.
+      if (!isjump && isrun) {
+	// Maybe shouldn't be updating this state in drawing...
+	if (this.dx > 1) {
+	  this.facingright = true;
+	} else if (this.dx < -1) {
+	  this.facingright = false;
+	}
+      }
+
+      // XXX kicking, air attacks
+      if (this.facingright) {
+	if (isjump) {
+	  // XXX air attacks
+	  fr = this.gfx.jump_right;
 	} else {
-	  fr = isrun ? this.gfx.run_left : this.gfx.left;
+	  if (this.punching > 0) {
+	    fr = this.gfx.punch_right;
+	  } else if (this.kicking > 0) {
+	    fr = this.gfx.kick_right;
+	  } else {
+	    fr = isrun ? this.gfx.run_right : this.gfx.right;
+	  }
+	}
+      } else {
+	if (isjump) {
+	  // XXX air attacks
+	  fr = this.gfx.jump_left;
+	} else {
+	  if (this.punching > 0) {
+	    fr = this.gfx.punch_left;
+	  } else if (this.kicking > 0) {
+	    fr = this.gfx.kick_left;
+	  } else {
+	    fr = isrun ? this.gfx.run_left : this.gfx.left;
+	  }
 	}
       }
     }
-
     DrawFrame(fr, this.x - scrollx, this.y - this.z + TOP - fr.height,
 	      this.fc);
     this.fc++;
   };
 
   // XXX objects should also have physics, using some of the same methods
-  this.UpdatePhysics = function() {
+  this.UpdatePhysics = function(objects) {
     var onground = this.z == 0;
 
     // Kicking makes you stop.
     var canrun = this.kicking == 0 || !onground;
+
+    // Dealing damage.
+    if (this.punching == 2 || this.kicking == 2) {
+      // Check non-self objects for hit.
+      var ax = this.x + (this.facingright ? ATTACKSIZE_X : -ATTACKSIZE_X);
+      for (var i = 0; i < objects.length; i++) {
+	if (objects[i] != this) {
+	  if (Math.abs(objects[i].y - this.y) <= ATTACKSIZE_Y &&
+	      Math.abs(objects[i].x - ax) <= HALFPERSON_W) {
+	    // Hit! But are we allowed to hit them?
+	    // XXX
+	    objects[i].ko = 12;
+	  }
+	}
+      }
+    }
 
     // Player physics.
     if (canrun && this.holdingRight) {
@@ -462,10 +492,10 @@ function Human(gfx) {
     } else if (this.kicking > 0) {
       this.kicking--;
     }
-  };
+  }
 }
 
-// TODO: fighting style, and so on.
+// TODO: fighting style, hats, and so on.
 function Gang(n, shirt, pants) {
   var NATTACKERS = 2;
 
@@ -509,6 +539,7 @@ function Gang(n, shirt, pants) {
       var destx = 0, desty = 0;
       switch (human.strategy) {
 	case S_ATTACK:
+	// Pick one side or the other of me.
 	destx = me.x;
 	desty = me.y;
 	break;
@@ -538,8 +569,27 @@ function Gang(n, shirt, pants) {
       // just smarter AI to only try to get to sensible
       // places?
 
-      human.holdingRight = (human.x < destx);
-      human.holdingLeft = (human.x > destx);
+      var xdist = Math.abs(destx - human.x);
+
+
+      // allow turning around too
+      human.holdingRight = (human.x < destx) && xdist > 16;
+      human.holdingLeft = (human.x > destx) && xdist > 16;
+
+      // XXX This doesn't work. Fix it!
+      /* 
+	var facingme = human.facingRight ? (human.x < me.x) : (human.x > me.x);
+      if (!(human.holdingRight ||
+	    human.holdingLeft)) {
+	if (!facingme) {
+	  if (human.x < me.x) {
+	    human.holdingRight = true;
+	  } else if (human.x > me.x) {
+	    human.holdingLeft = true;
+	  }
+	}
+      }
+      */
 
       human.holdingDown = (human.y < desty);
       human.holdingUp = (human.y > desty);
@@ -560,10 +610,10 @@ function Gang(n, shirt, pants) {
     }
   };
 
-  this.UpdatePhysics = function() {
+  this.UpdatePhysics = function(objects) {
     for (var i = 0; i < this.humans.length; i++) {
       // not the best strategy
-      this.humans[i].UpdatePhysics();
+      this.humans[i].UpdatePhysics(objects);
     }
   };
 }
@@ -581,6 +631,10 @@ function PlayingStep(time) {
     scrollx = rooms[currentroom].width - WIDTH;
   if (scrollx < 0) scrollx = 0;
 
+  var objects = [];
+  if (gang) gang.AddObjects(objects);
+  objects.push(me);
+
   me.holdingRight = holdingRight;
   me.holdingLeft = holdingLeft;
   me.holdingUp = holdingUp;
@@ -589,12 +643,12 @@ function PlayingStep(time) {
 
   me.UpdateFighting(holdingZ, holdingX);
 
-  me.UpdatePhysics();
+  me.UpdatePhysics(objects);
 
   if (gang) {
     gang.UpdateStrategies();
     gang.UpdateFighting();
-    gang.UpdatePhysics();
+    gang.UpdatePhysics(objects);
   }
 
   // Redraw everything every frame (!)
@@ -604,10 +658,6 @@ function PlayingStep(time) {
   DrawFrame(rooms[currentroom].bg, -scrollx, TOP);
 
   // XXX Draw me (x, y + TOP)
-
-  var objects = [];
-  if (gang) gang.AddObjects(objects);
-  objects.push(me);
 
   objects.sort(function (a, b) { return b.Depth () < a.Depth(); });
   for (var i = 0; i < objects.length; i++) {
