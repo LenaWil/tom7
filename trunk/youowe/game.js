@@ -26,6 +26,7 @@ var images = new Images(
    'stunned.png',
    'title.png',
    'dead.png',
+   'blank.png',
    'classroom.png']);
 
 function SetPhase(p) {
@@ -236,6 +237,8 @@ function PersonGraphics(shirt, pants) {
   var kick = EzColor('kick', shirt, pants);
   var kick2 = EzColor('kick2', shirt, pants);
   var dead = EzColor('dead', shirt, pants);
+  var ouch = EzColor('ouch', shirt, pants);
+  var stunned = EzColor('stunned', shirt, pants);
 
   return {
     run_right: EzFrames([walk1, 3, walk2, 2, walk3, 3, walk2, 2]),
@@ -256,7 +259,14 @@ function PersonGraphics(shirt, pants) {
 			 EzFlipHoriz(kick2), 30]),
     // For actually dying, can flicker
     ko_right: EzFrames([dead, 1]),
-    ko_left: EzFrames([EzFlipHoriz(dead), 1])
+    ko_left: EzFrames([EzFlipHoriz(dead), 1]),
+
+    dead_right: EzFrames([dead, 2, 'blank', 2]),
+    dead_left: EzFrames([EzFlipHoriz(dead), 2, 'blank', 2]),
+
+    hurt_right: EzFrames([ouch, 1, stunned, 1]),
+    hurt_left: EzFrames([EzFlipHoriz(ouch), 1, 
+			 EzFlipHoriz(stunned), 1])
   };
 }
 
@@ -313,6 +323,7 @@ function Human(gfx) {
   this.punching = 0;
   this.kicking = 0;
   this.ko = 0;
+  this.hurt = 0;
 
   // frame counter.
   this.fc = 0;
@@ -330,7 +341,15 @@ function Human(gfx) {
 
     if (this.ko > 0) {
       // XXX check if really dying
-      fr = this.facingright ? this.gfx.ko_right : this.gfx.ko_left;
+      if (this.hp <= 0) {
+	fr = this.facingright ? this.gfx.dead_right : this.gfx.dead_left;
+      } else {
+	fr = this.facingright ? this.gfx.ko_right : this.gfx.ko_left;
+      } 
+
+    } else if (this.hurt > 0) {
+      fr = this.facingright ? this.gfx.hurt_right : this.gfx.hurt_left;
+
     } else {
       // Turn the player around.
       // XXX Also should happen when standing still and first
@@ -382,11 +401,50 @@ function Human(gfx) {
   this.UpdatePhysics = function(objects) {
     var onground = this.z == 0;
 
-    // Kicking makes you stop.
-    var canrun = this.kicking == 0 || !onground;
+    // XX no air attacks implemented. But allow them
+    var canattack = this.hurt == 0 && this.ko == 0 && onground;
 
+    if (!canattack) {
+      // For example if killed while throwing a punch.
+      this.punching = 0;
+      this.kicking = 0;
+
+    } else if (this.punching == 0 &&
+	       this.kicking == 0) {
+      if (this.holdingX) {
+	// Depending on air/floor?
+	this.punching = PUNCHFRAMES;
+	// Need to reset animation offset when starting a
+	// non-looping pose like this.
+	this.fc = 0;
+      } else if (this.holdingZ) {
+	this.kicking = KICKFRAMES;
+	this.fc = 0;
+      }
+
+    } else if (this.punching > 0) {
+      this.punching--;
+
+    } else if (this.kicking > 0) {
+      this.kicking--;
+    }
+
+    if (this.ko > 0) {
+      this.ko --;
+
+    } else if (this.hurt > 0) {
+      this.hurt --;
+
+    }
+
+    // Kicking makes you stop.
+    var canmove = this.ko == 0;
+    var canrun = canmove && (this.kicking == 0 || !onground);
+
+    var kick_now = this.kicking == 2;
+    var punch_now = this.punching == 2;
     // Dealing damage.
-    if (this.punching == 2 || this.kicking == 2) {
+    if (punch_now || kick_now) {
       // Check non-self objects for hit.
       var ax = this.x + (this.facingright ? ATTACKSIZE_X : -ATTACKSIZE_X);
       for (var i = 0; i < objects.length; i++) {
@@ -395,25 +453,45 @@ function Human(gfx) {
 	      Math.abs(objects[i].x - ax) <= HALFPERSON_W) {
 	    // Hit! But are we allowed to hit them?
 	    // XXX
-	    objects[i].ko = 12;
+	    if (objects[i].x < this.x) {
+	      objects[i].dx -= 4;
+	    } else {
+	      objects[i].dx += 4;
+	    }
+
+	    if (punch_now) {
+	      objects[i].hp -= PUNCH_DAMAGE;
+	    } else if (kick_now) {
+	      objects[i].hp -= KICK_DAMAGE;
+	    }
+
+	    if (Math.random() < 0.1) {
+	      objects[i].ko = objects[i].hp <= 0 ? DEADFRAMES : KOFRAMES;
+	      objects[i].fc = 0;
+	    } else {
+	      objects[i].hurt = HURTFRAMES;
+	      objects[i].fc = 0;
+	    }
 	  }
 	}
       }
     }
 
+    // XXX being hurt should interfere somewhat?
+    
     // Player physics.
-    if (canrun && this.holdingRight) {
+    if (canmove && canrun && this.holdingRight) {
       this.dx += onground ? ACCEL_X : AIR_ACCEL_X;
-    } else if (canrun && this.holdingLeft) {
+    } else if (canmove && canrun && this.holdingLeft) {
       this.dx -= onground ? ACCEL_X : AIR_ACCEL_X;
     } else {
       if (onground) this.dx *= 0.8;
       if (Math.abs(this.dx) < 0.5) this.dx = 0;
     }
 
-    if (this.holdingDown) {
+    if (canmove && this.holdingDown) {
       this.dy += onground ? ACCEL_Y : 0;
-    } else if (holdingUp) {
+    } else if (canmove && holdingUp) {
       this.dy -= onground ? ACCEL_Y : 0;
     } else {
       // Always decelerate y, even in air
@@ -422,7 +500,7 @@ function Human(gfx) {
     }
 
     if (onground) {
-      if (this.holdingSpace) {
+      if (canmove && this.holdingSpace) {
 	// XXX this won't work, it's an alias.
 	// this.holdingSpace = false;
 	this.dz += JUMP_IMPULSE;
@@ -472,27 +550,6 @@ function Human(gfx) {
     }
   };
 
-  this.UpdateFighting = function(zz, xx) {
-    // Can't attack while something's in progress.
-    if (this.punching == 0 &&
-	this.kicking == 0) {
-      if (xx) {
-	// Depending on air/floor?
-	this.punching = PUNCHFRAMES;
-	// Need to reset animation offset when starting a
-	// non-looping pose like this.
-	this.fc = 0;
-      } else if (zz) {
-	this.kicking = KICKFRAMES;
-	this.fc = 0;
-      }
-    } else if (this.punching > 0) {
-      this.punching--;
-
-    } else if (this.kicking > 0) {
-      this.kicking--;
-    }
-  }
 }
 
 // TODO: fighting style, hats, and so on.
@@ -515,24 +572,48 @@ function Gang(n, shirt, pants) {
       l.push(this.humans[i]);
     }
   };
+
+  this.Reap = function() {
+    for (var i = 0; i < this.humans.length; i++) {
+      var h = this.humans[i];
+      if (h.ko == 1 && h.hp <= 0) {
+	// Dead!
+	this.humans.splice(i, 1);
+	i--;
+      }
+    }
+    
+    if (this.humans.length > 0) return this;
+    else return null;
+  };
   
   this.UpdateStrategies = function() {
-    // Are enough people attacking?
-    var na = 0;
-    for (var i = 0; i < this.humans.length; i++) {
-      if (this.humans[i].strategy == S_ATTACK) {
-	na++;
+
+    // Maybe change strategies.
+    // Nobody attack when I'm on the ground.
+    if (me.ko > 0) {
+      for (var i = 0; i < this.humans.length; i++) {
+	this.humans[i].strategy = S_CONFRONT;
+      }
+    } else {
+      // Are enough people attacking?
+      var na = 0;
+      for (var i = 0; i < this.humans.length; i++) {
+	if (this.humans[i].strategy == S_ATTACK) {
+	  na++;
+	}
+      }
+
+      if (na < NATTACKERS) {
+	// Someone becomes an attacker (possibly someone
+	// who already was..)
+	var i = Math.round(Math.random() * (this.humans.length - 1));
+	console.log(na + ' so making #' + i + ' an attacker');
+	this.humans[i].strategy = S_ATTACK;
       }
     }
 
-    if (na < NATTACKERS) {
-      // Someone becomes an attacker (possibly someone
-      // who already was..)
-      var i = Math.round(Math.random() * (this.humans.length - 1));
-      console.log(na + ' so making #' + i + ' an attacker');
-      this.humans[i].strategy = S_ATTACK;
-    }
-
+    // Implement strategies.
     for (var i = 0; i < this.humans.length; i++) {
       var human = this.humans[i];
       // Figure out our destination.
@@ -597,16 +678,10 @@ function Gang(n, shirt, pants) {
       // When to jump?
       human.holdingSpace = (Math.random() < 0.025);
 
-      // XXX update fighting strategy here?
-    }
-  };
-
-  this.UpdateFighting = function() {
-    for (var i = 0; i < this.humans.length; i++) {
       // XXX based on strategy. Don't be so crazy active
       // when confronting
-      this.humans[i].UpdateFighting(Math.random() < 0.05,
-				    Math.random() < 0.05);
+      human.holdingX = Math.random() < 0.05;
+      human.holdingY = Math.random() < 0.05;
     }
   };
 
@@ -641,14 +716,15 @@ function PlayingStep(time) {
   me.holdingDown = holdingDown;
   me.holdingSpace = holdingSpace;
 
-  me.UpdateFighting(holdingZ, holdingX);
+  me.holdingZ = holdingZ;
+  me.holdingX = holdingX;
 
   me.UpdatePhysics(objects);
 
   if (gang) {
     gang.UpdateStrategies();
-    gang.UpdateFighting();
     gang.UpdatePhysics(objects);
+    gang = gang.Reap();
   }
 
   // Redraw everything every frame (!)
@@ -657,17 +733,16 @@ function PlayingStep(time) {
 
   DrawFrame(rooms[currentroom].bg, -scrollx, TOP);
 
-  // XXX Draw me (x, y + TOP)
-
   objects.sort(function (a, b) { return b.Depth () < a.Depth(); });
   for (var i = 0; i < objects.length; i++) {
     objects[i].Draw(scrollx);
   }
 
-  // DrawFrame(me_gfx.run_right, mex - scrollx, mey + TOP - run_right.height);
-  // me.Draw(scrollx);
+  // XXX Handle case where I die!
 
-  // debug.innerHTML = font.chars[42];
+  // XXX real text status
+  font.Draw(ctx, 2, 2, 'HP: ' + me.hp);
+  font.Draw(ctx, 160, 2, 'arrows/z/x/space');
   font.Draw(ctx, 10, TOP + GAMEHEIGHT,
 	    'Me: BARF!!!\n' +
 	    ' ... ' + frames);
