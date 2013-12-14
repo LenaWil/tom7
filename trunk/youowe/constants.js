@@ -28,6 +28,9 @@ var TERMINAL_X = 4;
 var TERMINAL_Y = 2;
 var TERMINAL_Z = 8;
 
+var ATTACKSIZE_Y = 6;
+var ATTACKSIZE_X = 14;
+var HALFPERSON_W = 8;
 
 // Fighting
 var PUNCHFRAMES = 5;
