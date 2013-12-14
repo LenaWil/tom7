@@ -1,5 +1,5 @@
 
-var counter = 0;
+var counter = 0, skipped = 0;
 var start_time = (new Date()).getTime();
 
 // Number of elapsed frames in the current scene.
@@ -15,6 +15,7 @@ var images = new Images(
    'walk1.png',
    'walk2.png',
    'walk3.png',
+   'blink.png',
    'title.png',
    'classroom.png']);
 
@@ -86,6 +87,8 @@ document.onkeyup = function(e) {
   return false;
 }
 
+// The 'f' field must be something that you can ctx.drawImage on,
+// so an Image or Canvas.
 function Frames(arg) {
   if (arg instanceof Image) {
     // Assume static.
@@ -113,7 +116,7 @@ function Frames(arg) {
   };
   this.height = this.frames[0].f.height;
   this.width = this.frames[0].f.width;
-  alert('frame ' + this.width + 'x' + this.height);
+  // alert('frame ' + this.width + 'x' + this.height);
 }
 
 function Static(f) { return new Frames(images.Get(f)); }
@@ -132,9 +135,56 @@ function EzFrames(l) {
   if (l.length % 2 != 0) throw 'bad EzFrames';
   var ll = [];
   for (var i = 0; i < l.length; i += 2) {
-    ll.push({f: images.Get(l[i] + '.png'), d: l[i + 1]});
+    var s = l[i];
+    var f = null;
+    if (typeof s == 'string') {
+      f = images.Get(l[i] + '.png');
+    } else if (s instanceof Element) {
+      // Assume [canvas] or Image
+      f = s;
+    }
+    ll.push({f: f, d: l[i + 1]});
   }
   return new Frames(ll);
+}
+
+// Returns a canvas of the same size with the pixels flipped horizontally
+function FlipHoriz(img) {
+  var i32 = Buf32FromImage(img);
+  var c = NewCanvas(img.width, img.height);
+  var ctx = c.getContext('2d');
+  var id = ctx.createImageData(img.width, img.height);
+  var buf = new ArrayBuffer(id.data.length);
+  // Make two aliases of the data, the second allowing us
+  // to write 32-bit pixels.
+  var buf8 = new Uint8ClampedArray(buf);
+  var buf32 = new Uint32Array(buf);
+
+  for (var y = 0; y < img.height; y++) {
+    for (var x = 0; x < img.width; x++) {
+      buf32[y * img.width + x] =
+	  i32[y * img.width + (img.width - 1 - x)];
+    }
+  }
+  
+  id.data.set(buf8);
+  ctx.putImageData(id, 0, 0);
+  return c;
+}
+
+function EzFlip(f) {
+  if (typeof f == 'string') f = images.Get(f + '.png');
+  return FlipHoriz(f);
+}
+
+function PersonGraphics(shirt, pants) {
+  return {
+    run_right: EzFrames(['walk1', 3, 'walk2', 2, 'walk3', 3,
+			 'walk2', 2]),
+    right: EzFrames(['walk2', 4 * 30, 'blink', 2]),
+    left: EzFrames([EzFlip('walk2'), 4 * 30, 
+		    EzFlip('blink'), 2])
+  };
 }
 
 function Init() {
@@ -143,8 +193,7 @@ function Init() {
   };
 
   // XXX need to face left, right, recolor
-  window.run_right = EzFrames(['walk1', 3, 'walk2', 2, 'walk3', 3,
-			'walk2', 2]);
+  window.me_gfx = PersonGraphics(0xFFFFFFFF, 0xFFEC7000);
 
 }
 
@@ -179,19 +228,37 @@ function PlayingStep(time) {
   DrawFrame(rooms[currentroom].bg, -scrollx, TOP);
 
   // XXX Draw me (x, y + TOP)
-  DrawFrame(run_right, mex - scrollx, mey + TOP - run_right.height);
+
+  // DrawFrame(me_gfx.run_right, mex - scrollx, mey + TOP - run_right.height);
+  DrawFrame(me_gfx.left, mex - scrollx, mey + TOP - ME_HEIGHT);
 }
 
+last = 0;
 function Step(time) {
   // XXX here, throttle to 30 fps or something we
   // should be able to hit on most platforms.
+  
+  // Word has it that 'time' may not be supported on Safari, so
+  // compute our own.
+  var now = (new Date()).getTime();
+  var diff = now - last;
+  debug.innerHTML = diff;
+  // Don't do more than 30fps.
+  if (diff < (33.34)) {
+    skipped++;
+    window.requestAnimationFrame(Step);
+    return;
+  }
+  last = now;
+  
+
   frames++;
   if (frames > 1000000) frames = 0;
 
   if (phase == PHASE_TITLE) {
-    TitleStep(time);
+    TitleStep();
   } else if (phase == PHASE_PLAYING) {
-    PlayingStep(time);
+    PlayingStep();
     
 
     /*
@@ -220,7 +287,8 @@ function Step(time) {
     counter++;
     var sec = ((new Date()).getTime() - start_time) / 1000;
     document.getElementById('counter').innerHTML = 
-	'' + counter + ' (' + (counter / sec).toFixed(2) + ' fps)';
+	'skipped ' + skipped + ' drew ' +
+	counter + ' (' + (counter / sec).toFixed(2) + ' fps)';
   }
 
   // And continue the loop...
