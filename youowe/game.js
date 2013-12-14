@@ -8,6 +8,8 @@ var frames = 0;
 var PHASE_TITLE = 0, PHASE_PLAYING = 1;
 var phase = PHASE_TITLE;
 
+var mex = 0, mey = 0;
+
 var images = new Images(
   ['eye.png', // XXX
    'walk1.png',
@@ -109,6 +111,9 @@ function Frames(arg) {
     }
     return this.frames[0].f;
   };
+  this.height = this.frames[0].f.height;
+  this.width = this.frames[0].f.width;
+  alert('frame ' + this.width + 'x' + this.height);
 }
 
 function Static(f) { return new Frames(images.Get(f)); }
@@ -118,13 +123,36 @@ function Room(bg) {
   // ...?
 }
 
-var rooms = {
-  classroom: new Room(Static('classroom.png'))
-};
+// Assumes a list ['frame', n, 'frame', n] ...
+// where frame doesn't even have 'png' on it.
+// But it must have been loaded into Images.
+// TODO: Pass the same list to EzImages or
+// something.
+function EzFrames(l) {
+  if (l.length % 2 != 0) throw 'bad EzFrames';
+  var ll = [];
+  for (var i = 0; i < l.length; i += 2) {
+    ll.push({f: images.Get(l[i] + '.png'), d: l[i + 1]});
+  }
+  return new Frames(ll);
+}
+
+function Init() {
+  window.rooms = {
+    classroom: new Room(Static('classroom.png'))
+  };
+
+  // XXX need to face left, right, recolor
+  window.run_right = EzFrames(['walk1', 3, 'walk2', 2, 'walk3', 3,
+			'walk2', 2]);
+
+}
 
 // Sets up the context 
 function WarpTo(roomname, x, y) {
   currentroom = roomname;
+  mex = x;
+  mey = y;
 }
 
 function TitleStep(time) {
@@ -151,7 +179,7 @@ function PlayingStep(time) {
   DrawFrame(rooms[currentroom].bg, -scrollx, TOP);
 
   // XXX Draw me (x, y + TOP)
-  
+  DrawFrame(run_right, mex - scrollx, mey + TOP - run_right.height);
 }
 
 function Step(time) {
@@ -200,6 +228,7 @@ function Step(time) {
 }
 
 function Start() {
+  Init();
   phase = PHASE_TITLE;
   start_time = (new Date()).getTime();
   window.requestAnimationFrame(Step);
