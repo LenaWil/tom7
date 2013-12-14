@@ -30,3 +30,10 @@ var TERMINAL_Z = 8;
 // Fighting
 var PUNCHFRAMES = 5;
 var KICKFRAMES = 9;
+
+var FONTW = 9;
+var FONTH = 16;
+var FONTOVERLAP = 1;
+var FONTCHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+    "abcdefghijklmnopqrstuvwxyz0123456789`-=" +
+    "[]\\;',./~!@#$%^&*()_+{}|:\"<>?";

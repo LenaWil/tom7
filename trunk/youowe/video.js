@@ -68,6 +68,55 @@ var Images = function(l, k) {
   };
 };
 
+// Img must already be loaded.
+function Font(img, w, h, overlap, fontchars) {
+  this.width = w;
+  this.height = h;
+  this.overlap = overlap;
+
+  this.chars = {};
+  var px32 = Buf32FromImage(img);
+  for (var i = 0; i < fontchars.length; i++) {
+    var ch = fontchars.charCodeAt(i);
+    var c = NewCanvas(w, h);
+
+    var ctx = c.getContext('2d');
+    var id = ctx.createImageData(w, h);
+    var buf = new ArrayBuffer(id.data.length);
+    var buf8 = new Uint8ClampedArray(buf);
+    var buf32 = new Uint32Array(buf);
+
+    // fill with sub-image
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+	var p = px32[y * img.width + x + (i * w)];
+	// if (p != 0) alert(p);
+	buf32[y * w + x] = p;
+      }
+    }
+
+    id.data.set(buf8);
+    ctx.putImageData(id, 0, 0);
+    this.chars[ch] = c;
+  }
+
+  this.Draw = function(ctx, x, y, s) {
+    var xx = x;
+    for (var i = 0; i < s.length; i++) {
+      var ch = s.charCodeAt(i);
+      if (ch == 10) {
+	xx = x;
+	y += this.height;
+      } else {
+	this.chars[ch] && 
+	    ctx.drawImage(this.chars[ch], xx, y);
+	xx += this.width - this.overlap;
+      }
+    }
+  };
+}
+
+
 // Off screen 
 var canvas =
     (function() {

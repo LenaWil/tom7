@@ -12,6 +12,7 @@ var scrollx = 0;
 
 var images = new Images(
   ['eye.png', // XXX
+   'font.png',
    'walk1.png',
    'walk2.png',
    'walk3.png',
@@ -258,6 +259,8 @@ function Init() {
   };
 
   window.me = new Human(PersonGraphics(0xFF7FFFFF, 0xFFEC7000));
+  window.font = new Font(images.Get('font.png'),
+			 FONTW, FONTH, FONTOVERLAP, FONTCHARS);
 }
 
 // Sets up the context 
@@ -486,6 +489,11 @@ function PlayingStep(time) {
 
   // DrawFrame(me_gfx.run_right, mex - scrollx, mey + TOP - run_right.height);
   me.Draw(scrollx);
+
+  // debug.innerHTML = font.chars[42];
+  font.Draw(ctx, 10, TOP + GAMEHEIGHT,
+	    'Me: BARF!!!\n' +
+	    ' ... ' + frames);
 }
 
 last = 0;

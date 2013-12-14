@@ -1,26 +1,47 @@
-
- - keys
+ - jumping attacks
+ - enemies on screen
+ - enemy ai
+ - getting hurt
+ - punching and kicking hurt enemies
+ - cancel impulse keys
  - cutscenes
+ - moving between rooms
  - flip & recolor sprite system
- - animate character
  - music player
  - game music
  - boss music
  - store music
  - title music
+ - picking stuff up
+ - throwing stuff
+ - running
  - stores
- - punching
- - kicking
- - enemies on screen
- - enemy ai
- - jumping
- - moving between rooms
- - scrolling within room
  - classroom intro sequence
  - pause menu
  - sound effects
  - preload sound effects
+ - room physics
+
+ - Rooms:
+   - beach
+   - street
+   - town
+   - schoolyard
 
 optional
  - hats?
  - "you only get one" handicap
+
+
+"Hey, Jet, I just have one question."
+"Yeah?"
+"What does N. stand for?"
+"..."
+"I just wanna know."
+"... It stands for... Nilborque."
+"Damn, dude."
+"... Yeah, that's why I go by N. or Jet."
+"Yeah but damn."
+"..."
+"It's a pretty dumb name."
+"... (dies)."
