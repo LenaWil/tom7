@@ -6,7 +6,7 @@ var Images = function(l, k) {
   this.remaining = l.length;
   this.continuation = null;
   var that = this;
-  this.update = function() {
+  this.Update = function() {
     var elt = document.getElementById('loading');
     if (elt) {
       if (this.remaining > 0) {
@@ -17,7 +17,7 @@ var Images = function(l, k) {
     }
     if (this.Ready() && this.continuation) {
       // alert(this.continuation);
-      (0,this.continuation)();
+      (0, this.continuation)();
     }
   };
 
@@ -40,7 +40,7 @@ var Images = function(l, k) {
     img.crossOrigin = 'anonymous';
     img.onload = function() {
       that.remaining--;
-      that.update();
+      that.Update();
     };
     img.src = l[i];
     this.obj[l[i]] = img;
