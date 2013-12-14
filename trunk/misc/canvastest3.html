@@ -1,0 +1,93 @@
+<style>
+ canvas.pixels {
+   image-rendering: optimizeSpeed;
+   image-rendering: -moz-crisp-edges;
+   image-rendering: -webkit-optimize-contrast;
+   image-rendering: optimize-contrast;
+   -ms-interpolation-mode: nearest-neighbor;
+ }
+</style>
+
+<div id="counter">counter</div>
+
+<script>
+
+
+var WIDTH = 320;
+var HEIGHT = 200;
+var PX = 4;
+
+var canvas = 
+    (function() { 
+      var c = document.createElement('canvas');
+      c.width = WIDTH * PX;
+      c.height = HEIGHT * PX;
+      c.id = 'canvas';
+      c.style.border = '1px solid black';
+      document.body.appendChild(c);
+      return c;
+    })();
+
+var ctx = canvas.getContext('2d');
+var id = ctx.createImageData(WIDTH * PX, HEIGHT * PX);
+
+var counter = 0;
+var r = 0x50, g = 0x80, b = 0xFE, a = 0xFF, f = 0xFFFFFF;
+var start = (new Date()).getTime();
+
+var buf = new ArrayBuffer(id.data.length);
+// Make two aliases of the data, the second allowing us
+// to write 32-bit pixels.
+var buf8 = new Uint8ClampedArray(buf);
+var data = new Uint32Array(buf);
+
+function draw() {
+  for (var y = 0; y < HEIGHT; y++) {
+    for (var x = 0; x < WIDTH; x++) {
+      /*
+      f = (f * 67) & 0xFFFFFFFF;
+      f = f * 156;
+      f += x;
+      f = f & 0xFFFFFF;
+
+      r *= 25;
+      r += (x + counter / 32);
+      g++;
+      g *= (y + counter);
+      b *= 31337;
+      b += f;
+      f = r ^ g;
+      */
+      r += b & 1;
+      g += r;
+      b ^= g + 1;
+
+      r = g & 0xFF;
+      g = b & 0xFF;
+      b = r & 0xFF;
+      var p = (255 << 24) | (b << 16) | (g << 8) | r;
+      // PERF
+      var o = (y * PX) * (WIDTH * PX) + (x * PX);
+      // PERF unroll?
+      for (var u = 0; u < PX; u++) {
+        for (var v = 0; v < PX; v++) {
+	  data[o + u * WIDTH * PX + v] = p;
+        }
+      }
+    }
+  }
+
+  id.data.set(buf8);  
+  ctx.putImageData(id, 0, 0);
+
+  counter++;
+  var sec = ((new Date()).getTime() - start) / 1000;
+  document.getElementById('counter').innerHTML = 
+    '' + counter + ' (' + (counter / sec).toFixed(2) + ' fps)';
+
+  setTimeout(draw, 1);
+}
+
+draw();
+
+</script>
