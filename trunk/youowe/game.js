@@ -47,7 +47,14 @@ document.onkeydown = function(e) {
   if (e.ctrlKey) return true;
 
   switch (e.keyCode) {
-    case 8: // BACKSPACE;
+    case 27: // ESC
+    if (DEBUG) {
+      ClearSong();
+      document.body.innerHTML = '(SILENCED)';
+      // n.b. javascript keeps running...
+    }
+    break;
+    case 8: // BACKSPACE
     if (DEBUG)
       gang = null;
     break;
@@ -163,7 +170,7 @@ function Room(bg, mask) {
       return MASK_CLIP;
 
     var p = this.mask[this.width * y + x];
-    console.log(x + ' ' + y + ': ' + p);
+    // console.log(x + ' ' + y + ': ' + p);
     if ((p >> 24) > 10) {
       // Assuming just magenta and green, resp.
       if (p & 255 > 10) return MASK_CLIP;
@@ -172,6 +179,24 @@ function Room(bg, mask) {
       return MASK_CLEAR;
     }
   };
+  
+  // Find the safe spot if we are jumping down from
+  // a ledge at x,y. Returns integer y.
+  this.GetJumpDown = function(x, y) {
+    x = Math.round(x);
+    y = Math.round(y);
+    var rem = GAMEHEIGHT - y;
+    for (var i = 0; i < rem; i++) {
+      var m = this.MaskAt(x, y + i);
+      // OK to jump down to another ledge
+      if (m == MASK_CLEAR || m == MASK_LEDGE) {
+	return { x: x, y: y + i, i: i };
+      }
+    }
+    // Bad level.
+    console.log('ledge has no jump-down.');
+    return null;
+  }
 }
 
 // Assumes a list ['frame', n, 'frame', n] ...
@@ -340,6 +365,18 @@ function Human(gfx) {
   this.gfx = gfx;
   this.x = WIDTH / 2;
   this.y = GAMEHEIGHT / 2;
+  // Place on floor...
+  // XXX if we don't have a room, this had better be me
+  // (placed manually).
+  if (window.currentroom) {
+    for (var y = 0; y < GAMEHEIGHT - 1; y++) {
+      if (currentroom.MaskAt(this.x, y) != MASK_CLIP) {
+	this.y = y;
+	break;
+      }
+    }
+  }
+
   // 0 is floor
   this.z = 0;
   this.dx = 0;
@@ -421,7 +458,8 @@ function Human(gfx) {
 	}
       }
     }
-    DrawFrame(fr, this.x - scrollx - fr.width / 2, this.y - this.z + TOP - fr.height,
+    DrawFrame(fr, this.x - scrollx - fr.width / 2, 
+	      this.y - this.z + TOP - fr.height + ME_FEET,
 	      this.fc);
     this.fc++;
   };
@@ -560,12 +598,19 @@ function Human(gfx) {
       // As we enter the loop, this.x will be in a valid location.
       for (var i = 0; Math.abs(i) < Math.abs(this.dx); i += ux) {
 	var m = currentroom.MaskAt(this.x + ux, this.y);
-	console.log(m);
+	// console.log(m);
 	// XXX actually should allow this from a ledge; then
 	// you convert y to z and fall.
 	if (m == MASK_CLIP) break;
 	// Can't walk onto ledge.
 	if (m == MASK_LEDGE && m != startmask) break;
+
+	if (startmask == MASK_LEDGE && m != MASK_LEDGE) {
+	  console.log('stay on ledge x');
+	  // XXX should be possible to walk into free space
+	  // and fall.
+	  break;
+	}
 	this.x += ux;
       }
     }
@@ -577,17 +622,66 @@ function Human(gfx) {
 
       for (var i = 0; Math.abs(i) < Math.abs(this.dy); i += uy) {
 	var m = currentroom.MaskAt(this.x, this.y + uy);
-	console.log(m);
-	// XXX actually should allow this from a ledge; then
-	// you convert y to z and fall.
-	if (m == MASK_CLIP) break;
-	// Can't walk onto ledge.
+	// console.log(m);
+	// Clip usually stops us, but we can ledge transfer.
+	if (m == MASK_CLIP) {
+	  // must be moving down.
+	  // XXX maybe HOLDING down?
+	  if (startmask == MASK_LEDGE && this.dy > 0) {
+	    // must be able to find a safe position.
+	    // n.b. level designers should always put
+	    // sufficient MASK_CLEAR somewhere beneath
+	    // ledges.
+	    var offset = currentroom.GetJumpDown(this.x, this.y + uy);
+	    if (offset) {
+	      console.log('ledge drop! ' + offset.y + ' ' + offset.i);
+	      // Rounds to ints, to ensure invariants
+	      this.x = offset.x;
+	      this.y = offset.y;
+	      // Make it easier to drop down to narrow ledges.
+	      this.dy = 0;
+	      // Any fake ledge height we had becomes z,
+	      // which makes us look like we're in the same spot.
+	      this.z = offset.i;
+	    }
+	  }
+	  // In any case, stop applying y force this turn.
+	  break;
+	}
+	// Can't walk onto ledge from anything but ledge.
 	if (m == MASK_LEDGE && m != startmask) break;
+	if (startmask == MASK_LEDGE && m != MASK_LEDGE) {
+	  // Prevent walking UP off ledges onto CLEAR.
+	  // Walking down is covered in the CLIP case,
+	  // assuming there is clip below (normal).
+	  console.log('stay on ledge y');
+	  break;
+	}
 	this.y += uy;
       }
     }
-    
+
+    // Always apply the z vector.
+    // XXX apply in increments so we can test each pixel for
+    // ledge transfer.
     this.z += this.dz;
+    // If we are moving down but holding 'up', allow landing
+    // on a ledge.
+    if (this.dz < 0 && this.holdingUp) {
+      // Where does it look like our feet are?
+      var xx = Math.round(this.x);
+      var yy = Math.round(this.y - this.z);
+      var m = currentroom.MaskAt(xx, yy);
+      if (m == MASK_LEDGE) {
+	// XXX play "landing" animation
+	console.log('ledge transfer!');
+	// Convert to y coords, losing z height.
+	this.x = xx;
+	this.y = yy;
+	this.z = 0;
+	this.dz = 0;
+      }
+    }
 
     // XXX maybe don't need if we use mask? -- or warps only?
     if (this.x < 0) {
@@ -599,11 +693,11 @@ function Human(gfx) {
     if (this.y > GAMEHEIGHT) {
       this.y = GAMEHEIGHT;
       this.dy = 0;
-    } else if (this.y < WALLHEIGHT) {
+    } /* else if (this.y < WALLHEIGHT) {
       // XXX should be possible to stand on that stuff maybe?
       this.y = WALLHEIGHT;
       this.dy = 0;
-    }
+    } */
 
     debug.innerHTML = this.dx + ' ' + this.dy + ' ' + this.dz +
 	' @ ' + this.x + ' ' + this.y + ' ' + this.z +
@@ -611,12 +705,15 @@ function Human(gfx) {
 	(this.facingright ? ' >' : ' <');
 
     if (this.z < 0) {
+      // XXX play "landing" animation
       this.z = 0;
       this.dz = 0;
     }
   };
 
 }
+
+
 
 // TODO: fighting style, hats, and so on.
 function Gang(n, shirt, pants) {
@@ -655,6 +752,9 @@ function Gang(n, shirt, pants) {
   
   this.UpdateStrategies = function() {
 
+    var player_on_ledge = 
+	MASK_LEDGE == currentroom.MaskAt(me.x, me.y);
+
     // Maybe change strategies.
     // Nobody attack when I'm on the ground.
     if (me.ko > 0) {
@@ -682,6 +782,7 @@ function Gang(n, shirt, pants) {
     // Implement strategies.
     for (var i = 0; i < this.humans.length; i++) {
       var human = this.humans[i];
+      var onledge = MASK_LEDGE == currentroom.MaskAt(human.x, human.y);
       // Figure out our destination.
       var destx = 0, desty = 0;
       switch (human.strategy) {
@@ -741,8 +842,14 @@ function Gang(n, shirt, pants) {
       }
       */
 
-      human.holdingDown = (human.y < desty);
-      human.holdingUp = (human.y > desty);
+      // Get off ledge if I'm on one and the player is not.
+      human.holdingDown = (human.y < desty) ||
+	  (onledge && !player_on_ledge && Math.random() < 0.02);
+
+      // Try to jump onto ledges if the player is on one.
+      human.holdingUp = !human.holdingDown && 
+	  ((human.y > desty) ||
+	   (human.z > 0 && player_on_ledge));
 
       // When to jump?
       human.holdingSpace = (Math.random() < 0.025);
@@ -802,7 +909,7 @@ function PlayingStep(time) {
 
   DrawFrame(currentroom.bg, -scrollx, TOP);
   // XXX no!
-  if (DEBUG)
+  if (false && DEBUG)
     ctx.drawImage(currentroom.mask_debug, -scrollx, TOP);
 
   objects.sort(function (a, b) { return b.Depth () < a.Depth(); });
@@ -869,9 +976,16 @@ function Step(time) {
 
 function Start() {
   Init();
-  phase = PHASE_TITLE;
+
+  // XXX do show the title!
+  // phase = PHASE_TITLE;
+  // StartSong(overworld);
+
+  // XXX not this!
+  WarpTo('classroom', 77, 116);
+  SetPhase(PHASE_PLAYING);
+
   start_time = (new Date()).getTime();
-  StartSong(overworld);
   window.requestAnimationFrame(Step);
 }
 

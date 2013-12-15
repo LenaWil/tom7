@@ -11,6 +11,7 @@ var GAMEHEIGHT = 128;
 var WALLHEIGHT = 87;
 
 var ME_HEIGHT = 32;
+var ME_FEET = 3;
 
 // ?
 var TOP = 24;
