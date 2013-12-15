@@ -1,21 +1,19 @@
 
 TIME LEFT
 
-9-10  ledges
 10-11 cutscenes
-11-12
+11-12 cutscene code
 12-1
-1-2
-2-3
-3-4
-4-5
-5-6
-6-7
+1-2 INTRO
+2-3 MAP
+3-4 
+4-5 GAMEPLAY
+5-6 GAME CONTENT
+6-7 ENDING
 7-8
 8-9
 9-10  turnin
 
- - ledges
  - cutscenes
  - jumping attacks
  - cancel impulse keys
@@ -45,6 +43,7 @@ needs attention:
  - fighting tweaks
 
 optional
+ - animated game on gameboy
  - hats?
  - "you only get one" handicap
  - gang speaks
@@ -53,6 +52,7 @@ optional
  - in firefox, maybe can skip the very slow PX phase
    with some moz-specific resize thing?
  - pause menu
+
 
 cleanup
  - remove console.log statements
