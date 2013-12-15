@@ -10,6 +10,7 @@ TIME LEFT
 
  - hall
 
+ - pick up coins
  - moving between rooms
  - map to play in
  - ability to win
@@ -63,7 +64,7 @@ cleanup
 "What does N. stand for?"
 "..."
 "I just wanna know."
-"... It stands for... Nilborque."
+"... It stands for... Nilbourque."
 "Damn, dude."
 "... Yeah, that's why I go by N. or Jet."
 "Yeah but damn."

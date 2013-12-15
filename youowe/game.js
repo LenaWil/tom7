@@ -48,7 +48,8 @@ var resources = new Resources(
    'jump3.wav',
    'land1.wav',
    'land2.wav',
-   'land3.wav'
+   'land3.wav',
+   'dead.wav'
   ]);
 
 var cutscene_idx = 0;
@@ -66,7 +67,9 @@ function SetPhase(p) {
 
   switch (phase) {
     case PHASE_PLAYING:
+    if (song != song_overworld) {
       StartSong(song_overworld);
+    }
     break;
     case PHASE_TITLE:
       StartSong(song_overworld);
@@ -370,7 +373,7 @@ function EzFlipHoriz(img) {
   return c;
 }
 
-function EzColor(img, shirt, pants) {
+function EzColor(img, shirt, pants, hair) {
   if (typeof img == 'string') img = resources.Get(img + '.png');
 
   var i32 = Buf32FromImage(img);
@@ -390,6 +393,8 @@ function EzColor(img, shirt, pants) {
 	p = shirt;
       } else if (p == 0xFFF0FF00) {
 	p = pants;
+      } else if (p == 0xFF00FFFF) {
+	p = hair;
       }
       buf32[y * img.width + x] = p;
     }
@@ -400,19 +405,19 @@ function EzColor(img, shirt, pants) {
   return c;
 }
 
-function PersonGraphics(shirt, pants) {
-  var walk1 = EzColor('walk1', shirt, pants);
-  var walk2 = EzColor('walk2', shirt, pants);
-  var walk3 = EzColor('walk3', shirt, pants);
-  var blink = EzColor('blink', shirt, pants);
-  var jump = EzColor('jump', shirt, pants);
-  var punch = EzColor('punch', shirt, pants);
-  var punch2 = EzColor('punch2', shirt, pants);
-  var kick = EzColor('kick', shirt, pants);
-  var kick2 = EzColor('kick2', shirt, pants);
-  var dead = EzColor('dead', shirt, pants);
-  var ouch = EzColor('ouch', shirt, pants);
-  var stunned = EzColor('stunned', shirt, pants);
+function PersonGraphics(shirt, pants, hair) {
+  var walk1 = EzColor('walk1', shirt, pants, hair);
+  var walk2 = EzColor('walk2', shirt, pants, hair);
+  var walk3 = EzColor('walk3', shirt, pants, hair);
+  var blink = EzColor('blink', shirt, pants, hair);
+  var jump = EzColor('jump', shirt, pants, hair);
+  var punch = EzColor('punch', shirt, pants, hair);
+  var punch2 = EzColor('punch2', shirt, pants, hair);
+  var kick = EzColor('kick', shirt, pants, hair);
+  var kick2 = EzColor('kick2', shirt, pants, hair);
+  var dead = EzColor('dead', shirt, pants, hair);
+  var ouch = EzColor('ouch', shirt, pants, hair);
+  var stunned = EzColor('stunned', shirt, pants, hair);
 
   return {
     run_right: EzFrames([walk1, 3, walk2, 2, walk3, 3, walk2, 2]),
@@ -452,7 +457,13 @@ function Init() {
     fishroom: new Room(Static('fishroom.png'),
 		       'classroom-mask.png'),
     beach: new Room(Static('beach.png'),
-		    'beach-mask.png')
+		    'beach-mask.png'),
+    street: new Room(Static('street.png'),
+		     'street-mask.png'),
+    schoolfront: new Room(Static('schoolfront.png'),
+			  'schoolfront-mask.png'),
+    classroom: new Room(Static('classroom.png'),
+			'classroom-mask.png')
   };
 
   window.cutscenes = {
@@ -488,7 +499,7 @@ function Init() {
        }])
   };
 
-  window.me = new Human(PersonGraphics(0xFF7FFFFF, 0xFFEC7000));
+  window.me = new Human(PersonGraphics(0xFF7FFFFF, 0xFFEC7000, 0xFF000000));
   window.font = new Font(resources.Get('font.png'),
 			 FONTW, FONTH, FONTOVERLAP, FONTCHARS);
 }
@@ -503,7 +514,7 @@ function WarpTo(roomname, x, y) {
   me.dy = 0;
 
   // Room needs to define a spawn spot or something.
-  gang = new Gang(4, 0xFF123456, 0xFF987654);
+  gang = new Gang(4, 0xFF123456, 0xFF987654, 0xFF000088);
 }
 
 function TitleStep(time) {
@@ -699,12 +710,15 @@ function Human(gfx) {
 	      objects[i].hp -= KICK_DAMAGE;
 	    }
 
-	    if (Math.random() < 0.1) {
+	    if (objects[i].hp <= 0 || Math.random() < 0.1) {
+	      if (objects[i].hp <= 0) {
+		// XXX randomly
+		textpages.push('Hank: BARF!!!');
+		PlaySound('dead.wav');
+	      }
+
 	      objects[i].ko = objects[i].hp <= 0 ? DEADFRAMES : KOFRAMES;
 	      objects[i].fc = 0;
-	      // XXX randomly
-	      textpages.push('Hank: BARF!!!');
-
 	    } else {
 	      objects[i].hurt = HURTFRAMES;
 	      objects[i].fc = 0;
@@ -889,14 +903,14 @@ function Human(gfx) {
 
 
 // TODO: fighting style, hats, and so on.
-function Gang(n, shirt, pants) {
+function Gang(n, shirt, pants, hair) {
   var NATTACKERS = 2;
 
   // Or get stuff, etc.
   var S_ATTACK = 0, S_CONFRONT = 1; // , S_AVOID = 2;
 
   this.humans = [];
-  var gfx = PersonGraphics(shirt, pants);
+  var gfx = PersonGraphics(shirt, pants, hair);
   for (var i = 0; i < n; i++) {
     var h = new Human(gfx);
     h.strategy = S_CONFRONT;
@@ -1128,7 +1142,27 @@ function PlayingStep(time) {
     };
     cutscene = cutscenes.fish;
     SetPhase(PHASE_CUTSCENE);
-  }
+  } else if (currentroom == rooms.beach) {
+    if (me.x > 608) {
+      WarpTo('street', 43, 95);
+      SetPhase(PHASE_PLAYING);
+      ClearText();
+      // XXX don't repeat text.
+      textpages = ['OCEAN CITY.',
+		   'Me: Someone around here must\n' +
+		   'have a dollar I can borrow.'];
+    }
+  } else if (currentroom == rooms.street) {
+    if (me.x < 21) {
+      WarpTo('beach', 578, 93);
+      ClearText();
+      SetPhase(PHASE_PLAYING);
+    } else if (me.x > 514) {
+      WarpTo('schoolfront', 43, 95);
+      ClearText();
+      SetPhase(PHASE_PLAYING);
+    }
+  } // else if (currentroom == rooms.
 }
 
 last = 0;
