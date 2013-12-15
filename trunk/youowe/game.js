@@ -11,7 +11,9 @@ var phase = PHASE_TITLE;
 var scrollx = 0;
 
 var images = new Images(
-  ['eye.png', // XXX
+  ['alone.png',
+   'alone2.png',
+   'killed.png',
    'font.png',
    'walk1.png',
    'walk2.png',
@@ -121,6 +123,13 @@ document.onkeyup = function(e) {
   return false;
 }
 
+function Cutscene(desc) {
+  this.desc = desc;
+  // ...
+}
+
+
+
 // The 'f' field must be something that you can ctx.drawImage on,
 // so an Image or Canvas.
 function Frames(arg) {
@@ -148,9 +157,10 @@ function Frames(arg) {
     }
     return this.frames[0].f;
   };
+  if (this.frames.length == 0) throw '0 frames';
+  // alert(this.frames[0].f);
   this.height = this.frames[0].f.height;
   this.width = this.frames[0].f.width;
-  // alert('frame ' + this.width + 'x' + this.height);
 }
 
 function Static(f) { return new Frames(images.Get(f)); }
@@ -212,6 +222,7 @@ function EzFrames(l) {
     var f = null;
     if (typeof s == 'string') {
       f = images.Get(l[i] + '.png');
+      if (!f) throw ('could not find ' + s + '.png');
     } else if (s instanceof Element) {
       // Assume [canvas] or Image
       f = s;
@@ -325,6 +336,18 @@ function Init() {
   window.rooms = {
     classroom: new Room(Static('classroom.png'),
 			'classroom-mask.png')
+  };
+
+  window.cutscenes = {
+    intro: new Cutscene(
+      [{ f: EzFrames(['killed', 1]),
+	 s: song_vampires,
+	 t: ['... when I was young my brother was\n' +
+	     'killed in a karate tournament.'] },
+       { f: EzFrames(['alone', 15, 'alone2', 15]),
+	 s: song_escape,
+	 t: ['So I spent a lot of time alone.'] }
+      ])
   };
 
   window.me = new Human(PersonGraphics(0xFF7FFFFF, 0xFFEC7000));
@@ -978,12 +1001,16 @@ function Start() {
   Init();
 
   // XXX do show the title!
-  // phase = PHASE_TITLE;
-  // StartSong(overworld);
+  phase = PHASE_TITLE;
+  StartSong(song_escape);  
+  // StartSong(song_overworld);
+
+  // SetPhase(PHASE_CUTSCENE);
+  cutscene = cutscenes.intro;
 
   // XXX not this!
-  WarpTo('classroom', 77, 116);
-  SetPhase(PHASE_PLAYING);
+  // WarpTo('classroom', 77, 116);
+  // SetPhase(PHASE_PLAYING);
 
   start_time = (new Date()).getTime();
   window.requestAnimationFrame(Step);
