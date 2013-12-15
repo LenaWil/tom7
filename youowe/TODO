@@ -1,8 +1,6 @@
 
 TIME LEFT
 
-12-1 food
-1-2 INTRO
 2-3 MAP
 3-4 
 4-5 GAMEPLAY
@@ -12,22 +10,25 @@ TIME LEFT
 8-9
 9-10  turnin
 
- - cutscenes
+ - moving between rooms
+ - map to play in
+ - ability to win
+ - boss fight
+
  - jumping attacks
  - cancel impulse keys
- - moving between rooms
  - game music
- - boss music
  - store music
  - title music
  - picking stuff up
  - throwing stuff
- - running
- - stores
- - classroom intro sequence
  - sound effects
  - preload sound effects
  - use theme
+
+Probably not:
+ - running
+ - stores
 
 
  - Rooms:
@@ -41,11 +42,11 @@ needs attention:
  - fighting tweaks
 
 polish
- - music speed
  - hurt anim is way too fast
+ - intro smoothness
+ - boss music alt instrument 
 
 optional
- - animated game on gameboy
  - hats?
  - "you only get one" handicap
  - gang speaks

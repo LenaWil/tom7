@@ -23,6 +23,7 @@ var tracks = [];
 var MSPERTICK = 4.0;
 function StartSong(s) {
   ClearSong();
+  if (!s) return;
   song = s;
   tracks = [];
   var now = audioctx.currentTime * 1000.0; // (new Date()).getTime();
@@ -36,8 +37,9 @@ function StartSong(s) {
     }
 
     var notes = song[i].notes.slice(0);
+    var m = song.multiply || 1;
     for (var j = 0; j < notes.length; j++) {
-      notes[j].d *= MSPERTICK;
+      notes[j].d *= MSPERTICK * m;
     }
 
     tracks.push({ type: type, 
@@ -68,7 +70,7 @@ function DoSoundEvent(tr, e, d) {
     // 256 + 10 * e.on;
     src.frequency.value = MidiFreq(e.on);
     var gain = audioctx.createGain();
-    gain.gain.value = 0.275;
+    gain.gain.value = 0.25;
     src.connect(gain);
 
     var lowpass = audioctx.createBiquadFilter();
