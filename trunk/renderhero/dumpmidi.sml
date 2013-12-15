@@ -12,16 +12,16 @@ struct
 
   (* This uses lots of top-level evaluation, making exception handling awkward *)
   fun report e =
-      case e of 
+      case e of
           Hero s => (messagebox ("exn test: " ^ s); raise e)
-        | e => 
+        | e =>
               let in
                   app (fn s => print (s ^ "\n")) (MLton.Exn.history e);
                   messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e);
                   raise e
               end
 
-  fun printerr s = TextIO.output(TextIO.stdErr, s ^ "\n")
+  fun eprint s = TextIO.output(TextIO.stdErr, s ^ "\n")
 
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
@@ -74,15 +74,17 @@ struct
       end
 
   (* must agree with sound.c *)
-  val INST_NONE   = 0
-  val INST_SQUARE = 1
-  val INST_SAW    = 2
-  val INST_NOISE  = 3
-  val INST_SINE   = 4
+  datatype instrument =
+      INST_NONE
+    | INST_SQUARE
+    | INST_SAW
+    | INST_NOISE
+    | INST_SINE
+    | INST_TRIANGLE
 
   val freqs = Array.array(16, 0)
 
-  datatype status = 
+  datatype status =
       OFF
     | PLAYING of int
   (* for each channel, all possible midi notes *)
@@ -92,15 +94,15 @@ struct
 
   (* FIXME totally ad hoc!! *)
   val itos = Int.toString
-  val f = (case CommandLine.arguments() of 
+  val f = (case CommandLine.arguments() of
                st :: _ => st
              | _ => "totally-membrane.mid")
-  val r = (Reader.fromfile f) handle _ => 
+  val r = (Reader.fromfile f) handle _ =>
       raise Hero ("couldn't read " ^ f)
   val m as (ty, divi, thetracks) = MIDI.readmidi r
   val _ = ty = 1
       orelse raise Hero ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
-  val () = print ("MIDI division is " ^ itos divi ^ "\n")
+  val () = eprint ("MIDI division is " ^ itos divi ^ "\n")
   val _ = divi > 0
       orelse raise Hero ("Division must be in PPQN form!\n")
 
@@ -109,11 +111,11 @@ struct
           val q = m div n
       in
           if n * q <> m
-          then raise Hero (IntInf.toString m ^ " div " ^ 
+          then raise Hero (IntInf.toString m ^ " div " ^
                            IntInf.toString n ^ " cannot be represented exactly")
           else q
       end
-      
+
   fun div_exacti (m, n) = IntInf.toInt (div_exact (IntInf.fromInt m, IntInf.fromInt n))
 
   infix div_exact div_exacti
@@ -126,25 +128,25 @@ struct
     | findname ((_, MIDI.META (MIDI.NAME s)) :: _) = SOME s
     | findname (_ :: rest) = findname rest
 
-  val () = print ("Divi is " ^ Int.toString divi ^ "\n")
+  val () = eprint ("Divi is " ^ Int.toString divi ^ "\n")
 
   val DIVI_DIVISION = 120 (* I care about 32nd notes *)
   val FRAMES_PER_TICK = 1 (* report in frames *)
   (* For ActionScript geometric renderers *)
   fun print_track t =
-      let 
+      let
           (* number of ticks per sixteenth note *)
           val divisor = divi div_exacti DIVI_DIVISION
 
           fun noteson extra ((delta, e) :: l) =
               let val delta = delta + extra
-                  val extra = 
+                  val extra =
                       case e of
                           MIDI.NOTEON(_, note, 0) => delta
-                        | MIDI.NOTEON(_, note, v) => 
+                        | MIDI.NOTEON(_, note, v) =>
                            let in
                               print
-                              ("{ d:" ^ Int.toString ((delta * FRAMES_PER_TICK) 
+                              ("{ d:" ^ Int.toString ((delta * FRAMES_PER_TICK)
                                                       div_exacti divisor) ^
                                ", n:" ^ Int.toString note ^ "}, ");
                               0
@@ -158,20 +160,79 @@ struct
           noteson 0 t
       end
 
+    (* Events in the output always have d: delta time.
+       on:n turn on the MIDI note n
+       off:n turn it off
+       w:1 do nothing (makes tracks align at their ends *)
+  fun print_track_js totaltime kind t =
+    let
+
+      (* number of ticks per sixteenth note *)
+      val divisor = divi div_exacti DIVI_DIVISION
+      fun dtos delta =
+        Int.toString ((delta * FRAMES_PER_TICK)
+                      div_exacti divisor)
+
+      val acc = ref nil : string list ref
+
+      fun noteson left extra ((delta, e) :: l) =
+          let
+            val delta = delta + extra
+            fun off note =
+              let in
+                acc :=
+                ("{d:" ^ dtos delta ^
+                 ",off:" ^ Int.toString note ^ "}") :: !acc;
+                (left - delta, 0)
+              end
+
+            val (left, extra) =
+              case e of
+                MIDI.NOTEON(_, note, 0) => off note
+              | MIDI.NOTEOFF(_, note, _) => off note
+              | MIDI.NOTEON(_, note, v) =>
+                  let in
+                    acc :=
+                    ("{d:" ^ dtos delta ^
+                     ",on:" ^ Int.toString note ^ "}") :: !acc;
+                    (left - delta, 0)
+                  end
+              | _ => (left, delta)
+          in
+            noteson left extra l
+          end
+        | noteson left extra nil =
+          if (left + extra) > 0
+          then acc := ("{d:" ^ dtos (left + extra) ^ ",w:1}") :: !acc
+          else ()
+    in
+      noteson totaltime 0 t;
+
+      "{ inst: " ^
+      (case kind of
+         INST_SQUARE => "'SQUARE'"
+       | INST_SAW => "'SAW'"
+       | INST_TRIANGLE => "'TRIANGLE'"
+       | _ => "'?'") ^
+      ", notes: [" ^
+      StringUtil.delimit "," (rev (!acc)) ^
+      "]}"
+    end
+
   (* For microchip *)
   fun print_track_pic t =
-      let 
+      let
           (* XXX args *)
           val DIVI_DIVISION = 120
           val FRAMES_PER_TICK = 1 (* report in frames *)
           val NMIX = 6
 
           val songlength = ref 0
-              
-          (* Need to keep track of what channels are active. 
+
+          (* Need to keep track of what channels are active.
              Notes tells us which mix channel the note is
              currently assigned to.
-             
+
              Status tells us whether the mix channel is
              currently active. *)
           val notes = Array.array (128, NONE)
@@ -194,7 +255,7 @@ struct
                       if Option.isSome (Array.sub(notes, note))
                       then
                           let in
-                              printerr "The note was already on.";
+                              eprint "The note was already on.";
                               delta
                           end
                       else
@@ -202,7 +263,7 @@ struct
                         (case Array.findi (fn (_, b) => not b) status of
                              NONE =>
                                  let in
-                                     printerr "There was no channel available.";
+                                     eprint "There was no channel available.";
                                      delta
                                  end
                            | SOME (ch, _) =>
@@ -210,7 +271,7 @@ struct
                                      Array.update(status, ch, true);
                                      Array.update(notes, note, SOME ch);
                                      songlength := !songlength + 1;
-                                     print (" { " ^ Int.toString ((delta * FRAMES_PER_TICK) 
+                                     print (" { " ^ Int.toString ((delta * FRAMES_PER_TICK)
                                                                   div_exacti divisor) ^ ", " ^
                                             Int.toString ch ^ ", " ^
                                             Int.toString (pitchof note div 10000) ^ " },\n");
@@ -220,18 +281,18 @@ struct
                         (case Array.sub(notes, note) of
                              NONE =>
                                  let in
-                                     printerr "Note off when not on.";
+                                     eprint "Note off when not on.";
                                      delta
                                  end
                            | SOME ch =>
                                  if Array.sub(status, ch)
-                                 then 
+                                 then
                                      let in
                                          Array.update(notes, note, NONE);
                                          Array.update(status, ch, false);
 
-                                         songlength := !songlength + 1;                                         
-                                         print (" { " ^ Int.toString ((delta * FRAMES_PER_TICK) 
+                                         songlength := !songlength + 1;
+                                         print (" { " ^ Int.toString ((delta * FRAMES_PER_TICK)
                                                                       div_exacti divisor) ^ ", " ^
                                                 Int.toString ch ^ ", " ^
                                                 "0" ^ " },\n");
@@ -254,37 +315,53 @@ struct
      This uses the track's name to determine its label. *)
   fun label tracks =
       let
+          fun findmark t =
+            let
+              fun getmark tot nil = NONE
+                | getmark tot ((d, MIDI.META (MIDI.MARK m)) :: rest) =
+                if StringUtil.matchhead "+LOOP" m
+                then SOME (tot + d, "+LOOP")
+                else getmark (tot + d) rest
+                | getmark tot ((d, _) :: t) = getmark (tot + d) t
+            in
+              getmark 0 t
+            end
+
+          val endmark : int =
+            case List.mapPartial findmark tracks of
+              nil => (eprint "There must be a marker called +LOOP at the end."; raise Hero "")
+            | (dt, _) :: _ => dt
+
           fun onetrack tr =
               case findname tr of
-                  NONE => SOME (Control, tr) (* (print "Discarded track with no name.\n"; NONE) *)
-                | SOME "" => SOME (Control, tr) (* (print "Discarded track with empty name.\n"; NONE) *)
-                | SOME name => 
+                  NONE => NONE
+                | SOME "" => NONE
+                | SOME name =>
                       (case CharVector.sub(name, 0) of
                            #"+" =>
-                           SOME (case CharVector.sub (name, 1) of
-                                     #"Q" => 
-                                     let in 
-                                         (* XXX hack attack, should be command line or sth? *)
-                                         print_track_pic tr;
-                                         Music INST_SQUARE 
-                                     end
-                                   | #"W" => 
-                                     let in
-                                         (* XXX hack attack *)
-                                         (* print_track tr; *)
-                                         Music INST_SAW 
-                                     end
-                                   | #"N" => Music INST_NOISE
-                                   | #"S" => Music INST_SINE
-                                   | _ => (print "?? expected Q or W or N\n"; raise Hero ""),
-                                 tr)
-                         | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); 
-                                 SOME (Control, tr))
-                           )
+                         (case CharVector.sub (name, 1) of
+                            #"Q" => SOME(print_track_js endmark INST_SQUARE tr)
+                          (* XXX hack attack, should be command line or sth? *)
+                          (* print_track_pic tr; *)
+
+                          | #"W" => SOME(print_track_js endmark INST_SAW tr)
+                          | #"T" => SOME(print_track_js endmark INST_TRIANGLE tr)
+                          (*
+                          | #"N" => Music INST_NOISE
+                            | #"S" => Music INST_SINE
+                            *)
+                          | _ => (eprint "?? expected Q or W or N\n"; raise Hero ""))
+
+                         | _ => (eprint ("confused by named track '" ^ name ^ "'?? expected + or ...\n");
+                                 NONE))
+
+          val l = List.mapPartial onetrack tracks
       in
-          List.mapPartial onetrack tracks
+        print "var song = [";
+        print (StringUtil.delimit ",\n" l);
+        print "];\n"
       end handle e => report e
-      
+
   val tracks = label thetracks
 
 end
