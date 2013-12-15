@@ -21,7 +21,7 @@ var TOP = 24;
 
 // Physics
 var GRAVITY = 0.8;
-var JUMP_IMPULSE = 8;
+var JUMP_IMPULSE = 6;
 var ACCEL_X = 0.6;
 var ACCEL_Y = 0.2;
 var AIR_ACCEL_X = 0.25;
