@@ -1,14 +1,14 @@
 
 TIME LEFT
 
-2-3 MAP
-3-4 
-4-5 GAMEPLAY
-5-6 GAME CONTENT
-6-7 ENDING
-7-8
-8-9
+4-5 MAP
+5-6 
+6-7 GAMEPLAY
+7-8 ENDING
+8-9 GAME CONTENT
 9-10  turnin
+
+ - hall
 
  - moving between rooms
  - map to play in
@@ -22,17 +22,13 @@ TIME LEFT
  - title music
  - picking stuff up
  - throwing stuff
- - sound effects
- - preload sound effects
  - use theme
 
 Probably not:
  - running
  - stores
 
-
  - Rooms:
-   - beach
    - street
    - town
    - schoolyard
@@ -42,6 +38,7 @@ needs attention:
  - fighting tweaks
 
 polish
+ - street graphics
  - hurt anim is way too fast
  - intro smoothness
  - boss music alt instrument 
@@ -50,7 +47,6 @@ optional
  - hats?
  - "you only get one" handicap
  - gang speaks
- - 
  - [-] [+] controls to resize screen
  - in firefox, maybe can skip the very slow PX phase
    with some moz-specific resize thing?
