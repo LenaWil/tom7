@@ -133,6 +133,11 @@ document.onkeydown = function(e) {
   if (e.ctrlKey) return true;
 
   switch (e.keyCode) {
+    case 9:
+    // CHEATS
+    if (DEBUG)
+      textpages = [];
+    break;
     case 27: // ESC
     if (DEBUG) {
       ClearSong();
@@ -252,6 +257,7 @@ var MASK_CLEAR = 0, MASK_CLIP = 1, MASK_LEDGE = 2;
 function Room(bg, mask) {
   this.bg = bg;
   this.width = bg.width;
+  this.height = bg.height;
   this.mask_debug = images.Get(mask);
   this.mask = Buf32FromImage(images.Get(mask));
   // ...?
@@ -265,7 +271,9 @@ function Room(bg, mask) {
 
     var p = this.mask[this.width * y + x];
     // console.log(x + ' ' + y + ': ' + p);
-    if ((p >> 24) > 10) {
+    // Note, must be unsigned shift!
+    if ((p >>> 24) > 10) {
+      // console.log(x + ' ' + y + ': ' + p);
       // Assuming just magenta and green, resp.
       if (p & 255 > 10) return MASK_CLIP;
       else return MASK_LEDGE;
