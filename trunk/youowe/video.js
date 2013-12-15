@@ -106,7 +106,7 @@ function Font(img, w, h, overlap, fontchars) {
       var ch = s.charCodeAt(i);
       if (ch == 10) {
 	xx = x;
-	y += this.height;
+	y += this.height - 1;
       } else {
 	this.chars[ch] && 
 	    ctx.drawImage(this.chars[ch], xx, y);

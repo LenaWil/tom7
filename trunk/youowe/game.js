@@ -15,6 +15,10 @@ var images = new Images(
   ['alone.png',
    'alone2.png',
    'killed.png',
+   'utoh.png',
+   'accused.png',
+   'beach.png',
+   'beach-mask.png',
    'font.png',
    'walk1.png',
    'walk2.png',
@@ -31,6 +35,7 @@ var images = new Images(
    'dead.png',
    'blank.png',
    'z.png',
+   'fishroom.png',
    'classroom.png',
    'classroom-mask.png']);
 
@@ -49,7 +54,7 @@ function SetPhase(p) {
 
   switch (phase) {
     case PHASE_TITLE:
-      StartSong(overworld);
+      StartSong(song_overworld);
     break;
     case PHASE_CUTSCENE:
       cutscene_idx = -1;
@@ -412,23 +417,46 @@ function PersonGraphics(shirt, pants) {
 }
 
 function Init() {
+  song_boss.multiply = 1.25;
+  song_vampires.multiply = 1.1;
+
   window.rooms = {
-    classroom: new Room(Static('classroom.png'),
-			'classroom-mask.png')
+    fishroom: new Room(Static('fishroom.png'),
+		       'classroom-mask.png'),
+    beach: new Room(Static('beach.png'),
+		    'beach-mask.png')
   };
 
   window.cutscenes = {
     intro: new CutScene(
       [{ f: EzFrames(['killed', 1]),
-	 s: song_boss, // song_vampires,
+	 s: song_vampires,
 	 t: ['... when I was young my brother was\n' +
 	     'killed in a karate tournament.'] },
        { f: EzFrames(['alone', 15, 'alone2', 15]),
 	 s: song_escape,
-	 t: ['So I spent a lot of time alone.\n' +
-	     'Line TWO\n' + 
-	     'WWWWWWWWWWWWW######' ] }
-      ])
+	 t: ['So I spent a lot of time alone.\n'] }
+      ]),
+    fish: new CutScene(
+      [{ f: EzFrames(['utoh', 1]),
+	 // XXX in trouble music
+	 s: null,
+	 t: ['Me: Oops...!'] },
+       { f: EzFrames(['accused', 1]),
+	 s: song_boss,
+	 t: ['N. Lee: Who\'s there?',
+	     'Me: Ut oh, it\'s N. Lee.',
+	     'N. Lee: That\'s "JET" to you, Punky\n' +
+	     'Brewsturd.\n' +
+	     'Did you just kill the class fish?',
+	     'Me: I think it might still be alive.',
+	     'N. Lee: Well that was MY fishbowl,\n' +
+	     'Rainbow Blight.',
+	     'Me: ...',
+	     'N. Lee: Got any dollars?\n' +
+	     'Because it looks like\n' +
+	     'you owe N. Lee ("Jet") one.']
+       }])
   };
 
   window.me = new Human(PersonGraphics(0xFF7FFFFF, 0xFFEC7000));
@@ -453,8 +481,15 @@ function TitleStep(time) {
   ctx.drawImage(images.Get('title.png'), 0, 0);
   if (holdingEnter) {
     ClearSong();
-    WarpTo('classroom', 77, 116);
-    SetPhase(PHASE_PLAYING);
+
+    cutscene = cutscenes.intro;
+    after_cutscene = function () {
+      WarpTo('fishroom', 77, 116);
+      SetPhase(PHASE_PLAYING);
+      ClearText();
+      textpages = ['Time to tend to my debts.'];
+    };
+    SetPhase(PHASE_CUTSCENE);
   }
 }
 
@@ -1049,6 +1084,19 @@ function PlayingStep(time) {
   font.Draw(ctx, 160, 2, 'arrows/z/x/space');
 
   UpdateText();
+
+  // Room-specific logic and triggers.
+  if (currentroom == rooms.fishroom && me.x > 244) {
+    after_cutscene = function() {
+      WarpTo('beach', 77, 116);
+      SetPhase(PHASE_PLAYING);
+      ClearText();
+      textpages = ['THE NEXT DAY.',
+		   'Me: Time to tend to my debts.'];
+    };
+    cutscene = cutscenes.fish;
+    SetPhase(PHASE_CUTSCENE);
+  }
 }
 
 last = 0;
@@ -1108,19 +1156,21 @@ function Start() {
   Init();
 
   // XXX do show the title!
-  // SetPhase(PHASE_TITLE);
+  SetPhase(PHASE_TITLE);
 
+  /*
   cutscene = cutscenes.intro;
   after_cutscene = function () {
-    WarpTo('classroom', 77, 116);
+    WarpTo('fishroom', 77, 116);
     SetPhase(PHASE_PLAYING);
     ClearText();
     textpages = ['Time to tend to my debts.'];
   };
   SetPhase(PHASE_CUTSCENE);
-
+  */
+  
   // XXX not this!
-  // WarpTo('classroom', 77, 116);
+  // WarpTo('beach', 77, 116);
   // SetPhase(PHASE_PLAYING);
 
   start_time = (new Date()).getTime();
