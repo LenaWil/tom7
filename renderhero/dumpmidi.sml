@@ -94,11 +94,12 @@ struct
 
   (* FIXME totally ad hoc!! *)
   val itos = Int.toString
-  val f = (case CommandLine.arguments() of
-               st :: _ => st
-             | _ => "totally-membrane.mid")
-  val r = (Reader.fromfile f) handle _ =>
-      raise Hero ("couldn't read " ^ f)
+  val (filename, symbol) = (case CommandLine.arguments() of
+                    st :: sy :: _ => (st, sy)
+                  | st :: _ => (st, "song")
+                  | _ => ("totally-membrane.mid", "song"))
+  val r = (Reader.fromfile filename) handle _ =>
+      raise Hero ("couldn't read " ^ filename)
   val m as (ty, divi, thetracks) = MIDI.readmidi r
   val _ = ty = 1
       orelse raise Hero ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
@@ -357,9 +358,10 @@ struct
 
           val l = List.mapPartial onetrack tracks
       in
-        print "var song = [";
+        print ("/* " ^ filename ^ " */\n");
+        print ("var " ^ symbol ^ " = [");
         print (StringUtil.delimit ",\n" l);
-        print "];\n"
+        print "];\n\n"
       end handle e => report e
 
   val tracks = label thetracks
