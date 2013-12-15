@@ -5,7 +5,8 @@ var start_time = (new Date()).getTime();
 // Number of elapsed frames in the current scene.
 var frames = 0;
 
-var PHASE_TITLE = 0, PHASE_PLAYING = 1;
+var PHASE_TITLE = 0, PHASE_PLAYING = 1,
+  PHASE_CUTSCENE = 2;
 var phase = PHASE_TITLE;
 
 var scrollx = 0;
@@ -29,14 +30,92 @@ var images = new Images(
    'title.png',
    'dead.png',
    'blank.png',
+   'z.png',
    'classroom.png',
    'classroom-mask.png']);
 
+var cutscene_idx = 0;
+var cutscene = null;
+// Initialized in Init.
+var cutscenes = {};
+// Continuation to run after cutscene ends.
+// XXX Move into cutscene object
+var after_cutscene = function () { throw 'no cutscene cont'; };
 function SetPhase(p) {
   frames = 0;
   // XXX clear other state
 
   phase = p;
+
+  switch (phase) {
+    case PHASE_TITLE:
+      StartSong(overworld);
+    break;
+    case PHASE_CUTSCENE:
+      cutscene_idx = -1;
+      NextCutScene();
+    break;
+  }
+}
+
+// Holds a list of strings that we want drawn.
+var textpages = [];
+// Index within textpages[0]. If you modify the
+// first element, make sure to clear this.
+var textidx = 0;
+function UpdateText() {
+  if (TextDone()) return;
+  if (textidx >= textpages[0].length) {
+    // XXX some pause time here.
+    if (holdingSpace || holdingZ) {
+      textpages.shift();
+      textidx = 0;
+    } else {
+      font.Draw(ctx, 4, TOP + GAMEHEIGHT + 1,
+		textpages[0]);
+      // XXX Blink?
+      // indicate with graphic
+      ctx.drawImage(images.Get('z.png'),
+		    WIDTH - 16,
+		    HEIGHT - 16);
+    }
+  } else {
+    textidx++;
+    font.Draw(ctx, 4, TOP + GAMEHEIGHT + 1,
+	      textpages[0].substr(0, textidx));
+  }
+}
+
+function TextDone() {
+  return textpages.length == 0;
+}
+
+function ClearText() {
+  textpages = [];
+  textidx = 0;
+}
+
+function NextCutScene() {
+  // cutscene_idx holds the currently shown
+  // cutscene state (or -1 if we're just
+  // starting)
+  cutscene_idx++;
+  ClearText();
+
+  if (cutscene_idx >= cutscene.desc.length) {
+    ClearSong();
+    // XXX from obj
+    (0, after_cutscene)();
+    return;
+  }
+  
+  var state = cutscene.desc[cutscene_idx];
+  if (song != state.s) {
+    StartSong(state.s);
+  }
+
+  var t = state.t || ['              ...  '];
+  textpages = t;
 }
 
 var holdingLeft = false, holdingRight = false,
@@ -123,7 +202,7 @@ document.onkeyup = function(e) {
   return false;
 }
 
-function Cutscene(desc) {
+function CutScene(desc) {
   this.desc = desc;
   // ...
 }
@@ -339,14 +418,16 @@ function Init() {
   };
 
   window.cutscenes = {
-    intro: new Cutscene(
+    intro: new CutScene(
       [{ f: EzFrames(['killed', 1]),
 	 s: song_vampires,
 	 t: ['... when I was young my brother was\n' +
 	     'killed in a karate tournament.'] },
        { f: EzFrames(['alone', 15, 'alone2', 15]),
 	 s: song_escape,
-	 t: ['So I spent a lot of time alone.'] }
+	 t: ['So I spent a lot of time alone.\n' +
+	     'Line TWO\n' + 
+	     'WWWWWWWWWWWWW######' ] }
       ])
   };
 
@@ -369,7 +450,6 @@ function WarpTo(roomname, x, y) {
 }
 
 function TitleStep(time) {
-  UpdateSong();
   ctx.drawImage(images.Get('title.png'), 0, 0);
   if (holdingEnter) {
     ClearSong();
@@ -558,6 +638,9 @@ function Human(gfx) {
 	    if (Math.random() < 0.1) {
 	      objects[i].ko = objects[i].hp <= 0 ? DEADFRAMES : KOFRAMES;
 	      objects[i].fc = 0;
+	      // XXX randomly
+	      textpages.push('Hank: BARF!!!');
+
 	    } else {
 	      objects[i].hurt = HURTFRAMES;
 	      objects[i].fc = 0;
@@ -892,6 +975,25 @@ function Gang(n, shirt, pants) {
   };
 }
 
+function CutSceneStep(time) {
+  var scene = cutscene.desc[cutscene_idx];
+
+  // Could be configurable by cutscene
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  if (scene.f)
+    DrawFrame(scene.f, 0, TOP);
+
+  UpdateText();
+
+  // XXX allow timer too, where condition is
+  // TextDone() && enough_time
+  if (TextDone()) {
+    NextCutScene();
+  }
+}
+
 function PlayingStep(time) {
   // XXX once we start scrolling, scroll ahead of
   // where the player's going
@@ -945,9 +1047,8 @@ function PlayingStep(time) {
   // XXX real text status
   font.Draw(ctx, 2, 2, 'HP: ' + me.hp);
   font.Draw(ctx, 160, 2, 'arrows/z/x/space');
-  font.Draw(ctx, 10, TOP + GAMEHEIGHT,
-	    'Me: BARF!!!\n' +
-	    ' ... ' + frames);
+
+  UpdateText();
 }
 
 last = 0;
@@ -973,14 +1074,20 @@ function Step(time) {
   frames++;
   if (frames > 1000000) frames = 0;
 
-  if (phase == PHASE_TITLE) {
-    TitleStep();
-  } else if (phase == PHASE_PLAYING) {
+  switch (phase) {
+  case PHASE_PLAYING:
     PlayingStep();
+    break;
+  case PHASE_CUTSCENE:
+    CutSceneStep();
+    break;
+  case PHASE_TITLE:
+    TitleStep();
+    break;
   }
 
-  // XXX process music
-
+  // process music in any state
+  UpdateSong();
 
   // On every frame, flip to 4x canvas
   bigcanvas.Draw4x(ctx);
@@ -1001,12 +1108,16 @@ function Start() {
   Init();
 
   // XXX do show the title!
-  phase = PHASE_TITLE;
-  StartSong(song_escape);  
-  // StartSong(song_overworld);
+  // SetPhase(PHASE_TITLE);
 
-  // SetPhase(PHASE_CUTSCENE);
   cutscene = cutscenes.intro;
+  after_cutscene = function () {
+    WarpTo('classroom', 77, 116);
+    SetPhase(PHASE_PLAYING);
+    ClearText();
+    textpages = ['Time to tend to my debts.'];
+  };
+  SetPhase(PHASE_CUTSCENE);
 
   // XXX not this!
   // WarpTo('classroom', 77, 116);

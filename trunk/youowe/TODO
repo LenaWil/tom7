@@ -42,6 +42,10 @@ needs attention:
  - gang behaviors
  - fighting tweaks
 
+polish
+ - music speed
+ - hurt anim is way too fast
+
 optional
  - animated game on gameboy
  - hats?
@@ -52,7 +56,7 @@ optional
  - in firefox, maybe can skip the very slow PX phase
    with some moz-specific resize thing?
  - pause menu
-
+ 
 
 cleanup
  - remove console.log statements
