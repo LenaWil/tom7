@@ -11,7 +11,7 @@ var phase = PHASE_TITLE;
 
 var scrollx = 0;
 
-var images = new Images(
+var resources = new Resources(
   ['alone.png',
    'alone2.png',
    'killed.png',
@@ -19,6 +19,10 @@ var images = new Images(
    'accused.png',
    'beach.png',
    'beach-mask.png',
+   'schoolfront.png',
+   'schoolfront-mask.png',
+   'street.png',
+   'street-mask.png',
    'font.png',
    'walk1.png',
    'walk2.png',
@@ -37,7 +41,15 @@ var images = new Images(
    'z.png',
    'fishroom.png',
    'classroom.png',
-   'classroom-mask.png']);
+   'classroom-mask.png'],
+  ['fishbowl.wav',
+   'jump1.wav',
+   'jump2.wav',
+   'jump3.wav',
+   'land1.wav',
+   'land2.wav',
+   'land3.wav'
+  ]);
 
 var cutscene_idx = 0;
 var cutscene = null;
@@ -53,6 +65,9 @@ function SetPhase(p) {
   phase = p;
 
   switch (phase) {
+    case PHASE_PLAYING:
+      StartSong(song_overworld);
+    break;
     case PHASE_TITLE:
       StartSong(song_overworld);
     break;
@@ -80,7 +95,7 @@ function UpdateText() {
 		textpages[0]);
       // XXX Blink?
       // indicate with graphic
-      ctx.drawImage(images.Get('z.png'),
+      ctx.drawImage(resources.Get('z.png'),
 		    WIDTH - 16,
 		    HEIGHT - 16);
     }
@@ -119,6 +134,10 @@ function NextCutScene() {
     StartSong(state.s);
   }
 
+  if (state.fx) {
+    PlaySound(state.fx);
+  }
+
   var t = state.t || ['              ...  '];
   textpages = t;
 }
@@ -146,8 +165,9 @@ document.onkeydown = function(e) {
     }
     break;
     case 8: // BACKSPACE
-    if (DEBUG)
+    if (DEBUG) {
       gang = null;
+    }
     break;
     case 37: // LEFT
     holdingLeft = true;
@@ -252,14 +272,14 @@ function Frames(arg) {
   this.width = this.frames[0].f.width;
 }
 
-function Static(f) { return new Frames(images.Get(f)); }
+function Static(f) { return new Frames(resources.Get(f)); }
 var MASK_CLEAR = 0, MASK_CLIP = 1, MASK_LEDGE = 2;
 function Room(bg, mask) {
   this.bg = bg;
   this.width = bg.width;
   this.height = bg.height;
-  this.mask_debug = images.Get(mask);
-  this.mask = Buf32FromImage(images.Get(mask));
+  this.mask_debug = resources.Get(mask);
+  this.mask = Buf32FromImage(resources.Get(mask));
   // ...?
   this.MaskAt = function(x, y) {
     x = Math.round(x);
@@ -303,7 +323,7 @@ function Room(bg, mask) {
 
 // Assumes a list ['frame', n, 'frame', n] ...
 // where frame doesn't even have 'png' on it.
-// But it must have been loaded into Images.
+// But it must have been loaded into Resources.
 // TODO: Pass the same list to EzImages or
 // something.
 function EzFrames(l) {
@@ -313,7 +333,7 @@ function EzFrames(l) {
     var s = l[i];
     var f = null;
     if (typeof s == 'string') {
-      f = images.Get(l[i] + '.png');
+      f = resources.Get(l[i] + '.png');
       if (!f) throw ('could not find ' + s + '.png');
     } else if (s instanceof Element) {
       // Assume [canvas] or Image
@@ -326,7 +346,7 @@ function EzFrames(l) {
 
 // Returns a canvas of the same size with the pixels flipped horizontally
 function EzFlipHoriz(img) {
-  if (typeof img == 'string') img = images.Get(img + '.png');
+  if (typeof img == 'string') img = resources.Get(img + '.png');
 
   var i32 = Buf32FromImage(img);
   var c = NewCanvas(img.width, img.height);
@@ -351,7 +371,7 @@ function EzFlipHoriz(img) {
 }
 
 function EzColor(img, shirt, pants) {
-  if (typeof img == 'string') img = images.Get(img + '.png');
+  if (typeof img == 'string') img = resources.Get(img + '.png');
 
   var i32 = Buf32FromImage(img);
   var c = NewCanvas(img.width, img.height);
@@ -449,6 +469,7 @@ function Init() {
       [{ f: EzFrames(['utoh', 1]),
 	 // XXX in trouble music
 	 s: null,
+	 fx: 'fishbowl.wav',
 	 t: ['Me: Oops...!'] },
        { f: EzFrames(['accused', 1]),
 	 s: song_boss,
@@ -468,7 +489,7 @@ function Init() {
   };
 
   window.me = new Human(PersonGraphics(0xFF7FFFFF, 0xFFEC7000));
-  window.font = new Font(images.Get('font.png'),
+  window.font = new Font(resources.Get('font.png'),
 			 FONTW, FONTH, FONTOVERLAP, FONTCHARS);
 }
 
@@ -486,7 +507,7 @@ function WarpTo(roomname, x, y) {
 }
 
 function TitleStep(time) {
-  ctx.drawImage(images.Get('title.png'), 0, 0);
+  ctx.drawImage(resources.Get('title.png'), 0, 0);
   if (holdingEnter) {
     ClearSong();
 
@@ -720,6 +741,7 @@ function Human(gfx) {
 	// XXX this won't work, it's an alias.
 	// this.holdingSpace = false;
 	this.dz += JUMP_IMPULSE;
+	PlayASound('jump', 3);
       }
     } else {
       this.dz -= GRAVITY;
@@ -824,6 +846,7 @@ function Human(gfx) {
       if (m == MASK_LEDGE) {
 	// XXX play "landing" animation
 	console.log('ledge transfer!');
+	PlayASound('land', 3);
 	// Convert to y coords, losing z height.
 	this.x = xx;
 	this.y = yy;
@@ -855,6 +878,7 @@ function Human(gfx) {
 
     if (this.z < 0) {
       // XXX play "landing" animation
+      PlayASound('land', 3);
       this.z = 0;
       this.dz = 0;
     }
@@ -1185,4 +1209,4 @@ function Start() {
   window.requestAnimationFrame(Step);
 }
 
-images.WhenReady(Start);
+resources.WhenReady(Start);

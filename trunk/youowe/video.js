@@ -16,58 +16,6 @@ function Buf32FromImage(img) {
   return new Uint32Array(cc.getImageData(0, 0, img.width, img.height).data.buffer);
 }
 
-// Loads all the images in the list, creating a hash from
-// filename to the loaded Image object.
-var Images = function(l, k) {
-  this.obj = {};
-  this.remaining = l.length;
-  this.continuation = null;
-  var that = this;
-  this.Update = function() {
-    var elt = document.getElementById('loading');
-    if (elt) {
-      if (this.remaining > 0) {
-	elt.innerHTML = 'loading ' + this.remaining + ' more...';
-      } else {
-	elt.innerHTML = 'done loading';
-      }
-    }
-    if (this.Ready() && this.continuation) {
-      // alert(this.continuation);
-      (0, this.continuation)();
-    }
-  };
-
-  this.Ready = function() {
-    return this.remaining == 0;
-  };
-
-  // Call the continuation as soon as everything is loaded,
-  // which might be now.
-  this.WhenReady = function(k) {
-    if (this.Ready()) {
-      k();
-    } else {
-      this.continuation = k;
-    }
-  }
-
-  for (var i = 0; i < l.length; i++) {
-    var img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = function() {
-      that.remaining--;
-      that.Update();
-    };
-    img.src = l[i];
-    this.obj[l[i]] = img;
-  }
-
-  this.Get = function(n) {
-    return this.obj[n];
-  };
-};
-
 // Img must already be loaded.
 function Font(img, w, h, overlap, fontchars) {
   this.width = w;

@@ -7,7 +7,6 @@ var audioctx =
 var TYPE_SINE = 0, TYPE_SQUARE = 1, TYPE_SAW = 2, TYPE_TRI = 3;
 
 function ClearSong() {
-  // XXXX!
   for (var i = 0; i < tracks.length; i++) {
     for (var o in tracks[i].active) {
       var s = tracks[i].active[o];
@@ -16,6 +15,21 @@ function ClearSong() {
   }
   song = null;
   tracks = [];
+}
+
+function PlaySound(s) {
+  var src = audioctx.createBufferSource();
+  var buf = resources.Get(s);
+  src.buffer = audioctx.createBuffer(buf, false);
+  // Volume?
+  src.connect(audioctx.destination);
+  src.noteOn(0);
+}
+
+// assumes they are named sound1.wav ... soundn.wav.
+function PlayASound(base, n) {
+  var d = Math.round(Math.random() * (n - 1)) + 1;
+  PlaySound(base + d + '.wav');
 }
 
 var song = null;
@@ -39,6 +53,13 @@ function StartSong(s) {
     var notes = song[i].notes.slice(0);
     var m = song.multiply || 1;
     for (var j = 0; j < notes.length; j++) {
+      // Copy the object so we don't modify the
+      // original song. Ugh..
+      var obj = {};
+      for (var o in notes[j]) {
+	obj[o] = notes[j][o];
+      }
+      notes[j] = obj;
       notes[j].d *= MSPERTICK * m;
     }
 
