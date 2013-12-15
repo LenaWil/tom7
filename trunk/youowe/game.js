@@ -294,8 +294,10 @@ function WarpTo(roomname, x, y) {
 }
 
 function TitleStep(time) {
+  UpdateSong();
   ctx.drawImage(images.Get('title.png'), 0, 0);
   if (holdingEnter) {
+    ClearSong();
     WarpTo('classroom', 77, 116);
     SetPhase(PHASE_PLAYING);
   }
@@ -799,6 +801,7 @@ function Start() {
   Init();
   phase = PHASE_TITLE;
   start_time = (new Date()).getTime();
+  StartSong(overworld);
   window.requestAnimationFrame(Step);
 }
 

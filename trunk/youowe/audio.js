@@ -8,29 +8,11 @@ var TYPE_SINE = 0, TYPE_SQUARE = 1, TYPE_SAW = 2, TYPE_TRI = 3;
 var r = 0x50, g = 0x80, b = 0xFE, a = 0xFF, f = 0xFFFFFF;
 var note = null;
 
-/*
-  if (frames % 60 == 0) {
-    var sine = audioctx.createOscillator();
-    sine.type = TYPE_SINE;
-    var lowpass = audioctx.createBiquadFilter();
-    lowpass.type = 0; // LOWPASS
-    lowpass.frequency.value = 1000;
-    sine.connect(lowpass);
-    lowpass.connect(audioctx.destination);
-
-    sine.noteOn(0);
-    note = sine;
-  } else if (frames % 60 == 10) {
-    note.noteOff(0);
-    note = null;
-  }
-  frames++;
-*/
-
 function ClearSong() {
-  // XXX
+  // XXXX!
 }
 
+var tracks = [];
 var MSPERTICK = 4.0;
 function StartSong(s) {
   ClearSong();
@@ -54,7 +36,7 @@ function StartSong(s) {
 		  notes: notes,
 		  idx: 0,
 		  active: [],
-		  lastend: now,
+		  basetime: now,
 		  });
 
   }
@@ -62,31 +44,42 @@ function StartSong(s) {
   UpdateSong(s);
 }
 
+function MidiFreq(m) {
+  return 440.0 * Math.pow(2, (m - 69) / 12.0);
+}
+
 function DoSoundEvent(tr, e, d) {
+  console.log('dosoundevent ' + e.on + ' ' + e.off + ' @' + d);
   if ('on' in e) {
     if (tr.active[e.on]) {
       // Don't want to leak...
       console.log ('double-on.');
-      break;
+      return;
     }
 
     var src = audioctx.createOscillator();
     src.type = tr.type;
+    // 256 + 10 * e.on;
+    src.frequency.value = MidiFreq(e.on);
+    var gain = audioctx.createGain();
+    gain.gain.value = 0.33;
+    src.connect(gain);
 
     var lowpass = audioctx.createBiquadFilter();
     lowpass.type = 0; // LOWPASS
     lowpass.frequency.value = 8192;
-    src.connect(lowpass);
+    gain.connect(lowpass);
     lowpass.connect(audioctx.destination);
 
-    src.noteOn(d);
+    src.noteOn(audioctx.currentTime + d / 1000.0);
     tr.active[e.on] = src;
 
   } else if ('off' in e) {
     var src = tr.active[e.off];
     delete tr.active[e.off];
     if (src) {
-      src.noteOff(d);
+      console.log('turn off at ' + (audioctx.currentTime + d));
+      src.noteOff(audioctx.currentTime + d / 1000.0);
     }
 
   } else {
@@ -94,47 +87,44 @@ function DoSoundEvent(tr, e, d) {
   }
 }
 
-var MSPERSCHEDULE = 100.0;
-function UpdateSong(s) {
-  var now = (new Date()).getTime();
-
+function UpdateTrack(now, playuntil, tr) {
   // idx points to an event with some delta time.
   // we've already handled all the events up until
-  // that point. The last time we ran, we did all
-  // the events some window [start, end]. In general,
-  // end was after some event (part way into the
-  // current delta time, but what we do is simply
-  // rewind and pretend that we ended at the exact
-  // millisecond so that track[idx].d is measured
-  // correctly.
-  // However, because of that fact and because we
-  // are only called periodically, we are now late:
-  var late = now - last;
+  // that point. We save the basetime, which is the
+  // wall time against which the next event's delta
+  // is measured.
+
+  while (tr.idx < tr.notes.length) {
+    var note = tr.notes[tr.idx];
+    var playtime = tr.basetime + note.d;
+    if (playtime <= playuntil) {
+      // Note is in the window; play it.
+      DoSoundEvent(tr, tr.notes[tr.idx], playtime - now);
+    } else {
+      // If this note is not in the window then no note will be.
+      // Basetime stays the same; we're still looking at the
+      // same index.
+      return;
+    }
+
+    // Move on to the next note.
+    tr.idx++;
+    tr.basetime = playtime;
+  }
+}
+
+var MSPERSCHEDULE = 100;
+function UpdateSong() {
+  var now = (new Date()).getTime();
+  var playuntil = now + MSPERSCHEDULE;
+
   // We have to run all the events with delta time
   // less than late immediately.
   for (var i = 0; i < tracks.length; i++) {
-    var tr = tracks[i];
-    for (; tr.idx < tr.notes.length; tr.idx++) {
-      var note = tr.notes[tr.idx];
-      // include e.g. something with delta time 0
-      if (note.d <= late) {
-	late -= note.d;
-	// No delay.
-	DoSoundEvent(track, tr.notes[tr.idx], 0);
-      }
-    }
-  }
+    // console.log(tracks[i]);
+    UpdateTrack(now, playuntil, tracks[i]);
 
-  // That may have reduced late, but usually not,
-  // given that 
-
-  for (var i = 0; i < tracks.length; i++) {
-    var tr = tracks[i];
-    for (; tr.idx < tr.notes.length; tr.idx++) {
-      var note = tr.notes[tr.idx];
-      if (note.
-
-    }
+    // Do something when we finish the whole song, yeah?
   }
 }
 
