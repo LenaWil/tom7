@@ -623,7 +623,10 @@ function Gang(n, shirt, pants) {
       switch (human.strategy) {
 	case S_ATTACK:
 	// Pick one side or the other of me.
-	destx = me.x;
+	if (typeof human.attack_right != 'boolean') {
+	  human.attack_right = Math.random() > 0.5;
+	}
+	destx = me.x + (human.attack_right ? ATTACKSIZE_X : -ATTACKSIZE_X);
 	desty = me.y;
 	break;
 	case S_CONFRONT:
