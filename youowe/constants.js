@@ -3,7 +3,7 @@ var DEBUG = true;
 
 var WIDTH = 320;
 var HEIGHT = 200;
-var PX = 4;
+var PX = 3;
 var MINFRAMEMS = 25.0;
 // (33.34)
 
