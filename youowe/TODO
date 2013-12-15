@@ -1,13 +1,25 @@
- - jumping attacks
- - enemies on screen
- - enemy ai
- - getting hurt
- - punching and kicking hurt enemies
- - cancel impulse keys
+
+TIME LEFT
+
+9-10  ledges
+10-11 cutscenes
+11-12
+12-1
+1-2
+2-3
+3-4
+4-5
+5-6
+6-7
+7-8
+8-9
+9-10  turnin
+
+ - ledges
  - cutscenes
+ - jumping attacks
+ - cancel impulse keys
  - moving between rooms
- - flip & recolor sprite system
- - music player
  - game music
  - boss music
  - store music
@@ -17,10 +29,10 @@
  - running
  - stores
  - classroom intro sequence
- - pause menu
  - sound effects
  - preload sound effects
- - room physics
+ - use theme
+
 
  - Rooms:
    - beach
@@ -28,10 +40,24 @@
    - town
    - schoolyard
 
+needs attention:
+ - gang behaviors
+ - fighting tweaks
+
 optional
  - hats?
  - "you only get one" handicap
+ - gang speaks
+ - 
+ - [-] [+] controls to resize screen
+ - in firefox, maybe can skip the very slow PX phase
+   with some moz-specific resize thing?
+ - pause menu
 
+cleanup
+ - remove console.log statements
+ - remove DEBUG
+ - 
 
 "Hey, Jet, I just have one question."
 "Yeah?"
