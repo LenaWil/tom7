@@ -27,7 +27,8 @@ var images = new Images(
    'title.png',
    'dead.png',
    'blank.png',
-   'classroom.png']);
+   'classroom.png',
+   'classroom-mask.png']);
 
 function SetPhase(p) {
   frames = 0;
@@ -46,6 +47,10 @@ document.onkeydown = function(e) {
   if (e.ctrlKey) return true;
 
   switch (e.keyCode) {
+    case 8: // BACKSPACE;
+    if (DEBUG)
+      gang = null;
+    break;
     case 37: // LEFT
     holdingLeft = true;
     break;
@@ -142,10 +147,31 @@ function Frames(arg) {
 }
 
 function Static(f) { return new Frames(images.Get(f)); }
-function Room(bg) {
+var MASK_CLEAR = 0, MASK_CLIP = 1, MASK_LEDGE = 2;
+function Room(bg, mask) {
   this.bg = bg;
   this.width = bg.width;
+  this.mask_debug = images.Get(mask);
+  this.mask = Buf32FromImage(images.Get(mask));
   // ...?
+  this.MaskAt = function(x, y) {
+    x = Math.round(x);
+    y = Math.round(y);
+
+    // Can't leave screen?
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height)
+      return MASK_CLIP;
+
+    var p = this.mask[this.width * y + x];
+    console.log(x + ' ' + y + ': ' + p);
+    if ((p >> 24) > 10) {
+      // Assuming just magenta and green, resp.
+      if (p & 255 > 10) return MASK_CLIP;
+      else return MASK_LEDGE;
+    } else {
+      return MASK_CLEAR;
+    }
+  };
 }
 
 // Assumes a list ['frame', n, 'frame', n] ...
@@ -272,7 +298,8 @@ function PersonGraphics(shirt, pants) {
 
 function Init() {
   window.rooms = {
-    classroom: new Room(Static('classroom.png'))
+    classroom: new Room(Static('classroom.png'),
+			'classroom-mask.png')
   };
 
   window.me = new Human(PersonGraphics(0xFF7FFFFF, 0xFFEC7000));
@@ -282,7 +309,7 @@ function Init() {
 
 // Sets up the context 
 function WarpTo(roomname, x, y) {
-  currentroom = roomname;
+  currentroom = rooms[roomname];
   me.x = x;
   me.y = y;
   // Keep velocity?
@@ -394,7 +421,7 @@ function Human(gfx) {
 	}
       }
     }
-    DrawFrame(fr, this.x - scrollx, this.y - this.z + TOP - fr.height,
+    DrawFrame(fr, this.x - scrollx - fr.width / 2, this.y - this.z + TOP - fr.height,
 	      this.fc);
     this.fc++;
   };
@@ -522,10 +549,47 @@ function Human(gfx) {
     else if (this.dz < -TERMINAL_Z) this.dz = -TERMINAL_Z;
 
     // XXX collisions.
-    this.x += this.dx;
-    this.y += this.dy;
+
+    // x is simple
+    if (this.dx != 0) {
+      var startmask = currentroom.MaskAt(this.x, this.y);
+      // unit dx, either 1 or -1
+      var ux = this.dx / Math.abs(this.dx);
+      // console.log(ux);
+
+      // As we enter the loop, this.x will be in a valid location.
+      for (var i = 0; Math.abs(i) < Math.abs(this.dx); i += ux) {
+	var m = currentroom.MaskAt(this.x + ux, this.y);
+	console.log(m);
+	// XXX actually should allow this from a ledge; then
+	// you convert y to z and fall.
+	if (m == MASK_CLIP) break;
+	// Can't walk onto ledge.
+	if (m == MASK_LEDGE && m != startmask) break;
+	this.x += ux;
+      }
+    }
+
+    // y is easy too, though we need to allow converting down
+    if (this.dy != 0) {
+      var startmask = currentroom.MaskAt(this.x, this.y);
+      var uy = this.dy / Math.abs(this.dy);
+
+      for (var i = 0; Math.abs(i) < Math.abs(this.dy); i += uy) {
+	var m = currentroom.MaskAt(this.x, this.y + uy);
+	console.log(m);
+	// XXX actually should allow this from a ledge; then
+	// you convert y to z and fall.
+	if (m == MASK_CLIP) break;
+	// Can't walk onto ledge.
+	if (m == MASK_LEDGE && m != startmask) break;
+	this.y += uy;
+      }
+    }
+    
     this.z += this.dz;
 
+    // XXX maybe don't need if we use mask? -- or warps only?
     if (this.x < 0) {
       // XXX warp left if we can
       this.x = 0;
@@ -707,8 +771,8 @@ function PlayingStep(time) {
 
   // Snap scrollx to background extent
   // XXX if room width is smaller than screen, center.
-  if (scrollx + WIDTH > rooms[currentroom].width)
-    scrollx = rooms[currentroom].width - WIDTH;
+  if (scrollx + WIDTH > currentroom.width)
+    scrollx = currentroom.width - WIDTH;
   if (scrollx < 0) scrollx = 0;
 
   var objects = [];
@@ -736,7 +800,10 @@ function PlayingStep(time) {
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  DrawFrame(rooms[currentroom].bg, -scrollx, TOP);
+  DrawFrame(currentroom.bg, -scrollx, TOP);
+  // XXX no!
+  if (DEBUG)
+    ctx.drawImage(currentroom.mask_debug, -scrollx, TOP);
 
   objects.sort(function (a, b) { return b.Depth () < a.Depth(); });
   for (var i = 0; i < objects.length; i++) {
