@@ -420,7 +420,7 @@ function Init() {
   window.cutscenes = {
     intro: new CutScene(
       [{ f: EzFrames(['killed', 1]),
-	 s: song_vampires,
+	 s: song_boss, // song_vampires,
 	 t: ['... when I was young my brother was\n' +
 	     'killed in a karate tournament.'] },
        { f: EzFrames(['alone', 15, 'alone2', 15]),
