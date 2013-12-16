@@ -1,7 +1,7 @@
 all : music.js
 
 upload :
-	pscp *.js *.png index.html root@spacebar.org:/var/www/youowe/
+	pscp *.js *.png *.wav index.html root@spacebar.org:/var/www/youowe/
 
 music.js : overworld.mid vampires.mid escape.mid boss.mid makefile
 	echo "/* Generated file, do not edit */" > music.js

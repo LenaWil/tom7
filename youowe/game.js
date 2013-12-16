@@ -16,6 +16,9 @@ var resources = new Resources(
   ['alone.png',
    'alone2.png',
    'killed.png',
+   'alley-mask.png',
+   'alley.png',
+   'coin.png',
    'utoh.png',
    'accused.png',
    'beach.png',
@@ -61,7 +64,12 @@ var resources = new Resources(
    'land1.wav',
    'land2.wav',
    'land3.wav',
-   'dead.wav'
+   'coin.wav',
+   'dead.wav',
+   'hit1.wav',
+   'hit2.wav',
+   'hit3.wav',
+   'hit4.wav',
   ]);
 
 var lasthit = -1;
@@ -175,13 +183,13 @@ document.onkeydown = function(e) {
   switch (e.keyCode) {
     case 9:
     // CHEATS
-    if (DEBUG)
+    if (true || DEBUG)
       textpages = [];
     break;
     case 27: // ESC
-    if (DEBUG) {
+    if (true || DEBUG) {
       ClearSong();
-      document.body.innerHTML = '(SILENCED)';
+      document.body.innerHTML = '(SILENCED. RELOAD TO PLAY)';
       // n.b. javascript keeps running...
     }
     break;
@@ -215,8 +223,8 @@ document.onkeydown = function(e) {
     holdingX = true;
     break;
   } 
-  var elt = document.getElementById('key');
-  elt && (elt.innerHTML = 'key: ' + e.keyCode);
+  // var elt = document.getElementById('key');
+  // elt && (elt.innerHTML = 'key: ' + e.keyCode);
   return false;
 }
 
@@ -485,6 +493,10 @@ function Init() {
 		    'beach-mask.png',
 		    song_overworld,
 		    new Gang([])),
+    alley: new Room(Static('alley.png'),
+		    'alley-mask.png',
+		    song_overworld, // something danker?
+		    new Gang([])),
     street: new Room(Static('street.png'),
 		     'street-mask.png',
 		     song_overworld,
@@ -505,7 +517,24 @@ function Init() {
     schoolfront: new Room(Static('schoolfront.png'),
 			  'schoolfront-mask.png',
 			  song_overworld,
-			 new Gang([])),
+			  new Gang(
+			    [{ name: 'Derek', 
+			       shirt: 0xFF123456, pants: 0xFF765400, hair: 0xFF000000,
+			       x: 194, y: 98,
+			       hp: 8 },
+			     { name: 'Marvin', 
+			       shirt: 0xFF125688, pants: 0xFF007654, hair: 0xFF000000,
+			       x: 253, y: 111,
+			       hp: 10 },
+			     { name: 'Chuck', 
+			       shirt: 0xFF123456, pants: 0xFF987698, hair: 0xFF008888,
+			       x: 239, y: 86,
+			       hp: 20 },
+			     { name: 'Boris', 
+			       shirt: 0xFFFFFFFF, pants: 0xFFFFFFFF, hair: 0xFF000000,
+			       x: 320, y: 86,
+			       hp: 15 } ])),
+
     classroom: new Room(Static('classroom.png'),
 			'classroom-mask.png',
 			song_boss,
@@ -568,8 +597,9 @@ function Init() {
 	 t: ['N. Lee: Oh, nice job, 21 Jerk Street,\n' +
 	     'throwing it on the floor for me.'] },
        // XXX show him kneeling in classroom
-       // XXX get coin sound effect
        { f: EzFrames(['leeback', 20]),
+	 // XXX move to kneeling anim
+	 fx: 'coin.wav',
 	 s: null, //
 	 t: ['N. Lee: Heh heh, easy money.'] },
 
@@ -614,7 +644,7 @@ function Init() {
 		      'leedown', 2, 'leedown2', 2,
 		      'leedown', 2, 'leedown2', 2,
 		      'leedown', 2, 'leedown2', 2,
-		      'leedown2', 1000000]) },
+		      'leedown2', 1000000]),
 	 fx: 'dead.wav',
 	 s: song_vampires, // ?
 	 t: ['N. Lee: ...           \n' +
@@ -633,12 +663,13 @@ function Init() {
 // For a second playthrough...
 function InitGame() {
   me.hp = 30;
-  me.dollars = 5;
+  me.dollars = 0;
   me.name = 'Me';
 }
 
 // Sets up the context 
 function WarpTo(roomname, x, y) {
+  console.log('warpto ' + roomname);
   currentroom = rooms[roomname];
   me.x = x;
   me.y = y;
@@ -842,7 +873,8 @@ function Human(gfx) {
       var ax = this.x + (this.facingright ? ATTACKSIZE_X : -ATTACKSIZE_X);
       for (var i = 0; i < objects.length; i++) {
 	if (objects[i] != this) {
-	  if (Math.abs(objects[i].y - this.y) <= ATTACKSIZE_Y &&
+	  if (objects[i].hp >= 0 &&
+	      Math.abs(objects[i].y - this.y) <= ATTACKSIZE_Y &&
 	      Math.abs(objects[i].x - ax) <= HALFPERSON_W) {
 	    // Hit! But are we allowed to hit them?
 	    // XXX
@@ -850,11 +882,11 @@ function Human(gfx) {
 	      objects[i].dx -= 4;
 	    } else {
 	      objects[i].dx += 4;
-	    }
+	    }	    
 
 	    // Save id so we can show its hp.
 	    if ('id' in objects[i]) {
-	      console.log(objects[i].id + ' was hit');
+	      // console.log(objects[i].id + ' was hit');
 	      lasthit = objects[i].id;
 	    }
 
@@ -874,6 +906,7 @@ function Human(gfx) {
 	      objects[i].ko = objects[i].hp <= 0 ? DEADFRAMES : KOFRAMES;
 	      objects[i].fc = 0;
 	    } else {
+	      PlayASound('hit', 4);
 	      objects[i].hurt = HURTFRAMES;
 	      objects[i].fc = 0;
 	    }
@@ -1039,10 +1072,12 @@ function Human(gfx) {
       this.dy = 0;
     } */
 
-    debug.innerHTML = this.dx + ' ' + this.dy + ' ' + this.dz +
-	' @ ' + this.x + ' ' + this.y + ' ' + this.z +
-	(this.punching > 0 ? (' punching ' + this.punching) : '') +
-	(this.facingright ? ' >' : ' <');
+    if (DEBUG) {
+      debug.innerHTML = this.dx + ' ' + this.dy + ' ' + this.dz +
+	  ' @ ' + this.x + ' ' + this.y + ' ' + this.z +
+	  (this.punching > 0 ? (' punching ' + this.punching) : '') +
+	  (this.facingright ? ' >' : ' <');
+    }
 
     if (this.z < 0) {
       // XXX play "landing" animation
@@ -1053,8 +1088,6 @@ function Human(gfx) {
   };
 
 }
-
-
 
 // TODO: fighting style, hats, and so on.
 function Gang(l) {
@@ -1281,6 +1314,11 @@ function PlayingStep(time) {
   if (false && DEBUG)
     ctx.drawImage(currentroom.mask_debug, -scrollx, TOP);
 
+  if (me.dollars == 0 && currentroom == rooms.alley) {
+    ctx.drawImage(resources.Get('coin.png'),
+		  158 - scrollx, 88 + TOP);
+  }
+
   objects.sort(function (a, b) { return b.Depth () < a.Depth(); });
   for (var i = 0; i < objects.length; i++) {
     objects[i].Draw(scrollx);
@@ -1314,6 +1352,14 @@ function PlayingStep(time) {
 
   UpdateText();
 
+  if (me.ko == 1 && me.hp <= 0) {
+    textpages = ['\n       FREE PLAY MODE  '];
+    PlaySound('coin.wav');
+    me.ko = 0;
+    me.hp = 30;
+    me.dz = JUMP_IMPULSE;
+  }
+
   // Room-specific logic and triggers.
   if (currentroom == rooms.fishroom && me.x > 244) {
     after_cutscene = function() {
@@ -1325,6 +1371,7 @@ function PlayingStep(time) {
     };
     cutscene = cutscenes.fish;
     SetPhase(PHASE_CUTSCENE);
+
   } else if (currentroom == rooms.beach) {
     if (me.x > 608) {
       WarpTo('street', 43, 95);
@@ -1335,7 +1382,23 @@ function PlayingStep(time) {
 		   'Me: Someone around here must\n' +
 		   'have a dollar I can borrow.',
 		   'Hey guys, don\'t hurt me!'];
+    } 
+
+  } else if (currentroom == rooms.alley) {
+    if (me.dollars == 0 && 
+	me.x > 150 && me.x < 166 &&
+	me.y > 80 && me.y < 96) {
+      me.dollars = 1;
+      PlaySound('coin.wav');
+      textpages = ['Me: Great, a dollar!\n' +
+		   'I can bring this to N. Lee\n' +
+		   'at the school.'];
+    } else if (me.y > 117) {
+      WarpTo('street', 200, 60);
+      ClearText();
+      SetPhase(PHASE_PLAYING);
     }
+
   } else if (currentroom == rooms.street) {
     if (me.x < 21) {
       WarpTo('beach', 578, 93);
@@ -1345,14 +1408,25 @@ function PlayingStep(time) {
       WarpTo('schoolfront', 43, 95);
       ClearText();
       SetPhase(PHASE_PLAYING);
+    } else if (me.x > 181 && me.x < 224 &&
+	       me.y < 38) {
+      WarpTo('alley', 112, 107);
+      SetPhase(PHASE_PLAYING);
+      ClearText();
     }
+
   } else if (currentroom == rooms.schoolfront) {
-    if (/* schooldoorctr */
-	me.x > 422 && me.y > 33 &&
-	me.x < 475 && me.y < 40) {
+    if (me.x < 21) {
+      WarpTo('street', 491, 96);
+      ClearText();
+      SetPhase(PHASE_PLAYING);
+
+    } else if (me.x > 422 && me.y > 33 &&
+	       me.x < 475 && me.y < 40) {
       if (me.dollars > 0) {
 	cutscene = cutscenes.confrontation;
 	after_cutscene = function() {
+	  me.dollars = 0;
 	  me.facingright = false;
 	  WarpTo('classroom', 394, 105);
 	  SetPhase(PHASE_PLAYING);
@@ -1374,6 +1448,8 @@ function PlayingStep(time) {
     if (!gang || gang.humans.length == 0) {
       cutscene = cutscenes.win;
       after_cutscene = function() {
+	// :)
+	me.dollars = 1;
 	ClearText();
 	SetPhase(PHASE_TITLE);
       };

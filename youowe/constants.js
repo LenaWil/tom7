@@ -1,5 +1,5 @@
 
-var DEBUG = true;
+var DEBUG = false; // true;
 
 var WIDTH = 320;
 var HEIGHT = 200;
