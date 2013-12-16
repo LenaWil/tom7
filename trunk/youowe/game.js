@@ -10,6 +10,7 @@ var PHASE_TITLE = 0, PHASE_PLAYING = 1,
 var phase = PHASE_TITLE;
 
 var scrollx = 0;
+var dollars = 0;
 
 var resources = new Resources(
   ['alone.png',
@@ -39,6 +40,17 @@ var resources = new Resources(
    'dead.png',
    'blank.png',
    'z.png',
+   'confrontation.png',
+   'coinflip1.png',
+   'coinflip2.png',
+   'coinflip3.png',
+   'coinflip3b.png',
+   'coinflip4.png',
+   'coinground.png',
+   'leeback.png',
+   'shock.png',
+   'leedown.png',
+   'leedown2.png',
    'fishroom.png',
    'classroom.png',
    'classroom-mask.png'],
@@ -52,6 +64,7 @@ var resources = new Resources(
    'dead.wav'
   ]);
 
+var lasthit = -1;
 var cutscene_idx = 0;
 var cutscene = null;
 // Initialized in Init.
@@ -67,8 +80,12 @@ function SetPhase(p) {
 
   switch (phase) {
     case PHASE_PLAYING:
-    if (song != song_overworld) {
-      StartSong(song_overworld);
+    if (currentroom.music) {
+      if (song != currentroom.music) {
+	StartSong(currentroom.music);
+      }
+    } else {
+      ClearMusic();
     }
     break;
     case PHASE_TITLE:
@@ -123,6 +140,7 @@ function NextCutScene() {
   // cutscene state (or -1 if we're just
   // starting)
   cutscene_idx++;
+  frames = 0;
   ClearText();
 
   if (cutscene_idx >= cutscene.desc.length) {
@@ -277,12 +295,14 @@ function Frames(arg) {
 
 function Static(f) { return new Frames(resources.Get(f)); }
 var MASK_CLEAR = 0, MASK_CLIP = 1, MASK_LEDGE = 2;
-function Room(bg, mask) {
+function Room(bg, mask, music, gang) {
   this.bg = bg;
   this.width = bg.width;
   this.height = bg.height;
   this.mask_debug = resources.Get(mask);
   this.mask = Buf32FromImage(resources.Get(mask));
+  this.gang = gang;
+  this.music = music;
   // ...?
   this.MaskAt = function(x, y) {
     x = Math.round(x);
@@ -450,20 +470,50 @@ function PersonGraphics(shirt, pants, hair) {
 }
 
 function Init() {
+  // XXX Music tweaks. These should be built by dumpmidi...
   song_boss.multiply = 1.25;
+  // song_boss[0].volume = 0.25;
+  song_boss[2].volume = 0.65;
   song_vampires.multiply = 1.1;
 
   window.rooms = {
     fishroom: new Room(Static('fishroom.png'),
-		       'classroom-mask.png'),
+		       'classroom-mask.png',
+		       song_overworld,
+		       new Gang([])),
     beach: new Room(Static('beach.png'),
-		    'beach-mask.png'),
+		    'beach-mask.png',
+		    song_overworld,
+		    new Gang([])),
     street: new Room(Static('street.png'),
-		     'street-mask.png'),
+		     'street-mask.png',
+		     song_overworld,
+		     new Gang(
+		       [{ name: 'Hank', 
+			  shirt: 0xFF123456, pants: 0xFF987654, hair: 0xFF000088,
+			  x: 194, y: 98,
+			  hp: 5 },
+			{ name: 'Bo', 
+			  shirt: 0xFF123456, pants: 0xFF987654, hair: 0xFF000000,
+			  x: 253, y: 111,
+			  hp: 5 },
+			{ name: 'Fred', 
+			  shirt: 0xFF123456, pants: 0xFF987654, hair: 0xFF000000,
+			  x: 239, y: 86,
+			  hp: 5 }])),
+    // XXX gang in front of school
     schoolfront: new Room(Static('schoolfront.png'),
-			  'schoolfront-mask.png'),
+			  'schoolfront-mask.png',
+			  song_overworld,
+			 new Gang([])),
     classroom: new Room(Static('classroom.png'),
-			'classroom-mask.png')
+			'classroom-mask.png',
+			song_boss,
+			new Gang(
+			  [{ name: 'N. Lee',
+			     shirt: 0xFF00A8FF, pants: 0xFF454A59, hair: 0xFF00FCFF,
+			     x: 237, y: 110,
+			     hp: 50 }] ))
   };
 
   window.cutscenes = {
@@ -496,12 +546,95 @@ function Init() {
 	     'N. Lee: Got any dollars?\n' +
 	     'Because it looks like\n' +
 	     'you owe N. Lee ("Jet") one.']
-       }])
+       }]),
+    confrontation: new CutScene(
+      [{ f: EzFrames(['confrontation', 1]),
+	 s: song_overworld, // ?
+	 t: ['N. Lee: You again!',
+	     'Me: Hey, I brought your dollar.\n' +
+	     'I\'m really sorry about the fishbowl.',
+	     'N. Lee: You better be, Magnum P.U.!\n' +
+	     'Hand it over!'] },
+       { f: EzFrames(['coinflip1', 20,
+		      'coinflip2', 10,
+		      'coinflip3', 10,
+		      'coinflip3b', 10,
+		      'coinflip4', 100000]),
+	 // XXX pling sound effect
+	 s: song_overworld, // ?
+	 t: ['Me: Here you go.'] },
+       { f: EzFrames(['coinground', 1]),
+	 s: song_overworld, // ?
+	 t: ['N. Lee: Oh, nice job, 21 Jerk Street,\n' +
+	     'throwing it on the floor for me.'] },
+       // XXX show him kneeling in classroom
+       // XXX get coin sound effect
+       { f: EzFrames(['leeback', 20]),
+	 s: null, //
+	 t: ['N. Lee: Heh heh, easy money.'] },
+
+       { f: EzFrames(['killed', 1,
+		      'leeback', 8,
+		      'killed', 2,
+		      'leeback', 5,
+		      'killed', 3,
+		      'leeback', 4,
+		      'killed', 5,
+		      'leeback', 2,
+		      'killed', 7,
+		      'leeback', 1,
+		      'killed', 100000]),
+	 fx: 'dead.wav',
+	 s: song_vampires,
+	 t: ['                         \n' +
+	     '                         \n' +
+	     '                         ...'] },
+       { f: EzFrames(['shock', 1]),
+	 s: song_vampires,
+	 t: ['Me: It\'s YOU!!'] }]),
+    win: new CutScene(
+      [{ f: EzFrames(['leedown', 1]),
+	 s: song_vampires,
+	 t: ['Me: Hey, Jet, I just have one\n' +
+	     'question.',
+	     'N. Lee: Yeah?',
+	     'Me: What does "N." stand for?',
+	     'N. Lee: ...',
+	     'Me: I just wanna know.',
+	     'N. Lee: ... It stands for ...\n' +
+	     '   ... Nilbourque.',
+	     'Me: Damn, dude.',
+	     'N. Lee: Yeah, that\'s why I go\n' +
+	     'by N. or Jet.',
+	     'Me: Yeah but damn.',
+	     'N. Lee: ...          ',
+	     'Me: It\'s a pretty dumb name.'] },
+       { f: EzFrames(['leedown', 2, 'leedown2', 2,
+		      'leedown', 2, 'leedown2', 2,
+		      'leedown', 2, 'leedown2', 2,
+		      'leedown', 2, 'leedown2', 2,
+		      'leedown', 2, 'leedown2', 2,
+		      'leedown2', 1000000]) },
+	 fx: 'dead.wav',
+	 s: song_vampires, // ?
+	 t: ['N. Lee: ...           \n' +
+	     '                      \n' +
+	     '                        ',
+	     '\n' +
+	     '        YOU WIN\n' +
+	     '                        '] }])
   };
 
   window.me = new Human(PersonGraphics(0xFF7FFFFF, 0xFFEC7000, 0xFF000000));
   window.font = new Font(resources.Get('font.png'),
 			 FONTW, FONTH, FONTOVERLAP, FONTCHARS);
+}
+
+// For a second playthrough...
+function InitGame() {
+  me.hp = 30;
+  me.dollars = 5;
+  me.name = 'Me';
 }
 
 // Sets up the context 
@@ -513,22 +646,37 @@ function WarpTo(roomname, x, y) {
   me.dx = 0;
   me.dy = 0;
 
+  lasthit = -1;
   // Room needs to define a spawn spot or something.
-  gang = new Gang(4, 0xFF123456, 0xFF987654, 0xFF000088);
+  // gang = new Gang(4, 0xFF123456, 0xFF987654, 0xFF000088);
+  // XXX maybe should just do this directly
+  gang = currentroom.gang;
 }
 
 function TitleStep(time) {
   ctx.drawImage(resources.Get('title.png'), 0, 0);
-  if (holdingEnter) {
+  if (holdingEnter || holdingSpace) {
     ClearSong();
+    InitGame();
 
     cutscene = cutscenes.intro;
     after_cutscene = function () {
       WarpTo('fishroom', 77, 116);
       SetPhase(PHASE_PLAYING);
       ClearText();
-      textpages = ['Time to tend to my debts.'];
+      // textpages = ['Time to tend to my debts.'];
     };
+
+    /*
+    cutscene = cutscenes.confrontation;
+    after_cutscene = function() {
+      me.facingright = false;
+      WarpTo('classroom', 394, 105);
+      SetPhase(PHASE_PLAYING);
+      ClearText();
+    }
+    */
+    
     SetPhase(PHASE_CUTSCENE);
   }
 }
@@ -704,6 +852,12 @@ function Human(gfx) {
 	      objects[i].dx += 4;
 	    }
 
+	    // Save id so we can show its hp.
+	    if ('id' in objects[i]) {
+	      console.log(objects[i].id + ' was hit');
+	      lasthit = objects[i].id;
+	    }
+
 	    if (punch_now) {
 	      objects[i].hp -= PUNCH_DAMAGE;
 	    } else if (kick_now) {
@@ -713,7 +867,7 @@ function Human(gfx) {
 	    if (objects[i].hp <= 0 || Math.random() < 0.1) {
 	      if (objects[i].hp <= 0) {
 		// XXX randomly
-		textpages.push('Hank: BARF!!!');
+		textpages.push(objects[i].name + ': BARF!!!');
 		PlaySound('dead.wav');
 	      }
 
@@ -903,18 +1057,25 @@ function Human(gfx) {
 
 
 // TODO: fighting style, hats, and so on.
-function Gang(n, shirt, pants, hair) {
+function Gang(l) {
   var NATTACKERS = 2;
 
   // Or get stuff, etc.
   var S_ATTACK = 0, S_CONFRONT = 1; // , S_AVOID = 2;
-
+  
   this.humans = [];
-  var gfx = PersonGraphics(shirt, pants, hair);
-  for (var i = 0; i < n; i++) {
+  for (var i = 0; i < l.length; i++) {
+    var g = l[i];
+    var gfx = PersonGraphics(g.shirt, g.pants, g.hair);
     var h = new Human(gfx);
+    h.name = g.name;
+    if ('hp' in g) h.hp = g.hp;
+    h.x = g.x;
+    h.y = g.y;
     h.strategy = S_CONFRONT;
+    h.id = i;
     this.humans.push(h);
+    // Anything else??
   }
   
   this.AddObjects = function(l) {
@@ -939,6 +1100,8 @@ function Gang(n, shirt, pants, hair) {
   
   this.UpdateStrategies = function() {
 
+    if (this.humans.length == 0) return;
+
     var player_on_ledge = 
 	MASK_LEDGE == currentroom.MaskAt(me.x, me.y);
 
@@ -961,7 +1124,7 @@ function Gang(n, shirt, pants, hair) {
 	// Someone becomes an attacker (possibly someone
 	// who already was..)
 	var i = Math.round(Math.random() * (this.humans.length - 1));
-	console.log(na + ' so making #' + i + ' an attacker');
+	// console.log(na + ' so making #' + i + ' an attacker');
 	this.humans[i].strategy = S_ATTACK;
       }
     }
@@ -1126,8 +1289,28 @@ function PlayingStep(time) {
   // XXX Handle case where I die!
 
   // XXX real text status
-  font.Draw(ctx, 2, 2, 'HP: ' + me.hp);
-  font.Draw(ctx, 160, 2, 'arrows/z/x/space');
+  font.Draw(ctx, 2, 2, 'HP: ' + me.hp + ' $' + me.dollars);
+  if (currentroom == rooms.beach &&
+      currentroom == rooms.fishroom) {
+    font.Draw(ctx, 160, 2, 'arrows/z/x/space');
+  } else {
+    var found = false;
+    // console.log(lasthit);
+    if (gang) {
+      for (var i = 0; i < gang.humans.length; i++) {
+	if (gang.humans[i].id == lasthit) {
+	  font.Draw(ctx, 160, 2,
+		    gang.humans[i].name + ': ' + 
+		    gang.humans[i].hp);
+	  found = true;
+	}
+      }
+    }
+    if (!found) {
+      // console.log('not found');
+      font.Draw(ctx, 160, 2, 'arrows/z/x/space');
+    }
+  }
 
   UpdateText();
 
@@ -1150,7 +1333,8 @@ function PlayingStep(time) {
       // XXX don't repeat text.
       textpages = ['OCEAN CITY.',
 		   'Me: Someone around here must\n' +
-		   'have a dollar I can borrow.'];
+		   'have a dollar I can borrow.',
+		   'Hey guys, don\'t hurt me!'];
     }
   } else if (currentroom == rooms.street) {
     if (me.x < 21) {
@@ -1162,7 +1346,41 @@ function PlayingStep(time) {
       ClearText();
       SetPhase(PHASE_PLAYING);
     }
-  } // else if (currentroom == rooms.
+  } else if (currentroom == rooms.schoolfront) {
+    if (/* schooldoorctr */
+	me.x > 422 && me.y > 33 &&
+	me.x < 475 && me.y < 40) {
+      if (me.dollars > 0) {
+	cutscene = cutscenes.confrontation;
+	after_cutscene = function() {
+	  me.facingright = false;
+	  WarpTo('classroom', 394, 105);
+	  SetPhase(PHASE_PLAYING);
+	  ClearText();
+	}
+	SetPhase(PHASE_CUTSCENE);
+
+      } else {
+	ClearText();
+	textpages = ['I better not show up without\n' +
+		     'some money for N. Lee.'];
+	me.y = 40;
+	me.dy = 3;
+      }
+    }
+  } else if (currentroom == rooms.classroom) {
+    
+    // trigger when killing boss.
+    if (!gang || gang.humans.length == 0) {
+      cutscene = cutscenes.win;
+      after_cutscene = function() {
+	ClearText();
+	SetPhase(PHASE_TITLE);
+      };
+      SetPhase(PHASE_CUTSCENE);
+    }
+
+  }
 }
 
 last = 0;
@@ -1176,7 +1394,7 @@ function Step(time) {
   // debug.innerHTML = diff;
   // Don't do more than 30fps.
   // XXX This results in a frame rate of 21 on RIVERCITY, though
-  // I can easil get 60, so what gives?
+  // I can easily get 60, so what gives?
   if (diff < MINFRAMEMS) {
     skipped++;
     window.requestAnimationFrame(Step);
