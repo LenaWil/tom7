@@ -1,38 +1,21 @@
 
 TIME LEFT
 
-4-5 MAP
-5-6 
-6-7 GAMEPLAY
-7-8 ENDING
-8-9 GAME CONTENT
+8-9 ENDING / POLISH CONTENT
 9-10  turnin
 
- - hall
+ - don't take damage when on ground
+ - 'free play' message when I die
 
  - pick up coins
- - moving between rooms
- - map to play in
  - ability to win
- - boss fight
-
  - jumping attacks
- - cancel impulse keys
- - game music
- - store music
- - title music
  - picking stuff up
  - throwing stuff
  - use theme
-
-Probably not:
- - running
- - stores
-
- - Rooms:
-   - street
-   - town
-   - schoolyard
+ - alley
+ - gang speaks or turn it off
+ - text auto-advances when PLAYING
 
 needs attention:
  - gang behaviors
@@ -45,19 +28,25 @@ polish
  - boss music alt instrument 
 
 optional
- - hats?
- - "you only get one" handicap
- - gang speaks
  - [-] [+] controls to resize screen
  - in firefox, maybe can skip the very slow PX phase
    with some moz-specific resize thing?
+
+Probably not:
+ - running
+ - stores
+ - cancel impulse keys
+ - store music
+ - hallway
  - pause menu
+ - hats?
+ - "you only get one" handicap
  
 
 cleanup
  - remove console.log statements
  - remove DEBUG
- - 
+ - look at all XXXes
 
 "Hey, Jet, I just have one question."
 "Yeah?"

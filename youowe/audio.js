@@ -65,6 +65,7 @@ function StartSong(s) {
 
     tracks.push({ type: type, 
 		  notes: notes,
+		  volume: song[i].volume || 1.0,
 		  idx: 0,
 		  active: [],
 		  basetime: now });
@@ -91,7 +92,8 @@ function DoSoundEvent(tr, e, d) {
     // 256 + 10 * e.on;
     src.frequency.value = MidiFreq(e.on);
     var gain = audioctx.createGain();
-    gain.gain.value = 0.25;
+    var m = tr.volume || 1.0;
+    gain.gain.value = 0.25 * m;
     src.connect(gain);
 
     var lowpass = audioctx.createBiquadFilter();
