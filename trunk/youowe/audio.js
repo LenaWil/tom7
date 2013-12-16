@@ -91,7 +91,21 @@ function DoSoundEvent(tr, e, d) {
     }
 
     var src = audioctx.createOscillator();
-    src.type = tr.type;
+    switch (tr.type) {
+      case TYPE_SINE:
+      src.type = "sine";
+      break;
+      case TYPE_TRI:
+      src.type = "triangle";
+      break;
+      case TYPE_SAW:
+      src.type = "sawtooth";
+      break;
+      case TYPE_SQUARE:
+      src.type = "square";
+      break;
+    }
+    // src.type = tr.type;
     // 256 + 10 * e.on;
     src.frequency.value = MidiFreq(e.on);
     var gain = audioctx.createGain();
@@ -100,7 +114,7 @@ function DoSoundEvent(tr, e, d) {
     src.connect(gain);
 
     var lowpass = audioctx.createBiquadFilter();
-    lowpass.type = 0; // LOWPASS
+    lowpass.type = "lowpass"; // 0; // LOWPASS
     lowpass.frequency.value = 4096; // 8192;
     gain.connect(lowpass);
     lowpass.connect(audioctx.destination);
