@@ -12,7 +12,7 @@ var Resources = function(imgs, wavs, k) {
       if (this.remaining > 0) {
 	elt.innerHTML = 'loading ' + this.remaining + ' more...';
       } else {
-	elt.innerHTML = 'done loading';
+	elt.innerHTML = '';
       }
     }
     if (this.Ready() && this.continuation) {
