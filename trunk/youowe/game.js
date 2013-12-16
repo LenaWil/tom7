@@ -70,7 +70,7 @@ var resources = new Resources(
    'hit2.wav',
    'hit3.wav',
    'hit4.wav',
-  ]);
+  ], audioctx);
 
 var lasthit = -1;
 var cutscene_idx = 0;

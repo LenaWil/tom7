@@ -1,7 +1,7 @@
 
 // Loads all the resources in the list, creating a hash from
 // filename to the loaded Image etc. object.
-var Resources = function(imgs, wavs, k) {
+var Resources = function(imgs, wavs, audiocontext, k) {
   this.obj = {};
   this.remaining = imgs.length + wavs.length;
   this.continuation = null;
@@ -21,12 +21,27 @@ var Resources = function(imgs, wavs, k) {
     }
   };
 
+  var Error = function(msg) {
+    console.log(msg);
+    var elt = document.getElementById('loading');
+    if (elt) {
+      elt.innerHTML = 'loading error: ' + msg;
+    }
+  };
+
   var WaveLoaded = function(sym) {
     return function(event) {
       var req = event.target;
-      that.obj[sym] = req.response;
-      that.remaining--;
-      that.Update();
+      audiocontext.decodeAudioData(
+	req.response, 
+	function(decoded) {
+	  that.obj[sym] = decoded;
+	  that.remaining--;
+	  that.Update();
+	},
+	function() {
+	  Error('decoding ' + sym);
+	});
     };
   };
 
