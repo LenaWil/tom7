@@ -18,12 +18,15 @@ function ClearSong() {
 }
 
 function PlaySound(s) {
+  // var src = audioctx.createBufferSource();
+  // var buf = resources.Get(s);
+  // src.buffer = audioctx.createBuffer(buf, false);
+  
   var src = audioctx.createBufferSource();
-  var buf = resources.Get(s);
-  src.buffer = audioctx.createBuffer(buf, false);
+  src.buffer = resources.Get(s);
   // Volume?
   src.connect(audioctx.destination);
-  src.noteOn(0);
+  src.start(0); // noteOn(0);
 }
 
 // assumes they are named sound1.wav ... soundn.wav.
