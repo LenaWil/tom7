@@ -18,6 +18,8 @@ var resources = new Resources(
    'killed.png',
    'alley-mask.png',
    'alley.png',
+   'secret.png',
+   'secret-mask.png',
    'coin.png',
    'utoh.png',
    'accused.png',
@@ -483,6 +485,7 @@ function Init() {
   // song_boss[0].volume = 0.25;
   song_boss[2].volume = 0.65;
   song_vampires.multiply = 1.1;
+  song_store.multiply = 1.33;
 
   window.rooms = {
     fishroom: new Room(Static('fishroom.png'),
@@ -513,7 +516,7 @@ function Init() {
 			  shirt: 0xFF123456, pants: 0xFF987654, hair: 0xFF000000,
 			  x: 239, y: 86,
 			  hp: 5 }])),
-    // XXX gang in front of school
+
     schoolfront: new Room(Static('schoolfront.png'),
 			  'schoolfront-mask.png',
 			  song_overworld,
@@ -534,6 +537,11 @@ function Init() {
 			       shirt: 0xFFFFFFFF, pants: 0xFFFFFFFF, hair: 0xFF000000,
 			       x: 320, y: 86,
 			       hp: 15 } ])),
+    
+    secret: new Room(Static('secret.png'),
+		     'secret-mask.png',
+		     song_store,
+		     new Gang([])),
 
     classroom: new Room(Static('classroom.png'),
 			'classroom-mask.png',
@@ -1413,6 +1421,33 @@ function PlayingStep(time) {
       WarpTo('alley', 112, 107);
       SetPhase(PHASE_PLAYING);
       ClearText();
+    } else if (me.x > 234 && me.x < 272 &&
+	       me.y < 12 && me.z > 8) {
+      WarpTo('secret', 171, 103);
+      me.z = 0;
+      SetPhase(PHASE_PLAYING);
+      ClearText();
+      textpages = ['Me: Huh.',
+		   'Me: Looks like someone was putting\n' +
+		   'together a room here but didn\'t\n' +
+		   'finish.'];
+    }
+
+  } else if (currentroom == rooms.secret) {
+    if (me.x > 104 && me.x < 120 &&
+	me.y > 79 && me.y < 95) {
+      WarpTo('alley', 161, 71);
+      me.z = 69;
+      SetPhase(PHASE_PLAYING);
+      ClearText();
+      textpages = ['Me: Wheee!'];
+
+    } else if (me.y > 122) {
+      ClearText();
+      textpages = ['Me: Climbing down doesn\'t seem\n' +
+		   'safe to me.'];
+      me.y = 121;
+      me.dy = -3;
     }
 
   } else if (currentroom == rooms.schoolfront) {
