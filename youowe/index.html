@@ -1,23 +1,33 @@
-<style>
- div.button {
-   width:60px;
-   background: #F00;
-   cursor:pointer;
-   border-radius: 4px;
-   border: 1px solid #700;
-   text-align: center;
- }
+<!doctype html>
+<title>Single Dragon: You Owe N. Lee $1 - Ludum Dare 28</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="description" content="Play 'Single Dragon' for free in your browser. Made in 48h for Ludum Dare, with the theme 'You Only Get One'." />
+<meta name="keywords" content="double dragon, river city ransom, nes, flash game, html5 game, canvas game, ludum dare 28, 8-bit, tom 7">
+<link rel="image_src" href="titlescreen.png" />
 
- body {
-   font: 13px verdana,helvetica,sans-serif
- }
+<style>
+body {
+ font: 14px verdana,helvetica,sans-serif
+}
+canvas {
+ margin-left: auto;
+ margin-right: auto;
+ display: block;
+}
 </style>
 
-<!-- <div id="stop" onclick="stop()" class="button">NO MORE PLZ</div> -->
-<div id="loading" style="color:#999; margin-bottom:6px">loading?</div>
-<!-- <div id="counter">counter</div> -->
-<!-- <div style="border:2px solid red" id="key">key</div> -->
-<!-- <div id="debug">debug</div> -->
+<div id="loading" style="width:640px; margin: 4px auto 0 auto; font-size: 24px; color:#999; margin-bottom:6px">loading?</div>
+<canvas id="bigcanvas"></canvas>
+
+
+<div style="width: 640px; margin : 4px auto 0 auto; text-align: center; font: 12px Verdana,Helvetica,sans-serif; color : #396B59">
+<b>Single Dragon: You Owe N. Lee $1</b> by <a style="color : #2A5DEA; font-weight: bold" href="http://tom7.org/">Tom 7</a> for Ludum Dare 28. Theme: <b>You Only Get One</b><br/>
+<span style="color: #55CCAA">This game only works in Chrome and FireFox! You might need a fast computer.</span>
+
+<!-- <br/>[<a style="text-decoration: none" href="http://radar.spacebar.org/f/a/weblog/comment/1/1085">Leave a comment</a>] &mdash; [<a style="text-decoration: none" href="/cgi-bin/age-of-umpires.zip">soundtrack</a>] -->
+
+<img src="titlescreen.png" style="position:fixed;top:-1000px;left:-10000px" alt="screenshot for thumbnails" />
+</center>
 
 <script src="constants.js"></script>
 <script src="audio.js"></script>

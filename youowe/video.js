@@ -85,15 +85,18 @@ var buf = new ArrayBuffer(id.data.length);
 var buf8 = new Uint8ClampedArray(buf);
 var buf32 = new Uint32Array(buf);
 
-var BigCanvas = function(elt) {
+var BigCanvas = function() {
   this.canvas = 
-      (function() { 
-	var c = document.createElement('canvas');
+      (function() {
+	var c = document.getElementById('bigcanvas');
+	if (!c) {
+	  c = document.createElement('canvas');
+	  document.body.appendChild(c);
+	  c.id = 'bigcanvas';
+	}
 	c.width = WIDTH * PX;
 	c.height = HEIGHT * PX;
-	c.id = 'bigcanvas';
 	c.style.border = '1px solid black';
-	elt && elt.appendChild(c);
 	return c;
       })();
 
@@ -141,6 +144,6 @@ var BigCanvas = function(elt) {
 
 // Don't draw directly to this. We copy from the small
 // one to the big one at the end of each frame.
-var bigcanvas = new BigCanvas(document.body);
+var bigcanvas = new BigCanvas();
 
 // XXX wrap this inside a function blit4x or whatever.
