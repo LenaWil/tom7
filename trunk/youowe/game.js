@@ -170,7 +170,8 @@ function NextCutScene() {
   }
 
   var t = state.t || ['              ...  '];
-  textpages = t;
+  // Copy text!
+  textpages = t.slice(0);
 }
 
 var holdingLeft = false, holdingRight = false,
@@ -487,6 +488,18 @@ function Init() {
   song_vampires.multiply = 1.1;
   song_store.multiply = 1.33;
 
+  window.font = new Font(resources.Get('font.png'),
+			 FONTW, FONTH, FONTOVERLAP, FONTCHARS);
+}
+
+// For a second playthrough...
+function InitGame() {
+  window.me = new Human(PersonGraphics(0xFF7FFFFF, 0xFFEC7000, 0xFF000000));
+
+  me.hp = 30;
+  me.dollars = 0;
+  me.name = 'Me';
+
   window.rooms = {
     fishroom: new Room(Static('fishroom.png'),
 		       'classroom-mask.png',
@@ -662,17 +675,6 @@ function Init() {
 	     '        YOU WIN\n' +
 	     '                        '] }])
   };
-
-  window.me = new Human(PersonGraphics(0xFF7FFFFF, 0xFFEC7000, 0xFF000000));
-  window.font = new Font(resources.Get('font.png'),
-			 FONTW, FONTH, FONTOVERLAP, FONTCHARS);
-}
-
-// For a second playthrough...
-function InitGame() {
-  me.hp = 30;
-  me.dollars = 0;
-  me.name = 'Me';
 }
 
 // Sets up the context 
