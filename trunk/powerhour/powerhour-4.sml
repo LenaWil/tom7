@@ -32,7 +32,8 @@ struct
         cup in a given location.
      Note that it is normal for the player to pass to himself. *)
 
-  type action = { place : int * cup }
+  type action = { drink : bool,
+                  place : int * cup }
 
   (* The starting state for the player, and the three actions that can
      be specified. Note that in the no-cup case, the only legal action
@@ -71,34 +72,16 @@ struct
            cups : cup option array ref,
            (* Never changes during simulation *)
            players : player vector,
-           (* For each player, true if the player must
-              drink the count in slot zero (which is
-              the FILLED cup state). This begins false,
-              but if we ever try to pass a non-filled
-              cup when executing the FILLED rule, we
-              set it to true. We could also just inspect
-              the rule at 0, but that is not exact because
-              the rule might never actually execute. *)
-           mustdrink0 : bool array,
-           (* How many times was each rule executed (and
-              thus could drink?) Remember to check the
-              mustdrink0 bit. *)
-           ruleexecuted : int array vector,
+           (* How many drinks has the player consumed? *)
+           drinks : int array,
            (* What round is it? 0-59 *)
            round : int ref }
 
-  (* PERF *)
   fun makesim (m : machine) =
-      let
-          val players = Vector.fromList m
-          val n = Vector.length players
-      in
-          S { cups = ref (Array.fromList (map (fn P { start, ... } => start) m)),
-              players = players,
-              mustdrink0 = Array.array (n, false),
-              ruleexecuted = Vector.tabulate (n, (fn _ => Array.array(NCUPS, 0))),
-              round = ref 0 }
-      end
+    S { cups = ref (Array.fromList (map (fn P { start, ... } => start) m)),
+        players = Vector.fromList m,
+        drinks = Array.fromList (map (fn _ => 0) m),
+        round = ref 0 }
 
   exception Unspecified of (int * cup) list
   exception Illegal of string
@@ -107,7 +90,7 @@ struct
   (* Evaluate one step of the simulation. Raises Illegal if
      two or more cups end up in the same position. Raises Unspecified
      if we need to use a rule but it's not currently filled in. *)
-  fun step (S { cups, players, mustdrink0, ruleexecuted, round }) =
+  fun step (S { cups, players, drinks, round }) =
       let
         val newcups = Array.array (Array.length (!cups), NONE)
 
@@ -122,7 +105,6 @@ struct
             | SOME now =>
               let
                 val c = Vector.sub (rules, now)
-                val rulecounts_for_player = Vector.sub (ruleexecuted, i)
               in
                 case c of
                     NONE =>
@@ -132,19 +114,16 @@ struct
                            we hope we might raise Illegal
                            instead *)
                     end
-                  | SOME { place as (dest, next) } =>
-                    let
-                        (* This rule executed, so increment the count *)
-                        val oldcount = Array.sub (rulecounts_for_player, now)
-                    in
-                        Array.update (rulecounts_for_player, now, oldcount + 1);
-
-                        (* If this was the filled cup rule, see if it means
-                           we had to drink. *)
-                        (if now = FILLED andalso next <> FILLED
-                         then Array.update (mustdrink0, i, true)
+                  | SOME { drink, place as (dest, next) } =>
+                    let in
+                        (if drink
+                         then Array.update (drinks, i,
+                                            Array.sub (drinks, i) + 1)
                          else ());
 
+                         (* Note: Not checking the illegal action
+                            where it's filled but I pass without drinking.
+                            execexpand should not generate this rule. *)
                         (case Array.sub (newcups, dest) of
                            NONE => Array.update (newcups, dest, SOME next)
                          | SOME _ => raise Illegal "2+ cups")
@@ -163,7 +142,7 @@ struct
       end
 
   datatype result =
-      Finished of { drinks: int vector,
+      Finished of { drinks: int Array.array,
                     waste: int }
     | Error of { rounds : int, msg : string }
 
@@ -177,9 +156,9 @@ struct
     | ctos 2 = "U"
     | ctos n = "X" ^ Int.toString n
 
-  fun atos { place = (w, a) } =
+  fun atos { drink, place = (w,a) } =
       ctos a ^
-      (* (if drink then "*" else "") ^ *)
+      (if drink then "*" else "") ^
       "@" ^ Int.toString w
 
   fun aotos NONE = "?"
@@ -200,16 +179,6 @@ struct
 
   fun gametostring g =
       "[" ^ StringUtil.delimit "," (map playertostring g) ^ "]"
-
-  (* XXX hard to read... *)
-  fun plantostring (p : bool vector list) =
-      StringUtil.delimit ","
-      (map (fn v =>
-            CharVector.tabulate (Vector.length v,
-                                 fn x =>
-                                 if Vector.sub (v, x)
-                                 then #"+" else #"_")) p)
-
 
   fun combine l k = List.concat (map k l)
 
@@ -245,7 +214,7 @@ struct
     | result_cmp (Finished { drinks, waste },
                   Finished { drinks = dd, waste = ww }) =
       (case Int.compare (waste, ww) of
-           EQUAL => Util.lex_vector_order Int.compare (drinks, dd)
+           EQUAL => Util.lex_array_order Int.compare (drinks, dd)
          | ord => ord)
     | result_cmp (Error { rounds, msg },
                   Error { rounds = rr, msg = mm }) =
@@ -272,32 +241,29 @@ struct
                                  combine cups (fn c =>
                                                [(i, c)]))
         in
-            (* Once we need to expand an action it becomes this. We
-               will put anything in the FILLED rule, because execution
-               determines whether we must drink on that rule after the
-               fact. *)
-            val expandedactions =
+            val filledplans =
                 combine placements
-                (fn p => [SOME { place = p }])
+                (fn p => [SOME { drink = true, place = p }]) @
+                combine indices
+                (fn i =>
+                 [SOME { drink = false, place = (i, FILLED) }])
+
+            val otherplans =
+                combine [true, false]
+                (fn d =>
+                 combine placements
+                 (fn p => [SOME { drink = d, place = p }]))
         end
 
         (* These are games that need to be explored. *)
         val queue = ref games
 
-        (* The map contains an example machine along with a bit vector that
-           tells us whether the player drinks on the nth rule, for each player.
-           In the case that the outcome was failure, this assignment will be
-           nil (any ruleset would cause failure).
-
-           This could be folded into the machine (and it would make sense) though
-           then we need another representation of machines. The IntInf is the
-           count of times we inserted something with that outcome. *)
-        val done = ref (RM.empty : ((machine * bool vector list) * IntInf.int) RM.map)
+        val done = ref (RM.empty : (machine * IntInf.int) RM.map)
         val did = ref (0 : IntInf.int)
         val minq = ref (length (!queue))
 
         (* Note: only keeping the newest, and counting how many we had. *)
-        fun add_result (m, plans) r =
+        fun add_result m r =
            let in
                did := !did + 1;
                if !did mod 100000 = 0
@@ -322,95 +288,8 @@ struct
                    end
                else ();
                case RM.find (!done, r) of
-                   NONE => done := RM.insert (!done, r, ((m, plans), 1))
+                   NONE => done := RM.insert (!done, r, (m, 1))
                  | SOME (old, n) => done := RM.insert (!done, r, (old, n + 1))
-           end
-
-        (* We executed m abstractly, and mustdrink0 / ruleexecuted
-           tell us how many drinks we can drink. Each cell in ruleexecuted
-           says how many times the corresponding rule was excuted. So
-           we have drinks = d_1 * re_1 + ... + d_ncups * re_ncups total
-           drinks, where d_i is always 1 or 0. if mustdrink0 is 0 for a
-           player, then d_1 must be 1 (sorry, confusion between 0-indexed
-           and 1-indexed here). *)
-        exception Unimplemented
-        fun add_metaresult m { mustdrink0, ruleexecuted, waste } =
-           let
-               val nplayers = Array.length mustdrink0
-               (* Each player can choose which rules drink independently,
-                  which is part of what reduces the space here so much.
-
-                  For the player, produce a list of pairs; the first is
-                  the num drank in [0, 60] and the second is the
-                  NCUPS-length vector of bools for whether the nth rule
-                  should drink. No duplicates. *)
-               fun oneplayer i =
-                 let
-                     (* Don't generate duplicates, since there's a
-                        combinatorial explosion. *)
-                     (* val already = Array.array(MINUTES + 1, false) *)
-                     val mymust = Array.sub(mustdrink0, i)
-                     val myexec = Vector.sub(ruleexecuted, i)
-
-                     (* Returns the different totals we can achieve, along
-                        with a list of bools that gives us that value.
-                        May contain duplicates. *)
-                     fun alltails n =
-                       if n = NCUPS then [(0, nil)]
-                       else
-                           let val rest = alltails (n + 1)
-                           in
-                             case Array.sub(myexec, n) of
-                               (* If we never executed the rule,
-                                  there's no choice to make. We
-                                  say we drink since that will
-                                  satisfy mymust no matter what
-                                  and help my investments in
-                                  beer brewing stock. *)
-                               0 => map (fn (total, dodrink) =>
-                                         (total, true :: dodrink)) rest
-                             | exec =>
-                               (* no-drink case *)
-                               (if n <> FILLED orelse not mymust
-                                then map (fn (total, dodrink) =>
-                                          (total, false :: dodrink)) rest
-                                else []) @
-                               (* drink case *)
-                               map (fn (total, dodrink) =>
-                                    (exec + total, true :: dodrink)) rest
-                           end
-
-                     val uniques =
-                         ListUtil.sort_unique (Util.byfirst Int.compare)
-                         (alltails 0)
-                 in
-                     (* Compact *)
-                     map (fn (total, l) => (total, Vector.fromList l)) uniques
-                 end
-
-               val players = List.tabulate (nplayers, oneplayer)
-
-               (* Takes a list of lists; applies f to every list that can
-                  be made by taking one element from each list. *)
-               fun allcomb f sofar (outcomes :: rest) =
-                   let
-                       fun one elt =
-                           allcomb f (elt :: sofar) rest
-                   in
-                       app one outcomes
-                   end
-                 | allcomb f sofar nil = f (rev sofar)
-
-               (* We get the total and plan for each player, in order *)
-               fun doone tps =
-                   let val (outcome, plans) = ListPair.unzip tps
-                       val outcome = Vector.fromList outcome
-                   in
-                       add_result (m, plans) (Finished { drinks = outcome,
-                                                         waste = waste })
-                   end
-           in
-               allcomb doone nil players
            end
 
         exception Bug
@@ -420,8 +299,7 @@ struct
             | m :: t =>
             let
                 val () = queue := t
-                fun simulate (s as S { round = ref round, mustdrink0,
-                                       ruleexecuted, cups, ... }) =
+                fun simulate (s as S { round = ref round, drinks, cups, ... }) =
                   if round = MINUTES
                   then
                       let
@@ -429,9 +307,7 @@ struct
                           val waste = Array.foldl (fn (SOME Filled, b) => 1 + b
                                                     | (_, b) => b) 0 (!cups)
                       in
-                         add_metaresult m ({ mustdrink0 = mustdrink0,
-                                             ruleexecuted = ruleexecuted,
-                                             waste = waste })
+                         add_result m (Finished { drinks = drinks, waste = waste })
                       end
                   else
                      let in
@@ -439,7 +315,7 @@ struct
                          simulate s
                      end
                        handle Illegal str =>
-                         add_result (m, nil) (Error { rounds = round, msg = str })
+                         add_result m (Error { rounds = round, msg = str })
                       | Unspecified l =>
                          let
                              (* Take a list of machines, and specify all
@@ -449,8 +325,11 @@ struct
                                 assignments. *)
                              fun fillout nil ms = ms
                                | fillout ((i, c) :: rest) ms =
-                                 combine expandedactions
-                                 (fn action =>
+                                 combine
+                                 (if c = FILLED
+                                  then filledplans
+                                  else otherplans)
+                                 (fn plan =>
                                   combine ms
                                   (fn m =>
                                    [ListUtil.mapi
@@ -460,7 +339,7 @@ struct
                                              if cup = c
                                              then if Option.isSome value
                                                   then raise Bug
-                                                  else action
+                                                  else plan
                                              else value
                                      in
                                          if idx = i
@@ -484,7 +363,7 @@ struct
    fun restostring (Finished { drinks, waste }) =
        "[" ^
        StringUtil.delimit "," (map Int.toString
-                               (Vector.foldr op:: nil drinks)) ^
+                               (Array.foldr op:: nil drinks)) ^
        "] wasting " ^
        Int.toString waste
      | restostring (Error { rounds, msg }) =
@@ -492,11 +371,10 @@ struct
 
    fun show l =
        let
-           fun showone (res, ((g, plan), n)) =
+           fun showone (res, (g, n)) =
                print (restostring res ^ ": " ^
                       IntInf.toString n ^ " game(s) like " ^
-                      gametostring g ^ " " ^
-                      plantostring plan ^ "\n")
+                      gametostring g ^ "\n")
        in
            app showone l
        end
@@ -506,7 +384,7 @@ struct
 
    fun writepossible f res =
        let
-           fun tolist a = Vector.foldr op:: nil a
+           fun tolist a = Array.foldr op:: nil a
            (* Set (as map to int) of unique possible outcomes. Need to
               dedup here because we don't care how many beers are wasted *)
            val unique = ref (ILM.empty : unit ILM.map)
