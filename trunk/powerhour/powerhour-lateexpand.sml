@@ -18,9 +18,7 @@ struct
 
   (* Types that define Power Hour Machines, which
      completely describe a power hour algorithm. *)
-  type cup = int
-  val FILLED = 0
-  val NCUPS = 3
+  datatype cup = Up | Down | Filled
 
   (* What a player does on a turn when he sees a state other than None.
      (In None, the only legal action is to not drink and not pass.)
@@ -44,8 +42,9 @@ struct
      use an action that is not present, we explode it to all the possibilities
      in that slot and start over. *)
   datatype player = P of { start : cup option,
-                           (* length NCUPS *)
-                           rules : action option vector }
+                           up : action option,
+                           down : action option,
+                           filled : action option }
 
   type machine = player list
 
@@ -99,12 +98,15 @@ struct
            save us lots of work. *)
         val unspecified = ref nil : (int * cup) list ref
 
-        fun oneplayer (i, P { rules, ... }) =
+        fun oneplayer (i, P { up, down, filled, ... }) =
           case Array.sub (!cups, i) of
               NONE => ()
             | SOME now =>
               let
-                val c = Vector.sub (rules, now)
+                val c = case now of
+                    Up => up
+                  | Down => down
+                  | Filled => filled
               in
                 case c of
                     NONE =>
@@ -146,15 +148,9 @@ struct
                     waste: int }
     | Error of { rounds : int, msg : string }
 
-(*
   fun ctos Up = "U"
     | ctos Down = "D"
     | ctos Filled = "F"
-*)
-  fun ctos 0 = "F"
-    | ctos 1 = "D"
-    | ctos 2 = "U"
-    | ctos n = "X" ^ Int.toString n
 
   fun atos { drink, place = (w,a) } =
       ctos a ^
@@ -164,18 +160,14 @@ struct
   fun aotos NONE = "?"
     | aotos (SOME a) = atos a
 
-  fun playertostring (P { start, rules }) =
-      let fun vtol v =
-          Vector.foldri (fn (a, b, c) => (a : cup, b : action option) :: c) nil v
-      in
-          "(start " ^
-          (case start of
-               NONE => "_"
-             | SOME c => ctos c) ^ ", " ^
-          StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ aotos a)
-                                  (vtol rules)) ^
-          ")"
-      end
+  fun playertostring (P { start, up, down, filled }) =
+      "(start " ^
+      (case start of
+           NONE => "_"
+         | SOME c => ctos c) ^ ", " ^
+      StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ aotos a)
+                              [(Up, up), (Down, down), (Filled, filled)]) ^
+      ")"
 
   fun gametostring g =
       "[" ^ StringUtil.delimit "," (map playertostring g) ^ "]"
@@ -184,13 +176,12 @@ struct
 
   fun allgames radix =
       let
-          val cups = List.tabulate (NCUPS, fn i => i : cup)
+          val cups = [Up, Down, Filled]
 
           val startplayers =
               combine (NONE :: map SOME cups)
               (fn start =>
-               [P { start = start,
-                    rules = Vector.fromList (List.tabulate (NCUPS, fn _ => NONE)) }])
+               [P { start = start, up = NONE, down = NONE, filled = NONE }])
 
           val startgames =
               let
@@ -234,25 +225,25 @@ struct
             val radix = (case games of
                              h :: _ => length h
                            | nil => 0)
-            val cups = List.tabulate (NCUPS, fn i => i : cup)
+            val cups = [Up, Down, Filled]
             val indices = List.tabulate (radix, fn i => i)
             val placements =
                 combine indices (fn i =>
                                  combine cups (fn c =>
                                                [(i, c)]))
         in
-            val filledplans =
-                combine placements
-                (fn p => [SOME { drink = true, place = p }]) @
-                combine indices
-                (fn i =>
-                 [SOME { drink = false, place = (i, FILLED) }])
-
-            val otherplans =
+            val upplans =
                 combine [true, false]
                 (fn d =>
                  combine placements
                  (fn p => [SOME { drink = d, place = p }]))
+            val downplans = upplans
+            val filledplans =
+                combine placements
+                (fn p => [SOME { drink = true, place = p}]) @
+                combine indices
+                (fn i =>
+                 [SOME { drink = false, place = (i, Filled) }])
         end
 
         (* These are games that need to be explored. *)
@@ -326,25 +317,30 @@ struct
                              fun fillout nil ms = ms
                                | fillout ((i, c) :: rest) ms =
                                  combine
-                                 (if c = FILLED
-                                  then filledplans
-                                  else otherplans)
+                                 (case c of
+                                      Up => upplans
+                                    | Down => downplans
+                                    | Filled => filledplans)
                                  (fn plan =>
                                   combine ms
                                   (fn m =>
                                    [ListUtil.mapi
-                                    (fn (player as P { start, rules }, idx) =>
+                                    (fn (player as P { start,
+                                                       up, down,
+                                                       filled }, idx) =>
                                      let
-                                         fun replaceif (cup, value) =
+                                         fun replaceif cup field =
                                              if cup = c
-                                             then if Option.isSome value
+                                             then if Option.isSome field
                                                   then raise Bug
                                                   else plan
-                                             else value
+                                             else field
                                      in
                                          if idx = i
-                                         then P { start = start,
-                                                  rules = Vector.mapi replaceif rules }
+                                         then P {start = start,
+                                                 up = replaceif Up up,
+                                                 down = replaceif Down down,
+                                                 filled = replaceif Filled filled }
                                          else player
                                      end)
                                     m]))
@@ -404,7 +400,7 @@ struct
                           "Wrote " ^ Int.toString n ^ " possibilities to " ^ f ^ "\n")
        end
 
-   val numplayers = 2
+   val numplayers = 3
 
    val g = allgames numplayers
    val () = TextIO.output (TextIO.stdErr,
