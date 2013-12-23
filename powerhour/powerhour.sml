@@ -3,6 +3,11 @@
      be separated into non-interacting components.
 
    - Pow Pow Power Hour Machines
+
+   - Make execution indifferent to the drink rule.
+     Instead just compute a linear combination like
+     a * drink_up + b * drink_down + c * drink_filled
+     where drink_x is either 1 or 0.
 *)
 
 structure PH =
@@ -29,14 +34,13 @@ struct
                   place : int * cup }
 
   (* The starting state for the player, and the three actions that can
-     be specified. Note that in the None case, the only legal action
+     be specified. Note that in the no-cup case, the only legal action
      is to not drink and not pass, so this is not represented.
 
-     Actions are options so that we can generate classes of players
-     that are underspecified, for efficiency. The machine is illegal
-     if during simulation we need to use an action that is not present,
-     but we don't generate such machines when exploring the possibilities.
-     *)
+     Actions are optional so that we can generate classes of players
+     that are underspecified, for efficiency. If during simulation we
+     use an action that is not present, we explode it to all the possibilities
+     in that slot and start over. *)
   datatype player = P of { start : cup option,
                            up : action option,
                            down : action option,
@@ -52,7 +56,7 @@ struct
         outcome.
 
      There are jillions of possible machines (there are
-     something like (3*2n*3*2n*3*2n*3)^n for n players, depending
+     something like (4*2n*3*2n*3*2n*3)^n for n players, depending
      on whether you count illegal ones like don't drink and flip
      upside-down), so we don't want to store this as a normal set.
  *)
@@ -63,7 +67,8 @@ struct
   end
 
   datatype simulation =
-    S of { cups : cup option array ref,
+    S of { (* Cup state in each slot. *)
+           cups : cup option array ref,
            (* Never changes during simulation *)
            players : player vector,
            (* How many drinks has the player consumed? *)
@@ -79,48 +84,61 @@ struct
 
   exception Unspecified of int * cup
   exception Illegal of string
+
+  val totalsteps = ref (0 : IntInf.int)
+  (* Evaluate one step of the simulation. Raises Illegal if
+     two or more cups end up in the same position. Raises Unspecified
+     if *)
   fun step (S { cups, players, drinks, round }) =
       let
-          val newcups = Array.array (Array.length (!cups), NONE)
-          (* PERF The last thing we want to do is raise Unspecified,
-             so we could attempt all known placements to see if we
-             raise Illegal first? (Easiest way to do this is to
-             handle on the oneplayer call and then set some flag
-             that causes is to raise after we know that Illegal
-             won't happen.) This is really easy; I just want
-             to be able to measure whether it makes a difference... *)
-          fun oneplayer (i, P { up, down, filled, ... }) =
-              case Array.sub (!cups, i) of
-                  NONE => ()
-                | SOME now =>
-                  let
-                      val { drink, place as (dest, next) } =
-                          case (case now of
-                                    Up => up
-                                  | Down => down
-                                  | Filled => filled) of
-                              NONE => raise Unspecified (i, now)
-                            | SOME a => a
-                  in
-                      (if drink
-                       then Array.update (drinks, i,
-                                          Array.sub (drinks, i) + 1)
-                       else ());
-                          (* XXX do I need to check the illegal action
-                             where it's filled but I pass it without
-                             drinking? execexpand does not generate
-                             such games, if everything is correct *)
+        val newcups = Array.array (Array.length (!cups), NONE)
 
-                      (case Array.sub (newcups, dest) of
-                          NONE => Array.update (newcups, dest, SOME next)
-                        | SOME _ =>
-                              raise (Illegal ("2+ cups"
-                                              (* ^ " at pos " ^ Int.toString dest *))))
-                           handle Subscript => raise Illegal ("out of bounds")
-                  end
+        (* Delay raising the Unspecified option because if this
+           state is going to be illegal anyway, it will save us
+           lots of work. *)
+        val unspecified = ref NONE : (int * cup) option ref
 
+        fun oneplayer (i, P { up, down, filled, ... }) =
+          case Array.sub (!cups, i) of
+              NONE => ()
+            | SOME now =>
+              let
+                val c = case now of
+                    Up => up
+                  | Down => down
+                  | Filled => filled
+              in
+                case c of
+                    NONE =>
+                    let in
+                        unspecified := SOME (i, now)
+                        (* Execution is doomed now, but
+                           we hope we might raise Illegal
+                           instead *)
+                    end
+                  | SOME { drink, place as (dest, next) } =>
+                    let in
+                        (if drink
+                         then Array.update (drinks, i,
+                                            Array.sub (drinks, i) + 1)
+                         else ());
+
+                         (* Note: Not checking the illegal action
+                            where it's filled but I pass without drinking.
+                            execexpand should not generate this rule. *)
+                        (case Array.sub (newcups, dest) of
+                           NONE => Array.update (newcups, dest, SOME next)
+                         | SOME _ => raise Illegal "2+ cups")
+                             (* ^ " at pos " ^ Int.toString dest *)
+                             handle Subscript => raise Illegal "out of bounds"
+                    end
+              end
       in
+          totalsteps := !totalsteps + 1;
           Vector.appi oneplayer players;
+          (case !unspecified of
+               SOME what => raise Unspecified what
+             | NONE => ());
           cups := newcups;
           round := !round + 1
       end
@@ -502,9 +520,42 @@ struct
            app showone l
        end
 
-   val g = allgames 1
+   structure ILM = SplayMapFn(type ord_key = int list
+                              val compare = Util.lex_list_order Int.compare)
+
+   fun writepossible f res =
+       let
+           fun tolist a = Array.foldr op:: nil a
+           (* Set (as map to int) of unique possible outcomes. Need to
+              dedup here because we don't care how many beers are wasted *)
+           val unique = ref (ILM.empty : unit ILM.map)
+           fun one (Finished { drinks, waste = _ }, _) =
+               unique := ILM.insert (!unique, tolist drinks, ())
+             | one _ = ()
+           val () = app one res
+           fun prone (drinks, ()) =
+               StringUtil.delimit ","
+               (map Int.toString drinks) ^ "\n"
+           val strings = map prone (ILM.listItemsi (!unique))
+           val contents = String.concat strings
+           val n = length strings
+       in
+           StringUtil.writefile f contents;
+           print ("Wrote " ^ Int.toString n ^ " possibilities to " ^ f ^ "\n")
+       end
+
+   val numplayers = 2
+
+   val g = allgames numplayers
    val () = print ("There are " ^ Int.toString (length g) ^
                    " games before splitting.\n")
-   val () = show (RM.listItemsi (execexpand g))
-
+   val start_time = Time.now()
+   val executed = (execexpand g)
+   val end_time = Time.now()
+   val res = RM.listItemsi executed
+   val () = show res
+   val () = writepossible ("possible-" ^ Int.toString numplayers ^ ".txt") res
+   val () = print ("Total steps " ^ IntInf.toString (!totalsteps) ^ ". Took " ^
+                   (IntInf.toString (Time.toMilliseconds end_time -
+                                     Time.toMilliseconds start_time)) ^ " ms\n")
 end
