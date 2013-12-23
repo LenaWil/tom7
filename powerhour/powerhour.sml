@@ -148,29 +148,29 @@ struct
                     waste: int }
     | Error of { rounds : int, msg : string }
 
-   fun ctos Up = "U"
-     | ctos Down = "D"
-     | ctos Filled = "F"
+  fun ctos Up = "U"
+    | ctos Down = "D"
+    | ctos Filled = "F"
 
-   fun atos { drink, place = (w,a) } =
-       ctos a ^
-       (if drink then "*" else "") ^
-       "@" ^ Int.toString w
+  fun atos { drink, place = (w,a) } =
+      ctos a ^
+      (if drink then "*" else "") ^
+      "@" ^ Int.toString w
 
-   fun aotos NONE = "?"
-     | aotos (SOME a) = atos a
+  fun aotos NONE = "?"
+    | aotos (SOME a) = atos a
 
-   fun playertostring (P { start, up, down, filled }) =
-       "(start " ^
-       (case start of
-            NONE => "_"
-          | SOME c => ctos c) ^ ", " ^
-       StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ aotos a)
-                               [(Up, up), (Down, down), (Filled, filled)]) ^
-       ")"
+  fun playertostring (P { start, up, down, filled }) =
+      "(start " ^
+      (case start of
+           NONE => "_"
+         | SOME c => ctos c) ^ ", " ^
+      StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ aotos a)
+                              [(Up, up), (Down, down), (Filled, filled)]) ^
+      ")"
 
-   fun gametostring g =
-       "[" ^ StringUtil.delimit "," (map playertostring g) ^ "]"
+  fun gametostring g =
+      "[" ^ StringUtil.delimit "," (map playertostring g) ^ "]"
 
   fun combine l k = List.concat (map k l)
 
@@ -263,10 +263,6 @@ struct
               nil => !done
             | m :: t =>
             let
-                (*
-                val () = print (Int.toString (length (!queue)) ^
-                                " left in queue\n")
-                *)
                 val () = queue := t
                 fun simulate (s as S { round = ref round, drinks, cups, ... }) =
                   if round = MINUTES
@@ -280,7 +276,6 @@ struct
                       end
                   else
                      let in
-                         (* print (Int.toString round ^ "\n"); *)
                          step s;
                          simulate s
                      end
