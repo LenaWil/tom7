@@ -11,31 +11,34 @@ struct
                       width : real,
                       height : real }
 
-  (* Trailing zeroes don't change the nature of decimal numbers *)
+  (* Trailing zeroes don't change the nature of decimal numbers,
+     but don't leave as "1234." either *)
   fun striptail s =
       if CharVector.exists (StringUtil.ischar #".") s
-      then StringUtil.losespecr (StringUtil.ischar #"0") s
+      then
+          StringUtil.losespecr (StringUtil.ischar #".")
+          (StringUtil.losespecr (StringUtil.ischar #"0") s)
       else s
 
   (* No exponential notation *)
-  fun ertos r = if (r > ~0.000001 andalso r < 0.000001) 
-                then "0.0" 
+  fun ertos r = if (r > ~0.000001 andalso r < 0.000001)
+                then "0.0"
                     (* XXX using 8 for kml, was 4 for svg *)
                 else (striptail (Real.fmt (StringCvt.FIX (SOME 8)) r))
 
   (* Don't use SML's dumb ~ *)
-  fun rtos r = if r < 0.0 
+  fun rtos r = if r < 0.0
                then "-" ^ ertos (0.0 - r)
                else ertos r
 
   fun loadgraphic file =
-      let 
+      let
           val losewhites = StringUtil.losespecsides StringUtil.whitespec
           fun process (Elem (("svg", attrs), body)) =
               let
                   fun getpx s =
                     case ListUtil.Alist.find op= attrs s of
-                        NONE => raise TextSVG ("expected to find a '" ^ s ^ 
+                        NONE => raise TextSVG ("expected to find a '" ^ s ^
                                               "' attr")
                       | SOME px =>
                          let val px = losewhites px
@@ -63,11 +66,11 @@ struct
               in
                   { width = width, height = height, body = body }
               end
-            | process _ = 
+            | process _ =
               raise TextSVG "expected SVG file to be a single <svg> tag."
 
           val x = XML.parsefile file
-              handle XML.XML s => 
+              handle XML.XML s =>
                   raise TextSVG ("Couldn't parse " ^ file ^ "'s xml: " ^ s)
 
       in
@@ -82,7 +85,7 @@ struct
             | doscale (SOME r) s = "<g transform=\"scale(" ^ rtos r ^ ")\">" ^ s ^ "</g>"
           fun dorotate NONE s = s
             | dorotate (SOME r) s = "<g transform=\"rotate(" ^ rtos r ^ ")\">" ^ s ^ "</g>"
-          fun dotranslate (x, y) s = 
+          fun dotranslate (x, y) s =
               "<g transform=\"translate(" ^ rtos x ^ " " ^ rtos y ^ ")\">" ^ s ^ "</g>"
       in
           dotranslate (x, y) (doscale scale (dorotate rotate body))
@@ -99,7 +102,7 @@ struct
           "\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\" [\n" ^
 
           "<!ENTITY ns_flows \"http://ns.adobe.com/Flows/1.0/\">\n]>\n" ^
-          
+
           "<svg version=\"1.1\"\n" ^
           " xmlns=\"http://www.w3.org/2000/svg\"" ^
           " xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n" ^
@@ -112,10 +115,10 @@ struct
       end
 
   fun svgfooter () = "</svg>\n"
-      
+
   type svgtext = (string * string) list
-  fun svgtext { x, y, face, size = fontsize, text } = 
-      let 
+  fun svgtext { x, y, face, size = fontsize, text } =
+      let
           (* XXX need to escape for SVG. This is insufficient. *)
           fun escape s =
               let val s = StringUtil.replace "<" "&lt;" s
