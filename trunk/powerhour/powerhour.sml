@@ -1,13 +1,6 @@
-<<<<<<< .mine
 (* TODO improvements:
    - don't directly enumerate games that can
      be separated into non-interacting components.
-*)
-=======
-(* TODO improvements:
-   - don't directly enumerate games that can
-     be separated into non-interacting components.
->>>>>>> .r1797
 
    - Pow Pow Power Hour Machines
 *)
@@ -62,12 +55,10 @@ struct
      something like (3*2n*3*2n*3*2n*3)^n for n players, depending
      on whether you count illegal ones like don't drink and flip
      upside-down), so we don't want to store this as a normal set.
-
-     XXX
  *)
-  struct DB =
+  structure DB =
   struct
-
+      (* XXX I guess I didn't implement it *)
 
   end
 
@@ -185,34 +176,6 @@ struct
     end
 
    fun combine l k = List.concat (map k l)
-
-   (* Returns a list of all the possible games with that
-      many players *)
-   fun allgames radix =
-       let
-           val cups = [Up, Down, Filled]
-<<<<<<< .mine
-           val startplayers =
-               combine (NONE :: map SOME cups)
-               (fn start =>
-                [P { start = start, up = NONE, down = NONE, filled = NONE }])
-
-           val startgames =
-               let
-                   fun gg 0 = [nil]
-                     | gg n =
-                       let val rest = gg (n - 1)
-                       in
-                           combine startplayers
-                           (fn p =>
-                            map (fn l => p :: l) rest)
-                       end
-               in
-                   gg radix
-               end
-       in
-           startgames
-       end
 
   fun result_cmp (Finished _, Error _) = LESS
     | result_cmp (Error _, Finished _) = GREATER
@@ -342,14 +305,12 @@ struct
         process()
     end
 
-(*
-
    (* Returns a list of all the possible games with that
       many players *)
    fun allgames radix =
        let
            val cups = [Up, Down, Filled]
-=======
+
            val startplayers =
                combine (NONE :: map SOME cups)
                (fn start =>
@@ -513,61 +474,6 @@ struct
         process()
     end
 
-<<<<<<< .mine
-=======
-(*
-
-   (* Returns a list of all the possible games with that
-      many players *)
-   fun allgames radix =
-       let
-           val cups = [Up, Down, Filled]
->>>>>>> .r1797
-           val indices = List.tabulate (radix, fn i => i)
-           val placements =
-               combine indices (fn i =>
-                                combine cups (fn c =>
-                                              [(i, c)]))
-           val plans =
-               combine [true, false]
-               (fn d =>
-                combine placements
-                (fn p => [SOME { drink = d, place = p }]))
-
-           val players =
-               combine (NONE :: map SOME cups)
-               (fn start =>
-                combine plans
-                (fn u =>
-                 combine plans
-                 (fn d =>
-                  combine plans
-                  (fn f =>
-                   [P { start = start, up = u, down = d, filled = f}]
-                   ))))
-           val () = print ("There are " ^
-                           Int.toString (length players) ^
-                           " different players.\n")
-           (* Get all combinations of n players *)
-           fun get 0 = [nil]
-             | get n =
-                 let val rest = get (n - 1)
-                 in
-                     combine players
-                     (fn player =>
-                      map (fn l => player :: l) rest)
-                 end
-
-           val res = get radix
-           val () = print ("There are " ^
-                           Int.toString (length res) ^
-                           " different games.\n")
-       in
-           res
-       end
-*)
-
->>>>>>> .r1838
    fun collate l =
        let
            val l = ListUtil.mapto exec l
@@ -596,7 +502,7 @@ struct
            app showone l
        end
 
-   val g = allgames 3
+   val g = allgames 1
    val () = print ("There are " ^ Int.toString (length g) ^
                    " games before splitting.\n")
    val () = show (RM.listItemsi (execexpand g))
