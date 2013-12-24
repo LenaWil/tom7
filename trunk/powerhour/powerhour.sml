@@ -20,7 +20,7 @@ struct
      completely describe a power hour algorithm. *)
   type cup = int
   val FILLED = 0
-  val NCUPS = 3
+  val NCUPS = 10
 
   (* What a player does on a turn when he sees a state other than None.
      (In None, the only legal action is to not drink and not pass.)
@@ -526,7 +526,7 @@ struct
                           "Wrote " ^ Int.toString n ^ " possibilities to " ^ f ^ "\n")
        end
 
-   val numplayers = 2
+   val numplayers = 1
 
    val g = allgames numplayers
    val () = TextIO.output (TextIO.stdErr,
@@ -537,7 +537,9 @@ struct
    val end_time = Time.now()
    val res = RM.listItemsi executed
    val () = show res
-   val () = writepossible ("possible-" ^ Int.toString numplayers ^ ".txt") res
+   val () = writepossible ("possible-" ^ Int.toString NCUPS ^ "cup-" ^
+                           Int.toString MINUTES ^ "min-" ^
+                           Int.toString numplayers ^ "player.txt") res
    val () = TextIO.output (TextIO.stdErr,
                            "Total steps " ^ IntInf.toString (!totalsteps) ^ ". Took " ^
                            (IntInf.toString (Time.toMilliseconds end_time -
