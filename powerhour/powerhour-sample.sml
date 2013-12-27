@@ -1,21 +1,40 @@
-(* TODO improvements:
-   - don't directly enumerate games that can
-     be separated into non-interacting components.
+(* Power-Hour sampling approach. Unlike the code in powerhour.sml, we
+   are not trying to enumerate all possible power hours. Instead, we
+   are trying to explore the space (e.g. randomly) to establish that
+   certain possibilities are possible. The expectation is that for
+   very powerful BMnL games (e.g. 100 cup states) and small
+   possibility radixes (e.g. 2 players in 60 minutes) that we'd
+   efficiently establish the existence of games covering the
+   entire matrix. Of course, p players in BM8L can achieve any
+   result (because one player can), so this is mostly useful
+   when p is small but the number of cup states is < 8. Specifically,
+   we hope to either show that BM6L or BM7L covers the grid for
+   two-player games, tightening that bound.
 
-   - Pow Pow Power Hour Machines
+   Because of this use, it's not critical that we can generate
+   all possible legal games, nor that we do so uniformly. We also don't
+   care about shots wasted, prefering to just optimize for throughput.
 *)
 
 structure PH =
 struct
+  structure MT = MersenneTwister
 
-  (* XXX should be 60 *)
   val MINUTES = 60
 
   (* Types that define Power Hour Machines, which
      completely describe a power hour algorithm. *)
   type cup = int
+  (* Number of cup states, not really the number of cups. For BMML,
+     should be 3. *)
+  val NCUPS = 7
+  val NPLAYERS = 2
+
+  val cxpointfile = "checkpoint-" ^ Int.toString MINUTES ^ "m-" ^
+      Int.toString NPLAYERS ^ "p-" ^
+      Int.toString NCUPS ^ "s.tf"
+
   val FILLED = 0
-  val NCUPS = 10
 
   (* What a player does on a turn when he sees a state other than None.
      (In None, the only legal action is to not drink and not pass.)
@@ -26,40 +45,40 @@ struct
       - The result of the round cannot have more than one
         cup in a given location.
      Note that it is normal for the player to pass to himself. *)
-
-  type action = { place : int * cup }
+  type action = int * cup
 
   (* The starting state for the player, and the three actions that can
      be specified. Note that in the no-cup case, the only legal action
      is to not drink and not pass, so this is not represented.
-
-     Actions are optional so that we can generate classes of players
-     that are underspecified, for efficiency. If during simulation we
-     use an action that is not present, we explode it to all the possibilities
-     in that slot and start over. *)
+     
+     We don't do the lazy expansion of rules like in powerhour.sml,
+     as we will be generating these randomly and can just make concrete
+     ones from the start. *)
   datatype player = P of { start : cup option,
                            (* length NCUPS *)
-                           rules : action option vector }
+                           rules : action vector }
 
   type machine = player list
 
-  (* Database of partial searches, so that we can store and resume
-     a search. We need to store two things:
+  fun toexample (m : machine, plans : bool vector list) : SamplesTF.example =
+      let
+	  val together : (player * bool vector) list = ListUtil.wed m plans
+	  fun one (P { start, rules } : player, bv : bool vector) : SamplesTF.player =
+	      let
+		  val bl = Vector.foldr op:: nil bv
+		  val rl = Vector.foldr op:: nil rules
+		  val rulesdrink : (bool * action) list = ListUtil.wed bl rl
+	      in
+		  SamplesTF.P 
+		  { start = start,
+		    rules = map (fn (b, (dest, state)) => 
+				 (b, dest, state)) rulesdrink }
+	      end
+      in
+	  SamplesTF.E { players = map one together }
+      end
 
-      - what machines have already been searched
-      - what outcomes are possible, with one witness for each
-        outcome.
-
-     There are jillions of possible machines (there are
-     something like (4*2n*3*2n*3*2n*3)^n for n players, depending
-     on whether you count illegal ones like don't drink and flip
-     upside-down), so we don't want to store this as a normal set.
- *)
-  structure DB =
-  struct
-      (* XXX I guess I didn't implement it *)
-
-  end
+  exception Unimplemented
 
   datatype simulation =
     S of { (* Cup state in each slot. *)
@@ -73,7 +92,10 @@ struct
               cup when executing the FILLED rule, we
               set it to true. We could also just inspect
               the rule at 0, but that is not exact because
-              the rule might never actually execute. *)
+              the rule might never actually execute. 
+	      (PS. this exactness is not necessary in the
+	      sampling approach, so consider simplifying.)
+	      *)
            mustdrink0 : bool array,
            (* How many times was each rule executed (and
               thus could drink?) Remember to check the
@@ -95,100 +117,67 @@ struct
               round = ref 0 }
       end
 
-  exception Unspecified of (int * cup) list
   exception Illegal of string
 
   val totalsteps = ref (0 : IntInf.int)
   (* Evaluate one step of the simulation. Raises Illegal if
-     two or more cups end up in the same position. Raises Unspecified
-     if we need to use a rule but it's not currently filled in. *)
+     two or more cups end up in the same position. *)
   fun step (S { cups, players, mustdrink0, ruleexecuted, round }) =
       let
         val newcups = Array.array (Array.length (!cups), NONE)
-
-        (* Delay raising the Unspecified option because if this
-           state is going to be illegal anyway, it will potentially
-           save us lots of work. *)
-        val unspecified = ref nil : (int * cup) list ref
 
         fun oneplayer (i, P { rules, ... }) =
           case Array.sub (!cups, i) of
               NONE => ()
             | SOME now =>
               let
-                val c = Vector.sub (rules, now)
+                val (dest, next) = Vector.sub (rules, now)
                 val rulecounts_for_player = Vector.sub (ruleexecuted, i)
+		(* This rule executed, so increment the count *)
+		val oldcount = Array.sub (rulecounts_for_player, now)
               in
-                case c of
-                    NONE =>
-                    let in
-                        unspecified := (i, now) :: !unspecified
-                        (* Execution is doomed now, but
-                           we hope we might raise Illegal
-                           instead *)
-                    end
-                  | SOME { place as (dest, next) } =>
-                    let
-                        (* This rule executed, so increment the count *)
-                        val oldcount = Array.sub (rulecounts_for_player, now)
-                    in
-                        Array.update (rulecounts_for_player, now, oldcount + 1);
+		  Array.update (rulecounts_for_player, now, oldcount + 1);
 
-                        (* If this was the filled cup rule, see if it means
-                           we had to drink. *)
-                        (if now = FILLED andalso next <> FILLED
-                         then Array.update (mustdrink0, i, true)
-                         else ());
+		  (* If this was the filled cup rule, see if it means
+		     we had to drink. *)
+		  (if now = FILLED andalso next <> FILLED
+		   then Array.update (mustdrink0, i, true)
+		   else ());
 
-                        (case Array.sub (newcups, dest) of
-                           NONE => Array.update (newcups, dest, SOME next)
-                         | SOME _ => raise Illegal "2+ cups")
-                             (* ^ " at pos " ^ Int.toString dest *)
-                             handle Subscript => raise Illegal "out of bounds"
-                    end
+		  (case Array.sub (newcups, dest) of
+		       NONE => Array.update (newcups, dest, SOME next)
+		     | SOME _ => raise Illegal "2+ cups")
+		       (* ^ " at pos " ^ Int.toString dest *)
+		       handle Subscript => raise Illegal "out of bounds"
               end
       in
           totalsteps := !totalsteps + 1;
           Vector.appi oneplayer players;
-          (case !unspecified of
-               nil => ()
-             | l => raise Unspecified l);
           cups := newcups;
           round := !round + 1
       end
 
-  datatype result =
-      Finished of { drinks: int vector,
-                    waste: int }
-    | Error of { rounds : int, msg : string }
+  datatype result = Finished of int vector
 
-(*
-  fun ctos Up = "U"
-    | ctos Down = "D"
-    | ctos Filled = "F"
-*)
   fun ctos 0 = "F"
     | ctos 1 = "D"
     | ctos 2 = "U"
     | ctos n = "X" ^ Int.toString n
 
-  fun atos { place = (w, a) } =
+  fun atos (w, a) =
       ctos a ^
       (* (if drink then "*" else "") ^ *)
       "@" ^ Int.toString w
 
-  fun aotos NONE = "?"
-    | aotos (SOME a) = atos a
-
   fun playertostring (P { start, rules }) =
       let fun vtol v =
-          Vector.foldri (fn (a, b, c) => (a : cup, b : action option) :: c) nil v
+          Vector.foldri (fn (a, b, c) => (a : cup, b : action) :: c) nil v
       in
           "(start " ^
           (case start of
                NONE => "_"
              | SOME c => ctos c) ^ ", " ^
-          StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ aotos a)
+          StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ atos a)
                                   (vtol rules)) ^
           ")"
       end
@@ -208,78 +197,87 @@ struct
 
   fun combine l k = List.concat (map k l)
 
-  fun allgames radix =
+  (* Generate a random game. We don't care that much about having a uniform
+     distribution (which would need to be defined anyway) nor generating
+     every possible weird game. However, missing too many games could
+     interfere with us establishing bounds. Main thing we want to do is
+     avoid exploring games that will obviously crash at runtime, but
+     effort avoiding this may be misplaced, since these games are quickly
+     filtered out during simulation.
+
+     So let's start with the simplest thing, which is to just fill in
+     every free slot uniformly at random. *)
+  val mt = MT.initstring ("powerhour" ^ Time.toString (Time.now ()))
+  fun randomgame () =
       let
-          val cups = List.tabulate (NCUPS, fn i => i : cup)
+	  (* Generate a random cup state in [0, ncups) *)
+	  fun randomcup () =
+	      MT.random_nat mt NCUPS
+	  fun randomstart () =
+	      (* PERF could just generate 1 number *)
+	      case MT.random_nat mt 6 of
+		  0 => NONE
+		| _ => SOME (randomcup ())
 
-          val startplayers =
-              combine (NONE :: map SOME cups)
-              (fn start =>
-               [P { start = start,
-                    rules = Vector.fromList (List.tabulate (NCUPS, fn _ => NONE)) }])
+	  fun randomplayer () =
+	      MT.random_nat mt NPLAYERS
 
-          val startgames =
-              let
-                  fun gg 0 = [nil]
-                    | gg n =
-                      let val rest = gg (n - 1)
-                      in
-                          combine startplayers
-                          (fn p =>
-                           map (fn l => p :: l) rest)
-                      end
-              in
-                  gg radix
-              end
+	  fun randomrule () : action =
+	      (randomplayer (), randomcup ())
+
+	  fun randomrules () : action vector =
+	      (* PERF way to do this directly? *)
+	      Vector.fromList
+	      (List.tabulate 
+	       (NCUPS, fn _ => randomrule ()))
+
+	  fun oneplayer _ =
+	      P { start = randomstart (),
+		  rules = randomrules () }
       in
-          startgames
+	  List.tabulate (NPLAYERS, oneplayer)
       end
 
-  fun result_cmp (Finished _, Error _) = LESS
-    | result_cmp (Error _, Finished _) = GREATER
-    | result_cmp (Finished { drinks, waste },
-                  Finished { drinks = dd, waste = ww }) =
-      (case Int.compare (waste, ww) of
-           EQUAL => Util.lex_vector_order Int.compare (drinks, dd)
-         | ord => ord)
-    | result_cmp (Error { rounds, msg },
-                  Error { rounds = rr, msg = mm }) =
-      (case Int.compare (rounds, rr) of
-           EQUAL => String.compare (msg, mm)
-         | ord => ord)
+  fun result_cmp (Finished drinks, Finished dd) =
+      Util.lex_vector_order Int.compare (drinks, dd)
 
   structure RM = SplayMapFn(type ord_key = result
                             val compare = result_cmp)
 
+  fun writedb (db : (SamplesTF.example * IntInf.int) RM.map) =
+      let
+	  fun vtol v = Vector.foldr op:: nil v
+	  val db = RM.listItemsi db
+	  val db = map (fn (Finished v, (ex, count)) =>
+			(vtol v, ex, IntInf.toString count)) db
+	  val db = SamplesTF.DB { entries = db }
+      in
+	  SamplesTF.DB.tofile cxpointfile db
+      end
+
+  fun readdb () : (SamplesTF.example * IntInf.int) RM.map =
+      case (SamplesTF.DB.maybefromfile cxpointfile handle _ => NONE) of
+	  NONE => RM.empty
+	| SOME (SamplesTF.DB { entries }) =>
+	      let val m = ref RM.empty
+	      in
+		  app (fn (drinks, example, count) =>
+		       let val count = Option.valOf (IntInf.fromString count)
+			   val drinks = Finished (Vector.fromList drinks)
+		       in
+			   m := RM.insert (!m, drinks, (example, count))
+		       end) entries;
+		  !m
+	      end
+
   (* For readout while running. One for benchmarking is at the bottom. *)
   val startseconds = Time.toSeconds (Time.now ())
-  fun execexpand games =
+  fun sampleloop () =
     let
-        (* These are used for expanding underspecified players. *)
-        local
-            val radix = (case games of
-                             h :: _ => length h
-                           | nil => 0)
-            val cups = List.tabulate (NCUPS, fn i => i : cup)
-            val indices = List.tabulate (radix, fn i => i)
-            val placements =
-                combine indices (fn i =>
-                                 combine cups (fn c =>
-                                               [(i, c)]))
-        in
-            (* Once we need to expand an action it becomes this. We
-               will put anything in the FILLED rule, because execution
-               determines whether we must drink on that rule after the
-               fact. *)
-            val expandedactions =
-                combine placements
-                (fn p => [SOME { place = p }])
-        end
-
-        (* These are games that need to be explored. *)
-        val queue = ref games
-
-        (* The map contains an example machine along with a bit vector that
+        (* XXX load this state from textformat on startup, then write it
+	   back periodically.
+	   
+	   The map contains an example machine along with a bit vector that
            tells us whether the player drinks on the nth rule, for each player.
            In the case that the outcome was failure, this assignment will be
            nil (any ruleset would cause failure).
@@ -287,39 +285,74 @@ struct
            This could be folded into the machine (and it would make sense) though
            then we need another representation of machines. The IntInf is the
            count of times we inserted something with that outcome. *)
-        val done = ref (RM.empty : ((machine * bool vector list) * IntInf.int) RM.map)
-        val did = ref (0 : IntInf.int)
-        val minq = ref (length (!queue))
+        val done = ref (readdb ())
 
-        (* Note: only keeping the newest, and counting how many we had. *)
-        fun add_result (m, plans) r =
+	(* These are session-level *)
+	val nillegal = ref (0 : IntInf.int)
+	val nok = ref (0 : IntInf.int)
+        val nsamples = ref (0 : IntInf.int)
+
+	fun pow n 0 = 1
+	  | pow n m = n * pow n (m - 1)
+	val totalcells = pow MINUTES NPLAYERS
+	val filledcells = ref (RM.numItems (!done))
+	(* Value of filled cells last time we wrote the database. *)
+	val lastfilledcells = ref (!filledcells)
+	val () =
+	    if !filledcells > 0
+	    then TextIO.output (TextIO.stdErr,
+				"Read database with " ^
+				Int.toString (!filledcells) ^ "/" ^
+				Int.toString totalcells ^ " already found\n")
+	    else TextIO.output (TextIO.stdErr,
+				"Starting with fresh empty database.\n")
+
+	fun account () =
            let in
-               did := !did + 1;
-               if !did mod 100000 = 0
+               nsamples := !nsamples + 1;
+               if !nsamples mod 100000 = 0
                then
-                   let val lq = length (!queue)
+                   let 
                        val secs = Time.toSeconds (Time.now()) - startseconds
                        val sps = Real.fromLargeInt (!totalsteps) /
                            Real.fromLargeInt secs
-                       val gps = Real.fromLargeInt (!did) /
+                       val gps = Real.fromLargeInt (!nsamples) /
                            Real.fromLargeInt secs
+		       val legal = Real.fromLargeInt (!nok * 100) /
+			   Real.fromLargeInt (!nok + !nillegal)
+		       val filled = real (!filledcells * 100) /
+			   real totalcells
+		       (* XXX metrics on the matrix completion rate *)
                    in
-                       minq := Int.min(!minq, lq);
-                       TextIO.output (TextIO.stdErr, "#" ^ IntInf.toString (!did) ^
-                                      " queue " ^ Int.toString lq ^
-                                      " min " ^ Int.toString (!minq) ^
-                                      (* " " ^ gametostring m ^ *)
+		       if !filledcells > !lastfilledcells
+		       then
+			   let in
+			       writedb (!done);
+			       lastfilledcells := !filledcells
+			   end
+		       else ();
+                       TextIO.output (TextIO.stdErr, "#" ^ IntInf.toString (!nsamples) ^
                                       " " ^ Real.fmt (StringCvt.FIX (SOME 0)) sps ^
                                       " states/sec" ^
                                       " " ^ Real.fmt (StringCvt.FIX (SOME 0)) gps ^
                                       " config/sec" ^
+				      " " ^ Real.fmt (StringCvt.FIX (SOME 2)) legal ^
+				      "% legal" ^
+				      " " ^ Real.fmt (StringCvt.FIX (SOME 2)) filled ^
+				      "% filled" ^
                                       "\n")
                    end
-               else ();
-               case RM.find (!done, r) of
-                   NONE => done := RM.insert (!done, r, ((m, plans), 1))
-                 | SOME (old, n) => done := RM.insert (!done, r, (old, n + 1))
-           end
+               else ()
+	   end
+
+        fun add_example (m, plans) r =
+	    case RM.find (!done, r) of
+		NONE => 
+		    let in
+			filledcells := 1 + !filledcells;
+			done := RM.insert (!done, r, (toexample (m, plans), 1))
+		    end
+	      | SOME (old, n) => done := RM.insert (!done, r, (old, n + 1))
 
         (* We executed m abstractly, and mustdrink0 / ruleexecuted
            tell us how many drinks we can drink. Each cell in ruleexecuted
@@ -328,8 +361,9 @@ struct
            drinks, where d_i is always 1 or 0. if mustdrink0 is 0 for a
            player, then d_1 must be 1 (sorry, confusion between 0-indexed
            and 1-indexed here). *)
-        fun add_metaresult m { mustdrink0, ruleexecuted, waste } =
+        fun add_metaresult m { mustdrink0, ruleexecuted } =
            let
+	       (* XXX this is constant *)
                val nplayers = Array.length mustdrink0
                (* Each player can choose which rules drink independently,
                   which is part of what reduces the space here so much.
@@ -397,89 +431,51 @@ struct
                    let val (outcome, plans) = ListPair.unzip tps
                        val outcome = Vector.fromList outcome
                    in
-                       add_result (m, plans) (Finished { drinks = outcome,
-                                                         waste = waste })
+                       add_example (m, plans) (Finished outcome)
                    end
            in
                allcomb doone nil players
            end
 
-        exception Bug
         fun process () =
-          case !queue of
-              nil => !done
-            | m :: t =>
-            let
-                val () = queue := t
+	    let val m = randomgame ()
                 fun simulate (s as S { round = ref round, mustdrink0,
                                        ruleexecuted, cups, ... }) =
                   if round = MINUTES
-                  then
-                      let
-                          (* Glasses filled at the end are waste. *)
-                          val waste = Array.foldl (fn (SOME Filled, b) => 1 + b
-                                                    | (_, b) => b) 0 (!cups)
-                      in
-                         add_metaresult m ({ mustdrink0 = mustdrink0,
-                                             ruleexecuted = ruleexecuted,
-                                             waste = waste })
-                      end
+                  then 
+		      let in
+			  nok := 1 + !nok;
+			  add_metaresult m ({ mustdrink0 = mustdrink0,
+					      ruleexecuted = ruleexecuted });
+			  account ()
+		      end
                   else
                      let in
                          step s;
                          simulate s
                      end
-                       handle Illegal str =>
-                         add_result (m, nil) (Error { rounds = round, msg = str })
-                      | Unspecified l =>
-                         let
-                             (* Take a list of machines, and specify all
-                                unspecified positions in the list l.
-                                Each is a player index and the cup that
-                                we need a rule for. Returns all such
-                                assignments. *)
-                             fun fillout nil ms = ms
-                               | fillout ((i, c) :: rest) ms =
-                                 combine expandedactions
-                                 (fn action =>
-                                  combine ms
-                                  (fn m =>
-                                   [ListUtil.mapi
-                                    (fn (player as P { start, rules }, idx) =>
-                                     let
-                                         fun replaceif (cup, value) =
-                                             if cup = c
-                                             then if Option.isSome value
-                                                  then raise Bug
-                                                  else action
-                                             else value
-                                     in
-                                         if idx = i
-                                         then P { start = start,
-                                                  rules = Vector.mapi replaceif rules }
-                                         else player
-                                     end)
-                                    m]))
-                         in
-                             queue := fillout l [m] @ !queue
-                         end
             in
-               simulate (makesim m);
-               process()
-            end
+	      (simulate (makesim m)
+	       handle Illegal str =>
+		   let in
+		       nillegal := 1 + !nillegal;
+		       (* add_result (m, nil) (Error { rounds = round, msg = str }); *)
+		       account ()
+		   end);
 
+	      if !filledcells < totalcells
+	      then process()
+	      else !done
+            end
     in
         process()
     end
 
-   fun restostring (Finished { drinks, waste }) =
+   fun restostring (Finished drinks) =
        "[" ^
        StringUtil.delimit "," (map Int.toString
                                (Vector.foldr op:: nil drinks)) ^
-       "] wasting " ^
-       Int.toString waste
-     | restostring (Error { rounds, msg }) =
-       "In " ^ Int.toString rounds ^ " round(s): " ^ msg
+       "]"
 
    fun show l =
        let
@@ -498,12 +494,12 @@ struct
    fun writepossible f res =
        let
            fun tolist a = Vector.foldr op:: nil a
-           (* Set (as map to int) of unique possible outcomes. Need to
-              dedup here because we don't care how many beers are wasted *)
+           (* Set (as map to int) of unique possible outcomes. XXX Don't
+	      need to dedup again here; in this program we don't look at
+	      the number of beers wasted. *)
            val unique = ref (ILM.empty : unit ILM.map)
-           fun one (Finished { drinks, waste = _ }, _) =
+           fun one (Finished drinks, _) =
                unique := ILM.insert (!unique, tolist drinks, ())
-             | one _ = ()
            val () = app one res
            fun prone (drinks, ()) =
                StringUtil.delimit ","
@@ -517,20 +513,17 @@ struct
                           "Wrote " ^ Int.toString n ^ " possibilities to " ^ f ^ "\n")
        end
 
-   val numplayers = 1
-
-   val g = allgames numplayers
-   val () = TextIO.output (TextIO.stdErr,
-                           "There are " ^ Int.toString (length g) ^
-                           " games before splitting.\n")
    val start_time = Time.now()
-   val executed = (execexpand g)
+   val (db : (SamplesTF.example * IntInf.int) RM.map) = sampleloop()
    val end_time = Time.now()
+
+(*
    val res = RM.listItemsi executed
    val () = show res
    val () = writepossible ("possible-" ^ Int.toString NCUPS ^ "cup-" ^
                            Int.toString MINUTES ^ "min-" ^
-                           Int.toString numplayers ^ "player.txt") res
+                           Int.toString NPLAYERS ^ "player.txt") res
+       *)
    val () = TextIO.output (TextIO.stdErr,
                            "Total steps " ^ IntInf.toString (!totalsteps) ^ ". Took " ^
                            (IntInf.toString (Time.toMilliseconds end_time -
