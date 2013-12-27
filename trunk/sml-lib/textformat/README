@@ -98,6 +98,12 @@ Design considerations:
    Unlike protocol buffers, we don't support round-trip compatibility.
    If you parse it, you discard the fields that you don't understand.
 
+ - It's very important that the generated code by completely standalone
+   and not require anything other than the well-supported subset of the
+   Standard Basis library. This is so that it can be easily dropped
+   into an SML program without adding dependencies or interfering with
+   its compilation management system.
+
  - The text format is designed to support efficient diffs and feasible
    merges in revision control systems, yay.
 
@@ -116,27 +122,27 @@ API reference:
    Each message has a structure whose name is the token for that message
    (typically this is a single capital letter). It looks like this:
 
-	 structure V : sig
+   structure V : sig
      (* To facilitate functorization or other generated code. *)
-	   type t = vertex
+     type t = vertex
      (* Serialize to the string representation. *)
-	   val tostring : t -> string
+     val tostring : t -> string
      (* Deserialize, or raise Parse *)
-	   val fromstring : string -> t
+     val fromstring : string -> t
      (* Deserialize or return NONE *)
-	   val maybefromstring : string -> t option
+     val maybefromstring : string -> t option
 
      (* Write the serialized data over the named file. *)
-	   val tofile : string -> t -> unit
+     val tofile : string -> t -> unit
      (* Read from the file, raising Parse or IO exceptions on failure *)
-	   val fromfile : string -> t
+     val fromfile : string -> t
      (* Read from the file, returning NONE if the contents can't be
         parsed. Still returns regular IO exceptions on file issues. *)
-	   val maybefromfile : string -> t option
+     val maybefromfile : string -> t option
 
      (* The default instance of this message; see below. *)
      val default : t
-	 end
+   end
 
 Format reference:
 
@@ -207,5 +213,7 @@ Format reference:
        maybe some limited reflection is possible.
      - Improve the quality of layout, especially with hints. List fields
        should be indented, etc.
-     - More base types like char and real.
+     - More base types like char, intinf, and real. If adding intinf,
+       insist that the generated code does not contain references to
+       intinf unless the tf description does.
 
