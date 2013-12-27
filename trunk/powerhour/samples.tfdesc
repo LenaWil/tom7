@@ -1,0 +1,27 @@
+(* Description for the textformat metautil. See ../sml-lib/textformat
+   for more information. Generates samples-tf.sml. 
+
+   Note that this textformat does not encode the number of cup states,
+   minutes, or players directly. powerhour-sample.sml uses the
+   filename to encode these. *)
+
+message P (player) =
+  (* cup state. 0 means filled by convention *)
+  field start : int option
+  (* indexed by cup state; always the same length.
+     a rule is:
+        true if we drink on this turn
+        destination player (0-indexed)
+        the cup state we pass in (illegal to be NONE) *)
+  field rules : (bool * int * int) list
+
+message E (example) =
+  field p (players) : player list
+
+message DB (database) =
+  (* Int list is the number of drinks by each player. Expected to be
+     unique. Example is one arbitrary example for that cell. String is
+     the number of entries we found in there (string because type is
+     actually intinf; not yet supported by textformat). *)
+  field e (entries) : (int list * example * string) list
+    hint vertical

@@ -513,7 +513,27 @@ would be 1.2 billion) in less than 2 seconds on a crappy old computer.
 \section{Known bounds}
 
 Define BMnL, where $n$ is the number of non-filled states. BMML=BM2L.
-Find $n$ such that a solo or dual power hour achieves any $k$.
+(XXX actually I think it's the total number of states including filled
+everywhere but that sentence, right?)  Find $n$ such that a solo or
+dual power hour achieves any $k$.
+
+\begin{enumerate}
+  \item With one player, we have exact bounds on what is possible in
+    the generalized case. With 8 cup states, a single player can
+    drink 0--60 shots. Since each player can just play independently,
+    this result extends to any number of players in BM8L.
+  \item With two players, we know that BM5L (XXX check) does not allow
+    all combinations of $\langle k_1, k_2 \rangle$ shots, though BM5L
+    can achieve any $\langle k_1, k_2 \rangle$ where $\k_2 \in \{ 0, 1
+    \}$. No other $k_2$ can be used universally, though of course many
+    other combinations are possible
+    (Figure~\ref{fig:compositeplayer2mock}).
+  \item Open: Can BM6L achieve all $\langle k_1, k_2 \rangle$?
+  \item Open: Can BM7L achieve all $\langle k_1, k_2 \rangle$? Seems
+    likely, given how close BM7L is for a single player.
+  \item With three players one player can drink any number of shots in
+    BMML with two other players helping.
+\end{enumerate}
 
 \section{Conjectures} \label{sec:conjectures}
 
