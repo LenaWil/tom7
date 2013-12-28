@@ -20,7 +20,7 @@ structure PH =
 struct
   structure MT = MersenneTwister
 
-  val MINUTES = 60
+  val MINUTES = 180
 
   (* Types that define Power Hour Machines, which
      completely describe a power hour algorithm. *)
@@ -184,7 +184,7 @@ struct
               (* XXX set this really high since the bottom-right
                  half of the matrix can only be reached if both
                  players have cups! *)
-              case MT.random_nat mt 32 of
+              case MT.random_nat mt 32 (* (NCUPS + 1) *) of
                   0 => NONE
                 | _ => SOME (randomcup ())
 

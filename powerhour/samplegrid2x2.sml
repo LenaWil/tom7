@@ -10,6 +10,12 @@ struct
   val playersp = Params.param "2" (SOME ("-players",
                                         "Number of players.")) "players"
 
+  val nolinesp = Params.flag false (SOME ("-nolines",
+                                          "Don't draw grid lines.")) "nolines"
+
+  val nonumsp = Params.flag false (SOME ("-nonums",
+                                         "Don't number labels.")) "nonums"
+
   structure IIM = SplayMapFn(type ord_key = IntInf.int
                              val compare = IntInf.compare)
 
@@ -18,6 +24,8 @@ struct
     val MINUTES = Params.asint 60 minutesp
     val NSTATES = Params.asint 7 statesp
     val NPLAYERS = Params.asint 2 playersp
+    val DRAWLINES = not (!nolinesp)
+    val DRAWNUMS = not (!nonumsp)
 
     val cxpointfile = "checkpoint-" ^ Int.toString MINUTES ^ "m-" ^
         Int.toString NPLAYERS ^ "p-" ^
@@ -27,10 +35,15 @@ struct
 
     exception Illegal
     val allcounts = ref (IIM.empty)
+    val totalcount = ref (0 : IntInf.int)
     fun setct (_, _, s) =
         case IntInf.fromString s of
             NONE => raise Illegal
-          | SOME i => allcounts := IIM.insert(!allcounts, i, ())
+          | SOME i =>
+                let in
+                    totalcount := !totalcount + i;
+                    allcounts := IIM.insert(!allcounts, i, ())
+                end
     val () = app setct db
 
     (* All unique counts, ascending *)
@@ -92,58 +105,70 @@ struct
     val makegrid2x2 = app onecell
 
   in
-      print ("There are " ^ Int.toString (length db) ^ " possibilities\n");
+      print ("There are " ^ Int.toString (length db) ^ " possibilities\n" ^
+             "from " ^ IntInf.toString (!totalcount) ^ " samples.\n");
+
       fprint (TextSVG.svgheader { x = 0, y = 0,
-                                  width = GRAPHIC_SIZE + LABEL_WIDTH,
-                                  height = GRAPHIC_SIZE + LABEL_HEIGHT,
+                                  width = GRAPHIC_SIZE +
+                                  (if DRAWNUMS then LABEL_WIDTH else 0),
+                                  height = GRAPHIC_SIZE +
+                                  (if DRAWNUMS then LABEL_HEIGHT else 0),
                                   generator = "grid.sml" });
 
-      (* Vertical grid lines *)
-      Util.for 0 MINUTES
-      (fn i =>
-       let val x = CELL_WIDTH * real i
-       in
-           fprint ("<polyline fill=\"none\" stroke=\"#AAA\" " ^
-                   "stroke-width=\"0.5\" points=\""); (* " *)
-           fprint (rtos x ^ "," ^ rtos 0.0 ^ " " ^
-                   rtos x ^ "," ^ rtos (real GRAPHIC_SIZE));
-           fprint ("\" />\n") (* " *)
-       end);
+      if DRAWLINES
+      then
+      let in
+        (* Vertical grid lines *)
+        Util.for 0 MINUTES
+        (fn i =>
+         let val x = CELL_WIDTH * real i
+         in
+             fprint ("<polyline fill=\"none\" stroke=\"#AAA\" " ^
+                     "stroke-width=\"0.5\" points=\""); (* " *)
+             fprint (rtos x ^ "," ^ rtos 0.0 ^ " " ^
+                     rtos x ^ "," ^ rtos (real GRAPHIC_SIZE));
+             fprint ("\" />\n") (* " *)
+         end);
 
-      (* Horizontal grid lines *)
-      Util.for 0 MINUTES
-      (fn i =>
-       let val y = CELL_WIDTH * real i
-       in
-           fprint ("<polyline fill=\"none\" stroke=\"#AAA\" " ^
-                   "stroke-width=\"0.5\" points=\""); (* " *)
-           fprint (rtos 0.0 ^ "," ^ rtos y ^ " " ^
-                   rtos (real GRAPHIC_SIZE) ^ "," ^ rtos y);
-           fprint ("\" />\n") (* " *)
-       end);
+        (* Horizontal grid lines *)
+        Util.for 0 MINUTES
+        (fn i =>
+         let val y = CELL_WIDTH * real i
+         in
+             fprint ("<polyline fill=\"none\" stroke=\"#AAA\" " ^
+                     "stroke-width=\"0.5\" points=\""); (* " *)
+             fprint (rtos 0.0 ^ "," ^ rtos y ^ " " ^
+                     rtos (real GRAPHIC_SIZE) ^ "," ^ rtos y);
+             fprint ("\" />\n") (* " *)
+         end)
+      end else ();
 
       (* Fill in the grid *)
       makegrid2x2 db;
 
-      (* Vertical labels, at right. *)
-      Util.for 0 MINUTES
-      (fn i =>
-       fprint (TextSVG.svgtext
-               { x = CELL_WIDTH * real (MINUTES + 1) + real LABEL_GAP,
-                 y = real i * CELL_WIDTH + (0.7 * CELL_WIDTH),
-                 face = "Franklin Gothic Medium",
-                 size = 0.6 * CELL_WIDTH,
-                 text = [("#000", Int.toString i)] } ^ "\n"));
+      if DRAWNUMS
+      then
+      let in
+        (* Vertical labels, at right. *)
+        Util.for 0 MINUTES
+        (fn i =>
+         fprint (TextSVG.svgtext
+                 { x = CELL_WIDTH * real (MINUTES + 1) + real LABEL_GAP,
+                   y = real i * CELL_WIDTH + (0.7 * CELL_WIDTH),
+                   face = "Franklin Gothic Medium",
+                   size = 0.6 * CELL_WIDTH,
+                   text = [("#000", Int.toString i)] } ^ "\n"));
 
-      (* Horizontal labels, on bottom *)
-      Util.for 0 MINUTES
-      (fn i =>
-       fprint (TextSVG.svgtext
-               { x = real i * CELL_WIDTH + (0.2 * CELL_WIDTH),
-                 y = CELL_WIDTH * real (MINUTES + 1) + real LABEL_GAP * 1.5,
-                 face = "Franklin Gothic Medium",
-                 size = 0.6 * CELL_WIDTH,
-                 text = [("#000", Int.toString i)] } ^ "\n"));
+        (* Horizontal labels, on bottom *)
+        Util.for 0 MINUTES
+        (fn i =>
+         fprint (TextSVG.svgtext
+                 { x = real i * CELL_WIDTH + (0.2 * CELL_WIDTH),
+                   y = CELL_WIDTH * real (MINUTES + 1) + real LABEL_GAP * 1.5,
+                   face = "Franklin Gothic Medium",
+                   size = 0.6 * CELL_WIDTH,
+                   text = [("#000", Int.toString i)] } ^ "\n"))
+      end else ();
 
       fprint (TextSVG.svgfooter ());
       TextIO.closeOut f;

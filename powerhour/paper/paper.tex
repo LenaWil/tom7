@@ -1,8 +1,9 @@
 \documentclass[twocolumn]{article}
 \usepackage[top=1.1in, left=0.85in, right=0.85in]{geometry}
 
+\usepackage{url}
 \usepackage{code}
-\usepackage{cite}
+% \usepackage{cite}
 % \usepackage{eclbkbox}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -21,6 +22,7 @@
 % go back to italics for emphasis, though
 \normalem
 
+\usepackage{natbib}
 % \usepackage{inlinebib}
 
 \newcommand\comment[1]{}
@@ -584,7 +586,7 @@ inexact, as that rule may never be executed\footnote{We may be able to
   implement the rules.} Instead, during simulation we keep track of
 whether each player ever actually passed a non-full cup from the
 \fullcup\ state. If so, then we force $r_0 = 1$, which attends to this
-special case.
+special case. \label{sec:linear}
 
 Although this makes earlier enumerations extremely fast and BM5L
 quite quick, 2-player BM6L ran 26 billion concrete states overnight
@@ -592,8 +594,103 @@ and made only modest progress. In the absence of fancier techniques
 for reducing the state space, we must resort to different, inexact
 approaches.
 
-\section{Samping games}
+\section{Sampling games}
 
+To establish a result like ``BM5L cannot achieve $\langle 47, 27
+\rangle$'' we really need to enumerate all the BM5L games. (Or make
+some ad hoc proof of the fact, which seems quite difficult.) However,
+to prove an existence result like ``BM7L can achieve $\langle 33, 49
+\rangle$'' we only need to have a single example configuration that
+produces that result. Therefore, we may be able to improve our bounds
+on what is possible (or generate conjectures) by sampling random
+configurations.
+
+Sampling is actually much easier than enumeration. There is no need to
+leave rules abstract. It is also easy to stop and restart because
+there is no state other than the matrix of what we've found. I use the
+SML {\tt textformat} library~\cite{textformat} to serialize and
+deserialize the matrix (which then makes it easy to generate these
+graphics in a separate program). There are a handful of interesting
+aspects:
+
+\paragraph{Generating a random configuration.} To generate a random
+game, we can just fill in all of the slots (destination and cup state
+for each rule, starting cup state) uniformly at random. Many of these
+will be illegal, but they fail very quickly at runtime; a lazy and
+pragmatic way to ``filter'' to legal game. It is not simply a matter
+of generating all the permutations on $p \times s$ nodes, by the way.
+Multiple cups can pass through the same player on cycles of different
+periods, as long as they do not collide within the 60 steps, and
+acyclic preludes (Figure~\ref{fig:solo31}) are important and useful.
+For a uniformly random 2-player BM7L configuration, 29.23\% (measured
+empirically) are legal. However, we will see later that we do not want
+to spend so much time exploring configurations where one or both
+players start without a cup; these are very limited. Therefore, the
+configuration generator is biased towards producing a cup in the
+starting states most of the time.
+
+\paragraph{Symmetry.} We can get more bang for the buck by considering
+some obvious symmetries. When a simulation finishes and we have an
+outcome $\langle k_1, \ldots, k_p \rangle$, it is clear that any
+permutation of $k_1 \ldots k_p$ is also achievable. We insert every
+permutation of the drink counts into the database, along with the
+permuted example configuration. Better still would be to only store
+the outcomes in some normalized form (e.g. require that $k_1 \leq
+\ldots \leq k_p$).
+
+We already have exact results for two players in BM5L, so the next
+uncharted territory is BM6L. The result after apparent convergence
+appears in Figure~\ref{fig:samplebm6l}. The sampling procedure runs
+for many hours before plateauing overnight with 95.54\% of the matrix
+filled. This suggests that BM6L is not universal for two players, or
+else the configurations for the missing cells are extremely rare.
+% XXX never give up! It just jumped to 95.65.
+
+This approach scales much better than enumeration and is efficient for
+all sorts of generalizations (it works best when the dimensionality is
+low---i.e., two players---and the expressiveness is high---i.e., many
+cup states). Since we already know BM8L is universal, the remaining
+open problem is BM7L, whose results are in
+Figure~\ref{fig:samplebm7l}. This is tantalizingly close to a complete
+matrix, with only 4 cells missing! It may be possible to solve these
+two cases manually, though a proof of non-existence would be
+difficult.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.90 \linewidth]{sample60min2players6states.png}
+\end{center}\vspace{-0.1in}
+\caption{ 25.6 billion samples of legal two-player BM6L
+  configurations. Darker cells represent outcomes that occur more
+  often; cells that are pure white never occurred and are likely to be
+  unattainable. Note that the intensity represents the rank of
+  occurrence, not the magnitude; in actuality, outcomes like $\langle
+  0, 0 \rangle$ occur {\em much} more often than others.
+  %
+  95.54\% of the cells are filled.
+  % XXX new version with more filled...!
+}
+\label{fig:samplebm6l}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.90 \linewidth]{sample60min2players7states.png}
+\end{center}\vspace{-0.1in}
+\caption{ 22.1 billion samples of legal two-player BM7L
+  configurations. Fewer configurations were sampled than in
+  Figure~\ref{fig:samplebm6l} because they take somewhat longer than
+  6-state games to simulate, and a smaller proportion of random games
+  are legal.
+  %
+  All but four of the $(60 + 1)^2 = 3721$ cells are attainable: 
+  Permutations of $\langle 11, 53 \rangle$ and $\langle 49, 53 \rangle$
+  remain elusive. Note that 53 drinks was also unattainable in a solo
+  BM7L power-hour; this may in some sense be the ``hardest'' number of
+  shots to drink in \bmsl.
+}
+\label{fig:samplebm7l}
+\end{figure}
 
 
 \section{The fractal geometry of \kn\ Power-Hours}
@@ -604,18 +701,46 @@ states, adding random trials). This suggests that the combinatorial
 problem (``what outcomes are reachable from finite state machines that
 look kind of like this?'') has some geometric structure.
 
+Some of the patterns are easy to explain. The top-left half of the
+matrix is more populous than the bottom right, for example. This is
+because we can bound the total number of drinks by $60 / c$, where $c$
+is the number of cups active in the game (same as the number of cups
+in the starting states). The top-left half is the region where this
+sum is less than or equal to 30; in two player games, both players
+must start with a cup in order to get an outcome in the bottom-right
+half. We also see distinct clumps around 0, 15, 30, 45, 60; divisors
+of 60. This is intuitive because the expressive power of BMML comes
+from the ability to form cycles of cup states and drink on some
+fraction of them. Clumps are formed around these values because of the
+possibility of preludes leading into the cycles
+(Figure~\ref{fig:solo31}) that either drink (adding to the total) or
+don't (subtracting from it). Minor clumps form as echoes between the
+major ones, because a player may participate in two cycles of
+different length (Figure~\ref{fig:dual45}.
+
+Of course, discretization effects compound and so the exact values of
+cells are not neatly predictable. Moreover, clumps interfere by
+overlapping; there are many different strategies for achieving
+$\langle 33, 33 \rangle$. One way to make the basic structure more
+visible is to extend the number of minutes that the game is played
+for. Figure~\ref{fig:powerday3} shows the utterly unhealthy
+three-player Power Day (BM3L). In it, the clumps become tiny dots,
+but some relationship among them along lines is clear. Interior points
+can probably be found as linear combinations of two of these lines;
+we exploit that exact structure in Section~\ref{sec:linear}, in fact.
+
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.90 \linewidth]{powerday3.pdf}
 \end{center}\vspace{-0.1in}
 \caption{All possible outcomes for the first two players in 3-player
   power days. These are the same games as the 3-player power hours,
-  but at this scale makes it clear the groupings and their sparsity
-  in the limit. Lines plotted from (0,0) to (60,*) and (*,60) show
-  significant structure, but don't explain some of the interior points.
-  (TODO: what are these games? what did the other player drink?)
-  (TODO: Incorporate this into the text, perhaps after discussing
-  the linear combination trick.)
+  but at this scale makes it clear the groupings and their sparsity in
+  the limit. Lines plotted from $\langle 0,0 \rangle$ to $langle 60,
+  k_2 \rangle$ and $\langle k_1, 60 \rangle$ show significant
+  structure, but don't explain some of the interior points. These are
+  probably games where a player participates in two cycles of
+  different periods.
 }
 \label{fig:powerday3}
 \end{figure}
