@@ -24,7 +24,7 @@
 % \usepackage{inlinebib}
 
 \newcommand\comment[1]{}
-\newcommand\sfrac[2]{{}\,^{#1}\!/{}\!_{#2}}
+\newcommand\sfrac[2]{\!{}\,^{#1}\!/{}\!_{#2}}
 
 \begin{document} 
 
@@ -46,12 +46,14 @@ Verlag-Verlag volume no.~0x40-2A.
 \renewcommand\>{$>$}
 \newcommand\<{$<$}
 \newcommand\kn{\ensuremath{\sfrac{k}{n}\,}}
+\newcommand\bmsl{BM$s$L}
 
 \newcommand\any{\ensuremath{\textrm{?}}}
 \newcommand\nocup{\text{\sout{\ensuremath{\cup}}}}
 \newcommand\fullcup{\ensuremath{\uplus}}
 \newcommand\emptycup{\ensuremath{\cup}}
 \newcommand\overcup{\ensuremath{\cap}}
+\newcommand\scup[1]{\ensuremath{\cup\!\!\!{}^{{}_{#1}}}}
 
 \newcommand\nodrink{\ensuremath{\Rightarrow}}
 \newcommand\drink{\ensuremath{\stackrel{{}^{\textrm{+}}}{\Rightarrow}}}
@@ -429,7 +431,7 @@ It is also feasible overnight to enumerate all three-player games. The
 results are three-dimensional, of course, but we can display the
 outcomes for two of the players in the familiar presentation
 (Figure~\ref{fig:3and2}). Note that $\langle k_1, k_2, k_3 \rangle$ is
-achievable for any $k_1 \in \{ 0 .. 60 \}$, $k_2 \in \{ 0, 1, 2 \}$,
+achievable for any $k_1 \in \{ 0 \ldots 60 \}$, $k_2 \in \{ 0, 1, 2 \}$,
 and some unknown $k_3$ (projected out of this display). This is a
 significant improvement over what was achievable in BMML with two
 players. It suggests that with enough friends willing to follow a
@@ -482,6 +484,126 @@ in the next chapter.
 \label{fig:3and2}
 \end{figure}
 
+\section{Generalized BMML}
+
+Like any drinking game, there are several arbitrary things about BMML.
+While we will not tamper with its essence (for example, allowing beer
+to be spilled from a cup without drinking it), there are some other
+variables to adjust. The most naturally flexible is the number of cup
+states. We will always have \fullcup, a cup with beer in it. In BMML
+we also have \emptycup\ and \overcup. But why not $\supset$ (cup
+turned on its side, facing west) or $\stackrel{\wedge}{\cup}$ (an
+upright cup with a cocktail umbrella on it)?
+
+We define \bmsl, where $s$ is the number of distinct cup states. By
+convention, the 0\th\ cup state will be the filled cup \fullcup\ since
+it has special rules. The remainder will be \scup{i} for $i \in \{ 1,
+\ldots, s - 1 \}$. BMML is BM3L where we've just renamed \emptycup\ to
+\scup{1}, and \overcup\ to \scup{2}.
+
+Clearly, more cups give us more expressive power, and should allow us
+to reach more outcomes. To illustrate, recall the construction of
+$k=31$ in the solo BM3L game (Figure~\ref{fig:solo31}). It has a
+length-2 cycle alternating between two cup states, where the player
+drinks on every other turn. The third state is just used once as a
+drinking lead-in to make the total 31 rather than 30. With an
+additional cup state, we can straightforwardly transform this into a
+game with an outcome of $k=32$ by extending the prelude with another
+state where the player drinks. Of course, the expressive power is not
+just limited to such extensions; we now can create cycles of new
+lengths, admit the possibility of more disconnected cycles, and so on.
+
+It is easy to enumerate the 1-player \bmsl\ games. These appear in
+Figure~\ref{fig:soloncups}. The interesting range for $s$ is $\{ 1
+\ldots 8 \}$.\!\footnote{It's not clear that BM0L should be considered
+  legal as the rules speak of a 0\th\ cup, but it is degenerate
+  anyway.} At 8 cup states, the player can achieve any amount in a
+solo game. Importantly, this extends to any number of players in BM8L,
+because the players can pass to themselves and not even interact.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=\linewidth]{soloncups.pdf}
+\end{center}\vspace{-0.1in}
+\caption{Possible outcomes for \bmsl\ with a single player. The
+  vertical axis shows an increasing number of cup states, and the
+  horizontal axis shows the achievable values of $k$ drinks. With no
+  cup states, it is only possible to drink nothing. By convention, the
+  0\th\ cup is the special ``filled'' state, so it is only possible to
+  drink on every turn (60) or never (0). As we add more cup states,
+  the number of achievable states strictly increases; with 8 cup
+  states we can drink any amount. 7 and 53 drinks are the most
+  elusive, and can only be done with 8 cup states.}
+\label{fig:soloncups}
+\end{figure}
+
+The two-player case is much more interesting. We've already enumerated
+all the possible outcomes for BM3L
+(Figure~\ref{fig:powerhour2player}). It is computationally tractable
+to enumerate them for $s < 6$. The set of achievable outcomes in
+BM$s$L is always contained within BM$(s+1)$L, because we can embed a
+game from the former into the latter by just never producing the
+additional cup state and having any arbitrary rule for it. Therefore,
+we show these results in a composite grid where more and more states
+are reachable as we increase $s$ (Figure~\ref{fig:composite2player}).
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.90 \linewidth]{composite2playermock.png}
+\end{center}\vspace{-0.1in}
+\caption{What's achievable for two players in a generalized \bmsl\ game,
+  with $s$ ranging from 1 cup state (darkest) to 5 (lightest).
+% 6 cupstates ran overnight and got here:
+% #26186200000 queue 109 min 49 466729 states/sec 796272 config/sec
+}
+\label{fig:composite2player}
+\end{figure}
+
+In order to efficiently enumerate BM5L, I improved the algorithm
+again. Observe that the ``drink'' action associated with a rule
+usually does not affect anything but the final outcome. The only
+exception is that in the rule for \fullcup, the player must drink if
+passing in a state other than \fullcup. Putting this aside for a
+moment, note that we can just count the number of times each rule was
+executed for each player, producing an $s$-dimensional vector $[ d_1,
+  \ldots d_s ]$ for each player. That player is able to achieve many
+different drink totals, specifically, $d_1 \times r_1 + \ldots + d_s
+\times r_s$ where $r_i$ is 1 if the player should drink on that rule
+and 0 if not. Simulating a game this way is even more like abstract
+interpretation (we leave a concrete value free and compute a formula
+rather than an integer), and allows us to evaluate many concrete games
+at once. At the end, we simply plug in every legal value for $r_i$ for
+each player and insert those games into the database. This last step
+is where we must tend to the exception around \fullcup. We may not set
+$r_0$ to 0 if the player ever passes \fullcup\ in a non-full state. A
+very close approximation would be to insist that $r_0 = 1$ if the rule
+in the \fullcup\ position does not output as \fullcup, but this is
+inexact, as that rule may never be executed\footnote{We may be able to
+  argue that in that case, there always exists another game that does
+  not violate this condition. But I think it is simpler to just
+  implement the rules.} Instead, during simulation we keep track of
+whether each player ever actually passed a non-full cup from the
+\fullcup\ state. If so, then we force $r_0 = 1$, which attends to this
+special case.
+
+Although this makes earlier enumerations extremely fast and BM5L
+quite quick, 2-player BM6L ran 26 billion concrete states overnight
+and made only modest progress. In the absence of fancier techniques
+for reducing the state space, we must resort to different, inexact
+approaches.
+
+\section{Samping games}
+
+
+
+\section{The fractal geometry of \kn\ Power-Hours}
+
+Note that all of the two-dimensional figures resemble one another even
+though they are fundamentally different (adding players, adding
+states, adding random trials). This suggests that the combinatorial
+problem (``what outcomes are reachable from finite state machines that
+look kind of like this?'') has some geometric structure.
+
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.90 \linewidth]{powerday3.pdf}
@@ -498,47 +620,10 @@ in the next chapter.
 \label{fig:powerday3}
 \end{figure}
 
-\section{Generalized BMML}
-
-Like any drinking game, there are several arbitrary things about BMML.
-
-\begin{figure}
-\begin{center}
-\includegraphics[width=\linewidth]{soloncups.pdf}
-\end{center}\vspace{-0.1in}
-\caption{Possible outcomes for BM$n$L with a single player. With no
-  cup states, it is only possible to drink nothing. By convention, the
-  0\th\ cup is the special ``filled'' state, so it is only possible to
-  drink on every turn (60) or never (0). As we add more cup states,
-  the number of achievable states strictly increases; with 8 cup states
-  we can drink any amount. 7 and 53 drinks are the most difficult to
-  achieve, and can only be done with 8 cup states.
-}
-\label{fig:soloncups}
-\end{figure}
-
-
-\begin{figure}
-\begin{center}
-\includegraphics[width=0.90 \linewidth]{composite2playermock.png}
-\end{center}\vspace{-0.1in}
-\caption{What's achievable for the first two players in a three-player
-  generalized BM$n$L game, with $n$ ranging from 1 cup state (darkest)
-  to 5 (lightest). TODO WRITEME
-% 6 cupstates ran overnight and got here:
-% #26186200000 queue 109 min 49 466729 states/sec 796272 config/sec
-}
-\label{fig:composite2player}
-\end{figure}
-
-\section{Samping games}
-
 \section{Known bounds}
 
-Define BMnL, where $n$ is the number of non-filled states. BMML=BM2L.
-(XXX actually I think it's the total number of states including filled
-everywhere but that sentence, right?)  Find $n$ such that a solo or
-dual power hour achieves any $k$.
+Define \bmsl, where $s$ is the number of cup states. BMML=BM3L. Find
+$s$ such that a solo or dual power hour achieves any $k$.
 
 \begin{enumerate}
   \item With one player, we have exact bounds on what is possible in
@@ -552,11 +637,10 @@ dual power hour achieves any $k$.
     other combinations are possible
     (Figure~\ref{fig:composite2player}).
   \item Open: Can BM6L achieve all $\langle k_1, k_2 \rangle$? Seems
-    unlikely, based on how many samples we need to get close to 100\%
-    for BM7L.
+    unlikely, given that random exploration plateaus at about 95.54\%.
   \item Open: Can BM7L achieve all $\langle k_1, k_2 \rangle$? Seems
     possible, given how close BM7L is for a single player. We know it
-    can get 99.79\%, at least!
+    can get 99.89\%, at least!
   \item With three players one player can drink any number of shots in
     BMML with two other players helping.
 \end{enumerate}
@@ -565,8 +649,8 @@ dual power hour achieves any $k$.
 
 With two friends, you can drink any amount
 
-Teetotaller: When $\langle k_1, \ldots, k_i, \ldots, k_n \rangle$ is possible,
-so is $\langle k_1, \ldots, 0, \ldots, k_n \rangle$ (under what conditions)?
+Teetotaller: When $\langle k_1, \ldots, k_i, \ldots, k_p \rangle$ is possible,
+so is $\langle k_1, \ldots, 0, \ldots, k_p \rangle$ (under what conditions)?
 
 \section{Some stuffff}
 
