@@ -18,6 +18,13 @@ samples-tf.sml : samples.tfdesc tfcompiler.exe
 samplegrid2x2.exe : samplegrid2x2.cm samplegrid2x2.sml samples-tf.sml
 	${MLTON} -output $@ samplegrid2x2.cm
 
-graphics : samplegrid2x2.exe sample60min2players6states.svg sample60min2players7states.svg
+sample60min2players6states.svg : checkpoint-60m-2p-6s.tf samplegrid2x2.exe
 	./samplegrid2x2.exe -minutes 60 -players 2 -states 6
+
+sample60min2players7states.svg : checkpoint-60m-2p-7s.tf samplegrid2x2.exe
 	./samplegrid2x2.exe -minutes 60 -players 2 -states 7
+
+sample180min2players7states.svg : checkpoint-180m-2p-7s.tf samplegrid2x2.exe
+	./samplegrid2x2.exe -minutes 180 -players 2 -states 7 -nolines -nonums
+
+graphics : sample60min2players6states.svg sample60min2players7states.svg sample180min2players7states.svg
