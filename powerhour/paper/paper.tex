@@ -424,6 +424,24 @@ With this technique, we can simulate all possible two-player games
 with just 15,744,259 game-minutes simulated (with naive enumeration it
 would be 1.2 billion) in less than 2 seconds on a crappy old computer.
 
+% XXX TODO: Display in 3D cube.
+It is also feasible overnight to enumerate all three-player games. The
+results are three-dimensional, of course, but we can display the
+outcomes for two of the players in the familiar presentation
+(Figure~\ref{cig:3and2}). Note that $\langle k_1, k_2, k_3 \rangle$ is
+achievable for any $k_1$, $k_2 \in \{ 0, 1, 2 \}$, and some unknown
+$k_3$ (projected out of this display). This is a significant
+improvement over what was achievable in BMML with two players. It
+suggests that with enough friends willing to follow a program, some
+set of people are likely to be able to achieve any amount of drinks
+between them (if they have the ability to construct the right rule
+set!); see Section~\ref{sec:conjectures}.
+
+The sheer number of configurations for 4 or more players makes these
+exact enumeration techniques infeasible. However, we have other
+avenues for generalization (and exploration), which are explored in
+the next chapter.
+
 % Total steps 15744259. Took 1982 ms
 % Total steps 15744259. Took 2080 ms
 
@@ -458,8 +476,9 @@ would be 1.2 billion) in less than 2 seconds on a crappy old computer.
 \caption{Outcomes possible for the first two players in all different
   3-player power hours (black), overlayed by all possible outcomes
   outcomes for 2-player power hours (red). Mainly included because
-  it looks pretty sweet.
-}
+  it looks pretty sweet. The outcomes that are possible with three
+  players are a superset of those with two, which is intuitive: We
+  can add a third player to any game who just does nothing.}
 \label{fig:3and2}
 \end{figure}
 
@@ -473,12 +492,15 @@ would be 1.2 billion) in less than 2 seconds on a crappy old computer.
   in the limit. Lines plotted from (0,0) to (60,*) and (*,60) show
   significant structure, but don't explain some of the interior points.
   (TODO: what are these games? what did the other player drink?)
+  (TODO: Incorporate this into the text, perhaps after discussing
+  the linear combination trick.)
 }
 \label{fig:powerday3}
 \end{figure}
 
-
 \section{Generalized BMML}
+
+Like any drinking game, there are several arbitrary things about BMML.
 
 \begin{figure}
 \begin{center}
@@ -509,6 +531,7 @@ would be 1.2 billion) in less than 2 seconds on a crappy old computer.
 \label{fig:composite2player}
 \end{figure}
 
+\section{Samping games}
 
 \section{Known bounds}
 
@@ -528,9 +551,12 @@ dual power hour achieves any $k$.
     \}$. No other $k_2$ can be used universally, though of course many
     other combinations are possible
     (Figure~\ref{fig:compositeplayer2mock}).
-  \item Open: Can BM6L achieve all $\langle k_1, k_2 \rangle$?
+  \item Open: Can BM6L achieve all $\langle k_1, k_2 \rangle$? Seems
+    unlikely, based on how many samples we need to get close to 100\%
+    for BM7L.
   \item Open: Can BM7L achieve all $\langle k_1, k_2 \rangle$? Seems
-    likely, given how close BM7L is for a single player.
+    likely, given how close BM7L is for a single player. We know it
+    can get 96.67\%, at least!
   \item With three players one player can drink any number of shots in
     BMML with two other players helping.
 \end{enumerate}

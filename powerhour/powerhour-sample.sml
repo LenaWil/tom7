@@ -104,6 +104,9 @@ struct
            (* What round is it? 0-59 *)
            round : int ref }
 
+  (* How many did each player drink? *)
+  type result = int vector
+
   (* PERF *)
   fun makesim (m : machine) =
       let
@@ -156,8 +159,6 @@ struct
           cups := newcups;
           round := !round + 1
       end
-
-  datatype result = Finished of int vector
 
   fun ctos 0 = "F"
     | ctos 1 = "D"
@@ -238,17 +239,20 @@ struct
 	  List.tabulate (NPLAYERS, oneplayer)
       end
 
-  fun result_cmp (Finished drinks, Finished dd) =
+  fun drinks_cmp (drinks, dd) =
       Util.lex_vector_order Int.compare (drinks, dd)
 
   structure RM = SplayMapFn(type ord_key = result
-                            val compare = result_cmp)
+                            val compare = drinks_cmp)
+
+  fun revexample (SamplesTF.E { players }) =
+      SamplesTF.E { players = rev players }
 
   fun writedb (db : (SamplesTF.example * IntInf.int) RM.map) =
       let
 	  fun vtol v = Vector.foldr op:: nil v
 	  val db = RM.listItemsi db
-	  val db = map (fn (Finished v, (ex, count)) =>
+	  val db = map (fn (v, (ex, count)) =>
 			(vtol v, ex, IntInf.toString count)) db
 	  val db = SamplesTF.DB { entries = db }
       in
@@ -263,7 +267,7 @@ struct
 	      in
 		  app (fn (drinks, example, count) =>
 		       let val count = Option.valOf (IntInf.fromString count)
-			   val drinks = Finished (Vector.fromList drinks)
+			   val drinks = Vector.fromList drinks
 		       in
 			   m := RM.insert (!m, drinks, (example, count))
 		       end) entries;
@@ -294,7 +298,8 @@ struct
 
 	fun pow n 0 = 1
 	  | pow n m = n * pow n (m - 1)
-	val totalcells = pow MINUTES NPLAYERS
+	(* +1 because there is a cell for 0 drinks as well as 60 *)
+	val totalcells = pow (MINUTES + 1) NPLAYERS
 	val filledcells = ref (RM.numItems (!done))
 	(* Value of filled cells last time we wrote the database. *)
 	val lastfilledcells = ref (!filledcells)
@@ -322,7 +327,6 @@ struct
 			   Real.fromLargeInt (!nok + !nillegal)
 		       val filled = real (!filledcells * 100) /
 			   real totalcells
-		       (* XXX metrics on the matrix completion rate *)
                    in
 		       if !filledcells > !lastfilledcells
 		       then
@@ -345,14 +349,26 @@ struct
                else ()
 	   end
 
-        fun add_example (m, plans) r =
-	    case RM.find (!done, r) of
+        fun add_example (m, plans) dr =
+	    case RM.find (!done, dr) of
 		NONE => 
 		    let in
 			filledcells := 1 + !filledcells;
-			done := RM.insert (!done, r, (toexample (m, plans), 1))
+			done := RM.insert (!done, dr, (toexample (m, plans), 1))
 		    end
-	      | SOME (old, n) => done := RM.insert (!done, r, (old, n + 1))
+	      | SOME (old, n) => done := RM.insert (!done, dr, (old, n + 1))
+
+	(* PERF
+	   When I add (x, y, z) I also can just add (y, x, z) and so
+	   on.  But better yet would be to put in some normal form
+	   like (x <= y <= z) so that we keep the map and (especially)
+	   the .tf file small. *)
+	fun add_example_perms (m, plans) drinks =
+	    (* XXX maybe unique permutations? This may overcount the
+	       diagonal, depending on your perspective. *)
+	    let val perms = ListUtil.permutations drinks
+	    in app (fn d => add_example (m, plans) (Vector.fromList d)) perms
+	    end
 
         (* We executed m abstractly, and mustdrink0 / ruleexecuted
            tell us how many drinks we can drink. Each cell in ruleexecuted
@@ -429,9 +445,7 @@ struct
                (* We get the total and plan for each player, in order *)
                fun doone tps =
                    let val (outcome, plans) = ListPair.unzip tps
-                       val outcome = Vector.fromList outcome
-                   in
-                       add_example (m, plans) (Finished outcome)
+                   in add_example_perms (m, plans) outcome
                    end
            in
                allcomb doone nil players
@@ -471,59 +485,10 @@ struct
         process()
     end
 
-   fun restostring (Finished drinks) =
-       "[" ^
-       StringUtil.delimit "," (map Int.toString
-                               (Vector.foldr op:: nil drinks)) ^
-       "]"
-
-   fun show l =
-       let
-           fun showone (res, ((g, plan), n)) =
-               print (restostring res ^ ": " ^
-                      IntInf.toString n ^ " game(s) like " ^
-                      gametostring g ^ " " ^
-                      plantostring plan ^ "\n")
-       in
-           app showone l
-       end
-
-   structure ILM = SplayMapFn(type ord_key = int list
-                              val compare = Util.lex_list_order Int.compare)
-
-   fun writepossible f res =
-       let
-           fun tolist a = Vector.foldr op:: nil a
-           (* Set (as map to int) of unique possible outcomes. XXX Don't
-	      need to dedup again here; in this program we don't look at
-	      the number of beers wasted. *)
-           val unique = ref (ILM.empty : unit ILM.map)
-           fun one (Finished drinks, _) =
-               unique := ILM.insert (!unique, tolist drinks, ())
-           val () = app one res
-           fun prone (drinks, ()) =
-               StringUtil.delimit ","
-               (map Int.toString drinks) ^ "\n"
-           val strings = map prone (ILM.listItemsi (!unique))
-           val contents = String.concat strings
-           val n = length strings
-       in
-           StringUtil.writefile f contents;
-           TextIO.output (TextIO.stdErr,
-                          "Wrote " ^ Int.toString n ^ " possibilities to " ^ f ^ "\n")
-       end
-
    val start_time = Time.now()
    val (db : (SamplesTF.example * IntInf.int) RM.map) = sampleloop()
    val end_time = Time.now()
 
-(*
-   val res = RM.listItemsi executed
-   val () = show res
-   val () = writepossible ("possible-" ^ Int.toString NCUPS ^ "cup-" ^
-                           Int.toString MINUTES ^ "min-" ^
-                           Int.toString NPLAYERS ^ "player.txt") res
-       *)
    val () = TextIO.output (TextIO.stdErr,
                            "Total steps " ^ IntInf.toString (!totalsteps) ^ ". Took " ^
                            (IntInf.toString (Time.toMilliseconds end_time -
