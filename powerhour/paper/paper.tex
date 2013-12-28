@@ -384,8 +384,8 @@ situation where we depend on a rule. If we finish without ever using
 one of the \any\ rules, we evaluated a potentially large group of
 configurations all at once. During the execution of a configuration,
 if we need to use a rule that is currently marked \any, we explore all
-of the possibilities. This is accomplished by a loop that looks like
-the following (in Pseudo SML):
+of the possibilities for that spot. This is accomplished by a loop
+that looks like the following (in Pseudo SML):
 
 \begin{code}
 val queue = (* all abstract configurations *)
@@ -428,19 +428,19 @@ would be 1.2 billion) in less than 2 seconds on a crappy old computer.
 It is also feasible overnight to enumerate all three-player games. The
 results are three-dimensional, of course, but we can display the
 outcomes for two of the players in the familiar presentation
-(Figure~\ref{cig:3and2}). Note that $\langle k_1, k_2, k_3 \rangle$ is
-achievable for any $k_1$, $k_2 \in \{ 0, 1, 2 \}$, and some unknown
-$k_3$ (projected out of this display). This is a significant
-improvement over what was achievable in BMML with two players. It
-suggests that with enough friends willing to follow a program, some
-set of people are likely to be able to achieve any amount of drinks
-between them (if they have the ability to construct the right rule
-set!); see Section~\ref{sec:conjectures}.
+(Figure~\ref{fig:3and2}). Note that $\langle k_1, k_2, k_3 \rangle$ is
+achievable for any $k_1 \in \{ 0 .. 60 \}$, $k_2 \in \{ 0, 1, 2 \}$,
+and some unknown $k_3$ (projected out of this display). This is a
+significant improvement over what was achievable in BMML with two
+players. It suggests that with enough friends willing to follow a
+program, some set of people are likely to be able to achieve any
+amount of drinks between them (if they have the ability to construct
+the right rule set!); see Section~\ref{sec:conjectures}.
 
 The sheer number of configurations for 4 or more players makes these
 exact enumeration techniques infeasible. However, we have other
-avenues for generalization (and exploration), which are explored in
-the next chapter.
+avenues for generalization (and exploration), which are investigated
+in the next chapter.
 
 % Total steps 15744259. Took 1982 ms
 % Total steps 15744259. Took 2080 ms
@@ -504,7 +504,7 @@ Like any drinking game, there are several arbitrary things about BMML.
 
 \begin{figure}
 \begin{center}
-\includegraphics[width=0.90 \linewidth]{soloncups.pdf}
+\includegraphics[width=\linewidth]{soloncups.pdf}
 \end{center}\vspace{-0.1in}
 \caption{Possible outcomes for BM$n$L with a single player. With no
   cup states, it is only possible to drink nothing. By convention, the
@@ -547,16 +547,16 @@ dual power hour achieves any $k$.
     this result extends to any number of players in BM8L.
   \item With two players, we know that BM5L (XXX check) does not allow
     all combinations of $\langle k_1, k_2 \rangle$ shots, though BM5L
-    can achieve any $\langle k_1, k_2 \rangle$ where $\k_2 \in \{ 0, 1
+    can achieve any $\langle k_1, k_2 \rangle$ where $k_2 \in \{ 0, 1
     \}$. No other $k_2$ can be used universally, though of course many
     other combinations are possible
-    (Figure~\ref{fig:compositeplayer2mock}).
+    (Figure~\ref{fig:composite2player}).
   \item Open: Can BM6L achieve all $\langle k_1, k_2 \rangle$? Seems
     unlikely, based on how many samples we need to get close to 100\%
     for BM7L.
   \item Open: Can BM7L achieve all $\langle k_1, k_2 \rangle$? Seems
-    likely, given how close BM7L is for a single player. We know it
-    can get 96.67\%, at least!
+    possible, given how close BM7L is for a single player. We know it
+    can get 99.79\%, at least!
   \item With three players one player can drink any number of shots in
     BMML with two other players helping.
 \end{enumerate}

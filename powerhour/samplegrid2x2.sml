@@ -1,8 +1,9 @@
 
 structure Grid =
 struct
+  (* XXX absolutely no performance argument for making these
+     constants as opposed to command-line parameters! *)
   val MINUTES = 60
-
   val NCUPS = 7
   val NPLAYERS = 2
 
@@ -12,16 +13,35 @@ struct
 
   val SamplesTF.DB { entries = db } = SamplesTF.DB.fromfile cxpointfile
 
+  structure IIM = SplayMapFn(type ord_key = IntInf.int
+                             val compare = IntInf.compare)
+
   exception Illegal
-  val maxcount = ref (0 : IntInf.int)
-  fun setmaxct (_, _, s) =
+  val allcounts = ref (IIM.empty)
+  fun setct (_, _, s) =
       case IntInf.fromString s of
-	  NONE => raise Illegal
-	| SOME i => if i > !maxcount
-		    then maxcount := i
-		    else ()
-  val () = app setmaxct db
-  val maxcount = Real.fromLargeInt (!maxcount)
+          NONE => raise Illegal
+        | SOME i => allcounts := IIM.insert(!allcounts, i, ())
+  val () = app setct db
+
+  (* All unique counts, ascending *)
+  val allcounts = map (fn (k, ()) => k) (IIM.listItemsi (!allcounts))
+  val allcounts : IntInf.int vector = Vector.fromList allcounts
+
+  val maxcount = Real.fromLargeInt (Vector.sub (allcounts,
+                                                Vector.length allcounts - 1))
+
+  (* Get the rank of i within 0..|maxcount|-1. It is expected
+     that the number appears in the list! *)
+  exception Bug
+  (* PERF can use binary search obviously, but this whole program finishes
+     in under a second *)
+  fun getrank i =
+      case VectorUtil.findi (fn x => x = i) allcounts of
+          NONE => raise Bug
+        | SOME (idx, _) => idx
+  fun getfrac i =
+      real (getrank i) / real (Vector.length allcounts - 1)
 
   val rtos = Real.fmt (StringCvt.FIX (SOME 2))
   val rtos3 = Real.fmt (StringCvt.FIX (SOME 3))
@@ -30,8 +50,8 @@ struct
   fun go () =
       let
           val f = TextIO.openOut ("sample" ^ Int.toString MINUTES ^ "min" ^
-				  Int.toString NPLAYERS ^ "players" ^
-				  Int.toString NCUPS ^ "states.svg")
+                                  Int.toString NPLAYERS ^ "players" ^
+                                  Int.toString NCUPS ^ "states.svg")
           fun fprint s = TextIO.output (f, s)
 
           val GRAPHIC_SIZE = 1024
@@ -44,22 +64,25 @@ struct
           fun makegrid2x2 l =
               let
                   fun onecell (x :: y :: _, _, s) =
-		      let val ct = Real.fromLargeInt (valOf (IntInf.fromString s))
-			  val f = ct / maxcount
-			  val f = Math.sqrt (Math.sqrt f)
-			  (* val ff = 0.75 * f *)
-			  val ff = 1.0 - f
-			  val ff = 0.175 + 0.825 * f
-		      in
-			  fprint ("<rect x=\"" ^ rtos (real x * CELL_WIDTH) ^
-				  "\" y=\"" ^ rtos (real y * CELL_WIDTH) ^
-				  "\" width=\"" ^ rtos CELL_WIDTH ^
-				  "\" height=\"" ^ rtos CELL_WIDTH ^
-				  "\" opacity=\"" ^ rtos3 ff ^
-				  "\" style=\"fill:#000\" />\n")
-		      end
+                      let
+                          val ct = (valOf (IntInf.fromString s))
+                          val f = getfrac ct
+
+                          (* val f = Real.fromLargeInt ct / maxcount
+                             val f = Math.sqrt (Math.sqrt f) *)
+
+                          val ff = 1.0 - f
+                          val ff = 0.175 + 0.825 * f
+                      in
+                          fprint ("<rect x=\"" ^ rtos (real x * CELL_WIDTH) ^
+                                  "\" y=\"" ^ rtos (real y * CELL_WIDTH) ^
+                                  "\" width=\"" ^ rtos CELL_WIDTH ^
+                                  "\" height=\"" ^ rtos CELL_WIDTH ^
+                                  "\" opacity=\"" ^ rtos3 ff ^
+                                  "\" style=\"fill:#000\" />\n")
+                      end
               in
-		  app onecell l
+                  app onecell l
               end
 
       in

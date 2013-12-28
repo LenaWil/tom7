@@ -1,7 +1,7 @@
 default: powerhour-sample.exe samplegrid2x2.exe
 
 # MLTON=mlton -target x86_64-w64-mingw32 -codegen amd64
-MLTON=mlton
+MLTON=mlton @MLton max-heap 1.5G --
 
 powerhour : powerhour.cm powerhour.sml
 	${MLTON} -output $@ powerhour.cm

@@ -50,7 +50,7 @@ struct
   (* The starting state for the player, and the three actions that can
      be specified. Note that in the no-cup case, the only legal action
      is to not drink and not pass, so this is not represented.
-     
+
      We don't do the lazy expansion of rules like in powerhour.sml,
      as we will be generating these randomly and can just make concrete
      ones from the start. *)
@@ -62,20 +62,21 @@ struct
 
   fun toexample (m : machine, plans : bool vector list) : SamplesTF.example =
       let
-	  val together : (player * bool vector) list = ListUtil.wed m plans
-	  fun one (P { start, rules } : player, bv : bool vector) : SamplesTF.player =
-	      let
-		  val bl = Vector.foldr op:: nil bv
-		  val rl = Vector.foldr op:: nil rules
-		  val rulesdrink : (bool * action) list = ListUtil.wed bl rl
-	      in
-		  SamplesTF.P 
-		  { start = start,
-		    rules = map (fn (b, (dest, state)) => 
-				 (b, dest, state)) rulesdrink }
-	      end
+          val together : (player * bool vector) list = ListUtil.wed m plans
+          fun one (P { start, rules } : player,
+                   bv : bool vector) : SamplesTF.player =
+              let
+                  val bl = Vector.foldr op:: nil bv
+                  val rl = Vector.foldr op:: nil rules
+                  val rulesdrink : (bool * action) list = ListUtil.wed bl rl
+              in
+                  SamplesTF.P
+                  { start = start,
+                    rules = map (fn (b, (dest, state)) =>
+                                 (b, dest, state)) rulesdrink }
+              end
       in
-	  SamplesTF.E { players = map one together }
+          SamplesTF.E { players = map one together }
       end
 
   exception Unimplemented
@@ -92,10 +93,10 @@ struct
               cup when executing the FILLED rule, we
               set it to true. We could also just inspect
               the rule at 0, but that is not exact because
-              the rule might never actually execute. 
-	      (PS. this exactness is not necessary in the
-	      sampling approach, so consider simplifying.)
-	      *)
+              the rule might never actually execute.
+              (PS. this exactness is not necessary in the
+              sampling approach, so consider simplifying.)
+              *)
            mustdrink0 : bool array,
            (* How many times was each rule executed (and
               thus could drink?) Remember to check the
@@ -113,10 +114,12 @@ struct
           val players = Vector.fromList m
           val n = Vector.length players
       in
-          S { cups = ref (Array.fromList (map (fn P { start, ... } => start) m)),
+          S { cups = ref (Array.fromList (map (fn P { start, ... } =>
+                                               start) m)),
               players = players,
               mustdrink0 = Array.array (n, false),
-              ruleexecuted = Vector.tabulate (n, (fn _ => Array.array(NCUPS, 0))),
+              ruleexecuted = Vector.tabulate (n, (fn _ =>
+                                                  Array.array(NCUPS, 0))),
               round = ref 0 }
       end
 
@@ -136,22 +139,22 @@ struct
               let
                 val (dest, next) = Vector.sub (rules, now)
                 val rulecounts_for_player = Vector.sub (ruleexecuted, i)
-		(* This rule executed, so increment the count *)
-		val oldcount = Array.sub (rulecounts_for_player, now)
+                (* This rule executed, so increment the count *)
+                val oldcount = Array.sub (rulecounts_for_player, now)
               in
-		  Array.update (rulecounts_for_player, now, oldcount + 1);
+                  Array.update (rulecounts_for_player, now, oldcount + 1);
 
-		  (* If this was the filled cup rule, see if it means
-		     we had to drink. *)
-		  (if now = FILLED andalso next <> FILLED
-		   then Array.update (mustdrink0, i, true)
-		   else ());
+                  (* If this was the filled cup rule, see if it means
+                     we had to drink. *)
+                  (if now = FILLED andalso next <> FILLED
+                   then Array.update (mustdrink0, i, true)
+                   else ());
 
-		  (case Array.sub (newcups, dest) of
-		       NONE => Array.update (newcups, dest, SOME next)
-		     | SOME _ => raise Illegal "2+ cups")
-		       (* ^ " at pos " ^ Int.toString dest *)
-		       handle Subscript => raise Illegal "out of bounds"
+                  (case Array.sub (newcups, dest) of
+                       NONE => Array.update (newcups, dest, SOME next)
+                     | SOME _ => raise Illegal "2+ cups")
+                       (* ^ " at pos " ^ Int.toString dest *)
+                       handle Subscript => raise Illegal "out of bounds"
               end
       in
           totalsteps := !totalsteps + 1;
@@ -159,44 +162,6 @@ struct
           cups := newcups;
           round := !round + 1
       end
-
-  fun ctos 0 = "F"
-    | ctos 1 = "D"
-    | ctos 2 = "U"
-    | ctos n = "X" ^ Int.toString n
-
-  fun atos (w, a) =
-      ctos a ^
-      (* (if drink then "*" else "") ^ *)
-      "@" ^ Int.toString w
-
-  fun playertostring (P { start, rules }) =
-      let fun vtol v =
-          Vector.foldri (fn (a, b, c) => (a : cup, b : action) :: c) nil v
-      in
-          "(start " ^
-          (case start of
-               NONE => "_"
-             | SOME c => ctos c) ^ ", " ^
-          StringUtil.delimit " " (map (fn (c, a) => ctos c ^ "=>" ^ atos a)
-                                  (vtol rules)) ^
-          ")"
-      end
-
-  fun gametostring g =
-      "[" ^ StringUtil.delimit "," (map playertostring g) ^ "]"
-
-  (* XXX hard to read... *)
-  fun plantostring (p : bool vector list) =
-      StringUtil.delimit ","
-      (map (fn v =>
-            CharVector.tabulate (Vector.length v,
-                                 fn x =>
-                                 if Vector.sub (v, x)
-                                 then #"+" else #"_")) p)
-
-
-  fun combine l k = List.concat (map k l)
 
   (* Generate a random game. We don't care that much about having a uniform
      distribution (which would need to be defined anyway) nor generating
@@ -211,32 +176,34 @@ struct
   val mt = MT.initstring ("powerhour" ^ Time.toString (Time.now ()))
   fun randomgame () =
       let
-	  (* Generate a random cup state in [0, ncups) *)
-	  fun randomcup () =
-	      MT.random_nat mt NCUPS
-	  fun randomstart () =
-	      (* PERF could just generate 1 number *)
-	      case MT.random_nat mt 6 of
-		  0 => NONE
-		| _ => SOME (randomcup ())
+          (* Generate a random cup state in [0, ncups) *)
+          fun randomcup () =
+              MT.random_nat mt NCUPS
+          fun randomstart () =
+              (* PERF could just generate 1 number *)
+              (* XXX set this really high since the bottom-right
+                 half of the matrix can only be reached if both
+                 players have cups! *)
+              case MT.random_nat mt 32 of
+                  0 => NONE
+                | _ => SOME (randomcup ())
 
-	  fun randomplayer () =
-	      MT.random_nat mt NPLAYERS
+          fun randomplayer () =
+              MT.random_nat mt NPLAYERS
 
-	  fun randomrule () : action =
-	      (randomplayer (), randomcup ())
+          fun randomrule () : action =
+              (randomplayer (), randomcup ())
 
-	  fun randomrules () : action vector =
-	      (* PERF way to do this directly? *)
-	      Vector.fromList
-	      (List.tabulate 
-	       (NCUPS, fn _ => randomrule ()))
+          fun randomrules () : action vector =
+              (* PERF way to do this directly? *)
+              Vector.tabulate
+              (NCUPS, fn _ => randomrule ())
 
-	  fun oneplayer _ =
-	      P { start = randomstart (),
-		  rules = randomrules () }
+          fun oneplayer _ =
+              P { start = randomstart (),
+                  rules = randomrules () }
       in
-	  List.tabulate (NPLAYERS, oneplayer)
+          List.tabulate (NPLAYERS, oneplayer)
       end
 
   fun drinks_cmp (drinks, dd) =
@@ -250,125 +217,132 @@ struct
 
   fun writedb (db : (SamplesTF.example * IntInf.int) RM.map) =
       let
-	  fun vtol v = Vector.foldr op:: nil v
-	  val db = RM.listItemsi db
-	  val db = map (fn (v, (ex, count)) =>
-			(vtol v, ex, IntInf.toString count)) db
-	  val db = SamplesTF.DB { entries = db }
+          val () = TextIO.output(TextIO.stdErr, "Writing " ^
+                                 cxpointfile ^ "\n")
+          fun vtol v = Vector.foldr op:: nil v
+          val db = RM.listItemsi db
+          val db = map (fn (v, (ex, count)) =>
+                        (vtol v, ex, IntInf.toString count)) db
+          val db = SamplesTF.DB { entries = db }
       in
-	  SamplesTF.DB.tofile cxpointfile db
+          SamplesTF.DB.tofile cxpointfile db;
+          TextIO.output(TextIO.stdErr, "... done\n")
       end
 
   fun readdb () : (SamplesTF.example * IntInf.int) RM.map =
       case (SamplesTF.DB.maybefromfile cxpointfile handle _ => NONE) of
-	  NONE => RM.empty
-	| SOME (SamplesTF.DB { entries }) =>
-	      let val m = ref RM.empty
-	      in
-		  app (fn (drinks, example, count) =>
-		       let val count = Option.valOf (IntInf.fromString count)
-			   val drinks = Vector.fromList drinks
-		       in
-			   m := RM.insert (!m, drinks, (example, count))
-		       end) entries;
-		  !m
-	      end
+          NONE => RM.empty
+        | SOME (SamplesTF.DB { entries }) =>
+              let val m = ref RM.empty
+              in
+                  app (fn (drinks, example, count) =>
+                       let val count = Option.valOf (IntInf.fromString count)
+                           val drinks = Vector.fromList drinks
+                       in
+                           m := RM.insert (!m, drinks, (example, count))
+                       end) entries;
+                  !m
+              end
 
   (* For readout while running. One for benchmarking is at the bottom. *)
   val startseconds = Time.toSeconds (Time.now ())
   fun sampleloop () =
     let
-        (* XXX load this state from textformat on startup, then write it
-	   back periodically.
-	   
-	   The map contains an example machine along with a bit vector that
-           tells us whether the player drinks on the nth rule, for each player.
-           In the case that the outcome was failure, this assignment will be
-           nil (any ruleset would cause failure).
+        (* We load the existing database (if any) on startup and write it
+           back periodically, or whenever we make progress.
 
-           This could be folded into the machine (and it would make sense) though
-           then we need another representation of machines. The IntInf is the
+           The map contains an arbitrary example machine that produces
+           the claimed result, in SampleTF format. The IntInf is the
            count of times we inserted something with that outcome. *)
         val done = ref (readdb ())
 
-	(* These are session-level *)
-	val nillegal = ref (0 : IntInf.int)
-	val nok = ref (0 : IntInf.int)
+        (* These are session-level *)
+        val nillegal = ref (0 : IntInf.int)
+        val nok = ref (0 : IntInf.int)
         val nsamples = ref (0 : IntInf.int)
 
-	fun pow n 0 = 1
-	  | pow n m = n * pow n (m - 1)
-	(* +1 because there is a cell for 0 drinks as well as 60 *)
-	val totalcells = pow (MINUTES + 1) NPLAYERS
-	val filledcells = ref (RM.numItems (!done))
-	(* Value of filled cells last time we wrote the database. *)
-	val lastfilledcells = ref (!filledcells)
-	val () =
-	    if !filledcells > 0
-	    then TextIO.output (TextIO.stdErr,
-				"Read database with " ^
-				Int.toString (!filledcells) ^ "/" ^
-				Int.toString totalcells ^ " already found\n")
-	    else TextIO.output (TextIO.stdErr,
-				"Starting with fresh empty database.\n")
+        fun pow n 0 = 1
+          | pow n m = n * pow n (m - 1)
+        (* +1 because there is a cell for 0 drinks as well as 60 *)
+        val totalcells = pow (MINUTES + 1) NPLAYERS
+        val filledcells = ref (RM.numItems (!done))
+        (* Value of filled cells last time we wrote the database. *)
+        val lastfilledcells = ref (!filledcells)
+        val lastwrite = ref (Time.toSeconds (Time.now ()))
+        val () =
+            if !filledcells > 0
+            then TextIO.output (TextIO.stdErr,
+                                "Read database with " ^
+                                Int.toString (!filledcells) ^ "/" ^
+                                Int.toString totalcells ^ " already found\n")
+            else TextIO.output (TextIO.stdErr,
+                                "Starting with fresh empty database.\n")
 
-	fun account () =
+        fun account () =
            let in
                nsamples := !nsamples + 1;
                if !nsamples mod 100000 = 0
                then
-                   let 
-                       val secs = Time.toSeconds (Time.now()) - startseconds
+                   let
+                       val nowseconds = Time.toSeconds (Time.now ())
+                       val secs = nowseconds - startseconds
                        val sps = Real.fromLargeInt (!totalsteps) /
                            Real.fromLargeInt secs
                        val gps = Real.fromLargeInt (!nsamples) /
                            Real.fromLargeInt secs
-		       val legal = Real.fromLargeInt (!nok * 100) /
-			   Real.fromLargeInt (!nok + !nillegal)
-		       val filled = real (!filledcells * 100) /
-			   real totalcells
+                       val legal = Real.fromLargeInt (!nok * 100) /
+                           Real.fromLargeInt (!nok + !nillegal)
+                       val filled = real (!filledcells * 100) /
+                           real totalcells
                    in
-		       if !filledcells > !lastfilledcells
-		       then
-			   let in
-			       writedb (!done);
-			       lastfilledcells := !filledcells
-			   end
-		       else ();
-                       TextIO.output (TextIO.stdErr, "#" ^ IntInf.toString (!nsamples) ^
-                                      " " ^ Real.fmt (StringCvt.FIX (SOME 0)) sps ^
-                                      " states/sec" ^
-                                      " " ^ Real.fmt (StringCvt.FIX (SOME 0)) gps ^
-                                      " config/sec" ^
-				      " " ^ Real.fmt (StringCvt.FIX (SOME 2)) legal ^
-				      "% legal" ^
-				      " " ^ Real.fmt (StringCvt.FIX (SOME 2)) filled ^
-				      "% filled" ^
-                                      "\n")
+                       if !filledcells > !lastfilledcells orelse
+                          nowseconds - !lastwrite > 5 * 60
+                       then
+                           let in
+                               writedb (!done);
+                               lastfilledcells := !filledcells;
+                               lastwrite := nowseconds
+                           end
+                       else ();
+                       TextIO.output
+                       (TextIO.stdErr, "#" ^ IntInf.toString (!nsamples) ^
+                        " " ^ Real.fmt (StringCvt.FIX (SOME 0)) sps ^
+                        " states/sec" ^
+                        " " ^ Real.fmt (StringCvt.FIX (SOME 0)) gps ^
+                        " config/sec" ^
+                        " " ^ Real.fmt (StringCvt.FIX (SOME 2)) legal ^
+                        "% legal" ^
+                        " " ^ Real.fmt (StringCvt.FIX (SOME 2)) filled ^
+                        "% filled" ^
+                        "\n")
                    end
                else ()
-	   end
+           end
 
         fun add_example (m, plans) dr =
-	    case RM.find (!done, dr) of
-		NONE => 
-		    let in
-			filledcells := 1 + !filledcells;
-			done := RM.insert (!done, dr, (toexample (m, plans), 1))
-		    end
-	      | SOME (old, n) => done := RM.insert (!done, dr, (old, n + 1))
+            case RM.find (!done, dr) of
+                NONE =>
+                    let in
+                        filledcells := 1 + !filledcells;
+                        done := RM.insert (!done, dr, (toexample (m, plans), 1))
+                    end
+              | SOME (old, n) => done := RM.insert (!done, dr, (old, n + 1))
 
-	(* PERF
-	   When I add (x, y, z) I also can just add (y, x, z) and so
-	   on.  But better yet would be to put in some normal form
-	   like (x <= y <= z) so that we keep the map and (especially)
-	   the .tf file small. *)
-	fun add_example_perms (m, plans) drinks =
-	    (* XXX maybe unique permutations? This may overcount the
-	       diagonal, depending on your perspective. *)
-	    let val perms = ListUtil.permutations drinks
-	    in app (fn d => add_example (m, plans) (Vector.fromList d)) perms
-	    end
+        (* PERF
+           When I add (x, y, z) I also can just add (y, x, z) and so
+           on.  But better yet would be to put in some normal form
+           like (x <= y <= z) so that we keep the map and (especially)
+           the .tf file small. *)
+        fun add_example_perms (m, plans) drinks =
+            (* XXX maybe unique permutations? This may overcount the
+               diagonal, depending on your perspective.
+
+               XXX, also, the example needs to be permuted too. Here
+               we just store the same one. (This is easy to recover
+               from after the fact if we wanted to.) *)
+            let val perms = ListUtil.permutations drinks
+            in app (fn d => add_example (m, plans) (Vector.fromList d)) perms
+            end
 
         (* We executed m abstractly, and mustdrink0 / ruleexecuted
            tell us how many drinks we can drink. Each cell in ruleexecuted
@@ -379,7 +353,7 @@ struct
            and 1-indexed here). *)
         fun add_metaresult m { mustdrink0, ruleexecuted } =
            let
-	       (* XXX this is constant *)
+               (* XXX this is constant *)
                val nplayers = Array.length mustdrink0
                (* Each player can choose which rules drink independently,
                   which is part of what reduces the space here so much.
@@ -452,34 +426,33 @@ struct
            end
 
         fun process () =
-	    let val m = randomgame ()
+            let val m = randomgame ()
                 fun simulate (s as S { round = ref round, mustdrink0,
                                        ruleexecuted, cups, ... }) =
                   if round = MINUTES
-                  then 
-		      let in
-			  nok := 1 + !nok;
-			  add_metaresult m ({ mustdrink0 = mustdrink0,
-					      ruleexecuted = ruleexecuted });
-			  account ()
-		      end
+                  then
+                      let in
+                          nok := 1 + !nok;
+                          add_metaresult m ({ mustdrink0 = mustdrink0,
+                                              ruleexecuted = ruleexecuted });
+                          account ()
+                      end
                   else
                      let in
                          step s;
                          simulate s
                      end
             in
-	      (simulate (makesim m)
-	       handle Illegal str =>
-		   let in
-		       nillegal := 1 + !nillegal;
-		       (* add_result (m, nil) (Error { rounds = round, msg = str }); *)
-		       account ()
-		   end);
+              (simulate (makesim m)
+               handle Illegal str =>
+                   let in
+                       nillegal := 1 + !nillegal;
+                       account ()
+                   end);
 
-	      if !filledcells < totalcells
-	      then process()
-	      else !done
+              if !filledcells < totalcells
+              then process()
+              else !done
             end
     in
         process()
@@ -489,8 +462,9 @@ struct
    val (db : (SamplesTF.example * IntInf.int) RM.map) = sampleloop()
    val end_time = Time.now()
 
-   val () = TextIO.output (TextIO.stdErr,
-                           "Total steps " ^ IntInf.toString (!totalsteps) ^ ". Took " ^
-                           (IntInf.toString (Time.toMilliseconds end_time -
-                                             Time.toMilliseconds start_time)) ^ " ms\n")
+   val () = TextIO.output
+       (TextIO.stdErr,
+        "Total steps " ^ IntInf.toString (!totalsteps) ^ ". Took " ^
+        (IntInf.toString (Time.toMilliseconds end_time -
+                          Time.toMilliseconds start_time)) ^ " ms\n")
 end

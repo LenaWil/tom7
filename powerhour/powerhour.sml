@@ -15,7 +15,7 @@ struct
      completely describe a power hour algorithm. *)
   type cup = int
   val FILLED = 0
-  val NCUPS = 10
+  val NCUPS = 8
 
   (* What a player does on a turn when he sees a state other than None.
      (In None, the only legal action is to not drink and not pass.)
@@ -323,8 +323,10 @@ struct
 
         (* We executed m abstractly, and mustdrink0 / ruleexecuted
            tell us how many drinks we can drink. Each cell in ruleexecuted
-           says how many times the corresponding rule was excuted. So
-           we have drinks = d_1 * re_1 + ... + d_ncups * re_ncups total
+           says how many times the corresponding rule was excuted. (The
+           rule for when we see no cup is not counted here; it is not
+           possible to drink in that situation.) So we have
+           drinks = d_1 * re_1 + ... + d_ncups * re_ncups total
            drinks, where d_i is always 1 or 0. if mustdrink0 is 0 for a
            player, then d_1 must be 1 (sorry, confusion between 0-indexed
            and 1-indexed here). *)
