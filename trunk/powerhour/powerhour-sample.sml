@@ -20,15 +20,15 @@ structure PH =
 struct
   structure MT = MersenneTwister
 
-  val MINUTES = 180
+  val MINUTES = 60
 
   (* Types that define Power Hour Machines, which
      completely describe a power hour algorithm. *)
   type cup = int
   (* Number of cup states, not really the number of cups. For BMML,
      should be 3. *)
-  val NCUPS = 7
-  val NPLAYERS = 2
+  val NCUPS = 3
+  val NPLAYERS = 3
 
   val cxpointfile = "checkpoint-" ^ Int.toString MINUTES ^ "m-" ^
       Int.toString NPLAYERS ^ "p-" ^

@@ -1,5 +1,5 @@
 
-structure SampleGrid =
+structure SampleCube =
 struct
   val minutesp = Params.param "60" (SOME ("-minutes",
                                         "Number of minutes.")) "minutes"
@@ -14,8 +14,79 @@ struct
   val nonumsp = Params.flag false (SOME ("-nonums",
                                          "Don't number labels.")) "nonums"
 
+  val yawp = Params.param "0.0" (SOME ("-yaw", "Yaw in degrees.")) "yaw"
+  val pitchp = Params.param "0.0" (SOME ("-pitch", "Pitch in degrees.")) "pitch"
+  val rollp = Params.param "0.0" (SOME ("-roll", "Roll in degrees.")) "roll"
+
+
   structure IIM = SplayMapFn(type ord_key = IntInf.int
                              val compare = IntInf.compare)
+
+  fun torad d = (d / 360.0) * 2.0 * Math.pi
+
+  type mat3 = (real * real * real *
+               real * real * real *
+               real * real * real)
+  (* column vector *)
+  type vec3 = (real *
+               real *
+               real)
+
+  fun mul33 (a, b, c,
+             d, e, f,
+             g, h, i) (aa, bb, cc,
+                       dd, ee, ff,
+                       gg, hh, ii) =
+      (a*aa + b*dd + c*gg, a*bb + b*ee + c*hh, a*cc + b*ff + c*ii,
+       d*aa + e*dd + f*gg, d*bb + e*ee + f*hh, d*cc + e*ff + f*ii,
+       g*aa + h*dd + i*gg, g*bb + h*ee + i*hh, g*cc + h*ff + i*ii)
+
+  fun rot_yaw a : mat3 =
+      let val cosa = Math.cos a
+          val sina = Math.sin a
+      in
+          (cosa, ~sina, 0.0,
+           sina, cosa, 0.0,
+           0.0, 0.0, 1.0)
+      end
+
+  fun rot_pitch a : mat3 =
+      let val cosa = Math.cos a
+          val sina = Math.sin a
+      in
+          (cosa, 0.0, sina,
+           0.0, 1.0, 0.0,
+           ~sina, 0.0, cosa)
+      end
+
+  fun rot_roll a : mat3 =
+      let val cosa = Math.cos a
+          val sina = Math.sin a
+      in
+          (1.0, 0.0, 0.0,
+           0.0, cosa, ~sina,
+           0.0, sina, cosa)
+      end
+
+  fun vec3timesmat33 (a, b, c,
+                      d, e, f,
+                      g, h, i) (x,
+                                y,
+                                z) : vec3 =
+      (a * x + b * y + c * z,
+       d * x + e * y + f * z,
+       g * x + h * y + i * z)
+
+  fun rot (yaw, pitch, roll) =
+      let
+          val mr = rot_roll roll
+          val mp = rot_pitch pitch
+          val my = rot_yaw yaw
+          val m = mul33 mp my
+          val m = mul33 mr m
+      in
+          vec3timesmat33 m
+      end
 
   fun go () =
   let
@@ -24,6 +95,12 @@ struct
     val NPLAYERS = Params.asint 2 playersp
     val DRAWLINES = not (!nolinesp)
     val DRAWNUMS = not (!nonumsp)
+
+    val YAW = torad (Params.asreal 0.0 yawp)
+    val PITCH = torad (Params.asreal 0.0 pitchp)
+    val ROLL = torad (Params.asreal 0.0 rollp)
+
+    val rotate : vec3 -> vec3 = rot (YAW, PITCH, ROLL)
 
     val cxpointfile = "checkpoint-" ^ Int.toString MINUTES ^ "m-" ^
         Int.toString NPLAYERS ^ "p-" ^
@@ -79,28 +156,52 @@ struct
     val LABEL_HEIGHT = 64
     val LABEL_GAP = 7
 
+    (* XXX make parameters or derive from rotation *)
+    val SCALE = 0.66
+    val OMSCALE = 1.0 - SCALE
+    val SCALE_SIZE = real GRAPHIC_SIZE * SCALE
+    val XOFFSET = real GRAPHIC_SIZE * OMSCALE * 0.5
+    val YOFFSET = real GRAPHIC_SIZE * OMSCALE * 0.5 + 24.0
+
     val CELL_WIDTH = real GRAPHIC_SIZE / real (MINUTES + 1)
 
-    fun onecell (x :: y :: _, _, s) =
+    (* All cells with their z depth, so that we can
+       output them in order. *)
+    val allcells = ref (nil : (real * string) list)
+
+    fun onecell (x :: y :: z :: _, _, s) =
       let
+          val pt = (real x / real MINUTES,
+                    real y / real MINUTES,
+                    real z / real MINUTES)
+          val pt = rotate pt
+
           val ct = (valOf (IntInf.fromString s))
           val f = getfrac ct
-
-          (* val f = Real.fromLargeInt ct / maxcount
-             val f = Math.sqrt (Math.sqrt f) *)
-
           val ff = 1.0 - f
           val ff = 0.175 + 0.825 * f
+          (* lighten points so that we can see
+             through them *)
+          val ff = ff * 0.25
+
+          val (xx, yy, zz) = pt
+
+          val xx = xx * SCALE_SIZE + XOFFSET
+          val yy = yy * SCALE_SIZE + YOFFSET
+          (* val rad = 2.0 + (1.0 - zz) * 4.0 *)
+          val rad = 3.0 + (1.0 - zz) * 7.0
+          val rad = if rad < 0.01 then 0.01 else rad
       in
-          fprint ("<rect x=\"" ^ rtos (real x * CELL_WIDTH) ^
-                  "\" y=\"" ^ rtos (real y * CELL_WIDTH) ^
-                  "\" width=\"" ^ rtos CELL_WIDTH ^
-                  "\" height=\"" ^ rtos CELL_WIDTH ^
-                  "\" opacity=\"" ^ rtos3 ff ^
-                  "\" style=\"fill:#000\" />\n") (* " *)
+          allcells :=
+          (zz, "<circle cx=\"" ^ rtos xx ^ "\" " ^
+           "cy=\"" ^ rtos yy ^ "\" " ^
+           "r=\"" ^ rtos rad ^ "\" fill=\"#000\" " ^
+           "opacity=\"" ^ rtos3 ff ^ "\" />\n") :: !allcells
       end
 
-    val makegrid2x2 = app onecell
+    val () = app onecell db
+    val order = Util.byfirst (Util.descending Real.compare)
+    val allcells = ListUtil.sort order (!allcells)
 
   in
       print ("There are " ^ Int.toString (length db) ^ " possibilities\n" ^
@@ -142,7 +243,7 @@ struct
       end else ();
 
       (* Fill in the grid *)
-      makegrid2x2 db;
+      app (fn (z, line) => fprint line) allcells;
 
       if DRAWNUMS
       then
@@ -174,4 +275,4 @@ struct
   end
 end
 
-val () = Params.main0 "This program takes no arguments." SampleGrid.go
+val () = Params.main0 "This program takes no arguments." SampleCube.go
