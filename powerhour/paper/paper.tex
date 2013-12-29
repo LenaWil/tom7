@@ -8,7 +8,7 @@
 \usepackage{amssymb}
 \usepackage{graphicx}
 
-% \pagestyle{empty}
+\pagestyle{empty}
 
 \usepackage{ulem}
 % go back to italics for emphasis, though
@@ -54,7 +54,7 @@ Verlag-Verlag volume no.~0x40-2A.
 
 \date{1 April 2014}
 
-\maketitle
+\maketitle \thispagestyle{empty}
 
 \begin{abstract}
 We correct for inebriated missteps, using computational methods to
@@ -669,7 +669,7 @@ difficult.
 \label{fig:samplebm6l}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[ht!]
 \begin{center}
 \includegraphics[width=0.90 \linewidth]{sample60min2players7states.png}
 \end{center}\vspace{-0.1in}
@@ -693,7 +693,9 @@ difficult.
 
 Note that all of the two-dimensional figures resemble one another even
 though they are fundamentally different (adding players, adding
-states, adding random trials). This suggests that the combinatorial
+states, adding random trials). Even samples from BMML with three
+players (3D projected to 2D), which is shown in Figure~\ref{fig:3d},
+produces a similar pattern. This suggests that the combinatorial
 problem (``what outcomes are reachable from finite state machines that
 look kind of like this?'') has some geometric structure.
 
@@ -725,6 +727,18 @@ three-player Power Day (BM3L). In it, the clumps become tiny dots,
 but some relationship among them along lines is clear. Interior points
 can probably be found as linear combinations of two of these lines;
 we exploit that exact structure in Section~\ref{sec:linear}, in fact.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.90 \linewidth]{sample60min3players3states.png}
+\end{center}\vspace{-0.1in}
+\caption{490 million samples of three-player BMML Power Hours. The
+  cube is rotated $15\,^{\circ}$ along each axis, the top-left corner is
+  $\langle 0, 0, 0 \rangle$, and the bottom right is $\langle 60, 60,
+  60 \rangle$. }
+\label{fig:3d}
+\end{figure}
+
 
 \begin{figure}
 \begin{center}
