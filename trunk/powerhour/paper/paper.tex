@@ -648,10 +648,12 @@ all sorts of generalizations (it works best when the dimensionality is
 low---i.e., two players---and the expressiveness is high---i.e., many
 cup states). Since we already know BM8L is universal, the remaining
 open problem is BM7L, whose results are in
-Figure~\ref{fig:samplebm7l}. This is tantalizingly close to a complete
-matrix, with only 4 cells missing! It may be possible to solve these
-two cases manually, though a proof of non-existence would be
-difficult.
+Figure~\ref{fig:samplebm7l}. Indeed, after more than 30 billion
+samples the matrix is completely filled in; we have found an example
+configuration that achieves every outcome. Some of these were
+extremely rare, such as the solution for $\langle 11, 53 \rangle$
+(Figure~\ref{fig:dual11-53}). In BM7L, two players can drink any
+amount.
 
 \begin{figure}
 \begin{center}
@@ -673,19 +675,39 @@ difficult.
 \begin{center}
 \includegraphics[width=0.90 \linewidth]{sample60min2players7states.png}
 \end{center}\vspace{-0.1in}
-\caption{ 22.1 billion samples of legal two-player BM7L
+\caption{ 30.7 billion samples of legal two-player BM7L
   configurations. Fewer configurations were sampled than in
   Figure~\ref{fig:samplebm6l} because they take somewhat longer than
   6-state games to simulate, and a smaller proportion of random games
-  are legal.
-  %
-  All but four of the $(60 + 1)^2 = 3721$ cells are attainable: 
-  Permutations of $\langle 11, 53 \rangle$ and $\langle 49, 53 \rangle$
-  remain elusive. Note that 53 drinks was also unattainable in a solo
-  BM7L power-hour; this may in some sense be the ``hardest'' number of
-  shots to drink in \bmsl.
+  are legal. Moreover, we stop after finding a solution for every
+  cell, proving that BM7L is complete! The last cells found---an
+  earlier version of this paper held these as open problems!---were
+  permutations of $\langle 11, 53 \rangle$
+  (Figure~\ref{fig:dual11-53}) and $\langle 49, 53 \rangle$. Note that
+  53 drinks was also unattainable in a solo BM7L power-hour; this may
+  in some sense be the ``hardest'' number of shots to drink in \bmsl.
 }
 \label{fig:samplebm7l}
+\end{figure}
+
+\begin{figure}[ht!]
+\begin{center}
+\includegraphics[width=0.90 \linewidth]{dual11-53.pdf}
+\end{center}\vspace{-0.1in}
+\caption{ A solution for the elusive $\langle 11, 53 \rangle$ two-player
+  BM7L power hour! This one was found after 30.7 billion outcomes sampled,
+  making it the most rare. By the end of the game, the two players are
+  just passing back and forth two cups in state 5. A long lead-in beginning
+  on the left-player's state 2 spans 12 different configurations (the 6
+  cup states for the two players) before entering the length-two cycle.
+  Both cups travel along this lead-in, with one three steps ahead of the
+  other. The right player drinks on every step until reaching the cycle
+  (and then never again) for 11; the left player drinks during the cycle
+  plus a little extra during the lead-in for 53. This configuration is
+  quite flexible because the two players can make fine adjustments to
+  their drink total by drinking or not drinking on the lead-in rules,
+  which are executed just once or twice.}
+\label{fig:dual11-53}
 \end{figure}
 
 
@@ -701,21 +723,22 @@ look kind of like this?'') has some geometric structure.
 
 Some of the patterns are easy to explain. The top-left half of the
 matrix is more populous than the bottom right, for example. This is
-because we can bound the total number of drinks by $60 / c$, where $c$
-is the number of cups active in the game (same as the number of cups
-in the starting states). The top-left half is the region where this
-sum is less than or equal to 30; in two player games, both players
-must start with a cup in order to get an outcome in the bottom-right
-half. We also see distinct clumps around 0, 15, 30, 45, 60; these
-correspond to simple fractions (``drink every other time''; ``drink
-three of four times'') of 60. This is intuitive because the expressive
-power of BMML comes from the ability to form cycles of cup states and
-drink on some fraction of them. Clumps are formed around these values
-because of the possibility of preludes leading into the cycles
-(Figure~\ref{fig:solo31}) that either drink (adding to the total) or
-don't (subtracting from it). Minor clumps form as echoes between the
-major ones, because a player may participate in two cycles of
-different length (Figure~\ref{fig:dual45}).
+because we can bound the total number of drinks by $60 \times c$,
+where $c$ is the number of cups active in the game (same as the number
+of cups in the starting states). The top-left half is the region where
+this sum is less than or equal to 60; in two player games, both
+players must start with a cup in order to get an outcome in the
+bottom-right half. We also see distinct clumps around 0, 15, 30, 45,
+60; these correspond to simple fractions (``drink every other time'';
+``drink three of four times'') of 60. This is intuitive because the
+expressive power of BMML comes from the ability to form cycles of cup
+states and drink on some fraction of them. Clumps are formed around
+these values because of the possibility of preludes leading into the
+cycles (Figures~\ref{fig:solo31}, \ref{fig:dual11-53}) that either
+drink (adding to the total) or don't (subtracting from it). Minor
+clumps form as echoes between the major ones, because a player may
+participate in two cycles of different length
+(Figure~\ref{fig:dual45}).
 
 Of course, discretization effects compound and so the exact values of
 cells are not neatly predictable. Moreover, clumps interfere by
@@ -789,13 +812,15 @@ conjectures, before concluding.
     achieve any $\langle k_1, k_2 \rangle$ where $k_2 \in \{ 0, 1 \}$.
     No other $k_2$ can be used universally, though of course many
     other combinations are possible
-    (Figure~\ref{fig:composite2player}).
+    (Figure~\ref{fig:composite2player}). Many pairs $\langle k_1, k_2
+    \rangle$ are known to be unattainable; this was established by
+    exhaustively testing all possible configurations.
   \item Open: Can BM6L achieve all $\langle k_1, k_2 \rangle$? Seems
     unlikely, given that random exploration plateaus with about 95.65\%
     of the grid filled.
-  \item Open: Can BM7L achieve all $\langle k_1, k_2 \rangle$? Seems
-    possible, but there are four (really two with symmetry) unsolved
-    combinations.
+  \item BM7L can achieve all $\langle k_1, k_2 \rangle$. This was
+    established by sampling random games until we found an example
+    for every $\langle k_1, k_2 \rangle$.
   \item With three players in BM3L, one player can drink any number of
     shots if the other two players help.
 \end{enumerate}
@@ -819,17 +844,18 @@ of a full cup if we want to pass it in a different state. This
 conjecture is true for all the graphics presented in this
 paper;\footnote{Actually, it is not established for (only) 11 minutes
   in Figure~\ref{fig:powerthreehours}, but this is not a proper
-  \bmsl\ game as it takes place over 180 minutes. There may very well
-  be solutions for 11 anyway; this is just a sample.} we can see that
+  \bmsl\ game as it takes place over 180 minutes. There should be
+  solutions for 11, like in Figure~\ref{fig:dual11-53}; this is just
+  a sample.} we can see that
 cells in the 0 column are always filled when some other cell in that
 row is filled. If this conjecture fails, it probably fails for BM1L or
 BM2L which have the least freedom per player.
 
 \medskip
 
-In this paper I present some new results in \kn\ Power-Hour theory, as
+In this paper I presented some new results in \kn\ Power-Hour theory, as
 well as correct the historical record of some inebriated missteps. We
-see that stochastic simulation, abstract interpration, and sampling
+saw that stochastic simulation, abstract interpration, and sampling
 are powerful tools for solving combinatorial drinking problems. We
 established some firm results for the classic game and some bounds for
 generalizations, as well as informally looked at some visualizations
