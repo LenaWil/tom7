@@ -1,4 +1,4 @@
-default: powerhour-sample.exe samplegrid2x2.exe
+default: powerhour-sample.exe samplegrid2x2.exe showmachine.exe
 
 # MLTON=mlton -target x86_64-w64-mingw32 -codegen amd64
 MLTON=mlton @MLton max-heap 1.5G --
@@ -14,6 +14,9 @@ tfcompiler.exe : ../sml-lib/textformat/*
 
 samples-tf.sml : samples.tfdesc tfcompiler.exe
 	./tfcompiler.exe samples.tfdesc
+
+showmachine.exe : showmachine.cm showmachine.sml samples-tf.sml
+	${MLTON} -output $@ showmachine.cm
 
 cube.exe : cube.cm cube.sml samples-tf.sml
 	${MLTON} -output $@ cube.cm
