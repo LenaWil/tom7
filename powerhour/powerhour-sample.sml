@@ -27,14 +27,16 @@ struct
   type cup = int
   (* Number of cup states, not really the number of cups. For BMML,
      should be 3. *)
-  val NCUPS = 3
-  val NPLAYERS = 3
+  val NCUPS = 7
+  val NPLAYERS = 2
 
   val cxpointfile = "checkpoint-" ^ Int.toString MINUTES ^ "m-" ^
       Int.toString NPLAYERS ^ "p-" ^
       Int.toString NCUPS ^ "s.tf"
 
   val FILLED = 0
+
+  val ALWAYS_START_CUP = true
 
   (* What a player does on a turn when he sees a state other than None.
      (In None, the only legal action is to not drink and not pass.)
@@ -180,13 +182,15 @@ struct
           fun randomcup () =
               MT.random_nat mt NCUPS
           fun randomstart () =
-              (* PERF could just generate 1 number *)
-              (* XXX set this really high since the bottom-right
-                 half of the matrix can only be reached if both
-                 players have cups! *)
-              case MT.random_nat mt 32 (* (NCUPS + 1) *) of
-                  0 => NONE
-                | _ => SOME (randomcup ())
+              if ALWAYS_START_CUP then SOME (randomcup ())
+              else
+                (* PERF could just generate 1 number *)
+                (* XXX set this really high since the bottom-right
+                   half of the matrix can only be reached if both
+                   players have cups! *)
+                case MT.random_nat mt 32 (* (NCUPS + 1) *) of
+                    0 => NONE
+                  | _ => SOME (randomcup ())
 
           fun randomplayer () =
               MT.random_nat mt NPLAYERS
@@ -460,6 +464,7 @@ struct
 
    val start_time = Time.now()
    val (db : (SamplesTF.example * IntInf.int) RM.map) = sampleloop()
+   val () = writedb db
    val end_time = Time.now()
 
    val () = TextIO.output
