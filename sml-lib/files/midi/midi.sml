@@ -574,4 +574,8 @@ struct
         | NOTEON (ch, n, v) => "NOTEON " ^ itos ch ^ " " ^ itos n ^ "@" ^ itos v
         | NOTEOFF (ch, n, v) => "NOTEOFF " ^ itos ch ^ " " ^ itos n ^ "@" ^ itos v
 
+  (* note 60 is middle C = 256hz,
+     so 0th note is 8hz. *)
+  fun pitchof n : real = 8.0 * Math.pow (2.0, real n / 12.0)
+
 end

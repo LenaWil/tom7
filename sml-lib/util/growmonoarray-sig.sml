@@ -11,7 +11,7 @@ sig
      treated efficiently. *)
   type growarray
   val eq : growarray * growarray -> bool
-    
+
   val growarray : int -> elem -> growarray
   val empty : unit -> growarray
   val init : int -> growarray
@@ -28,7 +28,7 @@ sig
   (* stick an element at the end *)
   val append : growarray -> elem -> unit
 
-  (* Remove characters from the end so that it is the given length.
+  (* Remove elements from the end so that it is the given length.
      Raises subscript if the array is not at least this long already. *)
   val truncate : growarray -> int -> unit
 
