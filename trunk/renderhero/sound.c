@@ -1,7 +1,8 @@
-#include <math.h>
+// Note: This code is obsolete; it was replaced with a native
+// port in renderhero.sml. Only renderhero-ffi.sml (which may
+// not even work any more) calls this.
 
-// This no longer interacts with SDL
-// and ought to be ported to SML
+#include <math.h>
 
 // number of samples per second
 //#define RATE 22050
@@ -57,43 +58,43 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
 
       switch(cur_inst[ch]) {
       case INST_SINE: {
-	samples[ch] ++;
-	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
-	/* as a fraction of cycle */
-	double t = fmod(samples[ch], cycle);
-	mag += (int) ( (double)cur_vol[ch] * sin((t/cycle) * 2.0 * PI) );
+        samples[ch] ++;
+        double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
+        /* as a fraction of cycle */
+        double t = fmod(samples[ch], cycle);
+        mag += (int) ( (double)cur_vol[ch] * sin((t/cycle) * 2.0 * PI) );
 
-	break;
+        break;
       }
       case INST_SAW: {
-	samples[ch] ++;
-	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
-	double pos = fmod(samples[ch], cycle);
-	/* sweeping from -vol to +vol with period 'cycle' */
-	mag += -cur_vol[ch] + (int)( (pos / cycle) * 2.0 * cur_vol[ch] );
+        samples[ch] ++;
+        double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
+        double pos = fmod(samples[ch], cycle);
+        /* sweeping from -vol to +vol with period 'cycle' */
+        mag += -cur_vol[ch] + (int)( (pos / cycle) * 2.0 * cur_vol[ch] );
 
-	break;
+        break;
       }
       case INST_SQUARE: {
-	samples[ch] ++;
-	/* the frequency is the number of cycles per HZFACTOR seconds.
-	   so the length of one cycle in samples is (RATE*HZFACTOR)/cur_freq. 
-	*/
-	double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
-	double pos = fmod(samples[ch], cycle);
-	/* sweeping from -vol to +vol with period 'cycle' */
-	mag += (pos > (cycle/2.0))?cur_vol[ch]:-cur_vol[ch];
+        samples[ch] ++;
+        /* the frequency is the number of cycles per HZFACTOR seconds.
+           so the length of one cycle in samples is (RATE*HZFACTOR)/cur_freq.
+        */
+        double cycle = (((double)RATE * HZFACTOR) / cur_freq[ch]);
+        double pos = fmod(samples[ch], cycle);
+        /* sweeping from -vol to +vol with period 'cycle' */
+        mag += (pos > (cycle/2.0))?cur_vol[ch]:-cur_vol[ch];
 
-	break;
+        break;
       }
       case INST_NOISE:
-	seed ^= 0xDEADBEEF;
-	seed *= 0x11234567;
-	seed += 0x77339919;
+        seed ^= 0xDEADBEEF;
+        seed *= 0x11234567;
+        seed += 0x77339919;
 
-	/* half-volume for noise, otherwise too overpowering */
-	if (cur_vol[ch]) mag += (seed % (cur_vol[ch] * 2) - cur_vol[ch]) >> 1;
-	break;
+        /* half-volume for noise, otherwise too overpowering */
+        if (cur_vol[ch]) mag += (seed % (cur_vol[ch] * 2) - cur_vol[ch]) >> 1;
+        break;
       }
 
     }

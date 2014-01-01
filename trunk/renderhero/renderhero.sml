@@ -11,28 +11,38 @@
 structure RenderHero =
 struct
   exception Hero of string
+  structure MT = MersenneTwister
+
+  val outputp = Params.param "" (SOME("-o", "Set the output file.")) "output"
+  val gainp = Params.param "1.0" (SOME("-gain", "Gain multiplier.")) "gain"
+
+  fun getoutput song =
+      case !outputp of
+          "" => let val (base, ext) = FSUtil.splitext song
+                in base ^ ".wav"
+                end
+        | s => s
 
   fun eprint s = TextIO.output(TextIO.stdErr, s ^ "\n")
   val itos = Int.toString
+  fun rtos r = Real.fmt (StringCvt.FIX (SOME 3)) r
 
   (* Samples per second *)
   val SAMPLERATE = 44100 * 4
 
+  val TWOPI = Math.pi * 2.0
+
   (* Needed? *)
   val BUFFERSIZE = 512
-
-  (* frequencies are supplied by the client
-     in 1/HZFACTOR Hz increments
-
-     XXX Just use double. *)
-  val HZFACTOR = 10000
 
   (* These are MIDI-level constants *)
   val NNOTES = 128
   val NCHANNELS = 16
 
-  val MAX_SAMLE = 32700
+(*
+  val MAX_SAMPLE = 32700
   val MIN_SAMPLE = ~32700
+*)
 
   datatype inst =
       INST_NONE
@@ -49,6 +59,13 @@ struct
   (* cur_val and leftover unused *)
   val samples = Array.array(NCHANNELS * NNOTES, 0)
 
+  (* Not sure this is right for negative inputs.
+     Definitely has precision loss in some situations. *)
+  fun fmod (x, y) =
+    let val rem = Real.realMod (x / y)
+    in rem * y
+    end
+
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
 
@@ -64,124 +81,143 @@ struct
     | Control
     | Bar of bar
 
-  (* val setfreq_ = _import "ml_setfreq" : int * int * int * int -> unit ; *)
-  fun setfreq_ (a, b, c, d) : unit = ()
+  fun setnote (ch, note, vol) =
+      Array.update (cur_vol, ch * NNOTES + note, vol)
 
-  (* note 60 is middle C = 256hz,
-     so 0th note is 8hz.
-     *)
-(* XXX no floats on mingw, urgh
-  val () = Control.Print.printLength := 10000
-  fun pitchof n = Real.round ( 80000.0 * Math.pow (2.0, real n / 12.0) )
-  val pitches = Vector.fromList (List.tabulate(128, pitchof))
-*)
-
-  (* in ten thousandths of a hertz *)
-  val pitches = Vector.fromList
-  [80000,84757,89797,95137,100794,106787,113137,119865,126992,134543,142544,
-   151020,160000,169514,179594,190273,201587,213574,226274,239729,253984,
-   269087,285088,302040,320000,339028,359188,380546,403175,427149,452548,
-   479458,507968,538174,570175,604080,640000,678056,718376,761093,806349,
-   854298,905097,958917,1015937,1076347,1140350,1208159,1280000,1356113,
-   1436751,1522185,1612699,1708595,1810193,1917833,2031873,2152695,2280701,
-   2416318,2560000,2712226,2873503,3044370,3225398,3417190,3620387,3835666,
-   4063747,4305390,4561401,4832636,5120000,5424451,5747006,6088740,6450796,
-   6834380,7240773,7671332,8127493,8610779,9122803,9665273,10240000,10848902,
-   11494011,12177481,12901592,13668760,14481547,15342664,16254987,17221559,
-   18245606,19330546,20480000,21697804,22988023,24354962,25803183,27337520,
-   28963094,30685329,32509974,34443117,36491211,38661092,40960000,43395608,
-   45976045,48709923,51606366,54675040,57926188,61370658,65019947,68886234,
-   72982423,77322184,81920000,86791217,91952091,97419847,103212732,109350081,
-   115852375,122741316]
-
-  val transpose = ref 0 (* XXX? *)
-  fun pitchof n =
-      let
-          val n = n + ! transpose
-          val n = if n < 0 then 0 else if n > 127 then 127 else n
-      in
-          Vector.sub(pitches, n)
+  fun noteon (ch, note, vol, inst) =
+      let in
+          (* This probably never comes up because MIDI files use one
+             instrument per track: MIDInverse assumes this, and since
+             we label instruments by the track name, there's no possibility
+             in the current approach. But to be fully general, this is wrong. *)
+          Array.update (cur_inst, ch, inst);
+          setnote (ch, note, vol)
       end
 
-  fun setnote (ch, note, vol) =
-      Array.update (cur_vol, ch * CHANNELS + note, vol)
-
-  (* XXX uses can probably be merged with the cur_vol table.
-     this is from a prior life where that stuff was managed
-     C-side and by frequency. *)
-  datatype status =
-      OFF
-    | PLAYING of int
-  (* for each channel, all possible midi notes *)
-  val miditable = Array.array(16, Array.array(127, OFF))
-  val NMIX = 12 (* XXX get from C code *)
-  val mixes = Array.array(NMIX, false)
-
-  fun noteon (ch, n, v, inst) =
-      (case Array.sub(Array.sub(miditable, ch), n) of
-           OFF => (* find channel... *)
-               (case Array.findi (fn (_, b) => not b) mixes of
-                    SOME (i, _) =>
-                        let in
-                            Array.update(mixes, i, true);
-                            setfreq(i, pitchof n, v, inst);
-                            Array.update(Array.sub(miditable, ch),
-                                         n,
-                                         PLAYING i)
-                        end
-                  | NONE => print "No more mix channels.\n")
-         (* re-use mix channel... *)
-         | PLAYING i => setfreq(i, pitchof n, v, inst)
-                    )
-
-  fun noteoff (ch, n) =
-      (case Array.sub(Array.sub(miditable, ch), n) of
-           OFF => (* already off *) ()
-         | PLAYING i =>
-               let in
-                   Array.update(mixes, i, false);
-                   setfreq(i, pitchof 60, 0, INST_NONE);
-                   Array.update(Array.sub(miditable, ch),
-                                n,
-                                OFF)
-               end)
-
-  (* val () = app (fn l => print (itos (length l) ^ " events\n")) thetracks *)
-
-  structure GA = GrowMonoArrayFn_Safe(structure A = Word16Array
-                                      val default = 0w0 : Word16.word)
-
-  val rendered = GA.empty ()
+  fun noteoff (ch, note) = setnote (ch, note, 0)
 
   (* The crux of this fork is that "time" proceeds only through manual
-     intervention. Each tick is a sample. *)
-  val hammerspeed = 0w1
-  local val gt = ref 0w0 : Word32.word ref
+     intervention. Each tick is a sample.
+
+     Note: Assumes this doesn't overflow, which is probably safe for
+     real music. *)
+  val HAMMERSPEED = 1
+  local val gt = ref 0
   in
     fun getticks () = !gt
-    fun maketick () =
-    let in
-        gt := !gt + hammerspeed;
-        !gt
-    end
+    fun maketick () = gt := !gt + HAMMERSPEED
   end
 
-  fun getticksi () = Word32.toInt (getticks ())
-
-
   fun div_exact (m : IntInf.int, n) =
-      let
-          val q = m div n
-      in
-          if n * q <> m
-          then raise Hero (IntInf.toString m ^ " div " ^
-                           IntInf.toString n ^ " cannot be represented exactly")
-          else q
-      end
+    let
+        val q = m div n
+    in
+        if n * q <> m
+        then raise Hero (IntInf.toString m ^ " div " ^
+                         IntInf.toString n ^ " cannot be represented exactly")
+        else q
+    end
 
   fun div_exacti (m, n) = IntInf.toInt (div_exact (IntInf.fromInt m, IntInf.fromInt n))
 
   infix div_exact div_exacti
+
+  structure GA = GrowMonoArrayFn_Safe(structure A = RealArray
+                                      val default = 0.0 : real)
+  val rendered = GA.empty ()
+
+  (* XXX: Should have gentle fade-in and -out. Could maybe be accomplished
+     by just oversampling, which helps with other aliasing effects. *)
+  local
+    val seed = MT.initstring "renderhero"
+  in
+    (* generate n samples and write them to the end of the
+       rendered array. *)
+    fun mixaudio (gain, n) =
+      Util.for 0 (n - 1)
+      (fn _ =>
+       let
+         val mag = ref 0.0
+         val contributions = ref 0
+         val () =
+           Util.for 0 (NCHANNELS - 1)
+           (fn ch =>
+            Util.for 0 (NNOTES - 1)
+            (fn note =>
+             case Array.sub (cur_vol, ch * NNOTES + note) of
+                 0 => ()
+               | vel =>
+               let
+                 val idx = ch * NNOTES + note
+                 val sample = Array.sub (samples, idx) + 1
+                 (* The length of one cycle in samples, for
+                    this note's frequency. *)
+                 val freq = MIDI.pitchof note
+                 val cycle = real SAMPLERATE / freq
+                 val pos = fmod(real sample, cycle)
+
+                 val () = if vel > 128 orelse vel < 0
+                          then raise Hero ("Illegal velocity " ^ itos vel)
+                          else ()
+                 val rvel = real vel / 127.0
+
+                 (* Get the value of this sample in [-1, 1] and
+                    its weight in the mix [0, 1]. *)
+                 val (impulse : real, mix : real, n) =
+                   case Array.sub (cur_inst, ch) of
+                     INST_NONE => (0.0, 0.0, 0)
+                   | INST_NOISE =>
+                      let val r = Real.fromLargeInt
+                          (Word32.toLargeIntX (MT.rand32 seed))
+                          (* note that for the most negative integer, the
+                             fraction will actually be slightly larger than 1,
+                             but default magnitude for noise is 0.5, so the final
+                             value will be in range. *)
+                          val denom = Real.fromLargeInt
+                              (Word32.toLargeIntX 0wx7FFFFFFF)
+                      in
+                          (0.5 * r / denom, rvel, 1)
+                      end
+                   | INST_SQUARE =>
+                      (if pos > cycle / 2.0
+                       then rvel
+                       else ~rvel,
+                       rvel, 1)
+                   | INST_SAW =>
+                      (~rvel + (pos / cycle) * 2.0 * rvel,
+                       rvel, 1)
+                   | INST_SINE =>
+                      (rvel * Math.sin((pos / cycle) * TWOPI),
+                       rvel, 1)
+               in
+                   (*
+                   eprint ("ch " ^ itos ch ^ " n " ^ itos note ^
+                           " freq " ^ rtos freq ^
+                           " pos " ^ rtos pos ^
+                           " rvel " ^ rtos rvel ^
+                           " mag " ^ rtos (!mag));
+                   *)
+
+                   Array.update (samples, idx, sample + 1);
+                   contributions := n + !contributions;
+                   mag := impulse + !mag;
+                   (* Only the lowest note contributes *)
+                   (*
+                   if !contributions = 1
+                   then mag := impulse + !mag
+                   else ()
+                   *)
+                   ()
+               end))
+
+         val mag = !mag * gain
+
+         (* XXX do smarter clamping / normalization *)
+         val mag = Real.max(~1.0, Real.min(1.0, mag))
+       in
+         GA.append rendered mag
+       end)
+  end
 
   (* Given a MIDI tempo in microseconds-per-quarter note
      (which is what the TEMPO event carries),
@@ -212,11 +248,12 @@ struct
   fun loopplay (_, _, _, nil) = print "SONG END.\n"
     | loopplay (divi, lt, spt, track) =
       let
-          val now = getticksi ()
+          val now = getticks ()
 
           (* hack attack *)
           val spt = ref spt
           (* val () = print ("Lt: " ^ itos lt ^ " Now: " ^ itos now ^ "\n") *)
+
 
           (* Last time we were here it was time 'lt', and now it is 'now'. The
              events in the track are measured as deltas from lt. We
@@ -244,20 +281,10 @@ struct
               updating lt, but there is no reason for that.)
 
               When the gap is too small to include the next event, we reduce
-              its delta time by the remaining gap amount.
+              its delta time by the remaining gap amount. *)
+          fun nowevents _ nil = nil (* song will end on next trip *)
 
-             *)
-          fun nowevents gap ((dt, (label, evt)) :: rest) =
-            let
-(*
-              val () = if gap > dt then print ("late by " ^ Int.toString (gap - dt) ^ "\n")
-                       else ()
-*)
-
-              (* try to account for drift *)
-              (* val () = if nn < 0 then skip := !skip + nn
-                       else () *)
-            in
+            | nowevents gap ((dt, (label, evt)) :: rest) =
               if dt <= gap
               then
                 let in
@@ -266,34 +293,30 @@ struct
                        (case evt of
                           MIDI.NOTEON(ch, note, 0) => noteoff (ch, note)
                         | MIDI.NOTEON(ch, note, vel) => (print ".";
-                                                         noteon (ch, note, 12000, inst))
+                                                         noteon (ch, note, vel, inst))
                         | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
-                        | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
-                          (* otherwise no sound..? *)
+                        | _ => eprint ("unknown music event: " ^ MIDI.etos evt))
                    | Control =>
                        (case evt of
                             (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
                             MIDI.META (MIDI.TEMPO n) =>
                                 let in
-                                    print ("TEMPO " ^ itos n ^ "\n");
+                                    eprint ("TEMPO " ^ itos n);
                                     spt := spt_from_upq (divi, n)
                                 end
 
                           | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
-                                print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
-                                       ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
-                          | _ => print ("unknown ctrl event: " ^ MIDI.etos evt ^ "\n"))
-                   | Bar _ => () (* XXX could play metronome click *)
-                          );
+                                eprint ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^
+                                        "  @ " ^ itos cpc ^ " bb: " ^ itos bb)
+                          | _ => eprint ("unknown ctrl event: " ^ MIDI.etos evt))
+                   | Bar _ => () (* Does nothing, but could draw. *)
+                            );
 
                   nowevents (gap - dt) rest
                 end
               (* the event is not ready yet. it must be measured as a
                  delta from 'now' *)
               else (dt - gap, (label, evt)) :: rest
-            end
-            (* song will end on next trip *)
-            | nowevents _ nil = nil
 
           val track = nowevents (now - lt) track
       in
@@ -302,16 +325,11 @@ struct
 
   and loop (arg as (_, _, spt, _)) =
       let
+          val gain = Params.asreal 1.0 gainp
           (* render spt (samples-per-tick) samples *)
           val n = spt
-          val samples = Array.array(n, 0w0 : Word16.word)
-          (* val mixaudio_ = _import "mixaudio" : ptr * Word16.word array * int -> unit ; *)
-          fun mixaudio_ (a, b, c) : unit = ()
       in
-          (* two bytes per sample *)
-          mixaudio_(MLton.Pointer.null, samples, n * 2);
-
-          Util.for 0 (n - 1) (fn i => GA.append rendered (Array.sub(samples, i)));
+          mixaudio (gain, n);
 
           (* advance time; continue *)
           maketick ();
@@ -450,7 +468,7 @@ struct
 
   fun render song =
     let
-      val OUTPUT = "test.wav" (* XXX *)
+      val OUTPUT = getoutput song
       val r = (Reader.fromfile song) handle _ =>
         raise Hero ("couldn't read " ^ song)
       val m as (ty, divi, thetracks) = MIDI.readmidi r
@@ -474,11 +492,17 @@ struct
 
       (* Start with the play loop, because we want to begin at time 0, sample 0 *)
       (* need to start with tempo 120 = 0x07a120 ms per tick *)
-      val () = loopplay (divi, getticksi (), spt_from_upq (divi, 0x07a120), track)
+      val () = loopplay (divi, getticks (), spt_from_upq (divi, 0x07a120), track)
 
-      val f = GA.finalize rendered
-      val a = Vector.tabulate(Word16Array.length f,
-                              fn x => Word16.toIntX (Word16Array.sub (f, x)))
+      val samples : RealArray.array = GA.finalize rendered
+      fun sample16 (r : real) : int =
+          let val r = if r > 1.0 then 1.0 else r
+              val r = if r < ~1.0 then ~1.0 else r
+          in
+              Real.round (r * 32766.0)
+          end
+      val a = Vector.tabulate(RealArray.length samples,
+                              fn i => sample16 (RealArray.sub (samples, i)))
 
     in
         eprint ("Writing " ^ OUTPUT ^ "...");
@@ -492,8 +516,6 @@ struct
                     eprint ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e);
                     raise e
                 end
-
-
 end
 
 val () = Params.main1 "Single MIDI file on the command line." RenderHero.render
