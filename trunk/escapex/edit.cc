@@ -966,6 +966,7 @@ void editor::edit(level * origlev) {
 	    int tx, ty;
 	    if (dr.inmap(e->x, e->y, tx, ty)) {
 	      dr.lev->swapo(dr.lev->index(tx, ty));
+	      changed = 1;
 	      redraw ();
 	    }
 	  } else {
