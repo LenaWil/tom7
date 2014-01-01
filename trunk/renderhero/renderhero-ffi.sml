@@ -2,66 +2,38 @@
 (* Renderhero is a fork of Tom 7 Entertainment System Hero that
    simply renders the MIDI file to a WAV file offline. The purpose
    is to provide sample-accurate rendering for e.g. making music
-   videos that may need tight time-based synchronization.
-
-   This is the native version, which does all rendering in SML
-   rather than with C code.
-*)
+   videos that may need tight time-based synchronization. *)
 
 structure RenderHero =
 struct
+
+  fun messagebox s = print (s ^ "\n")
+
+  (* Comment this out on Linux, or it will not link *)
+(*
+  local
+      val mb_ = _import "MessageBoxA" : MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
+  in
+      fun messagebox s = mb_(MLton.Pointer.null, s ^ "\000", "Message!\000", MLton.Pointer.null)
+  end
+*)
+  type ptr = MLton.Pointer.t
 
   exception Nope
 
   exception Hero of string
 
-  fun eprint s = TextIO.output(TextIO.stdErr, s ^ "\n")
-
   (* This uses lots of top-level evaluation, making exception handling awkward *)
   fun report e =
-      case e of
-          Hero s => (eprint ("exn test: " ^ s); raise e)
+      case e of 
+          Hero s => (messagebox ("exn test: " ^ s); raise e)
         | Wave.Wave s => (print ("WAVE ERROR: " ^ s ^ "\n"); raise e)
-        | e =>
+        | e => 
               let in
-                  app (fn s => eprint (s ^ "\n")) (MLton.Exn.history e);
-                  eprint ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e);
+                  app (fn s => print (s ^ "\n")) (MLton.Exn.history e);
+                  messagebox ("Uncaught exception: " ^ exnName e ^ " / " ^ exnMessage e);
                   raise e
               end
-
-  (* Samples per second *)
-  val SAMPLERATE = 44100 * 4
-
-  (* Needed? *)
-  val BUFFERSIZE = 512
-
-  (* frequencies are supplied by the client
-     in 1/HZFACTOR Hz increments
-
-     XXX Just use double. *)
-  val HZFACTOR = 10000
-
-  (* These are MIDI-level constants *)
-  val NNOTES = 128
-  val NCHANNELS = 16
-
-  val MAX_SAMLE 32700
-  val MIN_SAMPLE ~32700
-
-  datatype inst =
-      INST_NONE
-    | INST_SQUARE
-    | INST_SAW
-    | INST_NOISE
-    | INST_SINE
-
-  (* no cur_freq -- use pitch to generate *)
-  (* How loud is this note right now? 0 means off *)
-  val cur_vol = Array.array(NCHANNELS * NNOTES, 0)
-  val cur_inst = Array.array(NCHANNELS, INST_NONE)
-
-  (* cur_val and leftover unused *)
-  val samples = Array.array(NCHANNELS * NNOTES, 0)
 
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
@@ -141,7 +113,7 @@ struct
           Array.update(freqs, ch, f)
       end
 
-  datatype status =
+  datatype status = 
       OFF
     | PLAYING of int
   (* for each channel, all possible midi notes *)
@@ -153,7 +125,7 @@ struct
       (case Array.sub(Array.sub(miditable, ch), n) of
            OFF => (* find channel... *)
                (case Array.findi (fn (_, b) => not b) mixes of
-                    SOME (i, _) =>
+                    SOME (i, _) => 
                         let in
                             Array.update(mixes, i, true);
                             setfreq(i, pitchof n, v, inst);
@@ -169,7 +141,7 @@ struct
   fun noteoff (ch, n) =
       (case Array.sub(Array.sub(miditable, ch), n) of
            OFF => (* already off *) ()
-         | PLAYING i =>
+         | PLAYING i => 
                let in
                    Array.update(mixes, i, false);
                    setfreq(i, pitchof 60, 0, INST_NONE);
@@ -177,14 +149,14 @@ struct
                                 n,
                                 OFF)
                end)
-
+      
 
   (* FIXME totally ad hoc!! *)
   val itos = Int.toString
-  val f = (case CommandLine.arguments() of
+  val f = (case CommandLine.arguments() of 
                st :: _ => st
              | _ => "totally-membrane.mid")
-  val r = (Reader.fromfile f) handle _ =>
+  val r = (Reader.fromfile f) handle _ => 
       raise Hero ("couldn't read " ^ f)
   val m as (ty, divi, thetracks) = MIDI.readmidi r
   val _ = ty = 1
@@ -201,7 +173,7 @@ struct
                                       val default = 0w0 : Word16.word)
 
   val rendered = GA.empty ()
-
+      
   (* The crux of this fork is that "time" proceeds only through manual
      intervention. Each tick is a sample. *)
   val hammerspeed = 0w1
@@ -223,15 +195,16 @@ struct
           val q = m div n
       in
           if n * q <> m
-          then raise Hero (IntInf.toString m ^ " div " ^
+          then raise Hero (IntInf.toString m ^ " div " ^ 
                            IntInf.toString n ^ " cannot be represented exactly")
           else q
       end
-
+      
   fun div_exacti (m, n) = IntInf.toInt (div_exact (IntInf.fromInt m, IntInf.fromInt n))
 
   infix div_exact div_exacti
 
+  val SAMPLERATE = 44100 * 4 (* XXX must agree with .c *)
   (* Given a MIDI tempo in microseconds-per-quarter note
      (which is what the TEMPO event carries),
      compute the number of samples per MIDI tick,
@@ -246,12 +219,12 @@ struct
           (* val uspt = IntInf.fromInt upq * IntInf.fromInt divi *)
 
           (* samples per tick is
-
+             
              usec per tick      samples per usec
              (upq / divi)    *  (fps / 1000000)
 
              *)
-          val fpq = (IntInf.fromInt SAMPLERATE * IntInf.fromInt upq) div_exact
+          val fpq = (IntInf.fromInt SAMPLERATE * IntInf.fromInt upq) div_exact 
                     (IntInf.fromInt 1000000 * IntInf.fromInt divi)
       in
           print ("Samples per tick is now: " ^ IntInf.toString fpq ^ "\n");
@@ -273,10 +246,10 @@ struct
              want to play any event that was late (or on time): that
              occurred between lt and now. This is the case when the delta time
              is less than now - lt.
-
+             
              There may be many such events, each measured as a delta from the
              previous one. For example, we might have
-
+             
                             now = 17
                1 1  2   5   |
                -A-B- -C- - -v- -D
@@ -284,7 +257,7 @@ struct
               ^
               |
               lt = 10
-
+              
               We want to emit events A-C, and reduce the delta time on D to 2,
               then continue with lt=now. To do so, we call the period of time
               left to emit the 'gap'; this begins as now - lt = 7.
@@ -298,7 +271,7 @@ struct
 
              *)
           fun nowevents gap ((dt, (label, evt)) :: rest) =
-            let
+            let 
 (*
               val () = if gap > dt then print ("late by " ^ Int.toString (gap - dt) ^ "\n")
                        else ()
@@ -309,7 +282,7 @@ struct
                        else () *)
             in
               if dt <= gap
-              then
+              then 
                 let in
                   (case label of
                      Music inst =>
@@ -319,16 +292,16 @@ struct
                                                          noteon (ch, note, 12000, inst))
                         | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
                         | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
-                          (* otherwise no sound..? *)
+                          (* otherwise no sound..? *) 
                    | Control =>
                        (case evt of
                             (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
-                            MIDI.META (MIDI.TEMPO n) =>
+                            MIDI.META (MIDI.TEMPO n) => 
                                 let in
                                     print ("TEMPO " ^ itos n ^ "\n");
                                     spt := spt_from_upq n
                                 end
-
+                                
                           | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
                                 print ("myTIME " ^ itos n ^ "/" ^ itos (Util.pow 2 d) ^ "  @ "
                                        ^ itos cpc ^ " bb: " ^ itos bb ^ "\n")
@@ -351,7 +324,7 @@ struct
       end
 
   and loop (x as (_, _, spt, _)) =
-      let
+      let 
           (* render spt (samples-per-tick) samples *)
           val n = spt
           val samples = Array.array(n, 0w0 : Word16.word)
@@ -359,7 +332,7 @@ struct
       in
           (* two bytes per sample *)
           mixaudio_(MLton.Pointer.null, samples, n * 2);
-
+          
           (*
           if Array.sub(samples, 0) <> 0w0
           then raise Hero ("COOL: " ^ Word16.toString (Array.sub(samples, 0)))
@@ -367,7 +340,7 @@ struct
           *)
 
           Util.for 0 (n - 1) (fn i => GA.append rendered (Array.sub(samples, i)));
-
+          
           (* advance time; continue *)
           maketick ();
           loopplay x
@@ -380,14 +353,14 @@ struct
   fun add_measures t =
     let
       (* Read through tracks, looking for TIME events in
-         Control tracks.
+         Control tracks. 
          Each TIME event starts a measure, naturally.
          We need to find one at 0 time, otherwise this is
          impossible:
          *)
       fun getstarttime nil = (print "(TIME) no events?"; raise Hero "")
         | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: rest) = ((n, d, cpc, bb), rest)
-        | getstarttime ((0, evt) :: t) =
+        | getstarttime ((0, evt) :: t) = 
         let val (x, rest) = getstarttime t
         in (x, (0, evt) :: rest)
         end
@@ -395,7 +368,7 @@ struct
 
       val ((n, d, cpc, bb), rest) = getstarttime t
 
-      val () = if bb <> 8
+      val () = if bb <> 8 
                then (messagebox ("The MIDI file may not redefine 32nd notes!");
                      raise Hero "")
                else ()
@@ -404,7 +377,7 @@ struct
          though this is ostensibly what we want, the values are fairly
          unpredictable. *)
 
-      (* First we determine the length of a measure in midi ticks.
+      (* First we determine the length of a measure in midi ticks. 
 
          The midi division tells us how many clicks there are in a quarter note.
          The denominator tells us how many beats there are per measure. So we can
@@ -444,10 +417,10 @@ struct
       fun ibars tl nil = nil (* XXX probably should finish out
                                 the measure, draw end bar. *)
 
-        | ibars (ticksleft :: rtl) ((dt, evt) :: rest) =
+        | ibars (ticksleft :: rtl) ((dt, evt) :: rest) = 
         (* Which comes first, the next event or our next bar? *)
         if dt <= ticksleft
-        then
+        then 
           (case evt of
              (* Time change event coming up! *)
              (Control, MIDI.META (MIDI.TIME _)) =>
@@ -455,8 +428,8 @@ struct
              (dt, (Control, DUMMY)) :: add_measures ((0, evt) :: rest)
 
            | _ => (dt, evt) :: ibars (ticksleft - dt :: rtl) rest)
-        else
-          (* if we exhausted the list, then there is a major (measure) bar here. *)
+        else 
+          (* if we exhausted the list, then there is a major (measure) bar here. *)       
           (case rtl of
              nil => (ticksleft, (Bar Measure, DUMMY)) :: ibars ticklist ((dt - ticksleft, evt) :: rest)
            | _   => (ticksleft, (Bar Beat, DUMMY))    :: ibars rtl      ((dt - ticksleft, evt) :: rest))
@@ -484,19 +457,19 @@ struct
   val FRAMES_PER_TICK = 3 (* report in frames *)
   (* For ActionScript geometric renderers *)
   fun print_track t =
-      let
+      let 
           (* number of ticks per sixteenth note *)
           val divisor = divi div_exacti DIVI_DIVISION
 
           fun noteson extra ((delta, e) :: l) =
               let val delta = delta + extra
-                  val extra =
+                  val extra = 
                       case e of
                           MIDI.NOTEON(_, note, 0) => delta
-                        | MIDI.NOTEON(_, note, v) =>
+                        | MIDI.NOTEON(_, note, v) => 
                            let in
                               print
-                              ("{ d:" ^ Int.toString ((delta * FRAMES_PER_TICK)
+                              ("{ d:" ^ Int.toString ((delta * FRAMES_PER_TICK) 
                                                       div_exacti divisor) ^
                                ", n:" ^ Int.toString note ^ "}, ");
                               0
@@ -518,33 +491,33 @@ struct
               case findname tr of
                   NONE => SOME (Control, tr) (* (print "Discarded track with no name.\n"; NONE) *)
                 | SOME "" => SOME (Control, tr) (* (print "Discarded track with empty name.\n"; NONE) *)
-                | SOME name =>
+                | SOME name => 
                       (case CharVector.sub(name, 0) of
                            #"+" =>
                            SOME (case CharVector.sub (name, 1) of
-                                     #"Q" =>
-                                     let in
+                                     #"Q" => 
+                                     let in 
                                          (* XXX hack attack, should be command line or sth? *)
                                          (* print_track tr; *)
-                                         Music INST_SQUARE
+                                         Music INST_SQUARE 
                                      end
-                                   | #"W" =>
+                                   | #"W" => 
                                      let in
                                          (* XXX hack attack *)
                                          print_track tr;
-                                         Music INST_SAW
+                                         Music INST_SAW 
                                      end
                                    | #"N" => Music INST_NOISE
                                    | #"S" => Music INST_SINE
                                    | _ => (print "?? expected Q or W or N\n"; raise Hero ""),
                                  tr)
-                         | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n");
+                         | _ => (print ("confused by named track '" ^ name ^ "'?? expected + or ...\n"); 
                                  SOME (Control, tr))
                            )
       in
           List.mapPartial onetrack tracks
       end handle e => report e
-
+      
   val tracks = label thetracks
   val tracks = MIDI.mergea tracks
   (* val tracks = slow (MIDI.mergea tracks) *)
