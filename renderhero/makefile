@@ -2,8 +2,8 @@
 default : renderhero.exe dumpmidi.exe
 
 # fyi, turning on exn history slows stuff down
-EXNHISTORY=-const 'Exn.keepHistory true'
-# EXNHISTORY=
+#EXNHISTORY=-const 'Exn.keepHistory true'
+EXNHISTORY=
 MLTON=mlton @MLton max-heap 500m -- ${EXNHISTORY}
 
 LIB=../sml-lib/files/midi/*.sml ../sml-lib/files/wave/*.sml
