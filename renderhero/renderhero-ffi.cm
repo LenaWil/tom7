@@ -21,8 +21,5 @@ group is
 ../sml-lib/files/wave/wave-sig.sml
 ../sml-lib/files/wave/wave.sml
 
-../sml-lib/misc/params-sig.sml
-../sml-lib/misc/params.sml
-
-renderhero.sml
+renderhero-ffi.sml
 

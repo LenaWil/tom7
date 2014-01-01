@@ -1,19 +1,7 @@
-
-default : renderhero.exe dumpmidi.exe
-
-renderhero.exe : renderhero.cm renderhero.sml
-	mlton @MLton max-heap 400m -- -output $@ -const 'Exn.keepHistory true' renderhero.cm
-
-dumpmidi.exe : dumpmidi.sml dumpmidi.cm makefile.mingw ../sml-lib/files/midi/*.sml
-	mlton @MLton max-heap 400m -- -output $@ -const 'Exn.keepHistory true' dumpmidi.cm
-
-clean :
-	rm -f renderhero-ffi.exe renderhero.exe dumpmidi.exe *.o core
-
-
-
 # below is junk for building the ffi version, which probably shouldn't be
-# used any more.
+# used any more. The native version is so much simpler.
+
+default : renderhero-ffi.exe
 
 sdlml.o : ../sdlml/sdlml.c
 	gcc -O `sdl-config --cflags` -c ../sdlml/sdlml.c -o sdlml.o
@@ -40,3 +28,5 @@ renderhero-ffi.exe : sdlml.o sound.o win32main.o renderhero-ffi.sml renderhero-f
 
 #	mlton @MLton max-heap 200m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -DDEBUG_X86CODEGEN -Dmain=SDL_main" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz" -output renderhero-ffi.exe -default-ann 'allowFFI true' renderhero-ffi.cm sdlml.o sound.o win32main.o
 
+clean :
+	rm -f renderhero-ffi.exe *.o core
