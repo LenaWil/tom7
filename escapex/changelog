@@ -1,3 +1,8 @@
+2014-01-01  Tom 7  <Tom@WARPZONE>
+
+        * edit.cc: Using ctrl-middle-click in the editor should mark
+          the level as changed. Done. (Thanks N7DOT!)
+
 2010-11-26  Tom 7  <Tom@WARPZONE>
 
         * load.cc: Improved the interface for ctrl-0 (from the loader)
