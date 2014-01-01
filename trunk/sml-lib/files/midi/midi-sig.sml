@@ -19,15 +19,15 @@ sig
 
       (* hr mn sec fr subfr *)
     | SMPTE of int * int * int * int * int
-      (* numerator log(denominator) clocksperclick bb 
+      (* numerator log(denominator) clocksperclick bb
          bb is the number of 32nd notes in a MIDI quarter-note
-            (=24 clocks). 
+            (=24 clocks).
          *)
     | TIME of int * int * int * int
 
     (* sharps/flats maj/minor *)
     | KEY of int * bool
-      
+
     (* proprietary data, like sysex *)
     | PROP of string
     (* unknown *)
@@ -45,7 +45,7 @@ sig
     | PITCH of int * int * int
     (* sysex data *)
     | SYSEX of CharVector.vector
-      
+
     | META of meta
 
   type reader = Reader.reader
@@ -57,8 +57,8 @@ sig
   type track = (int * event) list
 
   (* merge tracks into a single track (meta events are not treated
-     specially, meaning the result may have multiple names, etc.) 
-     
+     specially, meaning the result may have multiple names, etc.)
+
      note: this is a generalization of
      track list list -> track list
      *)
@@ -73,13 +73,17 @@ sig
 
      Filter out events for which f returns false. Adjusts deltas to maintain
      the appropriate absolute positions of events that are kept. (But, it
-     may change the overall length of the song, for example when f is 
+     may change the overall length of the song, for example when f is
      (K false)). *)
   val filter : ('event -> bool) -> (int * 'event) list -> (int * 'event) list
 
   (* Give the total number of midi delta time consumed by this event list.
      note: This is a generalization of track -> int *)
   val total_ticks : (int * 'event) list -> int
+
+  (* The pitch of the nth MIDI note, in Hz.
+     n must be in [0, 127]. *)
+  val pitchof : int -> real
 
   exception MIDI of string
 

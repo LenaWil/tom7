@@ -5,29 +5,29 @@ sig
     exception ListUtil
 
     (* Association lists *)
-    structure Alist : 
+    structure Alist :
         sig
             val find : ('a * 'a -> bool) -> ('a * 'b) list -> 'a -> 'b option
-            val get : ('a * 'a -> bool) -> ('a * 'b) list -> 'a -> 
+            val get : ('a * 'a -> bool) -> ('a * 'b) list -> 'a ->
                          ('a * 'b) option
 
             (* return also the rest of the list *)
             val extract : ('a * 'a -> bool) -> ('a * 'b) list -> 'a ->
-                                            ('b * ('a * 'b) list) option 
+                                            ('b * ('a * 'b) list) option
 
             val haskey : ('a * 'a -> bool) -> ('a * 'b) list -> 'a -> bool
 
-            val removeall : ('a * 'a -> bool) -> 
+            val removeall : ('a * 'a -> bool) ->
                             ('a * 'b) list -> 'a -> ('a * 'b) list
-            val removefirst : ('a * 'a -> bool) -> 
+            val removefirst : ('a * 'a -> bool) ->
                               ('a * 'b) list -> 'a -> ('a * 'b) list
 
             val bycompare : ('a * 'a -> order) -> ('a * 'a) -> bool
 
-            val update : ('a * 'a -> bool) -> ('a * 'b) list -> 'a -> 
+            val update : ('a * 'a -> bool) -> ('a * 'b) list -> 'a ->
                             'b -> ('a * 'b) list
 
-            val modify : ('a * 'a -> bool) -> ('a * 'b) list -> 'a -> 
+            val modify : ('a * 'a -> bool) -> ('a * 'b) list -> 'a ->
                             ('b -> 'b) -> ('a * 'b) list
 
             val swap : ('a * 'b) list -> ('b * 'a) list
@@ -65,7 +65,7 @@ sig
     val list : 'a -> 'a list
 
     (* choosemap f l
-       
+
        returns [f(l1, [l2...ln]), f(l2, [l1,l3...ln]), ...] *)
     val choosemap : ('a * 'a list -> 'b) -> 'a list -> 'b list
 
@@ -82,7 +82,7 @@ sig
        nil if nothing satisfies it. *)
     val after : ('a -> bool) -> 'a list -> 'a list
 
-    (* return all that satisfy until the first failure, 
+    (* return all that satisfy until the first failure,
        and separately the rest of the list *)
     val partitionaslongas : ('a -> bool) -> 'a list -> 'a list * 'a list
 
@@ -106,10 +106,10 @@ sig
     val map3 : ('a * 'b * 'c -> 'd) -> 'a list -> 'b list -> 'c list -> 'd list
     val app3 : ('a * 'b * 'c -> unit) -> 'a list -> 'b list -> 'c list -> unit
 
-    val foldl3 : (('a * 'b * 'c) * 'e -> 'e) -> 'e -> 
+    val foldl3 : (('a * 'b * 'c) * 'e -> 'e) -> 'e ->
                       'a list -> 'b list -> 'c list -> 'e
     (* XXX foldr3 *)
-                      
+
     (* these don't check lengths, just like ListPair.zip,unzip *)
     val unzip3 : ('a * 'b * 'c) list -> 'a list * 'b list * 'c list
     val zip3 : 'a list -> 'b list -> 'c list -> ('a * 'b * 'c) list
@@ -152,7 +152,7 @@ sig
        for which the function returns SOME. *)
     val tabulatepartial : int * (int -> 'a option) -> 'a list
 
-    (* like Vector.mapi, but no slice stuff. 0-based. 
+    (* like Vector.mapi, but no slice stuff. 0-based.
        XXX these take the index and element in the opposite
        order from Vector. and Array... *)
     val mapi : ('a * int -> 'b) -> 'a list -> 'b list

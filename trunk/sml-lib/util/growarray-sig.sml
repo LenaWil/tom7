@@ -17,7 +17,7 @@ sig
 
   (* can raise Subscript when out of bounds *)
   val sub : 'a growarray -> int -> 'a
-  (* Is there an element at this position? 
+  (* Is there an element at this position?
      Raises subscript for negative indices. *)
   val has : 'a growarray -> int -> bool
 
@@ -43,7 +43,7 @@ sig
 
   val fromlist : 'a list -> 'a growarray
 
-  (* Remove characters from the end so that it is the given length.
+  (* Remove elements from the end so that it is the given length.
      Raises subscript if the array is not at least this long already. *)
   val truncate : 'a growarray -> int -> unit
 

@@ -138,6 +138,7 @@ struct
     | plarg _ = raise BadOption "impossible"
 
   fun asint def (ref a) = getOpt (Int.fromString a, def)
+  fun asreal def (ref a) = getOpt (Real.fromString a, def)
 
   val table = StringUtil.table 75
 
