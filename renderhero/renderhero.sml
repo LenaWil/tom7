@@ -15,6 +15,12 @@ struct
 
   val outputp = Params.param "" (SOME("-o", "Set the output file.")) "output"
   val gainp = Params.param "1.0" (SOME("-gain", "Gain multiplier.")) "gain"
+  (* XX Note that when using this arg, it will often fail because it can't be done exactly.
+     The way to fix this is to increase the sample rate -- could maybe do this for you.
+     There's a significant performance penalty to computing more samples. Maybe also would
+     need to downsample if using sample rates in the hundreds of kHz. *)
+  val exactp = Params.flag false
+      (SOME("-exact", "Require ticks to fall exactly on sample boundaries.")) "exact"
 
   fun getoutput song =
       case !outputp of
@@ -27,8 +33,9 @@ struct
   val itos = Int.toString
   fun rtos r = Real.fmt (StringCvt.FIX (SOME 3)) r
 
-  (* Samples per second *)
-  val SAMPLERATE = 44100 * 4
+  (* Samples per second. TODO: Make this a command line flag, and compute it in
+     exact mode. *)
+  val SAMPLERATE = 44100 (* 96000 *) (* 44100 * 2 *)
 
   val TWOPI = Math.pi * 2.0
 
@@ -55,6 +62,9 @@ struct
   (* How loud is this note right now? 0 means off *)
   val cur_vol = Array.array(NCHANNELS * NNOTES, 0)
   val cur_inst = Array.array(NCHANNELS, INST_NONE)
+  (* Number of notes on in the channel. Used to
+     skip blank channels during mixing. *)
+  val num_on = Array.array(NCHANNELS, 0)
 
   (* cur_val and leftover unused *)
   val samples = Array.array(NCHANNELS * NNOTES, 0)
@@ -82,7 +92,18 @@ struct
     | Bar of bar
 
   fun setnote (ch, note, vol) =
-      Array.update (cur_vol, ch * NNOTES + note, vol)
+      let
+          val idx = ch * NNOTES + note
+          val old = Array.sub (cur_vol, idx)
+      in
+          Array.update (cur_vol, idx, vol);
+          (* If turning the note on or off, adjust the count. *)
+          case (old, vol) of
+              (0, 0) => ()
+            | (0, n) => Array.update (num_on, ch, Array.sub (num_on, ch) + 1)
+            | (n, 0) => Array.update (num_on, ch, Array.sub (num_on, ch) - 1)
+            | (n, m) => ()
+      end
 
   fun noteon (ch, note, vol, inst) =
       let in
@@ -142,6 +163,9 @@ struct
          val () =
            Util.for 0 (NCHANNELS - 1)
            (fn ch =>
+            if Array.sub (num_on, ch) = 0
+            then ()
+            else
             Util.for 0 (NNOTES - 1)
             (fn note =>
              case Array.sub (cur_vol, ch * NNOTES + note) of
@@ -238,8 +262,12 @@ struct
              (upq / divi)    *  (fps / 1000000)
 
              *)
-          val fpq = (IntInf.fromInt SAMPLERATE * IntInf.fromInt upq) div_exact
-                    (IntInf.fromInt 1000000 * IntInf.fromInt divi)
+          val fpq =
+              if !exactp
+              then (IntInf.fromInt SAMPLERATE * IntInf.fromInt upq) div_exact
+                  (IntInf.fromInt 1000000 * IntInf.fromInt divi)
+              else IntInf.fromInt (Real.round ((real SAMPLERATE * real upq) /
+                                               (1000000.0 * real divi)))
       in
           print ("Samples per tick is now: " ^ IntInf.toString fpq ^ "\n");
           IntInf.toInt fpq
