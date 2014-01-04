@@ -1,7 +1,7 @@
 
-default: helloworld.exe
+default: codebench.exe
 
-all: helloworld.exe
+all: codebench.exe
 
 # -fno-strict-aliasing
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include 
@@ -24,11 +24,13 @@ AMDSDK="/c/Program Files (x86)/AMD APP SDK/2.9"
 CLINCLUDES=-I ${AMDSDK}/include
 CLLIBS=-L ${AMDSDK}/lib/${AMD_ARCH}
 
+UTILOBJECTS=../cc-lib/util.o
+
 #  -DNOUNZIP
-CPPFLAGS= $(CCNETWORKING) -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) $(CLINCLUDES) --std=c++0x
+CPPFLAGS= $(CCNETWORKING) -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) $(CLINCLUDES) -I ../cc-lib/ --std=c++0x
 #  CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -DHAVE_ALLOCA -DNOWINSTUFF $(PROFILE) -g
 
-OBJECTS=helloworld.o
+OBJECTS=codebench.o ${UTILOBJECTS}
 
 %.pb.cc: %.proto
 	$(PROTOC) $< --cpp_out=.
@@ -44,7 +46,7 @@ LFLAGS=  -m64 -Wl,--subsystem,console $(CLLIBS) -lz -lOpenCL $(OPT) $(FLTO) $(PR
 
 # LPNGFLAGS = -Llibpng -m64 -Wl,--subsystem,console $(LINKNETWORKING) -lpng16 -lz $(OPT) $(FLTO) $(PROFILE) -static
 
-helloworld.exe : $(OBJECTS) helloworld.o
+codebench.exe : $(OBJECTS) codebench.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 clean :
