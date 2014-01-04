@@ -1,0 +1,28 @@
+
+How I installed this junk:
+
+Got the "AMD APP SDK":
+
+http://developer.amd.com/tools-and-sdks/heterogeneous-computing/amd-accelerated-parallel-processing-app-sdk/downloads/
+
+I installed it in
+
+d:\amdsdk\
+
+I installed everything but the ARAPI (java) stuff.
+
+The samples in AMD APP SDK\2.9\samples\bolt\bin\x86_64 ran okay (command-line).
+
+FUN FACT! Even though I chose to install in d:\amdsdk, it still put most of the good stuff
+in c:\program files (x86)\amd app sdk\. This is where the opencl includes and libraries are.
+It was actually pretty straightforward after that though. Just add like
+
+AMD_ARCH=x86_64
+AMDSDK="/c/Program Files (x86)/AMD APP SDK/2.9"
+
+CLINCLUDES=-I ${AMDSDK}/include
+CLLIBS=-L ${AMDSDK}/lib/${AMD_ARCH}
+
+then $(CLINCLUDES) as an arg to mingw when compiling
+and $(CLLIBS) -lOpenCL when linking.
+
