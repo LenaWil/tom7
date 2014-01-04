@@ -27,8 +27,8 @@ struct
   type cup = int
   (* Number of cup states, not really the number of cups. For BMML,
      should be 3. *)
-  val NCUPS = 7
-  val NPLAYERS = 2
+  val NCUPS = 6
+  val NPLAYERS = 3
 
   val cxpointfile = "checkpoint-" ^ Int.toString MINUTES ^ "m-" ^
       Int.toString NPLAYERS ^ "p-" ^
@@ -36,7 +36,7 @@ struct
 
   val FILLED = 0
 
-  val ALWAYS_START_CUP = true
+  val ALWAYS_START_CUP = false
 
   (* What a player does on a turn when he sees a state other than None.
      (In None, the only legal action is to not drink and not pass.)
@@ -285,7 +285,7 @@ struct
         fun account () =
            let in
                nsamples := !nsamples + 1;
-               if !nsamples mod 100000 = 0
+               if !nsamples mod 1000000 = 0
                then
                    let
                        val nowseconds = Time.toSeconds (Time.now ())
@@ -299,8 +299,10 @@ struct
                        val filled = real (!filledcells * 100) /
                            real totalcells
                    in
-                       if !filledcells > !lastfilledcells orelse
-                          nowseconds - !lastwrite > 5 * 60
+                       if ((!filledcells > !lastfilledcells) andalso
+                           nowseconds - !lastwrite > 120)
+                          orelse
+                          nowseconds - !lastwrite > 30 * 60
                        then
                            let in
                                writedb (!done);
@@ -316,7 +318,7 @@ struct
                         " config/sec" ^
                         " " ^ Real.fmt (StringCvt.FIX (SOME 2)) legal ^
                         "% legal" ^
-                        " " ^ Real.fmt (StringCvt.FIX (SOME 2)) filled ^
+                        " " ^ Real.fmt (StringCvt.FIX (SOME 3)) filled ^
                         "% filled" ^
                         "\n")
                    end
