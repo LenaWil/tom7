@@ -26,3 +26,15 @@ CLLIBS=-L ${AMDSDK}/lib/${AMD_ARCH}
 then $(CLINCLUDES) as an arg to mingw when compiling
 and $(CLLIBS) -lOpenCL when linking.
 
+
+n.b. it's important that kernels finish pretty quickly. If not, you
+get chunky behavior of the screen (which makes using the computer
+terrible), but also if it takes more than 5 seconds, Windows will kill
+the display driver because it thinks it's crashed.
+I could run 3000 simultaneous simulations in codebench, each a million
+iterations, and this was ok. Anyway, it seems it's possible to increase the
+display driver crash timeout:
+
+http://msdn.microsoft.com/en-us/library/windows/hardware/ff569918%28v=vs.85%29.aspx
+
+though I don't understand that page.
