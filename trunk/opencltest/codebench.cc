@@ -269,7 +269,7 @@ static void BenchmarkCPU(const vector<uint8> &rom,
 		kNumIters);
   }
 
-  double used_time = 1000.0 * timer.MS();
+  double used_time = timer.MS() / 1000.0;
   printf("[CPU] Ran %d problems for %d iterations in %.4f seconds.\n"
 	 " (%.2f mega-iters/s)\n",
 	 kNumProblems, kNumIters, 
@@ -345,7 +345,7 @@ int main(int argc, char* argv[])  {
   /* Step 4: Creating command queue associate with the context. */
   cl_command_queue command_queue = clCreateCommandQueue(context, devices[0], 0, NULL);
 
-  uint64 gpu_compile_start = time(NULL);
+  Timer gpu_compile;
   /* Step 5: Create program object */
   string full_src = StringPrintf("#define ITERS %lld\n\n%s",
 				 kNumIters,
@@ -369,7 +369,7 @@ int main(int argc, char* argv[])  {
     printf("Failed to compile:\n %s", build_log);
     exit(-1);
   }
-  uint64 gpu_compile_end = time(NULL);
+  double gpu_compile_ms = gpu_compile.MS();
 
   cl_mem rom_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
 				     rom.size(), (void *) &rom[0], NULL);
@@ -379,9 +379,9 @@ int main(int argc, char* argv[])  {
 
   /* Step 8: Create kernel object */
   printf("[GPU] Running on GPU.\n");
-  uint64 gpu_start_time = time(NULL);
   cl_kernel kernel = clCreateKernel(program, "codebench", NULL);
 
+  Timer gputimer;
   /* Step 9: Sets Kernel arguments. */
   CHECK(CL_SUCCESS == clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&rom_buffer));
   CHECK(CL_SUCCESS == clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&input_buffer));
@@ -401,7 +401,7 @@ int main(int argc, char* argv[])  {
 
   printf("[GPU] Running %d problem(s) (= %d iters) per kernel.\n",
 	 problems_per_kernel, problems_per_kernel * kNumIters);
-  
+
   for (int i = 0; i < kNumProblems; i += problems_per_kernel) {
     int num_problems = min(problems_per_kernel, kNumProblems - i);
     printf("[GPU] Running %d at offset %d\n", num_problems, i);
@@ -446,7 +446,7 @@ int main(int argc, char* argv[])  {
 		     &errcode);
   CHECK(CL_SUCCESS == errcode);
 
-  uint64 gpu_end_time = time(NULL);
+  double gpu_ms = gputimer.MS();
   
   printf(" **** GPU AFTER **** \n");
   PrintMems(gpu_mem);
@@ -462,10 +462,10 @@ int main(int argc, char* argv[])  {
   
   printf("OK!\n");
 
-  uint64 used_time = gpu_end_time - gpu_start_time;
-  printf("[GPU] Program generation/compilation took <%.2f sec.\n",
-	 (double)(1 + gpu_compile_end - gpu_compile_start));
-  printf("[GPU] Ran %d problems for %d iterations in %.2f seconds.\n"
+  double used_time = gpu_ms / 1000.0;
+  printf("[GPU] Program generation/compilation took %.1f ms.\n",
+	 gpu_compile_ms);
+  printf("[GPU] Ran %d problems for %d iterations in %.4f seconds.\n"
 	 " (%.2f mega-iters/s)\n",
 	 kNumProblems, kNumIters, 
 	 (double)used_time,
