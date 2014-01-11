@@ -11,8 +11,6 @@
 #include <hash_set>
 #endif
 
-#define TASBOT_SAMPLE_RATE 44100
-
 #define DEBUGGING 0
 
 #ifdef __GNUC__

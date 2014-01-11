@@ -5,6 +5,7 @@
 #include <string>
 #include <time.h>
 
+#include "timer.h"
 #include "base/stringprintf.h"
 #include "codebench.h"
 #include "arcfour.h"
@@ -26,6 +27,10 @@ static const int64 kNumIters = 100000;
 // the display driver. There are multiple ways to deal
 // with this, but one way is to split up the work.
 static const int64 kMaxItersPerKernel = 110000000;
+
+uint64 MicroTime() {
+  
+}
 
 // Mem is 256 bytes.
 void ByteMachine(const vector<uint8> &rom, 
@@ -256,7 +261,7 @@ static string MakeKernel(const vector<uint8> &rom) {
 static void BenchmarkCPU(const vector<uint8> &rom,
 			 vector<uint8> *mems) {
   printf("[CPU] Running sequentially on CPU.\n");
-  uint64 start_time = time(NULL);
+  Timer timer;
   
   for (int i = 0; i < kNumProblems; i++) {
     ByteMachine(rom,
@@ -264,10 +269,8 @@ static void BenchmarkCPU(const vector<uint8> &rom,
 		kNumIters);
   }
 
-  uint64 end_time = time(NULL);
-
-  uint64 used_time = end_time - start_time;
-  printf("[CPU] Ran %d problems for %d iterations in %.2f seconds.\n"
+  double used_time = 1000.0 * timer.MS();
+  printf("[CPU] Ran %d problems for %d iterations in %.4f seconds.\n"
 	 " (%.2f mega-iters/s)\n",
 	 kNumProblems, kNumIters, 
 	 (double)used_time,
@@ -399,7 +402,6 @@ int main(int argc, char* argv[])  {
   printf("[GPU] Running %d problem(s) (= %d iters) per kernel.\n",
 	 problems_per_kernel, problems_per_kernel * kNumIters);
   
-  // XXX assumes ppk | kNumProblems
   for (int i = 0; i < kNumProblems; i += problems_per_kernel) {
     int num_problems = min(problems_per_kernel, kNumProblems - i);
     printf("[GPU] Running %d at offset %d\n", num_problems, i);
