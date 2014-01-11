@@ -13,34 +13,21 @@ using namespace std;
 
 // Little byte machine.
 typedef unsigned char uint8;
-// Better compatibility with CL.
-typedef unsigned char uchar;
 
-// static const int64 kNumProblems = 200; // 2000;
-static const int64 kNumProblems = 200;
-// static const int64 kNumIters = 100000; // 1000000;
-static const int64 kNumIters = 1000;
-
-// We can't send too much work to a kernel at a given
-// time, or else the screen freezes and Windows kills
-// the display driver. There are multiple ways to deal
-// with this, but one way is to split up the work.
-static const int64 kMaxItersPerKernel = 100000;
+static const int64 kNumProblems = 3000;
+// XXX note this is duplicated in the cl code
+static const int64 kNumIters = 1000000;
 
 // Mem is 256 bytes.
-void ByteMachine(const vector<uint8> &rom, 
-		 uint8 *mem, int iters) {
+void ByteMachine(uint8 *mem, int iters) {
   for (int i = 0; i < iters; i++) {
     // byte 0 is instruction pointer
-    uint8 inst = rom[mem[0]];
+    uint8 inst = mem[mem[0]];
     // 3 bits opcode, 5 bits regs/data
     uint8 opcode = inst >> 5;
     uint8 reg_srca = inst & 1;
     uint8 reg_srcb = (inst >> 1) & 3;
     uint8 reg_dst = (inst >> 3) & 3;
-
-    // printf("%d:  %d(%d, %d, %d)\n", inst, opcode, reg_srca, reg_srcb, reg_dst);
-
     switch (opcode) {
     case 0: {
       // Load immediate.
@@ -108,7 +95,7 @@ void ByteMachine(const vector<uint8> &rom,
 }
 
 static void PrintMems(const vector<uint8> &mems) {
-  return; // XXX
+  return;
   for (int p = 0; p < kNumProblems; p++) {
     printf("== Problem %d ==\n", p);
     for (int i = 0; i < 256; i++) {
@@ -118,157 +105,18 @@ static void PrintMems(const vector<uint8> &mems) {
   }
 }
 
-static string MakeKernel(const vector<uint8> &rom) {
-  string prelude =
-    "/* Generated file! Do not edit */\n"
-    "void ByteMachine(__global uchar *mem, int iters) {\n"
-    "";
-
-  string code =
-    "for (int i = 0; i < iters; i++) {\n"
-    "  // byte 0 is instruction pointer\n"
-    "  uchar inst = mem[0];\n"
-    "  switch (inst) {\n";
-
-  // TODO PERF: Do some merging of branches? It's
-  // easy when each one is independent like this,
-  // though not clear it'd actually be better (e.g.
-  // if it's using a dense jump table, this may
-  // be equivalent or better.)
-  for (int i = 0; i < 256; i++) {
-    code += StringPrintf("  case %d: {\n", i);
-    uchar inst = rom[i];
-    // 3 bits opcode, 5 bits regs/data
-    uchar opcode = inst >> 5;
-    uchar reg_srca = inst & 1;
-    uchar reg_srcb = (inst >> 1) & 3;
-    uchar reg_dst = (inst >> 3) & 3;
-    switch (opcode) {
-    case 0: {
-      // Load immediate.
-      uchar imm = (inst & 15);
-      code += StringPrintf("    mem[%d] = %d;\n",
-			   reg_dst, imm);
-      break;
-    }
-
-    default:
-      code += "    // unimplemented.\n";
-      break;
-
-    case 1:
-      // Add mod 256.
-      code += StringPrintf("    mem[%d] = "
-	                   "mem[%d] + mem[%d];\n",
-	                   reg_dst,
-			   reg_srca, reg_srcb);
-      break;
-
-    case 2:
-      // Load indirect.
-      code += StringPrintf("    mem[%d] = "
-			   "mem[(uchar)(mem[%d] + mem[%d])];\n",
-			   reg_dst,
-			   reg_srca, reg_srcb);
-      break;
-
-    case 3:
-      // Store indirect.
-      code += StringPrintf("    mem[(uchar)(mem[%d] + mem[%d])] = "
-			   "mem[%d];\n",
-			   reg_srca, reg_srcb,
-			   reg_dst);
-      /*
-      code += StringPrintf("    uchar addr = mem[%d] + mem[%d];\n",
-			   reg_srca, reg_srcb);
-      code += StringPrintf("    mem[addr] = mem[%d];\n",
-			   reg_dst);
-      */
-      break;
-
-    case 4:
-      // Add if zero.
-      code += StringPrintf("    if (!mem[%d]) { "
-			   "mem[%d] += mem[%d]; }\n",
-			   reg_srcb, 
-			   reg_dst, reg_srca);
-      break;
-
-    case 5:
-      // Left shift.
-      // TODO: Maybe should mean shift by srcb+1.
-      if (reg_srcb > 0) {
-	code += StringPrintf("    mem[%d] = mem[%d] << %d;\n",
-			     reg_dst,
-			     reg_srca, reg_srcb);
-      } else {
-	// Constant shift by zero, but still have to move.
-	code += StringPrintf("    mem[%d] = mem[%d];\n",
-			     reg_dst, reg_srca);
-      }
-      break;
-
-    case 6: {
-      // Swap 1th register with nth.
-      uchar lreg = inst & 15;
-      if (lreg != 1) {
-	code += StringPrintf("    uchar tmp = mem[1]; mem[1] = mem[%d]; mem[%d] = tmp;\n",
-			     lreg, lreg);
-      } else {
-	code += "    /* Swap 1 with 1 = nop */\n";
-      }
-      break;
-    }
-
-    case 7:
-      // xor
-      code += StringPrintf("    mem[%d] = "
-	                   "mem[%d] ^ mem[%d];\n",
-	                   reg_dst,
-			   reg_srca, reg_srcb);
-      break;
-    }
-
-    // On every instruction, break out of switch
-    code += "    break;\n"
-      "  }\n";
-  }
-      
-  // End switch.
-  code += "  }\n";
-
-  // Increment instruction pointer after every inst.
-  code += "mem[0]++;\n";
-  // End for loop.
-  code += "}\n";
-
-  string epilogue =
-    "}\n"
-    "\n"
-    "__kernel void codebench(__global uchar *rom, __global uchar *in) {\n"
-    "  int num = get_global_id(0);\n"
-    "  __global uchar *mem = &in[num * 256];\n"
-    "  ByteMachine(mem, ITERS);\n"
-    "}\n";
-
-  return prelude + code + epilogue;
-}
-
-static void BenchmarkCPU(const vector<uint8> &rom,
-			 vector<uint8> *mems) {
+static void BenchmarkCPU(vector<uint8> *mems) {
   printf("[CPU] Running sequentially on CPU.\n");
   uint64 start_time = time(NULL);
   
   for (int i = 0; i < kNumProblems; i++) {
-    ByteMachine(rom,
-		&(*mems)[i * 256], 
-		kNumIters);
+    ByteMachine(&(*mems)[i * 256], kNumIters);
   }
 
   uint64 end_time = time(NULL);
 
   uint64 used_time = end_time - start_time;
-  printf("[CPU] Ran %d problems for %d iterations in %.2f seconds.\n"
+  printf("[CPU] Ran %lld problems for %lld iterations in %.2f seconds.\n"
 	 " (%.2f mega-iters/s)\n",
 	 kNumProblems, kNumIters, 
 	 (double)used_time,
@@ -280,17 +128,7 @@ int main(int argc, char* argv[])  {
 
   ArcFour rc("codebench");
   rc.Discard(2000);
-
-  vector<uint8> rom;
-  for (int i = 0; i < 256; i++) {
-    // uchar b = rc.Byte();
-    // uchar opcode = 5;
-    // b = 1;
-    // rom.push_back((opcode << 5) | (b & 31));
-    rom.push_back(rc.Byte());
-    // rom.push_back((3 << 5) | 33);
-  }
-
+  
   vector<uint8> flatmem;
   flatmem.reserve(256 * kNumProblems);
   for (int p = 0; p < kNumProblems; p++) {
@@ -304,7 +142,7 @@ int main(int argc, char* argv[])  {
 
   printf(" **** Before **** \n");
   PrintMems(cpu_mem);
-  BenchmarkCPU(rom, &cpu_mem);
+  BenchmarkCPU(&cpu_mem);
 
   printf(" **** CPU AFTER **** \n");
   PrintMems(cpu_mem);
@@ -313,11 +151,7 @@ int main(int argc, char* argv[])  {
   // BenchmarkCPU(&cpu_mem);
 
   printf("[GPU] Initializing GPU.\n");
-  // const string kernel_src = Util::ReadFile("codebench.cl");
-
-   // TODO
-  const string kernel_src = MakeKernel(rom);
-  Util::WriteFile("gen-rom.cl", kernel_src);
+  const string kernel_src = Util::ReadFile("codebench.cl");
 
   cl_uint numPlatforms;
   cl_platform_id platform = NULL;
@@ -370,8 +204,6 @@ int main(int argc, char* argv[])  {
     exit(-1);
   }
 
-  cl_mem rom_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-				     rom.size(), (void *) &rom[0], NULL);
 
   cl_mem input_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, 
                                        gpu_mem.size(), (void *) &gpu_mem[0], NULL);
@@ -387,8 +219,7 @@ int main(int argc, char* argv[])  {
   cl_kernel kernel = clCreateKernel(program, "codebench", NULL);
 
   /* Step 9: Sets Kernel arguments. */
-  CHECK(CL_SUCCESS == clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&rom_buffer));
-  CHECK(CL_SUCCESS == clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&input_buffer));
+  CHECK(CL_SUCCESS == clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&input_buffer));
   // CHECK(CL_SUCCESS == clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&output_buffer));
 
   /* Step 10: Running the kernel. */
@@ -437,7 +268,7 @@ int main(int argc, char* argv[])  {
   printf("OK!\n");
 
   uint64 used_time = gpu_end_time - gpu_start_time;
-  printf("[GPU] Ran %d problems for %d iterations in %.2f seconds.\n"
+  printf("[GPU] Ran %lld problems for %lld iterations in %.2f seconds.\n"
 	 " (%.2f mega-iters/s)\n",
 	 kNumProblems, kNumIters, 
 	 (double)used_time,

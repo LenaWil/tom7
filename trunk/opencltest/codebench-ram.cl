@@ -1,9 +1,9 @@
 // Be careful! uint8 is a VECTOR OF 8 UNSIGNED INTS.
 
-void ByteMachine(__global uchar *rom, __global uchar *mem, int iters) {
+void ByteMachine(__global uchar *mem, int iters) {
   for (int i = 0; i < iters; i++) {
     // byte 0 is instruction pointer
-    uchar inst = rom[mem[0]];
+    uchar inst = mem[mem[0]];
     // 3 bits opcode, 5 bits regs/data
     uchar opcode = inst >> 5;
     uchar reg_srca = inst & 1;
@@ -76,8 +76,8 @@ void ByteMachine(__global uchar *rom, __global uchar *mem, int iters) {
   }
 }
 
-__kernel void codebench(__global uchar *rom, __global uchar *in) {
+__kernel void codebench(__global uchar *in) {
   int num = get_global_id(0);
   __global uchar *mem = &in[num * 256];
-  ByteMachine(rom, mem, ITERS);
+  ByteMachine(mem, ITERS);
 }
