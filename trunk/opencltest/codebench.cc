@@ -17,15 +17,15 @@ typedef unsigned char uint8;
 typedef unsigned char uchar;
 
 // static const int64 kNumProblems = 200; // 2000;
-static const int64 kNumProblems = 200;
+static const int64 kNumProblems = 9000;
 // static const int64 kNumIters = 100000; // 1000000;
-static const int64 kNumIters = 1000;
+static const int64 kNumIters = 100000;
 
 // We can't send too much work to a kernel at a given
 // time, or else the screen freezes and Windows kills
 // the display driver. There are multiple ways to deal
 // with this, but one way is to split up the work.
-static const int64 kMaxItersPerKernel = 100000;
+static const int64 kMaxItersPerKernel = 110000000;
 
 // Mem is 256 bytes.
 void ByteMachine(const vector<uint8> &rom, 
@@ -144,6 +144,10 @@ static string MakeKernel(const vector<uint8> &rom) {
     uchar reg_srcb = (inst >> 1) & 3;
     uchar reg_dst = (inst >> 3) & 3;
     switch (opcode) {
+    default:
+      CHECK(!"impossible!");
+      break;
+
     case 0: {
       // Load immediate.
       uchar imm = (inst & 15);
@@ -151,10 +155,6 @@ static string MakeKernel(const vector<uint8> &rom) {
 			   reg_dst, imm);
       break;
     }
-
-    default:
-      code += "    // unimplemented.\n";
-      break;
 
     case 1:
       // Add mod 256.
@@ -178,12 +178,6 @@ static string MakeKernel(const vector<uint8> &rom) {
 			   "mem[%d];\n",
 			   reg_srca, reg_srcb,
 			   reg_dst);
-      /*
-      code += StringPrintf("    uchar addr = mem[%d] + mem[%d];\n",
-			   reg_srca, reg_srcb);
-      code += StringPrintf("    mem[addr] = mem[%d];\n",
-			   reg_dst);
-      */
       break;
 
     case 4:
@@ -222,10 +216,15 @@ static string MakeKernel(const vector<uint8> &rom) {
 
     case 7:
       // xor
-      code += StringPrintf("    mem[%d] = "
-	                   "mem[%d] ^ mem[%d];\n",
-	                   reg_dst,
-			   reg_srca, reg_srcb);
+      if (reg_srca == reg_srcb) {
+	code += StringPrintf("    mem[%d] = 0; /* self-xor */\n",
+			     reg_dst);
+      } else {
+	code += StringPrintf("    mem[%d] = "
+			     "mem[%d] ^ mem[%d];\n",
+			     reg_dst,
+			     reg_srca, reg_srcb);
+      }
       break;
     }
 
@@ -309,13 +308,10 @@ int main(int argc, char* argv[])  {
   printf(" **** CPU AFTER **** \n");
   PrintMems(cpu_mem);
 
-  // XXX don't skip
-  // BenchmarkCPU(&cpu_mem);
-
   printf("[GPU] Initializing GPU.\n");
+  
   // const string kernel_src = Util::ReadFile("codebench.cl");
 
-   // TODO
   const string kernel_src = MakeKernel(rom);
   Util::WriteFile("gen-rom.cl", kernel_src);
 
@@ -346,6 +342,7 @@ int main(int argc, char* argv[])  {
   /* Step 4: Creating command queue associate with the context. */
   cl_command_queue command_queue = clCreateCommandQueue(context, devices[0], 0, NULL);
 
+  uint64 gpu_compile_start = time(NULL);
   /* Step 5: Create program object */
   string full_src = StringPrintf("#define ITERS %lld\n\n%s",
 				 kNumIters,
@@ -369,17 +366,13 @@ int main(int argc, char* argv[])  {
     printf("Failed to compile:\n %s", build_log);
     exit(-1);
   }
+  uint64 gpu_compile_end = time(NULL);
 
   cl_mem rom_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
 				     rom.size(), (void *) &rom[0], NULL);
 
   cl_mem input_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, 
                                        gpu_mem.size(), (void *) &gpu_mem[0], NULL);
-
-  /*
-  cl_mem output_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
-                                        strlength + 1, NULL, NULL);
-  */
 
   /* Step 8: Create kernel object */
   printf("[GPU] Running on GPU.\n");
@@ -389,18 +382,49 @@ int main(int argc, char* argv[])  {
   /* Step 9: Sets Kernel arguments. */
   CHECK(CL_SUCCESS == clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&rom_buffer));
   CHECK(CL_SUCCESS == clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&input_buffer));
-  // CHECK(CL_SUCCESS == clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&output_buffer));
 
-  /* Step 10: Running the kernel. */
-  size_t global_work_size[] = { kNumProblems };
-  CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, 
-					     global_work_size, NULL, 0, NULL, NULL));
+  // Start multiple kernels pointing at the same arg. Conceptually this is a single
+  // 1D kernel with work size kNumProblems, but we want to keep each Kernel
+  // small enough that it doesn't freeze the screen or make Windows think the driver
+  // has crashed.
 
-  /* Step 11: Read the cout put back to host memory. */
-  // CHECK(CL_SUCCESS == clEnqueueReadBuffer(command_queue, output_buffer,
-  // Blocking.
-  // CL_TRUE, 0, strlength, output, 0, NULL, NULL));
+  // Note, it's also possible to chunk by iteration count; just call the kernel
+  // multiple times on the same global id.
+  // Implicit floor.
+  int64 problems_per_kernel = kMaxItersPerKernel / kNumIters;
+  if (!problems_per_kernel) problems_per_kernel = 1;
+  printf("[GPU] Total %d iters, max per kernel %d\n", 
+	 kNumProblems * kNumIters, kMaxItersPerKernel);
+
+  printf("[GPU] Running %d problem(s) (= %d iters) per kernel.\n",
+	 problems_per_kernel, problems_per_kernel * kNumIters);
   
+  // XXX assumes ppk | kNumProblems
+  for (int i = 0; i < kNumProblems; i += problems_per_kernel) {
+    int num_problems = min(problems_per_kernel, kNumProblems - i);
+    printf("[GPU] Running %d at offset %d\n", num_problems, i);
+    size_t global_work_offset[] = { i };
+    size_t global_work_size[] = { num_problems };
+    CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(command_queue, kernel, 
+					       // work dimensions
+					       1, 
+					       // global work offset
+					       global_work_offset, 
+					       // global work size
+					       global_work_size, 
+					       // local work size
+					       NULL, 
+					       // no wait list
+					       0, NULL, 
+					       // no event
+					       NULL));
+    // PERF any way to make this not have to FINISH the tasks?
+    clFinish(command_queue);
+    // Flush "works" but seems to slow down the interface more without
+    // reducing the time to finish.
+    // clFlush(command_queue);
+  }
+
   // Need to tell it that we're going to read from the gpu_mem vector again.
   // Note, this will safely wait for the kernel to complete because we did not
   // pass CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE when we created the command
@@ -437,6 +461,8 @@ int main(int argc, char* argv[])  {
   printf("OK!\n");
 
   uint64 used_time = gpu_end_time - gpu_start_time;
+  printf("[GPU] Program generation/compilation took <%.2f sec.\n",
+	 (double)(1 + gpu_compile_end - gpu_compile_start));
   printf("[GPU] Ran %d problems for %d iterations in %.2f seconds.\n"
 	 " (%.2f mega-iters/s)\n",
 	 kNumProblems, kNumIters, 
