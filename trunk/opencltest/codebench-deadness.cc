@@ -129,7 +129,6 @@ vector<bool> MakeFallthrough(const vector<uint8> &rom) {
     uchar opcode = inst >> 5;
     uchar reg_dst = (inst >> 3) & 3;
 
-    // PERF: For "if (!a) { b += a; }, can always fall through.
     switch (opcode) {
     case 0:
     case 1:
@@ -311,20 +310,9 @@ static string RegExp(int inst, int reg) {
   else return StringPrintf("m[%d]", reg);
 }
 
-static string DeadWrap(bool dead, int *ctr, string s) {
-  if (dead) {
-    ++*ctr;
-    return "/* (d) " + s + " */";
-  }
-  else return s;
-}
-
 static string MakeKernel(const vector<uint8> &rom) {
   string prelude =
-    "/* Generated file! Do not edit */\n"
-    "#define SELF_XOR\n"
-    "#define SELF_SWAP\n"
-    "#define CADD_ZERO\n" +
+    "/* Generated file! Do not edit */\n" +
     // Defines ByteMachineExact(rom, mem, iters)
     Util::ReadFile("bytemachine-exact.cl") + "\n"
     // Returns number of iterations
@@ -349,7 +337,6 @@ static string MakeKernel(const vector<uint8> &rom) {
   vector<bool> fallthrough = MakeFallthrough(rom);
 
   int skip_set_ip = 0;
-  int skip_deadwrite = 0;
 
   // PERF: If setting m[0] to a constant and breaking, 
   // can set to that value + 1, then continue.
@@ -376,11 +363,9 @@ static string MakeKernel(const vector<uint8> &rom) {
     // to the next address).
     string next_safe = " break;";
 
-#   define DEADWRITE(r) (!!(dead[i] & (1 << (r))))
-
     // But most of the time we can tell that the IP was
     // not modified. In that case we can fall through.
-    string set_ip = DEADWRITE(0) ? 
+    string set_ip = (dead[i] & (1 << 0)) ? 
       " /* m0 dead */ " :
       StringPrintf(" m[0] = %d; ", (i + 1) & 255);
     string next_fallthrough =
@@ -389,7 +374,7 @@ static string MakeKernel(const vector<uint8> &rom) {
 
     string next = fallthrough[i] ? next_fallthrough : next_safe;
 
-    if (fallthrough[i] && DEADWRITE(0)) {
+    if (fallthrough[i] && (dead[i] & (1 << 0))) {
       skip_set_ip++;
     }
 
@@ -401,33 +386,30 @@ static string MakeKernel(const vector<uint8> &rom) {
     case 0: {
       // Load immediate.
       uchar imm = (inst & 15);
-      code += DeadWrap(DEADWRITE(reg_dst), &skip_deadwrite,
-		       StringPrintf("m[%d] = %d;",
-				    reg_dst, imm));
+      code += StringPrintf("m[%d] = %d;",
+			   reg_dst, imm);
       break;
     }
 
     case 1:
       // Add mod 256.
-      code += DeadWrap(DEADWRITE(reg_dst), &skip_deadwrite,
-		       StringPrintf("m[%d] = %s + %s;",
-				    reg_dst,
-				    RegExp(i, reg_srca).c_str(),
-				    RegExp(i, reg_srcb).c_str()));
+      code += StringPrintf("m[%d] = %s + %s;",
+	                   reg_dst,
+			   RegExp(i, reg_srca).c_str(),
+			   RegExp(i, reg_srcb).c_str());
       break;
 
     case 2:
       // Load indirect.
-      code += DeadWrap(DEADWRITE(reg_dst), &skip_deadwrite,
-		       StringPrintf("m[%d] = "
-				    "m[(uchar)(%s + %s)];",
-				    reg_dst,
-				    RegExp(i, reg_srca).c_str(),
-				    RegExp(i, reg_srcb).c_str()));
+      code += StringPrintf("m[%d] = "
+			   "m[(uchar)(%s + %s)];",
+			   reg_dst,
+			   RegExp(i, reg_srca).c_str(),
+			   RegExp(i, reg_srcb).c_str());
       break;
 
     case 3:
-      // Store indirect. Can't be known to be dead.
+      // Store indirect.
       code += StringPrintf("m[(uchar)(%s + %s)] = "
 			   "%s;",
 			   RegExp(i, reg_srca).c_str(), 
@@ -438,47 +420,36 @@ static string MakeKernel(const vector<uint8> &rom) {
     case 4:
       // Add if zero.
       // PERF nice simplification if reg happens to be 0
-      if (reg_srcb == reg_srca) {
-	// Then this is:
-	// if (a == 0) { d += a; }
-	// which never has any effect.
-	code += "CADD_ZERO;";
-      } else {
-	code += DeadWrap(DEADWRITE(reg_dst), &skip_deadwrite,
-			 StringPrintf("if (!%s) { "
-				      "m[%d] += %s; }",
-				      RegExp(i, reg_srcb).c_str(), 
-				      reg_dst, 
-				      RegExp(i, reg_srca).c_str()));
-      }
+      code += StringPrintf("if (!%s) { "
+			   "m[%d] += %s; }",
+			   RegExp(i, reg_srcb).c_str(), 
+			   reg_dst, 
+			   RegExp(i, reg_srca).c_str());
       break;
 
     case 5:
       // Left shift.
       // TODO: Maybe should mean shift by srcb+1.
       if (reg_srcb > 0) {
-	code += DeadWrap(DEADWRITE(reg_dst), &skip_deadwrite,
-			 StringPrintf("m[%d] = %s << %d;",
-				      reg_dst,
-				      RegExp(i, reg_srca).c_str(), reg_srcb));
+	code += StringPrintf("m[%d] = %s << %d;",
+			     reg_dst,
+			     RegExp(i, reg_srca).c_str(), reg_srcb);
       } else {
 	// Constant shift by zero, but still have to move.
-	code += DeadWrap(DEADWRITE(reg_dst), &skip_deadwrite,
-			 StringPrintf("m[%d] = %s;",
-				      reg_dst, 
-				      RegExp(i, reg_srca).c_str()));
+	code += StringPrintf("m[%d] = %s;",
+			     reg_dst, 
+			     RegExp(i, reg_srca).c_str());
       }
       break;
 
     case 6: {
       // Swap 1th register with nth.
-      // PERF don't do it if both are dead, I guess?
       uchar lreg = inst & 15;
       if (lreg != 1) {
 	code += StringPrintf("{ uchar tmp = m[1]; m[1] = %s; m[%d] = tmp; }",
 			     RegExp(i, lreg).c_str(), lreg);
       } else {
-	code += "SELF_SWAP;";
+	code += "/* Swap 1 with 1 = nop */";
       }
       break;
     }
@@ -486,15 +457,13 @@ static string MakeKernel(const vector<uint8> &rom) {
     case 7:
       // xor
       if (reg_srca == reg_srcb) {
-	code += DeadWrap(DEADWRITE(reg_dst), &skip_deadwrite,
-			 StringPrintf("m[%d] = 0; SELF_XOR;",
-				      reg_dst));
+	code += StringPrintf("m[%d] = 0; /* self-xor */",
+			     reg_dst);
       } else {
-	code += DeadWrap(DEADWRITE(reg_dst), &skip_deadwrite,
-			 StringPrintf("m[%d] = %s ^ %s;",
-				      reg_dst,
-				      RegExp(i, reg_srca).c_str(), 
-				      RegExp(i, reg_srcb).c_str()));
+	code += StringPrintf("m[%d] = %s ^ %s;",
+			     reg_dst,
+			     RegExp(i, reg_srca).c_str(), 
+			     RegExp(i, reg_srcb).c_str());
       }
       break;
     }
@@ -528,7 +497,6 @@ static string MakeKernel(const vector<uint8> &rom) {
     "}\n";
 
   printf ("Skipped writing IP for %d instructions\n", skip_set_ip);
-  printf ("Skipped dead write for %d instructions\n", skip_deadwrite);
 
   return prelude + code + epilogue;
 }

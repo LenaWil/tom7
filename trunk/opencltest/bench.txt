@@ -70,3 +70,21 @@ OK!
 [GPU] Ran 9000 problems for 100000 iterations in 8.8698 seconds.
  (101.47 mega-iters/s)
 
+** Make reads of m[0] just constants. Treat this in deadness analysis (not done).
+
+[GPU] Program generation/compilation took 490.1 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 8.7959 seconds.
+ (102.32 mega-iters/s)
+
+** Complete m[0] constant reads and liveness. 62 instructions skip writing m[0].
+
+[GPU] Program generation/compilation took 485.6 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 8.8121 seconds.
+ (102.13 mega-iters/s)
+
+** Don't write to locations that are dead (instruction level). 19 instructions skipped.
+
+[GPU] Program generation/compilation took 463.1 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 8.3701 seconds.
+ (107.53 mega-iters/s)
+
