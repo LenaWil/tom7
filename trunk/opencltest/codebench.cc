@@ -28,10 +28,6 @@ static const int64 kNumIters = 100000;
 // with this, but one way is to split up the work.
 static const int64 kMaxItersPerKernel = 110000000;
 
-uint64 MicroTime() {
-  
-}
-
 // Mem is 256 bytes.
 void ByteMachine(const vector<uint8> &rom, 
 		 uint8 *mem, int iters) {
@@ -123,6 +119,197 @@ static void PrintMems(const vector<uint8> &mems) {
   }
 }
 
+// v[i] is true if i always falls through to instruction i + 1
+// (ignoring iteration count).
+vector<bool> MakeFallthrough(const vector<uint8> &rom) {
+  vector<bool> fallthrough(256, false);
+  // 255 is always false, because our switch ends there.
+  for (int i = 0; i < 255; i++) {
+    uchar inst = rom[i];
+    uchar opcode = inst >> 5;
+    uchar reg_dst = (inst >> 3) & 3;
+
+    switch (opcode) {
+    case 0:
+    case 1:
+    case 2:
+    case 4:
+    case 5:
+    case 7:
+      fallthrough[i] = reg_dst != 0;
+      break;
+
+    case 3:
+      fallthrough[i] = false;
+      break;
+
+    case 6: {
+      // Swap 1th register with nth.
+      uchar lreg = inst & 15;
+      if (lreg != 1) {
+	fallthrough[i] = lreg != 0;
+      } else {
+	fallthrough[i] = true;
+      }
+      break;
+    }
+
+    default:
+      CHECK(!"impossible - makefallthrough");
+    }
+  }
+  return fallthrough;
+}
+
+vector<uint32> MakeDeadRegs(const vector<uint8> &rom) {
+  vector<uint32> dead(256, 0);
+
+  vector<bool> fallthrough = MakeFallthrough(rom);
+  // A reg is "dead" at a location if it will surely be overwritten by
+  // a later instruction without being used. For 255, nothing is dead
+  // because we always loop after that. (PERF: though we could analyze
+  // as if mod 256 in some conditions?)
+  for (int i = 254; i >= 0; i--) {
+    // If we know we're falling through, then we inherit the dead
+    // value from the next instruction. Otherwise, nothing is assumed
+    // dead.
+    if (!fallthrough[i]) {
+      // Can't assume anything about what follows this instruction
+      // if we're not falling through.
+      dead[i] = 0;
+      continue;
+    }
+
+    uint32 next_dead = dead[i + 1];
+    uchar next_inst = rom[i + 1];
+
+    uchar opcode = next_inst >> 5;
+    uchar reg_srca = next_inst & 1;
+    uchar reg_srcb = (next_inst >> 1) & 3;
+    uchar reg_dst = (next_inst >> 3) & 3;
+
+#   define ADD(reg)    | (1 << (reg))
+#   define REMOVE(reg) & ~(1 << (reg))
+    // A simple read of reg 0 doesn't need to mark it live, since we
+    // just fill this in with a constant.
+#   define SIMPLE_READ(reg)   & ((reg) ? ~(1 << (reg)) : ~0)
+
+    // PERF: We don't need to worry about explicit reads of
+    // m[0] since we always know the value and can replace it
+    // with a constant. But we don't do that yet.
+    switch (opcode) {
+      // default:
+      // CHECK(!"impossible - makedeadregs");
+      // break;
+
+    case 0:
+      dead[i] = next_dead  ADD(reg_dst);
+      break;
+
+    case 1:
+      // Reads from A and B, so those are live.
+      dead[i] = (next_dead  ADD(reg_dst))
+	SIMPLE_READ(reg_srca)
+	SIMPLE_READ(reg_srcb);
+      break;
+
+    case 7:
+      // Like add, though PERF when reg_srca == reg_srcb
+      // since we don't actually need to read it.
+      dead[i] = (next_dead  ADD(reg_dst))
+	SIMPLE_READ(reg_srca)
+	SIMPLE_READ(reg_srcb);
+      break;
+
+    case 2:
+      // Indirect load. Could read from anything so
+      // nothing is dead. Lose everything.
+      dead[i] = 0;
+      break;
+
+    case 3:
+      // Indirect store; could write to any memory
+      // location, but that just increases the
+      // amount of deadness (in an unknowable way).
+      // Does three reads. (However, since it also
+      // always branches into unknown code, we
+      // won't ever know for sure that any reg is
+      // dead -- this is handled at the top when
+      // we check for fallthrough.)
+      dead[i] = next_dead
+	REMOVE(reg_srca)
+	REMOVE(reg_srcb)
+	REMOVE(reg_dst);
+      break;
+
+    default:
+      CHECK(!"impossible - nextdead");
+      break;
+
+    case 4:
+      // Add if zero. Can't be sure it writes to dst, so this doesn't
+      // add any deadness. It does read from the two regs and may read
+      // from dst (+=). However, if it falls though then we can still
+      // inherit deadness.
+      dead[i] = next_dead
+	REMOVE(reg_dst)
+	SIMPLE_READ(reg_srca)
+	SIMPLE_READ(reg_srcb);
+      break;
+
+    case 5:
+      // Left shift. Reads one reg, writes another.
+      // reg_b is used as data, not a register name
+      dead[i] = (next_dead  ADD(reg_dst))
+	SIMPLE_READ(reg_srca);
+      break;
+
+    case 6: {
+      // Swap the deadness of the two regs.
+      uchar lreg = next_inst & 15;
+      bool deadone = next_dead & (1 << 1);
+      bool deaddst = next_dead & (1 << lreg);
+
+      /*
+      printf("inst %d nextdead %d  %s %s %s ",
+	     i, next_dead,
+	     deadone ? "ONE" : "_",
+	     deaddst ? "DST" : "_",
+	     fallthrough[i] ? "FT" : "br");
+      */
+
+      // Clear both.
+      next_dead = next_dead
+	REMOVE(1)
+	REMOVE(lreg);
+
+      // Now add them back, but swapped.
+      if (deadone) {
+	next_dead = next_dead
+	  ADD(lreg);
+      }
+
+      if (deaddst) {
+	next_dead = next_dead
+	  ADD(1);
+      }
+
+      printf(" -> %d\n", next_dead);
+
+      dead[i] = next_dead;
+      break;
+    }
+
+    }
+    }
+  return dead;
+}
+
+static string RegExp(int inst, int reg) {
+  if (reg == 0) return StringPrintf("((uchar)%d)", inst);
+  else return StringPrintf("m[%d]", reg);
+}
+
 static string MakeKernel(const vector<uint8> &rom) {
   string prelude =
     "/* Generated file! Do not edit */\n" +
@@ -146,10 +333,23 @@ static string MakeKernel(const vector<uint8> &rom) {
   // if it's using a dense jump table, this may
   // be equivalent or better.)
 
+  vector<uint32> dead = MakeDeadRegs(rom);
+  vector<bool> fallthrough = MakeFallthrough(rom);
+
+  int skip_set_ip = 0;
+
   // PERF: If setting m[0] to a constant and breaking, 
   // can set to that value + 1, then continue.
   for (int i = 0; i < 256; i++) {
-    code += StringPrintf("  case %d: ", i);
+    string deadmask = "/* ";
+    for (int b = 0; b < 8; b++) {
+      deadmask += (dead[i] & (1 << b)) ? "X" : ".";
+    }
+    deadmask += fallthrough[i] ? " F" : " -";
+    deadmask += " */";
+
+    code += StringPrintf("  %s case %d: ", 
+			 deadmask.c_str(), i);
     uchar inst = rom[i];
     // 3 bits opcode, 5 bits regs/data
     uchar opcode = inst >> 5;
@@ -165,18 +365,18 @@ static string MakeKernel(const vector<uint8> &rom) {
 
     // But most of the time we can tell that the IP was
     // not modified. In that case we can fall through.
+    string set_ip = (dead[i] & (1 << 0)) ? 
+      " /* m0 dead */ " :
+      StringPrintf(" m[0] = %d; ", (i + 1) & 255);
     string next_fallthrough =
-      StringPrintf(" m[0] = %d; "
-		   "++i; "
-		   "/* ft */",
-		   i + 1);
+      set_ip +
+      "++i;";
 
-    if (false && opcode > 4)
-      next_fallthrough = next_safe;  // :(
+    string next = fallthrough[i] ? next_fallthrough : next_safe;
 
-    // Can't do this for last instruction, which needs
-    // to wrap around.
-    if (i == 255) next_fallthrough = next_safe;
+    if (fallthrough[i] && (dead[i] & (1 << 0))) {
+      skip_set_ip++;
+    }
 
     switch (opcode) {
     default:
@@ -188,76 +388,69 @@ static string MakeKernel(const vector<uint8> &rom) {
       uchar imm = (inst & 15);
       code += StringPrintf("m[%d] = %d;",
 			   reg_dst, imm);
-      code += reg_dst ? next_fallthrough : next_safe;
       break;
     }
 
     case 1:
       // Add mod 256.
-      code += StringPrintf("m[%d] = m[%d] + m[%d];",
+      code += StringPrintf("m[%d] = %s + %s;",
 	                   reg_dst,
-			   reg_srca, reg_srcb);
-      code += reg_dst ? next_fallthrough : next_safe;
+			   RegExp(i, reg_srca).c_str(),
+			   RegExp(i, reg_srcb).c_str());
       break;
 
     case 2:
       // Load indirect.
       code += StringPrintf("m[%d] = "
-			   "m[(uchar)(m[%d] + m[%d])];",
+			   "m[(uchar)(%s + %s)];",
 			   reg_dst,
-			   reg_srca, reg_srcb);
-      code += reg_dst ? next_fallthrough : next_safe;
+			   RegExp(i, reg_srca).c_str(),
+			   RegExp(i, reg_srcb).c_str());
       break;
 
     case 3:
       // Store indirect.
-      code += StringPrintf("m[(uchar)(m[%d] + m[%d])] = "
-			   "m[%d];",
-			   reg_srca, reg_srcb,
-			   reg_dst);
-      // Write is dynamic, so must do safe break without
-      // some kinda flow analysis.
-      code += next_safe;
+      code += StringPrintf("m[(uchar)(%s + %s)] = "
+			   "%s;",
+			   RegExp(i, reg_srca).c_str(), 
+			   RegExp(i, reg_srcb).c_str(),
+			   RegExp(i, reg_dst).c_str());
       break;
 
     case 4:
       // Add if zero.
-      code += StringPrintf("if (!m[%d]) { "
-			   "m[%d] += m[%d]; }",
-			   reg_srcb, 
-			   reg_dst, reg_srca);
-      code += reg_dst ? next_fallthrough : next_safe;
+      // PERF nice simplification if reg happens to be 0
+      code += StringPrintf("if (!%s) { "
+			   "m[%d] += %s; }",
+			   RegExp(i, reg_srcb).c_str(), 
+			   reg_dst, 
+			   RegExp(i, reg_srca).c_str());
       break;
 
     case 5:
       // Left shift.
       // TODO: Maybe should mean shift by srcb+1.
       if (reg_srcb > 0) {
-	code += StringPrintf("m[%d] = m[%d] << %d;",
+	code += StringPrintf("m[%d] = %s << %d;",
 			     reg_dst,
-			     reg_srca, reg_srcb);
+			     RegExp(i, reg_srca).c_str(), reg_srcb);
       } else {
 	// Constant shift by zero, but still have to move.
-	code += StringPrintf("m[%d] = m[%d];",
-			     reg_dst, reg_srca);
+	code += StringPrintf("m[%d] = %s;",
+			     reg_dst, 
+			     RegExp(i, reg_srca).c_str());
       }
-      code += reg_dst ? next_fallthrough : next_safe;
-      // code += next_safe;
       break;
 
     case 6: {
       // Swap 1th register with nth.
       uchar lreg = inst & 15;
       if (lreg != 1) {
-	code += StringPrintf("{ uchar tmp = m[1]; m[1] = m[%d]; m[%d] = tmp; }",
-			     lreg, lreg);
-	code += lreg ? next_fallthrough : next_safe;
-	// code += next_safe;
+	code += StringPrintf("{ uchar tmp = m[1]; m[1] = %s; m[%d] = tmp; }",
+			     RegExp(i, lreg).c_str(), lreg);
       } else {
 	code += "/* Swap 1 with 1 = nop */";
-	code += next_fallthrough;
       }
-
       break;
     }
 
@@ -267,14 +460,15 @@ static string MakeKernel(const vector<uint8> &rom) {
 	code += StringPrintf("m[%d] = 0; /* self-xor */",
 			     reg_dst);
       } else {
-	code += StringPrintf("m[%d] = m[%d] ^ m[%d];",
+	code += StringPrintf("m[%d] = %s ^ %s;",
 			     reg_dst,
-			     reg_srca, reg_srcb);
+			     RegExp(i, reg_srca).c_str(), 
+			     RegExp(i, reg_srcb).c_str());
       }
-      code += reg_dst ? next_fallthrough : next_safe;
-      // code += next_safe;
       break;
     }
+
+    code += next;
 
     // Newline after next_break or next_safe.
     code += "\n";
@@ -301,6 +495,8 @@ static string MakeKernel(const vector<uint8> &rom) {
     "  itersleft -= ByteMachine(mem, itersleft);\n"
     "  ByteMachineExact(rom, mem, itersleft);\n"
     "}\n";
+
+  printf ("Skipped writing IP for %d instructions\n", skip_set_ip);
 
   return prelude + code + epilogue;
 }

@@ -1,0 +1,72 @@
+[GPU] Program generation/compilation took 264.9 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 9.1222 seconds.
+ (98.66 mega-iters/s)
+
+** Get rid of needless braces:
+
+[GPU] Program generation/compilation took 264.7 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 9.1478 seconds.
+ (98.38 mega-iters/s)
+
+(maybe slightly-faster compilation, obviously no performance
+ difference unless compiler is garbage)
+
+** SOME fallthroughs:
+
+[GPU] Program generation/compilation took 535.5 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 18.1603 seconds.
+ (49.56 mega-iters/s)
+
+!?
+
+** It gets worse, the more fallthrough we have...
+
+OK!
+[GPU] Program generation/compilation took 705.0 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 24.6082 seconds.
+ (36.57 mega-iters/s)
+
+ - Might be inhibiting optimizations since compilation time goes way up
+ - The iter branches might be somehow more expensive than we thought?
+
+** Without "return" (separate inexact / exact pass) it's much better again
+
+[GPU] Program generation/compilation took 570.0 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 9.0126 seconds.
+ (99.86 mega-iters/s)
+
+.. even slightly faster than the original!
+
+** Start killing dead assignments to instruction pointer:
+
+[GPU] Program generation/compilation took 522.3 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 9.0360 seconds.
+ (99.60 mega-iters/s)
+
+** Same I think, refactoring
+
+OK!
+[GPU] Program generation/compilation took 522.8 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 9.0258 seconds.
+ (99.71 mega-iters/s)
+
+** More dead-write analysis
+
+OK!
+[GPU] Program generation/compilation took 518.3 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 8.9943 seconds.
+ (100.06 mega-iters/s)
+
+** Dead analysis for all opcodes:
+
+[GPU] Program generation/compilation took 517.4 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 8.8543 seconds.
+ (101.65 mega-iters/s)
+
+
+** Fixed bug with deadness:
+
+[GPU] Program generation/compilation took 511.9 ms.
+[GPU] Ran 9000 problems for 100000 iterations in 8.8698 seconds.
+ (101.47 mega-iters/s)
+
