@@ -125,17 +125,12 @@ static void PrintMems(const vector<uint8> &mems) {
 
 static string MakeKernel(const vector<uint8> &rom) {
   string prelude =
-    "/* Generated file! Do not edit */\n" +
-    // Defines ByteMachineExact(rom, mem, iters)
-    Util::ReadFile("bytemachine-exact.cl") + "\n"
-    // Returns number of iterations
-    "int ByteMachine(__global uchar *m, int iters) {\n"
+    "/* Generated file! Do not edit */\n"
+    "void ByteMachine(__global uchar *m, int iters) {\n"
     "";
 
   string code =
-    // - 256? what's the actual worst case?
-    "int i = 0;\n"
-    "for (; i < iters - 257; i++) {\n"
+    "for (int i = 0; i < iters; i++) {\n"
     "  // byte 0 is instruction pointer\n"
     "  uchar addr = m[0];\n"
     "  switch (addr) {\n";
@@ -145,9 +140,6 @@ static string MakeKernel(const vector<uint8> &rom) {
   // though not clear it'd actually be better (e.g.
   // if it's using a dense jump table, this may
   // be equivalent or better.)
-
-  // PERF: If setting m[0] to a constant and breaking, 
-  // can set to that value + 1, then continue.
   for (int i = 0; i < 256; i++) {
     code += StringPrintf("  case %d: ", i);
     uchar inst = rom[i];
@@ -165,18 +157,6 @@ static string MakeKernel(const vector<uint8> &rom) {
 
     // But most of the time we can tell that the IP was
     // not modified. In that case we can fall through.
-    string next_fallthrough =
-      StringPrintf(" m[0] = %d; "
-		   "++i; "
-		   "/* ft */",
-		   i + 1);
-
-    if (false && opcode > 4)
-      next_fallthrough = next_safe;  // :(
-
-    // Can't do this for last instruction, which needs
-    // to wrap around.
-    if (i == 255) next_fallthrough = next_safe;
 
     switch (opcode) {
     default:
@@ -188,7 +168,6 @@ static string MakeKernel(const vector<uint8> &rom) {
       uchar imm = (inst & 15);
       code += StringPrintf("m[%d] = %d;",
 			   reg_dst, imm);
-      code += reg_dst ? next_fallthrough : next_safe;
       break;
     }
 
@@ -197,7 +176,6 @@ static string MakeKernel(const vector<uint8> &rom) {
       code += StringPrintf("m[%d] = m[%d] + m[%d];",
 	                   reg_dst,
 			   reg_srca, reg_srcb);
-      code += reg_dst ? next_fallthrough : next_safe;
       break;
 
     case 2:
@@ -206,7 +184,6 @@ static string MakeKernel(const vector<uint8> &rom) {
 			   "m[(uchar)(m[%d] + m[%d])];",
 			   reg_dst,
 			   reg_srca, reg_srcb);
-      code += reg_dst ? next_fallthrough : next_safe;
       break;
 
     case 3:
@@ -215,9 +192,6 @@ static string MakeKernel(const vector<uint8> &rom) {
 			   "m[%d];",
 			   reg_srca, reg_srcb,
 			   reg_dst);
-      // Write is dynamic, so must do safe break without
-      // some kinda flow analysis.
-      code += next_safe;
       break;
 
     case 4:
@@ -226,7 +200,6 @@ static string MakeKernel(const vector<uint8> &rom) {
 			   "m[%d] += m[%d]; }",
 			   reg_srcb, 
 			   reg_dst, reg_srca);
-      code += reg_dst ? next_fallthrough : next_safe;
       break;
 
     case 5:
@@ -241,8 +214,6 @@ static string MakeKernel(const vector<uint8> &rom) {
 	code += StringPrintf("m[%d] = m[%d];",
 			     reg_dst, reg_srca);
       }
-      code += reg_dst ? next_fallthrough : next_safe;
-      // code += next_safe;
       break;
 
     case 6: {
@@ -251,13 +222,9 @@ static string MakeKernel(const vector<uint8> &rom) {
       if (lreg != 1) {
 	code += StringPrintf("{ uchar tmp = m[1]; m[1] = m[%d]; m[%d] = tmp; }",
 			     lreg, lreg);
-	code += lreg ? next_fallthrough : next_safe;
-	// code += next_safe;
       } else {
-	code += "/* Swap 1 with 1 = nop */";
-	code += next_fallthrough;
+	code += "    /* Swap 1 with 1 = nop */\n";
       }
-
       break;
     }
 
@@ -271,25 +238,20 @@ static string MakeKernel(const vector<uint8> &rom) {
 			     reg_dst,
 			     reg_srca, reg_srcb);
       }
-      code += reg_dst ? next_fallthrough : next_safe;
-      // code += next_safe;
       break;
     }
 
-    // Newline after next_break or next_safe.
-    code += "\n";
+    // On every instruction, break out of switch
+    code += " break;\n";
   }
       
   // End switch.
   code += "  }\n";
 
   // Increment instruction pointer after every inst.
-  code += "  m[0]++;\n";
+  code += "m[0]++;\n";
   // End for loop.
   code += "}\n";
-
-  // Number of actual iterations performed.
-  code += "return i;\n";
 
   string epilogue =
     "}\n"
@@ -297,9 +259,7 @@ static string MakeKernel(const vector<uint8> &rom) {
     "__kernel void codebench(__global uchar *rom, __global uchar *in) {\n"
     "  int num = get_global_id(0);\n"
     "  __global uchar *mem = &in[num * 256];\n"
-    "  int itersleft = ITERS;\n"
-    "  itersleft -= ByteMachine(mem, itersleft);\n"
-    "  ByteMachineExact(rom, mem, itersleft);\n"
+    "  ByteMachine(mem, ITERS);\n"
     "}\n";
 
   return prelude + code + epilogue;
