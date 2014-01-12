@@ -26,7 +26,7 @@ static const int64 kNumIters = 100000;
 // time, or else the screen freezes and Windows kills
 // the display driver. There are multiple ways to deal
 // with this, but one way is to split up the work.
-static const int64 kMaxItersPerKernel = 110000000;
+static const int64 kMaxItersPerKernel = 190000000;
 
 // Mem is 256 bytes.
 void ByteMachine(const vector<uint8> &rom, 
