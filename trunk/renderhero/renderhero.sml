@@ -22,6 +22,9 @@ struct
   val exactp = Params.flag false
       (SOME("-exact", "Require ticks to fall exactly on sample boundaries.")) "exact"
 
+  val ratep = Params.param "44100" (SOME("-rate", "Sample rate in Hz. You may need " ^
+                                         "to increase this if -exactp is used.")) "rate"
+
   fun getoutput song =
       case !outputp of
           "" => let val (base, ext) = FSUtil.splitext song
@@ -33,23 +36,11 @@ struct
   val itos = Int.toString
   fun rtos r = Real.fmt (StringCvt.FIX (SOME 3)) r
 
-  (* Samples per second. TODO: Make this a command line flag, and compute it in
-     exact mode. *)
-  val SAMPLERATE = 44100 (* 96000 *) (* 44100 * 2 *)
-
   val TWOPI = Math.pi * 2.0
-
-  (* Needed? *)
-  val BUFFERSIZE = 512
 
   (* These are MIDI-level constants *)
   val NNOTES = 128
   val NCHANNELS = 16
-
-(*
-  val MAX_SAMPLE = 32700
-  val MIN_SAMPLE = ~32700
-*)
 
   datatype inst =
       INST_NONE
@@ -154,7 +145,7 @@ struct
   in
     (* generate n samples and write them to the end of the
        rendered array. *)
-    fun mixaudio (gain, n) =
+    fun mixaudio (rate : real, gain, n) =
       Util.for 0 (n - 1)
       (fn _ =>
        let
@@ -177,7 +168,7 @@ struct
                  (* The length of one cycle in samples, for
                     this note's frequency. *)
                  val freq = MIDI.pitchof note
-                 val cycle = real SAMPLERATE / freq
+                 val cycle = rate / freq
                  val pos = fmod(real sample, cycle)
 
                  val () = if vel > 128 orelse vel < 0
@@ -224,14 +215,7 @@ struct
 
                    Array.update (samples, idx, sample + 1);
                    contributions := n + !contributions;
-                   mag := impulse + !mag;
-                   (* Only the lowest note contributes *)
-                   (*
-                   if !contributions = 1
-                   then mag := impulse + !mag
-                   else ()
-                   *)
-                   ()
+                   mag := impulse + !mag
                end))
 
          val mag = !mag * gain
@@ -252,6 +236,7 @@ struct
       let
           val () = print ("Microseconds per quarternote: " ^
                           Int.toString upq ^ "\n")
+          val rate = Params.asint 44100 ratep
 
           (* microseconds per tick  NO *)
           (* val uspt = IntInf.fromInt upq * IntInf.fromInt divi *)
@@ -264,9 +249,9 @@ struct
              *)
           val fpq =
               if !exactp
-              then (IntInf.fromInt SAMPLERATE * IntInf.fromInt upq) div_exact
+              then (IntInf.fromInt rate * IntInf.fromInt upq) div_exact
                   (IntInf.fromInt 1000000 * IntInf.fromInt divi)
-              else IntInf.fromInt (Real.round ((real SAMPLERATE * real upq) /
+              else IntInf.fromInt (Real.round ((real rate * real upq) /
                                                (1000000.0 * real divi)))
       in
           print ("Samples per tick is now: " ^ IntInf.toString fpq ^ "\n");
@@ -353,11 +338,12 @@ struct
 
   and loop (arg as (_, _, spt, _)) =
       let
+          val rate = Params.asint 44100 ratep
           val gain = Params.asreal 1.0 gainp
           (* render spt (samples-per-tick) samples *)
           val n = spt
       in
-          mixaudio (gain, n);
+          mixaudio (real rate, gain, n);
 
           (* advance time; continue *)
           maketick ();
@@ -532,10 +518,11 @@ struct
       val a = Vector.tabulate(RealArray.length samples,
                               fn i => sample16 (RealArray.sub (samples, i)))
 
+      val rate = Params.asint 44100 ratep
     in
         eprint ("Writing " ^ OUTPUT ^ "...");
         Wave.tofile { frames = Wave.Bit16 (Vector.fromList [a]),
-                      samplespersec = Word32.fromInt SAMPLERATE } OUTPUT
+                      samplespersec = Word32.fromInt rate } OUTPUT
     end handle e as Hero s => (eprint ("RenderHero exception: " ^ s); raise e)
              | e as Wave.Wave s => (print ("WAVE ERROR: " ^ s ^ "\n"); raise e)
              | e =>
