@@ -199,7 +199,7 @@ struct
                        else ~rvel,
                        rvel, 1)
                    | INST_SAW =>
-                      (~rvel + (pos / cycle) * 2.0 * rvel,
+                      (rvel * ((pos / cycle) * 2.0 - 1.0),
                        rvel, 1)
                    | INST_SINE =>
                       (rvel * Math.sin((pos / cycle) * TWOPI),
