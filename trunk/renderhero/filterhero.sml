@@ -1,14 +1,11 @@
 
-(* Renderhero is a fork of Tom 7 Entertainment System Hero that
-   simply renders the MIDI file to a WAV file offline. The purpose
-   is to provide sample-accurate rendering for e.g. making music
-   videos that may need tight time-based synchronization.
-
-   This is the native version, which does all rendering in SML
-   rather than with C code.
+(* Filterhero is a version of Renderhero that renders a MIDI to a
+   bitmap and then can apply arbitrary functions to it. This is much
+   more expensive approach than generating and flattening the
+   samples as we go, which is why it is a separate version.
 *)
 
-structure RenderHero =
+structure FilterHero =
 struct
   exception Hero of string
   structure MT = MersenneTwister
@@ -83,28 +80,28 @@ struct
     | Bar of bar
 
   fun setnote (ch, note, vol) =
-      let
-          val idx = ch * NNOTES + note
-          val old = Array.sub (cur_vol, idx)
-      in
-          Array.update (cur_vol, idx, vol);
-          (* If turning the note on or off, adjust the count. *)
-          case (old, vol) of
-              (0, 0) => ()
-            | (0, n) => Array.update (num_on, ch, Array.sub (num_on, ch) + 1)
-            | (n, 0) => Array.update (num_on, ch, Array.sub (num_on, ch) - 1)
-            | (n, m) => ()
-      end
+    let
+        val idx = ch * NNOTES + note
+        val old = Array.sub (cur_vol, idx)
+    in
+        Array.update (cur_vol, idx, vol);
+        (* If turning the note on or off, adjust the count. *)
+        case (old, vol) of
+            (0, 0) => ()
+          | (0, n) => Array.update (num_on, ch, Array.sub (num_on, ch) + 1)
+          | (n, 0) => Array.update (num_on, ch, Array.sub (num_on, ch) - 1)
+          | (n, m) => ()
+    end
 
   fun noteon (ch, note, vol, inst) =
-      let in
-          (* This probably never comes up because MIDI files use one
-             instrument per track: MIDInverse assumes this, and since
-             we label instruments by the track name, there's no possibility
-             in the current approach. But to be fully general, this is wrong. *)
-          Array.update (cur_inst, ch, inst);
-          setnote (ch, note, vol)
-      end
+    let in
+        (* This probably never comes up because MIDI files use one
+           instrument per track: MIDInverse assumes this, and since
+           we label instruments by the track name, there's no possibility
+           in the current approach. But to be fully general, this is wrong. *)
+        Array.update (cur_inst, ch, inst);
+        setnote (ch, note, vol)
+    end
 
   fun noteoff (ch, note) = setnote (ch, note, 0)
 
@@ -134,56 +131,75 @@ struct
 
   infix div_exact div_exacti
 
-  structure GA = GrowMonoArrayFn_Safe(structure A = RealArray
-                                      val default = 0.0 : real)
-  val rendered = GA.empty ()
+  (* GrowArray for the bitmaps. *)
+  structure GA = GrowMonoArrayFn_Safe(structure A = Word8Array
+                                      val default = 0w0 : Word8.word)
+  (* One bitmap for each channel. Since it is very common for a channel
+     to be completely unused, these are lazily allocated. A value of
+     NONE can be treated as being all 0. Each array is a flattened
+     rectangle in time-major order; the pixel (t, n) where t is a
+     time and n is a note is located at t * 128 + n. *)
+  val bitmaps =
+    Array.array (NCHANNELS, NONE : GA.growarray option)
 
-  (* XXX: Should have gentle fade-in and -out. Could maybe be accomplished
-     by just oversampling, which helps with other aliasing effects. *)
-  local
-    val seed = MT.initstring "renderhero"
-  in
-    (* generate n samples and write them to the end of the
-       rendered array. *)
-    fun mixaudio (rate : real, gain, n) =
-      Util.for 0 (n - 1)
-      (fn _ =>
-       let
-         val mag = ref 0.0
-         val contributions = ref 0
-         val () =
-           Util.for 0 (NCHANNELS - 1)
-           (fn ch =>
-            if Array.sub (num_on, ch) = 0
-            then ()
-            else
-            Util.for 0 (NNOTES - 1)
-            (fn note =>
-             case Array.sub (cur_vol, ch * NNOTES + note) of
-                 0 => ()
-               | vel =>
-               let
-                 val idx = ch * NNOTES + note
-                 val sample = Array.sub (samples, idx) + 1
+  fun mixaudio (gain, rate) =
+    let
+      val mt = MT.initstring "filterhero"
+
+      (* These should all be the same. *)
+      val nsamples = ref 0
+      (* Just the nonempty tracks. *)
+      val tracks = ref nil
+      val () = Util.for 0 (NCHANNELS - 1)
+        (fn ch =>
+         case Array.sub (bitmaps, ch) of
+           NONE => ()
+         | SOME a =>
+             let in
+               tracks := (ch, a) :: !tracks;
+               nsamples := GA.length a div NNOTES
+             end)
+      val nsamples = !nsamples
+      val tracks = rev (!tracks)
+      val samples = Array.array (nsamples, 0.0)
+
+      (* Lay down tracks sequentially, mixing in place. *)
+      fun onechannel (ch, arr) =
+        let
+          (* XXX Sloppy: We just assume this array still has the
+             instrument for the channel. Since the bitmap process
+             is lossy (pixels can't store instrument info), we
+             might as well just say that each track has exactly
+             one instrument, and then pass them here at mixing
+             time, which will do the same thing as this hack: *)
+          val inst = Array.sub(cur_inst, ch)
+        in
+          Util.for 0 (nsamples - 1)
+          (fn s =>
+           let
+             (* Get existing magnitude to mix in *)
+             val mag = ref (Array.sub (samples, s))
+           in
+             Util.for 0 (NNOTES - 1)
+             (fn n =>
+              case GA.sub arr (s * NNOTES + n) of
+                  0w0 => ()
+                | vel =>
+              let
                  (* The length of one cycle in samples, for
                     this note's frequency. *)
-                 val freq = MIDI.pitchof note
+                 val freq = MIDI.pitchof n
                  val cycle = rate / freq
-                 val pos = fmod(real sample, cycle)
+                 val pos = fmod(real s, cycle)
 
-                 val () = if vel > 128 orelse vel < 0
-                          then raise Hero ("Illegal velocity " ^ itos vel)
-                          else ()
-                 val rvel = real vel / 127.0
+                 val rvel = real (Word8.toInt vel) / 127.0
 
-                 (* Get the value of this sample in [-1, 1] and
-                    its weight in the mix [0, 1]. *)
-                 val (impulse : real, mix : real, n) =
-                   case Array.sub (cur_inst, ch) of
-                     INST_NONE => (0.0, 0.0, 0)
+                 val impulse : real =
+                   case inst of
+                     INST_NONE => 0.0
                    | INST_NOISE =>
                       let val r = Real.fromLargeInt
-                          (Word32.toLargeIntX (MT.rand32 seed))
+                          (Word32.toLargeIntX (MT.rand32 mt))
                           (* note that for the most negative integer, the
                              fraction will actually be slightly larger than 1,
                              but default magnitude for noise is 0.5, so the final
@@ -191,41 +207,68 @@ struct
                           val denom = Real.fromLargeInt
                               (Word32.toLargeIntX 0wx7FFFFFFF)
                       in
-                          (0.5 * r / denom, rvel, 1)
+                        0.5 * r / denom
                       end
-                   | INST_SQUARE =>
-                      (if pos * 2.0 > cycle
-                       then rvel
-                       else ~rvel,
-                       rvel, 1)
-                   | INST_SAW =>
-                      (rvel * ((pos / cycle) * 2.0 - 1.0),
-                       rvel, 1)
-                   | INST_SINE =>
-                      (rvel * Math.sin((pos / cycle) * TWOPI),
-                       rvel, 1)
-               in
-                   (*
-                   eprint ("ch " ^ itos ch ^ " n " ^ itos note ^
-                           " freq " ^ rtos freq ^
-                           " pos " ^ rtos pos ^
-                           " rvel " ^ rtos rvel ^
-                           " mag " ^ rtos (!mag));
-                   *)
 
-                   Array.update (samples, idx, sample + 1);
-                   contributions := n + !contributions;
-                   mag := impulse + !mag
-               end))
+                   | INST_SQUARE => if pos * 2.0 > cycle then rvel else ~rvel
+                   | INST_SAW => rvel * ((pos / cycle) * 2.0 - 1.0)
+                   | INST_SINE => rvel * Math.sin((pos / cycle) * TWOPI)
+              in
+                mag := !mag + impulse * gain
+              end);
+             Array.update (samples, s, !mag)
+           end)
+        end
+    in
+      app onechannel tracks;
+      samples
+    end
 
-         val mag = !mag * gain
+  (* Get the "color" of the pixel, which is the volume of the corresponding
+     note at that time. Should be in [0, 127]. *)
+  fun getpixel (vol, ch, note) : Word8.word =
+    case Array.sub (cur_vol, ch * NNOTES + note) of
+      0 => 0w0
+    | vel =>
+        if vel >= 128 orelse vel < 0
+        then raise Hero ("Illegal velocity " ^ itos vel)
+        else Word8.fromInt vel
 
-         (* XXX do smarter clamping / normalization *)
-         val mag = Real.max(~1.0, Real.min(1.0, mag))
-       in
-         GA.append rendered mag
-       end)
-  end
+  (* Get the bitmap for this channel, or create a new one if this is the
+     first time we have nonzero pixels to write. In either case, it
+     will contain data up to (but not including) time (t + n). *)
+  fun getormakearray (t, ch, n) =
+    case Array.sub (bitmaps, ch) of
+      SOME a => a
+    | NONE =>
+        let val a = GA.init (t + n + 1)
+        in
+          (* initialize zero up to this point *)
+          Util.for 0 (t + n - 1)
+          (fn tt =>
+           Util.for 0 (NNOTES - 1)
+           (fn nn =>
+            GA.append a 0w0));
+          Array.update (bitmaps, ch, SOME a);
+          a
+        end
+
+  (* generate n samples and write them to the end of the
+     rendered bitmaps. Assumes we are at time t. *)
+  fun mixpixels (t, rate : real, n) =
+    Util.for 0 (n - 1)
+    (fn nn =>
+     Util.for 0 (NCHANNELS - 1)
+     (fn ch =>
+      if Array.sub (num_on, ch) = 0
+      then ()
+      else
+      let val arr = getormakearray (t, ch, nn)
+      in
+        Util.for 0 (NNOTES - 1)
+        (fn note =>
+         GA.append arr (getpixel (cur_vol, ch, note)))
+      end))
 
   (* Given a MIDI tempo in microseconds-per-quarter note
      (which is what the TEMPO event carries),
@@ -233,33 +276,33 @@ struct
      and insist that this can be represented exactly
      as an integer. *)
   fun spt_from_upq (divi, upq) =
-      let
-          val () = print ("Microseconds per quarternote: " ^
-                          Int.toString upq ^ "\n")
-          val rate = Params.asint 44100 ratep
+    let
+        val () = print ("Microseconds per quarternote: " ^
+                        Int.toString upq ^ "\n")
+        val rate = Params.asint 44100 ratep
 
-          (* microseconds per tick  NO *)
-          (* val uspt = IntInf.fromInt upq * IntInf.fromInt divi *)
+        (* microseconds per tick  NO *)
+        (* val uspt = IntInf.fromInt upq * IntInf.fromInt divi *)
 
-          (* samples per tick is
+        (* samples per tick is
 
-             usec per tick      samples per usec
-             (upq / divi)    *  (fps / 1000000)
+           usec per tick      samples per usec
+           (upq / divi)    *  (fps / 1000000)
 
-             *)
-          val fpq =
-              if !exactp
-              then (IntInf.fromInt rate * IntInf.fromInt upq) div_exact
-                  (IntInf.fromInt 1000000 * IntInf.fromInt divi)
-              else IntInf.fromInt (Real.round ((real rate * real upq) /
-                                               (1000000.0 * real divi)))
-      in
-          print ("Samples per tick is now: " ^ IntInf.toString fpq ^ "\n");
-          IntInf.toInt fpq
-      end
+           *)
+        val fpq =
+            if !exactp
+            then (IntInf.fromInt rate * IntInf.fromInt upq) div_exact
+                (IntInf.fromInt 1000000 * IntInf.fromInt divi)
+            else IntInf.fromInt (Real.round ((real rate * real upq) /
+                                             (1000000.0 * real divi)))
+    in
+        print ("Samples per tick is now: " ^ IntInf.toString fpq ^ "\n");
+        IntInf.toInt fpq
+    end
 
-  fun loopplay (_, _, _, nil) = print "SONG END.\n"
-    | loopplay (divi, lt, spt, track) =
+  fun loopplay (_, (_, _, _, nil)) = print "SONG END.\n"
+    | loopplay (t, (divi, lt, spt, track)) =
       let
           val now = getticks ()
 
@@ -333,21 +376,20 @@ struct
 
           val track = nowevents (now - lt) track
       in
-          loop (divi, now, !spt, track)
+          loop (t, (divi, now, !spt, track))
       end
 
-  and loop (arg as (_, _, spt, _)) =
+  and loop (t, arg as (_, _, spt, _)) =
       let
           val rate = Params.asint 44100 ratep
-          val gain = Params.asreal 1.0 gainp
           (* render spt (samples-per-tick) samples *)
           val n = spt
       in
-          mixaudio (real rate, gain, n);
+          mixpixels (t, real rate, n);
 
           (* advance time; continue *)
           maketick ();
-          loopplay arg
+          loopplay (t + n, arg)
       end
 
   (* In an already-labeled track set, add measure marker events.
@@ -434,8 +476,10 @@ struct
         else
           (* if we exhausted the list, then there is a major (measure) bar here. *)
           (case rtl of
-             nil => (ticksleft, (Bar Measure, DUMMY)) :: ibars ticklist ((dt - ticksleft, evt) :: rest)
-           | _   => (ticksleft, (Bar Beat, DUMMY))    :: ibars rtl      ((dt - ticksleft, evt) :: rest))
+             nil => (ticksleft, (Bar Measure, DUMMY)) ::
+               ibars ticklist ((dt - ticksleft, evt) :: rest)
+           | _   => (ticksleft, (Bar Beat, DUMMY)) ::
+               ibars rtl      ((dt - ticksleft, evt) :: rest))
 
         | ibars nil _ = raise Hero "tickslist never nil" (* 0/4 time?? *)
 
@@ -464,8 +508,8 @@ struct
                                  | #"W" => Music INST_SAW
                                  | #"N" => Music INST_NOISE
                                  | #"S" => Music INST_SINE
-                                 | _ => raise Hero ("If the name starts with +, expected one " ^
-                                                    "of the instrument types I know: " ^
+                                 | _ => raise Hero ("If the name starts with +, expected " ^
+                                                    "one of the instrument types I know: " ^
                                                     name))
                | _ => NONE)
 
@@ -479,6 +523,11 @@ struct
     in
         List.mapPartial onetrack tracks
     end
+
+  (* TODO do some filtering!
+  fun gaussian_blur NONE = NONE
+    | gaussian_blur (SOME a) =
+  *)
 
   fun render song =
     let
@@ -506,24 +555,37 @@ struct
 
       (* Start with the play loop, because we want to begin at time 0, sample 0 *)
       (* need to start with tempo 120 = 0x07a120 ms per tick *)
-      val () = loopplay (divi, getticks (), spt_from_upq (divi, 0x07a120), track)
+      val () = loopplay (0, (divi, getticks (), spt_from_upq (divi, 0x07a120), track))
 
-      val samples : RealArray.array = GA.finalize rendered
-      fun sample16 (r : real) : int =
-          let val r = if r > 1.0 then 1.0 else r
-              val r = if r < ~1.0 then ~1.0 else r
-          in
-              Real.round (r * 32766.0)
-          end
-      val a = Vector.tabulate(RealArray.length samples,
-                              fn i => sample16 (RealArray.sub (samples, i)))
+      val () =
+        Util.for 0 (NCHANNELS - 1)
+        (fn ch =>
+         eprint ("Bitmap size for channel " ^ itos ch ^ ": " ^
+                 (case Array.sub (bitmaps, ch) of
+                    NONE => "NONE"
+                  | SOME ga => itos (GA.length ga))))
 
       val rate = Params.asint 44100 ratep
+      val gain = Params.asreal 1.0 gainp
+      val samples = mixaudio (gain, real rate)
+      val () = eprint ("Rendered " ^ itos (Array.length samples) ^ " samples\n")
+      (* Explicitly free bitmaps, which we don't need any more. *)
+      val () = Util.for 0 (NCHANNELS - 1) (fn i => Array.update (bitmaps, i, NONE))
+
+      fun sample16 (r : real) : int =
+        let
+          val r = if r > 1.0 then 1.0 else r
+          val r = if r < ~1.0 then ~1.0 else r
+        in
+          Real.round (r * 32766.0)
+        end
+      val a = Vector.tabulate(Array.length samples,
+                              fn i => sample16 (Array.sub (samples, i)))
     in
-        eprint ("Writing " ^ OUTPUT ^ "...");
-        Wave.tofile { frames = Wave.Bit16 (Vector.fromList [a]),
-                      samplespersec = Word32.fromInt rate } OUTPUT
-    end handle e as Hero s => (eprint ("RenderHero exception: " ^ s); raise e)
+      eprint ("Writing " ^ OUTPUT ^ "...");
+      Wave.tofile { frames = Wave.Bit16 (Vector.fromList [a]),
+                    samplespersec = Word32.fromInt rate } OUTPUT
+    end handle e as Hero s => (eprint ("FilterHero exception: " ^ s); raise e)
              | e as Wave.Wave s => (print ("WAVE ERROR: " ^ s ^ "\n"); raise e)
              | e =>
                 let in
@@ -533,4 +595,4 @@ struct
                 end
 end
 
-val () = Params.main1 "Single MIDI file on the command line." RenderHero.render
+val () = Params.main1 "Single MIDI file on the command line." FilterHero.render
