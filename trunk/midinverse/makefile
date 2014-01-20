@@ -13,4 +13,4 @@ midinverse.exe : midinverse.cm midinverse.sml
 	./midinverse.exe $< -o $@ -range -gamut
 
 %.wav : %.mid ../renderhero/renderhero.exe
-	../renderhero/renderhero.exe $< -gain 0.01
+	time ../renderhero/renderhero.exe $< -gain 0.01

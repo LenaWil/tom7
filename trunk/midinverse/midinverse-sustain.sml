@@ -1,4 +1,10 @@
-(* Compute the inverse of a MIDI file. *)
+(* Compute the inverse of a MIDI file.
+
+   I think that this version just turns on every MIDI key
+   when the input was off, and vice versa. It ends up sounding
+   like a total mess because the sound is dominated by all
+   these keys in the unused range.
+*)
 structure MIDInverse =
 struct
 
