@@ -524,10 +524,48 @@ struct
         List.mapPartial onetrack tracks
     end
 
-  (* TODO do some filtering!
-  fun gaussian_blur NONE = NONE
+  fun gaussian_blur NONE = ()
     | gaussian_blur (SOME a) =
-  *)
+    let
+      val mix = 0.05
+      val ommix = 1.0 - mix
+      val nsamples = GA.length a div NNOTES
+      val () = if GA.length a mod NNOTES = 0
+               then ()
+               else raise Hero "bitmap is not NCHANNELS tall??"
+      fun get (s, n) = real (Word8.toInt (GA.sub a (s * NNOTES + n))) / 127.0
+      fun set (s, n) r =
+        let val w = Word8.fromInt (Real.trunc (r * 127.0))
+        in GA.update a (s * NNOTES + n) w
+        end
+      fun gb () =
+        Util.for 1 (nsamples - 2)
+        (fn s =>
+         Util.for 1 (NNOTES - 2)
+         (fn n =>
+          let
+            val this = get (s, n)
+            val up = get (s, n - 1)
+            val down = get (s, n + 1)
+            val left = get (s - 1, n)
+            val right = get (s + 1, n)
+          in
+            set (s, n - 1) (ommix * up + mix * this);
+            set (s, n + 1) (ommix * down + mix * this);
+            set (s - 1, n) (ommix * left + mix * this);
+            set (s + 1, n) (ommix * right + mix * this);
+            set (s, n) ((1.0 - 4.0 * mix) * this +
+                        mix * up + mix * down + mix * left + mix * right)
+          end))
+    in
+      Util.for 0 4
+      (fn i =>
+       let in
+         eprint ("Gaussian blur pass " ^ itos i ^ "...");
+         gb ()
+       end)
+    end
+
 
   fun render song =
     let
@@ -565,10 +603,13 @@ struct
                     NONE => "NONE"
                   | SOME ga => itos (GA.length ga))))
 
+      val () = Array.app gaussian_blur bitmaps
+
       val rate = Params.asint 44100 ratep
       val gain = Params.asreal 1.0 gainp
       val samples = mixaudio (gain, real rate)
       val () = eprint ("Rendered " ^ itos (Array.length samples) ^ " samples\n")
+
       (* Explicitly free bitmaps, which we don't need any more. *)
       val () = Util.for 0 (NCHANNELS - 1) (fn i => Array.update (bitmaps, i, NONE))
 
