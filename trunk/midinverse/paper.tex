@@ -2,11 +2,11 @@
 \usepackage[top=1.1in, left=0.85in, right=0.85in]{geometry}
 
 \usepackage{url}
-\usepackage{code}
+% \usepackage{code}
 % \usepackage{cite}
 \usepackage{amsmath}
 \usepackage{amssymb}
-% \usepackage{graphicx}
+\usepackage{graphicx}
 
 \pagestyle{empty}
 
@@ -98,36 +98,40 @@ simple and practical high-level encoding of music, MIDI.
 and you can tell from the need to clarify that it is ``digital'' that
 it is as old as old dead dry dust and just barely adequate for modern
 applications, and so has never been successfully superseded. It
-permits 16 {\it channels}, each more-or-less a separate instrument,
-with 128 {\it notes} per channel. Each of the 128 MIDI notes has a
-fixed meaning, from 0 = C1 \comment{XXX?}, which is 5 octaves below
-middle C (about 8 Hz\footnote{A note like ``middle C'' has a fixed
-  semantics in some wishy-washy music sense, but the actual frequency
-  of the tone is determined by mapping that meaning into one of
-  several conventional scales. For example, in ``concert pitch'',
-  middle A is fixed to 220 Hz (so middle C is XXX Hz), but there is
-  also ``computer science pitch'', where middle C is 256 Hz. The
-  techniques here are mostly insensitive to the absolute pitch values,
-  but we use computer science pitch because what the hey. }) to 127 =
-G11 (about 12,274 Hz). A track consists of a time-ordered series of
-events, with the main events being ``turn note $n$ on with at volume
-$v$'' and ``turn note $n$ off''\footnote{I still haven't decided how I
-  feel about this, but the note-off event also includes a velocity,
-  which I guess means something like ``how hard you yank your finger
-  off the piano key''. It is usually ignored and in fact the
-  convention actually seems to encode note-off as ``note-on with
-  volume 0''. In this paper I just use note-off to mean whatever
-  concrete event results in the note being inaudible.}; volumes also
-range 0--127, allowing for every possible nuance of expression. Notes
-can be turned on and off arbitrarily, but we restrict ourselves to the
-sensible subset where a note-on event always precedes exactly one
-note-off event for the same note on the same track, with no nesting or
-overlaps or other shenanigans. For such MIDIs, there exists a simple
+permits 16 {\it channels}, each more-or-less a separate
+instrument,\!\footnote{It's really more like 16 members of an
+  orchestra, each of whom can only play one instrument at a time, but
+  we'll make the additional simplification in this paper that each
+  channel corresponds to a single instrument.} with 128 {\it notes}
+per channel. Each of the 128 MIDI notes has a fixed meaning, from 0 =
+C$_{-1}$, which is 5 octaves below middle C (about 8~Hz\footnote{A
+  note like ``middle C'' has a fixed semantics in some wishy-washy
+  music sense, but the actual frequency of the tone is determined by
+  mapping that meaning into one of several conventional scales. For
+  example, in ``concert pitch'', middle A is fixed to 220 Hz (so
+  middle C is 261.63~Hz), but there is also ``computer science
+  pitch'', where middle C is 256~Hz. The techniques here are mostly
+  insensitive to the absolute pitch values, but we use computer
+  science pitch because what the hey. }) to 127 = G9 (about
+12,274~Hz). A track consists of a time-ordered series of events, with
+the main events being ``turn note $n$ on with at volume $v$'' and
+``turn note $n$ off'';\footnote{I still haven't decided how I feel
+  about this, but the note-off event also includes a velocity, which I
+  guess means something like ``how hard you yank your finger off the
+  piano key''. It is usually ignored and in fact the convention
+  actually seems to encode note-off as ``note-on with volume 0''. In
+  this paper I just use note-off to mean whatever concrete event
+  results in the note being inaudible.} volumes also range 0--127,
+allowing for every possible nuance of expression. Notes can be turned
+on and off arbitrarily, but we restrict ourselves to the sensible
+subset where a note-on event always precedes exactly one note-off
+event for the same note on the same track, with no nesting or overlaps
+or other shenanigans. For such MIDIs, there exists a simple
 isomorphism between the event-based representation and a ``bitmap''
 representation where for each MIDI tick, each note in each track has a
-volume level 0--127, where 0 is predominant and means ``off''. Of course
-there are a jillion other oddities to MIDI, but this will suffice as
-a definition of a ``song'' for now.
+volume level 0--127, where 0 is predominant and means ``off''. Of
+course there are a jillion other oddities to MIDI, but this will
+suffice as a definition of a ``song'' for now.
 
 %  127 g11
 %  126 f#
@@ -155,7 +159,7 @@ use a very loose interpretation of opposite so that we can explore
 many different reasonable ideas. We define not the opposite of a
 specific thing, but a method for getting the opposite of all of the
 things of some type. So an opposite of some thing of type $A$ will be a
-function $f$ of type $A \rightarrow A$ where
+total function $f$ of type $A \rightarrow A$ where
 %
 \begin{itemize}
 \item $\exists x{:}A. f(x) \neq x$
@@ -173,7 +177,8 @@ Section~\ref{sec:selfopposites}.
 
 The second condition is that f is its own inverse, which expresses
 the idea that items ``pair up'' into their opposites. So if the opposite
-of day is night, then we expect the opposite of night to be day.
+of day is night, then we expect the opposite of night to be day. This
+is called an ``involution'' in mathematics.
 
 In the case of this paper, the type $A$ will be ``song'' (MIDI file)
 and so we'll look at a bunch of different functions $f$ for turning
@@ -181,8 +186,6 @@ one MIDI file into another. If we run the function on a MIDI file and
 get its opposite, then run it again to get the opposite of that thing,
 we'll be back where we started, like if there were an Opposite Hour
 within Opposite Day where everything is normal.
-
-(XXX about what this idea is in mathematics--is it an involution?)
 
 \section{Well-known opposites}
 
