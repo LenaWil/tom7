@@ -11,12 +11,24 @@ struct
   exception Exit
 
   val outputp = Params.param "" (SOME("-o", "Set the output file.")) "output"
+  val invertp = Params.flag false (SOME("-invert", "If set, then invert the piano roll; " ^
+                                        "notes that were ON become OFF, etc. See also " ^
+                                        "-range and -gamut.")) "invertp"
   val rangep = Params.flag false (SOME("-range", "If set, then the range of notes " ^
                                        "(that we invert to) is determined by each " ^
                                        "input track.")) "range"
-  val gamutp = Params.flag false (SOME ("-gamut", "If set, then the notes that we " ^
-                                        "invert to are the ones that appear in a " ^
-                                        "track. Implies -range.")) "gamut"
+  val gamutp = Params.flag false (SOME("-gamut", "If set, then the notes that we " ^
+                                       "invert to are the ones that appear in a " ^
+                                       "track. Implies -range.")) "gamut"
+  val rotoctavep = Params.flag false (SOME("-rotoctave", "Rotate notes within an octave. " ^
+                                           "Use the parameter octaveperm to specify the " ^
+                                           "permutation, which will be checked to be " ^
+                                           "involutive.")) "rotoctave"
+  val octavepermp = Params.param "6,7,8,9,10,11,0,1,2,3,4,5"
+                                 (SOME("-octaveperm", "Give the permutation when rotating " ^
+                                       "within an octave (-rotoctave true). A comma-separted " ^
+                                       "list of the numbers 0-11, each occurring exactly once." ^
+                                       "Must be an involution.")) "octaveperm"
 
   fun getoutput song =
       case !outputp of
@@ -64,6 +76,27 @@ struct
           (false, false) => Array.array (128, true)
         | (true, false) => Array.tabulate (128, fn i => i >= !min andalso i <= !max)
         | (_, true) => mask
+    end
+
+  fun rotoctavetrack (perm : int -> int) (t : (int * MIDI.event) list) =
+    let
+      fun nperm n =
+        let
+          val octave = n div 12
+          val note = (n * 5) mod 12
+          val new = octave * 12 + perm note
+        in
+          (* eprint (itos n ^ " -> " ^ itos new ^ " (" ^ itos (n - new) ^ ")\n"); *)
+          new
+        end
+
+      fun oneevent (d, MIDI.NOTEON(channel, n, vel)) =
+        (d, MIDI.NOTEON(channel, nperm n, vel))
+        | oneevent (d, MIDI.NOTEOFF(channel, n, vel)) =
+        (d, MIDI.NOTEOFF(channel, nperm n, vel))
+        | oneevent e = e
+    in
+      map oneevent t
     end
 
   fun inverttrack (t : (int * MIDI.event) list) =
@@ -182,6 +215,28 @@ struct
         end
     end
 
+  fun getpermutation s : int -> int =
+    let
+      val s = String.fields (StringUtil.ischar #",") s
+      val s = map Int.fromString s
+      val v = Vector.fromList
+        (map (fn SOME n => if n >= 0 andalso n < 12
+                           then n
+                           else raise MIDInverse "Permutation must use only 0-11"
+               | NONE => raise MIDInverse "Non-number in permutation") s)
+      val () = if Vector.length v <> 12
+               then raise MIDInverse "Permutation must be length 12"
+               else ()
+      fun f x = Vector.sub (v, x)
+    in
+      Util.for 0 11
+      (fn x => if x = f (f x)
+               then ()
+               else raise MIDInverse ("Function is not an involution (f (f " ^ itos x ^
+                                      ") = " ^ itos (f (f x)) ^ ")"));
+      f
+    end
+
   fun invert song =
   let
     val OUTPUT = getoutput song
@@ -195,10 +250,20 @@ struct
     val _ = divi > 0
         orelse raise MIDInverse ("Division must be in PPQN form!\n")
 
-    val tracks = map inverttrack thetracks
+    val perm = getpermutation (!octavepermp)
+
+    val thetracks =
+      if !rotoctavep
+      then map (rotoctavetrack perm) thetracks
+      else thetracks
+
+    val thetracks =
+      if !invertp
+      then map inverttrack thetracks
+      else thetracks
   in
-    MIDI.writemidi OUTPUT (1, divi, tracks)
-  end
+    MIDI.writemidi OUTPUT (1, divi, thetracks)
+  end handle MIDInverse s => eprint ("MIDInverse Failed: " ^ s)
 
 end
 
