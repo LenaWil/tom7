@@ -1,4 +1,6 @@
-default : test
+default : test.exe
 
-test : *.cm *.sml
-	mlton -const 'Exn.keepHistory true' test.cm
+MLTON=/c/mlton/bin/mlton.bat
+
+test.exe : *.cm *.sml
+	$(MLTON) -output $@ -const 'Exn.keepHistory true' test.cm
