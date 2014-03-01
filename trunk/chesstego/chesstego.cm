@@ -25,4 +25,8 @@ group is
   ../sml-lib/util/stringutil.sml
 
 
+  ../sml-lib/misc/params-sig.sml
+  ../sml-lib/misc/params.sml
+
+
   chesstego.sml
