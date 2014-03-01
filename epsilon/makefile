@@ -1,5 +1,5 @@
 
-default : fetcher.exe extract.exe paper.pdf
+default : fetcher.exe extract.exe paper.pdf printlog.exe
 
 MLTON=/c/mlton/bin/mlton.bat
 
@@ -13,6 +13,9 @@ paper.pdf : paper.tex paper.bib spec.pdf epsilondelta.pdf
 	pdflatex paper
 	-bibtex paper
 	pdflatex paper
+
+printlog.exe : printlog.cc
+	g++ printlog.cc -o $@
 
 clean :
 	rm -f *.log *.aux *.bbl *.blg *~ paper.pdf *.exe
