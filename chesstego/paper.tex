@@ -1,6 +1,80 @@
 
-coauthors:
+\documentclass[twocolumn]{article}
+\usepackage[top=1.1in, left=0.85in, right=0.85in]{geometry}
+
+\usepackage{url}
+% \usepackage{code}
+% \usepackage{cite}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{chessboard}
+
+\pagestyle{empty}
+
+\usepackage{ulem}
+% go back to italics for emphasis, though
+\normalem
+
+\usepackage{natbib}
+
+% \newcommand\comment[1]{}
+\newcommand\sfrac[2]{\!{}\,^{#1}\!/{}\!_{#2}}
+
+\begin{document} 
+
+\title{It still seems that black has hope in these extremely unfair variants of chess}
+\author{Dr.~Tom~Murphy~VII~Ph.D. \and Ben Blum \and
+Jim McCann, in italics ...... oh! .... nervous laughter .... no, that's not part of the name still. I stopped saying the name. Why are you still typing? This isn't the name any more. End quote.\thanks{
+Copyright \copyright\ 2014 the Regents of the Wikiplia
+Foundation. Appears in SIGBOVIK 2014 with the undivided
+attention of the Association for Computational Heresy; 
+{\em IEEEEEE!} press, Verlag-Verlag volume no.~0x40-2A.
+\$0.00}}
+
+\renewcommand\th{\ensuremath{{}^{\textrm{th}}}}
+\newcommand\st{\ensuremath{{}^{\textrm{st}}}}
+\newcommand\rd{\ensuremath{{}^{\textrm{rd}}}}
+\newcommand\nd{\ensuremath{{}^{\textrm{nd}}}}
+\newcommand\at{\ensuremath{\scriptstyle @}}
+
+\date{1 April 2014}
+
+\maketitle \thispagestyle{empty}
+
+\begin{abstract}
+what do I put here
+\end{abstract}
+
+\setchessboard{tinyboard,showmover=false}
+% \chessboard[
+%   setfen=rnbqkbnr/pppppppp/8/8/8/8/NNNBBNNN/QQQQKQQQ]
+
+\input{king2}
+
+% results:
+
+% No mate in 12 for 0-7. 6 ran for like 2 full days!
+% regular board.
+
+% No mate in 14 for 1,2,3,4,5,7. didn't run 7 because 6 is
+% still running overnight! 13h51m! 0 also running for 42h00m.
+
+% No mate in 10 for king at pawn index 0-7, even when
+% white's pieces are all queens (but the king)
+% (6 also finished last. Is this the weakest spot?)
+
+% Now mate in 10 for white having ``mega'' pieces
+
+% Mate in 10 for pawn idx 0! 441450 tree 
+%                 and idx 1! 210316 tree
 
 
-Jim McCann, in italics ...... oh! .... nervous laughter .... no, that's not part of the name still. I stopped saying the name. Why are you still typing? This isn't the name any more. End quote.
+% TODO: Generate ``book'' where white is making strong moves
+% (black has few options) but black keeps it going for 10/12 moves?
 
+% \bibliography{paper}{}
+% \bibliographystyle{plain}
+\end{document}
+
+% rnbqkbnr/pppppppp/8/8/8/8/NNNBBNNN/QQQQKQQQ w KQkq - 0 1
