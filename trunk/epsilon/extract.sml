@@ -23,8 +23,14 @@ struct
      TODO: If it contains a semicolon, use that. If not, allow
      comma to end line *)
   val c_re = RE.find (caseepsilon ^ "[\\t ]*=[\\t ]*([^;,]+);")
+  val js_re = RE.find (caseepsilon ^ "[\\t ]*=[\\t ]*(.+)")
   fun find_c s =
     case c_re s of
+    NONE => NONE
+  | SOME f => SOME (f 1)
+
+  fun find_js s =
+    case js_re s of
     NONE => NONE
   | SOME f => SOME (f 1)
 
@@ -77,7 +83,9 @@ struct
         let 
           val match = l 0
           val line = striptags match
-          val c = find_c line
+          val c = case !lang of
+            "js" => find_js line
+          | _ => find_c line
           val c = Option.map (StringUtil.losespecsides
                               StringUtil.whitespec) c
         in
