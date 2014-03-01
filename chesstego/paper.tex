@@ -57,18 +57,25 @@ what do I put here
 % No mate in 12 for 0-7. 6 ran for like 2 full days!
 % regular board.
 
-% No mate in 14 for 1,2,3,4,5,7. didn't run 7 because 6 is
-% still running overnight! 13h51m! 0 also running for 42h00m.
+% Regular board still:
+% No mate in 14 for 1,2,3,4,5,7. didn't run 6 because 6-ply took
+% 2 full days!
+% 0 finally finished with no mates found.
 
 % No mate in 10 for king at pawn index 0-7, even when
 % white's pieces are all queens (but the king)
 % (6 also finished last. Is this the weakest spot?)
 
-% Now mate in 10 for white having ``mega'' pieces
+% No mate in 10 for white having ``mega'' pieces
 
 % Mate in 10 for pawn idx 0! 441450 tree 
 %                 and idx 1! 210316 tree
 
+% TODO: We always have to explore all of black's moves, but we
+% can push the search much deeper (if we just want to prove the
+% existence of mate) by prioritizing white's moves. e.g., on the
+% last move, only move to capture the king; and on the second-to-last,
+% only move into check.
 
 % TODO: Generate ``book'' where white is making strong moves
 % (black has few options) but black keeps it going for 10/12 moves?
