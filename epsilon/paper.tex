@@ -6,6 +6,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{code}
+\usepackage{url}
 % \usepackage{amscd}
 % \usepackage{xy}
 \usepackage{graphicx}
@@ -33,12 +34,16 @@ Verlag-Verlag volume no.~0x40-2A.
 \renewcommand\>{$>$}
 \newcommand\<{$<$}
 
+\newcommand\CC{{C\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\tiny\bf ++}}}
+
 \date{1 April 2014}
 
 \maketitle
 
 \begin{abstract}
-what do I put here
+We present a sample of the values of the programming constant {\tt
+  epsilon} as found on the internet, for several different programming
+languages and with a variety of visualizations.
 \end{abstract}
 
 \vspace{1em}
@@ -101,45 +106,23 @@ practical values of $\epsilon$ in real software.
 
 \section{Methodology}
 
-
-Did you know that the SPEC benchmarks~\cite{spec2006} cost \$800? Like
-they literally expect me to pay them money to download the source code
-so that I could grep for {\tt const double epsilon} or test my
-compiler out on that. Mmany are even based on open-source software like
-Sphinx and POV-Ray. Ridiculous. I refuse. Values of epsilon for the
-SPEC benchmarks do not appear in Figure~\ref{fig:spec}.
-
-\begin{figure}[ht]
-\begin{center}
-\includegraphics[width=0.99 \linewidth]{spec.pdf}
-\end{center}\vspace{-0.1in}
-\caption{\$800? Fuck that!}
-\label{fig:spec}
-\end{figure}
-
-
-
-\section{Results}
-
-
-\begin{figure}[ht]
-\begin{center}
-\includegraphics[width=0.99 \linewidth]{chart-c-double}
-\end{center}\vspace{-0.1in}
-\caption{ Values for {\tt const double epsilon} in the C programming
-  language. In this chart, the blue (lower) bars are the distinct values
-  of epsilon seen. The vertically aligned red (upper) bar is its count.
-  Epsilon values are plotted on a logarithmic scale, where the minimum
-  observed value $\log(-708)$ is $303 \times 10^{-308}$, and the largest
-  $\log(1.609)$ is $5$. 
-  %
-  Notes: One programmer used the value \tt{-1e10}, which is
-  -10,000,000,000, problably meaning \tt{1e-10}. This value was excluded
-  because it has no real logarithm.
-}
-\label{fig:cdouble}
-\end{figure}
-
+\paragraph{Github.} Github is the hub that contains all gits, approximately
+10~million of them, as of the beginning of 2014. The site has search
+functionality, which ``allowed'' me to scrape one hundred pages of
+results for queries like {\tt "const double epsilon ="} for various
+languages, as long as I didn't do it too fast. I scraped the
+programming languages C, \CC, C$\sharp$, JavaScript, and Objective~C.
+Each language has its own idiosyncracies about how constants are
+defined, so I used one (or several) appropriate to each language. For
+example, in JavaScript, I looked for {\tt "var epsilon ="}. From these
+HTML files I extracted all of the right-hand-side expressions,
+manually excluded the ones that could not be evaluated (for example
+because they depended on other symbols; see
+Figure~\ref{fig:cdoubleuninterpretable} for some examples), and then
+computed the actual values for the rest. The source code to do the
+scraping, extract the expressions, and tally the results is available
+online.\!\footnote{In the Subversion repository at:
+  \url{https://sourceforge.net/p/tom7misc/svn/HEAD/tree/trunk/epsilon/}}
 
 \begin{figure}[ht]
 \begin{center}
@@ -160,6 +143,57 @@ SPEC benchmarks do not appear in Figure~\ref{fig:spec}.
 \caption{ Other uninterpretable values of {\tt const double epsilon}
   in C. Who knows what these are supposed to be?}
 \label{fig:cdoubleuninterpretable}
+\end{figure}
+
+\paragraph{SPEC benchmarks.} Did you know that the SPEC 
+benchmarks~\cite{spec2006} cost \$800? Like they literally expect me
+to pay them money to download the source code so that I could grep for
+{\tt const double epsilon} or test my compiler out on that. Many are
+even based on open-source software like Sphinx and POV-Ray.
+Ridiculous. I refuse. Values of epsilon for the SPEC benchmarks do not
+appear in Figure~\ref{fig:spec}.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.99 \linewidth]{spec.pdf}
+\end{center}\vspace{-0.1in}
+\caption{\$800? Fuck that!}
+\label{fig:spec}
+\end{figure}
+
+\section{Results}
+
+The results of the analysis appear in several figures which are
+interspersed haphazardly with this text. Each figure presents the data
+in a different way, since this diversity in presentation should
+maximize the chance that one of the charts makes sense to you. The C
+programming language has two numeric types that could reasonably be
+used to represent $\epsilon$: {\tt float} and {\tt double}. The
+results for {\tt double} appear in Figure~\ref{fig:cdouble} and for
+{\tt float} in Figure~\ref{fig:cfloat}. \CC\ has those same two types,
+but I decided arbitrarily to only look at {\tt double}, which is in
+Figure~\ref{fig:cppdouble}. Programmers in C$\sharp$ are very
+creative; their results are presented in Figure~\ref{fig:csharp}.
+Objective~C proved unpopular for use of $\epsilon$, its sparse data
+are in Figure~\ref{fig:objectivec}. Finally, the ineffable JavaScript
+has its results in Figure~\ref{fig:javascript}.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.99 \linewidth]{chart-c-double}
+\end{center}\vspace{-0.1in}
+\caption{ Values for {\tt const double epsilon} in the C programming
+  language. In this chart, the blue (lower) bars are the distinct values
+  of epsilon seen. The vertically aligned red (upper) bar is its count.
+  Epsilon values are plotted on a logarithmic scale, where the minimum
+  observed value $\log(-708)$ is $303 \times 10^{-308}$, and the largest
+  $\log(1.609)$ is $5$. 
+  %
+  Notes: One programmer used the value {\tt -1e10}, which is
+  -10,000,000,000, probably meaning {\tt 1e-10}. This value was excluded
+  because it has no real logarithm.
+}
+\label{fig:cdouble}
 \end{figure}
 
 \begin{figure}[ht]
@@ -192,6 +226,67 @@ SPEC benchmarks do not appear in Figure~\ref{fig:spec}.
   annotated in German ``Genauigkeitsziel bei der Nullstellensuche,''
   or ``Accuracy goal in the search for zeros.'' }
 \label{fig:cppdouble}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.99 \linewidth]{chart-csharp}
+\end{center}\vspace{-0.1in}
+\caption{ Values for {\tt const double epsilon} in the C$\sharp$
+  programming language. In this chart, the left edge of greyscale
+  blocks on the left-facing flag represent the cumulative value of the
+  logarithm of all values of epsilon seen so far. The right edge of
+  the block with the exact same greyscale value on the bottom-right
+  flag is the cumulative count of all definitions of epsilon so far.
+  It is easy to see that there are 1,000 total definitions, as
+  expected.
+  %
+  Notes: One programmer defined epsilon as {\tt 1.0-18}, that is,
+  -17, probably meaning {\tt 1.0e-18}. Four used literal {\tt 0} for
+  epsilon. Another defined epsilon as {\tt 1 / 100000}, which uses
+  integer division and results again in 0. Owing to the strength and
+  creativity of C$\sharp$ developers, here we saw our largest
+  value of epsilon so far, {\tt 700}, and the declaration with the most
+  significant digits: {\tt
+    0.0000000000000002220446049250313080847263336181640625}.
+}
+\label{fig:csharp}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.99 \linewidth]{chart-objectivec}
+\end{center}\vspace{-0.1in}
+\caption{Results for the language Objective~C for {\tt const double epsilon}.
+Perhaps because Objective~C programmers do not use this idiom for defining
+constants, or because it is only used to make iPhone games where epsilon is
+not a concept of interest, there were only 8 distinct values of epsilon
+observed. This allows us to present the data completely in the chart. The
+$x$ axis is $\sin(\epsilon)$ and the $y$ axis is $\cos(f)$ where $f$ is
+the total number of times that the given value occurred in the code.}
+\label{fig:objectivec}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=0.70 \linewidth]{chart-js}
+\end{center}\vspace{-0.1in}
+\caption{Finally, JavaScript, the official language of the Internet.
+  In this ``radar'' plot, the data are arranged around a circle, as
+  tuples of $\langle \log(\epsilon), \epsilon, f \rangle$ where $f$ is
+  the frequency of the value being observed. Numbers in boxes ascend
+  along the $0\deg$ axis, displaying each of the multiples of 5
+  between 0 and 100, inclusive. Boxes stack so that only part of the
+  number is visible, but you know what's under there if you've looked
+  at numbers before. A spider-web-like network of interlacing lines
+  ascribe some additional meaning to some of the points on the clock
+  face. The smallest nonzero value observed was $10^{-32}$.
+%
+  Notes: JavaScript programmers have the highest tolerance for error
+  of all languages tested, with over 1,000 using epsilon of 0.5 or
+  higher. One programmer used $\epsilon = 1024$, and another
+  6,000,000! }
+\label{fig:javascript}
 \end{figure}
 
 
