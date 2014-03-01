@@ -285,7 +285,7 @@ static bool CompareByFirst(const NamedEntry &a, const NamedEntry &b) {
   return a.value < b.value;
 }
 
-#define entries entries_cfloat
+#define entries entries_cppdouble
 int main () {
   map<double, int> all;
   for (int i = 0; i < sizeof (entries) / sizeof (NamedEntry); i++) {

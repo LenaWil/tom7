@@ -78,10 +78,10 @@ careful about what you're doing.
 
 Most programmers find this subject too tedious and simply pick a
 number that seems pretty small. Thus in practice, $\epsilon$ is an
-application-specific choice. Of well-known ``constants,''
-$\epsilon$ may be the least agreed-upon, with values seen in the wild
-spanning {\em 300 orders of magnitude}. This paper explores the practical
-values of $\epsilon$ in real software.
+application-specific choice. Of well-known ``constants,'' $\epsilon$
+may be the least agreed-upon, with values seen in the wild spanning
+more than {\em 300 orders of magnitude}. This paper explores the
+practical values of $\epsilon$ in real software.
 
 \begin{figure}[ht]
 \begin{center}
@@ -178,20 +178,19 @@ SPEC benchmarks do not appear in Figure~\ref{fig:spec}.
 
 \begin{figure}[ht]
 \begin{center}
-% \includegraphics[width=0.99 \linewidth]{chart-c-double}
+\includegraphics[width=0.99 \linewidth]{chart-cpp}
 \end{center}\vspace{-0.1in}
 \caption{
   Values for {\tt const double epsilon} and {\tt constexpr
     double epsilon} in the C++ programming language. The {\tt
     constexpr} qualifier, a new feature of C++11, is used very rarely
   (less than 1\% of the time).
+  %
   Notes:
-  Five times, the computed value is actually equal to 0.0,
-
-  The value {\tt pow(10,-13)} is annotated in German
-  ``Genauigkeitsziel bei der Nullstellensuche,'' or ``Accuracy goal in
-  the search for zeros.''
-}
+  Five times, the programmer used 0.0 for epsilon, which is possibly
+  the only unjustifiable value. The value {\tt pow(10,-13)} is
+  annotated in German ``Genauigkeitsziel bei der Nullstellensuche,''
+  or ``Accuracy goal in the search for zeros.'' }
 \label{fig:cppdouble}
 \end{figure}
 
