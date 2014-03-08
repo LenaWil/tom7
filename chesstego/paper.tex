@@ -1,4 +1,3 @@
-
 \documentclass[twocolumn]{article}
 \usepackage[top=1.1in, left=0.85in, right=0.85in]{geometry}
 
@@ -32,6 +31,10 @@ attention of the Association for Computational Heresy;
 {\em IEEEEEE!} press, Verlag-Verlag volume no.~0x40-2A.
 \$0.00}}
 
+\setchessboard{showmover=false}
+
+\newcommand\checkmate{\hspace{-.05em}\raisebox{.4ex}{\tiny\bf ++}}
+
 \renewcommand\th{\ensuremath{{}^{\textrm{th}}}}
 \newcommand\st{\ensuremath{{}^{\textrm{st}}}}
 \newcommand\rd{\ensuremath{{}^{\textrm{rd}}}}
@@ -43,14 +46,135 @@ attention of the Association for Computational Heresy;
 \maketitle \thispagestyle{empty}
 
 \begin{abstract}
-what do I put here
+CHECKMATE.
 \end{abstract}
+
+\section*{Introduction}
+
+Chess is an old-timey game that you already know. One problem with
+Chess is that it is hard; both players may struggle mightily in a
+game, expending their brain-sugars, and it is not clear who the winner
+will be. Another problem with Chess is that it isn't other games, and
+we're pretty much over it. In this paper we attempt to address both
+problems, with limited success. We show how to combine Chess with
+several other board games, in order to make it more predictable.
+
+As usual for a Tom~7 SIGBOVIK joint, the results herein are real.
+The source code that was used to solve the games or prove that no
+winning strategy exists up to some depth can be found on the inter-net.\!\footnote{In the Subversion repository at:
+  \url{https://sourceforge.net/p/tom7misc/svn/HEAD/tree/trunk/chesstego/}}
+
+\section{Chesstego}
+
+{\em Chesstego} is a combination of the games Chess and Stratego. You
+already should know that every game in this paper is a combination of
+Chess and something, but I wanted to emphasize the portmanteau. All of
+the games will be named with portmanteau, and some of the names will
+be achingly bad.
+
+In Stratego, each player begins the game by arranging his or her
+Stratego-pieces in a secret fashion on the board. In the world of
+Stratego, civization is ruled by a leader known as Flag. The player's
+goal is to assassinate the opponent Flag, using a member of his or her
+army. However, which piece represents Flag is unknown!
+
+There are many ways we might apply the Stratego system of governance
+to Chess.
+
+\paragraph{Chesstego variation I.} In this variation, each player decides
+in secret, before the game begins, which of his or her pieces is the
+actual King, that is, the Flag. If this piece is checkmated, the game
+is lost. There are two subvariations: {\em I(a)}, where a player must
+announce {\em Check!} when the Flag is under attack, and all of the
+normal rules about moving into (or castling through) check must be
+obeyed. In subvariation {\em I(b)}, which I prefer, the piece that is
+Flag may slip silently into and out of check, and the game only ends
+when that piece is captured.\footnote{In Chess proper, these
+  formulations are nearly equivalent---except for rules like castling
+  through check and some corner cases---but it is deemed important for
+  movie drama that players be able to announce {\em Check!} and {\em
+    Checkmate!} at times.}
+
+{\em Chesstego variation I} is a reasonable if slightly silly game,
+and it is difficult. It may even be more difficult than Chess due to the
+psychological mind-games that are possible. It can be hard to tell which
+player is winning, let alone which player will win. In this paper we
+are interested in variants of Chess that both {\em are other games} and
+{\em are predictable}. We'd like to give one of the players a clear
+strategy for winning.
+
+\paragraph{Chesstego variation II.} In this variation, each player
+decides in secret, before the game, which of her {\em opponent's} pieces
+is Flag. Same as before, if this piece is captured, the game ends
+instantly. But now, players don't even know which of their own pieces
+is their glorious ruler, Flag. This can be very exciting or tittilating.
+
+Unfortunately, there is no known winning strategy for White, and there
+are no winning strategies with fewer than 6 moves. This was proved
+by computer program. In fact, it was proved for a stronger case:
+
+\paragraph{Chesstego variation III.} In this variation, the first player,
+known as White, chooses in secret both the identity of Flag for his own
+populace, as well as the identity of Flag for his opponent. Even in
+this very unfair setup, Black can always survive for at least 6 moves.
+
+% TODO: Example of black escaping.
+
+This will not do! Black just has so many options with all those pieces.
+Perhaps if he were handicapped somewhat?
+
+\paragraph{Chesstego variation IV.} In this variation, White chooses
+the identity of both Flags again, in secret without telling her
+opponent, and also Black does not get any good pieces, just pawns. Like this:
+
+\chessboard[
+  setfen=4k3/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR]
+
+Lo! This version is finally satisfactory. White shall pick one of her
+safe pieces (e.g., one of the rooks) as Flag, and choose Black's b7~pawn
+as Black~Flag. White's winning move is c2c4 and then Qb3, with Black~Flag
+unable to escape the B file. Choosing the f7~pawn works as well.
+
+% make chesstego.exe && ./chesstego.exe -blackpieces justking 1 > king1.tex
+% \input{king1}
+
+Example hopeless match: 1. c4 Kf8~~2. Qb3 b5~~3. c4xb4\checkmate \\
+\chessboard[setfen=5k2/p1pppppp/8/1P6/8/1Q6/PP1PPPPP/RNB1KBNR]
+
+\paragraph{Chesstego variation V.} This variation is just like {\em IV}
+but White gets super good pieces everywhere instead of having some
+dumb ones, and Black still gets bupkiss:
+
+\chessboard[
+  setfen=4k3/pppppppp/8/8/8/8/NNNBBNNN/QQQQKQQQ]
+
+Now there are many more winning strategies, but the one from {\em IV}
+works as well.
+
+\paragraph{Other variations.} Incidentally, my on-line version of Chess 
+called SICO\footnote{ On the internet at:
+  \url{http://snoot.org/toys/sico/}}---where you just play a single
+move in a random game---has for about six years had variations called
+``center wall'' and ``barricades''\cite{sico} which were inspired by
+the layout of the Stratego board. However, these cannot be considered
+worthy of portmanteau, as the rules are basically just Chess rules.
+
+% Chessy Crush Saga
+
+\section{Cluess}
+
+This game, known as {\em Chuessdo} in the United Kingdom, is a cross
+between Chess and {\em Clue}. In this version, the player called White
+is known as Mrs.~White, and the player called Black is known as
+Professor~Plum.
+
+
 
 \setchessboard{tinyboard,showmover=false}
 % \chessboard[
 %   setfen=rnbqkbnr/pppppppp/8/8/8/8/NNNBBNNN/QQQQKQQQ]
 
-\input{king2}
+% \input{king2}
 
 % results:
 
@@ -80,8 +204,9 @@ what do I put here
 % TODO: Generate ``book'' where white is making strong moves
 % (black has few options) but black keeps it going for 10/12 moves?
 
-% \bibliography{paper}{}
-% \bibliographystyle{plain}
+\bibliography{paper}{}
+\bibliographystyle{plain}
+
 \end{document}
 
 % rnbqkbnr/pppppppp/8/8/8/8/NNNBBNNN/QQQQKQQQ w KQkq - 0 1

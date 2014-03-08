@@ -1,9 +1,11 @@
 default : chesstego.exe paper.pdf
 
 # XXX
-chesstego3.exe : chesstego.sml chesstego.cm
+chesstego.exe : chesstego.sml chesstego.cm
 	mlton -output $@ chesstego.cm
 
-paper.pdf : paper.tex king2.tex
+paper.pdf : paper.tex king2.tex paper.bib
 	pdflatex paper
-#	pdflatex paper
+	bibtex paper
+	pdflatex paper
+	pdflatex paper
