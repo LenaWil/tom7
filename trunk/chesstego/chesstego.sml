@@ -34,9 +34,9 @@ struct
   val pawns =
     [Pawn,  Pawn,   Pawn,   Pawn,  Pawn,  Pawn,   Pawn,   Pawn]
   val regular =
-    [Rook,  Knight, Bishop, King,  Queen, Bishop, Knight, Rook]
+    [Rook,  Knight, Bishop, Queen,  King, Bishop, Knight, Rook]
   val queens =
-    [Queen, Queen,  Queen,  King,  Queen, Queen,  Queen, Queen]
+    [Queen, Queen,  Queen,  Queen,  King, Queen,  Queen, Queen]
   val knights =
     [Knight, Knight, Knight, Knight, Knight, Knight, Knight, Knight]
   val mega =
