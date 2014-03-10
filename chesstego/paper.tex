@@ -130,9 +130,10 @@ opponent, and also Black does not get any good pieces, just pawns. Like this:
 \chessboard[
   setfen=4k3/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR]
 
-Lo! This version is finally satisfactory. White shall pick one of her
-safe pieces (e.g., one of the rooks) as Flag, and choose Black's b7~pawn
-as Black~Flag. White's winning move is c2c4 and then Qb3, with Black~Flag
+Lo! This version is finally satisfactory. In this version we need not
+equivocate over who shall win. White picks one of her very safe pieces
+(e.g., one of the rooks) as Flag, and chooses Black's b7~pawn as
+Black~Flag. White's winning move is c2c4 and then Qb3, with Black~Flag
 unable to escape the B file. Choosing the f7~pawn works as well.
 
 % make chesstego.exe && ./chesstego.exe -blackpieces justking 1 > king1.tex
@@ -159,8 +160,6 @@ move in a random game---has for about six years had variations called
 the layout of the Stratego board. However, these cannot be considered
 worthy of portmanteau, as the rules are basically just Chess rules.
 
-% Chessy Crush Saga
-
 \section{Cluess}
 
 This game, known as {\em Chuessdo} in the United Kingdom, is a cross
@@ -168,7 +167,72 @@ between Chess and {\em Clue}. In this version, the player called White
 is known as Mrs.~White, and the player called Black is known as
 Professor~Plum.
 
+\section{Chess Who?}
 
+The board game {\em Guess Who?} disappointed millions of children with
+its delightful television commercial that far outstripped the
+capabilities of the actual game. This required them to add a
+disclaimer to the commercial, ``Game cards do not actually talk.'' In
+{\em Guess Who?}, players take turns trying to guess the identity of
+the opponent, among a fixed set of personalities with traits like
+curly hair, straight hair, brown hair, short hair, bangs, long hair,
+blonde hair, red hair, or glasses. One player asks, ``Do you have
+curly hair?'' and the other says ``Yes'' or ``No'' and then the first
+player can eliminate all the remaining personalities that don't have
+the trait. It's basically binary search, but for kids.
+
+In {\em Chess Who?}, which is the chess version, players have two
+different options on each turn. They can either move a piece like
+normal, or ask a question of their opponent. The question must be
+about the physical characteristics of the pieces, for example, ``Does
+your piece have curly hair?'' No pieces have curly hair, so nothing
+happens. The opponent might ask a different question, on the next turn,
+like ``Does your piece have straight hair?'' No pieces have straight
+hair, so nothing happens. On the next turn, suppose the player asks,
+``Does your piece have brown hair?'' No pieces have brown hair,
+nor any hair at all, and no pieces have any brown parts at all either.
+Stop asking. Next, Black asks, ``Does your piece have crennelations?''
+Both of White's rooks have crennelations, so they are eliminated from
+the board (Figure~\ref{fig:crennelations}).
+
+\begin{figure}[ht]
+\begin{center}
+\chessboard[
+   setfen=rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/1NBQKBN1]
+\end{center}\vspace{-0.1in}
+\caption{
+  The board after
+  1. Does your piece have curly hair?
+     \ldots Does your piece have straight hair?
+  2. Does your piece have brown hair?
+     \ldots Does your piece have crennelations?
+}
+\label{fig:crennelations}
+\end{figure}
+
+Next, White might ask, ``Does your piece have a cross on his hat?''
+This matches both Bishops and the King, but Black responds ``Check!''
+because it is illegal to ask a question that would eliminate the King.
+
+This variation produces draws easily. An example Nash Equilibrium:
+White begins by asking, ``Does your piece have three lobes like a
+truncated snowman, {\em or} crennelations, {\em or} horse ears, {\em
+  or} two weird long shoulder-ribbons that I don't know what they are,
+{\em or} five pointy tines on her crown?'' This matches all of Black's
+pieces except his king, so he removes them all. But then Black asks:
+``Does your piece {\em not} have a lumpy crown?'' which matches all of
+White's pieces except his king. So all we have left is the two kings,
+which is known to be a draw~\cite{pawnless}.
+
+
+% Chessy Crush Saga
+% Battleship + Chess = Battlechess
+% Chess Tac Toe
+% Chesslers of Catan
+% Chesstris
+% Hungry Hungry Hipposchess
+
+% Monopoly?
 
 \setchessboard{tinyboard,showmover=false}
 % \chessboard[
