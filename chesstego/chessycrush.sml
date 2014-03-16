@@ -1,17 +1,17 @@
 structure Chessycrush =
 struct
 
-  val whitepiecesp = Params.param "regular"
+  val whitepiecesp = Params.param "empty"
     (SOME("-whitepieces", "What pieces should white have? " ^
-          "regular, queens, kor, koq, mor, moq, ...")) "whitepiecesp"
+          " ...")) "whitepiecesp"
 
   val whitepawnsp = Params.param "pawns"
     (SOME("-whitepawns", "What pawns should white have? " ^
-          "pawns, knights, mega, ...")) "whitepawnsp"
+          "pawns, cheat, ...")) "whitepawnsp"
 
-  val blackpiecesp = Params.param "regular"
+  val blackpiecesp = Params.param "empty"
     (SOME("-blackpieces", "What pieces should black have? " ^
-          "regular, justking, ...")) "blackpiecesp"
+          "empty, ...")) "blackpiecesp"
 
   exception Chessycrush of string
   val itos = Int.toString
@@ -40,6 +40,10 @@ struct
 
   val pawns =
     [Pawn,  Pawn,   Pawn,   Pawn,  Pawn,  Pawn,   Pawn,   Pawn]
+  fun candycheat c =
+    map (Option.map (fn p => (p, c)))
+    [SOME Pawn, SOME Pawn, SOME Pawn, SOME CandyRookCol,
+     NONE,      SOME Pawn, SOME Pawn, SOME Pawn]
   fun empty c =
     [NONE, NONE, NONE, NONE, SOME (King, c), NONE, NONE, NONE]
 
@@ -62,6 +66,7 @@ struct
 
      (case !whitepawnsp of
         "pawns" => white pawns
+      | "cheat" => candycheat White
       | s => raise Chessycrush ("unknown pawns type: " ^ s)) @
 
      (case !whitepiecesp of
@@ -96,9 +101,9 @@ struct
                     in
                       opp old
                     end)
+  fun flip_pos (x, y) = (x, 7 - y)
 
-  fun copyboard b =
-    Array.tabulate (WIDTH * HEIGHT, fn i => Array.sub (b, i))
+  fun clone b = Array.tabulate(WIDTH * HEIGHT, fn x => Array.sub (b, x))
 
   fun is_white_king (SOME (King, White)) = true
     | is_white_king _ = false
@@ -162,7 +167,10 @@ struct
          (* kill all of the black pieces in this column *)
          fun kill_col b x =
            Util.for 0 (HEIGHT - 1)
-           (fn y => set b (x, y) NONE)
+           (fn y =>
+            case get b (x, y) of
+              SOME (_, Black) => set b (x, y) NONE
+            | _ => ())
 
          fun horizontal_crush b (x, y) =
            let
@@ -199,7 +207,7 @@ struct
              if size >= 3
              then Crush { low = low, high = high,
                           killcol = getkills (),
-                          candy = size > 3 }
+                          candy = true }
              else NoCrush
            end
 
@@ -243,7 +251,7 @@ struct
              if size >= 3
              then Crush { low = low, high = high,
                           killcol = getkills (),
-                          candy = size > 3 }
+                          candy = true }
              else NoCrush
            end
 
@@ -278,7 +286,7 @@ struct
                 case horizontal_crush b (destx, desty) of
                   Crush { low = x1, high = x2, killcol, candy } =>
                     let
-                      val copy = copyboard b
+                      val copy = clone b
                       (* Fix original at any point after copy *)
                       val () = repair ()
                     in
@@ -295,7 +303,7 @@ struct
                     (case vertical_crush b (destx, desty) of
                        Crush { low = y1, high = y2, killcol, candy } =>
                          let
-                           val copy = copyboard b
+                           val copy = clone b
                            val () = repair ()
                          in
                            Util.for y1 y2
@@ -347,9 +355,13 @@ struct
          case piece of
            King =>
              let in
+               (* XXX pretending kings can't move *)
+               () (*
+               ;
                moveto (x - 1, y - 1); moveto (x, y - 1); moveto (x + 1, y - 1);
                moveto (x - 1, y);                        moveto (x + 1, y);
                moveto (x - 1, y + 1); moveto (x, y + 1); moveto (x + 1, y + 1)
+               *)
              end
          | Pawn =>
              let in
@@ -422,94 +434,9 @@ struct
       | _ => simplifying newt
     end
 
-  val DEPTH = 6
-
   fun xytos (x, y) = String.substring ("abcdefgh", x, 1) ^
     itos (7 - y + 1)
 
-  (* A state is known to be winning (for white) if there exists
-     a move where the resulting state is losing (for black). A
-     state is losing (for black) if for all black's moves,
-     the states are winning (for white). Importantly, this includes
-     the case where black has no moves--this is the only way for
-     the recursion to terminate.
-
-     Two mutually-recursive functions. We only compute this to a
-     certain depth, so these are conservative approximations --
-     they may return false even if it is really winning/losing.
-
-     Both functions may modify the board temporarily in order to
-     recurse, but should put it back before returning. *)
-  exception Winning of whitemovetree
-  exception Losing
-  fun winning b 0 = NONE
-    | winning b depth =
-    let
-      fun onemove (src, dst, newboard) =
-        let in
-          if depth = DEPTH
-          then eprint (xytos src ^ " -> " ^ xytos dst ^ "...\n")
-          else ();
-
-          case losing newboard (depth - 1) of
-            NONE => ()
-          | SOME bmt => raise Winning (W (src, dst, bmt))
-        end
-    in
-      app_moves b onemove;
-      NONE
-    end handle Winning wmt => SOME wmt
-
-  and losing _ 0 = NONE
-    | losing original_board depth =
-    let
-      val moves = ref nil
-      val b = dualize original_board
-
-      fun flip (x, y) = (x, 7 - y)
-
-      fun onemove (src, dst, newboard) =
-        let val flipboard = dualize newboard
-        in
-          case winning flipboard (depth - 1) of
-            NONE => raise Losing
-          | SOME wmt =>
-              let val fsrc = flip src
-                  val fdst = flip dst
-              in moves := ([(fsrc, fdst)], wmt) :: !moves
-              end
-        end
-    in
-      app_moves b onemove;
-      SOME (B (!moves))
-    end handle Losing => NONE
-
-  fun pad 0 = ""
-    | pad n = " " ^ pad (n - 1)
-
-  fun wmtsize (W (_, _, bmt)) = 1 + bmtsize bmt
-  and bmtsize (B l) = foldr op+ 1 (map (fn (_, wmt) => wmtsize wmt) l)
-
-  fun printwmt indent (W (src, dst, bmt)) =
-    let in
-      print (pad indent ^ "White: " ^ xytos src ^ " -> " ^ xytos dst ^ ":\n");
-      printbmt (indent + 2) bmt
-    end
-
-  and printbmt indent (B nil) =
-    print (pad indent ^ "** black has no moves **\n")
-    | printbmt indent (B l) =
-    app (fn (moves, wmt) =>
-         let
-           val ms = StringUtil.delimit ", " (map (fn (s, d) =>
-                                                  xytos s ^ xytos d) moves)
-         in
-           print (pad indent ^
-                  "If black: " ^ ms ^ " then:\n");
-           printwmt (indent + 2) wmt
-         end) l
-
-  fun clone b = Array.tabulate(WIDTH * HEIGHT, fn x => Array.sub (b, x))
   fun tofen b =
     let
       fun rowtofen y =
@@ -553,13 +480,160 @@ struct
       (* currently no bonus stuff *)
     end
 
-  fun printwtree move board (W (src, dst, bmt)) =
+  (* A state is known to be winning (for white) if there exists
+     a move where the resulting state is losing (for black). A
+     state is losing (for black) if for all black's moves,
+     the states are winning (for white). Importantly, this includes
+     the case where black has no moves--this is the only way for
+     the recursion to terminate.
+
+     Two mutually-recursive functions. We only compute this to a
+     certain depth, so these are conservative approximations --
+     they may return false even if it is really winning/losing.
+
+     Both functions may modify the board temporarily in order to
+     recurse, but should put it back before returning. *)
+  exception Winning of whitemovetree
+  exception Losing
+  fun winning b _ 0 = NONE
+    | winning b nil depth =
+    (let
+       fun onemove (src, dst, newboard) =
+         let in
+           (*
+           if depth = DEPTH
+           then eprint (xytos src ^ " -> " ^ xytos dst ^ "...\n")
+           else ();
+           *)
+
+           case losing newboard nil (depth - 1) of
+             NONE => ()
+           | SOME bmt => raise Winning (W (src, dst, bmt))
+         end
+     in
+       app_moves b onemove;
+       NONE
+     end handle Winning wmt => SOME wmt)
+    | winning b ((ms, md) :: mainline) depth =
+    (let
+       val didmain = ref false
+       fun onemove (src, dst, newboard) =
+         (* PERF could pass this information forward? *)
+         if src = ms andalso dst = md
+         then
+         let in
+           didmain := true;
+           (*
+           if depth = DEPTH
+           then eprint (xytos src ^ " -> " ^ xytos dst ^ "...\n")
+           else ();
+           *)
+
+           case losing newboard mainline (depth - 1) of
+             NONE => ()
+           | SOME bmt => raise Winning (W (src, dst, bmt))
+         end
+       (* Maybe save for later? *)
+         else ()
+     in
+       app_moves b onemove;
+       (* XXX need backup strategy in these cases... *)
+       if not (!didmain)
+       then raise Chessycrush ("Illegal to issue mainline " ^
+                               xytos ms ^ "->" ^ xytos md ^
+                               " on board\n" ^ tofen b)
+       else ();
+       NONE
+     end handle Winning wmt => SOME wmt)
+
+
+  and losing _ _ 0 = NONE
+    | losing original_board mainline depth =
+    let
+      val moves = ref nil
+      val b = dualize original_board
+
+      fun onemove (src, dst, newboard) =
+        let val flipboard = dualize newboard
+        in
+          case winning flipboard mainline (depth - 1) of
+            NONE => raise Losing
+          | SOME wmt =>
+              let val fsrc = flip_pos src
+                  val fdst = flip_pos dst
+              in moves := ([(fsrc, fdst)], wmt) :: !moves
+              end
+        end
+    in
+      app_moves b onemove;
+      SOME (B (!moves))
+    end handle Losing => NONE
+
+  fun pad 0 = ""
+    | pad n = " " ^ pad (n - 1)
+
+  fun wmtsize (W (_, _, bmt)) = 1 + bmtsize bmt
+  and bmtsize (B l) = foldr op+ 1 (map (fn (_, wmt) => wmtsize wmt) l)
+
+  fun printwmt indent (W (src, dst, bmt)) =
+    let in
+      print (pad indent ^ "White: " ^ xytos src ^ " -> " ^ xytos dst ^ ":\n");
+      printbmt (indent + 2) bmt
+    end
+
+  and printbmt indent (B nil) =
+    print (pad indent ^ "** black has no moves **\n")
+    | printbmt indent (B l) =
+    app (fn (moves, wmt) =>
+         let
+           val ms = StringUtil.delimit ", " (map (fn (s, d) =>
+                                                  xytos s ^ xytos d) moves)
+         in
+           print (pad indent ^
+                  "If black: " ^ ms ^ " then:\n");
+           printwmt (indent + 2) wmt
+         end) l
+
+  (* Make a move as white. Replays search from this
+     position, since some moves have effects beyond
+     just placing the piece at src on dst. *)
+  exception Done of board
+  fun makemovewhite board (src, dst) =
     let
       val board = clone board
-      val spiece = get board src
+      fun moveif (ss, dd, b) =
+        if ss = src andalso dd = dst
+        then raise Done b
+        else ()
     in
-      set board src NONE;
-      set board dst spiece;
+      app_moves board moveif;
+      raise Chessycrush ("makemovewhite, impossible " ^
+                         xytos src ^ "->" ^
+                         xytos dst)
+    end handle Done b => b
+
+  fun makemoveblack board (src, dst) =
+    let
+      (* Same as above, but dualize the board and
+         move before doing app_moves, then reverse *)
+      val board = dualize board
+      val fsrc = flip_pos src
+      val fdst = flip_pos dst
+      fun moveif (ss, dd, b) =
+        if ss = fsrc andalso dd = fdst
+        then raise Done (dualize b)
+        else ()
+    in
+      app_moves board moveif;
+      raise Chessycrush ("makemoveblack, impossible " ^
+                         xytos src ^ "->" ^
+                         xytos dst)
+    end handle Done b => b
+
+  fun printwtree move board (W (src, dst, bmt)) =
+    let
+      val board = makemovewhite board (src, dst)
+    in
       print (pad (move * 4) ^ itos move ^ ". " ^
              xytos src ^ xytos dst ^ " " ^
              tofen board ^ "\n");
@@ -572,13 +646,10 @@ struct
     let
       fun onemove (moves as ((src, dst) :: _) , wmt) =
         let
-          val board = clone board
-          val spiece = get board src
+          val board = makemoveblack board (src, dst)
           val ms = StringUtil.delimit "," (map (fn (s, d) =>
                                                 xytos s ^ xytos d) moves)
          in
-          set board src NONE;
-          set board dst spiece;
           print (pad (move * 4 + 2) ^ itos move ^
                  ". ..." ^ ms ^ " "  ^ tofen board ^ "\n");
           printwtree (move + 1) board wmt
@@ -590,12 +661,9 @@ struct
 
   fun texwtree move board (W (src, dst, bmt)) =
     let
-      val board = clone board
-      val spiece = get board src
+      val board = makemovewhite board (src, dst)
       val pp = pad (move * 4)
     in
-      set board src NONE;
-      set board dst spiece;
       print (pp ^ "% \\begin{itemize} % white\n" ^
              pp ^ (* "\\item " ^ *) itos (move + 1) ^ ". " ^
              xytos src ^ xytos dst ^ " \\\\ " ^
@@ -611,13 +679,10 @@ struct
       val pp = pad (move * 4 + 2)
       fun onemove (moves as ((src, dst) :: _) , wmt) =
         let
-          val board = clone board
-          val spiece = get board src
+          val board = makemoveblack board (src, dst)
           val ms = StringUtil.delimit ", " (map (fn (s, d) =>
                                                  xytos s ^ xytos d) moves)
          in
-          set board src NONE;
-          set board dst spiece;
           print (pp ^ "\\item " ^ itos (move + 1) ^
                  ". \\ldots " ^ ms ^ "\n" ^
                  pp ^ "% " ^ tofen board ^ "\n");
@@ -653,14 +718,30 @@ struct
       deepest
     end
 
-  fun search () =
+(* in chessy v1
+  val mainline = [((1, 6), (1, 5)),
+                  ((3, 6), (3, 5)),
+                  ((4, 6), (4, 5)),
+                  ((2, 6), (2, 5)), (* candy *)
+                  ((2, 5), (2, 6)),
+                  ((2, 6), (4, 6))] (* kills king *)
+    *)
+  val mainline = [((2, 6), (2, 5)),
+                  ((3, 6), (3, 5)),
+                  ((4, 6), (4, 5)), (* candy *)
+                  ((4, 5), (4, 6))] (* ++ *)
+
+  fun main d =
     let
+      val DEPTH = case Int.fromString d of
+        NONE => raise Chessycrush "need int"
+      | SOME i => i
       val startboard = init ()
       val backup = init ()
     in
        eprint ("Searching to depth " ^ itos DEPTH ^ "...\n");
 
-       case winning startboard DEPTH of
+       case winning startboard mainline DEPTH of
          NONE => eprint ("No winning strategy in " ^ itos DEPTH ^ "...")
        | SOME wmt =>
            let
@@ -683,8 +764,7 @@ struct
            end
      end
 
-  fun main () = search ()
 end
 
-val () = Params.main0 "Command-line argument: nuthin" Chessycrush.main
+val () = Params.main1 "Command-line argument: nuthin" Chessycrush.main
   handle Chessycrush.Chessycrush s => print ("Chessycrush: " ^ s ^ "\n")
