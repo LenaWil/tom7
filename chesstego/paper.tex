@@ -227,8 +227,54 @@ which is known to be a draw~\cite{pawnless}.
 
 \section{Chessy Crush Saga}
 
-% \begin{itemize} % white
-% \end{itemize} % white
+{\em Chessy Crush Saga} is a hybrid of Chess and the popular and
+lucrative phone-game {\em Candy Crush Saga}. In this game, the
+regular moves of chess are allowed, but it is also possible to
+{\em crush} chess pieces into candies. {\em Chessy Crush v1}
+follows the rules of {\em Candy Crush} closely: When a piece moves
+such that three pieces of the same color are in a row (either
+horizontally or vertically), those pieces are all removed. Usually
+this is a tactical misstep in Chess, as three of one's own pieces
+are destroyed for nothing. However, as in {\em Candy Crush}, rewards
+are given when more than three like pieces are destroyed at once.
+The simplest is to award the player with a Candy Rook at at the
+place where the moved piece ended up. A Candy Rook moves like a
+rook, but if it is crushed, it destroys all of the opponent's
+pieces on the file (column) it currently occupies.\!\footnote{In
+formal {\em Candy Crush}, this is the vertical striped candy,
+which is awarded when the piece was moved vertically. To keep
+this variant simple, we always award a ``vertically striped''
+Candy Rook, since it seems with only pawns, only vertical moves
+are likely. (This later turns out to be a bad assumption.)}
+
+As another simplification, we remove all of the proper pieces from the
+black files, except for the King, in honor of the software company
+that makes {\em Candy Crush}, ``King.'' A densely packed board with
+pieces that can move backward is dangerous, for it is easy to destroy
+one's own king by moving out of and then back into the back file,
+crushing the whole thing (Figure~\ref{fig:selfcrush}).
+
+\begin{figure}[ht]
+\begin{center}
+\chessboard[
+  setfen=rnbqkbnr/1ppppppp/p7/8/8/8/PPPPPPPP/RNBQKBNR,
+  color=black,
+  pgfstyle=knightmove,
+  markmoves={c3-b1},
+  pgfstyle=cross,
+  color=red,
+  backrank=1]
+\end{center}\vspace{-0.1in}
+\caption{
+  ``Fool's Mate'' in the rejected {\em Candy Crush v0},
+  played with normal pieces in the back ranks. White self-mates
+  in two moves, crushing all his own pieces {\em e.g.} with:
+  1. Nc3 a6 2. Nb1 (??) 0--1
+}
+\label{fig:selfcrush}
+\end{figure}
+
+
 
 \begin{figure}[ht]
 \begin{center}
@@ -245,7 +291,59 @@ which is known to be a draw~\cite{pawnless}.
 \label{fig:chessyv1}
 \end{figure}
 
-\chessboard[setfen=4k3/ppp1pppp/8/8/3p4/2PP4/PP2PPPP/4K3]
+In {\em v2}, the Candy Rook is extremely powerful, since
+not only does it destroy an entire file (the e file being
+the likely target, since it contains the immovable King),
+but when it is used (by crushing) it is also replaced,
+since a crush always yields candy. Therefore, White's
+most straightforward strategy is to quickly create a
+Candy Rook, then crush it in the e file, which wins. This
+should be a line where White's tempo advantage makes it
+mostly immune from interference, since even a check is
+answered by destroying the opponent's king.
+
+
+% \chessboard[setfen=4k3/ppp1pppp/8/8/3p4/2PP4/PP2PPPP/4K3]
+% \chessboard[setfen=4k3/ppp1pppp/8/8/8/4p3/PP3PPP/4K3]
+% \chessboard[setfen=4k3/1ppppppp/8/8/8/8/pR2PPPP/4K3]
+\begin{figure}[ht]
+\begin{center}
+\chessboard[setfen=4k3/3ppppp/1r6/8/8/2R5/PP3PPP/4K3]
+(a) \\
+\chessboard[
+  setfen=4k3/3ppppp/4r3/8/8/8/2R2PPP/4K3,
+  pgfstyle=border,
+  color=blue!50,
+  markfile=e,
+  color=black,
+  pgfstyle=straightmove,
+  markmoves={b6-e6},
+  pgfstyle=cross,
+  color=red,
+  backfields={e8,e7,e6}]
+(b)
+\end{center}\vspace{-0.1in}
+\caption{ 
+%
+  Black's surprising draw strategy in {\em Chessy Crush v2}. White
+  begins her Omega Weapon: 1. e3 c6 2. d3 a6 3. c3 {\em making candy}
+  b6 {\em making candy} we have the board in (a). It seems that Black
+  is stuck after 4. Rc2, since 5. Re2 will crush White's candy rook
+  and destroy the entire e file, including Black's king. Black
+  defending with 4. \ldots Re6 initially seems pointless (White will
+  destroy the rook as well so the check is irrelevant---this indeed
+  refutes 4. \ldots Rb1) but Re6 actually creates a {\em vertical}
+  three-piece crush, sacrificing Black's king to destroy the e file
+  first, which also destroys White's king! Such mutual destruction
+  is not possible in traditional chess, but it seems appropriate to
+  consider it a draw in Chessy Crush Saga v2. It appears that White
+  can head off this line with 4. Rc8++, a totally vanilla back-rank mate,
+  but this is not actually mate with the same 4. \ldots Rb1 escaping
+  to a draw.
+%
+}
+\label{fig:chessyv2}
+\end{figure}
 
 % Chessy Crush Saga
 % Battleship + Chess = Battlechess
