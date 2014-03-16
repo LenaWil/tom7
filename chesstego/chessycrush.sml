@@ -1,4 +1,4 @@
-structure Chesstego =
+structure Chessycrush =
 struct
 
   val whitepiecesp = Params.param "regular"
@@ -13,7 +13,7 @@ struct
     (SOME("-blackpieces", "What pieces should black have? " ^
           "regular, justking, ...")) "blackpiecesp"
 
-  exception Chesstego of string
+  exception Chessycrush of string
   val itos = Int.toString
   fun eprint s = TextIO.output(TextIO.stdErr, s)
 
@@ -22,41 +22,36 @@ struct
 
   datatype piece =
     Pawn
-  | Rook
-  | Knight
-  | Bishop
-  | Queen
+    (* Destroys a column *)
+  | CandyRookCol
+    (* Destroys a row *)
+    (* | CandyRookRow *)
+    (* Bomb that destroys 3x3 *)
+    (* | CandyWrapper *)
+    (* Color bomb *)
+    (* | CandyBomb *)
   | King
 
   datatype color =
     Black
   | White
 
-  type board = (piece * color * bool) option Array.array
+  type board = (piece * color) option Array.array
 
   val pawns =
     [Pawn,  Pawn,   Pawn,   Pawn,  Pawn,  Pawn,   Pawn,   Pawn]
-  val regular =
-    [Rook,  Knight, Bishop, Queen,  King, Bishop, Knight, Rook]
-  val queens =
-    [Queen, Queen,  Queen,  Queen,  King, Queen,  Queen, Queen]
-  val knights =
-    [Knight, Knight, Knight, Knight, Knight, Knight, Knight, Knight]
-  val mega =
-    [Knight, Knight, Knight, Bishop, Bishop, Knight, Knight, Knight]
+  fun empty c =
+    [NONE, NONE, NONE, NONE, SOME (King, c), NONE, NONE, NONE]
 
-  fun white l = map (fn x => SOME (x, White, false)) l
-  fun black l = map (fn x => SOME (x, Black, false)) l
+  fun white l = map (fn x => SOME (x, White)) l
+  fun black l = map (fn x => SOME (x, Black)) l
 
   fun init () =
     Array.fromList
     (
     (case !blackpiecesp of
-       "regular" => black regular
-     | "justking" => [NONE, NONE, NONE, NONE,
-                      SOME (King, Black, false),
-                      NONE, NONE, NONE]
-     | s => raise Chesstego ("unknown pieces type: " ^ s)) @
+       "empty" => empty Black
+     | s => raise Chessycrush ("unknown pieces type: " ^ s)) @
 
     black pawns @
 
@@ -67,14 +62,11 @@ struct
 
      (case !whitepawnsp of
         "pawns" => white pawns
-      | "knights" => white knights
-      | "mega" => white mega
-      | s => raise Chesstego ("unknown pawns type: " ^ s)) @
+      | s => raise Chessycrush ("unknown pawns type: " ^ s)) @
 
      (case !whitepiecesp of
-        "regular" => white regular
-      | "queens" => white queens
-      | s => raise Chesstego ("unknown pieces type: " ^ s))
+        "empty" => empty White
+      | s => raise Chessycrush ("unknown pieces type: " ^ s))
         )
 
   fun get board (x, y) =
@@ -82,19 +74,6 @@ struct
 
   fun set board (x, y) a =
     Array.update (board, y * WIDTH + x, a)
-
-  fun init_with_kings (x1, y1, x2, y2) =
-    let val board = init ()
-      fun makeking (x, y) =
-        case get board (x, y) of
-          NONE => raise Chesstego "No piece to make king"
-        | SOME (piece, color, _) =>
-            set board (x, y) (SOME (piece, color, true))
-    in
-      makeking (x1, y1);
-      makeking (x2, y2);
-      board
-    end
 
   (* Flips the board so that black becomes white and vice versa.
      We use this to simplify move generation; it is always white
@@ -110,17 +89,19 @@ struct
                       fun oc White = Black
                         | oc Black = White
                       fun opp NONE = NONE
-                        | opp (SOME (piece, color, king)) =
-                        SOME (piece, oc color, king)
+                        | opp (SOME (piece, color)) =
+                        SOME (piece, oc color)
 
                       val old = get b (x, oldy)
                     in
                       opp old
                     end)
 
-  fun is_white_king NONE = false
-    | is_white_king (SOME (_, Black, _)) = false
-    | is_white_king (SOME (_, White, b)) = b
+  fun copyboard b =
+    Array.tabulate (WIDTH * HEIGHT, fn i => Array.sub (b, i))
+
+  fun is_white_king (SOME (King, White)) = true
+    | is_white_king _ = false
 
   (* Apply the function to all moves that white can make. A
      move is represented by the pair of coordinates of the piece
@@ -146,10 +127,13 @@ struct
     Array.appi
     (fn (i, elt) =>
      case elt of
-       src_cell as (SOME (piece, White, is_king)) =>
+       src_cell as (SOME (piece, White)) =>
        let val y = i div WIDTH
            val x = i mod WIDTH
 
+         (* For normal capturing chess moves. Move src to
+            the destination, call f, and then return the
+            board to the original state. *)
          fun moveto (destx, desty) =
            (* Can't move off board *)
            if destx < 0 orelse destx >= WIDTH orelse
@@ -158,7 +142,7 @@ struct
            else
              (* Can't capture own piece *)
              case get b (destx, desty) of
-               SOME (_, White, _) => ()
+               SOME (_, White) => ()
              | dst_cell =>
               let in
                 set b (x, y) NONE;
@@ -169,11 +153,174 @@ struct
                 set b (destx, desty) dst_cell
               end
 
+         datatype crush =
+             NoCrush
+           | Crush of { low : int, high : int,
+                        killcol : int list,
+                        candy : bool }
+
+         (* kill all of the black pieces in this column *)
+         fun kill_col b x =
+           Util.for 0 (HEIGHT - 1)
+           (fn y => set b (x, y) NONE)
+
+         fun horizontal_crush b (x, y) =
+           let
+             (* return the index of the left edge
+                of the crush. assumes arg is in it *)
+             fun goleft 0 = 0
+               | goleft x =
+               case get b (x - 1, y) of
+                 SOME (_, White) => goleft (x - 1)
+               | _ => x
+
+             fun goright x =
+               if x = WIDTH - 1
+               then x
+               else case get b (x + 1, y) of
+                 SOME (_, White) => goright (x + 1)
+               | _ => x
+
+             val low = goleft x
+             val high = goright x
+             val size = high - low + 1
+
+             fun getkills () =
+               let val kills = ref nil
+               in
+                 Util.for low high
+                 (fn x =>
+                  case get b (x, y) of
+                    SOME (CandyRookCol, White) => kills := x :: !kills
+                  | _ => ());
+                 !kills
+               end
+           in
+             if size >= 3
+             then Crush { low = low, high = high,
+                          killcol = getkills (),
+                          candy = size > 3 }
+             else NoCrush
+           end
+
+         fun vertical_crush b (x, y) =
+           let
+             (* return the index of the top edge
+                of the crush. assumes arg is in it *)
+             fun goup 0 = 0
+               | goup y =
+               case get b (x, y - 1) of
+                 SOME (_, White) => goup (y - 1)
+               | _ => y
+
+             fun godown y =
+               if y = HEIGHT - 1
+               then y
+               else case get b (x, y + 1) of
+                 SOME (_, White) => godown (y + 1)
+               | _ => y
+
+             val low = goup y
+             val high = godown y
+             val size = high - low + 1
+
+             (* PERF probably can just return the one, if there
+                are multiple. Probably never happens in search
+                though. *)
+             fun getkills () =
+               let val kills = ref nil
+               in
+                 Util.for low high
+                 (fn y =>
+                  case get b (x, y) of
+                    (* x is correct here -- we want the column.
+                       It'll be the same each time. *)
+                    SOME (CandyRookCol, White) => kills := x :: !kills
+                  | _ => ());
+                 !kills
+               end
+           in
+             if size >= 3
+             then Crush { low = low, high = high,
+                          killcol = getkills (),
+                          candy = size > 3 }
+             else NoCrush
+           end
+
+         (* Same, but check for crush after. Assumes
+            crush can only happen fromthe destination. *)
+         fun moveto_crush (destx, desty) =
+           (* Can't move off board *)
+           if destx < 0 orelse destx >= WIDTH orelse
+              desty < 0 orelse desty >= HEIGHT
+           then ()
+           else
+             (* Can't capture own piece *)
+             case get b (destx, desty) of
+               SOME (_, White) => ()
+             | dst_cell =>
+              let
+                (* undoes just the normal part of the move.
+                   in the crush scenario, we use this to
+                   repair the original after copying (copy
+                   will be discarded). In the normal move
+                   scenario, we repair in place *)
+                fun repair () =
+                  let in
+                    set b (x, y) src_cell;
+                    set b (destx, desty) dst_cell
+                  end
+
+              in
+                set b (x, y) NONE;
+                set b (destx, desty) src_cell;
+
+                case horizontal_crush b (destx, desty) of
+                  Crush { low = x1, high = x2, killcol, candy } =>
+                    let
+                      val copy = copyboard b
+                      (* Fix original at any point after copy *)
+                      val () = repair ()
+                    in
+                      Util.for x1 x2
+                      (fn xx =>
+                       set copy (xx, desty) NONE);
+                      app (kill_col copy) killcol;
+                      if candy
+                      then set copy (destx, desty) (SOME (CandyRookCol, White))
+                      else ();
+                      f ((x, y), (destx, desty), copy)
+                    end
+                | NoCrush =>
+                    (case vertical_crush b (destx, desty) of
+                       Crush { low = y1, high = y2, killcol, candy } =>
+                         let
+                           val copy = copyboard b
+                           val () = repair ()
+                         in
+                           Util.for y1 y2
+                           (fn yy =>
+                            set copy (destx, yy) NONE);
+                           app (kill_col copy) killcol;
+                           if candy
+                           then set copy (destx, desty)
+                                    (SOME (CandyRookCol, White))
+                           else ();
+                           f ((x, y), (destx, desty), copy)
+                         end
+                     | NoCrush =>
+                         let in
+                           f ((x, y), (destx, desty), b);
+                           (* repair after recursion *)
+                           repair ()
+                         end)
+              end
+
          (* e.g. for pawn captures *)
          fun has_black_piece (x, y) =
            x >= 0 andalso x < WIDTH andalso y >= 0 andalso y < HEIGHT andalso
            (case get b (x, y) of
-              SOME (_, Black, _) => true
+              SOME (_, Black) => true
             | _ => false)
 
          fun moveuntil (dx, dy, cx, cy) (f : int * int -> unit) =
@@ -185,27 +332,17 @@ struct
              else (case get b (newx, newy) of
                      NONE => (f (newx, newy);
                               moveuntil (dx, dy, newx, newy) f)
-                   | SOME (_, Black, _) => f (newx, newy)
+                   | SOME (_, Black) => f (newx, newy)
                    | _ => ())
            end
 
-         (* Hoisted because queen = rook || bishop *)
-         fun rook () =
+         fun candy_rook () =
            let in
-             moveuntil (~1, 0, x, y) moveto;
-             moveuntil (1, 0, x, y) moveto;
-             moveuntil (0, ~1, x, y) moveto;
-             moveuntil (0, 1, x, y) moveto
+             moveuntil (~1, 0, x, y) moveto_crush;
+             moveuntil (1, 0, x, y) moveto_crush;
+             moveuntil (0, ~1, x, y) moveto_crush;
+             moveuntil (0, 1, x, y) moveto_crush
            end
-
-         fun bishop () =
-           let in
-             moveuntil (~1, ~1, x, y) moveto;
-             moveuntil (1, ~1, x, y) moveto;
-             moveuntil (1, 1, x, y) moveto;
-             moveuntil (~1, 1, x, y) moveto
-           end
-
        in
          case piece of
            King =>
@@ -214,33 +351,21 @@ struct
                moveto (x - 1, y);                        moveto (x + 1, y);
                moveto (x - 1, y + 1); moveto (x, y + 1); moveto (x + 1, y + 1)
              end
-         | Knight =>
-             let in
-               moveto (x - 1, y - 2); moveto (x + 1, y - 2);
-               moveto (x - 2, y - 1); moveto (x + 2, y - 1);
-               moveto (x - 2, y + 1); moveto (x + 2, y + 1);
-               moveto (x - 1, y + 2); moveto (x + 1, y + 2)
-             end
          | Pawn =>
              let in
                if y = 6
-               then moveto (x, 4)
+               then moveto_crush (x, 4)
                else ();
-               moveto (x, y - 1);
+               moveto_crush (x, y - 1);
                if has_black_piece (x - 1, y - 1)
-               then moveto (x - 1, y - 1)
+               then moveto_crush (x - 1, y - 1)
                else ();
                if has_black_piece (x + 1, y - 1)
-               then moveto (x + 1, y - 1)
+               then moveto_crush (x + 1, y - 1)
                else ()
              end
-         | Rook => rook ()
-         | Bishop => bishop ()
-         | Queen =>
-             let in
-               rook ();
-               bishop ()
-             end
+         | CandyRookCol => candy_rook ()
+
        end
      | _ => ()) b
 
@@ -400,19 +525,13 @@ struct
           (fn x =>
            case get b (x, y) of
              NONE => blanks := !blanks + 1
-           | SOME (p, c, k) =>
+           | SOME (p, c) =>
                let val m =
                  case (p, c) of
                    (Pawn, White) => "P"
                  | (Pawn, Black) => "p"
-                 | (Rook, White) => "R"
-                 | (Rook, Black) => "r"
-                 | (Knight, White) => "N"
-                 | (Knight, Black) => "n"
-                 | (Bishop, White) => "B"
-                 | (Bishop, Black) => "b"
-                 | (Queen, White) => "Q"
-                 | (Queen, Black) => "q"
+                 | (CandyRookCol, White) => "R"
+                 | (CandyRookCol, Black) => "r"
                  | (King, White) => "K"
                  | (King, Black) => "k"
                in
@@ -464,7 +583,7 @@ struct
                  ". ..." ^ ms ^ " "  ^ tofen board ^ "\n");
           printwtree (move + 1) board wmt
         end
-        | onemove (nil, wmt) = raise Chesstego "nil bmt not allowed"
+        | onemove (nil, wmt) = raise Chessycrush "nil bmt not allowed"
     in
       app onemove l
     end
@@ -504,7 +623,7 @@ struct
                  pp ^ "% " ^ tofen board ^ "\n");
           texwtree (move + 1) board wmt
         end
-        | onemove (nil, wmt) = raise Chesstego "nil bmt not allowed"
+        | onemove (nil, wmt) = raise Chessycrush "nil bmt not allowed"
     in
       print (pp ^ "\\begin{itemize} % black\n");
       app onemove l;
@@ -515,11 +634,11 @@ struct
   fun deepestw (W (src, dst, bmt)) =
     (src, dst) :: deepestb bmt
   and deepestb (B nil) = nil
-    | deepestb (B ((nil, _) :: _)) = raise Chesstego "nil bmt not allowed"
+    | deepestb (B ((nil, _) :: _)) = raise Chessycrush "nil bmt not allowed"
     | deepestb (B (((hsrc, hdst) :: _, hwmt) :: t)) =
     let
       fun getdeepest (deepest, len) nil = (deepest, len)
-        | getdeepest _ ((nil, _) :: _) = raise Chesstego "nil bmt not allowed"
+        | getdeepest _ ((nil, _) :: _) = raise Chessycrush "nil bmt not allowed"
         | getdeepest (deepest, len) (((src, dst) :: _, wmt) :: rest) =
         let val d = (src, dst) :: deepestw wmt
           val ld = length d
@@ -534,27 +653,22 @@ struct
       deepest
     end
 
-  val dopawn =
-(*  val () =
-    Util.for 0 7 *)
-    (fn pawn_x =>
-     let
-       val startboard = init_with_kings (pawn_x, 1, 0, 7)
-       val backup = init_with_kings (pawn_x, 1, 0, 7)
-     in
-       eprint ("Searching to depth " ^ itos DEPTH ^
-              " with king at pawn idx " ^ itos pawn_x ^ "\n");
+  fun search () =
+    let
+      val startboard = init ()
+      val backup = init ()
+    in
+       eprint ("Searching to depth " ^ itos DEPTH ^ "...\n");
 
        case winning startboard DEPTH of
-         NONE => eprint ("No winning strategy in " ^ itos DEPTH ^ " " ^
-                         "for king at idx " ^ itos pawn_x ^ "\n")
+         NONE => eprint ("No winning strategy in " ^ itos DEPTH ^ "...")
        | SOME wmt =>
            let
              val wmt = simplifying wmt
              val deepest = deepestw wmt
              val ssize = wmtsize wmt
            in
-             eprint ("WINNING! with pawn idx " ^ itos pawn_x ^ "\n");
+             eprint ("WINNING!\n");
              eprint ("Strategy size: " ^ itos ssize ^ "\n");
              eprint ("Example deepest:\n  ");
              app (fn (src, dst) =>
@@ -567,14 +681,10 @@ struct
              (* printwmt 0 wmt; *)
              ()
            end
-     end)
+     end
 
-  fun main s =
-    case Int.fromString s of
-      NONE => raise Chesstego "need int"
-    | SOME x => dopawn x
-
+  fun main () = search ()
 end
 
-val () = Params.main1 "Command-line argument: pawn x idx." Chesstego.main
-  handle Chesstego.Chesstego s => print ("Chesstego: " ^ s ^ "\n")
+val () = Params.main0 "Command-line argument: nuthin" Chessycrush.main
+  handle Chessycrush.Chessycrush s => print ("Chessycrush: " ^ s ^ "\n")
