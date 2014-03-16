@@ -389,6 +389,30 @@ struct
   and blackmovetree =
     B of (((int * int) * (int * int)) list * whitemovetree) list
 
+  fun xytos (x, y) = String.substring ("abcdefgh", x, 1) ^
+    itos (7 - y + 1)
+
+  structure MoveList =
+  struct
+    type movelist = ((int * int) * (int * int)) list
+    val Nil = nil
+    val Cons : ((int * int) * (int * int)) * movelist -> movelist = op::
+    (* Prints in reverse *)
+    fun tostring l =
+      StringUtil.delimit ", " (map (fn (src, dst) =>
+                                    xytos src ^ "->" ^ xytos dst) (rev l))
+  end
+
+  structure FreeMoveList =
+  struct
+    type movelist = unit
+    val Nil = ()
+    fun Cons _ = ()
+    fun tostring _ = "-not saved-"
+  end
+
+  structure M = MoveList
+
   fun intpair ((a, b), (aa, bb)) =
     case Int.compare (a, aa) of
       EQUAL => Int.compare (b, bb)
@@ -434,9 +458,6 @@ struct
       | _ => simplifying newt
     end
 
-  fun xytos (x, y) = String.substring ("abcdefgh", x, 1) ^
-    itos (7 - y + 1)
-
   fun tofen b =
     let
       fun rowtofen y =
@@ -480,6 +501,18 @@ struct
       (* currently no bonus stuff *)
     end
 
+  datatype mainline =
+      Nil
+    | Moves of ((int * int) * (int * int) * mainline) list
+
+  fun ::: ((src, dst), t) = Moves [(src, dst, t)]
+  infixr :::
+
+  fun movestos l =
+    "[" ^ StringUtil.delimit " or "
+    (map (fn (src, dst, ml) => xytos src ^ "->" ^ xytos dst) l) ^
+    "]"
+
   (* A state is known to be winning (for white) if there exists
      a move where the resulting state is losing (for black). A
      state is losing (for black) if for all black's moves,
@@ -495,8 +528,8 @@ struct
      recurse, but should put it back before returning. *)
   exception Winning of whitemovetree
   exception Losing
-  fun winning b _ 0 = NONE
-    | winning b nil depth =
+  fun winning b _ _ 0 = NONE
+    | winning b (movelist : M.movelist) Nil depth =
     (let
        fun onemove (src, dst, newboard) =
          let in
@@ -506,7 +539,8 @@ struct
            else ();
            *)
 
-           case losing newboard nil (depth - 1) of
+           case losing newboard (M.Cons ((src, dst), movelist))
+                       Nil (depth - 1) of
              NONE => ()
            | SOME bmt => raise Winning (W (src, dst, bmt))
          end
@@ -514,13 +548,23 @@ struct
        app_moves b onemove;
        NONE
      end handle Winning wmt => SOME wmt)
-    | winning b ((ms, md) :: mainline) depth =
+    | winning b movelist (Moves moves) depth =
     (let
        val didmain = ref false
+
+       (* PERF: Assumes there are no more than a handful
+          of options. *)
+       fun getmainline nil _ = NONE
+         | getmainline ((s, d, ml) :: rest) (ss, dd) =
+         if ss = s andalso dd = d
+         then SOME ml
+         else getmainline rest (ss, dd)
+
        fun onemove (src, dst, newboard) =
          (* PERF could pass this information forward? *)
-         if src = ms andalso dst = md
-         then
+         case getmainline moves (src, dst) of
+           NONE => ()  (* Maybe fall back to search? *)
+         | SOME rest =>
          let in
            didmain := true;
            (*
@@ -529,40 +573,40 @@ struct
            else ();
            *)
 
-           case losing newboard mainline (depth - 1) of
+           case losing newboard (M.Cons ((src, dst), movelist))
+                       rest (depth - 1) of
              NONE => ()
            | SOME bmt => raise Winning (W (src, dst, bmt))
          end
-       (* Maybe save for later? *)
-         else ()
      in
        app_moves b onemove;
        (* XXX need backup strategy in these cases... *)
        if not (!didmain)
-       then raise Chessycrush ("Illegal to issue mainline " ^
-                               xytos ms ^ "->" ^ xytos md ^
-                               " on board\n" ^ tofen b)
+       then raise Chessycrush ("Entire mainline is illegal: " ^
+                               movestos moves ^
+                               " on board\n" ^ tofen b ^
+                               " after\n" ^ M.tostring movelist)
        else ();
        NONE
      end handle Winning wmt => SOME wmt)
 
 
-  and losing _ _ 0 = NONE
-    | losing original_board mainline depth =
+  and losing _ _ _ 0 = NONE
+    | losing original_board movelist mainline depth =
     let
       val moves = ref nil
       val b = dualize original_board
 
       fun onemove (src, dst, newboard) =
         let val flipboard = dualize newboard
+          val fsrc = flip_pos src
+          val fdst = flip_pos dst
+          val movelist = M.Cons ((fsrc, fdst), movelist)
         in
-          case winning flipboard mainline (depth - 1) of
+          case winning flipboard movelist mainline (depth - 1) of
             NONE => raise Losing
           | SOME wmt =>
-              let val fsrc = flip_pos src
-                  val fdst = flip_pos dst
-              in moves := ([(fsrc, fdst)], wmt) :: !moves
-              end
+              moves := ([(fsrc, fdst)], wmt) :: !moves
         end
     in
       app_moves b onemove;
@@ -726,10 +770,20 @@ struct
                   ((2, 5), (2, 6)),
                   ((2, 6), (4, 6))] (* kills king *)
     *)
-  val mainline = [((2, 6), (2, 5)),
-                  ((3, 6), (3, 5)),
-                  ((4, 6), (4, 5)), (* candy *)
-                  ((4, 5), (4, 6))] (* ++ *)
+
+  val mainline : mainline =
+    ((4, 6), (4, 5)) ::: (* king's pawn *)
+    Moves [((5, 6), (5, 5), (* rhs *)
+            ((6, 6), (6, 5)) :::
+            ((6, 5), (6, 6)) :::
+            ((6, 6), (4, 6)) ::: Nil),
+           ((3, 6), (3, 5), (* lhs *)
+            ((2, 6), (2, 5)) :::
+            (* Either bank-rank mate or omega weapon *)
+            Moves [((2, 5), (2, 6),
+                    ((2, 6), (4, 6)) ::: Nil),
+                   ((2, 5), (2, 0),
+                    ((2, 0), (4, 0)) ::: Nil)])]
 
   fun main d =
     let
@@ -741,7 +795,7 @@ struct
     in
        eprint ("Searching to depth " ^ itos DEPTH ^ "...\n");
 
-       case winning startboard mainline DEPTH of
+       case winning startboard M.Nil mainline DEPTH of
          NONE => eprint ("No winning strategy in " ^ itos DEPTH ^ "...")
        | SOME wmt =>
            let
