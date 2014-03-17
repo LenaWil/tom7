@@ -24,6 +24,7 @@ struct
     Pawn
     (* Destroys a column *)
   | CandyRookCol
+  | CandyRookRow
     (* Destroys a row *)
     (* | CandyRookRow *)
     (* Bomb that destroys 3x3 *)
@@ -74,6 +75,23 @@ struct
       | s => raise Chessycrush ("unknown pieces type: " ^ s))
         )
 
+  fun xytos (x, y) = String.substring ("abcdefgh", x, 1) ^
+    itos (7 - y + 1)
+
+  fun ptos (p, c) =
+    case (p, c) of
+      (Pawn, White) => "P"
+    | (Pawn, Black) => "p"
+    | (CandyRookCol, White) => "R"
+    | (CandyRookCol, Black) => "r"
+    | (CandyRookRow, White) => "Q"
+    | (CandyRookRow, Black) => "q"
+    | (King, White) => "K"
+    | (King, Black) => "k"
+
+  fun potos NONE = "-"
+    | potos (SOME p) = ptos p
+
   fun get board (x, y) =
     Array.sub (board, y * WIDTH + x)
 
@@ -107,6 +125,14 @@ struct
 
   fun is_white_king (SOME (King, White)) = true
     | is_white_king _ = false
+
+  fun is_black_king (SOME (King, Black)) = true
+    | is_black_king _ = false
+
+  fun black_is_dead b =
+    not (Array.exists is_black_king b) andalso
+    (* Check this because mutual elimination is declared to be a draw *)
+    Array.exists is_white_king b
 
   (* Apply the function to all moves that white can make. A
      move is represented by the pair of coordinates of the piece
@@ -162,6 +188,7 @@ struct
              NoCrush
            | Crush of { low : int, high : int,
                         killcol : int list,
+                        killrow : int list,
                         candy : bool }
 
          (* kill all of the black pieces in this column *)
@@ -170,6 +197,13 @@ struct
            (fn y =>
             case get b (x, y) of
               SOME (_, Black) => set b (x, y) NONE
+            | _ => ())
+
+         fun kill_row b y =
+           Util.for 0 (WIDTH - 1)
+           (fn x =>
+            case get b (x, y) of
+              SOME (_, Black) => set b (x, y) (SOME (King, Black))
             | _ => ())
 
          fun horizontal_crush b (x, y) =
@@ -194,20 +228,26 @@ struct
              val size = high - low + 1
 
              fun getkills () =
-               let val kills = ref nil
+               let
+                 val colkills = ref nil
+                 val rowkills = ref nil
                in
                  Util.for low high
                  (fn x =>
                   case get b (x, y) of
-                    SOME (CandyRookCol, White) => kills := x :: !kills
+                    SOME (CandyRookCol, White) => colkills := x :: !colkills
+                  | SOME (CandyRookRow, White) => rowkills := y :: !rowkills
                   | _ => ());
-                 !kills
+                 (!colkills, !rowkills)
                end
            in
              if size >= 3
-             then Crush { low = low, high = high,
-                          killcol = getkills (),
+             then
+               let val (ck, rk) = getkills ()
+               in Crush { low = low, high = high,
+                          killcol = ck, killrow = rk,
                           candy = true }
+               end
              else NoCrush
            end
 
@@ -236,28 +276,36 @@ struct
                 are multiple. Probably never happens in search
                 though. *)
              fun getkills () =
-               let val kills = ref nil
+               let
+                 val colkills = ref nil
+                 val rowkills = ref nil
                in
                  Util.for low high
                  (fn y =>
-                  case get b (x, y) of
-                    (* x is correct here -- we want the column.
-                       It'll be the same each time. *)
-                    SOME (CandyRookCol, White) => kills := x :: !kills
-                  | _ => ());
-                 !kills
+                  let
+                    val p = get b (x, y)
+                  in
+                    case p of
+                      SOME (CandyRookCol, White) => colkills := x :: !colkills
+                    | SOME (CandyRookRow, White) => rowkills := y :: !rowkills
+                    | _ => ()
+                  end);
+                 (!colkills, !rowkills)
                end
            in
              if size >= 3
-             then Crush { low = low, high = high,
-                          killcol = getkills (),
+             then
+               let val (ck, rk) = getkills ()
+               in Crush { low = low, high = high,
+                          killcol = ck, killrow = rk,
                           candy = true }
+               end
              else NoCrush
            end
 
          (* Same, but check for crush after. Assumes
             crush can only happen fromthe destination. *)
-         fun moveto_crush (destx, desty) =
+         fun moveto_crush moved_horiz (destx, desty) =
            (* Can't move off board *)
            if destx < 0 orelse destx >= WIDTH orelse
               desty < 0 orelse desty >= HEIGHT
@@ -284,7 +332,7 @@ struct
                 set b (destx, desty) src_cell;
 
                 case horizontal_crush b (destx, desty) of
-                  Crush { low = x1, high = x2, killcol, candy } =>
+                  Crush { low = x1, high = x2, killcol, killrow, candy } =>
                     let
                       val copy = clone b
                       (* Fix original at any point after copy *)
@@ -294,14 +342,18 @@ struct
                       (fn xx =>
                        set copy (xx, desty) NONE);
                       app (kill_col copy) killcol;
+                      app (kill_row copy) killrow;
                       if candy
-                      then set copy (destx, desty) (SOME (CandyRookCol, White))
+                      then set copy (destx, desty)
+                        (SOME (if moved_horiz
+                               then CandyRookRow
+                               else CandyRookCol, White))
                       else ();
                       f ((x, y), (destx, desty), copy)
                     end
                 | NoCrush =>
                     (case vertical_crush b (destx, desty) of
-                       Crush { low = y1, high = y2, killcol, candy } =>
+                       Crush { low = y1, high = y2, killcol, killrow, candy } =>
                          let
                            val copy = clone b
                            val () = repair ()
@@ -310,9 +362,12 @@ struct
                            (fn yy =>
                             set copy (destx, yy) NONE);
                            app (kill_col copy) killcol;
+                           app (kill_row copy) killrow;
                            if candy
                            then set copy (destx, desty)
-                                    (SOME (CandyRookCol, White))
+                                    (SOME (if moved_horiz
+                                           then CandyRookRow
+                                           else CandyRookCol, White))
                            else ();
                            f ((x, y), (destx, desty), copy)
                          end
@@ -346,10 +401,10 @@ struct
 
          fun candy_rook () =
            let in
-             moveuntil (~1, 0, x, y) moveto_crush;
-             moveuntil (1, 0, x, y) moveto_crush;
-             moveuntil (0, ~1, x, y) moveto_crush;
-             moveuntil (0, 1, x, y) moveto_crush
+             moveuntil (~1, 0, x, y) (moveto_crush true);
+             moveuntil (1, 0, x, y) (moveto_crush true);
+             moveuntil (0, ~1, x, y) (moveto_crush false);
+             moveuntil (0, 1, x, y) (moveto_crush false)
            end
        in
          case piece of
@@ -366,31 +421,30 @@ struct
          | Pawn =>
              let in
                if y = 6
-               then moveto_crush (x, 4)
+               then moveto_crush false (x, 4)
                else ();
-               moveto_crush (x, y - 1);
+               moveto_crush false (x, y - 1);
                if has_black_piece (x - 1, y - 1)
-               then moveto_crush (x - 1, y - 1)
+               then moveto_crush false (x - 1, y - 1)
                else ();
                if has_black_piece (x + 1, y - 1)
-               then moveto_crush (x + 1, y - 1)
+               then moveto_crush false (x + 1, y - 1)
                else ()
              end
          | CandyRookCol => candy_rook ()
+         | CandyRookRow => candy_rook ()
 
        end
      | _ => ()) b
 
   datatype whitemovetree =
     W of (int * int) * (int * int) * blackmovetree
+    | Wtrivial
 
   (* Allowed but not required to collapse the tree if we do the same
      thing for several different moves of black's. *)
   and blackmovetree =
     B of (((int * int) * (int * int)) list * whitemovetree) list
-
-  fun xytos (x, y) = String.substring ("abcdefgh", x, 1) ^
-    itos (7 - y + 1)
 
   structure MoveList =
   struct
@@ -422,7 +476,10 @@ struct
     Util.lexicographic [Util.order_field #1 intpair,
                         Util.order_field #2 intpair]
 
-  fun cmpw (W w1, W w2) =
+  fun cmpw (Wtrivial, Wtrivial) = EQUAL
+    | cmpw (W _, Wtrivial) = LESS
+    | cmpw (Wtrivial, W _) = GREATER
+    | cmpw (W w1, W w2) =
     Util.lexicographic [Util.order_field #1 intpair,
                         Util.order_field #2 intpair,
                         Util.order_field #3 cmpb] (w1, w2)
@@ -438,6 +495,7 @@ struct
     Util.lex_list_order movepair (l1, l2)
 
   fun simplifyw (W (src, dst, bmt)) = W (src, dst, simplifyb bmt)
+    | simplifyw Wtrivial = Wtrivial
   and simplifyb (B l) =
     let
       val l = map (fn (x, y) => (x, simplifyw y)) l
@@ -474,14 +532,7 @@ struct
            case get b (x, y) of
              NONE => blanks := !blanks + 1
            | SOME (p, c) =>
-               let val m =
-                 case (p, c) of
-                   (Pawn, White) => "P"
-                 | (Pawn, Black) => "p"
-                 | (CandyRookCol, White) => "R"
-                 | (CandyRookCol, Black) => "r"
-                 | (King, White) => "K"
-                 | (King, Black) => "k"
+               let val m = ptos (p, c)
                in
                  doblanks ();
                  s := !s ^ m
@@ -545,6 +596,9 @@ struct
            | SOME bmt => raise Winning (W (src, dst, bmt))
          end
      in
+       if black_is_dead b
+       then raise Winning Wtrivial
+       else ();
        app_moves b onemove;
        NONE
      end handle Winning wmt => SOME wmt)
@@ -579,13 +633,17 @@ struct
            | SOME bmt => raise Winning (W (src, dst, bmt))
          end
      in
+       if black_is_dead b
+       then raise Winning Wtrivial
+       else ();
+
        app_moves b onemove;
        (* XXX need backup strategy in these cases... *)
        if not (!didmain)
-       then raise Chessycrush ("Entire mainline is illegal: " ^
-                               movestos moves ^
-                               " on board\n" ^ tofen b ^
-                               " after\n" ^ M.tostring movelist)
+       then print ("Entire mainline is illegal: " ^
+                   movestos moves ^
+                   " on board\n \\chessboard[setfen=" ^ tofen b ^ "]\n" ^
+                   " after\n" ^ M.tostring movelist ^ "\n")
        else ();
        NONE
      end handle Winning wmt => SOME wmt)
@@ -617,6 +675,7 @@ struct
     | pad n = " " ^ pad (n - 1)
 
   fun wmtsize (W (_, _, bmt)) = 1 + bmtsize bmt
+    | wmtsize Wtrivial = 1
   and bmtsize (B l) = foldr op+ 1 (map (fn (_, wmt) => wmtsize wmt) l)
 
   fun printwmt indent (W (src, dst, bmt)) =
@@ -624,6 +683,7 @@ struct
       print (pad indent ^ "White: " ^ xytos src ^ " -> " ^ xytos dst ^ ":\n");
       printbmt (indent + 2) bmt
     end
+    | printwmt indent (Wtrivial) = print (pad indent ^ "(black is dead)\n")
 
   and printbmt indent (B nil) =
     print (pad indent ^ "** black has no moves **\n")
@@ -683,6 +743,8 @@ struct
              tofen board ^ "\n");
       printbtree move board bmt
     end
+    | printwtree move board Wtrivial =
+    print (pad (move * 4) ^ itos move ^ ". (black is dead)\n")
 
   and printbtree move board (B nil) =
     print (pad (move * 4 + 2) ^ " ++\n")
@@ -715,6 +777,8 @@ struct
       texbtree move board bmt;
       print (pp ^ "% \\end{itemize} % white\n")
     end
+    | texwtree move board Wtrivial =
+      print (pad (move * 4) ^ " (black is dead)\n")
 
   and texbtree move board (B nil) =
     print (pad (move * 4 + 2) ^ " ++\n")
@@ -742,6 +806,7 @@ struct
 
   fun deepestw (W (src, dst, bmt)) =
     (src, dst) :: deepestb bmt
+    | deepestw Wtrivial = nil
   and deepestb (B nil) = nil
     | deepestb (B ((nil, _) :: _)) = raise Chessycrush "nil bmt not allowed"
     | deepestb (B (((hsrc, hdst) :: _, hwmt) :: t)) =
