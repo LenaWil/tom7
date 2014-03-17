@@ -29,7 +29,7 @@ Copyright \copyright\ 2014 the Regents of the Wikiplia
 Foundation. Appears in SIGBOVIK 2014 with the undivided
 attention of the Association for Computational Heresy; 
 {\em IEEEEEE!} press, Verlag-Verlag volume no.~0x40-2A.
-\$0.00}}
+\$0.00}. Badness: 12,844 }
 
 \setchessboard{showmover=false}
 
@@ -74,22 +74,22 @@ be achingly bad.
 
 In Stratego, each player begins the game by arranging his or her
 Stratego-pieces in a secret fashion on the board. In the world of
-Stratego, civization is ruled by a leader known as Flag. The player's
-goal is to assassinate the opponent Flag, using a member of his or her
-army. However, which piece represents Flag is unknown!
+Stratego, civilization is ruled by a leader known as Flag. The
+player's goal is to assassinate the opponent Flag, using a member of
+his or her army. However, which piece represents Flag is unknown!
 
 There are many ways we might apply the Stratego system of governance
 to Chess.
 
 \paragraph{Chesstego variation I.} In this variation, each player decides
 in secret, before the game begins, which of his or her pieces is the
-actual King, that is, the Flag. If this piece is checkmated, the game
+actual King, that is, Flag. If this piece is checkmated, the game
 is lost. There are two subvariations: {\em I(a)}, where a player must
-announce {\em Check!} when the Flag is under attack, and all of the
+announce {\em Check!} when Flag is under attack, and all of the
 normal rules about moving into (or castling through) check must be
 obeyed. In subvariation {\em I(b)}, which I prefer, the piece that is
 Flag may slip silently into and out of check, and the game only ends
-when that piece is captured.\footnote{In Chess proper, these
+when that piece is captured.\!\footnote{In Chess proper, these
   formulations are nearly equivalent---except for rules like castling
   through check and some corner cases---but it is deemed important for
   movie drama that players be able to announce {\em Check!} and {\em
@@ -107,7 +107,7 @@ strategy for winning.
 decides in secret, before the game, which of her {\em opponent's} pieces
 is Flag. Same as before, if this piece is captured, the game ends
 instantly. But now, players don't even know which of their own pieces
-is their glorious ruler, Flag. This can be very exciting or tittilating.
+is their glorious ruler, Flag. This can be very exciting or titillating.
 
 Unfortunately, there is no known winning strategy for White, and there
 are no winning strategies with fewer than 6 moves. This was proved
@@ -127,27 +127,45 @@ Perhaps if he were handicapped somewhat?
 the identity of both Flags again, in secret without telling her
 opponent, and also Black does not get any good pieces, just pawns. Like this:
 
+\begin{center}
 \chessboard[
+  smallboard,
   setfen=4k3/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR]
+\end{center}
 
 Lo! This version is finally satisfactory. In this version we need not
 equivocate over who shall win. White picks one of her very safe pieces
 (e.g., one of the rooks) as Flag, and chooses Black's b7~pawn as
 Black~Flag. White's winning move is c2c4 and then Qb3, with Black~Flag
-unable to escape the B file. Choosing the f7~pawn works as well.
+unable to escape the B file~(Figure~\ref{fig:hopeless}). Choosing the f7~pawn works as well.
 
 % make chesstego.exe && ./chesstego.exe -blackpieces justking 1 > king1.tex
 % \input{king1}
 
-Example hopeless match: 1. c4 Kf8~~2. Qb3 b5~~3. c4xb4\checkmate \\
-\chessboard[setfen=5k2/p1pppppp/8/1P6/8/1Q6/PP1PPPPP/RNB1KBNR]
+
+\begin{figure}[ht]
+\begin{center}
+\chessboard[setfen=5k2/p1pppppp/8/1P6/8/1Q6/PP1PPPPP/RNB1KBNR,
+  pgfstyle=straightmove,
+  markmoves={c4-b5}
+]
+\end{center}\vspace{-0.1in}
+\caption{
+Example hopeless match: 1. c4 Kf8~~2. Qb3 b5~~3. xb5 1--0
+}
+\label{fig:hopeless}
+\end{figure}
+
 
 \paragraph{Chesstego variation V.} This variation is just like {\em IV}
 but White gets super good pieces everywhere instead of having some
 dumb ones, and Black still gets bupkiss:
 
+\begin{center}
 \chessboard[
+  smallboard,
   setfen=4k3/pppppppp/8/8/8/8/NNNBBNNN/QQQQKQQQ]
+\end{center}
 
 Now there are many more winning strategies, but the one from {\em IV}
 works as well.
@@ -191,9 +209,9 @@ like ``Does your piece have straight hair?'' No pieces have straight
 hair, so nothing happens. On the next turn, suppose the player asks,
 ``Does your piece have brown hair?'' No pieces have brown hair,
 nor any hair at all, and no pieces have any brown parts at all either.
-Stop asking. Next, Black asks, ``Does your piece have crennelations?''
-Both of White's rooks have crennelations, so they are eliminated from
-the board (Figure~\ref{fig:crennelations}).
+Stop asking. Next, Black asks, ``Does your piece have crenellations?''
+Both of White's rooks have crenellations, so they are eliminated from
+the board (Figure~\ref{fig:crenellations}).
 
 \begin{figure}[ht]
 \begin{center}
@@ -205,9 +223,9 @@ the board (Figure~\ref{fig:crennelations}).
   1. Does your piece have curly hair?
      \ldots Does your piece have straight hair?
   2. Does your piece have brown hair?
-     \ldots Does your piece have crennelations?
+     \ldots Does your piece have crenellations?
 }
-\label{fig:crennelations}
+\label{fig:crenellations}
 \end{figure}
 
 Next, White might ask, ``Does your piece have a cross on his hat?''
@@ -216,7 +234,7 @@ because it is illegal to ask a question that would eliminate the King.
 
 This variation produces draws easily. An example Nash Equilibrium:
 White begins by asking, ``Does your piece have three lobes like a
-truncated snowman, {\em or} crennelations, {\em or} horse ears, {\em
+truncated snowman, {\em or} crenellations, {\em or} horse ears, {\em
   or} two weird long shoulder-ribbons that I don't know what they are,
 {\em or} five pointy tines on her crown?'' This matches all of Black's
 pieces except his king, so he removes them all. But then Black asks:
@@ -237,7 +255,7 @@ horizontally or vertically), those pieces are all removed. Usually
 this is a tactical misstep in Chess, as three of one's own pieces
 are destroyed for nothing. However, as in {\em Candy Crush}, rewards
 are given when more than three like pieces are destroyed at once.
-The simplest is to award the player with a Candy Rook at at the
+The simplest is to award the player with a Candy Rook at the
 place where the moved piece ended up. A Candy Rook moves like a
 rook, but if it is crushed, it destroys all of the opponent's
 pieces on the file (column) it currently occupies.\!\footnote{In
@@ -274,11 +292,24 @@ crushing the whole thing (Figure~\ref{fig:selfcrush}).
 \label{fig:selfcrush}
 \end{figure}
 
-
+With just pawns, it seems that the best way to gain advantage for
+White is to crush four pawns to create a Candy Rook before Black does,
+then menace Black with it. Unfortunately, moving four pawns into
+formation before black can interfere is not possible; Black can react
+to White's first move and advance one of his own pawns towards the
+construction (Figure~\ref{fig:chessyv1}). Moreover, if he does, and
+trades for one of White's pawns (or better, the resulting candy), then
+Black is probably in a superior position, White having crapified his
+pawn structure in pursuit of candy. Worse still, crushing a successful
+Candy Rook is not that menacing, since Black can simply move his king
+out of the way.
 
 \begin{figure}[ht]
 \begin{center}
-\chessboard[setfen=4k3/1ppppppp/8/8/8/1p1PP3/P1P2PPP/4K3]
+\chessboard[setfen=4k3/1ppppppp/8/8/8/1p1PP3/P1P2PPP/4K3,
+  pgfstyle=straightmove,
+  markmoves={a4-b3},
+]
 \end{center}\vspace{-0.1in}
 \caption{
   Black interfering with White's Omega Weapon main line:
@@ -291,19 +322,63 @@ crushing the whole thing (Figure~\ref{fig:selfcrush}).
 \label{fig:chessyv1}
 \end{figure}
 
-In {\em v2}, the Candy Rook is extremely powerful, since
-not only does it destroy an entire file (the e file being
-the likely target, since it contains the immovable King),
-but when it is used (by crushing) it is also replaced,
-since a crush always yields candy. Therefore, White's
-most straightforward strategy is to quickly create a
-Candy Rook, then crush it in the e file, which wins. This
-should be a line where White's tempo advantage makes it
-mostly immune from interference, since even a check is
-answered by destroying the opponent's king.
+To correct these problems with balance ({\em i.e.}, that the game may
+be balanced), we simplify the candying rules: Any crush produces a
+Candy Rook, including ones of length 3. This allows White to create a
+Candy Rook before Blacks pawns can reach her. Furthermore, we
+stipulate that the kings cannot move (they don't have legs anyway,
+this is plain to see, so let's be realistic). In {\em v2}, the Candy
+Rook is extremely powerful, since not only does it destroy an entire
+file (the e file being the likely target, since it contains the
+immovable King), but when it is used (by crushing) it is also
+replaced, since a crush always yields candy. Therefore, White's most
+straightforward strategy is to quickly create a Candy Rook, then crush
+it in the e file, which wins. This should be a line where White's
+tempo advantage makes it mostly immune from interference, since even a
+check is answered by destroying the opponent's king.
+
+The idea behind White's Omega Weapon is to create a triplet of pawns
+on rank 3, either c3--e3 or e3--g3. White begins by moving her king's
+pawn to e3. Black can interfere with one side of the triplet
+(Figure~\ref{fig:twopaths}), but only one. After 1. e3, if \ldots f5
+or h5, then White will continue creating the triplet in c3--e3.
+Otherwise, she is safe to create it in e3--g3. Once the Omega Weapon
+is constructed, she need only move it to e2 (which is free due to the
+first move, and will be adjacent to at least two pawns). This destroys
+the Black king, which cannot have moved, due to the rules.
+Unfortunately, this strategy can be foiled by Black with a
+clever\footnote{This strategy was discovered by computer, like most
+  clever things these days.} mutual suicide, as shown in
+Figure~\ref{fig:chessyv2}. This strategy is not easily defended
+against, nor is it straightforward to fix the rules of the
+game,\!\footnote{ It seems perhaps we can eliminate Black's draw
+  strategy by restoring the idea of horizontally striped Candy Rooks
+  (see footnote above). I implemented this. Unfortunately, although
+  the move that ends the game in a draw is a horizontal move, the move
+  that creates the Candy Rook is a vertical one. Therefore, Black's
+  Candy Rook is vertically striped, and can successfully destroy the
+  White king (though it is then replaced with a horizontally striped
+  Candy Rook to observe the empty thrones).} so it seems {\em Chessy
+  Crush Saga v2} also retains hope for Black, even though the odds
+initially seemed stacked against her.
 
 
-% \chessboard[setfen=4k3/ppp1pppp/8/8/3p4/2PP4/PP2PPPP/4K3]
+\begin{figure}[ht]
+\begin{center}
+\chessboard[setfen=4k3/ppp1pppp/8/8/3p4/2PP4/PP2PPPP/4K3]
+\end{center}\vspace{-0.1in}
+\caption{ 
+%
+  White may not use a fixed strategy to construct her Omega Weapon.
+  The position shown is after 1. c3 d5 2. d3 d4. If 3. e3 {\em (making
+    candy)} then \ldots xe3, obviously. White can make candy with 3.
+  b3, but now e2 is not clear to crush the Candy Rook here and destroy
+  the Black king.
+%
+}
+\label{fig:twopaths}
+\end{figure}
+
 % \chessboard[setfen=4k3/ppp1pppp/8/8/8/4p3/PP3PPP/4K3]
 % \chessboard[setfen=4k3/1ppppppp/8/8/8/8/pR2PPPP/4K3]
 \begin{figure}[ht]
@@ -326,35 +401,39 @@ answered by destroying the opponent's king.
 \caption{ 
 %
   Black's surprising draw strategy in {\em Chessy Crush v2}. White
-  begins her Omega Weapon: 1. e3 c6 2. d3 a6 3. c3 {\em making candy}
-  b6 {\em making candy} we have the board in (a). It seems that Black
-  is stuck after 4. Rc2, since 5. Re2 will crush White's candy rook
-  and destroy the entire e file, including Black's king. Black
-  defending with 4. \ldots Re6 initially seems pointless (White will
-  destroy the rook as well so the check is irrelevant---this indeed
-  refutes 4. \ldots Rb1) but Re6 actually creates a {\em vertical}
-  three-piece crush, sacrificing Black's king to destroy the e file
-  first, which also destroys White's king! Such mutual destruction
-  is not possible in traditional chess, but it seems appropriate to
-  consider it a draw in Chessy Crush Saga v2. It appears that White
-  can head off this line with 4. Rc8++, a totally vanilla back-rank mate,
-  but this is not actually mate with the same 4. \ldots Rb1 escaping
-  to a draw.
+  begins her Omega Weapon: 1. e3 c6 2. d3 a6 3. c3 {\em (making
+    candy)} b6 {\em (making candy)} we have the board in (a). It seems
+  that Black is stuck after 4. Rc2 {\em (making candy)}, since 5. Re2
+  {\em (making candy)} will crush White's candy rook and destroy the
+  entire e file, including Black's king. Black defending with 4.
+  \ldots Re6 initially seems pointless (White will destroy the rook as
+  well so the check is irrelevant---this indeed refutes 4. \ldots Rb1)
+  but Re6 actually creates a {\em vertical} three-piece crush,
+  sacrificing Black's king to destroy the e file first, which also
+  destroys White's king! Such mutual destruction is not possible in
+  traditional chess, but it seems appropriate to consider it a draw in
+  Chessy Crush Saga v2. It appears that White can head off this line
+  with 4. Rc8++, a totally vanilla back-rank mate, but this is not
+  actually mate with the same 4. \ldots Re6 {\em (making candy)}
+  escaping to a draw.
 %
 }
 \label{fig:chessyv2}
 \end{figure}
 
-% Chessy Crush Saga
-% Battleship + Chess = Battlechess
-% Chess Tac Toe
-% Chesslers of Catan
-% Chesstris
-% Hungry Hungry Hipposchess
+\section{Future work and conclusions}
 
-% Monopoly?
+Many other games can be combined with Chess to ruin Chess. For example,
+consider {\em Chess Tac Toe}, {\em Chesslers of Catan}, {\em Chesstris},
+and {\em Hungry Hungry Hipposchess}. Combining Chess and Sokoban is
+impossible, obviously. The combination of Chess and Battleship is
+{\em Battlechess}, published in 1988 by Interplay.
 
-\setchessboard{tinyboard,showmover=false}
+\medskip
+\medskip
+In conclusion, San Dimas High School Footchess rules!
+
+% \setchessboard{tinyboard,showmover=false}
 % \chessboard[
 %   setfen=rnbqkbnr/pppppppp/8/8/8/8/NNNBBNNN/QQQQKQQQ]
 
@@ -378,6 +457,9 @@ answered by destroying the opponent's king.
 
 % Mate in 10 for pawn idx 0! 441450 tree 
 %                 and idx 1! 210316 tree
+
+% TODO: Use mainline to see if any more chesstego is solvable.
+%
 
 % TODO: We always have to explore all of black's moves, but we
 % can push the search much deeper (if we just want to prove the
