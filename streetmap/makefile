@@ -12,6 +12,12 @@ mergestreets.exe : mergestreets.cm mergestreets.sml
 
 statecounts : alabama-counts.txt alaska-counts.txt arizona-counts.txt arkansas-counts.txt california-counts.txt colorado-counts.txt connecticut-counts.txt delaware-counts.txt district-of-columbia-counts.txt florida-counts.txt georgia-counts.txt hawaii-counts.txt idaho-counts.txt illinois-counts.txt indiana-counts.txt iowa-counts.txt kansas-counts.txt kentucky-counts.txt louisiana-counts.txt maine-counts.txt maryland-counts.txt massachusetts-counts.txt michigan-counts.txt minnesota-counts.txt mississippi-counts.txt missouri-counts.txt montana-counts.txt nebraska-counts.txt nevada-counts.txt new-hampshire-counts.txt new-jersey-counts.txt new-mexico-counts.txt new-york-counts.txt north-carolina-counts.txt north-dakota-counts.txt ohio-counts.txt oklahoma-counts.txt oregon-counts.txt pennsylvania-counts.txt rhode-island-counts.txt south-carolina-counts.txt south-dakota-counts.txt tennessee-counts.txt texas-counts.txt utah-counts.txt vermont-counts.txt virginia-counts.txt washington-counts.txt west-virginia-counts.txt wisconsin-counts.txt wyoming-counts.txt
 
+merged.txt : statecounts mergestreets.exe
+	./mergestreets.exe alabama-counts.txt alaska-counts.txt arizona-counts.txt arkansas-counts.txt california-counts.txt colorado-counts.txt connecticut-counts.txt delaware-counts.txt district-of-columbia-counts.txt florida-counts.txt georgia-counts.txt hawaii-counts.txt idaho-counts.txt illinois-counts.txt indiana-counts.txt iowa-counts.txt kansas-counts.txt kentucky-counts.txt louisiana-counts.txt maine-counts.txt maryland-counts.txt massachusetts-counts.txt michigan-counts.txt minnesota-counts.txt mississippi-counts.txt missouri-counts.txt montana-counts.txt nebraska-counts.txt nevada-counts.txt new-hampshire-counts.txt new-jersey-counts.txt new-mexico-counts.txt new-york-counts.txt north-carolina-counts.txt north-dakota-counts.txt ohio-counts.txt oklahoma-counts.txt oregon-counts.txt pennsylvania-counts.txt rhode-island-counts.txt south-carolina-counts.txt south-dakota-counts.txt tennessee-counts.txt texas-counts.txt utah-counts.txt vermont-counts.txt virginia-counts.txt washington-counts.txt west-virginia-counts.txt wisconsin-counts.txt wyoming-counts.txt
+
+sorted.txt : merged.txt
+	/bin/sort -n merged.txt > $@
+
 alaska-counts.txt : alaska-latest.osm topstreets.exe
 	time ./topstreets.exe alaska
 
