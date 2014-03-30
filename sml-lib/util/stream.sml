@@ -24,9 +24,9 @@ struct
       let
         val r = ref (fn () => raise Match)
       in
-        r := (fn () => 
+        r := (fn () =>
               let val ss = s ()
-              in 
+              in
                 r := (fn () => ss);
                 ss
               end);
@@ -35,9 +35,9 @@ struct
 
 
     (* why double delay? *)
+    exception Impossible
     fun old_delay s =
         let
-            exception Impossible
             val memo = ref (fn () => raise Impossible)
             fun s'() = let val r = s()() in memo := (fn () => r); r end
         in
@@ -127,7 +127,7 @@ struct
     and filt' f s () =
       case force s of
         Nil => Nil
-      | Cons(a, rest) => 
+      | Cons(a, rest) =>
           if f a then Cons(a, filter f rest)
           else filt' f rest ()
 
@@ -170,7 +170,7 @@ struct
                     case cmp (bv, v) of
                       (* Better. *)
                         GREATER =>
-                          (* FYI, adding the singleton list bv is 
+                          (* FYI, adding the singleton list bv is
                              the real tragedy here. *)
                           ms_insert v (singleton bv :: ss :: sg) t
                       (* Same or worse. Don't take it. *)

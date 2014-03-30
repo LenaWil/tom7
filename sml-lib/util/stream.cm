@@ -1,7 +1,9 @@
 (* General-purpose streams. *)
 Group is
 
-$/basis.cm
+#if (defined(SMLNJ_VERSION))
+ $/basis.cm
+#endif
 
 stream-sig.sml
 stream.sml
