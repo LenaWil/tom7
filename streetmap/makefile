@@ -1,5 +1,5 @@
 
-default : topstreets.exe mergestreets.exe
+default : topstreets.exe mergestreets.exe filterosm.exe
 
 MLTON=/c/mlton/bin/mlton.bat -target x86_64-w64-mingw32 -codegen amd64
 
@@ -8,6 +8,9 @@ topstreets.exe : topstreets.cm topstreets.sml
 
 mergestreets.exe : mergestreets.cm mergestreets.sml
 	$(MLTON) -output $@ mergestreets.cm
+
+filterosm.exe : filterosm.cm filterosm.sml
+	$(MLTON) -output $@ filterosm.cm
 
 
 statecounts : alabama-counts.txt alaska-counts.txt arizona-counts.txt arkansas-counts.txt california-counts.txt colorado-counts.txt connecticut-counts.txt delaware-counts.txt district-of-columbia-counts.txt florida-counts.txt georgia-counts.txt hawaii-counts.txt idaho-counts.txt illinois-counts.txt indiana-counts.txt iowa-counts.txt kansas-counts.txt kentucky-counts.txt louisiana-counts.txt maine-counts.txt maryland-counts.txt massachusetts-counts.txt michigan-counts.txt minnesota-counts.txt mississippi-counts.txt missouri-counts.txt montana-counts.txt nebraska-counts.txt nevada-counts.txt new-hampshire-counts.txt new-jersey-counts.txt new-mexico-counts.txt new-york-counts.txt north-carolina-counts.txt north-dakota-counts.txt ohio-counts.txt oklahoma-counts.txt oregon-counts.txt pennsylvania-counts.txt rhode-island-counts.txt south-carolina-counts.txt south-dakota-counts.txt tennessee-counts.txt texas-counts.txt utah-counts.txt vermont-counts.txt virginia-counts.txt washington-counts.txt west-virginia-counts.txt wisconsin-counts.txt wyoming-counts.txt
