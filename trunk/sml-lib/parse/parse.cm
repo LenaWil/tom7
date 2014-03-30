@@ -1,7 +1,9 @@
 (* Combinator parsing *)
 Group is
 
-$/basis.cm
+#if (defined(SMLNJ_VERSION))
+ $/basis.cm
+#endif
 
 (* We need streams *)
 ../util/stream.cm

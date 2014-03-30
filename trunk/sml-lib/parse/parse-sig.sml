@@ -18,7 +18,7 @@ sig
     (* sequential successful composition of parsers *)
     val -- : ('a,'t) parser * ('a -> ('b,'t) parser) -> ('b,'t) parser
     (* sequential failing composition of parsers *)
-    val ## : ('a,'t) parser * (Pos.pos -> ('a,'t) parser) -> 
+    val ## : ('a,'t) parser * (Pos.pos -> ('a,'t) parser) ->
               ('a,'t) parser
 
     (* grab position *)
@@ -34,22 +34,22 @@ sig
     val fix : (('a,'t) parser -> ('a,'t) parser) -> ('a,'t) parser
 
     (* re-parse same input, given result of first parse *)
-    val lookahead : ('a,'t) parser -> ('a -> ('b,'t) parser) -> 
+    val lookahead : ('a,'t) parser -> ('a -> ('b,'t) parser) ->
                       ('b,'t) parser
 
     (* parse this stream before reading any other input *)
-    val push : ('t * Pos.pos) Stream.stream -> 
+    val push : ('t * Pos.pos) Stream.stream ->
                 ('a,'t) parser -> ('a, 't) parser
 
     (* parse a stream *)
-    val parse : ('a,'t) parser -> ('t * Pos.pos) Stream.stream -> 
+    val parse : ('a,'t) parser -> ('t * Pos.pos) Stream.stream ->
                  'a option
 
     (* transform p s
 
        parses consecutive maximal prefixes of s with p as many times
        as possible, outputting the results as a stream *)
-    val transform : ('a,'t) parser -> ('t * Pos.pos) Stream.stream -> 
+    val transform : ('a,'t) parser -> ('t * Pos.pos) Stream.stream ->
                      'a Stream.stream
 
 end
@@ -68,12 +68,12 @@ sig
   *)
 
   (* sequential composition *)
-  val &&       : ('a,'t) parser * ('b,'t) parser -> ('a * 'b,'t) parser 
+  val &&       : ('a,'t) parser * ('b,'t) parser -> ('a * 'b,'t) parser
   (* alternation *)
-  val ||       : ('a,'t) parser * ('a,'t) parser -> ('a,'t) parser 
+  val ||       : ('a,'t) parser * ('a,'t) parser -> ('a,'t) parser
 
   (* apply function to success value *)
-  val wth      : ('a,'t) parser * ('a -> 'b) -> ('b,'t) parser 
+  val wth      : ('a,'t) parser * ('a -> 'b) -> ('b,'t) parser
   (* succeed only if check on successful is true *)
   val suchthat : ('a,'t) parser * ('a -> bool) -> ('a,'t) parser
   (* specify success value *)
@@ -88,7 +88,7 @@ sig
   val alt      : ('a,'t) parser list -> ('a,'t) parser
 
   (* ensure that next token satisfies condition, yielding that token *)
-  val satisfy  : ('t -> bool) -> ('t,'t) parser 
+  val satisfy  : ('t -> bool) -> ('t,'t) parser
 
   (* succeed only if function returns SOME a *)
   val maybe    : ('t -> 'a option) -> ('a, 't) parser
@@ -106,35 +106,35 @@ sig
   val oneof    : ''t list -> (''t,''t) parser
 
   (* optional parse, yielding an optional result *)
-  val opt      : ('a,'t) parser -> ('a option,'t) parser 
+  val opt      : ('a,'t) parser -> ('a option,'t) parser
   (* optional parse, with given action on success *)
   val optional : ('a -> 'b) -> 'b -> ('a,'t) parser -> ('b,'t) parser
 
   (* zero or more copies *)
-  val repeat   : ('a,'t) parser -> ('a list,'t) parser 
+  val repeat   : ('a,'t) parser -> ('a list,'t) parser
   (* one or more *)
-  val repeat1  : ('a,'t) parser -> ('a list,'t) parser 
+  val repeat1  : ('a,'t) parser -> ('a list,'t) parser
   (* exact number *)
   val repeatn  : int -> ('a, 't) parser -> (unit, 't) parser
-  (* avoid building result *)
+  (* zero or more; avoid building result *)
   val repeati  : ('a, 't) parser -> (unit, 't) parser
 
   (* parse two things, yielding value of first *)
-  val first    : ('a,'t) parser -> ('b,'t) parser -> ('a,'t) parser 
-  val <<       : ('a,'t) parser * ('b,'t) parser -> ('a,'t) parser 
+  val first    : ('a,'t) parser -> ('b,'t) parser -> ('a,'t) parser
+  val <<       : ('a,'t) parser * ('b,'t) parser -> ('a,'t) parser
   (* ... second *)
-  val second   : ('a,'t) parser -> ('b,'t) parser -> ('b,'t) parser 
-  val >>       : ('a,'t) parser * ('b,'t) parser -> ('b,'t) parser 
-  (* .... middle of three *)
-  val middle   : ('a,'t) parser -> ('b,'t) parser -> ('c,'t) parser 
-                 -> ('b,'t) parser 
+  val second   : ('a,'t) parser -> ('b,'t) parser -> ('b,'t) parser
+  val >>       : ('a,'t) parser * ('b,'t) parser -> ('b,'t) parser
+  (* ... middle of three *)
+  val middle   : ('a,'t) parser -> ('b,'t) parser -> ('c,'t) parser
+                 -> ('b,'t) parser
 
   (* parse one or more, with given separator between items *)
-  val separate : ('a,'t) parser -> ('b,'t) parser -> ('a list,'t) parser 
+  val separate : ('a,'t) parser -> ('b,'t) parser -> ('a list,'t) parser
   (* ... zero or more *)
-  val separate0: ('a,'t) parser -> ('b,'t) parser -> ('a list,'t) parser 
+  val separate0: ('a,'t) parser -> ('b,'t) parser -> ('a list,'t) parser
   (* one or more, allowing trailing separator *)
-  val separate': ('a,'t) parser -> ('b,'t) parser -> ('a list,'t) parser 
+  val separate': ('a,'t) parser -> ('b,'t) parser -> ('a list,'t) parser
 
   (* nested parsers *)
   val join     : (('a,'t) parser,'t) parser -> ('a,'t) parser
@@ -156,7 +156,7 @@ sig
 
   (* Same, but also look for adjacent tokens, combining them with
      the supplied function and associativity. *)
-  val parsefixityadj : ('a fixityitem, 't) parser -> 
+  val parsefixityadj : ('a fixityitem, 't) parser ->
                        associativity -> ('a * 'a -> 'a) -> ('a,'t) parser
 
   (* Utilities for manipulating intermediate results,
