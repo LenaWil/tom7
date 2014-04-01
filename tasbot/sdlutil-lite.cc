@@ -1,7 +1,6 @@
 
 #include "SDL.h"
-#include "SDL_image.h"
-#include "sdlutil.h"
+#include "sdlutil-lite.h"
 #include <string>
 #include "util.h"
 
@@ -453,24 +452,6 @@ void sdlutil::slock(SDL_Surface *screen) {
 void sdlutil::sulock(SDL_Surface *screen) {
   if (SDL_MUSTLOCK(screen))
     SDL_UnlockSurface(screen);
-}
-
-
-SDL_Surface * sdlutil::imgload(const char *file, bool alpha) {
-  SDL_Surface * img = IMG_Load(file);
-  if (!img) {
-    return NULL;
-  }
-
-# if USE_DISPLAY_FORMAT
-  SDL_Surface * dispimg;
-  if (alpha) dispimg = SDL_DisplayFormatAlpha(img);
-  else dispimg = SDL_DisplayFormat(img);
-  SDL_FreeSurface(img);
-  return dispimg;
-# else
-  return img;
-# endif
 }
 
 
