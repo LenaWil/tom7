@@ -1,4 +1,6 @@
 
+// XXX "lite" copy that doesn't need SDL_Image
+
 #ifndef __SDLUTIL_H
 #define __SDLUTIL_H
 
@@ -74,9 +76,6 @@ struct sdlutil {
 
   /* flip a surface horizontally */
   static SDL_Surface * fliphoriz(SDL_Surface * src);
-
-  /* load an image into a fast surface */
-  static SDL_Surface * imgload(const char * file, bool alpha = true);
 
   /* mix two 32bit colors, doing the right thing for alpha */
   static Uint32 mix2(Uint32, Uint32);

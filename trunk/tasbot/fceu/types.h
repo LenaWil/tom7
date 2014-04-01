@@ -25,6 +25,7 @@
 ///causes the code fragment argument to be compiled in if the build includes debugging
 #ifdef FCEUDEF_DEBUGGER
 #define DEBUG(X) X;
+#error Do not enable debugging for tasbot!
 #else
 #define DEBUG(X)
 #endif

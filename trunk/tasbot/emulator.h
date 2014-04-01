@@ -44,7 +44,8 @@ struct Emulator {
   static void StepFull(uint8 inputs);
 
   // Get image. StepFull must have been called to produce this frame,
-  // or else who knows what's in there?
+  // or else who knows what's in there? Size is 256 x 256 pixels,
+  // 4 color channels (bytes) per pixel in RGBA order.
   static void GetImage(vector<uint8> *rgba);
 
   // Get sound. StepFull must have been called to produce this wave.
