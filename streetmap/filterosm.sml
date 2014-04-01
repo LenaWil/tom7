@@ -44,12 +44,13 @@ struct
         let val pct = Real.floor (100.0 * r)
         in
           if pct > !lastpct
-          then (TextIO.output (TextIO.stdErr, Int.toString pct ^ "%\n");
+          then (TextIO.output (TextIO.stdErr, f ^ ": " ^ Int.toString pct ^ "%\n");
                 lastpct := pct)
           else ()
         end
     in
-      XMLChunk.process_file_progress progress process_chunk f (file ^ "-filtered." ^ ext)
+      print (f ^ "...\n");
+      XMLChunk.process_file (* _progress progress *) process_chunk f (file ^ "-filtered." ^ ext)
     end
 
   fun run fl = app runone fl
