@@ -80,7 +80,8 @@ struct
   fun printif s = case oneword s of
     NONE => ()
   | SOME w => printlist w
-  val words = Script.linesfromfile "/usr/share/dict/web2"
+  (* val words = Script.linesfromfile "/usr/share/dict/web2" *)
+  val words = Script.linesfromfile "../../tom7misc/manarags/wordlist.asc"
   val words = map StringUtil.lcase words
 
   val possible = map String.concat (List.mapPartial oneword words)
