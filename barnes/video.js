@@ -1,0 +1,149 @@
+
+// New unattached canvas.
+function NewCanvas(w, h) {
+  var c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  return c;
+}
+
+// Not cheap! Has to draw it to a canvas...
+function Buf32FromImage(img) {
+  var c = NewCanvas(img.width, img.height);
+  var cc = c.getContext('2d');
+  cc.drawImage(img, 0, 0);
+
+  return new Uint32Array(cc.getImageData(0, 0, img.width, img.height).data.buffer);
+}
+
+// Img must already be loaded.
+function Font(img, w, h, overlap, fontchars) {
+  this.width = w;
+  this.height = h;
+  this.overlap = overlap;
+
+  this.chars = {};
+  var px32 = Buf32FromImage(img);
+  for (var i = 0; i < fontchars.length; i++) {
+    var ch = fontchars.charCodeAt(i);
+    var c = NewCanvas(w, h);
+
+    var ctx = c.getContext('2d');
+    var id = ctx.createImageData(w, h);
+    var buf = new ArrayBuffer(id.data.length);
+    var buf8 = new Uint8ClampedArray(buf);
+    var buf32 = new Uint32Array(buf);
+
+    // fill with sub-image
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+	var p = px32[y * img.width + x + (i * w)];
+	// if (p != 0) alert(p);
+	buf32[y * w + x] = p;
+      }
+    }
+
+    id.data.set(buf8);
+    ctx.putImageData(id, 0, 0);
+    this.chars[ch] = c;
+  }
+
+  this.Draw = function(ctx, x, y, s) {
+    var xx = x;
+    for (var i = 0; i < s.length; i++) {
+      var ch = s.charCodeAt(i);
+      if (ch == 10) {
+	xx = x;
+	y += this.height - 1;
+      } else {
+	this.chars[ch] && 
+	    ctx.drawImage(this.chars[ch], xx, y);
+	xx += this.width - this.overlap;
+      }
+    }
+  };
+}
+
+
+// Off screen 
+var canvas =
+    (function() {
+      var c = document.createElement('canvas');
+      c.width = WIDTH;
+      c.height = HEIGHT;
+      c.id = 'canvas';
+      // document.body.appendChild(c);
+      return c;
+    })();
+
+// n.b. not actually needed by BigCanvas, since it takes arg
+var ctx = canvas.getContext('2d');
+var id = ctx.createImageData(WIDTH, HEIGHT);
+var buf = new ArrayBuffer(id.data.length);
+// Make two aliases of the data, the second allowing us
+// to write 32-bit pixels.
+var buf8 = new Uint8ClampedArray(buf);
+var buf32 = new Uint32Array(buf);
+
+var BigCanvas = function() {
+  this.canvas = 
+      (function() {
+	var c = document.getElementById('bigcanvas');
+	if (!c) {
+	  c = document.createElement('canvas');
+	  document.body.appendChild(c);
+	  c.id = 'bigcanvas';
+	}
+	c.width = WIDTH * PX;
+	c.height = HEIGHT * PX;
+	c.style.border = '1px solid black';
+	return c;
+      })();
+
+  this.ctx = this.canvas.getContext('2d');
+  this.id = this.ctx.createImageData(WIDTH * PX, HEIGHT * PX);
+
+  // One buf we keep reusing, plus two aliases of it.
+  this.buf = new ArrayBuffer(this.id.data.length);
+  // Used just for the final draw.
+  this.buf8 = new Uint8ClampedArray(this.buf);
+  // We write RGBA pixels though.
+  this.buf32 = new Uint32Array(this.buf);
+
+  // Takes a 2d canvas context assumed to be WIDTH * HEIGHT
+  this.Draw4x = function(sctx) {
+    // d1x : Uint8ClampedArray, has an ArrayBuffer backing it (.buffer)
+    var d1x = sctx.getImageData(0, 0, WIDTH, HEIGHT).data;
+    // d1x32 : Uint32Array, aliasing d1x
+    var d1x32 = new Uint32Array(d1x.buffer);
+
+    var d = this.buf32;
+    // Blit to PXxPX sized pixels.
+    // PERF: This is slow!
+    // Strength reduction. Unroll. Shorten names.
+    // If browser supports native blit without resampling, use it.
+    for (var y = 0; y < HEIGHT; y++) {
+      for (var x = 0; x < WIDTH; x++) {
+	var p = d1x32[y * WIDTH + x];
+	// p |= 0xFF000000;
+	// PERF
+	var o = (y * PX) * (WIDTH * PX) + (x * PX);
+	// PERF unroll?
+	for (var u = 0; u < PX; u++) {
+	  for (var v = 0; v < PX; v++) {
+	    d[o + u * WIDTH * PX + v] = p;
+	  }
+	}
+      }
+    }
+
+    this.id.data.set(this.buf8);
+    this.ctx.putImageData(this.id, 0, 0);
+  };
+};
+
+// Don't draw directly to this. We copy from the small
+// one to the big one at the end of each frame.
+var bigcanvas = new BigCanvas();
+
+// XXX wrap this inside a function blit4x or whatever.
