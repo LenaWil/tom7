@@ -85,6 +85,10 @@ var buf = new ArrayBuffer(id.data.length);
 var buf8 = new Uint8ClampedArray(buf);
 var buf32 = new Uint32Array(buf);
 
+function ClearScreen() {
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+}
+
 var BigCanvas = function() {
   this.canvas = 
       (function() {
