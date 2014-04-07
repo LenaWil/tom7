@@ -11,6 +11,14 @@ var audiocontext = null;
 var resources = new Resources(
   ['font.png',
    'well.png',
+   'north.png',
+   'east.png',
+   'greenhome.png',
+   'purphome.png',
+   'greenpiecens.png',
+   'purppiecens.png',
+   'greenpiecewe.png',
+   'purppiecewe.png',
    'rivernw.png',
    'riverse.png',
    'riverns.png',
@@ -20,6 +28,7 @@ var resources = new Resources(
    'dirt.png'],
   [], null);
 
+var angle = { ns: {}, we: {} };
 
 var draworder = [];
 function Init() {
@@ -44,13 +53,14 @@ function Init() {
   }
 }
 
-function Tile(frames, ns, ew) {
+function Tile(frames, ns, we) {
   this.frames = (typeof frames === 'string') ? Static(frames) : frames;
   this.ns = ns;
-  this.ew = ew;
+  this.we = we;
 }
 
 var board = [];
+var greenx, greeny, purpx, purpy
 
 // For a second playthrough...
 function InitGame() {
@@ -60,22 +70,37 @@ function InitGame() {
     riverns: new Tile('riverns.png', true, false),
     riverwe: new Tile('riverwe.png', false, true),
     rivernw: new Tile('rivernw.png', false, false),
-    riverse: new Tile('riverse.png', false, false)
+    riverse: new Tile('riverse.png', false, false),
+    greenhome: new Tile('greenhome.png', true, true),
+    purphome: new Tile('purphome.png', true, true)
   };
 
   window.barnns = Static('barnns.png');
   window.barnwe = Static('barnwe.png');
+  window.greenpiecens = Static('greenpiecens.png');
+  window.purppiecens = Static('purppiecens.png');
+  window.greenpiecewe = Static('greenpiecewe.png');
+  window.purppiecewe = Static('purppiecewe.png');
+
+  window.northctrl = Static('north.png');
+  window.eastctrl = Static('east.png');
+
+  greenx = 0;
+  greeny = 0;
+  purpx = BOARDW - 1;
+  purpy = BOARDH - 1;
 
   board = [];
   for (var y = 0; y < BOARDH; y++) {
     for (var x = 0; x < BOARDW; x++) {
       var i = y * BOARDW + x;
-      board[i] =
-	  { t: tiles.dirt };
+      board[i] = { t: tiles.dirt, barn: null };
       if (x == 0 && y == 0) {
-	board[i].t = tiles.well;
+	board[i].t = tiles.greenhome;
+	board[i].barn = angle.ns;
       } else if (x == BOARDW - 1 && y == BOARDH - 1) {
-	board[i].t = tiles.well;
+	board[i].t = tiles.purphome;
+	board[i].barn = angle.ns;
       } else if (x >= 3 && y == 1) {
 	board[i].t = tiles.riverwe;
       } else if (x <= 1 && y == 3) {
@@ -87,6 +112,12 @@ function InitGame() {
       } else if (x == 2 && y == 3) {
 	board[i].t = tiles.rivernw;
       }
+
+      if (board[i].t.ns && Math.random() < 0.15) {
+	board[i].barn = angle.ns;
+      } else if (board[i].t.we && Math.random() < 0.15) {
+	board[i].barn = angle.we;
+      }
     }
   }
 
@@ -95,6 +126,8 @@ function InitGame() {
 }
 
 function GameStep() {
+  ClearScreen();
+
   // XXX draw back-to-front 'z'??
   for (var i = 0; i < draworder.length; i++) {
     var x = draworder[i].x;
@@ -108,17 +141,37 @@ function GameStep() {
     DrawFrame(cell.t.frames,
 	      BOARDX + px - TILEOX,
 	      BOARDY + py - TILEOY);
-    var r = 1.0; // Math.random();
-    if (r < 0.2) {
-      DrawFrame(barnns, 
+    var ugp = false, upp = false;
+
+    // Barn next.
+    if (cell.barn) {
+      DrawFrame((cell.barn == angle.ns) ? barnns : barnwe,
 		BOARDX + px - TILEOX,
 		BOARDY + py - TILEOY);
-    } else if (r < 0.4) {
-      DrawFrame(barnwe,
-		BOARDX + px - TILEOX,
-		BOARDY + py - TILEOY);
+
+      // Only can have a piece if there's a barn
+      // here.
+
+      if (x == greenx && y == greeny) {
+	DrawFrame((cell.barn == angle.ns) ? greenpiecens : greenpiecewe,
+		  BOARDX + px - TILEOX,
+		  BOARDY + py - TILEOY);
+      } else if (x == purpx && y == purpy) {
+	DrawFrame((cell.barn == angle.ns) ? purppiecens : purppiecewe,
+		  BOARDX + px - TILEOX,
+		  BOARDY + py - TILEOY);
+      }
     }
   }
+
+
+  // Controls.
+  DrawFrame(northctrl,
+	    // XXX
+	    CTRLX, CTRLY);
+  DrawFrame(eastctrl,
+	    CTRLX + 20, CTRLY);
+
 }
 
 
@@ -175,8 +228,8 @@ function Step(time) {
   }
 
   // And continue the loop...
-  console.log('XXX one frame');
-  //  window.requestAnimationFrame(Step);
+  // console.log('XXX one frame');
+  window.requestAnimationFrame(Step);
 }
 
 function Start() {

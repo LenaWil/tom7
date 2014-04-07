@@ -84,6 +84,7 @@ function EzFlipHoriz(img) {
   return c;
 }
 
+// XXX Good reference, but specific to "You Owe"
 function EzColor(img, shirt, pants, hair) {
   if (typeof img == 'string') img = resources.Get(img + '.png');
 
