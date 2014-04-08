@@ -8,7 +8,7 @@
 (setq font-lock-global-modes '(not fundamental-mode))
 (global-font-lock-mode 1)
 ;(if ('toggle-transient-mark-mode)
-    (transient-mark-mode)
+    (transient-mark-mode 't)
 ;    (toggle-transient-mark-mode))
   
 ;; XXX
@@ -782,8 +782,7 @@
  '(echo-keystrokes 0.5)
  '(flyspell-issue-welcome-flag nil)
  '(show-paren-delay 0.0)
- '(show-paren-style (quote expression))
- '(tramp-default-method "sm"))
+ '(show-paren-style (quote expression)))
 
 (put 'erase-buffer 'disabled nil)
 

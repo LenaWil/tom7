@@ -76,3 +76,5 @@ struct
   fun fail s = (messagebox s; raise Hero s)
 
 end
+
+val () = print "Hero initialized.\n"

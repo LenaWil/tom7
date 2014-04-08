@@ -69,7 +69,8 @@ app : t7eshero.exe
 
 desktop : app
 	rm -rf ~/Desktop/T7ESHero.app.old
-	-mv ~/Desktop/T7ESHero.app ~/Desktop/T7ESHero.app.old
+	rm -rf ~/Desktop/T7ESHero.app
+	# -mv ~/Desktop/T7ESHero.app ~/Desktop/T7ESHero.app.old
 	cp -R /tmp/T7ESHero.app ~/Desktop/
 
 clean :
