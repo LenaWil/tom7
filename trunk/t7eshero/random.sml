@@ -2,9 +2,9 @@ structure Random =
 struct
     (* XXX no idea if this is even a mediocre pseudorandom number generator *)
   (* XXX use MTrandom instead, which should be fast enough for these purposes. *)
-    local val seed = ref (Word32.fromInt 
-			  (IntInf.toInt 
-			   (Time.toMilliseconds (Time.now ()) mod 0x7FFFFFF7)))
+    local val seed = ref (Word32.fromInt
+                          (IntInf.toInt
+                           (Time.toMilliseconds (Time.now ()) mod 0x7FFFFFF7)))
     in
         fun random () =
             let
@@ -21,3 +21,5 @@ struct
 
     end
 end
+
+val () = print "Random initialized.\n"
