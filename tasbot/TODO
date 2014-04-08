@@ -1,5 +1,14 @@
 Things to do or try:
 
+
+Is DEBUG in fceu/types.h turned on? It causes some per-instruction code
+to be included in x6502.cpp!
+
+Approximate 6502 (+PPU?) for move generation, then back it up with search
+over the best ones using the real emulator. Can massively parallelize on
+GPU? Can compile the ROM even? It seems like the 6502 is driven from the
+PPU code, 
+
 Don't bother trying every next. Pick the best half, and some random
 subset of the rest. Use the time instead to explore more futures.
 
