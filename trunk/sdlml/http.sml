@@ -65,6 +65,10 @@ struct
               TCP.send sock ("GET " ^ path ^ " HTTP/1.0\r\n" ^
                              (* For distinguishing virtual hosts *)
                              "Host: " ^ site ^ "\r\n" ^
+                             "Cache-Control: max-age=0\r\n" ^
+                             "Accept: application/xml,application/xhtml+xml,text/html;" ^
+                             "q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5\r\n" ^
+                             "User-Agent: Mozilla/5.0 (Compatible; http.sml)\r\n" ^
                              "\r\n")
               handle SDLNet s => raise Exit (NetworkFailure s)
 
