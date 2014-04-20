@@ -13,6 +13,9 @@ var resources = new Resources(
    'well.png',
    'north.png',
    'east.png',
+   'south.png',
+   'west.png',
+   'rotate.png',
    'greenhome.png',
    'purphome.png',
    'greenpiecens.png',
@@ -59,8 +62,60 @@ function Tile(frames, ns, we) {
   this.we = we;
 }
 
-var board = [];
-var greenx, greeny, purpx, purpy
+function Control(frames, x, y) {
+  this.frames = frames;
+  this.x = x;
+  this.y = y;
+
+  this.w = frames.width;
+  this.h = frames.height;
+
+  this.Contains = function(xx, yy) {
+    return xx >= this.x && yy >= this.y &&
+	(xx < this.x + this.w) &&
+	(yy < this.y + this.h);
+  };
+}
+
+function State() {
+  // Contents of each cell.
+  this.board = [];
+  // Whose turn it is?
+  this.greenturn = true;
+  this.greenx = 0;
+  this.greeny = 0;
+  this.purpx = BOARDW - 1;
+  this.purpy = BOARDW - 1;
+
+  for (var y = 0; y < BOARDH; y++) {
+    for (var x = 0; x < BOARDW; x++) {
+      var i = y * BOARDW + x;
+      this.board[i] = { t: tiles.dirt, barn: null };
+      if (x == 0 && y == 0) {
+	this.board[i].t = tiles.greenhome;
+	this.board[i].barn = angle.we;
+      } else if (x == BOARDW - 1 && y == BOARDH - 1) {
+	this.board[i].t = tiles.purphome;
+	this.board[i].barn = angle.we;
+      } else if (x >= 3 && y == 1) {
+	this.board[i].t = tiles.riverwe;
+      } else if (x <= 1 && y == 3) {
+	this.board[i].t = tiles.riverwe;
+      } else if (x == 2 && y == 2) {
+	this.board[i].t = tiles.riverns;
+      } else if (x == 2 && y == 1) {
+	this.board[i].t = tiles.riverse;
+      } else if (x == 2 && y == 3) {
+	this.board[i].t = tiles.rivernw;
+      }
+    }
+  }
+
+  // What phase in the turn is it? 
+  this.GetPhase = function() {
+
+  };
+}
 
 // For a second playthrough...
 function InitGame() {
@@ -82,45 +137,31 @@ function InitGame() {
   window.greenpiecewe = Static('greenpiecewe.png');
   window.purppiecewe = Static('purppiecewe.png');
 
-  window.northctrl = Static('north.png');
-  window.eastctrl = Static('east.png');
+  window.northbutton = Static('north.png');
+  window.eastbutton = Static('east.png');
+  window.southbutton = Static('south.png');
+  window.westbutton = Static('west.png');
+  window.rotatebutton = Static('rotate.png');
 
-  greenx = 0;
-  greeny = 0;
-  purpx = BOARDW - 1;
-  purpy = BOARDH - 1;
+  window.northctrl = new Control(northbutton, CTRLX, CTRLY);
+  window.eastctrl = new Control(eastbutton, CTRLX + 20, CTRLY);
+  window.southctrl = new Control(southbutton, CTRLX + 20, CTRLY + 16);
+  window.westctrl = new Control(westbutton, CTRLX, CTRLY + 16);
 
-  board = [];
-  for (var y = 0; y < BOARDH; y++) {
-    for (var x = 0; x < BOARDW; x++) {
-      var i = y * BOARDW + x;
-      board[i] = { t: tiles.dirt, barn: null };
-      if (x == 0 && y == 0) {
-	board[i].t = tiles.greenhome;
-	board[i].barn = angle.ns;
-      } else if (x == BOARDW - 1 && y == BOARDH - 1) {
-	board[i].t = tiles.purphome;
-	board[i].barn = angle.ns;
-      } else if (x >= 3 && y == 1) {
-	board[i].t = tiles.riverwe;
-      } else if (x <= 1 && y == 3) {
-	board[i].t = tiles.riverwe;
-      } else if (x == 2 && y == 2) {
-	board[i].t = tiles.riverns;
-      } else if (x == 2 && y == 1) {
-	board[i].t = tiles.riverse;
-      } else if (x == 2 && y == 3) {
-	board[i].t = tiles.rivernw;
-      }
+  window.rotatectrl = new Control(rotatebutton, CTRLX + 5, CTRLY + 34);
+  window.controls = [northctrl, eastctrl, southctrl, westctrl,
+		     rotatectrl];
 
-      if (board[i].t.ns && Math.random() < 0.15) {
-	board[i].barn = angle.ns;
-      } else if (board[i].t.we && Math.random() < 0.15) {
-	board[i].barn = angle.we;
-      }
+  state = new State();
+
+  console.log(state.board.length);
+  for (var i = 0; i < BOARDW * BOARDH; i++) {
+    if (state.board[i].t.ns && Math.random() < 0.15) {
+      state.board[i].barn = angle.ns;
+    } else if (state.board[i].t.we && Math.random() < 0.15) {
+      state.board[i].barn = angle.we;
     }
   }
-
 
   console.log('initialized game');
 }
@@ -128,6 +169,7 @@ function InitGame() {
 function GameStep() {
   ClearScreen();
 
+  var board = state.board;
   // XXX draw back-to-front 'z'??
   for (var i = 0; i < draworder.length; i++) {
     var x = draworder[i].x;
@@ -152,11 +194,11 @@ function GameStep() {
       // Only can have a piece if there's a barn
       // here.
 
-      if (x == greenx && y == greeny) {
+      if (x == state.greenx && y == state.greeny) {
 	DrawFrame((cell.barn == angle.ns) ? greenpiecens : greenpiecewe,
 		  BOARDX + px - TILEOX,
 		  BOARDY + py - TILEOY);
-      } else if (x == purpx && y == purpy) {
+      } else if (x == state.purpx && y == state.purpy) {
 	DrawFrame((cell.barn == angle.ns) ? purppiecens : purppiecewe,
 		  BOARDX + px - TILEOX,
 		  BOARDY + py - TILEOY);
@@ -164,16 +206,30 @@ function GameStep() {
     }
   }
 
+  for (var o in controls) {
+    var ctrl = controls[o];
+    DrawFrame(ctrl.frames, ctrl.x, ctrl.y);
+  }
 
   // Controls.
-  DrawFrame(northctrl,
-	    // XXX
-	    CTRLX, CTRLY);
-  DrawFrame(eastctrl,
-	    CTRLX + 20, CTRLY);
-
+  // XXX: Highlight if mouse is hovering and legal!
 }
 
+function CanvasClick(e) {
+  e = e || window.event;
+  var bcx = bigcanvas.canvas.offsetLeft;
+  var bcy = bigcanvas.canvas.offsetTop;
+  var x = Math.floor((event.pageX - bcx) / PX);
+  var y = Math.floor((event.pageY - bcy) / PX);
+
+  for (var o in controls) {
+    var ctrl = controls[o];
+    if (ctrl.Contains(x, y)) {
+      // XXX
+    }
+  }
+  // HERE...
+}
 
 last = 0;
 function Step(time) {
@@ -235,6 +291,8 @@ function Step(time) {
 function Start() {
   Init();
   InitGame();
+
+  bigcanvas.canvas.onclick = CanvasClick;
 
   /*
   cutscene = cutscenes.intro;
