@@ -24,6 +24,18 @@
 
 #define SWAB 1
 
+// Currently, should be larger than the number of audio
+// samples per frame, since we don't do intra-frame timing.
+#define SAMPLES_PER_BUF 4096
+#define FPS 23.976
+#define AUDIO_SAMPLERATE 48000
+#define SAMPLES_PER_FRAME (AUDIO_SAMPLERATE / (double)FPS)
+
+#define BYTES_PER_AUDIO_SAMPLE 2
+#define AUDIO_CHANNELS 2
+
+#define AUDIO "d:\\video\\starwars.wav"
+
 SDL_Surface *screen = 0;
 
 static string FrameFilename(int f) {
@@ -36,9 +48,74 @@ struct Frame {
 };
 
 // Global for easier thread access.
-vector<Frame> frames;
+static vector<Frame> frames;
 static void InitializeFrames() {
   frames.resize(NUM_FRAMES);  
+}
+
+// Sound 
+static Uint32 audio_length;
+static Uint8 *movie_audio;
+static SDL_AudioSpec audio_spec;
+
+// T must be copyable.
+template<class T>
+T AtomicRead(T *loc, SDL_mutex *m) {
+  SDL_LockMutex(m);
+  T val = *loc;
+  SDL_UnlockMutex(m);
+  return val;
+}
+
+template<class T>
+T AtomicWrite(T *loc, T value, SDL_mutex *m) {
+  SDL_LockMutex(m);
+  *loc = value;
+  SDL_UnlockMutex(m);
+}
+
+// This thing needs to know what frame we're looking at.
+SDL_mutex *currentframe_mutex;
+static int currentframe = 0;
+void AudioCallback(void *userdata, Uint8 *stream, int len) {
+  int sampleidx = SAMPLES_PER_FRAME * 
+    AtomicRead(&currentframe, currentframe_mutex);
+
+  int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS;
+  for (int i = 0; i < len; i++) {
+    // XXX when going past end of stream!
+    stream[i] = movie_audio[byteidx + i];
+  }
+}
+
+static void LoadOpenAudio() {
+  if (SDL_LoadWAV(AUDIO, &audio_spec, &movie_audio, &audio_length) == NULL) {
+    CHECK(!"unable to load audio");
+  }
+  CHECK(audio_spec.freq == AUDIO_SAMPLERATE);
+
+  // needs to be one of the 16-bit types
+  CHECK(BYTES_PER_AUDIO_SAMPLE == 2);
+  CHECK(audio_spec.format == AUDIO_U16LSB ||
+	audio_spec.format == AUDIO_S16LSB ||
+	audio_spec.format == AUDIO_U16MSB ||
+	audio_spec.format == AUDIO_S16MSB);
+
+  CHECK(audio_spec.channels == AUDIO_CHANNELS);
+  printf("Loaded audio.\n");
+  SDL_AudioSpec want, have;
+  // SDL_Zero(want);
+  want.freq = audio_spec.freq;
+  want.format = audio_spec.format;
+  want.channels = audio_spec.channels;
+  want.samples = SAMPLES_PER_BUF;
+  want.callback = AudioCallback;
+  if (SDL_OpenAudio(&want, &have) < 0) {
+    CHECK(!"unable to open audio");
+  }
+  printf("Audio open.\n");
+  currentframe_mutex = SDL_CreateMutex();
+  CHECK(currentframe_mutex);
 }
 
 static void ReadFileBytes(const string &f, vector<uint8> *out) {
@@ -64,12 +141,14 @@ static int LoadFrameThread(void *vdata) {
   return 0;
 }
 
+#if 0
 // assumes RGBA, surfaces exactly the same size, etc.
 static void CopyRGBA(const vector<uint8> &rgba, SDL_Surface *surface) {
   // int bpp = surface->format->BytesPerPixel;
   Uint8 * p = (Uint8 *)surface->pixels;
   memcpy(p, &rgba[0], surface->w * surface->h * 4);
 }
+#endif
 
 static void CopyRGBA2x(const vector<uint8> &rgba, SDL_Surface *surface) {
   Uint8 *p = (Uint8 *)surface->pixels;
@@ -111,7 +190,7 @@ struct Graphic {
     }
     stbi_image_free(stb_rgba);
     if (DEBUGGING)
-      fprintf(stderr, "image is %dx%d @%dbpp = %d bytes\n",
+      fprintf(stderr, "image is %dx%d @%dbpp = %lld bytes\n",
 	      width, height, bpp,
 	      rgba.size());
 
@@ -177,7 +256,13 @@ struct LabeledFrames {
   }
 
   void Editor () {
+    LoadOpenAudio();
+
+    SDL_PauseAudio(0);
+
     for (int i = 0; i < frames.size(); i++) {
+      AtomicWrite(&currentframe, i, currentframe_mutex);
+
       Graphic g(frames[i].bytes);
       g.Blit(0, 0);
       SDL_Flip(screen);
@@ -187,6 +272,7 @@ struct LabeledFrames {
       SDL_PollEvent(&event);
       switch (event.type) {
       case SDL_QUIT:
+	printf("Got quit.\n");
 	return;
       }
 
