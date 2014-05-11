@@ -12,8 +12,7 @@ Script *Script::FromString(const string &contents) {
   int lastsample = -1;
   for (int i = 0; i < lines.size(); i++) {
     string line = lines[i];
-    // XXX
-    int sample = 2000 * atoi(Util::chop(line).c_str());
+    int sample = atoi(Util::chop(line).c_str());
     Util::losewhitel(line);
     CHECK(sample > lastsample);
     s->lines.push_back(Line(sample, line));
