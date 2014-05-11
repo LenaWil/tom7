@@ -1,7 +1,7 @@
 
 default: all
 
-all: arst.exe
+all: arst.exe script_test.exe
 
 # -fno-strict-aliasing
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include 
@@ -47,7 +47,7 @@ pngsave.o: pngsave.cc pngsave.h
 
 PNGSAVE_OBJECTS=pngsave.o $(PNG_OBJECTS)
 
-OBJECTS=$(BASEOBJECTS) $(SDLOBJECTS) $(SDLUTILOBJECTS) font.o
+OBJECTS=$(BASEOBJECTS) $(SDLOBJECTS) $(SDLUTILOBJECTS) font.o script.o
 
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS=$(LINKSDL)  -m64 -Wl,--subsystem,console -lz $(OPT) $(FLTO) $(PROFILE) -static
@@ -60,3 +60,5 @@ LFLAGS=$(LINKSDL)  -m64 -Wl,--subsystem,console -lz $(OPT) $(FLTO) $(PROFILE) -s
 arst.exe : $(OBJECTS) arst.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
+script_test.exe : $(OBJECTS) script_test.o
+	$(CXX) $^ -o $@ $(LFLAGS)
