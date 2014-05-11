@@ -13,9 +13,16 @@ using namespace std;
 // (assertion that there are no words in that range) or "*" meaning
 // that it's unknown. The last chunk is assumed to cover the range
 // out until infinity.
-struct DLL;
+struct Line {
+  Line(int frame, const string &s) : frame(frame), s(s) {}
+  int frame;
+  string s;
+  bool Unknown() { return s == "*"; }
+};
+
 struct Script {
-  DLL *parts;
+  // Never empty; lines[0].frame == 0.
+  vector<Line> lines;
 
   static Script *Load(const string &filename);
   static Script *FromString(const string &contents);
@@ -27,21 +34,8 @@ struct Script {
   void DebugPrint();
 
  private:
-  Script() : parts(NULL) {}
+  // Use factory; this doesn't initialize elt 0.
+  Script() {}
 };
-
-// Doubly-linked list.
-struct DLL {
-  DLL(int frame,
-      const string &s,
-      DLL *prev,
-      DLL *next) : s(s), prev(prev), next(next) {}
-  int frame;
-  string s;
-  DLL *prev, *next;
-
-  static DLL *Insert(int frame, const string &s, DLL **after);
-};
-
 
 #endif
