@@ -1,6 +1,24 @@
 
 #include "font.h"
-#include "extent.h"
+#include "sdlutil-lite.h"
+
+// XXX use std::unique_ptr or whatever.
+namespace {
+template <class P>
+struct Extent {
+  
+  P * ptr;
+
+  Extent(P * p) : ptr(p) {}
+
+  void release() { ptr = 0; }
+
+  void replace(P * p) { ptr = p; }
+
+  ~Extent() { if (ptr) ptr->destroy(); }
+
+};
+}
 
 enum attr { COLOR, ALPHA, };
 
@@ -10,7 +28,8 @@ struct font_attrlist {
 
   font_attrlist * next;
 
-  font_attrlist(attr w, int h, font_attrlist * n) : what(w), value(h), next(n) {}
+  font_attrlist(attr w, int h, font_attrlist * n) : 
+    what(w), value(h), next(n) {}
 
   /* PERF: we often have to look at the entire stack. */
   /* sets the current color and alpha according to the stack */
@@ -44,17 +63,19 @@ struct font_attrlist {
 
 };
 
-struct fontreal : public font {
+struct fontreal : public Font {
 
   /* data is an array of font images, differing in
      their alpha transparency */
   SDL_Surface ** data;
+  SDL_Surface *screen;
   int ndim;
 
   unsigned char chars[255];
 
   /* 9 x 16 */
-  static fontreal * create(string file,
+  static fontreal * create(SDL_Surface *screen,
+			   string file,
 			   string charmap,
 			   int width,
 			   int height,
@@ -87,25 +108,26 @@ struct fontreal : public font {
   virtual ~fontreal();
 };
 
-font::~font() {}
+Font::~Font() {}
 fontreal::~fontreal() {}
 
-font * font::create(string f, string c,
+Font * Font::create(SDL_Surface *sc, string f, string c,
 		    int w, int h, int s, int o, int d) {
-  return fontreal::create(f, c, w, h, s, o, d);
+  return fontreal::create(sc, f, c, w, h, s, o, d);
 }
 
-fontreal * fontreal::create (string file,
+fontreal * fontreal::create (SDL_Surface *screen,
+			     string file,
 			     string charmap,
 			     int width,
 			     int height,
 			     int styles,
 			     int overlap,
 			     int ndim) {
-
   fontreal * f = new fontreal();
   if (!f) return 0;
-  extent<fontreal> fe(f);
+  Extent<fontreal> fe(f);
+  f->screen = screen;
   f->width = width;
   f->height = height;
   f->styles = styles;
@@ -119,7 +141,7 @@ fontreal * fontreal::create (string file,
   if (!f->data) return 0;
   for(int z = 0; z < ndim; z++) f->data[z] = 0;
 
-  f->data[0] = sdlutil::imgload(file.c_str());
+  f->data[0] = sdlutil::LoadImage(file.c_str());
   if (!f->data[0]) return 0;
 
   int last = 0;
@@ -242,7 +264,7 @@ int fontreal::sizex_plain(const string & s) {
 }
 
 int fontreal::sizex(const string & s) {
-  return font::length(s) * (width - overlap);
+  return Font::length(s) * (width - overlap);
 }
 
 int fontreal::drawlines(int x, int y, string s) {
@@ -302,7 +324,7 @@ int fontreal::drawlinesc(int x, int y, string s, bool center) {
    "hello\nworld" returns 2
    "hello\nworld\n" returns 2
 */
-int font::lines(const string & s) {
+int Font::lines(const string & s) {
   unsigned int idx = 0;
   int sofar = 0;
 
@@ -331,7 +353,7 @@ int font::lines(const string & s) {
   }
 }
 
-string font::substr(const string & s, unsigned int start, unsigned int len) {
+string Font::substr(const string & s, unsigned int start, unsigned int len) {
   /* skip 'start' chars */
 
   unsigned int i = 0; /* pos in fontstring */
@@ -370,16 +392,16 @@ string font::substr(const string & s, unsigned int start, unsigned int len) {
 }
 
 /* assume n <= font::length(s) */
-string font::prefix(const string & s, unsigned int n) {
-  return font::substr(s, 0, n);
+string Font::prefix(const string & s, unsigned int n) {
+  return Font::substr(s, 0, n);
 }
 
 /* assume n <= font::length (s) */
-string font::suffix(const string & s, unsigned int n) {
-  return font::substr(s, font::length(s) - n, n);
+string Font::suffix(const string & s, unsigned int n) {
+  return Font::substr(s, Font::length(s) - n, n);
 }
 
-unsigned int font::length(string s) {
+unsigned int Font::length(string s) {
   unsigned int i, n=0;
   for(i = 0; i < s.length(); i ++) {
     if ((unsigned char)s[i] == '^') {
@@ -394,8 +416,8 @@ unsigned int font::length(string s) {
 
 /* XXX should go to fontutil */
 #include "chars.h"
-string font::pad(const string & s, int ns) {
-  unsigned int l = font::length(s);
+string Font::pad(const string & s, int ns) {
+  unsigned int l = Font::length(s);
     
   unsigned int n = abs(ns);
 
@@ -414,15 +436,15 @@ string font::pad(const string & s, int ns) {
   }
 }
 
-string font::truncate(const string & s, int ns) {
-  unsigned int l = font::length(s);
+string Font::truncate(const string & s, int ns) {
+  unsigned int l = Font::length(s);
 
   unsigned int n = abs(ns);
   if (l > n) {
     if (ns > 0) {
-      return font::prefix(s, n - 3) + (string)ALPHA50 "..." POP;
+      return Font::prefix(s, n - 3) + (string)ALPHA50 "..." POP;
     } else {
-      return (string)ALPHA50 "..." POP + font::suffix(s, n - 3);
+      return (string)ALPHA50 "..." POP + Font::suffix(s, n - 3);
     }
   } else return s;
 

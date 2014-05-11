@@ -3,6 +3,7 @@
 #include "sdlutil-lite.h"
 #include <string>
 #include "util.h"
+#include "../cc-lib/stb_image.h"
 
 /* by default, use display format. but
    when in console mode (for instance)
@@ -46,6 +47,53 @@ SDL_Surface * sdlutil::resize_canvas(SDL_Surface * s, int w, int h, Uint32 color
     }
 
   return m;
+}
+
+// XXX determine this somehow. Works on win64 with SWAB set.
+#define SWAB 1
+static void CopyRGBA(const vector<Uint8> &rgba, SDL_Surface *surface) {
+  // int bpp = surface->format->BytesPerPixel;
+  Uint8 *p = (Uint8 *)surface->pixels;
+  int width = surface->w;
+  int height = surface->h;
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      int idx = (y * width + x) * 4;
+      #if SWAB
+      p[idx + 0] = rgba[idx + 2];
+      p[idx + 1] = rgba[idx + 1];
+      p[idx + 2] = rgba[idx + 0];
+      p[idx + 3] = rgba[idx + 3];
+      #else
+      p[idx + 0] = rgba[idx + 0];
+      p[idx + 1] = rgba[idx + 1];
+      p[idx + 2] = rgba[idx + 2];
+      p[idx + 3] = rgba[idx + 3];
+      #endif
+    }
+  }
+}
+
+SDL_Surface *sdlutil::LoadImage(const char *filename) {
+  int width, height, bpp;
+  Uint8 *stb_rgba = stbi_load(filename,
+			      &width, &height, &bpp, 4);
+  if (!stb_rgba) return 0;
+  
+  vector<Uint8> rgba;
+  rgba.reserve(width * height * 4);
+  for (int i = 0; i < width * height * 4; i++) {
+    rgba.push_back(stb_rgba[i]);
+  }
+  stbi_image_free(stb_rgba);
+
+  SDL_Surface *surf = makesurface(width, height, true);
+  if (!surf) {
+    return 0;
+  }
+  CopyRGBA(rgba, surf);
+
+  return surf;
 }
 
 SDL_Surface * sdlutil::duplicate(SDL_Surface * surf) {
