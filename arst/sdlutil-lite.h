@@ -21,6 +21,9 @@ struct sdlutil {
   static void   setpixel(SDL_Surface *, int x, int y,
                          Uint32 color);
 
+  // Load supported files using stb_image.
+  static SDL_Surface *LoadImage(const char *filename);
+
   static SDL_Surface * duplicate(SDL_Surface * surf);
 
   static void drawline(SDL_Surface *, int x1, int y1, int x2, int y2,

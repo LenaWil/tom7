@@ -2,34 +2,37 @@
 #ifndef __FONT_H
 #define __FONT_H
 
-#include "escapex.h"
+#include "SDL.h"
 #include <string>
 
+using namespace std;
+
 /* XXX move some of this to fontutil */
-struct font {
+struct Font {
 
   int width, height, styles, overlap;
-  
-  static font * create(string file,
+
+  static Font * create(SDL_Surface *screen,
+                       string file,
                        string charmap,
                        int width,
                        int height,
                        int styles=1,
                        int overlap=0,
-		       int dims=2);
-  
+                       int dims=2);
+
   /* number of drawn characters, ignoring control codes.
      length(s) * (width-overlap) gives
      the screen width. */
   static unsigned int length(string);
-  static string substr(const string & s, 
-		       unsigned int start, 
-		       unsigned int len);
+  static string substr(const string & s,
+                       unsigned int start,
+                       unsigned int len);
   /* len must be <= font::length(s) */
   static string prefix(const string & s,
-		       unsigned int len);
+                       unsigned int len);
   static string suffix(const string & s,
-		       unsigned int len);
+                       unsigned int len);
 
   /* similarly, pad a string out to n displayable
      characters, doing the right thing for
@@ -46,7 +49,7 @@ struct font {
 
 
   /* return the size in pixels of the string.
-     this ignores formatting characters. 
+     this ignores formatting characters.
      sizey is always font.height.
   */
   virtual int sizex(const string &) = 0;
@@ -57,8 +60,7 @@ struct font {
      string is empty. */
   static int lines(const string &);
 
-  /* specify the top-left pixel. draws to the
-     screen. */
+  /* specify the top-left pixel. */
   virtual void draw(int x, int y, string s) = 0;
   virtual void draw_plain(int x, int y, string s) = 0;
   virtual void drawto(SDL_Surface *, int x, int y, string s) = 0;
@@ -72,7 +74,7 @@ struct font {
   virtual int drawcenter(int x, int y, string s) = 0;
 
   virtual void destroy() = 0;
-  virtual ~font();
+  virtual ~Font();
 };
 
 #endif

@@ -47,7 +47,7 @@ pngsave.o: pngsave.cc pngsave.h
 
 PNGSAVE_OBJECTS=pngsave.o $(PNG_OBJECTS)
 
-OBJECTS=$(BASEOBJECTS) $(SDLOBJECTS) $(SDLUTILOBJECTS)
+OBJECTS=$(BASEOBJECTS) $(SDLOBJECTS) $(SDLUTILOBJECTS) font.o
 
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS=$(LINKSDL)  -m64 -Wl,--subsystem,console -lz $(OPT) $(FLTO) $(PROFILE) -static

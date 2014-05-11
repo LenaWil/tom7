@@ -10,6 +10,8 @@
 #include "SDL_main.h"
 #include "../cc-lib/util.h"
 #include "../cc-lib/stb_image.h"
+#include "chars.h"
+#include "font.h"
 
 // original file size
 #define FRAMEWIDTH 480
@@ -28,6 +30,7 @@
 // samples per frame, since we don't do intra-frame timing.
 #define SAMPLES_PER_BUF 4096
 #define FPS 23.976
+#define MS_PER_FRAME (1000.0 / FPS)
 #define AUDIO_SAMPLERATE 48000
 #define SAMPLES_PER_FRAME (AUDIO_SAMPLERATE / (double)FPS)
 
@@ -68,7 +71,7 @@ T AtomicRead(T *loc, SDL_mutex *m) {
 }
 
 template<class T>
-T AtomicWrite(T *loc, T value, SDL_mutex *m) {
+void AtomicWrite(T *loc, T value, SDL_mutex *m) {
   SDL_LockMutex(m);
   *loc = value;
   SDL_UnlockMutex(m);
@@ -217,6 +220,15 @@ struct LabeledFrames {
   LabeledFrames() {
     InitializeFrames();
     LoadFrames();
+    font = Font::create(screen,
+			"font.png",
+			FONTCHARS,
+			9, 16, FONTSTYLES, 1, 3);
+    fonthuge = Font::create(screen,
+			    "fontmax.png",
+			    FONTCHARS,
+			    27 * 2, 48 * 2, FONTSTYLES, 3 * 2, 3);
+
   }
   
   void LoadFrames() {
@@ -260,26 +272,67 @@ struct LabeledFrames {
 
     SDL_PauseAudio(0);
 
-    for (int i = 0; i < frames.size(); i++) {
-      AtomicWrite(&currentframe, i, currentframe_mutex);
+    bool playing = true;
+    int frame = 0, displayedframe = -1;
+    Uint32 lastframe = 0;
 
-      Graphic g(frames[i].bytes);
-      g.Blit(0, 0);
-      SDL_Flip(screen);
+    for (;;) {
+
+      if (frame != displayedframe) {
+	Graphic g(frames[frame].bytes);
+	g.Blit(0, 0);
+
+	font->draw(0, 0, StringPrintf("Frame ^1%d^< (^3%.2f%%^<)", 
+				      frame, (100.0 * frame) / frames.size()));
+
+	fonthuge->draw(0, 200, "R^1A^2I^3N^4B^5O^0W");
+	SDL_Flip(screen);
+	lastframe = SDL_GetTicks();
+	displayedframe = frame;
+	AtomicWrite(&currentframe, frame, currentframe_mutex);
+      }
 
       // Ignore events for now
       SDL_Event event;
-      SDL_PollEvent(&event);
-      switch (event.type) {
-      case SDL_QUIT:
-	printf("Got quit.\n");
-	return;
+      if (SDL_PollEvent(&event)) {
+	switch (event.type) {
+	case SDL_QUIT:
+	  printf("Got quit.\n");
+	  return;
+	case SDL_KEYDOWN:
+	  switch(event.key.keysym.unicode) {
+	  case SDLK_ESCAPE:
+	    printf("Got esc.\n");
+	    return;
+	  case SDLK_SPACE:
+	    playing = !playing;
+	    if (playing) {
+	      
+	    } else {
+
+	    }
+	    break;
+	  case SDLK_LEFTBRACKET:
+	    frame = max(0, frame - 1000);
+	    break;
+	  case SDLK_RIGHTBRACKET:
+	    frame = min(frame + 1000, (int)(frames.size() - 1));
+	    break;
+	  }
+	}
+      }
+
+      if (playing && frame < frames.size() - 1) {
+	Uint32 now = SDL_GetTicks();
+	if (now - lastframe >= MS_PER_FRAME) {
+	  frame++;
+	}
       }
 
     }
   }
   
-
+  Font *font, *fonthuge;
 };
 
 
@@ -287,8 +340,15 @@ int SDL_main (int argc, char *argv[]) {
   fprintf(stderr, "Init SDL\n");
 
   /* Initialize SDL and network, if we're using it. */
-  CHECK(SDL_Init(SDL_INIT_VIDEO) >= 0);
+  CHECK(SDL_Init(SDL_INIT_VIDEO |
+		 SDL_INIT_TIMER | 
+		 SDL_INIT_AUDIO) >= 0);
   fprintf(stderr, "SDL initialized OK.\n");
+
+  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, 
+                      SDL_DEFAULT_REPEAT_INTERVAL);
+
+  SDL_EnableUNICODE(1);
 
   screen = sdlutil::makescreen(WIDTH, HEIGHT);
   CHECK(screen);
