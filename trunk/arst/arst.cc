@@ -27,7 +27,7 @@
 #define EXTRAHEIGHT 400
 
 #define WORDX 20
-#define WORDY 500
+#define WORDY 380
 
 // XXX add UI
 #define WIDTH (FRAMEWIDTH * 2) + SCRIPTWIDTH
@@ -309,6 +309,12 @@ struct LabeledFrames {
 	font->draw(0, 0, 
 		   StringPrintf("Frame ^1%d^< (^3%.2f%%^<)", 
 				frame, (100.0 * frame) / frames.size()));
+	
+	/*
+	sdlutil::fillrect(screen, 0,
+			  WORDX, WORDY, W, H);
+	*/
+
 	Line *line = script->GetLine(frame);
 	if (line->Unknown()) {
 	  fonthuge->draw(WORDX, WORDY, "^2?");
@@ -329,7 +335,8 @@ struct LabeledFrames {
 	  printf("Got quit.\n");
 	  return;
 	case SDL_KEYDOWN:
-	  switch(event.key.keysym.unicode) {
+	  // printf("Key %d\n", event.key.keysym.unicode);
+	  switch(event.key.keysym.sym) {
 	  case SDLK_ESCAPE:
 	    printf("Got esc.\n");
 	    return;
@@ -344,6 +351,25 @@ struct LabeledFrames {
 	    frame = max(0, frame + 1);
 	    playing = false;
 	    break;
+
+	  case SDLK_DOWN: {
+	    int lidx = script->GetLineIdx(frame);
+	    // printf("Down @%d.\n", lidx);
+	    if (lidx + 1 < script->lines.size()) {
+	      frame = script->lines[lidx + 1].frame;
+	    }
+	    break;
+	  }
+
+	  case SDLK_UP: {
+	    int lidx = script->GetLineIdx(frame);
+	    // printf("Up @%d.\n", lidx);
+	    if (lidx > 0) {
+	      frame = script->lines[lidx - 1].frame;
+	    }
+	    break;
+	  }
+
 	  case SDLK_LEFTBRACKET:
 	    frame = max(0, frame - 1000);
 	    break;
