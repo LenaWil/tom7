@@ -20,9 +20,13 @@
 // filenames are 0 - (NUM_FRAMES - 1)
 #define NUM_FRAMES 179633
 
+#define SCRIPTWIDTH 800
+
+#define EXTRAHEIGHT 400
+
 // XXX add UI
-#define WIDTH (FRAMEWIDTH * 2)
-#define HEIGHT (FRAMEHEIGHT * 2)
+#define WIDTH (FRAMEWIDTH * 2) + SCRIPTWIDTH
+#define HEIGHT (FRAMEHEIGHT * 2) + EXTRAHEIGHT
 
 #define SWAB 1
 
@@ -278,12 +282,23 @@ struct LabeledFrames {
 
     for (;;) {
 
+      if (playing) {
+	if (SDL_GetAudioStatus() == SDL_AUDIO_PAUSED) {
+	  SDL_PauseAudio(0);
+	}
+      } else {
+	if (SDL_GetAudioStatus() == SDL_AUDIO_PLAYING) {
+	  SDL_PauseAudio(1);
+	}
+      }
+
       if (frame != displayedframe) {
 	Graphic g(frames[frame].bytes);
 	g.Blit(0, 0);
 
-	font->draw(0, 0, StringPrintf("Frame ^1%d^< (^3%.2f%%^<)", 
-				      frame, (100.0 * frame) / frames.size()));
+	font->draw(0, 0, 
+		   StringPrintf("Frame ^1%d^< (^3%.2f%%^<)", 
+				frame, (100.0 * frame) / frames.size()));
 
 	fonthuge->draw(0, 200, "R^1A^2I^3N^4B^5O^0W");
 	SDL_Flip(screen);
@@ -306,11 +321,13 @@ struct LabeledFrames {
 	    return;
 	  case SDLK_SPACE:
 	    playing = !playing;
+	    #if 0
 	    if (playing) {
-	      
+	      SDL_PauseAudio(0);
 	    } else {
-
+	      SDL_PauseAudio(1);
 	    }
+	    #endif
 	    break;
 	  case SDLK_LEFTBRACKET:
 	    frame = max(0, frame - 1000);
