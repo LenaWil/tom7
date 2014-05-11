@@ -47,3 +47,31 @@ void Script::DebugPrint() {
 	   lines[i].s.c_str());
   }
 }
+
+// find line matching f in indices [lb, ub).
+int Script::GetLineIdxRec(int f, int lb, int ub) {
+  CHECK(lb < ub);
+  int idx = ((ub - lb) >> 1) + lb;
+  CHECK(idx < lines.size());
+
+  int ival_low = lines[idx].frame;
+  int ival_high = (idx == lines.size() - 1) ? 0x7FFFFFFE :
+    lines[idx + 1].frame;
+  if (f < ival_low) {
+    return GetLineIdxRec(f, lb, idx);
+  } else if (f >= ival_high) {
+    return GetLineIdxRec(f, idx + 1, ub);
+  } else {
+    // In this interval.
+    return idx;
+  }
+}
+
+int Script::GetLineIdx(int f) {
+  CHECK(f >= 0);
+  return GetLineIdxRec(f, 0, lines.size());
+}
+
+Line *Script::GetLine(int f) {
+  return &lines[GetLineIdx(f)];
+}
