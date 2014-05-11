@@ -32,6 +32,11 @@ struct Script {
   int GetLineIdx(int f);
   Line *GetLine(int f);
 
+  // Insert a split at the given sample.
+  // Succeeds, returning true, unless the split would be zero-length.
+  // (Linear time in the number of lines.)
+  bool Split(int sample);
+
   void Save(const string &filename);
 
   void DebugPrint();

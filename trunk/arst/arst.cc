@@ -403,12 +403,79 @@ struct LabeledFrames {
 	   (bytes_used / (double)frames.size()) / 1000.0);
   }
 
-  static void LoopAt(int lidx) {
+  void LoopAt(int lidx) {
     int start = script->lines[lidx].sample;
     int last = (lidx + 1 < script->lines.size()) ?
       script->lines[lidx + 1].sample :
       num_audio_samples;
     LoopMode(start, last - start);
+  }
+
+  int GetDelta(bool forward, int modifiers) {
+    int delta = forward ? 1 : -1;
+    
+    // Default is to jump by frames, unless holding ctrl,
+    // which means jump by 100 samples.
+    if (modifiers & KMOD_CTRL) {
+      delta *= 100;
+    } else {
+      delta *= SAMPLES_PER_FRAME;
+    }
+    if (modifiers & KMOD_SHIFT) {
+      delta *= 10;
+    }
+    return delta;
+  }
+
+  // XXX would be prettier if we just edited it in the script view.
+  string Prompt(const string &start) {
+    string input = start;
+    for (;;) {
+      SDL_Delay(1);
+      sdlutil::fillrect(screen, 0,
+			0, HEIGHT - FONTHEIGHT - 2, WIDTH, FONTHEIGHT + 2);
+      font->draw(0, HEIGHT - FONTHEIGHT - 2,
+		 StringPrintf(YELLOW "? " POP "%s" YELLOW "_",
+			      input.c_str()));
+      SDL_Flip(screen);
+
+      SDL_Event event;
+      if (SDL_PollEvent(&event)) {
+	switch (event.type) {
+	  case SDL_QUIT:
+	    exit(0);
+	    return "";
+	  case SDL_KEYDOWN: {
+	    switch(event.key.keysym.sym) {
+	      case SDLK_ESCAPE:
+		sdlutil::fillrect(screen, 0,
+				  0, HEIGHT - FONTHEIGHT - 2, 
+				  WIDTH, FONTHEIGHT + 2);
+		return start;
+	      case SDLK_RETURN:
+		sdlutil::fillrect(screen, 0,
+				  0, HEIGHT - FONTHEIGHT - 2, 
+				  WIDTH, FONTHEIGHT + 2);
+		return input;
+	      case SDLK_BACKSPACE:
+		if (input.size() > 0) {
+		  input = input.substr(0, input.size() - 1);
+		}
+		break;
+	      default: {
+		int uc = event.key.keysym.unicode;
+		if ((uc & 0xFF80) == 0) {
+		  char ch = uc & 0x7F;
+		  if (ch) {
+		    input += ch;
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
   }
 
   void Editor() {
@@ -452,6 +519,9 @@ struct LabeledFrames {
       // PERF don't always draw script at right.
       // TODO: draw background for selected
       {
+	sdlutil::fillrect(screen, 0, SCRIPTX, 0,
+			  WIDTH - SCRIPTX,
+			  HEIGHT);
 	static const int NUM_LINES = 50;
 	int lidx = script->GetLineIdx(sample);
 	int startidx = max(0, lidx - (NUM_LINES >> 1));
@@ -460,7 +530,7 @@ struct LabeledFrames {
 	     i++) {
 	  const Line &line = script->lines[startidx + i];
 	  font->draw(SCRIPTX, i * FONTHEIGHT,
-		     StringPrintf("%s%d  %s%s",
+		     StringPrintf("%s%010d  %s%s",
 				  (startidx + i) == lidx ? WHITE : GREY,
 				  line.sample,
 				  (startidx + i) == lidx ? YELLOW : WHITE,
@@ -477,74 +547,151 @@ struct LabeledFrames {
       SDL_Event event;
       if (SDL_PollEvent(&event)) {
 	switch (event.type) {
-	case SDL_QUIT:
-	  printf("Got quit.\n");
-	  return;
-	case SDL_KEYDOWN:
-	  // printf("Key %d\n", event.key.keysym.unicode);
-	  switch(event.key.keysym.sym) {
-	  default:
-	    break;
-	  case SDLK_s:
-	    Save();
-	    printf("Saved.\n");
-	    break;
-	  case SDLK_ESCAPE:
-	    Save();
-	    printf("Got esc.\n");
+	  case SDL_QUIT:
+	    printf("Got quit.\n");
 	    return;
-	  case SDLK_SPACE: {
-	    TogglePause();
-	    break;
-	  }
-	  case SDLK_TAB: {
-	    LoopAt(script->GetLineIdx(sample));
-	    break;
-	  }
-	  case SDLK_COMMA:
-	    Pause();
-	    SeekFrame(max(0, frame - 1));
-	    break;
-	  case SDLK_PERIOD:
-	    Pause();
-	    SeekFrame(max(0, frame + 1));
-	    break;
+	  case SDL_KEYDOWN: {
+	    bool handledkey = false;
+	    if (lmode == LOOPING) {
+	      switch(event.key.keysym.sym) {
+		case SDLK_h:
+		case SDLK_j: {
+		  handledkey = true;
+		  int lidx = script->GetLineIdx(sample);
+		  // Can't move start of first one.
+		  if (lidx == 0) break;
+		  int delta = 
+		    GetDelta(event.key.keysym.sym == SDLK_j,
+			     event.key.keysym.mod);
+		  // Now move it, but keep it in bounds.
+		  int nsample = script->lines[lidx].sample + delta;
+		  // Can't touch the previous line.
+		  nsample = max(script->lines[lidx - 1].sample + 1,
+				nsample);
+		  // Or the next one.
+		  int next = (lidx + 1 < script->lines.size()) ?
+		    script->lines[lidx + 1].sample :
+		    num_audio_samples;
+		  nsample = min(next - 1, nsample);
+		  script->lines[lidx].sample = nsample;
+		  // Reset loop.
+		  LoopAt(lidx);
+		  break;
+		}
 
-	  case SDLK_DOWN: {
-	    int lidx = script->GetLineIdx(sample);
-	    // printf("Down @%d.\n", lidx);
-	    if (lidx + 1 < script->lines.size()) {
-	      if (lmode == LOOPING) {
-		LoopAt(lidx + 1);
-	      } else {
-		Seek(script->lines[lidx + 1].sample);
+	        case SDLK_k:
+	        case SDLK_l: {
+		  handledkey = true;
+
+		  int lidx = script->GetLineIdx(sample);
+		  // Can't move end of last one (nothing there).
+		  if (lidx == script->lines.size() - 1) break;
+		  int delta = 
+		    GetDelta(event.key.keysym.sym == SDLK_l,
+			     event.key.keysym.mod);
+		  // Now move it, but keep it in bounds.
+		  int nsample = script->lines[lidx + 1].sample + delta;
+		  // Can't touch the start.
+		  nsample = max(script->lines[lidx].sample + 1,
+				nsample);
+		  // Or the next one...
+		  int next = (lidx + 2 < script->lines.size()) ?
+		    script->lines[lidx + 2].sample :
+		    num_audio_samples;
+		  nsample = min(next - 1, nsample);
+		  script->lines[lidx + 1].sample = nsample;
+		  // Reset loop.
+		  // TODO: Would be nice if it played from like
+		  // 75% of the clip, so that we hear the end
+		  // right away.
+		  LoopAt(lidx);
+		  break;
+		}
+
+  	        default:;
 	      }
 	    }
-	    break;
-	  }
 
-	  case SDLK_UP: {
-	    int lidx = script->GetLineIdx(sample);
-	    // printf("Up @%d.\n", lidx);
-	    if (lidx > 0) {
-	      if (lmode == LOOPING) {
-		LoopAt(lidx - 1);
-	      } else {
-		Seek(script->lines[lidx - 1].sample);
-	      } 
+	    if (handledkey) break;
+	    // printf("Key %d\n", event.key.keysym.unicode);
+	    switch(event.key.keysym.sym) {
+	    default:
+	      break;
+	    case SDLK_s:
+	      Save();
+	      printf("Saved.\n");
+	      break;
+	    case SDLK_ESCAPE:
+	      Save();
+	      printf("Got esc.\n");
+	      return;
+	    case SDLK_SPACE: {
+	      TogglePause();
+	      break;
 	    }
-	    if (
-	    break;
-	  }
+	    case SDLK_TAB: {
+	      LoopAt(script->GetLineIdx(sample));
+	      break;
+	    }
+	    case SDLK_COMMA:
+	      Pause();
+	      SeekFrame(max(0, frame - 1));
+	      break;
+	    case SDLK_PERIOD:
+	      Pause();
+	      SeekFrame(max(0, frame + 1));
+	      break;
 
-	  case SDLK_LEFTBRACKET:
-	    SeekFrame(max(0, frame - 1000));
-	    if (lmode == LOOPING) Pause();
-	    break;
-	  case SDLK_RIGHTBRACKET:
-	    SeekFrame(min(frame + 1000, (int)(frames.size() - 1)));
-	    if (lmode == LOOPING) Pause();
-	    break;
+	    case SDLK_SLASH:
+	      Pause();
+	      script->Split(sample);
+	      break;
+
+	    case SDLK_RETURN: {
+	      Pause();
+	      int lidx = script->GetLineIdx(sample);
+	      string s = Prompt(script->lines[lidx].s);
+	      // TODO: if s has spaces, split the current
+	      // interval evenly.
+	      script->lines[lidx].s = s;
+	      break;
+	    }
+
+	    case SDLK_DOWN: {
+	      int lidx = script->GetLineIdx(sample);
+	      // printf("Down @%d.\n", lidx);
+	      if (lidx + 1 < script->lines.size()) {
+		if (lmode == LOOPING) {
+		  LoopAt(lidx + 1);
+		} else {
+		  Seek(script->lines[lidx + 1].sample);
+		}
+	      }
+	      break;
+	    }
+
+	    case SDLK_UP: {
+	      int lidx = script->GetLineIdx(sample);
+	      // printf("Up @%d.\n", lidx);
+	      if (lidx > 0) {
+		if (lmode == LOOPING) {
+		  LoopAt(lidx - 1);
+		} else {
+		  Seek(script->lines[lidx - 1].sample);
+		} 
+	      }
+	      break;
+	    }
+
+	    case SDLK_LEFTBRACKET:
+	      SeekFrame(max(0, frame - 1000));
+	      if (lmode == LOOPING) Pause();
+	      break;
+	    case SDLK_RIGHTBRACKET:
+	      SeekFrame(min(frame + 1000, (int)(frames.size() - 1)));
+	      if (lmode == LOOPING) Pause();
+	      break;
+	    }
 	  }
 	}
       }
