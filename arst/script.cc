@@ -13,7 +13,7 @@ Script *Script::FromString(const string &contents) {
   for (int i = 0; i < lines.size(); i++) {
     string line = lines[i];
     int sample = atoi(Util::chop(line).c_str());
-    Util::losewhitel(line);
+    line = Util::losewhitel(line);
     CHECK(sample > lastsample);
     s->lines.push_back(Line(sample, line));
     lastsample = sample;
@@ -74,4 +74,14 @@ int Script::GetLineIdx(int f) {
 
 Line *Script::GetLine(int f) {
   return &lines[GetLineIdx(f)];
+}
+
+bool Script::Split(int sample) {
+  CHECK(sample >= 0);
+  int idx = GetLineIdx(sample);
+  if (lines[idx].sample == sample)
+    return false;
+  lines.insert(lines.begin() + idx + 1,
+	       Line(sample, "*"));
+  return true;
 }
