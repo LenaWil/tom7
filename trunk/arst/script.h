@@ -6,7 +6,7 @@
 #include <vector>
 using namespace std;
 
-// Tells us what words are where. Based on frames in the movie. Data
+// Tells us what words are where. Based on samples in the movie. Data
 // structure is a series of non-overlapping partitions, which always
 // cover the entire movie. A partition can either contain a string
 // (meaning some word spoken in that range) or the empty string
@@ -14,14 +14,14 @@ using namespace std;
 // that it's unknown. The last chunk is assumed to cover the range
 // out until infinity.
 struct Line {
-  Line(int frame, const string &s) : frame(frame), s(s) {}
-  int frame;
+  Line(int sample, const string &s) : sample(sample), s(s) {}
+  int sample;
   string s;
   bool Unknown() { return s == "*"; }
 };
 
 struct Script {
-  // Never empty; lines[0].frame == 0.
+  // Never empty; lines[0].sample == 0.
   vector<Line> lines;
 
   static Script *Load(const string &filename);

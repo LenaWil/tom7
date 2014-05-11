@@ -35,14 +35,14 @@
 
 #define SWAB 1
 
-// Currently, should be larger than the number of audio
-// samples per frame, since we don't do intra-frame timing.
-#define SAMPLES_PER_BUF 4096
+// Smaller is better here.
+#define SAMPLES_PER_BUF 512 // 4096
 // #define FPS 23.976
 #define FPS 24.000
 #define MS_PER_FRAME (1000.0 / FPS)
 #define AUDIO_SAMPLERATE 48000
 #define SAMPLES_PER_FRAME (AUDIO_SAMPLERATE / (double)FPS)
+#define FRAMES_PER_SAMPLE (1 / SAMPLES_PER_FRAME)
 
 #define BYTES_PER_AUDIO_SAMPLE 2
 #define AUDIO_CHANNELS 2
@@ -88,17 +88,72 @@ void AtomicWrite(T *loc, T value, SDL_mutex *m) {
   SDL_UnlockMutex(m);
 }
 
-// This thing needs to know what frame we're looking at.
-SDL_mutex *currentframe_mutex;
-static int currentframe = 0;
-void AudioCallback(void *userdata, Uint8 *stream, int len) {
-  int sampleidx = SAMPLES_PER_FRAME * 
-    AtomicRead(&currentframe, currentframe_mutex);
+SDL_mutex *audio_mutex;
+static int currentsample = 0;
+static bool playing = true;
+static int seek_to_sample = -1;
 
-  int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS;
-  for (int i = 0; i < len; i++) {
-    // XXX when going past end of stream!
-    stream[i] = movie_audio[byteidx + i];
+static void Pause() {
+  AtomicWrite(&playing, false, audio_mutex);
+}
+
+static void Play() {
+  AtomicWrite(&playing, true, audio_mutex);
+}
+
+static void TogglePause() {
+  SDL_LockMutex(audio_mutex);
+  playing = !playing;
+  SDL_UnlockMutex(audio_mutex);
+}
+
+static void Seek(int sample) {
+  AtomicWrite(&seek_to_sample, sample, audio_mutex);
+}
+
+static void SeekFrame(int frame) {
+  Seek(frame * SAMPLES_PER_FRAME);
+}
+
+// This thing needs to know what frame we're looking at.
+void AudioCallback(void *userdata, Uint8 *stream, int len) {
+  // Maybe get a signal from elsewhere that we should seek
+  // to some sample offset.
+  SDL_LockMutex(audio_mutex);
+  if (seek_to_sample >= 0) {
+    currentsample = seek_to_sample;
+    seek_to_sample = -1;
+  }
+  int sampleidx = currentsample;
+  bool lplaying = playing;  
+  // Advance this while we hold the mutex.
+  if (lplaying) {
+    currentsample += SAMPLES_PER_BUF;
+  }
+  SDL_UnlockMutex(audio_mutex);
+
+  if (len != AUDIO_CHANNELS * BYTES_PER_AUDIO_SAMPLE * SAMPLES_PER_BUF) {
+    printf("len %d  ac %d bpas %d spb %d\n", 
+	   len, 
+	   AUDIO_CHANNELS,
+	   BYTES_PER_AUDIO_SAMPLE,
+	   SAMPLES_PER_BUF);
+    abort();
+  }
+  CHECK(len == AUDIO_CHANNELS * BYTES_PER_AUDIO_SAMPLE * SAMPLES_PER_BUF);
+
+  if (lplaying) {
+    int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS;
+    for (int i = 0; i < len; i++) {
+      stream[i] = (byteidx + i < audio_length) ?
+	movie_audio[byteidx + i] :
+	0;
+    }
+  } else {
+    // Silence.
+    for (int i = 0; i < len; i++) {
+      stream[i] = 0;
+    }
   }
 }
 
@@ -127,9 +182,12 @@ static void LoadOpenAudio() {
   if (SDL_OpenAudio(&want, &have) < 0) {
     CHECK(!"unable to open audio");
   }
+  CHECK(have.freq == want.freq);
+  CHECK(have.samples == SAMPLES_PER_BUF);
+
   printf("Audio open.\n");
-  currentframe_mutex = SDL_CreateMutex();
-  CHECK(currentframe_mutex);
+  audio_mutex = SDL_CreateMutex();
+  CHECK(audio_mutex);
 }
 
 static void ReadFileBytes(const string &f, vector<uint8> *out) {
@@ -283,12 +341,14 @@ struct LabeledFrames {
 
     SDL_PauseAudio(0);
 
-    bool playing = true;
-    int frame = 0, displayedframe = -1;
+    int displayedframe = -1;
     Uint32 lastframe = 0;
 
     for (;;) {
-
+      int sample = AtomicRead(&currentsample, audio_mutex);
+      int frame = FRAMES_PER_SAMPLE * sample;
+      
+      #if 0
       if (playing) {
 	if (SDL_GetAudioStatus() == SDL_AUDIO_PAUSED) {
 	  SDL_PauseAudio(0);
@@ -298,24 +358,25 @@ struct LabeledFrames {
 	  SDL_PauseAudio(1);
 	}
       }
+      #endif
 
       if (frame != displayedframe) {
 	lastframe = SDL_GetTicks();
 	displayedframe = frame;
-	AtomicWrite(&currentframe, frame, currentframe_mutex);
 	Graphic g(frames[frame].bytes);
 	g.Blit(0, 0);
 
-	font->draw(0, 0, 
-		   StringPrintf("Frame ^1%d^< (^3%.2f%%^<)", 
-				frame, (100.0 * frame) / frames.size()));
+	font->draw(0, 0,
+		   StringPrintf("Frame ^1%d^< (^3%.2f%%^<)   Sample ^4%d",
+				frame, (100.0 * frame) / frames.size(),
+				sample));
 	
 	/*
 	sdlutil::fillrect(screen, 0,
 			  WORDX, WORDY, W, H);
 	*/
 
-	Line *line = script->GetLine(frame);
+	Line *line = script->GetLine(sample);
 	if (line->Unknown()) {
 	  fonthuge->draw(WORDX, WORDY, "^2?");
 	} else if (line->s.empty()) {
@@ -337,56 +398,51 @@ struct LabeledFrames {
 	case SDL_KEYDOWN:
 	  // printf("Key %d\n", event.key.keysym.unicode);
 	  switch(event.key.keysym.sym) {
+	  default:
+	    break;
 	  case SDLK_ESCAPE:
 	    printf("Got esc.\n");
 	    return;
-	  case SDLK_SPACE:
-	    playing = !playing;
+	  case SDLK_SPACE: {
+	    TogglePause();
 	    break;
+	  }
 	  case SDLK_COMMA:
-	    frame = max(0, frame - 1);
-	    playing = false;
+	    Pause();
+	    SeekFrame(max(0, frame - 1));
 	    break;
 	  case SDLK_PERIOD:
-	    frame = max(0, frame + 1);
-	    playing = false;
+	    Pause();
+	    SeekFrame(max(0, frame + 1));
 	    break;
 
 	  case SDLK_DOWN: {
-	    int lidx = script->GetLineIdx(frame);
+	    int lidx = script->GetLineIdx(sample);
 	    // printf("Down @%d.\n", lidx);
 	    if (lidx + 1 < script->lines.size()) {
-	      frame = script->lines[lidx + 1].frame;
+	      Seek(script->lines[lidx + 1].sample);
 	    }
 	    break;
 	  }
 
 	  case SDLK_UP: {
-	    int lidx = script->GetLineIdx(frame);
+	    int lidx = script->GetLineIdx(sample);
 	    // printf("Up @%d.\n", lidx);
 	    if (lidx > 0) {
-	      frame = script->lines[lidx - 1].frame;
+	      Seek(script->lines[lidx - 1].sample);
 	    }
 	    break;
 	  }
 
 	  case SDLK_LEFTBRACKET:
-	    frame = max(0, frame - 1000);
+	    SeekFrame(max(0, frame - 1000));
 	    break;
 	  case SDLK_RIGHTBRACKET:
-	    frame = min(frame + 1000, (int)(frames.size() - 1));
+	    SeekFrame(min(frame + 1000, (int)(frames.size() - 1)));
 	    break;
 	  }
 	}
       }
-
-      if (playing && frame < frames.size() - 1) {
-	Uint32 now = SDL_GetTicks();
-	if (now - lastframe >= MS_PER_FRAME) {
-	  frame++;
-	}
-      }
-
 
     }
   }
@@ -404,6 +460,7 @@ int SDL_main (int argc, char *argv[]) {
 		 SDL_INIT_TIMER | 
 		 SDL_INIT_AUDIO) >= 0);
   fprintf(stderr, "SDL initialized OK.\n");
+  printf("Samples per frame: %f\n", SAMPLES_PER_FRAME);
 
   SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, 
                       SDL_DEFAULT_REPEAT_INTERVAL);

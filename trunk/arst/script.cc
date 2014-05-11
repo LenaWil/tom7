@@ -9,14 +9,15 @@ Script *Script::FromString(const string &contents) {
   vector<string> lines = Util::SplitToLines(contents);
   Script *s = new Script;
 
-  int lastframe = -1;
+  int lastsample = -1;
   for (int i = 0; i < lines.size(); i++) {
     string line = lines[i];
-    int frame = atoi(Util::chop(line).c_str());
+    // XXX
+    int sample = 2000 * atoi(Util::chop(line).c_str());
     Util::losewhitel(line);
-    CHECK(frame > lastframe);
-    s->lines.push_back(Line(frame, line));
-    lastframe = frame;
+    CHECK(sample > lastsample);
+    s->lines.push_back(Line(sample, line));
+    lastsample = sample;
   }
 
   return s;
@@ -33,7 +34,7 @@ void Script::Save(const string &filename) {
   string contents;
   for (int i = 0; i < lines.size(); i++) {
     contents += StringPrintf("%d %s\n",
-			     lines[i].frame,
+			     lines[i].sample,
 			     lines[i].s.c_str());
   }
   Util::WriteFile(filename, contents);
@@ -43,7 +44,7 @@ void Script::DebugPrint() {
   for (int i = 0; i < lines.size(); i++) {
     printf("[%d] %d %s\n",
 	   i,
-	   lines[i].frame,
+	   lines[i].sample,
 	   lines[i].s.c_str());
   }
 }
@@ -54,9 +55,9 @@ int Script::GetLineIdxRec(int f, int lb, int ub) {
   int idx = ((ub - lb) >> 1) + lb;
   CHECK(idx < lines.size());
 
-  int ival_low = lines[idx].frame;
+  int ival_low = lines[idx].sample;
   int ival_high = (idx == lines.size() - 1) ? 0x7FFFFFFE :
-    lines[idx + 1].frame;
+    lines[idx + 1].sample;
   if (f < ival_low) {
     return GetLineIdxRec(f, lb, idx);
   } else if (f >= ival_high) {
