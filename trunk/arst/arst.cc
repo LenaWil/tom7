@@ -12,6 +12,7 @@
 #include "../cc-lib/stb_image.h"
 #include "chars.h"
 #include "font.h"
+#include "script.h"
 
 // original file size
 #define FRAMEWIDTH 480
@@ -19,10 +20,14 @@
 // XXX more like 200k
 // filenames are 0 - (NUM_FRAMES - 1)
 #define NUM_FRAMES 179633
+// #define NUM_FRAMES 50000
 
 #define SCRIPTWIDTH 800
 
 #define EXTRAHEIGHT 400
+
+#define WORDX 20
+#define WORDY 500
 
 // XXX add UI
 #define WIDTH (FRAMEWIDTH * 2) + SCRIPTWIDTH
@@ -33,7 +38,8 @@
 // Currently, should be larger than the number of audio
 // samples per frame, since we don't do intra-frame timing.
 #define SAMPLES_PER_BUF 4096
-#define FPS 23.976
+// #define FPS 23.976
+#define FPS 24.000
 #define MS_PER_FRAME (1000.0 / FPS)
 #define AUDIO_SAMPLERATE 48000
 #define SAMPLES_PER_FRAME (AUDIO_SAMPLERATE / (double)FPS)
@@ -42,6 +48,7 @@
 #define AUDIO_CHANNELS 2
 
 #define AUDIO "d:\\video\\starwars.wav"
+#define SCRIPTFILE "starwars.txt"
 
 SDL_Surface *screen = 0;
 
@@ -232,13 +239,13 @@ struct LabeledFrames {
 			    "fontmax.png",
 			    FONTCHARS,
 			    27 * 2, 48 * 2, FONTSTYLES, 3 * 2, 3);
-
+    script = Script::Load(SCRIPTFILE);
   }
   
   void LoadFrames() {
     uint64 start = time(NULL);
 
-    static const int FRAMES_PER_THREAD = 20000;
+    static const int FRAMES_PER_THREAD = 10000;
     vector< pair<int, int> > datas;
     vector<string> names;
     for (int i = 0; i < NUM_FRAMES; i += FRAMES_PER_THREAD) {
@@ -293,18 +300,25 @@ struct LabeledFrames {
       }
 
       if (frame != displayedframe) {
+	lastframe = SDL_GetTicks();
+	displayedframe = frame;
+	AtomicWrite(&currentframe, frame, currentframe_mutex);
 	Graphic g(frames[frame].bytes);
 	g.Blit(0, 0);
 
 	font->draw(0, 0, 
 		   StringPrintf("Frame ^1%d^< (^3%.2f%%^<)", 
 				frame, (100.0 * frame) / frames.size()));
+	Line *line = script->GetLine(frame);
+	if (line->Unknown()) {
+	  fonthuge->draw(WORDX, WORDY, "^2?");
+	} else if (line->s.empty()) {
+	  fonthuge->draw(WORDX, WORDY, "---");
+	} else {
+	  fonthuge->draw(WORDX, WORDY, line->s);
+	}
 
-	fonthuge->draw(0, 200, "R^1A^2I^3N^4B^5O^0W");
 	SDL_Flip(screen);
-	lastframe = SDL_GetTicks();
-	displayedframe = frame;
-	AtomicWrite(&currentframe, frame, currentframe_mutex);
       }
 
       // Ignore events for now
@@ -321,13 +335,14 @@ struct LabeledFrames {
 	    return;
 	  case SDLK_SPACE:
 	    playing = !playing;
-	    #if 0
-	    if (playing) {
-	      SDL_PauseAudio(0);
-	    } else {
-	      SDL_PauseAudio(1);
-	    }
-	    #endif
+	    break;
+	  case SDLK_COMMA:
+	    frame = max(0, frame - 1);
+	    playing = false;
+	    break;
+	  case SDLK_PERIOD:
+	    frame = max(0, frame + 1);
+	    playing = false;
 	    break;
 	  case SDLK_LEFTBRACKET:
 	    frame = max(0, frame - 1000);
@@ -346,9 +361,11 @@ struct LabeledFrames {
 	}
       }
 
+
     }
   }
   
+  Script *script;
   Font *font, *fonthuge;
 };
 

@@ -29,11 +29,15 @@ struct Script {
   // Whole movie is "*".
   static Script *Empty();
 
+  int GetLineIdx(int f);
+  Line *GetLine(int f);
+
   void Save(const string &filename);
 
   void DebugPrint();
 
  private:
+  int GetLineIdxRec(int f, int lb, int ub);
   // Use factory; this doesn't initialize elt 0.
   Script() {}
 };
