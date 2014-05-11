@@ -30,8 +30,12 @@
 #define WORDY 380
 
 // XXX add UI
-#define WIDTH (FRAMEWIDTH * 2) + SCRIPTWIDTH
-#define HEIGHT (FRAMEHEIGHT * 2) + EXTRAHEIGHT
+#define WIDTH ((FRAMEWIDTH * 2) + SCRIPTWIDTH)
+#define HEIGHT ((FRAMEHEIGHT * 2) + EXTRAHEIGHT)
+
+#define FONTWIDTH 9
+#define FONTHEIGHT 16
+#define SCRIPTX ((FRAMEWIDTH * 2) + 8)
 
 #define SWAB 1
 
@@ -69,6 +73,7 @@ static void InitializeFrames() {
 
 // Sound 
 static Uint32 audio_length;
+static int num_audio_samples;
 static Uint8 *movie_audio;
 static SDL_AudioSpec audio_spec;
 
@@ -88,23 +93,54 @@ void AtomicWrite(T *loc, T value, SDL_mutex *m) {
   SDL_UnlockMutex(m);
 }
 
+struct MutexLock {
+  explicit MutexLock(SDL_mutex *m) : m(m) { SDL_LockMutex(m); }
+  ~MutexLock() { SDL_UnlockMutex(m); }
+  SDL_mutex *m;
+};
+
+enum Mode {
+  PAUSED,
+  PLAYING,
+  LOOPING,
+};
+
 SDL_mutex *audio_mutex;
 static int currentsample = 0;
-static bool playing = true;
+static Mode mode = PLAYING;
 static int seek_to_sample = -1;
+static int currentloopoffset = 0;
+static int loopstart = 0, looplen = 1;
 
 static void Pause() {
-  AtomicWrite(&playing, false, audio_mutex);
+  AtomicWrite(&mode, PAUSED, audio_mutex);
 }
 
 static void Play() {
-  AtomicWrite(&playing, true, audio_mutex);
+  AtomicWrite(&mode, PLAYING, audio_mutex);
+}
+
+static void LoopMode(int lstart, int llen) {
+  MutexLock ml(audio_mutex);
+  mode = LOOPING;
+  currentloopoffset = 0;
+  loopstart = lstart;
+  looplen = llen;
+  CHECK(llen > 0);
+  printf("LoopMode: %d for %d\n", lstart, llen);
+
+  int byteidx = (loopstart + (looplen - 1)) * BYTES_PER_AUDIO_SAMPLE * 
+    AUDIO_CHANNELS;
+  CHECK(byteidx < audio_length);
 }
 
 static void TogglePause() {
-  SDL_LockMutex(audio_mutex);
-  playing = !playing;
-  SDL_UnlockMutex(audio_mutex);
+  MutexLock ml(audio_mutex);
+  switch (mode) {
+  case LOOPING: mode = PLAYING; break;
+  case PAUSED: mode = PLAYING; break;
+  case PLAYING: mode = PAUSED; break;
+  }
 }
 
 static void Seek(int sample) {
@@ -117,21 +153,7 @@ static void SeekFrame(int frame) {
 
 // This thing needs to know what frame we're looking at.
 void AudioCallback(void *userdata, Uint8 *stream, int len) {
-  // Maybe get a signal from elsewhere that we should seek
-  // to some sample offset.
-  SDL_LockMutex(audio_mutex);
-  if (seek_to_sample >= 0) {
-    currentsample = seek_to_sample;
-    seek_to_sample = -1;
-  }
-  int sampleidx = currentsample;
-  bool lplaying = playing;  
-  // Advance this while we hold the mutex.
-  if (lplaying) {
-    currentsample += SAMPLES_PER_BUF;
-  }
-  SDL_UnlockMutex(audio_mutex);
-
+  #if 0
   if (len != AUDIO_CHANNELS * BYTES_PER_AUDIO_SAMPLE * SAMPLES_PER_BUF) {
     printf("len %d  ac %d bpas %d spb %d\n", 
 	   len, 
@@ -140,19 +162,61 @@ void AudioCallback(void *userdata, Uint8 *stream, int len) {
 	   SAMPLES_PER_BUF);
     abort();
   }
+  #endif
   CHECK(len == AUDIO_CHANNELS * BYTES_PER_AUDIO_SAMPLE * SAMPLES_PER_BUF);
 
-  if (lplaying) {
-    int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS;
-    for (int i = 0; i < len; i++) {
-      stream[i] = (byteidx + i < audio_length) ?
-	movie_audio[byteidx + i] :
-	0;
+  // Maybe get a signal from elsewhere that we should seek
+  // to some sample offset.
+  SDL_LockMutex(audio_mutex);
+  if (seek_to_sample >= 0) {
+    currentsample = seek_to_sample;
+    seek_to_sample = -1;
+  }
+
+  // NOTE: Need to unlock the mutex as soon as we're ready in each branch.
+  switch (mode) {
+    case PLAYING: {
+      int sampleidx = currentsample;
+      currentsample += SAMPLES_PER_BUF;
+      SDL_UnlockMutex(audio_mutex);
+      int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS;
+      for (int i = 0; i < len; i++) {
+	stream[i] = (byteidx + i < audio_length) ?
+	  movie_audio[byteidx + i] :
+	  0;
+      }
+      break;
     }
-  } else {
-    // Silence.
-    for (int i = 0; i < len; i++) {
-      stream[i] = 0;
+
+    case LOOPING: {
+      CHECK(looplen > 0);
+      int startloopoffset = currentloopoffset;
+      currentsample = loopstart + currentloopoffset;
+      currentloopoffset += SAMPLES_PER_BUF;
+      currentloopoffset %= looplen;
+      SDL_UnlockMutex(audio_mutex);
+
+      int sample_len = len / (BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS);
+      CHECK(sample_len * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS == len);
+      for (int i = 0; i < sample_len; i++) {
+	int offset = (startloopoffset + i) % looplen;
+	int byteidx = (loopstart + offset) * BYTES_PER_AUDIO_SAMPLE *
+	  AUDIO_CHANNELS;
+	for (int j = 0; j < BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS; j++) {
+	  stream[(i * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS) + j] =
+	    movie_audio[byteidx + j];
+	}
+      }
+      break;
+    }
+
+    case PAUSED: {
+     SDL_UnlockMutex(audio_mutex);
+     // play silence.
+     for (int i = 0; i < len; i++) {
+       stream[i] = 0;
+     }
+     break;
     }
   }
 }
@@ -161,6 +225,9 @@ static void LoadOpenAudio() {
   if (SDL_LoadWAV(AUDIO, &audio_spec, &movie_audio, &audio_length) == NULL) {
     CHECK(!"unable to load audio");
   }
+  num_audio_samples = audio_length / (BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS);
+  CHECK(num_audio_samples * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS ==
+	audio_length);
   CHECK(audio_spec.freq == AUDIO_SAMPLERATE);
 
   // needs to be one of the 16-bit types
@@ -292,7 +359,7 @@ struct LabeledFrames {
     font = Font::create(screen,
 			"font.png",
 			FONTCHARS,
-			9, 16, FONTSTYLES, 1, 3);
+			FONTWIDTH, FONTHEIGHT, FONTSTYLES, 1, 3);
     fonthuge = Font::create(screen,
 			    "fontmax.png",
 			    FONTCHARS,
@@ -336,7 +403,15 @@ struct LabeledFrames {
 	   (bytes_used / (double)frames.size()) / 1000.0);
   }
 
-  void Editor () {
+  static void LoopAt(int lidx) {
+    int start = script->lines[lidx].sample;
+    int last = (lidx + 1 < script->lines.size()) ?
+      script->lines[lidx + 1].sample :
+      num_audio_samples;
+    LoopMode(start, last - start);
+  }
+
+  void Editor() {
     LoadOpenAudio();
 
     SDL_PauseAudio(0);
@@ -347,18 +422,9 @@ struct LabeledFrames {
     for (;;) {
       int sample = AtomicRead(&currentsample, audio_mutex);
       int frame = FRAMES_PER_SAMPLE * sample;
+      Mode lmode = AtomicRead(&mode, audio_mutex);
       
-      #if 0
-      if (playing) {
-	if (SDL_GetAudioStatus() == SDL_AUDIO_PAUSED) {
-	  SDL_PauseAudio(0);
-	}
-      } else {
-	if (SDL_GetAudioStatus() == SDL_AUDIO_PLAYING) {
-	  SDL_PauseAudio(1);
-	}
-      }
-      #endif
+      bool dirty = false;
 
       if (frame != displayedframe) {
 	lastframe = SDL_GetTicks();
@@ -370,11 +436,6 @@ struct LabeledFrames {
 		   StringPrintf("Frame ^1%d^< (^3%.2f%%^<)   Sample ^4%d",
 				frame, (100.0 * frame) / frames.size(),
 				sample));
-	
-	/*
-	sdlutil::fillrect(screen, 0,
-			  WORDX, WORDY, W, H);
-	*/
 
 	Line *line = script->GetLine(sample);
 	if (line->Unknown()) {
@@ -385,6 +446,30 @@ struct LabeledFrames {
 	  fonthuge->draw(WORDX, WORDY, line->s);
 	}
 
+	dirty = true;
+      }
+
+      // PERF don't always draw script at right.
+      // TODO: draw background for selected
+      {
+	static const int NUM_LINES = 50;
+	int lidx = script->GetLineIdx(sample);
+	int startidx = max(0, lidx - (NUM_LINES >> 1));
+	for (int i = 0; 
+	     i < NUM_LINES && (startidx + i) < script->lines.size();
+	     i++) {
+	  const Line &line = script->lines[startidx + i];
+	  font->draw(SCRIPTX, i * FONTHEIGHT,
+		     StringPrintf("%s%d  %s%s",
+				  (startidx + i) == lidx ? WHITE : GREY,
+				  line.sample,
+				  (startidx + i) == lidx ? YELLOW : WHITE,
+				  line.s.c_str()));
+	}
+	dirty = true;
+      }
+
+      if (dirty) {
 	SDL_Flip(screen);
       }
 
@@ -400,11 +485,20 @@ struct LabeledFrames {
 	  switch(event.key.keysym.sym) {
 	  default:
 	    break;
+	  case SDLK_s:
+	    Save();
+	    printf("Saved.\n");
+	    break;
 	  case SDLK_ESCAPE:
+	    Save();
 	    printf("Got esc.\n");
 	    return;
 	  case SDLK_SPACE: {
 	    TogglePause();
+	    break;
+	  }
+	  case SDLK_TAB: {
+	    LoopAt(script->GetLineIdx(sample));
 	    break;
 	  }
 	  case SDLK_COMMA:
@@ -420,7 +514,11 @@ struct LabeledFrames {
 	    int lidx = script->GetLineIdx(sample);
 	    // printf("Down @%d.\n", lidx);
 	    if (lidx + 1 < script->lines.size()) {
-	      Seek(script->lines[lidx + 1].sample);
+	      if (lmode == LOOPING) {
+		LoopAt(lidx + 1);
+	      } else {
+		Seek(script->lines[lidx + 1].sample);
+	      }
 	    }
 	    break;
 	  }
@@ -429,22 +527,33 @@ struct LabeledFrames {
 	    int lidx = script->GetLineIdx(sample);
 	    // printf("Up @%d.\n", lidx);
 	    if (lidx > 0) {
-	      Seek(script->lines[lidx - 1].sample);
+	      if (lmode == LOOPING) {
+		LoopAt(lidx - 1);
+	      } else {
+		Seek(script->lines[lidx - 1].sample);
+	      } 
 	    }
+	    if (
 	    break;
 	  }
 
 	  case SDLK_LEFTBRACKET:
 	    SeekFrame(max(0, frame - 1000));
+	    if (lmode == LOOPING) Pause();
 	    break;
 	  case SDLK_RIGHTBRACKET:
 	    SeekFrame(min(frame + 1000, (int)(frames.size() - 1)));
+	    if (lmode == LOOPING) Pause();
 	    break;
 	  }
 	}
       }
 
     }
+  }
+
+  void Save() {
+    script->Save(SCRIPTFILE);
   }
   
   Script *script;
