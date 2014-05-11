@@ -178,7 +178,10 @@ string Util::ReadFile(const string &s) {
 }
 
 vector<string> Util::ReadFileToLines(const string &f) {
-  string s = ReadFile(f);
+  return SplitToLines(ReadFile(f));
+}
+
+vector<string> Util::SplitToLines(const string &s) {
   vector<string> v;
   string line;
   // PERF don't need to do so much copying.
