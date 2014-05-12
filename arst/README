@@ -1,0 +1,28 @@
+    ARST                    12 May 2014
+
+This is a small program for annotating a video file, in particular
+labeling individual spoken words in spans of its audio. It's for weird
+special projects, but maybe could be used for something normal, like
+generating training data for speech recognition. Assumes 64 bits and
+lots of RAM.
+
+Best documentation for the key commands is in the source, but:
+
+Space toggles play mode
+Up and Down jump to the previous and next interval.
+, and . decrement and increment the frame.
+/ splits the interval at the current point.
+s saves the script.
+enter modifies the text in the current interval. If the text contains
+spaces, then it splits the interval equally and assigns a word to each.
+(Typically I use this by making an interval for a spoken phrase,
+fine tuning it in loop mode, and then replacing it with the phrase 
+that's spoken, then fine-tuning the breaks between words. Pretty fast
+once you get some practice listening for the ends and beginnings of
+phonemes.)
+
+Tab enters loop mode. When in loop mode, the current interval is
+looped indefinitely. The keys h,j adjust the left end of the interval
+(it can't go any further than the next interval, though) and k,l
+adjust the right end.
+

@@ -85,3 +85,49 @@ bool Script::Split(int sample) {
 	       Line(sample, "*"));
   return true;
 }
+
+ScriptStats Script::ComputeStats(int max_samples) {
+  /*
+struct ScriptStats {
+  int num_words;
+  int num_silent;
+  int num_unknown;
+  // By number of samples.
+  double fraction_labeled;
+  double fraction_silent;
+  double fraction_words;
+};
+  */
+  int num_words = 0, num_silent = 0, num_unknown = 0;
+  double samples_labeled = 0.0,
+    samples_silent = 0.0,
+    samples_words = 0.0;
+
+  for (int i = 0; i < lines.size(); i++) {
+    const Line &line = lines[i];
+    int len = (i + 1 < lines.size()) ?
+      lines[i + 1].sample - line.sample :
+      max_samples - line.sample;
+    if (line.Unknown()) {
+      num_unknown++;
+    } else {
+      samples_labeled += len;
+      if (line.s.empty()) {
+	num_silent++;
+	samples_silent += len;
+      } else {
+	num_words++;
+	samples_words += len;
+      }
+    }
+  }
+
+  ScriptStats stats;
+  stats.num_words = num_words;
+  stats.num_silent = num_silent;
+  stats.num_unknown = num_unknown;
+  stats.fraction_labeled = samples_labeled / max_samples;
+  stats.fraction_silent = samples_silent / max_samples;
+  stats.fraction_words = samples_words / max_samples;
+  return stats;
+}
