@@ -33,6 +33,9 @@
 #define WIDTH ((FRAMEWIDTH * 2) + SCRIPTWIDTH)
 #define HEIGHT ((FRAMEHEIGHT * 2) + EXTRAHEIGHT)
 
+#define FONTBIGWIDTH 18
+#define FONTBIGHEIGHT 32
+
 #define FONTWIDTH 9
 #define FONTHEIGHT 16
 #define SCRIPTX ((FRAMEWIDTH * 2) + 8)
@@ -352,6 +355,16 @@ struct Graphic {
   SDL_Surface *surf;
 };
 
+static vector<string> SplitWords(const string &ss) {
+  string s = Util::losewhitel(ss);
+  vector<string> ret;
+  for (;;) {
+    string tok = Util::losewhitel(Util::chop(s));
+    if (tok.empty()) return ret;
+    ret.push_back(tok);
+  }
+}
+
 struct LabeledFrames {
   LabeledFrames() {
     InitializeFrames();
@@ -360,6 +373,15 @@ struct LabeledFrames {
 			"font.png",
 			FONTCHARS,
 			FONTWIDTH, FONTHEIGHT, FONTSTYLES, 1, 3);
+
+    fontbig = Font::create(screen,
+			   "fontbig.png",
+			   FONTCHARS,
+			   FONTBIGWIDTH,
+			   FONTBIGHEIGHT,
+			   FONTSTYLES,
+			   2, 3);
+
     fonthuge = Font::create(screen,
 			    "fontmax.png",
 			    FONTCHARS,
@@ -433,10 +455,11 @@ struct LabeledFrames {
     for (;;) {
       SDL_Delay(1);
       sdlutil::fillrect(screen, 0,
-			0, HEIGHT - FONTHEIGHT - 2, WIDTH, FONTHEIGHT + 2);
-      font->draw(0, HEIGHT - FONTHEIGHT - 2,
-		 StringPrintf(YELLOW "? " POP "%s" YELLOW "_",
-			      input.c_str()));
+			0, HEIGHT - FONTBIGHEIGHT - 2, 
+			WIDTH, FONTBIGHEIGHT + 2);
+      fontbig->draw(0, HEIGHT - FONTBIGHEIGHT - 2,
+		    StringPrintf(YELLOW "? " POP "%s" YELLOW "_",
+				 input.c_str()));
       SDL_Flip(screen);
 
       SDL_Event event;
@@ -449,13 +472,13 @@ struct LabeledFrames {
 	    switch(event.key.keysym.sym) {
 	      case SDLK_ESCAPE:
 		sdlutil::fillrect(screen, 0,
-				  0, HEIGHT - FONTHEIGHT - 2, 
-				  WIDTH, FONTHEIGHT + 2);
+				  0, HEIGHT - FONTBIGHEIGHT - 2, 
+				  WIDTH, FONTBIGHEIGHT + 2);
 		return start;
 	      case SDLK_RETURN:
 		sdlutil::fillrect(screen, 0,
-				  0, HEIGHT - FONTHEIGHT - 2, 
-				  WIDTH, FONTHEIGHT + 2);
+				  0, HEIGHT - FONTBIGHEIGHT - 2, 
+				  WIDTH, FONTBIGHEIGHT + 2);
 		return input;
 	      case SDLK_BACKSPACE:
 		if (input.size() > 0) {
@@ -485,6 +508,7 @@ struct LabeledFrames {
 
     int displayedframe = -1;
     Uint32 lastframe = 0;
+    ScriptStats stats = script->ComputeStats(num_audio_samples);
 
     for (;;) {
       int sample = AtomicRead(&currentsample, audio_mutex);
@@ -499,10 +523,19 @@ struct LabeledFrames {
 	Graphic g(frames[frame].bytes);
 	g.Blit(0, 0);
 
-	font->draw(0, 0,
-		   StringPrintf("Frame ^1%d^< (^3%.2f%%^<)   Sample ^4%d",
-				frame, (100.0 * frame) / frames.size(),
-				sample));
+	const double TOTAL_SECONDS = frames.size() / FPS;
+	int dialogue = stats.fraction_words * TOTAL_SECONDS;
+	int mins = dialogue / 60;
+	int secs = dialogue % 60;
+
+	string topline =
+	  StringPrintf("Frame ^1%d^< (^3%.2f%%^<)   Sample ^4%d"
+		       "  Labeled ^3%.2f%%^<  Dialogue ^5%d^1m^5%d^1s",
+		       frame, (100.0 * frame) / frames.size(),
+		       sample,
+		       100.0 * stats.fraction_labeled,
+		       mins, secs);
+	font->draw(0, 0, topline);
 
 	Line *line = script->GetLine(sample);
 	if (line->Unknown()) {
@@ -522,7 +555,7 @@ struct LabeledFrames {
 	sdlutil::fillrect(screen, 0, SCRIPTX, 0,
 			  WIDTH - SCRIPTX,
 			  HEIGHT);
-	static const int NUM_LINES = 50;
+	static const int NUM_LINES = 60;
 	int lidx = script->GetLineIdx(sample);
 	int startidx = max(0, lidx - (NUM_LINES >> 1));
 	for (int i = 0; 
@@ -533,7 +566,8 @@ struct LabeledFrames {
 		     StringPrintf("%s%010d  %s%s",
 				  (startidx + i) == lidx ? WHITE : GREY,
 				  line.sample,
-				  (startidx + i) == lidx ? YELLOW : WHITE,
+				  (startidx + i) == lidx ? YELLOW : 
+				  (line.Unknown() ? RED : WHITE),
 				  line.s.c_str()));
 	}
 	dirty = true;
@@ -619,6 +653,7 @@ struct LabeledFrames {
 	      break;
 	    case SDLK_s:
 	      Save();
+	      stats = script->ComputeStats(num_audio_samples);
 	      printf("Saved.\n");
 	      break;
 	    case SDLK_ESCAPE:
@@ -651,9 +686,40 @@ struct LabeledFrames {
 	      Pause();
 	      int lidx = script->GetLineIdx(sample);
 	      string s = Prompt(script->lines[lidx].s);
-	      // TODO: if s has spaces, split the current
-	      // interval evenly.
-	      script->lines[lidx].s = s;
+	      
+	      vector<string> words = SplitWords(s);
+	      if (words.size() == 0) {
+		script->lines[lidx].s = "";
+	      } else if (words.size() == 1) {
+		script->lines[lidx].s = words[0];
+	      } else {
+		// if s has spaces, split the current
+		// interval evenly.
+		// HERE
+		int current_start =
+		  script->lines[lidx].sample;
+		int next_start =
+		  (lidx + 1 < script->lines.size()) ?
+		  script->lines[lidx + 1].sample :
+		  num_audio_samples;
+		int len = next_start - current_start;
+		CHECK(len > 0);
+		if (len < words.size() * 10) {
+		  printf("Can't split -- ival too short at %d samples\n",
+			 len);
+		} else {
+		  script->lines[lidx].s = words[0];
+		  for (int i = 1; i < words.size(); i++) {
+		    int mark = current_start + 
+		      (i / (double)words.size()) * len;
+		    printf("Mark: %d <- %s\n", mark, words[i].c_str());
+		    // Should always work because we checked above.
+		    CHECK(script->Split(mark));
+		    Line *line = script->GetLine(mark);
+		    line->s = words[i];
+		  }
+		}
+	      }
 	      break;
 	    }
 
@@ -704,7 +770,7 @@ struct LabeledFrames {
   }
   
   Script *script;
-  Font *font, *fonthuge;
+  Font *font, *fontbig, *fonthuge;
 };
 
 

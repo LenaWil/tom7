@@ -17,7 +17,17 @@ struct Line {
   Line(int sample, const string &s) : sample(sample), s(s) {}
   int sample;
   string s;
-  bool Unknown() { return s == "*"; }
+  bool Unknown() const { return s == "*"; }
+};
+
+struct ScriptStats {
+  int num_words;
+  int num_silent;
+  int num_unknown;
+  // By number of samples.
+  double fraction_labeled;
+  double fraction_silent;
+  double fraction_words;
 };
 
 struct Script {
@@ -40,6 +50,9 @@ struct Script {
   void Save(const string &filename);
 
   void DebugPrint();
+
+  // Linear time.
+  ScriptStats ComputeStats(int max_samples);
 
  private:
   int GetLineIdxRec(int f, int lb, int ub);
