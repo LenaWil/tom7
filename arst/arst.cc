@@ -48,6 +48,7 @@
 #define FPS 24.000
 #define MS_PER_FRAME (1000.0 / FPS)
 #define AUDIO_SAMPLERATE 48000
+#define SECONDS_PER_SAMPLE (1.0 / AUDIO_SAMPLERATE)
 #define SAMPLES_PER_FRAME (AUDIO_SAMPLERATE / (double)FPS)
 #define FRAMES_PER_SAMPLE (1 / SAMPLES_PER_FRAME)
 
@@ -386,7 +387,7 @@ struct LabeledFrames {
 			    "fontmax.png",
 			    FONTCHARS,
 			    27 * 2, 48 * 2, FONTSTYLES, 3 * 2, 3);
-    script = Script::Load(SCRIPTFILE);
+    script = Script::Load(num_audio_samples, SCRIPTFILE);
   }
   
   void LoadFrames() {
@@ -501,14 +502,18 @@ struct LabeledFrames {
     }
   }
 
-  void Editor() {
-    LoadOpenAudio();
+  string GetMS(int seconds) {
+    int mins = seconds / 60;
+    int secs = seconds % 60;
+    return StringPrintf("^5%d^1m^5%d^1s", mins, secs);
+  }
 
+  void Editor() {
     SDL_PauseAudio(0);
 
     int displayedframe = -1;
     Uint32 lastframe = 0;
-    ScriptStats stats = script->ComputeStats(num_audio_samples);
+    ScriptStats stats = script->ComputeStats();
 
     for (;;) {
       int sample = AtomicRead(&currentsample, audio_mutex);
@@ -525,16 +530,14 @@ struct LabeledFrames {
 
 	const double TOTAL_SECONDS = frames.size() / FPS;
 	int dialogue = stats.fraction_words * TOTAL_SECONDS;
-	int mins = dialogue / 60;
-	int secs = dialogue % 60;
 
 	string topline =
 	  StringPrintf("Frame ^1%d^< (^3%.2f%%^<)   Sample ^4%d"
-		       "  Labeled ^3%.2f%%^<  Dialogue ^5%d^1m^5%d^1s",
+		       "  Labeled ^3%.2f%%^<  Dialogue %s",
 		       frame, (100.0 * frame) / frames.size(),
 		       sample,
 		       100.0 * stats.fraction_labeled,
-		       mins, secs);
+		       GetMS(dialogue).c_str());
 	font->draw(0, 0, topline);
 
 	Line *line = script->GetLine(sample);
@@ -562,13 +565,19 @@ struct LabeledFrames {
 	     i < NUM_LINES && (startidx + i) < script->lines.size();
 	     i++) {
 	  const Line &line = script->lines[startidx + i];
+	  string s =
+	    line.Unknown() ?
+	    ("*  " + GetMS(script->GetSize(startidx + i) * 
+			   SECONDS_PER_SAMPLE)) :
+	    line.s;
+	  
 	  font->draw(SCRIPTX, i * FONTHEIGHT,
 		     StringPrintf("%s%010d  %s%s",
 				  (startidx + i) == lidx ? WHITE : GREY,
 				  line.sample,
 				  (startidx + i) == lidx ? YELLOW : 
 				  (line.Unknown() ? RED : WHITE),
-				  line.s.c_str()));
+				  s.c_str()));
 	}
 	dirty = true;
       }
@@ -653,7 +662,7 @@ struct LabeledFrames {
 	      break;
 	    case SDLK_s:
 	      Save();
-	      stats = script->ComputeStats(num_audio_samples);
+	      stats = script->ComputeStats();
 	      printf("Saved.\n");
 	      break;
 	    case SDLK_ESCAPE:
@@ -695,7 +704,6 @@ struct LabeledFrames {
 	      } else {
 		// if s has spaces, split the current
 		// interval evenly.
-		// HERE
 		int current_start =
 		  script->lines[lidx].sample;
 		int next_start =
@@ -791,6 +799,8 @@ int SDL_main (int argc, char *argv[]) {
 
   screen = sdlutil::makescreen(WIDTH, HEIGHT);
   CHECK(screen);
+
+  LoadOpenAudio();
 
   LabeledFrames lf;
   lf.Editor();

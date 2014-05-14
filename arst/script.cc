@@ -1,13 +1,13 @@
 #include "script.h"
 #include "arst.h"
 
-Script *Script::Load(const string &filename) {
-  return FromString(Util::ReadFile(filename));
+Script *Script::Load(int ms, const string &filename) {
+  return FromString(ms, Util::ReadFile(filename));
 }
 
-Script *Script::FromString(const string &contents) {
+Script *Script::FromString(int ms, const string &contents) {
   vector<string> lines = Util::SplitToLines(contents);
-  Script *s = new Script;
+  Script *s = new Script(ms);
 
   int lastsample = -1;
   for (int i = 0; i < lines.size(); i++) {
@@ -22,9 +22,9 @@ Script *Script::FromString(const string &contents) {
   return s;
 }
 
-Script *Script::Empty() {
+Script *Script::Empty(int ms) {
   // Easy, just one big unknown chunk.
-  Script *s = new Script;
+  Script *s = new Script(ms);
   s->lines.push_back(Line(0, "*"));
   return s;
 }
@@ -86,18 +86,18 @@ bool Script::Split(int sample) {
   return true;
 }
 
-ScriptStats Script::ComputeStats(int max_samples) {
-  /*
-struct ScriptStats {
-  int num_words;
-  int num_silent;
-  int num_unknown;
-  // By number of samples.
-  double fraction_labeled;
-  double fraction_silent;
-  double fraction_words;
-};
-  */
+int Script::GetEnd(int idx) {
+  if (idx + 1 < lines.size())
+    return lines[idx + 1].sample;
+  else
+    return max_samples;
+}
+
+int Script::GetSize(int idx) {
+  return GetEnd(idx) - lines[idx].sample;
+}
+
+ScriptStats Script::ComputeStats() {
   int num_words = 0, num_silent = 0, num_unknown = 0;
   double samples_labeled = 0.0,
     samples_silent = 0.0,
