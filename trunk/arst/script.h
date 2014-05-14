@@ -34,10 +34,18 @@ struct Script {
   // Never empty; lines[0].sample == 0.
   vector<Line> lines;
 
-  static Script *Load(const string &filename);
-  static Script *FromString(const string &contents);
+  static Script *Load(int max_samples,
+                      const string &filename);
+  static Script *FromString(int max_samples,
+                            const string &contents);
   // Whole movie is "*".
-  static Script *Empty();
+  static Script *Empty(int max_samples);
+
+  // Get the sample field from the next line, or max_samples if
+  // it's the last one.
+  int GetEnd(int idx);
+  // Get the size in samples, GetEnd(idx) - lines[idx].sample.
+  int GetSize(int idx);
 
   int GetLineIdx(int f);
   Line *GetLine(int f);
@@ -52,12 +60,13 @@ struct Script {
   void DebugPrint();
 
   // Linear time.
-  ScriptStats ComputeStats(int max_samples);
+  ScriptStats ComputeStats();
 
  private:
+  int max_samples;
   int GetLineIdxRec(int f, int lb, int ub);
   // Use factory; this doesn't initialize elt 0.
-  Script() {}
+  explicit Script(int ms) : max_samples(ms) {}
 };
 
 #endif
