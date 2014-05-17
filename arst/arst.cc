@@ -241,6 +241,13 @@ static void LoadOpenAudio() {
 	audio_spec.format == AUDIO_U16MSB ||
 	audio_spec.format == AUDIO_S16MSB);
 
+  printf("got: %d LSB (u %d s %d) MSB (u %d s %d)\n",
+	 audio_spec.format,
+	 AUDIO_U16LSB,
+	 AUDIO_S16LSB,
+	 AUDIO_U16MSB,
+	 AUDIO_S16MSB);
+
   CHECK(audio_spec.channels == AUDIO_CHANNELS);
   printf("Loaded audio.\n");
   SDL_AudioSpec want, have;
@@ -552,6 +559,46 @@ struct LabeledFrames {
 	dirty = true;
       }
 
+      // PERF crazy slow?!
+      {
+	static const int WAVE_WIDTH = FRAMEWIDTH * 2;
+	int lidx = script->GetLineIdx(sample);
+	int start = script->lines[lidx].sample;
+	int end = script->GetEnd(lidx);
+	sdlutil::fillrect(screen, 0x0, 
+			  0, FRAMEHEIGHT * 2,
+			  WAVE_WIDTH, EXTRAHEIGHT);
+
+	// Actual range we'll draw.
+	int extra = (end - start) / 10;
+	int range_start = max(start - extra, 0);
+	int range_end = min(end + extra, num_audio_samples);
+	double width = range_end - range_start;
+
+	double stride = width / WAVE_WIDTH;
+
+	double dloc = range_start;
+	for (int x = 0; x < WAVE_WIDTH; x++) {
+	  int sampleidx = dloc;
+	  int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE *
+	    AUDIO_CHANNELS;
+	  Sint16 val = *(Sint16*)&movie_audio[byteidx];
+	  int y = FRAMEHEIGHT * 2 + (EXTRAHEIGHT >> 1);
+	  y += (val / 327.68);
+	  int r = 0x0, g = 0x0, b = 0x0;
+	  
+	  if (dloc >= start && dloc <= end) {
+	    g = 0xFF;
+	  } else {
+	    r = 0xFF;
+	  }
+	    
+	  sdlutil::drawpixel(screen, x, y,
+			     r, g, b);
+	  dloc += stride;
+	}
+      }
+
       // PERF don't always draw script at right.
       // TODO: draw background for selected
       {
@@ -571,9 +618,14 @@ struct LabeledFrames {
 			   SECONDS_PER_SAMPLE)) :
 	    line.s;
 	  
+	  const char *numcolor =
+	    (startidx + i) == lidx ?
+	    WHITE :
+	    line.Unknown() ? RED : GREY;
+
 	  font->draw(SCRIPTX, i * FONTHEIGHT,
 		     StringPrintf("%s%010d  %s%s",
-				  (startidx + i) == lidx ? WHITE : GREY,
+				  numcolor,
 				  line.sample,
 				  (startidx + i) == lidx ? YELLOW : 
 				  (line.Unknown() ? RED : WHITE),
@@ -740,6 +792,18 @@ struct LabeledFrames {
 		} else {
 		  Seek(script->lines[lidx + 1].sample);
 		}
+	      }
+	      break;
+	    }
+
+	    case SDLK_QUOTE: {
+	      for (int lidx = script->GetLineIdx(sample) + 1;
+		   lidx < script->lines.size(); lidx++) {
+		if (script->lines[lidx].Unknown()) {
+		  Seek(script->lines[lidx].sample);
+		  break;
+		}
+		
 	      }
 	      break;
 	    }
