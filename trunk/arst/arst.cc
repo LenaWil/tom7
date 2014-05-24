@@ -233,6 +233,7 @@ static void LoadOpenAudio() {
   CHECK(num_audio_samples * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS ==
 	audio_length);
   CHECK(audio_spec.freq == AUDIO_SAMPLERATE);
+  printf("There are %d audio samples\n", num_audio_samples);
 
   // needs to be one of the 16-bit types
   CHECK(BYTES_PER_AUDIO_SAMPLE == 2);
@@ -559,42 +560,77 @@ struct LabeledFrames {
 	dirty = true;
       }
 
-      // PERF crazy slow?!
       {
 	static const int WAVE_WIDTH = FRAMEWIDTH * 2;
-	int lidx = script->GetLineIdx(sample);
-	int start = script->lines[lidx].sample;
-	int end = script->GetEnd(lidx);
+	const int lidx = script->GetLineIdx(sample);
+	const int start = script->lines[lidx].sample;
+	const int end = script->GetEnd(lidx);
 	sdlutil::fillrect(screen, 0x0, 
 			  0, FRAMEHEIGHT * 2,
 			  WAVE_WIDTH, EXTRAHEIGHT);
 
 	// Actual range we'll draw.
-	int extra = (end - start) / 10;
-	int range_start = max(start - extra, 0);
-	int range_end = min(end + extra, num_audio_samples);
-	double width = range_end - range_start;
+	const int extra = (end - start) / 10;
+	const int range_start = max(start - extra, 0);
+	const int range_end = min(end + extra, num_audio_samples);
+	const double width = range_end - range_start;
 
-	double stride = width / WAVE_WIDTH;
+	const double stride = width / WAVE_WIDTH;
+
+	// Get max magnitude.
+	float maxmag = 0.0f;
+	{
+	  double dloc = range_start;
+	  for (int x = 0; x < WAVE_WIDTH; x++) {
+	    const int sampleidx = dloc;
+	    const int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE *
+	      AUDIO_CHANNELS;
+	    const float val = (float)*(Sint16*)&movie_audio[byteidx];
+	    if (val > maxmag) maxmag = val;
+	    else if (-val > maxmag) maxmag = -val;
+	    dloc += stride;
+	  }
+	}
+
+	// In case every sample will be 0, then just a flat line.
+	// We want to avoid 0/0s.
+	if (maxmag == 0.0f) maxmag = 32769.0f;
 
 	double dloc = range_start;
 	for (int x = 0; x < WAVE_WIDTH; x++) {
-	  int sampleidx = dloc;
-	  int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE *
+	  const int sampleidx = dloc;
+	  const int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE *
 	    AUDIO_CHANNELS;
-	  Sint16 val = *(Sint16*)&movie_audio[byteidx];
-	  int y = FRAMEHEIGHT * 2 + (EXTRAHEIGHT >> 1);
-	  y += (val / 327.68);
-	  int r = 0x0, g = 0x0, b = 0x0;
+	  const float val = (float)*(Sint16*)&movie_audio[byteidx];
+	  const float norm = val / maxmag;
+	  if (norm > 1.0f || norm < -1.0f) {
+	    printf("norm %f val %f maxmag %f\n", norm, val, maxmag);
+	    CHECK(!"no");
+	  }
+	  // CHECK(norm <= 1.0f && norm >= -1.0f);
+
+	  // draw two pixels, at y and y+1.
+	  const float f = norm * 100.0; // 327.68f;
+	  const int yy = (int)f;
+	  const float leftover = f - yy;
+	  const Uint8 byte = leftover * 0xFF;
+	  const int y = FRAMEHEIGHT * 2 + (EXTRAHEIGHT >> 1) + yy;
+	  // y += yy; // (val / 327.68);
+	  int r1 = 0x0, r2 = 0x0, g1 = 0x0, g2 = 0x0, b = 0x0;
 	  
 	  if (dloc >= start && dloc <= end) {
-	    g = 0xFF;
+	    g1 = byte;
+	    g2 = (0xFF - byte);
 	  } else {
-	    r = 0xFF;
+	    r1 = byte;
+	    r2 = (0xFF - byte);
 	  }
 	    
 	  sdlutil::drawpixel(screen, x, y,
-			     r, g, b);
+			     r1, g1, b);
+	  sdlutil::drawpixel(screen, x, y + 1,
+			     r2, g2, b);
+
 	  dloc += stride;
 	}
       }
