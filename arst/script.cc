@@ -1,4 +1,7 @@
 #include "script.h"
+
+#include <algorithm>
+
 #include "arst.h"
 
 Script *Script::Load(int ms, const string &filename) {
@@ -130,4 +133,21 @@ ScriptStats Script::ComputeStats() {
   stats.fraction_silent = samples_silent / max_samples;
   stats.fraction_words = samples_words / max_samples;
   return stats;
+}
+
+map<string, pair<int, int>> Script::GetHistogram() {
+  map<string, pair<int, int>> histo;
+  for (int i = 0; i < lines.size(); i++) {
+    const Line &line = lines[i];
+    int len = (i + 1 < lines.size()) ?
+      lines[i + 1].sample - line.sample :
+      max_samples - line.sample;
+    if (!line.Unknown()) {
+      histo[line.s].first++;
+      histo[line.s].second += len;
+      // printf("Now %s %d %d\n", line.s.c_str(), 
+      // histo[line.s].first, histo[line.s].second);
+    }
+  }
+  return histo;
 }
