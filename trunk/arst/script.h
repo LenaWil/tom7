@@ -2,6 +2,8 @@
 #ifndef __SCRIPT_H
 #define __SCRIPT_H
 
+#include <map>
+#include <utility>
 #include <string>
 #include <vector>
 using namespace std;
@@ -58,6 +60,9 @@ struct Script {
   void Save(const string &filename);
 
   void DebugPrint();
+
+  // n lg n. First is count, second is number of total sample duration.
+  map<string, pair<int, int>> GetHistogram();
 
   // Linear time.
   ScriptStats ComputeStats();

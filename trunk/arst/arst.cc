@@ -57,6 +57,7 @@
 
 #define AUDIO "d:\\video\\starwars.wav"
 #define SCRIPTFILE "starwars.txt"
+#define HISTOFILE "starwars.histo"
 
 SDL_Surface *screen = 0;
 
@@ -516,6 +517,17 @@ struct LabeledFrames {
     return StringPrintf("^5%d^1m^5%d^1s", mins, secs);
   }
 
+  string GetMSPlain(double seconds) {
+    int seconds_i = seconds;
+    int mins = seconds_i / 60;
+    if (mins == 0) {
+      return StringPrintf("%0.2fs", seconds);
+    } else {
+      int secs = seconds_i % 60;
+      return StringPrintf("%dm%ds", mins, secs);
+    }
+  }
+
   void Editor() {
     SDL_PauseAudio(0);
 
@@ -577,15 +589,41 @@ struct LabeledFrames {
 
 	const double stride = width / WAVE_WIDTH;
 
+	const auto getsample_fast = [stride](double dloc) {
+	  const int sampleidx = dloc;
+	  const int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE *
+	    AUDIO_CHANNELS;
+	  const float val = (float)*(Sint16*)&movie_audio[byteidx];
+	  return val;
+	};
+
+	const auto getsample_max = [stride](double dloc) {
+	  const int sampleidx = dloc;
+	  float maxmag = 0.0f, maxval = 0.0f;
+	  for (int i = ((int)dloc); i <= ((int) dloc + stride); i++) {
+	    const int byteidx = i * BYTES_PER_AUDIO_SAMPLE *
+	      AUDIO_CHANNELS;
+	    const float val = (float)*(Sint16*)&movie_audio[byteidx];
+	    if (val > maxmag) {
+	      maxmag = val;
+	      maxval = val;
+	    } else if (-val > maxmag) {
+	      maxmag = -val;
+	      maxval = val;
+	    }
+	  }
+	  return maxval;
+	};
+
+	// PERF choose the fast version if the loop is more
+	// than a few seconds.
+
 	// Get max magnitude.
 	float maxmag = 0.0f;
 	{
 	  double dloc = range_start;
 	  for (int x = 0; x < WAVE_WIDTH; x++) {
-	    const int sampleidx = dloc;
-	    const int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE *
-	      AUDIO_CHANNELS;
-	    const float val = (float)*(Sint16*)&movie_audio[byteidx];
+	    const float val = getsample_max(dloc);
 	    if (val > maxmag) maxmag = val;
 	    else if (-val > maxmag) maxmag = -val;
 	    dloc += stride;
@@ -598,10 +636,7 @@ struct LabeledFrames {
 
 	double dloc = range_start;
 	for (int x = 0; x < WAVE_WIDTH; x++) {
-	  const int sampleidx = dloc;
-	  const int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE *
-	    AUDIO_CHANNELS;
-	  const float val = (float)*(Sint16*)&movie_audio[byteidx];
+	  const float val = getsample_max(dloc);
 	  const float norm = val / maxmag;
 	  if (norm > 1.0f || norm < -1.0f) {
 	    printf("norm %f val %f maxmag %f\n", norm, val, maxmag);
@@ -748,6 +783,9 @@ struct LabeledFrames {
 	    switch(event.key.keysym.sym) {
 	    default:
 	      break;
+	    case SDLK_h:
+	      Histogram();
+	      break;
 	    case SDLK_s:
 	      Save();
 	      stats = script->ComputeStats();
@@ -875,6 +913,23 @@ struct LabeledFrames {
 
   void Save() {
     script->Save(SCRIPTFILE);
+  }
+
+  void Histogram() {
+    map<string, pair<int, int>> histo = script->GetHistogram();
+    string out;
+    for (map<string, pair<int, int>>::const_iterator it = histo.begin();
+	 it != histo.end();
+	 ++it) {
+      double sec = it->second.second * SECONDS_PER_SAMPLE;
+      string line = StringPrintf("%s\t%d\t%s\n", it->first.c_str(),
+				 it->second.first,
+				 GetMSPlain(sec).c_str());
+      out += line;
+    }
+    Util::WriteFile(HISTOFILE, out);
+    // printf("%s\n", out.c_str());
+    printf("Wrote " HISTOFILE "\n");
   }
   
   Script *script;
