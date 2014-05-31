@@ -121,10 +121,11 @@ struct linereal : public line {
 
 };
 
+}  // namespace
+
 line * line::create(int a, int b, int c, int d) {
   return new linereal(a, b, c, d);
 }
-}  // namespace
 
 bool Util::isdir(string f) {
   struct stat st;
