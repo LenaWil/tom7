@@ -1,6 +1,7 @@
 
 #include "arst.h"
 
+#include <functional>
 #include <stdio.h>
 #include <utility>
 
@@ -81,28 +82,6 @@ static Uint32 audio_length;
 static int num_audio_samples;
 static Uint8 *movie_audio;
 static SDL_AudioSpec audio_spec;
-
-// T must be copyable.
-template<class T>
-T AtomicRead(T *loc, SDL_mutex *m) {
-  SDL_LockMutex(m);
-  T val = *loc;
-  SDL_UnlockMutex(m);
-  return val;
-}
-
-template<class T>
-void AtomicWrite(T *loc, T value, SDL_mutex *m) {
-  SDL_LockMutex(m);
-  *loc = value;
-  SDL_UnlockMutex(m);
-}
-
-struct MutexLock {
-  explicit MutexLock(SDL_mutex *m) : m(m) { SDL_LockMutex(m); }
-  ~MutexLock() { SDL_UnlockMutex(m); }
-  SDL_mutex *m;
-};
 
 enum Mode {
   PAUSED,
@@ -293,78 +272,6 @@ static int LoadFrameThread(void *vdata) {
   return 0;
 }
 
-#if 0
-// assumes RGBA, surfaces exactly the same size, etc.
-static void CopyRGBA(const vector<uint8> &rgba, SDL_Surface *surface) {
-  // int bpp = surface->format->BytesPerPixel;
-  Uint8 * p = (Uint8 *)surface->pixels;
-  memcpy(p, &rgba[0], surface->w * surface->h * 4);
-}
-#endif
-
-static void CopyRGBA2x(const vector<uint8> &rgba, SDL_Surface *surface) {
-  Uint8 *p = (Uint8 *)surface->pixels;
-  const int width = surface->w;
-  CHECK((width & 1) == 0);
-  const int halfwidth = width >> 1;
-  const int height = surface->h;
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      int idx = (y * width + x) * 4;
-      int hidx = ((y >> 1) * halfwidth + (x >> 1)) * 4;
-      #if SWAB
-      p[idx + 0] = rgba[hidx + 2];
-      p[idx + 1] = rgba[hidx + 1];
-      p[idx + 2] = rgba[hidx + 0];
-      p[idx + 3] = rgba[hidx + 3];
-      #else
-      p[idx + 0] = rgba[hidx + 0];
-      p[idx + 1] = rgba[hidx + 1];
-      p[idx + 2] = rgba[hidx + 2];
-      p[idx + 3] = rgba[hidx + 3];
-      #endif
-    }
-  }
-}
-
-struct Graphic {
-  // From a PNG file.
-  explicit Graphic(const vector<uint8> &bytes) {
-    int bpp;
-    uint8 *stb_rgba = stbi_load_from_memory(&bytes[0], bytes.size(),
-					    &width, &height, &bpp, 4);
-    CHECK(stb_rgba);
-    for (int i = 0; i < width * height * 4; i++) {
-      rgba.push_back(stb_rgba[i]);
-      //       if (bpp == 3 && (i % 3 == 2)) {
-      // rgba.push_back(0xFF);
-      //}
-    }
-    stbi_image_free(stb_rgba);
-    if (DEBUGGING)
-      fprintf(stderr, "image is %dx%d @%dbpp = %lld bytes\n",
-	      width, height, bpp,
-	      rgba.size());
-
-    surf = sdlutil::makesurface(width * 2, height * 2, true);
-    CHECK(surf);
-    CopyRGBA2x(rgba, surf);
-  }
-
-  // to screen
-  void Blit(int x, int y) {
-    sdlutil::blitall(surf, screen, x, y);
-  }
-
-  ~Graphic() {
-    SDL_FreeSurface(surf);
-  }
-
-  int width, height;
-  vector<uint8> rgba;
-  SDL_Surface *surf;
-};
-
 static vector<string> SplitWords(const string &ss) {
   string s = Util::losewhitel(ss);
   vector<string> ret;
@@ -545,8 +452,8 @@ struct LabeledFrames {
       if (frame != displayedframe) {
 	lastframe = SDL_GetTicks();
 	displayedframe = frame;
-	Graphic g(frames[frame].bytes);
-	g.Blit(0, 0);
+	Graphic2x g(frames[frame].bytes);
+	g.BlitTo(screen, 0, 0);
 
 	const double TOTAL_SECONDS = frames.size() / FPS;
 	int dialogue = stats.fraction_words * TOTAL_SECONDS;
@@ -589,7 +496,7 @@ struct LabeledFrames {
 
 	const double stride = width / WAVE_WIDTH;
 
-	const auto getsample_fast = [stride](double dloc) {
+	std::function<double(double)> getsample_fast = [stride](double dloc) {
 	  const int sampleidx = dloc;
 	  const int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE *
 	    AUDIO_CHANNELS;
@@ -597,8 +504,8 @@ struct LabeledFrames {
 	  return val;
 	};
 
-	const auto getsample_max = [stride](double dloc) {
-	  const int sampleidx = dloc;
+	std::function<double(double)> getsample_max = [stride](double dloc) {
+	  // const int sampleidx = dloc;
 	  float maxmag = 0.0f, maxval = 0.0f;
 	  for (int i = ((int)dloc); i <= ((int) dloc + stride); i++) {
 	    const int byteidx = i * BYTES_PER_AUDIO_SAMPLE *
@@ -615,6 +522,10 @@ struct LabeledFrames {
 	  return maxval;
 	};
 
+	std::function<double(double)> getsample = 
+	  (width > 3 * AUDIO_SAMPLERATE) ?
+	  getsample_fast : getsample_max;
+
 	// PERF choose the fast version if the loop is more
 	// than a few seconds.
 
@@ -623,7 +534,7 @@ struct LabeledFrames {
 	{
 	  double dloc = range_start;
 	  for (int x = 0; x < WAVE_WIDTH; x++) {
-	    const float val = getsample_max(dloc);
+	    const float val = getsample(dloc);
 	    if (val > maxmag) maxmag = val;
 	    else if (-val > maxmag) maxmag = -val;
 	    dloc += stride;
@@ -636,7 +547,7 @@ struct LabeledFrames {
 
 	double dloc = range_start;
 	for (int x = 0; x < WAVE_WIDTH; x++) {
-	  const float val = getsample_max(dloc);
+	  const float val = getsample(dloc);
 	  const float norm = val / maxmag;
 	  if (norm > 1.0f || norm < -1.0f) {
 	    printf("norm %f val %f maxmag %f\n", norm, val, maxmag);
