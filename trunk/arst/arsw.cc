@@ -16,6 +16,7 @@
 #include "font.h"
 #include "script.h"
 #include "pngsave.h"
+#include "../cc-lib/wavesave.h"
 
 // original file size
 
@@ -28,7 +29,7 @@
 // #define NUM_FRAMES 50000
 
 // XXX only necessary while they're being written out...
-#define MAXFULLFRAMES 61170
+#define MAXFULLFRAMES 143701
 
 #define WORDX 20
 #define WORDY 900
@@ -638,6 +639,10 @@ struct Outputter {
 
     // XXX
     if (samples_out.size() > MAX_SAMPLES_DEBUG) {
+      printf("Writing wave.\n");
+      WaveSave::SaveStereo("starwars-sorted.wav",
+			   samples_out,
+			   AUDIO_SAMPLERATE);
       printf("Early exit.\n");
       abort();
     }
@@ -652,7 +657,7 @@ struct Outputter {
     // We go on a word-by-word basis.
 
     uint64 time_start = time(NULL);
-    for (int w = 0; w < sorted.size(); w++) {
+    for (int w = 3 /* XXXX skip "a" */; w < sorted.size(); w++) {
       const Word &word = sorted[w];
       
       // Read events once every word.
