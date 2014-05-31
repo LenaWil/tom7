@@ -68,8 +68,15 @@ using namespace std;
 // assumes RGBA, surfaces exactly the same size, etc.
 inline void CopyRGBA(const vector<uint8> &rgba, SDL_Surface *surface) {
   // int bpp = surface->format->BytesPerPixel;
-  Uint8 * p = (Uint8 *)surface->pixels;
+  Uint8 *p = (Uint8 *)surface->pixels;
   memcpy(p, &rgba[0], surface->w * surface->h * 4);
+}
+
+inline void UncopyRGBA(const SDL_Surface *surface, vector<uint8> *rgba) {
+  const Uint8 *p = (const Uint8 *)surface->pixels;
+  int num = surface->w * surface->h * 4;
+  rgba->resize(num);
+  memcpy(&(*rgba)[0], p, num);
 }
 
 inline const Uint8 *SurfaceRGBA(const SDL_Surface *surface) {
