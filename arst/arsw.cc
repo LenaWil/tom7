@@ -19,15 +19,18 @@
 // original file size
 
 // XXX: use full rez frames
-#define FRAMEWIDTH 480
-#define FRAMEHEIGHT 270
+#define FRAMEWIDTH 1920
+#define FRAMEHEIGHT 1080
 // XXX more like 200k
 // filenames are 0 - (NUM_FRAMES - 1)
 #define NUM_FRAMES 179633
 // #define NUM_FRAMES 50000
 
+// XXX only necessary while they're being written out...
+#define MAXFULLFRAMES 48123
+
 #define WORDX 20
-#define WORDY 380
+#define WORDY 900
 
 // XXX add UI
 #define WIDTH FRAMEWIDTH
@@ -76,17 +79,19 @@ static constexpr uint64 MAX_BYTES =
 SDL_Surface *screen = 0;
 
 static string FrameFilename(int f) {
-  return StringPrintf("d:\\video\\starwars_quarterframes\\s%06d.jpg", f);
+  return StringPrintf("d:\\video\\starwars_fullframes\\s%06d.png", f);
 }
 
 static string FrameOutFilename(int f) {
-  return StringPrintf("d:\\video\\starwars_testout\\s%06d.jpg", f);
+  return StringPrintf("d:\\video\\starwars_testout\\s%06d.png", f);
 }
 
 struct Graphy;
 struct Frame {
   SDL_mutex *mutex;
   Graphy *graphy;
+  // If graphy is non-null, the word written on it.
+  string word;
 };
 
 // Protects the number of bytes used. This variable keeps track of
@@ -157,6 +162,7 @@ struct Word {
 };
 // Don't modify.
 vector<Word> sorted;
+static int num_sorted_samples = 0;
 static void LoadScript() {
   script = Script::Load(num_audio_samples, SCRIPTFILE);
   // XXX: do some sample zeroing in the script.
@@ -168,7 +174,9 @@ static void LoadScript() {
       // No dialogue. Skip.
     } else {
       Word w{line.s, line.sample, script->GetEnd(i)};
+      CHECK(w.end_sample > w.start_sample);
       sorted.push_back(w);
+      num_sorted_samples += w.end_sample - w.start_sample;
     }
   }
 
@@ -185,81 +193,6 @@ static void LoadScript() {
 
   // XXX: do some sample zeroing in the script.
 }
-
-#if 0
-// This thing needs to know what frame we're looking at.
-void AudioCallback(void *userdata, Uint8 *stream, int len) {
-  CHECK(len == AUDIO_CHANNELS * BYTES_PER_AUDIO_SAMPLE * SAMPLES_PER_BUF);
-
-  // Maybe get a signal from elsewhere that we should seek
-  // to some sample offset.
-  SDL_LockMutex(audio_mutex);
-  if (seek_to_sample >= 0) {
-    currentsample = seek_to_sample;
-    seek_to_sample = -1;
-  }
-
-  // NOTE: Need to unlock the mutex as soon as we're ready in each branch.
-  switch (mode) {
-    case PLAYING: {
-      int sampleidx = currentsample;
-      currentsample += SAMPLES_PER_BUF;
-      SDL_UnlockMutex(audio_mutex);
-      int byteidx = sampleidx * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS;
-      for (int i = 0; i < len; i++) {
-	stream[i] = (byteidx + i < audio_length) ?
-	  movie_audio[byteidx + i] :
-	  0;
-      }
-      break;
-    }
-
-    case LOOPING: {
-      CHECK(looplen > 0);
-      int startloopoffset = currentloopoffset;
-      currentsample = loopstart + currentloopoffset;
-      currentloopoffset += SAMPLES_PER_BUF;
-      currentloopoffset %= looplen;
-      SDL_UnlockMutex(audio_mutex);
-
-      int sample_len = len / (BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS);
-      CHECK(sample_len * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS == len);
-      for (int i = 0; i < sample_len; i++) {
-	int offset = (startloopoffset + i) % looplen;
-	int byteidx = (loopstart + offset) * BYTES_PER_AUDIO_SAMPLE *
-	  AUDIO_CHANNELS;
-	for (int j = 0; j < BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS; j++) {
-	  stream[(i * BYTES_PER_AUDIO_SAMPLE * AUDIO_CHANNELS) + j] =
-	    movie_audio[byteidx + j];
-	}
-      }
-      break;
-    }
-
-    case PAUSED: {
-     SDL_UnlockMutex(audio_mutex);
-     // play silence.
-     for (int i = 0; i < len; i++) {
-       stream[i] = 0;
-     }
-     break;
-    }
-  }
-}
-#endif
-
-#if 0
-static void ReadFileBytes(const string &f, vector<uint8> *out) {
-  string s = Util::ReadFile(f);
-  CHECK(!s.empty());
-  out->clear();
-  out->reserve(s.size());
-  // PERF memcpy
-  for (int i = 0; i < s.size(); i++) {
-    out->push_back((uint8)s[i]);
-  }
-}
-#endif
 
 struct Graphy {
   // From a PNG filename.
@@ -303,28 +236,45 @@ struct Graphy {
 
 Font *font, *fontbig, *fonthuge;
 
+static int frame_had_wrong_word = 0;
+
 // Ensure that the frame is loaded (and rendered). THE MUTEX MUST
 // BE HELD. Doesn't worry about exceeding maxbytes, but does
 // increment it appropriately. f->graphy will be non-null after
 // the call.
 //
 // Returns true if we did some work.
-static bool MaybeMakeFrame(int frame_num, Frame *f) {
+static bool MaybeMakeFrame(const string &word, int frame_num, Frame *f) {
+  if (f->graphy != NULL) {
+    if (f->word == word) {
+      return false;
+    }
+
+    frame_had_wrong_word++;
+    // Wrong word! We'll have to replace it. :(
+    // This should be rare, only when we need to use a frame that
+    // spans two words twice while in cache.
+    {
+      MutexLock ml(bytes_mutex);
+      bytes_used -= f->graphy->BytesUsed();
+    }
+    delete f->graphy;
+    f->graphy = NULL;
+    f->word.clear();
+    // Now we'll fall through to the condition below.
+  }
+
   if (f->graphy == NULL) {
-    const string filename = FrameFilename(frame_num);
+    const string filename = 
+      (frame_num < MAXFULLFRAMES) ? FrameFilename(frame_num) :
+      FrameFilename(0);
     Graphy *g = new Graphy(filename);
 
-    int sample = frame_num * SAMPLES_PER_FRAME;
-    const Line *line = script->GetLine(sample);
-    if (line->Unknown()) {
-      printf("Makeframe %d (sample %d) is unknown..?\n", frame_num, sample);
-      // fonthuge->draw(WORDX, WORDY, "^2?");
-    } else if (line->s.empty()) {
-      printf("Makeframe %d (sample %d) is blank..?\n", frame_num, sample);
-      // fonthuge->draw(WORDX, WORDY, "---");
-    } else {
-      fonthuge->drawto(g->surf, WORDX, WORDY, line->s);
-    }
+    // Sample that starts the frame. But we'd really like to favor
+    // the word that's being spoken in the audio. XXX.
+    // int sample = frame_num * SAMPLES_PER_FRAME;
+    // const Line *line = script->GetLine(sample);
+    fonthuge->drawto(g->surf, WORDX, WORDY, word);
 
     // TODO: Other drawing; progress meter, word histograms, etc.
 
@@ -338,6 +288,17 @@ static bool MaybeMakeFrame(int frame_num, Frame *f) {
     return true;
   }
   return false;
+}
+
+static string GetMSPlain(double seconds) {
+  int seconds_i = seconds;
+  int mins = seconds_i / 60;
+  if (mins == 0) {
+    return StringPrintf("%0.2fs", seconds);
+  } else {
+    int secs = seconds_i % 60;
+    return StringPrintf("%dm%ds", mins, secs);
+  }
 }
 
 struct Outputter {
@@ -403,6 +364,7 @@ struct Outputter {
     uint64 bytes_saved = f->graphy->BytesUsed();
     delete f->graphy;
     f->graphy = NULL;
+    f->word.clear();
     {
       MutexLock ml(bytes_mutex);
       CHECK(bytes_used >= bytes_saved);
@@ -419,7 +381,7 @@ struct Outputter {
       // PERF maybe count how often we block, or how much time we
       // spend waiting.
       MutexLock ml(frames[frame_num].mutex);
-      if (MaybeMakeFrame(frame_num, &frames[frame_num])) {
+      if (MaybeMakeFrame(word.word, frame_num, &frames[frame_num])) {
 	frames_i_loaded++;
 	printf("Main thread load of #%d (%d total).\n", 
 	       frame_num,
@@ -433,6 +395,7 @@ struct Outputter {
     }
     pair<float, float> mag = GetAudioSample(s);
     samples_out.push_back(mag);
+    samples_until_frame--;
 
     // XXX
     if (samples_out.size() > MAX_SAMPLES_DEBUG) {
@@ -460,11 +423,17 @@ struct Outputter {
       double sec = time(NULL) - time_start;
       double sps = samples_out.size() / sec;
       double fps = num_frames_output / sec;
-      printf("%d/%d (%.2f%%) %s   %.4f sps  %.4f fps\n", 
+
+      int samples_left = num_sorted_samples - samples_out.size();
+      double seconds_left = samples_left / sps;
+      string timestring = GetMSPlain(seconds_left);
+      printf("%d/%d (%.2f%%) %s  "
+	     "ld %d wrong %d %d sps %.2f fps (%s)\n", 
 	     w, (int)sorted.size(),
 	     (100.0 * w) / sorted.size(),
 	     word.word.c_str(),
-	     sps, fps);
+	     frames_i_loaded, frame_had_wrong_word,
+	     (int)sps, fps, timestring.c_str());
     }    
   }
 
