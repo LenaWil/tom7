@@ -41,8 +41,6 @@
 #define FONTHEIGHT 16
 #define SCRIPTX ((FRAMEWIDTH * 2) + 8)
 
-#define SWAB 1
-
 // Smaller is better here.
 #define SAMPLES_PER_BUF 512 // 4096
 // #define FPS 23.976

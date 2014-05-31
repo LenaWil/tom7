@@ -23,6 +23,8 @@
 
 #define DEBUGGING 0
 
+#define SWAB 1
+
 #ifdef __GNUC__
 namespace std {
 using namespace __gnu_cxx;
