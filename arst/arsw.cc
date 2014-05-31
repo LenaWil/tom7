@@ -4,6 +4,7 @@
 #include <functional>
 #include <stdio.h>
 #include <utility>
+#include <deque>
 
 #include "sdlutil-lite.h"
 #include "time.h"
@@ -27,7 +28,7 @@
 // #define NUM_FRAMES 50000
 
 // XXX only necessary while they're being written out...
-#define MAXFULLFRAMES 48123
+#define MAXFULLFRAMES 61170
 
 #define WORDX 20
 #define WORDY 900
@@ -73,8 +74,9 @@ static constexpr uint64 MAX_BYTES =
   1024ULL *
   // gigabytes
   1024ULL *
-  // forty-eight gigabytes
-  48ULL;
+  // thirty-two gigabytes
+  // 32ULL;
+  2ULL;
 
 SDL_Surface *screen = 0;
 
@@ -97,7 +99,7 @@ struct Frame {
 // Protects the number of bytes used. This variable keeps track of
 // how many bytes we've currently allocated to future frames.
 static SDL_mutex *bytes_mutex;
-static uint64 bytes_used = 0ULL;
+static int64 bytes_used = 0ULL;
 
 // Global for easier thread access.
 // Don't resize after startup -- the vector itself is not protected
@@ -110,7 +112,7 @@ static void InitializeFrames() {
     frames[i].graphy = NULL;
   }
 
-  AtomicWrite(&bytes_used, 0ULL, bytes_mutex);
+  AtomicWrite(&bytes_used, 0LL, bytes_mutex);
 }
 
 // Input sound 
@@ -225,6 +227,29 @@ struct Graphy {
     sdlutil::blitall(surf, surfto, x, y);
   }
 
+  // Expensive, but better than doing it both on PNG load and save.
+  void BlitSwab(SDL_Surface *surfto, int x, int y) {
+    SDL_Surface *tmp = sdlutil::makesurface(surf->w, surf->h, true);
+    const int num = surf->w * surf->h * 4;
+    for (int idx = 0; idx < num; idx += 4) {
+      const Uint8 *rgba = (Uint8 *)surf->pixels;
+      Uint8 *p = (Uint8 *)tmp->pixels;
+      #if SWAB	 
+      p[idx + 0] = rgba[idx + 2];
+      p[idx + 1] = rgba[idx + 1];
+      p[idx + 2] = rgba[idx + 0];
+      p[idx + 3] = rgba[idx + 3];
+      #else
+      p[idx + 0] = rgba[idx + 0];
+      p[idx + 1] = rgba[idx + 1];
+      p[idx + 2] = rgba[idx + 2];
+      p[idx + 3] = rgba[idx + 3];
+      #endif
+    }
+    sdlutil::blitall(tmp, surfto, x, y);
+    SDL_FreeSurface(tmp);
+  }
+
   ~Graphy() {
     SDL_FreeSurface(surf);
   }
@@ -275,10 +300,15 @@ static bool MaybeMakeFrame(const string &word, int frame_num, Frame *f) {
     // int sample = frame_num * SAMPLES_PER_FRAME;
     // const Line *line = script->GetLine(sample);
     fonthuge->drawto(g->surf, WORDX, WORDY, word);
+    f->word = word;
 
     // TODO: Other drawing; progress meter, word histograms, etc.
 
-    // Account for the allocation we did.
+    // Account for the allocation we did. Note that this can go
+    // over bytes_used, either because we forced this frame in
+    // the main thread, or because we are holding on to some slop
+    // bytes in an input thread (but it will return the balance
+    // momentarily).
     {
       MutexLock ml(bytes_mutex);
       bytes_used += g->BytesUsed();
@@ -301,10 +331,197 @@ static string GetMSPlain(double seconds) {
   }
 }
 
+namespace {
+struct OutputQueueItem {
+  int framenum;
+  int w, h;
+  vector<uint8> rgba;
+  // Size of original data for cache accounting; should be about the
+  // size of rgba.
+  uint64 bytes;
+};
+}
+static SDL_mutex *output_mutex;
+static bool output_thread_should_die = false;
+static deque<OutputQueueItem *> output_queue;
+
+// Background thread that processes the output queue by writing
+// the items to disk when they're available. OK to have multiple
+// copies of this thread.
+static int ProcessOutputItemsThread(void *) {
+  for (;;) {
+    SDL_LockMutex(output_mutex);
+    if (output_thread_should_die) {
+      SDL_UnlockMutex(output_mutex);
+      return 0;
+    }
+
+    if (!output_queue.empty()) {
+      OutputQueueItem *oqi = output_queue.front();
+      output_queue.pop_front();
+
+      // Now we have exclusive access to oqi and some work to do.
+      // Let others touch the deque.
+      SDL_UnlockMutex(output_mutex);
+      const string outfile = FrameOutFilename(oqi->framenum);
+      CHECK(PngSave::SaveAlpha(outfile,
+			       oqi->w, oqi->h,
+			       &oqi->rgba[0]));
+
+      // Now release the memory to the cache.
+      {
+	MutexLock ml(bytes_mutex);
+	CHECK(oqi->bytes <= bytes_used);
+	bytes_used -= oqi->bytes;
+      }
+
+    } else {
+      // Release it so that it can be populated...
+      SDL_UnlockMutex(output_mutex);
+      // ... but don't spin-lock if starved.
+      SDL_Delay(5);
+    }
+  }
+}
+
+// MUTEX MUST BE HELD.
+static void WriteFrameInBackgroundAndUnlock(Frame *f, int framenum) {
+  OutputQueueItem *oqi = new OutputQueueItem;
+  oqi->framenum = framenum;
+  oqi->w = f->graphy->surf->w;
+  oqi->h = f->graphy->surf->h;
+  oqi->bytes = f->graphy->BytesUsed();
+  UncopyRGBA(f->graphy->surf, &oqi->rgba);
+  {
+    // Only the queue update needs to be exclusive.
+    MutexLock ml(output_mutex);
+    output_queue.push_back(oqi);
+  }
+
+  // Now safe to eagerly delete. Save the size first.
+  delete f->graphy;
+  f->graphy = NULL;
+  f->word.clear();
+  // Done with frame.
+  SDL_UnlockMutex(f->mutex);
+
+  // Logically we release the memory from the Frame into the cache,
+  // but we also allocated a copy of the same size, so we'd have
+  // to add that. Instead, just don't touch it here.
+}
+
+static int FrameForSample(int s) {
+  return FRAMES_PER_SAMPLE * s;
+}
+
+namespace {
+struct InputQueueItem {
+  int source_frame;
+  string word;
+};
+}
+static SDL_mutex *input_mutex;
+static bool input_thread_should_die = false;
+static deque<InputQueueItem *> input_queue;
+
+// This thing creates the work queue. Just call it once before
+// starting the worker threads.
+static void MakeInputFrameQueue() {
+  MutexLock ml(input_mutex);
+  for (int i = 0; i < sorted.size(); i++) {
+    const Word &word = sorted[i];
+
+    int s_until_frame = 0;
+    // Sample loop.
+    for (int s = word.start_sample; s < word.end_sample; s++) {
+      if (s_until_frame == 0) {
+	InputQueueItem *iqi = new InputQueueItem;
+	iqi->source_frame = FrameForSample(s);
+	iqi->word = word.word;
+	input_queue.push_back(iqi);
+	s_until_frame = SAMPLES_PER_FRAME;
+      }
+      s_until_frame--;
+    }
+  }
+}
+
+static int ProcessInputItemsThread(void *) {
+  for (;;) {
+    // First, block if we don't have enough RAM left.
+    static constexpr int FRAME_SIZE_UPPERBOUND =
+      (WIDTH + 100) * (HEIGHT + 100) * 4;
+
+    int budget = 0;
+    {
+      MutexLock ml(bytes_mutex);
+      int64 remaining = (int64)MAX_BYTES - (int64)bytes_used;
+      if (remaining > FRAME_SIZE_UPPERBOUND) {
+	bytes_used += FRAME_SIZE_UPPERBOUND;
+	budget = FRAME_SIZE_UPPERBOUND;
+      }
+    }
+
+    // Always try grabbing this, because we need to tell if
+    // we should die.
+    SDL_LockMutex(input_mutex);
+    if (input_thread_should_die) {
+      SDL_UnlockMutex(input_mutex);
+      return 0;
+    }
+
+    if (budget > 0) {
+      if (!input_queue.empty()) {
+	InputQueueItem *iqi = input_queue.front();
+	input_queue.pop_front();
+
+	// We have our item; safe to unlock.
+	SDL_UnlockMutex(input_mutex);
+
+	uint64 bytes_actually_used = 0ULL;
+	{
+	  int sf = iqi->source_frame;
+	  MutexLock ml(frames[iqi->source_frame].mutex);
+	  // Don't really care if it fails rarely; this is just
+	  // optimistic.
+	  if (MaybeMakeFrame(iqi->word, sf, &frames[sf])) {
+	    bytes_actually_used = frames[sf].graphy->BytesUsed();
+	  }
+	}
+	CHECK(bytes_actually_used < budget);
+
+	// We overestimated the amount of memory used. MaybeMakeFrame
+	// does allocate on its own.
+	// slop.
+	{
+	  MutexLock ml(bytes_mutex);
+	  CHECK(bytes_used >= budget);
+	  // Always return the whole budget; MaybeMakeFrame already
+	  // accounted for what we actually used.
+	  bytes_used -= budget;
+	}
+      } else {
+	// Once queue is exhausted, don't need this thread any more.
+	SDL_UnlockMutex(input_mutex);
+	return 0;
+      }
+    } else {
+      // Not going to do any work.
+      SDL_UnlockMutex(input_mutex);
+      // ... but don't spin-lock if starved.
+      SDL_Delay(5);
+    }
+  }
+}
+
 struct Outputter {
   Outputter() : samples_until_frame(0), num_frames_output(0) {
     InitializeFrames();
     LoadScript();
+    printf("Create input frame queue...\n");
+    MakeInputFrameQueue();
+    printf("   ... done.\n");
+
     font = Font::create(screen,
 			"font.png",
 			FONTCHARS,
@@ -323,6 +540,41 @@ struct Outputter {
 			    FONTCHARS,
 			    27 * 2, 48 * 2, FONTSTYLES, 3 * 2, 3);
     frames_i_loaded = 0;
+
+    static constexpr int OUTPUT_THREADS = 4;
+    for (int i = 0; i < OUTPUT_THREADS; i++) {
+      printf("Spawn output thread %d:\n", i);
+      threads.push_back(SDL_CreateThread(ProcessOutputItemsThread,
+					 (void *)NULL));
+    }
+
+    static constexpr int INPUT_THREADS = 4;
+    for (int i = 0; i < INPUT_THREADS; i++) {
+      printf("Spawn input thread %d:\n", i);
+      threads.push_back(SDL_CreateThread(ProcessInputItemsThread,
+					 (void *)NULL));
+    }
+  }
+
+  // Wait for these at the end.
+  vector<SDL_Thread *> threads;
+
+  void WaitThreads() {
+    {
+      MutexLock ml(output_mutex);
+      output_thread_should_die = true;
+    }
+    {
+      MutexLock ml(input_mutex);
+      input_thread_should_die = true;
+    }
+
+    printf("Waiting for threads to finish...\n");
+    for (int i = 0; i < threads.size(); i++) {
+      int ret_unused;
+      SDL_WaitThread(threads[i], &ret_unused);
+      printf ("Thread %d/%d done.\n", (i + 1), (int)threads.size());
+    }
   }
 
   // Given a logical sample index, get the audio data as a pair of
@@ -347,31 +599,7 @@ struct Outputter {
   // Number of frames we've output. 0-based.
   int num_frames_output;
 
-  static int FrameForSample(int s) {
-    return FRAMES_PER_SAMPLE * s;
-  }
-
   int frames_i_loaded;
-
-  // MUTEX MUST BE HELD.
-  void WriteFrame(Frame *f) {
-    const string outfile = FrameOutFilename(num_frames_output);
-    
-    CHECK(PngSave::SaveAlpha(outfile,
-			     f->graphy->surf->w, f->graphy->surf->h,
-			     SurfaceRGBA(f->graphy->surf)));
-    // Eagerly delete! (?)
-    uint64 bytes_saved = f->graphy->BytesUsed();
-    delete f->graphy;
-    f->graphy = NULL;
-    f->word.clear();
-    {
-      MutexLock ml(bytes_mutex);
-      CHECK(bytes_used >= bytes_saved);
-      bytes_used -= bytes_saved;
-    }
-    num_frames_output++;
-  }
 
   void OutputSample(const Word &word, int s) {
     if (samples_until_frame == 0) {
@@ -380,17 +608,28 @@ struct Outputter {
       int frame_num = FrameForSample(s);
       // PERF maybe count how often we block, or how much time we
       // spend waiting.
-      MutexLock ml(frames[frame_num].mutex);
+
+      // Take the lock. If it has data when we get it, great.
+      // Otherwise, compute it and do everything with the lock held.
+      SDL_LockMutex(frames[frame_num].mutex);
       if (MaybeMakeFrame(word.word, frame_num, &frames[frame_num])) {
 	frames_i_loaded++;
 	printf("Main thread load of #%d (%d total).\n", 
 	       frame_num,
 	       frames_i_loaded);
       }
+
+      // Draw the frame.
+      CHECK(frames[frame_num].graphy != NULL);
+      frames[frame_num].graphy->BlitSwab(screen, 0, 0);
+      SDL_Flip(screen);
      
-      // PERF probably important to do this in separate threads
-      // too.
-      WriteFrame(&frames[frame_num]);
+      // Puts it in the output queue so that it can be processed by
+      // the background thread. Eagerly frees the frame and releases
+      // the lock.
+      WriteFrameInBackgroundAndUnlock(&frames[frame_num], num_frames_output);
+      num_frames_output++;
+
       samples_until_frame = SAMPLES_PER_FRAME;
     }
     pair<float, float> mag = GetAudioSample(s);
@@ -416,6 +655,16 @@ struct Outputter {
     for (int w = 0; w < sorted.size(); w++) {
       const Word &word = sorted[w];
       
+      // Read events once every word.
+      SDL_Event event;
+      while (SDL_PollEvent(&event)) {
+	switch (event.type) {
+	  case SDL_QUIT:
+	    printf("Got quit.\n");
+	    return;
+	}
+      }
+
       // Sample loop.
       for (int s = word.start_sample; s < word.end_sample; s++) {
 	OutputSample(word, s);
@@ -424,16 +673,25 @@ struct Outputter {
       double sps = samples_out.size() / sec;
       double fps = num_frames_output / sec;
 
+      double memfrac = 0.0;
+      {
+	MutexLock ml(bytes_mutex);
+	double used = bytes_used;
+	memfrac = used / MAX_BYTES;
+      }
+
       int samples_left = num_sorted_samples - samples_out.size();
       double seconds_left = samples_left / sps;
       string timestring = GetMSPlain(seconds_left);
       printf("%d/%d (%.2f%%) %s  "
-	     "ld %d wrong %d %d sps %.2f fps (%s)\n", 
+	     "%d ld, %d wrong, %d sps, %.2f fps, %.1f%% mem  %s\n", 
 	     w, (int)sorted.size(),
 	     (100.0 * w) / sorted.size(),
 	     word.word.c_str(),
 	     frames_i_loaded, frame_had_wrong_word,
-	     (int)sps, fps, timestring.c_str());
+	     (int)sps, fps, 
+	     memfrac * 100.0,
+	     timestring.c_str());
     }    
   }
 
@@ -461,6 +719,7 @@ int SDL_main (int argc, char *argv[]) {
 
   Outputter o;
   o.Output();
+  o.WaitThreads();
 
   SDL_Quit();
   return 0;

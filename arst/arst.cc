@@ -618,7 +618,6 @@ struct LabeledFrames {
 	SDL_Flip(screen);
       }
 
-      // Ignore events for now
       SDL_Event event;
       if (SDL_PollEvent(&event)) {
 	switch (event.type) {
