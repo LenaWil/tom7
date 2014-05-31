@@ -1,7 +1,7 @@
 
 default: all
 
-all: arst.exe script_test.exe
+all: arst.exe arsw.exe script_test.exe
 
 # -fno-strict-aliasing
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include 
@@ -55,10 +55,13 @@ LFLAGS=$(LINKSDL)  -m64 -Wl,--subsystem,console -lz $(OPT) $(FLTO) $(PROFILE) -s
 # -static -fwhole-program
 # -static
 
-# LPNGFLAGS = -Llibpng -m64 -Wl,--subsystem,console $(LINKNETWORKING) -lpng16 -lz $(OPT) $(FLTO) $(PROFILE) -static
+LPNGFLAGS=-Llibpng -lz
 
 arst.exe : $(OBJECTS) arst.o
 	$(CXX) $^ -o $@ $(LFLAGS)
+
+arsw.exe : $(OBJECTS) $(PNGSAVE_OBJECTS) arsw.o
+	$(CXX) $^ -o $@ $(LFLAGS) $(LPNGFLAGS)
 
 script_test.exe : $(OBJECTS) script_test.o
 	$(CXX) $^ -o $@ $(LFLAGS)
