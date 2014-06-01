@@ -73,7 +73,6 @@ struct fontreal : public Font {
 
   unsigned char chars[255];
 
-  /* 9 x 16 */
   static fontreal * create(SDL_Surface *screen,
 			   string file,
 			   string charmap,
@@ -82,6 +81,16 @@ struct fontreal : public Font {
 			   int styles=1,
 			   int overlap=0,
 			   int ndim_=2);
+
+  static fontreal * create_from_surface(SDL_Surface *screen,
+					SDL_Surface *font_surface,
+					string charmap,
+					int width,
+					int height,
+					int styles=1,
+					int overlap=0,
+					int ndim_=2);
+
   virtual int sizex(const string &);
   virtual int sizex_plain(const string &);
 
@@ -116,14 +125,20 @@ Font * Font::create(SDL_Surface *sc, string f, string c,
   return fontreal::create(sc, f, c, w, h, s, o, d);
 }
 
-fontreal * fontreal::create (SDL_Surface *screen,
-			     string file,
-			     string charmap,
-			     int width,
-			     int height,
-			     int styles,
-			     int overlap,
-			     int ndim) {
+Font * Font::create_from_surface(SDL_Surface *sc, SDL_Surface *fs, string c,
+				 int w, int h, int s, int o, int d) {
+  return fontreal::create_from_surface(sc, fs, c, w, h, s, o, d);
+}
+
+
+fontreal * fontreal::create_from_surface(SDL_Surface *screen,
+					 SDL_Surface *font_surface,
+					 string charmap,
+					 int width,
+					 int height,
+					 int styles,
+					 int overlap,
+					 int ndim) {
   fontreal * f = new fontreal();
   if (!f) return 0;
   Extent<fontreal> fe(f);
@@ -141,8 +156,7 @@ fontreal * fontreal::create (SDL_Surface *screen,
   if (!f->data) return 0;
   for(int z = 0; z < ndim; z++) f->data[z] = 0;
 
-  f->data[0] = sdlutil::LoadImage(file.c_str());
-  if (!f->data[0]) return 0;
+  f->data[0] = font_surface;
 
   int last = 0;
   while(last < (ndim - 1)) {
@@ -162,6 +176,20 @@ fontreal * fontreal::create (SDL_Surface *screen,
 
   fe.release ();
   return f;
+}
+
+fontreal * fontreal::create(SDL_Surface *screen,
+			    string file,
+			    string charmap,
+			    int width,
+			    int height,
+			    int styles,
+			    int overlap,
+			    int ndim) {
+  SDL_Surface *fon = sdlutil::LoadImage(file.c_str());
+  if (!fon) return 0;
+  return create_from_surface(screen, fon, charmap, 
+			     width, height, styles, overlap, ndim);
 }
 
 void fontreal::draw(int x, int y, string s) {

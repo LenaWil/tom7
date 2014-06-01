@@ -335,6 +335,44 @@ SDL_Surface * sdlutil::shrink50(SDL_Surface * src) {
   return ret;
 }
 
+SDL_Surface * sdlutil::grow2x(SDL_Surface * src) {
+  
+  /* must be 32 bpp */
+  if (src->format->BytesPerPixel != 4) return 0;
+
+  int ww = src->w, hh = src->h;
+  
+
+  SDL_Surface * ret = makesurface(ww << 1, hh << 1);
+  if (!ret) return 0;
+
+  slock(ret);
+  slock(src);
+
+  Uint8 *p = (Uint8*)src->pixels;
+  Uint8 *pdest = (Uint8*)ret->pixels;
+
+  int ww2 = ww << 1;
+  for(int y = 0; y < hh; y ++) {
+    for(int x = 0; x < ww; x ++) {
+      Uint32 rgba = *(Uint32*)(p + 4 * (y * ww + x));
+      
+      // Write four pixels.
+      int y2 = y << 1;
+      int x2 = x << 1;
+      *(Uint32*)(pdest + 4 * (y2 * ww2 + x2)) = rgba;
+      *(Uint32*)(pdest + 4 * (y2 * ww2 + x2 + 1)) = rgba;
+      *(Uint32*)(pdest + 4 * ((y2 + 1) * ww2 + x2)) = rgba;
+      *(Uint32*)(pdest + 4 * ((y2 + 1) * ww2 + x2 + 1)) = rgba;
+    }
+  }
+
+  sulock(src);
+  sulock(ret);
+
+  return ret;
+}
+
 /* try to make a hardware surface, and, failing that,
    make a software surface */
 SDL_Surface * sdlutil::makesurface(int w, int h, bool alpha) {

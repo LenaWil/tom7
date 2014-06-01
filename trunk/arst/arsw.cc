@@ -19,26 +19,23 @@
 #include "../cc-lib/wavesave.h"
 
 // original file size
-
-// XXX: use full rez frames
 #define FRAMEWIDTH 1920
 #define FRAMEHEIGHT 1080
-// XXX more like 200k
 // filenames are 0 - (NUM_FRAMES - 1)
 #define NUM_FRAMES 179633
-// #define NUM_FRAMES 50000
 
-// XXX only necessary while they're being written out...
-#define MAXFULLFRAMES 143701
+// Can set this lower if the frames are in the progres of being
+// written out but you wanna get ahead.
+#define MAXFULLFRAMES NUM_FRAMES
+// FOX logo
+#define BOGUS_FRAME 217
 
 #define WORDX 20
-#define WORDY 900
+#define WORDY 640
 
-// XXX add UI
 #define WIDTH FRAMEWIDTH
 #define HEIGHT FRAMEHEIGHT
 
-// XXX need big-ass font
 #define FONTBIGWIDTH 18
 #define FONTBIGHEIGHT 32
 
@@ -48,8 +45,6 @@
 
 #define SWAB 1
 
-// Smaller is better here.
-#define SAMPLES_PER_BUF 512 // 4096
 // #define FPS 23.976
 #define FPS 24.000
 #define MS_PER_FRAME (1000.0 / FPS)
@@ -58,7 +53,7 @@
 #define SAMPLES_PER_FRAME (AUDIO_SAMPLERATE / (double)FPS)
 #define FRAMES_PER_SAMPLE (1 / SAMPLES_PER_FRAME)
 
-#define MAX_SAMPLES_DEBUG (AUDIO_SAMPLERATE * 20)
+#define MAX_SAMPLES_DEBUG (AUDIO_SAMPLERATE * 120)
 
 #define BYTES_PER_AUDIO_SAMPLE 2
 #define AUDIO_CHANNELS 2
@@ -75,9 +70,9 @@ static constexpr uint64 MAX_BYTES =
   1024ULL *
   // gigabytes
   1024ULL *
-  // thirty-two gigabytes
-  // 32ULL;
-  2ULL;
+  // sixteen gigabytes
+  16ULL;
+
 
 SDL_Surface *screen = 0;
 
@@ -159,6 +154,8 @@ static void LoadAudio() {
 Script *script;
 struct Word {
   string word;
+  int numer;
+  int denom;
   uint64 start_sample;
   // One past last sample.
   uint64 end_sample;
@@ -176,7 +173,7 @@ static void LoadScript() {
     } else if (line.s.empty()) {
       // No dialogue. Skip.
     } else {
-      Word w{line.s, line.sample, script->GetEnd(i)};
+      Word w{line.s, 0, 0, line.sample, script->GetEnd(i)};
       CHECK(w.end_sample > w.start_sample);
       sorted.push_back(w);
       num_sorted_samples += w.end_sample - w.start_sample;
@@ -193,6 +190,23 @@ static void LoadScript() {
 		return a.word < b.word;
 	      }
 	    });
+
+  // Fill in denominators.
+  map<string, int> counts;
+  string lastword = "";
+  int lastcount = 0;
+  for (int i = 0; i < sorted.size(); i++) {
+    if (lastword != sorted[i].word) {
+      lastword = sorted[i].word;
+      lastcount = 0;
+    }
+    lastcount++;
+    sorted[i].numer = lastcount;
+    counts[sorted[i].word]++;
+  }
+
+  for (int i = 0; i < sorted.size(); i++)
+    sorted[i].denom = counts[sorted[i].word];
 
   // XXX: do some sample zeroing in the script.
 }
@@ -260,7 +274,7 @@ struct Graphy {
   NOT_COPYABLE(Graphy);
 };
 
-Font *font, *fontbig, *fonthuge;
+Font *font, *fontbig, *fonthuge, *fontmax;
 
 static int frame_had_wrong_word = 0;
 
@@ -270,9 +284,11 @@ static int frame_had_wrong_word = 0;
 // the call.
 //
 // Returns true if we did some work.
-static bool MaybeMakeFrame(const string &word, int frame_num, Frame *f) {
+static bool MaybeMakeFrame(int index,
+			   int frame_num, Frame *f) {
+  const Word &word = sorted[index];
   if (f->graphy != NULL) {
-    if (f->word == word) {
+    if (f->word == word.word) {
       return false;
     }
 
@@ -293,15 +309,41 @@ static bool MaybeMakeFrame(const string &word, int frame_num, Frame *f) {
   if (f->graphy == NULL) {
     const string filename = 
       (frame_num < MAXFULLFRAMES) ? FrameFilename(frame_num) :
-      FrameFilename(0);
+      FrameFilename(BOGUS_FRAME);
     Graphy *g = new Graphy(filename);
 
-    // Sample that starts the frame. But we'd really like to favor
-    // the word that's being spoken in the audio. XXX.
-    // int sample = frame_num * SAMPLES_PER_FRAME;
-    // const Line *line = script->GetLine(sample);
-    fonthuge->drawto(g->surf, WORDX, WORDY, word);
-    f->word = word;
+    fontmax->drawto(g->surf, WORDX, WORDY, word.word);
+    fonthuge->drawto(g->surf, WORDX, WORDY + 48 * 2 * 2 - 16, 
+		     StringPrintf("^4%d^2/^4%d", word.numer, word.denom));
+    f->word = word.word;
+
+    // Draw histogram.
+    {
+      int x = 0, y = 0;
+      string *lastword = NULL;
+      for (int i = 0; i < sorted.size(); i++) {
+	Uint32 rgba = index == i ?
+	  0xFFFFFFFF :
+	  ((i < index) ?
+	   0xFF00aa00 :
+	   0xFF0077FF);
+	if (x < WIDTH && y < HEIGHT) {
+	  sdlutil::setpixel(g->surf, x + 216/2, HEIGHT - 1 - y, rgba);
+	}
+	if (lastword && *lastword == sorted[i].word) {
+	  if (y < 132) {
+	    y++;
+	  } else {
+	    y = 0;
+	    x++;
+	  }
+	} else {
+	  x++;
+	  y = 0;
+	  lastword = &sorted[i].word;
+	} 
+      }
+    }
 
     // TODO: Other drawing; progress meter, word histograms, etc.
 
@@ -417,8 +459,9 @@ static int FrameForSample(int s) {
 
 namespace {
 struct InputQueueItem {
+  // Into sorted structure.
+  int index;
   int source_frame;
-  string word;
 };
 }
 static SDL_mutex *input_mutex;
@@ -437,8 +480,8 @@ static void MakeInputFrameQueue() {
     for (int s = word.start_sample; s < word.end_sample; s++) {
       if (s_until_frame == 0) {
 	InputQueueItem *iqi = new InputQueueItem;
+	iqi->index = i;
 	iqi->source_frame = FrameForSample(s);
-	iqi->word = word.word;
 	input_queue.push_back(iqi);
 	s_until_frame = SAMPLES_PER_FRAME;
       }
@@ -485,7 +528,7 @@ static int ProcessInputItemsThread(void *) {
 	  MutexLock ml(frames[iqi->source_frame].mutex);
 	  // Don't really care if it fails rarely; this is just
 	  // optimistic.
-	  if (MaybeMakeFrame(iqi->word, sf, &frames[sf])) {
+	  if (MaybeMakeFrame(iqi->index, sf, &frames[sf])) {
 	    bytes_actually_used = frames[sf].graphy->BytesUsed();
 	  }
 	}
@@ -527,6 +570,7 @@ struct Outputter {
 			"font.png",
 			FONTCHARS,
 			FONTWIDTH, FONTHEIGHT, FONTSTYLES, 1, 3);
+    CHECK(font);
 
     fontbig = Font::create(screen,
 			   "fontbig.png",
@@ -535,11 +579,27 @@ struct Outputter {
 			   FONTBIGHEIGHT,
 			   FONTSTYLES,
 			   2, 3);
+    CHECK(fontbig);
 
-    fonthuge = Font::create(screen,
-			    "fontmax.png",
-			    FONTCHARS,
-			    27 * 2, 48 * 2, FONTSTYLES, 3 * 2, 3);
+    SDL_Surface *fm = sdlutil::LoadImage("fontmax.png");
+    CHECK(fm);
+
+    SDL_Surface *fm2x = sdlutil::grow2x(fm);
+    CHECK(fm2x);
+
+    fonthuge = Font::create_from_surface(screen,
+					 fm,
+					 FONTCHARS,
+					 27 * 2, 48 * 2, FONTSTYLES, 3 * 2, 3);
+    CHECK(fonthuge);
+
+    fontmax = Font::create_from_surface(screen,
+					fm2x,
+					FONTCHARS,
+					27 * 2 * 2, 48 * 2 * 2, 
+					FONTSTYLES, 3 * 2 * 2, 3);
+    CHECK(fontmax);
+
     frames_i_loaded = 0;
 
     static constexpr int OUTPUT_THREADS = 4;
@@ -590,7 +650,6 @@ struct Outputter {
     return make_pair(l, r);
   }
 
-  // XX Below
   vector<pair<float, float>> samples_out;
 
   // This is the number of samples we have until we need to output
@@ -602,7 +661,7 @@ struct Outputter {
 
   int frames_i_loaded;
 
-  void OutputSample(const Word &word, int s) {
+  void OutputSample(int word_index, int s) {
     if (samples_until_frame == 0) {
       // We hope that the loading thread has pulled this bad boy in,
       // but if not, we'll do it here.
@@ -613,7 +672,7 @@ struct Outputter {
       // Take the lock. If it has data when we get it, great.
       // Otherwise, compute it and do everything with the lock held.
       SDL_LockMutex(frames[frame_num].mutex);
-      if (MaybeMakeFrame(word.word, frame_num, &frames[frame_num])) {
+      if (MaybeMakeFrame(word_index, frame_num, &frames[frame_num])) {
 	frames_i_loaded++;
 	printf("Main thread load of #%d (%d total).\n", 
 	       frame_num,
@@ -644,7 +703,7 @@ struct Outputter {
 			   samples_out,
 			   AUDIO_SAMPLERATE);
       printf("Early exit.\n");
-      abort();
+      return;
     }
   }
 
@@ -657,7 +716,7 @@ struct Outputter {
     // We go on a word-by-word basis.
 
     uint64 time_start = time(NULL);
-    for (int w = 3 /* XXXX skip "a" */; w < sorted.size(); w++) {
+    for (int w = 0; w < sorted.size(); w++) {
       const Word &word = sorted[w];
       
       // Read events once every word.
@@ -672,7 +731,7 @@ struct Outputter {
 
       // Sample loop.
       for (int s = word.start_sample; s < word.end_sample; s++) {
-	OutputSample(word, s);
+	OutputSample(w, s);
       }
       double sec = time(NULL) - time_start;
       double sps = samples_out.size() / sec;
@@ -724,6 +783,7 @@ int SDL_main (int argc, char *argv[]) {
 
   Outputter o;
   o.Output();
+  SDL_Delay(1000);
   o.WaitThreads();
 
   SDL_Quit();

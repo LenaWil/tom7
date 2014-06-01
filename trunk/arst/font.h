@@ -21,6 +21,16 @@ struct Font {
                        int overlap=0,
                        int dims=2);
 
+  // Takes ownership of the font surface.
+  static Font * create_from_surface(SDL_Surface *screen,
+                                    SDL_Surface *font_surface,
+                                    string charmap,
+                                    int width,
+                                    int height,
+                                    int styles=1,
+                                    int overlap=0,
+                                    int dims=2);
+
   /* number of drawn characters, ignoring control codes.
      length(s) * (width-overlap) gives
      the screen width. */
