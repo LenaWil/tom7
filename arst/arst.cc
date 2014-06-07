@@ -829,10 +829,13 @@ struct LabeledFrames {
     for (map<string, pair<int, int>>::const_iterator it = histo.begin();
 	 it != histo.end();
 	 ++it) {
+      int num = it->second.first;
       double sec = it->second.second * SECONDS_PER_SAMPLE;
-      string line = StringPrintf("%s\t%d\t%s\n", it->first.c_str(),
-				 it->second.first,
-				 GetMSPlain(sec).c_str());
+      double secperword = sec / num;
+      string line = StringPrintf("%s\t%d\t%s\t%s\n", it->first.c_str(),
+				 num,
+				 GetMSPlain(sec).c_str(),
+				 GetMSPlain(secperword).c_str());
       out += line;
     }
     Util::WriteFile(HISTOFILE, out);

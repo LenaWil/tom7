@@ -24,6 +24,8 @@
 // filenames are 0 - (NUM_FRAMES - 1)
 #define NUM_FRAMES 179633
 
+#define FRAMES_ALREADY 40400
+
 // Can set this lower if the frames are in the progres of being
 // written out but you wanna get ahead.
 #define MAXFULLFRAMES NUM_FRAMES
@@ -70,8 +72,8 @@ static constexpr uint64 MAX_BYTES =
   1024ULL *
   // gigabytes
   1024ULL *
-  // sixteen gigabytes
-  16ULL;
+  // eight gigabytes
+  8ULL;
 
 
 SDL_Surface *screen = 0;
@@ -417,6 +419,7 @@ static int ProcessOutputItemsThread(void *) {
 	CHECK(oqi->bytes <= bytes_used);
 	bytes_used -= oqi->bytes;
       }
+      delete oqi;
 
     } else {
       // Release it so that it can be populated...
@@ -441,7 +444,7 @@ static void WriteFrameInBackgroundAndUnlock(Frame *f, int framenum) {
     output_queue.push_back(oqi);
   }
 
-  // Now safe to eagerly delete. Save the size first.
+  // Now safe to eagerly delete.
   delete f->graphy;
   f->graphy = NULL;
   f->word.clear();
@@ -472,6 +475,7 @@ static deque<InputQueueItem *> input_queue;
 // starting the worker threads.
 static void MakeInputFrameQueue() {
   MutexLock ml(input_mutex);
+  int frames_output = 0;
   for (int i = 0; i < sorted.size(); i++) {
     const Word &word = sorted[i];
 
@@ -479,10 +483,13 @@ static void MakeInputFrameQueue() {
     // Sample loop.
     for (int s = word.start_sample; s < word.end_sample; s++) {
       if (s_until_frame == 0) {
-	InputQueueItem *iqi = new InputQueueItem;
-	iqi->index = i;
-	iqi->source_frame = FrameForSample(s);
-	input_queue.push_back(iqi);
+	if (frames_output > FRAMES_ALREADY) {
+	  InputQueueItem *iqi = new InputQueueItem;
+	  iqi->index = i;
+	  iqi->source_frame = FrameForSample(s);
+	  input_queue.push_back(iqi);
+	}
+	frames_output++;
 	s_until_frame = SAMPLES_PER_FRAME;
       }
       s_until_frame--;
@@ -525,7 +532,7 @@ static int ProcessInputItemsThread(void *) {
 	uint64 bytes_actually_used = 0ULL;
 	{
 	  int sf = iqi->source_frame;
-	  MutexLock ml(frames[iqi->source_frame].mutex);
+	  MutexLock ml(frames[sf].mutex);
 	  // Don't really care if it fails rarely; this is just
 	  // optimistic.
 	  if (MaybeMakeFrame(iqi->index, sf, &frames[sf])) {
@@ -544,9 +551,20 @@ static int ProcessInputItemsThread(void *) {
 	  // accounted for what we actually used.
 	  bytes_used -= budget;
 	}
+
+	delete iqi;
       } else {
 	// Once queue is exhausted, don't need this thread any more.
 	SDL_UnlockMutex(input_mutex);
+
+	{
+	  MutexLock ml(bytes_mutex);
+	  CHECK(bytes_used >= budget);
+	  // Always return the whole budget; MaybeMakeFrame already
+	  // accounted for what we actually used.
+	  bytes_used -= budget;
+	}
+
 	return 0;
       }
     } else {
@@ -609,12 +627,13 @@ struct Outputter {
 					 (void *)NULL));
     }
 
-    static constexpr int INPUT_THREADS = 4;
+    static constexpr int INPUT_THREADS = 0; // XXX
     for (int i = 0; i < INPUT_THREADS; i++) {
       printf("Spawn input thread %d:\n", i);
       threads.push_back(SDL_CreateThread(ProcessInputItemsThread,
 					 (void *)NULL));
     }
+
   }
 
   // Wait for these at the end.
@@ -669,25 +688,33 @@ struct Outputter {
       // PERF maybe count how often we block, or how much time we
       // spend waiting.
 
-      // Take the lock. If it has data when we get it, great.
-      // Otherwise, compute it and do everything with the lock held.
-      SDL_LockMutex(frames[frame_num].mutex);
-      if (MaybeMakeFrame(word_index, frame_num, &frames[frame_num])) {
-	frames_i_loaded++;
-	printf("Main thread load of #%d (%d total).\n", 
-	       frame_num,
-	       frames_i_loaded);
-      }
+      if (num_frames_output > FRAMES_ALREADY) {
 
-      // Draw the frame.
-      CHECK(frames[frame_num].graphy != NULL);
-      frames[frame_num].graphy->BlitSwab(screen, 0, 0);
-      SDL_Flip(screen);
-     
-      // Puts it in the output queue so that it can be processed by
-      // the background thread. Eagerly frees the frame and releases
-      // the lock.
-      WriteFrameInBackgroundAndUnlock(&frames[frame_num], num_frames_output);
+	// Take the lock. If it has data when we get it, great.
+	// Otherwise, compute it and do everything with the lock held.
+	SDL_LockMutex(frames[frame_num].mutex);
+	if (MaybeMakeFrame(word_index, frame_num, &frames[frame_num])) {
+	  frames_i_loaded++;
+	  printf("Main thread load of #%d (%d total).\n", 
+		 frame_num,
+		 frames_i_loaded);
+	}
+
+	// Draw the frame.
+	CHECK(frames[frame_num].graphy != NULL);
+	frames[frame_num].graphy->BlitSwab(screen, 0, 0);
+	SDL_Flip(screen);
+
+	// Puts it in the output queue so that it can be processed by
+	// the background thread. Eagerly frees the frame and releases
+	// the lock.
+	WriteFrameInBackgroundAndUnlock(&frames[frame_num], num_frames_output);
+      } else {
+        if (num_frames_output % 100 == 0) {
+          fonthuge->drawto(screen, 100, 100, StringPrintf("%d", num_frames_output));
+          SDL_Flip(screen);
+        }
+      }
       num_frames_output++;
 
       samples_until_frame = SAMPLES_PER_FRAME;
@@ -695,16 +722,6 @@ struct Outputter {
     pair<float, float> mag = GetAudioSample(s);
     samples_out.push_back(mag);
     samples_until_frame--;
-
-    // XXX
-    if (samples_out.size() > MAX_SAMPLES_DEBUG) {
-      printf("Writing wave.\n");
-      WaveSave::SaveStereo("starwars-sorted.wav",
-			   samples_out,
-			   AUDIO_SAMPLERATE);
-      printf("Early exit.\n");
-      return;
-    }
   }
 
   void Output() {
@@ -733,9 +750,9 @@ struct Outputter {
       for (int s = word.start_sample; s < word.end_sample; s++) {
 	OutputSample(w, s);
       }
-      double sec = time(NULL) - time_start;
-      double sps = samples_out.size() / sec;
-      double fps = num_frames_output / sec;
+      const double sec = time(NULL) - time_start;
+      const double sps = samples_out.size() / sec;
+      const double fps = (num_frames_output - FRAMES_ALREADY) / sec;
 
       double memfrac = 0.0;
       {
@@ -744,9 +761,10 @@ struct Outputter {
 	memfrac = used / MAX_BYTES;
       }
 
-      int samples_left = num_sorted_samples - samples_out.size();
-      double seconds_left = samples_left / sps;
-      string timestring = GetMSPlain(seconds_left);
+      const int total_frames = num_sorted_samples / SAMPLES_PER_FRAME;
+      const int frames_left = total_frames - num_frames_output;
+      const double seconds_left = frames_left / fps;
+      const string timestring = GetMSPlain(seconds_left);
       printf("%d/%d (%.2f%%) %s  "
 	     "%d ld, %d wrong, %d sps, %.2f fps, %.1f%% mem  %s\n", 
 	     w, (int)sorted.size(),
@@ -756,7 +774,13 @@ struct Outputter {
 	     (int)sps, fps, 
 	     memfrac * 100.0,
 	     timestring.c_str());
-    }    
+    }
+
+    printf("Write wave.\n"); 
+    WaveSave::SaveStereo("starwars-sorted.wav",
+			 samples_out,
+			 AUDIO_SAMPLERATE);
+    printf("Done in %lld.\n", time(NULL) - time_start);
   }
 
 };
