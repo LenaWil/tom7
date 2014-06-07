@@ -9,6 +9,10 @@
 #include "sdl/sdlutil.h"
 #include "math.h"
 
+#include <vector>
+#include <string>
+#include <utility>
+
 #ifdef __GNUC__
 #include <ext/hash_map>
 #include <ext/hash_set>

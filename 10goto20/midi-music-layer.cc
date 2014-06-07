@@ -62,7 +62,7 @@ void DumpMIDIMultiTrack (MIDIMultiTrack *mlt) {
 
 
 // HERE
-
+#if 0
   {
     jdksmidi::MIDIFileReadStreamFile rs("sensations.mid");
     jdksmidi::MIDIMultiTrack tracks;
@@ -71,3 +71,4 @@ void DumpMIDIMultiTrack (MIDIMultiTrack *mlt) {
     reader.Parse();
     DumpMIDIMultiTrack(&tracks);
   }
+#endif

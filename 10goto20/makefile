@@ -1,70 +1,58 @@
+default: all
 
-default : 10goto20.exe
+all: 10goto20.exe
 
-DEBUGFLAGS = /Od /GZ /MDd /FD /D "_DEBUG"
-FASTFLAGS = /MD /Ox /Oi /Oy /Ob2 /GL
+CXXFLAGS=-Wall -fno-strict-aliasing -Wno-deprecated -Wno-sign-compare -I/usr/local/include 
+OPT=-O2
 
-# WHICHFLAGS = ${DEBUGFLAGS}
-WHICHFLAGS = ${FASTFLAGS}
-
-SDLVERSION=1.2.15
-SDLIMAGEVERSION=1.2.12
-SDLNETVERSION=1.2.7
-SDLMIXERVERSION=1.2.11
-
+# for 64 bits on windows
+CXX=x86_64-w64-mingw32-g++
+CC=x86_64-w64-mingw32-g++
 SDLARCH=x64
 
-#  /I "SDL_net-${SDLNETVERSION}\include" /I "SDL_mixer-${SDLMIXERVERSION}\include"
+# -Wl,--subsystem,console
+CCSDL= -I SDL/include -I SDL_net
+LINKSDL= -mno-cygwin -lm -luser32 -lgdi32 -lwinmm -ldxguid
+SDLOPATH=SDL/build
+SDLOBJECTS=$(SDLOPATH)/SDL.o $(SDLOPATH)/SDL_error.o $(SDLOPATH)/SDL_fatal.o $(SDLOPATH)/SDL_audio.o $(SDLOPATH)/SDL_audiocvt.o $(SDLOPATH)/SDL_audiodev.o $(SDLOPATH)/SDL_mixer.o $(SDLOPATH)/SDL_mixer_MMX.o $(SDLOPATH)/SDL_mixer_MMX_VC.o $(SDLOPATH)/SDL_mixer_m68k.o $(SDLOPATH)/SDL_wave.o $(SDLOPATH)/SDL_cdrom.o $(SDLOPATH)/SDL_cpuinfo.o $(SDLOPATH)/SDL_active.o $(SDLOPATH)/SDL_events.o $(SDLOPATH)/SDL_expose.o $(SDLOPATH)/SDL_keyboard.o $(SDLOPATH)/SDL_mouse.o $(SDLOPATH)/SDL_quit.o $(SDLOPATH)/SDL_resize.o $(SDLOPATH)/SDL_rwops.o $(SDLOPATH)/SDL_getenv.o $(SDLOPATH)/SDL_iconv.o $(SDLOPATH)/SDL_malloc.o $(SDLOPATH)/SDL_qsort.o $(SDLOPATH)/SDL_stdlib.o $(SDLOPATH)/SDL_string.o $(SDLOPATH)/SDL_thread.o $(SDLOPATH)/SDL_timer.o $(SDLOPATH)/SDL_RLEaccel.o $(SDLOPATH)/SDL_blit.o $(SDLOPATH)/SDL_blit_0.o $(SDLOPATH)/SDL_blit_1.o $(SDLOPATH)/SDL_blit_A.o $(SDLOPATH)/SDL_blit_N.o $(SDLOPATH)/SDL_bmp.o $(SDLOPATH)/SDL_cursor.o $(SDLOPATH)/SDL_gamma.o $(SDLOPATH)/SDL_pixels.o $(SDLOPATH)/SDL_stretch.o $(SDLOPATH)/SDL_surface.o $(SDLOPATH)/SDL_video.o $(SDLOPATH)/SDL_yuv.o $(SDLOPATH)/SDL_yuv_mmx.o $(SDLOPATH)/SDL_yuv_sw.o $(SDLOPATH)/SDL_joystick.o $(SDLOPATH)/SDL_nullevents.o $(SDLOPATH)/SDL_nullmouse.o $(SDLOPATH)/SDL_nullvideo.o $(SDLOPATH)/SDL_diskaudio.o $(SDLOPATH)/SDL_dummyaudio.o $(SDLOPATH)/SDL_sysevents.o $(SDLOPATH)/SDL_sysmouse.o $(SDLOPATH)/SDL_syswm.o $(SDLOPATH)/SDL_wingl.o $(SDLOPATH)/SDL_dibevents.o $(SDLOPATH)/SDL_dibvideo.o $(SDLOPATH)/SDL_dx5events.o $(SDLOPATH)/SDL_dx5video.o $(SDLOPATH)/SDL_dx5yuv.o $(SDLOPATH)/SDL_dibaudio.o $(SDLOPATH)/SDL_dx5audio.o $(SDLOPATH)/SDL_mmjoystick.o $(SDLOPATH)/SDL_syscdrom.o $(SDLOPATH)/SDL_sysmutex.o $(SDLOPATH)/SDL_syssem.o $(SDLOPATH)/SDL_systhread.o $(SDLOPATH)/SDL_syscond.o $(SDLOPATH)/SDL_systimer.o $(SDLOPATH)/SDL_sysloadso.o sdl_win32_main.o
 
-# /J is unsigned chars
-COMPILE=cl /nologo ${WHICHFLAGS} /EHsc /W3 /I "..\cc-lib" /I "SDL\include" /I "SDL_image\include" /I "..\cc-lib" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "COMPILER_MSVC" /J /c
+JDKSPATH=../cc-lib/jdksmidi
+JDKSMIDIOBJECTS=$(JDKSPATH)/jdksmidi_advancedsequencer.o $(JDKSPATH)/jdksmidi_driver.o $(JDKSPATH)/jdksmidi_driverdump.o $(JDKSPATH)/jdksmidi_edittrack.o $(JDKSPATH)/jdksmidi_file.o $(JDKSPATH)/jdksmidi_fileread.o $(JDKSPATH)/jdksmidi_filereadmultitrack.o $(JDKSPATH)/jdksmidi_fileshow.o $(JDKSPATH)/jdksmidi_filewrite.o $(JDKSPATH)/jdksmidi_filewritemultitrack.o $(JDKSPATH)/jdksmidi_keysig.o $(JDKSPATH)/jdksmidi_manager.o $(JDKSPATH)/jdksmidi_matrix.o $(JDKSPATH)/jdksmidi_midi.o $(JDKSPATH)/jdksmidi_msg.o $(JDKSPATH)/jdksmidi_multitrack.o $(JDKSPATH)/jdksmidi_parser.o $(JDKSPATH)/jdksmidi_process.o $(JDKSPATH)/jdksmidi_queue.o $(JDKSPATH)/jdksmidi_sequencer.o $(JDKSPATH)/jdksmidi_showcontrol.o $(JDKSPATH)/jdksmidi_showcontrolhandler.o $(JDKSPATH)/jdksmidi_smpte.o $(JDKSPATH)/jdksmidi_sysex.o $(JDKSPATH)/jdksmidi_tempo.o $(JDKSPATH)/jdksmidi_tick.o $(JDKSPATH)/jdksmidi_track.o $(JDKSPATH)/jdksmidi_utils.o 
 
-# add these next: "SDL_net-${SDLNETVERSION}\lib\SDL_net.lib" "SDL_mixer-${SDLMIXERVERSION}\lib\SDL_mixer.lib"
 
-BASICLIBS=shell32.lib
-# libcpmt.lib msvcrt.lib msvcprt.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib uuid.lib
-#  /nodefaultlib
+# PROFILE=-pg
+PROFILE=
 
-GLLIBS=opengl32.lib glu32.lib
+# enable link time optimizations?
+# FLTO=-flto
+FLTO=
 
-JDKSMIDI=jdksmidi_advancedsequencer.obj jdksmidi_driver.obj jdksmidi_driverdump.obj jdksmidi_edittrack.obj jdksmidi_file.obj jdksmidi_fileread.obj jdksmidi_filereadmultitrack.obj jdksmidi_fileshow.obj jdksmidi_filewrite.obj jdksmidi_filewritemultitrack.obj jdksmidi_keysig.obj jdksmidi_manager.obj jdksmidi_matrix.obj jdksmidi_midi.obj jdksmidi_msg.obj jdksmidi_multitrack.obj jdksmidi_parser.obj jdksmidi_process.obj jdksmidi_queue.obj jdksmidi_sequencer.obj jdksmidi_showcontrol.obj jdksmidi_showcontrolhandler.obj jdksmidi_smpte.obj jdksmidi_sysex.obj jdksmidi_tempo.obj jdksmidi_tick.obj jdksmidi_track.obj jdksmidi_utils.obj 
+INCLUDES=-I "../cc-lib" -I "../cc-lib/city" -I "../cc-lib/jdksmidi"
 
-# Showing console output. The most important thing is setting the
-# subsystem to "console", otherwise, no amount of redirection or
-# defines or environment variables will work (I don't think this
-# has anything to do with SDL in fact). 
+CPPFLAGS= $(CCSDL) -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++0x
 
-# to use precompiled main function, no console
-# LIBMAIN="SDL\lib\${SDLARCH}\SDLmain.lib"
-# OBJMAIN=
-# SUBSYSTEM=/subsystem:windows
+CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o ../cc-lib/wavesave.o ../cc-lib/sdl/sdlutil.o ../cc-lib/sdl/font.o
 
-# to use custom one (shows stderr on console)
-LIBMAIN=
-OBJMAIN=sdl_win32_main.obj
-SUBSYSTEM=/subsystem:console
+BASEOBJECTS=$(CCLIBOBJECTS)
 
-LINK=link /LTCG oldnames.lib ${LIBMAIN} "SDL\lib\${SDLARCH}\SDL.lib" "SDL_image\lib\${SDLARCH}\SDL_image.lib" ${BASICLIBS} ${GLLIBS} /nologo ${SUBSYSTEM} /debug /machine:X64 /libpath:"SDL\lib\${SDLARCH}" /libpath:"SDL_image\lib\${SDLARCH}"
+# note you need to build libpng first, in the subdirectory libpng.
+# This makefile does not build the .o files for you.
+PNG_OBJECTS=libpng/png.o libpng/pngerror.o libpng/pngget.o libpng/pngmem.o libpng/pngpread.o libpng/pngread.o libpng/pngrio.o libpng/pngrtran.o libpng/pngrutil.o libpng/pngset.o libpng/pngtrans.o libpng/pngwio.o libpng/pngwrite.o libpng/pngwtran.o libpng/pngwutil.o
 
-%.obj : ../cc-lib/%.cc
-	${COMPILE} $<
+# Not actually used, but frequently useful.
+pngsave.o: pngsave.cc pngsave.h
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) -Ilibpng -c pngsave.cc -o $@
 
-%.obj : ../cc-lib/sdl/%.cc
-	${COMPILE} $<
+PNGSAVE_OBJECTS=pngsave.o $(PNG_OBJECTS)
 
-%.obj : ../cc-lib/jdksmidi/%.cpp
-	${COMPILE} $<
+OBJECTS=$(BASEOBJECTS) $(SDLOBJECTS) $(JDKSMIDIOBJECTS) $(PNGSAVE_OBJECTS) audio-engine.o bleep-bloop-sample-layer.o controllers.o midi-music-layer.o
 
-%.obj : %.cc
-	${COMPILE} $<
+# without static, can't find lz or lstdcxx maybe?
+LFLAGS=$(LINKSDL)  -m64 -Wl,--subsystem,console -lz $(OPT) $(FLTO) $(PROFILE) -static
+# -Wl,--subsystem,console
+# -static -fwhole-program
 
-10goto20.exe : 10goto20.obj sdlutil.obj util.obj audio-engine.obj bleep-bloop-sample-layer.obj controllers.obj ${JDKSMIDI} ${OBJMAIN}
-	${LINK} /out:$@ $^
-	rm -f *.manifest *.pdb
+LPNGFLAGS=-Llibpng -lz
 
-example.exe : example.obj sdlutil.obj util.obj
-	${LINK} /out:$@ $^
-	rm -f *.manifest *.pdb
-
-clean :
-	rm -f *.obj *.exe *.manifest *.ilk *.pdb
+10goto20.exe : $(OBJECTS) 10goto20.o
+	$(CXX) $^ -o $@ $(LFLAGS)

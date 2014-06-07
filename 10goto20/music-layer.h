@@ -13,6 +13,7 @@
 #define __MUSIC_LAYER_H
 
 #include "10goto20.h"
+#include "controllers.h"
 
 struct MusicLayer {
 
