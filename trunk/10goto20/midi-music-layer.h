@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "10goto20.h"
+#include "music-layer.h"
 
 struct MidiMusicLayer : public MusicLayer {
 
