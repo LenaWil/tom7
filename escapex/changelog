@@ -5,12 +5,16 @@
 
 2010-11-26  Tom 7  <Tom@WARPZONE>
 
+        * play.cc: The 'i' key while playing, which is tedious and
+          rarely intentional, is now ctrl-i. A new key ctrl-a temporarily
+          toggles animation. (Thanks, wowei!)
+
         * load.cc: Improved the interface for ctrl-0 (from the loader)
           and made it possible to just run it on a single level.
 
 2010-01-18  Tom 7  <Tom@WARPZONE>
 
-        * upper.cc: Made the upgrade process more robust (thanks adam!)
+        * upper.cc: Made the upgrade process more robust. (Thanks adam!)
 
 2009-12-24  Tom 7  <twm@...>
 
@@ -42,7 +46,7 @@
           of bombs that could nondeterministically cause trap animations
           to be drawn as well. Made animation drawing a little more
           persnickety so that these kinds of things show up less rarely
-          if they exist. (Thanks, gary and noname).
+          if they exist. (Thanks, gary and noname!)
 
 2008-11-09  Tom 7  <Tom@WARPZONE>
 
@@ -51,7 +55,7 @@
 2007-04-28  Tom 7  <Tom@METROID>
 
         * level.cpp: Fixed two ways that escape could crash
-          on corrupted level files (Thanks, Adam).
+          on corrupted level files (Thanks, Adam!)
 
 2007-04-12  Tom 7  <Tom@METROID>
 
@@ -241,7 +245,7 @@
 
         * play.cpp: Improved internationalization by detecting
           keys according to their unicode values, rather than
-          keyboard symbols. (Thanks, wowei.)
+          keyboard symbols. (Thanks, wowei!)
 
 2006-06-13  Tom 7  <tom7@...>
 
@@ -471,11 +475,11 @@
 
         * load.cpp: Now, if you have solutions that verify and solutions
           that don't, it will automatically make one of the verifying
-          ones the default. (Thanks, Adam.)
+          ones the default. (Thanks, Adam!)
 
         * update.cpp: Fixed a bug where the directories would not get
           created when subscribing to a collection using the mouse.
-          (Thanks, Adam.)
+          (Thanks, Adam!)
 
 2005-07-28  Tom 7  <Tom@METROID>
 
@@ -732,14 +736,14 @@
 2005-04-27  Tom 7  <Tom@METROID>
 
         * smanage.cpp: You can now resize the screen and close the program
-          when solutions are being played back. (Thanks again Stephan.)
+          when solutions are being played back. (Thanks again Stephan!)
           Moving the mouse too much while a solution is being played could
           cause a crash. I will fix this soon.
         
 2005-04-26  Tom 7  <Tom@METROID>
 
-        * move.h: Fixed a bug with heart framers (similar to the problem
-          in "The Dalek Question"); thanks Stephan.
+        * move.h: Fixed a bug with heart framers, similar to the problem
+          in "The Dalek Question". (Thanks Stephan!)
 
 2005-04-25  Tom 7  <Tom@METROID>
 
@@ -753,8 +757,8 @@
           big-endian systems) where the colors of shrunken things were
           totally screwed up. This also fixes the long-standing (but
           less obvious) problem where the little movie on the main menu
-          was yellowish instead of being transparentish. Thanks to
-          William for laptop access.
+          was yellowish instead of being transparentish. (Thanks
+          William for laptop access!)
 
 2005-04-25  Tom 7  <Tom@METROID>
 
@@ -1075,9 +1079,8 @@
 
 2005-01-22  Tom 7  <Tom@LOLO>
 
-        * sdlutil.cpp: Vastly improved graphics
-          performance (especially on Linux) thanks
-          to Adam Goode's patch.
+        * sdlutil.cpp: Vastly improved graphics performance, 
+          especially on Linux. (Thanks Adam for the patch!)
 
 2005-01-21  Tom 7  <Tom@METROID>
 
