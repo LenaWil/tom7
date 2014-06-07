@@ -23,4 +23,4 @@ found in COPYING.
 
 base/        Google "base" library. APACHE20 license.
 strings/     Google "strings" library. APACHE20 license.
-
+sdl/         Utilities for my habits in SDL. Includes bitmap font rendering.
