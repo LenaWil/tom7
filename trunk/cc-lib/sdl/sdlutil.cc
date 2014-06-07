@@ -1,9 +1,9 @@
 
 #include "SDL.h"
-#include "SDL_image.h"
-#include "sdlutil.h"
+#include "sdlutil-lite.h"
 #include <string>
 #include "util.h"
+#include "../cc-lib/stb_image.h"
 
 /* by default, use display format. but
    when in console mode (for instance)
@@ -47,6 +47,53 @@ SDL_Surface * sdlutil::resize_canvas(SDL_Surface * s, int w, int h, Uint32 color
     }
 
   return m;
+}
+
+// XXX determine this somehow. Works on win64 with SWAB set.
+#define SWAB 1
+static void CopyRGBA(const vector<Uint8> &rgba, SDL_Surface *surface) {
+  // int bpp = surface->format->BytesPerPixel;
+  Uint8 *p = (Uint8 *)surface->pixels;
+  int width = surface->w;
+  int height = surface->h;
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      int idx = (y * width + x) * 4;
+      #if SWAB
+      p[idx + 0] = rgba[idx + 2];
+      p[idx + 1] = rgba[idx + 1];
+      p[idx + 2] = rgba[idx + 0];
+      p[idx + 3] = rgba[idx + 3];
+      #else
+      p[idx + 0] = rgba[idx + 0];
+      p[idx + 1] = rgba[idx + 1];
+      p[idx + 2] = rgba[idx + 2];
+      p[idx + 3] = rgba[idx + 3];
+      #endif
+    }
+  }
+}
+
+SDL_Surface *sdlutil::LoadImage(const char *filename) {
+  int width, height, bpp;
+  Uint8 *stb_rgba = stbi_load(filename,
+			      &width, &height, &bpp, 4);
+  if (!stb_rgba) return 0;
+  
+  vector<Uint8> rgba;
+  rgba.reserve(width * height * 4);
+  for (int i = 0; i < width * height * 4; i++) {
+    rgba.push_back(stb_rgba[i]);
+  }
+  stbi_image_free(stb_rgba);
+
+  SDL_Surface *surf = makesurface(width, height, true);
+  if (!surf) {
+    return 0;
+  }
+  CopyRGBA(rgba, surf);
+
+  return surf;
 }
 
 SDL_Surface * sdlutil::duplicate(SDL_Surface * surf) {
@@ -288,6 +335,44 @@ SDL_Surface * sdlutil::shrink50(SDL_Surface * src) {
   return ret;
 }
 
+SDL_Surface * sdlutil::grow2x(SDL_Surface * src) {
+  
+  /* must be 32 bpp */
+  if (src->format->BytesPerPixel != 4) return 0;
+
+  int ww = src->w, hh = src->h;
+  
+
+  SDL_Surface * ret = makesurface(ww << 1, hh << 1);
+  if (!ret) return 0;
+
+  slock(ret);
+  slock(src);
+
+  Uint8 *p = (Uint8*)src->pixels;
+  Uint8 *pdest = (Uint8*)ret->pixels;
+
+  int ww2 = ww << 1;
+  for(int y = 0; y < hh; y ++) {
+    for(int x = 0; x < ww; x ++) {
+      Uint32 rgba = *(Uint32*)(p + 4 * (y * ww + x));
+      
+      // Write four pixels.
+      int y2 = y << 1;
+      int x2 = x << 1;
+      *(Uint32*)(pdest + 4 * (y2 * ww2 + x2)) = rgba;
+      *(Uint32*)(pdest + 4 * (y2 * ww2 + x2 + 1)) = rgba;
+      *(Uint32*)(pdest + 4 * ((y2 + 1) * ww2 + x2)) = rgba;
+      *(Uint32*)(pdest + 4 * ((y2 + 1) * ww2 + x2 + 1)) = rgba;
+    }
+  }
+
+  sulock(src);
+  sulock(ret);
+
+  return ret;
+}
+
 /* try to make a hardware surface, and, failing that,
    make a software surface */
 SDL_Surface * sdlutil::makesurface(int w, int h, bool alpha) {
@@ -453,24 +538,6 @@ void sdlutil::slock(SDL_Surface *screen) {
 void sdlutil::sulock(SDL_Surface *screen) {
   if (SDL_MUSTLOCK(screen))
     SDL_UnlockSurface(screen);
-}
-
-
-SDL_Surface * sdlutil::imgload(const char *file, bool alpha) {
-  SDL_Surface * img = IMG_Load(file);
-  if (!img) {
-    return NULL;
-  }
-
-# if USE_DISPLAY_FORMAT
-  SDL_Surface * dispimg;
-  if (alpha) dispimg = SDL_DisplayFormatAlpha(img);
-  else dispimg = SDL_DisplayFormat(img);
-  SDL_FreeSurface(img);
-  return dispimg;
-# else
-  return img;
-# endif
 }
 
 

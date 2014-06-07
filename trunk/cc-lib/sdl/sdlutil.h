@@ -1,4 +1,14 @@
 
+// XXX "lite" copy that doesn't need SDL_Image
+//////////////////////////////////////////////////////////////////////
+// Where did imgload go? I stopped using SDL_Image in favor of
+// stb_image, which doesn't need to link stuff like libpng, zlib,
+// libjpeg, etc. etc. etc. which is a nightmare. The only use was
+// in this library. It is easy to replicate the functionality of
+// imgload using stb_image; and I should probably do that in this
+// package since both are part of cc-lib.
+//////////////////////////////////////////////////////////////////////
+
 #ifndef __SDLUTIL_H
 #define __SDLUTIL_H
 
@@ -18,6 +28,9 @@ struct sdlutil {
   static Uint32 getpixel(SDL_Surface *, int x, int y);
   static void   setpixel(SDL_Surface *, int x, int y,
                          Uint32 color);
+
+  // Load supported files using stb_image.
+  static SDL_Surface *LoadImage(const char *filename);
 
   static SDL_Surface * duplicate(SDL_Surface * surf);
 
@@ -64,6 +77,9 @@ struct sdlutil {
      returning the new surface. */
   static SDL_Surface * shrink50(SDL_Surface * src);
 
+  /* Grow to 2x its original size, returning a new surface. */
+  static SDL_Surface * grow2x(SDL_Surface * src);
+
   /* create a mipmap array (of nmips successively half-sized images)
      in the array surfs. The first entry of surfs should be filled
      with a surface, so for nmips==1 this does nothing. */
@@ -74,9 +90,6 @@ struct sdlutil {
 
   /* flip a surface horizontally */
   static SDL_Surface * fliphoriz(SDL_Surface * src);
-
-  /* load an image into a fast surface */
-  static SDL_Surface * imgload(const char * file, bool alpha = true);
 
   /* mix two 32bit colors, doing the right thing for alpha */
   static Uint32 mix2(Uint32, Uint32);
