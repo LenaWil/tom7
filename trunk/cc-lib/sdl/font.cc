@@ -1,6 +1,6 @@
 
 #include "font.h"
-#include "sdlutil-lite.h"
+#include "sdlutil.h"
 
 // XXX use std::unique_ptr or whatever.
 namespace {

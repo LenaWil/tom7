@@ -1,9 +1,9 @@
 
 #include "SDL.h"
-#include "sdlutil-lite.h"
+#include "sdlutil.h"
 #include <string>
 #include "util.h"
-#include "../cc-lib/stb_image.h"
+#include "../stb_image.h"
 
 /* by default, use display format. but
    when in console mode (for instance)
