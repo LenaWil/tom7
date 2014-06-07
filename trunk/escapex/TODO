@@ -2,6 +2,20 @@
 
 * Current Projects
 
+Use mingw to compile instead of CL on windows.
+
+Use sdlutil and font from cc-lib.
+
+64 bits?
+
+Should be easy:
+"Please consider writing and installing an AppData file with the
+application description and some screenshots, else Escape looks really
+bad in the GNOME and KDE Software Centers. We'd love to showcase more
+applications, but without the extra data file we can't. See
+http://people.freedesktop.org/~hughsient/appdata/ for details; thanks!"
+
+
 I think I introduced a regression in the behavior of wires from Radiant's "Global Thermonuclear War"
 
 put optipng on all build machines
@@ -467,6 +481,8 @@ http://tucows.com/preview/383408
 **** 'don medusa' moving laser
 **** sleeping bombs? (don't ignite when pushed, last heart framer
      ignites them)
+**** "nervous bots" that are hugbots that fall asleep (with timer)
+     whenever you touch them @n7dot
 
 *** powers that can be picked up
 **** bridge, a la lolo

@@ -1,5 +1,5 @@
 
-           Escape               Tom 7        6 Apr 2007
+           Escape               Tom 7        26 Nov 2010
            Beta Version 3
 
 
@@ -63,6 +63,12 @@ Alas, there are a few tricky things in the tutorial. If you get stuck:
    two lights at the bottom right of the level. Everyone seems to miss
    this one for some reason.
 
+   In the transponders tutorial: You will need to push around several
+   transponders. Remember you can walk on blue floor when it's 'down',
+   and it blocks lasers when it's 'up'.
+
+   In the bombs tutorial: Maybe if you used a bomb with a longer
+   fuse down there?
 
 Here's how to create levels:
 
@@ -407,10 +413,6 @@ Here is an English description of the rules of the game:
 
 Here is what I'm interested in from you:
 
-   Bug reports and feature suggestions. I've tried to stamp out all
-   the bugs, and there are some sorely needed features in the works,
-   but of course I still want to hear these things.
-
    Levels. See above for instructions on how to create them.
 
    Ratings. You can rate a level in the triage collection by pressing
@@ -429,6 +431,10 @@ Here is what I'm interested in from you:
    selecting your solution and pressing ctrl-u. Be sure to upload with
    the "speedrun" check box selected.
 
+   Bug reports and feature suggestions. I've tried to stamp out all
+   the bugs, and there are some sorely needed features in the works,
+   but of course I still want to hear these things.
+
 
 Here's some more boring stuff. Go play instead of reading this:
 
@@ -438,7 +444,7 @@ Here's some more boring stuff. Go play instead of reading this:
 License:
 
    The Escape program, graphics, and documentation are Copyright
-   1996-2007 Tom Murphy VII, except where noted at the top of a source
+   1996-2010 Tom Murphy VII, except where noted at the top of a source
    file. They are distributed under the terms of the GNU Public
    License, which you can read in the file COPYING that is included
    with the distribution.
@@ -454,6 +460,7 @@ Thanks:
    Brian Potetz - Impressive coverage, bug reports, suggestions, levels
    Stephan Schonberg - Lots of bug reports, some impressively obscure!
    Jason Reed - Testing and debugging on PPC Linux, several clever levels
+   Wolfgang Weisser - Excellent levels and solutions, bug reports, fixes
    Anderson Wilson - Test case that helped solve dataloss bug, nice levels
    William Lovas - Convenient Mac laptop for testing
    Heather Hendrickson - Author of several levels, provider of support
