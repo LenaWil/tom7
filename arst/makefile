@@ -32,9 +32,7 @@ INCLUDES=-I "../cc-lib" -I "../cc-lib/city"
 #  -DNOUNZIP
 CPPFLAGS= $(CCSDL) -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++0x
 
-CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o ../cc-lib/wavesave.o
-
-SDLUTILOBJECTS=sdlutil-lite.o
+CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o ../cc-lib/wavesave.o ../cc-lib/sdl/sdlutil.o ../cc-lib/sdl/font.o
 
 BASEOBJECTS=$(CCLIBOBJECTS)
 
@@ -47,7 +45,7 @@ pngsave.o: pngsave.cc pngsave.h
 
 PNGSAVE_OBJECTS=pngsave.o $(PNG_OBJECTS)
 
-OBJECTS=$(BASEOBJECTS) $(SDLOBJECTS) $(SDLUTILOBJECTS) font.o script.o
+OBJECTS=$(BASEOBJECTS) $(SDLOBJECTS) script.o
 
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS=$(LINKSDL)  -m64 -Wl,--subsystem,console -lz $(OPT) $(FLTO) $(PROFILE) -static
