@@ -11,7 +11,7 @@
 
 #include "../cc-lib/base/stringprintf.h"
 #include "SDL.h"
-#include "sdlutil-lite.h"
+#include "../cc-lib/sdl/sdlutil.h"
 
 #ifdef __GNUC__
 #include <ext/hash_map>

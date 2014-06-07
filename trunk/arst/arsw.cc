@@ -6,14 +6,14 @@
 #include <utility>
 #include <deque>
 
-#include "sdlutil-lite.h"
+#include "../cc-lib/sdl/sdlutil.h"
 #include "time.h"
 #include "SDL.h"
 #include "SDL_main.h"
 #include "../cc-lib/util.h"
 #include "../cc-lib/stb_image.h"
-#include "chars.h"
-#include "font.h"
+#include "../cc-lib/sdl/chars.h"
+#include "../cc-lib/sdl/font.h"
 #include "script.h"
 #include "pngsave.h"
 #include "../cc-lib/wavesave.h"
