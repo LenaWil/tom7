@@ -288,7 +288,6 @@
 (add-hook 'protobuf-mode-hook
   (lambda () (c-add-style "my-style" my-protobuf-style t)))
 
-(autoload 'ange-ftp-set-user "ange-ftp" "ange-ftp stuff" t)
 (autoload 'aphasia-mode "aphasia" "Major mode for editing aphasia source code." t)
 (autoload 'sml-mode "sml-mode" "Major mode for editing ML programs." t)
 (autoload 'aaph-mode "aaph" "Major mode for editing aphasia 2 source." t)
@@ -300,6 +299,7 @@
 		("\\.db$" . aphasia-mode)
 		("\\.ah$" . aphasia-mode)
 		("\\.as$" . c-mode) ;; close enough...
+		("\\.cl$" . c-mode) ;; close enough...
 		("\\.fsh$" . glsl-mode)
 		("\\.vsh$" . glsl-mode)
 		("\\.sml$" . sml-mode)
@@ -319,6 +319,10 @@
 		("\\.proto$" . protobuf-mode)
 		("\\.tfdesc$" . textformat-mode)
 		("\\.sig$" . sml-mode)) auto-mode-alist))
+
+;; Prefer C++ for .h files. Really just keyword highlighting,
+;; and you should probably avoid C++ keywords in C anyway.
+(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
 
 (defun delete-whitespace-right ()
 "Deletes whitespace to the right of point, until the end of 
