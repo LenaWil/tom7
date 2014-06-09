@@ -8,7 +8,7 @@
   A sample layer is a partial function from time (sample number) to
   amplitude. The layers are positioned in time, and do not necessarily
   have a beginning or end. For example, it may be an infinite 60 Hz
-  sinewave with a specific phaseor a drum sample that plays for 100ms,
+  sinewave with a specific phase or a drum sample that plays for 100ms,
   starting at sample #139741. Although sample layers have their own
   notion of timing, it makes sense to construct a new sample layer
   by offsetting or cropping an existing one.

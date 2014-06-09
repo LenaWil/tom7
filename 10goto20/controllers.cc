@@ -97,3 +97,33 @@ Controllers &Controllers::operator =(const Controllers &rhs) {
   }
   return *this;
 }
+
+Controllers::Controllers(Controllers &&rhs) {
+  this->types = rhs.types;
+  this->values = rhs.values;
+  rhs.size = 0;
+  rhs.capacity = 0;
+  rhs.types = NULL;
+  rhs.values = NULL;
+}
+
+Controllers &Controllers::operator =(Controllers &&rhs) {
+  // Is this impossible? How can the rhs be a temporary?
+  if (this == &rhs)
+    return *this;
+
+  free(this->types);
+  free(this->values);
+  this->types = rhs.types;
+  this->values = rhs.values;
+  rhs.size = 0;
+  rhs.capacity = 0;
+  rhs.types = NULL;
+  rhs.values = NULL;
+  return *this;
+}
+
+Controllers::~Controllers() {
+  free(types);
+  free(values);
+}

@@ -1,6 +1,7 @@
 default: all
 
-all: 10goto20.exe
+all: 10goto20.exe test
+test: interval-tree_test.exe
 
 CXXFLAGS=-Wall -fno-strict-aliasing -Wno-deprecated -Wno-sign-compare -I/usr/local/include 
 OPT=-O2
@@ -31,7 +32,9 @@ INCLUDES=-I "../cc-lib" -I "../cc-lib/city" -I "../cc-lib/jdksmidi"
 
 CPPFLAGS= $(CCSDL) -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++0x
 
-CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o ../cc-lib/wavesave.o ../cc-lib/sdl/sdlutil.o ../cc-lib/sdl/font.o
+CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o ../cc-lib/wavesave.o
+
+CCLIBSDLOBJECTS=../cc-lib/sdl/sdlutil.o ../cc-lib/sdl/font.o
 
 BASEOBJECTS=$(CCLIBOBJECTS)
 
@@ -45,7 +48,7 @@ pngsave.o: pngsave.cc pngsave.h
 
 PNGSAVE_OBJECTS=pngsave.o $(PNG_OBJECTS)
 
-OBJECTS=$(BASEOBJECTS) $(SDLOBJECTS) $(JDKSMIDIOBJECTS) $(PNGSAVE_OBJECTS) audio-engine.o bleep-bloop-sample-layer.o controllers.o midi-music-layer.o
+OBJECTS=$(BASEOBJECTS) $(SDLOBJECTS) $(CCLIBSDLOBJECTS) $(JDKSMIDIOBJECTS) $(PNGSAVE_OBJECTS) audio-engine.o bleep-bloop-sample-layer.o controllers.o midi-music-layer.o
 
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS=$(LINKSDL)  -m64 -Wl,--subsystem,console -lz $(OPT) $(FLTO) $(PROFILE) -static
@@ -56,3 +59,9 @@ LPNGFLAGS=-Llibpng -lz
 
 10goto20.exe : $(OBJECTS) 10goto20.o
 	$(CXX) $^ -o $@ $(LFLAGS)
+
+interval-tree_test.exe : $(CCLIBOBJECTS) interval-tree_test.o
+	$(CXX) $^ -o $@ $(OPT) -static
+
+clean :
+	rm -f *.o

@@ -2,17 +2,16 @@
 #include "10goto20.h"
 #include "audio-engine.h"
 
-#include "bleep-bloop-sample-layer.h"
+#include "sample-layer.h"
+#include "music-layer.h"
 
-#include "jdksmidi/world.h"
-#include "jdksmidi/track.h"
-#include "jdksmidi/multitrack.h"
-#include "jdksmidi/filereadmultitrack.h"
-#include "jdksmidi/fileread.h"
-#include "jdksmidi/fileshow.h"
+#include "bleep-bloop-sample-layer.h"
+#include "midi-music-layer.h"
 
 #define STARTW 800
 #define STARTH 600
+
+#define AUDIOBUFFER 1024
 
 static SampleLayer *layer;
 
@@ -41,21 +40,6 @@ void Audio(void *userdata, Uint8 *stream_bytes, int num_bytes) {
   }
 }
 
-int waste(void *unused) {
-  int x = 0;
-  for(;;) {
-    x *= 0xBEEF;
-    x ^= 0xDEAD;
-    if (x & 1) {
-      x <<= 1;
-    } else {
-      x >>= 1;
-    }
-  }
-  
-  return -1;
-}
-
 int main (int argc, char **argv) {
 
   if (SDL_Init (SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
@@ -65,8 +49,7 @@ int main (int argc, char **argv) {
 
   fprintf(stderr, "10 GOTO 20\n");
 
-  //  MidiMusicLayer *midi = MidiMusicLayer::Create("sensations.mid");
-  //   CHECK(midi);
+  vector<MidiMusicLayer *> midis = MidiMusicLayer::Create("sensations.mid");
 // XXX use it...
 
   layer = BleepBloopSampleLayer::Create();
@@ -79,7 +62,7 @@ int main (int argc, char **argv) {
 
   SDL_AudioSpec spec, obtained;
   spec.freq = SAMPLINGRATE;
-  spec.samples = 2048;
+  spec.samples = AUDIOBUFFER;
   spec.channels = 2;
   spec.callback = &Audio;
   spec.userdata = 0;
@@ -89,13 +72,6 @@ int main (int argc, char **argv) {
   fprintf(stderr, "hey. %d %d\n", obtained.freq, obtained.samples);
 
   SDL_PauseAudio(0);
-
-  SDL_Thread *t1 = SDL_CreateThread(waste, 0);
-  SDL_Thread *t2 = SDL_CreateThread(waste, 0);
-  SDL_Thread *t3 = SDL_CreateThread(waste, 0);
-  SDL_Thread *t4 = SDL_CreateThread(waste, 0);
-  SDL_Thread *t5 = SDL_CreateThread(waste, 0);
-  SDL_Thread *t6 = SDL_CreateThread(waste, 0);
 
   while(1) {
     SDL_Event e;
