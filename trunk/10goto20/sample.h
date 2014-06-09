@@ -19,7 +19,6 @@ struct Sample {
   double *samples() { return &left; }
   explicit Sample(double mono) : left(mono), right(mono) {}
   Sample(double l, double r) : left(l), right(r) {}
-
 };
 
 inline Sample operator +(const Sample &a, const Sample &b) {

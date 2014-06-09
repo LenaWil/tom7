@@ -15,15 +15,27 @@
 
 #include "10goto20.h"
 #include "music-layer.h"
+#include "controllers.h"
 
 struct MidiMusicLayer : public MusicLayer {
 
-  static MusicLayer *Create(const string &filename);
+  // Returns a vector of all the tracks that have notes in the
+  // original.
+  static vector<MidiMusicLayer *> Create(const string &filename);
+
+
+  // TODO: bool Name() const;
+  // Get the MIDI instrument for the track. Takes the first one.
+  int MidiInstrument() const;
 
   virtual bool FirstSample(int64 *t);
   virtual bool AfterLastSample(int64 *t);
 
   virtual vector<Controllers> NoteAt(int64 t);
+
+ private:
+  // Use factory.
+  MidiMusicLayer();
 };
 
 #endif

@@ -14,22 +14,27 @@ enum Controller {
      from going higher... */
   FREQUENCY = 0,
   /* Must be present.
-     nominally in [0, 1] but okay for this to be out of that range */
+     nominally in [0, 1] but okay for this to be out of that range (HDR). */
   AMPLITUDE = 1,
-  /* argument in [-1, 1]. */
+  /* argument in [-1, 1] (full left to full right), but okay for this to be out
+     of range (HDR). */
   PAN = 2,
-
 };
 
 /* Not a controller; must not appear in Controllers sets. */
 #define INVALID_CONTROLLER 255
 
+// These objects have (mutable) value semantics and efficient move
+// constructors. Just pass 'em around.
 struct Controllers {
   // PERF initialize to hold 2, since frequency and amplitude are
   // required anyway.
+  ~Controllers();
   Controllers() : size(0), capacity(0), types(NULL), values(NULL) {}
   Controllers(const Controllers &);
+  Controllers(Controllers &&);
   Controllers &operator =(const Controllers &);
+  Controllers &operator =(Controllers &&rhs);
 
   char size, capacity;
   char *types;
