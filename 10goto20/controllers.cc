@@ -103,9 +103,8 @@ Controllers &Controllers::operator =(const Controllers &rhs) {
     values[i] = rhs.values[i];
   }
   return *this;
-  // printf("Controllers =\n");
 }
-#if 0
+
 Controllers::Controllers(Controllers &&rhs) {
   this->size = rhs.size;
   this->capacity = rhs.capacity;
@@ -115,7 +114,6 @@ Controllers::Controllers(Controllers &&rhs) {
   rhs.capacity = 0;
   rhs.types = NULL;
   rhs.values = NULL;
-  printf("Controllers &&\n");
 }
 
 Controllers &Controllers::operator =(Controllers &&rhs) {
@@ -134,9 +132,7 @@ Controllers &Controllers::operator =(Controllers &&rhs) {
   rhs.types = NULL;
   rhs.values = NULL;
   return *this;
-  printf("Controllers =&&\n");
 }
-#endif
 
 Controllers::~Controllers() {
   free(types);

@@ -32,9 +32,9 @@ struct Controllers {
   ~Controllers();
   Controllers() : size(0), capacity(0), types(NULL), values(NULL) {}
   Controllers(const Controllers &);
-  // Controllers(Controllers &&);
+  Controllers(Controllers &&);
   Controllers &operator =(const Controllers &);
-  // Controllers &operator =(Controllers &&rhs);
+  Controllers &operator =(Controllers &&rhs);
 
   char size, capacity;
   char *types;

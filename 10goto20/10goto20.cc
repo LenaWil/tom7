@@ -7,6 +7,7 @@
 
 #include "bleep-bloop-sample-layer.h"
 #include "midi-music-layer.h"
+#include "wavesave.h"
 
 #define STARTW 800
 #define STARTH 600
@@ -58,11 +59,12 @@ struct PlayMidiLayer : public SampleLayer {
       const Controllers &c = cs[i];
       double seconds = t / (double)SAMPLINGRATE;
       double freq = c.GetRequired(FREQUENCY);
-      double d = sin(TWOPI * freq * seconds);
+      double amplitude = c.GetRequired(AMPLITUDE) * 0.25;
+      double d = sin(TWOPI * freq * seconds) * amplitude;
       // printf("sec %f freq %f d %f\n", seconds, freq, d);
       // XXX implement amplitude too
       // printf("%f/%f\n", ret.left, ret.right);
-      ret = ret + Sample(d) * 0.5;
+      ret = ret + Sample(d);
     }
     // printf("%f/%f\n", ret.left, ret.right);
     return ret;
@@ -128,6 +130,22 @@ struct MixLayer : public SampleLayer {
   const vector<SampleLayer *> layers;
 };
 
+// TODO: much better clamping, please! 
+struct SorryLayer : public SampleLayer {
+  explicit SorryLayer(SampleLayer *layer) : layer(layer) {}
+  bool FirstSample(int64 *t) { return layer->FirstSample(t); }
+  bool AfterLastSample(int64 *t) { return layer->AfterLastSample(t); }
+  Sample SampleAt(int64 t) {
+    Sample s = layer->SampleAt(t);
+    if (s.left > 1.0) s.left = 1.0;
+    else if (s.left < -1.0) s.left = -1.0;
+    if (s.right > 1.0) s.right = 1.0;
+    else if (s.right < -1.0) s.right = -1.0;
+    return s;
+  }
+  SampleLayer *layer;
+};
+
 int main (int argc, char **argv) {
 
   if (SDL_Init (SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
@@ -144,9 +162,21 @@ int main (int argc, char **argv) {
     plays.push_back(new PlayMidiLayer(midis[i]));
   }
 
-  layer = new MixLayer(plays);
+  layer = new SorryLayer(new MixLayer(plays));
     // BleepBloopSampleLayer::Create();
   CHECK(layer);
+
+  // First make and write wave, for debugging.
+  {
+    int64 nsamples = SAMPLINGRATE * 10;
+    vector<pair<float, float>> samples;
+    for (int64 i = 0; i < nsamples; i++) {
+      Sample s = layer->SampleAt(i);
+      samples.push_back(make_pair((float)s.left, (float)s.right));
+    }
+    WaveSave::SaveStereo("sensations.wav", samples, SAMPLINGRATE);
+    printf("Wrote wave.\n");
+  }
 
   SDL_EnableUNICODE(1);
   SDL_Surface *screen = sdlutil::makescreen(STARTW, STARTH);
