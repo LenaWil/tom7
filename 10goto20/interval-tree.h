@@ -53,6 +53,52 @@ struct IntervalTree {
 
   // TODO: OverlappingInterval!
 
+  bool Empty() const { return root != NULL; }
+
+  // Return the start index of the first interval, or Idx() if
+  // the tree is empty.
+  Idx LowerBound() const {
+    bool has_idx = false;
+    Idx lowest;
+    for (Node *t = root; t != NULL; t = t->left) {
+      // First interval might be in the overlapping set.
+      // If it's non-empty, then the first one is the earliest.
+      if (!t->by_begin.empty()) {
+	if (!has_idx || t->by_begin.begin()->first < lowest) {
+	  lowest = t->by_begin.begin()->first;
+	  has_idx = true;
+	}
+      }
+    }
+
+    if (!has_idx) return Idx();
+    else return lowest;
+  }
+
+  // Return the end index of the interval that ends last (which is not
+  // included in that interval, as usual) in the tree, or Idx() if
+  // the tree is empty.
+  Idx UpperBound() const {
+    bool has_idx = false;
+    Idx highest;
+    for (Node *t = root; t != NULL; t = t->right) {
+      // Last interval might be in the overlapping set.
+      // If it's non-empty, then the first one is the latest.
+      if (!t->by_end.empty()) {
+	// (Note reverse iterator.)
+	if (!has_idx || highest < t->by_end.rbegin()->first) {
+	  highest = t->by_end.rbegin()->first;
+	  has_idx = true;
+	}
+      }
+    }
+
+    if (!has_idx) return Idx();
+    else return highest;
+  }
+
+  // Returns a pointer to the interval, but it remains owned by
+  // the tree.
   Interval *Insert(Idx start, Idx end, T t) {
     Interval *ret = new Interval(start, end, t);
     Node **tree = &root;
@@ -97,26 +143,11 @@ struct IntervalTree {
     // Intervals that overlap the center, sorted by begin point and
     // end point. Note that multiple intervals may start or end at the
     // exact same index. Each interval appears in both maps (and only
-    // these maps).
+    // these maps). Both are sorted in increasing order, but we usually
+    // do reverse iteration on by_end.
     std::multimap<Idx, Interval *> by_begin, by_end;
-    // std::multimap<Idx, Interval *> by_end;
     ~Node();
   };
-
-  /*
-  struct CompareByBegin {
-    bool operator ()(const Interval &a, const Interval &b) {
-      return a.start < b.start;
-    }
-  };
-
-  struct CompareByEnd {
-    bool operator ()(const Interval &a, const Interval &b) {
-      return a.end < b.end;
-    }
-  };
-  */
-  // static Interval *InsertIt(Idx start, Idx end, 
 
   // Recursive is most natural, but iterative is easier and
   // faster/safer in C++.
@@ -164,6 +195,10 @@ struct IntervalTree {
 
   // NULL means empty.
   Node *root;
+ private:
+  // TODO: Could implement these.
+  IntervalTree(const IntervalTree &);
+  IntervalTree &operator =(const IntervalTree &);
 };
 
 template<class Idx, class T, class B>

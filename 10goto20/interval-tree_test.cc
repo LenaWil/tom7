@@ -58,6 +58,17 @@ int main(int argc, char *argv[]) {
     // Empty tree.
     IntervalTree<double, Unit> empty;
     CHECK(empty.OverlappingPoint(0.0).empty());
+    CHECK(empty.LowerBound() == 0.0);
+    CHECK(empty.UpperBound() == 0.0);
+  }
+
+  {
+    // Easy.
+    IntervalTree<int, string> easy;
+    easy.Insert(3, 5, "hello");
+    easy.Insert(4, 7, "overlap");
+    CHECK(easy.LowerBound() == 3);
+    CHECK(easy.UpperBound() == 7);
   }
 
   typedef IntervalTree<double, string> IT;
@@ -103,7 +114,7 @@ int main(int argc, char *argv[]) {
     {0.8, 0.8, "h"},
   };
 
-  // TODO: Randomize insertion order!
+  // Keep doing it with random insertion order.
   for (int round = 0; round < 1000; round++) {
     // Now with some real data.
     IntervalTree<double, string> tree;
@@ -123,6 +134,9 @@ int main(int argc, char *argv[]) {
 		    tree.OverlappingPoint(0.2)));
     CHECK(IsSameSet({"a", "c", "e", "f"},
 		    tree.OverlappingPoint(0.1)));
+
+    CHECK(tree.LowerBound() == 0.0);
+    CHECK(tree.UpperBound() == 0.9);
 
     Shuffle(&data);
   }
