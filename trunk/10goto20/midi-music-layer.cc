@@ -78,7 +78,22 @@ struct RealMML : public MidiMusicLayer {
       // end), but is it really the right place?
       Controllers c;
       c.Set(FREQUENCY, MidiFrequency(ival->t.note_index));
-      c.Set(AMPLITUDE, ival->t.velocity / 127.0);
+      
+      double amp = ival->t.velocity / 127.0;
+
+      // Fade in/out to avoid pops. Is this the right place to do this?
+      static const int64 FADESAMPLES = 48LL;  // 1ms
+      
+      // TODO: Maybe sigmoid instead of triangle.
+      if ((t - ival->start) < FADESAMPLES) {
+	double f = (t - ival->start) / (double)FADESAMPLES;
+	amp *= f;
+      } else if (ival->end - t < FADESAMPLES) {
+	double f = (ival->end - t) / (double)FADESAMPLES;
+	amp *= f;
+      }
+
+      c.Set(AMPLITUDE, amp);
       // printf("f %f a %f\n", c.GetRequired(FREQUENCY),
       // c.GetRequired(AMPLITUDE));
       // printf("c: %d\n", c.size);
