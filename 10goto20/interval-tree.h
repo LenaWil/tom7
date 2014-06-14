@@ -59,7 +59,7 @@ struct IntervalTree {
   // the tree is empty.
   Idx LowerBound() const {
     bool has_idx = false;
-    Idx lowest;
+    Idx lowest = Idx();
     for (Node *t = root; t != NULL; t = t->left) {
       // First interval might be in the overlapping set.
       // If it's non-empty, then the first one is the earliest.
@@ -71,8 +71,7 @@ struct IntervalTree {
       }
     }
 
-    if (!has_idx) return Idx();
-    else return lowest;
+    return lowest;
   }
 
   // Return the end index of the interval that ends last (which is not
@@ -80,7 +79,7 @@ struct IntervalTree {
   // the tree is empty.
   Idx UpperBound() const {
     bool has_idx = false;
-    Idx highest;
+    Idx highest = Idx();
     for (Node *t = root; t != NULL; t = t->right) {
       // Last interval might be in the overlapping set.
       // If it's non-empty, then the first one is the latest.
@@ -93,8 +92,7 @@ struct IntervalTree {
       }
     }
 
-    if (!has_idx) return Idx();
-    else return highest;
+    return highest;
   }
 
   // Returns a pointer to the interval, but it remains owned by

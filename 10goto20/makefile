@@ -2,6 +2,7 @@ default: all
 
 all: 10goto20.exe test
 test: interval-tree_test.exe
+	./interval-tree_test.exe
 
 CXXFLAGS=-Wall -fno-strict-aliasing -Wno-deprecated -Wno-sign-compare -I/usr/local/include 
 OPT=-O2

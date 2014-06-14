@@ -33,6 +33,8 @@ void Controllers::Reserve(int s) {
     free(values);
     types = ntypes;
     values = nvalues;
+    size = s;
+    capacity = cap;
   }
 }
 
@@ -52,7 +54,7 @@ void Controllers::Set(Controller c, double v) {
   values[idx] = v;
 }
 
-bool Controllers::Get(Controller c, double *v) {
+bool Controllers::Get(Controller c, double *v) const {
   for (int i = 0; i < size; i++) {
     if (types[i] == (char)c) {
       *v = values[i];
@@ -62,11 +64,14 @@ bool Controllers::Get(Controller c, double *v) {
   return false;
 }
 
-double Controllers::GetRequired(Controller c) {
+double Controllers::GetRequired(Controller c) const {
   for (int i = 0; i < size; i++)
     if (types[i] == (char)c)
       return values[i];
 
+  for (int i = 0; i < size; i++) {
+    fprintf(stderr, "%d: %d = %f\n", i, types[i], values[i]);
+  }
   CHECK(!"The required controller was not found.");
   return 0.0;
 }
@@ -75,10 +80,12 @@ Controllers::Controllers(const Controllers &rhs)
   : size(rhs.size), capacity(rhs.capacity) {
   types = (char*)malloc(capacity);
   values = (double*)malloc(sizeof (double) * capacity);
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < capacity; i++) {
     types[i] = rhs.types[i];
     values[i] = rhs.values[i];
+    // printf("%d %f\n", i, values[i]);
   }
+  // printf("Controllers copy %d--%d\n", size, capacity);
 }
 
 Controllers &Controllers::operator =(const Controllers &rhs) {
@@ -96,15 +103,19 @@ Controllers &Controllers::operator =(const Controllers &rhs) {
     values[i] = rhs.values[i];
   }
   return *this;
+  // printf("Controllers =\n");
 }
-
+#if 0
 Controllers::Controllers(Controllers &&rhs) {
+  this->size = rhs.size;
+  this->capacity = rhs.capacity;
   this->types = rhs.types;
   this->values = rhs.values;
   rhs.size = 0;
   rhs.capacity = 0;
   rhs.types = NULL;
   rhs.values = NULL;
+  printf("Controllers &&\n");
 }
 
 Controllers &Controllers::operator =(Controllers &&rhs) {
@@ -114,6 +125,8 @@ Controllers &Controllers::operator =(Controllers &&rhs) {
 
   free(this->types);
   free(this->values);
+  this->size = rhs.size;
+  this->capacity = rhs.capacity;
   this->types = rhs.types;
   this->values = rhs.values;
   rhs.size = 0;
@@ -121,7 +134,9 @@ Controllers &Controllers::operator =(Controllers &&rhs) {
   rhs.types = NULL;
   rhs.values = NULL;
   return *this;
+  printf("Controllers =&&\n");
 }
+#endif
 
 Controllers::~Controllers() {
   free(types);

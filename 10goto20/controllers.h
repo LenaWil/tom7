@@ -32,18 +32,18 @@ struct Controllers {
   ~Controllers();
   Controllers() : size(0), capacity(0), types(NULL), values(NULL) {}
   Controllers(const Controllers &);
-  Controllers(Controllers &&);
+  // Controllers(Controllers &&);
   Controllers &operator =(const Controllers &);
-  Controllers &operator =(Controllers &&rhs);
+  // Controllers &operator =(Controllers &&rhs);
 
   char size, capacity;
   char *types;
   double *values;
 
   void Set(Controller c, double v);
-  bool Get(Controller c, double *v);
-  double GetRequired(Controller c);
-  double GetOrDefault(Controller c, double d) {
+  bool Get(Controller c, double *v) const;
+  double GetRequired(Controller c) const;
+  double GetOrDefault(Controller c, double d) const {
     double v;
     if (!Get(c, &v)) return d;
     else return v;

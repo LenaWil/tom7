@@ -20,20 +20,22 @@
 struct MidiMusicLayer : public MusicLayer {
 
   // Returns a vector of all the tracks that have notes in the
-  // original.
+  // original. The idea is that each track is one instrument/channel,
+  // which is not required by MIDI but is typical for multitrack
+  // files.
   static vector<MidiMusicLayer *> Create(const string &filename);
 
 
   // TODO: bool Name() const;
   // Get the MIDI instrument for the track. Takes the first one.
-  int MidiInstrument() const;
+  virtual int MidiInstrument() const = 0;
 
-  virtual bool FirstSample(int64 *t);
-  virtual bool AfterLastSample(int64 *t);
+  virtual bool FirstSample(int64 *t) = 0;
+  virtual bool AfterLastSample(int64 *t) = 0;
 
-  virtual vector<Controllers> NoteAt(int64 t);
+  virtual vector<Controllers> NotesAt(int64 t) = 0;
 
- private:
+ protected:
   // Use factory.
   MidiMusicLayer();
 };

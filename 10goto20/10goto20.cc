@@ -40,6 +40,94 @@ void Audio(void *userdata, Uint8 *stream_bytes, int num_bytes) {
   }
 }
 
+struct PlayMidiLayer : public SampleLayer {
+  // Does not take ownership.
+  explicit PlayMidiLayer(MidiMusicLayer *midi) : midi(midi) {}
+  
+  
+  bool FirstSample(int64 *t) { return midi->FirstSample(t); }
+  bool AfterLastSample(int64 *t) { return midi->AfterLastSample(t); }
+
+  Sample SampleAt(int64 t) {
+    // TODO: Implement each instrument or whatever.
+    // printf("Get notes %lld\n", t);
+    vector<Controllers> cs = midi->NotesAt(t);
+    // printf("%lld notes\n", cs.size());
+    Sample ret(0.0);
+    for (int i = 0; i < cs.size(); i++) {
+      const Controllers &c = cs[i];
+      double seconds = t / (double)SAMPLINGRATE;
+      double freq = c.GetRequired(FREQUENCY);
+      double d = sin(TWOPI * freq * seconds);
+      // printf("sec %f freq %f d %f\n", seconds, freq, d);
+      // XXX implement amplitude too
+      // printf("%f/%f\n", ret.left, ret.right);
+      ret = ret + Sample(d) * 0.5;
+    }
+    // printf("%f/%f\n", ret.left, ret.right);
+    return ret;
+  }
+
+ private:
+  MidiMusicLayer *midi;
+};
+
+struct MixLayer : public SampleLayer {
+  MixLayer(const vector<SampleLayer *> &layers) : layers(layers) {
+    lb = ub = 0;
+    bool hasl = false, hasu = false;
+    right_infinite = left_infinite = false;
+    for (int i = 0; i < layers.size(); i++) {
+      SampleLayer *layer = layers[i];
+      int64 t;
+      if (layer->FirstSample(&t)) {
+	if (!hasl || t < lb) {
+	  hasl = true;
+	  lb = t;
+	}
+      } else {
+	left_infinite = true;
+      }
+      
+      if (layer->AfterLastSample(&t)) {
+	if (!hasl || t > ub) {
+	  hasu = true;
+	  ub = t;
+	}
+      } else {
+	right_infinite = true;
+      }
+    }
+  }
+  
+  bool FirstSample(int64 *t) {
+    if (left_infinite) return false;
+    *t = lb;
+    return true;
+  }
+
+  bool AfterLastSample(int64 *t) {
+    if (right_infinite) return false;
+    *t = ub;
+    return true;
+  }
+
+  Sample SampleAt(int64 t) {
+    // XXX this asks for samples outside the finite range
+    // for finite layers. Should maybe update the docs, or fix that?
+    Sample s(0.0);
+    for (int i = 0; i < layers.size(); i++) {
+      s += layers[i]->SampleAt(t);
+    }
+    return s;
+  }
+
+ private:
+  bool left_infinite, right_infinite;
+  int64 lb, ub;
+  const vector<SampleLayer *> layers;
+};
+
 int main (int argc, char **argv) {
 
   if (SDL_Init (SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
@@ -50,9 +138,14 @@ int main (int argc, char **argv) {
   fprintf(stderr, "10 GOTO 20\n");
 
   vector<MidiMusicLayer *> midis = MidiMusicLayer::Create("sensations.mid");
-// XXX use it...
 
-  layer = BleepBloopSampleLayer::Create();
+  vector<SampleLayer *> plays;
+  for (int i = 0; i < midis.size(); i++) {
+    plays.push_back(new PlayMidiLayer(midis[i]));
+  }
+
+  layer = new MixLayer(plays);
+    // BleepBloopSampleLayer::Create();
   CHECK(layer);
 
   SDL_EnableUNICODE(1);

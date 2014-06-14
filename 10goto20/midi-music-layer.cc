@@ -14,6 +14,8 @@
 
 using namespace jdksmidi;
 
+MidiMusicLayer::MidiMusicLayer() {}
+
 static void DumpMIDITimedBigMessage(const MIDITimedBigMessage *msg) {
   if (msg) {
     char msgbuf[1024];
@@ -25,54 +27,86 @@ static void DumpMIDITimedBigMessage(const MIDITimedBigMessage *msg) {
   }
 }
 
-#if 0
-static void DumpMIDITrack(MIDITrack *t) {
-  MIDITimedBigMessage *msg;
-  
-  for (int i = 0; i < t->GetNumEvents(); ++i) {
-    msg = t->GetEventAddress(i);
-    DumpMIDITimedBigMessage(msg);
-  }
-}
-
-static void DumpAllTracks(MIDIMultiTrack *mlt) {
-  for (int i = 0; i < mlt->GetNumTracks(); ++i) {
-    if (mlt->GetTrack(i)->GetNumEvents() > 0) {
-      fprintf(stdout, "DUMP OF TRACK #%2d:\n", i);
-      DumpMIDITrack(mlt->GetTrack(i));
-      fprintf(stdout, "\n");
-    }
-  }
-}
-#endif
-  
-static void DumpMIDIMultiTrack(MIDIMultiTrack *mlt) {
-  fprintf(stderr, "Dump midi...\n");
-  MIDIMultiTrackIterator i(mlt);
-  const MIDITimedBigMessage *msg;
-  i.GoToTime(0);
-
-  do {
-    int trk_num;
-
-    if(i.GetCurEvent(&trk_num, &msg)) {
-      fprintf(stdout, "#%2d - ", trk_num);
-      DumpMIDITimedBigMessage(msg);
-    }
-  }
-  while (i.GoToNextEvent());
-}
-
-// Only these are decoded for now.
-enum MidiEventType {
-  MIDI_NOTEON = 1,
-  MIDI_NOTEOFF = 2,
+struct Payload {
+  // TODO: Not too hard to support pan and some other controllers.
+  int note_index;
+  // Velocity is always >0.
+  int velocity;
 };
 
 struct MidiNote {
-  MidiEventType type;
-  // XXX...
+  int64 start, end;
+  Payload payload;
 };
+
+static double MidiFrequency(int idx) {
+  return 8.0 * pow(2.0, idx / 12.0);
+}
+
+struct RealMML : public MidiMusicLayer {
+  typedef IntervalTree<int64, Payload> IT;
+
+  RealMML(const vector<MidiNote> &notes, int midi_instrument) : 
+    instrument(midi_instrument) {
+    for (int i = 0; i < notes.size(); i++) {
+      // PERF These are mostly time-sorted, and sorted insert is
+      // worst case for this binary tree. Either have it be self-balancing
+      // or insert in random order, or something.
+      (void)tree.Insert(notes[i].start, notes[i].end, notes[i].payload);
+    }
+  }
+
+  int MidiInstrument() const { return instrument; }
+  bool FirstSample(int64 *t) {
+    *t = tree.LowerBound();
+    return true;
+  }
+  bool AfterLastSample(int64 *t) {
+    *t = tree.UpperBound();
+    return true;
+  }
+
+  // PERF: Not sure we want to do all these calculations and
+  // construct these objects for EVERY SAMPLE.
+  virtual vector<Controllers> NotesAt(int64 t) {
+    vector<IT::Interval *> ivals = tree.OverlappingPoint(t);
+    vector<Controllers> ret;
+    ret.reserve(ivals.size());
+    for (int i = 0; i < ivals.size(); i++) {
+      const IT::Interval *ival = ivals[i];
+      // TODO: We could implement envelopes here (we have start and
+      // end), but is it really the right place?
+      Controllers c;
+      c.Set(FREQUENCY, MidiFrequency(ival->t.note_index));
+      c.Set(AMPLITUDE, ival->t.velocity / 127.0);
+      // printf("f %f a %f\n", c.GetRequired(FREQUENCY),
+      // c.GetRequired(AMPLITUDE));
+      // printf("c: %d\n", c.size);
+      ret.push_back(c);
+    }
+    // printf("Return NotesAt...\n");
+    return ret;
+  }
+
+  IT tree;
+  int instrument;
+};
+
+// upq is microseconds per quarternote
+// divi is division
+static int SptFromUpq(int divi, int upq) {
+  constexpr double rate = SAMPLINGRATE;
+  /* samples per tick is
+
+     usec per tick      samples per usec
+     (upq / divi)    *  (fps / 1000000)   */
+  double fpq = (rate * upq) / (1000000.0 * divi);
+  // XXX
+  fprintf(stderr, "Samples per tick is now: %f\n", fpq);
+
+  // Get the closest integer.
+  return round(fpq);
+}
 
 // static
 vector<MidiMusicLayer *> MidiMusicLayer::Create(const string &filename) {
@@ -81,7 +115,19 @@ vector<MidiMusicLayer *> MidiMusicLayer::Create(const string &filename) {
   jdksmidi::MIDIFileReadMultiTrack track_loader(&tracks);
   jdksmidi::MIDIFileRead reader(&rs, &track_loader);
   reader.Parse();
-  // DumpMIDIMultiTrack(&tracks);
+
+  // XXX these are hard coded! Get them from the file!
+  // This is from the tempo.
+  const int upq = 600000;
+  // This just happens once.
+  const int divi = 120;
+
+  int spt = SptFromUpq(divi, upq);
+
+  // XXX this needs to be deduced from the timecode / tempo
+  auto SampleIndexFromClock = [spt](MIDIClockTime t) -> int64 {
+    return t * spt;
+  };
 
   vector<MidiMusicLayer *> layers;
   for (int i = 0; i < tracks.GetNumTracks(); i++) {
@@ -89,17 +135,89 @@ vector<MidiMusicLayer *> MidiMusicLayer::Create(const string &filename) {
     if (!track->IsTrackEmpty()) {
       track->SortEventsOrder();
       int removed = track->RemoveIdenticalEvents();
-      printf("There were %d identical events, removed\n",
-	     removed);
+      if (removed > 0) {
+	fprintf(stderr, "There were %d identical events, removed\n",
+		removed);
+      }
+
+      // Pair of start time and velocity, but if velocity
+      // is zero, then start time is ignored and it means
+      // the note is currently off.
+      vector<pair<int64, int>> notes_active(128, {0, 0});
+
+      vector<MidiNote> notes_done;
+      
+      // Process each track into a MidiMusicLayer. We ignore
+      // channels, assuming the track corresponds to a single
+      // instrument. Polyphony is supported, but we also assume
+      // a single note is on only once at a time.
       for (int e = 0; e < track->GetNumEvents(); e++) {
 	const MIDITimedBigMessage *msg = track->GetEvent(e);
+	int64 t = msg->GetTime();
+
+	if (msg->ImplicitIsNoteOn()) {
+	  int note = msg->GetNote();
+	  if (note < 0 || note > 127) {
+	    fprintf(stderr, "BAD NOTE: %d\n", note);
+	    continue;
+	  }
+	  if (notes_active[note].second) {
+	    fprintf(stderr, "Note on while on: %d\n", note);
+	    continue;
+	  }
+
+	  notes_active[note] = { SampleIndexFromClock(t), 
+				 msg->GetVelocity() };
+
+	} else if (msg->ImplicitIsNoteOff()) {
+		int note = msg->GetNote();
+	  if (note < 0 || note > 127) {
+	    fprintf(stderr, "BAD NOTE: %d\n", note);
+	    continue;
+	  }
+	  if (!notes_active[note].second) {
+	    fprintf(stderr, "Note off while off: %d\n", note);
+	    continue;
+	  }
+
+	  MidiNote mn;
+	  mn.start = notes_active[note].first;
+	  mn.end = SampleIndexFromClock(t);
+	  mn.payload.note_index = note;
+	  mn.payload.velocity = notes_active[note].second;
+	  notes_done.push_back(mn);
+
+	  notes_active[note] = { 0, 0 };
+
+	} else {
+	  switch (msg->GetType()) {
+	  case NOTE_OFF:
+	    CHECK(!"impossible off");
+	    break;
+	  case NOTE_ON:
+	    CHECK(!"impossible on");
+	  break;
+	  default:
+	    // XXX don't print
+	    DumpMIDITimedBigMessage(msg);	  
+	  }
+	}
+
+      }
+
+      fprintf(stderr, "At the end of track %d there were %lld notes.\n",
+	      i,
+	      notes_done.size());
+      if (notes_done.size() > 0) {
+	// XXX deduce the actual instrument.
+	int instrument = 1;
+	RealMML *layer = new RealMML(notes_done, instrument);
 	
+	layers.push_back(layer);
       }
     }
   }
   
-
-  CHECK(!"unimplemented");
   return layers;
 }
 
