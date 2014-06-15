@@ -28,8 +28,10 @@ struct SampleLayer {
   // to one past the last sample of the clip.
   virtual bool AfterLastSample(int64 *t) = 0;
 
-  // Compute the sample at the given time. Must only be called
-  // for finite clips when this is within the bounds of the clip.
+  // Compute the sample at the given time. The sample can be outside
+  // of the range, if the clip is finite, in which case silence should
+  // be returned.
+  //
   // The layer is responsible for doing its own caching and
   // maintenance of dependents that may have become dirty.
   virtual Sample SampleAt(int64 t) = 0;

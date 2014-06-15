@@ -1,0 +1,13 @@
+
+Something like TriggerLayer for drums and sample-based music?
+Or should this be integrated into MusicLayer?
+
+Some way for layers to be cached, perhaps by wrapping them in a cache.
+
+Generalize the idea of FirstSample and AfterLastSample to a set of
+intervals for a layer.
+
+Basic instruments: SQUARE, SAW
+
+
+Periodic waveform editor (graphical)

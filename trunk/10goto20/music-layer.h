@@ -1,6 +1,6 @@
 /*
-  A music layer is a layer that generates audio musics. This
-  is an abstract interface.
+  A music layer is a layer that generates notes. This is an abstract
+  interface.
 
   Music is a function from sample time t to a multiset of notes. A
   note is itself a set of controllers; each controller at least

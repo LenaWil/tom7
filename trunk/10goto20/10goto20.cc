@@ -8,6 +8,8 @@
 #include "bleep-bloop-sample-layer.h"
 #include "midi-music-layer.h"
 #include "wavesave.h"
+#include "mix-layer.h"
+#include "play-music-layer.h"
 
 #define STARTW 800
 #define STARTH 600
@@ -17,16 +19,6 @@
 static SampleLayer *layer;
 
 int64 ttt = 0LL;
-
-// XXX dithering, etc.
-static Sint16 DoubleTo16(double d) {
-  if (d > 1.0) return 32767;
-  // signed 16-bit int goes to -32768, but we never use
-  // this sample value; symmetric amplitudes seem like
-  // the right thing?
-  else if (d < -1.0) return -32767;
-  else return (Sint16)(d * 32767.0);
-}
 
 void Audio(void *userdata, Uint8 *stream_bytes, int num_bytes) {
   Sint16 *stream = (Sint16*) stream_bytes;
@@ -59,7 +51,7 @@ struct PlayMidiLayer : public SampleLayer {
       const Controllers &c = cs[i];
       double seconds = t / (double)SAMPLINGRATE;
       double freq = c.GetRequired(FREQUENCY);
-      double amplitude = c.GetRequired(AMPLITUDE) * 0.25;
+      double amplitude = c.GetRequired(AMPLITUDE) * 0.10;
       double d = sin(TWOPI * freq * seconds) * amplitude;
       // printf("sec %f freq %f d %f\n", seconds, freq, d);
       // XXX implement amplitude too
@@ -72,62 +64,6 @@ struct PlayMidiLayer : public SampleLayer {
 
  private:
   MidiMusicLayer *midi;
-};
-
-struct MixLayer : public SampleLayer {
-  MixLayer(const vector<SampleLayer *> &layers) : layers(layers) {
-    lb = ub = 0;
-    bool hasl = false, hasu = false;
-    right_infinite = left_infinite = false;
-    for (int i = 0; i < layers.size(); i++) {
-      SampleLayer *layer = layers[i];
-      int64 t;
-      if (layer->FirstSample(&t)) {
-	if (!hasl || t < lb) {
-	  hasl = true;
-	  lb = t;
-	}
-      } else {
-	left_infinite = true;
-      }
-      
-      if (layer->AfterLastSample(&t)) {
-	if (!hasl || t > ub) {
-	  hasu = true;
-	  ub = t;
-	}
-      } else {
-	right_infinite = true;
-      }
-    }
-  }
-  
-  bool FirstSample(int64 *t) {
-    if (left_infinite) return false;
-    *t = lb;
-    return true;
-  }
-
-  bool AfterLastSample(int64 *t) {
-    if (right_infinite) return false;
-    *t = ub;
-    return true;
-  }
-
-  Sample SampleAt(int64 t) {
-    // XXX this asks for samples outside the finite range
-    // for finite layers. Should maybe update the docs, or fix that?
-    Sample s(0.0);
-    for (int i = 0; i < layers.size(); i++) {
-      s += layers[i]->SampleAt(t);
-    }
-    return s;
-  }
-
- private:
-  bool left_infinite, right_infinite;
-  int64 lb, ub;
-  const vector<SampleLayer *> layers;
 };
 
 // TODO: much better clamping, please! 
@@ -159,10 +95,14 @@ int main (int argc, char **argv) {
 
   vector<SampleLayer *> plays;
   for (int i = 0; i < midis.size(); i++) {
-    plays.push_back(new PlayMidiLayer(midis[i]));
+    PlayMusicLayer::Instrument inst = (i % 2) ? PlayMusicLayer::SAWTOOTH :
+      PlayMusicLayer::SQUARE;
+    plays.push_back(PlayMusicLayer::Create(midis[i], PlayMusicLayer::SAWTOOTH));
   }
 
-  layer = new SorryLayer(new MixLayer(plays));
+  MixLayer *ml = MixLayer::Create(plays);
+
+  layer = new SorryLayer(ml);
     // BleepBloopSampleLayer::Create();
   CHECK(layer);
 
