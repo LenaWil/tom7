@@ -16,6 +16,7 @@
 
 #define AUDIOBUFFER 1024
 
+// XXX this stuff needs to go into audio-engine.
 static SampleLayer *layer;
 
 int64 ttt = 0LL;
@@ -32,39 +33,6 @@ void Audio(void *userdata, Uint8 *stream_bytes, int num_bytes) {
     ttt++;
   }
 }
-
-struct PlayMidiLayer : public SampleLayer {
-  // Does not take ownership.
-  explicit PlayMidiLayer(MidiMusicLayer *midi) : midi(midi) {}
-  
-  
-  bool FirstSample(int64 *t) { return midi->FirstSample(t); }
-  bool AfterLastSample(int64 *t) { return midi->AfterLastSample(t); }
-
-  Sample SampleAt(int64 t) {
-    // TODO: Implement each instrument or whatever.
-    // printf("Get notes %lld\n", t);
-    vector<Controllers> cs = midi->NotesAt(t);
-    // printf("%lld notes\n", cs.size());
-    Sample ret(0.0);
-    for (int i = 0; i < cs.size(); i++) {
-      const Controllers &c = cs[i];
-      double seconds = t / (double)SAMPLINGRATE;
-      double freq = c.GetRequired(FREQUENCY);
-      double amplitude = c.GetRequired(AMPLITUDE) * 0.10;
-      double d = sin(TWOPI * freq * seconds) * amplitude;
-      // printf("sec %f freq %f d %f\n", seconds, freq, d);
-      // XXX implement amplitude too
-      // printf("%f/%f\n", ret.left, ret.right);
-      ret = ret + Sample(d);
-    }
-    // printf("%f/%f\n", ret.left, ret.right);
-    return ret;
-  }
-
- private:
-  MidiMusicLayer *midi;
-};
 
 // TODO: much better clamping, please! 
 struct SorryLayer : public SampleLayer {
@@ -97,13 +65,12 @@ int main (int argc, char **argv) {
   for (int i = 0; i < midis.size(); i++) {
     PlayMusicLayer::Instrument inst = (i % 2) ? PlayMusicLayer::SAWTOOTH :
       PlayMusicLayer::SQUARE;
-    plays.push_back(PlayMusicLayer::Create(midis[i], PlayMusicLayer::SAWTOOTH));
+    plays.push_back(PlayMusicLayer::Create(midis[i], inst));
   }
 
   MixLayer *ml = MixLayer::Create(plays);
 
   layer = new SorryLayer(ml);
-    // BleepBloopSampleLayer::Create();
   CHECK(layer);
 
   // First make and write wave, for debugging.
@@ -132,7 +99,8 @@ int main (int argc, char **argv) {
   spec.format = AUDIO_S16SYS;
   SDL_OpenAudio(&spec, &obtained);
 
-  fprintf(stderr, "hey. %d %d\n", obtained.freq, obtained.samples);
+  fprintf(stderr, "Audio started: %d Hz %d buffer\n",
+	  obtained.freq, obtained.samples);
 
   SDL_PauseAudio(0);
 

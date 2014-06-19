@@ -81,15 +81,15 @@ int main(int argc, char *argv[]) {
     }
     CHECK(expected.size() == v.size());
     set<string> already;
-    for (int i = 0; i < v.size(); i++) {
+    for (const IT::Interval *ival : v) {
       // No duplicates.
-      if (ContainsKey(already, v[i]->t)) {
-	printf("Duplicate key: %s\n", v[i]->t.c_str());
+      if (ContainsKey(already, ival->t)) {
+	printf("Duplicate key: %s\n", ival->t.c_str());
 	return false;
       }
-      already.insert(v[i]->t);
-      if (!ContainsKey(expected, v[i]->t)) {
-	printf("Key present that shouldn't be: %s\n", v[i]->t.c_str());
+      already.insert(ival->t);
+      if (!ContainsKey(expected, ival->t)) {
+	printf("Key present that shouldn't be: %s\n", ival->t.c_str());
 	return false;
       }
     }
@@ -118,8 +118,8 @@ int main(int argc, char *argv[]) {
   for (int round = 0; round < 1000; round++) {
     // Now with some real data.
     IntervalTree<double, string> tree;
-    for (int i = 0; i < data.size(); i++) {
-      tree.Insert(data[i].a, data[i].b, data[i].c);
+    for (const Insertable &i : data) {
+      tree.Insert(i.a, i.b, i.c);
     }
 
     CHECK(tree.OverlappingPoint(-5.0).empty());

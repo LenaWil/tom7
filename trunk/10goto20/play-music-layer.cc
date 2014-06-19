@@ -132,6 +132,6 @@ PlayMusicLayer *PlayMusicLayer::Create(MusicLayer *music,
     return new SquareML(music);
   default:
     fprintf(stderr, "Unknown instrument %d\n", inst);
-    return NULL;
+    return nullptr;
   }
 }

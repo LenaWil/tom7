@@ -2,6 +2,7 @@
 #define __INTERVAL_TREE_H
 
 #include <map>
+#include <utility>
 #include <vector>
 
 // Return the midpoint of an interval. If it cannot be
@@ -110,8 +111,8 @@ struct IntervalTree {
       } else {
 	// New interval overlaps the center. Just insert
 	// it here.
-	(*tree)->by_begin.insert(make_pair(start, ret));
-	(*tree)->by_end.insert(make_pair(end, ret));
+	(*tree)->by_begin.insert(std::make_pair(start, ret));
+	(*tree)->by_end.insert(std::make_pair(end, ret));
 	// Done!
 	return ret;
       }
@@ -125,8 +126,8 @@ struct IntervalTree {
     (*tree)->left = NULL;
     (*tree)->right = NULL;
     // It contains only the new interval.
-    (*tree)->by_begin.insert(make_pair(start, ret));
-    (*tree)->by_end.insert(make_pair(end, ret));
+    (*tree)->by_begin.insert(std::make_pair(start, ret));
+    (*tree)->by_end.insert(std::make_pair(end, ret));
     return ret;
   }
 
@@ -180,10 +181,8 @@ struct IntervalTree {
       } else {
 	// If point is exactly the center, then the overlapping
 	// ones are it. Early exit.
-	for (auto it = tree->by_begin.begin(); 
-	     it != tree->by_begin.end(); 
-	     ++it) {
-	  ret.push_back(it->second);
+	for (const auto &p : tree->by_begin) {
+	  ret.push_back(p.second);
 	}
 	return ret;
       }
@@ -215,8 +214,8 @@ IntervalTree<Idx, T, B>::Node::~Node() {
   right = NULL;
   // ONLY delete from the begin map. We own the intervals, but
   // the same set of pointers is in each map.
-  for (auto it = by_begin.begin(); it != by_begin.end(); ++it) {
-    delete it->second;
+  for (auto &p : by_begin) {
+    delete p.second;
   }
   by_begin.clear();
   by_end.clear();
