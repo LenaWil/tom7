@@ -6,3 +6,6 @@ heap_test.o : heap_test.cc heap.h
 
 heap_test.exe : heap_test.o
 	$(CXX) $^ -o $@
+
+clean :
+	rm -f *.o *.exe

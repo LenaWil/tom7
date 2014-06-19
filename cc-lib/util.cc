@@ -6,7 +6,7 @@
 
 #include "util.h"
 
-#if defined(WIN32) || defined(__MINGW32__)
+#if defined(WIN32) || defined(__MINGW32__) || defined(__MINGW64__)
    /* chdir */
 #  include <direct.h>
    /* getpid */
@@ -19,7 +19,7 @@
 #  include <windows.h>
 
 // Visual studio only.
-#ifdef WIN32
+#if defined(WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
 # pragma warning(disable: 4996)
 #endif
 
@@ -928,7 +928,7 @@ void bitbuffer::writebits(int n, unsigned int b) {
 # undef WRITEBIT
 }
 
-#if WIN32
+#ifdef WIN32
 // for ShellExecute
 # include <shellapi.h>
 # include <shlobj.h>
@@ -952,7 +952,7 @@ bool Util::launchurl(const string & url) {
 #endif
 #endif
 
-#if WIN32
+#ifdef WIN32
   return ((size_t)ShellExecute(NULL, "open", url.c_str(),
 			       NULL, NULL, SW_SHOWNORMAL)) > 32;
 #endif
