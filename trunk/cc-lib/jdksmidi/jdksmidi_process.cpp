@@ -27,7 +27,7 @@
 //
 
 #include "jdksmidi/world.h"
-#include "jdksmidi/process.h"
+#include "jdksmidi/processor.h"
 
 namespace jdksmidi
 {
