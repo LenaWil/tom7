@@ -12,8 +12,7 @@ struct MLReal : public MixLayer {
     lb = ub = 0;
     bool hasl = false, hasu = false;
     right_infinite = left_infinite = false;
-    for (int i = 0; i < layers.size(); i++) {
-      SampleLayer *layer = layers[i];
+    for (SampleLayer *layer : layers) {
       int64 t;
       if (layer->FirstSample(&t)) {
 	if (!hasl || t < lb) {
@@ -25,7 +24,7 @@ struct MLReal : public MixLayer {
       }
       
       if (layer->AfterLastSample(&t)) {
-	if (!hasl || t > ub) {
+	if (!hasu || t > ub) {
 	  hasu = true;
 	  ub = t;
 	}
@@ -51,8 +50,8 @@ struct MLReal : public MixLayer {
     // XXX this asks for samples outside the finite range
     // for finite layers. Should maybe update the docs, or fix that?
     Sample s(0.0);
-    for (int i = 0; i < layers.size(); i++) {
-      s += layers[i]->SampleAt(t);
+    for (SampleLayer *layer : layers) {
+      s += layer->SampleAt(t);
     }
     return s;
   }

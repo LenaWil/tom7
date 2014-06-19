@@ -43,23 +43,23 @@ bool PngSave::SaveAlpha(const std::string &filename,
   png_text text_ptr[4];
 
   png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, 
-						NULL, NULL, NULL);
-  if (png_ptr == NULL) {
-    png_destroy_write_struct(&png_ptr, (png_infopp) NULL);
+						nullptr, nullptr, nullptr);
+  if (png_ptr == nullptr) {
+    png_destroy_write_struct(&png_ptr, (png_infopp) nullptr);
     fclose(fi);
     return false;
   }
 
   png_infop info_ptr = png_create_info_struct(png_ptr);
-  if (info_ptr == NULL) {
-    png_destroy_write_struct(&png_ptr, (png_infopp) NULL);
+  if (info_ptr == nullptr) {
+    png_destroy_write_struct(&png_ptr, (png_infopp) nullptr);
     fclose(fi);
     return false;
   }
 
   #if USE_SETJMP
   if (setjmp(png_jmpbuf(png_ptr))) {
-    png_destroy_write_struct(&png_ptr, (png_infopp) NULL);
+    png_destroy_write_struct(&png_ptr, (png_infopp) nullptr);
     fclose(fi);
     return false;
   }
@@ -128,7 +128,7 @@ bool PngSave::SaveAlpha(const std::string &filename,
   free(png_rows);
 
 
-  png_write_end(png_ptr, NULL);
+  png_write_end(png_ptr, nullptr);
 
   png_destroy_write_struct(&png_ptr, &info_ptr);
   fclose(fi);

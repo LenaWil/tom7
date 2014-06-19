@@ -112,8 +112,8 @@ Controllers::Controllers(Controllers &&rhs) {
   this->values = rhs.values;
   rhs.size = 0;
   rhs.capacity = 0;
-  rhs.types = NULL;
-  rhs.values = NULL;
+  rhs.types = nullptr;
+  rhs.values = nullptr;
 }
 
 Controllers &Controllers::operator =(Controllers &&rhs) {
@@ -129,8 +129,8 @@ Controllers &Controllers::operator =(Controllers &&rhs) {
   this->values = rhs.values;
   rhs.size = 0;
   rhs.capacity = 0;
-  rhs.types = NULL;
-  rhs.values = NULL;
+  rhs.types = nullptr;
+  rhs.values = nullptr;
   return *this;
 }
 
