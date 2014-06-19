@@ -33,7 +33,7 @@
 #include "jdksmidi/multitrack.h"
 #include "jdksmidi/tempo.h"
 #include "jdksmidi/matrix.h"
-#include "jdksmidi/process.h"
+#include "jdksmidi/processor.h"
 
 namespace jdksmidi
 {

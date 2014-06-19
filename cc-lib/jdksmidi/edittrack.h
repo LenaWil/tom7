@@ -36,7 +36,7 @@
 
 #include "jdksmidi/track.h"
 #include "jdksmidi/matrix.h"
-#include "jdksmidi/process.h"
+#include "jdksmidi/processor.h"
 
 namespace jdksmidi
 {

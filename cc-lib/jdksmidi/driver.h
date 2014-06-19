@@ -28,7 +28,7 @@
 #include "jdksmidi/msg.h"
 #include "jdksmidi/sysex.h"
 #include "jdksmidi/matrix.h"
-#include "jdksmidi/process.h"
+#include "jdksmidi/processor.h"
 #include "jdksmidi/queue.h"
 #include "jdksmidi/tick.h"
 
