@@ -21,7 +21,6 @@ struct Timer {
     return stoptime - starttime;
   }
 
-private:
+ private:
   time_t starttime, stoptime;
-
 };
