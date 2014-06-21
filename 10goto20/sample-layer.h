@@ -12,6 +12,16 @@
   starting at sample #139741. Although sample layers have their own
   notion of timing, it makes sense to construct a new sample layer
   by offsetting or cropping an existing one.
+
+  TODO: It probably makes sense to enrich this interface with
+  something that returns other high-level information about the layer,
+  like the notes active at a given time. Alternatively, it could just
+  provide access to its constituent layers (better?), or the assembly
+  of layers could be a data structure rather than a series of function
+  calls so that we don't have to anticipate what's needed. (OTOH this
+  is somewhat limiting.) We want this so that we can do stuff like
+  render the song in the display engine, or inspect the notes by some
+  algorithm that tries to smartly extend or harmonize, etc.
 */
 
 #ifndef __SAMPLE_LAYER_H
@@ -21,6 +31,8 @@
 
 struct SampleLayer {
 
+  // TODO: Replace this with some kind of interval cover.
+  //
   // If this is a left-finite layer, return true and set the argument
   // to the first sample of the clip. If left-infinite, return false.
   virtual bool FirstSample(int64 *t) = 0;

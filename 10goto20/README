@@ -1,0 +1,18 @@
+
+10 GOTO 20                                      21 Jun 2014
+
+This is the barest beginnings of a non-realtime software "tracker" (or
+something) for making music. Today it just displays a blank screen and
+inefficiently plays a MIDI file with primitive waveforms. Eventually
+the goal is for it to be a nice piano-roll style sequencer for electronic
+music of my particular style (e.g., weird time signatures and so forth)
+but with flexibility for new-sound style mess aroundery.
+
+Design goals:
+ - Don't try to be a DAW or MIDI editor. There are lots of these already.
+ - Don't try to be "real time". Instead take advantage of the off-line
+   nature to do things that "real time" synths don't do: Dependencies
+   on future samples, expensive effects, deterministic rendering,
+   global optimizations.
+ - Don't be wimpy about resource usage. Require 64 bits, loads of RAM;
+   expect lots of cores, maybe a GPU.
