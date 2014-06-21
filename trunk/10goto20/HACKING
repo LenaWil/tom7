@@ -1,13 +1,26 @@
 
-You need Visual Studio 2010, SDL and SDL_image to build this.
-Visual studio can be installed anywhere. Then you need to run
+I stoped using Visual Studio! I hate it! Good riddance!
 
-vcvarsall amd64
+Now this compiles with MinGW, which finally in 2014 is getting pretty
+good. I installed it through Cygwin. Specifically, I installed Cygwin64,
+and installed the packages called x86_64-w64-mingw32-g++ and so on.
+You know you've succeeded when this command
 
-to configure the compiler for 64 bits. Mine is in d:\visualstudio\vc\.
+x86_64-w64-mingw32-g++.exe --version
 
-SDL and SDL_image go in subdirectories of this one. You just need the
-include/ and lib/ files from the "devel" editions (for "VC",
-definitely not mingw). Then put the x64 windows libraries (DLLs) in
-this current directory (these are currently checked in).
+Prints version 4.8.2 or later. (I use C++11 features in here so you
+actually do need a newish version of gcc. It's worth it.) Don't even
+bother installing the other kinds of mingw; they compile for dead-ass
+architectures. They're just there to trap you. The makefile invokes
+the right one directly, assuming it's in your path.
+
+This program needs SDL, which goes in the subdirectory called SDL.
+Then you gotta build it (with the same mingw compiler); the makefile
+links it statically instead of dealing with shared library stuff. That
+should also mean that the .exe it produces doesn't rely on SDL DLLs.
+It does compile against libz and libpng, also linking those statically.
+I think I got them through the same cygwin install. Since these are
+only used so that we can one day save PNG files (and why?), I should
+just replace this with the STB library that has built-in hermetic
+PNG saving support.
 
