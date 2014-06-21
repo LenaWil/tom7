@@ -1,4 +1,4 @@
-cc-lib                             Tom 7       8 Jul 2012
+cc-lib                             Tom 7       21 Jun 2014
 
 Like my much more impressive "sml-lib", this is my attempt to get
 all of my frequently used C++ libraries into a single place so that
@@ -9,10 +9,13 @@ this easy. I hate complicated makefiles, actually basically all build
 systems, library dependencies, autoconf, and that stuff. But ultimately
 it's kind of complicated, you know?
 
+I'm pretty much on C++11 everywhere now, so these libraries may use
+C++11 features. It's worth it. GCC 4.8 and later have pretty complete
+support.
 
 A lot of what's here is google "base" libraries, since those are quite
 useful and I know them well. They have been released multiple times
-underopen-source licenses; particularly the Apache 2.0 license, which
+under open-source licenses; particularly the Apache 2.0 license, which
 is in APACHE20.
 
 Sean Barrett's excellently simple stb_* libraries are in the public
@@ -24,3 +27,15 @@ found in COPYING.
 base/        Google "base" library. APACHE20 license.
 strings/     Google "strings" library. APACHE20 license.
 sdl/         Utilities for my habits in SDL. Includes bitmap font rendering.
+jdksmidi/    Baroque but thorough MIDI library, GPL.
+city/        The excellent CityHash hash algorithm.
+
+wavesave - Saves an array of audio samples as a WAV file. Limited input
+           formats, though it is not hard to add more.
+util     - General C++ utilities, accumulated throughout the ages. Some
+           are pretty embarrassing and should be cleaned up/out.
+heap     - Implementation of binary heaps.
+textsvg  - Pretty trivial support for generating SVG files manually.
+arcfour  - Implementation of the ARCFOUR (alleged RC4) algorithm, which
+           is a fast and simple cryptographic random stream generator.
+timer    - Utterly trivial timer, in need of further development.
