@@ -14,6 +14,18 @@
 #include "sample.h"
 #include "concurrency.h"
 
+// We use these interchangeably; ensure that they are consistent.
+// The S* and U* versions come from SDL, the simple ones from base.h.
+// (TODO: Is there a way to check that the types are literally
+// the same?)
+static_assert(sizeof(Sint64) == sizeof(int64));
+static_assert(sizeof(Uint64) == sizeof(uint64));
+static_assert(sizeof(Sint32) == sizeof(int32));
+static_assert(sizeof(Uint32) == sizeof(uint32));
+static_assert(sizeof(Sint16) == sizeof(int16));
+static_assert(sizeof(Uint16) == sizeof(uint16));
+static_assert(sizeof(Uint8) == sizeof(uint8));
+
 // TODO: Dithering? Could at least round to nearest rather
 // than truncate.
 static inline Sint16 DoubleTo16(double d) {
