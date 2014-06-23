@@ -1,4 +1,6 @@
 // Stuff (macros) that should be included everywhere.
+// TODO: Move to cc-lib, minimize the includes, and include it
+// anywhere we want.
 
 #ifndef __BASE_H
 #define __BASE_H
@@ -6,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include <cstdint>
 
 #ifdef __GNUC__
 #include <ext/hash_map>
@@ -56,10 +59,30 @@ using namespace std;
 #endif
 #endif
 
-typedef Uint8  uint8;
-typedef Sint16 int16;
-typedef Uint16 uint16;
-typedef Sint64 int64;
-typedef Uint64 uint64;
+// Generally we just want reliable and portable names for specific
+// word sizes. C++11 actually gives these to us now; no more
+// "well, long long is at least big enough to hold 64 bits, and
+// chars might actually be 9 bits, etc.". 
+
+typedef uint8_t  uint8;
+typedef int16_t  int16;
+typedef uint16_t uint16;
+typedef int32_t  int32;
+typedef uint32_t uint32;
+typedef int64_t  int64;
+typedef uint64_t uint64;
+
+// I think that the standard now REQUIRES the following assertions to
+// succeed. But if some shenanigans are going on, let's get out of
+// here.
+static_assert(UINT8_MAX == 255, "Want 8-bit chars.");
+static_assert(sizeof(int16) == 2, "16 bits is two bytes.");
+static_assert(sizeof(uint16) == 2, "16 bits is two bytes.");
+
+static_assert(sizeof(int32) == 4, "32 bits is four bytes.");
+static_assert(sizeof(uint32) == 4, "32 bits is four bytes.");
+
+static_assert(sizeof(int64) == 8, "64 bits is eight bytes.");
+static_assert(sizeof(uint64) == 8, "64 bits is eight bytes.");
 
 #endif
