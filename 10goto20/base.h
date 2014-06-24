@@ -34,11 +34,17 @@ struct hash< unsigned long long > {
 }
 #endif
 
+#define UNIMPLEMENTED(message) \
+  do { fprintf(stderr, "%s:%s:%d. Unimplemented: %s\n", \
+	       __FILE__, __func__, __LINE__, #message); \
+    abort();						\
+  } while (0)
+
 // TODO: Use good logging package.
 #define CHECK(condition) \
   while (!(condition)) {                                    \
-    fprintf(stderr, "%s:%d. Check failed: %s",              \
-            __FILE__, __LINE__, #condition                  \
+    fprintf(stderr, "%s:%s:%d. Check failed: %s\n",	    \
+            __FILE__, __func__, __LINE__, #condition        \
             );                                              \
     abort();                                                \
   }

@@ -12,15 +12,6 @@
 
 using namespace std;
 
-// TODO: Use good logging package.
-#define CHECK(condition) \
-  while (!(condition)) {                                    \
-    fprintf(stderr, "%s:%d. Check failed: %s",              \
-            __FILE__, __LINE__, #condition                  \
-            );                                              \
-    abort();                                                \
-  }
-
 template<class T>
 static void Shuffle(vector<T> *v) {
   static ArcFour rc("shuffler");
@@ -49,6 +40,47 @@ int main(int argc, char *argv[]) {
   { IntervalCover<double> unused(1.0); (void)unused; }
   { IntervalCover<string> unused(""); (void)unused; }
   { IntervalCover<shared_ptr<int>> unused(nullptr); (void)unused; }
+
+  // Default covers.
+  {
+    IntervalCover<string> simple("test");
+
+    for (int64 t : vector<int64>{LLONG_MIN, -1LL, 0LL, 1LL, LLONG_MAX}) {
+      printf("Look up %lld\n", t);
+      auto s = simple.GetPoint(t);
+      CHECK(s.start == LLONG_MIN);
+      CHECK(s.end == LLONG_MAX);
+      CHECK(s.data == "test");
+    }
+  }
+
+  auto Expect = [](int64 start, int64 end, const string &data,
+		   IntervalCover<string>::Span s) {
+    CHECK(s.start == start);
+    CHECK(s.end == end);
+    CHECK(s.data == data);
+  };
+
+  // Simple splitting.
+  {
+    IntervalCover<string> simple("");
+
+    // Split right down the center.
+    simple.SplitRight(0LL, "BB");
+    Expect(LLONG_MIN, 0LL, "", simple.GetPoint(-1LL));
+    Expect(0LL, LLONG_MAX, "BB", simple.GetPoint(0LL));
+    Expect(0LL, LLONG_MAX, "BB", simple.GetPoint(1LL));
+
+    // Degenerate split.
+    simple.SplitRight(0LL, "BB");
+    Expect(LLONG_MIN, 0LL, "", simple.GetPoint(-1LL));
+    Expect(0LL, LLONG_MAX, "BB", simple.GetPoint(0LL));
+    Expect(0LL, LLONG_MAX, "BB", simple.GetPoint(1LL));
+
+    // Split at 10 with new data.
+    // simple.SplitRight(
+  }
+    
 
 #if 0
   {
