@@ -7,17 +7,9 @@
 #include <string>
 
 #include "../cc-lib/arcfour.h"
+#include "base.h"
 
 using namespace std;
-
-// TODO: Use good logging package.
-#define CHECK(condition) \
-  while (!(condition)) {                                    \
-    fprintf(stderr, "%s:%d. Check failed: %s",              \
-            __FILE__, __LINE__, #condition                  \
-            );                                              \
-    abort();                                                \
-  }
 
 template<class T>
 static void Shuffle(vector<T> *v) {
