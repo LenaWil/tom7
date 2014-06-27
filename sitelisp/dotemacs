@@ -14,41 +14,40 @@
 ;; XXX
 ; (load "c:\\code\\sitelisp\\lost.el")
 
-(add-to-list 'load-path "/Users/twm/tom7misc/sitelisp")
-
 (defun frame-settings (f)
-  (progn
-    (if (null f) () (select-frame f))
-    (menu-bar-mode -1)
-    (tool-bar-mode -1)
-    (blink-cursor-mode -1)
-    (set-background-color "grey15")
-    (set-foreground-color "grey80")
-    ;; set the font depending on the platform
-    (cond
-     ((eq window-system 'w32)
-      (set-default-font 
-       ;; windows vista?
-       ; "-*-FixedSys-*-r-*-*-13-*-*-*-c-*-fontset-standard"
-       ;; windows 7
-       "-raster-Fixedsys-normal-normal-normal-mono-15-*-*-*-c-*-iso8859-1"
-       )
-       (set-face-attribute 'default nil :font "DejaVu Sans Mono Bold")
-       ; (set-face-attribute 'default nil :font "DejaVu Sans Mono")
-       ;; trying this on windows 7 to get unicode support.
-       ; (set-face-attribute 'default nil :font "Fixedsys Excelsior 3.01")
-       )
-     ((eq window-system 'x)
-      (set-default-font 
-       "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"))
-     ((eq window-system 'ns)
-      (set-default-font
-       ;; Working OS X font: http://spacebar.org/stuff/FixedSys.dfont.zip
-       ;; Don't use FixedSys Excelsior 2 or 3; they are "anti"-aliased!
-       "FixedSys-15"))
-     (t t))
-;    (modify-frame-parameters f (list '(height . 75)))
-    ))
+  (if window-system
+    (progn
+      (if (null f) () (select-frame f))
+      (menu-bar-mode -1)
+      (tool-bar-mode -1)
+      (blink-cursor-mode -1)
+      (set-background-color "grey15")
+      (set-foreground-color "grey80")
+      ;; set the font depending on the platform
+      (cond
+       ((eq window-system 'w32)
+	(set-default-font 
+	 ;; windows vista?
+	 ; "-*-FixedSys-*-r-*-*-13-*-*-*-c-*-fontset-standard"
+	 ;; windows 7
+	 "-raster-Fixedsys-normal-normal-normal-mono-15-*-*-*-c-*-iso8859-1"
+	 )
+	 (set-face-attribute 'default nil :font "DejaVu Sans Mono Bold")
+	 ; (set-face-attribute 'default nil :font "DejaVu Sans Mono")
+	 ;; trying this on windows 7 to get unicode support.
+	 ; (set-face-attribute 'default nil :font "Fixedsys Excelsior 3.01")
+	 )
+       ((eq window-system 'x)
+	(set-default-font 
+	 "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"))
+       ((eq window-system 'ns)
+	(set-default-font
+	 ;; Working OS X font: http://spacebar.org/stuff/FixedSys.dfont.zip
+	 ;; Don't use FixedSys Excelsior 2 or 3; they are "anti"-aliased!
+	 "FixedSys-15"))
+       (t t))
+  ;    (modify-frame-parameters f (list '(height . 75)))
+      )))
 
 (add-hook 'after-make-frame-functions 'frame-settings)
 
@@ -154,6 +153,8 @@
       (replace-match (format "%d" (+ n (string-to-int (match-string 0))))))))
 
 
+(message "DOTEMACS 1")
+
 ;;; Tom 7's buffer cycling code.
 
 (defvar buffer-cycle-size 5
@@ -215,11 +216,11 @@
 
 (autoload 'slide-mode "slide-mode" "Major mode for giving simple presentations in emacs." t)
 
-;; tal mode
+;; tal mode - not since grad school!
 
-(setq auto-mode-alist (cons '("\\.tali?$" . tal-mode) auto-mode-alist))
-(autoload 'tal-mode "tal" "Major mode for editing TAL files." t)
-(setq tal-do-fontify t)
+;; (setq auto-mode-alist (cons '("\\.tali?$" . tal-mode) auto-mode-alist))
+;; (autoload 'tal-mode "tal" "Major mode for editing TAL files." t)
+;; (setq tal-do-fontify t)
 
 ;; provide a default value for twelf-root if it is not
 ;; already defined. Is there a more direct way to do this?
@@ -230,9 +231,6 @@
 (load (concat twelf-root "emacs/twelf-init.el") t)
 
 ;; spreadsheets
-;; XXX absolute path won't work
-(add-to-list 'load-path "/usr0/src/site-lisp/ses")
-(add-to-list 'load-path "c:/code/sitelisp/ses")
 (autoload 'ses-mode "ses.el" "Spreadsheet mode" t)
 
 ;; misc tom 7 code
@@ -279,6 +277,8 @@
 
 (setq inhibit-startup-echo-area-message "Asterisk")
 (setq inhibit-startup-message t)
+
+(message "DOTEMACS 2")
 
 (require 'protobuf-mode)
 (defconst my-protobuf-style
@@ -351,7 +351,7 @@
 
 (setq completion-ignored-extensions (list ".o" "~" ".bin" ".bak" ".aph" ".elc" ".idx" ".dvi" ".class" ".lib" ".exe" ".com" ".gif" ".jpg" ".GIF" ".JPG" ".png" ".bmp" ".psd"))
 
-(set-scroll-bar-mode nil)
+(if window-system (set-scroll-bar-mode nil))
 (setq scroll-margin 1)
 (setq sentence-end-double-space nil)
 (setq tab-stop-list
@@ -364,6 +364,7 @@
 (defvar tom7-subtle-text-face   'tom7-subtle-text
   "Face name to use for 'subtle' text.")
 
+(message "DOTEMACS 3")
 
 (add-hook 'text-mode-hook 'tab-nonsense)
 (add-hook 'fundamental-mode 'tab-nonsesne)
@@ -420,6 +421,8 @@
 (put 'downcase-region 'disabled nil)
 
 (put 'upcase-region 'disabled nil)
+
+(message "DOTEMACS 4")
 
 ;;; english-mode
 
@@ -551,6 +554,7 @@
 
 ;;; textformat-mode ends here
 
+(message "DOTEMACS 5")
 
 ;;; homework-mode
 
@@ -647,6 +651,8 @@
 	     ))
 
 ;;;;;;;;; fix outline mode levels
+
+(message "DOTEMACS 6")
 
 ;; XXX metaprogramming? might as well use it if we're programming
 ;; in lisp....
@@ -787,6 +793,8 @@
  '(flyspell-issue-welcome-flag nil)
  '(show-paren-delay 0.0)
  '(show-paren-style (quote expression)))
+
+(message "DOTEMACS 6")
 
 (put 'erase-buffer 'disabled nil)
 
