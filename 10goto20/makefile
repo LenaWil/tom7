@@ -72,3 +72,4 @@ interval-cover_test.exe : $(CCLIBOBJECTS) interval-cover_test.o
 
 clean :
 	rm -f *.o
+
