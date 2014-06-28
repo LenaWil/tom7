@@ -103,33 +103,8 @@ struct IntervalCover {
   // compute the end. The iterator may not denote spans.end().
   Span MakeSpan(typename map<int64, Data>::const_iterator &it) const;
 
-  // Takes an iterator to an entry in the map (not spans.end())
-  // and fixes invariants to the right. In particular, it might
-  // need to be
-  //   - merged with the next entry, for it has the same data
-  //   - have the next entry deleted, for it is empty
-  // The supplied iterator will not be invalidated or modified,
-  // but we may invalidate it->next() (if it exists).
-  void FixupRight(typename map<int64, Data>::iterator &it);
-  // Same, but to the left. Can invalidate it itself, because
-  // if it has the same data as the one to its left, we merge
-  // to the left.
-  void FixupLeft(typename map<int64, Data>::iterator &it);
-
   typename map<int64, Data>::iterator GetInterval(int64 pt);
   typename map<int64, Data>::const_iterator GetInterval(int64 pt) const;
-
-  // Takes an iterator to an entry in the map (not spans.end())
-  // and fixes the invariant that no span may be empty, by 
-  // deleting this interval if it is empty. This may create a
-  // new invariant violation because it may put two intervals
-  // in contact that have the same data.
-  //
-  // If the entry was deleted, then the argument iterator is now
-  // invalid. The function returns true, and sets the out iterator
-  // to the next element after it (or spans.end() if it was the last).
-  bool FixupMaybeEmpty(const typename map<int64, Data>::const_iterator &it,
-		       typename map<int64, Data>::iterator &out);
 
   // Requires data to be string.
   void DebugPrint() const;
@@ -141,85 +116,6 @@ struct IntervalCover {
   // to keep the Data from being copied, and map has value semantics.
   NOT_COPYABLE(IntervalCover);
 };
-
-template<class D>
-bool IntervalCover<D>::FixupMaybeEmpty(
-    const typename map<int64, D>::const_iterator &it,
-    typename map<int64, D>::iterator &out) {
-  CHECK(it != spans.end());
-  auto next = it.next();
-  if (next == spans.end()) {
-    // The final interval is only empty if it starts at the maximum
-    // value:
-    // [LLONG_MAX - 1, LLONG_MAX) is a legal, non-empty interval,
-    // but [LLONG_MAX, LLONG_MAX) is not.
-    if (it->first == LLONG_MAX) {
-      out = spans.erase(it);
-      return true;
-    }
-  } else {
-    int64 end = next->start;
-    if (it->start == end) {
-      out = spans.erase(it);
-      return true;
-    }
-  }
-  return false;
-}
-
-template<class D>
-void IntervalCover<D>::FixupLeft(typename map<int64, D>::iterator &it) {
-  if (it == spans.begin()) {
-    // Invariant.
-    CHECK(it->first == LLONG_MIN);
-    return;
-  } else {
-    auto prev = std::prev(it);
-    if (prev->second == it->second) {
-      spans.erase(it);
-      return;
-    }
-  }
-
-  // XXX should delete empty left span? Do the same thing as in FixupRight.
-  typename map<int64, D>::iterator unused;
-  FixupMaybeEmpty(prev, unused);
-  return;
-}
-
-template<class D>
-void IntervalCover<D>::FixupRight(typename map<int64, D>::iterator &it) {
-  CHECK(it != spans.end());
-  auto next = std::next(it);
-  if (next == spans.end()) {
-    // If this is the last entry, then we are done; there's nothing
-    // to the right to be fixed up.
-    return;
-  } else {
-
-    if (it->second == next->second) {
-      // The two need to be merged. This can be done by simply
-      // removing the span to the right. We don't need to merge
-      // with the one after that, because it can't have the
-      // same key as this one (by invariant, transitivity of ==).
-      spans.erase(next);
-      // And we are done.
-      return;
-    }
-
-    // XXX is this the right place to be deleting empty intervals
-    // to the right? Maybe it should just be explicit in places
-    // that might need it (it can only happen by modifying start
-    // of the later intervals, so at that point you have the
-    // interval anyway.)
-    // Otherwise, maybe the next one is empty?
-    typename map<int64, D>::iterator unused;
-    FixupMaybeEmpty(next, unused);
-    // Note next is now invalid. But anyway, we're done.
-    return;
-  }
-}
-
 
 // Template implementations follow.
 
@@ -335,51 +231,6 @@ void IntervalCover<D>::SetSpan(int64 start, int64 end, D new_data) {
 
   // printf("Ended it:\n");
   // DebugPrint();
-
-#if 0
-  // Ensure that at the point start, we have the data d. Typically
-  // this is because we just made a new split right here, but it
-  // might have gotten merged with an adjacent interval with the
-  // same data (e.g., consider the case that this is within an
-  // interval that already has data d). So what we really know
-  // is that start is within an interval with data d.
-  SplitRight(start, d);
-
-  // Get that interval.
-  auto it = GetInterval(start);
-  
-  CHECK(it != spans.end());
-  CHECK(it->second == d);
-  CHECK(it->first <= start);
-
-  // Next, delete all the intervals that lie entirely between start
-  // and end.
-  DebugPrint();
-
-  printf("Before incr %lld\n", it->first);
-  // Current interval shouldn't be deleted!
-  ++it;
-  while (it != spans.end()) {
-    // need this to get the end position
-    auto next = std::next(it);
-
-    // Does it fall entirely within the span we're overwriting?
-    if (next->first <= end) {
-      // Advances to the next interval.
-      it = spans.erase(it);
-    } else {
-      // Otherwise, done deleting.
-      break;
-    }
-  }
-
-  // Otherwise, last needs to be advanced to end.
-  
-
-  // If we get here, then we ran off the end of the intervals.
-  // That means that we need to create a new interval at the
-  // end so that the overlapping interval ends properly.
-#endif
 }
 
 
