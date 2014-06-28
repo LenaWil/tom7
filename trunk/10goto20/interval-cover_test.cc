@@ -6,11 +6,15 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <iostream>
 
 #include "../cc-lib/arcfour.h"
 #include "base.h"
+#include "gtest/gtest.h"
+#include "base/stringprintf.h"
 
 using namespace std;
+using namespace testing;
 
 template<class T>
 static void Shuffle(vector<T> *v) {
@@ -34,6 +38,23 @@ static bool ContainsKey(const set<T> &s, const T &k) {
   return s.find(k) != s.end();
 }
 
+#if 0
+template<class T>
+ostream &operator <<(ostream &os, const IntervalCover<string>::Span &span) {
+  return os << "[" << span.start << ", \"" << span.data << "\"" 
+	    << span.end << ")";
+}
+#endif
+
+string SpanString(const IntervalCover<string>::Span &span) {
+  string st = (span.start == LLONG_MIN) ? "MIN" : 
+    StringPrintf("%lld", span.start);
+  string en = (span.end == LLONG_MAX) ? "MAX" : 
+    StringPrintf("%lld", span.end);
+  return StringPrintf("[%s, \"%s\", %s)",
+		      st.c_str(), span.data.c_str(), en.c_str());
+}
+
 int main(int argc, char *argv[]) {
   // Check that it compiles with some basic types.
   { IntervalCover<int> unused(0); (void)unused; }
@@ -41,25 +62,34 @@ int main(int argc, char *argv[]) {
   { IntervalCover<string> unused(""); (void)unused; }
   { IntervalCover<shared_ptr<int>> unused(nullptr); (void)unused; }
 
+  auto MkSpan = [](int64 start, int64 end, const string &data) {
+    return IntervalCover<string>::Span(start, end, data);
+  };
+
+  auto IsSpan = [MkSpan](int64 start, int64 end, const string &data,
+			 const IntervalCover<string>::Span &s) 
+    -> AssertionResult {
+    if (s.start == start &&
+	s.end == end &&
+	s.data == data)
+      return AssertionSuccess();
+    else
+      return AssertionFailure() << SpanString(MkSpan(start, end, data))
+				<< "   but got   "
+				<< SpanString(s);
+  };
+
+# define OKPOINT(s, e, d, sp) EXPECT_TRUE(IsSpan(s, e, d, sp))
+
   // Default covers.
   {
     IntervalCover<string> simple("test");
 
     for (int64 t : vector<int64>{LLONG_MIN, -1LL, 0LL, 1LL, LLONG_MAX}) {
       printf("Look up %lld\n", t);
-      auto s = simple.GetPoint(t);
-      CHECK(s.start == LLONG_MIN);
-      CHECK(s.end == LLONG_MAX);
-      CHECK(s.data == "test");
+      OKPOINT(LLONG_MIN, LLONG_MAX, "test", simple.GetPoint(t)) << t;
     }
   }
-
-  auto Expect = [](int64 start, int64 end, const string &data,
-		   IntervalCover<string>::Span s) {
-    CHECK(s.start == start);
-    CHECK(s.end == end);
-    CHECK(s.data == data);
-  };
 
   // Simple splitting.
   {
@@ -67,109 +97,79 @@ int main(int argc, char *argv[]) {
 
     // Split right down the center.
     simple.SplitRight(0LL, "BB");
-    Expect(LLONG_MIN, 0LL, "", simple.GetPoint(-1LL));
-    Expect(0LL, LLONG_MAX, "BB", simple.GetPoint(0LL));
-    Expect(0LL, LLONG_MAX, "BB", simple.GetPoint(1LL));
+    OKPOINT(LLONG_MIN, 0LL, "", simple.GetPoint(-1LL));
+    OKPOINT(0LL, LLONG_MAX, "BB", simple.GetPoint(0LL));
+    OKPOINT(0LL, LLONG_MAX, "BB", simple.GetPoint(1LL));
 
     // Degenerate split.
     simple.SplitRight(0LL, "BB");
-    Expect(LLONG_MIN, 0LL, "", simple.GetPoint(-1LL));
-    Expect(0LL, LLONG_MAX, "BB", simple.GetPoint(0LL));
-    Expect(0LL, LLONG_MAX, "BB", simple.GetPoint(1LL));
+    OKPOINT(LLONG_MIN, 0LL, "", simple.GetPoint(-1LL));
+    OKPOINT(0LL, LLONG_MAX, "BB", simple.GetPoint(0LL));
+    OKPOINT(0LL, LLONG_MAX, "BB", simple.GetPoint(1LL));
 
     // Split at 10 with new data.
-    // simple.SplitRight(
+    //     ------0-----10------
+    //       ""     BB    CC
+    simple.SplitRight(10LL, "CC");
+    OKPOINT(LLONG_MIN, 0LL, "", simple.GetPoint(-1LL));
+    OKPOINT(0LL, 10LL, "BB", simple.GetPoint(0LL));
+    OKPOINT(10LL, LLONG_MAX, "CC", simple.GetPoint(10LL));
+
+    // Split at -10, and left interval to minimum.
+    //  --- -10------0-----10------
+    //   ZZ      ""     BB    CC
+    simple.SplitRight(LLONG_MIN, "ZZ");
+    simple.SplitRight(-10LL, "");
+    OKPOINT(-10LL, 0LL, "", simple.GetPoint(-10LL));
+    OKPOINT(-10LL, 0LL, "", simple.GetPoint(-9LL));
+    OKPOINT(0LL, 10LL, "BB", simple.GetPoint(0LL));
+    OKPOINT(10LL, LLONG_MAX, "CC", simple.GetPoint(10LL));
+    OKPOINT(LLONG_MIN, -10LL, "ZZ", simple.GetPoint(-20LL));
+
+    // Split at 5.
+    //  --- -10------0---5--10------
+    //   ZZ      ""   BB  UU  CC
+    simple.SplitRight(5LL, "UU");
+    OKPOINT(-10LL, 0LL, "", simple.GetPoint(-10LL));
+    OKPOINT(-10LL, 0LL, "", simple.GetPoint(-9LL));
+    OKPOINT(0LL, 5LL, "BB", simple.GetPoint(0LL));
+    OKPOINT(5LL, 10LL, "UU", simple.GetPoint(6LL));
+    OKPOINT(10LL, LLONG_MAX, "CC", simple.GetPoint(10LL));
+    OKPOINT(LLONG_MIN, -10LL, "ZZ", simple.GetPoint(-20LL));
+
+    // Split at -5, merging into BB
+    //  --- -10-- -5------5--10------
+    //   ZZ     ""    BB   UU  CC
+    simple.SplitRight(-5LL, "BB");
+    OKPOINT(-10LL, -5LL, "", simple.GetPoint(-10LL));
+    OKPOINT(-10LL, -5LL, "", simple.GetPoint(-9LL));
+    OKPOINT(-5LL, 5LL, "BB", simple.GetPoint(0LL));
+    OKPOINT(5LL, 10LL, "UU", simple.GetPoint(6LL));
+    OKPOINT(10LL, LLONG_MAX, "CC", simple.GetPoint(10LL));
+    OKPOINT(LLONG_MIN, -10LL, "ZZ", simple.GetPoint(-20LL));
+
+    // Split on an existing point.
+    simple.SplitRight(-5LL, "GG");
+    OKPOINT(-10LL, -5LL, "", simple.GetPoint(-10LL));
+    OKPOINT(-10LL, -5LL, "", simple.GetPoint(-9LL));
+    OKPOINT(-5LL, 5LL, "GG", simple.GetPoint(0LL));
+    OKPOINT(5LL, 10LL, "UU", simple.GetPoint(6LL));
+    OKPOINT(10LL, LLONG_MAX, "CC", simple.GetPoint(10LL));
+    OKPOINT(LLONG_MIN, -10LL, "ZZ", simple.GetPoint(-20LL));
   }
     
-
-#if 0
+  // Simple overwriting.
   {
-    // Empty tree.
-    IntervalTree<double, Unit> empty;
-    CHECK(empty.OverlappingPoint(0.0).empty());
-    CHECK(empty.LowerBound() == 0.0);
-    CHECK(empty.UpperBound() == 0.0);
+    IntervalCover<string> simple("BAD");
+
+    // simple.SetSpan(LLONG_MIN, LLONG_MAX, "OK");
+    // OKPOINT(LLONG_MIN, LLONG_MAX, "OK", simple.GetPoint(0LL));
+    
+    //    simple.SetSpan(LLONG_MIN, 0, "NEG");
+    // OKPOINT(LLONG_MIN, 0LL, "NEG", simple.GetPoint(-1LL));
+    // OKPOINT(0LL, LLONG_MAX, "OK", simple.GetPoint(0LL));
+    simple.SetSpan(0LL, 10LL, "HI");
   }
-
-  {
-    // Easy.
-    IntervalTree<int, string> easy;
-    easy.Insert(3, 5, "hello");
-    easy.Insert(4, 7, "overlap");
-    CHECK(easy.LowerBound() == 3);
-    CHECK(easy.UpperBound() == 7);
-  }
-
-  typedef IntervalTree<double, string> IT;
-  auto IsSameSet = [](const set<string> &expected,
-		      const vector<IT::Interval *> &v) -> bool {
-    if (expected.size() != v.size()) {
-      printf("Expected %lld elements, got %lld\n",
-	     expected.size(), v.size());
-      return false;
-    }
-    CHECK(expected.size() == v.size());
-    set<string> already;
-    for (const IT::Interval *ival : v) {
-      // No duplicates.
-      if (ContainsKey(already, ival->t)) {
-	printf("Duplicate key: %s\n", ival->t.c_str());
-	return false;
-      }
-      already.insert(ival->t);
-      if (!ContainsKey(expected, ival->t)) {
-	printf("Key present that shouldn't be: %s\n", ival->t.c_str());
-	return false;
-      }
-    }
-    return true;
-  };
-
-  // .0 .1 .2 .3 .4 .5 .6 .7 .8 .9 1.0
-  //  |  |  |  |  |  |  |  |  |  |  |
-  //     aaaaaa      bbb
-  //     ccccccddd            h
-  //     eeeeee
-  //  fffffffffffffffffffffffffff
-  //        g
-  vector<Insertable> data = {
-    {0.1, 0.3, "a"},
-    {0.5, 0.6, "b"},
-    {0.1, 0.3, "c"},
-    {0.3, 0.4, "d"},
-    {0.1, 0.3, "e"},
-    {0.0, 0.9, "f"},
-    {0.2, 0.2, "g"},
-    {0.8, 0.8, "h"},
-  };
-
-  // Keep doing it with random insertion order.
-  for (int round = 0; round < 1000; round++) {
-    // Now with some real data.
-    IntervalTree<double, string> tree;
-    for (const Insertable &i : data) {
-      tree.Insert(i.a, i.b, i.c);
-    }
-
-    CHECK(tree.OverlappingPoint(-5.0).empty());
-    CHECK(tree.OverlappingPoint(2.0).empty());
-    CHECK(IsSameSet({"b", "f"}, tree.OverlappingPoint(.5)));
-    CHECK(IsSameSet({"b", "f"}, tree.OverlappingPoint(.51)));
-    CHECK(IsSameSet({"f"}, tree.OverlappingPoint(0.499)));
-
-    CHECK(IsSameSet({"f", "h"}, tree.OverlappingPoint(0.8)));
-    CHECK(IsSameSet({"d", "f"}, tree.OverlappingPoint(0.3)));
-    CHECK(IsSameSet({"a", "c", "e", "f", "g"},
-		    tree.OverlappingPoint(0.2)));
-    CHECK(IsSameSet({"a", "c", "e", "f"},
-		    tree.OverlappingPoint(0.1)));
-
-    CHECK(tree.LowerBound() == 0.0);
-    CHECK(tree.UpperBound() == 0.9);
-
-    Shuffle(&data);
-  }
-#endif
 
   printf("IntervalCover tests OK.\n");
   return 0;
