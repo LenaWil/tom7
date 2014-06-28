@@ -1,4 +1,4 @@
-cc-lib                             Tom 7       21 Jun 2014
+cc-lib                             Tom 7       28 Jun 2014
 
 Like my much more impressive "sml-lib", this is my attempt to get
 all of my frequently used C++ libraries into a single place so that
@@ -16,7 +16,7 @@ support.
 A lot of what's here is google "base" libraries, since those are quite
 useful and I know them well. They have been released multiple times
 under open-source licenses; particularly the Apache 2.0 license, which
-is in APACHE20.
+is in APACHE20. Googletest is the "new BSD" license, in gtest/LICENSE.
 
 Sean Barrett's excellently simple stb_* libraries are in the public
 domain; see the notices at the tops of those files.
@@ -29,6 +29,7 @@ strings/     Google "strings" library. APACHE20 license.
 sdl/         Utilities for my habits in SDL. Includes bitmap font rendering.
 jdksmidi/    Baroque but thorough MIDI library, GPL.
 city/        The excellent CityHash hash algorithm.
+gtest/       Google testing library. New BSD license.
 
 wavesave - Saves an array of audio samples as a WAV file. Limited input
            formats, though it is not hard to add more.

@@ -1,0 +1,12 @@
+
+This is Google's testing package, stripped of all the stuff I don't
+want and made compatible with cc-lib style. It was actually really
+painless to do this; thanks googletest maintainers!
+
+To use it, just #include "gtest/gtest.h" and build/link gtest-all.cc.
+
+https://code.google.com/p/googletest/ is the original home.
+
+I didn't make many modifications, except to move everything into this
+directory, and delete some junk, and replace references to "src/" with
+"gest/" in various #includes.
