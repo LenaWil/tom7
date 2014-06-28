@@ -20,6 +20,8 @@
 #include <map>
 #include <cstdint>
 
+#include <cstdio>
+
 #include "base.h"
 
 // Data must have value semantics and is copied willy-nilly.
@@ -121,6 +123,9 @@ struct IntervalCover {
   // to the next element after it (or spans.end() if it was the last).
   bool FixupMaybeEmpty(const typename map<int64, Data>::const_iterator &it,
 		       typename map<int64, Data>::iterator &out);
+
+  // Requires data to be string.
+  void DebugPrint() const;
 
   // Actual representation is an stl map with some invariants.
   map<int64, Data> spans;
@@ -270,12 +275,87 @@ void IntervalCover<D>::SetSpan(int64 start, int64 end, D d) {
   if (start == end)
     return;
 
-  auto it = GetInterval(start);
-  // XXX use SplitRight,
-  // delete any intervals that are entirely within [start,end)
-  // update the start of the interval that partially overlaps
-  // (if any).
+  // Ensure that at the point start, we have the data d. Typically
+  // this is because we just made a new split right here, but it
+  // might have gotten merged with an adjacent interval with the
+  // same data (e.g., consider the case that this is within an
+  // interval that already has data d). So what we really know
+  // is that start is within an interval with data d.
+  SplitRight(start, d);
 
+  // Get that interval.
+  auto it = GetInterval(start);
+  
+  CHECK(it != spans.end());
+  CHECK(it->second == d);
+  CHECK(it->first <= start);
+
+  // Now, we want to extend this interval (it) until end. We do this
+  // by deleting or adjusting intervals after it. We can throw out any
+  // interval that's entirely within it, and then move the left edge
+  // of the (at most one) partially-overlapping one.
+  DebugPrint();
+  printf("Before incr %lld\n", it->first);
+  ++it;
+  while (it != spans.end()) {
+    printf("Top of loop %lld\n", it->first);
+    // need this to get the end position
+    auto next = std::next(it);
+
+    // Does it fall entirely within the span we're overwriting?
+    if (next->first <= end) {
+      // Advances to the next interval.
+      it = spans.erase(it);
+    } else {
+      // Otherwise, we're in a situation like this:
+      //  ...---new ival--------+
+      //                        |
+      //        |                    |
+      //  ...---+--------------------+---...
+      //       it                   next
+      //
+      // Which we want to transform to this:
+      //  ...---new ival--------+
+      //                        |
+      //                        |    |
+      //  ...-------------------+----+---...
+      //                       it   next
+      //
+      // We know that the it and next intervals don't have the
+      // same data, by invariant. But maybe we have the same
+      // data as it. In that case, we simply merge with it,
+      // which is the same as deleting it.
+      if (d == it->second) {
+	(void)spans.erase(it);
+	// And we are done.
+	return;
+      }
+
+      // Otherwise, we will move the start of it, as in the above
+      // diagram, unless it already starts in the right place.
+      if (it->first != end) {
+	CHECK(it->first < end);
+	CHECK(end < next->first);
+	// PERF could std::move, maybe?
+	D old = it->second;
+	auto nextnext = spans.erase(it);
+	spans.insert(nextnext, make_pair(end, old));
+	// No merging is necessary since we checked that the new
+	// span's data isn't the same as it's, and preserved the
+	// invariant that it's does not equal next's.
+      }
+
+      // In any case, we are done overwriting and don't want to
+      // run the test outside the while loop.
+      return;
+    }
+  }
+
+  // If we get here, then we ran off the end of the intervals.
+  // This is a bug unless the new span was setting to end at
+  // the max value.
+  printf("Off the end with %lld %lld\n", start, end);
+  CHECK(end == LLONG_MAX);
 }
 
 
@@ -320,6 +400,15 @@ void IntervalCover<D>::SplitRight(int64 pt, D rhs) {
   // In C++11, hint is the element *following* where this one
   // would go.
   spans.insert(next, make_pair(pt, rhs));
+}
+
+template<>
+void IntervalCover<string>::DebugPrint() const {
+  printf("------\n");
+  for (auto p : spans) {
+    printf("%lld: %s\n", p.first, p.second.c_str());
+  }
+  printf("------\n");
 }
 
 #endif
