@@ -128,6 +128,9 @@ static bool g_in_fast_death_test_child = false;
 // tests.  IMPORTANT: This is an internal utility.  Using it may break the
 // implementation of death tests.  User code MUST NOT use it.
 bool InDeathTestChild() {
+  // Added this to suppress unused warning on windows. --tom7
+  (void)g_in_fast_death_test_child;
+
 # if GTEST_OS_WINDOWS
 
   // On Windows, death tests are thread-safe regardless of the value of the
