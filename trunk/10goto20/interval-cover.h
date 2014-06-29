@@ -15,16 +15,15 @@
 //
 // Not thread safe; clients should manage mutual exclusion.
 
-#ifndef __INTERVAL_COVER
-#define __INTERVAL_COVER
+#ifndef __INTERVAL_COVER_H
+#define __INTERVAL_COVER_H
+
+#include "base.h"
 
 #include <vector>
 #include <map>
 #include <cstdint>
-
 #include <cstdio>
-
-#include "base.h"
 
 // Data must have value semantics and is copied willy-nilly. It must
 // also have an equivalence relation ==. If it's some simple data like
@@ -311,11 +310,22 @@ void IntervalCover<D>::SplitRight(int64 pt, D rhs) {
   spans.insert(next, make_pair(pt, rhs));
 }
 
+// When the data are strings, specialize debugprint (used mainly
+// in tests.)
 template<>
 void IntervalCover<string>::DebugPrint() const {
   printf("------\n");
+  for (const pair<const int64, string> &p : spans) {
+ printf("%lld: %s\n", p.first, p.second.c_str());
+  }
+  printf("------\n");
+}
+
+template<class D>
+void IntervalCover<D>::DebugPrint() const {
+  printf("------\n");
   for (auto p : spans) {
-    printf("%lld: %s\n", p.first, p.second.c_str());
+    printf("%lld: ?\n", p.first);
   }
   printf("------\n");
 }
