@@ -36,7 +36,9 @@ FLTO=
 # header dir.
 INCLUDES=-I "../cc-lib" -I "../cc-lib/city"
 
-CPPFLAGS= $(CCSDL) -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++0x
+# MINGW_ANSI_STDIO suppresses warnings about %lld by using ANSI printf
+# (maybe its own internal implementation). LGTM.
+CPPFLAGS= -D__USE_MINGW_ANSI_STDIO=1 $(CCSDL) -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++0x
 
 CCLIB_OBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o ../cc-lib/wavesave.o
 
@@ -56,7 +58,7 @@ pngsave.o: pngsave.cc pngsave.h
 
 PNGSAVE_OBJECTS=pngsave.o $(PNG_OBJECTS)
 
-OBJECTS=$(BASE_OBJECTS) $(SDL_OBJECTS) $(CCLIBSDL_OBJECTS) $(JDKSMIDI_OBJECTS) $(PNGSAVE_OBJECTS) audio-engine.o bleep-bloop-sample-layer.o controllers.o midi-music-layer.o mix-layer.o play-music-layer.o
+OBJECTS=$(BASE_OBJECTS) $(SDL_OBJECTS) $(CCLIBSDL_OBJECTS) $(JDKSMIDI_OBJECTS) $(PNGSAVE_OBJECTS) audio-engine.o bleep-bloop-sample-layer.o controllers.o midi-music-layer.o mix-layer.o play-music-layer.o revision.o
 
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS=$(LINKSDL)  -m64 -Wl,--subsystem,console -lz $(OPT) $(FLTO) $(PROFILE) -static

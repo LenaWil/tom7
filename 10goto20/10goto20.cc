@@ -10,9 +10,10 @@
 #include "wavesave.h"
 #include "mix-layer.h"
 #include "play-music-layer.h"
+#include "revision.h"
 
-#define STARTW 800
-#define STARTH 600
+#define STARTW 1920
+#define STARTH 1080
 
 static SampleLayer *layer;
 
@@ -68,12 +69,19 @@ int main (int argc, char **argv) {
     printf("Wrote wave.\n");
   }
 
+  Revisions::Init();
   AudioEngine::Init();
+
+  AudioEngine::SwapLayer(layer);
+  layer = nullptr;  // Owned by AE now.
 
   SDL_EnableUNICODE(1);
   SDL_Surface *screen = sdlutil::makescreen(STARTW, STARTH);
   sdlutil::clearsurface(screen, 1234567);
   SDL_Flip(screen);
+
+  AudioEngine::BlockingRender();
+  AudioEngine::Play(true);
 
   while(1) {
     SDL_Event e;

@@ -18,13 +18,13 @@
 // The S* and U* versions come from SDL, the simple ones from base.h.
 // (TODO: Is there a way to check that the types are literally
 // the same?)
-static_assert(sizeof(Sint64) == sizeof(int64));
-static_assert(sizeof(Uint64) == sizeof(uint64));
-static_assert(sizeof(Sint32) == sizeof(int32));
-static_assert(sizeof(Uint32) == sizeof(uint32));
-static_assert(sizeof(Sint16) == sizeof(int16));
-static_assert(sizeof(Uint16) == sizeof(uint16));
-static_assert(sizeof(Uint8) == sizeof(uint8));
+static_assert(sizeof(Sint64) == sizeof(int64), "int 64");
+static_assert(sizeof(Uint64) == sizeof(uint64), "uint 64");
+static_assert(sizeof(Sint32) == sizeof(int32), "int 32");
+static_assert(sizeof(Uint32) == sizeof(uint32), "uint 32");
+static_assert(sizeof(Sint16) == sizeof(int16), "int 16");
+static_assert(sizeof(Uint16) == sizeof(uint16), "uint 16");
+static_assert(sizeof(Uint8) == sizeof(uint8), "uint 8");
 
 // TODO: Dithering? Could at least round to nearest rather
 // than truncate.

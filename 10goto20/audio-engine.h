@@ -2,7 +2,8 @@
 /* This is the central audio rendering and output engine.
 
    There is just one global audio engine, since there's one song and
-   one pair of speakers.
+   one pair of speakers. Internally synchronized and thread-safe,
+   though it relies on the thread safety of the layers it's built of.
  */
 
 
@@ -43,10 +44,12 @@ struct AudioEngine {
   // rejecting the call.)
   static void Play(bool play);
 
+  // Render the whole song (i.e., bring up to the current revision)
+  // and don't return until it's done. TODO: Threaded version!
+  static void BlockingRender();
+
  private:
-  // All static.
-  AudioEngine() = delete;
-  AudioEngine(const AudioEngine &) = delete;
+  ALL_STATIC(AudioEngine);
 };
 
 #endif

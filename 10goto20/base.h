@@ -10,6 +10,7 @@
 #include <utility>
 #include <cstdint>
 
+
 #ifdef __GNUC__
 #include <ext/hash_map>
 #include <ext/hash_set>
@@ -40,7 +41,9 @@ struct hash< unsigned long long > {
     abort();						\
   } while (0)
 
-// TODO: Use good logging package.
+// TODO: Use good logging package, or at least make this
+// return a version of cerr that aborts after outputting
+// the message, so we can do CHECK(cond) << "helpful message";.
 #define CHECK(condition) \
   while (!(condition)) {                                    \
     fprintf(stderr, "%s:%s:%d. Check failed: %s\n",	    \
@@ -49,10 +52,22 @@ struct hash< unsigned long long > {
     abort();                                                \
   }
 
+// TODO: Make debug mode. For now these are just marked as
+// paranoid checks so that we can make them debug-only later
+// to improve performance.
+#define DCHECK(condition) CHECK(condition)
+
+// TODO: Move constructors too? Are they defined by default?
 #define NOT_COPYABLE(classname) \
   private: \
   classname(const classname &) = delete; \
   classname &operator =(const classname &) = delete
+
+// TODO: Possible to verify there are no members?
+#define ALL_STATIC(classname) \
+  private: \
+  classname() = delete; \
+  NOT_COPYABLE(classname)
 
 using namespace std;
 

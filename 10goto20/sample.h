@@ -19,6 +19,8 @@ struct Sample {
   double *samples() { return &left; }
   explicit Sample(double mono) : left(mono), right(mono) {}
   Sample(double l, double r) : left(l), right(r) {}
+  // TODO PERF: Move constructors etc., unless the defaults
+  // are created for us?
 };
 
 inline Sample operator +(const Sample &a, const Sample &b) {
