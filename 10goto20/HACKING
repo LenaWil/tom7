@@ -24,3 +24,8 @@ only used so that we can one day save PNG files (and why?), I should
 just replace this with the STB library that has built-in hermetic
 PNG saving support.
 
+
+
+Threads: Yikes! Still figuring this out. I modified SDL to use
+-pthread, including modifying SDL_config to set the define, instead of
+win32 threads. Newest mingw-64 supposedly has support.

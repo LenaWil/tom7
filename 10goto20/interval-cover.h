@@ -40,8 +40,9 @@
 // values, and the operations below automatically merge adjacent
 // intevals to ensure this. Empty intervals (start == end) are
 // discarded, since they span no points.
-template<class Data>
+template<class D>
 struct IntervalCover {
+  typedef D Data;
   struct Span {
     int64 start;
     // One after the end.
@@ -93,9 +94,16 @@ struct IntervalCover {
   // map iterator.
   int64 Next(int64 pt) const;
 
+  template<class Other>
+  static bool IntersectWith(const Span &mine,
+			    const typename IntervalCover<Other>::Span &theirs,
+			    int64 *start, int64 *end);
+
   // Verifies internal invariants and aborts if they are violated.
   // Typically only useful for debugging.
   void CheckInvariants() const;
+  // Won't show data unless it's of a limited number of basic types.
+  void DebugPrint() const;
 
  private:
   // Make a Span by looking at the next entry in the map to
@@ -104,9 +112,6 @@ struct IntervalCover {
 
   typename map<int64, Data>::iterator GetInterval(int64 pt);
   typename map<int64, Data>::const_iterator GetInterval(int64 pt) const;
-
-  // Requires data to be string.
-  void DebugPrint() const;
 
   // Actual representation is an stl map with some invariants.
   map<int64, Data> spans;
@@ -119,8 +124,37 @@ struct IntervalCover {
 // Template implementations follow.
 
 template<class D>
+template<class O>
+bool IntervalCover<D>::IntersectWith(
+    const Span &mine,
+    const typename IntervalCover<O>::Span &theirs,
+    int64 *start, int64 *end) {
+  // First, make sure they actually intersect.
+  if (mine.end <= theirs.start ||
+      theirs.end <= mine.start) {
+    return false;
+  } else {
+    // We know they overlap. Intersection is the max of the starts
+    // and the min of the ends, then.
+    *start = max(mine.start, theirs.start);
+    *end = min(mine.end, theirs.end);
+    return true;
+    // Verify various cases visually:
+
+    // mine    ---------
+    // theirs ----
+
+    // mine -----------
+    // theirs      --------
+
+    // mine -----------
+    // theirs  ----
+  }
+}
+
+template<class D>
 auto IntervalCover<D>::GetInterval(int64 pt) ->
-  typename map<int64, D>::iterator {
+    typename map<int64, D>::iterator {
   // Find the interval that 'start' is within. We'll modify this
   // interval.
   auto it = spans.upper_bound(pt);
@@ -184,6 +218,8 @@ auto IntervalCover<D>::GetPoint(int64 pt) const -> Span {
 
 template<class D>
 void IntervalCover<D>::SetSpan(int64 start, int64 end, D new_data) {
+  // printf("SetSpan %lld %lld ...\n", start, end);
+
   // Interval must be legal.
   CHECK(start <= end);
 
@@ -246,8 +282,10 @@ void IntervalCover<D>::SplitRight(int64 pt, D rhs) {
   // And if we're asking to split the interval exactly on
   // its start point, just replace the data.
   if (it->first == pt) {
+
     // But do we need to merge left?
     if (it != spans.begin()) {
+
       auto prev = std::prev(it);
       if (prev->second == rhs) {
 	// If merging left, then just delete this interval.
@@ -266,11 +304,10 @@ void IntervalCover<D>::SplitRight(int64 pt, D rhs) {
       }
     }
 
-
     CHECK(it != spans.end());
 
     auto next = std::next(it);
-    if (next->second == rhs) {
+    if (next != spans.end() && next->second == rhs) {
       // Then just delete the next one, making it part of
       // this one.
       (void)spans.erase(next);
@@ -316,7 +353,16 @@ template<>
 void IntervalCover<string>::DebugPrint() const {
   printf("------\n");
   for (const pair<const int64, string> &p : spans) {
- printf("%lld: %s\n", p.first, p.second.c_str());
+    printf("%lld: %s\n", p.first, p.second.c_str());
+  }
+  printf("------\n");
+}
+
+template<>
+void IntervalCover<int>::DebugPrint() const {
+  printf("------\n");
+  for (const pair<const int64, int> &p : spans) {
+    printf("%lld: %d\n", p.first, p.second);
   }
   printf("------\n");
 }

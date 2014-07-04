@@ -13,6 +13,7 @@
 // Local utilities
 #include "sample.h"
 #include "concurrency.h"
+#include "logging.h"
 
 // We use these interchangeably; ensure that they are consistent.
 // The S* and U* versions come from SDL, the simple ones from base.h.

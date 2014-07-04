@@ -4,10 +4,21 @@ Or should this be integrated into MusicLayer?
 
 Some way for layers to be cached, perhaps by wrapping them in a cache.
 
-Generalize the idea of FirstSample and AfterLastSample to a set of
-intervals for a layer.
-
-Basic instruments: SQUARE, SAW
+Generalize the idea of FirstSample and AfterLastSample to an intervalcover
+for the layer. Get rid of FS/ALS.
 
 
 Periodic waveform editor (graphical)
+
+Ability to edit piano roll!
+
+Background thread that renders the audio.
+
+UI that shows rendering progress.
+
+Some solution for making perfect loops for video games -- where
+we have intro that enters some loop, and we solve for a "fixed point"
+on the second loop (e.g. reverb), and perhaps then allow for an
+outro.
+
+Figure out the ownership of layers. Right now they just last forever.
