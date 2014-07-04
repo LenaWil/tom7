@@ -61,7 +61,7 @@ pngsave.o: pngsave.cc pngsave.h
 
 PNGSAVE_OBJECTS=pngsave.o $(PNG_OBJECTS)
 
-OBJECTS=$(BASE_OBJECTS) $(SDL_OBJECTS) $(CCLIBSDL_OBJECTS) $(JDKSMIDI_OBJECTS) $(PNGSAVE_OBJECTS) audio-engine.o bleep-bloop-sample-layer.o controllers.o midi-music-layer.o mix-layer.o play-music-layer.o revision.o logging.o
+OBJECTS=$(BASE_OBJECTS) $(SDL_OBJECTS) $(CCLIBSDL_OBJECTS) $(JDKSMIDI_OBJECTS) $(PNGSAVE_OBJECTS) audio-engine.o bleep-bloop-sample-layer.o controllers.o midi-music-layer.o mix-layer.o play-music-layer.o revision.o logging.o interval-cover.o
 
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS=$(LINKSDL)  -m64 -Wl,--subsystem,console -lz $(OPT) $(FLTO) $(PROFILE) -static
