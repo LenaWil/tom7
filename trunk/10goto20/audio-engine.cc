@@ -7,9 +7,9 @@
 #include "interval-cover.h"
 #include "base/stringprintf.h"
 
-static constexpr int RENDER_THREADS = 4;
+static constexpr int RENDER_THREADS = 6;
 // PERF: Tune this number!
-static constexpr int MAX_RENDER_CHUNK = 16384;
+static constexpr int MAX_RENDER_CHUNK = 32768;
 static constexpr int AUDIOBUFFER = 1024;
 
 enum SampleLock {
@@ -140,7 +140,7 @@ struct RenderThread {
 		  id, ss.start, ss.end, ss.data);
 	  CHECK(ss.start != ss.end);
 
-	  if (span.data < target_revision) {
+	  if (ss.data < target_revision) {
 	    // Found something! Note that ss could easily
 	    // expand outside the locked region. So first
 	    // compute the intersection of the two spans:
@@ -222,12 +222,36 @@ struct RenderThread {
 	// Now compute the samples into a separate buffer.
 	// We need to make sure the song doesn't change from
 	// under us! How?
+	CHECK(end > start);
+	int64 size = end - start;
+	// PERF this could just be thread-local.
+	vector<Sample> buffer(end - start, Sample(0.0));
+	if (song != nullptr) {
+	  for (int64 i = 0; i < size; i++) {
+	    buffer[i] = song->SampleAt(start + i);
+	  }
+	}
+
 	// Take the mutex to write the samples back, but note that the
 	// vector might have been resized while we were gone, so only
 	// write within the valid region.
+	{
+	  MutexLock ml(&mutex);
+	  if (end <= samples->size()) {
+	    for (int64 i = 0; i < size; i++) {
+	      (*samples)[start + i] = buffer[i];
+	    }
+	    sample_rev.SetSpan(start, end, r);
+	  } else {
+	    lprintf("[%d] Buffer was resized unfavorably; "
+		    "discarding my chunk.", id);
+	  }
 
+	  sample_lock.SetSpan(start, end, UNLOCKED);
+	}
 	// Slow motion...
-	SDL_Delay(1000);
+	// SDL_Delay(1000);
+
 
       } else {
 	// If starved, don't spin-lock.
