@@ -4,7 +4,8 @@
 // TODO: Consider std::thread and std::mutex instead. Ideally, we
 // should use SDL threads only in this file, so that we can port
 // to c++11 later if it's working.
-
+//
+// TODO: Wrapper for thread spawning.
 
 #ifndef __CONCURRENCY_H
 #define __CONCURRENCY_H

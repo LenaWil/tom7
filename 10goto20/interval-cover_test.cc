@@ -88,6 +88,22 @@ TEST(IC, Easy) {
 
 #define OKPOINT(s, e, d, sp) EXPECT_TRUE(IsSpan(s, e, d, sp))
 
+TEST(IC, Copying) {
+  IntervalCover<string> easy_a("everything");
+  {
+    IntervalCover<string> easy_b = easy_a;
+
+    OKPOINT(LLONG_MIN, LLONG_MAX, "everything", easy_a.GetPoint(0LL));
+    OKPOINT(LLONG_MIN, LLONG_MAX, "everything", easy_b.GetPoint(0LL));
+
+    easy_a.SetSpan(-10LL, 10LL, "NO");
+    OKPOINT(-10LL, 10LL, "NO", easy_a.GetPoint(0LL));
+    OKPOINT(LLONG_MIN, LLONG_MAX, "everything", easy_b.GetPoint(0LL));
+  }
+  
+  OKPOINT(-10LL, 10LL, "NO", easy_a.GetPoint(0LL));
+}
+
 TEST(IC, DefaultCovers) {
   IntervalCover<string> simple("test");
   simple.CheckInvariants();
