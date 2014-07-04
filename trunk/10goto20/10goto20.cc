@@ -1,4 +1,8 @@
 
+// Just for LoadLibrary. Maybe could use an extern decl.
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 #include "10goto20.h"
 #include "audio-engine.h"
 
@@ -11,29 +15,21 @@
 #include "mix-layer.h"
 #include "play-music-layer.h"
 #include "revision.h"
+#include "sorry-layer.h"
+#include "util.h"
 
 #define STARTW 1920
 #define STARTH 1080
 
 static SampleLayer *layer;
 
-// TODO: much better clamping, please! 
-struct SorryLayer : public SampleLayer {
-  explicit SorryLayer(SampleLayer *layer) : layer(layer) {}
-  bool FirstSample(int64 *t) { return layer->FirstSample(t); }
-  bool AfterLastSample(int64 *t) { return layer->AfterLastSample(t); }
-  Sample SampleAt(int64 t) {
-    Sample s = layer->SampleAt(t);
-    if (s.left > 1.0) s.left = 1.0;
-    else if (s.left < -1.0) s.left = -1.0;
-    if (s.right > 1.0) s.right = 1.0;
-    else if (s.right < -1.0) s.right = -1.0;
-    return s;
-  }
-  SampleLayer *layer;
-};
+int main(int argc, char **argv) {
 
-int main (int argc, char **argv) {
+  if (Util::ExistsFile("exchndl.dll")) {
+    fprintf(stderr, "Found exchndl.dll; loading it...\n");
+    // extern void LoadLibrary(const char *);
+    LoadLibrary("exchndl.dll");
+  }
 
   // and thread?
   if (SDL_Init (SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
@@ -41,7 +37,9 @@ int main (int argc, char **argv) {
     abort();
   }
 
-  fprintf(stderr, "10 GOTO 20\n");
+  Logging::Init();
+
+  lprintf("10 GOTO 20\n");
 
   vector<MidiMusicLayer *> midis = MidiMusicLayer::Create("sensations.mid");
 
@@ -57,6 +55,7 @@ int main (int argc, char **argv) {
   layer = new SorryLayer(ml);
   CHECK(layer);
 
+#if 0
   // First make and write wave, for debugging.
   {
     int64 nsamples = SAMPLINGRATE * 10;
@@ -68,6 +67,7 @@ int main (int argc, char **argv) {
     WaveSave::SaveStereo("sensations.wav", samples, SAMPLINGRATE);
     printf("Wrote wave.\n");
   }
+#endif
 
   Revisions::Init();
   AudioEngine::Init();
@@ -80,7 +80,7 @@ int main (int argc, char **argv) {
   sdlutil::clearsurface(screen, 1234567);
   SDL_Flip(screen);
 
-  AudioEngine::BlockingRender();
+  // AudioEngine::BlockingRender();
   AudioEngine::Play(true);
 
   while(1) {

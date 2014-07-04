@@ -1,4 +1,9 @@
 
+// TODO: This test probably isn't stressing enough; there was
+// a serious crasher in SplitRight (it didn't check whether next
+// was .end() before trying to merge with it) that wasn't caught
+// by the tests here. Consider more aggressive stress tests.
+
 #include "interval-cover.h"
 
 #include <stdlib.h>

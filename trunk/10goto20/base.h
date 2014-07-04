@@ -35,9 +35,14 @@ struct hash< unsigned long long > {
 }
 #endif
 
+#ifndef DEBUG
+#  define DEBUG 0
+#endif
+
 #define UNIMPLEMENTED(message) \
   do { fprintf(stderr, "%s:%s:%d. Unimplemented: %s\n", \
 	       __FILE__, __func__, __LINE__, #message); \
+    fflush(stderr);					\
     abort();						\
   } while (0)
 
@@ -49,13 +54,15 @@ struct hash< unsigned long long > {
     fprintf(stderr, "%s:%s:%d. Check failed: %s\n",	    \
             __FILE__, __func__, __LINE__, #condition        \
             );                                              \
+    fflush(stderr);					    \
     abort();                                                \
   }
 
-// TODO: Make debug mode. For now these are just marked as
-// paranoid checks so that we can make them debug-only later
-// to improve performance.
-#define DCHECK(condition) CHECK(condition)
+#if DEBUG
+#  define DCHECK(condition) CHECK(condition)
+#else
+#  define DCHECK(condition) do { } while(0)
+#endif
 
 // TODO: Move constructors too? Are they defined by default?
 #define NOT_COPYABLE(classname) \

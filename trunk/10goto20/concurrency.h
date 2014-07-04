@@ -14,14 +14,19 @@
 #include "SDL.h"
 #include "SDL_thread.h"
 #include "SDL_mutex.h"
+#include <thread>
 
 // Wraps an SDL_mutex pointer. 
 struct Mutex {
   void Lock() { 
     SDL_LockMutex(sdl_mutex);
+    // printf("Took mutex %p\n", sdl_mutex);
+    // fflush(stdout);
   }
 
   void Unlock() {
+    // printf("Returning mutex %p\n", sdl_mutex);
+    // fflush(stdout);
     SDL_UnlockMutex(sdl_mutex);
   }
 
@@ -59,6 +64,23 @@ struct Mutex {
 
   bool Initialized() {
     return sdl_mutex != nullptr;
+  }
+
+  // T must be copyable. Don't use references because
+  // we want to finish the copy while the mutex is held.
+  template<class T>
+  T AtomicRead(T *loc) {
+    SDL_LockMutex(sdl_mutex);
+    T val = *loc;
+    SDL_UnlockMutex(sdl_mutex);
+    return val;
+  }
+
+  template<class T>
+  void AtomicWrite(T *loc, const T &value) {
+    SDL_LockMutex(sdl_mutex);
+    *loc = value;
+    SDL_UnlockMutex(sdl_mutex);
   }
 
   SDL_mutex *sdl_mutex = nullptr;
