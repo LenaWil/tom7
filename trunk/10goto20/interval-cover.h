@@ -9,9 +9,11 @@
 //   - Sparse meaning that the cover describes the entire space
 //     from LLONG_MIN to LLONG_MAX - 1, including explicit gaps.
 //     TODO: More careful about how this ends. We treat LLONG_MAX
-//     as an invalid start.
+//     as an invalid start; it should be the end of the final interval.
 //   - Takes space proportional to the number of intervals.
 //   - Most operations are logarithmic in the number of intervals.
+//
+// Value semantics.
 //
 // Not thread safe; clients should manage mutual exclusion.
 
@@ -115,10 +117,6 @@ struct IntervalCover {
 
   // Actual representation is an stl map with some invariants.
   map<int64, Data> spans;
-
-  // TODO: Actually, this is probably copyable, since we don't claim
-  // to keep the Data from being copied, and map has value semantics.
-  NOT_COPYABLE(IntervalCover);
 };
 
 // Template implementations follow.
