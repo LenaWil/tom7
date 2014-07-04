@@ -346,24 +346,12 @@ void IntervalCover<D>::SplitRight(int64 pt, D rhs) {
 }
 
 // When the data are strings, specialize debugprint (used mainly
-// in tests.)
+// in tests.) The specializations are complete definitions so they
+// go in the .cc file.
 template<>
-void IntervalCover<string>::DebugPrint() const {
-  printf("------\n");
-  for (const pair<const int64, string> &p : spans) {
-    printf("%lld: %s\n", p.first, p.second.c_str());
-  }
-  printf("------\n");
-}
-
+void IntervalCover<string>::DebugPrint() const;
 template<>
-void IntervalCover<int>::DebugPrint() const {
-  printf("------\n");
-  for (const pair<const int64, int> &p : spans) {
-    printf("%lld: %d\n", p.first, p.second);
-  }
-  printf("------\n");
-}
+void IntervalCover<int>::DebugPrint() const;
 
 template<class D>
 void IntervalCover<D>::DebugPrint() const {

@@ -12,6 +12,8 @@
 
 #include "10goto20.h"
 #include "sample-layer.h"
+#include "interval-cover.h"
+#include "revision.h"
 
 struct AudioEngine {
 
@@ -34,6 +36,8 @@ struct AudioEngine {
   // non-negative, since it must not be before the beginning point,
   // which is always 0.
   static void SetEnd(int64 end);
+  // TODO: Should this really be maintained through the audio engine?
+  static int64 GetEnd();
 
   // Whether output is occurring. The audio engine pauses itself if
   // the playback cursor reaches unrendered audio, so the display
@@ -47,6 +51,11 @@ struct AudioEngine {
   // Render the whole song (i.e., bring up to the current revision)
   // and don't return until it's done. TODO: Threaded version!
   static void BlockingRender();
+
+  // For drawing the status of rendering. Thread safe but doesn't keep
+  // the lock, and therefore may be instantly out of date -- so it
+  // should not be used for logic, just display.
+  static pair<IntervalCover<int>, IntervalCover<Revision>> GetSpans();
 
  private:
   ALL_STATIC(AudioEngine);

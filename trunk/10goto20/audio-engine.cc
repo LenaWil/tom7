@@ -9,13 +9,15 @@
 
 static constexpr int RENDER_THREADS = 4;
 // PERF: Tune this number!
-static constexpr int MAX_RENDER_CHUNK = 4096;
+static constexpr int MAX_RENDER_CHUNK = 16384;
 static constexpr int AUDIOBUFFER = 1024;
 
 enum SampleLock {
   UNLOCKED = -1,
   GLOBAL_LOCK = -2,
 };
+
+#define lprintf(...) do { ; } while(0)
 
 // These are static.
 // Coarse locking. Many threads contend for this mutex, so it should
@@ -110,8 +112,8 @@ struct RenderThread {
     WhoHasMutex(id);
     
     lprintf("\nThread %d get work for rev %lld\n", id, target_revision);
-    sample_lock.DebugPrint();
-    fflush(stdout);
+    // sample_lock.DebugPrint();
+    // fflush(stdout);
 
     // TODO PERF: Save some kind of hint about where to start
     // the search. All the threads end up searching the prefix
@@ -172,7 +174,7 @@ struct RenderThread {
 	    lprintf("[%d] After trim: %lld to %lld\n",
 		    id, ival_start, ival_end);
 
-	    sample_lock.DebugPrint();
+	    // sample_lock.DebugPrint();
 	    sample_lock.CheckInvariants();
 	    lprintf("[%d] Invariants look OK?\n", id);
 
@@ -438,4 +440,15 @@ SampleLayer *AudioEngine::SwapLayer(SampleLayer *new_layer) {
   sample_lock.SetSpan(LLONG_MIN, LLONG_MAX, UNLOCKED);
   lprintf("Done with SwapLayer!\n");
   return ret;
+}
+
+// static 
+pair<IntervalCover<int>, IntervalCover<Revision>> AudioEngine::GetSpans() {
+  MutexLock ml(&mutex);
+  return make_pair(sample_lock, sample_rev);
+}
+
+int64 AudioEngine::GetEnd() {
+  MutexLock ml(&mutex);
+  return song_end;
 }
