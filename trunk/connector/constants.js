@@ -14,6 +14,15 @@ var TILESH = 8;
 var BOARDSTARTX = 68;
 var BOARDSTARTY = 20;
 
+// Order is assumed.
+var UP = 0;
+var DOWN = 1;
+var LEFT = 2;
+var RIGHT = 3;
+
+var CELL_HEAD = 1;
+// Wire, etc.
+
 var FONTW = 9;
 var FONTH = 16;
 var FONTOVERLAP = 1;
