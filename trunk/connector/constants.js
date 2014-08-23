@@ -29,6 +29,10 @@ function ReverseDir(d) {
   return undefined;
 }
 
+var TRAYX = 6;
+var TRAYY = 12;
+var TRAYW = 51;
+var TRAYH = 178;
 
 var CELL_HEAD = 1;
 // Wire, etc.
