@@ -88,7 +88,11 @@ function TieHeads() {
 function InitGame() {
   window.heads = {
     rca_red_m: new Head(6, 3, 6, 2, RIGHT, 'rca_red_f'),
-    rca_red_f: new Head(7, 3, 7, 2, LEFT,  'rca_red_m')
+    rca_red_f: new Head(7, 3, 7, 2, LEFT,  'rca_red_m'),
+    quarter_m: new Head(6, 5, 6, 4, RIGHT, 'quarter_f'),
+    quarter_f: new Head(7, 5, 7, 4, LEFT,  'quarter_m'),
+    usb_m:     new Head(6, 1, 6, 0, RIGHT, 'usb_f'),
+    usb_f:     new Head(7, 1, 7, 0, LEFT,  'usb_m')
   };
 
   TieHeads();
@@ -132,31 +136,26 @@ var item_what = 0;
 function Item() {
     // XXX obviously, configurable
   item_what++;
-  
-  switch (item_what % 4) {
+
+  var heads = [];
+  for (var o in window.heads) {
+    heads.push(o);
+  }
+  var head1 = heads[Math.floor(Math.random() * heads.length)];
+  var head2 = heads[Math.floor(Math.random() * heads.length)];
+
+  switch (item_what % 2) {
     case 0:
     this.width = 2;
     this.height = 1;
-    this.shape = [CellHead('rca_red_m', LEFT),
-                  CellHead('rca_red_f', RIGHT)];
+    this.shape = [CellHead(head1, LEFT),
+                  CellHead(head2, RIGHT)];
     break;
     case 1:
     this.width = 1;
     this.height = 2;
-    this.shape = [CellHead('rca_red_f', UP),
-                  CellHead('rca_red_f', DOWN)];
-    break;
-    case 2:
-    this.width = 1;
-    this.height = 2;
-    this.shape = [CellHead('rca_red_m', UP),
-                  CellHead('rca_red_m', DOWN)];
-    break;
-    case 3:
-    this.width = 2;
-    this.height = 1;
-    this.shape = [CellHead('rca_red_f', LEFT),
-                  CellHead('rca_red_m', RIGHT)];
+    this.shape = [CellHead(head1, UP),
+                  CellHead(head2, DOWN)];
     break;
   }
   return this;
@@ -253,9 +252,7 @@ function Draw() {
     }
   }
 
-  // Draw floating item:
-
-
+  // Draw floating item, if any:
   if (window.floating) {
     var it = window.floating;
 
