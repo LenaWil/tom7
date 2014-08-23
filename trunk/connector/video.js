@@ -13,7 +13,40 @@ function Buf32FromImage(img) {
   var cc = c.getContext('2d');
   cc.drawImage(img, 0, 0);
 
-  return new Uint32Array(cc.getImageData(0, 0, img.width, img.height).data.buffer);
+  return new Uint32Array(cc.getImageData(0, 0, 
+					 img.width, img.height).data.buffer);
+}
+
+// Chop out a part of an image and return it as a canvas. Used for example
+// to chop out the letters in a font, but often useful for spriting too.
+function ExtractCanvas(img, x, y, w, h) {
+  var px32 = Buf32FromImage(img);
+  return ExtractBuf32(px32, x, y, w, h);
+}
+
+// Extract from a Uint32Array with known width, in case you can preprocess
+// with ExtractBuf32 and call this many times. Otherwise, ExtractCanvas is
+// probably what you want.
+function ExtractBuf32(px32, src_width, x, y, w, h) {
+  var c = NewCanvas(w, h);
+
+  var ctx = c.getContext('2d');
+  var id = ctx.createImageData(w, h);
+  var buf = new ArrayBuffer(id.data.length);
+  var buf8 = new Uint8ClampedArray(buf);
+  var buf32 = new Uint32Array(buf);
+
+  // copy pixels from source image
+  for (var yy = 0; yy < h; yy++) {
+    for (var xx = 0; xx < w; xx++) {
+      var p = px32[(yy + y) * src_width + xx + x];
+      buf32[yy * w + xx] = p;
+    }
+  }
+
+  id.data.set(buf8);
+  ctx.putImageData(id, 0, 0);
+  return c;
 }
 
 // Img must already be loaded.
@@ -24,28 +57,10 @@ function Font(img, w, h, overlap, fontchars) {
 
   this.chars = {};
   var px32 = Buf32FromImage(img);
+  var srcw = img.width;
   for (var i = 0; i < fontchars.length; i++) {
     var ch = fontchars.charCodeAt(i);
-    var c = NewCanvas(w, h);
-
-    var ctx = c.getContext('2d');
-    var id = ctx.createImageData(w, h);
-    var buf = new ArrayBuffer(id.data.length);
-    var buf8 = new Uint8ClampedArray(buf);
-    var buf32 = new Uint32Array(buf);
-
-    // fill with sub-image
-    for (var y = 0; y < h; y++) {
-      for (var x = 0; x < w; x++) {
-	var p = px32[y * img.width + x + (i * w)];
-	// if (p != 0) alert(p);
-	buf32[y * w + x] = p;
-      }
-    }
-
-    id.data.set(buf8);
-    ctx.putImageData(id, 0, 0);
-    this.chars[ch] = c;
+    this.chars[ch] = ExtractBuf32(px32, srcw, i * w, 0, w, h);
   }
 
   this.Draw = function(ctx, x, y, s) {
