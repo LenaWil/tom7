@@ -19,6 +19,16 @@ var UP = 0;
 var DOWN = 1;
 var LEFT = 2;
 var RIGHT = 3;
+function ReverseDir(d) {
+  switch (d) {
+    case UP: return DOWN;
+    case DOWN: return UP;
+    case LEFT: return RIGHT;
+    case RIGHT: return LEFT;
+  }
+  return undefined;
+}
+
 
 var CELL_HEAD = 1;
 // Wire, etc.
