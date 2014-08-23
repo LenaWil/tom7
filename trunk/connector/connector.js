@@ -14,6 +14,7 @@ var resources = new Resources(
    'connectors.png'],
   [], null);
 
+function XY(x, y) { return '(' + x + ',' + y + ')'; }
 
 function Init() {
   window.font = new Font(resources.Get('font.png'),
@@ -160,6 +161,42 @@ function GetItemAt(boardx, boardy) {
   return null;
 }
 
+// Does the cell at x,y contain a head, which is currently
+// mated?
+function IsMated(x, y) {
+  var item = GetItemAt(x, y);
+  if (!item) return false;
+  var cell = item.GetCellByGlobal(x, y);
+  if (!cell || cell.type != CELL_HEAD) return false;
+
+  var mx = x, my = y;
+  switch (cell.facing) {
+    case UP: my--; break;
+    case DOWN: my++; break;
+    case LEFT: mx--; break;
+    case RIGHT: mx++; break;
+    default: throw 'not facing?';
+  }
+  if (mx < 0 || mx >= TILESW ||
+      my < 0 || my >= TILESH)
+    return false;
+
+  // console.log(XY(x, y) + ' - ' + XY(mx, my));
+  var mitem = GetItemAt(mx, my);
+  // No self mates, right?
+  if (!mitem) return false
+  if (mitem == item) {
+    // console.log('self mate');
+    return false;
+}
+
+  var mcell = mitem.GetCellByGlobal(mx, my);
+  if (!mcell || mcell.type != CELL_HEAD) return false;
+
+  // XXX test compatibility...
+  return true;
+}
+
 function Draw() {
   // ClearScreen();
   DrawFrame(window.boardbg, 0, 0);
@@ -170,8 +207,11 @@ function Draw() {
         var cell = item.GetCellByGlobal(x, y);
         if (!cell) throw 'bug';
         if (cell.type == CELL_HEAD) {
+	  // PERF
           // XXX draw as mated, if mated.
-          var frame = cell.head.unmated[cell.facing];
+          var frame = IsMated(x, y) ? 
+	      cell.head.mated[cell.facing] :
+	      cell.head.unmated[cell.facing];
           DrawFrame(frame,
                     BOARDSTARTX + x * TILESIZE,
                     BOARDSTARTY + y * TILESIZE);
