@@ -22,6 +22,8 @@ function Init() {
   window.connectorspx = Buf32FromImage(resources.Get('connectors.png'));
   window.connectorswidth = resources.Get('connectors.png').width;
   window.boardbg = Static('board.png');
+  window.highlightok = new Frames(ConnectorGraphic(1, 2));
+  window.highlightnotok = new Frames(ConnectorGraphic(1, 1));
 }
 
 function ConnectorGraphic(x, y) {
@@ -92,6 +94,10 @@ function InitGame() {
   TieHeads();
 
   window.items = [];
+
+  // These are canvas coordinates, updated on animation frame.
+  window.mousex = 0;
+  window.mousey = 0;
 
   /*
   board = [];
@@ -248,34 +254,94 @@ function Draw() {
     }
   }
 
-  // Draw floating item.
+  // Draw floating item:
+
+
+  if (window.floating) {
+    var it = window.floating;
+
+    // Move the center of the item to the mouse point.
+    var cx = window.mousex - (it.width * TILESIZE >> 1);
+    var cy = window.mousey - (it.height * TILESIZE >> 1);
+
+    // Highlight cells that the item is aligned with.
+    // TODO: We need to check this same condition when dropping, so
+    // should probably factor it out somehow?
+    var startx = Math.round((cx - BOARDSTARTX) / TILESIZE);
+    var starty = Math.round((cy - BOARDSTARTY) / TILESIZE);
+    if (startx >= 0 && (startx + it.width) < TILESW &&
+	starty >= 0 && (starty + it.height) < TILESH) {
+      for (var y = 0; y < it.height; y++) {
+	for (var x = 0; x < it.width; x++) {
+	  var cell = it.GetCell(x, y);
+	  if (cell && cell.type == CELL_HEAD) {
+	    // XXX test if occupied...
+	    DrawFrame(window.highlightok,
+		      BOARDSTARTX + (startx + x) * TILESIZE,
+		      BOARDSTARTY + (starty + y) * TILESIZE);
+	  }
+	}
+      }
+    }
+
+    // Draw the item itself.
+    for (var y = 0; y < it.height; y++) {
+      for (var x = 0; x < it.width; x++) {
+	var cell = it.GetCell(x, y);
+	if (cell && cell.type == CELL_HEAD) {
+	  DrawFrame(cell.head.unmated[cell.facing],
+		    cx + x * TILESIZE,
+		    cy + y * TILESIZE);
+	}
+      }
+    }
+    // Draw indicators for floating thing!
+  }
 
   // Draw indicators (e.g. 'in', 'out')
 }
 
-function CanvasClick(e) {
+function CanvasMousedown(e) {
   e = e || window.event;
   var bcx = bigcanvas.canvas.offsetLeft;
   var bcy = bigcanvas.canvas.offsetTop;
   var x = Math.floor((event.pageX - bcx) / PX);
   var y = Math.floor((event.pageY - bcy) / PX);
 
-  var boardx = Math.floor((x - BOARDSTARTX) / TILESIZE);
-  var boardy = Math.floor((y - BOARDSTARTY) / TILESIZE);
-  console.log('click ' + boardx + ', ' + boardy);
-
-  var it = new Item();
-  if (boardx < TILESW - 1 &&
-      boardy < TILESH &&
-      GetItemAt(boardx, boardy) == null &&
-      GetItemAt(boardx + 1, boardy) == null) {
-    // XXX could at least be checking collisions...
+  // If in the tray section, then we create a new piece and
+  // start dragging it.
+  if (x >= TRAYX && y >= TRAYY &&
+      x < (TRAYX + TRAYW) &&
+      y <= (TRAYY + TRAYH)) {
+    console.log('touch in tray');
+    // In tray.
     var it = new Item();
-    it.onboard = true;
-    it.boardx = boardx;
-    it.boardy = boardy;
-    window.items.push(it);
-  }    
+
+    window.floating = it;
+    // if not on board, then that always means floating,
+    // which means wherever the mouse is.
+    it.onboard = false;
+
+  } else {
+    // In board? -- pick up piece?
+    var boardx = Math.floor((x - BOARDSTARTX) / TILESIZE);
+    var boardy = Math.floor((y - BOARDSTARTY) / TILESIZE);
+    console.log('touch maybe in board ' + boardx + ', ' + boardy);
+
+    // XXX NO.
+    var it = new Item();
+    if (boardx < TILESW - 1 &&
+	boardy < TILESH &&
+	GetItemAt(boardx, boardy) == null &&
+	GetItemAt(boardx + 1, boardy) == null) {
+      // XXX could at least be checking collisions...
+      var it = new Item();
+      it.onboard = true;
+      it.boardx = boardx;
+      it.boardy = boardy;
+      window.items.push(it);
+    }
+  }
 
   // HERE...
 }
@@ -323,11 +389,22 @@ function Step(time) {
   window.requestAnimationFrame(Step);
 }
 
+function CanvasMove(e) {
+  e = e || window.event;
+  var bcx = bigcanvas.canvas.offsetLeft;
+  var bcy = bigcanvas.canvas.offsetTop;
+  var x = Math.floor((event.pageX - bcx) / PX);
+  var y = Math.floor((event.pageY - bcy) / PX);
+  window.mousex = x;
+  window.mousey = y;
+}
+
 function Start() {
   Init();
   InitGame();
 
-  bigcanvas.canvas.onclick = CanvasClick;
+  bigcanvas.canvas.onmousemove = CanvasMove;
+  bigcanvas.canvas.onmousedown = CanvasMousedown;
 
   /*
   cutscene = cutscenes.intro;
