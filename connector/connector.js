@@ -240,7 +240,6 @@ function Draw() {
         if (!cell) throw 'bug';
         if (cell.type == CELL_HEAD) {
 	  // PERF
-          // XXX draw as mated, if mated.
           var frame = IsMated(x, y) ? 
 	      cell.head.mated[cell.facing] :
 	      cell.head.unmated[cell.facing];
@@ -260,29 +259,23 @@ function Draw() {
   if (window.floating) {
     var it = window.floating;
 
-    // Move the center of the item to the mouse point.
-    var cx = window.mousex - (it.width * TILESIZE >> 1);
-    var cy = window.mousey - (it.height * TILESIZE >> 1);
-
     // Highlight cells that the item is aligned with.
-    // TODO: We need to check this same condition when dropping, so
-    // should probably factor it out somehow?
-    var startx = Math.round((cx - BOARDSTARTX) / TILESIZE);
-    var starty = Math.round((cy - BOARDSTARTY) / TILESIZE);
-    if (startx >= 0 && (startx + it.width) < TILESW &&
-	starty >= 0 && (starty + it.height) < TILESH) {
+    var res = CheckDrop();
+      
+    var cx = res.cx;
+    var cy = res.cy;
+
+    if (res.highlight) {
       for (var y = 0; y < it.height; y++) {
 	for (var x = 0; x < it.width; x++) {
-	  var cell = it.GetCell(x, y);
-	  if (cell && cell.type == CELL_HEAD) {
-	    // XXX test if occupied...
-	    DrawFrame(window.highlightok,
-		      BOARDSTARTX + (startx + x) * TILESIZE,
-		      BOARDSTARTY + (starty + y) * TILESIZE);
-	  }
+	  var f = res.highlight[y * it.width + x];
+	  if (f) DrawFrame(f,
+			   BOARDSTARTX + (res.startx + x) * TILESIZE,
+			   BOARDSTARTY + (res.starty + y) * TILESIZE);
 	}
       }
     }
+    // TODO: Indicate that dropping would reset it...
 
     // Draw the item itself.
     for (var y = 0; y < it.height; y++) {
@@ -301,7 +294,59 @@ function Draw() {
   // Draw indicators (e.g. 'in', 'out')
 }
 
+// Returns an objec
+//   - ok: true if we may drop here
+//   - startx, starty: board coordinates for top left of object,
+//     if it's safe to drop
+//   - cx, cy: virtual mouse coordinates (top left of object),
+//   - highlight: (or null) array of size item.width*height
+function CheckDrop() {
+  if (!window.floating) throw 'precondition';
+  var it = window.floating;
+
+  // Move the center of the item to the mouse point.
+  var cx = window.mousex - (it.width * TILESIZE >> 1);
+  var cy = window.mousey - (it.height * TILESIZE >> 1);
+  var ret = {
+    cx: cx,
+    cy: cy,
+    startx: Math.round((cx - BOARDSTARTX) / TILESIZE),
+    starty: Math.round((cy - BOARDSTARTY) / TILESIZE),
+    highlight: null,
+  };
+  if (ret.startx >= 0 && (ret.startx + it.width) <= TILESW &&
+      ret.starty >= 0 && (ret.starty + it.height) <= TILESH) {
+    ret.highlight = [];
+    ret.ok = true;
+    for (var y = 0; y < it.height; y++) {
+      for (var x = 0; x < it.width; x++) {
+	var cell = it.GetCell(x, y);
+	if (cell && cell.type == CELL_HEAD) {
+	  // XXX test if occupied...
+	  var occupied = GetItemAt(ret.startx + x, ret.starty + y) != null;
+	  if (occupied) ret.ok = false;
+	  ret.highlight.push(
+	    occupied ? window.highlightnotok : window.highlightok);
+	} else {
+	  ret.highlight.push(null);
+	}
+      }
+    }
+    return ret;
+  } else {
+    // Not ok. No highlighting.
+    return ret;
+  }
+}
+
 function CanvasMousedown(e) {
+  if (window.floating) {
+    // behave as mousedown if we're holding something, since these
+    // are not always actually bracketed. Don't add another one!
+    CanvasMouseup(e);
+    return;
+  }
+
   e = e || window.event;
   var bcx = bigcanvas.canvas.offsetLeft;
   var bcy = bigcanvas.canvas.offsetTop;
@@ -329,6 +374,7 @@ function CanvasMousedown(e) {
     console.log('touch maybe in board ' + boardx + ', ' + boardy);
 
     // XXX NO.
+    /*
     var it = new Item();
     if (boardx < TILESW - 1 &&
 	boardy < TILESH &&
@@ -341,9 +387,32 @@ function CanvasMousedown(e) {
       it.boardy = boardy;
       window.items.push(it);
     }
+    */
   }
 
   // HERE...
+}
+
+function CanvasMouseup(e) {
+  e = e || window.event;
+  var bcx = bigcanvas.canvas.offsetLeft;
+  var bcy = bigcanvas.canvas.offsetTop;
+  var x = Math.floor((event.pageX - bcx) / PX);
+  var y = Math.floor((event.pageY - bcy) / PX);
+
+  if (window.floating) {
+    console.log('try drop...');
+    var it = window.floating;
+    var res = CheckDrop();
+    console.log(res);
+    if (res.ok) {
+      it.onboard = true;
+      it.boardx = res.startx;
+      it.boardy = res.starty;
+      window.items.push(it);
+      window.floating = false;
+    }
+  }
 }
 
 last = 0;
@@ -405,6 +474,7 @@ function Start() {
 
   bigcanvas.canvas.onmousemove = CanvasMove;
   bigcanvas.canvas.onmousedown = CanvasMousedown;
+  bigcanvas.canvas.onmouseup = CanvasMouseup;
 
   /*
   cutscene = cutscenes.intro;
