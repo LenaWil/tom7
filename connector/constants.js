@@ -35,7 +35,16 @@ var TRAYW = 51;
 var TRAYH = 178;
 
 var CELL_HEAD = 1;
-// Wire, etc.
+var CELL_WIRE = 2;
+// etc.?
+
+var WIRE_NS = 1;
+var WIRE_WE = 2;
+var WIRE_SE = 3;
+var WIRE_SW = 4;
+var WIRE_NE = 5;
+var WIRE_NW = 6;
+
 
 var FONTW = 9;
 var FONTH = 16;

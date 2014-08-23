@@ -24,6 +24,22 @@ function Init() {
   window.boardbg = Static('board.png');
   window.highlightok = new Frames(ConnectorGraphic(1, 2));
   window.highlightnotok = new Frames(ConnectorGraphic(1, 1));
+
+  // West-East
+  var wirebar = ConnectorGraphic(5, 3);  
+  // South-East
+  var wireangle = ConnectorGraphic(5, 2);
+  
+  window.wireframes = {};
+  window.wireframes[WIRE_WE] = new Frames(wirebar);
+  window.wireframes[WIRE_NS] = new Frames(RotateCCW(wirebar));
+  window.wireframes[WIRE_SE] = new Frames(wireangle);
+  wireangle = RotateCCW(wireangle);
+  window.wireframes[WIRE_NE] = new Frames(wireangle);
+  wireangle = RotateCCW(wireangle);
+  window.wireframes[WIRE_NW] = new Frames(wireangle);
+  wireangle = RotateCCW(wireangle);
+  window.wireframes[WIRE_SW] = new Frames(wireangle);
 }
 
 function ConnectorGraphic(x, y) {
@@ -83,8 +99,6 @@ function TieHeads() {
   }
 }
 
-// var RCA_RED_MALE = new Head
-
 function InitGame() {
   window.heads = {
     rca_red_m: new Head(6, 3, 6, 2, RIGHT, 'rca_red_f'),
@@ -98,6 +112,8 @@ function InitGame() {
   TieHeads();
 
   window.items = [];
+  window.floating = null;
+  window.dragging = null;
 
   // These are canvas coordinates, updated on animation frame.
   window.mousex = 0;
@@ -113,12 +129,6 @@ function InitGame() {
   console.log('initialized game');
 }
 
-/*
-function GetBoard(x, y) {
-  return board[y * TILESW + x];
-}
-*/
-
 function Cell() {
   return this;
 }
@@ -132,9 +142,16 @@ function CellHead(prop, facing) {
   return cell;
 }
 
+function CellWire(wire) {
+  var cell = new Cell;
+  cell.type = CELL_WIRE;
+  cell.wire = wire;
+  return cell;
+}
+
 var item_what = 0;
 function Item() {
-    // XXX obviously, configurable
+  // XXX obviously, make configurable
   item_what++;
 
   var heads = [];
@@ -144,18 +161,22 @@ function Item() {
   var head1 = heads[Math.floor(Math.random() * heads.length)];
   var head2 = heads[Math.floor(Math.random() * heads.length)];
 
+  var len = Math.floor(Math.random() * 2);
+
   switch (item_what % 2) {
     case 0:
-    this.width = 2;
+    this.width = 2 + len;
     this.height = 1;
-    this.shape = [CellHead(head1, LEFT),
-                  CellHead(head2, RIGHT)];
+    this.shape = [CellHead(head1, LEFT)];
+    for (var i = 0; i < len; i++) this.shape.push(CellWire(WIRE_WE));
+    this.shape.push(CellHead(head2, RIGHT));
     break;
     case 1:
     this.width = 1;
-    this.height = 2;
-    this.shape = [CellHead(head1, UP),
-                  CellHead(head2, DOWN)];
+    this.height = 2 + len;
+    this.shape = [CellHead(head1, UP)];
+    for (var i = 0; i < len; i++) this.shape.push(CellWire(WIRE_NS));
+    this.shape.push(CellHead(head2, DOWN));
     break;
   }
   return this;
@@ -245,8 +266,10 @@ function Draw() {
           DrawFrame(frame,
                     BOARDSTARTX + x * TILESIZE,
                     BOARDSTARTY + y * TILESIZE);
-        } else {
-          // Other types, e.g. wires...
+        } else if (cell.type == CELL_WIRE) {
+	  DrawFrame(window.wireframes[cell.wire],
+		    BOARDSTARTX + x * TILESIZE,
+		    BOARDSTARTY + y * TILESIZE);
         }
       }
     }
@@ -278,10 +301,16 @@ function Draw() {
     for (var y = 0; y < it.height; y++) {
       for (var x = 0; x < it.width; x++) {
 	var cell = it.GetCell(x, y);
-	if (cell && cell.type == CELL_HEAD) {
-	  DrawFrame(cell.head.unmated[cell.facing],
-		    cx + x * TILESIZE,
-		    cy + y * TILESIZE);
+	if (cell) {
+	  if (cell.type == CELL_HEAD) {
+	    DrawFrame(cell.head.unmated[cell.facing],
+		      cx + x * TILESIZE,
+		      cy + y * TILESIZE);
+	  } else if (cell.type == CELL_WIRE) {
+	    DrawFrame(window.wireframes[cell.wire],
+		      cx + x * TILESIZE,
+		      cy + y * TILESIZE);
+	  }
 	}
       }
     }
@@ -318,7 +347,7 @@ function CheckDrop() {
     for (var y = 0; y < it.height; y++) {
       for (var x = 0; x < it.width; x++) {
 	var cell = it.GetCell(x, y);
-	if (cell && cell.type == CELL_HEAD) {
+	if (cell && (cell.type == CELL_HEAD || cell.type == CELL_WIRE)) {
 	  // XXX test if occupied...
 	  var occupied = GetItemAt(ret.startx + x, ret.starty + y) != null;
 	  if (occupied) ret.ok = false;
@@ -337,7 +366,7 @@ function CheckDrop() {
 }
 
 function CanvasMousedown(e) {
-  if (window.floating) {
+  if (window.floating || window.dragging) {
     // behave as mousedown if we're holding something, since these
     // are not always actually bracketed. Don't add another one!
     CanvasMouseup(e);
@@ -351,7 +380,7 @@ function CanvasMousedown(e) {
   var y = Math.floor((event.pageY - bcy) / PX);
 
   // If in the tray section, then we create a new piece and
-  // start dragging it.
+  // start floating it.
   if (x >= TRAYX && y >= TRAYY &&
       x < (TRAYX + TRAYW) &&
       y <= (TRAYY + TRAYH)) {
@@ -369,6 +398,27 @@ function CanvasMousedown(e) {
     var boardx = Math.floor((x - BOARDSTARTX) / TILESIZE);
     var boardy = Math.floor((y - BOARDSTARTY) / TILESIZE);
     console.log('touch maybe in board ' + boardx + ', ' + boardy);
+
+    if (boardx >= 0 && boardy >= 0 &&
+	boardx < TILESW &&
+	boardy < TILESH) {
+      var it = GetItemAt(boardx, boardy);
+      if (!it) return;
+      var cell = it.GetCellByGlobal(boardx, boardy);
+      if (!cell) return;
+      if (cell.type == CELL_WIRE) {
+	// Wires just mean detach.
+	if (window.floating) throw 'already established';
+	window.floating = it;
+	it.onboard = false;
+      } else if (cell.type == CELL_HEAD) {
+	console.log('sorry not yet');
+	window.dragging =
+	    { it: it,
+	      x: boardx,
+	      y: boardy };
+      }
+    }
 
     // XXX NO.
     /*
@@ -401,7 +451,7 @@ function CanvasMouseup(e) {
     console.log('try drop...');
     var it = window.floating;
     var res = CheckDrop();
-    console.log(res);
+    // console.log(res);
     if (res.ok) {
       it.onboard = true;
       it.boardx = res.startx;
@@ -409,6 +459,9 @@ function CanvasMouseup(e) {
       window.items.push(it);
       window.floating = false;
     }
+  } else if (window.dragging) {
+    console.log('undrag');
+    window.dragging = null;
   }
 }
 
@@ -455,6 +508,23 @@ function Step(time) {
   window.requestAnimationFrame(Step);
 }
 
+// Get the direction from (sx, sy) to (dx, dy), but only if it
+// is exactly one square (manhattan distance). Otherwise return
+// null.
+function GetDirection1(sx, sy, dx, dy) {
+  if (sx == dx) {
+    if (sy + 1 == dy) return DOWN;
+    else if (sy - 1 == dy) return UP;
+    else return null;
+  } else if (sy == dy) {
+    if (sx + 1 == dx) return RIGHT;
+    else if (sx - 1 == dx) return LEFT;
+    else return null;
+  } else {
+    return null;
+  }
+}
+
 function CanvasMove(e) {
   e = e || window.event;
   var bcx = bigcanvas.canvas.offsetLeft;
@@ -463,6 +533,167 @@ function CanvasMove(e) {
   var y = Math.floor((event.pageY - bcy) / PX);
   window.mousex = x;
   window.mousey = y;
+
+  if (window.dragging) {
+    var Detach = function () {
+      window.floating = window.dragging.it;
+      window.floating.onboard = false;
+      window.dragging = null;
+    };
+
+    var boardx = Math.floor((x - BOARDSTARTX) / TILESIZE);
+    var boardy = Math.floor((y - BOARDSTARTY) / TILESIZE);
+    console.log('touch maybe in board ' + boardx + ', ' + boardy);
+
+    if (boardx >= 0 && boardy >= 0 &&
+	boardx < TILESW &&
+	boardy < TILESH) {
+      // Mouse moves can be arbitrary, but only do
+      // it if manhattan distance is 1.
+      var mh = GetDirection1(window.dragging.x, window.dragging.y,
+			     boardx, boardy);
+      if (mh == null) {
+	return;
+      } else {
+	var it = window.dragging.it;
+	// Is it occupied by another item, we detach.
+	var other = GetItemAt(boardx, boardy);
+	if (other && other != it) {
+	  console.log('detach due to collision with other');
+	  Detach();
+	  return;
+	}
+
+	// Otherwise, try shrink, grow...
+	if (!other) {
+	  // Can grow into free space.
+	  var cell = it.GetCellByGlobal(window.dragging.x,
+					window.dragging.y);
+	  if (cell.type != CELL_HEAD) throw 'bad drag';
+	  var oldface = cell.facing;
+	  var newface = mh;
+	  var newwire = GetTurn(oldface, newface);
+
+	  if (newwire == null) {
+	    console.log('impossible turn!');
+	    Detach();
+	    return;
+	  }
+	  console.log('turn!');
+	  
+	  var srcx = window.dragging.x - it.boardx;
+	  var srcy = window.dragging.y - it.boardy;
+	  var dstx = boardx - it.boardx;
+	  var dsty = boardy - it.boardy;
+	  it.shape[srcy * it.width + srcx] = CellWire(newwire);
+	  // dstx/y might be negative, or outside the it's shape.
+	  // safeplot expands/moves as necessary to preserve the
+	  // fiction.
+	  cell.facing = newface;
+	  it.SafePlot(dstx, dsty, cell);
+	  window.dragging.x = boardx;
+	  window.dragging.y = boardy;
+	}
+      }
+    }
+  }
+}
+
+// assumes the item is on the board currently...
+Item.prototype.SafePlot = function(dx, dy, cell) {
+  console.log(XY(dx, dy), cell);
+  while (dx < 0) {
+    // Add column on the left.
+    var owidth = this.width;
+    this.width++;
+    this.boardx--;
+    var oldshape = this.shape;
+    this.shape = [];
+    for (var y = 0; y < this.height; y++) {
+      for (var x = 0; x < this.width; x++) {
+	var prev = ((x - 1) >= 0) ?
+	    oldshape[y * owidth + x - 1] :
+	    null;
+	this.shape[y * this.width + x] = prev;
+      }
+    }
+    dx++;
+  }
+
+  while (dy < 0) {
+    // Add row on top.
+    this.height++;
+    this.boardy--;
+    var oldshape = this.shape;
+    this.shape = [];
+    for (var y = 0; y < this.height; y++) {
+      for (var x = 0; x < this.width; x++) {
+	var prev = ((y - 1) >= 0) ?
+	    oldshape[(y - 1) * this.width + x] :
+	    null;
+	this.shape[y * this.width + x] = prev;
+      }
+    }
+    dy++;
+  }
+
+  while (dx >= this.width) {
+    console.log('grow right');
+    var owidth = this.width;
+    this.width++;
+    var oldshape = this.shape;
+    this.shape = [];
+    for (var y = 0; y < this.height; y++) {
+      for (var x = 0; x < this.width; x++) {
+	var prev = (x < owidth) ?
+	    oldshape[y * owidth + x] :
+	    null;
+	this.shape[y * this.width + x] = prev;
+      }
+    }
+  }
+
+  while (dy >= this.height) {
+    this.height++;
+    var oldshape = this.shape;
+    // Add a new row to existing array.
+    for (var x = 0; x < this.width; x++) {
+      this.shape.push(null);
+    }
+  }
+
+  // also dy >= height
+  this.shape[dy * this.width + dx] = cell;
+};
+
+// If we used to be facing in oldface direction, and want
+// to turn to the new direction, what kind of wire do we
+// need?
+function GetTurn(oldface, newface) {
+  if (oldface == newface) {
+    if (oldface == UP || oldface == DOWN) return WIRE_NS;
+    else if (oldface == LEFT || oldface == RIGHT) return WIRE_WE;
+  } else {
+    switch (oldface) {
+      case UP:
+      if (newface == LEFT) return WIRE_SW;
+      else if (newface == RIGHT) return WIRE_SE;
+      else return null;
+      case DOWN:
+      if (newface == LEFT) return WIRE_NW;
+      else if (newface == RIGHT) return WIRE_NE;
+      else return null;
+      case LEFT:
+      if (newface == UP) return WIRE_NE;
+      else if (newface == DOWN) return WIRE_SE;
+      else return null;
+      case RIGHT:
+      if (newface == UP) return WIRE_NW;
+      else if (newface == DOWN) return WIRE_SW;
+      else return null;
+    }
+  }
+  return null;
 }
 
 function Start() {
