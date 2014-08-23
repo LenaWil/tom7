@@ -3,7 +3,8 @@
 // The 'f' field must be something that you can ctx.drawImage on,
 // so an Image or Canvas.
 function Frames(arg) {
-  if (arg instanceof Image) {
+  if (arg instanceof Image ||
+      arg instanceof HTMLCanvasElement) {
     // Assume static.
     this.frames = [{f: arg, d: 1}];
   } else {
@@ -29,6 +30,8 @@ function Frames(arg) {
   };
   if (this.frames.length == 0) throw '0 frames';
   // alert(this.frames[0].f);
+  console.log('...' + arg);
+  console.log(this.frames[0].f);
   this.height = this.frames[0].f.height;
   this.width = this.frames[0].f.width;
 }

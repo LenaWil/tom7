@@ -49,6 +49,55 @@ function ExtractBuf32(px32, src_width, x, y, w, h) {
   return c;
 }
 
+// Create a copy of the context/image, flipping it horizontally
+// (rightward facing arrow becomes leftward).
+function FlipHoriz(img) {
+  var i32 = Buf32FromImage(img);
+  var c = NewCanvas(img.width, img.height);
+  var ctx = c.getContext('2d');
+  var id = ctx.createImageData(img.width, img.height);
+  var buf = new ArrayBuffer(id.data.length);
+  var buf8 = new Uint8ClampedArray(buf);
+  var buf32 = new Uint32Array(buf);
+
+  for (var y = 0; y < img.height; y++) {
+    for (var x = 0; x < img.width; x++) {
+      buf32[y * img.width + x] =
+	  i32[y * img.width + (img.width - 1 - x)];
+    }
+  }
+  
+  id.data.set(buf8);
+  ctx.putImageData(id, 0, 0);
+  return c;
+}
+
+// TODO: FlipVert, RotateCW
+
+// Create a copy of the context/image, rotating it counter-clockwise
+// (rightward facing arrow becomes upward).
+function RotateCCW(img) {
+  var i32 = Buf32FromImage(img);
+  var c = NewCanvas(img.width, img.height);
+  var ctx = c.getContext('2d');
+  var id = ctx.createImageData(img.width, img.height);
+  var buf = new ArrayBuffer(id.data.length);
+  var buf8 = new Uint8ClampedArray(buf);
+  var buf32 = new Uint32Array(buf);
+
+  for (var y = 0; y < img.height; y++) {
+    for (var x = 0; x < img.width; x++) {
+      var dx = y;
+      var dy = img.width - x - 1;
+      buf32[dy * img.width + dx] = i32[y * img.width + x];
+    }
+  }
+  
+  id.data.set(buf8);
+  ctx.putImageData(id, 0, 0);
+  return c;
+}
+
 // Img must already be loaded.
 function Font(img, w, h, overlap, fontchars) {
   this.width = w;
