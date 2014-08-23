@@ -563,12 +563,13 @@ function CanvasMove(e) {
 	  Detach();
 	  return;
 	}
+	
+	var cell = it.GetCellByGlobal(window.dragging.x,
+				      window.dragging.y);
 
 	// Otherwise, try shrink, grow...
 	if (!other) {
 	  // Can grow into free space.
-	  var cell = it.GetCellByGlobal(window.dragging.x,
-					window.dragging.y);
 	  if (cell.type != CELL_HEAD) throw 'bad drag';
 	  var oldface = cell.facing;
 	  var newface = mh;
@@ -593,11 +594,152 @@ function CanvasMove(e) {
 	  it.SafePlot(dstx, dsty, cell);
 	  window.dragging.x = boardx;
 	  window.dragging.y = boardy;
+	} else {
+	  if (other != it) throw 'already established';
+	  if (mh != ReverseDir(cell.facing)) {
+	    console.log('non-retraction');
+	    Detach();
+	    return;
+	  }
+
+	  // Then we're running into ourself.
+	  var ocell = it.GetCellByGlobal(boardx, boardy);
+	  if (!ocell) throw ('object but no cell?');
+	  if (ocell.type == CELL_HEAD) {
+	    console.log('run into other head');
+	    Detach();
+	    return;
+	  } else if (ocell.type == CELL_WIRE) {
+	    var oldface = cell.facing;
+	    var oldwire = ocell.wire;
+	    var newface = GetCompatibleShrink(oldface, oldwire);
+	    
+	    if (newface == null) {
+	      // Note: probably means buggy wire state.
+	      console.log('impossible retraction!');
+	      Detach();
+	      return;
+	    }
+
+	    var srcx = window.dragging.x - it.boardx;
+	    var srcy = window.dragging.y - it.boardy;
+	    var dstx = boardx - it.boardx;
+	    var dsty = boardy - it.boardy;
+	    cell.facing = newface;
+	    it.shape[srcy * it.width + srcx] = null;
+	    it.shape[dsty * it.width + dstx] = cell;
+	    it.ShrinkToFit();
+	    window.dragging.x = boardx;
+	    window.dragging.y = boardy;
+	  }
 	}
       }
     }
   }
 }
+
+// Pass the direction the head is currently facing, and the wire
+// we're trying to move into. Returns null if it makes no sense,
+// otherwise, the new direction the head faces.
+function GetCompatibleShrink(face, wire) {
+  switch (face) {
+    case UP:
+    if (wire == WIRE_NS) return UP;
+    else if (wire == WIRE_NW) return RIGHT;
+    else if (wire == WIRE_NE) return LEFT;
+    else return null;
+    break;
+    case DOWN:
+    if (wire == WIRE_NS) return DOWN;
+    else if (wire == WIRE_SW) return RIGHT;
+    else if (wire == WIRE_SE) return LEFT;
+    else return null;
+    break;
+    case LEFT:
+    if (wire == WIRE_WE) return LEFT;
+    else if (wire == WIRE_NW) return DOWN;
+    else if (wire == WIRE_SW) return UP;
+    else return null;
+    break;
+    case RIGHT:
+    if (wire == WIRE_WE) return RIGHT;
+    else if (wire == WIRE_NE) return DOWN;
+    else if (wire == WIRE_SE) return UP;
+    break;
+  }
+  return null;
+}
+
+Item.prototype.EmptyColumn = function(x) {
+  for (var y = 0; y < this.height; y++)
+    if (this.shape[y * this.width + x] != null)
+      return false;
+  return true;
+};
+
+Item.prototype.EmptyRow = function(y) {
+  for (var x = 0; x < this.width; x++)
+    if (this.shape[y * this.width + x] != null)
+      return false;
+  return true;
+};
+
+// Assuming the item is on the board, trim away any
+// empty rows and columns.
+Item.prototype.ShrinkToFit = function() {
+  while (this.EmptyColumn(0)) {
+    if (this.width <= 1) throw 'impossible - empty';
+    var owidth = this.width;
+    this.width--;
+    this.boardx++;
+    var oldshape = this.shape;
+    this.shape = [];
+    for (var y = 0; y < this.height; y++) {
+      for (var x = 0; x < this.width; x++) {
+	var prev = oldshape[y * owidth + x + 1];
+	this.shape[y * this.width + x] = prev;
+      }
+    }
+  }
+
+  while (this.EmptyRow(0)) {
+    if (this.height <= 1) throw 'impossible - empty';
+    this.height--;
+    this.boardy++;
+    var oldshape = this.shape;
+    this.shape = [];
+    for (var y = 0; y < this.height; y++) {
+      for (var x = 0; x < this.width; x++) {
+	var prev = oldshape[(y + 1) * this.width + x];
+	this.shape[y * this.width + x] = prev;
+      }
+    }
+  }
+
+  while (this.EmptyColumn(this.width - 1)) {
+    if (this.width <= 1) throw 'impossible - empty';
+    var owidth = this.width;
+    this.width--;
+    var oldshape = this.shape;
+    this.shape = [];
+    for (var y = 0; y < this.height; y++) {
+      for (var x = 0; x < this.width; x++) {
+	var prev = oldshape[y * owidth + x];
+	this.shape[y * this.width + x] = prev;
+      }
+    }
+  }
+
+  while (this.EmptyRow(this.height - 1)) {
+    if (this.height <= 1) throw 'impossible - empty';
+    this.height--;
+    // Just truncate the last row.
+    this.shape.splice(this.shape.length - this.width, this.width);
+    if (this.shape.length != this.width * this.height)
+      throw 'bug';
+    console.log(this.shape);
+  }
+};
 
 // assumes the item is on the board currently...
 Item.prototype.SafePlot = function(dx, dy, cell) {
