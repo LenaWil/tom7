@@ -29,9 +29,7 @@ function Frames(arg) {
     return this.frames[0].f;
   };
   if (this.frames.length == 0) throw '0 frames';
-  // alert(this.frames[0].f);
-  console.log('...' + arg);
-  console.log(this.frames[0].f);
+  // console.log(this.frames[0].f);
   this.height = this.frames[0].f.height;
   this.width = this.frames[0].f.width;
 }

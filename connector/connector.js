@@ -122,12 +122,37 @@ function CellHead(prop, facing) {
   return cell;
 }
 
+var item_what = 0;
 function Item() {
-  // XXX obviously, configurable
-  this.width = 2;
-  this.height = 1;
-  this.shape = [CellHead('rca_red_m', LEFT),
-                CellHead('rca_red_f', RIGHT)];
+    // XXX obviously, configurable
+  item_what++;
+  
+  switch (item_what % 4) {
+    case 0:
+    this.width = 2;
+    this.height = 1;
+    this.shape = [CellHead('rca_red_m', LEFT),
+                  CellHead('rca_red_f', RIGHT)];
+    break;
+    case 1:
+    this.width = 1;
+    this.height = 2;
+    this.shape = [CellHead('rca_red_f', UP),
+                  CellHead('rca_red_f', DOWN)];
+    break;
+    case 2:
+    this.width = 1;
+    this.height = 2;
+    this.shape = [CellHead('rca_red_m', UP),
+                  CellHead('rca_red_m', DOWN)];
+    break;
+    case 3:
+    this.width = 2;
+    this.height = 1;
+    this.shape = [CellHead('rca_red_f', LEFT),
+                  CellHead('rca_red_m', RIGHT)];
+    break;
+  }
   return this;
 }
 
@@ -188,13 +213,14 @@ function IsMated(x, y) {
   if (mitem == item) {
     // console.log('self mate');
     return false;
-}
+  }
 
   var mcell = mitem.GetCellByGlobal(mx, my);
   if (!mcell || mcell.type != CELL_HEAD) return false;
 
-  // XXX test compatibility...
-  return true;
+  return cell.head.mate == mcell.head &&
+      mcell.head.mate == cell.head &&
+      cell.facing == ReverseDir(mcell.facing);
 }
 
 function Draw() {
@@ -238,6 +264,7 @@ function CanvasClick(e) {
   var boardy = Math.floor((y - BOARDSTARTY) / TILESIZE);
   console.log('click ' + boardx + ', ' + boardy);
 
+  var it = new Item();
   if (boardx < TILESW - 1 &&
       boardy < TILESH &&
       GetItemAt(boardx, boardy) == null &&
