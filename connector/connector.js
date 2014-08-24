@@ -22,6 +22,8 @@ function Init() {
   window.boardbg = Static('board.png');
   window.highlightok = new Frames(ConnectorGraphic(1, 2));
   window.highlightnotok = new Frames(ConnectorGraphic(1, 1));
+  window.highlightin = new Frames(ConnectorGraphic(1, 3));
+  window.highlightout = new Frames(ConnectorGraphic(1, 4));
 
   // West-East
   var wirebar = ConnectorGraphic(5, 3);
@@ -226,7 +228,7 @@ function ThreeHoriz(l, r) {
 function Level1() {
   window.goal = TwoHoriz('rca_red_m', 'quarter_m');
   window.stack =
-      [TwoHoriz('rca_red_m', 'ac_plug'), // 'rca_red_m'),
+      [TwoHoriz('rca_red_m', 'rca_red_m'),
        ThreeHoriz('quarter_m', 'quarter_f'),
        ThreeHoriz('quarter_m', 'rca_red_f')];
   InitLevel();
@@ -370,8 +372,29 @@ function GetFinished() {
 	      // Trace to make sure it reaches an end..
 	      var res = Trace(x, y, ReverseDir(cell.facing));
 	      if (res) {
-		console.log('trace ' + XY(x, y) + ' to ' +
-			    XY(res.x, res.y) + ' dir ' + res.dir);
+		// console.log('trace ' + XY(x, y) + ' to ' +
+		// XY(res.x, res.y) + ' dir ' + res.dir);
+		var oitem = GetItemAt(res.x, res.y);
+		if (!oitem)
+		  throw 'bad trace';
+		var ocell = oitem.GetCellByGlobal(res.x, res.y);
+		if (!ocell || ocell.type != CELL_HEAD)
+		  throw 'bad trace 2';
+		if (ocell.head == window.goalout) {
+		  // Good, as long as it's open!
+		  var xxx = MoveX(res.x, ocell.facing);
+		  var yyy = MoveY(res.y, ocell.facing);
+		  if (xxx >= 0 && xxx < TILESW &&
+		      yyy >= 0 && yyy < TILESH &&
+		      null == GetItemAt(xxx, yyy)) {
+		    // Finally, can't use the same space as
+		    // the open start!
+		    if (xxx != xx || yyy != yy) {
+		      return { sx: xx, sy: yy,
+			       ex: xxx, ey: yyy };
+		    }
+		  }
+		}
 	      }
 	    }
 	  }
@@ -379,6 +402,7 @@ function GetFinished() {
       }
     }
   }
+  return null;
 }
 
 function Trace(x, y, dir) {
@@ -449,6 +473,16 @@ function Trace(x, y, dir) {
 function Draw() {
   // ClearScreen();
   DrawFrame(window.boardbg, 0, 0);
+
+  var fin = GetFinished();
+  if (fin) {
+    DrawFrame(window.highlightin,
+	      BOARDSTARTX + fin.sx * TILESIZE,
+	      BOARDSTARTY + fin.sy * TILESIZE);
+    DrawFrame(window.highlightout,
+	      BOARDSTARTX + fin.ex * TILESIZE,
+	      BOARDSTARTY + fin.ey * TILESIZE);
+  }
 
   // Draw items and I/O indicators
   for (var y = 0; y < TILESH; y++) {
@@ -727,8 +761,6 @@ function Step(time) {
   if (frames > 1000000) frames = 0;
 
   UpdateSong();
-
-  GetFinished();
 
   Draw();
 
