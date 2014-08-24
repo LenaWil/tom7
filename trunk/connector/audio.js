@@ -1,7 +1,7 @@
 
 // Audio stuff.
 // https://developer.apple.com/library/safari/documentation/AudioVideo/Conceptual/Using_HTML5_Audio_Video/PlayingandSynthesizingSounds/PlayingandSynthesizingSounds.html
-var audioctx = 
+var audioctx =
     (window.webkitAudioContext && new webkitAudioContext()) ||
     (window.AudioContext && new AudioContext());
 var TYPE_SINE = 0, TYPE_SQUARE = 1, TYPE_SAW = 2, TYPE_TRI = 3;
@@ -21,7 +21,7 @@ function PlaySound(s) {
   // var src = audioctx.createBufferSource();
   // var buf = resources.Get(s);
   // src.buffer = audioctx.createBuffer(buf, false);
-  
+
   var src = audioctx.createBufferSource();
   src.buffer = resources.Get(s);
   // Volume?
@@ -66,14 +66,14 @@ function StartSong(s) {
       notes[j].d *= MSPERTICK * m;
     }
 
-    tracks.push({ type: type, 
+    tracks.push({ type: type,
 		  notes: notes,
 		  volume: song[i].volume || 1.0,
 		  idx: 0,
 		  active: [],
 		  basetime: now });
   }
-  
+
   UpdateSong(s);
 }
 

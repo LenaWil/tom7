@@ -29,7 +29,7 @@ function Frames(arg) {
     // Assume list.
     this.frames = arg;
   }
-  
+
   var ct = 0;
   for (var i = 0; i < this.frames.length; i++) {
     ct += this.frames[i].d;
@@ -97,7 +97,7 @@ function EzFlipHoriz(img) {
 	  i32[y * img.width + (img.width - 1 - x)];
     }
   }
-  
+
   id.data.set(buf8);
   ctx.putImageData(id, 0, 0);
   return c;
@@ -130,13 +130,13 @@ function EzColor(img, shirt, pants, hair) {
       buf32[y * img.width + x] = p;
     }
   }
-  
+
   id.data.set(buf8);
   ctx.putImageData(id, 0, 0);
   return c;
 }
 
 function DrawFrame(frame, x, y, opt_fc) {
-  ctx.drawImage(frame.GetFrame(arguments.length > 3 ? opt_fc : frames), 
+  ctx.drawImage(frame.GetFrame(arguments.length > 3 ? opt_fc : frames),
 		Math.round(x), Math.round(y));
 }

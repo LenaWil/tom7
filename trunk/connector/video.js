@@ -13,7 +13,7 @@ function Buf32FromImage(img) {
   var cc = c.getContext('2d');
   cc.drawImage(img, 0, 0);
 
-  return new Uint32Array(cc.getImageData(0, 0, 
+  return new Uint32Array(cc.getImageData(0, 0,
 					 img.width, img.height).data.buffer);
 }
 
@@ -66,7 +66,7 @@ function FlipHoriz(img) {
 	  i32[y * img.width + (img.width - 1 - x)];
     }
   }
-  
+
   id.data.set(buf8);
   ctx.putImageData(id, 0, 0);
   return c;
@@ -92,7 +92,7 @@ function RotateCCW(img) {
       buf32[dy * img.width + dx] = i32[y * img.width + x];
     }
   }
-  
+
   id.data.set(buf8);
   ctx.putImageData(id, 0, 0);
   return c;
@@ -120,7 +120,7 @@ function Font(img, w, h, overlap, fontchars) {
 	xx = x;
 	y += this.height - 1;
       } else {
-	this.chars[ch] && 
+	this.chars[ch] &&
 	    ctx.drawImage(this.chars[ch], xx, y);
 	xx += this.width - this.overlap;
       }
@@ -129,7 +129,7 @@ function Font(img, w, h, overlap, fontchars) {
 }
 
 
-// Off screen 
+// Off screen
 var canvas =
     (function() {
       var c = document.createElement('canvas');
@@ -154,7 +154,7 @@ function ClearScreen() {
 }
 
 var BigCanvas = function() {
-  this.canvas = 
+  this.canvas =
       (function() {
 	var c = document.getElementById('bigcanvas');
 	if (!c) {

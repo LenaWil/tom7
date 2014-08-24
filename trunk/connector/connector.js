@@ -169,7 +169,20 @@ function ClearGame() {
   window.dragging = null;
 
   window.goal = null;
+  window.goalin = null;
+  window.goalout = null;
   window.stack = [];
+}
+
+function InitLevel() {
+  var l = window.goal.GetHeads();
+  if (l.length != 2) {
+    throw 'goal needs to have two heads';
+  }
+  window.goalin = l[0];
+  window.goalout = l[1];
+
+  // XXX Start music...?
 }
 
 function CellHead(prop, facing) {
@@ -190,41 +203,6 @@ function CellWire(wire) {
 
 function Item() {
   return this;
-}
-
-// XXX probably not needed any more, unless I do arcade mode?
-var item_what = 0;
-function RandomItem() {
-  var it = new Item();
-  item_what++;
-
-  var heads = [];
-  for (var o in window.heads) {
-    heads.push(o);
-  }
-
-  var head1 = heads[Math.floor(Math.random() * window.randheads)];
-  var head2 = heads[Math.floor(Math.random() * window.randheads)];
-
-  var len = Math.floor(Math.random() * 2);
-
-  switch (item_what % 2) {
-    case 0:
-    it.width = 2 + len;
-    it.height = 1;
-    it.shape = [CellHead(head1, LEFT)];
-    for (var i = 0; i < len; i++) it.shape.push(CellWire(WIRE_WE));
-    it.shape.push(CellHead(head2, RIGHT));
-    break;
-    case 1:
-    it.width = 1;
-    it.height = 2 + len;
-    it.shape = [CellHead(head1, UP)];
-    for (var i = 0; i < len; i++) it.shape.push(CellWire(WIRE_NS));
-    it.shape.push(CellHead(head2, DOWN));
-    break;
-  }
-  return it;
 }
 
 function MakeItem(w, h, shape) {
@@ -248,9 +226,10 @@ function ThreeHoriz(l, r) {
 function Level1() {
   window.goal = TwoHoriz('rca_red_m', 'quarter_m');
   window.stack =
-      [TwoHoriz('rca_red_m', 'rca_red_m'),
+      [TwoHoriz('rca_red_m', 'ac_plug'), // 'rca_red_m'),
        ThreeHoriz('quarter_m', 'quarter_f'),
        ThreeHoriz('quarter_m', 'rca_red_f')];
+  InitLevel();
 }
 
 function Cell() {
@@ -361,9 +340,117 @@ function CanMate(head1, head2) {
   return ok2;
 }
 
+function MoveX(x, dir) {
+  if (dir == LEFT) return x - 1;
+  else if (dir == RIGHT) return x + 1;
+  else return x;
+}
+
+function MoveY(y, dir) {
+  if (dir == UP) return y - 1;
+  else if (dir == DOWN) return y + 1;
+  else return y;
+}
+
+function GetFinished() {
+  // Find any open head of the goal in type.
+  for (var y = 0; y < TILESH; y++) {
+    for (var x = 0; x < TILESW; x++) {
+      var item = GetItemAt(x, y);
+      if (item != null) {
+	var cell = item.GetCellByGlobal(x, y);
+	if (cell != null && cell.type == CELL_HEAD &&
+	    cell.head == window.goalin) {
+	  var xx = MoveX(x, cell.facing);
+	  var yy = MoveY(y, cell.facing);
+	  if (xx >= 0 && xx < TILESW &&
+	      yy >= 0 && yy < TILESH) {
+	    if (null == GetItemAt(xx, yy)) {
+	      // OK, it's open!
+	      // Trace to make sure it reaches an end..
+	      var res = Trace(x, y, ReverseDir(cell.facing));
+	      if (res) {
+		console.log('trace ' + XY(x, y) + ' to ' +
+			    XY(res.x, res.y) + ' dir ' + res.dir);
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+function Trace(x, y, dir) {
+  var visited = {};
+  do {
+    visited[[x, y]] = true;
+    x = MoveX(x, dir);
+    y = MoveY(y, dir);
+    var item = GetItemAt(x, y);
+    if (!item) {
+      console.log('fell off item at ' + XY(x, y) + '..?');
+      return null;
+    }
+    var cell = item.GetCellByGlobal(x, y);
+    if (!cell) {
+      throw 'bad item';
+    }
+
+    switch (cell.type) {
+      case CELL_HEAD:
+      if (IsMated(x, y)) {
+	dir = dir;
+	// Continue through mated heads (both source
+	// and destination). Assumes well-formed items!
+      } else {
+	return { x: x, y: y, dir: dir };
+      }
+      break;
+      case CELL_WIRE:
+      // Turn according to wire.
+      switch (dir) {
+	case UP:
+	if (cell.wire == WIRE_NS) dir = UP;
+	else if (cell.wire == WIRE_SW) dir = LEFT;
+	else if (cell.wire == WIRE_SE) dir = RIGHT;
+	else return null;
+	break;
+	case DOWN:
+	if (cell.wire == WIRE_NS) dir = DOWN;
+	else if (cell.wire == WIRE_NW) dir = LEFT;
+	else if (cell.wire == WIRE_NE) dir = RIGHT;
+	else return null;
+	break;
+	case LEFT:
+	if (cell.wire == WIRE_WE) dir = LEFT;
+	else if (cell.wire == WIRE_NE) dir = UP;
+	else if (cell.wire == WIRE_SE) dir = DOWN;
+	else return null;
+	break;
+	case RIGHT:
+	if (cell.wire == WIRE_WE) dir = RIGHT;
+	else if (cell.wire == WIRE_NW) dir = UP;
+	else if (cell.wire == WIRE_SW) dir = DOWN;
+	else return null;
+	break;
+      }
+      break;
+    }
+
+  } while (!visited[[x, y]]);
+  // This is certainly possible by making a cycle of
+  // connectors, but when would we trace such a thing?
+  // (maybe to test for self-connected outlet?)
+  // console.log('cycle?');
+  return null;
+}
+
 function Draw() {
   // ClearScreen();
   DrawFrame(window.boardbg, 0, 0);
+
+  // Draw items and I/O indicators
   for (var y = 0; y < TILESH; y++) {
     for (var x = 0; x < TILESW; x++) {
       var item = GetItemAt(x, y);
@@ -383,6 +470,8 @@ function Draw() {
 		    BOARDSTARTX + x * TILESIZE,
 		    BOARDSTARTY + y * TILESIZE);
         }
+      } else {
+	// No item. Then maybe an indicator.
       }
     }
   }
@@ -638,6 +727,8 @@ function Step(time) {
   if (frames > 1000000) frames = 0;
 
   UpdateSong();
+
+  GetFinished();
 
   Draw();
 

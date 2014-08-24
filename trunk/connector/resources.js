@@ -33,7 +33,7 @@ var Resources = function(imgs, wavs, audiocontext, k) {
     return function(event) {
       var req = event.target;
       audiocontext.decodeAudioData(
-	req.response, 
+	req.response,
 	function(decoded) {
 	  that.obj[sym] = decoded;
 	  that.remaining--;
