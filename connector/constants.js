@@ -32,7 +32,10 @@ function ReverseDir(d) {
 var TRAYX = 6;
 var TRAYY = 12;
 var TRAYW = 51;
-var TRAYH = 178;
+var TRAYH = 138;
+
+var TRAYPLACEX = 11;
+var TRAYPLACEY = 25;
 
 var CELL_HEAD = 1;
 var CELL_WIRE = 2;
@@ -45,6 +48,15 @@ var WIRE_SW = 4;
 var WIRE_NE = 5;
 var WIRE_NW = 6;
 
+// goal box
+var GOALX = 6;
+var GOALY = 153;
+var GOALW = 51;
+var GOALH = 37;
+
+// where the goal piece goes
+var GOALPLACEX = 11;
+var GOALPLACEY = 164;
 
 var FONTW = 9;
 var FONTH = 16;

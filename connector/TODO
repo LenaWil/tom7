@@ -3,24 +3,20 @@
 12 HOURS
 
 Basic
+  - draw something in tray
+  - drop things back into tray
   - show title
   - finish title screen
   - touch events
   - resize screen for iphone, ipad
 
-2h Arcade Mode
-  - Countdown timer
-  - loops are destroyed (plus whatever's inside?)
-  - Bonus time for making loops
-  - Score
-  - Maybe replace "Goal" & "Drag" with score / timer / next
-  - arcade music
-
 Story Mode
-  - Store scene drawing
+  - Store scene artwork
+  - in-game dialogue code
+  - taking the goal
+  - taking the goal a second time
   - cutscene code
   - "tutorial"?
-  - some kinda twist
 
 Polish
   - when floating, object handle rather than assuming center
@@ -32,6 +28,16 @@ Polish
 - index objects to speed up GetItemAt?
 
 - SOME KIND OF PUZZLE OR THING THAT'S FUN JEEZZ
+
+
+Jam maybeeeee...
+2h Arcade Mode
+  - Countdown timer
+  - loops are destroyed (plus whatever's inside?)
+  - Bonus time for making loops
+  - Score
+  - Maybe replace "Goal" & "Drag" with score / timer / next
+  - arcade music
 
 
 ideas / etc.
