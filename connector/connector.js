@@ -135,8 +135,13 @@ function InitGame() {
     // For live wires, 'mated' means animated. HA HA!
     livewire:  new Head(livewire_unmated, livewire_anim, null),
     outlet_top: EzHead(11, 6, 10, 6, LEFT, ['ac_plug']),
-    outlet_bot: EzHead(11, 7, 10, 7, LEFT, ['ac_plug'])
+    outlet_bot: EzHead(11, 7, 10, 7, LEFT, ['ac_plug']),
+    // For pen, mated means heated tip
+    solder_pen: EzHead(9, 2, 9, 3, LEFT, [])
   };
+
+  window.heads.outlet_top.outlet = true;
+  window.heads.outlet_bot.outlet = true;
 
   window.randheads = 8;
 
@@ -151,7 +156,20 @@ function InitGame() {
   outlet.boardx = 11;
   outlet.boardy = 6;
 
-  window.items = [outlet];
+  var iron = new Item();
+  iron.width = 5;
+  iron.height = 4,
+  iron.shape =
+      [CellHead('solder_pen', UP), null, null, null, null,
+       CellWire(WIRE_NE), CellWire(WIRE_WE), CellWire(WIRE_SW), null, null,
+       null, null, CellWire(WIRE_NS), null, null,
+       null, null, CellWire(WIRE_NE), CellWire(WIRE_WE), 
+                                            CellHead('ac_plug', RIGHT)];
+  iron.onboard = true;
+  iron.boardx = 6;
+  iron.boardy = 3;  
+
+  window.items = [iron, outlet];
   window.floating = null;
   window.dragging = null;
 
@@ -460,7 +478,10 @@ function CanvasMousedown(e) {
 	window.floating = it;
 	it.onboard = false;
       } else if (cell.type == CELL_HEAD) {
-	console.log('sorry not yet');
+	if (cell.head.outlet) {
+	  console.log('cannot drag outlets');
+	  return;
+	}
 	window.dragging =
 	    { it: it,
 	      x: boardx,
@@ -469,7 +490,6 @@ function CanvasMousedown(e) {
     }
   }
 
-  // HERE...
 }
 
 function CanvasMouseup(e) {
