@@ -41,6 +41,8 @@ function Init() {
 
   // Audio tweaks.
   song_theme.multiply = 1.5;
+  song_power.multiply = 1.35;
+  
   // song_menu[0].volume = 0.65;
 }
 
@@ -130,7 +132,7 @@ function InitGame() {
 
   console.log('initialized game');
 
-  StartSong(song_menu);
+  StartSong(song_power);
 }
 
 function Cell() {

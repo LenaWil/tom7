@@ -110,7 +110,7 @@ function DoSoundEvent(tr, e, d) {
     src.frequency.value = MidiFreq(e.on);
     var gain = audioctx.createGain();
     var m = tr.volume || 1.0;
-    gain.gain.value = 0.25 * m;
+    gain.gain.value = 0.20 * m;
     src.connect(gain);
 
     var lowpass = audioctx.createBiquadFilter();
