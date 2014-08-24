@@ -14,6 +14,16 @@ var TILESH = 8;
 var BOARDSTARTX = 68;
 var BOARDSTARTY = 20;
 
+var PHASE_TITLE = 1;
+var PHASE_INTRO = 2;
+var PHASE_PUZZLE = 3;
+// and end, ...
+
+var DOORX = 30;
+var DOORY = 91;
+var DOORW = 64;
+var DOORH = 109;
+
 // Order is assumed.
 var UP = 0;
 var DOWN = 1;
@@ -36,14 +46,22 @@ var INDICATOR_BOTH = 3;
 var TRAYX = 6;
 var TRAYY = 12;
 var TRAYW = 51;
-var TRAYH = 138;
+var TRAYH = 108;
 
 var TRAYPLACEX = 11;
 var TRAYPLACEY = 25;
 
+var SELLX = 6;
+var SELLY = 122;
+var SELLW = 51;
+var SELLH = 29;
+
 var CELL_HEAD = 1;
 var CELL_WIRE = 2;
 // etc.?
+
+var DESKBUBBLEX = 154;
+var DESKBUBBLEY = 0;
 
 var WIRE_NS = 1;
 var WIRE_WE = 2;

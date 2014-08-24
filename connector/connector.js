@@ -7,8 +7,12 @@ var frames = 0;
 
 var resources = new Resources(
   ['font.png',
+   'desk.png',
+   'deskbubble.png',
    'title.png',
    'board.png',
+   'sell1.png',
+   'sell2.png',
    'connectors.png'],
   [], null);
 
@@ -24,6 +28,9 @@ function Init() {
   window.highlightnotok = new Frames(ConnectorGraphic(1, 1));
   window.highlightin = new Frames(ConnectorGraphic(1, 3));
   window.highlightout = new Frames(ConnectorGraphic(1, 4));
+
+  window.sellframes = EzFrames(['sell1', 2, 'sell2', 2]);
+  window.titleframes = EzFrames(['title', 1]);
 
   // West-East
   var wirebar = ConnectorGraphic(5, 3);
@@ -158,9 +165,6 @@ function InitGame() {
   window.mousey = 0;
 
   console.log('initialized game');
-
-
-  Level1();
 
   // StartSong(song_power);
 }
@@ -470,7 +474,7 @@ function Trace(x, y, dir) {
   return null;
 }
 
-function Draw() {
+function DrawPuzzle() {
   // ClearScreen();
   DrawFrame(window.boardbg, 0, 0);
 
@@ -482,6 +486,7 @@ function Draw() {
     DrawFrame(window.highlightout,
 	      BOARDSTARTX + fin.ex * TILESIZE,
 	      BOARDSTARTY + fin.ey * TILESIZE);
+    DrawFrame(window.sellframes, SELLX, SELLY);
   }
 
   // Draw items and I/O indicators
@@ -642,19 +647,13 @@ function CheckDrop() {
   }
 }
 
-function CanvasMousedown(e) {
+function CanvasMousedownPuzzle(x, y) {
   if (window.floating || window.dragging) {
     // behave as mousedown if we're holding something, since these
     // are not always actually bracketed. Don't add another one!
-    CanvasMouseup(e);
+    CanvasMouseupPuzzle(x, y);
     return;
   }
-
-  e = e || window.event;
-  var bcx = bigcanvas.canvas.offsetLeft;
-  var bcy = bigcanvas.canvas.offsetTop;
-  var x = Math.floor((event.pageX - bcx) / PX);
-  var y = Math.floor((event.pageY - bcy) / PX);
 
   // If in the tray section, then we create a new piece and
   // start floating it.
@@ -662,7 +661,7 @@ function CanvasMousedown(e) {
   // XXX implement goal dragging.
 
   if (x >= TRAYX && y >= TRAYY &&
-      x < (TRAYX + TRAYW) &&
+      x <= (TRAYX + TRAYW) &&
       y <= (TRAYY + TRAYH)) {
     console.log('touch in tray');
 
@@ -680,6 +679,16 @@ function CanvasMousedown(e) {
       // Say some message...
     }
 
+  } else if (x >= SELLX && y >= SELLY &&
+	     x < (SELLX + SELLW) &&
+	     y < (SELLY + SELLH)) {
+    
+    var fin = GetFinished();
+    if (fin) {
+      // OK, can sell...
+      NextLevel();
+    }
+    
   } else {
     // In board? -- pick up piece?
     var boardx = Math.floor((x - BOARDSTARTX) / TILESIZE);
@@ -713,13 +722,34 @@ function CanvasMousedown(e) {
 
 }
 
-function CanvasMouseup(e) {
+function CanvasMousedown(e) {
   e = e || window.event;
   var bcx = bigcanvas.canvas.offsetLeft;
   var bcy = bigcanvas.canvas.offsetTop;
   var x = Math.floor((event.pageX - bcx) / PX);
   var y = Math.floor((event.pageY - bcy) / PX);
 
+  switch (window.phase) {
+    case PHASE_PUZZLE:
+    return CanvasMousedownPuzzle(x, y);
+    break;
+    case PHASE_TITLE:
+    if (x >= DOORX && x <= (DOORX + DOORW) &&
+	y >= DOORY && y <= (DOORY + DOORH)) {
+      ClearSong();
+      // XXX cutscene
+      window.phase = PHASE_PUZZLE;
+      InitGame();
+      Level1();
+    }
+    break;
+    case PHASE_CUTSCENE:
+    // advance cutscene...
+    break;
+  }
+}
+
+function CanvasMouseupPuzzle(x, y) {
   if (window.floating) {
     console.log('try drop...');
     var it = window.floating;
@@ -738,49 +768,24 @@ function CanvasMouseup(e) {
   }
 }
 
-last = 0;
-function Step(time) {
-  // Throttle to 30 fps or something we
-  // should be able to hit on most platforms.
-  // Word has it that 'time' may not be supported on Safari, so
-  // compute our own.
-  var now = (new Date()).getTime();
-  var diff = now - last;
-  // debug.innerHTML = diff;
-  // Don't do more than 30fps.
-  // XXX This results in a frame rate of 21 on RIVERCITY, though
-  // I can easily get 60, so what gives?
-  if (diff < MINFRAMEMS) {
-    skipped++;
-    window.requestAnimationFrame(Step);
-    return;
+function CanvasMouseup(e) {
+  e = e || window.event;
+  var bcx = bigcanvas.canvas.offsetLeft;
+  var bcy = bigcanvas.canvas.offsetTop;
+  var x = Math.floor((event.pageX - bcx) / PX);
+  var y = Math.floor((event.pageY - bcy) / PX);
+
+  switch (window.phase) {
+    case PHASE_PUZZLE:
+    return CanvasMouseupPuzzle(x, y);
+    break;
+    case PHASE_TITLE:
+    // ignored
+    break;
+    case PHASE_CUTSCENE:
+    // ignored
+    break;
   }
-  last = now;
-
-  frames++;
-  if (frames > 1000000) frames = 0;
-
-  UpdateSong();
-
-  Draw();
-
-  // process music in any state
-  // UpdateSong();
-
-  // On every frame, flip to 4x canvas
-  bigcanvas.Draw4x(ctx);
-
-  if (DEBUG) {
-    counter++;
-    var sec = ((new Date()).getTime() - start_time) / 1000;
-    document.getElementById('counter').innerHTML =
-        'skipped ' + skipped + ' drew ' +
-        counter + ' (' + (counter / sec).toFixed(2) + ' fps)';
-  }
-
-  // And continue the loop...
-  // console.log('XXX one frame');
-  window.requestAnimationFrame(Step);
 }
 
 // Get the direction from (sx, sy) to (dx, dy), but only if it
@@ -809,6 +814,10 @@ function CanvasMove(e) {
   window.mousex = x;
   window.mousey = y;
 
+  // If we use movement anywhere else (unlikely!) then
+  // do the switch thing.
+  if (window.phase != PHASE_PUZZLE) return;
+
   if (window.dragging) {
     var Detach = function () {
       window.floating = window.dragging.it;
@@ -818,7 +827,7 @@ function CanvasMove(e) {
 
     var boardx = Math.floor((x - BOARDSTARTX) / TILESIZE);
     var boardy = Math.floor((y - BOARDSTARTY) / TILESIZE);
-    console.log('touch maybe in board ' + boardx + ', ' + boardy);
+    // console.log('touch maybe in board ' + boardx + ', ' + boardy);
 
     if (boardx >= 0 && boardy >= 0 &&
 	boardx < TILESW &&
@@ -1113,9 +1122,71 @@ function GetTurn(oldface, newface) {
   return null;
 }
 
+function Draw() {
+  switch (window.phase) {
+    case PHASE_TITLE:
+    DrawFrame(window.titleframes, 0, 0);
+    break;
+    case PHASE_INTRO:
+    
+    break;
+    case PHASE_PUZZLE:
+    DrawPuzzle();
+    break;
+  }
+}
+
+last = 0;
+function Step(time) {
+  // Throttle to 30 fps or something we
+  // should be able to hit on most platforms.
+  // Word has it that 'time' may not be supported on Safari, so
+  // compute our own.
+  var now = (new Date()).getTime();
+  var diff = now - last;
+  // debug.innerHTML = diff;
+  // Don't do more than 30fps.
+  // XXX This results in a frame rate of 21 on RIVERCITY, though
+  // I can easily get 60, so what gives?
+  if (diff < MINFRAMEMS) {
+    skipped++;
+    window.requestAnimationFrame(Step);
+    return;
+  }
+  last = now;
+
+  frames++;
+  if (frames > 1000000) frames = 0;
+
+  UpdateSong();
+
+  Draw();
+
+  // process music in any state
+  // UpdateSong();
+
+  // On every frame, flip to 4x canvas
+  bigcanvas.Draw4x(ctx);
+
+  if (DEBUG) {
+    counter++;
+    var sec = ((new Date()).getTime() - start_time) / 1000;
+    document.getElementById('counter').innerHTML =
+        'skipped ' + skipped + ' drew ' +
+        counter + ' (' + (counter / sec).toFixed(2) + ' fps)';
+  }
+
+  // And continue the loop...
+  // console.log('XXX one frame');
+  window.requestAnimationFrame(Step);
+}
+
 function Start() {
   Init();
   InitGame();
+
+  window.phase = PHASE_TITLE;
+  StartSong(song_theme);
 
   bigcanvas.canvas.onmousemove = CanvasMove;
   bigcanvas.canvas.onmousedown = CanvasMousedown;
