@@ -29,6 +29,10 @@ function ReverseDir(d) {
   return undefined;
 }
 
+var INDICATOR_IN = 1;
+var INDICATOR_OUT = 2;
+var INDICATOR_BOTH = 3;
+
 var TRAYX = 6;
 var TRAYY = 12;
 var TRAYW = 51;
