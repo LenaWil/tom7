@@ -21,7 +21,7 @@ Polish
   - bugs having to do with floating
   - make it possible to return a floating thing to the tray
   - obvious performance issues
-
+  - blink on desk anim
 
 - index objects to speed up GetItemAt?
 
