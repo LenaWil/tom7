@@ -31,6 +31,7 @@ function Init() {
 
   window.sellframes = EzFrames(['sell1', 2, 'sell2', 2]);
   window.titleframes = EzFrames(['title', 1]);
+  window.deskbubbleframes = EzFrames(['deskbubble', 1]);
 
   // West-East
   var wirebar = ConnectorGraphic(5, 3);
@@ -163,6 +164,32 @@ function InitGame() {
   // These are canvas coordinates, updated on animation frame.
   window.mousex = 0;
   window.mousey = 0;
+
+
+  // Cutscenes..
+  window.cutscenes = {
+    intro: [{ f: EzFrames(['desk', 1]),
+	      s: song_menu,
+	      predelay: 40,
+	      t: [' Hey, I\'m Jim. I ',
+		  'work at Connector ',
+		  'World, your one-stop ',
+		  'shop for all your ',
+		  '   connecting needs.'] },
+	    { f: EzFrames(['desk', 1]),
+	      s: song_menu,
+	      t: [' Today I am gonna,',
+		  'be \'outsourcing\' my',
+		  'job. You\'re going',
+		  'to do it, because'] },
+	    { f: EzFrames(['desk', 1]),
+	      s: song_menu,
+	      t: [' you seem to think',
+		  'my job is some kind',
+		  'of game, which is',
+		  'weird.'] }
+	   ]
+  };
 
   console.log('initialized game');
 
@@ -474,6 +501,59 @@ function Trace(x, y, dir) {
   return null;
 }
 
+function DrawCutscene() {
+  var cuts = window.cutscenes[window.cutscene];
+  if (!cuts) throw 'invalid cutscene';
+  var cs = cuts[window.cutscene_idx];
+  if (!cs) throw 'invalid cutscene idx';
+
+  var predelay = cs.predelay || 10;
+  DrawFrame(cs.f, 0, 0);
+  window.cutscene_frames++;
+  if (window.cutscene_ffwd) window.cutscene_frames += 3;
+  if (window.cutscene_frames >= predelay) {
+    DrawFrame(window.deskbubbleframes, DESKBUBBLEX, DESKBUBBLEY);
+    var charsleft = 
+	// 1 char per frame, ok?
+	window.cutscene_frames - predelay;
+
+    var lines = cs.t;
+    for (var i = 0; i < lines.length; i++) {
+      var s = (lines[i].length <= charsleft) ?
+	  lines[i] :
+	  lines[i].substring(0, charsleft);
+      charsleft -= s.length;
+      font.Draw(ctx, CUTSCENETEXTX, 
+		CUTSCENETEXTY + FONTH * i,
+		s);
+    }
+    
+    if (charsleft > 0) {
+      // Allow continuing.
+      // (draw 'CLICK' indicator?)
+      window.cutscene_ready = true;
+      window.cutscene_ffwd = false;
+    }
+  }
+}
+
+function StartCutscene(name) {
+  window.cutscene = name;
+  window.cutscene_idx = 0;
+  window.cutscene_frames = 0;
+  window.cutscene_ffwd = false;
+  window.cutscene_ready = false;
+  
+  var cuts = window.cutscenes[window.cutscene];
+  if (!cuts) throw 'invalid cutscene';
+  var cs = cuts[window.cutscene_idx];
+  if (!cs) throw 'invalid cutscene idx';
+
+  if (song != cs.s) {
+    StartSong(cs.s);
+  }
+}
+
 function DrawPuzzle() {
   // ClearScreen();
   DrawFrame(window.boardbg, 0, 0);
@@ -722,6 +802,21 @@ function CanvasMousedownPuzzle(x, y) {
 
 }
 
+function CanvasMousedownCutscene(x, y) {
+  window.cutscene_ffwd = true;
+  if (window.cutscene_ready) {
+    window.cutscene_ready = false;
+    window.cutscene_ffwd = false;
+    window.cutscene_idx++;
+    window.cutscene_frames = 0;
+    // XXX CHECK DONE!!!
+  }
+}
+
+function CanvasMouseupCutscene(x, y) {
+  window.cutscene_ffwd = false;
+}
+
 function CanvasMousedown(e) {
   e = e || window.event;
   var bcx = bigcanvas.canvas.offsetLeft;
@@ -737,14 +832,12 @@ function CanvasMousedown(e) {
     if (x >= DOORX && x <= (DOORX + DOORW) &&
 	y >= DOORY && y <= (DOORY + DOORH)) {
       ClearSong();
-      // XXX cutscene
-      window.phase = PHASE_PUZZLE;
-      InitGame();
-      Level1();
+      window.phase = PHASE_CUTSCENE;
+      StartCutscene('intro');
     }
     break;
     case PHASE_CUTSCENE:
-    // advance cutscene...
+    return CanvasMousedownCutscene(x, y);
     break;
   }
 }
@@ -783,7 +876,7 @@ function CanvasMouseup(e) {
     // ignored
     break;
     case PHASE_CUTSCENE:
-    // ignored
+    return CanvasMouseupCutscene(x, y);
     break;
   }
 }
@@ -1127,8 +1220,8 @@ function Draw() {
     case PHASE_TITLE:
     DrawFrame(window.titleframes, 0, 0);
     break;
-    case PHASE_INTRO:
-    
+    case PHASE_CUTSCENE:
+    DrawCutscene();
     break;
     case PHASE_PUZZLE:
     DrawPuzzle();
