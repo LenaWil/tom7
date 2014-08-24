@@ -56,38 +56,24 @@ function ConnectorGraphic(x, y) {
 }
 
 // 'Enumeration' of connector heads.
-// Pass unmated x,y (board) coordinates of graphic (facing right),
-// then mated x,y coordinates,
-// then string containing the name of its mate.
-function Head(ux, uy, mx, my, graphic_facing, m) {
-  if (!(graphic_facing == LEFT || graphic_facing == RIGHT))
-    throw 'can only face LEFT or RIGHT in connectors.png';
-  var ug = ConnectorGraphic(ux, uy);
-  var mg = ConnectorGraphic(mx, my);
+// Pass unmated frames (facing right), mated frames,
+// then string containing the name of its mate (optional).
+function Head(uframes, mframes, m) {
+  var ur = uframes;
+  var mr = mframes;
 
-  // Make them face to the right by default.
-  if (graphic_facing == LEFT) {
-    ug = FlipHoriz(ug);
-    mg = FlipHoriz(mg);
-  }
+  var ul = FlipFramesHoriz(ur);
+  var ml = FlipFramesHoriz(mr);
 
-  var ur = ug;
-  var mr = mg;
+  var ud = RotateFramesCCW(ul);
+  var md = RotateFramesCCW(ml);
 
-  var ul = FlipHoriz(ur);
-  var ml = FlipHoriz(mr);
-
-  var ud = RotateCCW(ul);
-  var md = RotateCCW(ml);
-
-  var uu = RotateCCW(ur);
-  var mu = RotateCCW(mr);
+  var uu = RotateFramesCCW(ur);
+  var mu = RotateFramesCCW(mr);
 
   // Assuming the order UP DOWN LEFT RIGHT.
-  this.unmated = [new Frames(uu), new Frames(ud),
-                  new Frames(ul), new Frames(ur)];
-  this.mated = [new Frames(mu), new Frames(md),
-                new Frames(ml), new Frames(mr)];
+  this.unmated = [uu, ud, ul, ur];
+  this.mated = [mu, md, ml, mr];
   if (m) this.mate_property = m;
   return this;
 }
@@ -103,14 +89,42 @@ function TieHeads() {
   }
 }
 
+function EzHead(ux, uy, mx, my, graphic_facing, m) {
+  if (!(graphic_facing == LEFT || graphic_facing == RIGHT))
+    throw 'can only face LEFT or RIGHT in connectors.png';
+
+  var ur = ConnectorGraphic(ux, uy);
+  var mr = ConnectorGraphic(mx, my);
+
+  // Make them face to the right if facing left.
+  if (graphic_facing == LEFT) {
+    ur = FlipHoriz(ur);
+    mr = FlipHoriz(mr);
+  }
+
+  return new Head(new Frames(ur), new Frames(mr), m);
+}
+
 function InitGame() {
+  var livewire_unmated =
+      new Frames(FlipHoriz(ConnectorGraphic(4, 3)));
+  var livewire_anim =
+      FlipFramesHoriz(
+	new Frames([
+	  {f: ConnectorGraphic(4, 4), d: 2},
+	  {f: ConnectorGraphic(4, 5), d: 1},
+	  {f: ConnectorGraphic(4, 6), d: 1},
+	  {f: ConnectorGraphic(4, 7), d: 3}]));
+  
   window.heads = {
-    rca_red_m: new Head(6, 3, 6, 2, RIGHT, 'rca_red_f'),
-    rca_red_f: new Head(7, 3, 7, 2, LEFT,  'rca_red_m'),
-    quarter_m: new Head(6, 5, 6, 4, RIGHT, 'quarter_f'),
-    quarter_f: new Head(7, 5, 7, 4, LEFT,  'quarter_m'),
-    usb_m:     new Head(6, 1, 6, 0, RIGHT, 'usb_f'),
-    usb_f:     new Head(7, 1, 7, 0, LEFT,  'usb_m')
+    rca_red_m: EzHead(6, 3, 6, 2, RIGHT, 'rca_red_f'),
+    rca_red_f: EzHead(7, 3, 7, 2, LEFT,  'rca_red_m'),
+    quarter_m: EzHead(6, 5, 6, 4, RIGHT, 'quarter_f'),
+    quarter_f: EzHead(7, 5, 7, 4, LEFT,  'quarter_m'),
+    usb_m:     EzHead(6, 1, 6, 0, RIGHT, 'usb_f'),
+    usb_f:     EzHead(7, 1, 7, 0, LEFT,  'usb_m'),
+    // For live wires, 'mated' means animated. HA HA!
+    livewire:  new Head(livewire_unmated, livewire_anim, null)
   };
 
   TieHeads();
@@ -132,7 +146,7 @@ function InitGame() {
 
   console.log('initialized game');
 
-  StartSong(song_power);
+  // StartSong(song_power);
 }
 
 function Cell() {

@@ -1,5 +1,23 @@
 // XXX needs docs
 
+function FlipFramesHoriz(fr) {
+  var f = fr.frames;
+  var ff = [];
+  for (var i = 0; i < f.length; i++) {
+    ff.push({f: FlipHoriz(f[i].f), d: f[i].d});
+  }
+  return new Frames(ff);
+}
+
+function RotateFramesCCW(fr) {
+  var f = fr.frames;
+  var ff = [];
+  for (var i = 0; i < f.length; i++) {
+    ff.push({f: RotateCCW(f[i].f), d: f[i].d});
+  }
+  return new Frames(ff);
+}
+
 // The 'f' field must be something that you can ctx.drawImage on,
 // so an Image or Canvas.
 function Frames(arg) {
