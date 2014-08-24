@@ -24,10 +24,10 @@ function Init() {
   window.highlightnotok = new Frames(ConnectorGraphic(1, 1));
 
   // West-East
-  var wirebar = ConnectorGraphic(5, 3);  
+  var wirebar = ConnectorGraphic(5, 3);
   // South-East
   var wireangle = ConnectorGraphic(5, 2);
-  
+
   window.wireframes = {};
   window.wireframes[WIRE_WE] = new Frames(wirebar);
   window.wireframes[WIRE_NS] = new Frames(RotateCCW(wirebar));
@@ -42,7 +42,7 @@ function Init() {
   // Audio tweaks.
   song_theme.multiply = 1.5;
   song_power.multiply = 1.35;
-  
+
   // song_menu[0].volume = 0.65;
 }
 
@@ -123,7 +123,7 @@ function InitGame() {
 	  {f: ConnectorGraphic(4, 5), d: 1},
 	  {f: ConnectorGraphic(4, 6), d: 1},
 	  {f: ConnectorGraphic(4, 7), d: 3}]));
-  
+
   window.heads = {
     rca_red_m:  EzHead(6, 3, 6, 2, RIGHT, ['rca_red_f']),
     rca_red_f:  EzHead(7, 3, 7, 2, LEFT,  ['rca_red_m']),
@@ -147,31 +147,9 @@ function InitGame() {
 
   TieHeads();
 
-  var outlet = new Item();
-  outlet.width = 1;
-  outlet.height = 2;
-  outlet.shape = [CellHead('outlet_top', LEFT),
-		  CellHead('outlet_bot', LEFT)];
-  outlet.onboard = true;
-  outlet.boardx = 11;
-  outlet.boardy = 6;
+  window.stack = [];
 
-  var iron = new Item();
-  iron.width = 5;
-  iron.height = 4,
-  iron.shape =
-      [CellHead('solder_pen', UP), null, null, null, null,
-       CellWire(WIRE_NE), CellWire(WIRE_WE), CellWire(WIRE_SW), null, null,
-       null, null, CellWire(WIRE_NS), null, null,
-       null, null, CellWire(WIRE_NE), CellWire(WIRE_WE), 
-                                            CellHead('ac_plug', RIGHT)];
-  iron.onboard = true;
-  iron.boardx = 6;
-  iron.boardy = 3;  
-
-  window.items = [iron, outlet];
-  window.floating = null;
-  window.dragging = null;
+  ClearGame();
 
   // These are canvas coordinates, updated on animation frame.
   window.mousex = 0;
@@ -179,12 +157,19 @@ function InitGame() {
 
   console.log('initialized game');
 
+
+  Level1();
+
   // StartSong(song_power);
 }
 
+function ClearGame() {
+  window.items = [];
+  window.floating = null;
+  window.dragging = null;
 
-function Cell() {
-  return this;
+  window.goal = null;
+  window.stack = [];
 }
 
 function CellHead(prop, facing) {
@@ -203,9 +188,14 @@ function CellWire(wire) {
   return cell;
 }
 
-var item_what = 0;
 function Item() {
-  // XXX obviously, make configurable
+  return this;
+}
+
+// XXX probably not needed any more, unless I do arcade mode?
+var item_what = 0;
+function RandomItem() {
+  var it = new Item();
   item_what++;
 
   var heads = [];
@@ -220,21 +210,77 @@ function Item() {
 
   switch (item_what % 2) {
     case 0:
-    this.width = 2 + len;
-    this.height = 1;
-    this.shape = [CellHead(head1, LEFT)];
-    for (var i = 0; i < len; i++) this.shape.push(CellWire(WIRE_WE));
-    this.shape.push(CellHead(head2, RIGHT));
+    it.width = 2 + len;
+    it.height = 1;
+    it.shape = [CellHead(head1, LEFT)];
+    for (var i = 0; i < len; i++) it.shape.push(CellWire(WIRE_WE));
+    it.shape.push(CellHead(head2, RIGHT));
     break;
     case 1:
-    this.width = 1;
-    this.height = 2 + len;
-    this.shape = [CellHead(head1, UP)];
-    for (var i = 0; i < len; i++) this.shape.push(CellWire(WIRE_NS));
-    this.shape.push(CellHead(head2, DOWN));
+    it.width = 1;
+    it.height = 2 + len;
+    it.shape = [CellHead(head1, UP)];
+    for (var i = 0; i < len; i++) it.shape.push(CellWire(WIRE_NS));
+    it.shape.push(CellHead(head2, DOWN));
     break;
   }
+  return it;
+}
+
+function MakeItem(w, h, shape) {
+  var it = new Item();
+  it.width = w;
+  it.height = h;
+  it.shape = shape;
+  return it;
+}
+
+function TwoHoriz(l, r) {
+  return MakeItem(2, 1, [CellHead(l, LEFT), CellHead(r, RIGHT)]);
+}
+
+function ThreeHoriz(l, r) {
+  return MakeItem(3, 1, [CellHead(l, LEFT), 
+			 CellWire(WIRE_WE),
+			 CellHead(r, RIGHT)]);
+}
+
+function Level1() {
+  window.goal = TwoHoriz('rca_red_m', 'quarter_m');
+  window.stack =
+      [TwoHoriz('rca_red_m', 'rca_red_m'),
+       ThreeHoriz('quarter_m', 'quarter_f'),
+       ThreeHoriz('quarter_m', 'rca_red_f')];
+}
+
+function Cell() {
   return this;
+}
+
+function LevelSolder() {
+  var outlet = new Item();
+  outlet.width = 1;
+  outlet.height = 2;
+  outlet.shape = [CellHead('outlet_top', LEFT),
+		  CellHead('outlet_bot', LEFT)];
+  outlet.onboard = true;
+  outlet.boardx = 11;
+  outlet.boardy = 6;
+
+  var iron = new Item();
+  iron.width = 5;
+  iron.height = 4,
+  iron.shape =
+      [CellHead('solder_pen', UP), null, null, null, null,
+       CellWire(WIRE_NE), CellWire(WIRE_WE), CellWire(WIRE_WE), 
+                                                 CellWire(WIRE_SW), null,
+       null, null, null, CellWire(WIRE_NS), null,
+       null, null, null, CellWire(WIRE_NE), CellHead('ac_plug', RIGHT)];
+  iron.onboard = true;
+  iron.boardx = 6;
+  iron.boardy = 4;
+
+  window.items = [iron, outlet];
 }
 
 Item.prototype.GetCell = function (x, y) {
@@ -326,7 +372,7 @@ function Draw() {
         if (!cell) throw 'bug';
         if (cell.type == CELL_HEAD) {
 	  // PERF
-          var frame = IsMated(x, y) ? 
+          var frame = IsMated(x, y) ?
 	      cell.head.mated[cell.facing] :
 	      cell.head.unmated[cell.facing];
           DrawFrame(frame,
@@ -341,13 +387,29 @@ function Draw() {
     }
   }
 
+  // Draw tray...
+  for (var i = 0; i < window.stack.length; i++) {
+    // XXX max depth
+    DrawHeads(window.stack[i], TRAYPLACEX, TRAYPLACEY + i * TILESIZE);
+  }
+
+  // Draw goal...
+  if (window.goal) {
+    // (implement 'taking' the goal, in which case it should
+    // not be drawn.)
+    // DrawFloatingItem(window.goal, GOALPLACEX, GOALPLACEY);
+    DrawHeads(window.goal, GOALPLACEX, GOALPLACEY);
+  }
+
+  // Floating should be near the end!
+
   // Draw floating item, if any:
   if (window.floating) {
     var it = window.floating;
 
     // Highlight cells that the item is aligned with.
     var res = CheckDrop();
-      
+
     var cx = res.cx;
     var cy = res.cy;
 
@@ -362,28 +424,54 @@ function Draw() {
       }
     }
     // TODO: Indicate that dropping would reset it...
+    // (when that's the case)
 
     // Draw the item itself.
-    for (var y = 0; y < it.height; y++) {
-      for (var x = 0; x < it.width; x++) {
-	var cell = it.GetCell(x, y);
-	if (cell) {
-	  if (cell.type == CELL_HEAD) {
-	    DrawFrame(cell.head.unmated[cell.facing],
-		      cx + x * TILESIZE,
-		      cy + y * TILESIZE);
-	  } else if (cell.type == CELL_WIRE) {
-	    DrawFrame(window.wireframes[cell.wire],
-		      cx + x * TILESIZE,
-		      cy + y * TILESIZE);
-	  }
-	}
-      }
-    }
-    // Draw indicators for floating thing!
+    DrawFloatingItem(it, cx, cy);
   }
 
   // Draw indicators (e.g. 'in', 'out')
+
+}
+
+Item.prototype.GetHeads = function() {
+  var l = [];
+  for (var i = 0; i < this.shape.length; i++) {
+    if (this.shape[i].type == CELL_HEAD) {
+      l.push(this.shape[i].head);
+    }
+  }
+  return l;
+};
+
+function DrawHeads(it, x, y) {
+  var l = it.GetHeads();
+  if (l.length != 2) {
+    console.log('item without two heads?');
+    return;
+  }
+  DrawFrame(l[0].unmated[LEFT], x, y);
+  DrawFrame(l[1].unmated[RIGHT], x + TILESIZE, y);
+}
+
+function DrawFloatingItem(it, cx, cy) {
+  for (var y = 0; y < it.height; y++) {
+    for (var x = 0; x < it.width; x++) {
+      var cell = it.GetCell(x, y);
+      if (cell) {
+	if (cell.type == CELL_HEAD) {
+	  // Always unmated when floating.
+	  DrawFrame(cell.head.unmated[cell.facing],
+		    cx + x * TILESIZE,
+		    cy + y * TILESIZE);
+	} else if (cell.type == CELL_WIRE) {
+	  DrawFrame(window.wireframes[cell.wire],
+		    cx + x * TILESIZE,
+		    cy + y * TILESIZE);
+	}
+      }
+    }
+  }
 }
 
 // Returns an objec
@@ -447,23 +535,33 @@ function CanvasMousedown(e) {
 
   // If in the tray section, then we create a new piece and
   // start floating it.
+
+  // XXX implement goal dragging.
+
   if (x >= TRAYX && y >= TRAYY &&
       x < (TRAYX + TRAYW) &&
       y <= (TRAYY + TRAYH)) {
     console.log('touch in tray');
-    // In tray.
-    var it = new Item();
 
-    window.floating = it;
-    // if not on board, then that always means floating,
-    // which means wherever the mouse is.
-    it.onboard = false;
+    if (window.floating || window.dragging)
+      throw 'already established';
+
+    if (window.stack.length > 0) {
+      var it = window.stack[0];
+      window.stack.splice(0, 1);
+      window.floating = it;
+      // if not on board, then that always means floating,
+      // which means wherever the mouse is.
+      it.onboard = false;
+    } else {
+      // Say some message...
+    }
 
   } else {
     // In board? -- pick up piece?
     var boardx = Math.floor((x - BOARDSTARTX) / TILESIZE);
     var boardy = Math.floor((y - BOARDSTARTY) / TILESIZE);
-    console.log('touch maybe in board ' + boardx + ', ' + boardy);
+    // console.log('touch maybe in board ' + boardx + ', ' + boardy);
 
     if (boardx >= 0 && boardy >= 0 &&
 	boardx < TILESW &&
@@ -617,7 +715,7 @@ function CanvasMove(e) {
 	  Detach();
 	  return;
 	}
-	
+
 	var cell = it.GetCellByGlobal(window.dragging.x,
 				      window.dragging.y);
 
@@ -635,7 +733,7 @@ function CanvasMove(e) {
 	    return;
 	  }
 	  console.log('turn!');
-	  
+
 	  var srcx = window.dragging.x - it.boardx;
 	  var srcy = window.dragging.y - it.boardy;
 	  var dstx = boardx - it.boardx;
@@ -667,7 +765,7 @@ function CanvasMove(e) {
 	    var oldface = cell.facing;
 	    var oldwire = ocell.wire;
 	    var newface = GetCompatibleShrink(oldface, oldwire);
-	    
+
 	    if (newface == null) {
 	      // Note: probably means buggy wire state.
 	      console.log('impossible retraction!');
@@ -916,7 +1014,7 @@ document.onkeydown = function(e) {
     case 27: // ESC
     if (true || DEBUG) {
       ClearSong();
-      document.body.innerHTML = 
+      document.body.innerHTML =
 	  '<b style="color:#fff;font-size:40px">(SILENCED. ' +
           'RELOAD TO PLAY)</b>';
       Step = function() { };
