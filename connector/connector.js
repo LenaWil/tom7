@@ -5,11 +5,9 @@ var start_time = (new Date()).getTime();
 // Number of elapsed frames in the current scene.
 var frames = 0;
 
-// XXX pump up the jams!
-var audiocontext = null;
-
 var resources = new Resources(
   ['font.png',
+   'title.png',
    'board.png',
    'connectors.png'],
   [], null);
@@ -40,6 +38,10 @@ function Init() {
   window.wireframes[WIRE_NW] = new Frames(wireangle);
   wireangle = RotateCCW(wireangle);
   window.wireframes[WIRE_SW] = new Frames(wireangle);
+
+  // Audio tweaks.
+  song_theme.multiply = 1.5;
+  // song_menu[0].volume = 0.65;
 }
 
 function ConnectorGraphic(x, y) {
@@ -127,6 +129,8 @@ function InitGame() {
   */
 
   console.log('initialized game');
+
+  StartSong(song_menu);
 }
 
 function Cell() {
@@ -486,6 +490,8 @@ function Step(time) {
 
   frames++;
   if (frames > 1000000) frames = 0;
+
+  UpdateSong();
 
   Draw();
 
@@ -864,5 +870,23 @@ function Start() {
   start_time = (new Date()).getTime();
   window.requestAnimationFrame(Step);
 }
+
+document.onkeydown = function(e) {
+  e = e || window.event;
+  if (e.ctrlKey) return true;
+
+  switch (e.keyCode) {
+    case 27: // ESC
+    if (true || DEBUG) {
+      ClearSong();
+      document.body.innerHTML = 
+	  '<b style="color:#fff;font-size:40px">(SILENCED. ' +
+          'RELOAD TO PLAY)</b>';
+      Step = function() { };
+      // n.b. javascript keeps running...
+    }
+    break;
+  }
+};
 
 resources.WhenReady(Start);

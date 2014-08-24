@@ -1,22 +1,43 @@
 
-Notion of "cell" for contents of a cell.
-Draw cells.
-Notion of "item" for rigid body spanning multiple grid spaces.
-Drag and drop.
+
+12 HOURS
+
+Basic
+  - show title
+  - finish title screen
+  - touch events
+  - resize screen for iphone, ipad
+
+2h Arcade Mode
+  - Countdown timer
+  - loops are destroyed (plus whatever's inside?)
+  - Bonus time for making loops
+  - Score
+  - Maybe replace "Goal" & "Drag" with score / timer / next
+  - arcade music
+
+Story Mode
+  - Store scene drawing
+  - cutscene code
+  - "tutorial"?
+  - some kinda twist
+
+Polish
+  - when floating, object handle rather than assuming center
+  - bugs having to do with floating
+  - make it possible to return a floating thing to the tray
+  - obvious performance issues
+
+
+- index objects to speed up GetItemAt?
+
+- SOME KIND OF PUZZLE OR THING THAT'S FUN JEEZZ
 
 
 ideas / etc.
 
 
 possible twists: 120v AC to 3.5mm headphone jack ? What are people DOING with these connectors?
-
-
-
-controls should be 1-mouse / touch based.
-can stretch out wires (some wires?) by pulling an end of the connector
-that's already placed. pull off the screen to drop back in bin
-
-
 
 
 Hi, I'm Jim. I work at Connector World. I make custom connectors
