@@ -74,7 +74,7 @@ function Head(uframes, mframes, m) {
   // Assuming the order UP DOWN LEFT RIGHT.
   this.unmated = [uu, ud, ul, ur];
   this.mated = [mu, md, ml, mr];
-  if (m) this.mate_property = m;
+  if (m) this.mate_properties = m;
   return this;
 }
 
@@ -83,8 +83,14 @@ function Head(uframes, mframes, m) {
 function TieHeads() {
   for (var o in window.heads) {
     var head = window.heads[o];
-    if (head.mate_property && window.heads[head.mate_property]) {
-      head.mate = window.heads[head.mate_property];
+    head.mates = [];
+    var mp = head.mate_properties || [];
+    for (var i = 0; i < mp.length; i++) {
+      if (window.heads[mp[i]]) {
+	head.mates.push(window.heads[mp[i]]);
+      } else {
+	console.log('unknown mate ' + mp[i]);
+      }
     }
   }
 }
@@ -105,6 +111,8 @@ function EzHead(ux, uy, mx, my, graphic_facing, m) {
   return new Head(new Frames(ur), new Frames(mr), m);
 }
 
+
+
 function InitGame() {
   var livewire_unmated =
       new Frames(FlipHoriz(ConnectorGraphic(4, 3)));
@@ -117,19 +125,33 @@ function InitGame() {
 	  {f: ConnectorGraphic(4, 7), d: 3}]));
   
   window.heads = {
-    rca_red_m: EzHead(6, 3, 6, 2, RIGHT, 'rca_red_f'),
-    rca_red_f: EzHead(7, 3, 7, 2, LEFT,  'rca_red_m'),
-    quarter_m: EzHead(6, 5, 6, 4, RIGHT, 'quarter_f'),
-    quarter_f: EzHead(7, 5, 7, 4, LEFT,  'quarter_m'),
-    usb_m:     EzHead(6, 1, 6, 0, RIGHT, 'usb_f'),
-    usb_f:     EzHead(7, 1, 7, 0, LEFT,  'usb_m'),
+    rca_red_m:  EzHead(6, 3, 6, 2, RIGHT, ['rca_red_f']),
+    rca_red_f:  EzHead(7, 3, 7, 2, LEFT,  ['rca_red_m']),
+    quarter_m:  EzHead(6, 5, 6, 4, RIGHT, ['quarter_f']),
+    quarter_f:  EzHead(7, 5, 7, 4, LEFT,  ['quarter_m']),
+    usb_m:      EzHead(6, 1, 6, 0, RIGHT, ['usb_f']),
+    usb_f:      EzHead(7, 1, 7, 0, LEFT,  ['usb_m']),
+    ac_plug:    EzHead(9, 5, 9, 6, RIGHT, ['outlet_top', 'outlet_bot']),
     // For live wires, 'mated' means animated. HA HA!
-    livewire:  new Head(livewire_unmated, livewire_anim, null)
+    livewire:  new Head(livewire_unmated, livewire_anim, null),
+    outlet_top: EzHead(11, 6, 10, 6, LEFT, ['ac_plug']),
+    outlet_bot: EzHead(11, 7, 10, 7, LEFT, ['ac_plug'])
   };
+
+  window.randheads = 8;
 
   TieHeads();
 
-  window.items = [];
+  var outlet = new Item();
+  outlet.width = 1;
+  outlet.height = 2;
+  outlet.shape = [CellHead('outlet_top', LEFT),
+		  CellHead('outlet_bot', LEFT)];
+  outlet.onboard = true;
+  outlet.boardx = 11;
+  outlet.boardy = 6;
+
+  window.items = [outlet];
   window.floating = null;
   window.dragging = null;
 
@@ -137,17 +159,11 @@ function InitGame() {
   window.mousex = 0;
   window.mousey = 0;
 
-  /*
-  board = [];
-  for (var i = 0; i < TILESW * TILESH; i++) {
-    board[i] = null;
-  }
-  */
-
   console.log('initialized game');
 
   // StartSong(song_power);
 }
+
 
 function Cell() {
   return this;
@@ -178,8 +194,9 @@ function Item() {
   for (var o in window.heads) {
     heads.push(o);
   }
-  var head1 = heads[Math.floor(Math.random() * heads.length)];
-  var head2 = heads[Math.floor(Math.random() * heads.length)];
+
+  var head1 = heads[Math.floor(Math.random() * window.randheads)];
+  var head2 = heads[Math.floor(Math.random() * window.randheads)];
 
   var len = Math.floor(Math.random() * 2);
 
@@ -264,9 +281,20 @@ function IsMated(x, y) {
   var mcell = mitem.GetCellByGlobal(mx, my);
   if (!mcell || mcell.type != CELL_HEAD) return false;
 
-  return cell.head.mate == mcell.head &&
-      mcell.head.mate == cell.head &&
-      cell.facing == ReverseDir(mcell.facing);
+  return cell.facing == ReverseDir(mcell.facing) &&
+      CanMate(cell.head, mcell.head);
+}
+
+function CanMate(head1, head2) {
+  var ok1 = false, ok2 = false;
+  for (var i = 0; i < head1.mates.length; i++)
+    if (head1.mates[i] == head2)
+      ok1 = true;
+  if (!ok1) return false;
+  for (var i = 0; i < head2.mates.length; i++)
+    if (head2.mates[i] == head1)
+      ok2 = true;
+  return ok2;
 }
 
 function Draw() {
@@ -439,22 +467,6 @@ function CanvasMousedown(e) {
 	      y: boardy };
       }
     }
-
-    // XXX NO.
-    /*
-    var it = new Item();
-    if (boardx < TILESW - 1 &&
-	boardy < TILESH &&
-	GetItemAt(boardx, boardy) == null &&
-	GetItemAt(boardx + 1, boardy) == null) {
-      // XXX could at least be checking collisions...
-      var it = new Item();
-      it.onboard = true;
-      it.boardx = boardx;
-      it.boardy = boardy;
-      window.items.push(it);
-    }
-    */
   }
 
   // HERE...
@@ -867,17 +879,6 @@ function Start() {
   bigcanvas.canvas.onmousemove = CanvasMove;
   bigcanvas.canvas.onmousedown = CanvasMousedown;
   bigcanvas.canvas.onmouseup = CanvasMouseup;
-
-  /*
-  cutscene = cutscenes.intro;
-  after_cutscene = function () {
-    WarpTo('fishroom', 77, 116);
-    SetPhase(PHASE_PLAYING);
-    ClearText();
-    textpages = ['Time to tend to my debts.'];
-  };
-  SetPhase(PHASE_CUTSCENE);
-  */
 
   // XXX not this!
   // WarpTo('beach', 77, 116);
