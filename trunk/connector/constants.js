@@ -39,6 +39,8 @@ function ReverseDir(d) {
   return undefined;
 }
 
+var TUTORIALX = 64;
+
 var CUTSCENETEXTX = 149;
 var CUTSCENETEXTY = 5;
 

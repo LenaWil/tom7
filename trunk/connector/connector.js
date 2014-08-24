@@ -168,32 +168,57 @@ function InitGame() {
 
   // Cutscenes..
   window.cutscenes = {
-    intro: [{ f: EzFrames(['desk', 1]),
-	      s: song_menu,
-	      predelay: 40,
-	      t: [' Hey, I\'m Jim. I ',
-		  'work at Connector ',
-		  'World, your one-stop ',
-		  'shop for all your ',
-		  '   connecting needs.'] },
-	    { f: EzFrames(['desk', 1]),
-	      s: song_menu,
-	      t: [' Today I am gonna,',
-		  'be \'outsourcing\' my',
-		  'job. You\'re going',
-		  'to do it, because'] },
-	    { f: EzFrames(['desk', 1]),
-	      s: song_menu,
-	      t: [' you seem to think',
-		  'my job is some kind',
-		  'of game, which is',
-		  'weird.'] }
-	   ]
+    intro: new Cutscene(
+      [{ f: EzFrames(['desk', 1]),
+	 s: song_menu,
+	 predelay: 40,
+	 t: [' Hey, I\'m Jim. I ',
+	     'work at Connector ',
+	     'World, your one-stop ',
+	     'shop for all your ',
+	     '   connecting needs.'] },
+       { f: EzFrames(['desk', 1]),
+	 s: song_menu,
+	 t: [' Today I am gonna',
+	     'be \'outsourcing\' my',
+	     'job. You\'re going',
+	     'to do it, because'] },
+       { f: EzFrames(['desk', 1]),
+	 s: song_menu,
+	 t: [' you seem to think',
+	     'my job is some kind',
+	     'of game, which is',
+	     'weird.'] }
+      ], function () {
+	ClearSong();
+	phase = PHASE_PUZZLE;
+	Level1();
+      }),
+    tutorialend: new Cutscene(
+      [{ f: EzFrames(['desk', 1]),
+	 s: song_menu,
+	 predelay: 30,
+	 t: [' OK, this is great.',
+	     'I\'m going to play',
+	     'Candy Crush while',
+	     'you help the',
+	     '      customers.'] }],
+      function () {
+	ClearSong();
+	phase = PHASE_PUZZLE;
+	Level3();
+      })
   };
 
   console.log('initialized game');
 
   // StartSong(song_power);
+}
+
+function Cutscene(desc, cont) {
+  this.desc = desc;
+  this.cont = cont;
+  return this;
 }
 
 function ClearGame() {
@@ -205,6 +230,11 @@ function ClearGame() {
   window.goalin = null;
   window.goalout = null;
   window.stack = [];
+
+  window.tutorial = null;
+  window.tutorial_test = null;
+
+  window.nextlevel = null;
 }
 
 function InitLevel() {
@@ -257,11 +287,82 @@ function ThreeHoriz(l, r) {
 }
 
 function Level1() {
+  ClearGame();
+  window.goal = TwoHoriz('rca_red_m', 'rca_red_f');
+  window.stack = [];
+  
+  var a = ThreeHoriz('rca_red_m', 'rca_red_m');
+  a.onboard = true;
+  a.boardx = 2;
+  a.boardy = 3;
+  var b = ThreeHoriz('rca_red_f', 'rca_red_f');
+  b.onboard = true;
+  b.boardx = 6;
+  b.boardy = 3;
+
+  window.items = [a, b];
+
+  window.tutorial =
+      ['The customer wants a RCA male-',
+       'to-female connector. You can',
+       'make one by connecting these',
+       'two. Just drag the wire to move',
+       'one.'];
+  window.tutorial_test =
+      function() {
+	if (GetFinished()) {
+	  window.tutorial =
+	      ['Great! Now you can sell it.',
+	       'Click the SELL button.'];
+	  window.tutorial_test =
+	      function () {
+		if (!GetFinished()) {
+		  window.tutorial =
+		      ['Hmm, better put that back',
+		       'together.'];
+		  window.tutorial_test = null;
+		}
+	      };
+	}
+      };
+  window.nextlevel = function() {
+    Level2();
+  };
+
+  StartSong(song_power);
+
+  InitLevel();
+}
+
+function Level2() {
+  ClearGame();
   window.goal = TwoHoriz('rca_red_m', 'quarter_m');
   window.stack =
       [TwoHoriz('rca_red_m', 'rca_red_m'),
        ThreeHoriz('quarter_m', 'quarter_f'),
        ThreeHoriz('quarter_m', 'rca_red_f')];
+
+  window.tutorial =
+      ['You can also get some parts out',
+       'of the tray on the left. Just ',
+       'drag them out.'];
+  window.tutorial_test =
+      function () {
+	if (window.stack.length == 2) {
+	  window.tutorial =
+	      ['You always take the top one.',
+	       'Just release it in a free place.'];
+	} else if (window.stack.length < 2) {
+	  window.tutorial = [];
+	  window.tutorial_test = null;
+	}
+      };
+
+  window.nextlevel = function() {
+    window.phase = PHASE_CUTSCENE;
+    StartCutscene('tutorialend');
+  };
+
   InitLevel();
 }
 
@@ -504,7 +605,7 @@ function Trace(x, y, dir) {
 function DrawCutscene() {
   var cuts = window.cutscenes[window.cutscene];
   if (!cuts) throw 'invalid cutscene';
-  var cs = cuts[window.cutscene_idx];
+  var cs = cuts.desc[window.cutscene_idx];
   if (!cs) throw 'invalid cutscene idx';
 
   var predelay = cs.predelay || 10;
@@ -538,6 +639,8 @@ function DrawCutscene() {
 }
 
 function StartCutscene(name) {
+  window.PHASE = PHASE_CUTSCENE;
+
   window.cutscene = name;
   window.cutscene_idx = 0;
   window.cutscene_frames = 0;
@@ -546,7 +649,7 @@ function StartCutscene(name) {
   
   var cuts = window.cutscenes[window.cutscene];
   if (!cuts) throw 'invalid cutscene';
-  var cs = cuts[window.cutscene_idx];
+  var cs = cuts.desc[window.cutscene_idx];
   if (!cs) throw 'invalid cutscene idx';
 
   if (song != cs.s) {
@@ -555,6 +658,8 @@ function StartCutscene(name) {
 }
 
 function DrawPuzzle() {
+  if (tutorial_test) tutorial_test();
+
   // ClearScreen();
   DrawFrame(window.boardbg, 0, 0);
 
@@ -607,6 +712,14 @@ function DrawPuzzle() {
     // not be drawn.)
     // DrawFloatingItem(window.goal, GOALPLACEX, GOALPLACEY);
     DrawHeads(window.goal, GOALPLACEX, GOALPLACEY);
+  }
+
+  // Tutorial on top of most things...
+  if (window.tutorial) {
+    var starty = HEIGHT - FONTH * window.tutorial.length;
+    for (var i = 0; i < window.tutorial.length; i++) {
+      font.Draw(ctx, TUTORIALX, starty + i * FONTH, window.tutorial[i]);
+    }
   }
 
   // Floating should be near the end!
@@ -766,7 +879,7 @@ function CanvasMousedownPuzzle(x, y) {
     var fin = GetFinished();
     if (fin) {
       // OK, can sell...
-      NextLevel();
+      window.nextlevel();
     }
     
   } else {
@@ -809,7 +922,14 @@ function CanvasMousedownCutscene(x, y) {
     window.cutscene_ffwd = false;
     window.cutscene_idx++;
     window.cutscene_frames = 0;
-    // XXX CHECK DONE!!!
+    var cuts = window.cutscenes[window.cutscene];
+    if (!cuts) throw 'bad cutscene?';
+    if (window.cutscene_idx >= cuts.desc.length) {
+      // Avoid re-entrance, but the continuation
+      // had better move to a new phase!
+      window.cutscene = null;
+      cuts.cont();
+    }
   }
 }
 
@@ -1298,6 +1418,15 @@ document.onkeydown = function(e) {
   if (e.ctrlKey) return true;
 
   switch (e.keyCode) {
+    case 9:
+    if (window.cutscene) {
+      var cuts = window.cutscenes[window.cutscene];
+      if (cuts) {
+	window.cutscene = null;
+	cuts.cont();
+      }
+    }
+    break;
     case 27: // ESC
     if (true || DEBUG) {
       ClearSong();
