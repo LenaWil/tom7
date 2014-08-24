@@ -15,7 +15,7 @@ var BOARDSTARTX = 68;
 var BOARDSTARTY = 20;
 
 var PHASE_TITLE = 1;
-var PHASE_INTRO = 2;
+var PHASE_CUTSCENE = 2;
 var PHASE_PUZZLE = 3;
 // and end, ...
 
@@ -39,6 +39,9 @@ function ReverseDir(d) {
   return undefined;
 }
 
+var CUTSCENETEXTX = 149;
+var CUTSCENETEXTY = 5;
+
 var INDICATOR_IN = 1;
 var INDICATOR_OUT = 2;
 var INDICATOR_BOTH = 3;
@@ -60,7 +63,7 @@ var CELL_HEAD = 1;
 var CELL_WIRE = 2;
 // etc.?
 
-var DESKBUBBLEX = 154;
+var DESKBUBBLEX = 134;
 var DESKBUBBLEY = 0;
 
 var WIRE_NS = 1;
