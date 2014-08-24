@@ -1,6 +1,15 @@
 
 
-12 HOURS
+2 HOURS
+
+Kinda needed:
+  - drop things back into tray
+  - finish title screen
+  - hand drawing
+  - burned drawing
+  - soldering iron
+  - taking goal
+  - cell phone in hand
 
 Basic
   - drop things back into tray
@@ -12,20 +21,13 @@ Story Mode
   - in-game dialogue code
   - taking the goal
   - taking the goal a second time
-  - cutscene code
-  - some levels!
-  - "tutorial"?
 
 Polish
   - when floating, object handle rather than assuming center
-  - bugs having to do with floating
-  - make it possible to return a floating thing to the tray
   - obvious performance issues
   - blink on desk anim
 
 - index objects to speed up GetItemAt?
-
-- SOME KIND OF PUZZLE OR THING THAT'S FUN JEEZZ
 
 
 Jam maybeeeee...
