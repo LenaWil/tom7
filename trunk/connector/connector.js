@@ -29,6 +29,8 @@ function Init() {
   window.highlightin = new Frames(ConnectorGraphic(1, 3));
   window.highlightout = new Frames(ConnectorGraphic(1, 4));
 
+  window.ballframes = new Frames(ConnectorGraphic(1, 6));
+
   window.sellframes = EzFrames(['sell1', 2, 'sell2', 2]);
   window.titleframes = EzFrames(['title', 1]);
   window.deskbubbleframes = EzFrames(['deskbubble', 1]);
@@ -182,11 +184,11 @@ function InitGame() {
 	 t: [' Today I am gonna',
 	     'be \'outsourcing\' my',
 	     'job. You\'re going',
-	     'to do it, because'] },
+	     'to do it, because',
+	     '  you seem to think'] },
        { f: EzFrames(['desk', 1]),
 	 s: song_menu,
-	 t: [' you seem to think',
-	     'my job is some kind',
+	 t: [' my job is some kind',
 	     'of game, which is',
 	     'weird.'] }
       ], function () {
@@ -200,13 +202,25 @@ function InitGame() {
 	 predelay: 30,
 	 t: [' OK, this is great.',
 	     'I\'m going to play',
-	     'Candy Crush while',
+	     'Treat Destroyer while',
 	     'you help the',
 	     '      customers.'] }],
       function () {
 	ClearSong();
 	phase = PHASE_PUZZLE;
 	Level3();
+      }),
+    interlude: new Cutscene(
+      [{ f: EzFrames(['desk', 1]),
+	 s: song_menu,
+	 predelay: 30,
+	 t: [' Oh wow, I just got',
+	     'a 6x combo. M-m-m-m-',
+	     'monster chocolate!'] }],
+      function () {
+	ClearSong();
+	phase = PHASE_PUZZLE;
+	Level5();
       })
   };
 
@@ -222,6 +236,7 @@ function Cutscene(desc, cont) {
 }
 
 function ClearGame() {
+  window.touched_level = false;
   window.items = [];
   window.floating = null;
   window.dragging = null;
@@ -245,6 +260,19 @@ function InitLevel() {
   window.goalin = l[0];
   window.goalout = l[1];
 
+  // Make sure anything in stack is in the items too.
+  for (var i = 0; i < window.stack.length; i++) {
+    var found = false;
+    for (var j = 0; j < window.items.length; j++) {
+      if (window.items[j] == window.stack[i]) {
+	found = true;
+      }
+    }
+    if (!found) {
+      window.items.push(window.stack[i]);
+    }
+  }
+
   // XXX Start music...?
 }
 
@@ -264,6 +292,12 @@ function CellWire(wire) {
   return cell;
 }
 
+function CellBall() {
+  var cell = new Cell;
+  cell.type = CELL_BALL;
+  return cell;
+}
+
 function Item() {
   return this;
 }
@@ -273,11 +307,17 @@ function MakeItem(w, h, shape) {
   it.width = w;
   it.height = h;
   it.shape = shape;
+  if (shape.length != w * h)
+    throw 'bad shape';
   return it;
 }
 
 function TwoHoriz(l, r) {
   return MakeItem(2, 1, [CellHead(l, LEFT), CellHead(r, RIGHT)]);
+}
+
+function TwoVert(l, r) {
+  return MakeItem(1, 2, [CellHead(l, UP), CellHead(r, DOWN)]);
 }
 
 function ThreeHoriz(l, r) {
@@ -366,11 +406,113 @@ function Level2() {
   InitLevel();
 }
 
-function Cell() {
-  return this;
+function Level3() {
+  ClearGame();
+  StartSong(song_power);
+
+  window.goal = TwoHoriz('rca_red_m', 'quarter_m');
+
+  for (var y = 0; y < TILESH; y++) {
+    for (var x = 0; x < TILESW; x++) {
+      if ((y * x) % 5 > 1) {
+	var it = MakeItem(1, 1, [CellBall()]);
+	it.onboard = true;
+	it.boardx = x;
+	it.boardy = y;
+	window.items.push(it);
+      }
+    }
+  }
+
+  var a = TwoHoriz('rca_red_m', 'usb_m');
+  a.onboard = true;
+  a.boardx = 10;
+  a.boardy = 5;
+
+  var b = MakeItem(11, 1,
+		   [CellHead('usb_f', LEFT),
+		    CellWire(WIRE_WE),
+		    CellWire(WIRE_WE),
+		    CellWire(WIRE_WE),
+		    CellWire(WIRE_WE),
+		    CellWire(WIRE_WE),
+		    CellWire(WIRE_WE),
+		    CellWire(WIRE_WE),
+		    CellWire(WIRE_WE),
+		    CellWire(WIRE_WE),
+		    CellHead('usb_f', RIGHT)]);
+
+  var c = TwoVert('usb_m', 'quarter_m');
+  c.onboard = true;
+  c.boardx = 0;
+  c.boardy = 6;
+
+  window.stack = [b];
+
+  window.items.push(a, b, c);
+  
+  window.tutorial =
+      ['Oh yeah, sometimes there are',
+       'metal balls around. I don\'t',
+       'know what that\'s about.'];
+  window.tutorial_test = function() {
+    if (window.touched_level) {
+      window.tutorial = null;
+      window.tutorial_test = null;
+    }
+  };
+
+  window.nextlevel = function() {
+    Level4();
+  };
+
+  InitLevel();
 }
 
-function LevelSolder() {
+function Level4() {
+  ClearGame();
+  StartSong(song_power);
+
+  window.goal = TwoHoriz('rca_red_m', 'rca_red_m');
+
+  for (var y = 0; y < TILESH; y++) {
+    for (var x = 0; x < TILESW; x++) {
+      if (!(x == 0 && y == 4) &&
+	  !(x == 2 && y == 4) &&
+	  !(x == 11 && y == 6) &&
+	!((y % 2 == 0) && (x % 4) == 1) &&
+	!((y % 2 == 1) && (x % 4) == 3) &&
+	((x + Math.floor(y / 2)) % 2) == 0) {
+	var it = MakeItem(1, 1, [CellBall()]);
+	it.onboard = true;
+	it.boardx = x;
+	it.boardy = y;
+	window.items.push(it);
+      }
+    }
+  }
+
+  window.stack =
+      [TwoHoriz('rca_red_m', 'quarter_f'),
+       ThreeHoriz('usb_m', 'rca_red_m'),
+       ThreeHoriz('quarter_m', 'usb_f')];
+  
+  window.nextlevel = function() {
+    // No, Cutscene!
+    // Level5();
+    window.phase = PHASE_CUTSCENE;
+    StartCutscene('interlude');
+  };
+
+  InitLevel();
+}
+
+function Level5() {
+  ClearGame();
+  StartSong(song_power);
+
+  window.goal = TwoHoriz('quarter_m', 'quarter_f');
+
   var outlet = new Item();
   outlet.width = 1;
   outlet.height = 2;
@@ -392,8 +534,64 @@ function LevelSolder() {
   iron.onboard = true;
   iron.boardx = 6;
   iron.boardy = 4;
-
+  
   window.items = [iron, outlet];
+
+  var a = ThreeHoriz('usb_m', 'livewire');
+  a.onboard = true;
+  a.boardx = 3;
+  a.boardy = 1;
+  var b = ThreeHoriz('livewire', 'quarter_m');
+  b.onboard = true;
+  b.boardx = 6;
+  b.boardy = 1;
+
+  window.items.push(a, b);
+
+  window.stack =
+      [TwoHoriz('usb_m', 'usb_m'),
+       TwoHoriz('quarter_m', 'usb_f'),
+       ThreeHoriz('rca_red_m', 'rca_red_f')];
+
+  window.tutorial =
+      ['Oh, dang. Sometimes the',
+       'connectors get frayed. Use ',
+       'the soldering pen to ',
+       'reconnect them.'];
+
+  window.tutorial_test =
+      function () {
+	for (var i = 0; i < window.items.length; i++) {
+	  if (window.items[i].HasFrayed()) {
+	    return;
+	  }
+	}
+	window.tutorial = ['That\'s the ticket!'];
+	window.tutorial_test = null;
+      };
+  
+  window.nextlevel = function() {
+    // No, Cutscene!
+    // Level5();
+    window.phase = PHASE_CUTSCENE;
+    StartCutscene('interlude');
+  };
+
+  InitLevel();
+}
+
+
+function Cell() {
+  return this;
+}
+
+Item.prototype.HasFrayed = function() {
+  for (var i = 0; i < this.shape.length; i++) {
+    if (this.shape[i] && this.shape[i].type == CELL_HEAD &&
+	this.shape[i].head == window.heads.livewire) {
+      return true;
+    }
+  }
 }
 
 Item.prototype.GetCell = function (x, y) {
@@ -486,6 +684,126 @@ function MoveY(y, dir) {
   else return y;
 }
 
+Item.prototype.DoSolder = function() {
+  // First, find a soldering tip. There should be just one.
+  if (!this.onboard) return false;
+  for (var y = 0; y < this.height; y++) {
+    for (var x = 0; x < this.width; x++) {
+      var cell = this.shape[y * this.width + x];
+      if (cell && cell.type == CELL_HEAD && 
+	  cell.head == window.heads.solder_pen) {
+	var gx = this.boardx + x;
+	var gy = this.boardy + y;
+	if (!ConnectedToOutlet(gx, gy, cell))
+	  return;
+
+	// Are we lookuing at a frayed wire?
+	var dx = MoveX(gx, cell.facing);
+	var dy = MoveY(gy, cell.facing);
+	if (dx < 0 || dx >= TILESW ||
+	    dy < 0 || dy >= TILESH)
+	  return;
+	var oitem = GetItemAt(dx, dy);
+	if (!oitem)
+	  return;
+	var ocell = oitem.GetCellByGlobal(dx, dy);
+	console.log(ocell);
+	if (!ocell || ocell.type != CELL_HEAD || 
+	    ocell.head != window.heads.livewire)
+	  return;
+
+	console.log('solderable wire at ' + XY(dx, dy));
+
+	// OK, it's a wire. Is IT looking at a frayed wire?
+	var ddx = MoveX(dx, ocell.facing);
+	var ddy = MoveY(dy, ocell.facing);
+	if (ddx < 0 || ddx >= TILESW ||
+	    ddy < 0 || ddy >= TILESH)
+	  return;
+	var ooitem = GetItemAt(ddx, ddy);
+	if (!ooitem)
+	  return;
+	var oocell = ooitem.GetCellByGlobal(ddx, ddy);
+	if (!oocell || oocell.type != CELL_HEAD || 
+	    oocell.head != window.heads.livewire) {
+	  console.log('not wire');
+	  return;
+	}
+
+	// And are they facing each other?
+	if (ocell.facing != ReverseDir(oocell.facing))
+	  return;
+
+	if (oitem == ooitem) {
+	  console.log('could in principle be supported but is not');
+	  return;
+	}
+
+	// OK, we can do this!
+	var newwire = (ocell.facing == UP || ocell.facing == DOWN) ?
+	    WIRE_NS : WIRE_WE;
+
+	// Replace with real wires.
+	oitem.SafePlot(
+	  dx - oitem.boardx,
+	  dy - oitem.boardy,
+	  CellWire(newwire));
+
+	ooitem.SafePlot(
+	  ddx - ooitem.boardx,
+	  ddy - ooitem.boardy,
+	  CellWire(newwire));
+	
+	// Copy one item into the other, delete the first. Say
+	// ooitem is the source, oitem is the dest.
+	var src = ooitem;
+	var dst = oitem;
+	
+	for (var yy = 0; yy < src.height; yy++) {
+	  for (var xx = 0; xx < src.width; xx++) {
+	    var c = src.shape[yy * src.width + xx];
+	    if (c) {
+	      // NOTE! SafePlot can change dst.boardx/y so
+	      // this has to be INSIDE the loop.
+	      var ox = dst.boardx - src.boardx;
+	      var oy = dst.boardy - src.boardy;
+	      
+	      dst.SafePlot(xx - ox,
+			   yy - oy,
+			   c);
+	    }
+	  }
+	}
+
+	// remove from items list.
+	var newitems = [];
+	for (var i = 0; i < window.items.length; i++) {
+	  if (window.items[i] != src) {
+	    newitems.push(window.items[i]);
+	  }
+	}
+	window.items = newitems;
+
+	console.log('soldered..!');
+      }
+    }
+  }
+};
+
+// Return true if the head (must be a head, expected
+// live wire or solder) is connected to an outlet.
+function ConnectedToOutlet(x, y, cell) {
+  var res = Trace(x, y, ReverseDir(cell.facing));
+  // Has to be plugged in.
+  if (!res) return false;
+  var oitem = GetItemAt(res.x, res.y);
+  if (!oitem) throw 'bad trace';
+  var ocell = oitem.GetCellByGlobal(res.x, res.y);
+  if (!ocell || ocell.type != CELL_HEAD)
+    throw 'bad trace 2';
+  return !!ocell.head.outlet;
+}
+
 function GetFinished() {
   // Find any open head of the goal in type.
   for (var y = 0; y < TILESH; y++) {
@@ -554,8 +872,16 @@ function Trace(x, y, dir) {
     }
 
     switch (cell.type) {
+      case CELL_BALL:
+      return null;
       case CELL_HEAD:
       if (IsMated(x, y)) {
+	if (cell.head.outlet) {
+	  // XXX busted hack -- just stop on outlets
+	  // since they are not really well-formed (you
+	  // connect from the side)
+	  return {x: x, y: y, dir: dir};
+	}
 	dir = dir;
 	// Continue through mated heads (both source
 	// and destination). Assumes well-formed items!
@@ -615,7 +941,7 @@ function DrawCutscene() {
   if (window.cutscene_frames >= predelay) {
     DrawFrame(window.deskbubbleframes, DESKBUBBLEX, DESKBUBBLEY);
     var charsleft = 
-	// 1 char per frame, ok?
+	// 1 char per frame, seems fine
 	window.cutscene_frames - predelay;
 
     var lines = cs.t;
@@ -639,7 +965,7 @@ function DrawCutscene() {
 }
 
 function StartCutscene(name) {
-  window.PHASE = PHASE_CUTSCENE;
+  window.phase = PHASE_CUTSCENE;
 
   window.cutscene = name;
   window.cutscene_idx = 0;
@@ -663,6 +989,10 @@ function DrawPuzzle() {
   // ClearScreen();
   DrawFrame(window.boardbg, 0, 0);
 
+  for (var i = 0; i < window.items.length; i++) {
+    window.items[i].DoSolder();
+  }
+
   var fin = GetFinished();
   if (fin) {
     DrawFrame(window.highlightin,
@@ -682,8 +1012,14 @@ function DrawPuzzle() {
         var cell = item.GetCellByGlobal(x, y);
         if (!cell) throw 'bug';
         if (cell.type == CELL_HEAD) {
+	  // if (cell.head == window.heads.solder_pen)
+	  // console.log(cell);
+	  var is_live =
+	      (cell.head == window.heads.livewire ||
+	       cell.head == window.heads.solder_pen) &&
+	      ConnectedToOutlet(x, y, cell);
 	  // PERF
-          var frame = IsMated(x, y) ?
+          var frame = (is_live || IsMated(x, y)) ?
 	      cell.head.mated[cell.facing] :
 	      cell.head.unmated[cell.facing];
           DrawFrame(frame,
@@ -693,7 +1029,11 @@ function DrawPuzzle() {
 	  DrawFrame(window.wireframes[cell.wire],
 		    BOARDSTARTX + x * TILESIZE,
 		    BOARDSTARTY + y * TILESIZE);
-        }
+        } else if (cell.type == CELL_BALL) {
+	  DrawFrame(window.ballframes,
+		    BOARDSTARTX + x * TILESIZE,
+		    BOARDSTARTY + y * TILESIZE);
+	}
       } else {
 	// No item. Then maybe an indicator.
       }
@@ -758,7 +1098,7 @@ function DrawPuzzle() {
 Item.prototype.GetHeads = function() {
   var l = [];
   for (var i = 0; i < this.shape.length; i++) {
-    if (this.shape[i].type == CELL_HEAD) {
+    if (this.shape[i] && this.shape[i].type == CELL_HEAD) {
       l.push(this.shape[i].head);
     }
   }
@@ -787,6 +1127,10 @@ function DrawFloatingItem(it, cx, cy) {
 		    cy + y * TILESIZE);
 	} else if (cell.type == CELL_WIRE) {
 	  DrawFrame(window.wireframes[cell.wire],
+		    cx + x * TILESIZE,
+		    cy + y * TILESIZE);
+	} else if (cell.type == CELL_BALL) {
+	  DrawFrame(window.ballframes,
 		    cx + x * TILESIZE,
 		    cy + y * TILESIZE);
 	}
@@ -822,7 +1166,9 @@ function CheckDrop() {
     for (var y = 0; y < it.height; y++) {
       for (var x = 0; x < it.width; x++) {
 	var cell = it.GetCell(x, y);
-	if (cell && (cell.type == CELL_HEAD || cell.type == CELL_WIRE)) {
+	if (cell && (cell.type == CELL_HEAD || 
+		     cell.type == CELL_WIRE ||
+		     cell.type == CELL_BALL)) {
 	  // XXX test if occupied...
 	  var occupied = GetItemAt(ret.startx + x, ret.starty + y) != null;
 	  if (occupied) ret.ok = false;
@@ -856,6 +1202,7 @@ function CanvasMousedownPuzzle(x, y) {
   if (x >= TRAYX && y >= TRAYY &&
       x <= (TRAYX + TRAYW) &&
       y <= (TRAYY + TRAYH)) {
+    window.touched_level = true;
     console.log('touch in tray');
 
     if (window.floating || window.dragging)
@@ -876,6 +1223,7 @@ function CanvasMousedownPuzzle(x, y) {
 	     x < (SELLX + SELLW) &&
 	     y < (SELLY + SELLH)) {
     
+    window.touched_level = true;
     var fin = GetFinished();
     if (fin) {
       // OK, can sell...
@@ -883,6 +1231,8 @@ function CanvasMousedownPuzzle(x, y) {
     }
     
   } else {
+
+    window.touched_level = true;
     // In board? -- pick up piece?
     var boardx = Math.floor((x - BOARDSTARTX) / TILESIZE);
     var boardy = Math.floor((y - BOARDSTARTY) / TILESIZE);
@@ -909,6 +1259,9 @@ function CanvasMousedownPuzzle(x, y) {
 	    { it: it,
 	      x: boardx,
 	      y: boardy };
+      } else if (cell.type == CELL_BALL) {
+	console.log('cannot drag balls');
+	return;
       }
     }
   }
@@ -1102,8 +1455,8 @@ function CanvasMove(e) {
 	  // Then we're running into ourself.
 	  var ocell = it.GetCellByGlobal(boardx, boardy);
 	  if (!ocell) throw ('object but no cell?');
-	  if (ocell.type == CELL_HEAD) {
-	    console.log('run into other head');
+	  if (ocell.type == CELL_HEAD || ocell.type == CELL_BALL) {
+	    console.log('run into other head/ball');
 	    Detach();
 	    return;
 	  } else if (ocell.type == CELL_WIRE) {
@@ -1240,7 +1593,7 @@ Item.prototype.ShrinkToFit = function() {
 
 // assumes the item is on the board currently...
 Item.prototype.SafePlot = function(dx, dy, cell) {
-  console.log(XY(dx, dy), cell);
+  console.log('safe-plot: ', XY(dx, dy), cell);
   while (dx < 0) {
     // Add column on the left.
     var owidth = this.width;
@@ -1418,6 +1771,13 @@ document.onkeydown = function(e) {
   if (e.ctrlKey) return true;
 
   switch (e.keyCode) {
+    case 49: window.phase = PHASE_PUZZLE; Level1(); break;
+    case 50: window.phase = PHASE_PUZZLE; Level2(); break;
+    case 51: window.phase = PHASE_PUZZLE; Level3(); break;
+    case 52: window.phase = PHASE_PUZZLE; Level4(); break;
+    case 53: window.phase = PHASE_PUZZLE; Level5(); break;
+    case 54: window.phase = PHASE_PUZZLE; Level6(); break;
+    case 55: window.phase = PHASE_PUZZLE; Level7(); break;
     case 9:
     if (window.cutscene) {
       var cuts = window.cutscenes[window.cutscene];

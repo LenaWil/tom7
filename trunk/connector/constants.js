@@ -63,6 +63,7 @@ var SELLH = 29;
 
 var CELL_HEAD = 1;
 var CELL_WIRE = 2;
+var CELL_BALL = 3;
 // etc.?
 
 var DESKBUBBLEX = 134;
