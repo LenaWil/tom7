@@ -9,10 +9,20 @@ var resources = new Resources(
   ['font.png',
    'desk.png',
    'deskbubble.png',
+   'deskphone.png',
    'title.png',
+   'title2.png',
+   'title3.png',
    'board.png',
    'sell1.png',
    'sell2.png',
+   'hand.png',
+   'burned1.png',
+   'burned2.png',
+   'burned3.png',
+   'explosion.png',
+   'explosion2.png',
+   'explosion3.png',
    'connectors.png'],
   [], null);
 
@@ -30,9 +40,21 @@ function Init() {
   window.highlightout = new Frames(ConnectorGraphic(1, 4));
 
   window.ballframes = new Frames(ConnectorGraphic(1, 6));
+  window.handframes = EzFrames(['hand', 1]);
+  // XXX animate
+  window.explosionframes = EzFrames(['explosion', 1,
+				     'explosion2', 1,
+				     'explosion3', 1]);
 
   window.sellframes = EzFrames(['sell1', 2, 'sell2', 2]);
-  window.titleframes = EzFrames(['title', 1]);
+  window.titleframes = EzFrames(['title', 20,
+				'title2', 1,
+				'title', 13,
+				'title3', 1,
+				'title2', 1,
+				'title', 25,
+				 'title2', 3,
+				 'title3', 1]);
   window.deskbubbleframes = EzFrames(['deskbubble', 1]);
 
   // West-East
@@ -185,19 +207,19 @@ function InitGame() {
 	     'be \'outsourcing\' my',
 	     'job. You\'re going',
 	     'to do it, because',
-	     '  you seem to think'] },
+	     '   you seem to think'] },
        { f: EzFrames(['desk', 1]),
 	 s: song_menu,
-	 t: [' my job is some kind',
-	     'of game, which is',
-	     'weird.'] }
+	 t: [' my job is some',
+	     'kind of game, which',
+	     'is weird.'] }
       ], function () {
 	ClearSong();
 	phase = PHASE_PUZZLE;
 	Level1();
       }),
     tutorialend: new Cutscene(
-      [{ f: EzFrames(['desk', 1]),
+      [{ f: EzFrames(['deskphone', 1]),
 	 s: song_menu,
 	 predelay: 30,
 	 t: [' OK, this is great.',
@@ -211,9 +233,9 @@ function InitGame() {
 	Level3();
       }),
     interlude: new Cutscene(
-      [{ f: EzFrames(['desk', 1]),
+      [{ f: EzFrames(['deskphone', 1]),
 	 s: song_menu,
-	 predelay: 30,
+	 predelay: 10,
 	 t: [' Oh wow, I just got',
 	     'a 6x combo. M-m-m-m-',
 	     'monster chocolate!'] }],
@@ -236,7 +258,7 @@ function InitGame() {
 	     'interface. You\'re',
 	     'not supposed to sell',
 	     '       it.'] },
-       { f: EzFrames(['desk', 1]),
+       { f: EzFrames(['deskphone', 1]),
 	 s: song_menu,
 	 predelay: 5,
 	 t: [' Part of what makes',
@@ -247,7 +269,30 @@ function InitGame() {
 	ClearSong();
 	phase = PHASE_PUZZLE;
 	Level7();
-      })
+      }),
+    ending: new Cutscene(
+      [{ f: EzFrames(['burned1', 5,
+		      'burned2', 5,
+		      'burned3', 5,
+		      'burned2', 5]),
+	 s: song_menu,
+	 predelay: 40,
+	 t: [' Ouch.'] },
+       { f: EzFrames(['burned1', 5,
+		      'burned2', 5,
+		      'burned3', 5,
+		      'burned2', 5]),
+	 s: song_menu,
+	 predelay: 5,
+	 t: [' Well, you win.',
+	     'Thanks a lot for',
+	     'helping a guy out.'] }],
+      function () {
+	ClearSong();
+	StartSong(song_theme);
+	phase = PHASE_TITLE;
+      }),
+
   };
 
   console.log('initialized game');
@@ -271,6 +316,9 @@ function ClearGame() {
   window.stack = [];
   // XXX allow by default??
   window.cantakegoal = false;
+  window.cantriggerhand = false;
+  window.handtime = 0;
+  window.shocktime = 0;
 
   window.tutorial = null;
   window.tutorial_test = null;
@@ -298,8 +346,6 @@ function InitLevel() {
       window.items.push(window.stack[i]);
     }
   }
-
-  // XXX Start music...?
 }
 
 function CellHead(prop, facing) {
@@ -497,7 +543,7 @@ function Level3() {
 
 function Level4() {
   ClearGame();
-  StartSong(song_power);
+  // StartSong(song_power);
 
   window.goal = TwoHoriz('rca_red_m', 'rca_red_m');
 
@@ -630,7 +676,9 @@ function Level7() {
   ClearGame();
   StartSong(song_power);
 
-  window.goal = TwoHoriz('quarter_m', 'quarter_f');
+  window.cantriggerhand = true;
+
+  window.goal = TwoHoriz('ac_plug', 'quarter_f');
 
   var outlet = new Item();
   outlet.width = 1;
@@ -656,41 +704,22 @@ function Level7() {
   
   window.items = [iron, outlet];
 
-  var a = ThreeHoriz('usb_m', 'livewire');
-  a.onboard = true;
-  a.boardx = 3;
-  a.boardy = 1;
-  var b = ThreeHoriz('livewire', 'quarter_m');
-  b.onboard = true;
-  b.boardx = 6;
-  b.boardy = 1;
-
-  window.items.push(a, b);
-
   window.stack =
-      [TwoHoriz('quarter_f', 'usb_m'),
-       TwoHoriz('usb_f', 'usb_f'),
-       ThreeHoriz('rca_red_m', 'rca_red_f')];
+      [TwoHoriz('rca_red_f', 'livewire'),
+       TwoHoriz('livewire', 'rca_red_f'),
+       ThreeHoriz('ac_plug', 'usb_m'),
+       TwoVert('usb_f', 'rca_red_m')];
 
-  window.tutorial =
-      ['Oh, dang. Sometimes the',
-       'connectors get frayed. Use ',
-       'the soldering pen to ',
-       'reconnect them.'];
+  var a = TwoVert('livewire', 'rca_red_f');
+  a.onboard = true;
+  a.boardx = 2;
+  a.boardy = 2;
+  window.items.push(a);
 
-  window.tutorial_test =
-      function () {
-	for (var i = 0; i < window.items.length; i++) {
-	  if (window.items[i].HasFrayed()) {
-	    return;
-	  }
-	}
-	window.tutorial = ['That\'s the ticket!'];
-	window.tutorial_test = null;
-      };
-  
   window.nextlevel = function() {
-    Level6();
+    // Should not be possible..??
+    window.phase = PHASE_CUTSCENE;
+    StartCutscene('ending');
   };
 
   InitLevel();
@@ -823,12 +852,12 @@ Item.prototype.DoSolder = function() {
 	if (!oitem)
 	  return;
 	var ocell = oitem.GetCellByGlobal(dx, dy);
-	console.log(ocell);
+	// console.log(ocell);
 	if (!ocell || ocell.type != CELL_HEAD || 
 	    ocell.head != window.heads.livewire)
 	  return;
 
-	console.log('solderable wire at ' + XY(dx, dy));
+	// console.log('solderable wire at ' + XY(dx, dy));
 
 	// OK, it's a wire. Is IT looking at a frayed wire?
 	var ddx = MoveX(dx, ocell.facing);
@@ -842,7 +871,7 @@ Item.prototype.DoSolder = function() {
 	var oocell = ooitem.GetCellByGlobal(ddx, ddy);
 	if (!oocell || oocell.type != CELL_HEAD || 
 	    oocell.head != window.heads.livewire) {
-	  console.log('not wire');
+	  // console.log('not wire');
 	  return;
 	}
 
@@ -1157,8 +1186,7 @@ function DrawPuzzle() {
   }
 
   // Draw tray...
-  for (var i = 0; i < window.stack.length; i++) {
-    // XXX max depth
+  for (var i = 0; i < window.stack.length && i < 4; i++) {
     DrawHeads(window.stack[i], TRAYPLACEX, TRAYPLACEY + i * TILESIZE);
   }
 
@@ -1168,6 +1196,28 @@ function DrawPuzzle() {
     // not be drawn.)
     // DrawFloatingItem(window.goal, GOALPLACEX, GOALPLACEY);
     DrawHeads(window.goal, GOALPLACEX, GOALPLACEY);
+  }
+
+  if (window.shocktime > 0) {
+    DrawFrame(window.explosionframes,
+	      0, HEIGHT - window.explosionframes.height);
+
+    DrawFrame(window.handframes,
+	      0, HEIGHT - window.handframes.height);
+    window.shocktime--;
+
+    if (window.shocktime == 0) {
+      window.phase = PHASE_CUTSCENE;
+      StartCutscene('ending');
+    }
+
+  } else if (window.handtime > 0) {
+    var d = 100 - window.handtime * 3;
+    // Math.round(window.handtime / window.handframes.width);
+    DrawFrame(window.handframes, 
+	      0 - d, 
+	      HEIGHT - window.handframes.height + d);
+    window.handtime--;
   }
 
   // Tutorial on top of most things...
@@ -1285,7 +1335,6 @@ function CheckDrop() {
 	if (cell && (cell.type == CELL_HEAD || 
 		     cell.type == CELL_WIRE ||
 		     cell.type == CELL_BALL)) {
-	  // XXX test if occupied...
 	  var occupied = GetItemAt(ret.startx + x, ret.starty + y) != null;
 	  if (occupied) ret.ok = false;
 	  ret.highlight.push(
@@ -1344,24 +1393,56 @@ function CanvasMousedownPuzzle(x, y) {
       window.nextlevel();
     }
 
-  } else if (window.cantakegoal &&
-	     x >= GOALX && y >= GOALY &&
+  } else if (x >= GOALX && y >= GOALY &&
 	     x <= (GOALX + GOALW) &&
 	     y <= (GOALY + GOALH)) {
 
     if (window.goal) {
-      var it = window.goal;
-      window.goal = null;
-      window.floating = it;
+      if (window.cantakegoal) {
+	var it = window.goal;
+	window.goal = null;
+	window.floating = it;
 
-      window.tutorial = ['Whoa now. What are you doing?'];
-      window.tutorial_test =
-	  function () {
-	    if (window.floating == null) {
-	      window.tutorial = null;
-	      window.tutorial_test = null;
+	window.tutorial = ['Whoa now. What are you doing?'];
+	window.tutorial_test =
+	    function () {
+	      if (window.floating == null) {
+		window.tutorial = null;
+		window.tutorial_test = null;
+	      }
+	    };
+      } else if (window.cantriggerhand &&
+		 window.handtime == 0) {
+
+	// test for explosion version
+	// Are there live wires in the vicinity?
+	for (var y = 5; y < TILESH; y++) {
+	  for (var x = 0; x < 2; x++) {
+	    var it = GetItemAt(x, y);
+	    if (it) {
+	      var cell = it.GetCellByGlobal(x, y);
+	      if (cell && cell.type == CELL_HEAD &&
+		  cell.head == window.heads.livewire) {
+		if (ConnectedToOutlet(x, y, cell)) {
+		  window.shocktime = 30;
+		  return;
+		}
+	      }
 	    }
-	  };
+	  }
+	}
+
+	// OK regular version...
+	window.handtime = 30;
+	window.tutorial = ['  No more of that, ok?'];
+	window.tutorial_test =
+	    function () {
+	      if (window.handtime == 0) {
+		window.tutorial = null;
+		window.tutorial_test = null;
+	      }
+	    };
+      }
     }
 
   } else {
@@ -1424,8 +1505,8 @@ function CanvasMouseupCutscene(x, y) {
   window.cutscene_ffwd = false;
 }
 
-function CanvasMousedown(e) {
-  e = e || window.event;
+function CanvasMousedown(event) {
+  event = event || window.event;
   var bcx = bigcanvas.canvas.offsetLeft;
   var bcy = bigcanvas.canvas.offsetTop;
   var x = Math.floor((event.pageX - bcx) / PX);
@@ -1468,8 +1549,8 @@ function CanvasMouseupPuzzle(x, y) {
   }
 }
 
-function CanvasMouseup(e) {
-  e = e || window.event;
+function CanvasMouseup(event) {
+  event = event || window.event;
   var bcx = bigcanvas.canvas.offsetLeft;
   var bcy = bigcanvas.canvas.offsetTop;
   var x = Math.floor((event.pageX - bcx) / PX);
@@ -1505,8 +1586,8 @@ function GetDirection1(sx, sy, dx, dy) {
   }
 }
 
-function CanvasMove(e) {
-  e = e || window.event;
+function CanvasMove(event) {
+  event = event || window.event;
   var bcx = bigcanvas.canvas.offsetLeft;
   var bcy = bigcanvas.canvas.offsetTop;
   var x = Math.floor((event.pageX - bcx) / PX);
@@ -1877,7 +1958,6 @@ function Step(time) {
   }
 
   // And continue the loop...
-  // console.log('XXX one frame');
   window.requestAnimationFrame(Step);
 }
 
@@ -1892,19 +1972,16 @@ function Start() {
   bigcanvas.canvas.onmousedown = CanvasMousedown;
   bigcanvas.canvas.onmouseup = CanvasMouseup;
 
-  // XXX not this!
-  // WarpTo('beach', 77, 116);
-  // SetPhase(PHASE_PLAYING);
-
   start_time = (new Date()).getTime();
   window.requestAnimationFrame(Step);
 }
 
-document.onkeydown = function(e) {
-  e = e || window.event;
-  if (e.ctrlKey) return true;
+document.onkeydown = function(event) {
+  event = event || window.event;
+  if (event.ctrlKey) return true;
 
-  switch (e.keyCode) {
+  switch (event.keyCode) {
+    /*
     case 49: window.phase = PHASE_PUZZLE; Level1(); break;
     case 50: window.phase = PHASE_PUZZLE; Level2(); break;
     case 51: window.phase = PHASE_PUZZLE; Level3(); break;
@@ -1921,6 +1998,7 @@ document.onkeydown = function(e) {
       }
     }
     break;
+    */
     case 27: // ESC
     if (true || DEBUG) {
       ClearSong();
