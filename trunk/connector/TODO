@@ -4,28 +4,18 @@
 
 Kinda needed:
   - drop things back into tray
-  - finish title screen
-  - hand drawing
-  - burned drawing
-  - soldering iron
-  - taking goal
-  - cell phone in hand
 
 Basic
   - drop things back into tray
-  - finish title screen
   - touch events
   - resize screen for iphone, ipad
-
-Story Mode
-  - in-game dialogue code
-  - taking the goal
-  - taking the goal a second time
 
 Polish
   - when floating, object handle rather than assuming center
   - obvious performance issues
   - blink on desk anim
+  - improve hand anim
+  - better title anim
 
 - index objects to speed up GetItemAt?
 

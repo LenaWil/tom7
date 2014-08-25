@@ -86,6 +86,8 @@ var GOALH = 37;
 var GOALPLACEX = 11;
 var GOALPLACEY = 164;
 
+var MAXHANDTIME = 100;
+
 var FONTW = 9;
 var FONTH = 16;
 var FONTOVERLAP = 1;
