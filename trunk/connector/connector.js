@@ -221,12 +221,36 @@ function InitGame() {
 	ClearSong();
 	phase = PHASE_PUZZLE;
 	Level5();
+      }),
+    hmm: new Cutscene(
+      [{ f: EzFrames(['desk', 1]),
+	 s: song_menu,
+	 predelay: 20,
+	 t: [' Hmmm, I don\'t ',
+	     'know about this...'] },
+       { f: EzFrames(['desk', 1]),
+	 s: song_menu,
+	 predelay: 5,
+	 t: [' That connector was ',
+	     'part of the user',
+	     'interface. You\'re',
+	     'not supposed to sell',
+	     '       it.'] },
+       { f: EzFrames(['desk', 1]),
+	 s: song_menu,
+	 predelay: 5,
+	 t: [' Part of what makes',
+	     'games fun is rules.',
+	     'Let\'s follow the',
+	     'rules, ok?'] }],
+      function () {
+	ClearSong();
+	phase = PHASE_PUZZLE;
+	Level7();
       })
   };
 
   console.log('initialized game');
-
-  // StartSong(song_power);
 }
 
 function Cutscene(desc, cont) {
@@ -245,6 +269,8 @@ function ClearGame() {
   window.goalin = null;
   window.goalout = null;
   window.stack = [];
+  // XXX allow by default??
+  window.cantakegoal = false;
 
   window.tutorial = null;
   window.tutorial_test = null;
@@ -549,8 +575,8 @@ function Level5() {
   window.items.push(a, b);
 
   window.stack =
-      [TwoHoriz('usb_m', 'usb_m'),
-       TwoHoriz('quarter_m', 'usb_f'),
+      [TwoHoriz('quarter_f', 'usb_m'),
+       TwoHoriz('usb_f', 'usb_f'),
        ThreeHoriz('rca_red_m', 'rca_red_f')];
 
   window.tutorial =
@@ -571,10 +597,100 @@ function Level5() {
       };
   
   window.nextlevel = function() {
-    // No, Cutscene!
-    // Level5();
+    Level6();
+  };
+
+  InitLevel();
+}
+
+function Level6() {
+  ClearGame();
+  StartSong(song_power);
+
+  window.goal = TwoHoriz('ac_plug', 'usb_m');
+
+  window.items = [];
+
+  window.cantakegoal = true;
+
+  window.stack =
+      [TwoHoriz('usb_m', 'rca_red_m'),
+       TwoVert('quarter_f', 'quarter_m'),
+       ThreeHoriz('rca_red_m', 'rca_red_f')];
+
+  window.nextlevel = function() {
     window.phase = PHASE_CUTSCENE;
-    StartCutscene('interlude');
+    StartCutscene('hmm');
+  };
+
+  InitLevel();
+}
+
+function Level7() {
+  ClearGame();
+  StartSong(song_power);
+
+  window.goal = TwoHoriz('quarter_m', 'quarter_f');
+
+  var outlet = new Item();
+  outlet.width = 1;
+  outlet.height = 2;
+  outlet.shape = [CellHead('outlet_top', LEFT),
+		  CellHead('outlet_bot', LEFT)];
+  outlet.onboard = true;
+  outlet.boardx = 11;
+  outlet.boardy = 6;
+
+  var iron = new Item();
+  iron.width = 5;
+  iron.height = 4,
+  iron.shape =
+      [CellHead('solder_pen', UP), null, null, null, null,
+       CellWire(WIRE_NE), CellWire(WIRE_WE), CellWire(WIRE_WE), 
+                                                 CellWire(WIRE_SW), null,
+       null, null, null, CellWire(WIRE_NS), null,
+       null, null, null, CellWire(WIRE_NE), CellHead('ac_plug', RIGHT)];
+  iron.onboard = true;
+  iron.boardx = 6;
+  iron.boardy = 4;
+  
+  window.items = [iron, outlet];
+
+  var a = ThreeHoriz('usb_m', 'livewire');
+  a.onboard = true;
+  a.boardx = 3;
+  a.boardy = 1;
+  var b = ThreeHoriz('livewire', 'quarter_m');
+  b.onboard = true;
+  b.boardx = 6;
+  b.boardy = 1;
+
+  window.items.push(a, b);
+
+  window.stack =
+      [TwoHoriz('quarter_f', 'usb_m'),
+       TwoHoriz('usb_f', 'usb_f'),
+       ThreeHoriz('rca_red_m', 'rca_red_f')];
+
+  window.tutorial =
+      ['Oh, dang. Sometimes the',
+       'connectors get frayed. Use ',
+       'the soldering pen to ',
+       'reconnect them.'];
+
+  window.tutorial_test =
+      function () {
+	for (var i = 0; i < window.items.length; i++) {
+	  if (window.items[i].HasFrayed()) {
+	    return;
+	  }
+	}
+	window.tutorial = ['That\'s the ticket!'];
+	window.tutorial_test = null;
+      };
+  
+  window.nextlevel = function() {
+    Level6();
   };
 
   InitLevel();
@@ -1197,8 +1313,6 @@ function CanvasMousedownPuzzle(x, y) {
   // If in the tray section, then we create a new piece and
   // start floating it.
 
-  // XXX implement goal dragging.
-
   if (x >= TRAYX && y >= TRAYY &&
       x <= (TRAYX + TRAYW) &&
       y <= (TRAYY + TRAYH)) {
@@ -1229,7 +1343,27 @@ function CanvasMousedownPuzzle(x, y) {
       // OK, can sell...
       window.nextlevel();
     }
-    
+
+  } else if (window.cantakegoal &&
+	     x >= GOALX && y >= GOALY &&
+	     x <= (GOALX + GOALW) &&
+	     y <= (GOALY + GOALH)) {
+
+    if (window.goal) {
+      var it = window.goal;
+      window.goal = null;
+      window.floating = it;
+
+      window.tutorial = ['Whoa now. What are you doing?'];
+      window.tutorial_test =
+	  function () {
+	    if (window.floating == null) {
+	      window.tutorial = null;
+	      window.tutorial_test = null;
+	    }
+	  };
+    }
+
   } else {
 
     window.touched_level = true;
