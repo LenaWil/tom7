@@ -7,8 +7,8 @@
 #include "../cc-lib/util.h"
 
 vector<uint8> BasisUtil::LoadOrComputeBasis(const vector<uint8> &inputs,
-					      int frame,
-					      const string &basisfile) {
+					    int frame,
+					    const string &basisfile) {
   if (Util::ExistsFile(basisfile)) {
     fprintf(stderr, "Loading basis file %s.\n", basisfile.c_str());
     return Util::ReadFileBytes(basisfile);
