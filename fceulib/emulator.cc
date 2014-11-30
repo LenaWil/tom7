@@ -1,5 +1,5 @@
 
-#include "fceulib.h"
+#include "emulator.h"
 
 #include <algorithm>
 #include <string>
@@ -29,12 +29,12 @@ static uint32 joydata = 0;
 // The current contents of the screen; part of the "API".
 extern uint8 *XBuf, *XBackBuf;
 
-void FCEULib::GetMemory(vector<uint8> *mem) {
+void Emulator::GetMemory(vector<uint8> *mem) {
   mem->resize(0x800);
   memcpy(&((*mem)[0]), RAM, 0x800);
 }
 
-uint64 FCEULib::RamChecksum() {
+uint64 Emulator::RamChecksum() {
   md5_context ctx;
   md5_starts(&ctx);
   md5_update(&ctx, RAM, 0x800);
@@ -102,16 +102,16 @@ static int LoadGame(const char *path) {
   return 1;
 }
 
-FCEULib::~FCEULib() {
+Emulator::~Emulator() {
   FCEUI_CloseGame();
   GameInfo = 0;
 }
 
-FCEULib::FCEULib() {
+Emulator::Emulator() {
 
 }
 
-FCEULib *FCEULib::Create(const string &romfile) {
+Emulator *Emulator::Create(const string &romfile) {
   int error;
 
   // XXX Need to get rid of IO too.
@@ -188,13 +188,13 @@ FCEULib *FCEULib::Create(const string &romfile) {
   // Default.
   newppu = 0;
 
-  return new FCEULib;
+  return new Emulator;
 }
 
 // Make one emulator step with the given input.
 // Bits from MSB to LSB are
 //    RLDUTSBA (Right, Left, Down, Up, sTart, Select, B, A)
-void FCEULib::Step(uint8 inputs) {
+void Emulator::Step(uint8 inputs) {
   int32 *sound;
   int32 ssize;
 
@@ -209,7 +209,7 @@ void FCEULib::Step(uint8 inputs) {
   FCEUI_Emulate(nullptr, &sound, &ssize, SKIP_VIDEO_AND_SOUND);
 }
 
-void FCEULib::StepFull(uint8 inputs) {
+void Emulator::StepFull(uint8 inputs) {
   int32 *sound;
   int32 ssize;
   joydata = (uint32) inputs;
@@ -221,7 +221,7 @@ void FCEULib::StepFull(uint8 inputs) {
   FCEUI_Emulate(nullptr, &sound, &ssize, DO_VIDEO_AND_SOUND);
 }
 
-void FCEULib::GetImage(vector<uint8> *rgba) {
+void Emulator::GetImage(vector<uint8> *rgba) {
   rgba->clear();
   rgba->resize(256 * 256 * 4);
 
@@ -240,7 +240,7 @@ void FCEULib::GetImage(vector<uint8> *rgba) {
   }
 }
 
-void FCEULib::GetSound(vector<int16> *wav) {
+void Emulator::GetSound(vector<int16> *wav) {
   wav->clear();
   int32 *buffer = nullptr;
   int samples = GetSoundBuffer(&buffer);
@@ -255,26 +255,26 @@ void FCEULib::GetSound(vector<int16> *wav) {
   }
 }
 
-void FCEULib::Save(vector<uint8> *out) {
+void Emulator::Save(vector<uint8> *out) {
   SaveEx(out, nullptr);
 }
 
-void FCEULib::GetBasis(vector<uint8> *out) {
+void Emulator::GetBasis(vector<uint8> *out) {
   FCEUSS_SaveRAW(out);
 }
 
-void FCEULib::SaveUncompressed(vector<uint8> *out) {
+void Emulator::SaveUncompressed(vector<uint8> *out) {
   FCEUSS_SaveRAW(out);
 }
 
-void FCEULib::LoadUncompressed(vector<uint8> *in) {
+void Emulator::LoadUncompressed(vector<uint8> *in) {
   if (!FCEUSS_LoadRAW(in)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }
 }
 
-void FCEULib::Load(vector<uint8> *state) {
+void Emulator::Load(vector<uint8> *state) {
   LoadEx(state, nullptr);
 }
 
@@ -286,7 +286,7 @@ void FCEULib::Load(vector<uint8> *state) {
 
 #if USE_COMPRESSION
 
-void FCEULib::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
+void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
   // TODO
   // Saving is not as efficient as we'd like for a pure in-memory operation
   //  - uses tags to tell you what's next, even though we could already know
@@ -325,7 +325,7 @@ void FCEULib::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
   state->resize(4 + comprlen);
 }
 
-void FCEULib::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
+void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
   // Decompress. First word tells us the decompressed size.
   int uncomprlen = *(uint32*)&(*state)[0];
   vector<uint8> uncompressed;
@@ -368,11 +368,11 @@ void FCEULib::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
 
 // When compression is disabled, we ignore the basis (no point) and
 // don't store any size header. These functions become very simple.
-void FCEULib::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
+void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
   FCEUSS_SaveRAW(out);
 }
 
-void FCEULib::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
+void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
   if (!FCEUSS_LoadRAW(state)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
