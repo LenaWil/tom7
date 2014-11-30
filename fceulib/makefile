@@ -1,8 +1,8 @@
 
 # Makefile made by tom7.
-default: fceulib_test.exe 
+default: emulator_test.exe 
 
-all: fceulib_test.exe
+all: emulator_test.exe
 
 # -fno-strict-aliasing
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -std=c++11 -I/usr/local/include 
@@ -54,11 +54,11 @@ LFLAGS= -m64 -Wl,--subsystem,console $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROF
 # -static -fwhole-program
 # -static
 
-fceulib_test.exe : $(OBJECTS) fceulib_test.o
+emulator_test.exe : $(OBJECTS) emulator_test.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-test : fceulib_test.exe objective_test.exe weighted-objectives_test.exe
-	time ./fceulib_test.exe
+test : emulator_test.exe
+	time ./emulator_test.exe
 
 clean :
 	rm -f *_test.exe *.o $(EMUOBJECTS) $(CCLIBOBJECTS) gmon.out
