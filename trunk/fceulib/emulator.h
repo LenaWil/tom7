@@ -6,8 +6,8 @@
   each other and cause undefined behavior.
 */
 
-#ifndef __FCEULIB_H
-#define __FCEULIB_H
+#ifndef __EMULATOR_H
+#define __EMULATOR_H
 
 #include <vector>
 #include <string>
@@ -16,12 +16,12 @@
 
 using namespace std;
 
-struct FCEULib {
+struct Emulator {
   // Returns nullptr (or aborts) on error. Upon success, returns
   // a new-ly allocated instance.
-  static FCEULib *Create(const string &romfile);
+  static Emulator *Create(const string &romfile);
 
-  ~FCEULib();
+  ~Emulator();
   
   // Serialize the state to the vector, allowing it to be restored
   // with Load. This version may use compression to minimize the
@@ -81,12 +81,12 @@ struct FCEULib {
 
  protected:
   // Use factory method.
-  FCEULib();
+  Emulator();
 
  private:
   // Maybe we should consider supporting cloning, actually.
-  FCEULib(const FCEULib &) = delete;
-  FCEULib &operator =(const FCEULib &) = delete;
+  Emulator(const Emulator &) = delete;
+  Emulator &operator =(const Emulator &) = delete;
 };
 
 
