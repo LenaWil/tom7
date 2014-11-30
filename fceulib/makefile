@@ -43,10 +43,10 @@ EMUOBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(
 # included in all tests, etc.
 BASEOBJECTS=$(CCLIBOBJECTS)
 
-TASBOT_OBJECTS=headless-driver.o
+FCEULIB_OBJECTS=fceulib.o headless-driver.o
 # simplefm2.o emulator.o util.o
 
-OBJECTS=$(BASEOBJECTS) $(EMUOBJECTS) $(TASBOT_OBJECTS)
+OBJECTS=$(BASEOBJECTS) $(EMUOBJECTS) $(FCEULIB_OBJECTS)
 
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS= -m64 -Wl,--subsystem,console $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE) -static
