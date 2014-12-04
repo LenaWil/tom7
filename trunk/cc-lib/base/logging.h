@@ -74,9 +74,9 @@ namespace google_base {
 class DateLogger {
  public:
   DateLogger();
-  char* const HumanDate();
+  const char* const HumanDate();
  private:
-  char buffer_[9];
+  char buffer_[9] = {'\0'};
 };
 }  // namespace google_base
 
