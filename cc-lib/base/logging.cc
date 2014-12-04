@@ -23,20 +23,19 @@ DateLogger::DateLogger() {
 #endif
 }
 
-char* const DateLogger::HumanDate() {
-#if defined(_MSC_VER)
+const char* const DateLogger::HumanDate() {
+#ifdef __MINGW32__
+  return "mingw";
+#else
+# if defined(_MSC_VER)
   _strtime_s(buffer_, sizeof(buffer_));
-# ifdef MINGW
-  // TODO -- safe way to do this?
-  sprintf(buffer_, "mingw\0");
-# else
   time_t time_value = time(NULL);
   struct tm now;
   localtime_r(&time_value, &now);
   snprintf(buffer_, sizeof(buffer_), "%02d:%02d:%02d\0",
            now.tm_hour, now.tm_min, now.tm_sec);
 # endif
-#endif
   return buffer_;
+#endif
 }
 }  // namespace google_base
