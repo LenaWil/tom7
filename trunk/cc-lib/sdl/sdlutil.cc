@@ -531,7 +531,7 @@ SDL_Surface * sdlutil::makescreen(int w, int h) {
    systems ... */
 
 void sdlutil::slock(SDL_Surface *screen) {
-  if(SDL_MUSTLOCK(screen))
+  if (SDL_MUSTLOCK(screen))
     SDL_LockSurface(screen);
 }
 
@@ -687,7 +687,7 @@ void sdlutil::drawpixel(SDL_Surface *screen, int x, int y,
       {
         Uint8 *bufp;
         bufp = (Uint8 *)screen->pixels + y*screen->pitch + x * 3;
-        if(SDL_BYTEORDER == SDL_LIL_ENDIAN) {
+        if (SDL_BYTEORDER == SDL_LIL_ENDIAN) {
 	    bufp[0] = color;
 	    bufp[1] = color >> 8;
 	    bufp[2] = color >> 16;
