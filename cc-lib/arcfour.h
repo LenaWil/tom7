@@ -14,7 +14,7 @@
 #include <vector>
 
 struct ArcFour {
-  typedef unsigned char uint8;
+  typedef uint8_t uint8;
 
   explicit ArcFour(const std::vector<uint8> &v);
   explicit ArcFour(const std::string &s);
