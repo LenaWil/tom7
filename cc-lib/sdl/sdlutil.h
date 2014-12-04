@@ -46,7 +46,7 @@ struct sdlutil {
      position. */
   static void blitall(SDL_Surface * src, SDL_Surface * dst, int x, int y);
 
-  /* Just like SDL_Fillrect, but no need to crate SDL_Rects */
+  /* Just like SDL_Fillrect, but no need to create SDL_Rects */
   static void fillrect(SDL_Surface *, Uint32 color,
                        int x, int y, int w, int h);
 
