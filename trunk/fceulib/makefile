@@ -1,6 +1,6 @@
 
 # Makefile made by tom7.
-default: emulator_test.exe 
+default: emulator_test.exe fm2tocc.exe
 
 all: emulator_test.exe
 
@@ -21,7 +21,7 @@ INCLUDES=-I "../cc-lib" -I "../cc-lib/city"
 CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++11
 
 # Probably shouldn't need...
-CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o
+CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/logging.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o ../cc-lib/rle.o
 
 MAPPEROBJECTS=mappers/24and26.o mappers/51.o mappers/69.o mappers/77.o mappers/40.o mappers/6.o mappers/71.o mappers/79.o mappers/41.o mappers/61.o mappers/72.o mappers/80.o mappers/42.o mappers/62.o mappers/73.o mappers/85.o mappers/46.o mappers/65.o mappers/75.o mappers/emu2413.o mappers/50.o mappers/67.o mappers/76.o mappers/mmc2and4.o
 
@@ -43,7 +43,7 @@ EMUOBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(
 # included in all tests, etc.
 BASEOBJECTS=$(CCLIBOBJECTS)
 
-FCEULIB_OBJECTS=fceulib.o headless-driver.o
+FCEULIB_OBJECTS=emulator.o headless-driver.o
 # simplefm2.o emulator.o util.o
 
 OBJECTS=$(BASEOBJECTS) $(EMUOBJECTS) $(FCEULIB_OBJECTS)
@@ -53,6 +53,9 @@ LFLAGS= -m64 -Wl,--subsystem,console $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROF
 # -Wl,--subsystem,console
 # -static -fwhole-program
 # -static
+
+fm2tocc.exe : $(OBJECTS) fm2tocc.o simplefm2.o
+	$(CXX) $^ -o $@ $(LFLAGS)
 
 emulator_test.exe : $(OBJECTS) emulator_test.o
 	$(CXX) $^ -o $@ $(LFLAGS)

@@ -8,7 +8,7 @@
 #include <vector>
 #include <string>
 
-#include "fceu/types.h"
+#include "types.h"
 
 #define INPUT_R (1<<7)
 #define INPUT_L (1<<6)
