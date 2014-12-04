@@ -76,8 +76,6 @@ int main() {
   DecoderTests();
   EncoderTests();
 
-  //  return 0;
-
   // Biased when m is not a power of two, as we know; fine for testing.
   auto RandTo = [&rc](int m) {
     CHECK_GT(m, 0);
@@ -92,43 +90,47 @@ int main() {
   };
 
   int64_t compressed_bytes = 0, uncompressed_bytes = 0;
-  #define NUM_TESTS 10000
+  #define NUM_TESTS 2000
   const uint64 start_time = time(nullptr);
-  for (int test_num = 0; test_num < NUM_TESTS; test_num++) {
-    if (test_num % 75 == 0) {
-      printf("%.1f%% ... ", (100.0 * test_num) / NUM_TESTS);
+  for (int cutoff = 0; cutoff < 256; cutoff++) {
+    if (cutoff % 10 == 0) {
+      printf("%.1f%% ... ", (100.0 * cutoff) / 256);
     }
-    int len = RandTo(32768);
-    CHECK_LT(len, 32768);
-    vector<uint8> bytes;
-    bytes.reserve(len);
-    for (int j = 0; j < len; j++) {
-      if (rc.Byte() < 10) {
-	int runsize = rc.Byte() + rc.Byte();
-	const uint8 target = rc.Byte();
-	while (runsize--) {
-	  bytes.push_back(target);
-	  j++;
+
+    const uint8 run_cutoff = cutoff;
+    for (int test_num = 0; test_num < NUM_TESTS; test_num++) {
+      int len = RandTo(2048);
+      CHECK_LT(len, 2048);
+      vector<uint8> bytes;
+      bytes.reserve(len);
+      for (int j = 0; j < len; j++) {
+	if (rc.Byte() < 10) {
+	  int runsize = rc.Byte() + rc.Byte();
+	  const uint8 target = rc.Byte();
+	  while (runsize--) {
+	    bytes.push_back(target);
+	    j++;
+	  }
+	} else {
+	  bytes.push_back(rc.Byte());
 	}
-      } else {
-	bytes.push_back(rc.Byte());
       }
-    }
 
-    uncompressed_bytes += bytes.size();
-    // fprintf(stderr, "Start: %s\n", ShowVector(bytes).c_str());
-    vector<uint8> compressed = RLE::Compress(bytes);
-    // fprintf(stderr, "Compressed: %s\n", ShowVector(compressed).c_str());
-    compressed_bytes += compressed.size();
+      uncompressed_bytes += bytes.size();
+      // fprintf(stderr, "Start: %s\n", ShowVector(bytes).c_str());
+      vector<uint8> compressed = RLE::CompressEx(bytes, run_cutoff);
+      // fprintf(stderr, "Compressed: %s\n", ShowVector(compressed).c_str());
+      compressed_bytes += compressed.size();
 
-    vector<uint8> uncompressed;
-    CHECK(RLE::DecompressEx(compressed, RLE::DEFAULT_CUTOFF, &uncompressed))
-      << " test_num " << test_num;
-    CHECK_EQ(uncompressed.size(), bytes.size());
-    for (int i = 0; i < uncompressed.size(); i++) {
-      CHECK_EQ(uncompressed[i], bytes[i]) << " test_num "
-                                          << test_num
-                                          << " byte #" << i;
+      vector<uint8> uncompressed;
+      CHECK(RLE::DecompressEx(compressed, run_cutoff, &uncompressed))
+	<< " test_num " << test_num;
+      CHECK_EQ(uncompressed.size(), bytes.size());
+      for (int i = 0; i < uncompressed.size(); i++) {
+	CHECK_EQ(uncompressed[i], bytes[i]) << " test_num "
+					    << test_num
+					    << " byte #" << i;
+      }
     }
   }
   const uint64 end_time = time(nullptr);
@@ -146,5 +148,4 @@ int main() {
 	 (uncompressed_bytes / 1000.0) / elapsed);
 
   return 0;
-  // TODO: Test extremes of run_cutoff in CompressEx.
 }
