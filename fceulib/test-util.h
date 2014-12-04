@@ -34,34 +34,12 @@ struct hash< unsigned long long > {
 }
 #endif
 
-#ifndef DEBUG
-#  define DEBUG 0
-#endif
-
 #define UNIMPLEMENTED(message) \
   do { fprintf(stderr, "%s:%s:%d. Unimplemented: %s\n", \
 	       __FILE__, __func__, __LINE__, #message); \
     fflush(stderr);					\
     abort();						\
   } while (0)
-
-// TODO: Use good logging package, or at least make this
-// return a version of cerr that aborts after outputting
-// the message, so we can do CHECK(cond) << "helpful message";.
-#define CHECK(condition) \
-  while (!(condition)) {                                    \
-    fprintf(stderr, "%s:%s:%d. Check failed: %s\n",	    \
-            __FILE__, __func__, __LINE__, #condition        \
-            );                                              \
-    fflush(stderr);					    \
-    abort();                                                \
-  }
-
-#if DEBUG
-#  define DCHECK(condition) CHECK(condition)
-#else
-#  define DCHECK(condition) do { } while(0)
-#endif
 
 // TODO: Move constructors too? Are they defined by default?
 #define NOT_COPYABLE(classname) \
