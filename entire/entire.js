@@ -90,17 +90,69 @@ var staticsquares = [
   new Static(200, 700, 100, 25)
 ];
 
+function Dynamic(x, y, w, h) {
+  // XXX also needs to know its viewport into the world, and
+  // its control attenuation.
+  this.x = x;
+  this.y = y;
+  this.w = w;
+  this.h = h;
+  return this;
+}
+
+Dynamic.prototype.x1 = function() { return this.x; }
+Dynamic.prototype.x2 = function() { return this.x + this.w; }
+Dynamic.prototype.y1 = function() { return this.y; }
+Dynamic.prototype.y2 = function() { return this.y + this.h; }
+Dynamic.prototype.DebugString = function() {
+  return 'Dynamic(' + [this.x, this.y, this.w, this.h].join(',') + ')';
+}
+Dynamic.prototype.DrawCropped = function(osx1, osy1, osx2, osy2,
+					 sx1, sy1, sx2, sy2,
+					 fg, bg) {
+  // We've become smaller than a pixel, which is the ultimate fate
+  // of singularities.
+  if (osx1 == osx2 &&
+      osy1 == osy2) {
+    ctx.fillStyle = '0xFF0000';
+    ctx.fillRect(osx1, osy1, 1, 1);
+    return;
+  }
+
+  // TODO: Need to also crop in world coordinates so that we can
+  // show the appropriate part of the game herein.
+
+  // XXXXXXxxx cropping!
+
+  // newscale:
+  var newscale = scale * ((osx2 - osx1) / WIDTH);
+
+  // console.log('rec drawworld: ' + newscale);
+  DrawWorld(bg, fg,
+	    // Here's where we are on the screen.
+	    // XXX needs to be cropped into the crop
+	    // rectangle, given by s.
+	    osx1, osy1, osx2, osy2,
+	    xpos, ypos, 
+	    newscale);
+
+  // ctx.fillStyle = fg;
+  // ctx.fillRect(csx1, csy1, csx2 - csx1, csy2 - csy1);
+};
+
+
+var dynamicobjects = [
+  new Dynamic(215, 600, 50, 50)
+];
+
 function DrawWorld(
   // Foreground and background colors.
   fg, bg,
   // Screen coordinates. We do need to do our own clipping.
-  sx1, sy1, sw, sh,
+  sx1, sy1, sx2, sy2,
   // World coordinates and scale factor
   wx1, wy1, wr) {
 
-  var sx2 = sx1 + sw;
-  var sy2 = sy1 + sh;
-  
   // Coordinate transforms.
   var wxtosx = function(wx) {
     var wo = wx - wx1;
@@ -145,16 +197,16 @@ function DrawWorld(
   // Start by drawing the background color in the entire
   // rectangle.
   ctx.fillStyle = bg;
-  ctx.fillRect(sx1, sy1, sw, sh);
+  ctx.fillRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
 
   for (var o in staticsquares) DO(staticsquares[o]);
   // And dynamic objects...
-  // for (var o : staticsquares) DO(staticsquares[o]);
+  for (var o in dynamicobjects) DO(dynamicobjects[o]);
 }
 
-var xpos = 500;
-var ypos = 600;
-var scale = 1.0;
+var xpos = 50;
+var ypos = 520;
+var scale = 1.33;
 function Draw() {
   DrawWorld('#FFFFFF', '#0000FF',
 	    0, 0, WIDTH, HEIGHT,
