@@ -101,6 +101,9 @@ function Dynamic(x, y, w, h, fg, bg) {
   this.h = h;
   this.fg = fg;
   this.bg = bg;
+
+  this.dx = 0;
+  this.dy = 0;
   return this;
 }
 
@@ -150,11 +153,13 @@ Dynamic.prototype.DrawCropped = function(d,
   }
 
   if (d > 25) {
+    /*
     console.log('"infinite" recursion? ' +
 		' os: ' + [osx1, osy1, osx2, osy2].join(',') +
 		' s: ' + [sx1, sy1, sx2, sy2].join(',') +
 		' cs: ' + [cx1, cy1, cx2, cy2].join(',') +
 		' fg bg: ' + [fg, bg].join(','));
+		*/
     ctx.fillStyle = '#000000';
     ctx.fillRect(cx1, cy1, cx2 - cx1, cy2 - cy1);
     return;
@@ -170,8 +175,8 @@ Dynamic.prototype.DrawCropped = function(d,
 
 
 var dynamicobjects = [
-  new Dynamic(215, 575, 100, 100, '#00FF00', '#333333'),
-  new Dynamic(125, 600, 100, 100, '#FFCC00', '#556622')
+  new Dynamic(215, 525, 100, 100, '#00FF00', '#333333'),
+  new Dynamic(100, 575, 100, 100, '#FFCC00', '#556622')
 ];
 
 function DrawWorld(
@@ -251,13 +256,173 @@ function DumpPos() {
 	      ';');
 }
 
+function move1DClip(obj, pos, dpos, f) {
+  var newpos = pos + dpos;
+
+  // XXX probably should check invariant since it can probably 
+  // be violated in rare cases (fp issues).
+  if (f(obj, newpos)) {
+
+    // invariant: pos is good, newpos is bad
+    // XXX EPSILON?
+    while (Math.abs(newpos - pos) > .01) {
+      var mid = (newpos + pos) / 2;
+      if (f(obj, mid)) {
+        newpos = mid;
+      } else {
+        pos = mid;
+      }
+    }
+
+    return { pos : pos, dpos : 0 };
+  } else {
+    return { pos : newpos, dpos : dpos };
+  }
+}
+
+function DoPhysics(obj) {
+
+  var PointBlocked = function(x, y, w) {
+    var Test = function(b) {
+      if (b == obj) return false;
+      return x >= b.x1() && x <= b.x2() &&
+             y >= b.y1() && y <= b.y2();
+    };
+
+    for (var o in dynamicobjects) 
+      if (Test(dynamicobjects[o]))
+	return true;
+    for (var o in staticsquares) 
+      if (Test(staticsquares[o]))
+	return true;
+  };
+
+  var WidthBlocked = function(x, y, w) {
+    return PointBlocked(x, y) || PointBlocked(x + w, y) ||
+	PointBlocked(x + (w * 0.5), y);
+  };
+
+  var CORNER = 0;
+  // PERF these already need to capture obj to run widthblocked,
+  // so don't bother passing it as a parameter too.
+  var BlockedUp = function(obj, newy) {
+    var yes = WidthBlocked(obj.x + obj.w * CORNER,
+			   newy,
+			   obj.w * (1 - 2 * CORNER));
+    // XXX Probably unused?
+    // collision_up = collision_up || yes;
+    return yes;
+  };
+
+  var BlockedDown = function(obj, newy) {
+    var yes = WidthBlocked(obj.x + obj.w * CORNER,
+			   newy + obj.h,
+			   obj.w * (1 - 2 * CORNER));
+    // collision_down = collision_down || yes;
+    return yes;
+  };
+
+  // XXX BlockedUp/down
+  var oy = move1DClip(obj,
+		      obj.y, obj.dy, 
+		      (obj.dy < 0) ? BlockedUp : BlockedDown);
+  obj.y = oy.pos;
+  obj.dy = oy.dpos;
+
+  // Now x:
+/*
+  var ox = move1DClip(this._x, dx, (dx < 0) ? blockedleft : blockedright);
+  this._x = ox.pos;
+  dx = ox.dpos;
+*/
+
+  // Check physics areas to get the physics constants, which we use
+  // for the rest of the updates.
+/*
+  var C = defaultconstants();
+  for (var d in _root.physareas) {
+    var mca = _root.physareas[d];
+    if (mca.isHit(this, dx, dy)) {
+      if (mca.getConstants != undefined) 
+	mca.getConstants(this, C);
+      else trace("no getConstants");
+    }
+  }
+*/
+
+  var C = {
+    accel: 3,
+    decel_ground: 0.95,
+    decel_air: 0.05,
+    jump_impulse: 13.8,
+    gravity: 1.0,
+    xgravity: 0.0,
+    terminal_velocity: 9,
+    maxspeed: 5.9
+  };
+
+  var GROUND_SLOP = 2.0;
+  var OnTheGround = function() {
+    return WidthBlocked(obj.x + obj.w * 0.1,
+                        obj.y + obj.h + GROUND_SLOP,
+                        obj.w * 0.8);
+  };
+
+
+  var otg = OnTheGround();
+
+/*
+  if (otg && wishjump()) {
+    dy = -C.jump_impulse;
+  }
+
+  if (wishright()) {
+    dx += C.accel;
+    if (dx > C.maxspeed) dx = C.maxspeed;
+  } else if (wishleft()) {
+    dx -= C.accel;
+    if (dx < -C.maxspeed) dx = -C.maxspeed;
+  } else {
+    // If not holding either direction,
+    // slow down and stop (quickly)
+    if (otg) {
+      // On the ground, slow to a stop very quickly
+      if (dx > C.decel_ground) dx -= C.decel_ground;
+      else if (dx < -C.decel_ground) dx += C.decel_ground;
+      else dx = 0;
+    } else {
+      // In the air, not so much.
+      if (dx > C.decel_air) dx -= C.decel_air;
+      else if (dx < -C.decel_air) dx += C.decel_air;
+      else dx = 0;
+    }
+  }
+*/
+
+  if (otg) {
+    obj.dx += C.xgravity;
+    if (obj.dx < -C.terminal_velocity) obj.dx = -C.terminal_velocity;
+    else if (obj.dx > C.terminal_velocity) obj.dx = C.terminal_velocity;
+  } else {
+    obj.dy += C.gravity;
+    if (obj.dy > C.terminal_velocity) obj.dy = C.terminal_velocity;
+  }
+
+}
+
 function Physics() {
-  if (holdingLeft) xpos -= 10;
-  else if (holdingRight) xpos += 1;
-  if (holdingUp) ypos -= 10;
-  else if (holdingDown) ypos += 1;
-  if (holdingPlus) scale *= 1.1;
-  else if (holdingMinus) scale /= 1.1;
+  if (holdingShift) {
+    if (holdingLeft) xpos -= 5;
+    else if (holdingRight) xpos += 5;
+    if (holdingUp) ypos -= 5;
+    else if (holdingDown) ypos += 5;
+    if (holdingPlus) scale *= 1.05;
+    else if (holdingMinus) scale /= 1.05;
+    return;
+  }
+
+  
+  for (o in dynamicobjects) DoPhysics(dynamicobjects[o]);
 }
 
 last = 0;
@@ -314,7 +479,8 @@ function Start() {
   window.requestAnimationFrame(Step);
 }
 
-var holdingLeft = false, holdingRight = false,
+var holdingShift = false,
+  holdingLeft = false, holdingRight = false,
   holdingUp = false, holdingDown = false,
   holdingSpace = false, holdingEnter = false,
   holdingX = false, holdingZ = false,
@@ -374,6 +540,9 @@ document.onkeydown = function(e) {
     case 189: // -/_
     holdingMinus = true;
     break;
+    case 16: // shift
+    holdingShift = true;
+    break;
     default:
     // console.log(e.keyCode);
   } 
@@ -416,6 +585,10 @@ document.onkeyup = function(e) {
     break;
     case 189: // -/_
     holdingMinus = false;
+    break;
+    case 16:
+    holdingShift = false;
+    break;
   }
   return false;
 }
