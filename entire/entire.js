@@ -51,8 +51,123 @@ function YouWin() {
   }
 }
 
-function Draw() {
+function Static(x, y, w, h) {
+  this.x = x;
+  this.y = y;
+  this.w = w;
+  this.h = h;
+  return this;
+}
+
+Static.prototype.x1 = function() { return this.x; }
+Static.prototype.x2 = function() { return this.x + this.w; }
+Static.prototype.y1 = function() { return this.y; }
+Static.prototype.y2 = function() { return this.y + this.h; }
+Static.prototype.DebugString = function() {
+  return 'Static(' + [this.x, this.y, this.w, this.h].join(',') + ')';
+}
+Static.prototype.DrawCropped = function(osx1, osy1, osx2, osy2,
+					sx1, sy1, sx2, sy2,
+					fg, bg) {
+  // Fortunately, rectangular clipping is easy. We just 
+  // use min/max to snap the rectangles into the screen
+  // space, which we know.
+
+  var csx1 = Math.max(osx1, sx1);
+  var csx2 = Math.min(osx2, sx2);
+  var csy1 = Math.max(osy1, sy1);
+  var csy2 = Math.min(osy2, sy2);
+
+  ctx.fillStyle = fg;
+  ctx.fillRect(csx1, csy1, csx2 - csx1, csy2 - csy1);
+};
+
+// All in world coordinates. This is the map itself, and
+// these never move. 
+var staticsquares = [
+  // TODO import from illustrator or sth.
+  new Static(0, 750, 1000, 50),
+  new Static(200, 700, 100, 25)
+];
+
+function DrawWorld(
+  // Foreground and background colors.
+  fg, bg,
+  // Screen coordinates. We do need to do our own clipping.
+  sx1, sy1, sw, sh,
+  // World coordinates and scale factor
+  wx1, wy1, wr) {
+
+  var sx2 = sx1 + sw;
+  var sy2 = sy1 + sh;
   
+  // Coordinate transforms.
+  var wxtosx = function(wx) {
+    var wo = wx - wx1;
+    var so = wo * wr;
+    return Math.round(sx1 + so);
+  };
+
+  var wytosy = function(wy) {
+    var wo = wy - wy1;
+    var so = wo * wr;
+    return Math.round(sy1 + so);
+  };
+
+  var wx2 = wxtosx(sx2);
+  var wy2 = wytosy(sy2);
+
+  var DO = function(obj) {
+    // console.log('on screen? ' + XY(sx1, sy1) + ' to ' + XY(sx2, sy2));
+    // console.log(obj.DebugString());
+    
+    // First, discard the object if it's completely 
+    // outside our screen rectangle. We do all clipping
+    // in screen coordinates, because we don't want
+    // anything poking in/out one pixel on our nice
+    // rectangles.
+    var osx1 = wxtosx(obj.x1());
+    if (osx1 > sx2) return;
+    var osx2 = wxtosx(obj.x2());
+    if (osx2 < sx1) return;
+    var osy1 = wytosy(obj.y1());
+    if (osy1 > sy2) return;
+    var osy2 = wytosy(obj.y2());
+    if (osy2 < sy1) return;
+
+    // Objects only need to know where to draw themselves
+    // on the screen, as well as the crop rectangle.
+    obj.DrawCropped(osx1, osy1, osx2, osy2,
+		    sx1, sy1, sx2, sy2,
+		    fg, bg);
+  };
+
+  // Start by drawing the background color in the entire
+  // rectangle.
+  ctx.fillStyle = bg;
+  ctx.fillRect(sx1, sy1, sw, sh);
+
+  for (var o in staticsquares) DO(staticsquares[o]);
+  // And dynamic objects...
+  // for (var o : staticsquares) DO(staticsquares[o]);
+}
+
+var xpos = 500;
+var ypos = 600;
+var scale = 1.0;
+function Draw() {
+  DrawWorld('#FFFFFF', '#0000FF',
+	    0, 0, WIDTH, HEIGHT,
+	    xpos, ypos, scale);
+}
+
+function Physics() {
+  if (holdingLeft) xpos -= 10;
+  else if (holdingRight) xpos += 10;
+  if (holdingUp) ypos -= 10;
+  else if (holdingDown) ypos += 10;
+  if (holdingPlus) scale *= 1.1;
+  else if (holdingMinus) scale /= 1.1;
 }
 
 last = 0;
@@ -78,6 +193,8 @@ function Step(time) {
   if (frames > 1000000) frames = 0;
 
   // UpdateSong();
+
+  Physics();
 
   Draw();
 
@@ -110,7 +227,8 @@ function Start() {
 var holdingLeft = false, holdingRight = false,
   holdingUp = false, holdingDown = false,
   holdingSpace = false, holdingEnter = false,
-  holdingX = false, holdingZ = false;
+  holdingX = false, holdingZ = false,
+  holdingPlus = false, holdingMinus = false;
 
 document.onkeydown = function(e) {
   e = e || window.event;
@@ -160,6 +278,14 @@ document.onkeydown = function(e) {
     case 88: // X
     holdingX = true;
     break;
+    case 187: // +/=
+    holdingPlus = true;
+    break;
+    case 189: // -/_
+    holdingMinus = true;
+    break;
+    default:
+    // console.log(e.keyCode);
   } 
   // var elt = document.getElementById('key');
   // elt && (elt.innerHTML = 'key: ' + e.keyCode);
@@ -195,6 +321,11 @@ document.onkeyup = function(e) {
     case 88: // X
     holdingX = false;
     break;
+    case 187: // +/=
+    holdingPlus = false;
+    break;
+    case 189: // -/_
+    holdingMinus = false;
   }
   return false;
 }
