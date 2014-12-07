@@ -194,10 +194,10 @@ function ScrollToFit(
   // Sometimes the object will be the entirety of the screen. Need
   // to compute margin dynamically in that case...
   var XMARGIN =
-      Math.min(0.20 * ww,
+      Math.min(0.33 * ww,
 	       (ww - ow) * 0.5);
   var YMARGIN =
-      Math.min(0.20 * wh,
+      Math.min(0.33 * wh,
 	       (wh - oh) * 0.5);
 
   if (x1 < wx + XMARGIN) {
@@ -220,8 +220,6 @@ function ScrollToFit(
 
   return { x: wx, y: wy };
 }
-  
-
 
 var dynamicobjects = [
   new Dynamic(215, 525, 24, 24, '#00FF00', '#333333'),
@@ -295,13 +293,6 @@ var scale = 3.0;
 // Bug here: 
 //  var xpos =  50 , ypos =  370 , scale =  1.33 ;
 function Draw() {
-
-/*
-  var wo = wx - wx1;
-  var so = wo * wr;
-  return Math.round(sx1 + so);
-*/
-
   var view = ScrollToFit(xpos, ypos, 
 			 WIDTH / scale,
 			 HEIGHT / scale,
@@ -491,6 +482,9 @@ function Physics() {
     return;
   }
   
+  // Count, maybe generate new block.
+  var framesuntilblock = 
+
   for (o in dynamicobjects) DoPhysics(dynamicobjects[o]);
 }
 
