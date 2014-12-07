@@ -6,7 +6,10 @@ struct
   fun getrects xml =
     let
       fun getcoord attrs what : real option =
-        Option.mapPartial Real.fromString (XML.getattr attrs what)
+        Real.fromString (case (XML.getattr attrs what) of
+                           (* missing means 0.0, AI uses this *)
+                           NONE => "0.0"
+                         | SOME r => r)
       val rects = ref nil
       fun look (Text _) = ()
         | look (Elem (("rect", attrs), _)) =

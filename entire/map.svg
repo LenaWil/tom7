@@ -3,13 +3,18 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
 <svg version="1.0" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="768px" height="768px" viewBox="0 0 768 768" enable-background="new 0 0 768 768" xml:space="preserve">
-<rect x="16.918" y="701.013" fill="none" stroke="#000000" stroke-miterlimit="10" width="728.301" height="48.428"/>
-<rect x="173.522" y="595.981" fill="none" stroke="#000000" stroke-miterlimit="10" width="58.491" height="53.459"/>
-<rect x="230.755" y="519.881" fill="none" stroke="#000000" stroke-miterlimit="10" width="97.484" height="128.302"/>
-<rect x="395.534" y="519.252" fill="none" stroke="#000000" stroke-miterlimit="10" width="117.61" height="39.622"/>
-<rect x="664.717" y="515.478" fill="none" stroke="#000000" stroke-miterlimit="10" width="81.132" height="199.371"/>
-<rect x="740.188" y="9.817" fill="none" stroke="#000000" stroke-miterlimit="10" width="19.497" height="739.623"/>
-<rect x="725.724" y="400.384" fill="none" stroke="#000000" stroke-miterlimit="10" width="25.786" height="51.572"/>
-<rect x="562.83" y="336.233" fill="none" stroke="#000000" stroke-miterlimit="10" width="62.265" height="57.233"/>
-<rect x="3.082" y="7.931" fill="none" stroke="#000000" stroke-miterlimit="10" width="26.416" height="741.51"/>
+<rect y="734" fill="#004FA3" width="768" height="34"/>
+<rect fill="#004FA3" width="32" height="768"/>
+<rect x="736" fill="#004FA3" width="32" height="768"/>
+<rect x="80" fill="#004FA3" width="32" height="560"/>
+<rect x="176" y="672" fill="#004FA3" width="32" height="32"/>
+<rect x="208" y="640" fill="#004FA3" width="48" height="64"/>
+<rect x="256" y="608" fill="#004FA3" width="64" height="96"/>
+<rect x="368" y="608" fill="#004FA3" width="80" height="32"/>
+<rect x="512" y="608" fill="#004FA3" width="48" height="32"/>
+<rect x="672" y="608" fill="#004FA3" width="64" height="128"/>
+<rect x="720" y="544" fill="#004FA3" width="16" height="32"/>
+<rect x="512" y="496" fill="#004FA3" width="144" height="32"/>
+<rect x="384" y="464" fill="#004FA3" width="160" height="32"/>
+<rect x="112" y="432" fill="#004FA3" width="288" height="32"/>
 </svg>
