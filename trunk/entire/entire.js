@@ -339,7 +339,7 @@ function DoPhysics(obj) {
 
   var BlockedRight = function(obj, newx) {
     var yes = HeightBlocked(newx + obj.w, 
-                            obj.y + obj.j * CORNER, 
+                            obj.y + obj.h * CORNER, 
                             obj.h * (1 - 2 * CORNER));
     // collision_right = collision_right || yes;
     return yes;
@@ -357,25 +357,13 @@ function DoPhysics(obj) {
   obj.x = ox.pos;
   obj.dx = ox.dpos;
 
-  // Check physics areas to get the physics constants, which we use
-  // for the rest of the updates.
-/*
-  var C = defaultconstants();
-  for (var d in _root.physareas) {
-    var mca = _root.physareas[d];
-    if (mca.isHit(this, dx, dy)) {
-      if (mca.getConstants != undefined) 
-	mca.getConstants(this, C);
-      else trace("no getConstants");
-    }
-  }
-*/
-
+  // The effect of physics needs to be determined by the depth
+  // of the block... TODO!
   var C = {
     accel: 3,
     decel_ground: 0.95,
     decel_air: 0.05,
-    jump_impulse: 13.8,
+    jump_impulse: 11.8,
     gravity: 1.0,
     xgravity: 0.0,
     terminal_velocity: 9,
