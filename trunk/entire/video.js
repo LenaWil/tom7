@@ -129,14 +129,19 @@ function Font(img, w, h, overlap, fontchars) {
 }
 
 
-// Off screen
+// Main canvas, not the zoomed one. If there's no
+// #canvas on the page, then we create one off-screen.
 var canvas =
     (function() {
-      var c = document.createElement('canvas');
+      var c = document.getElementById('canvas');
+      if (!c) {
+	c = document.createElement('canvas');
+	// Off-screen.
+	// document.body.appendChild(c);
+	c.id = 'canvas';
+      }
       c.width = WIDTH;
       c.height = HEIGHT;
-      c.id = 'canvas';
-      // document.body.appendChild(c);
       return c;
     })();
 
@@ -212,6 +217,6 @@ var BigCanvas = function() {
 
 // Don't draw directly to this. We copy from the small
 // one to the big one at the end of each frame.
-var bigcanvas = new BigCanvas();
+// var bigcanvas = new BigCanvas();
 
 // XXX wrap this inside a function blit4x or whatever.
