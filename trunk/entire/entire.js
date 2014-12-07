@@ -175,6 +175,53 @@ Dynamic.prototype.DrawCropped = function(d,
 
 };
 
+function ScrollToFit(
+  // Current world coordinates -- we don't scroll unless we need to.
+  wx, wy,
+  // Size of view; can't change here.
+  ww, wh,
+  // Object with x/y/etc.
+  obj) {
+
+  var x1 = obj.x1();  
+  var x2 = obj.x2();
+  var ow = x2 - x1;
+
+  var y1 = obj.y1();
+  var y2 = obj.y2();
+  var oh = y2 - y1;
+  
+  // Sometimes the object will be the entirety of the screen. Need
+  // to compute margin dynamically in that case...
+  var XMARGIN =
+      Math.min(0.20 * ww,
+	       (ww - ow) * 0.5);
+  var YMARGIN =
+      Math.min(0.20 * wh,
+	       (wh - oh) * 0.5);
+
+  if (x1 < wx + XMARGIN) {
+    wx = x1 - XMARGIN;
+    // console.log(ww + ' ' + XMARGIN + ' off left edge: now ' + wx);
+  } else if (x2 > (wx + ww) - XMARGIN) {
+    // console.log('over by ' + (x2 - ((wx + ww) - XMARGIN)));
+    wx += (x2 - ((wx + ww) - XMARGIN));
+    // console.log(ww + ' ' + XMARGIN + ' off right edge: now ' + wx);
+  }
+
+  if (y1 < wy + YMARGIN) {
+    wy = y1 - YMARGIN;
+    // console.log(ww + ' ' + YMARGIN + ' off left edge: now ' + wy);
+  } else if (y2 > (wy + ww) - YMARGIN) {
+    // console.log('over by ' + (y2 - ((wy + ww) - YMARGIN)));
+    wy += (y2 - ((wy + ww) - YMARGIN));
+    // console.log(ww + ' ' + YMARGIN + ' off right edge: now ' + wy);
+  }
+
+  return { x: wx, y: wy };
+}
+  
+
 
 var dynamicobjects = [
   new Dynamic(215, 525, 24, 24, '#00FF00', '#333333'),
@@ -248,6 +295,20 @@ var scale = 3.0;
 // Bug here: 
 //  var xpos =  50 , ypos =  370 , scale =  1.33 ;
 function Draw() {
+
+/*
+  var wo = wx - wx1;
+  var so = wo * wr;
+  return Math.round(sx1 + so);
+*/
+
+  var view = ScrollToFit(xpos, ypos, 
+			 WIDTH / scale,
+			 HEIGHT / scale,
+			 dynamicobjects[0]);
+  xpos = view.x;
+  ypos = view.y;
+
   DrawWorld(0, '#FFFFFF', '#0000FF',
 	    0, 0, WIDTH, HEIGHT,
 	    xpos, ypos, scale);
