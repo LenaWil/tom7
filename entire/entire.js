@@ -84,13 +84,15 @@ Static.prototype.DrawCropped = function(d, osx1, osy1, osx2, osy2,
   ctx.fillRect(csx1, csy1, csx2 - csx1, csy2 - csy1);
 };
 
-// All in world coordinates. This is the map itself, and
-// these never move. 
-var staticsquares = [
-  // TODO import from illustrator or sth.
-  new Static(0, 750, 1000, 50),
-  new Static(200, 700, 100, 25)
-];
+
+var staticsquares = [];
+(function () {
+  for (var i = 0; i < mapsvg.length; i++) {
+    // This is imported from map.js, built from the svg file.
+    var o = mapsvg[i];
+    staticsquares.push(new Static(o.x, o.y, o.w, o.h));
+  }
+}());
 
 function Dynamic(x, y, w, h, fg, bg) {
   // XXX also needs to know its viewport into the world, and
@@ -175,8 +177,8 @@ Dynamic.prototype.DrawCropped = function(d,
 
 
 var dynamicobjects = [
-  new Dynamic(215, 525, 100, 100, '#00FF00', '#333333'),
-  new Dynamic(100, 575, 100, 100, '#FFCC00', '#556622')
+  new Dynamic(215, 525, 24, 24, '#00FF00', '#333333'),
+  new Dynamic(100, 575, 24, 24, '#FFCC00', '#556622')
 ];
 
 function DrawWorld(
@@ -240,9 +242,9 @@ function DrawWorld(
   for (var o in dynamicobjects) DO(dynamicobjects[o]);
 }
 
-var xpos = -50;
-var ypos = 0;
-var scale = 0.33;
+var xpos = 0;
+var ypos = 500;
+var scale = 3.0;
 // Bug here: 
 //  var xpos =  50 , ypos =  370 , scale =  1.33 ;
 function Draw() {
