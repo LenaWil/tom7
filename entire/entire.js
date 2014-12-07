@@ -240,9 +240,9 @@ function DrawWorld(
   for (var o in dynamicobjects) DO(dynamicobjects[o]);
 }
 
-var xpos = 50;
-var ypos = 520;
-var scale = 1.33;
+var xpos = -50;
+var ypos = 0;
+var scale = 0.33;
 // Bug here: 
 //  var xpos =  50 , ypos =  370 , scale =  1.33 ;
 function Draw() {
@@ -302,6 +302,11 @@ function DoPhysics(obj) {
 	PointBlocked(x + (w * 0.5), y);
   };
 
+  var HeightBlocked = function(x, y, h) {
+    return PointBlocked(x, y) || PointBlocked(x, y + h) ||
+      PointBlocked(x, y + (h / 2));
+  };
+
   var CORNER = 0;
   // PERF these already need to capture obj to run widthblocked,
   // so don't bother passing it as a parameter too.
@@ -322,7 +327,22 @@ function DoPhysics(obj) {
     return yes;
   };
 
-  // XXX BlockedUp/down
+  var BlockedLeft = function(obj, newx) {
+    var yes = HeightBlocked(newx, 
+                            obj.y + obj.h * CORNER, 
+                            obj.h * (1 - 2 * CORNER));
+    // collision_left = collision_left || yes;
+    return yes;
+  };
+
+  var BlockedRight = function(obj, newx) {
+    var yes = HeightBlocked(newx + obj.w, 
+                            obj.y + obj.j * CORNER, 
+                            obj.h * (1 - 2 * CORNER));
+    // collision_right = collision_right || yes;
+    return yes;
+  };
+
   var oy = move1DClip(obj,
 		      obj.y, obj.dy, 
 		      (obj.dy < 0) ? BlockedUp : BlockedDown);
@@ -330,11 +350,10 @@ function DoPhysics(obj) {
   obj.dy = oy.dpos;
 
   // Now x:
-/*
-  var ox = move1DClip(this._x, dx, (dx < 0) ? blockedleft : blockedright);
-  this._x = ox.pos;
-  dx = ox.dpos;
-*/
+  var ox = move1DClip(obj, obj.x, obj.dx, 
+		      (obj.dx < 0) ? BlockedLeft : BlockedRight);
+  obj.x = ox.pos;
+  obj.dx = ox.dpos;
 
   // Check physics areas to get the physics constants, which we use
   // for the rest of the updates.
@@ -363,6 +382,8 @@ function DoPhysics(obj) {
 
   var GROUND_SLOP = 2.0;
   var OnTheGround = function() {
+    // XXX just used blockeddown?
+    // in the starting arrangement you can't jump with the left guy.
     return WidthBlocked(obj.x + obj.w * 0.1,
                         obj.y + obj.h + GROUND_SLOP,
                         obj.w * 0.8);
@@ -371,33 +392,31 @@ function DoPhysics(obj) {
 
   var otg = OnTheGround();
 
-/*
-  if (otg && wishjump()) {
-    dy = -C.jump_impulse;
+  if (otg && holdingSpace) {
+    obj.dy = -C.jump_impulse;
   }
 
-  if (wishright()) {
-    dx += C.accel;
-    if (dx > C.maxspeed) dx = C.maxspeed;
-  } else if (wishleft()) {
-    dx -= C.accel;
-    if (dx < -C.maxspeed) dx = -C.maxspeed;
+  if (holdingRight) {
+    obj.dx += C.accel;
+    if (obj.dx > C.maxspeed) obj.dx = C.maxspeed;
+  } else if (holdingLeft) {
+    obj.dx -= C.accel;
+    if (obj.dx < -C.maxspeed) obj.dx = -C.maxspeed;
   } else {
     // If not holding either direction,
     // slow down and stop (quickly)
     if (otg) {
       // On the ground, slow to a stop very quickly
-      if (dx > C.decel_ground) dx -= C.decel_ground;
-      else if (dx < -C.decel_ground) dx += C.decel_ground;
-      else dx = 0;
+      if (obj.dx > C.decel_ground) obj.dx -= C.decel_ground;
+      else if (obj.dx < -C.decel_ground) obj.dx += C.decel_ground;
+      else obj.dx = 0;
     } else {
       // In the air, not so much.
-      if (dx > C.decel_air) dx -= C.decel_air;
-      else if (dx < -C.decel_air) dx += C.decel_air;
-      else dx = 0;
+      if (obj.dx > C.decel_air) obj.dx -= C.decel_air;
+      else if (obj.dx < -C.decel_air) obj.dx += C.decel_air;
+      else obj.dx = 0;
     }
   }
-*/
 
   if (otg) {
     obj.dx += C.xgravity;
@@ -420,7 +439,6 @@ function Physics() {
     else if (holdingMinus) scale /= 1.05;
     return;
   }
-
   
   for (o in dynamicobjects) DoPhysics(dynamicobjects[o]);
 }
@@ -457,7 +475,7 @@ function Step(time) {
   // UpdateSong();
 
   // On every frame, flip to 4x canvas
-  bigcanvas.Draw4x(ctx);
+  // bigcanvas.Draw4x(ctx);
 
   if (true || DEBUG) {
     counter++;
