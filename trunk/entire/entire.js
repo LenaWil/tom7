@@ -483,7 +483,7 @@ function Physics() {
   }
   
   // Count, maybe generate new block.
-  var framesuntilblock = 
+      // var framesuntilblock = 
 
   for (o in dynamicobjects) DoPhysics(dynamicobjects[o]);
 }
@@ -658,3 +658,4 @@ document.onkeyup = function(e) {
 
 // resources.WhenReady(Start);
 Start();
+
