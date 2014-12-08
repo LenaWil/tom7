@@ -3,7 +3,7 @@ all : music.js map.js
 MLTON=/c/mlton/bin/mlton.bat -target x86_64-w64-mingw32 -codegen amd64
 
 upload :
-	pscp *.js index.html root@spacebar.org:/var/www/entire/
+	scp *.js index.html root@spacebar.org:/var/www/entire/
 
 svgtomap.exe : svgtomap.cm svgtomap.sml
 	$(MLTON) svgtomap.cm
