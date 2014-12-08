@@ -360,7 +360,8 @@ function Draw() {
   }
 
   // And draw the world to fit the screen.
-  DrawWorld(0, '#FFFFFF', '#0000FF',
+  DrawWorld(0, '#FFFFFF', 
+	    NextBackground(),
 	    0, 0, WIDTH, HEIGHT,
 	    xpos, ypos, wpos, hpos);
 }
@@ -579,6 +580,7 @@ function Physics() {
 // XXX more colors, including FG changes...
 var nextcolor = 0;
 var COLORS = [
+  '#0000FF',
   '#00FF00',
   '#FF0000',
   '#000077',
@@ -586,6 +588,10 @@ var COLORS = [
   '#FF00FF',
   '#00FFFF'
 ];
+
+function NextBackground() {
+  return COLORS[nextcolor];
+}
 
 function SpawnBlock() {
   // Put a viewport into the world with whatever our current
