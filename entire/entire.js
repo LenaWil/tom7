@@ -535,17 +535,19 @@ function DoPhysics(rank, obj) {
 }
 
 function ZoomOut() {
-  xpos--;
-  ypos--;
-  wpos += 2;
-  hpos += 2;
+  var amount = 0.004 * wpos;
+  xpos -= amount;
+  ypos -= amount;
+  wpos += 2 * amount;
+  hpos += 2 * amount;
 }
 
 function ZoomIn() {
-  xpos++;
-  ypos++;
-  wpos -= 2;
-  hpos -= 2;
+  var amount = 0.005 * wpos;
+  xpos += amount;
+  ypos += amount;
+  wpos -= 2 * amount;
+  hpos -= 2 * amount;
 }
 
 function Physics() {
@@ -629,7 +631,7 @@ function Step(time) {
 
   Draw();
 
-  if (true || DEBUG) {
+  if (false && DEBUG) {
     counter++;
     var sec = ((new Date()).getTime() - start_time) / 1000;
     document.getElementById('counter').innerHTML =
@@ -669,7 +671,6 @@ document.onkeydown = function(e) {
     break;
     case 27: // ESC
     if (true || DEBUG) {
-      ClearSong();
       document.body.innerHTML =
 	  '<b style="color:#fff;font-size:40px">(SILENCED. ' +
           'RELOAD TO PLAY)</b>';
