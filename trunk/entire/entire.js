@@ -1,4 +1,7 @@
 
+/* Entire Screen of One Game, made by Tom 7 in a few hours for
+   Ludum Dare #31, 7 Dec 2014. */
+
 var counter = 0, skipped = 0;
 var start_time = (new Date()).getTime();
 
