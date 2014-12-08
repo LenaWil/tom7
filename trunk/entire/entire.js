@@ -5,21 +5,14 @@ var start_time = (new Date()).getTime();
 // Number of elapsed frames in the current scene.
 var frames = 0;
 
-/*
-var resources = new Resources(
-  [],
-  [], null);
-*/
-
 function XY(x, y) { return '(' + x + ',' + y + ')'; }
 
+FRAMES_UNTIL_BLOCK = 300;
+var framesuntilblock = 0;
 function Init() {
-
-  // Audio tweaks.
-  // song_theme.multiply = 1.5;
-  // song_power.multiply = 1.35;
-
-  // song_menu[0].volume = 0.65;
+  // Actually, maybe we should start by spawning a block?
+  // framesuntilblock = FRAMES_UNTIL_BLOCK;
+  SpawnBlock();
 }
 
 function InitYouWin() {
@@ -94,7 +87,7 @@ var staticsquares = [];
   }
 }());
 
-function Dynamic(x, y, w, h, fg, bg) {
+function Dynamic(x, y, w, h, fg, bg, wx, wy, ww, wh) {
   // XXX also needs to know its viewport into the world, and
   // its control attenuation.
   this.x = x;
@@ -103,6 +96,11 @@ function Dynamic(x, y, w, h, fg, bg) {
   this.h = h;
   this.fg = fg;
   this.bg = bg;
+
+  this.wx = wx;
+  this.wy = wy;
+  this.ww = ww;
+  this.wh = wh;
 
   this.dx = 0;
   this.dy = 0;
@@ -120,11 +118,19 @@ Dynamic.prototype.DrawCropped = function(d,
 					 osx1, osy1, osx2, osy2,
 					 sx1, sy1, sx2, sy2,
 					 fg, bg) {
-  // XXX get local values from object
-  var wr = scale * ((osx2 - osx1) / WIDTH);
-  // These may be updated if we crop.
-  var wx = xpos;
-  var wy = ypos;
+  var wx = this.wx;
+  var wy = this.wy;
+  var ww = this.ww;
+  var wh = this.wh;
+
+  var osw = (osx2 - osx1) || 1;
+  var osh = (osy2 - osy1) || 1;
+
+  if (isNaN(wx) || isNaN(wy) ||
+      isNaN(osx1) || isNaN(osy1)) {
+    console.log([wx, wy, osx1, osy1].join(' '));
+    throw 'Nanzies';
+  }
 
   // cx/cy are the cropped screen coordinates.
   // We crop like anything, and the world ratio will stay the same
@@ -133,17 +139,38 @@ Dynamic.prototype.DrawCropped = function(d,
   var cx1 = osx1;
   if (sx1 > osx1) {
     cx1 = sx1;
-    wx += (sx1 - osx1) / wr;
+    // Horizontal fraction of block lost.
+    var sf = (sx1 - osx1) / osw;
+    // Shift left edge over and reduce width of world window.
+    wx += ww * sf;
+    ww -= ww * sf;
   }
 
   var cy1 = osy1;
   if (sy1 > osy1) {
     cy1 = sy1;
-    wy += (sy1 - osy1) / wr;
+    var sf = (sy1 - osy1) / osh;
+    wy += wh * sf;
+    wh -= wh * sf;
   }
 
-  var cx2 = Math.min(osx2, sx2);
-  var cy2 = Math.min(osy2, sy2);
+  // Same can happen here, but we only shrink the width/height
+  // in that case; the viewport doesn't shift.
+  var cx2 = osx2;
+  if (osx2 > sx2) {
+    cx2 = sx2;
+    // Fraction of block that's outside clip rectangle.
+    var sf = (osx2 - sx2) / osw;
+    ww -= ww * sf;
+  }
+
+  var cy2 = osy2;
+  if (osy2 > sy2) {
+    cy2 = sy2;
+    // Fraction of block that's outside clip rectangle.
+    var sf = (osy2 - sy2) / osh;
+    wh -= wh * sf;
+  }
 
   // We've become smaller than a pixel, which is the ultimate fate
   // of singularities.
@@ -155,13 +182,12 @@ Dynamic.prototype.DrawCropped = function(d,
   }
 
   if (d > 25) {
-    /*
     console.log('"infinite" recursion? ' +
 		' os: ' + [osx1, osy1, osx2, osy2].join(',') +
 		' s: ' + [sx1, sy1, sx2, sy2].join(',') +
 		' cs: ' + [cx1, cy1, cx2, cy2].join(',') +
 		' fg bg: ' + [fg, bg].join(','));
-		*/
+
     ctx.fillStyle = '#000000';
     ctx.fillRect(cx1, cy1, cx2 - cx1, cy2 - cy1);
     return;
@@ -171,8 +197,7 @@ Dynamic.prototype.DrawCropped = function(d,
   DrawWorld(d + 1,
 	    this.fg, this.bg,
 	    cx1, cy1, cx2, cy2,
-	    wx, wy, wr);
-
+	    wx, wy, ww, wh);
 };
 
 function ScrollToFit(
@@ -212,9 +237,9 @@ function ScrollToFit(
   if (y1 < wy + YMARGIN) {
     wy = y1 - YMARGIN;
     // console.log(ww + ' ' + YMARGIN + ' off left edge: now ' + wy);
-  } else if (y2 > (wy + ww) - YMARGIN) {
+  } else if (y2 > (wy + wh) - YMARGIN) {
     // console.log('over by ' + (y2 - ((wy + ww) - YMARGIN)));
-    wy += (y2 - ((wy + ww) - YMARGIN));
+    wy += (y2 - ((wy + wh) - YMARGIN));
     // console.log(ww + ' ' + YMARGIN + ' off right edge: now ' + wy);
   }
 
@@ -222,8 +247,8 @@ function ScrollToFit(
 }
 
 var dynamicobjects = [
-  new Dynamic(215, 525, 24, 24, '#00FF00', '#333333'),
-  new Dynamic(100, 575, 24, 24, '#FFCC00', '#556622')
+  // new Dynamic(215, 525, 24, 24, '#00FF00', '#333333'),
+  // new Dynamic(100, 575, 24, 24, '#FFCC00', '#556622')
 ];
 
 function DrawWorld(
@@ -233,24 +258,40 @@ function DrawWorld(
   fg, bg,
   // Screen coordinates. We do need to do our own clipping.
   sx1, sy1, sx2, sy2,
-  // World coordinates and scale factor
-  wx1, wy1, wr) {
+  // Viewport into world.
+  wx1, wy1, ww, wh) {
+
+  var sw = sx2 - sx1;
+  var sh = sy2 - sy1;
+
+  if (sw <= 0 || sh <= 0) {
+    return;
+  }
+
+  var wx2 = wx1 + ww;
+  var wy2 = wy1 + wh;
+
+  if (isNaN(wh) || wh == 0) {
+    // HERE prolly zero
+    console.log([sx1, sy1, sx2, sy2]);
+    throw ('aha! ' + wh + ' at depth ' + d);
+  }
 
   // Coordinate transforms.
   var wxtosx = function(wx) {
     var wo = wx - wx1;
-    var so = wo * wr;
-    return Math.round(sx1 + so);
+    var wf = wo / ww;
+    return Math.round(sx1 + sw * wf);
   };
 
   var wytosy = function(wy) {
     var wo = wy - wy1;
-    var so = wo * wr;
-    return Math.round(sy1 + so);
+    var wf = wo / wh;
+    return Math.round(sy1 + sh * wf);
   };
 
-  var wx2 = wxtosx(sx2);
-  var wy2 = wytosy(sy2);
+  // var wx2 = wxtosx(sx2);
+  // var wy2 = wytosy(sy2);
 
   var DO = function(obj) {
     // console.log('on screen? ' + XY(sx1, sy1) + ' to ' + XY(sx2, sy2));
@@ -266,6 +307,7 @@ function DrawWorld(
     var osx2 = wxtosx(obj.x2());
     if (osx2 < sx1) return;
     var osy1 = wytosy(obj.y1());
+    if (isNaN(osy1)) throw osy1;
     if (osy1 > sy2) return;
     var osy2 = wytosy(obj.y2());
     if (osy2 < sy1) return;
@@ -289,24 +331,40 @@ function DrawWorld(
 
 var xpos = 0;
 var ypos = 500;
-var scale = 3.0;
-// Bug here: 
-//  var xpos =  50 , ypos =  370 , scale =  1.33 ;
+var wpos = WIDTH / 3;
+var hpos = HEIGHT / 3;
+var scale = 1; // 3.0;
 function Draw() {
-  var view = ScrollToFit(xpos, ypos, 
-			 WIDTH / scale,
-			 HEIGHT / scale,
-			 dynamicobjects[0]);
-  xpos = view.x;
-  ypos = view.y;
+  // Scroll each block to fit the one inside it.
+  for (var i = 1; i < dynamicobjects.length; i++) {
+    var inner = dynamicobjects[i - 1];
+    var outer = dynamicobjects[i];
+    var v = ScrollToFit(outer.wx, outer.wy,
+			outer.ww, outer.wh,
+			inner);
+    outer.wx = v.x;
+    outer.wy = v.y;
+  }
 
+  // Now, scroll the screen to fit the last object.
+  var cur = dynamicobjects[dynamicobjects.length - 1];
+  if (!holdingShift) {
+    var view = ScrollToFit(xpos, ypos, 
+			   wpos, hpos,
+			   cur);
+    xpos = view.x;
+    ypos = view.y;
+  }
+
+  // And draw the world to fit the screen.
   DrawWorld(0, '#FFFFFF', '#0000FF',
 	    0, 0, WIDTH, HEIGHT,
-	    xpos, ypos, scale);
+	    xpos, ypos, wpos, hpos);
 }
 
 function DumpPos() {
-  console.log('var xpos = ', xpos, ', ypos = ', ypos, ', scale = ', scale,
+  console.log('var xpos = ', xpos, ', ypos = ', ypos, 
+	      /* ', scale = ', scale, */
 	      ';');
 }
 
@@ -334,7 +392,7 @@ function move1DClip(obj, pos, dpos, f) {
   }
 }
 
-function DoPhysics(obj) {
+function DoPhysics(rank, obj) {
 
   var PointBlocked = function(x, y, w) {
     var Test = function(b) {
@@ -397,17 +455,19 @@ function DoPhysics(obj) {
     return yes;
   };
 
+  var att = 1 / (1 + rank);
+
   var oy = move1DClip(obj,
-		      obj.y, obj.dy, 
+		      obj.y, obj.dy * att,
 		      (obj.dy < 0) ? BlockedUp : BlockedDown);
   obj.y = oy.pos;
-  obj.dy = oy.dpos;
+  obj.dy = oy.dpos / att;
 
   // Now x:
-  var ox = move1DClip(obj, obj.x, obj.dx, 
+  var ox = move1DClip(obj, obj.x, obj.dx * att,
 		      (obj.dx < 0) ? BlockedLeft : BlockedRight);
   obj.x = ox.pos;
-  obj.dx = ox.dpos;
+  obj.dx = ox.dpos / att;
 
   // The effect of physics needs to be determined by the depth
   // of the block... TODO!
@@ -417,7 +477,6 @@ function DoPhysics(obj) {
     decel_air: 0.05,
     jump_impulse: 11.8,
     gravity: 1.0,
-    xgravity: 0.0,
     terminal_velocity: 9,
     maxspeed: 5.9
   };
@@ -439,36 +498,51 @@ function DoPhysics(obj) {
   }
 
   if (holdingRight) {
-    obj.dx += C.accel;
+    obj.dx += C.accel * att;
     if (obj.dx > C.maxspeed) obj.dx = C.maxspeed;
   } else if (holdingLeft) {
-    obj.dx -= C.accel;
+    obj.dx -= C.accel * att;
     if (obj.dx < -C.maxspeed) obj.dx = -C.maxspeed;
   } else {
     // If not holding either direction,
     // slow down and stop (quickly)
     if (otg) {
       // On the ground, slow to a stop very quickly
-      if (obj.dx > C.decel_ground) obj.dx -= C.decel_ground;
-      else if (obj.dx < -C.decel_ground) obj.dx += C.decel_ground;
+      if (obj.dx > C.decel_ground) obj.dx -= C.decel_ground * att;
+      else if (obj.dx < -C.decel_ground) obj.dx += C.decel_ground * att;
       else obj.dx = 0;
     } else {
       // In the air, not so much.
-      if (obj.dx > C.decel_air) obj.dx -= C.decel_air;
-      else if (obj.dx < -C.decel_air) obj.dx += C.decel_air;
+      if (obj.dx > C.decel_air) obj.dx -= C.decel_air * att;
+      else if (obj.dx < -C.decel_air) obj.dx += C.decel_air * att;
       else obj.dx = 0;
     }
   }
 
   if (otg) {
-    obj.dx += C.xgravity;
-    if (obj.dx < -C.terminal_velocity) obj.dx = -C.terminal_velocity;
-    else if (obj.dx > C.terminal_velocity) obj.dx = C.terminal_velocity;
+
   } else {
-    obj.dy += C.gravity;
-    if (obj.dy > C.terminal_velocity) obj.dy = C.terminal_velocity;
+    obj.dy += C.gravity * att;
+    if (obj.dy > C.terminal_velocity / att) {
+      // console.log('term');
+      obj.dy = C.terminal_velocity;
+    }
   }
 
+}
+
+function ZoomOut() {
+  xpos--;
+  ypos--;
+  wpos += 2;
+  hpos += 2;
+}
+
+function ZoomIn() {
+  xpos++;
+  ypos++;
+  wpos -= 2;
+  hpos -= 2;
 }
 
 function Physics() {
@@ -477,15 +551,55 @@ function Physics() {
     else if (holdingRight) xpos += 5;
     if (holdingUp) ypos -= 5;
     else if (holdingDown) ypos += 5;
-    if (holdingPlus) scale *= 1.05;
-    else if (holdingMinus) scale /= 1.05;
+    if (holdingPlus) ZoomIn();
+    else if (holdingMinus) ZoomOut();
     return;
   }
   
   // Count, maybe generate new block.
-      // var framesuntilblock = 
+  if (framesuntilblock == 0) {
+    SpawnBlock();
+  } else {
+    framesuntilblock--;
+    // Zoom out a little.
+    ZoomOut();
+  }
 
-  for (o in dynamicobjects) DoPhysics(dynamicobjects[o]);
+  for (var i = 0; i < dynamicobjects.length; i++) {
+    var rank = (dynamicobjects.length - 1) - i;
+    DoPhysics(rank, dynamicobjects[i]);
+  }
+}
+
+// XXX more colors, including FG changes...
+var nextcolor = 0;
+var COLORS = [
+  '#00FF00',
+  '#FF0000',
+  '#000077',
+  '#777700',
+  '#FF00FF',
+  '#00FFFF'
+];
+
+function SpawnBlock() {
+  // Put a viewport into the world with whatever our current
+  // view is.
+  dynamicobjects.push(
+    new Dynamic(48, 12, 24, 24, '#FFFFFF', COLORS[nextcolor],
+		xpos, ypos,
+		wpos, hpos));
+  // And then look exactly at the block.
+  xpos = 48;
+  ypos = 12;
+  wpos = 24;
+  hpos = 24;
+  // scale = WIDTH / 24;
+
+  nextcolor++;
+  nextcolor %= COLORS.length;
+  console.log('spawned! now ' + dynamicobjects.length);
+  framesuntilblock = FRAMES_UNTIL_BLOCK;
 }
 
 last = 0;
@@ -498,8 +612,6 @@ function Step(time) {
   var diff = now - last;
   // debug.innerHTML = diff;
   // Don't do more than 30fps.
-  // XXX This results in a frame rate of 21 on RIVERCITY, though
-  // I can easily get 60, so what gives?
   if (diff < MINFRAMEMS) {
     skipped++;
     window.requestAnimationFrame(Step);
@@ -510,17 +622,9 @@ function Step(time) {
   frames++;
   if (frames > 1000000) frames = 0;
 
-  // UpdateSong();
-
   Physics();
 
   Draw();
-
-  // process music in any state
-  // UpdateSong();
-
-  // On every frame, flip to 4x canvas
-  // bigcanvas.Draw4x(ctx);
 
   if (true || DEBUG) {
     counter++;
@@ -537,8 +641,6 @@ function Step(time) {
 function Start() {
   Init();
 
-  // StartSong(song_theme);
-
   window.requestAnimationFrame(Step);
 }
 
@@ -554,10 +656,13 @@ document.onkeydown = function(e) {
   if (e.ctrlKey) return true;
 
   switch (e.keyCode) {
-    case 9:
+    case 9:  // tab?
     // CHEATS
-    if (true || DEBUG)
-      textpages = [];
+    // if (true || DEBUG)
+    // textpages = [];
+    // XXX CHEAT
+    SpawnBlock();
+
     break;
     case 27: // ESC
     if (true || DEBUG) {
