@@ -80,7 +80,7 @@ static void M32Power(void) {
 static void M32Close(void)
 {
 	if (WRAM)
-		FCEU_gfree(WRAM);
+		free(WRAM);
 	WRAM = NULL;
 }
 

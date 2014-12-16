@@ -50,7 +50,7 @@ static void LatchPower(void) {
 
 static void LatchClose(void) {
 	if (WRAM)
-		FCEU_gfree(WRAM);
+		free(WRAM);
 	WRAM = NULL;
 }
 

@@ -74,7 +74,7 @@ static void M82Power(void)
 static void M82Close(void)
 {
   if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
   WRAM=NULL;
 }
 

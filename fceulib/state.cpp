@@ -341,7 +341,6 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize)
 }
 
 int CurrentState=0;
-extern int geniestage;
 
 // Simplified save that does not compress.
 bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
@@ -510,11 +509,6 @@ void FCEUSS_Save(const char *fname) {
   EMUFILE* st = 0;
   char fn[2048];
 
-  if(geniestage==1)
-    {
-      FCEU_DispMessage("Cannot save FCS in GG screen.",0);
-      return;
-    }
 
   if(fname)	//If filename is given use it.
     {
@@ -652,11 +646,6 @@ bool FCEUSS_Load(const char *fname)
 	//	MovieFlushHeader();
 	//}
 
-	if(geniestage==1)
-	{
-		FCEU_DispMessage("Cannot load FCS in GG screen.",0);
-		return false;
-	}
 	if(fname)
 	{
 		st=FCEUD_UTF8_fstream(fname, "rb");

@@ -19,7 +19,7 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-// Tom's notes. See this page for an ok explanation:
+// Tom 7's notes. See this page for an ok explanation:
 // http://wiki.nesdev.com/w/index.php/PPU_OAM
 // Note sprites are drawn from the end of the array to the beginning.
 
@@ -31,7 +31,6 @@
 #include  "x6502.h"
 #include  "fceu.h"
 #include  "ppu.h"
-#include  "nsf.h"
 #include  "sound.h"
 #include  "file.h"
 #include  "utils/endian.h"
@@ -81,6 +80,7 @@ static uint32 ppulut3[128];
 
 int test = 0;
 
+#if 0
 static const char *bits8(uint8 b) {
   static char buf[9] = {0};
   for (int i = 0; i < 8; i ++) {
@@ -88,6 +88,7 @@ static const char *bits8(uint8 b) {
   }
   return buf;
 }
+#endif
 
 static const char *attrbits(uint8 b) {
   static char buf[9] = {0};
@@ -1210,7 +1211,7 @@ static void CheckSpriteHit(int p)
 
 //spork the world.  Any sprites on this line? Then this will be set to 1.
 //Needed for zapper emulation and *gasp* sprite emulation.
-static int spork=0;
+static int any_sprites_on_line = 0;
 
 // lasttile is really "second to last tile."
 static void RefreshLine(int lastpixel)
@@ -1274,7 +1275,7 @@ static void RefreshLine(int lastpixel)
 
 		if((lastpixel-16)>=0)
 		{
-			InputScanlineHook(Plinef,spork?sprlinebuf:0,linestartts,lasttile*8-16);
+			InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,linestartts,lasttile*8-16);
 		}
 		return;
 	}
@@ -1411,7 +1412,7 @@ static void RefreshLine(int lastpixel)
 
 	if((lastpixel-16)>=0)
 	{
-		InputScanlineHook(Plinef,spork?sprlinebuf:0,linestartts,lasttile*8-16);
+		InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,linestartts,lasttile*8-16);
 	}
 	Pline=P;
 	firsttile=lasttile;
@@ -1728,7 +1729,7 @@ static void RefreshSprites(void)
 	int n;
 	SPRB *spr;
 
-	spork=0;
+	any_sprites_on_line=0;
 	if(!numsprites) return;
 
 	// Initialize the line buffer to 0x80, meaning "no pixel here."
@@ -1876,7 +1877,7 @@ static void RefreshSprites(void)
 		}
 	}
 	SpriteBlurp=0;
-	spork=1;
+	any_sprites_on_line=1;
 }
 
 // Actually writes sprites to the pixel buffer for a particular scanline.
@@ -1887,8 +1888,8 @@ static void CopySprites(uint8 *target)
   uint8 n=((PPU[1]&4)^4)<<1;
   uint8 *P=target;
 
-  if(!spork) return;
-  spork=0;
+  if(!any_sprites_on_line) return;
+  any_sprites_on_line=0;
 
   if(!rendersprites) return;  //User asked to not display sprites.
 
@@ -2079,7 +2080,7 @@ void FCEUPPU_Power(void)
 
 int FCEUPPU_Loop(int skip)
 {
-	if((newppu) && (GameInfo->type!=GIT_NSF)) {
+	if((newppu)) {
 		int FCEUX_PPU_Loop(int skip);
 		return FCEUX_PPU_Loop(skip);
 	}
@@ -2103,13 +2104,10 @@ int FCEUPPU_Loop(int skip)
 
 		//I need to figure out the true nature and length of this delay.
 		X6502_Run(12);
-		if(GameInfo->type==GIT_NSF)
-			DoNSFFrame();
-		else
-		{
-			if(VBlankON)
-				TriggerNMI();
-		}
+
+		if(VBlankON)
+		  TriggerNMI();
+
 		X6502_Run((scanlines_per_frame-242)*(256+85)-12); //-12);
 		PPU_status&=0x1f;
 		X6502_Run(256);
@@ -2134,16 +2132,15 @@ int FCEUPPU_Loop(int skip)
 			}
 
 			//Clean this stuff up later.
-			spork=numsprites=0;
+			any_sprites_on_line=numsprites=0;
 			ResetRL(XBuf);
 
 			X6502_Run(16-kook);
 			kook ^= 1;
 		}
-		if(GameInfo->type==GIT_NSF)
-			X6502_Run((256+85)*240);
 
 		// n.b. FRAMESKIP results in different behavior in memory, so don't do it.
+		if (0) { /* used to be nsf playing code here -tom7 */ }
 #ifdef FRAMESKIP
 		else if(skip)
 		{

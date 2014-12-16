@@ -114,9 +114,6 @@ void FCEUI_CloseGame(void);
 //Deallocates all allocated memory.  Call after FCEUI_Emulate() returns.
 void FCEUI_Kill(void);
 
-//Enable/Disable game genie. a=true->enabled
-void FCEUI_SetGameGenie(bool a);
-
 //Set video system a=0 NTSC, a=1 PAL
 void FCEUI_SetVidSystem(int a);
 
@@ -174,7 +171,6 @@ void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC
 
 void FCEUD_MovieRecordTo(void);
 void FCEUD_MovieReplayFrom(void);
-void FCEUD_LuaRunFrom(void);
 
 int32 FCEUI_GetDesiredFPS(void);
 void FCEUI_SaveSnapshot(void);
@@ -182,11 +178,11 @@ void FCEUI_SaveSnapshotAs(void);
 void FCEU_DispMessage(char *format, int disppos, ...);
 #define FCEUI_DispMessage FCEU_DispMessage
 
-int FCEUI_DecodePAR(const char *code, int *a, int *v, int *c, int *type);
-int FCEUI_DecodeGG(const char *str, int *a, int *v, int *c);
-int FCEUI_AddCheat(const char *name, uint32 addr, uint8 val, int compare, int type);
-int FCEUI_DelCheat(uint32 which);
-int FCEUI_ToggleCheat(uint32 which);
+// int FCEUI_DecodePAR(const char *code, int *a, int *v, int *c, int *type);
+// int FCEUI_DecodeGG(const char *str, int *a, int *v, int *c);
+// int FCEUI_AddCheat(const char *name, uint32 addr, uint8 val, int compare, int type);
+// int FCEUI_DelCheat(uint32 which);
+// int FCEUI_ToggleCheat(uint32 which);
 
 int32 FCEUI_CheatSearchGetCount(void);
 void FCEUI_CheatSearchGetRange(uint32 first, uint32 last, int (*callb)(uint32 a, uint8 last, uint8 current));
@@ -202,6 +198,7 @@ void FCEUI_CheatSearchShowExcluded(void);
 void FCEUI_CheatSearchSetCurrentAsOriginal(void);
 
 //.rom
+// These are file types for FCEU_GetPath. Probably don't need it. -tom7
 #define FCEUIOD_ROMS    0       //Roms
 #define FCEUIOD_NV      1       //NV = nonvolatile. save data.
 #define FCEUIOD_STATES  2       //savestates
@@ -213,9 +210,8 @@ void FCEUI_CheatSearchSetCurrentAsOriginal(void);
 #define FCEUIOD_BBOT    8       //basicbot, obsolete
 #define FCEUIOD_MACRO   9       //macro files - old TASEdit v0.1 paradigm, not implemented, probably obsolete
 #define FCEUIOD_INPUT   10      //input presets
-#define FCEUIOD_LUA     11      //lua scripts
-#define FCEUIOD_AVI             12      //default file for avi output
-#define FCEUIOD__COUNT  13      //base directory override?
+#define FCEUIOD_AVI             11      //default file for avi output
+#define FCEUIOD__COUNT  12      //base directory override?
 
 void FCEUI_SetDirOverride(int which, char *n);
 

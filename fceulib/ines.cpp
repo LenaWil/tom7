@@ -39,7 +39,6 @@
 #include "utils/crc32.h"
 #include "utils/md5.h"
 #include "utils/xstring.h"
-#include "cheat.h"
 #include "vsuni.h"
 #include "driver.h"
 
@@ -132,7 +131,7 @@ void iNESGI(GI h) //bbit edited: removed static keyword
 			if(ROM) {free(ROM); ROM = NULL;}
 			if(VROM) {free(VROM); VROM = NULL;}
 			if(MapClose) MapClose();
-			if(trainerpoo) {FCEU_gfree(trainerpoo);trainerpoo=0;}
+			if(trainerpoo) {free(trainerpoo);trainerpoo=0;}
 		}
 		break;
 	}
@@ -1480,7 +1479,7 @@ static void iNESPower(void)
 
 	SetReadHandler(0x6000,0x7FFF,AWRAM);
 	SetWriteHandler(0x6000,0x7FFF,BWRAM);
-	FCEU_CheatAddRAM(8,0x6000,WRAM);
+	// FCEU_CheatAddRAM(8,0x6000,WRAM);
 
 	/* This statement represents atrocious code.  I need to rewrite
 	all of the iNES mapper code... */
@@ -1553,7 +1552,7 @@ static int NewiNES_Init(int num)
 				{
 					CHRRAMSize=8192;
 				}
-				if((VROM = (uint8 *)FCEU_dmalloc(CHRRAMSize)) == NULL) return 0;
+				if((VROM = (uint8 *)malloc(CHRRAMSize)) == NULL) return 0;
 				FCEU_MemoryRand(VROM,CHRRAMSize);
 
 				UNIFchrrama=VROM;

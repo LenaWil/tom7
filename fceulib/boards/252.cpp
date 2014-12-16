@@ -101,9 +101,9 @@ static void M252IRQ(int a) {
 
 static void M252Close(void) {
 	if (WRAM)
-		FCEU_gfree(WRAM);
+		free(WRAM);
 	if (CHRRAM)
-		FCEU_gfree(CHRRAM);
+		free(CHRRAM);
 	WRAM = CHRRAM = NULL;
 }
 

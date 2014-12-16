@@ -37,24 +37,16 @@
 #include "state.h"
 #include "movie.h"
 #include "palette.h"
-#include "nsf.h"
 #include "input.h"
 #include "vsuni.h"
 #include "drawing.h"
 #include "driver.h"
-#ifdef _S9XLUA_H
-#include "fceulua.h"
-#endif
 
 #ifdef WIN32
 #ifndef NOWINSTUFF
 #include "drivers/win/common.h" //For DirectX constants
 #include "drivers/win/input.h"
 #endif
-#endif
-
-#ifdef CREATE_AVI
-#include "drivers/videolog/nesvideos-piece.h"
 #endif
 
 uint8 *XBuf=NULL;
@@ -130,16 +122,14 @@ int FCEU_InitVirtualVideo(void)
 }
 
 #ifdef FRAMESKIP
-void FCEU_PutImageDummy(void)
-{
-	ShowFPS();
-	if(GameInfo->type!=GIT_NSF)
-	{
-		FCEU_DrawNTSCControlBars(XBuf);
-		FCEU_DrawSaveStates(XBuf);
-		FCEU_DrawMovies(XBuf);
-	}
-	if(guiMessage.howlong) guiMessage.howlong--; /* DrawMessage() */
+void FCEU_PutImageDummy(void) {
+  ShowFPS();
+
+  FCEU_DrawNTSCControlBars(XBuf);
+  FCEU_DrawSaveStates(XBuf);
+  FCEU_DrawMovies(XBuf);
+
+  if(guiMessage.howlong) guiMessage.howlong--; /* DrawMessage() */
 }
 #endif
 
@@ -166,262 +156,243 @@ static void ReallySnap(void)
 void FCEU_PutImage(void)
 {
   // tom7
-  #ifdef DUMMY_UI
+#ifdef DUMMY_UI
   return;
-  #endif
-
-	if(dosnapsave==2)	//Save screenshot as, currently only flagged & run by the Win32 build. //TODO SDL: implement this?
-	{
-		char nameo[512];
-		strcpy(nameo,FCEUI_GetSnapshotAsName().c_str());
-		if (nameo)
-		{
-			SaveSnapshot(nameo);
-			FCEU_DispMessage("Snapshot Saved.",0);
-		}
-		dosnapsave=0;
-	}
-	if(GameInfo->type==GIT_NSF)
-	{
-		DrawNSF(XBuf);
-
-		//Save snapshot after NSF screen is drawn.  Why would we want to do it before?
-		if(dosnapsave==1)
-		{
-			ReallySnap();
-			dosnapsave=0;
-		}
-	}
-	else
-	{
-		//Save backbuffer before overlay stuff is written.
-		if(!FCEUI_EmulationPaused())
-			memcpy(XBackBuf, XBuf, 256*256);
-
-		//Some messages need to be displayed before the avi is dumped
-		DrawMessage(true);
-
-#ifdef _S9XLUA_H
-		// Lua gui should draw before the avi is dumped.
-		FCEU_LuaGui(XBuf);
 #endif
 
-		//Save snapshot
-		if(dosnapsave==1)
-		{
-			ReallySnap();
-			dosnapsave=0;
-		}
+  if(dosnapsave==2) {
+    //Save screenshot as, currently only flagged & run by the Win32 build. //TODO SDL: implement this?
+    char nameo[512];
+    strcpy(nameo,FCEUI_GetSnapshotAsName().c_str());
+    if (nameo) {
+      SaveSnapshot(nameo);
+      FCEU_DispMessage("Snapshot Saved.",0);
+    }
+    dosnapsave=0;
+  }
+  //Save backbuffer before overlay stuff is written.
+  if(!FCEUI_EmulationPaused())
+    memcpy(XBackBuf, XBuf, 256*256);
 
-		if (!FCEUI_AviEnableHUDrecording()) snapAVI();
+  //Some messages need to be displayed before the avi is dumped
+  DrawMessage(true);
 
-		if(GameInfo->type==GIT_VSUNI)
-			FCEU_VSUniDraw(XBuf);
+  //Save snapshot
+  if(dosnapsave==1)
+    {
+      ReallySnap();
+      dosnapsave=0;
+    }
 
-		FCEU_DrawSaveStates(XBuf);
-		FCEU_DrawMovies(XBuf);
-		FCEU_DrawLagCounter(XBuf);
-		FCEU_DrawNTSCControlBars(XBuf);
-		FCEU_DrawRecordingStatus(XBuf);
-		ShowFPS();
-	}
+  if (!FCEUI_AviEnableHUDrecording()) snapAVI();
 
-	if(FCEUD_ShouldDrawInputAids())
-		FCEU_DrawInput(XBuf);
+  if(GameInfo->type==GIT_VSUNI)
+    FCEU_VSUniDraw(XBuf);
 
-	//Fancy input display code
-	if(input_display)
+  FCEU_DrawSaveStates(XBuf);
+  FCEU_DrawMovies(XBuf);
+  FCEU_DrawLagCounter(XBuf);
+  FCEU_DrawNTSCControlBars(XBuf);
+  FCEU_DrawRecordingStatus(XBuf);
+  ShowFPS();
+
+
+  if(FCEUD_ShouldDrawInputAids())
+    FCEU_DrawInput(XBuf);
+
+  //Fancy input display code
+  if(input_display)
+    {
+      uint32 held;
+
+      int controller, c, ci, color;
+      int i, j;
+      uint32 on  = FCEUMOV_Mode(MOVIEMODE_PLAY) ? 0x90:0xA7;	//Standard, or Gray depending on movie mode
+      uint32 oni = 0xA0;		//Color for immediate keyboard buttons
+      uint32 blend = 0xB6;		//Blend of immiate and last held buttons
+      uint32 ahold = 0x87;		//Auto hold
+      uint32 off = 0xCF;
+
+      uint8 *t = XBuf+(FSettings.LastSLine-9)*256 + 20;		//mbg merge 7/17/06 changed t to uint8*
+      if(input_display > 4) input_display = 4;
+      for(controller = 0; controller < input_display; controller++, t += 56)
 	{
-		uint32 held;
+	  for(i = 0; i < 34;i++)
+	    for(j = 0; j <9 ; j++)
+	      t[i+j*256] = (t[i+j*256] & 0x30) | 0xC1;
+	  for(i = 3; i < 6; i++)
+	    for(j = 3; j< 6; j++)
+	      t[i+j*256] = 0xCF;
+	  c = cur_input_display >> (controller * 8);
 
-		int controller, c, ci, color;
-		int i, j;
-		uint32 on  = FCEUMOV_Mode(MOVIEMODE_PLAY) ? 0x90:0xA7;	//Standard, or Gray depending on movie mode
-		uint32 oni = 0xA0;		//Color for immediate keyboard buttons
-		uint32 blend = 0xB6;		//Blend of immiate and last held buttons
-		uint32 ahold = 0x87;		//Auto hold
-		uint32 off = 0xCF;
-
-		uint8 *t = XBuf+(FSettings.LastSLine-9)*256 + 20;		//mbg merge 7/17/06 changed t to uint8*
-		if(input_display > 4) input_display = 4;
-		for(controller = 0; controller < input_display; controller++, t += 56)
-		{
-			for(i = 0; i < 34;i++)
-				for(j = 0; j <9 ; j++)
-					t[i+j*256] = (t[i+j*256] & 0x30) | 0xC1;
-			for(i = 3; i < 6; i++)
-				for(j = 3; j< 6; j++)
-					t[i+j*256] = 0xCF;
-			c = cur_input_display >> (controller * 8);
-
-			// This doesn't work in anything except windows for now.
-			// It doesn't get set anywhere in other ports.
+	  // This doesn't work in anything except windows for now.
+	  // It doesn't get set anywhere in other ports.
 #if defined(WIN32) && !defined(NOWINSTUFF)
-			extern uint32 JSAutoHeld;
+	  extern uint32 JSAutoHeld;
 
-			if (!oldInputDisplay) ci = FCEUMOV_Mode(MOVIEMODE_PLAY) ? 0:GetGamepadPressedImmediate() >> (controller * 8);
-			else ci = 0;
+	  if (!oldInputDisplay) ci = FCEUMOV_Mode(MOVIEMODE_PLAY) ? 0:GetGamepadPressedImmediate() >> (controller * 8);
+	  else ci = 0;
 
-			if (!oldInputDisplay && !FCEUMOV_Mode(MOVIEMODE_PLAY)) held = (JSAutoHeld >> (controller * 8));
-			else held = 0;
+	  if (!oldInputDisplay && !FCEUMOV_Mode(MOVIEMODE_PLAY)) held = (JSAutoHeld >> (controller * 8));
+	  else held = 0;
 #else
-			// Put other port info here
-			ci = 0;
-			held = 0;
+	  // Put other port info here
+	  ci = 0;
+	  held = 0;
 #endif
 
-			//adelikat: I apologize to anyone who ever sifts through this color assignment
-			//A
-			if (held&1)	{ //If auto-hold
-				if (!(ci&1) ) color = ahold;
-				else
-					color = (c&1) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
-			}
-			else {
-				if (c&1) color = (ci&1) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
-				else color = (ci&1) ? oni : off;
-			}
-			for(i=0; i < 4; i++)
-			{
-				for(j = 0; j < 4; j++)
-				{
-					if(i%3==0 && j %3 == 0)
-						continue;
-					t[30+4*256+i+j*256] = color;
-				}
-			}
-			//B
-			if (held&2)	{ //If auto-hold
-				if (!(ci&2) ) color = ahold;
-				else
-					color = (c&2) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
-			}
-			else {
-				if (c&2) color = (ci&2) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
-				else color = (ci&2) ? oni : off;
-			}
-			for(i=0; i < 4; i++)
-			{
-				for(j = 0; j < 4; j++)
-				{
-					if(i%3==0 && j %3 == 0)
-						continue;
-					t[24+4*256+i+j*256] = color;
-				}
-			}
-			//Select
-			if (held&4)	{ //If auto-hold
-				if (!(ci&4) ) color = ahold;
-				else
-					color = (c&4) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
-			}
-			else {
-				if (c&4) color = (ci&4) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
-				else color = (ci&4) ? oni : off;
-			}
-			for(i = 0; i < 4; i++)
-			{
-				t[11+5*256+i] = color;
-				t[11+6*256+i] = color;
-			}
-			//Start
-			if (held&8)	{ //If auto-hold
-				if (!(ci&8) ) color = ahold;
-				else
-					color = (c&8) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
-			}
-			else {
-				if (c&8) color = (ci&8) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
-				else color = (ci&8) ? oni : off;
-			}
-			for(i = 0; i < 4; i++)
-			{
-				t[17+5*256+i] = color;
-				t[17+6*256+i] = color;
-			}
-			//Up
-			if (held&16)	{ //If auto-hold
-				if (!(ci&16) ) color = ahold;
-				else
-					color = (c&16) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
-			}
-			else {
-				if (c&16) color = (ci&16) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
-				else color = (ci&16) ? oni : off;
-			}
-			for(i = 0; i < 3; i++)
-			{
-				for(j = 0; j < 3; j++)
-				{
-					t[3+i+256*j] = color;
-				}
-			}
-			//Down
-			if (held&32)	{ //If auto-hold
-				if (!(ci&32) ) color = ahold;
-				else
-					color = (c&32) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
-			}
-			else {
-				if (c&32) color = (ci&32) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
-				else color = (ci&32) ? oni : off;
-			}
-			for(i = 0; i < 3; i++)
-			{
-				for(j = 0; j < 3; j++)
-				{
-					t[3+i+256*j+6*256] = color;
-				}
-			}
-			//Left
-			if (held&64)	{ //If auto-hold
-				if (!(ci&64) ) color = ahold;
-				else
-					color = (c&64) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
-			}
-			else {
-				if (c&64) color = (ci&64) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
-				else color = (ci&64) ? oni : off;
-			}
-			for(i = 0; i < 3; i++)
-			{
-				for(j = 0; j < 3; j++)
-				{
-					t[3*256+i+256*j] = color;
-				}
-			}
-			//Right
-			if (held&128)	{ //If auto-hold
-				if (!(ci&128) ) color = ahold;
-				else
-					color = (c&128) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
-			}
-			else {
-				if (c&128) color = (ci&128) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
-				else color = (ci&128) ? oni : off;
-			}
-			for(i = 0; i < 3; i++)
-			{
-				for(j = 0; j < 3; j++)
-				{
-					t[6+3*256+i+256*j] = color;
-				}
-			}
+	  //adelikat: I apologize to anyone who ever sifts through this color assignment
+	  //A
+	  if (held&1)	{ //If auto-hold
+	    if (!(ci&1) ) color = ahold;
+	    else
+	      color = (c&1) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
+	  }
+	  else {
+	    if (c&1) color = (ci&1) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
+	    else color = (ci&1) ? oni : off;
+	  }
+	  for(i=0; i < 4; i++)
+	    {
+	      for(j = 0; j < 4; j++)
+		{
+		  if(i%3==0 && j %3 == 0)
+		    continue;
+		  t[30+4*256+i+j*256] = color;
 		}
+	    }
+	  //B
+	  if (held&2)	{ //If auto-hold
+	    if (!(ci&2) ) color = ahold;
+	    else
+	      color = (c&2) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
+	  }
+	  else {
+	    if (c&2) color = (ci&2) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
+	    else color = (ci&2) ? oni : off;
+	  }
+	  for(i=0; i < 4; i++)
+	    {
+	      for(j = 0; j < 4; j++)
+		{
+		  if(i%3==0 && j %3 == 0)
+		    continue;
+		  t[24+4*256+i+j*256] = color;
+		}
+	    }
+	  //Select
+	  if (held&4)	{ //If auto-hold
+	    if (!(ci&4) ) color = ahold;
+	    else
+	      color = (c&4) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
+	  }
+	  else {
+	    if (c&4) color = (ci&4) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
+	    else color = (ci&4) ? oni : off;
+	  }
+	  for(i = 0; i < 4; i++)
+	    {
+	      t[11+5*256+i] = color;
+	      t[11+6*256+i] = color;
+	    }
+	  //Start
+	  if (held&8)	{ //If auto-hold
+	    if (!(ci&8) ) color = ahold;
+	    else
+	      color = (c&8) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
+	  }
+	  else {
+	    if (c&8) color = (ci&8) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
+	    else color = (ci&8) ? oni : off;
+	  }
+	  for(i = 0; i < 4; i++)
+	    {
+	      t[17+5*256+i] = color;
+	      t[17+6*256+i] = color;
+	    }
+	  //Up
+	  if (held&16)	{ //If auto-hold
+	    if (!(ci&16) ) color = ahold;
+	    else
+	      color = (c&16) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
+	  }
+	  else {
+	    if (c&16) color = (ci&16) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
+	    else color = (ci&16) ? oni : off;
+	  }
+	  for(i = 0; i < 3; i++)
+	    {
+	      for(j = 0; j < 3; j++)
+		{
+		  t[3+i+256*j] = color;
+		}
+	    }
+	  //Down
+	  if (held&32)	{ //If auto-hold
+	    if (!(ci&32) ) color = ahold;
+	    else
+	      color = (c&32) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
+	  }
+	  else {
+	    if (c&32) color = (ci&32) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
+	    else color = (ci&32) ? oni : off;
+	  }
+	  for(i = 0; i < 3; i++)
+	    {
+	      for(j = 0; j < 3; j++)
+		{
+		  t[3+i+256*j+6*256] = color;
+		}
+	    }
+	  //Left
+	  if (held&64)	{ //If auto-hold
+	    if (!(ci&64) ) color = ahold;
+	    else
+	      color = (c&64) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
+	  }
+	  else {
+	    if (c&64) color = (ci&64) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
+	    else color = (ci&64) ? oni : off;
+	  }
+	  for(i = 0; i < 3; i++)
+	    {
+	      for(j = 0; j < 3; j++)
+		{
+		  t[3*256+i+256*j] = color;
+		}
+	    }
+	  //Right
+	  if (held&128)	{ //If auto-hold
+	    if (!(ci&128) ) color = ahold;
+	    else
+	      color = (c&128) ? on : off; //If the button is pressed down (immediate) that negates auto hold, however it is only off if the previous frame the button wasn't pressed!
+	  }
+	  else {
+	    if (c&128) color = (ci&128) ? blend : on;	//If immedaite buttons are pressed and they match the previous frame, blend the colors
+	    else color = (ci&128) ? oni : off;
+	  }
+	  for(i = 0; i < 3; i++)
+	    {
+	      for(j = 0; j < 3; j++)
+		{
+		  t[6+3*256+i+256*j] = color;
+		}
+	    }
 	}
+    }
 
-	if (FCEUI_AviEnableHUDrecording())
+  if (FCEUI_AviEnableHUDrecording())
+    {
+      if (FCEUI_AviDisableMovieMessages())
 	{
-		if (FCEUI_AviDisableMovieMessages())
-		{
-			snapAVI();
-			DrawMessage(false);
-		} else
-		{
-			DrawMessage(false);
-			snapAVI();
-		}
-	} else DrawMessage(false);
+	  snapAVI();
+	  DrawMessage(false);
+	} else
+	{
+	  DrawMessage(false);
+	  snapAVI();
+	}
+    } else DrawMessage(false);
 
 }
 void snapAVI()
@@ -466,18 +437,6 @@ void FCEU_DispMessage(char *format, int disppos=0, ...)
 	guiMessage.isMovieMessage = false;
 
 	guiMessage.linesFromBottom = disppos;
-
-	//adelikat: Pretty sure this code fails, Movie playback stopped is done with FCEU_DispMessageOnMovie()
-	#ifdef CREATE_AVI
-	if(LoggingEnabled == 2)
-	{
-		/* While in AVI recording mode, only display bare minimum
-		 * of messages
-		 */
-		if(strcmp(guiMessage.errmsg, "Movie playback stopped.") != 0)
-			guiMessage.howlong = 0;
-	}
-	#endif
 }
 
 void FCEU_ResetMessages()
@@ -615,7 +574,7 @@ int SaveSnapshot(void)
 		uint8 *tmp=XBuf+FSettings.FirstSLine*256;
 		uint8 *dest,*mal,*mork;
 
-		if(!(mal=mork=dest=(uint8 *)FCEU_dmalloc((totallines<<8)+totallines)))
+		if(!(mal=mork=dest=(uint8 *)malloc((totallines<<8)+totallines)))
 			goto PNGerr;
 		//   mork=dest=XBuf;
 
@@ -708,7 +667,7 @@ int SaveSnapshot(char fileName[512])
 		uint8 *tmp=XBuf+FSettings.FirstSLine*256;
 		uint8 *dest,*mal,*mork;
 
-		if(!(mal=mork=dest=(uint8 *)FCEU_dmalloc((totallines<<8)+totallines)))
+		if(!(mal=mork=dest=(uint8 *)malloc((totallines<<8)+totallines)))
 			goto PNGerr;
 		//   mork=dest=XBuf;
 

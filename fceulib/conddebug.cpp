@@ -96,7 +96,7 @@ Condition* InfixOperator(const char** str, Condition(*nextPart(const char**)), i
 			return 0;
 		}
 
-		mid = (Condition*)FCEU_dmalloc(sizeof(Condition));
+		mid = (Condition*)malloc(sizeof(Condition));
 		if (!mid)
 			return NULL;
 		memset(mid, 0, sizeof(Condition));
@@ -326,7 +326,7 @@ Condition* Term(const char** str)
 	Condition* t1;
 	Condition* mid;
 
-    t = (Condition*)FCEU_dmalloc(sizeof(Condition));
+    t = (Condition*)malloc(sizeof(Condition));
     if (!t)
         return NULL;
 
@@ -344,7 +344,7 @@ Condition* Term(const char** str)
 
 		scan(str);
 
-		if (!(t1 = (Condition*)FCEU_dmalloc(sizeof(Condition))))
+		if (!(t1 = (Condition*)malloc(sizeof(Condition))))
             return NULL;
 
 		memset(t1, 0, sizeof(Condition));
@@ -356,7 +356,7 @@ Condition* Term(const char** str)
 			return 0;
 		}
 
-		if (!(mid = (Condition*)FCEU_dmalloc(sizeof(Condition))))
+		if (!(mid = (Condition*)malloc(sizeof(Condition))))
             return NULL;
 
 		memset(mid, 0, sizeof(Condition));

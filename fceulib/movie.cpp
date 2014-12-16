@@ -22,17 +22,11 @@
 #include "video.h"
 #include "movie.h"
 #include "fds.h"
-#ifdef _S9XLUA_H
-#include "fceulua.h"
-#endif
+
 #include "utils/guid.h"
 #include "utils/memory.h"
 #include "utils/xstring.h"
 #include <sstream>
-
-#ifdef CREATE_AVI
-#include "drivers/videolog/nesvideos-piece.h"
-#endif
 
 #ifdef WIN32
 #ifndef NOWINSTUFF
@@ -420,9 +414,9 @@ void MovieData::installValue(std::string& key, std::string& val)
 	else if(key == "binary")
 		installBool(val,binaryFlag);
 	else if(key == "comment")
-		comments.push_back(mbstowcs(val));
+	  (void)0; // stripped -tom7
 	else if (key == "subtitle")
-		subtitles.push_back(val); //mbstowcs(val));
+	  (void)0; // stripped -tom7
 	else if(key == "savestate")
 	{
 		int len = Base64StringToBytesLength(val);
@@ -456,12 +450,6 @@ int MovieData::dump(EMUFILE *os, bool binary)
 	os->fprintf("port2 %d\n" , ports[2] );
 	os->fprintf("FDS %d\n" , fds?1:0 );
 	os->fprintf("NewPPU %d\n" , PPUflag?1:0 );
-
-	for(uint32 i=0;i<comments.size();i++)
-		os->fprintf("comment %s\n" , wcstombs(comments[i]).c_str() );
-
-	for(uint32 i=0;i<subtitles.size();i++)
-		os->fprintf("subtitle %s\n" , subtitles[i].c_str() );
 
 	if(binary)
 		os->fprintf("binary 1\n" );
@@ -902,14 +890,6 @@ bool FCEUI_LoadMovie(const char *fname, bool _read_only, int _pauseframe)
 #endif
 #endif
 
-	#ifdef CREATE_AVI
-	if(LoggingEnabled)
-	{
-	    FCEU_DispMessage("Video recording enabled.\n",0);
-	    LoggingEnabled = 2;
-	}
-	#endif
-
 	return true;
 }
 
@@ -930,7 +910,7 @@ static void openRecordingMovie(const char* fname)
 
 //begin recording a new movie
 //TODO - BUG - the record-from-another-savestate doesnt work.
-void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::wstring author)
+void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::string author)
 {
 	if(!FCEU_IsValidUI(FCEUI_RECORDMOVIE))
 		return;
@@ -944,7 +924,7 @@ void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::wstring author)
 	currFrameCounter = 0;
 	LagCounterReset();
 	FCEUMOV_CreateCleanMovie();
-	if(author != L"") currMovieData.comments.push_back(L"author " + author);
+	if(!author.empty()) currMovieData.comments.push_back("author " + author);
 
 	if(flags & MOVIE_FLAG_FROM_POWERON)
 	{
@@ -1089,10 +1069,13 @@ void FCEUMOV_AddCommand(int cmd)
 	//NOTE: EMOVIECMD matches FCEUNPCMD_RESET and FCEUNPCMD_POWER
 	//we are lucky (well, I planned it that way)
 
+        #if 0   
+	// broke this to deprecate netplay constants -tom7
 	switch(cmd) {
 		case FCEUNPCMD_FDSINSERT: cmd = MOVIECMD_FDS_INSERT; break;
 		case FCEUNPCMD_FDSSELECT: cmd = MOVIECMD_FDS_SELECT; break;
 	}
+	#endif
 
 	_currCommand |= cmd;
 }
@@ -1361,15 +1344,12 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
 			else
 			{
 				//truncate before we copy, just to save some time, unless the user selects a full copy option
-				if (!fullSaveStateLoads)
+				if (!fullSaveStateLoads) 
 					tempMovieData.truncateAt(currFrameCounter); //we can only assume this here since we have checked that the frame counter is not greater than the movie data
 				currMovieData = tempMovieData;
-#ifdef _S9XLUA_H
-				if(!FCEU_LuaRerecordCountSkip())
-					currRerecordCount++;
-#else
+
 				currRerecordCount++;
-#endif
+
 				currMovieData.rerecordCount = currRerecordCount;
 				openRecordingMovie(curMovieFilename);
 				currMovieData.dump(osRecordingMovie, false/*currMovieData.binaryFlag*/);

@@ -14,8 +14,8 @@ void SetWriteHandler(int32 start, int32 end, writefunc func);
 writefunc GetWriteHandler(int32 a);
 readfunc GetReadHandler(int32 a);
 
-int AllocGenieRW(void);
-void FlushGenieRW(void);
+// int AllocGenieRW(void);
+// void FlushGenieRW(void);
 
 void FCEU_ResetVidSys(void);
 bool FCEUI_Initialize();
@@ -72,8 +72,6 @@ extern int GameAttributes;
 
 extern uint8 PAL;
 
-//#include "driver.h"
-
 typedef struct {
         int PAL;
         int NetworkPlay;
@@ -83,7 +81,7 @@ typedef struct {
         int Square2Volume;
         int NoiseVolume;
         int PCMVolume;
-        bool GameGenie;
+  // bool GameGenie;
 
         //the currently selected first and last rendered scanlines.
         int FirstSLine;

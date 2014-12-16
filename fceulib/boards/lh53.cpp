@@ -92,7 +92,7 @@ static void LH53Power(void)
 static void LH53Close(void)
 {
   if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
   WRAM=NULL;
 }
 

@@ -59,7 +59,7 @@ static void M246Power(void) {
 static void M246Close(void)
 {
 	if(WRAM)
-		FCEU_gfree(WRAM);
+		free(WRAM);
 	WRAM = NULL;
 }
 

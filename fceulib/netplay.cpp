@@ -34,7 +34,6 @@
 #include "netplay.h"
 #include "fceu.h"
 #include "state.h"
-#include "cheat.h"
 #include "input.h"
 #include "driver.h"
 #include "utils/memory.h"
@@ -60,16 +59,17 @@ void FCEUI_NetplayStop(void)
 	if(FCEUnetplay)
 	{
 		FCEUnetplay = 0;
-		FCEU_FlushGameCheats(0,1);  //Don't save netplay cheats.
-		FCEU_LoadGameCheats(0);    //Reload our original cheats.
+		fprintf(stderr, "Cheats disabled -tom7.");
+		abort();
 	}
 	else puts("Check your code!");
 }
 
 int FCEUI_NetplayStart(int nlocal, int divisor)
 {
-	FCEU_FlushGameCheats(0, 0);  //Save our pre-netplay cheats.
-	FCEU_LoadGameCheats(0);    // Load them again, for pre-multiplayer action.
+  fprintf(stderr, "Cheats are disabled -tom7.");
+  // FCEU_FlushGameCheats(0, 0);  //Save our pre-netplay cheats.
+  // FCEU_LoadGameCheats(0);    // Load them again, for pre-multiplayer action.
 
 	FCEUnetplay = 1;
 	memset(netjoy,0,sizeof(netjoy));
@@ -121,13 +121,13 @@ int FCEUNET_SendFile(uint8 cmd, char *fn)
 
 	fstat(fileno(fp),&sb);
 	len = sb.st_size;
-	buf = (char*)FCEU_dmalloc(len); //mbg merge 7/17/06 added cast
+	buf = (char*)malloc(len);
 	fread(buf, 1, len, fp);
 	fclose(fp);
 
-	cbuf = (char*)FCEU_dmalloc(4 + len + len / 1000 + 12); //mbg merge 7/17/06 added cast
-	FCEU_en32lsb((uint8*)cbuf, len); //mbg merge 7/17/06 added cast
-	compress2((uint8*)cbuf + 4, &clen, (uint8*)buf, len, 7); //mbg merge 7/17/06 added casts
+	cbuf = (char*)malloc(4 + len + len / 1000 + 12);
+	FCEU_en32lsb((uint8*)cbuf, len);
+	compress2((uint8*)cbuf + 4, &clen, (uint8*)buf, len, 7);
 	free(buf);
 
 	//printf("Sending file: %s, %d, %d\n",fn,len,clen);
@@ -148,51 +148,6 @@ int FCEUNET_SendFile(uint8 cmd, char *fn)
 	free(cbuf);
 
 	return(1);
-}
-
-static FILE *FetchFile(uint32 remlen)
-{
-	uint32 clen = remlen;
-	char *cbuf;
-	uLongf len;
-	char *buf;
-	FILE *fp;
-
-	if(clen > 500000)  // Sanity check
-	{
-		NetError();
-		return(0);
-	}
-
-	//printf("Receiving file: %d...\n",clen);
-	if((fp = tmpfile()))
-	{
-		cbuf = (char *)FCEU_dmalloc(clen); //mbg merge 7/17/06 added cast
-		if(!FCEUD_RecvData(cbuf, clen))
-		{
-			NetError();
-			fclose(fp);
-			free(cbuf);
-			return(0);
-		}
-
-		len = FCEU_de32lsb((uint8*)cbuf); //mbg merge 7/17/06 added cast
-		if(len > 500000)    // Another sanity check
-		{
-			NetError();
-			fclose(fp);
-			free(cbuf);
-			return(0);
-		}
-		buf = (char *)FCEU_dmalloc(len); //mbg merge 7/17/06 added cast
-		uncompress((uint8*)buf, &len, (uint8*)cbuf + 4, clen - 4); //mbg merge 7/17/06 added casts
-
-		fwrite(buf, 1, len, fp);
-		free(buf);
-		fseek(fp, 0, SEEK_SET);
-		return(fp);
-	}
-	return(0);
 }
 
 void NetplayUpdate(uint8 *joyp)
@@ -297,10 +252,8 @@ void NetplayUpdate(uint8 *joyp)
 				break;
 			case FCEUNPCMD_LOADCHEATS:
 				{
-					FILE *fp = FetchFile(FCEU_de32lsb(buf));
-					if(!fp) return;
-					FCEU_FlushGameCheats(0,1);
-					FCEU_LoadGameCheats(fp);
+				  fprintf(stderr, "Removed cheat support -tom7.");
+				  abort();
 				}
 				break;
 				//mbg 6/16/08 - netplay doesnt work right now anyway

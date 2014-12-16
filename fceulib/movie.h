@@ -43,7 +43,8 @@ typedef struct
 	MD5DATA md5_of_rom_used;
 	std::string name_of_rom_used;
 
-	std::vector<std::wstring> comments;
+  // these are always stripped -tom7
+	std::vector<std::string> comments;
 	std::vector<std::string> subtitles;
 } MOVIE_INFO;
 
@@ -175,9 +176,9 @@ public:
 	std::string romFilename;
 	std::vector<uint8> savestate;
 	std::vector<MovieRecord> records;
-	std::vector<std::wstring> comments;
+  // Always empty now -tom7
+	std::vector<std::string> comments;
 	std::vector<std::string> subtitles;
-	//this is the RERECORD COUNT. please rename variable.
 	int rerecordCount;
 	FCEU_Guid guid;
 
@@ -257,7 +258,7 @@ extern bool fullSaveStateLoads;
 //--------------------------------------------------
 void FCEUI_MakeBackupMovie(bool dispMessage);
 void FCEUI_CreateMovieFile(std::string fn);
-void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::wstring author);
+void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::string author);
 bool FCEUI_LoadMovie(const char *fname, bool read_only, int _stopframe);
 void FCEUI_MoviePlayFromBeginning(void);
 void FCEUI_StopMovie(void);

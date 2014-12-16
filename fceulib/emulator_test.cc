@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <sys/time.h>
 
 #include "base/logging.h"
 #include "test-util.h"
@@ -19,14 +20,28 @@ struct Game {
   uint64 after_random;
 };
 
+int64 TimeUsec() {
+  // XXX solution for win32.
+  timeval tv;
+  gettimeofday(&tv, nullptr);
+  return tv.tv_sec * 1000000LL + tv.tv_usec;
+}
+
 static void RunGameSerially(const Game &game) {
   printf("Testing %s...\n" , game.cart.c_str());
+# define CHECK_RAM(field) do {			   \
+    uint64 cx = emu->RamChecksum();		   \
+    CHECK_EQ(cx, (field))			   \
+      << "\nExpected ram to be " << #field << " = "  \
+      << (field) << " but got " << cx;		   \
+  } while(0)
+
   std::unique_ptr<Emulator> emu{Emulator::Create(game.cart)};
   CHECK(emu.get() != nullptr);
-  CHECK_EQ(emu->RamChecksum(), game.after_load);
+  CHECK_RAM(game.after_load);
 
   for (uint8 b : game.inputs) emu->StepFull(b);
-  CHECK_EQ(emu->RamChecksum(), game.after_inputs);
+  CHECK_RAM(game.after_inputs);
 
   ArcFour rc(game.cart);
   rc.Discard(1024);
@@ -79,7 +94,7 @@ static void RunGameSerially(const Game &game) {
     }
     emu->StepFull(b);
   }
-  CHECK_EQ(emu->RamChecksum(), game.after_random) << emu->RamChecksum();
+  CHECK_RAM(game.after_random);
 }
 
 int main() {
@@ -87,6 +102,31 @@ int main() {
   // First, ensure that we have preserved the single-threaded
   // behavior.
 
+  Game escape{
+    "escape.nes",
+    RLE::Decompress({
+      49, 0, 3, 8, 68, 0, 3, 8, 120, 0, 22, 128, 86, 0, 27, 128, 16, 129, 
+      12, 128, 11, 130, 11, 128, 1, 0, 13, 64, 1, 0, 8, 128, 11, 129, 9,
+      128, 9, 129, 14, 128, 2, 0, 8, 64, 0, 0, 2, 128, 2, 0, 12, 130, 128,
+      0, 128, 0, 128, 0, 27, 0, 27, 128, 23, 130, 12, 128, 8, 0, 4, 128, 21,
+      129, 11, 64, 14, 128, 16, 130, 23, 128, 16, 64, 2, 0, 8, 128, 24, 130,
+	13, 128, 25, 2, 128, 0, 128, 0, 128, 0, 2, 0, 28, 128, 0, 0}),
+    204558985997460734ULL,
+    6838541238215755706ULL,
+    14453325089239387428ULL,
+    };
+
+  const int64 start_us = TimeUsec();
+  for (int i = 0; i < 10; i++) {
+    RunGameSerially(escape);
+  }
+
+  const int64 end_us = TimeUsec();
+  const int64 elapsed_us = end_us - start_us;
+  printf("Took %.2f ms\n", elapsed_us / 1000.0);
+
+
+#if 0
   Game karate{
     "karate.nes",
     RLE::Decompress({
@@ -104,6 +144,9 @@ int main() {
 
   RunGameSerially(karate);
   RunGameSerially(karate);
+#endif
 
+  // TODO: Include escape.nes
+  
   return 0;
 }

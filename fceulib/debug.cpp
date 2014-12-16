@@ -37,12 +37,7 @@ int offsetStringToInt(unsigned int type, const char* offsetBuffer)
 	}
 	else // BT_C
 	{
-		if (GameInfo->type == GIT_NSF) { //NSF Breakpoint keywords
-			if (strcmp(offsetBuffer,"LOAD") == 0) return (NSFHeader.LoadAddressLow | (NSFHeader.LoadAddressHigh<<8));
-			if (strcmp(offsetBuffer,"INIT") == 0) return (NSFHeader.InitAddressLow | (NSFHeader.InitAddressHigh<<8));
-			if (strcmp(offsetBuffer,"PLAY") == 0) return (NSFHeader.PlayAddressLow | (NSFHeader.PlayAddressHigh<<8));
-		}
-		else if (GameInfo->type == GIT_FDS) { //FDS Breakpoint keywords
+	        if (GameInfo->type == GIT_FDS) { //FDS Breakpoint keywords
 			if (strcmp(offsetBuffer,"NMI1") == 0) return (GetMem(0xDFF6) | (GetMem(0xDFF7)<<8));
 			if (strcmp(offsetBuffer,"NMI2") == 0) return (GetMem(0xDFF8) | (GetMem(0xDFF9)<<8));
 			if (strcmp(offsetBuffer,"NMI3") == 0) return (GetMem(0xDFFA) | (GetMem(0xDFFB)<<8));
@@ -227,8 +222,6 @@ int getBank(int offs)
 	//GetNesFileAddress doesn't work well with Unif files
 	int addr = GetNesFileAddress(offs)-16;
 
-	if (GameInfo && GameInfo->type==GIT_NSF)
-		return addr != -1 ? addr / 0x1000 : -1;
 	return addr != -1 ? addr / 0x4000 : -1;
 }
 
@@ -716,6 +709,9 @@ int debug_tracing;
 
 void DebugCycle()
 {
+  fprintf(stderr, "Debugging shouldn't be on... -tom7.");
+  abort();
+
 	uint8 opcode[3] = {0};
 	uint16 A = 0;
 	int size;
@@ -734,11 +730,6 @@ void DebugCycle()
 	}
 	else
 		vblankScanLines = 0;
-
-	if (GameInfo->type==GIT_NSF)
-	{
-		if ((_PC >= 0x3801) && (_PC <= 0x3824)) return;
-	}
 
 	opcode[0] = GetMem(_PC);
 	size = opsize[opcode[0]];

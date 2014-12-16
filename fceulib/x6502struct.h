@@ -17,6 +17,7 @@ typedef struct __X6502 {
   int preexec;      /* Pre-exec'ing for debug breakpoints. */
 
 	#ifdef FCEUDEF_DEBUGGER
+   #error compiled with debugger :-(
         void (*CPUHook)(struct __X6502 *);
         uint8 (*ReadHook)(struct __X6502 *, unsigned int);
         void (*WriteHook)(struct __X6502 *, unsigned int, uint8);

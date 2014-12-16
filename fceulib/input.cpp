@@ -32,9 +32,6 @@
 #include "movie.h"
 #include "state.h"
 #include "input/zapper.h"
-#ifdef _S9XLUA_H
-#include "fceulua.h"
-#endif
 #include "input.h"
 #include "vsuni.h"
 #include "fds.h"
@@ -223,33 +220,14 @@ static uint8 ReadGPVS(int w)
 	return ret;
 }
 
-static void UpdateGP(int w, void *data, int arg)
-{
-	if(w==0)	//adelikat, 3/14/09: Changing the joypads to inclusive OR the user's joypad + the Lua joypad, this way lua only takes over the buttons it explicity says to
-	{			//FatRatKnight: Assume lua is always good. If it's doing nothing in particular using my logic, it'll pass-through the values anyway.
-		#ifdef _S9XLUA_H
-		joy[0]= *(uint32 *)joyports[0].ptr;
-		joy[0]= FCEU_LuaReadJoypad(0,joy[0]);
-		joy[2]= *(uint32 *)joyports[0].ptr >> 16;
-		joy[2]= FCEU_LuaReadJoypad(2,joy[2]);
-		#else // without this, there seems to be no input at all without Lua
-		joy[0] = *(uint32 *)joyports[0].ptr;;
-		joy[2] = *(uint32 *)joyports[0].ptr >> 16;
-		#endif
-	}
-	else
-	{
-		#ifdef _S9XLUA_H
-		joy[1]= *(uint32 *)joyports[1].ptr >> 8;
-		joy[1]= FCEU_LuaReadJoypad(1,joy[1]);
-		joy[3]= *(uint32 *)joyports[1].ptr >> 24;
-		joy[3]= FCEU_LuaReadJoypad(3,joy[3]);
-		#else // same goes for the other two pads
-		joy[1] = *(uint32 *)joyports[1].ptr >> 8;
-		joy[3] = *(uint32 *)joyports[1].ptr >> 24;
-		#endif
-	}
-
+static void UpdateGP(int w, void *data, int arg) {
+  if(w==0) {
+    joy[0] = *(uint32 *)joyports[0].ptr;;
+    joy[2] = *(uint32 *)joyports[0].ptr >> 16;
+  } else {
+    joy[1] = *(uint32 *)joyports[1].ptr >> 8;
+    joy[3] = *(uint32 *)joyports[1].ptr >> 24;
+  }
 }
 
 static void LogGP(int w, MovieRecord* mr)
@@ -336,9 +314,6 @@ void FCEU_UpdateInput(void)
 
 	if(GameInfo->type==GIT_VSUNI)
 		if(coinon) coinon--;
-
-	if(FCEUnetplay)
-		NetplayUpdate(joy);
 
 	FCEUMOV_AddInputState();
 
@@ -550,15 +525,14 @@ void FCEU_DoSimpleCommand(int cmd)
 
 void FCEU_QSimpleCommand(int cmd)
 {
-	if(FCEUnetplay)
-		FCEUNET_SendCommand(cmd, 0);
-	else
-	{
-		if(!FCEUMOV_Mode(MOVIEMODE_TASEDITOR))		// TAS Editor will do the command himself
-			FCEU_DoSimpleCommand(cmd);
-		if(FCEUMOV_Mode(MOVIEMODE_RECORD|MOVIEMODE_TASEDITOR))
-			FCEUMOV_AddCommand(cmd);
-	}
+  if(!FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) {
+    // TAS Editor will do the command himself
+    FCEU_DoSimpleCommand(cmd);
+  }
+  if(FCEUMOV_Mode(MOVIEMODE_RECORD|MOVIEMODE_TASEDITOR)) {
+    // I broke this function btw -tom7
+    FCEUMOV_AddCommand(cmd);
+  }
 }
 
 void FCEUI_FDSSelect(void)
@@ -737,10 +711,6 @@ struct EMUCMDTABLE FCEUI_CommandTable[]=
 	{ EMUCMD_MOVIE_INPUT_DISPLAY_TOGGLE,	EMUCMDTYPE_MISC,	FCEUI_ToggleInputDisplay, 0, 0, "Toggle Input Display", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_MOVIE_ICON_DISPLAY_TOGGLE,		EMUCMDTYPE_MISC,	FCEUD_ToggleStatusIcon, 0, 0, "Toggle Status Icon", EMUCMDFLAG_TASEDITOR },
 
-	#ifdef _S9XLUA_H
-	{ EMUCMD_SCRIPT_RELOAD,					EMUCMDTYPE_MISC,	FCEU_ReloadLuaCode, 0, 0, "Reload current Lua script", EMUCMDFLAG_TASEDITOR },
-	#endif
-
 	{ EMUCMD_SOUND_TOGGLE,					EMUCMDTYPE_SOUND,	FCEUD_SoundToggle, 0, 0, "Sound Mute Toggle", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_SOUND_VOLUME_UP,				EMUCMDTYPE_SOUND,	CommandSoundAdjust, 0, 0, "Sound Volume Up", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_SOUND_VOLUME_DOWN,				EMUCMDTYPE_SOUND,	CommandSoundAdjust, 0, 0, "Sound Volume Down", EMUCMDFLAG_TASEDITOR },
@@ -801,7 +771,6 @@ struct EMUCMDTABLE FCEUI_CommandTable[]=
 	{ EMUCMD_TASEDITOR_CANCEL_SEEKING,		EMUCMDTYPE_TASEDITOR,	TaseditorCommand, 0, 0, "Cancel Seeking", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_TASEDITOR_SWITCH_AUTORESTORING,		EMUCMDTYPE_TASEDITOR,	TaseditorCommand, 0, 0, "Switch Auto-restore last position", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_TASEDITOR_SWITCH_MULTITRACKING,		EMUCMDTYPE_TASEDITOR,	TaseditorCommand, 0, 0, "Switch current Multitracking mode", EMUCMDFLAG_TASEDITOR },
-	{ EMUCMD_TASEDITOR_RUN_MANUAL_LUA,		EMUCMDTYPE_TASEDITOR,	TaseditorCommand, 0, 0, "Run Manual Lua function", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_FPS_DISPLAY_TOGGLE,			EMUCMDTYPE_MISC,	FCEUI_ToggleShowFPS, 0, 0, "Toggle FPS Display", EMUCMDFLAG_TASEDITOR },
 };
 

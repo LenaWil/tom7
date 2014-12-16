@@ -128,7 +128,7 @@ static void UNLKS7030Power(void)
 static void UNLKS7030Close(void)
 {
   if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
   WRAM=NULL;
 }
 

@@ -273,13 +273,13 @@ void GenMMC3Power(void)
  {
   if(wrams==1024)
   {
-   FCEU_CheatAddRAM(1,0x7000,WRAM);
+    // FCEU_CheatAddRAM(1,0x7000,WRAM);
    SetReadHandler(0x7000,0x7FFF,MAWRAMMMC6);
    SetWriteHandler(0x7000,0x7FFF,MBWRAMMMC6);
   }
   else
   {
-   FCEU_CheatAddRAM((wrams&0x1fff)>>10,0x6000,WRAM);
+    // FCEU_CheatAddRAM((wrams&0x1fff)>>10,0x6000,WRAM);
    SetWriteHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),CartBW);
    SetReadHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),CartBR);
    setprg8r(0x10,0x6000,0);
@@ -295,9 +295,9 @@ void GenMMC3Power(void)
 static void GenMMC3Close(void)
 {
  if(CHRRAM)
-    FCEU_gfree(CHRRAM);
+    free(CHRRAM);
  if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
  CHRRAM=WRAM=NULL;
 }
 
@@ -1089,7 +1089,7 @@ static void M195Power(void)
 static void M195Close(void)
 {
   if(wramtw)
-    FCEU_gfree(wramtw);
+    free(wramtw);
   wramtw=NULL;
 }
 

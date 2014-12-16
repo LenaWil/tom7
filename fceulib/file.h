@@ -137,6 +137,7 @@ int FCEU_fisarchive(FCEUFILE*);
 
 
 void GetFileBase(const char *f);
+// Returns a default path for 
 std::string FCEU_GetPath(int type);
 std::string FCEU_MakePath(int type, const char* filebase);
 std::string FCEU_MakeFName(int type, int id1, const char *cd1);

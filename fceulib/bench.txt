@@ -1,0 +1,24 @@
+Cutting out various unused stuff
+(not expecting this to change anything except compile/link times!)
+
+Took 38398.49 ms
+
+real	0m38.418s
+user	0m38.372s
+sys	0m0.020s
+
+-O2:
+
+Took 38036.63 ms
+
+real    0m38.040s
+user    0m38.023s
+sys     0m0.010s
+
+First successful compile:
+
+Took 38064.33 ms
+
+real	0m38.068s
+user	0m38.046s
+sys	0m0.011s

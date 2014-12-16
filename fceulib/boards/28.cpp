@@ -135,7 +135,6 @@ static DECLFW(WriteEXP)
 
 static DECLFW(WritePRG)
 {
-	uint32 addr = A;
 	uint8 value = V;
 	switch (reg)
 	{

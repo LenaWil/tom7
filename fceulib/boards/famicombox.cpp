@@ -93,7 +93,7 @@ static void SSSNROMReset(void)
 static void SSSNROMClose(void)
 {
   if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
   WRAM=NULL;
 }
 
