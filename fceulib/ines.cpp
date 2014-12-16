@@ -521,6 +521,8 @@ typedef struct {
 	void (*init)(CartInfo *);
 } BMAPPINGLocal;
 
+// Maybe should be in boards/boards.cpp? -tom7
+#include "boards/boards.h"
 static BMAPPINGLocal bmap[] = {
 	{"NROM",				  0, NROM_Init},
 	{"MMC1",				  1, Mapper1_Init},
