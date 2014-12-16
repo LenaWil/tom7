@@ -121,7 +121,7 @@ bool RLE::DecompressEx(const vector<uint8> &in,
       
       if (i >= in.size()) {
 	printf("Run of length %d, i now %d, in.size() is %d\n",
-	       run_length, i, in.size());
+	       run_length, i, (int)in.size());
 	return false;
       }
       
@@ -141,7 +141,7 @@ bool RLE::DecompressEx(const vector<uint8> &in,
       
       if (i + antirun_length >= in.size()) {
 	printf("Antirun of length %d, i now %d, in.size() is %d\n",
-	       antirun_length, i, in.size());
+	       antirun_length, i, (int)in.size());
 	return false;
       }
 

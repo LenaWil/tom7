@@ -119,7 +119,10 @@
 #else
   // not available on mingw? --tom7
   #ifndef __MINGW32__
+  // also not on clang 3.5 on OSX Mavericks --tom7
+  #ifndef __clang__
   #include <byteswap.h>
+  #endif
   #endif
 #endif
 
