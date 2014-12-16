@@ -7,6 +7,12 @@ real	0m38.418s
 user	0m38.372s
 sys	0m0.020s
 
+Took 38889.61 ms
+
+real	0m38.894s
+user	0m38.855s
+sys	0m0.021s
+
 -O2:
 
 Took 38036.63 ms
