@@ -206,7 +206,7 @@ static void M83Reset(void)
 static void M83Close(void)
 {
   if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
   WRAM=NULL;
 }
 

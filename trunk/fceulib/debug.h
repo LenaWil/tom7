@@ -3,7 +3,6 @@
 
 #include "conddebug.h"
 #include "git.h"
-#include "nsf.h"
 
 //watchpoint stuffs
 #define WP_E       0x01  //watchpoint, enable
@@ -127,8 +126,6 @@ public:
 		jsrcount = 0;
 	}
 };
-
-extern NSF_HEADER NSFHeader;
 
 ///retrieves the core's DebuggerState
 DebuggerState &FCEUI_Debugger();

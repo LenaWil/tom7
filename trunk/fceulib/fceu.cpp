@@ -36,11 +36,9 @@
 #include "utils/crc32.h"
 
 #include "cart.h"
-#include "nsf.h"
 #include "fds.h"
 #include "ines.h"
 #include "unif.h"
-#include "cheat.h"
 #include "palette.h"
 #include "state.h"
 #include "movie.h"
@@ -63,10 +61,6 @@ extern bool TaseditorIsRecording();
 #include <fstream>
 #include <sstream>
 
-#ifdef _S9XLUA_H
-#include "fceulua.h"
-#endif
-
 //TODO - we really need some kind of global platform-specific options api
 #if defined(WIN32) && !defined(NOWINSTUFF)
 #include "drivers/win/main.h"
@@ -81,14 +75,9 @@ extern bool TaseditorIsRecording();
 #elif defined(DUMMY_UI)
 
 // driver provided via abstract interface.
-#if 0
-// #include "drivers/dummy/dummy.h"
-#endif
 
 #include "driver.h"
 
-#else
-#include "drivers/sdl/sdl.h"
 #endif
 
 using namespace std;
@@ -177,10 +166,6 @@ static void FCEU_CloseGame(void)
 			GameInfo->name=0;
 		}
 
-		if(GameInfo->type!=GIT_NSF)
-		{
-			FCEU_FlushGameCheats(0,0);
-		}
 
 		GameInterface(GI_CLOSE);
 
@@ -192,8 +177,6 @@ static void FCEU_CloseGame(void)
 		extern uint8 *XBuf;
 		if(XBuf)
 			memset(XBuf,0,256*256);
-
-		CloseGenie();
 
 		delete GameInfo;
 		GameInfo = NULL;
@@ -257,7 +240,7 @@ static DECLFR(ANull)
 	return(X.DB);
 }
 
-int AllocGenieRW(void)
+static int AllocGenieRW(void)
 {
 	if(!(AReadG=(readfunc *)FCEU_malloc(0x8000*sizeof(readfunc))))
 		return 0;
@@ -267,7 +250,7 @@ int AllocGenieRW(void)
 	return 1;
 }
 
-void FlushGenieRW(void)
+static void FlushGenieRW(void)
 {
 	int32 x;
 
@@ -355,8 +338,8 @@ static void AllocBuffers()
 
 static void FreeBuffers()
 {
-	FCEU_free(GameMemBlock);
-	FCEU_free(RAM);
+	free(GameMemBlock);
+	free(RAM);
 }
 //------
 
@@ -365,17 +348,11 @@ uint8 PAL=0;
 static DECLFW(BRAML)
 {
 	RAM[A]=V;
-	#ifdef _S9XLUA_H
-	CallRegisteredLuaMemHook(A, 1, V, LUAMEMHOOK_WRITE);
-	#endif
 }
 
 static DECLFW(BRAMH)
 {
 	RAM[A&0x7FF]=V;
-	#ifdef _S9XLUA_H
-	CallRegisteredLuaMemHook(A&0x7FF, 1, V, LUAMEMHOOK_WRITE);
-	#endif
 }
 
 static DECLFR(ARAML)
@@ -447,7 +424,7 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode)
 	MasterRomInfoParams = TMasterRomInfoParams();
 
 	if (!AutosaveStatus)
-		AutosaveStatus = (int*)FCEU_dmalloc(sizeof(int)*AutosaveQty);
+		AutosaveStatus = (int*)malloc(sizeof(int)*AutosaveQty);
 	for (AutosaveIndex=0; AutosaveIndex<AutosaveQty; ++AutosaveIndex)
 		AutosaveStatus[AutosaveIndex] = 0;
 
@@ -473,8 +450,6 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode)
 	/*if(FCEUXLoad(name,fp))
 		goto endlseq;*/
 	if(iNESLoad(name,fp,OverwriteVidMode))
-		goto endlseq;
-	if(NSFLoad(name,fp))
 		goto endlseq;
 	if(UNIFLoad(name,fp))
 		goto endlseq;
@@ -508,19 +483,12 @@ endlseq:
 
 	FCEU_ResetVidSys();
 
-	if(GameInfo->type!=GIT_NSF)
-		if(FSettings.GameGenie)
-			OpenGenie();
 	PowerNES();
 
-	if(GameInfo->type!=GIT_NSF)
-		FCEU_LoadGamePalette();
+	FCEU_LoadGamePalette();
 
 	FCEU_ResetPalette();
 	FCEU_ResetMessages();	// Save state, status messages, etc.
-
-	if(GameInfo->type!=GIT_NSF)
-		FCEU_LoadGameCheats(0);
 
 #if defined (WIN32) || defined (WIN64)
 #ifndef NOWINSTUFF
@@ -575,11 +543,7 @@ bool FCEUI_Initialize()
 
 void FCEUI_Kill(void)
 {
-	#ifdef _S9XLUA_H
-	FCEU_LuaStop();
-	#endif
 	FCEU_KillVirtualVideo();
-	FCEU_KillGenie();
 	FreeBuffers();
 }
 
@@ -678,8 +642,6 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
   FCEU_UpdateInput();
   lagFlag = 1;
 
-  // if(geniestage!=1) FCEU_ApplyPeriodicCheats();
-
   // fprintf(stderr, "ppu loop..\n");
 
   r = FCEUPPU_Loop(skip);
@@ -734,49 +696,43 @@ void FCEUI_CloseGame(void)
 	FCEU_CloseGame();
 }
 
-void ResetNES(void)
-{
-	FCEUMOV_AddCommand(FCEUNPCMD_RESET);
-	if(!GameInfo) return;
-	GameInterface(GI_RESETM2);
-	FCEUSND_Reset();
-	FCEUPPU_Reset();
-	X6502_Reset();
+void ResetNES(void) {
+  // FCEUMOV_AddCommand(FCEUNPCMD_RESET);
+  if(!GameInfo) return;
+  GameInterface(GI_RESETM2);
+  FCEUSND_Reset();
+  FCEUPPU_Reset();
+  X6502_Reset();
 
-	// clear back baffer
-	extern uint8 *XBackBuf;
-	memset(XBackBuf,0,256*256);
+  // clear back baffer
+  extern uint8 *XBackBuf;
+  memset(XBackBuf,0,256*256);
 
-	FCEU_DispMessage("Reset", 0);
+  FCEU_DispMessage("Reset", 0);
 }
 
-void FCEU_MemoryRand(uint8 *ptr, uint32 size)
-{
-	int x=0;
-	while(size)
-	{
-		*ptr=(x&4)?0xFF:0x00;
-		x++;
-		size--;
-		ptr++;
-	}
+void FCEU_MemoryRand(uint8 *ptr, uint32 size) {
+  int x=0;
+  while(size) {
+    *ptr=(x&4)?0xFF:0x00;
+    x++;
+    size--;
+    ptr++;
+  }
 }
 
 //int suppressAddPowerCommand=0; // hack... yeah, I know...
-void PowerNES(void)
-{
+void PowerNES(void) {
   //void MapperInit();
   //MapperInit();
 
   //if(!suppressAddPowerCommand)
-  FCEUMOV_AddCommand(FCEUNPCMD_POWER);
+  // FCEUMOV_AddCommand(FCEUNPCMD_POWER);
 
   if(!GameInfo) return;
 
-  FCEU_CheatResetRAM();
-  FCEU_CheatAddRAM(2,0,RAM);
-
-  GeniePower();
+  // FCEU_CheatResetRAM();
+  // FCEU_CheatAddRAM(2,0,RAM);
 
   FCEU_MemoryRand(RAM,0x800);
   //memset(RAM,0xFF,0x800);
@@ -806,7 +762,7 @@ void PowerNES(void)
 
   timestampbase = 0;
   X6502_Power();
-  FCEU_PowerCheats();
+  // FCEU_PowerCheats();
   LagCounterReset();
   // clear back baffer
   extern uint8 *XBackBuf;
@@ -896,12 +852,6 @@ int FCEUI_GetCurrentVidSystem(int *slstart, int *slend)
 	if(slend)
 		*slend=FSettings.LastSLine;
 	return(PAL);
-}
-
-//Enable or disable Game Genie option.
-void FCEUI_SetGameGenie(bool a)
-{
-	FSettings.GameGenie = a;
 }
 
 //this variable isn't used at all, snap is always name-based

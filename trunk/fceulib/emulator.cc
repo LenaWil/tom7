@@ -152,8 +152,6 @@ Emulator *Emulator::Create(const string &romfile) {
   // Set NTSC (1 = pal)
   FCEUI_SetVidSystem(GIV_NTSC);
 
-  FCEUI_SetGameGenie(0);
-
   // Default. Sound thing.
   FCEUI_SetLowPass(0);
 

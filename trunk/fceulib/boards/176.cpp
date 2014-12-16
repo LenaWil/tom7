@@ -134,7 +134,7 @@ static void M176Power(void)
 static void M176Close(void)
 {
   if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
   WRAM=NULL;
 }
 

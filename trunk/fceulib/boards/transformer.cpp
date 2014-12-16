@@ -82,7 +82,7 @@ static void TransformerPower(void)
 static void TransformerClose(void)
 {
   if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
   WRAM=NULL;
 }
 

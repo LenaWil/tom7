@@ -62,7 +62,7 @@ static void M168Power(void)
 static void MNNNClose(void)
 {
   if(CHRRAM)
-    FCEU_gfree(CHRRAM);
+    free(CHRRAM);
   CHRRAM=NULL;
 }
 

@@ -14,44 +14,47 @@
 static char *aboutString = 0;
 
 ///returns a string suitable for use in an aboutbox
+// TODO(tom7): Return c++ string
 char *FCEUI_GetAboutString() {
-	const char *aboutTemplate =
-	FCEU_NAME_AND_VERSION "\n\n\
-Administrators:\n\
-zeromus, adelikat, AnS\n\n\
-Current Contributors:\n\
-punkrockguy318 (Lukas Sabota)\n\
-Plombo (Bryan Cain)\n\
-qeed, QFox, Shinydoofy, ugetab\n\
-CaH4e3, gocha, Acmlm, DWEdit\n\
-\n\
-FCEUX 2.0:\n\
-mz, nitsujrehtona, Lukas Sabota,\n\
-SP, Ugly Joe\n\
-\n\
-Previous versions:\n\
-FCE - Bero\n\
-FCEU - Xodnizel\n\
-FCEU XD - Bbitmaster & Parasyte\n\
-FCEU XD SP - Sebastian Porst\n\
-FCEU MM - CaH4e3\n\
-FCEU TAS - blip & nitsuja\n\
-FCEU TAS+ - Luke Gustafson\n\
-\n\
-FCEUX is dedicated to the fallen heroes\n\
-of NES emulation. In Memoriam --\n\
-ugetab\n\
-\n\
-" __TIME__ " " __DATE__ "\n";
+  const char *aboutTemplate =
+    "FCEULib, by Tom 7 and based on\n"
+    FCEU_NAME_AND_VERSION
+    R"!(
 
-	if(aboutString) return aboutString;
+Administrators:zeromus, adelikat, AnS
+Current Contributors:
+punkrockguy318 (Lukas Sabota)
+Plombo (Bryan Cain)
+qeed, QFox, Shinydoofy, ugetab
+CaH4e3, gocha, Acmlm, DWEdit
 
-	const char *compilerString = FCEUD_GetCompilerString();
+FCEUX 2.0:
+mz, nitsujrehtona, Lukas Sabota,
+SP, Ugly Joe
 
-	//allocate the string and concatenate the template with the compiler string
-	if (!(aboutString = (char*)FCEU_dmalloc(strlen(aboutTemplate) + strlen(compilerString) + 1)))
-        return NULL;
+Previous versions:
+FCE - Bero
+FCEU - Xodnizel
+FCEU XD - Bbitmaster & Parasyte
+FCEU XD SP - Sebastian Porst
+FCEU MM - CaH4e3
+FCEU TAS - blip & nitsuja
+FCEU TAS+ - Luke Gustafson
 
-    sprintf(aboutString,"%s%s",aboutTemplate,compilerString);
-	return aboutString;
+FCEUX is dedicated to the fallen heroes
+of NES emulation. In Memoriam --
+ugetab
+
+" __TIME__ " " __DATE__ "\n)!";
+
+  if(aboutString) return aboutString;
+
+  const char *compilerString = FCEUD_GetCompilerString();
+
+  //allocate the string and concatenate the template with the compiler string
+  if (!(aboutString = (char*)malloc(strlen(aboutTemplate) + strlen(compilerString) + 1)))
+    return NULL;
+
+  sprintf(aboutString,"%s%s",aboutTemplate,compilerString);
+  return aboutString;
 }

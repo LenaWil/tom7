@@ -42,11 +42,6 @@ static inline void Interp2(unsigned char * pc, int c1, int c2, int c3)
   *((int*)pc) = (c1*2+c2+c3) >> 2;
 }
 
-static inline void Interp5(unsigned char * pc, int c1, int c2)
-{
-  *((int*)pc) = (c1+c2) >> 1;
-}
-
 static inline void Interp6(unsigned char * pc, int c1, int c2, int c3)
 {
   //*((int*)pc) = (c1*5+c2*2+c3)/8;
@@ -2924,68 +2919,3 @@ void hq2x_Kill(void)
 
 // LUT16to32=RGBtoYUV=NULL;
 }
-
-#ifdef FIFINONO
-int main(int argc, char* argv[])
-{
-  int         nRes;
-  CImage      ImageIn;
-  CImage      ImageOut;
-  char      * szFilenameIn;
-  char      * szFilenameOut;
-  
-  if (argc <= 2)
-  {
-    printf("\nUsage: hq2x.exe input.bmp output.bmp\n");
-    printf("supports .bmp and .tga formats\n");
-    return 1;
-  }
-
-  szFilenameIn = argv[1];
-  szFilenameOut = argv[2];
-
-  if ( GetFileAttributes( szFilenameIn ) == -1 )
-  {
-    printf( "ERROR: file '%s'\n not found", szFilenameIn );
-    return 1;
-  }
-
-  if ( ImageIn.Load( szFilenameIn ) != 0 )
-  {
-    printf( "ERROR: can't load '%s'\n", szFilenameIn );
-    return 1;
-  }
-
-  if ( ImageIn.m_BitPerPixel != 16 ) 
-  {
-    if ( ImageIn.ConvertTo16() != 0 )
-    {
-      printf( "ERROR: '%s' conversion to 16 bit failed\n", szFilenameIn );
-      return 1;
-    }
-  }
-
-  printf( "\n%s is %ix%ix%i\n", szFilenameIn, ImageIn.m_Xres, ImageIn.m_Yres, ImageIn.m_BitPerPixel );
-
-  if ( ImageOut.Init( ImageIn.m_Xres*2, ImageIn.m_Yres*2, 32 ) != 0 )
-  {
-    printf( "ERROR: ImageOut.Init()\n" );
-    return 1;
-  };
-
-  InitLUTs();
-
-  hq2x_32( ImageIn.m_pBitmap, ImageOut.m_pBitmap, ImageIn.m_Xres, ImageIn.m_Yres, ImageOut.m_Xres*4 );
-
-  nRes = ImageOut.Save( szFilenameOut );
-  if ( nRes != 0 )
-  {
-    printf( "ERROR %i: ImageOut.Save(\"%s\")\n", nRes, szFilenameOut );
-    return nRes;
-  }
-  printf( "%s is %ix%ix%i\n", szFilenameOut, ImageOut.m_Xres, ImageOut.m_Yres, ImageOut.m_BitPerPixel );
-
-  printf( "\nOK\n" );
-  return 0;
-}
-#endif

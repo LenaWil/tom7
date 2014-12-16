@@ -440,12 +440,6 @@ INLINE static void slotOn(OPLL_SLOT * slot) {
 	slot->phase = 0;
 }
 
-/* Slot key on without reseting the phase */
-INLINE static void slotOn2(OPLL_SLOT * slot) {
-	slot->eg_mode = ATTACK;
-	slot->eg_phase = 0;
-}
-
 /* Slot key off */
 INLINE static void slotOff(OPLL_SLOT * slot) {
 	if (slot->eg_mode == ATTACK)
@@ -479,10 +473,6 @@ INLINE static void setSustine(OPLL * opll, int32 c, int32 sustine) {
 /* Volume : 6bit ( Volume register << 2 ) */
 INLINE static void setVolume(OPLL * opll, int32 c, int32 volume) {
 	CAR(opll, c)->volume = volume;
-}
-
-INLINE static void setSlotVolume(OPLL_SLOT * slot, int32 volume) {
-	slot->volume = volume;
 }
 
 /* Set F-Number ( fnum : 9bit ) */

@@ -29,9 +29,6 @@
 #include "fceu.h"
 #include "driver.h"
 #include "boards/mapinc.h"
-#ifdef _S9XLUA_H
-#include "fceulua.h"
-#endif
 
 #include "palette.h"
 #include "palettes/palettes.h"
@@ -132,10 +129,6 @@ void SetNESDeemph(uint8 d, int force)
 	}
 	else   /* Only set this when palette has changed. */
 	{
-		#ifdef _S9XLUA_H
-		FCEU_LuaUpdatePalette();
-		#endif
-
 		r=rtmul[6];
 		g=rtmul[6];
 		b=rtmul[6];
@@ -179,9 +172,6 @@ void SetNESDeemph(uint8 d, int force)
 	}
 
 	lastd=d;
-	#ifdef _S9XLUA_H
-	FCEU_LuaUpdatePalette();
-	#endif
 }
 
 // Converted from Kevin Horton's qbasic palette generator.
@@ -266,41 +256,26 @@ void FCEU_ResetPalette(void)
 	}
 }
 
-static void ChoosePalette(void)
-{
-	if(GameInfo->type==GIT_NSF)
-		palo=0;
-	else if(ipalette)
-		palo=palettei;
-	else if(ntsccol && !PAL && GameInfo->type!=GIT_VSUNI)
-	{
-		palo=paletten;
-		CalculatePalette();
-	}
-	else
-		palo=palpoint[pale];
+static void ChoosePalette(void) {
+  if(ipalette) {
+    palo=palettei;
+  } else if(ntsccol && !PAL && GameInfo->type!=GIT_VSUNI) {
+    palo=paletten;
+    CalculatePalette();
+  } else {
+    palo=palpoint[pale];
+  }
 }
 
-void WritePalette(void)
-{
-	int x;
+void WritePalette(void) {
+  int x;
 
-	for(x=0;x<7;x++)
-		FCEUD_SetPalette(x,unvpalette[x].r,unvpalette[x].g,unvpalette[x].b);
-	if(GameInfo->type==GIT_NSF)
-	{
-		#ifdef _S9XLUA_H
-		FCEU_LuaUpdatePalette();
-		#endif
-		//for(x=0;x<128;x++)
-		// FCEUD_SetPalette(x,x,0,x);
-	}
-	else
-	{
-		for(x=0;x<64;x++)
-			FCEUD_SetPalette(128+x,palo[x].r,palo[x].g,palo[x].b);
-		SetNESDeemph(lastd,1);
-	}
+  for(x=0;x<7;x++)
+    FCEUD_SetPalette(x,unvpalette[x].r,unvpalette[x].g,unvpalette[x].b);
+
+  for(x=0;x<64;x++)
+    FCEUD_SetPalette(128+x,palo[x].r,palo[x].g,palo[x].b);
+  SetNESDeemph(lastd,1);
 }
 
 void FCEUI_GetNTSCTH(int *tint, int *hue)
@@ -314,8 +289,7 @@ static int controllength=0;
 
 void FCEUI_NTSCDEC(void)
 {
-	if(ntsccol && GameInfo->type!=GIT_VSUNI &&!PAL && GameInfo->type!=GIT_NSF)
-	{
+	if(ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
 		int which;
 		if(controlselect)
 		{
@@ -336,35 +310,37 @@ void FCEUI_NTSCDEC(void)
 
 void FCEUI_NTSCINC(void)
 {
-	if(ntsccol && GameInfo->type!=GIT_VSUNI && !PAL && GameInfo->type!=GIT_NSF)
-		if(controlselect)
-		{
-			if(controllength)
-			{
-				switch(controlselect)
-				{
-				case 1:ntschue++;
-					if(ntschue>128) ntschue=128;
-					CalculatePalette();
-					break;
-				case 2:ntsctint++;
-					if(ntsctint>128) ntsctint=128;
-					CalculatePalette();
-					break;
-				}
-			}
-			controllength=360;
-		}
+  if(ntsccol && GameInfo->type!=GIT_VSUNI && !PAL && controlselect) {
+    if(controllength)
+      {
+	switch(controlselect)
+	  {
+	  case 1:ntschue++;
+	    if(ntschue>128) ntschue=128;
+	    CalculatePalette();
+	    break;
+	  case 2:ntsctint++;
+	    if(ntsctint>128) ntsctint=128;
+	    CalculatePalette();
+	    break;
+	  }
+      }
+    controllength=360;
+  }
 }
 
-void FCEUI_NTSCSELHUE(void)
-{
-	if(ntsccol && GameInfo->type!=GIT_VSUNI && !PAL && GameInfo->type!=GIT_NSF){controlselect=1;controllength=360;}
+void FCEUI_NTSCSELHUE(void) {
+  if(ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
+    controlselect=1;
+    controllength=360;
+  }
 }
 
-void FCEUI_NTSCSELTINT(void)
-{
-	if(ntsccol && GameInfo->type!=GIT_VSUNI && !PAL && GameInfo->type!=GIT_NSF){controlselect=2;controllength=360;}
+void FCEUI_NTSCSELTINT(void) {
+  if(ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
+    controlselect=2;
+    controllength=360;
+  }
 }
 
 void FCEU_DrawNTSCControlBars(uint8 *XBuf)

@@ -70,7 +70,7 @@ static void M34Power(void) {
 
 static void M34Close(void) {
 	if (WRAM)
-		FCEU_gfree(WRAM);
+		free(WRAM);
 	WRAM = NULL;
 }
 

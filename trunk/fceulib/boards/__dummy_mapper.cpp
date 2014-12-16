@@ -59,9 +59,9 @@ static void MNNNReset(void) {
 static void MNNNClose(void)
 {
 	if (WRAM)
-		FCEU_gfree(WRAM);
+		free(WRAM);
 	if (CHRRAM)
-		FCEU_gfree(CHRRAM);
+		free(CHRRAM);
 	WRAM = CHRRAM = NULL;
 }
 */

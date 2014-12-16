@@ -92,10 +92,5 @@ void setntamem(uint8 *p, int ram, uint32 b);
 #define MI_0 2
 #define MI_1 3
 
-extern int geniestage;
-
-void GeniePower(void);
-
-void OpenGenie(void);
-void CloseGenie(void);
-void FCEU_KillGenie(void);
+// TODO remove
+static constexpr int geniestage = 0;

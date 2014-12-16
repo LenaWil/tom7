@@ -281,7 +281,7 @@ static void GenMMC1Power(void)
   lreset=0;
   if(mmc1opts&1)
   {
-    FCEU_CheatAddRAM(8,0x6000,WRAM);
+    // FCEU_CheatAddRAM(8,0x6000,WRAM);
     if(mmc1opts&4)
       FCEU_dwmemset(WRAM,0,8192)
     else if(!(mmc1opts&2))
@@ -303,9 +303,9 @@ static void GenMMC1Power(void)
 static void GenMMC1Close(void)
 {
   if(CHRRAM)
-    FCEU_gfree(CHRRAM);
+    free(CHRRAM);
   if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
   CHRRAM=WRAM=NULL;
 }
 

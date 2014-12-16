@@ -82,7 +82,7 @@ static void UNLAX5705IRQ(void)
 static void UNLD2000Close(void)
 {
   if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
   WRAM=NULL;
 }
 

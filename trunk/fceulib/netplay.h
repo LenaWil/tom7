@@ -1,8 +1,3 @@
-int InitNetplay(void);
-void NetplayUpdate(uint8 *joyp);
-extern int FCEUnetplay;
-
-
 #define FCEUNPCMD_RESET   0x01
 #define FCEUNPCMD_POWER   0x02
 
@@ -19,5 +14,13 @@ extern int FCEUnetplay;
 #define FCEUNPCMD_LOADCHEATS	0x82
 #define FCEUNPCMD_TEXT		0x90
 
+#if 0
+int InitNetplay(void);
+void NetplayUpdate(uint8 *joyp);
+extern int FCEUnetplay;
+
+
+
 int FCEUNET_SendCommand(uint8, uint32);
 int FCEUNET_SendFile(uint8 cmd, char *);
+#endif

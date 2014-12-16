@@ -64,25 +64,3 @@ void *FCEU_malloc(uint32 size)
  memset(ret,0,size);
  return ret;
 }
-
-///frees memory allocated with FCEU_gmalloc
-void FCEU_gfree(void *ptr)
-{
- free(ptr);
-}
-
-///frees memory allocated with FCEU_malloc
-void FCEU_free(void *ptr)    // Might do something with this and FCEU_malloc later...
-{
- free(ptr);
-}
-
-void *FCEU_dmalloc(uint32 size)
-{
-    return malloc(size);
-}
-
-void FCEU_dfree(void *ptr)
-{
-    free(ptr);
-}

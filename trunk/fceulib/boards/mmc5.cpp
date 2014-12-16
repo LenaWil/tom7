@@ -767,7 +767,7 @@ void NSFMMC5_Init(void)
 
 void NSFMMC5_Close(void)
 {
- FCEU_gfree(ExRAM);
+ free(ExRAM);
  ExRAM=0;
 }
 
@@ -801,8 +801,8 @@ static void GenMMC5Reset(void)
  SetReadHandler(0x5205,0x5206,MMC5_read);
 
  //GameHBIRQHook=MMC5_hb;
- FCEU_CheatAddRAM(8,0x6000,WRAM);
- FCEU_CheatAddRAM(1,0x5c00,ExRAM);
+ // FCEU_CheatAddRAM(8,0x6000,WRAM);
+ // FCEU_CheatAddRAM(1,0x5c00,ExRAM);
 }
 
 static SFORMAT MMC5_StateRegs[]={

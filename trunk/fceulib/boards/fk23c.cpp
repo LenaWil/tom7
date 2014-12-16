@@ -239,7 +239,7 @@ static void BMCFK23CAPower(void)
 static void BMCFK23CAClose(void)
 {
   if(CHRRAM)
-    FCEU_gfree(CHRRAM);
+    free(CHRRAM);
   CHRRAM=NULL;
 }
 

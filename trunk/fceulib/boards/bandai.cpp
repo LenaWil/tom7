@@ -137,7 +137,7 @@ static void M153Power(void)
 static void M153Close(void)
 {
   if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
   WRAM=NULL;
 }
 

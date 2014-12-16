@@ -1,0 +1,15 @@
+Stuff I should be able to get rid of:
+
+ - ines.cpp "trainerpoo"
+ - netplay
+ - hq2x
+ - file wrappers
+ - "oldmovie"
+ - new ppu?
+ - cart md5ing
+ - auto-fire
+ - movie recording
+ - Got rid of a lot of LUA, but still:
+      grep LUA `find . -type f`
+ - movie.*
+ - drawing.*

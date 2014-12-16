@@ -60,7 +60,7 @@ static void LH32Power(void)
 static void LH32Close(void)
 {
   if(WRAM)
-    FCEU_gfree(WRAM);
+    free(WRAM);
   WRAM=NULL;
 }
 

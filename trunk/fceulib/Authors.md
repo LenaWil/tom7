@@ -1,3 +1,13 @@
+Fceulib is based on FCE Ultra, which is based on FCE, and includes a
+bunch of emulator and graphics code contributed by many people. The
+original FCE Ultra authors file is below; new contributions to Fceulib are:
+
+  Tom Murphy VII - Cleaned up the code and deleted unnecessary parts for
+    the Learnfun & Playfun project. Made it compile as a library.
+
+  Adam Goode - Wrote the nes homebrew ESCAPE.NES, which is a port of Tom 7's
+    computer game Escape to NES. The escape cart is used for testing.
+
 Authors
 =======
 

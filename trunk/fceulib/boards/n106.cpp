@@ -416,7 +416,7 @@ static void N106_Power(void)
 
   SetReadHandler(0x6000,0x7FFF,AWRAM);
   SetWriteHandler(0x6000,0x7FFF,BWRAM);
-  FCEU_CheatAddRAM(8,0x6000,WRAM);
+  // FCEU_CheatAddRAM(8,0x6000,WRAM);
 
   gorfus=0xFF;
   SyncPRG();
