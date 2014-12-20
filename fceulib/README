@@ -1,5 +1,6 @@
 
 This is Tom 7's attempt to make FCE Ultra into a thread-safe library.
-As of 29 Nov 2014 there's no actual progress towards that except for
-the modernization I did for the Learnfun & Playfun project (../tasbot/).
+As of 20 Dec 2014 there's no actual progress towards that except for
+the modernization I did for the Learnfun & Playfun project (../tasbot/)
+and some further culling of unnecessary parts of FCEU.
 

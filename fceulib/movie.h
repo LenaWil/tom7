@@ -10,6 +10,7 @@
 #include "input/zapper.h"
 #include "utils/guid.h"
 #include "utils/md5.h"
+#include "utils/fixedarray.h"
 
 struct FCEUFILE;
 
@@ -101,7 +102,7 @@ class MovieRecord
 
 public:
 	MovieRecord();
-	ValueArray<uint8,4> joysticks;
+	FixedArray<uint8,4> joysticks;
 
 	struct {
 		uint8 x,y,b,bogo;
