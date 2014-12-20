@@ -22,8 +22,6 @@
 #include "movie.h"
 #include "version.h"
 
-// #include "drivers/common/configSys.h"
-#include "oldmovie.h"
 #include "types.h"
 
 extern double g_fpsScale;
