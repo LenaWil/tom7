@@ -370,7 +370,7 @@ void (*PPU_hook)(uint32 A);
 uint8 vtoggle=0;
 uint8 XOffset=0;
 
-uint32 TempAddr=0,RefreshAddr=0,DummyRead=0;
+uint32 TempAddr=0,RefreshAddr=0;
 
 static int maxsprites=8;
 
@@ -778,20 +778,6 @@ static DECLFR(A2007)
 	uint8 ret;
 	uint32 tmp=RefreshAddr&0x3FFF;
 
-	if(debug_loggingCD)
-	{
-		if(!DummyRead && (LogAddress != -1))
-		{
-			if(!(cdloggervdata[LogAddress] & 2))
-			{
-				cdloggervdata[LogAddress] |= 2;
-				if(!(cdloggervdata[LogAddress] & 1))undefinedvromcount--;
-				vromreadcount++;
-			}
-		}
-		else
-			DummyRead = 0;
-	}
 
 	if(newppu) {
         ret = VRAMBuffer;
@@ -1004,7 +990,6 @@ static DECLFW(B2006)
 		TempAddr|=V;
 
 		RefreshAddr=TempAddr;
-		DummyRead=1;
 		if(PPU_hook)
 			PPU_hook(RefreshAddr);
 		//printf("%d, %04x\n",scanline,RefreshAddr);

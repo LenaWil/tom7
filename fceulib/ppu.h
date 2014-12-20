@@ -1,3 +1,6 @@
+#ifndef __PPU_H
+#define __PPU_H
+
 void FCEUPPU_Init(void);
 void FCEUPPU_Reset(void);
 void FCEUPPU_Power(void);
@@ -37,7 +40,9 @@ extern int g_rasterpos;
 extern uint8 PPU[4];
 
 enum PPUPHASE {
-	PPUPHASE_VBL, PPUPHASE_BG, PPUPHASE_OBJ
+  PPUPHASE_VBL, PPUPHASE_BG, PPUPHASE_OBJ
 };
 
 extern PPUPHASE ppuphase;
+
+#endif

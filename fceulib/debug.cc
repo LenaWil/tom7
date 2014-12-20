@@ -15,6 +15,23 @@
 
 #include "x6502abbrev.h"
 
+
+//watchpoint stuffs
+#define WP_E       0x01  //watchpoint, enable
+#define WP_W       0x02  //watchpoint, write
+#define WP_R       0x04  //watchpoint, read
+#define WP_X       0x08  //watchpoint, execute
+#define WP_F       0x10  //watchpoint, forbid
+
+#define BT_C       0x00  //break type, cpu mem
+#define BT_P       0x20  //break type, ppu mem
+#define BT_S       0x40  //break type, sprite mem
+
+#define BREAK_TYPE_STEP -1
+#define BREAK_TYPE_BADOP -2
+#define BREAK_TYPE_CYCLES_EXCEED -3
+#define BREAK_TYPE_INSTRUCTIONS_EXCEED -4
+
 #define TYPE_NO 0
 #define TYPE_REG 1
 #define TYPE_FLAG 2
@@ -35,6 +52,12 @@
 #define OP_DIV 10
 #define OP_OR 11
 #define OP_AND 12
+
+extern uint8 *vnapage[4],*VPage[8];
+extern uint8 PPU[4],PALRAM[0x20],SPRAM[0x100],VRAMBuffer,PPUGenLatch,XOffset;
+extern uint32 RefreshAddr;
+
+extern int numWPs;
 
 //mbg merge 7/18/06 turned into sane c++
 struct Condition
@@ -173,20 +196,6 @@ static uint8 *GetNesPRGPointer(int A){
 }
 
 
-static int GetRomAddress(int A){
-	int i;
-	uint8 *p = GetNesPRGPointer(A-=16);
-	for(i = 16;i < 32;i++){
-		if((&Page[i][i<<11] <= p) && (&Page[i][(i+1)<<11] > p))break;
-	}
-	if(i == 32)return -1; //not found
-
-	return (i<<11) + (p-&Page[i][i<<11]);
-}
-
-static uint8 *GetNesCHRPointer(int A){
-	return CHRptr[0]+A;
-}
 
 static uint8 GetMem(uint16 A) {
 	if ((A >= 0x2000) && (A < 0x4000)) {
@@ -203,14 +212,6 @@ static uint8 GetMem(uint16 A) {
 	} else if ((A >= 0x4000) && (A < 0x5000)) return 0xFF;	// AnS: changed the range, so MMC5 ExRAM can be watched in the Hexeditor
 	if (GameInfo) return ARead[A](A);					 //adelikat: 11/17/09: Prevent crash if this is called with no game loaded.
 	else return 0;
-}
-
-static uint8 GetPPUMem(uint8 A) {
-	uint16 tmp=RefreshAddr&0x3FFF;
-
-	if (tmp<0x2000) return VPage[tmp>>10][tmp];
-	if (tmp>=0x3F00) return PALRAM[tmp&0x1F];
-	return vnapage[(tmp>>10)&0x3][tmp&0x3FF];
 }
 
 //---------------------
@@ -295,66 +296,6 @@ int condition(watchpointinfo* wp)
 //---------------------
 
 volatile int codecount, datacount, undefinedcount;
-unsigned char *cdloggerdata;
-static int indirectnext;
-
-// int debug_loggingCD;
-
-//called by the cpu to perform logging if CDLogging is enabled
-static void LogCDVectors(int which){
-	int j;
-	j = GetPRGAddress(which);
-	if(j == -1) return;
-
-	if(!(cdloggerdata[j] & 2)){
-		cdloggerdata[j] |= 0x0E; // we're in the last bank and recording it as data so 0x1110 or 0xE should be what we need
-		datacount++;
-		if(!(cdloggerdata[j] & 1))undefinedcount--;
-	}
-	j++;
-
-	if(!(cdloggerdata[j] & 2)){
-		cdloggerdata[j] |= 0x0E;
-		datacount++;
-		if(!(cdloggerdata[j] & 1))undefinedcount--;
-	}
-}
-
-void LogCDData(uint8 *opcode, uint16 A, int size) {
-	int i, j;
-	uint8 memop = 0;
-
-	if((j = GetPRGAddress(_PC)) != -1)
-		for (i = 0; i < size; i++) {
-			if(cdloggerdata[j+i] & 1)continue; //this has been logged so skip
-			cdloggerdata[j+i] |= 1;
-			cdloggerdata[j+i] |=((_PC+i)>>11)&0x0c;
-			if(indirectnext)cdloggerdata[j+i] |= 0x10;
-			codecount++;
-			if(!(cdloggerdata[j+i] & 2))undefinedcount--;
-		}
-
-	//log instruction jumped to in an indirect jump
-	if(opcode[0] == 0x6c)
-		indirectnext = 1;
-	else
-		indirectnext = 0;
-
-	switch (optype[opcode[0]]) {
-		case 1:
-		case 4: memop = 0x20; break;
-	}
-
-	if((j = GetPRGAddress(A)) != -1) {
-		if(!(cdloggerdata[j] & 2)) {
-			cdloggerdata[j] |= 2;
-			cdloggerdata[j] |=(A>>11)&0x0c;
-			cdloggerdata[j] |= memop;
-			datacount++;
-			if(!(cdloggerdata[j] & 1))undefinedcount--;
-		}
-	}
-}
 
 //-----------debugger stuff
 
@@ -696,9 +637,6 @@ void DebugCycle()
 
 	if (numWPs || dbgstate.step || dbgstate.runline || dbgstate.stepout || watchpoint[64].flags || dbgstate.badopbreak || break_on_cycles || break_on_instructions)
 		breakpoint(opcode, A, size);
-
-	if(debug_loggingCD)
-		LogCDData(opcode, A, size);
 
 #ifdef WIN32
 	//This needs to be windows only or else the linux build system will fail since logging is declared in a
