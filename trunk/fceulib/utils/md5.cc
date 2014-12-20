@@ -227,23 +227,3 @@ void md5_finish( struct md5_context *ctx, uint8 digest[16] )
     PUT_UINT32( ctx->state[2], digest,  8 );
     PUT_UINT32( ctx->state[3], digest, 12 );
 }
-
-
-/* Uses a static buffer, so beware of how it's used. */
-#if 0
-char *md5_asciistr(MD5DATA& md5)
-{
- uint8* digest = md5.data;
- static char str[33];
- static char trans[16]={'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
- int x;
-
- for(x=0;x<16;x++)
- {
-  str[x*2]=trans[digest[x]>>4];
-  str[x*2+1]=trans[digest[x]&0x0F];
- }
- return(str);
-}
-#endif
-

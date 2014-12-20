@@ -18,22 +18,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "../types.h"
 
-uint32 uppow2(uint32 n)
-{
+uint32 uppow2(uint32 n) {
  int x;
 
- for(x=31;x>=0;x--)
-  if(n&(1<<x))
-  {
-   if((1<<x)!=n)
-    return(1<<(x+1));
-   break;
+ for(x=31;x>=0;x--) {
+  if(n&(1<<x)) {
+    if((1<<x)!=n) {
+      return 1<<(x+1);
+    }
+    break;
   }
+ }
  return n;
 }
 

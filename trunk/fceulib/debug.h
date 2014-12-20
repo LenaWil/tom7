@@ -1,8 +1,8 @@
 #ifndef _DEBUG_H_
 #define _DEBUG_H_
 
-#include "conddebug.h"
 #include "git.h"
+#include "types.h"
 
 //watchpoint stuffs
 #define WP_E       0x01  //watchpoint, enable
@@ -20,28 +20,7 @@
 #define BREAK_TYPE_CYCLES_EXCEED -3
 #define BREAK_TYPE_INSTRUCTIONS_EXCEED -4
 
-//opbrktype is used to grab the breakpoint type that each instruction will cause.
-//WP_X is not used because ALL opcodes will have the execute bit set.
-static const uint8 opbrktype[256] = {
-	      /*0,    1, 2, 3,    4,    5,         6, 7, 8,    9, A, B,    C,    D,         E, F*/
-/*0x00*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0,    0, WP_R, WP_R|WP_W, 0,
-/*0x10*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0,
-/*0x20*/	0, WP_R, 0, 0, WP_R, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0, WP_R, WP_R, WP_R|WP_W, 0,
-/*0x30*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0,
-/*0x40*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0,    0, WP_R, WP_R|WP_W, 0,
-/*0x50*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0,
-/*0x60*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0, WP_R, WP_R, WP_R|WP_W, 0,
-/*0x70*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0,
-/*0x80*/	0, WP_W, 0, 0, WP_W, WP_W,      WP_W, 0, 0,    0, 0, 0, WP_W, WP_W,      WP_W, 0,
-/*0x90*/	0, WP_W, 0, 0, WP_W, WP_W,      WP_W, 0, 0, WP_W, 0, 0,    0, WP_W,         0, 0,
-/*0xA0*/	0, WP_R, 0, 0, WP_R, WP_R,      WP_R, 0, 0,    0, 0, 0, WP_R, WP_R,      WP_R, 0,
-/*0xB0*/	0, WP_R, 0, 0, WP_R, WP_R,      WP_R, 0, 0, WP_R, 0, 0, WP_R, WP_R,      WP_R, 0,
-/*0xC0*/	0, WP_R, 0, 0, WP_R, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0, WP_R, WP_R, WP_R|WP_W, 0,
-/*0xD0*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0,
-/*0xE0*/	0, WP_R, 0, 0, WP_R, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0, WP_R, WP_R, WP_R|WP_W, 0,
-/*0xF0*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0
-};
-
+class Condition;
 
 typedef struct {
 	uint16 address;
@@ -55,9 +34,6 @@ typedef struct {
 
 // ################################## End of SP CODE ###########################
 } watchpointinfo;
-
-//mbg merge 7/18/06 had to make this extern
-extern watchpointinfo watchpoint[65]; //64 watchpoints, + 1 reserved for step over
 
 int getBank(int offs);
 int GetNesFileAddress(int A);
@@ -136,8 +112,5 @@ DebuggerState &FCEUI_Debugger();
 //#define READ_BREAKPOINT 8
 //#define WRITE_BREAKPOINT 16
 //#define EXECUTE_BREAKPOINT 32
-
-int offsetStringToInt(unsigned int type, const char* offsetBuffer);
-unsigned int NewBreak(const char* name, int start, int end, unsigned int type, const char* condition, unsigned int num, bool enable);
 
 #endif

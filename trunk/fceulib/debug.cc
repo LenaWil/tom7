@@ -15,44 +15,66 @@
 
 #include "x6502abbrev.h"
 
+#define TYPE_NO 0
+#define TYPE_REG 1
+#define TYPE_FLAG 2
+#define TYPE_NUM 3
+#define TYPE_ADDR 4
+#define TYPE_BANK 5
+
+#define OP_NO 0
+#define OP_EQ 1
+#define OP_NE 2
+#define OP_GE 3
+#define OP_LE 4
+#define OP_G 5
+#define OP_L 6
+#define OP_PLUS 7
+#define OP_MINUS 8
+#define OP_MULT 9
+#define OP_DIV 10
+#define OP_OR 11
+#define OP_AND 12
+
+//mbg merge 7/18/06 turned into sane c++
+struct Condition
+{
+	Condition* lhs;
+	Condition* rhs;
+
+	unsigned int type1;
+	unsigned int value1;
+
+	unsigned int op;
+
+	unsigned int type2;
+	unsigned int value2;
+};
+
 int vblankScanLines = 0;	//Used to calculate scanlines 240-261 (vblank)
 int vblankPixel = 0;		//Used to calculate the pixels in vblank
 
-int offsetStringToInt(unsigned int type, const char* offsetBuffer)
-{
-	int offset = -1;
-
-	if (sscanf(offsetBuffer,"%4X",&offset) == EOF)
-	{
-		return -1;
-	}
-
-	if (type & BT_P)
-	{
-		return offset & 0x3FFF;
-	}
-	else if (type & BT_S)
-	{
-		return offset & 0x00FF;
-	}
-	else // BT_C
-	{
-	        if (GameInfo->type == GIT_FDS) { //FDS Breakpoint keywords
-			if (strcmp(offsetBuffer,"NMI1") == 0) return (GetMem(0xDFF6) | (GetMem(0xDFF7)<<8));
-			if (strcmp(offsetBuffer,"NMI2") == 0) return (GetMem(0xDFF8) | (GetMem(0xDFF9)<<8));
-			if (strcmp(offsetBuffer,"NMI3") == 0) return (GetMem(0xDFFA) | (GetMem(0xDFFB)<<8));
-			if (strcmp(offsetBuffer,"RST") == 0) return (GetMem(0xDFFC) | (GetMem(0xDFFD)<<8));
-			if ((strcmp(offsetBuffer,"IRQ") == 0) || (strcmp(offsetBuffer,"BRK") == 0)) return (GetMem(0xDFFE) | (GetMem(0xDFFF)<<8));
-		}
-		else { //NES Breakpoint keywords
-			if ((strcmp(offsetBuffer,"NMI") == 0) || (strcmp(offsetBuffer,"VBL") == 0)) return (GetMem(0xFFFA) | (GetMem(0xFFFB)<<8));
-			if (strcmp(offsetBuffer,"RST") == 0) return (GetMem(0xFFFC) | (GetMem(0xFFFD)<<8));
-			if ((strcmp(offsetBuffer,"IRQ") == 0) || (strcmp(offsetBuffer,"BRK") == 0)) return (GetMem(0xFFFE) | (GetMem(0xFFFF)<<8));
-		}
-	}
-
-	return offset;
-}
+//opbrktype is used to grab the breakpoint type that each instruction will cause.
+//WP_X is not used because ALL opcodes will have the execute bit set.
+static const uint8 opbrktype[256] = {
+	      /*0,    1, 2, 3,    4,    5,         6, 7, 8,    9, A, B,    C,    D,         E, F*/
+/*0x00*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0,    0, WP_R, WP_R|WP_W, 0,
+/*0x10*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0,
+/*0x20*/	0, WP_R, 0, 0, WP_R, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0, WP_R, WP_R, WP_R|WP_W, 0,
+/*0x30*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0,
+/*0x40*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0,    0, WP_R, WP_R|WP_W, 0,
+/*0x50*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0,
+/*0x60*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0, WP_R, WP_R, WP_R|WP_W, 0,
+/*0x70*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0,
+/*0x80*/	0, WP_W, 0, 0, WP_W, WP_W,      WP_W, 0, 0,    0, 0, 0, WP_W, WP_W,      WP_W, 0,
+/*0x90*/	0, WP_W, 0, 0, WP_W, WP_W,      WP_W, 0, 0, WP_W, 0, 0,    0, WP_W,         0, 0,
+/*0xA0*/	0, WP_R, 0, 0, WP_R, WP_R,      WP_R, 0, 0,    0, 0, 0, WP_R, WP_R,      WP_R, 0,
+/*0xB0*/	0, WP_R, 0, 0, WP_R, WP_R,      WP_R, 0, 0, WP_R, 0, 0, WP_R, WP_R,      WP_R, 0,
+/*0xC0*/	0, WP_R, 0, 0, WP_R, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0, WP_R, WP_R, WP_R|WP_W, 0,
+/*0xD0*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0,
+/*0xE0*/	0, WP_R, 0, 0, WP_R, WP_R, WP_R|WP_W, 0, 0,    0, 0, 0, WP_R, WP_R, WP_R|WP_W, 0,
+/*0xF0*/	0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0, 0, WP_R, 0, 0,    0, WP_R, WP_R|WP_W, 0
+};
 
 // Returns the value of a given type or register
 
@@ -75,127 +97,6 @@ int getValue(int type)
 	}
 
 	return 0;
-}
-
-
-/**
-* Checks whether a breakpoint condition is syntactically valid
-* and creates a breakpoint condition object if everything's OK.
-*
-* @param condition Condition to parse
-* @param num Number of the breakpoint in the BP list the condition belongs to
-* @return 0 in case of an error; 2 if everything went fine
-**/
-int checkCondition(const char* condition, int num)
-{
-	const char* b = condition;
-
-	// Check if the condition isn't just all spaces.
-
-	int onlySpaces = 1;
-
-	while (*b)
-	{
-		if (*b != ' ')
-		{
-			onlySpaces = 0;
-			break;
-		}
-
-		++b;
-	}
-
-
-	// If there's an actual condition create the BP condition object now
-
-	if (*condition && !onlySpaces)
-	{
-		Condition* c = generateCondition(condition);
-
-		// Remove the old breakpoint condition before adding a new condition.
-		if (watchpoint[num].cond)
-		{
-			freeTree(watchpoint[num].cond);
-			free(watchpoint[num].condText);
-			watchpoint[num].cond = 0;
-			watchpoint[num].condText = 0;
-		}
-
-		// If the creation of the BP condition object was succesful
-		// the condition is apparently valid. It can be added to the
-		// breakpoint now.
-
-		if (c)
-		{
-			watchpoint[num].cond = c;
-			watchpoint[num].condText = (char*)malloc(strlen(condition) + 1);
-            if (!watchpoint[num].condText)
-                return 0;
-			strcpy(watchpoint[num].condText, condition);
-		}
-		else
-		{
-			watchpoint[num].cond = 0;
-		}
-
-		return watchpoint[num].cond == 0 ? 2 : 0;
-	}
-	else
-	{
-		// Remove the old breakpoint condition
-		if (watchpoint[num].cond)
-		{
-			freeTree(watchpoint[num].cond);
-			free(watchpoint[num].condText);
-			watchpoint[num].cond = 0;
-			watchpoint[num].condText = 0;
-		}
-		return 0;
-	}
-}
-
-/**
-* Adds a new breakpoint.
-*
-* @param hwndDlg Handle of the debugger window
-* @param num Number of the breakpoint
-* @param
-**/
-unsigned int NewBreak(const char* name, int start, int end, unsigned int type, const char* condition, unsigned int num, bool enable)
-{
-	// Finally add breakpoint to the list
-	watchpoint[num].address = start;
-	watchpoint[num].endaddress = 0;
-
-	// Optional end address found
-	if (end != -1)
-	{
-		watchpoint[num].endaddress = end;
-	}
-
-	// Get the breakpoint flags
-	watchpoint[num].flags = 0;
-	if (enable) watchpoint[num].flags|=WP_E;
-	if (type & WP_R) watchpoint[num].flags|=WP_R;
-	if (type & WP_F) watchpoint[num].flags|=WP_F;
-	if (type & WP_W) watchpoint[num].flags|=WP_W;
-	if (type & WP_X) watchpoint[num].flags|=WP_X;
-	if (type & BT_P) {
-		watchpoint[num].flags|=BT_P;
-		watchpoint[num].flags&=~WP_X; //disable execute flag!
-	}
-	if (type & BT_S) {
-		watchpoint[num].flags|=BT_S;
-		watchpoint[num].flags&=~WP_X; //disable execute flag!
-	}
-
-	if (watchpoint[num].desc)
-		free(watchpoint[num].desc);
-
-	watchpoint[num].desc = (char*)malloc(strlen(name) + 1);
-	strcpy(watchpoint[num].desc, name);
-
-	return checkCondition(condition, num);
 }
 
 int GetPRGAddress(int A){
@@ -422,7 +323,7 @@ void LogCDData(uint8 *opcode, uint16 A, int size) {
 
 //-----------debugger stuff
 
-watchpointinfo watchpoint[65]; //64 watchpoints, + 1 reserved for step over
+static watchpointinfo watchpoint[65]; //64 watchpoints, + 1 reserved for step over
 int iaPC;
 uint32 iapoffset; //mbg merge 7/18/06 changed from int
 int u; //deleteme

@@ -50,6 +50,7 @@
 #include "utils/memory.h"
 
 // Next non-whitespace character in string
+#if 0
 char next;
 
 int ishex(char c)
@@ -447,3 +448,4 @@ Condition* generateCondition(const char* str)
 	if (!c || next != 0) return 0;
 	else return c;
 }
+#endif
