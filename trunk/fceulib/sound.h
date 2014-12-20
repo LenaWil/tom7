@@ -21,22 +21,22 @@
 #ifndef _SOUND_H_
 #define _SOUND_H_
 
-typedef struct {
-	   void (*Fill)(int Count);	/* Low quality ext sound. */
+struct EXPSOUND {
+  void (*Fill)(int Count);	/* Low quality ext sound. */
+  
+  /* NeoFill is for sound devices that are emulated in a more
+     high-level manner(VRC7) in HQ mode.  Interestingly,
+     this device has slightly better sound quality(updated more
+     often) in lq mode than in high-quality mode.  Maybe that
+     should be fixed. :)
+  */
+  void (*NeoFill)(int32 *Wave, int Count);
+  void (*HiFill)(void);
+  void (*HiSync)(int32 ts);
 
-	   /* NeoFill is for sound devices that are emulated in a more
-	      high-level manner(VRC7) in HQ mode.  Interestingly,
-	      this device has slightly better sound quality(updated more
-	      often) in lq mode than in high-quality mode.  Maybe that
-     	      should be fixed. :)
-	   */
-           void (*NeoFill)(int32 *Wave, int Count);
-	   void (*HiFill)(void);
-	   void (*HiSync)(int32 ts);
-
-	   void (*RChange)(void);
-	   void (*Kill)(void);
-} EXPSOUND;
+  void (*RChange)(void);
+  void (*Kill)(void);
+};
 
 extern EXPSOUND GameExpSound;
 
@@ -53,32 +53,28 @@ extern uint32 soundtsinc;
 
 #ifdef WIN32
 extern volatile int datacount, undefinedcount;
-extern int debug_loggingCD;
+static constexpr bool debug_loggingCD = false;
 extern unsigned char *cdloggerdata;
 #endif
 
 extern uint32 soundtsoffs;
 #define SOUNDTS (timestamp + soundtsoffs)
 
-void SetNESSoundMap(void);
-void FrameSoundUpdate(void);
+void FrameSoundUpdate();
 
-void FCEUSND_Power(void);
-void FCEUSND_Reset(void);
-void FCEUSND_SaveState(void);
+void FCEUSND_Power();
+void FCEUSND_Reset();
+void FCEUSND_SaveState();
 void FCEUSND_LoadState(int version);
 
 void FCEU_SoundCPUHook(int);
-void Write_IRQFM (uint32 A, uint8 V); //mbg merge 7/17/06 brought over from latest mmbuild
 
-void LogDPCM(int romaddress, int dpcmsize);
-
-typedef struct {
-	uint8 Speed;
-	uint8 Mode;	/* Fixed volume(1), and loop(2) */
-	uint8 DecCountTo1;
-	uint8 decvolume;
-	int reloaddec;
-} ENVUNIT;
+struct ENVUNIT {
+  uint8 Speed;
+  uint8 Mode;	/* Fixed volume(1), and loop(2) */
+  uint8 DecCountTo1;
+  uint8 decvolume;
+  int reloaddec;
+};
 
 #endif

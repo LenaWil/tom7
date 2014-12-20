@@ -13,3 +13,4 @@ Stuff I should be able to get rid of:
       grep LUA `find . -type f`
  - movie.*
  - drawing.*
+ - md5 in FECUGI
