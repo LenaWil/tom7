@@ -219,7 +219,7 @@ void FCEUI_MemDump(uint16 a, int32 len, void (*callb)(uint16 a, uint8 v));
 
 void FCEUI_NMI(void);
 void FCEUI_IRQ(void);
-uint16 FCEUI_Disassemble(void *XA, uint16 a, char *stringo);
+// uint16 FCEUI_Disassemble(void *XA, uint16 a, char *stringo);
 void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi);
 
 uint32 FCEUI_CRC32(uint32 crc, uint8 *buf, uint32 len);

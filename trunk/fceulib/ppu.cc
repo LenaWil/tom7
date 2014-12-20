@@ -467,57 +467,39 @@ unsigned char *cdloggervdata;
 extern uint32 VROM_size;
 
 int GetCHRAddress(int A){
-	int result;
-	if((A > 0x1fff))return -1;
-	if(!VROM_size)return -1;
-	result = &VPage[A>>10][A]-CHRptr[0];
-	if((result > (int)CHRsize[0]) || (result < 0))return -1;
-	else return result;
+  int result;
+  if (A > 0x1fff) return -1;
+  if (!VROM_size) return -1;
+  result = &VPage[A>>10][A]-CHRptr[0];
+  if (result > (int)CHRsize[0] || result < 0) return -1;
+  else return result;
 }
 
 uint8 FASTCALL FFCEUX_PPURead_Default(uint32 A) {
-	uint32 tmp = A;
+  uint32 tmp = A;
 
-	if(PPU_hook) PPU_hook(A);
+  if (PPU_hook) PPU_hook(A);
 
-	if(tmp<0x2000)
-	{
-		if(debug_loggingCD)
-		{
-			int addr = GetCHRAddress(tmp);
-			if(addr != -1)
-			{
-				if(!(cdloggervdata[addr] & 1))
-				{
-					cdloggervdata[addr] |= 1;
-					if(!(cdloggervdata[addr] & 2))undefinedvromcount--;
-					rendercount++;
-				}
-			}
-		}
-		return VPage[tmp>>10][tmp];
-	}
-	else if (tmp < 0x3F00)
-	{
-		return vnapage[(tmp>>10)&0x3][tmp&0x3FF];
-	}
-    else
-    {
-        uint8 ret;
-        if (!(tmp & 3))
-        {
-            if (!(tmp & 0xC))
-                ret = PALRAM[0x00];
-            else
-                ret = UPALRAM[((tmp & 0xC) >> 2) - 1];
-        }
-        else
-            ret = PALRAM[tmp & 0x1F];
-
-        if (GRAYSCALE)
-            ret &= 0x30;
-        return ret;
+  if (tmp<0x2000) {
+    return VPage[tmp>>10][tmp];
+  } else if (tmp < 0x3F00) {
+    return vnapage[(tmp>>10)&0x3][tmp&0x3FF];
+  } else {
+    uint8 ret;
+    if (!(tmp & 3)) {
+      if (!(tmp & 0xC)) {
+	ret = PALRAM[0x00];
+      } else {
+	ret = UPALRAM[((tmp & 0xC) >> 2) - 1];
+      }
+    } else {
+      ret = PALRAM[tmp & 0x1F];
     }
+
+    if (GRAYSCALE)
+      ret &= 0x30;
+    return ret;
+  }
 }
 
 

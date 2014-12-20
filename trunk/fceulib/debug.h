@@ -20,49 +20,19 @@
 #define BREAK_TYPE_CYCLES_EXCEED -3
 #define BREAK_TYPE_INSTRUCTIONS_EXCEED -4
 
-class Condition;
-
-typedef struct {
-	uint16 address;
-	uint16 endaddress;
-	uint8 flags;
-// ################################## Start of SP CODE ###########################
-
-	Condition* cond;
-	char* condText;
-	char* desc;
-
-// ################################## End of SP CODE ###########################
-} watchpointinfo;
-
-int getBank(int offs);
-int GetNesFileAddress(int A);
-int GetPRGAddress(int A);
-int GetRomAddress(int A);
-//int GetEditHex(HWND hwndDlg, int id);
-uint8 *GetNesPRGPointer(int A);
-uint8 *GetNesCHRPointer(int A);
-void KillDebugger();
-uint8 GetMem(uint16 A);
-uint8 GetPPUMem(uint8 A);
+extern int GetPRGAddress(int A);
 
 //---------CDLogger
-void LogCDVectors(int which);
+// void LogCDVectors(int which);
+static constexpr bool debug_loggingCD = false;
 void LogCDData(uint8 *opcode, uint16 A, int size);
 extern volatile int codecount, datacount, undefinedcount;
 extern unsigned char *cdloggerdata;
 
-extern int debug_loggingCD;
-static INLINE void FCEUI_SetLoggingCD(int val) { debug_loggingCD = val; }
-static INLINE int FCEUI_GetLoggingCD() { return debug_loggingCD; }
+// extern int debug_loggingCD;
+// static INLINE void FCEUI_SetLoggingCD(int val) { debug_loggingCD = val; }
+// static INLINE int FCEUI_GetLoggingCD() { return debug_loggingCD; }
 //-------
-
-//-------tracing
-//we're letting the win32 driver handle this ittself for now
-//extern int debug_tracing;
-//static INLINE void FCEUI_SetTracing(int val) { debug_tracing = val; }
-//static INLINE int FCEUI_GetTracing() { return debug_tracing; }
-//---------
 
 //--------debugger
 extern int iaPC;
@@ -75,36 +45,10 @@ extern uint8 *vnapage[4],*VPage[8];
 extern uint8 PPU[4],PALRAM[0x20],SPRAM[0x100],VRAMBuffer,PPUGenLatch,XOffset;
 extern uint32 RefreshAddr;
 
-extern int debug_loggingCD;
 extern int numWPs;
 
-///encapsulates the operational state of the debugger core
-class DebuggerState {
-public:
-	///indicates whether the debugger is stepping through a single instruction
-	bool step;
-	///indicates whether the debugger is stepping out of a function call
-	bool stepout;
-	///indicates whether the debugger is running one line
-	bool runline;
-	///target timestamp for runline to stop at
-	uint64 runline_end_time;
-	///indicates whether the debugger should break on bad opcodes
-	bool badopbreak;
-	///counts the nest level of the call stack while stepping out
-	int jsrcount;
-
-	///resets the debugger state to an empty, non-debugging state
-	void reset() {
-		numWPs = 0;
-		step = false;
-		stepout = false;
-		jsrcount = 0;
-	}
-};
-
 ///retrieves the core's DebuggerState
-DebuggerState &FCEUI_Debugger();
+// DebuggerState &FCEUI_Debugger();
 
 //#define CPU_BREAKPOINT 1
 //#define PPU_BREAKPOINT 2
