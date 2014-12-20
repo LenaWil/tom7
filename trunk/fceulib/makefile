@@ -45,7 +45,9 @@ INPUTOBJECTS=input/arkanoid.o input/ftrainer.o input/oekakids.o input/suborkb.o 
 FCEUOBJECTS=cart.o config.o debug.o drawing.o emufile.o fceu.o fds.o file.o filter.o ines.o input.o movie.o oldmovie.o palette.o ppu.o sound.o state.o unif.o video.o vsuni.o wave.o x6502.o
 
 # drivers/common/config.o drivers/common/configSys.o drivers/common/cheat.o
-DRIVERS_COMMON_OBJECTS=drivers/common/args.o drivers/common/nes_ntsc.o drivers/common/scale2x.o drivers/common/scale3x.o drivers/common/scalebit.o drivers/common/hq2x.o drivers/common/vidblit.o drivers/common/hq3x.o
+# drivers/common/vidblit.o
+# drivers/common/scale2x.o drivers/common/scale3x.o drivers/common/scalebit.o drivers/common/hq2x.o drivers/common/hq3x.o
+DRIVERS_COMMON_OBJECTS=drivers/common/args.o drivers/common/nes_ntsc.o 
 
 EMUOBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(DRIVERS_COMMON_OBJECTS)
 

@@ -594,10 +594,8 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
     if (pXBuf != NULL) {
       memcpy(XBuf, XBackBuf, 256*256);
 
-      #ifndef DUMMY_UI
-      abort();
-      FCEU_PutImage();
-      #endif
+      // Here we used to call PutImage to draw messages on-screen,
+      // as well as trigger PNG saving and stuff like that.
 
       *pXBuf=XBuf;
     }
