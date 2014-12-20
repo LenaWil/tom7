@@ -240,35 +240,6 @@ static DECLFR(ANull)
 	return(X.DB);
 }
 
-static int AllocGenieRW(void)
-{
-	if(!(AReadG=(readfunc *)FCEU_malloc(0x8000*sizeof(readfunc))))
-		return 0;
-	if(!(BWriteG=(writefunc *)FCEU_malloc(0x8000*sizeof(writefunc))))
-		return 0;
-	RWWrap=1;
-	return 1;
-}
-
-static void FlushGenieRW(void)
-{
-	int32 x;
-
-	if(RWWrap)
-	{
-		for(x=0;x<0x8000;x++)
-		{
-			ARead[x+0x8000]=AReadG[x];
-			BWrite[x+0x8000]=BWriteG[x];
-		}
-		free(AReadG);
-		free(BWriteG);
-		AReadG=0;
-		BWriteG=0;
-		RWWrap=0;
-	}
-}
-
 readfunc GetReadHandler(int32 a)
 {
 	if(a>=0x8000 && RWWrap)

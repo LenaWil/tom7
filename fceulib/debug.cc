@@ -51,6 +51,40 @@ struct Condition
 	unsigned int value2;
 };
 
+struct watchpointinfo {
+	uint16 address;
+	uint16 endaddress;
+	uint8 flags;
+	Condition* cond;
+	char* condText;
+	char* desc;
+};
+
+///encapsulates the operational state of the debugger core
+class DebuggerState {
+public:
+	///indicates whether the debugger is stepping through a single instruction
+	bool step;
+	///indicates whether the debugger is stepping out of a function call
+	bool stepout;
+	///indicates whether the debugger is running one line
+	bool runline;
+	///target timestamp for runline to stop at
+	uint64 runline_end_time;
+	///indicates whether the debugger should break on bad opcodes
+	bool badopbreak;
+	///counts the nest level of the call stack while stepping out
+	int jsrcount;
+
+	///resets the debugger state to an empty, non-debugging state
+	void reset() {
+		numWPs = 0;
+		step = false;
+		stepout = false;
+		jsrcount = 0;
+	}
+};
+
 int vblankScanLines = 0;	//Used to calculate scanlines 240-261 (vblank)
 int vblankPixel = 0;		//Used to calculate the pixels in vblank
 
@@ -107,6 +141,14 @@ int GetPRGAddress(int A){
 	else return result;
 }
 
+static int GetNesFileAddress(int A){
+	int result;
+	if((A < 0x8000) || (A > 0xFFFF))return -1;
+	result = &Page[A>>11][A]-PRGptr[0];
+	if((result > (int)(PRGsize[0])) || (result < 0))return -1;
+	else return result+16; //16 bytes for the header remember
+}
+
 /**
 * Returns the bank for a given offset.
 * Technically speaking this function does not calculate the actual bank
@@ -115,7 +157,7 @@ int GetPRGAddress(int A){
 * @param offs The offset
 * @return The bank of that offset or -1 if the offset is not part of the ROM.
 **/
-int getBank(int offs)
+static int getBank(int offs)
 {
 	//NSF data is easy to overflow the return on.
 	//Anything over FFFFF will kill it.
@@ -126,15 +168,12 @@ int getBank(int offs)
 	return addr != -1 ? addr / 0x4000 : -1;
 }
 
-int GetNesFileAddress(int A){
-	int result;
-	if((A < 0x8000) || (A > 0xFFFF))return -1;
-	result = &Page[A>>11][A]-PRGptr[0];
-	if((result > (int)(PRGsize[0])) || (result < 0))return -1;
-	else return result+16; //16 bytes for the header remember
+static uint8 *GetNesPRGPointer(int A){
+	return PRGptr[0]+A;
 }
 
-int GetRomAddress(int A){
+
+static int GetRomAddress(int A){
 	int i;
 	uint8 *p = GetNesPRGPointer(A-=16);
 	for(i = 16;i < 32;i++){
@@ -145,15 +184,11 @@ int GetRomAddress(int A){
 	return (i<<11) + (p-&Page[i][i<<11]);
 }
 
-uint8 *GetNesPRGPointer(int A){
-	return PRGptr[0]+A;
-}
-
-uint8 *GetNesCHRPointer(int A){
+static uint8 *GetNesCHRPointer(int A){
 	return CHRptr[0]+A;
 }
 
-uint8 GetMem(uint16 A) {
+static uint8 GetMem(uint16 A) {
 	if ((A >= 0x2000) && (A < 0x4000)) {
 		switch (A&7) {
 			case 0: return PPU[0];
@@ -170,7 +205,7 @@ uint8 GetMem(uint16 A) {
 	else return 0;
 }
 
-uint8 GetPPUMem(uint8 A) {
+static uint8 GetPPUMem(uint8 A) {
 	uint16 tmp=RefreshAddr&0x3FFF;
 
 	if (tmp<0x2000) return VPage[tmp>>10][tmp];
@@ -263,10 +298,10 @@ volatile int codecount, datacount, undefinedcount;
 unsigned char *cdloggerdata;
 static int indirectnext;
 
-int debug_loggingCD;
+// int debug_loggingCD;
 
 //called by the cpu to perform logging if CDLogging is enabled
-void LogCDVectors(int which){
+static void LogCDVectors(int which){
 	int j;
 	j = GetPRGAddress(which);
 	if(j == -1) return;
@@ -341,8 +376,6 @@ bool break_on_instructions = false;
 unsigned long int break_instructions_limit = 0;
 
 static DebuggerState dbgstate;
-
-DebuggerState &FCEUI_Debugger() { return dbgstate; }
 
 void ResetDebugStatisticsCounters()
 {
