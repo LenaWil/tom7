@@ -29,100 +29,97 @@ uint8 prg;
 uint8 mode;
 uint8 outer;
 
-void SyncMirror()
-{
-	switch (mode & 3)
-	{
-		case 0: setmirror(MI_0); break;
-		case 1: setmirror(MI_1); break;
-		case 2: setmirror(MI_V); break;
-		case 3: setmirror(MI_H); break;
-	}
+void SyncMirror() {
+  switch (mode & 3) {
+  case 0: setmirror(MI_0); break;
+  case 1: setmirror(MI_1); break;
+  case 2: setmirror(MI_V); break;
+  case 3: setmirror(MI_H); break;
+  }
 }
 
-void Mirror(uint8 value)
-{
-	if ((mode & 2) == 0)
-	{
-		mode &= 0xfe;
-		mode |= value >> 4 & 1;
-	}
-	SyncMirror();
+void Mirror(uint8 value) {
+  if ((mode & 2) == 0) {
+    mode &= 0xfe;
+    mode |= value >> 4 & 1;
+  }
+  SyncMirror();
 }
 
 
-static void Sync()
-{		
-	int prglo;
-	int prghi;
+static void Sync() {		
+  // Note: Compiler thinks maybe these can be uninitialized; maybe it
+  // doesn't understand that all the cases are covered below after the &,
+  // or maybe something is missing. -tom7
+  int prglo = 0;
+  int prghi = 0;
 
-	int outb = outer << 1;
-	//this can probably be rolled up, but i have no motivation to do so
-	//until it's been tested
-	switch (mode & 0x3c)
-	{
-		//32K modes
-	case 0x00:
-	case 0x04:
-		prglo = outb;
-		prghi = outb | 1;
-		break;
-	case 0x10:
-	case 0x14:
-		prglo = outb & ~2 | prg << 1 & 2;
-		prghi = outb & ~2 | prg << 1 & 2 | 1;
-		break;
-	case 0x20:
-	case 0x24:
-		prglo = outb & ~6 | prg << 1 & 6;
-		prghi = outb & ~6 | prg << 1 & 6 | 1;
-		break;
-	case 0x30:
-	case 0x34:
-		prglo = outb & ~14 | prg << 1 & 14;
-		prghi = outb & ~14 | prg << 1 & 14 | 1;
-		break;
-		//bottom fixed modes
-	case 0x08:
-		prglo = outb;
-		prghi = outb | prg & 1;
-		break;
-	case 0x18:
-		prglo = outb;
-		prghi = outb & ~2 | prg & 3;
-		break;
-	case 0x28:
-		prglo = outb;
-		prghi = outb & ~6 | prg & 7;
-		break;
-	case 0x38:
-		prglo = outb;
-		prghi = outb & ~14 | prg & 15;
-		break;
-		//top fixed modes
-	case 0x0c:
-		prglo = outb | prg & 1;
-		prghi = outb | 1;
-		break;
-	case 0x1c:
-		prglo = outb & ~2 | prg & 3;
-		prghi = outb | 1;
-		break;
-	case 0x2c:
-		prglo = outb & ~6 | prg & 7;
-		prghi = outb | 1;
-		break;
-	case 0x3c:
-		prglo = outb & ~14 | prg & 15;
-		prghi = outb | 1;
-		break;
-	}
-	prglo &= prg_mask_16k;
-	prghi &= prg_mask_16k;
+  int outb = outer << 1;
+  //this can probably be rolled up, but i have no motivation to do so
+  //until it's been tested
+  switch (mode & 0x3c) {
+    //32K modes
+  case 0x00:
+  case 0x04:
+    prglo = outb;
+    prghi = outb | 1;
+    break;
+  case 0x10:
+  case 0x14:
+    prglo = (outb & ~2) | (prg << 1 & 2);
+    prghi = (outb & ~2) | (prg << 1 & 2) | 1;
+    break;
+  case 0x20:
+  case 0x24:
+    prglo = (outb & ~6) | (prg << 1 & 6);
+    prghi = (outb & ~6) | (prg << 1 & 6) | 1;
+    break;
+  case 0x30:
+  case 0x34:
+    prglo = (outb & ~14) | (prg << 1 & 14);
+    prghi = (outb & ~14) | (prg << 1 & 14) | 1;
+    break;
+    //bottom fixed modes
+  case 0x08:
+    prglo = outb;
+    prghi = outb | (prg & 1);
+    break;
+  case 0x18:
+    prglo = outb;
+    prghi = (outb & ~2) | (prg & 3);
+    break;
+  case 0x28:
+    prglo = outb;
+    prghi = (outb & ~6) | (prg & 7);
+    break;
+  case 0x38:
+    prglo = outb;
+    prghi = (outb & ~14) | (prg & 15);
+    break;
+    //top fixed modes
+  case 0x0c:
+    prglo = outb | (prg & 1);
+    prghi = outb | 1;
+    break;
+  case 0x1c:
+    prglo = (outb & ~2) | (prg & 3);
+    prghi = outb | 1;
+    break;
+  case 0x2c:
+    prglo = (outb & ~6) | (prg & 7);
+    prghi = outb | 1;
+    break;
+  case 0x3c:
+    prglo = (outb & ~14) | (prg & 15);
+    prghi = outb | 1;
+    break;
+  }
+  prglo &= prg_mask_16k;
+  prghi &= prg_mask_16k;
 
-	setprg16(0x8000, prglo);
-	setprg16(0xC000, prghi);
-	setchr8(chr);
+  setprg16(0x8000, prglo);
+  setprg16(0xC000, prghi);
+  setchr8(chr);
 }
 
 static DECLFW(WriteEXP)
