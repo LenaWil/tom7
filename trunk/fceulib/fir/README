@@ -1,1 +1,8 @@
+FIR I'm presuming is Finite Impulse Response, like these are
+coefficients of filters used in the sound processing. They're included
+indirectly from ../filter.cc. There used to be .coef and scheme files
+and some weird incomplete driver program and makefile here, but since
+there's no hope of reproducing the header files from sources, I
+deleted that stuff. -tom7
+
 appears to be related to http://gmeteor.sourceforge.net/index.html
