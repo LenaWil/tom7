@@ -8,6 +8,8 @@
 //Added simple MD5 to ASCII string conversion function.
 // -Xodnizel   
 
+#include <string>
+
 #include <string.h>
 #include "../types.h"
 #include "md5.h"
@@ -228,6 +230,7 @@ void md5_finish( struct md5_context *ctx, uint8 digest[16] )
 
 
 /* Uses a static buffer, so beware of how it's used. */
+#if 0
 char *md5_asciistr(MD5DATA& md5)
 {
  uint8* digest = md5.data;
@@ -242,3 +245,5 @@ char *md5_asciistr(MD5DATA& md5)
  }
  return(str);
 }
+#endif
+
