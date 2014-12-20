@@ -393,13 +393,13 @@ uint8 UPALRAM[0x03]; //for 0x4/0x8/0xC addresses in palette, the ones in
 //"When in 8x8 sprite mode, only one set is used for both BG and sprites."
 //in mmc5 docs
 uint8 * MMC5BGVRAMADR(uint32 V) {
-	if(!Sprite16) {
-		extern uint8 mmc5ABMode;                /* A=0, B=1 */
-		if(mmc5ABMode==0)
-			return MMC5SPRVRAMADR(V);
-		else
-			return &MMC5BGVPage[(V)>>10][(V)];
-	} else return &MMC5BGVPage[(V)>>10][(V)];
+  if(!Sprite16) {
+    extern uint8 mmc5ABMode;                /* A=0, B=1 */
+    if(mmc5ABMode==0)
+      return MMC5SPRVRAMADR(V);
+    else
+      return &MMC5BGVPage[(V)>>10][(V)];
+  } else return &MMC5BGVPage[(V)>>10][(V)];
 }
 
 //this duplicates logic which is embedded in the ppu rendering code
@@ -505,8 +505,6 @@ uint8 FASTCALL FFCEUX_PPURead_Default(uint32 A) {
 
 uint8 (FASTCALL *FFCEUX_PPURead)(uint32 A) = 0;
 void (*FFCEUX_PPUWrite)(uint32 A, uint8 V) = 0;
-
-#define CALL_PPUREAD(A) (FFCEUX_PPURead(A))
 
 #define CALL_PPUWRITE(A,V) (FFCEUX_PPUWrite?FFCEUX_PPUWrite(A,V):FFCEUX_PPUWrite_Default(A,V))
 
@@ -800,12 +798,12 @@ static DECLFR(A2007)
                 ret = PALRAM[tmp & 0x1F];
             if (GRAYSCALE)
                 ret &= 0x30;
-            VRAMBuffer = CALL_PPUREAD(RefreshAddr - 0x1000);
+            VRAMBuffer = FFCEUX_PPURead(RefreshAddr - 0x1000);
         }
         else {
 			if(debug_loggingCD)
 				LogAddress = GetCHRAddress(RefreshAddr);
-		    VRAMBuffer = CALL_PPUREAD(RefreshAddr);
+		    VRAMBuffer = FFCEUX_PPURead(RefreshAddr);
 		}
 		ppur.increment2007(INC32!=0);
 		RefreshAddr = ppur.get_2007access();
@@ -2167,20 +2165,11 @@ int FCEUPPU_Loop(int skip)
 		}
 	} //else... to if(ppudead)
 
-#ifdef FRAMESKIP
-	if(skip)
-	{
-		FCEU_PutImageDummy();
-		return(0);
-	}
-	else
-#endif
-	{
-		//mbg 6/21/08 - tileview is being ripped out since i dont know how long its been since it worked
-		//if(tileview) TileView();
-		FCEU_PutImage();
-		return(1);
-	}
+	#ifdef FRAMESKIP
+	return !skip;
+	#else
+	return 1;
+	#endif
 }
 
 int (*PPU_MASTER)(int skip) = FCEUPPU_Loop;
@@ -2277,11 +2266,11 @@ struct BGData {
 
 			INLINE void Read() {
 				RefreshAddr = ppur.get_ntread();
-				nt = CALL_PPUREAD(RefreshAddr);
+				nt = FFCEUX_PPURead(RefreshAddr);
 				runppu(kFetchTime);
 
 				RefreshAddr = ppur.get_atread();
-				at = CALL_PPUREAD(RefreshAddr);
+				at = FFCEUX_PPURead(RefreshAddr);
 
 				//modify at to get appropriate palette shift
 				if(ppur.vt&2) at >>= 4;
@@ -2301,10 +2290,10 @@ struct BGData {
 
                 ppur.par = nt;
 				RefreshAddr = ppur.get_ptread();
-				pt[0] = CALL_PPUREAD(RefreshAddr);
+				pt[0] = FFCEUX_PPURead(RefreshAddr);
 				runppu(kFetchTime);
 				RefreshAddr |= 8;
-				pt[1] = CALL_PPUREAD(RefreshAddr);
+				pt[1] = FFCEUX_PPURead(RefreshAddr);
 				runppu(kFetchTime);
 			}
 		};
@@ -2555,7 +2544,7 @@ int FCEUX_PPU_Loop(int skip) {
 
 				//if this is a real sprite sprite, then it is not above the 8 sprite limit.
 				//this is how we support the no 8 sprite limit feature.
-				//not that at some point we may need a virtual CALL_PPUREAD which just peeks and doesnt increment any counters
+				//not that at some point we may need a virtual FCEUX_PPURead which just peeks and doesnt increment any counters
 				//this could be handy for the debugging tools also
 				const bool realSprite = (s<8);
 
@@ -2629,11 +2618,11 @@ int FCEUX_PPU_Loop(int skip) {
 
 				//pattern table fetches
 				RefreshAddr = patternAddress;
-				oam[4] = CALL_PPUREAD(RefreshAddr);
+				oam[4] = FFCEUX_PPURead(RefreshAddr);
 				if(realSprite) runppu(kFetchTime);
 
 				RefreshAddr += 8;
-				oam[5] = CALL_PPUREAD(RefreshAddr);
+				oam[5] = FFCEUX_PPURead(RefreshAddr);
 				if(realSprite) runppu(kFetchTime);
 
 				//hflip
@@ -2686,7 +2675,7 @@ int FCEUX_PPU_Loop(int skip) {
 	}
 
 finish:
-	FCEU_PutImage();
+	// FCEU_PutImage();
 
 	return 0;
 }

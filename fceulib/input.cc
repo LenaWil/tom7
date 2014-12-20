@@ -645,7 +645,6 @@ void ToggleFullscreen();
 static void TaseditorRewindOn(void);
 static void TaseditorRewindOff(void);
 static void TaseditorCommand(void);
-extern void FCEUI_ToggleShowFPS();
 
 struct EMUCMDTABLE FCEUI_CommandTable[]=
 {
@@ -653,7 +652,6 @@ struct EMUCMDTABLE FCEUI_CommandTable[]=
 	{ EMUCMD_RESET,							EMUCMDTYPE_MISC,	FCEUI_ResetNES,		  0, 0, "Reset", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_PAUSE,							EMUCMDTYPE_MISC,	FCEUI_ToggleEmulationPause, 0, 0, "Pause", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_FRAME_ADVANCE,					EMUCMDTYPE_MISC,	FCEUI_FrameAdvance, FCEUI_FrameAdvanceEnd, 0, "Frame Advance", EMUCMDFLAG_TASEDITOR },
-	{ EMUCMD_SCREENSHOT,					EMUCMDTYPE_MISC,	FCEUI_SaveSnapshot,	  0, 0, "Screenshot", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_HIDE_MENU_TOGGLE,				EMUCMDTYPE_MISC,	FCEUD_HideMenuToggle, 0, 0, "Hide Menu Toggle", 0 },
 	{ EMUCMD_EXIT,							EMUCMDTYPE_MISC,	FCEUI_DoExit,			  0, 0, "Exit", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_SPEED_SLOWEST,					EMUCMDTYPE_SPEED,	CommandEmulationSpeed, 0, 0, "Slowest Speed", EMUCMDFLAG_TASEDITOR },
@@ -771,7 +769,6 @@ struct EMUCMDTABLE FCEUI_CommandTable[]=
 	{ EMUCMD_TASEDITOR_CANCEL_SEEKING,		EMUCMDTYPE_TASEDITOR,	TaseditorCommand, 0, 0, "Cancel Seeking", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_TASEDITOR_SWITCH_AUTORESTORING,		EMUCMDTYPE_TASEDITOR,	TaseditorCommand, 0, 0, "Switch Auto-restore last position", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_TASEDITOR_SWITCH_MULTITRACKING,		EMUCMDTYPE_TASEDITOR,	TaseditorCommand, 0, 0, "Switch current Multitracking mode", EMUCMDFLAG_TASEDITOR },
-	{ EMUCMD_FPS_DISPLAY_TOGGLE,			EMUCMDTYPE_MISC,	FCEUI_ToggleShowFPS, 0, 0, "Toggle FPS Display", EMUCMDFLAG_TASEDITOR },
 };
 
 #define NUM_EMU_CMDS		(sizeof(FCEUI_CommandTable)/sizeof(FCEUI_CommandTable[0]))

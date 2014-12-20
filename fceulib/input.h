@@ -108,7 +108,6 @@ enum EMUCMD
 	EMUCMD_RESET,
 	EMUCMD_PAUSE,
 	EMUCMD_FRAME_ADVANCE,
-	EMUCMD_SCREENSHOT,
 	EMUCMD_HIDE_MENU_TOGGLE,
 	//fixed: current command key handling handle only command table record index with
 	//the same as cmd enumerarot index, or else does wrong key mapping, fixed it but placed this enum here anyway
@@ -239,8 +238,6 @@ enum EMUCMD
 	EMUCMD_TASEDITOR_SWITCH_MULTITRACKING,
 	EMUCMD_TASEDITOR_RUN_MANUAL_LUA,
 	//-----------------------------
-	//keep adding these in order of newness or else the hotkey binding configs will get messed up...
-	EMUCMD_FPS_DISPLAY_TOGGLE,
 
 	EMUCMD_MAX
 };
