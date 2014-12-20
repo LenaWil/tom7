@@ -22,6 +22,7 @@ struct Game {
 
 int64 TimeUsec() {
   // XXX solution for win32.
+  // (Actually this currently compiles on mingw64!)
   timeval tv;
   gettimeofday(&tv, nullptr);
   return tv.tv_sec * 1000000LL + tv.tv_usec;
@@ -37,7 +38,7 @@ static void RunGameSerially(const Game &game) {
   } while(0)
 
   std::unique_ptr<Emulator> emu{Emulator::Create(game.cart)};
-  CHECK(emu.get() != nullptr);
+  CHECK(emu.get() != nullptr) << game.cart.c_str();
   CHECK_RAM(game.after_load);
 
   for (uint8 b : game.inputs) emu->StepFull(b);
@@ -116,17 +117,6 @@ int main() {
     14453325089239387428ULL,
     };
 
-  const int64 start_us = TimeUsec();
-  for (int i = 0; i < 10; i++) {
-    RunGameSerially(escape);
-  }
-
-  const int64 end_us = TimeUsec();
-  const int64 elapsed_us = end_us - start_us;
-  printf("Took %.2f ms\n", elapsed_us / 1000.0);
-
-
-#if 0
   Game karate{
     "karate.nes",
     RLE::Decompress({
@@ -140,13 +130,20 @@ int main() {
       0x38cff7186cda146fULL,
       0x8ae8299e61234c95ULL,
       };
+
+  const int64 start_us = TimeUsec();
+  for (int i = 0; i < 3; i++) {
+    RunGameSerially(escape);
+  }
       
 
   RunGameSerially(karate);
   RunGameSerially(karate);
-#endif
+  RunGameSerially(escape);
 
-  // TODO: Include escape.nes
-  
+  const int64 end_us = TimeUsec();
+  const int64 elapsed_us = end_us - start_us;
+  printf("Took %.2f ms\n", elapsed_us / 1000.0);
+
   return 0;
 }
