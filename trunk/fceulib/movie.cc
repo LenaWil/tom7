@@ -1076,59 +1076,6 @@ void FCEUMOV_AddCommand(int cmd)
 	_currCommand |= cmd;
 }
 
-void FCEU_DrawMovies(uint8 *XBuf)
-{
-	if(frame_display)
-	{
-		char counterbuf[32] = {0};
-		int color = 0x20;
-		if(movieMode == MOVIEMODE_PLAY)
-			sprintf(counterbuf,"%d/%d",
-				currFrameCounter,
-				(int)currMovieData.records.size());
-		else if(movieMode == MOVIEMODE_RECORD)
-			sprintf(counterbuf,"%d",currFrameCounter);
-		else if (movieMode == MOVIEMODE_FINISHED)
-		{
-			sprintf(counterbuf,"%d/%d (finished)",
-				currFrameCounter,(int)currMovieData.records.size());
-			color = 0x17; //Show red to get attention
-		} else if(movieMode == MOVIEMODE_TASEDITOR)
-		{
-			sprintf(counterbuf,"%d",currFrameCounter);
-		} else
-			sprintf(counterbuf,"%d (no movie)",currFrameCounter);
-
-		if(counterbuf[0])
-			DrawTextTrans(ClipSidesOffset+XBuf+FCEU_TextScanlineOffsetFromBottom(30)+1, 256, (uint8*)counterbuf, color+0x80);
-	}
-	if(rerecord_display && movieMode != MOVIEMODE_INACTIVE)
-	{
-		char counterbuf[32] = {0};
-		sprintf(counterbuf,"%d",currMovieData.rerecordCount);
-
-		if(counterbuf[0])
-			DrawTextTrans(ClipSidesOffset+XBuf+FCEU_TextScanlineOffsetFromBottom(50)+1, 256, (uint8*)counterbuf, 0x28+0x80);
-	}
-}
-
-void FCEU_DrawLagCounter(uint8 *XBuf)
-{
-	uint8 color;
-
-	if (lagFlag) color = 0x16+0x80; //If currently lagging display red
-	else color = 0x2A+0x80;         //else display green
-
-	if(lagCounterDisplay)
-	{
-		char counterbuf[32] = {0};
-		sprintf(counterbuf,"%d",lagCounter);
-
-		if(counterbuf[0])
-			DrawTextTrans(ClipSidesOffset+XBuf+FCEU_TextScanlineOffsetFromBottom(40)+1, 256, (uint8*)counterbuf, color); //0x20+0x80
-	}
-}
-
 int FCEUMOV_WriteState(EMUFILE* os)
 {
 	//we are supposed to dump the movie data into the savestate
