@@ -377,7 +377,7 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode)
 	FCEU_printf("Loading %s...\n\n",name);
 
 	const char* romextensions[] = {"nes","fds",0};
-	fp=FCEU_fopen(name,0,"rb",0,-1,romextensions);
+	fp=FCEU_fopen(name,"rb",0,-1,romextensions);
 
 	if(!fp) {
 		FCEU_PrintError("Error opening \"%s\"!",name);

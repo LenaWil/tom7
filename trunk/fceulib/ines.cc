@@ -981,68 +981,42 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode)
 	return 1;
 }
 
-
-//bbit edited: the whole function below was added
 int iNesSave(){
-	FILE *fp;
-	char name[2048];
+  char name[2048];
 
-	if(GameInfo->type != GIT_CART)return 0;
-	if(GameInterface!=iNESGI)return 0;
+  strcpy(name,LoadedRomFName);
+  if (strcmp(name+strlen(name)-4,".nes") != 0) {
+    strcat(name,".nes");
+  }
 
-	strcpy(name,LoadedRomFName);
-	if (strcmp(name+strlen(name)-4,".nes") != 0) { //para edit
-		strcat(name,".nes");
-	}
-
-	fp = fopen(name,"wb");
-
-	if(fwrite(&head,1,16,fp)!=16)
-	{
-		fclose(fp);
-		return 0;
-	}
-
-	if(head.ROM_type&4) 	/* Trainer */
-	{
-		fwrite(trainerpoo,512,1,fp);
-	}
-
-	fwrite(ROM,0x4000,ROM_size,fp);
-
-	if(head.VROM_size)fwrite(VROM,0x2000,head.VROM_size,fp);
-	fclose(fp);
-
-	return 1;
+  return iNesSaveAs(name);
 }
 
-int iNesSaveAs(char* name)
-{
-	//adelikat: TODO: iNesSave() and this have pretty much the same code, outsource the common code to a single function
-	FILE *fp;
+int iNesSaveAs(char* name) {
+  FILE *fp;
 
-	if(GameInfo->type != GIT_CART)return 0;
-	if(GameInterface != iNESGI)return 0;
+  if(GameInfo->type != GIT_CART)return 0;
+  if(GameInterface != iNESGI)return 0;
 
-	fp = fopen(name,"wb");
+  fp = fopen(name,"wb");
 
-	if(fwrite(&head,1,16,fp)!=16)
-	{
-		fclose(fp);
-		return 0;
-	}
+  if(fwrite(&head,1,16,fp)!=16)
+    {
+      fclose(fp);
+      return 0;
+    }
 
-	if(head.ROM_type&4) 	/* Trainer */
-	{
-		fwrite(trainerpoo,512,1,fp);
-	}
+  if(head.ROM_type&4) 	/* Trainer */
+    {
+      fwrite(trainerpoo,512,1,fp);
+    }
 
-	fwrite(ROM,0x4000,ROM_size,fp);
+  fwrite(ROM,0x4000,ROM_size,fp);
 
-	if(head.VROM_size)fwrite(VROM,0x2000,head.VROM_size,fp);
-	fclose(fp);
+  if(head.VROM_size)fwrite(VROM,0x2000,head.VROM_size,fp);
+  fclose(fp);
 
-	return 1;
+  return 1;
 }
 
 //para edit: added function below

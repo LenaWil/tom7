@@ -1,12 +1,8 @@
 Stuff I should be able to get rid of:
 
  - ines.cpp "trainerpoo"
- - netplay
- - hq2x
  - file wrappers
- - "oldmovie"
  - new ppu?
- - cart md5ing
  - auto-fire
  - movie recording
  - Got rid of a lot of LUA, but still:
@@ -14,10 +10,11 @@ Stuff I should be able to get rid of:
  - movie.*
  - drawing.*
  - video.cc can probably go?
- - crc32
+ - archives
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.
+ - cart md5ing
  - md5 in FECUGI; note I'm using md5 for RamChecksum though
     - If this gets threaded to cartinfo, we also need it
       for example for hack checks in onebus.cc

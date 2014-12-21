@@ -121,7 +121,8 @@ struct ArchiveScanRecord
 };
 
 
-FCEUFILE *FCEU_fopen(const char *path, const char *ipsfn, char *mode, char *ext, int index=-1, const char** extensions = 0);
+FCEUFILE *FCEU_fopen(const char *path, char *mode, char *ext, int index=-1,
+		     const char** extensions = 0);
 bool FCEU_isFileInArchive(const char *path);
 int FCEU_fclose(FCEUFILE*);
 uint64 FCEU_fread(void *ptr, size_t size, size_t nmemb, FCEUFILE*);
@@ -142,7 +143,6 @@ std::string FCEU_GetPath(int type);
 std::string FCEU_MakePath(int type, const char* filebase);
 std::string FCEU_MakeFName(int type, int id1, const char *cd1);
 std::string GetMfn();
-void FCEU_SplitArchiveFilename(std::string src, std::string& archive, std::string& file, std::string& fileToOpen);
 
 #define FCEUMKF_STATE        1
 #define FCEUMKF_SNAP         2
@@ -151,7 +151,7 @@ void FCEU_SplitArchiveFilename(std::string src, std::string& archive, std::strin
 #define FCEUMKF_FDSROM       5
 #define FCEUMKF_PALETTE      6
 #define FCEUMKF_GGROM        7
-#define FCEUMKF_IPS          8
+// #define FCEUMKF_IPS          8
 #define FCEUMKF_FDS          9
 #define FCEUMKF_MOVIE        10
 //#define FCEUMKF_NPTEMP       11 //mbg 6/21/08 - who needs this..?
