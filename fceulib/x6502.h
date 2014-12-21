@@ -26,10 +26,10 @@ extern X6502 X;
 
 
 //the opsize table is used to quickly grab the instruction sizes (in bytes)
-extern const uint8 opsize[256];
+// extern const uint8 opsize[256];
 
 //the optype table is a quick way to grab the addressing mode for any 6502 opcode
-extern const uint8 optype[256];
+// extern const uint8 optype[256];
 
 //-----------
 //mbg 6/30/06 - some of this was removed to mimic XD
