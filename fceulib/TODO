@@ -13,9 +13,11 @@ Stuff I should be able to get rid of:
       grep LUA `find . -type f`
  - movie.*
  - drawing.*
- - md5 in FECUGI; note I'm using md5 for RamChecksum though
  - video.cc can probably go?
  - crc32
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.
+ - md5 in FECUGI; note I'm using md5 for RamChecksum though
+    - If this gets threaded to cartinfo, we also need it
+      for example for hack checks in onebus.cc

@@ -35,8 +35,10 @@ static uint8 IRQCount, IRQa, IRQReload;
 #define IRQLatch cpu410x[0x1]
 
 // MMC3 Registers
-static uint8 inv_hack = 0; // some OneBus Systems have swapped PRG reg commans in MMC3 inplementation,
-                           // trying to autodetect unusual behavior, due not to add a new mapper.
+// some OneBus Systems have swapped PRG reg commans in MMC3 inplementation,
+// trying to autodetect unusual behavior, due not to add a new mapper.
+static uint8 inv_hack = 0; 
+
 #define mmc3cmd  cpu410x[0x5]
 #define mirror   cpu410x[0x6]
 
@@ -314,9 +316,12 @@ void UNLOneBus_Init(CartInfo *info)
   info->Power=UNLOneBusPower;
   info->Reset=UNLOneBusReset;
 
-  if(((*(uint32*)&(info->MD5)) == 0x305fcdc3) || // PowerJoy Supermax Carts
-     ((*(uint32*)&(info->MD5)) == 0x6abfce8e) )
+  uint32 *md32 = (uint32*)&info->MD5;
+  const uint32 mdhead = *md32;
+  // PowerJoy Supermax Carts
+  if(mdhead == 0x305fcdc3 || mdhead == 0x6abfce8e) {
     inv_hack = 0xf;
+  }
 
   GameHBIRQHook=UNLOneBusIRQHook;
   MapIRQHook=UNLOneBusCpuHook;
