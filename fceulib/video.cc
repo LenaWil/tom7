@@ -39,7 +39,6 @@
 #include "palette.h"
 #include "input.h"
 #include "vsuni.h"
-#include "drawing.h"
 #include "driver.h"
 
 #ifdef WIN32
