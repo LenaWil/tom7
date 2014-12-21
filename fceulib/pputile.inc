@@ -4,6 +4,10 @@ uint32 vadr;
        
 #ifndef PPUT_MMC5SP
 	uint8 zz;
+	// Note: This is unused with the defines that are set for me.
+	// I gues PPUT_MMC5CHR1 must be true? Suppressing the warning
+	// in any case. -tom7
+	(void)zz;
 #else
     uint8 xs,ys;  
     xs=X1;

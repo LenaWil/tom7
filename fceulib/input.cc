@@ -357,82 +357,80 @@ void InputScanlineHook(uint8 *bg, uint8 *spr, uint32 linets, int final)
 }
 
 //binds JPorts[pad] to the driver specified in JPType[pad]
-static void SetInputStuff(int port)
-{
-	switch(joyports[port].type)
-	{
-	case SI_GAMEPAD:
-		if(GameInfo->type==GIT_VSUNI)
-			joyports[port].driver = &GPCVS;
-		else
-			joyports[port].driver= &GPC;
-		break;
-	case SI_ARKANOID:
-		joyports[port].driver=FCEU_InitArkanoid(port);
-		break;
-	case SI_ZAPPER:
-		joyports[port].driver=FCEU_InitZapper(port);
-		break;
-	case SI_POWERPADA:
-		joyports[port].driver=FCEU_InitPowerpadA(port);
-		break;
-	case SI_POWERPADB:
-		joyports[port].driver=FCEU_InitPowerpadB(port);
-		break;
-	case SI_NONE:
-		joyports[port].driver=&DummyJPort;
-		break;
-	}
+static void SetInputStuff(int port) {
+  switch(joyports[port].type) {
+    case SI_GAMEPAD:
+      if(GameInfo->type==GIT_VSUNI)
+	joyports[port].driver = &GPCVS;
+      else
+	joyports[port].driver= &GPC;
+      break;
+    case SI_ARKANOID:
+      joyports[port].driver=FCEU_InitArkanoid(port);
+      break;
+    case SI_ZAPPER:
+      joyports[port].driver=FCEU_InitZapper(port);
+      break;
+    case SI_POWERPADA:
+      joyports[port].driver=FCEU_InitPowerpadA(port);
+      break;
+    case SI_POWERPADB:
+      joyports[port].driver=FCEU_InitPowerpadB(port);
+      break;
+    case SI_NONE:
+      joyports[port].driver=&DummyJPort;
+      break;
+    default:;
+    }
 }
 
-static void SetInputStuffFC()
-{
-	switch(portFC.type)
-	{
-	case SIFC_NONE:
-		portFC.driver=&DummyPortFC;
-		break;
-	case SIFC_ARKANOID:
-		portFC.driver=FCEU_InitArkanoidFC();
-		break;
-	case SIFC_SHADOW:
-		portFC.driver=FCEU_InitSpaceShadow();
-		break;
-	case SIFC_OEKAKIDS:
-		portFC.driver=FCEU_InitOekaKids();
-		break;
-	case SIFC_4PLAYER:
-		portFC.driver=&FAMI4C;
-		memset(&F4ReadBit,0,sizeof(F4ReadBit));
-		break;
-	case SIFC_FKB:
-		portFC.driver=FCEU_InitFKB();
-		break;
-	case SIFC_SUBORKB:
-		portFC.driver=FCEU_InitSuborKB();
-		break;
-	case SIFC_HYPERSHOT:
-		portFC.driver=FCEU_InitHS();
-		break;
-	case SIFC_MAHJONG:
-		portFC.driver=FCEU_InitMahjong();
-		break;
-	case SIFC_QUIZKING:
-		portFC.driver=FCEU_InitQuizKing();
-		break;
-	case SIFC_FTRAINERA:
-		portFC.driver=FCEU_InitFamilyTrainerA();
-		break;
-	case SIFC_FTRAINERB:
-		portFC.driver=FCEU_InitFamilyTrainerB();
-		break;
-	case SIFC_BWORLD:
-		portFC.driver=FCEU_InitBarcodeWorld();
-		break;
-	case SIFC_TOPRIDER:
-		portFC.driver=FCEU_InitTopRider();
-		break;
-	}
+static void SetInputStuffFC() {
+  switch(portFC.type) {
+  case SIFC_NONE:
+    portFC.driver=&DummyPortFC;
+    break;
+  case SIFC_ARKANOID:
+    portFC.driver=FCEU_InitArkanoidFC();
+    break;
+  case SIFC_SHADOW:
+    portFC.driver=FCEU_InitSpaceShadow();
+    break;
+  case SIFC_OEKAKIDS:
+    portFC.driver=FCEU_InitOekaKids();
+    break;
+  case SIFC_4PLAYER:
+    portFC.driver=&FAMI4C;
+    memset(&F4ReadBit,0,sizeof(F4ReadBit));
+    break;
+  case SIFC_FKB:
+    portFC.driver=FCEU_InitFKB();
+    break;
+  case SIFC_SUBORKB:
+    portFC.driver=FCEU_InitSuborKB();
+    break;
+  case SIFC_HYPERSHOT:
+    portFC.driver=FCEU_InitHS();
+    break;
+  case SIFC_MAHJONG:
+    portFC.driver=FCEU_InitMahjong();
+    break;
+  case SIFC_QUIZKING:
+    portFC.driver=FCEU_InitQuizKing();
+    break;
+  case SIFC_FTRAINERA:
+    portFC.driver=FCEU_InitFamilyTrainerA();
+    break;
+  case SIFC_FTRAINERB:
+    portFC.driver=FCEU_InitFamilyTrainerB();
+    break;
+  case SIFC_BWORLD:
+    portFC.driver=FCEU_InitBarcodeWorld();
+    break;
+  case SIFC_TOPRIDER:
+    portFC.driver=FCEU_InitTopRider();
+    break;
+  default:;
+  }
 }
 
 void FCEUI_SetInput(int port, ESI type, void *ptr, int attrib)
@@ -1164,10 +1162,9 @@ static void MovieSubtitleToggle(void)
 	else FCEU_DispMessage("Movie subtitles off",0);
 }
 
-static void UndoRedoSavestate(void)
-{
-	if (lastSavestateMade && (undoSS || redoSS))
-		SwapSaveState();
+static void UndoRedoSavestate(void) {
+  if (undoSS || redoSS)
+    SwapSaveState();
 }
 
 static void FCEUI_DoExit(void)

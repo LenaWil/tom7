@@ -191,12 +191,6 @@ static int getBank(int offs)
 	return addr != -1 ? addr / 0x4000 : -1;
 }
 
-static uint8 *GetNesPRGPointer(int A){
-	return PRGptr[0]+A;
-}
-
-
-
 static uint8 GetMem(uint16 A) {
 	if ((A >= 0x2000) && (A < 0x4000)) {
 		switch (A&7) {
@@ -437,7 +431,13 @@ static void breakpoint(uint8 *opcode, uint16 A, int size) {
 		//JSR (Includes return address - 1)
 		case 0x20: stackopstartaddr=stackopendaddr=X.S-1; stackop=WP_W; StackAddrBackup = X.S; StackNextIgnorePC=(opcode[1]|opcode[2]<<8); break;
 		//RTI (Includes processor status, and exact return address)
-		case 0x40: stackopstartaddr=X.S+1; stackopendaddr=X.S+3; stackop=WP_R; StackAddrBackup = X.S; StackNextIgnorePC=(GetMem(X.S+2|0x0100)|GetMem(X.S+3|0x0100)<<8); break;
+		case 0x40: 
+		  stackopstartaddr=X.S+1;
+		  stackopendaddr=X.S+3;
+		  stackop=WP_R;
+		  StackAddrBackup = X.S; 
+		  StackNextIgnorePC=(GetMem((X.S+2)|0x0100)|GetMem((X.S+3)|0x0100)<<8);
+		  break;
 		//RTS (Includes return address - 1)
 		case 0x60: stackopstartaddr=X.S+1; stackopendaddr=X.S+2; stackop=WP_R; StackAddrBackup = X.S; StackNextIgnorePC=(GetMem(stackopstartaddr|0x0100)|GetMem(stackopendaddr|0x0100)<<8)+1; break;
 	}

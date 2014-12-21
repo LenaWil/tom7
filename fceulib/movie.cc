@@ -618,8 +618,7 @@ bool LoadFM2(MovieData& movieData, EMUFILE* fp, int size, bool stopAfterHeader)
 		} else if (isnewline && movieData.loadFrameCount == movieData.records.size())
 			// exit prematurely if loaded the specified amound of records
 			return true;
-		switch(state)
-		{
+		switch(state) {
 		case NEWLINE:
 			if(isnewline) goto done;
 			if(iswhitespace) goto done;
@@ -662,6 +661,7 @@ bool LoadFM2(MovieData& movieData, EMUFILE* fp, int size, bool stopAfterHeader)
 			state = VALUE;
 			if(isnewline) goto commit;
 			value += c;
+		default:;
 		}
 		goto done;
 
@@ -910,43 +910,39 @@ static void openRecordingMovie(const char* fname)
 
 //begin recording a new movie
 //TODO - BUG - the record-from-another-savestate doesnt work.
-void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::string author)
-{
-	if(!FCEU_IsValidUI(FCEUI_RECORDMOVIE))
-		return;
+void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::string author) {
+  if(!FCEU_IsValidUI(FCEUI_RECORDMOVIE))
+    return;
 
-	assert(fname);
+  assert(fname);
 
-	FCEUI_StopMovie();
+  FCEUI_StopMovie();
 
-	openRecordingMovie(fname);
+  openRecordingMovie(fname);
 
-	currFrameCounter = 0;
-	LagCounterReset();
-	FCEUMOV_CreateCleanMovie();
-	if(!author.empty()) currMovieData.comments.push_back("author " + author);
+  currFrameCounter = 0;
+  LagCounterReset();
+  FCEUMOV_CreateCleanMovie();
+  if(!author.empty()) currMovieData.comments.push_back("author " + author);
 
-	if(flags & MOVIE_FLAG_FROM_POWERON)
-	{
-		movieFromPoweron = true;
-		poweron(true);
-	}
-	else
-	{
-		movieFromPoweron = false;
-		MovieData::dumpSavestateTo(&currMovieData.savestate,Z_BEST_COMPRESSION);
-	}
+  if(flags & MOVIE_FLAG_FROM_POWERON) {
+    movieFromPoweron = true;
+    poweron(true);
+  } else {
+    movieFromPoweron = false;
+    MovieData::dumpSavestateTo(&currMovieData.savestate,Z_BEST_COMPRESSION);
+  }
 
-	FCEUMOV_ClearCommands();
+  FCEUMOV_ClearCommands();
 
-	//we are going to go ahead and dump the header. from now on we will only be appending frames
-	currMovieData.dump(osRecordingMovie, false);
+  //we are going to go ahead and dump the header. from now on we will only be appending frames
+  currMovieData.dump(osRecordingMovie, false);
 
-	movieMode = MOVIEMODE_RECORD;
-	movie_readonly = false;
-	currRerecordCount = 0;
+  movieMode = MOVIEMODE_RECORD;
+  movie_readonly = false;
+  currRerecordCount = 0;
 
-	FCEU_DispMessage("Movie recording started.",0);
+  FCEU_DispMessage("Movie recording started.",0);
 }
 
 
@@ -1087,12 +1083,15 @@ void FCEU_DrawMovies(uint8 *XBuf)
 		char counterbuf[32] = {0};
 		int color = 0x20;
 		if(movieMode == MOVIEMODE_PLAY)
-			sprintf(counterbuf,"%d/%d",currFrameCounter,currMovieData.records.size());
+			sprintf(counterbuf,"%d/%d",
+				currFrameCounter,
+				(int)currMovieData.records.size());
 		else if(movieMode == MOVIEMODE_RECORD)
 			sprintf(counterbuf,"%d",currFrameCounter);
 		else if (movieMode == MOVIEMODE_FINISHED)
 		{
-			sprintf(counterbuf,"%d/%d (finished)",currFrameCounter,currMovieData.records.size());
+			sprintf(counterbuf,"%d/%d (finished)",
+				currFrameCounter,(int)currMovieData.records.size());
 			color = 0x17; //Show red to get attention
 		} else if(movieMode == MOVIEMODE_TASEDITOR)
 		{

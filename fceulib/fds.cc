@@ -87,29 +87,24 @@ static uint8 SelectDisk,InDisk;
 
 #define DC_INC    1
 
-void FDSGI(GI h)
-{
-	switch(h)
-	{
-	case GI_CLOSE: FDSClose();break;
-	case GI_POWER: FDSInit();break;
-	}
+void FDSGI(GI h) {
+  switch(h) {
+  case GI_CLOSE: FDSClose();break;
+  case GI_POWER: FDSInit();break;
+  default:;
+  }
 }
 
-static void FDSStateRestore(int version)
-{
-	int x;
+static void FDSStateRestore(int version) {
+  setmirror(((FDSRegs[5]&8)>>3)^1);
 
-	setmirror(((FDSRegs[5]&8)>>3)^1);
-
-	if(version >= 9810)
-		for(x=0;x<TotalSides;x++)
-		{
-			int b;
-			for(b=0; b<65500; b++)
-				diskdata[x][b] ^= diskdatao[x][b];
-		}
-
+  if(version >= 9810) {
+    for(int x=0;x<TotalSides;x++) {
+      for(int b=0; b<65500; b++) {
+	diskdata[x][b] ^= diskdatao[x][b];
+      }
+    }
+  }
 }
 
 void FDSSound();

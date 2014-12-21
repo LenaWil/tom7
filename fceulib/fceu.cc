@@ -577,7 +577,7 @@ void AutoFire(void)
 void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int skip)
 {
   //skip initiates frame skip if 1, or frame skip and sound skip if 2
-  int r,ssize;
+  int ssize = 0;
 
   JustFrameAdvanced = false;
 
@@ -588,9 +588,9 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
       frameAdvanceDelay++;
   }
 
-  if(EmulationPaused&2)
+  if (EmulationPaused & 2) {
     EmulationPaused &= ~1;        // clear paused flag temporarily (frame advance)
-  else if((EmulationPaused&1)) {
+  } else if (EmulationPaused & 1) {
     if (pXBuf != NULL) {
       memcpy(XBuf, XBackBuf, 256*256);
 
@@ -613,7 +613,7 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
 
   // fprintf(stderr, "ppu loop..\n");
 
-  r = FCEUPPU_Loop(skip);
+  (void)FCEUPPU_Loop(skip);
 
   // fprintf(stderr, "sound thing loop skip=%d..\n", skip);
 
@@ -629,40 +629,36 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
     *pXBuf=skip?0:XBuf;
   }
 
-  if (skip == 2) //If skip = 2, then bypass sound
-    {
-      *SoundBuf=0;
-      *SoundBufSize=0;
-    }
-  else
-    {
-      *SoundBuf=WaveFinal;
-      *SoundBufSize=ssize;
-    }
+  if (skip == 2) {
+    //If skip = 2, then bypass sound
+    *SoundBuf=0;
+    *SoundBufSize=0;
+  } else {
+    *SoundBuf=WaveFinal;
+    *SoundBufSize=ssize;
+  }
 
-  if (EmulationPaused&2 && ( !frameAdvanceLagSkip || !lagFlag) )
+  if (EmulationPaused&2 && ( !frameAdvanceLagSkip || !lagFlag) ) {
     //Lots of conditions here.  EmulationPaused&2 must be true.  In addition frameAdvanceLagSkip or lagFlag must be false
-    {
-      EmulationPaused = 1;		   // restore paused flag
-      JustFrameAdvanced = true;
-    }
 
-  if (lagFlag)
-    {
-      lagCounter++;
-      justLagged = true;
-    }
+    EmulationPaused = 1;		   // restore paused flag
+    JustFrameAdvanced = true;
+  }
+
+  if (lagFlag) {
+    lagCounter++;
+    justLagged = true;
+  }
   else justLagged = false;
 
   // fprintf(stderr, "ppu end..\n");
 }
 
-void FCEUI_CloseGame(void)
-{
-	if(!FCEU_IsValidUI(FCEUI_CLOSEGAME))
-		return;
+void FCEUI_CloseGame(void) {
+  if(!FCEU_IsValidUI(FCEUI_CLOSEGAME))
+    return;
 
-	FCEU_CloseGame();
+  FCEU_CloseGame();
 }
 
 void ResetNES(void) {
@@ -1038,71 +1034,70 @@ public:
 };
 
 void FCEUXGameInterface(GI command) {
-	switch(command) {
-		case GI_POWER:
-			cart->Power();
-	}
+  switch(command) {
+  case GI_POWER:
+    cart->Power();
+  default:;
+  }
 }
 
 
 
-bool FCEUXLoad(const char *name, FCEUFILE *fp)
-{
-	//read ines header
-	iNES_HEADER head;
-	if(FCEU_fread(&head,1,16,fp)!=16)
-		return false;
+bool FCEUXLoad(const char *name, FCEUFILE *fp) {
+  //read ines header
+  iNES_HEADER head;
+  if(FCEU_fread(&head,1,16,fp)!=16)
+    return false;
 
-	//validate header
-	if(memcmp(&head,"NES\x1a",4))
-		return 0;
+  //validate header
+  if(memcmp(&head,"NES\x1a",4))
+    return 0;
 
-	int mapper = (head.ROM_type>>4);
-	mapper |= (head.ROM_type2&0xF0);
+  int mapper = (head.ROM_type>>4);
+  mapper |= (head.ROM_type2&0xF0);
 
-	//choose what kind of cart to use.
-	cart = (FCEUXCart*)new NROM();
+  //choose what kind of cart to use.
+  cart = (FCEUXCart*)new NROM();
 
-	//fceu ines loading code uses 256 here when the romsize is 0.
-	cart->prgPages = head.ROM_size;
-	if(cart->prgPages == 0) {
-		printf("FCEUX: received zero prgpages\n");
-		cart->prgPages = 256;
-	}
+  //fceu ines loading code uses 256 here when the romsize is 0.
+  cart->prgPages = head.ROM_size;
+  if(cart->prgPages == 0) {
+    printf("FCEUX: received zero prgpages\n");
+    cart->prgPages = 256;
+  }
 
-	cart->chrPages = head.VROM_size;
+  cart->chrPages = head.VROM_size;
 
-	cart->mirroring = (head.ROM_type&1);
-	if(head.ROM_type&8) cart->mirroring=2;
+  cart->mirroring = (head.ROM_type&1);
+  if(head.ROM_type&8) cart->mirroring=2;
 
-	//skip trainer
-	bool hasTrainer = (head.ROM_type&4)!=0;
-	if(hasTrainer) {
-		FCEU_fseek(fp,512,SEEK_CUR);
-	}
+  //skip trainer
+  bool hasTrainer = (head.ROM_type&4)!=0;
+  if(hasTrainer) {
+    FCEU_fseek(fp,512,SEEK_CUR);
+  }
 
-	//load data
-	cart->prgSize = cart->prgPages*16*1024;
-	cart->chrSize = cart->chrPages*8*1024;
-	cart->PRG = new char[cart->prgSize];
-	cart->CHR = new char[cart->chrSize];
-	FCEU_fread(cart->PRG,1,cart->prgSize,fp);
-	FCEU_fread(cart->CHR,1,cart->chrSize,fp);
+  //load data
+  cart->prgSize = cart->prgPages*16*1024;
+  cart->chrSize = cart->chrPages*8*1024;
+  cart->PRG = new char[cart->prgSize];
+  cart->CHR = new char[cart->chrSize];
+  FCEU_fread(cart->PRG,1,cart->prgSize,fp);
+  FCEU_fread(cart->CHR,1,cart->chrSize,fp);
 
-	//setup the emulator
-	GameInterface=FCEUXGameInterface;
-	ResetCartMapping();
-	SetupCartPRGMapping(0,(uint8*)cart->PRG,cart->prgSize,0);
-	SetupCartCHRMapping(0,(uint8*)cart->CHR,cart->chrSize,0);
+  //setup the emulator
+  GameInterface=FCEUXGameInterface;
+  ResetCartMapping();
+  SetupCartPRGMapping(0,(uint8*)cart->PRG,cart->prgSize,0);
+  SetupCartCHRMapping(0,(uint8*)cart->CHR,cart->chrSize,0);
 
-	return true;
+  return true;
 }
-
 
 uint8 FCEU_ReadRomByte(uint32 i) {
-	extern iNES_HEADER head;
-	if(i < 16) return *((unsigned char *)&head+i);
-	if(i < 16+PRGsize[0])return PRGptr[0][i-16];
-	if(i < 16+PRGsize[0]+CHRsize[0])return CHRptr[0][i-16-PRGsize[0]];
-	return 0;
+  extern iNES_HEADER head;
+  if(i < 16) return *((unsigned char *)&head+i);
+  if(i < 16+PRGsize[0])return PRGptr[0][i-16];
+  if(i < 16+PRGsize[0]+CHRsize[0])return CHRptr[0][i-16-PRGsize[0]];
+  return 0;
 }
