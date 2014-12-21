@@ -47,7 +47,10 @@ static INLINE void WrMem(unsigned int A, uint8 V) {
 }
 
 static INLINE uint8 RdRAM(unsigned int A) {
-  //bbit edited: this was changed so cheat substituion would work
+  // PERF: We should read directly from ram in this case (and
+  // see what other ones are possible); cheats at this level
+  // are not important. -tom7
+  //bbit edited: this was changed so cheat substitution would work
   return(_DB=ARead[A](A));
   // return(_DB=RAM[A]);
 }
@@ -75,7 +78,48 @@ void X6502_DMW(uint32 A, uint8 V) {
 
 #define POP() RdRAM(0x100+(++_S))
 
-static uint8 ZNTable[256];
+// I think this stands for "zero and negative" table, which has the
+// zero and negative cpu flag set for each possible byte. The
+// information content is pretty low, and we might consider replacing
+// the ZN/ZNT macros with something that computes from the byte itself
+// (for example, the N flag is actually 0x80 which is the same bit as
+// what's tested to populate the table, so flags |= (b & 0x80)).
+// Anyway, I inlined the values rather than establishing them when the
+// emulator starts up, mostly for thread safety sake.
+static constexpr uint8 ZNTable[256] = {
+  Z_FLAG, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+  N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG, N_FLAG,
+};
 /* Some of these operations will only make sense if you know what the flag
    constants are. */
 
@@ -312,8 +356,7 @@ static uint8 ZNTable[256];
 #define ST_IX(r) {unsigned int A; GetIX(A); WrMem(A,r); break; }
 #define ST_IY(r) {unsigned int A; GetIYWR(A); WrMem(A,r); break; }
 
-static uint8 CycTable[256] =
-{
+static constexpr uint8 CycTable[256] = {
 /*0x00*/ 7,6,2,8,3,3,5,5,3,2,2,2,4,4,6,6,
 /*0x10*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
 /*0x20*/ 6,6,2,8,3,3,5,5,4,2,2,2,4,4,6,6,
@@ -332,269 +375,257 @@ static uint8 CycTable[256] =
 /*0xF0*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
 };
 
-void X6502_IRQBegin(int w)
-{
- _IRQlow|=w;
+void X6502_IRQBegin(int w) {
+  _IRQlow |= w;
 }
 
-void X6502_IRQEnd(int w)
-{
- _IRQlow&=~w;
+void X6502_IRQEnd(int w) {
+  _IRQlow &= ~w;
 }
 
-void TriggerNMI(void)
-{
- _IRQlow|=FCEU_IQNMI;
+void TriggerNMI(void) {
+  _IRQlow |= FCEU_IQNMI;
 }
 
-void TriggerNMI2(void)
-{
- _IRQlow|=FCEU_IQNMI2;
+void TriggerNMI2(void) {
+  _IRQlow |= FCEU_IQNMI2;
 }
 
-void X6502_Reset(void)
-{
- _IRQlow=FCEU_IQRESET;
+void X6502_Reset(void) {
+  _IRQlow = FCEU_IQRESET;
 }
+
 /**
 * Initializes the 6502 CPU
 **/
-void X6502_Init(void)
-{
-	unsigned int i;
+void X6502_Init(void) {
+  // Initialize the CPU structure
+  memset((void *)&X,0,sizeof(X));
 
-	// Initialize the CPU structure
-	memset((void *)&X,0,sizeof(X));
-
-	for(i = 0; i < sizeof(ZNTable); i++)
-	{
-		if(!i)
-		{
-			ZNTable[i] = Z_FLAG;
-		}
-		else if ( i & 0x80 )
-		{
-			ZNTable[i] = N_FLAG;
-		}
-		else
-		{
-			ZNTable[i] = 0;
-		}
-	}
+  // Now initialized statically. -tom7
+#if 0
+  for(int i = 0; i < sizeof(ZNTable); i++) {
+    if(!i) {
+      ZNTable[i] = Z_FLAG;
+    } else if ( i & 0x80 ) {
+      ZNTable[i] = N_FLAG;
+    } else {
+      ZNTable[i] = 0;
+    }
+  }
+#endif
 }
 
-void X6502_Power(void)
-{
- _count=_tcount=_IRQlow=_PC=_A=_X=_Y=_P=_PI=_DB=_jammed=0;
- _S=0xFD;
- timestamp=0;
- X6502_Reset();
+void X6502_Power(void) {
+  _count=_tcount=_IRQlow=_PC=_A=_X=_Y=_P=_PI=_DB=_jammed=0;
+  _S=0xFD;
+  timestamp=0;
+  X6502_Reset();
 }
 
 void X6502_Run(int32 cycles) {
   if(PAL) {
-   cycles*=15;    // 15*4=60
+    cycles *= 15;    // 15*4=60
   } else {
-   cycles*=16;    // 16*4=64
+    cycles *= 16;    // 16*4=64
   }
 
-  _count+=cycles;
+  _count += cycles;
   extern int test; test++;
-  while(_count>0) {
-   int32 temp;
-   uint8 b1;
+  while (_count > 0) {
+    int32 temp;
 
-   if(_IRQlow) {
-    if(_IRQlow&FCEU_IQRESET) {
-     _PC=RdMem(0xFFFC);
-     _PC|=RdMem(0xFFFD)<<8;
-     _jammed=0;
-     _PI=_P=I_FLAG;
-     _IRQlow&=~FCEU_IQRESET;
-    } else if(_IRQlow&FCEU_IQNMI2) {
-     _IRQlow&=~FCEU_IQNMI2;
-     _IRQlow|=FCEU_IQNMI;
-    } else if(_IRQlow&FCEU_IQNMI) {
-     if(!_jammed) {
-      ADDCYC(7);
+    if (_IRQlow) {
+      if (_IRQlow&FCEU_IQRESET) {
+	_PC=RdMem(0xFFFC);
+	_PC|=RdMem(0xFFFD)<<8;
+	_jammed=0;
+	_PI=_P=I_FLAG;
+	_IRQlow&=~FCEU_IQRESET;
+      } else if (_IRQlow&FCEU_IQNMI2) {
+	_IRQlow&=~FCEU_IQNMI2;
+	_IRQlow|=FCEU_IQNMI;
+      } else if (_IRQlow&FCEU_IQNMI) {
+	if (!_jammed) {
+	  ADDCYC(7);
+	  PUSH(_PC>>8);
+	  PUSH(_PC);
+	  PUSH((_P&~B_FLAG)|(U_FLAG));
+	  _P|=I_FLAG;
+	  _PC=RdMem(0xFFFA);
+	  _PC|=RdMem(0xFFFB)<<8;
+	  _IRQlow&=~FCEU_IQNMI;
+	}
+      } else {
+	if (!(_PI&I_FLAG) && !_jammed) {
+	  ADDCYC(7);
+	  PUSH(_PC>>8);
+	  PUSH(_PC);
+	  PUSH((_P&~B_FLAG)|(U_FLAG));
+	  _P|=I_FLAG;
+	  _PC=RdMem(0xFFFE);
+	  _PC|=RdMem(0xFFFF)<<8;
+	}
+      }
+      _IRQlow&=~(FCEU_IQTEMP);
+      if (_count<=0) {
+	_PI=_P;
+	return;
+	// Should increase accuracy without a
+	// major speed hit.
+      }
+    }
+
+    _PI=_P;
+    const uint8 b1 = RdMem(_PC);
+
+    ADDCYC(CycTable[b1]);
+
+    temp=_tcount;
+    _tcount=0;
+    if (MapIRQHook) MapIRQHook(temp);
+    FCEU_SoundCPUHook(temp);
+    _PC++;
+    switch (b1) {
+    case 0x00:  /* BRK */
+      _PC++;
       PUSH(_PC>>8);
       PUSH(_PC);
-      PUSH((_P&~B_FLAG)|(U_FLAG));
+      PUSH(_P|U_FLAG|B_FLAG);
       _P|=I_FLAG;
-      _PC=RdMem(0xFFFA);
-      _PC|=RdMem(0xFFFB)<<8;
-      _IRQlow&=~FCEU_IQNMI;
-     }
-    } else {
-     if(!(_PI&I_FLAG) && !_jammed) {
-      ADDCYC(7);
-      PUSH(_PC>>8);
-      PUSH(_PC);
-      PUSH((_P&~B_FLAG)|(U_FLAG));
-      _P|=I_FLAG;
+      _PI|=I_FLAG;
       _PC=RdMem(0xFFFE);
       _PC|=RdMem(0xFFFF)<<8;
-     }
-    }
-    _IRQlow&=~(FCEU_IQTEMP);
-    if(_count<=0) {
-     _PI=_P;
-     return;
-     // Should increase accuracy without a
-     // major speed hit.
-    }
-   }
-
-   _PI=_P;
-   b1=RdMem(_PC);
-
-   ADDCYC(CycTable[b1]);
-
-   temp=_tcount;
-   _tcount=0;
-   if(MapIRQHook) MapIRQHook(temp);
-   FCEU_SoundCPUHook(temp);
-   _PC++;
-   switch(b1) {
-    case 0x00:  /* BRK */
-		_PC++;
-		PUSH(_PC>>8);
-		PUSH(_PC);
-		PUSH(_P|U_FLAG|B_FLAG);
-		_P|=I_FLAG;
-		_PI|=I_FLAG;
-		_PC=RdMem(0xFFFE);
-		_PC|=RdMem(0xFFFF)<<8;
-		break;
+      break;
 
     case 0x40:  /* RTI */
-		_P=POP();
-		/* _PI=_P; This is probably incorrect, so it's commented out. */
-		_PI = _P;
-		_PC=POP();
-		_PC|=POP()<<8;
-		break;
+      _P=POP();
+      /* _PI=_P; This is probably incorrect, so it's commented out. */
+      _PI = _P;
+      _PC=POP();
+      _PC|=POP()<<8;
+      break;
 
     case 0x60:  /* RTS */
-		_PC=POP();
-		_PC|=POP()<<8;
-		_PC++;
-		break;
+      _PC=POP();
+      _PC|=POP()<<8;
+      _PC++;
+      break;
 
     case 0x48: /* PHA */
-	       PUSH(_A);
-	       break;
+      PUSH(_A);
+      break;
     case 0x08: /* PHP */
-	       PUSH(_P|U_FLAG|B_FLAG);
-	       break;
+      PUSH(_P|U_FLAG|B_FLAG);
+      break;
     case 0x68: /* PLA */
-	       _A=POP();
-	       X_ZN(_A);
-	       break;
+      _A=POP();
+      X_ZN(_A);
+      break;
     case 0x28: /* PLP */
-	       _P=POP();
-	       break;
+      _P=POP();
+      break;
     case 0x4C:
-	      {
-	       uint16 ptmp=_PC;
-	       unsigned int npc;
+      {
+	uint16 ptmp=_PC;
+	unsigned int npc;
 
-	       npc=RdMem(ptmp);
-	       ptmp++;
-	       npc|=RdMem(ptmp)<<8;
-	       _PC=npc;
-	      }
-	      break; /* JMP ABSOLUTE */
-    case 0x6C: 
-	       {
-		uint32 tmp;
-		GetAB(tmp);
-		_PC=RdMem(tmp);
-		_PC|=RdMem( ((tmp+1)&0x00FF) | (tmp&0xFF00))<<8;
-	       }
-	       break;
+	npc=RdMem(ptmp);
+	ptmp++;
+	npc|=RdMem(ptmp)<<8;
+	_PC=npc;
+      }
+      break; /* JMP ABSOLUTE */
+    case 0x6C:
+      {
+	uint32 tmp;
+	GetAB(tmp);
+	_PC=RdMem(tmp);
+	_PC|=RdMem( ((tmp+1)&0x00FF) | (tmp&0xFF00))<<8;
+      }
+      break;
     case 0x20: /* JSR */
-	       {
-		uint8 npc;
-		npc=RdMem(_PC);
-		_PC++;
-		PUSH(_PC>>8);
-		PUSH(_PC);
-		_PC=RdMem(_PC)<<8;
-		_PC|=npc;
-	       }
-	       break;
+      {
+	uint8 npc;
+	npc=RdMem(_PC);
+	_PC++;
+	PUSH(_PC>>8);
+	PUSH(_PC);
+	_PC=RdMem(_PC)<<8;
+	_PC|=npc;
+      }
+      break;
 
     case 0xAA: /* TAX */
-	       _X=_A;
-	       X_ZN(_A);
-	       break;
+      _X=_A;
+      X_ZN(_A);
+      break;
 
     case 0x8A: /* TXA */
-	       _A=_X;
-	       X_ZN(_A);
-	       break;
+      _A=_X;
+      X_ZN(_A);
+      break;
 
     case 0xA8: /* TAY */
-	       _Y=_A;
-	       X_ZN(_A);
-	       break;
+      _Y=_A;
+      X_ZN(_A);
+      break;
     case 0x98: /* TYA */
-	       _A=_Y;
-	       X_ZN(_A);
-	       break;
+      _A=_Y;
+      X_ZN(_A);
+      break;
 
     case 0xBA: /* TSX */
-	       _X=_S;
-	       X_ZN(_X);
-	       break;
+      _X=_S;
+      X_ZN(_X);
+      break;
     case 0x9A: /* TXS */
-	       _S=_X;
-	       break;
+      _S=_X;
+      break;
 
     case 0xCA: /* DEX */
-	       _X--;
-	       X_ZN(_X);
-	       break;
+      _X--;
+      X_ZN(_X);
+      break;
     case 0x88: /* DEY */
-	       _Y--;
-	       X_ZN(_Y);
-	       break;
+      _Y--;
+      X_ZN(_Y);
+      break;
 
     case 0xE8: /* INX */
-	       _X++;
-	       X_ZN(_X);
-	       break;
+      _X++;
+      X_ZN(_X);
+      break;
     case 0xC8: /* INY */
-	       _Y++;
-	       X_ZN(_Y);
-	       break;
+      _Y++;
+      X_ZN(_Y);
+      break;
 
     case 0x18: /* CLC */
-	       _P&=~C_FLAG;
-	       break;
+      _P&=~C_FLAG;
+      break;
     case 0xD8: /* CLD */
-	       _P&=~D_FLAG;
-	       break;
+      _P&=~D_FLAG;
+      break;
     case 0x58: /* CLI */
-	       _P&=~I_FLAG;
-	       break;
+      _P&=~I_FLAG;
+      break;
     case 0xB8: /* CLV */
-	       _P&=~V_FLAG;
-	       break;
+      _P&=~V_FLAG;
+      break;
 
     case 0x38: /* SEC */
-	       _P|=C_FLAG;
-	       break;
+      _P|=C_FLAG;
+      break;
     case 0xF8: /* SED */
-	       _P|=D_FLAG;
-	       break;
+      _P|=D_FLAG;
+      break;
     case 0x78: /* SEI */
-	       _P|=I_FLAG;
-	       break;
+      _P|=I_FLAG;
+      break;
 
     case 0xEA: /* NOP */
-	       break;
+      break;
 
     case 0x0A: RMW_A(ASL);
     case 0x06: RMW_ZP(ASL);
@@ -733,62 +764,62 @@ void X6502_Run(int32 cycles) {
     case 0x94: ST_ZPX(_Y);
     case 0x8C: ST_AB(_Y);
 
-    /* BCC */
+      /* BCC */
     case 0x90: JR(!(_P&C_FLAG)); break;
 
-    /* BCS */
+      /* BCS */
     case 0xB0: JR(_P&C_FLAG); break;
 
-    /* BEQ */
+      /* BEQ */
     case 0xF0: JR(_P&Z_FLAG); break;
 
-    /* BNE */
+      /* BNE */
     case 0xD0: JR(!(_P&Z_FLAG)); break;
 
-    /* BMI */
+      /* BMI */
     case 0x30: JR(_P&N_FLAG); break;
 
-    /* BPL */
+      /* BPL */
     case 0x10: JR(!(_P&N_FLAG)); break;
 
-    /* BVC */
+      /* BVC */
     case 0x50: JR(!(_P&V_FLAG)); break;
 
-    /* BVS */
+      /* BVS */
     case 0x70: JR(_P&V_FLAG); break;
 
-    //default: printf("Bad %02x at $%04x\n",b1,X.PC);break;
-    //ifdef moo
-    /* Here comes the undocumented instructions block.  Note that this implementation
-       may be "wrong".  If so, please tell me.
-    */
+      //default: printf("Bad %02x at $%04x\n",b1,X.PC);break;
+      //ifdef moo
+      /* Here comes the undocumented instructions block.  Note that this implementation
+	 may be "wrong".  If so, please tell me.
+      */
 
-    /* AAC */
+      /* AAC */
     case 0x2B:
     case 0x0B: LD_IM(AND;_P&=~C_FLAG;_P|=_A>>7);
 
-    /* AAX */
+      /* AAX */
     case 0x87: ST_ZP(_A&_X);
     case 0x97: ST_ZPY(_A&_X);
     case 0x8F: ST_AB(_A&_X);
     case 0x83: ST_IX(_A&_X);
 
-    /* ARR - ARGH, MATEY! */
-    case 0x6B: { 
-		 uint8 arrtmp; 
-		 LD_IM(AND;_P&=~V_FLAG;_P|=(_A^(_A>>1))&0x40;arrtmp=_A>>7;_A>>=1;_A|=(_P&C_FLAG)<<7;_P&=~C_FLAG;_P|=arrtmp;X_ZN(_A));
-	       }
-    /* ASR */
+      /* ARR - ARGH, MATEY! */
+    case 0x6B: {
+      uint8 arrtmp;
+      LD_IM(AND;_P&=~V_FLAG;_P|=(_A^(_A>>1))&0x40;arrtmp=_A>>7;_A>>=1;_A|=(_P&C_FLAG)<<7;_P&=~C_FLAG;_P|=arrtmp;X_ZN(_A));
+    }
+      /* ASR */
     case 0x4B: LD_IM(AND;LSRA);
 
-    /* ATX(OAL) Is this(OR with $EE) correct? Blargg did some test
-       and found the constant to be OR with is $FF for NES */
+      /* ATX(OAL) Is this(OR with $EE) correct? Blargg did some test
+	 and found the constant to be OR with is $FF for NES */
     case 0xAB: LD_IM(_A|=0xFF;AND;_X=_A);
 
-    /* AXS */ 
+      /* AXS */
     case 0xCB: LD_IM(AXS);
 
-    /* DCP */
+      /* DCP */
     case 0xC7: RMW_ZP(DEC;CMP);
     case 0xD7: RMW_ZPX(DEC;CMP);
     case 0xCF: RMW_AB(DEC;CMP);
@@ -797,7 +828,7 @@ void X6502_Run(int32 cycles) {
     case 0xC3: RMW_IX(DEC;CMP);
     case 0xD3: RMW_IY(DEC;CMP);
 
-    /* ISB */
+      /* ISB */
     case 0xE7: RMW_ZP(INC;SBC);
     case 0xF7: RMW_ZPX(INC;SBC);
     case 0xEF: RMW_AB(INC;SBC);
@@ -806,25 +837,25 @@ void X6502_Run(int32 cycles) {
     case 0xE3: RMW_IX(INC;SBC);
     case 0xF3: RMW_IY(INC;SBC);
 
-    /* DOP */
+      /* DOP */
 
-    case 0x04: _PC++;break;
-    case 0x14: _PC++;break;
-    case 0x34: _PC++;break;
-    case 0x44: _PC++;break;
-    case 0x54: _PC++;break;
-    case 0x64: _PC++;break;
-    case 0x74: _PC++;break;
+    case 0x04: _PC++; break;
+    case 0x14: _PC++; break;
+    case 0x34: _PC++; break;
+    case 0x44: _PC++; break;
+    case 0x54: _PC++; break;
+    case 0x64: _PC++; break;
+    case 0x74: _PC++; break;
 
-    case 0x80: _PC++;break;
-    case 0x82: _PC++;break;
-    case 0x89: _PC++;break;
-    case 0xC2: _PC++;break;
-    case 0xD4: _PC++;break;
-    case 0xE2: _PC++;break;
-    case 0xF4: _PC++;break;
+    case 0x80: _PC++; break;
+    case 0x82: _PC++; break;
+    case 0x89: _PC++; break;
+    case 0xC2: _PC++; break;
+    case 0xD4: _PC++; break;
+    case 0xE2: _PC++; break;
+    case 0xF4: _PC++; break;
 
-    /* KIL */
+      /* KIL */
 
     case 0x02:
     case 0x12:
@@ -838,14 +869,14 @@ void X6502_Run(int32 cycles) {
     case 0xB2:
     case 0xD2:
     case 0xF2:ADDCYC(0xFF);
-	      _jammed=1;
-	      _PC--;
-	      break;
+      _jammed=1;
+      _PC--;
+      break;
 
-    /* LAR */
+      /* LAR */
     case 0xBB: RMW_ABY(_S&=x;_A=_X=_S;X_ZN(_X));
 
-    /* LAX */
+      /* LAX */
     case 0xA7: LD_ZP(LDA;LDX);
     case 0xB7: LD_ZPY(LDA;LDX);
     case 0xAF: LD_AB(LDA;LDX);
@@ -853,7 +884,7 @@ void X6502_Run(int32 cycles) {
     case 0xA3: LD_IX(LDA;LDX);
     case 0xB3: LD_IY(LDA;LDX);
 
-    /* NOP */
+      /* NOP */
     case 0x1A:
     case 0x3A:
     case 0x5A:
@@ -861,7 +892,7 @@ void X6502_Run(int32 cycles) {
     case 0xDA:
     case 0xFA: break;
 
-    /* RLA */
+      /* RLA */
     case 0x27: RMW_ZP(ROL;AND);
     case 0x37: RMW_ZPX(ROL;AND);
     case 0x2F: RMW_AB(ROL;AND);
@@ -870,7 +901,7 @@ void X6502_Run(int32 cycles) {
     case 0x23: RMW_IX(ROL;AND);
     case 0x33: RMW_IY(ROL;AND);
 
-    /* RRA */
+      /* RRA */
     case 0x67: RMW_ZP(ROR;ADC);
     case 0x77: RMW_ZPX(ROR;ADC);
     case 0x6F: RMW_AB(ROR;ADC);
@@ -879,7 +910,7 @@ void X6502_Run(int32 cycles) {
     case 0x63: RMW_IX(ROR;ADC);
     case 0x73: RMW_IY(ROR;ADC);
 
-    /* SLO */
+      /* SLO */
     case 0x07: RMW_ZP(ASL;ORA);
     case 0x17: RMW_ZPX(ASL;ORA);
     case 0x0F: RMW_AB(ASL;ORA);
@@ -888,7 +919,7 @@ void X6502_Run(int32 cycles) {
     case 0x03: RMW_IX(ASL;ORA);
     case 0x13: RMW_IY(ASL;ORA);
 
-    /* SRE */
+      /* SRE */
     case 0x47: RMW_ZP(LSR;EOR);
     case 0x57: RMW_ZPX(LSR;EOR);
     case 0x4F: RMW_AB(LSR;EOR);
@@ -897,109 +928,54 @@ void X6502_Run(int32 cycles) {
     case 0x43: RMW_IX(LSR;EOR);
     case 0x53: RMW_IY(LSR;EOR);
 
-    /* AXA - SHA */
+      /* AXA - SHA */
     case 0x93: ST_IY(_A&_X&(((A-_Y)>>8)+1));
     case 0x9F: ST_ABY(_A&_X&(((A-_Y)>>8)+1));
 
-    /* SYA */
+      /* SYA */
     case 0x9C: ST_ABX(_Y&(((A-_X)>>8)+1));
 
-    /* SXA */
+      /* SXA */
     case 0x9E: ST_ABY(_X&(((A-_Y)>>8)+1));
 
-    /* XAS */
+      /* XAS */
     case 0x9B: _S=_A&_X;ST_ABY(_S& (((A-_Y)>>8)+1) );
 
-    /* TOP */
+      /* TOP */
     case 0x0C: LD_AB(;);
-    case 0x1C: 
-    case 0x3C: 
-    case 0x5C: 
-    case 0x7C: 
-    case 0xDC: 
+    case 0x1C:
+    case 0x3C:
+    case 0x5C:
+    case 0x7C:
+    case 0xDC:
     case 0xFC: LD_ABX(;);
 
-    /* XAA - BIG QUESTION MARK HERE */
+      /* XAA - BIG QUESTION MARK HERE */
     case 0x8B: _A|=0xEE; _A&=_X; LD_IM(AND);
-    //endif
+      //endif
 
-   }
+    }
   }
 }
 
 //--------------------------
 //---Called from debuggers
-void FCEUI_NMI(void)
-{
- _IRQlow|=FCEU_IQNMI;
+void FCEUI_NMI(void) {
+  _IRQlow |= FCEU_IQNMI;
 }
 
-void FCEUI_IRQ(void)
-{
- _IRQlow|=FCEU_IQTEMP;
+void FCEUI_IRQ(void) {
+  _IRQlow |= FCEU_IQTEMP;
 }
 
-void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi)
-{
- fceuindbg=1;
+void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi) {
+  fceuindbg=1;
 
- *reset=RdMem(0xFFFC);
- *reset|=RdMem(0xFFFD)<<8;
- *nmi=RdMem(0xFFFA);
- *nmi|=RdMem(0xFFFB)<<8;
- *irq=RdMem(0xFFFE);
- *irq|=RdMem(0xFFFF)<<8;
- fceuindbg=0;
+  *reset=RdMem(0xFFFC);
+  *reset|=RdMem(0xFFFD)<<8;
+  *nmi=RdMem(0xFFFA);
+  *nmi|=RdMem(0xFFFB)<<8;
+  *irq=RdMem(0xFFFE);
+  *irq|=RdMem(0xFFFF)<<8;
+  fceuindbg=0;
 }
-
-//the opsize table is used to quickly grab the instruction sizes (in bytes)
-const uint8 opsize[256] = {
-/*0x00*/	1,2,0,0,0,2,2,0,1,2,1,0,0,3,3,0,
-/*0x10*/	2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,
-/*0x20*/	3,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,
-/*0x30*/	2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,
-/*0x40*/	1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,
-/*0x50*/	2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,
-/*0x60*/	1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,
-/*0x70*/	2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,
-/*0x80*/	0,2,0,0,2,2,2,0,1,0,1,0,3,3,3,0,
-/*0x90*/	2,2,0,0,2,2,2,0,1,3,1,0,0,3,0,0,
-/*0xA0*/	2,2,2,0,2,2,2,0,1,2,1,0,3,3,3,0,
-/*0xB0*/	2,2,0,0,2,2,2,0,1,3,1,0,3,3,3,0,
-/*0xC0*/	2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,
-/*0xD0*/	2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,
-/*0xE0*/	2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,
-/*0xF0*/	2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0
-};
-
-
-//the optype table is a quick way to grab the addressing mode for any 6502 opcode
-//
-//  0 = Implied\Accumulator\Immediate\Branch\NULL
-//  1 = (Indirect,X)
-//  2 = Zero Page
-//  3 = Absolute
-//  4 = (Indirect),Y
-//  5 = Zero Page,X
-//  6 = Absolute,Y
-//  7 = Absolute,X
-//  8 = Zero Page,Y
-//
-const uint8 optype[256] = {
-/*0x00*/	0,1,0,0,0,2,2,0,0,0,0,0,0,3,3,0,
-/*0x10*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0,
-/*0x20*/	0,1,0,0,2,2,2,0,0,0,0,0,3,3,3,0,
-/*0x30*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0,
-/*0x40*/	0,1,0,0,0,2,2,0,0,0,0,0,0,3,3,0,
-/*0x50*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0,
-/*0x60*/	0,1,0,0,0,2,2,0,0,0,0,0,3,3,3,0,
-/*0x70*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0,
-/*0x80*/	0,1,0,0,2,2,2,0,0,0,0,0,3,3,3,0,
-/*0x90*/	0,4,0,0,5,5,8,0,0,6,0,0,0,7,0,0,
-/*0xA0*/	0,1,0,0,2,2,2,0,0,0,0,0,3,3,3,0,
-/*0xB0*/	0,4,0,0,5,5,8,0,0,6,0,0,7,7,6,0,
-/*0xC0*/	0,1,0,0,2,2,2,0,0,0,0,0,3,3,3,0,
-/*0xD0*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0,
-/*0xE0*/	0,1,0,0,2,2,2,0,0,0,0,0,3,3,3,0,
-/*0xF0*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0
-};

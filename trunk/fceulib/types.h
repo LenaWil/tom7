@@ -25,7 +25,7 @@
 ///causes the code fragment argument to be compiled in if the build includes debugging
 #ifdef FCEUDEF_DEBUGGER
 #define DEBUG(X) X;
-#error Do not enable debugging for tasbot!
+#error Do not enable debugging for fceulib!
 #else
 #define DEBUG(X)
 #endif
@@ -134,7 +134,6 @@ typedef uint8 (*readfunc)(uint32 A);
 
 #ifndef CTASSERT
 #define CTASSERT(x) static_assert((x), #x);
-//  typedef char __assert ## y[(x) ? 1 : -1];
 #endif
 
 #include "utils/endian.h"
