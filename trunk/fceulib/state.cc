@@ -928,12 +928,6 @@ void SwapSaveState()
 	//Both files must exist
 	//--------------------------------------------------------------------------------------------
 
-	if (!lastSavestateMade)
-	{
-		FCEUI_DispMessage("Can't Undo",0);
-		FCEUI_printf("Undo savestate was attempted but unsuccessful because there was not a recently used savestate.\n");
-		return;		//If there is no last savestate, can't undo
-	}
 	string backup = GenerateBackupSaveStateFn(lastSavestateMade);	//Get filename of backup state
 	if (!CheckFileExists(backup.c_str()))
 	{
@@ -1030,14 +1024,12 @@ void LoadBackup()
 		FCEUI_DispMessage("Error: Could not load %s",0,filename.c_str());
 }
 
-void RedoLoadState()
-{
-	if (!redoLS) return;
-	if (lastLoadstateMade && redoLS)
-	{
-		FCEUSS_Load(lastLoadstateMade);
-		FCEUI_printf("Redoing %s\n",lastLoadstateMade);
-	}
-	redoLS = false;		//Flag that RedoLoadState can not be run again
-	undoLS = true;		//Flag that LoadBackup can be run again
+void RedoLoadState() {
+  if (!redoLS) return;
+  
+  FCEUSS_Load(lastLoadstateMade);
+  FCEUI_printf("Redoing %s\n",lastLoadstateMade);
+
+  redoLS = false;		//Flag that RedoLoadState can not be run again
+  undoLS = true;		//Flag that LoadBackup can be run again
 }

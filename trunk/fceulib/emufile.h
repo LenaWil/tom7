@@ -85,16 +85,16 @@ public:
 
         virtual void fwrite(const void *ptr, size_t bytes) = 0;
 
-        void write64le(u64* val);
-        void write64le(u64 val);
-        size_t read64le(u64* val);
-        u64 read64le();
-        void write32le(u32* val);
-        void write32le(s32* val) { write32le((u32*)val); }
-        void write32le(u32 val);
-        size_t read32le(u32* val);
+        void write64le(uint64* val);
+        void write64le(uint64 val);
+        size_t read64le(uint64* val);
+        uint64 read64le();
+        void write32le(uint32* val);
+        void write32le(s32* val) { write32le((uint32*)val); }
+        void write32le(uint32 val);
+        size_t read32le(uint32* val);
         size_t read32le(s32* val);
-        u32 read32le();
+        uint32 read32le();
         void write16le(u16* val);
         void write16le(s16* val) { write16le((u16*)val); }
         void write16le(u16 val);
@@ -126,7 +126,7 @@ protected:
         bool ownvec;
         s32 pos, len;
 
-        void reserve(u32 amt) {
+        void reserve(uint32 amt) {
                 if(vec->size() < amt)
                         vec->resize(amt);
         }
@@ -134,7 +134,7 @@ protected:
 public:
 
         EMUFILE_MEMORY(std::vector<u8> *underlying) : vec(underlying), ownvec(false), pos(0), len((s32)underlying->size()) { }
-        EMUFILE_MEMORY(u32 preallocate) : vec(new std::vector<u8>()), ownvec(true), pos(0), len(0) {
+        EMUFILE_MEMORY(uint32 preallocate) : vec(new std::vector<u8>()), ownvec(true), pos(0), len(0) {
                 vec->resize(preallocate);
                 len = preallocate;
         }
@@ -193,7 +193,7 @@ public:
                 //if(_fread(&temp,1) != 1)
                 //      return EOF;
                 //else return temp;
-                u32 remain = len-pos;
+                uint32 remain = len-pos;
                 if(remain<1) {
                         failbit = true;
                         return -1;
@@ -327,7 +327,7 @@ public:
         }
 
         virtual int ftell() {
-                return (u32)::ftell(fp);
+                return (uint32)::ftell(fp);
         }
 
         virtual int size() {

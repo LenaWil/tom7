@@ -14,7 +14,6 @@
 #include <math.h>
 
 #include "driver.h"
-#include "drivers/common/args.h"
 
 #include "fceu.h"
 #include "movie.h"

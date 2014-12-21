@@ -1602,7 +1602,11 @@ static void FetchSpriteData(void)
 					dst.x=spr->x;
 					dst.atr=spr->atr;
 
-					*(uint32 *)&SPRBUF[ns<<2]=*(uint32 *)&dst;
+					{
+					  uint32 *dest32 = (uint32 *)&dst;
+					  uint32 *sprbuf32 = (uint32 *)&SPRBUF[ns<<2];
+					  *sprbuf32=*dest32;
+					}
 				}
 
 				ns++;
@@ -1660,8 +1664,11 @@ static void FetchSpriteData(void)
 					dst.x=spr->x;
 					dst.atr=spr->atr;
 
-
-					*(uint32 *)&SPRBUF[ns<<2]=*(uint32 *)&dst;
+					{
+					  uint32 *dst32 = (uint32 *)&dst;
+					  uint32 *sprbuf32 = (uint32 *)&SPRBUF[ns<<2];
+					  *sprbuf32=*dst32;
+					}
 				}
 
 				ns++;
