@@ -153,10 +153,6 @@ static uint32 ChannelBC[5];
 //savestate sync hack stuff
 int movieSyncHackOn=0,resetDMCacc=0,movieConvertOffset1,movieConvertOffset2;
 
-#ifdef WIN32
-extern volatile int datacount, undefinedcount;
-#endif
-
 static void LoadDMCPeriod(uint8 V) {
  if(PAL)
   DMCPeriod=PALDMCTable[V];
