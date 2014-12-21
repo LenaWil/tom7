@@ -42,7 +42,6 @@
 #include  "video.h"
 #include  "input.h"
 #include  "driver.h"
-#include  "debug.h"
 
 #define DEBUGF if (0) fprintf
 

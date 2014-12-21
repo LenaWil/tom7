@@ -22,7 +22,6 @@
 #include "types.h"
 #include "x6502.h"
 #include "fceu.h"
-#include "debug.h"
 #include "sound.h"
 
 #include "x6502abbrev.h"
@@ -30,8 +29,7 @@ X6502 X;
 uint32 timestamp;
 void (*MapIRQHook)(int a);
 
-#define ADDCYC(x) \
-{     \
+#define ADDCYC(x) {  \
  int __x=x;       \
  _tcount+=__x;    \
  _count-=__x*48;  \
@@ -446,10 +444,6 @@ void X6502_Run(int32 cycles) {
      // major speed hit.
     }
    }
-
-   //will probably cause a major speed decrease on low-end systems
-   // XXX PERF -tom7
-   DEBUG( DebugCycle() );
 
    _PI=_P;
    b1=RdMem(_PC);
