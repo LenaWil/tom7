@@ -106,16 +106,7 @@ int FCEUD_ShowStatusIcon(void) {return 0;}
 bool FCEUI_AviIsRecording(void) {return false;}
 void FCEUI_UseInputPreset(int preset) { }
 bool FCEUD_PauseAfterPlayback() { return false; }
-FCEUFILE* FCEUD_OpenArchiveIndex(ArchiveScanRecord& asr, 
-				 std::string &fname, 
-				 int innerIndex) {
-  return 0;
-}
-FCEUFILE* FCEUD_OpenArchive(ArchiveScanRecord& asr, 
-			    std::string& fname, 
-			    std::string* innerFilename) {
-  return 0; 
-}
+
 ArchiveScanRecord FCEUD_ScanArchive(std::string fname) {
   return ArchiveScanRecord(); 
 }

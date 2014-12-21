@@ -65,10 +65,10 @@ static int DriverInitialize(FCEUGI *gi) {
   FCEUI_Sound(SAMPLE_RATE);
 
   // Why do both point to the same joydata? -tom
-  FCEUI_SetInput (0, SI_GAMEPAD, &joydata, 0);
-  FCEUI_SetInput (1, SI_GAMEPAD, &joydata, 0);
+  FCEUI_SetInput(0, SI_GAMEPAD, &joydata, 0);
+  FCEUI_SetInput(1, SI_GAMEPAD, &joydata, 0);
 
-  FCEUI_SetInputFourscore (false);
+  FCEUI_SetInputFourscore(false);
   return 1;
 }
 
@@ -90,13 +90,14 @@ static int LoadGame(const char *path) {
   // to override our input config, or something like that. No
   // weird stuff. Skip it.
 
-  // RefreshThrottleFPS();
-
   if (!DriverInitialize(GameInfo)) {
     return(0);
   }
 	
-  // Set NTSC (1 = pal)
+  // Set NTSC (1 = pal). Note that cartridges don't contain this information
+  // and some parts of the code tried to figure it out from the presence of
+  // (e) or (pal) in the ROM's *filename*. Maybe should be part of the external
+  // intface.
   FCEUI_SetVidSystem(GIV_NTSC);
 
   return 1;
