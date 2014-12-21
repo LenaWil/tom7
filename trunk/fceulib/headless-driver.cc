@@ -14,10 +14,8 @@
 #include <math.h>
 
 #include "driver.h"
-// #include "drivers/common/config.h"
 #include "drivers/common/args.h"
 
-#include "drivers/common/cheat.h"
 #include "fceu.h"
 #include "movie.h"
 #include "version.h"

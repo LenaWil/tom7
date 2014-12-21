@@ -191,124 +191,107 @@ static DECLFW(UNLSL12ModeWrite)
   }
 }
 
-static DECLFW(UNLSL12Write)
-{
-//  printf("%04X:%02X\n",A,V);
-	if(A==0xA123)
-	{
-		int zzz=9;
-	}
+static DECLFW(UNLSL12Write) {
   switch(mode & 3) {
-   case 0: {
-     if((A>=0xB000)&&(A<=0xE003))
-     {
-       int32 ind=((((A&2)|(A>>10))>>1)+2)&7;
-       int32 sar=((A&1)<<2);
-       vrc2_chr[ind]=(vrc2_chr[ind]&(0xF0>>sar))|((V&0x0F)<<sar);
-       SyncCHR();
-     }
-     else
-       switch(A&0xF000) {
-        case 0x8000: vrc2_prg[0] = V; SyncPRG(); break;
-        case 0xA000: vrc2_prg[1] = V; SyncPRG(); break;
-        case 0x9000: vrc2_mirr = V; SyncMIR(); break;
-       }
-     break;
-   }
-   case 1: {
-     switch(A & 0xE001) {
-      case 0x8000: {
-        uint8 old_ctrl = mmc3_ctrl;
-        mmc3_ctrl = V;
-        if((old_ctrl&0x40) != (mmc3_ctrl&0x40))
-          SyncPRG();
-        if((old_ctrl&0x80) != (mmc3_ctrl&0x80))
-          SyncCHR();
-        break;
+  case 0: {
+    if((A>=0xB000)&&(A<=0xE003)) {
+      int32 ind=((((A&2)|(A>>10))>>1)+2)&7;
+      int32 sar=((A&1)<<2);
+      vrc2_chr[ind]=(vrc2_chr[ind]&(0xF0>>sar))|((V&0x0F)<<sar);
+      SyncCHR();
+    } else {
+      switch(A&0xF000) {
+      case 0x8000: vrc2_prg[0] = V; SyncPRG(); break;
+      case 0xA000: vrc2_prg[1] = V; SyncPRG(); break;
+      case 0x9000: vrc2_mirr = V; SyncMIR(); break;
       }
-      case 0x8001:
-        mmc3_regs[mmc3_ctrl & 7] = V;
-        if((mmc3_ctrl & 7) < 6)
-          SyncCHR();
-        else
-          SyncPRG();
-        break;
-      case 0xA000:
-        mmc3_mirr = V;
-        SyncMIR();
-        break;
-      case 0xC000:
-        IRQLatch = V;
-        break;
-      case 0xC001:
-        IRQReload = 1;
-        break;
-      case 0xE000:
-        X6502_IRQEnd(FCEU_IQEXT);
-        IRQa=0;
-        break;
-      case 0xE001:
-        IRQa=1;
-        break;
-     }
-     break;
-   }
-   case 2:
-   case 3: {
-     if(V & 0x80)
-     {
-       mmc1_regs[0] |= 0xc;
-       mmc1_buffer = mmc1_shift = 0;
-       SyncPRG();
-     }
-     else
-     {
-       uint8 n = (A >> 13) - 4;
-       mmc1_buffer |=  (V & 1) << (mmc1_shift++);
-       if(mmc1_shift == 5)
-       {
-         mmc1_regs[n] = mmc1_buffer;
-         mmc1_buffer = mmc1_shift = 0;
-         switch(n) {
-          case 0: SyncMIR();
-          case 2: SyncCHR();
-          case 3:
-          case 1: SyncPRG();
-         }
-       }
-     }
-     break;
-   }
+    }
+    break;
+  }
+  case 1: {
+    switch(A & 0xE001) {
+    case 0x8000: {
+      uint8 old_ctrl = mmc3_ctrl;
+      mmc3_ctrl = V;
+      if((old_ctrl&0x40) != (mmc3_ctrl&0x40))
+	SyncPRG();
+      if((old_ctrl&0x80) != (mmc3_ctrl&0x80))
+	SyncCHR();
+      break;
+    }
+    case 0x8001:
+      mmc3_regs[mmc3_ctrl & 7] = V;
+      if((mmc3_ctrl & 7) < 6)
+	SyncCHR();
+      else
+	SyncPRG();
+      break;
+    case 0xA000:
+      mmc3_mirr = V;
+      SyncMIR();
+      break;
+    case 0xC000:
+      IRQLatch = V;
+      break;
+    case 0xC001:
+      IRQReload = 1;
+      break;
+    case 0xE000:
+      X6502_IRQEnd(FCEU_IQEXT);
+      IRQa=0;
+      break;
+    case 0xE001:
+      IRQa=1;
+      break;
+    }
+    break;
+  }
+  case 2:
+  case 3: {
+    if(V & 0x80) {
+      mmc1_regs[0] |= 0xc;
+      mmc1_buffer = mmc1_shift = 0;
+      SyncPRG();
+    } else {
+      uint8 n = (A >> 13) - 4;
+      mmc1_buffer |=  (V & 1) << (mmc1_shift++);
+      if(mmc1_shift == 5) {
+	mmc1_regs[n] = mmc1_buffer;
+	mmc1_buffer = mmc1_shift = 0;
+	switch(n) {
+	case 0: SyncMIR();
+	case 2: SyncCHR();
+	case 3:
+	case 1: SyncPRG();
+	}
+      }
+    }
+    break;
+  }
   }
 }
 
-static void UNLSL12HBIRQ(void)
-{
-  if((mode & 3) == 1)
-  {
+static void UNLSL12HBIRQ(void) {
+  if((mode & 3) == 1) {
     int32 count = IRQCount;
-    if(!count || IRQReload)
-    {
+    if(!count || IRQReload) {
       IRQCount = IRQLatch;
       IRQReload = 0;
-    }
-    else
+    } else {
       IRQCount--;
-    if(!IRQCount)
-    {
+    }
+    if(!IRQCount) {
       if(IRQa)
         X6502_IRQBegin(FCEU_IQEXT);
     }
   }
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-static void UNLSL12Power(void)
-{
+static void UNLSL12Power(void) {
   mode = 0;
   vrc2_chr[0] = ~0;
   vrc2_chr[1] = ~0;
@@ -344,15 +327,13 @@ static void UNLSL12Power(void)
   SetWriteHandler(0x8000,0xFFFF,UNLSL12Write);
 }
 
-void UNLSL12_Init(CartInfo *info)
-{
+void UNLSL12_Init(CartInfo *info) {
   info->Power = UNLSL12Power;
   GameHBIRQHook = UNLSL12HBIRQ;
   GameStateRestore = StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
-void Mapper116_Init(CartInfo *info)
-{
-	UNLSL12_Init(info);
+void Mapper116_Init(CartInfo *info) {
+  UNLSL12_Init(info);
 }

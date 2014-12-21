@@ -31,68 +31,58 @@ static uint32 WRAMSIZE;
 
 static void(*WSync)(void);
 
-static SFORMAT StateRegs[]=
-{
-	{&laststrobe, 1, "STB"},
-	{&trigger, 1, "TRG"},
-	{reg, 8, "REGS"},
-	{0}
+static SFORMAT StateRegs[]= {
+  {&laststrobe, 1, "STB"},
+  {&trigger, 1, "TRG"},
+  {reg, 8, "REGS"},
+  {0}
 };
 
-static void Sync(void)
-{
-	setprg8r(0x10,0x6000,0);
-	setprg32(0x8000,(reg[0]<<4)|(reg[1]&0xF));
-	setchr8(0);
+static void Sync(void) {
+  setprg8r(0x10,0x6000,0);
+  setprg32(0x8000,(reg[0]<<4)|(reg[1]&0xF));
+  setchr8(0);
 }
 
-static void StateRestore(int version)
-{
-	WSync();
+static void StateRestore(int version) {
+  WSync();
 }
 
-static DECLFR(ReadLow)
-{
-	switch (A&0x7700)
-	{
-		case 0x5100:
-			return reg[2]|reg[0]|reg[1]|reg[3]^0xff; break;
-		case 0x5500:
-			if(trigger)
-				return reg[2]|reg[1]; // Lei Dian Huang Bi Ka Qiu Chuan Shuo (NJ046) may broke other games
-			else
-				return 0;
-	}
-	return 4;
+static DECLFR(ReadLow) {
+  switch (A & 0x7700) {
+  case 0x5100:
+    return reg[2] | reg[0] | reg[1] | (reg[3]^0xff); break;
+  case 0x5500:
+    if (trigger)
+      return reg[2] | reg[1]; // Lei Dian Huang Bi Ka Qiu Chuan Shuo (NJ046) may broke other games
+    else
+      return 0;
+  }
+  return 4;
 }
 
-static void M163HB(void)
-{
-	if(reg[1]&0x80)
-	{
-		if(scanline==239)
-		{
-			setchr4(0x0000,0);
-			setchr4(0x1000,0);
-		}
-		else if(scanline==127)
-		{
-			setchr4(0x0000,1);
-			setchr4(0x1000,1);
-		}
-/*
-		if(scanline>=127)	// Hu Lu Jin Gang (NJ039) (Ch) [!] don't like it
-		{
-			setchr4(0x0000,1);
-			setchr4(0x1000,1);
-		}
-		else
-		{
-			setchr4(0x0000,0);
-			setchr4(0x1000,0);
-		}
-*/
-	}
+static void M163HB(void) {
+  if(reg[1]&0x80) {
+    if(scanline==239) {
+      setchr4(0x0000,0);
+      setchr4(0x1000,0);
+    } else if(scanline==127) {
+      setchr4(0x0000,1);
+      setchr4(0x1000,1);
+    }
+    /*
+      if(scanline>=127)	// Hu Lu Jin Gang (NJ039) (Ch) [!] don't like it
+      {
+      setchr4(0x0000,1);
+      setchr4(0x1000,1);
+      }
+      else
+      {
+      setchr4(0x0000,0);
+      setchr4(0x1000,0);
+      }
+    */
+  }
 }
 
 static DECLFW(Write)
