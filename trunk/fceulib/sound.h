@@ -51,12 +51,6 @@ extern int32 WaveFinal[2048+512];
 extern int32 WaveHi[];
 extern uint32 soundtsinc;
 
-#ifdef WIN32
-extern volatile int datacount, undefinedcount;
-static constexpr bool debug_loggingCD = false;
-extern unsigned char *cdloggerdata;
-#endif
-
 extern uint32 soundtsoffs;
 #define SOUNDTS (timestamp + soundtsoffs)
 

@@ -98,34 +98,33 @@ static const char *attrbits(uint8 b) {
   return buf;
 }
 
-template<typename T, int BITS>
+template<int BITS>
 struct BITREVLUT {
+  uint8* lut;
 
-	T* lut;
-	BITREVLUT() {
-		int bits = BITS;
-		int n = 1<<BITS;
-		lut = new T[n];
+  BITREVLUT() {
+    int bits = BITS;
+    int n = 1<<BITS;
+    lut = new uint8[n];
 
-		int m = 1;
-		int a = n>>1;
-		int j = 2;
+    int m = 1;
+    int a = n>>1;
+    int j = 2;
 
-		lut[0] = 0;
-		lut[1] = a;
+    lut[0] = 0;
+    lut[1] = a;
 
-		while(--bits) {
-			m <<= 1;
-			a >>= 1;
-			for(int i=0;i<m;i++)
-				lut[j++] = lut[i] + a;
-		}
-	}
+    while(--bits) {
+      m <<= 1;
+      a >>= 1;
+      for(int i=0;i<m;i++)
+	lut[j++] = lut[i] + a;
+    }
+  }
 
-	T operator[](int index) { return lut[index]; }
-
+  uint8 operator[](int index) { return lut[index]; }
 };
-BITREVLUT<uint8,8> bitrevlut;
+BITREVLUT<8> bitrevlut;
 
 struct PPUSTATUS
 {
@@ -462,19 +461,6 @@ inline void FFCEUX_PPUWrite_Default(uint32 A, uint8 V) {
     }
 }
 
-volatile int rendercount, vromreadcount, undefinedvromcount, LogAddress = -1;
-unsigned char *cdloggervdata;
-extern uint32 VROM_size;
-
-int GetCHRAddress(int A){
-  int result;
-  if (A > 0x1fff) return -1;
-  if (!VROM_size) return -1;
-  result = &VPage[A>>10][A]-CHRptr[0];
-  if (result > (int)CHRsize[0] || result < 0) return -1;
-  else return result;
-}
-
 uint8 FASTCALL FFCEUX_PPURead_Default(uint32 A) {
   uint32 tmp = A;
 
@@ -747,123 +733,111 @@ static DECLFR(A200x)  /* Not correct for $2004 reads. */
 }
 
 /*
-static DECLFR(A2004)
-{
-uint8 ret;
+  static DECLFR(A2004)
+  {
+  uint8 ret;
 
-FCEUPPU_LineUpdate();
-ret = SPRAM[PPU[3]];
+  FCEUPPU_LineUpdate();
+  ret = SPRAM[PPU[3]];
 
-if(PPUSPL>=8)
-{
-if(PPU[3]>=8)
-ret = SPRAM[PPU[3]];
-}
-else
-{
-//printf("$%02x:$%02x\n",PPUSPL,V);
-ret = SPRAM[PPUSPL];
-}
-PPU[3]++;
-PPUSPL++;
-PPUGenLatch = ret;
-printf("%d, %02x\n",scanline,ret);
-return(ret);
-}
+  if(PPUSPL>=8)
+  {
+  if(PPU[3]>=8)
+  ret = SPRAM[PPU[3]];
+  }
+  else
+  {
+  //printf("$%02x:$%02x\n",PPUSPL,V);
+  ret = SPRAM[PPUSPL];
+  }
+  PPU[3]++;
+  PPUSPL++;
+  PPUGenLatch = ret;
+  printf("%d, %02x\n",scanline,ret);
+  return(ret);
+  }
 */
-static DECLFR(A2007)
-{
-	uint8 ret;
-	uint32 tmp=RefreshAddr&0x3FFF;
+static DECLFR(A2007) {
+  uint8 ret;
+  uint32 tmp=RefreshAddr&0x3FFF;
 
-
-	if(newppu) {
-        ret = VRAMBuffer;
-		RefreshAddr = ppur.get_2007access() & 0x3FFF;
-        if ((RefreshAddr & 0x3F00) == 0x3F00)
-        {
-            //if it is in the palette range bypass the
-            //delayed read, and what gets filled in the temp
-            //buffer is the address - 0x1000, also
-            //if grayscale is set then the return is AND with 0x30
-            //to get a gray color reading
-            if (!(tmp & 3))
-            {
-                if (!(tmp & 0xC))
-                    ret = PALRAM[0x00];
-                else
-                    ret = UPALRAM[((tmp & 0xC) >> 2) - 1];
-            }
-            else
-                ret = PALRAM[tmp & 0x1F];
-            if (GRAYSCALE)
-                ret &= 0x30;
-            VRAMBuffer = FFCEUX_PPURead(RefreshAddr - 0x1000);
-        }
-        else {
-			if(debug_loggingCD)
-				LogAddress = GetCHRAddress(RefreshAddr);
-		    VRAMBuffer = FFCEUX_PPURead(RefreshAddr);
-		}
-		ppur.increment2007(INC32!=0);
-		RefreshAddr = ppur.get_2007access();
-        return ret;
+  if(newppu) {
+    ret = VRAMBuffer;
+    RefreshAddr = ppur.get_2007access() & 0x3FFF;
+    if ((RefreshAddr & 0x3F00) == 0x3F00) {
+      //if it is in the palette range bypass the
+      //delayed read, and what gets filled in the temp
+      //buffer is the address - 0x1000, also
+      //if grayscale is set then the return is AND with 0x30
+      //to get a gray color reading
+      if (!(tmp & 3)) {
+	if (!(tmp & 0xC))
+	  ret = PALRAM[0x00];
+	else
+	  ret = UPALRAM[((tmp & 0xC) >> 2) - 1];
+      }
+      else
+	ret = PALRAM[tmp & 0x1F];
+      if (GRAYSCALE)
+	ret &= 0x30;
+      VRAMBuffer = FFCEUX_PPURead(RefreshAddr - 0x1000);
     } else {
-		FCEUPPU_LineUpdate();
+      VRAMBuffer = FFCEUX_PPURead(RefreshAddr);
+    }
+    ppur.increment2007(INC32!=0);
+    RefreshAddr = ppur.get_2007access();
+    return ret;
+  } else {
+    FCEUPPU_LineUpdate();
 
-		ret=VRAMBuffer;
+    ret=VRAMBuffer;
 
-	#ifdef FCEUDEF_DEBUGGER
-		if(!fceuindbg)
-	#endif
-		{
-			if(PPU_hook) PPU_hook(tmp);
-			PPUGenLatch=VRAMBuffer;
-			if(tmp<0x2000)
-			{
-				if(debug_loggingCD)
-					LogAddress = GetCHRAddress(tmp);
-				VRAMBuffer=VPage[tmp>>10][tmp];
-			}
-			else if (tmp < 0x3F00)
-			{
-				VRAMBuffer=vnapage[(tmp>>10)&0x3][tmp&0x3FF];
-			}
-		}
-	#ifdef FCEUDEF_DEBUGGER
-		if(!fceuindbg)
-	#endif
-		{
-			if((ScreenON || SpriteON) && (scanline < 240))
-			{
-				uint32 rad=RefreshAddr;
-
-				if((rad&0x7000)==0x7000)
-				{
-					rad^=0x7000;
-					if((rad&0x3E0)==0x3A0)
-						rad^=0xBA0;
-					else if((rad&0x3E0)==0x3e0)
-						rad^=0x3e0;
-					else
-						rad+=0x20;
-				}
-				else
-					rad+=0x1000;
-				RefreshAddr=rad;
-			}
-			else
-			{
-				if (INC32)
-					RefreshAddr+=32;
-				else
-					RefreshAddr++;
-			}
-			if(PPU_hook) PPU_hook(RefreshAddr&0x3fff);
-		}
-
-		return ret;
+#ifdef FCEUDEF_DEBUGGER
+    if(!fceuindbg)
+#endif
+      {
+	if(PPU_hook) PPU_hook(tmp);
+	PPUGenLatch=VRAMBuffer;
+	if(tmp<0x2000) {
+	  VRAMBuffer=VPage[tmp>>10][tmp];
+	} else if (tmp < 0x3F00) {
+	  VRAMBuffer=vnapage[(tmp>>10)&0x3][tmp&0x3FF];
 	}
+      }
+#ifdef FCEUDEF_DEBUGGER
+    if(!fceuindbg)
+#endif
+      {
+	if((ScreenON || SpriteON) && (scanline < 240))
+	  {
+	    uint32 rad=RefreshAddr;
+
+	    if((rad&0x7000)==0x7000)
+	      {
+		rad^=0x7000;
+		if((rad&0x3E0)==0x3A0)
+		  rad^=0xBA0;
+		else if((rad&0x3E0)==0x3e0)
+		  rad^=0x3e0;
+		else
+		  rad+=0x20;
+	      }
+	    else
+	      rad+=0x1000;
+	    RefreshAddr=rad;
+	  }
+	else
+	  {
+	    if (INC32)
+	      RefreshAddr+=32;
+	    else
+	      RefreshAddr++;
+	  }
+	if(PPU_hook) PPU_hook(RefreshAddr&0x3fff);
+      }
+
+    return ret;
+  }
 }
 
 static DECLFW(B2000)
@@ -1104,50 +1078,6 @@ void FCEUI_GetRenderPlanes(bool& sprites, bool& bg)
 	bg = renderbg;
 }
 
-//mbg 6/21/08 - tileview is being ripped out since i dont know how long its been since it worked
-//static int tileview=1;
-//void FCEUI_ToggleTileView(void)
-//{
-//	tileview^=1;
-//}
-
-
-//mbg 6/21/08 - tileview is being ripped out since i dont know how long its been since it worked
-//static void TileView(void)
-//{
-//	uint8 *P=XBuf+16*256;
-//	int bgh;
-//	int y;
-//	int X1;
-//	for(bgh=0;bgh<2;bgh++)
-//		for(y=0;y<16*8;y++)
-//			for(P=XBuf+bgh*128+(16+y)*256,X1=16;X1;X1--,P+=8)
-//			{
-//				uint8 *C;
-//				register uint8 cc;
-//				uint32 vadr;
-//
-//				vadr=((((16-X1)|((y>>3)<<4))<<4)|(y&7))+bgh*0x1000;
-//				//C= ROM+vadr+turt*8192;
-//				C = VRAMADR(vadr);
-//				//if((vadr+turt*8192)>=524288)
-//				//printf("%d ",vadr+turt*8192);
-//				cc=0;
-//				//#include "pputile.inc"
-//			}
-//}
-
-static void CheckSpriteHit(int p);
-
-static void EndRL(void)
-{
-	RefreshLine(272);
-	if(tofix)
-		Fixit1();
-	CheckSpriteHit(272);
-	Pline=0;
-}
-
 static int32 sphitx;
 static uint8 sphitdata;
 
@@ -1174,13 +1104,20 @@ static void CheckSpriteHit(int p)
 	}
 }
 
+static void EndRL(void) {
+	RefreshLine(272);
+	if(tofix)
+		Fixit1();
+	CheckSpriteHit(272);
+	Pline=0;
+}
+
 //spork the world.  Any sprites on this line? Then this will be set to 1.
 //Needed for zapper emulation and *gasp* sprite emulation.
 static int any_sprites_on_line = 0;
 
 // lasttile is really "second to last tile."
-static void RefreshLine(int lastpixel)
-{
+static void RefreshLine(int lastpixel) {
 	static uint32 pshift[2];
 	static uint32 atlatch;
 	uint32 smorkus=RefreshAddr;
@@ -1499,8 +1436,7 @@ static void DoLine(void)
 	if(GameHBIRQHook2 && (ScreenON || SpriteON))
 		GameHBIRQHook2();
 	scanline++;
-	if(scanline<240)
-	{
+	if(scanline<240) {
 		ResetRL(XBuf+(scanline<<8));
 	}
 	X6502_Run(16);
@@ -1510,30 +1446,29 @@ static void DoLine(void)
 #define H_FLIP  0x40
 #define SP_BACK 0x20
 
-typedef struct {
+struct SPR {
   // no is just a tile number, but 
-	uint8 y,no,atr,x;
-} SPR;
+  uint8 y,no,atr,x;
+};
 
-typedef struct {
+struct SPRB {
   // I think ca is the actual character data, but separated into
   // two planes. They together make the 2-bit color information,
   // which is done through the lookup tables ppulut1 and 2.
   // They have to be the actual data (not addresses) because
   // ppulut is a fixed transformation.
-	uint8 ca[2],atr,x;
-} SPRB;
+  uint8 ca[2],atr,x;
+};
 
 #define STATIC_ASSERT( condition, name ) \
-    typedef char assert_failed_ ## name [ (condition) ? 1 : -1 ];
+  static_assert( condition, #condition " " #name)
 
 STATIC_ASSERT( sizeof (SPR) == 4, spr_size );
 STATIC_ASSERT( sizeof (SPRB) == 4, sprb_size );
 STATIC_ASSERT( sizeof (uint32) == 4, uint32_size );
 
-void FCEUI_DisableSpriteLimitation(int a)
-{
-	maxsprites=a?64:8;
+void FCEUI_DisableSpriteLimitation(int a) {
+  maxsprites=a?64:8;
 }
 
 // I believe this corresponds to the "internal operation" section of
