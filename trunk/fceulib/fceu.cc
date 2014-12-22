@@ -116,77 +116,41 @@ bool CheckFileExists(const char* filename) {
 	}
 }
 
-void FCEU_TogglePPU(void)
-{
-	newppu ^= 1;
-	if (newppu)
-	{
-		FCEU_DispMessage("New PPU loaded", 0);
-		FCEUI_printf("New PPU loaded");
-	}
-	else
-	{
-		FCEU_DispMessage("Old PPU loaded", 0);
-		FCEUI_printf("Old PPU loaded");
-	}
-}
+static void FCEU_CloseGame(void) {
+  if(GameInfo) {
 
-static void FCEU_CloseGame(void)
-{
-	if(GameInfo)
-	{
-
-#ifdef WIN32
-#ifndef NOWINSTUFF
-//SP CODE
-	extern char LoadedRomFName[2048];
-
-	if (storePreferences(LoadedRomFName))
-	{
-		FCEUD_PrintError("Couldn't store debugging data");
-	}
-#endif
-#endif
-
-#if 0 //tom7
-		if(FCEUnetplay)
-		{
-			FCEUD_NetworkClose();
-		}
-#endif
-
-		if(GameInfo->name)
-		{
-			free(GameInfo->name);
-			GameInfo->name=0;
-		}
+    if(GameInfo->name) {
+      free(GameInfo->name);
+      GameInfo->name=0;
+    }
 
 
-		GameInterface(GI_CLOSE);
+    GameInterface(GI_CLOSE);
 
-		FCEUI_StopMovie();
+    FCEUI_StopMovie();
 
-		ResetExState(0,0);
+    ResetExState(0,0);
 
-		//clear screen when game is closed
-		extern uint8 *XBuf;
-		if(XBuf)
-			memset(XBuf,0,256*256);
+    //clear screen when game is closed
+    extern uint8 *XBuf;
+    if(XBuf)
+      memset(XBuf,0,256*256);
 
-		delete GameInfo;
-		GameInfo = NULL;
+    delete GameInfo;
+    GameInfo = NULL;
 
-		currFrameCounter = 0;
+    currFrameCounter = 0;
 
-		//Reset flags for Undo/Redo/Auto Savestating //adelikat: TODO: maybe this stuff would be cleaner as a struct or class
-		lastSavestateMade[0] = 0;
-		undoSS = false;
-		redoSS = false;
-		lastLoadstateMade[0] = 0;
-		undoLS = false;
-		redoLS = false;
-		AutoSS = false;
-	}
+    //Reset flags for Undo/Redo/Auto Savestating 
+    //adelikat: TODO: maybe this stuff would be cleaner as a struct or class
+    lastSavestateMade[0] = 0;
+    undoSS = false;
+    redoSS = false;
+    lastLoadstateMade[0] = 0;
+    undoLS = false;
+    redoLS = false;
+    AutoSS = false;
+  }
 }
 
 
@@ -221,9 +185,6 @@ int AutosaveFrequency = 256; // Number of frames between autosaves
 
 // Flag that indicates whether the Auto-save option is enabled or not
 int EnableAutosave = 0;
-
-///a wrapper for unzip.c
-extern "C" FILE *FCEUI_UTF8fopen_C(const char *n, const char *m) { return ::FCEUD_UTF8fopen(n,m); }
 
 static DECLFW(BNull)
 {
@@ -795,15 +756,12 @@ void FCEUI_SetRenderedLines(int ntscf, int ntscl, int palf, int pall)
 
 }
 
-void FCEUI_SetVidSystem(int a)
-{
-	FSettings.PAL=a?1:0;
-	if(GameInfo)
-	{
-		FCEU_ResetVidSys();
-		FCEU_ResetPalette();
-		FCEUD_VideoChanged();
-	}
+void FCEUI_SetVidSystem(int a) {
+  FSettings.PAL=a?1:0;
+  if(GameInfo) {
+    FCEU_ResetVidSys();
+    FCEU_ResetPalette();
+  }
 }
 
 int FCEUI_GetCurrentVidSystem(int *slstart, int *slend)

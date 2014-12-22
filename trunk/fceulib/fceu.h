@@ -71,35 +71,34 @@ extern int GameAttributes;
 
 extern uint8 PAL;
 
-typedef struct {
-        int PAL;
-        int NetworkPlay;
-        int SoundVolume;                //Master volume
-        int TriangleVolume;
-        int Square1Volume;
-        int Square2Volume;
-        int NoiseVolume;
-        int PCMVolume;
-  // bool GameGenie;
+struct FCEUS {
+  int PAL;
+  int NetworkPlay;
+  int SoundVolume;                //Master volume
+  int TriangleVolume;
+  int Square1Volume;
+  int Square2Volume;
+  int NoiseVolume;
+  int PCMVolume;
 
-        //the currently selected first and last rendered scanlines.
-        int FirstSLine;
-        int LastSLine;
+  //the currently selected first and last rendered scanlines.
+  int FirstSLine;
+  int LastSLine;
 
-        //the number of scanlines in the currently selected configuration
-        int TotalScanlines() { return LastSLine - FirstSLine + 1; }
+  //the number of scanlines in the currently selected configuration
+  int TotalScanlines() { return LastSLine - FirstSLine + 1; }
 
-        //Driver-supplied user-selected first and last rendered scanlines.
-        //Usr*SLine[0] is for NTSC, Usr*SLine[1] is for PAL.
-        int UsrFirstSLine[2];
-        int UsrLastSLine[2];
+  //Driver-supplied user-selected first and last rendered scanlines.
+  //Usr*SLine[0] is for NTSC, Usr*SLine[1] is for PAL.
+  int UsrFirstSLine[2];
+  int UsrLastSLine[2];
 
-        //this variable isn't used at all, snap is always name-based
-        //bool SnapName;
-        uint32 SndRate;
-        int soundq;
-        int lowpass;
-} FCEUS;
+  //this variable isn't used at all, snap is always name-based
+  //bool SnapName;
+  uint32 SndRate;
+  int soundq;
+  int lowpass;
+};
 
 int FCEU_TextScanlineOffset(int y);
 int FCEU_TextScanlineOffsetFromBottom(int y);
@@ -111,8 +110,6 @@ bool CheckFileExists(const char* filename);     //Receives a filename (fullpath)
 void FCEU_PrintError(char *format, ...);
 void FCEU_printf(char *format, ...);
 void FCEU_DispMessage(char *format, int disppos, ...);
-void FCEU_DispMessageOnMovie(char *format, ...);
-void FCEU_TogglePPU();
 
 void SetNESDeemph(uint8 d, int force);
 void FCEU_PutImage(void);

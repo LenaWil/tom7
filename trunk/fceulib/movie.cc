@@ -680,9 +680,7 @@ bool LoadFM2(MovieData& movieData, EMUFILE* fp, int size, bool stopAfterHeader)
 }
 
 /// Stop movie playback.
-static void StopPlayback()
-{
-	FCEU_DispMessageOnMovie("Movie playback stopped.");
+static void StopPlayback() {
 	movieMode = MOVIEMODE_INACTIVE;
 }
 
@@ -1010,15 +1008,6 @@ void FCEUMOV_AddInputState()
 
 			joyports[0].load(mr);
 			joyports[1].load(mr);
-		}
-
-		//if we are on the last frame, then pause the emulator if the player requested it
-		if(currFrameCounter == currMovieData.records.size()-1)
-		{
-			if(FCEUD_PauseAfterPlayback())
-			{
-				FCEUI_ToggleEmulationPause();
-			}
 		}
 
 		//pause the movie at a specified frame

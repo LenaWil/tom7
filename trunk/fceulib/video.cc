@@ -115,22 +115,6 @@ int FCEU_InitVirtualVideo(void)
 		return 1;
 }
 
-void FCEU_DispMessageOnMovie(char *format, ...)
-{
-	va_list ap;
-
-	va_start(ap,format);
-	vsnprintf(guiMessage.errmsg,sizeof(guiMessage.errmsg),format,ap);
-	va_end(ap);
-
-	guiMessage.howlong = 180;
-	guiMessage.isMovieMessage = true;
-	guiMessage.linesFromBottom = 0;
-
-	if (FCEUI_AviIsRecording() && FCEUI_AviDisableMovieMessages())
-		guiMessage.howlong = 0;
-}
-
 void FCEU_DispMessage(char *format, int disppos=0, ...)
 {
 	va_list ap;

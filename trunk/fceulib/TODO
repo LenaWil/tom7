@@ -10,7 +10,7 @@ Stuff I should be able to get rid of:
  - movie.*
  - video.cc can probably go?
  - archives
- - autosave
+ - autosave (fceu.cc mostly)
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.

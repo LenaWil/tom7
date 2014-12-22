@@ -274,20 +274,6 @@ void FCEUD_AviStop(void);
 ///A callback that the emu core uses to poll the state of a given emulator command key
 typedef int TestCommandState(int cmd);
 
-//Emulation speed
-enum EMUSPEED_SET
-{
-        EMUSPEED_SLOWEST=0,
-        EMUSPEED_SLOWER,
-        EMUSPEED_NORMAL,
-        EMUSPEED_FASTER,
-        EMUSPEED_FASTEST
-};
-void FCEUD_SetEmulationSpeed(int cmd);
-void FCEUD_TurboOn(void);
-void FCEUD_TurboOff(void);
-void FCEUD_TurboToggle(void);
-
 int FCEUD_ShowStatusIcon(void);
 void FCEUD_ToggleStatusIcon(void);
 void FCEUD_HideMenuToggle(void);
@@ -296,24 +282,6 @@ void FCEUD_HideMenuToggle(void);
 void FCEUD_CmdOpen(void);
 
 //new merge-era driver routines here:
-
-///signals that the cpu core hit a breakpoint. this function should not return until the core is ready for the next cycle
-void FCEUD_DebugBreakpoint(int bp_num);
-
-///the driver should log the current instruction, if it wants (we should move the code in the win driver that does this to the shared area)
-void FCEUD_TraceInstruction(uint8 *opcode, int size);
-
-///the driver might should update its NTView (only used if debugging support is compiled in)
-void FCEUD_UpdateNTView(int scanline, bool drawall);
-
-///the driver might should update its PPUView (only used if debugging support is compiled in)
-void FCEUD_UpdatePPUView(int scanline, int drawall);
-
-///I am dissatisfied with this method of getting an option from the driver to the core. but that is what we're using for now
-bool FCEUD_PauseAfterPlayback();
-
-///called when fceu changes something in the video system you might be interested in
-void FCEUD_VideoChanged();
 
 enum EFCEUI
 {
@@ -325,12 +293,7 @@ enum EFCEUI
         FCEUI_RESET, FCEUI_POWER, FCEUI_PLAYFROMBEGINNING, FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
 };
 
-//checks whether an EFCEUI is valid right now
+// checks whether an EFCEUI is valid right now
 bool FCEU_IsValidUI(EFCEUI ui);
-
-#ifdef __cplusplus
-extern "C"
-#endif
-FILE *FCEUI_UTF8fopen_C(const char *n, const char *m);
 
 #endif //__DRIVER_H_

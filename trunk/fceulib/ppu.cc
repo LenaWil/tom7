@@ -1428,8 +1428,6 @@ static void DoLine(void)
 			GameHBIRQHook();
 	}
 
-	DEBUG(FCEUD_UpdateNTView(scanline,0));
-
 	if(SpriteON)
 		RefreshSprites();
 	if(GameHBIRQHook2 && (ScreenON || SpriteON))
@@ -2082,11 +2080,10 @@ int FCEUPPU_Loop(int skip)
 			int x,max,maxref;
 
 			deemp=PPU[1]>>5;
-			for(scanline=0;scanline<240;)       //scanline is incremented in  DoLine.  Evil. :/
-			{
-				deempcnt[deemp]++;
-				DEBUG(FCEUD_UpdatePPUView(scanline, 1));
-				DoLine();
+			for(scanline=0;scanline<240;) {
+			  //scanline is incremented in  DoLine.  Evil. :/
+			  deempcnt[deemp]++;
+			  DoLine();
 			}
 
 			if(MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
@@ -2325,11 +2322,6 @@ int FCEUX_PPU_Loop(int skip) {
 
 			const int yp = sl-1;
 			ppuphase = PPUPHASE_BG;
-
-			if(sl != 0) {
-				DEBUG(FCEUD_UpdatePPUView(scanline=yp,1));
-				DEBUG(FCEUD_UpdateNTView(scanline=yp,1));
-			}
 
 			if(sl != 0) if(MMC5Hack && PPUON) MMC5_hb(yp);
 
