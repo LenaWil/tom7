@@ -190,14 +190,9 @@ void FCEUI_FDSSelect(void);
 
 int FCEUI_DatachSet(const uint8 *rcode);
 
-///returns a flag indicating whether emulation is paused
-int FCEUI_EmulationPaused();
 ///returns a flag indicating whether a one frame step has been requested
 int FCEUI_EmulationFrameStepped();
-///clears the framestepped flag. use it after youve stepped your one frame
-void FCEUI_ClearEmulationFrameStepped();
-///sets the EmulationPaused flags
-void FCEUI_SetEmulationPaused(int val);
+
 ///toggles the paused bit (bit0) for EmulationPaused. caused FCEUD_DebugUpdate() to fire if the emulation pauses
 void FCEUI_ToggleEmulationPause();
 

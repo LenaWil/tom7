@@ -88,7 +88,7 @@ static int LoadGame(const char *path) {
   // weird stuff. Skip it.
 
   if (!DriverInitialize(GameInfo)) {
-    return(0);
+    return 0;
   }
 	
   // Set NTSC (1 = pal). Note that cartridges don't contain this information
