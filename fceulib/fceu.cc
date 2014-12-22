@@ -84,26 +84,21 @@ using namespace std;
 
 int AFon = 1, AFoff = 1, AutoFireOffset = 0; //For keeping track of autofire settings
 bool justLagged = false;
-bool frameAdvanceLagSkip = false; //If this is true, frame advance will skip over lag frame (i.e. it will emulate 2 frames instead of 1)
+// If this is true, frame advance will skip over lag frame
+// (i.e. it will emulate 2 frames instead of 1)
+static constexpr bool frameAdvanceLagSkip = false;
 bool AutoSS = false;		//Flagged true when the first auto-savestate is made while a game is loaded, flagged false on game close
-bool movieSubtitles = true; //Toggle for displaying movie subtitles
+
 bool DebuggerWasUpdated = false; //To prevent the debugger from updating things without being updated.
 
-FCEUGI::FCEUGI()
-: filename(0)
-, archiveFilename(0)
-{
-	//printf("%08x",opsize); // WTF?!
+FCEUGI::FCEUGI() { }
+
+FCEUGI::~FCEUGI() {
+  delete filename;
+  delete archiveFilename;
 }
 
-FCEUGI::~FCEUGI()
-{
-	if(filename) delete filename;
-	if(archiveFilename) delete archiveFilename;
-}
-
-bool CheckFileExists(const char* filename)
-{
+bool CheckFileExists(const char* filename) {
 	//This function simply checks to see if the given filename exists
 	if (!filename) return false;
 	fstream test;
@@ -639,7 +634,8 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
   }
 
   if (EmulationPaused&2 && ( !frameAdvanceLagSkip || !lagFlag) ) {
-    //Lots of conditions here.  EmulationPaused&2 must be true.  In addition frameAdvanceLagSkip or lagFlag must be false
+    // Lots of conditions here.  EmulationPaused&2 must be true.
+    // In addition frameAdvanceLagSkip or lagFlag must be false
 
     EmulationPaused = 1;		   // restore paused flag
     JustFrameAdvanced = true;

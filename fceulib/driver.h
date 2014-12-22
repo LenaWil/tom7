@@ -149,11 +149,6 @@ void FCEUI_SetSquare2Volume(uint32 volume);
 void FCEUI_SetNoiseVolume(uint32 volume);
 void FCEUI_SetPCMVolume(uint32 volume);
 
-void FCEUI_SetSoundQuality(int quality);
-
-void FCEUD_SoundToggle(void);
-void FCEUD_SoundVolumeAdjust(int);
-
 int FCEUI_SelectState(int, int);
 extern void FCEUI_SelectStateNext(int);
 
@@ -169,7 +164,6 @@ void FCEUD_LoadStateFrom(void);
 void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC fcexp);
 
 
-void FCEUD_MovieRecordTo(void);
 void FCEUD_MovieReplayFrom(void);
 
 int32 FCEUI_GetDesiredFPS(void);
@@ -279,9 +273,6 @@ void FCEUD_AviStop(void);
 
 ///A callback that the emu core uses to poll the state of a given emulator command key
 typedef int TestCommandState(int cmd);
-///Signals the emu core to poll for emulator commands and take actions
-void FCEUI_HandleEmuCommands(TestCommandState* testfn);
-
 
 //Emulation speed
 enum EMUSPEED_SET

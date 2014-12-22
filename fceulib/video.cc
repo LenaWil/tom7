@@ -115,13 +115,6 @@ int FCEU_InitVirtualVideo(void)
 		return 1;
 }
 
-void snapAVI()
-{
-	//Update AVI
-	if(!FCEUI_EmulationPaused())
-		FCEUI_AviVideoUpdate(XBuf);
-}
-
 void FCEU_DispMessageOnMovie(char *format, ...)
 {
 	va_list ap;
@@ -165,35 +158,4 @@ void FCEU_ResetMessages()
 	guiMessage.isMovieMessage = false;
 	guiMessage.linesFromBottom = 0;
 }
-
-uint32 GetScreenPixel(int x, int y, bool usebackup) {
-
-	uint8 r,g,b;
-
-	if (((x < 0) || (x > 255)) || ((y < 0) || (y > 255)))
-		return -1;
-
-	if (usebackup)
-		FCEUD_GetPalette(XBackBuf[(y*256)+x],&r,&g,&b);
-	else
-		FCEUD_GetPalette(XBuf[(y*256)+x],&r,&g,&b);
-
-
-	return ((int) (r) << 16) | ((int) (g) << 8) | (int) (b);
-}
-
-int GetScreenPixelPalette(int x, int y, bool usebackup) {
-
-	if (((x < 0) || (x > 255)) || ((y < 0) || (y > 255)))
-		return -1;
-
-	if (usebackup)
-		return XBackBuf[(y*256)+x] & 0x3f;
-	else
-		return XBuf[(y*256)+x] & 0x3f;
-
-}
-
-uint64 FCEUD_GetTime(void);
-uint64 FCEUD_GetTimeFreq(void);
 

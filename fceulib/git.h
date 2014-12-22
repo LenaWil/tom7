@@ -100,7 +100,7 @@ struct FCEUGI {
   FCEUGI();
   ~FCEUGI();
 
-  uint8 *name;    //Game name, UTF8 encoding
+  uint8 *name = nullptr;    //Game name, UTF8 encoding
   int mappernum;
 
   EGIT type;
@@ -115,8 +115,8 @@ struct FCEUGI {
   int soundrate;  //For Ogg Vorbis expansion sound wacky support.  0 for default.
   int soundchan;  //Number of sound channels.
 
-  char* filename;
-  char* archiveFilename;
+  char* filename = nullptr;
+  char* archiveFilename = nullptr;
   int archiveCount;
 };
 

@@ -17,10 +17,7 @@
 
 // PERF: Consider the implications of using a high/low sample rate.
 // This must be set for StepFull and GetSound to function.
-#define SAMPLE_RATE 44100
-
-// XXX move to header, enable _debug mode.
-#define DCHECK(x) do {} while(0)
+static constexpr int SAMPLE_RATE = 44100;
 
 // Joystick data. I think used for both controller 0 and 1. Part of
 // the "API".
@@ -147,7 +144,7 @@ Emulator *Emulator::Create(const string &romfile) {
   FCEUI_SetAviDisableMovieMessages(false);
 
   // defaults
-  const int ntsccol = 0, ntsctint = 56, ntschue = 72;
+  constexpr int ntsccol = 0, ntsctint = 56, ntschue = 72;
   FCEUI_SetNTSCTH(ntsccol, ntsctint, ntschue);
 
   // Set NTSC (1 = pal)
@@ -164,7 +161,7 @@ Emulator *Emulator::Create(const string &romfile) {
   // int erendlinev[2]={231,239};
 
   // Defaults.
-  const int scanlinestart = 0, scanlineend = 239;
+  constexpr int scanlinestart = 0, scanlineend = 239;
 
   FCEUI_SetRenderedLines(scanlinestart + 8, scanlineend - 8, 
 			 scanlinestart, scanlineend);
@@ -172,10 +169,8 @@ Emulator *Emulator::Create(const string &romfile) {
 
   // XXX
   {
-    extern int input_display, movieSubtitles;
+    extern int input_display;
     input_display = 0;
-    extern int movieSubtitles;
-    movieSubtitles = 0;
   }
 
   // Load the game.
@@ -202,7 +197,7 @@ void Emulator::Step(uint8 inputs) {
   joydata = (uint32) inputs;
 
   // Limited ability to skip video and sound.
-  const int SKIP_VIDEO_AND_SOUND = 2;
+  constexpr int SKIP_VIDEO_AND_SOUND = 2;
 
   // Emulate a single frame.
   FCEUI_Emulate(nullptr, &sound, &ssize, SKIP_VIDEO_AND_SOUND);
@@ -214,7 +209,7 @@ void Emulator::StepFull(uint8 inputs) {
   joydata = (uint32) inputs;
 
   // Run the video and sound as well.
-  const int DO_VIDEO_AND_SOUND = 0;
+  constexpr int DO_VIDEO_AND_SOUND = 0;
 
   // Emulate a single frame.
   FCEUI_Emulate(nullptr, &sound, &ssize, DO_VIDEO_AND_SOUND);

@@ -796,15 +796,6 @@ void AddExState(void *v, uint32 s, int type, char *desc) {
   SFMDATA[SFEXINDEX].v=0;		// End marker.
 }
 
-void FCEUI_SelectStateNext(int n)
-{
-	if(n>0)
-		CurrentState=(CurrentState+1)%10;
-	else
-		CurrentState=(CurrentState+9)%10;
-	FCEUI_SelectState(CurrentState, 1);
-}
-
 int FCEUI_SelectState(int w, int show)
 {
 	FCEUSS_CheckStates();

@@ -31,6 +31,12 @@ int closeFinishedMovie = 0;
 
 int gametype = 0;
 
+// Not clear who owns this; input/movie/fceu? But we need a decl somewhere.
+unsigned int lagCounter = 0;
+void LagCounterReset() {
+  lagCounter = 0;
+}
+
 /**
  * Prints an error string to STDOUT.
  */
@@ -206,25 +212,3 @@ void FCEUD_TraceInstruction(unsigned char*, int) {}
  * video (XBuf) and audio (Buffer) information.
  */
 void FCEUD_Update(uint8 *XBuf, int32 *Buffer, int Count) {}
-
-/**
- * Get the time in ticks.
- */
-uint64 FCEUD_GetTime() {
-  //	return SDL_GetTicks();
-  fprintf(stderr, "(FCEUD_GetTime) In headless mode, nothing should "
-	  "try to do timing.\n");
-  abort();
-  return 0;
-}
-
-/**
- * Get the tick frequency in Hz.
- */
-uint64 FCEUD_GetTimeFreq(void) {
-  // SDL_GetTicks() is in milliseconds
-  fprintf(stderr, "(FCEUD_GetTimeFreq) In headless mode, nothing should "
-	  "try to do timing.\n");
-  abort();
-  return 1000;
-}

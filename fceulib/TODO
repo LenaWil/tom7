@@ -10,6 +10,7 @@ Stuff I should be able to get rid of:
  - movie.*
  - video.cc can probably go?
  - archives
+ - autosave
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.
@@ -27,3 +28,25 @@ Possible performance improvements:
    perhaps in a special case? Currently ARead is populated with a bunch
    of function pointers (including special regions installed by various
    mappers and cart types.)
+
+
+Notes:
+"CDLogger" is "code data logger", and I have deemed it unnecessary
+
+Helper snippets:
+
+alias files='find . -type f | grep -v .svn | grep -v ".o$"'
+(defun find-mentions () 
+ (interactive "")
+ (let* ((sym (thing-at-point 'symbol))
+        (cmd (concat "bash -c \"grep '"
+	             sym 
+		     "' `/bin/find . -type f | grep -v .svn | grep -v '.o$'`\""))
+        (res (shell-command-to-string cmd))
+       )    
+   (message (concat cmd "\n" res))
+;   (message res)
+ )
+)
+
+// (global-set-key "\C-xm" 'find-mentions)
