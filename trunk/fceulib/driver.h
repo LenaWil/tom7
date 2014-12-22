@@ -32,31 +32,6 @@ void FCEUD_GetPalette(uint8 i,uint8 *r, uint8 *g, uint8 *b);
 void FCEUD_PrintError(const char *s);
 void FCEUD_Message(const char *s);
 
-//Network interface
-
-//Call only when a game is loaded.
-int FCEUI_NetplayStart(int nlocal, int divisor);
-
-// Call when network play needs to stop.
-void FCEUI_NetplayStop(void);
-
-//Note:  YOU MUST NOT CALL ANY FCEUI_* FUNCTIONS WHILE IN FCEUD_SendData() or FCEUD_RecvData().
-
-//Return 0 on failure, 1 on success.
-int FCEUD_SendData(void *data, uint32 len);
-int FCEUD_RecvData(void *data, uint32 len);
-
-//Display text received over the network.
-void FCEUD_NetplayText(uint8 *text);
-
-//Encode and send text over the network.
-void FCEUI_NetplayText(uint8 *text);
-
-//Called when a fatal error occurred and network play can't continue.  This function
-//should call FCEUI_NetplayStop() after it has deinitialized the network on the driver
-//side.
-void FCEUD_NetworkClose(void);
-
 bool FCEUI_BeginWaveRecord(const char *fn);
 int FCEUI_EndWaveRecord(void);
 
@@ -171,25 +146,6 @@ void FCEUI_SaveSnapshotAs(void);
 void FCEU_DispMessage(char *format, int disppos, ...);
 #define FCEUI_DispMessage FCEU_DispMessage
 
-// int FCEUI_DecodePAR(const char *code, int *a, int *v, int *c, int *type);
-// int FCEUI_DecodeGG(const char *str, int *a, int *v, int *c);
-// int FCEUI_AddCheat(const char *name, uint32 addr, uint8 val, int compare, int type);
-// int FCEUI_DelCheat(uint32 which);
-// int FCEUI_ToggleCheat(uint32 which);
-
-int32 FCEUI_CheatSearchGetCount(void);
-void FCEUI_CheatSearchGetRange(uint32 first, uint32 last, int (*callb)(uint32 a, uint8 last, uint8 current));
-void FCEUI_CheatSearchGet(int (*callb)(uint32 a, uint8 last, uint8 current, void *data), void *data);
-void FCEUI_CheatSearchBegin(void);
-void FCEUI_CheatSearchEnd(int type, uint8 v1, uint8 v2);
-void FCEUI_ListCheats(int (*callb)(char *name, uint32 a, uint8 v, int compare, int s, int type, void *data), void *data);
-
-int FCEUI_GetCheat(uint32 which, char **name, uint32 *a, uint8 *v, int *compare, int *s, int *type);
-int FCEUI_SetCheat(uint32 which, const char *name, int32 a, int32 v, int compare,int s, int type);
-
-void FCEUI_CheatSearchShowExcluded(void);
-void FCEUI_CheatSearchSetCurrentAsOriginal(void);
-
 //.rom
 // These are file types for FCEU_GetPath. Probably don't need it. -tom7
 #define FCEUIOD_ROMS    0       //Roms
@@ -208,14 +164,12 @@ void FCEUI_CheatSearchSetCurrentAsOriginal(void);
 
 void FCEUI_SetDirOverride(int which, char *n);
 
-void FCEUI_MemDump(uint16 a, int32 len, void (*callb)(uint16 a, uint8 v));
-
 void FCEUI_NMI(void);
 void FCEUI_IRQ(void);
 // uint16 FCEUI_Disassemble(void *XA, uint16 a, char *stringo);
 void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi);
 
-uint32 FCEUI_CRC32(uint32 crc, uint8 *buf, uint32 len);
+// uint32 FCEUI_CRC32(uint32 crc, uint8 *buf, uint32 len);
 
 void FCEUI_ToggleTileView(void);
 void FCEUI_SetLowPass(int q);

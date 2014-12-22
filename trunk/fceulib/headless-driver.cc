@@ -127,13 +127,6 @@ void FCEUD_LoadStateFrom() {
   // FCEUI_LoadState("FAKE");
 }
 
-void FCEUD_MovieRecordTo() {
-  abort();
-  // FCEUI_SaveMovie ("FAKEMOVIE", MOVIE_FLAG_FROM_POWERON, NULL);
-}
-
-void FCEUD_SoundToggle() {}
-
 // for movie playback?
 void FCEUD_SetInput (bool fourscore, bool microphone,
 		     ESI port0, ESI port1, ESIFC fcexp) {
@@ -141,23 +134,6 @@ void FCEUD_SetInput (bool fourscore, bool microphone,
 }
 
 int FCEUDnetplay=0;
-
-int FCEUD_NetworkConnect(void) {
-  abort();
-}
-
-int FCEUD_SendData(void *data, uint32 len) {
-  abort();
-}
-
-int FCEUD_RecvData(void *data, uint32 len) {
-  abort();
-  return 0;
-}
-
-void FCEUD_NetworkClose(void) {}
-
-void FCEUD_NetplayText(uint8 *text) {}
 
 namespace {
 struct Color {

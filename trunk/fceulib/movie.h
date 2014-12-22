@@ -14,42 +14,6 @@
 
 struct FCEUFILE;
 
-enum EMOVIE_FLAG
-{
-	MOVIE_FLAG_NONE = 0,
-
-	//an ARCHAIC flag which means the movie was recorded from a soft reset.
-	//WHY would you do this?? do not create any new movies with this flag
-	MOVIE_FLAG_FROM_RESET = (1<<1),
-
-	MOVIE_FLAG_PAL = (1<<2),
-
-	//movie was recorded from poweron. the alternative is from a savestate (or from reset)
-	MOVIE_FLAG_FROM_POWERON = (1<<3),
-
-	// set in newer version, used for old movie compatibility
-	//TODO - only use this flag to print a warning that the sync might be bad
-	//so that we can get rid of the sync hack code
-	MOVIE_FLAG_NOSYNCHACK = (1<<4)
-};
-
-struct MOVIE_INFO {
-  int movie_version;					// version of the movie format in the file
-  uint32 num_frames;
-  uint32 rerecord_count;
-  bool poweron, pal, nosynchack, ppuflag;
-  //mbg 6/21/08 - this flag isnt used anymore.. but maybe one day we can scan it out of the first record in the movie file
-  bool reset;
-  uint32 emu_version_used;				// 9813 = 0.98.13
-  MD5DATA md5_of_rom_used;
-  std::string name_of_rom_used;
-
-  // these are always stripped -tom7
-  std::vector<std::string> comments;
-  std::vector<std::string> subtitles;
-};
-
-
 void FCEUMOV_AddInputState();
 void FCEUMOV_AddCommand(int cmd);
 void FCEU_DrawMovies(uint8 *);
@@ -259,27 +223,6 @@ extern bool fullSaveStateLoads;
 //--------------------------------------------------
 void FCEUI_MakeBackupMovie(bool dispMessage);
 void FCEUI_CreateMovieFile(std::string fn);
-void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::string author);
-bool FCEUI_LoadMovie(const char *fname, bool read_only, int _stopframe);
-void FCEUI_MoviePlayFromBeginning(void);
 void FCEUI_StopMovie(void);
-bool FCEUI_MovieGetInfo(FCEUFILE* fp, MOVIE_INFO& info, bool skipFrameCount = false);
-//char* FCEUI_MovieGetCurrentName(int addSlotNumber);
-void FCEUI_MovieToggleReadOnly(void);
-bool FCEUI_GetMovieToggleReadOnly();
-void FCEUI_SetMovieToggleReadOnly(bool which);
-int FCEUI_GetMovieLength();
-int FCEUI_GetMovieRerecordCount();
-std::string FCEUI_GetMovieName(void);
-void FCEUI_MovieToggleFrameDisplay();
-void FCEUI_MovieToggleRerecordDisplay();
-void FCEUI_ToggleInputDisplay(void);
-
-void LoadSubtitles(MovieData &);
-void ProcessSubtitles(void);
-void FCEU_DisplaySubtitles(char *format, ...);
-
-void poweron(bool shouldDisableBatteryLoading);
-
 
 #endif //__MOVIE_H_

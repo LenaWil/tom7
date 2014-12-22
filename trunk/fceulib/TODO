@@ -11,6 +11,7 @@ Stuff I should be able to get rid of:
  - video.cc can probably go?
  - archives
  - autosave (fceu.cc mostly)
+ - fceu.cc EmulationPaused
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.
