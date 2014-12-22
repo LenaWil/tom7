@@ -111,16 +111,12 @@ void FCEUI_AviVideoUpdate(const unsigned char* buffer) { }
 int FCEUD_ShowStatusIcon(void) {return 0;}
 bool FCEUI_AviIsRecording(void) {return false;}
 void FCEUI_UseInputPreset(int preset) { }
-bool FCEUD_PauseAfterPlayback() { return false; }
 
 ArchiveScanRecord FCEUD_ScanArchive(std::string fname) {
   return ArchiveScanRecord(); 
 }
 
 // tom7 dummy
-void FCEUD_VideoChanged() {}
-void FCEUD_SetEmulationSpeed(int) {}
-void FCEUD_SoundVolumeAdjust(int) {}
 
 void FCEUD_SaveStateAs() {
   abort();
@@ -198,14 +194,6 @@ bool FCEUD_ShouldDrawInputAids() { return false; }
 unsigned int *GetKeyboard() {
   abort();
 }
-
-void FCEUD_TurboOn() {  }
-void FCEUD_TurboOff() { }
-void FCEUD_TurboToggle() { }
-
-void FCEUD_DebugBreakpoint(int bp_num) {}
-void FCEUD_TraceInstruction(unsigned char*, int) {}
-
 
 /**
  * Update the video, audio, and input subsystems with the provided
