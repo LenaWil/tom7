@@ -47,8 +47,6 @@ extern  uint8  *RAM;            //shared memory modifications
 extern  uint8  *GameMemBlock;   //shared memory modifications
 extern int EmulationPaused;
 
-uint8 FCEU_ReadRomByte(uint32 i);
-
 extern readfunc ARead[0x10000];
 extern writefunc BWrite[0x10000];
 
@@ -98,9 +96,6 @@ struct FCEUS {
   int lowpass;
 };
 
-int FCEU_TextScanlineOffset(int y);
-int FCEU_TextScanlineOffsetFromBottom(int y);
-
 extern FCEUS FSettings;
 
 bool CheckFileExists(const char* filename);     //Receives a filename (fullpath) and checks to see if that file exists
@@ -132,3 +127,6 @@ extern uint8 vsdip;
 #endif
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
+
+///returns a flag indicating whether emulation is paused
+int FCEUI_EmulationPaused();

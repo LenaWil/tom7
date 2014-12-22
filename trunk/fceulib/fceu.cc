@@ -59,9 +59,6 @@ bool justLagged = false;
 // If this is true, frame advance will skip over lag frame
 // (i.e. it will emulate 2 frames instead of 1)
 static constexpr bool frameAdvanceLagSkip = false;
-// Flagged true when the first auto-savestate is made while a game is
-// loaded, flagged false on game close
-static constexpr bool AutoSS = false;
 
 FCEUGI::FCEUGI() { }
 
@@ -86,9 +83,9 @@ bool CheckFileExists(const char* filename) {
 }
 
 static void FCEU_CloseGame() {
-  if(GameInfo) {
+  if (GameInfo) {
 
-    if(GameInfo->name) {
+    if (GameInfo->name) {
       free(GameInfo->name);
       GameInfo->name=0;
     }
@@ -158,7 +155,7 @@ static DECLFR(ANull)
 
 readfunc GetReadHandler(int32 a)
 {
-	if(a>=0x8000 && RWWrap)
+	if (a>=0x8000 && RWWrap)
 		return AReadG[a-0x8000];
 	else
 		return ARead[a];
@@ -166,13 +163,13 @@ readfunc GetReadHandler(int32 a)
 void SetReadHandler(int32 start, int32 end, readfunc func)
 {
 	int32 x;
-	if(!func)
+	if (!func)
 		func=ANull;
 
-	if(RWWrap)
+	if (RWWrap)
 		for(x=end;x>=start;x--)
 		{
-			if(x>=0x8000)
+			if (x>=0x8000)
 				AReadG[x-0x8000]=func;
 			else
 				ARead[x]=func;
@@ -185,7 +182,7 @@ void SetReadHandler(int32 start, int32 end, readfunc func)
 
 writefunc GetWriteHandler(int32 a)
 {
-	if(RWWrap && a>=0x8000)
+	if (RWWrap && a>=0x8000)
 		return BWriteG[a-0x8000];
 	else
 		return BWrite[a];
@@ -195,13 +192,13 @@ void SetWriteHandler(int32 start, int32 end, writefunc func)
 {
 	int32 x;
 
-	if(!func)
+	if (!func)
 		func=BNull;
 
-	if(RWWrap)
+	if (RWWrap)
 		for(x=end;x>=start;x--)
 		{
-			if(x>=0x8000)
+			if (x>=0x8000)
 				BWriteG[x-0x8000]=func;
 			else
 				BWrite[x]=func;
@@ -255,14 +252,14 @@ static DECLFR(ARAMH)
 
 void ResetGameLoaded()
 {
-	if(GameInfo) FCEU_CloseGame();
+	if (GameInfo) FCEU_CloseGame();
 	EmulationPaused = 0; //mbg 5/8/08 - loading games while paused was bad news. maybe this fixes it
 	GameStateRestore=0;
 	PPU_hook=0;
 	GameHBIRQHook=0;
 	FFCEUX_PPURead = 0;
 	FFCEUX_PPUWrite = 0;
-	if(GameExpSound.Kill)
+	if (GameExpSound.Kill)
 		GameExpSound.Kill();
 	memset(&GameExpSound,0,sizeof(GameExpSound));
 	MapIRQHook=0;
@@ -279,111 +276,107 @@ int NSFLoad(const char *name, FCEUFILE *fp);
 //char lastLoadedGameName [2048] = {0,}; // hack for movie WRAM clearing on record from poweron
 
 
-FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode)
-{
-	//mbg merge 7/17/07 - why is this here
-	//#ifdef WIN32
-	//	StopSound();
-	//#endif
+FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
+  //----------
+  //attempt to open the files
+  FCEUFILE *fp;
 
-	//----------
-	//attempt to open the files
-	FCEUFILE *fp;
+  FCEU_printf("Loading %s...\n\n",name);
 
-	FCEU_printf("Loading %s...\n\n",name);
+  const char* romextensions[] = {"nes","fds",0};
+  fp=FCEU_fopen(name,"rb",0,-1,romextensions);
 
-	const char* romextensions[] = {"nes","fds",0};
-	fp=FCEU_fopen(name,"rb",0,-1,romextensions);
+  if (!fp) {
+    FCEU_PrintError("Error opening \"%s\"!",name);
+    return 0;
+  }
 
-	if(!fp) {
-		FCEU_PrintError("Error opening \"%s\"!",name);
-		return 0;
-	}
+  GetFileBase(fp->filename.c_str());
+  //---------
 
-	GetFileBase(fp->filename.c_str());
-	//---------
+  //file opened ok. start loading.
 
-	//file opened ok. start loading.
+  ResetGameLoaded();
 
-	ResetGameLoaded();
+  // reset parameters so theyre cleared just in case a format's loader
+  // doesnt know to do the clearing
+  MasterRomInfoParams = TMasterRomInfoParams();
 
-	//reset parameters so theyre cleared just in case a format's loader doesnt know to do the clearing
-	MasterRomInfoParams = TMasterRomInfoParams();
+  if (!AutosaveStatus)
+    AutosaveStatus = (int*)malloc(sizeof(int)*AutosaveQty);
+  for (AutosaveIndex=0; AutosaveIndex<AutosaveQty; ++AutosaveIndex)
+    AutosaveStatus[AutosaveIndex] = 0;
 
-	if (!AutosaveStatus)
-		AutosaveStatus = (int*)malloc(sizeof(int)*AutosaveQty);
-	for (AutosaveIndex=0; AutosaveIndex<AutosaveQty; ++AutosaveIndex)
-		AutosaveStatus[AutosaveIndex] = 0;
+  FCEU_CloseGame();
+  GameInfo = new FCEUGI();
+  memset(GameInfo, 0, sizeof(FCEUGI));
 
-	FCEU_CloseGame();
-	GameInfo = new FCEUGI();
-	memset(GameInfo, 0, sizeof(FCEUGI));
+  GameInfo->filename = strdup(fp->filename.c_str());
+  if (fp->archiveFilename != "")
+    GameInfo->archiveFilename = strdup(fp->archiveFilename.c_str());
+  GameInfo->archiveCount = fp->archiveCount;
 
-	GameInfo->filename = strdup(fp->filename.c_str());
-	if(fp->archiveFilename != "") GameInfo->archiveFilename = strdup(fp->archiveFilename.c_str());
-	GameInfo->archiveCount = fp->archiveCount;
+  GameInfo->soundchan = 0;
+  GameInfo->soundrate = 0;
+  GameInfo->name=0;
+  GameInfo->type=GIT_CART;
+  GameInfo->vidsys=GIV_USER;
+  GameInfo->input[0]=GameInfo->input[1]=SI_UNSET;
+  GameInfo->inputfc=SIFC_UNSET;
+  GameInfo->cspecial=SIS_NONE;
 
-	GameInfo->soundchan = 0;
-	GameInfo->soundrate = 0;
-	GameInfo->name=0;
-	GameInfo->type=GIT_CART;
-	GameInfo->vidsys=GIV_USER;
-	GameInfo->input[0]=GameInfo->input[1]=SI_UNSET;
-	GameInfo->inputfc=SIFC_UNSET;
-	GameInfo->cspecial=SIS_NONE;
+  //try to load each different format
+  bool FCEUXLoad(const char *name, FCEUFILE *fp);
+  /*if (FCEUXLoad(name,fp))
+    goto endlseq;*/
+  if (iNESLoad(name,fp,OverwriteVidMode))
+    goto endlseq;
+  if (UNIFLoad(name,fp))
+    goto endlseq;
+  if (FDSLoad(name,fp))
+    goto endlseq;
 
-	//try to load each different format
-	bool FCEUXLoad(const char *name, FCEUFILE *fp);
-	/*if(FCEUXLoad(name,fp))
-		goto endlseq;*/
-	if(iNESLoad(name,fp,OverwriteVidMode))
-		goto endlseq;
-	if(UNIFLoad(name,fp))
-		goto endlseq;
-	if(FDSLoad(name,fp))
-		goto endlseq;
+  FCEU_PrintError("An error occurred while loading the file.");
+  FCEU_fclose(fp);
 
-	FCEU_PrintError("An error occurred while loading the file.");
-	FCEU_fclose(fp);
+  delete GameInfo;
+  GameInfo = 0;
 
-	delete GameInfo;
-	GameInfo = 0;
+  return 0;
 
-	return 0;
+ endlseq:
 
-endlseq:
-
-	FCEU_fclose(fp);
+  FCEU_fclose(fp);
 
 #ifdef WIN32
 #ifndef NOWINSTUFF
-// ################################## Start of SP CODE ###########################
-		extern char LoadedRomFName[2048];
-		extern int loadDebugDataFailed;
+  // ################################## Start of SP CODE ###########################
+  extern char LoadedRomFName[2048];
+  extern int loadDebugDataFailed;
 
-		if ((loadDebugDataFailed = loadPreferences(LoadedRomFName)))
-			FCEU_printf("Couldn't load debugging data.\n");
+  if ((loadDebugDataFailed = loadPreferences(LoadedRomFName)))
+    FCEU_printf("Couldn't load debugging data.\n");
 
-// ################################## End of SP CODE ###########################
+  // ################################## End of SP CODE ###########################
 #endif
 #endif
 
-	FCEU_ResetVidSys();
+  FCEU_ResetVidSys();
 
-	PowerNES();
+  PowerNES();
 
-	FCEU_LoadGamePalette();
+  FCEU_LoadGamePalette();
 
-	FCEU_ResetPalette();
-	FCEU_ResetMessages();	// Save state, status messages, etc.
+  FCEU_ResetPalette();
+  FCEU_ResetMessages();	// Save state, status messages, etc.
 
 #if defined (WIN32) || defined (WIN64)
 #ifndef NOWINSTUFF
-	DoDebuggerDataReload(); // Reloads data without reopening window
+  DoDebuggerDataReload(); // Reloads data without reopening window
 #endif
 #endif
 
-	return GameInfo;
+  return GameInfo;
 }
 
 FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode)
@@ -397,7 +390,7 @@ bool FCEUI_Initialize()
 {
 	srand(time(0));
 
-	if(!FCEU_InitVirtualVideo())
+	if (!FCEU_InitVirtualVideo())
 	{
 		return false;
 	}
@@ -490,10 +483,8 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
     *SoundBufSize=ssize;
   }
 
-  if (EmulationPaused&2 && ( !frameAdvanceLagSkip || !lagFlag) ) {
-    // Lots of conditions here.  EmulationPaused&2 must be true.
-    // In addition frameAdvanceLagSkip or lagFlag must be false
-
+  // This logic has become basically degenerate -tom7
+  if (EmulationPaused & 2) {
     EmulationPaused = 1;		   // restore paused flag
   }
 
@@ -507,7 +498,7 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
 }
 
 void FCEUI_CloseGame() {
-  if(!FCEU_IsValidUI(FCEUI_CLOSEGAME))
+  if (!FCEU_IsValidUI(FCEUI_CLOSEGAME))
     return;
 
   FCEU_CloseGame();
@@ -515,7 +506,7 @@ void FCEUI_CloseGame() {
 
 void ResetNES() {
   // FCEUMOV_AddCommand(FCEUNPCMD_RESET);
-  if(!GameInfo) return;
+  if (!GameInfo) return;
   GameInterface(GI_RESETM2);
   FCEUSND_Reset();
   FCEUPPU_Reset();
@@ -543,10 +534,10 @@ void PowerNES() {
   //void MapperInit();
   //MapperInit();
 
-  //if(!suppressAddPowerCommand)
+  //if (!suppressAddPowerCommand)
   // FCEUMOV_AddCommand(FCEUNPCMD_POWER);
 
-  if(!GameInfo) return;
+  if (!GameInfo) return;
 
   // FCEU_CheatResetRAM();
   // FCEU_CheatAddRAM(2,0,RAM);
@@ -569,12 +560,12 @@ void PowerNES() {
   // Have the external game hardware "powered" after the internal NES
   // stuff. Needed for the NSF code and VS System code.
   GameInterface(GI_POWER);
-  if(GameInfo->type==GIT_VSUNI)
+  if (GameInfo->type==GIT_VSUNI)
     FCEU_VSUniPower();
 
   // if we are in a movie, then reset the saveram
   extern int disableBatteryLoading;
-  if(disableBatteryLoading)
+  if (disableBatteryLoading)
     GameInterface(GI_RESETSAVE);
 
   timestampbase = 0;
@@ -591,9 +582,9 @@ void PowerNES() {
 void FCEU_ResetVidSys() {
   int w;
 
-  if(GameInfo->vidsys==GIV_NTSC)
+  if (GameInfo->vidsys==GIV_NTSC)
     w = 0;
-  else if(GameInfo->vidsys==GIV_PAL)
+  else if (GameInfo->vidsys==GIV_PAL)
     w = 1;
   else
     w = FSettings.PAL;
@@ -636,7 +627,7 @@ void FCEUI_SetRenderedLines(int ntscf, int ntscl, int palf, int pall) {
   FSettings.UsrLastSLine[0]=ntscl;
   FSettings.UsrFirstSLine[1]=palf;
   FSettings.UsrLastSLine[1]=pall;
-  if(PAL) {
+  if (PAL) {
     FSettings.FirstSLine=FSettings.UsrFirstSLine[1];
     FSettings.LastSLine=FSettings.UsrLastSLine[1];
   } else {
@@ -648,7 +639,7 @@ void FCEUI_SetRenderedLines(int ntscf, int ntscl, int palf, int pall) {
 
 void FCEUI_SetVidSystem(int a) {
   FSettings.PAL=a?1:0;
-  if(GameInfo) {
+  if (GameInfo) {
     FCEU_ResetVidSys();
     FCEU_ResetPalette();
   }
@@ -656,9 +647,9 @@ void FCEUI_SetVidSystem(int a) {
 
 int FCEUI_GetCurrentVidSystem(int *slstart, int *slend)
 {
-	if(slstart)
+	if (slstart)
 		*slstart=FSettings.FirstSLine;
-	if(slend)
+	if (slend)
 		*slend=FSettings.LastSLine;
 	return(PAL);
 }
@@ -684,23 +675,8 @@ void FCEUI_ClearEmulationFrameStepped()
 	EmulationPaused &=~2;
 }
 
-//mbg merge 7/18/06 added
-//ideally maybe we shouldnt be using this, but i need it for quick merging
-void FCEUI_SetEmulationPaused(int val)
-{
-	EmulationPaused = val;
-}
-
 void FCEUI_ToggleEmulationPause() {
   EmulationPaused = (EmulationPaused&1)^1;
-}
-
-int FCEU_TextScanlineOffset(int y) {
-  return FSettings.FirstSLine*256;
-}
-
-int FCEU_TextScanlineOffsetFromBottom(int y) {
-  return (FSettings.LastSLine-y)*256;
 }
 
 bool FCEU_IsValidUI(EFCEUI ui)
@@ -709,7 +685,7 @@ bool FCEU_IsValidUI(EFCEUI ui)
 	{
 	case FCEUI_OPENGAME:
 	case FCEUI_CLOSEGAME:
-		if(FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) return false;
+		if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) return false;
 		break;
 	case FCEUI_RECORDMOVIE:
 	case FCEUI_PLAYMOVIE:
@@ -720,8 +696,8 @@ bool FCEU_IsValidUI(EFCEUI ui)
 	case FCEUI_NEXTSAVESTATE:
 	case FCEUI_PREVIOUSSAVESTATE:
 	case FCEUI_VIEWSLOTS:
-		if(!GameInfo) return false;
-		if(FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) return false;
+		if (!GameInfo) return false;
+		if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) return false;
 		break;
 
 	case FCEUI_STOPMOVIE:
@@ -734,148 +710,18 @@ bool FCEU_IsValidUI(EFCEUI ui)
 		return FCEUI_AviIsRecording();
 
 	case FCEUI_TASEDITOR:
-		if(!GameInfo) return false;
+		if (!GameInfo) return false;
 		break;
 
 	case FCEUI_RESET:
 	case FCEUI_POWER:
 	case FCEUI_EJECT_DISK:
 	case FCEUI_SWITCH_DISK:
-		if(!GameInfo) return false;
-		if(FCEUMOV_Mode(MOVIEMODE_RECORD)) return true;
-#ifdef WIN32
-#ifndef NOWINSTUFF
-		if(FCEUMOV_Mode(MOVIEMODE_TASEDITOR) && TaseditorIsRecording()) return true;
-#endif
-#endif
-		if(!FCEUMOV_Mode(MOVIEMODE_INACTIVE)) return false;
+		if (!GameInfo) return false;
+		if (FCEUMOV_Mode(MOVIEMODE_RECORD)) return true;
+		if (!FCEUMOV_Mode(MOVIEMODE_INACTIVE)) return false;
 		break;
 
 	}
 	return true;
-}
-
-//---------------------
-//experimental new mapper and ppu system follows
-
-class FCEUXCart {
-public:
-	int mirroring;
-	int chrPages, prgPages;
-	uint32 chrSize, prgSize;
-	char* CHR, *PRG;
-
-	FCEUXCart()
-		: CHR(0)
-		, PRG(0)
-	{}
-
-	~FCEUXCart() {
-		if(CHR) delete[] CHR;
-		if(PRG) delete[] PRG;
-	}
-
-	virtual void Power() {
-	}
-
-protected:
-	//void SetReadHandler(int32 start, int32 end, readfunc func) {
-};
-
-FCEUXCart* cart = 0;
-
-//uint8 Read_ByteFromRom(uint32 A) {
-//	if(A>=cart->prgSize) return 0xFF;
-//	return cart->PRG[A];
-//}
-//
-//uint8 Read_Unmapped(uint32 A) {
-//	return 0xFF;
-//}
-
-
-
-class NROM : FCEUXCart {
-public:
-	virtual void Power() {
-		SetReadHandler(0x8000,0xFFFF,CartBR);
-		setprg16(0x8000,0);
-		setprg16(0xC000,~0);
-		setchr8(0);
-
-		vnapage[0] = NTARAM;
-		vnapage[2] = NTARAM;
-		vnapage[1] = NTARAM+0x400;
-		vnapage[3] = NTARAM+0x400;
-		PPUNTARAM=0xF;
-	}
-};
-
-void FCEUXGameInterface(GI command) {
-  switch(command) {
-  case GI_POWER:
-    cart->Power();
-  default:;
-  }
-}
-
-
-
-bool FCEUXLoad(const char *name, FCEUFILE *fp) {
-  //read ines header
-  iNES_HEADER head;
-  if(FCEU_fread(&head,1,16,fp)!=16)
-    return false;
-
-  //validate header
-  if(memcmp(&head,"NES\x1a",4))
-    return 0;
-
-  int mapper = (head.ROM_type>>4);
-  mapper |= (head.ROM_type2&0xF0);
-
-  //choose what kind of cart to use.
-  cart = (FCEUXCart*)new NROM();
-
-  //fceu ines loading code uses 256 here when the romsize is 0.
-  cart->prgPages = head.ROM_size;
-  if(cart->prgPages == 0) {
-    printf("FCEUX: received zero prgpages\n");
-    cart->prgPages = 256;
-  }
-
-  cart->chrPages = head.VROM_size;
-
-  cart->mirroring = (head.ROM_type&1);
-  if(head.ROM_type&8) cart->mirroring=2;
-
-  //skip trainer
-  bool hasTrainer = (head.ROM_type&4)!=0;
-  if(hasTrainer) {
-    FCEU_fseek(fp,512,SEEK_CUR);
-  }
-
-  //load data
-  cart->prgSize = cart->prgPages*16*1024;
-  cart->chrSize = cart->chrPages*8*1024;
-  cart->PRG = new char[cart->prgSize];
-  cart->CHR = new char[cart->chrSize];
-  FCEU_fread(cart->PRG,1,cart->prgSize,fp);
-  FCEU_fread(cart->CHR,1,cart->chrSize,fp);
-
-  //setup the emulator
-  GameInterface=FCEUXGameInterface;
-  ResetCartMapping();
-  SetupCartPRGMapping(0,(uint8*)cart->PRG,cart->prgSize,0);
-  SetupCartCHRMapping(0,(uint8*)cart->CHR,cart->chrSize,0);
-
-  return true;
-}
-
-uint8 FCEU_ReadRomByte(uint32 i) {
-  extern iNES_HEADER head;
-  if(i < 16) return *((unsigned char *)&head+i);
-  if(i < 16+PRGsize[0])return PRGptr[0][i-16];
-  if(i < 16+PRGsize[0]+CHRsize[0])return CHRptr[0][i-16-PRGsize[0]];
-  return 0;
 }
