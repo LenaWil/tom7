@@ -55,14 +55,13 @@
 
 using namespace std;
 
-int AFoff = 1, AutoFireOffset = 0; //For keeping track of autofire settings
 bool justLagged = false;
 // If this is true, frame advance will skip over lag frame
 // (i.e. it will emulate 2 frames instead of 1)
 static constexpr bool frameAdvanceLagSkip = false;
 // Flagged true when the first auto-savestate is made while a game is
 // loaded, flagged false on game close
-bool AutoSS = false;
+static constexpr bool AutoSS = false;
 
 FCEUGI::FCEUGI() { }
 
@@ -119,7 +118,6 @@ static void FCEU_CloseGame() {
     lastLoadstateMade[0] = 0;
     undoLS = false;
     redoLS = false;
-    AutoSS = false;
   }
 }
 
@@ -147,9 +145,6 @@ static int *AutosaveStatus; //is it safe to load Auto-savestate
 static int AutosaveIndex = 0; //which Auto-savestate we're on
 int AutosaveQty = 4; // Number of Autosaves to store
 int AutosaveFrequency = 256; // Number of frames between autosaves
-
-// Flag that indicates whether the Auto-save option is enabled or not
-int EnableAutosave = 0;
 
 static DECLFW(BNull)
 {
