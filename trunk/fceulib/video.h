@@ -10,8 +10,6 @@ extern uint8 *XBackBuf;
 int FCEU_InitVirtualVideo(void);
 void FCEU_KillVirtualVideo(void);
 
-uint32 GetScreenPixel(int x, int y, bool usebackup);
-int GetScreenPixelPalette(int x, int y, bool usebackup);
 extern int ClipSidesOffset;
 extern struct GUIMESSAGE
 {
@@ -30,7 +28,5 @@ extern struct GUIMESSAGE
 } guiMessage;
 
 extern GUIMESSAGE subtitleMessage;
-
-void snapAVI();
 
 #endif
