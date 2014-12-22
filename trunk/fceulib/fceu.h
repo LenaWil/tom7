@@ -24,8 +24,6 @@ void ResetMapping(void);
 void ResetNES(void);
 void PowerNES(void);
 
-void SetAutoFireOffset(int offset);
-void SetAutoFirePattern(int onframes, int offframes);
 void AutoFire(void);
 void FCEUI_Autosave(void);
 
