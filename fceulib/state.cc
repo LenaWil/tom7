@@ -41,7 +41,6 @@
 #include "state.h"
 #include "movie.h"
 #include "ppu.h"
-#include "netplay.h"
 #include "video.h"
 #include "input.h"
 #include "zlib.h"

@@ -1,31 +1,31 @@
 #define SQ2NCOEFFS 1024
 
-static const int32 SQ2C44100NTSC[SQ2NCOEFFS/2]=
+static constexpr int32 SQ2C44100NTSC[SQ2NCOEFFS/2]=
 {
  #include "fir/c44100ntsc.h"
 };
 
-static const int32 SQ2C48000NTSC[SQ2NCOEFFS/2]=
+static constexpr int32 SQ2C48000NTSC[SQ2NCOEFFS/2]=
 {
  #include "fir/c48000ntsc.h"
 };
 
-static const int32 SQ2C96000NTSC[SQ2NCOEFFS/2]=
+static constexpr int32 SQ2C96000NTSC[SQ2NCOEFFS/2]=
 {
  #include "fir/c96000ntsc.h"
 };
 
-static const int32 SQ2C44100PAL[SQ2NCOEFFS/2]=
+static constexpr int32 SQ2C44100PAL[SQ2NCOEFFS/2]=
 {
  #include "fir/c44100pal.h"
 };
 
-static const int32 SQ2C48000PAL[SQ2NCOEFFS/2]=
+static constexpr int32 SQ2C48000PAL[SQ2NCOEFFS/2]=
 {
  #include "fir/c48000pal.h"
 };
 
-static const int32 SQ2C96000PAL[SQ2NCOEFFS/2]=
+static constexpr int32 SQ2C96000PAL[SQ2NCOEFFS/2]=
 {
  #include "fir/c96000pal.h"
 };
@@ -46,7 +46,7 @@ Stopband attenuation: 103.0 dB
 
 Coefficients:
 */
-static const int32 C96000NTSC[NCOEFFS/2]=
+static constexpr int32 C96000NTSC[NCOEFFS/2]=
 {
 /*0*/ (int32)(65536*16*  -5.9950991853042605E-6)
 /*1*/, (int32)(65536*16*  -3.0394382502604395E-6)
@@ -305,7 +305,7 @@ Stopband attenuation: 114.0 dB
 Coefficients:
 */
 
-static const int32 C96000PAL[NCOEFFS/2]=
+static constexpr int32 C96000PAL[NCOEFFS/2]=
 {
 /*0*/ (int32)(65536*16*  3.850781559466991E-7)
 /*1*/, (int32)(65536*16*  -1.280019401722687E-6)
@@ -561,7 +561,7 @@ Passband ripple: 0.1 dB
 Transition band: 0.005625
 Stopband attenuation: 60.0 dB
 */
-static const int32 C48000NTSC[NCOEFFS/2]=
+static constexpr int32 C48000NTSC[NCOEFFS/2]=
 {
 /*0*/ (int32)( 65536*16*  -1.2211019733097893E-4)
 /*1*/ ,(int32)( 65536*16*  5.374660789759626E-4)
@@ -822,7 +822,7 @@ Stopband attenuation: 66.4 dB
 Coefficients:
 */
 
-static const int32 C44100NTSC[NCOEFFS/2]=
+static constexpr int32 C44100NTSC[NCOEFFS/2]=
 {
 /*0*/(int32)( 65536 *16 *  2.7250584077004043E-4)
 /*1*/,(int32)( 65536 *16 *  -5.6651407794062126E-5)
@@ -1080,7 +1080,7 @@ Stopband attenuation: 63.0 dB
 
 Coefficients:
 */
-static const int32 C48000PAL[NCOEFFS/2]=
+static constexpr int32 C48000PAL[NCOEFFS/2]=
 {
 /*0*/(int32)( 65536 *16 *  -4.8720337170268194E-4)
 /*1*/,(int32)( 65536 *16 *  7.629902642634879E-7)
@@ -1338,7 +1338,7 @@ Stopband attenuation: 60.5 dB
 
 Coefficients:
 */
-static const int32 C44100PAL[NCOEFFS/2]=
+static constexpr int32 C44100PAL[NCOEFFS/2]=
 {
 /*0*/(int32)( 65536 *16 *  5.793783958720019E-4)
 /*1*/,(int32)( 65536 *16 *  1.0571291666629312E-4)

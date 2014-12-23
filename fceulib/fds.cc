@@ -33,7 +33,6 @@
 #include "state.h"
 #include "file.h"
 #include "cart.h"
-#include "netplay.h"
 #include "driver.h"
 #include "movie.h"
 

@@ -34,7 +34,7 @@ THE SOFTWARE.
 #include <stdarg.h>
 #include <utility>
 
-#include "emufile_types.h"
+#include "types.h"
 
 #ifdef _MSC_VER
 #include <io.h>
@@ -42,12 +42,10 @@ THE SOFTWARE.
 
 class EMUFILE {
 protected:
-        bool failbit;
+  bool failbit = false;
 
 public:
-        EMUFILE()
-                : failbit(false)
-        {}
+  EMUFILE() {}
 
 
         //returns a new EMUFILE which is guranteed to be in memory. the EMUFILE you call this on may be deleted. use the returned EMUFILE in its place
@@ -55,7 +53,7 @@ public:
 
         virtual ~EMUFILE() {}
 
-        static bool readAllBytes(std::vector<u8>* buf, const std::string& fname);
+        static bool readAllBytes(std::vector<uint8>* buf, const std::string& fname);
 
         bool fail(bool unset=false) { bool ret = failbit; if(unset) unfail(); return ret; }
         void unfail() { failbit=false; }
@@ -90,21 +88,21 @@ public:
         size_t read64le(uint64* val);
         uint64 read64le();
         void write32le(uint32* val);
-        void write32le(s32* val) { write32le((uint32*)val); }
+        void write32le(int32* val) { write32le((uint32*)val); }
         void write32le(uint32 val);
         size_t read32le(uint32* val);
-        size_t read32le(s32* val);
+        size_t read32le(int32* val);
         uint32 read32le();
-        void write16le(u16* val);
-        void write16le(s16* val) { write16le((u16*)val); }
-        void write16le(u16 val);
-        size_t read16le(s16* Bufo);
-        size_t read16le(u16* val);
-        u16 read16le();
-        void write8le(u8* val);
-        void write8le(u8 val);
-        size_t read8le(u8* val);
-        u8 read8le();
+        void write16le(uint16* val);
+        void write16le(int16* val) { write16le((uint16*)val); }
+        void write16le(uint16 val);
+        size_t read16le(int16* Bufo);
+        size_t read16le(uint16* val);
+        uint16 read16le();
+        void write8le(uint8* val);
+        void write8le(uint8 val);
+        size_t read8le(uint8* val);
+        uint8 read8le();
         void writedouble(double* val);
         void writedouble(double val);
         double readdouble();
@@ -116,15 +114,15 @@ public:
         virtual int size() = 0;
         virtual void fflush() = 0;
 
-        virtual void truncate(s32 length) = 0;
+        virtual void truncate(int32 length) = 0;
 };
 
 //todo - handle read-only specially?
 class EMUFILE_MEMORY : public EMUFILE {
 protected:
-        std::vector<u8> *vec;
+        std::vector<uint8> *vec;
         bool ownvec;
-        s32 pos, len;
+        int32 pos, len;
 
         void reserve(uint32 amt) {
                 if(vec->size() < amt)
@@ -133,13 +131,13 @@ protected:
 
 public:
 
-        EMUFILE_MEMORY(std::vector<u8> *underlying) : vec(underlying), ownvec(false), pos(0), len((s32)underlying->size()) { }
-        EMUFILE_MEMORY(uint32 preallocate) : vec(new std::vector<u8>()), ownvec(true), pos(0), len(0) {
+        EMUFILE_MEMORY(std::vector<uint8> *underlying) : vec(underlying), ownvec(false), pos(0), len((int32)underlying->size()) { }
+        EMUFILE_MEMORY(uint32 preallocate) : vec(new std::vector<uint8>()), ownvec(true), pos(0), len(0) {
                 vec->resize(preallocate);
                 len = preallocate;
         }
-        EMUFILE_MEMORY() : vec(new std::vector<u8>()), ownvec(true), pos(0), len(0) { vec->reserve(1024); }
-        EMUFILE_MEMORY(void* buf, s32 size) : vec(new std::vector<u8>()), ownvec(true), pos(0), len(size) {
+        EMUFILE_MEMORY() : vec(new std::vector<uint8>()), ownvec(true), pos(0), len(0) { vec->reserve(1024); }
+        EMUFILE_MEMORY(void* buf, int32 size) : vec(new std::vector<uint8>()), ownvec(true), pos(0), len(size) {
                 vec->resize(size);
                 if(size != 0)
                         memcpy(&vec->front(),buf,size);
@@ -151,19 +149,19 @@ public:
 
         virtual EMUFILE* memwrap();
 
-        virtual void truncate(s32 length)
+        virtual void truncate(int32 length)
         {
                 vec->resize(length);
                 len = length;
                 if(pos>length) pos=length;
         }
 
-        u8* buf() {
+        uint8* buf() {
                 if(size()==0) reserve(1);
                 return &(*vec)[0];
         }
 
-        std::vector<u8>* get_vec() { return vec; };
+        std::vector<uint8>* get_vec() { return vec; };
 
         virtual FILE *get_fp() { return NULL; }
 
@@ -187,7 +185,7 @@ public:
         };
 
         virtual int fgetc() {
-                u8 temp;
+                uint8 temp;
 
                 //need an optimized codepath
                 //if(_fread(&temp,1) != 1)
@@ -203,7 +201,7 @@ public:
                 return temp;
         }
         virtual int fputc(int c) {
-                u8 temp = (u8)c;
+                uint8 temp = (uint8)c;
                 //TODO
                 //if(fwrite(&temp,1)!=1) return EOF;
                 fwrite(&temp,1);
@@ -217,9 +215,9 @@ public:
         //they handle the return values correctly
 
         virtual void fwrite(const void *ptr, size_t bytes){
-                reserve(pos+(s32)bytes);
+                reserve(pos+(int32)bytes);
                 memcpy(buf()+pos,ptr,bytes);
-                pos += (s32)bytes;
+                pos += (int32)bytes;
                 len = std::max(pos,len);
         }
 
@@ -248,7 +246,7 @@ public:
 
         virtual void fflush() {}
 
-        void set_len(s32 length)
+        void set_len(int32 length)
         {
                 len = length;
                 if(pos > length)
@@ -289,7 +287,7 @@ public:
 
         bool is_open() { return fp != NULL; }
 
-        virtual void truncate(s32 length);
+        virtual void truncate(int32 length);
 
         virtual int fprintf(const char *format, ...) {
                 va_list argptr;

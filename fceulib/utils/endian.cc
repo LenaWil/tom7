@@ -49,23 +49,21 @@
 #endif
 
 ///endian-flips count bytes.  count should be even and nonzero.
-void FlipByteOrder(uint8 *src, uint32 count)
-{
-	uint8 *start=src;
-	uint8 *end=src+count-1;
+void FlipByteOrder(uint8 *src, uint32 count) {
+  uint8 *start=src;
+  uint8 *end=src+count-1;
 
-	if((count&1) || !count)        return;         /* This shouldn't happen. */
+  if((count&1) || !count)        return;         /* This shouldn't happen. */
 
-	while(count--)
-	{
-		uint8 tmp;
+  while(count--) {
+    uint8 tmp;
 
-		tmp=*end;
-		*end=*start;
-		*start=tmp;
-		end--;
-		start++;
-	}
+    tmp=*end;
+    *end=*start;
+    *start=tmp;
+    end--;
+    start++;
+  }
 }
 
 ///writes a little endian 16bit value to the specified file
@@ -218,14 +216,14 @@ uint16 FCEU_de16lsb(uint8 *morp)
 
 
 //well. just for the sake of consistency
-int write8le(u8 b, EMUFILE*os)
+int write8le(uint8 b, EMUFILE*os)
 {
 	os->fwrite((char*)&b,1);
 	return 1;
 }
 
 //well. just for the sake of consistency
-int read8le(u8 *Bufo, EMUFILE*is)
+int read8le(uint8 *Bufo, EMUFILE*is)
 {
 	if(is->_fread((char*)Bufo,1) != 1)
 		return 0;
@@ -233,24 +231,24 @@ int read8le(u8 *Bufo, EMUFILE*is)
 }
 
 ///writes a little endian 16bit value to the specified file
-int write16le(u16 b, EMUFILE *fp)
+int write16le(uint16 b, EMUFILE *fp)
 {
-	u8 s[2];
-	s[0]=(u8)b;
-	s[1]=(u8)(b>>8);
+	uint8 s[2];
+	s[0]=(uint8)b;
+	s[1]=(uint8)(b>>8);
 	fp->fwrite(s,2);
 	return 2;
 }
 
 
 ///writes a little endian 32bit value to the specified file
-int write32le(u32 b, EMUFILE *fp)
+int write32le(uint32 b, EMUFILE *fp)
 {
 	uint8 s[4];
-	s[0]=(u8)b;
-	s[1]=(u8)(b>>8);
-	s[2]=(u8)(b>>16);
-	s[3]=(u8)(b>>24);
+	s[0]=(uint8)b;
+	s[1]=(uint8)(b>>8);
+	s[2]=(uint8)(b>>16);
+	s[3]=(uint8)(b>>24);
 	fp->fwrite(s,4);
 	return 4;
 }
@@ -260,14 +258,14 @@ void writebool(bool b, EMUFILE* os) { write32le(b?1:0,os); }
 int write64le(uint64 b, EMUFILE* os)
 {
 	uint8 s[8];
-	s[0]=(u8)b;
-	s[1]=(u8)(b>>8);
-	s[2]=(u8)(b>>16);
-	s[3]=(u8)(b>>24);
-	s[4]=(u8)(b>>32);
-	s[5]=(u8)(b>>40);
-	s[6]=(u8)(b>>48);
-	s[7]=(u8)(b>>56);
+	s[0]=(uint8)b;
+	s[1]=(uint8)(b>>8);
+	s[2]=(uint8)(b>>16);
+	s[3]=(uint8)(b>>24);
+	s[4]=(uint8)(b>>32);
+	s[5]=(uint8)(b>>40);
+	s[6]=(uint8)(b>>48);
+	s[7]=(uint8)(b>>56);
 	os->fwrite((char*)&s,8);
 	return 8;
 }
@@ -279,16 +277,16 @@ int read32le(uint32 *Bufo, EMUFILE *fp)
 	if(fp->_fread(&buf,4)<4)
 		return 0;
 #ifdef LOCAL_LE
-	*(u32*)Bufo=buf;
+	*(uint32*)Bufo=buf;
 #else
-	*(u32*)Bufo=((buf&0xFF)<<24)|((buf&0xFF00)<<8)|((buf&0xFF0000)>>8)|((buf&0xFF000000)>>24);
+	*(uint32*)Bufo=((buf&0xFF)<<24)|((buf&0xFF00)<<8)|((buf&0xFF0000)>>8)|((buf&0xFF000000)>>24);
 #endif
 	return 1;
 }
 
-int read16le(u16 *Bufo, EMUFILE *is)
+int read16le(uint16 *Bufo, EMUFILE *is)
 {
-	u16 buf;
+	uint16 buf;
 	if(is->_fread((char*)&buf,2) != 2)
 		return 0;
 #ifdef LOCAL_LE
