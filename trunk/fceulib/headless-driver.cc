@@ -118,15 +118,6 @@ ArchiveScanRecord FCEUD_ScanArchive(std::string fname) {
 
 // tom7 dummy
 
-void FCEUD_SaveStateAs() {
-  abort();
-  // FCEUI_SaveState("FAKE");
-}
-void FCEUD_LoadStateFrom() {
-  abort();
-  // FCEUI_LoadState("FAKE");
-}
-
 // for movie playback?
 void FCEUD_SetInput (bool fourscore, bool microphone,
 		     ESI port0, ESI port1, ESIFC fcexp) {
