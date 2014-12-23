@@ -968,7 +968,7 @@ void FCEUI_IRQ(void) {
   _IRQlow |= FCEU_IQTEMP;
 }
 
-void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi) {
+static void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi) {
   fceuindbg=1;
 
   *reset=RdMem(0xFFFC);

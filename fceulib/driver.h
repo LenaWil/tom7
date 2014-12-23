@@ -124,18 +124,8 @@ void FCEUI_SetSquare2Volume(uint32 volume);
 void FCEUI_SetNoiseVolume(uint32 volume);
 void FCEUI_SetPCMVolume(uint32 volume);
 
-int FCEUI_SelectState(int, int);
-extern void FCEUI_SelectStateNext(int);
-
-//"fname" overrides the default save state filename code if non-NULL.
-void FCEUI_SaveState(const char *fname);
-void FCEUI_LoadState(const char *fname);
-
-void FCEUD_SaveStateAs(void);
-void FCEUD_LoadStateFrom(void);
-
-//at the minimum, you should call FCEUI_SetInput, FCEUI_SetInputFC, and FCEUI_SetInputFourscore
-//you may also need to maintain your own internal state
+// at the minimum, you should call FCEUI_SetInput, FCEUI_SetInputFC, and FCEUI_SetInputFourscore
+// you may also need to maintain your own internal state
 void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC fcexp);
 
 
@@ -166,17 +156,11 @@ void FCEUI_SetDirOverride(int which, char *n);
 
 void FCEUI_NMI(void);
 void FCEUI_IRQ(void);
-// uint16 FCEUI_Disassemble(void *XA, uint16 a, char *stringo);
-void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi);
+// void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi);
 
 // uint32 FCEUI_CRC32(uint32 crc, uint8 *buf, uint32 len);
 
-void FCEUI_ToggleTileView(void);
 void FCEUI_SetLowPass(int q);
-
-void FCEUI_NSFSetVis(int mode);
-int FCEUI_NSFChange(int amount);
-int FCEUI_NSFGetInfo(uint8 *name, uint8 *artist, uint8 *copyright, int maxlen);
 
 void FCEUI_VSUniToggleDIPView(void);
 void FCEUI_VSUniToggleDIP(int w);

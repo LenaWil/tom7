@@ -810,7 +810,7 @@ int FCEUI_SelectState(int w, int show)
 	return oldstate;
 }
 
-void FCEUI_SaveState(const char *fname)
+static void FCEUI_SaveState(const char *fname)
 {
 	if(!FCEU_IsValidUI(FCEUI_SAVESTATE)) return;
 
@@ -830,7 +830,7 @@ bool file_exists(const char * filename)
     }
     return false;
 }
-void FCEUI_LoadState(const char *fname)
+static void FCEUI_LoadState(const char *fname)
 {
 	if(!FCEU_IsValidUI(FCEUI_LOADSTATE)) return;
 
