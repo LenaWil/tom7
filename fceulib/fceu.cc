@@ -347,19 +347,6 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
 
   FCEU_fclose(fp);
 
-#ifdef WIN32
-#ifndef NOWINSTUFF
-  // ################################## Start of SP CODE ###########################
-  extern char LoadedRomFName[2048];
-  extern int loadDebugDataFailed;
-
-  if ((loadDebugDataFailed = loadPreferences(LoadedRomFName)))
-    FCEU_printf("Couldn't load debugging data.\n");
-
-  // ################################## End of SP CODE ###########################
-#endif
-#endif
-
   FCEU_ResetVidSys();
 
   PowerNES();
@@ -368,12 +355,6 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
 
   FCEU_ResetPalette();
   FCEU_ResetMessages();	// Save state, status messages, etc.
-
-#if defined (WIN32) || defined (WIN64)
-#ifndef NOWINSTUFF
-  DoDebuggerDataReload(); // Reloads data without reopening window
-#endif
-#endif
 
   return GameInfo;
 }

@@ -820,9 +820,6 @@ int FDSLoad(const char *name, FCEUFILE *fp)
 		free(fn);
 	}
 
-	extern char LoadedRomFName[2048];
-	strcpy(LoadedRomFName,name); //For the debugger list
-
 	GameInfo->type=GIT_FDS;
 	GameInterface=FDSGI;
 	isFDS = true;

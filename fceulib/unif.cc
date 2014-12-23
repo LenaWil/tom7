@@ -41,21 +41,21 @@
 #include "driver.h"
 #include "boards/boards.h"
 
-typedef struct {
-	char ID[4];
-	uint32 info;
-} UNIF_HEADER;
+struct UNIF_HEADER {
+  char ID[4];
+  uint32 info;
+};
 
-typedef struct {
-	char *name;
-	void (*init)(CartInfo *);
-	int flags;
-} BMAPPING;
+struct BMAPPING {
+  char *name;
+  void (*init)(CartInfo *);
+  int flags;
+};
 
-typedef struct {
-	char *name;
-	int (*init)(FCEUFILE *fp);
-} BFMAPPING;
+struct BFMAPPING {
+  char *name;
+  int (*init)(FCEUFILE *fp);
+};
 
 static CartInfo UNIFCart;
 
@@ -74,15 +74,14 @@ static UNIF_HEADER uchead;
 static uint8 *malloced[32];
 static uint32 mallocedsizes[32];
 
-static int FixRomSize(uint32 size, uint32 minimum)
-{
-	uint32 x=1; //mbg merge 7/17/06 made uint
+static int FixRomSize(uint32 size, uint32 minimum) {
+  uint32 x = 1;
 
-	if(size<minimum)
-		return minimum;
-	while(x<size)
-		x<<=1;
-	return x;
+  if(size<minimum)
+    return minimum;
+  while(x<size)
+    x<<=1;
+  return x;
 }
 
 static void FreeUNIF(void)
@@ -315,7 +314,7 @@ static int LoadCHR(FCEUFILE *fp)
 #define BMCFLAG_32KCHRR  4
 #define BMCFLAG_EXPCHRR 8
 
-static BMAPPING bmap[] = {
+static constexpr BMAPPING bmap[] = {
 
 	{ "11160", BMC11160_Init, 0 },
 	{ "12-IN-1", BMC12IN1_Init, 0 },
@@ -453,7 +452,7 @@ static BMAPPING bmap[] = {
 	{0,0,0}
 };
 
-static BFMAPPING bfunc[] = {
+static constexpr BFMAPPING bfunc[] = {
 	{ "CTRL", CTRL },
 	{ "TVCI", TVCI },
 	{ "BATR", EnableBattery },
@@ -541,82 +540,75 @@ static int InitializeBoard(void)
 	return(0);
 }
 
-static void UNIFGI(GI h)
-{
-	switch(h)
-	{
-	case GI_RESETSAVE:
-		FCEU_ClearGameSave(&UNIFCart);
-		break;
+static void UNIFGI(GI h) {
+  switch(h) {
+  case GI_RESETSAVE:
+    FCEU_ClearGameSave(&UNIFCart);
+    break;
 
-	case GI_RESETM2:
-		if(UNIFCart.Reset)
-			UNIFCart.Reset();
-		break;
-	case GI_POWER:
-		if(UNIFCart.Power)
-			UNIFCart.Power();
-		if(UNIFchrrama) memset(UNIFchrrama,0,8192);
-		break;
-	case GI_CLOSE:
-		FCEU_SaveGameSave(&UNIFCart);
-		if(UNIFCart.Close)
-			UNIFCart.Close();
-		FreeUNIF();
-		break;
-	}
+  case GI_RESETM2:
+    if(UNIFCart.Reset)
+      UNIFCart.Reset();
+    break;
+  case GI_POWER:
+    if(UNIFCart.Power)
+      UNIFCart.Power();
+    if(UNIFchrrama) memset(UNIFchrrama,0,8192);
+    break;
+  case GI_CLOSE:
+    FCEU_SaveGameSave(&UNIFCart);
+    if(UNIFCart.Close)
+      UNIFCart.Close();
+    FreeUNIF();
+    break;
+  }
 }
 
-int UNIFLoad(const char *name, FCEUFILE *fp)
-{
-	FCEU_fseek(fp,0,SEEK_SET);
-	FCEU_fread(&unhead,1,4,fp);
-	if(memcmp(&unhead,"UNIF",4))
-		return 0;
+int UNIFLoad(const char *name, FCEUFILE *fp) {
+  FCEU_fseek(fp,0,SEEK_SET);
+  FCEU_fread(&unhead,1,4,fp);
+  if(memcmp(&unhead,"UNIF",4))
+    return 0;
 
-	ResetCartMapping();
+  ResetCartMapping();
 
-	ResetExState(0,0);
-	ResetUNIF();
-	if(!FCEU_read32le(&unhead.info,fp))
-		goto aborto;
-	if(FCEU_fseek(fp,0x20,SEEK_SET)<0)
-		goto aborto;
-	if(!LoadUNIFChunks(fp))
-		goto aborto;
-	{
-		int x;
-		struct md5_context md5;
+  ResetExState(0,0);
+  ResetUNIF();
+  if(!FCEU_read32le(&unhead.info,fp))
+    goto aborto;
+  if(FCEU_fseek(fp,0x20,SEEK_SET)<0)
+    goto aborto;
+  if(!LoadUNIFChunks(fp))
+    goto aborto;
+  {
+    struct md5_context md5;
 
-		md5_starts(&md5);
+    md5_starts(&md5);
 
-		for(x=0;x<32;x++)
-			if(malloced[x])
-			{
-				md5_update(&md5,malloced[x],mallocedsizes[x]);
-			}
-			md5_finish(&md5,UNIFCart.MD5);
-			FCEU_printf(" ROM MD5:  0x");
-			for(x=0;x<16;x++)
-				FCEU_printf("%02x",UNIFCart.MD5[x]);
-			FCEU_printf("\n");
-			memcpy(&GameInfo->MD5,&UNIFCart.MD5,sizeof(UNIFCart.MD5));
-	}
+    for(int x=0;x<32;x++)
+      if(malloced[x]) {
+	md5_update(&md5,malloced[x],mallocedsizes[x]);
+      }
+    md5_finish(&md5,UNIFCart.MD5);
+    FCEU_printf(" ROM MD5:  0x");
+    for(int x=0; x < 16; x++)
+      FCEU_printf("%02x",UNIFCart.MD5[x]);
+    FCEU_printf("\n");
+    memcpy(&GameInfo->MD5,&UNIFCart.MD5,sizeof(UNIFCart.MD5));
+  }
 
-	if(!InitializeBoard())
-		goto aborto;
+  if(!InitializeBoard())
+    goto aborto;
 
-	FCEU_LoadGameSave(&UNIFCart);
+  FCEU_LoadGameSave(&UNIFCart);
 
-	strcpy(LoadedRomFName,name); //For the debugger list
-	GameInterface=UNIFGI;
-	return 1;
+  GameInterface=UNIFGI;
+  return 1;
 
-aborto:
+ aborto:
 
-	FreeUNIF();
-	ResetUNIF();
+  FreeUNIF();
+  ResetUNIF();
 
-
-	return 0;
+  return 0;
 }
