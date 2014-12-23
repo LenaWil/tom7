@@ -753,26 +753,27 @@ void ResetExState(void (*PreSave)(void), void (*PostSave)(void))
 void AddExState(void *v, uint32 s, int type, char *desc) {
 
   if(s==~0) {
-      SFORMAT* sf = (SFORMAT*)v;
-      std::map<std::string,bool> names;
-      while(sf->v)
-	{
-	  char tmp[5] = {0};
-	  memcpy(tmp,sf->desc,4);
-	  std::string desc = tmp;
-	  if(names.find(desc) != names.end())
-	    {
+    SFORMAT* sf = (SFORMAT*)v;
+    std::map<std::string,bool> names;
+    while(sf->v) {
+      char tmp[5] = {0};
+      memcpy(tmp,sf->desc,4);
+      std::string desc = tmp;
+      if(names.find(desc) != names.end()) {
 #ifdef _MSC_VER
-	      MessageBox(NULL,"OH NO!!! YOU HAVE AN INVALID SFORMAT! POST A BUG TICKET ALONG WITH INFO ON THE ROM YOURE USING\n","OOPS",MB_OK);
+	MessageBox(NULL,"OH NO!!! YOU HAVE AN INVALID SFORMAT! "
+		   "POST A BUG TICKET ALONG WITH INFO ON THE ROM YOU'RE USING\n",
+		   "OOPS",MB_OK);
 #else
-	      printf("OH NO!!! YOU HAVE AN INVALID SFORMAT! POST A BUG TICKET ALONG WITH INFO ON THE ROM YOURE USING\n");
+	printf("OH NO!!! YOU HAVE AN INVALID SFORMAT! "
+	       "POST A BUG TICKET ALONG WITH INFO ON THE ROM YOU'RE USING\n");
 #endif
-	      exit(0);
-	    }
-	  names[desc] = true;
-	  sf++;
-	}
+	abort();
+      }
+      names[desc] = true;
+      sf++;
     }
+  }
 
   if(desc) {
     SFMDATA[SFEXINDEX].desc=(char *)FCEU_malloc(strlen(desc)+1);
@@ -789,13 +790,15 @@ void AddExState(void *v, uint32 s, int type, char *desc) {
     static int once=1;
     if(once) {
       once=0;
-      FCEU_PrintError("Error in AddExState: SFEXINDEX overflow.\nSomebody made SFMDATA_SIZE too small.");
+      FCEU_PrintError("Error in AddExState: SFEXINDEX overflow.\n"
+		      "Somebody made SFMDATA_SIZE too small.");
     }
   }
   SFMDATA[SFEXINDEX].v=0;		// End marker.
 }
 
-int FCEUI_SelectState(int w, int show)
+#if 0
+static int FCEUI_SelectState(int w, int show)
 {
 	FCEUSS_CheckStates();
 	int oldstate=CurrentState;
@@ -809,82 +812,7 @@ int FCEUI_SelectState(int w, int show)
 	}
 	return oldstate;
 }
-
-static void FCEUI_SaveState(const char *fname)
-{
-	if(!FCEU_IsValidUI(FCEUI_SAVESTATE)) return;
-
-	StateShow=0;
-
-	FCEUSS_Save(fname);
-}
-
-int loadStateFailed = 0; // hack, this function should return a value instead
-
-bool file_exists(const char * filename)
-{
-    if (FILE * file = fopen(filename, "r")) //I'm sure, you meant for READING =)
-    {
-        fclose(file);
-        return true;
-    }
-    return false;
-}
-static void FCEUI_LoadState(const char *fname)
-{
-	if(!FCEU_IsValidUI(FCEUI_LOADSTATE)) return;
-
-	StateShow = 0;
-	loadStateFailed = 0;
-
-	/* For network play, be load the state locally, and then save the state to a temporary file,
-	and send that.  This insures that if an older state is loaded that is missing some
-	information expected in newer save states, desynchronization won't occur(at least not
-	from this ;)).
-	*/
-	if (backupSavestates) BackupLoadState();	//If allowed, backup the current state before loading a new one
-
-	if (!movie_readonly && autoMovieBackup && freshMovie) //If auto-backup is on, movie has not been altered this session and the movie is in read+write mode
-	{
-		FCEUI_MakeBackupMovie(false);	//Backup the movie before the contents get altered, but do not display messages
-	}
-	if (fname != NULL && !file_exists(fname))
-	{
-		loadStateFailed = 1;
-		return; // state doesn't exist; exit cleanly
-	}
-	if(FCEUSS_Load(fname))
-	{
-		//mbg todo netplay
-		/*if(FCEUnetplay)
-		{
-			char *fn = strdup(FCEU_MakeFName(FCEUMKF_NPTEMP, 0, 0).c_str());
-			FILE *fp;
-
-			if((fp = fopen(fn," wb")))
-			{
-				if(FCEUSS_SaveFP(fp,0))
-				{
-					fclose(fp);
-					FCEUNET_SendFile(FCEUNPCMD_LOADSTATE, fn);
-				}
-				else
-				{
-					fclose(fp);
-				}
-
-				unlink(fn);
-			}
-
-			free(fn);
-		}*/
-		freshMovie = false;		//The movie has been altered so it is no longer fresh
-	}
-	else
-	{
-		loadStateFailed = 1;
-	}
-}
+#endif
 
 //*************************************************************************
 //Savestate backup functions

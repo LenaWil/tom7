@@ -967,15 +967,3 @@ void FCEUI_NMI(void) {
 void FCEUI_IRQ(void) {
   _IRQlow |= FCEU_IQTEMP;
 }
-
-static void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi) {
-  fceuindbg=1;
-
-  *reset=RdMem(0xFFFC);
-  *reset|=RdMem(0xFFFD)<<8;
-  *nmi=RdMem(0xFFFA);
-  *nmi|=RdMem(0xFFFB)<<8;
-  *irq=RdMem(0xFFFE);
-  *irq|=RdMem(0xFFFF)<<8;
-  fceuindbg=0;
-}
