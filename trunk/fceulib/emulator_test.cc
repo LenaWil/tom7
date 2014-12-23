@@ -20,13 +20,76 @@ struct Game {
   uint64 after_random;
 };
 
-int64 TimeUsec() {
+static int64 TimeUsec() {
   // XXX solution for win32.
   // (Actually this currently compiles on mingw64!)
   timeval tv;
   gettimeofday(&tv, nullptr);
   return tv.tv_sec * 1000000LL + tv.tv_usec;
 }
+
+struct InputStream {
+  InputStream(const string &seed, int length) {
+    v.reserve(length);
+    ArcFour rc(seed);
+    rc.Discard(1024);
+
+    uint8 b = 0;
+
+    for (int i = 0; i < length; i++) {
+      if (rc.Byte() < 210) {
+	// Keep b the same as last round.
+      } else {
+	switch (rc.Byte() % 20) {
+	case 0:
+	default:
+	  b = INPUT_R;
+	  break;
+	case 1:
+	  b = INPUT_U;
+	  break;
+	case 2:
+	  b = INPUT_D;
+	  break;
+	case 3:
+	case 11:
+	  b = INPUT_R | INPUT_A;
+	  break;
+	case 4:
+	case 12:
+	  b = INPUT_R | INPUT_B;
+	  break;
+	case 5:
+	case 13:
+	  b = INPUT_R | INPUT_B | INPUT_A;
+	  break;
+	case 6:
+	case 14:
+	  b = INPUT_A;
+	  break;
+	case 7:
+	case 15:
+	  b = INPUT_B;
+	  break;
+	case 8:
+	  b = 0;
+	  break;
+	case 9:
+	  b = rc.Byte() & (~(INPUT_T | INPUT_S));
+	  break;
+	case 10:
+	  b = rc.Byte();
+	}
+      }
+      v.push_back(b);
+    }
+  }
+
+  vector<uint8> v;
+
+  decltype(v.begin()) begin() { return v.begin(); }
+  decltype(v.end()) end() { return v.end(); }
+};
 
 static void RunGameSerially(const Game &game) {
   printf("Testing %s...\n" , game.cart.c_str());
@@ -43,58 +106,8 @@ static void RunGameSerially(const Game &game) {
 
   for (uint8 b : game.inputs) emu->StepFull(b);
   CHECK_RAM(game.after_inputs);
-
-  ArcFour rc(game.cart);
-  rc.Discard(1024);
-  uint8 b = 0;
-
-  for (int i = 0; i < 10000; i++) {
-    if (rc.Byte() < 210) {
-      // Keep b the same as last round.
-    } else {
-      switch (rc.Byte() % 20) {
-      case 0:
-      default:
-	b = INPUT_R;
-	break;
-      case 1:
-	b = INPUT_U;
-	break;
-      case 2:
-	b = INPUT_D;
-	break;
-      case 3:
-      case 11:
-	b = INPUT_R | INPUT_A;
-	break;
-      case 4:
-      case 12:
-	b = INPUT_R | INPUT_B;
-	break;
-      case 5:
-      case 13:
-	b = INPUT_R | INPUT_B | INPUT_A;
-	break;
-      case 6:
-      case 14:
-	b = INPUT_A;
-	break;
-      case 7:
-      case 15:
-	b = INPUT_B;
-	break;
-      case 8:
-	b = 0;
-	break;
-      case 9:
-	b = rc.Byte() & (~(INPUT_T | INPUT_S));
-	break;
-      case 10:
-	b = rc.Byte();
-      }
-    }
-    emu->StepFull(b);
-  }
+  
+  for (uint8 b : InputStream(game.cart, 10000)) emu->StepFull(b);
   CHECK_RAM(game.after_random);
 }
 

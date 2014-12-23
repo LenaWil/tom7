@@ -1,9 +1,9 @@
-// Stuff (macros) that should be included everywhere.
-// TODO: Move to cc-lib, minimize the includes, and include it
-// anywhere we want.
+// This is a clone of cc-lib/base.h, but only included for the
+// testing code in this directory, since FCEULib doesn't need it
+// and I'd like to keep its dependencies manageable.
 
-#ifndef __BASE_H
-#define __BASE_H
+#ifndef __TESTUTIL_H
+#define __TESTUTIL_H
 
 #include <vector>
 #include <string>
@@ -56,7 +56,7 @@ struct hash< unsigned long long > {
 using namespace std;
 
 // Can probably retire this; little chance that we compile with
-// MSVC any more.
+// MSVC any more, and anyway we should be using uint8.
 #ifdef COMPILER_MSVC
 // http://msdn.microsoft.com/en-us/library/b0084kay(v=vs.71).aspx
 #ifndef _CHAR_UNSIGNED
@@ -81,6 +81,9 @@ typedef uint64_t uint64;
 // succeed. But if some shenanigans are going on, let's get out of
 // here.
 static_assert(UINT8_MAX == 255, "Want 8-bit chars.");
+static_assert(sizeof(uint8) == 1, "8 bits is one byte.");
+static_assert(sizeof(int8) == 1, "8 bits is one byte.");
+
 static_assert(sizeof(int16) == 2, "16 bits is two bytes.");
 static_assert(sizeof(uint16) == 2, "16 bits is two bytes.");
 
