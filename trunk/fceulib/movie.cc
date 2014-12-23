@@ -15,7 +15,6 @@
 #include "palette.h"
 #include "input.h"
 #include "fceu.h"
-#include "netplay.h"
 #include "driver.h"
 #include "state.h"
 #include "file.h"

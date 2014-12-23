@@ -77,7 +77,7 @@ void EMUFILE_FILE::open(const char* fname, const char* mode)
 }
 
 
-void EMUFILE_FILE::truncate(s32 length)
+void EMUFILE_FILE::truncate(int32 length)
 {
 	::fflush(fp);
 	#ifdef _MSC_VER
@@ -167,7 +167,7 @@ void EMUFILE::write32le(uint32 val)
 #endif
 }
 
-size_t EMUFILE::read32le(s32* Bufo) { return read32le((uint32*)Bufo); }
+size_t EMUFILE::read32le(int32* Bufo) { return read32le((uint32*)Bufo); }
 
 size_t EMUFILE::read32le(uint32* Bufo)
 {
@@ -188,12 +188,12 @@ uint32 EMUFILE::read32le() {
   return ret;
 }
 
-void EMUFILE::write16le(u16* val)
+void EMUFILE::write16le(uint16* val)
 {
 	write16le(*val);
 }
 
-void EMUFILE::write16le(u16 val)
+void EMUFILE::write16le(uint16 val)
 {
 #ifdef LOCAL_BE
 	uint8 s[2];
@@ -205,23 +205,23 @@ void EMUFILE::write16le(u16 val)
 #endif
 }
 
-size_t EMUFILE::read16le(s16* Bufo) { return read16le((u16*)Bufo); }
+size_t EMUFILE::read16le(int16* Bufo) { return read16le((uint16*)Bufo); }
 
-size_t EMUFILE::read16le(u16* Bufo)
+size_t EMUFILE::read16le(uint16* Bufo)
 {
 	uint32 buf;
 	if(fread(&buf,2)<2)
 		return 0;
 #ifndef LOCAL_BE
-	*(u16*)Bufo=buf;
+	*(uint16*)Bufo=buf;
 #else
 	*Bufo = LE_TO_LOCAL_16(buf);
 #endif
 	return 1;
 }
 
-u16 EMUFILE::read16le() {
-  u16 ret = 0;
+uint16 EMUFILE::read16le() {
+  uint16 ret = 0;
   read16le(&ret);
   return ret;
 }
