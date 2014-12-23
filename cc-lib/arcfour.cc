@@ -1,15 +1,15 @@
 
 #include "arcfour.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 using namespace std;
 
-typedef unsigned char uint8;
-
-// Check that char is one byte.
-enum { char_must_be_one_byte = 1 / !(uint8)256 };
+// Should be easy since C++11.
+typedef uint8_t uint8;
+static_assert (sizeof(uint8) == 1, "Char must be one byte.");
 
 static void Initialize(const uint8 (&kk)[256],
 		       uint8 (&ss)[256]) {

@@ -12,6 +12,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 struct ArcFour {
   typedef uint8_t uint8;
