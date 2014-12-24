@@ -93,22 +93,70 @@ struct InputStream {
 
 static void RunGameSerially(const Game &game) {
   printf("Testing %s...\n" , game.cart.c_str());
-# define CHECK_RAM(field) do {			   \
-    uint64 cx = emu->RamChecksum();		   \
-    CHECK_EQ(cx, (field))			   \
+# define CHECK_RAM(field) do {			     \
+    const uint64 cx = emu->RamChecksum();	     \
+    CHECK_EQ(cx, (field))			     \
       << "\nExpected ram to be " << #field << " = "  \
-      << (field) << " but got " << cx;		   \
+      << (field) << " but got " << cx;		     \
   } while(0)
 
+  // save[i] and checksum[i] represent the state right before
+  // input[i] is issued. Note we don't have save/checksum for
+  // the final state.
+  vector<vector<uint8>> saves;
+  vector<uint64> checksums;
+  vector<uint8> inputs;
   std::unique_ptr<Emulator> emu{Emulator::Create(game.cart)};
   CHECK(emu.get() != nullptr) << game.cart.c_str();
   CHECK_RAM(game.after_load);
 
-  for (uint8 b : game.inputs) emu->StepFull(b);
+  auto SaveAndStep = [&game, &emu, &saves, &inputs, &checksums](uint8 b) {
+    vector<uint8> save;
+    emu->SaveUncompressed(&save);
+    saves.push_back(std::move(save));
+    inputs.push_back(b);
+    uint64 csum = emu->RamChecksum();
+    CHECK(csum != 0ULL) << checksums.size() << " " << game.cart;
+    checksums.push_back(csum);
+    emu->StepFull(b);
+  };
+
+  for (uint8 b : game.inputs) SaveAndStep(b);
   CHECK_RAM(game.after_inputs);
-  
-  for (uint8 b : InputStream(game.cart, 10000)) emu->StepFull(b);
+
+  fprintf(stderr, "Random inputs:\n");
+  for (uint8 b : InputStream(game.cart, 10000)) SaveAndStep(b);
   CHECK_RAM(game.after_random);
+
+  // Now jump around and make sure that we are able to save and
+  // restore state correctly (at least, such that the behavior is
+  // the same as last time).
+  ArcFour rc("retries");
+  auto Rand = [&rc](int max) {
+    uint64 b = 
+      rc.Byte() << 24 |
+      rc.Byte() << 16 |
+      rc.Byte() << 8 |
+      rc.Byte();
+    // printf("%lld", b);
+    return b % max;
+  };
+
+  fprintf(stderr, "Random seeks:\n");
+  for (int i = 0; i < 500; i++) {
+    const int seekto = Rand(saves.size());
+    // printf("iter %d seekto %d\n", i, seekto);
+    emu->LoadUncompressed(&saves[seekto]);
+    CHECK_RAM(checksums[seekto]);
+    const int dist = Rand(5) + 1;
+    for (int j = 0; j < dist; j++) {
+      if (seekto + j + 1 < saves.size()) {
+	emu->StepFull(inputs[seekto + j]);
+	CHECK_RAM(checksums[seekto + j + 1]);
+      }
+    }
+  }
+  fprintf(stderr, "OK.\n");
 }
 
 int main() {

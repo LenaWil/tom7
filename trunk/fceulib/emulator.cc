@@ -281,11 +281,12 @@ void Emulator::Load(vector<uint8> *state) {
 #if USE_COMPRESSION
 
 void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
-  // TODO
+  // TODO PERF
   // Saving is not as efficient as we'd like for a pure in-memory operation
   //  - uses tags to tell you what's next, even though we could already know
   //  - takes care for endianness; no point
-  //  - might save some other write-only data (sound?)
+  //  - saves lots of pointless stuff we don't need (sound?, both PPUs, probably
+  //    all mapper data even if we're not using it)
 
   vector<uint8> raw;
   FCEUSS_SaveRAW(&raw);
