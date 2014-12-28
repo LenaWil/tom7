@@ -109,7 +109,7 @@ static void FCEU_CloseGame() {
   }
 }
 
-FCEUGI *GameInfo = NULL;
+FCEUGI *GameInfo = nullptr;
 
 void (*GameInterface)(GI h);
 void (*GameStateRestore)(int version);
@@ -375,7 +375,7 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
   if (EmulationPaused & 2) {
     EmulationPaused &= ~1;        // clear paused flag temporarily (frame advance)
   } else if (EmulationPaused & 1) {
-    if (pXBuf != NULL) {
+    if (pXBuf != nullptr) {
       memcpy(XBuf, XBackBuf, 256*256);
 
       // Here we used to call PutImage to draw messages on-screen,
@@ -408,7 +408,7 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
   timestampbase += timestamp;
   timestamp = 0;
 
-  if (pXBuf != NULL) {
+  if (pXBuf != nullptr) {
     *pXBuf=skip?0:XBuf;
   }
 

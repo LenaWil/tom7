@@ -118,7 +118,7 @@ struct BITREVLUT {
     while(--bits) {
       m <<= 1;
       a >>= 1;
-      for(int i=0;i<m;i++)
+      for (int i=0;i<m;i++)
 	lut[j++] = lut[i] + a;
     }
   }
@@ -305,11 +305,11 @@ static void makeppulut(void)
 	int cc,xo,pixel;
 
 
-	for(x=0;x<256;x++)
+	for (x=0;x<256;x++)
 	{
 		ppulut1[x] = 0;
 
-		for(y=0;y<8;y++)
+		for (y=0;y<8;y++)
 		{
 			ppulut1[x] |= ((x>>(7-y))&1)<<(y*4);
 		}
@@ -317,13 +317,13 @@ static void makeppulut(void)
 		ppulut2[x] = ppulut1[x] << 1;
 	}
 
-	for(cc=0;cc<16;cc++)
+	for (cc=0;cc<16;cc++)
 	{
-		for(xo=0;xo<8;xo++)
+		for (xo=0;xo<8;xo++)
 		{
 			ppulut3[ xo | ( cc << 3 ) ] = 0;
 
-			for(pixel=0;pixel<8;pixel++)
+			for (pixel=0;pixel<8;pixel++)
 			{
 				int shiftr;
 				shiftr = ( pixel + xo ) / 8;
@@ -1006,7 +1006,7 @@ static DECLFW(B4014)
 	uint32 t=V<<8;
 	int x;
 
-	for(x=0;x<256;x++)
+	for (x=0;x<256;x++)
 		X6502_DMW(0x2004,X6502_DMR(t+x));
 }
 
@@ -1073,7 +1073,7 @@ static void CheckSpriteHit(int p)
 
 	if (sphitx==0x100) return;
 
-	for(x=sphitx;x<(sphitx+8) && x<l;x++)
+	for (x=sphitx;x<(sphitx+8) && x<l;x++)
 	{
 
         if ((sphitdata&(0x80>>(x-sphitx))) && !(Plinef[x]&64) && x < 255)
@@ -1183,7 +1183,7 @@ static void RefreshLine(int lastpixel) {
 		{
 			int tochange=MMC5HackSPMode&0x1F;
 			tochange-=firsttile;
-			for(X1=firsttile;X1<lasttile;X1++)
+			for (X1=firsttile;X1<lasttile;X1++)
 			{
 				if ((tochange<=0 && MMC5HackSPMode&0x40) || (tochange>0 && !(MMC5HackSPMode&0x40)))
 				{
@@ -1205,7 +1205,7 @@ static void RefreshLine(int lastpixel) {
 
 #define PPUT_MMC5SP
 #define PPUT_MMC5CHR1
-			for(X1=firsttile;X1<lasttile;X1++)
+			for (X1=firsttile;X1<lasttile;X1++)
 			{
 #include "pputile.inc"
 			}
@@ -1215,7 +1215,7 @@ static void RefreshLine(int lastpixel) {
 		else if (MMC5HackCHRMode==1)
 		{
 #define PPUT_MMC5CHR1
-			for(X1=firsttile;X1<lasttile;X1++)
+			for (X1=firsttile;X1<lasttile;X1++)
 			{
 #include "pputile.inc"
 			}
@@ -1223,7 +1223,7 @@ static void RefreshLine(int lastpixel) {
 		}
 		else
 		{
-			for(X1=firsttile;X1<lasttile;X1++)
+			for (X1=firsttile;X1<lasttile;X1++)
 			{
 #include "pputile.inc"
 			}
@@ -1234,7 +1234,7 @@ static void RefreshLine(int lastpixel) {
 	{
 		norecurse=1;
 #define PPUT_HOOK
-		for(X1=firsttile;X1<lasttile;X1++)
+		for (X1=firsttile;X1<lasttile;X1++)
 		{
 #include "pputile.inc"
 		}
@@ -1243,7 +1243,7 @@ static void RefreshLine(int lastpixel) {
 	}
 	else
 	{
-		for(X1=firsttile;X1<lasttile;X1++)
+		for (X1=firsttile;X1<lasttile;X1++)
 		{
 #include "pputile.inc"
 		}
@@ -1341,88 +1341,81 @@ static void Fixit1(void)
 }
 
 void MMC5_hb(int);     //Ugh ugh ugh.
-static void DoLine(void)
-{
-	int x;
-	uint8 *target=XBuf+(scanline<<8);
+static void DoLine(void) {
+  uint8 *target = XBuf + (scanline << 8);
 
-	if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
+  if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
 
-	X6502_Run(256);
-	EndRL();
+  X6502_Run(256);
+  EndRL();
 
-	if (!renderbg)  // User asked to not display background data.
-	{
-		uint32 tem;
-		uint8 col;
-		if (gNoBGFillColor == 0xFF)
-			col = Pal[0];
-		else col = gNoBGFillColor;
-		tem=col|(col<<8)|(col<<16)|(col<<24);
-		tem|=0x40404040;
-		FCEU_dwmemset(target,tem,256);
-	}
+  if (!renderbg) {
+    // User asked to not display background data.
+    uint32 tem;
+    uint8 col;
+    if (gNoBGFillColor == 0xFF)
+      col = Pal[0];
+    else col = gNoBGFillColor;
+    tem=col|(col<<8)|(col<<16)|(col<<24);
+    tem|=0x40404040;
+    FCEU_dwmemset(target,tem,256);
+  }
 
-	if (SpriteON)
-		CopySprites(target);
+  if (SpriteON)
+    CopySprites(target);
 
 
-	// What is this?? ORs every byte in the buffer with 0x30 if PPU[1] has its lowest
-	// bit set.
+  // What is this?? ORs every byte in the buffer with 0x30 if PPU[1] has its lowest
+  // bit set.
 
-	if (ScreenON || SpriteON)  // Yes, very el-cheapo.
-	{
-		if (PPU[1]&0x01)
-		{
-			for(x=63;x>=0;x--)
-				*(uint32 *)&target[x<<2]=(*(uint32*)&target[x<<2])&0x30303030;
-		}
-	}
-	if ((PPU[1]>>5)==0x7)
-	{
-		for(x=63;x>=0;x--)
-			*(uint32 *)&target[x<<2]=((*(uint32*)&target[x<<2])&0x3f3f3f3f)|0xc0c0c0c0;
-	}
-	else if (PPU[1]&0xE0)
-		for(x=63;x>=0;x--)
-			*(uint32 *)&target[x<<2]=(*(uint32*)&target[x<<2])|0x40404040;
-	else
-		for(x=63;x>=0;x--)
-			*(uint32 *)&target[x<<2]=((*(uint32*)&target[x<<2])&0x3f3f3f3f)|0x80808080;
+  if (ScreenON || SpriteON) {
+    // Yes, very el-cheapo.
+    if (PPU[1]&0x01) {
+      for (int x = 63; x >= 0; x--)
+	*(uint32 *)&target[x<<2]=(*(uint32*)&target[x<<2])&0x30303030;
+    }
+  }
+  if ((PPU[1]>>5)==0x7) {
+    for (int x = 63; x >= 0; x--)
+      *(uint32 *)&target[x<<2]=((*(uint32*)&target[x<<2])&0x3f3f3f3f)|0xc0c0c0c0;
+  } else if (PPU[1]&0xE0) {
+    for (int x = 63; x >= 0; x--)
+      *(uint32 *)&target[x<<2]=(*(uint32*)&target[x<<2])|0x40404040;
+  } else {
+    for (int x = 63; x >= 0; x--)
+      *(uint32 *)&target[x<<2]=((*(uint32*)&target[x<<2])&0x3f3f3f3f)|0x80808080;
+  }
 
-	sphitx=0x100;
+  sphitx=0x100;
 
-	if (ScreenON || SpriteON)
-		FetchSpriteData();
+  if (ScreenON || SpriteON)
+    FetchSpriteData();
 
-	if (GameHBIRQHook && (ScreenON || SpriteON) && ((PPU[0]&0x38)!=0x18))
-	{
-		X6502_Run(6);
-		Fixit2();
-		X6502_Run(4);
-		GameHBIRQHook();
-		X6502_Run(85-16-10);
-	}
-	else
-	{
-		X6502_Run(6);  // Tried 65, caused problems with Slalom(maybe others)
-		Fixit2();
-		X6502_Run(85-6-16);
+  if (GameHBIRQHook && (ScreenON || SpriteON) && ((PPU[0]&0x38)!=0x18)) {
+    X6502_Run(6);
+    Fixit2();
+    X6502_Run(4);
+    GameHBIRQHook();
+    X6502_Run(85-16-10);
+  } else {
+    X6502_Run(6);  // Tried 65, caused problems with Slalom(maybe others)
+    Fixit2();
+    X6502_Run(85-6-16);
 
-		// A semi-hack for Star Trek: 25th Anniversary
-		if (GameHBIRQHook && (ScreenON || SpriteON) && ((PPU[0]&0x38)!=0x18))
-			GameHBIRQHook();
-	}
+    // A semi-hack for Star Trek: 25th Anniversary
+    if (GameHBIRQHook && (ScreenON || SpriteON) && ((PPU[0]&0x38)!=0x18))
+      GameHBIRQHook();
+  }
 
-	if (SpriteON)
-		RefreshSprites();
-	if (GameHBIRQHook2 && (ScreenON || SpriteON))
-		GameHBIRQHook2();
-	scanline++;
-	if (scanline<240) {
-		ResetRL(XBuf+(scanline<<8));
-	}
-	X6502_Run(16);
+  if (SpriteON)
+    RefreshSprites();
+  if (GameHBIRQHook2 && (ScreenON || SpriteON))
+    GameHBIRQHook2();
+  scanline++;
+  if (scanline<240) {
+    ResetRL(XBuf+(scanline<<8));
+  }
+  X6502_Run(16);
 }
 
 #define V_FLIP  0x80
@@ -1474,7 +1467,7 @@ static void FetchSpriteData(void)
 
 	DEBUGF(stderr, "FetchSprites @%d\n", scanline);
 	if (!PPU_hook)
-		for(n=63;n>=0;n--,spr++)
+		for (n=63;n>=0;n--,spr++)
 		{
 			if ((unsigned int)(scanline - spr->y) >= H) continue;
 			//printf("%d, %u\n",scanline,(unsigned int)(scanline-spr->y));
@@ -1536,7 +1529,7 @@ static void FetchSpriteData(void)
 			}
 		}
 	else
-		for(n=63;n>=0;n--,spr++)
+		for (n=63;n>=0;n--,spr++)
 		{
 			if ((unsigned int)(scanline-spr->y)>=H) continue;
 
@@ -1604,7 +1597,7 @@ static void FetchSpriteData(void)
 		if (ns>8) PPU_status|=0x20;
 		else if (PPU_hook)
 		{
-			for(n=0;n<(8-ns);n++)
+			for (n=0;n<(8-ns);n++)
 			{
 				PPU_hook(0x2000);
 				PPU_hook(vofs);
@@ -1629,7 +1622,7 @@ static void RefreshSprites(void)
 
 	DEBUGF(stderr, "RefreshSprites @%d with numsprites = %d\n", 
 		scanline, numsprites);
-	for(n=numsprites;n>=0;n--,spr--)
+	for (n=numsprites;n>=0;n--,spr--)
 	{
 		int x=spr->x;
 		uint8 *C;
@@ -1910,7 +1903,7 @@ void FCEUPPU_Power(void) {
   memset(SPRAM,0x00,0x100);
   FCEUPPU_Reset();
 
-  for(int x = 0x2000; x < 0x4000; x += 8) {
+  for (int x = 0x2000; x < 0x4000; x += 8) {
     ARead[x]=A200x;
     BWrite[x]=B2000;
     ARead[x+1]=A200x;
@@ -1973,7 +1966,7 @@ int FCEUPPU_Loop(int skip)
 				if (GameHBIRQHook && ((PPU[0]&0x38)!=0x18))
 					GameHBIRQHook();
 				if (PPU_hook)
-					for(x=0;x<42;x++) {PPU_hook(0x2000); PPU_hook(0);}
+					for (x=0;x<42;x++) {PPU_hook(0x2000); PPU_hook(0);}
 					if (GameHBIRQHook2)
 						GameHBIRQHook2();
 			}
@@ -2006,7 +1999,7 @@ int FCEUPPU_Loop(int skip)
 			if (GameHBIRQHook)
 			{
 				X6502_Run(256);
-				for(scanline=0;scanline<240;scanline++)
+				for (scanline=0;scanline<240;scanline++)
 				{
 					if (ScreenON || SpriteON)
 						GameHBIRQHook();
@@ -2029,14 +2022,14 @@ int FCEUPPU_Loop(int skip)
 			int x,max,maxref;
 
 			deemp=PPU[1]>>5;
-			for(scanline=0;scanline<240;) {
+			for (scanline=0;scanline<240;) {
 			  //scanline is incremented in  DoLine.  Evil. :/
 			  deempcnt[deemp]++;
 			  DoLine();
 			}
 
 			if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
-			for(x=1,max=0,maxref=0;x<7;x++)
+			for (x=1,max=0,maxref=0;x<7;x++)
 			{
 
 				if (deempcnt[x]>max)
@@ -2262,7 +2255,7 @@ int FCEUX_PPU_Loop(int skip) {
 		//capture the initial xscroll
 		//int xscroll = ppur.fh;
 		//render 241 scanlines (including 1 dummy at beginning)
-		for(int sl=0;sl<241;sl++) {
+		for (int sl=0;sl<241;sl++) {
 			spr_read.start_scanline();
 
 			g_rasterpos = 0;
@@ -2284,7 +2277,7 @@ int FCEUX_PPU_Loop(int skip) {
 			//the main scanline rendering loop:
 			//32 times, we will fetch a tile and then render 8 pixels.
 			//two of those tiles were read in the last scanline.
-			for(int xt=0;xt<32;xt++) {
+			for (int xt=0;xt<32;xt++) {
 				bgdata.main[xt+2].Read();
 
                 //ok, we're also going to draw here.
@@ -2299,7 +2292,7 @@ int FCEUX_PPU_Loop(int skip) {
 					//check all the conditions that can cause things to render in these 8px
 					const bool renderspritenow = SpriteON && rendersprites && (xt>0 || SpriteLeft8);
 					const bool renderbgnow = ScreenON && renderbg && (xt>0 || BGLeft8);
-					for(int xp=0;xp<8;xp++,rasterpos++,g_rasterpos++) {
+					for (int xp=0;xp<8;xp++,rasterpos++,g_rasterpos++) {
 
 						//bg pos is different from raster pos due to its offsetability.
 						//so adjust for that here
@@ -2319,7 +2312,7 @@ int FCEUX_PPU_Loop(int skip) {
 
 						//look for a sprite to be drawn
 						bool havepixel = false;
-						for(int s=0;s<oamcount;s++) {
+						for (int s=0;s<oamcount;s++) {
 							uint8* oam = oams[renderslot][s];
 							int x = oam[3];
 							if (rasterpos>=x && rasterpos<x+8) {
@@ -2372,7 +2365,7 @@ int FCEUX_PPU_Loop(int skip) {
 			oamcounts[scanslot] = 0;
 			oamcount=0;
 			const int spriteHeight = Sprite16?16:8;
-			for(int i=0;i<64;i++) {
+			for (int i=0;i<64;i++) {
 				oams[scanslot][oamcount][7] = 0;
 				uint8* spr = SPRAM+i*4;
 				if (yp >= spr[0] && yp < spr[0]+spriteHeight) {
@@ -2385,7 +2378,7 @@ int FCEUX_PPU_Loop(int skip) {
 					}
 
 					//just copy some bytes into the internal sprite buffer
-					for(int j=0;j<4;j++)
+					for (int j=0;j<4;j++)
 						oams[scanslot][oamcount][j] = spr[j];
 					oams[scanslot][oamcount][7] = 1;
 
@@ -2417,7 +2410,7 @@ int FCEUX_PPU_Loop(int skip) {
 			ppuphase = PPUPHASE_OBJ;
 
 			//fetch sprite patterns
-			for(int s=0;s<maxsprites;s++) {
+			for (int s = 0; s < maxsprites; s++) {
 
 				//if we have hit our eight sprite pattern and we dont have any more sprites, then bail
 				if (s==oamcount && s>=8)
@@ -2438,8 +2431,7 @@ int FCEUX_PPU_Loop(int skip) {
 				uint32 patternAddress;
 
 				//create deterministic dummy fetch pattern
-				if (!oam[7])
-				{
+				if (!oam[7]) {
 					patternNumber = 0;
 					line = 0;
 				}
@@ -2516,7 +2508,7 @@ int FCEUX_PPU_Loop(int skip) {
 			ppuphase = PPUPHASE_BG;
 
 			//fetch BG: two tiles for next line
-			for(int xt=0;xt<2;xt++)
+			for (int xt=0;xt<2;xt++)
 				bgdata.main[xt].Read();
 
 			//I'm unclear of the reason why this particular access to memory is made.
@@ -2526,16 +2518,15 @@ int FCEUX_PPU_Loop(int skip) {
 			//the PPU is fetching background data on the next scanline).
 			//(not implemented yet)
 			runppu(kFetchTime);
-            if (sl == 0)
-            {
+            if (sl == 0) {
                 if (idleSynch && PPUON && !PAL)
                     ppur.status.end_cycle = 340;
                 else
                     ppur.status.end_cycle = 341;
                 idleSynch ^= 1;
-            }
-            else
+            } else {
                 ppur.status.end_cycle = 341;
+	    }
 			runppu(kFetchTime);
 
             //After memory access 170, the PPU simply rests for 4 cycles (or the

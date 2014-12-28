@@ -86,7 +86,7 @@ void EMUFILE_FILE::truncate(int32 length)
 		ftruncate(fileno(fp),length);
 	#endif
 	fclose(fp);
-	fp = NULL;
+	fp = nullptr;
 	open(fname.c_str(),mode);
 }
 
