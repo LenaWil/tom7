@@ -30,6 +30,8 @@
 #define DEBUG(X)
 #endif
 
+// TODO: Get rid of MSVC support. -tom7
+
 #ifdef MSVC
 typedef unsigned char uint8;
 typedef unsigned short uint16;
@@ -60,6 +62,8 @@ typedef signed int int32;
 #define alloca __builtin_alloca
 #endif
 #endif
+
+// TODO: This mess can be cleaned up with cstdint. -tom7
 
 #include <sys/types.h>
 #include <sys/stat.h>

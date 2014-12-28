@@ -31,21 +31,21 @@ struct EXPSOUND {
      should be fixed. :)
   */
   void (*NeoFill)(int32 *Wave, int Count);
-  void (*HiFill)(void);
+  void (*HiFill)();
   void (*HiSync)(int32 ts);
 
-  void (*RChange)(void);
-  void (*Kill)(void);
+  void (*RChange)();
+  void (*Kill)();
 };
 
 extern EXPSOUND GameExpSound;
 
 extern int32 nesincsize;
 
-void SetSoundVariables(void);
+void SetSoundVariables();
 
 int GetSoundBuffer(int32 **W);
-int FlushEmulateSound(void);
+int FlushEmulateSound();
 extern int32 Wave[2048+512];
 extern int32 WaveFinal[2048+512];
 extern int32 WaveHi[];
