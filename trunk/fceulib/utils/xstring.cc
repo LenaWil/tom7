@@ -440,122 +440,6 @@ void splitpath(const char* path, char* drv, char* dir, char* name, char* ext)
 	}
 }
 
-//mbg 5/12/08
-//for the curious, I tested U16ToHexStr and it was 10x faster than printf.
-//so the author of these dedicated functions is not insane, and I will leave them.
-
-static char TempArray[11];
-
-uint16 FastStrToU16(char* s, bool& valid)
-{
-	int i;
-	uint16 v=0;
-	for(i=0; i < 4; i++)
-	{
-		if(s[i] == 0) return v;
-		v<<=4;
-		if(s[i] >= '0' && s[i] <= '9')
-		{
-			v+=s[i]-'0';
-		}
-		else if(s[i] >= 'a' && s[i] <= 'f')
-		{
-			v+=s[i]-'a'+10;
-		}
-		else if(s[i] >= 'A' && s[i] <= 'F')
-		{
-			v+=s[i]-'A'+10;
-		}
-		else
-		{
-			valid = false;
-			return 0xFFFF;
-		}
-	}
-	valid = true;
-	return v;
-}
-
-char *U8ToDecStr(uint8 a)
-{
-	TempArray[0] = '0' + a/100;
-	TempArray[1] = '0' + (a%100)/10;
-	TempArray[2] = '0' + (a%10);
-	TempArray[3] = 0;
-	return TempArray;
-}
-
-char *U16ToDecStr(uint16 a)
-{
-	TempArray[0] = '0' + a/10000;
-	TempArray[1] = '0' + (a%10000)/1000;
-	TempArray[2] = '0' + (a%1000)/100;
-	TempArray[3] = '0' + (a%100)/10;
-	TempArray[4] = '0' + (a%10);
-	TempArray[5] = 0;
-	return TempArray;
-}
-
-char *U32ToDecStr(char* buf, uint32 a)
-{
-	buf[0] = '0' + a/1000000000;
-	buf[1] = '0' + (a%1000000000)/100000000;
-	buf[2] = '0' + (a%100000000)/10000000;
-	buf[3] = '0' + (a%10000000)/1000000;
-	buf[4] = '0' + (a%1000000)/100000;
-	buf[5] = '0' + (a%100000)/10000;
-	buf[6] = '0' + (a%10000)/1000;
-	buf[7] = '0' + (a%1000)/100;
-	buf[8] = '0' + (a%100)/10;
-	buf[9] = '0' + (a%10);
-	buf[10] = 0;
-	return buf;
-}
-char *U32ToDecStr(uint32 a)
-{
-	return U32ToDecStr(TempArray,a);
-}
-char *U32ToDecStr(char* buf, uint32 a, int digits)
-{
-	if (digits < 1)
-		digits = 1;
-	else if (digits > 10)
-		digits = 10;
-
-	for (int i = 1; i <= digits; ++i)
-	{
-		buf[digits - i] = '0' + (a % 10);
-		a /= 10;
-	}
-	buf[digits] = 0;
-	return buf;
-}
-
-char *U16ToHexStr(uint16 a)
-{
-	TempArray[0] = a/4096 > 9?'A'+a/4096-10:'0' + a/4096;
-	TempArray[1] = (a%4096)/256 > 9?'A'+(a%4096)/256 - 10:'0' + (a%4096)/256;
-	TempArray[2] = (a%256)/16 > 9?'A'+(a%256)/16 - 10:'0' + (a%256)/16;
-	TempArray[3] = a%16 > 9?'A'+(a%16) - 10:'0' + (a%16);
-	TempArray[4] = 0;
-	return TempArray;
-}
-
-char *U8ToHexStr(uint8 a)
-{
-	TempArray[0] = a/16 > 9?'A'+a/16 - 10:'0' + a/16;
-	TempArray[1] = a%16 > 9?'A'+(a%16) - 10:'0' + (a%16);
-	TempArray[2] = 0;
-	return TempArray;
-}
-
-std::string stditoa(int n)
-{
-	char tempbuf[16];
-	sprintf(tempbuf, "%d", n);
-	return tempbuf;
-}
-
 
 std::string readNullTerminatedAscii(EMUFILE* is)
 {
@@ -571,100 +455,14 @@ std::string readNullTerminatedAscii(EMUFILE* is)
 }
 
 // replace all instances of victim with replacement
-std::string mass_replace(const std::string &source, const std::string &victim, const std::string &replacement)
-{
+std::string mass_replace(const std::string &source, const std::string &victim, 
+			 const std::string &replacement) {
 	std::string answer = source;
 	std::string::size_type j = 0;
 	while ((j = answer.find(victim, j)) != std::string::npos )
 	answer.replace(j, victim.length(), replacement);
 	return answer;
 }
-
-// XXX remove -tom7
-#if 0
-namespace UtfConverter
-{
-    void SeqValue(std::string& result, unsigned n)
-    {
-        if(n < 0x80)                 // <=7 bits
-            result += (char)n;
-        else
-        {
-            if(n < 0x800)            // <=11 bits
-                result += (char)(0xC0 + (n>>6));
-            else
-            {
-                if(n < 0x10000)      // <=16 bits
-                    result += (char)(0xE0 + (n>>12));
-                else                 // <=21 bits
-                {
-                    result += (char)(0xF0 + (n>>18));
-                    result += (char)(0x80 + ((n>>12)&63));
-                }
-                result += (char)(0x80 + ((n>>6)&63));
-            }
-            result += (char)(0x80 + (n&63));
-        }
-    }
-
-    unsigned DecData(const std::string& input, size_t& pos)
-    {
-        unsigned char headbyte = input[pos];
-        static const char sizes[16] =  { 1,1,1,1,1,1,1,1, 0,0,0,0,2,2,3,4 };
-        static const unsigned minimums[4] = { 0, 0x80, 0x800, 0x10000 };
-        static const char     masks[4]    = { 0x7F, 0x1F, 0x0F, 0x07 };
-        unsigned len = sizes[headbyte >> 4];
-        if(len < 1 || pos+len > input.size()) { ++pos; return '?'; }
-        unsigned result=0, shl=0;
-        for(unsigned n = len; --n > 0; shl += 6)
-        {
-            unsigned char byte = input[pos+n];
-            if((byte & 0xC0) != 0x80) { ++pos; return '?'; }
-            result |= (byte & 0x3F) << shl;
-        }
-        result |= (headbyte & masks[len-1]) << shl;
-        if(result < minimums[len-1]) { ++pos; return '?'; }
-        pos += len;
-        return result;
-    }
-
-
-    std::wstring FromUtf8(std::string& input) // string -> wstring
-    {
-        std::wstring result;
-        for(std::string::size_type pos = 0; pos < input.size(); )
-            result += DecData(input, pos);
-        return result;
-    }
-    
-    std::string ToUtf8(std::wstring& input) // wstring -> string
-    {
-        std::string result;
-        for(std::string::size_type pos = 0; pos < input.size(); ++pos)
-            SeqValue(result, input[pos]);
-        return result;
-    }
-}
-#endif
-
-
-#if 0  
-//convert a std::string to std::wstring
-std::wstring mbstowcs(std::string str) // UTF8->UTF32
-{
-	try {
-		return UtfConverter::FromUtf8(str);
-	} catch(std::exception) {
-		return L"(failed UTF-8 conversion)";
-	}
-}
-
-//convert a std::wstring to std::string
-std::string wcstombs(std::wstring str) // UTF32->UTF8
-{
-	return UtfConverter::ToUtf8(str);
-}
-#endif
 
 //TODO - dont we already have another  function that can do this
 std::string getExtension(const char* input) {
@@ -679,17 +477,4 @@ std::string getExtension(const char* input) {
 	for(k=0;k<extlen;k++)
 		ext[k]=tolower(ext[k]);
 	return ext;
-}
-
-//strips the file extension off a filename
-std::string StripExtension(std::string filename)
-{
-	return filename.substr(0, filename.find_last_of("."));
-}
-
-//strips the path off a filename
-std::string StripPath(std::string filename)
-{
-	int x = filename.find_last_of("\\") + 1;
-	return filename.substr(x, filename.length() - x);
 }
