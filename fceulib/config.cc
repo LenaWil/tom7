@@ -53,7 +53,7 @@ ugetab
 
   //allocate the string and concatenate the template with the compiler string
   if (!(aboutString = (char*)malloc(strlen(aboutTemplate) + strlen(compilerString) + 1)))
-    return NULL;
+    return nullptr;
 
   sprintf(aboutString,"%s%s",aboutTemplate,compilerString);
   return aboutString;

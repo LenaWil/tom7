@@ -1,25 +1,31 @@
-typedef struct {
+#ifndef __CART_H
+#define __CART_H
+
+struct CartInfo {
   /* Set by mapper/board code: */
-  void (*Power)(void);
-  void (*Reset)(void);
-  void (*Close)(void);
-  uint8 *SaveGame[4];     /* Pointers to memory to save/load. */
-  uint32 SaveGameLen[4];  /* How much memory to save/load. */
+  void (*Power)();
+  void (*Reset)();
+  void (*Close)();
+  /* Pointers to memory to save/load. */
+  uint8 *SaveGame[4];
+  /* How much memory to save/load. */
+  uint32 SaveGameLen[4];
 
   /* Set by iNES/UNIF loading code. */
-  int mirror;    /* As set in the header or chunk.
-           iNES/UNIF specific.  Intended
-           to help support games like "Karnov"
-           that are not really MMC3 but are
-           set to mapper 4.
-        */
-  int battery;      /* Presence of an actual battery. */
+  /* As set in the header or chunk.
+     iNES/UNIF specific.  Intended
+     to help support games like "Karnov"
+     that are not really MMC3 but are
+     set to mapper 4. */
+  int mirror;
+  /* Presence of an actual battery. */
+  int battery;
   uint8 MD5[16];
-  uint32 CRC32;     /* Should be set by the iNES/UNIF loading
-           code, used by mapper/board code, maybe
-           other code in the future.
-        */
-} CartInfo;
+  /* Should be set by the iNES/UNIF loading
+     code, used by mapper/board code, maybe
+     other code in the future. */
+  uint32 CRC32;
+};
 
 void FCEU_SaveGameSave(CartInfo *LocalHWInfo);
 void FCEU_LoadGameSave(CartInfo *LocalHWInfo);
@@ -27,7 +33,7 @@ void FCEU_ClearGameSave(CartInfo *LocalHWInfo);
 
 extern uint8 *Page[32],*VPage[8],*MMC5SPRVPage[8],*MMC5BGVPage[8];
 
-void ResetCartMapping(void);
+void ResetCartMapping();
 void SetupCartPRGMapping(int chip, uint8 *p, uint32 size, int ram);
 void SetupCartCHRMapping(int chip, uint8 *p, uint32 size, int ram);
 void SetupCartMirroring(int m, int hard, uint8 *extra);
@@ -94,3 +100,5 @@ void setntamem(uint8 *p, int ram, uint32 b);
 
 // TODO remove
 static constexpr int geniestage = 0;
+
+#endif
